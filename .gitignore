@@ -25,3 +25,4 @@ dist-ssr
 *.venv
 .env
 src_prompt.md
+./db/*

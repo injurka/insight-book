@@ -58,11 +58,10 @@ export async function processEpub(fileBuffer: ArrayBuffer, filename: string): Pr
   const safeName = `${Date.now()}_${filename.replace(/[^\w.-]/g, '_')}`
   const filePath = path.join(UPLOADS_PATH, safeName)
   await Bun.write(filePath, fileBuffer)
-
-  const { default: Epub } = await import('epub2') as any
+  const { EPub } = await import('epub2') as any
 
   return new Promise<number>((resolve, reject) => {
-    const epub = new Epub(filePath)
+    const epub = new EPub(filePath)
 
     epub.on('error', reject)
     epub.on('end', async () => {
@@ -78,13 +77,10 @@ export async function processEpub(fileBuffer: ArrayBuffer, filename: string): Pr
         let currentTotalLength = 0
         const hrefToPageMap: Record<string, number> = {}
 
-        // Собираем текст и карту страниц
         for (const item of spineItems) {
-          // Вычисляем, на какую страницу попадет начало этой главы
           const startPage = Math.floor(currentTotalLength / PAGE_SIZE_CHARS) + 1
 
           if (item.href) {
-            // Очищаем href от якорей (#) и путей (папок), чтобы сопоставить с TOC
             const baseHref = item.href.split('#')[0].split('/').pop() || item.href
             hrefToPageMap[baseHref] = startPage
           }
@@ -100,7 +96,7 @@ export async function processEpub(fileBuffer: ArrayBuffer, filename: string): Pr
                 const plain = root.text.replace(/[ \t]+/g, ' ').replace(/\n{2,}/g, '\n').trim()
                 if (plain) {
                   allTexts.push(plain)
-                  currentTotalLength += plain.length + 1 // +1 для символа переноса строки
+                  currentTotalLength += plain.length + 1
                 }
               }
               res()
@@ -108,7 +104,6 @@ export async function processEpub(fileBuffer: ArrayBuffer, filename: string): Pr
           })
         }
 
-        // Обогащаем оглавление номерами страниц
         toc = toc.map((t) => {
           let pageNum = 1
           if (t.href) {
