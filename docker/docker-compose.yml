@@ -49,23 +49,6 @@ services:
       - "traefik.http.services.insight-server.loadbalancer.server.port=4445"
       - "traefik.docker.network=trip-net"
 
-  insight-book-hanlp:
-    build:
-      context: .
-      dockerfile: docker/Dockerfile.hanlp
-    image: ${REGISTRY:-docker.io}/injurka/insight-book-hanlp:latest
-    restart: unless-stopped
-    volumes:
-      - hanlp-models:/root/.hanlp
-    networks:
-      - trip-net
-    healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8765/health')"]
-      interval: 15s
-      timeout: 10s
-      retries: 10
-      start_period: 180s
-
 networks:
   trip-net:
     external: true

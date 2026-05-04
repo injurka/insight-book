@@ -202,7 +202,7 @@ export async function handleGetPage(bookId: number, pageNum: number): Promise<Re
   if (!pageRow)
     return json({ error: 'Страница не найдена' }, 404)
 
-  const sentences = await tokenizePage(pageRow.content)
+  const sentences = tokenizePage(pageRow.content)
 
   const allWords = new Set<string>()
   for (const s of sentences) {
