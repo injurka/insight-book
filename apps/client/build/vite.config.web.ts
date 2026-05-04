@@ -17,7 +17,7 @@ const buildRevision = buildDate.toISOString()
 const appVersion = process.env.VITE_APP_VERSION || '1.0.0'
 
 export default defineConfig({
-  base: './',
+  base: '/',
   root: resolve(__dirname, '../src'),
   publicDir: resolve(__dirname, '../public'),
   envDir: resolve(__dirname, '../../'),
