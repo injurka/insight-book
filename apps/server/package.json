@@ -10,7 +10,6 @@
     "--------------------------------<      DEV       >--------------------------------": "",
     "dev": "bun --watch src/index.ts",
     "start": "bun src/index.ts",
-    "hanlp": "python hanlp_server.py",
     "--------------------------------<      BUILD     >--------------------------------": "",
     "build": "bun build ./src/index.ts --outdir ./dist --target bun --no-minify",
     "--------------------------------< LINT & FORMAT >---------------------------------": "",

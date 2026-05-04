@@ -29,7 +29,6 @@ services:
       - DB_PATH=/db/insight-book.sqlite
       - DICT_DB_PATH=/db/dictionary.sqlite
       - UPLOADS_PATH=/uploads
-      - HANLP_URL=http://insight-book-hanlp:8765/tokenize
       - LLM_API_KEY=${LLM_API_KEY}
       - LLM_API_URL=${LLM_API_URL:-https://aihubmix.com/v1}
     volumes:
@@ -37,9 +36,6 @@ services:
       - ./uploads:/uploads
     networks:
       - trip-net
-    depends_on:
-      insight-book-hanlp:
-        condition: service_healthy
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.insight-server.rule=Host(`insight-api.trip-schedu\
@@ -53,6 +49,3 @@ networks:
   trip-net:
     external: true
     name: trip-net
-
-volumes:
-  hanlp-models:
