@@ -1,7 +1,7 @@
-# Используем slim-образ для экономии места
+# Используем slim-образ
 FROM oven/bun:1.2-slim
 
-# 1. Устанавливаем системные зависимости, необходимые для компиляции nodejieba
+# 1. Системные зависимости для node-gyp
 RUN apt-get update && apt-get install -y \
     python3 \
     make \
@@ -11,32 +11,25 @@ RUN apt-get update && apt-get install -y \
 
 WORKDIR /app
 
-# 2. Копируем файлы зависимостей monorepo
-# Копируем корневой замок и package.json
+# 2. Копируем файлы конфигурации
 COPY package.json bun.lock* ./
-# Копируем package.json конкретных пакетов/приложений
 COPY apps/server/package.json ./apps/server/
-# Если есть общие пакеты (packages/*), скопируйте их package.json тоже:
-# COPY packages/shared/package.json ./packages/shared/
 
 # 3. Устанавливаем зависимости
-# Это скомпилирует nodejieba прямо внутри контейнера под Linux
-RUN bun install --force
+RUN bun install
 
-# 4. Копируем весь исходный код
+# 4. ПРИНУДИТЕЛЬНО пересобираем nodejieba под текущий контейнер (GLIBC)
+# Переходим в папку с модулем и собираем его
+RUN cd node_modules/nodejieba && bun run build || npm run build || bunx node-gyp rebuild
+
+# 5. Копируем исходный код (теперь локальный node_modules не затрет сборку, если есть .dockerignore!)
 COPY . .
 
-# 5. Переходим в директорию сервера
 WORKDIR /app/apps/server
 
-# 6. Проверяем наличие бинарника nodejieba (для самопроверки при сборке)
-RUN find ../../node_modules/nodejieba -name "*.node"
-
-# Настройки окружения по умолчанию
 ENV PORT=4445
 ENV NODE_ENV=production
 
 EXPOSE 4445
 
-# 7. Запускаем напрямую через bun (без билда)
 CMD ["bun", "run", "start"]
