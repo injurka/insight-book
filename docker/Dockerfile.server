@@ -1,26 +1,30 @@
-# =================================================================
-# Этап 1: "builder" - Установка зависимостей и сборка сервера
-# =================================================================
-FROM oven/bun:1-slim AS builder
+FROM oven/bun:1.2-slim
 
-WORKDIR /usr/src/app
+# Устанавливаем инструменты для компиляции C++ модулей
+RUN apt-get update && apt-get install -y \
+    python3 \
+    make \
+    g++ \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Копируем только файлы зависимостей
+COPY package.json bun.lock ./
+
+# Устанавливаем зависимости (без --ignore-scripts, чтобы nodejieba скомпилировалась)
+RUN bun install
+
+# Копируем остальной код
 COPY . .
 
-RUN bun install --ignore-scripts
-RUN bun --cwd=apps/server run build
+# Собираем проект (если используете билд)
+RUN bun run build
 
-# =================================================================
-# Этап 2: "release" - Финальный образ
-# =================================================================
-FROM oven/bun:1-slim
-
-WORKDIR /usr/src/app
-
-ENV NODE_ENV=production
-ENV PORT=4445
-
-COPY --from=builder /usr/src/app/apps/server/dist ./dist
+# Проверяем, что бинарник jieba существует (для отладки)
+RUN find node_modules/nodejieba -name "*.node"
 
 EXPOSE 4445
 
-CMD ["bun", "run", "dist/index.js"]
+# Запускаем
+CMD ["bun", "dist/index.js"]
