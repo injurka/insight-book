@@ -67,8 +67,12 @@ const store = useBooksStore()
 
 <style lang="scss" scoped>
 .analysis-loading {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
   padding: 24px 0;
   text-align: center;
+
   .loading-text {
     margin-top: 16px;
     color: var(--fg-secondary-color);

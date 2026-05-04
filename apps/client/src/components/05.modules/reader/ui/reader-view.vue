@@ -87,8 +87,9 @@ function goToPage(pageNum?: number) {
 }
 
 function onWordClick(token: any, sentenceId: number, tokenIndex: number, event: MouseEvent) {
-  if (token.pos === 'PU')
+  if (token.pos === 'x')
     return
+
   event.stopPropagation()
   store.handleWordClick(token.word, token.pos, sentenceId, tokenIndex, event.target as HTMLElement)
 }
@@ -140,7 +141,7 @@ function onScroll() {
               class="word"
               :class="{
                 'is-active': store.activeTokenId === `${sentence.sentenceId}-${i}`,
-                'is-punctuation': token.pos === 'PU',
+                'is-punctuation': token.pos === 'x',
               }"
               @click="onWordClick(token, sentence.sentenceId, i, $event)"
             >
@@ -153,10 +154,8 @@ function onScroll() {
       <ReaderFooter @prev="prevPage" @next="nextPage" />
     </div>
 
-    <!-- Всплывающее окно со словом -->
     <WordPopover />
 
-    <!-- Модалка оглавления -->
     <KitDialog v-model:visible="store.tocOpen" title="Оглавление" :max-width="500" icon="mdi:format-list-bulleted">
       <div v-if="store.currentToc.length === 0" class="empty-state">
         <p>Оглавление пусто или не загружено.</p>
@@ -176,7 +175,6 @@ function onScroll() {
       </div>
     </KitDialog>
 
-    <!-- Сайдбар/Модалка анализа предложения через AI -->
     <SentenceAnalysis />
   </div>
 </template>

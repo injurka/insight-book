@@ -55,7 +55,6 @@ function openSaveDialog() {
 }
 
 function closePopover(event?: MouseEvent) {
-  // Проверяем, был ли клик внутри другого поповера или диалога
   const target = event?.target as HTMLElement | null
   if (target?.closest('.kit-dialog') || target?.closest('.word-popover')) {
     return
@@ -83,7 +82,6 @@ onUnmounted(() => {
         @click.stop
       >
         <div class="popover-content">
-          <!-- Центрированный Пиньинь -->
           <div class="pinyin-header">
             {{ store.wordPopover.showAi ? (store.wordPopover.aiPinyin || store.wordPopover.pinyin) : store.wordPopover.pinyin }}
           </div>
@@ -93,15 +91,12 @@ onUnmounted(() => {
             <KitSkeleton width="80%" height="16px" />
           </div>
 
-          <!-- Контент -->
           <div v-else class="popover-body">
-            <!-- Просто рендерим готовый HTML -->
             <div
               class="translation"
               v-html="store.wordPopover.showAi ? store.wordPopover.aiTranslation : store.wordPopover.translation"
             />
 
-            <!-- Детальный анализ от AI -->
             <template v-if="store.wordPopover.showAi && store.wordPopover.aiData">
               <div v-if="store.wordPopover.aiData.grammarRules?.length" class="ai-section">
                 <div class="ai-subtitle">
