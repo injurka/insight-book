@@ -18,11 +18,11 @@ jobs:
       version: ${{ steps.meta.outputs.version }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v4
 
       - name: Docker meta
         id: meta
-        uses: docker/metadata-action@v6
+        uses: docker/metadata-action@v5
         with:
           images: ${{ env.CLIENT_IMAGE }}
           tags: |
@@ -56,11 +56,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v4
 
       - name: Docker meta
         id: meta
-        uses: docker/metadata-action@v6
+        uses: docker/metadata-action@v5
         with:
           images: ${{ env.SERVER_IMAGE }}
           tags: |
@@ -115,8 +115,30 @@ jobs:
 
             docker image prune -f
 
-  # ─── JOB 4: Сборка Tauri (Linux + Windows) ──────────────────────
+  # ─── JOB 4: Создание draft-релиза (одна точка) ──────────────────
+  create-release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      release_id: ${{ steps.create.outputs.id }}
+      upload_url: ${{ steps.create.outputs.upload_url }}
+    steps:
+      - name: Create draft release
+        id: create
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: 'Release ${{ github.ref_name }}'
+          body: 'See assets below to download.'
+          draft: true
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # ─── JOB 5: Сборка Tauri (Linux + Windows) ──────────────────────
   build-tauri:
+    needs: [create-release]
     permissions:
       contents: write
     strategy:
@@ -164,7 +186,7 @@ jobs:
       - name: Install frontend dependencies
         run: bun install
         env:
-          SKIP_INSTALL_SIMPLE_GIT_HOOKS: 1  # ← FIX: предотвращает падение postinstall на Windows
+          SKIP_INSTALL_SIMPLE_GIT_HOOKS: 1
 
       - name: Build Tauri
         uses: tauri-apps/tauri-action@v0
@@ -172,15 +194,12 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           VITE_APP_VERSION: ${{ github.ref_name }}
         with:
-          tagName: ${{ github.ref_name }}
-          releaseName: 'Release ${{ github.ref_name }}'
-          releaseBody: 'See assets below to download.'
-          releaseDraft: true
-          prerelease: false
+          releaseId: ${{ needs.create-release.outputs.release_id }}
           args: ${{ matrix.args }}
 
-  # ─── JOB 5: Сборка Tauri (Android APK) ─────────────────────────
+  # ─── JOB 6: Сборка Tauri (Android APK) ─────────────────────────
   build-tauri-android:
+    needs: [create-release]
     permissions:
       contents: write
     runs-on: ubuntu-latest
@@ -223,11 +242,11 @@ jobs:
       - name: Install frontend dependencies
         run: bun install
         env:
-          SKIP_INSTALL_SIMPLE_GIT_HOOKS: 1  # ← FIX: единообразно для всех платформ
+          SKIP_INSTALL_SIMPLE_GIT_HOOKS: 1
 
       - name: Initialize Android project
-        if: ${{ !hashFiles('src-tauri/gen/android') }}
-        run: bun tauri android init
+        if: hashFiles('src-tauri/gen/android') == ''
+        run: bun run tauri:android:init
 
       - name: Setup Android signing
         run: |
@@ -243,7 +262,7 @@ jobs:
           EOF
 
       - name: Build Android APK
-        run: bun tauri android build --apk
+        run: bun run tauri:android:build
         env:
           NDK_HOME: ${{ env.ANDROID_HOME }}/ndk/26.3.11579264
           VITE_APP_VERSION: ${{ github.ref_name }}
@@ -252,7 +271,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
-          draft: true
+          release_id: ${{ needs.create-release.outputs.release_id }}
           files: |
             src-tauri/gen/android/app/build/outputs/apk/universal/release/*.apk
         env:
