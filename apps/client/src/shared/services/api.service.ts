@@ -1,6 +1,6 @@
 import type { Book, BookStats, GeminiAnalysis, PagePayload, TocItem, UserDictItem } from '../types/models'
 
-const BASE = import.meta.env.VITE_API_URL || 'http://localhost:4445'
+const BASE = import.meta.env.VITE_API_URL || 'https://insight-api.trip-scheduler.ru'
 
 async function request<T>(url: string, opts?: RequestInit): Promise<T> {
   const res = await fetch(`${BASE}${url}`, opts)
