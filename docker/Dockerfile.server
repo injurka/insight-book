@@ -6,7 +6,8 @@ FROM oven/bun:1-slim AS builder
 WORKDIR /usr/src/app
 COPY . .
 
-RUN bun install --ignore-scripts
+# Убрали --ignore-scripts
+RUN bun install
 RUN bun --cwd=apps/server run build
 
 # =================================================================

@@ -7,6 +7,7 @@ export default antfu({
     '**/assets/**',
     '**/public/**',
     'auto-imports.d.ts',
+    '**/vite-env.d.ts',
     'bun.lock',
   ],
 })

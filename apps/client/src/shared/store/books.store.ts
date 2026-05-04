@@ -181,7 +181,7 @@ export const useBooksStore = defineStore('books', () => {
         wordPopover.value.aiPinyin = vocabMatch?.pinyin || ''
       }
     }
-    catch (e) {
+    catch {
       if (wordPopover.value) {
         wordPopover.value.aiTranslation = 'Ошибка при переводе ИИ'
       }
@@ -249,7 +249,7 @@ export const useBooksStore = defineStore('books', () => {
       const existingWord = await api.dictionary.get(wordData.word)
       wordToEdit.value = existingWord
     }
-    catch (e) {
+    catch {
       const pinyin = wordData.showAi ? (wordData.aiPinyin || wordData.pinyin) : wordData.pinyin
       const translation = wordData.showAi ? (wordData.aiTranslation || wordData.translation) : wordData.translation
       wordToEdit.value = { word: wordData.word, pinyin, translation }

@@ -33,7 +33,7 @@ const CACHE_CONFIG = {
     images: 365 * 24 * 60 * 60,
     fonts: 365 * 24 * 60 * 60,
     icons: 30 * 24 * 60 * 60,
-    content: 7 * 24 * 60 * 60, 
+    content: 7 * 24 * 60 * 60,
     static: {
       hashed: 365 * 24 * 60 * 60,
       vendor: 30 * 24 * 60 * 60,

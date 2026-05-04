@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 import type { ServeOptionsRoutes } from 'bun'
 
 function logRoutes(routes: ServeOptionsRoutes, port: number) {

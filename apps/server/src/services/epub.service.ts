@@ -1,5 +1,5 @@
-import type { BookRow, TocItem } from '../types'
-import { createWriteStream, mkdirSync } from 'node:fs'
+import type { TocItem } from '../types'
+import { mkdirSync } from 'node:fs'
 import path from 'node:path'
 import { parse as parseHtml } from 'node-html-parser'
 import { PAGE_SIZE_CHARS, UPLOADS_PATH } from '../config'
