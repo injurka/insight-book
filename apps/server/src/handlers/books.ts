@@ -3,7 +3,7 @@ import { CORS_HEADERS } from '../config'
 import { db } from '../db'
 import { getUserDictionary, getWordFromUserDictionary, lookupSingleWord, lookupWords, removeFromUserDictionary, upsertToUserDictionary } from '../services/dictionary.service'
 import { processEpub } from '../services/epub.service'
-import { analyzeSentence } from '../services/gemini.service'
+import { analyzeBookExcerpt, analyzeSentence } from '../services/gemini.service'
 import { tokenizePage } from '../services/nlp.service'
 
 function json(data: unknown, status = 200) {
@@ -22,6 +22,122 @@ export function handleGetBooks(): Response {
     ORDER BY b.createdAt DESC
   `).all()
   return json(books)
+}
+
+// GET /api/books/:id/info
+export function handleGetBookInfo(id: number): Response {
+  const book = db.prepare(`
+    SELECT b.*, rp.currentPage 
+    FROM books b 
+    LEFT JOIN reading_progress rp ON rp.bookId = b.id 
+    WHERE b.id = ?
+  `).get(id) as any
+
+  if (!book)
+    return json({ error: 'Книга не найдена' }, 404)
+
+  const statsRow = db.prepare(`SELECT * FROM book_stats WHERE bookId = ?`).get(id) as any
+
+  if (statsRow && statsRow.tags) {
+    statsRow.tags = JSON.parse(statsRow.tags)
+  }
+
+  return json({
+    ...book,
+    toc: book.toc ? JSON.parse(book.toc) : [],
+    stats: statsRow || null,
+  })
+}
+
+// POST /api/books/:id/analyze-book
+export async function handleAnalyzeBookStats(id: number): Promise<Response> {
+  try {
+    const book = db.prepare(`SELECT id FROM books WHERE id = ?`).get(id)
+    if (!book)
+      return json({ error: 'Книга не найдена' }, 404)
+
+    const pages = db.prepare(`SELECT content FROM book_pages WHERE bookId = ? ORDER BY pageNum ASC`).all(id) as { content: string }[]
+    if (!pages.length)
+      return json({ error: 'Страницы не найдены' }, 400)
+
+    const fullText = pages.map(p => p.content).join('\n')
+
+    const chineseChars = fullText.match(/[\u4E00-\u9FA5]/g) || []
+    const totalChars = chineseChars.length
+    const uniqueChars = new Set(chineseChars).size
+
+    const excerpt = fullText.substring(0, 3000)
+    const aiData = await analyzeBookExcerpt(excerpt)
+
+    const tagsJson = JSON.stringify(aiData.tags || [])
+
+    db.prepare(`
+      INSERT INTO book_stats (bookId, description, difficulty, tags, totalChars, uniqueChars, createdAt)
+      VALUES (?, ?, ?, ?, ?, ?, datetime('now'))
+      ON CONFLICT(bookId) DO UPDATE SET
+        description = excluded.description,
+        difficulty = excluded.difficulty,
+        tags = excluded.tags,
+        totalChars = excluded.totalChars,
+        uniqueChars = excluded.uniqueChars
+    `).run(id, aiData.description, aiData.difficulty, tagsJson, totalChars, uniqueChars)
+
+    const newStats = db.prepare(`SELECT * FROM book_stats WHERE bookId = ?`).get(id) as any
+    newStats.tags = JSON.parse(newStats.tags)
+
+    return json({ success: true, stats: newStats })
+  }
+  catch (e: any) {
+    return json({ error: e.message }, 500)
+  }
+}
+
+// PATCH /api/books/:id/cover
+export async function handleUpdateCover(req: Request, id: number): Promise<Response> {
+  try {
+    const formData = await req.formData()
+    const file = formData.get('file') as File | null
+    if (!file)
+      return json({ error: 'Файл не передан' }, 400)
+
+    const buffer = await file.arrayBuffer()
+    const base64 = Buffer.from(buffer).toString('base64')
+    const mimeType = file.type || 'image/jpeg'
+    const coverBase64 = `data:${mimeType};base64,${base64}`
+
+    db.prepare(`UPDATE books SET coverBase64 = ? WHERE id = ?`).run(coverBase64, id)
+
+    return json({ success: true, coverBase64 })
+  }
+  catch (e: any) {
+    return json({ error: e.message }, 500)
+  }
+}
+
+// PATCH /api/books/:id/stats
+export async function handleUpdateStats(req: Request, id: number): Promise<Response> {
+  try {
+    const body = await req.json() as { description?: string, difficulty?: string, tags?: string[] }
+    const tagsJson = JSON.stringify(body.tags || [])
+
+    // Используем UPSERT: если статистики нет, создадим с нулями для символов
+    db.prepare(`
+      INSERT INTO book_stats (bookId, description, difficulty, tags, totalChars, uniqueChars, createdAt)
+      VALUES (?, ?, ?, ?, 0, 0, datetime('now'))
+      ON CONFLICT(bookId) DO UPDATE SET
+        description = excluded.description,
+        difficulty = excluded.difficulty,
+        tags = excluded.tags
+    `).run(id, body.description || '', body.difficulty || '', tagsJson)
+
+    const stats = db.prepare(`SELECT * FROM book_stats WHERE bookId = ?`).get(id) as any
+    stats.tags = JSON.parse(stats.tags)
+
+    return json({ success: true, stats })
+  }
+  catch (e: any) {
+    return json({ error: e.message }, 500)
+  }
 }
 
 // POST /api/books/upload

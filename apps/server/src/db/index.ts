@@ -50,6 +50,18 @@ db.run(`
 `)
 
 db.run(`
+  CREATE TABLE IF NOT EXISTS book_stats (
+    bookId      INTEGER PRIMARY KEY REFERENCES books(id) ON DELETE CASCADE,
+    description TEXT,
+    difficulty  TEXT,
+    tags        TEXT,
+    totalChars  INTEGER DEFAULT 0,
+    uniqueChars INTEGER DEFAULT 0,
+    createdAt   TEXT NOT NULL DEFAULT (datetime('now'))
+  )
+`)
+
+db.run(`
   CREATE TABLE IF NOT EXISTS nlp_cache (
     bookId   INTEGER NOT NULL,
     pageNum  INTEGER NOT NULL,

@@ -1,3 +1,12 @@
+export interface BookStats {
+  bookId: number
+  description: string
+  difficulty: string
+  tags: string[]
+  totalChars: number
+  uniqueChars: number
+}
+
 export interface Book {
   id: number
   title: string
@@ -6,6 +15,8 @@ export interface Book {
   totalPages: number
   currentPage: number | null
   createdAt: string
+  toc?: TocItem[]
+  stats?: BookStats | null
 }
 
 export interface TocItem {
@@ -14,6 +25,7 @@ export interface TocItem {
   title: string
   order: number
   level: number
+  pageNum?: number
 }
 
 export interface TokenizedWord {

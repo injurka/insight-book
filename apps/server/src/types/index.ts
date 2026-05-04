@@ -9,12 +9,22 @@ export interface BookRow {
   createdAt: string
 }
 
+export interface BookStats {
+  bookId: number
+  description: string
+  difficulty: string
+  tags: string[]
+  totalChars: number
+  uniqueChars: number
+}
+
 export interface TocItem {
   id: string
   href: string
   title: string
   order: number
   level: number
+  pageNum?: number // <--- Добавили поле
 }
 
 export interface TokenizedWord {

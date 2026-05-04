@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Icon } from '@iconify/vue'
+import { computed, useSlots } from 'vue'
 import { vRipple } from '~/shared/directives/ripple'
 
 interface Props {
@@ -66,6 +67,7 @@ const componentClasses = computed(() => [
   transition: all 0.2s ease-in-out;
   box-shadow: var(--s-s);
   white-space: nowrap;
+  flex-shrink: 0; /* Запрещаем сжатие кнопки в flex-контейнерах */
 
   & * {
     pointer-events: none;
@@ -89,14 +91,27 @@ const componentClasses = computed(() => [
     color: var(--fg-disabled-color) !important;
   }
 
-  &--density-compact {
-    height: 28px !important;
-    padding: 0 8px;
-    font-size: 0.8rem;
+  /* --- Размеры (Sizes) --- */
 
+  &--size-xs {
+    height: 28px;
+    padding: 0 0.5rem;
+    font-size: 0.75rem;
+    border-radius: 4px;
     &.kit-btn--icon-only {
-      width: 28px;
       padding: 0;
+      width: 28px;
+    }
+  }
+
+  &--size-sm {
+    height: 32px;
+    padding: 0 0.75rem;
+    font-size: 0.85rem;
+    border-radius: 6px;
+    &.kit-btn--icon-only {
+      padding: 0;
+      width: 32px;
     }
   }
 
@@ -110,6 +125,30 @@ const componentClasses = computed(() => [
       width: 38px;
     }
   }
+
+  &--size-lg {
+    height: 44px;
+    padding: 0.75rem 1.25rem;
+    font-size: 1rem;
+    border-radius: 8px;
+    &.kit-btn--icon-only {
+      padding: 0;
+      width: 44px;
+    }
+  }
+
+  &--density-compact {
+    height: 28px !important;
+    padding: 0 8px;
+    font-size: 0.8rem;
+
+    &.kit-btn--icon-only {
+      width: 28px;
+      padding: 0;
+    }
+  }
+
+  /* --- Варианты (Variants) --- */
 
   &--solid {
     &.kit-btn--color-primary {
@@ -164,6 +203,11 @@ const componentClasses = computed(() => [
     align-items: center;
     justify-content: center;
     width: 100%;
+  }
+
+  &-icon {
+    flex-shrink: 0;
+    font-size: 1.25em;
   }
 
   .mr-2 {

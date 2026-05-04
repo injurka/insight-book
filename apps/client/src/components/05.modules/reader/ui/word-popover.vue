@@ -152,10 +152,9 @@ onUnmounted(() => {
 </template>
 
 <style lang="scss" scoped>
-/* Стили остаются без изменений */
 .word-popover {
   position: fixed;
-  background-color: rgba(var(--bg-tertiary-color-rgb, 33, 38, 45), 0.95);
+  background-color: rgba(var(--bg-tertiary-color-rgb, 33, 38, 45), 0.8);
   backdrop-filter: blur(10px);
   border: 1px solid var(--border-primary-color);
   border-radius: 12px;
@@ -176,11 +175,12 @@ onUnmounted(() => {
   }
 
   .pinyin-header {
+    background-color: rgba(var(--bg-tertiary-color-rgb, 33, 38, 45), 0.8);
     text-align: center;
     font-weight: 600;
     font-size: 1.15rem;
     color: var(--fg-accent-color);
-    padding: 12px 16px 4px 16px;
+    padding: 12px 16px 8px 16px;
     position: sticky;
     top: 0;
     background: inherit;
@@ -189,6 +189,7 @@ onUnmounted(() => {
 
   .popover-body {
     padding: 8px;
+    position: relative;
   }
 
   .ai-loader {
@@ -225,7 +226,6 @@ onUnmounted(() => {
       padding-left: 10px;
       margin-top: 4px;
       margin-bottom: 8px;
-      border-left: 2px solid var(--border-secondary-color);
     }
     :deep(.dict-bullet) {
       display: block;

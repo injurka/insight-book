@@ -70,13 +70,25 @@ export async function processEpub(fileBuffer: ArrayBuffer, filename: string): Pr
         const title = epub.metadata?.title || filename.replace('.epub', '')
         const author = epub.metadata?.creator || null
         const coverBase64 = extractCover(epub)
-        const toc = extractToc(epub)
-        const tocJson = JSON.stringify(toc)
+        let toc = extractToc(epub)
 
         const allTexts: string[] = []
         const spineItems = epub.spine?.contents || []
 
+        let currentTotalLength = 0
+        const hrefToPageMap: Record<string, number> = {}
+
+        // Собираем текст и карту страниц
         for (const item of spineItems) {
+          // Вычисляем, на какую страницу попадет начало этой главы
+          const startPage = Math.floor(currentTotalLength / PAGE_SIZE_CHARS) + 1
+
+          if (item.href) {
+            // Очищаем href от якорей (#) и путей (папок), чтобы сопоставить с TOC
+            const baseHref = item.href.split('#')[0].split('/').pop() || item.href
+            hrefToPageMap[baseHref] = startPage
+          }
+
           await new Promise<void>((res) => {
             epub.getChapter(item.id, (err: any, text: string) => {
               if (!err && text) {
@@ -86,14 +98,27 @@ export async function processEpub(fileBuffer: ArrayBuffer, filename: string): Pr
                   n.insertAdjacentHTML('afterend', '\n')
                 })
                 const plain = root.text.replace(/[ \t]+/g, ' ').replace(/\n{2,}/g, '\n').trim()
-                if (plain)
+                if (plain) {
                   allTexts.push(plain)
+                  currentTotalLength += plain.length + 1 // +1 для символа переноса строки
+                }
               }
               res()
             })
           })
         }
 
+        // Обогащаем оглавление номерами страниц
+        toc = toc.map((t) => {
+          let pageNum = 1
+          if (t.href) {
+            const baseHref = t.href.split('#')[0].split('/').pop() || t.href
+            pageNum = hrefToPageMap[baseHref] || 1
+          }
+          return { ...t, pageNum }
+        })
+
+        const tocJson = JSON.stringify(toc)
         const fullText = allTexts.join('\n')
         const pages = chunkText(fullText, PAGE_SIZE_CHARS)
 

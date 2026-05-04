@@ -4,14 +4,13 @@
 FROM oven/bun:1.2.15 AS builder
 
 WORKDIR /usr/src/app
-
 COPY . .
-
-RUN bun install --ignore-scripts
-RUN bun --cwd=apps/client run build
 
 ARG V_CLIENT="dev"
 ENV VITE_APP_VERSION=$V_CLIENT
+
+RUN bun install --ignore-scripts
+RUN bun --cwd=apps/client run build
 
 # =================================================================
 # Этап 2: "release" - Создание финального образа с Nginx

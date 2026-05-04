@@ -1,4 +1,4 @@
-import type { Book, GeminiAnalysis, PagePayload, TocItem, UserDictItem } from '../types/models'
+import type { Book, BookStats, GeminiAnalysis, PagePayload, TocItem, UserDictItem } from '../types/models'
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { api } from '../services/api.service'
@@ -20,9 +20,12 @@ export interface WordPopoverData {
 export const useBooksStore = defineStore('books', () => {
   const books = ref<Book[]>([])
   const currentBook = ref<Book | null>(null)
+  const currentBookInfo = ref<Book | null>(null)
   const currentPage = ref<PagePayload | null>(null)
+
   const isLoading = ref(false)
   const isPageLoading = ref(false)
+  const isAnalyzingBook = ref(false)
   const uploadProgress = ref(0)
 
   const activeTokenId = ref<string | null>(null)
@@ -37,7 +40,6 @@ export const useBooksStore = defineStore('books', () => {
   const tocOpen = ref(false)
   let lastTocBookId = 0
 
-  // State for Add/Edit Word Modal
   const addEditWordModalOpen = ref(false)
   const wordToEdit = ref<Partial<UserDictItem> | null>(null)
 
@@ -48,6 +50,46 @@ export const useBooksStore = defineStore('books', () => {
     }
     finally {
       isLoading.value = false
+    }
+  }
+
+  async function fetchBookInfo(id: number) {
+    isLoading.value = true
+    try {
+      currentBookInfo.value = await api.books.getInfo(id)
+    }
+    finally {
+      isLoading.value = false
+    }
+  }
+
+  async function analyzeFullBook(id: number) {
+    isAnalyzingBook.value = true
+    try {
+      const res = await api.books.analyzeBook(id)
+      if (currentBookInfo.value && currentBookInfo.value.id === id) {
+        currentBookInfo.value.stats = res.stats
+      }
+    }
+    finally {
+      isAnalyzingBook.value = false
+    }
+  }
+
+  async function updateBookCover(id: number, file: File) {
+    const res = await api.books.updateCover(id, file)
+    if (currentBookInfo.value && currentBookInfo.value.id === id) {
+      currentBookInfo.value.coverBase64 = res.coverBase64
+    }
+    const listBook = books.value.find(b => b.id === id)
+    if (listBook)
+      listBook.coverBase64 = res.coverBase64
+  }
+
+  async function updateBookStats(id: number, data: Partial<BookStats>) {
+    const res = await api.books.updateStats(id, data)
+    if (currentBookInfo.value && currentBookInfo.value.id === id) {
+      currentBookInfo.value.stats = res.stats
     }
   }
 
@@ -219,7 +261,7 @@ export const useBooksStore = defineStore('books', () => {
     await api.dictionary.upsert(item)
     addEditWordModalOpen.value = false
     const dictStore = useDictionaryStore()
-    dictStore.fetchDictionary() // Обновляем список слов на странице словаря
+    dictStore.fetchDictionary()
   }
 
   async function removeFromDict(word: string) {
@@ -232,9 +274,11 @@ export const useBooksStore = defineStore('books', () => {
   return {
     books,
     currentBook,
+    currentBookInfo,
     currentPage,
     isLoading,
     isPageLoading,
+    isAnalyzingBook,
     uploadProgress,
     activeTokenId,
     wordPopover,
@@ -246,6 +290,10 @@ export const useBooksStore = defineStore('books', () => {
     tocOpen,
     addEditWordModalOpen,
     wordToEdit,
+    fetchBookInfo,
+    analyzeFullBook,
+    updateBookCover,
+    updateBookStats,
     openBookById,
     fetchBooks,
     uploadBook,

@@ -47,6 +47,8 @@ function goBack() {
     overflow: hidden;
     text-overflow: ellipsis;
     color: var(--fg-secondary-color);
+    flex-shrink: 1;
+    min-width: 0;
   }
 
   .spacer {

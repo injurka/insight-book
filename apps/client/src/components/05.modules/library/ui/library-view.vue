@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { KitBtn, KitSkeleton } from '~/components/01.kit'
+import { KitBtn, KitDialog, KitSkeleton } from '~/components/01.kit'
 import { ThemesVariant, useChangeTheme } from '~/shared/composables/use-change-theme'
 import { useBooksStore } from '~/shared/store/books.store'
 
@@ -10,6 +10,8 @@ const router = useRouter()
 const fileInput = ref<HTMLInputElement | null>(null)
 
 const { theme, toggleTheme } = useChangeTheme()
+
+const dictOpen = ref(false)
 
 onMounted(() => {
   store.fetchBooks()
@@ -23,12 +25,12 @@ function onFileChange(e: Event) {
   }
 }
 
-function openBook(book: any) {
-  store.openBook(book)
-  router.push({
-    path: '/reader',
-    query: { bookId: book.id, page: book.currentPage || 1 },
-  })
+function openBookInfo(book: any) {
+  router.push(`/book/${book.id}`)
+}
+
+function openDictionary() {
+  router.push(`/dictionary`)
 }
 </script>
 
@@ -45,7 +47,7 @@ function openBook(book: any) {
           variant="text"
           @click="toggleTheme"
         />
-        <KitBtn icon="mdi:book-alphabet" variant="outlined" color="secondary" @click="router.push('/dictionary')">
+        <KitBtn icon="mdi:book-alphabet" variant="outlined" color="secondary" @click="openDictionary">
           Мой словарь
         </KitBtn>
         <KitBtn icon="mdi:upload" color="primary" @click="fileInput?.click()">
@@ -57,9 +59,7 @@ function openBook(book: any) {
 
     <div v-if="store.isLoading" class="books-grid">
       <div v-for="i in 4" :key="i" class="book-card-skeleton">
-        <KitSkeleton width="100%" height="240px" border-radius="12px" class="mb-3" />
-        <KitSkeleton width="80%" height="20px" />
-        <KitSkeleton width="50%" height="16px" />
+        <KitSkeleton width="100%" height="270px" border-radius="12px" class="mb-3" />
       </div>
     </div>
 
@@ -69,7 +69,7 @@ function openBook(book: any) {
     </div>
 
     <div v-else class="books-grid">
-      <div v-for="book in store.books" :key="book.id" class="book-card" @click="openBook(book)">
+      <div v-for="book in store.books" :key="book.id" class="book-card" @click="openBookInfo(book)">
         <div class="cover-wrapper">
           <img v-if="book.coverBase64 && book.coverBase64.length > 100" :src="book.coverBase64" alt="Обложка" class="cover-img">
           <div v-else class="cover-placeholder">
@@ -93,10 +93,29 @@ function openBook(book: any) {
         </div>
       </div>
     </div>
+
+    <KitDialog v-model:visible="dictOpen" title="Мой словарь" :max-width="600" icon="mdi:book-open-page-variant">
+      <div v-if="store.userDict.length === 0" class="empty-dict">
+        <p>Вы пока не добавили ни одного слова в словарь.</p>
+      </div>
+      <div v-else class="dict-list">
+        <div v-for="item in store.userDict" :key="item.id" class="dict-item">
+          <div class="dict-item-content">
+            <div class="dict-word">
+              <span class="hanzi">{{ item.word }}</span>
+              <span class="pinyin">{{ item.pinyin }}</span>
+            </div>
+            <div class="dict-translation" v-html="item.translation" />
+          </div>
+          <KitBtn icon="mdi:delete" variant="text" size="xs" @click="store.removeFromDict(item.word)" />
+        </div>
+      </div>
+    </KitDialog>
   </div>
 </template>
 
 <style lang="scss" scoped>
+/* Стили остаются идентичными оригинальным, чтобы не ломать верстку */
 .library-view {
   padding: 32px;
   max-width: 1200px;
@@ -253,6 +272,66 @@ function openBook(book: any) {
           transition: width 0.3s ease;
         }
       }
+    }
+  }
+}
+
+.dict-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.dict-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px;
+  background-color: var(--bg-secondary-color);
+  border-radius: 8px;
+  border: 1px solid var(--border-secondary-color);
+
+  .dict-item-content {
+    flex-grow: 1;
+  }
+
+  .dict-word {
+    margin-bottom: 4px;
+
+    .hanzi {
+      font-size: 1.2rem;
+      font-weight: bold;
+      margin-right: 8px;
+      color: var(--fg-accent-color);
+    }
+
+    .pinyin {
+      font-size: 0.9rem;
+      color: var(--fg-secondary-color);
+    }
+  }
+
+  .dict-translation {
+    font-size: 0.95rem;
+    color: var(--fg-primary-color);
+    line-height: 1.4;
+
+    :deep(b) {
+      font-weight: 600;
+    }
+    :deep(.dict-pos) {
+      color: var(--fg-success-color);
+      font-style: italic;
+      font-size: 0.9em;
+    }
+    :deep(.dict-color) {
+      color: var(--fg-info-color);
+    }
+    :deep(.dict-example) {
+      color: var(--fg-secondary-color);
+      display: block;
+      margin-top: 4px;
+      padding-left: 8px;
     }
   }
 }

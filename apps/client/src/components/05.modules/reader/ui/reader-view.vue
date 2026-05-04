@@ -2,7 +2,8 @@
 import { useSwipe } from '@vueuse/core'
 import { ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { KitDialog, KitSkeleton } from '~/components/01.kit'
+import { KitDialog } from '~/components/01.kit'
+import { PageLoader } from '~/components/02.shared/page-loader'
 import { useBooksStore } from '~/shared/store/books.store'
 
 import ReaderFooter from './reader-footer.vue'
@@ -76,6 +77,15 @@ function nextPage() {
   }
 }
 
+function goToPage(pageNum?: number) {
+  if (!pageNum || !store.currentBook)
+    return
+  store.tocOpen = false
+  store.loadPage(store.currentBook.id, pageNum)
+  router.replace({ query: { ...route.query, page: pageNum } })
+  readerViewRef.value?.scrollTo({ top: 0, behavior: 'smooth' })
+}
+
 function onWordClick(token: any, sentenceId: number, tokenIndex: number, event: MouseEvent) {
   if (token.pos === 'PU')
     return
@@ -105,8 +115,17 @@ function onScroll() {
       <ReaderHeader />
 
       <div class="reader-content-wrapper">
-        <div v-if="store.isPageLoading || store.isLoading" class="reader-loading container">
-          <KitSkeleton v-for="i in 15" :key="i" width="100%" height="24px" class="mb-4" />
+        <!-- Красивый лоудер вместо скелетона -->
+        <div v-if="store.isPageLoading || store.isLoading" class="reader-loading-wrapper">
+          <div class="spinner-box">
+            <PageLoader />
+          </div>
+          <h3 class="loading-text">
+            Подготовка страницы...
+          </h3>
+          <p class="loading-subtext">
+            Первичное чтение текста и распознавание иероглифов может занять несколько секунд.
+          </p>
         </div>
 
         <div v-else-if="store.currentPage" class="reader-content container">
@@ -148,8 +167,11 @@ function onScroll() {
           :key="item.id"
           class="toc-item"
           :style="{ paddingLeft: `${(item.level - 1) * 16}px` }"
+          @click="goToPage(item.pageNum)"
         >
-          {{ item.title }}
+          <span class="toc-title">{{ item.title }}</span>
+          <span class="toc-dots" />
+          <span class="toc-page">{{ item.pageNum || '-' }}</span>
         </div>
       </div>
     </KitDialog>
@@ -202,11 +224,40 @@ function onScroll() {
   }
 }
 
-.reader-loading {
-  max-width: 800px;
-  margin: 0 auto;
-  padding: 48px 24px;
+/* Стили для лоудера загрузки страницы */
+.reader-loading-wrapper {
   flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 32px;
+  text-align: center;
+
+  .spinner-box {
+    height: 80px;
+    margin-bottom: 24px;
+
+    /* Убираем min-height у внутреннего лоудера, если он был, чтобы не ломать верстку */
+    :deep(.page-loader) {
+      min-height: unset;
+    }
+  }
+
+  .loading-text {
+    font-size: 1.3rem;
+    font-weight: 600;
+    color: var(--fg-primary-color);
+    margin: 0 0 8px 0;
+  }
+
+  .loading-subtext {
+    font-size: 1rem;
+    color: var(--fg-secondary-color);
+    margin: 0;
+    max-width: 320px;
+    line-height: 1.5;
+  }
 }
 
 .sentence {
@@ -246,17 +297,47 @@ function onScroll() {
 .toc-list {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
+  padding: 8px 0;
 }
 
 .toc-item {
-  padding: 8px 0;
-  border-bottom: 1px dashed var(--border-secondary-color);
-  color: var(--fg-primary-color);
-  font-size: 0.95rem;
+  display: flex;
+  align-items: flex-end;
+  padding: 6px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition:
+    background-color 0.2s,
+    color 0.2s;
+  color: var(--fg-secondary-color);
 
-  &:last-child {
-    border-bottom: none;
+  &:hover {
+    background-color: var(--bg-secondary-color);
+    color: var(--fg-primary-color);
+
+    .toc-page {
+      color: var(--fg-accent-color);
+      font-weight: 600;
+    }
+  }
+
+  .toc-title {
+    flex-shrink: 0;
+    font-size: 0.95rem;
+  }
+
+  .toc-dots {
+    flex-grow: 1;
+    border-bottom: 1px dotted var(--border-secondary-color);
+    margin: 0 12px 5px 12px;
+    opacity: 0.5;
+  }
+
+  .toc-page {
+    flex-shrink: 0;
+    font-size: 0.9rem;
+    transition: color 0.2s;
   }
 }
 

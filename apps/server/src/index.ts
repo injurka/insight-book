@@ -2,8 +2,10 @@
 import type { ServeOptionsRoutes } from 'bun'
 import { CORS_HEADERS, PORT } from './config'
 import {
+  handleAnalyzeBookStats,
   handleAnalyzeSentence,
   handleDeleteBook,
+  handleGetBookInfo,
   handleGetBooks,
   handleGetPage,
   handleGetToc,
@@ -11,6 +13,8 @@ import {
   handleGetWordFromUserDict,
   handleLookupWord,
   handleRemoveFromUserDict,
+  handleUpdateCover,
+  handleUpdateStats,
   handleUploadBook,
   handleUpsertToUserDict,
 } from './handlers/books'
@@ -41,6 +45,22 @@ const apiRoutes: ServeOptionsRoutes = {
   '/api/books/:id': {
     OPTIONS: corsOk,
     DELETE: req => handleDeleteBook(Number((req as any).params.id)),
+  },
+  '/api/books/:id/info': {
+    OPTIONS: corsOk,
+    GET: req => handleGetBookInfo(Number((req as any).params.id)),
+  },
+  '/api/books/:id/cover': {
+    OPTIONS: corsOk,
+    PATCH: req => handleUpdateCover(req as Request, Number((req as any).params.id)),
+  },
+  '/api/books/:id/stats': {
+    OPTIONS: corsOk,
+    PATCH: req => handleUpdateStats(req as Request, Number((req as any).params.id)),
+  },
+  '/api/books/:id/analyze-book': {
+    OPTIONS: corsOk,
+    POST: req => handleAnalyzeBookStats(Number((req as any).params.id)),
   },
   '/api/books/:id/toc': {
     OPTIONS: corsOk,

@@ -1,4 +1,4 @@
-import type { Book, GeminiAnalysis, PagePayload, TocItem, UserDictItem } from '../types/models'
+import type { Book, BookStats, GeminiAnalysis, PagePayload, TocItem, UserDictItem } from '../types/models'
 
 const BASE = import.meta.env.VITE_API_URL || 'http://localhost:4445'
 
@@ -14,6 +14,26 @@ async function request<T>(url: string, opts?: RequestInit): Promise<T> {
 export const api = {
   books: {
     list: () => request<Book[]>('/api/books'),
+
+    getInfo: (id: number) => request<Book>(`/api/books/${id}/info`),
+
+    analyzeBook: (id: number) => request<{ success: boolean, stats: Book['stats'] }>(`/api/books/${id}/analyze-book`, { method: 'POST' }),
+
+    updateCover: (id: number, file: File) => {
+      const fd = new FormData()
+      fd.append('file', file)
+      return request<{ success: boolean, coverBase64: string }>(`/api/books/${id}/cover`, {
+        method: 'PATCH',
+        body: fd,
+      })
+    },
+
+    updateStats: (id: number, data: Partial<BookStats>) =>
+      request<{ success: boolean, stats: BookStats }>(`/api/books/${id}/stats`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      }),
 
     upload: (file: File) => {
       const fd = new FormData()

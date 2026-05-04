@@ -4,10 +4,9 @@
 FROM oven/bun:1-slim AS builder
 
 WORKDIR /usr/src/app
-
 COPY . .
 
-RUN bun install
+RUN bun install --ignore-scripts
 RUN bun --cwd=apps/server run build
 
 # =================================================================
@@ -21,9 +20,6 @@ ENV NODE_ENV=production
 ENV PORT=4445
 
 COPY --from=builder /usr/src/app/apps/server/dist ./dist
-
-RUN chown -R bun:bun /usr/src/app
-USER bun
 
 EXPOSE 4445
 
