@@ -1,30 +1,42 @@
+# Используем slim-образ для экономии места
 FROM oven/bun:1.2-slim
 
-# Устанавливаем инструменты для компиляции C++ модулей
+# 1. Устанавливаем системные зависимости, необходимые для компиляции nodejieba
 RUN apt-get update && apt-get install -y \
     python3 \
     make \
     g++ \
+    build-essential \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
-# Копируем только файлы зависимостей
-COPY package.json bun.lock ./
+# 2. Копируем файлы зависимостей monorepo
+# Копируем корневой замок и package.json
+COPY package.json bun.lock* ./
+# Копируем package.json конкретных пакетов/приложений
+COPY apps/server/package.json ./apps/server/
+# Если есть общие пакеты (packages/*), скопируйте их package.json тоже:
+# COPY packages/shared/package.json ./packages/shared/
 
-# Устанавливаем зависимости (без --ignore-scripts, чтобы nodejieba скомпилировалась)
+# 3. Устанавливаем зависимости
+# Это скомпилирует nodejieba прямо внутри контейнера под Linux
 RUN bun install
 
-# Копируем остальной код
+# 4. Копируем весь исходный код
 COPY . .
 
-# Собираем проект (если используете билд)
-RUN bun run build
+# 5. Переходим в директорию сервера
+WORKDIR /app/apps/server
 
-# Проверяем, что бинарник jieba существует (для отладки)
-RUN find node_modules/nodejieba -name "*.node"
+# 6. Проверяем наличие бинарника nodejieba (для самопроверки при сборке)
+RUN find ../../node_modules/nodejieba -name "*.node"
+
+# Настройки окружения по умолчанию
+ENV PORT=4445
+ENV NODE_ENV=production
 
 EXPOSE 4445
 
-# Запускаем
-CMD ["bun", "dist/index.js"]
+# 7. Запускаем напрямую через bun (без билда)
+CMD ["bun", "run", "start"]
