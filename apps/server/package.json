@@ -11,7 +11,7 @@
     "dev": "bun --watch src/index.ts",
     "start": "bun src/index.ts",
     "--------------------------------<      BUILD     >--------------------------------": "",
-    "build": "bun build ./src/index.ts --outdir ./dist --target bun --no-minify",
+    "build": "bun build ./src/index.ts --outdir ./dist --target bun --external nodejieba --no-minify",
     "--------------------------------< LINT & FORMAT >---------------------------------": "",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
