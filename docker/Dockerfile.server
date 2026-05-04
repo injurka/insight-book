@@ -1,0 +1,30 @@
+# =================================================================
+# Этап 1: "builder" - Установка зависимостей и сборка сервера
+# =================================================================
+FROM oven/bun:1-slim AS builder
+
+WORKDIR /usr/src/app
+
+COPY . .
+
+RUN bun install
+RUN bun --cwd=apps/server run build
+
+# =================================================================
+# Этап 2: "release" - Финальный образ
+# =================================================================
+FROM oven/bun:1-slim
+
+WORKDIR /usr/src/app
+
+ENV NODE_ENV=production
+ENV PORT=4445
+
+COPY --from=builder /usr/src/app/apps/server/dist ./dist
+
+RUN chown -R bun:bun /usr/src/app
+USER bun
+
+EXPOSE 4445
+
+CMD ["bun", "run", "dist/index.js"]

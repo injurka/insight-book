@@ -1,0 +1,60 @@
+@use '_variables.scss';
+@use '../../_functions.scss';
+
+// BG
+$bg-colors: (
+  bg-primary: variables.$bg-primary-color,
+  bg-secondary: variables.$bg-secondary-color,
+  bg-tertiary: variables.$bg-tertiary-color,
+  bg-header: variables.$bg-header-color,
+  bg-disabled: variables.$bg-disabled-color,
+  bg-inverted: variables.$bg-inverted-color,
+  bg-accent-overlay: variables.$bg-accent-overlay-color,
+  bg-accent: variables.$bg-accent-color,
+  bg-pressed: variables.$bg-pressed-color,
+  bg-overlay-primary: variables.$bg-overlay-primary-color,
+  bg-overlay-secondary: variables.$bg-overlay-secondary-color,
+  bg-action-hover: variables.$bg-action-hover-color,
+  bg-hover: variables.$bg-hover-color,
+  bg-focus: variables.$bg-focus-color,
+  bg-highlight: variables.$bg-highlight-color,
+  bg-success: variables.$bg-success-color,
+  bg-error: variables.$bg-error-color,
+  bg-warning: variables.$bg-warning-color,
+  bg-info: variables.$bg-info-color,
+);
+
+// Border
+$border-colors: (
+  border-primary: variables.$border-primary-color,
+  border-secondary: variables.$border-secondary-color,
+  border-accent: variables.$border-accent-color,
+  border-disabled: variables.$border-disabled-color,
+  border-button-secondary: variables.$border-button-secondary-color,
+  border-focus: variables.$border-focus-color,
+  border-pressed: variables.$border-pressed-color,
+  border-success: variables.$border-success-color,
+  border-error: variables.$border-error-color,
+  border-warning: variables.$border-warning-color,
+  border-info: variables.$border-info-color,
+);
+
+// FG
+$fg-colors: (
+  fg-primary: variables.$fg-primary-color,
+  fg-secondary: variables.$fg-secondary-color,
+  fg-tertiary: variables.$fg-tertiary-color,
+  fg-muted: variables.$fg-muted-color,
+  fg-accent: variables.$fg-accent-color,
+  fg-action: variables.$fg-action-color,
+  fg-inverted: variables.$fg-inverted-color,
+  fg-disabled: variables.$fg-disabled-color,
+  fg-pressed: variables.$fg-pressed-color,
+  fg-highlight: variables.$fg-highlight-color,
+  fg-success: variables.$fg-success-color,
+  fg-error: variables.$fg-error-color,
+  fg-warning: variables.$fg-warning-color,
+  fg-info: variables.$fg-info-color,
+);
+
+$colors: functions.map-collect($bg-colors, $border-colors, $fg-colors);

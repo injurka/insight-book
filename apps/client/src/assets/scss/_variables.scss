@@ -1,0 +1,36 @@
+/*
+ * --- Таблица брейкпоинтов ---
+ *+-----+-------------------+-----------------------------+-----------------------+
+ *| Key | Name              | Description                 | Width Range           |
+ *+-----+-------------------+-----------------------------+-----------------------+
+ *| xs  | Extra small       | Small to large phone        | < 600px               |
+ *| sm  | Small             | Small to medium tablet      | 600px - 959px         |
+ *| md  | Medium            | Large tablet to laptop      | 960px - 1279px        |
+ *| lg  | Large             | Laptop to desktop           | 1280px - 1919px       |
+ *| xl  | Extra large       | 1080p to 1440p desktop      | 1920px - 2559px       |
+ *| xxl | Extra extra large | 4k and ultra-wide           | ≥ 2560px              |
+ *+-----+-------------------+-----------------------------+-----------------------+
+*/
+
+$breakpoints: (
+  xs: 0,
+  sm: 600px,
+  md: 960px,
+  lg: 1280px,
+  xl: 1920px,
+  xxl: 2560px,
+);
+
+//* ---- Composition ----------------------------------------------------------------------- *//
+$font-sizes: (
+  small: 14px,
+  base: 17px,
+  large: 18px,
+);
+
+$font-weights: (
+  regular: 400,
+  medium: 500,
+  bold: 600,
+  bolder: 700,
+);

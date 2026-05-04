@@ -1,0 +1,17 @@
+{
+  "settings": {
+    "pinHeader": "固定标题栏",
+    "appearance": "外观",
+    "theme": "主题",
+    "themeLight": "浅色",
+    "themeDark": "深色",
+    "interface": "界面",
+    "borderless": "无边框视图",
+    "coloredFolders": "彩色文件夹",
+    "showIcons": "显示图标",
+    "showOutline": "显示大纲线",
+    "plugins": "插件管理器",
+    "aiSettings": "Настройки AI",
+    "language": "语言"
+  }
+}

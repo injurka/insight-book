@@ -1,0 +1,72 @@
+/* =========================================
+   Подключение шрифта Maple Mono CN
+   Путь: /fonts/MapleMono-CN/...
+   ========================================= */
+
+@font-face {
+  font-family: 'Maple Mono CN';
+  src: url('/fonts/MapleMono-CN/MapleMono-CN-Thin.ttf') format('truetype');
+  font-weight: 100;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Maple Mono CN';
+  src: url('/fonts/MapleMono-CN/MapleMono-CN-ExtraLight.ttf') format('truetype');
+  font-weight: 200;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Maple Mono CN';
+  src: url('/fonts/MapleMono-CN/MapleMono-CN-Light.ttf') format('truetype');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Maple Mono CN';
+  src: url('/fonts/MapleMono-CN/MapleMono-CN-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Maple Mono CN';
+  src: url('/fonts/MapleMono-CN/MapleMono-CN-Medium.ttf') format('truetype');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Maple Mono CN';
+  src: url('/fonts/MapleMono-CN/MapleMono-CN-SemiBold.ttf') format('truetype');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Maple Mono CN';
+  src: url('/fonts/MapleMono-CN/MapleMono-CN-Bold.ttf') format('truetype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Maple Mono CN';
+  src: url('/fonts/MapleMono-CN/MapleMono-CN-ExtraBold.ttf') format('truetype');
+  font-weight: 800;
+  font-style: normal;
+  font-display: swap;
+}
+
+@mixin font-chinese-mono {
+  font-family: 'Maple Mono CN', 'Courier New', Courier, monospace;
+}

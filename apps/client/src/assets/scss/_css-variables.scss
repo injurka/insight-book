@@ -1,0 +1,18 @@
+@use 'mixins/theme' as mixins-theme;
+@use 'themes/theme' as themes-theme;
+@use 'sass:map';
+@use 'sass:color';
+@use 'sass:meta';
+
+@include mixins-theme.connectThemes(themes-theme.$themes, 'theme') using ($theme, $themeName) {
+  @each $colorType, $colorValue in map.get($theme, 'colors') {
+    --#{$colorType}-color: #{$colorValue};
+
+    @if meta.type-of($colorValue) == color {
+      --#{$colorType}-color-rgb: #{color.channel($colorValue, "red", $space: rgb)}, 
+                                 #{color.channel($colorValue, "green", $space: rgb)}, 
+                                 #{color.channel($colorValue, "blue", $space: rgb)};
+    }
+  }
+
+}

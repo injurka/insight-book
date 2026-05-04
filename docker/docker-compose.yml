@@ -1,0 +1,38 @@
+services:
+  insight-book-client:
+    image: ${REGISTRY:-docker.io}/injurka/insight-book-client:${V_CLIENT:-latest}
+    restart: unless-stopped
+    volumes:
+      - ./configs:/usr/share/nginx/html/configs
+    networks:
+      - trip-net
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.insight-client.rule=Host(`insight-book.trip-scheduler.ru`)"
+      - "traefik.http.routers.insight-client.entrypoints=websecure"
+      - "traefik.http.routers.insight-client.tls.certresolver=letsencrypt"
+      - "traefik.http.services.insight-client.loadbalancer.server.port=3334"
+      - "traefik.docker.network=trip-net"
+
+  insight-book-server:
+    image: ${REGISTRY:-docker.io}/injurka/insight-book-server:${V_SERVER:-latest}
+    restart: unless-stopped
+    environment:
+      PORT: "4445"
+      DB_PATH: /db/insight-book.sqlite
+      FS_BASE_PATH: /data
+    volumes:
+      - ./db:/db
+    networks:
+      - trip-net
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.insight-server.rule=Host(`insight-api.trip-scheduler.ru`)"
+      - "traefik.http.routers.insight-server.entrypoints=websecure"
+      - "traefik.http.routers.insight-server.tls.certresolver=letsencrypt"
+      - "traefik.http.services.insight-server.loadbalancer.server.port=4445"
+      - "traefik.docker.network=trip-net"
+networks:
+  trip-net:
+    external: true
+    name: trip-net

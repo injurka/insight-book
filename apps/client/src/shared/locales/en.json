@@ -1,0 +1,17 @@
+{
+  "settings": {
+    "pinHeader": "Pin Header",
+    "appearance": "Appearance",
+    "theme": "Theme",
+    "themeLight": "Light",
+    "themeDark": "Dark",
+    "interface": "Interface",
+    "borderless": "Borderless View",
+    "coloredFolders": "Colored Folders",
+    "showIcons": "Show Icons",
+    "showOutline": "Show Outline",
+    "plugins": "Plugin Manager",
+    "aiSettings": "Настройки AI",
+    "language": "Language"
+  }
+}

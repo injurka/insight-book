@@ -1,0 +1,19 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"path": "apps/client"
+		},
+		{
+			"path": "apps/server"
+		},
+		{
+			"path": "apps/dict-parser"
+		},
+	],
+	"settings": {
+		"explorer.fileNesting.expand": false
+	}
+}

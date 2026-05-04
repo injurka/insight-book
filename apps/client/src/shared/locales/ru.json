@@ -1,0 +1,17 @@
+{
+  "settings": {
+    "pinHeader": "Закрепить шапку",
+    "appearance": "Оформление",
+    "theme": "Тема",
+    "themeLight": "Светлая",
+    "themeDark": "Темная",
+    "interface": "Интерфейс",
+    "borderless": "Широкий просмотр",
+    "coloredFolders": "Цветные папки",
+    "showIcons": "Иконки в меню",
+    "showOutline": "Линии структуры",
+    "plugins": "Менеджер плагинов",
+    "aiSettings": "Настройки AI",
+    "language": "Язык"
+  }
+}

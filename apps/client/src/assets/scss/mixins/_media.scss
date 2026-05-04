@@ -1,0 +1,92 @@
+@use 'sass:map';
+@use 'sass:list';
+@use '../_variables.scss' as *;
+
+//_ ---- Media Mixins ---------------------------------------------------------------------- _//
+
+/**
+ * Mobile First миксин: применяет стили ОТ указанного брейкпоинта И ВЫШЕ.
+ * @param {String} $name - Имя брейкпоинта (xs, sm, md, lg, xl, xxl).
+ * @example @include media-up(md) { ... }
+ */
+@mixin media-up($name) {
+  $min-width: map.get($breakpoints, $name);
+
+  @if $min-width > 0 {
+    @media (min-width: $min-width) {
+      @content;
+    }
+  } @else {
+    @content;
+  }
+}
+
+/**
+ * Применяет стили ДО указанного брейкпоинта.
+ * @param {String} $name - Имя брейкпоинта (sm, md, lg, xl, xxl).
+ * @example @include media-down(md) { ... } // Сработает на экранах < 960px
+ */
+@mixin media-down($name) {
+  $max-width: map.get($breakpoints, $name);
+
+  @if $max-width > 0 {
+    @media (max-width: #{$max-width - 1}) {
+      @content;
+    }
+  } @else {
+    // Обрабатываем 'xs' как особый случай: от 0 до следующего брейкпоинта.
+    // Это предотвращает предупреждение о max-width: -1px.
+    $keys: map.keys($breakpoints);
+    $index: list.index($keys, $name);
+    $next-key: null;
+    @if list.length($keys) > $index {
+      $next-key: list.nth($keys, $index + 1);
+    }
+
+    @if $next-key {
+      $upper-bound: map.get($breakpoints, $next-key) - 1;
+      @media (max-width: $upper-bound) {
+        @content;
+      }
+    }
+  }
+}
+
+/**
+ * Применяет стили ТОЛЬКО в диапазоне одного брейкпоинта.
+ * @param {String} $name - Имя брейкпоинта (xs, sm, md, lg, xl, xxl).
+ * @example @include media-only(md) { ... } // Сработает на экранах от 960px до 1279px
+ */
+@mixin media-only($name) {
+  $min-width: map.get($breakpoints, $name);
+
+  $keys: map.keys($breakpoints);
+  $index: list.index($keys, $name);
+  $next-key: null;
+  @if list.length($keys) > $index {
+    $next-key: list.nth($keys, $index + 1);
+  }
+
+  // Случай для xs (от 0 до sm - 1)
+  @if $min-width == 0 {
+    @if $next-key {
+      $max-width: map.get($breakpoints, $next-key) - 1;
+      @media (max-width: $max-width) {
+        @content;
+      }
+    }
+  }
+  // Случай для всех, кроме последнего (xxl)
+  @else if $next-key {
+    $max-width: map.get($breakpoints, $next-key) - 1;
+    @media (min-width: $min-width) and (max-width: $max-width) {
+      @content;
+    }
+  }
+  // Случай для последнего брейкпоинта (xxl и больше)
+  @else {
+    @media (min-width: $min-width) {
+      @content;
+    }
+  }
+}

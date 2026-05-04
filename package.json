@@ -1,0 +1,35 @@
+{
+  "name": "@injurka/insight-book",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "bun": ">=1.1.30"
+  },
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "--------------------------------<      DEV       >--------------------------------": "",
+    "dev": "bun run --filter='./apps/*' dev",
+    "dev:client": "bun --parallel run --filter='./apps/client' dev",
+    "dev:server": "bun --cwd ./apps/server dev",
+    "--------------------------------<      BUILD     >--------------------------------": "",
+    "build": "bun run --filter='./apps/*' build",
+    "build:client": "bun --parallel run --filter='./apps/client' build",
+    "build:server": "bun --parallel run --filter='./apps/server' build",
+    "--------------------------------< LINT & FORMAT >---------------------------------": "",
+    "lint": "bun run --filter='./apps/*' lint",
+    "typecheck": "bun --filter='./apps/*' typecheck",
+    "--------------------------------<     HELPERS   >---------------------------------": "",
+    "postinstall": "simple-git-hooks"
+  },
+  "devDependencies": {
+    "simple-git-hooks": "^2.13.1"
+  },
+  "simple-git-hooks": {
+    "pre-commit": "bun run lint && bun run typecheck",
+    "post-commit": "git status",
+    "post-merge": "bun i"
+  }
+}
