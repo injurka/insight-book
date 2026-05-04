@@ -3,13 +3,21 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 import json
 import hanlp
 
-# Загружаем многозадачную модель
 print("Загрузка модели HanLP...")
-# Эта модель универсальна и содержит токенизацию и POS
 mtl = hanlp.load(hanlp.pretrained.mtl.CLOSE_TOK_POS_NER_SRL_DEP_SDP_CON_ELECTRA_SMALL_ZH)
 print("Модель загружена.")
 
 class Handler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        if self.path == '/health':
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/json')
+            self.end_headers()
+            self.wfile.write(json.dumps({"status": "ok"}).encode())
+        else:
+            self.send_response(404)
+            self.end_headers()
+    
     def do_POST(self):
         try:
             content_length = int(self.headers['Content-Length'])
@@ -35,12 +43,8 @@ class Handler(BaseHTTPRequestHandler):
                 self.wfile.write(json.dumps([]).encode())
                 return
 
-            # Выполняем анализ
-            # Мы не ограничиваем tasks, чтобы модель вернула всё, что умеет
             doc = mtl(sentences)
 
-            # --- Динамический поиск ключей ---
-            # В разных моделях ключи могут называться tok, tok/fine, pos, pos/ctb и т.д.
             
             # Ищем ключи для токенов
             tok_key = None

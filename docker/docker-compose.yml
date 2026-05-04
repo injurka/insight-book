@@ -38,7 +38,8 @@ services:
     networks:
       - trip-net
     depends_on:
-      - insight-book-hanlp
+      insight-book-hanlp:
+        condition: service_healthy
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.insight-server.rule=Host(`insight-api.trip-schedu\
@@ -58,6 +59,12 @@ services:
       - hanlp-models:/root/.hanlp
     networks:
       - trip-net
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8765/health')"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 180s
 
 networks:
   trip-net:
