@@ -39,6 +39,7 @@
     "@vueuse/core": "^14.3.0",
     "@vueuse/head": "^2.0.0",
     "pinia": "3.0.4",
+    "tauri": "^0.15.0",
     "vite-plugin-pwa": "^1.2.0",
     "vue": "^3.5.33",
     "vue-i18n": "^11.4.0",
