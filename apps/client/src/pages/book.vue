@@ -1,8 +1,7 @@
 <script setup lang="ts">
 import { Icon } from '@iconify/vue'
-import { onMounted, reactive, ref } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
 import { KitBtn, KitInput, KitSkeleton } from '~/components/01.kit'
+import { AppRoutePaths } from '~/shared/constants/routes'
 import { useBooksStore } from '~/shared/store/books.store'
 
 const route = useRoute()
@@ -13,7 +12,6 @@ const bookId = Number(route.params.id)
 
 const coverInputRef = ref<HTMLInputElement | null>(null)
 
-// Редактирование статистики
 const isEditingStats = ref(false)
 const editForm = reactive({
   difficulty: '',
@@ -26,13 +24,13 @@ onMounted(() => {
 })
 
 function goBack() {
-  router.push('/')
+  router.push(AppRoutePaths.Home)
 }
 
 function startReading() {
   if (store.currentBookInfo) {
     router.push({
-      path: '/reader',
+      path: AppRoutePaths.Reader,
       query: { bookId, page: store.currentBookInfo.currentPage || 1 },
     })
   }
@@ -42,7 +40,7 @@ function goToPage(pageNum?: number) {
   if (!pageNum)
     return
   router.push({
-    path: '/reader',
+    path: AppRoutePaths.Reader,
     query: { bookId, page: pageNum },
   })
 }
@@ -103,7 +101,6 @@ function formatNumber(num: number | undefined): string {
 
     <div v-else-if="store.currentBookInfo" class="book-container">
       <div class="layout-grid">
-        <!-- Левая колонка: Обложка и действия -->
         <div class="cover-col">
           <div class="cover-wrapper group" @click="coverInputRef?.click()">
             <img v-if="store.currentBookInfo.coverBase64" :src="store.currentBookInfo.coverBase64" alt="Обложка">
@@ -133,7 +130,6 @@ function formatNumber(num: number | undefined): string {
           </div>
         </div>
 
-        <!-- Правая колонка: Информация -->
         <div class="content-col">
           <h1 class="book-title">
             {{ store.currentBookInfo.title }}
@@ -154,7 +150,6 @@ function formatNumber(num: number | undefined): string {
             </div>
           </div>
 
-          <!-- Секция ИИ Анализа (Загрузка) -->
           <div v-if="store.isAnalyzingBook" class="ai-analysis-box is-loading">
             <Icon icon="mdi:robot-outline" class="spin-icon" />
             <p>Нейросеть анализирует текст книги...</p>
@@ -163,7 +158,6 @@ function formatNumber(num: number | undefined): string {
             </p>
           </div>
 
-          <!-- Секция Информации / Редактирования -->
           <div v-else class="ai-analysis-box">
             <div class="box-header">
               <h3>Информация</h3>
@@ -237,7 +231,6 @@ function formatNumber(num: number | undefined): string {
             </template>
           </div>
 
-          <!-- Кликабельное оглавление -->
           <div v-if="store.currentBookInfo.toc && store.currentBookInfo.toc.length > 0" class="toc-section">
             <h3>Оглавление</h3>
             <div class="toc-list">
@@ -571,7 +564,6 @@ function formatNumber(num: number | undefined): string {
   }
 }
 
-/* Красивое Оглавление */
 .toc-section {
   h3 {
     font-size: 1.4rem;

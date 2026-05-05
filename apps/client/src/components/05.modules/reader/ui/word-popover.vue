@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { KitBtn, KitSkeleton } from '~/components/01.kit'
 import { POS_TAGS_MAP } from '~/shared/constants/pos-tags'
 import { useBooksStore } from '~/shared/store/books.store'
@@ -27,8 +26,17 @@ watch(
     let left = rect.left + rect.width / 2
     let top = rect.bottom + 8
 
-    if (top + popRect.height > wh && rect.top > popRect.height + 8) {
-      top = rect.top - popRect.height - 8
+    if (top + popRect.height > wh) {
+      if (rect.top > popRect.height + 8) {
+        top = rect.top - popRect.height - 8
+      }
+      else {
+        top = wh - popRect.height - 10
+      }
+    }
+
+    if (top < 10) {
+      top = 10
     }
 
     if (left - popRect.width / 2 < 10) {
@@ -161,16 +169,17 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  max-height: 70vh;
 
   .popover-content {
     display: flex;
     flex-direction: column;
-    max-height: 55vh;
     overflow-y: auto;
   }
 
   .pinyin-header {
     background-color: rgba(var(--bg-tertiary-color-rgb, 33, 38, 45), 0.8);
+    backdrop-filter: blur(4px);
     text-align: center;
     font-weight: 600;
     font-size: 1.15rem;
@@ -178,7 +187,6 @@ onUnmounted(() => {
     padding: 12px 16px 8px 16px;
     position: sticky;
     top: 0;
-    background: inherit;
     z-index: 2;
   }
 

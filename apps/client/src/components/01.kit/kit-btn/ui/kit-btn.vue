@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { Icon } from '@iconify/vue'
-import { computed, useSlots } from 'vue'
 import { vRipple } from '~/shared/directives/ripple'
 
 interface Props {
@@ -67,7 +66,7 @@ const componentClasses = computed(() => [
   transition: all 0.2s ease-in-out;
   box-shadow: var(--s-s);
   white-space: nowrap;
-  flex-shrink: 0; /* Запрещаем сжатие кнопки в flex-контейнерах */
+  flex-shrink: 0;
 
   & * {
     pointer-events: none;
@@ -90,8 +89,6 @@ const componentClasses = computed(() => [
     background-color: var(--bg-disabled-color) !important;
     color: var(--fg-disabled-color) !important;
   }
-
-  /* --- Размеры (Sizes) --- */
 
   &--size-xs {
     height: 28px;
@@ -147,8 +144,6 @@ const componentClasses = computed(() => [
       padding: 0;
     }
   }
-
-  /* --- Варианты (Variants) --- */
 
   &--solid {
     &.kit-btn--color-primary {
@@ -207,7 +202,7 @@ const componentClasses = computed(() => [
 
   &-icon {
     flex-shrink: 0;
-    font-size: 1.25em;
+    font-size: 1.45em;
   }
 
   .mr-2 {

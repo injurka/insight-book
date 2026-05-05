@@ -1,6 +1,4 @@
 import type { UserDictItem } from '~/shared/types/models'
-import { defineStore } from 'pinia'
-import { computed, ref } from 'vue'
 import { api } from '~/shared/services/api.service'
 import { useBooksStore } from './books.store'
 

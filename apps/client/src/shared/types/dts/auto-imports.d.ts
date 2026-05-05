@@ -335,7 +335,7 @@ declare global {
   export type { LocaleType } from '../../composables/use-locale'
   import('../../composables/use-locale')
   // @ts-ignore
-  export type { AppRouteNames, AppRoutePaths } from '../../constants/routes'
+  export type { AppRouteNames } from '../../constants/routes'
   import('../../constants/routes')
 }
 

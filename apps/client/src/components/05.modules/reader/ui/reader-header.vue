@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { useRouter } from 'vue-router'
 import { KitBtn } from '~/components/01.kit'
 import { ThemesVariant, useChangeTheme } from '~/shared/composables/use-change-theme'
+import { AppRoutePaths } from '~/shared/constants/routes'
 import { useBooksStore } from '~/shared/store/books.store'
 
 const store = useBooksStore()
@@ -9,7 +9,7 @@ const router = useRouter()
 const { theme, toggleTheme } = useChangeTheme()
 
 function goBack() {
-  router.push('/')
+  router.push(AppRoutePaths.Home)
 }
 </script>
 

@@ -1,6 +1,5 @@
 import { useStorage } from '@vueuse/core'
 import { useHead } from '@vueuse/head'
-import { watchEffect } from 'vue'
 
 export enum ThemesVariant {
   Light = 'light',

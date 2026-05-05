@@ -1,6 +1,5 @@
 <script lang="ts" setup>
 import { Icon } from '@iconify/vue'
-import { computed, onMounted, onUnmounted, useId, watch } from 'vue'
 
 interface Props {
   maxWidth?: number

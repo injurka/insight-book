@@ -1,7 +1,4 @@
 <script setup lang="ts">
-import { useSwipe } from '@vueuse/core'
-import { ref } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
 import { KitDialog } from '~/components/01.kit'
 import { PageLoader } from '~/components/02.shared/page-loader'
 import { useBooksStore } from '~/shared/store/books.store'
@@ -16,48 +13,6 @@ const router = useRouter()
 const route = useRoute()
 
 const readerViewRef = ref<HTMLElement | null>(null)
-const swipeContainerRef = ref<HTMLElement | null>(null)
-
-const swipeOffsetX = ref(0)
-const isSwiping = ref(false)
-
-const { lengthX } = useSwipe(swipeContainerRef, {
-  passive: false,
-  onSwipeStart: (e) => {
-    const target = e.target as HTMLElement
-    if (target.closest('.word, .sentence'))
-      return false
-    isSwiping.value = true
-  },
-  onSwipe: () => {
-    if (!isSwiping.value)
-      return
-    const isFirstPage = (store.currentBook?.currentPage || 1) <= 1
-    const isLastPage = (store.currentBook?.currentPage || 1) >= (store.currentBook?.totalPages || 1)
-
-    let offset = -lengthX.value
-    if (isFirstPage && offset > 0)
-      offset *= 0.2
-    if (isLastPage && offset < 0)
-      offset *= 0.2
-
-    swipeOffsetX.value = offset
-  },
-  onSwipeEnd: () => {
-    if (!isSwiping.value)
-      return
-    isSwiping.value = false
-    const threshold = window.innerWidth * 0.25
-
-    if (lengthX.value > threshold) {
-      nextPage()
-    }
-    else if (lengthX.value < -threshold) {
-      prevPage()
-    }
-    swipeOffsetX.value = 0
-  },
-})
 
 function prevPage() {
   if (store.currentBook && (store.currentBook.currentPage || 1) > 1) {
@@ -108,15 +63,10 @@ function onScroll() {
 
 <template>
   <div ref="readerViewRef" class="reader-view" @scroll.passive="onScroll">
-    <div
-      ref="swipeContainerRef"
-      class="swipe-container"
-      :style="{ transform: `translateX(${swipeOffsetX}px)`, transition: isSwiping ? 'none' : 'transform 0.3s ease-out' }"
-    >
+    <div class="swipe-container">
       <ReaderHeader />
 
       <div class="reader-content-wrapper">
-        <!-- Красивый лоудер вместо скелетона -->
         <div v-if="store.isPageLoading || store.isLoading" class="reader-loading-wrapper">
           <div class="spinner-box">
             <PageLoader />
@@ -191,13 +141,6 @@ function onScroll() {
   display: flex;
   flex-direction: column;
   min-height: 100%;
-  will-change: transform;
-  touch-action: pan-y;
-  cursor: grab;
-
-  &:active {
-    cursor: grabbing;
-  }
 }
 
 .reader-content-wrapper {
@@ -222,7 +165,6 @@ function onScroll() {
   }
 }
 
-/* Стили для лоудера загрузки страницы */
 .reader-loading-wrapper {
   flex-grow: 1;
   display: flex;
@@ -236,7 +178,6 @@ function onScroll() {
     height: 80px;
     margin-bottom: 24px;
 
-    /* Убираем min-height у внутреннего лоудера, если он был, чтобы не ломать верстку */
     :deep(.page-loader) {
       min-height: unset;
     }

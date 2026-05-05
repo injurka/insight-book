@@ -1,6 +1,4 @@
 import type { Book, BookStats, GeminiAnalysis, PagePayload, TocItem, UserDictItem } from '../types/models'
-import { defineStore } from 'pinia'
-import { ref } from 'vue'
 import { api } from '../services/api.service'
 import { useDictionaryStore } from './dictionary.store'
 

@@ -1,8 +1,7 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
-import { useRouter } from 'vue-router'
 import { KitBtn, KitDialog, KitSkeleton } from '~/components/01.kit'
 import { ThemesVariant, useChangeTheme } from '~/shared/composables/use-change-theme'
+import { AppRoutePaths } from '~/shared/constants/routes'
 import { useBooksStore } from '~/shared/store/books.store'
 
 const store = useBooksStore()
@@ -13,10 +12,6 @@ const { theme, toggleTheme } = useChangeTheme()
 
 const dictOpen = ref(false)
 
-onMounted(() => {
-  store.fetchBooks()
-})
-
 function onFileChange(e: Event) {
   const target = e.target as HTMLInputElement
   if (target.files && target.files.length > 0) {
@@ -26,12 +21,16 @@ function onFileChange(e: Event) {
 }
 
 function openBookInfo(book: any) {
-  router.push(`/book/${book.id}`)
+  router.push(AppRoutePaths.Book.Info(book.id))
 }
 
 function openDictionary() {
-  router.push(`/dictionary`)
+  router.push(AppRoutePaths.Dictionary)
 }
+
+onMounted(() => {
+  store.fetchBooks()
+})
 </script>
 
 <template>
@@ -115,7 +114,6 @@ function openDictionary() {
 </template>
 
 <style lang="scss" scoped>
-/* Стили остаются идентичными оригинальным, чтобы не ломать верстку */
 .library-view {
   padding: 32px;
   max-width: 1200px;

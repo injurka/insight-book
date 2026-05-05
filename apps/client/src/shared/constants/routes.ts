@@ -1,9 +1,16 @@
 export enum AppRouteNames {
-  HOME = 'home',
-  READER = 'reader',
+  Home = 'home',
+  BookInfo = 'book-info',
+  Reader = 'reader',
+  Dictionary = 'dictionary',
 }
 
-export enum AppRoutePaths {
-  HOME = '/',
-  READER = '/reader',
+export const AppRoutePaths = {
+  Home: '/',
+  Dictionary: '/dictionary',
+  Reader: '/reader',
+
+  Book: {
+    Info: (id: string | number) => `/book/${id}`,
+  },
 }

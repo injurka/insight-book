@@ -1,7 +1,6 @@
 <script setup lang="ts">
-import { onMounted } from 'vue'
-import { useRouter } from 'vue-router'
 import { KitBtn, KitSkeleton } from '~/components/01.kit'
+import { AppRoutePaths } from '~/shared/constants/routes'
 import { useDictionaryStore } from '~/shared/store/dictionary.store'
 
 const store = useDictionaryStore()
@@ -16,15 +15,13 @@ onMounted(() => {
   <div class="dict-page">
     <header class="dict-header">
       <div class="header-left">
-        <KitBtn icon="mdi:arrow-left" variant="text" @click="router.push('/')" />
+        <KitBtn icon="mdi:arrow-left" variant="text" @click="router.push(AppRoutePaths.Home)" />
         <div class="header-title">
           <h1>Мой словарь</h1>
           <p>Слова, которые вы добавили</p>
         </div>
       </div>
-      <div class="header-right">
-        <!-- TODO -->
-      </div>
+      <div class="header-right" />
     </header>
 
     <div v-if="store.isLoading" class="dict-loading">

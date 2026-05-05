@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import type { UserDictItem } from '~/shared/types/models'
-import { ref, watch } from 'vue'
 import { KitBtn, KitDialog, KitInput } from '~/components/01.kit'
 import { useBooksStore } from '~/shared/store/books.store'
 

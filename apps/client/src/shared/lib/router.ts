@@ -1,26 +1,27 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import { AppRouteNames } from '~/shared/constants/routes'
 
 export const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
     {
       path: '/',
-      name: 'home',
+      name: AppRouteNames.Home,
       component: () => import('~/pages/index.vue'),
     },
     {
       path: '/book/:id',
-      name: 'book-info',
+      name: AppRouteNames.BookInfo,
       component: () => import('~/pages/book.vue'),
     },
     {
       path: '/reader',
-      name: 'reader',
+      name: AppRouteNames.Reader,
       component: () => import('~/pages/reader.vue'),
     },
     {
       path: '/dictionary',
-      name: 'dictionary',
+      name: AppRouteNames.Dictionary,
       component: () => import('~/pages/dictionary.vue'),
     },
   ],

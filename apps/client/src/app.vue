@@ -1,8 +1,5 @@
 <script setup lang="ts">
 import { useHead } from '@vueuse/head'
-import { computed } from 'vue'
-import { useRoute } from 'vue-router'
-
 import { ReloadPrompt } from '~/components/02.shared/reload-prompt'
 import { AddEditWordDialog } from '~/components/05.modules/dictionary'
 import { DefaultLayout } from '~/components/06.layouts/default'
