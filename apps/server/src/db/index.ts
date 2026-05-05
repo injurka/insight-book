@@ -106,17 +106,12 @@ const dictConnections = new Map<string, DictConnection>()
 
 export function getDictConnection(language: string): DictConnection | null {
   const lang = language.toLowerCase()
-  // eslint-disable-next-line no-console
-  console.log('📖 Getd dict connection', `[${lang}]`, dictConnections)
 
   if (dictConnections.has(lang)) {
     return dictConnections.get(lang)!
   }
 
   const specificPath = path.join(DICTS_PATH, `dict_${lang}.sqlite`)
-
-  // eslint-disable-next-line no-console
-  console.log('📖 Specific path', `[${specificPath}]`)
 
   if (existsSync(specificPath)) {
     const dictDb = new Database(specificPath, { readonly: true })

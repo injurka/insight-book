@@ -27,7 +27,7 @@ services:
     environment:
       - PORT=4445
       - DB_PATH=/db/insight-book.sqlite
-      - DICT_DB_PATH=/db/dictionary.sqlite
+      - DICTS_PATH=/db/dicts
       - UPLOADS_PATH=/uploads
       - LLM_API_KEY=${LLM_API_KEY}
       - LLM_API_URL=${LLM_API_URL:-https://aihubmix.com/v1}
