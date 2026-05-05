@@ -52,6 +52,10 @@ export const useBooksStore = defineStore('books', () => {
   }
 
   async function fetchBookInfo(id: number) {
+    if (currentBookInfo.value?.id !== id) {
+      currentBookInfo.value = null
+    }
+
     isLoading.value = true
     try {
       currentBookInfo.value = await api.books.getInfo(id)

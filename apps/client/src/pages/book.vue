@@ -8,7 +8,7 @@ const route = useRoute()
 const router = useRouter()
 const store = useBooksStore()
 
-const bookId = Number(route.params.id)
+const bookId = computed(() => Number(route.params.id))
 
 const coverInputRef = ref<HTMLInputElement | null>(null)
 
@@ -19,10 +19,6 @@ const editForm = reactive({
   description: '',
 })
 
-onMounted(() => {
-  store.fetchBookInfo(bookId)
-})
-
 function goBack() {
   router.push(AppRoutePaths.Home)
 }
@@ -31,7 +27,7 @@ function startReading() {
   if (store.currentBookInfo) {
     router.push({
       path: AppRoutePaths.Reader,
-      query: { bookId, page: store.currentBookInfo.currentPage || 1 },
+      query: { bookId: bookId.value, page: store.currentBookInfo.currentPage || 1 },
     })
   }
 }
@@ -41,18 +37,18 @@ function goToPage(pageNum?: number) {
     return
   router.push({
     path: AppRoutePaths.Reader,
-    query: { bookId, page: pageNum },
+    query: { bookId: bookId.value, page: pageNum },
   })
 }
 
 function triggerAiAnalysis() {
-  store.analyzeFullBook(bookId)
+  store.analyzeFullBook(bookId.value)
 }
 
 function onCoverChange(e: Event) {
   const target = e.target as HTMLInputElement
   if (target.files && target.files.length > 0) {
-    store.updateBookCover(bookId, target.files[0])
+    store.updateBookCover(bookId.value, target.files[0])
   }
 }
 
@@ -66,7 +62,7 @@ function startEditingStats() {
 
 async function saveStats() {
   const tagsArray = editForm.tags.split(',').map(t => t.trim()).filter(Boolean)
-  await store.updateBookStats(bookId, {
+  await store.updateBookStats(bookId.value, {
     difficulty: editForm.difficulty,
     tags: tagsArray,
     description: editForm.description,
@@ -77,8 +73,19 @@ async function saveStats() {
 function formatNumber(num: number | undefined): string {
   if (num === undefined || num === null)
     return '0'
+
   return new Intl.NumberFormat('ru-RU').format(num)
 }
+
+watch(
+  bookId,
+  (newId) => {
+    if (newId) {
+      store.fetchBookInfo(newId)
+    }
+  },
+  { immediate: true },
+)
 </script>
 
 <template>

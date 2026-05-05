@@ -209,6 +209,7 @@ onUnmounted(() => {
     text-align: left;
     margin-bottom: 8px;
     word-break: break-word;
+    white-space: pre-wrap;
 
     :deep(b) {
       color: var(--fg-primary-color);

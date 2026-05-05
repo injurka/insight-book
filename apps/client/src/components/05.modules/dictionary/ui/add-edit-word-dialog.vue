@@ -101,6 +101,7 @@ watch(() => store.wordToEdit, (newWord) => {
     line-height: 1.5;
     padding-top: 12px;
     border-top: 1px dashed var(--border-primary-color);
+    white-space: pre-wrap;
 
     :deep(b) {
       font-weight: 600;

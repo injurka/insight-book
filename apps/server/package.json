@@ -16,6 +16,7 @@
     "typecheck": "bunx tsc --noEmit"
   },
   "dependencies": {
+    "compromise": "^14.15.0",
     "epub2": "^3.0.2",
     "kuromoji": "^0.1.2",
     "node-html-parser": "^7.0.1",

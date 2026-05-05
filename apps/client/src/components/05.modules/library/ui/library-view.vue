@@ -159,8 +159,8 @@ onMounted(() => {
       <div v-for="i in 4" :key="i" class="book-card-skeleton">
         <div class="cover-skeleton" />
         <div class="info-skeleton">
-          <KitSkeleton width="80%" height="18px" border-radius="4px" class="mb-2" />
-          <KitSkeleton width="50%" height="14px" border-radius="4px" class="mb-3" />
+          <KitSkeleton width="80%" height="18px" border-radius="4px" />
+          <KitSkeleton width="50%" height="14px" border-radius="4px" />
           <KitSkeleton width="100%" height="4px" border-radius="2px" />
         </div>
       </div>
@@ -402,6 +402,9 @@ onMounted(() => {
 
   .info-skeleton {
     padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
   }
 }
 
@@ -656,6 +659,8 @@ onMounted(() => {
     font-size: 0.95rem;
     color: var(--fg-primary-color);
     line-height: 1.4;
+    white-space: pre-wrap;
+    
     :deep(b) {
       font-weight: 600;
     }

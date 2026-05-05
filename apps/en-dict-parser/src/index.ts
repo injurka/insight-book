@@ -25,22 +25,42 @@ interface DictEntry {
 
 /**
  * Форматирует тело перевода:
- * - Убирает DSL-разметку вида _n., _v., _a., _разг. и т.д. → <span class="dict-label">n.</span>
- * - Нумерованные значения 1) 2) 3) остаются как есть (уже читаемо)
- * - *) спецпометы → <span class="dict-note">...</span>
+ * - Оборачивает каждую строку в <div> для гарантированных переносов строк в HTML.
+ * - Сохраняет оригинальные отступы (переводит начальные пробелы в margin-left).
+ * - Оборачивает нумерацию (1., 1), a)) в теги для стилизации на фронтенде.
+ * - Убирает DSL-разметку вида _n., _v. → <span class="dict-label">n.</span>
  */
 function formatTranslation(lines: string[]): string {
   return lines
-    .map(line => line
-      // Спецпометы *) → отдельный тег
-      .replace(/^\s*\*\)\s*/, '<span class="dict-note">◆ </span>')
-      // _слово → стилистические/грамматические пометы
-      .replace(/_([а-яёa-z.:]+)/gi, '<span class="dict-label">$1</span>')
-      .trimEnd(),
-    )
+    // Сначала убираем полностью пустые строки
     .filter(line => line.trim() !== '')
+    .map((line) => {
+      // 1. Вычисляем оригинальный отступ (количество пробелов в начале)
+      const spaceMatch = line.match(/^(\s+)/)
+      const spacesCount = spaceMatch ? spaceMatch[1].length : 0
+
+      // Очищаем начало строки от пробелов для корректной работы регулярок
+      let text = line.trimStart()
+
+      text = text
+        // Спецпометы *) → превращаем в символ
+        .replace(/^\*\)\s*/, '<span class="dict-note">◆ </span>')
+        // Грамматические пометы: _n., _v. → тег
+        .replace(/_([а-яёa-z.:]+)/gi, '<span class="dict-label">$1</span>')
+        // Главная нумерация: 1., 2., I., II. → тег (только в начале строки)
+        .replace(/^([IVX]+|\d+)\.\s+/g, '<span class="dict-list-main">$1.</span> ')
+        // Подчиненная нумерация: 1), 2), a), б) → тег (только в начале строки)
+        .replace(/^(\d+|[a-zа-яё])\)\s+/gi, '<span class="dict-list-sub">$1)</span> ')
+
+      // 2. Генерируем стиль отступа (примерно 0.5em на каждый пробел словаря)
+      const indentStyle = spacesCount > 0
+        ? ` style="margin-left: ${spacesCount * 0.5}em;"`
+        : ''
+
+      // 3. Оборачиваем результат в div (решает проблему отсутствия переносов)
+      return `<div class="dict-line"${indentStyle}>${text}</div>`
+    })
     .join('\n')
-    .trim()
 }
 
 /**

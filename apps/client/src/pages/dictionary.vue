@@ -194,6 +194,7 @@ onMounted(() => {
     font-size: 1rem;
     color: var(--fg-primary-color);
     line-height: 1.5;
+    white-space: pre-wrap;
 
     :deep(b) {
       font-weight: 600;
