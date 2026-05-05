@@ -101,11 +101,25 @@ export async function handleAnalyzeBookStats(id: number): Promise<Response> {
 
     const fullText = pages.map(p => p.content).join('\n')
 
-    // Универсальный подсчет символов
-    const charRegex = /[\p{L}\p{N}]/gu
-    const allChars = fullText.match(charRegex) || []
-    const totalChars = allChars.length
-    const uniqueChars = new Set(allChars).size
+    const bookLanguage = book.language || 'en'
+    let totalItems = 0
+    let uniqueItems = 0
+
+    // Если язык китайский или японский - имеет смысл считать уникальные ИЕРОГЛИФЫ
+    if (bookLanguage === 'zh' || bookLanguage === 'ja') {
+      const charRegex = /[\p{L}\p{N}]/gu
+      const allChars = fullText.match(charRegex) || []
+      totalItems = allChars.length
+      uniqueItems = new Set(allChars).size
+    }
+    // Для европейских языков (en, de, fr, ru) - считаем уникальные СЛОВА
+    else {
+      // Регулярка ищет последовательности букв/цифр (слова)
+      const wordRegex = /[\p{L}\p{N}]+/gu
+      const allWords = fullText.match(wordRegex) || []
+      totalItems = allWords.length
+      uniqueItems = new Set(allWords.map(w => w.toLowerCase())).size
+    }
 
     const excerpt = fullText.substring(0, 3000)
     const aiData = await analyzeBookExcerpt(excerpt)
@@ -121,7 +135,7 @@ export async function handleAnalyzeBookStats(id: number): Promise<Response> {
         tags = excluded.tags,
         totalChars = excluded.totalChars,
         uniqueChars = excluded.uniqueChars
-    `).run(id, aiData.description, aiData.difficulty, tagsJson, totalChars, uniqueChars)
+    `).run(id, aiData.description, aiData.difficulty, tagsJson, totalItems, uniqueItems)
 
     const newStats = db.prepare(`SELECT * FROM book_stats WHERE bookId = ?`).get(id) as any
     newStats.tags = JSON.parse(newStats.tags)

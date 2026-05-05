@@ -98,7 +98,6 @@ const shouldAddSpace = computed(() => {
               :class="{
                 'is-active': store.activeTokenId === `${sentence.sentenceId}-${i}`,
                 'is-punctuation': token.pos === 'x',
-                'add-space': shouldAddSpace && token.pos !== 'x',
               }"
               @click="onWordClick(token, sentence.sentenceId, i, $event)"
             >{{ token.word }}</span>
@@ -218,20 +217,11 @@ const shouldAddSpace = computed(() => {
 }
 
 .word {
-  display: inline-block;
-  padding: 0 1px;
+  display: inline;
   border-radius: 4px;
   transition:
     background-color 0.1s,
     color 0.1s;
-
-  &.add-space {
-    margin-right: 0.25em;
-  }
-
-  &.is-punctuation.add-space {
-    margin-right: 0;
-  }
 
   &.is-punctuation {
     cursor: default;

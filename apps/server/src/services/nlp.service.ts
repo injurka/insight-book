@@ -8,25 +8,34 @@ import nodejieba from 'nodejieba'
 const SENTENCE_DELIMITERS = /([.。！？…!?]+)/g
 
 function splitIntoSentences(text: string): string[] {
-  // Заменяем горизонтальные пробелы, но сохраняем \n
-  const cleanText = text.replace(/[ \t]+/g, ' ').trim()
+  // БОЛЬШЕ НЕ ВЫРЕЗАЕМ ПРОБЕЛЫ И НЕ ИСПОЛЬЗУЕМ trim()
   // Сначала разбиваем на абзацы с сохранением самих символов переноса
-  const paragraphs = cleanText.split(/(\n+)/)
+  const paragraphs = text.split(/(\n+)/)
 
   const sentences: string[] = []
 
   for (const para of paragraphs) {
-    // Если это чистый блок из переносов строк — сохраняем как есть
-    if (!para.trim() && para.includes('\n')) {
+    if (!para)
+      continue
+
+    // Если это чистый блок из пробелов/переносов строк — сохраняем как есть
+    if (/^\s+$/.test(para)) {
       sentences.push(para)
       continue
     }
 
     const parts = para.split(SENTENCE_DELIMITERS)
-    for (let i = 0; i < parts.length; i += 2) {
-      const sent = (parts[i] || '') + (parts[i + 1] || '')
-      if (sent.trim()) {
-        sentences.push(sent.trim())
+    let currentSentence = ''
+
+    for (let i = 0; i < parts.length; i++) {
+      currentSentence += parts[i]
+
+      // Если это разделитель (нечетный индекс) или последний кусок массива
+      if (i % 2 !== 0 || i === parts.length - 1) {
+        if (currentSentence) {
+          sentences.push(currentSentence) // Без .trim() !
+          currentSentence = ''
+        }
       }
     }
   }
@@ -40,8 +49,21 @@ interface LanguageTokenizer {
 
 class ChineseTokenizer implements LanguageTokenizer {
   tokenize(text: string): TokenizedWord[] {
-    const tagged = nodejieba.tag(text) as Array<{ word: string, tag: string }>
-    return tagged.map(t => ({ word: t.word, pos: t.tag }))
+    const tokens: TokenizedWord[] = []
+    // Разбиваем по пробелам/переносам, чтобы jieba их не "проглотила"
+    const parts = text.split(/(\s+)/)
+    for (const part of parts) {
+      if (!part)
+        continue
+      if (/^\s+$/.test(part)) {
+        tokens.push({ word: part, pos: 'x' })
+      }
+      else {
+        const tagged = nodejieba.tag(part) as Array<{ word: string, tag: string }>
+        tokens.push(...tagged.map(t => ({ word: t.word, pos: t.tag })))
+      }
+    }
+    return tokens
   }
 }
 
@@ -88,8 +110,22 @@ class JapaneseTokenizer implements LanguageTokenizer {
     await this.initTokenizer()
     if (!this.tokenizer)
       return [{ word: text, pos: 'unk' }]
-    const tokens = this.tokenizer.tokenize(text)
-    return tokens.map(t => ({ word: t.surface_form, pos: this.getSimpleTag(t.pos) }))
+
+    const tokens: TokenizedWord[] = []
+    // Разбиваем по пробельным символам для гарантии их сохранения
+    const parts = text.split(/(\s+)/)
+    for (const part of parts) {
+      if (!part)
+        continue
+      if (/^\s+$/.test(part)) {
+        tokens.push({ word: part, pos: 'x' })
+      }
+      else {
+        const kuromojiTokens = this.tokenizer.tokenize(part)
+        tokens.push(...kuromojiTokens.map(t => ({ word: t.surface_form, pos: this.getSimpleTag(t.pos) })))
+      }
+    }
+    return tokens
   }
 }
 
@@ -121,26 +157,30 @@ class EnglishTokenizer implements LanguageTokenizer {
     const doc = nlp(text)
     const jsonOutput = doc.json()
     const tokens: TokenizedWord[] = []
+
     for (const sentence of jsonOutput) {
       for (const term of sentence.terms) {
-        if (term.pre) {
-          for (const char of term.pre) {
-            if (char.trim().length > 0)
-              tokens.push({ word: char, pos: 'x' })
-          }
-        }
+        // Сохраняем пробелы и пунктуацию до слова как отдельный токен (без trim)
+        if (term.pre)
+          tokens.push({ word: term.pre, pos: 'x' })
+
+        // Само слово
         if (term.text) {
           const tag = this.getSimpleTag(term.tags)
           tokens.push({ word: term.text, pos: tag })
         }
-        if (term.post) {
-          for (const char of term.post) {
-            if (char.trim().length > 0)
-              tokens.push({ word: char, pos: 'x' })
-          }
-        }
+
+        // Сохраняем пробелы и пунктуацию после слова
+        if (term.post)
+          tokens.push({ word: term.post, pos: 'x' })
       }
     }
+
+    // Fallback на случай, если библиотека ничего не распарсила (например, там были одни пробелы)
+    if (tokens.length === 0) {
+      tokens.push({ word: text, pos: 'x' })
+    }
+
     return tokens
   }
 }
@@ -181,7 +221,8 @@ export async function tokenizePage(text: string, language: string): Promise<Toke
   for (let i = 0; i < sentences.length; i++) {
     const raw = sentences[i]
 
-    if (/^\n+$/.test(raw)) {
+    // Если это чистый перенос строки или отступы - нет смысла отдавать парсерам
+    if (/^\s+$/.test(raw)) {
       tokenizedSentences.push({ sentenceId: i, tokens: [{ word: raw, pos: 'x' }], raw })
       continue
     }
