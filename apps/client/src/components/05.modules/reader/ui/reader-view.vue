@@ -149,6 +149,7 @@ const shouldAddSpace = computed(() => {
               class="word"
               :class="{
                 'is-active': store.activeTokenId === `${sentence.sentenceId}-${i}`,
+                'is-speaking': store.sidebarSentence === sentence.raw && store.ttsCurrentWordIndex === i, // Новое условие
                 'is-punctuation': token.pos === 'x',
                 'add-space': shouldAddSpace && token.pos !== 'x',
               }"

@@ -21,7 +21,6 @@ export interface AnalysisHistoryItem {
   timestamp: number
 }
 
-// Новый интерфейс для выделенного текста
 export interface SelectionTooltipData {
   text: string
   targetRect: DOMRect
@@ -37,6 +36,7 @@ export const useBooksStore = defineStore('books', () => {
   const isPageLoading = ref(false)
   const isAnalyzingBook = ref(false)
   const uploadProgress = ref(0)
+  const ttsCurrentWordIndex = ref(-1)
 
   const activeTokenId = ref<string | null>(null)
   const wordPopover = ref<WordPopoverData | null>(null)
@@ -58,6 +58,10 @@ export const useBooksStore = defineStore('books', () => {
 
   const addEditWordModalOpen = ref(false)
   const wordToEdit = ref<Partial<UserDictItem> | null>(null)
+
+  // Контроллеры для отмены запросов
+  let wordAbortController: AbortController | null = null
+  let sentenceAbortController: AbortController | null = null
 
   async function fetchBooks() {
     isLoading.value = true
@@ -206,9 +210,24 @@ export const useBooksStore = defineStore('books', () => {
   async function fetchAiTranslation() {
     if (!wordPopover.value || wordPopover.value.aiTranslation || !currentBook.value)
       return
+
+    if (wordAbortController)
+      wordAbortController.abort()
+    const controller = new AbortController()
+    wordAbortController = controller
+
     wordPopover.value.isAiLoading = true
     try {
-      const res = await api.books.analyze(currentBook.value.id, wordPopover.value.word, currentBook.value.language)
+      const res = await api.books.analyze(
+        currentBook.value.id,
+        wordPopover.value.word,
+        currentBook.value.language,
+        controller.signal,
+      )
+
+      if (wordAbortController !== controller)
+        return
+
       if (wordPopover.value) {
         wordPopover.value.aiData = res
         wordPopover.value.aiTranslation = res.translation
@@ -218,13 +237,16 @@ export const useBooksStore = defineStore('books', () => {
         wordPopover.value.aiTranscription = res.transcription || vocabMatch?.transcription || ''
       }
     }
-    catch {
-      if (wordPopover.value) {
+    catch (err: any) {
+      if (err.name === 'AbortError')
+        return
+
+      if (wordPopover.value && wordAbortController === controller) {
         wordPopover.value.aiTranslation = 'Ошибка при переводе ИИ'
       }
     }
     finally {
-      if (wordPopover.value) {
+      if (wordPopover.value && wordAbortController === controller) {
         wordPopover.value.isAiLoading = false
       }
     }
@@ -243,21 +265,36 @@ export const useBooksStore = defineStore('books', () => {
     if (!currentPage.value || !currentBook.value)
       return
 
-    closeSelectionTooltip() // Закрываем выделение, если открываем слово
+    closeSelectionTooltip()
     activeTokenId.value = `${sentenceId}-${tokenIndex}`
     const targetRect = target.getBoundingClientRect()
 
     const entry = currentPage.value.pageDictionary[word]
     if (entry) {
+      if (wordAbortController)
+        wordAbortController.abort()
       wordPopover.value = { word, pos, transcription: entry.transcription, translation: entry.translation, targetRect, showAi: false, isAiLoading: false }
       return
     }
 
+    if (wordAbortController)
+      wordAbortController.abort()
+    const controller = new AbortController()
+    wordAbortController = controller
+
     try {
-      const result = await api.books.lookupWord(currentBook.value.id, word)
+      const result = await api.books.lookupWord(currentBook.value.id, word, controller.signal)
+      if (wordAbortController !== controller)
+        return
+
       wordPopover.value = { word, pos, transcription: result.transcription, translation: result.translation, targetRect, showAi: false, isAiLoading: false }
     }
-    catch {
+    catch (err: any) {
+      if (err.name === 'AbortError')
+        return
+      if (wordAbortController !== controller)
+        return
+
       wordPopover.value = { word, pos, transcription: '', translation: 'Не найдено', targetRect, showAi: true, isAiLoading: false }
       fetchAiTranslation()
     }
@@ -270,7 +307,6 @@ export const useBooksStore = defineStore('books', () => {
     sidebarSentence.value = sentence
     sidebarOpen.value = true
 
-    // Проверяем наличие в истории, чтобы не запрашивать заново
     const existing = analysisHistory.value.find(h => h.sentence === sentence)
     if (existing) {
       sidebarAnalysis.value = existing.analysis
@@ -280,23 +316,42 @@ export const useBooksStore = defineStore('books', () => {
 
     sidebarAnalysis.value = null
     isAnalyzing.value = true
-    try {
-      const res = await api.books.analyze(currentBook.value.id, sentence, currentBook.value.language)
-      sidebarAnalysis.value = res
 
-      // Добавляем в историю сессии
+    if (sentenceAbortController)
+      sentenceAbortController.abort()
+    const controller = new AbortController()
+    sentenceAbortController = controller
+
+    try {
+      const res = await api.books.analyze(currentBook.value.id, sentence, currentBook.value.language, controller.signal)
+
+      if (sentenceAbortController !== controller)
+        return
+
+      sidebarAnalysis.value = res
       analysisHistory.value.unshift({
         sentence,
         analysis: res,
         timestamp: Date.now(),
       })
     }
+    catch (err: any) {
+      if (err.name === 'AbortError')
+        return
+      console.error(err)
+    }
     finally {
-      isAnalyzing.value = false
+      if (sentenceAbortController === controller) {
+        isAnalyzing.value = false
+      }
     }
   }
 
   function closePopover() {
+    if (wordAbortController) {
+      wordAbortController.abort()
+      wordAbortController = null
+    }
     wordPopover.value = null
     activeTokenId.value = null
   }
@@ -356,6 +411,7 @@ export const useBooksStore = defineStore('books', () => {
     analysisHistory,
     currentToc,
     tocOpen,
+    ttsCurrentWordIndex,
     addEditWordModalOpen,
     wordToEdit,
     fetchBookInfo,

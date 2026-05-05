@@ -78,6 +78,18 @@ registerRoute(
   ),
 )
 
+// Кэшируем сгенерированное аудио
+registerRoute(
+  ({ url }) => url.pathname.includes('/api/books/') && url.pathname.includes('/tts'),
+  CacheStrategyFactory.createCacheFirst( // CacheFirst, т.к. аудио для того же текста не изменится
+    'insight-book-tts-audio',
+    {
+      maxEntries: 200, // Например, 200 аудиофайлов
+      maxAgeSeconds: 30 * 24 * 60 * 60, // Кэш на 30 дней
+    },
+  ),
+)
+
 // --- СТАТИЧЕСКИЕ АССЕТЫ (JS, CSS) ---
 
 function isScriptOrStyle({ request, url }: { request: Request, url: URL }) {

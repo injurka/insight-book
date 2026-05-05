@@ -5,6 +5,7 @@ import {
   handleAnalyzeBookStats,
   handleAnalyzeSentence,
   handleDeleteBook,
+  handleGenerateTts,
   handleGetBookInfo,
   handleGetBooks,
   handleGetPage,
@@ -55,6 +56,10 @@ const apiRoutes: ServeOptionsRoutes = {
   '/api/books/:id/cover': {
     OPTIONS: corsOk,
     PATCH: req => handleUpdateCover(req as Request, Number((req as any).params.id)),
+  },
+  '/api/books/:id/tts': {
+    OPTIONS: corsOk,
+    POST: req => handleGenerateTts(req as Request, Number((req as any).params.id)),
   },
   '/api/books/:id/stats': {
     OPTIONS: corsOk,

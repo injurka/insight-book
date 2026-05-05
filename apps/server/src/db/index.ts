@@ -77,6 +77,15 @@ db.run(`
 `)
 
 db.run(`
+  CREATE TABLE IF NOT EXISTS tts_cache (
+    textHash    TEXT PRIMARY KEY,
+    text        TEXT NOT NULL,
+    audioBase64 TEXT NOT NULL,
+    createdAt   TEXT NOT NULL DEFAULT (datetime('now'))
+  )
+`)
+
+db.run(`
   CREATE TABLE IF NOT EXISTS user_dictionary (
     id            INTEGER PRIMARY KEY AUTOINCREMENT,
     word          TEXT    NOT NULL UNIQUE,

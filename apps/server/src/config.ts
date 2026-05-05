@@ -7,8 +7,13 @@ export const DB_PATH = process.env.DB_PATH || path.resolve(process.cwd(), 'db', 
 export const DICTS_PATH = process.env.DICTS_PATH || path.resolve(process.cwd(), 'db', 'dicts')
 
 export const UPLOADS_PATH = process.env.UPLOADS_PATH || path.resolve(process.cwd(), 'uploads')
+
 export const LLM_API_KEY = process.env.LLM_API_KEY || ''
 export const LLM_API_URL = process.env.LLM_API_URL || 'https://aihubmix.com/v1'
+export const LLM_MODEL = process.env.LLM_MODEL || 'gemini-3.1-flash-lite-preview'
+
+export const TTS_API_KEY = process.env.TTS_API_KEY || LLM_API_KEY
+export const TTS_MODEL = process.env.TTS_MODEL || 'gpt-4o-mini-tts'
 
 export const PAGE_SIZE_CHARS = 1500
 

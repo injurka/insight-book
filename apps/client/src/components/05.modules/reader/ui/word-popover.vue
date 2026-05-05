@@ -1,9 +1,13 @@
 <script setup lang="ts">
+import { Icon } from '@iconify/vue'
 import { KitBtn, KitSkeleton } from '~/components/01.kit'
+import { useTts } from '~/shared/composables/use-tts'
 import { POS_TAGS_MAP } from '~/shared/constants/pos-tags'
 import { useBooksStore } from '~/shared/store/books.store'
 
 const store = useBooksStore()
+const { speak, isPlaying, isLoading } = useTts()
+
 const popoverRef = ref<HTMLElement | null>(null)
 const popoverPos = ref({ top: '-9999px', left: '-9999px', transform: 'none' })
 
@@ -62,6 +66,12 @@ function openSaveDialog() {
   store.closePopover()
 }
 
+function playWordTTS() {
+  if (store.wordPopover) {
+    speak(store.wordPopover.word)
+  }
+}
+
 function closePopover(event?: MouseEvent) {
   const target = event?.target as HTMLElement | null
   if (target?.closest('.kit-dialog') || target?.closest('.word-popover')) {
@@ -91,7 +101,12 @@ onUnmounted(() => {
       >
         <div class="popover-content">
           <div class="transcription-header">
-            {{ store.wordPopover.showAi ? (store.wordPopover.aiTranscription || store.wordPopover.transcription) : store.wordPopover.transcription }}
+            <span class="header-text">
+              {{ store.wordPopover.showAi ? (store.wordPopover.aiTranscription || store.wordPopover.transcription) : store.wordPopover.transcription }}
+            </span>
+            <button class="close-btn" @click.stop="store.closePopover()">
+              <Icon width="16" height="16" icon="mdi:chevron-down" />
+            </button>
           </div>
 
           <div v-if="store.wordPopover.showAi && store.wordPopover.isAiLoading" class="ai-loader">
@@ -135,17 +150,27 @@ onUnmounted(() => {
 
           <div class="popover-actions">
             <KitBtn
+              :icon="isLoading ? 'mdi:loading' : (isPlaying ? 'mdi:volume-high' : 'mdi:volume-medium')"
+              size="xs"
+              variant="text"
+              color="primary"
+              :class="{ 'pulse-animation': isPlaying, 'spin-animation': isLoading }"
+              @click.stop="playWordTTS"
+            />
+
+            <KitBtn
               icon="mdi:robot-outline"
               size="xs"
               variant="text"
               :color="store.wordPopover.showAi ? 'accent' : 'secondary'"
-              @click="store.toggleAiTranslation"
+              @click.stop="store.toggleAiTranslation"
             />
+
             <KitBtn
               icon="mdi:star-outline"
               size="xs"
               variant="text"
-              @click="openSaveDialog"
+              @click.stop="openSaveDialog"
             />
           </div>
         </div>
@@ -180,18 +205,52 @@ onUnmounted(() => {
   .transcription-header {
     background-color: rgba(var(--bg-tertiary-color-rgb, 33, 38, 45), 0.8);
     backdrop-filter: blur(4px);
-    text-align: center;
-    font-weight: 600;
-    font-size: 1.15rem;
-    color: var(--fg-accent-color);
+    display: flex;
+    align-items: center;
+    justify-content: center;
     padding: 12px 16px 8px 16px;
     position: sticky;
     top: 0;
     z-index: 2;
+
+    .header-text {
+      font-weight: 600;
+      font-size: 1.15rem;
+      color: var(--fg-accent-color);
+      text-align: center;
+    }
+
+    .close-btn {
+      position: absolute;
+      right: 8px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: transparent;
+      border: none;
+      color: var(--fg-secondary-color);
+      cursor: pointer;
+      padding: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      transition:
+        background-color 0.2s,
+        color 0.2s;
+
+      &:hover {
+        background-color: var(--bg-hover-color);
+        color: var(--fg-primary-color);
+      }
+
+      svg {
+        font-size: 1.4rem; // Немного увеличим для chevron
+      }
+    }
   }
 
   .popover-body {
-    padding: 8px;
+    padding: 8px 12px;
     position: relative;
   }
 
@@ -262,5 +321,48 @@ onUnmounted(() => {
     display: flex;
     gap: 4px;
   }
+
+  .pulse-animation {
+    :deep(.kit-btn-icon) {
+      animation: pulse-op 1.5s infinite;
+      color: var(--fg-accent-color);
+    }
+  }
+
+  .spin-animation {
+    :deep(.kit-btn-icon) {
+      animation: spin 1s linear infinite;
+    }
+  }
+}
+
+@keyframes pulse-op {
+  0% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(0.9);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.2s;
+}
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
 }
 </style>

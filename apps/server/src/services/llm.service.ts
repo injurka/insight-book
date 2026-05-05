@@ -1,5 +1,5 @@
 import type { LlmAnalysis } from '../types'
-import { LLM_API_KEY, LLM_API_URL } from '../config'
+import { LLM_API_KEY, LLM_API_URL, LLM_MODEL, TTS_API_KEY, TTS_MODEL } from '../config'
 import { db } from '../db'
 
 function hashSentence(sentence: string): string {
@@ -55,6 +55,12 @@ const BOOK_ANALYSIS_PROMPT = `Ты — литературный критик. О
   "tags": ["тег1", "тег2"]
 }`
 
+function hashTtsText(text: string): string {
+  const hasher = new Bun.CryptoHasher('sha256')
+  hasher.update(text.trim())
+  return hasher.digest('hex')
+}
+
 export async function analyzeSentence(sentence: string, language: string): Promise<LlmAnalysis> {
   const hash = hashSentence(sentence)
 
@@ -74,7 +80,7 @@ export async function analyzeSentence(sentence: string, language: string): Promi
       'Authorization': `Bearer ${LLM_API_KEY}`,
     },
     body: JSON.stringify({
-      model: 'gemini-3.1-flash-lite-preview',
+      model: LLM_MODEL,
       response_format: { type: 'json_object' },
       messages: [
         { role: 'system', content: getSystemPrompt(language) },
@@ -115,7 +121,7 @@ export async function analyzeBookExcerpt(excerpt: string): Promise<{ description
       'Authorization': `Bearer ${LLM_API_KEY}`,
     },
     body: JSON.stringify({
-      model: 'gemini-3.1-flash-lite-preview',
+      model: LLM_MODEL,
       response_format: { type: 'json_object' },
       messages: [
         { role: 'system', content: BOOK_ANALYSIS_PROMPT },
@@ -136,4 +142,59 @@ export async function analyzeBookExcerpt(excerpt: string): Promise<{ description
   const cleanJson = raw.replace(/^```json\n?/, '').replace(/\n?```$/, '').trim()
 
   return JSON.parse(cleanJson)
+}
+
+export async function generateTts(text: string): Promise<string> {
+  const normalizedText = text.trim()
+
+  if (!normalizedText) {
+    throw new Error('Текст не передан')
+  }
+
+  if (!TTS_API_KEY) {
+    throw new Error('TTS_API_KEY не настроен')
+  }
+
+  const hash = hashTtsText(normalizedText)
+
+  const cached = db.prepare(`
+    SELECT analysis
+    FROM llm_cache
+    WHERE sentenceHash = ? AND sentence = 'AUDIO_CACHE'
+  `).get(hash) as { analysis: string } | null
+
+  if (cached) {
+    return cached.analysis
+  }
+
+  const response = await fetch(`${LLM_API_URL}/audio/speech`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${TTS_API_KEY}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: TTS_MODEL,
+      input: normalizedText,
+      voice: 'alloy',
+      response_format: 'mp3',
+      instructions: 'Читай в спокойной, ровной манере диктора аудиокниг, без излишней эмоциональности, с чёткой артикуляцией и умеренной скоростью.',
+    }),
+    signal: AbortSignal.timeout(60000),
+  })
+
+  if (!response.ok) {
+    const err = await response.text()
+    throw new Error(`TTS API error ${response.status}: ${err}`)
+  }
+
+  const arrayBuffer = await response.arrayBuffer()
+  const base64 = Buffer.from(arrayBuffer).toString('base64')
+
+  db.prepare(`
+    INSERT OR REPLACE INTO tts_cache (textHash, text, audioBase64)
+    VALUES (?, ?, ?)
+  `).run(hash, normalizedText, base64)
+
+  return base64
 }

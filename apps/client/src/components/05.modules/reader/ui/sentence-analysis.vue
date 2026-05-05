@@ -6,6 +6,7 @@ import { KitDialog, KitSkeleton } from '~/components/01.kit'
 import { useBooksStore } from '~/shared/store/books.store'
 
 const store = useBooksStore()
+const { isPlaying, isLoading, speak, stop } = useTts()
 
 const isPinned = ref(true)
 const showHistory = ref(false)
@@ -26,40 +27,15 @@ watch(() => store.sidebarOpen, (isOpen) => {
   }
 })
 
+watch(() => store.sidebarOpen, (isOpen) => {
+  if (!isOpen && isPlaying.value) {
+    stop()
+  }
+})
+
 function loadHistoryItem(item: AnalysisHistoryItem) {
   store.handleSentenceAnalysis(item.sentence)
   showHistory.value = false
-}
-
-function playTTS() {
-  if (!store.sidebarSentence)
-    return
-
-  const text = store.sidebarSentence
-  const lang = store.currentBook?.language || 'en'
-
-  const langMap: Record<string, string> = {
-    zh: 'zh-CN',
-    ja: 'ja-JP',
-    en: 'en-US',
-    ru: 'ru-RU',
-  }
-
-  window.speechSynthesis.cancel()
-
-  const utterance = new SpeechSynthesisUtterance(text)
-  utterance.lang = langMap[lang.toLowerCase()] || lang
-  utterance.rate = 0.9
-
-  utterance.onstart = () => {
-    isSpeaking.value = true
-  }
-
-  utterance.onend = () => {
-    isSpeaking.value = false
-  }
-
-  window.speechSynthesis.speak(utterance)
 }
 
 onUnmounted(() => {
@@ -131,8 +107,14 @@ onUnmounted(() => {
           <div class="original-sentence">
             {{ store.sidebarSentence }}
           </div>
-          <button class="tts-btn" title="Озвучить" @click="playTTS">
-            <Icon :icon="isSpeaking ? 'mdi:volume-high' : 'mdi:volume-medium'" :class="{ 'pulse-animation': isSpeaking }" />
+          <button
+            class="tts-btn"
+            title="Озвучить"
+            :disabled="isLoading"
+            @click="speak(store.sidebarSentence)"
+          >
+            <Icon v-if="isLoading" icon="mdi:loading" class="spin-animation" />
+            <Icon v-else :icon="isPlaying ? 'mdi:volume-high' : 'mdi:volume-medium'" :class="{ 'pulse-animation': isPlaying }" />
           </button>
         </div>
 

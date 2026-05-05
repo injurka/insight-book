@@ -58,14 +58,22 @@ export const api = {
     getPage: (bookId: number, page: number) =>
       request<PagePayload>(`/api/books/${bookId}/page/${page}`),
 
-    lookupWord: (bookId: number, word: string) =>
-      request<{ transcription: string, translation: string }>(`/api/books/${bookId}/word/${encodeURIComponent(word)}`),
+    lookupWord: (bookId: number, word: string, signal?: AbortSignal) =>
+      request<{ transcription: string, translation: string }>(`/api/books/${bookId}/word/${encodeURIComponent(word)}`, { signal }),
 
-    analyze: (bookId: number, sentence: string, language: string) =>
+    analyze: (bookId: number, sentence: string, language: string, signal?: AbortSignal) =>
       request<LlmAnalysis>(`/api/books/${bookId}/analyze`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ sentence, language }),
+        signal,
+      }),
+
+    generateTts: (bookId: number, text: string) =>
+      request<{ audioBase64: string, timings?: any[] }>(`/api/books/${bookId}/tts`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text }),
       }),
   },
 

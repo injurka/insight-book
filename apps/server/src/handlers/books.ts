@@ -3,7 +3,7 @@ import { CORS_HEADERS } from '../config'
 import { db } from '../db'
 import { getUserDictionary, getWordFromUserDictionary, lookupSingleWord, lookupWords, removeFromUserDictionary, upsertToUserDictionary } from '../services/dictionary.service'
 import { processEpub } from '../services/epub.service'
-import { analyzeBookExcerpt, analyzeSentence } from '../services/llm.service'
+import { analyzeBookExcerpt, analyzeSentence, generateTts } from '../services/llm.service'
 import { tokenizePage } from '../services/nlp.service'
 
 function json(data: unknown, status = 200) {
@@ -91,7 +91,7 @@ export async function handleUpdateBook(req: Request, id: number): Promise<Respon
 // POST /api/books/:id/analyze-book
 export async function handleAnalyzeBookStats(id: number): Promise<Response> {
   try {
-    const book = db.prepare(`SELECT id FROM books WHERE id = ?`).get(id)
+    const book = db.prepare(`SELECT * FROM books WHERE id = ?`).get(id) as Book | null
     if (!book)
       return json({ error: 'Книга не найдена' }, 404)
 
@@ -105,16 +105,13 @@ export async function handleAnalyzeBookStats(id: number): Promise<Response> {
     let totalItems = 0
     let uniqueItems = 0
 
-    // Если язык китайский или японский - имеет смысл считать уникальные ИЕРОГЛИФЫ
     if (bookLanguage === 'zh' || bookLanguage === 'ja') {
       const charRegex = /[\p{L}\p{N}]/gu
       const allChars = fullText.match(charRegex) || []
       totalItems = allChars.length
       uniqueItems = new Set(allChars).size
     }
-    // Для европейских языков (en, de, fr, ru) - считаем уникальные СЛОВА
     else {
-      // Регулярка ищет последовательности букв/цифр (слова)
       const wordRegex = /[\p{L}\p{N}]+/gu
       const allWords = fullText.match(wordRegex) || []
       totalItems = allWords.length
@@ -336,4 +333,24 @@ export function handleGetWordFromUserDict(word: string): Response {
     return json({ error: 'Слово не найдено в словаре пользователя' }, 404)
   }
   return json(entry)
+}
+
+export async function handleGenerateTts(req: Request, bookId: number): Promise<Response> {
+  try {
+    const book = db.prepare(`SELECT id FROM books WHERE id = ?`).get(bookId) as { id: number } | null
+    if (!book)
+      return json({ error: 'Книга не найдена' }, 404)
+
+    const { text } = await req.json() as { text?: string }
+    if (!text)
+      return json({ error: 'Текст не передан' }, 400)
+
+    const audioBase64 = await generateTts(text)
+
+    return json({ audioBase64 })
+  }
+  catch (e: any) {
+    console.error('TTS Handler Error:', e)
+    return json({ error: e.message }, 500)
+  }
 }

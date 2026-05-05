@@ -3,9 +3,10 @@ import { Icon } from '@iconify/vue'
 import { useBooksStore } from '~/shared/store/books.store'
 
 const store = useBooksStore()
+const { speak } = useTts()
+
 const popoverRef = ref<HTMLElement | null>(null)
 const popoverPos = ref({ top: '-9999px', left: '-9999px', transform: 'none' })
-
 const isSpeaking = ref(false)
 
 watch(
@@ -65,36 +66,10 @@ function analyzeFragment() {
 }
 
 function playTTS() {
-  if (!store.selectionTooltip)
-    return
-
-  const text = store.selectionTooltip.text
-  const lang = store.currentBook?.language || 'en'
-
-  const langMap: Record<string, string> = {
-    zh: 'zh-CN',
-    ja: 'ja-JP',
-    en: 'en-US',
-    ru: 'ru-RU',
+  if (store.selectionTooltip) {
+    speak(store.selectionTooltip.text)
   }
-
-  window.speechSynthesis.cancel()
-
-  const utterance = new SpeechSynthesisUtterance(text)
-  utterance.lang = langMap[lang.toLowerCase()] || lang
-  utterance.rate = 0.9
-
-  utterance.onstart = () => {
-    isSpeaking.value = true
-  }
-
-  utterance.onend = () => {
-    isSpeaking.value = false
-  }
-
-  window.speechSynthesis.speak(utterance)
 }
-
 onUnmounted(() => {
   window.speechSynthesis.cancel()
 })
