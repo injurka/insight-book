@@ -8,19 +8,41 @@ import { db } from '../db'
 mkdirSync(UPLOADS_PATH, { recursive: true })
 
 function chunkText(text: string, size: number): string[] {
-  const paragraphs = text.split(/\n+/).filter(p => p.trim().length > 0)
   const chunks: string[] = []
-  let current = ''
+  let currentChunk = ''
+
+  // Разбиваем на абзацы, сохраняя саму структуру переносов \n
+  const paragraphs = text.split(/(\n+)/)
 
   for (const para of paragraphs) {
-    if (current.length + para.length > size && current.length > 0) {
-      chunks.push(current.trim())
-      current = ''
+    // Если это просто переносы строк (пустота), добавляем к текущей странице
+    if (!para.trim() && para.includes('\n')) {
+      currentChunk += para
+      continue
     }
-    current += `${para}\n`
+
+    // Разбиваем абзац на предложения по знакам пунктуации (включая азиатские)
+    const parts = para.split(/([.!?…。！？]+\s*)/)
+
+    for (let i = 0; i < parts.length; i += 2) {
+      const sentence = (parts[i] || '') + (parts[i + 1] || '')
+      if (!sentence)
+        continue
+
+      // Если после добавления предложения лимит превышен и страница не пустая — закрываем страницу
+      if (currentChunk.length + sentence.length > size && currentChunk.trim().length > 0) {
+        chunks.push(currentChunk.trim())
+        currentChunk = ''
+      }
+
+      currentChunk += sentence
+    }
   }
-  if (current.trim())
-    chunks.push(current.trim())
+
+  // Не забываем добавить остаток
+  if (currentChunk.trim()) {
+    chunks.push(currentChunk.trim())
+  }
 
   return chunks
 }
@@ -168,10 +190,18 @@ export async function processEpub(fileBuffer: ArrayBuffer, filename: string): Pr
               if (!err && text) {
                 const root = parseHtml(text)
                 root.querySelectorAll('script, style').forEach(n => n.remove())
-                root.querySelectorAll('p, div, br, h1, h2, h3').forEach((n) => {
-                  n.insertAdjacentHTML('afterend', '\n')
+
+                // Вставляем маркер только после логических блоков (абзацев, списков, заголовков)
+                root.querySelectorAll('p, div, br, h1, h2, h3, li, blockquote').forEach((n) => {
+                  n.insertAdjacentHTML('afterend', '[[BLOCK_BREAK]]')
                 })
-                const plain = root.text.replace(/[ \t]+/g, ' ').replace(/\n{2,}/g, '\n').trim()
+
+                let plain = root.text
+                // 1. Убираем технические переносы строк внутри предложений (превращаем в пробелы)
+                plain = plain.replace(/\s+/g, ' ')
+                // 2. Восстанавливаем реальные абзацы двойным переносом \n\n
+                plain = plain.replace(/(\s*\[\[BLOCK_BREAK\]\]\s*)+/g, '\n\n').trim()
+
                 if (plain) {
                   allTexts.push(plain)
                   currentTotalLength += plain.length + 1

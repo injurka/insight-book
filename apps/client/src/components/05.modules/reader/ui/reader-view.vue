@@ -86,7 +86,7 @@ const shouldAddSpace = computed(() => {
         </div>
 
         <div v-else-if="store.currentPage" class="reader-content container">
-          <p
+          <span
             v-for="sentence in store.currentPage.content" :key="sentence.sentenceId"
             v-long-press="() => onSentenceLongPress(sentence.raw)"
             class="sentence"
@@ -98,13 +98,11 @@ const shouldAddSpace = computed(() => {
               :class="{
                 'is-active': store.activeTokenId === `${sentence.sentenceId}-${i}`,
                 'is-punctuation': token.pos === 'x',
-                'add-space': shouldAddSpace,
+                'add-space': shouldAddSpace && token.pos !== 'x',
               }"
               @click="onWordClick(token, sentence.sentenceId, i, $event)"
-            >
-              {{ token.word }}
-            </span>
-          </p>
+            >{{ token.word }}</span>
+          </span>
         </div>
       </div>
 
@@ -165,6 +163,8 @@ const shouldAddSpace = computed(() => {
   line-height: 2.2;
   color: var(--fg-primary-color);
   user-select: text;
+  white-space: pre-wrap;
+  word-wrap: break-word;
 
   @include media-down(sm) {
     padding: 16px 16px;
