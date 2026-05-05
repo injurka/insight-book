@@ -1,3 +1,2 @@
-.env.directus
-.env.database
-vault/**
+.env
+db/**
