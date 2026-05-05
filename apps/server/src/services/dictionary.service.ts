@@ -7,7 +7,7 @@ export function lookupWords(words: string[], language: string): Record<string, P
 
   const conn = getDictConnection(language)
   if (!conn)
-    return {} 
+    return {}
 
   const placeholders = words.map(() => '?').join(', ')
 

@@ -106,6 +106,8 @@ const dictConnections = new Map<string, DictConnection>()
 
 export function getDictConnection(language: string): DictConnection | null {
   const lang = language.toLowerCase()
+  // eslint-disable-next-line no-console
+  console.log('📖 Getd dict connection', `[${lang}]`)
 
   if (dictConnections.has(lang)) {
     return dictConnections.get(lang)!
