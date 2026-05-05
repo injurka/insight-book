@@ -1,5 +1,7 @@
 <script lang="ts" setup>
 import { Icon } from '@iconify/vue'
+import { useDraggable } from '@vueuse/core'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 
 interface Props {
   maxWidth?: number
@@ -7,50 +9,170 @@ interface Props {
   icon?: string
   persistent?: boolean
   description?: string
+  floating?: boolean
 }
 
-const {
-  maxWidth = 700,
-  title,
-  icon,
-  persistent = false,
-  description,
-} = defineProps<Props>()
+const props = withDefaults(defineProps<Props>(), {
+  maxWidth: 700,
+  persistent: false,
+  floating: false,
+})
 
 const visible = defineModel<boolean>('visible', { required: true })
-
-const maxWidthPx = computed(() => `${maxWidth}px`)
 const dialogId = useId()
 
+const dialogContentRef = ref<HTMLElement | null>(null)
+const dialogHeaderRef = ref<HTMLElement | null>(null)
+
+// Инициализация координат для плавающего окна (по центру)
+const initialX = typeof window !== 'undefined' ? Math.max((window.innerWidth - props.maxWidth) / 2, 0) : 0
+const initialY = typeof window !== 'undefined' ? 100 : 0
+
+const { x, y, style: dragStyle } = useDraggable(dialogContentRef, {
+  initialValue: { x: initialX, y: initialY },
+  handle: dialogHeaderRef,
+})
+
+const maxWidthPx = computed(() => `${props.maxWidth}px`)
+
+// Ресайз логика для обоих режимов
+const dialogWidth = ref<number | '100%'>('100%')
+const dialogHeight = ref<number | 'auto'>('auto')
+const hasResized = ref(false)
+
+let isResizing = false
+let currentHandle = ''
+let startX = 0
+let startY = 0
+let startWidth = 0
+let startHeight = 0
+let startPosX = 0
+let startPosY = 0
+
+function startResize(handle: string, e: MouseEvent) {
+  isResizing = true
+  currentHandle = handle
+  hasResized.value = true
+  startX = e.clientX
+  startY = e.clientY
+
+  const rect = dialogContentRef.value!.getBoundingClientRect()
+  startWidth = rect.width
+  startHeight = rect.height
+  startPosX = x.value
+  startPosY = y.value
+
+  document.addEventListener('mousemove', onResize)
+  document.addEventListener('mouseup', stopResize)
+  document.body.style.userSelect = 'none'
+}
+
+function onResize(e: MouseEvent) {
+  if (!isResizing)
+    return
+  const dx = e.clientX - startX
+  const dy = e.clientY - startY
+
+  let newWidth = startWidth
+  let newHeight = startHeight
+  let newX = startPosX
+  let newY = startPosY
+
+  if (props.floating) {
+    if (currentHandle.includes('right'))
+      newWidth = startWidth + dx
+    if (currentHandle.includes('left')) {
+      newWidth = startWidth - dx
+      newX = startPosX + dx
+    }
+    if (currentHandle.includes('bottom'))
+      newHeight = startHeight + dy
+    if (currentHandle.includes('top')) {
+      newHeight = startHeight - dy
+      newY = startPosY + dy
+    }
+  }
+  else {
+    // Если по-центру (закреплено), изменяем размер вдвое, чтобы края двигались вслед за мышью
+    if (currentHandle.includes('right'))
+      newWidth = startWidth + dx * 2
+    if (currentHandle.includes('left'))
+      newWidth = startWidth - dx * 2
+    if (currentHandle.includes('bottom'))
+      newHeight = startHeight + dy * 2
+    if (currentHandle.includes('top'))
+      newHeight = startHeight - dy * 2
+  }
+
+  const MIN_W = 300
+  const MIN_H = 200
+
+  if (newWidth < MIN_W) {
+    if (props.floating && currentHandle.includes('left')) {
+      newX -= (MIN_W - newWidth)
+    }
+    newWidth = MIN_W
+  }
+  if (newHeight < MIN_H) {
+    if (props.floating && currentHandle.includes('top')) {
+      newY -= (MIN_H - newHeight)
+    }
+    newHeight = MIN_H
+  }
+
+  dialogWidth.value = newWidth
+  dialogHeight.value = newHeight
+
+  if (props.floating) {
+    x.value = newX
+    y.value = newY
+  }
+}
+
+function stopResize() {
+  isResizing = false
+  document.removeEventListener('mousemove', onResize)
+  document.removeEventListener('mouseup', stopResize)
+  document.body.style.userSelect = ''
+}
+
 function handleOverlayClick(event: MouseEvent) {
-  if (persistent)
+  if (props.persistent || props.floating)
     return
 
   const target = event.target as HTMLElement
-
   if (event.offsetX > target.clientWidth || event.offsetY > target.clientHeight) {
     return
   }
-
   visible.value = false
 }
 
 function handleKeydown(event: KeyboardEvent) {
-  if (event.key === 'Escape' && visible.value && !persistent) {
+  if (event.key === 'Escape' && visible.value && !props.persistent) {
     visible.value = false
   }
 }
 
-watch(visible, (isOpen) => {
+watch([visible, () => props.floating], ([isOpen, isFloating]) => {
   if (typeof window === 'undefined')
     return
+
   if (isOpen) {
-    document.body.style.setProperty('overflow', 'hidden')
+    if (!hasResized.value) {
+      dialogWidth.value = '100%'
+      dialogHeight.value = 'auto'
+    }
+    if (!isFloating) {
+      document.body.style.setProperty('overflow', 'hidden')
+    }
+    else {
+      document.body.style.removeProperty('overflow')
+    }
   }
   else {
     document.body.style.removeProperty('overflow')
   }
-})
+}, { immediate: true })
 
 onMounted(() => {
   document.addEventListener('keydown', handleKeydown)
@@ -68,19 +190,39 @@ onUnmounted(() => {
   <Teleport to="body">
     <Transition name="dialog" :duration="300" appear>
       <div v-if="visible" class="dialog-root">
-        <div class="dialog-overlay" @mousedown="handleOverlayClick" />
+        <div v-if="!floating" class="dialog-overlay" @mousedown="handleOverlayClick" />
 
         <div
+          ref="dialogContentRef"
           class="dialog-content-wrapper"
-          :style="{ maxWidth: maxWidthPx }"
+          :class="{ 'is-floating': floating }"
+          :style="[
+            floating ? dragStyle : {},
+            {
+              width: dialogWidth === '100%' ? '100%' : `${dialogWidth}px`,
+              height: dialogHeight === 'auto' ? 'auto' : `${dialogHeight}px`,
+              maxWidth: hasResized ? '100vw' : maxWidthPx,
+              maxHeight: hasResized ? '100vh' : '90vh',
+            },
+          ]"
           role="dialog"
           aria-modal="true"
           :aria-labelledby="title ? `dialog-title-${dialogId}` : undefined"
           :aria-describedby="description ? `dialog-desc-${dialogId}` : undefined"
           @mousedown.stop
         >
-          <!-- Остальной код шаблона остается без изменений -->
-          <div class="dialog-header">
+          <!-- Элементы ресайза -->
+          <div class="resize-handle top" @mousedown.prevent="startResize('top', $event)" />
+          <div class="resize-handle right" @mousedown.prevent="startResize('right', $event)" />
+          <div class="resize-handle bottom" @mousedown.prevent="startResize('bottom', $event)" />
+          <div class="resize-handle left" @mousedown.prevent="startResize('left', $event)" />
+
+          <div class="resize-handle top-left" @mousedown.prevent="startResize('top-left', $event)" />
+          <div class="resize-handle top-right" @mousedown.prevent="startResize('top-right', $event)" />
+          <div class="resize-handle bottom-left" @mousedown.prevent="startResize('bottom-left', $event)" />
+          <div class="resize-handle bottom-right" @mousedown.prevent="startResize('bottom-right', $event)" />
+
+          <div ref="dialogHeaderRef" class="dialog-header" :class="{ 'is-draggable': floating }">
             <slot v-if="$slots.header" name="header" />
             <template v-else>
               <div class="title-container">
@@ -91,13 +233,16 @@ onUnmounted(() => {
               </div>
             </template>
 
-            <button
-              class="close-button"
-              :aria-label="`Закрыть диалог ${title ?? ''}`"
-              @click="visible = false"
-            >
-              <Icon icon="mdi:close" />
-            </button>
+            <div class="header-actions">
+              <slot name="header-actions" />
+              <button
+                class="dialog-icon-btn close-button"
+                :aria-label="`Закрыть диалог ${title ?? ''}`"
+                @click="visible = false"
+              >
+                <Icon icon="mdi:close" />
+              </button>
+            </div>
           </div>
 
           <p
@@ -166,17 +311,25 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   gap: 16px;
-  max-height: 90vh;
+  box-shadow: none;
 
   &:focus {
     outline: none;
   }
 
-  .dialog-enter-active & {
-    animation: content-warp-in 250ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  &:not(.is-floating) {
+    .dialog-enter-active & {
+      animation: content-warp-in 250ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    }
+    .dialog-leave-active & {
+      animation: content-warp-out 200ms cubic-bezier(0.7, 0, 0.84, 0) forwards;
+    }
   }
-  .dialog-leave-active & {
-    animation: content-warp-out 200ms cubic-bezier(0.7, 0, 0.84, 0) forwards;
+
+  &.is-floating {
+    transform: none !important;
+    animation: none !important;
+    margin: 0;
   }
 
   @include media-down(sm) {
@@ -190,14 +343,85 @@ onUnmounted(() => {
     max-width: 100% !important;
     border-bottom-left-radius: 0;
     border-bottom-right-radius: 0;
-    max-height: 92dvh;
+    max-height: 92dvh !important;
 
-    .dialog-enter-active & {
-      animation: content-slide-up 300ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    &:not(.is-floating) {
+      .dialog-enter-active & {
+        animation: content-slide-up 300ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+      }
+      .dialog-leave-active & {
+        animation: content-slide-down 200ms cubic-bezier(0.7, 0, 0.84, 0) forwards;
+      }
     }
-    .dialog-leave-active & {
-      animation: content-slide-down 200ms cubic-bezier(0.7, 0, 0.84, 0) forwards;
-    }
+  }
+}
+
+.resize-handle {
+  position: absolute;
+  z-index: 100;
+
+  &.top {
+    top: -6px;
+    left: 6px;
+    right: 6px;
+    height: 12px;
+    cursor: n-resize;
+  }
+  &.bottom {
+    bottom: -6px;
+    left: 6px;
+    right: 6px;
+    height: 12px;
+    cursor: s-resize;
+  }
+  &.left {
+    top: 6px;
+    bottom: 6px;
+    left: -6px;
+    width: 12px;
+    cursor: e-resize;
+  }
+  &.right {
+    top: 6px;
+    bottom: 6px;
+    right: -6px;
+    width: 12px;
+    cursor: w-resize;
+  }
+
+  &.top-left {
+    top: -6px;
+    left: -6px;
+    width: 16px;
+    height: 16px;
+    cursor: nw-resize;
+  }
+  &.top-right {
+    top: -6px;
+    right: -6px;
+    width: 16px;
+    height: 16px;
+    cursor: ne-resize;
+  }
+  &.bottom-left {
+    bottom: -6px;
+    left: -6px;
+    width: 16px;
+    height: 16px;
+    cursor: sw-resize;
+  }
+  &.bottom-right {
+    bottom: -6px;
+    right: -6px;
+    width: 16px;
+    height: 16px;
+    cursor: se-resize;
+  }
+}
+
+@include media-down(sm) {
+  .resize-handle {
+    display: none;
   }
 }
 
@@ -206,6 +430,15 @@ onUnmounted(() => {
   justify-content: space-between;
   align-items: center;
   flex-shrink: 0;
+
+  &.is-draggable {
+    cursor: grab;
+    user-select: none;
+
+    &:active {
+      cursor: grabbing;
+    }
+  }
 }
 
 .title-container {
@@ -232,19 +465,31 @@ onUnmounted(() => {
   margin-bottom: 0;
 }
 
-.close-button {
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+// Экспорт стилей кнопки для использования внутри слота #header-actions
+.dialog-icon-btn,
+:slotted(.dialog-icon-btn) {
   background: transparent;
   border: none;
-  padding: 4px;
+  padding: 6px;
   cursor: pointer;
   color: var(--fg-secondary-color);
   border-radius: var(--r-full);
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  transition: background-color 0.2s;
+  transition:
+    background-color 0.2s,
+    color 0.2s;
+  font-size: 1.25rem;
 
-  &:hover {
+  &:hover,
+  &.is-active {
     background-color: var(--bg-hover-color);
     color: var(--fg-accent-color);
   }

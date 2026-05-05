@@ -35,7 +35,7 @@ function goBack() {
   display: flex;
   align-items: center;
   padding: 12px;
-  gap: 16px;
+  gap: 8px;
   max-width: 800px;
   width: 100%;
   margin: 0 auto;

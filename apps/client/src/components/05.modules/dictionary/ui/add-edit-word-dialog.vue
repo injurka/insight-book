@@ -124,7 +124,6 @@ watch(() => store.wordToEdit, (newWord) => {
     }
     :deep(.dict-bullet) {
       display: block;
-      margin-top: 6px;
     }
   }
 }

@@ -15,6 +15,18 @@ export interface WordPopoverData {
   aiData?: LlmAnalysis
 }
 
+export interface AnalysisHistoryItem {
+  sentence: string
+  analysis: LlmAnalysis
+  timestamp: number
+}
+
+// Новый интерфейс для выделенного текста
+export interface SelectionTooltipData {
+  text: string
+  targetRect: DOMRect
+}
+
 export const useBooksStore = defineStore('books', () => {
   const books = ref<Book[]>([])
   const currentBook = ref<Book | null>(null)
@@ -29,10 +41,16 @@ export const useBooksStore = defineStore('books', () => {
   const activeTokenId = ref<string | null>(null)
   const wordPopover = ref<WordPopoverData | null>(null)
 
+  // Состояние тултипа для выделенного текста
+  const selectionTooltip = ref<SelectionTooltipData | null>(null)
+
   const sidebarOpen = ref(false)
   const sidebarAnalysis = ref<LlmAnalysis | null>(null)
   const sidebarSentence = ref<string | null>(null)
   const isAnalyzing = ref(false)
+
+  // История анализа предложений в рамках текущей сессии
+  const analysisHistory = ref<AnalysisHistoryItem[]>([])
 
   const currentToc = ref<TocItem[]>([])
   const tocOpen = ref(false)
@@ -168,6 +186,7 @@ export const useBooksStore = defineStore('books', () => {
   async function loadPage(bookId: number, pageNum: number) {
     isPageLoading.value = true
     closePopover()
+    closeSelectionTooltip()
     sidebarOpen.value = false
 
     if (currentToc.value.length === 0 || lastTocBookId !== bookId) {
@@ -223,6 +242,8 @@ export const useBooksStore = defineStore('books', () => {
   async function handleWordClick(word: string, pos: string, sentenceId: number, tokenIndex: number, target: HTMLElement) {
     if (!currentPage.value || !currentBook.value)
       return
+
+    closeSelectionTooltip() // Закрываем выделение, если открываем слово
     activeTokenId.value = `${sentenceId}-${tokenIndex}`
     const targetRect = target.getBoundingClientRect()
 
@@ -245,12 +266,30 @@ export const useBooksStore = defineStore('books', () => {
   async function handleSentenceAnalysis(sentence: string) {
     if (!currentBook.value)
       return
+
     sidebarSentence.value = sentence
     sidebarOpen.value = true
+
+    // Проверяем наличие в истории, чтобы не запрашивать заново
+    const existing = analysisHistory.value.find(h => h.sentence === sentence)
+    if (existing) {
+      sidebarAnalysis.value = existing.analysis
+      isAnalyzing.value = false
+      return
+    }
+
     sidebarAnalysis.value = null
     isAnalyzing.value = true
     try {
-      sidebarAnalysis.value = await api.books.analyze(currentBook.value.id, sentence, currentBook.value.language)
+      const res = await api.books.analyze(currentBook.value.id, sentence, currentBook.value.language)
+      sidebarAnalysis.value = res
+
+      // Добавляем в историю сессии
+      analysisHistory.value.unshift({
+        sentence,
+        analysis: res,
+        timestamp: Date.now(),
+      })
     }
     finally {
       isAnalyzing.value = false
@@ -260,6 +299,10 @@ export const useBooksStore = defineStore('books', () => {
   function closePopover() {
     wordPopover.value = null
     activeTokenId.value = null
+  }
+
+  function closeSelectionTooltip() {
+    selectionTooltip.value = null
   }
 
   async function openAddEditWordModal(wordData: WordPopoverData) {
@@ -305,10 +348,12 @@ export const useBooksStore = defineStore('books', () => {
     uploadProgress,
     activeTokenId,
     wordPopover,
+    selectionTooltip,
     sidebarOpen,
     sidebarAnalysis,
     sidebarSentence,
     isAnalyzing,
+    analysisHistory,
     currentToc,
     tocOpen,
     addEditWordModalOpen,
@@ -328,6 +373,7 @@ export const useBooksStore = defineStore('books', () => {
     toggleAiTranslation,
     handleSentenceAnalysis,
     closePopover,
+    closeSelectionTooltip,
     openAddEditWordModal,
     saveWordToDict,
     removeFromDict,

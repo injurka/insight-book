@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import type { TokenizedWord } from '~/shared/types/models'
+import { useDebounceFn } from '@vueuse/core'
 import { KitDialog } from '~/components/01.kit'
 import { PageLoader } from '~/components/02.shared/page-loader'
 
 import { useBooksStore } from '~/shared/store/books.store'
 import ReaderFooter from './reader-footer.vue'
 import ReaderHeader from './reader-header.vue'
+import SelectionTooltip from './selection-tooltip.vue'
 import SentenceAnalysis from './sentence-analysis.vue'
 import WordPopover from './word-popover.vue'
 
@@ -14,6 +16,7 @@ const router = useRouter()
 const route = useRoute()
 
 const readerViewRef = ref<HTMLElement | null>(null)
+const readerContentRef = ref<HTMLElement | null>(null)
 
 function prevPage() {
   if (store.currentBook && (store.currentBook.currentPage || 1) > 1) {
@@ -46,12 +49,16 @@ function onWordClick(token: TokenizedWord, sentenceId: number, tokenIndex: numbe
   if (token.pos === 'x')
     return
 
+  window.getSelection()?.empty()
+
   event.stopPropagation()
   store.handleWordClick(token.word, token.pos, sentenceId, tokenIndex, event.target as HTMLElement)
 }
 
 function onSentenceLongPress(sentenceRaw: string) {
   store.closePopover()
+  store.closeSelectionTooltip()
+  window.getSelection()?.empty()
   store.handleSentenceAnalysis(sentenceRaw)
 }
 
@@ -59,7 +66,52 @@ function onScroll() {
   if (store.wordPopover) {
     store.closePopover()
   }
+  if (store.selectionTooltip) {
+    store.closeSelectionTooltip()
+  }
 }
+
+const checkTextSelection = useDebounceFn(() => {
+  const selection = window.getSelection()
+
+  if (!selection || selection.isCollapsed) {
+    store.closeSelectionTooltip()
+    return
+  }
+
+  const text = selection.toString().trim()
+  if (!text) {
+    store.closeSelectionTooltip()
+    return
+  }
+
+  const anchorNode = selection.anchorNode
+  if (readerContentRef.value && !readerContentRef.value.contains(anchorNode)) {
+    return
+  }
+
+  const range = selection.getRangeAt(0)
+  const rect = range.getBoundingClientRect()
+
+  if (rect.width === 0 || rect.height === 0) {
+    store.closeSelectionTooltip()
+    return
+  }
+
+  if (store.wordPopover) {
+    store.closePopover()
+  }
+
+  store.selectionTooltip = { text, targetRect: rect }
+}, 250)
+
+onMounted(() => {
+  document.addEventListener('selectionchange', checkTextSelection)
+})
+
+onUnmounted(() => {
+  document.removeEventListener('selectionchange', checkTextSelection)
+})
 
 const shouldAddSpace = computed(() => {
   const lang = store.currentBook?.language || 'en'
@@ -85,7 +137,7 @@ const shouldAddSpace = computed(() => {
           </p>
         </div>
 
-        <div v-else-if="store.currentPage" class="reader-content container">
+        <div v-else-if="store.currentPage" ref="readerContentRef" class="reader-content container">
           <span
             v-for="sentence in store.currentPage.content" :key="sentence.sentenceId"
             v-long-press="() => onSentenceLongPress(sentence.raw)"
@@ -98,6 +150,7 @@ const shouldAddSpace = computed(() => {
               :class="{
                 'is-active': store.activeTokenId === `${sentence.sentenceId}-${i}`,
                 'is-punctuation': token.pos === 'x',
+                'add-space': shouldAddSpace && token.pos !== 'x',
               }"
               @click="onWordClick(token, sentence.sentenceId, i, $event)"
             >{{ token.word }}</span>
@@ -109,6 +162,7 @@ const shouldAddSpace = computed(() => {
     </div>
 
     <WordPopover />
+    <SelectionTooltip />
 
     <KitDialog v-model:visible="store.tocOpen" title="Оглавление" :max-width="500" icon="mdi:format-list-bulleted">
       <div v-if="store.currentToc.length === 0" class="empty-state">
@@ -169,6 +223,11 @@ const shouldAddSpace = computed(() => {
     padding: 16px 16px;
     font-size: 1.25rem;
   }
+
+  // Добавляем стили выделения для лучшей видимости (по желанию)
+  & ::selection {
+    background-color: var(--bg-accent-overlay-color);
+  }
 }
 
 .reader-loading-wrapper {
@@ -217,11 +276,20 @@ const shouldAddSpace = computed(() => {
 }
 
 .word {
-  display: inline;
+  display: inline-block;
+  padding: 0 1px;
   border-radius: 4px;
   transition:
     background-color 0.1s,
     color 0.1s;
+
+  &.add-space {
+    margin-right: 0.25em;
+  }
+
+  &.is-punctuation.add-space {
+    margin-right: 0;
+  }
 
   &.is-punctuation {
     cursor: default;

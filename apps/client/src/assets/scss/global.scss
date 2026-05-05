@@ -31,17 +31,3 @@ body {
   -webkit-tap-highlight-color: transparent;
 }
 
-// Scrollbars
-::-webkit-scrollbar {
-  width: 4px;
-  height: 4px;
-}
-
-::-webkit-scrollbar-thumb {
-  border-radius: 10px;
-  background-color: var(--bg-tertiary-color);
-}
-
-::-webkit-scrollbar-track {
-  background-color: transparent;
-}

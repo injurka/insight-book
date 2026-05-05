@@ -23,69 +23,78 @@ interface DictEntry {
   $translation: string
 }
 
-/**
- * Форматирует тело перевода:
- * - Оборачивает каждую строку в <div> для гарантированных переносов строк в HTML.
- * - Сохраняет оригинальные отступы (переводит начальные пробелы в margin-left).
- * - Оборачивает нумерацию (1., 1), a)) в теги для стилизации на фронтенде.
- * - Убирает DSL-разметку вида _n., _v. → <span class="dict-label">n.</span>
- */
-function formatTranslation(lines: string[]): string {
-  return lines
-    // Сначала убираем полностью пустые строки
-    .filter(line => line.trim() !== '')
-    .map((line) => {
-      // 1. Вычисляем оригинальный отступ (количество пробелов в начале)
-      const spaceMatch = line.match(/^(\s+)/)
-      const spacesCount = spaceMatch ? spaceMatch[1].length : 0
-
-      // Очищаем начало строки от пробелов для корректной работы регулярок
-      let text = line.trimStart()
-
-      text = text
-        // Спецпометы *) → превращаем в символ
-        .replace(/^\*\)\s*/, '<span class="dict-note">◆ </span>')
-        // Грамматические пометы: _n., _v. → тег
-        .replace(/_([а-яёa-z.:]+)/gi, '<span class="dict-label">$1</span>')
-        // Главная нумерация: 1., 2., I., II. → тег (только в начале строки)
-        .replace(/^([IVX]+|\d+)\.\s+/g, '<span class="dict-list-main">$1.</span> ')
-        // Подчиненная нумерация: 1), 2), a), б) → тег (только в начале строки)
-        .replace(/^(\d+|[a-zа-яё])\)\s+/gi, '<span class="dict-list-sub">$1)</span> ')
-
-      // 2. Генерируем стиль отступа (примерно 0.5em на каждый пробел словаря)
-      const indentStyle = spacesCount > 0
-        ? ` style="margin-left: ${spacesCount * 0.5}em;"`
-        : ''
-
-      // 3. Оборачиваем результат в div (решает проблему отсутствия переносов)
-      return `<div class="dict-line"${indentStyle}>${text}</div>`
-    })
-    .join('\n')
+function getLeadingSpaces(line: string): number {
+  const match = line.match(/^(\s+)/)
+  return match ? match[1].length : 0
 }
 
 /**
- * Извлекает транскрипцию из первой строки тела.
- * Варианты:
- *   "  [kɔz] _уст. = because"          → "[kɔz]"
- *   "  [ˈʧelɪst] _n. виолончелист"     → "[ˈʧelɪst]"
- *   "  _n. (_pl. Baalim)"               → null (нет транскрипции)
- *   "  _n."                             → null
- *   "  1. _a. австралийский"            → null (многозначная, без общей транскр.)
- *
- * Иногда несколько транскрипций через ; или (полная форма)/(редуцированная):
- *   "[twɔz] (полная форма); [twəz] ..."  → берём первую
+ * Форматирует тело перевода под стиль китайского словаря:
+ * - Использует m-1, m-2, m-3 для отступов вместо inline-стилей.
+ * - Оборачивает части речи (n., v.) в <span class="dict-pos">.
+ * - Делает римские и обычные цифры жирными <b>.
  */
+function formatTranslation(lines: string[]): string {
+  if (lines.length === 0)
+    return ''
+
+  // === КЛЮЧЕВОЕ ИСПРАВЛЕНИЕ: ОПРЕДЕЛЯЕМ БАЗОВЫЙ ОТСТУП ===
+  // Находим минимальное количество пробелов среди всех непустых строк.
+  // Это будет наш "нулевой" уровень (m-1).
+  const nonEmptyLines = lines.filter(line => line.trim() !== '')
+  if (nonEmptyLines.length === 0)
+    return ''
+
+  const baseIndent = Math.min(...nonEmptyLines.map(getLeadingSpaces))
+
+  return nonEmptyLines
+    .map((line) => {
+      const currentIndent = getLeadingSpaces(line)
+      // Вычисляем относительный отступ
+      const relativeIndent = currentIndent - baseIndent
+
+      // Определяем уровень класса отступа на основе относительного значения
+      let mLevel = 1
+      if (relativeIndent <= 0)
+        mLevel = 1 // Базовый уровень
+      else if (relativeIndent <= 2)
+        mLevel = 2 // Первый уровень вложенности
+      else if (relativeIndent <= 4)
+        mLevel = 3 // Второй уровень
+      else
+        mLevel = 4 // Глубокая вложенность
+
+      let text = line.trimStart()
+
+      text = text
+        .replace(/^([IVX]+)(?=\s|$)/, '<b>$1</b>')
+        .replace(/^(\d+)\.\s+/g, '<b>$1.</b> ')
+        .replace(/^(\d+|[a-zа-яё])\)\s+/gi, '<b>$1)</b> ')
+        .replace(/^(\*\)|#\)|◆)\s*/, '')
+        .replace(/_([а-яёa-z.:]+)/gi, '<span class="dict-pos">$1</span>')
+
+      if (mLevel >= 4 && !text.startsWith('<b>'))
+        return `<div class="dict-margin m-${mLevel}"><div class="dict-bullet"><span class="dict-example">${text}</span></div></div>`
+
+      return `<div class="dict-margin m-${mLevel}">${text}</div>`
+    })
+    .join('')
+}
+
 function extractTranscription(firstBodyLine: string): {
   transcription: string | null
   rest: string
 } {
-  const match = firstBodyLine.trimStart().match(/^(\[[^\]]+\])\s*(.*)$/)
-  if (!match) {
+  const match = firstBodyLine.trimStart().match(/^([IVX]+\s+)?(\[[^\]]+\])\s*(.*)$/)
+  if (!match)
     return { transcription: null, rest: firstBodyLine }
-  }
+
+  const romanNumeral = match[1] ? `${match[1].trim()} ` : ''
+
+  // Мы возвращаем rest БЕЗ начальных пробелов. Пробелы будут обработаны в formatTranslation.
   return {
-    transcription: match[1],
-    rest: match[2],
+    transcription: match[2],
+    rest: (romanNumeral + match[3]).trimStart(),
   }
 }
 
@@ -94,7 +103,6 @@ function processBuffer(
   bodyLines: string[],
   targetArray: DictEntry[],
 ) {
-  // Пропускаем служебные записи DICT-формата
   if (word.startsWith('00-database') || word.startsWith('0database'))
     return
 
@@ -102,12 +110,21 @@ function processBuffer(
   if (nonEmptyLines.length === 0)
     return
 
+  // Извлекаем транскрипцию из первой строки
   const { transcription, rest } = extractTranscription(nonEmptyLines[0])
 
-  // Пересобираем тело: первая строка без транскрипции + остальные
-  const bodyForFormat = rest
-    ? [rest, ...nonEmptyLines.slice(1)]
-    : nonEmptyLines.slice(1)
+  // Собираем тело для форматирования
+  const bodyForFormat = [...nonEmptyLines]
+  // Если в первой строке что-то осталось после извлечения транскрипции, заменяем ее.
+  // Если не осталось, то просто удаляем.
+  if (rest.trim()) {
+    // Важно: сохраняем исходные пробелы первой строки, чтобы правильно вычислить baseIndent
+    const originalIndent = ' '.repeat(getLeadingSpaces(nonEmptyLines[0]))
+    bodyForFormat[0] = originalIndent + rest
+  }
+  else {
+    bodyForFormat.shift()
+  }
 
   const translation = formatTranslation(bodyForFormat)
 
@@ -141,20 +158,17 @@ async function parseDictFile(filePath: string, insertMany: (entries: DictEntry[]
   }
 
   for await (const line of rl) {
-    // Строка с отступом или пустая — часть тела текущей статьи
     if (line === '' || line.startsWith(' ') || line.startsWith('\t')) {
       if (currentWord !== null)
         bodyLines.push(line)
       continue
     }
 
-    // Новое слово — непробельная непустая строка
     flush()
     currentWord = line.trim()
     bodyLines = []
   }
 
-  // Последняя запись
   flush()
 
   if (entriesBatch.length > 0)

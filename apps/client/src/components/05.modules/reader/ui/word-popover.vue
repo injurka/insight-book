@@ -210,46 +210,8 @@ onUnmounted(() => {
     margin-bottom: 8px;
     word-break: break-word;
     white-space: pre-wrap;
-
-    :deep(b) {
-      color: var(--fg-primary-color);
-      font-weight: 600;
-    }
-    :deep(.dict-pos) {
-      color: var(--fg-success-color);
-      font-style: italic;
-      font-size: 0.9em;
-      margin: 0 2px;
-    }
-    :deep(.dict-color) {
-      color: var(--fg-info-color);
-    }
-    :deep(.dict-example) {
-      display: block;
-      color: var(--fg-secondary-color);
-      padding-left: 10px;
-      margin-top: 4px;
-      margin-bottom: 8px;
-    }
-    :deep(.dict-bullet) {
-      display: block;
-      margin-top: 6px;
-      &::before {
-        content: '• ';
-        color: var(--fg-accent-color);
-        position: absolute;
-        font-weight: bold;
-      }
-    }
-    :deep(.dict-margin) {
-      margin-left: 12px;
-      margin-top: 4px;
-    }
-    :deep(.dict-ref) {
-      color: var(--fg-action-color);
-      text-decoration: underline;
-      cursor: pointer;
-    }
+    display: flex;
+    flex-direction: column;
   }
 
   .ai-section {
