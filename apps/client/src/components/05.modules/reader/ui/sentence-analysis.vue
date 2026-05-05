@@ -49,8 +49,8 @@ const store = useBooksStore()
         <ul class="vocab-list">
           <li v-for="(v, idx) in store.sidebarAnalysis.vocabulary" :key="idx">
             <div class="vocab-word">
-              <span class="hanzi">{{ v.word }}</span>
-              <span class="pinyin">{{ v.pinyin }}</span>
+              <span class="dict-word">{{ v.word }}</span>
+              <span class="dict-transcription">{{ v.transcription }}</span>
             </div>
             <div class="vocab-meaning">
               {{ v.meaning }}
@@ -89,7 +89,7 @@ const store = useBooksStore()
     background-color: var(--bg-tertiary-color);
     border-left: 4px solid var(--fg-accent-color);
     border-radius: 4px 8px 8px 4px;
-    font-family: 'Maple Mono CN', sans-serif;
+    font-family: inherit;
   }
 
   .analysis-block {
@@ -147,12 +147,12 @@ const store = useBooksStore()
       }
       .vocab-word {
         margin-bottom: 4px;
-        .hanzi {
+        .dict-word {
           font-weight: bold;
           font-size: 1.15rem;
           margin-right: 8px;
         }
-        .pinyin {
+        .dict-transcription {
           color: var(--fg-accent-color);
           font-size: 0.9rem;
         }

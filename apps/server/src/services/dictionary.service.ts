@@ -1,29 +1,45 @@
 import type { PageDictEntry, UserDictItem } from '../types'
-import { db, dictDb } from '../db'
+import { db, getDictConnection } from '../db'
 
-export function lookupWords(words: string[]): Record<string, PageDictEntry> {
+export function lookupWords(words: string[], language: string): Record<string, PageDictEntry> {
   if (!words.length)
     return {}
 
+  const conn = getDictConnection(language)
+  if (!conn)
+    return {} 
+
   const placeholders = words.map(() => '?').join(', ')
-  const rows = dictDb.prepare(`
-    SELECT word, pinyin, translation
-    FROM zh_dictionary
+
+  const transcriptionCol = conn.tableName === 'zh_dictionary' ? 'pinyin AS transcription' : 'transcription'
+
+  const rows = conn.db.prepare(`
+    SELECT word, ${transcriptionCol}, translation
+    FROM ${conn.tableName}
     WHERE word IN (${placeholders})
-  `).all(...words) as Array<{ word: string, pinyin: string, translation: string }>
+  `).all(...words) as Array<{ word: string, transcription: string, translation: string }>
 
   const dict: Record<string, PageDictEntry> = {}
   for (const row of rows) {
-    dict[row.word] = { pinyin: row.pinyin, translation: row.translation }
+    dict[row.word] = { transcription: row.transcription, translation: row.translation }
   }
   return dict
 }
 
-export function lookupSingleWord(word: string): PageDictEntry | null {
-  const row = dictDb.prepare(`
-    SELECT pinyin, translation FROM zh_dictionary WHERE word = ?
-  `).get(word) as { pinyin: string, translation: string } | null
-  return row ? { pinyin: row.pinyin, translation: row.translation } : null
+export function lookupSingleWord(word: string, language: string): PageDictEntry | null {
+  const conn = getDictConnection(language)
+  if (!conn)
+    return null
+
+  const transcriptionCol = conn.tableName === 'zh_dictionary' ? 'pinyin AS transcription' : 'transcription'
+
+  const row = conn.db.prepare(`
+    SELECT ${transcriptionCol}, translation 
+    FROM ${conn.tableName} 
+    WHERE word = ?
+  `).get(word) as { transcription: string, translation: string } | null
+
+  return row ? { transcription: row.transcription, translation: row.translation } : null
 }
 
 export function getUserDictionary(): UserDictItem[] {
@@ -36,15 +52,16 @@ export function getWordFromUserDictionary(word: string): UserDictItem | null {
 
 export function upsertToUserDictionary(item: Omit<UserDictItem, 'id' | 'createdAt' | 'updatedAt'>) {
   return db.prepare(`
-    INSERT INTO user_dictionary (word, pinyin, translation, notes, tags, updatedAt)
-    VALUES (?, ?, ?, ?, ?, datetime('now'))
+    INSERT INTO user_dictionary (word, transcription, translation, language, notes, tags, updatedAt)
+    VALUES (?, ?, ?, ?, ?, ?, datetime('now'))
     ON CONFLICT(word) DO UPDATE SET
-      pinyin = excluded.pinyin,
+      transcription = excluded.transcription,
       translation = excluded.translation,
+      language = excluded.language,
       notes = excluded.notes,
       tags = excluded.tags,
       updatedAt = datetime('now')
-  `).run(item.word, item.pinyin, item.translation, item.notes || null, item.tags || null)
+  `).run(item.word, item.transcription, item.translation, item.language, item.notes || null, item.tags || null)
 }
 
 export function removeFromUserDictionary(word: string) {

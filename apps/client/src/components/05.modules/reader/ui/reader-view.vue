@@ -1,8 +1,9 @@
 <script setup lang="ts">
+import type { TokenizedWord } from '~/shared/types/models'
 import { KitDialog } from '~/components/01.kit'
 import { PageLoader } from '~/components/02.shared/page-loader'
-import { useBooksStore } from '~/shared/store/books.store'
 
+import { useBooksStore } from '~/shared/store/books.store'
 import ReaderFooter from './reader-footer.vue'
 import ReaderHeader from './reader-header.vue'
 import SentenceAnalysis from './sentence-analysis.vue'
@@ -41,7 +42,7 @@ function goToPage(pageNum?: number) {
   readerViewRef.value?.scrollTo({ top: 0, behavior: 'smooth' })
 }
 
-function onWordClick(token: any, sentenceId: number, tokenIndex: number, event: MouseEvent) {
+function onWordClick(token: TokenizedWord, sentenceId: number, tokenIndex: number, event: MouseEvent) {
   if (token.pos === 'x')
     return
 
@@ -59,6 +60,11 @@ function onScroll() {
     store.closePopover()
   }
 }
+
+const shouldAddSpace = computed(() => {
+  const lang = store.currentBook?.language || 'en'
+  return !['zh', 'ja'].includes(lang.toLowerCase())
+})
 </script>
 
 <template>
@@ -75,7 +81,7 @@ function onScroll() {
             Подготовка страницы...
           </h3>
           <p class="loading-subtext">
-            Первичное чтение текста и распознавание иероглифов может занять несколько секунд.
+            Первичное чтение текста и распознавание слов может занять несколько секунд.
           </p>
         </div>
 
@@ -92,6 +98,7 @@ function onScroll() {
               :class="{
                 'is-active': store.activeTokenId === `${sentence.sentenceId}-${i}`,
                 'is-punctuation': token.pos === 'x',
+                'add-space': shouldAddSpace,
               }"
               @click="onWordClick(token, sentence.sentenceId, i, $event)"
             >
@@ -217,6 +224,14 @@ function onScroll() {
   transition:
     background-color 0.1s,
     color 0.1s;
+
+  &.add-space {
+    margin-right: 0.25em;
+  }
+
+  &.is-punctuation.add-space {
+    margin-right: 0;
+  }
 
   &.is-punctuation {
     cursor: default;

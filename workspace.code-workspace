@@ -10,7 +10,13 @@
 			"path": "apps/server"
 		},
 		{
-			"path": "apps/dict-parser"
+			"path": "apps/zh-dict-parser"
+		},
+		{
+			"path": "apps/jp-dict-parser"
+		},
+		{
+			"path": "apps/en-dict-parser"
 		},
 	],
 	"settings": {

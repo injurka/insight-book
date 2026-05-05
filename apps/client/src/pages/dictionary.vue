@@ -1,10 +1,16 @@
 <script setup lang="ts">
-import { KitBtn, KitSkeleton } from '~/components/01.kit'
+import { KitBtn, KitInput, KitSelect, KitSkeleton } from '~/components/01.kit'
 import { AppRoutePaths } from '~/shared/constants/routes'
 import { useDictionaryStore } from '~/shared/store/dictionary.store'
 
 const store = useDictionaryStore()
 const router = useRouter()
+
+const langOptions = computed(() => {
+  const opts = [{ label: 'Все языки', value: 'all' }]
+  store.availableLanguages.forEach(l => opts.push({ label: l.toUpperCase(), value: l }))
+  return opts
+})
 
 onMounted(() => {
   store.fetchDictionary()
@@ -14,31 +20,45 @@ onMounted(() => {
 <template>
   <div class="dict-page">
     <header class="dict-header">
-      <div class="header-left">
-        <KitBtn icon="mdi:arrow-left" variant="text" @click="router.push(AppRoutePaths.Home)" />
-        <div class="header-title">
-          <h1>Мой словарь</h1>
-          <p>Слова, которые вы добавили</p>
+      <div class="header-top">
+        <div class="header-left">
+          <KitBtn icon="mdi:arrow-left" variant="text" @click="router.push(AppRoutePaths.Home)" />
+          <div class="header-title">
+            <h1>Мой словарь</h1>
+            <p>Слова, которые вы добавили</p>
+          </div>
         </div>
       </div>
-      <div class="header-right" />
+
+      <div class="header-bottom">
+        <div class="filters">
+          <KitInput v-model="store.searchTerm" placeholder="Поиск по словарю..." size="md" />
+          <KitSelect v-model="store.selectedLanguage" :options="langOptions" size="md" />
+        </div>
+      </div>
     </header>
 
     <div v-if="store.isLoading" class="dict-loading">
       <KitSkeleton v-for="i in 5" :key="i" width="100%" height="80px" class="mb-3" />
     </div>
 
-    <div v-else-if="store.filteredWords.length === 0" class="empty-dict">
+    <div v-else-if="store.words.length === 0" class="empty-dict">
       <h2>Словарь пуст</h2>
       <p>Вы пока не добавили ни одного слова. Начните читать, чтобы пополнить свой словарный запас!</p>
+    </div>
+
+    <div v-else-if="store.filteredWords.length === 0" class="empty-dict">
+      <h2>Слова не найдены</h2>
+      <p>По вашему запросу ничего не нашлось.</p>
     </div>
 
     <div v-else class="dict-list">
       <div v-for="item in store.filteredWords" :key="item.id" class="dict-item">
         <div class="dict-item-content">
-          <div class="dict-word">
-            <span class="hanzi">{{ item.word }}</span>
-            <span class="pinyin">{{ item.pinyin }}</span>
+          <div class="dict-word-container">
+            <span class="dict-word">{{ item.word }}</span>
+            <span class="dict-transcription">{{ item.transcription }}</span>
+            <span class="lang-badge">{{ item.language.toUpperCase() }}</span>
           </div>
           <div class="dict-translation" v-html="item.translation" />
           <div v-if="item.notes" class="dict-notes">
@@ -67,30 +87,48 @@ onMounted(() => {
 
 .dict-header {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  flex-direction: column;
+  gap: 24px;
   margin-bottom: 32px;
-  flex-wrap: wrap;
-  gap: 16px;
 
-  .header-left {
+  .header-top {
     display: flex;
-    align-items: center;
-    gap: 16px;
+    justify-content: space-between;
+    align-items: flex-start;
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .header-title h1 {
+      font-size: 2rem;
+      margin: 0 0 4px 0;
+    }
+
+    .header-title p {
+      margin: 0;
+      color: var(--fg-secondary-color);
+    }
   }
 
-  .header-title h1 {
-    font-size: 2rem;
-    margin: 0;
-  }
+  .header-bottom {
+    display: flex;
 
-  .header-title p {
-    margin: 0;
-    color: var(--fg-secondary-color);
-  }
+    .filters {
+      display: flex;
+      gap: 12px;
+      width: 100%;
+      max-width: 600px;
+    }
 
-  .header-right {
-    min-width: 250px;
+    @include media-down(sm) {
+      .filters {
+        flex-direction: column;
+        max-width: 100%;
+      }
+    }
   }
 }
 
@@ -126,17 +164,29 @@ onMounted(() => {
     flex-grow: 1;
   }
 
-  .dict-word {
-    margin-bottom: 6px;
-    .hanzi {
+  .dict-word-container {
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+
+    .dict-word {
       font-size: 1.4rem;
       font-weight: bold;
-      margin-right: 12px;
       color: var(--fg-accent-color);
     }
-    .pinyin {
+    .dict-transcription {
       font-size: 1rem;
       color: var(--fg-secondary-color);
+    }
+    .lang-badge {
+      background: var(--bg-tertiary-color);
+      color: var(--fg-secondary-color);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      font-weight: 600;
     }
   }
 
@@ -144,10 +194,34 @@ onMounted(() => {
     font-size: 1rem;
     color: var(--fg-primary-color);
     line-height: 1.5;
+
+    :deep(b) {
+      font-weight: 600;
+      color: var(--fg-primary-color);
+    }
+    :deep(.dict-pos) {
+      color: var(--fg-success-color);
+      font-style: italic;
+      font-size: 0.9em;
+      margin: 0 4px;
+    }
+    :deep(.dict-color) {
+      color: var(--fg-info-color);
+    }
+    :deep(.dict-example) {
+      color: var(--fg-secondary-color);
+      display: block;
+      margin-top: 4px;
+      padding-left: 8px;
+    }
+    :deep(.dict-bullet) {
+      display: block;
+      margin-top: 6px;
+    }
   }
 
   .dict-notes {
-    margin-top: 8px;
+    margin-top: 12px;
     font-size: 0.9rem;
     color: var(--fg-secondary-color);
     font-style: italic;

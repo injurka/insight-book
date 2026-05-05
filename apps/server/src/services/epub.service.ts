@@ -25,11 +25,88 @@ function chunkText(text: string, size: number): string[] {
   return chunks
 }
 
-function extractCover(epub: any): string | null {
+async function extractCover(epub: any): Promise<string | null> {
   try {
-    return epub.metadata?.cover || null
+    // 1. Пробуем взять id обложки из метаданных
+    const coverId: string | undefined = epub.metadata?.cover
+
+    if (coverId) {
+      const result = await new Promise<string | null>((resolve) => {
+        epub.getImage(coverId, (err: any, data: Buffer, mimeType: string) => {
+          if (err || !data) {
+            resolve(null)
+            return
+          }
+          const mime = mimeType || 'image/jpeg'
+          resolve(`data:${mime};base64,${Buffer.from(data).toString('base64')}`)
+        })
+      })
+      if (result)
+        return result
+    }
+
+    // 2. Fallback: ищем обложку по характерным id/href в манифесте
+    const manifest: Record<string, { id: string, href: string, mediaType: string }> = epub.manifest || {}
+    const coverItem = Object.values(manifest).find((item) => {
+      const id = item.id?.toLowerCase() ?? ''
+      const href = item.href?.toLowerCase() ?? ''
+      const mime = item.mediaType?.toLowerCase() ?? ''
+      return (
+        mime.startsWith('image/')
+        && (id.includes('cover') || href.includes('cover'))
+      )
+    })
+
+    if (coverItem) {
+      const result = await new Promise<string | null>((resolve) => {
+        epub.getImage(coverItem.id, (err: any, data: Buffer, mimeType: string) => {
+          if (err || !data) {
+            resolve(null)
+            return
+          }
+          const mime = mimeType || coverItem.mediaType || 'image/jpeg'
+          resolve(`data:${mime};base64,${Buffer.from(data).toString('base64')}`)
+        })
+      })
+      if (result)
+        return result
+    }
+
+    // 3. Fallback: берём первое попавшееся изображение из манифеста
+    const firstImage = Object.values(manifest).find(item =>
+      item.mediaType?.toLowerCase().startsWith('image/'),
+    )
+
+    if (firstImage) {
+      const result = await new Promise<string | null>((resolve) => {
+        epub.getImage(firstImage.id, (err: any, data: Buffer, mimeType: string) => {
+          if (err || !data) {
+            resolve(null)
+            return
+          }
+          const mime = mimeType || firstImage.mediaType || 'image/jpeg'
+          resolve(`data:${mime};base64,${Buffer.from(data).toString('base64')}`)
+        })
+      })
+      if (result)
+        return result
+    }
   }
-  catch { return null }
+  catch { /* ignore */ }
+
+  return null
+}
+
+function extractLanguage(epub: any): string {
+  try {
+    const lang = epub.metadata?.language
+    if (Array.isArray(lang))
+      return lang[0].substring(0, 2).toLowerCase()
+    if (typeof lang === 'string')
+      return lang.substring(0, 2).toLowerCase()
+  }
+  catch { }
+  return 'en'
 }
 
 function extractToc(epub: any): TocItem[] {
@@ -68,7 +145,8 @@ export async function processEpub(fileBuffer: ArrayBuffer, filename: string): Pr
       try {
         const title = epub.metadata?.title || filename.replace('.epub', '')
         const author = epub.metadata?.creator || null
-        const coverBase64 = extractCover(epub)
+        const coverBase64 = await extractCover(epub) // <-- теперь async
+        const language = extractLanguage(epub)
         let toc = extractToc(epub)
 
         const allTexts: string[] = []
@@ -118,10 +196,10 @@ export async function processEpub(fileBuffer: ArrayBuffer, filename: string): Pr
         const pages = chunkText(fullText, PAGE_SIZE_CHARS)
 
         const insertBook = db.prepare(`
-          INSERT INTO books (title, author, coverBase64, filePath, totalPages, toc)
-          VALUES (?, ?, ?, ?, ?, ?)
+          INSERT INTO books (title, author, coverBase64, filePath, language, totalPages, toc)
+          VALUES (?, ?, ?, ?, ?, ?, ?)
         `)
-        const result = insertBook.run(title, author, coverBase64, filePath, pages.length, tocJson)
+        const result = insertBook.run(title, author, coverBase64, filePath, language, pages.length, tocJson)
         const bookId = result.lastInsertRowid as number
 
         const insertPage = db.prepare(`

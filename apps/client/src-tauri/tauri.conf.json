@@ -1,18 +1,18 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
-  "productName": "obsidian-client",
+  "productName": "insight-book",
   "version": "0.1.0",
-  "identifier": "com.obsidian-client.dev",
+  "identifier": "com.insight-book.dev",
   "build": {
     "frontendDist": "../dist",
-    "devUrl": "http://localhost:1420",
+    "devUrl": "http://localhost:5173",
     "beforeDevCommand": "bun run dev",
     "beforeBuildCommand": "bun run build"
   },
   "app": {
     "windows": [
       {
-        "title": "@injurkx/obsidian-client",
+        "title": "@injurkx/insight-book",
         "width": 800,
         "height": 600,
         "resizable": true,

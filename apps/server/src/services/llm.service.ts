@@ -1,4 +1,4 @@
-import type { GeminiAnalysis } from '../types'
+import type { LlmAnalysis } from '../types'
 import { LLM_API_KEY, LLM_API_URL } from '../config'
 import { db } from '../db'
 
@@ -8,34 +8,40 @@ function hashSentence(sentence: string): string {
   return hasher.digest('hex')
 }
 
-const SYSTEM_PROMPT = `Ты — экспертный преподаватель китайского языка.
-Проанализируй предложение и верни ТОЛЬКО валидный JSON без markdown-обёрток, без \`\`\`json, без пояснений.
+function getLangName(code: string): string {
+  const map: Record<string, string> = { zh: 'китайского', ja: 'японского', en: 'английского', de: 'немецкого', fr: 'французского', es: 'французского' }
+  return map[code.toLowerCase()] || 'иностранного'
+}
+
+function getSystemPrompt(language: string) {
+  return `Ты — экспертный преподаватель ${getLangName(language)} языка.
+Проанализируй предоставленный текст (это может быть одно слово, фраза или целое предложение) и верни ТОЛЬКО валидный JSON без markdown-обёрток, без \`\`\`json, без пояснений.
 Схема ответа строго (все ключи в camelCase):
 {
+  "transcription": "транскрипция (пиньинь, ромадзи, IPA и т.д.) всего переданного текста",
   "translation": "перевод на русский",
   "grammarRules": [
     { "pattern": "грамматическая конструкция", "explanation": "объяснение", "example": "пример" }
   ],
   "vocabulary": [
-    { "word": "слово", "pinyin": "пиньинь", "meaning": "значение", "usageInContext": "использование в предложении" }
+    { "word": "слово", "transcription": "транскрипция", "meaning": "значение", "usageInContext": "использование в тексте" }
   ]
 }`
+}
 
-const BOOK_ANALYSIS_PROMPT = `Ты — литературный критик и преподаватель китайского языка.
-Прочитай этот начальный отрывок из китайской книги и верни ТОЛЬКО валидный JSON без markdown-обёрток.
-Схема ответа:
+const BOOK_ANALYSIS_PROMPT = `Ты — литературный критик. Оцени предоставленный отрывок книги. Верни ТОЛЬКО JSON:
 {
-  "description": "Саммари или аннотация книги на русском (3-4 предложения)",
-  "difficulty": "Оценка сложности словаря и грамматики (например: HSK 3, HSK 5 и т.д. от 1 до 9)",
-  "tags": ["жанр", "тег1", "тег2"]
+  "description": "краткое описание сюжета",
+  "difficulty": "уровень сложности (например B2, HSK 4, JLPT N3)",
+  "tags": ["тег1", "тег2"]
 }`
 
-export async function analyzeSentence(sentence: string): Promise<GeminiAnalysis> {
+export async function analyzeSentence(sentence: string, language: string): Promise<LlmAnalysis> {
   const hash = hashSentence(sentence)
 
   const cached = db.prepare(`SELECT analysis FROM llm_cache WHERE sentenceHash = ?`).get(hash) as { analysis: string } | null
   if (cached) {
-    return JSON.parse(cached.analysis) as GeminiAnalysis
+    return JSON.parse(cached.analysis) as LlmAnalysis
   }
 
   if (!LLM_API_KEY) {
@@ -52,8 +58,8 @@ export async function analyzeSentence(sentence: string): Promise<GeminiAnalysis>
       model: 'gemini-3.1-flash-lite-preview',
       response_format: { type: 'json_object' },
       messages: [
-        { role: 'system', content: SYSTEM_PROMPT },
-        { role: 'user', content: `Предложение: ${sentence}` },
+        { role: 'system', content: getSystemPrompt(language) },
+        { role: 'user', content: `Текст: ${sentence}` },
       ],
       temperature: 0.2,
     }),
@@ -62,13 +68,13 @@ export async function analyzeSentence(sentence: string): Promise<GeminiAnalysis>
 
   if (!response.ok) {
     const err = await response.text()
-    throw new Error(`Gemini API error ${response.status}: ${err}`)
+    throw new Error(`LLM API error ${response.status}: ${err}`)
   }
 
   const data = await response.json() as { choices: Array<{ message: { content: string } }> }
   const raw = data.choices[0].message.content
   const cleanJson = raw.replace(/^```json\n?/, '').replace(/\n?```$/, '').trim()
-  const analysis = JSON.parse(cleanJson) as GeminiAnalysis
+  const analysis = JSON.parse(cleanJson) as LlmAnalysis
 
   db.prepare(`
     INSERT OR REPLACE INTO llm_cache (sentenceHash, sentence, analysis)
@@ -103,7 +109,7 @@ export async function analyzeBookExcerpt(excerpt: string): Promise<{ description
 
   if (!response.ok) {
     const err = await response.text()
-    throw new Error(`Gemini API error ${response.status}: ${err}`)
+    throw new Error(`LLM API error ${response.status}: ${err}`)
   }
 
   const data = await response.json() as { choices: Array<{ message: { content: string } }> }

@@ -16,7 +16,7 @@ export default defineConfig({
   base: './',
   root: resolve(__dirname, '../src'),
   publicDir: resolve(__dirname, '../public'),
-  envDir: resolve(__dirname, '../../'),
+  envDir: resolve(__dirname, '../'),
 
   resolve: {
     alias: {

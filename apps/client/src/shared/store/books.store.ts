@@ -1,18 +1,18 @@
-import type { Book, BookStats, GeminiAnalysis, PagePayload, TocItem, UserDictItem } from '../types/models'
+import type { Book, BookStats, LlmAnalysis, PagePayload, TocItem, UserDictItem } from '../types/models'
 import { api } from '../services/api.service'
 import { useDictionaryStore } from './dictionary.store'
 
 export interface WordPopoverData {
   word: string
   pos: string
-  pinyin: string
+  transcription: string
   translation: string
   targetRect: DOMRect
   showAi: boolean
   isAiLoading: boolean
   aiTranslation?: string
-  aiPinyin?: string
-  aiData?: GeminiAnalysis
+  aiTranscription?: string
+  aiData?: LlmAnalysis
 }
 
 export const useBooksStore = defineStore('books', () => {
@@ -30,7 +30,7 @@ export const useBooksStore = defineStore('books', () => {
   const wordPopover = ref<WordPopoverData | null>(null)
 
   const sidebarOpen = ref(false)
-  const sidebarAnalysis = ref<GeminiAnalysis | null>(null)
+  const sidebarAnalysis = ref<LlmAnalysis | null>(null)
   const sidebarSentence = ref<string | null>(null)
   const isAnalyzing = ref(false)
 
@@ -58,6 +58,20 @@ export const useBooksStore = defineStore('books', () => {
     }
     finally {
       isLoading.value = false
+    }
+  }
+
+  async function updateBookInfo(id: number, data: Partial<Book>) {
+    await api.books.updateInfo(id, data)
+    const listBook = books.value.find(b => b.id === id)
+    if (listBook) {
+      Object.assign(listBook, data)
+    }
+    if (currentBook.value?.id === id) {
+      Object.assign(currentBook.value, data)
+    }
+    if (currentBookInfo.value?.id === id) {
+      Object.assign(currentBookInfo.value, data)
     }
   }
 
@@ -167,16 +181,18 @@ export const useBooksStore = defineStore('books', () => {
   }
 
   async function fetchAiTranslation() {
-    if (!wordPopover.value || wordPopover.value.aiTranslation)
+    if (!wordPopover.value || wordPopover.value.aiTranslation || !currentBook.value)
       return
     wordPopover.value.isAiLoading = true
     try {
-      const res = await api.books.analyze(currentBook.value!.id, wordPopover.value.word)
+      const res = await api.books.analyze(currentBook.value.id, wordPopover.value.word, currentBook.value.language)
       if (wordPopover.value) {
         wordPopover.value.aiData = res
         wordPopover.value.aiTranslation = res.translation
-        const vocabMatch = res.vocabulary?.find(v => v.word === wordPopover.value?.word)
-        wordPopover.value.aiPinyin = vocabMatch?.pinyin || ''
+
+        const targetWord = wordPopover.value.word
+        const vocabMatch = res.vocabulary?.find(v => v.word.includes(targetWord) || targetWord.includes(v.word))
+        wordPopover.value.aiTranscription = res.transcription || vocabMatch?.transcription || ''
       }
     }
     catch {
@@ -208,16 +224,16 @@ export const useBooksStore = defineStore('books', () => {
 
     const entry = currentPage.value.pageDictionary[word]
     if (entry) {
-      wordPopover.value = { word, pos, pinyin: entry.pinyin, translation: entry.translation, targetRect, showAi: false, isAiLoading: false }
+      wordPopover.value = { word, pos, transcription: entry.transcription, translation: entry.translation, targetRect, showAi: false, isAiLoading: false }
       return
     }
 
     try {
       const result = await api.books.lookupWord(currentBook.value.id, word)
-      wordPopover.value = { word, pos, pinyin: result.pinyin, translation: result.translation, targetRect, showAi: false, isAiLoading: false }
+      wordPopover.value = { word, pos, transcription: result.transcription, translation: result.translation, targetRect, showAi: false, isAiLoading: false }
     }
     catch {
-      wordPopover.value = { word, pos, pinyin: '', translation: 'Не найдено', targetRect, showAi: true, isAiLoading: false }
+      wordPopover.value = { word, pos, transcription: '', translation: 'Не найдено', targetRect, showAi: true, isAiLoading: false }
       fetchAiTranslation()
     }
   }
@@ -230,7 +246,7 @@ export const useBooksStore = defineStore('books', () => {
     sidebarAnalysis.value = null
     isAnalyzing.value = true
     try {
-      sidebarAnalysis.value = await api.books.analyze(currentBook.value.id, sentence)
+      sidebarAnalysis.value = await api.books.analyze(currentBook.value.id, sentence, currentBook.value.language)
     }
     finally {
       isAnalyzing.value = false
@@ -248,9 +264,14 @@ export const useBooksStore = defineStore('books', () => {
       wordToEdit.value = existingWord
     }
     catch {
-      const pinyin = wordData.showAi ? (wordData.aiPinyin || wordData.pinyin) : wordData.pinyin
+      const transcription = wordData.showAi ? (wordData.aiTranscription || wordData.transcription) : wordData.transcription
       const translation = wordData.showAi ? (wordData.aiTranslation || wordData.translation) : wordData.translation
-      wordToEdit.value = { word: wordData.word, pinyin, translation }
+      wordToEdit.value = {
+        word: wordData.word,
+        transcription,
+        translation,
+        language: currentBook.value?.language || 'en',
+      }
     }
     addEditWordModalOpen.value = true
   }
@@ -289,6 +310,7 @@ export const useBooksStore = defineStore('books', () => {
     addEditWordModalOpen,
     wordToEdit,
     fetchBookInfo,
+    updateBookInfo,
     analyzeFullBook,
     updateBookCover,
     updateBookStats,

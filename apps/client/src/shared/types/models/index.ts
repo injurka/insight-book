@@ -12,6 +12,8 @@ export interface Book {
   title: string
   author: string | null
   coverBase64: string | null
+  filePath: string
+  language: string
   totalPages: number
   currentPage: number | null
   createdAt: string
@@ -40,7 +42,7 @@ export interface TokenizedSentence {
 }
 
 export interface PageDictEntry {
-  pinyin: string
+  transcription: string
   translation: string
 }
 
@@ -60,12 +62,13 @@ export interface GrammarRule {
 
 export interface VocabItem {
   word: string
-  pinyin: string
+  transcription: string
   meaning: string
   usageInContext: string
 }
 
-export interface GeminiAnalysis {
+export interface LlmAnalysis {
+  transcription: string
   translation: string
   grammarRules: GrammarRule[]
   vocabulary: VocabItem[]
@@ -74,8 +77,9 @@ export interface GeminiAnalysis {
 export interface UserDictItem {
   id: number
   word: string
-  pinyin: string
-  translation: string
+  transcription: string | null
+  translation: string | null
+  language: string
   notes: string | null
   tags: string | null
   createdAt: string

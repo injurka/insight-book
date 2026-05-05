@@ -15,7 +15,7 @@
       "identifier": "http:default",
       "allow": [
         {
-          "url": "https://md.chinisik.ru/*"
+          "url": "https://insight-api.trip-scheduler.ru/*"
         },
         {
           "url": "http://localhost:*/*"

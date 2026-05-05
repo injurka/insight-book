@@ -1,9 +1,9 @@
-import type { PagePayload, UserDictItem } from '../types'
+import type { Book, PagePayload, UserDictItem } from '../types'
 import { CORS_HEADERS } from '../config'
 import { db } from '../db'
 import { getUserDictionary, getWordFromUserDictionary, lookupSingleWord, lookupWords, removeFromUserDictionary, upsertToUserDictionary } from '../services/dictionary.service'
 import { processEpub } from '../services/epub.service'
-import { analyzeBookExcerpt, analyzeSentence } from '../services/gemini.service'
+import { analyzeBookExcerpt, analyzeSentence } from '../services/llm.service'
 import { tokenizePage } from '../services/nlp.service'
 
 function json(data: unknown, status = 200) {
@@ -49,6 +49,45 @@ export function handleGetBookInfo(id: number): Response {
   })
 }
 
+// PATCH /api/books/:id (Основная информация)
+export async function handleUpdateBook(req: Request, id: number): Promise<Response> {
+  try {
+    const body = await req.json() as Partial<Book>
+
+    db.prepare(`
+      UPDATE books
+      SET title = COALESCE(?, title),
+          author = COALESCE(?, author),
+          coverBase64 = COALESCE(?, coverBase64),
+          language = COALESCE(?, language),
+          createdAt = COALESCE(?, createdAt)
+      WHERE id = ?
+    `).run(
+      body.title !== undefined ? body.title : null,
+      body.author !== undefined ? body.author : null,
+      body.coverBase64 !== undefined ? body.coverBase64 : null,
+      body.language !== undefined ? body.language : null,
+      body.createdAt !== undefined ? body.createdAt : null,
+      id,
+    )
+
+    if (body.currentPage !== undefined) {
+      db.prepare(`
+        INSERT INTO reading_progress (bookId, currentPage, updatedAt)
+        VALUES (?, ?, datetime('now'))
+        ON CONFLICT(bookId) DO UPDATE SET 
+          currentPage = excluded.currentPage,
+          updatedAt = datetime('now')
+      `).run(id, body.currentPage)
+    }
+
+    return json({ success: true })
+  }
+  catch (e: any) {
+    return json({ error: e.message }, 500)
+  }
+}
+
 // POST /api/books/:id/analyze-book
 export async function handleAnalyzeBookStats(id: number): Promise<Response> {
   try {
@@ -62,9 +101,11 @@ export async function handleAnalyzeBookStats(id: number): Promise<Response> {
 
     const fullText = pages.map(p => p.content).join('\n')
 
-    const chineseChars = fullText.match(/[\u4E00-\u9FA5]/g) || []
-    const totalChars = chineseChars.length
-    const uniqueChars = new Set(chineseChars).size
+    // Универсальный подсчет символов
+    const charRegex = /[\p{L}\p{N}]/gu
+    const allChars = fullText.match(charRegex) || []
+    const totalChars = allChars.length
+    const uniqueChars = new Set(allChars).size
 
     const excerpt = fullText.substring(0, 3000)
     const aiData = await analyzeBookExcerpt(excerpt)
@@ -120,7 +161,6 @@ export async function handleUpdateStats(req: Request, id: number): Promise<Respo
     const body = await req.json() as { description?: string, difficulty?: string, tags?: string[] }
     const tagsJson = JSON.stringify(body.tags || [])
 
-    // Используем UPSERT: если статистики нет, создадим с нулями для символов
     db.prepare(`
       INSERT INTO book_stats (bookId, description, difficulty, tags, totalChars, uniqueChars, createdAt)
       VALUES (?, ?, ?, ?, 0, 0, datetime('now'))
@@ -178,7 +218,7 @@ export function handleGetToc(bookId: number): Response {
 
 // GET /api/books/:id/page/:pageNum
 export async function handleGetPage(bookId: number, pageNum: number): Promise<Response> {
-  const book = db.prepare(`SELECT totalPages FROM books WHERE id = ?`).get(bookId) as { totalPages: number } | null
+  const book = db.prepare(`SELECT totalPages, language FROM books WHERE id = ?`).get(bookId) as { totalPages: number, language: string } | null
   if (!book)
     return json({ error: 'Книга не найдена' }, 404)
 
@@ -202,17 +242,17 @@ export async function handleGetPage(bookId: number, pageNum: number): Promise<Re
   if (!pageRow)
     return json({ error: 'Страница не найдена' }, 404)
 
-  const sentences = tokenizePage(pageRow.content)
+  const sentences = await tokenizePage(pageRow.content, book.language)
 
   const allWords = new Set<string>()
   for (const s of sentences) {
     for (const t of s.tokens) {
-      if (/[\u4E00-\u9FFF]/.test(t.word))
+      if (/[\p{L}\p{N}]/u.test(t.word))
         allWords.add(t.word)
     }
   }
 
-  const pageDictionary = lookupWords([...allWords])
+  const pageDictionary = lookupWords([...allWords], book.language)
 
   const payload: PagePayload = {
     bookId,
@@ -231,20 +271,25 @@ export async function handleGetPage(bookId: number, pageNum: number): Promise<Re
 }
 
 // GET /api/books/:id/word/:word
-export function handleLookupWord(word: string): Response {
-  const entry = lookupSingleWord(decodeURIComponent(word))
+export function handleLookupWord(bookId: number, word: string): Response {
+  const book = db.prepare(`SELECT language FROM books WHERE id = ?`).get(bookId) as { language: string } | null
+  const lang = book ? book.language : 'en'
+
+  const entry = lookupSingleWord(decodeURIComponent(word), lang)
+
   if (!entry)
-    return json({ error: 'Слово не найдено' }, 404)
+    return json({ error: 'Слово не найдено в локальном словаре' }, 404)
+
   return json(entry)
 }
 
 // POST /api/books/:id/analyze
 export async function handleAnalyzeSentence(req: Request): Promise<Response> {
   try {
-    const body = await req.json() as { sentence: string }
-    if (!body.sentence)
-      return json({ error: 'sentence обязателен' }, 400)
-    const analysis = await analyzeSentence(body.sentence)
+    const body = await req.json() as { sentence: string, language: string }
+    if (!body.sentence || !body.language)
+      return json({ error: 'Обязательны поля sentence и language' }, 400)
+    const analysis = await analyzeSentence(body.sentence, body.language)
     return json(analysis)
   }
   catch (e: any) {
@@ -274,7 +319,7 @@ export function handleRemoveFromUserDict(word: string): Response {
 export function handleGetWordFromUserDict(word: string): Response {
   const entry = getWordFromUserDictionary(decodeURIComponent(word))
   if (!entry) {
-    return json({ error: 'Слово не найдено в словаре' }, 404)
+    return json({ error: 'Слово не найдено в словаре пользователя' }, 404)
   }
   return json(entry)
 }

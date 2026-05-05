@@ -13,6 +13,7 @@ import {
   handleGetWordFromUserDict,
   handleLookupWord,
   handleRemoveFromUserDict,
+  handleUpdateBook,
   handleUpdateCover,
   handleUpdateStats,
   handleUploadBook,
@@ -44,6 +45,7 @@ const apiRoutes: ServeOptionsRoutes = {
   },
   '/api/books/:id': {
     OPTIONS: corsOk,
+    PATCH: req => handleUpdateBook(req as Request, Number((req as any).params.id)),
     DELETE: req => handleDeleteBook(Number((req as any).params.id)),
   },
   '/api/books/:id/info': {
@@ -75,7 +77,7 @@ const apiRoutes: ServeOptionsRoutes = {
   },
   '/api/books/:id/word/:word': {
     OPTIONS: corsOk,
-    GET: req => handleLookupWord((req as any).params.word),
+    GET: req => handleLookupWord(Number((req as any).params.id), (req as any).params.word),
   },
   '/api/books/:id/analyze': {
     OPTIONS: corsOk,

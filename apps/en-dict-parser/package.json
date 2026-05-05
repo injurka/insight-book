@@ -1,5 +1,5 @@
 {
-  "name": "@injurka/insight-book-dict-parser",
+  "name": "@injurka/insight-book-en-dict-parser",
   "type": "module",
   "version": "1.0.0",
   "private": true,

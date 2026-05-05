@@ -10,20 +10,18 @@ const BATCH_SIZE = 10000
 
 interface DictEntry {
   $word: string
-  $pinyin: string | null
+  $transcription: string | null
   $translation: string
 }
 
 /**
  * Парсит DSL-разметку (как в БКРС) в HTML.
- * Эта функция скопирована из вашего Vue-проекта.
  */
 function parseDictionaryMarkup(text: string): string {
   if (!text)
     return ''
 
-  // eslint-disable-next-line prefer-const
-  let html = text
+  const html = text
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
@@ -48,8 +46,8 @@ async function importDictionary() {
   console.log('Начинаем импорт словаря...')
 
   const insertStmt = db.prepare(`
-    INSERT OR REPLACE INTO zh_dictionary (word, pinyin, translation)
-    VALUES ($word, $pinyin, $translation)
+    INSERT OR REPLACE INTO words (word, transcription, translation)
+    VALUES ($word, $transcription, $translation)
   `)
 
   const insertMany = db.transaction((entries: DictEntry[]) => {
@@ -107,14 +105,14 @@ async function importDictionary() {
 
 function processBuffer(buffer: string[], targetArray: DictEntry[]) {
   const word = buffer[0]
-  const pinyin = buffer[1] === '_' ? null : buffer[1]
+  const transcription = buffer[1] === '_' ? null : buffer[1]
   const rawTranslation = buffer.slice(2).join('\n')
 
   const htmlTranslation = parseDictionaryMarkup(rawTranslation.trim())
 
   targetArray.push({
     $word: word,
-    $pinyin: pinyin,
+    $transcription: transcription,
     $translation: htmlTranslation,
   })
 }

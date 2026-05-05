@@ -29,5 +29,5 @@ static/**
 data/**
 docker/vault/**
 .venv
-./db/**
-./uploads/**
+./db/*
+./data/*

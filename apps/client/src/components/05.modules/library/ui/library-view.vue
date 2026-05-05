@@ -1,16 +1,46 @@
 <script setup lang="ts">
-import { KitBtn, KitDialog, KitSkeleton } from '~/components/01.kit'
+import type { Book } from '~/shared/types/models'
+import { Icon } from '@iconify/vue'
+import { KitBtn, KitDialog, KitInput, KitSelect, KitSkeleton } from '~/components/01.kit'
 import { ThemesVariant, useChangeTheme } from '~/shared/composables/use-change-theme'
 import { AppRoutePaths } from '~/shared/constants/routes'
 import { useBooksStore } from '~/shared/store/books.store'
+import { useDictionaryStore } from '~/shared/store/dictionary.store'
 
 const store = useBooksStore()
+const dictStore = useDictionaryStore()
 const router = useRouter()
 const fileInput = ref<HTMLInputElement | null>(null)
 
 const { theme, toggleTheme } = useChangeTheme()
 
 const dictOpen = ref(false)
+
+// Фильтры
+const searchQuery = ref('')
+const selectedLang = ref('all')
+
+const langOptions = computed(() => {
+  const langs = new Set(store.books.map(b => b.language))
+  const opts = [{ label: 'Все языки', value: 'all' }]
+  langs.forEach(l => opts.push({ label: l.toUpperCase(), value: l }))
+  return opts
+})
+
+const bookLanguageOptions = [
+  { label: 'Английский (en)', value: 'en' },
+  { label: 'Китайский (zh)', value: 'zh' },
+  { label: 'Японский (ja)', value: 'ja' },
+]
+
+const filteredBooks = computed(() => {
+  return store.books.filter((b) => {
+    const matchLang = selectedLang.value === 'all' || b.language === selectedLang.value
+    const matchSearch = b.title.toLowerCase().includes(searchQuery.value.toLowerCase())
+      || (b.author && b.author.toLowerCase().includes(searchQuery.value.toLowerCase()))
+    return matchLang && matchSearch
+  })
+})
 
 function onFileChange(e: Event) {
   const target = e.target as HTMLInputElement
@@ -20,12 +50,72 @@ function onFileChange(e: Event) {
   }
 }
 
-function openBookInfo(book: any) {
+function openBookInfo(book: Book) {
   router.push(AppRoutePaths.Book.Info(book.id))
 }
 
 function openDictionary() {
   router.push(AppRoutePaths.Dictionary)
+}
+
+// Редактирование книги
+const editModalOpen = ref(false)
+const editingBook = ref<Partial<Book>>({})
+
+function formatToDateTimeLocal(dateString?: string) {
+  if (!dateString)
+    return ''
+  // Переводит "YYYY-MM-DD HH:MM:SS" -> "YYYY-MM-DDThh:mm"
+  return dateString.replace(' ', 'T').slice(0, 16)
+}
+
+function parseFromDateTimeLocal(localString?: string) {
+  if (!localString)
+    return ''
+  // Переводит "YYYY-MM-DDThh:mm" -> "YYYY-MM-DD HH:MM:00"
+  return `${localString.replace('T', ' ')}:00`
+}
+
+function openEditModal(book: Book) {
+  editingBook.value = {
+    ...book,
+    // Приводим "jp" к "ja", если такой вдруг появился в базе
+    language: book.language === 'jp' ? 'ja' : book.language,
+    createdAt: formatToDateTimeLocal(book.createdAt),
+  }
+  editModalOpen.value = true
+}
+
+function onEditCoverChange(e: Event) {
+  const target = e.target as HTMLInputElement
+  const file = target.files?.[0]
+  if (!file)
+    return
+
+  const reader = new FileReader()
+  reader.onload = (event) => {
+    editingBook.value.coverBase64 = event.target?.result as string
+  }
+  reader.readAsDataURL(file)
+}
+
+async function saveEditBook() {
+  if (!editingBook.value.id)
+    return
+
+  const payload = { ...editingBook.value }
+  payload.createdAt = parseFromDateTimeLocal(payload.createdAt)
+  payload.currentPage = Number(payload.currentPage)
+
+  await store.updateBookInfo(payload.id!, payload)
+  editModalOpen.value = false
+}
+
+async function deleteFromEditModal() {
+  if (!editingBook.value.id)
+    return
+  await store.deleteBook(editingBook.value.id)
+  editModalOpen.value = false
 }
 
 onMounted(() => {
@@ -36,23 +126,32 @@ onMounted(() => {
 <template>
   <div class="library-view">
     <header class="library-header">
-      <div class="header-title">
-        <h1>Insight Book</h1>
-        <p>Ваша умная библиотека для изучения китайского</p>
-      </div>
-      <div class="header-actions">
+      <div class="header-top">
+        <div class="header-title">
+          <h1>Insight Book</h1>
+          <p>Ваша умная библиотека для изучения языков</p>
+        </div>
         <KitBtn
           :icon="theme === ThemesVariant.Light ? 'mdi:weather-night' : 'mdi:weather-sunny'"
           variant="text"
           @click="toggleTheme"
         />
-        <KitBtn icon="mdi:book-alphabet" variant="outlined" color="secondary" @click="openDictionary">
-          Мой словарь
-        </KitBtn>
-        <KitBtn icon="mdi:upload" color="primary" @click="fileInput?.click()">
-          Загрузить EPUB
-        </KitBtn>
-        <input ref="fileInput" type="file" accept=".epub" style="display: none" @change="onFileChange">
+      </div>
+
+      <div class="header-bottom">
+        <div class="filters">
+          <KitInput v-model="searchQuery" placeholder="Поиск книг..." size="md" />
+          <KitSelect v-model="selectedLang" :options="langOptions" size="md" />
+        </div>
+        <div class="header-actions">
+          <KitBtn icon="mdi:book-alphabet" variant="outlined" color="secondary" @click="openDictionary">
+            Мой словарь
+          </KitBtn>
+          <KitBtn icon="mdi:upload" color="primary" @click="fileInput?.click()">
+            Загрузить EPUB
+          </KitBtn>
+          <input ref="fileInput" type="file" accept=".epub" style="display: none" @change="onFileChange">
+        </div>
       </div>
     </header>
 
@@ -72,15 +171,34 @@ onMounted(() => {
       <p>Загрузите свою первую книгу в формате EPUB, чтобы начать чтение.</p>
     </div>
 
+    <div v-else-if="filteredBooks.length === 0" class="empty-state">
+      <h2>Книги не найдены</h2>
+      <p>По вашему запросу ничего не нашлось. Попробуйте изменить фильтры.</p>
+    </div>
+
     <div v-else class="books-grid">
-      <div v-for="book in store.books" :key="book.id" class="book-card" @click="openBookInfo(book)">
+      <div v-for="book in filteredBooks" :key="book.id" class="book-card" @click="openBookInfo(book)">
         <div class="cover-wrapper">
           <img v-if="book.coverBase64 && book.coverBase64.length > 100" :src="book.coverBase64" alt="Обложка" class="cover-img">
           <div v-else class="cover-placeholder">
             <span class="placeholder-icon">📚</span>
           </div>
-          <KitBtn class="delete-btn" icon="mdi:delete" variant="solid" color="secondary" size="xs" @click.stop="store.deleteBook(book.id)" />
+          <span class="lang-badge">{{ book.language.toUpperCase() }}</span>
+
+          <!-- Группа экшенов (Редактировать / Удалить) -->
+          <div class="card-actions">
+            <KitBtn
+              class="action-btn"
+              icon="mdi:file-document-edit-outline"
+              variant="solid"
+              color="secondary"
+              size="xs"
+              title="Редактировать"
+              @click.stop="openEditModal(book)"
+            />
+          </div>
         </div>
+
         <div class="book-info">
           <h3 class="title" :title="book.title">
             {{ book.title }}
@@ -98,20 +216,75 @@ onMounted(() => {
       </div>
     </div>
 
+    <!-- Модалка редактирования книги -->
+    <KitDialog v-model:visible="editModalOpen" title="Редактировать книгу" icon="mdi:file-document-edit-outline" :max-width="500">
+      <div class="edit-form-grid">
+        <div class="form-group">
+          <label>Обложка</label>
+          <div class="edit-cover-preview" @click="$refs.editCoverInput?.click()">
+            <img v-if="editingBook.coverBase64" :src="editingBook.coverBase64" alt="Обложка">
+            <div v-else class="placeholder">
+              <Icon icon="mdi:image-plus" />
+            </div>
+            <div class="overlay">
+              Изменить
+            </div>
+          </div>
+          <input ref="editCoverInput" type="file" accept="image/*" hidden @change="onEditCoverChange">
+        </div>
+
+        <div class="form-group">
+          <label>Название</label>
+          <KitInput v-model="editingBook.title!" placeholder="Название книги" />
+        </div>
+
+        <div class="form-group">
+          <label>Автор</label>
+          <KitInput v-model="editingBook.author!" placeholder="Имя автора" />
+        </div>
+
+        <div class="form-group row-group">
+          <div class="form-group">
+            <label>Язык</label>
+            <KitSelect v-if="editingBook.language !== undefined" v-model="editingBook.language" :options="bookLanguageOptions" />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Дата добавления</label>
+          <input v-model="editingBook.createdAt" type="datetime-local" class="native-date-input">
+        </div>
+      </div>
+
+      <template #footer>
+        <KitBtn variant="text" class="mr-auto" @click="deleteFromEditModal">
+          Удалить
+        </KitBtn>
+        <div style="flex-grow:1" />
+        <KitBtn variant="tonal" @click="editModalOpen = false">
+          Отмена
+        </KitBtn>
+        <KitBtn color="primary" @click="saveEditBook">
+          Сохранить
+        </KitBtn>
+      </template>
+    </KitDialog>
+
+    <!-- Модалка словаря -->
     <KitDialog v-model:visible="dictOpen" title="Мой словарь" :max-width="600" icon="mdi:book-open-page-variant">
-      <div v-if="store.userDict.length === 0" class="empty-dict">
+      <div v-if="dictStore.words.length === 0" class="empty-dict">
         <p>Вы пока не добавили ни одного слова в словарь.</p>
       </div>
       <div v-else class="dict-list">
-        <div v-for="item in store.userDict" :key="item.id" class="dict-item">
+        <div v-for="item in dictStore.words" :key="item.id" class="dict-item">
           <div class="dict-item-content">
-            <div class="dict-word">
-              <span class="hanzi">{{ item.word }}</span>
-              <span class="pinyin">{{ item.pinyin }}</span>
+            <div class="dict-word-container">
+              <span class="dict-word">{{ item.word }}</span>
+              <span class="dict-transcription">{{ item.transcription }}</span>
             </div>
             <div class="dict-translation" v-html="item.translation" />
           </div>
-          <KitBtn icon="mdi:delete" variant="text" size="xs" @click="store.removeFromDict(item.word)" />
+          <KitBtn icon="mdi:delete-outline" variant="text" size="xs" @click="dictStore.deleteWord(item.word)" />
         </div>
       </div>
     </KitDialog>
@@ -132,29 +305,63 @@ onMounted(() => {
 
 .library-header {
   display: flex;
-  justify-content: space-between;
-  align-items: flex-end;
+  flex-direction: column;
+  gap: 24px;
   margin-bottom: 32px;
-  flex-wrap: wrap;
-  gap: 16px;
 
-  .header-title {
-    h1 {
-      font-size: 2.2rem;
-      margin: 0 0 8px 0;
-      color: var(--fg-primary-color);
-    }
-    p {
-      margin: 0;
-      color: var(--fg-secondary-color);
-      font-size: 1rem;
+  .header-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+
+    .header-title {
+      h1 {
+        font-size: 2.2rem;
+        margin: 0 0 8px 0;
+        color: var(--fg-primary-color);
+      }
+      p {
+        margin: 0;
+        color: var(--fg-secondary-color);
+        font-size: 1rem;
+      }
     }
   }
 
-  .header-actions {
+  .header-bottom {
     display: flex;
-    gap: 12px;
+    justify-content: space-between;
     align-items: center;
+    flex-wrap: wrap;
+    gap: 16px;
+
+    .filters {
+      display: flex;
+      gap: 12px;
+      flex-grow: 1;
+      max-width: 500px;
+    }
+
+    .header-actions {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+
+    @include media-down(sm) {
+      flex-direction: column;
+      align-items: stretch;
+
+      .filters {
+        max-width: 100%;
+      }
+      .header-actions {
+        width: 100%;
+        .kit-btn {
+          flex: 1;
+        }
+      }
+    }
   }
 }
 
@@ -216,8 +423,9 @@ onMounted(() => {
     box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1);
     border-color: var(--fg-accent-color);
 
-    .delete-btn {
+    .card-actions {
       opacity: 1;
+      visibility: visible;
     }
   }
 
@@ -248,12 +456,32 @@ onMounted(() => {
       opacity: 0.5;
     }
 
-    .delete-btn {
+    .lang-badge {
+      position: absolute;
+      top: 8px;
+      left: 8px;
+      background: var(--bg-overlay-secondary-color);
+      color: var(--fg-inverted-color);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      backdrop-filter: blur(4px);
+    }
+
+    .card-actions {
       position: absolute;
       top: 8px;
       right: 8px;
-      opacity: 0;
-      transition: opacity 0.2s;
+      display: flex;
+      gap: 6px;
+      transition: all 0.2s ease-in-out;
+      z-index: 10;
+
+      .action-btn {
+        box-shadow: none;
+        color: var(--fg-primary-color);
+      }
     }
   }
 
@@ -303,12 +531,103 @@ onMounted(() => {
   }
 }
 
+.edit-form-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+
+    label {
+      font-size: 0.85rem;
+      color: var(--fg-secondary-color);
+      font-weight: 500;
+    }
+  }
+
+  .row-group {
+    flex-direction: row;
+    align-items: center;
+    gap: 12px;
+
+    .form-group {
+      flex: 1;
+    }
+  }
+
+  .native-date-input {
+    appearance: none;
+    box-sizing: border-box;
+    width: 100%;
+    font-family: inherit;
+    background-color: var(--bg-primary-color);
+    color: var(--fg-primary-color);
+    border: 1px solid var(--border-primary-color);
+    border-radius: 6px;
+    outline: none;
+    height: 38px;
+    padding: 0 12px;
+    font-size: 0.875rem;
+
+    &:focus {
+      border-color: var(--fg-accent-color);
+    }
+  }
+}
+
+.edit-cover-preview {
+  width: 120px;
+  height: 180px;
+  border-radius: 8px;
+  background-color: var(--bg-tertiary-color);
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+  border: 1px dashed var(--border-primary-color);
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .placeholder {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    color: var(--fg-secondary-color);
+  }
+
+  .overlay {
+    position: absolute;
+    inset: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.9rem;
+    font-weight: 500;
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+
+  &:hover .overlay {
+    opacity: 1;
+  }
+}
+
 .dict-list {
   display: flex;
   flex-direction: column;
   gap: 12px;
 }
-
 .dict-item {
   display: flex;
   justify-content: space-between;
@@ -317,32 +636,26 @@ onMounted(() => {
   background-color: var(--bg-secondary-color);
   border-radius: 8px;
   border: 1px solid var(--border-secondary-color);
-
   .dict-item-content {
     flex-grow: 1;
   }
-
-  .dict-word {
+  .dict-word-container {
     margin-bottom: 4px;
-
-    .hanzi {
+    .dict-word {
       font-size: 1.2rem;
       font-weight: bold;
       margin-right: 8px;
       color: var(--fg-accent-color);
     }
-
-    .pinyin {
+    .dict-transcription {
       font-size: 0.9rem;
       color: var(--fg-secondary-color);
     }
   }
-
   .dict-translation {
     font-size: 0.95rem;
     color: var(--fg-primary-color);
     line-height: 1.4;
-
     :deep(b) {
       font-weight: 600;
     }

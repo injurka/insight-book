@@ -90,8 +90,8 @@ onUnmounted(() => {
         @click.stop
       >
         <div class="popover-content">
-          <div class="pinyin-header">
-            {{ store.wordPopover.showAi ? (store.wordPopover.aiPinyin || store.wordPopover.pinyin) : store.wordPopover.pinyin }}
+          <div class="transcription-header">
+            {{ store.wordPopover.showAi ? (store.wordPopover.aiTranscription || store.wordPopover.transcription) : store.wordPopover.transcription }}
           </div>
 
           <div v-if="store.wordPopover.showAi && store.wordPopover.isAiLoading" class="ai-loader">
@@ -120,7 +120,7 @@ onUnmounted(() => {
                   Лексика:
                 </div>
                 <div v-for="(vocab, idx) in store.wordPopover.aiData.vocabulary" :key="idx" class="ai-vocab">
-                  <b>{{ vocab.word }}</b> ({{ vocab.pinyin }}) — {{ vocab.meaning }}
+                  <b>{{ vocab.word }}</b> ({{ vocab.transcription }}) — {{ vocab.meaning }}
                 </div>
               </div>
             </template>
@@ -177,7 +177,7 @@ onUnmounted(() => {
     overflow-y: auto;
   }
 
-  .pinyin-header {
+  .transcription-header {
     background-color: rgba(var(--bg-tertiary-color-rgb, 33, 38, 45), 0.8);
     backdrop-filter: blur(4px);
     text-align: center;

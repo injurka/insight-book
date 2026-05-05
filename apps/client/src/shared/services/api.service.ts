@@ -1,4 +1,4 @@
-import type { Book, BookStats, GeminiAnalysis, PagePayload, TocItem, UserDictItem } from '../types/models'
+import type { Book, BookStats, LlmAnalysis, PagePayload, TocItem, UserDictItem } from '../types/models'
 
 const BASE = import.meta.env.VITE_API_URL || 'https://insight-api.trip-scheduler.ru'
 
@@ -16,6 +16,13 @@ export const api = {
     list: () => request<Book[]>('/api/books'),
 
     getInfo: (id: number) => request<Book>(`/api/books/${id}/info`),
+
+    updateInfo: (id: number, data: Partial<Book>) =>
+      request<{ success: boolean }>(`/api/books/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      }),
 
     analyzeBook: (id: number) => request<{ success: boolean, stats: Book['stats'] }>(`/api/books/${id}/analyze-book`, { method: 'POST' }),
 
@@ -52,13 +59,13 @@ export const api = {
       request<PagePayload>(`/api/books/${bookId}/page/${page}`),
 
     lookupWord: (bookId: number, word: string) =>
-      request<{ pinyin: string, translation: string }>(`/api/books/${bookId}/word/${encodeURIComponent(word)}`),
+      request<{ transcription: string, translation: string }>(`/api/books/${bookId}/word/${encodeURIComponent(word)}`),
 
-    analyze: (bookId: number, sentence: string) =>
-      request<GeminiAnalysis>(`/api/books/${bookId}/analyze`, {
+    analyze: (bookId: number, sentence: string, language: string) =>
+      request<LlmAnalysis>(`/api/books/${bookId}/analyze`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sentence }),
+        body: JSON.stringify({ sentence, language }),
       }),
   },
 
