@@ -5,53 +5,62 @@ import nlp from 'compromise'
 import kuromoji from 'kuromoji'
 import nodejieba from 'nodejieba'
 
-const SENTENCE_DELIMITERS = /([.。！？…!?]+)/g
-
-function splitIntoSentences(text: string): string[] {
-  const cleanText = text.replace(/\n+/g, ' ').trim()
-  const parts = cleanText.split(SENTENCE_DELIMITERS).filter(s => s.trim())
-
-  const sentences: string[] = []
-  for (let i = 0; i < parts.length; i += 2) {
-    const sent = (parts[i] || '') + (parts[i + 1] || '')
-    if (sent.trim())
-      sentences.push(sent.trim())
+function splitIntoSentences(text: string, language: string): string[] {
+  try {
+    const segmenter = new Intl.Segmenter(language, { granularity: 'sentence' })
+    const sentences: string[] = []
+    for (const { segment } of segmenter.segment(text)) {
+      if (segment.trim()) {
+        sentences.push(segment.trim())
+      }
+    }
+    return sentences.length ? sentences : [text]
   }
-
-  if (sentences.length === 0 && cleanText) {
-    return [cleanText]
+  catch {
+    const SENTENCE_DELIMITERS = /([。！？…!?.]+)/g
+    const parts = text.split(SENTENCE_DELIMITERS).filter(s => s.trim())
+    const sentences: string[] = []
+    for (let i = 0; i < parts.length; i += 2) {
+      const sent = (parts[i] || '') + (parts[i + 1] || '')
+      if (sent.trim())
+        sentences.push(sent.trim())
+    }
+    return sentences.length ? sentences : [text]
   }
-
-  return sentences
 }
 
 interface LanguageTokenizer {
-  tokenize: (text: string) => Promise<TokenizedWord[]> | TokenizedWord[]
+  tokenizePage: (text: string, language: string) => Promise<TokenizedSentence[]> | TokenizedSentence[]
 }
 
 class ChineseTokenizer implements LanguageTokenizer {
-  tokenize(text: string): TokenizedWord[] {
-    const tagged = nodejieba.tag(text) as Array<{ word: string, tag: string }>
-    return tagged.map(t => ({ word: t.word, pos: t.tag }))
+  tokenizePage(text: string, language: string): TokenizedSentence[] {
+    const sentences = splitIntoSentences(text, language)
+    return sentences.map((raw, i) => {
+      const tagged = nodejieba.tag(raw) as Array<{ word: string, tag: string }>
+      const tokens = tagged.map(t => ({ word: t.word, pos: t.tag }))
+      return { sentenceId: i, tokens, raw }
+    })
   }
 }
 
 class JapaneseTokenizer implements LanguageTokenizer {
   private tokenizer: kuromoji.Tokenizer<kuromoji.IpadicFeatures> | null = null
+
   private tagMap: Record<string, string> = {
     名詞: 'n',
     動詞: 'v',
     形容詞: 'a',
     副詞: 'd',
-    助詞: 'u',
-    助動詞: 'u',
+    助詞: 'u', // Частица -> Служебное слово
+    助動詞: 'u', // Вспом. глагол -> Служебное слово
     接続詞: 'c',
-    感動詞: 'x',
-    連体詞: 'a',
+    感動詞: 'x', // Междометие -> Прочее
+    連体詞: 'a', // Определительное слово -> Прилагательное
     記号: 'x',
-    接頭詞: 'x',
-    接尾詞: 'x',
-    フィラー: 'x',
+    接頭詞: 'x', // Префикс -> Прочее
+    接尾詞: 'x', // Суффикс -> Прочее
+    フィラー: 'x', // Заполнитель -> Прочее
   }
 
   private getSimpleTag(fullTag: string): string {
@@ -63,9 +72,11 @@ class JapaneseTokenizer implements LanguageTokenizer {
     return new Promise((resolve, reject) => {
       if (this.tokenizer)
         return resolve()
+
       const require = createRequire(import.meta.url)
       const kuromojiDir = path.dirname(require.resolve('kuromoji/package.json'))
       const dicPath = path.join(kuromojiDir, 'dict')
+
       kuromoji.builder({ dicPath }).build((err, tokenizer) => {
         if (err)
           return reject(err)
@@ -75,12 +86,21 @@ class JapaneseTokenizer implements LanguageTokenizer {
     })
   }
 
-  async tokenize(text: string): Promise<TokenizedWord[]> {
+  async tokenizePage(text: string, language: string): Promise<TokenizedSentence[]> {
     await this.initTokenizer()
-    if (!this.tokenizer)
-      return [{ word: text, pos: 'unk' }]
-    const tokens = this.tokenizer.tokenize(text)
-    return tokens.map(t => ({ word: t.surface_form, pos: this.getSimpleTag(t.pos) }))
+    const sentences = splitIntoSentences(text, language)
+
+    return sentences.map((raw, i) => {
+      if (!this.tokenizer)
+        return { sentenceId: i, tokens: [{ word: raw, pos: 'unk' }], raw }
+
+      const tokens = this.tokenizer.tokenize(raw).map(t => ({
+        word: t.surface_form,
+        pos: this.getSimpleTag(t.pos),
+      }))
+
+      return { sentenceId: i, tokens, raw }
+    })
   }
 }
 
@@ -108,11 +128,16 @@ class EnglishTokenizer implements LanguageTokenizer {
     return 'x'
   }
 
-  tokenize(text: string): TokenizedWord[] {
+  tokenizePage(text: string): TokenizedSentence[] {
     const doc = nlp(text)
     const jsonOutput = doc.json()
-    const tokens: TokenizedWord[] = []
-    for (const sentence of jsonOutput) {
+
+    const result: TokenizedSentence[] = []
+
+    for (let i = 0; i < jsonOutput.length; i++) {
+      const sentence = jsonOutput[i]
+      const tokens: TokenizedWord[] = []
+
       for (const term of sentence.terms) {
         if (term.pre) {
           for (const char of term.pre) {
@@ -120,10 +145,12 @@ class EnglishTokenizer implements LanguageTokenizer {
               tokens.push({ word: char, pos: 'x' })
           }
         }
+
         if (term.text) {
           const tag = this.getSimpleTag(term.tags)
           tokens.push({ word: term.text, pos: tag })
         }
+
         if (term.post) {
           for (const char of term.post) {
             if (char.trim().length > 0)
@@ -131,47 +158,56 @@ class EnglishTokenizer implements LanguageTokenizer {
           }
         }
       }
+
+      result.push({
+        sentenceId: i,
+        tokens,
+        raw: (sentence.text || '').trim(),
+      })
     }
-    return tokens
+    return result
   }
 }
 
 class DefaultTokenizer implements LanguageTokenizer {
-  private segmenter: Intl.Segmenter
-  constructor(language: string) {
-    this.segmenter = new Intl.Segmenter(language, { granularity: 'word' })
-  }
+  tokenizePage(text: string, language: string): TokenizedSentence[] {
+    const sentences = splitIntoSentences(text, language)
 
-  tokenize(text: string): TokenizedWord[] {
-    const tokens: TokenizedWord[] = []
-    for (const { segment, isWordLike } of this.segmenter.segment(text)) {
-      tokens.push({ word: segment, pos: isWordLike ? 'word' : 'x' })
+    let wordSegmenter: Intl.Segmenter
+    try {
+      wordSegmenter = new Intl.Segmenter(language, { granularity: 'word' })
     }
-    return tokens
+    catch {
+      wordSegmenter = new Intl.Segmenter('en', { granularity: 'word' })
+    }
+
+    return sentences.map((raw, i) => {
+      const tokens: TokenizedWord[] = []
+      for (const { segment, isWordLike } of wordSegmenter.segment(raw)) {
+        if (segment.trim().length > 0) {
+          tokens.push({ word: segment, pos: isWordLike ? 'word' : 'x' })
+        }
+      }
+      return { sentenceId: i, tokens, raw }
+    })
   }
 }
 
 const zhTokenizer = new ChineseTokenizer()
 const jaTokenizer = new JapaneseTokenizer()
 const enTokenizer = new EnglishTokenizer()
+const defaultTokenizer = new DefaultTokenizer()
 
 function getTokenizer(language: string): LanguageTokenizer {
   switch (language.toLowerCase()) {
     case 'zh': return zhTokenizer
     case 'ja': return jaTokenizer
     case 'en': return enTokenizer
-    default: return new DefaultTokenizer(language)
+    default: return defaultTokenizer
   }
 }
 
 export async function tokenizePage(text: string, language: string): Promise<TokenizedSentence[]> {
   const tokenizer = getTokenizer(language)
-  const sentences = splitIntoSentences(text)
-  const tokenizedSentences: TokenizedSentence[] = []
-  for (let i = 0; i < sentences.length; i++) {
-    const raw = sentences[i]
-    const tokens = await tokenizer.tokenize(raw)
-    tokenizedSentences.push({ sentenceId: i, tokens, raw })
-  }
-  return tokenizedSentences
+  return await tokenizer.tokenizePage(text, language)
 }
