@@ -245,8 +245,9 @@ jobs:
           SKIP_INSTALL_SIMPLE_GIT_HOOKS: 1
 
       - name: Initialize Android project
-        run: bunx tauri android init
+        run: bun run tauri android init
         env:
+          ANDROID_HOME: ${{ env.ANDROID_HOME }}
           NDK_HOME: ${{ env.ANDROID_HOME }}/ndk/26.3.11579264
 
       - name: Setup Android signing
@@ -263,7 +264,7 @@ jobs:
           EOF
 
       - name: Build Android APK
-        run: bun run tauri:android:build
+        run: bun run tauri android build
         env:
           NDK_HOME: ${{ env.ANDROID_HOME }}/ndk/26.3.11579264
           VITE_APP_VERSION: ${{ github.ref_name }}

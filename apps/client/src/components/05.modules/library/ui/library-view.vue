@@ -58,7 +58,12 @@ onMounted(() => {
 
     <div v-if="store.isLoading" class="books-grid">
       <div v-for="i in 4" :key="i" class="book-card-skeleton">
-        <KitSkeleton width="100%" height="270px" border-radius="12px" class="mb-3" />
+        <div class="cover-skeleton" />
+        <div class="info-skeleton">
+          <KitSkeleton width="80%" height="18px" border-radius="4px" class="mb-2" />
+          <KitSkeleton width="50%" height="14px" border-radius="4px" class="mb-3" />
+          <KitSkeleton width="100%" height="4px" border-radius="2px" />
+        </div>
       </div>
     </div>
 
@@ -176,6 +181,23 @@ onMounted(() => {
   gap: 24px;
 }
 
+.book-card-skeleton {
+  background-color: var(--bg-secondary-color);
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid var(--border-secondary-color);
+
+  .cover-skeleton {
+    width: 100%;
+    aspect-ratio: 2 / 3;
+    background-color: var(--bg-tertiary-color);
+  }
+
+  .info-skeleton {
+    padding: 16px;
+  }
+}
+
 .book-card {
   background-color: var(--bg-secondary-color);
   border: 1px solid var(--border-secondary-color);
@@ -201,20 +223,27 @@ onMounted(() => {
 
   .cover-wrapper {
     position: relative;
-    height: 280px;
+    width: 100%;
+    aspect-ratio: 2 / 3;
     background-color: var(--bg-tertiary-color);
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    overflow: hidden;
     border-bottom: 1px solid var(--border-secondary-color);
 
     .cover-img {
+      position: absolute;
+      inset: 0;
       width: 100%;
       height: 100%;
       object-fit: cover;
+      display: block;
     }
 
     .cover-placeholder {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       font-size: 3rem;
       opacity: 0.5;
     }
