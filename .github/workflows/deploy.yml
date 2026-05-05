@@ -136,7 +136,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  # ─── JOB 5: Сборка Tauri (Linux + Windows) ──────────────────────
+  # ─── JOB 5: Сборка Linux + Windows ──────────────────────
   build-tauri:
     needs: [create-release]
     permissions:
@@ -181,10 +181,9 @@ jobs:
       - name: Cache Rust
         uses: Swatinem/rust-cache@v2
         with:
-          workspaces: './apps/client/src-tauri -> target'
+          workspaces: './src-tauri -> target'
 
       - name: Install frontend dependencies
-        working-directory: apps/client
         run: bun install
         env:
           SKIP_INSTALL_SIMPLE_GIT_HOOKS: 1
@@ -195,12 +194,11 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           VITE_APP_VERSION: ${{ github.ref_name }}
         with:
-          projectPath: apps/client # Явно указываем путь до проекта
           releaseId: ${{ needs.create-release.outputs.release_id }}
           args: ${{ matrix.args }}
 
-  # ─── JOB 6: Сборка Tauri (Android APK) ─────────────────────────
-  build-tauri-android:
+  # ─── JOB 6: Сборка Android APK ─────────────────────────
+  build-android:
     needs: [create-release]
     permissions:
       contents: write
@@ -239,26 +237,25 @@ jobs:
       - name: Cache Rust
         uses: Swatinem/rust-cache@v2
         with:
-          workspaces: './apps/client/src-tauri -> target'
+          workspaces: './src-tauri -> target'
 
       - name: Install frontend dependencies
-        working-directory: apps/client
         run: bun install
         env:
           SKIP_INSTALL_SIMPLE_GIT_HOOKS: 1
 
       - name: Initialize Android project
-        working-directory: apps/client
-        if: hashFiles('apps/client/src-tauri/gen/android') == ''
         run: bunx tauri android init
+        env:
+          NDK_HOME: ${{ env.ANDROID_HOME }}/ndk/26.3.11579264
 
       - name: Setup Android signing
         run: |
           echo "${{ secrets.ANDROID_KEY_BASE64 }}" \
             | base64 --decode > $RUNNER_TEMP/release.keystore
 
-          mkdir -p apps/client/src-tauri/gen/android
-          cat > apps/client/src-tauri/gen/android/keystore.properties <<EOF
+          mkdir -p src-tauri/gen/android
+          cat > src-tauri/gen/android/keystore.properties <<EOF
           storePassword=${{ secrets.ANDROID_KEY_PASSWORD }}
           keyPassword=${{ secrets.ANDROID_KEY_PASSWORD }}
           keyAlias=${{ secrets.ANDROID_KEY_ALIAS }}
@@ -266,8 +263,7 @@ jobs:
           EOF
 
       - name: Build Android APK
-        working-directory: apps/client
-        run: bunx tauri android build --apk
+        run: bun run tauri:android:build
         env:
           NDK_HOME: ${{ env.ANDROID_HOME }}/ndk/26.3.11579264
           VITE_APP_VERSION: ${{ github.ref_name }}
@@ -278,6 +274,6 @@ jobs:
           tag_name: ${{ github.ref_name }}
           release_id: ${{ needs.create-release.outputs.release_id }}
           files: |
-            apps/client/src-tauri/gen/android/app/build/outputs/apk/universal/release/*.apk
+            src-tauri/gen/android/app/build/outputs/apk/universal/release/*.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
