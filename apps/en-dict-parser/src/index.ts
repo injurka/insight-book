@@ -5,7 +5,6 @@ import process from 'node:process'
 import * as readline from 'node:readline'
 import { db } from './db'
 
-// Все .dict файлы парсятся последовательно в одну БД
 const DICT_FILES = [
   'mueller-base.dict',
   'mueller-abbrev.dict',
@@ -69,8 +68,10 @@ function formatTranslation(lines: string[]): string {
       text = text
         .replace(/^([IVX]+)(?=\s|$)/, '<b>$1</b>')
         .replace(/^(\d+)\.\s+/g, '<b>$1.</b> ')
+        // eslint-disable-next-line regexp/no-obscure-range
         .replace(/^(\d+|[a-zа-яё])\)\s+/gi, '<b>$1)</b> ')
         .replace(/^(\*\)|#\)|◆)\s*/, '')
+        // eslint-disable-next-line regexp/no-obscure-range
         .replace(/_([а-яёa-z.:]+)/gi, '<span class="dict-pos">$1</span>')
 
       if (mLevel >= 4 && !text.startsWith('<b>'))
@@ -85,6 +86,7 @@ function extractTranscription(firstBodyLine: string): {
   transcription: string | null
   rest: string
 } {
+  // eslint-disable-next-line regexp/no-super-linear-backtracking
   const match = firstBodyLine.trimStart().match(/^([IVX]+\s+)?(\[[^\]]+\])\s*(.*)$/)
   if (!match)
     return { transcription: null, rest: firstBodyLine }

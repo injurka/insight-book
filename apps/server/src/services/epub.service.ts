@@ -7,41 +7,6 @@ import { sqlite } from '../db'
 
 mkdirSync(UPLOADS_PATH, { recursive: true })
 
-function chunkText(text: string, size: number): string[] {
-  const chunks: string[] = []
-  let currentChunk = ''
-
-  const paragraphs = text.split(/(\n+)/)
-
-  for (const para of paragraphs) {
-    if (!para.trim() && para.includes('\n')) {
-      currentChunk += para
-      continue
-    }
-
-    const parts = para.split(/([.!?…。！？]+\s*)/)
-
-    for (let i = 0; i < parts.length; i += 2) {
-      const sentence = (parts[i] || '') + (parts[i + 1] || '')
-      if (!sentence)
-        continue
-
-      if (currentChunk.length + sentence.length > size && currentChunk.trim().length > 0) {
-        chunks.push(currentChunk.trim())
-        currentChunk = ''
-      }
-
-      currentChunk += sentence
-    }
-  }
-
-  if (currentChunk.trim()) {
-    chunks.push(currentChunk.trim())
-  }
-
-  return chunks
-}
-
 async function extractCover(epub: any): Promise<string | null> {
   try {
     const coverId: string | undefined = epub.metadata?.cover
@@ -145,6 +110,17 @@ function extractToc(epub: any): TocItem[] {
   catch { return [] }
 }
 
+async function getEpubImageBase64(epub: any, imageId: string): Promise<string | null> {
+  return new Promise((resolve) => {
+    epub.getImage(imageId, (err: any, data: Buffer, mimeType: string) => {
+      if (err || !data) {
+        return resolve(null)
+      }
+      resolve(`data:${mimeType || 'image/jpeg'};base64,${data.toString('base64')}`)
+    })
+  })
+}
+
 export async function processEpub(fileBuffer: ArrayBuffer, filename: string): Promise<number> {
   const safeName = `${Date.now()}_${filename.replace(/[^\w.-]/g, '_')}`
   const filePath = path.join(UPLOADS_PATH, safeName)
@@ -163,10 +139,11 @@ export async function processEpub(fileBuffer: ArrayBuffer, filename: string): Pr
         const language = extractLanguage(epub)
         let toc = extractToc(epub)
 
-        const allTexts: string[] = []
+        const allHtmlPages: string[] = []
         const spineItems = epub.spine?.contents || []
 
         let currentTotalLength = 0
+        let currentPageHtml = ''
         const hrefToPageMap: Record<string, number> = {}
 
         for (const item of spineItems) {
@@ -178,28 +155,59 @@ export async function processEpub(fileBuffer: ArrayBuffer, filename: string): Pr
           }
 
           await new Promise<void>((res) => {
-            epub.getChapter(item.id, (err: any, text: string) => {
-              if (!err && text) {
-                const root = parseHtml(text)
+            epub.getChapter(item.id, async (err: any, html: string) => {
+              if (!err && html) {
+                const root = parseHtml(html)
                 root.querySelectorAll('script, style').forEach(n => n.remove())
 
-                root.querySelectorAll('p, div, br, h1, h2, h3, li, blockquote').forEach((n) => {
-                  n.insertAdjacentHTML('afterend', '[[BLOCK_BREAK]]')
-                })
+                const images = root.querySelectorAll('img, image')
+                for (const img of images) {
+                  const src = img.getAttribute('src') || img.getAttribute('xlink:href')
+                  if (src) {
+                    const fileName = src.split('/').pop()
+                    if (fileName) {
+                      const manifestItem = Object.values(epub.manifest || {}).find((m: any) => m.href && m.href.includes(fileName))
+                      if (manifestItem) {
+                        const base64 = await getEpubImageBase64(epub, (manifestItem as any).id)
+                        if (base64) {
+                          if (img.tagName.toLowerCase() === 'image')
+                            img.setAttribute('xlink:href', base64)
+                          else img.setAttribute('src', base64)
+                        }
+                      }
+                    }
+                  }
+                }
 
-                let plain = root.text
-                plain = plain.replace(/\s+/g, ' ')
-                // eslint-disable-next-line regexp/no-super-linear-backtracking
-                plain = plain.replace(/(\s*\[\[BLOCK_BREAK\]\]\s*)+/g, '\n\n').trim()
+                // Ищем тег body, чтобы взять только его детей. Иначе берем корень.
+                const body = root.querySelector('body') || root
+                const blockElements = body.childNodes
 
-                if (plain) {
-                  allTexts.push(plain)
-                  currentTotalLength += plain.length + 1
+                for (const node of blockElements) {
+                  const nodeHtml = node.toString()
+                  const textLength = node.textContent?.trim().length || 0
+
+                  // Пропускаем пустые текстовые узлы между тегами на верхнем уровне
+                  if (!nodeHtml.trim() && textLength === 0)
+                    continue
+
+                  currentPageHtml += `${nodeHtml}\n`
+                  currentTotalLength += textLength
+
+                  if (currentTotalLength >= PAGE_SIZE_CHARS) {
+                    allHtmlPages.push(currentPageHtml)
+                    currentPageHtml = ''
+                    currentTotalLength = 0
+                  }
                 }
               }
               res()
             })
           })
+        }
+
+        if (currentPageHtml.trim()) {
+          allHtmlPages.push(currentPageHtml)
         }
 
         toc = toc.map((t) => {
@@ -212,14 +220,12 @@ export async function processEpub(fileBuffer: ArrayBuffer, filename: string): Pr
         })
 
         const tocJson = JSON.stringify(toc)
-        const fullText = allTexts.join('\n')
-        const pages = chunkText(fullText, PAGE_SIZE_CHARS)
 
         const insertBook = sqlite.prepare(`
           INSERT INTO books (title, author, coverBase64, filePath, language, totalPages, toc)
           VALUES (?, ?, ?, ?, ?, ?, ?)
         `)
-        const result = insertBook.run(title, author, coverBase64, filePath, language, pages.length, tocJson)
+        const result = insertBook.run(title, author, coverBase64, filePath, language, allHtmlPages.length, tocJson)
         const bookId = result.lastInsertRowid as number
 
         const insertPage = sqlite.prepare(`
@@ -231,7 +237,7 @@ export async function processEpub(fileBuffer: ArrayBuffer, filename: string): Pr
             insertPage.run(bookId, idx + 1, chunk)
           })
         })
-        insertMany(pages)
+        insertMany(allHtmlPages)
 
         sqlite.prepare(`
           INSERT OR IGNORE INTO reading_progress (bookId, currentPage)

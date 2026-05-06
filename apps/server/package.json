@@ -16,6 +16,7 @@
     "typecheck": "bunx tsc --noEmit"
   },
   "dependencies": {
+    "cheerio": "^1.2.0",
     "compromise": "^14.15.0",
     "drizzle-orm": "^0.45.2",
     "epub2": "^3.0.2",

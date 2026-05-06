@@ -53,7 +53,7 @@ export interface PagePayload {
   bookId: number
   pageNum: number
   totalPages: number
-  content: TokenizedSentence[]
+  content: string // <-- Теперь передаем готовый HTML
   pageDictionary: Record<string, PageDictEntry>
 }
 

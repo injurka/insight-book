@@ -16,7 +16,6 @@ mkdirSync(DICTS_PATH, { recursive: true })
 // ============================================================================
 console.log('🔄 Checking and syncing database schema...')
 
-// Запускаем через 'bun x' (аналог npx)
 const syncProcess = spawnSync(['bun', 'x', 'drizzle-kit', 'push', '--force'], {
   stdout: 'pipe',
   stderr: 'pipe',
@@ -46,7 +45,6 @@ export const sqlite = new Database(DB_PATH)
 sqlite.run(`PRAGMA journal_mode = WAL`)
 sqlite.run(`PRAGMA foreign_keys = ON`)
 
-// 2. Создаем инстанс Drizzle ORM
 export const db = drizzle(sqlite, { schema, logger: false })
 
 console.log(`🗄️ Main SQLite Database initialized at ${DB_PATH}`)
@@ -73,10 +71,39 @@ export function getDictConnection(language: string): DictConnection | null {
     const dictDb = new Database(specificPath, { readonly: true })
     dictDb.run(`PRAGMA journal_mode = WAL`)
 
-    const conn = { db: dictDb, tableName: 'words' }
+    // У китайского словаря таблица обычно называется zh_dictionary, а не words
+    let tableName = 'words'
+    if (lang === 'zh') {
+      tableName = 'zh_dictionary'
+    }
+
+    // Проверяем существование таблицы (чтобы не падало с ошибкой)
+    try {
+      const tableCheck = dictDb.prepare(`SELECT name FROM sqlite_master WHERE type='table' AND name=?`).get(tableName)
+      if (!tableCheck) {
+        // Фоллбэк: если специфичной таблицы нет, пробуем стандартную 'words'
+        const fallbackCheck = dictDb.prepare(`SELECT name FROM sqlite_master WHERE type='table' AND name='words'`).get()
+        if (fallbackCheck) {
+          tableName = 'words'
+        }
+        else {
+          console.error(`❌ Ошибка: В словаре ${specificPath} не найдена таблица ${tableName} или words!`)
+          return null
+        }
+      }
+    }
+    catch (e) {
+      console.error(`❌ Ошибка проверки таблицы в словаре ${lang}:`, e)
+      return null
+    }
+
+    const conn = { db: dictDb, tableName }
     dictConnections.set(lang, conn)
-    console.log(`📖 Loaded dictionary for [${lang}] at ${specificPath}`)
+    console.log(`📖 Loaded dictionary for [${lang}] at ${specificPath} (Table: ${tableName})`)
     return conn
+  }
+  else {
+    console.warn(`⚠️ Файл словаря не найден: ${specificPath}`)
   }
 
   return null

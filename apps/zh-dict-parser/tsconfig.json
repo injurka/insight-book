@@ -18,7 +18,8 @@
       ]
     },
     "types": [
-      "bun"
+      "bun",
+      "node"
     ],
     "allowJs": true,
     "strict": true,

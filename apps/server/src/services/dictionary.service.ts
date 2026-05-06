@@ -2,27 +2,45 @@ import type { PageDictEntry, UserDictItem } from '../types'
 import { getDictConnection, sqlite } from '../db'
 
 export function lookupWords(words: string[], language: string): Record<string, PageDictEntry> {
-  if (!words.length)
+  if (!words.length) {
     return {}
+  }
 
   const conn = getDictConnection(language)
-  if (!conn)
+  if (!conn) {
     return {}
-
-  const placeholders = words.map(() => '?').join(', ')
-
-  const transcriptionCol = conn.tableName === 'zh_dictionary' ? 'pinyin AS transcription' : 'transcription'
-
-  const rows = conn.db.prepare(`
-    SELECT word, ${transcriptionCol}, translation
-    FROM ${conn.tableName}
-    WHERE word IN (${placeholders})
-  `).all(...words) as Array<{ word: string, transcription: string, translation: string }>
+  }
 
   const dict: Record<string, PageDictEntry> = {}
-  for (const row of rows) {
-    dict[row.word] = { transcription: row.transcription, translation: row.translation }
+  const transcriptionCol = conn.tableName === 'zh_dictionary' ? 'pinyin AS transcription' : 'transcription'
+
+  const chunkSize = 500
+  let totalFound = 0
+
+  for (let i = 0; i < words.length; i += chunkSize) {
+    const chunk = words.slice(i, i + chunkSize)
+    const placeholders = chunk.map(() => '?').join(', ')
+
+    try {
+      const rows = conn.db.prepare(`
+        SELECT word, ${transcriptionCol}, translation
+        FROM ${conn.tableName}
+        WHERE word IN (${placeholders})
+      `).all(...chunk) as Array<{ word: string, transcription: string, translation: string }>
+
+      // eslint-disable-next-line unused-imports/no-unused-vars
+      totalFound += rows.length
+
+      for (const row of rows) {
+        const entry = { transcription: row.transcription, translation: row.translation }
+        dict[row.word] = entry
+        dict[row.word.toLowerCase()] = entry
+      }
+    }
+    catch {
+    }
   }
+
   return dict
 }
 
@@ -30,15 +48,8 @@ export function lookupSingleWord(word: string, language: string): PageDictEntry 
   const conn = getDictConnection(language)
   if (!conn)
     return null
-
   const transcriptionCol = conn.tableName === 'zh_dictionary' ? 'pinyin AS transcription' : 'transcription'
-
-  const row = conn.db.prepare(`
-    SELECT ${transcriptionCol}, translation 
-    FROM ${conn.tableName} 
-    WHERE word = ?
-  `).get(word) as { transcription: string, translation: string } | null
-
+  const row = conn.db.prepare(`SELECT ${transcriptionCol}, translation FROM ${conn.tableName} WHERE word = ? COLLATE NOCASE`).get(word) as { transcription: string, translation: string } | null
   return row ? { transcription: row.transcription, translation: row.translation } : null
 }
 
@@ -47,7 +58,7 @@ export function getUserDictionary(): UserDictItem[] {
 }
 
 export function getWordFromUserDictionary(word: string): UserDictItem | null {
-  return sqlite.prepare(`SELECT * FROM user_dictionary WHERE word = ?`).get(word) as UserDictItem | null
+  return sqlite.prepare(`SELECT * FROM user_dictionary WHERE word = ? COLLATE NOCASE`).get(word) as UserDictItem | null
 }
 
 export function upsertToUserDictionary(item: Omit<UserDictItem, 'id' | 'createdAt' | 'updatedAt'>) {
@@ -65,5 +76,5 @@ export function upsertToUserDictionary(item: Omit<UserDictItem, 'id' | 'createdA
 }
 
 export function removeFromUserDictionary(word: string) {
-  return sqlite.prepare(`DELETE FROM user_dictionary WHERE word = ?`).run(word)
+  return sqlite.prepare(`DELETE FROM user_dictionary WHERE word = ? COLLATE NOCASE`).run(word)
 }

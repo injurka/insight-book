@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { watch } from 'vue'
 import { KitDialog } from '~/components/01.kit'
 import { PageLoader } from '~/components/02.shared/page-loader'
 
@@ -14,6 +15,21 @@ const router = useRouter()
 const route = useRoute()
 
 const readerViewRef = useTemplateRef<HTMLElement>('readerViewRef')
+
+watch(() => store.activeTokenId, (newId, oldId) => {
+  if (oldId) {
+    const [sentId, tokenIdx] = oldId.split('-')
+    const el = readerViewRef.value?.querySelector(`.word[data-sent-id="${sentId}"][data-token-idx="${tokenIdx}"]`)
+    if (el)
+      el.classList.remove('is-active')
+  }
+  if (newId) {
+    const [sentId, tokenIdx] = newId.split('-')
+    const el = readerViewRef.value?.querySelector(`.word[data-sent-id="${sentId}"][data-token-idx="${tokenIdx}"]`)
+    if (el)
+      el.classList.add('is-active')
+  }
+})
 
 function prevPage() {
   if (store.currentBook && (store.currentBook.currentPage || 1) > 1) {
@@ -42,7 +58,41 @@ function goToPage(pageNum?: number) {
   readerViewRef.value?.scrollTo({ top: 0, behavior: 'smooth' })
 }
 
+let pressTimer: ReturnType<typeof setTimeout> | null = null
+
+function onPointerDown(event: MouseEvent | TouchEvent) {
+  const target = (event.target as HTMLElement).closest('.sentence') as HTMLElement | null
+  if (!target)
+    return
+
+  const rawSentEnc = target.dataset.rawSent
+  if (!rawSentEnc)
+    return
+
+  const rawSent = decodeURIComponent(rawSentEnc)
+
+  pressTimer = setTimeout(() => {
+    store.closePopover()
+    store.closeSelectionTooltip()
+    window.getSelection()?.empty()
+    store.handleSentenceAnalysis(rawSent)
+    pressTimer = null
+  }, 500)
+}
+
+function onPointerUp() {
+  if (pressTimer) {
+    clearTimeout(pressTimer)
+    pressTimer = null
+  }
+}
+
 function onContentClick(event: MouseEvent) {
+  if (pressTimer) {
+    clearTimeout(pressTimer)
+    pressTimer = null
+  }
+
   const target = (event.target as HTMLElement).closest('.word') as HTMLElement | null
   if (!target)
     return
@@ -51,7 +101,7 @@ function onContentClick(event: MouseEvent) {
   if (pos === 'x')
     return
 
-  const word = target.dataset.word
+  const word = decodeURIComponent(target.dataset.word || '')
   const sentenceId = Number(target.dataset.sentId)
   const tokenIndex = Number(target.dataset.tokenIdx)
 
@@ -64,13 +114,6 @@ function onContentClick(event: MouseEvent) {
   store.handleWordClick(word, pos, sentenceId, tokenIndex, target)
 }
 
-function onSentenceLongPress(sentenceRaw: string) {
-  store.closePopover()
-  store.closeSelectionTooltip()
-  window.getSelection()?.empty()
-  store.handleSentenceAnalysis(sentenceRaw)
-}
-
 function onScroll() {
   if (store.wordPopover) {
     store.closePopover()
@@ -79,11 +122,6 @@ function onScroll() {
     store.closeSelectionTooltip()
   }
 }
-
-const shouldAddSpace = computed(() => {
-  const lang = store.currentBook?.language || 'en'
-  return !['zh', 'ja'].includes(lang.toLowerCase())
-})
 </script>
 
 <template>
@@ -104,28 +142,18 @@ const shouldAddSpace = computed(() => {
           </p>
         </div>
 
-        <div v-else-if="store.currentPage" class="reader-content container js-tooltip-selectable" @click="onContentClick">
-          <span
-            v-for="sentence in store.currentPage.content" :key="sentence.sentenceId"
-            v-long-press="() => onSentenceLongPress(sentence.raw)"
-            class="sentence"
-          >
-            <span
-              v-for="(token, i) in sentence.tokens"
-              :key="i"
-              class="word"
-              :class="{
-                'is-active': store.activeTokenId === `${sentence.sentenceId}-${i}`,
-                'is-punctuation': token.pos === 'x',
-                'add-space': shouldAddSpace && token.pos !== 'x',
-              }"
-              :data-word="token.word"
-              :data-pos="token.pos"
-              :data-sent-id="sentence.sentenceId"
-              :data-token-idx="i"
-            >{{ token.word }}</span>
-          </span>
-        </div>
+        <div
+          v-else-if="store.currentPage"
+          class="reader-content container js-tooltip-selectable"
+          @click="onContentClick"
+          @mousedown="onPointerDown"
+          @touchstart="onPointerDown"
+          @mouseup="onPointerUp"
+          @touchend="onPointerUp"
+          @touchcancel="onPointerUp"
+          @mouseleave="onPointerUp"
+          v-html="store.currentPage.content"
+        />
       </div>
 
       <ReaderFooter @prev="prevPage" @next="nextPage" />
@@ -183,10 +211,9 @@ const shouldAddSpace = computed(() => {
   padding: 24px 24px;
   font-family: 'Maple Mono CN', 'Microsoft YaHei', sans-serif;
   font-size: 1.4rem;
-  line-height: 2.2;
+  line-height: 1.8;
   color: var(--fg-primary-color);
   user-select: text;
-  white-space: pre-wrap;
   word-wrap: break-word;
 
   @include media-down(sm) {
@@ -196,6 +223,90 @@ const shouldAddSpace = computed(() => {
 
   & ::selection {
     background-color: var(--bg-accent-overlay-color);
+  }
+
+  :deep(p) {
+    margin-bottom: 1.2em;
+    text-indent: 1.5em;
+  }
+
+  :deep(h1),
+  :deep(h2),
+  :deep(h3),
+  :deep(h4),
+  :deep(h5),
+  :deep(h6) {
+    margin-top: 1.5em;
+    margin-bottom: 0.8em;
+    font-weight: 600;
+    line-height: 1.3;
+    text-align: center;
+    color: var(--fg-accent-color);
+  }
+
+  :deep(img),
+  :deep(image) {
+    max-width: 100%;
+    height: auto;
+    display: block;
+    margin: 1.5em auto;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  }
+
+  :deep(blockquote) {
+    border-left: 4px solid var(--fg-secondary-color);
+    margin: 1em 0;
+    padding-left: 1em;
+    font-style: italic;
+    color: var(--fg-secondary-color);
+  }
+
+  :deep(b),
+  :deep(strong) {
+    font-weight: bold;
+  }
+
+  :deep(i),
+  :deep(em) {
+    font-style: italic;
+  }
+
+  :deep(.sentence) {
+    display: inline;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: background-color 0.2s ease;
+
+    &:hover {
+      background-color: var(--bg-hover-color);
+    }
+  }
+
+  :deep(.word) {
+    padding: 0;
+    border-radius: 4px;
+    transition:
+      background-color 0.1s,
+      color 0.1s;
+
+    &.add-space {
+      margin-right: 0.25em;
+    }
+
+    &.is-punctuation {
+      cursor: default;
+      &:hover {
+        background-color: transparent;
+        color: inherit;
+      }
+    }
+
+    &.is-active {
+      background-color: var(--fg-accent-color);
+      color: var(--bg-primary-color);
+      font-weight: 600;
+    }
   }
 }
 
@@ -230,48 +341,6 @@ const shouldAddSpace = computed(() => {
     margin: 0;
     max-width: 320px;
     line-height: 1.5;
-  }
-}
-
-.sentence {
-  display: inline;
-  cursor: pointer;
-  border-radius: 6px;
-  transition: background-color 0.2s ease;
-
-  &:hover {
-    background-color: var(--bg-hover-color);
-  }
-}
-
-.word {
-  display: inline-block;
-  padding: 0 1px;
-  border-radius: 4px;
-  transition:
-    background-color 0.1s,
-    color 0.1s;
-
-  &.add-space {
-    margin-right: 0.25em;
-  }
-
-  &.is-punctuation.add-space {
-    margin-right: 0;
-  }
-
-  &.is-punctuation {
-    cursor: default;
-    &:hover {
-      background-color: transparent;
-      color: inherit;
-    }
-  }
-
-  &.is-active {
-    background-color: var(--fg-accent-color);
-    color: var(--bg-primary-color);
-    font-weight: 600;
   }
 }
 
