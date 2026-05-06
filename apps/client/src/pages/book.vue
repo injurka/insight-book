@@ -115,7 +115,10 @@ const posStats = computed(() => {
   if (!dist)
     return null
 
-  let nouns = 0; let verbs = 0; let adjs = 0; let others = 0
+  let nouns = 0
+  let verbs = 0
+  let adjs = 0
+  let others = 0
 
   for (const [tag, count] of Object.entries(dist)) {
     if (tag.startsWith('n'))

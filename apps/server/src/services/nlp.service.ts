@@ -209,8 +209,10 @@ const jaTokenizer = new JapaneseTokenizer()
 const enTokenizer = new EnglishTokenizer()
 
 export async function initNLP() {
+  // eslint-disable-next-line no-console
   console.log('🤖 Initializing NLP tokenizers...')
   await jaTokenizer.init()
+  // eslint-disable-next-line no-console
   console.log('✅ NLP tokenizers ready')
 }
 

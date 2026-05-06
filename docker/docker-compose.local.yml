@@ -23,10 +23,8 @@ services:
       - .env
     restart: unless-stopped
     ports:
-      # Открываем порт 4445 для доступа к API
       - "4445:4445"
     environment:
-      # Переменные, определяющие внутреннюю конфигурацию контейнера
       - PORT=4445
       - DB_PATH=/db/insight-book.sqlite
       - DICTS_PATH=/db/dicts

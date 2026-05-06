@@ -9,6 +9,6 @@ export default antfu({
     'auto-imports.d.ts',
     '**/vite-env.d.ts',
     'bun.lock',
-    '**/src-tauri/**'
+    '**/src-tauri/**',
   ],
 })

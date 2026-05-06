@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { Component } from 'vue'
+import type { Component as VueComponent } from 'vue'
 import { useHead } from '@vueuse/head'
 import { ReloadPrompt } from '~/components/02.shared/reload-prompt'
 import { AddEditWordDialog } from '~/components/05.modules/dictionary'

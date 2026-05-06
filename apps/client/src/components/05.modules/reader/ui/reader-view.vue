@@ -14,7 +14,6 @@ const router = useRouter()
 const route = useRoute()
 
 const readerViewRef = useTemplateRef<HTMLElement>('readerViewRef')
-const readerContentRef = useTemplateRef<HTMLElement>('readerContentRef')
 
 function prevPage() {
   if (store.currentBook && (store.currentBook.currentPage || 1) > 1) {
@@ -56,7 +55,7 @@ function onContentClick(event: MouseEvent) {
   const sentenceId = Number(target.dataset.sentId)
   const tokenIndex = Number(target.dataset.tokenIdx)
 
-  if (!word || isNaN(sentenceId) || isNaN(tokenIndex) || !pos)
+  if (!word || Number.isNaN(sentenceId) || Number.isNaN(tokenIndex) || !pos)
     return
 
   window.getSelection()?.empty()
@@ -105,7 +104,7 @@ const shouldAddSpace = computed(() => {
           </p>
         </div>
 
-        <div v-else-if="store.currentPage" ref="readerContentRef" class="reader-content container js-tooltip-selectable" @click="onContentClick">
+        <div v-else-if="store.currentPage" class="reader-content container js-tooltip-selectable" @click="onContentClick">
           <span
             v-for="sentence in store.currentPage.content" :key="sentence.sentenceId"
             v-long-press="() => onSentenceLongPress(sentence.raw)"

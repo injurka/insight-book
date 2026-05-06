@@ -53,11 +53,11 @@ export async function handleGetBookInfo(req: Request): Promise<Response> {
 
   const statsResult = stats
     ? {
-      ...stats,
-      tags: stats.tags ? JSON.parse(stats.tags) : [],
-      posDistribution: stats.posDistribution ? JSON.parse(stats.posDistribution) : null,
-      topWords: stats.topWords ? JSON.parse(stats.topWords) : null,
-    }
+        ...stats,
+        tags: stats.tags ? JSON.parse(stats.tags) : [],
+        posDistribution: stats.posDistribution ? JSON.parse(stats.posDistribution) : null,
+        topWords: stats.topWords ? JSON.parse(stats.topWords) : null,
+      }
     : null
 
   return json({
@@ -186,11 +186,11 @@ export async function handleAnalyzeBookStats(req: Request): Promise<Response> {
     success: true,
     stats: newStats
       ? {
-        ...newStats,
-        tags: newStats.tags ? JSON.parse(newStats.tags) : [],
-        posDistribution: newStats.posDistribution ? JSON.parse(newStats.posDistribution) : null,
-        topWords: newStats.topWords ? JSON.parse(newStats.topWords) : null,
-      }
+          ...newStats,
+          tags: newStats.tags ? JSON.parse(newStats.tags) : [],
+          posDistribution: newStats.posDistribution ? JSON.parse(newStats.posDistribution) : null,
+          topWords: newStats.topWords ? JSON.parse(newStats.topWords) : null,
+        }
       : null,
   })
 }
@@ -239,11 +239,11 @@ export async function handleUpdateStats(req: Request): Promise<Response> {
     success: true,
     stats: stats
       ? {
-        ...stats,
-        tags: stats.tags ? JSON.parse(stats.tags) : [],
-        posDistribution: stats.posDistribution ? JSON.parse(stats.posDistribution) : null,
-        topWords: stats.topWords ? JSON.parse(stats.topWords) : null,
-      }
+          ...stats,
+          tags: stats.tags ? JSON.parse(stats.tags) : [],
+          posDistribution: stats.posDistribution ? JSON.parse(stats.posDistribution) : null,
+          topWords: stats.topWords ? JSON.parse(stats.topWords) : null,
+        }
       : null,
   })
 }
