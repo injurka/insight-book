@@ -1,13 +1,16 @@
 # =================================================================
 # Этап 1: "builder" - Установка зависимостей и сборка клиента
 # =================================================================
-FROM oven/bun:1.2.15 AS builder
+FROM oven/bun:1.2-slim AS builder
 
 WORKDIR /usr/src/app
 COPY . .
 
 ARG V_CLIENT="dev"
+ARG VITE_API_URL
+
 ENV VITE_APP_VERSION=$V_CLIENT
+ENV VITE_API_URL=$VITE_API_URL
 
 RUN bun install --ignore-scripts
 RUN bun --cwd=apps/client run build

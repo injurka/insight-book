@@ -1,7 +1,5 @@
-# Используем slim-образ
 FROM oven/bun:1.2-slim
 
-# 1. Системные зависимости для node-gyp
 RUN apt-get update && apt-get install -y \
     python3 \
     make \
@@ -11,18 +9,13 @@ RUN apt-get update && apt-get install -y \
 
 WORKDIR /app
 
-# 2. Копируем файлы конфигурации
 COPY package.json bun.lock* ./
 COPY apps/server/package.json ./apps/server/
 
-# 3. Устанавливаем зависимости
 RUN bun install
 
-# 4. ПРИНУДИТЕЛЬНО пересобираем nodejieba под текущий контейнер (GLIBC)
-# Переходим в папку с модулем и собираем его
 RUN cd node_modules/nodejieba && bun run build || npm run build || bunx node-gyp rebuild
 
-# 5. Копируем исходный код (теперь локальный node_modules не затрет сборку, если есть .dockerignore!)
 COPY . .
 
 WORKDIR /app/apps/server

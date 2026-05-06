@@ -67,6 +67,10 @@ registerRoute(
   ({ request, url }) => {
     if (!url.protocol.startsWith('http'))
       return false
+
+    if (request.destination === 'video' || request.destination === 'audio')
+      return false
+
     return request.destination === 'image' || url.pathname.match(/\.(png|jpg|jpeg|svg|gif|webp)$/i)
   },
   CacheStrategyFactory.createStaleWhileRevalidate(
@@ -128,7 +132,10 @@ registerRoute(
 )
 
 registerRoute(
-  ({ url }) => url.pathname.includes('/api/books/') && url.pathname.includes('/page/'),
+  ({ url }) =>
+    url.protocol.startsWith('http')
+    && url.pathname.includes('/api/books/')
+    && url.pathname.includes('/page/'),
   CacheStrategyFactory.createStaleWhileRevalidate(
     CACHE_CONFIG.names.content,
     {

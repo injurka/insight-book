@@ -1,0 +1,36 @@
+services:
+  insight-book-client:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.client
+      args:
+        - VITE_API_URL=http://localhost:4445
+    image: insight-book-client:local
+    env_file:
+      - .env
+    restart: unless-stopped
+    ports:
+      - "3334:3334"
+    volumes:
+      - ./configs:/usr/share/nginx/html/configs
+
+  insight-book-server:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.server
+    image: insight-book-server:local
+    env_file:
+      - .env
+    restart: unless-stopped
+    ports:
+      # Открываем порт 4445 для доступа к API
+      - "4445:4445"
+    environment:
+      # Переменные, определяющие внутреннюю конфигурацию контейнера
+      - PORT=4445
+      - DB_PATH=/db/insight-book.sqlite
+      - DICTS_PATH=/db/dicts
+      - UPLOADS_PATH=/uploads
+    volumes:
+      - ./db:/db
+      - ./uploads:/uploads

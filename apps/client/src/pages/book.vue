@@ -106,6 +106,10 @@ function formatNumber(num: number | undefined): string {
   return new Intl.NumberFormat('ru-RU').format(num)
 }
 
+function triggerCoverInput() {
+  coverInputRef.value?.click()
+}
+
 const posStats = computed(() => {
   const dist = store.currentBookInfo?.stats?.posDistribution
   if (!dist)
@@ -166,7 +170,7 @@ watch(
     <div v-else-if="store.currentBookInfo" class="book-container">
       <div class="layout-grid">
         <div class="cover-col">
-          <div class="cover-wrapper group" @click="coverInputRef.value!.click()">
+          <div class="cover-wrapper group" @click="triggerCoverInput">
             <img v-if="store.currentBookInfo.coverBase64" :src="store.currentBookInfo.coverBase64" alt="Обложка">
             <div v-else class="cover-placeholder">
               <Icon icon="mdi:book-open-blank-variant" class="placeholder-icon" />
