@@ -7,6 +7,7 @@ import { useBooksStore } from '~/shared/store/books.store'
 const route = useRoute()
 const router = useRouter()
 const store = useBooksStore()
+const toast = useToast()
 
 const bookId = computed(() => Number(route.params.id))
 
@@ -41,8 +42,14 @@ function goToPage(pageNum?: number) {
   })
 }
 
-function triggerAiAnalysis() {
-  store.analyzeFullBook(bookId.value)
+async function triggerAiAnalysis() {
+  try {
+    await store.analyzeFullBook(bookId.value)
+    toast.success('Нейросеть успешно завершила анализ!')
+  }
+  catch (e: any) {
+    toast.error(e.message || 'Ошибка ИИ анализа')
+  }
 }
 
 function onCoverChange(e: Event) {
@@ -61,15 +68,20 @@ function startEditingStats() {
 }
 
 async function saveStats() {
-  const tagsArray = editForm.tags.split(',').map(t => t.trim()).filter(Boolean)
-  await store.updateBookStats(bookId.value, {
-    difficulty: editForm.difficulty,
-    tags: tagsArray,
-    description: editForm.description,
-  })
-  isEditingStats.value = false
+  try {
+    const tagsArray = editForm.tags.split(',').map(t => t.trim()).filter(Boolean)
+    await store.updateBookStats(bookId.value, {
+      difficulty: editForm.difficulty,
+      tags: tagsArray,
+      description: editForm.description,
+    })
+    isEditingStats.value = false
+    toast.success('Информация о книге обновлена')
+  }
+  catch (e: any) {
+    toast.error(e.message || 'Не удалось сохранить информацию')
+  }
 }
-
 function formatNumber(num: number | undefined): string {
   if (num === undefined || num === null)
     return '0'

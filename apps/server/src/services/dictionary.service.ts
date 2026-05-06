@@ -1,5 +1,5 @@
 import type { PageDictEntry, UserDictItem } from '../types'
-import { db, getDictConnection } from '../db'
+import { getDictConnection, sqlite } from '../db'
 
 export function lookupWords(words: string[], language: string): Record<string, PageDictEntry> {
   if (!words.length)
@@ -43,15 +43,15 @@ export function lookupSingleWord(word: string, language: string): PageDictEntry 
 }
 
 export function getUserDictionary(): UserDictItem[] {
-  return db.prepare(`SELECT * FROM user_dictionary ORDER BY updatedAt DESC`).all() as UserDictItem[]
+  return sqlite.prepare(`SELECT * FROM user_dictionary ORDER BY updatedAt DESC`).all() as UserDictItem[]
 }
 
 export function getWordFromUserDictionary(word: string): UserDictItem | null {
-  return db.prepare(`SELECT * FROM user_dictionary WHERE word = ?`).get(word) as UserDictItem | null
+  return sqlite.prepare(`SELECT * FROM user_dictionary WHERE word = ?`).get(word) as UserDictItem | null
 }
 
 export function upsertToUserDictionary(item: Omit<UserDictItem, 'id' | 'createdAt' | 'updatedAt'>) {
-  return db.prepare(`
+  return sqlite.prepare(`
     INSERT INTO user_dictionary (word, transcription, translation, language, notes, tags, updatedAt)
     VALUES (?, ?, ?, ?, ?, ?, datetime('now'))
     ON CONFLICT(word) DO UPDATE SET
@@ -65,5 +65,5 @@ export function upsertToUserDictionary(item: Omit<UserDictItem, 'id' | 'createdA
 }
 
 export function removeFromUserDictionary(word: string) {
-  return db.prepare(`DELETE FROM user_dictionary WHERE word = ?`).run(word)
+  return sqlite.prepare(`DELETE FROM user_dictionary WHERE word = ?`).run(word)
 }

@@ -31,5 +31,8 @@
     "pre-commit": "bun run lint && bun run typecheck",
     "post-commit": "git status",
     "post-merge": "bun i"
+  },
+  "dependencies": {
+    "uuid": "^14.0.0"
   }
 }

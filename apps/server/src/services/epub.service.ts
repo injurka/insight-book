@@ -3,7 +3,7 @@ import { mkdirSync } from 'node:fs'
 import path from 'node:path'
 import { parse as parseHtml } from 'node-html-parser'
 import { PAGE_SIZE_CHARS, UPLOADS_PATH } from '../config'
-import { db } from '../db'
+import { sqlite } from '../db'
 
 mkdirSync(UPLOADS_PATH, { recursive: true })
 
@@ -11,17 +11,14 @@ function chunkText(text: string, size: number): string[] {
   const chunks: string[] = []
   let currentChunk = ''
 
-  // Разбиваем на абзацы, сохраняя саму структуру переносов \n
   const paragraphs = text.split(/(\n+)/)
 
   for (const para of paragraphs) {
-    // Если это просто переносы строк (пустота), добавляем к текущей странице
     if (!para.trim() && para.includes('\n')) {
       currentChunk += para
       continue
     }
 
-    // Разбиваем абзац на предложения по знакам пунктуации (включая азиатские)
     const parts = para.split(/([.!?…。！？]+\s*)/)
 
     for (let i = 0; i < parts.length; i += 2) {
@@ -29,7 +26,6 @@ function chunkText(text: string, size: number): string[] {
       if (!sentence)
         continue
 
-      // Если после добавления предложения лимит превышен и страница не пустая — закрываем страницу
       if (currentChunk.length + sentence.length > size && currentChunk.trim().length > 0) {
         chunks.push(currentChunk.trim())
         currentChunk = ''
@@ -39,7 +35,6 @@ function chunkText(text: string, size: number): string[] {
     }
   }
 
-  // Не забываем добавить остаток
   if (currentChunk.trim()) {
     chunks.push(currentChunk.trim())
   }
@@ -49,7 +44,6 @@ function chunkText(text: string, size: number): string[] {
 
 async function extractCover(epub: any): Promise<string | null> {
   try {
-    // 1. Пробуем взять id обложки из метаданных
     const coverId: string | undefined = epub.metadata?.cover
 
     if (coverId) {
@@ -67,7 +61,6 @@ async function extractCover(epub: any): Promise<string | null> {
         return result
     }
 
-    // 2. Fallback: ищем обложку по характерным id/href в манифесте
     const manifest: Record<string, { id: string, href: string, mediaType: string }> = epub.manifest || {}
     const coverItem = Object.values(manifest).find((item) => {
       const id = item.id?.toLowerCase() ?? ''
@@ -94,7 +87,6 @@ async function extractCover(epub: any): Promise<string | null> {
         return result
     }
 
-    // 3. Fallback: берём первое попавшееся изображение из манифеста
     const firstImage = Object.values(manifest).find(item =>
       item.mediaType?.toLowerCase().startsWith('image/'),
     )
@@ -167,7 +159,7 @@ export async function processEpub(fileBuffer: ArrayBuffer, filename: string): Pr
       try {
         const title = epub.metadata?.title || filename.replace('.epub', '')
         const author = epub.metadata?.creator || null
-        const coverBase64 = await extractCover(epub) // <-- теперь async
+        const coverBase64 = await extractCover(epub)
         const language = extractLanguage(epub)
         let toc = extractToc(epub)
 
@@ -191,15 +183,13 @@ export async function processEpub(fileBuffer: ArrayBuffer, filename: string): Pr
                 const root = parseHtml(text)
                 root.querySelectorAll('script, style').forEach(n => n.remove())
 
-                // Вставляем маркер только после логических блоков (абзацев, списков, заголовков)
                 root.querySelectorAll('p, div, br, h1, h2, h3, li, blockquote').forEach((n) => {
                   n.insertAdjacentHTML('afterend', '[[BLOCK_BREAK]]')
                 })
 
                 let plain = root.text
-                // 1. Убираем технические переносы строк внутри предложений (превращаем в пробелы)
                 plain = plain.replace(/\s+/g, ' ')
-                // 2. Восстанавливаем реальные абзацы двойным переносом \n\n
+                // eslint-disable-next-line regexp/no-super-linear-backtracking
                 plain = plain.replace(/(\s*\[\[BLOCK_BREAK\]\]\s*)+/g, '\n\n').trim()
 
                 if (plain) {
@@ -225,25 +215,25 @@ export async function processEpub(fileBuffer: ArrayBuffer, filename: string): Pr
         const fullText = allTexts.join('\n')
         const pages = chunkText(fullText, PAGE_SIZE_CHARS)
 
-        const insertBook = db.prepare(`
+        const insertBook = sqlite.prepare(`
           INSERT INTO books (title, author, coverBase64, filePath, language, totalPages, toc)
           VALUES (?, ?, ?, ?, ?, ?, ?)
         `)
         const result = insertBook.run(title, author, coverBase64, filePath, language, pages.length, tocJson)
         const bookId = result.lastInsertRowid as number
 
-        const insertPage = db.prepare(`
+        const insertPage = sqlite.prepare(`
           INSERT OR IGNORE INTO book_pages (bookId, pageNum, content)
           VALUES (?, ?, ?)
         `)
-        const insertMany = db.transaction((chunks: string[]) => {
+        const insertMany = sqlite.transaction((chunks: string[]) => {
           chunks.forEach((chunk, idx) => {
             insertPage.run(bookId, idx + 1, chunk)
           })
         })
         insertMany(pages)
 
-        db.prepare(`
+        sqlite.prepare(`
           INSERT OR IGNORE INTO reading_progress (bookId, currentPage)
           VALUES (?, 1)
         `).run(bookId)

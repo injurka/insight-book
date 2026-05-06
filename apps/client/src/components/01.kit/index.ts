@@ -5,6 +5,7 @@ import KitDropdown from './kit-dropdown/ui/kit-dropdown.vue'
 import KitInput from './kit-input/ui/kit-input.vue'
 import KitSelect from './kit-select/ui/kit-select.vue'
 import KitSkeleton from './kit-skeleton/ui/kit-skeleton.vue'
+import KitToast from './kit-toast/ui/kit-toast-item.vue'
 
 export {
   KitBtn,
@@ -14,4 +15,5 @@ export {
   KitInput,
   KitSelect,
   KitSkeleton,
+  KitToast,
 }

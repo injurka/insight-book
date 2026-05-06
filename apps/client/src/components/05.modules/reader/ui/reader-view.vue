@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import type { TokenizedWord } from '~/shared/types/models'
 import { KitDialog } from '~/components/01.kit'
 import { PageLoader } from '~/components/02.shared/page-loader'
 
@@ -14,8 +13,8 @@ const store = useBooksStore()
 const router = useRouter()
 const route = useRoute()
 
-const readerViewRef = ref<HTMLElement | null>(null)
-const readerContentRef = ref<HTMLElement | null>(null)
+const readerViewRef = useTemplateRef<HTMLElement>('readerViewRef')
+const readerContentRef = useTemplateRef<HTMLElement>('readerContentRef')
 
 function prevPage() {
   if (store.currentBook && (store.currentBook.currentPage || 1) > 1) {
@@ -44,14 +43,23 @@ function goToPage(pageNum?: number) {
   readerViewRef.value?.scrollTo({ top: 0, behavior: 'smooth' })
 }
 
-function onWordClick(token: TokenizedWord, sentenceId: number, tokenIndex: number, event: MouseEvent) {
-  if (token.pos === 'x')
-    return
+function onContentClick(event: MouseEvent) {
+  const target = (event.target as HTMLElement).closest('.word') as HTMLElement | null
+  if (!target) return
+
+  const pos = target.dataset.pos
+  if (pos === 'x') return
+
+  const word = target.dataset.word
+  const sentenceId = Number(target.dataset.sentId)
+  const tokenIndex = Number(target.dataset.tokenIdx)
+
+  if (!word || isNaN(sentenceId) || isNaN(tokenIndex) || !pos) return
 
   window.getSelection()?.empty()
 
   event.stopPropagation()
-  store.handleWordClick(token.word, token.pos, sentenceId, tokenIndex, event.target as HTMLElement)
+  store.handleWordClick(word, pos, sentenceId, tokenIndex, target)
 }
 
 function onSentenceLongPress(sentenceRaw: string) {
@@ -94,8 +102,7 @@ const shouldAddSpace = computed(() => {
           </p>
         </div>
 
-        <!-- ДОБАВЛЕН КЛАСС js-tooltip-selectable -->
-        <div v-else-if="store.currentPage" ref="readerContentRef" class="reader-content container js-tooltip-selectable">
+        <div v-else-if="store.currentPage" ref="readerContentRef" class="reader-content container js-tooltip-selectable" @click="onContentClick">
           <span
             v-for="sentence in store.currentPage.content" :key="sentence.sentenceId"
             v-long-press="() => onSentenceLongPress(sentence.raw)"
@@ -110,7 +117,10 @@ const shouldAddSpace = computed(() => {
                 'is-punctuation': token.pos === 'x',
                 'add-space': shouldAddSpace && token.pos !== 'x',
               }"
-              @click="onWordClick(token, sentence.sentenceId, i, $event)"
+              :data-word="token.word"
+              :data-pos="token.pos"
+              :data-sent-id="sentence.sentenceId"
+              :data-token-idx="i"
             >{{ token.word }}</span>
           </span>
         </div>

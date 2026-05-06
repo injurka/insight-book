@@ -296,6 +296,7 @@
     "useTitle": true,
     "useToNumber": true,
     "useToString": true,
+    "useToast": true,
     "useToggle": true,
     "useTransition": true,
     "useTts": true,

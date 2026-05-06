@@ -17,16 +17,20 @@
   },
   "dependencies": {
     "compromise": "^14.15.0",
+    "drizzle-orm": "^0.45.2",
     "epub2": "^3.0.2",
     "kuromoji": "^0.1.2",
-    "node-html-parser": "^7.0.1",
-    "nodejieba": "^3.5.8"
+    "node-html-parser": "^7.1.0",
+    "nodejieba": "^3.5.8",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@antfu/eslint-config": "8.2.0",
+    "@libsql/client": "^0.17.3",
     "@types/bun": "^1.3.13",
     "@types/kuromoji": "^0.1.3",
     "@types/node": "^25.6.0",
+    "drizzle-kit": "^0.31.10",
     "eslint": "10.3.0",
     "eslint-plugin-format": "2.0.1",
     "typescript": "6.0.3"

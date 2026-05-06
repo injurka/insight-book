@@ -20,7 +20,9 @@ import {
   handleUploadBook,
   handleUpsertToUserDict,
 } from './handlers/books'
+import { initNLP } from './services/nlp.service'
 import { withCors } from './utils/cors'
+import { apiWrapper } from './utils/errors'
 import { logRoutes } from './utils/print-routes'
 import './db'
 
@@ -30,75 +32,75 @@ function corsOk() {
 
 const apiRoutes: ServeOptionsRoutes = {
   '/health': {
-    GET: () => new Response(JSON.stringify({ status: 'ok' }), {
+    GET: apiWrapper(() => new Response(JSON.stringify({ status: 'ok' }), {
       status: 200,
       headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' },
-    }),
+    })),
   },
   '/api/books': {
     OPTIONS: corsOk,
-    GET: handleGetBooks,
-    POST: handleUploadBook,
+    GET: apiWrapper(handleGetBooks),
+    POST: apiWrapper(handleUploadBook),
   },
   '/api/books/upload': {
     OPTIONS: corsOk,
-    POST: handleUploadBook,
+    POST: apiWrapper(handleUploadBook),
   },
   '/api/books/:id': {
     OPTIONS: corsOk,
-    PATCH: req => handleUpdateBook(req as Request, Number((req as any).params.id)),
-    DELETE: req => handleDeleteBook(Number((req as any).params.id)),
+    PATCH: apiWrapper(handleUpdateBook),
+    DELETE: apiWrapper(handleDeleteBook),
   },
   '/api/books/:id/info': {
     OPTIONS: corsOk,
-    GET: req => handleGetBookInfo(Number((req as any).params.id)),
+    GET: apiWrapper(handleGetBookInfo),
   },
   '/api/books/:id/cover': {
     OPTIONS: corsOk,
-    PATCH: req => handleUpdateCover(req as Request, Number((req as any).params.id)),
+    PATCH: apiWrapper(handleUpdateCover),
   },
   '/api/books/:id/tts': {
     OPTIONS: corsOk,
-    POST: req => handleGenerateTts(req as Request, Number((req as any).params.id)),
+    POST: apiWrapper(handleGenerateTts),
   },
   '/api/books/:id/stats': {
     OPTIONS: corsOk,
-    PATCH: req => handleUpdateStats(req as Request, Number((req as any).params.id)),
+    PATCH: apiWrapper(handleUpdateStats),
   },
   '/api/books/:id/analyze-book': {
     OPTIONS: corsOk,
-    POST: req => handleAnalyzeBookStats(Number((req as any).params.id)),
+    POST: apiWrapper(handleAnalyzeBookStats),
   },
   '/api/books/:id/toc': {
     OPTIONS: corsOk,
-    GET: req => handleGetToc(Number((req as any).params.id)),
+    GET: apiWrapper(handleGetToc),
   },
   '/api/books/:id/page/:pageNum': {
     OPTIONS: corsOk,
-    GET: req => handleGetPage(
-      Number((req as any).params.id),
-      Number((req as any).params.pageNum),
-    ),
+    GET: apiWrapper(handleGetPage),
   },
   '/api/books/:id/word/:word': {
     OPTIONS: corsOk,
-    GET: req => handleLookupWord(Number((req as any).params.id), (req as any).params.word),
+    GET: apiWrapper(handleLookupWord),
   },
   '/api/books/:id/analyze': {
     OPTIONS: corsOk,
-    POST: handleAnalyzeSentence,
+    POST: apiWrapper(handleAnalyzeSentence),
   },
   '/api/dictionary': {
     OPTIONS: corsOk,
-    GET: handleGetUserDict,
-    POST: handleUpsertToUserDict,
+    GET: apiWrapper(handleGetUserDict),
+    POST: apiWrapper(handleUpsertToUserDict),
   },
   '/api/dictionary/:word': {
     OPTIONS: corsOk,
-    GET: req => handleGetWordFromUserDict((req as any).params.word),
-    DELETE: req => handleRemoveFromUserDict((req as any).params.word),
+    GET: apiWrapper(handleGetWordFromUserDict),
+    DELETE: apiWrapper(handleRemoveFromUserDict),
   },
 }
+
+// eslint-disable-next-line antfu/no-top-level-await
+await initNLP()
 
 Bun.serve({
   port: PORT,

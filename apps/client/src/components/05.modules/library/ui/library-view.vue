@@ -10,6 +10,8 @@ import { useDictionaryStore } from '~/shared/store/dictionary.store'
 const store = useBooksStore()
 const dictStore = useDictionaryStore()
 const router = useRouter()
+const toast = useToast()
+
 const fileInput = ref<HTMLInputElement | null>(null)
 
 const { theme, toggleTheme } = useChangeTheme()
@@ -103,12 +105,18 @@ async function saveEditBook() {
   if (!editingBook.value.id)
     return
 
-  const payload = { ...editingBook.value }
-  payload.createdAt = parseFromDateTimeLocal(payload.createdAt)
-  payload.currentPage = Number(payload.currentPage)
+  try {
+    const payload = { ...editingBook.value }
+    payload.createdAt = parseFromDateTimeLocal(payload.createdAt)
+    payload.currentPage = Number(payload.currentPage)
 
-  await store.updateBookInfo(payload.id!, payload)
-  editModalOpen.value = false
+    await store.updateBookInfo(payload.id!, payload)
+    editModalOpen.value = false
+    toast.success('Книга обновлена')
+  }
+  catch (e: any) {
+    toast.error(e.message || 'Не удалось обновить книгу')
+  }
 }
 
 async function deleteFromEditModal() {
@@ -660,7 +668,7 @@ onMounted(() => {
     color: var(--fg-primary-color);
     line-height: 1.4;
     white-space: pre-wrap;
-    
+
     :deep(b) {
       font-weight: 600;
     }

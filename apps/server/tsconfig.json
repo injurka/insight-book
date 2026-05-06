@@ -4,11 +4,9 @@
     "composite": true,
     "target": "ESNext",
     "lib": [
-      "ESNext",
-      "DOM"
+      "ESNext"
     ],
-    "moduleDetection": "force",
-    "module": "ESNext",
+    "module": "Preserve",
     "moduleResolution": "bundler",
     "paths": {
       "~/*": [

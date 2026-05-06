@@ -8,8 +8,6 @@ import nodejieba from 'nodejieba'
 const SENTENCE_DELIMITERS = /([.。！？…!?]+)/g
 
 function splitIntoSentences(text: string): string[] {
-  // БОЛЬШЕ НЕ ВЫРЕЗАЕМ ПРОБЕЛЫ И НЕ ИСПОЛЬЗУЕМ trim()
-  // Сначала разбиваем на абзацы с сохранением самих символов переноса
   const paragraphs = text.split(/(\n+)/)
 
   const sentences: string[] = []
@@ -18,7 +16,6 @@ function splitIntoSentences(text: string): string[] {
     if (!para)
       continue
 
-    // Если это чистый блок из пробелов/переносов строк — сохраняем как есть
     if (/^\s+$/.test(para)) {
       sentences.push(para)
       continue
@@ -30,10 +27,9 @@ function splitIntoSentences(text: string): string[] {
     for (let i = 0; i < parts.length; i++) {
       currentSentence += parts[i]
 
-      // Если это разделитель (нечетный индекс) или последний кусок массива
       if (i % 2 !== 0 || i === parts.length - 1) {
         if (currentSentence) {
-          sentences.push(currentSentence) // Без .trim() !
+          sentences.push(currentSentence)
           currentSentence = ''
         }
       }
@@ -50,7 +46,6 @@ interface LanguageTokenizer {
 class ChineseTokenizer implements LanguageTokenizer {
   tokenize(text: string): TokenizedWord[] {
     const tokens: TokenizedWord[] = []
-    // Разбиваем по пробелам/переносам, чтобы jieba их не "проглотила"
     const parts = text.split(/(\s+)/)
     for (const part of parts) {
       if (!part)
@@ -69,6 +64,8 @@ class ChineseTokenizer implements LanguageTokenizer {
 
 class JapaneseTokenizer implements LanguageTokenizer {
   private tokenizer: kuromoji.Tokenizer<kuromoji.IpadicFeatures> | null = null
+  private initPromise: Promise<void> | null = null
+
   private tagMap: Record<string, string> = {
     名詞: 'n',
     動詞: 'v',
@@ -90,29 +87,37 @@ class JapaneseTokenizer implements LanguageTokenizer {
     return this.tagMap[mainTag] || 'x'
   }
 
-  private initTokenizer(): Promise<void> {
-    return new Promise((resolve, reject) => {
-      if (this.tokenizer)
-        return resolve()
+  public init(): Promise<void> {
+    if (this.tokenizer)
+      return Promise.resolve()
+
+    if (this.initPromise)
+      return this.initPromise
+
+    this.initPromise = new Promise((resolve, reject) => {
       const require = createRequire(import.meta.url)
       const kuromojiDir = path.dirname(require.resolve('kuromoji/package.json'))
       const dicPath = path.join(kuromojiDir, 'dict')
+
       kuromoji.builder({ dicPath }).build((err, tokenizer) => {
-        if (err)
+        if (err) {
+          this.initPromise = null
           return reject(err)
+        }
         this.tokenizer = tokenizer
         resolve()
       })
     })
+
+    return this.initPromise
   }
 
   async tokenize(text: string): Promise<TokenizedWord[]> {
-    await this.initTokenizer()
+    await this.init()
     if (!this.tokenizer)
       return [{ word: text, pos: 'unk' }]
 
     const tokens: TokenizedWord[] = []
-    // Разбиваем по пробельным символам для гарантии их сохранения
     const parts = text.split(/(\s+)/)
     for (const part of parts) {
       if (!part)
@@ -160,23 +165,19 @@ class EnglishTokenizer implements LanguageTokenizer {
 
     for (const sentence of jsonOutput) {
       for (const term of sentence.terms) {
-        // Сохраняем пробелы и пунктуацию до слова как отдельный токен (без trim)
         if (term.pre)
           tokens.push({ word: term.pre, pos: 'x' })
 
-        // Само слово
         if (term.text) {
           const tag = this.getSimpleTag(term.tags)
           tokens.push({ word: term.text, pos: tag })
         }
 
-        // Сохраняем пробелы и пунктуацию после слова
         if (term.post)
           tokens.push({ word: term.post, pos: 'x' })
       }
     }
 
-    // Fallback на случай, если библиотека ничего не распарсила (например, там были одни пробелы)
     if (tokens.length === 0) {
       tokens.push({ word: text, pos: 'x' })
     }
@@ -204,6 +205,12 @@ const zhTokenizer = new ChineseTokenizer()
 const jaTokenizer = new JapaneseTokenizer()
 const enTokenizer = new EnglishTokenizer()
 
+export async function initNLP() {
+  console.log('🤖 Initializing NLP tokenizers...')
+  await jaTokenizer.init()
+  console.log('✅ NLP tokenizers ready')
+}
+
 function getTokenizer(language: string): LanguageTokenizer {
   switch (language.toLowerCase()) {
     case 'zh': return zhTokenizer
@@ -221,7 +228,6 @@ export async function tokenizePage(text: string, language: string): Promise<Toke
   for (let i = 0; i < sentences.length; i++) {
     const raw = sentences[i]
 
-    // Если это чистый перенос строки или отступы - нет смысла отдавать парсерам
     if (/^\s+$/.test(raw)) {
       tokenizedSentences.push({ sentenceId: i, tokens: [{ word: raw, pos: 'x' }], raw })
       continue

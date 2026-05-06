@@ -3,6 +3,8 @@ import { api } from '~/shared/services/api.service'
 import { useBooksStore } from './books.store'
 
 export const useDictionaryStore = defineStore('dictionary', () => {
+  const toast = useToast()
+
   const words = ref<UserDictItem[]>([])
   const isLoading = ref(false)
   const searchTerm = ref('')
@@ -19,8 +21,14 @@ export const useDictionaryStore = defineStore('dictionary', () => {
   }
 
   async function deleteWord(word: string) {
-    await api.dictionary.remove(word)
-    words.value = words.value.filter(w => w.word !== word)
+    try {
+      await api.dictionary.remove(word)
+      words.value = words.value.filter(w => w.word !== word)
+      toast.success('Слово удалено')
+    }
+    catch (e: any) {
+      toast.error(e.message || 'Не удалось удалить слово')
+    }
   }
 
   const availableLanguages = computed(() => {
