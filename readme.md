@@ -109,3 +109,11 @@ docker compose -f ./docker/docker-compose.local.yml up -d --build
 *   **Сервер (API):** [http://localhost:4445](http://localhost:4445)
 
 > База данных (`insight-book.sqlite`) и загруженные книги сохраняются в `./db` и `./uploads` в корне проекта. Офлайн-словари размещаются в `./db/dicts/` в формате `.sqlite`.
+
+
+## Примеры экранов
+
+![Insight Book Preview](./assets/preview-2.png)
+![Insight Book Preview](./assets/preview-3.png)
+![Insight Book Preview](./assets/preview-4.png)
+![Insight Book Preview](./assets/preview-5.png)
