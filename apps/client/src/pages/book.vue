@@ -902,7 +902,7 @@ watch(
 
 .words-collapse-container {
   position: relative;
-  max-height: 86px; // 2 строки чипов
+  max-height: 86px;
   overflow: hidden;
   transition: max-height 0.3s ease-in-out;
 

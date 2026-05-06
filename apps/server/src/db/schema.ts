@@ -36,7 +36,6 @@ export const bookStats = sqliteTable('book_stats', {
   tags: text('tags'),
   totalChars: integer('totalChars').default(0),
   uniqueChars: integer('uniqueChars').default(0),
-  // НОВЫЕ ПОЛЯ ДЛЯ ЛЕКСИКИ
   posDistribution: text('posDistribution'),
   topWords: text('topWords'),
   lexicalDiversity: integer('lexicalDiversity'),
