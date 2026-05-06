@@ -4,6 +4,7 @@ import { CORS_HEADERS, PORT } from './config'
 import {
   handleAnalyzeBookStats,
   handleAnalyzeSentence,
+  handleAnalyzeVocabulary,
   handleDeleteBook,
   handleGenerateTts,
   handleGetBookInfo,
@@ -70,6 +71,10 @@ const apiRoutes: ServeOptionsRoutes = {
   '/api/books/:id/analyze-book': {
     OPTIONS: corsOk,
     POST: apiWrapper(handleAnalyzeBookStats),
+  },
+  '/api/books/:id/analyze-vocabulary': {
+    OPTIONS: corsOk,
+    POST: apiWrapper(handleAnalyzeVocabulary),
   },
   '/api/books/:id/toc': {
     OPTIONS: corsOk,

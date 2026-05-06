@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Icon } from '@iconify/vue'
 import { KitBtn, KitInput, KitSkeleton } from '~/components/01.kit'
+import WordPopover from '~/components/05.modules/reader/ui/word-popover.vue'
 import { AppRoutePaths } from '~/shared/constants/routes'
 import { useBooksStore } from '~/shared/store/books.store'
 
@@ -14,6 +15,9 @@ const bookId = computed(() => Number(route.params.id))
 const coverInputRef = ref<HTMLInputElement | null>(null)
 
 const isEditingStats = ref(false)
+const isLexicalExpanded = ref(false)
+const isWordsExpanded = ref(false)
+
 const editForm = reactive({
   difficulty: '',
   tags: '',
@@ -45,10 +49,23 @@ function goToPage(pageNum?: number) {
 async function triggerAiAnalysis() {
   try {
     await store.analyzeFullBook(bookId.value)
+    isEditingStats.value = false
     toast.success('Нейросеть успешно завершила анализ!')
   }
   catch (e: any) {
     toast.error(e.message || 'Ошибка ИИ анализа')
+  }
+}
+
+async function triggerVocabularyAnalysis() {
+  try {
+    await store.analyzeVocabulary(bookId.value)
+    isEditingStats.value = false
+    isLexicalExpanded.value = true // Автоматически раскрываем профиль после генерации
+    toast.success('Лексический профиль составлен!')
+  }
+  catch (e: any) {
+    toast.error(e.message || 'Ошибка анализа лексики')
   }
 }
 
@@ -82,19 +99,47 @@ async function saveStats() {
     toast.error(e.message || 'Не удалось сохранить информацию')
   }
 }
+
 function formatNumber(num: number | undefined): string {
   if (num === undefined || num === null)
     return '0'
-
   return new Intl.NumberFormat('ru-RU').format(num)
 }
+
+const posStats = computed(() => {
+  const dist = store.currentBookInfo?.stats?.posDistribution
+  if (!dist)
+    return null
+
+  let nouns = 0; let verbs = 0; let adjs = 0; let others = 0
+
+  for (const [tag, count] of Object.entries(dist)) {
+    if (tag.startsWith('n'))
+      nouns += count
+    else if (tag.startsWith('v'))
+      verbs += count
+    else if (tag.startsWith('a') || tag.startsWith('d'))
+      adjs += count
+    else others += count
+  }
+
+  const total = nouns + verbs + adjs + others
+
+  if (total === 0)
+    return null
+
+  return {
+    nouns: Math.round((nouns / total) * 100),
+    verbs: Math.round((verbs / total) * 100),
+    adjs: Math.round((adjs / total) * 100),
+  }
+})
 
 watch(
   bookId,
   (newId) => {
-    if (newId) {
+    if (newId)
       store.fetchBookInfo(newId)
-    }
   },
   { immediate: true },
 )
@@ -111,9 +156,9 @@ watch(
       <div class="layout-grid">
         <KitSkeleton width="100%" height="400px" border-radius="12px" />
         <div class="content-col">
-          <KitSkeleton width="80%" height="32px" class="mb-4" />
-          <KitSkeleton width="40%" height="20px" class="mb-4" />
-          <KitSkeleton width="100%" height="150px" border-radius="12px" class="mb-4" />
+          <KitSkeleton width="80%" height="32px" class="title-skeleton" />
+          <KitSkeleton width="40%" height="20px" class="author-skeleton" />
+          <KitSkeleton width="100%" height="150px" border-radius="12px" />
         </div>
       </div>
     </div>
@@ -121,14 +166,13 @@ watch(
     <div v-else-if="store.currentBookInfo" class="book-container">
       <div class="layout-grid">
         <div class="cover-col">
-          <div class="cover-wrapper group" @click="coverInputRef?.click()">
+          <div class="cover-wrapper group" @click="coverInputRef.value!.click()">
             <img v-if="store.currentBookInfo.coverBase64" :src="store.currentBookInfo.coverBase64" alt="Обложка">
             <div v-else class="cover-placeholder">
               <Icon icon="mdi:book-open-blank-variant" class="placeholder-icon" />
             </div>
-
             <div class="cover-overlay">
-              <Icon icon="mdi:image-edit" class="mr-1" /> Изменить
+              <Icon icon="mdi:image-edit" /> Изменить
             </div>
             <input ref="coverInputRef" type="file" accept="image/*" hidden @change="onCoverChange">
           </div>
@@ -136,15 +180,6 @@ watch(
           <div class="action-buttons">
             <KitBtn color="primary" class="full-width" @click="startReading">
               {{ (store.currentBookInfo.currentPage || 1) > 1 ? 'Продолжить чтение' : 'Начать чтение' }}
-            </KitBtn>
-            <KitBtn
-              v-if="!store.currentBookInfo.stats && !store.isAnalyzingBook"
-              variant="outlined"
-              color="accent"
-              class="full-width mt-2"
-              @click="triggerAiAnalysis"
-            >
-              Сгенерировать AI Инфо
             </KitBtn>
           </div>
         </div>
@@ -169,8 +204,9 @@ watch(
             </div>
           </div>
 
+          <!-- Блок Описания -->
           <div v-if="store.isAnalyzingBook" class="ai-analysis-box is-loading">
-            <Icon icon="mdi:robot-outline" class="spin-icon" />
+            <Icon icon="mdi:robot-outline" class="spin-icon pulse" />
             <p>Нейросеть анализирует текст книги...</p>
             <p class="sub-text">
               Это займет несколько секунд. Мы считаем иероглифы и оцениваем сложность.
@@ -180,20 +216,40 @@ watch(
           <div v-else class="ai-analysis-box">
             <div class="box-header">
               <h3>Информация</h3>
-              <KitBtn
-                v-if="!isEditingStats"
-                icon="mdi:pencil"
-                variant="text"
-                size="sm"
-                color="secondary"
-                @click="startEditingStats"
-              />
+              <KitBtn v-if="!isEditingStats" icon="mdi:pencil" variant="text" size="sm" color="secondary" @click="startEditingStats" />
             </div>
 
             <template v-if="isEditingStats">
               <div class="edit-form">
+                <div class="ai-generate-actions">
+                  <KitBtn
+                    variant="outlined"
+                    color="accent"
+                    icon="mdi:robot-outline"
+                    class="flex-1"
+                    :disabled="store.isAnalyzingBook"
+                    @click="triggerAiAnalysis"
+                  >
+                    Сгенерировать AI Инфо
+                  </KitBtn>
+                  <KitBtn
+                    variant="outlined"
+                    color="secondary"
+                    icon="mdi:chart-pie"
+                    class="flex-1"
+                    :disabled="store.isAnalyzingVocab"
+                    @click="triggerVocabularyAnalysis"
+                  >
+                    Собрать лексику
+                  </KitBtn>
+                </div>
+
+                <div class="edit-divider">
+                  <span>Или заполните вручную</span>
+                </div>
+
                 <div class="form-group">
-                  <label>Сложность (HSK и т.д.)</label>
+                  <label>Сложность</label>
                   <KitInput v-model="editForm.difficulty" placeholder="Например: HSK 4" />
                 </div>
                 <div class="form-group">
@@ -242,12 +298,86 @@ watch(
 
             <template v-else>
               <div class="empty-stats">
-                <p>Информация о книге отсутствует. Вы можете добавить её вручную или сгенерировать с помощью ИИ.</p>
+                <p>Информация о книге отсутствует.</p>
                 <KitBtn variant="outlined" color="primary" @click="startEditingStats">
-                  Добавить вручную
+                  Добавить вручную или сгенерировать
                 </KitBtn>
               </div>
             </template>
+          </div>
+
+          <!-- Блок Лексического профиля -->
+          <div v-if="store.isAnalyzingVocab" class="ai-analysis-box is-loading">
+            <Icon icon="mdi:loading" class="spin-icon" />
+            <p>Изучаем словарный запас книги...</p>
+            <p class="sub-text">
+              Токенизация и подсчет частотности займут несколько секунд.
+            </p>
+          </div>
+
+          <div v-else-if="store.currentBookInfo.stats?.topWords" class="ai-analysis-box lexical-box">
+            <!-- Интерактивный заголовок -->
+            <div class="box-header expandable-header" @click="isLexicalExpanded = !isLexicalExpanded">
+              <div class="header-info">
+                <h3><Icon icon="mdi:chart-arc" /> Лексический профиль</h3>
+                <span class="diversity-inline">
+                  <span class="dot-divider">•</span>
+                  Разнообразие: <b class="diversity-value">{{ store.currentBookInfo.stats.lexicalDiversity }}%</b>
+                </span>
+              </div>
+              <Icon :icon="isLexicalExpanded ? 'mdi:chevron-up' : 'mdi:chevron-down'" class="header-chevron" />
+            </div>
+
+            <!-- Раскрывающееся содержимое -->
+            <div v-show="isLexicalExpanded" class="lexical-expanded-content">
+              <p class="lexical-description">
+                Показатель разнообразия отражает процент уникальных слов в тексте. Чем он выше, тем сложнее лексика книги.
+              </p>
+
+              <div v-if="posStats" class="pos-container">
+                <div class="pos-labels">
+                  <span class="noun-dot">Существительные {{ posStats.nouns }}%</span>
+                  <span class="verb-dot">Глаголы {{ posStats.verbs }}%</span>
+                  <span class="adj-dot">Прил/Нареч {{ posStats.adjs }}%</span>
+                </div>
+                <div class="pos-bar">
+                  <div class="pos-segment noun" :style="{ width: `${posStats.nouns}%` }" />
+                  <div class="pos-segment verb" :style="{ width: `${posStats.verbs}%` }" />
+                  <div class="pos-segment adj" :style="{ width: `${posStats.adjs}%` }" />
+                </div>
+              </div>
+
+              <h4 class="top-words-title">
+                Ядро книги:
+              </h4>
+              <div class="words-collapse-container" :class="{ 'is-expanded': isWordsExpanded }">
+                <div class="top-words-cloud">
+                  <div
+                    v-for="word in store.currentBookInfo.stats.topWords"
+                    :key="word.word"
+                    class="word-chip"
+                    :class="{
+                      'chip-n': word.pos.startsWith('n'),
+                      'chip-v': word.pos.startsWith('v'),
+                      'chip-a': word.pos.startsWith('a') || word.pos.startsWith('d'),
+                    }"
+                  >
+                    {{ word.word }} <span class="count">{{ word.count }}</span>
+                  </div>
+                </div>
+                <div v-if="!isWordsExpanded" class="words-gradient-overlay" />
+              </div>
+
+              <KitBtn
+                variant="text"
+                size="sm"
+                class="expand-btn"
+                :icon="isWordsExpanded ? 'mdi:chevron-up' : 'mdi:chevron-down'"
+                @click="isWordsExpanded = !isWordsExpanded"
+              >
+                {{ isWordsExpanded ? 'Свернуть' : 'Развернуть слова' }}
+              </KitBtn>
+            </div>
           </div>
 
           <div v-if="store.currentBookInfo.toc && store.currentBookInfo.toc.length > 0" class="toc-section">
@@ -269,6 +399,8 @@ watch(
         </div>
       </div>
     </div>
+
+    <WordPopover />
   </div>
 </template>
 
@@ -305,6 +437,15 @@ watch(
   @include media-down(md) {
     grid-template-columns: 1fr;
     gap: 24px;
+  }
+}
+
+.loading-state {
+  .title-skeleton {
+    margin-bottom: 16px;
+  }
+  .author-skeleton {
+    margin-bottom: 16px;
   }
 }
 
@@ -350,10 +491,6 @@ watch(
     font-weight: 500;
     opacity: 0;
     transition: opacity 0.2s;
-
-    .mr-1 {
-      margin-right: 6px;
-    }
   }
 
   &:hover {
@@ -367,11 +504,11 @@ watch(
 }
 
 .action-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
   .full-width {
     width: 100%;
-  }
-  .mt-2 {
-    margin-top: 12px;
   }
 }
 
@@ -424,6 +561,17 @@ watch(
   padding: 24px;
   margin-bottom: 32px;
 
+  &.lexical-box {
+    background-color: var(--bg-secondary-color);
+    border-color: var(--border-secondary-color);
+    padding: 16px 24px;
+    transition: border-color 0.2s;
+
+    &:hover {
+      border-color: var(--border-primary-color);
+    }
+  }
+
   .box-header {
     display: flex;
     justify-content: space-between;
@@ -432,8 +580,10 @@ watch(
 
     h3 {
       font-size: 1.2rem;
-      color: var(--fg-accent-color);
       margin: 0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
     }
   }
 
@@ -447,8 +597,13 @@ watch(
     .spin-icon {
       font-size: 3rem;
       color: var(--fg-accent-color);
-      animation: pulse 1.5s infinite;
       margin-bottom: 16px;
+      &.pulse {
+        animation: pulse 1.5s infinite;
+      }
+      &:not(.pulse) {
+        animation: spin 1s linear infinite;
+      }
     }
 
     p {
@@ -456,6 +611,7 @@ watch(
       font-size: 1.1rem;
       font-weight: 500;
     }
+
     .sub-text {
       font-size: 0.9rem;
       color: var(--fg-secondary-color);
@@ -466,7 +622,6 @@ watch(
     text-align: center;
     color: var(--fg-secondary-color);
     padding: 16px 0;
-
     p {
       margin-bottom: 16px;
     }
@@ -519,7 +674,6 @@ watch(
     flex-wrap: wrap;
     gap: 8px;
     margin-bottom: 24px;
-
     .tag-badge {
       background-color: var(--bg-tertiary-color);
       color: var(--fg-primary-color);
@@ -539,21 +693,58 @@ watch(
       white-space: pre-wrap;
     }
   }
+}
 
-  .edit-form {
+.edit-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+
+  .ai-generate-actions {
+    display: flex;
+    gap: 12px;
+
+    @include media-down(sm) {
+      flex-direction: column;
+    }
+
+    .flex-1 {
+      flex: 1;
+    }
+  }
+
+  .edit-divider {
+    display: flex;
+    align-items: center;
+    text-align: center;
+    color: var(--fg-muted-color);
+    font-size: 0.85rem;
+    margin: 8px 0;
+
+    &::before,
+    &::after {
+      content: '';
+      flex: 1;
+      border-bottom: 1px solid var(--border-primary-color);
+    }
+
+    &:not(:empty)::before {
+      margin-right: 0.5em;
+    }
+    &:not(:empty)::after {
+      margin-left: 0.5em;
+    }
+  }
+
+  .form-group {
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 6px;
 
-    .form-group {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-
-      label {
-        font-size: 0.9rem;
-        color: var(--fg-secondary-color);
-      }
+    label {
+      font-size: 0.85rem;
+      font-weight: 500;
+      color: var(--fg-secondary-color);
     }
 
     .custom-textarea {
@@ -573,15 +764,212 @@ watch(
         border-color: var(--fg-accent-color);
       }
     }
+  }
 
-    .form-actions {
+  .form-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+  }
+}
+
+/* =========================================
+   АККОРДЕОН ЛЕКСИКИ
+   ========================================= */
+
+.expandable-header {
+  cursor: pointer;
+  user-select: none;
+  margin-bottom: 0 !important;
+
+  &:hover {
+    .header-info h3 {
+      color: var(--fg-accent-color);
+    }
+  }
+
+  .header-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+
+    h3 {
+      transition: color 0.2s;
+      color: var(--fg-primary-color);
+    }
+  }
+
+  .diversity-inline {
+    font-size: 0.95rem;
+    color: var(--fg-secondary-color);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    .dot-divider {
+      opacity: 0.5;
+      font-size: 1.2rem;
+    }
+
+    .diversity-value {
+      color: var(--fg-accent-color);
+      font-weight: 600;
+      font-size: 1.05rem;
+    }
+  }
+
+  .header-chevron {
+    font-size: 1.5rem;
+    color: var(--fg-secondary-color);
+    transition: transform 0.3s;
+  }
+}
+
+.lexical-expanded-content {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px dashed var(--border-secondary-color);
+  animation: fade-in 0.3s ease;
+}
+
+.lexical-description {
+  font-size: 0.85rem;
+  color: var(--fg-secondary-color);
+  margin: 0 0 20px 0;
+}
+
+.pos-container {
+  margin-bottom: 24px;
+
+  .pos-labels {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 8px;
+    font-size: 0.85rem;
+    font-weight: 500;
+
+    span {
       display: flex;
-      justify-content: flex-end;
-      gap: 12px;
-      margin-top: 8px;
+      align-items: center;
+      gap: 6px;
+      &::before {
+        content: '';
+        display: block;
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+      }
+    }
+    .noun-dot::before {
+      background-color: #3b82f6;
+    }
+    .verb-dot::before {
+      background-color: #ef4444;
+    }
+    .adj-dot::before {
+      background-color: #10b981;
+    }
+  }
+
+  .pos-bar {
+    height: 10px;
+    border-radius: 5px;
+    display: flex;
+    overflow: hidden;
+    background-color: var(--bg-tertiary-color);
+
+    .pos-segment {
+      transition: width 0.5s ease-in-out;
+    }
+    .noun {
+      background-color: #3b82f6;
+    }
+    .verb {
+      background-color: #ef4444;
+    }
+    .adj {
+      background-color: #10b981;
     }
   }
 }
+
+.top-words-title {
+  margin: 0 0 12px 0;
+  font-size: 1.1rem;
+  color: var(--fg-primary-color);
+}
+
+.words-collapse-container {
+  position: relative;
+  max-height: 86px; // 2 строки чипов
+  overflow: hidden;
+  transition: max-height 0.3s ease-in-out;
+
+  &.is-expanded {
+    max-height: 1200px;
+  }
+
+  .words-gradient-overlay {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 46px;
+    background: linear-gradient(
+      to bottom,
+      rgba(var(--bg-secondary-color-rgb), 0),
+      rgba(var(--bg-secondary-color-rgb), 1)
+    );
+    pointer-events: none;
+  }
+}
+
+.expand-btn {
+  margin-top: 8px;
+}
+
+.top-words-cloud {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-bottom: 8px;
+
+  .word-chip {
+    background-color: var(--bg-primary-color);
+    border: 1px solid var(--border-primary-color);
+    color: var(--fg-primary-color);
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+
+    .count {
+      font-size: 0.75rem;
+      background-color: var(--bg-tertiary-color);
+      padding: 2px 6px;
+      border-radius: 10px;
+      color: var(--fg-secondary-color);
+    }
+
+    /* Статичные рамки для частей речи (без эффекта наведения) */
+    &.chip-n {
+      border-color: #3b82f6;
+    }
+    &.chip-v {
+      border-color: #ef4444;
+    }
+    &.chip-a {
+      border-color: #10b981;
+    }
+  }
+}
+
+/* =========================================
+   ОСТАЛЬНОЕ
+   ========================================= */
 
 .toc-section {
   h3 {
@@ -591,13 +979,11 @@ watch(
     border-bottom: 1px solid var(--border-secondary-color);
     padding-bottom: 8px;
   }
-
   .toc-list {
     display: flex;
     flex-direction: column;
     gap: 6px;
   }
-
   .toc-item {
     display: flex;
     align-items: flex-end;
@@ -612,25 +998,21 @@ watch(
     &:hover {
       background-color: var(--bg-secondary-color);
       color: var(--fg-primary-color);
-
       .toc-page {
         color: var(--fg-accent-color);
         font-weight: 600;
       }
     }
-
     .toc-title {
       flex-shrink: 0;
       font-size: 0.95rem;
     }
-
     .toc-dots {
       flex-grow: 1;
       border-bottom: 1px dotted var(--border-secondary-color);
       margin: 0 12px 5px 12px;
       opacity: 0.5;
     }
-
     .toc-page {
       flex-shrink: 0;
       font-size: 0.9rem;
@@ -651,6 +1033,21 @@ watch(
   100% {
     transform: scale(1);
     opacity: 1;
+  }
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(-5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 </style>

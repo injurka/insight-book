@@ -7,7 +7,7 @@ import * as schema from '../db/schema'
 import { getUserDictionary, getWordFromUserDictionary, lookupSingleWord, lookupWords, removeFromUserDictionary, upsertToUserDictionary } from '../services/dictionary.service'
 import { processEpub } from '../services/epub.service'
 import { analyzeBookExcerpt, analyzeSentence, generateTts } from '../services/llm.service'
-import { tokenizePage } from '../services/nlp.service'
+import { analyzeBookVocabulary, tokenizePage } from '../services/nlp.service'
 import { AppError } from '../utils/errors'
 
 function json(data: unknown, status = 200) {
@@ -51,7 +51,14 @@ export async function handleGetBookInfo(req: Request): Promise<Response> {
 
   const { progress, stats, ...bookData } = book
 
-  const statsResult = stats ? { ...stats, tags: stats.tags ? JSON.parse(stats.tags) : [] } : null
+  const statsResult = stats
+    ? {
+      ...stats,
+      tags: stats.tags ? JSON.parse(stats.tags) : [],
+      posDistribution: stats.posDistribution ? JSON.parse(stats.posDistribution) : null,
+      topWords: stats.topWords ? JSON.parse(stats.topWords) : null,
+    }
+    : null
 
   return json({
     ...bookData,
@@ -59,6 +66,33 @@ export async function handleGetBookInfo(req: Request): Promise<Response> {
     toc: book.toc ? JSON.parse(book.toc) : [],
     stats: statsResult,
   })
+}
+
+// POST /api/books/:id/analyze-vocabulary
+export async function handleAnalyzeVocabulary(req: Request): Promise<Response> {
+  const id = Number((req as any).params.id)
+
+  const book = await db.query.books.findFirst({ where: eq(schema.books.id, id) })
+  if (!book)
+    throw new AppError(404, 'Книга не найдена')
+
+  const result = await analyzeBookVocabulary(id, book.language)
+
+  await db.insert(schema.bookStats).values({
+    bookId: id,
+    posDistribution: JSON.stringify(result.posDistribution),
+    topWords: JSON.stringify(result.topWords),
+    lexicalDiversity: result.lexicalDiversity,
+  }).onConflictDoUpdate({
+    target: schema.bookStats.bookId,
+    set: {
+      posDistribution: JSON.stringify(result.posDistribution),
+      topWords: JSON.stringify(result.topWords),
+      lexicalDiversity: result.lexicalDiversity,
+    },
+  })
+
+  return json({ success: true, lexicalStats: result })
 }
 
 // PATCH /api/books/:id
@@ -100,22 +134,33 @@ export async function handleAnalyzeBookStats(req: Request): Promise<Response> {
   if (!pages.length)
     throw new AppError(400, 'Страницы для анализа не найдены')
 
-  const fullText = pages.map(p => p.content).join('\n')
-  const excerpt = fullText.substring(0, 3000)
-  const aiData = await analyzeBookExcerpt(excerpt)
-
-  const tagsJson = JSON.stringify(aiData.tags || [])
-  let totalItems = 0; let uniqueItems = 0
-
-  if (book.language === 'zh' || book.language === 'ja') {
-    const allChars = fullText.match(/[\p{L}\p{N}]/gu) || []
-    totalItems = allChars.length
-    uniqueItems = new Set(allChars).size
+  // Оптимизация: собираем отрывок только из первых страниц, не склеивая всю книгу
+  let excerpt = ''
+  for (const p of pages) {
+    if (excerpt.length >= 3000)
+      break
+    excerpt += `${p.content}\n`
   }
-  else {
-    const allWords = fullText.match(/[\p{L}\p{N}]+/gu) || []
-    totalItems = allWords.length
-    uniqueItems = new Set(allWords.map(w => w.toLowerCase())).size
+  excerpt = excerpt.substring(0, 3000)
+
+  const aiData = await analyzeBookExcerpt(excerpt)
+  const tagsJson = JSON.stringify(aiData.tags || [])
+
+  let totalItems = 0
+  let uniqueSet = new Set<string>()
+
+  // Потоковый подсчет без создания гигантской строки
+  for (const p of pages) {
+    if (book.language === 'zh' || book.language === 'ja') {
+      const chars = p.content.match(/[\p{L}\p{N}]/gu) || []
+      totalItems += chars.length
+      for (const c of chars) uniqueSet.add(c)
+    }
+    else {
+      const words = p.content.match(/[\p{L}\p{N}]+/gu) || []
+      totalItems += words.length
+      for (const w of words) uniqueSet.add(w.toLowerCase())
+    }
   }
 
   await db.insert(schema.bookStats).values({
@@ -124,7 +169,7 @@ export async function handleAnalyzeBookStats(req: Request): Promise<Response> {
     difficulty: aiData.difficulty,
     tags: tagsJson,
     totalChars: totalItems,
-    uniqueChars: uniqueItems,
+    uniqueChars: uniqueSet.size,
   }).onConflictDoUpdate({
     target: schema.bookStats.bookId,
     set: {
@@ -132,13 +177,23 @@ export async function handleAnalyzeBookStats(req: Request): Promise<Response> {
       difficulty: aiData.difficulty,
       tags: tagsJson,
       totalChars: totalItems,
-      uniqueChars: uniqueItems,
+      uniqueChars: uniqueSet.size,
     },
   })
 
   const newStats = await db.query.bookStats.findFirst({ where: eq(schema.bookStats.bookId, id) })
 
-  return json({ success: true, stats: { ...newStats, tags: JSON.parse(newStats?.tags || '[]') } })
+  return json({
+    success: true,
+    stats: newStats
+      ? {
+        ...newStats,
+        tags: newStats.tags ? JSON.parse(newStats.tags) : [],
+        posDistribution: newStats.posDistribution ? JSON.parse(newStats.posDistribution) : null,
+        topWords: newStats.topWords ? JSON.parse(newStats.topWords) : null,
+      }
+      : null,
+  })
 }
 
 // PATCH /api/books/:id/cover
@@ -180,7 +235,18 @@ export async function handleUpdateStats(req: Request): Promise<Response> {
   })
 
   const stats = await db.query.bookStats.findFirst({ where: eq(schema.bookStats.bookId, id) })
-  return json({ success: true, stats: { ...stats, tags: JSON.parse(stats?.tags || '[]') } })
+
+  return json({
+    success: true,
+    stats: stats
+      ? {
+        ...stats,
+        tags: stats.tags ? JSON.parse(stats.tags) : [],
+        posDistribution: stats.posDistribution ? JSON.parse(stats.posDistribution) : null,
+        topWords: stats.topWords ? JSON.parse(stats.topWords) : null,
+      }
+      : null,
+  })
 }
 
 // POST /api/books/upload
@@ -203,7 +269,6 @@ export async function handleUploadBook(req: Request): Promise<Response> {
 export async function handleDeleteBook(req: Request): Promise<Response> {
   const id = Number((req as any).params.id)
 
-  // 1. Получаем информацию о книге, чтобы узнать путь к файлу
   const book = await db.query.books.findFirst({
     where: eq(schema.books.id, id),
     columns: { filePath: true },
@@ -213,20 +278,15 @@ export async function handleDeleteBook(req: Request): Promise<Response> {
     throw new AppError(404, 'Книга не найдена')
   }
 
-  // 2. Пытаемся физически удалить файл с диска
   try {
     if (book.filePath) {
       await unlink(book.filePath)
     }
   }
   catch (err: any) {
-    // Если файла по какой-то причине уже нет на диске, просто логируем, но не прерываем удаление
     console.warn(`[File Delete Warning] Не удалось удалить файл ${book.filePath}:`, err.message)
   }
 
-  // 3. Удаляем книгу из базы данных
-  // Все связанные страницы (book_pages), статистика и прогресс удалятся автоматически
-  // благодаря связи `onDelete: 'cascade'` в схеме БД.
   await db.delete(schema.books).where(eq(schema.books.id, id))
 
   return json({ success: true })

@@ -5,6 +5,9 @@ export interface BookStats {
   tags: string[]
   totalChars: number
   uniqueChars: number
+  posDistribution?: Record<string, number> | null
+  topWords?: Array<{ word: string, pos: string, count: number }> | null
+  lexicalDiversity?: number | null
 }
 
 export interface Book {

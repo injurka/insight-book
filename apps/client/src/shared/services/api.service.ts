@@ -26,6 +26,8 @@ export const api = {
 
     analyzeBook: (id: number) => request<{ success: boolean, stats: Book['stats'] }>(`/api/books/${id}/analyze-book`, { method: 'POST' }),
 
+    analyzeVocabulary: (id: number) => request<{ success: boolean, lexicalStats: any }>(`/api/books/${id}/analyze-vocabulary`, { method: 'POST' }),
+
     updateCover: (id: number, file: File) => {
       const fd = new FormData()
       fd.append('file', file)

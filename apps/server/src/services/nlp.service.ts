@@ -2,8 +2,11 @@ import type { TokenizedSentence, TokenizedWord } from '../types'
 import { createRequire } from 'node:module'
 import path from 'node:path'
 import nlp from 'compromise'
+import { eq } from 'drizzle-orm'
 import kuromoji from 'kuromoji'
 import nodejieba from 'nodejieba'
+import { db } from '../db'
+import * as schema from '../db/schema'
 
 const SENTENCE_DELIMITERS = /([.。！？…!?]+)/g
 
@@ -237,4 +240,53 @@ export async function tokenizePage(text: string, language: string): Promise<Toke
     tokenizedSentences.push({ sentenceId: i, tokens, raw })
   }
   return tokenizedSentences
+}
+
+export async function analyzeBookVocabulary(bookId: number, language: string) {
+  const pages = await db.select({ content: schema.bookPages.content })
+    .from(schema.bookPages)
+    .where(eq(schema.bookPages.bookId, bookId))
+
+  const tokenizer = getTokenizer(language)
+  const posCounts: Record<string, number> = {}
+  const wordFreq: Record<string, { count: number, pos: string }> = {}
+  let totalValidTokens = 0
+
+  for (const page of pages) {
+    const sentences = splitIntoSentences(page.content)
+    for (const raw of sentences) {
+      if (/^\s+$/.test(raw))
+        continue
+
+      const tokens = await tokenizer.tokenize(raw)
+      for (const t of tokens) {
+        // Игнорируем пунктуацию, предлоги, союзы, числа, местоимения
+        if (['x', 'u', 'p', 'c', 'm', 'r'].includes(t.pos))
+          continue
+
+        // Для иероглифических языков игнорируем токены короче 1 символа (мусор)
+        // Для английского - короче 2 символов
+        if (t.word.length < (language === 'en' ? 2 : 1))
+          continue
+
+        totalValidTokens++
+        posCounts[t.pos] = (posCounts[t.pos] || 0) + 1
+
+        const w = t.word.toLowerCase()
+        if (!wordFreq[w])
+          wordFreq[w] = { count: 0, pos: t.pos }
+        wordFreq[w].count++
+      }
+    }
+  }
+
+  const uniqueTokens = Object.keys(wordFreq).length
+  const lexicalDiversity = totalValidTokens > 0 ? Math.round((uniqueTokens / totalValidTokens) * 100) : 0
+
+  const topWords = Object.entries(wordFreq)
+    .sort((a, b) => b[1].count - a[1].count)
+    .slice(0, 50)
+    .map(([word, data]) => ({ word, ...data }))
+
+  return { posDistribution: posCounts, topWords, lexicalDiversity }
 }

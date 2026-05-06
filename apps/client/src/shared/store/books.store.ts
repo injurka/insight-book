@@ -35,6 +35,8 @@ export const useBooksStore = defineStore('books', () => {
   const isLoading = ref(false)
   const isPageLoading = ref(false)
   const isAnalyzingBook = ref(false)
+  const isAnalyzingVocab = ref(false)
+
   const uploadProgress = ref(0)
   const ttsCurrentWordIndex = ref(-1)
 
@@ -378,6 +380,53 @@ export const useBooksStore = defineStore('books', () => {
     addEditWordModalOpen.value = true
   }
 
+  async function analyzeVocabulary(id: number) {
+    isAnalyzingVocab.value = true
+    try {
+      const res = await api.books.analyzeVocabulary(id)
+      if (currentBookInfo.value?.id === id) {
+        if (!currentBookInfo.value.stats)
+          currentBookInfo.value.stats = {} as any
+        currentBookInfo.value.stats!.posDistribution = res.lexicalStats.posDistribution
+        currentBookInfo.value.stats!.topWords = res.lexicalStats.topWords
+        currentBookInfo.value.stats!.lexicalDiversity = res.lexicalStats.lexicalDiversity
+      }
+    }
+    finally {
+      isAnalyzingVocab.value = false
+    }
+  }
+
+  async function lookupStandaloneWord(word: string, pos: string, target: HTMLElement) {
+    const bookId = currentBookInfo.value?.id || currentBook.value?.id
+    if (!bookId)
+      return
+
+    closeSelectionTooltip()
+    const targetRect = target.getBoundingClientRect()
+
+    if (wordAbortController)
+      wordAbortController.abort()
+    const controller = new AbortController()
+    wordAbortController = controller
+
+    try {
+      const result = await api.books.lookupWord(bookId, word, controller.signal)
+      if (wordAbortController !== controller)
+        return
+      wordPopover.value = { word, pos, transcription: result.transcription, translation: result.translation, targetRect, showAi: false, isAiLoading: false }
+    }
+    catch (err: any) {
+      if (err.name === 'AbortError')
+        return
+      if (wordAbortController !== controller)
+        return
+
+      wordPopover.value = { word, pos, transcription: '', translation: 'Не найдено', targetRect, showAi: true, isAiLoading: false }
+      toggleAiTranslation()
+    }
+  }
+
   async function saveWordToDict(item: UserDictItem) {
     await api.dictionary.upsert(item)
     addEditWordModalOpen.value = false
@@ -412,6 +461,7 @@ export const useBooksStore = defineStore('books', () => {
     currentToc,
     tocOpen,
     ttsCurrentWordIndex,
+    isAnalyzingVocab,
     addEditWordModalOpen,
     wordToEdit,
     fetchBookInfo,
@@ -431,6 +481,8 @@ export const useBooksStore = defineStore('books', () => {
     closePopover,
     closeSelectionTooltip,
     openAddEditWordModal,
+    analyzeVocabulary,
+    lookupStandaloneWord,
     saveWordToDict,
     removeFromDict,
   }

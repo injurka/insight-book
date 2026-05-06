@@ -45,16 +45,19 @@ function goToPage(pageNum?: number) {
 
 function onContentClick(event: MouseEvent) {
   const target = (event.target as HTMLElement).closest('.word') as HTMLElement | null
-  if (!target) return
+  if (!target)
+    return
 
   const pos = target.dataset.pos
-  if (pos === 'x') return
+  if (pos === 'x')
+    return
 
   const word = target.dataset.word
   const sentenceId = Number(target.dataset.sentId)
   const tokenIndex = Number(target.dataset.tokenIdx)
 
-  if (!word || isNaN(sentenceId) || isNaN(tokenIndex) || !pos) return
+  if (!word || isNaN(sentenceId) || isNaN(tokenIndex) || !pos)
+    return
 
   window.getSelection()?.empty()
 

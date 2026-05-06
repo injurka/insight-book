@@ -1,6 +1,5 @@
-// --- File: src/db/schema.ts ---
-import { sqliteTable, text, integer, unique } from 'drizzle-orm/sqlite-core'
-import { sql, relations } from 'drizzle-orm' // Добавлен импорт relations
+import { relations, sql } from 'drizzle-orm'
+import { integer, sqliteTable, text, unique } from 'drizzle-orm/sqlite-core'
 
 export const books = sqliteTable('books', {
   id: integer('id').primaryKey({ autoIncrement: true }),
@@ -20,8 +19,8 @@ export const bookPages = sqliteTable('book_pages', {
   bookId: integer('bookId').notNull().references(() => books.id, { onDelete: 'cascade' }),
   pageNum: integer('pageNum').notNull(),
   content: text('content').notNull(),
-}, (t) => ({
-  unq: unique().on(t.bookId, t.pageNum)
+}, t => ({
+  unq: unique().on(t.bookId, t.pageNum),
 }))
 
 export const readingProgress = sqliteTable('reading_progress', {
@@ -37,6 +36,11 @@ export const bookStats = sqliteTable('book_stats', {
   tags: text('tags'),
   totalChars: integer('totalChars').default(0),
   uniqueChars: integer('uniqueChars').default(0),
+  // НОВЫЕ ПОЛЯ ДЛЯ ЛЕКСИКИ
+  posDistribution: text('posDistribution'),
+  topWords: text('topWords'),
+  lexicalDiversity: integer('lexicalDiversity'),
+
   createdAt: text('createdAt').notNull().default(sql`(datetime('now'))`),
 })
 
@@ -72,39 +76,20 @@ export const userDictionary = sqliteTable('user_dictionary', {
   updatedAt: text('updatedAt').notNull().default(sql`(datetime('now'))`),
 })
 
-// ==========================================
-// RELATIONS (Связи для Drizzle ORM)
-// ==========================================
-
 export const booksRelations = relations(books, ({ one, many }) => ({
-  progress: one(readingProgress, {
-    fields: [books.id],
-    references: [readingProgress.bookId],
-  }),
-  stats: one(bookStats, {
-    fields: [books.id],
-    references: [bookStats.bookId],
-  }),
+  progress: one(readingProgress, { fields: [books.id], references: [readingProgress.bookId] }),
+  stats: one(bookStats, { fields: [books.id], references: [bookStats.bookId] }),
   pages: many(bookPages),
 }))
 
 export const readingProgressRelations = relations(readingProgress, ({ one }) => ({
-  book: one(books, {
-    fields: [readingProgress.bookId],
-    references: [books.id],
-  }),
+  book: one(books, { fields: [readingProgress.bookId], references: [books.id] }),
 }))
 
 export const bookStatsRelations = relations(bookStats, ({ one }) => ({
-  book: one(books, {
-    fields: [bookStats.bookId],
-    references: [books.id],
-  }),
+  book: one(books, { fields: [bookStats.bookId], references: [books.id] }),
 }))
 
 export const bookPagesRelations = relations(bookPages, ({ one }) => ({
-  book: one(books, {
-    fields: [bookPages.bookId],
-    references: [books.id],
-  }),
+  book: one(books, { fields: [bookPages.bookId], references: [books.id] }),
 }))
