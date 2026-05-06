@@ -147,9 +147,8 @@ export async function handleAnalyzeBookStats(req: Request): Promise<Response> {
   const tagsJson = JSON.stringify(aiData.tags || [])
 
   let totalItems = 0
-  let uniqueSet = new Set<string>()
+  const uniqueSet = new Set<string>()
 
-  // Потоковый подсчет без создания гигантской строки
   for (const p of pages) {
     if (book.language === 'zh' || book.language === 'ja') {
       const chars = p.content.match(/[\p{L}\p{N}]/gu) || []
