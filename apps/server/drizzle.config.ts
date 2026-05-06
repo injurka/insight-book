@@ -1,10 +1,14 @@
+import path from 'node:path'
+import process from 'node:process'
 import { defineConfig } from 'drizzle-kit'
+
+const dbPath = process.env.DB_PATH || path.resolve(process.cwd(), 'db', 'insight-book.sqlite')
 
 export default defineConfig({
   schema: './src/db/schema.ts',
   out: './drizzle',
   dialect: 'sqlite',
   dbCredentials: {
-    url: 'file:./db/insight-book.sqlite',
+    url: `file:${dbPath}`,
   },
 })
