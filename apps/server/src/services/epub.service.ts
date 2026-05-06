@@ -158,7 +158,12 @@ export async function processEpub(fileBuffer: ArrayBuffer, filename: string): Pr
             epub.getChapter(item.id, async (err: any, html: string) => {
               if (!err && html) {
                 const root = parseHtml(html)
+                
                 root.querySelectorAll('script, style').forEach(n => n.remove())
+
+                root.querySelectorAll('a').forEach((node) => {
+                  node.replaceWith(node.innerHTML)
+                })
 
                 const images = root.querySelectorAll('img, image')
                 for (const img of images) {
