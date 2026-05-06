@@ -6,7 +6,6 @@ import { KitDialog, KitSkeleton } from '~/components/01.kit'
 import { useBooksStore } from '~/shared/store/books.store'
 
 const store = useBooksStore()
-const { isPlaying, isLoading, speak, stop } = useTts()
 
 const isPinned = ref(true)
 const showHistory = ref(false)
@@ -27,15 +26,40 @@ watch(() => store.sidebarOpen, (isOpen) => {
   }
 })
 
-watch(() => store.sidebarOpen, (isOpen) => {
-  if (!isOpen && isPlaying.value) {
-    stop()
-  }
-})
-
 function loadHistoryItem(item: AnalysisHistoryItem) {
   store.handleSentenceAnalysis(item.sentence)
   showHistory.value = false
+}
+
+function playTTS() {
+  if (!store.sidebarSentence)
+    return
+
+  const text = store.sidebarSentence
+  const lang = store.currentBook?.language || 'en'
+
+  const langMap: Record<string, string> = {
+    zh: 'zh-CN',
+    ja: 'ja-JP',
+    en: 'en-US',
+    ru: 'ru-RU',
+  }
+
+  window.speechSynthesis.cancel()
+
+  const utterance = new SpeechSynthesisUtterance(text)
+  utterance.lang = langMap[lang.toLowerCase()] || lang
+  utterance.rate = 0.9
+
+  utterance.onstart = () => {
+    isSpeaking.value = true
+  }
+
+  utterance.onend = () => {
+    isSpeaking.value = false
+  }
+
+  window.speechSynthesis.speak(utterance)
 }
 
 onUnmounted(() => {
@@ -62,7 +86,7 @@ onUnmounted(() => {
         <Icon icon="mdi:history" />
       </button>
       <button
-        class="dialog-icon-btn"
+        class="dialog-icon-btn pin-btn"
         :class="{ 'is-active': !isPinned }"
         :title="isPinned ? 'Открепить (свободное перемещение)' : 'Закрепить окно'"
         @click="isPinned = !isPinned"
@@ -104,17 +128,11 @@ onUnmounted(() => {
 
       <div v-else-if="store.sidebarAnalysis" class="analysis-content">
         <div class="sentence-header">
-          <div class="original-sentence">
+          <div class="original-sentence js-tooltip-selectable">
             {{ store.sidebarSentence }}
           </div>
-          <button
-            class="tts-btn"
-            title="Озвучить"
-            :disabled="isLoading"
-            @click="speak(store.sidebarSentence)"
-          >
-            <Icon v-if="isLoading" icon="mdi:loading" class="spin-animation" />
-            <Icon v-else :icon="isPlaying ? 'mdi:volume-high' : 'mdi:volume-medium'" :class="{ 'pulse-animation': isPlaying }" />
+          <button class="tts-btn" title="Озвучить" @click="playTTS">
+            <Icon :icon="isSpeaking ? 'mdi:volume-high' : 'mdi:volume-medium'" :class="{ 'pulse-animation': isSpeaking }" />
           </button>
         </div>
 
@@ -258,10 +276,6 @@ onUnmounted(() => {
         background-color: var(--bg-hover-color);
         color: var(--fg-primary-color);
       }
-
-      .pulse-animation {
-        animation: pulse-op 1.5s infinite;
-      }
     }
 
     .original-sentence {
@@ -351,6 +365,27 @@ onUnmounted(() => {
   }
 }
 
+.pulse-animation {
+  animation: pulse-op 1.2s ease-in-out infinite;
+  transform-origin: center;
+  display: inline-block;
+}
+
+@keyframes pulse-op {
+  0% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.6;
+    transform: scale(0.85);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
 @include media-down(md) {
   .analysis-content {
     .sentence-header {
@@ -364,18 +399,9 @@ onUnmounted(() => {
   }
 }
 
-@keyframes pulse-op {
-  0% {
-    opacity: 1;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 0.5;
-    transform: scale(0.9);
-  }
-  100% {
-    opacity: 1;
-    transform: scale(1);
+@include media-down(sm) {
+  .pin-btn {
+    display: none !important;
   }
 }
 </style>

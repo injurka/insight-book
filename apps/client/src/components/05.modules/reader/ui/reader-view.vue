@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import type { TokenizedWord } from '~/shared/types/models'
-import { useDebounceFn } from '@vueuse/core'
 import { KitDialog } from '~/components/01.kit'
 import { PageLoader } from '~/components/02.shared/page-loader'
 
@@ -71,48 +70,6 @@ function onScroll() {
   }
 }
 
-const checkTextSelection = useDebounceFn(() => {
-  const selection = window.getSelection()
-
-  if (!selection || selection.isCollapsed) {
-    store.closeSelectionTooltip()
-    return
-  }
-
-  const text = selection.toString().trim()
-  if (!text) {
-    store.closeSelectionTooltip()
-    return
-  }
-
-  const anchorNode = selection.anchorNode
-  if (readerContentRef.value && !readerContentRef.value.contains(anchorNode)) {
-    return
-  }
-
-  const range = selection.getRangeAt(0)
-  const rect = range.getBoundingClientRect()
-
-  if (rect.width === 0 || rect.height === 0) {
-    store.closeSelectionTooltip()
-    return
-  }
-
-  if (store.wordPopover) {
-    store.closePopover()
-  }
-
-  store.selectionTooltip = { text, targetRect: rect }
-}, 250)
-
-onMounted(() => {
-  document.addEventListener('selectionchange', checkTextSelection)
-})
-
-onUnmounted(() => {
-  document.removeEventListener('selectionchange', checkTextSelection)
-})
-
 const shouldAddSpace = computed(() => {
   const lang = store.currentBook?.language || 'en'
   return !['zh', 'ja'].includes(lang.toLowerCase())
@@ -137,7 +94,8 @@ const shouldAddSpace = computed(() => {
           </p>
         </div>
 
-        <div v-else-if="store.currentPage" ref="readerContentRef" class="reader-content container">
+        <!-- ДОБАВЛЕН КЛАСС js-tooltip-selectable -->
+        <div v-else-if="store.currentPage" ref="readerContentRef" class="reader-content container js-tooltip-selectable">
           <span
             v-for="sentence in store.currentPage.content" :key="sentence.sentenceId"
             v-long-press="() => onSentenceLongPress(sentence.raw)"
@@ -149,7 +107,6 @@ const shouldAddSpace = computed(() => {
               class="word"
               :class="{
                 'is-active': store.activeTokenId === `${sentence.sentenceId}-${i}`,
-                'is-speaking': store.sidebarSentence === sentence.raw && store.ttsCurrentWordIndex === i, // Новое условие
                 'is-punctuation': token.pos === 'x',
                 'add-space': shouldAddSpace && token.pos !== 'x',
               }"
@@ -225,7 +182,6 @@ const shouldAddSpace = computed(() => {
     font-size: 1.25rem;
   }
 
-  // Добавляем стили выделения для лучшей видимости (по желанию)
   & ::selection {
     background-color: var(--bg-accent-overlay-color);
   }

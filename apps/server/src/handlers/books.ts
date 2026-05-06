@@ -337,7 +337,7 @@ export function handleGetWordFromUserDict(word: string): Response {
 
 export async function handleGenerateTts(req: Request, bookId: number): Promise<Response> {
   try {
-    const book = db.prepare(`SELECT id FROM books WHERE id = ?`).get(bookId) as { id: number } | null
+    const book = db.prepare(`SELECT id, language FROM books WHERE id = ?`).get(bookId) as { id: number, language: string } | null
     if (!book)
       return json({ error: 'Книга не найдена' }, 404)
 
@@ -345,7 +345,7 @@ export async function handleGenerateTts(req: Request, bookId: number): Promise<R
     if (!text)
       return json({ error: 'Текст не передан' }, 400)
 
-    const audioBase64 = await generateTts(text)
+    const audioBase64 = await generateTts(text, book.language || 'en')
 
     return json({ audioBase64 })
   }

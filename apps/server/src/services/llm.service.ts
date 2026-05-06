@@ -144,7 +144,14 @@ export async function analyzeBookExcerpt(excerpt: string): Promise<{ description
   return JSON.parse(cleanJson)
 }
 
-export async function generateTts(text: string): Promise<string> {
+// Обновляем хэш: теперь он учитывает язык, чтобы избежать коллизий одинаковых слов в разных языках
+function hashTtsText(text: string, language: string): string {
+  const hasher = new Bun.CryptoHasher('sha256')
+  hasher.update(`${language}:${text.trim()}`)
+  return hasher.digest('hex')
+}
+
+export async function generateTts(text: string, language: string): Promise<string> {
   const normalizedText = text.trim()
 
   if (!normalizedText) {
@@ -155,16 +162,31 @@ export async function generateTts(text: string): Promise<string> {
     throw new Error('TTS_API_KEY не настроен')
   }
 
-  const hash = hashTtsText(normalizedText)
+  const hash = hashTtsText(normalizedText, language)
 
   const cached = db.prepare(`
-    SELECT analysis
-    FROM llm_cache
-    WHERE sentenceHash = ? AND sentence = 'AUDIO_CACHE'
-  `).get(hash) as { analysis: string } | null
+    SELECT audioBase64
+    FROM tts_cache
+    WHERE textHash = ?
+  `).get(hash) as { audioBase64: string } | null
 
   if (cached) {
-    return cached.analysis
+    return cached.audioBase64
+  }
+
+  let instructions = 'Читай в спокойной, ровной манере диктора аудиокниг, без излишней эмоциональности, с чёткой артикуляцией и умеренной скоростью.'
+  let voice = 'alloy'
+
+  if (language === 'zh') {
+    instructions = '请用标准普通话朗读，发音清晰，注意多音字和轻声，语速适中，情感自然。'
+    voice = 'nova'
+  }
+  else if (language === 'ja') {
+    instructions = 'プロのナレーターのように、自然でクリアな発音で、適切なスピードで読み上げてください。'
+    voice = 'nova' 
+  }
+  else if (language === 'en') {
+    voice = 'onyx'
   }
 
   const response = await fetch(`${LLM_API_URL}/audio/speech`, {
@@ -176,9 +198,10 @@ export async function generateTts(text: string): Promise<string> {
     body: JSON.stringify({
       model: TTS_MODEL,
       input: normalizedText,
-      voice: 'alloy',
+      voice,
       response_format: 'mp3',
-      instructions: 'Читай в спокойной, ровной манере диктора аудиокниг, без излишней эмоциональности, с чёткой артикуляцией и умеренной скоростью.',
+      speed: 1.0,
+      instructions,
     }),
     signal: AbortSignal.timeout(60000),
   })

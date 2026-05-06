@@ -1,13 +1,69 @@
 <script setup lang="ts">
 import { Icon } from '@iconify/vue'
+import { useDebounceFn } from '@vueuse/core'
+import { nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useBooksStore } from '~/shared/store/books.store'
 
 const store = useBooksStore()
-const { speak } = useTts()
-
 const popoverRef = ref<HTMLElement | null>(null)
 const popoverPos = ref({ top: '-9999px', left: '-9999px', transform: 'none' })
+
 const isSpeaking = ref(false)
+
+// Логика отслеживания выделения текста
+const checkTextSelection = useDebounceFn(() => {
+  const selection = window.getSelection()
+
+  if (!selection || selection.isCollapsed) {
+    store.closeSelectionTooltip()
+    return
+  }
+
+  const text = selection.toString().trim()
+  if (!text) {
+    store.closeSelectionTooltip()
+    return
+  }
+
+  // Проверяем, находится ли выделение внутри любого элемента с классом js-tooltip-selectable
+  let node = selection.anchorNode
+  let isSelectable = false
+
+  while (node && node !== document.body) {
+    if (node.nodeType === Node.ELEMENT_NODE && (node as HTMLElement).classList.contains('js-tooltip-selectable')) {
+      isSelectable = true
+      break
+    }
+    node = node.parentNode
+  }
+
+  if (!isSelectable) {
+    return
+  }
+
+  const range = selection.getRangeAt(0)
+  const rect = range.getBoundingClientRect()
+
+  if (rect.width === 0 || rect.height === 0) {
+    store.closeSelectionTooltip()
+    return
+  }
+
+  if (store.wordPopover) {
+    store.closePopover()
+  }
+
+  store.selectionTooltip = { text, targetRect: rect }
+}, 250)
+
+onMounted(() => {
+  document.addEventListener('selectionchange', checkTextSelection)
+})
+
+onUnmounted(() => {
+  document.removeEventListener('selectionchange', checkTextSelection)
+  window.speechSynthesis.cancel()
+})
 
 watch(
   () => store.selectionTooltip,
@@ -66,13 +122,35 @@ function analyzeFragment() {
 }
 
 function playTTS() {
-  if (store.selectionTooltip) {
-    speak(store.selectionTooltip.text)
+  if (!store.selectionTooltip)
+    return
+
+  const text = store.selectionTooltip.text
+  const lang = store.currentBook?.language || 'en'
+
+  const langMap: Record<string, string> = {
+    zh: 'zh-CN',
+    ja: 'ja-JP',
+    en: 'en-US',
+    ru: 'ru-RU',
   }
-}
-onUnmounted(() => {
+
   window.speechSynthesis.cancel()
-})
+
+  const utterance = new SpeechSynthesisUtterance(text)
+  utterance.lang = langMap[lang.toLowerCase()] || lang
+  utterance.rate = 0.9
+
+  utterance.onstart = () => {
+    isSpeaking.value = true
+  }
+
+  utterance.onend = () => {
+    isSpeaking.value = false
+  }
+
+  window.speechSynthesis.speak(utterance)
+}
 </script>
 
 <template>
@@ -110,7 +188,7 @@ onUnmounted(() => {
   color: var(--fg-primary-color);
   border-radius: 8px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
-  z-index: 1000;
+  z-index: 1010;
   padding: 4px 6px;
   pointer-events: auto;
 }
@@ -147,7 +225,9 @@ onUnmounted(() => {
 }
 
 .pulse-animation {
-  animation: pulse-op 1.5s infinite;
+  animation: pulse-op 1.2s ease-in-out infinite;
+  transform-origin: center;
+  display: inline-block;
 }
 
 @keyframes pulse-op {
@@ -156,8 +236,8 @@ onUnmounted(() => {
     transform: scale(1);
   }
   50% {
-    opacity: 0.5;
-    transform: scale(0.9);
+    opacity: 0.6;
+    transform: scale(0.85);
   }
   100% {
     opacity: 1;
