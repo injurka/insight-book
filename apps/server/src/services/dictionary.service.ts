@@ -47,7 +47,7 @@ export function lookupWords(words: string[], language: string): Record<string, P
           dict[row.word] = entry
           dict[row.word.toLowerCase()] = entry
         }
-      } catch (e) {
+      } catch  {
       }
     }
   }
