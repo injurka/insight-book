@@ -264,8 +264,7 @@ export const useBooksStore = defineStore('books', () => {
   }
 
   async function handleWordClick(word: string, pos: string, sentenceId: number, tokenIndex: number, target: HTMLElement) {
-    if (!currentPage.value || !currentBook.value)
-      return
+    if (!currentPage.value || !currentBook.value) return
 
     closeSelectionTooltip()
     activeTokenId.value = `${sentenceId}-${tokenIndex}`
@@ -273,33 +272,27 @@ export const useBooksStore = defineStore('books', () => {
 
     const entry = currentPage.value.pageDictionary[word]
     if (entry) {
-      if (wordAbortController)
-        wordAbortController.abort()
-      wordPopover.value = { word, pos, transcription: entry.transcription, translation: entry.translation, targetRect, showAi: false, isAiLoading: false }
+      if (wordAbortController) wordAbortController.abort()
+      wordPopover.value = {
+        word, pos,
+        transcription: entry.transcription,
+        translation: entry.translation,
+        targetRect, showAi: false, isAiLoading: false
+      }
       return
     }
 
-    if (wordAbortController)
-      wordAbortController.abort()
+    if (wordAbortController) wordAbortController.abort()
     const controller = new AbortController()
     wordAbortController = controller
 
-    try {
-      const result = await api.books.lookupWord(currentBook.value.id, word, controller.signal)
-      if (wordAbortController !== controller)
-        return
-
-      wordPopover.value = { word, pos, transcription: result.transcription, translation: result.translation, targetRect, showAi: false, isAiLoading: false }
+    wordPopover.value = {
+      word, pos,
+      transcription: '', translation: 'Поиск перевода...',
+      targetRect, showAi: true, isAiLoading: true
     }
-    catch (err: any) {
-      if (err.name === 'AbortError')
-        return
-      if (wordAbortController !== controller)
-        return
 
-      wordPopover.value = { word, pos, transcription: '', translation: 'Не найдено', targetRect, showAi: true, isAiLoading: false }
-      fetchAiTranslation()
-    }
+    fetchAiTranslation()
   }
 
   async function handleSentenceAnalysis(sentence: string) {

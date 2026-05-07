@@ -2,42 +2,53 @@ import type { PageDictEntry, UserDictItem } from '../types'
 import { getDictConnection, sqlite } from '../db'
 
 export function lookupWords(words: string[], language: string): Record<string, PageDictEntry> {
-  if (!words.length) {
-    return {}
-  }
-
-  const conn = getDictConnection(language)
-  if (!conn) {
-    return {}
-  }
+  if (!words.length) return {}
 
   const dict: Record<string, PageDictEntry> = {}
-  const transcriptionCol = conn.tableName === 'zh_dictionary' ? 'pinyin AS transcription' : 'transcription'
 
   const chunkSize = 500
-  let totalFound = 0
-
   for (let i = 0; i < words.length; i += chunkSize) {
     const chunk = words.slice(i, i + chunkSize)
     const placeholders = chunk.map(() => '?').join(', ')
 
-    try {
-      const rows = conn.db.prepare(`
-        SELECT word, ${transcriptionCol}, translation
-        FROM ${conn.tableName}
-        WHERE word IN (${placeholders})
-      `).all(...chunk) as Array<{ word: string, transcription: string, translation: string }>
+    const userRows = sqlite.prepare(`
+      SELECT word, transcription, translation 
+      FROM user_dictionary 
+      WHERE word IN (${placeholders})
+    `).all(...chunk) as Array<{ word: string, transcription: string, translation: string }>
 
-      // eslint-disable-next-line unused-imports/no-unused-vars
-      totalFound += rows.length
-
-      for (const row of rows) {
-        const entry = { transcription: row.transcription, translation: row.translation }
-        dict[row.word] = entry
-        dict[row.word.toLowerCase()] = entry
-      }
+    for (const row of userRows) {
+      const entry = { transcription: row.transcription || '', translation: row.translation || '' }
+      dict[row.word] = entry
+      dict[row.word.toLowerCase()] = entry
     }
-    catch {
+  }
+
+  const conn = getDictConnection(language)
+  if (conn) {
+    const transcriptionCol = conn.tableName === 'zh_dictionary' ? 'pinyin AS transcription' : 'transcription'
+
+    for (let i = 0; i < words.length; i += chunkSize) {
+      const chunk = words.slice(i, i + chunkSize)
+      const missingWords = chunk.filter(w => !dict[w] && !dict[w.toLowerCase()])
+      if (!missingWords.length) continue
+
+      const placeholders = missingWords.map(() => '?').join(', ')
+
+      try {
+        const rows = conn.db.prepare(`
+          SELECT word, ${transcriptionCol}, translation
+          FROM ${conn.tableName}
+          WHERE word IN (${placeholders})
+        `).all(...missingWords) as Array<{ word: string, transcription: string, translation: string }>
+
+        for (const row of rows) {
+          const entry = { transcription: row.transcription, translation: row.translation }
+          dict[row.word] = entry
+          dict[row.word.toLowerCase()] = entry
+        }
+      } catch (e) {
+      }
     }
   }
 
