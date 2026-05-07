@@ -84,16 +84,24 @@ watch(
     const rect = val.targetRect
     const popRect = popoverRef.value.getBoundingClientRect()
     const ww = window.innerWidth
+    const wh = window.innerHeight
 
     let left = rect.left + rect.width / 2
-    let top = rect.top - popRect.height - 8
 
-    // Проверка, не уходит ли тултип за верхний край экрана
-    if (top < 10) {
-      top = rect.bottom + 8 // Показываем под текстом
+    const isMobile = ww < 600
+    let top = isMobile ? rect.bottom + 8 : rect.top - popRect.height - 8
+
+    if (isMobile) {
+      if (top + popRect.height > wh - 10) {
+        top = rect.top - popRect.height - 8 
+      }
+    }
+    else {
+      if (top < 10) {
+        top = rect.bottom + 8 
+      }
     }
 
-    // Проверка границ слева и справа
     if (left - popRect.width / 2 < 10) {
       left = popRect.width / 2 + 10
     }
