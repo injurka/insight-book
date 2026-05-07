@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import MangaReaderView from '~/components/05.modules/reader/ui/manga-reader-view.vue'
 import ReaderView from '~/components/05.modules/reader/ui/reader-view.vue'
 import { AppRoutePaths } from '~/shared/constants/routes'
 import { useBooksStore } from '~/shared/store/books.store'
@@ -31,5 +32,8 @@ onMounted(async () => {
 </script>
 
 <template>
-  <ReaderView />
+  <template v-if="store.currentBook">
+    <MangaReaderView v-if="store.currentBook.type === 'manga'" />
+    <ReaderView v-else />
+  </template>
 </template>

@@ -42,7 +42,7 @@ const CACHE_CONFIG = {
     manifests: 7 * 24 * 60 * 60,
   },
   limits: {
-    fonts: 30,
+    fonts: 800,
     images: 1000,
     icons: 500,
     content: 1000,

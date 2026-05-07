@@ -33,7 +33,7 @@ onMounted(() => {
       <div class="header-bottom">
         <div class="filters">
           <KitInput v-model="store.searchTerm" placeholder="Поиск по словарю..." size="md" />
-          <KitSelect v-model="store.selectedLanguage" :options="langOptions" size="md" />
+          <KitSelect v-model="store.selectedLanguage" :options="langOptions" size="md" aria-label="Выбор языка" />
         </div>
       </div>
     </header>

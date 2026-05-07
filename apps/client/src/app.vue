@@ -23,6 +23,9 @@ useHead({
   htmlAttrs: {
     lang: 'ru',
   },
+  meta: [
+    { name: 'description', content: description }, 
+  ],
   link: [
     {
       rel: 'canonical',

@@ -142,6 +142,7 @@ onMounted(() => {
         <KitBtn
           :icon="theme === ThemesVariant.Light ? 'mdi:weather-night' : 'mdi:weather-sunny'"
           variant="text"
+          aria-label="Переключить тему"
           @click="toggleTheme"
         />
       </div>
@@ -149,16 +150,16 @@ onMounted(() => {
       <div class="header-bottom">
         <div class="filters">
           <KitInput v-model="searchQuery" placeholder="Поиск книг..." size="md" />
-          <KitSelect v-model="selectedLang" :options="langOptions" size="md" />
+          <KitSelect v-model="selectedLang" :options="langOptions" size="md" aria-label="Выбор языка" />
         </div>
         <div class="header-actions">
           <KitBtn icon="mdi:book-alphabet" variant="outlined" color="secondary" @click="openDictionary">
             Мой словарь
           </KitBtn>
           <KitBtn icon="mdi:upload" color="primary" @click="fileInput?.click()">
-            Загрузить EPUB
+            Загрузить книгу/мангу
           </KitBtn>
-          <input ref="fileInput" type="file" accept=".epub" style="display: none" @change="onFileChange">
+          <input ref="fileInput" type="file" accept=".epub,.cbz,.zip" style="display: none" @change="onFileChange">
         </div>
       </div>
     </header>
@@ -193,7 +194,6 @@ onMounted(() => {
           </div>
           <span class="lang-badge">{{ book.language.toUpperCase() }}</span>
 
-          <!-- Группа экшенов (Редактировать / Удалить) -->
           <div class="card-actions">
             <KitBtn
               class="action-btn"
@@ -208,9 +208,9 @@ onMounted(() => {
         </div>
 
         <div class="book-info">
-          <h3 class="title" :title="book.title">
+          <h2 class="title" :title="book.title">
             {{ book.title }}
-          </h3>
+          </h2>
           <p v-if="book.author" class="author">
             {{ book.author }}
           </p>
@@ -254,7 +254,7 @@ onMounted(() => {
         <div class="form-group row-group">
           <div class="form-group">
             <label>Язык</label>
-            <KitSelect v-if="editingBook.language !== undefined" v-model="editingBook.language" :options="bookLanguageOptions" />
+            <KitSelect v-if="editingBook.language !== undefined" v-model="editingBook.language" :options="bookLanguageOptions" aria-label="Выбор языка" />
           </div>
         </div>
 

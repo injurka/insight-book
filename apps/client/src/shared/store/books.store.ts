@@ -1,6 +1,7 @@
 import type { Book, BookStats, LlmAnalysis, PagePayload, TocItem, UserDictItem } from '../types/models'
 import { api } from '../services/api.service'
 import { useDictionaryStore } from './dictionary.store'
+import { useToastStore } from './toast.store'
 
 export interface WordPopoverData {
   word: string
@@ -53,6 +54,13 @@ export const useBooksStore = defineStore('books', () => {
 
   // История анализа предложений в рамках текущей сессии
   const analysisHistory = ref<AnalysisHistoryItem[]>([])
+
+  // Состояния для анализа всей страницы
+  const isAnalyzingPage = ref(false)
+  const pageAnalysisProgress = ref(0)
+  const pageAnalysisCurrent = ref(0)
+  const pageAnalysisTotal = ref(0)
+  let pageAnalysisAbortController: AbortController | null = null
 
   const currentToc = ref<TocItem[]>([])
   const tocOpen = ref(false)
@@ -151,6 +159,7 @@ export const useBooksStore = defineStore('books', () => {
     if (currentBook.value?.id === id) {
       currentBook.value = null
       currentPage.value = null
+      analysisHistory.value = [] 
     }
   }
 
@@ -166,6 +175,7 @@ export const useBooksStore = defineStore('books', () => {
 
   async function openBook(book: Book) {
     currentBook.value = book
+    analysisHistory.value = [] 
     const startPage = book.currentPage || 1
     await loadPage(book.id, startPage)
   }
@@ -181,6 +191,7 @@ export const useBooksStore = defineStore('books', () => {
         throw new Error('Книга не найдена')
 
       currentBook.value = book
+      analysisHistory.value = [] 
       const pageToLoad = startPage || book.currentPage || 1
       await loadPage(book.id, pageToLoad)
     }
@@ -190,6 +201,7 @@ export const useBooksStore = defineStore('books', () => {
   }
 
   async function loadPage(bookId: number, pageNum: number) {
+    cancelPageAnalysis()
     isPageLoading.value = true
     closePopover()
     closeSelectionTooltip()
@@ -264,7 +276,8 @@ export const useBooksStore = defineStore('books', () => {
   }
 
   async function handleWordClick(word: string, pos: string, sentenceId: number, tokenIndex: number, target: HTMLElement) {
-    if (!currentPage.value || !currentBook.value) return
+    if (!currentPage.value || !currentBook.value)
+      return
 
     closeSelectionTooltip()
     activeTokenId.value = `${sentenceId}-${tokenIndex}`
@@ -272,24 +285,33 @@ export const useBooksStore = defineStore('books', () => {
 
     const entry = currentPage.value.pageDictionary[word]
     if (entry) {
-      if (wordAbortController) wordAbortController.abort()
+      if (wordAbortController)
+        wordAbortController.abort()
       wordPopover.value = {
-        word, pos,
+        word,
+        pos,
         transcription: entry.transcription,
         translation: entry.translation,
-        targetRect, showAi: false, isAiLoading: false
+        targetRect,
+        showAi: false,
+        isAiLoading: false,
       }
       return
     }
 
-    if (wordAbortController) wordAbortController.abort()
+    if (wordAbortController)
+      wordAbortController.abort()
     const controller = new AbortController()
     wordAbortController = controller
 
     wordPopover.value = {
-      word, pos,
-      transcription: '', translation: 'Поиск перевода...',
-      targetRect, showAi: true, isAiLoading: true
+      word,
+      pos,
+      transcription: '',
+      translation: 'Поиск перевода...',
+      targetRect,
+      showAi: true,
+      isAiLoading: true,
     }
 
     fetchAiTranslation()
@@ -340,6 +362,95 @@ export const useBooksStore = defineStore('books', () => {
         isAnalyzing.value = false
       }
     }
+  }
+
+  async function analyzeWholePage() {
+    if (!currentPage.value || !currentBook.value)
+      return
+    if (isAnalyzingPage.value)
+      return
+
+    const sentencesToAnalyze = new Set<string>()
+
+    const extractFromHtml = (html: string) => {
+      const regex = /data-raw-sent="([^"]+)"/g
+      let match
+      // eslint-disable-next-line no-cond-assign
+      while ((match = regex.exec(html)) !== null) {
+        sentencesToAnalyze.add(decodeURIComponent(match[1]))
+      }
+    }
+
+    if (currentPage.value.type === 'manga' && currentPage.value.ocrBlocks) {
+      currentPage.value.ocrBlocks.forEach((b) => {
+        if (b.html)
+          extractFromHtml(b.html)
+      })
+    }
+    else if (currentPage.value.content) {
+      extractFromHtml(currentPage.value.content)
+    }
+
+    const sentences = Array.from(sentencesToAnalyze).filter(s => s.trim().length > 0)
+    if (sentences.length === 0) {
+      useToastStore().info('На странице нет предложений для анализа.')
+      return
+    }
+
+    isAnalyzingPage.value = true
+    pageAnalysisTotal.value = sentences.length
+    pageAnalysisCurrent.value = 0
+    pageAnalysisProgress.value = 0
+
+    pageAnalysisAbortController = new AbortController()
+    const signal = pageAnalysisAbortController.signal
+
+    try {
+      for (let i = 0; i < sentences.length; i++) {
+        if (signal.aborted)
+          break
+        const sentence = sentences[i]
+
+        const existing = analysisHistory.value.find(h => h.sentence === sentence)
+        if (!existing) {
+          try {
+            const res = await api.books.analyze(currentBook.value.id, sentence, currentBook.value.language, signal)
+            if (signal.aborted)
+              break
+
+            analysisHistory.value.unshift({
+              sentence,
+              analysis: res,
+              timestamp: Date.now(),
+            })
+          }
+          catch (err: any) {
+            if (err.name === 'AbortError')
+              break
+            console.error('Ошибка анализа предложения:', err)
+          }
+        }
+
+        pageAnalysisCurrent.value = i + 1
+        pageAnalysisProgress.value = Math.round((pageAnalysisCurrent.value / pageAnalysisTotal.value) * 100)
+      }
+
+      if (!signal.aborted) {
+        useToastStore().success('Анализ страницы завершен!')
+      }
+    }
+    finally {
+      isAnalyzingPage.value = false
+      pageAnalysisAbortController = null
+    }
+  }
+
+  function cancelPageAnalysis() {
+    if (pageAnalysisAbortController) {
+      pageAnalysisAbortController.abort()
+      pageAnalysisAbortController = null
+    }
+    isAnalyzingPage.value = false
   }
 
   function closePopover() {
@@ -451,12 +562,19 @@ export const useBooksStore = defineStore('books', () => {
     sidebarSentence,
     isAnalyzing,
     analysisHistory,
+
+    isAnalyzingPage,
+    pageAnalysisProgress,
+    pageAnalysisCurrent,
+    pageAnalysisTotal,
+
     currentToc,
     tocOpen,
     ttsCurrentWordIndex,
     isAnalyzingVocab,
     addEditWordModalOpen,
     wordToEdit,
+
     fetchBookInfo,
     updateBookInfo,
     analyzeFullBook,
@@ -471,6 +589,10 @@ export const useBooksStore = defineStore('books', () => {
     handleWordClick,
     toggleAiTranslation,
     handleSentenceAnalysis,
+
+    analyzeWholePage,
+    cancelPageAnalysis,
+
     closePopover,
     closeSelectionTooltip,
     openAddEditWordModal,

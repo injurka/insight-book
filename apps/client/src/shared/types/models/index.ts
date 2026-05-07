@@ -1,3 +1,13 @@
+export interface OcrBlock {
+  id: number
+  text: string
+  html?: string
+  x: number
+  y: number
+  w: number
+  h: number
+}
+
 export interface BookStats {
   bookId: number
   description: string
@@ -13,6 +23,7 @@ export interface BookStats {
 export interface Book {
   id: number
   title: string
+  type: 'epub' | 'manga'
   author: string | null
   coverBase64: string | null
   filePath: string
@@ -53,8 +64,13 @@ export interface PagePayload {
   bookId: number
   pageNum: number
   totalPages: number
-  content: TokenizedSentence[]
+  type?: 'epub' | 'manga'
+  content: string
   pageDictionary: Record<string, PageDictEntry>
+  imageUrl?: string
+  imageWidth?: number
+  imageHeight?: number
+  ocrBlocks?: OcrBlock[]
 }
 
 export interface GrammarRule {

@@ -1,14 +1,18 @@
 import type { Book, PagePayload, UserDictItem } from '../types'
+import { readFileSync } from 'node:fs'
 import { unlink } from 'node:fs/promises'
+import path from 'node:path'
 import { and, desc, eq } from 'drizzle-orm'
 import { parse as parseHtml } from 'node-html-parser'
+import { processCbz } from '~/services/manga.service'
+import { recognizeMangaPage } from '~/services/ocr.service'
 import { CORS_HEADERS } from '../config'
 import { db } from '../db'
 import * as schema from '../db/schema'
 import { getUserDictionary, getWordFromUserDictionary, lookupSingleWord, lookupWords, removeFromUserDictionary, upsertToUserDictionary } from '../services/dictionary.service'
 import { processEpub } from '../services/epub.service'
 import { analyzeBookExcerpt, analyzeSentence, generateTts } from '../services/llm.service'
-import { analyzeBookVocabulary, tokenizeHtmlPage } from '../services/nlp.service'
+import { analyzeBookVocabulary, tokenizeHtmlPage, tokenizeOcrBlocks } from '../services/nlp.service'
 import { AppError } from '../utils/errors'
 
 function json(data: unknown, status = 200) {
@@ -36,11 +40,11 @@ export async function handleGetBookInfo(req: Request): Promise<Response> {
   const { progress, stats, ...bookData } = book
   const statsResult = stats
     ? {
-        ...stats,
-        tags: stats.tags ? JSON.parse(stats.tags) : [],
-        posDistribution: stats.posDistribution ? JSON.parse(stats.posDistribution) : null,
-        topWords: stats.topWords ? JSON.parse(stats.topWords) : null,
-      }
+      ...stats,
+      tags: stats.tags ? JSON.parse(stats.tags) : [],
+      posDistribution: stats.posDistribution ? JSON.parse(stats.posDistribution) : null,
+      topWords: stats.topWords ? JSON.parse(stats.topWords) : null,
+    }
     : null
 
   return json({ ...bookData, currentPage: progress?.currentPage ?? null, toc: book.toc ? JSON.parse(book.toc) : [], stats: statsResult })
@@ -140,10 +144,20 @@ export async function handleUploadBook(req: Request): Promise<Response> {
   const file = formData.get('file') as File | null
   if (!file)
     throw new AppError(400, 'Файл не передан')
-  if (!file.name.endsWith('.epub'))
-    throw new AppError(400, 'Только .epub файлы')
 
-  const bookId = await processEpub(await file.arrayBuffer(), file.name)
+  const filename = file.name.toLowerCase()
+  let bookId: number
+
+  if (filename.endsWith('.epub')) {
+    bookId = await processEpub(await file.arrayBuffer(), file.name)
+  }
+  else if (filename.endsWith('.cbz') || filename.endsWith('.zip')) {
+    bookId = await processCbz(await file.arrayBuffer(), file.name)
+  }
+  else {
+    throw new AppError(400, 'Поддерживаются только .epub и .cbz файлы')
+  }
+
   const book = await db.query.books.findFirst({ where: eq(schema.books.id, bookId) })
   return json({ success: true, book })
 }
@@ -174,7 +188,7 @@ export async function handleGetToc(req: Request): Promise<Response> {
 export async function handleGetPage(req: Request): Promise<Response> {
   const { id: bookId, pageNum } = (req as any).params
 
-  const book = await db.select({ totalPages: schema.books.totalPages, language: schema.books.language })
+  const book = await db.select({ totalPages: schema.books.totalPages, language: schema.books.language, type: schema.books.type })
     .from(schema.books)
     .where(eq(schema.books.id, bookId))
     .get()
@@ -186,6 +200,55 @@ export async function handleGetPage(req: Request): Promise<Response> {
     .values({ bookId, currentPage: pageNum, updatedAt: new Date().toISOString() })
     .onConflictDoUpdate({ target: schema.readingProgress.bookId, set: { currentPage: pageNum } })
 
+  // === ЛОГИКА ДЛЯ МАНГИ ===
+  if (book.type === 'manga') {
+    const pageRow = await db.select().from(schema.mangaPages).where(and(eq(schema.mangaPages.bookId, bookId), eq(schema.mangaPages.pageNum, pageNum))).get()
+
+    if (!pageRow)
+      throw new AppError(404, 'Страница манги не найдена')
+
+    let ocrBlocks = pageRow.ocrData ? JSON.parse(pageRow.ocrData) : null
+    let pageDictionary = {}
+
+    // Ленивое распознавание OCR
+    if (ocrBlocks === null && pageRow.imageUrl) {
+      try {
+        const imageBuffer = readFileSync(pageRow.imageUrl)
+        const base64 = imageBuffer.toString('base64')
+        ocrBlocks = await recognizeMangaPage(base64)
+
+        await db.update(schema.mangaPages)
+          .set({ ocrData: JSON.stringify(ocrBlocks) })
+          .where(eq(schema.mangaPages.id, pageRow.id))
+      }
+      catch (e: any) {
+        console.error('OCR Error:', e.message)
+        ocrBlocks = []
+      }
+    }
+
+    // Токенизация и сбор словаря для OCR блоков
+    if (ocrBlocks && ocrBlocks.length > 0) {
+      const { processedBlocks, uniqueWords } = await tokenizeOcrBlocks(ocrBlocks, book.language)
+      ocrBlocks = processedBlocks
+      pageDictionary = lookupWords(uniqueWords, book.language)
+    }
+
+    return json({
+      bookId,
+      pageNum,
+      totalPages: book.totalPages,
+      type: 'manga',
+      imageUrl: `/api/books/${bookId}/page/${pageNum}/image`,
+      imageWidth: pageRow.imageWidth,
+      imageHeight: pageRow.imageHeight,
+      ocrBlocks: ocrBlocks || [],
+      content: '', // Заглушки для совместимости
+      pageDictionary,
+    })
+  }
+
+  // === ЛОГИКА ДЛЯ EPUB ===
   const cached = await db.query.nlpCache.findFirst({
     where: and(eq(schema.nlpCache.bookId, bookId), eq(schema.nlpCache.pageNum, pageNum)),
   })
@@ -193,12 +256,9 @@ export async function handleGetPage(req: Request): Promise<Response> {
   if (cached) {
     try {
       const parsed = JSON.parse(cached.data)
-      if (typeof parsed.content === 'string' && Object.keys(parsed.pageDictionary || {}).length > 0) {
-        return json(parsed)
-      }
+      return json(parsed)
     }
-    catch {
-    }
+    catch { }
   }
 
   const pageRow = await db.select({ content: schema.bookPages.content }).from(schema.bookPages).where(and(eq(schema.bookPages.bookId, bookId), eq(schema.bookPages.pageNum, pageNum))).get()
@@ -206,10 +266,8 @@ export async function handleGetPage(req: Request): Promise<Response> {
     throw new AppError(404, 'Страница не найдена')
 
   const { processedHtml, uniqueWords } = await tokenizeHtmlPage(pageRow.content, book.language)
-
   const pageDictionary = lookupWords(uniqueWords, book.language)
-
-  const payload: PagePayload = { bookId, pageNum, totalPages: book.totalPages, content: processedHtml, pageDictionary }
+  const payload: PagePayload = { bookId, pageNum, totalPages: book.totalPages, content: processedHtml, pageDictionary, type: 'epub' }
 
   await db.delete(schema.nlpCache).where(and(eq(schema.nlpCache.bookId, bookId), eq(schema.nlpCache.pageNum, pageNum)))
   await db.insert(schema.nlpCache).values({ bookId, pageNum, data: JSON.stringify(payload) })
@@ -228,10 +286,13 @@ export async function handleLookupWord(req: Request): Promise<Response> {
 }
 
 export async function handleAnalyzeSentence(req: Request): Promise<Response> {
+  const bookId = Number((req as any).params.id)
   const { sentence, language } = await req.json() as { sentence: string, language: string }
-  if (!sentence || !language)
-    throw new AppError(400, 'Обязательны поля sentence и language')
-  const analysis = await analyzeSentence(sentence, language)
+
+  if (!sentence || !language || !bookId)
+    throw new AppError(400, 'Обязательны поля bookId, sentence и language')
+
+  const analysis = await analyzeSentence(bookId, sentence, language)
   return json(analysis)
 }
 
@@ -267,4 +328,26 @@ export async function handleGenerateTts(req: Request): Promise<Response> {
     throw new AppError(400, 'Текст не передан')
   const audioBase64 = await generateTts(text, book.language)
   return json({ audioBase64 })
+}
+
+export async function handleGetPageImage(req: Request): Promise<Response> {
+  const { id: bookId, pageNum } = (req as any).params
+  const pageRow = await db.select({ imageUrl: schema.mangaPages.imageUrl })
+    .from(schema.mangaPages)
+    .where(and(eq(schema.mangaPages.bookId, bookId), eq(schema.mangaPages.pageNum, pageNum)))
+    .get()
+
+  if (!pageRow || !pageRow.imageUrl)
+    return new Response('Not found', { status: 404 })
+
+  const buffer = readFileSync(pageRow.imageUrl)
+  const ext = path.extname(pageRow.imageUrl).slice(1).toLowerCase()
+
+  return new Response(buffer, {
+    headers: {
+      ...CORS_HEADERS,
+      'Content-Type': `image/${ext === 'jpg' ? 'jpeg' : ext}`,
+      'Cache-Control': 'public, max-age=31536000',
+    },
+  })
 }

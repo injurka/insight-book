@@ -1,8 +1,9 @@
 import { relations, sql } from 'drizzle-orm'
-import { integer, sqliteTable, text, unique } from 'drizzle-orm/sqlite-core'
+import { integer, primaryKey, sqliteTable, text, unique } from 'drizzle-orm/sqlite-core'
 
 export const books = sqliteTable('books', {
   id: integer('id').primaryKey({ autoIncrement: true }),
+  type: text('type').notNull().default('epub'), 
   title: text('title').notNull(),
   author: text('author'),
   coverBase64: text('coverBase64'),
@@ -13,6 +14,18 @@ export const books = sqliteTable('books', {
   createdAt: text('createdAt').notNull().default(sql`(datetime('now'))`),
   updatedAt: text('updatedAt').notNull().default(sql`(datetime('now'))`),
 })
+
+export const mangaPages = sqliteTable('manga_pages', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  bookId: integer('bookId').notNull().references(() => books.id, { onDelete: 'cascade' }),
+  pageNum: integer('pageNum').notNull(),
+  imageUrl: text('imageUrl').notNull(),
+  imageWidth: integer('imageWidth').notNull(),
+  imageHeight: integer('imageHeight').notNull(),
+  ocrData: text('ocrData'),
+}, t => ({
+  unq: unique().on(t.bookId, t.pageNum),
+}))
 
 export const bookPages = sqliteTable('book_pages', {
   id: integer('id').primaryKey({ autoIncrement: true }),
@@ -50,11 +63,15 @@ export const nlpCache = sqliteTable('nlp_cache', {
 })
 
 export const llmCache = sqliteTable('llm_cache', {
-  sentenceHash: text('sentenceHash').primaryKey(),
+  bookId: integer('bookId').notNull().references(() => books.id, { onDelete: 'cascade' }),
+  sentenceHash: text('sentenceHash').notNull(),
+  language: text('language').notNull().default('en'),
   sentence: text('sentence').notNull(),
   analysis: text('analysis').notNull(),
   createdAt: text('createdAt').notNull().default(sql`(datetime('now'))`),
-})
+}, t => ({
+  pk: primaryKey({ columns: [t.bookId, t.sentenceHash] })
+}))
 
 export const ttsCache = sqliteTable('tts_cache', {
   textHash: text('textHash').primaryKey(),
@@ -79,6 +96,16 @@ export const booksRelations = relations(books, ({ one, many }) => ({
   progress: one(readingProgress, { fields: [books.id], references: [readingProgress.bookId] }),
   stats: one(bookStats, { fields: [books.id], references: [bookStats.bookId] }),
   pages: many(bookPages),
+  mangaPages: many(mangaPages),
+  llmCache: many(llmCache), 
+}))
+
+export const llmCacheRelations = relations(llmCache, ({ one }) => ({
+  book: one(books, { fields: [llmCache.bookId], references: [books.id] }),
+}))
+
+export const mangaPagesRelations = relations(mangaPages, ({ one }) => ({
+  book: one(books, { fields: [mangaPages.bookId], references: [books.id] }),
 }))
 
 export const readingProgressRelations = relations(readingProgress, ({ one }) => ({

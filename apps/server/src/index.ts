@@ -10,6 +10,7 @@ import {
   handleGetBookInfo,
   handleGetBooks,
   handleGetPage,
+  handleGetPageImage,
   handleGetToc,
   handleGetUserDict,
   handleGetWordFromUserDict,
@@ -25,6 +26,7 @@ import { initNLP } from './services/nlp.service'
 import { withCors } from './utils/cors'
 import { apiWrapper } from './utils/errors'
 import { logRoutes } from './utils/print-routes'
+
 import './db'
 
 function corsOk() {
@@ -84,6 +86,10 @@ const apiRoutes: ServeOptionsRoutes = {
     OPTIONS: corsOk,
     GET: apiWrapper(handleGetPage),
   },
+  '/api/books/:id/page/:pageNum/image': {
+    OPTIONS: corsOk,
+    GET: apiWrapper(handleGetPageImage),
+  },
   '/api/books/:id/word/:word': {
     OPTIONS: corsOk,
     GET: apiWrapper(handleLookupWord),
@@ -109,6 +115,7 @@ await initNLP()
 
 Bun.serve({
   port: PORT,
+  idleTimeout: 255,
   routes: apiRoutes,
   fetch() {
     return withCors(new Response('Not Found', { status: 404 }))

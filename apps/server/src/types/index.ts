@@ -49,12 +49,27 @@ export interface PageDictEntry {
   translation: string
 }
 
+export interface OcrBlock {
+  id: number
+  text: string
+  html?: string
+  x: number
+  y: number
+  w: number
+  h: number
+}
+
 export interface PagePayload {
   bookId: number
   pageNum: number
   totalPages: number
-  content: string // <-- Теперь передаем готовый HTML
+  content: string
   pageDictionary: Record<string, PageDictEntry>
+  type?: 'epub' | 'manga'
+  imageUrl?: string
+  imageWidth?: number
+  imageHeight?: number
+  ocrBlocks?: OcrBlock[]
 }
 
 export interface GrammarRule {

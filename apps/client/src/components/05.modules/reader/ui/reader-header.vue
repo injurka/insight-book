@@ -20,10 +20,18 @@ function goBack() {
     <div class="spacer" />
 
     <KitBtn
-      :icon="theme === ThemesVariant.Light ? 'mdi:weather-night' : 'mdi:weather-sunny'"
+      icon="mdi:text-box-search-outline"
       variant="text"
       size="sm"
-      @click="toggleTheme"
+      title="Проанализировать всю страницу"
+      :disabled="store.isAnalyzingPage"
+      @click="store.analyzeWholePage"
+    />
+    <KitBtn 
+      :icon="theme === ThemesVariant.Light ? 'mdi:weather-night' : 'mdi:weather-sunny'" 
+      variant="text" 
+      aria-label="Переключить тему"
+      @click="toggleTheme" 
     />
     <KitBtn icon="mdi:format-list-bulleted" variant="text" size="sm" @click="store.tocOpen = true" />
   </header>

@@ -292,3 +292,59 @@ export async function analyzeBookVocabulary(bookId: number, language: string) {
 
   return { posDistribution: posCounts, topWords, lexicalDiversity }
 }
+
+export async function tokenizeOcrBlocks(blocks: any[], language: string) {
+  const tokenizer = getTokenizer(language)
+  const allWords = new Set<string>()
+  let sentenceIdCounter = 10000
+
+  const processedBlocks = []
+
+  for (const block of blocks) {
+    const text = block.text
+    if (!text || /^\s+$/.test(text)) {
+      processedBlocks.push({ ...block, html: text })
+      continue
+    }
+
+    const sentences = splitIntoSentences(text)
+    let newHtml = ''
+
+    for (const raw of sentences) {
+      if (/^\s+$/.test(raw) || !raw) {
+        newHtml += raw.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        continue
+      }
+
+      const tokens = await tokenizer.tokenize(raw)
+      const encodedRaw = encodeURIComponent(raw)
+      let sentHtml = `<span class="sentence" data-sent-id="${sentenceIdCounter}" data-raw-sent="${encodedRaw}">`
+
+      for (let i = 0; i < tokens.length; i++) {
+        const t = tokens[i]
+
+        if (/[\p{L}\p{N}]/u.test(t.word)) {
+          allWords.add(t.word)
+          allWords.add(t.word.toLowerCase())
+        }
+
+        const isPunct = t.pos === 'x'
+        const spacingClass = (language === 'zh' || language === 'ja') ? '' : 'add-space'
+        const encodedWord = encodeURIComponent(t.word)
+        const safeWord = t.word.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+
+        sentHtml += `<span class="word ${isPunct ? 'is-punctuation' : spacingClass}" data-word="${encodedWord}" data-pos="${t.pos}" data-sent-id="${sentenceIdCounter}" data-token-idx="${i}">${safeWord}</span>`
+      }
+      sentHtml += '</span>'
+      sentenceIdCounter++
+      newHtml += sentHtml
+    }
+
+    processedBlocks.push({ ...block, html: newHtml })
+  }
+
+  return {
+    processedBlocks,
+    uniqueWords: Array.from(allWords),
+  }
+}

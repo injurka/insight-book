@@ -21,9 +21,9 @@ const LlmAnalysisSchema = z.object({
   grammarRules: z.array(GrammarRuleSchema).default([]),
   vocabulary: z.array(VocabItemSchema).default([]),
 })
-function hashSentence(sentence: string): string {
+function hashSentence(sentence: string, language: string): string {
   const hasher = new Bun.CryptoHasher('sha256')
-  hasher.update(sentence.trim())
+  hasher.update(`${language.toLowerCase()}::${sentence.trim()}`)
   return hasher.digest('hex')
 }
 function getLangName(code: string): string {
@@ -104,9 +104,11 @@ async function _callLlmApi(model: string, messages: any[], temperature: number, 
   return data.choices[0].message.content
 }
 
-export async function analyzeSentence(sentence: string, language: string): Promise<LlmAnalysis> {
-  const hash = hashSentence(sentence)
-  const cached = sqlite.prepare(`SELECT analysis FROM llm_cache WHERE sentenceHash = ?`).get(hash) as { analysis: string } | null
+export async function analyzeSentence(bookId: number, sentence: string, language: string): Promise<LlmAnalysis> {
+  const hash = hashSentence(sentence, language)
+
+  const cached = sqlite.prepare(`SELECT analysis FROM llm_cache WHERE bookId = ? AND sentenceHash = ?`).get(bookId, hash) as { analysis: string } | null
+
   if (cached)
     return JSON.parse(cached.analysis) as LlmAnalysis
 
@@ -128,7 +130,12 @@ export async function analyzeSentence(sentence: string, language: string): Promi
       const parsed = JSON.parse(cleanJson)
       const analysis = LlmAnalysisSchema.parse(parsed) as LlmAnalysis
 
-      sqlite.prepare(`INSERT OR REPLACE INTO llm_cache (sentenceHash, sentence, analysis) VALUES (?, ?, ?)`).run(hash, sentence, JSON.stringify(analysis))
+      // Сохраняем в кэш с привязкой к bookId
+      sqlite.prepare(`
+        INSERT OR REPLACE INTO llm_cache (bookId, sentenceHash, language, sentence, analysis) 
+        VALUES (?, ?, ?, ?, ?)
+      `).run(bookId, hash, language, sentence, JSON.stringify(analysis))
+
       return analysis
     }
     catch (e) {
