@@ -44,7 +44,6 @@ export const useBooksStore = defineStore('books', () => {
   const activeTokenId = ref<string | null>(null)
   const wordPopover = ref<WordPopoverData | null>(null)
 
-  // Состояние тултипа для выделенного текста
   const selectionTooltip = ref<SelectionTooltipData | null>(null)
 
   const sidebarOpen = ref(false)
@@ -52,10 +51,8 @@ export const useBooksStore = defineStore('books', () => {
   const sidebarSentence = ref<string | null>(null)
   const isAnalyzing = ref(false)
 
-  // История анализа предложений в рамках текущей сессии
   const analysisHistory = ref<AnalysisHistoryItem[]>([])
 
-  // Состояния для анализа всей страницы
   const isAnalyzingPage = ref(false)
   const pageAnalysisProgress = ref(0)
   const pageAnalysisCurrent = ref(0)
@@ -69,7 +66,6 @@ export const useBooksStore = defineStore('books', () => {
   const addEditWordModalOpen = ref(false)
   const wordToEdit = ref<Partial<UserDictItem> | null>(null)
 
-  // Контроллеры для отмены запросов
   let wordAbortController: AbortController | null = null
   let sentenceAbortController: AbortController | null = null
 
@@ -127,11 +123,11 @@ export const useBooksStore = defineStore('books', () => {
   async function updateBookCover(id: number, file: File) {
     const res = await api.books.updateCover(id, file)
     if (currentBookInfo.value && currentBookInfo.value.id === id) {
-      currentBookInfo.value.coverBase64 = res.coverBase64
+      currentBookInfo.value.coverUrl = res.coverUrl
     }
     const listBook = books.value.find(b => b.id === id)
     if (listBook)
-      listBook.coverBase64 = res.coverBase64
+      listBook.coverUrl = res.coverUrl
   }
 
   async function updateBookStats(id: number, data: Partial<BookStats>) {
@@ -159,7 +155,7 @@ export const useBooksStore = defineStore('books', () => {
     if (currentBook.value?.id === id) {
       currentBook.value = null
       currentPage.value = null
-      analysisHistory.value = [] 
+      analysisHistory.value = []
     }
   }
 
@@ -175,7 +171,7 @@ export const useBooksStore = defineStore('books', () => {
 
   async function openBook(book: Book) {
     currentBook.value = book
-    analysisHistory.value = [] 
+    analysisHistory.value = []
     const startPage = book.currentPage || 1
     await loadPage(book.id, startPage)
   }
@@ -191,7 +187,7 @@ export const useBooksStore = defineStore('books', () => {
         throw new Error('Книга не найдена')
 
       currentBook.value = book
-      analysisHistory.value = [] 
+      analysisHistory.value = []
       const pageToLoad = startPage || book.currentPage || 1
       await loadPage(book.id, pageToLoad)
     }
@@ -375,7 +371,6 @@ export const useBooksStore = defineStore('books', () => {
     const extractFromHtml = (html: string) => {
       const regex = /data-raw-sent="([^"]+)"/g
       let match
-      // eslint-disable-next-line no-cond-assign
       while ((match = regex.exec(html)) !== null) {
         sentencesToAnalyze.add(decodeURIComponent(match[1]))
       }

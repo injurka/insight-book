@@ -9,6 +9,7 @@ import {
   handleGenerateTts,
   handleGetBookInfo,
   handleGetBooks,
+  handleGetCoverImage,
   handleGetPage,
   handleGetPageImage,
   handleGetToc,
@@ -61,6 +62,10 @@ const apiRoutes: ServeOptionsRoutes = {
   '/api/books/:id/cover': {
     OPTIONS: corsOk,
     PATCH: apiWrapper(handleUpdateCover),
+  },
+  '/api/uploads/covers/:filename': {
+    OPTIONS: corsOk,
+    GET: apiWrapper(handleGetCoverImage),
   },
   '/api/books/:id/tts': {
     OPTIONS: corsOk,

@@ -1,12 +1,12 @@
 import type { Book, PagePayload, UserDictItem } from '../types'
 import { readFileSync } from 'node:fs'
-import { unlink } from 'node:fs/promises'
+import { rm, unlink } from 'node:fs/promises'
 import path from 'node:path'
 import { and, desc, eq } from 'drizzle-orm'
 import { parse as parseHtml } from 'node-html-parser'
 import { processCbz } from '~/services/manga.service'
 import { recognizeMangaPage } from '~/services/ocr.service'
-import { CORS_HEADERS } from '../config'
+import { CORS_HEADERS, COVERS_PATH } from '../config'
 import { db } from '../db'
 import * as schema from '../db/schema'
 import { getUserDictionary, getWordFromUserDictionary, lookupSingleWord, lookupWords, removeFromUserDictionary, upsertToUserDictionary } from '../services/dictionary.service'
@@ -65,7 +65,7 @@ export async function handleAnalyzeVocabulary(req: Request): Promise<Response> {
 export async function handleUpdateBook(req: Request): Promise<Response> {
   const id = Number((req as any).params.id)
   const body = await req.json() as Partial<Book>
-  await db.update(schema.books).set({ title: body.title, author: body.author, coverBase64: body.coverBase64, language: body.language, createdAt: body.createdAt, updatedAt: new Date().toISOString() }).where(eq(schema.books.id, id))
+  await db.update(schema.books).set({ title: body.title, author: body.author, coverUrl: body.coverUrl, language: body.language, createdAt: body.createdAt, updatedAt: new Date().toISOString() }).where(eq(schema.books.id, id))
   if (typeof body.currentPage === 'number') {
     await db.insert(schema.readingProgress).values({ bookId: id, currentPage: body.currentPage, updatedAt: new Date().toISOString() }).onConflictDoUpdate({ target: schema.readingProgress.bookId, set: { currentPage: body.currentPage, updatedAt: new Date().toISOString() } })
   }
@@ -124,10 +124,32 @@ export async function handleUpdateCover(req: Request): Promise<Response> {
     throw new AppError(400, 'Файл не передан')
 
   const buffer = await file.arrayBuffer()
-  const base64 = Buffer.from(buffer).toString('base64')
-  const coverBase64 = `data:${file.type || 'image/jpeg'};base64,${base64}`
-  await db.update(schema.books).set({ coverBase64 }).where(eq(schema.books.id, id))
-  return json({ success: true, coverBase64 })
+  const ext = path.extname(file.name).toLowerCase() || '.jpg'
+  const filename = `${Date.now()}_cover${ext}`
+  const filepath = path.join(COVERS_PATH, filename)
+
+  await Bun.write(filepath, buffer)
+  const coverUrl = `/api/uploads/covers/${filename}`
+
+  const oldBook = await db.query.books.findFirst({ where: eq(schema.books.id, id), columns: { coverUrl: true } })
+  if (oldBook?.coverUrl && oldBook.coverUrl.startsWith('/api/uploads/covers/')) {
+    const oldFile = oldBook.coverUrl.split('/').pop()!
+    await unlink(path.join(COVERS_PATH, oldFile)).catch(() => { })
+  }
+
+  await db.update(schema.books).set({ coverUrl }).where(eq(schema.books.id, id))
+  return json({ success: true, coverUrl })
+}
+
+export async function handleGetCoverImage(req: Request): Promise<Response> {
+  const filename = (req as any).params.filename
+  const filepath = path.join(COVERS_PATH, filename)
+  const file = Bun.file(filepath)
+
+  if (!(await file.exists()))
+    return new Response('Not found', { status: 404 })
+
+  return new Response(file, { headers: CORS_HEADERS })
 }
 
 export async function handleUpdateStats(req: Request): Promise<Response> {
@@ -164,15 +186,21 @@ export async function handleUploadBook(req: Request): Promise<Response> {
 
 export async function handleDeleteBook(req: Request): Promise<Response> {
   const id = Number((req as any).params.id)
-  const book = await db.query.books.findFirst({ where: eq(schema.books.id, id), columns: { filePath: true } })
+  const book = await db.query.books.findFirst({ where: eq(schema.books.id, id), columns: { filePath: true, coverUrl: true } })
   if (!book)
     throw new AppError(404, 'Книга не найдена')
 
   try {
-    if (book.filePath)
-      await unlink(book.filePath)
+    if (book.filePath) {
+      await rm(book.filePath, { recursive: true, force: true })
+    }
+    if (book.coverUrl && book.coverUrl.startsWith('/api/uploads/covers/')) {
+      const coverFilename = book.coverUrl.split('/').pop()!
+      await unlink(path.join(COVERS_PATH, coverFilename)).catch(() => { })
+    }
   }
-  catch (err: any) { console.warn(`[File Delete Warning] Не удалось удалить файл ${book.filePath}:`, err.message) }
+  catch (err: any) { console.warn(`[File Delete Warning] Не удалось удалить файлы книги:`, err.message) }
+
   await db.delete(schema.books).where(eq(schema.books.id, id))
   return json({ success: true })
 }
@@ -227,7 +255,6 @@ export async function handleGetPage(req: Request): Promise<Response> {
       }
     }
 
-    // Токенизация и сбор словаря для OCR блоков
     if (ocrBlocks && ocrBlocks.length > 0) {
       const { processedBlocks, uniqueWords } = await tokenizeOcrBlocks(ocrBlocks, book.language)
       ocrBlocks = processedBlocks
@@ -243,7 +270,7 @@ export async function handleGetPage(req: Request): Promise<Response> {
       imageWidth: pageRow.imageWidth,
       imageHeight: pageRow.imageHeight,
       ocrBlocks: ocrBlocks || [],
-      content: '', // Заглушки для совместимости
+      content: '',
       pageDictionary,
     })
   }

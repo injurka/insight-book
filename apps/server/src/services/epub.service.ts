@@ -2,73 +2,56 @@ import type { TocItem } from '../types'
 import { mkdirSync } from 'node:fs'
 import path from 'node:path'
 import { parse as parseHtml } from 'node-html-parser'
-import { PAGE_SIZE_CHARS, UPLOADS_PATH } from '../config'
+import { BOOKS_PATH, COVERS_PATH, PAGE_SIZE_CHARS } from '../config'
 import { sqlite } from '../db'
 
-mkdirSync(UPLOADS_PATH, { recursive: true })
-
-async function extractCover(epub: any): Promise<string | null> {
+async function extractCover(epub: any): Promise<{ buffer: Buffer, ext: string } | null> {
   try {
-    const coverId: string | undefined = epub.metadata?.cover
-
-    if (coverId) {
-      const result = await new Promise<string | null>((resolve) => {
-        epub.getImage(coverId, (err: any, data: Buffer, mimeType: string) => {
-          if (err || !data) {
-            resolve(null)
-            return
-          }
-          const mime = mimeType || 'image/jpeg'
-          resolve(`data:${mime};base64,${Buffer.from(data).toString('base64')}`)
+    const getImageData = (id: string): Promise<{ buffer: Buffer, ext: string } | null> => {
+      return new Promise((resolve) => {
+        epub.getImage(id, (err: any, data: Buffer, mimeType: string) => {
+          if (err || !data)
+            return resolve(null)
+          let ext = '.jpg'
+          if (mimeType?.includes('png'))
+            ext = '.png'
+          else if (mimeType?.includes('webp'))
+            ext = '.webp'
+          else if (mimeType?.includes('gif'))
+            ext = '.gif'
+          resolve({ buffer: data, ext })
         })
       })
-      if (result)
-        return result
     }
 
-    const manifest: Record<string, { id: string, href: string, mediaType: string }> = epub.manifest || {}
-    const coverItem = Object.values(manifest).find((item) => {
+    const coverId = epub.metadata?.cover
+    if (coverId) {
+      const res = await getImageData(coverId)
+      if (res)
+        return res
+    }
+
+    const manifest = epub.manifest || {}
+    const coverItem = Object.values(manifest).find((item: any) => {
       const id = item.id?.toLowerCase() ?? ''
       const href = item.href?.toLowerCase() ?? ''
       const mime = item.mediaType?.toLowerCase() ?? ''
-      return (
-        mime.startsWith('image/')
-        && (id.includes('cover') || href.includes('cover'))
-      )
+      return mime.startsWith('image/') && (id.includes('cover') || href.includes('cover'))
     })
 
     if (coverItem) {
-      const result = await new Promise<string | null>((resolve) => {
-        epub.getImage(coverItem.id, (err: any, data: Buffer, mimeType: string) => {
-          if (err || !data) {
-            resolve(null)
-            return
-          }
-          const mime = mimeType || coverItem.mediaType || 'image/jpeg'
-          resolve(`data:${mime};base64,${Buffer.from(data).toString('base64')}`)
-        })
-      })
-      if (result)
-        return result
+      const res = await getImageData((coverItem as any).id)
+      if (res)
+        return res
     }
 
-    const firstImage = Object.values(manifest).find(item =>
+    const firstImage = Object.values(manifest).find((item: any) =>
       item.mediaType?.toLowerCase().startsWith('image/'),
     )
-
     if (firstImage) {
-      const result = await new Promise<string | null>((resolve) => {
-        epub.getImage(firstImage.id, (err: any, data: Buffer, mimeType: string) => {
-          if (err || !data) {
-            resolve(null)
-            return
-          }
-          const mime = mimeType || firstImage.mediaType || 'image/jpeg'
-          resolve(`data:${mime};base64,${Buffer.from(data).toString('base64')}`)
-        })
-      })
-      if (result)
-        return result
+      const res = await getImageData((firstImage as any).id)
+      if (res)
+        return res
     }
   }
   catch { /* ignore */ }
@@ -123,7 +106,7 @@ async function getEpubImageBase64(epub: any, imageId: string): Promise<string | 
 
 export async function processEpub(fileBuffer: ArrayBuffer, filename: string): Promise<number> {
   const safeName = `${Date.now()}_${filename.replace(/[^\w.-]/g, '_')}`
-  const filePath = path.join(UPLOADS_PATH, safeName)
+  const filePath = path.join(BOOKS_PATH, safeName)
   await Bun.write(filePath, fileBuffer)
   const { EPub } = await import('epub2') as any
 
@@ -135,7 +118,15 @@ export async function processEpub(fileBuffer: ArrayBuffer, filename: string): Pr
       try {
         const title = epub.metadata?.title || filename.replace('.epub', '')
         const author = epub.metadata?.creator || null
-        const coverBase64 = await extractCover(epub)
+
+        const coverData = await extractCover(epub)
+        let coverUrl = null
+        if (coverData) {
+          const coverFilename = `${Date.now()}_cover${coverData.ext}`
+          await Bun.write(path.join(COVERS_PATH, coverFilename), coverData.buffer)
+          coverUrl = `/api/uploads/covers/${coverFilename}`
+        }
+
         const language = extractLanguage(epub)
         let toc = extractToc(epub)
 
@@ -147,18 +138,22 @@ export async function processEpub(fileBuffer: ArrayBuffer, filename: string): Pr
         const hrefToPageMap: Record<string, number> = {}
 
         for (const item of spineItems) {
-          const startPage = Math.floor(currentTotalLength / PAGE_SIZE_CHARS) + 1
+          // ИСПРАВЛЕНИЕ: startPage равен текущему количеству страниц + 1
+          const startPage = allHtmlPages.length + 1
 
           if (item.href) {
             const baseHref = item.href.split('#')[0].split('/').pop() || item.href
-            hrefToPageMap[baseHref] = startPage
+            // Запоминаем только первую встретившуюся страницу для данного href
+            if (!hrefToPageMap[baseHref]) {
+              hrefToPageMap[baseHref] = startPage
+            }
           }
 
           await new Promise<void>((res) => {
             epub.getChapter(item.id, async (err: any, html: string) => {
               if (!err && html) {
                 const root = parseHtml(html)
-                
+
                 root.querySelectorAll('script, style').forEach(n => n.remove())
 
                 root.querySelectorAll('a').forEach((node) => {
@@ -184,7 +179,6 @@ export async function processEpub(fileBuffer: ArrayBuffer, filename: string): Pr
                   }
                 }
 
-                // Ищем тег body, чтобы взять только его детей. Иначе берем корень.
                 const body = root.querySelector('body') || root
                 const blockElements = body.childNodes
 
@@ -192,7 +186,6 @@ export async function processEpub(fileBuffer: ArrayBuffer, filename: string): Pr
                   const nodeHtml = node.toString()
                   const textLength = node.textContent?.trim().length || 0
 
-                  // Пропускаем пустые текстовые узлы между тегами на верхнем уровне
                   if (!nodeHtml.trim() && textLength === 0)
                     continue
 
@@ -227,10 +220,10 @@ export async function processEpub(fileBuffer: ArrayBuffer, filename: string): Pr
         const tocJson = JSON.stringify(toc)
 
         const insertBook = sqlite.prepare(`
-          INSERT INTO books (title, author, coverBase64, filePath, language, totalPages, toc)
+          INSERT INTO books (title, author, coverUrl, filePath, language, totalPages, toc)
           VALUES (?, ?, ?, ?, ?, ?, ?)
         `)
-        const result = insertBook.run(title, author, coverBase64, filePath, language, allHtmlPages.length, tocJson)
+        const result = insertBook.run(title, author, coverUrl, filePath, language, allHtmlPages.length, tocJson)
         const bookId = result.lastInsertRowid as number
 
         const insertPage = sqlite.prepare(`

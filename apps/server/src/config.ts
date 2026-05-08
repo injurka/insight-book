@@ -6,6 +6,8 @@ export const DB_PATH = process.env.DB_PATH || path.resolve(process.cwd(), 'db', 
 export const DICTS_PATH = process.env.DICTS_PATH || path.resolve(process.cwd(), 'db', 'dicts')
 
 export const UPLOADS_PATH = process.env.UPLOADS_PATH || path.resolve(process.cwd(), 'uploads')
+export const BOOKS_PATH = path.join(UPLOADS_PATH, 'books')
+export const COVERS_PATH = path.join(UPLOADS_PATH, 'covers')
 
 export const LLM_API_KEY = process.env.LLM_API_KEY || ''
 export const LLM_API_URL = process.env.LLM_API_URL || 'https://aihubmix.com/v1'

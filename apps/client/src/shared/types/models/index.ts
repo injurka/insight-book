@@ -25,7 +25,7 @@ export interface Book {
   title: string
   type: 'epub' | 'manga'
   author: string | null
-  coverBase64: string | null
+  coverUrl: string | null
   filePath: string
   language: string
   totalPages: number

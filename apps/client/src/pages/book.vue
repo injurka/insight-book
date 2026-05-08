@@ -5,6 +5,8 @@ import WordPopover from '~/components/05.modules/reader/ui/word-popover.vue'
 import { AppRoutePaths } from '~/shared/constants/routes'
 import { useBooksStore } from '~/shared/store/books.store'
 
+const BASE = import.meta.env.VITE_API_URL || 'https://insight-api.trip-scheduler.ru'
+
 const route = useRoute()
 const router = useRouter()
 const store = useBooksStore()
@@ -61,7 +63,7 @@ async function triggerVocabularyAnalysis() {
   try {
     await store.analyzeVocabulary(bookId.value)
     isEditingStats.value = false
-    isLexicalExpanded.value = true // Автоматически раскрываем профиль после генерации
+    isLexicalExpanded.value = true
     toast.success('Лексический профиль составлен!')
   }
   catch (e: any) {
@@ -174,7 +176,11 @@ watch(
       <div class="layout-grid">
         <div class="cover-col">
           <div class="cover-wrapper group" @click="triggerCoverInput">
-            <img v-if="store.currentBookInfo.coverBase64" :src="store.currentBookInfo.coverBase64" alt="Обложка">
+            <img
+              v-if="store.currentBookInfo.coverUrl"
+              :src="store.currentBookInfo.coverUrl.startsWith('data:') ? store.currentBookInfo.coverUrl : `${BASE}${store.currentBookInfo.coverUrl}`"
+                alt="Обложка"
+            >
             <div v-else class="cover-placeholder">
               <Icon icon="mdi:book-open-blank-variant" class="placeholder-icon" />
             </div>
@@ -211,7 +217,6 @@ watch(
             </div>
           </div>
 
-          <!-- Блок Описания -->
           <div v-if="store.isAnalyzingBook" class="ai-analysis-box is-loading">
             <Icon icon="mdi:robot-outline" class="spin-icon pulse" />
             <p>Нейросеть анализирует текст книги...</p>
@@ -313,7 +318,6 @@ watch(
             </template>
           </div>
 
-          <!-- Блок Лексического профиля -->
           <div v-if="store.isAnalyzingVocab" class="ai-analysis-box is-loading">
             <Icon icon="mdi:loading" class="spin-icon" />
             <p>Изучаем словарный запас книги...</p>
@@ -323,7 +327,6 @@ watch(
           </div>
 
           <div v-else-if="store.currentBookInfo.stats?.topWords" class="ai-analysis-box lexical-box">
-            <!-- Интерактивный заголовок -->
             <div class="box-header expandable-header" @click="isLexicalExpanded = !isLexicalExpanded">
               <div class="header-info">
                 <h3><Icon icon="mdi:chart-arc" /> Лексический профиль</h3>
@@ -335,7 +338,6 @@ watch(
               <Icon :icon="isLexicalExpanded ? 'mdi:chevron-up' : 'mdi:chevron-down'" class="header-chevron" />
             </div>
 
-            <!-- Раскрывающееся содержимое -->
             <div v-show="isLexicalExpanded" class="lexical-expanded-content">
               <p class="lexical-description">
                 Показатель разнообразия отражает процент уникальных слов в тексте. Чем он выше, тем сложнее лексика книги.
@@ -961,7 +963,6 @@ watch(
       color: var(--fg-secondary-color);
     }
 
-    /* Статичные рамки для частей речи (без эффекта наведения) */
     &.chip-n {
       border-color: #3b82f6;
     }

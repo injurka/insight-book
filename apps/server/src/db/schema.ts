@@ -3,10 +3,10 @@ import { integer, primaryKey, sqliteTable, text, unique } from 'drizzle-orm/sqli
 
 export const books = sqliteTable('books', {
   id: integer('id').primaryKey({ autoIncrement: true }),
-  type: text('type').notNull().default('epub'), 
+  type: text('type').notNull().default('epub'),
   title: text('title').notNull(),
   author: text('author'),
-  coverBase64: text('coverBase64'),
+  coverUrl: text('coverUrl'), 
   filePath: text('filePath').notNull(),
   language: text('language').notNull().default('en'),
   totalPages: integer('totalPages').notNull().default(0),
@@ -52,7 +52,6 @@ export const bookStats = sqliteTable('book_stats', {
   posDistribution: text('posDistribution'),
   topWords: text('topWords'),
   lexicalDiversity: integer('lexicalDiversity'),
-
   createdAt: text('createdAt').notNull().default(sql`(datetime('now'))`),
 })
 
@@ -70,7 +69,7 @@ export const llmCache = sqliteTable('llm_cache', {
   analysis: text('analysis').notNull(),
   createdAt: text('createdAt').notNull().default(sql`(datetime('now'))`),
 }, t => ({
-  pk: primaryKey({ columns: [t.bookId, t.sentenceHash] })
+  pk: primaryKey({ columns: [t.bookId, t.sentenceHash] }),
 }))
 
 export const ttsCache = sqliteTable('tts_cache', {
@@ -97,7 +96,7 @@ export const booksRelations = relations(books, ({ one, many }) => ({
   stats: one(bookStats, { fields: [books.id], references: [bookStats.bookId] }),
   pages: many(bookPages),
   mangaPages: many(mangaPages),
-  llmCache: many(llmCache), 
+  llmCache: many(llmCache),
 }))
 
 export const llmCacheRelations = relations(llmCache, ({ one }) => ({

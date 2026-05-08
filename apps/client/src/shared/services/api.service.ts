@@ -31,7 +31,7 @@ export const api = {
     updateCover: (id: number, file: File) => {
       const fd = new FormData()
       fd.append('file', file)
-      return request<{ success: boolean, coverBase64: string }>(`/api/books/${id}/cover`, {
+      return request<{ success: boolean, coverUrl: string }>(`/api/books/${id}/cover`, {
         method: 'PATCH',
         body: fd,
       })

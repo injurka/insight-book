@@ -7,6 +7,8 @@ import { AppRoutePaths } from '~/shared/constants/routes'
 import { useBooksStore } from '~/shared/store/books.store'
 import { useDictionaryStore } from '~/shared/store/dictionary.store'
 
+const BASE = import.meta.env.VITE_API_URL || 'https://insight-api.trip-scheduler.ru'
+
 const store = useBooksStore()
 const dictStore = useDictionaryStore()
 const router = useRouter()
@@ -18,7 +20,6 @@ const { theme, toggleTheme } = useChangeTheme()
 
 const dictOpen = ref(false)
 
-// Фильтры
 const searchQuery = ref('')
 const selectedLang = ref('all')
 
@@ -60,28 +61,26 @@ function openDictionary() {
   router.push(AppRoutePaths.Dictionary)
 }
 
-// Редактирование книги
 const editModalOpen = ref(false)
 const editingBook = ref<Partial<Book>>({})
+const editingCoverFile = ref<File | null>(null)
 
 function formatToDateTimeLocal(dateString?: string) {
   if (!dateString)
     return ''
-  // Переводит "YYYY-MM-DD HH:MM:SS" -> "YYYY-MM-DDThh:mm"
   return dateString.replace(' ', 'T').slice(0, 16)
 }
 
 function parseFromDateTimeLocal(localString?: string) {
   if (!localString)
     return ''
-  // Переводит "YYYY-MM-DDThh:mm" -> "YYYY-MM-DD HH:MM:00"
   return `${localString.replace('T', ' ')}:00`
 }
 
 function openEditModal(book: Book) {
+  editingCoverFile.value = null
   editingBook.value = {
     ...book,
-    // Приводим "jp" к "ja", если такой вдруг появился в базе
     language: book.language === 'jp' ? 'ja' : book.language,
     createdAt: formatToDateTimeLocal(book.createdAt),
   }
@@ -94,9 +93,10 @@ function onEditCoverChange(e: Event) {
   if (!file)
     return
 
+  editingCoverFile.value = file
   const reader = new FileReader()
   reader.onload = (event) => {
-    editingBook.value.coverBase64 = event.target?.result as string
+    editingBook.value.coverUrl = event.target?.result as string
   }
   reader.readAsDataURL(file)
 }
@@ -110,8 +110,14 @@ async function saveEditBook() {
     payload.createdAt = parseFromDateTimeLocal(payload.createdAt)
     payload.currentPage = Number(payload.currentPage)
 
+    if (editingCoverFile.value) {
+      await store.updateBookCover(payload.id!, editingCoverFile.value)
+      delete payload.coverUrl
+    }
+
     await store.updateBookInfo(payload.id!, payload)
     editModalOpen.value = false
+    editingCoverFile.value = null
     toast.success('Книга обновлена')
   }
   catch (e: any) {
@@ -157,7 +163,7 @@ onMounted(() => {
             Мой словарь
           </KitBtn>
           <KitBtn icon="mdi:upload" color="primary" @click="fileInput?.click()">
-            Загрузить книгу/мангу
+            Загрузить
           </KitBtn>
           <input ref="fileInput" type="file" accept=".epub,.cbz,.zip" style="display: none" @change="onFileChange">
         </div>
@@ -188,7 +194,7 @@ onMounted(() => {
     <div v-else class="books-grid">
       <div v-for="book in filteredBooks" :key="book.id" class="book-card" @click="openBookInfo(book)">
         <div class="cover-wrapper">
-          <img v-if="book.coverBase64 && book.coverBase64.length > 100" :src="book.coverBase64" alt="Обложка" class="cover-img">
+          <img v-if="book.coverUrl" :src="book.coverUrl.startsWith('data:') ? book.coverUrl : `${BASE}${book.coverUrl}`" alt="Обложка" class="cover-img">
           <div v-else class="cover-placeholder">
             <span class="placeholder-icon">📚</span>
           </div>
@@ -224,13 +230,16 @@ onMounted(() => {
       </div>
     </div>
 
-    <!-- Модалка редактирования книги -->
     <KitDialog v-model:visible="editModalOpen" title="Редактировать книгу" icon="mdi:file-document-edit-outline" :max-width="500">
       <div class="edit-form-grid">
         <div class="form-group">
           <label>Обложка</label>
           <div class="edit-cover-preview" @click="$refs.editCoverInput?.click()">
-            <img v-if="editingBook.coverBase64" :src="editingBook.coverBase64" alt="Обложка">
+            <img
+              v-if="editingBook.coverUrl"
+              :src="editingBook.coverUrl.startsWith('data:') ? editingBook.coverUrl : `${BASE}${editingBook.coverUrl}`"
+              alt="Обложка"
+            >
             <div v-else class="placeholder">
               <Icon icon="mdi:image-plus" />
             </div>
@@ -278,7 +287,6 @@ onMounted(() => {
       </template>
     </KitDialog>
 
-    <!-- Модалка словаря -->
     <KitDialog v-model:visible="dictOpen" title="Мой словарь" :max-width="600" icon="mdi:book-open-page-variant">
       <div v-if="dictStore.words.length === 0" class="empty-dict">
         <p>Вы пока не добавили ни одного слова в словарь.</p>

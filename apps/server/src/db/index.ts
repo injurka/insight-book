@@ -4,12 +4,15 @@ import path from 'node:path'
 import { spawnSync } from 'bun'
 import { Database } from 'bun:sqlite'
 import { drizzle } from 'drizzle-orm/bun-sqlite'
-import { DB_PATH, DICTS_PATH } from '../config'
+import { BOOKS_PATH, COVERS_PATH, DB_PATH, DICTS_PATH, UPLOADS_PATH } from '../config'
 import * as schema from './schema'
 
 const dbDir = path.dirname(DB_PATH)
 mkdirSync(dbDir, { recursive: true })
 mkdirSync(DICTS_PATH, { recursive: true })
+mkdirSync(UPLOADS_PATH, { recursive: true })
+mkdirSync(BOOKS_PATH, { recursive: true })
+mkdirSync(COVERS_PATH, { recursive: true })
 
 // ============================================================================
 // 0. АВТОМАТИЧЕСКАЯ СИНХРОНИЗАЦИЯ БАЗЫ ДАННЫХ
@@ -71,17 +74,14 @@ export function getDictConnection(language: string): DictConnection | null {
     const dictDb = new Database(specificPath, { readonly: true })
     dictDb.run(`PRAGMA journal_mode = WAL`)
 
-    // У китайского словаря таблица обычно называется zh_dictionary, а не words
     let tableName = 'words'
     if (lang === 'zh') {
       tableName = 'zh_dictionary'
     }
 
-    // Проверяем существование таблицы (чтобы не падало с ошибкой)
     try {
       const tableCheck = dictDb.prepare(`SELECT name FROM sqlite_master WHERE type='table' AND name=?`).get(tableName)
       if (!tableCheck) {
-        // Фоллбэк: если специфичной таблицы нет, пробуем стандартную 'words'
         const fallbackCheck = dictDb.prepare(`SELECT name FROM sqlite_master WHERE type='table' AND name='words'`).get()
         if (fallbackCheck) {
           tableName = 'words'
