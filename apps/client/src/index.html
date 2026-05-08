@@ -7,24 +7,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>InsightBook</title>
 
-    <!-- Inter: preconnect + неблокирующая загрузка -->
+    <!-- Inter (400, 500, 600 только) -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link rel="preload" as="style"
-      href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap"
-      onload="this.rel = 'stylesheet'" <noscript>
-    <link rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap" />
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap"
+      onload="this.rel = 'stylesheet'" />
+    <noscript>
+      <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" />
     </noscript>
 
-    <!-- Regular + Medium: preload (критичные для UI, грузятся параллельно) -->
+    <!-- Maple Mono CN: regular (400), medium (500), semibold (600) -->
     <link rel="preload" as="style" href="/fonts/split/regular/result.css" onload="this.rel = 'stylesheet'" />
     <link rel="preload" as="style" href="/fonts/split/medium/result.css" onload="this.rel = 'stylesheet'" />
-
-    <!-- Light + SemiBold + Bold: неблокирующие (редко нужны при первом рендере) -->
     <link rel="preload" as="style" href="/fonts/split/semibold/result.css" onload="this.rel = 'stylesheet'" />
-
-    <!-- Fallback для браузеров без JS -->
     <noscript>
       <link rel="stylesheet" href="/fonts/split/regular/result.css" />
       <link rel="stylesheet" href="/fonts/split/medium/result.css" />
