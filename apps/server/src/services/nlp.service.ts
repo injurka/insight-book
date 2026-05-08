@@ -259,7 +259,9 @@ export async function analyzeBookVocabulary(bookId: number, language: string) {
   const pages = await db.select({ content: schema.bookPages.content }).from(schema.bookPages).where(eq(schema.bookPages.bookId, bookId))
   const tokenizer = getTokenizer(language)
   const posCounts: Record<string, number> = {}
-  const wordFreq: Record<string, { count: number, pos: string }> = {}
+
+  // Сохраняем оригинальное написание
+  const wordFreq: Record<string, { count: number, pos: string, original: string }> = {}
   let totalValidTokens = 0
 
   for (const page of pages) {
@@ -270,6 +272,7 @@ export async function analyzeBookVocabulary(bookId: number, language: string) {
       if (/^\s+$/.test(raw))
         continue
       const tokens = await tokenizer.tokenize(raw)
+
       for (const t of tokens) {
         if (['x', 'u', 'p', 'c', 'm', 'r'].includes(t.pos))
           continue
@@ -278,19 +281,59 @@ export async function analyzeBookVocabulary(bookId: number, language: string) {
 
         totalValidTokens++
         posCounts[t.pos] = (posCounts[t.pos] || 0) + 1
+
         const w = t.word.toLowerCase()
-        if (!wordFreq[w])
-          wordFreq[w] = { count: 0, pos: t.pos }
+        if (!wordFreq[w]) {
+          wordFreq[w] = { count: 0, pos: t.pos, original: t.word }
+        }
         wordFreq[w].count++
+
+        if (t.word !== w && wordFreq[w].original === w) {
+          wordFreq[w].original = t.word
+        }
       }
     }
   }
 
   const uniqueTokens = Object.keys(wordFreq).length
   const lexicalDiversity = totalValidTokens > 0 ? Math.round((uniqueTokens / totalValidTokens) * 100) : 0
-  const topWords = Object.entries(wordFreq).sort((a, b) => b[1].count - a[1].count).slice(0, 50).map(([word, data]) => ({ word, ...data }))
 
-  return { posDistribution: posCounts, topWords, lexicalDiversity }
+  const allWordsArr = Object.values(wordFreq).map(data => ({ word: data.original, pos: data.pos, count: data.count }))
+
+  const properNouns = allWordsArr
+    .filter(w => ['nr', 'ns', 'nt'].includes(w.pos) || (w.pos.startsWith('n') && /^[A-ZА-ЯЁ]/.test(w.word)))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 30)
+
+  const isProper = (word: string) => properNouns.some(p => p.word === word)
+
+  const nouns = allWordsArr
+    .filter(w => w.pos.startsWith('n') && !isProper(w.word))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 30)
+
+  const verbs = allWordsArr
+    .filter(w => w.pos.startsWith('v'))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 30)
+
+  const adjs = allWordsArr
+    .filter(w => (w.pos.startsWith('a') || w.pos.startsWith('d')) && !isProper(w.word))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 30)
+
+  const minLength = language === 'en' ? 6 : 2
+  const rareWords = allWordsArr
+    // Фильтруем слова, которые попались от 2 до 5 раз
+    .filter(w => w.count >= 2 && w.count <= 5 && w.word.length >= minLength && !isProper(w.word))
+    .sort((a, b) => b.word.length - a.word.length) // Сортируем по длине убывания
+    .slice(0, 30)
+
+  return {
+    posDistribution: posCounts,
+    topWords: { nouns, verbs, adjs, properNouns, rareWords },
+    lexicalDiversity,
+  }
 }
 
 export async function tokenizeOcrBlocks(blocks: any[], language: string) {

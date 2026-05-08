@@ -4,12 +4,14 @@ import { KitBtn, KitInput, KitSkeleton } from '~/components/01.kit'
 import WordPopover from '~/components/05.modules/reader/ui/word-popover.vue'
 import { AppRoutePaths } from '~/shared/constants/routes'
 import { useBooksStore } from '~/shared/store/books.store'
+import { useDictionaryStore } from '~/shared/store/dictionary.store'
 
 const BASE = import.meta.env.VITE_API_URL || 'https://insight-api.trip-scheduler.ru'
 
 const route = useRoute()
 const router = useRouter()
 const store = useBooksStore()
+const dictStore = useDictionaryStore()
 const toast = useToast()
 
 const bookId = computed(() => Number(route.params.id))
@@ -18,12 +20,39 @@ const coverInputRef = ref<HTMLInputElement | null>(null)
 
 const isEditingStats = ref(false)
 const isLexicalExpanded = ref(false)
-const isWordsExpanded = ref(false)
+const lexicalActiveTab = ref<'core' | 'entities' | 'rare' | 'dict'>('core')
 
 const editForm = reactive({
   difficulty: '',
   tags: '',
   description: '',
+})
+
+const dictionaryWordsInBook = computed(() => {
+  const stats = store.currentBookInfo?.stats
+  if (!stats || !stats.topWords)
+    return []
+
+  const bookWordsSet = new Set<string>()
+
+  if (Array.isArray(stats.topWords)) {
+    stats.topWords.forEach(w => bookWordsSet.add(w.word.toLowerCase()))
+  }
+  else {
+    Object.values(stats.topWords).flat().forEach((w: any) => bookWordsSet.add(w.word.toLowerCase()))
+  }
+
+  return dictStore.words.filter(dictItem => bookWordsSet.has(dictItem.word.toLowerCase()))
+})
+
+const isLegacyLexical = computed(() => {
+  return Array.isArray(store.currentBookInfo?.stats?.topWords)
+})
+
+const lexData = computed(() => {
+  if (isLegacyLexical.value)
+    return null
+  return store.currentBookInfo?.stats?.topWords as any
 })
 
 function goBack() {
@@ -152,6 +181,12 @@ watch(
   },
   { immediate: true },
 )
+
+onMounted(() => {
+  if (dictStore.words.length === 0) {
+    dictStore.fetchDictionary()
+  }
+})
 </script>
 
 <template>
@@ -179,7 +214,7 @@ watch(
             <img
               v-if="store.currentBookInfo.coverUrl"
               :src="store.currentBookInfo.coverUrl.startsWith('data:') ? store.currentBookInfo.coverUrl : `${BASE}${store.currentBookInfo.coverUrl}`"
-                alt="Обложка"
+              alt="Обложка"
             >
             <div v-else class="cover-placeholder">
               <Icon icon="mdi:book-open-blank-variant" class="placeholder-icon" />
@@ -356,10 +391,10 @@ watch(
                 </div>
               </div>
 
-              <h4 class="top-words-title">
-                Ядро книги:
-              </h4>
-              <div class="words-collapse-container" :class="{ 'is-expanded': isWordsExpanded }">
+              <template v-if="isLegacyLexical">
+                <h4 class="top-words-title">
+                  Самые частые слова:
+                </h4>
                 <div class="top-words-cloud">
                   <div
                     v-for="word in store.currentBookInfo.stats.topWords"
@@ -374,18 +409,100 @@ watch(
                     {{ word.word }} <span class="count">{{ word.count }}</span>
                   </div>
                 </div>
-                <div v-if="!isWordsExpanded" class="words-gradient-overlay" />
-              </div>
+              </template>
 
-              <KitBtn
-                variant="text"
-                size="sm"
-                class="expand-btn"
-                :icon="isWordsExpanded ? 'mdi:chevron-up' : 'mdi:chevron-down'"
-                @click="isWordsExpanded = !isWordsExpanded"
-              >
-                {{ isWordsExpanded ? 'Свернуть' : 'Развернуть слова' }}
-              </KitBtn>
+              <template v-else>
+                <div class="lexical-tabs-nav">
+                  <button :class="{ active: lexicalActiveTab === 'core' }" @click="lexicalActiveTab = 'core'">
+                    <Icon icon="mdi:bullseye-arrow" /> Ядро
+                  </button>
+                  <button :class="{ active: lexicalActiveTab === 'entities' }" @click="lexicalActiveTab = 'entities'">
+                    <Icon icon="mdi:account-group-outline" /> Имена
+                  </button>
+                  <button :class="{ active: lexicalActiveTab === 'rare' }" @click="lexicalActiveTab = 'rare'">
+                    <Icon icon="mdi:diamond-stone" /> Самородки
+                  </button>
+                  <button :class="{ active: lexicalActiveTab === 'dict' }" @click="lexicalActiveTab = 'dict'">
+                    <Icon icon="mdi:book-open-variant" /> Мой словарь
+                    <span v-if="dictionaryWordsInBook.length" class="badge">{{ dictionaryWordsInBook.length }}</span>
+                  </button>
+                </div>
+
+                <div class="lexical-tab-content">
+                  <div v-show="lexicalActiveTab === 'core'" class="tab-pane">
+                    <div class="word-group">
+                      <h5><Icon icon="mdi:shape-outline" /> Существительные <span>(Тематика)</span></h5>
+                      <div class="top-words-cloud">
+                        <div v-for="w in lexData?.nouns" :key="w.word" class="word-chip chip-n">
+                          {{ w.word }} <span class="count">{{ w.count }}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="word-group">
+                      <h5><Icon icon="mdi:run-fast" /> Глаголы <span>(Динамика)</span></h5>
+                      <div class="top-words-cloud">
+                        <div v-for="w in lexData?.verbs" :key="w.word" class="word-chip chip-v">
+                          {{ w.word }} <span class="count">{{ w.count }}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="word-group">
+                      <h5><Icon icon="mdi:weather-partly-cloudy" /> Прилагательные <span>(Атмосфера)</span></h5>
+                      <div class="top-words-cloud">
+                        <div v-for="w in lexData?.adjs" :key="w.word" class="word-chip chip-a">
+                          {{ w.word }} <span class="count">{{ w.count }}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div v-show="lexicalActiveTab === 'entities'" class="tab-pane">
+                    <p class="tab-desc">
+                      Собственные имена, названия мест и организаций, встречающиеся в тексте.
+                    </p>
+                    <div class="top-words-cloud">
+                      <div v-for="w in lexData?.properNouns" :key="w.word" class="word-chip chip-entity">
+                        {{ w.word }} <span class="count">{{ w.count }}</span>
+                      </div>
+                      <div v-if="!lexData?.properNouns?.length" class="empty-state-text">
+                        Имена не распознаны
+                      </div>
+                    </div>
+                  </div>
+
+                  <div v-show="lexicalActiveTab === 'rare'" class="tab-pane">
+                    <p class="tab-desc">
+                      Редкие слова, которые встречаются в книге всего от 2 до 5 раз. Отличный источник сложных терминов и авторских неологизмов.
+                    </p>
+                    <div class="top-words-cloud">
+                      <div v-for="w in lexData?.rareWords" :key="w.word" class="word-chip chip-rare">
+                        {{ w.word }} <span class="count">{{ w.count }}</span>
+                      </div>
+                      <div v-if="!lexData?.rareWords?.length" class="empty-state-text">
+                        Редких слов не найдено
+                      </div>
+                    </div>
+                  </div>
+
+                  <div v-show="lexicalActiveTab === 'dict'" class="tab-pane">
+                    <p class="tab-desc">
+                      Слова из вашего личного словаря, которые встретятся вам в этой книге.
+                    </p>
+                    <div v-if="dictionaryWordsInBook.length > 0" class="dict-match-list">
+                      <div v-for="dictItem in dictionaryWordsInBook" :key="dictItem.word" class="dict-match-item">
+                        <div class="dict-word-info">
+                          <span class="dict-word">{{ dictItem.word }}</span>
+                          <span class="dict-trans">{{ dictItem.transcription }}</span>
+                        </div>
+                        <div class="dict-trans-text" v-html="dictItem.translation" />
+                      </div>
+                    </div>
+                    <div v-else class="empty-state-text">
+                      В этой книге нет слов из вашего словаря.
+                    </div>
+                  </div>
+                </div>
+              </template>
             </div>
           </div>
 
@@ -909,35 +1026,6 @@ watch(
   color: var(--fg-primary-color);
 }
 
-.words-collapse-container {
-  position: relative;
-  max-height: 86px;
-  overflow: hidden;
-  transition: max-height 0.3s ease-in-out;
-
-  &.is-expanded {
-    max-height: 1200px;
-  }
-
-  .words-gradient-overlay {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    height: 46px;
-    background: linear-gradient(
-      to bottom,
-      rgba(var(--bg-secondary-color-rgb), 0),
-      rgba(var(--bg-secondary-color-rgb), 1)
-    );
-    pointer-events: none;
-  }
-}
-
-.expand-btn {
-  margin-top: 8px;
-}
-
 .top-words-cloud {
   display: flex;
   flex-wrap: wrap;
@@ -1056,6 +1144,144 @@ watch(
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+/* =========================================
+   НОВЫЕ ЛЕКСИЧЕСКИЕ ТАБЫ
+   ========================================= */
+.lexical-tabs-nav {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+  border-bottom: 1px solid var(--border-secondary-color);
+  padding-bottom: 12px;
+  overflow-x: auto;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+
+  button {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--fg-secondary-color);
+    background: transparent;
+    transition: all 0.2s;
+    white-space: nowrap;
+
+    &:hover {
+      background: var(--bg-hover-color);
+      color: var(--fg-primary-color);
+    }
+
+    &.active {
+      background: rgba(var(--bg-accent-color-rgb, 201, 117, 222), 0.15);
+      color: var(--fg-accent-color);
+    }
+
+    .badge {
+      background: var(--fg-accent-color);
+      color: var(--bg-primary-color);
+      font-size: 0.7rem;
+      padding: 2px 6px;
+      border-radius: 99px;
+      margin-left: 4px;
+    }
+  }
+}
+
+.tab-pane {
+  animation: fade-in 0.3s ease;
+}
+
+.tab-desc {
+  font-size: 0.85rem;
+  color: var(--fg-secondary-color);
+  margin-bottom: 16px;
+  line-height: 1.4;
+}
+
+.word-group {
+  margin-bottom: 20px;
+
+  h5 {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 1rem;
+    margin: 0 0 12px 0;
+    color: var(--fg-primary-color);
+
+    span {
+      font-weight: normal;
+      font-size: 0.85rem;
+      color: var(--fg-secondary-color);
+    }
+  }
+}
+
+.chip-entity {
+  border-color: #8b5cf6 !important;
+  color: #8b5cf6 !important;
+  background-color: rgba(139, 92, 246, 0.05) !important;
+}
+
+.chip-rare {
+  border-color: #f59e0b !important;
+  background-color: rgba(245, 158, 11, 0.05) !important;
+  font-style: italic;
+}
+
+.empty-state-text {
+  font-size: 0.9rem;
+  color: var(--fg-muted-color);
+  font-style: italic;
+  padding: 12px 0;
+}
+
+.dict-match-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 12px;
+}
+
+.dict-match-item {
+  padding: 12px;
+  background: var(--bg-primary-color);
+  border: 1px solid var(--border-primary-color);
+  border-radius: 8px;
+
+  .dict-word-info {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    margin-bottom: 4px;
+  }
+
+  .dict-word {
+    font-weight: 600;
+    color: var(--fg-accent-color);
+    font-size: 1.1rem;
+  }
+
+  .dict-trans {
+    font-size: 0.85rem;
+    color: var(--fg-secondary-color);
+  }
+
+  .dict-trans-text {
+    font-size: 0.9rem;
+    line-height: 1.4;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
   }
 }
 </style>

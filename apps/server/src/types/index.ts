@@ -1,3 +1,17 @@
+export interface LexicalWordData {
+  word: string
+  pos: string
+  count: number
+}
+
+export interface LexicalDataGroup {
+  nouns: LexicalWordData[]
+  verbs: LexicalWordData[]
+  adjs: LexicalWordData[]
+  properNouns: LexicalWordData[]
+  rareWords: LexicalWordData[]
+}
+
 export interface BookStats {
   bookId: number
   description: string
@@ -6,7 +20,7 @@ export interface BookStats {
   totalChars: number
   uniqueChars: number
   posDistribution?: Record<string, number> | null
-  topWords?: Array<{ word: string, pos: string, count: number }> | null
+  topWords?: LexicalWordData[] | LexicalDataGroup | null
   lexicalDiversity?: number | null
 }
 

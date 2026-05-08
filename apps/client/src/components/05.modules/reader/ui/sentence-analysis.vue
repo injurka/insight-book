@@ -88,6 +88,9 @@ onUnmounted(() => {
           <div class="history-sentence">
             {{ item.sentence }}
           </div>
+          <div v-if="item.analysis.transcription" class="history-transcription">
+            {{ item.analysis.transcription }}
+          </div>
           <div class="history-translation">
             {{ item.analysis.translation }}
           </div>
@@ -107,8 +110,13 @@ onUnmounted(() => {
 
       <div v-else-if="store.sidebarAnalysis" class="analysis-content">
         <div class="sentence-header">
-          <div class="original-sentence js-tooltip-selectable">
-            {{ store.sidebarSentence }}
+          <div class="sentence-content js-tooltip-selectable">
+            <div class="original-sentence">
+              {{ store.sidebarSentence }}
+            </div>
+            <div v-if="store.sidebarAnalysis.transcription" class="sentence-transcription">
+              {{ store.sidebarAnalysis.transcription }}
+            </div>
           </div>
           <button class="tts-btn" title="Озвучить" @click="playTTS">
             <Icon
@@ -208,6 +216,17 @@ onUnmounted(() => {
     overflow: hidden;
   }
 
+  .history-transcription {
+    font-size: 0.85rem;
+    color: var(--fg-secondary-color);
+    margin-bottom: 4px;
+    font-style: italic;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
   .history-translation {
     font-size: 0.9rem;
     color: var(--fg-secondary-color);
@@ -260,21 +279,29 @@ onUnmounted(() => {
       }
     }
 
-    .original-sentence {
+    .sentence-content {
       flex-grow: 1;
-      margin-bottom: 0;
-    }
-  }
+      padding: 10px 16px;
+      background-color: var(--bg-tertiary-color);
+      border-left: 4px solid var(--fg-accent-color);
+      border-radius: 4px 8px 8px 4px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
 
-  .original-sentence {
-    font-size: 1.3rem;
-    font-weight: 500;
-    margin-bottom: 24px;
-    padding: 10px 16px;
-    background-color: var(--bg-tertiary-color);
-    border-left: 4px solid var(--fg-accent-color);
-    border-radius: 4px 8px 8px 4px;
-    font-family: inherit;
+      .original-sentence {
+        font-size: 1.3rem;
+        font-weight: 500;
+        margin: 0;
+        font-family: inherit;
+      }
+
+      .sentence-transcription {
+        font-size: 1.05rem;
+        color: var(--fg-secondary-color);
+        line-height: 1.4;
+      }
+    }
   }
 
   .analysis-block {
