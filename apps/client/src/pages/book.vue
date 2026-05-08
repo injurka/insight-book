@@ -657,7 +657,7 @@ watch(
       }
       .stat-value {
         font-size: 1.4rem;
-        font-weight: 700;
+        font-weight: 600;
         color: var(--fg-primary-color);
 
         &.text-accent {

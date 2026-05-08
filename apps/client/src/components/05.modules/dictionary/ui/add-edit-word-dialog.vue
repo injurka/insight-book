@@ -85,7 +85,7 @@ watch(() => store.wordToEdit, (newWord) => {
 
   .dict-word {
     font-size: 1.8rem;
-    font-weight: 700;
+    font-weight: 600;
     margin: 0 0 4px;
     color: var(--fg-accent-color);
   }

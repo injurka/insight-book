@@ -7,31 +7,29 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>InsightBook</title>
 
+    <!-- Inter: preconnect + неблокирующая загрузка -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
+    <link rel="preload" as="style"
       href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap"
-      rel="stylesheet" />
+      onload="this.rel = 'stylesheet'" <noscript>
+    <link rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap" />
+    </noscript>
 
-    <link rel="preload" href="/fonts/split/regular/result.css" as="style" />
-    <link rel="preload" href="/fonts/split/medium/result.css" as="style" />
+    <!-- Regular + Medium: preload (критичные для UI, грузятся параллельно) -->
+    <link rel="preload" as="style" href="/fonts/split/regular/result.css" onload="this.rel = 'stylesheet'" />
+    <link rel="preload" as="style" href="/fonts/split/medium/result.css" onload="this.rel = 'stylesheet'" />
 
-    <link rel="stylesheet" href="/fonts/split/light/result.css" />
-    <link rel="stylesheet" href="/fonts/split/regular/result.css" />
-    <link rel="stylesheet" href="/fonts/split/medium/result.css" />
-    <link rel="stylesheet" href="/fonts/split/semibold/result.css" />
-    <link rel="stylesheet" href="/fonts/split/bold/result.css" />
+    <!-- Light + SemiBold + Bold: неблокирующие (редко нужны при первом рендере) -->
+    <link rel="preload" as="style" href="/fonts/split/semibold/result.css" onload="this.rel = 'stylesheet'" />
 
-    <style>
-      body {
-        visibility: hidden;
-      }
-    </style>
-    <script>
-      document.addEventListener('DOMContentLoaded', () => {
-        document.body.style.visibility = 'visible'
-      })
-    </script>
+    <!-- Fallback для браузеров без JS -->
+    <noscript>
+      <link rel="stylesheet" href="/fonts/split/regular/result.css" />
+      <link rel="stylesheet" href="/fonts/split/medium/result.css" />
+      <link rel="stylesheet" href="/fonts/split/semibold/result.css" />
+    </noscript>
   </head>
 
   <body>
