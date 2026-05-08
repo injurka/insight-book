@@ -64,12 +64,17 @@ export default defineConfig({
   },
 
   build: {
+    cssCodeSplit: true,
     outDir: resolve(__dirname, '../dist'),
     emptyOutDir: true,
     chunkSizeWarningLimit: 800,
     rollupOptions: {
-      input: {
-        main: resolve(__dirname, '../src/index.html'),
+      output: {
+        manualChunks(id) {
+          if (id.includes('node_modules')) {
+            return 'vendor'
+          }
+        },
       },
     },
   },

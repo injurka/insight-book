@@ -1,0 +1,20 @@
+/* =============================================================================
+   Maple Mono CN — подключение split-шрифтов
+   Файл должен быть в public/fonts/fonts.css
+   Шрифты подключаются через <link> в index.html, а не через @import в SCSS
+   ============================================================================= */
+
+/* Light — weight 300 */
+@import url('./split/light/result.css');
+
+/* Regular — weight 400 */
+@import url('./split/regular/result.css');
+
+/* Medium — weight 500 */
+@import url('./split/medium/result.css');
+
+/* SemiBold — weight 600 */
+@import url('./split/semibold/result.css');
+
+/* Bold — weight 700 */
+@import url('./split/bold/result.css');

@@ -343,7 +343,7 @@ function goToPage(pageNum?: number) {
         background-color: var(--fg-accent-color);
         color: var(--bg-primary-color);
         font-weight: bold;
-        text-shadow: none; // Убираем тень, чтобы белый текст на цветном фоне не сливался
+        text-shadow: none;
       }
     }
   }

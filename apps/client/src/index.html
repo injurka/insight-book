@@ -1,5 +1,6 @@
 <!doctype html>
 <html lang="en">
+
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.ico" />
@@ -10,8 +11,16 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap"
-      rel="stylesheet"
-    />
+      rel="stylesheet" />
+
+    <link rel="preload" href="/fonts/split/regular/result.css" as="style" />
+    <link rel="preload" href="/fonts/split/medium/result.css" as="style" />
+
+    <link rel="stylesheet" href="/fonts/split/light/result.css" />
+    <link rel="stylesheet" href="/fonts/split/regular/result.css" />
+    <link rel="stylesheet" href="/fonts/split/medium/result.css" />
+    <link rel="stylesheet" href="/fonts/split/semibold/result.css" />
+    <link rel="stylesheet" href="/fonts/split/bold/result.css" />
 
     <style>
       body {
@@ -26,9 +35,7 @@
   </head>
 
   <body>
-    <div
-      id="app-preloader"
-      style="
+    <div id="app-preloader" style="
         position: fixed;
         inset: 0;
         display: flex;
@@ -36,8 +43,7 @@
         align-items: center;
         background-color: #0d1117;
         z-index: 99999;
-      "
-    >
+      ">
       <style>
         #app-preloader .spinner {
           width: 40px;
@@ -71,4 +77,5 @@
     <div id="app"></div>
     <script type="module" src="./main.ts"></script>
   </body>
+
 </html>
