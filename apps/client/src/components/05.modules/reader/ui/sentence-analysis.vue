@@ -1,28 +1,26 @@
 <script setup lang="ts">
 import type { AnalysisHistoryItem } from '~/shared/store/books.store'
 import { Icon } from '@iconify/vue'
-import { onUnmounted, ref, watch } from 'vue'
 import { KitDialog, KitSkeleton } from '~/components/01.kit'
+import { useTts } from '~/shared/composables/use-tts'
 import { useBooksStore } from '~/shared/store/books.store'
 
 const store = useBooksStore()
+const { speak, stop, isPlaying, isLoading } = useTts()
 
 const isPinned = ref(true)
 const showHistory = ref(false)
-const isSpeaking = ref(false)
 
 watch(() => store.sidebarSentence, () => {
   showHistory.value = false
-  if (isSpeaking.value) {
-    window.speechSynthesis.cancel()
-    isSpeaking.value = false
+  if (isPlaying.value || isLoading.value) {
+    stop()
   }
 })
 
 watch(() => store.sidebarOpen, (isOpen) => {
-  if (!isOpen && isSpeaking.value) {
-    window.speechSynthesis.cancel()
-    isSpeaking.value = false
+  if (!isOpen && (isPlaying.value || isLoading.value)) {
+    stop()
   }
 })
 
@@ -35,35 +33,16 @@ function playTTS() {
   if (!store.sidebarSentence)
     return
 
-  const text = store.sidebarSentence
-  const lang = store.currentBook?.language || 'en'
-
-  const langMap: Record<string, string> = {
-    zh: 'zh-CN',
-    ja: 'ja-JP',
-    en: 'en-US',
-    ru: 'ru-RU',
+  if (isPlaying.value || isLoading.value) {
+    stop()
   }
-
-  window.speechSynthesis.cancel()
-
-  const utterance = new SpeechSynthesisUtterance(text)
-  utterance.lang = langMap[lang.toLowerCase()] || lang
-  utterance.rate = 0.9
-
-  utterance.onstart = () => {
-    isSpeaking.value = true
+  else {
+    speak(store.sidebarSentence)
   }
-
-  utterance.onend = () => {
-    isSpeaking.value = false
-  }
-
-  window.speechSynthesis.speak(utterance)
 }
 
 onUnmounted(() => {
-  window.speechSynthesis.cancel()
+  stop()
 })
 </script>
 
@@ -132,7 +111,10 @@ onUnmounted(() => {
             {{ store.sidebarSentence }}
           </div>
           <button class="tts-btn" title="Озвучить" @click="playTTS">
-            <Icon :icon="isSpeaking ? 'mdi:volume-high' : 'mdi:volume-medium'" :class="{ 'pulse-animation': isSpeaking }" />
+            <Icon
+              :icon="isLoading ? 'mdi:loading' : (isPlaying ? 'mdi:volume-high' : 'mdi:volume-medium')"
+              :class="{ 'pulse-animation': isPlaying, 'spin-animation': isLoading }"
+            />
           </button>
         </div>
 
@@ -371,6 +353,11 @@ onUnmounted(() => {
   display: inline-block;
 }
 
+.spin-animation {
+  animation: spin 1s linear infinite;
+  display: inline-block;
+}
+
 @keyframes pulse-op {
   0% {
     opacity: 1;
@@ -383,6 +370,12 @@ onUnmounted(() => {
   100% {
     opacity: 1;
     transform: scale(1);
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
   }
 }
 

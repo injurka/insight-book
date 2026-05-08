@@ -1,14 +1,14 @@
 <script setup lang="ts">
 import { Icon } from '@iconify/vue'
 import { useDebounceFn } from '@vueuse/core'
-import { nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
+import { useTts } from '~/shared/composables/use-tts'
 import { useBooksStore } from '~/shared/store/books.store'
 
 const store = useBooksStore()
+const { speak, stop, isPlaying, isLoading } = useTts()
+
 const popoverRef = ref<HTMLElement | null>(null)
 const popoverPos = ref({ top: '-9999px', left: '-9999px', transform: 'none' })
-
-const isSpeaking = ref(false)
 
 // Логика отслеживания выделения текста
 const checkTextSelection = useDebounceFn(() => {
@@ -62,7 +62,7 @@ onMounted(() => {
 
 onUnmounted(() => {
   document.removeEventListener('selectionchange', checkTextSelection)
-  window.speechSynthesis.cancel()
+  stop()
 })
 
 watch(
@@ -70,9 +70,8 @@ watch(
   async (val) => {
     if (!val) {
       popoverPos.value = { top: '-9999px', left: '-9999px', transform: 'none' }
-      if (isSpeaking.value) {
-        window.speechSynthesis.cancel()
-        isSpeaking.value = false
+      if (isPlaying.value || isLoading.value) {
+        stop()
       }
       return
     }
@@ -93,12 +92,12 @@ watch(
 
     if (isMobile) {
       if (top + popRect.height > wh - 10) {
-        top = rect.top - popRect.height - 8 
+        top = rect.top - popRect.height - 8
       }
     }
     else {
       if (top < 10) {
-        top = rect.bottom + 8 
+        top = rect.bottom + 8
       }
     }
 
@@ -133,31 +132,12 @@ function playTTS() {
   if (!store.selectionTooltip)
     return
 
-  const text = store.selectionTooltip.text
-  const lang = store.currentBook?.language || 'en'
-
-  const langMap: Record<string, string> = {
-    zh: 'zh-CN',
-    ja: 'ja-JP',
-    en: 'en-US',
-    ru: 'ru-RU',
+  if (isPlaying.value || isLoading.value) {
+    stop()
   }
-
-  window.speechSynthesis.cancel()
-
-  const utterance = new SpeechSynthesisUtterance(text)
-  utterance.lang = langMap[lang.toLowerCase()] || lang
-  utterance.rate = 0.9
-
-  utterance.onstart = () => {
-    isSpeaking.value = true
+  else {
+    speak(store.selectionTooltip.text)
   }
-
-  utterance.onend = () => {
-    isSpeaking.value = false
-  }
-
-  window.speechSynthesis.speak(utterance)
 }
 </script>
 
@@ -179,7 +159,10 @@ function playTTS() {
         </button>
         <div class="divider" />
         <button class="tooltip-btn" title="Озвучить" @click="playTTS">
-          <Icon :icon="isSpeaking ? 'mdi:volume-high' : 'mdi:volume-medium'" :class="{ 'pulse-animation': isSpeaking }" />
+          <Icon
+            :icon="isLoading ? 'mdi:loading' : (isPlaying ? 'mdi:volume-high' : 'mdi:volume-medium')"
+            :class="{ 'pulse-animation': isPlaying, 'spin-animation': isLoading }"
+          />
           <span>Слушать</span>
         </button>
       </div>
@@ -236,6 +219,12 @@ function playTTS() {
   animation: pulse-op 1.2s ease-in-out infinite;
   transform-origin: center;
   display: inline-block;
+  color: var(--fg-accent-color);
+}
+
+.spin-animation {
+  animation: spin 1s linear infinite;
+  display: inline-block;
 }
 
 @keyframes pulse-op {
@@ -250,6 +239,12 @@ function playTTS() {
   100% {
     opacity: 1;
     transform: scale(1);
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
   }
 }
 

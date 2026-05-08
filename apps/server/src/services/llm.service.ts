@@ -21,15 +21,18 @@ const LlmAnalysisSchema = z.object({
   grammarRules: z.array(GrammarRuleSchema).default([]),
   vocabulary: z.array(VocabItemSchema).default([]),
 })
+
 function hashSentence(sentence: string, language: string): string {
   const hasher = new Bun.CryptoHasher('sha256')
   hasher.update(`${language.toLowerCase()}::${sentence.trim()}`)
   return hasher.digest('hex')
 }
+
 function getLangName(code: string): string {
   const map: Record<string, string> = { zh: 'китайского', ja: 'японского', en: 'английского' }
   return map[code.toLowerCase()] || 'иностранного'
 }
+
 function getSystemPrompt(language: string) {
   const langName = getLangName(language)
   return `Ты — экспертный лингвист и терпеливый преподаватель ${langName} языка для русскоязычных студентов.
@@ -107,10 +110,18 @@ async function _callLlmApi(model: string, messages: any[], temperature: number, 
 export async function analyzeSentence(bookId: number, sentence: string, language: string): Promise<LlmAnalysis> {
   const hash = hashSentence(sentence, language)
 
-  const cached = sqlite.prepare(`SELECT analysis FROM llm_cache WHERE bookId = ? AND sentenceHash = ?`).get(bookId, hash) as { analysis: string } | null
+  // 1. Проверяем наличие в глобальном кэше
+  const cached = sqlite.prepare(`SELECT analysis FROM llm_cache WHERE sentenceHash = ?`).get(hash) as { analysis: string } | null
 
-  if (cached)
+  if (cached) {
+    // 2. Если нашли в кэше, связываем с текущей книгой (INSERT OR IGNORE)
+    sqlite.prepare(`
+      INSERT OR IGNORE INTO book_llm_cache (bookId, sentenceHash) 
+      VALUES (?, ?)
+    `).run(bookId, hash)
+
     return JSON.parse(cached.analysis) as LlmAnalysis
+  }
 
   if (!LLM_API_KEY)
     throw new AppError(500, 'LLM_API_KEY не настроен')
@@ -130,11 +141,17 @@ export async function analyzeSentence(bookId: number, sentence: string, language
       const parsed = JSON.parse(cleanJson)
       const analysis = LlmAnalysisSchema.parse(parsed) as LlmAnalysis
 
-      // Сохраняем в кэш с привязкой к bookId
+      // 3. Сохраняем в глобальный кэш
       sqlite.prepare(`
-        INSERT OR REPLACE INTO llm_cache (bookId, sentenceHash, language, sentence, analysis) 
-        VALUES (?, ?, ?, ?, ?)
-      `).run(bookId, hash, language, sentence, JSON.stringify(analysis))
+        INSERT OR IGNORE INTO llm_cache (sentenceHash, language, sentence, analysis) 
+        VALUES (?, ?, ?, ?)
+      `).run(hash, language, sentence, JSON.stringify(analysis))
+
+      // 4. Связываем предложение с книгой, в которой его перевели
+      sqlite.prepare(`
+        INSERT OR IGNORE INTO book_llm_cache (bookId, sentenceHash) 
+        VALUES (?, ?)
+      `).run(bookId, hash)
 
       return analysis
     }
@@ -188,6 +205,7 @@ function hashTtsText(text: string, voice: string): string {
   hasher.update(text.trim() + voice)
   return hasher.digest('hex')
 }
+
 function getVoiceForLanguage(language: string): string {
   switch (language.toLowerCase()) {
     case 'en': return 'alloy'
@@ -196,6 +214,7 @@ function getVoiceForLanguage(language: string): string {
     default: return 'alloy'
   }
 }
+
 export async function generateTts(text: string, language: string): Promise<string> {
   const normalizedText = text.trim()
   const voice = getVoiceForLanguage(language)

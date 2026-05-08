@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { watch } from 'vue'
+import { computed, watch } from 'vue'
 import { KitBtn, KitDialog } from '~/components/01.kit'
 import { PageLoader } from '~/components/02.shared/page-loader'
 
@@ -15,6 +15,64 @@ const router = useRouter()
 const route = useRoute()
 
 const readerViewRef = useTemplateRef<HTMLElement>('readerViewRef')
+
+const translationMap = computed(() => {
+  const map: Record<string, string> = {}
+  for (const item of store.analysisHistory) {
+    map[item.sentence] = item.analysis.translation
+  }
+  return map
+})
+
+const translatedPageContent = computed(() => {
+  if (!store.currentPage?.content || !store.isParallelView)
+    return ''
+  const parser = new DOMParser()
+  const doc = parser.parseFromString(store.currentPage.content, 'text/html')
+  const map = translationMap.value
+
+  doc.querySelectorAll('.sentence').forEach((span) => {
+    const rawSent = decodeURIComponent(span.getAttribute('data-raw-sent') || '')
+    if (map[rawSent]) {
+      span.innerHTML = map[rawSent]
+      span.classList.add('has-translation')
+    }
+    else {
+      span.innerHTML = `<span class="untranslated-text">${span.innerHTML}</span>`
+    }
+  })
+  return doc.body.innerHTML
+})
+
+function onSentenceHover(event: MouseEvent) {
+  if (!store.isParallelView)
+    return
+  const target = (event.target as HTMLElement).closest('.sentence') as HTMLElement | null
+  if (!target)
+    return
+
+  const sentId = target.getAttribute('data-sent-id')
+  if (sentId && readerViewRef.value) {
+    readerViewRef.value.querySelectorAll(`.sentence[data-sent-id="${sentId}"]`).forEach((el) => {
+      el.classList.add('is-hovered')
+    })
+  }
+}
+
+function onSentenceOut(event: MouseEvent) {
+  if (!store.isParallelView)
+    return
+  const target = (event.target as HTMLElement).closest('.sentence') as HTMLElement | null
+  if (!target)
+    return
+
+  const sentId = target.getAttribute('data-sent-id')
+  if (sentId && readerViewRef.value) {
+    readerViewRef.value.querySelectorAll(`.sentence[data-sent-id="${sentId}"]`).forEach((el) => {
+      el.classList.remove('is-hovered')
+    })
+  }
+}
 
 watch(() => store.activeTokenId, (newId, oldId) => {
   if (oldId) {
@@ -142,18 +200,37 @@ function onScroll() {
           </p>
         </div>
 
-        <div
-          v-else-if="store.currentPage"
-          class="reader-content container js-tooltip-selectable"
-          @click="onContentClick"
-          @mousedown="onPointerDown"
-          @touchstart="onPointerDown"
-          @mouseup="onPointerUp"
-          @touchend="onPointerUp"
-          @touchcancel="onPointerUp"
-          @mouseleave="onPointerUp"
-          v-html="store.currentPage.content"
-        />
+        <div v-else-if="store.currentPage" class="reader-layout-wrapper">
+          <div class="reader-content-layout" :class="{ 'is-parallel': store.isParallelView }">
+            <div
+              class="reader-content left-pane js-tooltip-selectable"
+              @click="onContentClick"
+              @mousedown="onPointerDown"
+              @touchstart="onPointerDown"
+              @mouseup="onPointerUp"
+              @touchend="onPointerUp"
+              @touchcancel="onPointerUp"
+              @mouseleave="onPointerUp"
+              @mouseover="onSentenceHover"
+              @mouseout="onSentenceOut"
+              v-html="store.currentPage.content"
+            />
+
+            <div
+              v-if="store.isParallelView"
+              class="reader-content right-pane"
+              @mousedown="onPointerDown"
+              @touchstart="onPointerDown"
+              @mouseup="onPointerUp"
+              @touchend="onPointerUp"
+              @touchcancel="onPointerUp"
+              @mouseleave="onPointerUp"
+              @mouseover="onSentenceHover"
+              @mouseout="onSentenceOut"
+              v-html="translatedPageContent"
+            />
+          </div>
+        </div>
       </div>
 
       <ReaderFooter @prev="prevPage" @next="nextPage" />
@@ -221,10 +298,53 @@ function onScroll() {
   position: relative;
 }
 
-.reader-content {
+.reader-layout-wrapper {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  padding: 24px;
+
+  @include media-down(sm) {
+    padding: 16px;
+  }
+}
+
+.reader-content-layout {
+  display: flex;
+  width: 100%;
   max-width: 800px;
-  margin: 0 auto;
-  padding: 24px 24px;
+  transition: max-width 0.3s ease;
+  gap: 48px;
+
+  &.is-parallel {
+    max-width: 1600px;
+
+    .left-pane,
+    .right-pane {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .right-pane {
+      border-left: 1px dashed var(--border-secondary-color);
+      padding-left: 48px;
+    }
+
+    @include media-down(md) {
+      flex-direction: column;
+      gap: 24px;
+      .right-pane {
+        border-left: none;
+        border-top: 1px dashed var(--border-secondary-color);
+        padding-left: 0;
+        padding-top: 24px;
+      }
+    }
+  }
+}
+
+.reader-content {
+  width: 100%;
   font-family: 'Maple Mono CN', 'Microsoft YaHei', sans-serif;
   font-size: 1.4rem;
   line-height: 1.8;
@@ -233,7 +353,6 @@ function onScroll() {
   word-wrap: break-word;
 
   @include media-down(sm) {
-    padding: 16px 16px;
     font-size: 1.25rem;
   }
 
@@ -294,9 +413,14 @@ function onScroll() {
     border-radius: 4px;
     transition: background-color 0.2s ease;
 
-    &:hover {
+    &:hover,
+    &.is-hovered {
       background-color: var(--bg-hover-color);
     }
+  }
+
+  :deep(.untranslated-text) {
+    opacity: 0.4;
   }
 
   :deep(.word) {

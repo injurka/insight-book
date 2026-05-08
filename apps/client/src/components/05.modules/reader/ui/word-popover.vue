@@ -6,7 +6,7 @@ import { POS_TAGS_MAP } from '~/shared/constants/pos-tags'
 import { useBooksStore } from '~/shared/store/books.store'
 
 const store = useBooksStore()
-const { speak, isPlaying, isLoading } = useTts()
+const { speak, stop, isPlaying, isLoading } = useTts()
 
 const popoverRef = ref<HTMLElement | null>(null)
 const popoverPos = ref({ top: '-9999px', left: '-9999px', transform: 'none' })
@@ -16,6 +16,7 @@ watch(
   async (val) => {
     if (!val) {
       popoverPos.value = { top: '-9999px', left: '-9999px', transform: 'none' }
+      stop()
       return
     }
     await nextTick()
@@ -68,7 +69,12 @@ function openSaveDialog() {
 
 function playWordTTS() {
   if (store.wordPopover) {
-    speak(store.wordPopover.word)
+    if (isPlaying.value || isLoading.value) {
+      stop()
+    }
+    else {
+      speak(store.wordPopover.word)
+    }
   }
 }
 
@@ -86,6 +92,7 @@ onMounted(() => {
 
 onUnmounted(() => {
   document.removeEventListener('click', closePopover)
+  stop() // Останавливаем аудио при размонтировании
 })
 </script>
 
@@ -244,7 +251,7 @@ onUnmounted(() => {
       }
 
       svg {
-        font-size: 1.4rem; // Немного увеличим для chevron
+        font-size: 1.4rem;
       }
     }
   }

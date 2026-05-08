@@ -20,6 +20,16 @@ function goBack() {
     <div class="spacer" />
 
     <KitBtn
+      v-if="store.currentBook?.type !== 'manga'"
+      icon="mdi:view-split-vertical"
+      variant="text"
+      size="sm"
+      title="Параллельное чтение"
+      class="desktop-only"
+      :class="{ 'is-active-btn': store.isParallelView }"
+      @click="store.isParallelView = !store.isParallelView"
+    />
+    <KitBtn
       icon="mdi:text-box-search-outline"
       variant="text"
       size="sm"
@@ -27,11 +37,11 @@ function goBack() {
       :disabled="store.isAnalyzingPage"
       @click="store.analyzeWholePage"
     />
-    <KitBtn 
-      :icon="theme === ThemesVariant.Light ? 'mdi:weather-night' : 'mdi:weather-sunny'" 
-      variant="text" 
+    <KitBtn
+      :icon="theme === ThemesVariant.Light ? 'mdi:weather-night' : 'mdi:weather-sunny'"
+      variant="text"
       aria-label="Переключить тему"
-      @click="toggleTheme" 
+      @click="toggleTheme"
     />
     <KitBtn icon="mdi:format-list-bulleted" variant="text" size="sm" @click="store.tocOpen = true" />
   </header>
@@ -61,6 +71,16 @@ function goBack() {
 
   .spacer {
     flex-grow: 1;
+  }
+
+  .desktop-only {
+    @include media-down(md) {
+      display: none !important;
+    }
+  }
+
+  .is-active-btn {
+    color: var(--fg-accent-color) !important;
   }
 }
 </style>

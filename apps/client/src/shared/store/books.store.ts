@@ -37,6 +37,7 @@ export const useBooksStore = defineStore('books', () => {
   const isPageLoading = ref(false)
   const isAnalyzingBook = ref(false)
   const isAnalyzingVocab = ref(false)
+  const isParallelView = ref(false) 
 
   const uploadProgress = ref(0)
   const ttsCurrentWordIndex = ref(-1)
@@ -548,6 +549,7 @@ export const useBooksStore = defineStore('books', () => {
     isLoading,
     isPageLoading,
     isAnalyzingBook,
+    isParallelView,
     uploadProgress,
     activeTokenId,
     wordPopover,

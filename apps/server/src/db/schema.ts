@@ -6,7 +6,7 @@ export const books = sqliteTable('books', {
   type: text('type').notNull().default('epub'),
   title: text('title').notNull(),
   author: text('author'),
-  coverUrl: text('coverUrl'), 
+  coverUrl: text('coverUrl'),
   filePath: text('filePath').notNull(),
   language: text('language').notNull().default('en'),
   totalPages: integer('totalPages').notNull().default(0),
@@ -62,11 +62,16 @@ export const nlpCache = sqliteTable('nlp_cache', {
 })
 
 export const llmCache = sqliteTable('llm_cache', {
-  bookId: integer('bookId').notNull().references(() => books.id, { onDelete: 'cascade' }),
-  sentenceHash: text('sentenceHash').notNull(),
+  sentenceHash: text('sentenceHash').primaryKey(),
   language: text('language').notNull().default('en'),
   sentence: text('sentence').notNull(),
   analysis: text('analysis').notNull(),
+  createdAt: text('createdAt').notNull().default(sql`(datetime('now'))`),
+})
+
+export const bookLlmCache = sqliteTable('book_llm_cache', {
+  bookId: integer('bookId').notNull().references(() => books.id, { onDelete: 'cascade' }),
+  sentenceHash: text('sentenceHash').notNull().references(() => llmCache.sentenceHash, { onDelete: 'cascade' }),
   createdAt: text('createdAt').notNull().default(sql`(datetime('now'))`),
 }, t => ({
   pk: primaryKey({ columns: [t.bookId, t.sentenceHash] }),
@@ -91,16 +96,23 @@ export const userDictionary = sqliteTable('user_dictionary', {
   updatedAt: text('updatedAt').notNull().default(sql`(datetime('now'))`),
 })
 
+// ================= RELATIONS =================
+
 export const booksRelations = relations(books, ({ one, many }) => ({
   progress: one(readingProgress, { fields: [books.id], references: [readingProgress.bookId] }),
   stats: one(bookStats, { fields: [books.id], references: [bookStats.bookId] }),
   pages: many(bookPages),
   mangaPages: many(mangaPages),
-  llmCache: many(llmCache),
+  bookLlmCache: many(bookLlmCache),
 }))
 
-export const llmCacheRelations = relations(llmCache, ({ one }) => ({
-  book: one(books, { fields: [llmCache.bookId], references: [books.id] }),
+export const llmCacheRelations = relations(llmCache, ({ many }) => ({
+  bookLlmCache: many(bookLlmCache),
+}))
+
+export const bookLlmCacheRelations = relations(bookLlmCache, ({ one }) => ({
+  book: one(books, { fields: [bookLlmCache.bookId], references: [books.id] }),
+  llmCache: one(llmCache, { fields: [bookLlmCache.sentenceHash], references: [llmCache.sentenceHash] }),
 }))
 
 export const mangaPagesRelations = relations(mangaPages, ({ one }) => ({
