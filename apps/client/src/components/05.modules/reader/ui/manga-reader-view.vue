@@ -1,22 +1,28 @@
 <script setup lang="ts">
+import { useTemplateRef, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { KitBtn, KitDialog } from '~/components/01.kit'
+
 import { PageLoader } from '~/components/02.shared/page-loader'
-import { useBooksStore } from '~/shared/store/books.store'
+import { SelectionTooltip, SentenceAnalysis, useTextSelection, WordPopover } from '~/components/03.domain/analysis'
+import { useAnalysisStore } from '~/shared/store/analysis.store'
+import { useReaderStore } from '../store/reader.store'
+
 import ReaderFooter from './reader-footer.vue'
 import ReaderHeader from './reader-header.vue'
-import SelectionTooltip from './selection-tooltip.vue'
-import SentenceAnalysis from './sentence-analysis.vue'
-import WordPopover from './word-popover.vue'
 
-const store = useBooksStore()
+const readerStore = useReaderStore()
+const analysisStore = useAnalysisStore()
 const router = useRouter()
 const route = useRoute()
 
 const BASE = import.meta.env.VITE_API_URL || 'https://insight-api.trip-scheduler.ru'
 
+const { onPointerDown, onPointerUp, onWordClick } = useTextSelection()
+
 const readerViewRef = useTemplateRef<HTMLElement>('readerViewRef')
 
-watch(() => store.activeTokenId, (newId, oldId) => {
+watch(() => analysisStore.activeTokenId, (newId, oldId) => {
   if (oldId) {
     const [sentId, tokenIdx] = oldId.split('-')
     const el = readerViewRef.value?.querySelector(`.word[data-sent-id="${sentId}"][data-token-idx="${tokenIdx}"]`)
@@ -32,105 +38,49 @@ watch(() => store.activeTokenId, (newId, oldId) => {
 })
 
 function getBoxStyle(box: any) {
-  if (!store.currentPage?.imageWidth || !store.currentPage?.imageHeight)
+  if (!readerStore.currentPage?.imageWidth || !readerStore.currentPage?.imageHeight)
     return {}
   return {
-    left: `${(box.x / store.currentPage.imageWidth) * 100}%`,
-    top: `${(box.y / store.currentPage.imageHeight) * 100}%`,
-    width: `${(box.w / store.currentPage.imageWidth) * 100}%`,
-    height: `${(box.h / store.currentPage.imageHeight) * 100}%`,
-  }
-}
-
-let pressTimer: ReturnType<typeof setTimeout> | null = null
-
-function onPointerDown(event: MouseEvent | TouchEvent, fallbackText: string) {
-  const target = (event.target as HTMLElement).closest('.sentence') as HTMLElement | null
-  let rawSent = fallbackText
-
-  if (target && target.dataset.rawSent) {
-    rawSent = decodeURIComponent(target.dataset.rawSent)
-  }
-  else {
-    rawSent = rawSent.replace(/\n+/g, '') // Если кликнули мимо токенизированного текста
-  }
-
-  pressTimer = setTimeout(() => {
-    store.closePopover()
-    store.closeSelectionTooltip()
-    window.getSelection()?.empty()
-    store.handleSentenceAnalysis(rawSent)
-    pressTimer = null
-  }, 500)
-}
-
-function onPointerUp() {
-  if (pressTimer) {
-    clearTimeout(pressTimer)
-    pressTimer = null
-  }
-}
-
-function onContentClick(event: MouseEvent) {
-  if (pressTimer) {
-    clearTimeout(pressTimer)
-    pressTimer = null
-  }
-
-  const target = (event.target as HTMLElement).closest('.word') as HTMLElement | null
-  if (!target)
-    return
-
-  const pos = target.dataset.pos
-  if (pos === 'x')
-    return
-
-  const word = decodeURIComponent(target.dataset.word || '')
-  const sentenceId = Number(target.dataset.sentId)
-  const tokenIndex = Number(target.dataset.tokenIdx)
-
-  if (!word || Number.isNaN(sentenceId) || Number.isNaN(tokenIndex) || !pos)
-    return
-
-  window.getSelection()?.empty()
-
-  event.stopPropagation()
-  store.handleWordClick(word, pos, sentenceId, tokenIndex, target)
-}
-
-function onScroll() {
-  if (store.wordPopover) {
-    store.closePopover()
-  }
-  if (store.selectionTooltip) {
-    store.closeSelectionTooltip()
+    left: `${(box.x / readerStore.currentPage.imageWidth) * 100}%`,
+    top: `${(box.y / readerStore.currentPage.imageHeight) * 100}%`,
+    width: `${(box.w / readerStore.currentPage.imageWidth) * 100}%`,
+    height: `${(box.h / readerStore.currentPage.imageHeight) * 100}%`,
   }
 }
 
 function prevPage() {
-  if (store.currentBook && (store.currentBook.currentPage || 1) > 1) {
-    const newPage = (store.currentBook.currentPage || 1) - 1
-    store.loadPage(store.currentBook.id, newPage)
+  if (readerStore.currentBook && (readerStore.currentBook.currentPage || 1) > 1) {
+    const newPage = (readerStore.currentBook.currentPage || 1) - 1
+    readerStore.loadPage(readerStore.currentBook.id, newPage)
     router.replace({ query: { ...route.query, page: newPage } })
     window.scrollTo({ top: 0 })
   }
 }
 
 function nextPage() {
-  if (store.currentBook && (store.currentBook.currentPage || 1) < store.currentBook.totalPages) {
-    const newPage = (store.currentBook.currentPage || 1) + 1
-    store.loadPage(store.currentBook.id, newPage)
+  if (readerStore.currentBook && (readerStore.currentBook.currentPage || 1) < readerStore.currentBook.totalPages) {
+    const newPage = (readerStore.currentBook.currentPage || 1) + 1
+    readerStore.loadPage(readerStore.currentBook.id, newPage)
     router.replace({ query: { ...route.query, page: newPage } })
     window.scrollTo({ top: 0 })
   }
 }
 
 function goToPage(pageNum?: number) {
-  if (!pageNum || !store.currentBook)
+  if (!pageNum || !readerStore.currentBook)
     return
-  store.tocOpen = false
-  store.loadPage(store.currentBook.id, pageNum)
+  readerStore.tocOpen = false
+  readerStore.loadPage(readerStore.currentBook.id, pageNum)
   router.replace({ query: { ...route.query, page: pageNum } })
+}
+
+function onScroll() {
+  if (analysisStore.wordPopover) {
+    analysisStore.closePopover()
+  }
+  if (analysisStore.selectionTooltip) {
+    analysisStore.closeSelectionTooltip()
+  }
 }
 </script>
 
@@ -139,28 +89,27 @@ function goToPage(pageNum?: number) {
     <ReaderHeader />
 
     <div class="reader-content-wrapper">
-      <div v-if="store.isPageLoading || store.isLoading" class="reader-loading-wrapper">
+      <div v-if="readerStore.isPageLoading" class="reader-loading-wrapper">
         <PageLoader />
         <p class="loading-text">
           Подготовка страницы (OCR & NLP)...
         </p>
       </div>
 
-      <div v-else-if="store.currentPage?.imageUrl" class="manga-container">
-        <!-- Вешаем обработчики на обертку для делегирования -->
+      <div v-else-if="readerStore.currentPage?.imageUrl" class="manga-container">
         <div
           class="manga-page-wrapper js-tooltip-selectable"
-          @click="onContentClick"
+          @click="onWordClick"
           @mouseup="onPointerUp"
           @touchend="onPointerUp"
           @touchcancel="onPointerUp"
           @mouseleave="onPointerUp"
         >
-          <img :src="`${BASE}${store.currentPage.imageUrl}`" class="manga-image">
+          <img :src="`${BASE}${readerStore.currentPage.imageUrl}`" class="manga-image">
 
           <div class="ocr-overlay">
             <div
-              v-for="box in store.currentPage.ocrBlocks"
+              v-for="box in readerStore.currentPage.ocrBlocks"
               :key="box.id"
               class="ocr-bubble"
               :style="getBoxStyle(box)"
@@ -175,14 +124,14 @@ function goToPage(pageNum?: number) {
     </div>
 
     <Transition name="fade">
-      <div v-if="store.isAnalyzingPage" class="page-analysis-overlay">
+      <div v-if="analysisStore.isAnalyzingPage" class="page-analysis-overlay">
         <div class="analysis-dialog">
           <h3>Анализ страницы</h3>
-          <p>Обработано {{ store.pageAnalysisCurrent }} из {{ store.pageAnalysisTotal }} блоков...</p>
+          <p>Обработано {{ analysisStore.pageAnalysisCurrent }} из {{ analysisStore.pageAnalysisTotal }} блоков...</p>
           <div class="progress-bar">
-            <div class="progress-fill" :style="{ width: `${store.pageAnalysisProgress}%` }" />
+            <div class="progress-fill" :style="{ width: `${analysisStore.pageAnalysisProgress}%` }" />
           </div>
-          <KitBtn color="secondary" variant="outlined" @click="store.cancelPageAnalysis">
+          <KitBtn color="secondary" variant="outlined" @click="analysisStore.cancelPageAnalysis">
             Отмена
           </KitBtn>
         </div>
@@ -191,9 +140,9 @@ function goToPage(pageNum?: number) {
 
     <ReaderFooter @prev="prevPage" @next="nextPage" />
 
-    <KitDialog v-model:visible="store.tocOpen" title="Навигация" :max-width="500">
+    <KitDialog v-model:visible="readerStore.tocOpen" title="Навигация" :max-width="500">
       <div class="toc-list">
-        <div v-for="i in store.currentBook?.totalPages" :key="i" class="toc-item" @click="goToPage(i)">
+        <div v-for="i in readerStore.currentBook?.totalPages" :key="i" class="toc-item" @click="goToPage(i)">
           <span class="toc-title">Страница {{ i }}</span>
         </div>
       </div>
@@ -266,9 +215,6 @@ function goToPage(pageNum?: number) {
   pointer-events: none;
 }
 
-/* ================================
-   СТИЛИ OCR БЛОКОВ И СЛОВ
-   ================================ */
 .ocr-bubble {
   position: absolute;
   pointer-events: auto;
@@ -296,7 +242,6 @@ function goToPage(pageNum?: number) {
     word-break: break-all;
     transition: opacity 0.2s ease;
 
-    // Центрирование контента, не ломающее inline-spans
     display: flex;
     flex-wrap: wrap;
     align-content: center;
@@ -308,7 +253,6 @@ function goToPage(pageNum?: number) {
       -1px 1px 0 var(--bg-primary-color),
       1px 1px 0 var(--bg-primary-color);
 
-    /* Глобальные стили для токенов, инжектируемых v-html */
     :deep(.sentence) {
       display: inline;
       cursor: pointer;
@@ -353,7 +297,6 @@ function goToPage(pageNum?: number) {
       background-color: rgba(var(--bg-accent-color-rgb, 201, 117, 222), 0.4);
       backdrop-filter: blur(4px) brightness(1.2);
     }
-
     .bubble-text-preview {
       opacity: 1;
     }

@@ -1,5 +1,5 @@
-// src/services/ocr.service.ts
 import { LLM_API_KEY, LLM_API_URL } from '../config'
+import { OCR_PROMPT } from '../prompts'
 import { AppError } from '../utils/errors'
 
 export interface OcrBlock {
@@ -15,7 +15,6 @@ export async function recognizeMangaPage(base64Image: string): Promise<OcrBlock[
   if (!LLM_API_KEY)
     throw new AppError(500, 'API ключ не настроен')
 
-  // Гарантируем правильный формат Data URI
   let imageUrl = base64Image
   if (!base64Image.startsWith('data:image/')) {
     imageUrl = `data:image/jpeg;base64,${base64Image}`
@@ -35,7 +34,7 @@ export async function recognizeMangaPage(base64Image: string): Promise<OcrBlock[
           content: [
             {
               type: 'text',
-              text: 'Japanese',
+              text: OCR_PROMPT,
             },
             {
               type: 'image_url',
@@ -63,23 +62,21 @@ export async function recognizeMangaPage(base64Image: string): Promise<OcrBlock[
     const layoutDetails = glmDetail.layout_details[0]
 
     layoutDetails.forEach((item: any, index: number) => {
-      // Очищаем текст от возможных маркдаун-оберток (как в вашем примере)
       let text = item.content || ''
       text = text.replace(/```markdown/gi, '').replace(/```/g, '').trim()
 
-      // Пропускаем пустые блоки
-      if (!text) return
+      if (!text)
+        return
 
-      // bbox_2d приходит в формате [x_min, y_min, x_max, y_max]
       const [x1, y1, x2, y2] = item.bbox_2d || [0, 0, 0, 0]
 
       blocks.push({
         id: index,
-        text: text,
+        text,
         x: x1,
         y: y1,
-        w: x2 - x1, // Вычисляем ширину
-        h: y2 - y1, // Вычисляем высоту
+        w: x2 - x1,
+        h: y2 - y1,
       })
     })
 
@@ -94,7 +91,12 @@ export async function recognizeMangaPage(base64Image: string): Promise<OcrBlock[
       .filter((line: string) => line.length > 0)
 
     return lines.map((line: string, index: number) => ({
-      id: index, text: line, x: 0, y: 0, w: 0, h: 0,
+      id: index,
+      text: line,
+      x: 0,
+      y: 0,
+      w: 0,
+      h: 0,
     }))
   }
 

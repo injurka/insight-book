@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { useHead } from '@vueuse/head'
 import { ReloadPrompt } from '~/components/02.shared/reload-prompt'
-import { AddEditWordDialog } from '~/components/05.modules/dictionary'
 import { DefaultLayout } from '~/components/06.layouts/default'
 import { useChangeTheme } from '~/shared/composables/use-change-theme'
 
@@ -24,7 +23,7 @@ useHead({
     lang: 'ru',
   },
   meta: [
-    { name: 'description', content: description }, 
+    { name: 'description', content: description },
   ],
   link: [
     {
@@ -76,5 +75,4 @@ useHead({
   </router-view>
 
   <ReloadPrompt />
-  <AddEditWordDialog />
 </template>

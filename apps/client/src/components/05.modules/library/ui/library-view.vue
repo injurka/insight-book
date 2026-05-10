@@ -2,10 +2,10 @@
 import type { Book } from '~/shared/types/models'
 import { Icon } from '@iconify/vue'
 import { KitBtn, KitDialog, KitInput, KitSelect, KitSkeleton } from '~/components/01.kit'
+import { useDictionaryStore } from '~/components/05.modules/dictionary/store/dictionary.store'
 import { ThemesVariant, useChangeTheme } from '~/shared/composables/use-change-theme'
 import { AppRoutePaths } from '~/shared/constants/routes'
 import { useBooksStore } from '~/shared/store/books.store'
-import { useDictionaryStore } from '~/shared/store/dictionary.store'
 
 const BASE = import.meta.env.VITE_API_URL || 'https://insight-api.trip-scheduler.ru'
 

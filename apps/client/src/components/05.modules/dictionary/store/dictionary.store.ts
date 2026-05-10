@@ -1,6 +1,6 @@
 import type { UserDictItem } from '~/shared/types/models'
 import { api } from '~/shared/services/api.service'
-import { useBooksStore } from './books.store'
+import { useBooksStore } from '~/shared/store/books.store'
 
 export const useDictionaryStore = defineStore('dictionary', () => {
   const toast = useToast()

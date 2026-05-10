@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import AddEditWordDialog from '~/components/05.modules/dictionary/ui/add-edit-word-dialog.vue'
 import MangaReaderView from '~/components/05.modules/reader/ui/manga-reader-view.vue'
 import ReaderView from '~/components/05.modules/reader/ui/reader-view.vue'
 import { AppRoutePaths } from '~/shared/constants/routes'
@@ -36,4 +37,5 @@ onMounted(async () => {
     <MangaReaderView v-if="store.currentBook.type === 'manga'" />
     <ReaderView v-else />
   </template>
+  <AddEditWordDialog />
 </template>

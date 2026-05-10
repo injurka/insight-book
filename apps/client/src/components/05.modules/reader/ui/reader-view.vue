@@ -1,14 +1,14 @@
 <script setup lang="ts">
-import { computed, watch } from 'vue'
+import { computed, useTemplateRef, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { KitBtn, KitDialog } from '~/components/01.kit'
-import { PageLoader } from '~/components/02.shared/page-loader'
 
+import { PageLoader } from '~/components/02.shared/page-loader'
+import { SelectionTooltip, SentenceAnalysis, WordPopover } from '~/components/03.domain/analysis'
 import { useBooksStore } from '~/shared/store/books.store'
+
 import ReaderFooter from './reader-footer.vue'
 import ReaderHeader from './reader-header.vue'
-import SelectionTooltip from './selection-tooltip.vue'
-import SentenceAnalysis from './sentence-analysis.vue'
-import WordPopover from './word-popover.vue'
 
 const store = useBooksStore()
 const router = useRouter()
