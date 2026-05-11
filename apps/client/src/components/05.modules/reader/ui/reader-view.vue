@@ -1,12 +1,12 @@
 <script setup lang="ts">
-import { computed, useTemplateRef, watch } from 'vue'
+import { useResizeObserver } from '@vueuse/core'
+import { computed, nextTick, useTemplateRef, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+
 import { KitBtn, KitDialog } from '~/components/01.kit'
 import { PageLoader } from '~/components/02.shared/page-loader'
-
 import { SelectionTooltip, SentenceAnalysis, WordPopover } from '~/components/03.domain/analysis'
 import { useAnalysisStore } from '~/shared/store/analysis.store'
-
 import { useReaderStore } from '../store/reader.store'
 import ReaderFooter from './reader-footer.vue'
 import ReaderHeader from './reader-header.vue'
@@ -45,6 +45,73 @@ const translatedPageContent = computed(() => {
   })
   return doc.body.innerHTML
 })
+
+// --- ЛОГИКА СИНХРОНИЗАЦИИ ВЫСОТЫ БЛОКОВ ПАРАЛЛЕЛЬНОГО ЧТЕНИЯ ---
+function syncHeights() {
+  const leftPane = readerViewRef.value?.querySelector('.left-pane')
+  const rightPane = readerViewRef.value?.querySelector('.right-pane')
+
+  if (!leftPane || !rightPane)
+    return
+
+  // Теги, которые мы хотим выравнивать
+  const selectors = 'p, h1, h2, h3, h4, h5, h6, blockquote, li, img'
+
+  // Получаем узлы, исключая вложенные (чтобы не было двойного увеличения высоты)
+  const getNodes = (pane: Element) => {
+    const all = Array.from(pane.querySelectorAll(selectors)) as HTMLElement[]
+    return all.filter(el => el.querySelectorAll(selectors).length === 0)
+  }
+
+  const leftNodes = getNodes(leftPane)
+  const rightNodes = getNodes(rightPane)
+
+  // Всегда сначала сбрасываем высоты
+  leftNodes.forEach(el => el.style.minHeight = '')
+  rightNodes.forEach(el => el.style.minHeight = '')
+
+  if (!readerStore.isParallelView)
+    return
+
+  // Если панели перешли в колоночный мобильный вид (одна под другой) - не применяем высоты
+  const leftRect = leftPane.getBoundingClientRect()
+  const rightRect = rightPane.getBoundingClientRect()
+  if (Math.abs(leftRect.top - rightRect.top) > 10) {
+    return
+  }
+
+  // Применяем максимальную высоту к парам
+  const minLen = Math.min(leftNodes.length, rightNodes.length)
+  for (let i = 0; i < minLen; i++) {
+    const leftEl = leftNodes[i]
+    const rightEl = rightNodes[i]
+
+    const leftHeight = leftEl.getBoundingClientRect().height
+    const rightHeight = rightEl.getBoundingClientRect().height
+
+    const maxH = Math.max(leftHeight, rightHeight)
+
+    if (maxH > 0) {
+      leftEl.style.minHeight = `${maxH}px`
+      rightEl.style.minHeight = `${maxH}px`
+    }
+  }
+}
+
+watch(
+  [() => readerStore.isParallelView, translatedPageContent],
+  async () => {
+    await nextTick()
+    setTimeout(syncHeights, 100) // Даем немного времени на рендер шрифтов и отступов
+  },
+)
+
+useResizeObserver(readerViewRef, () => {
+  if (readerStore.isParallelView) {
+    syncHeights()
+  }
+})
+// ------------------------------------------------------------------
 
 function onSentenceHover(event: MouseEvent) {
   if (!readerStore.isParallelView)
@@ -242,7 +309,7 @@ function onScroll() {
       <div v-if="analysisStore.isAnalyzingPage" class="page-analysis-overlay">
         <div class="analysis-dialog">
           <h3>Анализ страницы</h3>
-          <p>Обработано {{ analysisStore.pageAnalysisCurrent }} из {{ analysisStore.pageAnalysisTotal }} предложений...</p>
+          <p>Обработано {{ analysisStore.pageAnalysisCurrent }} из {{ analysisStore.pageAnalysisTotal }} элементов...</p>
           <div class="progress-bar">
             <div class="progress-fill" :style="{ width: `${analysisStore.pageAnalysisProgress}%` }" />
           </div>

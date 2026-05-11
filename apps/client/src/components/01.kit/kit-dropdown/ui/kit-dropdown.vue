@@ -1,16 +1,19 @@
 <script setup lang="ts">
+import type { Placement } from '@floating-ui/vue'
+import { autoUpdate, flip, offset, shift, useFloating } from '@floating-ui/vue'
 import { onClickOutside, onKeyStroke } from '@vueuse/core'
+import { computed, ref } from 'vue'
 
 interface Props {
   modelValue?: boolean
-  placement?: 'left' | 'right' | 'center'
+  placement?: Placement
   width?: string | number
   closeOnContentClick?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
   modelValue: undefined,
-  placement: 'right',
+  placement: 'bottom-start',
   width: '220px',
   closeOnContentClick: true,
 })
@@ -27,11 +30,27 @@ const isOpen = computed({
   },
 })
 
-const containerRef = ref<HTMLElement | null>(null)
+const referenceRef = ref<HTMLElement | null>(null)
+const floatingRef = ref<HTMLElement | null>(null)
 
-onClickOutside(containerRef, () => {
-  isOpen.value = false
+const { x, y, strategy, placement: finalPlacement } = useFloating(referenceRef, floatingRef, {
+  placement: computed(() => props.placement),
+  whileElementsMounted: autoUpdate,
+  middleware: [
+    offset(8),
+    flip(),
+    shift({ padding: 8 }),
+  ],
+  open: isOpen,
 })
+
+// Игнорируем клики по самому триггеру, чтобы toggle() корректно работал
+onClickOutside(floatingRef, (e) => {
+  if (referenceRef.value && referenceRef.value.contains(e.target as Node)) {
+    return
+  }
+  isOpen.value = false
+}, { ignore: [referenceRef] })
 
 onKeyStroke('Escape', (e) => {
   if (isOpen.value) {
@@ -51,31 +70,26 @@ function handleContentClick() {
 }
 
 const contentStyle = computed(() => {
-  const styles: Record<string, string> = {
+  const isPositioned = x.value != null && y.value != null
+
+  return {
+    position: strategy.value,
+    top: isPositioned ? `${y.value}px` : '0',
+    left: isPositioned ? `${x.value}px` : '0',
     width: typeof props.width === 'number' ? `${props.width}px` : props.width,
+    // Скрываем элемент в самый первый кадр, пока Floating UI не рассчитал координаты, чтобы не было "прыжка"
+    visibility: isPositioned ? 'visible' as const : 'hidden' as const,
   }
-
-  if (props.placement === 'right') {
-    styles.right = '0'
-  }
-  else if (props.placement === 'left') {
-    styles.left = '0'
-  }
-  else if (props.placement === 'center') {
-    styles.left = '50%'
-    styles.transform = 'translateX(-50%)'
-  }
-
-  return styles
 })
 
 defineExpose({ close: () => isOpen.value = false, open: () => isOpen.value = true })
 </script>
 
 <template>
-  <div ref="containerRef" class="kit-dropdown">
+  <div class="kit-dropdown">
     <!-- Триггер -->
     <div
+      ref="referenceRef"
       class="dropdown-trigger"
       :class="{ 'is-active': isOpen }"
       @click="toggle"
@@ -83,20 +97,23 @@ defineExpose({ close: () => isOpen.value = false, open: () => isOpen.value = tru
       <slot name="activator" :props="{ isOpen, toggle }" />
     </div>
 
-    <!-- Меню -->
-    <Transition name="dropdown-zoom">
-      <div
-        v-if="isOpen"
-        class="dropdown-menu"
-        :class="[`placement-${placement}`]"
-        :style="contentStyle"
-        @click="handleContentClick"
-      >
-        <div class="dropdown-menu-inner">
-          <slot />
+    <!-- Меню через Teleport чтобы избежать overflow: hidden родительских контейнеров -->
+    <Teleport to="body">
+      <Transition name="dropdown-zoom">
+        <div
+          v-if="isOpen"
+          ref="floatingRef"
+          class="dropdown-menu"
+          :data-placement="finalPlacement"
+          :style="contentStyle"
+          @click="handleContentClick"
+        >
+          <div class="dropdown-menu-inner">
+            <slot />
+          </div>
         </div>
-      </div>
-    </Transition>
+      </Transition>
+    </Teleport>
   </div>
 </template>
 
@@ -118,10 +135,25 @@ defineExpose({ close: () => isOpen.value = false, open: () => isOpen.value = tru
 }
 
 .dropdown-menu {
-  position: absolute;
-  top: 100%;
-  margin-top: 8px;
-  z-index: 1000;
+  z-index: 10000;
+
+  /* Динамическая точка трансформации в зависимости от позиции Floating UI */
+  transform-origin: top center;
+
+  &[data-placement^='top'] {
+    transform-origin: bottom center;
+  }
+  &[data-placement^='bottom'] {
+    transform-origin: top center;
+  }
+  &[data-placement='bottom-start'],
+  &[data-placement='top-start'] {
+    transform-origin: left;
+  }
+  &[data-placement='bottom-end'],
+  &[data-placement='top-end'] {
+    transform-origin: right;
+  }
 }
 
 .dropdown-menu-inner {
@@ -152,27 +184,19 @@ defineExpose({ close: () => isOpen.value = false, open: () => isOpen.value = tru
 .dropdown-zoom-enter-active,
 .dropdown-zoom-leave-active {
   transition:
-    opacity 0.2s cubic-bezier(0.16, 1, 0.3, 1),
-    transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-  transform-origin: top center;
+    opacity 0.15s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.15s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .dropdown-zoom-enter-from,
 .dropdown-zoom-leave-to {
   opacity: 0;
-  transform: scale(0.95) translateY(-5px);
+  transform: scale(0.95) translateY(0);
 }
 
 .dropdown-zoom-enter-to,
 .dropdown-zoom-leave-from {
   opacity: 1;
   transform: scale(1) translateY(0);
-}
-
-.placement-left .dropdown-zoom-enter-active {
-  transform-origin: top left;
-}
-.placement-right .dropdown-zoom-enter-active {
-  transform-origin: top right;
 }
 </style>

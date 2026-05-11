@@ -2,7 +2,7 @@
 import type { AnalysisHistoryItem } from '~/shared/store/analysis.store'
 import { Icon } from '@iconify/vue'
 import { onUnmounted, ref, watch } from 'vue'
-import { KitDialog, KitSkeleton } from '~/components/01.kit'
+import { KitDialog, KitSkeleton, KitTooltip } from '~/components/01.kit'
 import { useTts } from '~/shared/composables/use-tts'
 import { useAnalysisStore } from '~/shared/store/analysis.store'
 
@@ -57,22 +57,24 @@ onUnmounted(() => {
     :persistent="!isPinned"
   >
     <template #header-actions>
-      <button
-        class="dialog-icon-btn"
-        :class="{ 'is-active': showHistory }"
-        title="История сессии"
-        @click="showHistory = !showHistory"
-      >
-        <Icon icon="mdi:history" />
-      </button>
-      <button
-        class="dialog-icon-btn pin-btn"
-        :class="{ 'is-active': !isPinned }"
-        :title="isPinned ? 'Открепить (свободное перемещение)' : 'Закрепить окно'"
-        @click="isPinned = !isPinned"
-      >
-        <Icon :icon="isPinned ? 'mdi:pin' : 'mdi:pin-off-outline'" />
-      </button>
+      <KitTooltip :text="showHistory ? 'Скрыть историю' : 'История сессии'" placement="bottom">
+        <button
+          class="dialog-icon-btn"
+          :class="{ 'is-active': showHistory }"
+          @click="showHistory = !showHistory"
+        >
+          <Icon icon="mdi:history" />
+        </button>
+      </KitTooltip>
+      <KitTooltip :text="isPinned ? 'Открепить (свободное перемещение)' : 'Закрепить окно'" placement="bottom-end">
+        <button
+          class="dialog-icon-btn pin-btn"
+          :class="{ 'is-active': !isPinned }"
+          @click="isPinned = !isPinned"
+        >
+          <Icon :icon="isPinned ? 'mdi:pin' : 'mdi:pin-off-outline'" />
+        </button>
+      </KitTooltip>
     </template>
 
     <div v-if="showHistory" class="history-content">
@@ -119,12 +121,14 @@ onUnmounted(() => {
               {{ analysisStore.sidebarAnalysis.transcription }}
             </div>
           </div>
-          <button class="tts-btn" title="Озвучить" @click="playTTS">
-            <Icon
-              :icon="isLoading ? 'mdi:loading' : (isPlaying ? 'mdi:volume-high' : 'mdi:volume-medium')"
-              :class="{ 'pulse-animation': isPlaying, 'spin-animation': isLoading }"
-            />
-          </button>
+          <KitTooltip text="Озвучить" placement="top-end">
+            <button class="tts-btn" @click="playTTS">
+              <Icon
+                :icon="isLoading ? 'mdi:loading' : (isPlaying ? 'mdi:volume-high' : 'mdi:volume-medium')"
+                :class="{ 'pulse-animation': isPlaying, 'spin-animation': isLoading }"
+              />
+            </button>
+          </KitTooltip>
         </div>
 
         <div class="analysis-block">
@@ -357,6 +361,7 @@ onUnmounted(() => {
   animation: pulse-op 1.2s ease-in-out infinite;
   transform-origin: center;
   display: inline-block;
+  color: var(--fg-accent-color);
 }
 .spin-animation {
   animation: spin 1s linear infinite;

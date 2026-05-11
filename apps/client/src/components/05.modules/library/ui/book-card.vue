@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { Book } from '~/shared/types/models'
 import { computed } from 'vue'
-import { KitBtn } from '~/components/01.kit'
+import { KitBtn, KitTooltip } from '~/components/01.kit'
 import { getMediaUrl } from '~/workers/service/lib/utils'
 
 const props = defineProps<Props>()
@@ -40,15 +40,16 @@ const progressPercent = computed(() => {
       <span class="lang-badge">{{ book.language.toUpperCase() }}</span>
 
       <div class="card-actions">
-        <KitBtn
-          class="action-btn"
-          icon="mdi:file-document-edit-outline"
-          variant="solid"
-          color="secondary"
-          size="xs"
-          title="Редактировать"
-          @click.stop="emit('edit')"
-        />
+        <KitTooltip text="Редактировать" placement="left">
+          <KitBtn
+            class="action-btn"
+            icon="mdi:file-document-edit-outline"
+            variant="solid"
+            color="secondary"
+            size="xs"
+            @click.stop="emit('edit')"
+          />
+        </KitTooltip>
       </div>
     </div>
 
@@ -89,8 +90,7 @@ const progressPercent = computed(() => {
     border-color: var(--fg-accent-color);
 
     .card-actions {
-      opacity: 1;
-      visibility: visible;
+      opacity: 1 !important;
     }
   }
 
@@ -143,11 +143,9 @@ const progressPercent = computed(() => {
       transition: all 0.2s ease-in-out;
       z-index: 10;
       opacity: 0;
-      visibility: hidden;
 
       @include media-down(md) {
         opacity: 1;
-        visibility: visible;
       }
 
       .action-btn {

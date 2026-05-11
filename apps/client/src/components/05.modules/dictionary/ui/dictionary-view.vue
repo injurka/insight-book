@@ -2,11 +2,12 @@
 import { useVirtualList } from '@vueuse/core'
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { KitBtn, KitInput } from '~/components/01.kit'
+import { KitBtn, KitInput, KitTooltip } from '~/components/01.kit'
 import { useAnalysisStore } from '~/shared/store/analysis.store'
 import { useDictionaryStore } from '../store/dictionary.store'
 
-ё
+const store = useDictionaryStore()
+const analysisStore = useAnalysisStore()
 const router = useRouter()
 
 const search = ref('')
@@ -19,7 +20,7 @@ const filteredWords = computed(() => {
 })
 
 const { list, containerProps, wrapperProps } = useVirtualList(filteredWords, {
-  itemHeight: 110, 
+  itemHeight: 110,
 })
 
 onMounted(() => {
@@ -54,8 +55,12 @@ onMounted(() => {
             <div class="dict-translation" v-html="item.data.translation" />
           </div>
           <div class="dict-actions">
-            <KitBtn icon="mdi:pencil" variant="text" size="xs" @click="analysisStore.wordToEdit = item.data; analysisStore.addEditWordModalOpen = true;" />
-            <KitBtn icon="mdi:delete-outline" variant="text" size="xs" @click="store.deleteWord(item.data.word)" />
+            <KitTooltip text="Редактировать" placement="top">
+              <KitBtn icon="mdi:pencil" variant="text" size="xs" @click="analysisStore.wordToEdit = item.data; analysisStore.addEditWordModalOpen = true;" />
+            </KitTooltip>
+            <KitTooltip text="Удалить" placement="top-end">
+              <KitBtn icon="mdi:delete-outline" variant="text" size="xs" @click="store.deleteWord(item.data.word)" />
+            </KitTooltip>
           </div>
         </div>
       </div>

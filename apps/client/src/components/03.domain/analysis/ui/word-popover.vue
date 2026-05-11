@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Icon } from '@iconify/vue'
-import { KitBtn, KitSkeleton } from '~/components/01.kit'
+import { KitBtn, KitSkeleton, KitTooltip } from '~/components/01.kit'
 import { useTts } from '~/shared/composables/use-tts'
 import { POS_TAGS_MAP } from '~/shared/constants/pos-tags'
 import { useAnalysisStore } from '~/shared/store/analysis.store'
@@ -124,9 +124,15 @@ onUnmounted(() => {
           </div>
           <div v-else class="pos-badge-placeholder" />
           <div class="popover-actions">
-            <KitBtn :icon="isLoading ? 'mdi:loading' : (isPlaying ? 'mdi:volume-high' : 'mdi:volume-medium')" size="xs" variant="text" color="primary" :class="{ 'pulse-animation': isPlaying, 'spin-animation': isLoading }" @click.stop="playWordTTS" />
-            <KitBtn icon="mdi:robot-outline" size="xs" variant="text" :color="analysisStore.wordPopover.showAi ? 'accent' : 'secondary'" @click.stop="analysisStore.toggleAiTranslation" />
-            <KitBtn icon="mdi:star-outline" size="xs" variant="text" @click.stop="openSaveDialog" />
+            <KitTooltip text="Озвучить" placement="top">
+              <KitBtn :icon="isLoading ? 'mdi:loading' : (isPlaying ? 'mdi:volume-high' : 'mdi:volume-medium')" size="xs" variant="text" color="primary" :class="{ 'pulse-animation': isPlaying, 'spin-animation': isLoading }" @click.stop="playWordTTS" />
+            </KitTooltip>
+            <KitTooltip text="Перевести с ИИ" placement="top">
+              <KitBtn icon="mdi:robot-outline" size="xs" variant="text" :color="analysisStore.wordPopover.showAi ? 'accent' : 'secondary'" @click.stop="analysisStore.toggleAiTranslation" />
+            </KitTooltip>
+            <KitTooltip text="Сохранить в словарь" placement="top-end">
+              <KitBtn icon="mdi:star-outline" size="xs" variant="text" @click.stop="openSaveDialog" />
+            </KitTooltip>
           </div>
         </div>
       </div>

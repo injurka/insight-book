@@ -55,7 +55,7 @@ const rowData = computed(() => {
 })
 
 const { list, containerProps, wrapperProps } = useVirtualList(rowData, {
-  itemHeight: 360, 
+  itemHeight: 360,
 })
 
 function onFileChange(e: Event) {
@@ -274,7 +274,7 @@ onMounted(() => {
 
 .library-list-wrapper {
   flex-grow: 1;
-  min-height: 0; /* Важно для flex child */
+  min-height: 0;
   display: flex;
   flex-direction: column;
 }
@@ -283,8 +283,8 @@ onMounted(() => {
   flex-grow: 1;
   overflow-y: auto;
   padding-bottom: 24px;
+  padding-top: 8px;
 
-  /* Скрываем скроллбар для эстетики */
   &::-webkit-scrollbar {
     width: 6px;
   }

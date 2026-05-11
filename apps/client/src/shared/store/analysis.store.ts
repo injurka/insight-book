@@ -322,7 +322,7 @@ export const useAnalysisStore = defineStore('analysis', () => {
     }
   }
 
-  async function analyzeWholePage() {
+  async function analyzeWholePage(mode: 'sentences' | 'words' | 'all' = 'sentences') {
     const readerStore = useReaderStore()
     if (!readerStore.currentPage || !readerStore.currentBook)
       return
@@ -330,14 +330,27 @@ export const useAnalysisStore = defineStore('analysis', () => {
       return
 
     const sentencesToAnalyze = new Set<string>()
+    const wordsToAnalyze = new Set<string>()
 
     const extractFromHtml = (html: string) => {
-      const regex = /data-raw-sent="([^"]+)"/g
-      let match
+      // Извлекаем предложения
+      if (mode === 'sentences' || mode === 'all') {
+        const sentRegex = /data-raw-sent="([^"]+)"/g
+        let match
+        while ((match = sentRegex.exec(html)) !== null) {
+          sentencesToAnalyze.add(decodeURIComponent(match[1]))
+        }
+      }
 
-      // eslint-disable-next-line no-cond-assign
-      while ((match = regex.exec(html)) !== null) {
-        sentencesToAnalyze.add(decodeURIComponent(match[1]))
+      // Извлекаем уникальные слова
+      if (mode === 'words' || mode === 'all') {
+        const wordRegex = /data-word="([^"]+)"[^>]*?data-pos="([^"]+)"/g
+        let match
+        while ((match = wordRegex.exec(html)) !== null) {
+          if (match[2] !== 'x') { // Игнорируем пунктуацию
+            wordsToAnalyze.add(decodeURIComponent(match[1]))
+          }
+        }
       }
     }
 
@@ -352,13 +365,16 @@ export const useAnalysisStore = defineStore('analysis', () => {
     }
 
     const sentences = Array.from(sentencesToAnalyze).filter(s => s.trim().length > 0)
-    if (sentences.length === 0) {
-      useToastStore().info('На странице нет предложений для анализа.')
+    const words = Array.from(wordsToAnalyze).filter(w => w.trim().length > 0)
+
+    const totalItems = sentences.length + words.length
+    if (totalItems === 0) {
+      useToastStore().info('На странице нет элементов для анализа.')
       return
     }
 
     isAnalyzingPage.value = true
-    pageAnalysisTotal.value = sentences.length
+    pageAnalysisTotal.value = totalItems
     pageAnalysisCurrent.value = 0
     pageAnalysisProgress.value = 0
 
@@ -366,6 +382,7 @@ export const useAnalysisStore = defineStore('analysis', () => {
     const signal = pageAnalysisAbortController.signal
 
     try {
+      // 1. Анализируем предложения
       for (let i = 0; i < sentences.length; i++) {
         if (signal.aborted)
           break
@@ -383,7 +400,6 @@ export const useAnalysisStore = defineStore('analysis', () => {
             if (signal.aborted)
               break
 
-            // Сохраняем в оффлайн-кэш
             await offlineService.saveAnalysis(readerStore.currentBook.id, sentence, res)
 
             analysisHistory.value.unshift({
@@ -415,12 +431,52 @@ export const useAnalysisStore = defineStore('analysis', () => {
           }
         }
 
-        pageAnalysisCurrent.value = i + 1
+        pageAnalysisCurrent.value++
+        pageAnalysisProgress.value = Math.round((pageAnalysisCurrent.value / pageAnalysisTotal.value) * 100)
+      }
+
+      // 2. Анализируем слова
+      for (let i = 0; i < words.length; i++) {
+        if (signal.aborted)
+          break
+        const word = words[i]
+
+        try {
+          // Для слов мы не добавляем их в HistorySidebar, только сохраняем в оффлайн-кэш
+          // для мгновенного отображения во всплывающем окне по клику.
+          let cached = null
+          if (readerStore.currentBook) {
+            cached = await offlineService.getAnalysis(readerStore.currentBook.id, word)
+          }
+
+          if (!cached && readerStore.currentBook) {
+            const res = await api.books.analyze(
+              readerStore.currentBook.id,
+              word,
+              readerStore.currentBook.language,
+              signal,
+            )
+            if (signal.aborted)
+              break
+
+            await offlineService.saveAnalysis(readerStore.currentBook.id, word, res)
+          }
+        }
+        catch (err: unknown) {
+          if (!(err instanceof Error))
+            return
+
+          if (err.name === 'AbortError')
+            break
+          console.error(`Ошибка анализа слова "${word}":`, err)
+        }
+
+        pageAnalysisCurrent.value++
         pageAnalysisProgress.value = Math.round((pageAnalysisCurrent.value / pageAnalysisTotal.value) * 100)
       }
 
       if (!signal.aborted) {
-        useToastStore().success('Анализ страницы завершен!')
+        useToastStore().success('Анализ завершен!')
       }
     }
     finally {
