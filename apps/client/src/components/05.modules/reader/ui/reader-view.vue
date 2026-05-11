@@ -198,6 +198,10 @@ function onPointerDown(event: MouseEvent | TouchEvent) {
 
   const rawSent = decodeURIComponent(rawSentEnc)
 
+  // Если в предложении нет букв/иероглифов/цифр, не анализируем
+  if (!/[\p{L}\p{N}]/u.test(rawSent))
+    return
+
   pressTimer = setTimeout(() => {
     analysisStore.closePopover()
     analysisStore.closeSelectionTooltip()
@@ -410,9 +414,12 @@ function onScroll() {
   color: var(--fg-primary-color);
   user-select: text;
   word-wrap: break-word;
+
   @include media-down(sm) {
     font-size: 1.25rem;
+    user-select: none;
   }
+
   & ::selection {
     background-color: var(--bg-accent-overlay-color);
   }

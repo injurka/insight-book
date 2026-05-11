@@ -1,20 +1,20 @@
 <script setup lang="ts">
 import type { Book } from '~/shared/types/models'
 import { useElementSize, useVirtualList } from '@vueuse/core'
-import { KitBtn, KitInput, KitSelect, KitSkeleton } from '~/components/01.kit'
-import { ThemesVariant, useChangeTheme } from '~/shared/composables/use-change-theme'
+import { computed, onMounted, ref, useTemplateRef } from 'vue'
+import { useRouter } from 'vue-router'
+import { KitSkeleton } from '~/components/01.kit'
 import { useToast } from '~/shared/composables/use-toast'
 import { AppRoutePaths } from '~/shared/constants/routes'
 import { useLibraryStore } from '../store/library.store'
 import BookCard from './book-card.vue'
 import EditBookModal from './edit-book-modal.vue'
+import LibraryHeader from './library-header.vue'
 
 const store = useLibraryStore()
 const router = useRouter()
 const toast = useToast()
-const { theme, toggleTheme } = useChangeTheme()
 
-const fileInput = ref<HTMLInputElement | null>(null)
 const searchQuery = ref('')
 const selectedLang = ref('all')
 const editModalOpen = ref(false)
@@ -36,7 +36,7 @@ const filteredBooks = computed(() => {
   })
 })
 
-const listContainer = ref<HTMLElement | null>(null)
+const listContainer = useTemplateRef<HTMLElement>('listContainer')
 const { width } = useElementSize(listContainer)
 
 const columnsCount = computed(() => {
@@ -58,12 +58,8 @@ const { list, containerProps, wrapperProps } = useVirtualList(rowData, {
   itemHeight: 360,
 })
 
-function onFileChange(e: Event) {
-  const target = e.target as HTMLInputElement
-  if (target.files && target.files.length > 0) {
-    store.uploadBook(target.files[0])
-    target.value = ''
-  }
+function handleUpload(file: File) {
+  store.uploadBook(file)
 }
 
 function openBookInfo(book: Book) {
@@ -103,35 +99,12 @@ onMounted(() => {
 
 <template>
   <div class="library-view">
-    <header class="library-header">
-      <div class="header-top">
-        <div class="header-title">
-          <h1>Insight Book</h1>
-          <p>Ваша умная библиотека для изучения языков</p>
-        </div>
-        <KitBtn
-          :icon="theme === ThemesVariant.Light ? 'mdi:weather-night' : 'mdi:weather-sunny'"
-          variant="text"
-          @click="toggleTheme"
-        />
-      </div>
-
-      <div class="header-bottom">
-        <div class="filters">
-          <KitInput v-model="searchQuery" placeholder="Поиск книг..." size="md" />
-          <KitSelect v-model="selectedLang" :options="langOptions" size="md" />
-        </div>
-        <div class="header-actions">
-          <KitBtn icon="mdi:book-alphabet" variant="outlined" color="secondary" @click="router.push(AppRoutePaths.Dictionary)">
-            Мой словарь
-          </KitBtn>
-          <KitBtn icon="mdi:upload" color="primary" @click="fileInput?.click()">
-            Загрузить
-          </KitBtn>
-          <input ref="fileInput" type="file" accept=".epub,.cbz,.zip" style="display: none" @change="onFileChange">
-        </div>
-      </div>
-    </header>
+    <LibraryHeader
+      v-model:search="searchQuery"
+      v-model:lang="selectedLang"
+      :lang-options="langOptions"
+      @upload="handleUpload"
+    />
 
     <div v-if="store.isLoading && !store.books.length" class="books-grid-loading">
       <div v-for="i in 4" :key="i" class="book-card-skeleton">
@@ -189,47 +162,6 @@ onMounted(() => {
 
   @include media-down(md) {
     padding: 16px;
-  }
-}
-
-.library-header {
-  flex-shrink: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-  margin-bottom: 32px;
-  .header-top {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    .header-title h1 {
-      font-size: 2.2rem;
-      margin: 0 0 8px 0;
-      color: var(--fg-primary-color);
-    }
-    .header-title p {
-      margin: 0;
-      color: var(--fg-secondary-color);
-      font-size: 1rem;
-    }
-  }
-  .header-bottom {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 16px;
-    .filters {
-      display: flex;
-      gap: 12px;
-      flex-grow: 1;
-      max-width: 500px;
-    }
-    .header-actions {
-      display: flex;
-      gap: 12px;
-      align-items: center;
-    }
   }
 }
 

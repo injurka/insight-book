@@ -26,7 +26,6 @@ function onFileChange(e: Event) {
   const target = e.target as HTMLInputElement
   if (target.files && target.files.length > 0) {
     emit('upload', target.files[0])
-    // Сбрасываем input, чтобы можно было загрузить тот же файл снова
     target.value = ''
   }
 }
@@ -80,7 +79,7 @@ function openDictionary() {
   display: flex;
   flex-direction: column;
   gap: 24px;
-  margin-bottom: 32px;
+  margin-bottom: 16px;
 
   .header-top {
     display: flex;
@@ -128,8 +127,10 @@ function openDictionary() {
       .filters {
         max-width: 100%;
       }
+
       .header-actions {
-        width: 100%;
+        width: 100% !important;
+
         .kit-btn {
           flex: 1;
         }

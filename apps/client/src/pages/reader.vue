@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import AddEditWordDialog from '~/components/05.modules/dictionary/ui/add-edit-word-dialog.vue'
 import { useReaderStore } from '~/components/05.modules/reader/store/reader.store'
 import MangaReaderView from '~/components/05.modules/reader/ui/manga-reader-view.vue'
 import ReaderView from '~/components/05.modules/reader/ui/reader-view.vue'
@@ -33,9 +32,17 @@ onMounted(async () => {
 </script>
 
 <template>
-  <template v-if="store.currentBook">
-    <MangaReaderView v-if="store.currentBook.type === 'manga'" />
-    <ReaderView v-else />
-  </template>
-  <AddEditWordDialog />
+  <div class="reader-page-wrapper">
+    <template v-if="store.currentBook">
+      <MangaReaderView v-if="store.currentBook.type === 'manga'" />
+      <ReaderView v-else />
+    </template>
+  </div>
 </template>
+
+<style scoped>
+.reader-page-wrapper {
+  height: 100dvh;
+  width: 100%;
+}
+</style>

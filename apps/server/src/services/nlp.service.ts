@@ -217,7 +217,8 @@ export async function tokenizeHtmlPage(html: string, language: string) {
     let newHtml = ''
 
     for (const raw of sentences) {
-      if (/^\s+$/.test(raw) || !raw) {
+      // Игнорируем строки, в которых нет ни одной буквы или цифры (только пунктуация/пробелы)
+      if (!/[\p{L}\p{N}]/u.test(raw)) {
         newHtml += raw.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
         continue
       }
@@ -354,7 +355,8 @@ export async function tokenizeOcrBlocks(blocks: any[], language: string) {
     let newHtml = ''
 
     for (const raw of sentences) {
-      if (/^\s+$/.test(raw) || !raw) {
+      // Игнорируем строки, в которых нет ни одной буквы или цифры (только пунктуация/пробелы)
+      if (!/[\p{L}\p{N}]/u.test(raw)) {
         newHtml += raw.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
         continue
       }

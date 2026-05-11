@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import { Icon } from '@iconify/vue'
-import { useDraggable } from '@vueuse/core'
+import { useDraggable, useMediaQuery, useSwipe } from '@vueuse/core'
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 
 interface Props {
@@ -28,14 +28,34 @@ const dialogHeaderRef = ref<HTMLElement | null>(null)
 const initialX = typeof window !== 'undefined' ? Math.max((window.innerWidth - props.maxWidth) / 2, 0) : 0
 const initialY = typeof window !== 'undefined' ? 100 : 0
 
+// --- Перетаскивание (Desktop Floating) ---
 const { x, y, style: dragStyle } = useDraggable(dialogContentRef, {
   initialValue: { x: initialX, y: initialY },
   handle: dialogHeaderRef,
 })
 
+// --- Свайп для закрытия (Mobile Bottom Sheet) ---
+const isMobile = useMediaQuery('(max-width: 599px)')
+
+const { lengthY, isSwiping, direction } = useSwipe(dialogHeaderRef, {
+  threshold: 10,
+  onSwipeEnd: () => {
+    // Закрываем, если мы на мобилке, это не плавающее окно, потянули вниз и проскроллили больше 100px
+    if (isMobile.value && !props.floating && direction.value === 'down') {
+      if (lengthY.value < -100) {
+        visible.value = false
+      }
+    }
+  },
+})
+
+// Если свайпаем вниз, вычисляем смещение. lengthY при свайпе вниз отрицательный.
+const isDraggingDown = computed(() => isMobile.value && !props.floating && isSwiping.value && direction.value === 'down')
+const dragOffset = computed(() => isDraggingDown.value ? Math.abs(lengthY.value) : 0)
+
 const maxWidthPx = computed(() => `${props.maxWidth}px`)
 
-// Ресайз логика для обоих режимов
+// --- Ресайз логика ---
 const dialogWidth = ref<number | '100%'>('100%')
 const dialogHeight = ref<number | 'auto'>('auto')
 const hasResized = ref(false)
@@ -195,14 +215,18 @@ onUnmounted(() => {
         <div
           ref="dialogContentRef"
           class="dialog-content-wrapper"
-          :class="{ 'is-floating': floating }"
+          :class="{
+            'is-floating': floating,
+            'is-dragging': isDraggingDown,
+          }"
           :style="[
             floating ? dragStyle : {},
             {
-              width: dialogWidth === '100%' ? '100%' : `${dialogWidth}px`,
-              height: dialogHeight === 'auto' ? 'auto' : `${dialogHeight}px`,
-              maxWidth: hasResized ? '100vw' : maxWidthPx,
-              maxHeight: hasResized ? '100vh' : '90vh',
+              'width': dialogWidth === '100%' ? '100%' : `${dialogWidth}px`,
+              'height': dialogHeight === 'auto' ? 'auto' : `${dialogHeight}px`,
+              'maxWidth': hasResized ? '100vw' : maxWidthPx,
+              'maxHeight': hasResized ? '100vh' : '90vh',
+              '--swipe-offset': `${dragOffset}px`,
             },
           ]"
           role="dialog"
@@ -222,7 +246,8 @@ onUnmounted(() => {
           <div class="resize-handle bottom-left" @mousedown.prevent="startResize('bottom-left', $event)" />
           <div class="resize-handle bottom-right" @mousedown.prevent="startResize('bottom-right', $event)" />
 
-          <div ref="dialogHeaderRef" class="dialog-header" :class="{ 'is-draggable': floating }">
+          <div ref="dialogHeaderRef" class="dialog-header" :class="{ 'is-draggable': floating || (!floating && isMobile) }">
+            <div class="mobile-drag-indicator" />
             <slot v-if="$slots.header" name="header" />
             <template v-else>
               <div class="title-container">
@@ -338,12 +363,19 @@ onUnmounted(() => {
     bottom: 0;
     left: 0;
     right: 0;
-    transform: none;
     width: 100%;
     max-width: 100% !important;
     border-bottom-left-radius: 0;
     border-bottom-right-radius: 0;
     max-height: 92dvh !important;
+
+    /* Управление свайпом */
+    transform: translateY(var(--swipe-offset, 0));
+    transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.5, 1);
+
+    &.is-dragging {
+      transition: none;
+    }
 
     &:not(.is-floating) {
       .dialog-enter-active & {
@@ -419,13 +451,15 @@ onUnmounted(() => {
   }
 }
 
+/* Строго скрываем на мобильных экранах */
 @include media-down(sm) {
   .resize-handle {
-    display: none;
+    display: none !important;
   }
 }
 
 .dialog-header {
+  position: relative;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -438,6 +472,28 @@ onUnmounted(() => {
     &:active {
       cursor: grabbing;
     }
+  }
+}
+
+.mobile-drag-indicator {
+  display: none;
+}
+
+@include media-down(sm) {
+  .mobile-drag-indicator {
+    display: block;
+    position: absolute;
+    top: 0px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 36px;
+    height: 4px;
+    border-radius: 2px;
+    background-color: var(--border-primary-color);
+  }
+
+  .dialog-header {
+    padding-top: 14px; // Место для индикатора
   }
 }
 
@@ -471,7 +527,6 @@ onUnmounted(() => {
   gap: 4px;
 }
 
-// Экспорт стилей кнопки для использования внутри слота #header-actions
 .dialog-icon-btn,
 :slotted(.dialog-icon-btn) {
   background: transparent;
@@ -498,6 +553,8 @@ onUnmounted(() => {
 .dialog-body {
   flex-grow: 1;
   overflow-y: auto;
+  // Предотвращаем скролл body за пределами контента во время свайпа
+  touch-action: pan-y;
 }
 
 .dialog-footer {
@@ -565,7 +622,8 @@ onUnmounted(() => {
 @keyframes content-slide-down {
   from {
     opacity: 1;
-    transform: translateY(0);
+    // Оставляем переменную смещения, чтобы при закрытии свайпом не было "прыжка" обратно наверх
+    transform: translateY(var(--swipe-offset, 0));
   }
   to {
     opacity: 0;
@@ -573,3 +631,4 @@ onUnmounted(() => {
   }
 }
 </style>
+``

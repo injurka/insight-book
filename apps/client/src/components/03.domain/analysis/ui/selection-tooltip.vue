@@ -20,7 +20,8 @@ const checkTextSelection = useDebounceFn(() => {
   }
 
   const text = selection.toString().trim()
-  if (!text) {
+  // Блокируем, если нет текста или выделена только пунктуация
+  if (!text || !/[\p{L}\p{N}]/u.test(text)) {
     analysisStore.closeSelectionTooltip()
     return
   }
@@ -170,7 +171,6 @@ function playTTS() {
 </template>
 
 <style lang="scss" scoped>
-/* Стили оставляем без изменений */
 .selection-tooltip {
   position: fixed;
   display: flex;

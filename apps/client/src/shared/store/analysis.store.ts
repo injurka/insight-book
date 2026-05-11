@@ -364,8 +364,9 @@ export const useAnalysisStore = defineStore('analysis', () => {
       extractFromHtml(readerStore.currentPage.content)
     }
 
-    const sentences = Array.from(sentencesToAnalyze).filter(s => s.trim().length > 0)
-    const words = Array.from(wordsToAnalyze).filter(w => w.trim().length > 0)
+    // Отсеиваем фрагменты, в которых нет букв или цифр
+    const sentences = Array.from(sentencesToAnalyze).filter(s => /[\p{L}\p{N}]/u.test(s))
+    const words = Array.from(wordsToAnalyze).filter(w => /[\p{L}\p{N}]/u.test(w))
 
     const totalItems = sentences.length + words.length
     if (totalItems === 0) {

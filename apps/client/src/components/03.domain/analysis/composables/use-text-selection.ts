@@ -15,7 +15,8 @@ export function useTextSelection() {
       rawSent = fallbackText.replace(/\n+/g, '')
     }
 
-    if (!rawSent)
+    // Проверка, что текст содержит хотя бы одну букву или цифру
+    if (!rawSent || !/[\p{L}\p{N}]/u.test(rawSent))
       return
 
     pressTimer = setTimeout(() => {
