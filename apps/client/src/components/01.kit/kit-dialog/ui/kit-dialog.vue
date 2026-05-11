@@ -531,17 +531,19 @@ onUnmounted(() => {
 :slotted(.dialog-icon-btn) {
   background: transparent;
   border: none;
-  padding: 6px;
   cursor: pointer;
   color: var(--fg-secondary-color);
   border-radius: var(--r-full);
-  display: inline-flex;
+  display: flex;
   align-items: center;
   justify-content: center;
   transition:
     background-color 0.2s,
     color 0.2s;
   font-size: 1.25rem;
+
+  width: 32px;
+  height: 32px;
 
   &:hover,
   &.is-active {
