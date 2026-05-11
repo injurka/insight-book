@@ -117,3 +117,4 @@ docker compose -f ./docker/docker-compose.local.yml up -d --build
 ![Insight Book Preview](./assets/preview-3.png)
 ![Insight Book Preview](./assets/preview-4.png)
 ![Insight Book Preview](./assets/preview-5.png)
+![Insight Book Preview](./assets/preview-6.png)
