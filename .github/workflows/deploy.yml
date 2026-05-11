@@ -104,15 +104,13 @@ jobs:
           key: ${{ secrets.VDS_SSH_KEY }}
           port: ${{ secrets.VDS_PORT }}
           script: |
-            cd /root/sources/insight-book/docker
-
+            cd /root/sources/insight-book
+            
             export V_CLIENT=${{ steps.version.outputs.VERSION }}
             export V_SERVER=${{ steps.version.outputs.VERSION }}
 
             docker compose pull insight-book-client insight-book-server
-
             docker compose up -d --no-deps insight-book-client insight-book-server
-
             docker image prune -f
 
   # ─── JOB 4: Создание draft-релиза (одна точка) ──────────────────
