@@ -1,13 +1,12 @@
 <script setup lang="ts">
-import { useTemplateRef, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
 import { KitBtn, KitDialog } from '~/components/01.kit'
 
 import { PageLoader } from '~/components/02.shared/page-loader'
 import { SelectionTooltip, SentenceAnalysis, useTextSelection, WordPopover } from '~/components/03.domain/analysis'
 import { useAnalysisStore } from '~/shared/store/analysis.store'
-import { useReaderStore } from '../store/reader.store'
+import { getMediaUrl } from '~/workers/service/lib/utils'
 
+import { useReaderStore } from '../store/reader.store'
 import ReaderFooter from './reader-footer.vue'
 import ReaderHeader from './reader-header.vue'
 
@@ -15,8 +14,6 @@ const readerStore = useReaderStore()
 const analysisStore = useAnalysisStore()
 const router = useRouter()
 const route = useRoute()
-
-const BASE = import.meta.env.VITE_API_URL || 'https://insight-api.trip-scheduler.ru'
 
 const { onPointerDown, onPointerUp, onWordClick } = useTextSelection()
 
@@ -105,7 +102,7 @@ function onScroll() {
           @touchcancel="onPointerUp"
           @mouseleave="onPointerUp"
         >
-          <img :src="`${BASE}${readerStore.currentPage.imageUrl}`" class="manga-image">
+          <img :src="`${getMediaUrl(readerStore.currentPage.imageUrl)}`" class="manga-image">
 
           <div class="ocr-overlay">
             <div

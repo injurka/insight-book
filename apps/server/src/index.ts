@@ -23,7 +23,6 @@ import {
   handleUploadBook,
   handleUpsertToUserDict,
 } from './handlers/books'
-import { initNLP } from './services/nlp.service'
 import { withCors } from './utils/cors'
 import { apiWrapper } from './utils/errors'
 import { logRoutes } from './utils/print-routes'
@@ -114,9 +113,6 @@ const apiRoutes: ServeOptionsRoutes = {
     DELETE: apiWrapper(handleRemoveFromUserDict),
   },
 }
-
-// eslint-disable-next-line antfu/no-top-level-await
-await initNLP()
 
 Bun.serve({
   port: PORT,

@@ -2,26 +2,28 @@
 import { Icon } from '@iconify/vue'
 import { computed, ref } from 'vue'
 import { useDictionaryStore } from '~/components/05.modules/dictionary/store/dictionary.store'
-import { useBooksStore } from '~/shared/store/books.store'
+import { useLibraryStore } from '~/components/05.modules/library/store/library.store'
+import { useAnalysisStore } from '~/shared/store/analysis.store'
 
-const store = useBooksStore()
+const libraryStore = useLibraryStore()
+const analysisStore = useAnalysisStore()
 const dictStore = useDictionaryStore()
 
 const isLexicalExpanded = ref(false)
 const lexicalActiveTab = ref<'core' | 'entities' | 'rare' | 'dict'>('core')
 
 const isLegacyLexical = computed(() => {
-  return Array.isArray(store.currentBookInfo?.stats?.topWords)
+  return Array.isArray(libraryStore.currentBookInfo?.stats?.topWords)
 })
 
 const lexData = computed(() => {
   if (isLegacyLexical.value)
     return null
-  return store.currentBookInfo?.stats?.topWords as any
+  return libraryStore.currentBookInfo?.stats?.topWords as any
 })
 
 const dictionaryWordsInBook = computed(() => {
-  const stats = store.currentBookInfo?.stats
+  const stats = libraryStore.currentBookInfo?.stats
   if (!stats || !stats.topWords)
     return []
 
@@ -38,7 +40,7 @@ const dictionaryWordsInBook = computed(() => {
 })
 
 const posStats = computed(() => {
-  const dist = store.currentBookInfo?.stats?.posDistribution
+  const dist = libraryStore.currentBookInfo?.stats?.posDistribution
   if (!dist)
     return null
 
@@ -72,12 +74,12 @@ const posStats = computed(() => {
 // Открываем Tooltip (WordPopover) при клике на слово в облаке
 function handleWordClick(word: string, pos: string, event: MouseEvent) {
   const target = event.currentTarget as HTMLElement
-  store.lookupStandaloneWord(word, pos || 'x', target)
+  analysisStore.lookupStandaloneWord(word, pos || 'x', target)
 }
 </script>
 
 <template>
-  <div v-if="store.isAnalyzingVocab" class="ai-analysis-box is-loading">
+  <div v-if="libraryStore.isAnalyzingVocab" class="ai-analysis-box is-loading">
     <Icon icon="mdi:loading" class="spin-icon" />
     <p>Изучаем словарный запас книги...</p>
     <p class="sub-text">
@@ -85,13 +87,13 @@ function handleWordClick(word: string, pos: string, event: MouseEvent) {
     </p>
   </div>
 
-  <div v-else-if="store.currentBookInfo?.stats?.topWords" class="ai-analysis-box lexical-box">
+  <div v-else-if="libraryStore.currentBookInfo?.stats?.topWords" class="ai-analysis-box lexical-box">
     <div class="box-header expandable-header" @click="isLexicalExpanded = !isLexicalExpanded">
       <div class="header-info">
         <h3><Icon icon="mdi:chart-arc" /> Лексический профиль</h3>
         <span class="diversity-inline">
           <span class="dot-divider">•</span>
-          Разнообразие: <b class="diversity-value">{{ store.currentBookInfo.stats.lexicalDiversity }}%</b>
+          Разнообразие: <b class="diversity-value">{{ libraryStore.currentBookInfo.stats.lexicalDiversity }}%</b>
         </span>
       </div>
       <Icon :icon="isLexicalExpanded ? 'mdi:chevron-up' : 'mdi:chevron-down'" class="header-chevron" />
@@ -122,7 +124,7 @@ function handleWordClick(word: string, pos: string, event: MouseEvent) {
         </h4>
         <div class="top-words-cloud">
           <div
-            v-for="word in store.currentBookInfo.stats.topWords"
+            v-for="word in libraryStore.currentBookInfo.stats.topWords"
             :key="word.word"
             class="word-chip"
             :class="{
@@ -262,18 +264,15 @@ function handleWordClick(word: string, pos: string, event: MouseEvent) {
 .ai-analysis-box {
   border-radius: 12px;
   margin-bottom: 32px;
-
   &.lexical-box {
     background-color: var(--bg-secondary-color);
     border: 1px solid var(--border-secondary-color);
     padding: 16px 24px;
     transition: border-color 0.2s;
-
     &:hover {
       border-color: var(--border-primary-color);
     }
   }
-
   &.is-loading {
     display: flex;
     flex-direction: column;
@@ -282,27 +281,23 @@ function handleWordClick(word: string, pos: string, event: MouseEvent) {
     padding: 40px 24px;
     background-color: rgba(var(--bg-accent-color-rgb, 48, 33, 61), 0.3);
     border: 1px solid var(--border-accent-color);
-
     .spin-icon {
       font-size: 3rem;
       color: var(--fg-accent-color);
       margin-bottom: 16px;
       animation: spin 1s linear infinite;
     }
-
     p {
       margin: 0 0 8px 0;
       font-size: 1.1rem;
       font-weight: 500;
     }
-
     .sub-text {
       font-size: 0.9rem;
       color: var(--fg-secondary-color);
     }
   }
 }
-
 .expandable-header {
   display: flex;
   justify-content: space-between;
@@ -310,19 +305,16 @@ function handleWordClick(word: string, pos: string, event: MouseEvent) {
   cursor: pointer;
   user-select: none;
   margin-bottom: 0 !important;
-
   &:hover {
     .header-info h3 {
       color: var(--fg-accent-color);
     }
   }
-
   .header-info {
     display: flex;
     align-items: center;
     gap: 12px;
     flex-wrap: wrap;
-
     h3 {
       margin: 0;
       font-size: 1.2rem;
@@ -333,49 +325,41 @@ function handleWordClick(word: string, pos: string, event: MouseEvent) {
       color: var(--fg-primary-color);
     }
   }
-
   .diversity-inline {
     font-size: 0.95rem;
     color: var(--fg-secondary-color);
     display: flex;
     align-items: center;
     gap: 8px;
-
     .dot-divider {
       opacity: 0.5;
       font-size: 1.2rem;
     }
-
     .diversity-value {
       color: var(--fg-accent-color);
       font-weight: 600;
       font-size: 1.05rem;
     }
   }
-
   .header-chevron {
     font-size: 1.5rem;
     color: var(--fg-secondary-color);
     transition: transform 0.3s;
   }
 }
-
 .lexical-expanded-content {
   margin-top: 16px;
   padding-top: 16px;
   border-top: 1px dashed var(--border-secondary-color);
   animation: fade-in 0.3s ease;
 }
-
 .lexical-description {
   font-size: 0.85rem;
   color: var(--fg-secondary-color);
   margin: 0 0 20px 0;
 }
-
 .pos-container {
   margin-bottom: 24px;
-
   .pos-labels {
     display: flex;
     flex-wrap: wrap;
@@ -383,17 +367,14 @@ function handleWordClick(word: string, pos: string, event: MouseEvent) {
     margin-bottom: 8px;
     font-size: 0.85rem;
     font-weight: 500;
-
     @include media-down(sm) {
       gap: 8px 12px;
     }
-
     span {
       display: flex;
       align-items: center;
       gap: 6px;
       white-space: nowrap;
-
       &::before {
         content: '';
         display: block;
@@ -413,14 +394,12 @@ function handleWordClick(word: string, pos: string, event: MouseEvent) {
       background-color: #10b981;
     }
   }
-
   .pos-bar {
     height: 10px;
     border-radius: 5px;
     display: flex;
     overflow: hidden;
     background-color: var(--bg-tertiary-color);
-
     .pos-segment {
       transition: width 0.5s ease-in-out;
     }
@@ -435,19 +414,16 @@ function handleWordClick(word: string, pos: string, event: MouseEvent) {
     }
   }
 }
-
 .top-words-title {
   margin: 0 0 12px 0;
   font-size: 1.1rem;
   color: var(--fg-primary-color);
 }
-
 .top-words-cloud {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
   padding-bottom: 8px;
-
   .word-chip {
     background-color: var(--bg-primary-color);
     border: 1px solid var(--border-primary-color);
@@ -460,12 +436,10 @@ function handleWordClick(word: string, pos: string, event: MouseEvent) {
     gap: 6px;
     cursor: pointer;
     transition: all 0.2s ease;
-
     &:hover {
       transform: translateY(-2px);
       box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
     }
-
     .count {
       font-size: 0.75rem;
       background-color: var(--bg-tertiary-color);
@@ -473,7 +447,6 @@ function handleWordClick(word: string, pos: string, event: MouseEvent) {
       border-radius: 10px;
       color: var(--fg-secondary-color);
     }
-
     &.chip-n {
       border-color: #3b82f6;
     }
@@ -495,7 +468,6 @@ function handleWordClick(word: string, pos: string, event: MouseEvent) {
     }
   }
 }
-
 .lexical-tabs-nav {
   display: flex;
   gap: 8px;
@@ -505,16 +477,13 @@ function handleWordClick(word: string, pos: string, event: MouseEvent) {
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
-
   &::-webkit-scrollbar {
     display: none;
   }
-
   @include media-down(sm) {
     flex-wrap: wrap;
     overflow-x: visible;
   }
-
   button {
     display: flex;
     align-items: center;
@@ -528,21 +497,17 @@ function handleWordClick(word: string, pos: string, event: MouseEvent) {
     background: transparent;
     transition: all 0.2s;
     white-space: nowrap;
-
     @include media-down(sm) {
       flex: 1 1 calc(50% - 8px);
     }
-
     &:hover {
       background: var(--bg-hover-color);
       color: var(--fg-primary-color);
     }
-
     &.active {
       background: rgba(var(--bg-accent-color-rgb, 201, 117, 222), 0.15);
       color: var(--fg-accent-color);
     }
-
     .badge {
       background: var(--fg-accent-color);
       color: var(--bg-primary-color);
@@ -553,21 +518,17 @@ function handleWordClick(word: string, pos: string, event: MouseEvent) {
     }
   }
 }
-
 .tab-pane {
   animation: fade-in 0.3s ease;
 }
-
 .tab-desc {
   font-size: 0.85rem;
   color: var(--fg-secondary-color);
   margin-bottom: 16px;
   line-height: 1.4;
 }
-
 .word-group {
   margin-bottom: 20px;
-
   h5 {
     display: flex;
     align-items: center;
@@ -575,7 +536,6 @@ function handleWordClick(word: string, pos: string, event: MouseEvent) {
     font-size: 1rem;
     margin: 0 0 12px 0;
     color: var(--fg-primary-color);
-
     span {
       font-weight: normal;
       font-size: 0.85rem;
@@ -583,56 +543,47 @@ function handleWordClick(word: string, pos: string, event: MouseEvent) {
     }
   }
 }
-
 .chip-entity {
   border-color: #8b5cf6 !important;
   color: #8b5cf6 !important;
   background-color: rgba(139, 92, 246, 0.05) !important;
 }
-
 .chip-rare {
   border-color: #f59e0b !important;
   background-color: rgba(245, 158, 11, 0.05) !important;
   font-style: italic;
 }
-
 .empty-state-text {
   font-size: 0.9rem;
   color: var(--fg-muted-color);
   font-style: italic;
   padding: 12px 0;
 }
-
 .dict-match-list {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
   gap: 12px;
 }
-
 .dict-match-item {
   padding: 12px;
   background: var(--bg-primary-color);
   border: 1px solid var(--border-primary-color);
   border-radius: 8px;
-
   .dict-word-info {
     display: flex;
     align-items: baseline;
     gap: 8px;
     margin-bottom: 4px;
   }
-
   .dict-word {
     font-weight: 600;
     color: var(--fg-accent-color);
     font-size: 1.1rem;
   }
-
   .dict-trans {
     font-size: 0.85rem;
     color: var(--fg-secondary-color);
   }
-
   .dict-trans-text {
     font-size: 0.9rem;
     line-height: 1.4;
@@ -642,7 +593,6 @@ function handleWordClick(word: string, pos: string, event: MouseEvent) {
     overflow: hidden;
   }
 }
-
 @keyframes spin {
   to {
     transform: rotate(360deg);

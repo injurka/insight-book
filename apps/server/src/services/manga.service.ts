@@ -3,7 +3,8 @@ import path from 'node:path'
 import AdmZip from 'adm-zip'
 import sizeOf from 'image-size'
 import { BOOKS_PATH, COVERS_PATH } from '../config'
-import { sqlite } from '../db'
+import { db } from '../db'
+import * as schema from '../db/schema'
 
 export async function processCbz(fileBuffer: ArrayBuffer, filename: string): Promise<number> {
   const safeName = `${Date.now()}_${filename.replace(/[^\w.-]/g, '_')}`
@@ -32,37 +33,51 @@ export async function processCbz(fileBuffer: ArrayBuffer, filename: string): Pro
 
   const title = filename.replace(/\.(cbz|zip)$/i, '')
 
-  const insertBook = sqlite.prepare(`
-    INSERT INTO books (type, title, author, coverUrl, filePath, language, totalPages, toc)
-    VALUES ('manga', ?, null, ?, ?, 'ja', ?, '[]')
-  `)
-  const result = insertBook.run(title, coverUrl, mangaDir, imageEntries.length)
-  const bookId = result.lastInsertRowid as number
+  // Drizzle ORM Вставки
+  const [insertedBook] = await db.insert(schema.books).values({
+    type: 'manga',
+    title,
+    author: null,
+    coverUrl,
+    filePath: mangaDir,
+    language: 'ja',
+    totalPages: imageEntries.length,
+    toc: '[]',
+  }).returning({ id: schema.books.id })
 
-  const insertPage = sqlite.prepare(`
-    INSERT INTO manga_pages (bookId, pageNum, imageUrl, imageWidth, imageHeight)
-    VALUES (?, ?, ?, ?, ?)
-  `)
+  const bookId = insertedBook.id
 
-  const insertMany = sqlite.transaction(() => {
-    imageEntries.forEach((entry, idx) => {
-      const pageNum = idx + 1
-      const ext = path.extname(entry.entryName)
-      const outPath = path.join(mangaDir, `page_${pageNum}${ext}`)
-      const buffer = entry.getData()
+  const pagesToInsert: { bookId: number, pageNum: number, imageUrl: string, imageWidth: number, imageHeight: number }[] = []
 
-      writeFileSync(outPath, buffer)
-      const dimensions = sizeOf(buffer)
+  imageEntries.forEach((entry, idx) => {
+    const pageNum = idx + 1
+    const ext = path.extname(entry.entryName)
+    const outPath = path.join(mangaDir, `page_${pageNum}${ext}`)
+    const buffer = entry.getData()
 
-      insertPage.run(bookId, pageNum, outPath, dimensions.width || 0, dimensions.height || 0)
+    writeFileSync(outPath, buffer)
+    const dimensions = sizeOf(buffer)
+
+    pagesToInsert.push({
+      bookId,
+      pageNum,
+      imageUrl: outPath,
+      imageWidth: dimensions.width || 0,
+      imageHeight: dimensions.height || 0,
     })
   })
-  insertMany()
 
-  sqlite.prepare(`
-    INSERT OR IGNORE INTO reading_progress (bookId, currentPage)
-    VALUES (?, 1)
-  `).run(bookId)
+  // Вставка страниц порциями по 50
+  const chunkSize = 50
+  for (let i = 0; i < pagesToInsert.length; i += chunkSize) {
+    const chunk = pagesToInsert.slice(i, i + chunkSize)
+    await db.insert(schema.mangaPages).values(chunk).onConflictDoNothing()
+  }
+
+  await db.insert(schema.readingProgress).values({
+    bookId,
+    currentPage: 1,
+  }).onConflictDoNothing()
 
   return bookId
 }

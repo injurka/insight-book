@@ -2,6 +2,7 @@
 import type { Book } from '~/shared/types/models'
 import { computed } from 'vue'
 import { KitBtn } from '~/components/01.kit'
+import { getMediaUrl } from '~/workers/service/lib/utils'
 
 const props = defineProps<Props>()
 
@@ -9,8 +10,6 @@ const emit = defineEmits<{
   (e: 'edit'): void
   (e: 'click'): void
 }>()
-
-const BASE = import.meta.env.VITE_API_URL || 'https://insight-api.trip-scheduler.ru'
 
 interface Props {
   book: Book
@@ -21,7 +20,7 @@ const coverSrc = computed(() => {
     return ''
   return props.book.coverUrl.startsWith('data:')
     ? props.book.coverUrl
-    : `${BASE}${props.book.coverUrl}`
+    : `${getMediaUrl(props.book.coverUrl)}`
 })
 
 const progressPercent = computed(() => {

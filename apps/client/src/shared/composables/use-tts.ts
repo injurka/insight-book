@@ -1,10 +1,9 @@
 import { ref } from 'vue'
+import { useReaderStore } from '~/components/05.modules/reader/store/reader.store'
 import { api } from '~/shared/services/api.service'
-import { useBooksStore } from '~/shared/store/books.store'
 
 export function useTts() {
-  const store = useBooksStore()
-
+  const readerStore = useReaderStore()
   const isPlaying = ref(false)
   const isLoading = ref(false)
   let currentAudio: HTMLAudioElement | null = null
@@ -13,7 +12,7 @@ export function useTts() {
     if (!text || isLoading.value)
       return
 
-    const bookId = store.currentBook?.id
+    const bookId = readerStore.currentBook?.id
     if (!bookId) {
       console.warn('TTS: Невозможно озвучить, так как ID книги не найден')
       return
@@ -24,7 +23,6 @@ export function useTts() {
 
     try {
       const { audioBase64 } = await api.books.generateTts(bookId, text)
-
       const audioSrc = `data:audio/mp3;base64,${audioBase64}`
       currentAudio = new Audio(audioSrc)
 

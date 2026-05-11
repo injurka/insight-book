@@ -1,44 +1,44 @@
 <script setup lang="ts">
-import type { AnalysisHistoryItem } from '~/shared/store/books.store'
+import type { AnalysisHistoryItem } from '~/shared/store/analysis.store'
 import { Icon } from '@iconify/vue'
 import { onUnmounted, ref, watch } from 'vue'
 import { KitDialog, KitSkeleton } from '~/components/01.kit'
 import { useTts } from '~/shared/composables/use-tts'
-import { useBooksStore } from '~/shared/store/books.store'
+import { useAnalysisStore } from '~/shared/store/analysis.store'
 
-const store = useBooksStore()
+const analysisStore = useAnalysisStore()
 const { speak, stop, isPlaying, isLoading } = useTts()
 
 const isPinned = ref(true)
 const showHistory = ref(false)
 
-watch(() => store.sidebarSentence, () => {
+watch(() => analysisStore.sidebarSentence, () => {
   showHistory.value = false
   if (isPlaying.value || isLoading.value) {
     stop()
   }
 })
 
-watch(() => store.sidebarOpen, (isOpen) => {
+watch(() => analysisStore.sidebarOpen, (isOpen) => {
   if (!isOpen && (isPlaying.value || isLoading.value)) {
     stop()
   }
 })
 
 function loadHistoryItem(item: AnalysisHistoryItem) {
-  store.handleSentenceAnalysis(item.sentence)
+  analysisStore.handleSentenceAnalysis(item.sentence)
   showHistory.value = false
 }
 
 function playTTS() {
-  if (!store.sidebarSentence)
+  if (!analysisStore.sidebarSentence)
     return
 
   if (isPlaying.value || isLoading.value) {
     stop()
   }
   else {
-    speak(store.sidebarSentence)
+    speak(analysisStore.sidebarSentence)
   }
 }
 
@@ -49,7 +49,7 @@ onUnmounted(() => {
 
 <template>
   <KitDialog
-    v-model:visible="store.sidebarOpen"
+    v-model:visible="analysisStore.sidebarOpen"
     :title="showHistory ? 'История сессии' : 'Анализ ИИ'"
     :max-width="650"
     icon="mdi:robot-outline"
@@ -76,12 +76,12 @@ onUnmounted(() => {
     </template>
 
     <div v-if="showHistory" class="history-content">
-      <div v-if="store.analysisHistory.length === 0" class="empty-history">
+      <div v-if="analysisStore.analysisHistory.length === 0" class="empty-history">
         Вы еще не анализировали предложения в этой сессии.
       </div>
       <div v-else class="history-list">
         <div
-          v-for="(item, idx) in store.analysisHistory"
+          v-for="(item, idx) in analysisStore.analysisHistory"
           :key="idx"
           class="history-card"
           @click="loadHistoryItem(item)"
@@ -100,7 +100,7 @@ onUnmounted(() => {
     </div>
 
     <template v-else>
-      <div v-if="store.isAnalyzing" class="analysis-loading">
+      <div v-if="analysisStore.isAnalyzing" class="analysis-loading">
         <KitSkeleton width="100%" height="20px" class="mb-3" />
         <KitSkeleton width="80%" height="20px" class="mb-3" />
         <KitSkeleton width="90%" height="20px" />
@@ -109,14 +109,14 @@ onUnmounted(() => {
         </p>
       </div>
 
-      <div v-else-if="store.sidebarAnalysis" class="analysis-content">
+      <div v-else-if="analysisStore.sidebarAnalysis" class="analysis-content">
         <div class="sentence-header">
           <div class="sentence-content js-tooltip-selectable">
             <div class="original-sentence">
-              {{ store.sidebarSentence }}
+              {{ analysisStore.sidebarSentence }}
             </div>
-            <div v-if="store.sidebarAnalysis.transcription" class="sentence-transcription">
-              {{ store.sidebarAnalysis.transcription }}
+            <div v-if="analysisStore.sidebarAnalysis.transcription" class="sentence-transcription">
+              {{ analysisStore.sidebarAnalysis.transcription }}
             </div>
           </div>
           <button class="tts-btn" title="Озвучить" @click="playTTS">
@@ -130,13 +130,13 @@ onUnmounted(() => {
         <div class="analysis-block">
           <h3><Icon icon="mdi:translate" class="inline-icon" /> Перевод</h3>
           <p class="translation-text">
-            {{ store.sidebarAnalysis.translation }}
+            {{ analysisStore.sidebarAnalysis.translation }}
           </p>
         </div>
 
-        <div v-if="store.sidebarAnalysis.grammarRules?.length" class="analysis-block">
+        <div v-if="analysisStore.sidebarAnalysis.grammarRules?.length" class="analysis-block">
           <h3><Icon icon="mdi:puzzle-outline" class="inline-icon" /> Грамматика</h3>
-          <div v-for="(rule, idx) in store.sidebarAnalysis.grammarRules" :key="idx" class="grammar-card">
+          <div v-for="(rule, idx) in analysisStore.sidebarAnalysis.grammarRules" :key="idx" class="grammar-card">
             <div class="rule-pattern">
               {{ rule.pattern }}
             </div>
@@ -149,10 +149,10 @@ onUnmounted(() => {
           </div>
         </div>
 
-        <div v-if="store.sidebarAnalysis.vocabulary?.length" class="analysis-block">
+        <div v-if="analysisStore.sidebarAnalysis.vocabulary?.length" class="analysis-block">
           <h3><Icon icon="mdi:book-open-page-variant-outline" class="inline-icon" /> Лексика</h3>
           <ul class="vocab-list">
-            <li v-for="(v, idx) in store.sidebarAnalysis.vocabulary" :key="idx">
+            <li v-for="(v, idx) in analysisStore.sidebarAnalysis.vocabulary" :key="idx">
               <div class="vocab-word">
                 <span class="dict-word">{{ v.word }}</span>
                 <span class="dict-transcription">{{ v.transcription }}</span>
@@ -177,20 +177,17 @@ onUnmounted(() => {
   flex-direction: column;
   gap: 12px;
 }
-
 .empty-history {
   text-align: center;
   color: var(--fg-secondary-color);
   padding: 32px 0;
   font-style: italic;
 }
-
 .history-list {
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
-
 .history-card {
   padding: 12px;
   background-color: var(--bg-secondary-color);
@@ -200,12 +197,10 @@ onUnmounted(() => {
   transition:
     border-color 0.2s,
     background-color 0.2s;
-
   &:hover {
     background-color: var(--bg-hover-color);
     border-color: var(--fg-accent-color);
   }
-
   .history-sentence {
     font-size: 1.05rem;
     font-weight: 500;
@@ -216,7 +211,6 @@ onUnmounted(() => {
     -webkit-box-orient: vertical;
     overflow: hidden;
   }
-
   .history-transcription {
     font-size: 0.85rem;
     color: var(--fg-secondary-color);
@@ -227,7 +221,6 @@ onUnmounted(() => {
     -webkit-box-orient: vertical;
     overflow: hidden;
   }
-
   .history-translation {
     font-size: 0.9rem;
     color: var(--fg-secondary-color);
@@ -237,28 +230,24 @@ onUnmounted(() => {
     overflow: hidden;
   }
 }
-
 .analysis-loading {
   display: flex;
   flex-direction: column;
   gap: 8px;
   padding: 24px 0;
   text-align: center;
-
   .loading-text {
     margin-top: 16px;
     color: var(--fg-secondary-color);
     font-style: italic;
   }
 }
-
 .analysis-content {
   .sentence-header {
     display: flex;
     align-items: flex-start;
     gap: 12px;
     margin-bottom: 24px;
-
     .tts-btn {
       flex-shrink: 0;
       display: flex;
@@ -273,13 +262,11 @@ onUnmounted(() => {
       font-size: 1.5rem;
       cursor: pointer;
       transition: all 0.2s;
-
       &:hover {
         background-color: var(--bg-hover-color);
         color: var(--fg-primary-color);
       }
     }
-
     .sentence-content {
       flex-grow: 1;
       padding: 10px 16px;
@@ -289,14 +276,12 @@ onUnmounted(() => {
       display: flex;
       flex-direction: column;
       gap: 6px;
-
       .original-sentence {
         font-size: 1.3rem;
         font-weight: 500;
         margin: 0;
         font-family: inherit;
       }
-
       .sentence-transcription {
         font-size: 1.05rem;
         color: var(--fg-secondary-color);
@@ -304,7 +289,6 @@ onUnmounted(() => {
       }
     }
   }
-
   .analysis-block {
     margin-bottom: 24px;
     h3 {
@@ -319,12 +303,10 @@ onUnmounted(() => {
       }
     }
   }
-
   .translation-text {
     font-size: 1.05rem;
     line-height: 1.5;
   }
-
   .grammar-card {
     background-color: var(--bg-secondary-color);
     border: 1px solid var(--border-secondary-color);
@@ -347,16 +329,13 @@ onUnmounted(() => {
       color: var(--fg-muted-color);
     }
   }
-
   .vocab-list {
     list-style: none;
     padding: 0;
     margin: 0;
-
     li {
       padding: 12px 0;
       border-bottom: 1px dashed var(--border-secondary-color);
-
       &:last-child {
         border-bottom: none;
       }
@@ -374,18 +353,15 @@ onUnmounted(() => {
     }
   }
 }
-
 .pulse-animation {
   animation: pulse-op 1.2s ease-in-out infinite;
   transform-origin: center;
   display: inline-block;
 }
-
 .spin-animation {
   animation: spin 1s linear infinite;
   display: inline-block;
 }
-
 @keyframes pulse-op {
   0% {
     opacity: 1;
@@ -400,18 +376,15 @@ onUnmounted(() => {
     transform: scale(1);
   }
 }
-
 @keyframes spin {
   to {
     transform: rotate(360deg);
   }
 }
-
 @include media-down(md) {
   .analysis-content {
     .sentence-header {
       gap: 4px;
-
       .tts-btn {
         width: 44px;
         height: 44px;
@@ -419,7 +392,6 @@ onUnmounted(() => {
     }
   }
 }
-
 @include media-down(sm) {
   .pin-btn {
     display: none !important;

@@ -3,13 +3,13 @@ import { Icon } from '@iconify/vue'
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { KitBtn } from '~/components/01.kit'
+import { useLibraryStore } from '~/components/05.modules/library/store/library.store'
 import { AppRoutePaths } from '~/shared/constants/routes'
-import { useBooksStore } from '~/shared/store/books.store'
+import { getMediaUrl } from '~/workers/service/lib/utils'
 
-const store = useBooksStore()
+const libraryStore = useLibraryStore()
 const router = useRouter()
 
-const BASE = import.meta.env.VITE_API_URL || 'https://insight-api.trip-scheduler.ru'
 const coverInputRef = ref<HTMLInputElement | null>(null)
 
 function triggerCoverInput() {
@@ -18,16 +18,20 @@ function triggerCoverInput() {
 
 function onCoverChange(e: Event) {
   const target = e.target as HTMLInputElement
-  if (target.files && target.files.length > 0 && store.currentBookInfo) {
-    store.updateBookCover(store.currentBookInfo.id, target.files[0])
+
+  if (target.files && target.files.length > 0 && libraryStore.currentBookInfo) {
+    libraryStore.updateBookCover(libraryStore.currentBookInfo.id, target.files[0])
   }
 }
 
 function startReading() {
-  if (store.currentBookInfo) {
+  if (libraryStore.currentBookInfo) {
     router.push({
       path: AppRoutePaths.Reader,
-      query: { bookId: store.currentBookInfo.id, page: store.currentBookInfo.currentPage || 1 },
+      query: {
+        bookId: libraryStore.currentBookInfo.id,
+        page: libraryStore.currentBookInfo.currentPage || 1,
+      },
     })
   }
 }
@@ -37,8 +41,8 @@ function startReading() {
   <div class="cover-col">
     <div class="cover-wrapper group" @click="triggerCoverInput">
       <img
-        v-if="store.currentBookInfo?.coverUrl"
-        :src="store.currentBookInfo.coverUrl.startsWith('data:') ? store.currentBookInfo.coverUrl : `${BASE}${store.currentBookInfo.coverUrl}`"
+        v-if="libraryStore.currentBookInfo?.coverUrl"
+        :src="libraryStore.currentBookInfo.coverUrl.startsWith('data:') ? libraryStore.currentBookInfo.coverUrl : `${getMediaUrl(libraryStore.currentBookInfo.coverUrl)}`"
         alt="Обложка"
       >
       <div v-else class="cover-placeholder">
@@ -52,7 +56,7 @@ function startReading() {
 
     <div class="action-buttons">
       <KitBtn color="primary" class="full-width" @click="startReading">
-        {{ (store.currentBookInfo?.currentPage || 1) > 1 ? 'Продолжить чтение' : 'Начать чтение' }}
+        {{ (libraryStore.currentBookInfo?.currentPage || 1) > 1 ? 'Продолжить чтение' : 'Начать чтение' }}
       </KitBtn>
     </div>
   </div>
@@ -69,14 +73,12 @@ function startReading() {
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.15);
   margin-bottom: 24px;
   cursor: pointer;
-
   img {
     width: 100%;
     height: 100%;
     object-fit: cover;
     transition: transform 0.3s;
   }
-
   .cover-placeholder {
     width: 100%;
     height: 100%;
@@ -88,7 +90,6 @@ function startReading() {
       font-size: 5rem;
     }
   }
-
   .cover-overlay {
     position: absolute;
     inset: 0;
@@ -102,7 +103,6 @@ function startReading() {
     opacity: 0;
     transition: opacity 0.2s;
   }
-
   &:hover {
     img {
       transform: scale(1.05);
@@ -112,7 +112,6 @@ function startReading() {
     }
   }
 }
-
 .action-buttons {
   display: flex;
   flex-direction: column;

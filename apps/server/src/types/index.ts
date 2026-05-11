@@ -28,7 +28,7 @@ export interface Book {
   id: number
   title: string
   author: string | null
-  coverBase64: string | null
+  coverUrl: string | null
   filePath: string
   language: string
   totalPages: number

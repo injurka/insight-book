@@ -1,11 +1,10 @@
 <script setup lang="ts">
 import { Icon } from '@iconify/vue'
-import { reactive, ref } from 'vue'
 import { KitBtn, KitInput } from '~/components/01.kit'
+import { useLibraryStore } from '~/components/05.modules/library/store/library.store'
 import { useToast } from '~/shared/composables/use-toast'
-import { useBooksStore } from '~/shared/store/books.store'
 
-const store = useBooksStore()
+const libraryStore = useLibraryStore()
 const toast = useToast()
 
 const isEditingStats = ref(false)
@@ -23,7 +22,7 @@ function formatNumber(num: number | undefined): string {
 }
 
 function startEditingStats() {
-  const stats = store.currentBookInfo?.stats
+  const stats = libraryStore.currentBookInfo?.stats
   editForm.difficulty = stats?.difficulty || ''
   editForm.tags = stats?.tags?.join(', ') || ''
   editForm.description = stats?.description || ''
@@ -31,9 +30,10 @@ function startEditingStats() {
 }
 
 async function triggerAiAnalysis() {
-  if (!store.currentBookInfo) return
+  if (!libraryStore.currentBookInfo)
+    return
   try {
-    await store.analyzeFullBook(store.currentBookInfo.id)
+    await libraryStore.analyzeFullBook(libraryStore.currentBookInfo.id)
     isEditingStats.value = false
     toast.success('Нейросеть успешно завершила анализ!')
   }
@@ -43,9 +43,10 @@ async function triggerAiAnalysis() {
 }
 
 async function triggerVocabularyAnalysis() {
-  if (!store.currentBookInfo) return
+  if (!libraryStore.currentBookInfo)
+    return
   try {
-    await store.analyzeVocabulary(store.currentBookInfo.id)
+    await libraryStore.analyzeVocabulary(libraryStore.currentBookInfo.id)
     isEditingStats.value = false
     toast.success('Лексический профиль составлен!')
   }
@@ -55,10 +56,11 @@ async function triggerVocabularyAnalysis() {
 }
 
 async function saveStats() {
-  if (!store.currentBookInfo) return
+  if (!libraryStore.currentBookInfo)
+    return
   try {
     const tagsArray = editForm.tags.split(',').map(t => t.trim()).filter(Boolean)
-    await store.updateBookStats(store.currentBookInfo.id, {
+    await libraryStore.updateBookStats(libraryStore.currentBookInfo.id, {
       difficulty: editForm.difficulty,
       tags: tagsArray,
       description: editForm.description,
@@ -73,27 +75,24 @@ async function saveStats() {
 </script>
 
 <template>
-  <div v-if="store.currentBookInfo">
+  <div v-if="libraryStore.currentBookInfo">
     <h1 class="book-title">
-      {{ store.currentBookInfo.title }}
+      {{ libraryStore.currentBookInfo.title }}
     </h1>
     <p class="book-author">
-      {{ store.currentBookInfo.author || 'Автор не указан' }}
+      {{ libraryStore.currentBookInfo.author || 'Автор не указан' }}
     </p>
 
     <div class="progress-section">
       <div class="progress-text">
-        Прогресс: Страница {{ store.currentBookInfo.currentPage || 1 }} из {{ formatNumber(store.currentBookInfo.totalPages) }}
+        Прогресс: Страница {{ libraryStore.currentBookInfo.currentPage || 1 }} из {{ formatNumber(libraryStore.currentBookInfo.totalPages) }}
       </div>
       <div class="progress-bar">
-        <div
-          class="progress-fill"
-          :style="{ width: `${((store.currentBookInfo.currentPage || 1) / store.currentBookInfo.totalPages) * 100}%` }"
-        />
+        <div class="progress-fill" :style="{ width: `${((libraryStore.currentBookInfo.currentPage || 1) / libraryStore.currentBookInfo.totalPages) * 100}%` }" />
       </div>
     </div>
 
-    <div v-if="store.isAnalyzingBook" class="ai-analysis-box is-loading">
+    <div v-if="libraryStore.isAnalyzingBook" class="ai-analysis-box is-loading">
       <Icon icon="mdi:robot-outline" class="spin-icon pulse" />
       <p>Нейросеть анализирует текст книги...</p>
       <p class="sub-text">
@@ -110,77 +109,52 @@ async function saveStats() {
       <template v-if="isEditingStats">
         <div class="edit-form">
           <div class="ai-generate-actions">
-            <KitBtn
-              variant="outlined"
-              color="accent"
-              icon="mdi:robot-outline"
-              class="flex-1"
-              :disabled="store.isAnalyzingBook"
-              @click="triggerAiAnalysis"
-            >
+            <KitBtn variant="outlined" color="accent" icon="mdi:robot-outline" class="flex-1" :disabled="libraryStore.isAnalyzingBook" @click="triggerAiAnalysis">
               Сгенерировать AI Инфо
             </KitBtn>
-            <KitBtn
-              variant="outlined"
-              color="secondary"
-              icon="mdi:chart-pie"
-              class="flex-1"
-              :disabled="store.isAnalyzingVocab"
-              @click="triggerVocabularyAnalysis"
-            >
+            <KitBtn variant="outlined" color="secondary" icon="mdi:chart-pie" class="flex-1" :disabled="libraryStore.isAnalyzingVocab" @click="triggerVocabularyAnalysis">
               Собрать лексику
             </KitBtn>
           </div>
-
           <div class="edit-divider">
             <span>Или заполните вручную</span>
           </div>
-
           <div class="form-group">
-            <label>Сложность</label>
-            <KitInput v-model="editForm.difficulty" placeholder="Например: HSK 4" />
+            <label>Сложность</label><KitInput v-model="editForm.difficulty" placeholder="Например: HSK 4" />
           </div>
           <div class="form-group">
-            <label>Теги (через запятую)</label>
-            <KitInput v-model="editForm.tags" placeholder="Фэнтези, Повседневность" />
+            <label>Теги (через запятую)</label><KitInput v-model="editForm.tags" placeholder="Фэнтези, Повседневность" />
           </div>
           <div class="form-group">
-            <label>Аннотация</label>
-            <textarea v-model="editForm.description" class="custom-textarea" rows="4" placeholder="О чем эта книга..." />
+            <label>Аннотация</label><textarea v-model="editForm.description" class="custom-textarea" rows="4" placeholder="О чем эта книга..." />
           </div>
           <div class="form-actions">
             <KitBtn variant="tonal" @click="isEditingStats = false">
               Отмена
-            </KitBtn>
-            <KitBtn color="primary" @click="saveStats">
+            </KitBtn><KitBtn color="primary" @click="saveStats">
               Сохранить
             </KitBtn>
           </div>
         </div>
       </template>
 
-      <template v-else-if="store.currentBookInfo.stats">
+      <template v-else-if="libraryStore.currentBookInfo.stats">
         <div class="stats-grid">
           <div class="stat-item">
-            <span class="stat-label">Сложность</span>
-            <span class="stat-value difficulty-badge">{{ store.currentBookInfo.stats.difficulty || '?' }}</span>
+            <span class="stat-label">Сложность</span><span class="stat-value difficulty-badge">{{ libraryStore.currentBookInfo.stats.difficulty || '?' }}</span>
           </div>
           <div class="stat-item">
-            <span class="stat-label">Всего символов</span>
-            <span class="stat-value">{{ formatNumber(store.currentBookInfo.stats.totalChars) }}</span>
+            <span class="stat-label">Всего символов</span><span class="stat-value">{{ formatNumber(libraryStore.currentBookInfo.stats.totalChars) }}</span>
           </div>
           <div class="stat-item">
-            <span class="stat-label">Уник. символов</span>
-            <span class="stat-value text-accent">{{ formatNumber(store.currentBookInfo.stats.uniqueChars) }}</span>
+            <span class="stat-label">Уник. символов</span><span class="stat-value text-accent">{{ formatNumber(libraryStore.currentBookInfo.stats.uniqueChars) }}</span>
           </div>
         </div>
-
-        <div v-if="store.currentBookInfo.stats.tags?.length" class="tags-list">
-          <span v-for="tag in store.currentBookInfo.stats.tags" :key="tag" class="tag-badge">{{ tag }}</span>
+        <div v-if="libraryStore.currentBookInfo.stats.tags?.length" class="tags-list">
+          <span v-for="tag in libraryStore.currentBookInfo.stats.tags" :key="tag" class="tag-badge">{{ tag }}</span>
         </div>
-
         <div class="book-description">
-          <p>{{ store.currentBookInfo.stats.description || 'Описание пока не добавлено.' }}</p>
+          <p>{{ libraryStore.currentBookInfo.stats.description || 'Описание пока не добавлено.' }}</p>
         </div>
       </template>
 
@@ -203,32 +177,27 @@ async function saveStats() {
   margin: 0 0 8px 0;
   color: var(--fg-primary-color);
 }
-
 .book-author {
   font-size: 1.1rem;
   color: var(--fg-secondary-color);
   margin: 0 0 24px 0;
 }
-
 .progress-section {
   background-color: var(--bg-secondary-color);
   padding: 16px;
   border-radius: 12px;
   margin-bottom: 24px;
-
   .progress-text {
     font-size: 0.95rem;
     color: var(--fg-primary-color);
     margin-bottom: 8px;
     font-weight: 500;
   }
-
   .progress-bar {
     height: 6px;
     background-color: var(--bg-tertiary-color);
     border-radius: 3px;
     overflow: hidden;
-
     .progress-fill {
       height: 100%;
       background-color: var(--fg-accent-color);
@@ -236,20 +205,17 @@ async function saveStats() {
     }
   }
 }
-
 .ai-analysis-box {
   background-color: rgba(var(--bg-accent-color-rgb, 48, 33, 61), 0.3);
   border: 1px solid var(--border-accent-color);
   border-radius: 12px;
   padding: 24px;
   margin-bottom: 32px;
-
   .box-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
     margin-bottom: 16px;
-
     h3 {
       font-size: 1.2rem;
       margin: 0;
@@ -258,14 +224,12 @@ async function saveStats() {
       gap: 8px;
     }
   }
-
   &.is-loading {
     display: flex;
     flex-direction: column;
     align-items: center;
     text-align: center;
     padding: 40px 24px;
-
     .spin-icon {
       font-size: 3rem;
       color: var(--fg-accent-color);
@@ -274,19 +238,16 @@ async function saveStats() {
         animation: pulse 1.5s infinite;
       }
     }
-
     p {
       margin: 0 0 8px 0;
       font-size: 1.1rem;
       font-weight: 500;
     }
-
     .sub-text {
       font-size: 0.9rem;
       color: var(--fg-secondary-color);
     }
   }
-
   .empty-stats {
     text-align: center;
     color: var(--fg-secondary-color);
@@ -295,22 +256,18 @@ async function saveStats() {
       margin-bottom: 16px;
     }
   }
-
   .stats-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: 16px;
     margin-bottom: 24px;
-
     @include media-down(sm) {
       grid-template-columns: 1fr;
     }
-
     .stat-item {
       display: flex;
       flex-direction: column;
       gap: 4px;
-
       .stat-label {
         font-size: 0.85rem;
         color: var(--fg-secondary-color);
@@ -321,7 +278,6 @@ async function saveStats() {
         font-size: 1.4rem;
         font-weight: 600;
         color: var(--fg-primary-color);
-
         &.text-accent {
           color: var(--fg-accent-color);
         }
@@ -337,7 +293,6 @@ async function saveStats() {
       }
     }
   }
-
   .tags-list {
     display: flex;
     flex-wrap: wrap;
@@ -352,7 +307,6 @@ async function saveStats() {
       font-weight: 500;
     }
   }
-
   .book-description p {
     margin: 0;
     line-height: 1.6;
@@ -361,25 +315,20 @@ async function saveStats() {
     white-space: pre-wrap;
   }
 }
-
 .edit-form {
   display: flex;
   flex-direction: column;
   gap: 16px;
-
   .ai-generate-actions {
     display: flex;
     gap: 12px;
-
     @include media-down(sm) {
       flex-direction: column;
     }
-
     .flex-1 {
       flex: 1;
     }
   }
-
   .edit-divider {
     display: flex;
     align-items: center;
@@ -387,14 +336,12 @@ async function saveStats() {
     color: var(--fg-muted-color);
     font-size: 0.85rem;
     margin: 8px 0;
-
     &::before,
     &::after {
       content: '';
       flex: 1;
       border-bottom: 1px solid var(--border-primary-color);
     }
-
     &:not(:empty)::before {
       margin-right: 0.5em;
     }
@@ -402,18 +349,15 @@ async function saveStats() {
       margin-left: 0.5em;
     }
   }
-
   .form-group {
     display: flex;
     flex-direction: column;
     gap: 6px;
-
     label {
       font-size: 0.85rem;
       font-weight: 500;
       color: var(--fg-secondary-color);
     }
-
     .custom-textarea {
       width: 100%;
       background-color: var(--bg-primary-color);
@@ -426,23 +370,29 @@ async function saveStats() {
       resize: vertical;
       outline: none;
       transition: border-color 0.2s;
-
       &:focus {
         border-color: var(--fg-accent-color);
       }
     }
   }
-
   .form-actions {
     display: flex;
     gap: 8px;
     margin-top: 8px;
   }
 }
-
 @keyframes pulse {
-  0% { transform: scale(1); opacity: 1; }
-  50% { transform: scale(1.1); opacity: 0.7; }
-  100% { transform: scale(1); opacity: 1; }
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 0.7;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 </style>

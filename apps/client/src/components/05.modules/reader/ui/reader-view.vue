@@ -1,16 +1,18 @@
 <script setup lang="ts">
 import { computed, useTemplateRef, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { KitBtn, KitDialog } from '~/components/01.kit'
-
+import { KitDialog } from '~/components/01.kit'
 import { PageLoader } from '~/components/02.shared/page-loader'
-import { SelectionTooltip, SentenceAnalysis, WordPopover } from '~/components/03.domain/analysis'
-import { useBooksStore } from '~/shared/store/books.store'
 
+import { SelectionTooltip, SentenceAnalysis, WordPopover } from '~/components/03.domain/analysis'
+import { useAnalysisStore } from '~/shared/store/analysis.store'
+
+import { useReaderStore } from '../store/reader.store'
 import ReaderFooter from './reader-footer.vue'
 import ReaderHeader from './reader-header.vue'
 
-const store = useBooksStore()
+const readerStore = useReaderStore()
+const analysisStore = useAnalysisStore()
 const router = useRouter()
 const route = useRoute()
 
@@ -18,17 +20,17 @@ const readerViewRef = useTemplateRef<HTMLElement>('readerViewRef')
 
 const translationMap = computed(() => {
   const map: Record<string, string> = {}
-  for (const item of store.analysisHistory) {
+  for (const item of analysisStore.analysisHistory) {
     map[item.sentence] = item.analysis.translation
   }
   return map
 })
 
 const translatedPageContent = computed(() => {
-  if (!store.currentPage?.content || !store.isParallelView)
+  if (!readerStore.currentPage?.content || !readerStore.isParallelView)
     return ''
   const parser = new DOMParser()
-  const doc = parser.parseFromString(store.currentPage.content, 'text/html')
+  const doc = parser.parseFromString(readerStore.currentPage.content, 'text/html')
   const map = translationMap.value
 
   doc.querySelectorAll('.sentence').forEach((span) => {
@@ -45,7 +47,7 @@ const translatedPageContent = computed(() => {
 })
 
 function onSentenceHover(event: MouseEvent) {
-  if (!store.isParallelView)
+  if (!readerStore.isParallelView)
     return
   const target = (event.target as HTMLElement).closest('.sentence') as HTMLElement | null
   if (!target)
@@ -60,7 +62,7 @@ function onSentenceHover(event: MouseEvent) {
 }
 
 function onSentenceOut(event: MouseEvent) {
-  if (!store.isParallelView)
+  if (!readerStore.isParallelView)
     return
   const target = (event.target as HTMLElement).closest('.sentence') as HTMLElement | null
   if (!target)
@@ -74,7 +76,7 @@ function onSentenceOut(event: MouseEvent) {
   }
 }
 
-watch(() => store.activeTokenId, (newId, oldId) => {
+watch(() => analysisStore.activeTokenId, (newId, oldId) => {
   if (oldId) {
     const [sentId, tokenIdx] = oldId.split('-')
     const el = readerViewRef.value?.querySelector(`.word[data-sent-id="${sentId}"][data-token-idx="${tokenIdx}"]`)
@@ -90,28 +92,28 @@ watch(() => store.activeTokenId, (newId, oldId) => {
 })
 
 function prevPage() {
-  if (store.currentBook && (store.currentBook.currentPage || 1) > 1) {
-    const newPage = (store.currentBook.currentPage || 1) - 1
-    store.loadPage(store.currentBook.id, newPage)
+  if (readerStore.currentBook && (readerStore.currentBook.currentPage || 1) > 1) {
+    const newPage = (readerStore.currentBook.currentPage || 1) - 1
+    readerStore.loadPage(readerStore.currentBook.id, newPage)
     router.replace({ query: { ...route.query, page: newPage } })
     readerViewRef.value?.scrollTo({ top: 0, behavior: 'smooth' })
   }
 }
 
 function nextPage() {
-  if (store.currentBook && (store.currentBook.currentPage || 1) < store.currentBook.totalPages) {
-    const newPage = (store.currentBook.currentPage || 1) + 1
-    store.loadPage(store.currentBook.id, newPage)
+  if (readerStore.currentBook && (readerStore.currentBook.currentPage || 1) < readerStore.currentBook.totalPages) {
+    const newPage = (readerStore.currentBook.currentPage || 1) + 1
+    readerStore.loadPage(readerStore.currentBook.id, newPage)
     router.replace({ query: { ...route.query, page: newPage } })
     readerViewRef.value?.scrollTo({ top: 0, behavior: 'smooth' })
   }
 }
 
 function goToPage(pageNum?: number) {
-  if (!pageNum || !store.currentBook)
+  if (!pageNum || !readerStore.currentBook)
     return
-  store.tocOpen = false
-  store.loadPage(store.currentBook.id, pageNum)
+  readerStore.tocOpen = false
+  readerStore.loadPage(readerStore.currentBook.id, pageNum)
   router.replace({ query: { ...route.query, page: pageNum } })
   readerViewRef.value?.scrollTo({ top: 0, behavior: 'smooth' })
 }
@@ -130,10 +132,10 @@ function onPointerDown(event: MouseEvent | TouchEvent) {
   const rawSent = decodeURIComponent(rawSentEnc)
 
   pressTimer = setTimeout(() => {
-    store.closePopover()
-    store.closeSelectionTooltip()
+    analysisStore.closePopover()
+    analysisStore.closeSelectionTooltip()
     window.getSelection()?.empty()
-    store.handleSentenceAnalysis(rawSent)
+    analysisStore.handleSentenceAnalysis(rawSent)
     pressTimer = null
   }, 500)
 }
@@ -169,15 +171,15 @@ function onContentClick(event: MouseEvent) {
   window.getSelection()?.empty()
 
   event.stopPropagation()
-  store.handleWordClick(word, pos, sentenceId, tokenIndex, target)
+  analysisStore.handleWordClick(word, pos, sentenceId, tokenIndex, target)
 }
 
 function onScroll() {
-  if (store.wordPopover) {
-    store.closePopover()
+  if (analysisStore.wordPopover) {
+    analysisStore.closePopover()
   }
-  if (store.selectionTooltip) {
-    store.closeSelectionTooltip()
+  if (analysisStore.selectionTooltip) {
+    analysisStore.closeSelectionTooltip()
   }
 }
 </script>
@@ -188,7 +190,7 @@ function onScroll() {
       <ReaderHeader />
 
       <div class="reader-content-wrapper">
-        <div v-if="store.isPageLoading || store.isLoading" class="reader-loading-wrapper">
+        <div v-if="readerStore.isPageLoading" class="reader-loading-wrapper">
           <div class="spinner-box">
             <PageLoader />
           </div>
@@ -200,8 +202,8 @@ function onScroll() {
           </p>
         </div>
 
-        <div v-else-if="store.currentPage" class="reader-layout-wrapper">
-          <div class="reader-content-layout" :class="{ 'is-parallel': store.isParallelView }">
+        <div v-else-if="readerStore.currentPage" class="reader-layout-wrapper">
+          <div class="reader-content-layout" :class="{ 'is-parallel': readerStore.isParallelView }">
             <div
               class="reader-content left-pane js-tooltip-selectable"
               @click="onContentClick"
@@ -213,11 +215,11 @@ function onScroll() {
               @mouseleave="onPointerUp"
               @mouseover="onSentenceHover"
               @mouseout="onSentenceOut"
-              v-html="store.currentPage.content"
+              v-html="readerStore.currentPage.content"
             />
 
             <div
-              v-if="store.isParallelView"
+              v-if="readerStore.isParallelView"
               class="reader-content right-pane"
               @mousedown="onPointerDown"
               @touchstart="onPointerDown"
@@ -237,14 +239,14 @@ function onScroll() {
     </div>
 
     <Transition name="fade">
-      <div v-if="store.isAnalyzingPage" class="page-analysis-overlay">
+      <div v-if="analysisStore.isAnalyzingPage" class="page-analysis-overlay">
         <div class="analysis-dialog">
           <h3>Анализ страницы</h3>
-          <p>Обработано {{ store.pageAnalysisCurrent }} из {{ store.pageAnalysisTotal }} предложений...</p>
+          <p>Обработано {{ analysisStore.pageAnalysisCurrent }} из {{ analysisStore.pageAnalysisTotal }} предложений...</p>
           <div class="progress-bar">
-            <div class="progress-fill" :style="{ width: `${store.pageAnalysisProgress}%` }" />
+            <div class="progress-fill" :style="{ width: `${analysisStore.pageAnalysisProgress}%` }" />
           </div>
-          <KitBtn color="secondary" variant="outlined" @click="store.cancelPageAnalysis">
+          <KitBtn color="secondary" variant="outlined" @click="analysisStore.cancelPageAnalysis">
             Отмена
           </KitBtn>
         </div>
@@ -254,13 +256,13 @@ function onScroll() {
     <WordPopover />
     <SelectionTooltip />
 
-    <KitDialog v-model:visible="store.tocOpen" title="Оглавление" :max-width="500" icon="mdi:format-list-bulleted">
-      <div v-if="store.currentToc.length === 0" class="empty-state">
+    <KitDialog v-model:visible="readerStore.tocOpen" title="Оглавление" :max-width="500" icon="mdi:format-list-bulleted">
+      <div v-if="readerStore.currentToc.length === 0" class="empty-state">
         <p>Оглавление пусто или не загружено.</p>
       </div>
       <div v-else class="toc-list">
         <div
-          v-for="item in store.currentToc"
+          v-for="item in readerStore.currentToc"
           :key="item.id"
           class="toc-item"
           :style="{ paddingLeft: `${(item.level - 1) * 16}px` }"
@@ -284,52 +286,43 @@ function onScroll() {
   overflow-x: hidden;
   background-color: var(--bg-primary-color);
 }
-
 .swipe-container {
   display: flex;
   flex-direction: column;
   min-height: 100%;
 }
-
 .reader-content-wrapper {
   flex-grow: 1;
   display: flex;
   flex-direction: column;
   position: relative;
 }
-
 .reader-layout-wrapper {
   width: 100%;
   display: flex;
   justify-content: center;
   padding: 24px;
-
   @include media-down(sm) {
     padding: 16px;
   }
 }
-
 .reader-content-layout {
   display: flex;
   width: 100%;
   max-width: 800px;
   transition: max-width 0.3s ease;
   gap: 48px;
-
   &.is-parallel {
     max-width: 1600px;
-
     .left-pane,
     .right-pane {
       flex: 1;
       min-width: 0;
     }
-
     .right-pane {
       border-left: 1px dashed var(--border-secondary-color);
       padding-left: 48px;
     }
-
     @include media-down(md) {
       flex-direction: column;
       gap: 24px;
@@ -342,7 +335,6 @@ function onScroll() {
     }
   }
 }
-
 .reader-content {
   width: 100%;
   font-family: 'Maple Mono CN', 'Microsoft YaHei', sans-serif;
@@ -351,20 +343,16 @@ function onScroll() {
   color: var(--fg-primary-color);
   user-select: text;
   word-wrap: break-word;
-
   @include media-down(sm) {
     font-size: 1.25rem;
   }
-
   & ::selection {
     background-color: var(--bg-accent-overlay-color);
   }
-
   :deep(p) {
     margin-bottom: 1.2em;
     text-indent: 1.5em;
   }
-
   :deep(h1),
   :deep(h2),
   :deep(h3),
@@ -378,7 +366,6 @@ function onScroll() {
     text-align: center;
     color: var(--fg-accent-color);
   }
-
   :deep(img),
   :deep(image) {
     max-width: 100%;
@@ -388,7 +375,6 @@ function onScroll() {
     border-radius: 8px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   }
-
   :deep(blockquote) {
     border-left: 4px solid var(--fg-secondary-color);
     margin: 1em 0;
@@ -396,44 +382,36 @@ function onScroll() {
     font-style: italic;
     color: var(--fg-secondary-color);
   }
-
   :deep(b),
   :deep(strong) {
     font-weight: bold;
   }
-
   :deep(i),
   :deep(em) {
     font-style: italic;
   }
-
   :deep(.sentence) {
     display: inline;
     cursor: pointer;
     border-radius: 4px;
     transition: background-color 0.2s ease;
-
     &:hover,
     &.is-hovered {
       background-color: var(--bg-hover-color);
     }
   }
-
   :deep(.untranslated-text) {
     opacity: 0.4;
   }
-
   :deep(.word) {
     padding: 0;
     border-radius: 4px;
     transition:
       background-color 0.1s,
       color 0.1s;
-
     &.add-space {
       margin-right: 0.25em;
     }
-
     &.is-punctuation {
       cursor: default;
       &:hover {
@@ -441,7 +419,6 @@ function onScroll() {
         color: inherit;
       }
     }
-
     &.is-active {
       background-color: var(--fg-accent-color);
       color: var(--bg-primary-color);
@@ -449,7 +426,6 @@ function onScroll() {
     }
   }
 }
-
 .reader-loading-wrapper {
   flex-grow: 1;
   display: flex;
@@ -458,23 +434,19 @@ function onScroll() {
   justify-content: center;
   padding: 32px;
   text-align: center;
-
   .spinner-box {
     height: 80px;
     margin-bottom: 24px;
-
     :deep(.page-loader) {
       min-height: unset;
     }
   }
-
   .loading-text {
     font-size: 1.3rem;
     font-weight: 600;
     color: var(--fg-primary-color);
     margin: 0 0 8px 0;
   }
-
   .loading-subtext {
     font-size: 1rem;
     color: var(--fg-secondary-color);
@@ -483,7 +455,6 @@ function onScroll() {
     line-height: 1.5;
   }
 }
-
 .page-analysis-overlay {
   position: fixed;
   inset: 0;
@@ -494,7 +465,6 @@ function onScroll() {
   align-items: center;
   justify-content: center;
   padding: 16px;
-
   .analysis-dialog {
     background-color: var(--bg-secondary-color);
     padding: 24px;
@@ -507,26 +477,22 @@ function onScroll() {
     display: flex;
     flex-direction: column;
     gap: 16px;
-
     h3 {
       margin: 0;
       color: var(--fg-primary-color);
       font-size: 1.25rem;
     }
-
     p {
       margin: 0;
       color: var(--fg-secondary-color);
       font-size: 0.95rem;
     }
-
     .progress-bar {
       width: 100%;
       height: 8px;
       background-color: var(--bg-tertiary-color);
       border-radius: 4px;
       overflow: hidden;
-
       .progress-fill {
         height: 100%;
         background-color: var(--fg-accent-color);
@@ -535,14 +501,12 @@ function onScroll() {
     }
   }
 }
-
 .toc-list {
   display: flex;
   flex-direction: column;
   gap: 6px;
   padding: 8px 0;
 }
-
 .toc-item {
   display: flex;
   align-items: flex-end;
@@ -553,36 +517,30 @@ function onScroll() {
     background-color 0.2s,
     color 0.2s;
   color: var(--fg-secondary-color);
-
   &:hover {
     background-color: var(--bg-secondary-color);
     color: var(--fg-primary-color);
-
     .toc-page {
       color: var(--fg-accent-color);
       font-weight: 600;
     }
   }
-
   .toc-title {
     flex-shrink: 0;
     font-size: 0.95rem;
   }
-
   .toc-dots {
     flex-grow: 1;
     border-bottom: 1px dotted var(--border-secondary-color);
     margin: 0 12px 5px 12px;
     opacity: 0.5;
   }
-
   .toc-page {
     flex-shrink: 0;
     font-size: 0.9rem;
     transition: color 0.2s;
   }
 }
-
 .empty-state {
   text-align: center;
   color: var(--fg-secondary-color);

@@ -1,19 +1,18 @@
-import type { Book, PagePayload, UserDictItem } from '../types'
+import type { PagePayload } from '../types'
 import { readFileSync } from 'node:fs'
 import { rm, unlink } from 'node:fs/promises'
 import path from 'node:path'
 import { and, desc, eq } from 'drizzle-orm'
 import { parse as parseHtml } from 'node-html-parser'
-import { processCbz } from '~/services/manga.service'
-import { recognizeMangaPage } from '~/services/ocr.service'
+import { z } from 'zod'
 import { CORS_HEADERS, COVERS_PATH } from '../config'
 import { db } from '../db'
 import * as schema from '../db/schema'
 import { getUserDictionary, getWordFromUserDictionary, lookupSingleWord, lookupWords, removeFromUserDictionary, upsertToUserDictionary } from '../services/dictionary.service'
-import { processEpub } from '../services/epub.service'
 import { analyzeBookExcerpt, analyzeSentence, generateTts } from '../services/llm.service'
-import { analyzeBookVocabulary, tokenizeHtmlPage, tokenizeOcrBlocks } from '../services/nlp.service'
+import { recognizeMangaPage } from '../services/ocr.service'
 import { AppError } from '../utils/errors'
+import { runWorkerTask } from '../workers/worker-client'
 
 function json(data: unknown, status = 200) {
   return new Response(JSON.stringify(data), {
@@ -21,6 +20,40 @@ function json(data: unknown, status = 200) {
     headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' },
   })
 }
+
+// Zod-Схемы валидации
+const UpdateBookSchema = z.object({
+  title: z.string().optional(),
+  author: z.string().nullable().optional(),
+  coverUrl: z.string().nullable().optional(),
+  language: z.string().optional(),
+  createdAt: z.string().optional(),
+  currentPage: z.number().optional(),
+})
+
+const UpdateStatsSchema = z.object({
+  description: z.string().optional(),
+  difficulty: z.string().optional(),
+  tags: z.array(z.string()).optional(),
+})
+
+const AnalyzeSentenceSchema = z.object({
+  sentence: z.string().min(1, 'Предложение не может быть пустым'),
+  language: z.string().min(1, 'Язык обязателен'),
+})
+
+const GenerateTtsSchema = z.object({
+  text: z.string().min(1, 'Текст не передан'),
+})
+
+const UpsertUserDictSchema = z.object({
+  word: z.string().min(1, 'Слово обязательно'),
+  transcription: z.string().nullable().optional(),
+  translation: z.string().nullable().optional(),
+  language: z.string().min(1, 'Язык обязателен'),
+  notes: z.string().nullable().optional(),
+  tags: z.string().nullable().optional(),
+})
 
 export async function handleGetBooks(): Promise<Response> {
   const books = await db.query.books.findMany({
@@ -40,11 +73,11 @@ export async function handleGetBookInfo(req: Request): Promise<Response> {
   const { progress, stats, ...bookData } = book
   const statsResult = stats
     ? {
-      ...stats,
-      tags: stats.tags ? JSON.parse(stats.tags) : [],
-      posDistribution: stats.posDistribution ? JSON.parse(stats.posDistribution) : null,
-      topWords: stats.topWords ? JSON.parse(stats.topWords) : null,
-    }
+        ...stats,
+        tags: stats.tags ? JSON.parse(stats.tags) : [],
+        posDistribution: stats.posDistribution ? JSON.parse(stats.posDistribution) : null,
+        topWords: stats.topWords ? JSON.parse(stats.topWords) : null,
+      }
     : null
 
   return json({ ...bookData, currentPage: progress?.currentPage ?? null, toc: book.toc ? JSON.parse(book.toc) : [], stats: statsResult })
@@ -56,16 +89,34 @@ export async function handleAnalyzeVocabulary(req: Request): Promise<Response> {
   if (!book)
     throw new AppError(404, 'Книга не найдена')
 
-  const result = await analyzeBookVocabulary(id, book.language)
-  await db.insert(schema.bookStats).values({ bookId: id, posDistribution: JSON.stringify(result.posDistribution), topWords: JSON.stringify(result.topWords), lexicalDiversity: result.lexicalDiversity }).onConflictDoUpdate({ target: schema.bookStats.bookId, set: { posDistribution: JSON.stringify(result.posDistribution), topWords: JSON.stringify(result.topWords), lexicalDiversity: result.lexicalDiversity } })
+  const result = await runWorkerTask('analyzeBookVocabulary', { bookId: id, language: book.language })
+
+  await db.insert(schema.bookStats).values({
+    bookId: id,
+    posDistribution: JSON.stringify(result.posDistribution),
+    topWords: JSON.stringify(result.topWords),
+    lexicalDiversity: result.lexicalDiversity,
+  }).onConflictDoUpdate({
+    target: schema.bookStats.bookId,
+    set: { posDistribution: JSON.stringify(result.posDistribution), topWords: JSON.stringify(result.topWords), lexicalDiversity: result.lexicalDiversity },
+  })
 
   return json({ success: true, lexicalStats: result })
 }
 
 export async function handleUpdateBook(req: Request): Promise<Response> {
   const id = Number((req as any).params.id)
-  const body = await req.json() as Partial<Book>
-  await db.update(schema.books).set({ title: body.title, author: body.author, coverUrl: body.coverUrl, language: body.language, createdAt: body.createdAt, updatedAt: new Date().toISOString() }).where(eq(schema.books.id, id))
+  const body = UpdateBookSchema.parse(await req.json())
+
+  await db.update(schema.books).set({
+    title: body.title,
+    author: body.author,
+    coverUrl: body.coverUrl,
+    language: body.language,
+    createdAt: body.createdAt,
+    updatedAt: new Date().toISOString(),
+  }).where(eq(schema.books.id, id))
+
   if (typeof body.currentPage === 'number') {
     await db.insert(schema.readingProgress).values({ bookId: id, currentPage: body.currentPage, updatedAt: new Date().toISOString() }).onConflictDoUpdate({ target: schema.readingProgress.bookId, set: { currentPage: body.currentPage, updatedAt: new Date().toISOString() } })
   }
@@ -132,12 +183,16 @@ export async function handleUpdateCover(req: Request): Promise<Response> {
   const coverUrl = `/api/uploads/covers/${filename}`
 
   const oldBook = await db.query.books.findFirst({ where: eq(schema.books.id, id), columns: { coverUrl: true } })
+
+  await db.transaction(async (tx) => {
+    await tx.update(schema.books).set({ coverUrl }).where(eq(schema.books.id, id))
+  })
+
   if (oldBook?.coverUrl && oldBook.coverUrl.startsWith('/api/uploads/covers/')) {
     const oldFile = oldBook.coverUrl.split('/').pop()!
     await unlink(path.join(COVERS_PATH, oldFile)).catch(() => { })
   }
 
-  await db.update(schema.books).set({ coverUrl }).where(eq(schema.books.id, id))
   return json({ success: true, coverUrl })
 }
 
@@ -154,7 +209,8 @@ export async function handleGetCoverImage(req: Request): Promise<Response> {
 
 export async function handleUpdateStats(req: Request): Promise<Response> {
   const id = Number((req as any).params.id)
-  const body = await req.json() as { description?: string, difficulty?: string, tags?: string[] }
+  const body = UpdateStatsSchema.parse(await req.json())
+
   const tagsJson = JSON.stringify(body.tags || [])
   await db.insert(schema.bookStats).values({ bookId: id, description: body.description || '', difficulty: body.difficulty || '', tags: tagsJson }).onConflictDoUpdate({ target: schema.bookStats.bookId, set: { description: body.description || '', difficulty: body.difficulty || '', tags: tagsJson } })
   const stats = await db.query.bookStats.findFirst({ where: eq(schema.bookStats.bookId, id) })
@@ -170,11 +226,13 @@ export async function handleUploadBook(req: Request): Promise<Response> {
   const filename = file.name.toLowerCase()
   let bookId: number
 
+  const arrayBuffer = await file.arrayBuffer()
+
   if (filename.endsWith('.epub')) {
-    bookId = await processEpub(await file.arrayBuffer(), file.name)
+    bookId = await runWorkerTask('processEpub', { buffer: arrayBuffer, filename: file.name })
   }
   else if (filename.endsWith('.cbz') || filename.endsWith('.zip')) {
-    bookId = await processCbz(await file.arrayBuffer(), file.name)
+    bookId = await runWorkerTask('processCbz', { buffer: arrayBuffer, filename: file.name })
   }
   else {
     throw new AppError(400, 'Поддерживаются только .epub и .cbz файлы')
@@ -190,6 +248,10 @@ export async function handleDeleteBook(req: Request): Promise<Response> {
   if (!book)
     throw new AppError(404, 'Книга не найдена')
 
+  await db.transaction(async (tx) => {
+    await tx.delete(schema.books).where(eq(schema.books.id, id))
+  })
+
   try {
     if (book.filePath) {
       await rm(book.filePath, { recursive: true, force: true })
@@ -199,9 +261,10 @@ export async function handleDeleteBook(req: Request): Promise<Response> {
       await unlink(path.join(COVERS_PATH, coverFilename)).catch(() => { })
     }
   }
-  catch (err: any) { console.warn(`[File Delete Warning] Не удалось удалить файлы книги:`, err.message) }
+  catch (err: any) {
+    console.warn(`[File Delete Warning] Не удалось удалить файлы книги:`, err.message)
+  }
 
-  await db.delete(schema.books).where(eq(schema.books.id, id))
   return json({ success: true })
 }
 
@@ -256,9 +319,9 @@ export async function handleGetPage(req: Request): Promise<Response> {
     }
 
     if (ocrBlocks && ocrBlocks.length > 0) {
-      const { processedBlocks, uniqueWords } = await tokenizeOcrBlocks(ocrBlocks, book.language)
+      const { processedBlocks, uniqueWords } = await runWorkerTask('tokenizeOcrBlocks', { blocks: ocrBlocks, language: book.language })
       ocrBlocks = processedBlocks
-      pageDictionary = lookupWords(uniqueWords, book.language)
+      pageDictionary = await lookupWords(uniqueWords, book.language)
     }
 
     return json({
@@ -292,12 +355,14 @@ export async function handleGetPage(req: Request): Promise<Response> {
   if (!pageRow)
     throw new AppError(404, 'Страница не найдена')
 
-  const { processedHtml, uniqueWords } = await tokenizeHtmlPage(pageRow.content, book.language)
-  const pageDictionary = lookupWords(uniqueWords, book.language)
+  const { processedHtml, uniqueWords } = await runWorkerTask('tokenizeHtmlPage', { html: pageRow.content, language: book.language })
+  const pageDictionary = await lookupWords(uniqueWords, book.language)
   const payload: PagePayload = { bookId, pageNum, totalPages: book.totalPages, content: processedHtml, pageDictionary, type: 'epub' }
 
-  await db.delete(schema.nlpCache).where(and(eq(schema.nlpCache.bookId, bookId), eq(schema.nlpCache.pageNum, pageNum)))
-  await db.insert(schema.nlpCache).values({ bookId, pageNum, data: JSON.stringify(payload) })
+  await db.transaction(async (tx) => {
+    await tx.delete(schema.nlpCache).where(and(eq(schema.nlpCache.bookId, bookId), eq(schema.nlpCache.pageNum, pageNum)))
+    await tx.insert(schema.nlpCache).values({ bookId, pageNum, data: JSON.stringify(payload) })
+  })
 
   return json(payload)
 }
@@ -306,7 +371,7 @@ export async function handleLookupWord(req: Request): Promise<Response> {
   const { id: bookId, word } = (req as any).params
   const book = await db.select({ language: schema.books.language }).from(schema.books).where(eq(schema.books.id, bookId)).get()
   const lang = book?.language || 'en'
-  const entry = lookupSingleWord(decodeURIComponent(word), lang)
+  const entry = await lookupSingleWord(decodeURIComponent(word), lang)
   if (!entry)
     throw new AppError(404, 'Слово не найдено в локальном словаре')
   return json(entry)
@@ -314,32 +379,42 @@ export async function handleLookupWord(req: Request): Promise<Response> {
 
 export async function handleAnalyzeSentence(req: Request): Promise<Response> {
   const bookId = Number((req as any).params.id)
-  const { sentence, language } = await req.json() as { sentence: string, language: string }
+  const { sentence, language } = AnalyzeSentenceSchema.parse(await req.json())
 
-  if (!sentence || !language || !bookId)
-    throw new AppError(400, 'Обязательны поля bookId, sentence и language')
+  if (!bookId)
+    throw new AppError(400, 'Обязательно поле bookId')
 
   const analysis = await analyzeSentence(bookId, sentence, language)
   return json(analysis)
 }
 
 export async function handleGetUserDict(): Promise<Response> {
-  return json(getUserDictionary())
+  return json(await getUserDictionary())
 }
 
 export async function handleUpsertToUserDict(req: Request): Promise<Response> {
-  const body = await req.json() as Omit<UserDictItem, 'id' | 'createdAt' | 'updatedAt'>
-  upsertToUserDictionary(body)
+  const body = UpsertUserDictSchema.parse(await req.json())
+
+  await upsertToUserDictionary({
+    word: body.word,
+    transcription: body.transcription || null,
+    translation: body.translation || null,
+    language: body.language,
+    notes: body.notes || null,
+    tags: body.tags || null,
+  })
   return json({ success: true })
 }
+
 export async function handleRemoveFromUserDict(req: Request): Promise<Response> {
   const word = (req as any).params.word
-  removeFromUserDictionary(decodeURIComponent(word))
+  await removeFromUserDictionary(decodeURIComponent(word))
   return json({ success: true })
 }
+
 export async function handleGetWordFromUserDict(req: Request): Promise<Response> {
   const word = (req as any).params.word
-  const entry = getWordFromUserDictionary(decodeURIComponent(word))
+  const entry = await getWordFromUserDictionary(decodeURIComponent(word))
   if (!entry)
     throw new AppError(404, 'Слово не найдено в словаре пользователя')
   return json(entry)
@@ -350,9 +425,9 @@ export async function handleGenerateTts(req: Request): Promise<Response> {
   const book = await db.query.books.findFirst({ where: eq(schema.books.id, bookId), columns: { language: true } })
   if (!book)
     throw new AppError(404, 'Книга не найдена')
-  const { text } = await req.json() as { text?: string }
-  if (!text)
-    throw new AppError(400, 'Текст не передан')
+
+  const { text } = GenerateTtsSchema.parse(await req.json())
+
   const audioBase64 = await generateTts(text, book.language)
   return json({ audioBase64 })
 }

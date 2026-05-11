@@ -1,7 +1,8 @@
 /* eslint-disable no-console */
+import type { BunSQLiteDatabase } from 'drizzle-orm/bun-sqlite'
 import { existsSync, mkdirSync } from 'node:fs'
 import path from 'node:path'
-import { spawnSync } from 'bun'
+import { isMainThread } from 'node:worker_threads'
 import { Database } from 'bun:sqlite'
 import { drizzle } from 'drizzle-orm/bun-sqlite'
 import { BOOKS_PATH, COVERS_PATH, DB_PATH, DICTS_PATH, UPLOADS_PATH } from '../config'
@@ -15,30 +16,26 @@ mkdirSync(BOOKS_PATH, { recursive: true })
 mkdirSync(COVERS_PATH, { recursive: true })
 
 // ============================================================================
-// 0. АВТОМАТИЧЕСКАЯ СИНХРОНИЗАЦИЯ БАЗЫ ДАННЫХ
+// 0. АВТОМАТИЧЕСКАЯ СИНХРОНИЗАЦИЯ БАЗЫ ДАННЫХ (ТОЛЬКО В ГЛАВНОМ ПОТОКЕ)
 // ============================================================================
-console.log('🔄 Checking and syncing database schema...')
+if (isMainThread) {
+  console.log('🔄 Checking and syncing database schema...')
 
-const syncProcess = spawnSync(['bun', 'x', 'drizzle-kit', 'push', '--force'], {
-  stdout: 'pipe',
-  stderr: 'pipe',
-})
+  const syncProcess = Bun.spawnSync(['bun', 'x', 'drizzle-kit', 'push', '--force'], {
+    stdout: 'pipe',
+    stderr: 'pipe',
+  })
 
-if (syncProcess.exitCode !== 0) {
-  console.error('❌ Failed to sync database schema.')
-
-  const stdout = syncProcess.stdout?.toString().trim()
-  const stderr = syncProcess.stderr?.toString().trim()
-
-  if (stdout)
-    console.error('STDOUT:', stdout)
-  if (stderr)
-    console.error('STDERR:', stderr)
-  if (syncProcess.error)
-    console.error('SYSTEM ERROR:', syncProcess.error)
-}
-else {
-  console.log('✅ Database schema is up to date!')
+  if (syncProcess.exitCode !== 0) {
+    console.error('❌ Failed to sync database schema.')
+    if (syncProcess.stdout)
+      console.error('STDOUT:', syncProcess.stdout.toString().trim())
+    if (syncProcess.stderr)
+      console.error('STDERR:', syncProcess.stderr.toString().trim())
+  }
+  else {
+    console.log('✅ Database schema is up to date!')
+  }
 }
 
 // ============================================================================
@@ -50,13 +47,16 @@ sqlite.run(`PRAGMA foreign_keys = ON`)
 
 export const db = drizzle(sqlite, { schema, logger: false })
 
-console.log(`🗄️ Main SQLite Database initialized at ${DB_PATH}`)
+if (isMainThread) {
+  console.log(`🗄️ Main SQLite Database initialized at ${DB_PATH}`)
+}
 
 // ============================================================================
 // 3. ДИНАМИЧЕСКИЙ МЕНЕДЖЕР СЛОВАРЕЙ
 // ============================================================================
 export interface DictConnection {
   db: Database
+  dDb: BunSQLiteDatabase
   tableName: string
 }
 
@@ -75,35 +75,16 @@ export function getDictConnection(language: string): DictConnection | null {
     dictDb.run(`PRAGMA journal_mode = WAL`)
 
     let tableName = 'words'
-    if (lang === 'zh') {
+    if (lang === 'zh')
       tableName = 'zh_dictionary'
-    }
 
-    try {
-      const tableCheck = dictDb.prepare(`SELECT name FROM sqlite_master WHERE type='table' AND name=?`).get(tableName)
-      if (!tableCheck) {
-        const fallbackCheck = dictDb.prepare(`SELECT name FROM sqlite_master WHERE type='table' AND name='words'`).get()
-        if (fallbackCheck) {
-          tableName = 'words'
-        }
-        else {
-          console.error(`❌ Ошибка: В словаре ${specificPath} не найдена таблица ${tableName} или words!`)
-          return null
-        }
-      }
-    }
-    catch (e) {
-      console.error(`❌ Ошибка проверки таблицы в словаре ${lang}:`, e)
-      return null
-    }
-
-    const conn = { db: dictDb, tableName }
+    const dDb = drizzle(dictDb, { logger: false })
+    const conn = { db: dictDb, dDb, tableName }
     dictConnections.set(lang, conn)
-    console.log(`📖 Loaded dictionary for [${lang}] at ${specificPath} (Table: ${tableName})`)
+
+    if (isMainThread)
+      console.log(`📖 Loaded dictionary for [${lang}] at ${specificPath}`)
     return conn
-  }
-  else {
-    console.warn(`⚠️ Файл словаря не найден: ${specificPath}`)
   }
 
   return null
@@ -113,19 +94,19 @@ export function getDictConnection(language: string): DictConnection | null {
 // 4. БЕЗОПАСНОЕ ЗАВЕРШЕНИЕ РАБОТЫ
 // ============================================================================
 function shutdown() {
-  console.log('\n🛑 Shutting down server... Closing databases...')
+  if (isMainThread)
+    console.log('\n🛑 Shutting down server... Closing databases...')
   try {
     sqlite.close()
     for (const conn of dictConnections.values()) {
       conn.db.close()
     }
-    console.log('✅ Databases closed securely.')
   }
-  catch (err) {
-    console.error('Error during database shutdown:', err)
-  }
+  catch (err) { }
   process.exit(0)
 }
 
-process.on('SIGINT', shutdown)
-process.on('SIGTERM', shutdown)
+if (isMainThread) {
+  process.on('SIGINT', shutdown)
+  process.on('SIGTERM', shutdown)
+}

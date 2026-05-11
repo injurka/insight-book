@@ -2,9 +2,11 @@
 import { KitBtn } from '~/components/01.kit'
 import { ThemesVariant, useChangeTheme } from '~/shared/composables/use-change-theme'
 import { AppRoutePaths } from '~/shared/constants/routes'
-import { useBooksStore } from '~/shared/store/books.store'
+import { useAnalysisStore } from '~/shared/store/analysis.store'
+import { useReaderStore } from '../store/reader.store'
 
-const store = useBooksStore()
+const readerStore = useReaderStore()
+const analysisStore = useAnalysisStore()
 const router = useRouter()
 const { theme, toggleTheme } = useChangeTheme()
 
@@ -16,26 +18,26 @@ function goBack() {
 <template>
   <header class="reader-header" @click.stop>
     <KitBtn icon="mdi:arrow-left" variant="text" size="sm" @click="goBack" />
-    <span class="book-title">{{ store.currentBook?.title }}</span>
+    <span class="book-title">{{ readerStore.currentBook?.title }}</span>
     <div class="spacer" />
 
     <KitBtn
-      v-if="store.currentBook?.type !== 'manga'"
+      v-if="readerStore.currentBook?.type !== 'manga'"
       icon="mdi:view-split-vertical"
       variant="text"
       size="sm"
       title="Параллельное чтение"
       class="desktop-only"
-      :class="{ 'is-active-btn': store.isParallelView }"
-      @click="store.isParallelView = !store.isParallelView"
+      :class="{ 'is-active-btn': readerStore.isParallelView }"
+      @click="readerStore.isParallelView = !readerStore.isParallelView"
     />
     <KitBtn
       icon="mdi:text-box-search-outline"
       variant="text"
       size="sm"
       title="Проанализировать всю страницу"
-      :disabled="store.isAnalyzingPage"
-      @click="store.analyzeWholePage"
+      :disabled="analysisStore.isAnalyzingPage"
+      @click="analysisStore.analyzeWholePage"
     />
     <KitBtn
       :icon="theme === ThemesVariant.Light ? 'mdi:weather-night' : 'mdi:weather-sunny'"
@@ -43,7 +45,7 @@ function goBack() {
       aria-label="Переключить тему"
       @click="toggleTheme"
     />
-    <KitBtn icon="mdi:format-list-bulleted" variant="text" size="sm" @click="store.tocOpen = true" />
+    <KitBtn icon="mdi:format-list-bulleted" variant="text" size="sm" @click="readerStore.tocOpen = true" />
   </header>
 </template>
 

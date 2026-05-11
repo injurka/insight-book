@@ -109,7 +109,10 @@ export const useAnalysisStore = defineStore('analysis', () => {
         wordPopover.value.aiTranscription = res.transcription || vocabMatch?.transcription || ''
       }
     }
-    catch (err: any) {
+    catch (err: unknown) {
+      if (!(err instanceof Error))
+        return
+
       if (err.name === 'AbortError')
         return
       if (wordPopover.value && wordAbortController === controller) {
@@ -206,7 +209,10 @@ export const useAnalysisStore = defineStore('analysis', () => {
         isAiLoading: false,
       }
     }
-    catch (err: any) {
+    catch (err: unknown) {
+      if (!(err instanceof Error))
+        return
+
       if (err.name === 'AbortError')
         return
       if (wordAbortController !== controller)
@@ -266,7 +272,10 @@ export const useAnalysisStore = defineStore('analysis', () => {
         timestamp: Date.now(),
       })
     }
-    catch (err: any) {
+    catch (err: unknown) {
+      if (!(err instanceof Error))
+        return
+
       if (err.name === 'AbortError')
         return
       console.error(err)
@@ -345,7 +354,10 @@ export const useAnalysisStore = defineStore('analysis', () => {
               timestamp: Date.now(),
             })
           }
-          catch (err: any) {
+          catch (err: unknown) {
+            if (!(err instanceof Error))
+              return
+
             if (err.name === 'AbortError')
               break
             console.error('Ошибка анализа предложения:', err)

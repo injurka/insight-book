@@ -1,9 +1,9 @@
 import type { TocItem } from '../types'
-import { mkdirSync } from 'node:fs'
 import path from 'node:path'
 import { parse as parseHtml } from 'node-html-parser'
 import { BOOKS_PATH, COVERS_PATH, PAGE_SIZE_CHARS } from '../config'
-import { sqlite } from '../db'
+import { db } from '../db'
+import * as schema from '../db/schema'
 
 async function extractCover(epub: any): Promise<{ buffer: Buffer, ext: string } | null> {
   try {
@@ -73,13 +73,7 @@ function extractLanguage(epub: any): string {
 
 function extractToc(epub: any): TocItem[] {
   try {
-    const raw = epub.toc as Array<{
-      id: string
-      href: string
-      title: string
-      order: number
-      level: number
-    }>
+    const raw = epub.toc as Array<any>
     if (!Array.isArray(raw))
       return []
     return raw.map(item => ({
@@ -96,9 +90,8 @@ function extractToc(epub: any): TocItem[] {
 async function getEpubImageBase64(epub: any, imageId: string): Promise<string | null> {
   return new Promise((resolve) => {
     epub.getImage(imageId, (err: any, data: Buffer, mimeType: string) => {
-      if (err || !data) {
+      if (err || !data)
         return resolve(null)
-      }
       resolve(`data:${mimeType || 'image/jpeg'};base64,${data.toString('base64')}`)
     })
   })
@@ -108,6 +101,7 @@ export async function processEpub(fileBuffer: ArrayBuffer, filename: string): Pr
   const safeName = `${Date.now()}_${filename.replace(/[^\w.-]/g, '_')}`
   const filePath = path.join(BOOKS_PATH, safeName)
   await Bun.write(filePath, fileBuffer)
+
   const { EPub } = await import('epub2') as any
 
   return new Promise<number>((resolve, reject) => {
@@ -138,12 +132,10 @@ export async function processEpub(fileBuffer: ArrayBuffer, filename: string): Pr
         const hrefToPageMap: Record<string, number> = {}
 
         for (const item of spineItems) {
-          // ИСПРАВЛЕНИЕ: startPage равен текущему количеству страниц + 1
           const startPage = allHtmlPages.length + 1
 
           if (item.href) {
             const baseHref = item.href.split('#')[0].split('/').pop() || item.href
-            // Запоминаем только первую встретившуюся страницу для данного href
             if (!hrefToPageMap[baseHref]) {
               hrefToPageMap[baseHref] = startPage
             }
@@ -155,10 +147,7 @@ export async function processEpub(fileBuffer: ArrayBuffer, filename: string): Pr
                 const root = parseHtml(html)
 
                 root.querySelectorAll('script, style').forEach(n => n.remove())
-
-                root.querySelectorAll('a').forEach((node) => {
-                  node.replaceWith(node.innerHTML)
-                })
+                root.querySelectorAll('a').forEach(node => node.replaceWith(node.innerHTML))
 
                 const images = root.querySelectorAll('img, image')
                 for (const img of images) {
@@ -219,28 +208,37 @@ export async function processEpub(fileBuffer: ArrayBuffer, filename: string): Pr
 
         const tocJson = JSON.stringify(toc)
 
-        const insertBook = sqlite.prepare(`
-          INSERT INTO books (title, author, coverUrl, filePath, language, totalPages, toc)
-          VALUES (?, ?, ?, ?, ?, ?, ?)
-        `)
-        const result = insertBook.run(title, author, coverUrl, filePath, language, allHtmlPages.length, tocJson)
-        const bookId = result.lastInsertRowid as number
+        // Drizzle ORM Insertions
+        const [insertedBook] = await db.insert(schema.books).values({
+          type: 'epub',
+          title,
+          author,
+          coverUrl,
+          filePath,
+          language,
+          totalPages: allHtmlPages.length,
+          toc: tocJson,
+        }).returning({ id: schema.books.id })
 
-        const insertPage = sqlite.prepare(`
-          INSERT OR IGNORE INTO book_pages (bookId, pageNum, content)
-          VALUES (?, ?, ?)
-        `)
-        const insertMany = sqlite.transaction((chunks: string[]) => {
-          chunks.forEach((chunk, idx) => {
-            insertPage.run(bookId, idx + 1, chunk)
-          })
-        })
-        insertMany(allHtmlPages)
+        const bookId = insertedBook.id
 
-        sqlite.prepare(`
-          INSERT OR IGNORE INTO reading_progress (bookId, currentPage)
-          VALUES (?, 1)
-        `).run(bookId)
+        // Батч-инсерт страниц
+        const pagesToInsert = allHtmlPages.map((chunk, idx) => ({
+          bookId,
+          pageNum: idx + 1,
+          content: chunk,
+        }))
+
+        const chunkSize = 50
+        for (let i = 0; i < pagesToInsert.length; i += chunkSize) {
+          const chunk = pagesToInsert.slice(i, i + chunkSize)
+          await db.insert(schema.bookPages).values(chunk).onConflictDoNothing()
+        }
+
+        await db.insert(schema.readingProgress).values({
+          bookId,
+          currentPage: 1,
+        }).onConflictDoNothing()
 
         resolve(bookId)
       }

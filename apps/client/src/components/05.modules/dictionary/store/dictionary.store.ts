@@ -1,6 +1,10 @@
 import type { UserDictItem } from '~/shared/types/models'
+import { defineStore } from 'pinia'
+import { computed, ref } from 'vue'
+import { useToast } from '~/shared/composables/use-toast'
 import { api } from '~/shared/services/api.service'
-import { useBooksStore } from '~/shared/store/books.store'
+import { offlineService } from '~/shared/services/offline.service'
+import { useAnalysisStore } from '~/shared/store/analysis.store'
 
 export const useDictionaryStore = defineStore('dictionary', () => {
   const toast = useToast()
@@ -14,6 +18,13 @@ export const useDictionaryStore = defineStore('dictionary', () => {
     isLoading.value = true
     try {
       words.value = await api.dictionary.list()
+      await offlineService.saveDictionary(words.value)
+    }
+    catch (e) {
+      const cached = await offlineService.getDictionary()
+      if (cached) {
+        words.value = cached
+      }
     }
     finally {
       isLoading.value = false
@@ -59,9 +70,9 @@ export const useDictionaryStore = defineStore('dictionary', () => {
   })
 
   function openEditModal(word: UserDictItem) {
-    const booksStore = useBooksStore()
-    booksStore.wordToEdit = word
-    booksStore.addEditWordModalOpen = true
+    const analysisStore = useAnalysisStore()
+    analysisStore.wordToEdit = word
+    analysisStore.addEditWordModalOpen = true
   }
 
   return {

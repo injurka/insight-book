@@ -330,9 +330,6 @@ declare global {
   export type { ThemesVariant } from '../../composables/use-change-theme'
   import('../../composables/use-change-theme')
   // @ts-ignore
-  export type { LocaleType } from '../../composables/use-locale'
-  import('../../composables/use-locale')
-  // @ts-ignore
   export type { AppRouteNames } from '../../constants/routes'
   import('../../constants/routes')
 }
@@ -546,7 +543,6 @@ declare module 'vue' {
     readonly useLastChanged: UnwrapRef<typeof import('@vueuse/core')['useLastChanged']>
     readonly useLink: UnwrapRef<typeof import('vue-router')['useLink']>
     readonly useLocalStorage: UnwrapRef<typeof import('@vueuse/core')['useLocalStorage']>
-    readonly useLocale: UnwrapRef<typeof import('../../composables/use-locale')['useLocale']>
     readonly useMagicKeys: UnwrapRef<typeof import('@vueuse/core')['useMagicKeys']>
     readonly useManualRefHistory: UnwrapRef<typeof import('@vueuse/core')['useManualRefHistory']>
     readonly useMediaControls: UnwrapRef<typeof import('@vueuse/core')['useMediaControls']>

@@ -12,7 +12,6 @@ export function useTextSelection() {
       rawSent = decodeURIComponent(target.dataset.rawSent)
     }
     else if (fallbackText) {
-      // Для манги, если кликнули мимо токенизированного текста
       rawSent = fallbackText.replace(/\n+/g, '')
     }
 

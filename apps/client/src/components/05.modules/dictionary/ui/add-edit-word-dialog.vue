@@ -1,25 +1,26 @@
 <script setup lang="ts">
 import type { UserDictItem } from '~/shared/types/models'
+import { computed, ref, watch } from 'vue'
 import { KitBtn, KitDialog, KitInput } from '~/components/01.kit'
-import { useBooksStore } from '~/shared/store/books.store'
+import { useAnalysisStore } from '~/shared/store/analysis.store'
 
-const store = useBooksStore()
+const analysisStore = useAnalysisStore()
 
 const localWord = ref<Partial<UserDictItem>>({})
 
 const isEditing = computed(() => !!localWord.value.id)
 
 function handleSave() {
-  store.saveWordToDict(localWord.value as UserDictItem)
+  analysisStore.saveWordToDict(localWord.value as UserDictItem)
 }
 
 function handleDelete() {
   if (localWord.value.word) {
-    store.removeFromDict(localWord.value.word)
+    analysisStore.removeFromDict(localWord.value.word)
   }
 }
 
-watch(() => store.wordToEdit, (newWord) => {
+watch(() => analysisStore.wordToEdit, (newWord) => {
   if (newWord) {
     localWord.value = { ...newWord }
   }
@@ -30,7 +31,7 @@ watch(() => store.wordToEdit, (newWord) => {
 </script>
 
 <template>
-  <KitDialog v-model:visible="store.addEditWordModalOpen" :title="isEditing ? 'Редактировать слово' : 'Добавить в словарь'" icon="mdi:star-outline">
+  <KitDialog v-model:visible="analysisStore.addEditWordModalOpen" :title="isEditing ? 'Редактировать слово' : 'Добавить в словарь'" icon="mdi:star-outline">
     <div v-if="localWord" class="dialog-content">
       <div class="word-preview">
         <h3 class="dict-word">
@@ -59,7 +60,7 @@ watch(() => store.wordToEdit, (newWord) => {
           Удалить
         </KitBtn>
         <div class="spacer" />
-        <KitBtn variant="tonal" @click="store.addEditWordModalOpen = false">
+        <KitBtn variant="tonal" @click="analysisStore.addEditWordModalOpen = false">
           Отмена
         </KitBtn>
         <KitBtn color="primary" @click="handleSave">
@@ -76,33 +77,28 @@ watch(() => store.wordToEdit, (newWord) => {
   flex-direction: column;
   gap: 24px;
 }
-
 .word-preview {
   padding: 16px;
   background-color: var(--bg-secondary-color);
   border-radius: 8px;
   border: 1px solid var(--border-secondary-color);
-
   .dict-word {
     font-size: 1.8rem;
     font-weight: 600;
     margin: 0 0 4px;
     color: var(--fg-accent-color);
   }
-
   .dict-transcription {
     margin: 0 0 12px;
     font-size: 1.1rem;
     color: var(--fg-secondary-color);
   }
-
   .translation-preview {
     font-size: 0.95rem;
     line-height: 1.5;
     padding-top: 12px;
     border-top: 1px dashed var(--border-primary-color);
     white-space: pre-wrap;
-
     :deep(b) {
       font-weight: 600;
       color: var(--fg-primary-color);
@@ -127,19 +123,16 @@ watch(() => store.wordToEdit, (newWord) => {
     }
   }
 }
-
 .form-fields {
   display: flex;
   flex-direction: column;
   gap: 12px;
-
   label {
     font-size: 0.9rem;
     font-weight: 500;
     color: var(--fg-secondary-color);
     margin-bottom: -4px;
   }
-
   .custom-textarea {
     width: 100%;
     background-color: var(--bg-primary-color);
@@ -152,18 +145,15 @@ watch(() => store.wordToEdit, (newWord) => {
     resize: vertical;
     outline: none;
     transition: border-color 0.2s;
-
     &:focus {
       border-color: var(--fg-accent-color);
     }
   }
 }
-
 .footer-actions {
   display: flex;
   width: 100%;
   gap: 8px;
-
   .spacer {
     flex-grow: 1;
   }

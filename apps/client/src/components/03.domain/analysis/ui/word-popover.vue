@@ -1,19 +1,18 @@
 <script setup lang="ts">
 import { Icon } from '@iconify/vue'
-import { nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { KitBtn, KitSkeleton } from '~/components/01.kit'
 import { useTts } from '~/shared/composables/use-tts'
 import { POS_TAGS_MAP } from '~/shared/constants/pos-tags'
-import { useBooksStore } from '~/shared/store/books.store'
+import { useAnalysisStore } from '~/shared/store/analysis.store'
 
-const store = useBooksStore()
+const analysisStore = useAnalysisStore()
 const { speak, stop, isPlaying, isLoading } = useTts()
 
 const popoverRef = ref<HTMLElement | null>(null)
 const popoverPos = ref({ top: '-9999px', left: '-9999px', transform: 'none' })
 
 watch(
-  () => store.wordPopover,
+  () => analysisStore.wordPopover,
   async (val) => {
     if (!val) {
       popoverPos.value = { top: '-9999px', left: '-9999px', transform: 'none' }
@@ -40,11 +39,8 @@ watch(
         top = wh - popRect.height - 10
       }
     }
-
-    if (top < 10) {
+    if (top < 10)
       top = 10
-    }
-
     if (left - popRect.width / 2 < 10) {
       left = popRect.width / 2 + 10
     }
@@ -52,134 +48,85 @@ watch(
       left = ww - popRect.width / 2 - 10
     }
 
-    popoverPos.value = {
-      top: `${top}px`,
-      left: `${left}px`,
-      transform: 'translateX(-50%)',
-    }
+    popoverPos.value = { top: `${top}px`, left: `${left}px`, transform: 'translateX(-50%)' }
   },
   { deep: true },
 )
 
 function openSaveDialog() {
-  if (!store.wordPopover)
+  if (!analysisStore.wordPopover)
     return
-  store.openAddEditWordModal(store.wordPopover)
-  store.closePopover()
+  analysisStore.openAddEditWordModal(analysisStore.wordPopover)
+  analysisStore.closePopover()
 }
 
 function playWordTTS() {
-  if (store.wordPopover) {
-    if (isPlaying.value || isLoading.value) {
+  if (analysisStore.wordPopover) {
+    if (isPlaying.value || isLoading.value)
       stop()
-    }
-    else {
-      speak(store.wordPopover.word)
-    }
+    else speak(analysisStore.wordPopover.word)
   }
 }
 
 function closePopover(event?: MouseEvent) {
   const target = event?.target as HTMLElement | null
-  if (target?.closest('.kit-dialog') || target?.closest('.word-popover')) {
+  if (target?.closest('.kit-dialog') || target?.closest('.word-popover'))
     return
-  }
-  store.closePopover()
+  analysisStore.closePopover()
 }
 
-onMounted(() => {
-  document.addEventListener('click', closePopover)
-})
-
+onMounted(() => document.addEventListener('click', closePopover))
 onUnmounted(() => {
   document.removeEventListener('click', closePopover)
-  stop() // Останавливаем аудио при размонтировании
+  stop()
 })
 </script>
 
 <template>
   <Teleport to="body">
     <Transition name="fade">
-      <div
-        v-if="store.wordPopover"
-        ref="popoverRef"
-        class="word-popover"
-        :style="popoverPos"
-        @click.stop
-      >
+      <div v-if="analysisStore.wordPopover" ref="popoverRef" class="word-popover" :style="popoverPos" @click.stop>
         <div class="popover-content">
           <div class="transcription-header">
-            <span class="header-text">
-              {{ store.wordPopover.showAi ? (store.wordPopover.aiTranscription || store.wordPopover.transcription) : store.wordPopover.transcription }}
-            </span>
-            <button class="close-btn" @click.stop="store.closePopover()">
+            <span class="header-text">{{ analysisStore.wordPopover.showAi ? (analysisStore.wordPopover.aiTranscription || analysisStore.wordPopover.transcription) : analysisStore.wordPopover.transcription }}</span>
+            <button class="close-btn" @click.stop="analysisStore.closePopover()">
               <Icon width="16" height="16" icon="mdi:chevron-down" />
             </button>
           </div>
-
-          <div v-if="store.wordPopover.showAi && store.wordPopover.isAiLoading" class="ai-loader">
-            <KitSkeleton width="100%" height="16px" />
-            <KitSkeleton width="80%" height="16px" />
+          <div v-if="analysisStore.wordPopover.showAi && analysisStore.wordPopover.isAiLoading" class="ai-loader">
+            <KitSkeleton width="100%" height="16px" /><KitSkeleton width="80%" height="16px" />
           </div>
-
           <div v-else class="popover-body">
-            <div
-              class="translation"
-              v-html="store.wordPopover.showAi ? store.wordPopover.aiTranslation : store.wordPopover.translation"
-            />
-
-            <template v-if="store.wordPopover.showAi && store.wordPopover.aiData">
-              <div v-if="store.wordPopover.aiData.grammarRules?.length" class="ai-section">
+            <div class="translation" v-html="analysisStore.wordPopover.showAi ? analysisStore.wordPopover.aiTranslation : analysisStore.wordPopover.translation" />
+            <template v-if="analysisStore.wordPopover.showAi && analysisStore.wordPopover.aiData">
+              <div v-if="analysisStore.wordPopover.aiData.grammarRules?.length" class="ai-section">
                 <div class="ai-subtitle">
                   Грамматика:
                 </div>
-                <div v-for="(rule, idx) in store.wordPopover.aiData.grammarRules" :key="idx" class="ai-rule">
+                <div v-for="(rule, idx) in analysisStore.wordPopover.aiData.grammarRules" :key="idx" class="ai-rule">
                   <b>{{ rule.pattern }}</b> — {{ rule.explanation }}
                 </div>
               </div>
-
-              <div v-if="store.wordPopover.aiData.vocabulary?.length" class="ai-section">
+              <div v-if="analysisStore.wordPopover.aiData.vocabulary?.length" class="ai-section">
                 <div class="ai-subtitle">
                   Лексика:
                 </div>
-                <div v-for="(vocab, idx) in store.wordPopover.aiData.vocabulary" :key="idx" class="ai-vocab">
+                <div v-for="(vocab, idx) in analysisStore.wordPopover.aiData.vocabulary" :key="idx" class="ai-vocab">
                   <b>{{ vocab.word }}</b> ({{ vocab.transcription }}) — {{ vocab.meaning }}
                 </div>
               </div>
             </template>
           </div>
         </div>
-
         <div class="popover-footer">
-          <div v-if="store.wordPopover.pos" class="pos-badge">
-            {{ POS_TAGS_MAP[store.wordPopover.pos] || store.wordPopover.pos }}
+          <div v-if="analysisStore.wordPopover.pos" class="pos-badge">
+            {{ POS_TAGS_MAP[analysisStore.wordPopover.pos] || analysisStore.wordPopover.pos }}
           </div>
           <div v-else class="pos-badge-placeholder" />
-
           <div class="popover-actions">
-            <KitBtn
-              :icon="isLoading ? 'mdi:loading' : (isPlaying ? 'mdi:volume-high' : 'mdi:volume-medium')"
-              size="xs"
-              variant="text"
-              color="primary"
-              :class="{ 'pulse-animation': isPlaying, 'spin-animation': isLoading }"
-              @click.stop="playWordTTS"
-            />
-
-            <KitBtn
-              icon="mdi:robot-outline"
-              size="xs"
-              variant="text"
-              :color="store.wordPopover.showAi ? 'accent' : 'secondary'"
-              @click.stop="store.toggleAiTranslation"
-            />
-
-            <KitBtn
-              icon="mdi:star-outline"
-              size="xs"
-              variant="text"
-              @click.stop="openSaveDialog"
-            />
+            <KitBtn :icon="isLoading ? 'mdi:loading' : (isPlaying ? 'mdi:volume-high' : 'mdi:volume-medium')" size="xs" variant="text" color="primary" :class="{ 'pulse-animation': isPlaying, 'spin-animation': isLoading }" @click.stop="playWordTTS" />
+            <KitBtn icon="mdi:robot-outline" size="xs" variant="text" :color="analysisStore.wordPopover.showAi ? 'accent' : 'secondary'" @click.stop="analysisStore.toggleAiTranslation" />
+            <KitBtn icon="mdi:star-outline" size="xs" variant="text" @click.stop="openSaveDialog" />
           </div>
         </div>
       </div>
@@ -203,13 +150,11 @@ onUnmounted(() => {
   flex-direction: column;
   overflow: hidden;
   max-height: 70vh;
-
   .popover-content {
     display: flex;
     flex-direction: column;
     overflow-y: auto;
   }
-
   .transcription-header {
     background-color: rgba(var(--bg-tertiary-color-rgb, 33, 38, 45), 0.8);
     backdrop-filter: blur(4px);
@@ -220,14 +165,12 @@ onUnmounted(() => {
     position: sticky;
     top: 0;
     z-index: 2;
-
     .header-text {
       font-weight: 600;
       font-size: 1.15rem;
       color: var(--fg-accent-color);
       text-align: center;
     }
-
     .close-btn {
       position: absolute;
       right: 8px;
@@ -245,30 +188,25 @@ onUnmounted(() => {
       transition:
         background-color 0.2s,
         color 0.2s;
-
       &:hover {
         background-color: var(--bg-hover-color);
         color: var(--fg-primary-color);
       }
-
       svg {
         font-size: 1.4rem;
       }
     }
   }
-
   .popover-body {
     padding: 8px 12px;
     position: relative;
   }
-
   .ai-loader {
     padding: 16px;
     display: flex;
     flex-direction: column;
     gap: 8px;
   }
-
   .translation {
     font-size: 0.95rem;
     color: var(--fg-primary-color);
@@ -280,33 +218,28 @@ onUnmounted(() => {
     display: flex;
     flex-direction: column;
   }
-
   .ai-section {
     margin-top: 12px;
     border-top: 1px dashed var(--border-secondary-color);
     padding-top: 8px;
     text-align: left;
-
     .ai-subtitle {
       font-size: 0.85rem;
       color: var(--fg-secondary-color);
       margin-bottom: 4px;
       font-weight: 500;
     }
-
     .ai-rule,
     .ai-vocab {
       font-size: 0.85rem;
       line-height: 1.4;
       color: var(--fg-primary-color);
       margin-bottom: 6px;
-
       b {
         color: var(--fg-accent-color);
       }
     }
   }
-
   .popover-footer {
     display: flex;
     justify-content: space-between;
@@ -315,7 +248,6 @@ onUnmounted(() => {
     background-color: var(--bg-secondary-color);
     border-top: 1px solid var(--border-primary-color);
   }
-
   .pos-badge {
     font-size: 0.75rem;
     background-color: var(--bg-overlay-secondary-color);
@@ -324,26 +256,22 @@ onUnmounted(() => {
     border-radius: 4px;
     white-space: nowrap;
   }
-
   .popover-actions {
     display: flex;
     gap: 4px;
   }
-
   .pulse-animation {
     :deep(.kit-btn-icon) {
       animation: pulse-op 1.5s infinite;
       color: var(--fg-accent-color);
     }
   }
-
   .spin-animation {
     :deep(.kit-btn-icon) {
       animation: spin 1s linear infinite;
     }
   }
 }
-
 @keyframes pulse-op {
   0% {
     opacity: 1;
@@ -358,13 +286,11 @@ onUnmounted(() => {
     transform: scale(1);
   }
 }
-
 @keyframes spin {
   to {
     transform: rotate(360deg);
   }
 }
-
 .fade-enter-active,
 .fade-leave-active {
   transition: opacity 0.2s;

@@ -4,7 +4,8 @@
     "composite": true,
     "target": "ESNext",
     "lib": [
-      "ESNext"
+      "ESNext",
+      "DOM"
     ],
     "module": "Preserve",
     "moduleResolution": "bundler",
@@ -14,8 +15,7 @@
       ]
     },
     "types": [
-      "bun",
-      "node"
+      "bun"
     ],
     "allowJs": true,
     "strict": true,

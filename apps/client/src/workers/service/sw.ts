@@ -131,22 +131,6 @@ registerRoute(
   regularAssetsStrategy,
 )
 
-// --- КЕШИРОВАНИЕ API (Список книг, инфо, оглавление, словарь) ---
-registerRoute(
-  ({ request, url }) =>
-    request.method === 'GET'
-    && url.protocol.startsWith('http')
-    && url.pathname.startsWith('/api/')
-    && !url.pathname.includes('/page/'),
-  CacheStrategyFactory.createNetworkFirst(
-    CACHE_CONFIG.names.api,
-    {
-      maxEntries: CACHE_CONFIG.limits.api,
-      maxAgeSeconds: CACHE_CONFIG.durations.api,
-    },
-  ),
-)
-
 // --- SPA НАВИГАЦИЯ ---
 
 let allowlist: undefined | RegExp[]

@@ -1,7 +1,8 @@
 import type { Book, PagePayload, TocItem } from '~/shared/types/models'
+import { useLibraryStore } from '~/components/05.modules/library/store/library.store'
 import { api } from '~/shared/services/api.service'
+import { offlineService } from '~/shared/services/offline.service'
 import { useAnalysisStore } from '~/shared/store/analysis.store'
-import { useLibraryStore } from '../../library/store/library.store'
 
 export const useReaderStore = defineStore('reader', () => {
   const currentBook = ref<Book | null>(null)
@@ -17,10 +18,18 @@ export const useReaderStore = defineStore('reader', () => {
   async function fetchToc(bookId: number) {
     try {
       currentToc.value = await api.books.getToc(bookId)
+      await offlineService.saveToc(bookId, currentToc.value)
       lastTocBookId = bookId
     }
-    catch {
-      currentToc.value = []
+    catch (e) {
+      const cached = await offlineService.getToc(bookId)
+      if (cached) {
+        currentToc.value = cached
+        lastTocBookId = bookId
+      }
+      else {
+        currentToc.value = []
+      }
     }
   }
 
@@ -35,13 +44,27 @@ export const useReaderStore = defineStore('reader', () => {
     isPageLoading.value = true
 
     if (currentToc.value.length === 0 || lastTocBookId !== bookId) {
-      fetchToc(bookId)
+      await fetchToc(bookId)
     }
 
     try {
-      currentPage.value = await api.books.getPage(bookId, pageNum)
-      if (currentBook.value) {
+      const page = await api.books.getPage(bookId, pageNum)
+      currentPage.value = page
+
+      await offlineService.savePage(bookId, pageNum, page)
+
+      if (currentBook.value)
         currentBook.value.currentPage = pageNum
+    }
+    catch (e) {
+      const cached = await offlineService.getPage(bookId, pageNum)
+      if (cached) {
+        currentPage.value = cached
+        if (currentBook.value)
+          currentBook.value.currentPage = pageNum
+      }
+      else {
+        throw e
       }
     }
     finally {
@@ -50,8 +73,8 @@ export const useReaderStore = defineStore('reader', () => {
   }
 
   async function openBook(book: Book) {
-    const analysisStore = useAnalysisStore()
     currentBook.value = book
+    const analysisStore = useAnalysisStore()
     analysisStore.analysisHistory = []
     const startPage = book.currentPage || 1
     await loadPage(book.id, startPage)
@@ -87,7 +110,6 @@ export const useReaderStore = defineStore('reader', () => {
     isPageLoading,
     isParallelView,
     tocOpen,
-
     fetchToc,
     loadPage,
     openBook,

@@ -1,21 +1,24 @@
 import type { PageDictEntry, UserDictItem } from '../types'
-import { getDictConnection, sqlite } from '../db'
+import { desc, eq, inArray, sql } from 'drizzle-orm'
+import { sqliteTable, text } from 'drizzle-orm/sqlite-core'
+import { db, getDictConnection } from '../db'
+import * as schema from '../db/schema'
 
-export function lookupWords(words: string[], language: string): Record<string, PageDictEntry> {
-  if (!words.length) return {}
+export async function lookupWords(words: string[], language: string): Promise<Record<string, PageDictEntry>> {
+  if (!words.length)
+    return {}
 
   const dict: Record<string, PageDictEntry> = {}
-
   const chunkSize = 500
+
+  // 1. Поиск в пользовательском словаре (с использованием Drizzle)
   for (let i = 0; i < words.length; i += chunkSize) {
     const chunk = words.slice(i, i + chunkSize)
-    const placeholders = chunk.map(() => '?').join(', ')
 
-    const userRows = sqlite.prepare(`
-      SELECT word, transcription, translation 
-      FROM user_dictionary 
-      WHERE word IN (${placeholders})
-    `).all(...chunk) as Array<{ word: string, transcription: string, translation: string }>
+    const userRows = await db.query.userDictionary.findMany({
+      where: inArray(schema.userDictionary.word, chunk),
+      columns: { word: true, transcription: true, translation: true },
+    })
 
     for (const row of userRows) {
       const entry = { transcription: row.transcription || '', translation: row.translation || '' }
@@ -24,30 +27,40 @@ export function lookupWords(words: string[], language: string): Record<string, P
     }
   }
 
+  // 2. Поиск в системных динамических словарях через Drizzle (динамические таблицы)
   const conn = getDictConnection(language)
   if (conn) {
-    const transcriptionCol = conn.tableName === 'zh_dictionary' ? 'pinyin AS transcription' : 'transcription'
+    // Определяем Drizzle схему таблицы на лету для текущего словаря
+    const dictTable = sqliteTable(conn.tableName, {
+      word: text('word'),
+      transcription: text(conn.tableName === 'zh_dictionary' ? 'pinyin' : 'transcription'),
+      translation: text('translation'),
+    })
 
     for (let i = 0; i < words.length; i += chunkSize) {
       const chunk = words.slice(i, i + chunkSize)
       const missingWords = chunk.filter(w => !dict[w] && !dict[w.toLowerCase()])
-      if (!missingWords.length) continue
-
-      const placeholders = missingWords.map(() => '?').join(', ')
+      if (!missingWords.length)
+        continue
 
       try {
-        const rows = conn.db.prepare(`
-          SELECT word, ${transcriptionCol}, translation
-          FROM ${conn.tableName}
-          WHERE word IN (${placeholders})
-        `).all(...missingWords) as Array<{ word: string, transcription: string, translation: string }>
+        const rows = await conn.dDb
+          .select({
+            word: dictTable.word,
+            transcription: dictTable.transcription,
+            translation: dictTable.translation,
+          })
+          .from(dictTable)
+          .where(inArray(dictTable.word, missingWords))
 
         for (const row of rows) {
-          const entry = { transcription: row.transcription, translation: row.translation }
+          const entry = { transcription: row.transcription || '', translation: row.translation || '' }
           dict[row.word] = entry
           dict[row.word.toLowerCase()] = entry
         }
-      } catch  {
+      }
+      catch (e) {
+        console.error(`[Dictionary Error] Failed to query ${conn.tableName}:`, e)
       }
     }
   }
@@ -55,37 +68,77 @@ export function lookupWords(words: string[], language: string): Record<string, P
   return dict
 }
 
-export function lookupSingleWord(word: string, language: string): PageDictEntry | null {
+export async function lookupSingleWord(word: string, language: string): Promise<PageDictEntry | null> {
   const conn = getDictConnection(language)
   if (!conn)
     return null
-  const transcriptionCol = conn.tableName === 'zh_dictionary' ? 'pinyin AS transcription' : 'transcription'
-  const row = conn.db.prepare(`SELECT ${transcriptionCol}, translation FROM ${conn.tableName} WHERE word = ? COLLATE NOCASE`).get(word) as { transcription: string, translation: string } | null
-  return row ? { transcription: row.transcription, translation: row.translation } : null
+
+  // Определяем Drizzle схему таблицы на лету
+  const dictTable = sqliteTable(conn.tableName, {
+    word: text('word'),
+    transcription: text(conn.tableName === 'zh_dictionary' ? 'pinyin' : 'transcription'),
+    translation: text('translation'),
+  })
+
+  try {
+    const rows = await conn.dDb
+      .select({
+        transcription: dictTable.transcription,
+        translation: dictTable.translation,
+      })
+      .from(dictTable)
+      .where(sql`${dictTable.word} = ${word} COLLATE NOCASE`)
+      .limit(1)
+
+    if (rows.length > 0) {
+      return {
+        transcription: rows[0].transcription || '',
+        translation: rows[0].translation || '',
+      }
+    }
+  }
+  catch (e) {
+    console.error(`[Dictionary Error] Failed to lookup single word in ${conn.tableName}:`, e)
+  }
+
+  return null
 }
 
-export function getUserDictionary(): UserDictItem[] {
-  return sqlite.prepare(`SELECT * FROM user_dictionary ORDER BY updatedAt DESC`).all() as UserDictItem[]
+export async function getUserDictionary(): Promise<UserDictItem[]> {
+  return await db.query.userDictionary.findMany({
+    orderBy: [desc(schema.userDictionary.updatedAt)],
+  })
 }
 
-export function getWordFromUserDictionary(word: string): UserDictItem | null {
-  return sqlite.prepare(`SELECT * FROM user_dictionary WHERE word = ? COLLATE NOCASE`).get(word) as UserDictItem | null
+export async function getWordFromUserDictionary(word: string): Promise<UserDictItem | null> {
+  const item = await db.query.userDictionary.findFirst({
+    where: eq(schema.userDictionary.word, word),
+  })
+  return item || null
 }
 
-export function upsertToUserDictionary(item: Omit<UserDictItem, 'id' | 'createdAt' | 'updatedAt'>) {
-  return sqlite.prepare(`
-    INSERT INTO user_dictionary (word, transcription, translation, language, notes, tags, updatedAt)
-    VALUES (?, ?, ?, ?, ?, ?, datetime('now'))
-    ON CONFLICT(word) DO UPDATE SET
-      transcription = excluded.transcription,
-      translation = excluded.translation,
-      language = excluded.language,
-      notes = excluded.notes,
-      tags = excluded.tags,
-      updatedAt = datetime('now')
-  `).run(item.word, item.transcription, item.translation, item.language, item.notes || null, item.tags || null)
+export async function upsertToUserDictionary(item: Omit<UserDictItem, 'id' | 'createdAt' | 'updatedAt'>): Promise<void> {
+  await db.insert(schema.userDictionary).values({
+    word: item.word,
+    transcription: item.transcription,
+    translation: item.translation,
+    language: item.language,
+    notes: item.notes,
+    tags: item.tags,
+    updatedAt: new Date().toISOString(),
+  }).onConflictDoUpdate({
+    target: schema.userDictionary.word,
+    set: {
+      transcription: item.transcription,
+      translation: item.translation,
+      language: item.language,
+      notes: item.notes,
+      tags: item.tags,
+      updatedAt: new Date().toISOString(),
+    },
+  })
 }
 
-export function removeFromUserDictionary(word: string) {
-  return sqlite.prepare(`DELETE FROM user_dictionary WHERE word = ? COLLATE NOCASE`).run(word)
+export async function removeFromUserDictionary(word: string): Promise<void> {
+  await db.delete(schema.userDictionary).where(eq(schema.userDictionary.word, word))
 }

@@ -3,30 +3,28 @@ import { Icon } from '@iconify/vue'
 import { useDebounceFn } from '@vueuse/core'
 import { nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useTts } from '~/shared/composables/use-tts'
-import { useBooksStore } from '~/shared/store/books.store'
+import { useAnalysisStore } from '~/shared/store/analysis.store'
 
-const store = useBooksStore()
+const analysisStore = useAnalysisStore()
 const { speak, stop, isPlaying, isLoading } = useTts()
 
 const popoverRef = ref<HTMLElement | null>(null)
 const popoverPos = ref({ top: '-9999px', left: '-9999px', transform: 'none' })
 
-// Логика отслеживания выделения текста
 const checkTextSelection = useDebounceFn(() => {
   const selection = window.getSelection()
 
   if (!selection || selection.isCollapsed) {
-    store.closeSelectionTooltip()
+    analysisStore.closeSelectionTooltip()
     return
   }
 
   const text = selection.toString().trim()
   if (!text) {
-    store.closeSelectionTooltip()
+    analysisStore.closeSelectionTooltip()
     return
   }
 
-  // Проверяем, находится ли выделение внутри любого элемента с классом js-tooltip-selectable
   let node = selection.anchorNode
   let isSelectable = false
 
@@ -46,15 +44,15 @@ const checkTextSelection = useDebounceFn(() => {
   const rect = range.getBoundingClientRect()
 
   if (rect.width === 0 || rect.height === 0) {
-    store.closeSelectionTooltip()
+    analysisStore.closeSelectionTooltip()
     return
   }
 
-  if (store.wordPopover) {
-    store.closePopover()
+  if (analysisStore.wordPopover) {
+    analysisStore.closePopover()
   }
 
-  store.selectionTooltip = { text, targetRect: rect }
+  analysisStore.selectionTooltip = { text, targetRect: rect }
 }, 250)
 
 onMounted(() => {
@@ -67,7 +65,7 @@ onUnmounted(() => {
 })
 
 watch(
-  () => store.selectionTooltip,
+  () => analysisStore.selectionTooltip,
   async (val) => {
     if (!val) {
       popoverPos.value = { top: '-9999px', left: '-9999px', transform: 'none' }
@@ -119,25 +117,25 @@ watch(
 )
 
 function analyzeFragment() {
-  if (!store.selectionTooltip)
+  if (!analysisStore.selectionTooltip)
     return
-  const text = store.selectionTooltip.text
+  const text = analysisStore.selectionTooltip.text
 
   window.getSelection()?.removeAllRanges()
 
-  store.closeSelectionTooltip()
-  store.handleSentenceAnalysis(text)
+  analysisStore.closeSelectionTooltip()
+  analysisStore.handleSentenceAnalysis(text)
 }
 
 function playTTS() {
-  if (!store.selectionTooltip)
+  if (!analysisStore.selectionTooltip)
     return
 
   if (isPlaying.value || isLoading.value) {
     stop()
   }
   else {
-    speak(store.selectionTooltip.text)
+    speak(analysisStore.selectionTooltip.text)
   }
 }
 </script>
@@ -146,7 +144,7 @@ function playTTS() {
   <Teleport to="body">
     <Transition name="fade">
       <div
-        v-if="store.selectionTooltip"
+        v-if="analysisStore.selectionTooltip"
         ref="popoverRef"
         class="selection-tooltip"
         :style="popoverPos"
@@ -172,6 +170,7 @@ function playTTS() {
 </template>
 
 <style lang="scss" scoped>
+/* Стили оставляем без изменений */
 .selection-tooltip {
   position: fixed;
   display: flex;

@@ -1,20 +1,20 @@
 <script setup lang="ts">
 import { KitBtn } from '~/components/01.kit'
-import { useBooksStore } from '~/shared/store/books.store'
+import { useReaderStore } from '../store/reader.store'
 
 const emit = defineEmits(['prev', 'next'])
-const store = useBooksStore()
+const readerStore = useReaderStore()
 </script>
 
 <template>
   <footer class="reader-footer" @click.stop>
-    <KitBtn icon="mdi:chevron-left" variant="text" :disabled="(store.currentBook?.currentPage || 1) <= 1" @click="emit('prev')">
+    <KitBtn icon="mdi:chevron-left" variant="text" :disabled="(readerStore.currentBook?.currentPage || 1) <= 1" @click="emit('prev')">
       Назад
     </KitBtn>
-    <span v-if="store.currentBook" class="page-info">
-      {{ store.currentBook.currentPage }} / {{ store.currentBook.totalPages }}
+    <span v-if="readerStore.currentBook" class="page-info">
+      {{ readerStore.currentBook.currentPage }} / {{ readerStore.currentBook.totalPages }}
     </span>
-    <KitBtn append-icon="mdi:chevron-right" variant="text" :disabled="(store.currentBook?.currentPage || 1) >= (store.currentBook?.totalPages || 1)" @click="emit('next')">
+    <KitBtn append-icon="mdi:chevron-right" variant="text" :disabled="(readerStore.currentBook?.currentPage || 1) >= (readerStore.currentBook?.totalPages || 1)" @click="emit('next')">
       Вперед
     </KitBtn>
   </footer>

@@ -73,6 +73,7 @@ const safeCachePlugin: WorkboxPlugin = {
     return response
   },
 }
+
 class CacheStrategyFactory {
   static createNetworkFirst(cacheName: string, options: {
     maxEntries: number
@@ -208,9 +209,19 @@ async function getCacheInfo(): Promise<CacheInfo[]> {
   }
 }
 
+function getMediaUrl(path: string) {
+  if (path.startsWith('data:'))
+    return path
+
+  const BASE = import.meta.env.VITE_API_URL || 'https://insight-api.trip-scheduler.ru'
+
+  return `${BASE}${path}`
+}
+
 export {
   AssetAnalyzer,
   CacheStrategyFactory,
   getCacheInfo,
+  getMediaUrl,
   ServiceWorkerMonitor,
 }

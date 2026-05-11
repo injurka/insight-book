@@ -1,27 +1,26 @@
 <script setup lang="ts">
-import { useRouter } from 'vue-router'
 import { AppRoutePaths } from '~/shared/constants/routes'
-import { useBooksStore } from '~/shared/store/books.store'
+import { useLibraryStore } from '../../library/store/library.store'
 
-const store = useBooksStore()
+const libraryStore = useLibraryStore()
 const router = useRouter()
 
 function goToPage(pageNum?: number) {
-  if (!pageNum || !store.currentBookInfo)
+  if (!pageNum || !libraryStore.currentBookInfo)
     return
   router.push({
     path: AppRoutePaths.Reader,
-    query: { bookId: store.currentBookInfo.id, page: pageNum },
+    query: { bookId: libraryStore.currentBookInfo.id, page: pageNum },
   })
 }
 </script>
 
 <template>
-  <div v-if="store.currentBookInfo?.toc && store.currentBookInfo.toc.length > 0" class="toc-section">
+  <div v-if="libraryStore.currentBookInfo?.toc && libraryStore.currentBookInfo.toc.length > 0" class="toc-section">
     <h3>Оглавление</h3>
     <div class="toc-list">
       <div
-        v-for="item in store.currentBookInfo.toc"
+        v-for="item in libraryStore.currentBookInfo.toc"
         :key="item.id"
         class="toc-item"
         :style="{ paddingLeft: `${(item.level - 1) * 16}px` }"

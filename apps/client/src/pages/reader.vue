@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import AddEditWordDialog from '~/components/05.modules/dictionary/ui/add-edit-word-dialog.vue'
+import { useReaderStore } from '~/components/05.modules/reader/store/reader.store'
 import MangaReaderView from '~/components/05.modules/reader/ui/manga-reader-view.vue'
 import ReaderView from '~/components/05.modules/reader/ui/reader-view.vue'
 import { AppRoutePaths } from '~/shared/constants/routes'
-import { useBooksStore } from '~/shared/store/books.store'
 
-const store = useBooksStore()
+const store = useReaderStore()
 const router = useRouter()
 const route = useRoute()
 

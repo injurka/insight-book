@@ -1,7 +1,7 @@
 import type { Book, BookStats } from '~/shared/types/models'
 import { useReaderStore } from '~/components/05.modules/reader/store/reader.store'
 import { api } from '~/shared/services/api.service'
-import { useAnalysisStore } from '~/shared/store/analysis.store'
+import { offlineService } from '~/shared/services/offline.service'
 
 export const useLibraryStore = defineStore('library', () => {
   const books = ref<Book[]>([])
@@ -10,12 +10,18 @@ export const useLibraryStore = defineStore('library', () => {
   const isLoading = ref(false)
   const isAnalyzingBook = ref(false)
   const isAnalyzingVocab = ref(false)
-  const uploadProgress = ref(0)
 
   async function fetchBooks() {
     isLoading.value = true
     try {
       books.value = await api.books.list()
+      await offlineService.saveBooksList(books.value)
+    }
+    catch (e) {
+      const cached = await offlineService.getBooksList()
+      if (cached)
+        books.value = cached
+      else throw e
     }
     finally {
       isLoading.value = false
@@ -29,7 +35,15 @@ export const useLibraryStore = defineStore('library', () => {
 
     isLoading.value = true
     try {
-      currentBookInfo.value = await api.books.getInfo(id)
+      const info = await api.books.getInfo(id)
+      currentBookInfo.value = info
+      await offlineService.saveBookInfo(id, info)
+    }
+    catch (e) {
+      const cached = await offlineService.getBookInfo(id)
+      if (cached)
+        currentBookInfo.value = cached
+      else throw e
     }
     finally {
       isLoading.value = false
@@ -40,12 +54,12 @@ export const useLibraryStore = defineStore('library', () => {
     await api.books.updateInfo(id, data)
 
     const listBook = books.value.find(b => b.id === id)
-    if (listBook) {
+    if (listBook)
       Object.assign(listBook, data)
-    }
 
     if (currentBookInfo.value?.id === id) {
       Object.assign(currentBookInfo.value, data)
+      await offlineService.saveBookInfo(id, currentBookInfo.value)
     }
 
     const readerStore = useReaderStore()
@@ -60,6 +74,7 @@ export const useLibraryStore = defineStore('library', () => {
       const res = await api.books.analyzeBook(id)
       if (currentBookInfo.value && currentBookInfo.value.id === id) {
         currentBookInfo.value.stats = res.stats
+        await offlineService.saveBookInfo(id, currentBookInfo.value)
       }
     }
     finally {
@@ -72,12 +87,12 @@ export const useLibraryStore = defineStore('library', () => {
     try {
       const res = await api.books.analyzeVocabulary(id)
       if (currentBookInfo.value?.id === id) {
-        if (!currentBookInfo.value.stats) {
+        if (!currentBookInfo.value.stats)
           currentBookInfo.value.stats = {} as BookStats
-        }
         currentBookInfo.value.stats.posDistribution = res.lexicalStats.posDistribution
         currentBookInfo.value.stats.topWords = res.lexicalStats.topWords
         currentBookInfo.value.stats.lexicalDiversity = res.lexicalStats.lexicalDiversity
+        await offlineService.saveBookInfo(id, currentBookInfo.value)
       }
     }
     finally {
@@ -89,17 +104,18 @@ export const useLibraryStore = defineStore('library', () => {
     const res = await api.books.updateCover(id, file)
     if (currentBookInfo.value && currentBookInfo.value.id === id) {
       currentBookInfo.value.coverUrl = res.coverUrl
+      await offlineService.saveBookInfo(id, currentBookInfo.value)
     }
     const listBook = books.value.find(b => b.id === id)
-    if (listBook) {
+    if (listBook)
       listBook.coverUrl = res.coverUrl
-    }
   }
 
   async function updateBookStats(id: number, data: Partial<BookStats>) {
     const res = await api.books.updateStats(id, data)
     if (currentBookInfo.value && currentBookInfo.value.id === id) {
       currentBookInfo.value.stats = res.stats
+      await offlineService.saveBookInfo(id, currentBookInfo.value)
     }
   }
 
@@ -118,14 +134,10 @@ export const useLibraryStore = defineStore('library', () => {
   async function deleteBook(id: number) {
     await api.books.delete(id)
     books.value = books.value.filter(b => b.id !== id)
-
     const readerStore = useReaderStore()
-    const analysisStore = useAnalysisStore()
-
     if (readerStore.currentBook?.id === id) {
       readerStore.currentBook = null
       readerStore.currentPage = null
-      analysisStore.analysisHistory = []
     }
   }
 
@@ -135,8 +147,6 @@ export const useLibraryStore = defineStore('library', () => {
     isLoading,
     isAnalyzingBook,
     isAnalyzingVocab,
-    uploadProgress,
-
     fetchBooks,
     fetchBookInfo,
     updateBookInfo,

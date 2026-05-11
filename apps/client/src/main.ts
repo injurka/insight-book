@@ -6,7 +6,6 @@ import iconsBundle from '~/assets/icons-bundle.json'
 import { vLongPress } from '~/shared/directives/long-press'
 import { vRipple } from '~/shared/directives/ripple'
 import router from '~/shared/lib/router'
-import { i18n } from '~/shared/plugins/i18n'
 import App from './app.vue'
 
 import '~/assets/scss/global.scss'
@@ -27,7 +26,6 @@ async function bootstrap() {
   app.use(pinia)
   app.use(head)
   app.use(router)
-  app.use(i18n)
 
   app.mount('#app')
 
