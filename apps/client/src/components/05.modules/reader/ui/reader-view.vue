@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, useTemplateRef, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { KitDialog } from '~/components/01.kit'
+import { KitBtn, KitDialog } from '~/components/01.kit'
 import { PageLoader } from '~/components/02.shared/page-loader'
 
 import { SelectionTooltip, SentenceAnalysis, WordPopover } from '~/components/03.domain/analysis'

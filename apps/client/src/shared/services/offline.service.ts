@@ -1,4 +1,4 @@
-import type { Book, PagePayload, TocItem, UserDictItem } from '../types/models'
+import type { Book, LlmAnalysis, PagePayload, TocItem, UserDictItem } from '../types/models'
 import localforage from 'localforage'
 
 localforage.config({
@@ -46,5 +46,13 @@ export const offlineService = {
 
   async getDictionary(): Promise<UserDictItem[] | null> {
     return await localforage.getItem('dictionary_words')
+  },
+
+  async saveAnalysis(bookId: number, text: string, analysis: LlmAnalysis) {
+    await localforage.setItem(`analysis_${bookId}_${text}`, JSON.parse(JSON.stringify(analysis)))
+  },
+
+  async getAnalysis(bookId: number, text: string): Promise<LlmAnalysis | null> {
+    return await localforage.getItem(`analysis_${bookId}_${text}`)
   },
 }

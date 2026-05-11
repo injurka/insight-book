@@ -3,6 +3,7 @@ import { useDictionaryStore } from '~/components/05.modules/dictionary/store/dic
 import { useLibraryStore } from '~/components/05.modules/library/store/library.store'
 import { useReaderStore } from '~/components/05.modules/reader/store/reader.store'
 import { api } from '~/shared/services/api.service'
+import { offlineService } from '~/shared/services/offline.service'
 import { useToastStore } from '~/shared/store/toast.store'
 
 export interface WordPopoverData {
@@ -100,6 +101,9 @@ export const useAnalysisStore = defineStore('analysis', () => {
       if (wordAbortController !== controller)
         return
 
+      // Сохраняем в оффлайн-кэш
+      await offlineService.saveAnalysis(readerStore.currentBook.id, wordPopover.value.word, res)
+
       if (wordPopover.value) {
         wordPopover.value.aiData = res
         wordPopover.value.aiTranslation = res.translation
@@ -115,8 +119,21 @@ export const useAnalysisStore = defineStore('analysis', () => {
 
       if (err.name === 'AbortError')
         return
-      if (wordPopover.value && wordAbortController === controller) {
-        wordPopover.value.aiTranslation = 'Ошибка при переводе ИИ'
+
+      if (readerStore.currentBook && wordPopover.value) {
+        const cached = await offlineService.getAnalysis(readerStore.currentBook.id, wordPopover.value.word)
+
+        if (cached && wordAbortController === controller && wordPopover.value) {
+          wordPopover.value.aiData = cached
+          wordPopover.value.aiTranslation = cached.translation
+
+          const targetWord = wordPopover.value.word
+          const vocabMatch = cached.vocabulary?.find(v => v.word.includes(targetWord) || targetWord.includes(v.word))
+          wordPopover.value.aiTranscription = cached.transcription || vocabMatch?.transcription || ''
+        }
+        else if (wordPopover.value && wordAbortController === controller) {
+          wordPopover.value.aiTranslation = 'Оффлайн: перевод не найден в кэше'
+        }
       }
     }
     finally {
@@ -265,6 +282,9 @@ export const useAnalysisStore = defineStore('analysis', () => {
       if (sentenceAbortController !== controller)
         return
 
+      // Сохраняем в оффлайн-кэш
+      await offlineService.saveAnalysis(readerStore.currentBook.id, sentence, res)
+
       sidebarAnalysis.value = res
       analysisHistory.value.unshift({
         sentence,
@@ -278,7 +298,22 @@ export const useAnalysisStore = defineStore('analysis', () => {
 
       if (err.name === 'AbortError')
         return
-      console.error(err)
+
+      if (readerStore.currentBook) {
+        const cached = await offlineService.getAnalysis(readerStore.currentBook.id, sentence)
+
+        if (cached && sentenceAbortController === controller) {
+          sidebarAnalysis.value = cached
+          analysisHistory.value.unshift({
+            sentence,
+            analysis: cached,
+            timestamp: Date.now(),
+          })
+        }
+        else {
+          console.error('Ошибка анализа предложения (и нет в кэше):', err)
+        }
+      }
     }
     finally {
       if (sentenceAbortController === controller) {
@@ -348,6 +383,9 @@ export const useAnalysisStore = defineStore('analysis', () => {
             if (signal.aborted)
               break
 
+            // Сохраняем в оффлайн-кэш
+            await offlineService.saveAnalysis(readerStore.currentBook.id, sentence, res)
+
             analysisHistory.value.unshift({
               sentence,
               analysis: res,
@@ -360,7 +398,20 @@ export const useAnalysisStore = defineStore('analysis', () => {
 
             if (err.name === 'AbortError')
               break
-            console.error('Ошибка анализа предложения:', err)
+
+            if (readerStore.currentBook) {
+              const cached = await offlineService.getAnalysis(readerStore.currentBook.id, sentence)
+              if (cached) {
+                analysisHistory.value.unshift({
+                  sentence,
+                  analysis: cached,
+                  timestamp: Date.now(),
+                })
+              }
+              else {
+                console.error('Ошибка анализа предложения:', err)
+              }
+            }
           }
         }
 
