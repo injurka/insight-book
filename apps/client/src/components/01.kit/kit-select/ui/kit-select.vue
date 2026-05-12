@@ -126,11 +126,9 @@ function selectOption(val: string | number) {
   justify-content: space-between;
   width: 100%;
   box-sizing: border-box;
-
-  /* Используем secondary фон, чтобы селект не был "белым пятном" на темных поверхностях */
-  background-color: var(--bg-secondary-color);
+  background-color: var(--bg-primary-color);
   color: var(--fg-primary-color);
-  border: 1px solid var(--border-secondary-color);
+  border: 1px solid var(--border-primary-color);
   border-radius: 6px;
   cursor: pointer;
   user-select: none;
@@ -213,19 +211,6 @@ function selectOption(val: string | number) {
   &::-webkit-scrollbar-thumb {
     background-color: var(--border-secondary-color);
     border-radius: 4px;
-  }
-}
-
-.kit-select-trigger {
-  background-color: var(--bg-tertiary-color) !important;
-  padding: 0;
-
-  &:hover {
-    border-color: transparent !important;
-  }
-
-  &.is-open {
-    border-color: transparent !important;
   }
 }
 

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { KitBtn, KitInput, KitSelect } from '~/components/01.kit'
+import { KitBtn, KitInput, KitSelect, KitTooltip } from '~/components/01.kit'
 import { ThemesVariant, useChangeTheme } from '~/shared/composables/use-change-theme'
 import { AppRoutePaths } from '~/shared/constants/routes'
 
@@ -33,6 +33,10 @@ function onFileChange(e: Event) {
 function openDictionary() {
   router.push(AppRoutePaths.Dictionary)
 }
+
+function openSettings() {
+  router.push(AppRoutePaths.Settings)
+}
 </script>
 
 <template>
@@ -42,12 +46,27 @@ function openDictionary() {
         <h1>Insight Book</h1>
         <p>Ваша умная библиотека для изучения языков</p>
       </div>
-      <KitBtn
-        :icon="theme === ThemesVariant.Light ? 'mdi:weather-night' : 'mdi:weather-sunny'"
-        variant="text"
-        aria-label="Переключить тему"
-        @click="toggleTheme"
-      />
+
+      <!-- Верхние иконки действий (Тема и Память) -->
+      <div class="top-actions">
+        <KitTooltip text="Управление памятью" placement="bottom">
+          <KitBtn
+            icon="mdi:database-outline"
+            variant="text"
+            aria-label="Память и Оффлайн"
+            @click="openSettings"
+          />
+        </KitTooltip>
+
+        <KitTooltip text="Переключить тему" placement="bottom-end">
+          <KitBtn
+            :icon="theme === ThemesVariant.Light ? 'mdi:weather-night' : 'mdi:weather-sunny'"
+            variant="text"
+            aria-label="Переключить тему"
+            @click="toggleTheme"
+          />
+        </KitTooltip>
+      </div>
     </div>
 
     <div class="header-bottom">
@@ -55,6 +74,7 @@ function openDictionary() {
         <KitInput v-model="search" placeholder="Поиск книг..." size="md" />
         <KitSelect v-model="lang" :options="langOptions" size="md" aria-label="Выбор языка" />
       </div>
+
       <div class="header-actions">
         <KitBtn icon="mdi:book-alphabet" variant="outlined" color="secondary" @click="openDictionary">
           Мой словарь
@@ -97,6 +117,11 @@ function openDictionary() {
         color: var(--fg-secondary-color);
         font-size: 1rem;
       }
+    }
+
+    .top-actions {
+      display: flex;
+      gap: 4px;
     }
   }
 

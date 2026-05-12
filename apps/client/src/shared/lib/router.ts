@@ -24,6 +24,11 @@ export const router = createRouter({
       name: AppRouteNames.Dictionary,
       component: () => import('~/pages/dictionary.vue'),
     },
+    {
+      path: '/settings',
+      name: AppRouteNames.Settings,
+      component: () => import('~/pages/settings.vue'),
+    },
   ],
 })
 

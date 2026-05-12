@@ -343,6 +343,19 @@ const fontOptions = [
       flex-direction: column;
       align-items: flex-start;
       gap: 6px;
+
+      .kit-select-trigger {
+        background-color: var(--bg-tertiary-color) !important;
+        padding: 0;
+
+        &:hover {
+          border-color: transparent !important;
+        }
+
+        &.is-open {
+          border-color: transparent !important;
+        }
+      }
     }
   }
 
