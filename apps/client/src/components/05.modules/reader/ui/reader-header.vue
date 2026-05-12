@@ -369,4 +369,42 @@ const fontOptions = [
     width: 100%;
   }
 }
+
+.dropdown-menu-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 8px;
+  border: none;
+  background: transparent;
+  color: var(--fg-primary-color);
+  font-size: 0.9rem;
+  font-family: inherit;
+  cursor: pointer;
+  border-radius: 6px;
+  transition:
+    background-color 0.2s,
+    color 0.2s;
+  text-align: left;
+
+  &:hover {
+    background-color: var(--bg-hover-color);
+    color: var(--fg-accent-color);
+  }
+
+  svg {
+    font-size: 1.25rem;
+    color: var(--fg-secondary-color);
+  }
+
+  &:hover svg {
+    color: var(--fg-accent-color);
+  }
+}
 </style>
