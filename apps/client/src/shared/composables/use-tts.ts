@@ -1,9 +1,12 @@
 import { ref } from 'vue'
 import { useReaderStore } from '~/components/05.modules/reader/store/reader.store'
 import { api } from '~/shared/services/api.service'
+import { useGlobalSettingsStore } from '~/shared/store/settings.store'
 
 export function useTts() {
   const readerStore = useReaderStore()
+  const settingsStore = useGlobalSettingsStore()
+
   const isPlaying = ref(false)
   const isLoading = ref(false)
   let currentAudio: HTMLAudioElement | null = null
@@ -25,6 +28,9 @@ export function useTts() {
       const { audioBase64 } = await api.books.generateTts(bookId, text)
       const audioSrc = `data:audio/mp3;base64,${audioBase64}`
       currentAudio = new Audio(audioSrc)
+
+      // Применяем скорость из настроек
+      currentAudio.playbackRate = settingsStore.ttsSpeed
 
       currentAudio.onplay = () => isPlaying.value = true
       currentAudio.onended = () => isPlaying.value = false

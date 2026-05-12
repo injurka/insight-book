@@ -118,6 +118,12 @@ const arrowStyle = computed(() => {
 
 .kit-tooltip-trigger {
   display: inline-flex;
+
+  :deep(.dialog-icon-btn) {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
 }
 
 .kit-tooltip-floating {

@@ -44,13 +44,14 @@ const { x, y, strategy, placement: finalPlacement } = useFloating(referenceRef, 
   open: isOpen,
 })
 
-// Игнорируем клики по самому триггеру, чтобы toggle() корректно работал
+// Игнорируем клики по самому триггеру и по выпадающим спискам KitSelect,
+// которые рендерятся вне иерархии через Teleport to="body"
 onClickOutside(floatingRef, (e) => {
   if (referenceRef.value && referenceRef.value.contains(e.target as Node)) {
     return
   }
   isOpen.value = false
-}, { ignore: [referenceRef] })
+}, { ignore: [referenceRef, '.kit-select-dropdown'] })
 
 onKeyStroke('Escape', (e) => {
   if (isOpen.value) {
@@ -63,7 +64,12 @@ function toggle() {
   isOpen.value = !isOpen.value
 }
 
-function handleContentClick() {
+function handleContentClick(e: MouseEvent) {
+  // Не закрываем меню, если клик был по кастомному селекту или его триггеру
+  if ((e.target as HTMLElement).closest('.kit-select-wrapper')) {
+    return
+  }
+
   if (props.closeOnContentClick) {
     isOpen.value = false
   }

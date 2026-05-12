@@ -2,9 +2,18 @@ import { useLocalStorage } from '@vueuse/core'
 import { defineStore } from 'pinia'
 
 export const useGlobalSettingsStore = defineStore('globalSettings', () => {
-  const aiUrl = useLocalStorage('global-ai-url', 'https://api.aihubmix.com/v1')
-  const aiKey = useLocalStorage('global-ai-key', '')
-  const aiModel = useLocalStorage('global-ai-model', 'gemini-3-flash-preview')
+  const translationPriority = useLocalStorage<'dict' | 'llm'>('global-translation-priority', 'dict')
+  const ttsSpeed = useLocalStorage<number>('global-tts-speed', 1)
 
-  return { aiUrl, aiKey, aiModel }
+  const readerFontSize = useLocalStorage<number>('global-reader-font-size', 1.4)
+  const readerLineHeight = useLocalStorage<number>('global-reader-line-height', 1.8)
+  const readerFontFamily = useLocalStorage<string>('global-reader-font-family', '\'Maple Mono CN\', \'Microsoft YaHei\', sans-serif')
+
+  return {
+    translationPriority,
+    ttsSpeed,
+    readerFontSize,
+    readerLineHeight,
+    readerFontFamily,
+  }
 })

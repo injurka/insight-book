@@ -7,12 +7,15 @@ import { KitBtn, KitDialog } from '~/components/01.kit'
 import { PageLoader } from '~/components/02.shared/page-loader'
 import { SelectionTooltip, SentenceAnalysis, WordPopover } from '~/components/03.domain/analysis'
 import { useAnalysisStore } from '~/shared/store/analysis.store'
+import { useGlobalSettingsStore } from '~/shared/store/settings.store'
 import { useReaderStore } from '../store/reader.store'
 import ReaderFooter from './reader-footer.vue'
 import ReaderHeader from './reader-header.vue'
 
 const readerStore = useReaderStore()
 const analysisStore = useAnalysisStore()
+const settingsStore = useGlobalSettingsStore()
+
 const router = useRouter()
 const route = useRoute()
 
@@ -99,7 +102,12 @@ function syncHeights() {
 }
 
 watch(
-  [() => readerStore.isParallelView, translatedPageContent],
+  [
+    () => readerStore.isParallelView,
+    translatedPageContent,
+    () => settingsStore.readerFontSize,
+    () => settingsStore.readerLineHeight,
+  ],
   async () => {
     await nextTick()
     setTimeout(syncHeights, 100) // Даем немного времени на рендер шрифтов и отступов
@@ -277,6 +285,11 @@ function onScroll() {
           <div class="reader-content-layout" :class="{ 'is-parallel': readerStore.isParallelView }">
             <div
               class="reader-content left-pane js-tooltip-selectable"
+              :style="{
+                fontSize: `${settingsStore.readerFontSize}rem`,
+                lineHeight: settingsStore.readerLineHeight,
+                fontFamily: settingsStore.readerFontFamily,
+              }"
               @click="onContentClick"
               @mousedown="onPointerDown"
               @touchstart="onPointerDown"
@@ -292,6 +305,11 @@ function onScroll() {
             <div
               v-if="readerStore.isParallelView"
               class="reader-content right-pane"
+              :style="{
+                fontSize: `${settingsStore.readerFontSize}rem`,
+                lineHeight: settingsStore.readerLineHeight,
+                fontFamily: settingsStore.readerFontFamily,
+              }"
               @mousedown="onPointerDown"
               @touchstart="onPointerDown"
               @mouseup="onPointerUp"
@@ -408,15 +426,17 @@ function onScroll() {
 }
 .reader-content {
   width: 100%;
-  font-family: 'Maple Mono CN', 'Microsoft YaHei', sans-serif;
-  font-size: 1.4rem;
-  line-height: 1.8;
   color: var(--fg-primary-color);
   user-select: text;
   word-wrap: break-word;
+  font-size: 1.4rem;
+  line-height: 1.8;
+  font-family: 'Maple Mono CN', 'Microsoft YaHei', sans-serif;
+  transition:
+    font-size 0.2s,
+    line-height 0.2s;
 
   @include media-down(sm) {
-    font-size: 1.25rem;
     user-select: none;
   }
 

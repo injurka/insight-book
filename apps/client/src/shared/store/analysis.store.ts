@@ -4,6 +4,7 @@ import { useLibraryStore } from '~/components/05.modules/library/store/library.s
 import { useReaderStore } from '~/components/05.modules/reader/store/reader.store'
 import { api } from '~/shared/services/api.service'
 import { offlineService } from '~/shared/services/offline.service'
+import { useGlobalSettingsStore } from '~/shared/store/settings.store'
 import { useToastStore } from '~/shared/store/toast.store'
 
 export interface WordPopoverData {
@@ -154,6 +155,8 @@ export const useAnalysisStore = defineStore('analysis', () => {
 
   async function handleWordClick(word: string, pos: string, sentenceId: number, tokenIndex: number, target: HTMLElement) {
     const readerStore = useReaderStore()
+    const settingsStore = useGlobalSettingsStore()
+
     if (!readerStore.currentPage || !readerStore.currentBook)
       return
 
@@ -162,9 +165,12 @@ export const useAnalysisStore = defineStore('analysis', () => {
     const targetRect = target.getBoundingClientRect()
 
     const entry = readerStore.currentPage.pageDictionary[word]
-    if (entry) {
+
+    // Если есть перевод в локальном словаре страницы и приоритет "Словарь"
+    if (entry && settingsStore.translationPriority === 'dict') {
       if (wordAbortController)
         wordAbortController.abort()
+
       wordPopover.value = {
         word,
         pos,
@@ -177,6 +183,7 @@ export const useAnalysisStore = defineStore('analysis', () => {
       return
     }
 
+    // Если приоритет LLM, или нет локального перевода
     if (wordAbortController)
       wordAbortController.abort()
     const controller = new AbortController()
@@ -185,8 +192,9 @@ export const useAnalysisStore = defineStore('analysis', () => {
     wordPopover.value = {
       word,
       pos,
-      transcription: '',
-      translation: 'Поиск перевода...',
+      // В качестве плейсхолдера сразу показываем то, что есть
+      transcription: entry ? entry.transcription : '',
+      translation: entry ? entry.translation : 'Поиск перевода...',
       targetRect,
       showAi: true,
       isAiLoading: true,
