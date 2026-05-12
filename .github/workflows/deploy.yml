@@ -104,7 +104,7 @@ jobs:
           key: ${{ secrets.VDS_SSH_KEY }}
           port: ${{ secrets.VDS_PORT }}
           script: |
-            cd /root/sources/insight-book
+            cd /root/sources/insight-book/docker
             
             export V_CLIENT=${{ steps.version.outputs.VERSION }}
             export V_SERVER=${{ steps.version.outputs.VERSION }}
