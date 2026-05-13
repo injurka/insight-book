@@ -31,7 +31,7 @@ services:
       - LLM_API_KEY=${LLM_API_KEY}
       - LLM_API_URL=${LLM_API_URL:-https://aihubmix.com/v1}
       # Динамические переменные авторизации
-      - AUTH_MODE=${AUTH_MODE:-multi}
+      - AUTH_MODE=${AUTH_MODE:-single}
       - JWT_SECRET=${JWT_SECRET:-super-secret-key-change-me}
       - ADMIN_USERNAME=${ADMIN_USERNAME:-admin}
       - ADMIN_PASSWORD=${ADMIN_PASSWORD:-admin}
