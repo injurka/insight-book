@@ -2,6 +2,7 @@
 import type { Book } from '~/shared/types/models'
 import { computed } from 'vue'
 import { KitBtn, KitTooltip } from '~/components/01.kit'
+import { useAuthStore } from '~/shared/store/auth.store'
 import { getMediaUrl } from '~/workers/service/lib/utils'
 
 const props = defineProps<Props>()
@@ -14,6 +15,8 @@ const emit = defineEmits<{
 interface Props {
   book: Book
 }
+
+const authStore = useAuthStore()
 
 const coverSrc = computed(() => {
   if (!props.book.coverUrl)
@@ -39,7 +42,7 @@ const progressPercent = computed(() => {
       </div>
       <span class="lang-badge">{{ book.language.toUpperCase() }}</span>
 
-      <div class="card-actions">
+      <div v-if="authStore.user" class="card-actions">
         <KitTooltip text="Редактировать" placement="left">
           <KitBtn
             class="action-btn"

@@ -1,4 +1,4 @@
-import type { Book, BookStats, LlmAnalysis, PagePayload, TocItem, UserDictItem } from '../types/models'
+import type { Book, BookStats, DictDeck, LlmAnalysis, PagePayload, TocItem, UserDictItem } from '../types/models'
 
 const BASE = import.meta.env.VITE_API_URL || 'https://insight-api.trip-scheduler.ru'
 
@@ -12,6 +12,10 @@ async function request<T>(url: string, opts?: RequestInit): Promise<T> {
 }
 
 export const api = {
+  auth: {
+    login: (data: any) => request<{ token: string, user: any }>('/api/auth/login', { method: 'POST', body: JSON.stringify(data) }),
+    me: () => request<{ user: any, mode: string }>('/api/auth/me'),
+  },
   books: {
     list: () => request<Book[]>('/api/books'),
 
@@ -82,16 +86,40 @@ export const api = {
   dictionary: {
     list: () => request<UserDictItem[]>('/api/dictionary'),
 
-    get: (word: string) => request<UserDictItem>(`/api/dictionary/${encodeURIComponent(word)}`),
+    decks: () => request<DictDeck[]>('/api/dictionary/decks'),
+    createDeck: (data: { name: string, language: string }) =>
+      request<DictDeck>('/api/dictionary/decks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      }),
+    updateDeck: (id: number, data: { name: string }) =>
+      request<{ success: boolean }>(`/api/dictionary/decks/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      }),
+    deleteDeck: (id: number) =>
+      request<{ success: boolean }>(`/api/dictionary/decks/${id}`, { method: 'DELETE' }),
 
-    upsert: (item: Partial<UserDictItem>) =>
+    get: (word: string) => request<UserDictItem>(`/api/dictionary/${encodeURIComponent(word)}`),
+    upsert: (item: Partial<UserDictItem> & { contextSentence?: string, contextBookId?: number }) =>
       request<{ success: boolean }>('/api/dictionary', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(item),
       }),
-
     remove: (word: string) =>
       request<{ success: boolean }>(`/api/dictionary/${encodeURIComponent(word)}`, { method: 'DELETE' }),
+
+    getReviewQueue: (lang: string, forceAll?: boolean) =>
+      request<UserDictItem[]>(`/api/dictionary/review?lang=${lang}${forceAll ? '&forceAll=true' : ''}`),
+
+    submitReview: (wordId: number, grade: number) =>
+      request<{ success: boolean }>('/api/dictionary/review', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ wordId, grade }),
+      }),
   },
 }

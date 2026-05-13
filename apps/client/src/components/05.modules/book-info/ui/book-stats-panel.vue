@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Icon } from '@iconify/vue'
+import { reactive, watch } from 'vue'
 import { KitBtn, KitInput } from '~/components/01.kit'
 import { useLibraryStore } from '~/components/05.modules/library/store/library.store'
 import { useToast } from '~/shared/composables/use-toast'
@@ -7,7 +8,7 @@ import { useToast } from '~/shared/composables/use-toast'
 const libraryStore = useLibraryStore()
 const toast = useToast()
 
-const isEditingStats = ref(false)
+const isEditingStats = defineModel<boolean>('isEditing', { default: false })
 
 const editForm = reactive({
   difficulty: '',
@@ -21,13 +22,14 @@ function formatNumber(num: number | undefined): string {
   return new Intl.NumberFormat('ru-RU').format(num)
 }
 
-function startEditingStats() {
-  const stats = libraryStore.currentBookInfo?.stats
-  editForm.difficulty = stats?.difficulty || ''
-  editForm.tags = stats?.tags?.join(', ') || ''
-  editForm.description = stats?.description || ''
-  isEditingStats.value = true
-}
+watch(isEditingStats, (val) => {
+  if (val) {
+    const stats = libraryStore.currentBookInfo?.stats
+    editForm.difficulty = stats?.difficulty || ''
+    editForm.tags = stats?.tags?.join(', ') || ''
+    editForm.description = stats?.description || ''
+  }
+})
 
 async function triggerAiAnalysis() {
   if (!libraryStore.currentBookInfo)
@@ -103,7 +105,6 @@ async function saveStats() {
     <div v-else class="ai-analysis-box">
       <div class="box-header">
         <h3>Информация</h3>
-        <KitBtn v-if="!isEditingStats" icon="mdi:pencil" variant="text" size="sm" color="secondary" @click="startEditingStats" />
       </div>
 
       <template v-if="isEditingStats">
@@ -161,8 +162,8 @@ async function saveStats() {
       <template v-else>
         <div class="empty-stats">
           <p>Информация о книге отсутствует.</p>
-          <KitBtn variant="outlined" color="primary" @click="startEditingStats">
-            Добавить вручную или сгенерировать
+          <KitBtn variant="outlined" color="primary" @click="isEditingStats = true">
+            Добавить
           </KitBtn>
         </div>
       </template>
@@ -210,7 +211,7 @@ async function saveStats() {
   border: 1px solid var(--border-accent-color);
   border-radius: 12px;
   padding: 24px;
-  margin-bottom: 32px;
+  margin-bottom: 0; // Теперь этот отступ контролируется flex-gap в layout-top
   .box-header {
     display: flex;
     justify-content: space-between;

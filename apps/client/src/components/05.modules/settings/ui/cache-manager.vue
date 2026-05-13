@@ -31,7 +31,6 @@ function formatPagesList(pages: number[]) {
   return `${pages.slice(0, 15).join(', ')} ... и ещё ${pages.length - 15}`
 }
 
-// Вычисляем процент заполненности квоты (с защитой от деления на 0)
 const storagePercent = computed(() => {
   if (!cacheStore.deviceStorage || cacheStore.deviceStorage.quota === 0)
     return 0
@@ -55,7 +54,6 @@ const storagePercent = computed(() => {
     </div>
 
     <div v-else-if="cacheStore.stats" class="content">
-      <!-- Блок браузерной квоты -->
       <div v-if="cacheStore.deviceStorage" class="quota-card">
         <div class="quota-header">
           <div class="quota-title">
@@ -166,7 +164,7 @@ const storagePercent = computed(() => {
   min-height: 100dvh;
 
   @include media-down(md) {
-    padding: 16px;
+    padding: 8px;
   }
 }
 

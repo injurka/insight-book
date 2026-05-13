@@ -4,8 +4,10 @@ import { KitBtn, KitSkeleton, KitTooltip } from '~/components/01.kit'
 import { useTts } from '~/shared/composables/use-tts'
 import { POS_TAGS_MAP } from '~/shared/constants/pos-tags'
 import { useAnalysisStore } from '~/shared/store/analysis.store'
+import { useAuthStore } from '~/shared/store/auth.store'
 
 const analysisStore = useAnalysisStore()
+const authStore = useAuthStore()
 const { speak, stop, isPlaying, isLoading } = useTts()
 
 const popoverRef = ref<HTMLElement | null>(null)
@@ -130,7 +132,7 @@ onUnmounted(() => {
             <KitTooltip text="Перевести с ИИ" placement="top">
               <KitBtn icon="mdi:robot-outline" size="xs" variant="text" :color="analysisStore.wordPopover.showAi ? 'accent' : 'secondary'" @click.stop="analysisStore.toggleAiTranslation" />
             </KitTooltip>
-            <KitTooltip text="Сохранить в словарь" placement="top-end">
+            <KitTooltip v-if="authStore.user" text="Сохранить в словарь" placement="top-end">
               <KitBtn icon="mdi:star-outline" size="xs" variant="text" @click.stop="openSaveDialog" />
             </KitTooltip>
           </div>
@@ -171,6 +173,8 @@ onUnmounted(() => {
     position: sticky;
     top: 0;
     z-index: 2;
+    min-height: 28px;
+
     .header-text {
       font-weight: 600;
       font-size: 1.15rem;

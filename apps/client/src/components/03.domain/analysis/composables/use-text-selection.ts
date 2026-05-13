@@ -53,13 +53,17 @@ export function useTextSelection() {
     const sentenceId = Number(target.dataset.sentId)
     const tokenIndex = Number(target.dataset.tokenIdx)
 
+    // ДОБАВЛЕНО: Захват всего предложения-контекста
+    const sentenceEl = target.closest('.sentence') as HTMLElement | null
+    const contextSentence = sentenceEl ? decodeURIComponent(sentenceEl.dataset.rawSent || '') : ''
+
     if (!word || Number.isNaN(sentenceId) || Number.isNaN(tokenIndex) || !pos)
       return
 
     window.getSelection()?.empty()
     event.stopPropagation()
 
-    analysisStore.handleWordClick(word, pos, sentenceId, tokenIndex, target)
+    analysisStore.handleWordClick(word, pos, sentenceId, tokenIndex, target, contextSentence)
   }
 
   return {

@@ -49,7 +49,6 @@ const translatedPageContent = computed(() => {
   return doc.body.innerHTML
 })
 
-// --- ЛОГИКА СИНХРОНИЗАЦИИ ВЫСОТЫ БЛОКОВ ПАРАЛЛЕЛЬНОГО ЧТЕНИЯ ---
 function syncHeights() {
   const leftPane = readerViewRef.value?.querySelector('.left-pane')
   const rightPane = readerViewRef.value?.querySelector('.right-pane')
@@ -57,10 +56,8 @@ function syncHeights() {
   if (!leftPane || !rightPane)
     return
 
-  // Теги, которые мы хотим выравнивать
   const selectors = 'p, h1, h2, h3, h4, h5, h6, blockquote, li, img'
 
-  // Получаем узлы, исключая вложенные (чтобы не было двойного увеличения высоты)
   const getNodes = (pane: Element) => {
     const all = Array.from(pane.querySelectorAll(selectors)) as HTMLElement[]
     return all.filter(el => el.querySelectorAll(selectors).length === 0)
@@ -69,21 +66,18 @@ function syncHeights() {
   const leftNodes = getNodes(leftPane)
   const rightNodes = getNodes(rightPane)
 
-  // Всегда сначала сбрасываем высоты
   leftNodes.forEach(el => el.style.minHeight = '')
   rightNodes.forEach(el => el.style.minHeight = '')
 
   if (!readerStore.isParallelView)
     return
 
-  // Если панели перешли в колоночный мобильный вид (одна под другой) - не применяем высоты
   const leftRect = leftPane.getBoundingClientRect()
   const rightRect = rightPane.getBoundingClientRect()
   if (Math.abs(leftRect.top - rightRect.top) > 10) {
     return
   }
 
-  // Применяем максимальную высоту к парам
   const minLen = Math.min(leftNodes.length, rightNodes.length)
   for (let i = 0; i < minLen; i++) {
     const leftEl = leftNodes[i]
@@ -110,7 +104,7 @@ watch(
   ],
   async () => {
     await nextTick()
-    setTimeout(syncHeights, 100) // Даем немного времени на рендер шрифтов и отступов
+    setTimeout(syncHeights, 100)
   },
 )
 
@@ -119,7 +113,6 @@ useResizeObserver(readerViewRef, () => {
     syncHeights()
   }
 })
-// ------------------------------------------------------------------
 
 function onSentenceHover(event: MouseEvent) {
   if (!readerStore.isParallelView)
@@ -206,7 +199,6 @@ function onPointerDown(event: MouseEvent | TouchEvent) {
 
   const rawSent = decodeURIComponent(rawSentEnc)
 
-  // Если в предложении нет букв/иероглифов/цифр, не анализируем
   if (!/[\p{L}\p{N}]/u.test(rawSent))
     return
 

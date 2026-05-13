@@ -8,26 +8,25 @@ localforage.config({
   description: 'Кэш для работы читалки в оффлайн-режиме',
 })
 
-/**
- * Безопасное сохранение в IndexedDB с перехватом ошибки переполнения памяти
- */
+function getKey(key: string) {
+  const uid = localStorage.getItem('insight_uid') || '1'
+  return `u${uid}_${key}`
+}
+
 async function safeSetItem<T>(key: string, value: T): Promise<void> {
   try {
-    await localforage.setItem(key, value)
+    await localforage.setItem(getKey(key), value)
   }
   catch (e: any) {
     if (e.name === 'QuotaExceededError' || e.name === 'NS_ERROR_DOM_QUOTA_REACHED') {
-      console.error('ОШИБКА: Память браузера переполнена!', e)
       const toast = useToastStore()
-      toast.error(
-        'Память устройства переполнена! Пожалуйста, перейдите в настройки и очистите кэш старых книг.',
-        { expire: 8000 },
-      )
-    }
-    else {
-      console.error(`Ошибка при сохранении ключа ${key} в localforage:`, e)
+      toast.error('Память устройства переполнена! Очистите кэш.', { expire: 8000 })
     }
   }
+}
+
+async function safeGetItem<T>(key: string): Promise<T | null> {
+  return await localforage.getItem<T>(getKey(key))
 }
 
 export const offlineService = {
@@ -38,7 +37,7 @@ export const offlineService = {
   },
 
   async getPage(bookId: number, pageNum: number): Promise<PagePayload | null> {
-    return await localforage.getItem(`book_${bookId}_page_${pageNum}`)
+    return await safeGetItem(`book_${bookId}_page_${pageNum}`)
   },
 
   async saveBookInfo(bookId: number, info: Book) {
@@ -46,7 +45,7 @@ export const offlineService = {
   },
 
   async getBookInfo(bookId: number): Promise<Book | null> {
-    return await localforage.getItem(`book_info_${bookId}`)
+    return await safeGetItem(`book_info_${bookId}`)
   },
 
   async saveBooksList(books: Book[]) {
@@ -54,7 +53,7 @@ export const offlineService = {
   },
 
   async getBooksList(): Promise<Book[] | null> {
-    return await localforage.getItem('library_books_list')
+    return await safeGetItem('library_books_list')
   },
 
   async saveToc(bookId: number, toc: TocItem[]) {
@@ -62,7 +61,7 @@ export const offlineService = {
   },
 
   async getToc(bookId: number): Promise<TocItem[] | null> {
-    return await localforage.getItem(`book_toc_${bookId}`)
+    return await safeGetItem(`book_toc_${bookId}`)
   },
 
   async saveDictionary(words: UserDictItem[]) {
@@ -70,7 +69,7 @@ export const offlineService = {
   },
 
   async getDictionary(): Promise<UserDictItem[] | null> {
-    return await localforage.getItem('dictionary_words')
+    return await safeGetItem('dictionary_words')
   },
 
   async saveAnalysis(bookId: number, text: string, analysis: LlmAnalysis) {
@@ -78,34 +77,21 @@ export const offlineService = {
   },
 
   async getAnalysis(bookId: number, text: string): Promise<LlmAnalysis | null> {
-    return await localforage.getItem(`analysis_${bookId}_${text}`)
+    return await safeGetItem(`analysis_${bookId}_${text}`)
   },
 
   // === МЕТОДЫ ДЛЯ МЕНЕДЖЕРА КЭША ===
-
-  /**
-   * Получение статистики по занятому месту (браузерная квота)
-   */
   async getStorageEstimate(): Promise<{ usage: number, quota: number } | null> {
     if (navigator.storage && navigator.storage.estimate) {
       try {
         const estimate = await navigator.storage.estimate()
-        return {
-          usage: estimate.usage || 0,
-          quota: estimate.quota || 0,
-        }
+        return { usage: estimate.usage || 0, quota: estimate.quota || 0 }
       }
-      catch (e) {
-        console.error('Ошибка получения квоты хранилища', e)
-        return null
-      }
+      catch { return null }
     }
     return null
   },
 
-  /**
-   * Запрос на защиту хранилища от автоматической очистки браузером (iOS / Android)
-   */
   async requestPersistentStorage(): Promise<boolean> {
     if (navigator.storage && navigator.storage.persist) {
       return await navigator.storage.persist()
@@ -113,30 +99,26 @@ export const offlineService = {
     return false
   },
 
-  /**
-   * Сбор детальной статистики по конкретным книгам
-   */
   async getCacheStats() {
     const keys = await localforage.keys()
-    const booksList = await this.getBooksList() || []
+    const prefix = getKey('') // "u1_"
 
-    const bookStats: Record<number, { title: string, totalPages: number, cachedPages: number[], analysesCount: number, sizeBytes: number }> = {}
+    // Фильтруем ключи только текущего юзера
+    const userKeys = keys.filter(k => k.startsWith(prefix))
+
+    const booksList = await this.getBooksList() || []
+    const bookStats: Record<number, any> = {}
 
     booksList.forEach((b) => {
-      bookStats[b.id] = {
-        title: b.title,
-        totalPages: b.totalPages || 0,
-        cachedPages: [],
-        analysesCount: 0,
-        sizeBytes: 0,
-      }
+      bookStats[b.id] = { title: b.title, totalPages: b.totalPages || 0, cachedPages: [], analysesCount: 0, sizeBytes: 0 }
     })
 
     let totalDictionaryWords = 0
     let totalSize = 0
 
-    for (const key of keys) {
-      const item = await localforage.getItem(key)
+    for (const fullKey of userKeys) {
+      const key = fullKey.replace(prefix, '') // убираем "u1_"
+      const item = await localforage.getItem(fullKey)
       const itemSize = item ? JSON.stringify(item).length : 0
       totalSize += itemSize
 
@@ -166,25 +148,19 @@ export const offlineService = {
       }
     }
 
-    Object.values(bookStats).forEach((stat) => {
-      stat.cachedPages.sort((a, b) => a - b)
-    })
-
-    return {
-      bookStats,
-      totalDictionaryWords,
-      totalSizeBytes: totalSize,
-    }
+    return { bookStats, totalDictionaryWords, totalSizeBytes: totalSize }
   },
 
   async clearBookCache(bookId: number) {
     const keys = await localforage.keys()
-    const keysToRemove = keys.filter(key =>
-      key.startsWith(`book_${bookId}_page_`)
-      || key.startsWith(`analysis_${bookId}_`)
-      || key === `book_info_${bookId}`
-      || key === `book_toc_${bookId}`,
-    )
+    const prefix = getKey('')
+
+    const keysToRemove = keys.filter((fullKey) => {
+      if (!fullKey.startsWith(prefix))
+        return false
+      const key = fullKey.replace(prefix, '')
+      return key.startsWith(`book_${bookId}_page_`) || key.startsWith(`analysis_${bookId}_`) || key === `book_info_${bookId}` || key === `book_toc_${bookId}`
+    })
 
     for (const key of keysToRemove) {
       await localforage.removeItem(key)

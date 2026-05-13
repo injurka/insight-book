@@ -1,8 +1,23 @@
 import { relations, sql } from 'drizzle-orm'
-import { integer, primaryKey, sqliteTable, text, unique } from 'drizzle-orm/sqlite-core'
+import {
+  integer,
+  primaryKey,
+  real,
+  sqliteTable,
+  text,
+  unique,
+} from 'drizzle-orm/sqlite-core'
+
+export const users = sqliteTable('users', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  username: text('username').notNull().unique(),
+  passwordHash: text('passwordHash').notNull(),
+  createdAt: text('createdAt').notNull().default(sql`(datetime('now'))`),
+})
 
 export const books = sqliteTable('books', {
   id: integer('id').primaryKey({ autoIncrement: true }),
+  userId: integer('userId').notNull().references(() => users.id, { onDelete: 'cascade' }).default(1),
   type: text('type').notNull().default('epub'),
   title: text('title').notNull(),
   author: text('author'),
@@ -84,21 +99,69 @@ export const ttsCache = sqliteTable('tts_cache', {
   createdAt: text('createdAt').notNull().default(sql`(datetime('now'))`),
 })
 
+export const dictDecks = sqliteTable('dict_decks', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  userId: integer('userId').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  name: text('name').notNull(),
+  language: text('language').notNull().default('en'),
+  createdAt: text('createdAt').notNull().default(sql`(datetime('now'))`),
+})
+
 export const userDictionary = sqliteTable('user_dictionary', {
   id: integer('id').primaryKey({ autoIncrement: true }),
-  word: text('word').notNull().unique(),
+  userId: integer('userId').notNull().references(() => users.id, { onDelete: 'cascade' }).default(1),
+  deckId: integer('deckId').references(() => dictDecks.id, { onDelete: 'set null' }),
+  word: text('word').notNull(),
   transcription: text('transcription'),
   translation: text('translation'),
   language: text('language').notNull().default('en'),
   notes: text('notes'),
   tags: text('tags'),
+  difficulty: text('difficulty'), // Например: A1, HSK4, N3
+
+  // SRS (Spaced Repetition) fields
+  status: integer('status').notNull().default(0), // 0: New, 1: Learning, 2: Review, 3: Graduated
+  repetitions: integer('repetitions').notNull().default(0),
+  interval: real('interval').notNull().default(0),
+  easeFactor: real('easeFactor').notNull().default(2.5),
+  nextReviewDate: text('nextReviewDate').notNull().default(sql`(datetime('now'))`),
+
   createdAt: text('createdAt').notNull().default(sql`(datetime('now'))`),
   updatedAt: text('updatedAt').notNull().default(sql`(datetime('now'))`),
-})
+}, t => ({
+  unq: unique().on(t.userId, t.word),
+}))
+
+export const wordEncounters = sqliteTable('word_encounters', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  userId: integer('userId').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  wordId: integer('wordId').notNull().references(() => userDictionary.id, { onDelete: 'cascade' }),
+  bookId: integer('bookId').references(() => books.id, { onDelete: 'set null' }),
+  sentence: text('sentence').notNull(),
+  createdAt: text('createdAt').notNull().default(sql`(datetime('now'))`),
+}, t => ({
+  unq: unique().on(t.wordId, t.sentence),
+}))
 
 // ================= RELATIONS =================
 
+export const usersRelations = relations(users, ({ many }) => ({
+  books: many(books),
+  dictionary: many(userDictionary),
+  decks: many(dictDecks),
+}))
+
+export const dictDecksRelations = relations(dictDecks, ({ one, many }) => ({
+  user: one(users, { fields: [dictDecks.userId], references: [users.id] }),
+  words: many(userDictionary),
+}))
+
+export const wordEncountersRelations = relations(wordEncounters, ({ one }) => ({
+  word: one(userDictionary, { fields: [wordEncounters.wordId], references: [userDictionary.id] }),
+  book: one(books, { fields: [wordEncounters.bookId], references: [books.id] }),
+}))
 export const booksRelations = relations(books, ({ one, many }) => ({
+  user: one(users, { fields: [books.userId], references: [users.id] }),
   progress: one(readingProgress, { fields: [books.id], references: [readingProgress.bookId] }),
   stats: one(bookStats, { fields: [books.id], references: [bookStats.bookId] }),
   pages: many(bookPages),
@@ -129,4 +192,10 @@ export const bookStatsRelations = relations(bookStats, ({ one }) => ({
 
 export const bookPagesRelations = relations(bookPages, ({ one }) => ({
   book: one(books, { fields: [bookPages.bookId], references: [books.id] }),
+}))
+
+export const userDictionaryRelations = relations(userDictionary, ({ one, many }) => ({
+  user: one(users, { fields: [userDictionary.userId], references: [users.id] }),
+  deck: one(dictDecks, { fields: [userDictionary.deckId], references: [dictDecks.id] }),
+  encounters: many(wordEncounters),
 }))

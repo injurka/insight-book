@@ -6,12 +6,14 @@ import { useRouter } from 'vue-router'
 import { KitSkeleton } from '~/components/01.kit'
 import { useToast } from '~/shared/composables/use-toast'
 import { AppRoutePaths } from '~/shared/constants/routes'
+import { useAuthStore } from '~/shared/store/auth.store'
 import { useLibraryStore } from '../store/library.store'
 import BookCard from './book-card.vue'
 import EditBookModal from './edit-book-modal.vue'
 import LibraryHeader from './library-header.vue'
 
 const store = useLibraryStore()
+const authStore = useAuthStore()
 const router = useRouter()
 const toast = useToast()
 
@@ -93,7 +95,7 @@ async function handleDeleteBook(id: number) {
 }
 
 onMounted(() => {
-  store.fetchBooks()
+  store.fetchBooks().catch(() => {})
 })
 </script>
 
@@ -118,7 +120,12 @@ onMounted(() => {
 
     <div v-else-if="store.books.length === 0" class="empty-state">
       <h2>Библиотека пуста</h2>
-      <p>Загрузите свою первую книгу в формате EPUB или CBZ.</p>
+      <p v-if="authStore.user">
+        Загрузите свою первую книгу в формате EPUB или CBZ.
+      </p>
+      <p v-else>
+        Авторизуйтесь, чтобы загружать и читать книги.
+      </p>
     </div>
 
     <div v-else-if="filteredBooks.length === 0" class="empty-state">
@@ -161,7 +168,7 @@ onMounted(() => {
   flex-direction: column;
 
   @include media-down(md) {
-    padding: 16px;
+    padding: 8px;
   }
 }
 

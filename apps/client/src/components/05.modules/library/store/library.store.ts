@@ -21,7 +21,6 @@ export const useLibraryStore = defineStore('library', () => {
       const cached = await offlineService.getBooksList()
       if (cached)
         books.value = cached
-      else throw e
     }
     finally {
       isLoading.value = false

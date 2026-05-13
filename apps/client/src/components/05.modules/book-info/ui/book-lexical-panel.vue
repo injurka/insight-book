@@ -30,13 +30,13 @@ const dictionaryWordsInBook = computed(() => {
   const bookWordsSet = new Set<string>()
 
   if (Array.isArray(stats.topWords)) {
-    stats.topWords.forEach(w => bookWordsSet.add(w.word.toLowerCase()))
+    stats.topWords.forEach(w => bookWordsSet.add(w.word.trim().toLowerCase()))
   }
   else {
-    Object.values(stats.topWords).flat().forEach((w: any) => bookWordsSet.add(w.word.toLowerCase()))
+    Object.values(stats.topWords).flat().forEach((w: any) => bookWordsSet.add(w.word.trim().toLowerCase()))
   }
 
-  return dictStore.words.filter(dictItem => bookWordsSet.has(dictItem.word.toLowerCase()))
+  return dictStore.words.filter(dictItem => bookWordsSet.has(dictItem.word.trim().toLowerCase()))
 })
 
 const posStats = computed(() => {

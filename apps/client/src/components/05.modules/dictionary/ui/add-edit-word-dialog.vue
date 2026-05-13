@@ -1,22 +1,53 @@
 <script setup lang="ts">
-import type { UserDictItem } from '~/shared/types/models'
+import type { UserDictItem, WordEncounter } from '~/shared/types/models'
 import { computed, ref, watch } from 'vue'
-import { KitBtn, KitDialog, KitInput } from '~/components/01.kit'
+import { KitBtn, KitDialog, KitInput, KitSelect, KitTooltip } from '~/components/01.kit'
+import { useTts } from '~/shared/composables/use-tts'
 import { useAnalysisStore } from '~/shared/store/analysis.store'
+import { useDictionaryStore } from '../store/dictionary.store'
+
+interface WordFormData extends Partial<UserDictItem> {
+  contextSentence?: string
+  contextBookId?: number
+  encounters?: (WordEncounter & { book?: { title: string } })[]
+}
 
 const analysisStore = useAnalysisStore()
+const dictStore = useDictionaryStore()
+const { speak, isPlaying, isLoading } = useTts()
 
-const localWord = ref<Partial<UserDictItem>>({})
-
+const localWord = ref<WordFormData>({})
 const isEditing = computed(() => !!localWord.value.id)
 
 function handleSave() {
-  analysisStore.saveWordToDict(localWord.value as UserDictItem)
+  analysisStore.saveWordToDict(localWord.value)
 }
 
 function handleDelete() {
   if (localWord.value.word) {
     analysisStore.removeFromDict(localWord.value.word)
+  }
+}
+
+function playTTS() {
+  if (localWord.value.word) {
+    speak(localWord.value.word)
+  }
+}
+
+async function createInlineDeck() {
+  // eslint-disable-next-line no-alert
+  const name = prompt('Название новой колоды:')
+
+  if (name && name.trim()) {
+    const lang = localWord.value.language || 'en'
+    try {
+      const newDeck = await dictStore.createDeck(name.trim(), lang)
+      localWord.value.deckId = newDeck.id
+    }
+    catch {
+      // error handled in store
+    }
   }
 }
 
@@ -28,30 +59,88 @@ watch(() => analysisStore.wordToEdit, (newWord) => {
     localWord.value = {}
   }
 }, { deep: true })
+
+const deckIdModel = computed<string | number>({
+  get: () => localWord.value.deckId ?? 'none',
+  set: (val) => { localWord.value.deckId = val === 'none' ? null : Number(val) },
+})
+
+const deckOptions = computed(() => {
+  if (!localWord.value.language)
+    return [{ label: 'Без колоды', value: 'none' }]
+  const opts: any[] = [{ label: 'Без колоды (Общая)', value: 'none' }]
+  const langDecks = dictStore.decks.filter(d => d.language === localWord.value.language)
+  langDecks.forEach(d => opts.push({ label: d.name, value: d.id }))
+  return opts
+})
 </script>
 
 <template>
-  <KitDialog v-model:visible="analysisStore.addEditWordModalOpen" :title="isEditing ? 'Редактировать слово' : 'Добавить в словарь'" icon="mdi:star-outline">
+  <KitDialog v-model:visible="analysisStore.addEditWordModalOpen" :title="isEditing ? 'Редактировать карточку' : 'Добавить в словарь'" :max-width="550">
     <div v-if="localWord" class="dialog-content">
       <div class="word-preview">
-        <h3 class="dict-word">
-          {{ localWord.word }}
-        </h3>
-        <p class="dict-transcription">
+        <div class="word-header">
+          <h3 class="dict-word">
+            {{ localWord.word }}
+          </h3>
+          <KitTooltip text="Озвучить">
+            <KitBtn
+              :icon="isLoading ? 'mdi:loading' : (isPlaying ? 'mdi:volume-high' : 'mdi:volume-medium')"
+              variant="text"
+              size="sm"
+              color="accent"
+              :class="{ 'spin-animation': isLoading, 'pulse-animation': isPlaying }"
+              @click="playTTS"
+            />
+          </KitTooltip>
+        </div>
+        <p v-if="localWord.transcription " class="dict-transcription">
           {{ localWord.transcription }}
         </p>
-        <div class="translation-preview" v-html="localWord.translation" />
+      </div>
+
+      <div v-if="localWord.contextSentence || (localWord.encounters && localWord.encounters.length)" class="encounters-box">
+        <h4>Журнал встреч (Контекст)</h4>
+        <div v-if="localWord.contextSentence && !localWord.encounters?.some(e => e.sentence === localWord.contextSentence)" class="encounter-item new">
+          <span class="badge">Новое</span> {{ localWord.contextSentence }}
+        </div>
+        <div v-for="enc in localWord.encounters" :key="enc.id" class="encounter-item">
+          <span class="source">{{ enc.book?.title || 'Из книги' }}:</span>
+          {{ enc.sentence }}
+        </div>
       </div>
 
       <div class="form-fields">
-        <label for="translation">Перевод (поддерживает HTML разметку)</label>
-        <textarea id="translation" v-model="localWord.translation" class="custom-textarea" rows="5" placeholder="Введите перевод..." />
+        <div class="form-group">
+          <label>Колода</label>
+          <div class="deck-selector-row">
+            <KitSelect v-model="deckIdModel" :options="deckOptions" placeholder="Выберите колоду" />
+            <KitBtn icon="mdi:plus" variant="outlined" color="secondary" @click="createInlineDeck">
+              Новая
+            </KitBtn>
+          </div>
+        </div>
 
-        <label for="notes">Заметки</label>
-        <KitInput id="notes" v-model="localWord.notes!" placeholder="Ваши заметки..." />
+        <div class="row-flex">
+          <div class="form-group flex-1">
+            <label>Сложность</label>
+            <KitInput v-model="localWord.difficulty!" placeholder="A1, HSK 4..." />
+          </div>
+          <div class="form-group flex-1">
+            <label>Теги (через запятую)</label>
+            <KitInput v-model="localWord.tags!" placeholder="фраза, глагол..." />
+          </div>
+        </div>
 
-        <label for="tags">Теги (через запятую)</label>
-        <KitInput id="tags" v-model="localWord.tags!" placeholder="важное, фраза, ..." />
+        <div class="form-group">
+          <label>Перевод (поддерживает HTML разметку)</label>
+          <textarea v-model="localWord.translation" class="custom-textarea" rows="4" />
+        </div>
+
+        <div class="form-group">
+          <label>Заметки</label>
+          <textarea v-model="localWord.notes" class="custom-textarea" rows="2" />
+        </div>
       </div>
     </div>
     <template #footer>
@@ -75,79 +164,119 @@ watch(() => analysisStore.wordToEdit, (newWord) => {
 .dialog-content {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 20px;
 }
 .word-preview {
-  padding: 16px;
+  padding: 12px;
   background-color: var(--bg-secondary-color);
   border-radius: 8px;
-  border: 1px solid var(--border-secondary-color);
-  .dict-word {
-    font-size: 1.8rem;
-    font-weight: 600;
-    margin: 0 0 4px;
-    color: var(--fg-accent-color);
-  }
-  .dict-transcription {
-    margin: 0 0 12px;
-    font-size: 1.1rem;
-    color: var(--fg-secondary-color);
-  }
-  .translation-preview {
-    font-size: 0.95rem;
-    line-height: 1.5;
-    padding-top: 12px;
-    border-top: 1px dashed var(--border-primary-color);
-    white-space: pre-wrap;
-    :deep(b) {
-      font-weight: 600;
-      color: var(--fg-primary-color);
-    }
-    :deep(.dict-pos) {
-      color: var(--fg-success-color);
-      font-style: italic;
-      font-size: 0.9em;
-      margin: 0 4px;
-    }
-    :deep(.dict-color) {
-      color: var(--fg-info-color);
-    }
-    :deep(.dict-example) {
-      color: var(--fg-secondary-color);
-      display: block;
-      margin-top: 4px;
-      padding-left: 8px;
-    }
-    :deep(.dict-bullet) {
-      display: block;
-    }
-  }
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.word-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.dict-word {
+  font-size: 1.8rem;
+  font-weight: 600;
+  margin: 0;
+  color: var(--fg-accent-color);
+}
+.dict-transcription {
+  margin: 0;
+  font-size: 1.1rem;
+  color: var(--fg-secondary-color);
+}
+.encounters-box {
+  background: var(--bg-secondary-color);
+  padding: 12px;
+  border-radius: 8px;
+  max-height: 150px;
+  overflow-y: auto;
+}
+.encounters-box h4 {
+  margin: 0 0 10px;
+  font-size: 0.85rem;
+  color: var(--fg-secondary-color);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.encounter-item {
+  font-size: 0.9rem;
+  font-style: italic;
+  margin-bottom: 8px;
+  padding-left: 10px;
+  border-left: 3px solid var(--border-primary-color);
+}
+.encounter-item.new {
+  border-left-color: var(--fg-accent-color);
+  color: var(--fg-primary-color);
+  font-weight: 500;
+}
+.encounter-item .badge {
+  background: var(--fg-accent-color);
+  color: white;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-style: normal;
+  margin-right: 6px;
+}
+.encounter-item .source {
+  font-weight: bold;
+  font-style: normal;
+  color: var(--fg-secondary-color);
+  font-size: 0.8rem;
+  margin-right: 6px;
 }
 .form-fields {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  label {
-    font-size: 0.9rem;
-    font-weight: 500;
-    color: var(--fg-secondary-color);
-    margin-bottom: -4px;
+  gap: 16px;
+}
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.form-group label {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--fg-secondary-color);
+}
+.deck-selector-row {
+  display: flex;
+  gap: 8px;
+  .kit-select-wrapper {
+    flex-grow: 1;
   }
-  .custom-textarea {
-    width: 100%;
-    background-color: var(--bg-primary-color);
-    color: var(--fg-primary-color);
-    border: 1px solid var(--border-primary-color);
-    border-radius: 6px;
-    padding: 10px 12px;
-    font-family: inherit;
-    font-size: 0.95rem;
-    resize: vertical;
-    outline: none;
-    transition: border-color 0.2s;
-    &:focus {
-      border-color: var(--fg-accent-color);
-    }
+}
+.row-flex {
+  display: flex;
+  gap: 16px;
+}
+.flex-1 {
+  flex: 1;
+}
+.custom-textarea {
+  width: 100%;
+  background-color: var(--bg-primary-color);
+  color: var(--fg-primary-color);
+  border: 1px solid var(--border-primary-color);
+  border-radius: 6px;
+  padding: 10px 12px;
+  font-family: inherit;
+  font-size: 0.95rem;
+  resize: vertical;
+  outline: none;
+  transition: border-color 0.2s;
+  &:focus {
+    border-color: var(--fg-accent-color);
   }
 }
 .footer-actions {
@@ -156,6 +285,29 @@ watch(() => analysisStore.wordToEdit, (newWord) => {
   gap: 8px;
   .spacer {
     flex-grow: 1;
+  }
+}
+.spin-animation {
+  animation: spin 1s linear infinite;
+}
+.pulse-animation {
+  animation: pulse 1.2s infinite;
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(1);
   }
 }
 </style>

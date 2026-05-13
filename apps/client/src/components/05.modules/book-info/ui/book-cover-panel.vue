@@ -5,14 +5,22 @@ import { useRouter } from 'vue-router'
 import { KitBtn } from '~/components/01.kit'
 import { useLibraryStore } from '~/components/05.modules/library/store/library.store'
 import { AppRoutePaths } from '~/shared/constants/routes'
+import { useAuthStore } from '~/shared/store/auth.store'
 import { getMediaUrl } from '~/workers/service/lib/utils'
 
+const emit = defineEmits<{
+  (e: 'edit-stats'): void
+}>()
+
 const libraryStore = useLibraryStore()
+const authStore = useAuthStore()
 const router = useRouter()
 
 const coverInputRef = ref<HTMLInputElement | null>(null)
 
 function triggerCoverInput() {
+  if (!authStore.user)
+    return
   coverInputRef.value?.click()
 }
 
@@ -39,7 +47,7 @@ function startReading() {
 
 <template>
   <div class="cover-col">
-    <div class="cover-wrapper group" @click="triggerCoverInput">
+    <div class="cover-wrapper group" :class="{ 'is-editable': authStore.user }" @click="triggerCoverInput">
       <img
         v-if="libraryStore.currentBookInfo?.coverUrl"
         :src="libraryStore.currentBookInfo.coverUrl.startsWith('data:') ? libraryStore.currentBookInfo.coverUrl : `${getMediaUrl(libraryStore.currentBookInfo.coverUrl)}`"
@@ -48,7 +56,7 @@ function startReading() {
       <div v-else class="cover-placeholder">
         <Icon icon="mdi:book-open-blank-variant" class="placeholder-icon" />
       </div>
-      <div class="cover-overlay">
+      <div v-if="authStore.user" class="cover-overlay">
         <Icon icon="mdi:image-edit" /> Изменить
       </div>
       <input ref="coverInputRef" type="file" accept="image/*" hidden @change="onCoverChange">
@@ -57,6 +65,9 @@ function startReading() {
     <div class="action-buttons">
       <KitBtn color="primary" class="full-width" @click="startReading">
         {{ (libraryStore.currentBookInfo?.currentPage || 1) > 1 ? 'Продолжить чтение' : 'Начать чтение' }}
+      </KitBtn>
+      <KitBtn v-if="authStore.user" variant="text" size="sm" class="edit-btn" @click="emit('edit-stats')">
+        Редактировать
       </KitBtn>
     </div>
   </div>
@@ -72,7 +83,7 @@ function startReading() {
   overflow: hidden;
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.15);
   margin-bottom: 24px;
-  cursor: pointer;
+
   img {
     width: 100%;
     height: 100%;
@@ -103,12 +114,16 @@ function startReading() {
     opacity: 0;
     transition: opacity 0.2s;
   }
-  &:hover {
-    img {
-      transform: scale(1.05);
-    }
-    .cover-overlay {
-      opacity: 1;
+
+  &.is-editable {
+    cursor: pointer;
+    &:hover {
+      img {
+        transform: scale(1.05);
+      }
+      .cover-overlay {
+        opacity: 1;
+      }
     }
   }
 }
@@ -116,8 +131,19 @@ function startReading() {
   display: flex;
   flex-direction: column;
   gap: 12px;
+  align-items: center;
+
   .full-width {
     width: 100%;
+  }
+  .edit-btn {
+    opacity: 0.5;
+    font-weight: 500;
+    transition: opacity 0.2s;
+    &:hover {
+      opacity: 0.9;
+      background-color: transparent;
+    }
   }
 }
 </style>

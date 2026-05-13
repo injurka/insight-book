@@ -106,14 +106,42 @@ export interface LlmAnalysis {
   vocabulary: VocabItem[]
 }
 
+export interface DictDeck {
+  id: number
+  userId: number
+  name: string
+  language: string
+  createdAt: string
+}
+
+export interface WordEncounter {
+  id: number
+  wordId: number
+  bookId: number | null
+  sentence: string
+  createdAt: string
+  bookTitle?: string
+}
+
 export interface UserDictItem {
   id: number
+  deckId: number | null
   word: string
   transcription: string | null
   translation: string | null
   language: string
   notes: string | null
   tags: string | null
+  difficulty: string | null
+
+  status: number
+  repetitions: number
+  interval: number
+  easeFactor: number
+  nextReviewDate: string
+
   createdAt: string
   updatedAt: string
+
+  encounters?: WordEncounter[]
 }

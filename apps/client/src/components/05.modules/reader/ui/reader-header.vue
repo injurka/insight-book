@@ -2,7 +2,7 @@
 import { Icon } from '@iconify/vue'
 import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { KitBtn, KitCheckbox, KitDropdown, KitSelect, KitTooltip } from '~/components/01.kit'
+import { KitBtn, KitDropdown, KitSelect, KitTooltip } from '~/components/01.kit'
 import { ThemesVariant, useChangeTheme } from '~/shared/composables/use-change-theme'
 import { AppRoutePaths } from '~/shared/constants/routes'
 import { useAnalysisStore } from '~/shared/store/analysis.store'
@@ -25,11 +25,6 @@ function goBack() {
 const currentThemeIcon = computed(() =>
   theme.value === ThemesVariant.Light ? 'mdi:weather-sunny' : 'mdi:weather-night',
 )
-
-function handleAnalyze(mode: 'sentences' | 'words' | 'all') {
-  analysisStore.analyzeWholePage(mode)
-  dropdownRef.value?.close()
-}
 
 function togglePriority() {
   settingsStore.translationPriority = settingsStore.translationPriority === 'dict' ? 'llm' : 'dict'
@@ -99,15 +94,15 @@ const fontOptions = [
         />
       </template>
       <div class="dropdown-menu-list">
-        <button class="dropdown-item" @click="analysisStore.analyzeWholePage('sentences')">
+        <button class="dropdown-item" @click="analysisStore.analyzeWholePage('sentences'); dropdownRef?.close()">
           <Icon icon="mdi:text-short" />
           Все предложения
         </button>
-        <button class="dropdown-item" @click="analysisStore.analyzeWholePage('words')">
+        <button class="dropdown-item" @click="analysisStore.analyzeWholePage('words'); dropdownRef?.close()">
           <Icon icon="mdi:format-text" />
           Все слова
         </button>
-        <button class="dropdown-item" @click="analysisStore.analyzeWholePage('all')">
+        <button class="dropdown-item" @click="analysisStore.analyzeWholePage('all'); dropdownRef?.close()">
           <Icon icon="mdi:text-box-multiple-outline" />
           Предложения и слова
         </button>

@@ -4,8 +4,17 @@ import { existsSync, mkdirSync } from 'node:fs'
 import path from 'node:path'
 import { isMainThread } from 'node:worker_threads'
 import { Database } from 'bun:sqlite'
+import { eq } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/bun-sqlite'
-import { BOOKS_PATH, COVERS_PATH, DB_PATH, DICTS_PATH, UPLOADS_PATH } from '../config'
+import {
+  ADMIN_PASSWORD,
+  ADMIN_USERNAME,
+  BOOKS_PATH,
+  COVERS_PATH,
+  DB_PATH,
+  DICTS_PATH,
+  UPLOADS_PATH,
+} from '../config'
 import * as schema from './schema'
 
 const dbDir = path.dirname(DB_PATH)
@@ -16,29 +25,6 @@ mkdirSync(BOOKS_PATH, { recursive: true })
 mkdirSync(COVERS_PATH, { recursive: true })
 
 // ============================================================================
-// 0. АВТОМАТИЧЕСКАЯ СИНХРОНИЗАЦИЯ БАЗЫ ДАННЫХ (ТОЛЬКО В ГЛАВНОМ ПОТОКЕ)
-// ============================================================================
-if (isMainThread) {
-  console.log('🔄 Checking and syncing database schema...')
-
-  const syncProcess = Bun.spawnSync(['bun', 'x', 'drizzle-kit', 'push', '--force'], {
-    stdout: 'pipe',
-    stderr: 'pipe',
-  })
-
-  if (syncProcess.exitCode !== 0) {
-    console.error('❌ Failed to sync database schema.')
-    if (syncProcess.stdout)
-      console.error('STDOUT:', syncProcess.stdout.toString().trim())
-    if (syncProcess.stderr)
-      console.error('STDERR:', syncProcess.stderr.toString().trim())
-  }
-  else {
-    console.log('✅ Database schema is up to date!')
-  }
-}
-
-// ============================================================================
 // 1. ИНИЦИАЛИЗАЦИЯ ПОДКЛЮЧЕНИЯ
 // ============================================================================
 export const sqlite = new Database(DB_PATH)
@@ -47,9 +33,74 @@ sqlite.run(`PRAGMA foreign_keys = ON`)
 
 export const db = drizzle(sqlite, { schema, logger: false })
 
-if (isMainThread) {
-  console.log(`🗄️ Main SQLite Database initialized at ${DB_PATH}`)
-}
+  // ============================================================================
+  // 2. АВТОМАТИЧЕСКАЯ СИНХРОНИЗАЦИЯ БАЗЫ ДАННЫХ И ДЕФОЛТНЫЙ ЮЗЕР
+  // ============================================================================
+  ; (async () => {
+    if (isMainThread) {
+      console.log('🔄 Checking and syncing database schema...')
+
+      // ПРЕДСОЗДАЕМ таблицу users и администратора с id = 1.
+      // Это предотвратит ошибку `FOREIGN KEY constraint failed` во время `drizzle-kit push`,
+      // если в БД уже есть книги, которые получат новую колонку userId со значением DEFAULT 1,
+      // ссылающимся на еще несуществующего пользователя.
+      try {
+        sqlite.run(`
+          CREATE TABLE IF NOT EXISTS "users" (
+            "id" integer PRIMARY KEY AUTOINCREMENT NOT NULL,
+            "username" text NOT NULL,
+            "passwordHash" text NOT NULL,
+            "createdAt" text DEFAULT (datetime('now')) NOT NULL
+          );
+        `)
+        sqlite.run(`CREATE UNIQUE INDEX IF NOT EXISTS "users_username_unique" ON "users" ("username");`)
+      }
+      catch (e) { }
+
+      try {
+        const adminExistsRow = sqlite.query(`SELECT id FROM "users" WHERE id = 1`).get()
+        if (!adminExistsRow) {
+          console.log('👤 Pre-creating default admin user to satisfy foreign key constraints...')
+          const passwordHash = await Bun.password.hash(ADMIN_PASSWORD)
+          sqlite.query(`INSERT INTO "users" (id, username, passwordHash) VALUES (?, ?, ?)`).run(1, ADMIN_USERNAME, passwordHash)
+        }
+      }
+      catch (e) {
+        console.error('⚠️ Could not pre-create admin user:', e)
+      }
+
+      const syncProcess = Bun.spawnSync(['bun', 'x', 'drizzle-kit', 'push'], {
+        stdout: 'inherit',
+        stderr: 'inherit',
+      })
+
+      if (syncProcess.exitCode !== 0) {
+        console.error('❌ Failed to sync database schema. Please check the Drizzle output above.')
+      }
+      else {
+        console.log('✅ Database schema is up to date!')
+      }
+
+      const adminExists = await db.query.users.findFirst({ where: eq(schema.users.id, 1) })
+
+      if (!adminExists) {
+        console.log('👤 Default admin user not found. Creating one...')
+        const passwordHash = await Bun.password.hash(ADMIN_PASSWORD)
+
+        await db.insert(schema.users).values({
+          id: 1,
+          username: ADMIN_USERNAME,
+          passwordHash,
+        })
+        console.log(`👤 Default Admin user created (Username: ${ADMIN_USERNAME}).`)
+      }
+
+      console.log(`🗄️ Main SQLite Database initialized at ${DB_PATH}`)
+    }
+  })().catch((err) => {
+    console.error('❌ Critical error during database initialization:', err)
+    process.exit(1)
+  })
 
 // ============================================================================
 // 3. ДИНАМИЧЕСКИЙ МЕНЕДЖЕР СЛОВАРЕЙ
@@ -102,7 +153,8 @@ function shutdown() {
       conn.db.close()
     }
   }
-  catch (err) { }
+  catch { }
+
   process.exit(0)
 }
 

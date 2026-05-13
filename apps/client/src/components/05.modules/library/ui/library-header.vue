@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import { KitBtn, KitInput, KitSelect, KitTooltip } from '~/components/01.kit'
 import { ThemesVariant, useChangeTheme } from '~/shared/composables/use-change-theme'
 import { AppRoutePaths } from '~/shared/constants/routes'
+import { useAuthStore } from '~/shared/store/auth.store'
 
 interface Props {
   langOptions: Array<{ label: string, value: string }>
@@ -19,6 +20,7 @@ const search = defineModel<string>('search', { required: true })
 const lang = defineModel<string>('lang', { required: true })
 
 const router = useRouter()
+const authStore = useAuthStore()
 const { theme, toggleTheme } = useChangeTheme()
 const fileInput = ref<HTMLInputElement | null>(null)
 
@@ -36,6 +38,15 @@ function openDictionary() {
 
 function openSettings() {
   router.push(AppRoutePaths.Settings)
+}
+
+function handleLogin() {
+  router.push(AppRoutePaths.Login)
+}
+
+function handleLogout() {
+  authStore.logout()
+  window.location.reload()
 }
 </script>
 
@@ -66,6 +77,24 @@ function openSettings() {
             @click="toggleTheme"
           />
         </KitTooltip>
+
+        <KitTooltip v-if="!authStore.isSingleMode && !authStore.user" text="Войти" placement="bottom-end">
+          <KitBtn
+            icon="mdi:login"
+            variant="text"
+            aria-label="Войти"
+            @click="handleLogin"
+          />
+        </KitTooltip>
+
+        <KitTooltip v-if="!authStore.isSingleMode && authStore.user" text="Выйти" placement="bottom-end">
+          <KitBtn
+            icon="mdi:logout"
+            variant="text"
+            aria-label="Выйти"
+            @click="handleLogout"
+          />
+        </KitTooltip>
       </div>
     </div>
 
@@ -76,13 +105,14 @@ function openSettings() {
       </div>
 
       <div class="header-actions">
-        <KitBtn icon="mdi:book-alphabet" variant="outlined" color="secondary" @click="openDictionary">
+        <KitBtn v-if="authStore.user" icon="mdi:book-alphabet" variant="outlined" color="secondary" @click="openDictionary">
           Мой словарь
         </KitBtn>
-        <KitBtn icon="mdi:upload" color="primary" @click="fileInput?.click()">
+        <KitBtn v-if="authStore.user" icon="mdi:upload" color="primary" @click="fileInput?.click()">
           Загрузить
         </KitBtn>
         <input
+          v-if="authStore.user"
           ref="fileInput"
           type="file"
           accept=".epub,.cbz,.zip"

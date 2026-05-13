@@ -18,6 +18,8 @@ export interface WordPopoverData {
   aiTranslation?: string
   aiTranscription?: string
   aiData?: LlmAnalysis
+  contextSentence?: string
+  contextBookId?: number
 }
 
 export interface AnalysisHistoryItem {
@@ -52,7 +54,7 @@ export const useAnalysisStore = defineStore('analysis', () => {
 
   // Dictionary Modal
   const addEditWordModalOpen = ref(false)
-  const wordToEdit = ref<Partial<UserDictItem> | null>(null)
+  const wordToEdit = ref<Partial<UserDictItem> & { contextSentence?: string, contextBookId?: number } | null>(null)
 
   // Abort Controllers
   let wordAbortController: AbortController | null = null
@@ -82,7 +84,12 @@ export const useAnalysisStore = defineStore('analysis', () => {
 
   async function fetchAiTranslation() {
     const readerStore = useReaderStore()
-    if (!wordPopover.value || wordPopover.value.aiTranslation || !readerStore.currentBook)
+    const libraryStore = useLibraryStore()
+
+    // Подхватываем книгу из читалки ИЛИ со страницы информации
+    const currentBook = readerStore.currentBook || libraryStore.currentBookInfo
+
+    if (!wordPopover.value || wordPopover.value.aiTranslation || !currentBook)
       return
 
     if (wordAbortController)
@@ -93,9 +100,9 @@ export const useAnalysisStore = defineStore('analysis', () => {
     wordPopover.value.isAiLoading = true
     try {
       const res = await api.books.analyze(
-        readerStore.currentBook.id,
+        currentBook.id,
         wordPopover.value.word,
-        readerStore.currentBook.language,
+        currentBook.language,
         controller.signal,
       )
 
@@ -103,7 +110,7 @@ export const useAnalysisStore = defineStore('analysis', () => {
         return
 
       // Сохраняем в оффлайн-кэш
-      await offlineService.saveAnalysis(readerStore.currentBook.id, wordPopover.value.word, res)
+      await offlineService.saveAnalysis(currentBook.id, wordPopover.value.word, res)
 
       if (wordPopover.value) {
         wordPopover.value.aiData = res
@@ -121,8 +128,8 @@ export const useAnalysisStore = defineStore('analysis', () => {
       if (err.name === 'AbortError')
         return
 
-      if (readerStore.currentBook && wordPopover.value) {
-        const cached = await offlineService.getAnalysis(readerStore.currentBook.id, wordPopover.value.word)
+      if (currentBook && wordPopover.value) {
+        const cached = await offlineService.getAnalysis(currentBook.id, wordPopover.value.word)
 
         if (cached && wordAbortController === controller && wordPopover.value) {
           wordPopover.value.aiData = cached
@@ -153,7 +160,7 @@ export const useAnalysisStore = defineStore('analysis', () => {
     }
   }
 
-  async function handleWordClick(word: string, pos: string, sentenceId: number, tokenIndex: number, target: HTMLElement) {
+  async function handleWordClick(word: string, pos: string, sentenceId: number, tokenIndex: number, target: HTMLElement, contextSentence?: string) {
     const readerStore = useReaderStore()
     const settingsStore = useGlobalSettingsStore()
 
@@ -166,36 +173,31 @@ export const useAnalysisStore = defineStore('analysis', () => {
 
     const entry = readerStore.currentPage.pageDictionary[word]
 
-    // Если есть перевод в локальном словаре страницы и приоритет "Словарь"
+    const basePopoverData = {
+      word,
+      pos,
+      targetRect,
+      contextSentence,
+      contextBookId: readerStore.currentBook.id,
+    }
+
     if (entry && settingsStore.translationPriority === 'dict') {
       if (wordAbortController)
         wordAbortController.abort()
 
-      wordPopover.value = {
-        word,
-        pos,
-        transcription: entry.transcription,
-        translation: entry.translation,
-        targetRect,
-        showAi: false,
-        isAiLoading: false,
-      }
+      wordPopover.value = { ...basePopoverData, transcription: entry.transcription, translation: entry.translation, showAi: false, isAiLoading: false }
       return
     }
 
-    // Если приоритет LLM, или нет локального перевода
     if (wordAbortController)
       wordAbortController.abort()
     const controller = new AbortController()
     wordAbortController = controller
 
     wordPopover.value = {
-      word,
-      pos,
-      // В качестве плейсхолдера сразу показываем то, что есть
+      ...basePopoverData,
       transcription: entry ? entry.transcription : '',
       translation: entry ? entry.translation : 'Поиск перевода...',
-      targetRect,
       showAi: true,
       isAiLoading: true,
     }
@@ -243,22 +245,29 @@ export const useAnalysisStore = defineStore('analysis', () => {
       if (wordAbortController !== controller)
         return
 
+      // Если в локальных словарях слово не найдено (404),
+      // падаем в ИИ-перевод автоматически.
       wordPopover.value = {
         word,
         pos,
         transcription: '',
-        translation: 'Не найдено',
+        translation: 'Поиск перевода...',
         targetRect,
         showAi: true,
-        isAiLoading: false,
+        isAiLoading: true,
       }
-      toggleAiTranslation()
+
+      // ИСПРАВЛЕНИЕ: Прямой вызов fetchAiTranslation вместо toggleAiTranslation
+      fetchAiTranslation()
     }
   }
 
   async function handleSentenceAnalysis(sentence: string) {
     const readerStore = useReaderStore()
-    if (!readerStore.currentBook)
+    const libraryStore = useLibraryStore()
+    const currentBook = readerStore.currentBook || libraryStore.currentBookInfo
+
+    if (!currentBook)
       return
 
     sidebarSentence.value = sentence
@@ -281,9 +290,9 @@ export const useAnalysisStore = defineStore('analysis', () => {
 
     try {
       const res = await api.books.analyze(
-        readerStore.currentBook.id,
+        currentBook.id,
         sentence,
-        readerStore.currentBook.language,
+        currentBook.language,
         controller.signal,
       )
 
@@ -291,7 +300,7 @@ export const useAnalysisStore = defineStore('analysis', () => {
         return
 
       // Сохраняем в оффлайн-кэш
-      await offlineService.saveAnalysis(readerStore.currentBook.id, sentence, res)
+      await offlineService.saveAnalysis(currentBook.id, sentence, res)
 
       sidebarAnalysis.value = res
       analysisHistory.value.unshift({
@@ -307,8 +316,8 @@ export const useAnalysisStore = defineStore('analysis', () => {
       if (err.name === 'AbortError')
         return
 
-      if (readerStore.currentBook) {
-        const cached = await offlineService.getAnalysis(readerStore.currentBook.id, sentence)
+      if (currentBook) {
+        const cached = await offlineService.getAnalysis(currentBook.id, sentence)
 
         if (cached && sentenceAbortController === controller) {
           sidebarAnalysis.value = cached
@@ -341,10 +350,10 @@ export const useAnalysisStore = defineStore('analysis', () => {
     const wordsToAnalyze = new Set<string>()
 
     const extractFromHtml = (html: string) => {
-      // Извлекаем предложения
       if (mode === 'sentences' || mode === 'all') {
         const sentRegex = /data-raw-sent="([^"]+)"/g
         let match
+        // eslint-disable-next-line no-cond-assign
         while ((match = sentRegex.exec(html)) !== null) {
           sentencesToAnalyze.add(decodeURIComponent(match[1]))
         }
@@ -494,13 +503,18 @@ export const useAnalysisStore = defineStore('analysis', () => {
     }
   }
 
-  // Интеграция со словарем (Модалка и сохранение)
   async function openAddEditWordModal(wordData: WordPopoverData) {
     const readerStore = useReaderStore()
+    const libraryStore = useLibraryStore()
+    const currentBook = readerStore.currentBook || libraryStore.currentBookInfo
 
     try {
       const existingWord = await api.dictionary.get(wordData.word)
-      wordToEdit.value = existingWord
+      wordToEdit.value = {
+        ...existingWord,
+        contextSentence: wordData.contextSentence,
+        contextBookId: wordData.contextBookId,
+      }
     }
     catch {
       const transcription = wordData.showAi ? (wordData.aiTranscription || wordData.transcription) : wordData.transcription
@@ -509,24 +523,28 @@ export const useAnalysisStore = defineStore('analysis', () => {
         word: wordData.word,
         transcription,
         translation,
-        language: readerStore.currentBook?.language || 'en',
+        language: currentBook?.language || 'en',
+        contextSentence: wordData.contextSentence,
+        contextBookId: wordData.contextBookId,
       }
     }
     addEditWordModalOpen.value = true
   }
 
-  async function saveWordToDict(item: UserDictItem) {
+  async function saveWordToDict(item: Partial<UserDictItem> & { contextSentence?: string, contextBookId?: number }) {
     await api.dictionary.upsert(item)
     addEditWordModalOpen.value = false
     const dictStore = useDictionaryStore()
-    dictStore.fetchDictionary()
+    await dictStore.fetchDictionary()
+    useToastStore().success(`Слово "${item.word}" сохранено`)
   }
 
   async function removeFromDict(word: string) {
     await api.dictionary.remove(word)
     addEditWordModalOpen.value = false
     const dictStore = useDictionaryStore()
-    dictStore.fetchDictionary()
+    await dictStore.fetchDictionary()
+    useToastStore().success(`Слово "${word}" удалено`)
   }
 
   return {
