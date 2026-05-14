@@ -96,7 +96,9 @@ onUnmounted(() => {
             </button>
           </div>
           <div v-if="analysisStore.wordPopover.showAi && analysisStore.wordPopover.isAiLoading" class="ai-loader">
-            <KitSkeleton width="100%" height="16px" /><KitSkeleton width="80%" height="16px" />
+            <KitSkeleton width="95%" height="16px" />
+            <KitSkeleton width="75%" height="16px" />
+            <KitSkeleton width="90%" height="16px" />
           </div>
           <div v-else class="popover-body">
             <div class="translation" v-html="analysisStore.wordPopover.showAi ? analysisStore.wordPopover.aiTranslation : analysisStore.wordPopover.translation" />
@@ -158,11 +160,15 @@ onUnmounted(() => {
   flex-direction: column;
   overflow: hidden;
   max-height: 70vh;
+  min-height: 250px;
+
   .popover-content {
     display: flex;
     flex-direction: column;
     overflow-y: auto;
+    flex: 1;
   }
+
   .transcription-header {
     background-color: rgba(var(--bg-tertiary-color-rgb, 33, 38, 45), 0.8);
     backdrop-filter: blur(4px);

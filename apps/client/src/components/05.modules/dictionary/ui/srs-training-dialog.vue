@@ -141,14 +141,6 @@ watch(visible, (val) => {
 
       <div v-if="isFlipped" class="card-back fade-in">
         <hr>
-        <div class="back-header">
-          <div class="word-huge back-word">
-            {{ currentCard.word }}
-          </div>
-          <button class="tts-btn" @click="speak(currentCard.word)">
-            <Icon icon="mdi:volume-high" />
-          </button>
-        </div>
         <div class="transcription">
           {{ currentCard.transcription }}
         </div>
@@ -221,9 +213,13 @@ watch(visible, (val) => {
 .flashcard {
   display: flex;
   flex-direction: column;
-  gap: 24px;
   text-align: center;
   min-height: 350px;
+  height: 100%;
+}
+
+.card-back {
+  margin-bottom: 16px;
 }
 
 .card-front {
@@ -249,32 +245,6 @@ watch(visible, (val) => {
   &.back-word {
     font-size: 2rem;
     color: var(--fg-accent-color);
-  }
-}
-
-.back-header {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  margin-bottom: 8px;
-
-  .tts-btn {
-    background: var(--bg-tertiary-color);
-    border: none;
-    border-radius: 50%;
-    width: 36px;
-    height: 36px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: var(--fg-accent-color);
-    cursor: pointer;
-    transition: background-color 0.2s;
-    font-size: 1.2rem;
-    &:hover {
-      background: var(--bg-hover-color);
-    }
   }
 }
 
@@ -378,6 +348,12 @@ watch(visible, (val) => {
 .finished-state {
   text-align: center;
   padding: 40px 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+
   h2 {
     margin-bottom: 12px;
   }
