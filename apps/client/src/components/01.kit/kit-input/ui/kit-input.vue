@@ -1,16 +1,19 @@
 <script setup lang="ts">
 interface Props {
-  modelValue: string
+  modelValue?: string | null
   placeholder?: string
   rounded?: boolean
   variant?: 'default' | 'solo'
   size?: 'xs' | 'sm' | 'md' | 'lg'
+  type?: string
 }
 
 withDefaults(defineProps<Props>(), {
+  modelValue: '',
   placeholder: '',
   variant: 'default',
   size: 'md',
+  type: 'text',
 })
 
 const emit = defineEmits(['update:modelValue'])
@@ -23,8 +26,8 @@ function onInput(e: Event) {
 <template>
   <div class="kit-input-wrapper" :class="{ 'is-rounded': rounded, 'is-solo': variant === 'solo' }">
     <input
-      :value="modelValue"
-      type="text"
+      :value="modelValue ?? ''"
+      :type="type"
       class="kit-input"
       :class="`kit-input--size-${size}`"
       :placeholder="placeholder"

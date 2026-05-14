@@ -96,15 +96,16 @@ function handleDelete() {
         </div>
         <input ref="editCoverInput" type="file" accept="image/*" hidden @change="onEditCoverChange">
       </div>
-      <!-- Остальные поля без изменений -->
+
       <div class="form-group">
         <label>Название</label>
-        <KitInput v-model="editingBook.title!" placeholder="Название книги" />
+        <KitInput v-model="editingBook.title" placeholder="Название книги" />
       </div>
       <div class="form-group">
         <label>Автор</label>
-        <KitInput v-model="editingBook.author!" placeholder="Имя автора" />
+        <KitInput v-model="editingBook.author" placeholder="Имя автора" />
       </div>
+
       <div class="form-group row-group">
         <div class="form-group">
           <label>Язык</label>

@@ -141,12 +141,11 @@ const difficultyModel = computed({
         <div class="row-flex">
           <div class="form-group flex-1">
             <label>Сложность</label>
-            <!-- ТЕПЕРЬ ТУТ СЕЛЕКТ -->
             <KitSelect v-model="difficultyModel" :options="currentDifficultyOptions" />
           </div>
           <div class="form-group flex-1">
             <label>Теги (через запятую)</label>
-            <KitInput v-model="localWord.tags!" placeholder="фраза, глагол..." />
+            <KitInput v-model="localWord.tags" placeholder="фраза, глагол..." />
           </div>
         </div>
 

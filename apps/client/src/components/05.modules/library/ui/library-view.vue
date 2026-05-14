@@ -100,40 +100,40 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="library-view">
-    <LibraryHeader
-      v-model:search="searchQuery"
-      v-model:lang="selectedLang"
-      :lang-options="langOptions"
-      @upload="handleUpload"
-    />
+  <div class="library-page-scroll" v-bind="containerProps">
+    <div class="library-view">
+      <LibraryHeader
+        v-model:search="searchQuery"
+        v-model:lang="selectedLang"
+        :lang-options="langOptions"
+        @upload="handleUpload"
+      />
 
-    <div v-if="store.isLoading && !store.books.length" class="books-grid-loading">
-      <div v-for="i in 4" :key="i" class="book-card-skeleton">
-        <div class="cover-skeleton" />
-        <div class="info-skeleton">
-          <KitSkeleton width="80%" height="18px" />
-          <KitSkeleton width="50%" height="14px" />
+      <div v-if="store.isLoading && !store.books.length" class="books-grid-loading">
+        <div v-for="i in 4" :key="i" class="book-card-skeleton">
+          <div class="cover-skeleton" />
+          <div class="info-skeleton">
+            <KitSkeleton width="80%" height="18px" />
+            <KitSkeleton width="50%" height="14px" />
+          </div>
         </div>
       </div>
-    </div>
 
-    <div v-else-if="store.books.length === 0" class="empty-state">
-      <h2>Библиотека пуста</h2>
-      <p v-if="authStore.user">
-        Загрузите свою первую книгу в формате EPUB или CBZ.
-      </p>
-      <p v-else>
-        Авторизуйтесь, чтобы загружать и читать книги.
-      </p>
-    </div>
+      <div v-else-if="store.books.length === 0" class="empty-state">
+        <h2>Библиотека пуста</h2>
+        <p v-if="authStore.user">
+          Загрузите свою первую книгу в формате EPUB или CBZ.
+        </p>
+        <p v-else>
+          Авторизуйтесь, чтобы загружать и читать книги.
+        </p>
+      </div>
 
-    <div v-else-if="filteredBooks.length === 0" class="empty-state">
-      <h2>Книги не найдены</h2>
-    </div>
+      <div v-else-if="filteredBooks.length === 0" class="empty-state">
+        <h2>Книги не найдены</h2>
+      </div>
 
-    <div v-else ref="listContainer" class="library-list-wrapper">
-      <div class="virtual-list-container" v-bind="containerProps">
+      <div v-else ref="listContainer" class="library-list-wrapper">
         <div v-bind="wrapperProps" class="virtual-list-wrapper">
           <div v-for="row in list" :key="row.data.id" class="virtual-row">
             <BookCard
@@ -147,23 +147,37 @@ onMounted(() => {
           </div>
         </div>
       </div>
-    </div>
 
-    <EditBookModal
-      v-model:visible="editModalOpen"
-      :book="selectedBookToEdit"
-      @save="handleSaveEdit"
-      @delete="handleDeleteBook"
-    />
+      <EditBookModal
+        v-model:visible="editModalOpen"
+        :book="selectedBookToEdit"
+        @save="handleSaveEdit"
+        @delete="handleDeleteBook"
+      />
+    </div>
   </div>
 </template>
 
 <style lang="scss" scoped>
+.library-page-scroll {
+  height: 100dvh;
+  width: 100%;
+  overflow-x: hidden;
+
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+  &::-webkit-scrollbar-thumb {
+    background-color: var(--border-secondary-color);
+    border-radius: 4px;
+  }
+}
+
 .library-view {
   padding: 32px;
   max-width: 1200px;
   margin: 0 auto;
-  height: 100dvh;
+  min-height: 100%;
   display: flex;
   flex-direction: column;
 
@@ -213,24 +227,10 @@ onMounted(() => {
 
 .library-list-wrapper {
   flex-grow: 1;
-  min-height: 0;
   display: flex;
   flex-direction: column;
-}
-
-.virtual-list-container {
-  flex-grow: 1;
-  overflow-y: auto;
   padding-bottom: 24px;
   padding-top: 8px;
-
-  &::-webkit-scrollbar {
-    width: 6px;
-  }
-  &::-webkit-scrollbar-thumb {
-    background-color: var(--border-secondary-color);
-    border-radius: 4px;
-  }
 }
 
 .virtual-list-wrapper {
