@@ -42,7 +42,7 @@ onMounted(async () => {
 
 <style scoped>
 .reader-page-wrapper {
-  height: 100dvh;
+  height: 100vh;
   width: 100%;
 }
 </style>

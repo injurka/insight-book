@@ -10,6 +10,6 @@
 
 <style scoped lang="scss">
 .main-content {
-  height: 100dvh;
+  height: 100vh;
 }
 </style>

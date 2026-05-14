@@ -172,7 +172,7 @@ async function prevPage() {
     try {
       await readerStore.loadPage(readerStore.currentBook.id, newPage)
       router.replace({ query: { ...route.query, page: newPage } })
-      readerViewRef.value?.scrollTo({ top: 0, behavior: 'smooth' })
+      readerViewRef.value?.scrollTo({ top: 0, behavior: 'instant' })
     }
     catch {}
   }
@@ -184,7 +184,7 @@ async function nextPage() {
     try {
       await readerStore.loadPage(readerStore.currentBook.id, newPage)
       router.replace({ query: { ...route.query, page: newPage } })
-      readerViewRef.value?.scrollTo({ top: 0, behavior: 'smooth' })
+      readerViewRef.value?.scrollTo({ top: 0, behavior: 'instant' })
     }
     catch {}
   }
@@ -199,7 +199,7 @@ async function goToPage(pageNum?: number) {
   try {
     await readerStore.loadPage(readerStore.currentBook.id, pageNum)
     router.replace({ query: { ...route.query, page: pageNum } })
-    readerViewRef.value?.scrollTo({ top: 0, behavior: 'smooth' })
+    readerViewRef.value?.scrollTo({ top: 0, behavior: 'instant' })
   }
   catch {}
 }
@@ -279,59 +279,61 @@ function onScroll() {
       <ReaderHeader />
 
       <div class="reader-content-wrapper">
-        <div v-if="readerStore.isPageLoading" class="reader-loading-wrapper">
-          <div class="spinner-box">
-            <PageLoader />
+        <Transition name="fade" mode="out-in">
+          <div v-if="readerStore.isPageLoading" class="reader-loading-wrapper">
+            <div class="spinner-box">
+              <PageLoader />
+            </div>
+            <h3 class="loading-text">
+              Подготовка страницы...
+            </h3>
+            <p class="loading-subtext">
+              Первичное чтение текста и распознавание слов может занять несколько секунд.
+            </p>
           </div>
-          <h3 class="loading-text">
-            Подготовка страницы...
-          </h3>
-          <p class="loading-subtext">
-            Первичное чтение текста и распознавание слов может занять несколько секунд.
-          </p>
-        </div>
 
-        <div v-else-if="readerStore.currentPage" class="reader-layout-wrapper">
-          <div class="reader-content-layout" :class="{ 'is-parallel': readerStore.isParallelView }">
-            <div
-              class="reader-content left-pane js-tooltip-selectable"
-              :style="{
-                fontSize: `${settingsStore.readerFontSize}rem`,
-                lineHeight: settingsStore.readerLineHeight,
-                fontFamily: settingsStore.readerFontFamily,
-              }"
-              @click="onContentClick"
-              @mousedown="onPointerDown"
-              @touchstart="onPointerDown"
-              @mouseup="onPointerUp"
-              @touchend="onPointerUp"
-              @touchcancel="onPointerUp"
-              @mouseleave="onPointerUp"
-              @mouseover="onSentenceHover"
-              @mouseout="onSentenceOut"
-              v-html="readerStore.currentPage.content"
-            />
+          <div v-else-if="readerStore.currentPage" class="reader-layout-wrapper">
+            <div class="reader-content-layout" :class="{ 'is-parallel': readerStore.isParallelView }">
+              <div
+                class="reader-content left-pane js-tooltip-selectable"
+                :style="{
+                  fontSize: `${settingsStore.readerFontSize}rem`,
+                  lineHeight: settingsStore.readerLineHeight,
+                  fontFamily: settingsStore.readerFontFamily,
+                }"
+                @click="onContentClick"
+                @mousedown="onPointerDown"
+                @touchstart="onPointerDown"
+                @mouseup="onPointerUp"
+                @touchend="onPointerUp"
+                @touchcancel="onPointerUp"
+                @mouseleave="onPointerUp"
+                @mouseover="onSentenceHover"
+                @mouseout="onSentenceOut"
+                v-html="readerStore.currentPage.content"
+              />
 
-            <div
-              v-if="readerStore.isParallelView"
-              class="reader-content right-pane"
-              :style="{
-                fontSize: `${settingsStore.readerFontSize}rem`,
-                lineHeight: settingsStore.readerLineHeight,
-                fontFamily: settingsStore.readerFontFamily,
-              }"
-              @mousedown="onPointerDown"
-              @touchstart="onPointerDown"
-              @mouseup="onPointerUp"
-              @touchend="onPointerUp"
-              @touchcancel="onPointerUp"
-              @mouseleave="onPointerUp"
-              @mouseover="onSentenceHover"
-              @mouseout="onSentenceOut"
-              v-html="translatedPageContent"
-            />
+              <div
+                v-if="readerStore.isParallelView"
+                class="reader-content right-pane"
+                :style="{
+                  fontSize: `${settingsStore.readerFontSize}rem`,
+                  lineHeight: settingsStore.readerLineHeight,
+                  fontFamily: settingsStore.readerFontFamily,
+                }"
+                @mousedown="onPointerDown"
+                @touchstart="onPointerDown"
+                @mouseup="onPointerUp"
+                @touchend="onPointerUp"
+                @touchcancel="onPointerUp"
+                @mouseleave="onPointerUp"
+                @mouseover="onSentenceHover"
+                @mouseout="onSentenceOut"
+                v-html="translatedPageContent"
+              />
+            </div>
           </div>
-        </div>
+        </Transition>
       </div>
 
       <ReaderFooter @prev="prevPage" @next="nextPage" @go-to="goToPage" />
@@ -380,7 +382,7 @@ function onScroll() {
 
 <style lang="scss" scoped>
 .reader-view {
-  height: 100dvh;
+  height: 100vh;
   overflow-y: auto;
   overflow-x: hidden;
   background-color: var(--bg-primary-color);

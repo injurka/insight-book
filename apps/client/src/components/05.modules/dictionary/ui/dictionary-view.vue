@@ -314,7 +314,7 @@ const filteredDecks = computed(() => {
   padding: 16px;
   max-width: 1200px;
   margin: 0 auto;
-  height: 100dvh;
+  height: 100vh;
   display: flex;
   flex-direction: column;
   @include media-down(md) {

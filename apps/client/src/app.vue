@@ -75,14 +75,14 @@ watch(() => route.path, () => {
   <component :is="layouts[layoutName]" v-if="layouts[layoutName]">
     <router-view v-slot="{ Component, route: currentRoute }">
       <transition name="fade" mode="out-in">
-        <component :is="Component" :key="currentRoute.fullPath" />
+        <component :is="Component" :key="currentRoute.path" />
       </transition>
     </router-view>
   </component>
 
   <router-view v-else v-slot="{ Component, route: currentRoute }">
     <transition name="fade" mode="out-in">
-      <component :is="Component" :key="currentRoute.fullPath" />
+      <component :is="Component" :key="currentRoute.path" />
     </transition>
   </router-view>
 

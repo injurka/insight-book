@@ -51,7 +51,7 @@ async function prevPage() {
     try {
       await readerStore.loadPage(readerStore.currentBook.id, newPage)
       router.replace({ query: { ...route.query, page: newPage } })
-      window.scrollTo({ top: 0 })
+      readerViewRef.value?.scrollTo({ top: 0, behavior: 'instant' })
     }
     catch {}
   }
@@ -63,7 +63,7 @@ async function nextPage() {
     try {
       await readerStore.loadPage(readerStore.currentBook.id, newPage)
       router.replace({ query: { ...route.query, page: newPage } })
-      window.scrollTo({ top: 0 })
+      readerViewRef.value?.scrollTo({ top: 0, behavior: 'instant' })
     }
     catch {}
   }
@@ -76,7 +76,7 @@ async function goToPage(pageNum?: number) {
   try {
     await readerStore.loadPage(readerStore.currentBook.id, pageNum)
     router.replace({ query: { ...route.query, page: pageNum } })
-    window.scrollTo({ top: 0 })
+    readerViewRef.value?.scrollTo({ top: 0, behavior: 'instant' })
   }
   catch {}
 }
@@ -96,38 +96,40 @@ function onScroll() {
     <ReaderHeader />
 
     <div class="reader-content-wrapper">
-      <div v-if="readerStore.isPageLoading" class="reader-loading-wrapper">
-        <PageLoader />
-        <p class="loading-text">
-          Подготовка страницы (OCR & NLP)...
-        </p>
-      </div>
+      <Transition name="fade" mode="out-in">
+        <div v-if="readerStore.isPageLoading" class="reader-loading-wrapper">
+          <PageLoader />
+          <p class="loading-text">
+            Подготовка страницы (OCR & NLP)...
+          </p>
+        </div>
 
-      <div v-else-if="readerStore.currentPage?.imageUrl" class="manga-container">
-        <div
-          class="manga-page-wrapper js-tooltip-selectable"
-          @click="onWordClick"
-          @mouseup="onPointerUp"
-          @touchend="onPointerUp"
-          @touchcancel="onPointerUp"
-          @mouseleave="onPointerUp"
-        >
-          <img :src="`${getMediaUrl(readerStore.currentPage.imageUrl)}`" class="manga-image">
+        <div v-else-if="readerStore.currentPage?.imageUrl" class="manga-container">
+          <div
+            class="manga-page-wrapper js-tooltip-selectable"
+            @click="onWordClick"
+            @mouseup="onPointerUp"
+            @touchend="onPointerUp"
+            @touchcancel="onPointerUp"
+            @mouseleave="onPointerUp"
+          >
+            <img :src="`${getMediaUrl(readerStore.currentPage.imageUrl)}`" class="manga-image">
 
-          <div class="ocr-overlay">
-            <div
-              v-for="box in readerStore.currentPage.ocrBlocks"
-              :key="box.id"
-              class="ocr-bubble"
-              :style="getBoxStyle(box)"
-              @mousedown="onPointerDown($event, box.text)"
-              @touchstart="onPointerDown($event, box.text)"
-            >
-              <div class="bubble-text-preview" v-html="box.html || box.text.replace(/\n+/g, '')" />
+            <div class="ocr-overlay">
+              <div
+                v-for="box in readerStore.currentPage.ocrBlocks"
+                :key="box.id"
+                class="ocr-bubble"
+                :style="getBoxStyle(box)"
+                @mousedown="onPointerDown($event, box.text)"
+                @touchstart="onPointerDown($event, box.text)"
+              >
+                <div class="bubble-text-preview" v-html="box.html || box.text.replace(/\n+/g, '')" />
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      </Transition>
     </div>
 
     <Transition name="fade">
@@ -163,7 +165,7 @@ function onScroll() {
 
 <style lang="scss" scoped>
 .manga-reader-view {
-  min-height: 100dvh;
+  min-height: 100vh;
   display: flex;
   flex-direction: column;
   background-color: var(--bg-primary-color);
