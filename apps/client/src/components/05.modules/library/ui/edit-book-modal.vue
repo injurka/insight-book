@@ -1,9 +1,7 @@
 <script setup lang="ts">
 import type { Book } from '~/shared/types/models'
-import { Icon } from '@iconify/vue'
-import { computed, ref, watch } from 'vue'
-import { KitBtn, KitDialog, KitInput, KitSelect } from '~/components/01.kit'
-import { getMediaUrl } from '~/workers/service/lib/utils'
+import { ref, watch } from 'vue'
+import { KitBtn, KitDialog, KitImage, KitInput, KitSelect } from '~/components/01.kit'
 
 const props = defineProps<{
   book: Book | null
@@ -52,14 +50,6 @@ watch(() => props.book, (newBook) => {
   }
 }, { immediate: true })
 
-const coverSrc = computed(() => {
-  if (!editingBook.value.coverUrl)
-    return ''
-  return editingBook.value.coverUrl.startsWith('data:')
-    ? editingBook.value.coverUrl
-    : `${getMediaUrl(editingBook.value.coverUrl)}`
-})
-
 function onEditCoverChange(e: Event) {
   const target = e.target as HTMLInputElement
   const file = target.files?.[0]
@@ -96,16 +86,17 @@ function handleDelete() {
       <div class="form-group">
         <label>Обложка</label>
         <div class="edit-cover-preview" @click="editCoverInput?.click()">
-          <img v-if="coverSrc" :src="coverSrc" alt="Обложка">
-          <div v-else class="placeholder">
-            <Icon icon="mdi:image-plus" />
-          </div>
+          <KitImage
+            :src="editingBook.coverUrl"
+            fallback-icon="mdi:image-plus"
+          />
           <div class="overlay">
             Изменить
           </div>
         </div>
         <input ref="editCoverInput" type="file" accept="image/*" hidden @change="onEditCoverChange">
       </div>
+      <!-- Остальные поля без изменений -->
       <div class="form-group">
         <label>Название</label>
         <KitInput v-model="editingBook.title!" placeholder="Название книги" />
@@ -190,20 +181,11 @@ function handleDelete() {
   overflow: hidden;
   cursor: pointer;
   border: 1px dashed var(--border-primary-color);
-  img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
+
+  :deep(.fallback-icon) {
+    font-size: 3rem;
   }
-  .placeholder {
-    width: 100%;
-    height: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 2rem;
-    color: var(--fg-secondary-color);
-  }
+
   .overlay {
     position: absolute;
     inset: 0;
@@ -216,6 +198,7 @@ function handleDelete() {
     font-weight: 500;
     opacity: 0;
     transition: opacity 0.2s;
+    z-index: 10;
   }
   &:hover .overlay {
     opacity: 1;

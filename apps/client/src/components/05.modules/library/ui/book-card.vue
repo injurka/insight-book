@@ -1,30 +1,17 @@
 <script setup lang="ts">
 import type { Book } from '~/shared/types/models'
 import { computed } from 'vue'
-import { KitBtn, KitTooltip } from '~/components/01.kit'
+import { KitBtn, KitImage, KitTooltip } from '~/components/01.kit'
 import { useAuthStore } from '~/shared/store/auth.store'
-import { getMediaUrl } from '~/workers/service/lib/utils'
 
-const props = defineProps<Props>()
+const props = defineProps<{ book: Book }>()
 
 const emit = defineEmits<{
   (e: 'edit'): void
   (e: 'click'): void
 }>()
 
-interface Props {
-  book: Book
-}
-
 const authStore = useAuthStore()
-
-const coverSrc = computed(() => {
-  if (!props.book.coverUrl)
-    return ''
-  return props.book.coverUrl.startsWith('data:')
-    ? props.book.coverUrl
-    : `${getMediaUrl(props.book.coverUrl)}`
-})
 
 const progressPercent = computed(() => {
   const current = props.book.currentPage || 1
@@ -36,10 +23,12 @@ const progressPercent = computed(() => {
 <template>
   <div class="book-card" @click="emit('click')">
     <div class="cover-wrapper">
-      <img v-if="coverSrc" :src="coverSrc" alt="Обложка" class="cover-img">
-      <div v-else class="cover-placeholder">
-        <span class="placeholder-icon">📚</span>
-      </div>
+      <KitImage
+        :src="book.coverUrl"
+        alt="Обложка"
+        fallback-icon="mdi:book-open-blank-variant"
+      />
+
       <span class="lang-badge">{{ book.language.toUpperCase() }}</span>
 
       <div v-if="authStore.user" class="card-actions">
@@ -95,34 +84,17 @@ const progressPercent = computed(() => {
     .card-actions {
       opacity: 1 !important;
     }
+
+    :deep(.real-image) {
+      transform: scale(1.05);
+    }
   }
 
   .cover-wrapper {
     position: relative;
     width: 100%;
     aspect-ratio: 2 / 3;
-    background-color: var(--bg-tertiary-color);
-    overflow: hidden;
     border-bottom: 1px solid var(--border-secondary-color);
-
-    .cover-img {
-      position: absolute;
-      inset: 0;
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      display: block;
-    }
-
-    .cover-placeholder {
-      position: absolute;
-      inset: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 3rem;
-      opacity: 0.5;
-    }
 
     .lang-badge {
       position: absolute;
@@ -135,6 +107,7 @@ const progressPercent = computed(() => {
       font-size: 0.75rem;
       font-weight: 600;
       backdrop-filter: blur(4px);
+      z-index: 10;
     }
 
     .card-actions {

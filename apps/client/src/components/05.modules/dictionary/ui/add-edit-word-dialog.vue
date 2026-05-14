@@ -3,6 +3,7 @@ import type { UserDictItem, WordEncounter } from '~/shared/types/models'
 import { computed, ref, watch } from 'vue'
 import { KitBtn, KitDialog, KitInput, KitSelect, KitTooltip } from '~/components/01.kit'
 import { useTts } from '~/shared/composables/use-tts'
+import { DIFFICULTY_SYSTEMS } from '~/shared/constants/difficulties'
 import { useAnalysisStore } from '~/shared/store/analysis.store'
 import { useDictionaryStore } from '../store/dictionary.store'
 
@@ -73,6 +74,22 @@ const deckOptions = computed(() => {
   langDecks.forEach(d => opts.push({ label: d.name, value: d.id }))
   return opts
 })
+
+// --- ЛОГИКА ДЛЯ СЛОЖНОСТИ ---
+const currentDifficultyOptions = computed(() => {
+  const lang = localWord.value.language || 'en'
+  const system = DIFFICULTY_SYSTEMS[lang] || DIFFICULTY_SYSTEMS.default
+
+  return [
+    { label: 'Не указана', value: '' },
+    ...system.map(opt => ({ label: opt.label, value: opt.value })),
+  ]
+})
+
+const difficultyModel = computed({
+  get: () => localWord.value.difficulty || '',
+  set: (val) => { localWord.value.difficulty = val || null },
+})
 </script>
 
 <template>
@@ -124,7 +141,8 @@ const deckOptions = computed(() => {
         <div class="row-flex">
           <div class="form-group flex-1">
             <label>Сложность</label>
-            <KitInput v-model="localWord.difficulty!" placeholder="A1, HSK 4..." />
+            <!-- ТЕПЕРЬ ТУТ СЕЛЕКТ -->
+            <KitSelect v-model="difficultyModel" :options="currentDifficultyOptions" />
           </div>
           <div class="form-group flex-1">
             <label>Теги (через запятую)</label>

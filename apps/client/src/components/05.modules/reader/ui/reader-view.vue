@@ -36,11 +36,22 @@ const translatedPageContent = computed(() => {
   const doc = parser.parseFromString(readerStore.currentPage.content, 'text/html')
   const map = translationMap.value
 
+  const translatedSentIds = new Set<string>()
+
   doc.querySelectorAll('.sentence').forEach((span) => {
     const rawSent = decodeURIComponent(span.getAttribute('data-raw-sent') || '')
+    const sentId = span.getAttribute('data-sent-id') || ''
+
     if (map[rawSent]) {
-      span.innerHTML = map[rawSent]
-      span.classList.add('has-translation')
+      if (translatedSentIds.has(sentId)) {
+        span.innerHTML = '';
+        (span as any).style.display = 'none'
+      }
+      else {
+        span.innerHTML = map[rawSent]
+        span.classList.add('has-translation')
+        translatedSentIds.add(sentId)
+      }
     }
     else {
       span.innerHTML = `<span class="untranslated-text">${span.innerHTML}</span>`
@@ -115,8 +126,6 @@ useResizeObserver(readerViewRef, () => {
 })
 
 function onSentenceHover(event: MouseEvent) {
-  if (!readerStore.isParallelView)
-    return
   const target = (event.target as HTMLElement).closest('.sentence') as HTMLElement | null
   if (!target)
     return
@@ -130,8 +139,6 @@ function onSentenceHover(event: MouseEvent) {
 }
 
 function onSentenceOut(event: MouseEvent) {
-  if (!readerStore.isParallelView)
-    return
   const target = (event.target as HTMLElement).closest('.sentence') as HTMLElement | null
   if (!target)
     return
@@ -427,6 +434,10 @@ function onScroll() {
   transition:
     font-size 0.2s,
     line-height 0.2s;
+
+  :deep(svg) {
+    height: auto;
+  }
 
   @include media-down(sm) {
     user-select: none;

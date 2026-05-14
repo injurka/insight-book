@@ -5,6 +5,8 @@
     "Component": true,
     "ComponentPublicInstance": true,
     "ComputedRef": true,
+    "DIFFICULTY_SYSTEMS": true,
+    "DifficultyLevel": true,
     "DirectiveBinding": true,
     "EffectScope": true,
     "ExtractDefaultPropTypes": true,

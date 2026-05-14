@@ -10,36 +10,19 @@ import nodejieba from 'nodejieba'
 import { db } from '../db'
 import * as schema from '../db/schema'
 
-const SENTENCE_DELIMITERS = /([.。！？…!?]+)/g
-
-function splitIntoSentences(text: string): string[] {
-  const paragraphs = text.split(/(\n+)/)
-  const sentences: string[] = []
-
-  for (const para of paragraphs) {
-    if (!para)
-      continue
-
-    if (/^\s+$/.test(para)) {
-      sentences.push(para)
-      continue
+// Умное разбиение на предложения через встроенный Intl.Segmenter
+function splitIntoSentences(text: string, language: string): string[] {
+  try {
+    const segmenter = new Intl.Segmenter(language, { granularity: 'sentence' })
+    const sentences: string[] = []
+    for (const { segment } of segmenter.segment(text)) {
+      sentences.push(segment)
     }
-
-    const parts = para.split(SENTENCE_DELIMITERS)
-    let currentSentence = ''
-
-    for (let i = 0; i < parts.length; i++) {
-      currentSentence += parts[i]
-
-      if (i % 2 !== 0 || i === parts.length - 1) {
-        if (currentSentence) {
-          sentences.push(currentSentence)
-          currentSentence = ''
-        }
-      }
-    }
+    return sentences
   }
-  return sentences
+  catch (e) {
+    return text.split(/([.。！？…!?]+|\n{2,})/g).filter(Boolean)
+  }
 }
 
 interface LanguageTokenizer { tokenize: (text: string) => Promise<TokenizedWord[]> | TokenizedWord[] }
@@ -75,7 +58,6 @@ class JapaneseTokenizer implements LanguageTokenizer {
   public init(): Promise<void> {
     if (this.tokenizer)
       return Promise.resolve()
-
     if (this.initPromise)
       return this.initPromise
 
@@ -89,7 +71,6 @@ class JapaneseTokenizer implements LanguageTokenizer {
           this.initPromise = null
           return reject(err)
         }
-
         this.tokenizer = tokenizer
         resolve()
       })
@@ -99,7 +80,6 @@ class JapaneseTokenizer implements LanguageTokenizer {
 
   async tokenize(text: string): Promise<TokenizedWord[]> {
     await this.init()
-
     if (!this.tokenizer)
       return [{ word: text, pos: 'unk' }]
 
@@ -109,7 +89,6 @@ class JapaneseTokenizer implements LanguageTokenizer {
     for (const part of parts) {
       if (!part)
         continue
-
       if (/^\s+$/.test(part)) {
         tokens.push({ word: part, pos: 'x' })
       }
@@ -128,12 +107,10 @@ class EnglishTokenizer implements LanguageTokenizer {
   private getSimpleTag(tags: string[]): string {
     if (!tags || tags.length === 0)
       return 'x'
-
     for (const tag of tags) {
       if (this.tagMap[tag])
         return this.tagMap[tag]
     }
-
     return 'x'
   }
 
@@ -152,10 +129,8 @@ class EnglishTokenizer implements LanguageTokenizer {
           tokens.push({ word: term.post, pos: 'x' })
       }
     }
-
     if (tokens.length === 0)
       tokens.push({ word: text, pos: 'x' })
-
     return tokens
   }
 }
@@ -176,10 +151,8 @@ const jaTokenizer = new JapaneseTokenizer()
 const enTokenizer = new EnglishTokenizer()
 
 export async function initNLP() {
-  // eslint-disable-next-line no-console
   console.log('🤖 Initializing NLP tokenizers...')
   await jaTokenizer.init()
-  // eslint-disable-next-line no-console
   console.log('✅ NLP tokenizers ready')
 }
 
@@ -198,76 +171,155 @@ export async function tokenizeHtmlPage(html: string, language: string) {
   const allWords = new Set<string>()
   let sentenceIdCounter = 0
 
-  const textNodes: any[] = []
-  function findTextNodes(el: any) {
-    if (el.type === 'text')
-      textNodes.push(el)
-    else if (el.type === 'tag' && el.children)
-      el.children.forEach((child: any) => findTextNodes(child))
-  }
+  const blocks: { textNodes: any[], fullText: string }[] = []
+  let currentBlock = { textNodes: [] as any[], fullText: '' }
 
-  $.root().contents().each((_, el) => findTextNodes(el))
+  function traverse(el: any) {
+    const isBlock = el.type === 'tag' && /^(p|div|h[1-6]|li|blockquote|td|th|br|hr|tr|ul|ol|table|article|section|main|aside|nav|header|footer|pre|figure|figcaption)$/i.test(el.name)
 
-  for (const node of textNodes) {
-    const text = node.data
-    if (!text || /^\s+$/.test(text))
-      continue
-
-    const sentences = splitIntoSentences(text)
-    let newHtml = ''
-
-    for (const raw of sentences) {
-      // Игнорируем строки, в которых нет ни одной буквы или цифры (только пунктуация/пробелы)
-      if (!/[\p{L}\p{N}]/u.test(raw)) {
-        newHtml += raw.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-        continue
-      }
-
-      const tokens = await tokenizer.tokenize(raw)
-      const encodedRaw = encodeURIComponent(raw)
-      let sentHtml = `<span class="sentence" data-sent-id="${sentenceIdCounter}" data-raw-sent="${encodedRaw}">`
-
-      for (let i = 0; i < tokens.length; i++) {
-        const t = tokens[i]
-
-        if (/[\p{L}\p{N}]/u.test(t.word)) {
-          allWords.add(t.word)
-          allWords.add(t.word.toLowerCase())
-        }
-
-        const isPunct = t.pos === 'x'
-        const spacingClass = (language === 'zh' || language === 'ja') ? '' : 'add-space'
-        const encodedWord = encodeURIComponent(t.word)
-        const safeWord = t.word.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-
-        sentHtml += `<span class="word ${isPunct ? 'is-punctuation' : spacingClass}" data-word="${encodedWord}" data-pos="${t.pos}" data-sent-id="${sentenceIdCounter}" data-token-idx="${i}">${safeWord}</span>`
-      }
-      sentHtml += '</span>'
-      sentenceIdCounter++
-      newHtml += sentHtml
+    if (isBlock && currentBlock.textNodes.length > 0) {
+      blocks.push(currentBlock)
+      currentBlock = { textNodes: [], fullText: '' }
     }
 
-    $(node).replaceWith(newHtml)
+    if (el.type === 'text') {
+      const text = el.data
+      if (text) {
+        currentBlock.textNodes.push(el)
+        currentBlock.fullText += text
+      }
+    }
+    else if (el.type === 'tag' && el.children) {
+      el.children.forEach(traverse)
+    }
+
+    if (isBlock && currentBlock.textNodes.length > 0) {
+      blocks.push(currentBlock)
+      currentBlock = { textNodes: [], fullText: '' }
+    }
   }
 
-  return {
-    processedHtml: $.html(),
-    uniqueWords: Array.from(allWords),
+  $.root().contents().each((_, el) => traverse(el))
+  if (currentBlock.textNodes.length > 0)
+    blocks.push(currentBlock)
+
+  for (const block of blocks) {
+    const sentences = splitIntoSentences(block.fullText, language)
+    const blockTokens: { text: string, pos: string, sentId: number, tokenIdx: number, encodedRaw: string, isValidSent: boolean }[] = []
+
+    for (const sent of sentences) {
+      if (!/[\p{L}\p{N}]/u.test(sent)) {
+        blockTokens.push({ text: sent, pos: 'x', sentId: sentenceIdCounter, tokenIdx: 0, encodedRaw: '', isValidSent: false })
+      }
+      else {
+        const tokens = await tokenizer.tokenize(sent)
+        let finalTokens = tokens
+        const tokenizedStr = tokens.map(t => t.word).join('')
+
+        // Гарантированный фоллбэк: если токенизатор "съел" пробелы или знаки,
+        // мы используем Intl.Segmenter, чтобы 100% сохранить структуру HTML без багов.
+        if (tokenizedStr !== sent) {
+          const segmenter = new Intl.Segmenter(language, { granularity: 'word' })
+          finalTokens = []
+          for (const { segment, isWordLike } of segmenter.segment(sent)) {
+            finalTokens.push({ word: segment, pos: isWordLike ? 'unk' : 'x' })
+          }
+        }
+
+        const encodedRaw = encodeURIComponent(sent)
+        for (let i = 0; i < finalTokens.length; i++) {
+          blockTokens.push({ text: finalTokens[i].word, pos: finalTokens[i].pos, sentId: sentenceIdCounter, tokenIdx: i, encodedRaw, isValidSent: true })
+          if (/[\p{L}\p{N}]/u.test(finalTokens[i].word)) {
+            allWords.add(finalTokens[i].word)
+            allWords.add(finalTokens[i].word.toLowerCase())
+          }
+        }
+      }
+      sentenceIdCounter++
+    }
+
+    let currentTokenIdx = 0
+    let currentTokenCharOffset = 0
+
+    for (const node of block.textNodes) {
+      let nodeText = node.data
+      let newHtml = ''
+      let activeSentId = -1
+      let sentenceHtmlBuf = ''
+      let activeEncodedRaw = ''
+      let activeIsValid = false
+
+      const closeSentence = () => {
+        if (sentenceHtmlBuf) {
+          newHtml += `<span class="sentence" data-sent-id="${activeSentId}" data-raw-sent="${activeEncodedRaw}">${sentenceHtmlBuf}</span>`
+          sentenceHtmlBuf = ''
+        }
+      }
+
+      while (nodeText.length > 0 && currentTokenIdx < blockTokens.length) {
+        const token = blockTokens[currentTokenIdx]
+        const remainingInToken = token.text.substring(currentTokenCharOffset)
+
+        const takeLen = Math.min(nodeText.length, remainingInToken.length)
+        const chunk = remainingInToken.substring(0, takeLen)
+
+        nodeText = nodeText.substring(takeLen)
+        currentTokenCharOffset += takeLen
+
+        if (currentTokenCharOffset >= token.text.length) {
+          currentTokenIdx++
+          currentTokenCharOffset = 0
+        }
+
+        if (token.sentId !== activeSentId || token.isValidSent !== activeIsValid) {
+          if (activeSentId !== -1) {
+            if (activeIsValid)
+              closeSentence()
+            else newHtml += sentenceHtmlBuf
+            sentenceHtmlBuf = ''
+          }
+          activeSentId = token.sentId
+          activeEncodedRaw = token.encodedRaw
+          activeIsValid = token.isValidSent
+        }
+
+        if (activeIsValid) {
+          const isPunct = token.pos === 'x'
+          const spacingClass = (language === 'zh' || language === 'ja') ? '' : 'add-space'
+          const safeChunk = chunk.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+          sentenceHtmlBuf += `<span class="word ${isPunct ? 'is-punctuation' : spacingClass}" data-word="${encodeURIComponent(token.text)}" data-pos="${token.pos}" data-sent-id="${token.sentId}" data-token-idx="${token.tokenIdx}">${safeChunk}</span>`
+        }
+        else {
+          sentenceHtmlBuf += chunk.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        }
+      }
+
+      if (activeSentId !== -1) {
+        if (activeIsValid)
+          closeSentence()
+        else newHtml += sentenceHtmlBuf
+      }
+
+      if (nodeText.length > 0) {
+        newHtml += nodeText.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      }
+      $(node).replaceWith(newHtml)
+    }
   }
+
+  return { processedHtml: $.html(), uniqueWords: Array.from(allWords) }
 }
 
 export async function analyzeBookVocabulary(bookId: number, language: string) {
   const pages = await db.select({ content: schema.bookPages.content }).from(schema.bookPages).where(eq(schema.bookPages.bookId, bookId))
   const tokenizer = getTokenizer(language)
   const posCounts: Record<string, number> = {}
-
-  // Сохраняем оригинальное написание
   const wordFreq: Record<string, { count: number, pos: string, original: string }> = {}
   let totalValidTokens = 0
 
   for (const page of pages) {
     const plainText = parseHtml(page.content).textContent
-    const sentences = splitIntoSentences(plainText)
+    const sentences = splitIntoSentences(plainText, language)
 
     for (const raw of sentences) {
       if (/^\s+$/.test(raw))
@@ -284,64 +336,35 @@ export async function analyzeBookVocabulary(bookId: number, language: string) {
         posCounts[t.pos] = (posCounts[t.pos] || 0) + 1
 
         const w = t.word.toLowerCase()
-        if (!wordFreq[w]) {
+        if (!wordFreq[w])
           wordFreq[w] = { count: 0, pos: t.pos, original: t.word }
-        }
         wordFreq[w].count++
-
-        if (t.word !== w && wordFreq[w].original === w) {
+        if (t.word !== w && wordFreq[w].original === w)
           wordFreq[w].original = t.word
-        }
       }
     }
   }
 
   const uniqueTokens = Object.keys(wordFreq).length
   const lexicalDiversity = totalValidTokens > 0 ? Math.round((uniqueTokens / totalValidTokens) * 100) : 0
-
   const allWordsArr = Object.values(wordFreq).map(data => ({ word: data.original, pos: data.pos, count: data.count }))
 
-  const properNouns = allWordsArr
-    .filter(w => ['nr', 'ns', 'nt'].includes(w.pos) || (w.pos.startsWith('n') && /^[A-ZА-ЯЁ]/.test(w.word)))
-    .sort((a, b) => b.count - a.count)
-    .slice(0, 30)
-
+  const properNouns = allWordsArr.filter(w => ['nr', 'ns', 'nt'].includes(w.pos) || (w.pos.startsWith('n') && /^[A-ZА-ЯЁ]/.test(w.word))).sort((a, b) => b.count - a.count).slice(0, 30)
   const isProper = (word: string) => properNouns.some(p => p.word === word)
-
-  const nouns = allWordsArr
-    .filter(w => w.pos.startsWith('n') && !isProper(w.word))
-    .sort((a, b) => b.count - a.count)
-    .slice(0, 30)
-
-  const verbs = allWordsArr
-    .filter(w => w.pos.startsWith('v'))
-    .sort((a, b) => b.count - a.count)
-    .slice(0, 30)
-
-  const adjs = allWordsArr
-    .filter(w => (w.pos.startsWith('a') || w.pos.startsWith('d')) && !isProper(w.word))
-    .sort((a, b) => b.count - a.count)
-    .slice(0, 30)
+  const nouns = allWordsArr.filter(w => w.pos.startsWith('n') && !isProper(w.word)).sort((a, b) => b.count - a.count).slice(0, 30)
+  const verbs = allWordsArr.filter(w => w.pos.startsWith('v')).sort((a, b) => b.count - a.count).slice(0, 30)
+  const adjs = allWordsArr.filter(w => (w.pos.startsWith('a') || w.pos.startsWith('d')) && !isProper(w.word)).sort((a, b) => b.count - a.count).slice(0, 30)
 
   const minLength = language === 'en' ? 6 : 2
-  const rareWords = allWordsArr
-    // Фильтруем слова, которые попались от 2 до 5 раз
-    .filter(w => w.count >= 2 && w.count <= 5 && w.word.length >= minLength && !isProper(w.word))
-    .sort((a, b) => b.word.length - a.word.length) // Сортируем по длине убывания
-    .slice(0, 30)
+  const rareWords = allWordsArr.filter(w => w.count >= 2 && w.count <= 5 && w.word.length >= minLength && !isProper(w.word)).sort((a, b) => b.word.length - a.word.length).slice(0, 30)
 
-  return {
-    posDistribution: posCounts,
-    topWords: { nouns, verbs, adjs, properNouns, rareWords },
-    lexicalDiversity,
-  }
+  return { posDistribution: posCounts, topWords: { nouns, verbs, adjs, properNouns, rareWords }, lexicalDiversity }
 }
 
 export async function tokenizeOcrBlocks(blocks: any[], language: string) {
   const tokenizer = getTokenizer(language)
   const allWords = new Set<string>()
   let sentenceIdCounter = 10000
-
   const processedBlocks = []
 
   for (const block of blocks) {
@@ -351,45 +374,34 @@ export async function tokenizeOcrBlocks(blocks: any[], language: string) {
       continue
     }
 
-    const sentences = splitIntoSentences(text)
+    const sentences = splitIntoSentences(text, language)
     let newHtml = ''
 
     for (const raw of sentences) {
-      // Игнорируем строки, в которых нет ни одной буквы или цифры (только пунктуация/пробелы)
       if (!/[\p{L}\p{N}]/u.test(raw)) {
         newHtml += raw.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
         continue
       }
-
       const tokens = await tokenizer.tokenize(raw)
       const encodedRaw = encodeURIComponent(raw)
       let sentHtml = `<span class="sentence" data-sent-id="${sentenceIdCounter}" data-raw-sent="${encodedRaw}">`
 
       for (let i = 0; i < tokens.length; i++) {
         const t = tokens[i]
-
         if (/[\p{L}\p{N}]/u.test(t.word)) {
           allWords.add(t.word)
           allWords.add(t.word.toLowerCase())
         }
-
         const isPunct = t.pos === 'x'
         const spacingClass = (language === 'zh' || language === 'ja') ? '' : 'add-space'
-        const encodedWord = encodeURIComponent(t.word)
         const safeWord = t.word.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-
-        sentHtml += `<span class="word ${isPunct ? 'is-punctuation' : spacingClass}" data-word="${encodedWord}" data-pos="${t.pos}" data-sent-id="${sentenceIdCounter}" data-token-idx="${i}">${safeWord}</span>`
+        sentHtml += `<span class="word ${isPunct ? 'is-punctuation' : spacingClass}" data-word="${encodeURIComponent(t.word)}" data-pos="${t.pos}" data-sent-id="${sentenceIdCounter}" data-token-idx="${i}">${safeWord}</span>`
       }
       sentHtml += '</span>'
       sentenceIdCounter++
       newHtml += sentHtml
     }
-
     processedBlocks.push({ ...block, html: newHtml })
   }
-
-  return {
-    processedBlocks,
-    uniqueWords: Array.from(allWords),
-  }
+  return { processedBlocks, uniqueWords: Array.from(allWords) }
 }

@@ -6,6 +6,7 @@ import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { KitBtn, KitInput, KitSelect, KitTooltip } from '~/components/01.kit'
 import { useToast } from '~/shared/composables/use-toast'
+import { DIFFICULTY_SYSTEMS } from '~/shared/constants/difficulties'
 import { useAnalysisStore } from '~/shared/store/analysis.store'
 import { useDictionaryStore } from '../store/dictionary.store'
 import SrsTrainingDialog from './srs-training-dialog.vue'
@@ -47,6 +48,22 @@ function getStatusLabel(status: number) {
     case 3: return { label: 'Выучено', color: 'var(--fg-success-color)' }
     default: return { label: 'Неизв.', color: 'var(--fg-muted-color)' }
   }
+}
+
+// --- ЛОГИКА ЦВЕТА СЛОЖНОСТИ ---
+function getDifficultyClass(lang: string, diffValue: string | null) {
+  if (!diffValue)
+    return ''
+  const system = DIFFICULTY_SYSTEMS[lang] || DIFFICULTY_SYSTEMS.default
+  const found = system.find(s => s.value === diffValue)
+
+  if (!found)
+    return ''
+  if (found.level <= 2)
+    return 'level-easy'
+  if (found.level <= 4)
+    return 'level-medium'
+  return 'level-hard'
 }
 
 async function startForceTraining() {
@@ -202,7 +219,13 @@ const filteredDecks = computed(() => {
                 <div class="dict-word-container">
                   <span class="dict-word">{{ item.data.word }}</span>
                   <span class="dict-transcription">{{ item.data.transcription }}</span>
-                  <span v-if="item.data.difficulty" class="diff-badge">{{ item.data.difficulty }}</span>
+                  <span
+                    v-if="item.data.difficulty"
+                    class="diff-badge"
+                    :class="getDifficultyClass(item.data.language, item.data.difficulty)"
+                  >
+                    {{ item.data.difficulty }}
+                  </span>
                   <span class="srs-badge" :style="{ color: getStatusLabel(item.data.status).color }">
                     {{ getStatusLabel(item.data.status).label }}
                   </span>
@@ -497,6 +520,7 @@ const filteredDecks = computed(() => {
     gap: 4px;
   }
 }
+
 .diff-badge {
   font-size: 0.7rem;
   background-color: var(--bg-tertiary-color);
@@ -504,7 +528,21 @@ const filteredDecks = computed(() => {
   padding: 2px 6px;
   border-radius: 4px;
   font-weight: 500;
+
+  &.level-easy {
+    background-color: rgba(var(--bg-success-color-rgb, 86, 211, 100), 0.15);
+    color: var(--fg-success-color);
+  }
+  &.level-medium {
+    background-color: rgba(var(--bg-warning-color-rgb, 227, 179, 65), 0.15);
+    color: var(--fg-warning-color);
+  }
+  &.level-hard {
+    background-color: rgba(var(--bg-error-color-rgb, 248, 81, 73), 0.15);
+    color: var(--fg-error-color);
+  }
 }
+
 .srs-badge {
   font-size: 0.7rem;
   padding: 1px 5px;

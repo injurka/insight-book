@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { Icon } from '@iconify/vue'
-import { reactive, watch } from 'vue'
-import { KitBtn, KitInput } from '~/components/01.kit'
+import { computed, reactive, watch } from 'vue'
+import { KitBtn, KitInput, KitSelect } from '~/components/01.kit'
 import { useLibraryStore } from '~/components/05.modules/library/store/library.store'
 import { useToast } from '~/shared/composables/use-toast'
+import { DIFFICULTY_SYSTEMS } from '~/shared/constants/difficulties'
 
 const libraryStore = useLibraryStore()
 const toast = useToast()
@@ -16,6 +17,35 @@ const editForm = reactive({
   description: '',
 })
 
+const currentDifficultyOptions = computed(() => {
+  const lang = libraryStore.currentBookInfo?.language || 'en'
+  const system = DIFFICULTY_SYSTEMS[lang] || DIFFICULTY_SYSTEMS.default
+
+  return [
+    { label: 'Не указана', value: '' },
+    ...system.map(opt => ({ label: opt.label, value: opt.value })),
+  ]
+})
+
+const difficultyLevelClass = computed(() => {
+  const diffValue = libraryStore.currentBookInfo?.stats?.difficulty
+  if (!diffValue)
+    return ''
+
+  const lang = libraryStore.currentBookInfo?.language || 'en'
+  const system = DIFFICULTY_SYSTEMS[lang] || DIFFICULTY_SYSTEMS.default
+  const found = system.find(s => s.value === diffValue)
+
+  if (!found)
+    return ''
+
+  if (found.level <= 2)
+    return 'level-easy'
+  if (found.level <= 4)
+    return 'level-medium'
+  return 'level-hard'
+})
+
 function formatNumber(num: number | undefined): string {
   if (num === undefined || num === null)
     return '0'
@@ -25,7 +55,12 @@ function formatNumber(num: number | undefined): string {
 watch(isEditingStats, (val) => {
   if (val) {
     const stats = libraryStore.currentBookInfo?.stats
-    editForm.difficulty = stats?.difficulty || ''
+
+    // Проверяем, есть ли старое значение в нашем новом списке
+    const opts = currentDifficultyOptions.value.map(o => o.value)
+    const currentDiff = stats?.difficulty || ''
+    editForm.difficulty = opts.includes(currentDiff) ? currentDiff : ''
+
     editForm.tags = stats?.tags?.join(', ') || ''
     editForm.description = stats?.description || ''
   }
@@ -121,18 +156,22 @@ async function saveStats() {
             <span>Или заполните вручную</span>
           </div>
           <div class="form-group">
-            <label>Сложность</label><KitInput v-model="editForm.difficulty" placeholder="Например: HSK 4" />
+            <label>Сложность</label>
+            <KitSelect v-model="editForm.difficulty" :options="currentDifficultyOptions" />
           </div>
           <div class="form-group">
-            <label>Теги (через запятую)</label><KitInput v-model="editForm.tags" placeholder="Фэнтези, Повседневность" />
+            <label>Теги (через запятую)</label>
+            <KitInput v-model="editForm.tags" placeholder="Фэнтези, Повседневность" />
           </div>
           <div class="form-group">
-            <label>Аннотация</label><textarea v-model="editForm.description" class="custom-textarea" rows="4" placeholder="О чем эта книга..." />
+            <label>Аннотация</label>
+            <textarea v-model="editForm.description" class="custom-textarea" rows="4" placeholder="О чем эта книга..." />
           </div>
           <div class="form-actions">
             <KitBtn variant="tonal" @click="isEditingStats = false">
               Отмена
-            </KitBtn><KitBtn color="primary" @click="saveStats">
+            </KitBtn>
+            <KitBtn color="primary" @click="saveStats">
               Сохранить
             </KitBtn>
           </div>
@@ -142,13 +181,18 @@ async function saveStats() {
       <template v-else-if="libraryStore.currentBookInfo.stats">
         <div class="stats-grid">
           <div class="stat-item">
-            <span class="stat-label">Сложность</span><span class="stat-value difficulty-badge">{{ libraryStore.currentBookInfo.stats.difficulty || '?' }}</span>
+            <span class="stat-label">Сложность</span>
+            <span class="stat-value difficulty-badge" :class="difficultyLevelClass">
+              {{ libraryStore.currentBookInfo.stats.difficulty || '?' }}
+            </span>
           </div>
           <div class="stat-item">
-            <span class="stat-label">Всего символов</span><span class="stat-value">{{ formatNumber(libraryStore.currentBookInfo.stats.totalChars) }}</span>
+            <span class="stat-label">Всего символов</span>
+            <span class="stat-value">{{ formatNumber(libraryStore.currentBookInfo.stats.totalChars) }}</span>
           </div>
           <div class="stat-item">
-            <span class="stat-label">Уник. символов</span><span class="stat-value text-accent">{{ formatNumber(libraryStore.currentBookInfo.stats.uniqueChars) }}</span>
+            <span class="stat-label">Уник. символов</span>
+            <span class="stat-value text-accent">{{ formatNumber(libraryStore.currentBookInfo.stats.uniqueChars) }}</span>
           </div>
         </div>
         <div v-if="libraryStore.currentBookInfo.stats.tags?.length" class="tags-list">
@@ -211,7 +255,7 @@ async function saveStats() {
   border: 1px solid var(--border-accent-color);
   border-radius: 12px;
   padding: 24px;
-  margin-bottom: 0; // Теперь этот отступ контролируется flex-gap в layout-top
+  margin-bottom: 0;
   .box-header {
     display: flex;
     justify-content: space-between;
@@ -284,12 +328,25 @@ async function saveStats() {
         }
         &.difficulty-badge {
           display: inline-block;
-          background-color: var(--bg-highlight-color);
-          color: var(--fg-highlight-color);
+          background-color: var(--bg-tertiary-color);
+          color: var(--fg-primary-color);
           font-size: 1.1rem;
           padding: 2px 10px;
           border-radius: 6px;
           width: fit-content;
+
+          &.level-easy {
+            background-color: var(--bg-success-color);
+            color: var(--fg-success-color);
+          }
+          &.level-medium {
+            background-color: var(--bg-warning-color);
+            color: var(--fg-warning-color);
+          }
+          &.level-hard {
+            background-color: var(--bg-error-color);
+            color: var(--fg-error-color);
+          }
         }
       }
     }

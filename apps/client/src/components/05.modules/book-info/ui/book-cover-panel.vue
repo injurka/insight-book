@@ -2,11 +2,10 @@
 import { Icon } from '@iconify/vue'
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { KitBtn } from '~/components/01.kit'
+import { KitBtn, KitImage } from '~/components/01.kit'
 import { useLibraryStore } from '~/components/05.modules/library/store/library.store'
 import { AppRoutePaths } from '~/shared/constants/routes'
 import { useAuthStore } from '~/shared/store/auth.store'
-import { getMediaUrl } from '~/workers/service/lib/utils'
 
 const emit = defineEmits<{
   (e: 'edit-stats'): void
@@ -26,7 +25,6 @@ function triggerCoverInput() {
 
 function onCoverChange(e: Event) {
   const target = e.target as HTMLInputElement
-
   if (target.files && target.files.length > 0 && libraryStore.currentBookInfo) {
     libraryStore.updateBookCover(libraryStore.currentBookInfo.id, target.files[0])
   }
@@ -48,14 +46,11 @@ function startReading() {
 <template>
   <div class="cover-col">
     <div class="cover-wrapper group" :class="{ 'is-editable': authStore.user }" @click="triggerCoverInput">
-      <img
-        v-if="libraryStore.currentBookInfo?.coverUrl"
-        :src="libraryStore.currentBookInfo.coverUrl.startsWith('data:') ? libraryStore.currentBookInfo.coverUrl : `${getMediaUrl(libraryStore.currentBookInfo.coverUrl)}`"
-        alt="Обложка"
-      >
-      <div v-else class="cover-placeholder">
-        <Icon icon="mdi:book-open-blank-variant" class="placeholder-icon" />
-      </div>
+      <KitImage
+        :src="libraryStore.currentBookInfo?.coverUrl"
+        fallback-icon="mdi:book-open-blank-variant"
+      />
+
       <div v-if="authStore.user" class="cover-overlay">
         <Icon icon="mdi:image-edit" /> Изменить
       </div>
@@ -78,29 +73,15 @@ function startReading() {
   position: relative;
   width: 100%;
   aspect-ratio: 2 / 3;
-  background-color: var(--bg-tertiary-color);
   border-radius: 12px;
-  overflow: hidden;
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.15);
   margin-bottom: 24px;
 
-  img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    transition: transform 0.3s;
+  /* Иконка заглушки в этом месте должна быть больше */
+  :deep(.fallback-icon) {
+    font-size: 6rem;
   }
-  .cover-placeholder {
-    width: 100%;
-    height: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: var(--fg-muted-color);
-    .placeholder-icon {
-      font-size: 5rem;
-    }
-  }
+
   .cover-overlay {
     position: absolute;
     inset: 0;
@@ -113,12 +94,14 @@ function startReading() {
     font-weight: 500;
     opacity: 0;
     transition: opacity 0.2s;
+    border-radius: 12px;
+    z-index: 10;
   }
 
   &.is-editable {
     cursor: pointer;
     &:hover {
-      img {
+      :deep(.real-image) {
         transform: scale(1.05);
       }
       .cover-overlay {

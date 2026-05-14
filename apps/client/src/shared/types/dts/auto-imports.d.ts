@@ -8,6 +8,7 @@ export {}
 declare global {
   const AppRouteNames: typeof import('../../constants/routes').AppRouteNames
   const AppRoutePaths: typeof import('../../constants/routes').AppRoutePaths
+  const DIFFICULTY_SYSTEMS: typeof import('../../constants/difficulties').DIFFICULTY_SYSTEMS
   const EffectScope: typeof import('vue').EffectScope
   const POS_TAGS_MAP: typeof import('../../constants/pos-tags').POS_TAGS_MAP
   const ThemesVariant: typeof import('../../composables/use-change-theme').ThemesVariant
@@ -329,6 +330,9 @@ declare global {
   export type { ThemesVariant } from '../../composables/use-change-theme'
   import('../../composables/use-change-theme')
   // @ts-ignore
+  export type { DifficultyLevel } from '../../constants/difficulties'
+  import('../../constants/difficulties')
+  // @ts-ignore
   export type { AppRouteNames } from '../../constants/routes'
   import('../../constants/routes')
 }
@@ -340,6 +344,7 @@ declare module 'vue' {
   interface ComponentCustomProperties {
     readonly AppRouteNames: UnwrapRef<typeof import('../../constants/routes')['AppRouteNames']>
     readonly AppRoutePaths: UnwrapRef<typeof import('../../constants/routes')['AppRoutePaths']>
+    readonly DIFFICULTY_SYSTEMS: UnwrapRef<typeof import('../../constants/difficulties')['DIFFICULTY_SYSTEMS']>
     readonly EffectScope: UnwrapRef<typeof import('vue')['EffectScope']>
     readonly POS_TAGS_MAP: UnwrapRef<typeof import('../../constants/pos-tags')['POS_TAGS_MAP']>
     readonly ThemesVariant: UnwrapRef<typeof import('../../composables/use-change-theme')['ThemesVariant']>
