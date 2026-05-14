@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import type { Book } from '~/shared/types/models'
-import { useElementSize, useVirtualList } from '@vueuse/core'
-import { computed, onMounted, ref, useTemplateRef } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { KitSkeleton } from '~/components/01.kit'
 import { useToast } from '~/shared/composables/use-toast'
@@ -36,28 +35,6 @@ const filteredBooks = computed(() => {
       || (b.author && b.author.toLowerCase().includes(searchQuery.value.toLowerCase()))
     return matchLang && matchSearch
   })
-})
-
-const listContainer = useTemplateRef<HTMLElement>('listContainer')
-const { width } = useElementSize(listContainer)
-
-const columnsCount = computed(() => {
-  if (width.value === 0)
-    return 1
-  return Math.max(1, Math.floor((width.value + 24) / 244))
-})
-
-const rowData = computed(() => {
-  const rows = []
-  const books = filteredBooks.value
-  for (let i = 0; i < books.length; i += columnsCount.value) {
-    rows.push({ id: `row_${i}`, items: books.slice(i, i + columnsCount.value) })
-  }
-  return rows
-})
-
-const { list, containerProps, wrapperProps } = useVirtualList(rowData, {
-  itemHeight: 360,
 })
 
 function handleUpload(file: File) {
@@ -100,7 +77,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="library-page-scroll" v-bind="containerProps">
+  <div class="library-page-scroll">
     <div class="library-view">
       <LibraryHeader
         v-model:search="searchQuery"
@@ -109,7 +86,7 @@ onMounted(() => {
         @upload="handleUpload"
       />
 
-      <div v-if="store.isLoading && !store.books.length" class="books-grid-loading">
+      <div v-if="store.isLoading && !store.books.length" class="books-grid">
         <div v-for="i in 4" :key="i" class="book-card-skeleton">
           <div class="cover-skeleton" />
           <div class="info-skeleton">
@@ -133,19 +110,14 @@ onMounted(() => {
         <h2>Книги не найдены</h2>
       </div>
 
-      <div v-else ref="listContainer" class="library-list-wrapper">
-        <div v-bind="wrapperProps" class="virtual-list-wrapper">
-          <div v-for="row in list" :key="row.data.id" class="virtual-row">
-            <BookCard
-              v-for="book in row.data.items"
-              :key="book.id"
-              :book="book"
-              class="virtual-book-card"
-              @click="openBookInfo(book)"
-              @edit="openEditModal(book)"
-            />
-          </div>
-        </div>
+      <div v-else class="books-grid">
+        <BookCard
+          v-for="book in filteredBooks"
+          :key="book.id"
+          :book="book"
+          @click="openBookInfo(book)"
+          @edit="openEditModal(book)"
+        />
       </div>
 
       <EditBookModal
@@ -163,6 +135,7 @@ onMounted(() => {
   height: 100dvh;
   width: 100%;
   overflow-x: hidden;
+  overflow-y: auto;
 
   &::-webkit-scrollbar {
     width: 6px;
@@ -201,10 +174,11 @@ onMounted(() => {
   }
 }
 
-.books-grid-loading {
+.books-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
   gap: 24px;
+  padding-bottom: 24px;
 }
 
 .book-card-skeleton {
@@ -223,29 +197,5 @@ onMounted(() => {
     flex-direction: column;
     gap: 4px;
   }
-}
-
-.library-list-wrapper {
-  flex-grow: 1;
-  display: flex;
-  flex-direction: column;
-  padding-bottom: 24px;
-  padding-top: 8px;
-}
-
-.virtual-list-wrapper {
-  display: flex;
-  flex-direction: column;
-}
-
-.virtual-row {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 24px;
-  margin-bottom: 24px;
-}
-
-.virtual-book-card {
-  width: 100%;
 }
 </style>
