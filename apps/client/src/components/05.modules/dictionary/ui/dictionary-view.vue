@@ -15,7 +15,9 @@ const store = useDictionaryStore()
 const analysisStore = useAnalysisStore()
 const router = useRouter()
 const toast = useToast()
+
 const isTrainingOpen = ref(false)
+const isMobileFiltersOpen = ref(false)
 
 const langOptions = computed(() => {
   const opts = [{ label: 'Все языки', value: 'all' }]
@@ -117,8 +119,38 @@ const filteredDecks = computed(() => {
           <KitBtn icon="mdi:arrow-left" variant="text" @click="router.back()" />
           <h1>Мой словарь</h1>
         </div>
+      </div>
 
-        <div class="header-actions-group">
+      <div class="header-bottom">
+        <div class="search-wrapper">
+          <KitInput
+            v-model="store.searchTerm"
+            placeholder="Поиск по слову, переводу..."
+            class="search-input"
+          />
+          <KitBtn
+            class="mobile-filter-btn"
+            :icon="isMobileFiltersOpen ? 'mdi:chevron-up' : 'mdi:tune-variant'"
+            variant="tonal"
+            color="secondary"
+            @click="isMobileFiltersOpen = !isMobileFiltersOpen"
+          />
+        </div>
+
+        <div class="extra-filters" :class="{ 'is-open': isMobileFiltersOpen }">
+          <KitSelect
+            v-model="store.selectedLanguage"
+            :options="langOptions"
+            class="lang-select"
+          />
+          <KitSelect
+            v-model="store.selectedStatus"
+            :options="statusOptions"
+            class="status-select"
+          />
+        </div>
+
+        <div class="actions-and-stats">
           <KitBtn
             v-if="store.totalReviewCount > 0"
             icon="mdi:brain"
@@ -138,29 +170,10 @@ const filteredDecks = computed(() => {
           >
             Тренировать всё
           </KitBtn>
-        </div>
-      </div>
 
-      <div class="header-bottom">
-        <div class="filters">
-          <KitInput
-            v-model="store.searchTerm"
-            placeholder="Поиск по слову, переводу, тегам..."
-            class="search-input"
-          />
-          <KitSelect
-            v-model="store.selectedLanguage"
-            :options="langOptions"
-            class="lang-select"
-          />
-          <KitSelect
-            v-model="store.selectedStatus"
-            :options="statusOptions"
-            class="status-select"
-          />
-        </div>
-        <div class="stats-badge">
-          <span class="badge">{{ store.filteredWords.length }} слов</span>
+          <div class="stats-badge">
+            <span class="badge">{{ store.filteredWords.length }} слов</span>
+          </div>
         </div>
       </div>
     </header>
@@ -187,7 +200,7 @@ const filteredDecks = computed(() => {
             @click="store.selectedDeckId = deck.id"
           >
             <div class="deck-name-wrap">
-              <Icon class="deck-icon" icon="mdi:folder-star-outline" />
+              <Icon icon="mdi:folder-star-outline" />
               <span class="deck-name">{{ deck.name }}</span>
             </div>
             <div class="deck-actions">
@@ -268,6 +281,7 @@ const filteredDecks = computed(() => {
   gap: 20px;
   margin-bottom: 20px;
   flex-shrink: 0;
+
   .header-top {
     display: flex;
     align-items: center;
@@ -281,56 +295,103 @@ const filteredDecks = computed(() => {
         font-size: 1.5rem;
       }
     }
-    .header-actions-group {
-      display: flex;
-      gap: 8px;
-    }
   }
+
   .header-bottom {
     display: flex;
     align-items: center;
-    justify-content: space-between;
     gap: 16px;
     flex-wrap: wrap;
-    .filters {
+
+    .search-wrapper {
+      flex-grow: 1;
+      max-width: 300px;
+      display: flex;
+      gap: 8px;
+
+      .search-input {
+        width: 100%;
+      }
+
+      .mobile-filter-btn {
+        display: none;
+      }
+    }
+
+    .extra-filters {
       display: flex;
       gap: 12px;
-      flex-grow: 1;
-      .search-input {
-        flex-grow: 1;
-        max-width: 300px;
-      }
+
       .lang-select,
       .status-select {
         width: 160px;
         flex-shrink: 0;
       }
     }
-    .stats-badge {
-      .badge {
+
+    .actions-and-stats {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-left: auto;
+
+      .stats-badge .badge {
         background: var(--bg-tertiary-color);
-        padding: 6px 12px;
+        padding: 8px 12px;
         border-radius: 99px;
         font-size: 0.9rem;
         font-weight: 500;
         color: var(--fg-secondary-color);
         white-space: nowrap;
+        display: inline-block;
       }
     }
+
     @include media-down(sm) {
       flex-direction: column;
       align-items: stretch;
-      .filters {
+
+      .search-wrapper {
+        max-width: 100%;
+        .mobile-filter-btn {
+          display: inline-flex;
+          flex-shrink: 0;
+        }
+      }
+
+      .extra-filters {
+        display: none;
         flex-direction: column;
-        .search-input,
+        background-color: var(--bg-secondary-color);
+        padding: 16px;
+        border-radius: 12px;
+        border: 1px solid var(--border-secondary-color);
+        gap: 12px;
+
+        &.is-open {
+          display: flex;
+          animation: slideDown 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+
         .lang-select,
         .status-select {
-          max-width: 100%;
           width: 100%;
         }
       }
-      .stats-badge {
-        align-self: flex-end;
+
+      .actions-and-stats {
+        justify-content: space-between;
+        width: 100%;
+        margin-left: 0;
+
+        .kit-btn {
+          flex-grow: 1;
+          justify-content: center;
+        }
+
+        .stats-badge {
+          flex-shrink: 0;
+        }
       }
     }
   }
@@ -382,7 +443,6 @@ const filteredDecks = computed(() => {
     display: flex;
     flex-direction: column;
     gap: 4px;
-
     &::-webkit-scrollbar {
       width: 4px;
     }
@@ -395,7 +455,7 @@ const filteredDecks = computed(() => {
       display: flex;
       align-items: center;
       gap: 8px;
-      padding: 6px 8px;
+      padding: 8px 12px;
       border-radius: 6px;
       cursor: pointer;
       font-size: 0.9rem;
@@ -408,10 +468,6 @@ const filteredDecks = computed(() => {
         align-items: center;
         gap: 8px;
         overflow: hidden;
-      }
-
-      .deck-icon {
-        flex-shrink: 0;
       }
 
       .deck-name {
@@ -448,6 +504,7 @@ const filteredDecks = computed(() => {
       &.active {
         background-color: rgba(var(--bg-accent-color-rgb, 201, 117, 222), 0.15);
         color: var(--fg-accent-color);
+        font-weight: 500;
       }
     }
   }
@@ -464,7 +521,6 @@ const filteredDecks = computed(() => {
 .virtual-list-container {
   flex-grow: 1;
   overflow-y: auto;
-  padding-right: 8px;
 
   &::-webkit-scrollbar {
     width: 6px;
@@ -477,7 +533,6 @@ const filteredDecks = computed(() => {
 .virtual-list-wrapper {
   display: flex;
   flex-direction: column;
-  gap: 12px;
 }
 .dict-item {
   display: flex;
@@ -555,9 +610,21 @@ const filteredDecks = computed(() => {
   font-weight: 500;
   opacity: 0.8;
 }
+
 .empty-state {
   text-align: center;
   margin-top: 60px;
   color: var(--fg-secondary-color);
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 </style>
