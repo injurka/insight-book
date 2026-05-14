@@ -22,7 +22,9 @@ const lang = defineModel<string>('lang', { required: true })
 const router = useRouter()
 const authStore = useAuthStore()
 const { theme, toggleTheme } = useChangeTheme()
+
 const fileInput = ref<HTMLInputElement | null>(null)
+const isMobileFiltersOpen = ref(false)
 
 function onFileChange(e: Event) {
   const target = e.target as HTMLInputElement
@@ -99,27 +101,46 @@ function handleLogout() {
     </div>
 
     <div class="header-bottom">
-      <div class="filters">
-        <KitInput v-model="search" placeholder="Поиск книг..." size="md" />
-        <KitSelect v-model="lang" :options="langOptions" size="md" aria-label="Выбор языка" />
+      <div class="search-wrapper">
+        <KitInput v-model="search" placeholder="Поиск книг..." size="md" class="search-input" />
+
+        <!-- Кнопка для открытия фильтров и действий на мобилках -->
+        <KitBtn
+          class="mobile-filter-btn"
+          :icon="isMobileFiltersOpen ? 'mdi:chevron-up' : 'mdi:tune-variant'"
+          variant="tonal"
+          color="secondary"
+          @click="isMobileFiltersOpen = !isMobileFiltersOpen"
+        />
       </div>
 
-      <div class="header-actions">
-        <KitBtn v-if="authStore.user" icon="mdi:book-alphabet" variant="outlined" color="secondary" @click="openDictionary">
-          Мой словарь
-        </KitBtn>
-        <KitBtn v-if="authStore.user" icon="mdi:upload" color="primary" @click="fileInput?.click()">
-          Загрузить
-        </KitBtn>
-        <input
-          v-if="authStore.user"
-          ref="fileInput"
-          type="file"
-          accept=".epub,.cbz,.zip,.fb2"
-          style="display: none"
-          @change="onFileChange"
-        >
+      <div class="filters-and-actions" :class="{ 'is-open': isMobileFiltersOpen }">
+        <KitSelect
+          v-model="lang"
+          :options="langOptions"
+          size="md"
+          aria-label="Выбор языка"
+          class="lang-select"
+        />
+
+        <div class="header-actions">
+          <KitBtn v-if="authStore.user" icon="mdi:book-alphabet" variant="outlined" color="secondary" @click="openDictionary">
+            Мой словарь
+          </KitBtn>
+          <KitBtn v-if="authStore.user" icon="mdi:upload" color="primary" @click="fileInput?.click()">
+            Загрузить
+          </KitBtn>
+        </div>
       </div>
+
+      <input
+        v-if="authStore.user"
+        ref="fileInput"
+        type="file"
+        accept=".epub,.cbz,.zip,.fb2"
+        style="display: none"
+        @change="onFileChange"
+      >
     </div>
   </header>
 </template>
@@ -129,7 +150,7 @@ function handleLogout() {
   display: flex;
   flex-direction: column;
   gap: 24px;
-  margin-bottom: 16px;
+  margin-bottom: 24px;
 
   .header-top {
     display: flex;
@@ -141,17 +162,28 @@ function handleLogout() {
         font-size: 2.2rem;
         margin: 0 0 8px 0;
         color: var(--fg-primary-color);
+        line-height: 1.1;
       }
       p {
         margin: 0;
         color: var(--fg-secondary-color);
         font-size: 1rem;
       }
+
+      @include media-down(sm) {
+        h1 {
+          font-size: 1.8rem;
+        }
+        p {
+          font-size: 0.9rem;
+        }
+      }
     }
 
     .top-actions {
       display: flex;
       gap: 4px;
+      margin-left: 12px;
     }
   }
 
@@ -159,38 +191,94 @@ function handleLogout() {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    flex-wrap: wrap;
     gap: 16px;
 
-    .filters {
-      display: flex;
-      gap: 12px;
+    .search-wrapper {
       flex-grow: 1;
-      max-width: 500px;
+      max-width: 400px;
+      display: flex;
+      gap: 8px;
+
+      .search-input {
+        width: 100%;
+      }
+
+      .mobile-filter-btn {
+        display: none;
+      }
     }
 
-    .header-actions {
+    .filters-and-actions {
       display: flex;
-      gap: 12px;
       align-items: center;
+      gap: 16px;
+
+      .lang-select {
+        width: 160px;
+      }
+
+      .header-actions {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+      }
     }
 
     @include media-down(sm) {
       flex-direction: column;
       align-items: stretch;
+      gap: 12px;
 
-      .filters {
+      .search-wrapper {
         max-width: 100%;
+
+        .mobile-filter-btn {
+          display: inline-flex;
+          flex-shrink: 0;
+        }
       }
 
-      .header-actions {
-        width: 100% !important;
+      .filters-and-actions {
+        display: none;
+        flex-direction: column;
+        align-items: stretch;
+        background-color: var(--bg-secondary-color);
+        padding: 16px;
+        border-radius: 12px;
+        border: 1px solid var(--border-secondary-color);
+        gap: 16px;
 
-        .kit-btn {
-          flex: 1;
+        &.is-open {
+          display: flex;
+          animation: slideDown 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+
+        .lang-select {
+          width: 100%;
+        }
+
+        .header-actions {
+          width: 100%;
+          flex-direction: row;
+
+          .kit-btn {
+            flex: 1;
+            justify-content: center;
+          }
         }
       }
     }
+  }
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 </style>
