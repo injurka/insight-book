@@ -15,8 +15,6 @@ const isSubmitting = ref(false)
 
 const currentCard = computed(() => dictStore.reviewQueue[currentIndex.value])
 const isFinished = computed(() => currentIndex.value >= dictStore.reviewQueue.length)
-
-// Вычисляем оставшиеся счетчики для шапки
 const remainingQueue = computed(() => dictStore.reviewQueue.slice(currentIndex.value))
 const newCount = computed(() => remainingQueue.value.filter(c => c.status === 0).length)
 const reviewCount = computed(() => remainingQueue.value.filter(c => c.status > 0).length)
@@ -42,18 +40,27 @@ function calculateNextInterval(grade: number): number {
   const { repetitions, interval, easeFactor } = currentCard.value
 
   if (grade === 0)
-    return 0 // Меньше дня
+    return 0 
 
   let newEf = easeFactor
   const gradeVal = grade === 1 ? 3 : grade === 2 ? 4 : 5
   newEf = easeFactor + (0.1 - (5 - gradeVal) * (0.08 + (5 - gradeVal) * 0.02))
   newEf = Math.max(1.3, newEf)
 
-  if (repetitions === 0)
-    return 1 // 1 день
-  if (repetitions === 1)
-    return 6 // 6 дней
-  return Math.round(interval * newEf)
+  if (repetitions === 0) {
+    return grade === 1 ? 1 : grade === 2 ? 2 : 4
+  }
+  if (repetitions === 1) {
+    return grade === 1 ? 4 : grade === 2 ? 6 : 8
+  }
+
+  let nextInterval = Math.round(interval * newEf)
+
+  if (grade === 3) {
+    nextInterval = Math.round(nextInterval * 1.3)
+  }
+
+  return nextInterval
 }
 
 function formatInterval(days: number): string {
@@ -66,7 +73,6 @@ function formatInterval(days: number): string {
   return `${Math.round(days / 30)} мес`
 }
 
-// Вычисляем лейблы для кнопок заранее
 const intervals = computed(() => {
   if (!isFlipped.value || !currentCard.value)
     return null

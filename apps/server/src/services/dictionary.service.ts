@@ -238,23 +238,26 @@ export async function processSrsReview(wordId: number, userId: number, grade: nu
   if (grade === 0) {
     repetitions = 0
     interval = 1
-    status = 1 // Learning
+    status = 1
     easeFactor = Math.max(1.3, easeFactor - 0.2)
   }
   else {
-    if (repetitions === 0) {
-      interval = 1
-    }
-    else if (repetitions === 1) {
-      interval = 6
-    }
-    else {
-      interval = Math.round(interval * easeFactor)
-    }
-
     const gradeVal = grade === 1 ? 3 : grade === 2 ? 4 : 5
     easeFactor = easeFactor + (0.1 - (5 - gradeVal) * (0.08 + (5 - gradeVal) * 0.02))
     easeFactor = Math.max(1.3, easeFactor)
+
+    if (repetitions === 0) {
+      interval = grade === 1 ? 1 : grade === 2 ? 2 : 4
+    }
+    else if (repetitions === 1) {
+      interval = grade === 1 ? 4 : grade === 2 ? 6 : 8
+    }
+    else {
+      interval = Math.round(interval * easeFactor)
+      if (grade === 3) {
+        interval = Math.round(interval * 1.3)
+      }
+    }
 
     repetitions += 1
     status = interval > 21 ? 3 : 2
