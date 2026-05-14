@@ -1,11 +1,13 @@
 import { ref } from 'vue'
 import { useReaderStore } from '~/components/05.modules/reader/store/reader.store'
+import { useToast } from '~/shared/composables/use-toast'
 import { api } from '~/shared/services/api.service'
 import { useGlobalSettingsStore } from '~/shared/store/settings.store'
 
 export function useTts() {
   const readerStore = useReaderStore()
   const settingsStore = useGlobalSettingsStore()
+  const toast = useToast()
 
   const isPlaying = ref(false)
   const isLoading = ref(false)
@@ -29,7 +31,6 @@ export function useTts() {
       const audioSrc = `data:audio/mp3;base64,${audioBase64}`
       currentAudio = new Audio(audioSrc)
 
-      // Применяем скорость из настроек
       currentAudio.playbackRate = settingsStore.ttsSpeed
 
       currentAudio.onplay = () => isPlaying.value = true
@@ -39,6 +40,7 @@ export function useTts() {
     }
     catch (e) {
       console.error('TTS Error:', e)
+      toast.error('Озвучка недоступна без интернета')
     }
     finally {
       isLoading.value = false

@@ -86,11 +86,22 @@ export const useAnalysisStore = defineStore('analysis', () => {
     const readerStore = useReaderStore()
     const libraryStore = useLibraryStore()
 
-    // Подхватываем книгу из читалки ИЛИ со страницы информации
     const currentBook = readerStore.currentBook || libraryStore.currentBookInfo
 
     if (!wordPopover.value || wordPopover.value.aiTranslation || !currentBook)
       return
+
+    const cached = await offlineService.getAnalysis(currentBook.id, wordPopover.value.word)
+    if (cached && wordPopover.value) {
+      wordPopover.value.aiData = cached
+      wordPopover.value.aiTranslation = cached.translation
+
+      const targetWord = wordPopover.value.word
+      const vocabMatch = cached.vocabulary?.find(v => v.word.includes(targetWord) || targetWord.includes(v.word))
+      wordPopover.value.aiTranscription = cached.transcription || vocabMatch?.transcription || ''
+      wordPopover.value.isAiLoading = false
+      return
+    }
 
     if (wordAbortController)
       wordAbortController.abort()
@@ -128,20 +139,8 @@ export const useAnalysisStore = defineStore('analysis', () => {
       if (err.name === 'AbortError')
         return
 
-      if (currentBook && wordPopover.value) {
-        const cached = await offlineService.getAnalysis(currentBook.id, wordPopover.value.word)
-
-        if (cached && wordAbortController === controller && wordPopover.value) {
-          wordPopover.value.aiData = cached
-          wordPopover.value.aiTranslation = cached.translation
-
-          const targetWord = wordPopover.value.word
-          const vocabMatch = cached.vocabulary?.find(v => v.word.includes(targetWord) || targetWord.includes(v.word))
-          wordPopover.value.aiTranscription = cached.transcription || vocabMatch?.transcription || ''
-        }
-        else if (wordPopover.value && wordAbortController === controller) {
-          wordPopover.value.aiTranslation = 'Оффлайн: перевод не найден в кэше'
-        }
+      if (currentBook && wordPopover.value && wordAbortController === controller) {
+        wordPopover.value.aiTranslation = 'Оффлайн: перевод не найден в кэше'
       }
     }
     finally {
@@ -257,7 +256,6 @@ export const useAnalysisStore = defineStore('analysis', () => {
         isAiLoading: true,
       }
 
-      // ИСПРАВЛЕНИЕ: Прямой вызов fetchAiTranslation вместо toggleAiTranslation
       fetchAiTranslation()
     }
   }
@@ -276,6 +274,19 @@ export const useAnalysisStore = defineStore('analysis', () => {
     const existing = analysisHistory.value.find(h => h.sentence === sentence)
     if (existing) {
       sidebarAnalysis.value = existing.analysis
+      isAnalyzing.value = false
+      return
+    }
+
+    // СТРОГИЙ CACHE-FIRST
+    const cached = await offlineService.getAnalysis(currentBook.id, sentence)
+    if (cached) {
+      sidebarAnalysis.value = cached
+      analysisHistory.value.unshift({
+        sentence,
+        analysis: cached,
+        timestamp: Date.now(),
+      })
       isAnalyzing.value = false
       return
     }
@@ -316,21 +327,7 @@ export const useAnalysisStore = defineStore('analysis', () => {
       if (err.name === 'AbortError')
         return
 
-      if (currentBook) {
-        const cached = await offlineService.getAnalysis(currentBook.id, sentence)
-
-        if (cached && sentenceAbortController === controller) {
-          sidebarAnalysis.value = cached
-          analysisHistory.value.unshift({
-            sentence,
-            analysis: cached,
-            timestamp: Date.now(),
-          })
-        }
-        else {
-          console.error('Ошибка анализа предложения (и нет в кэше):', err)
-        }
-      }
+      console.error('Ошибка анализа предложения (и нет в кэше):', err)
     }
     finally {
       if (sentenceAbortController === controller) {
@@ -409,22 +406,37 @@ export const useAnalysisStore = defineStore('analysis', () => {
         const existing = analysisHistory.value.find(h => h.sentence === sentence)
         if (!existing) {
           try {
-            const res = await api.books.analyze(
-              readerStore.currentBook.id,
-              sentence,
-              readerStore.currentBook.language,
-              signal,
-            )
-            if (signal.aborted)
-              break
+            // CACHE-FIRST для пакетного анализа тоже
+            let cached = null
+            if (readerStore.currentBook) {
+              cached = await offlineService.getAnalysis(readerStore.currentBook.id, sentence)
+            }
 
-            await offlineService.saveAnalysis(readerStore.currentBook.id, sentence, res)
+            if (cached) {
+              analysisHistory.value.unshift({
+                sentence,
+                analysis: cached,
+                timestamp: Date.now(),
+              })
+            }
+            else {
+              const res = await api.books.analyze(
+                readerStore.currentBook.id,
+                sentence,
+                readerStore.currentBook.language,
+                signal,
+              )
+              if (signal.aborted)
+                break
 
-            analysisHistory.value.unshift({
-              sentence,
-              analysis: res,
-              timestamp: Date.now(),
-            })
+              await offlineService.saveAnalysis(readerStore.currentBook.id, sentence, res)
+
+              analysisHistory.value.unshift({
+                sentence,
+                analysis: res,
+                timestamp: Date.now(),
+              })
+            }
           }
           catch (err: unknown) {
             if (!(err instanceof Error))
@@ -433,19 +445,7 @@ export const useAnalysisStore = defineStore('analysis', () => {
             if (err.name === 'AbortError')
               break
 
-            if (readerStore.currentBook) {
-              const cached = await offlineService.getAnalysis(readerStore.currentBook.id, sentence)
-              if (cached) {
-                analysisHistory.value.unshift({
-                  sentence,
-                  analysis: cached,
-                  timestamp: Date.now(),
-                })
-              }
-              else {
-                console.error('Ошибка анализа предложения:', err)
-              }
-            }
+            console.error('Ошибка анализа предложения:', err)
           }
         }
 
@@ -461,7 +461,6 @@ export const useAnalysisStore = defineStore('analysis', () => {
 
         try {
           // Для слов мы не добавляем их в HistorySidebar, только сохраняем в оффлайн-кэш
-          // для мгновенного отображения во всплывающем окне по клику.
           let cached = null
           if (readerStore.currentBook) {
             cached = await offlineService.getAnalysis(readerStore.currentBook.id, word)

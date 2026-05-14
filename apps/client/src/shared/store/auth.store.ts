@@ -16,10 +16,19 @@ export const useAuthStore = defineStore('auth', () => {
 
       if (res.user) {
         localStorage.setItem('insight_uid', String(res.user.id))
+        localStorage.setItem('insight_user_data', JSON.stringify(res.user))
       }
     }
     catch {
-      user.value = null
+      const token = localStorage.getItem('insight_token')
+      const cachedUser = localStorage.getItem('insight_user_data')
+
+      if (token && cachedUser) {
+        user.value = JSON.parse(cachedUser)
+      }
+      else {
+        user.value = null
+      }
     }
     finally {
       isAuthReady.value = true
@@ -29,6 +38,7 @@ export const useAuthStore = defineStore('auth', () => {
   function logout() {
     localStorage.removeItem('insight_token')
     localStorage.removeItem('insight_uid')
+    localStorage.removeItem('insight_user_data')
     user.value = null
   }
 

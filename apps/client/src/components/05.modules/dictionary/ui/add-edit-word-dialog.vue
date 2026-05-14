@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { UserDictItem, WordEncounter } from '~/shared/types/models'
 import { computed, ref, watch } from 'vue'
-import { KitBtn, KitDialog, KitInput, KitSelect, KitTooltip } from '~/components/01.kit'
+import { KitBtn, KitDialog, KitInput, KitPrompt, KitSelect, KitTooltip } from '~/components/01.kit'
 import { useTts } from '~/shared/composables/use-tts'
 import { DIFFICULTY_SYSTEMS } from '~/shared/constants/difficulties'
 import { useAnalysisStore } from '~/shared/store/analysis.store'
@@ -20,6 +20,9 @@ const { speak, isPlaying, isLoading } = useTts()
 const localWord = ref<WordFormData>({})
 const isEditing = computed(() => !!localWord.value.id)
 
+// Состояние для окна создания колоды
+const isDeckPromptOpen = ref(false)
+
 function handleSave() {
   analysisStore.saveWordToDict(localWord.value)
 }
@@ -36,10 +39,11 @@ function playTTS() {
   }
 }
 
-async function createInlineDeck() {
-  // eslint-disable-next-line no-alert
-  const name = prompt('Название новой колоды:')
+function openCreateDeckPrompt() {
+  isDeckPromptOpen.value = true
+}
 
+async function onInlineDeckSubmit(name: string) {
   if (name && name.trim()) {
     const lang = localWord.value.language || 'en'
     try {
@@ -47,7 +51,7 @@ async function createInlineDeck() {
       localWord.value.deckId = newDeck.id
     }
     catch {
-      // error handled in store
+      // Ошибка обрабатывается в сторе (показывается toast)
     }
   }
 }
@@ -132,7 +136,7 @@ const difficultyModel = computed({
           <label>Колода</label>
           <div class="deck-selector-row">
             <KitSelect v-model="deckIdModel" :options="deckOptions" placeholder="Выберите колоду" />
-            <KitBtn icon="mdi:plus" variant="outlined" color="secondary" @click="createInlineDeck">
+            <KitBtn icon="mdi:plus" variant="outlined" color="secondary" @click="openCreateDeckPrompt">
               Новая
             </KitBtn>
           </div>
@@ -175,6 +179,15 @@ const difficultyModel = computed({
       </div>
     </template>
   </KitDialog>
+
+  <!-- Окно создания колоды -->
+  <KitPrompt
+    v-model:visible="isDeckPromptOpen"
+    title="Новая колода"
+    placeholder="Название колоды"
+    confirm-text="Создать"
+    @submit="onInlineDeckSubmit"
+  />
 </template>
 
 <style lang="scss" scoped>

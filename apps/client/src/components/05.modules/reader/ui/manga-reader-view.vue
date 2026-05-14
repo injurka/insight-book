@@ -45,30 +45,40 @@ function getBoxStyle(box: any) {
   }
 }
 
-function prevPage() {
+async function prevPage() {
   if (readerStore.currentBook && (readerStore.currentBook.currentPage || 1) > 1) {
     const newPage = (readerStore.currentBook.currentPage || 1) - 1
-    readerStore.loadPage(readerStore.currentBook.id, newPage)
-    router.replace({ query: { ...route.query, page: newPage } })
-    window.scrollTo({ top: 0 })
+    try {
+      await readerStore.loadPage(readerStore.currentBook.id, newPage)
+      router.replace({ query: { ...route.query, page: newPage } })
+      window.scrollTo({ top: 0 })
+    }
+    catch {}
   }
 }
 
-function nextPage() {
+async function nextPage() {
   if (readerStore.currentBook && (readerStore.currentBook.currentPage || 1) < readerStore.currentBook.totalPages) {
     const newPage = (readerStore.currentBook.currentPage || 1) + 1
-    readerStore.loadPage(readerStore.currentBook.id, newPage)
-    router.replace({ query: { ...route.query, page: newPage } })
-    window.scrollTo({ top: 0 })
+    try {
+      await readerStore.loadPage(readerStore.currentBook.id, newPage)
+      router.replace({ query: { ...route.query, page: newPage } })
+      window.scrollTo({ top: 0 })
+    }
+    catch {}
   }
 }
 
-function goToPage(pageNum?: number) {
+async function goToPage(pageNum?: number) {
   if (!pageNum || !readerStore.currentBook)
     return
   readerStore.tocOpen = false
-  readerStore.loadPage(readerStore.currentBook.id, pageNum)
-  router.replace({ query: { ...route.query, page: pageNum } })
+  try {
+    await readerStore.loadPage(readerStore.currentBook.id, pageNum)
+    router.replace({ query: { ...route.query, page: pageNum } })
+    window.scrollTo({ top: 0 })
+  }
+  catch {}
 }
 
 function onScroll() {
@@ -135,7 +145,7 @@ function onScroll() {
       </div>
     </Transition>
 
-    <ReaderFooter @prev="prevPage" @next="nextPage" />
+    <ReaderFooter @prev="prevPage" @next="nextPage" @go-to="goToPage" />
 
     <KitDialog v-model:visible="readerStore.tocOpen" title="Навигация" :max-width="500">
       <div class="toc-list">

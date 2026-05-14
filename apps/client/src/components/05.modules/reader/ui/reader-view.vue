@@ -166,31 +166,42 @@ watch(() => analysisStore.activeTokenId, (newId, oldId) => {
   }
 })
 
-function prevPage() {
+async function prevPage() {
   if (readerStore.currentBook && (readerStore.currentBook.currentPage || 1) > 1) {
     const newPage = (readerStore.currentBook.currentPage || 1) - 1
-    readerStore.loadPage(readerStore.currentBook.id, newPage)
-    router.replace({ query: { ...route.query, page: newPage } })
-    readerViewRef.value?.scrollTo({ top: 0, behavior: 'smooth' })
+    try {
+      await readerStore.loadPage(readerStore.currentBook.id, newPage)
+      router.replace({ query: { ...route.query, page: newPage } })
+      readerViewRef.value?.scrollTo({ top: 0, behavior: 'smooth' })
+    }
+    catch {}
   }
 }
 
-function nextPage() {
+async function nextPage() {
   if (readerStore.currentBook && (readerStore.currentBook.currentPage || 1) < readerStore.currentBook.totalPages) {
     const newPage = (readerStore.currentBook.currentPage || 1) + 1
-    readerStore.loadPage(readerStore.currentBook.id, newPage)
-    router.replace({ query: { ...route.query, page: newPage } })
-    readerViewRef.value?.scrollTo({ top: 0, behavior: 'smooth' })
+    try {
+      await readerStore.loadPage(readerStore.currentBook.id, newPage)
+      router.replace({ query: { ...route.query, page: newPage } })
+      readerViewRef.value?.scrollTo({ top: 0, behavior: 'smooth' })
+    }
+    catch {}
   }
 }
 
-function goToPage(pageNum?: number) {
+async function goToPage(pageNum?: number) {
   if (!pageNum || !readerStore.currentBook)
     return
+
   readerStore.tocOpen = false
-  readerStore.loadPage(readerStore.currentBook.id, pageNum)
-  router.replace({ query: { ...route.query, page: pageNum } })
-  readerViewRef.value?.scrollTo({ top: 0, behavior: 'smooth' })
+
+  try {
+    await readerStore.loadPage(readerStore.currentBook.id, pageNum)
+    router.replace({ query: { ...route.query, page: pageNum } })
+    readerViewRef.value?.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+  catch {}
 }
 
 let pressTimer: ReturnType<typeof setTimeout> | null = null
@@ -323,7 +334,7 @@ function onScroll() {
         </div>
       </div>
 
-      <ReaderFooter @prev="prevPage" @next="nextPage" />
+      <ReaderFooter @prev="prevPage" @next="nextPage" @go-to="goToPage" />
     </div>
 
     <Transition name="fade">

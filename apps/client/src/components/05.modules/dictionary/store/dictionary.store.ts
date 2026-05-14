@@ -29,12 +29,18 @@ export const useDictionaryStore = defineStore('dictionary', () => {
       words.value = wordsData
       decks.value = decksData
       await offlineService.saveDictionary(words.value)
+      await offlineService.saveDecks(decks.value)
       await fetchReviewQueue()
     }
     catch {
       const cached = await offlineService.getDictionary()
+      const cachedDecks = await offlineService.getDecks()
+
       if (cached)
         words.value = cached
+
+      if (cachedDecks)
+        decks.value = cachedDecks
     }
     finally {
       isLoading.value = false

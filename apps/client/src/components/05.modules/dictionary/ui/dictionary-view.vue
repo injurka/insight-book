@@ -4,7 +4,7 @@ import { Icon } from '@iconify/vue'
 import { useVirtualList } from '@vueuse/core'
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { KitBtn, KitInput, KitSelect, KitTooltip } from '~/components/01.kit'
+import { KitBtn, KitInput, KitPrompt, KitSelect, KitTooltip } from '~/components/01.kit'
 import { useToast } from '~/shared/composables/use-toast'
 import { DIFFICULTY_SYSTEMS } from '~/shared/constants/difficulties'
 import { useAnalysisStore } from '~/shared/store/analysis.store'
@@ -18,6 +18,12 @@ const toast = useToast()
 
 const isTrainingOpen = ref(false)
 const isMobileFiltersOpen = ref(false)
+
+const isCreatePromptOpen = ref(false)
+const isRenamePromptOpen = ref(false)
+const isDeleteConfirmOpen = ref(false)
+const renameDeckTarget = ref<{ id: number, name: string } | null>(null)
+const deleteDeckTarget = ref<{ id: number, name: string } | null>(null)
 
 const langOptions = computed(() => {
   const opts = [{ label: 'Все языки', value: 'all' }]
@@ -78,30 +84,42 @@ async function startForceTraining() {
   }
 }
 
-async function handleCreateDeck() {
-  const name = prompt('Введите название новой колоды:')
-  if (!name || !name.trim())
-    return
+// === УПРАВЛЕНИЕ КОЛОДАМИ ===
 
-  const lang = store.selectedLanguage !== 'all' ? store.selectedLanguage : 'en'
-  const finalLang = prompt('Введите код языка для колоды (например, en, zh, ja):', lang)
-  if (!finalLang || !finalLang.trim())
-    return
-
-  await store.createDeck(name.trim(), finalLang.trim())
+function openCreateDeck() {
+  isCreatePromptOpen.value = true
 }
 
-async function handleRenameDeck(id: number, currentName: string) {
-  const newName = prompt('Новое название колоды:', currentName)
-  if (newName && newName.trim() && newName !== currentName) {
-    await store.updateDeck(id, newName.trim())
+async function onCreateDeckSubmit(name: string) {
+  if (name.trim()) {
+    // Автоматически берем выбранный язык. Если 'all', то 'en' (чтобы пользователю не приходилось вводить язык вручную)
+    const lang = store.selectedLanguage !== 'all' ? store.selectedLanguage : 'en'
+    await store.createDeck(name.trim(), lang)
   }
 }
 
-async function handleDeleteDeck(id: number, name: string) {
-  if (confirm(`Удалить колоду "${name}"? Карточки останутся в общем словаре без колоды.`)) {
-    await store.deleteDeck(id)
+function openRenameDeck(id: number, currentName: string) {
+  renameDeckTarget.value = { id, name: currentName }
+  isRenamePromptOpen.value = true
+}
+
+async function onRenameDeckSubmit(newName: string) {
+  if (renameDeckTarget.value && newName.trim() && newName !== renameDeckTarget.value.name) {
+    await store.updateDeck(renameDeckTarget.value.id, newName.trim())
   }
+  renameDeckTarget.value = null
+}
+
+function openDeleteDeck(id: number, name: string) {
+  deleteDeckTarget.value = { id, name }
+  isDeleteConfirmOpen.value = true
+}
+
+async function onDeleteDeckConfirm() {
+  if (deleteDeckTarget.value) {
+    await store.deleteDeck(deleteDeckTarget.value.id)
+  }
+  deleteDeckTarget.value = null
 }
 
 const filteredDecks = computed(() => {
@@ -183,7 +201,7 @@ const filteredDecks = computed(() => {
       <aside class="decks-sidebar">
         <div class="decks-header">
           <h3>Колоды</h3>
-          <KitBtn icon="mdi:plus" variant="text" size="xs" @click="handleCreateDeck" />
+          <KitBtn icon="mdi:plus" variant="text" size="xs" @click="openCreateDeck" />
         </div>
         <ul class="decks-list">
           <li :class="{ active: store.selectedDeckId === 'all' }" @click="store.selectedDeckId = 'all'">
@@ -204,10 +222,10 @@ const filteredDecks = computed(() => {
               <span class="deck-name">{{ deck.name }}</span>
             </div>
             <div class="deck-actions">
-              <button @click.stop="handleRenameDeck(deck.id, deck.name)">
+              <button @click.stop="openRenameDeck(deck.id, deck.name)">
                 <Icon width="12" height="12" icon="mdi:pencil" />
               </button>
-              <button @click.stop="handleDeleteDeck(deck.id, deck.name)">
+              <button @click.stop="openDeleteDeck(deck.id, deck.name)">
                 <Icon width="12" height="12" icon="mdi:delete-outline" />
               </button>
             </div>
@@ -259,7 +277,35 @@ const filteredDecks = computed(() => {
       </div>
     </div>
 
+    <!-- Диалоги -->
     <SrsTrainingDialog v-model:visible="isTrainingOpen" @finished="store.fetchReviewQueue" />
+
+    <KitPrompt
+      v-model:visible="isCreatePromptOpen"
+      title="Новая колода"
+      placeholder="Название колоды"
+      confirm-text="Создать"
+      @submit="onCreateDeckSubmit"
+    />
+
+    <KitPrompt
+      v-model:visible="isRenamePromptOpen"
+      title="Переименовать колоду"
+      placeholder="Новое название"
+      :default-value="renameDeckTarget?.name"
+      confirm-text="Сохранить"
+      @submit="onRenameDeckSubmit"
+    />
+
+    <KitPrompt
+      v-model:visible="isDeleteConfirmOpen"
+      title="Удаление колоды"
+      :description="`Удалить колоду «${deleteDeckTarget?.name}»? Сами карточки не удалятся, а просто перейдут в общий список «Без колоды».`"
+      :hide-input="true"
+      confirm-text="Удалить"
+      cancel-text="Отмена"
+      @submit="onDeleteDeckConfirm"
+    />
   </div>
 </template>
 

@@ -10,12 +10,14 @@ interface Props {
   persistent?: boolean
   description?: string
   floating?: boolean
+  resizable?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
   maxWidth: 700,
   persistent: false,
   floating: false,
+  resizable: true, 
 })
 
 const visible = defineModel<boolean>('visible', { required: true })
@@ -70,6 +72,9 @@ let startPosX = 0
 let startPosY = 0
 
 function startResize(handle: string, e: MouseEvent) {
+  if (!props.resizable)
+    return
+
   isResizing = true
   currentHandle = handle
   hasResized.value = true
@@ -88,7 +93,7 @@ function startResize(handle: string, e: MouseEvent) {
 }
 
 function onResize(e: MouseEvent) {
-  if (!isResizing)
+  if (!isResizing || !props.resizable)
     return
   const dx = e.clientX - startX
   const dy = e.clientY - startY
@@ -236,15 +241,17 @@ onUnmounted(() => {
           @mousedown.stop
         >
           <!-- Элементы ресайза -->
-          <div class="resize-handle top" @mousedown.prevent="startResize('top', $event)" />
-          <div class="resize-handle right" @mousedown.prevent="startResize('right', $event)" />
-          <div class="resize-handle bottom" @mousedown.prevent="startResize('bottom', $event)" />
-          <div class="resize-handle left" @mousedown.prevent="startResize('left', $event)" />
+          <template v-if="resizable">
+            <div class="resize-handle top" @mousedown.prevent="startResize('top', $event)" />
+            <div class="resize-handle right" @mousedown.prevent="startResize('right', $event)" />
+            <div class="resize-handle bottom" @mousedown.prevent="startResize('bottom', $event)" />
+            <div class="resize-handle left" @mousedown.prevent="startResize('left', $event)" />
 
-          <div class="resize-handle top-left" @mousedown.prevent="startResize('top-left', $event)" />
-          <div class="resize-handle top-right" @mousedown.prevent="startResize('top-right', $event)" />
-          <div class="resize-handle bottom-left" @mousedown.prevent="startResize('bottom-left', $event)" />
-          <div class="resize-handle bottom-right" @mousedown.prevent="startResize('bottom-right', $event)" />
+            <div class="resize-handle top-left" @mousedown.prevent="startResize('top-left', $event)" />
+            <div class="resize-handle top-right" @mousedown.prevent="startResize('top-right', $event)" />
+            <div class="resize-handle bottom-left" @mousedown.prevent="startResize('bottom-left', $event)" />
+            <div class="resize-handle bottom-right" @mousedown.prevent="startResize('bottom-right', $event)" />
+          </template>
 
           <div ref="dialogHeaderRef" class="dialog-header" :class="{ 'is-draggable': floating || (!floating && isMobile) }">
             <div class="mobile-drag-indicator" />
@@ -624,7 +631,6 @@ onUnmounted(() => {
 @keyframes content-slide-down {
   from {
     opacity: 1;
-    // Оставляем переменную смещения, чтобы при закрытии свайпом не было "прыжка" обратно наверх
     transform: translateY(var(--swipe-offset, 0));
   }
   to {
@@ -633,4 +639,3 @@ onUnmounted(() => {
   }
 }
 </style>
-``

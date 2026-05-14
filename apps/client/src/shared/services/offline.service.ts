@@ -1,4 +1,4 @@
-import type { Book, LlmAnalysis, PagePayload, TocItem, UserDictItem } from '../types/models'
+import type { Book, DictDeck, LlmAnalysis, PagePayload, TocItem, UserDictItem } from '../types/models'
 import localforage from 'localforage'
 import { useToastStore } from '~/shared/store/toast.store'
 
@@ -70,6 +70,14 @@ export const offlineService = {
 
   async getDictionary(): Promise<UserDictItem[] | null> {
     return await safeGetItem('dictionary_words')
+  },
+
+  async saveDecks(decks: DictDeck[]) {
+    await safeSetItem('dictionary_decks', JSON.parse(JSON.stringify(decks)))
+  },
+
+  async getDecks(): Promise<DictDeck[] | null> {
+    return await safeGetItem('dictionary_decks')
   },
 
   async saveAnalysis(bookId: number, text: string, analysis: LlmAnalysis) {

@@ -3,6 +3,7 @@ import { useLibraryStore } from '~/components/05.modules/library/store/library.s
 import { api } from '~/shared/services/api.service'
 import { offlineService } from '~/shared/services/offline.service'
 import { useAnalysisStore } from '~/shared/store/analysis.store'
+import { useToastStore } from '~/shared/store/toast.store'
 
 export const useReaderStore = defineStore('reader', () => {
   const currentBook = ref<Book | null>(null)
@@ -35,6 +36,9 @@ export const useReaderStore = defineStore('reader', () => {
 
   async function loadPage(bookId: number, pageNum: number) {
     const analysisStore = useAnalysisStore()
+    const toastStore = useToastStore()
+
+    const prevPageNum = currentBook.value?.currentPage || 1
 
     analysisStore.cancelPageAnalysis()
     analysisStore.closePopover()
@@ -44,7 +48,7 @@ export const useReaderStore = defineStore('reader', () => {
     isPageLoading.value = true
 
     if (currentToc.value.length === 0 || lastTocBookId !== bookId) {
-      await fetchToc(bookId)
+      await fetchToc(bookId).catch(() => { })
     }
 
     try {
@@ -64,6 +68,10 @@ export const useReaderStore = defineStore('reader', () => {
           currentBook.value.currentPage = pageNum
       }
       else {
+        if (currentBook.value)
+          currentBook.value.currentPage = prevPageNum
+
+        toastStore.error('Эта страница недоступна в оффлайн-режиме')
         throw e
       }
     }

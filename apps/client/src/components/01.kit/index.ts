@@ -4,6 +4,7 @@ import KitDialog from './kit-dialog/ui/kit-dialog.vue'
 import KitDropdown from './kit-dropdown/ui/kit-dropdown.vue'
 import KitImage from './kit-image/ui/kit-image.vue'
 import KitInput from './kit-input/ui/kit-input.vue'
+import KitPrompt from './kit-prompt/ui/kit-prompt.vue'
 import KitSelect from './kit-select/ui/kit-select.vue'
 import KitSkeleton from './kit-skeleton/ui/kit-skeleton.vue'
 import KitToast from './kit-toast/ui/kit-toast-item.vue'
@@ -16,6 +17,7 @@ export {
   KitDropdown,
   KitImage,
   KitInput,
+  KitPrompt,
   KitSelect,
   KitSkeleton,
   KitToast,
