@@ -23,7 +23,7 @@ export interface BookStats {
 export interface Book {
   id: number
   title: string
-  type: 'epub' | 'manga'
+  type: 'epub' | 'manga' | 'fb2'
   author: string | null
   coverUrl: string | null
   filePath: string
@@ -64,7 +64,7 @@ export interface PagePayload {
   bookId: number
   pageNum: number
   totalPages: number
-  type?: 'epub' | 'manga'
+  type?: 'epub' | 'manga' | 'fb2'
   content: string
   pageDictionary: Record<string, PageDictEntry>
   imageUrl?: string

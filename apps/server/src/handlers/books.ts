@@ -240,8 +240,11 @@ export async function handleUploadBook(req: Request, userId: number): Promise<Re
   else if (filename.endsWith('.cbz') || filename.endsWith('.zip')) {
     bookId = await runWorkerTask('processCbz', { buffer: arrayBuffer, filename: file.name, userId })
   }
+  else if (filename.endsWith('.fb2')) {
+    bookId = await runWorkerTask('processFb2', { buffer: arrayBuffer, filename: file.name, userId })
+  }
   else {
-    throw new AppError(400, 'Поддерживаются только .epub и .cbz файлы')
+    throw new AppError(400, 'Поддерживаются только .epub, .cbz, .zip и .fb2 файлы')
   }
 
   const book = await db.query.books.findFirst({ where: eq(schema.books.id, bookId) })

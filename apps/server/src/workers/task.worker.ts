@@ -1,6 +1,7 @@
 /// <reference lib="webworker" />
 
 import { processEpub } from '../services/epub.service'
+import { processFb2 } from '../services/fb2.service'
 import { processCbz } from '../services/manga.service'
 import { analyzeBookVocabulary, initNLP, tokenizeHtmlPage, tokenizeOcrBlocks } from '../services/nlp.service'
 
@@ -17,6 +18,9 @@ self.onmessage = async (event: MessageEvent) => {
     switch (type) {
       case 'processEpub':
         result = await processEpub(payload.buffer, payload.filename)
+        break
+      case 'processFb2':
+        result = await processFb2(payload.buffer, payload.filename, payload.userId)
         break
       case 'processCbz':
         result = await processCbz(payload.buffer, payload.filename)

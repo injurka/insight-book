@@ -115,7 +115,7 @@ function handleLogout() {
           v-if="authStore.user"
           ref="fileInput"
           type="file"
-          accept=".epub,.cbz,.zip"
+          accept=".epub,.cbz,.zip,.fb2"
           style="display: none"
           @change="onFileChange"
         >
