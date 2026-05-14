@@ -26,9 +26,12 @@ function formatBytes(bytes: number, decimals = 2) {
 function formatPagesList(pages: number[]) {
   if (pages.length === 0)
     return 'Нет сохраненных страниц'
-  if (pages.length <= 15)
-    return pages.join(', ')
-  return `${pages.slice(0, 15).join(', ')} ... и ещё ${pages.length - 15}`
+
+  // Сортируем страницы для красоты
+  const sorted = [...pages].sort((a, b) => a - b)
+  if (sorted.length <= 15)
+    return sorted.join(', ')
+  return `${sorted.slice(0, 15).join(', ')} ... и ещё ${sorted.length - 15}`
 }
 
 const storagePercent = computed(() => {
@@ -115,41 +118,62 @@ const storagePercent = computed(() => {
           :key="id"
           class="book-cache-card"
         >
-          <div class="book-info">
-            <h3>{{ book.title }}</h3>
-
-            <div class="details-grid">
-              <div class="detail-box page-box">
-                <span class="d-label">Страницы ({{ book.cachedPages.length }} из {{ book.totalPages }})</span>
-                <span class="d-value text-small">{{ formatPagesList(book.cachedPages) }}</span>
+          <div class="book-card-header">
+            <div class="title-section">
+              <div class="icon-wrapper">
+                <Icon icon="mdi:book-open-variant" />
               </div>
-
-              <div class="detail-box">
-                <span class="d-label">Анализы ИИ</span>
-                <span class="d-value">{{ book.analysesCount }} слов/предложений</span>
-              </div>
-
-              <div class="detail-box">
-                <span class="d-label">Размер кэша</span>
-                <span class="d-value">{{ formatBytes(book.sizeBytes) }}</span>
-              </div>
+              <h3>{{ book.title }}</h3>
             </div>
-          </div>
 
-          <div class="actions">
             <KitBtn
               icon="mdi:delete-outline"
               variant="outlined"
+              class="delete-btn"
               :disabled="book.cachedPages.length === 0 && book.analysesCount === 0 && book.sizeBytes === 0"
               @click="cacheStore.clearBookCache(Number(id))"
-            >
-              Очистить
-            </KitBtn>
+            />
+          </div>
+
+          <div class="book-card-body">
+            <div class="stats-badges">
+              <div class="badge">
+                <Icon icon="mdi:database-outline" />
+                <span>{{ formatBytes(book.sizeBytes) }}</span>
+              </div>
+              <div class="badge">
+                <Icon icon="mdi:robot-outline" />
+                <span>Анализов ИИ: <b>{{ book.analysesCount }}</b></span>
+              </div>
+              <div class="badge">
+                <Icon icon="mdi:file-document-edit-outline" />
+                <span>Страниц в кэше: <b>{{ book.cachedPages.length }} / {{ book.totalPages }}</b></span>
+              </div>
+            </div>
+
+            <div class="cache-progress-section">
+              <div class="progress-bar-wrap">
+                <div
+                  class="progress-fill"
+                  :style="{ width: `${book.totalPages > 0 ? (book.cachedPages.length / book.totalPages) * 100 : 0}%` }"
+                />
+              </div>
+              <div class="progress-footer">
+                <span class="progress-text">
+                  Оффлайн доступно <b>{{ book.totalPages > 0 ? Math.round((book.cachedPages.length / book.totalPages) * 100) : 0 }}%</b> книги
+                </span>
+
+                <KitTooltip v-if="book.cachedPages.length > 0" :text="formatPagesList(book.cachedPages)" placement="top-end">
+                  <span class="pages-list-hint">Номера страниц</span>
+                </KitTooltip>
+              </div>
+            </div>
           </div>
         </div>
 
         <div v-if="Object.keys(cacheStore.stats.bookStats).length === 0" class="empty-state">
-          Книг в библиотеке нет.
+          <Icon icon="mdi:folder-open-outline" class="empty-icon" />
+          <p>Книг в библиотеке нет.</p>
         </div>
       </div>
     </div>
@@ -164,7 +188,7 @@ const storagePercent = computed(() => {
   min-height: 100dvh;
 
   @include media-down(md) {
-    padding: 8px;
+    padding: 16px;
   }
 }
 
@@ -320,101 +344,190 @@ const storagePercent = computed(() => {
 }
 
 .section-title {
-  margin-bottom: 16px;
+  margin-bottom: 20px;
   font-size: 1.4rem;
 }
 
+/* --- BOOKS LIST --- */
 .books-list {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 20px;
 }
 
 .book-cache-card {
   background: var(--bg-primary-color);
   border: 1px solid var(--border-primary-color);
-  border-radius: 12px;
+  border-radius: 16px;
   padding: 20px;
   display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 24px;
-  transition: border-color 0.2s;
+  flex-direction: column;
+  gap: 20px;
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s;
 
   &:hover {
-    border-color: var(--fg-accent-color);
+    border-color: var(--border-accent-color);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.05);
   }
 
-  @include media-down(sm) {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .book-info {
-    flex-grow: 1;
-
-    h3 {
-      margin: 0 0 16px;
-      font-size: 1.2rem;
-      color: var(--fg-primary-color);
-    }
-  }
-
-  .details-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  .book-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
     gap: 16px;
 
-    .page-box {
-      grid-column: 1 / -1;
-    }
-
-    .detail-box {
-      display: flex;
+    @include media-down(sm) {
       flex-direction: column;
-      gap: 4px;
-      background: var(--bg-secondary-color);
-      padding: 12px;
-      border-radius: 8px;
+    }
 
-      .d-label {
-        font-size: 0.85rem;
-        color: var(--fg-secondary-color);
+    .title-section {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+
+      .icon-wrapper {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 48px;
+        height: 48px;
+        background: rgba(var(--bg-accent-color-rgb, 201, 117, 222), 0.15);
+        color: var(--fg-accent-color);
+        border-radius: 12px;
+        font-size: 1.6rem;
+        flex-shrink: 0;
       }
-      .d-value {
-        font-size: 0.95rem;
-        font-weight: 500;
 
-        &.text-small {
-          font-weight: normal;
-          color: var(--fg-primary-color);
-          line-height: 1.4;
-        }
+      h3 {
+        margin: 0;
+        font-size: 1.15rem;
+        color: var(--fg-primary-color);
+        font-weight: 600;
+        line-height: 1.4;
       }
     }
-  }
 
-  .actions {
-    flex-shrink: 0;
-
-    .kit-btn {
+    .delete-btn {
       color: var(--fg-error-color) !important;
       border-color: var(--border-error-color) !important;
+      flex-shrink: 0;
+      padding: 0.5rem;
 
       &:hover:not(:disabled) {
         background-color: var(--bg-error-color) !important;
         color: white !important;
+      }
+
+      @include media-down(sm) {
+        width: 100%;
+      }
+    }
+  }
+
+  .book-card-body {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .stats-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+
+    .badge {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--bg-secondary-color);
+      border: 1px solid var(--border-secondary-color);
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      color: var(--fg-secondary-color);
+
+      svg {
+        font-size: 1.2rem;
+        color: var(--fg-primary-color);
+      }
+
+      b {
+        color: var(--fg-primary-color);
+        font-weight: 600;
+      }
+    }
+  }
+
+  .cache-progress-section {
+    background: var(--bg-secondary-color);
+    padding: 16px;
+    border-radius: 12px;
+
+    .progress-bar-wrap {
+      width: 100%;
+      height: 6px;
+      background-color: var(--bg-tertiary-color);
+      border-radius: 3px;
+      overflow: hidden;
+      margin-bottom: 12px;
+
+      .progress-fill {
+        height: 100%;
+        background-color: var(--fg-accent-color);
+        border-radius: 3px;
+        transition: width 0.3s ease;
+      }
+    }
+
+    .progress-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.85rem;
+
+      .progress-text {
+        color: var(--fg-secondary-color);
+        b {
+          color: var(--fg-primary-color);
+        }
+      }
+
+      .pages-list-hint {
+        color: var(--fg-accent-color);
+        cursor: help;
+        font-weight: 500;
+        text-decoration: underline;
+        text-decoration-style: dashed;
+        text-decoration-color: var(--fg-accent-color);
+        text-underline-offset: 4px;
+        padding-left: 12px;
       }
     }
   }
 }
 
 .empty-state {
-  text-align: center;
-  padding: 40px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 60px;
   color: var(--fg-secondary-color);
   border: 1px dashed var(--border-primary-color);
-  border-radius: 12px;
+  border-radius: 16px;
+  background-color: var(--bg-secondary-color);
+
+  .empty-icon {
+    font-size: 3rem;
+    opacity: 0.5;
+  }
+
+  p {
+    margin: 0;
+    font-size: 1.1rem;
+  }
 }
 
 .mb-4 {
