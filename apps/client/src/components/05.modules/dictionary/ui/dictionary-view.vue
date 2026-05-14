@@ -187,7 +187,7 @@ const filteredDecks = computed(() => {
             @click="store.selectedDeckId = deck.id"
           >
             <div class="deck-name-wrap">
-              <Icon icon="mdi:folder-star-outline" />
+              <Icon class="deck-icon" icon="mdi:folder-star-outline" />
               <span class="deck-name">{{ deck.name }}</span>
             </div>
             <div class="deck-actions">
@@ -382,6 +382,7 @@ const filteredDecks = computed(() => {
     display: flex;
     flex-direction: column;
     gap: 4px;
+
     &::-webkit-scrollbar {
       width: 4px;
     }
@@ -394,7 +395,7 @@ const filteredDecks = computed(() => {
       display: flex;
       align-items: center;
       gap: 8px;
-      padding: 8px 12px;
+      padding: 6px 8px;
       border-radius: 6px;
       cursor: pointer;
       font-size: 0.9rem;
@@ -407,6 +408,10 @@ const filteredDecks = computed(() => {
         align-items: center;
         gap: 8px;
         overflow: hidden;
+      }
+
+      .deck-icon {
+        flex-shrink: 0;
       }
 
       .deck-name {
@@ -443,7 +448,6 @@ const filteredDecks = computed(() => {
       &.active {
         background-color: rgba(var(--bg-accent-color-rgb, 201, 117, 222), 0.15);
         color: var(--fg-accent-color);
-        font-weight: 500;
       }
     }
   }
