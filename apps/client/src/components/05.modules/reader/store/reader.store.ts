@@ -45,11 +45,19 @@ export const useReaderStore = defineStore('reader', () => {
     analysisStore.closeSelectionTooltip()
     analysisStore.sidebarOpen = false
 
-    isPageLoading.value = true
-
     if (currentToc.value.length === 0 || lastTocBookId !== bookId) {
       await fetchToc(bookId).catch(() => { })
     }
+
+    const cached = await offlineService.getPage(bookId, pageNum)
+    if (cached) {
+      currentPage.value = cached
+      if (currentBook.value)
+        currentBook.value.currentPage = pageNum
+      return
+    }
+
+    isPageLoading.value = true
 
     try {
       const page = await api.books.getPage(bookId, pageNum)
@@ -61,19 +69,11 @@ export const useReaderStore = defineStore('reader', () => {
         currentBook.value.currentPage = pageNum
     }
     catch (e) {
-      const cached = await offlineService.getPage(bookId, pageNum)
-      if (cached) {
-        currentPage.value = cached
-        if (currentBook.value)
-          currentBook.value.currentPage = pageNum
-      }
-      else {
-        if (currentBook.value)
-          currentBook.value.currentPage = prevPageNum
+      if (currentBook.value)
+        currentBook.value.currentPage = prevPageNum
 
-        toastStore.error('Эта страница недоступна в оффлайн-режиме')
-        throw e
-      }
+      toastStore.error('Эта страница недоступна в оффлайн-режиме')
+      throw e
     }
     finally {
       isPageLoading.value = false
@@ -82,6 +82,7 @@ export const useReaderStore = defineStore('reader', () => {
 
   async function openBook(book: Book) {
     currentBook.value = book
+    currentPage.value = null
     const analysisStore = useAnalysisStore()
     analysisStore.analysisHistory = []
     const startPage = book.currentPage || 1
@@ -102,6 +103,8 @@ export const useReaderStore = defineStore('reader', () => {
         throw new Error('Книга не найдена')
 
       currentBook.value = book
+      currentPage.value = null
+
       analysisStore.analysisHistory = []
       const pageToLoad = startPage || book.currentPage || 1
       await loadPage(book.id, pageToLoad)

@@ -329,6 +329,12 @@ const fontOptions = [
   flex-direction: column;
   gap: 12px;
 
+  :deep(.kit-select-trigger) {
+    background-color: transparent;
+    border: none;
+    padding: 0;
+  }
+
   .typography-row {
     display: flex;
     align-items: center;

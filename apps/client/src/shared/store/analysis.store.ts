@@ -360,10 +360,10 @@ export const useAnalysisStore = defineStore('analysis', () => {
         }
       }
 
-      // Извлекаем уникальные слова
       if (mode === 'words' || mode === 'all') {
         const wordRegex = /data-word="([^"]+)"[^>]*?data-pos="([^"]+)"/g
         let match
+        // eslint-disable-next-line no-cond-assign
         while ((match = wordRegex.exec(html)) !== null) {
           if (match[2] !== 'x') { // Игнорируем пунктуацию
             wordsToAnalyze.add(decodeURIComponent(match[1]))
@@ -541,7 +541,6 @@ export const useAnalysisStore = defineStore('analysis', () => {
     const dictStore = useDictionaryStore()
     await dictStore.fetchDictionary()
 
-    // Обновляем страницу локально, чтобы не требовалась перезагрузка для подсветки звездочки
     const readerStore = useReaderStore()
     if (readerStore.currentPage?.pageDictionary && item.word) {
       readerStore.currentPage.pageDictionary[item.word] = {
@@ -549,6 +548,9 @@ export const useAnalysisStore = defineStore('analysis', () => {
         transcription: item.transcription || '',
         translation: item.translation || '',
         isUserDict: true,
+      }
+      if (readerStore.currentBook) {
+        await offlineService.savePage(readerStore.currentBook.id, readerStore.currentPage.pageNum, readerStore.currentPage)
       }
     }
 
@@ -566,10 +568,12 @@ export const useAnalysisStore = defineStore('analysis', () => {
     const dictStore = useDictionaryStore()
     await dictStore.fetchDictionary()
 
-    // Снимаем локально флаг сохранения
     const readerStore = useReaderStore()
     if (readerStore.currentPage?.pageDictionary && readerStore.currentPage.pageDictionary[word]) {
       readerStore.currentPage.pageDictionary[word].isUserDict = false
+      if (readerStore.currentBook) {
+        await offlineService.savePage(readerStore.currentBook.id, readerStore.currentPage.pageNum, readerStore.currentPage)
+      }
     }
 
     if (wordPopover.value && wordPopover.value.word === word) {
