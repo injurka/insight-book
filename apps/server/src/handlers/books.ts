@@ -21,6 +21,23 @@ function json(data: unknown, status = 200) {
   })
 }
 
+function extractUniqueWordsFromHtml(html: string): string[] {
+  const words = new Set<string>()
+  const regex = /data-word="([^"]+)"/g
+  let match
+  while ((match = regex.exec(html)) !== null) {
+    try {
+      const word = decodeURIComponent(match[1])
+      if (/[\p{L}\p{N}]/u.test(word)) {
+        words.add(word)
+        words.add(word.toLowerCase())
+      }
+    }
+    catch (e) { }
+  }
+  return Array.from(words)
+}
+
 // Zod-Схемы валидации
 const UpdateBookSchema = z.object({
   title: z.string().optional(),
@@ -349,7 +366,10 @@ export async function handleGetPage(req: Request, userId: number): Promise<Respo
 
   if (cached) {
     try {
-      return json(JSON.parse(cached.data))
+      const parsed = JSON.parse(cached.data) as PagePayload
+      const uniqueWords = extractUniqueWordsFromHtml(parsed.content)
+      parsed.pageDictionary = await lookupWords(uniqueWords, book.language, userId)
+      return json(parsed)
     }
     catch { }
   }

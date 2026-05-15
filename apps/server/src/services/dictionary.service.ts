@@ -12,6 +12,7 @@ export async function lookupWords(words: string[], language: string, userId: num
   const dict: Record<string, PageDictEntry> = {}
   const chunkSize = 500
 
+  // 1. Сначала ищем слова в пользовательском словаре
   for (let i = 0; i < words.length; i += chunkSize) {
     const chunk = words.slice(i, i + chunkSize)
 
@@ -29,13 +30,19 @@ export async function lookupWords(words: string[], language: string, userId: num
     }
   }
 
+  // 2. Ищем ненайденные слова во внешнем словаре
   const conn = getDictConnection(language)
   if (conn) {
-    const dictTable = sqliteTable(conn.tableName, {
-      word: text('word').notNull(),
-      transcription: text(conn.tableName === 'zh_dictionary' ? 'pinyin' : 'transcription'),
-      translation: text('translation'),
-    })
+    // Динамически строим Drizzle-схему для внешнего словаря
+    const schemaObj: any = {}
+    schemaObj[conn.wordCol] = text(conn.wordCol).notNull()
+    schemaObj[conn.translationCol] = text(conn.translationCol)
+
+    if (conn.hasTranscription) {
+      schemaObj[conn.transcriptionCol] = text(conn.transcriptionCol)
+    }
+
+    const dictTable = sqliteTable(conn.tableName, schemaObj)
 
     for (let i = 0; i < words.length; i += chunkSize) {
       const chunk = words.slice(i, i + chunkSize)
@@ -44,17 +51,29 @@ export async function lookupWords(words: string[], language: string, userId: num
         continue
 
       try {
+        const selection: any = {
+          word: dictTable[conn.wordCol],
+          translation: dictTable[conn.translationCol],
+        }
+        if (conn.hasTranscription) {
+          selection.transcription = dictTable[conn.transcriptionCol]
+        }
+
         const rows = await conn.dDb
-          .select({ word: dictTable.word, transcription: dictTable.transcription, translation: dictTable.translation })
+          .select(selection)
           .from(dictTable)
-          .where(inArray(dictTable.word, missingWords))
+          .where(inArray(dictTable[conn.wordCol], missingWords))
 
         for (const row of rows) {
           if (!row.word)
             continue
-          const entry = { transcription: row.transcription || '', translation: row.translation || '' }
-          dict[row.word] = entry
-          dict[row.word.toLowerCase()] = entry
+          const entry = {
+            transcription: (conn.hasTranscription ? row.transcription : '') || '',
+            translation: row.translation || '',
+          }
+          // Записываем в двух регистрах, чтобы 100% матчить на клиенте
+          dict[row.word as string] = entry
+          dict[(row.word as string).toLowerCase()] = entry
         }
       }
       catch (e) {
@@ -77,18 +96,37 @@ export async function lookupSingleWord(word: string, language: string, userId: n
   if (!conn)
     return null
 
-  const dictTable = sqliteTable(conn.tableName, {
-    word: text('word').notNull(),
-    transcription: text(conn.tableName === 'zh_dictionary' ? 'pinyin' : 'transcription'),
-    translation: text('translation'),
-  })
+  // Динамически строим Drizzle-схему для внешнего словаря
+  const schemaObj: any = {}
+  schemaObj[conn.wordCol] = text(conn.wordCol).notNull()
+  schemaObj[conn.translationCol] = text(conn.translationCol)
+
+  if (conn.hasTranscription) {
+    schemaObj[conn.transcriptionCol] = text(conn.transcriptionCol)
+  }
+
+  const dictTable = sqliteTable(conn.tableName, schemaObj)
 
   try {
-    const rows = await conn.dDb.select().from(dictTable).where(sql`${dictTable.word} = ${word} COLLATE NOCASE`).limit(1)
-    if (rows.length > 0)
-      return { transcription: rows[0].transcription || '', translation: rows[0].translation || '' }
+    const selection: any = {
+      word: dictTable[conn.wordCol],
+      translation: dictTable[conn.translationCol],
+    }
+    if (conn.hasTranscription) {
+      selection.transcription = dictTable[conn.transcriptionCol]
+    }
+
+    const rows = await conn.dDb.select(selection).from(dictTable).where(sql`${dictTable[conn.wordCol]} = ${word} COLLATE NOCASE`).limit(1)
+    if (rows.length > 0) {
+      return {
+        transcription: (conn.hasTranscription ? rows[0].transcription : '') || '',
+        translation: rows[0].translation || '',
+      }
+    }
   }
-  catch { }
+  catch (e) {
+    console.error(`[Dictionary Error] Failed to lookup single word in ${conn.tableName}:`, e)
+  }
 
   return null
 }
@@ -223,7 +261,6 @@ export async function getReviewQueue(userId: number, language?: string, mode: 's
     })
   }
   else {
-    // Случайная разминка игнорирует таймеры
     return await db.query.userDictionary.findMany({
       where: and(...filters),
       with: { encounters: true },
@@ -245,14 +282,12 @@ export async function processSrsReview(wordId: number, userId: number, grade: nu
 
   // Плавная логика шагов интервалов в днях
   if (grade === 0) {
-    // Снова (Again) - 1 минута (1/1440 дня). Сброс прогресса.
     repetitions = 0
     interval = 1 / 1440
     status = 1
     easeFactor = Math.max(1.3, easeFactor - 0.2)
   }
   else if (grade === 1) {
-    // Тяжело (Hard)
     easeFactor = Math.max(1.3, easeFactor - 0.15)
     if (repetitions === 0 || interval < 1) {
       interval = 10 / 1440 // 10 минут
@@ -264,7 +299,6 @@ export async function processSrsReview(wordId: number, userId: number, grade: nu
     status = interval < 1 ? 1 : 2
   }
   else if (grade === 2) {
-    // Хорошо (Good)
     if (repetitions === 0 || interval < 1) {
       interval = 1 // 1 день
     }
@@ -275,7 +309,6 @@ export async function processSrsReview(wordId: number, userId: number, grade: nu
     status = interval > 21 ? 3 : 2
   }
   else if (grade === 3) {
-    // Легко (Easy)
     easeFactor += 0.15
     if (repetitions === 0 || interval < 1) {
       interval = 4 // 4 дня
@@ -287,7 +320,6 @@ export async function processSrsReview(wordId: number, userId: number, grade: nu
     status = interval > 21 ? 3 : 2
   }
 
-  // Обновляем дату (прибавляем интервал к текущему времени)
   const nextDate = new Date(Date.now() + interval * 24 * 60 * 60 * 1000)
 
   await db.update(schema.userDictionary).set({

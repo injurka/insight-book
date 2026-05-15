@@ -40,10 +40,6 @@ export const db = drizzle(sqlite, { schema, logger: false })
     if (isMainThread) {
       console.log('🔄 Checking and syncing database schema...')
 
-      // ПРЕДСОЗДАЕМ таблицу users и администратора с id = 1.
-      // Это предотвратит ошибку `FOREIGN KEY constraint failed` во время `drizzle-kit push`,
-      // если в БД уже есть книги, которые получат новую колонку userId со значением DEFAULT 1,
-      // ссылающимся на еще несуществующего пользователя.
       try {
         sqlite.run(`
           CREATE TABLE IF NOT EXISTS "users" (
@@ -109,6 +105,10 @@ export interface DictConnection {
   db: Database
   dDb: BunSQLiteDatabase
   tableName: string
+  wordCol: string
+  translationCol: string
+  hasTranscription: boolean
+  transcriptionCol: string
 }
 
 const dictConnections = new Map<string, DictConnection>()
@@ -125,16 +125,63 @@ export function getDictConnection(language: string): DictConnection | null {
     const dictDb = new Database(specificPath, { readonly: true })
     dictDb.run(`PRAGMA journal_mode = WAL`)
 
-    let tableName = 'words'
-    if (lang === 'zh')
-      tableName = 'zh_dictionary'
+    // 1. Автоматический поиск таблицы со словами
+    const tableQuery = dictDb.query(`SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' LIMIT 1`)
+    const tableRow = tableQuery.get() as { name: string } | undefined
+    if (!tableRow)
+      return null
+    const tableName = tableRow.name
+
+    // 2. Автоматическое определение колонок
+    const columnsQuery = dictDb.query(`PRAGMA table_info("${tableName}")`)
+    const columns = columnsQuery.all() as { name: string }[]
+    const colNames = columns.map(c => c.name.toLowerCase())
+
+    let wordCol = 'word'
+    if (!colNames.includes('word')) {
+      if (colNames.includes('term'))
+        wordCol = 'term'
+      else if (colNames.includes('headword'))
+        wordCol = 'headword'
+      else wordCol = columns[0]?.name || 'word'
+    }
+
+    let translationCol = 'translation'
+    if (!colNames.includes('translation')) {
+      if (colNames.includes('definition'))
+        translationCol = 'definition'
+      else if (colNames.includes('meaning'))
+        translationCol = 'meaning'
+      else if (colNames.includes('ru'))
+        translationCol = 'ru'
+    }
+
+    let hasTranscription = false
+    let transcriptionCol = 'transcription'
+
+    if (colNames.includes('transcription')) {
+      hasTranscription = true
+      transcriptionCol = 'transcription'
+    }
+    else if (colNames.includes('pinyin')) {
+      hasTranscription = true
+      transcriptionCol = 'pinyin'
+    }
+    else if (colNames.includes('reading')) {
+      hasTranscription = true
+      transcriptionCol = 'reading'
+    }
+    else if (colNames.includes('pronunciation')) {
+      hasTranscription = true
+      transcriptionCol = 'pronunciation'
+    }
 
     const dDb = drizzle(dictDb, { logger: false })
-    const conn = { db: dictDb, dDb, tableName }
+    const conn = { db: dictDb, dDb, tableName, wordCol, translationCol, hasTranscription, transcriptionCol }
     dictConnections.set(lang, conn)
 
     if (isMainThread)
-      console.log(`📖 Loaded dictionary for [${lang}] at ${specificPath}`)
+      console.log(`📖 Loaded dictionary for [${lang}] at ${specificPath} (Table: ${tableName})`)
     return conn
   }
 
