@@ -3,6 +3,10 @@ import type { DirectiveBinding } from 'vue'
 interface LongPressHTMLElement extends HTMLElement {
   _lpTimer?: ReturnType<typeof setTimeout>
   _lpMoved?: boolean
+  _onSelectionChange?: () => void
+  _lpStart?: (e: MouseEvent | TouchEvent) => void
+  _lpCancel?: () => void
+  _lpMove?: (e: MouseEvent | TouchEvent) => void
 }
 
 const longPress = {
@@ -11,7 +15,21 @@ const longPress = {
     let startX = 0
     let startY = 0
 
+    const cancel = () => {
+      if (el._lpTimer) {
+        clearTimeout(el._lpTimer)
+        el._lpTimer = undefined
+      }
+      if (el._onSelectionChange) {
+        document.removeEventListener('selectionchange', el._onSelectionChange)
+        el._onSelectionChange = undefined
+      }
+    }
+
     const start = (e: MouseEvent | TouchEvent) => {
+      if (e.type === 'mousedown' && (e as MouseEvent).button !== 0)
+        return
+
       if (e.type === 'touchstart') {
         startX = (e as TouchEvent).touches[0].clientX
         startY = (e as TouchEvent).touches[0].clientY
@@ -22,20 +40,31 @@ const longPress = {
       }
 
       el._lpMoved = false
+
+      el._onSelectionChange = () => {
+        const selection = window.getSelection()
+        if (selection && selection.toString().trim().length > 0) {
+          el._lpMoved = true
+          cancel()
+        }
+      }
+      document.addEventListener('selectionchange', el._onSelectionChange)
+
       el._lpTimer = setTimeout(() => {
+        cancel()
+
         if (!el._lpMoved) {
+          const selection = window.getSelection()
+          if (selection && selection.toString().trim().length > 0) {
+            return
+          }
+
           if (typeof navigator !== 'undefined' && navigator.vibrate) {
             navigator.vibrate(50)
           }
           binding.value(e)
         }
       }, duration)
-    }
-
-    const cancel = () => {
-      if (el._lpTimer) {
-        clearTimeout(el._lpTimer)
-      }
     }
 
     const move = (e: MouseEvent | TouchEvent) => {
@@ -63,6 +92,10 @@ const longPress = {
       }
     }
 
+    el._lpStart = start
+    el._lpCancel = cancel
+    el._lpMove = move
+
     el.addEventListener('mousedown', start)
     el.addEventListener('touchstart', start, { passive: true })
     el.addEventListener('mouseup', cancel)
@@ -73,8 +106,21 @@ const longPress = {
   },
 
   unmounted(el: LongPressHTMLElement) {
-    el.removeEventListener('mousedown', () => { })
-    el.removeEventListener('touchstart', () => { })
+    if (el._lpCancel)
+      el._lpCancel()
+    if (el._lpStart) {
+      el.removeEventListener('mousedown', el._lpStart)
+      el.removeEventListener('touchstart', el._lpStart)
+    }
+    if (el._lpCancel) {
+      el.removeEventListener('mouseup', el._lpCancel)
+      el.removeEventListener('mouseleave', el._lpCancel)
+      el.removeEventListener('touchend', el._lpCancel)
+    }
+    if (el._lpMove) {
+      el.removeEventListener('mousemove', el._lpMove)
+      el.removeEventListener('touchmove', el._lpMove)
+    }
   },
 }
 

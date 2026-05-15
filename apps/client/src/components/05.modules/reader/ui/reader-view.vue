@@ -205,8 +205,22 @@ async function goToPage(pageNum?: number) {
 }
 
 let pressTimer: ReturnType<typeof setTimeout> | null = null
+let selectionChangeListener: (() => void) | null = null
+
+function clearPressTimer() {
+  if (pressTimer) {
+    clearTimeout(pressTimer)
+    pressTimer = null
+  }
+  if (selectionChangeListener) {
+    document.removeEventListener('selectionchange', selectionChangeListener)
+    selectionChangeListener = null
+  }
+}
 
 function onPointerDown(event: MouseEvent | TouchEvent) {
+  clearPressTimer()
+
   const target = (event.target as HTMLElement).closest('.sentence') as HTMLElement | null
   if (!target)
     return
@@ -220,27 +234,35 @@ function onPointerDown(event: MouseEvent | TouchEvent) {
   if (!/[\p{L}\p{N}]/u.test(rawSent))
     return
 
+  selectionChangeListener = () => {
+    const selection = window.getSelection()
+    if (selection && selection.toString().trim().length > 0) {
+      clearPressTimer()
+    }
+  }
+  document.addEventListener('selectionchange', selectionChangeListener)
+
   pressTimer = setTimeout(() => {
+    clearPressTimer()
+
+    const selection = window.getSelection()
+    if (selection && selection.toString().trim().length > 0) {
+      return
+    }
+
     analysisStore.closePopover()
     analysisStore.closeSelectionTooltip()
     window.getSelection()?.empty()
     analysisStore.handleSentenceAnalysis(rawSent)
-    pressTimer = null
   }, 500)
 }
 
 function onPointerUp() {
-  if (pressTimer) {
-    clearTimeout(pressTimer)
-    pressTimer = null
-  }
+  clearPressTimer()
 }
 
 function onContentClick(event: MouseEvent) {
-  if (pressTimer) {
-    clearTimeout(pressTimer)
-    pressTimer = null
-  }
+  clearPressTimer()
 
   const target = (event.target as HTMLElement).closest('.word') as HTMLElement | null
   if (!target)
