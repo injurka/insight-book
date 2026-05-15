@@ -24,7 +24,7 @@ export async function lookupWords(words: string[], language: string, userId: num
     for (const row of userRows) {
       if (!row.word)
         continue
-      const entry = { transcription: row.transcription || '', translation: row.translation || '' }
+      const entry = { transcription: row.transcription || '', translation: row.translation || '', isUserDict: true }
       dict[row.word] = entry
       dict[row.word.toLowerCase()] = entry
     }
@@ -70,6 +70,7 @@ export async function lookupWords(words: string[], language: string, userId: num
           const entry = {
             transcription: (conn.hasTranscription ? row.transcription : '') || '',
             translation: row.translation || '',
+            isUserDict: false,
           }
           // Записываем в двух регистрах, чтобы 100% матчить на клиенте
           dict[row.word as string] = entry
@@ -89,7 +90,7 @@ export async function lookupSingleWord(word: string, language: string, userId: n
     where: and(eq(schema.userDictionary.word, word), eq(schema.userDictionary.userId, userId)),
   })
   if (userWord) {
-    return { transcription: userWord.transcription || '', translation: userWord.translation || '' }
+    return { transcription: userWord.transcription || '', translation: userWord.translation || '', isUserDict: true }
   }
 
   const conn = getDictConnection(language)
@@ -121,6 +122,7 @@ export async function lookupSingleWord(word: string, language: string, userId: n
       return {
         transcription: (conn.hasTranscription ? rows[0].transcription : '') || '',
         translation: rows[0].translation || '',
+        isUserDict: false,
       }
     }
   }

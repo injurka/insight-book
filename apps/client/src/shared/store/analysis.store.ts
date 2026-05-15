@@ -20,6 +20,7 @@ export interface WordPopoverData {
   aiData?: LlmAnalysis
   contextSentence?: string
   contextBookId?: number
+  isSaved: boolean
 }
 
 export interface AnalysisHistoryItem {
@@ -178,6 +179,7 @@ export const useAnalysisStore = defineStore('analysis', () => {
       targetRect,
       contextSentence,
       contextBookId: readerStore.currentBook.id,
+      isSaved: !!entry?.isUserDict,
     }
 
     if (entry && settingsStore.translationPriority === 'dict') {
@@ -233,6 +235,7 @@ export const useAnalysisStore = defineStore('analysis', () => {
         targetRect,
         showAi: false,
         isAiLoading: false,
+        isSaved: !!result.isUserDict,
       }
     }
     catch (err: unknown) {
@@ -254,6 +257,7 @@ export const useAnalysisStore = defineStore('analysis', () => {
         targetRect,
         showAi: true,
         isAiLoading: true,
+        isSaved: false,
       }
 
       fetchAiTranslation()
@@ -533,16 +537,45 @@ export const useAnalysisStore = defineStore('analysis', () => {
   async function saveWordToDict(item: Partial<UserDictItem> & { contextSentence?: string, contextBookId?: number }) {
     await api.dictionary.upsert(item)
     addEditWordModalOpen.value = false
+
     const dictStore = useDictionaryStore()
     await dictStore.fetchDictionary()
+
+    // Обновляем страницу локально, чтобы не требовалась перезагрузка для подсветки звездочки
+    const readerStore = useReaderStore()
+    if (readerStore.currentPage?.pageDictionary && item.word) {
+      readerStore.currentPage.pageDictionary[item.word] = {
+        ...(readerStore.currentPage.pageDictionary[item.word] || {}),
+        transcription: item.transcription || '',
+        translation: item.translation || '',
+        isUserDict: true,
+      }
+    }
+
+    if (wordPopover.value && wordPopover.value.word === item.word) {
+      wordPopover.value.isSaved = true
+    }
+
     useToastStore().success(`Слово "${item.word}" сохранено`)
   }
 
   async function removeFromDict(word: string) {
     await api.dictionary.remove(word)
     addEditWordModalOpen.value = false
+
     const dictStore = useDictionaryStore()
     await dictStore.fetchDictionary()
+
+    // Снимаем локально флаг сохранения
+    const readerStore = useReaderStore()
+    if (readerStore.currentPage?.pageDictionary && readerStore.currentPage.pageDictionary[word]) {
+      readerStore.currentPage.pageDictionary[word].isUserDict = false
+    }
+
+    if (wordPopover.value && wordPopover.value.word === word) {
+      wordPopover.value.isSaved = false
+    }
+
     useToastStore().success(`Слово "${word}" удалено`)
   }
 

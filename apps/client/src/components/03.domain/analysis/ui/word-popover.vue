@@ -134,8 +134,14 @@ onUnmounted(() => {
             <KitTooltip text="Перевести с ИИ" placement="top">
               <KitBtn icon="mdi:robot-outline" size="xs" variant="text" :color="analysisStore.wordPopover.showAi ? 'accent' : 'secondary'" @click.stop="analysisStore.toggleAiTranslation" />
             </KitTooltip>
-            <KitTooltip v-if="authStore.user" text="Сохранить в словарь" placement="top-end">
-              <KitBtn icon="mdi:star-outline" size="xs" variant="text" @click.stop="openSaveDialog" />
+            <KitTooltip v-if="authStore.user" :text="analysisStore.wordPopover.isSaved ? 'Редактировать карточку' : 'Сохранить в словарь'" placement="top-end">
+              <KitBtn
+                :icon="analysisStore.wordPopover.isSaved ? 'mdi:star' : 'mdi:star-outline'"
+                size="xs"
+                variant="text"
+                :class="{ 'is-saved-star': analysisStore.wordPopover.isSaved }"
+                @click.stop="openSaveDialog"
+              />
             </KitTooltip>
           </div>
         </div>
@@ -275,6 +281,11 @@ onUnmounted(() => {
   .popover-actions {
     display: flex;
     gap: 4px;
+  }
+  .is-saved-star {
+    :deep(.kit-btn-icon) {
+      color: var(--fg-warning-color) !important;
+    }
   }
   .pulse-animation {
     :deep(.kit-btn-icon) {

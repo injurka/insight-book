@@ -61,6 +61,7 @@ export interface TokenizedSentence {
 export interface PageDictEntry {
   transcription: string
   translation: string
+  isUserDict?: boolean
 }
 
 export interface OcrBlock {
