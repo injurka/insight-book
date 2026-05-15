@@ -147,7 +147,7 @@ onMounted(() => {
 }
 
 .library-view {
-  padding: 32px;
+  padding: 16px;
   max-width: 1200px;
   margin: 0 auto;
   min-height: 100%;

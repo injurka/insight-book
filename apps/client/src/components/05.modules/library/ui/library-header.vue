@@ -1,9 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { useRouter } from 'vue-router'
-import { KitBtn, KitInput, KitSelect, KitTooltip } from '~/components/01.kit'
-import { ThemesVariant, useChangeTheme } from '~/shared/composables/use-change-theme'
-import { AppRoutePaths } from '~/shared/constants/routes'
+import { KitBtn, KitInput, KitSelect } from '~/components/01.kit'
+import { GlobalActions } from '~/components/04.features/global-actions'
 import { useAuthStore } from '~/shared/store/auth.store'
 
 interface Props {
@@ -19,9 +17,7 @@ const emit = defineEmits<{
 const search = defineModel<string>('search', { required: true })
 const lang = defineModel<string>('lang', { required: true })
 
-const router = useRouter()
 const authStore = useAuthStore()
-const { theme, toggleTheme } = useChangeTheme()
 
 const fileInput = ref<HTMLInputElement | null>(null)
 const isMobileFiltersOpen = ref(false)
@@ -33,23 +29,6 @@ function onFileChange(e: Event) {
     target.value = ''
   }
 }
-
-function openDictionary() {
-  router.push(AppRoutePaths.Dictionary)
-}
-
-function openSettings() {
-  router.push(AppRoutePaths.Settings)
-}
-
-function handleLogin() {
-  router.push(AppRoutePaths.Login)
-}
-
-function handleLogout() {
-  authStore.logout()
-  window.location.reload()
-}
 </script>
 
 <template>
@@ -60,44 +39,7 @@ function handleLogout() {
         <p>Ваша умная библиотека для изучения языков</p>
       </div>
 
-      <!-- Верхние иконки действий (Тема и Память) -->
-      <div class="top-actions">
-        <KitTooltip text="Управление памятью" placement="bottom">
-          <KitBtn
-            icon="mdi:database-outline"
-            variant="text"
-            aria-label="Память и Оффлайн"
-            @click="openSettings"
-          />
-        </KitTooltip>
-
-        <KitTooltip text="Переключить тему" placement="bottom-end">
-          <KitBtn
-            :icon="theme === ThemesVariant.Light ? 'mdi:weather-night' : 'mdi:weather-sunny'"
-            variant="text"
-            aria-label="Переключить тему"
-            @click="toggleTheme"
-          />
-        </KitTooltip>
-
-        <KitTooltip v-if="!authStore.isSingleMode && !authStore.user" text="Войти" placement="bottom-end">
-          <KitBtn
-            icon="mdi:login"
-            variant="text"
-            aria-label="Войти"
-            @click="handleLogin"
-          />
-        </KitTooltip>
-
-        <KitTooltip v-if="!authStore.isSingleMode && authStore.user" text="Выйти" placement="bottom-end">
-          <KitBtn
-            icon="mdi:logout"
-            variant="text"
-            aria-label="Выйти"
-            @click="handleLogout"
-          />
-        </KitTooltip>
-      </div>
+      <GlobalActions />
     </div>
 
     <div class="header-bottom">
@@ -123,10 +65,9 @@ function handleLogout() {
           class="lang-select"
         />
 
+        <div class="spacer" />
+
         <div class="header-actions">
-          <KitBtn v-if="authStore.user" icon="mdi:book-alphabet" variant="outlined" color="secondary" @click="openDictionary">
-            Мой словарь
-          </KitBtn>
           <KitBtn v-if="authStore.user" icon="mdi:upload" color="primary" @click="fileInput?.click()">
             Загрузить
           </KitBtn>
@@ -179,12 +120,6 @@ function handleLogout() {
         }
       }
     }
-
-    .top-actions {
-      display: flex;
-      gap: 4px;
-      margin-left: 12px;
-    }
   }
 
   .header-bottom {
@@ -194,7 +129,7 @@ function handleLogout() {
     gap: 16px;
 
     .search-wrapper {
-      flex-grow: 1;
+      width: 100%;
       max-width: 400px;
       display: flex;
       gap: 8px;
@@ -212,9 +147,14 @@ function handleLogout() {
       display: flex;
       align-items: center;
       gap: 16px;
+      flex-grow: 1;
 
       .lang-select {
         width: 160px;
+      }
+
+      .spacer {
+        flex-grow: 1;
       }
 
       .header-actions {
@@ -251,6 +191,10 @@ function handleLogout() {
         &.is-open {
           display: flex;
           animation: slideDown 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+
+        .spacer {
+          display: none;
         }
 
         .lang-select {

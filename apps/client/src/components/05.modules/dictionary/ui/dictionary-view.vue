@@ -5,6 +5,7 @@ import { useVirtualList } from '@vueuse/core'
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { KitBtn, KitDropdown, KitInput, KitPrompt, KitSelect, KitTooltip } from '~/components/01.kit'
+import { GlobalActions } from '~/components/04.features/global-actions'
 import { useToast } from '~/shared/composables/use-toast'
 import { DIFFICULTY_SYSTEMS } from '~/shared/constants/difficulties'
 import { useAnalysisStore } from '~/shared/store/analysis.store'
@@ -18,6 +19,7 @@ const toast = useToast()
 
 const isTrainingOpen = ref(false)
 const isMobileFiltersOpen = ref(false)
+const isMobileDecksOpen = ref(false)
 const dropdownRef = ref<InstanceType<typeof KitDropdown> | null>(null)
 
 const isCreatePromptOpen = ref(false)
@@ -59,7 +61,6 @@ function getStatusLabel(status: number) {
   }
 }
 
-// --- ЛОГИКА ЦВЕТА СЛОЖНОСТИ ---
 function getDifficultyClass(lang: string, diffValue: string | null) {
   if (!diffValue)
     return ''
@@ -96,8 +97,6 @@ async function startRandomTraining() {
   }
   dropdownRef.value?.close()
 }
-
-// === УПРАВЛЕНИЕ КОЛОДАМИ ===
 
 function openCreateDeck() {
   isCreatePromptOpen.value = true
@@ -149,6 +148,8 @@ const filteredDecks = computed(() => {
           <KitBtn icon="mdi:arrow-left" variant="text" @click="router.back()" />
           <h1>Мой словарь</h1>
         </div>
+
+        <GlobalActions hide-dictionary />
       </div>
 
       <div class="header-bottom">
@@ -158,13 +159,20 @@ const filteredDecks = computed(() => {
             placeholder="Поиск по слову, переводу..."
             class="search-input"
           />
-          <KitBtn
-            class="mobile-filter-btn"
-            :icon="isMobileFiltersOpen ? 'mdi:chevron-up' : 'mdi:tune-variant'"
-            variant="tonal"
-            color="secondary"
-            @click="isMobileFiltersOpen = !isMobileFiltersOpen"
-          />
+          <div class="mobile-controls">
+            <KitBtn
+              :icon="isMobileDecksOpen ? 'mdi:folder-open-outline' : 'mdi:folder-outline'"
+              variant="tonal"
+              color="secondary"
+              @click="isMobileDecksOpen = !isMobileDecksOpen"
+            />
+            <KitBtn
+              :icon="isMobileFiltersOpen ? 'mdi:chevron-up' : 'mdi:tune-variant'"
+              variant="tonal"
+              color="secondary"
+              @click="isMobileFiltersOpen = !isMobileFiltersOpen"
+            />
+          </div>
         </div>
 
         <div class="extra-filters" :class="{ 'is-open': isMobileFiltersOpen }">
@@ -213,7 +221,7 @@ const filteredDecks = computed(() => {
 
     <div class="dict-layout">
       <!-- Сайдбар с колодами -->
-      <aside class="decks-sidebar">
+      <aside class="decks-sidebar" :class="{ 'is-open': isMobileDecksOpen }">
         <div class="decks-header">
           <h3>Колоды</h3>
           <KitBtn icon="mdi:plus" variant="text" size="xs" @click="openCreateDeck" />
@@ -332,6 +340,7 @@ const filteredDecks = computed(() => {
   height: 100vh;
   display: flex;
   flex-direction: column;
+
   @include media-down(md) {
     padding: 8px;
   }
@@ -374,7 +383,7 @@ const filteredDecks = computed(() => {
         width: 100%;
       }
 
-      .mobile-filter-btn {
+      .mobile-controls {
         display: none;
       }
     }
@@ -412,14 +421,15 @@ const filteredDecks = computed(() => {
       }
     }
 
-    @include media-down(sm) {
+    @include media-down(md) {
       flex-direction: column;
       align-items: stretch;
 
       .search-wrapper {
         max-width: 100%;
-        .mobile-filter-btn {
-          display: inline-flex;
+        .mobile-controls {
+          display: flex;
+          gap: 8px;
           flex-shrink: 0;
         }
       }
@@ -484,8 +494,15 @@ const filteredDecks = computed(() => {
   padding: 12px;
 
   @include media-down(md) {
+    display: none;
     width: 100%;
-    max-height: 180px;
+    max-height: 250px;
+    margin-bottom: 12px;
+
+    &.is-open {
+      display: flex;
+      animation: slideDown 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+    }
   }
 
   .decks-header {
