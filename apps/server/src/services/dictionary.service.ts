@@ -202,9 +202,7 @@ export async function removeFromUserDictionary(word: string, userId: number): Pr
   await db.delete(schema.userDictionary).where(and(eq(schema.userDictionary.word, word), eq(schema.userDictionary.userId, userId)))
 }
 
-export async function getReviewQueue(userId: number, language?: string, forceAll: boolean = false) {
-  const now = new Date().toISOString()
-
+export async function getReviewQueue(userId: number, language?: string, mode: 'srs' | 'random' = 'srs') {
   const filters: any[] = [
     eq(schema.userDictionary.userId, userId),
   ]
@@ -213,16 +211,26 @@ export async function getReviewQueue(userId: number, language?: string, forceAll
     filters.push(eq(schema.userDictionary.language, language))
   }
 
-  if (!forceAll) {
+  if (mode === 'srs') {
+    const now = new Date().toISOString()
     filters.push(lte(schema.userDictionary.nextReviewDate, now))
-  }
 
-  return await db.query.userDictionary.findMany({
-    where: and(...filters),
-    with: { encounters: true },
-    orderBy: [schema.userDictionary.nextReviewDate],
-    limit: 50,
-  })
+    return await db.query.userDictionary.findMany({
+      where: and(...filters),
+      with: { encounters: true },
+      orderBy: [schema.userDictionary.nextReviewDate],
+      limit: 50,
+    })
+  }
+  else {
+    // Случайная разминка игнорирует таймеры
+    return await db.query.userDictionary.findMany({
+      where: and(...filters),
+      with: { encounters: true },
+      orderBy: [sql`RANDOM()`],
+      limit: 50,
+    })
+  }
 }
 
 export async function processSrsReview(wordId: number, userId: number, grade: number) {
@@ -235,36 +243,52 @@ export async function processSrsReview(wordId: number, userId: number, grade: nu
 
   let { repetitions, interval, easeFactor, status } = word
 
+  // Плавная логика шагов интервалов в днях
   if (grade === 0) {
+    // Снова (Again) - 1 минута (1/1440 дня). Сброс прогресса.
     repetitions = 0
-    interval = 1
+    interval = 1 / 1440
     status = 1
     easeFactor = Math.max(1.3, easeFactor - 0.2)
   }
-  else {
-    const gradeVal = grade === 1 ? 3 : grade === 2 ? 4 : 5
-    easeFactor = easeFactor + (0.1 - (5 - gradeVal) * (0.08 + (5 - gradeVal) * 0.02))
-    easeFactor = Math.max(1.3, easeFactor)
-
-    if (repetitions === 0) {
-      interval = grade === 1 ? 1 : grade === 2 ? 2 : 4
-    }
-    else if (repetitions === 1) {
-      interval = grade === 1 ? 4 : grade === 2 ? 6 : 8
+  else if (grade === 1) {
+    // Тяжело (Hard)
+    easeFactor = Math.max(1.3, easeFactor - 0.15)
+    if (repetitions === 0 || interval < 1) {
+      interval = 10 / 1440 // 10 минут
+      repetitions = 0
     }
     else {
-      interval = Math.round(interval * easeFactor)
-      if (grade === 3) {
-        interval = Math.round(interval * 1.3)
-      }
+      interval = interval * 1.2
     }
-
+    status = interval < 1 ? 1 : 2
+  }
+  else if (grade === 2) {
+    // Хорошо (Good)
+    if (repetitions === 0 || interval < 1) {
+      interval = 1 // 1 день
+    }
+    else {
+      interval = interval * easeFactor
+    }
+    repetitions += 1
+    status = interval > 21 ? 3 : 2
+  }
+  else if (grade === 3) {
+    // Легко (Easy)
+    easeFactor += 0.15
+    if (repetitions === 0 || interval < 1) {
+      interval = 4 // 4 дня
+    }
+    else {
+      interval = interval * easeFactor * 1.3
+    }
     repetitions += 1
     status = interval > 21 ? 3 : 2
   }
 
-  const nextDate = new Date()
-  nextDate.setDate(nextDate.getDate() + interval)
+  // Обновляем дату (прибавляем интервал к текущему времени)
+  const nextDate = new Date(Date.now() + interval * 24 * 60 * 60 * 1000)
 
   await db.update(schema.userDictionary).set({
     repetitions,

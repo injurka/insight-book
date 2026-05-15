@@ -97,9 +97,9 @@ export async function handleGetWordFromUserDict(req: Request, userId: number): P
 export async function handleGetReviewQueue(req: Request, userId: number): Promise<Response> {
   const url = new URL(req.url)
   const lang = url.searchParams.get('lang') || 'all'
-  const forceAll = url.searchParams.get('forceAll') === 'true'
+  const mode = url.searchParams.get('mode') as 'srs' | 'random' || 'srs'
 
-  return json(await getReviewQueue(userId, lang, forceAll))
+  return json(await getReviewQueue(userId, lang, mode))
 }
 
 export async function handleSrsReview(req: Request, userId: number): Promise<Response> {

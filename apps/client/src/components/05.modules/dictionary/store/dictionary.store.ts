@@ -11,7 +11,9 @@ export const useDictionaryStore = defineStore('dictionary', () => {
 
   const words = ref<UserDictItem[]>([])
   const decks = ref<DictDeck[]>([])
+
   const reviewQueue = ref<UserDictItem[]>([])
+  const trainingMode = ref<'srs' | 'random'>('srs')
 
   const isLoading = ref(false)
   const searchTerm = ref('')
@@ -49,7 +51,8 @@ export const useDictionaryStore = defineStore('dictionary', () => {
 
   async function fetchReviewQueue() {
     try {
-      reviewQueue.value = await api.dictionary.getReviewQueue(selectedLanguage.value)
+      trainingMode.value = 'srs'
+      reviewQueue.value = await api.dictionary.getReviewQueue(selectedLanguage.value, 'srs')
     }
     catch (e) {
       console.warn('Could not fetch review queue:', e)
@@ -57,12 +60,13 @@ export const useDictionaryStore = defineStore('dictionary', () => {
     }
   }
 
-  async function fetchForceReviewQueue() {
+  async function fetchRandomQueue() {
     try {
-      reviewQueue.value = await api.dictionary.getReviewQueue(selectedLanguage.value, true)
+      trainingMode.value = 'random'
+      reviewQueue.value = await api.dictionary.getReviewQueue(selectedLanguage.value, 'random')
     }
     catch (e) {
-      console.warn('Could not fetch force review queue:', e)
+      console.warn('Could not fetch random review queue:', e)
       reviewQueue.value = []
     }
   }
@@ -176,6 +180,7 @@ export const useDictionaryStore = defineStore('dictionary', () => {
     words,
     decks,
     reviewQueue,
+    trainingMode,
     totalReviewCount,
     newWordsQueueCount,
     reviewWordsQueueCount,
@@ -188,7 +193,7 @@ export const useDictionaryStore = defineStore('dictionary', () => {
     filteredWords,
     fetchDictionary,
     fetchReviewQueue,
-    fetchForceReviewQueue,
+    fetchRandomQueue,
     createDeck,
     updateDeck,
     deleteDeck,

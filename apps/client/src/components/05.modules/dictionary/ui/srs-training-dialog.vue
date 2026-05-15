@@ -37,40 +37,47 @@ function flip() {
 function calculateNextInterval(grade: number): number {
   if (!currentCard.value)
     return 0
-  const { repetitions, interval, easeFactor } = currentCard.value
 
-  if (grade === 0)
-    return 0 
+  let { repetitions, interval, easeFactor } = currentCard.value
 
-  let newEf = easeFactor
-  const gradeVal = grade === 1 ? 3 : grade === 2 ? 4 : 5
-  newEf = easeFactor + (0.1 - (5 - gradeVal) * (0.08 + (5 - gradeVal) * 0.02))
-  newEf = Math.max(1.3, newEf)
-
-  if (repetitions === 0) {
-    return grade === 1 ? 1 : grade === 2 ? 2 : 4
+  // Дублируем серверную логику шагов для отображения
+  if (grade === 0) {
+    return 1 / 1440 // 1 минута
   }
-  if (repetitions === 1) {
-    return grade === 1 ? 4 : grade === 2 ? 6 : 8
+  else if (grade === 1) {
+    if (repetitions === 0 || interval < 1)
+      return 10 / 1440 // 10 минут
+    return interval * 1.2
+  }
+  else if (grade === 2) {
+    if (repetitions === 0 || interval < 1)
+      return 1 // 1 день
+    return interval * easeFactor
+  }
+  else if (grade === 3) {
+    if (repetitions === 0 || interval < 1)
+      return 4 // 4 дня
+    return interval * easeFactor * 1.3
   }
 
-  let nextInterval = Math.round(interval * newEf)
-
-  if (grade === 3) {
-    nextInterval = Math.round(nextInterval * 1.3)
-  }
-
-  return nextInterval
+  return interval
 }
 
 function formatInterval(days: number): string {
-  if (days === 0)
-    return '< 10м'
-  if (days === 1)
-    return '1 дн'
+  const minutes = Math.round(days * 1440)
+  if (minutes < 60)
+    return `${minutes} м`
+
+  const hours = Math.round(days * 24)
+  if (hours < 24)
+    return `${hours} ч`
+
   if (days < 30)
-    return `${days} дн`
-  return `${Math.round(days / 30)} мес`
+    return `${Math.round(days)} дн`
+  if (days < 365)
+    return `${Math.round(days / 30)} мес`
+
+  return `${Math.round(days / 365)} г`
 }
 
 const intervals = computed(() => {
@@ -87,9 +94,28 @@ const intervals = computed(() => {
 async function gradeCard(grade: number) {
   if (isSubmitting.value || !currentCard.value)
     return
+
+  if (dictStore.trainingMode === 'random') {
+    // В режиме случайной разминки мы не отправляем данные на сервер,
+    // а просто переходим к следующей карточке.
+    currentIndex.value++
+    isFlipped.value = false
+    stop()
+    return
+  }
+
+  // Режим SRS:
   isSubmitting.value = true
   try {
-    await api.dictionary.submitReview(currentCard.value.id, grade)
+    const cardRef = currentCard.value
+    await api.dictionary.submitReview(cardRef.id, grade)
+
+    if (grade === 0) {
+      // Если нажали "Снова", добавляем карточку в конец очереди
+      // чтобы обязательно повторить её еще раз до завершения тренировки.
+      dictStore.reviewQueue.push(cardRef)
+    }
+
     currentIndex.value++
     isFlipped.value = false
     stop()
@@ -116,18 +142,26 @@ watch(visible, (val) => {
     <template #header>
       <div class="srs-header">
         <h2 class="dialog-title">
-          Повторение
+          {{ dictStore.trainingMode === 'srs' ? 'Повторение (SRS)' : 'Случайная тренировка' }}
         </h2>
-        <div v-if="!isFinished" class="srs-stats">
+        <div v-if="!isFinished && dictStore.trainingMode === 'srs'" class="srs-stats">
           <span class="stat-new" title="Новые карточки">{{ newCount }}</span>
           <span class="stat-review" title="На повторении">{{ reviewCount }}</span>
+        </div>
+        <div v-else-if="!isFinished" class="srs-stats">
+          <span class="stat-review" title="Осталось карточек">{{ remainingQueue.length }}</span>
         </div>
       </div>
     </template>
 
     <div v-if="isFinished" class="finished-state">
       <h2>🎉 Отличная работа!</h2>
-      <p>Вы повторили все карточки на сегодня.</p>
+      <p v-if="dictStore.trainingMode === 'srs'">
+        Вы повторили все карточки на сегодня.
+      </p>
+      <p v-else>
+        Разминка завершена.
+      </p>
       <KitBtn color="primary" @click="visible = false">
         Закрыть
       </KitBtn>
@@ -165,19 +199,19 @@ watch(visible, (val) => {
         <div v-else-if="intervals" class="grade-buttons fade-in">
           <button class="grade-btn error" :disabled="isSubmitting" @click="gradeCard(0)">
             <span class="g-label">Снова</span>
-            <span class="g-time">{{ intervals.again }}</span>
+            <span v-if="dictStore.trainingMode === 'srs'" class="g-time">{{ intervals.again }}</span>
           </button>
           <button class="grade-btn warning" :disabled="isSubmitting" @click="gradeCard(1)">
             <span class="g-label">Тяжело</span>
-            <span class="g-time">{{ intervals.hard }}</span>
+            <span v-if="dictStore.trainingMode === 'srs'" class="g-time">{{ intervals.hard }}</span>
           </button>
           <button class="grade-btn primary" :disabled="isSubmitting" @click="gradeCard(2)">
             <span class="g-label">Хорошо</span>
-            <span class="g-time">{{ intervals.good }}</span>
+            <span v-if="dictStore.trainingMode === 'srs'" class="g-time">{{ intervals.good }}</span>
           </button>
           <button class="grade-btn success" :disabled="isSubmitting" @click="gradeCard(3)">
             <span class="g-label">Легко</span>
-            <span class="g-time">{{ intervals.easy }}</span>
+            <span v-if="dictStore.trainingMode === 'srs'" class="g-time">{{ intervals.easy }}</span>
           </button>
         </div>
       </div>
@@ -304,34 +338,34 @@ watch(visible, (val) => {
     .g-time {
       font-size: 0.75rem;
       opacity: 0.8;
+    }
 
-      &.error {
-        color: var(--fg-error-color);
-        border-color: rgba(var(--bg-error-color-rgb, 248, 81, 73), 0.3);
-      }
-      &.warning {
-        color: var(--fg-warning-color);
-        border-color: rgba(var(--bg-warning-color-rgb, 227, 179, 65), 0.3);
-      }
-      &.primary {
-        color: var(--fg-accent-color);
-        border-color: rgba(var(--bg-accent-color-rgb, 201, 117, 222), 0.3);
-      }
-      &.success {
-        color: var(--fg-success-color);
-        border-color: rgba(var(--bg-success-color-rgb, 86, 211, 100), 0.3);
+    &.error {
+      color: var(--fg-error-color);
+      border-color: rgba(var(--bg-error-color-rgb, 248, 81, 73), 0.3);
+    }
+    &.warning {
+      color: var(--fg-warning-color);
+      border-color: rgba(var(--bg-warning-color-rgb, 227, 179, 65), 0.3);
+    }
+    &.primary {
+      color: var(--fg-accent-color);
+      border-color: rgba(var(--bg-accent-color-rgb, 201, 117, 222), 0.3);
+    }
+    &.success {
+      color: var(--fg-success-color);
+      border-color: rgba(var(--bg-success-color-rgb, 86, 211, 100), 0.3);
+    }
 
-        &:hover:not(:disabled) {
-          background: var(--bg-tertiary-color);
-          transform: translateY(-2px);
-        }
+    &:hover:not(:disabled) {
+      background: var(--bg-tertiary-color);
+      transform: translateY(-2px);
+    }
 
-        &:disabled {
-          opacity: 0.5;
-          cursor: not-allowed;
-          transform: none;
-        }
-      }
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
     }
   }
 }

@@ -112,8 +112,8 @@ export const api = {
     remove: (word: string) =>
       request<{ success: boolean }>(`/api/dictionary/${encodeURIComponent(word)}`, { method: 'DELETE' }),
 
-    getReviewQueue: (lang: string, forceAll?: boolean) =>
-      request<UserDictItem[]>(`/api/dictionary/review?lang=${lang}${forceAll ? '&forceAll=true' : ''}`),
+    getReviewQueue: (lang: string, mode: 'srs' | 'random' = 'srs') =>
+      request<UserDictItem[]>(`/api/dictionary/review?lang=${lang}&mode=${mode}`),
 
     submitReview: (wordId: number, grade: number) =>
       request<{ success: boolean }>('/api/dictionary/review', {

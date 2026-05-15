@@ -4,7 +4,7 @@ import { Icon } from '@iconify/vue'
 import { useVirtualList } from '@vueuse/core'
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { KitBtn, KitInput, KitPrompt, KitSelect, KitTooltip } from '~/components/01.kit'
+import { KitBtn, KitDropdown, KitInput, KitPrompt, KitSelect, KitTooltip } from '~/components/01.kit'
 import { useToast } from '~/shared/composables/use-toast'
 import { DIFFICULTY_SYSTEMS } from '~/shared/constants/difficulties'
 import { useAnalysisStore } from '~/shared/store/analysis.store'
@@ -18,6 +18,7 @@ const toast = useToast()
 
 const isTrainingOpen = ref(false)
 const isMobileFiltersOpen = ref(false)
+const dropdownRef = ref<InstanceType<typeof KitDropdown> | null>(null)
 
 const isCreatePromptOpen = ref(false)
 const isRenamePromptOpen = ref(false)
@@ -74,14 +75,26 @@ function getDifficultyClass(lang: string, diffValue: string | null) {
   return 'level-hard'
 }
 
-async function startForceTraining() {
-  await store.fetchForceReviewQueue()
+async function startSrsTraining() {
+  await store.fetchReviewQueue()
   if (store.reviewQueue.length > 0) {
     isTrainingOpen.value = true
   }
   else {
-    toast.info('В словаре пока нет слов для этой языковой пары.')
+    toast.info('Нет карточек для повторения.')
   }
+  dropdownRef.value?.close()
+}
+
+async function startRandomTraining() {
+  await store.fetchRandomQueue()
+  if (store.reviewQueue.length > 0) {
+    isTrainingOpen.value = true
+  }
+  else {
+    toast.info('Словарь пуст для этой языковой пары.')
+  }
+  dropdownRef.value?.close()
 }
 
 // === УПРАВЛЕНИЕ КОЛОДАМИ ===
@@ -92,7 +105,6 @@ function openCreateDeck() {
 
 async function onCreateDeckSubmit(name: string) {
   if (name.trim()) {
-    // Автоматически берем выбранный язык. Если 'all', то 'en' (чтобы пользователю не приходилось вводить язык вручную)
     const lang = store.selectedLanguage !== 'all' ? store.selectedLanguage : 'en'
     await store.createDeck(name.trim(), lang)
   }
@@ -169,25 +181,28 @@ const filteredDecks = computed(() => {
         </div>
 
         <div class="actions-and-stats">
-          <KitBtn
-            v-if="store.totalReviewCount > 0"
-            icon="mdi:brain"
-            color="primary"
-            variant="solid"
-            @click="isTrainingOpen = true"
-          >
-            Тренировка ({{ store.totalReviewCount }})
-          </KitBtn>
-
-          <KitBtn
-            v-else-if="store.words.length > 0"
-            icon="mdi:brain"
-            color="accent"
-            variant="outlined"
-            @click="startForceTraining"
-          >
-            Тренировать всё
-          </KitBtn>
+          <KitDropdown ref="dropdownRef" placement="bottom-end" width="230px">
+            <template #activator="{ props }">
+              <KitBtn
+                icon="mdi:brain"
+                :color="store.totalReviewCount > 0 ? 'primary' : 'accent'"
+                :variant="store.totalReviewCount > 0 ? 'solid' : 'outlined'"
+                :class="{ 'is-active-btn': props.isOpen }"
+              >
+                Тренировка <Icon icon="mdi:chevron-down" class="ml-1" />
+              </KitBtn>
+            </template>
+            <div class="dropdown-menu-list">
+              <button class="dropdown-item" :disabled="store.totalReviewCount === 0" @click="startSrsTraining">
+                <Icon icon="mdi:calendar-clock" />
+                Интервальное ({{ store.totalReviewCount }})
+              </button>
+              <button class="dropdown-item" :disabled="store.words.length === 0" @click="startRandomTraining">
+                <Icon icon="mdi:shuffle-variant" />
+                Случайная разминка
+              </button>
+            </div>
+          </KitDropdown>
 
           <div class="stats-badge">
             <span class="badge">{{ store.filteredWords.length }} слов</span>
@@ -380,6 +395,10 @@ const filteredDecks = computed(() => {
       align-items: center;
       gap: 12px;
       margin-left: auto;
+
+      .ml-1 {
+        margin-left: 4px;
+      }
 
       .stats-badge .badge {
         background: var(--bg-tertiary-color);
@@ -661,6 +680,50 @@ const filteredDecks = computed(() => {
   text-align: center;
   margin-top: 60px;
   color: var(--fg-secondary-color);
+}
+
+.dropdown-menu-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 4px;
+}
+
+.dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border: none;
+  background: transparent;
+  color: var(--fg-primary-color);
+  font-size: 0.95rem;
+  font-family: inherit;
+  cursor: pointer;
+  border-radius: 6px;
+  transition:
+    background-color 0.2s,
+    color 0.2s;
+  text-align: left;
+
+  &:hover:not(:disabled) {
+    background-color: var(--bg-hover-color);
+    color: var(--fg-accent-color);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  svg {
+    font-size: 1.25rem;
+    color: var(--fg-secondary-color);
+  }
+
+  &:hover:not(:disabled) svg {
+    color: var(--fg-accent-color);
+  }
 }
 
 @keyframes slideDown {
