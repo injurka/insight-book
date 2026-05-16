@@ -68,7 +68,7 @@ const { offlineReady, needRefresh } = storeToRefs(pwaStore)
   padding: 16px;
   border: 1px solid var(--border-primary-color);
   border-radius: 12px;
-  z-index: 10000;
+  z-index: var(--z-pwa-prompt, 1600);
   background-color: var(--bg-secondary-color);
   color: var(--fg-primary-color);
   box-shadow: 0 8px 32px var(--bg-overlay-primary-color);

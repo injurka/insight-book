@@ -1,5 +1,7 @@
 import type { Book, DictDeck, LlmAnalysis, PagePayload, TocItem, UserDictItem } from '../types/models'
 import localforage from 'localforage'
+import { AppRoutePaths } from '~/shared/constants/routes'
+import router from '~/shared/lib/router'
 import { useToastStore } from '~/shared/store/toast.store'
 
 localforage.config({
@@ -20,7 +22,15 @@ async function safeSetItem<T>(key: string, value: T): Promise<void> {
   catch (e: any) {
     if (e.name === 'QuotaExceededError' || e.name === 'NS_ERROR_DOM_QUOTA_REACHED') {
       const toast = useToastStore()
-      toast.error('Память устройства переполнена! Очистите кэш.', { expire: 8000 })
+      toast.error('Память устройства переполнена! Очистите кэш.', {
+        expire: 8000,
+        action: {
+          label: 'Очистить кэш',
+          onClick: () => {
+            router.push(AppRoutePaths.Settings)
+          },
+        },
+      })
     }
   }
 }

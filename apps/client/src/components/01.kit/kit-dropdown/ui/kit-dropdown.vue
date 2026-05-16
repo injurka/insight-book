@@ -141,9 +141,8 @@ defineExpose({ close: () => isOpen.value = false, open: () => isOpen.value = tru
 }
 
 .dropdown-menu {
-  z-index: 10000;
+  z-index: var(--z-dropdown, 1000);
 
-  /* Динамическая точка трансформации в зависимости от позиции Floating UI */
   transform-origin: top center;
 
   &[data-placement^='top'] {

@@ -158,7 +158,7 @@ onUnmounted(() => {
   border: 1px solid var(--border-primary-color);
   border-radius: 12px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
-  z-index: 1000;
+  z-index: var(--z-popover, 1300);
   width: 90vw;
   max-width: 450px;
   min-width: 280px;

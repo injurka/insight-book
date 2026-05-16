@@ -20,7 +20,7 @@ export function authWrapper(handler: (req: Request, userId: number) => Promise<R
       const decoded = jwt.verify(token, JWT_SECRET) as { userId: number }
       return handler(req, decoded.userId)
     }
-    catch (e) {
+    catch {
       throw new AppError(401, 'Недействительный токен')
     }
   }

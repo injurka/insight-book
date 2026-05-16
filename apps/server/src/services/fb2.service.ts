@@ -133,7 +133,8 @@ export async function processFb2(fileBuffer: ArrayBuffer, filename: string, user
     content,
   }))
 
-  const chunkSize = 50
+  // Увеличен размер чанка для более быстрой вставки в БД
+  const chunkSize = 1000
   for (let i = 0; i < pagesToInsert.length; i += chunkSize) {
     await db.insert(schema.bookPages).values(pagesToInsert.slice(i, i + chunkSize)).onConflictDoNothing()
   }

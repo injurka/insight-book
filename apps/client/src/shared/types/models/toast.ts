@@ -1,5 +1,10 @@
 export type ToastTypes = 'error' | 'success' | 'warn' | 'info'
 
+export interface ToastAction {
+  label: string
+  onClick: () => void
+}
+
 export interface ToastMessage {
   id: string
   type: ToastTypes
@@ -7,6 +12,7 @@ export interface ToastMessage {
   expire: number
   swipeToClose: boolean
   group?: string
+  action?: ToastAction
 }
 
 export type ToastOptions = Omit<Partial<ToastMessage>, 'id' | 'detail'>

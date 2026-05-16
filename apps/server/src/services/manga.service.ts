@@ -16,6 +16,7 @@ export async function processCbz(fileBuffer: ArrayBuffer, filename: string): Pro
   const zipEntries = zip.getEntries()
 
   const imageEntries = zipEntries
+    // eslint-disable-next-line regexp/no-unused-capturing-group
     .filter(entry => !entry.isDirectory && /\.(jpg|jpeg|png|webp|avif)$/i.test(entry.entryName))
     .sort((a, b) => a.entryName.localeCompare(b.entryName, undefined, { numeric: true }))
 
@@ -67,8 +68,7 @@ export async function processCbz(fileBuffer: ArrayBuffer, filename: string): Pro
     })
   })
 
-  // Вставка страниц порциями по 50
-  const chunkSize = 50
+  const chunkSize = 1000
   for (let i = 0; i < pagesToInsert.length; i += chunkSize) {
     const chunk = pagesToInsert.slice(i, i + chunkSize)
     await db.insert(schema.mangaPages).values(chunk).onConflictDoNothing()

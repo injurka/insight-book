@@ -37,11 +37,11 @@ export const db = drizzle(sqlite, { schema, logger: false })
   // 2. АВТОМАТИЧЕСКАЯ СИНХРОНИЗАЦИЯ БАЗЫ ДАННЫХ И ДЕФОЛТНЫЙ ЮЗЕР
   // ============================================================================
   ; (async () => {
-    if (isMainThread) {
-      console.log('🔄 Checking and syncing database schema...')
+  if (isMainThread) {
+    console.log('🔄 Checking and syncing database schema...')
 
-      try {
-        sqlite.run(`
+    try {
+      sqlite.run(`
           CREATE TABLE IF NOT EXISTS "users" (
             "id" integer PRIMARY KEY AUTOINCREMENT NOT NULL,
             "username" text NOT NULL,
@@ -49,54 +49,54 @@ export const db = drizzle(sqlite, { schema, logger: false })
             "createdAt" text DEFAULT (datetime('now')) NOT NULL
           );
         `)
-        sqlite.run(`CREATE UNIQUE INDEX IF NOT EXISTS "users_username_unique" ON "users" ("username");`)
-      }
-      catch (e) { }
-
-      try {
-        const adminExistsRow = sqlite.query(`SELECT id FROM "users" WHERE id = 1`).get()
-        if (!adminExistsRow) {
-          console.log('👤 Pre-creating default admin user to satisfy foreign key constraints...')
-          const passwordHash = await Bun.password.hash(ADMIN_PASSWORD)
-          sqlite.query(`INSERT INTO "users" (id, username, passwordHash) VALUES (?, ?, ?)`).run(1, ADMIN_USERNAME, passwordHash)
-        }
-      }
-      catch (e) {
-        console.error('⚠️ Could not pre-create admin user:', e)
-      }
-
-      const syncProcess = Bun.spawnSync(['bun', 'x', 'drizzle-kit', 'push'], {
-        stdout: 'inherit',
-        stderr: 'inherit',
-      })
-
-      if (syncProcess.exitCode !== 0) {
-        console.error('❌ Failed to sync database schema. Please check the Drizzle output above.')
-      }
-      else {
-        console.log('✅ Database schema is up to date!')
-      }
-
-      const adminExists = await db.query.users.findFirst({ where: eq(schema.users.id, 1) })
-
-      if (!adminExists) {
-        console.log('👤 Default admin user not found. Creating one...')
-        const passwordHash = await Bun.password.hash(ADMIN_PASSWORD)
-
-        await db.insert(schema.users).values({
-          id: 1,
-          username: ADMIN_USERNAME,
-          passwordHash,
-        })
-        console.log(`👤 Default Admin user created (Username: ${ADMIN_USERNAME}).`)
-      }
-
-      console.log(`🗄️ Main SQLite Database initialized at ${DB_PATH}`)
+      sqlite.run(`CREATE UNIQUE INDEX IF NOT EXISTS "users_username_unique" ON "users" ("username");`)
     }
-  })().catch((err) => {
-    console.error('❌ Critical error during database initialization:', err)
-    process.exit(1)
-  })
+    catch { }
+
+    try {
+      const adminExistsRow = sqlite.query(`SELECT id FROM "users" WHERE id = 1`).get()
+      if (!adminExistsRow) {
+        console.log('👤 Pre-creating default admin user to satisfy foreign key constraints...')
+        const passwordHash = await Bun.password.hash(ADMIN_PASSWORD)
+        sqlite.query(`INSERT INTO "users" (id, username, passwordHash) VALUES (?, ?, ?)`).run(1, ADMIN_USERNAME, passwordHash)
+      }
+    }
+    catch (e) {
+      console.error('⚠️ Could not pre-create admin user:', e)
+    }
+
+    const syncProcess = Bun.spawnSync(['bun', 'x', 'drizzle-kit', 'push'], {
+      stdout: 'inherit',
+      stderr: 'inherit',
+    })
+
+    if (syncProcess.exitCode !== 0) {
+      console.error('❌ Failed to sync database schema. Please check the Drizzle output above.')
+    }
+    else {
+      console.log('✅ Database schema is up to date!')
+    }
+
+    const adminExists = await db.query.users.findFirst({ where: eq(schema.users.id, 1) })
+
+    if (!adminExists) {
+      console.log('👤 Default admin user not found. Creating one...')
+      const passwordHash = await Bun.password.hash(ADMIN_PASSWORD)
+
+      await db.insert(schema.users).values({
+        id: 1,
+        username: ADMIN_USERNAME,
+        passwordHash,
+      })
+      console.log(`👤 Default Admin user created (Username: ${ADMIN_USERNAME}).`)
+    }
+
+    console.log(`🗄️ Main SQLite Database initialized at ${DB_PATH}`)
+  }
+})().catch((err) => {
+  console.error('❌ Critical error during database initialization:', err)
+  process.exit(1)
+})
 
 // ============================================================================
 // 3. ДИНАМИЧЕСКИЙ МЕНЕДЖЕР СЛОВАРЕЙ
@@ -122,7 +122,8 @@ export function getDictConnection(language: string): DictConnection | null {
   const specificPath = path.join(DICTS_PATH, `dict_${lang}.sqlite`)
 
   if (existsSync(specificPath)) {
-    const dictDb = new Database(specificPath, { readonly: true })
+    // Открываем без readonly: true, чтобы можно было создать индекс, если нужно
+    const dictDb = new Database(specificPath)
     dictDb.run(`PRAGMA journal_mode = WAL`)
 
     // 1. Автоматический поиск таблицы со словами
@@ -174,6 +175,14 @@ export function getDictConnection(language: string): DictConnection | null {
     else if (colNames.includes('pronunciation')) {
       hasTranscription = true
       transcriptionCol = 'pronunciation'
+    }
+
+    // 3. Автоматическое создание индекса (предотвращает Full Table Scan)
+    try {
+      dictDb.run(`CREATE INDEX IF NOT EXISTS "idx_${tableName}_${wordCol}" ON "${tableName}" ("${wordCol}")`)
+    }
+    catch (e: any) {
+      console.warn(`[DB Warning] Could not create index on dict_${lang}.sqlite (maybe read-only volume?):`, e.message)
     }
 
     const dDb = drizzle(dictDb, { logger: false })

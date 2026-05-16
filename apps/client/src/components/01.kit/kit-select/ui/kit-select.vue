@@ -189,7 +189,7 @@ function selectOption(val: string | number) {
 
 .kit-select-dropdown {
   /* Большой z-index, чтобы перекрывать KitDropdown и другие элементы */
-  z-index: 10005;
+  z-index: calc(var(--z-dropdown, 1000) + 5);
   background-color: var(--bg-tertiary-color);
   border: 1px solid var(--border-primary-color);
   border-radius: 8px;

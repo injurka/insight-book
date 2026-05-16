@@ -229,7 +229,8 @@ export async function processEpub(fileBuffer: ArrayBuffer, filename: string): Pr
           content: chunk,
         }))
 
-        const chunkSize = 50
+        // Увеличен размер чанка для более быстрой вставки в БД
+        const chunkSize = 1000
         for (let i = 0; i < pagesToInsert.length; i += chunkSize) {
           const chunk = pagesToInsert.slice(i, i + chunkSize)
           await db.insert(schema.bookPages).values(chunk).onConflictDoNothing()

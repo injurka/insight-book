@@ -1,4 +1,6 @@
 import type { Book, PagePayload, TocItem } from '~/shared/types/models'
+import { defineStore } from 'pinia'
+import { computed, ref, watch } from 'vue'
 import { useLibraryStore } from '~/components/05.modules/library/store/library.store'
 import { api } from '~/shared/services/api.service'
 import { offlineService } from '~/shared/services/offline.service'
@@ -6,7 +8,9 @@ import { useAnalysisStore } from '~/shared/store/analysis.store'
 import { useToastStore } from '~/shared/store/toast.store'
 
 export const useReaderStore = defineStore('reader', () => {
-  const currentBook = ref<Book | null>(null)
+  const libraryStore = useLibraryStore()
+
+  const currentBook = computed(() => libraryStore.currentBookInfo)
   const currentPage = ref<PagePayload | null>(null)
   const currentToc = ref<TocItem[]>([])
 
@@ -15,6 +19,12 @@ export const useReaderStore = defineStore('reader', () => {
   const tocOpen = ref(false)
 
   let lastTocBookId = 0
+
+  watch(() => libraryStore.currentBookInfo, (newBook) => {
+    if (!newBook) {
+      currentPage.value = null
+    }
+  })
 
   async function fetchToc(bookId: number) {
     try {
@@ -52,8 +62,8 @@ export const useReaderStore = defineStore('reader', () => {
     const cached = await offlineService.getPage(bookId, pageNum)
     if (cached) {
       currentPage.value = cached
-      if (currentBook.value)
-        currentBook.value.currentPage = pageNum
+      if (libraryStore.currentBookInfo)
+        libraryStore.currentBookInfo.currentPage = pageNum
       return
     }
 
@@ -65,12 +75,12 @@ export const useReaderStore = defineStore('reader', () => {
 
       await offlineService.savePage(bookId, pageNum, page)
 
-      if (currentBook.value)
-        currentBook.value.currentPage = pageNum
+      if (libraryStore.currentBookInfo)
+        libraryStore.currentBookInfo.currentPage = pageNum
     }
     catch (e) {
-      if (currentBook.value)
-        currentBook.value.currentPage = prevPageNum
+      if (libraryStore.currentBookInfo)
+        libraryStore.currentBookInfo.currentPage = prevPageNum
 
       toastStore.error('Эта страница недоступна в оффлайн-режиме')
       throw e
@@ -81,7 +91,7 @@ export const useReaderStore = defineStore('reader', () => {
   }
 
   async function openBook(book: Book) {
-    currentBook.value = book
+    libraryStore.currentBookInfo = book
     currentPage.value = null
     const analysisStore = useAnalysisStore()
     analysisStore.analysisHistory = []
@@ -90,7 +100,6 @@ export const useReaderStore = defineStore('reader', () => {
   }
 
   async function openBookById(id: number, startPage?: number) {
-    const libraryStore = useLibraryStore()
     const analysisStore = useAnalysisStore()
 
     isPageLoading.value = true
@@ -102,7 +111,7 @@ export const useReaderStore = defineStore('reader', () => {
       if (!book)
         throw new Error('Книга не найдена')
 
-      currentBook.value = book
+      libraryStore.currentBookInfo = book
       currentPage.value = null
 
       analysisStore.analysisHistory = []

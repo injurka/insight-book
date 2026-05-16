@@ -30,7 +30,7 @@ const { remove } = toastStore
   position: fixed;
   bottom: 16px;
   right: 16px;
-  z-index: 9999;
+  z-index: var(--z-toast, 1500);
   display: flex;
   flex-direction: column;
   gap: 8px;

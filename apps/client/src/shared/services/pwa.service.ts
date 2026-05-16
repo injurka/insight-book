@@ -8,7 +8,7 @@ import { usePwaStore } from '~/shared/store/pwa.store'
  */
 function initializePwaUpdater(pinia: Pinia): void {
   const pwaStore = usePwaStore(pinia)
-  const intervalMS = 60 * 1 * 1000
+  const intervalMS = 60 * 1 * 1000 * 10
 
   const {
     offlineReady,

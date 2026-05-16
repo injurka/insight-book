@@ -4,6 +4,16 @@
 @use 'sass:color';
 @use 'sass:meta';
 
+:root {
+  --z-dropdown: 1000;
+  --z-overlay: 1100;
+  --z-modal: 1200;
+  --z-popover: 1300;
+  --z-tooltip: 1400;
+  --z-toast: 1500;
+  --z-pwa-prompt: 1600;
+}
+
 @include mixins-theme.connectThemes(themes-theme.$themes, 'theme') using ($theme, $themeName) {
   @each $colorType, $colorValue in map.get($theme, 'colors') {
     --#{$colorType}-color: #{$colorValue};

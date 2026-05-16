@@ -12,7 +12,10 @@ import { lookupSingleWord, lookupWords } from '../services/dictionary.service'
 import { analyzeBookExcerpt, analyzeSentence, generateTts } from '../services/llm.service'
 import { recognizeMangaPage } from '../services/ocr.service'
 import { AppError } from '../utils/errors'
+import { createRateLimiter } from '../utils/rate-limit'
 import { runWorkerTask } from '../workers/worker-client'
+
+const llmLimiter = createRateLimiter(60, 60 * 1000)
 
 function json(data: unknown, status = 200) {
   return new Response(JSON.stringify(data), {
@@ -25,6 +28,8 @@ function extractUniqueWordsFromHtml(html: string): string[] {
   const words = new Set<string>()
   const regex = /data-word="([^"]+)"/g
   let match
+
+  // eslint-disable-next-line no-cond-assign
   while ((match = regex.exec(html)) !== null) {
     try {
       const word = decodeURIComponent(match[1])
@@ -33,7 +38,7 @@ function extractUniqueWordsFromHtml(html: string): string[] {
         words.add(word.toLowerCase())
       }
     }
-    catch (e) { }
+    catch { }
   }
   return Array.from(words)
 }
@@ -85,11 +90,11 @@ export async function handleGetBookInfo(req: Request, userId: number): Promise<R
   const { progress, stats, ...bookData } = book
   const statsResult = stats
     ? {
-      ...stats,
-      tags: stats.tags ? JSON.parse(stats.tags) : [],
-      posDistribution: stats.posDistribution ? JSON.parse(stats.posDistribution) : null,
-      topWords: stats.topWords ? JSON.parse(stats.topWords) : null,
-    }
+        ...stats,
+        tags: stats.tags ? JSON.parse(stats.tags) : [],
+        posDistribution: stats.posDistribution ? JSON.parse(stats.posDistribution) : null,
+        topWords: stats.topWords ? JSON.parse(stats.topWords) : null,
+      }
     : null
 
   return json({ ...bookData, currentPage: progress?.currentPage ?? null, toc: book.toc ? JSON.parse(book.toc) : [], stats: statsResult })
@@ -140,6 +145,8 @@ export async function handleUpdateBook(req: Request, userId: number): Promise<Re
 }
 
 export async function handleAnalyzeBookStats(req: Request, userId: number): Promise<Response> {
+  llmLimiter(String(userId))
+
   const id = Number((req as any).params.id)
   const book = await db.query.books.findFirst({ where: and(eq(schema.books.id, id), eq(schema.books.userId, userId)) })
   if (!book)
@@ -401,6 +408,8 @@ export async function handleLookupWord(req: Request, userId: number): Promise<Re
 }
 
 export async function handleAnalyzeSentence(req: Request, userId: number): Promise<Response> {
+  llmLimiter(String(userId))
+
   const bookId = Number((req as any).params.id)
 
   const book = await db.select({ id: schema.books.id }).from(schema.books).where(and(eq(schema.books.id, bookId), eq(schema.books.userId, userId))).get()
@@ -414,6 +423,8 @@ export async function handleAnalyzeSentence(req: Request, userId: number): Promi
 }
 
 export async function handleGenerateTts(req: Request, userId: number): Promise<Response> {
+  llmLimiter(String(userId))
+
   const bookId = Number((req as any).params.id)
   const book = await db.query.books.findFirst({ where: and(eq(schema.books.id, bookId), eq(schema.books.userId, userId)), columns: { language: true } })
   if (!book)

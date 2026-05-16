@@ -1,5 +1,6 @@
 import type { Book, BookStats } from '~/shared/types/models'
-import { useReaderStore } from '~/components/05.modules/reader/store/reader.store'
+import { defineStore } from 'pinia'
+import { ref } from 'vue'
 import { api } from '~/shared/services/api.service'
 import { offlineService } from '~/shared/services/offline.service'
 
@@ -59,11 +60,6 @@ export const useLibraryStore = defineStore('library', () => {
     if (currentBookInfo.value?.id === id) {
       Object.assign(currentBookInfo.value, data)
       await offlineService.saveBookInfo(id, currentBookInfo.value)
-    }
-
-    const readerStore = useReaderStore()
-    if (readerStore.currentBook?.id === id) {
-      Object.assign(readerStore.currentBook, data)
     }
   }
 
@@ -133,10 +129,8 @@ export const useLibraryStore = defineStore('library', () => {
   async function deleteBook(id: number) {
     await api.books.delete(id)
     books.value = books.value.filter(b => b.id !== id)
-    const readerStore = useReaderStore()
-    if (readerStore.currentBook?.id === id) {
-      readerStore.currentBook = null
-      readerStore.currentPage = null
+    if (currentBookInfo.value?.id === id) {
+      currentBookInfo.value = null
     }
   }
 

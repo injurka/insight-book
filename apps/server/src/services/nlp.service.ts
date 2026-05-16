@@ -20,7 +20,7 @@ function splitIntoSentences(text: string, language: string): string[] {
     }
     return sentences
   }
-  catch (e) {
+  catch {
     return text.split(/([.。！？…!?]+|\n{2,})/g).filter(Boolean)
   }
 }
@@ -151,8 +151,10 @@ const jaTokenizer = new JapaneseTokenizer()
 const enTokenizer = new EnglishTokenizer()
 
 export async function initNLP() {
+  // eslint-disable-next-line no-console
   console.log('🤖 Initializing NLP tokenizers...')
   await jaTokenizer.init()
+  // eslint-disable-next-line no-console
   console.log('✅ NLP tokenizers ready')
 }
 
@@ -175,6 +177,7 @@ export async function tokenizeHtmlPage(html: string, language: string) {
   let currentBlock = { textNodes: [] as any[], fullText: '' }
 
   function traverse(el: any) {
+    // eslint-disable-next-line regexp/no-unused-capturing-group
     const isBlock = el.type === 'tag' && /^(p|div|h[1-6]|li|blockquote|td|th|br|hr|tr|ul|ol|table|article|section|main|aside|nav|header|footer|pre|figure|figcaption)$/i.test(el.name)
 
     if (isBlock && currentBlock.textNodes.length > 0) {
@@ -349,6 +352,7 @@ export async function analyzeBookVocabulary(bookId: number, language: string) {
   const lexicalDiversity = totalValidTokens > 0 ? Math.round((uniqueTokens / totalValidTokens) * 100) : 0
   const allWordsArr = Object.values(wordFreq).map(data => ({ word: data.original, pos: data.pos, count: data.count }))
 
+  // eslint-disable-next-line regexp/no-obscure-range
   const properNouns = allWordsArr.filter(w => ['nr', 'ns', 'nt'].includes(w.pos) || (w.pos.startsWith('n') && /^[A-ZА-ЯЁ]/.test(w.word))).sort((a, b) => b.count - a.count).slice(0, 30)
   const isProper = (word: string) => properNouns.some(p => p.word === word)
   const nouns = allWordsArr.filter(w => w.pos.startsWith('n') && !isProper(w.word)).sort((a, b) => b.count - a.count).slice(0, 30)

@@ -179,7 +179,7 @@ function playTTS() {
   color: var(--fg-primary-color);
   border-radius: 8px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
-  z-index: 1010;
+  z-index: var(--z-tooltip, 1400);
   padding: 4px 6px;
   pointer-events: auto;
 }

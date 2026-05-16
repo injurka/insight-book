@@ -127,7 +127,7 @@ const arrowStyle = computed(() => {
 }
 
 .kit-tooltip-floating {
-  z-index: 10000;
+  z-index: var(--z-tooltip, 1400);
   background-color: var(--bg-tertiary-color);
   color: var(--fg-primary-color);
   padding: 6px 12px;

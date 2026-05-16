@@ -35,6 +35,13 @@ const swipeStyle = computed(() => {
   }
   return {}
 })
+
+function handleAction() {
+  if (props.message.action) {
+    props.message.action.onClick()
+    emit('remove')
+  }
+}
 </script>
 
 <template>
@@ -46,7 +53,12 @@ const swipeStyle = computed(() => {
     class="kit-toast-item"
   >
     <div class="kit-toast-item-detail">
-      {{ message.detail }}
+      <div class="detail-text">
+        {{ message.detail }}
+      </div>
+      <button v-if="message.action" class="action-btn" @click.stop="handleAction">
+        {{ message.action.label }}
+      </button>
     </div>
     <button
       class="kit-toast-item-close-btn"
@@ -93,6 +105,30 @@ const swipeStyle = computed(() => {
   &-detail {
     flex-grow: 1;
     text-align: left;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+
+    .detail-text {
+      word-break: break-word;
+    }
+  }
+
+  .action-btn {
+    align-self: flex-start;
+    background: rgba(255, 255, 255, 0.15);
+    color: inherit;
+    border: 1px solid currentColor;
+    border-radius: 4px;
+    padding: 4px 12px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.3);
+    }
   }
 
   &-close-btn {
@@ -131,6 +167,12 @@ const swipeStyle = computed(() => {
     background: var(--bg-secondary-color);
     color: var(--fg-primary-color);
     border-color: var(--border-primary-color);
+    .action-btn {
+      background: var(--bg-tertiary-color);
+      &:hover {
+        background: var(--bg-hover-color);
+      }
+    }
   }
 }
 </style>

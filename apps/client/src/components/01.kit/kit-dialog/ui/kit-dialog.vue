@@ -17,7 +17,7 @@ const props = withDefaults(defineProps<Props>(), {
   maxWidth: 700,
   persistent: false,
   floating: false,
-  resizable: true, 
+  resizable: true,
 })
 
 const visible = defineModel<boolean>('visible', { required: true })
@@ -312,7 +312,7 @@ onUnmounted(() => {
 
 .dialog-root {
   position: relative;
-  z-index: 1000;
+  z-index: var(--z-modal, 1200);
 }
 
 .dialog-overlay {
@@ -337,7 +337,7 @@ onUnmounted(() => {
   background-color: var(--bg-primary-color);
   border: 1px solid var(--border-secondary-color);
   border-radius: 16px;
-  z-index: 1001;
+  z-index: calc(var(--z-modal, 1200) + 1);
   width: 90vw;
   padding: 16px;
   display: flex;
