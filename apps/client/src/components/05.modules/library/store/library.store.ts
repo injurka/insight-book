@@ -18,7 +18,7 @@ export const useLibraryStore = defineStore('library', () => {
       books.value = await api.books.list()
       await offlineService.saveBooksList(books.value)
     }
-    catch (e) {
+    catch {
       const cached = await offlineService.getBooksList()
       if (cached)
         books.value = cached

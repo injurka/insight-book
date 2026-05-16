@@ -32,7 +32,7 @@ export const useReaderStore = defineStore('reader', () => {
       await offlineService.saveToc(bookId, currentToc.value)
       lastTocBookId = bookId
     }
-    catch (e) {
+    catch {
       const cached = await offlineService.getToc(bookId)
       if (cached) {
         currentToc.value = cached

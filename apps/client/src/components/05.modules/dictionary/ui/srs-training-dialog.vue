@@ -38,7 +38,7 @@ function calculateNextInterval(grade: number): number {
   if (!currentCard.value)
     return 0
 
-  let { repetitions, interval, easeFactor } = currentCard.value
+  const { repetitions, interval, easeFactor } = currentCard.value
 
   // Дублируем серверную логику шагов для отображения
   if (grade === 0) {

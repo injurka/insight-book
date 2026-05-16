@@ -8,7 +8,7 @@ import { AppRoutePaths } from '~/shared/constants/routes'
 import { useAuthStore } from '~/shared/store/auth.store'
 
 const emit = defineEmits<{
-  (e: 'edit-stats'): void
+  (e: 'editStats'): void
 }>()
 
 const libraryStore = useLibraryStore()
@@ -61,7 +61,7 @@ function startReading() {
       <KitBtn color="primary" class="full-width" @click="startReading">
         {{ (libraryStore.currentBookInfo?.currentPage || 1) > 1 ? 'Продолжить чтение' : 'Начать чтение' }}
       </KitBtn>
-      <KitBtn v-if="authStore.user" variant="text" size="sm" class="edit-btn" @click="emit('edit-stats')">
+      <KitBtn v-if="authStore.user" variant="text" size="sm" class="edit-btn" @click="emit('editStats')">
         Редактировать
       </KitBtn>
     </div>
@@ -77,7 +77,6 @@ function startReading() {
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.15);
   margin-bottom: 24px;
 
-  /* Иконка заглушки в этом месте должна быть больше */
   :deep(.fallback-icon) {
     font-size: 6rem;
   }
