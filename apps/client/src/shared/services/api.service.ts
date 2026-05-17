@@ -124,4 +124,8 @@ export const api = {
         body: JSON.stringify({ wordId, grade }),
       }),
   },
+
+  activity: {
+    getHeatmap: () => request<{ date: string, count: number }[]>('/api/activity/heatmap'),
+  },
 }

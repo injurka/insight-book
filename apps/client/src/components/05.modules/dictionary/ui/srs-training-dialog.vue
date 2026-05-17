@@ -13,25 +13,102 @@ const currentIndex = ref(0)
 const isFlipped = ref(false)
 const isSubmitting = ref(false)
 
+// Режимы тренировки
+type TrainingMode = 'standard' | 'audio' | 'assembly'
+const currentMode = ref<TrainingMode>('standard')
+
+// Для режима Assembly (Сборка)
+const jumbledWords = ref<{ id: number, text: string, selected: boolean }[]>([])
+const selectedWords = ref<{ id: number, text: string }[]>([])
+
 const currentCard = computed(() => dictStore.reviewQueue[currentIndex.value])
 const isFinished = computed(() => currentIndex.value >= dictStore.reviewQueue.length)
 const remainingQueue = computed(() => dictStore.reviewQueue.slice(currentIndex.value))
 const newCount = computed(() => remainingQueue.value.filter(c => c.status === 0).length)
 const reviewCount = computed(() => remainingQueue.value.filter(c => c.status > 0).length)
 
+const originalSentence = computed(() => currentCard.value?.encounters?.[0]?.sentence || '')
+
 const currentContext = computed(() => {
-  if (!currentCard.value?.encounters?.length)
+  if (!originalSentence.value || !currentCard.value)
     return null
 
-  const enc = currentCard.value.encounters[0]
   const regex = new RegExp(`(${currentCard.value.word})`, 'gi')
-
-  return enc.sentence.replace(regex, '[___]')
+  return originalSentence.value.replace(regex, '[___]')
 })
+
+// Перемешивание массива для режима сборки
+function shuffleArray<T>(array: T[]): T[] {
+  const arr = [...array]
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]]
+  }
+  return arr
+}
+
+function initCard() {
+  isFlipped.value = false
+  selectedWords.value = []
+
+  if (!currentCard.value)
+    return
+
+  // Доступные режимы зависят от контента (есть ли слово и есть ли контекст)
+  const availableModes: TrainingMode[] = ['standard']
+  if (currentCard.value.word)
+    availableModes.push('audio')
+  if (originalSentence.value)
+    availableModes.push('assembly')
+
+  // Случайный выбор режима
+  currentMode.value = availableModes[Math.floor(Math.random() * availableModes.length)]
+
+  if (currentMode.value === 'audio') {
+    // Включаем звук с небольшой задержкой
+    setTimeout(() => {
+      if (currentCard.value?.word) {
+        speak(currentCard.value.word)
+      }
+    }, 300)
+  }
+
+  if (currentMode.value === 'assembly') {
+    // Разбиваем предложение на слова, сохраняя знаки препинания как часть токенов или отдельно
+    const words = originalSentence.value.split(/([\s,.!?;:()]+)/).filter(w => w.trim().length > 0)
+    jumbledWords.value = shuffleArray(words.map((text, id) => ({ id, text, selected: false })))
+  }
+}
 
 function flip() {
   isFlipped.value = true
-  speak(currentCard.value.word)
+  if (currentMode.value !== 'audio' && currentCard.value?.word) {
+    speak(currentCard.value.word)
+  }
+}
+
+function selectAssemblyWord(word: { id: number, text: string, selected: boolean }) {
+  if (word.selected)
+    return
+
+  word.selected = true
+  selectedWords.value.push({ id: word.id, text: word.text })
+
+  // Автоматическая проверка
+  const currentText = selectedWords.value.map(w => w.text).join('')
+  const targetText = originalSentence.value.replace(/\s+/g, '')
+
+  if (currentText === targetText || selectedWords.value.length === jumbledWords.value.length) {
+    flip()
+  }
+}
+
+function removeAssemblyWord(word: { id: number, text: string }) {
+  selectedWords.value = selectedWords.value.filter(w => w.id !== word.id)
+  const original = jumbledWords.value.find(w => w.id === word.id)
+  if (original) {
+    original.selected = false
+  }
 }
 
 function calculateNextInterval(grade: number): number {
@@ -96,10 +173,8 @@ async function gradeCard(grade: number) {
     return
 
   if (dictStore.trainingMode === 'random') {
-    // В режиме случайной разминки мы не отправляем данные на сервер,
-    // а просто переходим к следующей карточке.
+    // В режиме случайной разминки мы не отправляем данные на сервер
     currentIndex.value++
-    isFlipped.value = false
     stop()
     return
   }
@@ -112,12 +187,10 @@ async function gradeCard(grade: number) {
 
     if (grade === 0) {
       // Если нажали "Снова", добавляем карточку в конец очереди
-      // чтобы обязательно повторить её еще раз до завершения тренировки.
       dictStore.reviewQueue.push(cardRef)
     }
 
     currentIndex.value++
-    isFlipped.value = false
     stop()
   }
   finally {
@@ -128,7 +201,13 @@ async function gradeCard(grade: number) {
 watch(visible, (val) => {
   if (val) {
     currentIndex.value = 0
-    isFlipped.value = false
+    initCard()
+  }
+})
+
+watch(currentIndex, () => {
+  if (!isFinished.value) {
+    initCard()
   }
 })
 </script>
@@ -136,13 +215,16 @@ watch(visible, (val) => {
 <template>
   <KitDialog
     v-model:visible="visible"
-    :max-width="550"
+    :max-width="600"
     persistent
   >
     <template #header>
       <div class="srs-header">
         <h2 class="dialog-title">
           {{ dictStore.trainingMode === 'srs' ? 'Повторение (SRS)' : 'Случайная тренировка' }}
+          <span v-if="!isFinished" class="mode-badge">
+            ({{ currentMode === 'audio' ? 'Аудирование' : currentMode === 'assembly' ? 'Сборка' : 'Чтение' }})
+          </span>
         </h2>
         <div v-if="!isFinished && dictStore.trainingMode === 'srs'" class="srs-stats">
           <span class="stat-new" title="Новые карточки">{{ newCount }}</span>
@@ -169,25 +251,63 @@ watch(visible, (val) => {
 
     <div v-else-if="currentCard" class="flashcard">
       <div class="card-front">
-        <!-- Контекстный режим -->
-        <div v-if="currentContext" class="context-cloze">
-          {{ currentContext }}
+        <!-- РЕЖИМ: АУДИРОВАНИЕ -->
+        <div v-if="currentMode === 'audio'" class="audio-mode">
+          <KitBtn icon="mdi:volume-high" size="lg" color="accent" @click="speak(currentCard.word)" />
+          <p>Послушайте и вспомните слово</p>
+          <div v-if="isFlipped" class="word-huge fade-in">
+            {{ currentCard.word }}
+          </div>
         </div>
-        <!-- Классический режим -->
-        <div v-else class="word-huge">
-          {{ currentCard.word }}
+
+        <!-- РЕЖИМ: СБОРКА -->
+        <div v-else-if="currentMode === 'assembly'" class="assembly-mode">
+          <div class="translation-hint">
+            {{ currentCard.translation }}
+          </div>
+
+          <div class="assembly-target">
+            <span v-if="selectedWords.length === 0" class="placeholder">Составьте предложение, нажимая на слова ниже...</span>
+            <span v-for="w in selectedWords" :key="w.id" class="assembled-word" @click="removeAssemblyWord(w)">{{ w.text }}</span>
+          </div>
+
+          <div v-if="!isFlipped" class="jumbled-pool fade-in">
+            <button
+              v-for="w in jumbledWords" :key="w.id"
+              class="jumbled-word"
+              :class="{ 'is-used': w.selected }"
+              @click="selectAssemblyWord(w)"
+            >
+              {{ w.text }}
+            </button>
+          </div>
+        </div>
+
+        <!-- РЕЖИМ: СТАНДАРТ -->
+        <div v-else class="standard-mode">
+          <!-- Контекстный режим -->
+          <div v-if="currentContext" class="context-cloze">
+            {{ currentContext }}
+          </div>
+          <!-- Классический режим -->
+          <div v-else class="word-huge">
+            {{ currentCard.word }}
+          </div>
         </div>
       </div>
 
       <div v-if="isFlipped" class="card-back fade-in">
         <hr>
+        <div v-if="currentMode === 'standard' || currentMode === 'assembly'" class="word-huge back-word fade-in">
+          {{ currentCard.word }}
+        </div>
         <div class="transcription">
           {{ currentCard.transcription }}
         </div>
-        <div class="translation" v-html="currentCard.translation" />
+        <div v-if="currentMode !== 'assembly'" class="translation" v-html="currentCard.translation" />
 
-        <div v-if="currentContext" class="original-sentence fade-in">
-          <b>Контекст:</b> {{ currentCard.encounters?.[0]?.sentence }}
+        <div v-if="originalSentence && currentMode !== 'assembly'" class="original-sentence fade-in">
+          <b>Контекст:</b> {{ originalSentence }}
         </div>
       </div>
 
@@ -229,6 +349,15 @@ watch(visible, (val) => {
     font-size: 1.125rem;
     font-weight: 600;
     margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    .mode-badge {
+      font-size: 0.85rem;
+      font-weight: 500;
+      color: var(--fg-secondary-color);
+    }
   }
 
   .srs-stats {
@@ -254,7 +383,7 @@ watch(visible, (val) => {
   display: flex;
   flex-direction: column;
   text-align: center;
-  min-height: 350px;
+  min-height: 400px;
   height: 100%;
 }
 
@@ -267,7 +396,109 @@ watch(visible, (val) => {
   align-items: center;
   justify-content: center;
   flex: 1;
+  width: 100%;
 }
+
+/* --- Стили режимов --- */
+
+.audio-mode {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+
+  p {
+    color: var(--fg-secondary-color);
+    margin: 0;
+  }
+}
+
+.assembly-mode {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  align-items: center;
+
+  .translation-hint {
+    font-size: 1.1rem;
+    font-style: italic;
+    color: var(--fg-secondary-color);
+    line-height: 1.4;
+  }
+
+  .assembly-target {
+    width: 100%;
+    min-height: 60px;
+    padding: 16px;
+    border: 2px dashed var(--border-primary-color);
+    border-radius: 8px;
+    display: flex;
+    flex-wrap: wrap;
+    align-content: flex-start;
+    gap: 8px;
+    background-color: rgba(var(--bg-secondary-color-rgb), 0.5);
+
+    .placeholder {
+      color: var(--fg-muted-color);
+      font-size: 0.95rem;
+      margin: auto;
+    }
+
+    .assembled-word {
+      background: var(--bg-tertiary-color);
+      color: var(--fg-primary-color);
+      padding: 6px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 1.1rem;
+      transition: all 0.2s;
+
+      &:hover {
+        background: var(--bg-error-color);
+        color: white;
+        text-decoration: line-through;
+      }
+    }
+  }
+
+  .jumbled-pool {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
+    width: 100%;
+
+    .jumbled-word {
+      background: var(--bg-primary-color);
+      border: 1px solid var(--border-primary-color);
+      color: var(--fg-primary-color);
+      padding: 8px 14px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 1.1rem;
+      transition: all 0.2s;
+
+      &:hover:not(.is-used) {
+        border-color: var(--fg-accent-color);
+        background-color: var(--bg-hover-color);
+      }
+
+      &.is-used {
+        opacity: 0;
+        pointer-events: none;
+        transform: scale(0.8);
+      }
+    }
+  }
+}
+
+.standard-mode {
+  width: 100%;
+}
+
+/* ------------------- */
 
 .context-cloze {
   font-size: 1.4rem;
@@ -285,6 +516,7 @@ watch(visible, (val) => {
   &.back-word {
     font-size: 2rem;
     color: var(--fg-accent-color);
+    margin-bottom: 8px;
   }
 }
 
@@ -311,11 +543,18 @@ watch(visible, (val) => {
   text-align: left;
 }
 
+.actions {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  margin-top: auto;
+  padding-top: 16px;
+}
+
 .grade-buttons {
   display: flex;
   gap: 12px;
   justify-content: space-between;
-  margin-top: 16px;
 
   .grade-btn {
     flex: 1;
@@ -371,7 +610,7 @@ watch(visible, (val) => {
 }
 
 .fade-in {
-  animation: fadeIn 0.3s;
+  animation: fadeIn 0.3s ease-out;
 }
 
 @keyframes fadeIn {

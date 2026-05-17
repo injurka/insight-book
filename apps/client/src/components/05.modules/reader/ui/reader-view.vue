@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { useResizeObserver } from '@vueuse/core'
+import DOMPurify from 'dompurify'
 import { computed, nextTick, useTemplateRef, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
@@ -21,6 +22,15 @@ const route = useRoute()
 
 const readerViewRef = useTemplateRef<HTMLElement>('readerViewRef')
 
+const safePageContent = computed(() => {
+  if (!readerStore.currentPage?.content)
+    return ''
+
+  return DOMPurify.sanitize(readerStore.currentPage.content, {
+    ADD_ATTR: ['data-sent-id', 'data-raw-sent', 'data-word', 'data-pos', 'data-token-idx'],
+  })
+})
+
 const translationMap = computed(() => {
   const map: Record<string, string> = {}
   for (const item of analysisStore.analysisHistory) {
@@ -30,10 +40,10 @@ const translationMap = computed(() => {
 })
 
 const translatedPageContent = computed(() => {
-  if (!readerStore.currentPage?.content || !readerStore.isParallelView)
+  if (!safePageContent.value || !readerStore.isParallelView)
     return ''
   const parser = new DOMParser()
-  const doc = parser.parseFromString(readerStore.currentPage.content, 'text/html')
+  const doc = parser.parseFromString(safePageContent.value, 'text/html')
   const map = translationMap.value
 
   const translatedSentIds = new Set<string>()
@@ -90,18 +100,19 @@ function syncHeights() {
   }
 
   const minLen = Math.min(leftNodes.length, rightNodes.length)
+  const heights = Array.from({ length: minLen })
+
   for (let i = 0; i < minLen; i++) {
-    const leftEl = leftNodes[i]
-    const rightEl = rightNodes[i]
+    const leftHeight = leftNodes[i].getBoundingClientRect().height
+    const rightHeight = rightNodes[i].getBoundingClientRect().height
+    heights[i] = Math.max(leftHeight, rightHeight)
+  }
 
-    const leftHeight = leftEl.getBoundingClientRect().height
-    const rightHeight = rightEl.getBoundingClientRect().height
-
-    const maxH = Math.max(leftHeight, rightHeight)
-
-    if (maxH > 0) {
-      leftEl.style.minHeight = `${maxH}px`
-      rightEl.style.minHeight = `${maxH}px`
+  // ЦИКЛ 2: Только запись свойств
+  for (let i = 0; i < minLen; i++) {
+    if (heights[i] > 0) {
+      leftNodes[i].style.minHeight = `${heights[i]}px`
+      rightNodes[i].style.minHeight = `${heights[i]}px`
     }
   }
 }
@@ -332,7 +343,7 @@ function onScroll() {
                 @mouseleave="onPointerUp"
                 @mouseover="onSentenceHover"
                 @mouseout="onSentenceOut"
-                v-html="readerStore.currentPage.content"
+                v-html="safePageContent"
               />
 
               <div

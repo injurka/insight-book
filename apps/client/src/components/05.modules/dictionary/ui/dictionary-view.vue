@@ -1,14 +1,17 @@
-<!-- eslint-disable no-alert -->
 <script setup lang="ts">
 import { Icon } from '@iconify/vue'
 import { useVirtualList } from '@vueuse/core'
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { KitBtn, KitDropdown, KitInput, KitPrompt, KitSelect, KitTooltip } from '~/components/01.kit'
+import { KitBtn, KitDialog, KitDropdown, KitInput, KitPrompt, KitSelect, KitTooltip } from '~/components/01.kit'
+import KitSkeleton from '~/components/01.kit/kit-skeleton/ui/kit-skeleton.vue'
+import ActivityHeatmap from '~/components/02.shared/activity-heatmap/ui/activity-heatmap.vue'
 import { GlobalActions } from '~/components/04.features/global-actions'
 import { useToast } from '~/shared/composables/use-toast'
 import { DIFFICULTY_SYSTEMS } from '~/shared/constants/difficulties'
+import { api } from '~/shared/services/api.service'
 import { useAnalysisStore } from '~/shared/store/analysis.store'
+import { useAuthStore } from '~/shared/store/auth.store'
 import { useDictionaryStore } from '../store/dictionary.store'
 import SrsTrainingDialog from './srs-training-dialog.vue'
 
@@ -16,11 +19,13 @@ const store = useDictionaryStore()
 const analysisStore = useAnalysisStore()
 const router = useRouter()
 const toast = useToast()
+const authStore = useAuthStore()
 
 const isTrainingOpen = ref(false)
 const isMobileFiltersOpen = ref(false)
 const isMobileDecksOpen = ref(false)
 const dropdownRef = ref<InstanceType<typeof KitDropdown> | null>(null)
+const isStatsModalOpen = ref(false)
 
 const isCreatePromptOpen = ref(false)
 const isRenamePromptOpen = ref(false)
@@ -138,6 +143,26 @@ const filteredDecks = computed(() => {
     return store.decks
   return store.decks.filter(d => d.language === store.selectedLanguage)
 })
+
+const activityData = ref<{ date: string, count: number }[]>([])
+const isActivityLoading = ref(true)
+
+onMounted(async () => {
+  if (authStore.user) {
+    try {
+      activityData.value = await api.activity.getHeatmap()
+    }
+    catch (e) {
+      console.error('Failed to load activity data:', e)
+    }
+    finally {
+      isActivityLoading.value = false
+    }
+  }
+  else {
+    isActivityLoading.value = false
+  }
+})
 </script>
 
 <template>
@@ -214,6 +239,14 @@ const filteredDecks = computed(() => {
 
           <div class="stats-badge">
             <span class="badge">{{ store.filteredWords.length }} слов</span>
+            <KitTooltip text="Статистика" placement="bottom-end">
+              <KitBtn
+                icon="mdi:chart-box-outline"
+                variant="text"
+                color="secondary"
+                @click="isStatsModalOpen = true"
+              />
+            </KitTooltip>
           </div>
         </div>
       </div>
@@ -300,7 +333,6 @@ const filteredDecks = computed(() => {
       </div>
     </div>
 
-    <!-- Диалоги -->
     <SrsTrainingDialog v-model:visible="isTrainingOpen" @finished="store.fetchReviewQueue" />
 
     <KitPrompt
@@ -329,6 +361,18 @@ const filteredDecks = computed(() => {
       cancel-text="Отмена"
       @submit="onDeleteDeckConfirm"
     />
+
+    <KitDialog
+      v-if="authStore.user"
+      v-model:visible="isStatsModalOpen"
+      title="Статистика словаря"
+      icon="mdi:chart-box-outline"
+      :max-width="500"
+    >
+      <div class="stats-modal-content">
+        <ActivityHeatmap :activity-data="activityData" />
+      </div>
+    </KitDialog>
   </div>
 </template>
 
@@ -409,15 +453,21 @@ const filteredDecks = computed(() => {
         margin-left: 4px;
       }
 
-      .stats-badge .badge {
-        background: var(--bg-tertiary-color);
-        padding: 8px 12px;
-        border-radius: 99px;
-        font-size: 0.9rem;
-        font-weight: 500;
-        color: var(--fg-secondary-color);
-        white-space: nowrap;
-        display: inline-block;
+      .stats-badge {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+
+        .badge {
+          background: var(--bg-tertiary-color);
+          padding: 8px 12px;
+          border-radius: 99px;
+          font-size: 0.9rem;
+          font-weight: 500;
+          color: var(--fg-secondary-color);
+          white-space: nowrap;
+          display: inline-block;
+        }
       }
     }
 
@@ -691,6 +741,8 @@ const filteredDecks = computed(() => {
   border-radius: 4px;
   font-weight: 500;
   opacity: 0.8;
+  margin-left: auto;
+  margin-right: 8px;
 }
 
 .empty-state {

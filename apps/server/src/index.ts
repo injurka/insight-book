@@ -1,6 +1,7 @@
 /* eslint-disable no-console */
 import type { ServeOptionsRoutes } from 'bun'
 import { CORS_HEADERS, PORT } from './config'
+import { handleGetHeatmapData } from './handlers/activity'
 import { handleGetMe, handleLogin } from './handlers/auth'
 import {
   handleAnalyzeBookStats,
@@ -35,8 +36,8 @@ import {
 import { authWrapper } from './utils/auth'
 import { withCors } from './utils/cors'
 import { apiWrapper } from './utils/errors'
-import { logRoutes } from './utils/print-routes'
 
+import { logRoutes } from './utils/print-routes'
 import './db'
 
 function corsOk() {
@@ -76,6 +77,9 @@ const apiRoutes: ServeOptionsRoutes = {
 
   // Review & SRS
   '/api/dictionary/review': { OPTIONS: corsOk, GET: apiWrapper(authWrapper(handleGetReviewQueue)), POST: apiWrapper(authWrapper(handleSrsReview)) },
+
+  // --- Activity API ---
+  '/api/activity/heatmap': { OPTIONS: corsOk, GET: apiWrapper(authWrapper(handleGetHeatmapData)) },
 
   // Words
   '/api/dictionary/:word': { OPTIONS: corsOk, GET: apiWrapper(authWrapper(handleGetWordFromUserDict)), DELETE: apiWrapper(authWrapper(handleRemoveFromUserDict)) },

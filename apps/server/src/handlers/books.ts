@@ -251,8 +251,16 @@ export async function handleUpdateStats(req: Request, userId: number): Promise<R
 export async function handleUploadBook(req: Request, userId: number): Promise<Response> {
   const formData = await req.formData()
   const file = formData.get('file') as File | null
-  if (!file)
+
+  if (!file) {
     throw new AppError(400, 'Файл не передан')
+  }
+
+  // Ограничение в 200 МБ
+  const MAX_FILE_SIZE = 200 * 1024 * 1024
+  if (file.size > MAX_FILE_SIZE) {
+    throw new AppError(413, `Размер файла превышает лимит в 200 МБ. Ваш файл: ${(file.size / 1024 / 1024).toFixed(2)} МБ`)
+  }
 
   const filename = file.name.toLowerCase()
   let bookId: number
