@@ -11,11 +11,17 @@ export function useTts() {
 
   const isPlaying = ref(false)
   const isLoading = ref(false)
+
   let currentAudio: HTMLAudioElement | null = null
+  let abortController: AbortController | null = null
 
   async function speak(text: string | null | undefined) {
-    if (!text || isLoading.value)
+    if (!text)
       return
+
+    if (isLoading.value && abortController) {
+      abortController.abort()
+    }
 
     const bookId = readerStore.currentBook?.id
     if (!bookId) {
@@ -24,10 +30,12 @@ export function useTts() {
     }
 
     stop()
+
     isLoading.value = true
+    abortController = new AbortController()
 
     try {
-      const { audioBase64 } = await api.books.generateTts(bookId, text)
+      const { audioBase64 } = await api.books.generateTts(bookId, text, abortController.signal)
       const audioSrc = `data:audio/mp3;base64,${audioBase64}`
       currentAudio = new Audio(audioSrc)
 
@@ -38,21 +46,31 @@ export function useTts() {
 
       await currentAudio.play()
     }
-    catch (e) {
+    catch (e: any) {
+      if (e.name === 'AbortError')
+        return
+
       console.error('TTS Error:', e)
       toast.error('Озвучка недоступна без интернета')
     }
     finally {
-      isLoading.value = false
+      if (abortController?.signal.aborted === false) {
+        isLoading.value = false
+      }
     }
   }
 
   function stop() {
+    if (abortController) {
+      abortController.abort()
+      abortController = null
+    }
     if (currentAudio) {
       currentAudio.pause()
       currentAudio = null
-      isPlaying.value = false
     }
+    isPlaying.value = false
+    isLoading.value = false
   }
 
   return { speak, stop, isPlaying, isLoading }

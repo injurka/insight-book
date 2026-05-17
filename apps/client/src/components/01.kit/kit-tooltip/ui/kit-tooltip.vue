@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { arrow, autoUpdate, flip, offset, shift, useFloating } from '@floating-ui/vue'
-import { computed, ref } from 'vue'
 
 interface Props {
   text?: string
@@ -76,6 +75,10 @@ const arrowStyle = computed(() => {
     top: arrowY != null ? `${arrowY}px` : '',
     [staticSide as string]: '-4px',
   }
+})
+
+onUnmounted(() => {
+  hide()
 })
 </script>
 

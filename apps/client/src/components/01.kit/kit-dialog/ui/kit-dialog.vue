@@ -1,7 +1,6 @@
 <script lang="ts" setup>
 import { Icon } from '@iconify/vue'
 import { useDraggable, useMediaQuery, useSwipe } from '@vueuse/core'
-import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 
 interface Props {
   maxWidth?: number
@@ -26,7 +25,6 @@ const dialogId = useId()
 const dialogContentRef = ref<HTMLElement | null>(null)
 const dialogHeaderRef = ref<HTMLElement | null>(null)
 
-// Инициализация координат для плавающего окна (по центру)
 const initialX = typeof window !== 'undefined' ? Math.max((window.innerWidth - props.maxWidth) / 2, 0) : 0
 const initialY = typeof window !== 'undefined' ? 100 : 0
 
@@ -42,7 +40,6 @@ const isMobile = useMediaQuery('(max-width: 599px)')
 const { lengthY, isSwiping, direction } = useSwipe(dialogHeaderRef, {
   threshold: 10,
   onSwipeEnd: () => {
-    // Закрываем, если мы на мобилке, это не плавающее окно, потянули вниз и проскроллили больше 100px
     if (isMobile.value && !props.floating && direction.value === 'down') {
       if (lengthY.value < -100) {
         visible.value = false
@@ -51,13 +48,11 @@ const { lengthY, isSwiping, direction } = useSwipe(dialogHeaderRef, {
   },
 })
 
-// Если свайпаем вниз, вычисляем смещение. lengthY при свайпе вниз отрицательный.
 const isDraggingDown = computed(() => isMobile.value && !props.floating && isSwiping.value && direction.value === 'down')
 const dragOffset = computed(() => isDraggingDown.value ? Math.abs(lengthY.value) : 0)
 
 const maxWidthPx = computed(() => `${props.maxWidth}px`)
 
-// --- Ресайз логика ---
 const dialogWidth = ref<number | '100%'>('100%')
 const dialogHeight = ref<number | 'auto'>('auto')
 const hasResized = ref(false)
@@ -208,6 +203,7 @@ onUnmounted(() => {
   if (typeof window !== 'undefined') {
     document.body.style.removeProperty('overflow')
   }
+  visible.value = false
 })
 </script>
 

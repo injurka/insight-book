@@ -10,13 +10,9 @@ export async function processFb2(fileBuffer: ArrayBuffer, filename: string, user
   const filePath = path.join(BOOKS_PATH, safeName)
   await Bun.write(filePath, fileBuffer)
 
-  // Читаем как текст
   const fileContent = await Bun.file(filePath).text()
-
-  // Парсим XML
   const $ = cheerio.load(fileContent, { xmlMode: true })
 
-  // 1. Метаданные
   const titleInfo = $('description title-info')
   const title = titleInfo.find('book-title').text() || filename.replace('.fb2', '')
   const authorFirst = titleInfo.find('author first-name').text()
@@ -24,7 +20,6 @@ export async function processFb2(fileBuffer: ArrayBuffer, filename: string, user
   const author = `${authorFirst} ${authorLast}`.trim() || null
   const language = titleInfo.find('lang').text().substring(0, 2).toLowerCase() || 'ru'
 
-  // 2. Обложка
   let coverUrl = null
   const coverImageHref = titleInfo.find('coverpage image').attr('l:href')
   if (coverImageHref) {
@@ -41,16 +36,14 @@ export async function processFb2(fileBuffer: ArrayBuffer, filename: string, user
     }
   }
 
-  // 3. Обработка текста (разбивка на страницы по размеру)
   const pages: string[] = []
   let currentPageHtml = ''
   let currentLen = 0
   const toc: any[] = []
 
-  const body = $('body').first() // Берем основное тело книги
+  const body = $('body').first()
 
   body.find('section').each((sectionIndex, sectionEl) => {
-    // Оглавление
     const sectionTitle = $(sectionEl).find('> title').text().trim()
     if (sectionTitle) {
       toc.push({
@@ -65,54 +58,56 @@ export async function processFb2(fileBuffer: ArrayBuffer, filename: string, user
       currentLen += sectionTitle.length
     }
 
-    // Содержимое секции
     $(sectionEl).find('> p, > empty-line, > image').each((_, child) => {
       const tagName = child.tagName.toLowerCase()
+      let childHtml = ''
+      let textLen = 0
 
       if (tagName === 'empty-line') {
-        currentPageHtml += '<br/>\n'
+        childHtml = '<br/>\n'
       }
       else if (tagName === 'p') {
         const html = $(child).html() || ''
-        const textLen = $(child).text().length
+        textLen = $(child).text().length
         if (textLen > 0) {
-          currentPageHtml += `<p>${html}</p>\n`
-          currentLen += textLen
+          childHtml = `<p>${html}</p>\n`
         }
       }
       else if (tagName === 'image') {
-        // Конвертация встраиваемых картинок прямо в base64 HTML тег
         const href = $(child).attr('l:href')?.replace('#', '')
         if (href) {
           const bin = $(`binary[id="${href}"]`)
           if (bin.length) {
             const b64 = bin.text().trim()
             const type = bin.attr('content-type') || 'image/jpeg'
-            currentPageHtml += `<img src="data:${type};base64,${b64}" />\n`
+            childHtml = `<img src="data:${type};base64,${b64}" />\n`
           }
         }
       }
 
-      // Пагинация
-      if (currentLen >= PAGE_SIZE_CHARS) {
+      if (!childHtml)
+        return
+
+      // Проверяем лимит ДО добавления блока
+      if (currentLen > 0 && currentLen + textLen >= PAGE_SIZE_CHARS) {
         pages.push(currentPageHtml)
         currentPageHtml = ''
         currentLen = 0
       }
+
+      currentPageHtml += childHtml
+      currentLen += textLen
     })
   })
 
-  // Остаток текста
   if (currentPageHtml.trim()) {
     pages.push(currentPageHtml)
   }
 
-  // Если вдруг книга пустая, создаем 1 страницу-заглушку
   if (pages.length === 0) {
     pages.push('<p>Текст книги не найден или формат не поддерживается.</p>')
   }
 
-  // 4. Сохранение в БД
   const [insertedBook] = await db.insert(schema.books).values({
     userId,
     type: 'fb2',
@@ -133,7 +128,6 @@ export async function processFb2(fileBuffer: ArrayBuffer, filename: string, user
     content,
   }))
 
-  // Увеличен размер чанка для более быстрой вставки в БД
   const chunkSize = 1000
   for (let i = 0; i < pagesToInsert.length; i += chunkSize) {
     await db.insert(schema.bookPages).values(pagesToInsert.slice(i, i + chunkSize)).onConflictDoNothing()

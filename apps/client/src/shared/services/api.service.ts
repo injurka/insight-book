@@ -75,12 +75,14 @@ export const api = {
         signal,
       }),
 
-    generateTts: (bookId: number, text: string) =>
+    generateTts: (bookId: number, text: string, signal?: AbortSignal) =>
       request<{ audioBase64: string, timings?: any[] }>(`/api/books/${bookId}/tts`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text }),
+        signal,
       }),
+
   },
 
   dictionary: {

@@ -280,7 +280,16 @@ export async function processSrsReview(wordId: number, userId: number, grade: nu
   if (!word)
     throw new Error('Word not found')
 
-  let { repetitions, interval, easeFactor, status } = word
+  let { repetitions, interval, easeFactor, status, updatedAt } = word
+
+  const now = Date.now()
+  const lastUpdate = new Date(updatedAt).getTime()
+  // Фактическое количество прошедших дней с момента последнего ответа
+  const daysSinceUpdate = Math.max(0, (now - lastUpdate) / (1000 * 60 * 60 * 24))
+
+  // Берем за основу больший интервал - либо запланированный, либо фактический,
+  // чтобы не "штрафовать" пользователя слишком сильно за опоздание
+  const actualInterval = Math.max(interval, daysSinceUpdate)
 
   // Плавная логика шагов интервалов в днях
   if (grade === 0) {
@@ -305,7 +314,7 @@ export async function processSrsReview(wordId: number, userId: number, grade: nu
       interval = 1 // 1 день
     }
     else {
-      interval = interval * easeFactor
+      interval = actualInterval * easeFactor
     }
     repetitions += 1
     status = interval > 21 ? 3 : 2
@@ -316,13 +325,13 @@ export async function processSrsReview(wordId: number, userId: number, grade: nu
       interval = 4 // 4 дня
     }
     else {
-      interval = interval * easeFactor * 1.3
+      interval = actualInterval * easeFactor * 1.3
     }
     repetitions += 1
     status = interval > 21 ? 3 : 2
   }
 
-  const nextDate = new Date(Date.now() + interval * 24 * 60 * 60 * 1000)
+  const nextDate = new Date(now + interval * 24 * 60 * 60 * 1000)
 
   await db.update(schema.userDictionary).set({
     repetitions,

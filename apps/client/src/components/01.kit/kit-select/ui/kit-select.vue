@@ -2,7 +2,6 @@
 import { autoUpdate, flip, size as floatingSize, offset, useFloating } from '@floating-ui/vue'
 import { Icon } from '@iconify/vue'
 import { onClickOutside } from '@vueuse/core'
-import { computed, ref } from 'vue'
 
 interface Option {
   label: string
@@ -63,6 +62,10 @@ function selectOption(val: string | number) {
   emit('update:modelValue', val)
   isOpen.value = false
 }
+
+onUnmounted(() => {
+  isOpen.value = false
+})
 </script>
 
 <template>

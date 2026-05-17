@@ -172,20 +172,26 @@ export async function processEpub(fileBuffer: ArrayBuffer, filename: string): Pr
                 const blockElements = body.childNodes
 
                 for (const node of blockElements) {
-                  const nodeHtml = node.toString()
+                  let nodeHtml = node.toString()
                   const textLength = node.textContent?.trim().length || 0
 
                   if (!nodeHtml.trim() && textLength === 0)
                     continue
 
-                  currentPageHtml += `${nodeHtml}\n`
-                  currentTotalLength += textLength
+                  // Если это просто текстовая нода на верхнем уровне, обернем её в <p>, чтобы не нарушать HTML
+                  if (node.nodeType === 3) {
+                    nodeHtml = `<p>${nodeHtml}</p>`
+                  }
 
-                  if (currentTotalLength >= PAGE_SIZE_CHARS) {
+                  // Проверяем лимит ДО добавления блока. Если не влезает и страница уже не пустая — переносим на новую.
+                  if (currentTotalLength > 0 && currentTotalLength + textLength >= PAGE_SIZE_CHARS) {
                     allHtmlPages.push(currentPageHtml)
                     currentPageHtml = ''
                     currentTotalLength = 0
                   }
+
+                  currentPageHtml += `${nodeHtml}\n`
+                  currentTotalLength += textLength
                 }
               }
               res()
@@ -208,7 +214,6 @@ export async function processEpub(fileBuffer: ArrayBuffer, filename: string): Pr
 
         const tocJson = JSON.stringify(toc)
 
-        // Drizzle ORM Insertions
         const [insertedBook] = await db.insert(schema.books).values({
           type: 'epub',
           title,
@@ -222,14 +227,12 @@ export async function processEpub(fileBuffer: ArrayBuffer, filename: string): Pr
 
         const bookId = insertedBook.id
 
-        // Батч-инсерт страниц
         const pagesToInsert = allHtmlPages.map((chunk, idx) => ({
           bookId,
           pageNum: idx + 1,
           content: chunk,
         }))
 
-        // Увеличен размер чанка для более быстрой вставки в БД
         const chunkSize = 1000
         for (let i = 0; i < pagesToInsert.length; i += chunkSize) {
           const chunk = pagesToInsert.slice(i, i + chunkSize)

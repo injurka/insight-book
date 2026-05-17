@@ -5,7 +5,7 @@ import path from 'node:path'
 import { and, desc, eq } from 'drizzle-orm'
 import { parse as parseHtml } from 'node-html-parser'
 import { z } from 'zod'
-import { CORS_HEADERS, COVERS_PATH } from '../config'
+import { BOOKS_PATH, CORS_HEADERS, COVERS_PATH } from '../config'
 import { db } from '../db'
 import * as schema from '../db/schema'
 import { lookupSingleWord, lookupWords } from '../services/dictionary.service'
@@ -29,7 +29,6 @@ function extractUniqueWordsFromHtml(html: string): string[] {
   const regex = /data-word="([^"]+)"/g
   let match
 
-  // eslint-disable-next-line no-cond-assign
   while ((match = regex.exec(html)) !== null) {
     try {
       const word = decodeURIComponent(match[1])
@@ -43,7 +42,6 @@ function extractUniqueWordsFromHtml(html: string): string[] {
   return Array.from(words)
 }
 
-// Zod-Схемы валидации
 const UpdateBookSchema = z.object({
   title: z.string().optional(),
   author: z.string().nullable().optional(),
@@ -90,11 +88,11 @@ export async function handleGetBookInfo(req: Request, userId: number): Promise<R
   const { progress, stats, ...bookData } = book
   const statsResult = stats
     ? {
-        ...stats,
-        tags: stats.tags ? JSON.parse(stats.tags) : [],
-        posDistribution: stats.posDistribution ? JSON.parse(stats.posDistribution) : null,
-        topWords: stats.topWords ? JSON.parse(stats.topWords) : null,
-      }
+      ...stats,
+      tags: stats.tags ? JSON.parse(stats.tags) : [],
+      posDistribution: stats.posDistribution ? JSON.parse(stats.posDistribution) : null,
+      topWords: stats.topWords ? JSON.parse(stats.topWords) : null,
+    }
     : null
 
   return json({ ...bookData, currentPage: progress?.currentPage ?? null, toc: book.toc ? JSON.parse(book.toc) : [], stats: statsResult })
@@ -216,7 +214,10 @@ export async function handleUpdateCover(req: Request, userId: number): Promise<R
 
   if (oldBook.coverUrl && oldBook.coverUrl.startsWith('/api/uploads/covers/')) {
     const oldFile = oldBook.coverUrl.split('/').pop()!
-    await unlink(path.join(COVERS_PATH, oldFile)).catch(() => { })
+    const resolvedOld = path.resolve(path.join(COVERS_PATH, oldFile))
+    if (resolvedOld.startsWith(path.resolve(COVERS_PATH))) {
+      await unlink(resolvedOld).catch(() => { })
+    }
   }
 
   return json({ success: true, coverUrl })
@@ -287,11 +288,23 @@ export async function handleDeleteBook(req: Request, userId: number): Promise<Re
 
   try {
     if (book.filePath) {
-      await rm(book.filePath, { recursive: true, force: true })
+      const resolvedPath = path.resolve(book.filePath)
+
+      if (!resolvedPath.startsWith(path.resolve(BOOKS_PATH))) {
+        throw new Error('Security violation: Invalid book path')
+      }
+
+      await rm(resolvedPath, { recursive: true, force: true })
     }
     if (book.coverUrl && book.coverUrl.startsWith('/api/uploads/covers/')) {
       const coverFilename = book.coverUrl.split('/').pop()!
-      await unlink(path.join(COVERS_PATH, coverFilename)).catch(() => { })
+      const resolvedCoverPath = path.resolve(path.join(COVERS_PATH, coverFilename))
+
+      if (!resolvedCoverPath.startsWith(path.resolve(COVERS_PATH))) {
+        throw new Error('Security violation: Invalid cover path')
+      }
+
+      await unlink(resolvedCoverPath).catch(() => { })
     }
   }
   catch (err: any) {
@@ -324,7 +337,6 @@ export async function handleGetPage(req: Request, userId: number): Promise<Respo
     .values({ bookId, currentPage: pageNum, updatedAt: new Date().toISOString() })
     .onConflictDoUpdate({ target: schema.readingProgress.bookId, set: { currentPage: pageNum } })
 
-  // === ЛОГИКА ДЛЯ МАНГИ ===
   if (book.type === 'manga') {
     const pageRow = await db.select().from(schema.mangaPages).where(and(eq(schema.mangaPages.bookId, bookId), eq(schema.mangaPages.pageNum, pageNum))).get()
     if (!pageRow)
@@ -366,7 +378,6 @@ export async function handleGetPage(req: Request, userId: number): Promise<Respo
     })
   }
 
-  // === ЛОГИКА ДЛЯ EPUB ===
   const cached = await db.query.nlpCache.findFirst({
     where: and(eq(schema.nlpCache.bookId, bookId), eq(schema.nlpCache.pageNum, pageNum)),
   })
@@ -409,29 +420,24 @@ export async function handleLookupWord(req: Request, userId: number): Promise<Re
 
 export async function handleAnalyzeSentence(req: Request, userId: number): Promise<Response> {
   llmLimiter(String(userId))
-
   const bookId = Number((req as any).params.id)
-
   const book = await db.select({ id: schema.books.id }).from(schema.books).where(and(eq(schema.books.id, bookId), eq(schema.books.userId, userId))).get()
   if (!book)
     throw new AppError(404, 'Книга не найдена')
 
   const { sentence, language } = AnalyzeSentenceSchema.parse(await req.json())
-
   const analysis = await analyzeSentence(bookId, sentence, language)
   return json(analysis)
 }
 
 export async function handleGenerateTts(req: Request, userId: number): Promise<Response> {
   llmLimiter(String(userId))
-
   const bookId = Number((req as any).params.id)
   const book = await db.query.books.findFirst({ where: and(eq(schema.books.id, bookId), eq(schema.books.userId, userId)), columns: { language: true } })
   if (!book)
     throw new AppError(404, 'Книга не найдена')
 
   const { text } = GenerateTtsSchema.parse(await req.json())
-
   const audioBase64 = await generateTts(text, book.language)
   return json({ audioBase64 })
 }

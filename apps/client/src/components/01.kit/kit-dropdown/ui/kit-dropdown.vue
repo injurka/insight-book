@@ -2,7 +2,6 @@
 import type { Placement } from '@floating-ui/vue'
 import { autoUpdate, flip, offset, shift, useFloating } from '@floating-ui/vue'
 import { onClickOutside, onKeyStroke } from '@vueuse/core'
-import { computed, ref } from 'vue'
 
 interface Props {
   modelValue?: boolean
@@ -44,8 +43,6 @@ const { x, y, strategy, placement: finalPlacement } = useFloating(referenceRef, 
   open: isOpen,
 })
 
-// Игнорируем клики по самому триггеру и по выпадающим спискам KitSelect,
-// которые рендерятся вне иерархии через Teleport to="body"
 onClickOutside(floatingRef, (e) => {
   if (referenceRef.value && referenceRef.value.contains(e.target as Node)) {
     return
@@ -65,7 +62,6 @@ function toggle() {
 }
 
 function handleContentClick(e: MouseEvent) {
-  // Не закрываем меню, если клик был по кастомному селекту или его триггеру
   if ((e.target as HTMLElement).closest('.kit-select-wrapper')) {
     return
   }
@@ -83,17 +79,19 @@ const contentStyle = computed(() => {
     top: isPositioned ? `${y.value}px` : '0',
     left: isPositioned ? `${x.value}px` : '0',
     width: typeof props.width === 'number' ? `${props.width}px` : props.width,
-    // Скрываем элемент в самый первый кадр, пока Floating UI не рассчитал координаты, чтобы не было "прыжка"
     visibility: isPositioned ? 'visible' as const : 'hidden' as const,
   }
 })
 
 defineExpose({ close: () => isOpen.value = false, open: () => isOpen.value = true })
+
+onUnmounted(() => {
+  isOpen.value = false
+})
 </script>
 
 <template>
   <div class="kit-dropdown">
-    <!-- Триггер -->
     <div
       ref="referenceRef"
       class="dropdown-trigger"
@@ -103,7 +101,6 @@ defineExpose({ close: () => isOpen.value = false, open: () => isOpen.value = tru
       <slot name="activator" :props="{ isOpen, toggle }" />
     </div>
 
-    <!-- Меню через Teleport чтобы избежать overflow: hidden родительских контейнеров -->
     <Teleport to="body">
       <Transition name="dropdown-zoom">
         <div

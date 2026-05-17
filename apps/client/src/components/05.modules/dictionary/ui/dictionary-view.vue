@@ -626,6 +626,7 @@ const filteredDecks = computed(() => {
   border: 1px solid var(--border-secondary-color);
   margin-bottom: 12px;
   overflow: hidden;
+
   .dict-item-content {
     flex-grow: 1;
     min-width: 0;
