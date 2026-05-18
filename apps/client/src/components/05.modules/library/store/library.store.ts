@@ -51,8 +51,6 @@ export const useLibraryStore = defineStore('library', () => {
   }
 
   async function updateBookInfo(id: number, data: Partial<Book>) {
-    await api.books.updateInfo(id, data)
-
     const listBook = books.value.find(b => b.id === id)
     if (listBook)
       Object.assign(listBook, data)
@@ -60,6 +58,13 @@ export const useLibraryStore = defineStore('library', () => {
     if (currentBookInfo.value?.id === id) {
       Object.assign(currentBookInfo.value, data)
       await offlineService.saveBookInfo(id, currentBookInfo.value)
+    }
+
+    try {
+      await api.books.updateInfo(id, data)
+    }
+    catch (e) {
+      console.warn('Failed to sync book info to server', e)
     }
   }
 

@@ -62,8 +62,7 @@ export const useReaderStore = defineStore('reader', () => {
     const cached = await offlineService.getPage(bookId, pageNum)
     if (cached) {
       currentPage.value = cached
-      if (libraryStore.currentBookInfo)
-        libraryStore.currentBookInfo.currentPage = pageNum
+      libraryStore.updateBookInfo(bookId, { currentPage: pageNum })
       return
     }
 
@@ -74,13 +73,10 @@ export const useReaderStore = defineStore('reader', () => {
       currentPage.value = page
 
       await offlineService.savePage(bookId, pageNum, page)
-
-      if (libraryStore.currentBookInfo)
-        libraryStore.currentBookInfo.currentPage = pageNum
+      libraryStore.updateBookInfo(bookId, { currentPage: pageNum })
     }
     catch (e) {
-      if (libraryStore.currentBookInfo)
-        libraryStore.currentBookInfo.currentPage = prevPageNum
+      libraryStore.updateBookInfo(bookId, { currentPage: prevPageNum })
 
       toastStore.error('Эта страница недоступна в оффлайн-режиме')
       throw e
