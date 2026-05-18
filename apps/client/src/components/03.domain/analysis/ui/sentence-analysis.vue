@@ -55,6 +55,7 @@ onUnmounted(() => {
     icon="mdi:robot-outline"
     :floating="!isPinned"
     :persistent="!isPinned"
+    :key-trigger="analysisStore.sidebarSentence"
   >
     <template #header-actions>
       <KitTooltip :text="showHistory ? 'Скрыть историю' : 'История сессии'" placement="bottom">

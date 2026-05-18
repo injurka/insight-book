@@ -11,6 +11,7 @@ interface Props {
   floating?: boolean
   resizable?: boolean
   minimizable?: boolean
+  keyTrigger?: any
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -209,7 +210,6 @@ function restoreDialog() {
   isMinimized.value = false
 }
 
-// Учитываем isMinimized для блокировки скролла body
 watch([visible, isMinimized, () => props.floating], ([isOpen, isMin, isFloating]) => {
   if (typeof window === 'undefined')
     return
@@ -229,9 +229,14 @@ watch([visible, isMinimized, () => props.floating], ([isOpen, isMin, isFloating]
   }
 }, { immediate: true })
 
-// Сбрасываем стейт минимизации при программном закрытии/открытии извне
 watch(visible, (isOpen) => {
   if (!isOpen) {
+    isMinimized.value = false
+  }
+})
+
+watch(() => props.keyTrigger, () => {
+  if (isMinimized.value) {
     isMinimized.value = false
   }
 })

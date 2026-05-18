@@ -221,6 +221,7 @@ const storagePercent = computed(() => {
   max-width: 900px;
   margin: 0 auto;
   padding: 32px;
+  width: 100%;
   height: 100dvh;
   padding-bottom: env(safe-area-inset-bottom, 0px);
   overflow-y: auto;
