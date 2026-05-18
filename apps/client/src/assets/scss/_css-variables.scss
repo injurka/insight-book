@@ -12,6 +12,9 @@
   --z-tooltip: 1400;
   --z-toast: 1500;
   --z-pwa-prompt: 1600;
+
+  --safe-area-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-area-top: env(safe-area-inset-top, 0px);
 }
 
 @include mixins-theme.connectThemes(themes-theme.$themes, 'theme') using ($theme, $themeName) {

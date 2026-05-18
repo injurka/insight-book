@@ -185,7 +185,8 @@ const storagePercent = computed(() => {
   max-width: 900px;
   margin: 0 auto;
   padding: 32px;
-  min-height: 100vh;
+  height: 100dvh;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
 
   @include media-down(md) {
     padding: 16px;

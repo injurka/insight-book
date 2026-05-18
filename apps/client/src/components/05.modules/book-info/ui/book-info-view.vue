@@ -82,7 +82,8 @@ function goBack() {
   max-width: 1000px;
   margin: 0 auto;
   padding: 24px;
-  min-height: 100vh;
+  height: 100dvh;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
 
   @include media-down(md) {
     padding: 8px;

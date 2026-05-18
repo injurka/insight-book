@@ -382,7 +382,8 @@ onMounted(async () => {
   padding: 16px;
   max-width: 1200px;
   margin: 0 auto;
-  height: 100vh;
+  height: 100dvh;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
   display: flex;
   flex-direction: column;
 

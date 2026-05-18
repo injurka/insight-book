@@ -415,7 +415,8 @@ function onScroll() {
 
 <style lang="scss" scoped>
 .reader-view {
-  height: 100vh;
+  height: 100dvh;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
   overflow-y: auto;
   overflow-x: hidden;
   background-color: var(--bg-primary-color);

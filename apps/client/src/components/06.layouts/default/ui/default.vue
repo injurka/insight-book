@@ -10,6 +10,7 @@
 
 <style scoped lang="scss">
 .main-content {
-  height: 100vh;
+  height: 100dvh;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 </style>
