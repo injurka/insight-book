@@ -169,30 +169,85 @@ export async function processEpub(fileBuffer: ArrayBuffer, filename: string): Pr
                 }
 
                 const body = root.querySelector('body') || root
-                const blockElements = body.childNodes
 
-                for (const node of blockElements) {
-                  let nodeHtml = node.toString()
-                  const textLength = node.textContent?.trim().length || 0
+                // --- НОВАЯ ЛОГИКА РЕКУРСИВНОГО ПАРСИНГА БЛОКОВ ---
+                const leafTags = new Set(['p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'ul', 'ol', 'blockquote', 'table', 'pre', 'figure', 'img', 'image', 'hr', 'br'])
+                const containerTags = new Set(['div', 'section', 'article', 'main', 'body', 'header', 'footer', 'aside'])
 
-                  if (!nodeHtml.trim() && textLength === 0)
-                    continue
+                const leaves: { html: string, textLength: number }[] = []
 
-                  // Если это просто текстовая нода на верхнем уровне, обернем её в <p>, чтобы не нарушать HTML
+                function extractLeaves(node: any) {
+                  // Если это текстовая нода (напрямую текст без обертки)
                   if (node.nodeType === 3) {
-                    nodeHtml = `<p>${nodeHtml}</p>`
+                    const text = node.textContent?.trim()
+                    if (text) {
+                      leaves.push({
+                        html: `<p>${node.textContent}</p>`,
+                        textLength: text.length,
+                      })
+                    }
+                    return
                   }
 
-                  // Проверяем лимит ДО добавления блока. Если не влезает и страница уже не пустая — переносим на новую.
-                  if (currentTotalLength > 0 && currentTotalLength + textLength >= PAGE_SIZE_CHARS) {
+                  // Если это HTML элемент
+                  if (node.nodeType === 1) {
+                    const tag = node.tagName?.toLowerCase()
+                    if (tag === 'script' || tag === 'style')
+                      return
+
+                    // Если это известный листовой блочный тег (абзац, заголовок, картинка)
+                    if (leafTags.has(tag)) {
+                      leaves.push({
+                        html: node.outerHTML,
+                        textLength: node.textContent?.trim().length || 0,
+                      })
+                      return
+                    }
+
+                    // Проверяем, есть ли внутри этого контейнера другие блочные теги
+                    let hasBlockChildren = false
+                    for (const child of node.childNodes) {
+                      if (child.nodeType === 1) {
+                        const cTag = child.tagName?.toLowerCase()
+                        if (leafTags.has(cTag) || containerTags.has(cTag)) {
+                          hasBlockChildren = true
+                          break
+                        }
+                      }
+                    }
+
+                    // Если внутри есть блоки или это структурный контейнер — рекурсивно ныряем глубже
+                    if (hasBlockChildren) {
+                      node.childNodes.forEach((child: any) => extractLeaves(child))
+                    }
+                    else {
+                      // Это контейнер, содержащий только текст или inline элементы (span, b, i). Берем его целиком.
+                      const textLen = node.textContent?.trim().length || 0
+                      if (textLen > 0 || tag === 'img' || tag === 'image') {
+                        leaves.push({
+                          html: node.outerHTML,
+                          textLength: textLen,
+                        })
+                      }
+                    }
+                  }
+                }
+
+                extractLeaves(body)
+
+                // Теперь собираем из "листьев" (отдельных абзацев) нормальные страницы
+                for (const leaf of leaves) {
+                  // Проверяем лимит ДО добавления блока
+                  if (currentTotalLength > 0 && currentTotalLength + leaf.textLength >= PAGE_SIZE_CHARS) {
                     allHtmlPages.push(currentPageHtml)
                     currentPageHtml = ''
                     currentTotalLength = 0
                   }
 
-                  currentPageHtml += `${nodeHtml}\n`
-                  currentTotalLength += textLength
+                  currentPageHtml += `${leaf.html}\n`
+                  currentTotalLength += leaf.textLength
                 }
+                // --- КОНЕЦ НОВОЙ ЛОГИКИ ---
               }
               res()
             })

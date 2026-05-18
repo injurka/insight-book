@@ -38,7 +38,7 @@ const filteredBooks = computed(() => {
   })
 })
 
-const groupedBooks = computed(() => {
+const sortedGroups = computed(() => {
   const groups: Record<string, Book[]> = {}
 
   filteredBooks.value.forEach((book) => {
@@ -48,18 +48,36 @@ const groupedBooks = computed(() => {
     groups[key].push(book)
   })
 
-  // Сортировка внутри серий по номеру тома
-  Object.keys(groups).forEach((key) => {
-    if (key !== 'Одиночные книги') {
-      groups[key].sort((a, b) => (a.seriesNumber || 0) - (b.seriesNumber || 0))
-    }
+  const result: { seriesName: string, books: Book[] }[] = []
+
+  if (groups['Одиночные книги']) {
+    result.push({
+      seriesName: 'Одиночные книги',
+      books: groups['Одиночные книги'],
+    })
+    delete groups['Одиночные книги']
+  }
+
+  // Остальные серии по алфавиту
+  const seriesNames = Object.keys(groups).sort((a, b) => a.localeCompare(b))
+
+  seriesNames.forEach((name) => {
+    const books = groups[name]
+    books.sort((a, b) => (a.seriesNumber || 0) - (b.seriesNumber || 0))
+    result.push({ seriesName: name, books })
   })
 
-  return groups
+  return result
 })
 
-function handleUpload(file: File) {
-  store.uploadBook(file)
+async function handleUpload(file: File) {
+  try {
+    await store.uploadBook(file)
+    toast.success('Книга успешно добавлена')
+  }
+  catch (e: any) {
+    toast.error(e.message || 'Ошибка загрузки книги')
+  }
 }
 
 function openBookInfo(book: Book) {
@@ -132,18 +150,18 @@ onMounted(() => {
       </div>
 
       <div v-else class="library-groups">
-        <template v-for="(books, seriesName) in groupedBooks" :key="seriesName">
+        <template v-for="group in sortedGroups" :key="group.seriesName">
           <div class="series-section">
-            <h3 v-if="seriesName !== 'Одиночные книги'" class="series-title">
-              <Icon icon="mdi:bookshelf" /> Серия: {{ seriesName }}
+            <h3 v-if="group.seriesName !== 'Одиночные книги'" class="series-title">
+              <Icon icon="mdi:bookshelf" /> Серия: {{ group.seriesName }}
             </h3>
-            <h3 v-else-if="Object.keys(groupedBooks).length > 1" class="series-title standalone">
+            <h3 v-else-if="sortedGroups.length > 1" class="series-title standalone">
               Одиночные издания
             </h3>
 
             <div class="books-grid">
               <BookCard
-                v-for="book in books"
+                v-for="book in group.books"
                 :key="book.id"
                 :book="book"
                 @click="openBookInfo(book)"

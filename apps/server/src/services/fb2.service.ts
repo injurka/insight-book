@@ -58,7 +58,8 @@ export async function processFb2(fileBuffer: ArrayBuffer, filename: string, user
       currentLen += sectionTitle.length
     }
 
-    $(sectionEl).find('> p, > empty-line, > image').each((_, child) => {
+    // Расширенный селектор для FB2: стихи, цитаты, аннотации и т.д.
+    $(sectionEl).find('> p, > empty-line, > image, > v, > subtitle, > cite, > poem, > epigraph, > annotation').each((_, child) => {
       const tagName = child.tagName.toLowerCase()
       let childHtml = ''
       let textLen = 0
@@ -66,7 +67,7 @@ export async function processFb2(fileBuffer: ArrayBuffer, filename: string, user
       if (tagName === 'empty-line') {
         childHtml = '<br/>\n'
       }
-      else if (tagName === 'p') {
+      else if (tagName === 'p' || tagName === 'v') { // <v> часто используется в fb2 для стихов
         const html = $(child).html() || ''
         textLen = $(child).text().length
         if (textLen > 0) {
@@ -82,6 +83,14 @@ export async function processFb2(fileBuffer: ArrayBuffer, filename: string, user
             const type = bin.attr('content-type') || 'image/jpeg'
             childHtml = `<img src="data:${type};base64,${b64}" />\n`
           }
+        }
+      }
+      else {
+        // Остальные теги (эпиграфы, цитаты) просто оборачиваем в DIV, сохраняя форматирование
+        const html = $(child).html() || ''
+        textLen = $(child).text().length
+        if (textLen > 0) {
+          childHtml = `<div class="fb2-${tagName}">${html}</div>\n`
         }
       }
 

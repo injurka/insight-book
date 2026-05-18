@@ -51,7 +51,7 @@ export const useLibraryStore = defineStore('library', () => {
   }
 
   async function updateBookInfo(id: number, data: Partial<Book>) {
-    const listBook = books.value.find(b => b.id === id)
+    const listBook = books.value.find(b => Number(b.id) === Number(id))
     if (listBook)
       Object.assign(listBook, data)
 
@@ -65,6 +65,7 @@ export const useLibraryStore = defineStore('library', () => {
     }
     catch (e) {
       console.warn('Failed to sync book info to server', e)
+      throw e // Теперь ошибка будет перехвачена компонентом
     }
   }
 
@@ -122,8 +123,11 @@ export const useLibraryStore = defineStore('library', () => {
   async function uploadBook(file: File) {
     isLoading.value = true
     try {
-      const { book } = await api.books.upload(file)
-      books.value.unshift(book)
+      const res = await api.books.upload(file)
+      const book = 'book' in res ? res.book : (res as unknown as Book)
+      if (book) {
+        books.value.unshift(book)
+      }
       return book
     }
     finally {

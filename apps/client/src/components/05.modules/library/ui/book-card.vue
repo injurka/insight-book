@@ -31,6 +31,10 @@ const progressPercent = computed(() => {
 
       <span class="lang-badge">{{ book.language.toUpperCase() }}</span>
 
+      <span v-if="book.seriesNumber" class="series-number-badge">
+        #{{ book.seriesNumber }}
+      </span>
+
       <div v-if="authStore.user" class="card-actions">
         <KitTooltip text="Редактировать" placement="left">
           <KitBtn
@@ -95,6 +99,7 @@ const progressPercent = computed(() => {
     width: 100%;
     aspect-ratio: 2 / 3;
     border-bottom: 1px solid var(--border-secondary-color);
+    overflow: hidden;
 
     .lang-badge {
       position: absolute;
@@ -108,6 +113,22 @@ const progressPercent = computed(() => {
       font-weight: 600;
       backdrop-filter: blur(4px);
       z-index: 10;
+    }
+
+    .series-number-badge {
+      position: absolute;
+      bottom: 8px;
+      right: 12px;
+      font-family: 'Maple Mono CN', serif;
+      font-size: 2.4rem;
+      font-weight: 700;
+      font-style: italic;
+      line-height: 1;
+      color: rgba(255, 255, 255, 0.5);
+      text-shadow: 0 4px 16px rgba(0, 0, 0, 0.6);
+      z-index: 5;
+      pointer-events: none;
+      user-select: none;
     }
 
     .card-actions {
@@ -127,6 +148,13 @@ const progressPercent = computed(() => {
       .action-btn {
         box-shadow: none;
         color: var(--fg-primary-color);
+      }
+    }
+
+    :deep(.kit-image) {
+      img {
+        object-fit: fill;
+        transform: scale(1.01);
       }
     }
   }

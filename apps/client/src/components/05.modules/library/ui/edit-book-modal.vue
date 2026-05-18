@@ -65,16 +65,21 @@ function onEditCoverChange(e: Event) {
 }
 
 function handleSave() {
-  if (!editingBook.value.id)
+  if (editingBook.value.id === undefined || editingBook.value.id === null)
     return
+
   const payload = { ...editingBook.value }
-  payload.createdAt = parseFromDateTimeLocal(payload.createdAt)
-  payload.currentPage = Number(payload.currentPage)
+
+  if (payload.createdAt) {
+    payload.createdAt = parseFromDateTimeLocal(payload.createdAt)
+  }
+
+  payload.currentPage = Number(payload.currentPage) || 1
   emit('save', { bookData: payload, coverFile: editingCoverFile.value })
 }
 
 function handleDelete() {
-  if (editingBook.value.id) {
+  if (editingBook.value.id !== undefined) {
     emit('delete', editingBook.value.id)
   }
 }

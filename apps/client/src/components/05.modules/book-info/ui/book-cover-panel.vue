@@ -97,8 +97,16 @@ function startReading() {
     z-index: 10;
   }
 
+  :deep(.kit-image) {
+    img {
+      object-fit: fill;
+      transform: scale(1.01);
+    }
+  }
+
   &.is-editable {
     cursor: pointer;
+
     &:hover {
       :deep(.real-image) {
         transform: scale(1.05);
