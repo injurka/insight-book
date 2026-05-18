@@ -234,6 +234,12 @@ const fontOptions = [
   }
 }
 
+.desktop-only {
+  @include media-down(md) {
+    display: none !important;
+  }
+}
+
 .menu-content {
   padding: 8px;
   display: flex;
