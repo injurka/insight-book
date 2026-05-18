@@ -1,3 +1,3 @@
-import CacheManagerView from './ui/cache-manager.vue'
+import SettingsView from './ui/settings-view.vue'
 
-export { CacheManagerView }
+export { SettingsView }

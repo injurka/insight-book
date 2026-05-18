@@ -101,6 +101,7 @@ function handleDelete() {
         <label>Название</label>
         <KitInput v-model="editingBook.title" placeholder="Название книги" />
       </div>
+
       <div class="form-group">
         <label>Автор</label>
         <KitInput v-model="editingBook.author" placeholder="Имя автора" />
@@ -112,9 +113,21 @@ function handleDelete() {
           <KitSelect v-if="editingBook.language !== undefined" v-model="editingBook.language" :options="bookLanguageOptions" />
         </div>
       </div>
+
       <div class="form-group">
         <label>Дата добавления</label>
         <input v-model="editingBook.createdAt" type="datetime-local" class="native-date-input">
+      </div>
+
+      <div class="form-group row-group">
+        <div class="form-group" style="flex: 2">
+          <label>Серия / Коллекция</label>
+          <KitInput v-model="editingBook.series" placeholder="Например: Гарри Поттер" />
+        </div>
+        <div class="form-group" style="flex: 1">
+          <label>Том (№)</label>
+          <KitInput v-model="editingBook.seriesNumber" type="number" placeholder="1" />
+        </div>
       </div>
     </div>
     <template #footer>

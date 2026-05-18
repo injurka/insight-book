@@ -4,6 +4,7 @@ import { sqliteTable, text } from 'drizzle-orm/sqlite-core'
 import { db, getDictConnection } from '../db'
 import * as schema from '../db/schema'
 import { AppError } from '../utils/errors'
+import { trackActivity } from './activity.service' 
 
 export async function lookupWords(words: string[], language: string, userId: number): Promise<Record<string, PageDictEntry>> {
   if (!words.length)
@@ -236,6 +237,8 @@ export async function upsertToUserDictionary(
       sentence: item.contextSentence,
     }).onConflictDoNothing()
   }
+
+  await trackActivity(userId, 'added', 1)
 }
 
 export async function removeFromUserDictionary(word: string, userId: number): Promise<void> {
@@ -341,4 +344,6 @@ export async function processSrsReview(wordId: number, userId: number, grade: nu
     nextReviewDate: nextDate.toISOString(),
     updatedAt: new Date().toISOString(),
   }).where(eq(schema.userDictionary.id, wordId))
+
+  await trackActivity(userId, 'reviewed', 1)
 }

@@ -2,11 +2,13 @@
 import { Icon } from '@iconify/vue'
 import { computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { KitBtn, KitSkeleton, KitTooltip } from '~/components/01.kit'
+import { KitBtn, KitCheckbox, KitInput, KitSkeleton, KitTooltip } from '~/components/01.kit'
 import { AppRoutePaths } from '~/shared/constants/routes'
 import { useCacheStore } from '~/shared/store/cache.store'
+import { useGlobalSettingsStore } from '~/shared/store/settings.store'
 
 const cacheStore = useCacheStore()
+const settingsStore = useGlobalSettingsStore()
 const router = useRouter()
 
 onMounted(() => {
@@ -27,7 +29,6 @@ function formatPagesList(pages: number[]) {
   if (pages.length === 0)
     return 'Нет сохраненных страниц'
 
-  // Сортируем страницы для красоты
   const sorted = [...pages].sort((a, b) => a - b)
   if (sorted.length <= 15)
     return sorted.join(', ')
@@ -46,8 +47,8 @@ const storagePercent = computed(() => {
     <header class="page-header">
       <KitBtn icon="mdi:arrow-left" variant="text" @click="router.push(AppRoutePaths.Home)" />
       <div class="header-title">
-        <h1>Память и Оффлайн</h1>
-        <p>Управление сохраненными книгами и словарями</p>
+        <h1>Настройки</h1>
+        <p>Память, оффлайн режим и ИИ</p>
       </div>
     </header>
 
@@ -57,7 +58,43 @@ const storagePercent = computed(() => {
     </div>
 
     <div v-else-if="cacheStore.stats" class="content">
-      <div v-if="cacheStore.deviceStorage" class="quota-card">
+      <!-- Настройки ИИ -->
+      <h2 class="section-title">
+        Искусственный интеллект
+      </h2>
+      <div class="settings-card llm-card">
+        <div class="llm-toggle">
+          <KitCheckbox v-model="settingsStore.useCustomLlm" label="Использовать локальный/собственный LLM (Ollama, LM Studio и др.)" />
+        </div>
+
+        <Transition name="fade">
+          <div v-if="settingsStore.useCustomLlm" class="custom-llm-form">
+            <p class="hint">
+              Укажите эндпоинт, совместимый с OpenAI API. Убедитесь, что ваш сервер разрешает CORS-запросы (например, для Ollama <code>OLLAMA_ORIGINS="*"</code>).
+            </p>
+            <div class="form-row">
+              <div class="form-group flex-2">
+                <label>API URL</label>
+                <KitInput v-model="settingsStore.customLlmUrl" placeholder="http://localhost:11434/v1" />
+              </div>
+              <div class="form-group flex-1">
+                <label>Название модели</label>
+                <KitInput v-model="settingsStore.customLlmModel" placeholder="llama3, qwen2..." />
+              </div>
+              <div class="form-group flex-1">
+                <label>API Key</label>
+                <KitInput v-model="settingsStore.customLlmKey" placeholder="Любой ключ" />
+              </div>
+            </div>
+          </div>
+        </Transition>
+      </div>
+
+      <!-- Хранилище -->
+      <h2 class="section-title">
+        Локальная память
+      </h2>
+      <div v-if="cacheStore.deviceStorage" class="settings-card quota-card">
         <div class="quota-header">
           <div class="quota-title">
             <h3>Хранилище браузера</h3>
@@ -97,7 +134,7 @@ const storagePercent = computed(() => {
         </p>
       </div>
 
-      <div class="total-card">
+      <div class="settings-card total-card">
         <div class="stat-item">
           <span class="label">Занято базой данных:</span>
           <span class="value text-accent">{{ formatBytes(cacheStore.stats.totalSizeBytes) }}</span>
@@ -111,12 +148,11 @@ const storagePercent = computed(() => {
       <h2 class="section-title">
         Сохраненные данные книг
       </h2>
-
       <div class="books-list">
         <div
           v-for="(book, id) in cacheStore.stats.bookStats"
           :key="id"
-          class="book-cache-card"
+          class="settings-card book-cache-card"
         >
           <div class="book-card-header">
             <div class="title-section">
@@ -187,6 +223,7 @@ const storagePercent = computed(() => {
   padding: 32px;
   height: 100dvh;
   padding-bottom: env(safe-area-inset-bottom, 0px);
+  overflow-y: auto;
 
   @include media-down(md) {
     padding: 16px;
@@ -211,13 +248,74 @@ const storagePercent = computed(() => {
   }
 }
 
-/* --- QUOTA CARD --- */
-.quota-card {
-  background: var(--bg-tertiary-color);
+.section-title {
+  margin-top: 32px;
+  margin-bottom: 16px;
+  font-size: 1.4rem;
+}
+
+.settings-card {
+  background: var(--bg-secondary-color);
   padding: 24px;
   border-radius: 12px;
+  border: 1px solid var(--border-secondary-color);
   margin-bottom: 16px;
+}
 
+.llm-card {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+
+  .custom-llm-form {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding-top: 12px;
+    border-top: 1px dashed var(--border-secondary-color);
+  }
+
+  .hint {
+    margin: 0;
+    font-size: 0.85rem;
+    color: var(--fg-secondary-color);
+    code {
+      background: var(--bg-tertiary-color);
+      padding: 2px 6px;
+      border-radius: 4px;
+      color: var(--fg-accent-color);
+    }
+  }
+
+  .form-row {
+    display: flex;
+    gap: 16px;
+    @include media-down(sm) {
+      flex-direction: column;
+    }
+  }
+
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+
+    label {
+      font-size: 0.85rem;
+      font-weight: 500;
+      color: var(--fg-secondary-color);
+    }
+
+    &.flex-2 {
+      flex: 2;
+    }
+    &.flex-1 {
+      flex: 1;
+    }
+  }
+}
+
+.quota-card {
   .quota-header {
     display: flex;
     justify-content: space-between;
@@ -241,28 +339,23 @@ const storagePercent = computed(() => {
         color: var(--fg-primary-color);
       }
 
-      .badge-safe {
+      .badge-safe,
+      .badge-warn {
         display: flex;
         align-items: center;
         gap: 4px;
-        background: rgba(var(--bg-success-color-rgb, 38, 157, 105), 0.2);
-        color: var(--fg-success-color);
         padding: 2px 8px;
         border-radius: 99px;
         font-size: 0.75rem;
         font-weight: 600;
       }
-
+      .badge-safe {
+        background: rgba(var(--bg-success-color-rgb, 38, 157, 105), 0.2);
+        color: var(--fg-success-color);
+      }
       .badge-warn {
-        display: flex;
-        align-items: center;
-        gap: 4px;
         background: rgba(var(--bg-warning-color-rgb, 225, 96, 50), 0.2);
         color: var(--fg-warning-color);
-        padding: 2px 8px;
-        border-radius: 99px;
-        font-size: 0.75rem;
-        font-weight: 600;
       }
     }
 
@@ -306,14 +399,9 @@ const storagePercent = computed(() => {
   }
 }
 
-/* --- STATS CARD --- */
 .total-card {
   display: flex;
   gap: 48px;
-  background: var(--bg-secondary-color);
-  padding: 24px;
-  border-radius: 12px;
-  border: 1px solid var(--border-secondary-color);
   margin-bottom: 32px;
 
   @include media-down(sm) {
@@ -344,12 +432,6 @@ const storagePercent = computed(() => {
   }
 }
 
-.section-title {
-  margin-bottom: 20px;
-  font-size: 1.4rem;
-}
-
-/* --- BOOKS LIST --- */
 .books-list {
   display: flex;
   flex-direction: column;
@@ -359,7 +441,6 @@ const storagePercent = computed(() => {
 .book-cache-card {
   background: var(--bg-primary-color);
   border: 1px solid var(--border-primary-color);
-  border-radius: 16px;
   padding: 20px;
   display: flex;
   flex-direction: column;
@@ -531,7 +612,15 @@ const storagePercent = computed(() => {
   }
 }
 
-.mb-4 {
-  margin-bottom: 16px;
+.fade-enter-active,
+.fade-leave-active {
+  transition:
+    opacity 0.2s,
+    transform 0.2s;
+}
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+  transform: translateY(-5px);
 }
 </style>

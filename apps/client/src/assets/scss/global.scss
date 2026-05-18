@@ -10,6 +10,7 @@ html {
   border: none;
   font-size: 17px;
   height: 100%;
+  overflow: hidden; 
   
   @include media-down(md) {
     font-size: 14px;
@@ -23,6 +24,7 @@ body {
   border: none;
   background-color: var(--bg-primary-color);
   color: var(--fg-primary-color);
+  overflow-y: auto;
 }
 
 *,

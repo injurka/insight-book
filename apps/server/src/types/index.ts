@@ -146,3 +146,10 @@ export interface UserDictItem {
 
   encounters?: WordEncounter[]
 }
+
+export interface LlmConfig {
+  url: string
+  key: string
+  model: string
+  fallbackModel?: string
+}

@@ -9,7 +9,7 @@ import { BOOKS_PATH, CORS_HEADERS, COVERS_PATH } from '../config'
 import { db } from '../db'
 import * as schema from '../db/schema'
 import { lookupSingleWord, lookupWords } from '../services/dictionary.service'
-import { analyzeBookExcerpt, analyzeSentence, generateTts } from '../services/llm.service'
+import { analyzeBookExcerpt, analyzeSentence, extractLlmConfig, generateTts } from '../services/llm.service'
 import { recognizeMangaPage } from '../services/ocr.service'
 import { AppError } from '../utils/errors'
 import { createRateLimiter } from '../utils/rate-limit'
@@ -49,6 +49,8 @@ const UpdateBookSchema = z.object({
   language: z.string().optional(),
   createdAt: z.string().optional(),
   currentPage: z.number().optional(),
+  series: z.string().nullable().optional(),
+  seriesNumber: z.number().nullable().optional(),
 })
 
 const UpdateStatsSchema = z.object({
@@ -88,11 +90,11 @@ export async function handleGetBookInfo(req: Request, userId: number): Promise<R
   const { progress, stats, ...bookData } = book
   const statsResult = stats
     ? {
-      ...stats,
-      tags: stats.tags ? JSON.parse(stats.tags) : [],
-      posDistribution: stats.posDistribution ? JSON.parse(stats.posDistribution) : null,
-      topWords: stats.topWords ? JSON.parse(stats.topWords) : null,
-    }
+        ...stats,
+        tags: stats.tags ? JSON.parse(stats.tags) : [],
+        posDistribution: stats.posDistribution ? JSON.parse(stats.posDistribution) : null,
+        topWords: stats.topWords ? JSON.parse(stats.topWords) : null,
+      }
     : null
 
   return json({ ...bookData, currentPage: progress?.currentPage ?? null, toc: book.toc ? JSON.parse(book.toc) : [], stats: statsResult })
@@ -132,6 +134,8 @@ export async function handleUpdateBook(req: Request, userId: number): Promise<Re
     author: body.author,
     coverUrl: body.coverUrl,
     language: body.language,
+    series: body.series,
+    seriesNumber: body.seriesNumber,
     createdAt: body.createdAt,
     updatedAt: new Date().toISOString(),
   }).where(eq(schema.books.id, id))
@@ -144,6 +148,7 @@ export async function handleUpdateBook(req: Request, userId: number): Promise<Re
 
 export async function handleAnalyzeBookStats(req: Request, userId: number): Promise<Response> {
   llmLimiter(String(userId))
+  const config = extractLlmConfig(req)
 
   const id = Number((req as any).params.id)
   const book = await db.query.books.findFirst({ where: and(eq(schema.books.id, id), eq(schema.books.userId, userId)) })
@@ -163,7 +168,7 @@ export async function handleAnalyzeBookStats(req: Request, userId: number): Prom
   }
   excerpt = excerpt.substring(0, 3000)
 
-  const aiData = await analyzeBookExcerpt(excerpt)
+  const aiData = await analyzeBookExcerpt(excerpt, config)
   const tagsJson = JSON.stringify(aiData.tags || [])
 
   let totalItems = 0
@@ -256,7 +261,6 @@ export async function handleUploadBook(req: Request, userId: number): Promise<Re
     throw new AppError(400, 'Файл не передан')
   }
 
-  // Ограничение в 200 МБ
   const MAX_FILE_SIZE = 200 * 1024 * 1024
   if (file.size > MAX_FILE_SIZE) {
     throw new AppError(413, `Размер файла превышает лимит в 200 МБ. Ваш файл: ${(file.size / 1024 / 1024).toFixed(2)} МБ`)
@@ -332,6 +336,7 @@ export async function handleGetToc(req: Request, userId: number): Promise<Respon
 
 export async function handleGetPage(req: Request, userId: number): Promise<Response> {
   const { id: bookId, pageNum } = (req as any).params
+  const config = extractLlmConfig(req)
 
   const book = await db.select({ totalPages: schema.books.totalPages, language: schema.books.language, type: schema.books.type })
     .from(schema.books)
@@ -357,7 +362,7 @@ export async function handleGetPage(req: Request, userId: number): Promise<Respo
       try {
         const imageBuffer = readFileSync(pageRow.imageUrl)
         const base64 = imageBuffer.toString('base64')
-        ocrBlocks = await recognizeMangaPage(base64)
+        ocrBlocks = await recognizeMangaPage(base64, config)
         await db.update(schema.mangaPages).set({ ocrData: JSON.stringify(ocrBlocks) }).where(eq(schema.mangaPages.id, pageRow.id))
       }
       catch (e: any) {
@@ -428,25 +433,29 @@ export async function handleLookupWord(req: Request, userId: number): Promise<Re
 
 export async function handleAnalyzeSentence(req: Request, userId: number): Promise<Response> {
   llmLimiter(String(userId))
+  const config = extractLlmConfig(req)
+
   const bookId = Number((req as any).params.id)
   const book = await db.select({ id: schema.books.id }).from(schema.books).where(and(eq(schema.books.id, bookId), eq(schema.books.userId, userId))).get()
   if (!book)
     throw new AppError(404, 'Книга не найдена')
 
   const { sentence, language } = AnalyzeSentenceSchema.parse(await req.json())
-  const analysis = await analyzeSentence(bookId, sentence, language)
+  const analysis = await analyzeSentence(bookId, sentence, language, config)
   return json(analysis)
 }
 
 export async function handleGenerateTts(req: Request, userId: number): Promise<Response> {
   llmLimiter(String(userId))
+  const config = extractLlmConfig(req)
+
   const bookId = Number((req as any).params.id)
   const book = await db.query.books.findFirst({ where: and(eq(schema.books.id, bookId), eq(schema.books.userId, userId)), columns: { language: true } })
   if (!book)
     throw new AppError(404, 'Книга не найдена')
 
   const { text } = GenerateTtsSchema.parse(await req.json())
-  const audioBase64 = await generateTts(text, book.language)
+  const audioBase64 = await generateTts(text, book.language, config)
   return json({ audioBase64 })
 }
 

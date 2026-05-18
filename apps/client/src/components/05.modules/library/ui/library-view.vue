@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { Book } from '~/shared/types/models'
+import { Icon } from '@iconify/vue'
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { KitSkeleton } from '~/components/01.kit'
@@ -35,6 +36,26 @@ const filteredBooks = computed(() => {
       || (b.author && b.author.toLowerCase().includes(searchQuery.value.toLowerCase()))
     return matchLang && matchSearch
   })
+})
+
+const groupedBooks = computed(() => {
+  const groups: Record<string, Book[]> = {}
+
+  filteredBooks.value.forEach((book) => {
+    const key = book.series?.trim() ? book.series.trim() : 'Одиночные книги'
+    if (!groups[key])
+      groups[key] = []
+    groups[key].push(book)
+  })
+
+  // Сортировка внутри серий по номеру тома
+  Object.keys(groups).forEach((key) => {
+    if (key !== 'Одиночные книги') {
+      groups[key].sort((a, b) => (a.seriesNumber || 0) - (b.seriesNumber || 0))
+    }
+  })
+
+  return groups
 })
 
 function handleUpload(file: File) {
@@ -110,14 +131,27 @@ onMounted(() => {
         <h2>Книги не найдены</h2>
       </div>
 
-      <div v-else class="books-grid">
-        <BookCard
-          v-for="book in filteredBooks"
-          :key="book.id"
-          :book="book"
-          @click="openBookInfo(book)"
-          @edit="openEditModal(book)"
-        />
+      <div v-else class="library-groups">
+        <template v-for="(books, seriesName) in groupedBooks" :key="seriesName">
+          <div class="series-section">
+            <h3 v-if="seriesName !== 'Одиночные книги'" class="series-title">
+              <Icon icon="mdi:bookshelf" /> Серия: {{ seriesName }}
+            </h3>
+            <h3 v-else-if="Object.keys(groupedBooks).length > 1" class="series-title standalone">
+              Одиночные издания
+            </h3>
+
+            <div class="books-grid">
+              <BookCard
+                v-for="book in books"
+                :key="book.id"
+                :book="book"
+                @click="openBookInfo(book)"
+                @edit="openEditModal(book)"
+              />
+            </div>
+          </div>
+        </template>
       </div>
 
       <EditBookModal
@@ -176,11 +210,34 @@ onMounted(() => {
   }
 }
 
+.library-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+  padding-bottom: 24px;
+}
+
+.series-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 1.25rem;
+  color: var(--fg-accent-color);
+  margin: 0 0 16px 0;
+  border-bottom: 2px solid var(--border-secondary-color);
+  padding-bottom: 8px;
+
+  &.standalone {
+    color: var(--fg-secondary-color);
+    font-size: 1.1rem;
+    margin-top: 16px;
+  }
+}
+
 .books-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
   gap: 24px;
-  padding-bottom: 24px;
 }
 
 .book-card-skeleton {

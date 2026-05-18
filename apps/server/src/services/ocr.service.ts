@@ -1,4 +1,5 @@
-import { LLM_API_KEY, LLM_API_URL } from '../config'
+import type { LlmConfig } from '../types'
+import { LLM_API_URL } from '../config'
 import { OCR_PROMPT } from '../prompts'
 import { AppError } from '../utils/errors'
 
@@ -11,23 +12,31 @@ export interface OcrBlock {
   h: number
 }
 
-export async function recognizeMangaPage(base64Image: string): Promise<OcrBlock[]> {
-  if (!LLM_API_KEY)
-    throw new AppError(500, 'API ключ не настроен')
+export async function recognizeMangaPage(base64Image: string, config: LlmConfig): Promise<OcrBlock[]> {
+  if (!config.url)
+    throw new AppError(500, 'API ключ / URL не настроен')
 
   let imageUrl = base64Image
   if (!base64Image.startsWith('data:image/')) {
     imageUrl = `data:image/jpeg;base64,${base64Image}`
   }
 
-  const response = await fetch(`${LLM_API_URL}/chat/completions`, {
+  // Если используется дефолт, применяем оптимизированную модель glm-ocr
+  // Если кастомный локальный LLM (Ollama, LM Studio), прокидываем модель пользователя
+  const model = config.url === LLM_API_URL ? 'glm-ocr' : config.model
+
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  }
+  if (config.key) {
+    headers.Authorization = `Bearer ${config.key}`
+  }
+
+  const response = await fetch(`${config.url}/chat/completions`, {
     method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${LLM_API_KEY}`,
-      'Content-Type': 'application/json',
-    },
+    headers,
     body: JSON.stringify({
-      model: 'glm-ocr',
+      model,
       messages: [
         {
           role: 'user',
@@ -46,11 +55,11 @@ export async function recognizeMangaPage(base64Image: string): Promise<OcrBlock[
         },
       ],
     }),
-    signal: AbortSignal.timeout(60000),
+    signal: AbortSignal.timeout(90000),
   })
 
   if (!response.ok) {
-    throw new Error(`GLM OCR API Error: ${await response.text()}`)
+    throw new Error(`OCR API Error: ${await response.text()}`)
   }
 
   const data = await response.json() as any
@@ -83,7 +92,7 @@ export async function recognizeMangaPage(base64Image: string): Promise<OcrBlock[
     return blocks
   }
 
-  // 2. Fallback: Если детализации нет, пробуем распарсить обычный текст
+  // 2. Fallback: Если детализации нет, пробуем распарсить обычный текст от стандартных моделей (GPT4-o, Llama-3.2-Vision)
   const content = data.choices?.[0]?.message?.content
   if (content && content.trim() !== '') {
     const lines = content.split('\n')

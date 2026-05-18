@@ -9,11 +9,20 @@ export const useGlobalSettingsStore = defineStore('globalSettings', () => {
   const readerLineHeight = useLocalStorage<number>('global-reader-line-height', 1.8)
   const readerFontFamily = useLocalStorage<string>('global-reader-font-family', '\'Maple Mono CN\', \'Microsoft YaHei\', sans-serif')
 
+  const useCustomLlm = useLocalStorage<boolean>('global-custom-llm', false)
+  const customLlmUrl = useLocalStorage<string>('global-custom-llm-url', 'http://localhost:11434/v1')
+  const customLlmKey = useLocalStorage<string>('global-custom-llm-key', 'ollama')
+  const customLlmModel = useLocalStorage<string>('global-custom-llm-model', 'llama3')
+
   return {
     translationPriority,
     ttsSpeed,
     readerFontSize,
     readerLineHeight,
     readerFontFamily,
+    useCustomLlm,
+    customLlmUrl,
+    customLlmKey,
+    customLlmModel,
   }
 })

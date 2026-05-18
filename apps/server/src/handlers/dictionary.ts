@@ -107,3 +107,34 @@ export async function handleSrsReview(req: Request, userId: number): Promise<Res
   await processSrsReview(wordId, userId, grade)
   return json({ success: true })
 }
+
+const BulkActionSchema = z.object({
+  wordIds: z.array(z.number()),
+  deckId: z.number().nullable().optional(),
+})
+
+export async function handleBulkDeleteDict(req: Request, userId: number): Promise<Response> {
+  const { wordIds } = BulkActionSchema.parse(await req.json())
+  const { db } = await import('../db')
+  const { userDictionary } = await import('../db/schema')
+  const { inArray, and, eq } = await import('drizzle-orm')
+
+  await db.delete(userDictionary).where(and(
+    inArray(userDictionary.id, wordIds),
+    eq(userDictionary.userId, userId),
+  ))
+  return json({ success: true })
+}
+
+export async function handleBulkMoveDict(req: Request, userId: number): Promise<Response> {
+  const { wordIds, deckId } = BulkActionSchema.parse(await req.json())
+  const { db } = await import('../db')
+  const { userDictionary } = await import('../db/schema')
+  const { inArray, and, eq } = await import('drizzle-orm')
+
+  await db.update(userDictionary).set({ deckId: deckId || null }).where(and(
+    inArray(userDictionary.id, wordIds),
+    eq(userDictionary.userId, userId),
+  ))
+  return json({ success: true })
+}

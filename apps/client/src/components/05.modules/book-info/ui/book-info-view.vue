@@ -80,6 +80,7 @@ function goBack() {
 <style lang="scss" scoped>
 .book-info-page {
   max-width: 1000px;
+  width: 100%;
   margin: 0 auto;
   padding: 24px;
   height: 100dvh;

@@ -1,4 +1,4 @@
-import type { LlmAnalysis } from '../types'
+import type { LlmAnalysis, LlmConfig } from '../types'
 import { eq } from 'drizzle-orm'
 import { z } from 'zod'
 import {
@@ -13,6 +13,26 @@ import { db } from '../db'
 import * as schema from '../db/schema'
 import { BOOK_ANALYSIS_PROMPT, getSystemPrompt } from '../prompts'
 import { AppError } from '../utils/errors'
+
+export function extractLlmConfig(req: Request): LlmConfig {
+  const customUrl = req.headers.get('x-custom-llm-url')
+  const customModel = req.headers.get('x-custom-llm-model')
+
+  if (customUrl && customModel) {
+    return {
+      url: customUrl,
+      key: req.headers.get('x-custom-llm-key') || '',
+      model: customModel,
+    }
+  }
+
+  return {
+    url: LLM_API_URL,
+    key: LLM_API_KEY,
+    model: LLM_MODEL,
+    fallbackModel: LLM_FALLBACK_MODEL,
+  }
+}
 
 const GrammarRuleSchema = z.object({
   pattern: z.string().catch(''),
@@ -32,19 +52,25 @@ const LlmAnalysisSchema = z.object({
   vocabulary: z.array(VocabItemSchema).default([]),
 })
 
-function hashSentence(sentence: string, language: string): string {
+function hashSentence(sentence: string, language: string, model: string): string {
   const hasher = new Bun.CryptoHasher('sha256')
-  hasher.update(`${language.toLowerCase()}::${sentence.trim()}`)
+  // Изолируем кэш по языку и конкретной модели!
+  hasher.update(`${language.toLowerCase()}::${model}::${sentence.trim()}`)
   return hasher.digest('hex')
 }
 
-async function _callLlmApi(model: string, messages: any[], temperature: number, signal: AbortSignal) {
-  const response = await fetch(`${LLM_API_URL}/chat/completions`, {
+async function _callLlmApi(model: string, messages: any[], temperature: number, signal: AbortSignal, config: LlmConfig) {
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  }
+
+  if (config.key) {
+    headers.Authorization = `Bearer ${config.key}`
+  }
+
+  const response = await fetch(`${config.url}/chat/completions`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${LLM_API_KEY}`,
-    },
+    headers,
     body: JSON.stringify({
       model,
       response_format: { type: 'json_object' },
@@ -68,8 +94,8 @@ async function _callLlmApi(model: string, messages: any[], temperature: number, 
   return data.choices[0].message.content
 }
 
-export async function analyzeSentence(bookId: number, sentence: string, language: string): Promise<LlmAnalysis> {
-  const hash = hashSentence(sentence, language)
+export async function analyzeSentence(bookId: number, sentence: string, language: string, config: LlmConfig): Promise<LlmAnalysis> {
+  const hash = hashSentence(sentence, language, config.model)
 
   const cached = await db.query.llmCache.findFirst({
     where: eq(schema.llmCache.sentenceHash, hash),
@@ -84,20 +110,20 @@ export async function analyzeSentence(bookId: number, sentence: string, language
     return JSON.parse(cached.analysis) as LlmAnalysis
   }
 
-  if (!LLM_API_KEY)
-    throw new AppError(500, 'LLM_API_KEY не настроен')
+  if (!config.url)
+    throw new AppError(500, 'LLM API не настроен')
 
   const messages = [
     { role: 'system', content: getSystemPrompt(language) },
     { role: 'user', content: `Текст: ${sentence}` },
   ]
 
-  const modelsToTry = [LLM_MODEL, LLM_FALLBACK_MODEL].filter(Boolean)
+  const modelsToTry = [config.model, config.fallbackModel].filter(Boolean) as string[]
   let lastError: Error | null = null
 
   for (const model of modelsToTry) {
     try {
-      const raw = await _callLlmApi(model, messages, 0.2, AbortSignal.timeout(30000))
+      const raw = await _callLlmApi(model, messages, 0.2, AbortSignal.timeout(60000), config)
       const cleanJson = raw.replace(/^```json\n?/, '').replace(/\n?```$/, '').trim()
       const parsed = JSON.parse(cleanJson)
       const analysis = LlmAnalysisSchema.parse(parsed) as LlmAnalysis
@@ -125,21 +151,21 @@ export async function analyzeSentence(bookId: number, sentence: string, language
   throw new AppError(500, `Не удалось получить валидный ответ от ИИ: ${lastError?.message || 'Unknown error'}`)
 }
 
-export async function analyzeBookExcerpt(excerpt: string): Promise<{ description: string, difficulty: string, tags: string[] }> {
-  if (!LLM_API_KEY)
-    throw new AppError(500, 'LLM_API_KEY не настроен')
+export async function analyzeBookExcerpt(excerpt: string, config: LlmConfig): Promise<{ description: string, difficulty: string, tags: string[] }> {
+  if (!config.url)
+    throw new AppError(500, 'LLM API не настроен')
 
   const messages = [
     { role: 'system', content: BOOK_ANALYSIS_PROMPT },
     { role: 'user', content: `Отрывок книги:\n\n${excerpt}` },
   ]
 
-  const modelsToTry = [LLM_MODEL, LLM_FALLBACK_MODEL].filter(Boolean)
+  const modelsToTry = [config.model, config.fallbackModel].filter(Boolean) as string[]
   let lastError: Error | null = null
 
   for (const model of modelsToTry) {
     try {
-      const raw = await _callLlmApi(model, messages, 0.3, AbortSignal.timeout(45000))
+      const raw = await _callLlmApi(model, messages, 0.3, AbortSignal.timeout(90000), config)
       const cleanJson = raw.replace(/^```json\n?/, '').replace(/\n?```$/, '').trim()
       return JSON.parse(cleanJson)
     }
@@ -149,7 +175,7 @@ export async function analyzeBookExcerpt(excerpt: string): Promise<{ description
     }
   }
 
-  if (lastError?.message.includes('No candidates returned')) {
+  if (lastError?.message.includes('No candidates returned') || lastError?.message.includes('safety')) {
     console.warn('[LLM] Текст заблокирован фильтрами безопасности ИИ на всех моделях. Возвращаем заглушку.')
     return {
       description: 'Краткое описание недоступно. Текст книги был заблокирован внутренними фильтрами безопасности ИИ (вероятно, из-за описания драматических или трагических событий).',
@@ -176,15 +202,23 @@ function getVoiceForLanguage(language: string): string {
   }
 }
 
-export async function generateTts(text: string, language: string): Promise<string> {
+export async function generateTts(text: string, language: string, config: LlmConfig): Promise<string> {
   const normalizedText = text.trim()
   const voice = getVoiceForLanguage(language)
 
   if (!normalizedText)
     throw new AppError(400, 'Текст не передан')
 
-  if (!TTS_API_KEY)
-    throw new AppError(500, 'TTS_API_KEY не настроен')
+  // Если используется кастомный LLM (и он не совпадает со стандартом), мы все равно передаем
+  // настройки дальше. Однако, если сервер локальный и не поддерживает /audio/speech, будет брошена ошибка.
+  // Для TTS в кастомном режиме лучше брать отдельный эндпоинт, но в рамках текущей логики
+  // мы применяем те же кастомные заголовки.
+  const ttsUrl = config.url === LLM_API_URL ? LLM_API_URL : config.url
+  const ttsKey = config.key === LLM_API_KEY && TTS_API_KEY ? TTS_API_KEY : config.key
+  const ttsModel = config.model === LLM_MODEL && TTS_MODEL ? TTS_MODEL : 'tts-1'
+
+  if (!ttsUrl)
+    throw new AppError(500, 'TTS API не настроен')
 
   const hash = hashTtsText(normalizedText, voice)
 
@@ -195,14 +229,17 @@ export async function generateTts(text: string, language: string): Promise<strin
   if (cached)
     return cached.audioBase64
 
-  const response = await fetch(`${LLM_API_URL}/audio/speech`, {
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  }
+  if (ttsKey)
+    headers.Authorization = `Bearer ${ttsKey}`
+
+  const response = await fetch(`${ttsUrl}/audio/speech`, {
     method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${TTS_API_KEY}`,
-      'Content-Type': 'application/json',
-    },
+    headers,
     body: JSON.stringify({
-      model: TTS_MODEL,
+      model: ttsModel,
       input: normalizedText,
       voice,
       response_format: 'mp3',

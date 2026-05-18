@@ -1,9 +1,22 @@
 import type { Book, BookStats, DictDeck, LlmAnalysis, PagePayload, TocItem, UserDictItem } from '../types/models'
+import { getActivePinia } from 'pinia'
+import { useGlobalSettingsStore } from '../store/settings.store'
 
 const BASE = import.meta.env.VITE_API_URL || 'https://insight-api.trip-scheduler.ru'
 
 async function request<T>(url: string, opts?: RequestInit): Promise<T> {
-  const res = await fetch(`${BASE}${url}`, opts)
+  const headers = new Headers(opts?.headers)
+
+  if (getActivePinia()) {
+    const settings = useGlobalSettingsStore()
+    if (settings.useCustomLlm && settings.customLlmUrl && settings.customLlmModel) {
+      headers.set('X-Custom-Llm-Url', settings.customLlmUrl)
+      headers.set('X-Custom-Llm-Key', settings.customLlmKey || '')
+      headers.set('X-Custom-Llm-Model', settings.customLlmModel)
+    }
+  }
+
+  const res = await fetch(`${BASE}${url}`, { ...opts, headers })
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: res.statusText })) as { error: string }
     throw new Error(err.error || `HTTP ${res.status}`)
@@ -86,6 +99,7 @@ export const api = {
   },
 
   dictionary: {
+
     list: () => request<UserDictItem[]>('/api/dictionary'),
 
     decks: () => request<DictDeck[]>('/api/dictionary/decks'),
@@ -123,6 +137,10 @@ export const api = {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ wordId, grade }),
       }),
+
+    bulkDelete: (wordIds: number[]) => request<{ success: boolean }>('/api/dictionary/bulk/delete', { method: 'POST', body: JSON.stringify({ wordIds }) }),
+    bulkMove: (wordIds: number[], deckId: number | null) => request<{ success: boolean }>('/api/dictionary/bulk/move', { method: 'POST', body: JSON.stringify({ wordIds, deckId }) }),
+
   },
 
   activity: {

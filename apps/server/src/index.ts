@@ -22,6 +22,8 @@ import {
   handleUploadBook,
 } from './handlers/books'
 import {
+  handleBulkDeleteDict,
+  handleBulkMoveDict,
   handleCreateDeck,
   handleDeleteDeck,
   handleGetDecks,
@@ -57,19 +59,21 @@ const apiRoutes: ServeOptionsRoutes = {
   '/api/books/:id': { OPTIONS: corsOk, PATCH: apiWrapper(authWrapper(handleUpdateBook)), DELETE: apiWrapper(authWrapper(handleDeleteBook)) },
   '/api/books/:id/info': { OPTIONS: corsOk, GET: apiWrapper(authWrapper(handleGetBookInfo)) },
   '/api/books/:id/cover': { OPTIONS: corsOk, PATCH: apiWrapper(authWrapper(handleUpdateCover)) },
-  '/api/uploads/covers/:filename': { OPTIONS: corsOk, GET: apiWrapper(handleGetCoverImage) }, // Публично, чтобы картинки загружались
+  '/api/uploads/covers/:filename': { OPTIONS: corsOk, GET: apiWrapper(handleGetCoverImage) },
   '/api/books/:id/tts': { OPTIONS: corsOk, POST: apiWrapper(authWrapper(handleGenerateTts)) },
   '/api/books/:id/stats': { OPTIONS: corsOk, PATCH: apiWrapper(authWrapper(handleUpdateStats)) },
   '/api/books/:id/analyze-book': { OPTIONS: corsOk, POST: apiWrapper(authWrapper(handleAnalyzeBookStats)) },
   '/api/books/:id/analyze-vocabulary': { OPTIONS: corsOk, POST: apiWrapper(authWrapper(handleAnalyzeVocabulary)) },
   '/api/books/:id/toc': { OPTIONS: corsOk, GET: apiWrapper(authWrapper(handleGetToc)) },
   '/api/books/:id/page/:pageNum': { OPTIONS: corsOk, GET: apiWrapper(authWrapper(handleGetPage)) },
-  '/api/books/:id/page/:pageNum/image': { OPTIONS: corsOk, GET: apiWrapper(handleGetPageImage) }, // Публично
+  '/api/books/:id/page/:pageNum/image': { OPTIONS: corsOk, GET: apiWrapper(handleGetPageImage) },
   '/api/books/:id/word/:word': { OPTIONS: corsOk, GET: apiWrapper(authWrapper(handleLookupWord)) },
   '/api/books/:id/analyze': { OPTIONS: corsOk, POST: apiWrapper(authWrapper(handleAnalyzeSentence)) },
 
   // --- Dictionary API ---
   '/api/dictionary': { OPTIONS: corsOk, GET: apiWrapper(authWrapper(handleGetUserDict)), POST: apiWrapper(authWrapper(handleUpsertToUserDict)) },
+  '/api/dictionary/bulk/delete': { OPTIONS: corsOk, POST: apiWrapper(authWrapper(handleBulkDeleteDict)) },
+  '/api/dictionary/bulk/move': { OPTIONS: corsOk, POST: apiWrapper(authWrapper(handleBulkMoveDict)) },
 
   // Decks
   '/api/dictionary/decks': { OPTIONS: corsOk, GET: apiWrapper(authWrapper(handleGetDecks)), POST: apiWrapper(authWrapper(handleCreateDeck)) },

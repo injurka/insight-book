@@ -11,7 +11,7 @@ export const useDictionaryStore = defineStore('dictionary', () => {
 
   const words = ref<UserDictItem[]>([])
   const decks = ref<DictDeck[]>([])
-
+  const selectedWordIds = ref<Set<number>>(new Set())
   const reviewQueue = ref<UserDictItem[]>([])
   const trainingMode = ref<'srs' | 'random'>('srs')
 
@@ -176,6 +176,49 @@ export const useDictionaryStore = defineStore('dictionary', () => {
   const reviewWordsQueueCount = computed(() => reviewQueue.value.filter(w => w.status > 0).length)
   const totalReviewCount = computed(() => reviewQueue.value.length)
 
+  function toggleWordSelection(id: number) {
+    if (selectedWordIds.value.has(id))
+      selectedWordIds.value.delete(id)
+    else selectedWordIds.value.add(id)
+  }
+
+  function clearSelection() {
+    selectedWordIds.value.clear()
+  }
+
+  function selectAllFiltered() {
+    filteredWords.value.forEach(w => selectedWordIds.value.add(w.id))
+  }
+
+  async function bulkDelete() {
+    const ids = Array.from(selectedWordIds.value)
+    if (!ids.length)
+      return
+    try {
+      await api.dictionary.bulkDelete(ids)
+      words.value = words.value.filter(w => !ids.includes(w.id))
+      clearSelection()
+      toast.success(`Удалено ${ids.length} слов`)
+    }
+    catch (e: any) { toast.error('Ошибка удаления') }
+  }
+
+  async function bulkMoveToDeck(deckId: number | null) {
+    const ids = Array.from(selectedWordIds.value)
+    if (!ids.length)
+      return
+    try {
+      await api.dictionary.bulkMove(ids, deckId)
+      words.value.forEach((w) => {
+        if (ids.includes(w.id))
+          w.deckId = deckId
+      })
+      clearSelection()
+      toast.success(`Перемещено ${ids.length} слов`)
+    }
+    catch (e: any) { toast.error('Ошибка перемещения') }
+  }
+
   return {
     words,
     decks,
@@ -191,6 +234,8 @@ export const useDictionaryStore = defineStore('dictionary', () => {
     selectedStatus,
     availableLanguages,
     filteredWords,
+    selectedWordIds,
+
     fetchDictionary,
     fetchReviewQueue,
     fetchRandomQueue,
@@ -199,5 +244,10 @@ export const useDictionaryStore = defineStore('dictionary', () => {
     deleteDeck,
     deleteWord,
     openEditModal,
+    toggleWordSelection,
+    clearSelection,
+    selectAllFiltered,
+    bulkDelete,
+    bulkMoveToDeck,
   }
 })

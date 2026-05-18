@@ -98,6 +98,14 @@ export const offlineService = {
     return await safeGetItem(`analysis_${bookId}_${text}`)
   },
 
+  async saveTts(hashKey: string, audioBase64: string) {
+    await safeSetItem(`tts_${hashKey}`, audioBase64)
+  },
+
+  async getTts(hashKey: string): Promise<string | null> {
+    return await safeGetItem(`tts_${hashKey}`)
+  },
+  
   // === МЕТОДЫ ДЛЯ МЕНЕДЖЕРА КЭША ===
   async getStorageEstimate(): Promise<{ usage: number, quota: number } | null> {
     if (navigator.storage && navigator.storage.estimate) {

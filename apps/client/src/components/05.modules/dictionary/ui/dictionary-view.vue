@@ -1,9 +1,7 @@
 <script setup lang="ts">
 import { Icon } from '@iconify/vue'
 import { useVirtualList } from '@vueuse/core'
-import { computed, onMounted, ref } from 'vue'
-import { useRouter } from 'vue-router'
-import { KitBtn, KitDialog, KitDropdown, KitInput, KitPrompt, KitSelect, KitTooltip } from '~/components/01.kit'
+import { KitBtn, KitCheckbox, KitDialog, KitDropdown, KitInput, KitPrompt, KitSelect, KitTooltip } from '~/components/01.kit'
 import KitSkeleton from '~/components/01.kit/kit-skeleton/ui/kit-skeleton.vue'
 import ActivityHeatmap from '~/components/02.shared/activity-heatmap/ui/activity-heatmap.vue'
 import { GlobalActions } from '~/components/04.features/global-actions'
@@ -26,12 +24,15 @@ const isMobileFiltersOpen = ref(false)
 const isMobileDecksOpen = ref(false)
 const dropdownRef = ref<InstanceType<typeof KitDropdown> | null>(null)
 const isStatsModalOpen = ref(false)
+const isEditMode = ref(false)
 
 const isCreatePromptOpen = ref(false)
 const isRenamePromptOpen = ref(false)
 const isDeleteConfirmOpen = ref(false)
 const renameDeckTarget = ref<{ id: number, name: string } | null>(null)
 const deleteDeckTarget = ref<{ id: number, name: string } | null>(null)
+
+const isBulkMoveOpen = ref(false)
 
 const langOptions = computed(() => {
   const opts = [{ label: 'Все языки', value: 'all' }]
@@ -54,6 +55,7 @@ const { list, containerProps, wrapperProps } = useVirtualList(
 
 onMounted(() => {
   store.fetchDictionary()
+  fetchActivity()
 })
 
 function getStatusLabel(status: number) {
@@ -138,6 +140,31 @@ async function onDeleteDeckConfirm() {
   deleteDeckTarget.value = null
 }
 
+function exportToAnki() {
+  const wordsToExport = store.words.filter(w => store.selectedWordIds.has(w.id))
+  if (!wordsToExport.length)
+    return
+
+  // Формат Anki TSV: Слово [tab] Транскрипция [tab] Перевод [tab] Заметки
+  const rows = wordsToExport.map((w) => {
+    const translation = (w.translation || '').replace(/\n/g, '<br>')
+    const notes = (w.notes || '').replace(/\n/g, '<br>')
+    return `${w.word}\t${w.transcription || ''}\t${translation}\t${notes}`
+  })
+
+  const content = rows.join('\n')
+  const blob = new Blob([content], { type: 'text/plain;charset=utf-8' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `insight_anki_export_${Date.now()}.txt`
+  a.click()
+  URL.revokeObjectURL(url)
+
+  store.clearSelection()
+  toast.success('Файл для Anki скачан!')
+}
+
 const filteredDecks = computed(() => {
   if (store.selectedLanguage === 'all')
     return store.decks
@@ -147,8 +174,9 @@ const filteredDecks = computed(() => {
 const activityData = ref<{ date: string, count: number }[]>([])
 const isActivityLoading = ref(true)
 
-onMounted(async () => {
+async function fetchActivity() {
   if (authStore.user) {
+    isActivityLoading.value = true
     try {
       activityData.value = await api.activity.getHeatmap()
     }
@@ -161,6 +189,21 @@ onMounted(async () => {
   }
   else {
     isActivityLoading.value = false
+  }
+}
+
+// При закрытии модалки обновляем очередь и статистику
+watch(isTrainingOpen, (newVal, oldVal) => {
+  if (oldVal === true && newVal === false) {
+    store.fetchReviewQueue()
+    fetchActivity()
+  }
+})
+
+// При выходе из режима редактирования очищаем выделенные элементы
+watch(isEditMode, (val) => {
+  if (!val) {
+    store.clearSelection()
   }
 })
 </script>
@@ -239,6 +282,14 @@ onMounted(async () => {
 
           <div class="stats-badge">
             <span class="badge">{{ store.filteredWords.length }} слов</span>
+            <KitTooltip :text="isEditMode ? 'Готово' : 'Редактировать'" placement="bottom-end">
+              <KitBtn
+                :icon="isEditMode ? 'mdi:check' : 'mdi:pencil-outline'"
+                variant="text"
+                :color="isEditMode ? 'primary' : 'secondary'"
+                @click="isEditMode = !isEditMode"
+              />
+            </KitTooltip>
             <KitTooltip text="Статистика" placement="bottom-end">
               <KitBtn
                 icon="mdi:chart-box-outline"
@@ -291,6 +342,33 @@ onMounted(async () => {
 
       <!-- Основной контент (список слов) -->
       <div class="words-content">
+        <!-- БАР МАССОВЫХ ДЕЙСТВИЙ -->
+        <Transition name="fade">
+          <div v-if="store.selectedWordIds.size > 0 && isEditMode" class="bulk-action-bar">
+            <span class="selected-count">Выбрано: {{ store.selectedWordIds.size }}</span>
+            <div class="actions">
+              <KitBtn size="sm" variant="text" @click="store.selectAllFiltered()">
+                Выбрать все
+              </KitBtn>
+              <KitBtn size="sm" variant="text" @click="store.clearSelection()">
+                Сбросить
+              </KitBtn>
+              <div class="divider" />
+              <KitTooltip text="Экспорт выделенного в файл (.txt TSV) для импорта в Anki" placement="top">
+                <KitBtn size="sm" color="primary" variant="tonal" icon="mdi:export-variant" @click="exportToAnki">
+                  Anki
+                </KitBtn>
+              </KitTooltip>
+              <KitBtn size="sm" color="primary" variant="tonal" icon="mdi:folder-move-outline" @click="isBulkMoveOpen = true">
+                Переместить
+              </KitBtn>
+              <KitBtn size="sm" color="error" variant="tonal" icon="mdi:delete-outline" @click="store.bulkDelete()">
+                Удалить
+              </KitBtn>
+            </div>
+          </div>
+        </Transition>
+
         <div v-if="!store.words.length && !store.isLoading" class="empty-state">
           <p>Вы пока не добавили ни одного слова.</p>
         </div>
@@ -301,10 +379,19 @@ onMounted(async () => {
 
         <div v-else class="virtual-list-container" v-bind="containerProps">
           <div v-bind="wrapperProps" class="virtual-list-wrapper">
-            <div v-for="item in list" :key="item.data.id" class="dict-item">
+            <div v-for="item in list" :key="item.data.id" class="dict-item" :class="{ 'is-selected': store.selectedWordIds.has(item.data.id) }">
+              <div v-if="isEditMode" class="checkbox-col" @click.stop>
+                <KitCheckbox :model-value="store.selectedWordIds.has(item.data.id)" @update:model-value="store.toggleWordSelection(item.data.id)" />
+              </div>
               <div class="dict-item-content">
                 <div class="dict-word-container">
-                  <span class="dict-word">{{ item.data.word }}</span>
+                  <span
+                    class="dict-word"
+                    :class="{ 'is-clickable': isEditMode }"
+                    @click="isEditMode ? store.toggleWordSelection(item.data.id) : null"
+                  >
+                    {{ item.data.word }}
+                  </span>
                   <span class="dict-transcription">{{ item.data.transcription }}</span>
                   <span
                     v-if="item.data.difficulty"
@@ -319,7 +406,7 @@ onMounted(async () => {
                 </div>
                 <div class="dict-translation" v-html="item.data.translation" />
               </div>
-              <div class="dict-actions">
+              <div v-if="isEditMode" class="dict-actions">
                 <KitTooltip text="Редактировать" placement="top">
                   <KitBtn icon="mdi:pencil" variant="text" size="xs" @click="analysisStore.wordToEdit = item.data; analysisStore.addEditWordModalOpen = true;" />
                 </KitTooltip>
@@ -333,7 +420,19 @@ onMounted(async () => {
       </div>
     </div>
 
-    <SrsTrainingDialog v-model:visible="isTrainingOpen" @finished="store.fetchReviewQueue" />
+    <!-- Модалка для смены колоды -->
+    <KitDialog v-model:visible="isBulkMoveOpen" title="Переместить в колоду" :max-width="400">
+      <div style="display: flex; flex-direction: column; gap: 16px;">
+        <KitBtn variant="outlined" style="width: 100%" @click="store.bulkMoveToDeck(null); isBulkMoveOpen = false">
+          Без колоды (Общая)
+        </KitBtn>
+        <KitBtn v-for="deck in store.decks" :key="deck.id" variant="tonal" style="width: 100%" @click="store.bulkMoveToDeck(deck.id); isBulkMoveOpen = false">
+          <Icon icon="mdi:folder-outline" class="mr-2" /> {{ deck.name }}
+        </KitBtn>
+      </div>
+    </KitDialog>
+
+    <SrsTrainingDialog v-model:visible="isTrainingOpen" />
 
     <KitPrompt
       v-model:visible="isCreatePromptOpen"
@@ -381,6 +480,7 @@ onMounted(async () => {
 .dictionary-page {
   padding: 16px;
   max-width: 1200px;
+  width: 100%;
   margin: 0 auto;
   height: 100dvh;
   padding-bottom: env(safe-area-inset-bottom, 0px);
@@ -652,6 +752,39 @@ onMounted(async () => {
   min-height: 0;
 }
 
+.bulk-action-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background-color: var(--bg-tertiary-color);
+  padding: 8px 16px;
+  border-radius: 8px;
+  margin-bottom: 12px;
+  border: 1px solid var(--border-primary-color);
+  flex-wrap: wrap;
+  gap: 8px;
+
+  .selected-count {
+    font-weight: 600;
+    color: var(--fg-accent-color);
+  }
+  .actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .divider {
+    width: 1px;
+    height: 20px;
+    background-color: var(--border-secondary-color);
+    margin: 0 4px;
+    @include media-down(sm) {
+      display: none;
+    }
+  }
+}
+
 .virtual-list-container {
   flex-grow: 1;
   overflow-y: auto;
@@ -670,7 +803,7 @@ onMounted(async () => {
 }
 .dict-item {
   display: flex;
-  justify-content: space-between;
+  gap: 16px;
   align-items: flex-start;
   padding: 16px;
   background-color: var(--bg-secondary-color);
@@ -678,6 +811,18 @@ onMounted(async () => {
   border: 1px solid var(--border-secondary-color);
   margin-bottom: 12px;
   overflow: hidden;
+  transition:
+    border-color 0.2s,
+    background-color 0.2s;
+
+  &.is-selected {
+    border-color: var(--fg-accent-color);
+    background-color: rgba(var(--bg-accent-color-rgb, 201, 117, 222), 0.05);
+  }
+
+  .checkbox-col {
+    padding-top: 2px;
+  }
 
   .dict-item-content {
     flex-grow: 1;
@@ -689,11 +834,20 @@ onMounted(async () => {
     align-items: center;
     gap: 8px;
     flex-wrap: wrap;
+
     .dict-word {
       font-size: 1.2rem;
       font-weight: bold;
       color: var(--fg-accent-color);
+
+      &.is-clickable {
+        cursor: pointer;
+        &:hover {
+          text-decoration: underline;
+        }
+      }
     }
+
     .dict-transcription {
       font-size: 0.9rem;
       color: var(--fg-secondary-color);
@@ -806,5 +960,9 @@ onMounted(async () => {
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+.mr-2 {
+  margin-right: 8px;
 }
 </style>

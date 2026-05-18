@@ -33,6 +33,8 @@ export interface Book {
   createdAt: string
   toc?: TocItem[]
   stats?: BookStats | null
+  series?: string | null
+  seriesNumber?: number | null
 }
 
 export interface TocItem {

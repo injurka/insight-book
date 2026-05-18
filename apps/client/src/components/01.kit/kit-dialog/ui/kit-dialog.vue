@@ -10,6 +10,7 @@ interface Props {
   description?: string
   floating?: boolean
   resizable?: boolean
+  minimizable?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -17,6 +18,7 @@ const props = withDefaults(defineProps<Props>(), {
   persistent: false,
   floating: false,
   resizable: true,
+  minimizable: true,
 })
 
 const visible = defineModel<boolean>('visible', { required: true })
@@ -24,6 +26,8 @@ const dialogId = useId()
 
 const dialogContentRef = ref<HTMLElement | null>(null)
 const dialogHeaderRef = ref<HTMLElement | null>(null)
+
+const isMinimized = ref(false)
 
 const initialX = typeof window !== 'undefined' ? Math.max((window.innerWidth - props.maxWidth) / 2, 0) : 0
 const initialY = typeof window !== 'undefined' ? 100 : 0
@@ -34,22 +38,53 @@ const { x, y, style: dragStyle } = useDraggable(dialogContentRef, {
   handle: dialogHeaderRef,
 })
 
-// --- Свайп для закрытия (Mobile Bottom Sheet) ---
+// --- Свайп для закрытия/сворачивания (Mobile Bottom Sheet) ---
 const isMobile = useMediaQuery('(max-width: 599px)')
+
+const swipeOffset = ref(0)
+const isSnappingBack = ref(false)
 
 const { lengthY, isSwiping, direction } = useSwipe(dialogHeaderRef, {
   threshold: 10,
   onSwipeEnd: () => {
     if (isMobile.value && !props.floating && direction.value === 'down') {
-      if (lengthY.value < -100) {
-        visible.value = false
+      if (swipeOffset.value > 100) {
+        if (props.minimizable) {
+          isMinimized.value = true
+        }
+        else {
+          visible.value = false
+        }
+      }
+      else {
+        isSnappingBack.value = true
+        swipeOffset.value = 0
       }
     }
   },
 })
 
-const isDraggingDown = computed(() => isMobile.value && !props.floating && isSwiping.value && direction.value === 'down')
-const dragOffset = computed(() => isDraggingDown.value ? Math.abs(lengthY.value) : 0)
+// Обновляем offset только пока пользователь ведет пальцем
+watch(lengthY, (val) => {
+  if (isMobile.value && !props.floating && isSwiping.value && direction.value === 'down') {
+    swipeOffset.value = Math.abs(val)
+    isSnappingBack.value = false
+  }
+})
+
+// Сбрасываем смещение когда диалог полностью скрыт (анимация ~300ms)
+watch([visible, isMinimized], ([v, m]) => {
+  if (!v || m) {
+    setTimeout(() => {
+      swipeOffset.value = 0
+      isSnappingBack.value = false
+    }, 300)
+  }
+  else {
+    swipeOffset.value = 0
+    isSnappingBack.value = false
+  }
+})
 
 const maxWidthPx = computed(() => `${props.maxWidth}px`)
 
@@ -113,7 +148,6 @@ function onResize(e: MouseEvent) {
     }
   }
   else {
-    // Если по-центру (закреплено), изменяем размер вдвое, чтобы края двигались вслед за мышью
     if (currentHandle.includes('right'))
       newWidth = startWidth + dx * 2
     if (currentHandle.includes('left'))
@@ -128,15 +162,13 @@ function onResize(e: MouseEvent) {
   const MIN_H = 200
 
   if (newWidth < MIN_W) {
-    if (props.floating && currentHandle.includes('left')) {
+    if (props.floating && currentHandle.includes('left'))
       newX -= (MIN_W - newWidth)
-    }
     newWidth = MIN_W
   }
   if (newHeight < MIN_H) {
-    if (props.floating && currentHandle.includes('top')) {
+    if (props.floating && currentHandle.includes('top'))
       newY -= (MIN_H - newHeight)
-    }
     newHeight = MIN_H
   }
 
@@ -173,26 +205,36 @@ function handleKeydown(event: KeyboardEvent) {
   }
 }
 
-watch([visible, () => props.floating], ([isOpen, isFloating]) => {
+function restoreDialog() {
+  isMinimized.value = false
+}
+
+// Учитываем isMinimized для блокировки скролла body
+watch([visible, isMinimized, () => props.floating], ([isOpen, isMin, isFloating]) => {
   if (typeof window === 'undefined')
     return
+
+  if (isOpen && !isMin && !isFloating) {
+    document.body.style.setProperty('overflow', 'hidden')
+  }
+  else {
+    document.body.style.removeProperty('overflow')
+  }
 
   if (isOpen) {
     if (!hasResized.value) {
       dialogWidth.value = '100%'
       dialogHeight.value = 'auto'
     }
-    if (!isFloating) {
-      document.body.style.setProperty('overflow', 'hidden')
-    }
-    else {
-      document.body.style.removeProperty('overflow')
-    }
-  }
-  else {
-    document.body.style.removeProperty('overflow')
   }
 }, { immediate: true })
+
+// Сбрасываем стейт минимизации при программном закрытии/открытии извне
+watch(visible, (isOpen) => {
+  if (!isOpen) {
+    isMinimized.value = false
+  }
+})
 
 onMounted(() => {
   document.addEventListener('keydown', handleKeydown)
@@ -204,13 +246,15 @@ onUnmounted(() => {
     document.body.style.removeProperty('overflow')
   }
   visible.value = false
+  isMinimized.value = false
 })
 </script>
 
 <template>
   <Teleport to="body">
+    <!-- Основной диалог -->
     <Transition name="dialog" :duration="300" appear>
-      <div v-if="visible" class="dialog-root">
+      <div v-if="visible" v-show="!isMinimized" class="dialog-root">
         <div v-if="!floating" class="dialog-overlay" @mousedown="handleOverlayClick" />
 
         <div
@@ -218,7 +262,7 @@ onUnmounted(() => {
           class="dialog-content-wrapper"
           :class="{
             'is-floating': floating,
-            'is-dragging': isDraggingDown,
+            'is-dragging': isSwiping && direction === 'down',
           }"
           :style="[
             floating ? dragStyle : {},
@@ -227,7 +271,7 @@ onUnmounted(() => {
               'height': dialogHeight === 'auto' ? 'auto' : `${dialogHeight}px`,
               'maxWidth': hasResized ? '100vw' : maxWidthPx,
               'maxHeight': hasResized ? '100vh' : '90vh',
-              '--swipe-offset': `${dragOffset}px`,
+              '--swipe-offset': `${swipeOffset}px`,
             },
           ]"
           role="dialog"
@@ -289,6 +333,18 @@ onUnmounted(() => {
           </div>
         </div>
       </div>
+    </Transition>
+
+    <!-- Кнопка восстановления (Плавающий квадратный блок) -->
+    <Transition name="fab-zoom" appear>
+      <button
+        v-if="visible && isMinimized"
+        class="dialog-minimized-fab"
+        :title="title || 'Развернуть'"
+        @click="restoreDialog"
+      >
+        <Icon :icon="icon || 'mdi:chevron-up'" />
+      </button>
     </Transition>
   </Teleport>
 </template>
@@ -385,6 +441,8 @@ onUnmounted(() => {
         animation: content-slide-up 300ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
       }
       .dialog-leave-active & {
+        /* Отключаем transition, чтобы он не перебивал анимацию закрытия */
+        transition: none !important;
         animation: content-slide-down 200ms cubic-bezier(0.7, 0, 0.84, 0) forwards;
       }
     }
@@ -423,7 +481,6 @@ onUnmounted(() => {
     width: 12px;
     cursor: w-resize;
   }
-
   &.top-left {
     top: -6px;
     left: -6px;
@@ -454,7 +511,6 @@ onUnmounted(() => {
   }
 }
 
-/* Строго скрываем на мобильных экранах */
 @include media-down(sm) {
   .resize-handle {
     display: none !important;
@@ -496,7 +552,7 @@ onUnmounted(() => {
   }
 
   .dialog-header {
-    padding-top: 14px; // Место для индикатора
+    padding-top: 14px;
   }
 }
 
@@ -558,7 +614,6 @@ onUnmounted(() => {
 .dialog-body {
   flex-grow: 1;
   overflow-y: auto;
-  // Предотвращаем скролл body за пределами контента во время свайпа
   touch-action: pan-y;
 }
 
@@ -570,6 +625,51 @@ onUnmounted(() => {
   display: flex;
   justify-content: flex-end;
   gap: 8px;
+}
+
+.dialog-minimized-fab {
+  position: fixed;
+  bottom: calc(env(safe-area-inset-bottom, 20px) + 20px);
+  right: 20px;
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  background-color: var(--bg-secondary-color);
+  border: 1px solid var(--border-primary-color);
+  color: var(--fg-primary-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.7rem;
+  cursor: pointer;
+  z-index: calc(var(--z-modal, 1200) + 10);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+  transition:
+    border-color 0.2s,
+    color 0.2s,
+    background-color 0.2s,
+    transform 0.2s;
+  outline: none;
+
+  &:hover,
+  &:active {
+    border-color: var(--fg-accent-color);
+    color: var(--fg-accent-color);
+    background-color: var(--bg-hover-color);
+    transform: translateY(-2px);
+  }
+}
+
+.fab-zoom-enter-active,
+.fab-zoom-leave-active {
+  transition:
+    opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.fab-zoom-enter-from,
+.fab-zoom-leave-to {
+  opacity: 0;
+  transform: scale(0.5) translateY(20px);
 }
 
 @keyframes overlay-show {

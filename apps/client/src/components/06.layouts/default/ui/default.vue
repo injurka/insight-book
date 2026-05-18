@@ -10,7 +10,8 @@
 
 <style scoped lang="scss">
 .main-content {
-  height: 100dvh;
-  padding-bottom: env(safe-area-inset-bottom, 0px);
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
 }
 </style>

@@ -1,25 +1,26 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-import { KitBtn, KitDialog } from '~/components/01.kit'
+import { KitBtn, KitCheckbox, KitDialog } from '~/components/01.kit'
 import { useTts } from '~/shared/composables/use-tts'
 import { api } from '~/shared/services/api.service'
 import { useDictionaryStore } from '../store/dictionary.store'
 
 const visible = defineModel<boolean>('visible', { required: true })
 const dictStore = useDictionaryStore()
-const { speak, stop } = useTts()
+const { speak, stop, isPlaying, isLoading } = useTts()
 
+const sessionState = ref<'setup' | 'active' | 'finished'>('setup')
 const currentIndex = ref(0)
 const isFlipped = ref(false)
 const isSubmitting = ref(false)
 
-// Режимы тренировки
-type TrainingMode = 'standard' | 'audio' | 'assembly'
-const currentMode = ref<TrainingMode>('standard')
+// Настройки режимов (Выбор на стартовом экране)
+const allowStandard = ref(true)
+const allowAudio = ref(true)
 
-// Для режима Assembly (Сборка)
-const jumbledWords = ref<{ id: number, text: string, selected: boolean }[]>([])
-const selectedWords = ref<{ id: number, text: string }[]>([])
+// Текущий режим конкретной карточки
+type TrainingMode = 'standard' | 'audio'
+const currentMode = ref<TrainingMode>('standard')
 
 const currentCard = computed(() => dictStore.reviewQueue[currentIndex.value])
 const isFinished = computed(() => currentIndex.value >= dictStore.reviewQueue.length)
@@ -37,31 +38,34 @@ const currentContext = computed(() => {
   return originalSentence.value.replace(regex, '[___]')
 })
 
-// Перемешивание массива для режима сборки
-function shuffleArray<T>(array: T[]): T[] {
-  const arr = [...array]
-  for (let i = arr.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [arr[i], arr[j]] = [arr[j], arr[i]]
+function startSession() {
+  if (!allowStandard.value && !allowAudio.value) {
+    allowStandard.value = true // защита от дурака
   }
-  return arr
+  sessionState.value = 'active'
+  initCard()
 }
 
 function initCard() {
   isFlipped.value = false
-  selectedWords.value = []
 
-  if (!currentCard.value)
+  if (!currentCard.value) {
+    if (isFinished.value)
+      sessionState.value = 'finished'
     return
+  }
 
-  // Доступные режимы зависят от контента (есть ли слово и есть ли контекст)
-  const availableModes: TrainingMode[] = ['standard']
-  if (currentCard.value.word)
+  // Доступные режимы зависят от контента и пользовательских настроек
+  const availableModes: TrainingMode[] = []
+  if (allowStandard.value)
+    availableModes.push('standard')
+  if (allowAudio.value && currentCard.value.word)
     availableModes.push('audio')
-  if (originalSentence.value)
-    availableModes.push('assembly')
 
-  // Случайный выбор режима
+  if (availableModes.length === 0)
+    availableModes.push('standard') // fallback
+
+  // Случайный выбор режима из разрешенных
   currentMode.value = availableModes[Math.floor(Math.random() * availableModes.length)]
 
   if (currentMode.value === 'audio') {
@@ -72,42 +76,12 @@ function initCard() {
       }
     }, 300)
   }
-
-  if (currentMode.value === 'assembly') {
-    // Разбиваем предложение на слова, сохраняя знаки препинания как часть токенов или отдельно
-    const words = originalSentence.value.split(/([\s,.!?;:()]+)/).filter(w => w.trim().length > 0)
-    jumbledWords.value = shuffleArray(words.map((text, id) => ({ id, text, selected: false })))
-  }
 }
 
 function flip() {
   isFlipped.value = true
   if (currentMode.value !== 'audio' && currentCard.value?.word) {
     speak(currentCard.value.word)
-  }
-}
-
-function selectAssemblyWord(word: { id: number, text: string, selected: boolean }) {
-  if (word.selected)
-    return
-
-  word.selected = true
-  selectedWords.value.push({ id: word.id, text: word.text })
-
-  // Автоматическая проверка
-  const currentText = selectedWords.value.map(w => w.text).join('')
-  const targetText = originalSentence.value.replace(/\s+/g, '')
-
-  if (currentText === targetText || selectedWords.value.length === jumbledWords.value.length) {
-    flip()
-  }
-}
-
-function removeAssemblyWord(word: { id: number, text: string }) {
-  selectedWords.value = selectedWords.value.filter(w => w.id !== word.id)
-  const original = jumbledWords.value.find(w => w.id === word.id)
-  if (original) {
-    original.selected = false
   }
 }
 
@@ -200,14 +174,20 @@ async function gradeCard(grade: number) {
 
 watch(visible, (val) => {
   if (val) {
+    sessionState.value = 'setup'
     currentIndex.value = 0
-    initCard()
+  }
+  else {
+    stop()
   }
 })
 
 watch(currentIndex, () => {
-  if (!isFinished.value) {
+  if (!isFinished.value && sessionState.value === 'active') {
     initCard()
+  }
+  else if (isFinished.value) {
+    sessionState.value = 'finished'
   }
 })
 </script>
@@ -221,22 +201,56 @@ watch(currentIndex, () => {
     <template #header>
       <div class="srs-header">
         <h2 class="dialog-title">
-          {{ dictStore.trainingMode === 'srs' ? 'Повторение (SRS)' : 'Случайная тренировка' }}
-          <span v-if="!isFinished" class="mode-badge">
-            ({{ currentMode === 'audio' ? 'Аудирование' : currentMode === 'assembly' ? 'Сборка' : 'Чтение' }})
-          </span>
+          <template v-if="sessionState === 'setup'">
+            Настройки тренировки
+          </template>
+          <template v-else>
+            {{ dictStore.trainingMode === 'srs' ? 'Повторение (SRS)' : 'Случайная тренировка' }}
+            <span v-if="!isFinished" class="mode-badge">
+              ({{ currentMode === 'audio' ? 'Аудирование' : 'Чтение' }})
+            </span>
+          </template>
         </h2>
-        <div v-if="!isFinished && dictStore.trainingMode === 'srs'" class="srs-stats">
+
+        <div v-if="sessionState === 'active' && !isFinished && dictStore.trainingMode === 'srs'" class="srs-stats">
           <span class="stat-new" title="Новые карточки">{{ newCount }}</span>
           <span class="stat-review" title="На повторении">{{ reviewCount }}</span>
         </div>
-        <div v-else-if="!isFinished" class="srs-stats">
+        <div v-else-if="sessionState === 'active' && !isFinished" class="srs-stats">
           <span class="stat-review" title="Осталось карточек">{{ remainingQueue.length }}</span>
         </div>
       </div>
     </template>
 
-    <div v-if="isFinished" class="finished-state">
+    <!-- ЭКРАН НАСТРОЙКИ (SETUP) -->
+    <div v-if="sessionState === 'setup'" class="setup-state">
+      <p class="setup-desc">
+        Выберите режимы, которые будут использоваться при тренировке.
+      </p>
+
+      <div class="settings-group">
+        <div class="checkbox-row">
+          <KitCheckbox v-model="allowStandard" label="Чтение (классические карточки)" />
+          <span class="checkbox-hint">Показ слова или предложения с пропуском. Вы вспоминаете перевод.</span>
+        </div>
+        <div class="checkbox-row">
+          <KitCheckbox v-model="allowAudio" label="Аудирование (Восприятие на слух)" />
+          <span class="checkbox-hint">Слово произносится ИИ. Вы должны вспомнить, что это было.</span>
+        </div>
+      </div>
+
+      <div class="setup-actions">
+        <KitBtn variant="tonal" size="sm" @click="visible = false">
+          Отмена
+        </KitBtn>
+        <KitBtn color="primary" size="sm" @click="startSession">
+          Начать
+        </KitBtn>
+      </div>
+    </div>
+
+    <!-- ЭКРАН ЗАВЕРШЕНИЯ -->
+    <div v-else-if="sessionState === 'finished'" class="finished-state">
       <h2>🎉 Отличная работа!</h2>
       <p v-if="dictStore.trainingMode === 'srs'">
         Вы повторили все карточки на сегодня.
@@ -249,38 +263,18 @@ watch(currentIndex, () => {
       </KitBtn>
     </div>
 
+    <!-- АКТИВНАЯ ТРЕНИРОВКА -->
     <div v-else-if="currentCard" class="flashcard">
       <div class="card-front">
         <!-- РЕЖИМ: АУДИРОВАНИЕ -->
         <div v-if="currentMode === 'audio'" class="audio-mode">
-          <KitBtn icon="mdi:volume-high" size="lg" color="accent" @click="speak(currentCard.word)" />
+          <KitBtn
+            :icon="isLoading ? 'mdi:loading' : (isPlaying ? 'mdi:volume-high' : 'mdi:volume-medium')"
+            size="lg"
+            color="accent"
+            @click="speak(currentCard.word)"
+          />
           <p>Послушайте и вспомните слово</p>
-          <div v-if="isFlipped" class="word-huge fade-in">
-            {{ currentCard.word }}
-          </div>
-        </div>
-
-        <!-- РЕЖИМ: СБОРКА -->
-        <div v-else-if="currentMode === 'assembly'" class="assembly-mode">
-          <div class="translation-hint">
-            {{ currentCard.translation }}
-          </div>
-
-          <div class="assembly-target">
-            <span v-if="selectedWords.length === 0" class="placeholder">Составьте предложение, нажимая на слова ниже...</span>
-            <span v-for="w in selectedWords" :key="w.id" class="assembled-word" @click="removeAssemblyWord(w)">{{ w.text }}</span>
-          </div>
-
-          <div v-if="!isFlipped" class="jumbled-pool fade-in">
-            <button
-              v-for="w in jumbledWords" :key="w.id"
-              class="jumbled-word"
-              :class="{ 'is-used': w.selected }"
-              @click="selectAssemblyWord(w)"
-            >
-              {{ w.text }}
-            </button>
-          </div>
         </div>
 
         <!-- РЕЖИМ: СТАНДАРТ -->
@@ -298,15 +292,32 @@ watch(currentIndex, () => {
 
       <div v-if="isFlipped" class="card-back fade-in">
         <hr>
-        <div v-if="currentMode === 'standard' || currentMode === 'assembly'" class="word-huge back-word fade-in">
+
+        <!-- Для аудио режима показываем слово крупно -->
+        <div v-if="currentMode === 'audio'" class="word-huge back-word fade-in">
           {{ currentCard.word }}
         </div>
+
+        <!-- Для остальных даем кнопку аудио, чтобы не дублировать огромный текст -->
+        <div v-else class="back-action fade-in" style="margin-bottom: 12px">
+          <KitBtn
+            :icon="isLoading ? 'mdi:loading' : (isPlaying ? 'mdi:volume-high' : 'mdi:volume-medium')"
+            variant="tonal"
+            color="accent"
+            size="sm"
+            @click="speak(currentCard.word)"
+          >
+            Прослушать слово
+          </KitBtn>
+        </div>
+
         <div class="transcription">
           {{ currentCard.transcription }}
         </div>
-        <div v-if="currentMode !== 'assembly'" class="translation" v-html="currentCard.translation" />
 
-        <div v-if="originalSentence && currentMode !== 'assembly'" class="original-sentence fade-in">
+        <div class="translation" v-html="currentCard.translation" />
+
+        <div v-if="originalSentence" class="original-sentence fade-in">
           <b>Контекст:</b> {{ originalSentence }}
         </div>
       </div>
@@ -379,6 +390,53 @@ watch(currentIndex, () => {
   }
 }
 
+.setup-state {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+
+  .setup-desc {
+    margin: 0;
+    color: var(--fg-secondary-color);
+    font-size: 0.95rem;
+  }
+
+  .settings-group {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    background: var(--bg-secondary-color);
+    padding: 20px;
+    border-radius: 12px;
+    border: 1px solid var(--border-secondary-color);
+
+    .checkbox-row {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+
+      :deep(.kit-checkbox) {
+        .checkbox-label {
+          font-weight: 500;
+          font-size: 1rem;
+        }
+      }
+
+      .checkbox-hint {
+        padding-left: 26px;
+        font-size: 0.85rem;
+        color: var(--fg-muted-color);
+      }
+    }
+  }
+
+  .setup-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+  }
+}
+
 .flashcard {
   display: flex;
   flex-direction: column;
@@ -414,86 +472,6 @@ watch(currentIndex, () => {
   }
 }
 
-.assembly-mode {
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-  align-items: center;
-
-  .translation-hint {
-    font-size: 1.1rem;
-    font-style: italic;
-    color: var(--fg-secondary-color);
-    line-height: 1.4;
-  }
-
-  .assembly-target {
-    width: 100%;
-    min-height: 60px;
-    padding: 16px;
-    border: 2px dashed var(--border-primary-color);
-    border-radius: 8px;
-    display: flex;
-    flex-wrap: wrap;
-    align-content: flex-start;
-    gap: 8px;
-    background-color: rgba(var(--bg-secondary-color-rgb), 0.5);
-
-    .placeholder {
-      color: var(--fg-muted-color);
-      font-size: 0.95rem;
-      margin: auto;
-    }
-
-    .assembled-word {
-      background: var(--bg-tertiary-color);
-      color: var(--fg-primary-color);
-      padding: 6px 12px;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 1.1rem;
-      transition: all 0.2s;
-
-      &:hover {
-        background: var(--bg-error-color);
-        color: white;
-        text-decoration: line-through;
-      }
-    }
-  }
-
-  .jumbled-pool {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    justify-content: center;
-    width: 100%;
-
-    .jumbled-word {
-      background: var(--bg-primary-color);
-      border: 1px solid var(--border-primary-color);
-      color: var(--fg-primary-color);
-      padding: 8px 14px;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 1.1rem;
-      transition: all 0.2s;
-
-      &:hover:not(.is-used) {
-        border-color: var(--fg-accent-color);
-        background-color: var(--bg-hover-color);
-      }
-
-      &.is-used {
-        opacity: 0;
-        pointer-events: none;
-        transform: scale(0.8);
-      }
-    }
-  }
-}
-
 .standard-mode {
   width: 100%;
 }
@@ -514,7 +492,7 @@ watch(currentIndex, () => {
   color: var(--fg-primary-color);
 
   &.back-word {
-    font-size: 2rem;
+    font-size: 2.2rem;
     color: var(--fg-accent-color);
     margin-bottom: 8px;
   }

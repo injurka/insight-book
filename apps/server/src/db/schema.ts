@@ -26,6 +26,9 @@ export const books = sqliteTable('books', {
   language: text('language').notNull().default('en'),
   totalPages: integer('totalPages').notNull().default(0),
   toc: text('toc'),
+  series: text('series'),
+  seriesNumber: integer('seriesNumber'),
+
   createdAt: text('createdAt').notNull().default(sql`(datetime('now'))`),
   updatedAt: text('updatedAt').notNull().default(sql`(datetime('now'))`),
 })
