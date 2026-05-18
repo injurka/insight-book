@@ -11,9 +11,9 @@ function json(data: unknown, status = 200) {
 }
 
 export async function handleGetHeatmapData(req: Request, userId: number): Promise<Response> {
-  // Запрашиваем данные за последние 12 недель (84 дня)
+  // Запрашиваем данные за последние 26 недель (182 дня)
   const sinceDate = new Date()
-  sinceDate.setDate(sinceDate.getDate() - 84)
+  sinceDate.setDate(sinceDate.getDate() - 182)
 
   const activity = await db
     .select({

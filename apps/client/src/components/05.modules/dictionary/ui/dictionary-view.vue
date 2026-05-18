@@ -365,12 +365,13 @@ onMounted(async () => {
     <KitDialog
       v-if="authStore.user"
       v-model:visible="isStatsModalOpen"
-      title="Статистика словаря"
+      title="Статистика активности"
       icon="mdi:chart-box-outline"
-      :max-width="500"
+      :max-width="650"
     >
       <div class="stats-modal-content">
-        <ActivityHeatmap :activity-data="activityData" />
+        <KitSkeleton v-if="isActivityLoading" width="100%" height="250px" />
+        <ActivityHeatmap v-else :activity-data="activityData" />
       </div>
     </KitDialog>
   </div>
