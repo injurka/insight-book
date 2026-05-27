@@ -29,7 +29,6 @@ export const books = sqliteTable('books', {
   series: text('series'),
   seriesNumber: integer('seriesNumber'),
 
-  // Новые поля для навигации
   status: text('status').notNull().default('reading'), // 'reading', 'to-read', 'have-read'
   isFavorite: integer('isFavorite', { mode: 'boolean' }).notNull().default(false),
   collection: text('collection'),
@@ -125,9 +124,10 @@ export const userDictionary = sqliteTable('user_dictionary', {
   language: text('language').notNull().default('en'),
   notes: text('notes'),
   tags: text('tags'),
-  difficulty: text('difficulty'),
+  difficulty: text('difficulty'), // Например: A1, HSK4, N3
 
-  status: integer('status').notNull().default(0),
+  // SRS (Spaced Repetition) fields
+  status: integer('status').notNull().default(0), // 0: New, 1: Learning, 2: Review, 3: Graduated
   repetitions: integer('repetitions').notNull().default(0),
   interval: real('interval').notNull().default(0),
   easeFactor: real('easeFactor').notNull().default(2.5),
