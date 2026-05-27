@@ -2,6 +2,7 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { KitBtn, KitSkeleton } from '~/components/01.kit'
+import { HoverRevealBg } from '~/components/02.shared/hover-reveal-bg'
 import { SelectionTooltip, SentenceAnalysis, WordPopover } from '~/components/03.domain/analysis'
 import { useDictionaryStore } from '~/components/05.modules/dictionary/store/dictionary.store'
 
@@ -41,6 +42,8 @@ function goBack() {
 </script>
 
 <template>
+  <HoverRevealBg />
+
   <div class="book-info-page">
     <header class="page-header">
       <KitBtn icon="mdi:arrow-left" variant="text" @click="goBack" />
@@ -79,11 +82,13 @@ function goBack() {
 
 <style lang="scss" scoped>
 .book-info-page {
+  position: relative;
+  z-index: 1;
   max-width: 1000px;
   width: 100%;
   margin: 0 auto;
   padding: 24px;
-  height: 100dvh;
+  min-height: 100dvh;
   padding-bottom: env(safe-area-inset-bottom, 0px);
 
   @include media-down(md) {

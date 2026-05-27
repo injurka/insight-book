@@ -4,6 +4,7 @@ import { useVirtualList } from '@vueuse/core'
 import { KitBtn, KitCheckbox, KitDialog, KitDropdown, KitInput, KitPrompt, KitSelect, KitTooltip } from '~/components/01.kit'
 import KitSkeleton from '~/components/01.kit/kit-skeleton/ui/kit-skeleton.vue'
 import ActivityHeatmap from '~/components/02.shared/activity-heatmap/ui/activity-heatmap.vue'
+import { HoverRevealBg } from '~/components/02.shared/hover-reveal-bg'
 import { GlobalActions } from '~/components/04.features/global-actions'
 import { useToast } from '~/shared/composables/use-toast'
 import { DIFFICULTY_SYSTEMS } from '~/shared/constants/difficulties'
@@ -209,6 +210,8 @@ watch(isEditMode, (val) => {
 </script>
 
 <template>
+  <HoverRevealBg />
+
   <div class="dictionary-page">
     <header class="dict-header">
       <div class="header-top">
@@ -478,6 +481,8 @@ watch(isEditMode, (val) => {
 
 <style lang="scss" scoped>
 .dictionary-page {
+  position: relative;
+  z-index: 1;
   padding: 16px;
   max-width: 1200px;
   width: 100%;

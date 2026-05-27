@@ -31,10 +31,15 @@ export interface Book {
   totalPages: number
   currentPage: number | null
   createdAt: string
+  updatedAt: string
   toc?: TocItem[]
   stats?: BookStats | null
   series?: string | null
   seriesNumber?: number | null
+  status?: string
+  isFavorite?: boolean
+  collection?: string | null
+  progressUpdatedAt?: string | null
 }
 
 export interface TocItem {

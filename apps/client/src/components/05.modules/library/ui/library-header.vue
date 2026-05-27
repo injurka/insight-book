@@ -12,6 +12,7 @@ defineProps<Props>()
 
 const emit = defineEmits<{
   (e: 'upload', file: File): void
+  (e: 'open-menu'): void
 }>()
 
 const search = defineModel<string>('search', { required: true })
@@ -34,9 +35,17 @@ function onFileChange(e: Event) {
 <template>
   <header class="library-header">
     <div class="header-top">
-      <div class="header-title">
-        <h1>Insight Book</h1>
-        <p>Ваша умная библиотека для изучения языков</p>
+      <div class="header-title-wrap">
+        <KitBtn
+          class="mobile-menu-btn"
+          icon="mdi:menu"
+          variant="text"
+          @click="emit('open-menu')"
+        />
+        <div class="header-title">
+          <h1>Insight Book</h1>
+          <p>Ваша умная библиотека для изучения языков</p>
+        </div>
       </div>
 
       <GlobalActions />
@@ -46,7 +55,6 @@ function onFileChange(e: Event) {
       <div class="search-wrapper">
         <KitInput v-model="search" placeholder="Поиск книг..." size="md" class="search-input" />
 
-        <!-- Кнопка для открытия фильтров и действий на мобилках -->
         <KitBtn
           class="mobile-filter-btn"
           :icon="isMobileFiltersOpen ? 'mdi:chevron-up' : 'mdi:tune-variant'"
@@ -98,6 +106,16 @@ function onFileChange(e: Event) {
     justify-content: space-between;
     align-items: flex-start;
 
+    .header-title-wrap {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .mobile-menu-btn {
+      display: none;
+    }
+
     .header-title {
       h1 {
         font-size: 2.2rem;
@@ -118,6 +136,12 @@ function onFileChange(e: Event) {
         p {
           font-size: 0.9rem;
         }
+      }
+    }
+
+    @include media-down(md) {
+      .mobile-menu-btn {
+        display: flex;
       }
     }
   }

@@ -51,6 +51,9 @@ const UpdateBookSchema = z.object({
   currentPage: z.number().optional(),
   series: z.string().nullable().optional(),
   seriesNumber: z.number().nullable().optional(),
+  status: z.enum(['reading', 'to-read', 'have-read']).optional(),
+  isFavorite: z.boolean().optional(),
+  collection: z.string().nullable().optional(),
 })
 
 const UpdateStatsSchema = z.object({
@@ -71,10 +74,14 @@ const GenerateTtsSchema = z.object({
 export async function handleGetBooks(req: Request, userId: number): Promise<Response> {
   const books = await db.query.books.findMany({
     where: eq(schema.books.userId, userId),
-    with: { progress: { columns: { currentPage: true } } },
-    orderBy: [desc(schema.books.createdAt)],
+    with: { progress: { columns: { currentPage: true, updatedAt: true } } },
+    orderBy: [desc(schema.books.updatedAt)],
   })
-  const result = books.map(({ progress, ...book }) => ({ ...book, currentPage: progress?.currentPage ?? null }))
+  const result = books.map(({ progress, ...book }) => ({
+    ...book,
+    currentPage: progress?.currentPage ?? null,
+    progressUpdatedAt: progress?.updatedAt ?? null,
+  }))
   return json(result)
 }
 
@@ -90,11 +97,11 @@ export async function handleGetBookInfo(req: Request, userId: number): Promise<R
   const { progress, stats, ...bookData } = book
   const statsResult = stats
     ? {
-        ...stats,
-        tags: stats.tags ? JSON.parse(stats.tags) : [],
-        posDistribution: stats.posDistribution ? JSON.parse(stats.posDistribution) : null,
-        topWords: stats.topWords ? JSON.parse(stats.topWords) : null,
-      }
+      ...stats,
+      tags: stats.tags ? JSON.parse(stats.tags) : [],
+      posDistribution: stats.posDistribution ? JSON.parse(stats.posDistribution) : null,
+      topWords: stats.topWords ? JSON.parse(stats.topWords) : null,
+    }
     : null
 
   return json({ ...bookData, currentPage: progress?.currentPage ?? null, toc: book.toc ? JSON.parse(book.toc) : [], stats: statsResult })
@@ -137,6 +144,9 @@ export async function handleUpdateBook(req: Request, userId: number): Promise<Re
     series: body.series,
     seriesNumber: body.seriesNumber,
     createdAt: body.createdAt,
+    status: body.status,
+    isFavorite: body.isFavorite,
+    collection: body.collection,
     updatedAt: new Date().toISOString(),
   }).where(eq(schema.books.id, id))
 
@@ -348,7 +358,7 @@ export async function handleGetPage(req: Request, userId: number): Promise<Respo
 
   await db.insert(schema.readingProgress)
     .values({ bookId, currentPage: pageNum, updatedAt: new Date().toISOString() })
-    .onConflictDoUpdate({ target: schema.readingProgress.bookId, set: { currentPage: pageNum } })
+    .onConflictDoUpdate({ target: schema.readingProgress.bookId, set: { currentPage: pageNum, updatedAt: new Date().toISOString() } })
 
   if (book.type === 'manga') {
     const pageRow = await db.select().from(schema.mangaPages).where(and(eq(schema.mangaPages.bookId, bookId), eq(schema.mangaPages.pageNum, pageNum))).get()

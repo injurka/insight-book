@@ -3,7 +3,8 @@ import type { Book } from '~/shared/types/models'
 import { Icon } from '@iconify/vue'
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { KitSkeleton } from '~/components/01.kit'
+import { KitDialog, KitSkeleton } from '~/components/01.kit'
+import { HoverRevealBg } from '~/components/02.shared/hover-reveal-bg'
 import { useToast } from '~/shared/composables/use-toast'
 import { AppRoutePaths } from '~/shared/constants/routes'
 import { useAuthStore } from '~/shared/store/auth.store'
@@ -22,6 +23,30 @@ const selectedLang = ref('all')
 const editModalOpen = ref(false)
 const selectedBookToEdit = ref<Book | null>(null)
 
+// Навигация
+const currentView = ref('reading-now')
+const isMobileMenuOpen = ref(false)
+
+const menuItems = [
+  { id: 'reading-now', label: 'Читаю сейчас', icon: 'mdi:book-open-page-variant-outline' },
+  { id: 'books', label: 'Книги и документы', icon: 'mdi:book-open-blank-variant' },
+  { id: 'favorites', label: 'Избранное', icon: 'mdi:star-outline' },
+  { id: 'to-read', label: 'Хочу прочитать', icon: 'mdi:clock-outline' },
+  { id: 'have-read', label: 'Прочитано', icon: 'mdi:check-all' },
+  { id: 'authors', label: 'Авторы', icon: 'mdi:account-group-outline' },
+  { id: 'series', label: 'Серии', icon: 'mdi:folder-outline' },
+  { id: 'collections', label: 'Коллекции', icon: 'mdi:bookshelf' },
+]
+
+function getSeriesIcon(seriesName: string) {
+  if (seriesName === 'Все книги')
+    return 'mdi:book-open-blank-variant'
+  const menuMatch = menuItems.find(m => m.label === seriesName)
+  if (menuMatch)
+    return menuMatch.icon
+  return 'mdi:folder-open-outline'
+}
+
 const langOptions = computed(() => {
   const langs = new Set(store.books.map(b => b.language))
   const opts = [{ label: 'Все языки', value: 'all' }]
@@ -29,19 +54,80 @@ const langOptions = computed(() => {
   return opts
 })
 
-const filteredBooks = computed(() => {
-  return store.books.filter((b) => {
+const displayGroups = computed(() => {
+  let filtered = store.books.filter((b) => {
     const matchLang = selectedLang.value === 'all' || b.language === selectedLang.value
     const matchSearch = b.title.toLowerCase().includes(searchQuery.value.toLowerCase())
       || (b.author && b.author.toLowerCase().includes(searchQuery.value.toLowerCase()))
     return matchLang && matchSearch
   })
-})
 
-const sortedGroups = computed(() => {
+  // Читаю сейчас
+  if (currentView.value === 'reading-now') {
+    filtered = filtered.filter(b => b.status === 'reading' || !b.status)
+    filtered.sort((a, b) => {
+      const tA = new Date(a.progressUpdatedAt || a.updatedAt).getTime()
+      const tB = new Date(b.progressUpdatedAt || b.updatedAt).getTime()
+      return tB - tA
+    })
+    return [{ seriesName: 'Читаю сейчас', books: filtered }]
+  }
+
+  // Избранное
+  if (currentView.value === 'favorites') {
+    filtered = filtered.filter(b => b.isFavorite)
+    return [{ seriesName: 'Избранное', books: filtered }]
+  }
+
+  // Хочу прочитать
+  if (currentView.value === 'to-read') {
+    filtered = filtered.filter(b => b.status === 'to-read')
+    return [{ seriesName: 'Хочу прочитать', books: filtered }]
+  }
+
+  // Прочитано
+  if (currentView.value === 'have-read') {
+    filtered = filtered.filter(b => b.status === 'have-read')
+    return [{ seriesName: 'Прочитано', books: filtered }]
+  }
+
+  // Авторы
+  if (currentView.value === 'authors') {
+    if (filtered.length === 0)
+      return [{ seriesName: 'Авторы', books: [] }]
+    const groups: Record<string, Book[]> = {}
+    filtered.forEach((b) => {
+      const key = b.author?.trim() || 'Неизвестный автор'
+      if (!groups[key])
+        groups[key] = []
+      groups[key].push(b)
+    })
+    return Object.keys(groups).sort().map(k => ({ seriesName: k, books: groups[k] }))
+  }
+
+  // Коллекции
+  if (currentView.value === 'collections') {
+    if (filtered.length === 0)
+      return [{ seriesName: 'Коллекции', books: [] }]
+    const groups: Record<string, Book[]> = {}
+    filtered.forEach((b) => {
+      const key = b.collection?.trim() || 'Без коллекции'
+      if (!groups[key])
+        groups[key] = []
+      groups[key].push(b)
+    })
+    return Object.keys(groups).sort().map(k => ({ seriesName: k, books: groups[k] }))
+  }
+
+  if (currentView.value === 'books') {
+    return [{ seriesName: 'Все книги', books: filtered.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()) }]
+  }
+
+  // Серии
+  if (filtered.length === 0)
+    return [{ seriesName: 'Серии', books: [] }]
   const groups: Record<string, Book[]> = {}
-
-  filteredBooks.value.forEach((book) => {
+  filtered.forEach((book) => {
     const key = book.series?.trim() ? book.series.trim() : 'Одиночные книги'
     if (!groups[key])
       groups[key] = []
@@ -51,16 +137,11 @@ const sortedGroups = computed(() => {
   const result: { seriesName: string, books: Book[] }[] = []
 
   if (groups['Одиночные книги']) {
-    result.push({
-      seriesName: 'Одиночные книги',
-      books: groups['Одиночные книги'],
-    })
+    result.push({ seriesName: 'Одиночные книги', books: groups['Одиночные книги'] })
     delete groups['Одиночные книги']
   }
 
-  // Остальные серии по алфавиту
   const seriesNames = Object.keys(groups).sort((a, b) => a.localeCompare(b))
-
   seriesNames.forEach((name) => {
     const books = groups[name]
     books.sort((a, b) => (a.seriesNumber || 0) - (b.seriesNumber || 0))
@@ -117,59 +198,100 @@ onMounted(() => {
 
 <template>
   <div class="library-page-scroll">
+    <HoverRevealBg />
+
     <div class="library-view">
-      <LibraryHeader
-        v-model:search="searchQuery"
-        v-model:lang="selectedLang"
-        :lang-options="langOptions"
-        @upload="handleUpload"
-      />
+      <div class="library-layout">
+        <!-- Сайдбар для десктопа -->
+        <aside class="library-sidebar desktop-only">
+          <ul class="nav-menu">
+            <li
+              v-for="item in menuItems"
+              :key="item.id"
+              class="nav-item"
+              :class="{ active: currentView === item.id }"
+              @click="currentView = item.id"
+            >
+              <Icon :icon="item.icon" /> {{ item.label }}
+            </li>
+          </ul>
+        </aside>
 
-      <div v-if="store.isLoading && !store.books.length" class="books-grid">
-        <div v-for="i in 4" :key="i" class="book-card-skeleton">
-          <div class="cover-skeleton" />
-          <div class="info-skeleton">
-            <KitSkeleton width="80%" height="18px" />
-            <KitSkeleton width="50%" height="14px" />
-          </div>
-        </div>
-      </div>
+        <!-- Мобильное меню -->
+        <KitDialog v-model:visible="isMobileMenuOpen" title="Меню" :max-width="400" :floating="false">
+          <ul class="nav-menu mobile-menu">
+            <li
+              v-for="item in menuItems"
+              :key="item.id"
+              class="nav-item"
+              :class="{ active: currentView === item.id }"
+              @click="currentView = item.id; isMobileMenuOpen = false"
+            >
+              <Icon :icon="item.icon" /> {{ item.label }}
+            </li>
+          </ul>
+        </KitDialog>
 
-      <div v-else-if="store.books.length === 0" class="empty-state">
-        <h2>Библиотека пуста</h2>
-        <p v-if="authStore.user">
-          Загрузите свою первую книгу в формате EPUB или CBZ.
-        </p>
-        <p v-else>
-          Авторизуйтесь, чтобы загружать и читать книги.
-        </p>
-      </div>
+        <div class="library-main">
+          <LibraryHeader
+            v-model:search="searchQuery"
+            v-model:lang="selectedLang"
+            :lang-options="langOptions"
+            @upload="handleUpload"
+            @open-menu="isMobileMenuOpen = true"
+          />
 
-      <div v-else-if="filteredBooks.length === 0" class="empty-state">
-        <h2>Книги не найдены</h2>
-      </div>
-
-      <div v-else class="library-groups">
-        <template v-for="group in sortedGroups" :key="group.seriesName">
-          <div class="series-section">
-            <h3 v-if="group.seriesName !== 'Одиночные книги'" class="series-title">
-              <Icon icon="mdi:bookshelf" /> Серия: {{ group.seriesName }}
-            </h3>
-            <h3 v-else-if="sortedGroups.length > 1" class="series-title standalone">
-              Одиночные издания
-            </h3>
-
-            <div class="books-grid">
-              <BookCard
-                v-for="book in group.books"
-                :key="book.id"
-                :book="book"
-                @click="openBookInfo(book)"
-                @edit="openEditModal(book)"
-              />
+          <div v-if="store.isLoading && !store.books.length" class="books-grid">
+            <div v-for="i in 4" :key="i" class="book-card-skeleton">
+              <div class="cover-skeleton" />
+              <div class="info-skeleton">
+                <KitSkeleton width="80%" height="18px" />
+                <KitSkeleton width="50%" height="14px" />
+              </div>
             </div>
           </div>
-        </template>
+
+          <div v-else-if="store.books.length === 0" class="empty-state">
+            <h2>Библиотека пуста</h2>
+            <p v-if="authStore.user">
+              Загрузите свою первую книгу в формате EPUB, FB2 или CBZ.
+            </p>
+            <p v-else>
+              Авторизуйтесь, чтобы загружать и читать книги.
+            </p>
+          </div>
+
+          <div v-else class="library-groups">
+            <template v-for="group in displayGroups" :key="group.seriesName">
+              <div class="series-section">
+                <h3
+                  v-if="group.seriesName !== 'Одиночные книги'"
+                  class="series-title"
+                >
+                  <Icon :icon="getSeriesIcon(group.seriesName)" /> {{ group.seriesName }}
+                </h3>
+
+                <h3 v-else class="series-title">
+                  Одиночные издания
+                </h3>
+
+                <div v-if="group.books.length === 0" class="empty-state">
+                  <h2>В этом разделе пока пусто</h2>
+                </div>
+
+                <div v-else class="books-grid">
+                  <BookCard
+                    v-for="book in group.books"
+                    :key="book.id"
+                    :book="book"
+                    @click="openBookInfo(book)"
+                    @edit="openEditModal(book)"
+                  />
+                </div>
+              </div>
+            </template>
+          </div>
+        </div>
       </div>
 
       <EditBookModal
@@ -202,15 +324,87 @@ onMounted(() => {
 
 .library-view {
   padding: 16px;
-  max-width: 1200px;
+  max-width: 1300px;
   margin: 0 auto;
-  min-height: 100%;
+  min-height: 100vh;
   display: flex;
   flex-direction: column;
+  position: relative;
+  z-index: 1; /* Выше фона с цитатами */
 
   @include media-down(md) {
     padding: 8px;
   }
+}
+
+.library-layout {
+  display: flex;
+  align-items: flex-start;
+  flex: 1;
+  gap: 24px;
+  height: 100%;
+}
+
+.library-sidebar {
+  width: 250px;
+  position: sticky;
+  top: 228px;
+  border-radius: 12px;
+  padding: 12px;
+  flex-shrink: 0;
+
+  &.desktop-only {
+    @include media-down(md) {
+      display: none;
+    }
+  }
+}
+
+.nav-menu {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+
+  &.mobile-menu {
+    padding: 8px 0;
+  }
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  color: var(--fg-secondary-color);
+  transition: all 0.2s;
+  font-size: 0.95rem;
+  font-weight: 500;
+
+  svg {
+    font-size: 1.3rem;
+  }
+
+  &:hover {
+    background-color: var(--bg-hover-color);
+    color: var(--fg-primary-color);
+  }
+
+  &.active {
+    background-color: rgba(var(--bg-accent-color-rgb, 201, 117, 222), 0.15);
+    color: var(--fg-accent-color);
+  }
+}
+
+.library-main {
+  flex-grow: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .empty-state {
@@ -244,12 +438,6 @@ onMounted(() => {
   margin: 0 0 16px 0;
   border-bottom: 2px solid var(--border-secondary-color);
   padding-bottom: 8px;
-
-  &.standalone {
-    color: var(--fg-secondary-color);
-    font-size: 1.1rem;
-    margin-top: 16px;
-  }
 }
 
 .books-grid {

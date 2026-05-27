@@ -29,6 +29,11 @@ export const books = sqliteTable('books', {
   series: text('series'),
   seriesNumber: integer('seriesNumber'),
 
+  // Новые поля для навигации
+  status: text('status').notNull().default('reading'), // 'reading', 'to-read', 'have-read'
+  isFavorite: integer('isFavorite', { mode: 'boolean' }).notNull().default(false),
+  collection: text('collection'),
+
   createdAt: text('createdAt').notNull().default(sql`(datetime('now'))`),
   updatedAt: text('updatedAt').notNull().default(sql`(datetime('now'))`),
 })
@@ -120,10 +125,9 @@ export const userDictionary = sqliteTable('user_dictionary', {
   language: text('language').notNull().default('en'),
   notes: text('notes'),
   tags: text('tags'),
-  difficulty: text('difficulty'), // Например: A1, HSK4, N3
+  difficulty: text('difficulty'),
 
-  // SRS (Spaced Repetition) fields
-  status: integer('status').notNull().default(0), // 0: New, 1: Learning, 2: Review, 3: Graduated
+  status: integer('status').notNull().default(0),
   repetitions: integer('repetitions').notNull().default(0),
   interval: real('interval').notNull().default(0),
   easeFactor: real('easeFactor').notNull().default(2.5),
@@ -156,8 +160,6 @@ export const dailyActivity = sqliteTable('daily_activity', {
 }, t => ({
   unq: unique().on(t.userId, t.date),
 }))
-
-// ================= RELATIONS =================
 
 export const usersRelations = relations(users, ({ many }) => ({
   books: many(books),

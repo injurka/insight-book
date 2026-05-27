@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { Book } from '~/shared/types/models'
 import { ref, watch } from 'vue'
-import { KitBtn, KitDialog, KitImage, KitInput, KitSelect } from '~/components/01.kit'
+import { KitBtn, KitCheckbox, KitDialog, KitImage, KitInput, KitSelect } from '~/components/01.kit'
 
 const props = defineProps<{
   book: Book | null
@@ -24,6 +24,12 @@ const bookLanguageOptions = [
   { label: 'Японский (ja)', value: 'ja' },
 ]
 
+const statusOptions = [
+  { label: 'Читаю', value: 'reading' },
+  { label: 'Хочу прочитать', value: 'to-read' },
+  { label: 'Прочитано', value: 'have-read' },
+]
+
 function formatToDateTimeLocal(dateString?: string) {
   if (!dateString)
     return ''
@@ -43,6 +49,8 @@ watch(() => props.book, (newBook) => {
       ...newBook,
       language: newBook.language === 'jp' ? 'ja' : newBook.language,
       createdAt: formatToDateTimeLocal(newBook.createdAt),
+      status: newBook.status || 'reading',
+      isFavorite: newBook.isFavorite || false,
     }
   }
   else {
@@ -113,26 +121,40 @@ function handleDelete() {
       </div>
 
       <div class="form-group row-group">
-        <div class="form-group">
+        <div class="form-group" style="flex: 1">
           <label>Язык</label>
           <KitSelect v-if="editingBook.language !== undefined" v-model="editingBook.language" :options="bookLanguageOptions" />
         </div>
+        <div class="form-group" style="flex: 1">
+          <label>Статус</label>
+          <KitSelect v-if="editingBook.status !== undefined" v-model="editingBook.status" :options="statusOptions" />
+        </div>
       </div>
 
-      <div class="form-group">
-        <label>Дата добавления</label>
-        <input v-model="editingBook.createdAt" type="datetime-local" class="native-date-input">
+      <div class="form-group row-group">
+        <div class="form-group" style="flex: 1">
+          <label>Коллекция</label>
+          <KitInput v-model="editingBook.collection" placeholder="Например: Избранное фентези" />
+        </div>
+        <div class="form-group" style="display:flex; justify-content: flex-start; padding-top: 18px; flex: 1">
+          <KitCheckbox v-model="editingBook.isFavorite" label="Добавить в Избранное" />
+        </div>
       </div>
 
       <div class="form-group row-group">
         <div class="form-group" style="flex: 2">
-          <label>Серия / Коллекция</label>
+          <label>Серия</label>
           <KitInput v-model="editingBook.series" placeholder="Например: Гарри Поттер" />
         </div>
         <div class="form-group" style="flex: 1">
           <label>Том (№)</label>
           <KitInput v-model="editingBook.seriesNumber" type="number" placeholder="1" />
         </div>
+      </div>
+
+      <div class="form-group">
+        <label>Дата добавления</label>
+        <input v-model="editingBook.createdAt" type="datetime-local" class="native-date-input">
       </div>
     </div>
     <template #footer>
@@ -155,19 +177,25 @@ function handleDelete() {
   display: flex;
   flex-direction: column;
   gap: 16px;
+
   .form-group {
     display: flex;
     flex-direction: column;
     gap: 6px;
+
     label {
       font-size: 0.85rem;
       color: var(--fg-secondary-color);
       font-weight: 500;
     }
+
+    :deep(.kit-checkbox) {
+      margin-top: 11px;
+    }
   }
   .row-group {
     flex-direction: row;
-    align-items: center;
+    align-items: flex-start;
     gap: 12px;
     .form-group {
       flex: 1;

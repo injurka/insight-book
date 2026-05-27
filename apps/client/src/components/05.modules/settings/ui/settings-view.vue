@@ -3,6 +3,7 @@ import { Icon } from '@iconify/vue'
 import { computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { KitBtn, KitCheckbox, KitInput, KitSkeleton, KitTooltip } from '~/components/01.kit'
+import { HoverRevealBg } from '~/components/02.shared/hover-reveal-bg'
 import { AppRoutePaths } from '~/shared/constants/routes'
 import { useCacheStore } from '~/shared/store/cache.store'
 import { useGlobalSettingsStore } from '~/shared/store/settings.store'
@@ -43,6 +44,8 @@ const storagePercent = computed(() => {
 </script>
 
 <template>
+  <HoverRevealBg />
+
   <div class="cache-manager-page">
     <header class="page-header">
       <KitBtn icon="mdi:arrow-left" variant="text" @click="router.push(AppRoutePaths.Home)" />
@@ -218,6 +221,8 @@ const storagePercent = computed(() => {
 
 <style lang="scss" scoped>
 .cache-manager-page {
+  position: relative;
+  z-index: 1;
   max-width: 900px;
   margin: 0 auto;
   padding: 32px;
