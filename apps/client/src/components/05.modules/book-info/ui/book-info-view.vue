@@ -42,9 +42,9 @@ function goBack() {
 </script>
 
 <template>
-  <HoverRevealBg />
-
   <div class="book-info-page">
+    <HoverRevealBg />
+
     <header class="page-header">
       <KitBtn icon="mdi:arrow-left" variant="text" @click="goBack" />
       <span class="header-title">О книге</span>

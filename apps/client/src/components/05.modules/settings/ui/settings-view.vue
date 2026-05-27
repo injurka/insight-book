@@ -44,9 +44,9 @@ const storagePercent = computed(() => {
 </script>
 
 <template>
-  <HoverRevealBg />
-
   <div class="cache-manager-page">
+    <HoverRevealBg />
+
     <header class="page-header">
       <KitBtn icon="mdi:arrow-left" variant="text" @click="router.push(AppRoutePaths.Home)" />
       <div class="header-title">

@@ -210,9 +210,9 @@ watch(isEditMode, (val) => {
 </script>
 
 <template>
-  <HoverRevealBg />
-
   <div class="dictionary-page">
+    <HoverRevealBg />
+
     <header class="dict-header">
       <div class="header-top">
         <div class="title-group">
