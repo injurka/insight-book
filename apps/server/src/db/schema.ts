@@ -30,7 +30,7 @@ export const books = sqliteTable('books', {
   seriesNumber: integer('seriesNumber'),
 
   status: text('status').notNull().default('reading'), // 'reading', 'to-read', 'have-read'
-  isFavorite: integer('isFavorite', { mode: 'boolean' }).notNull().default(false),
+  isFavorite: integer('isFavorite', { mode: 'boolean' }).notNull().default(sql`0`),
   collection: text('collection'),
 
   createdAt: text('createdAt').notNull().default(sql`(datetime('now'))`),
