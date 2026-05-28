@@ -1,5 +1,4 @@
 /* eslint-disable no-console */
-import type { ServeOptionsRoutes } from 'bun'
 import { CORS_HEADERS, PORT } from './config'
 import { handleGetHeatmapData } from './handlers/activity'
 import { handleGetMe, handleLogin } from './handlers/auth'
@@ -46,7 +45,7 @@ function corsOk() {
   return new Response(null, { status: 204, headers: CORS_HEADERS })
 }
 
-const apiRoutes: ServeOptionsRoutes = {
+const apiRoutes = {
   '/health': { GET: apiWrapper(() => new Response(JSON.stringify({ status: 'ok' }), { status: 200, headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' } })) },
 
   // --- Auth ---

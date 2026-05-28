@@ -17,7 +17,8 @@ export function useTts() {
   let abortController: AbortController | null = null
 
   async function speak(text: string | null | undefined) {
-    if (!text) return
+    if (!text)
+      return
 
     if (isLoading.value && abortController) {
       abortController.abort()
@@ -44,7 +45,8 @@ export function useTts() {
         await offlineService.saveTts(cacheKey, audioBase64)
       }
 
-      if (abortController.signal.aborted) return
+      if (abortController.signal.aborted)
+        return
 
       const audioSrc = `data:audio/mp3;base64,${audioBase64}`
       currentAudio = new Audio(audioSrc)
@@ -56,7 +58,8 @@ export function useTts() {
       await currentAudio.play()
     }
     catch (e: any) {
-      if (e.name === 'AbortError') return
+      if (e.name === 'AbortError')
+        return
       console.error('TTS Error:', e)
       toast.error('Озвучка недоступна без интернета')
     }

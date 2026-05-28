@@ -42,35 +42,37 @@ function goBack() {
 </script>
 
 <template>
-  <div class="book-info-page">
+  <div class="book-info-scroll-wrapper">
     <HoverRevealBg />
 
-    <header class="page-header">
-      <KitBtn icon="mdi:arrow-left" variant="text" @click="goBack" />
-      <span class="header-title">О книге</span>
-    </header>
+    <div class="book-info-page">
+      <header class="page-header">
+        <KitBtn icon="mdi:arrow-left" variant="text" @click="goBack" />
+        <span class="header-title">О книге</span>
+      </header>
 
-    <div v-if="libraryStore.isLoading && !libraryStore.currentBookInfo" class="loading-state">
-      <div class="layout-top">
-        <KitSkeleton width="100%" height="400px" border-radius="12px" />
-        <div class="content-col">
-          <KitSkeleton width="80%" height="32px" class="title-skeleton" />
-          <KitSkeleton width="40%" height="20px" class="author-skeleton" />
-          <KitSkeleton width="100%" height="150px" border-radius="12px" />
+      <div v-if="libraryStore.isLoading && !libraryStore.currentBookInfo" class="loading-state">
+        <div class="layout-top">
+          <KitSkeleton width="100%" height="400px" border-radius="12px" />
+          <div class="content-col">
+            <KitSkeleton width="80%" height="32px" class="title-skeleton" />
+            <KitSkeleton width="40%" height="20px" class="author-skeleton" />
+            <KitSkeleton width="100%" height="150px" border-radius="12px" />
+          </div>
         </div>
       </div>
-    </div>
 
-    <div v-else-if="libraryStore.currentBookInfo" class="book-container">
-      <div class="layout-top">
-        <BookCoverPanel @edit-stats="isEditingStats = true" />
-        <div class="content-col">
-          <BookStatsPanel v-model:is-editing="isEditingStats" />
+      <div v-else-if="libraryStore.currentBookInfo" class="book-container">
+        <div class="layout-top">
+          <BookCoverPanel @edit-stats="isEditingStats = true" />
+          <div class="content-col">
+            <BookStatsPanel v-model:is-editing="isEditingStats" />
+          </div>
         </div>
-      </div>
-      <div class="layout-bottom">
-        <BookLexicalPanel />
-        <BookTocPanel />
+        <div class="layout-bottom">
+          <BookLexicalPanel />
+          <BookTocPanel />
+        </div>
       </div>
     </div>
 
@@ -81,6 +83,22 @@ function goBack() {
 </template>
 
 <style lang="scss" scoped>
+.book-info-scroll-wrapper {
+  height: 100dvh;
+  width: 100%;
+  overflow-x: hidden;
+  overflow-y: auto;
+  box-sizing: border-box;
+
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+  &::-webkit-scrollbar-thumb {
+    background-color: var(--border-secondary-color);
+    border-radius: 4px;
+  }
+}
+
 .book-info-page {
   position: relative;
   z-index: 1;
@@ -88,13 +106,14 @@ function goBack() {
   width: 100%;
   margin: 0 auto;
   padding: 24px;
-  min-height: 100dvh;
-  padding-bottom: env(safe-area-inset-bottom, 0px);
+  min-height: 100%;
+  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 24px);
 
   @include media-down(md) {
-    padding: 8px;
+    padding: 16px 8px;
   }
 }
+
 .page-header {
   display: flex;
   align-items: center;
@@ -106,6 +125,7 @@ function goBack() {
     color: var(--fg-secondary-color);
   }
 }
+
 .layout-top {
   display: grid;
   grid-template-columns: 300px 1fr;
@@ -118,11 +138,13 @@ function goBack() {
     margin-bottom: 24px;
   }
 }
+
 .layout-bottom {
   display: flex;
   flex-direction: column;
   gap: 32px;
 }
+
 .loading-state {
   .title-skeleton {
     margin-bottom: 16px;
@@ -131,6 +153,7 @@ function goBack() {
     margin-bottom: 16px;
   }
 }
+
 .content-col {
   min-width: 0;
 }

@@ -1,3 +1,5 @@
+/// <reference types="bun-types" />
+
 import { eq } from 'drizzle-orm'
 import jwt from 'jsonwebtoken'
 import { z } from 'zod'

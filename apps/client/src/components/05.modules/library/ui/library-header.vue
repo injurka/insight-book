@@ -12,7 +12,7 @@ defineProps<Props>()
 
 const emit = defineEmits<{
   (e: 'upload', file: File): void
-  (e: 'open-menu'): void
+  (e: 'openMenu'): void
 }>()
 
 const search = defineModel<string>('search', { required: true })
@@ -40,7 +40,7 @@ function onFileChange(e: Event) {
           class="mobile-menu-btn"
           icon="mdi:menu"
           variant="text"
-          @click="emit('open-menu')"
+          @click="emit('openMenu')"
         />
         <div class="header-title">
           <h1>Insight Book</h1>
@@ -131,10 +131,11 @@ function onFileChange(e: Event) {
 
       @include media-down(sm) {
         h1 {
-          font-size: 1.8rem;
+          font-size: 1.6rem;
+          margin: 0;
         }
         p {
-          font-size: 0.9rem;
+          display: none;
         }
       }
     }

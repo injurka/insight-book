@@ -1,3 +1,5 @@
+/// <reference types="bun-types" />
+
 import { eq } from 'drizzle-orm'
 import { db, sqlite } from './db'
 import * as schema from './db/schema'

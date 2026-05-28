@@ -105,7 +105,7 @@ export const offlineService = {
   async getTts(hashKey: string): Promise<string | null> {
     return await safeGetItem(`tts_${hashKey}`)
   },
-  
+
   // === МЕТОДЫ ДЛЯ МЕНЕДЖЕРА КЭША ===
   async getStorageEstimate(): Promise<{ usage: number, quota: number } | null> {
     if (navigator.storage && navigator.storage.estimate) {

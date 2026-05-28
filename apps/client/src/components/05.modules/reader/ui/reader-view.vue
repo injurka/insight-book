@@ -100,7 +100,7 @@ function syncHeights() {
   }
 
   const minLen = Math.min(leftNodes.length, rightNodes.length)
-  const heights = Array.from({ length: minLen })
+  const heights = new Array<number>(minLen).fill(0)
 
   for (let i = 0; i < minLen; i++) {
     const leftHeight = leftNodes[i].getBoundingClientRect().height

@@ -4,7 +4,7 @@ import { sqliteTable, text } from 'drizzle-orm/sqlite-core'
 import { db, getDictConnection } from '../db'
 import * as schema from '../db/schema'
 import { AppError } from '../utils/errors'
-import { trackActivity } from './activity.service' 
+import { trackActivity } from './activity.service'
 
 export async function lookupWords(words: string[], language: string, userId: number): Promise<Record<string, PageDictEntry>> {
   if (!words.length)

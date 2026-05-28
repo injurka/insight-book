@@ -11,14 +11,12 @@ function json(data: unknown, status = 200) {
 }
 
 export async function handleGetHeatmapData(req: Request, userId: number): Promise<Response> {
-  // Запрашиваем данные за последние 26 недель (182 дня)
   const sinceDate = new Date()
   sinceDate.setDate(sinceDate.getDate() - 182)
 
   const activity = await db
     .select({
       date: schema.dailyActivity.date,
-      // Суммируем все виды активности в одно число "count"
       count: sql<number>`${schema.dailyActivity.wordsAdded} + ${schema.dailyActivity.wordsReviewed} + ${schema.dailyActivity.pagesRead}`.mapWith(Number),
     })
     .from(schema.dailyActivity)

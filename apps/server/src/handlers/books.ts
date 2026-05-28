@@ -1,3 +1,5 @@
+/// <reference types="bun-types" />
+
 import type { PagePayload } from '../types'
 import { readFileSync } from 'node:fs'
 import { rm, unlink } from 'node:fs/promises'
@@ -29,6 +31,7 @@ function extractUniqueWordsFromHtml(html: string): string[] {
   const regex = /data-word="([^"]+)"/g
   let match
 
+  // eslint-disable-next-line no-cond-assign
   while ((match = regex.exec(html)) !== null) {
     try {
       const word = decodeURIComponent(match[1])

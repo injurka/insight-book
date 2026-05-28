@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import type { Book } from '~/shared/types/models'
 import { Icon } from '@iconify/vue'
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { KitDialog, KitSkeleton } from '~/components/01.kit'
+import { KitBtn, KitDialog, KitSkeleton } from '~/components/01.kit'
 import { HoverRevealBg } from '~/components/02.shared/hover-reveal-bg'
 import { useToast } from '~/shared/composables/use-toast'
 import { AppRoutePaths } from '~/shared/constants/routes'
@@ -27,6 +27,13 @@ const selectedBookToEdit = ref<Book | null>(null)
 const currentView = ref('reading-now')
 const isMobileMenuOpen = ref(false)
 
+// Внутреннее состояние "Папки"
+const activeFolder = ref<string | null>(null)
+
+watch(currentView, () => {
+  activeFolder.value = null
+})
+
 const menuItems = [
   { id: 'reading-now', label: 'Читаю сейчас', icon: 'mdi:book-open-page-variant-outline' },
   { id: 'books', label: 'Книги и документы', icon: 'mdi:book-open-blank-variant' },
@@ -38,13 +45,14 @@ const menuItems = [
   { id: 'collections', label: 'Коллекции', icon: 'mdi:bookshelf' },
 ]
 
-function getSeriesIcon(seriesName: string) {
-  if (seriesName === 'Все книги')
-    return 'mdi:book-open-blank-variant'
-  const menuMatch = menuItems.find(m => m.label === seriesName)
-  if (menuMatch)
-    return menuMatch.icon
-  return 'mdi:folder-open-outline'
+function getFolderIcon(view: string) {
+  if (view === 'authors')
+    return 'mdi:account'
+  if (view === 'series')
+    return 'mdi:folder'
+  if (view === 'collections')
+    return 'mdi:bookshelf'
+  return 'mdi:folder'
 }
 
 const langOptions = computed(() => {
@@ -54,13 +62,35 @@ const langOptions = computed(() => {
   return opts
 })
 
-const displayGroups = computed(() => {
+interface DisplayGroup {
+  seriesName: string
+  isFolderContent?: boolean
+  icon?: string
+  books?: Book[]
+  folders?: { name: string, count: number }[]
+}
+
+const displayGroups = computed<DisplayGroup[]>(() => {
   let filtered = store.books.filter((b) => {
     const matchLang = selectedLang.value === 'all' || b.language === selectedLang.value
     const matchSearch = b.title.toLowerCase().includes(searchQuery.value.toLowerCase())
       || (b.author && b.author.toLowerCase().includes(searchQuery.value.toLowerCase()))
     return matchLang && matchSearch
   })
+
+  // Если выбрана конкретная папка, отображаем ее содержимое
+  if (activeFolder.value) {
+    if (currentView.value === 'authors') {
+      filtered = filtered.filter(b => (b.author?.trim() || 'Неизвестный автор') === activeFolder.value)
+    }
+    else if (currentView.value === 'collections') {
+      filtered = filtered.filter(b => (b.collection?.trim() || 'Без коллекции') === activeFolder.value)
+    }
+    else if (currentView.value === 'series') {
+      filtered = filtered.filter(b => (b.series?.trim() || 'Одиночные книги') === activeFolder.value)
+    }
+    return [{ seriesName: activeFolder.value, isFolderContent: true, books: filtered }]
+  }
 
   // Читаю сейчас
   if (currentView.value === 'reading-now') {
@@ -70,85 +100,66 @@ const displayGroups = computed(() => {
       const tB = new Date(b.progressUpdatedAt || b.updatedAt).getTime()
       return tB - tA
     })
-    return [{ seriesName: 'Читаю сейчас', books: filtered }]
+    return [{ seriesName: 'Читаю сейчас', icon: 'mdi:book-open-page-variant-outline', books: filtered }]
   }
 
   // Избранное
   if (currentView.value === 'favorites') {
     filtered = filtered.filter(b => b.isFavorite)
-    return [{ seriesName: 'Избранное', books: filtered }]
+    return [{ seriesName: 'Избранное', icon: 'mdi:star-outline', books: filtered }]
   }
 
   // Хочу прочитать
   if (currentView.value === 'to-read') {
     filtered = filtered.filter(b => b.status === 'to-read')
-    return [{ seriesName: 'Хочу прочитать', books: filtered }]
+    return [{ seriesName: 'Хочу прочитать', icon: 'mdi:clock-outline', books: filtered }]
   }
 
   // Прочитано
   if (currentView.value === 'have-read') {
     filtered = filtered.filter(b => b.status === 'have-read')
-    return [{ seriesName: 'Прочитано', books: filtered }]
+    return [{ seriesName: 'Прочитано', icon: 'mdi:check-all', books: filtered }]
   }
 
-  // Авторы
+  // Все книги
+  if (currentView.value === 'books') {
+    return [{ seriesName: 'Все книги', icon: 'mdi:book-open-blank-variant', books: filtered.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()) }]
+  }
+
+  // Авторы (Папки)
   if (currentView.value === 'authors') {
-    if (filtered.length === 0)
-      return [{ seriesName: 'Авторы', books: [] }]
-    const groups: Record<string, Book[]> = {}
+    const counts: Record<string, number> = {}
     filtered.forEach((b) => {
       const key = b.author?.trim() || 'Неизвестный автор'
-      if (!groups[key])
-        groups[key] = []
-      groups[key].push(b)
+      counts[key] = (counts[key] || 0) + 1
     })
-    return Object.keys(groups).sort().map(k => ({ seriesName: k, books: groups[k] }))
+    const folders = Object.keys(counts).sort().map(k => ({ name: k, count: counts[k] }))
+    return [{ seriesName: 'Авторы', icon: 'mdi:account-group-outline', folders }]
   }
 
-  // Коллекции
+  // Коллекции (Папки)
   if (currentView.value === 'collections') {
-    if (filtered.length === 0)
-      return [{ seriesName: 'Коллекции', books: [] }]
-    const groups: Record<string, Book[]> = {}
+    const counts: Record<string, number> = {}
     filtered.forEach((b) => {
       const key = b.collection?.trim() || 'Без коллекции'
-      if (!groups[key])
-        groups[key] = []
-      groups[key].push(b)
+      counts[key] = (counts[key] || 0) + 1
     })
-    return Object.keys(groups).sort().map(k => ({ seriesName: k, books: groups[k] }))
+    const folders = Object.keys(counts).sort().map(k => ({ name: k, count: counts[k] }))
+    return [{ seriesName: 'Коллекции', icon: 'mdi:bookshelf', folders }]
   }
 
-  if (currentView.value === 'books') {
-    return [{ seriesName: 'Все книги', books: filtered.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()) }]
+  // Серии (Папки)
+  if (currentView.value === 'series') {
+    const counts: Record<string, number> = {}
+    filtered.forEach((b) => {
+      const key = b.series?.trim() || 'Одиночные книги'
+      counts[key] = (counts[key] || 0) + 1
+    })
+    const folders = Object.keys(counts).sort().map(k => ({ name: k, count: counts[k] }))
+    return [{ seriesName: 'Серии', icon: 'mdi:folder-outline', folders }]
   }
 
-  // Серии
-  if (filtered.length === 0)
-    return [{ seriesName: 'Серии', books: [] }]
-  const groups: Record<string, Book[]> = {}
-  filtered.forEach((book) => {
-    const key = book.series?.trim() ? book.series.trim() : 'Одиночные книги'
-    if (!groups[key])
-      groups[key] = []
-    groups[key].push(book)
-  })
-
-  const result: { seriesName: string, books: Book[] }[] = []
-
-  if (groups['Одиночные книги']) {
-    result.push({ seriesName: 'Одиночные книги', books: groups['Одиночные книги'] })
-    delete groups['Одиночные книги']
-  }
-
-  const seriesNames = Object.keys(groups).sort((a, b) => a.localeCompare(b))
-  seriesNames.forEach((name) => {
-    const books = groups[name]
-    books.sort((a, b) => (a.seriesNumber || 0) - (b.seriesNumber || 0))
-    result.push({ seriesName: name, books })
-  })
-
-  return result
+  return []
 })
 
 async function handleUpload(file: File) {
@@ -264,29 +275,51 @@ onMounted(() => {
           <div v-else class="library-groups">
             <template v-for="group in displayGroups" :key="group.seriesName">
               <div class="series-section">
-                <h3
-                  v-if="group.seriesName !== 'Одиночные книги'"
-                  class="series-title"
-                >
-                  <Icon :icon="getSeriesIcon(group.seriesName)" /> {{ group.seriesName }}
+                <h3 class="series-title">
+                  <KitBtn
+                    v-if="group.isFolderContent"
+                    icon="mdi:arrow-left"
+                    variant="text"
+                    size="xs"
+                    class="back-btn"
+                    @click="activeFolder = null"
+                  />
+                  <Icon v-else :icon="group.icon || 'mdi:folder-outline'" />
+                  <span class="text">{{ group.seriesName }}</span>
                 </h3>
 
-                <h3 v-else class="series-title">
-                  Одиночные издания
-                </h3>
-
-                <div v-if="group.books.length === 0" class="empty-state">
-                  <h2>В этом разделе пока пусто</h2>
+                <!-- Если это папки -->
+                <div v-if="group.folders" class="folders-list">
+                  <div v-if="group.folders.length === 0" class="empty-state">
+                    <h2>В этом разделе пока пусто</h2>
+                  </div>
+                  <div
+                    v-for="folder in group.folders"
+                    v-else
+                    :key="folder.name"
+                    class="folder-item"
+                    @click="activeFolder = folder.name"
+                  >
+                    <Icon :icon="getFolderIcon(currentView)" class="folder-icon" />
+                    <span class="folder-name">{{ folder.name }}</span>
+                    <span class="folder-count">{{ folder.count }}</span>
+                  </div>
                 </div>
 
-                <div v-else class="books-grid">
-                  <BookCard
-                    v-for="book in group.books"
-                    :key="book.id"
-                    :book="book"
-                    @click="openBookInfo(book)"
-                    @edit="openEditModal(book)"
-                  />
+                <!-- Если это книги -->
+                <div v-else>
+                  <div v-if="group.books?.length === 0" class="empty-state">
+                    <h2>В этом разделе пока пусто</h2>
+                  </div>
+                  <div v-else-if="group.books" class="books-grid">
+                    <BookCard
+                      v-for="book in group.books"
+                      :key="book.id"
+                      :book="book"
+                      @click="openBookInfo(book)"
+                      @edit="openEditModal(book)"
+                    />
+                  </div>
                 </div>
               </div>
             </template>
@@ -330,7 +363,7 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   position: relative;
-  z-index: 1; /* Выше фона с цитатами */
+  z-index: 1;
 
   @include media-down(md) {
     padding: 8px;
@@ -438,12 +471,74 @@ onMounted(() => {
   margin: 0 0 16px 0;
   border-bottom: 2px solid var(--border-secondary-color);
   padding-bottom: 8px;
+  height: 28px;
+
+  .back-btn {
+    margin-right: -4px;
+    margin-left: -8px;
+  }
+  .text {
+    flex-grow: 1;
+  }
+}
+
+.folders-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.folder-item {
+  display: flex;
+  align-items: center;
+  background-color: var(--bg-secondary-color);
+  padding: 16px;
+  border-radius: 12px;
+  border: 1px solid var(--border-secondary-color);
+  cursor: pointer;
+  transition:
+    transform 0.2s,
+    border-color 0.2s;
+
+  &:hover {
+    transform: translateY(-2px);
+    border-color: var(--fg-accent-color);
+  }
+
+  .folder-icon {
+    font-size: 1.5rem;
+    color: var(--fg-secondary-color);
+    margin-right: 16px;
+  }
+
+  .folder-name {
+    flex-grow: 1;
+    font-size: 1.05rem;
+    color: var(--fg-primary-color);
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .folder-count {
+    font-size: 0.95rem;
+    color: var(--fg-secondary-color);
+    background-color: var(--bg-tertiary-color);
+    padding: 2px 10px;
+    border-radius: 99px;
+  }
 }
 
 .books-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
   gap: 24px;
+
+  @include media-down(sm) {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
 }
 
 .book-card-skeleton {
@@ -461,6 +556,25 @@ onMounted(() => {
     display: flex;
     flex-direction: column;
     gap: 4px;
+  }
+
+  @include media-down(sm) {
+    display: flex;
+    flex-direction: row;
+    height: 120px;
+    padding: 12px;
+    align-items: center;
+
+    .cover-skeleton {
+      width: 72px;
+      height: 108px;
+      flex-shrink: 0;
+      border-radius: 6px;
+    }
+    .info-skeleton {
+      flex-grow: 1;
+      justify-content: center;
+    }
   }
 }
 </style>

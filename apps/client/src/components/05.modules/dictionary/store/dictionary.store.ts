@@ -194,19 +194,23 @@ export const useDictionaryStore = defineStore('dictionary', () => {
     const ids = Array.from(selectedWordIds.value)
     if (!ids.length)
       return
+
     try {
       await api.dictionary.bulkDelete(ids)
       words.value = words.value.filter(w => !ids.includes(w.id))
       clearSelection()
       toast.success(`Удалено ${ids.length} слов`)
     }
-    catch (e: any) { toast.error('Ошибка удаления') }
+    catch {
+      toast.error('Ошибка удаления')
+    }
   }
 
   async function bulkMoveToDeck(deckId: number | null) {
     const ids = Array.from(selectedWordIds.value)
     if (!ids.length)
       return
+
     try {
       await api.dictionary.bulkMove(ids, deckId)
       words.value.forEach((w) => {
@@ -216,7 +220,9 @@ export const useDictionaryStore = defineStore('dictionary', () => {
       clearSelection()
       toast.success(`Перемещено ${ids.length} слов`)
     }
-    catch (e: any) { toast.error('Ошибка перемещения') }
+    catch {
+      toast.error('Ошибка перемещения')
+    }
   }
 
   return {

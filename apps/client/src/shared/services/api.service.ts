@@ -78,7 +78,7 @@ export const api = {
       request<PagePayload>(`/api/books/${bookId}/page/${page}`),
 
     lookupWord: (bookId: number, word: string, signal?: AbortSignal) =>
-      request<{ transcription: string, translation: string }>(`/api/books/${bookId}/word/${encodeURIComponent(word)}`, { signal }),
+      request<{ transcription: string, translation: string, isUserDict?: boolean }>(`/api/books/${bookId}/word/${encodeURIComponent(word)}`, { signal }),
 
     analyze: (bookId: number, sentence: string, language: string, signal?: AbortSignal) =>
       request<LlmAnalysis>(`/api/books/${bookId}/analyze`, {

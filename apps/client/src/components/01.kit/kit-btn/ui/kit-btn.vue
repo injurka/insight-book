@@ -7,7 +7,7 @@ interface Props {
   prependIcon?: string
   appendIcon?: string
   variant?: 'solid' | 'outlined' | 'text' | 'subtle' | 'tonal'
-  color?: 'primary' | 'secondary' | 'accent'
+  color?: 'primary' | 'secondary' | 'accent' | 'error' | 'success' | 'warning' | 'info'
   disabled?: boolean
   size?: 'xs' | 'sm' | 'md' | 'lg'
   density?: 'default' | 'compact'
@@ -164,6 +164,34 @@ const componentClasses = computed(() => [
       color: var(--fg-primary-color);
       &:hover {
         background-color: var(--bg-hover-color);
+      }
+    }
+    &.kit-btn--color-error {
+      background-color: rgba(var(--bg-error-color-rgb, 248, 81, 73), 0.15);
+      color: var(--fg-error-color);
+      &:hover {
+        background-color: rgba(var(--bg-error-color-rgb, 248, 81, 73), 0.25);
+      }
+    }
+    &.kit-btn--color-success {
+      background-color: rgba(var(--bg-success-color-rgb, 86, 211, 100), 0.15);
+      color: var(--fg-success-color);
+      &:hover {
+        background-color: rgba(var(--bg-success-color-rgb, 86, 211, 100), 0.25);
+      }
+    }
+    &.kit-btn--color-warning {
+      background-color: rgba(var(--bg-warning-color-rgb, 227, 179, 65), 0.15);
+      color: var(--fg-warning-color);
+      &:hover {
+        background-color: rgba(var(--bg-warning-color-rgb, 227, 179, 65), 0.25);
+      }
+    }
+    &.kit-btn--color-info {
+      background-color: rgba(var(--bg-info-color-rgb, 118, 227, 234), 0.15);
+      color: var(--fg-info-color);
+      &:hover {
+        background-color: rgba(var(--bg-info-color-rgb, 118, 227, 234), 0.25);
       }
     }
   }

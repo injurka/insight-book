@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import type { Book } from '~/shared/types/models'
+import { Icon } from '@iconify/vue'
 import { computed } from 'vue'
-import { KitBtn, KitImage, KitTooltip } from '~/components/01.kit'
+import { KitImage, KitTooltip } from '~/components/01.kit'
 import { useAuthStore } from '~/shared/store/auth.store'
 
 const props = defineProps<{ book: Book }>()
@@ -34,28 +35,27 @@ const progressPercent = computed(() => {
       <span v-if="book.seriesNumber" class="series-number-badge">
         #{{ book.seriesNumber }}
       </span>
-
-      <div v-if="authStore.user" class="card-actions">
-        <KitTooltip text="Редактировать" placement="left">
-          <KitBtn
-            class="action-btn"
-            icon="mdi:file-document-edit-outline"
-            variant="solid"
-            color="secondary"
-            size="xs"
-            @click.stop="emit('edit')"
-          />
-        </KitTooltip>
-      </div>
     </div>
 
     <div class="book-info">
-      <h2 class="title" :title="book.title">
-        {{ book.title }}
-      </h2>
+      <div class="info-header">
+        <h2 class="title" :title="book.title">
+          {{ book.title }}
+        </h2>
+
+        <div v-if="authStore.user" class="header-actions">
+          <KitTooltip text="Редактировать" placement="top-end">
+            <button class="edit-btn" @click.stop="emit('edit')">
+              <Icon icon="mdi:dots-vertical" />
+            </button>
+          </KitTooltip>
+        </div>
+      </div>
+
       <p v-if="book.author" class="author">
         {{ book.author }}
       </p>
+
       <div class="progress">
         <span>Стр. {{ book.currentPage || 1 }} из {{ book.totalPages }}</span>
         <div class="progress-bar">
@@ -85,7 +85,7 @@ const progressPercent = computed(() => {
     box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1);
     border-color: var(--fg-accent-color);
 
-    .card-actions {
+    .edit-btn {
       opacity: 1 !important;
     }
 
@@ -131,26 +131,6 @@ const progressPercent = computed(() => {
       user-select: none;
     }
 
-    .card-actions {
-      position: absolute;
-      top: 8px;
-      right: 8px;
-      display: flex;
-      gap: 6px;
-      transition: all 0.2s ease-in-out;
-      z-index: 10;
-      opacity: 0;
-
-      @include media-down(md) {
-        opacity: 1;
-      }
-
-      .action-btn {
-        box-shadow: none;
-        color: var(--fg-primary-color);
-      }
-    }
-
     :deep(.kit-image) {
       img {
         object-fit: fill;
@@ -165,16 +145,53 @@ const progressPercent = computed(() => {
     display: flex;
     flex-direction: column;
 
-    .title {
-      margin: 0 0 6px 0;
-      font-size: 1.1rem;
-      font-weight: 600;
-      line-height: 1.3;
-      display: -webkit-box;
-      -webkit-line-clamp: 2;
-      -webkit-box-orient: vertical;
-      overflow: hidden;
-      color: var(--fg-primary-color);
+    .info-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 8px;
+
+      .title {
+        margin: 0 0 6px 0;
+        font-size: 1.1rem;
+        font-weight: 600;
+        line-height: 1.3;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        color: var(--fg-primary-color);
+        flex-grow: 1;
+      }
+
+      .header-actions {
+        flex-shrink: 0;
+        margin: -4px -8px 0 0;
+      }
+
+      .edit-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: transparent;
+        border: none;
+        color: var(--fg-secondary-color);
+        padding: 4px;
+        font-size: 1.25rem;
+        cursor: pointer;
+        border-radius: 6px;
+        transition:
+          background-color 0.2s,
+          color 0.2s,
+          opacity 0.2s;
+
+        opacity: 0;
+
+        &:hover {
+          background-color: var(--bg-hover-color);
+          color: var(--fg-primary-color);
+        }
+      }
     }
 
     .author {
@@ -201,6 +218,58 @@ const progressPercent = computed(() => {
           border-radius: 2px;
           transition: width 0.3s ease;
         }
+      }
+    }
+  }
+
+  // ===== МОБИЛЬНЫЙ ВИД =====
+  @include media-down(sm) {
+    flex-direction: row;
+    padding: 12px;
+    align-items: center;
+
+    &:hover {
+      transform: translateY(-2px);
+    }
+
+    .cover-wrapper {
+      width: 72px;
+      height: 108px;
+      flex-shrink: 0;
+      border-bottom: none;
+      border-radius: 6px;
+
+      .lang-badge,
+      .series-number-badge {
+        display: none;
+      }
+    }
+
+    .book-info {
+      padding: 0 0 0 16px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-self: stretch;
+
+      .info-header {
+        .title {
+          font-size: 1rem;
+          margin-bottom: 4px;
+        }
+
+        .edit-btn {
+          opacity: 1;
+        }
+      }
+
+      .author {
+        margin-bottom: 8px;
+        font-size: 0.85rem;
+      }
+
+      .progress {
+        font-size: 0.8rem;
       }
     }
   }
