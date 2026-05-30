@@ -3,10 +3,10 @@ import { CORS_HEADERS } from '../config'
 import { db } from '../db'
 import * as schema from '../db/schema'
 
-function json(data: unknown, status = 200) {
+function json(data: unknown, status = 200, extraHeaders: Record<string, string> = {}) {
   return new Response(JSON.stringify(data), {
     status,
-    headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' },
+    headers: { ...CORS_HEADERS, 'Content-Type': 'application/json', ...extraHeaders },
   })
 }
 

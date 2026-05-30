@@ -647,7 +647,7 @@ onUnmounted(() => {
   justify-content: center;
   font-size: 1.7rem;
   cursor: pointer;
-  z-index: calc(var(--z-modal, 1200) + 10);
+  z-index: calc(var(--z-modal, 1200) - 1);
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
   transition:
     border-color 0.2s,

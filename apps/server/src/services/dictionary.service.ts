@@ -60,10 +60,12 @@ export async function lookupWords(words: string[], language: string, userId: num
           selection.transcription = dictTable[conn.transcriptionCol]
         }
 
+        const searchWords = Array.from(new Set(missingWords.flatMap(w => [w, w.toLowerCase()])))
+
         const rows = await conn.dDb
           .select(selection)
           .from(dictTable)
-          .where(inArray(dictTable[conn.wordCol], missingWords))
+          .where(inArray(dictTable[conn.wordCol], searchWords))
 
         for (const row of rows) {
           if (!row.word)
@@ -118,7 +120,15 @@ export async function lookupSingleWord(word: string, language: string, userId: n
       selection.transcription = dictTable[conn.transcriptionCol]
     }
 
-    const rows = await conn.dDb.select(selection).from(dictTable).where(sql`${dictTable[conn.wordCol]} = ${word} COLLATE NOCASE`).limit(1)
+    // Ищем точное совпадение по оригиналу и нижнему регистру (позволяет использовать индекс SQLite)
+    const searchWords = Array.from(new Set([word, word.toLowerCase()]))
+
+    const rows = await conn.dDb
+      .select(selection)
+      .from(dictTable)
+      .where(inArray(dictTable[conn.wordCol], searchWords))
+      .limit(1)
+
     if (rows.length > 0) {
       return {
         transcription: (conn.hasTranscription ? rows[0].transcription : '') || '',

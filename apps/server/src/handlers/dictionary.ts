@@ -14,10 +14,10 @@ import {
 } from '../services/dictionary.service'
 import { AppError } from '../utils/errors'
 
-function json(data: unknown, status = 200) {
+function json(data: unknown, status = 200, extraHeaders: Record<string, string> = {}) {
   return new Response(JSON.stringify(data), {
     status,
-    headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' },
+    headers: { ...CORS_HEADERS, 'Content-Type': 'application/json', ...extraHeaders },
   })
 }
 
@@ -45,11 +45,11 @@ const DeckSchema = z.object({
 })
 
 export async function handleGetUserDict(req: Request, userId: number): Promise<Response> {
-  return json(await getUserDictionary(userId))
+  return json(await getUserDictionary(userId), 200, { 'Cache-Control': 'private, stale-while-revalidate=60' })
 }
 
 export async function handleGetDecks(req: Request, userId: number): Promise<Response> {
-  return json(await getUserDecks(userId))
+  return json(await getUserDecks(userId), 200, { 'Cache-Control': 'private, stale-while-revalidate=60' })
 }
 
 export async function handleCreateDeck(req: Request, userId: number): Promise<Response> {
@@ -91,7 +91,7 @@ export async function handleGetWordFromUserDict(req: Request, userId: number): P
     throw new AppError(404, 'Слово не найдено в словаре пользователя')
   }
 
-  return json(entry)
+  return json(entry, 200, { 'Cache-Control': 'private, stale-while-revalidate=60' })
 }
 
 export async function handleGetReviewQueue(req: Request, userId: number): Promise<Response> {

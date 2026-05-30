@@ -88,16 +88,16 @@ watch(
     let left = rect.left + rect.width / 2
 
     const isMobile = ww < 600
-    let top = isMobile ? rect.bottom + 8 : rect.top - popRect.height - 8
+    let top = isMobile ? rect.bottom + 8 : rect.top - popRect.height - 16
 
     if (isMobile) {
       if (top + popRect.height > wh - 10) {
-        top = rect.top - popRect.height - 8
+        top = rect.top - popRect.height - 16
       }
     }
     else {
       if (top < 10) {
-        top = rect.bottom + 8
+        top = rect.bottom + 16
       }
     }
 

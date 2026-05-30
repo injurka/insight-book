@@ -19,10 +19,10 @@ import { runWorkerTask } from '../workers/worker-client'
 
 const llmLimiter = createRateLimiter(60, 60 * 1000)
 
-function json(data: unknown, status = 200) {
+function json(data: unknown, status = 200, extraHeaders: Record<string, string> = {}) {
   return new Response(JSON.stringify(data), {
     status,
-    headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' },
+    headers: { ...CORS_HEADERS, 'Content-Type': 'application/json', ...extraHeaders },
   })
 }
 
@@ -112,7 +112,9 @@ export async function handleGetBookInfo(req: Request, userId: number): Promise<R
     }
     : null
 
-  return json({ ...bookData, currentPage: progress?.currentPage ?? null, toc: book.toc ? JSON.parse(book.toc) : [], stats: statsResult })
+  return json({ ...bookData, currentPage: progress?.currentPage ?? null, toc: book.toc ? JSON.parse(book.toc) : [], stats: statsResult }, 200, {
+    'Cache-Control': 'private, stale-while-revalidate=60',
+  })
 }
 
 export async function handleAnalyzeVocabulary(req: Request, userId: number): Promise<Response> {
@@ -254,7 +256,12 @@ export async function handleGetCoverImage(req: Request): Promise<Response> {
   if (!(await file.exists()))
     return new Response('Not found', { status: 404 })
 
-  return new Response(file, { headers: CORS_HEADERS })
+  return new Response(file, {
+    headers: {
+      ...CORS_HEADERS,
+      'Cache-Control': 'public, max-age=31536000, immutable',
+    },
+  })
 }
 
 export async function handleUpdateStats(req: Request, userId: number): Promise<Response> {
@@ -349,7 +356,9 @@ export async function handleGetToc(req: Request, userId: number): Promise<Respon
   const book = await db.select({ toc: schema.books.toc }).from(schema.books).where(and(eq(schema.books.id, bookId), eq(schema.books.userId, userId))).get()
   if (!book)
     throw new AppError(404, 'Книга не найдена')
-  return json(book.toc ? JSON.parse(book.toc) : [])
+  return json(book.toc ? JSON.parse(book.toc) : [], 200, {
+    'Cache-Control': 'private, stale-while-revalidate=60',
+  })
 }
 
 export async function handleGetPage(req: Request, userId: number): Promise<Response> {
@@ -406,7 +415,7 @@ export async function handleGetPage(req: Request, userId: number): Promise<Respo
       ocrBlocks: ocrBlocks || [],
       content: '',
       pageDictionary,
-    })
+    }, 200, { 'Cache-Control': 'public, max-age=86400' })
   }
 
   const cached = await db.query.nlpCache.findFirst({
@@ -418,7 +427,7 @@ export async function handleGetPage(req: Request, userId: number): Promise<Respo
       const parsed = JSON.parse(cached.data) as PagePayload
       const uniqueWords = extractUniqueWordsFromHtml(parsed.content)
       parsed.pageDictionary = await lookupWords(uniqueWords, book.language, userId)
-      return json(parsed)
+      return json(parsed, 200, { 'Cache-Control': 'public, max-age=86400' })
     }
     catch { }
   }
@@ -436,7 +445,7 @@ export async function handleGetPage(req: Request, userId: number): Promise<Respo
     await tx.insert(schema.nlpCache).values({ bookId, pageNum, data: JSON.stringify(payload) })
   })
 
-  return json(payload)
+  return json(payload, 200, { 'Cache-Control': 'public, max-age=86400' })
 }
 
 export async function handleLookupWord(req: Request, userId: number): Promise<Response> {
@@ -504,7 +513,7 @@ export async function handleGetPageImage(req: Request): Promise<Response> {
     headers: {
       ...CORS_HEADERS,
       'Content-Type': `image/${ext === 'jpg' ? 'jpeg' : ext}`,
-      'Cache-Control': 'public, max-age=31536000',
+      'Cache-Control': 'public, max-age=31536000, immutable',
     },
   })
 }

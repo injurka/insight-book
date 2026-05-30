@@ -2,27 +2,36 @@ import { AppError } from './errors'
 
 interface RateLimitStore {
   count: number
-  timer: ReturnType<typeof setTimeout>
+  resetAt: number
 }
 
 /**
- * Создает простой In-Memory Rate Limiter без утечек памяти
+ * Оптимизированный In-Memory Rate Limiter без утечек памяти (lazy evaluation)
  * @param maxRequests Максимальное количество запросов
  * @param windowMs Временное окно в миллисекундах
  */
 export function createRateLimiter(maxRequests: number, windowMs: number) {
   const store = new Map<string, RateLimitStore>()
 
+  const cleanupInterval = setInterval(() => {
+    const now = Date.now()
+    for (const [key, record] of store.entries()) {
+      if (now > record.resetAt) {
+        store.delete(key)
+      }
+    }
+  }, windowMs * 2)
+
+  if (cleanupInterval.unref) {
+    cleanupInterval.unref()
+  }
+
   return function checkLimit(key: string) {
+    const now = Date.now()
     let record = store.get(key)
 
-    if (!record) {
-      // Инициализируем запись и ставим таймер на очистку
-      const timer = setTimeout(() => {
-        store.delete(key)
-      }, windowMs)
-
-      record = { count: 0, timer }
+    if (!record || now > record.resetAt) {
+      record = { count: 0, resetAt: now + windowMs }
       store.set(key, record)
     }
 
