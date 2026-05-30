@@ -40,7 +40,7 @@ const currentContext = computed(() => {
 
 function startSession() {
   if (!allowStandard.value && !allowAudio.value) {
-    allowStandard.value = true // защита от дурака
+    allowStandard.value = true
   }
   sessionState.value = 'active'
   initCard()
@@ -72,7 +72,7 @@ function initCard() {
     // Включаем звук с небольшой задержкой
     setTimeout(() => {
       if (currentCard.value?.word) {
-        speak(currentCard.value.word)
+        speak(currentCard.value.word, currentCard.value.language)
       }
     }, 300)
   }
@@ -81,7 +81,8 @@ function initCard() {
 function flip() {
   isFlipped.value = true
   if (currentMode.value !== 'audio' && currentCard.value?.word) {
-    speak(currentCard.value.word)
+    // Прокидываем ЯЗЫК
+    speak(currentCard.value.word, currentCard.value.language)
   }
 }
 
@@ -272,7 +273,7 @@ watch(currentIndex, () => {
             :icon="isLoading ? 'mdi:loading' : (isPlaying ? 'mdi:volume-high' : 'mdi:volume-medium')"
             size="lg"
             color="accent"
-            @click="speak(currentCard.word)"
+            @click="speak(currentCard.word, currentCard.language)"
           />
           <p>Послушайте и вспомните слово</p>
         </div>
@@ -305,7 +306,7 @@ watch(currentIndex, () => {
             variant="tonal"
             color="accent"
             size="sm"
-            @click="speak(currentCard.word)"
+            @click="speak(currentCard.word, currentCard.language)"
           >
             Прослушать слово
           </KitBtn>

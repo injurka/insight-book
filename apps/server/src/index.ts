@@ -15,6 +15,7 @@ import {
   handleGetPageImage,
   handleGetToc,
   handleLookupWord,
+  handleStandaloneTts,
   handleUpdateBook,
   handleUpdateCover,
   handleUpdateStats,
@@ -68,6 +69,9 @@ const apiRoutes = {
   '/api/books/:id/page/:pageNum/image': { OPTIONS: corsOk, GET: apiWrapper(handleGetPageImage) },
   '/api/books/:id/word/:word': { OPTIONS: corsOk, GET: apiWrapper(authWrapper(handleLookupWord)) },
   '/api/books/:id/analyze': { OPTIONS: corsOk, POST: apiWrapper(authWrapper(handleAnalyzeSentence)) },
+
+  // --- Global TTS API ---
+  '/api/tts': { OPTIONS: corsOk, POST: apiWrapper(authWrapper(handleStandaloneTts)) },
 
   // --- Dictionary API ---
   '/api/dictionary': { OPTIONS: corsOk, GET: apiWrapper(authWrapper(handleGetUserDict)), POST: apiWrapper(authWrapper(handleUpsertToUserDict)) },

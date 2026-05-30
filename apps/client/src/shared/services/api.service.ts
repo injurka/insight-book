@@ -98,6 +98,16 @@ export const api = {
 
   },
 
+  tts: {
+    generate: (text: string, language: string, signal?: AbortSignal) =>
+      request<{ audioBase64: string }>(`/api/tts`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text, language }),
+        signal,
+      }),
+  },
+
   dictionary: {
 
     list: () => request<UserDictItem[]>('/api/dictionary'),

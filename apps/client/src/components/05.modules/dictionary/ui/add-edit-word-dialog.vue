@@ -35,7 +35,7 @@ function handleDelete() {
 
 function playTTS() {
   if (localWord.value.word) {
-    speak(localWord.value.word)
+    speak(localWord.value.word, localWord.value.language)
   }
 }
 

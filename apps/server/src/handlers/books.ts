@@ -74,6 +74,11 @@ const GenerateTtsSchema = z.object({
   text: z.string().min(1, 'Текст не передан'),
 })
 
+const GenerateTtsStandaloneSchema = z.object({
+  text: z.string().min(1, 'Текст не передан'),
+  language: z.string().min(1, 'Язык обязателен'),
+})
+
 export async function handleGetBooks(req: Request, userId: number): Promise<Response> {
   const books = await db.query.books.findMany({
     where: eq(schema.books.userId, userId),
@@ -469,6 +474,16 @@ export async function handleGenerateTts(req: Request, userId: number): Promise<R
 
   const { text } = GenerateTtsSchema.parse(await req.json())
   const audioBase64 = await generateTts(text, book.language, config)
+  return json({ audioBase64 })
+}
+
+// Новый эндпоинт для независимой (без привязки к книге) генерации TTS (например, из словаря)
+export async function handleStandaloneTts(req: Request, userId: number): Promise<Response> {
+  llmLimiter(String(userId))
+  const config = extractLlmConfig(req)
+
+  const { text, language } = GenerateTtsStandaloneSchema.parse(await req.json())
+  const audioBase64 = await generateTts(text, language, config)
   return json({ audioBase64 })
 }
 

@@ -16,18 +16,12 @@ export function useTts() {
   let currentAudio: HTMLAudioElement | null = null
   let abortController: AbortController | null = null
 
-  async function speak(text: string | null | undefined) {
+  async function speak(text: string | null | undefined, explicitLanguage?: string) {
     if (!text)
       return
 
     if (isLoading.value && abortController) {
       abortController.abort()
-    }
-
-    const bookId = readerStore.currentBook?.id
-    if (!bookId) {
-      console.warn('TTS: Невозможно озвучить, так как ID книги не найден')
-      return
     }
 
     stop()
@@ -36,12 +30,21 @@ export function useTts() {
     abortController = new AbortController()
 
     try {
-      const cacheKey = `${bookId}_${text}`
+      const bookId = readerStore.currentBook?.id
+      const lang = explicitLanguage || readerStore.currentBook?.language || 'en'
+
+      const cacheKey = bookId ? `${bookId}_${text}` : `dict_${lang}_${text}`
       let audioBase64 = await offlineService.getTts(cacheKey)
 
       if (!audioBase64) {
-        const res = await api.books.generateTts(bookId, text, abortController.signal)
-        audioBase64 = res.audioBase64
+        if (bookId) {
+          const res = await api.books.generateTts(bookId, text, abortController.signal)
+          audioBase64 = res.audioBase64
+        }
+        else {
+          const res = await api.tts.generate(text, lang, abortController.signal)
+          audioBase64 = res.audioBase64
+        }
         await offlineService.saveTts(cacheKey, audioBase64)
       }
 
