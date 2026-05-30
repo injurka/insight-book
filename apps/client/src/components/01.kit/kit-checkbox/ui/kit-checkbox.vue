@@ -45,6 +45,7 @@ function toggle() {
   justify-content: center;
   margin-right: 8px;
   transition: all 0.2s;
+  flex-shrink: 0;
 
   &.checked {
     background-color: var(--fg-accent-color);
