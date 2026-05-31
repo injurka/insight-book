@@ -97,7 +97,7 @@ async function getEpubImageBase64(epub: any, imageId: string): Promise<string | 
   })
 }
 
-export async function processEpub(fileBuffer: ArrayBuffer, filename: string): Promise<number> {
+export async function processEpub(fileBuffer: ArrayBuffer, filename: string, userId: number): Promise<number> {
   const safeName = `${Date.now()}_${filename.replace(/[^\w.-]/g, '_')}`
   const filePath = path.join(BOOKS_PATH, safeName)
   await Bun.write(filePath, fileBuffer)
@@ -270,6 +270,7 @@ export async function processEpub(fileBuffer: ArrayBuffer, filename: string): Pr
         const tocJson = JSON.stringify(toc)
 
         const [insertedBook] = await db.insert(schema.books).values({
+          userId,
           type: 'epub',
           title,
           author,

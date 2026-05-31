@@ -17,13 +17,13 @@ self.onmessage = async (event: MessageEvent) => {
     let result
     switch (type) {
       case 'processEpub':
-        result = await processEpub(payload.buffer, payload.filename)
+        result = await processEpub(payload.buffer, payload.filename, payload.userId)
         break
       case 'processFb2':
         result = await processFb2(payload.buffer, payload.filename, payload.userId)
         break
       case 'processCbz':
-        result = await processCbz(payload.buffer, payload.filename)
+        result = await processCbz(payload.buffer, payload.filename, payload.userId)
         break
       case 'tokenizeHtmlPage':
         result = await tokenizeHtmlPage(payload.html, payload.language)

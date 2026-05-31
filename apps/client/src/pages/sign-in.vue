@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import { ref } from 'vue'
-import { useRouter } from 'vue-router'
 import { KitBtn, KitInput } from '~/components/01.kit'
 import { useToast } from '~/shared/composables/use-toast'
 import { api } from '~/shared/services/api.service'
@@ -14,7 +12,7 @@ const username = ref('')
 const password = ref('')
 const isLoading = ref(false)
 
-async function handleLogin() {
+async function handleSignIn() {
   if (!username.value || !password.value)
     return
   isLoading.value = true
@@ -35,23 +33,33 @@ async function handleLogin() {
 </script>
 
 <template>
-  <div class="login-card">
-    <h2>Вход в библиотеку</h2>
-    <p>Введите учетные данные для доступа</p>
+  <div class="sign-in-wrapper">
+    <form class="sign-in-card" @submit.prevent="handleSignIn">
+      <h2>Вход в библиотеку</h2>
+      <p>Введите учетные данные для доступа</p>
 
-    <div class="form-fields">
-      <KitInput v-model="username" placeholder="Имя пользователя" @keyup.enter="handleLogin" />
-      <KitInput v-model="password" type="password" placeholder="Пароль" @keyup.enter="handleLogin" />
-    </div>
+      <div class="form-fields">
+        <KitInput v-model="username" placeholder="Имя пользователя" autocomplete="username" />
+        <KitInput v-model="password" type="password" placeholder="Пароль" autocomplete="current-password" />
+      </div>
 
-    <KitBtn color="primary" class="login-btn" :disabled="isLoading" @click="handleLogin">
-      Войти
-    </KitBtn>
+      <KitBtn type="submit" color="primary" class="sign-in-btn" :disabled="isLoading">
+        Войти
+      </KitBtn>
+    </form>
   </div>
 </template>
 
 <style scoped lang="scss">
-.login-card {
+.sign-in-wrapper {
+  width: 100%;
+  height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sign-in-card {
   width: 100%;
   max-width: 400px;
   padding: 32px;
@@ -79,7 +87,7 @@ async function handleLogin() {
     margin-bottom: 24px;
   }
 
-  .login-btn {
+  .sign-in-btn {
     width: 100%;
   }
 }

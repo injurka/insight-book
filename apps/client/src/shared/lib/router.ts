@@ -6,10 +6,9 @@ export const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
     {
-      path: '/login',
-      name: AppRouteNames.Home,
-      meta: { layout: 'empty' },
-      component: () => import('~/pages/login.vue'),
+      path: '/sign-in',
+      name: AppRouteNames.SignIn,
+      component: () => import('~/pages/sign-in.vue'),
     },
     {
       path: '/',
@@ -46,7 +45,7 @@ router.beforeEach(async (to, _from, next) => {
     await authStore.checkAuth()
   }
 
-  const isAuthRoute = to.name === 'login'
+  const isAuthRoute = to.name === AppRouteNames.SignIn
 
   // Не пускаем авторизованных на страницу логина
   if (authStore.user && isAuthRoute) {
@@ -56,7 +55,7 @@ router.beforeEach(async (to, _from, next) => {
   // Защищенные маршруты
   const protectedRoutes = [AppRouteNames.Dictionary]
   if (!authStore.user && !authStore.isSingleMode && protectedRoutes.includes(to.name as AppRouteNames)) {
-    return next({ name: 'login' })
+    return next({ name: AppRouteNames.SignIn })
   }
 
   next()

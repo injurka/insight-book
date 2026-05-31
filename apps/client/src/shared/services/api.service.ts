@@ -7,6 +7,11 @@ const BASE = import.meta.env.VITE_API_URL || 'https://insight-api.trip-scheduler
 async function request<T>(url: string, opts?: RequestInit): Promise<T> {
   const headers = new Headers(opts?.headers)
 
+  const token = localStorage.getItem('insight_token')
+  if (token) {
+    headers.set('Authorization', `Bearer ${token}`)
+  }
+
   if (getActivePinia()) {
     const settings = useGlobalSettingsStore()
     if (settings.useCustomLlm && settings.customLlmUrl && settings.customLlmModel) {

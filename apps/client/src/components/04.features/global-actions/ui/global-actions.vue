@@ -23,8 +23,8 @@ function openSettings() {
   router.push(AppRoutePaths.Settings)
 }
 
-function handleLogin() {
-  router.push(AppRoutePaths.Login)
+function handleSignIn() {
+  router.push(AppRoutePaths.SignIn)
 }
 
 function handleLogout() {
@@ -67,7 +67,7 @@ function handleLogout() {
         icon="mdi:login"
         variant="text"
         aria-label="Войти"
-        @click="handleLogin"
+        @click="handleSignIn"
       />
     </KitTooltip>
 

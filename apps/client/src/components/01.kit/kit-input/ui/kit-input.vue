@@ -8,6 +8,10 @@ interface Props {
   type?: string
 }
 
+defineOptions({
+  inheritAttrs: false,
+})
+
 const props = withDefaults(defineProps<Props>(), {
   modelValue: '',
   placeholder: '',
@@ -33,6 +37,7 @@ function onInput(e: Event) {
 <template>
   <div class="kit-input-wrapper" :class="{ 'is-rounded': rounded, 'is-solo': variant === 'solo' }">
     <input
+      v-bind="$attrs"
       :value="modelValue ?? ''"
       :type="type"
       class="kit-input"

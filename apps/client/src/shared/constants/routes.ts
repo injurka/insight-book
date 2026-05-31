@@ -4,7 +4,7 @@ export enum AppRouteNames {
   Reader = 'reader',
   Dictionary = 'dictionary',
   Settings = 'settings',
-  Login = 'login',
+  SignIn = 'sign-in',
 }
 
 export const AppRoutePaths = {
@@ -12,7 +12,7 @@ export const AppRoutePaths = {
   Dictionary: '/dictionary',
   Reader: '/reader',
   Settings: '/settings',
-  Login: '/login',
+  SignIn: '/sign-in',
 
   Book: {
     Info: (id: string | number) => `/book/${id}`,

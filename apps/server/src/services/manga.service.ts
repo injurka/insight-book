@@ -6,7 +6,7 @@ import { BOOKS_PATH, COVERS_PATH } from '../config'
 import { db } from '../db'
 import * as schema from '../db/schema'
 
-export async function processCbz(fileBuffer: ArrayBuffer, filename: string): Promise<number> {
+export async function processCbz(fileBuffer: ArrayBuffer, filename: string, userId: number): Promise<number> {
   const safeName = `${Date.now()}_${filename.replace(/[^\w.-]/g, '_')}`
   const mangaDir = path.join(BOOKS_PATH, safeName.replace(/\.(cbz|zip)$/i, ''))
 
@@ -36,6 +36,7 @@ export async function processCbz(fileBuffer: ArrayBuffer, filename: string): Pro
 
   // Drizzle ORM Вставки
   const [insertedBook] = await db.insert(schema.books).values({
+    userId,
     type: 'manga',
     title,
     author: null,
