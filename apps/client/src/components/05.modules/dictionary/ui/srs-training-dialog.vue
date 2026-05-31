@@ -337,7 +337,7 @@ watch(currentIndex, () => {
           <KitBtn
             icon="mdi:robot-outline"
             variant="tonal"
-            color="primary"
+            color="accent"
             size="sm"
             @click="fetchAiExamples"
           >
