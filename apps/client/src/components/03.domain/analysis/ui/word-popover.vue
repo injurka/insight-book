@@ -284,7 +284,7 @@ onUnmounted(() => {
   }
   .is-saved-star {
     :deep(.kit-btn-icon) {
-      color: var(--fg-warning-color) !important;
+      color: #e3b341 !important;
     }
   }
   .pulse-animation {

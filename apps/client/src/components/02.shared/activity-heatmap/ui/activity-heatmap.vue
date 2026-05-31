@@ -264,6 +264,8 @@ onMounted(async () => {
   display: inline-flex;
   flex-direction: column;
   min-width: max-content;
+  width: 100%;
+  align-items: center;
 }
 
 .months-labels {

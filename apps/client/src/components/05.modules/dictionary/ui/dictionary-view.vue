@@ -260,7 +260,7 @@ watch(isEditMode, (val) => {
         </div>
 
         <div class="actions-and-stats">
-          <KitDropdown ref="dropdownRef" placement="bottom-end" width="230px">
+          <KitDropdown ref="dropdownRef" placement="bottom-end" width="250px">
             <template #activator="{ props }">
               <KitBtn
                 icon="mdi:brain"

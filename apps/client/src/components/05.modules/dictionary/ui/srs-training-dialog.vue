@@ -14,11 +14,10 @@ const currentIndex = ref(0)
 const isFlipped = ref(false)
 const isSubmitting = ref(false)
 
-// Настройки режимов (Выбор на стартовом экране)
 const allowStandard = ref(true)
 const allowAudio = ref(true)
 
-// Текущий режим конкретной карточки
+// Текущий режим конкретной карточкич
 type TrainingMode = 'standard' | 'audio'
 const currentMode = ref<TrainingMode>('standard')
 
@@ -55,7 +54,6 @@ function initCard() {
     return
   }
 
-  // Доступные режимы зависят от контента и пользовательских настроек
   const availableModes: TrainingMode[] = []
   if (allowStandard.value)
     availableModes.push('standard')
@@ -63,13 +61,11 @@ function initCard() {
     availableModes.push('audio')
 
   if (availableModes.length === 0)
-    availableModes.push('standard') // fallback
+    availableModes.push('standard')
 
-  // Случайный выбор режима из разрешенных
   currentMode.value = availableModes[Math.floor(Math.random() * availableModes.length)]
 
   if (currentMode.value === 'audio') {
-    // Включаем звук с небольшой задержкой
     setTimeout(() => {
       if (currentCard.value?.word) {
         speak(currentCard.value.word, currentCard.value.language)
@@ -81,7 +77,6 @@ function initCard() {
 function flip() {
   isFlipped.value = true
   if (currentMode.value !== 'audio' && currentCard.value?.word) {
-    // Прокидываем ЯЗЫК
     speak(currentCard.value.word, currentCard.value.language)
   }
 }
@@ -92,7 +87,6 @@ function calculateNextInterval(grade: number): number {
 
   const { repetitions, interval, easeFactor } = currentCard.value
 
-  // Дублируем серверную логику шагов для отображения
   if (grade === 0) {
     return 1 / 1440 // 1 минута
   }
@@ -148,7 +142,6 @@ async function gradeCard(grade: number) {
     return
 
   if (dictStore.trainingMode === 'random') {
-    // В режиме случайной разминки мы не отправляем данные на сервер
     currentIndex.value++
     stop()
     return
@@ -161,7 +154,6 @@ async function gradeCard(grade: number) {
     await api.dictionary.submitReview(cardRef.id, grade)
 
     if (grade === 0) {
-      // Если нажали "Снова", добавляем карточку в конец очереди
       dictStore.reviewQueue.push(cardRef)
     }
 
@@ -273,6 +265,7 @@ watch(currentIndex, () => {
             :icon="isLoading ? 'mdi:loading' : (isPlaying ? 'mdi:volume-high' : 'mdi:volume-medium')"
             size="lg"
             color="accent"
+            :class="{ 'spin-animation': isLoading, 'pulse-animation': isPlaying }"
             @click="speak(currentCard.word, currentCard.language)"
           />
           <p>Послушайте и вспомните слово</p>
@@ -306,6 +299,7 @@ watch(currentIndex, () => {
             variant="tonal"
             color="accent"
             size="sm"
+            :class="{ 'spin-animation': isLoading, 'pulse-animation': isPlaying }"
             @click="speak(currentCard.word, currentCard.language)"
           >
             Прослушать слово
@@ -458,8 +452,6 @@ watch(currentIndex, () => {
   width: 100%;
 }
 
-/* --- Стили режимов --- */
-
 .audio-mode {
   text-align: center;
   display: flex;
@@ -476,8 +468,6 @@ watch(currentIndex, () => {
 .standard-mode {
   width: 100%;
 }
-
-/* ------------------- */
 
 .context-cloze {
   font-size: 1.4rem;
@@ -618,6 +608,37 @@ watch(currentIndex, () => {
   p {
     margin-bottom: 24px;
     color: var(--fg-secondary-color);
+  }
+}
+
+.spin-animation {
+  :deep(.kit-btn-icon) {
+    animation: spin 1s linear infinite;
+  }
+}
+
+.pulse-animation {
+  :deep(.kit-btn-icon) {
+    animation: pulse-op 1.2s infinite;
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes pulse-op {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(1);
   }
 }
 </style>

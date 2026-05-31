@@ -466,14 +466,12 @@ const storagePercent = computed(() => {
     align-items: flex-start;
     gap: 16px;
 
-    @include media-down(sm) {
-      flex-direction: column;
-    }
-
     .title-section {
       display: flex;
       align-items: center;
       gap: 16px;
+      flex-grow: 1;
+      min-width: 0;
 
       .icon-wrapper {
         display: flex;
@@ -494,6 +492,7 @@ const storagePercent = computed(() => {
         color: var(--fg-primary-color);
         font-weight: 600;
         line-height: 1.4;
+        word-break: break-word;
       }
     }
 
@@ -506,10 +505,6 @@ const storagePercent = computed(() => {
       &:hover:not(:disabled) {
         background-color: var(--bg-error-color) !important;
         color: white !important;
-      }
-
-      @include media-down(sm) {
-        width: 100%;
       }
     }
   }
