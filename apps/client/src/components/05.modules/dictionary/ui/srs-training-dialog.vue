@@ -454,12 +454,27 @@ watch(currentIndex, () => {
         </ul>
       </div>
 
-      <div v-if="aiData.relations" class="ai-section relations-section">
+      <div v-if="aiData.relations && (aiData.relations.synonyms?.length || aiData.relations.antonyms?.length)" class="ai-section relations-section">
         <div v-if="aiData.relations.synonyms?.length">
-          <b>Синонимы:</b> {{ aiData.relations.synonyms.join(', ') }}
+          <div class="ai-section-title">
+            <Icon icon="mdi:swap-horizontal" /> Синонимы
+          </div>
+          <ul class="ai-list">
+            <li v-for="(syn, i) in aiData.relations.synonyms" :key="i">
+              <b>{{ syn.word }}</b> ({{ syn.transcription }}) — {{ syn.translation }}
+            </li>
+          </ul>
         </div>
-        <div v-if="aiData.relations.antonyms?.length">
-          <b>Антонимы:</b> {{ aiData.relations.antonyms.join(', ') }}
+
+        <div v-if="aiData.relations.antonyms?.length" :style="aiData.relations.synonyms?.length ? 'margin-top: 16px;' : ''">
+          <div class="ai-section-title">
+            <Icon icon="mdi:swap-horizontal-bold" /> Антонимы
+          </div>
+          <ul class="ai-list">
+            <li v-for="(ant, i) in aiData.relations.antonyms" :key="i">
+              <b>{{ ant.word }}</b> ({{ ant.transcription }}) — {{ ant.translation }}
+            </li>
+          </ul>
         </div>
       </div>
     </div>

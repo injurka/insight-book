@@ -155,9 +155,15 @@ export interface WordCollocation {
   translation: string
 }
 
+export interface WordRelationItem {
+  word: string
+  transcription: string
+  translation: string
+}
+
 export interface WordRelations {
-  synonyms?: string[]
-  antonyms?: string[]
+  synonyms?: WordRelationItem[]
+  antonyms?: WordRelationItem[]
 }
 
 export interface GeneratedWordExamples {

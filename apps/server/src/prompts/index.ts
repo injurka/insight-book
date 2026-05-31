@@ -80,8 +80,20 @@ export function getWordExamplesPrompt(language: string): string {
     }
   ],
   "relations": {
-    "synonyms": ["Синоним 1"],
-    "antonyms": ["Антоним 1"]
+    "synonyms": [
+      {
+        "word": "Синоним",
+        "transcription": "Транскрипция",
+        "translation": "Перевод"
+      }
+    ],
+    "antonyms": [
+      {
+        "word": "Антоним",
+        "transcription": "Транскрипция",
+        "translation": "Перевод"
+      }
+    ]
   }
 }`
 }
