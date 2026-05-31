@@ -1,9 +1,12 @@
 <script setup lang="ts">
 import type { UserDictItem, WordEncounter } from '~/shared/types/models'
+import { Icon } from '@iconify/vue'
 import { computed, ref, watch } from 'vue'
-import { KitBtn, KitDialog, KitInput, KitPrompt, KitSelect, KitTooltip } from '~/components/01.kit'
+import { KitBtn, KitDialog, KitInput, KitPrompt, KitSelect, KitSkeleton, KitTooltip } from '~/components/01.kit'
+import { useToast } from '~/shared/composables/use-toast'
 import { useTts } from '~/shared/composables/use-tts'
 import { DIFFICULTY_SYSTEMS } from '~/shared/constants/difficulties'
+import { api } from '~/shared/services/api.service'
 import { useAnalysisStore } from '~/shared/store/analysis.store'
 import { useDictionaryStore } from '../store/dictionary.store'
 
@@ -16,12 +19,18 @@ interface WordFormData extends Partial<UserDictItem> {
 const analysisStore = useAnalysisStore()
 const dictStore = useDictionaryStore()
 const { speak, isPlaying, isLoading } = useTts()
+const toast = useToast()
 
 const localWord = ref<WordFormData>({})
 const isEditing = computed(() => !!localWord.value.id)
 
 // Состояние для окна создания колоды
 const isDeckPromptOpen = ref(false)
+
+// AI Модалка
+const isAiModalOpen = ref(false)
+const isAiLoading = ref(false)
+const aiData = ref<any>(null)
 
 function handleSave() {
   analysisStore.saveWordToDict(localWord.value)
@@ -41,6 +50,68 @@ function playTTS() {
 
 function openCreateDeckPrompt() {
   isDeckPromptOpen.value = true
+}
+
+async function fetchAiExamples() {
+  if (!localWord.value.word)
+    return
+  isAiModalOpen.value = true
+  isAiLoading.value = true
+  aiData.value = null
+
+  try {
+    const res = await api.dictionary.generateExamples(localWord.value.word, localWord.value.language || 'en')
+    aiData.value = res
+  }
+  catch (e: any) {
+    toast.error(e.message || 'Ошибка генерации примеров')
+    isAiModalOpen.value = false
+  }
+  finally {
+    isAiLoading.value = false
+  }
+}
+
+function applyAiToNotes() {
+  if (!aiData.value)
+    return
+  const d = aiData.value
+  let text = ``
+
+  if (d.mnemonics)
+    text += `💡 Мнемоника:\n${d.mnemonics}\n\n`
+  if (d.grammar_note)
+    text += `📚 Грамматика:\n${d.grammar_note}\n\n`
+
+  if (d.examples && d.examples.length) {
+    text += `🎯 Примеры:\n`
+    d.examples.forEach((ex: any) => {
+      text += `- ${ex.original} (${ex.transcription})\n  ${ex.translation}\n  *Дословно: ${ex.literal_translation}*\n`
+    })
+    text += `\n`
+  }
+
+  if (d.collocations && d.collocations.length) {
+    text += `🔗 Словосочетания:\n`
+    d.collocations.forEach((col: any) => {
+      text += `- ${col.original} (${col.transcription}) — ${col.translation}\n`
+    })
+    text += `\n`
+  }
+
+  if (d.relations) {
+    if (d.relations.synonyms && d.relations.synonyms.length) {
+      text += `Синонимы: ${d.relations.synonyms.join(', ')}\n`
+    }
+    if (d.relations.antonyms && d.relations.antonyms.length) {
+      text += `Антонимы: ${d.relations.antonyms.join(', ')}\n`
+    }
+  }
+
+  const existing = localWord.value.notes ? `${localWord.value.notes.trim()}\n\n` : ''
+  localWord.value.notes = existing + text.trim()
+  isAiModalOpen.value = false
+  toast.success('Примеры добавлены в заметки!')
 }
 
 async function onInlineDeckSubmit(name: string) {
@@ -114,6 +185,16 @@ const difficultyModel = computed({
               @click="playTTS"
             />
           </KitTooltip>
+          <KitTooltip text="Сгенерировать примеры (ИИ)">
+            <KitBtn
+              icon="mdi:robot-outline"
+              variant="text"
+              size="sm"
+              color="primary"
+              :disabled="!localWord.word"
+              @click="fetchAiExamples"
+            />
+          </KitTooltip>
         </div>
         <p v-if="localWord.transcription " class="dict-transcription">
           {{ localWord.transcription }}
@@ -160,7 +241,7 @@ const difficultyModel = computed({
 
         <div class="form-group">
           <label>Заметки</label>
-          <textarea v-model="localWord.notes" class="custom-textarea" rows="2" />
+          <textarea v-model="localWord.notes" class="custom-textarea" rows="4" placeholder="Тут можно сохранить примеры предложений и мнемоники" />
         </div>
       </div>
     </div>
@@ -188,6 +269,90 @@ const difficultyModel = computed({
     confirm-text="Создать"
     @submit="onInlineDeckSubmit"
   />
+
+  <!-- Дочернее окно AI разбора -->
+  <KitDialog v-model:visible="isAiModalOpen" title="AI Примеры и анализ" :max-width="650">
+    <div v-if="isAiLoading" class="ai-loading">
+      <KitSkeleton width="100%" height="24px" class="mb-3" />
+      <KitSkeleton width="80%" height="24px" class="mb-3" />
+      <KitSkeleton width="100%" height="150px" />
+      <p style="text-align: center; color: var(--fg-secondary-color); margin-top: 12px; font-style: italic;">
+        Подбираем лучшие примеры...
+      </p>
+    </div>
+
+    <div v-else-if="aiData" class="ai-results">
+      <div v-if="aiData.mnemonics" class="ai-section">
+        <div class="ai-section-title">
+          <Icon icon="mdi:lightbulb-on-outline" /> Мнемоника
+        </div>
+        <p class="ai-text">
+          {{ aiData.mnemonics }}
+        </p>
+      </div>
+
+      <div v-if="aiData.grammar_note" class="ai-section">
+        <div class="ai-section-title">
+          <Icon icon="mdi:book-open-variant" /> Грамматика
+        </div>
+        <p class="ai-text">
+          {{ aiData.grammar_note }}
+        </p>
+      </div>
+
+      <div v-if="aiData.examples && aiData.examples.length" class="ai-section">
+        <div class="ai-section-title">
+          <Icon icon="mdi:format-list-bulleted" /> Примеры
+        </div>
+        <ul class="ai-list">
+          <li v-for="(ex, i) in aiData.examples" :key="i">
+            <span class="ex-type">{{ ex.type }}</span>
+            <div class="ex-orig">
+              {{ ex.original }}
+            </div>
+            <div class="ex-transc">
+              {{ ex.transcription }}
+            </div>
+            <div class="ex-transl">
+              {{ ex.translation }}
+            </div>
+            <div class="ex-literal">
+              Дословно: {{ ex.literal_translation }}
+            </div>
+          </li>
+        </ul>
+      </div>
+
+      <div v-if="aiData.collocations && aiData.collocations.length" class="ai-section">
+        <div class="ai-section-title">
+          <Icon icon="mdi:link-variant" /> Словосочетания
+        </div>
+        <ul class="ai-list">
+          <li v-for="(col, i) in aiData.collocations" :key="i">
+            <b>{{ col.original }}</b> ({{ col.transcription }}) — {{ col.translation }}
+          </li>
+        </ul>
+      </div>
+
+      <div v-if="aiData.relations" class="ai-section relations-section">
+        <div v-if="aiData.relations.synonyms?.length">
+          <b>Синонимы:</b> {{ aiData.relations.synonyms.join(', ') }}
+        </div>
+        <div v-if="aiData.relations.antonyms?.length">
+          <b>Антонимы:</b> {{ aiData.relations.antonyms.join(', ') }}
+        </div>
+      </div>
+    </div>
+
+    <template #footer>
+      <KitBtn variant="tonal" @click="isAiModalOpen = false">
+        Закрыть
+      </KitBtn>
+      <KitBtn color="primary" icon="mdi:pencil-plus" :disabled="!aiData" @click="applyAiToNotes">
+        Добавить в Заметки
+      </KitBtn>
+    </template>
+  </KitDialog>
 </template>
 
 <style lang="scss" scoped>
@@ -339,5 +504,95 @@ const difficultyModel = computed({
   100% {
     transform: scale(1);
   }
+}
+
+/* AI Results styling */
+.ai-results {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding-bottom: 8px;
+}
+.ai-section {
+  background: var(--bg-secondary-color);
+  border: 1px solid var(--border-secondary-color);
+  border-radius: 8px;
+  padding: 12px;
+}
+.ai-section-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--fg-accent-color);
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.ai-text {
+  margin: 0;
+  font-size: 0.95rem;
+  color: var(--fg-primary-color);
+  line-height: 1.5;
+}
+.ai-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+
+  li {
+    border-bottom: 1px dashed var(--border-primary-color);
+    padding-bottom: 12px;
+    &:last-child {
+      border-bottom: none;
+      padding-bottom: 0;
+    }
+  }
+
+  .ex-type {
+    display: inline-block;
+    background: var(--bg-tertiary-color);
+    color: var(--fg-secondary-color);
+    font-size: 0.75rem;
+    padding: 2px 6px;
+    border-radius: 4px;
+    margin-bottom: 4px;
+  }
+  .ex-orig {
+    font-size: 1.1rem;
+    font-weight: 500;
+    color: var(--fg-primary-color);
+  }
+  .ex-transc {
+    font-size: 0.9rem;
+    color: var(--fg-secondary-color);
+    margin-bottom: 4px;
+  }
+  .ex-transl {
+    font-size: 0.95rem;
+    color: var(--fg-primary-color);
+  }
+  .ex-literal {
+    font-size: 0.85rem;
+    color: var(--fg-muted-color);
+    font-style: italic;
+    margin-top: 4px;
+  }
+}
+.relations-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.9rem;
+  b {
+    color: var(--fg-primary-color);
+  }
+}
+.mb-3 {
+  margin-bottom: 12px;
 }
 </style>

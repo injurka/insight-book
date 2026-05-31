@@ -1,4 +1,4 @@
-import type { Book, BookStats, DictDeck, LlmAnalysis, PagePayload, TocItem, UserDictItem } from '../types/models'
+import type { Book, BookStats, DictDeck, GeneratedWordExamples, LlmAnalysis, PagePayload, TocItem, UserDictItem } from '../types/models'
 import { getActivePinia } from 'pinia'
 import { useGlobalSettingsStore } from '../store/settings.store'
 
@@ -156,6 +156,12 @@ export const api = {
     bulkDelete: (wordIds: number[]) => request<{ success: boolean }>('/api/dictionary/bulk/delete', { method: 'POST', body: JSON.stringify({ wordIds }) }),
     bulkMove: (wordIds: number[], deckId: number | null) => request<{ success: boolean }>('/api/dictionary/bulk/move', { method: 'POST', body: JSON.stringify({ wordIds, deckId }) }),
 
+    generateExamples: (word: string, language: string) =>
+      request<GeneratedWordExamples>('/api/dictionary/generate-examples', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ word, language }),
+      }),
   },
 
   activity: {

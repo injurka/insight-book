@@ -12,7 +12,11 @@ import {
   updateDeck,
   upsertToUserDictionary,
 } from '../services/dictionary.service'
+import { extractLlmConfig, generateWordExamples } from '../services/llm.service'
 import { AppError } from '../utils/errors'
+import { createRateLimiter } from '../utils/rate-limit'
+
+const dictAiLimiter = createRateLimiter(60, 60 * 1000)
 
 function json(data: unknown, status = 200, extraHeaders: Record<string, string> = {}) {
   return new Response(JSON.stringify(data), {
@@ -43,6 +47,19 @@ const DeckSchema = z.object({
   name: z.string().min(1, 'Название обязательно'),
   language: z.string().optional(),
 })
+
+const GenerateExamplesSchema = z.object({
+  word: z.string().min(1, 'Слово обязательно'),
+  language: z.string().min(1, 'Язык обязателен'),
+})
+
+export async function handleGenerateExamples(req: Request, userId: number): Promise<Response> {
+  dictAiLimiter(String(userId))
+  const config = extractLlmConfig(req)
+  const { word, language } = GenerateExamplesSchema.parse(await req.json())
+  const result = await generateWordExamples(word, language, config)
+  return json(result)
+}
 
 export async function handleGetUserDict(req: Request, userId: number): Promise<Response> {
   return json(await getUserDictionary(userId), 200, { 'Cache-Control': 'private, stale-while-revalidate=60' })

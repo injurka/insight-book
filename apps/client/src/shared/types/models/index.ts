@@ -140,3 +140,33 @@ export interface UserDictItem {
 
   encounters?: WordEncounter[]
 }
+
+export interface WordExample {
+  type: string
+  original: string
+  transcription: string
+  translation: string
+  literal_translation: string
+}
+
+export interface WordCollocation {
+  original: string
+  transcription: string
+  translation: string
+}
+
+export interface WordRelations {
+  synonyms?: string[]
+  antonyms?: string[]
+}
+
+export interface GeneratedWordExamples {
+  word: string
+  transcription: string
+  main_translations: string[]
+  mnemonics?: string
+  grammar_note?: string
+  examples?: WordExample[]
+  collocations?: WordCollocation[]
+  relations?: WordRelations
+}

@@ -26,6 +26,7 @@ import {
   handleBulkMoveDict,
   handleCreateDeck,
   handleDeleteDeck,
+  handleGenerateExamples,
   handleGetDecks,
   handleGetReviewQueue,
   handleGetUserDict,
@@ -77,6 +78,7 @@ const apiRoutes = {
   '/api/dictionary': { OPTIONS: corsOk, GET: apiWrapper(authWrapper(handleGetUserDict)), POST: apiWrapper(authWrapper(handleUpsertToUserDict)) },
   '/api/dictionary/bulk/delete': { OPTIONS: corsOk, POST: apiWrapper(authWrapper(handleBulkDeleteDict)) },
   '/api/dictionary/bulk/move': { OPTIONS: corsOk, POST: apiWrapper(authWrapper(handleBulkMoveDict)) },
+  '/api/dictionary/generate-examples': { OPTIONS: corsOk, POST: apiWrapper(authWrapper(handleGenerateExamples)) },
 
   // Decks
   '/api/dictionary/decks': { OPTIONS: corsOk, GET: apiWrapper(authWrapper(handleGetDecks)), POST: apiWrapper(authWrapper(handleCreateDeck)) },
