@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { Icon } from '@iconify/vue'
 import { useDebounceFn } from '@vueuse/core'
-import { nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useTts } from '~/shared/composables/use-tts'
 import { useAnalysisStore } from '~/shared/store/analysis.store'
 
@@ -10,6 +9,8 @@ const { speak, stop, isPlaying, isLoading } = useTts()
 
 const popoverRef = ref<HTMLElement | null>(null)
 const popoverPos = ref({ top: '-9999px', left: '-9999px', transform: 'none' })
+
+const offset = 24
 
 const checkTextSelection = useDebounceFn(() => {
   const selection = window.getSelection()
@@ -20,7 +21,6 @@ const checkTextSelection = useDebounceFn(() => {
   }
 
   const text = selection.toString().trim()
-  // Блокируем, если нет текста или выделена только пунктуация
   if (!text || !/[\p{L}\p{N}]/u.test(text)) {
     analysisStore.closeSelectionTooltip()
     return
@@ -56,14 +56,28 @@ const checkTextSelection = useDebounceFn(() => {
   analysisStore.selectionTooltip = { text, targetRect: rect }
 }, 250)
 
-onMounted(() => {
-  document.addEventListener('selectionchange', checkTextSelection)
-})
+function analyzeFragment() {
+  if (!analysisStore.selectionTooltip)
+    return
+  const text = analysisStore.selectionTooltip.text
 
-onUnmounted(() => {
-  document.removeEventListener('selectionchange', checkTextSelection)
-  stop()
-})
+  window.getSelection()?.removeAllRanges()
+
+  analysisStore.closeSelectionTooltip()
+  analysisStore.handleSentenceAnalysis(text)
+}
+
+function playTTS() {
+  if (!analysisStore.selectionTooltip)
+    return
+
+  if (isPlaying.value || isLoading.value) {
+    stop()
+  }
+  else {
+    speak(analysisStore.selectionTooltip.text)
+  }
+}
 
 watch(
   () => analysisStore.selectionTooltip,
@@ -88,16 +102,16 @@ watch(
     let left = rect.left + rect.width / 2
 
     const isMobile = ww < 600
-    let top = isMobile ? rect.bottom + 8 : rect.top - popRect.height - 16
+    let top = isMobile ? rect.bottom + 8 : rect.top - popRect.height - offset
 
     if (isMobile) {
       if (top + popRect.height > wh - 10) {
-        top = rect.top - popRect.height - 16
+        top = rect.top - popRect.height - offset
       }
     }
     else {
       if (top < 10) {
-        top = rect.bottom + 16
+        top = rect.bottom + offset
       }
     }
 
@@ -117,28 +131,14 @@ watch(
   { deep: true },
 )
 
-function analyzeFragment() {
-  if (!analysisStore.selectionTooltip)
-    return
-  const text = analysisStore.selectionTooltip.text
+onMounted(() => {
+  document.addEventListener('selectionchange', checkTextSelection)
+})
 
-  window.getSelection()?.removeAllRanges()
-
-  analysisStore.closeSelectionTooltip()
-  analysisStore.handleSentenceAnalysis(text)
-}
-
-function playTTS() {
-  if (!analysisStore.selectionTooltip)
-    return
-
-  if (isPlaying.value || isLoading.value) {
-    stop()
-  }
-  else {
-    speak(analysisStore.selectionTooltip.text)
-  }
-}
+onUnmounted(() => {
+  document.removeEventListener('selectionchange', checkTextSelection)
+  stop()
+})
 </script>
 
 <template>
