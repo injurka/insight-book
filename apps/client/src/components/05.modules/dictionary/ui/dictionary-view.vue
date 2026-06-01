@@ -555,6 +555,8 @@ watch(isEditMode, (val) => {
       align-items: center;
       gap: 16px;
       margin-left: auto;
+      width: 100%;
+      justify-content: space-between;
 
       .main-actions {
         display: flex;
