@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import type { GeneratedWordExamples } from '~/shared/types/models'
 import { Icon } from '@iconify/vue'
-import { computed, ref, watch } from 'vue'
 import { KitBtn, KitCheckbox, KitDialog, KitSkeleton } from '~/components/01.kit'
 import { useToast } from '~/shared/composables/use-toast'
 import { useTts } from '~/shared/composables/use-tts'
 import { api } from '~/shared/services/api.service'
 import { useDictionaryStore } from '../store/dictionary.store'
+import HanziBoard from './hanzi-board.vue'
 
 const visible = defineModel<boolean>('visible', { required: true })
 const dictStore = useDictionaryStore()
@@ -20,9 +20,10 @@ const isSubmitting = ref(false)
 
 const allowStandard = ref(true)
 const allowAudio = ref(true)
+const allowWriting = ref(false)
 
 // Текущий режим конкретной карточки
-type TrainingMode = 'standard' | 'audio'
+type TrainingMode = 'standard' | 'audio' | 'writing'
 const currentMode = ref<TrainingMode>('standard')
 
 const currentCard = computed(() => dictStore.reviewQueue[currentIndex.value])
@@ -30,6 +31,10 @@ const isFinished = computed(() => currentIndex.value >= dictStore.reviewQueue.le
 const remainingQueue = computed(() => dictStore.reviewQueue.slice(currentIndex.value))
 const newCount = computed(() => remainingQueue.value.filter(c => c.status === 0).length)
 const reviewCount = computed(() => remainingQueue.value.filter(c => c.status > 0).length)
+
+const hasChineseWords = computed(() => {
+  return dictStore.reviewQueue.some(c => c.language === 'zh' && /[\u4E00-\u9FA5]/.test(c.word || ''))
+})
 
 const originalSentence = computed(() => currentCard.value?.encounters?.[0]?.sentence || '')
 
@@ -40,6 +45,10 @@ const currentContext = computed(() => {
   const regex = new RegExp(`(${currentCard.value.word})`, 'gi')
   return originalSentence.value.replace(regex, '[___]')
 })
+
+// Анимация иероглифов
+const showAnimation = ref(false)
+const hanziBoardRef = ref<InstanceType<typeof HanziBoard> | null>(null)
 
 // --- AI Генерация примеров (только для чтения/подсказки) ---
 const isAiModalOpen = ref(false)
@@ -67,7 +76,7 @@ async function fetchAiExamples() {
 }
 
 function startSession() {
-  if (!allowStandard.value && !allowAudio.value) {
+  if (!allowStandard.value && !allowAudio.value && !allowWriting.value) {
     allowStandard.value = true
   }
   sessionState.value = 'active'
@@ -76,6 +85,7 @@ function startSession() {
 
 function initCard() {
   isFlipped.value = false
+  showAnimation.value = false
 
   if (!currentCard.value) {
     if (isFinished.value)
@@ -88,6 +98,10 @@ function initCard() {
     availableModes.push('standard')
   if (allowAudio.value && currentCard.value.word)
     availableModes.push('audio')
+
+  // Режим письма только если язык китайский и в слове есть иероглифы
+  if (allowWriting.value && currentCard.value.language === 'zh' && currentCard.value.word && /[\u4E00-\u9FA5]/.test(currentCard.value.word))
+    availableModes.push('writing')
 
   if (availableModes.length === 0)
     availableModes.push('standard')
@@ -110,6 +124,15 @@ function flip() {
   }
 }
 
+function toggleAnimation() {
+  showAnimation.value = !showAnimation.value
+  if (showAnimation.value) {
+    nextTick(() => {
+      hanziBoardRef.value?.replay()
+    })
+  }
+}
+
 function calculateNextInterval(grade: number): number {
   if (!currentCard.value)
     return 0
@@ -117,21 +140,21 @@ function calculateNextInterval(grade: number): number {
   const { repetitions, interval, easeFactor } = currentCard.value
 
   if (grade === 0) {
-    return 1 / 1440 // 1 минута
+    return 1 / 1440
   }
   else if (grade === 1) {
     if (repetitions === 0 || interval < 1)
-      return 10 / 1440 // 10 минут
+      return 10 / 1440
     return interval * 1.2
   }
   else if (grade === 2) {
     if (repetitions === 0 || interval < 1)
-      return 1 // 1 день
+      return 1
     return interval * easeFactor
   }
   else if (grade === 3) {
     if (repetitions === 0 || interval < 1)
-      return 4 // 4 дня
+      return 4
     return interval * easeFactor * 1.3
   }
 
@@ -176,7 +199,6 @@ async function gradeCard(grade: number) {
     return
   }
 
-  // Режим SRS:
   isSubmitting.value = true
   try {
     const cardRef = currentCard.value
@@ -229,7 +251,7 @@ watch(currentIndex, () => {
           <template v-else>
             {{ dictStore.trainingMode === 'srs' ? 'Повторение (SRS)' : 'Случайная тренировка' }}
             <span v-if="!isFinished" class="mode-badge">
-              ({{ currentMode === 'audio' ? 'Аудирование' : 'Чтение' }})
+              ({{ currentMode === 'audio' ? 'Аудирование' : currentMode === 'writing' ? 'Письмо' : 'Чтение' }})
             </span>
           </template>
         </h2>
@@ -258,6 +280,10 @@ watch(currentIndex, () => {
         <div class="checkbox-row">
           <KitCheckbox v-model="allowAudio" label="Аудирование (Восприятие на слух)" />
           <span class="checkbox-hint">Слово произносится ИИ. Вы должны вспомнить, что это было.</span>
+        </div>
+        <div v-if="hasChineseWords" class="checkbox-row">
+          <KitCheckbox v-model="allowWriting" label="Письмо (Рисование иероглифов)" />
+          <span class="checkbox-hint">Интерактивный холст для рисования иероглифов по памяти.</span>
         </div>
       </div>
 
@@ -300,6 +326,19 @@ watch(currentIndex, () => {
           <p>Послушайте и вспомните слово</p>
         </div>
 
+        <!-- РЕЖИМ: ПИСЬМО -->
+        <div v-else-if="currentMode === 'writing'" class="writing-mode">
+          <p class="writing-hint">
+            Напишите иероглиф(ы) по памяти:
+          </p>
+          <div class="translation-hint" v-html="currentCard.translation" />
+          <div v-if="originalSentence" class="context-cloze">
+            {{ currentContext }}
+          </div>
+          <!-- Опрос (quiz) автоматически вызовет flip при правильном рисовании -->
+          <HanziBoard :text="currentCard.word" mode="quiz" :size="120" @complete="flip" />
+        </div>
+
         <!-- РЕЖИМ: СТАНДАРТ -->
         <div v-else class="standard-mode">
           <!-- Контекстный режим -->
@@ -316,33 +355,9 @@ watch(currentIndex, () => {
       <div v-if="isFlipped" class="card-back fade-in">
         <hr>
 
-        <!-- Для аудио режима показываем слово крупно -->
-        <div v-if="currentMode === 'audio'" class="word-huge back-word fade-in">
+        <!-- Для аудио и письма показываем слово крупно -->
+        <div v-if="currentMode === 'audio' || currentMode === 'writing'" class="word-huge back-word fade-in">
           {{ currentCard.word }}
-        </div>
-
-        <!-- Кнопки действий -->
-        <div class="back-actions-row fade-in">
-          <KitBtn
-            :icon="isLoading ? 'mdi:loading' : (isPlaying ? 'mdi:volume-high' : 'mdi:volume-medium')"
-            variant="tonal"
-            color="accent"
-            size="sm"
-            :class="{ 'spin-animation': isLoading, 'pulse-animation': isPlaying }"
-            @click="speak(currentCard.word, currentCard.language)"
-          >
-            Прослушать
-          </KitBtn>
-
-          <KitBtn
-            icon="mdi:robot-outline"
-            variant="tonal"
-            color="accent"
-            size="sm"
-            @click="fetchAiExamples"
-          >
-            ИИ Подсказка
-          </KitBtn>
         </div>
 
         <div class="transcription">
@@ -361,11 +376,54 @@ watch(currentIndex, () => {
             {{ currentCard.notes }}
           </div>
         </div>
+
+        <!-- БЛОК АНИМАЦИИ ИЕРОГЛИФА -->
+        <div v-if="showAnimation" class="animation-container fade-in">
+          <h4>Порядок черт</h4>
+          <HanziBoard ref="hanziBoardRef" :text="currentCard.word" mode="animation" :size="80" />
+          <KitBtn icon="mdi:replay" variant="text" size="xs" color="secondary" @click="hanziBoardRef?.replay()">
+            Повторить
+          </KitBtn>
+        </div>
+
+        <!-- Кнопки действий -->
+        <div class="back-actions-row fade-in">
+          <KitBtn
+            :icon="isLoading ? 'mdi:loading' : (isPlaying ? 'mdi:volume-high' : 'mdi:volume-medium')"
+            variant="subtle"
+            size="sm"
+            :class="{ 'spin-animation': isLoading, 'pulse-animation': isPlaying }"
+            @click="speak(currentCard.word, currentCard.language)"
+          >
+            Прослушать
+          </KitBtn>
+
+          <KitBtn
+            icon="mdi:robot-outline"
+            variant="subtle"
+            size="sm"
+            @click="fetchAiExamples"
+          >
+            ИИ Подсказка
+          </KitBtn>
+
+          <!-- Показываем кнопку только для китайского языка и если есть иероглифы -->
+          <KitBtn
+            v-if="currentCard.language === 'zh' && /[\u4E00-\u9FA5]/.test(currentCard.word)"
+            icon="mdi:draw"
+            variant="subtle"
+            size="sm"
+            :class="{ 'is-active-btn': showAnimation }"
+            @click="toggleAnimation"
+          >
+            Написание
+          </KitBtn>
+        </div>
       </div>
 
       <div class="actions">
         <KitBtn v-if="!isFlipped" color="primary" size="lg" @click="flip">
-          Показать ответ
+          {{ currentMode === 'writing' ? 'Не помню / Показать ответ' : 'Показать ответ' }}
         </KitBtn>
 
         <div v-else-if="intervals" class="grade-buttons fade-in">
@@ -577,7 +635,7 @@ watch(currentIndex, () => {
 }
 
 .card-back {
-  margin-bottom: 16px;
+  margin-bottom: 8px;
   max-height: 40vh;
   overflow-y: auto;
   padding-right: 4px;
@@ -612,6 +670,50 @@ watch(currentIndex, () => {
   }
 }
 
+.writing-mode {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+
+  .writing-hint {
+    color: var(--fg-secondary-color);
+    margin: 0;
+  }
+
+  .translation-hint {
+    font-size: 1.15rem;
+    font-weight: 500;
+    color: var(--fg-primary-color);
+  }
+
+  .context-cloze {
+    padding: 10px;
+    font-size: 1.1rem;
+  }
+}
+
+.animation-container {
+  margin-top: 16px;
+  background-color: rgba(var(--bg-tertiary-color-rgb), 0.5);
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border-secondary-color);
+
+  h4 {
+    margin: 0 0 8px 0;
+    font-size: 0.9rem;
+    color: var(--fg-secondary-color);
+    text-transform: uppercase;
+  }
+}
+
+.is-active-btn {
+  color: var(--fg-accent-color) !important;
+  background-color: rgba(var(--bg-accent-color-rgb, 201, 117, 222), 0.1) !important;
+}
+
 .standard-mode {
   width: 100%;
 }
@@ -639,8 +741,10 @@ watch(currentIndex, () => {
 .back-actions-row {
   display: flex;
   justify-content: center;
+  flex-wrap: wrap;
   gap: 12px;
-  margin-bottom: 16px;
+  margin-top: 16px;
+  color: var(--fg-secondary-color);
 }
 
 .transcription {
