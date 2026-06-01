@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import type { GeneratedWordExamples } from '~/shared/types/models'
 import { Icon } from '@iconify/vue'
-import { KitBtn, KitCheckbox, KitDialog, KitSkeleton } from '~/components/01.kit'
+import { KitBtn, KitCheckbox, KitDialog, KitSelect, KitSkeleton } from '~/components/01.kit'
 import { useToast } from '~/shared/composables/use-toast'
 import { useTts } from '~/shared/composables/use-tts'
+import { DIFFICULTY_SYSTEMS } from '~/shared/constants/difficulties'
 import { api } from '~/shared/services/api.service'
 import { useDictionaryStore } from '../store/dictionary.store'
 import HanziBoard from './hanzi-board.vue'
@@ -21,6 +22,11 @@ const isSubmitting = ref(false)
 const allowStandard = ref(true)
 const allowAudio = ref(true)
 const allowWriting = ref(false)
+
+const setupOptions = reactive({
+  deckId: 'all' as number | 'all' | 'none',
+  difficulty: 'all' as string | 'all' | 'none',
+})
 
 // Текущий режим конкретной карточки
 type TrainingMode = 'standard' | 'audio' | 'writing'
@@ -50,10 +56,48 @@ const currentContext = computed(() => {
 const showAnimation = ref(false)
 const hanziBoardRef = ref<InstanceType<typeof HanziBoard> | null>(null)
 
-// --- AI Генерация примеров (только для чтения/подсказки) ---
+// AI Подсказка
 const isAiModalOpen = ref(false)
 const isAiLoading = ref(false)
 const aiData = ref<GeneratedWordExamples | null>(null)
+
+// Умное определение языка: если выбрали колоду, берем ее язык, иначе глобальный фильтр.
+const currentLang = computed(() => {
+  if (setupOptions.deckId !== 'all' && setupOptions.deckId !== 'none') {
+    const deck = dictStore.decks.find(d => d.id === setupOptions.deckId)
+    if (deck)
+      return deck.language
+  }
+  return dictStore.selectedLanguage !== 'all' ? dictStore.selectedLanguage : 'default'
+})
+
+const deckOptions = computed(() => {
+  const opts: any[] = [
+    { label: 'Все колоды', value: 'all' },
+    { label: 'Без колоды', value: 'none' },
+  ]
+  dictStore.decks.forEach((d) => {
+    // В модалке оставляем фильтрацию колод по уже выбранному языку для чистоты интерфейса
+    if (dictStore.selectedLanguage === 'all' || d.language === dictStore.selectedLanguage) {
+      opts.push({ label: d.name, value: d.id })
+    }
+  })
+  if (!opts.some(o => o.value === setupOptions.deckId)) {
+    setupOptions.deckId = 'all'
+  }
+  return opts
+})
+
+const difficultyOptions = computed(() => {
+  const opts: any[] = [{ label: 'Все сложности', value: 'all' }, { label: 'Без сложности', value: 'none' }]
+  const sys = DIFFICULTY_SYSTEMS[currentLang.value] || DIFFICULTY_SYSTEMS.default
+  sys.forEach(d => opts.push({ label: d.label, value: d.value }))
+
+  if (!opts.some(o => o.value === setupOptions.difficulty)) {
+    setupOptions.difficulty = 'all'
+  }
+  return opts
+})
 
 async function fetchAiExamples() {
   if (!currentCard.value?.word)
@@ -75,12 +119,29 @@ async function fetchAiExamples() {
   }
 }
 
-function startSession() {
-  if (!allowStandard.value && !allowAudio.value && !allowWriting.value) {
-    allowStandard.value = true
+async function startSession() {
+  try {
+    await dictStore.fetchTrainingQueue({
+      mode: dictStore.trainingMode,
+      deckId: setupOptions.deckId,
+      difficulty: setupOptions.difficulty,
+    })
+
+    if (dictStore.reviewQueue.length === 0) {
+      toast.info('Нет карточек по выбранным критериям.')
+      return
+    }
+
+    if (!allowStandard.value && !allowAudio.value && !allowWriting.value) {
+      allowStandard.value = true
+    }
+
+    sessionState.value = 'active'
+    initCard()
   }
-  sessionState.value = 'active'
-  initCard()
+  catch (e: any) {
+    toast.error('Ошибка загрузки карточек')
+  }
 }
 
 function initCard() {
@@ -99,7 +160,6 @@ function initCard() {
   if (allowAudio.value && currentCard.value.word)
     availableModes.push('audio')
 
-  // Режим письма только если язык китайский и в слове есть иероглифы
   if (allowWriting.value && currentCard.value.language === 'zh' && currentCard.value.word && /[\u4E00-\u9FA5]/.test(currentCard.value.word))
     availableModes.push('writing')
 
@@ -220,6 +280,8 @@ watch(visible, (val) => {
   if (val) {
     sessionState.value = 'setup'
     currentIndex.value = 0
+    setupOptions.deckId = dictStore.selectedDeckId
+    setupOptions.difficulty = dictStore.selectedDifficulty
   }
   else {
     stop()
@@ -246,7 +308,7 @@ watch(currentIndex, () => {
       <div class="srs-header">
         <h2 class="dialog-title">
           <template v-if="sessionState === 'setup'">
-            Настройки тренировки
+            Настройки ({{ dictStore.trainingMode === 'srs' ? 'SRS' : 'Разминка' }})
           </template>
           <template v-else>
             {{ dictStore.trainingMode === 'srs' ? 'Повторение (SRS)' : 'Случайная тренировка' }}
@@ -269,8 +331,21 @@ watch(currentIndex, () => {
     <!-- ЭКРАН НАСТРОЙКИ (SETUP) -->
     <div v-if="sessionState === 'setup'" class="setup-state">
       <p class="setup-desc">
-        Выберите режимы, которые будут использоваться при тренировке.
+        Настройте фильтры и выберите режимы, которые будут использоваться при тренировке.
       </p>
+
+      <div class="settings-group filters-group">
+        <div class="form-row">
+          <div class="form-col">
+            <label>Колода</label>
+            <KitSelect v-model="setupOptions.deckId" :options="deckOptions" />
+          </div>
+          <div class="form-col">
+            <label>Сложность</label>
+            <KitSelect v-model="setupOptions.difficulty" :options="difficultyOptions" />
+          </div>
+        </div>
+      </div>
 
       <div class="settings-group">
         <div class="checkbox-row">
@@ -301,7 +376,7 @@ watch(currentIndex, () => {
     <div v-else-if="sessionState === 'finished'" class="finished-state">
       <h2>🎉 Отличная работа!</h2>
       <p v-if="dictStore.trainingMode === 'srs'">
-        Вы повторили все карточки на сегодня.
+        Вы повторили все карточки на сегодня по этим параметрам.
       </p>
       <p v-else>
         Разминка завершена.
@@ -615,6 +690,27 @@ watch(currentIndex, () => {
         padding-left: 26px;
         font-size: 0.85rem;
         color: var(--fg-muted-color);
+      }
+    }
+  }
+
+  .filters-group {
+    .form-row {
+      display: flex;
+      gap: 12px;
+      @include media-down(sm) {
+        flex-direction: column;
+      }
+    }
+    .form-col {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      label {
+        font-size: 0.85rem;
+        font-weight: 500;
+        color: var(--fg-secondary-color);
       }
     }
   }

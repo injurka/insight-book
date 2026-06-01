@@ -255,13 +255,29 @@ export async function removeFromUserDictionary(word: string, userId: number): Pr
   await db.delete(schema.userDictionary).where(and(eq(schema.userDictionary.word, word), eq(schema.userDictionary.userId, userId)))
 }
 
-export async function getReviewQueue(userId: number, language?: string, mode: 'srs' | 'random' = 'srs') {
+export async function getReviewQueue(userId: number, language?: string, mode: 'srs' | 'random' = 'srs', deckId?: number | 'none', difficulty?: string) {
   const filters: any[] = [
     eq(schema.userDictionary.userId, userId),
   ]
 
   if (language && language !== 'all') {
     filters.push(eq(schema.userDictionary.language, language))
+  }
+
+  if (deckId === 'none') {
+    filters.push(sql`${schema.userDictionary.deckId} IS NULL`)
+  }
+  else if (deckId !== undefined) {
+    filters.push(eq(schema.userDictionary.deckId, deckId))
+  }
+
+  if (difficulty && difficulty !== 'all') {
+    if (difficulty === 'none') {
+      filters.push(sql`${schema.userDictionary.difficulty} IS NULL OR ${schema.userDictionary.difficulty} = ''`)
+    }
+    else {
+      filters.push(eq(schema.userDictionary.difficulty, difficulty))
+    }
   }
 
   if (mode === 'srs') {
@@ -297,14 +313,10 @@ export async function processSrsReview(wordId: number, userId: number, grade: nu
 
   const now = Date.now()
   const lastUpdate = new Date(updatedAt).getTime()
-  // Фактическое количество прошедших дней с момента последнего ответа
   const daysSinceUpdate = Math.max(0, (now - lastUpdate) / (1000 * 60 * 60 * 24))
 
-  // Берем за основу больший интервал - либо запланированный, либо фактический,
-  // чтобы не "штрафовать" пользователя слишком сильно за опоздание
   const actualInterval = Math.max(interval, daysSinceUpdate)
 
-  // Плавная логика шагов интервалов в днях
   if (grade === 0) {
     repetitions = 0
     interval = 1 / 1440
@@ -314,7 +326,7 @@ export async function processSrsReview(wordId: number, userId: number, grade: nu
   else if (grade === 1) {
     easeFactor = Math.max(1.3, easeFactor - 0.15)
     if (repetitions === 0 || interval < 1) {
-      interval = 10 / 1440 // 10 минут
+      interval = 10 / 1440
       repetitions = 0
     }
     else {
@@ -324,7 +336,7 @@ export async function processSrsReview(wordId: number, userId: number, grade: nu
   }
   else if (grade === 2) {
     if (repetitions === 0 || interval < 1) {
-      interval = 1 // 1 день
+      interval = 1
     }
     else {
       interval = actualInterval * easeFactor
@@ -335,7 +347,7 @@ export async function processSrsReview(wordId: number, userId: number, grade: nu
   else if (grade === 3) {
     easeFactor += 0.15
     if (repetitions === 0 || interval < 1) {
-      interval = 4 // 4 дня
+      interval = 4
     }
     else {
       interval = actualInterval * easeFactor * 1.3

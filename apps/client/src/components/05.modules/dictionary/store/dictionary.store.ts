@@ -19,7 +19,8 @@ export const useDictionaryStore = defineStore('dictionary', () => {
   const searchTerm = ref('')
   const selectedLanguage = ref('all')
   const selectedDeckId = ref<number | 'all' | 'none'>('all')
-  const selectedStatus = ref<'all' | '0' | '1' | '2' | '3'>('all') // '0': New, '1': Learning, '2': Review, '3': Graduated
+  const selectedDifficulty = ref<string | 'all' | 'none'>('all')
+  const selectedStatus = ref<'all' | '0' | '1' | '2' | '3'>('all')
 
   async function fetchDictionary() {
     isLoading.value = true
@@ -32,7 +33,8 @@ export const useDictionaryStore = defineStore('dictionary', () => {
       decks.value = decksData
       await offlineService.saveDictionary(words.value)
       await offlineService.saveDecks(decks.value)
-      await fetchReviewQueue()
+
+      await fetchTrainingQueue({ mode: 'srs', deckId: 'all', difficulty: 'all' })
     }
     catch {
       const cached = await offlineService.getDictionary()
@@ -49,25 +51,28 @@ export const useDictionaryStore = defineStore('dictionary', () => {
     }
   }
 
-  async function fetchReviewQueue() {
+  async function fetchTrainingQueue(opts: { mode: 'srs' | 'random', deckId: number | 'none' | 'all', difficulty: string }) {
+    trainingMode.value = opts.mode
     try {
-      trainingMode.value = 'srs'
-      reviewQueue.value = await api.dictionary.getReviewQueue(selectedLanguage.value, 'srs')
-    }
-    catch (e) {
-      console.warn('Could not fetch review queue:', e)
-      reviewQueue.value = []
-    }
-  }
+      let langToFetch = selectedLanguage.value
+      // Умное определение языка: если выбрана конкретная колода, берем ее язык
+      if (opts.deckId !== 'all' && opts.deckId !== 'none') {
+        const deck = decks.value.find(d => d.id === opts.deckId)
+        if (deck)
+          langToFetch = deck.language
+      }
 
-  async function fetchRandomQueue() {
-    try {
-      trainingMode.value = 'random'
-      reviewQueue.value = await api.dictionary.getReviewQueue(selectedLanguage.value, 'random')
+      reviewQueue.value = await api.dictionary.getReviewQueue({
+        lang: langToFetch,
+        mode: opts.mode,
+        deckId: opts.deckId,
+        difficulty: opts.difficulty,
+      })
     }
     catch (e) {
-      console.warn('Could not fetch random review queue:', e)
+      console.warn('Could not fetch queue:', e)
       reviewQueue.value = []
+      throw e
     }
   }
 
@@ -144,6 +149,15 @@ export const useDictionaryStore = defineStore('dictionary', () => {
       }
       else {
         result = result.filter(w => w.deckId === selectedDeckId.value)
+      }
+    }
+
+    if (selectedDifficulty.value !== 'all') {
+      if (selectedDifficulty.value === 'none') {
+        result = result.filter(w => !w.difficulty)
+      }
+      else {
+        result = result.filter(w => w.difficulty === selectedDifficulty.value)
       }
     }
 
@@ -237,14 +251,14 @@ export const useDictionaryStore = defineStore('dictionary', () => {
     searchTerm,
     selectedLanguage,
     selectedDeckId,
+    selectedDifficulty,
     selectedStatus,
     availableLanguages,
     filteredWords,
     selectedWordIds,
 
     fetchDictionary,
-    fetchReviewQueue,
-    fetchRandomQueue,
+    fetchTrainingQueue,
     createDeck,
     updateDeck,
     deleteDeck,

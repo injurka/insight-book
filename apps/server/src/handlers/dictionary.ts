@@ -115,8 +115,16 @@ export async function handleGetReviewQueue(req: Request, userId: number): Promis
   const url = new URL(req.url)
   const lang = url.searchParams.get('lang') || 'all'
   const mode = url.searchParams.get('mode') as 'srs' | 'random' || 'srs'
+  const deckIdStr = url.searchParams.get('deckId')
+  const difficulty = url.searchParams.get('difficulty')
 
-  return json(await getReviewQueue(userId, lang, mode))
+  let deckId: number | 'none' | undefined
+  if (deckIdStr === 'none')
+    deckId = 'none'
+  else if (deckIdStr && deckIdStr !== 'all')
+    deckId = Number(deckIdStr)
+
+  return json(await getReviewQueue(userId, lang, mode, deckId, difficulty || undefined))
 }
 
 export async function handleSrsReview(req: Request, userId: number): Promise<Response> {

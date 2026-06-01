@@ -22,12 +22,14 @@ const authStore = useAuthStore()
 
 const isTrainingOpen = ref(false)
 const isMobileFiltersOpen = ref(false)
-const isMobileDecksOpen = ref(false)
 const dropdownRef = ref<InstanceType<typeof KitDropdown> | null>(null)
 const isStatsModalOpen = ref(false)
 const isEditMode = ref(false)
 
-const isCreatePromptOpen = ref(false)
+const isManageDecksOpen = ref(false)
+const newDeckName = ref('')
+const newDeckLang = ref('en')
+
 const isRenamePromptOpen = ref(false)
 const isDeleteConfirmOpen = ref(false)
 const renameDeckTarget = ref<{ id: number, name: string } | null>(null)
@@ -41,6 +43,35 @@ const langOptions = computed(() => {
   return opts
 })
 
+const deckOptions = computed(() => {
+  const opts: any[] = [
+    { label: 'Все колоды', value: 'all' },
+    { label: 'Без колоды', value: 'none' },
+  ]
+  store.decks.forEach((d) => {
+    if (store.selectedLanguage === 'all' || d.language === store.selectedLanguage) {
+      opts.push({ label: d.name, value: d.id })
+    }
+  })
+
+  if (!opts.some(o => o.value === store.selectedDeckId)) {
+    store.selectedDeckId = 'all'
+  }
+  return opts
+})
+
+const difficultyOptions = computed(() => {
+  const opts: any[] = [{ label: 'Все сложности', value: 'all' }, { label: 'Без сложности', value: 'none' }]
+  const lang = store.selectedLanguage !== 'all' ? store.selectedLanguage : 'default'
+  const sys = DIFFICULTY_SYSTEMS[lang] || DIFFICULTY_SYSTEMS.default
+  sys.forEach(d => opts.push({ label: d.label, value: d.value }))
+
+  if (!opts.some(o => o.value === store.selectedDifficulty)) {
+    store.selectedDifficulty = 'all'
+  }
+  return opts
+})
+
 const statusOptions = [
   { label: 'Все статусы', value: 'all' },
   { label: 'Новые', value: '0' },
@@ -48,6 +79,11 @@ const statusOptions = [
   { label: 'Повторение', value: '2' },
   { label: 'Выучено', value: '3' },
 ]
+
+const newDeckLangOptions = computed(() => {
+  const langs = new Set(['en', 'zh', 'ja', ...store.availableLanguages])
+  return Array.from(langs).map(l => ({ label: l.toUpperCase(), value: l }))
+})
 
 const { list, containerProps, wrapperProps } = useVirtualList(
   computed(() => store.filteredWords),
@@ -84,36 +120,16 @@ function getDifficultyClass(lang: string, diffValue: string | null) {
   return 'level-hard'
 }
 
-async function startSrsTraining() {
-  await store.fetchReviewQueue()
-  if (store.reviewQueue.length > 0) {
-    isTrainingOpen.value = true
-  }
-  else {
-    toast.info('Нет карточек для повторения.')
-  }
+function openTrainingSettings(mode: 'srs' | 'random') {
+  store.trainingMode = mode
+  isTrainingOpen.value = true
   dropdownRef.value?.close()
 }
 
-async function startRandomTraining() {
-  await store.fetchRandomQueue()
-  if (store.reviewQueue.length > 0) {
-    isTrainingOpen.value = true
-  }
-  else {
-    toast.info('Словарь пуст для этой языковой пары.')
-  }
-  dropdownRef.value?.close()
-}
-
-function openCreateDeck() {
-  isCreatePromptOpen.value = true
-}
-
-async function onCreateDeckSubmit(name: string) {
-  if (name.trim()) {
-    const lang = store.selectedLanguage !== 'all' ? store.selectedLanguage : 'en'
-    await store.createDeck(name.trim(), lang)
+async function createNewDeck() {
+  if (newDeckName.value.trim()) {
+    await store.createDeck(newDeckName.value.trim(), newDeckLang.value)
+    newDeckName.value = ''
   }
 }
 
@@ -146,7 +162,6 @@ function exportToAnki() {
   if (!wordsToExport.length)
     return
 
-  // Формат Anki TSV: Слово [tab] Транскрипция [tab] Перевод [tab] Заметки
   const rows = wordsToExport.map((w) => {
     const translation = (w.translation || '').replace(/\n/g, '<br>')
     const notes = (w.notes || '').replace(/\n/g, '<br>')
@@ -165,12 +180,6 @@ function exportToAnki() {
   store.clearSelection()
   toast.success('Файл для Anki скачан!')
 }
-
-const filteredDecks = computed(() => {
-  if (store.selectedLanguage === 'all')
-    return store.decks
-  return store.decks.filter(d => d.language === store.selectedLanguage)
-})
 
 const activityData = ref<{ date: string, count: number }[]>([])
 const isActivityLoading = ref(true)
@@ -193,15 +202,13 @@ async function fetchActivity() {
   }
 }
 
-// При закрытии модалки обновляем очередь и статистику
 watch(isTrainingOpen, (newVal, oldVal) => {
   if (oldVal === true && newVal === false) {
-    store.fetchReviewQueue()
+    store.fetchTrainingQueue({ mode: 'srs', deckId: 'all', difficulty: 'all' })
     fetchActivity()
   }
 })
 
-// При выходе из режима редактирования очищаем выделенные элементы
 watch(isEditMode, (val) => {
   if (!val) {
     store.clearSelection()
@@ -219,7 +226,6 @@ watch(isEditMode, (val) => {
           <KitBtn icon="mdi:arrow-left" variant="text" @click="router.back()" />
           <h1>Мой словарь</h1>
         </div>
-
         <GlobalActions hide-dictionary />
       </div>
 
@@ -231,12 +237,6 @@ watch(isEditMode, (val) => {
             class="search-input"
           />
           <div class="mobile-controls">
-            <KitBtn
-              :icon="isMobileDecksOpen ? 'mdi:folder-open-outline' : 'mdi:folder-outline'"
-              variant="tonal"
-              color="secondary"
-              @click="isMobileDecksOpen = !isMobileDecksOpen"
-            />
             <KitBtn
               :icon="isMobileFiltersOpen ? 'mdi:chevron-up' : 'mdi:tune-variant'"
               variant="tonal"
@@ -250,38 +250,55 @@ watch(isEditMode, (val) => {
           <KitSelect
             v-model="store.selectedLanguage"
             :options="langOptions"
-            class="lang-select"
+            class="filter-select"
+          />
+          <KitSelect
+            v-model="store.selectedDeckId"
+            :options="deckOptions"
+            class="filter-select"
+          />
+          <KitSelect
+            v-model="store.selectedDifficulty"
+            :options="difficultyOptions"
+            class="filter-select"
           />
           <KitSelect
             v-model="store.selectedStatus"
             :options="statusOptions"
-            class="status-select"
+            class="filter-select"
           />
         </div>
 
         <div class="actions-and-stats">
-          <KitDropdown ref="dropdownRef" placement="bottom-end" width="250px">
-            <template #activator="{ props }">
-              <KitBtn
-                icon="mdi:brain"
-                :color="store.totalReviewCount > 0 ? 'primary' : 'accent'"
-                :variant="store.totalReviewCount > 0 ? 'solid' : 'outlined'"
-                :class="{ 'is-active-btn': props.isOpen }"
-              >
-                Тренировка <Icon icon="mdi:chevron-down" class="ml-1" />
-              </KitBtn>
-            </template>
-            <div class="dropdown-menu-list">
-              <button class="dropdown-item" :disabled="store.totalReviewCount === 0" @click="startSrsTraining">
-                <Icon icon="mdi:calendar-clock" />
-                Интервальное ({{ store.totalReviewCount }})
-              </button>
-              <button class="dropdown-item" :disabled="store.words.length === 0" @click="startRandomTraining">
-                <Icon icon="mdi:shuffle-variant" />
-                Случайная разминка
-              </button>
-            </div>
-          </KitDropdown>
+          <div class="main-actions">
+            <KitDropdown ref="dropdownRef" placement="bottom-end" width="250px" class="training-dropdown">
+              <template #activator="{ props }">
+                <KitBtn
+                  icon="mdi:brain"
+                  :color="store.totalReviewCount > 0 ? 'primary' : 'accent'"
+                  :variant="store.totalReviewCount > 0 ? 'solid' : 'outlined'"
+                  :class="{ 'is-active-btn': props.isOpen }"
+                  class="full-width-btn"
+                >
+                  Тренировка <Icon icon="mdi:chevron-down" class="ml-1" />
+                </KitBtn>
+              </template>
+              <div class="dropdown-menu-list">
+                <button class="dropdown-item" :disabled="store.words.length === 0" @click="openTrainingSettings('srs')">
+                  <Icon icon="mdi:calendar-clock" />
+                  Интервальное (SRS)
+                </button>
+                <button class="dropdown-item" :disabled="store.words.length === 0" @click="openTrainingSettings('random')">
+                  <Icon icon="mdi:shuffle-variant" />
+                  Случайная разминка
+                </button>
+              </div>
+            </KitDropdown>
+
+            <KitTooltip text="Управление колодами" placement="bottom">
+              <KitBtn icon="mdi:folder-cog-outline" variant="tonal" color="secondary" @click="isManageDecksOpen = true" />
+            </KitTooltip>
+          </div>
 
           <div class="stats-badge">
             <span class="badge">{{ store.filteredWords.length }} слов</span>
@@ -307,43 +324,6 @@ watch(isEditMode, (val) => {
     </header>
 
     <div class="dict-layout">
-      <!-- Сайдбар с колодами -->
-      <aside class="decks-sidebar" :class="{ 'is-open': isMobileDecksOpen }">
-        <div class="decks-header">
-          <h3>Колоды</h3>
-          <KitBtn icon="mdi:plus" variant="text" size="xs" @click="openCreateDeck" />
-        </div>
-        <ul class="decks-list">
-          <li :class="{ active: store.selectedDeckId === 'all' }" @click="store.selectedDeckId = 'all'">
-            <Icon icon="mdi:format-list-bulleted" /> Все карточки
-          </li>
-          <li :class="{ active: store.selectedDeckId === 'none' }" @click="store.selectedDeckId = 'none'">
-            <Icon icon="mdi:folder-outline" /> Без колоды
-          </li>
-          <li
-            v-for="deck in filteredDecks"
-            :key="deck.id"
-            :class="{ active: store.selectedDeckId === deck.id }"
-            class="deck-item"
-            @click="store.selectedDeckId = deck.id"
-          >
-            <div class="deck-name-wrap">
-              <Icon icon="mdi:folder-star-outline" />
-              <span class="deck-name">{{ deck.name }}</span>
-            </div>
-            <div class="deck-actions">
-              <button @click.stop="openRenameDeck(deck.id, deck.name)">
-                <Icon width="12" height="12" icon="mdi:pencil" />
-              </button>
-              <button @click.stop="openDeleteDeck(deck.id, deck.name)">
-                <Icon width="12" height="12" icon="mdi:delete-outline" />
-              </button>
-            </div>
-          </li>
-        </ul>
-      </aside>
-
-      <!-- Основной контент (список слов) -->
       <div class="words-content">
         <!-- БАР МАССОВЫХ ДЕЙСТВИЙ -->
         <Transition name="fade">
@@ -423,7 +403,34 @@ watch(isEditMode, (val) => {
       </div>
     </div>
 
-    <!-- Модалка для смены колоды -->
+    <!-- Управление колодами -->
+    <KitDialog v-model:visible="isManageDecksOpen" title="Управление колодами" :max-width="500">
+      <div class="manage-decks-content">
+        <div class="create-deck-row">
+          <KitInput v-model="newDeckName" placeholder="Новое название" @keyup.enter="createNewDeck" />
+          <KitSelect v-model="newDeckLang" :options="newDeckLangOptions" class="new-deck-lang" />
+          <KitBtn color="primary" icon="mdi:plus" @click="createNewDeck" />
+        </div>
+
+        <div v-if="store.decks.length === 0" class="empty-state">
+          <p>У вас пока нет пользовательских колод.</p>
+        </div>
+        <ul v-else class="decks-manage-list">
+          <li v-for="deck in store.decks" :key="deck.id" class="deck-manage-item">
+            <div class="deck-info">
+              <Icon icon="mdi:folder-outline" />
+              <span class="deck-name">{{ deck.name }}</span>
+              <span class="deck-lang">{{ deck.language.toUpperCase() }}</span>
+            </div>
+            <div class="deck-actions">
+              <KitBtn icon="mdi:pencil" size="xs" variant="text" @click="openRenameDeck(deck.id, deck.name)" />
+              <KitBtn icon="mdi:delete-outline" size="xs" variant="text" color="error" @click="openDeleteDeck(deck.id, deck.name)" />
+            </div>
+          </li>
+        </ul>
+      </div>
+    </KitDialog>
+
     <KitDialog v-model:visible="isBulkMoveOpen" title="Переместить в колоду" :max-width="400">
       <div style="display: flex; flex-direction: column; gap: 16px;">
         <KitBtn variant="outlined" style="width: 100%" @click="store.bulkMoveToDeck(null); isBulkMoveOpen = false">
@@ -438,14 +445,6 @@ watch(isEditMode, (val) => {
     <SrsTrainingDialog v-model:visible="isTrainingOpen" />
 
     <KitPrompt
-      v-model:visible="isCreatePromptOpen"
-      title="Новая колода"
-      placeholder="Название колоды"
-      confirm-text="Создать"
-      @submit="onCreateDeckSubmit"
-    />
-
-    <KitPrompt
       v-model:visible="isRenamePromptOpen"
       title="Переименовать колоду"
       placeholder="Новое название"
@@ -457,7 +456,7 @@ watch(isEditMode, (val) => {
     <KitPrompt
       v-model:visible="isDeleteConfirmOpen"
       title="Удаление колоды"
-      :description="`Удалить колоду «${deleteDeckTarget?.name}»? Сами карточки не удалятся, а просто перейдут в общий список «Без колоды».`"
+      :description="`Удалить колоду «${deleteDeckTarget?.name}»? Сами карточки не удалятся, а просто перейдут в список «Без колоды».`"
       :hide-input="true"
       confirm-text="Удалить"
       cancel-text="Отмена"
@@ -520,13 +519,13 @@ watch(isEditMode, (val) => {
 
   .header-bottom {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     gap: 16px;
     flex-wrap: wrap;
 
     .search-wrapper {
       flex-grow: 1;
-      max-width: 300px;
+      min-width: 250px;
       display: flex;
       gap: 8px;
 
@@ -542,10 +541,11 @@ watch(isEditMode, (val) => {
     .extra-filters {
       display: flex;
       gap: 12px;
+      flex-wrap: wrap;
+      align-items: center;
 
-      .lang-select,
-      .status-select {
-        width: 160px;
+      .filter-select {
+        width: 150px;
         flex-shrink: 0;
       }
     }
@@ -553,8 +553,14 @@ watch(isEditMode, (val) => {
     .actions-and-stats {
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 16px;
       margin-left: auto;
+
+      .main-actions {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
 
       .ml-1 {
         margin-left: 4px;
@@ -583,7 +589,7 @@ watch(isEditMode, (val) => {
       align-items: stretch;
 
       .search-wrapper {
-        max-width: 100%;
+        min-width: 100%;
         .mobile-controls {
           display: flex;
           gap: 8px;
@@ -605,8 +611,7 @@ watch(isEditMode, (val) => {
           animation: slideDown 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
         }
 
-        .lang-select,
-        .status-select {
+        .filter-select {
           width: 100%;
         }
       }
@@ -616,9 +621,16 @@ watch(isEditMode, (val) => {
         width: 100%;
         margin-left: 0;
 
-        .kit-btn {
-          flex-grow: 1;
-          justify-content: center;
+        .main-actions {
+          flex: 1;
+          .training-dropdown {
+            flex: 1;
+            :deep(.kit-select-trigger),
+            .full-width-btn {
+              width: 100%;
+              justify-content: center;
+            }
+          }
         }
 
         .stats-badge {
@@ -634,119 +646,6 @@ watch(isEditMode, (val) => {
   flex-grow: 1;
   gap: 20px;
   min-height: 0;
-
-  @include media-down(md) {
-    flex-direction: column;
-  }
-}
-
-.decks-sidebar {
-  width: 250px;
-  flex-shrink: 0;
-  display: flex;
-  flex-direction: column;
-  background-color: var(--bg-secondary-color);
-  border: 1px solid var(--border-secondary-color);
-  border-radius: 12px;
-  padding: 12px;
-
-  @include media-down(md) {
-    display: none;
-    width: 100%;
-    max-height: 250px;
-    margin-bottom: 12px;
-
-    &.is-open {
-      display: flex;
-      animation: slideDown 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
-    }
-  }
-
-  .decks-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 12px;
-    h3 {
-      margin: 0;
-      font-size: 1rem;
-      color: var(--fg-primary-color);
-    }
-  }
-
-  .decks-list {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-    overflow-y: auto;
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    &::-webkit-scrollbar {
-      width: 4px;
-    }
-    &::-webkit-scrollbar-thumb {
-      background-color: var(--border-primary-color);
-      border-radius: 4px;
-    }
-
-    li {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 8px 12px;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 0.9rem;
-      color: var(--fg-secondary-color);
-      transition: all 0.2s;
-      height: 36px;
-
-      .deck-name-wrap {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        overflow: hidden;
-      }
-
-      .deck-name {
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-      }
-
-      .deck-actions {
-        display: none;
-        gap: 4px;
-
-        button {
-          background: transparent;
-          border: none;
-          color: var(--fg-secondary-color);
-          cursor: pointer;
-
-          &:hover {
-            color: var(--fg-accent-color);
-          }
-        }
-      }
-
-      &:hover {
-        background-color: var(--bg-hover-color);
-        color: var(--fg-primary-color);
-
-        .deck-actions {
-          display: flex;
-        }
-      }
-
-      &.active {
-        background-color: rgba(var(--bg-accent-color-rgb, 201, 117, 222), 0.15);
-        color: var(--fg-accent-color);
-        font-weight: 500;
-      }
-    }
-  }
 }
 
 .words-content {
@@ -953,6 +852,91 @@ watch(isEditMode, (val) => {
 
   &:hover:not(:disabled) svg {
     color: var(--fg-accent-color);
+  }
+}
+
+.manage-decks-content {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+
+  .create-deck-row {
+    display: flex;
+    gap: 8px;
+
+    :deep(.kit-input-wrapper) {
+      flex: 1;
+    }
+    .new-deck-lang {
+      width: 90px;
+      flex-shrink: 0;
+    }
+  }
+
+  .decks-manage-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 350px;
+    overflow-y: auto;
+
+    &::-webkit-scrollbar {
+      width: 4px;
+    }
+    &::-webkit-scrollbar-thumb {
+      background-color: var(--border-primary-color);
+      border-radius: 4px;
+    }
+  }
+
+  .deck-manage-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 12px;
+    background-color: var(--bg-tertiary-color);
+    border-radius: 8px;
+    border: 1px solid var(--border-secondary-color);
+
+    .deck-info {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      overflow: hidden;
+      flex-grow: 1;
+
+      svg {
+        font-size: 1.2rem;
+        color: var(--fg-secondary-color);
+        flex-shrink: 0;
+      }
+
+      .deck-name {
+        font-weight: 500;
+        color: var(--fg-primary-color);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .deck-lang {
+        font-size: 0.75rem;
+        background-color: var(--bg-primary-color);
+        padding: 2px 6px;
+        border-radius: 4px;
+        color: var(--fg-secondary-color);
+        border: 1px solid var(--border-primary-color);
+      }
+    }
+
+    .deck-actions {
+      display: flex;
+      gap: 4px;
+      flex-shrink: 0;
+    }
   }
 }
 

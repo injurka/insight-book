@@ -143,8 +143,14 @@ export const api = {
     remove: (word: string) =>
       request<{ success: boolean }>(`/api/dictionary/${encodeURIComponent(word)}`, { method: 'DELETE' }),
 
-    getReviewQueue: (lang: string, mode: 'srs' | 'random' = 'srs') =>
-      request<UserDictItem[]>(`/api/dictionary/review?lang=${lang}&mode=${mode}`),
+    getReviewQueue: (opts: { lang: string, mode: 'srs' | 'random', deckId?: number | 'none' | 'all', difficulty?: string }) => {
+      const q = new URLSearchParams()
+      q.set('lang', opts.lang)
+      q.set('mode', opts.mode)
+      if (opts.deckId !== undefined && opts.deckId !== 'all') q.set('deckId', String(opts.deckId))
+      if (opts.difficulty && opts.difficulty !== 'all') q.set('difficulty', opts.difficulty)
+      return request<UserDictItem[]>(`/api/dictionary/review?${q.toString()}`)
+    },
 
     submitReview: (wordId: number, grade: number) =>
       request<{ success: boolean }>('/api/dictionary/review', {
