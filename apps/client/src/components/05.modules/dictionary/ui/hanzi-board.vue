@@ -39,12 +39,11 @@ async function initWriters() {
     return
   }
 
-  // Получаем цвета из CSS переменных текущей темы
   const docStyle = getComputedStyle(document.documentElement)
   const strokeColor = docStyle.getPropertyValue('--fg-primary-color').trim() || '#2c3e50'
   const radicalColor = docStyle.getPropertyValue('--fg-accent-color').trim() || '#c975de'
   const outlineColor = docStyle.getPropertyValue('--border-secondary-color').trim() || '#e2e8f0'
-  const hintColor = docStyle.getPropertyValue('--fg-muted-color').trim() || '#94a3b8'
+  const hintColor = docStyle.getPropertyValue('--fg-tertiary-color').trim() || '#94a3b8'
 
   const newWriters: HanziWriter[] = []
 
