@@ -478,12 +478,6 @@ watch(currentIndex, () => {
         </div>
       </div>
     </div>
-
-    <template #footer>
-      <KitBtn color="primary" @click="isAiModalOpen = false">
-        Понятно
-      </KitBtn>
-    </template>
   </KitDialog>
 </template>
 

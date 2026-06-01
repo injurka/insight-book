@@ -1,6 +1,10 @@
 <script lang="ts" setup>
 import { Icon } from '@iconify/vue'
-import { useDraggable, useMediaQuery, useSwipe } from '@vueuse/core'
+import { useDraggable } from '@vueuse/core'
+import { useDialogHistory } from '../composables/use-dialog-history'
+import { useDialogResize } from '../composables/use-dialog-resize'
+import { useDialogSwipe } from '../composables/use-dialog-swipe'
+import DialogResizeHandles from './dialog-resize-handles.vue'
 
 interface Props {
   maxWidth?: number
@@ -27,176 +31,51 @@ const dialogId = useId()
 
 const dialogContentRef = ref<HTMLElement | null>(null)
 const dialogHeaderRef = ref<HTMLElement | null>(null)
-
 const isMinimized = ref(false)
 
+// Props to Refs for Composables
+const isFloatingRef = computed(() => props.floating)
+const isResizableRef = computed(() => props.resizable)
+const isMinimizableRef = computed(() => props.minimizable)
+
+// --- History API (Back Button) ---
+useDialogHistory(dialogId, visible)
+
+// --- Dragging (Desktop Floating) ---
 const initialX = typeof window !== 'undefined' ? Math.max((window.innerWidth - props.maxWidth) / 2, 0) : 0
 const initialY = typeof window !== 'undefined' ? 100 : 0
 
-// --- Перетаскивание (Desktop Floating) ---
 const { x, y, style: dragStyle } = useDraggable(dialogContentRef, {
   initialValue: { x: initialX, y: initialY },
   handle: dialogHeaderRef,
 })
 
-// --- Свайп для закрытия/сворачивания (Mobile Bottom Sheet) ---
-const isMobile = useMediaQuery('(max-width: 599px)')
-
-const swipeOffset = ref(0)
-const isSnappingBack = ref(false)
-
-const { lengthY, isSwiping, direction } = useSwipe(dialogHeaderRef, {
-  threshold: 10,
-  onSwipeEnd: () => {
-    if (isMobile.value && !props.floating && direction.value === 'down') {
-      if (swipeOffset.value > 100) {
-        if (props.minimizable) {
-          isMinimized.value = true
-        }
-        else {
-          visible.value = false
-        }
-      }
-      else {
-        isSnappingBack.value = true
-        swipeOffset.value = 0
-      }
-    }
-  },
+// --- Swiping (Mobile Bottom Sheet) ---
+const { isMobile, isSwiping, direction, swipeOffset } = useDialogSwipe({
+  headerRef: dialogHeaderRef,
+  visible,
+  isMinimized,
+  isFloating: isFloatingRef,
+  isMinimizable: isMinimizableRef,
 })
 
-// Обновляем offset только пока пользователь ведет пальцем
-watch(lengthY, (val) => {
-  if (isMobile.value && !props.floating && isSwiping.value && direction.value === 'down') {
-    swipeOffset.value = Math.abs(val)
-    isSnappingBack.value = false
-  }
-})
-
-// Сбрасываем смещение когда диалог полностью скрыт (анимация ~300ms)
-watch([visible, isMinimized], ([v, m]) => {
-  if (!v || m) {
-    setTimeout(() => {
-      swipeOffset.value = 0
-      isSnappingBack.value = false
-    }, 300)
-  }
-  else {
-    swipeOffset.value = 0
-    isSnappingBack.value = false
-  }
+// --- Resizing ---
+const { dialogWidth, dialogHeight, hasResized, startResize, resetResize } = useDialogResize({
+  dialogContentRef,
+  x,
+  y,
+  isFloating: isFloatingRef,
+  isResizable: isResizableRef,
 })
 
 const maxWidthPx = computed(() => `${props.maxWidth}px`)
 
-const dialogWidth = ref<number | '100%'>('100%')
-const dialogHeight = ref<number | 'auto'>('auto')
-const hasResized = ref(false)
-
-let isResizing = false
-let currentHandle = ''
-let startX = 0
-let startY = 0
-let startWidth = 0
-let startHeight = 0
-let startPosX = 0
-let startPosY = 0
-
-function startResize(handle: string, e: MouseEvent) {
-  if (!props.resizable)
-    return
-
-  isResizing = true
-  currentHandle = handle
-  hasResized.value = true
-  startX = e.clientX
-  startY = e.clientY
-
-  const rect = dialogContentRef.value!.getBoundingClientRect()
-  startWidth = rect.width
-  startHeight = rect.height
-  startPosX = x.value
-  startPosY = y.value
-
-  document.addEventListener('mousemove', onResize)
-  document.addEventListener('mouseup', stopResize)
-  document.body.style.userSelect = 'none'
-}
-
-function onResize(e: MouseEvent) {
-  if (!isResizing || !props.resizable)
-    return
-  const dx = e.clientX - startX
-  const dy = e.clientY - startY
-
-  let newWidth = startWidth
-  let newHeight = startHeight
-  let newX = startPosX
-  let newY = startPosY
-
-  if (props.floating) {
-    if (currentHandle.includes('right'))
-      newWidth = startWidth + dx
-    if (currentHandle.includes('left')) {
-      newWidth = startWidth - dx
-      newX = startPosX + dx
-    }
-    if (currentHandle.includes('bottom'))
-      newHeight = startHeight + dy
-    if (currentHandle.includes('top')) {
-      newHeight = startHeight - dy
-      newY = startPosY + dy
-    }
-  }
-  else {
-    if (currentHandle.includes('right'))
-      newWidth = startWidth + dx * 2
-    if (currentHandle.includes('left'))
-      newWidth = startWidth - dx * 2
-    if (currentHandle.includes('bottom'))
-      newHeight = startHeight + dy * 2
-    if (currentHandle.includes('top'))
-      newHeight = startHeight - dy * 2
-  }
-
-  const MIN_W = 300
-  const MIN_H = 200
-
-  if (newWidth < MIN_W) {
-    if (props.floating && currentHandle.includes('left'))
-      newX -= (MIN_W - newWidth)
-    newWidth = MIN_W
-  }
-  if (newHeight < MIN_H) {
-    if (props.floating && currentHandle.includes('top'))
-      newY -= (MIN_H - newHeight)
-    newHeight = MIN_H
-  }
-
-  dialogWidth.value = newWidth
-  dialogHeight.value = newHeight
-
-  if (props.floating) {
-    x.value = newX
-    y.value = newY
-  }
-}
-
-function stopResize() {
-  isResizing = false
-  document.removeEventListener('mousemove', onResize)
-  document.removeEventListener('mouseup', stopResize)
-  document.body.style.userSelect = ''
-}
-
 function handleOverlayClick(event: MouseEvent) {
   if (props.persistent || props.floating)
     return
-
   const target = event.target as HTMLElement
-  if (event.offsetX > target.clientWidth || event.offsetY > target.clientHeight) {
+  if (event.offsetX > target.clientWidth || event.offsetY > target.clientHeight)
     return
-  }
   visible.value = false
 }
 
@@ -206,14 +85,9 @@ function handleKeydown(event: KeyboardEvent) {
   }
 }
 
-function restoreDialog() {
-  isMinimized.value = false
-}
-
 watch([visible, isMinimized, () => props.floating], ([isOpen, isMin, isFloating]) => {
   if (typeof window === 'undefined')
     return
-
   if (isOpen && !isMin && !isFloating) {
     document.body.style.setProperty('overflow', 'hidden')
   }
@@ -221,35 +95,27 @@ watch([visible, isMinimized, () => props.floating], ([isOpen, isMin, isFloating]
     document.body.style.removeProperty('overflow')
   }
 
-  if (isOpen) {
-    if (!hasResized.value) {
-      dialogWidth.value = '100%'
-      dialogHeight.value = 'auto'
-    }
+  if (isOpen && !hasResized.value) {
+    resetResize()
   }
 }, { immediate: true })
 
 watch(visible, (isOpen) => {
-  if (!isOpen) {
+  if (!isOpen)
     isMinimized.value = false
-  }
 })
 
 watch(() => props.keyTrigger, () => {
-  if (isMinimized.value) {
+  if (isMinimized.value)
     isMinimized.value = false
-  }
 })
 
-onMounted(() => {
-  document.addEventListener('keydown', handleKeydown)
-})
+onMounted(() => document.addEventListener('keydown', handleKeydown))
 
 onUnmounted(() => {
   document.removeEventListener('keydown', handleKeydown)
-  if (typeof window !== 'undefined') {
+  if (typeof window !== 'undefined')
     document.body.style.removeProperty('overflow')
-  }
   visible.value = false
   isMinimized.value = false
 })
@@ -257,7 +123,6 @@ onUnmounted(() => {
 
 <template>
   <Teleport to="body">
-    <!-- Основной диалог -->
     <Transition name="dialog" :duration="300" appear>
       <div v-if="visible" v-show="!isMinimized" class="dialog-root">
         <div v-if="!floating" class="dialog-overlay" @mousedown="handleOverlayClick" />
@@ -285,18 +150,7 @@ onUnmounted(() => {
           :aria-describedby="description ? `dialog-desc-${dialogId}` : undefined"
           @mousedown.stop
         >
-          <!-- Элементы ресайза -->
-          <template v-if="resizable">
-            <div class="resize-handle top" @mousedown.prevent="startResize('top', $event)" />
-            <div class="resize-handle right" @mousedown.prevent="startResize('right', $event)" />
-            <div class="resize-handle bottom" @mousedown.prevent="startResize('bottom', $event)" />
-            <div class="resize-handle left" @mousedown.prevent="startResize('left', $event)" />
-
-            <div class="resize-handle top-left" @mousedown.prevent="startResize('top-left', $event)" />
-            <div class="resize-handle top-right" @mousedown.prevent="startResize('top-right', $event)" />
-            <div class="resize-handle bottom-left" @mousedown.prevent="startResize('bottom-left', $event)" />
-            <div class="resize-handle bottom-right" @mousedown.prevent="startResize('bottom-right', $event)" />
-          </template>
+          <DialogResizeHandles v-if="resizable" @resize="startResize" />
 
           <div ref="dialogHeaderRef" class="dialog-header" :class="{ 'is-draggable': floating || (!floating && isMobile) }">
             <div class="mobile-drag-indicator" />
@@ -322,10 +176,7 @@ onUnmounted(() => {
             </div>
           </div>
 
-          <p
-            :id="`dialog-desc-${dialogId}`"
-            :class="description ? 'dialog-description' : 'sr-only'"
-          >
+          <p :id="`dialog-desc-${dialogId}`" :class="description ? 'dialog-description' : 'sr-only'">
             {{ description ?? title }}
           </p>
 
@@ -340,13 +191,12 @@ onUnmounted(() => {
       </div>
     </Transition>
 
-    <!-- Кнопка восстановления (Плавающий квадратный блок) -->
     <Transition name="fab-zoom" appear>
       <button
         v-if="visible && isMinimized"
         class="dialog-minimized-fab"
         :title="title || 'Развернуть'"
-        @click="restoreDialog"
+        @click="isMinimized = false"
       >
         <Icon :icon="icon || 'mdi:chevron-up'" />
       </button>
@@ -433,7 +283,6 @@ onUnmounted(() => {
     border-bottom-right-radius: 0;
     max-height: 92dvh !important;
 
-    /* Управление свайпом */
     transform: translateY(var(--swipe-offset, 0));
     transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.5, 1);
 
@@ -446,79 +295,10 @@ onUnmounted(() => {
         animation: content-slide-up 300ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
       }
       .dialog-leave-active & {
-        /* Отключаем transition, чтобы он не перебивал анимацию закрытия */
         transition: none !important;
         animation: content-slide-down 200ms cubic-bezier(0.7, 0, 0.84, 0) forwards;
       }
     }
-  }
-}
-
-.resize-handle {
-  position: absolute;
-  z-index: 100;
-
-  &.top {
-    top: -6px;
-    left: 6px;
-    right: 6px;
-    height: 12px;
-    cursor: n-resize;
-  }
-  &.bottom {
-    bottom: -6px;
-    left: 6px;
-    right: 6px;
-    height: 12px;
-    cursor: s-resize;
-  }
-  &.left {
-    top: 6px;
-    bottom: 6px;
-    left: -6px;
-    width: 12px;
-    cursor: e-resize;
-  }
-  &.right {
-    top: 6px;
-    bottom: 6px;
-    right: -6px;
-    width: 12px;
-    cursor: w-resize;
-  }
-  &.top-left {
-    top: -6px;
-    left: -6px;
-    width: 16px;
-    height: 16px;
-    cursor: nw-resize;
-  }
-  &.top-right {
-    top: -6px;
-    right: -6px;
-    width: 16px;
-    height: 16px;
-    cursor: ne-resize;
-  }
-  &.bottom-left {
-    bottom: -6px;
-    left: -6px;
-    width: 16px;
-    height: 16px;
-    cursor: sw-resize;
-  }
-  &.bottom-right {
-    bottom: -6px;
-    right: -6px;
-    width: 16px;
-    height: 16px;
-    cursor: se-resize;
-  }
-}
-
-@include media-down(sm) {
-  .resize-handle {
-    display: none !important;
   }
 }
 
@@ -605,7 +385,6 @@ onUnmounted(() => {
     background-color 0.2s,
     color 0.2s;
   font-size: 1.25rem;
-
   width: 32px;
   height: 32px;
 
