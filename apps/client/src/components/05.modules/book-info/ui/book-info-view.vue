@@ -12,6 +12,7 @@ import { AppRoutePaths } from '~/shared/constants/routes'
 import BookCoverPanel from './book-cover-panel.vue'
 import BookLexicalPanel from './book-lexical-panel.vue'
 import BookStatsPanel from './book-stats-panel.vue'
+import BookSyncModal from './book-sync-modal.vue'
 import BookTocPanel from './book-toc-panel.vue'
 
 const route = useRoute()
@@ -21,6 +22,7 @@ const dictStore = useDictionaryStore()
 
 const bookId = computed(() => Number(route.params.id))
 const isEditingStats = ref(false)
+const isSyncModalOpen = ref(false)
 
 watch(
   bookId,
@@ -64,7 +66,7 @@ function goBack() {
 
       <div v-else-if="libraryStore.currentBookInfo" class="book-container">
         <div class="layout-top">
-          <BookCoverPanel @edit-stats="isEditingStats = true" />
+          <BookCoverPanel @edit-stats="isEditingStats = true" @open-sync="isSyncModalOpen = true" />
           <div class="content-col">
             <BookStatsPanel v-model:is-editing="isEditingStats" />
           </div>
@@ -79,6 +81,7 @@ function goBack() {
     <WordPopover />
     <SelectionTooltip />
     <SentenceAnalysis />
+    <BookSyncModal v-if="libraryStore.currentBookInfo" v-model:visible="isSyncModalOpen" :book-id="bookId" />
   </div>
 </template>
 

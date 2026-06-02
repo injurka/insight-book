@@ -12,6 +12,141 @@ export const useLibraryStore = defineStore('library', () => {
   const isAnalyzingBook = ref(false)
   const isAnalyzingVocab = ref(false)
 
+  const syncState = ref<'idle' | 'running' | 'finished' | 'error'>('idle')
+  const syncProgress = ref({
+    pagesTotal: 0,
+    pagesDone: 0,
+    sentencesTotal: 0,
+    sentencesDone: 0,
+    currentTask: '',
+  })
+
+  let syncAbortController: AbortController | null = null
+
+  function cancelSync() {
+    if (syncAbortController) {
+      syncAbortController.abort()
+      syncAbortController = null
+    }
+    syncState.value = 'idle'
+  }
+
+  async function startWholeBookSync(bookId: number, options: { cachePages: boolean, analyzeSentences: boolean }) {
+    const book = books.value.find(b => b.id === bookId) || currentBookInfo.value
+    if (!book)
+      return
+
+    syncState.value = 'running'
+    syncAbortController = new AbortController()
+    const signal = syncAbortController.signal
+
+    syncProgress.value = {
+      pagesTotal: book.totalPages,
+      pagesDone: 0,
+      sentencesTotal: 0,
+      sentencesDone: 0,
+      currentTask: 'Подготовка...',
+    }
+
+    try {
+      const sentencesToAnalyze = new Set<string>()
+
+      // 1. Оглавление
+      try {
+        const toc = await api.books.getToc(bookId)
+        await offlineService.saveToc(bookId, toc)
+      }
+      catch { }
+
+      // 2. Страницы и текст
+      if (options.cachePages || options.analyzeSentences) {
+        for (let i = 1; i <= book.totalPages; i++) {
+          if (signal.aborted)
+            throw new Error('Aborted')
+          syncProgress.value.currentTask = `Загрузка страницы ${i} из ${book.totalPages}`
+
+          let page = await offlineService.getPage(bookId, i)
+          if (!page) {
+            page = await api.books.getPage(bookId, i)
+            await offlineService.savePage(bookId, i, page)
+          }
+          syncProgress.value.pagesDone = i
+
+          // Собираем предложения для последующего перевода
+          if (options.analyzeSentences && page) {
+            const extractSentences = (html: string) => {
+              const sentRegex = /data-raw-sent="([^"]+)"/g
+              let match
+              // eslint-disable-next-line no-cond-assign
+              while ((match = sentRegex.exec(html)) !== null) {
+                sentencesToAnalyze.add(decodeURIComponent(match[1]))
+              }
+            }
+
+            if (page.type === 'manga' && page.ocrBlocks) {
+              page.ocrBlocks.forEach((b) => {
+                if (b.html)
+                  extractSentences(b.html)
+              })
+            }
+            else if (page.content) {
+              extractSentences(page.content)
+            }
+          }
+        }
+      }
+
+      // 3. Анализ и перевод предложений через ИИ
+      if (options.analyzeSentences) {
+        const sentences = Array.from(sentencesToAnalyze).filter(s => /[\p{L}\p{N}]/u.test(s))
+        syncProgress.value.sentencesTotal = sentences.length
+        syncProgress.value.sentencesDone = 0
+
+        const concurrency = 2
+        for (let i = 0; i < sentences.length; i += concurrency) {
+          if (signal.aborted)
+            throw new Error('Aborted')
+          const batch = sentences.slice(i, i + concurrency)
+
+          await Promise.all(batch.map(async (sentence) => {
+            if (signal.aborted)
+              return
+            const cached = await offlineService.getAnalysis(bookId, sentence)
+            if (!cached) {
+              try {
+                const res = await api.books.analyze(bookId, sentence, book.language, signal)
+                await offlineService.saveAnalysis(bookId, sentence, res)
+              }
+              catch (e: any) {
+                if (e.name !== 'AbortError')
+                  console.error('Analyze error:', e)
+              }
+            }
+            syncProgress.value.sentencesDone++
+          }))
+          syncProgress.value.currentTask = `Анализ ИИ: ${syncProgress.value.sentencesDone} / ${syncProgress.value.sentencesTotal}`
+        }
+      }
+
+      if (!signal.aborted) {
+        syncState.value = 'finished'
+        syncProgress.value.currentTask = 'Успешно завершено!'
+      }
+    }
+    catch (e: any) {
+      if (e.message === 'Aborted' || e.name === 'AbortError') {
+        syncState.value = 'idle'
+      }
+      else {
+        syncState.value = 'error'
+        syncProgress.value.currentTask = `Ошибка: ${e.message}`
+      }
+    }
+    finally {
+      syncAbortController = null
+    }
+  }
+
   async function fetchBooks() {
     isLoading.value = true
     try {
@@ -65,7 +200,7 @@ export const useLibraryStore = defineStore('library', () => {
     }
     catch (e) {
       console.warn('Failed to sync book info to server', e)
-      throw e // Теперь ошибка будет перехвачена компонентом
+      throw e
     }
   }
 
@@ -149,6 +284,12 @@ export const useLibraryStore = defineStore('library', () => {
     isLoading,
     isAnalyzingBook,
     isAnalyzingVocab,
+
+    syncState,
+    syncProgress,
+    startWholeBookSync,
+    cancelSync,
+
     fetchBooks,
     fetchBookInfo,
     updateBookInfo,

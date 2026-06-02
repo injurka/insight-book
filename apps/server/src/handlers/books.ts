@@ -17,7 +17,7 @@ import { AppError } from '../utils/errors'
 import { createRateLimiter } from '../utils/rate-limit'
 import { runWorkerTask } from '../workers/worker-client'
 
-const llmLimiter = createRateLimiter(60, 60 * 1000)
+const llmLimiter = createRateLimiter(600, 60 * 1000)
 
 function json(data: unknown, status = 200, extraHeaders: Record<string, string> = {}) {
   return new Response(JSON.stringify(data), {

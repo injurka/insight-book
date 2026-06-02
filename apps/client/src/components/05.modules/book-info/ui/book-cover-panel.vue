@@ -9,6 +9,7 @@ import { useAuthStore } from '~/shared/store/auth.store'
 
 const emit = defineEmits<{
   (e: 'editStats'): void
+  (e: 'openSync'): void
 }>()
 
 const libraryStore = useLibraryStore()
@@ -61,6 +62,11 @@ function startReading() {
       <KitBtn color="primary" class="full-width" @click="startReading">
         {{ (libraryStore.currentBookInfo?.currentPage || 1) > 1 ? 'Продолжить чтение' : 'Начать чтение' }}
       </KitBtn>
+
+      <KitBtn variant="tonal" color="secondary" class="full-width" icon="mdi:cloud-download-outline" @click="emit('openSync')">
+        Кэшировать / Анализ
+      </KitBtn>
+
       <KitBtn v-if="authStore.user" variant="text" size="sm" class="edit-btn" @click="emit('editStats')">
         Редактировать
       </KitBtn>
@@ -120,16 +126,18 @@ function startReading() {
 .action-buttons {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
   align-items: center;
 
   .full-width {
     width: 100%;
+    justify-content: center;
   }
   .edit-btn {
     opacity: 0.5;
     font-weight: 500;
     transition: opacity 0.2s;
+    margin-top: 4px;
     &:hover {
       opacity: 0.9;
       background-color: transparent;
