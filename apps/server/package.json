@@ -16,12 +16,16 @@
     "db:generate": "bunx drizzle-kit generate",
     "db:studio": "bunx drizzle-kit studio",
     "db:reset": "bunx drizzle-kit drop",
+    "--------------------------------< BACKUP & DUMP >---------------------------------": "",
+    "dump:create": "bun src/scripts/create-dump.ts",
+    "dump:seed": "bun src/scripts/seed-from-dump.ts",
     "--------------------------------< LINT & FORMAT >---------------------------------": "",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "typecheck": "bunx tsc --noEmit"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1058.0",
     "adm-zip": "^0.5.17",
     "cheerio": "^1.2.0",
     "compromise": "^14.15.0",

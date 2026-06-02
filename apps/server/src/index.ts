@@ -42,6 +42,7 @@ import { apiWrapper } from './utils/errors'
 
 import { logRoutes } from './utils/print-routes'
 import './db'
+import { initScheduler } from './services/scheduler.service'
 
 function corsOk() {
   return new Response(null, { status: 204, headers: CORS_HEADERS })
@@ -107,3 +108,5 @@ Bun.serve({
 
 console.log(`✅ Server running on port ${PORT}`)
 logRoutes(apiRoutes, PORT)
+
+initScheduler()

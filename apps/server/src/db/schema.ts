@@ -8,6 +8,15 @@ import {
   unique,
 } from 'drizzle-orm/sqlite-core'
 
+export const dumpLogs = sqliteTable('dump_logs', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  prefix: text('prefix').notNull(),
+  status: text('status').notNull().default('in-progress'), 
+  error: text('error'),
+  createdAt: text('createdAt').notNull().default(sql`(datetime('now'))`),
+  completedAt: text('completedAt'),
+})
+
 export const users = sqliteTable('users', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   username: text('username').notNull().unique(),

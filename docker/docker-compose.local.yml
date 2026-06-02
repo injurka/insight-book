@@ -29,6 +29,7 @@ services:
       - DB_PATH=/db/insight-book.sqlite
       - DICTS_PATH=/db/dicts
       - UPLOADS_PATH=/uploads
+      - ENABLE_AUTO_DUMP=false
     volumes:
       - ./db:/db
       - ./uploads:/uploads
