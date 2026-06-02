@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import { Icon } from '@iconify/vue'
-import { computed, reactive, watch } from 'vue'
 import { KitBtn, KitInput, KitSelect } from '~/components/01.kit'
 import { useLibraryStore } from '~/components/05.modules/library/store/library.store'
 import { useToast } from '~/shared/composables/use-toast'
 import { DIFFICULTY_SYSTEMS } from '~/shared/constants/difficulties'
+import { useCacheStore } from '~/shared/store/cache.store'
 
 const libraryStore = useLibraryStore()
+const cacheStore = useCacheStore()
 const toast = useToast()
 
 const isEditingStats = defineModel<boolean>('isEditing', { default: false })
@@ -15,6 +16,12 @@ const editForm = reactive({
   difficulty: '',
   tags: '',
   description: '',
+})
+
+const bookCacheStats = computed(() => {
+  if (!cacheStore.stats || !libraryStore.currentBookInfo)
+    return null
+  return cacheStore.stats.bookStats[libraryStore.currentBookInfo.id] || { cachedPages: [], analysesCount: 0 }
 })
 
 const currentDifficultyOptions = computed(() => {
@@ -109,6 +116,16 @@ async function saveStats() {
     toast.error(e instanceof Error ? e.message : 'Не удалось сохранить информацию')
   }
 }
+
+watch(() => libraryStore.syncState, (val) => {
+  if (val === 'finished') {
+    cacheStore.loadStats()
+  }
+})
+
+onMounted(() => {
+  cacheStore.loadStats()
+})
 </script>
 
 <template>
@@ -126,6 +143,17 @@ async function saveStats() {
       </div>
       <div class="progress-bar">
         <div class="progress-fill" :style="{ width: `${((libraryStore.currentBookInfo.currentPage || 1) / libraryStore.currentBookInfo.totalPages) * 100}%` }" />
+      </div>
+
+      <div v-if="bookCacheStats" class="cache-compact-info">
+        <div class="cache-item">
+          <Icon :icon="bookCacheStats.cachedPages.length >= libraryStore.currentBookInfo.totalPages ? 'mdi:cloud-check-variant' : 'mdi:cloud-download-outline'" :class="{ 'icon-success': bookCacheStats.cachedPages.length >= libraryStore.currentBookInfo.totalPages }" />
+          <span>В кэше: <b>{{ formatNumber(bookCacheStats.cachedPages.length) }}</b> / {{ formatNumber(libraryStore.currentBookInfo.totalPages) }} стр.</span>
+        </div>
+        <div class="cache-item">
+          <Icon icon="mdi:robot-outline" :class="{ 'icon-success': bookCacheStats.analysesCount > 0 }" />
+          <span>ИИ переводы: <b>{{ formatNumber(bookCacheStats.analysesCount) }}</b> фраз</span>
+        </div>
       </div>
     </div>
 
@@ -247,6 +275,37 @@ async function saveStats() {
       height: 100%;
       background-color: var(--fg-accent-color);
       transition: width 0.3s ease;
+    }
+  }
+
+  .cache-compact-info {
+    display: flex;
+    gap: 16px;
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px dashed var(--border-secondary-color);
+    flex-wrap: wrap;
+
+    .cache-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.85rem;
+      color: var(--fg-secondary-color);
+
+      svg {
+        font-size: 1.15rem;
+        color: var(--fg-muted-color);
+
+        &.icon-success {
+          color: var(--fg-success-color);
+        }
+      }
+
+      b {
+        color: var(--fg-primary-color);
+        font-weight: 600;
+      }
     }
   }
 }
