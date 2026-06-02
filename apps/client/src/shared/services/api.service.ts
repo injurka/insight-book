@@ -79,8 +79,8 @@ export const api = {
 
     getToc: (bookId: number) => request<TocItem[]>(`/api/books/${bookId}/toc`),
 
-    getPage: (bookId: number, page: number) =>
-      request<PagePayload>(`/api/books/${bookId}/page/${page}`),
+    getPage: (bookId: number, page: number, isSync?: boolean) =>
+      request<PagePayload>(`/api/books/${bookId}/page/${page}${isSync ? '?sync=true' : ''}`),
 
     lookupWord: (bookId: number, word: string, signal?: AbortSignal) =>
       request<{ transcription: string, translation: string, isUserDict?: boolean }>(`/api/books/${bookId}/word/${encodeURIComponent(word)}`, { signal }),
@@ -147,8 +147,10 @@ export const api = {
       const q = new URLSearchParams()
       q.set('lang', opts.lang)
       q.set('mode', opts.mode)
-      if (opts.deckId !== undefined && opts.deckId !== 'all') q.set('deckId', String(opts.deckId))
-      if (opts.difficulty && opts.difficulty !== 'all') q.set('difficulty', opts.difficulty)
+      if (opts.deckId !== undefined && opts.deckId !== 'all')
+        q.set('deckId', String(opts.deckId))
+      if (opts.difficulty && opts.difficulty !== 'all')
+        q.set('difficulty', opts.difficulty)
       return request<UserDictItem[]>(`/api/dictionary/review?${q.toString()}`)
     },
 

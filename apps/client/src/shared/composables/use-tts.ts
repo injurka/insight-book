@@ -60,10 +60,12 @@ export function useTts() {
 
       await currentAudio.play()
     }
-    catch (e: any) {
-      if (e.name === 'AbortError')
+    catch (e) {
+      const err = e as Error
+      if (err.name === 'AbortError')
         return
-      console.error('TTS Error:', e)
+
+      console.error('TTS Error:', err)
       toast.error('Озвучка недоступна без интернета')
     }
     finally {

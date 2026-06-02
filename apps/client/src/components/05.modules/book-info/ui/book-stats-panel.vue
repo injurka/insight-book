@@ -74,8 +74,8 @@ async function triggerAiAnalysis() {
     isEditingStats.value = false
     toast.success('Нейросеть успешно завершила анализ!')
   }
-  catch (e: any) {
-    toast.error(e.message || 'Ошибка ИИ анализа')
+  catch (e) {
+    toast.error(e instanceof Error ? e.message : 'Ошибка ИИ анализа')
   }
 }
 
@@ -87,8 +87,8 @@ async function triggerVocabularyAnalysis() {
     isEditingStats.value = false
     toast.success('Лексический профиль составлен!')
   }
-  catch (e: any) {
-    toast.error(e.message || 'Ошибка анализа лексики')
+  catch (e) {
+    toast.error(e instanceof Error ? e.message : 'Ошибка анализа лексики')
   }
 }
 
@@ -105,8 +105,8 @@ async function saveStats() {
     isEditingStats.value = false
     toast.success('Информация о книге обновлена')
   }
-  catch (e: any) {
-    toast.error(e.message || 'Не удалось сохранить информацию')
+  catch (e) {
+    toast.error(e instanceof Error ? e.message : 'Не удалось сохранить информацию')
   }
 }
 </script>

@@ -61,7 +61,6 @@ const isAiModalOpen = ref(false)
 const isAiLoading = ref(false)
 const aiData = ref<GeneratedWordExamples | null>(null)
 
-// Умное определение языка: если выбрали колоду, берем ее язык, иначе глобальный фильтр.
 const currentLang = computed(() => {
   if (setupOptions.deckId !== 'all' && setupOptions.deckId !== 'none') {
     const deck = dictStore.decks.find(d => d.id === setupOptions.deckId)
@@ -77,12 +76,12 @@ const deckOptions = computed(() => {
     { label: 'Без колоды', value: 'none' },
   ]
   dictStore.decks.forEach((d) => {
-    // В модалке оставляем фильтрацию колод по уже выбранному языку для чистоты интерфейса
     if (dictStore.selectedLanguage === 'all' || d.language === dictStore.selectedLanguage) {
       opts.push({ label: d.name, value: d.id })
     }
   })
   if (!opts.some(o => o.value === setupOptions.deckId)) {
+    // eslint-disable-next-line vue/no-side-effects-in-computed-properties
     setupOptions.deckId = 'all'
   }
   return opts
@@ -94,6 +93,7 @@ const difficultyOptions = computed(() => {
   sys.forEach(d => opts.push({ label: d.label, value: d.value }))
 
   if (!opts.some(o => o.value === setupOptions.difficulty)) {
+    // eslint-disable-next-line vue/no-side-effects-in-computed-properties
     setupOptions.difficulty = 'all'
   }
   return opts
@@ -110,8 +110,8 @@ async function fetchAiExamples() {
     const res = await api.dictionary.generateExamples(currentCard.value.word, currentCard.value.language || 'en')
     aiData.value = res
   }
-  catch (e: any) {
-    toast.error(e.message || 'Ошибка генерации примеров')
+  catch (e) {
+    toast.error(e instanceof Error ? e.message : 'Ошибка генерации примеров')
     isAiModalOpen.value = false
   }
   finally {
@@ -139,7 +139,7 @@ async function startSession() {
     sessionState.value = 'active'
     initCard()
   }
-  catch (e: any) {
+  catch {
     toast.error('Ошибка загрузки карточек')
   }
 }

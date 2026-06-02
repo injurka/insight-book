@@ -83,8 +83,8 @@ export const useDictionaryStore = defineStore('dictionary', () => {
       toast.success('Колода создана')
       return newDeck
     }
-    catch (e: any) {
-      toast.error(e.message || 'Ошибка создания колоды')
+    catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Ошибка создания колоды')
       throw e
     }
   }
@@ -93,12 +93,14 @@ export const useDictionaryStore = defineStore('dictionary', () => {
     try {
       await api.dictionary.updateDeck(id, { name })
       const deck = decks.value.find(d => d.id === id)
+
       if (deck)
         deck.name = name
+
       toast.success('Название колоды обновлено')
     }
-    catch (e: any) {
-      toast.error(e.message || 'Ошибка обновления колоды')
+    catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Ошибка обновления колоды')
     }
   }
 
@@ -114,8 +116,8 @@ export const useDictionaryStore = defineStore('dictionary', () => {
       })
       toast.success('Колода удалена')
     }
-    catch (e: any) {
-      toast.error(e.message || 'Ошибка удаления колоды')
+    catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Ошибка удаления колоды')
     }
   }
 
@@ -126,8 +128,8 @@ export const useDictionaryStore = defineStore('dictionary', () => {
       reviewQueue.value = reviewQueue.value.filter(w => w.word !== word)
       toast.success('Слово удалено')
     }
-    catch (e: any) {
-      toast.error(e.message || 'Не удалось удалить слово')
+    catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Не удалось удалить слово')
     }
   }
 

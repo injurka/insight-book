@@ -353,7 +353,7 @@ export async function handleDeleteBook(req: Request, userId: number): Promise<Re
 
 export async function handleGetToc(req: Request, userId: number): Promise<Response> {
   const bookId = Number((req as any).params.id)
-  const book = await db.select({ toc: schema.books.toc }).from(schema.books).where(and(eq(schema.books.id, bookId), eq(schema.books.userId, userId))).get()
+  const book = db.select({ toc: schema.books.toc }).from(schema.books).where(and(eq(schema.books.id, bookId), eq(schema.books.userId, userId))).get()
   if (!book)
     throw new AppError(404, 'Книга не найдена')
   return json(book.toc ? JSON.parse(book.toc) : [], 200, {
@@ -364,8 +364,10 @@ export async function handleGetToc(req: Request, userId: number): Promise<Respon
 export async function handleGetPage(req: Request, userId: number): Promise<Response> {
   const { id: bookId, pageNum } = (req as any).params
   const config = extractLlmConfig(req)
+  const url = new URL(req.url)
+  const isSync = url.searchParams.get('sync') === 'true'
 
-  const book = await db.select({ totalPages: schema.books.totalPages, language: schema.books.language, type: schema.books.type })
+  const book = db.select({ totalPages: schema.books.totalPages, language: schema.books.language, type: schema.books.type })
     .from(schema.books)
     .where(and(eq(schema.books.id, bookId), eq(schema.books.userId, userId)))
     .get()
@@ -373,12 +375,14 @@ export async function handleGetPage(req: Request, userId: number): Promise<Respo
   if (!book)
     throw new AppError(404, 'Книга не найдена')
 
-  await db.insert(schema.readingProgress)
-    .values({ bookId, currentPage: pageNum, updatedAt: new Date().toISOString() })
-    .onConflictDoUpdate({ target: schema.readingProgress.bookId, set: { currentPage: pageNum, updatedAt: new Date().toISOString() } })
+  if (!isSync) {
+    await db.insert(schema.readingProgress)
+      .values({ bookId, currentPage: pageNum, updatedAt: new Date().toISOString() })
+      .onConflictDoUpdate({ target: schema.readingProgress.bookId, set: { currentPage: pageNum, updatedAt: new Date().toISOString() } })
+  }
 
   if (book.type === 'manga') {
-    const pageRow = await db.select().from(schema.mangaPages).where(and(eq(schema.mangaPages.bookId, bookId), eq(schema.mangaPages.pageNum, pageNum))).get()
+    const pageRow = db.select().from(schema.mangaPages).where(and(eq(schema.mangaPages.bookId, bookId), eq(schema.mangaPages.pageNum, pageNum))).get()
     if (!pageRow)
       throw new AppError(404, 'Страница манги не найдена')
 
@@ -432,7 +436,7 @@ export async function handleGetPage(req: Request, userId: number): Promise<Respo
     catch { }
   }
 
-  const pageRow = await db.select({ content: schema.bookPages.content }).from(schema.bookPages).where(and(eq(schema.bookPages.bookId, bookId), eq(schema.bookPages.pageNum, pageNum))).get()
+  const pageRow = db.select({ content: schema.bookPages.content }).from(schema.bookPages).where(and(eq(schema.bookPages.bookId, bookId), eq(schema.bookPages.pageNum, pageNum))).get()
   if (!pageRow)
     throw new AppError(404, 'Страница не найдена')
 
@@ -450,7 +454,7 @@ export async function handleGetPage(req: Request, userId: number): Promise<Respo
 
 export async function handleLookupWord(req: Request, userId: number): Promise<Response> {
   const { id: bookId, word } = (req as any).params
-  const book = await db.select({ language: schema.books.language }).from(schema.books).where(and(eq(schema.books.id, bookId), eq(schema.books.userId, userId))).get()
+  const book = db.select({ language: schema.books.language }).from(schema.books).where(and(eq(schema.books.id, bookId), eq(schema.books.userId, userId))).get()
   const lang = book?.language || 'en'
   const entry = await lookupSingleWord(decodeURIComponent(word), lang, userId)
   if (!entry)
@@ -463,7 +467,7 @@ export async function handleAnalyzeSentence(req: Request, userId: number): Promi
   const config = extractLlmConfig(req)
 
   const bookId = Number((req as any).params.id)
-  const book = await db.select({ id: schema.books.id }).from(schema.books).where(and(eq(schema.books.id, bookId), eq(schema.books.userId, userId))).get()
+  const book = db.select({ id: schema.books.id }).from(schema.books).where(and(eq(schema.books.id, bookId), eq(schema.books.userId, userId))).get()
   if (!book)
     throw new AppError(404, 'Книга не найдена')
 
@@ -498,7 +502,7 @@ export async function handleStandaloneTts(req: Request, userId: number): Promise
 
 export async function handleGetPageImage(req: Request): Promise<Response> {
   const { id: bookId, pageNum } = (req as any).params
-  const pageRow = await db.select({ imageUrl: schema.mangaPages.imageUrl })
+  const pageRow = db.select({ imageUrl: schema.mangaPages.imageUrl })
     .from(schema.mangaPages)
     .where(and(eq(schema.mangaPages.bookId, bookId), eq(schema.mangaPages.pageNum, pageNum)))
     .get()

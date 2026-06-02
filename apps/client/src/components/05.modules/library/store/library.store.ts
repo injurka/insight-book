@@ -67,7 +67,7 @@ export const useLibraryStore = defineStore('library', () => {
 
           let page = await offlineService.getPage(bookId, i)
           if (!page) {
-            page = await api.books.getPage(bookId, i)
+            page = await api.books.getPage(bookId, i, true)
             await offlineService.savePage(bookId, i, page)
           }
           syncProgress.value.pagesDone = i
@@ -117,9 +117,10 @@ export const useLibraryStore = defineStore('library', () => {
                 const res = await api.books.analyze(bookId, sentence, book.language, signal)
                 await offlineService.saveAnalysis(bookId, sentence, res)
               }
-              catch (e: any) {
-                if (e.name !== 'AbortError')
-                  console.error('Analyze error:', e)
+              catch (e) {
+                const err = e as Error
+                if (err.name !== 'AbortError')
+                  console.error('Analyze error:', err)
               }
             }
             syncProgress.value.sentencesDone++
@@ -133,13 +134,14 @@ export const useLibraryStore = defineStore('library', () => {
         syncProgress.value.currentTask = 'Успешно завершено!'
       }
     }
-    catch (e: any) {
-      if (e.message === 'Aborted' || e.name === 'AbortError') {
+    catch (e) {
+      const err = e as Error
+      if (err.message === 'Aborted' || err.name === 'AbortError') {
         syncState.value = 'idle'
       }
       else {
         syncState.value = 'error'
-        syncProgress.value.currentTask = `Ошибка: ${e.message}`
+        syncProgress.value.currentTask = `Ошибка: ${err.message}`
       }
     }
     finally {

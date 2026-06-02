@@ -167,8 +167,8 @@ async function handleUpload(file: File) {
     await store.uploadBook(file)
     toast.success('Книга успешно добавлена')
   }
-  catch (e: any) {
-    toast.error(e.message || 'Ошибка загрузки книги')
+  catch (e) {
+    toast.error(e instanceof Error ? e.message : 'Ошибка загрузки книги')
   }
 }
 
@@ -191,8 +191,8 @@ async function handleSaveEdit({ bookData, coverFile }: { bookData: Partial<Book>
     editModalOpen.value = false
     toast.success('Книга обновлена')
   }
-  catch (e: any) {
-    toast.error(e.message || 'Ошибка обновления')
+  catch (e) {
+    toast.error(e instanceof Error ? e.message : 'Ошибка обновления')
   }
 }
 

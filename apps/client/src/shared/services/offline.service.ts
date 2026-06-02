@@ -19,8 +19,9 @@ async function safeSetItem<T>(key: string, value: T): Promise<void> {
   try {
     await localforage.setItem(getKey(key), value)
   }
-  catch (e: any) {
-    if (e.name === 'QuotaExceededError' || e.name === 'NS_ERROR_DOM_QUOTA_REACHED') {
+  catch (e) {
+    const err = e as Error
+    if (err.name === 'QuotaExceededError' || err.name === 'NS_ERROR_DOM_QUOTA_REACHED') {
       const toast = useToastStore()
       toast.error('Память устройства переполнена! Очистите кэш.', {
         expire: 8000,

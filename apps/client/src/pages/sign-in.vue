@@ -23,8 +23,8 @@ async function handleSignIn() {
     await authStore.checkAuth()
     router.push('/')
   }
-  catch (e: any) {
-    toast.error(e.message || 'Ошибка авторизации')
+  catch (e) {
+    toast.error(e instanceof Error ? e.message : 'Ошибка авторизации')
   }
   finally {
     isLoading.value = false
