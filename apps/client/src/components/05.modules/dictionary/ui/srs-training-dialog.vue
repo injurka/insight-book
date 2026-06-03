@@ -523,8 +523,7 @@ watch(currentIndex, () => {
     </div>
   </KitDialog>
 
-  <!-- Дочернее окно AI разбора (открывается поверх тренировки) -->
-  <KitDialog v-model:visible="isAiModalOpen" title="Контекст и Примеры (ИИ)" :max-width="650">
+  <KitDialog v-model:visible="isAiModalOpen" title="Контекст и Примеры (ИИ)" :max-width="650" :floating="false" :minimizable="false">
     <div v-if="isAiLoading" class="ai-loading">
       <KitSkeleton width="100%" height="24px" class="mb-3" />
       <KitSkeleton width="80%" height="24px" class="mb-3" />

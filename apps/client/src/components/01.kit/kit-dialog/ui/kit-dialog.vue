@@ -167,8 +167,18 @@ onUnmounted(() => {
             <div class="header-actions">
               <slot name="header-actions" />
               <button
+                v-if="minimizable"
+                class="dialog-icon-btn minimize-button"
+                :aria-label="`Свернуть диалог ${title ?? ''}`"
+                title="Свернуть"
+                @click="isMinimized = true"
+              >
+                <Icon icon="mdi:minus" />
+              </button>
+              <button
                 class="dialog-icon-btn close-button"
                 :aria-label="`Закрыть диалог ${title ?? ''}`"
+                title="Закрыть"
                 @click="visible = false"
               >
                 <Icon icon="mdi:close" />

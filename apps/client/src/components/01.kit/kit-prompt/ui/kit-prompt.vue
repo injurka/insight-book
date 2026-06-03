@@ -52,6 +52,7 @@ function onCancel() {
     :title="title"
     :max-width="360"
     :resizable="false"
+    :minimizable="false"
   >
     <div class="kit-prompt-body">
       <p v-if="description" class="prompt-desc">
