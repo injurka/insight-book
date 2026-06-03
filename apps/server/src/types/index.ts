@@ -183,6 +183,7 @@ export interface GeneratedWordExamples {
   word: string
   transcription: string
   main_translations: string[]
+  vocabulary?: VocabItem[]
   mnemonics?: string
   grammar_note?: string
   examples?: WordExample[]

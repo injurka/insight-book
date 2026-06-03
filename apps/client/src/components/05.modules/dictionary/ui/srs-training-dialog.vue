@@ -1,11 +1,15 @@
 <script setup lang="ts">
 import type { GeneratedWordExamples } from '~/shared/types/models'
 import { Icon } from '@iconify/vue'
-import { KitBtn, KitCheckbox, KitDialog, KitSelect, KitSkeleton } from '~/components/01.kit'
+import { computed, nextTick, reactive, ref, watch } from 'vue'
+import { KitBtn, KitDialog, KitInput, KitSelect } from '~/components/01.kit'
+import { AiExamplesModal } from '~/components/03.domain/analysis'
 import { useToast } from '~/shared/composables/use-toast'
 import { useTts } from '~/shared/composables/use-tts'
 import { DIFFICULTY_SYSTEMS } from '~/shared/constants/difficulties'
 import { api } from '~/shared/services/api.service'
+import { useSrsQuiz } from '../composables/use-srs-quiz'
+import { useSrsSession } from '../composables/use-srs-session'
 import { useDictionaryStore } from '../store/dictionary.store'
 import HanziBoard from './hanzi-board.vue'
 
@@ -14,14 +18,28 @@ const dictStore = useDictionaryStore()
 const { speak, stop, isPlaying, isLoading } = useTts()
 const toast = useToast()
 
-const sessionState = ref<'setup' | 'active' | 'finished'>('setup')
-const currentIndex = ref(0)
+const {
+  sessionState,
+  currentIndex,
+  stats,
+  timeSpentMs,
+  accuracy,
+  startSession: _startSession,
+  finishSession,
+  recordAnswer,
+  reset: resetSession,
+} = useSrsSession()
+
+const { generateDistractors, checkTypo, formatTime } = useSrsQuiz()
+
 const isFlipped = ref(false)
 const isSubmitting = ref(false)
 
 const allowStandard = ref(true)
 const allowAudio = ref(true)
 const allowWriting = ref(false)
+const allowTyping = ref(true)
+const allowChoice = ref(true)
 
 const setupOptions = reactive({
   deckId: 'all' as number | 'all' | 'none',
@@ -29,8 +47,16 @@ const setupOptions = reactive({
 })
 
 // Текущий режим конкретной карточки
-type TrainingMode = 'standard' | 'audio' | 'writing'
+type TrainingMode = 'standard' | 'audio' | 'writing' | 'typing' | 'choice'
 const currentMode = ref<TrainingMode>('standard')
+
+// Стейты для объективной проверки
+const typedAnswer = ref('')
+const typoFeedback = ref('')
+const isAnswerChecked = ref(false)
+const isAnswerCorrect = ref(false)
+const choiceOptions = ref<{ text: string, isCorrect: boolean }[]>([])
+const selectedChoice = ref<string | null>(null)
 
 const currentCard = computed(() => dictStore.reviewQueue[currentIndex.value])
 const isFinished = computed(() => currentIndex.value >= dictStore.reviewQueue.length)
@@ -43,14 +69,6 @@ const hasChineseWords = computed(() => {
 })
 
 const originalSentence = computed(() => currentCard.value?.encounters?.[0]?.sentence || '')
-
-const currentContext = computed(() => {
-  if (!originalSentence.value || !currentCard.value)
-    return null
-
-  const regex = new RegExp(`(${currentCard.value.word})`, 'gi')
-  return originalSentence.value.replace(regex, '[___]')
-})
 
 // Анимация иероглифов
 const showAnimation = ref(false)
@@ -132,11 +150,11 @@ async function startSession() {
       return
     }
 
-    if (!allowStandard.value && !allowAudio.value && !allowWriting.value) {
+    if (!allowStandard.value && !allowAudio.value && !allowWriting.value && !allowTyping.value && !allowChoice.value) {
       allowStandard.value = true
     }
 
-    sessionState.value = 'active'
+    _startSession()
     initCard()
   }
   catch {
@@ -147,10 +165,16 @@ async function startSession() {
 function initCard() {
   isFlipped.value = false
   showAnimation.value = false
+  typedAnswer.value = ''
+  typoFeedback.value = ''
+  isAnswerChecked.value = false
+  isAnswerCorrect.value = false
+  selectedChoice.value = null
+  choiceOptions.value = []
 
   if (!currentCard.value) {
     if (isFinished.value)
-      sessionState.value = 'finished'
+      finishSession()
     return
   }
 
@@ -163,11 +187,32 @@ function initCard() {
   if (allowWriting.value && currentCard.value.language === 'zh' && currentCard.value.word && /[\u4E00-\u9FA5]/.test(currentCard.value.word))
     availableModes.push('writing')
 
+  if (allowTyping.value)
+    availableModes.push('typing')
+  if (allowChoice.value)
+    availableModes.push('choice')
+
   if (availableModes.length === 0)
     availableModes.push('standard')
 
-  currentMode.value = availableModes[Math.floor(Math.random() * availableModes.length)]
+  // Для новых слов (статус 0) с большей вероятностью даем Multiple Choice, чтобы легче запомнить
+  if (allowChoice.value && currentCard.value.status === 0 && Math.random() > 0.3) {
+    currentMode.value = 'choice'
+  }
+  else {
+    currentMode.value = availableModes[Math.floor(Math.random() * availableModes.length)]
+  }
 
+  // Генерация вариантов для Multiple Choice
+  if (currentMode.value === 'choice') {
+    const correctTrans = currentCard.value.translation?.split(',')[0].split(';')[0].replace(/<[^>]+(>|$)/g, '').trim() || 'Перевод'
+    const distractors = generateDistractors(currentCard.value, dictStore.words, 3)
+    const options = distractors.map(d => ({ text: d, isCorrect: false }))
+    options.push({ text: correctTrans, isCorrect: true })
+    choiceOptions.value = options.sort(() => 0.5 - Math.random())
+  }
+
+  // Автозапуск аудио
   if (currentMode.value === 'audio') {
     setTimeout(() => {
       if (currentCard.value?.word) {
@@ -184,6 +229,45 @@ function flip() {
   }
 }
 
+// Оценка ввода пользователя (Typing)
+function submitTyping() {
+  if (isAnswerChecked.value || !typedAnswer.value.trim() || !currentCard.value)
+    return
+
+  const { isCorrect, isTypo } = checkTypo(typedAnswer.value, currentCard.value.word)
+  if (isCorrect) {
+    isAnswerCorrect.value = true
+    isAnswerChecked.value = true
+    typoFeedback.value = ''
+    setTimeout(flip, 400)
+  }
+  else if (isTypo) {
+    typoFeedback.value = `Почти верно! Опечатка. Ожидалось: ${currentCard.value.word}`
+  }
+  else {
+    isAnswerCorrect.value = false
+    isAnswerChecked.value = true
+    typoFeedback.value = `Неверно. Правильный ответ: ${currentCard.value.word}`
+    setTimeout(flip, 1200)
+  }
+}
+
+// Выбор варианта (Multiple Choice)
+function selectChoice(option: { text: string, isCorrect: boolean }) {
+  if (isAnswerChecked.value)
+    return
+  selectedChoice.value = option.text
+  isAnswerChecked.value = true
+  isAnswerCorrect.value = option.isCorrect
+  setTimeout(flip, 800)
+}
+
+function skipObjectiveTest() {
+  isAnswerChecked.value = true
+  isAnswerCorrect.value = false
+  flip()
+}
+
 function toggleAnimation() {
   showAnimation.value = !showAnimation.value
   if (showAnimation.value) {
@@ -196,7 +280,6 @@ function toggleAnimation() {
 function calculateNextInterval(grade: number): number {
   if (!currentCard.value)
     return 0
-
   const { repetitions, interval, easeFactor } = currentCard.value
 
   if (grade === 0) {
@@ -204,7 +287,7 @@ function calculateNextInterval(grade: number): number {
   }
   else if (grade === 1) {
     if (repetitions === 0 || interval < 1)
-      return 10 / 1440
+      return 30 / 1440
     return interval * 1.2
   }
   else if (grade === 2) {
@@ -217,7 +300,6 @@ function calculateNextInterval(grade: number): number {
       return 4
     return interval * easeFactor * 1.3
   }
-
   return interval
 }
 
@@ -225,16 +307,13 @@ function formatInterval(days: number): string {
   const minutes = Math.round(days * 1440)
   if (minutes < 60)
     return `${minutes} м`
-
   const hours = Math.round(days * 24)
   if (hours < 24)
     return `${hours} ч`
-
   if (days < 30)
     return `${Math.round(days)} дн`
   if (days < 365)
     return `${Math.round(days / 30)} мес`
-
   return `${Math.round(days / 365)} г`
 }
 
@@ -252,6 +331,9 @@ const intervals = computed(() => {
 async function gradeCard(grade: number) {
   if (isSubmitting.value || !currentCard.value)
     return
+
+  const isNew = currentCard.value.status === 0
+  recordAnswer(isNew, grade)
 
   if (dictStore.trainingMode === 'random') {
     currentIndex.value++
@@ -278,8 +360,7 @@ async function gradeCard(grade: number) {
 
 watch(visible, (val) => {
   if (val) {
-    sessionState.value = 'setup'
-    currentIndex.value = 0
+    resetSession()
     setupOptions.deckId = dictStore.selectedDeckId
     setupOptions.difficulty = dictStore.selectedDifficulty
   }
@@ -292,8 +373,8 @@ watch(currentIndex, () => {
   if (!isFinished.value && sessionState.value === 'active') {
     initCard()
   }
-  else if (isFinished.value) {
-    sessionState.value = 'finished'
+  else if (isFinished.value && sessionState.value === 'active') {
+    finishSession()
   }
 })
 </script>
@@ -301,7 +382,7 @@ watch(currentIndex, () => {
 <template>
   <KitDialog
     v-model:visible="visible"
-    :max-width="600"
+    :max-width="650"
     persistent
   >
     <template #header>
@@ -310,10 +391,18 @@ watch(currentIndex, () => {
           <template v-if="sessionState === 'setup'">
             Настройки ({{ dictStore.trainingMode === 'srs' ? 'SRS' : 'Разминка' }})
           </template>
+          <template v-else-if="sessionState === 'finished'">
+            Итоги сессии
+          </template>
           <template v-else>
             {{ dictStore.trainingMode === 'srs' ? 'Повторение (SRS)' : 'Случайная тренировка' }}
             <span v-if="!isFinished" class="mode-badge">
-              ({{ currentMode === 'audio' ? 'Аудирование' : currentMode === 'writing' ? 'Письмо' : 'Чтение' }})
+              ({{
+                currentMode === 'audio' ? 'Аудирование'
+                : currentMode === 'writing' ? 'Письмо'
+                  : currentMode === 'typing' ? 'Ввод'
+                    : currentMode === 'choice' ? 'Тест' : 'Чтение'
+              }})
             </span>
           </template>
         </h2>
@@ -348,17 +437,37 @@ watch(currentIndex, () => {
       </div>
 
       <div class="settings-group">
-        <div class="checkbox-row">
-          <KitCheckbox v-model="allowStandard" label="Чтение (классические карточки)" />
-          <span class="checkbox-hint">Показ слова или предложения с пропуском. Вы вспоминаете перевод.</span>
-        </div>
-        <div class="checkbox-row">
-          <KitCheckbox v-model="allowAudio" label="Аудирование (Восприятие на слух)" />
-          <span class="checkbox-hint">Слово произносится ИИ. Вы должны вспомнить, что это было.</span>
-        </div>
-        <div v-if="hasChineseWords" class="checkbox-row">
-          <KitCheckbox v-model="allowWriting" label="Письмо (Рисование иероглифов)" />
-          <span class="checkbox-hint">Интерактивный холст для рисования иероглифов по памяти.</span>
+        <label class="group-label">Режимы тренировки</label>
+        <div class="modes-grid">
+          <div class="mode-card" :class="{ 'is-active': allowStandard }" @click="allowStandard = !allowStandard">
+            <Icon icon="mdi:card-text-outline" class="mode-icon" />
+            <span class="mode-title">Чтение</span>
+            <span class="mode-desc">Классические карточки</span>
+          </div>
+
+          <div class="mode-card" :class="{ 'is-active': allowTyping }" @click="allowTyping = !allowTyping">
+            <Icon icon="mdi:keyboard-outline" class="mode-icon" />
+            <span class="mode-title">Ввод текста</span>
+            <span class="mode-desc">Написать по памяти</span>
+          </div>
+
+          <div class="mode-card" :class="{ 'is-active': allowChoice }" @click="allowChoice = !allowChoice">
+            <Icon icon="mdi:format-list-checks" class="mode-icon" />
+            <span class="mode-title">Тест</span>
+            <span class="mode-desc">Выбор из вариантов</span>
+          </div>
+
+          <div class="mode-card" :class="{ 'is-active': allowAudio }" @click="allowAudio = !allowAudio">
+            <Icon icon="mdi:headphones" class="mode-icon" />
+            <span class="mode-title">На слух</span>
+            <span class="mode-desc">Восприятие ИИ речи</span>
+          </div>
+
+          <div v-if="hasChineseWords" class="mode-card" :class="{ 'is-active': allowWriting }" @click="allowWriting = !allowWriting">
+            <Icon icon="mdi:draw" class="mode-icon" />
+            <span class="mode-title">Письмо</span>
+            <span class="mode-desc">Иероглифы по памяти</span>
+          </div>
         </div>
       </div>
 
@@ -372,17 +481,41 @@ watch(currentIndex, () => {
       </div>
     </div>
 
-    <!-- ЭКРАН ЗАВЕРШЕНИЯ -->
+    <!-- ЭКРАН ЗАВЕРШЕНИЯ И ДЕТАЛЬНОЙ СТАТИСТИКИ -->
     <div v-else-if="sessionState === 'finished'" class="finished-state">
       <h2>🎉 Отличная работа!</h2>
       <p v-if="dictStore.trainingMode === 'srs'">
-        Вы повторили все карточки на сегодня по этим параметрам.
+        Вы повторили все карточки на сегодня по выбранным параметрам.
       </p>
       <p v-else>
-        Разминка завершена.
+        Разминка успешно завершена.
       </p>
-      <KitBtn color="primary" @click="visible = false">
-        Закрыть
+
+      <div class="summary-stats">
+        <div class="stat-box">
+          <Icon icon="mdi:star-four-points-outline" class="stat-icon new" />
+          <span class="stat-val">{{ stats.newStudied }}</span>
+          <span class="stat-name">Новых</span>
+        </div>
+        <div class="stat-box">
+          <Icon icon="mdi:refresh" class="stat-icon review" />
+          <span class="stat-val">{{ stats.reviewed }}</span>
+          <span class="stat-name">Повторено</span>
+        </div>
+        <div class="stat-box">
+          <Icon icon="mdi:bullseye-arrow" class="stat-icon accuracy" />
+          <span class="stat-val">{{ accuracy }}%</span>
+          <span class="stat-name">Точность</span>
+        </div>
+        <div class="stat-box">
+          <Icon icon="mdi:clock-outline" class="stat-icon time" />
+          <span class="stat-val">{{ formatTime(timeSpentMs) }}</span>
+          <span class="stat-name">Время</span>
+        </div>
+      </div>
+
+      <KitBtn color="primary" size="lg" @click="visible = false">
+        Завершить сессию
       </KitBtn>
     </div>
 
@@ -407,21 +540,49 @@ watch(currentIndex, () => {
             Напишите иероглиф(ы) по памяти:
           </p>
           <div class="translation-hint" v-html="currentCard.translation" />
-          <div v-if="originalSentence" class="context-cloze">
-            {{ currentContext }}
-          </div>
-          <!-- Опрос (quiz) автоматически вызовет flip при правильном рисовании -->
           <HanziBoard :text="currentCard.word" mode="quiz" :size="120" @complete="flip" />
+        </div>
+
+        <!-- РЕЖИМ: ВВОД ТЕКСТА (TYPING) -->
+        <div v-else-if="currentMode === 'typing'" class="typing-mode">
+          <div class="translation-hint" v-html="currentCard.translation" />
+          <div class="typing-area">
+            <KitInput v-model="typedAnswer" placeholder="Напишите слово на изучаемом языке..." :disabled="isAnswerChecked" @keyup.enter="submitTyping" />
+            <KitBtn color="primary" :disabled="!typedAnswer || isAnswerChecked" @click="submitTyping">
+              Проверить
+            </KitBtn>
+          </div>
+          <p v-if="typoFeedback" class="typo-feedback" :class="{ 'is-typo': !isAnswerCorrect }">
+            {{ typoFeedback }}
+          </p>
+        </div>
+
+        <!-- РЕЖИМ: ВЫБОР ВАРИАНТОВ -->
+        <div v-else-if="currentMode === 'choice'" class="choice-mode">
+          <div class="word-huge">
+            {{ currentCard.word }}
+          </div>
+          <div class="options-grid">
+            <button
+              v-for="opt in choiceOptions"
+              :key="opt.text"
+              class="choice-btn"
+              :class="{
+                'is-correct': isAnswerChecked && opt.isCorrect,
+                'is-wrong': isAnswerChecked && selectedChoice === opt.text && !opt.isCorrect,
+                'is-disabled': isAnswerChecked,
+              }"
+              :disabled="isAnswerChecked"
+              @click="selectChoice(opt)"
+            >
+              {{ opt.text }}
+            </button>
+          </div>
         </div>
 
         <!-- РЕЖИМ: СТАНДАРТ -->
         <div v-else class="standard-mode">
-          <!-- Контекстный режим -->
-          <div v-if="currentContext" class="context-cloze">
-            {{ currentContext }}
-          </div>
-          <!-- Классический режим -->
-          <div v-else class="word-huge">
+          <div class="word-huge">
             {{ currentCard.word }}
           </div>
         </div>
@@ -439,7 +600,7 @@ watch(currentIndex, () => {
           {{ currentCard.transcription }}
         </div>
 
-        <div class="translation" v-html="currentCard.translation" />
+        <div v-if="currentMode !== 'choice' && currentMode !== 'typing'" class="translation" v-html="currentCard.translation" />
 
         <div v-if="originalSentence" class="original-sentence fade-in">
           <b>Контекст:</b> {{ originalSentence }}
@@ -474,7 +635,7 @@ watch(currentIndex, () => {
           </KitBtn>
 
           <KitBtn
-            icon="mdi:robot-outline"
+            icon="mdi:text-box-search-outline"
             variant="subtle"
             size="sm"
             @click="fetchAiExamples"
@@ -482,7 +643,6 @@ watch(currentIndex, () => {
             ИИ Подсказка
           </KitBtn>
 
-          <!-- Показываем кнопку только для китайского языка и если есть иероглифы -->
           <KitBtn
             v-if="currentCard.language === 'zh' && /[\u4E00-\u9FA5]/.test(currentCard.word)"
             icon="mdi:draw"
@@ -497,12 +657,21 @@ watch(currentIndex, () => {
       </div>
 
       <div class="actions">
-        <KitBtn v-if="!isFlipped" color="primary" size="lg" @click="flip">
-          {{ currentMode === 'writing' ? 'Не помню / Показать ответ' : 'Показать ответ' }}
-        </KitBtn>
+        <!-- Кнопки фронтальной стороны карточки -->
+        <template v-if="!isFlipped">
+          <div class="front-actions">
+            <KitBtn v-if="!['typing', 'choice'].includes(currentMode)" color="primary" size="lg" @click="flip">
+              {{ currentMode === 'writing' ? 'Не помню / Показать ответ' : 'Показать ответ' }}
+            </KitBtn>
+            <KitBtn v-else variant="tonal" size="md" @click="skipObjectiveTest">
+              Не помню / Пропустить
+            </KitBtn>
+          </div>
+        </template>
 
+        <!-- Кнопки оценки после переворота -->
         <div v-else-if="intervals" class="grade-buttons fade-in">
-          <button class="grade-btn error" :disabled="isSubmitting" @click="gradeCard(0)">
+          <button class="grade-btn error" :class="{ 'is-suggested': isAnswerChecked && !isAnswerCorrect }" :disabled="isSubmitting" @click="gradeCard(0)">
             <span class="g-label">Снова</span>
             <span v-if="dictStore.trainingMode === 'srs'" class="g-time">{{ intervals.again }}</span>
           </button>
@@ -510,7 +679,7 @@ watch(currentIndex, () => {
             <span class="g-label">Тяжело</span>
             <span v-if="dictStore.trainingMode === 'srs'" class="g-time">{{ intervals.hard }}</span>
           </button>
-          <button class="grade-btn primary" :disabled="isSubmitting" @click="gradeCard(2)">
+          <button class="grade-btn primary" :class="{ 'is-suggested': isAnswerChecked && isAnswerCorrect }" :disabled="isSubmitting" @click="gradeCard(2)">
             <span class="g-label">Хорошо</span>
             <span v-if="dictStore.trainingMode === 'srs'" class="g-time">{{ intervals.good }}</span>
           </button>
@@ -523,94 +692,7 @@ watch(currentIndex, () => {
     </div>
   </KitDialog>
 
-  <KitDialog v-model:visible="isAiModalOpen" title="Контекст и Примеры (ИИ)" :max-width="650" :floating="false" :minimizable="false">
-    <div v-if="isAiLoading" class="ai-loading">
-      <KitSkeleton width="100%" height="24px" class="mb-3" />
-      <KitSkeleton width="80%" height="24px" class="mb-3" />
-      <KitSkeleton width="100%" height="150px" />
-      <p style="text-align: center; color: var(--fg-secondary-color); margin-top: 12px; font-style: italic;">
-        Генерируем контекст...
-      </p>
-    </div>
-
-    <div v-else-if="aiData" class="ai-results">
-      <div v-if="aiData.mnemonics" class="ai-section">
-        <div class="ai-section-title">
-          <Icon icon="mdi:lightbulb-on-outline" /> Мнемоника
-        </div>
-        <p class="ai-text">
-          {{ aiData.mnemonics }}
-        </p>
-      </div>
-
-      <div v-if="aiData.grammar_note" class="ai-section">
-        <div class="ai-section-title">
-          <Icon icon="mdi:book-open-variant" /> Грамматика
-        </div>
-        <p class="ai-text">
-          {{ aiData.grammar_note }}
-        </p>
-      </div>
-
-      <div v-if="aiData.examples && aiData.examples.length" class="ai-section">
-        <div class="ai-section-title">
-          <Icon icon="mdi:format-list-bulleted" /> Примеры
-        </div>
-        <ul class="ai-list">
-          <li v-for="(ex, i) in aiData.examples" :key="i">
-            <span class="ex-type">{{ ex.type }}</span>
-            <div class="ex-orig">
-              {{ ex.original }}
-            </div>
-            <div class="ex-transc">
-              {{ ex.transcription }}
-            </div>
-            <div class="ex-transl">
-              {{ ex.translation }}
-            </div>
-            <div class="ex-literal">
-              Дословно: {{ ex.literal_translation }}
-            </div>
-          </li>
-        </ul>
-      </div>
-
-      <div v-if="aiData.collocations && aiData.collocations.length" class="ai-section">
-        <div class="ai-section-title">
-          <Icon icon="mdi:link-variant" /> Словосочетания
-        </div>
-        <ul class="ai-list">
-          <li v-for="(col, i) in aiData.collocations" :key="i">
-            <b>{{ col.original }}</b> ({{ col.transcription }}) — {{ col.translation }}
-          </li>
-        </ul>
-      </div>
-
-      <div v-if="aiData.relations && (aiData.relations.synonyms?.length || aiData.relations.antonyms?.length)" class="ai-section relations-section">
-        <div v-if="aiData.relations.synonyms?.length">
-          <div class="ai-section-title">
-            <Icon icon="mdi:swap-horizontal" /> Синонимы
-          </div>
-          <ul class="ai-list">
-            <li v-for="(syn, i) in aiData.relations.synonyms" :key="i">
-              <b>{{ syn.word }}</b> ({{ syn.transcription }}) — {{ syn.translation }}
-            </li>
-          </ul>
-        </div>
-
-        <div v-if="aiData.relations.antonyms?.length" :style="aiData.relations.synonyms?.length ? 'margin-top: 16px;' : ''">
-          <div class="ai-section-title">
-            <Icon icon="mdi:swap-horizontal-bold" /> Антонимы
-          </div>
-          <ul class="ai-list">
-            <li v-for="(ant, i) in aiData.relations.antonyms" :key="i">
-              <b>{{ ant.word }}</b> ({{ ant.transcription }}) — {{ ant.translation }}
-            </li>
-          </ul>
-        </div>
-      </div>
-    </div>
-  </KitDialog>
+  <AiExamplesModal v-model:visible="isAiModalOpen" :loading="isAiLoading" :data="aiData" />
 </template>
 
 <style lang="scss" scoped>
@@ -667,28 +749,69 @@ watch(currentIndex, () => {
   .settings-group {
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 12px;
     background: var(--bg-secondary-color);
     padding: 20px;
     border-radius: 12px;
     border: 1px solid var(--border-secondary-color);
 
-    .checkbox-row {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
+    .group-label {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--fg-primary-color);
+      margin-bottom: 4px;
+    }
 
-      :deep(.kit-checkbox) {
-        .checkbox-label {
-          font-weight: 500;
-          font-size: 1rem;
+    .modes-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+      gap: 12px;
+
+      .mode-card {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        gap: 8px;
+        padding: 16px 12px;
+        background: var(--bg-primary-color);
+        border: 1px solid var(--border-primary-color);
+        border-radius: 12px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        user-select: none;
+
+        &:hover {
+          border-color: var(--border-secondary-color);
+          background: var(--bg-hover-color);
         }
-      }
 
-      .checkbox-hint {
-        padding-left: 26px;
-        font-size: 0.85rem;
-        color: var(--fg-muted-color);
+        &.is-active {
+          border-color: var(--fg-accent-color);
+          background: rgba(var(--bg-accent-color-rgb, 201, 117, 222), 0.05);
+
+          .mode-icon {
+            color: var(--fg-accent-color);
+          }
+        }
+
+        .mode-icon {
+          font-size: 2rem;
+          color: var(--fg-secondary-color);
+          transition: color 0.2s;
+        }
+
+        .mode-title {
+          font-weight: 600;
+          font-size: 0.95rem;
+          color: var(--fg-primary-color);
+        }
+
+        .mode-desc {
+          font-size: 0.75rem;
+          color: var(--fg-muted-color);
+          line-height: 1.3;
+        }
       }
     }
   }
@@ -721,6 +844,71 @@ watch(currentIndex, () => {
   }
 }
 
+/* ЭКРАН ИТОГОВ (SUMMARY) */
+.finished-state {
+  text-align: center;
+  padding: 40px 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+
+  h2 {
+    margin-bottom: 12px;
+  }
+  p {
+    color: var(--fg-secondary-color);
+  }
+
+  .summary-stats {
+    display: flex;
+    gap: 16px;
+    justify-content: center;
+    margin: 24px 0 32px 0;
+    flex-wrap: wrap;
+
+    .stat-box {
+      background: var(--bg-secondary-color);
+      border: 1px solid var(--border-secondary-color);
+      border-radius: 12px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-width: 100px;
+      gap: 8px;
+
+      .stat-icon {
+        font-size: 2rem;
+        &.new {
+          color: var(--fg-info-color);
+        }
+        &.review {
+          color: var(--fg-accent-color);
+        }
+        &.accuracy {
+          color: var(--fg-success-color);
+        }
+        &.time {
+          color: var(--fg-warning-color);
+        }
+      }
+
+      .stat-val {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: var(--fg-primary-color);
+      }
+
+      .stat-name {
+        font-size: 0.85rem;
+        color: var(--fg-secondary-color);
+      }
+    }
+  }
+}
+
 .flashcard {
   display: flex;
   flex-direction: column;
@@ -735,12 +923,11 @@ watch(currentIndex, () => {
   overflow-y: auto;
   padding-right: 4px;
 
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+
   &::-webkit-scrollbar {
-    width: 6px;
-  }
-  &::-webkit-scrollbar-thumb {
-    background-color: var(--border-primary-color);
-    border-radius: 4px;
+    display: none;
   }
 }
 
@@ -782,10 +969,95 @@ watch(currentIndex, () => {
     font-weight: 500;
     color: var(--fg-primary-color);
   }
+}
 
-  .context-cloze {
-    padding: 10px;
-    font-size: 1.1rem;
+/* НОВЫЕ РЕЖИМЫ (TYPING, CHOICE) */
+.typing-mode {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+
+  .translation-hint {
+    font-size: 1.3rem;
+    font-weight: 500;
+    color: var(--fg-primary-color);
+  }
+
+  .typing-area {
+    display: flex;
+    gap: 8px;
+    width: 100%;
+    max-width: 400px;
+
+    :deep(.kit-input-wrapper) {
+      flex: 1;
+    }
+  }
+
+  .typo-feedback {
+    margin: 0;
+    font-size: 0.95rem;
+    color: var(--fg-warning-color);
+    &.is-typo {
+      color: var(--fg-error-color);
+    }
+  }
+}
+
+.choice-mode {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+
+  .options-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    width: 100%;
+    max-width: 500px;
+
+    @include media-down(sm) {
+      grid-template-columns: 1fr;
+    }
+
+    .choice-btn {
+      padding: 16px;
+      border-radius: 8px;
+      border: 1px solid var(--border-primary-color);
+      background: var(--bg-secondary-color);
+      color: var(--fg-primary-color);
+      font-size: 1.05rem;
+      cursor: pointer;
+      transition: all 0.2s;
+
+      &:hover:not(:disabled) {
+        background: var(--bg-hover-color);
+        border-color: var(--fg-accent-color);
+      }
+
+      &.is-correct {
+        background: rgba(var(--bg-success-color-rgb, 86, 211, 100), 0.2);
+        border-color: var(--fg-success-color);
+        color: var(--fg-success-color);
+        font-weight: bold;
+      }
+
+      &.is-wrong {
+        background: rgba(var(--bg-error-color-rgb, 248, 81, 73), 0.2);
+        border-color: var(--fg-error-color);
+        color: var(--fg-error-color);
+        text-decoration: line-through;
+      }
+
+      &:disabled {
+        cursor: default;
+        opacity: 0.7;
+      }
+    }
   }
 }
 
@@ -811,14 +1083,6 @@ watch(currentIndex, () => {
 
 .standard-mode {
   width: 100%;
-}
-
-.context-cloze {
-  font-size: 1.4rem;
-  line-height: 1.6;
-  font-style: italic;
-  padding: 20px;
-  color: var(--fg-primary-color);
 }
 
 .word-huge {
@@ -894,6 +1158,11 @@ watch(currentIndex, () => {
   justify-content: flex-end;
   margin-top: auto;
   padding-top: 16px;
+
+  .front-actions {
+    display: flex;
+    justify-content: center;
+  }
 }
 
 .grade-buttons {
@@ -946,6 +1215,13 @@ watch(currentIndex, () => {
       transform: translateY(-2px);
     }
 
+    /* Подсветка рекомендуемого ответа после объективного квиза (убрали box-shadow) */
+    &.is-suggested {
+      border-color: currentColor;
+      transform: translateY(-2px);
+      background: var(--bg-tertiary-color);
+    }
+
     &:disabled {
       opacity: 0.5;
       cursor: not-allowed;
@@ -966,24 +1242,6 @@ watch(currentIndex, () => {
   to {
     opacity: 1;
     transform: translateY(0);
-  }
-}
-
-.finished-state {
-  text-align: center;
-  padding: 40px 0;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-
-  h2 {
-    margin-bottom: 12px;
-  }
-  p {
-    margin-bottom: 24px;
-    color: var(--fg-secondary-color);
   }
 }
 
@@ -1016,94 +1274,5 @@ watch(currentIndex, () => {
   100% {
     transform: scale(1);
   }
-}
-
-.ai-results {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  padding-bottom: 8px;
-}
-.ai-section {
-  background: var(--bg-secondary-color);
-  border: 1px solid var(--border-secondary-color);
-  border-radius: 8px;
-  padding: 12px;
-}
-.ai-section-title {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 0.95rem;
-  font-weight: 600;
-  color: var(--fg-accent-color);
-  margin-bottom: 8px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-.ai-text {
-  margin: 0;
-  font-size: 0.95rem;
-  color: var(--fg-primary-color);
-  line-height: 1.5;
-}
-.ai-list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-
-  li {
-    border-bottom: 1px dashed var(--border-primary-color);
-    padding-bottom: 12px;
-    &:last-child {
-      border-bottom: none;
-      padding-bottom: 0;
-    }
-  }
-
-  .ex-type {
-    display: inline-block;
-    background: var(--bg-tertiary-color);
-    color: var(--fg-secondary-color);
-    font-size: 0.75rem;
-    padding: 2px 6px;
-    border-radius: 4px;
-    margin-bottom: 4px;
-  }
-  .ex-orig {
-    font-size: 1.1rem;
-    font-weight: 500;
-    color: var(--fg-primary-color);
-  }
-  .ex-transc {
-    font-size: 0.9rem;
-    color: var(--fg-secondary-color);
-    margin-bottom: 4px;
-  }
-  .ex-transl {
-    font-size: 0.95rem;
-    color: var(--fg-primary-color);
-  }
-  .ex-literal {
-    font-size: 0.85rem;
-    color: var(--fg-muted-color);
-    font-style: italic;
-    margin-top: 4px;
-  }
-}
-.relations-section {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  font-size: 0.9rem;
-  b {
-    color: var(--fg-primary-color);
-  }
-}
-.mb-3 {
-  margin-bottom: 12px;
 }
 </style>

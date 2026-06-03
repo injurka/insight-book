@@ -1,17 +1,28 @@
 <script setup lang="ts">
+import type { GeneratedWordExamples } from '~/shared/types/models'
 import { Icon } from '@iconify/vue'
 import { KitBtn, KitSkeleton, KitTooltip } from '~/components/01.kit'
+import { useLibraryStore } from '~/components/05.modules/library/store/library.store'
+import { useReaderStore } from '~/components/05.modules/reader/store/reader.store'
+import { useToast } from '~/shared/composables/use-toast'
 import { useTts } from '~/shared/composables/use-tts'
 import { POS_TAGS_MAP } from '~/shared/constants/pos-tags'
+import { api } from '~/shared/services/api.service'
 import { useAnalysisStore } from '~/shared/store/analysis.store'
 import { useAuthStore } from '~/shared/store/auth.store'
+import AiExamplesModal from './ai-examples-modal.vue'
 
 const analysisStore = useAnalysisStore()
 const authStore = useAuthStore()
 const { speak, stop, isPlaying, isLoading } = useTts()
+const toast = useToast()
 
 const popoverRef = ref<HTMLElement | null>(null)
 const popoverPos = ref({ top: '-9999px', left: '-9999px', transform: 'none' })
+
+const isAiModalOpen = ref(false)
+const isAiLoading = ref(false)
+const aiData = ref<GeneratedWordExamples | null>(null)
 
 watch(
   () => analysisStore.wordPopover,
@@ -67,6 +78,34 @@ function playWordTTS() {
     if (isPlaying.value || isLoading.value)
       stop()
     else speak(analysisStore.wordPopover.word)
+  }
+}
+
+async function fetchAiExamples() {
+  if (!analysisStore.wordPopover?.word)
+    return
+  const word = analysisStore.wordPopover.word
+
+  const readerStore = useReaderStore()
+  const libraryStore = useLibraryStore()
+  const currentBook = readerStore.currentBook || libraryStore.currentBookInfo
+  const lang = currentBook?.language || 'en'
+
+  analysisStore.closePopover()
+
+  isAiModalOpen.value = true
+  isAiLoading.value = true
+  aiData.value = null
+
+  try {
+    aiData.value = await api.dictionary.generateExamples(word, lang)
+  }
+  catch (e) {
+    toast.error(e instanceof Error ? e.message : 'Ошибка генерации примеров')
+    isAiModalOpen.value = false
+  }
+  finally {
+    isAiLoading.value = false
   }
 }
 
@@ -131,9 +170,15 @@ onUnmounted(() => {
             <KitTooltip text="Озвучить" placement="top">
               <KitBtn :icon="isLoading ? 'mdi:loading' : (isPlaying ? 'mdi:volume-high' : 'mdi:volume-medium')" size="xs" variant="text" color="primary" :class="{ 'pulse-animation': isPlaying, 'spin-animation': isLoading }" @click.stop="playWordTTS" />
             </KitTooltip>
+
+            <KitTooltip text="Подробно с ИИ" placement="top">
+              <KitBtn icon="mdi:text-box-search-outline" size="xs" variant="text" color="secondary" @click.stop="fetchAiExamples" />
+            </KitTooltip>
+
             <KitTooltip text="Перевести с ИИ" placement="top">
               <KitBtn icon="mdi:robot-outline" size="xs" variant="text" :color="analysisStore.wordPopover.showAi ? 'accent' : 'secondary'" @click.stop="analysisStore.toggleAiTranslation" />
             </KitTooltip>
+
             <KitTooltip v-if="authStore.user" :text="analysisStore.wordPopover.isSaved ? 'Редактировать карточку' : 'Сохранить в словарь'" placement="top-end">
               <KitBtn
                 :icon="analysisStore.wordPopover.isSaved ? 'mdi:star' : 'mdi:star-outline'"
@@ -148,6 +193,8 @@ onUnmounted(() => {
       </div>
     </Transition>
   </Teleport>
+
+  <AiExamplesModal v-model:visible="isAiModalOpen" :loading="isAiLoading" :data="aiData" />
 </template>
 
 <style lang="scss" scoped>

@@ -326,7 +326,7 @@ export async function processSrsReview(wordId: number, userId: number, grade: nu
   else if (grade === 1) {
     easeFactor = Math.max(1.3, easeFactor - 0.15)
     if (repetitions === 0 || interval < 1) {
-      interval = 10 / 1440
+      interval = 30 / 1440 
       repetitions = 0
     }
     else {

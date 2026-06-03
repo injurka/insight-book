@@ -61,6 +61,14 @@ export function getWordExamplesPrompt(language: string): string {
   "word": "Слово",
   "transcription": "Транскрипция (пиньинь, ромадзи и т.д.)",
   "main_translations": ["перевод 1", "перевод 2"],
+  "vocabulary": [
+    {
+      "word": "Слово из примеров (дополнительная лексика, структурные частицы)",
+      "transcription": "Транскрипция",
+      "meaning": "Краткий перевод",
+      "usageInContext": ""
+    }
+  ],
   "mnemonics": "Мнемоника или этимология",
   "grammar_note": "Краткая грамматическая справка",
   "examples": [
