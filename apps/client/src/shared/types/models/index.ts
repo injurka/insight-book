@@ -22,6 +22,7 @@ export interface BookStats {
 
 export interface Book {
   id: number
+  userId: number
   title: string
   type: 'epub' | 'manga' | 'fb2'
   author: string | null
@@ -38,6 +39,7 @@ export interface Book {
   seriesNumber?: number | null
   status?: string
   isFavorite?: boolean
+  isPublic?: boolean
   collection?: string | null
   progressUpdatedAt?: string | null
 }
@@ -175,4 +177,32 @@ export interface GeneratedWordExamples {
   examples?: WordExample[]
   collocations?: WordCollocation[]
   relations?: WordRelations
+}
+
+export interface OpdsCatalog {
+  id: number
+  userId: number
+  title: string
+  url: string
+  createdAt: string
+}
+
+export interface OpdsLink {
+  rel: string
+  href: string
+  type: string
+  title?: string
+}
+
+export interface OpdsEntry {
+  title: string
+  author: string
+  content: string
+  links: OpdsLink[]
+}
+
+export interface OpdsFeed {
+  title: string
+  links: OpdsLink[]
+  entries: OpdsEntry[]
 }

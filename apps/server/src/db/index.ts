@@ -124,18 +124,15 @@ export function getDictConnection(language: string): DictConnection | null {
   const specificPath = path.join(DICTS_PATH, `dict_${lang}.sqlite`)
 
   if (existsSync(specificPath)) {
-    // Открываем без readonly: true, чтобы можно было создать индекс, если нужно
     const dictDb = new Database(specificPath)
     dictDb.run(`PRAGMA journal_mode = WAL`)
 
-    // 1. Автоматический поиск таблицы со словами
     const tableQuery = dictDb.query(`SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' LIMIT 1`)
     const tableRow = tableQuery.get() as { name: string } | undefined
     if (!tableRow)
       return null
     const tableName = tableRow.name
 
-    // 2. Автоматическое определение колонок
     const columnsQuery = dictDb.query(`PRAGMA table_info("${tableName}")`)
     const columns = columnsQuery.all() as { name: string }[]
     const colNames = columns.map(c => c.name.toLowerCase())
@@ -179,7 +176,6 @@ export function getDictConnection(language: string): DictConnection | null {
       transcriptionCol = 'pronunciation'
     }
 
-    // 3. Автоматическое создание индекса (предотвращает Full Table Scan)
     try {
       dictDb.run(`CREATE INDEX IF NOT EXISTS "idx_${tableName}_${wordCol}" ON "${tableName}" ("${wordCol}")`)
     }

@@ -1,16 +1,14 @@
 <script setup lang="ts">
 import { Icon } from '@iconify/vue'
 import { computed, ref } from 'vue'
-import { useDictionaryStore } from '~/components/05.modules/dictionary/store/dictionary.store'
 import { useLibraryStore } from '~/components/05.modules/library/store/library.store'
 import { useAnalysisStore } from '~/shared/store/analysis.store'
 
 const libraryStore = useLibraryStore()
 const analysisStore = useAnalysisStore()
-const dictStore = useDictionaryStore()
 
 const isLexicalExpanded = ref(false)
-const lexicalActiveTab = ref<'core' | 'entities' | 'rare' | 'dict'>('core')
+const lexicalActiveTab = ref<'core' | 'entities' | 'rare'>('core')
 
 const isLegacyLexical = computed(() => {
   return Array.isArray(libraryStore.currentBookInfo?.stats?.topWords)
@@ -20,23 +18,6 @@ const lexData = computed(() => {
   if (isLegacyLexical.value)
     return null
   return libraryStore.currentBookInfo?.stats?.topWords as any
-})
-
-const dictionaryWordsInBook = computed(() => {
-  const stats = libraryStore.currentBookInfo?.stats
-  if (!stats || !stats.topWords)
-    return []
-
-  const bookWordsSet = new Set<string>()
-
-  if (Array.isArray(stats.topWords)) {
-    stats.topWords.forEach(w => bookWordsSet.add(w.word.trim().toLowerCase()))
-  }
-  else {
-    Object.values(stats.topWords).flat().forEach((w: any) => bookWordsSet.add(w.word.trim().toLowerCase()))
-  }
-
-  return dictStore.words.filter(dictItem => bookWordsSet.has(dictItem.word.trim().toLowerCase()))
 })
 
 const posStats = computed(() => {
@@ -150,10 +131,6 @@ function handleWordClick(word: string, pos: string, event: MouseEvent) {
           <button :class="{ active: lexicalActiveTab === 'rare' }" @click="lexicalActiveTab = 'rare'">
             <Icon icon="mdi:diamond-stone" /> Самородки
           </button>
-          <button :class="{ active: lexicalActiveTab === 'dict' }" @click="lexicalActiveTab = 'dict'">
-            <Icon icon="mdi:book-open-variant" /> Мой словарь
-            <span v-if="dictionaryWordsInBook.length" class="badge">{{ dictionaryWordsInBook.length }}</span>
-          </button>
         </div>
 
         <div class="lexical-tab-content">
@@ -234,24 +211,6 @@ function handleWordClick(word: string, pos: string, event: MouseEvent) {
               <div v-if="!lexData?.rareWords?.length" class="empty-state-text">
                 Редких слов не найдено
               </div>
-            </div>
-          </div>
-
-          <div v-show="lexicalActiveTab === 'dict'" class="tab-pane">
-            <p class="tab-desc">
-              Слова из вашего личного словаря, которые встретятся вам в этой книге.
-            </p>
-            <div v-if="dictionaryWordsInBook.length > 0" class="dict-match-list">
-              <div v-for="dictItem in dictionaryWordsInBook" :key="dictItem.word" class="dict-match-item">
-                <div class="dict-word-info">
-                  <span class="dict-word">{{ dictItem.word }}</span>
-                  <span class="dict-trans">{{ dictItem.transcription }}</span>
-                </div>
-                <div class="dict-trans-text" v-html="dictItem.translation" />
-              </div>
-            </div>
-            <div v-else class="empty-state-text">
-              В этой книге нет слов из вашего словаря.
             </div>
           </div>
         </div>
@@ -558,40 +517,6 @@ function handleWordClick(word: string, pos: string, event: MouseEvent) {
   color: var(--fg-muted-color);
   font-style: italic;
   padding: 12px 0;
-}
-.dict-match-list {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-  gap: 12px;
-}
-.dict-match-item {
-  padding: 12px;
-  background: var(--bg-primary-color);
-  border: 1px solid var(--border-primary-color);
-  border-radius: 8px;
-  .dict-word-info {
-    display: flex;
-    align-items: baseline;
-    gap: 8px;
-    margin-bottom: 4px;
-  }
-  .dict-word {
-    font-weight: 600;
-    color: var(--fg-accent-color);
-    font-size: 1.1rem;
-  }
-  .dict-trans {
-    font-size: 0.85rem;
-    color: var(--fg-secondary-color);
-  }
-  .dict-trans-text {
-    font-size: 0.9rem;
-    line-height: 1.4;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-  }
 }
 @keyframes spin {
   to {

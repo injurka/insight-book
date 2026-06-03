@@ -1,4 +1,4 @@
-import type { Book, BookStats, DictDeck, GeneratedWordExamples, LlmAnalysis, PagePayload, TocItem, UserDictItem } from '../types/models'
+import type { Book, BookStats, DictDeck, GeneratedWordExamples, LlmAnalysis, OpdsCatalog, OpdsFeed, PagePayload, TocItem, UserDictItem } from '../types/models'
 import { getActivePinia } from 'pinia'
 import { useGlobalSettingsStore } from '../store/settings.store'
 
@@ -174,5 +174,13 @@ export const api = {
 
   activity: {
     getHeatmap: () => request<{ date: string, count: number }[]>('/api/activity/heatmap'),
+  },
+
+  opds: {
+    getCatalogs: () => request<OpdsCatalog[]>('/api/opds/catalogs'),
+    addCatalog: (data: { title: string, url: string }) => request<OpdsCatalog>('/api/opds/catalogs', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+    deleteCatalog: (id: number) => request<{ success: boolean }>(`/api/opds/catalogs/${id}`, { method: 'DELETE' }),
+    browse: (url: string) => request<OpdsFeed>(`/api/opds/browse?url=${encodeURIComponent(url)}`),
+    download: (data: { downloadUrl: string, title: string, type?: string }) => request<{ success: boolean, book: Book }>('/api/opds/download', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
   },
 }

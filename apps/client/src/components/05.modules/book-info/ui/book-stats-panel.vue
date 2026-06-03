@@ -4,10 +4,12 @@ import { KitBtn, KitInput, KitSelect } from '~/components/01.kit'
 import { useLibraryStore } from '~/components/05.modules/library/store/library.store'
 import { useToast } from '~/shared/composables/use-toast'
 import { DIFFICULTY_SYSTEMS } from '~/shared/constants/difficulties'
+import { useAuthStore } from '~/shared/store/auth.store'
 import { useCacheStore } from '~/shared/store/cache.store'
 
 const libraryStore = useLibraryStore()
 const cacheStore = useCacheStore()
+const authStore = useAuthStore()
 const toast = useToast()
 
 const isEditingStats = defineModel<boolean>('isEditing', { default: false })
@@ -63,7 +65,6 @@ watch(isEditingStats, (val) => {
   if (val) {
     const stats = libraryStore.currentBookInfo?.stats
 
-    // Проверяем, есть ли старое значение в нашем новом списке
     const opts = currentDifficultyOptions.value.map(o => o.value)
     const currentDiff = stats?.difficulty || ''
     editForm.difficulty = opts.includes(currentDiff) ? currentDiff : ''
@@ -145,14 +146,14 @@ onMounted(() => {
         <div class="progress-fill" :style="{ width: `${((libraryStore.currentBookInfo.currentPage || 1) / libraryStore.currentBookInfo.totalPages) * 100}%` }" />
       </div>
 
-      <div v-if="bookCacheStats" class="cache-compact-info">
+      <div class="cache-compact-info" :class="{ 'is-loaded': !!bookCacheStats }">
         <div class="cache-item">
-          <Icon :icon="bookCacheStats.cachedPages.length >= libraryStore.currentBookInfo.totalPages ? 'mdi:cloud-check-variant' : 'mdi:cloud-download-outline'" :class="{ 'icon-success': bookCacheStats.cachedPages.length >= libraryStore.currentBookInfo.totalPages }" />
-          <span>В кэше: <b>{{ formatNumber(bookCacheStats.cachedPages.length) }}</b> / {{ formatNumber(libraryStore.currentBookInfo.totalPages) }} стр.</span>
+          <Icon :icon="(bookCacheStats?.cachedPages?.length || 0) >= libraryStore.currentBookInfo.totalPages ? 'mdi:cloud-check-variant' : 'mdi:cloud-download-outline'" :class="{ 'icon-success': (bookCacheStats?.cachedPages?.length || 0) >= libraryStore.currentBookInfo.totalPages }" />
+          <span>В кэше: <b>{{ formatNumber(bookCacheStats?.cachedPages?.length || 0) }}</b> / {{ formatNumber(libraryStore.currentBookInfo.totalPages) }} стр.</span>
         </div>
         <div class="cache-item">
-          <Icon icon="mdi:robot-outline" :class="{ 'icon-success': bookCacheStats.analysesCount > 0 }" />
-          <span>ИИ переводы: <b>{{ formatNumber(bookCacheStats.analysesCount) }}</b> фраз</span>
+          <Icon icon="mdi:robot-outline" :class="{ 'icon-success': (bookCacheStats?.analysesCount || 0) > 0 }" />
+          <span>ИИ переводы: <b>{{ formatNumber(bookCacheStats?.analysesCount || 0) }}</b> фраз</span>
         </div>
       </div>
     </div>
@@ -170,7 +171,7 @@ onMounted(() => {
         <h3>Информация</h3>
       </div>
 
-      <template v-if="isEditingStats">
+      <template v-if="isEditingStats && libraryStore.currentBookInfo.userId === authStore.user?.id">
         <div class="edit-form">
           <div class="ai-generate-actions">
             <KitBtn variant="outlined" color="accent" icon="mdi:robot-outline" class="flex-1" :disabled="libraryStore.isAnalyzingBook" @click="triggerAiAnalysis">
@@ -285,6 +286,16 @@ onMounted(() => {
     padding-top: 14px;
     border-top: 1px dashed var(--border-secondary-color);
     flex-wrap: wrap;
+    opacity: 0;
+    visibility: hidden;
+    transition:
+      opacity 0.3s ease,
+      visibility 0.3s ease;
+
+    &.is-loaded {
+      opacity: 1;
+      visibility: visible;
+    }
 
     .cache-item {
       display: flex;

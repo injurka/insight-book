@@ -77,6 +77,7 @@ export async function processCbz(fileBuffer: ArrayBuffer, filename: string, user
 
   await db.insert(schema.readingProgress).values({
     bookId,
+    userId,
     currentPage: 1,
   }).onConflictDoNothing()
 

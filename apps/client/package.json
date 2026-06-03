@@ -33,6 +33,7 @@
     "icons:bundle": "bun run build/bundle-icons.ts"
   },
   "dependencies": {
+    "@aejkatappaja/phantom-ui": "^1.0.0",
     "@floating-ui/vue": "^1.1.11",
     "@iconify-icons/mdi": "^1.2.48",
     "@tauri-apps/api": "^2.11.0",

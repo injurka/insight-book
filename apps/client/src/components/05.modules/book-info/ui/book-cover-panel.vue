@@ -67,7 +67,7 @@ function startReading() {
         Кэшировать / Анализ
       </KitBtn>
 
-      <KitBtn v-if="authStore.user" variant="text" size="sm" class="edit-btn" @click="emit('editStats')">
+      <KitBtn v-if="authStore.user && libraryStore.currentBookInfo?.userId === authStore.user.id" variant="text" size="sm" class="edit-btn" @click="emit('editStats')">
         Редактировать
       </KitBtn>
     </div>

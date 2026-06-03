@@ -1,5 +1,6 @@
 import { writeFileSync } from 'node:fs'
 import path from 'node:path'
+import AdmZip from 'adm-zip'
 import * as cheerio from 'cheerio'
 import { BOOKS_PATH, COVERS_PATH, PAGE_SIZE_CHARS } from '../config'
 import { db } from '../db'
@@ -10,7 +11,24 @@ export async function processFb2(fileBuffer: ArrayBuffer, filename: string, user
   const filePath = path.join(BOOKS_PATH, safeName)
   await Bun.write(filePath, fileBuffer)
 
-  const fileContent = await Bun.file(filePath).text()
+  let fileContent = ''
+
+  try {
+    const zip = new AdmZip(Buffer.from(fileBuffer))
+    const entries = zip.getEntries()
+    const fb2Entry = entries.find(e => e.entryName.toLowerCase().endsWith('.fb2') || e.entryName.toLowerCase().endsWith('.xml'))
+    if (fb2Entry) {
+      fileContent = fb2Entry.getData().toString('utf-8')
+    }
+  }
+  catch {
+    // Ignore ZIP parsing error, proceed as plain text
+  }
+
+  if (!fileContent) {
+    fileContent = await Bun.file(filePath).text()
+  }
+
   const $ = cheerio.load(fileContent, { xmlMode: true })
 
   const titleInfo = $('description title-info')
@@ -144,6 +162,7 @@ export async function processFb2(fileBuffer: ArrayBuffer, filename: string, user
 
   await db.insert(schema.readingProgress).values({
     bookId,
+    userId,
     currentPage: 1,
   }).onConflictDoNothing()
 

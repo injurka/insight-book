@@ -297,6 +297,7 @@ export async function processEpub(fileBuffer: ArrayBuffer, filename: string, use
 
         await db.insert(schema.readingProgress).values({
           bookId,
+          userId,
           currentPage: 1,
         }).onConflictDoNothing()
 

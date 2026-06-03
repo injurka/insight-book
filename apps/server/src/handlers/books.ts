@@ -4,7 +4,7 @@ import type { PagePayload } from '../types'
 import { readFileSync } from 'node:fs'
 import { rm, unlink } from 'node:fs/promises'
 import path from 'node:path'
-import { and, desc, eq } from 'drizzle-orm'
+import { and, desc, eq, or } from 'drizzle-orm'
 import { parse as parseHtml } from 'node-html-parser'
 import { z } from 'zod'
 import { BOOKS_PATH, CORS_HEADERS, COVERS_PATH } from '../config'
@@ -57,6 +57,7 @@ const UpdateBookSchema = z.object({
   status: z.enum(['reading', 'to-read', 'have-read']).optional(),
   isFavorite: z.boolean().optional(),
   collection: z.string().nullable().optional(),
+  isPublic: z.boolean().optional(),
 })
 
 const UpdateStatsSchema = z.object({
@@ -80,29 +81,51 @@ const GenerateTtsStandaloneSchema = z.object({
 })
 
 export async function handleGetBooks(req: Request, userId: number): Promise<Response> {
-  const books = await db.query.books.findMany({
-    where: eq(schema.books.userId, userId),
-    with: { progress: { columns: { currentPage: true, updatedAt: true } } },
+  const allBooks = await db.query.books.findMany({
+    where: or(
+      eq(schema.books.userId, userId),
+      eq(schema.books.isPublic, true),
+    ),
+    with: { progresses: { where: eq(schema.readingProgress.userId, userId), limit: 1 } },
     orderBy: [desc(schema.books.updatedAt)],
   })
-  const result = books.map(({ progress, ...book }) => ({
-    ...book,
-    currentPage: progress?.currentPage ?? null,
-    progressUpdatedAt: progress?.updatedAt ?? null,
-  }))
+
+  // Фильтруем те публичные книги, которые юзер еще не начал читать (чтобы они не захламляли библиотеку)
+  const result = allBooks
+    .filter(b => b.userId === userId || b.progresses.length > 0)
+    .map((book) => {
+      const progress = book.progresses[0]
+      const { progresses, ...bookData } = book
+      return {
+        ...bookData,
+        currentPage: progress?.currentPage ?? null,
+        progressUpdatedAt: progress?.updatedAt ?? null,
+      }
+    })
+
+  result.sort((a, b) => {
+    const tA = new Date(a.progressUpdatedAt || a.updatedAt).getTime()
+    const tB = new Date(b.progressUpdatedAt || b.updatedAt).getTime()
+    return tB - tA
+  })
+
   return json(result)
 }
 
 export async function handleGetBookInfo(req: Request, userId: number): Promise<Response> {
   const id = Number((req as any).params.id)
   const book = await db.query.books.findFirst({
-    where: and(eq(schema.books.id, id), eq(schema.books.userId, userId)),
-    with: { progress: { columns: { currentPage: true } }, stats: true },
+    where: and(
+      eq(schema.books.id, id),
+      or(eq(schema.books.userId, userId), eq(schema.books.isPublic, true)),
+    ),
+    with: { progresses: { where: eq(schema.readingProgress.userId, userId), limit: 1 }, stats: true },
   })
   if (!book)
-    throw new AppError(404, 'Книга не найдена')
+    throw new AppError(404, 'Книга не найдена или доступ закрыт')
 
-  const { progress, stats, ...bookData } = book
+  const progress = book.progresses[0]
+  const { progresses, stats, ...bookData } = book
   const statsResult = stats
     ? {
       ...stats,
@@ -119,9 +142,9 @@ export async function handleGetBookInfo(req: Request, userId: number): Promise<R
 
 export async function handleAnalyzeVocabulary(req: Request, userId: number): Promise<Response> {
   const id = Number((req as any).params.id)
-  const book = await db.query.books.findFirst({ where: and(eq(schema.books.id, id), eq(schema.books.userId, userId)) })
-  if (!book)
-    throw new AppError(404, 'Книга не найдена')
+  const book = await db.query.books.findFirst({ where: eq(schema.books.id, id) })
+  if (!book || book.userId !== userId)
+    throw new AppError(403, 'Нет доступа')
 
   const result = await runWorkerTask('analyzeBookVocabulary', { bookId: id, language: book.language })
 
@@ -142,10 +165,30 @@ export async function handleUpdateBook(req: Request, userId: number): Promise<Re
   const id = Number((req as any).params.id)
   const body = UpdateBookSchema.parse(await req.json())
 
-  const book = await db.query.books.findFirst({ where: and(eq(schema.books.id, id), eq(schema.books.userId, userId)) })
+  const book = await db.query.books.findFirst({ where: eq(schema.books.id, id) })
   if (!book)
     throw new AppError(404, 'Книга не найдена')
 
+  // Если это не владелец, он может только сохранить свой прогресс
+  if (book.userId !== userId) {
+    if (!book.isPublic)
+      throw new AppError(404, 'Книга не найдена или доступ закрыт')
+
+    if (typeof body.currentPage === 'number') {
+      await db.insert(schema.readingProgress).values({
+        bookId: id,
+        userId,
+        currentPage: body.currentPage,
+        updatedAt: new Date().toISOString(),
+      }).onConflictDoUpdate({
+        target: [schema.readingProgress.bookId, schema.readingProgress.userId],
+        set: { currentPage: body.currentPage, updatedAt: new Date().toISOString() },
+      })
+    }
+    return json({ success: true })
+  }
+
+  // Обновление от лица владельца
   await db.update(schema.books).set({
     title: body.title,
     author: body.author,
@@ -157,11 +200,20 @@ export async function handleUpdateBook(req: Request, userId: number): Promise<Re
     status: body.status,
     isFavorite: body.isFavorite,
     collection: body.collection,
+    isPublic: body.isPublic,
     updatedAt: new Date().toISOString(),
   }).where(eq(schema.books.id, id))
 
   if (typeof body.currentPage === 'number') {
-    await db.insert(schema.readingProgress).values({ bookId: id, currentPage: body.currentPage, updatedAt: new Date().toISOString() }).onConflictDoUpdate({ target: schema.readingProgress.bookId, set: { currentPage: body.currentPage, updatedAt: new Date().toISOString() } })
+    await db.insert(schema.readingProgress).values({
+      bookId: id,
+      userId,
+      currentPage: body.currentPage,
+      updatedAt: new Date().toISOString(),
+    }).onConflictDoUpdate({
+      target: [schema.readingProgress.bookId, schema.readingProgress.userId],
+      set: { currentPage: body.currentPage, updatedAt: new Date().toISOString() },
+    })
   }
   return json({ success: true })
 }
@@ -171,9 +223,9 @@ export async function handleAnalyzeBookStats(req: Request, userId: number): Prom
   const config = extractLlmConfig(req)
 
   const id = Number((req as any).params.id)
-  const book = await db.query.books.findFirst({ where: and(eq(schema.books.id, id), eq(schema.books.userId, userId)) })
-  if (!book)
-    throw new AppError(404, 'Книга не найдена')
+  const book = await db.query.books.findFirst({ where: eq(schema.books.id, id) })
+  if (!book || book.userId !== userId)
+    throw new AppError(403, 'Нет доступа')
 
   const pages = await db.select({ content: schema.bookPages.content }).from(schema.bookPages).where(eq(schema.bookPages.bookId, id)).orderBy(schema.bookPages.pageNum)
   if (!pages.length)
@@ -216,9 +268,9 @@ export async function handleAnalyzeBookStats(req: Request, userId: number): Prom
 export async function handleUpdateCover(req: Request, userId: number): Promise<Response> {
   const id = Number((req as any).params.id)
 
-  const oldBook = await db.query.books.findFirst({ where: and(eq(schema.books.id, id), eq(schema.books.userId, userId)), columns: { coverUrl: true } })
-  if (!oldBook)
-    throw new AppError(404, 'Книга не найдена')
+  const oldBook = await db.query.books.findFirst({ where: eq(schema.books.id, id), columns: { coverUrl: true, userId: true } })
+  if (!oldBook || oldBook.userId !== userId)
+    throw new AppError(403, 'Нет доступа')
 
   const formData = await req.formData()
   const file = formData.get('file') as File | null
@@ -266,9 +318,9 @@ export async function handleGetCoverImage(req: Request): Promise<Response> {
 
 export async function handleUpdateStats(req: Request, userId: number): Promise<Response> {
   const id = Number((req as any).params.id)
-  const book = await db.query.books.findFirst({ where: and(eq(schema.books.id, id), eq(schema.books.userId, userId)) })
-  if (!book)
-    throw new AppError(404, 'Книга не найдена')
+  const book = await db.query.books.findFirst({ where: eq(schema.books.id, id) })
+  if (!book || book.userId !== userId)
+    throw new AppError(403, 'Нет доступа')
 
   const body = UpdateStatsSchema.parse(await req.json())
   const tagsJson = JSON.stringify(body.tags || [])
@@ -299,11 +351,11 @@ export async function handleUploadBook(req: Request, userId: number): Promise<Re
   if (filename.endsWith('.epub')) {
     bookId = await runWorkerTask('processEpub', { buffer: arrayBuffer, filename: file.name, userId })
   }
+  else if (filename.endsWith('.fb2') || filename.endsWith('.fb2.zip')) {
+    bookId = await runWorkerTask('processFb2', { buffer: arrayBuffer, filename: file.name, userId })
+  }
   else if (filename.endsWith('.cbz') || filename.endsWith('.zip')) {
     bookId = await runWorkerTask('processCbz', { buffer: arrayBuffer, filename: file.name, userId })
-  }
-  else if (filename.endsWith('.fb2')) {
-    bookId = await runWorkerTask('processFb2', { buffer: arrayBuffer, filename: file.name, userId })
   }
   else {
     throw new AppError(400, 'Поддерживаются только .epub, .cbz, .zip и .fb2 файлы')
@@ -315,9 +367,15 @@ export async function handleUploadBook(req: Request, userId: number): Promise<Re
 
 export async function handleDeleteBook(req: Request, userId: number): Promise<Response> {
   const id = Number((req as any).params.id)
-  const book = await db.query.books.findFirst({ where: and(eq(schema.books.id, id), eq(schema.books.userId, userId)), columns: { filePath: true, coverUrl: true } })
+  const book = await db.query.books.findFirst({ where: eq(schema.books.id, id), columns: { filePath: true, coverUrl: true, userId: true } })
   if (!book)
     throw new AppError(404, 'Книга не найдена')
+
+  // Если это не владелец, то мы просто скрываем её (удаляем его личный прогресс)
+  if (book.userId !== userId) {
+    await db.delete(schema.readingProgress).where(and(eq(schema.readingProgress.bookId, id), eq(schema.readingProgress.userId, userId)))
+    return json({ success: true })
+  }
 
   await db.transaction(async (tx) => {
     await tx.delete(schema.books).where(eq(schema.books.id, id))
@@ -353,9 +411,11 @@ export async function handleDeleteBook(req: Request, userId: number): Promise<Re
 
 export async function handleGetToc(req: Request, userId: number): Promise<Response> {
   const bookId = Number((req as any).params.id)
-  const book = db.select({ toc: schema.books.toc }).from(schema.books).where(and(eq(schema.books.id, bookId), eq(schema.books.userId, userId))).get()
-  if (!book)
-    throw new AppError(404, 'Книга не найдена')
+  const book = await db.query.books.findFirst({ where: eq(schema.books.id, bookId), columns: { toc: true, userId: true, isPublic: true } })
+
+  if (!book || (book.userId !== userId && !book.isPublic))
+    throw new AppError(403, 'Нет доступа к книге')
+
   return json(book.toc ? JSON.parse(book.toc) : [], 200, {
     'Cache-Control': 'private, stale-while-revalidate=60',
   })
@@ -367,18 +427,20 @@ export async function handleGetPage(req: Request, userId: number): Promise<Respo
   const url = new URL(req.url)
   const isSync = url.searchParams.get('sync') === 'true'
 
-  const book = db.select({ totalPages: schema.books.totalPages, language: schema.books.language, type: schema.books.type })
+  const book = db.select({ totalPages: schema.books.totalPages, language: schema.books.language, type: schema.books.type, userId: schema.books.userId, isPublic: schema.books.isPublic })
     .from(schema.books)
-    .where(and(eq(schema.books.id, bookId), eq(schema.books.userId, userId)))
+    .where(eq(schema.books.id, bookId))
     .get()
 
   if (!book)
     throw new AppError(404, 'Книга не найдена')
+  if (book.userId !== userId && !book.isPublic)
+    throw new AppError(403, 'Нет доступа к книге')
 
   if (!isSync) {
     await db.insert(schema.readingProgress)
-      .values({ bookId, currentPage: pageNum, updatedAt: new Date().toISOString() })
-      .onConflictDoUpdate({ target: schema.readingProgress.bookId, set: { currentPage: pageNum, updatedAt: new Date().toISOString() } })
+      .values({ bookId, userId, currentPage: pageNum, updatedAt: new Date().toISOString() })
+      .onConflictDoUpdate({ target: [schema.readingProgress.bookId, schema.readingProgress.userId], set: { currentPage: pageNum, updatedAt: new Date().toISOString() } })
   }
 
   if (book.type === 'manga') {
@@ -454,8 +516,11 @@ export async function handleGetPage(req: Request, userId: number): Promise<Respo
 
 export async function handleLookupWord(req: Request, userId: number): Promise<Response> {
   const { id: bookId, word } = (req as any).params
-  const book = db.select({ language: schema.books.language }).from(schema.books).where(and(eq(schema.books.id, bookId), eq(schema.books.userId, userId))).get()
-  const lang = book?.language || 'en'
+  const book = await db.query.books.findFirst({ where: eq(schema.books.id, bookId), columns: { language: true, userId: true, isPublic: true } })
+  if (!book || (book.userId !== userId && !book.isPublic))
+    throw new AppError(403, 'Нет доступа')
+
+  const lang = book.language || 'en'
   const entry = await lookupSingleWord(decodeURIComponent(word), lang, userId)
   if (!entry)
     throw new AppError(404, 'Слово не найдено в локальном словаре')
@@ -467,9 +532,9 @@ export async function handleAnalyzeSentence(req: Request, userId: number): Promi
   const config = extractLlmConfig(req)
 
   const bookId = Number((req as any).params.id)
-  const book = db.select({ id: schema.books.id }).from(schema.books).where(and(eq(schema.books.id, bookId), eq(schema.books.userId, userId))).get()
-  if (!book)
-    throw new AppError(404, 'Книга не найдена')
+  const book = await db.query.books.findFirst({ where: eq(schema.books.id, bookId), columns: { id: true, userId: true, isPublic: true } })
+  if (!book || (book.userId !== userId && !book.isPublic))
+    throw new AppError(403, 'Нет доступа')
 
   const { sentence, language } = AnalyzeSentenceSchema.parse(await req.json())
   const analysis = await analyzeSentence(bookId, sentence, language, config)
@@ -481,16 +546,15 @@ export async function handleGenerateTts(req: Request, userId: number): Promise<R
   const config = extractLlmConfig(req)
 
   const bookId = Number((req as any).params.id)
-  const book = await db.query.books.findFirst({ where: and(eq(schema.books.id, bookId), eq(schema.books.userId, userId)), columns: { language: true } })
-  if (!book)
-    throw new AppError(404, 'Книга не найдена')
+  const book = await db.query.books.findFirst({ where: eq(schema.books.id, bookId), columns: { language: true, userId: true, isPublic: true } })
+  if (!book || (book.userId !== userId && !book.isPublic))
+    throw new AppError(403, 'Нет доступа')
 
   const { text } = GenerateTtsSchema.parse(await req.json())
   const audioBase64 = await generateTts(text, book.language, config)
   return json({ audioBase64 })
 }
 
-// Новый эндпоинт для независимой (без привязки к книге) генерации TTS (например, из словаря)
 export async function handleStandaloneTts(req: Request, userId: number): Promise<Response> {
   llmLimiter(String(userId))
   const config = extractLlmConfig(req)

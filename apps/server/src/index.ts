@@ -36,13 +36,21 @@ import {
   handleUpdateDeck,
   handleUpsertToUserDict,
 } from './handlers/dictionary'
+import {
+  handleAddCatalog,
+  handleBrowseOpds,
+  handleDeleteCatalog,
+  handleDownloadOpdsBook,
+  handleGetCatalogs,
+} from './handlers/opds'
+
+import { initScheduler } from './services/scheduler.service'
 import { authWrapper } from './utils/auth'
 import { withCors } from './utils/cors'
-import { apiWrapper } from './utils/errors'
 
+import { apiWrapper } from './utils/errors'
 import { logRoutes } from './utils/print-routes'
 import './db'
-import { initScheduler } from './services/scheduler.service'
 
 function corsOk() {
   return new Response(null, { status: 204, headers: CORS_HEADERS })
@@ -93,6 +101,12 @@ const apiRoutes = {
 
   // Words
   '/api/dictionary/:word': { OPTIONS: corsOk, GET: apiWrapper(authWrapper(handleGetWordFromUserDict)), DELETE: apiWrapper(authWrapper(handleRemoveFromUserDict)) },
+
+  // --- OPDS API ---
+  '/api/opds/catalogs': { OPTIONS: corsOk, GET: apiWrapper(authWrapper(handleGetCatalogs)), POST: apiWrapper(authWrapper(handleAddCatalog)) },
+  '/api/opds/catalogs/:id': { OPTIONS: corsOk, DELETE: apiWrapper(authWrapper(handleDeleteCatalog)) },
+  '/api/opds/browse': { OPTIONS: corsOk, GET: apiWrapper(authWrapper(handleBrowseOpds)) },
+  '/api/opds/download': { OPTIONS: corsOk, POST: apiWrapper(authWrapper(handleDownloadOpdsBook)) },
 }
 
 Bun.serve({

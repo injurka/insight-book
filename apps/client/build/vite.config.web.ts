@@ -72,7 +72,28 @@ export default defineConfig({
       output: {
         manualChunks(id) {
           if (id.includes('node_modules')) {
-            return 'vendor'
+            // 1. Ядро Vue (всегда нужно сразу)
+            if (/[\\/]node_modules[\\/](?:vue|vue-router|pinia|@vueuse)[\\/]/.test(id)) {
+              return 'vendor-core'
+            }
+            // 2. Специфичные тяжелые библиотеки (загрузятся только там, где нужны)
+            if (id.includes('hanzi-writer')) {
+              return 'vendor-hanzi'
+            }
+            if (id.includes('dompurify')) {
+              return 'vendor-dompurify'
+            }
+            // 3. UI инструменты
+            if (id.includes('@floating-ui') || id.includes('@iconify')) {
+              return 'vendor-ui'
+            }
+            // 4. База данных и PWA
+            if (id.includes('localforage') || id.includes('workbox')) {
+              return 'vendor-storage'
+            }
+
+            // Все остальное
+            return 'vendor-others'
           }
         },
       },

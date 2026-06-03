@@ -44,9 +44,9 @@ const progressPercent = computed(() => {
         </h2>
 
         <div v-if="authStore.user" class="header-actions">
-          <KitTooltip text="Редактировать" placement="top-end">
+          <KitTooltip :text="book.userId === authStore.user.id ? 'Редактировать' : 'Удалить из библиотеки'" placement="top-end">
             <button class="edit-btn" @click.stop="emit('edit')">
-              <Icon icon="mdi:dots-vertical" />
+              <Icon :icon="book.userId === authStore.user.id ? 'mdi:dots-vertical' : 'mdi:close'" />
             </button>
           </KitTooltip>
         </div>

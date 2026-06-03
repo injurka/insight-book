@@ -10,7 +10,7 @@ interface Props {
 
 const props = withDefaults(defineProps<Props>(), {
   radius: 200,
-  opacity: 0.15,
+  opacity: 0.10,
   text: [
     // О чтении, книгах и языках
     'A reader lives a thousand lives before he dies.',

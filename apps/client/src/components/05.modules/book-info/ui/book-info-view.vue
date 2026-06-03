@@ -1,10 +1,9 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { KitBtn, KitSkeleton } from '~/components/01.kit'
 import { HoverRevealBg } from '~/components/02.shared/hover-reveal-bg'
 import { SelectionTooltip, SentenceAnalysis, WordPopover } from '~/components/03.domain/analysis'
-import { useDictionaryStore } from '~/components/05.modules/dictionary/store/dictionary.store'
 
 import { useLibraryStore } from '~/components/05.modules/library/store/library.store'
 import { AppRoutePaths } from '~/shared/constants/routes'
@@ -18,7 +17,6 @@ import BookTocPanel from './book-toc-panel.vue'
 const route = useRoute()
 const router = useRouter()
 const libraryStore = useLibraryStore()
-const dictStore = useDictionaryStore()
 
 const bookId = computed(() => Number(route.params.id))
 const isEditingStats = ref(false)
@@ -32,11 +30,6 @@ watch(
   },
   { immediate: true },
 )
-
-onMounted(() => {
-  if (dictStore.words.length === 0)
-    dictStore.fetchDictionary()
-})
 
 function goBack() {
   router.push(AppRoutePaths.Home)

@@ -3,7 +3,7 @@ import type { Book } from '~/shared/types/models'
 import { Icon } from '@iconify/vue'
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { KitBtn, KitDialog, KitSkeleton } from '~/components/01.kit'
+import { KitBtn, KitDialog, KitPrompt, KitSkeleton } from '~/components/01.kit'
 import { HoverRevealBg } from '~/components/02.shared/hover-reveal-bg'
 import { useToast } from '~/shared/composables/use-toast'
 import { AppRoutePaths } from '~/shared/constants/routes'
@@ -12,6 +12,7 @@ import { useLibraryStore } from '../store/library.store'
 import BookCard from './book-card.vue'
 import EditBookModal from './edit-book-modal.vue'
 import LibraryHeader from './library-header.vue'
+import OpdsBrowser from './opds-browser.vue'
 
 const store = useLibraryStore()
 const authStore = useAuthStore()
@@ -22,6 +23,9 @@ const searchQuery = ref('')
 const selectedLang = ref('all')
 const editModalOpen = ref(false)
 const selectedBookToEdit = ref<Book | null>(null)
+
+const isHidePromptOpen = ref(false)
+const bookToHideId = ref<number | null>(null)
 
 // Навигация
 const currentView = ref('reading-now')
@@ -43,6 +47,7 @@ const menuItems = [
   { id: 'authors', label: 'Авторы', icon: 'mdi:account-group-outline' },
   { id: 'series', label: 'Серии', icon: 'mdi:folder-outline' },
   { id: 'collections', label: 'Коллекции', icon: 'mdi:bookshelf' },
+  { id: 'opds', label: 'OPDS Каталоги', icon: 'mdi:web' },
 ]
 
 function getFolderIcon(view: string) {
@@ -177,8 +182,20 @@ function openBookInfo(book: Book) {
 }
 
 function openEditModal(book: Book) {
+  if (book.userId !== authStore.user?.id) {
+    bookToHideId.value = book.id
+    isHidePromptOpen.value = true
+    return
+  }
   selectedBookToEdit.value = book
   editModalOpen.value = true
+}
+
+function onConfirmHideBook() {
+  if (bookToHideId.value) {
+    handleDeleteBook(bookToHideId.value)
+  }
+  bookToHideId.value = null
 }
 
 async function handleSaveEdit({ bookData, coverFile }: { bookData: Partial<Book>, coverFile: File | null }) {
@@ -262,6 +279,10 @@ onMounted(() => {
             </div>
           </div>
 
+          <div v-else-if="currentView === 'opds'" style="padding-top: 16px;">
+            <OpdsBrowser />
+          </div>
+
           <div v-else-if="store.books.length === 0" class="empty-state">
             <h2>Библиотека пуста</h2>
             <p v-if="authStore.user">
@@ -332,6 +353,16 @@ onMounted(() => {
         :book="selectedBookToEdit"
         @save="handleSaveEdit"
         @delete="handleDeleteBook"
+      />
+
+      <KitPrompt
+        v-model:visible="isHidePromptOpen"
+        title="Скрыть книгу"
+        description="Скрыть эту публичную книгу из вашей библиотеки? Ваш личный прогресс чтения будет удален."
+        :hide-input="true"
+        confirm-text="Скрыть"
+        cancel-text="Отмена"
+        @submit="onConfirmHideBook"
       />
     </div>
   </div>

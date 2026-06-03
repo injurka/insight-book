@@ -12,6 +12,9 @@ const emit = defineEmits<{
   (e: 'delete', bookId: number): void
 }>()
 
+const { copy } = useClipboard()
+const toast = useToast()
+
 const visible = defineModel<boolean>('visible', { required: true })
 
 const editCoverInput = ref<HTMLInputElement | null>(null)
@@ -51,6 +54,7 @@ watch(() => props.book, (newBook) => {
       createdAt: formatToDateTimeLocal(newBook.createdAt),
       status: newBook.status || 'reading',
       isFavorite: newBook.isFavorite || false,
+      isPublic: newBook.isPublic || false,
     }
   }
   else {
@@ -89,6 +93,14 @@ function handleSave() {
 function handleDelete() {
   if (editingBook.value.id !== undefined) {
     emit('delete', editingBook.value.id)
+  }
+}
+
+function copyLink() {
+  if (editingBook.value.id) {
+    const link = `${window.location.origin}/book/${editingBook.value.id}`
+    copy(link)
+    toast.success('Ссылка на книгу скопирована!')
   }
 }
 </script>
@@ -131,13 +143,19 @@ function handleDelete() {
         </div>
       </div>
 
-      <div class="form-group row-group">
-        <div class="form-group" style="flex: 1">
-          <label>Коллекция</label>
-          <KitInput v-model="editingBook.collection" placeholder="Например: Избранное фентези" />
-        </div>
-        <div class="form-group" style="display:flex; justify-content: flex-start; padding-top: 18px; flex: 1">
-          <KitCheckbox v-model="editingBook.isFavorite" label="Добавить в Избранное" />
+      <div class="form-group">
+        <label>Коллекция</label>
+        <KitInput v-model="editingBook.collection" placeholder="Например: Избранное фентези" />
+      </div>
+
+      <div class="checkbox-row">
+        <KitCheckbox v-model="editingBook.isFavorite" label="Добавить в Избранное" />
+
+        <div class="public-wrapper">
+          <KitCheckbox v-model="editingBook.isPublic" label="Сделать публичной" />
+          <KitTooltip v-if="editingBook.isPublic" text="Скопировать ссылку для друзей" placement="top">
+            <KitBtn size="xs" variant="outlined" icon="mdi:link-variant" @click="copyLink" />
+          </KitTooltip>
         </div>
       </div>
 
@@ -216,6 +234,26 @@ function handleDelete() {
     font-size: 0.875rem;
     &:focus {
       border-color: var(--fg-accent-color);
+    }
+  }
+
+  .checkbox-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin-top: 4px;
+    min-height: 28px;
+
+    :deep(.kit-checkbox) {
+      margin-top: 0 !important;
+      margin-right: 24px;
+    }
+
+    .public-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 8px;
     }
   }
 }
