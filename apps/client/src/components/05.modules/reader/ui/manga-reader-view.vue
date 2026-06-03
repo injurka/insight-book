@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useWakeLock } from '@vueuse/core'
 import { KitBtn, KitDialog } from '~/components/01.kit'
 
 import { PageLoader } from '~/components/02.shared/page-loader'
@@ -18,6 +19,24 @@ const route = useRoute()
 const { onPointerDown, onPointerUp, onWordClick } = useTextSelection()
 
 const readerViewRef = useTemplateRef<HTMLElement>('readerViewRef')
+
+const { isSupported: isWakeLockSupported, request: requestWakeLock, release: releaseWakeLock } = useWakeLock()
+
+watch(() => analysisStore.isAnalyzingPage, async (isAnalyzing) => {
+  if (!isWakeLockSupported.value)
+    return
+  if (isAnalyzing) {
+    try {
+      await requestWakeLock('screen')
+    }
+    catch (err) {
+      console.warn('Wake Lock request failed:', err)
+    }
+  }
+  else {
+    await releaseWakeLock()
+  }
+})
 
 watch(() => analysisStore.activeTokenId, (newId, oldId) => {
   if (oldId) {
@@ -136,7 +155,7 @@ function onScroll() {
       <div v-if="analysisStore.isAnalyzingPage" class="page-analysis-overlay">
         <div class="analysis-dialog">
           <h3>Анализ страницы</h3>
-          <p>Обработано {{ analysisStore.pageAnalysisCurrent }} из {{ analysisStore.pageAnalysisTotal }} элементов...</p>
+          <p>Обработано <b>{{ analysisStore.pageAnalysisCurrent }}</b> из <b>{{ analysisStore.pageAnalysisTotal }}</b> элементов...</p>
           <div class="progress-bar">
             <div class="progress-fill" :style="{ width: `${analysisStore.pageAnalysisProgress}%` }" />
           </div>
@@ -355,6 +374,11 @@ function onScroll() {
       margin: 0;
       color: var(--fg-secondary-color);
       font-size: 0.95rem;
+      font-variant-numeric: tabular-nums;
+
+      b {
+        color: var(--fg-primary-color);
+      }
     }
 
     .progress-bar {
@@ -387,6 +411,7 @@ function onScroll() {
   cursor: pointer;
   border-radius: 8px;
   background-color: var(--bg-secondary-color);
+
   &:hover {
     background-color: var(--bg-hover-color);
     color: var(--fg-accent-color);

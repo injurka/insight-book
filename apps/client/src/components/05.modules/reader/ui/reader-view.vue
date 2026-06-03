@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useResizeObserver } from '@vueuse/core'
+import { useResizeObserver, useWakeLock } from '@vueuse/core'
 import DOMPurify from 'dompurify'
 import { computed, nextTick, useTemplateRef, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
@@ -21,6 +21,24 @@ const router = useRouter()
 const route = useRoute()
 
 const readerViewRef = useTemplateRef<HTMLElement>('readerViewRef')
+
+const { isSupported: isWakeLockSupported, request: requestWakeLock, release: releaseWakeLock } = useWakeLock()
+
+watch(() => analysisStore.isAnalyzingPage, async (isAnalyzing) => {
+  if (!isWakeLockSupported.value)
+    return
+  if (isAnalyzing) {
+    try {
+      await requestWakeLock('screen')
+    }
+    catch (err) {
+      console.warn('Wake Lock request failed:', err)
+    }
+  }
+  else {
+    await releaseWakeLock()
+  }
+})
 
 const safePageContent = computed(() => {
   if (!readerStore.currentPage?.content)
@@ -108,7 +126,6 @@ function syncHeights() {
     heights[i] = Math.max(leftHeight, rightHeight)
   }
 
-  // ЦИКЛ 2: Только запись свойств
   for (let i = 0; i < minLen; i++) {
     if (heights[i] > 0) {
       leftNodes[i].style.minHeight = `${heights[i]}px`
@@ -376,7 +393,7 @@ function onScroll() {
       <div v-if="analysisStore.isAnalyzingPage" class="page-analysis-overlay">
         <div class="analysis-dialog">
           <h3>Анализ страницы</h3>
-          <p>Обработано {{ analysisStore.pageAnalysisCurrent }} из {{ analysisStore.pageAnalysisTotal }} элементов...</p>
+          <p>Обработано <b>{{ analysisStore.pageAnalysisCurrent }}</b> из <b>{{ analysisStore.pageAnalysisTotal }}</b> элементов...</p>
           <div class="progress-bar">
             <div class="progress-fill" :style="{ width: `${analysisStore.pageAnalysisProgress}%` }" />
           </div>
@@ -609,6 +626,7 @@ function onScroll() {
   align-items: center;
   justify-content: center;
   padding: 16px;
+
   .analysis-dialog {
     background-color: var(--bg-secondary-color);
     padding: 24px;
@@ -621,15 +639,22 @@ function onScroll() {
     display: flex;
     flex-direction: column;
     gap: 16px;
+
     h3 {
       margin: 0;
       color: var(--fg-primary-color);
       font-size: 1.25rem;
     }
+
     p {
       margin: 0;
       color: var(--fg-secondary-color);
       font-size: 0.95rem;
+      font-variant-numeric: tabular-nums;
+
+      b {
+        color: var(--fg-primary-color);
+      }
     }
     .progress-bar {
       width: 100%;
@@ -661,6 +686,7 @@ function onScroll() {
     background-color 0.2s,
     color 0.2s;
   color: var(--fg-secondary-color);
+
   &:hover {
     background-color: var(--bg-secondary-color);
     color: var(--fg-primary-color);
