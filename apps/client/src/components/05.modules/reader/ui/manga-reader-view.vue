@@ -7,6 +7,7 @@ import { SelectionTooltip, SentenceAnalysis, useTextSelection, WordPopover } fro
 import { useAnalysisStore } from '~/shared/store/analysis.store'
 import { getMediaUrl } from '~/workers/service/lib/utils'
 
+import { useScrollRestoration } from '../composables/use-scroll-restoration'
 import { useReaderStore } from '../store/reader.store'
 import ReaderFooter from './reader-footer.vue'
 import ReaderHeader from './reader-header.vue'
@@ -21,6 +22,12 @@ const { onPointerDown, onPointerUp, onWordClick } = useTextSelection()
 const readerViewRef = useTemplateRef<HTMLElement>('readerViewRef')
 
 const { isSupported: isWakeLockSupported, request: requestWakeLock, release: releaseWakeLock } = useWakeLock()
+
+const { saveScrollPosition, restoreScrollPosition, setScrollIntent } = useScrollRestoration(
+  readerViewRef,
+  () => readerStore.currentBook?.id,
+  () => readerStore.currentPage?.pageNum,
+)
 
 watch(() => analysisStore.isAnalyzingPage, async (isAnalyzing) => {
   if (!isWakeLockSupported.value)
@@ -64,13 +71,30 @@ function getBoxStyle(box: any) {
   }
 }
 
+watch(() => readerStore.isPageLoading, async (isLoading) => {
+  if (!isLoading && readerStore.currentPage) {
+    await nextTick()
+    restoreScrollPosition()
+  }
+}, { immediate: true })
+
+function onScroll() {
+  if (analysisStore.wordPopover) {
+    analysisStore.closePopover()
+  }
+  if (analysisStore.selectionTooltip) {
+    analysisStore.closeSelectionTooltip()
+  }
+  saveScrollPosition()
+}
+
 async function prevPage() {
   if (readerStore.currentBook && (readerStore.currentBook.currentPage || 1) > 1) {
     const newPage = (readerStore.currentBook.currentPage || 1) - 1
     try {
+      setScrollIntent(readerStore.currentBook.id, newPage, 'bottom')
       await readerStore.loadPage(readerStore.currentBook.id, newPage)
       router.replace({ query: { ...route.query, page: newPage } })
-      readerViewRef.value?.scrollTo({ top: 0, behavior: 'instant' })
     }
     catch {}
   }
@@ -80,9 +104,9 @@ async function nextPage() {
   if (readerStore.currentBook && (readerStore.currentBook.currentPage || 1) < readerStore.currentBook.totalPages) {
     const newPage = (readerStore.currentBook.currentPage || 1) + 1
     try {
+      setScrollIntent(readerStore.currentBook.id, newPage, 'top')
       await readerStore.loadPage(readerStore.currentBook.id, newPage)
       router.replace({ query: { ...route.query, page: newPage } })
-      readerViewRef.value?.scrollTo({ top: 0, behavior: 'instant' })
     }
     catch {}
   }
@@ -93,20 +117,11 @@ async function goToPage(pageNum?: number) {
     return
   readerStore.tocOpen = false
   try {
+    setScrollIntent(readerStore.currentBook.id, pageNum, 'top')
     await readerStore.loadPage(readerStore.currentBook.id, pageNum)
     router.replace({ query: { ...route.query, page: pageNum } })
-    readerViewRef.value?.scrollTo({ top: 0, behavior: 'instant' })
   }
   catch {}
-}
-
-function onScroll() {
-  if (analysisStore.wordPopover) {
-    analysisStore.closePopover()
-  }
-  if (analysisStore.selectionTooltip) {
-    analysisStore.closeSelectionTooltip()
-  }
 }
 </script>
 
@@ -132,7 +147,7 @@ function onScroll() {
             @touchcancel="onPointerUp"
             @mouseleave="onPointerUp"
           >
-            <img :src="`${getMediaUrl(readerStore.currentPage.imageUrl)}`" class="manga-image">
+            <img :src="`${getMediaUrl(readerStore.currentPage.imageUrl)}`" class="manga-image" @load="restoreScrollPosition">
 
             <div class="ocr-overlay">
               <div

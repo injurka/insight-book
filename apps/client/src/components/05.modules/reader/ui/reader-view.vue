@@ -9,6 +9,7 @@ import { PageLoader } from '~/components/02.shared/page-loader'
 import { SelectionTooltip, SentenceAnalysis, WordPopover } from '~/components/03.domain/analysis'
 import { useAnalysisStore } from '~/shared/store/analysis.store'
 import { useGlobalSettingsStore } from '~/shared/store/settings.store'
+import { useScrollRestoration } from '../composables/use-scroll-restoration'
 import { useReaderStore } from '../store/reader.store'
 import ReaderFooter from './reader-footer.vue'
 import ReaderHeader from './reader-header.vue'
@@ -23,6 +24,12 @@ const route = useRoute()
 const readerViewRef = useTemplateRef<HTMLElement>('readerViewRef')
 
 const { isSupported: isWakeLockSupported, request: requestWakeLock, release: releaseWakeLock } = useWakeLock()
+
+const { saveScrollPosition, restoreScrollPosition, setScrollIntent } = useScrollRestoration(
+  readerViewRef,
+  () => readerStore.currentBook?.id,
+  () => readerStore.currentPage?.pageNum,
+)
 
 watch(() => analysisStore.isAnalyzingPage, async (isAnalyzing) => {
   if (!isWakeLockSupported.value)
@@ -134,6 +141,17 @@ function syncHeights() {
   }
 }
 
+watch(() => readerStore.isPageLoading, async (isLoading) => {
+  if (!isLoading && readerStore.currentPage) {
+    await nextTick()
+    if (readerStore.isParallelView) {
+      syncHeights()
+      setTimeout(syncHeights, 300)
+    }
+    restoreScrollPosition()
+  }
+}, { immediate: true })
+
 watch(
   [
     () => readerStore.isParallelView,
@@ -142,13 +160,18 @@ watch(
     () => settingsStore.readerLineHeight,
   ],
   async () => {
+    if (readerStore.isPageLoading)
+      return
     await nextTick()
-    setTimeout(syncHeights, 100)
+    if (readerStore.isParallelView) {
+      syncHeights()
+    }
+    restoreScrollPosition()
   },
 )
 
 useResizeObserver(readerViewRef, () => {
-  if (readerStore.isParallelView) {
+  if (readerStore.isParallelView && !readerStore.isPageLoading) {
     syncHeights()
   }
 })
@@ -198,9 +221,9 @@ async function prevPage() {
   if (readerStore.currentBook && (readerStore.currentBook.currentPage || 1) > 1) {
     const newPage = (readerStore.currentBook.currentPage || 1) - 1
     try {
+      setScrollIntent(readerStore.currentBook.id, newPage, 'bottom')
       await readerStore.loadPage(readerStore.currentBook.id, newPage)
       router.replace({ query: { ...route.query, page: newPage } })
-      readerViewRef.value?.scrollTo({ top: 0, behavior: 'instant' })
     }
     catch {}
   }
@@ -210,9 +233,9 @@ async function nextPage() {
   if (readerStore.currentBook && (readerStore.currentBook.currentPage || 1) < readerStore.currentBook.totalPages) {
     const newPage = (readerStore.currentBook.currentPage || 1) + 1
     try {
+      setScrollIntent(readerStore.currentBook.id, newPage, 'top')
       await readerStore.loadPage(readerStore.currentBook.id, newPage)
       router.replace({ query: { ...route.query, page: newPage } })
-      readerViewRef.value?.scrollTo({ top: 0, behavior: 'instant' })
     }
     catch {}
   }
@@ -225,9 +248,9 @@ async function goToPage(pageNum?: number) {
   readerStore.tocOpen = false
 
   try {
+    setScrollIntent(readerStore.currentBook.id, pageNum, 'top')
     await readerStore.loadPage(readerStore.currentBook.id, pageNum)
     router.replace({ query: { ...route.query, page: pageNum } })
-    readerViewRef.value?.scrollTo({ top: 0, behavior: 'instant' })
   }
   catch {}
 }
@@ -320,6 +343,7 @@ function onScroll() {
   if (analysisStore.selectionTooltip) {
     analysisStore.closeSelectionTooltip()
   }
+  saveScrollPosition()
 }
 </script>
 
