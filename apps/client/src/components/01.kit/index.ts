@@ -6,7 +6,6 @@ import KitImage from './kit-image/ui/kit-image.vue'
 import KitInput from './kit-input/ui/kit-input.vue'
 import KitPrompt from './kit-prompt/ui/kit-prompt.vue'
 import KitSelect from './kit-select/ui/kit-select.vue'
-import KitSkeletonPhantom from './kit-skeleton-phantom/ui/kit-skeleton-phantom.vue'
 import KitSkeleton from './kit-skeleton/ui/kit-skeleton.vue'
 import KitToast from './kit-toast/ui/kit-toast-item.vue'
 import KitTooltip from './kit-tooltip/ui/kit-tooltip.vue'
@@ -21,7 +20,6 @@ export {
   KitPrompt,
   KitSelect,
   KitSkeleton,
-  KitSkeletonPhantom,
   KitToast,
   KitTooltip,
 }

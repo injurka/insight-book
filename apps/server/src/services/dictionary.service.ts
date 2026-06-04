@@ -225,6 +225,8 @@ export async function upsertToUserDictionary(
     notes: item.notes,
     tags: item.tags,
     difficulty: item.difficulty,
+    grammarNote: item.grammarNote,
+    vocabularyNote: item.vocabularyNote,
     updatedAt: new Date().toISOString(),
   }).onConflictDoUpdate({
     target: [schema.userDictionary.userId, schema.userDictionary.word],
@@ -234,6 +236,8 @@ export async function upsertToUserDictionary(
       notes: item.notes,
       tags: item.tags,
       difficulty: item.difficulty,
+      grammarNote: item.grammarNote,
+      vocabularyNote: item.vocabularyNote,
       deckId,
       updatedAt: new Date().toISOString(),
     },
@@ -326,7 +330,7 @@ export async function processSrsReview(wordId: number, userId: number, grade: nu
   else if (grade === 1) {
     easeFactor = Math.max(1.3, easeFactor - 0.15)
     if (repetitions === 0 || interval < 1) {
-      interval = 30 / 1440 
+      interval = 30 / 1440
       repetitions = 0
     }
     else {

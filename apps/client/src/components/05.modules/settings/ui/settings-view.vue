@@ -2,7 +2,7 @@
 import { Icon } from '@iconify/vue'
 import { computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { KitBtn, KitCheckbox, KitInput, KitSkeletonPhantom, KitTooltip } from '~/components/01.kit'
+import { KitBtn, KitCheckbox, KitInput, KitSkeleton, KitTooltip } from '~/components/01.kit'
 import { HoverRevealBg } from '~/components/02.shared/hover-reveal-bg'
 import { AppRoutePaths } from '~/shared/constants/routes'
 import { useCacheStore } from '~/shared/store/cache.store'
@@ -36,213 +36,207 @@ const storagePercent = computed(() => {
       </div>
     </header>
 
-    <KitSkeletonPhantom :loading="cacheStore.isLoading">
-      <div class="content">
-        <!-- Настройки ИИ -->
-        <h2 class="section-title">
-          Искусственный интеллект
-        </h2>
-        <div class="settings-card llm-card">
-          <div class="llm-toggle">
-            <KitCheckbox v-model="settingsStore.useCustomLlm" label="Использовать локальный/собственный LLM (Ollama, LM Studio и др.)" />
-          </div>
-
-          <Transition name="fade">
-            <div v-if="settingsStore.useCustomLlm" class="custom-llm-form">
-              <p class="hint">
-                Укажите эндпоинт, совместимый с OpenAI API. Убедитесь, что ваш сервер разрешает CORS-запросы (например, для Ollama <code>OLLAMA_ORIGINS="*"</code>).
-              </p>
-              <div class="form-row">
-                <div class="form-group flex-2">
-                  <label>API URL</label>
-                  <KitInput v-model="settingsStore.customLlmUrl" placeholder="http://localhost:11434/v1" />
-                </div>
-                <div class="form-group flex-1">
-                  <label>Название модели</label>
-                  <KitInput v-model="settingsStore.customLlmModel" placeholder="llama3, qwen2..." />
-                </div>
-                <div class="form-group flex-1">
-                  <label>API Key</label>
-                  <KitInput v-model="settingsStore.customLlmKey" placeholder="Любой ключ" />
-                </div>
-              </div>
-            </div>
-          </Transition>
+    <div class="content">
+      <!-- Настройки ИИ -->
+      <h2 class="section-title">
+        Искусственный интеллект
+      </h2>
+      <div class="settings-card llm-card">
+        <div class="llm-toggle">
+          <KitCheckbox v-model="settingsStore.useCustomLlm" label="Использовать локальный/собственный LLM (Ollama, LM Studio и др.)" />
         </div>
 
-        <!-- Хранилище -->
-        <h2 class="section-title">
-          Локальная память
-        </h2>
-
-        <div class="settings-card quota-card">
-          <div class="quota-header">
-            <div class="quota-title">
-              <h3>Хранилище браузера</h3>
-              <KitTooltip
-                v-if="cacheStore.isPersisted"
-                text="Браузер не удалит ваши данные при нехватке места"
-                placement="top"
-              >
-                <div class="badge-safe">
-                  <Icon icon="mdi:shield-check" /> Защищено
-                </div>
-              </KitTooltip>
-              <KitTooltip
-                v-else
-                text="При нехватке памяти браузер может автоматически удалить кэш"
-                placement="top"
-              >
-                <div class="badge-warn">
-                  <Icon icon="mdi:shield-alert-outline" /> Не защищено
-                </div>
-              </KitTooltip>
+        <Transition name="fade">
+          <div v-if="settingsStore.useCustomLlm" class="custom-llm-form">
+            <p class="hint">
+              Укажите эндпоинт, совместимый с OpenAI API. Убедитесь, что ваш сервер разрешает CORS-запросы (например, для Ollama <code>OLLAMA_ORIGINS="*"</code>).
+            </p>
+            <div class="form-row">
+              <div class="form-group flex-2">
+                <label>API URL</label>
+                <KitInput v-model="settingsStore.customLlmUrl" placeholder="http://localhost:11434/v1" />
+              </div>
+              <div class="form-group flex-1">
+                <label>Название модели</label>
+                <KitInput v-model="settingsStore.customLlmModel" placeholder="llama3, qwen2..." />
+              </div>
+              <div class="form-group flex-1">
+                <label>API Key</label>
+                <KitInput v-model="settingsStore.customLlmKey" placeholder="Любой ключ" />
+              </div>
             </div>
-            <span class="quota-text">
+          </div>
+        </Transition>
+      </div>
+
+      <!-- Хранилище -->
+      <h2 class="section-title">
+        Локальная память
+      </h2>
+
+      <div class="settings-card quota-card">
+        <div class="quota-header">
+          <div class="quota-title">
+            <h3>Хранилище браузера</h3>
+            <KitTooltip
+              v-if="cacheStore.isPersisted"
+              text="Браузер не удалит ваши данные при нехватке места"
+              placement="top"
+            >
+              <div class="badge-safe">
+                <Icon icon="mdi:shield-check" /> Защищено
+              </div>
+            </KitTooltip>
+            <KitTooltip
+              v-else
+              text="При нехватке памяти браузер может автоматически удалить кэш"
+              placement="top"
+            >
+              <div class="badge-warn">
+                <Icon icon="mdi:shield-alert-outline" /> Не защищено
+              </div>
+            </KitTooltip>
+          </div>
+          <span class="quota-text">
+            <KitSkeleton v-if="cacheStore.isLoading && !cacheStore.deviceStorage" width="120px" height="20px" color="var(--bg-tertiary-color)" />
+            <template v-else>
               <b>{{ formatBytes(cacheStore.deviceStorage?.usage || 0) }}</b> / {{ formatBytes(cacheStore.deviceStorage?.quota || 0) }}
-            </span>
-          </div>
-
-          <div class="progress-bar-wrap">
-            <div
-              class="progress-fill"
-              :class="{ 'is-danger': storagePercent > 90, 'is-warning': storagePercent > 70 }"
-              :style="{ width: `${storagePercent}%` }"
-            />
-          </div>
-          <p class="quota-desc">
-            Показан общий объем, выделенный браузером. Само приложение занимает около {{ formatBytes(cacheStore.stats?.totalSizeBytes || 0) }}.
-          </p>
+            </template>
+          </span>
         </div>
 
-        <div class="settings-card total-card">
-          <div class="stat-item">
-            <span class="label">Занято базой данных:</span>
-            <span class="value text-accent">{{ formatBytes(cacheStore.stats?.totalSizeBytes || 0) }}</span>
-          </div>
-          <div class="stat-item">
-            <span class="label">Слов в словаре:</span>
-            <span class="value">{{ cacheStore.stats?.totalDictionaryWords || 0 }}</span>
-          </div>
+        <div class="progress-bar-wrap">
+          <KitSkeleton v-if="cacheStore.isLoading && !cacheStore.deviceStorage" width="100%" height="100%" color="var(--bg-tertiary-color)" />
+          <div
+            v-else
+            class="progress-fill"
+            :class="{ 'is-danger': storagePercent > 90, 'is-warning': storagePercent > 70 }"
+            :style="{ width: `${storagePercent}%` }"
+          />
         </div>
+        <p class="quota-desc">
+          Показан общий объем, выделенный браузером. Само приложение занимает около {{ formatBytes(cacheStore.stats?.totalSizeBytes || 0) }}.
+        </p>
+      </div>
 
-        <h2 class="section-title">
-          Сохраненные данные книг
-        </h2>
-        <div class="books-list">
-          <template v-if="cacheStore.isLoading && !cacheStore.stats">
-            <div
-              v-for="i in 2"
-              :key="`mock-${i}`"
-              class="settings-card book-cache-card"
-            >
-              <div class="book-card-header">
-                <div class="title-section">
-                  <div class="icon-wrapper">
-                    <Icon icon="mdi:book-open-variant" />
-                  </div>
-                  <h3>Загрузка названия книги...</h3>
-                </div>
-                <KitBtn icon="mdi:delete-outline" variant="outlined" class="delete-btn" :disabled="true" />
-              </div>
-
-              <div class="book-card-body">
-                <div class="stats-badges">
-                  <div class="badge">
-                    <Icon icon="mdi:database-outline" />
-                    <span>0 Байт</span>
-                  </div>
-                  <div class="badge">
-                    <Icon icon="mdi:robot-outline" />
-                    <span>Анализов ИИ: <b>0</b></span>
-                  </div>
-                  <div class="badge">
-                    <Icon icon="mdi:file-document-edit-outline" />
-                    <span>Страниц в кэше: <b>0 / 0</b></span>
-                  </div>
-                </div>
-
-                <div class="cache-progress-section">
-                  <div class="progress-bar-wrap">
-                    <div class="progress-fill" style="width: 0%" />
-                  </div>
-                  <div class="progress-footer">
-                    <span class="progress-text">
-                      Оффлайн доступно <b>0%</b> книги
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </template>
-
-          <template v-else-if="cacheStore.stats">
-            <div
-              v-for="(book, id) in cacheStore.stats.bookStats"
-              :key="id"
-              class="settings-card book-cache-card"
-            >
-              <div class="book-card-header">
-                <div class="title-section">
-                  <div class="icon-wrapper">
-                    <Icon icon="mdi:book-open-variant" />
-                  </div>
-                  <h3>{{ book.title }}</h3>
-                </div>
-
-                <KitBtn
-                  icon="mdi:delete-outline"
-                  variant="outlined"
-                  class="delete-btn"
-                  :disabled="book.cachedPages.length === 0 && book.analysesCount === 0 && book.sizeBytes === 0"
-                  @click="cacheStore.clearBookCache(Number(id))"
-                />
-              </div>
-
-              <div class="book-card-body">
-                <div class="stats-badges">
-                  <div class="badge">
-                    <Icon icon="mdi:database-outline" />
-                    <span>{{ formatBytes(book.sizeBytes) }}</span>
-                  </div>
-                  <div class="badge">
-                    <Icon icon="mdi:robot-outline" />
-                    <span>Анализов ИИ: <b>{{ book.analysesCount }}</b></span>
-                  </div>
-                  <div class="badge">
-                    <Icon icon="mdi:file-document-edit-outline" />
-                    <span>Страниц в кэше: <b>{{ book.cachedPages.length }} / {{ book.totalPages }}</b></span>
-                  </div>
-                </div>
-
-                <div class="cache-progress-section">
-                  <div class="progress-bar-wrap">
-                    <div
-                      class="progress-fill"
-                      :style="{ width: `${book.totalPages > 0 ? (book.cachedPages.length / book.totalPages) * 100 : 0}%` }"
-                    />
-                  </div>
-                  <div class="progress-footer">
-                    <span class="progress-text">
-                      Оффлайн доступно <b>{{ book.totalPages > 0 ? Math.round((book.cachedPages.length / book.totalPages) * 100) : 0 }}%</b> книги
-                    </span>
-
-                    <KitTooltip v-if="book.cachedPages.length > 0" :text="formatPagesList(book.cachedPages)" placement="top-end">
-                      <span class="pages-list-hint">Номера страниц</span>
-                    </KitTooltip>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div v-if="Object.keys(cacheStore.stats.bookStats).length === 0" class="empty-state">
-              <Icon icon="mdi:folder-open-outline" class="empty-icon" />
-              <p>Книг в библиотеке нет.</p>
-            </div>
-          </template>
+      <div class="settings-card total-card">
+        <div class="stat-item">
+          <span class="label">Занято базой данных:</span>
+          <KitSkeleton v-if="cacheStore.isLoading && !cacheStore.stats" width="120px" height="32px" color="var(--bg-tertiary-color)" />
+          <span v-else class="value text-accent">{{ formatBytes(cacheStore.stats?.totalSizeBytes || 0) }}</span>
+        </div>
+        <div class="stat-item">
+          <span class="label">Слов в словаре:</span>
+          <KitSkeleton v-if="cacheStore.isLoading && !cacheStore.stats" width="80px" height="32px" color="var(--bg-tertiary-color)" />
+          <span v-else class="value">{{ cacheStore.stats?.totalDictionaryWords || 0 }}</span>
         </div>
       </div>
-    </KitSkeletonPhantom>
+
+      <h2 class="section-title">
+        Сохраненные данные книг
+      </h2>
+      <div class="books-list">
+        <template v-if="cacheStore.isLoading && !cacheStore.stats">
+          <div
+            v-for="i in 2"
+            :key="`mock-${i}`"
+            class="settings-card book-cache-card"
+          >
+            <div class="book-card-header">
+              <div class="title-section">
+                <div class="icon-wrapper">
+                  <Icon icon="mdi:book-open-variant" />
+                </div>
+                <KitSkeleton width="200px" height="24px" color="var(--bg-tertiary-color)" />
+              </div>
+              <KitBtn icon="mdi:delete-outline" variant="outlined" class="delete-btn" :disabled="true" />
+            </div>
+
+            <div class="book-card-body">
+              <div class="stats-badges">
+                <KitSkeleton width="100px" height="32px" border-radius="8px" color="var(--bg-tertiary-color)" />
+                <KitSkeleton width="140px" height="32px" border-radius="8px" color="var(--bg-tertiary-color)" />
+                <KitSkeleton width="160px" height="32px" border-radius="8px" color="var(--bg-tertiary-color)" />
+              </div>
+
+              <div class="cache-progress-section">
+                <div class="progress-bar-wrap">
+                  <KitSkeleton width="100%" height="100%" color="var(--bg-tertiary-color)" />
+                </div>
+                <div class="progress-footer">
+                  <KitSkeleton width="180px" height="16px" color="var(--bg-tertiary-color)" />
+                </div>
+              </div>
+            </div>
+          </div>
+        </template>
+
+        <template v-else-if="cacheStore.stats">
+          <div
+            v-for="(book, id) in cacheStore.stats.bookStats"
+            :key="id"
+            class="settings-card book-cache-card"
+          >
+            <div class="book-card-header">
+              <div class="title-section">
+                <div class="icon-wrapper">
+                  <Icon icon="mdi:book-open-variant" />
+                </div>
+                <h3>{{ book.title }}</h3>
+              </div>
+
+              <KitBtn
+                icon="mdi:delete-outline"
+                variant="outlined"
+                class="delete-btn"
+                :disabled="book.cachedPages.length === 0 && book.analysesCount === 0 && book.sizeBytes === 0"
+                @click="cacheStore.clearBookCache(Number(id))"
+              />
+            </div>
+
+            <div class="book-card-body">
+              <div class="stats-badges">
+                <div class="badge">
+                  <Icon icon="mdi:database-outline" />
+                  <span>{{ formatBytes(book.sizeBytes) }}</span>
+                </div>
+                <div class="badge">
+                  <Icon icon="mdi:robot-outline" />
+                  <span>Анализов ИИ: <b>{{ book.analysesCount }}</b></span>
+                </div>
+                <div class="badge">
+                  <Icon icon="mdi:file-document-edit-outline" />
+                  <span>Страниц в кэше: <b>{{ book.cachedPages.length }} / {{ book.totalPages }}</b></span>
+                </div>
+              </div>
+
+              <div class="cache-progress-section">
+                <div class="progress-bar-wrap">
+                  <div
+                    class="progress-fill"
+                    :style="{ width: `${book.totalPages > 0 ? (book.cachedPages.length / book.totalPages) * 100 : 0}%` }"
+                  />
+                </div>
+                <div class="progress-footer">
+                  <span class="progress-text">
+                    Оффлайн доступно <b>{{ book.totalPages > 0 ? Math.round((book.cachedPages.length / book.totalPages) * 100) : 0 }}%</b> книги
+                  </span>
+
+                  <KitTooltip v-if="book.cachedPages.length > 0" :text="formatPagesList(book.cachedPages)" placement="top-end">
+                    <span class="pages-list-hint">Номера страниц</span>
+                  </KitTooltip>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div v-if="Object.keys(cacheStore.stats.bookStats).length === 0" class="empty-state">
+            <Icon icon="mdi:folder-open-outline" class="empty-icon" />
+            <p>Книг в библиотеке нет.</p>
+          </div>
+        </template>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -395,6 +389,8 @@ const storagePercent = computed(() => {
     .quota-text {
       font-size: 0.95rem;
       color: var(--fg-secondary-color);
+      display: inline-flex;
+      align-items: center;
       b {
         color: var(--fg-primary-color);
       }
@@ -457,6 +453,7 @@ const storagePercent = computed(() => {
     .value {
       font-size: 2rem;
       font-weight: 600;
+      display: inline-flex;
 
       &.text-accent {
         color: var(--fg-accent-color);
@@ -599,8 +596,11 @@ const storagePercent = computed(() => {
 
       .progress-text {
         color: var(--fg-secondary-color);
+        display: inline-flex;
+        align-items: center;
         b {
           color: var(--fg-primary-color);
+          margin: 0 4px;
         }
       }
 

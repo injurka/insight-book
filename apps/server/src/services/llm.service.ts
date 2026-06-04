@@ -1,4 +1,4 @@
-import type { GeneratedWordExamples, LlmAnalysis, LlmConfig } from '../types'
+import type { GeneratedWordExamples, LlmAnalysis, LlmConfig, WordAutoFillResponse } from '../types'
 import { eq } from 'drizzle-orm'
 import { z } from 'zod'
 import {
@@ -11,7 +11,7 @@ import {
 } from '../config'
 import { db } from '../db'
 import * as schema from '../db/schema'
-import { BOOK_ANALYSIS_PROMPT, getSystemPrompt, getWordExamplesPrompt } from '../prompts'
+import { BOOK_ANALYSIS_PROMPT, getSystemPrompt, getWordAutoFillPrompt, getWordExamplesPrompt } from '../prompts'
 import { AppError } from '../utils/errors'
 
 export function extractLlmConfig(req: Request): LlmConfig {
@@ -167,6 +167,33 @@ export async function generateWordExamples(word: string, language: string, confi
       const raw = await _callLlmApi(model, messages, 0.4, AbortSignal.timeout(60000), config)
       const cleanJson = raw.replace(/^```json\n?/, '').replace(/\n?```$/, '').trim()
       return JSON.parse(cleanJson) as GeneratedWordExamples
+    }
+    catch (e) {
+      lastError = e as Error
+      console.warn(`[LLM] Failed with model [${model}]:`, lastError.message)
+    }
+  }
+
+  throw new AppError(500, `Не удалось получить валидный ответ от ИИ: ${lastError?.message || 'Unknown error'}`)
+}
+
+export async function generateWordAutoFill(word: string, language: string, config: LlmConfig): Promise<WordAutoFillResponse> {
+  if (!config.url)
+    throw new AppError(500, 'LLM API не настроен')
+
+  const messages = [
+    { role: 'system', content: getWordAutoFillPrompt(language) },
+    { role: 'user', content: `Слово: ${word}` },
+  ]
+
+  const modelsToTry = [config.model, config.fallbackModel].filter(Boolean) as string[]
+  let lastError: Error | null = null
+
+  for (const model of modelsToTry) {
+    try {
+      const raw = await _callLlmApi(model, messages, 0.4, AbortSignal.timeout(60000), config)
+      const cleanJson = raw.replace(/^```json\n?/, '').replace(/\n?```$/, '').trim()
+      return JSON.parse(cleanJson) as WordAutoFillResponse
     }
     catch (e) {
       lastError = e as Error

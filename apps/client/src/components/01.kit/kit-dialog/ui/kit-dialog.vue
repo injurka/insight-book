@@ -259,7 +259,6 @@ onUnmounted(() => {
   padding: 16px;
   display: flex;
   flex-direction: column;
-  gap: 16px;
   box-shadow: none;
 
   &:focus {
@@ -414,8 +413,6 @@ onUnmounted(() => {
 .dialog-footer {
   flex-shrink: 0;
   padding-top: 16px;
-  margin-top: 16px;
-  border-top: 1px solid var(--border-secondary-color);
   display: flex;
   justify-content: flex-end;
   gap: 8px;

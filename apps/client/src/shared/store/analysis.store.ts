@@ -522,10 +522,24 @@ export const useAnalysisStore = defineStore('analysis', () => {
     catch {
       const transcription = wordData.showAi ? (wordData.aiTranscription || wordData.transcription) : wordData.transcription
       const translation = wordData.showAi ? (wordData.aiTranslation || wordData.translation) : wordData.translation
+
+      let grammarNote = null
+      let vocabularyNote = null
+      if (wordData.showAi && wordData.aiData) {
+        if (wordData.aiData.grammarRules?.length) {
+          grammarNote = wordData.aiData.grammarRules.map(r => `<b>${r.pattern}</b> — ${r.explanation}`).join('<br>')
+        }
+        if (wordData.aiData.vocabulary?.length) {
+          vocabularyNote = wordData.aiData.vocabulary.map(v => `<b>${v.word}</b> (${v.transcription}) — ${v.meaning}`).join('<br>')
+        }
+      }
+
       wordToEdit.value = {
         word: wordData.word,
         transcription,
         translation,
+        grammarNote,
+        vocabularyNote,
         language: currentBook?.language || 'en',
         contextSentence: wordData.contextSentence,
         contextBookId: wordData.contextBookId,

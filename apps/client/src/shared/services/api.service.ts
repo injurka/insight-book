@@ -1,4 +1,4 @@
-import type { Book, BookStats, DictDeck, GeneratedWordExamples, LlmAnalysis, OpdsCatalog, OpdsFeed, PagePayload, TocItem, UserDictItem } from '../types/models'
+import type { Book, BookStats, DictDeck, GeneratedWordExamples, LlmAnalysis, OpdsCatalog, OpdsFeed, PagePayload, TocItem, UserDictItem, WordAutoFillResponse } from '../types/models'
 import { getActivePinia } from 'pinia'
 import { useGlobalSettingsStore } from '../store/settings.store'
 
@@ -166,6 +166,13 @@ export const api = {
 
     generateExamples: (word: string, language: string) =>
       request<GeneratedWordExamples>('/api/dictionary/generate-examples', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ word, language }),
+      }),
+
+    autoFillWord: (word: string, language: string) =>
+      request<WordAutoFillResponse>('/api/dictionary/auto-fill', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ word, language }),

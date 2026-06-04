@@ -22,6 +22,7 @@ import {
   handleUploadBook,
 } from './handlers/books'
 import {
+  handleAutoFillWord,
   handleBulkDeleteDict,
   handleBulkMoveDict,
   handleCreateDeck,
@@ -88,6 +89,7 @@ const apiRoutes = {
   '/api/dictionary/bulk/delete': { OPTIONS: corsOk, POST: apiWrapper(authWrapper(handleBulkDeleteDict)) },
   '/api/dictionary/bulk/move': { OPTIONS: corsOk, POST: apiWrapper(authWrapper(handleBulkMoveDict)) },
   '/api/dictionary/generate-examples': { OPTIONS: corsOk, POST: apiWrapper(authWrapper(handleGenerateExamples)) },
+  '/api/dictionary/auto-fill': { OPTIONS: corsOk, POST: apiWrapper(authWrapper(handleAutoFillWord)) },
 
   // Decks
   '/api/dictionary/decks': { OPTIONS: corsOk, GET: apiWrapper(authWrapper(handleGetDecks)), POST: apiWrapper(authWrapper(handleCreateDeck)) },

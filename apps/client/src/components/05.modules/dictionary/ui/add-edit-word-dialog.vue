@@ -2,8 +2,10 @@
 import type { UserDictItem, WordEncounter } from '~/shared/types/models'
 import { computed, ref, watch } from 'vue'
 import { KitBtn, KitDialog, KitInput, KitPrompt, KitSelect, KitTooltip } from '~/components/01.kit'
+import { useToast } from '~/shared/composables/use-toast'
 import { useTts } from '~/shared/composables/use-tts'
 import { DIFFICULTY_SYSTEMS } from '~/shared/constants/difficulties'
+import { api } from '~/shared/services/api.service'
 import { useAnalysisStore } from '~/shared/store/analysis.store'
 import { useDictionaryStore } from '../store/dictionary.store'
 
@@ -16,12 +18,19 @@ interface WordFormData extends Partial<UserDictItem> {
 const analysisStore = useAnalysisStore()
 const dictStore = useDictionaryStore()
 const { speak, isPlaying, isLoading } = useTts()
+const toast = useToast()
 
 const localWord = ref<WordFormData>({})
 const isEditing = computed(() => !!localWord.value.id)
 
-// Состояние для окна создания колоды
 const isDeckPromptOpen = ref(false)
+const isAutoFilling = ref(false)
+
+watch(() => analysisStore.addEditWordModalOpen, async (isOpen) => {
+  if (isOpen) {
+    await dictStore.fetchDecks()
+  }
+})
 
 function handleSave() {
   analysisStore.saveWordToDict(localWord.value)
@@ -56,6 +65,38 @@ async function onInlineDeckSubmit(name: string) {
   }
 }
 
+async function autoFillWithAI() {
+  if (!localWord.value.word)
+    return
+  isAutoFilling.value = true
+  const lang = localWord.value.language || 'en'
+
+  try {
+    const res = await api.dictionary.autoFillWord(localWord.value.word, lang)
+
+    if (res.transcription)
+      localWord.value.transcription = res.transcription
+    if (res.translation)
+      localWord.value.translation = res.translation
+    if (res.difficulty)
+      localWord.value.difficulty = res.difficulty
+    if (res.tags)
+      localWord.value.tags = res.tags
+    if (res.grammarNote)
+      localWord.value.grammarNote = res.grammarNote
+    if (res.vocabularyNote)
+      localWord.value.vocabularyNote = res.vocabularyNote
+
+    toast.success('Поля успешно заполнены!')
+  }
+  catch (e) {
+    toast.error(e instanceof Error ? e.message : 'Ошибка автозаполнения ИИ')
+  }
+  finally {
+    isAutoFilling.value = false
+  }
+}
+
 watch(() => analysisStore.wordToEdit, (newWord) => {
   if (newWord) {
     localWord.value = { ...newWord }
@@ -79,7 +120,6 @@ const deckOptions = computed(() => {
   return opts
 })
 
-// --- ЛОГИКА ДЛЯ СЛОЖНОСТИ ---
 const currentDifficultyOptions = computed(() => {
   const lang = localWord.value.language || 'en'
   const system = DIFFICULTY_SYSTEMS[lang] || DIFFICULTY_SYSTEMS.default
@@ -101,19 +141,22 @@ const difficultyModel = computed({
     <div v-if="localWord" class="dialog-content">
       <div class="word-preview">
         <div class="word-header">
+          <div class="header-spacer" />
           <h3 class="dict-word">
             {{ localWord.word }}
           </h3>
-          <KitTooltip text="Озвучить">
-            <KitBtn
-              :icon="isLoading ? 'mdi:loading' : (isPlaying ? 'mdi:volume-high' : 'mdi:volume-medium')"
-              variant="text"
-              size="sm"
-              color="accent"
-              :class="{ 'spin-animation': isLoading, 'pulse-animation': isPlaying }"
-              @click="playTTS"
-            />
-          </KitTooltip>
+          <div class="tts-wrapper">
+            <KitTooltip text="Озвучить">
+              <KitBtn
+                :icon="isLoading ? 'mdi:loading' : (isPlaying ? 'mdi:volume-high' : 'mdi:volume-medium')"
+                variant="text"
+                size="sm"
+                color="accent"
+                :class="{ 'spin-animation': isLoading, 'pulse-animation': isPlaying }"
+                @click="playTTS"
+              />
+            </KitTooltip>
+          </div>
         </div>
         <p v-if="localWord.transcription " class="dict-transcription">
           {{ localWord.transcription }}
@@ -149,7 +192,7 @@ const difficultyModel = computed({
           </div>
           <div class="form-group flex-1">
             <label>Теги (через запятую)</label>
-            <KitInput v-model="localWord.tags" placeholder="фраза, глагол..." />
+            <KitInput v-model="localWord.tags" placeholder="глагол, фраза, JLPT N5..." />
           </div>
         </div>
 
@@ -159,13 +202,29 @@ const difficultyModel = computed({
         </div>
 
         <div class="form-group">
-          <label>Заметки</label>
+          <label>Грамматика</label>
+          <textarea v-model="localWord.grammarNote" class="custom-textarea" rows="2" placeholder="Дополнительные грамматические правила..." />
+        </div>
+
+        <div class="form-group">
+          <label>Лексика</label>
+          <textarea v-model="localWord.vocabularyNote" class="custom-textarea" rows="2" placeholder="Связанная лексика..." />
+        </div>
+
+        <div class="form-group">
+          <label>Заметки (Мнемоника, примеры)</label>
           <textarea v-model="localWord.notes" class="custom-textarea" rows="2" />
         </div>
       </div>
     </div>
     <template #footer>
       <div class="footer-actions">
+        <KitTooltip text="Автозаполнить поля с помощью ИИ" placement="top">
+          <KitBtn variant="tonal" color="accent" :icon="isAutoFilling ? 'mdi:loading' : 'mdi:robot-outline'" :class="{ 'spin-animation': isAutoFilling }" :disabled="isAutoFilling" @click="autoFillWithAI">
+            <span class="hide-mobile">Автозаполнение</span>
+          </KitBtn>
+        </KitTooltip>
+
         <KitBtn v-if="isEditing" variant="outlined" color="secondary" @click="handleDelete">
           Удалить
         </KitBtn>
@@ -206,19 +265,29 @@ const difficultyModel = computed({
   align-items: center;
 }
 .word-header {
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
   align-items: center;
-  justify-content: center;
+  width: 100%;
   gap: 8px;
 }
+.header-spacer {
+  grid-column: 1;
+}
 .dict-word {
+  grid-column: 2;
   font-size: 1.8rem;
   font-weight: 600;
   margin: 0;
   color: var(--fg-accent-color);
+  text-align: center;
+}
+.tts-wrapper {
+  grid-column: 3;
+  justify-self: start;
 }
 .dict-transcription {
-  margin: 0;
+  margin: 4px 0 0 0;
   font-size: 1.1rem;
   color: var(--fg-secondary-color);
 }
@@ -317,8 +386,15 @@ const difficultyModel = computed({
     flex-grow: 1;
   }
 }
+.hide-mobile {
+  @include media-down(sm) {
+    display: none;
+  }
+}
 .spin-animation {
-  animation: spin 1s linear infinite;
+  :deep(svg) {
+    animation: spin 1s linear infinite;
+  }
 }
 .pulse-animation {
   animation: pulse 1.2s infinite;

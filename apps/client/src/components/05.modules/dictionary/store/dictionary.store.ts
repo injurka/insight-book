@@ -51,6 +51,15 @@ export const useDictionaryStore = defineStore('dictionary', () => {
     }
   }
 
+  async function fetchDecks() {
+    try {
+      decks.value = await api.dictionary.decks()
+    }
+    catch (e) {
+      console.warn('Could not fetch decks:', e)
+    }
+  }
+
   async function fetchTrainingQueue(opts: { mode: 'srs' | 'random', deckId: number | 'none' | 'all', difficulty: string }) {
     trainingMode.value = opts.mode
     try {
@@ -260,6 +269,7 @@ export const useDictionaryStore = defineStore('dictionary', () => {
     selectedWordIds,
 
     fetchDictionary,
+    fetchDecks,
     fetchTrainingQueue,
     createDeck,
     updateDeck,

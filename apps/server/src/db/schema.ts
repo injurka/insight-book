@@ -146,6 +146,8 @@ export const userDictionary = sqliteTable('user_dictionary', {
   notes: text('notes'),
   tags: text('tags'),
   difficulty: text('difficulty'),
+  grammarNote: text('grammarNote'),
+  vocabularyNote: text('vocabularyNote'),
 
   status: integer('status').notNull().default(0),
   repetitions: integer('repetitions').notNull().default(0),

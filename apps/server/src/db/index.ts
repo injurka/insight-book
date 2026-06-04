@@ -8,6 +8,7 @@ import { isMainThread } from 'node:worker_threads'
 import { Database } from 'bun:sqlite'
 import { eq } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/bun-sqlite'
+import { migrate } from 'drizzle-orm/bun-sqlite/migrator'
 import {
   ADMIN_PASSWORD,
   ADMIN_USERNAME,
@@ -40,57 +41,34 @@ export const db = drizzle(sqlite, { schema, logger: false })
   // ============================================================================
   ; (async () => {
     if (isMainThread) {
-      console.log('🔄 Checking and syncing database schema...')
+      console.log('🔄 Checking and applying database migrations...')
 
       try {
-        sqlite.run(`
-          CREATE TABLE IF NOT EXISTS "users" (
-            "id" integer PRIMARY KEY AUTOINCREMENT NOT NULL,
-            "username" text NOT NULL,
-            "passwordHash" text NOT NULL,
-            "createdAt" text DEFAULT (datetime('now')) NOT NULL
-          );
-        `)
-        sqlite.run(`CREATE UNIQUE INDEX IF NOT EXISTS "users_username_unique" ON "users" ("username");`)
+        // Применяем классические миграции из сгенерированных .sql файлов
+        migrate(db, { migrationsFolder: path.resolve(import.meta.dir, 'migrations') })
+        console.log('✅ Database migrations applied successfully!')
       }
-      catch { }
+      catch (e) {
+        console.error('❌ Failed to run migrations. Check if you generated them using `bunx drizzle-kit generate`. Error:', e)
+      }
 
       try {
-        const adminExistsRow = sqlite.query(`SELECT id FROM "users" WHERE id = 1`).get()
-        if (!adminExistsRow) {
-          console.log('👤 Pre-creating default admin user to satisfy foreign key constraints...')
+        const adminExists = await db.query.users.findFirst({ where: eq(schema.users.id, 1) })
+
+        if (!adminExists) {
+          console.log('👤 Default admin user not found. Creating one...')
           const passwordHash = await Bun.password.hash(ADMIN_PASSWORD)
-          sqlite.query(`INSERT INTO "users" (id, username, passwordHash) VALUES (?, ?, ?)`).run(1, ADMIN_USERNAME, passwordHash)
+
+          await db.insert(schema.users).values({
+            id: 1,
+            username: ADMIN_USERNAME,
+            passwordHash,
+          })
+          console.log(`👤 Default Admin user created (Username: ${ADMIN_USERNAME}).`)
         }
       }
       catch (e) {
-        console.error('⚠️ Could not pre-create admin user:', e)
-      }
-
-      const syncProcess = Bun.spawnSync(['bun', 'x', 'drizzle-kit', 'push'], {
-        stdout: 'inherit',
-        stderr: 'inherit',
-      })
-
-      if (syncProcess.exitCode !== 0) {
-        console.error('❌ Failed to sync database schema. Please check the Drizzle output above.')
-      }
-      else {
-        console.log('✅ Database schema is up to date!')
-      }
-
-      const adminExists = await db.query.users.findFirst({ where: eq(schema.users.id, 1) })
-
-      if (!adminExists) {
-        console.log('👤 Default admin user not found. Creating one...')
-        const passwordHash = await Bun.password.hash(ADMIN_PASSWORD)
-
-        await db.insert(schema.users).values({
-          id: 1,
-          username: ADMIN_USERNAME,
-          passwordHash,
-        })
-        console.log(`👤 Default Admin user created (Username: ${ADMIN_USERNAME}).`)
+        console.error('⚠️ Could not check/create admin user:', e)
       }
 
       console.log(`🗄️ Main SQLite Database initialized at ${DB_PATH}`)

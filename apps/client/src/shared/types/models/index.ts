@@ -1,11 +1,15 @@
-export interface OcrBlock {
-  id: number
-  text: string
-  html?: string
-  x: number
-  y: number
-  w: number
-  h: number
+export interface LexicalWordData {
+  word: string
+  pos: string
+  count: number
+}
+
+export interface LexicalDataGroup {
+  nouns: LexicalWordData[]
+  verbs: LexicalWordData[]
+  adjs: LexicalWordData[]
+  properNouns: LexicalWordData[]
+  rareWords: LexicalWordData[]
 }
 
 export interface BookStats {
@@ -16,15 +20,15 @@ export interface BookStats {
   totalChars: number
   uniqueChars: number
   posDistribution?: Record<string, number> | null
-  topWords?: Array<{ word: string, pos: string, count: number }> | null
+  topWords?: LexicalWordData[] | LexicalDataGroup | null
   lexicalDiversity?: number | null
 }
 
 export interface Book {
   id: number
   userId: number
+  type: string
   title: string
-  type: 'epub' | 'manga' | 'fb2'
   author: string | null
   coverUrl: string | null
   filePath: string
@@ -39,8 +43,8 @@ export interface Book {
   seriesNumber?: number | null
   status?: string
   isFavorite?: boolean
-  isPublic?: boolean
   collection?: string | null
+  isPublic?: boolean
   progressUpdatedAt?: string | null
 }
 
@@ -70,13 +74,23 @@ export interface PageDictEntry {
   isUserDict?: boolean
 }
 
+export interface OcrBlock {
+  id: number
+  text: string
+  html?: string
+  x: number
+  y: number
+  w: number
+  h: number
+}
+
 export interface PagePayload {
   bookId: number
   pageNum: number
   totalPages: number
-  type?: 'epub' | 'manga' | 'fb2'
   content: string
   pageDictionary: Record<string, PageDictEntry>
+  type?: 'epub' | 'manga'
   imageUrl?: string
   imageWidth?: number
   imageHeight?: number
@@ -118,6 +132,7 @@ export interface WordEncounter {
   sentence: string
   createdAt: string
   bookTitle?: string
+  book?: { title: string }
 }
 
 export interface UserDictItem {
@@ -130,6 +145,8 @@ export interface UserDictItem {
   notes: string | null
   tags: string | null
   difficulty: string | null
+  grammarNote: string | null
+  vocabularyNote: string | null
 
   status: number
   repetitions: number
@@ -141,6 +158,13 @@ export interface UserDictItem {
   updatedAt: string
 
   encounters?: WordEncounter[]
+}
+
+export interface LlmConfig {
+  url: string
+  key: string
+  model: string
+  fallbackModel?: string
 }
 
 export interface WordExample {
@@ -178,6 +202,15 @@ export interface GeneratedWordExamples {
   examples?: WordExample[]
   collocations?: WordCollocation[]
   relations?: WordRelations
+}
+
+export interface WordAutoFillResponse {
+  transcription: string
+  translation: string
+  difficulty: string
+  tags: string
+  grammarNote: string
+  vocabularyNote: string
 }
 
 export interface OpdsCatalog {

@@ -1,10 +1,12 @@
 <script setup lang="ts">
+import type { UserDictItem } from '~/shared/types/models'
 import { Icon } from '@iconify/vue'
 import { useVirtualList } from '@vueuse/core'
 import { KitBtn, KitCheckbox, KitDialog, KitDropdown, KitInput, KitPrompt, KitSelect, KitTooltip } from '~/components/01.kit'
 import KitSkeleton from '~/components/01.kit/kit-skeleton/ui/kit-skeleton.vue'
 import ActivityHeatmap from '~/components/02.shared/activity-heatmap/ui/activity-heatmap.vue'
 import { HoverRevealBg } from '~/components/02.shared/hover-reveal-bg'
+import { DictWordDetailsModal } from '~/components/03.domain/dict-word'
 import { GlobalActions } from '~/components/04.features/global-actions'
 import { useToast } from '~/shared/composables/use-toast'
 import { DIFFICULTY_SYSTEMS } from '~/shared/constants/difficulties'
@@ -25,6 +27,10 @@ const isMobileFiltersOpen = ref(false)
 const dropdownRef = ref<InstanceType<typeof KitDropdown> | null>(null)
 const isStatsModalOpen = ref(false)
 const isEditMode = ref(false)
+
+// Детальный просмотр
+const isDetailsModalOpen = ref(false)
+const selectedWordDetails = ref<UserDictItem | null>(null)
 
 const isManageDecksOpen = ref(false)
 const newDeckName = ref('')
@@ -155,6 +161,15 @@ async function onDeleteDeckConfirm() {
     await store.deleteDeck(deleteDeckTarget.value.id)
   }
   deleteDeckTarget.value = null
+}
+
+function openDetails(item: UserDictItem) {
+  if (isEditMode.value) {
+    store.toggleWordSelection(item.id)
+    return
+  }
+  selectedWordDetails.value = item
+  isDetailsModalOpen.value = true
 }
 
 function exportToAnki() {
@@ -362,17 +377,13 @@ watch(isEditMode, (val) => {
 
         <div v-else class="virtual-list-container" v-bind="containerProps">
           <div v-bind="wrapperProps" class="virtual-list-wrapper">
-            <div v-for="item in list" :key="item.data.id" class="dict-item" :class="{ 'is-selected': store.selectedWordIds.has(item.data.id) }">
+            <div v-for="item in list" :key="item.data.id" class="dict-item" :class="{ 'is-selected': store.selectedWordIds.has(item.data.id) }" @click="openDetails(item.data)">
               <div v-if="isEditMode" class="checkbox-col" @click.stop>
                 <KitCheckbox :model-value="store.selectedWordIds.has(item.data.id)" @update:model-value="store.toggleWordSelection(item.data.id)" />
               </div>
               <div class="dict-item-content">
                 <div class="dict-word-container">
-                  <span
-                    class="dict-word"
-                    :class="{ 'is-clickable': isEditMode }"
-                    @click="isEditMode ? store.toggleWordSelection(item.data.id) : null"
-                  >
+                  <span class="dict-word">
                     {{ item.data.word }}
                   </span>
                   <span class="dict-transcription">{{ item.data.transcription }}</span>
@@ -389,12 +400,12 @@ watch(isEditMode, (val) => {
                 </div>
                 <div class="dict-translation" v-html="item.data.translation" />
               </div>
-              <div v-if="isEditMode" class="dict-actions">
+              <div v-if="isEditMode" class="dict-actions" @click.stop>
                 <KitTooltip text="Редактировать" placement="top">
                   <KitBtn icon="mdi:pencil" variant="text" size="xs" @click="analysisStore.wordToEdit = item.data; analysisStore.addEditWordModalOpen = true;" />
                 </KitTooltip>
                 <KitTooltip text="Удалить" placement="top-end">
-                  <KitBtn icon="mdi:delete-outline" variant="text" size="xs" @click="store.deleteWord(item.data.word)" />
+                  <KitBtn icon="mdi:delete-outline" variant="text" size="xs" color="error" @click="store.deleteWord(item.data.word)" />
                 </KitTooltip>
               </div>
             </div>
@@ -443,6 +454,7 @@ watch(isEditMode, (val) => {
     </KitDialog>
 
     <SrsTrainingDialog v-model:visible="isTrainingOpen" />
+    <DictWordDetailsModal v-model:visible="isDetailsModalOpen" :word="selectedWordDetails" />
 
     <KitPrompt
       v-model:visible="isRenamePromptOpen"
@@ -717,9 +729,16 @@ watch(isEditMode, (val) => {
   border: 1px solid var(--border-secondary-color);
   margin-bottom: 12px;
   overflow: hidden;
+  cursor: pointer;
   transition:
     border-color 0.2s,
-    background-color 0.2s;
+    background-color 0.2s,
+    box-shadow 0.2s;
+
+  &:hover {
+    border-color: var(--fg-accent-color);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  }
 
   &.is-selected {
     border-color: var(--fg-accent-color);
@@ -745,13 +764,6 @@ watch(isEditMode, (val) => {
       font-size: 1.2rem;
       font-weight: bold;
       color: var(--fg-accent-color);
-
-      &.is-clickable {
-        cursor: pointer;
-        &:hover {
-          text-decoration: underline;
-        }
-      }
     }
 
     .dict-transcription {

@@ -134,6 +134,8 @@ export interface UserDictItem {
   notes: string | null
   tags: string | null
   difficulty: string | null
+  grammarNote: string | null
+  vocabularyNote: string | null
 
   status: number
   repetitions: number
@@ -189,4 +191,41 @@ export interface GeneratedWordExamples {
   examples?: WordExample[]
   collocations?: WordCollocation[]
   relations?: WordRelations
+}
+
+export interface WordAutoFillResponse {
+  transcription: string
+  translation: string
+  difficulty: string
+  tags: string
+  grammarNote: string
+  vocabularyNote: string
+}
+
+export interface OpdsCatalog {
+  id: number
+  userId: number
+  title: string
+  url: string
+  createdAt: string
+}
+
+export interface OpdsLink {
+  rel: string
+  href: string
+  type: string
+  title?: string
+}
+
+export interface OpdsEntry {
+  title: string
+  author: string
+  content: string
+  links: OpdsLink[]
+}
+
+export interface OpdsFeed {
+  title: string
+  links: OpdsLink[]
+  entries: OpdsEntry[]
 }

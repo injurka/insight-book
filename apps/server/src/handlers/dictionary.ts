@@ -12,7 +12,7 @@ import {
   updateDeck,
   upsertToUserDictionary,
 } from '../services/dictionary.service'
-import { extractLlmConfig, generateWordExamples } from '../services/llm.service'
+import { extractLlmConfig, generateWordAutoFill, generateWordExamples } from '../services/llm.service'
 import { AppError } from '../utils/errors'
 import { createRateLimiter } from '../utils/rate-limit'
 
@@ -33,6 +33,8 @@ const UpsertUserDictSchema = z.object({
   notes: z.string().nullable().optional(),
   tags: z.string().nullable().optional(),
   difficulty: z.string().nullable().optional(),
+  grammarNote: z.string().nullable().optional(),
+  vocabularyNote: z.string().nullable().optional(),
   deckId: z.number().nullable().optional(),
   contextSentence: z.string().optional(),
   contextBookId: z.number().optional(),
@@ -58,6 +60,14 @@ export async function handleGenerateExamples(req: Request, userId: number): Prom
   const config = extractLlmConfig(req)
   const { word, language } = GenerateExamplesSchema.parse(await req.json())
   const result = await generateWordExamples(word, language, config)
+  return json(result)
+}
+
+export async function handleAutoFillWord(req: Request, userId: number): Promise<Response> {
+  dictAiLimiter(String(userId))
+  const config = extractLlmConfig(req)
+  const { word, language } = GenerateExamplesSchema.parse(await req.json())
+  const result = await generateWordAutoFill(word, language, config)
   return json(result)
 }
 

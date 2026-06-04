@@ -58,6 +58,17 @@ const isAnswerCorrect = ref(false)
 const choiceOptions = ref<{ text: string, isCorrect: boolean }[]>([])
 const selectedChoice = ref<string | null>(null)
 
+// Стейты для чипсов "Грамматика", "Лексика", "Заметки"
+const expandedSections = reactive<Record<string, boolean>>({
+  grammar: false,
+  vocab: false,
+  notes: false,
+})
+
+function toggleSection(sec: 'grammar' | 'vocab' | 'notes') {
+  expandedSections[sec] = !expandedSections[sec]
+}
+
 const currentCard = computed(() => dictStore.reviewQueue[currentIndex.value])
 const isFinished = computed(() => currentIndex.value >= dictStore.reviewQueue.length)
 const remainingQueue = computed(() => dictStore.reviewQueue.slice(currentIndex.value))
@@ -171,6 +182,11 @@ function initCard() {
   isAnswerCorrect.value = false
   selectedChoice.value = null
   choiceOptions.value = []
+
+  // Сбрасываем чипсы заметок
+  expandedSections.grammar = false
+  expandedSections.vocab = false
+  expandedSections.notes = false
 
   if (!currentCard.value) {
     if (isFinished.value)
@@ -606,8 +622,54 @@ watch(currentIndex, () => {
           <b>Контекст:</b> {{ originalSentence }}
         </div>
 
-        <div v-if="currentCard.notes" class="word-notes fade-in">
-          <b>Заметки:</b>
+        <!-- Чипсы (типчики) для заметок -->
+        <div v-if="currentCard.grammarNote || currentCard.vocabularyNote || currentCard.notes" class="notes-toggle-row fade-in">
+          <KitBtn
+            v-if="currentCard.grammarNote"
+            size="xs"
+            :variant="expandedSections.grammar ? 'tonal' : 'outlined'"
+            color="secondary"
+            icon="mdi:puzzle-outline"
+            @click="toggleSection('grammar')"
+          >
+            Грамматика
+          </KitBtn>
+          <KitBtn
+            v-if="currentCard.vocabularyNote"
+            size="xs"
+            :variant="expandedSections.vocab ? 'tonal' : 'outlined'"
+            color="secondary"
+            icon="mdi:book-open-page-variant-outline"
+            @click="toggleSection('vocab')"
+          >
+            Лексика
+          </KitBtn>
+          <KitBtn
+            v-if="currentCard.notes"
+            size="xs"
+            :variant="expandedSections.notes ? 'tonal' : 'outlined'"
+            color="secondary"
+            icon="mdi:note-text-outline"
+            @click="toggleSection('notes')"
+          >
+            Заметки
+          </KitBtn>
+        </div>
+
+        <!-- Контент заметок -->
+        <div v-if="expandedSections.grammar && currentCard.grammarNote" class="word-notes fade-in">
+          <div class="notes-text">
+            {{ currentCard.grammarNote }}
+          </div>
+        </div>
+
+        <div v-if="expandedSections.vocab && currentCard.vocabularyNote" class="word-notes fade-in">
+          <div class="notes-text">
+            {{ currentCard.vocabularyNote }}
+          </div>
+        </div>
+
+        <div v-if="expandedSections.notes && currentCard.notes" class="word-notes fade-in">
           <div class="notes-text">
             {{ currentCard.notes }}
           </div>
@@ -1129,20 +1191,21 @@ watch(currentIndex, () => {
   text-align: left;
 }
 
-.word-notes {
+.notes-toggle-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
   margin-top: 16px;
+}
+
+.word-notes {
+  margin-top: 12px;
   padding: 12px;
   background-color: rgba(var(--bg-accent-color-rgb, 201, 117, 222), 0.05);
   border-left: 3px solid var(--fg-accent-color);
   border-radius: 4px;
   text-align: left;
-
-  b {
-    display: block;
-    color: var(--fg-primary-color);
-    margin-bottom: 8px;
-    font-size: 0.9rem;
-  }
 
   .notes-text {
     font-size: 0.85rem;
@@ -1215,7 +1278,7 @@ watch(currentIndex, () => {
       transform: translateY(-2px);
     }
 
-    /* Подсветка рекомендуемого ответа после объективного квиза (убрали box-shadow) */
+    /* Подсветка рекомендуемого ответа после объективного квиза */
     &.is-suggested {
       border-color: currentColor;
       transform: translateY(-2px);

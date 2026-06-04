@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { Icon } from '@iconify/vue'
-import { ref } from 'vue'
 import { useLibraryStore } from '~/components/05.modules/library/store/library.store'
 import { useAnalysisStore } from '~/shared/store/analysis.store'
 import { useBookLexicalStats } from '../composables/use-book-lexical-stats'
@@ -11,7 +10,7 @@ const analysisStore = useAnalysisStore()
 const isLexicalExpanded = ref(false)
 const lexicalActiveTab = ref<'core' | 'entities' | 'rare'>('core')
 
-const { isLegacyLexical, lexData, posStats } = useBookLexicalStats()
+const { isLegacyLexical, legacyTopWords, lexData, posStats } = useBookLexicalStats()
 
 function handleWordClick(word: string, pos: string, event: MouseEvent) {
   const target = event.currentTarget as HTMLElement
@@ -65,7 +64,7 @@ function handleWordClick(word: string, pos: string, event: MouseEvent) {
         </h4>
         <div class="top-words-cloud">
           <div
-            v-for="word in libraryStore.currentBookInfo.stats.topWords"
+            v-for="word in legacyTopWords"
             :key="word.word"
             class="word-chip"
             :class="{
