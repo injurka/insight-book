@@ -1,6 +1,4 @@
 import type { Book, PagePayload, TocItem } from '~/shared/types/models'
-import { defineStore } from 'pinia'
-import { computed, ref, watch } from 'vue'
 import { useLibraryStore } from '~/components/05.modules/library/store/library.store'
 import { api } from '~/shared/services/api.service'
 import { offlineService } from '~/shared/services/offline.service'

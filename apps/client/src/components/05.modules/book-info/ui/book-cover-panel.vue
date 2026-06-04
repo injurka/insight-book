@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { Icon } from '@iconify/vue'
-import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { KitBtn, KitImage } from '~/components/01.kit'
 import { useLibraryStore } from '~/components/05.modules/library/store/library.store'
 import { AppRoutePaths } from '~/shared/constants/routes'
 import { useAuthStore } from '~/shared/store/auth.store'
+import { useBookCover } from '../composables/use-book-cover'
 
 const emit = defineEmits<{
   (e: 'editStats'): void
@@ -16,20 +16,7 @@ const libraryStore = useLibraryStore()
 const authStore = useAuthStore()
 const router = useRouter()
 
-const coverInputRef = ref<HTMLInputElement | null>(null)
-
-function triggerCoverInput() {
-  if (!authStore.user)
-    return
-  coverInputRef.value?.click()
-}
-
-function onCoverChange(e: Event) {
-  const target = e.target as HTMLInputElement
-  if (target.files && target.files.length > 0 && libraryStore.currentBookInfo) {
-    libraryStore.updateBookCover(libraryStore.currentBookInfo.id, target.files[0])
-  }
-}
+const { coverInputRef, triggerCoverInput, onCoverChange } = useBookCover()
 
 function startReading() {
   if (libraryStore.currentBookInfo) {

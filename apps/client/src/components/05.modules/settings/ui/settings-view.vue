@@ -7,6 +7,7 @@ import { HoverRevealBg } from '~/components/02.shared/hover-reveal-bg'
 import { AppRoutePaths } from '~/shared/constants/routes'
 import { useCacheStore } from '~/shared/store/cache.store'
 import { useGlobalSettingsStore } from '~/shared/store/settings.store'
+import { formatBytes, formatPagesList } from '../lib/formatters'
 
 const cacheStore = useCacheStore()
 const settingsStore = useGlobalSettingsStore()
@@ -15,26 +16,6 @@ const router = useRouter()
 onMounted(() => {
   cacheStore.loadStats()
 })
-
-function formatBytes(bytes: number, decimals = 2) {
-  if (bytes === 0 || !bytes)
-    return '0 Байт'
-  const k = 1024
-  const dm = decimals < 0 ? 0 : decimals
-  const sizes = ['Байт', 'КБ', 'МБ', 'ГБ', 'ТБ']
-  const i = Math.floor(Math.log(bytes) / Math.log(k))
-  return `${Number.parseFloat((bytes / k ** i).toFixed(dm))} ${sizes[i]}`
-}
-
-function formatPagesList(pages: number[]) {
-  if (pages.length === 0)
-    return 'Нет сохраненных страниц'
-
-  const sorted = [...pages].sort((a, b) => a - b)
-  if (sorted.length <= 15)
-    return sorted.join(', ')
-  return `${sorted.slice(0, 15).join(', ')} ... и ещё ${sorted.length - 15}`
-}
 
 const storagePercent = computed(() => {
   if (!cacheStore.deviceStorage || cacheStore.deviceStorage.quota === 0)
@@ -149,7 +130,6 @@ const storagePercent = computed(() => {
           Сохраненные данные книг
         </h2>
         <div class="books-list">
-          <!-- Фейковые карточки для корректного замера структуры во время loading -->
           <template v-if="cacheStore.isLoading && !cacheStore.stats">
             <div
               v-for="i in 2"

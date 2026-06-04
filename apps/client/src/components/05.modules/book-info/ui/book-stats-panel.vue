@@ -1,122 +1,33 @@
 <script setup lang="ts">
 import { Icon } from '@iconify/vue'
+import { computed, onMounted, watch } from 'vue'
 import { KitBtn, KitInput, KitSelect } from '~/components/01.kit'
 import { useLibraryStore } from '~/components/05.modules/library/store/library.store'
-import { useToast } from '~/shared/composables/use-toast'
-import { DIFFICULTY_SYSTEMS } from '~/shared/constants/difficulties'
 import { useAuthStore } from '~/shared/store/auth.store'
 import { useCacheStore } from '~/shared/store/cache.store'
+import { useBookStatsEdit } from '../composables/use-book-stats-edit'
+import { formatNumber } from '../lib/formatters'
 
 const libraryStore = useLibraryStore()
 const cacheStore = useCacheStore()
 const authStore = useAuthStore()
-const toast = useToast()
 
 const isEditingStats = defineModel<boolean>('isEditing', { default: false })
 
-const editForm = reactive({
-  difficulty: '',
-  tags: '',
-  description: '',
-})
+const {
+  editForm,
+  currentDifficultyOptions,
+  difficultyLevelClass,
+  saveStats,
+  triggerAiAnalysis,
+  triggerVocabularyAnalysis,
+} = useBookStatsEdit(isEditingStats)
 
 const bookCacheStats = computed(() => {
   if (!cacheStore.stats || !libraryStore.currentBookInfo)
     return null
   return cacheStore.stats.bookStats[libraryStore.currentBookInfo.id] || { cachedPages: [], analysesCount: 0 }
 })
-
-const currentDifficultyOptions = computed(() => {
-  const lang = libraryStore.currentBookInfo?.language || 'en'
-  const system = DIFFICULTY_SYSTEMS[lang] || DIFFICULTY_SYSTEMS.default
-
-  return [
-    { label: 'Не указана', value: '' },
-    ...system.map(opt => ({ label: opt.label, value: opt.value })),
-  ]
-})
-
-const difficultyLevelClass = computed(() => {
-  const diffValue = libraryStore.currentBookInfo?.stats?.difficulty
-  if (!diffValue)
-    return ''
-
-  const lang = libraryStore.currentBookInfo?.language || 'en'
-  const system = DIFFICULTY_SYSTEMS[lang] || DIFFICULTY_SYSTEMS.default
-  const found = system.find(s => s.value === diffValue)
-
-  if (!found)
-    return ''
-
-  if (found.level <= 2)
-    return 'level-easy'
-  if (found.level <= 4)
-    return 'level-medium'
-  return 'level-hard'
-})
-
-function formatNumber(num: number | undefined): string {
-  if (num === undefined || num === null)
-    return '0'
-  return new Intl.NumberFormat('ru-RU').format(num)
-}
-
-watch(isEditingStats, (val) => {
-  if (val) {
-    const stats = libraryStore.currentBookInfo?.stats
-
-    const opts = currentDifficultyOptions.value.map(o => o.value)
-    const currentDiff = stats?.difficulty || ''
-    editForm.difficulty = opts.includes(currentDiff) ? currentDiff : ''
-
-    editForm.tags = stats?.tags?.join(', ') || ''
-    editForm.description = stats?.description || ''
-  }
-})
-
-async function triggerAiAnalysis() {
-  if (!libraryStore.currentBookInfo)
-    return
-  try {
-    await libraryStore.analyzeFullBook(libraryStore.currentBookInfo.id)
-    isEditingStats.value = false
-    toast.success('Нейросеть успешно завершила анализ!')
-  }
-  catch (e) {
-    toast.error(e instanceof Error ? e.message : 'Ошибка ИИ анализа')
-  }
-}
-
-async function triggerVocabularyAnalysis() {
-  if (!libraryStore.currentBookInfo)
-    return
-  try {
-    await libraryStore.analyzeVocabulary(libraryStore.currentBookInfo.id)
-    isEditingStats.value = false
-    toast.success('Лексический профиль составлен!')
-  }
-  catch (e) {
-    toast.error(e instanceof Error ? e.message : 'Ошибка анализа лексики')
-  }
-}
-
-async function saveStats() {
-  if (!libraryStore.currentBookInfo)
-    return
-  try {
-    const tagsArray = editForm.tags.split(',').map(t => t.trim()).filter(Boolean)
-    await libraryStore.updateBookStats(libraryStore.currentBookInfo.id, {
-      difficulty: editForm.difficulty,
-      tags: tagsArray,
-      description: editForm.description,
-    })
-    isEditingStats.value = false
-    toast.success('Информация о книге обновлена')
-  }
-  catch (e) {
-    toast.error(e instanceof Error ? e.message : 'Не удалось сохранить информацию')
-  }
-}
 
 watch(() => libraryStore.syncState, (val) => {
   if (val === 'finished') {

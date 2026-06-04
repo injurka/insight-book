@@ -1,7 +1,5 @@
 <script setup lang="ts">
 import { Icon } from '@iconify/vue'
-import { computed, ref } from 'vue'
-import { useRouter } from 'vue-router'
 import { KitBtn, KitDropdown, KitSelect, KitTooltip } from '~/components/01.kit'
 import { ThemesVariant, useChangeTheme } from '~/shared/composables/use-change-theme'
 import { AppRoutePaths } from '~/shared/constants/routes'

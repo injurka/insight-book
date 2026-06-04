@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useWakeLock } from '@vueuse/core'
+import { useTemplateRef, watch } from 'vue'
 import { KitBtn, KitDialog } from '~/components/01.kit'
 
 import { PageLoader } from '~/components/02.shared/page-loader'
@@ -7,6 +7,9 @@ import { SelectionTooltip, SentenceAnalysis, useTextSelection, WordPopover } fro
 import { useAnalysisStore } from '~/shared/store/analysis.store'
 import { getMediaUrl } from '~/workers/service/lib/utils'
 
+import { useReaderDomHighlights } from '../composables/use-reader-dom-highlights'
+import { useReaderNavigation } from '../composables/use-reader-navigation'
+import { useReaderWakeLock } from '../composables/use-reader-wakelock'
 import { useScrollRestoration } from '../composables/use-scroll-restoration'
 import { useReaderStore } from '../store/reader.store'
 import ReaderFooter from './reader-footer.vue'
@@ -14,14 +17,8 @@ import ReaderHeader from './reader-header.vue'
 
 const readerStore = useReaderStore()
 const analysisStore = useAnalysisStore()
-const router = useRouter()
-const route = useRoute()
-
-const { onPointerDown, onPointerUp, onWordClick } = useTextSelection()
 
 const readerViewRef = useTemplateRef<HTMLElement>('readerViewRef')
-
-const { isSupported: isWakeLockSupported, request: requestWakeLock, release: releaseWakeLock } = useWakeLock()
 
 const { saveScrollPosition, restoreScrollPosition, setScrollIntent } = useScrollRestoration(
   readerViewRef,
@@ -29,36 +26,10 @@ const { saveScrollPosition, restoreScrollPosition, setScrollIntent } = useScroll
   () => readerStore.currentPage?.pageNum,
 )
 
-watch(() => analysisStore.isAnalyzingPage, async (isAnalyzing) => {
-  if (!isWakeLockSupported.value)
-    return
-  if (isAnalyzing) {
-    try {
-      await requestWakeLock('screen')
-    }
-    catch (err) {
-      console.warn('Wake Lock request failed:', err)
-    }
-  }
-  else {
-    await releaseWakeLock()
-  }
-})
-
-watch(() => analysisStore.activeTokenId, (newId, oldId) => {
-  if (oldId) {
-    const [sentId, tokenIdx] = oldId.split('-')
-    const el = readerViewRef.value?.querySelector(`.word[data-sent-id="${sentId}"][data-token-idx="${tokenIdx}"]`)
-    if (el)
-      el.classList.remove('is-active')
-  }
-  if (newId) {
-    const [sentId, tokenIdx] = newId.split('-')
-    const el = readerViewRef.value?.querySelector(`.word[data-sent-id="${sentId}"][data-token-idx="${tokenIdx}"]`)
-    if (el)
-      el.classList.add('is-active')
-  }
-})
+useReaderWakeLock()
+useReaderDomHighlights(readerViewRef)
+const { prevPage, nextPage, goToPage } = useReaderNavigation(setScrollIntent)
+const { onPointerDown, onPointerUp, onWordClick } = useTextSelection()
 
 function getBoxStyle(box: any) {
   if (!readerStore.currentPage?.imageWidth || !readerStore.currentPage?.imageHeight)
@@ -73,7 +44,6 @@ function getBoxStyle(box: any) {
 
 watch(() => readerStore.isPageLoading, async (isLoading) => {
   if (!isLoading && readerStore.currentPage) {
-    await nextTick()
     restoreScrollPosition()
   }
 }, { immediate: true })
@@ -86,42 +56,6 @@ function onScroll() {
     analysisStore.closeSelectionTooltip()
   }
   saveScrollPosition()
-}
-
-async function prevPage() {
-  if (readerStore.currentBook && (readerStore.currentBook.currentPage || 1) > 1) {
-    const newPage = (readerStore.currentBook.currentPage || 1) - 1
-    try {
-      setScrollIntent(readerStore.currentBook.id, newPage, 'bottom')
-      await readerStore.loadPage(readerStore.currentBook.id, newPage)
-      router.replace({ query: { ...route.query, page: newPage } })
-    }
-    catch {}
-  }
-}
-
-async function nextPage() {
-  if (readerStore.currentBook && (readerStore.currentBook.currentPage || 1) < readerStore.currentBook.totalPages) {
-    const newPage = (readerStore.currentBook.currentPage || 1) + 1
-    try {
-      setScrollIntent(readerStore.currentBook.id, newPage, 'top')
-      await readerStore.loadPage(readerStore.currentBook.id, newPage)
-      router.replace({ query: { ...route.query, page: newPage } })
-    }
-    catch {}
-  }
-}
-
-async function goToPage(pageNum?: number) {
-  if (!pageNum || !readerStore.currentBook)
-    return
-  readerStore.tocOpen = false
-  try {
-    setScrollIntent(readerStore.currentBook.id, pageNum, 'top')
-    await readerStore.loadPage(readerStore.currentBook.id, pageNum)
-    router.replace({ query: { ...route.query, page: pageNum } })
-  }
-  catch {}
 }
 </script>
 

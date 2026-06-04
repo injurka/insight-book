@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import type { Book } from '~/shared/types/models'
-import { ref, watch } from 'vue'
-import { KitBtn, KitCheckbox, KitDialog, KitImage, KitInput, KitSelect } from '~/components/01.kit'
+import { useClipboard } from '@vueuse/core'
+import { KitBtn, KitCheckbox, KitDialog, KitImage, KitInput, KitSelect, KitTooltip } from '~/components/01.kit'
+import { useToast } from '~/shared/composables/use-toast'
+import { useEditBookForm } from '../composables/use-edit-book-form'
 
 const props = defineProps<{
   book: Book | null
@@ -17,9 +19,13 @@ const toast = useToast()
 
 const visible = defineModel<boolean>('visible', { required: true })
 
-const editCoverInput = ref<HTMLInputElement | null>(null)
-const editingBook = ref<Partial<Book>>({})
-const editingCoverFile = ref<File | null>(null)
+const {
+  editCoverInput,
+  editingBook,
+  onEditCoverChange,
+  handleSave,
+  handleDelete,
+} = useEditBookForm(toRef(props, 'book'), emit)
 
 const bookLanguageOptions = [
   { label: 'Английский (en)', value: 'en' },
@@ -32,69 +38,6 @@ const statusOptions = [
   { label: 'Хочу прочитать', value: 'to-read' },
   { label: 'Прочитано', value: 'have-read' },
 ]
-
-function formatToDateTimeLocal(dateString?: string) {
-  if (!dateString)
-    return ''
-  return dateString.replace(' ', 'T').slice(0, 16)
-}
-
-function parseFromDateTimeLocal(localString?: string) {
-  if (!localString)
-    return ''
-  return `${localString.replace('T', ' ')}:00`
-}
-
-watch(() => props.book, (newBook) => {
-  if (newBook) {
-    editingCoverFile.value = null
-    editingBook.value = {
-      ...newBook,
-      language: newBook.language === 'jp' ? 'ja' : newBook.language,
-      createdAt: formatToDateTimeLocal(newBook.createdAt),
-      status: newBook.status || 'reading',
-      isFavorite: newBook.isFavorite || false,
-      isPublic: newBook.isPublic || false,
-    }
-  }
-  else {
-    editingBook.value = {}
-  }
-}, { immediate: true })
-
-function onEditCoverChange(e: Event) {
-  const target = e.target as HTMLInputElement
-  const file = target.files?.[0]
-  if (!file)
-    return
-
-  editingCoverFile.value = file
-  const reader = new FileReader()
-  reader.onload = (event) => {
-    editingBook.value.coverUrl = event.target?.result as string
-  }
-  reader.readAsDataURL(file)
-}
-
-function handleSave() {
-  if (editingBook.value.id === undefined || editingBook.value.id === null)
-    return
-
-  const payload = { ...editingBook.value }
-
-  if (payload.createdAt) {
-    payload.createdAt = parseFromDateTimeLocal(payload.createdAt)
-  }
-
-  payload.currentPage = Number(payload.currentPage) || 1
-  emit('save', { bookData: payload, coverFile: editingCoverFile.value })
-}
-
-function handleDelete() {
-  if (editingBook.value.id !== undefined) {
-    emit('delete', editingBook.value.id)
-  }
-}
 
 function copyLink() {
   if (editingBook.value.id) {

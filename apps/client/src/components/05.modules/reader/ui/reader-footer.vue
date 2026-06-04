@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { ref } from 'vue'
 import { KitBtn, KitPrompt } from '~/components/01.kit'
 import { useReaderStore } from '../store/reader.store'
 

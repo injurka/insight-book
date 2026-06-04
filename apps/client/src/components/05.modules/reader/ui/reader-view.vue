@@ -1,14 +1,16 @@
 <script setup lang="ts">
-import { useResizeObserver, useWakeLock } from '@vueuse/core'
+import { useResizeObserver } from '@vueuse/core'
 import DOMPurify from 'dompurify'
-import { computed, nextTick, useTemplateRef, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
 
 import { KitBtn, KitDialog } from '~/components/01.kit'
 import { PageLoader } from '~/components/02.shared/page-loader'
-import { SelectionTooltip, SentenceAnalysis, WordPopover } from '~/components/03.domain/analysis'
+import { SelectionTooltip, SentenceAnalysis, useTextSelection, WordPopover } from '~/components/03.domain/analysis'
 import { useAnalysisStore } from '~/shared/store/analysis.store'
 import { useGlobalSettingsStore } from '~/shared/store/settings.store'
+
+import { useReaderDomHighlights } from '../composables/use-reader-dom-highlights'
+import { useReaderNavigation } from '../composables/use-reader-navigation'
+import { useReaderWakeLock } from '../composables/use-reader-wakelock'
 import { useScrollRestoration } from '../composables/use-scroll-restoration'
 import { useReaderStore } from '../store/reader.store'
 import ReaderFooter from './reader-footer.vue'
@@ -18,12 +20,7 @@ const readerStore = useReaderStore()
 const analysisStore = useAnalysisStore()
 const settingsStore = useGlobalSettingsStore()
 
-const router = useRouter()
-const route = useRoute()
-
 const readerViewRef = useTemplateRef<HTMLElement>('readerViewRef')
-
-const { isSupported: isWakeLockSupported, request: requestWakeLock, release: releaseWakeLock } = useWakeLock()
 
 const { saveScrollPosition, restoreScrollPosition, setScrollIntent } = useScrollRestoration(
   readerViewRef,
@@ -31,21 +28,10 @@ const { saveScrollPosition, restoreScrollPosition, setScrollIntent } = useScroll
   () => readerStore.currentPage?.pageNum,
 )
 
-watch(() => analysisStore.isAnalyzingPage, async (isAnalyzing) => {
-  if (!isWakeLockSupported.value)
-    return
-  if (isAnalyzing) {
-    try {
-      await requestWakeLock('screen')
-    }
-    catch (err) {
-      console.warn('Wake Lock request failed:', err)
-    }
-  }
-  else {
-    await releaseWakeLock()
-  }
-})
+useReaderWakeLock()
+const { onSentenceHover, onSentenceOut } = useReaderDomHighlights(readerViewRef)
+const { prevPage, nextPage, goToPage } = useReaderNavigation(setScrollIntent)
+const { onPointerDown, onPointerUp, onWordClick } = useTextSelection()
 
 const safePageContent = computed(() => {
   if (!readerStore.currentPage?.content)
@@ -141,16 +127,12 @@ function syncHeights() {
   }
 }
 
-watch(() => readerStore.isPageLoading, async (isLoading) => {
-  if (!isLoading && readerStore.currentPage) {
-    await nextTick()
-    if (readerStore.isParallelView) {
-      syncHeights()
-      setTimeout(syncHeights, 300)
-    }
-    restoreScrollPosition()
+function performLayoutSync() {
+  if (readerStore.isParallelView) {
+    syncHeights()
   }
-}, { immediate: true })
+  restoreScrollPosition()
+}
 
 watch(
   [
@@ -163,178 +145,22 @@ watch(
     if (readerStore.isPageLoading)
       return
     await nextTick()
-    if (readerStore.isParallelView) {
-      syncHeights()
-    }
-    restoreScrollPosition()
+    setTimeout(performLayoutSync, 50)
   },
 )
+
+watch(() => readerStore.isPageLoading, async (isLoading) => {
+  if (!isLoading && readerStore.currentPage) {
+    await nextTick()
+    setTimeout(performLayoutSync, 50)
+  }
+})
 
 useResizeObserver(readerViewRef, () => {
   if (readerStore.isParallelView && !readerStore.isPageLoading) {
     syncHeights()
   }
 })
-
-function onSentenceHover(event: MouseEvent) {
-  const target = (event.target as HTMLElement).closest('.sentence') as HTMLElement | null
-  if (!target)
-    return
-
-  const sentId = target.getAttribute('data-sent-id')
-  if (sentId && readerViewRef.value) {
-    readerViewRef.value.querySelectorAll(`.sentence[data-sent-id="${sentId}"]`).forEach((el) => {
-      el.classList.add('is-hovered')
-    })
-  }
-}
-
-function onSentenceOut(event: MouseEvent) {
-  const target = (event.target as HTMLElement).closest('.sentence') as HTMLElement | null
-  if (!target)
-    return
-
-  const sentId = target.getAttribute('data-sent-id')
-  if (sentId && readerViewRef.value) {
-    readerViewRef.value.querySelectorAll(`.sentence[data-sent-id="${sentId}"]`).forEach((el) => {
-      el.classList.remove('is-hovered')
-    })
-  }
-}
-
-watch(() => analysisStore.activeTokenId, (newId, oldId) => {
-  if (oldId) {
-    const [sentId, tokenIdx] = oldId.split('-')
-    const el = readerViewRef.value?.querySelector(`.word[data-sent-id="${sentId}"][data-token-idx="${tokenIdx}"]`)
-    if (el)
-      el.classList.remove('is-active')
-  }
-  if (newId) {
-    const [sentId, tokenIdx] = newId.split('-')
-    const el = readerViewRef.value?.querySelector(`.word[data-sent-id="${sentId}"][data-token-idx="${tokenIdx}"]`)
-    if (el)
-      el.classList.add('is-active')
-  }
-})
-
-async function prevPage() {
-  if (readerStore.currentBook && (readerStore.currentBook.currentPage || 1) > 1) {
-    const newPage = (readerStore.currentBook.currentPage || 1) - 1
-    try {
-      setScrollIntent(readerStore.currentBook.id, newPage, 'bottom')
-      await readerStore.loadPage(readerStore.currentBook.id, newPage)
-      router.replace({ query: { ...route.query, page: newPage } })
-    }
-    catch {}
-  }
-}
-
-async function nextPage() {
-  if (readerStore.currentBook && (readerStore.currentBook.currentPage || 1) < readerStore.currentBook.totalPages) {
-    const newPage = (readerStore.currentBook.currentPage || 1) + 1
-    try {
-      setScrollIntent(readerStore.currentBook.id, newPage, 'top')
-      await readerStore.loadPage(readerStore.currentBook.id, newPage)
-      router.replace({ query: { ...route.query, page: newPage } })
-    }
-    catch {}
-  }
-}
-
-async function goToPage(pageNum?: number) {
-  if (!pageNum || !readerStore.currentBook)
-    return
-
-  readerStore.tocOpen = false
-
-  try {
-    setScrollIntent(readerStore.currentBook.id, pageNum, 'top')
-    await readerStore.loadPage(readerStore.currentBook.id, pageNum)
-    router.replace({ query: { ...route.query, page: pageNum } })
-  }
-  catch {}
-}
-
-let pressTimer: ReturnType<typeof setTimeout> | null = null
-let selectionChangeListener: (() => void) | null = null
-
-function clearPressTimer() {
-  if (pressTimer) {
-    clearTimeout(pressTimer)
-    pressTimer = null
-  }
-  if (selectionChangeListener) {
-    document.removeEventListener('selectionchange', selectionChangeListener)
-    selectionChangeListener = null
-  }
-}
-
-function onPointerDown(event: MouseEvent | TouchEvent) {
-  clearPressTimer()
-
-  const target = (event.target as HTMLElement).closest('.sentence') as HTMLElement | null
-  if (!target)
-    return
-
-  const rawSentEnc = target.dataset.rawSent
-  if (!rawSentEnc)
-    return
-
-  const rawSent = decodeURIComponent(rawSentEnc)
-
-  if (!/[\p{L}\p{N}]/u.test(rawSent))
-    return
-
-  selectionChangeListener = () => {
-    const selection = window.getSelection()
-    if (selection && selection.toString().trim().length > 0) {
-      clearPressTimer()
-    }
-  }
-  document.addEventListener('selectionchange', selectionChangeListener)
-
-  pressTimer = setTimeout(() => {
-    clearPressTimer()
-
-    const selection = window.getSelection()
-    if (selection && selection.toString().trim().length > 0) {
-      return
-    }
-
-    analysisStore.closePopover()
-    analysisStore.closeSelectionTooltip()
-    window.getSelection()?.empty()
-    analysisStore.handleSentenceAnalysis(rawSent)
-  }, 500)
-}
-
-function onPointerUp() {
-  clearPressTimer()
-}
-
-function onContentClick(event: MouseEvent) {
-  clearPressTimer()
-
-  const target = (event.target as HTMLElement).closest('.word') as HTMLElement | null
-  if (!target)
-    return
-
-  const pos = target.dataset.pos
-  if (pos === 'x')
-    return
-
-  const word = decodeURIComponent(target.dataset.word || '')
-  const sentenceId = Number(target.dataset.sentId)
-  const tokenIndex = Number(target.dataset.tokenIdx)
-
-  if (!word || Number.isNaN(sentenceId) || Number.isNaN(tokenIndex) || !pos)
-    return
-
-  window.getSelection()?.empty()
-
-  event.stopPropagation()
-  analysisStore.handleWordClick(word, pos, sentenceId, tokenIndex, target)
-}
 
 function onScroll() {
   if (analysisStore.wordPopover) {
@@ -375,7 +201,7 @@ function onScroll() {
                   lineHeight: settingsStore.readerLineHeight,
                   fontFamily: settingsStore.readerFontFamily,
                 }"
-                @click="onContentClick"
+                @click="onWordClick"
                 @mousedown="onPointerDown"
                 @touchstart="onPointerDown"
                 @mouseup="onPointerUp"
