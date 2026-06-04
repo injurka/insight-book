@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { useResizeObserver } from '@vueuse/core'
 import DOMPurify from 'dompurify'
+import { computed, nextTick, useTemplateRef, watch } from 'vue'
 
 import { KitBtn, KitDialog } from '~/components/01.kit'
 import { PageLoader } from '~/components/02.shared/page-loader'
@@ -26,6 +27,7 @@ const { saveScrollPosition, restoreScrollPosition, setScrollIntent } = useScroll
   readerViewRef,
   () => readerStore.currentBook?.id,
   () => readerStore.currentPage?.pageNum,
+  () => readerStore.isPageLoading,
 )
 
 useReaderWakeLock()
@@ -111,7 +113,7 @@ function syncHeights() {
   }
 
   const minLen = Math.min(leftNodes.length, rightNodes.length)
-  const heights = new Array<number>(minLen).fill(0)
+  const heights = [minLen].fill(0)
 
   for (let i = 0; i < minLen; i++) {
     const leftHeight = leftNodes[i].getBoundingClientRect().height
@@ -134,6 +136,12 @@ function performLayoutSync() {
   restoreScrollPosition()
 }
 
+function onContentEnter(el: Element) {
+  if (el.classList.contains('reader-layout-wrapper')) {
+    performLayoutSync()
+  }
+}
+
 watch(
   [
     () => readerStore.isParallelView,
@@ -154,7 +162,7 @@ watch(() => readerStore.isPageLoading, async (isLoading) => {
     await nextTick()
     setTimeout(performLayoutSync, 50)
   }
-})
+}, { immediate: true })
 
 useResizeObserver(readerViewRef, () => {
   if (readerStore.isParallelView && !readerStore.isPageLoading) {
@@ -179,7 +187,7 @@ function onScroll() {
       <ReaderHeader />
 
       <div class="reader-content-wrapper">
-        <Transition name="fade" mode="out-in">
+        <Transition name="fade" mode="out-in" @enter="onContentEnter">
           <div v-if="readerStore.isPageLoading" class="reader-loading-wrapper">
             <div class="spinner-box">
               <PageLoader />

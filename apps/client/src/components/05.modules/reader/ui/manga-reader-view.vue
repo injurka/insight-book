@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useTemplateRef, watch } from 'vue'
+import { nextTick, useTemplateRef, watch } from 'vue'
 import { KitBtn, KitDialog } from '~/components/01.kit'
 
 import { PageLoader } from '~/components/02.shared/page-loader'
@@ -24,6 +24,7 @@ const { saveScrollPosition, restoreScrollPosition, setScrollIntent } = useScroll
   readerViewRef,
   () => readerStore.currentBook?.id,
   () => readerStore.currentPage?.pageNum,
+  () => readerStore.isPageLoading,
 )
 
 useReaderWakeLock()
@@ -42,9 +43,16 @@ function getBoxStyle(box: any) {
   }
 }
 
+function onContentEnter(el: Element) {
+  if (el.classList.contains('manga-container')) {
+    restoreScrollPosition()
+  }
+}
+
 watch(() => readerStore.isPageLoading, async (isLoading) => {
   if (!isLoading && readerStore.currentPage) {
-    restoreScrollPosition()
+    await nextTick()
+    setTimeout(restoreScrollPosition, 50)
   }
 }, { immediate: true })
 
@@ -64,7 +72,7 @@ function onScroll() {
     <ReaderHeader />
 
     <div class="reader-content-wrapper">
-      <Transition name="fade" mode="out-in">
+      <Transition name="fade" mode="out-in" @enter="onContentEnter">
         <div v-if="readerStore.isPageLoading" class="reader-loading-wrapper">
           <PageLoader />
           <p class="loading-text">

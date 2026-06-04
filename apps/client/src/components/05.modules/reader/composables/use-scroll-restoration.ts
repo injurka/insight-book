@@ -1,18 +1,20 @@
 import type { Ref } from 'vue'
 import { useDebounceFn } from '@vueuse/core'
+import { ref } from 'vue'
 
 export function useScrollRestoration(
   scrollContainerRef: Ref<HTMLElement | null> | Readonly<Ref<HTMLElement | null>>,
   getBookId: () => number | undefined,
   getPageNum: () => number | undefined,
+  getIsLoading: () => boolean,
 ) {
   const isRestoringScroll = ref(false)
   let restoreInterval: ReturnType<typeof setInterval> | null = null
-  let restoreTimeout: ReturnType<typeof setTimeout> | null = null
 
   const saveScrollPosition = useDebounceFn(() => {
-    if (isRestoringScroll.value || !scrollContainerRef.value)
+    if (isRestoringScroll.value || !scrollContainerRef.value || getIsLoading()) {
       return
+    }
     const bookId = getBookId()
     const pageNum = getPageNum()
     if (!bookId || !pageNum)
@@ -31,8 +33,9 @@ export function useScrollRestoration(
   function restoreScrollPosition() {
     const bookId = getBookId()
     const pageNum = getPageNum()
-    if (!scrollContainerRef.value || !bookId || !pageNum)
+    if (!scrollContainerRef.value || !bookId || !pageNum) {
       return
+    }
 
     const saved = localStorage.getItem(`insight_scroll_${bookId}_${pageNum}`)
     const percent = saved !== null ? Number.parseFloat(saved) : 0
@@ -41,36 +44,55 @@ export function useScrollRestoration(
 
     if (restoreInterval)
       clearInterval(restoreInterval)
-    if (restoreTimeout)
-      clearTimeout(restoreTimeout)
+
+    const el = scrollContainerRef.value
+    let attempts = 0
+    let stableCount = 0
+    let lastHeight = 0
+
+    const stopRestoration = () => {
+      if (restoreInterval)
+        clearInterval(restoreInterval)
+
+      isRestoringScroll.value = false
+
+      el.removeEventListener('wheel', stopRestoration)
+      el.removeEventListener('touchstart', stopRestoration)
+      el.removeEventListener('mousedown', stopRestoration)
+    }
+
+    el.addEventListener('wheel', stopRestoration, { passive: true, once: true })
+    el.addEventListener('touchstart', stopRestoration, { passive: true, once: true })
+    el.addEventListener('mousedown', stopRestoration, { passive: true, once: true })
 
     const apply = () => {
-      const el = scrollContainerRef.value
-      if (!el)
-        return
       const maxScroll = Math.max(1, el.scrollHeight - el.clientHeight)
-      el.scrollTop = (Number.isNaN(percent) ? 0 : percent) * maxScroll
+      const target = (Number.isNaN(percent) ? 0 : percent) * maxScroll
+      el.scrollTop = target
+
+      if (el.scrollHeight === lastHeight && el.scrollHeight > el.clientHeight) {
+        stableCount++
+      }
+      else {
+        stableCount = 0
+        lastHeight = el.scrollHeight
+      }
+
+      if (stableCount >= 3 || attempts >= 25) {
+        stopRestoration()
+      }
     }
 
     apply()
-
-    let attempts = 0
     restoreInterval = setInterval(() => {
-      apply()
       attempts++
-
-      if (attempts >= 8) {
-        if (restoreInterval)
-          clearInterval(restoreInterval)
-        restoreTimeout = setTimeout(() => {
-          isRestoringScroll.value = false
-        }, 100)
-      }
+      apply()
     }, 50)
   }
 
   function setScrollIntent(bookId: number, pageNum: number, position: 'top' | 'bottom') {
-    localStorage.setItem(`insight_scroll_${bookId}_${pageNum}`, position === 'top' ? '0' : '1')
+    const percent = position === 'top' ? '0' : '1'
+    localStorage.setItem(`insight_scroll_${bookId}_${pageNum}`, percent)
   }
 
   return {
