@@ -8,6 +8,7 @@ import { SelectionTooltip, SentenceAnalysis, WordPopover } from '~/components/03
 import { useLibraryStore } from '~/components/05.modules/library/store/library.store'
 import { AppRoutePaths } from '~/shared/constants/routes'
 
+import AppendMangaModal from './append-manga-modal.vue'
 import BookCoverPanel from './book-cover-panel.vue'
 import BookLexicalPanel from './book-lexical-panel.vue'
 import BookStatsPanel from './book-stats-panel.vue'
@@ -21,6 +22,7 @@ const libraryStore = useLibraryStore()
 const bookId = computed(() => Number(route.params.id))
 const isEditingStats = ref(false)
 const isSyncModalOpen = ref(false)
+const isAppendChapterOpen = ref(false)
 
 watch(
   bookId,
@@ -59,7 +61,11 @@ function goBack() {
 
       <div v-else-if="libraryStore.currentBookInfo" class="book-container">
         <div class="layout-top">
-          <BookCoverPanel @edit-stats="isEditingStats = true" @open-sync="isSyncModalOpen = true" />
+          <BookCoverPanel
+            @edit-stats="isEditingStats = true"
+            @open-sync="isSyncModalOpen = true"
+            @open-append-chapter="isAppendChapterOpen = true"
+          />
           <div class="content-col">
             <BookStatsPanel v-model:is-editing="isEditingStats" />
           </div>
@@ -75,6 +81,7 @@ function goBack() {
     <SelectionTooltip />
     <SentenceAnalysis />
     <BookSyncModal v-if="libraryStore.currentBookInfo" v-model:visible="isSyncModalOpen" :book-id="bookId" />
+    <AppendMangaModal v-model:visible="isAppendChapterOpen" />
   </div>
 </template>
 

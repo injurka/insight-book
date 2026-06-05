@@ -6,6 +6,8 @@ import {
   handleAnalyzeBookStats,
   handleAnalyzeSentence,
   handleAnalyzeVocabulary,
+  handleAppendMangaChapter,
+  handleCreateCustomBook,
   handleDeleteBook,
   handleGenerateTts,
   handleGetBookInfo,
@@ -67,6 +69,8 @@ const apiRoutes = {
   // --- Books API ---
   '/api/books': { OPTIONS: corsOk, GET: apiWrapper(authWrapper(handleGetBooks)), POST: apiWrapper(authWrapper(handleUploadBook)) },
   '/api/books/upload': { OPTIONS: corsOk, POST: apiWrapper(authWrapper(handleUploadBook)) },
+  '/api/books/custom': { OPTIONS: corsOk, POST: apiWrapper(authWrapper(handleCreateCustomBook)) },
+  '/api/books/:id/manga-chapter': { OPTIONS: corsOk, POST: apiWrapper(authWrapper(handleAppendMangaChapter)) },
   '/api/books/:id': { OPTIONS: corsOk, PATCH: apiWrapper(authWrapper(handleUpdateBook)), DELETE: apiWrapper(authWrapper(handleDeleteBook)) },
   '/api/books/:id/info': { OPTIONS: corsOk, GET: apiWrapper(authWrapper(handleGetBookInfo)) },
   '/api/books/:id/cover': { OPTIONS: corsOk, PATCH: apiWrapper(authWrapper(handleUpdateCover)) },

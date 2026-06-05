@@ -8,6 +8,7 @@ import { useAuthStore } from '~/shared/store/auth.store'
 const emit = defineEmits<{
   (e: 'editStats'): void
   (e: 'openSync'): void
+  (e: 'openAppendChapter'): void
 }>()
 
 const libraryStore = useLibraryStore()
@@ -63,6 +64,14 @@ function startReading() {
 
       <KitBtn variant="tonal" color="secondary" class="full-width" icon="mdi:cloud-download-outline" @click="emit('openSync')">
         Кэшировать / Анализ
+      </KitBtn>
+
+      <KitBtn
+        v-if="authStore.user && libraryStore.currentBookInfo?.userId === authStore.user?.id && libraryStore.currentBookInfo?.type === 'manga'"
+        variant="tonal" color="accent" class="full-width" icon="mdi:image-plus"
+        @click="emit('openAppendChapter')"
+      >
+        Добавить страницы
       </KitBtn>
 
       <KitBtn v-if="authStore.user && libraryStore.currentBookInfo?.userId === authStore.user?.id" variant="text" size="sm" class="edit-btn" @click="emit('editStats')">

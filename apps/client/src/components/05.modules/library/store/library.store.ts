@@ -272,6 +272,41 @@ export const useLibraryStore = defineStore('library', () => {
     }
   }
 
+  async function createCustomManga(title: string, author: string, language: string) {
+    isLoading.value = true
+    try {
+      const res = await api.books.createCustomBook({ title, author, language, type: 'manga' })
+      books.value.unshift(res.book)
+      return res.book
+    } finally {
+      isLoading.value = false
+    }
+  }
+
+  async function uploadMangaChapter(bookId: number, chapterTitle: string, files: File[]) {
+    const fd = new FormData()
+    fd.append('chapterTitle', chapterTitle)
+    files.forEach(f => fd.append('files', f))
+
+    const res = await api.books.appendMangaChapter(bookId, fd)
+
+    // Аккуратно вливаем обновленные данные в стейт, чтобы не затереть другие локальные ключи
+    const index = books.value.findIndex(b => b.id === bookId)
+    if (index !== -1) {
+      Object.assign(books.value[index], res.book)
+    }
+    if (currentBookInfo.value?.id === bookId) {
+      Object.assign(currentBookInfo.value, res.book)
+      // Парсим оглавление для UI, так как бэк отдает его как строку JSON
+      if (typeof res.book.toc === 'string') {
+        try {
+          currentBookInfo.value.toc = JSON.parse(res.book.toc)
+        } catch { }
+      }
+    }
+    return res.book
+  }
+
   async function deleteBook(id: number) {
     await api.books.delete(id)
     books.value = books.value.filter(b => b.id !== id)
@@ -300,6 +335,8 @@ export const useLibraryStore = defineStore('library', () => {
     updateBookCover,
     updateBookStats,
     uploadBook,
+    createCustomManga,
+    uploadMangaChapter,
     deleteBook,
   }
 })

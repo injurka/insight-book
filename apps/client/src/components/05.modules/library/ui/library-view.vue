@@ -15,6 +15,7 @@ import BookCard from './book-card.vue'
 import EditBookModal from './edit-book-modal.vue'
 import LibraryHeader from './library-header.vue'
 import OpdsBrowser from './opds-browser.vue'
+import UploadBookModal from './upload-book-modal.vue'
 
 const store = useLibraryStore()
 const authStore = useAuthStore()
@@ -29,6 +30,7 @@ const selectedBookToEdit = ref<Book | null>(null)
 const isHidePromptOpen = ref(false)
 const bookToHideId = ref<number | null>(null)
 const isMobileMenuOpen = ref(false)
+const isUploadModalOpen = ref(false)
 
 const menuItems = [
   { id: 'reading-now', label: 'Читаю сейчас', icon: 'mdi:book-open-page-variant-outline' },
@@ -43,19 +45,22 @@ const menuItems = [
 ]
 
 function getFolderIcon(view: string) {
-  if (view === 'authors') return 'mdi:account'
-  if (view === 'series') return 'mdi:folder'
-  if (view === 'collections') return 'mdi:bookshelf'
+  if (view === 'authors')
+    return 'mdi:account'
+  if (view === 'series')
+    return 'mdi:folder'
+  if (view === 'collections')
+    return 'mdi:bookshelf'
   return 'mdi:folder'
 }
 
-async function handleUpload(file: File) {
+async function handleUploadArchive(file: File) {
   try {
     await store.uploadBook(file)
-    toast.success('Книга успешно добавлена')
+    toast.success('Архив/Книга успешно добавлена')
   }
   catch (e) {
-    toast.error(e instanceof Error ? e.message : 'Ошибка загрузки книги')
+    toast.error(e instanceof Error ? e.message : 'Ошибка загрузки')
   }
 }
 
@@ -145,8 +150,8 @@ onMounted(() => {
             v-model:search="searchQuery"
             v-model:lang="selectedLang"
             :lang-options="langOptions"
-            @upload="handleUpload"
             @open-menu="isMobileMenuOpen = true"
+            @open-upload-modal="isUploadModalOpen = true"
           />
 
           <div v-if="store.isLoading && !store.books.length" class="books-grid">
@@ -166,7 +171,7 @@ onMounted(() => {
           <div v-else-if="store.books.length === 0" class="empty-state">
             <h2>Библиотека пуста</h2>
             <p v-if="authStore.user">
-              Загрузите свою первую книгу в формате EPUB, FB2 или CBZ.
+              Загрузите свою первую книгу или мангу.
             </p>
             <p v-else>
               Авторизуйтесь, чтобы загружать и читать книги.
@@ -231,6 +236,11 @@ onMounted(() => {
         :book="selectedBookToEdit"
         @save="handleSaveEdit"
         @delete="handleDeleteBook"
+      />
+
+      <UploadBookModal
+        v-model:visible="isUploadModalOpen"
+        @upload-archive="handleUploadArchive"
       />
 
       <KitPrompt

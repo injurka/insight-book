@@ -75,6 +75,19 @@ export const api = {
       })
     },
 
+    createCustomBook: (data: { title: string, author?: string | null, language: string, type: string }) =>
+      request<{ success: boolean, book: Book }>('/api/books/custom', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      }),
+
+    appendMangaChapter: (id: number, fd: FormData) =>
+      request<{ success: boolean, book: Book }>(`/api/books/${id}/manga-chapter`, {
+        method: 'POST',
+        body: fd,
+      }),
+
     delete: (id: number) => request<{ success: boolean }>(`/api/books/${id}`, { method: 'DELETE' }),
 
     getToc: (bookId: number) => request<TocItem[]>(`/api/books/${bookId}/toc`),

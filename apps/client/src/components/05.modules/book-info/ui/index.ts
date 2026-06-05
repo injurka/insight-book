@@ -1,4 +1,5 @@
+import AppendMangaModal from './append-manga-modal.vue'
 import BookInfoView from './book-info-view.vue'
 import BookSyncModal from './book-sync-modal.vue'
 
-export { BookInfoView, BookSyncModal }
+export { AppendMangaModal, BookInfoView, BookSyncModal }

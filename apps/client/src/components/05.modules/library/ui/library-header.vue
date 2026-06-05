@@ -11,25 +11,15 @@ interface Props {
 defineProps<Props>()
 
 const emit = defineEmits<{
-  (e: 'upload', file: File): void
   (e: 'openMenu'): void
+  (e: 'openUploadModal'): void
 }>()
 
 const search = defineModel<string>('search', { required: true })
 const lang = defineModel<string>('lang', { required: true })
 
 const authStore = useAuthStore()
-
-const fileInput = ref<HTMLInputElement | null>(null)
 const isMobileFiltersOpen = ref(false)
-
-function onFileChange(e: Event) {
-  const target = e.target as HTMLInputElement
-  if (target.files && target.files.length > 0) {
-    emit('upload', target.files[0])
-    target.value = ''
-  }
-}
 </script>
 
 <template>
@@ -76,20 +66,11 @@ function onFileChange(e: Event) {
         <div class="spacer" />
 
         <div class="header-actions">
-          <KitBtn v-if="authStore.user" icon="mdi:upload" color="primary" @click="fileInput?.click()">
-            Загрузить
+          <KitBtn v-if="authStore.user" icon="mdi:upload" color="primary" @click="emit('openUploadModal')">
+            Добавить
           </KitBtn>
         </div>
       </div>
-
-      <input
-        v-if="authStore.user"
-        ref="fileInput"
-        type="file"
-        accept=".epub,.cbz,.zip,.fb2"
-        style="display: none"
-        @change="onFileChange"
-      >
     </div>
   </header>
 </template>

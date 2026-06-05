@@ -1,7 +1,7 @@
 /// <reference types="bun-types" />
 
 import type { PagePayload } from '../types'
-import { readFileSync } from 'node:fs'
+import { mkdirSync, readFileSync } from 'node:fs'
 import { rm, unlink } from 'node:fs/promises'
 import path from 'node:path'
 import { and, desc, eq, or } from 'drizzle-orm'
@@ -78,6 +78,13 @@ const GenerateTtsSchema = z.object({
 const GenerateTtsStandaloneSchema = z.object({
   text: z.string().min(1, 'Текст не передан'),
   language: z.string().min(1, 'Язык обязателен'),
+})
+
+const CreateCustomBookSchema = z.object({
+  title: z.string().min(1, 'Название обязательно'),
+  author: z.string().nullable().optional(),
+  language: z.string().default('ja'),
+  type: z.enum(['manga']).default('manga'),
 })
 
 export async function handleGetBooks(req: Request, userId: number): Promise<Response> {
@@ -363,6 +370,59 @@ export async function handleUploadBook(req: Request, userId: number): Promise<Re
 
   const book = await db.query.books.findFirst({ where: eq(schema.books.id, bookId) })
   return json({ success: true, book })
+}
+
+export async function handleCreateCustomBook(req: Request, userId: number): Promise<Response> {
+  const body = CreateCustomBookSchema.parse(await req.json())
+
+  const safeName = `${Date.now()}_custom_manga`
+  const filePath = path.join(BOOKS_PATH, safeName)
+
+  // Создаем папку под будущие страницы
+  mkdirSync(filePath, { recursive: true })
+
+  const [insertedBook] = await db.insert(schema.books).values({
+    userId,
+    type: body.type,
+    title: body.title,
+    author: body.author || null,
+    filePath,
+    language: body.language,
+    totalPages: 0,
+    toc: '[]',
+  }).returning()
+
+  await db.insert(schema.readingProgress).values({
+    bookId: insertedBook.id,
+    userId,
+    currentPage: 1,
+  }).onConflictDoNothing()
+
+  return json({ success: true, book: insertedBook })
+}
+
+export async function handleAppendMangaChapter(req: Request, userId: number): Promise<Response> {
+  const id = Number((req as any).params.id)
+  const formData = await req.formData()
+
+  const chapterTitle = formData.get('chapterTitle') as string || ''
+  const files = formData.getAll('files') as File[]
+
+  if (!files.length) {
+    throw new AppError(400, 'Файлы не переданы')
+  }
+
+  const book = await db.query.books.findFirst({ where: eq(schema.books.id, id) })
+  if (!book || book.userId !== userId) {
+    throw new AppError(403, 'Нет доступа к книге')
+  }
+
+  // Делегируем логику сохранения страниц в сервис
+  const { appendMangaChapter } = await import('../services/manga.service')
+  await appendMangaChapter(book, chapterTitle, files)
+
+  const updatedBook = await db.query.books.findFirst({ where: eq(schema.books.id, id) })
+  return json({ success: true, book: updatedBook })
 }
 
 export async function handleDeleteBook(req: Request, userId: number): Promise<Response> {

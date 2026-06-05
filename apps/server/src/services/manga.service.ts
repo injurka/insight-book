@@ -1,6 +1,7 @@
 import { mkdirSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 import AdmZip from 'adm-zip'
+import { eq } from 'drizzle-orm'
 import sizeOf from 'image-size'
 import { BOOKS_PATH, COVERS_PATH } from '../config'
 import { db } from '../db'
@@ -82,4 +83,72 @@ export async function processCbz(fileBuffer: ArrayBuffer, filename: string, user
   }).onConflictDoNothing()
 
   return bookId
+}
+
+export async function appendMangaChapter(book: any, chapterTitle: string, files: File[]) {
+  const startPageNum = book.totalPages + 1
+  let currentPageNum = startPageNum
+
+  const pagesToInsert: { bookId: number, pageNum: number, imageUrl: string, imageWidth: number, imageHeight: number }[] = []
+
+  // Сортируем файлы (Natural Sort), чтобы 10.jpg шел после 9.jpg, а не после 1.jpg
+  files.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }))
+
+  let coverUrl = book.coverUrl
+
+  for (const file of files) {
+    const buffer = await file.arrayBuffer()
+    const ext = path.extname(file.name).toLowerCase() || '.jpg'
+    const filename = `page_${currentPageNum}${ext}`
+    const outPath = path.join(book.filePath, filename)
+
+    writeFileSync(outPath, Buffer.from(buffer))
+    const dimensions = sizeOf(Buffer.from(buffer))
+
+    pagesToInsert.push({
+      bookId: book.id,
+      pageNum: currentPageNum,
+      imageUrl: outPath,
+      imageWidth: dimensions.width || 0,
+      imageHeight: dimensions.height || 0,
+    })
+
+    // Если это самая первая страница книги, делаем её обложкой
+    if (currentPageNum === 1 && !coverUrl) {
+      const coverFilename = `${Date.now()}_cover${ext}`
+      const coverPath = path.join(COVERS_PATH, coverFilename)
+      writeFileSync(coverPath, Buffer.from(buffer))
+      coverUrl = `/api/uploads/covers/${coverFilename}`
+    }
+
+    currentPageNum++
+  }
+
+  // Сохраняем в БД батчами
+  const chunkSize = 1000
+  for (let i = 0; i < pagesToInsert.length; i += chunkSize) {
+    const chunk = pagesToInsert.slice(i, i + chunkSize)
+    await db.insert(schema.mangaPages).values(chunk).onConflictDoNothing()
+  }
+
+  // Обновляем оглавление
+  const toc = JSON.parse(book.toc || '[]')
+  if (chapterTitle) {
+    toc.push({
+      id: `chap-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+      href: '',
+      title: chapterTitle,
+      order: toc.length,
+      level: 1,
+      pageNum: startPageNum,
+    })
+  }
+
+  // Обновляем книгу
+  await db.update(schema.books).set({
+    totalPages: book.totalPages + files.length,
+    toc: JSON.stringify(toc),
+    coverUrl,
+    updatedAt: new Date().toISOString(),
+  }).where(eq(schema.books.id, book.id))
 }
