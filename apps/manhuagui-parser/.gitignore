@@ -26,3 +26,4 @@ dist-ssr
 .env
 src_prompt.md
 downloads/**
+manga-config.json

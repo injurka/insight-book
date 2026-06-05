@@ -273,6 +273,7 @@ export async function analyzeMangaInfo(title: string, author: string | null, lan
 function hashTtsText(text: string, voice: string): string {
   const hasher = new Bun.CryptoHasher('sha256')
   hasher.update(text.trim() + voice)
+
   return hasher.digest('hex')
 }
 
@@ -311,6 +312,7 @@ export async function generateTts(text: string, language: string, config: LlmCon
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
   }
+  
   if (ttsKey)
     headers.Authorization = `Bearer ${ttsKey}`
 

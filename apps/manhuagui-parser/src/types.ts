@@ -14,3 +14,17 @@ export interface MangaInfo {
   coverUrl: string
   groups: ChapterGroup[]
 }
+
+export interface VolumeConfig {
+  title: string
+  start: number
+  end: number
+  description?: string
+}
+
+export interface MangaConfig {
+  url?: string
+  series?: string
+  groups?: string[]
+  volumes: VolumeConfig[]
+}
