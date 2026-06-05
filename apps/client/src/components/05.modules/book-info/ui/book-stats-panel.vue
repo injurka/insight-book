@@ -71,9 +71,9 @@ onMounted(() => {
 
     <div v-if="libraryStore.isAnalyzingBook" class="ai-analysis-box is-loading">
       <Icon icon="mdi:robot-outline" class="spin-icon pulse" />
-      <p>Нейросеть анализирует текст книги...</p>
+      <p>Нейросеть анализирует информацию...</p>
       <p class="sub-text">
-        Это займет несколько секунд. Мы считаем иероглифы и оцениваем сложность.
+        Это займет несколько секунд.
       </p>
     </div>
 
@@ -88,7 +88,7 @@ onMounted(() => {
             <KitBtn variant="outlined" color="accent" icon="mdi:robot-outline" class="flex-1" :disabled="libraryStore.isAnalyzingBook" @click="triggerAiAnalysis">
               Сгенерировать AI Инфо
             </KitBtn>
-            <KitBtn variant="outlined" color="secondary" icon="mdi:chart-pie" class="flex-1" :disabled="libraryStore.isAnalyzingVocab" @click="triggerVocabularyAnalysis">
+            <KitBtn v-if="libraryStore.currentBookInfo.type !== 'manga'" variant="outlined" color="secondary" icon="mdi:chart-pie" class="flex-1" :disabled="libraryStore.isAnalyzingVocab" @click="triggerVocabularyAnalysis">
               Собрать лексику
             </KitBtn>
           </div>
@@ -119,21 +119,23 @@ onMounted(() => {
       </template>
 
       <template v-else-if="libraryStore.currentBookInfo.stats">
-        <div class="stats-grid">
+        <div class="stats-grid" :class="{ 'single-col': libraryStore.currentBookInfo.type === 'manga' }">
           <div class="stat-item">
             <span class="stat-label">Сложность</span>
             <span class="stat-value difficulty-badge" :class="difficultyLevelClass">
               {{ libraryStore.currentBookInfo.stats.difficulty || '?' }}
             </span>
           </div>
-          <div class="stat-item">
-            <span class="stat-label">Всего символов</span>
-            <span class="stat-value">{{ formatNumber(libraryStore.currentBookInfo.stats.totalChars) }}</span>
-          </div>
-          <div class="stat-item">
-            <span class="stat-label">Уник. символов</span>
-            <span class="stat-value text-accent">{{ formatNumber(libraryStore.currentBookInfo.stats.uniqueChars) }}</span>
-          </div>
+          <template v-if="libraryStore.currentBookInfo.type !== 'manga'">
+            <div class="stat-item">
+              <span class="stat-label">Всего символов</span>
+              <span class="stat-value">{{ formatNumber(libraryStore.currentBookInfo.stats.totalChars) }}</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-label">Уник. символов</span>
+              <span class="stat-value text-accent">{{ formatNumber(libraryStore.currentBookInfo.stats.uniqueChars) }}</span>
+            </div>
+          </template>
         </div>
         <div v-if="libraryStore.currentBookInfo.stats.tags?.length" class="tags-list">
           <span v-for="tag in libraryStore.currentBookInfo.stats.tags" :key="tag" class="tag-badge">{{ tag }}</span>
@@ -288,6 +290,9 @@ onMounted(() => {
     gap: 16px;
     margin-bottom: 24px;
     @include media-down(sm) {
+      grid-template-columns: 1fr;
+    }
+    &.single-col {
       grid-template-columns: 1fr;
     }
     .stat-item {

@@ -11,7 +11,7 @@ import {
 } from '../config'
 import { db } from '../db'
 import * as schema from '../db/schema'
-import { BOOK_ANALYSIS_PROMPT, getSystemPrompt, getWordAutoFillPrompt, getWordExamplesPrompt } from '../prompts'
+import { BOOK_ANALYSIS_PROMPT, getMangaAnalysisPrompt, getSystemPrompt, getWordAutoFillPrompt, getWordExamplesPrompt } from '../prompts'
 import { AppError } from '../utils/errors'
 
 export function extractLlmConfig(req: Request): LlmConfig {
@@ -234,6 +234,36 @@ export async function analyzeBookExcerpt(excerpt: string, config: LlmConfig): Pr
       description: 'Краткое описание недоступно. Текст книги был заблокирован внутренними фильтрами безопасности ИИ (вероятно, из-за описания драматических или трагических событий).',
       difficulty: 'Неизвестно',
       tags: ['драма', 'требует проверки'],
+    }
+  }
+
+  throw new AppError(500, `Ошибка LLM: ${lastError?.message || 'Неизвестная ошибка'}`)
+}
+
+export async function analyzeMangaInfo(title: string, author: string | null, language: string, config: LlmConfig): Promise<{ description: string, difficulty: string, tags: string[] }> {
+  if (!config.url)
+    throw new AppError(500, 'LLM API не настроен')
+
+  const promptText = getMangaAnalysisPrompt(language)
+  const authorInfo = author ? ` Автор: ${author}` : ''
+
+  const messages = [
+    { role: 'system', content: promptText },
+    { role: 'user', content: `Название манги/комикса: "${title}".${authorInfo}` },
+  ]
+
+  const modelsToTry = [config.model, config.fallbackModel].filter(Boolean) as string[]
+  let lastError: Error | null = null
+
+  for (const model of modelsToTry) {
+    try {
+      const raw = await _callLlmApi(model, messages, 0.3, AbortSignal.timeout(90000), config)
+      const cleanJson = raw.replace(/^```json\n?/, '').replace(/\n?```$/, '').trim()
+      return JSON.parse(cleanJson)
+    }
+    catch (e) {
+      lastError = e as Error
+      console.warn(`[LLM] Failed with model [${model}]:`, lastError.message)
     }
   }
 

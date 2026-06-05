@@ -71,7 +71,7 @@ function goBack() {
           </div>
         </div>
         <div class="layout-bottom">
-          <BookLexicalPanel />
+          <BookLexicalPanel v-if="libraryStore.currentBookInfo.type !== 'manga'" />
           <BookTocPanel />
         </div>
       </div>

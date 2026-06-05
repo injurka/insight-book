@@ -13,7 +13,7 @@ import { BOOKS_PATH, CORS_HEADERS, COVERS_PATH } from '../config'
 import { db } from '../db'
 import * as schema from '../db/schema'
 import { lookupSingleWord, lookupWords } from '../services/dictionary.service'
-import { analyzeBookExcerpt, analyzeSentence, extractLlmConfig, generateTts } from '../services/llm.service'
+import { analyzeBookExcerpt, analyzeMangaInfo, analyzeSentence, extractLlmConfig, generateTts } from '../services/llm.service'
 import { recognizeMangaPage } from '../services/ocr.service'
 import { AppError } from '../utils/errors'
 import { createRateLimiter } from '../utils/rate-limit'
@@ -153,6 +153,10 @@ export async function handleAnalyzeVocabulary(req: Request, userId: number): Pro
   if (!book || book.userId !== userId)
     throw new AppError(403, 'Нет доступа')
 
+  if (book.type === 'manga') {
+    throw new AppError(400, 'Лексический анализ пока недоступен для манги')
+  }
+
   const result = await runWorkerTask('analyzeBookVocabulary', { bookId: id, language: book.language })
 
   await db.insert(schema.bookStats).values({
@@ -232,38 +236,45 @@ export async function handleAnalyzeBookStats(req: Request, userId: number): Prom
   if (!book || book.userId !== userId)
     throw new AppError(403, 'Нет доступа')
 
-  const pages = await db.select({ content: schema.bookPages.content }).from(schema.bookPages).where(eq(schema.bookPages.bookId, id)).orderBy(schema.bookPages.pageNum)
-  if (!pages.length)
-    throw new AppError(400, 'Страницы для анализа не найдены')
-
-  let excerpt = ''
-  for (const p of pages) {
-    if (excerpt.length >= 3000)
-      break
-    const plainText = parseHtml(p.content).textContent
-    excerpt += `${plainText}\n`
-  }
-  excerpt = excerpt.substring(0, 3000)
-
-  const aiData = await analyzeBookExcerpt(excerpt, config)
-  const tagsJson = JSON.stringify(aiData.tags || [])
-
+  let aiData
   let totalItems = 0
   const uniqueSet = new Set<string>()
 
-  for (const p of pages) {
-    const plainText = parseHtml(p.content).textContent
-    if (book.language === 'zh' || book.language === 'ja') {
-      const chars = plainText.match(/[\p{L}\p{N}]/gu) || []
-      totalItems += chars.length
-      for (const c of chars) uniqueSet.add(c)
+  if (book.type === 'manga') {
+    aiData = await analyzeMangaInfo(book.title, book.author, book.language, config)
+  }
+  else {
+    const pages = await db.select({ content: schema.bookPages.content }).from(schema.bookPages).where(eq(schema.bookPages.bookId, id)).orderBy(schema.bookPages.pageNum)
+    if (!pages.length)
+      throw new AppError(400, 'Страницы для анализа не найдены')
+
+    let excerpt = ''
+    for (const p of pages) {
+      if (excerpt.length >= 3000)
+        break
+      const plainText = parseHtml(p.content).textContent
+      excerpt += `${plainText}\n`
     }
-    else {
-      const words = plainText.match(/[\p{L}\p{N}]+/gu) || []
-      totalItems += words.length
-      for (const w of words) uniqueSet.add(w.toLowerCase())
+    excerpt = excerpt.substring(0, 3000)
+
+    aiData = await analyzeBookExcerpt(excerpt, config)
+
+    for (const p of pages) {
+      const plainText = parseHtml(p.content).textContent
+      if (book.language === 'zh' || book.language === 'ja') {
+        const chars = plainText.match(/[\p{L}\p{N}]/gu) || []
+        totalItems += chars.length
+        for (const c of chars) uniqueSet.add(c)
+      }
+      else {
+        const words = plainText.match(/[\p{L}\p{N}]+/gu) || []
+        totalItems += words.length
+        for (const w of words) uniqueSet.add(w.toLowerCase())
+      }
     }
   }
+
+  const tagsJson = JSON.stringify(aiData.tags || [])
 
   await db.insert(schema.bookStats).values({ bookId: id, description: aiData.description, difficulty: aiData.difficulty, tags: tagsJson, totalChars: totalItems, uniqueChars: uniqueSet.size }).onConflictDoUpdate({ target: schema.bookStats.bookId, set: { description: aiData.description, difficulty: aiData.difficulty, tags: tagsJson, totalChars: totalItems, uniqueChars: uniqueSet.size } })
   const newStats = await db.query.bookStats.findFirst({ where: eq(schema.bookStats.bookId, id) })
@@ -525,7 +536,7 @@ export async function handleGetPage(req: Request, userId: number): Promise<Respo
         }
 
         ocrBlocks = await recognizeMangaPage(base64, book.language, config)
-        
+
         await db.update(schema.mangaPages).set({ ocrData: JSON.stringify(ocrBlocks) }).where(eq(schema.mangaPages.id, pageRow.id))
       }
       catch (e: any) {
