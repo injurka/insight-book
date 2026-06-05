@@ -119,6 +119,7 @@ Bun.serve({
   port: PORT,
   idleTimeout: 255,
   routes: apiRoutes,
+  maxRequestBodySize: 5000 * 1024 * 1024, 
   fetch() { return withCors(new Response('Not Found', { status: 404 })) },
   error(err: any) {
     console.error('[Server Error]', err)

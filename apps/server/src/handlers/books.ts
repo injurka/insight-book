@@ -354,9 +354,9 @@ export async function handleUploadBook(req: Request, userId: number): Promise<Re
     throw new AppError(400, 'Файл не передан')
   }
 
-  const MAX_FILE_SIZE = 200 * 1024 * 1024
+  const MAX_FILE_SIZE = 5000 * 1024 * 1024 // 5 ГБ
   if (file.size > MAX_FILE_SIZE) {
-    throw new AppError(413, `Размер файла превышает лимит в 200 МБ. Ваш файл: ${(file.size / 1024 / 1024).toFixed(2)} МБ`)
+    throw new AppError(413, `Размер файла превышает лимит в 5 ГБ. Ваш файл: ${(file.size / 1024 / 1024).toFixed(2)} МБ`)
   }
 
   const filename = file.name.toLowerCase()

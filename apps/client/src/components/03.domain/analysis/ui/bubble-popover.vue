@@ -50,12 +50,12 @@ const style = computed(() => {
   backdrop-filter: blur(16px);
   border: 1px solid var(--border-primary-color);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
-  padding: 16px;
+  padding: 12px;
   border-radius: 12px;
   max-width: 400px;
   width: max-content;
   color: var(--fg-primary-color);
-  cursor: default;
+  user-select: none;
 
   .bubble-popover-text {
     font-size: 1.25rem;
@@ -63,6 +63,7 @@ const style = computed(() => {
     text-align: left;
     writing-mode: horizontal-tb;
     word-break: break-word;
+    cursor: pointer;
 
     :deep(.sentence) {
       display: inline;

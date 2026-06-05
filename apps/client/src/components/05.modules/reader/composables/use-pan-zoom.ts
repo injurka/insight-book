@@ -1,5 +1,4 @@
 import type { Ref } from 'vue'
-import { onUnmounted, ref, watch } from 'vue'
 
 export function usePanZoom(
   containerRef: Ref<HTMLElement | null>,
@@ -60,7 +59,7 @@ export function usePanZoom(
   }
 
   function handleTouchStart(e: TouchEvent) {
-    if (e.touches.length === 2) {
+    if (e.touches.length >= 2) {
       e.preventDefault()
       isPinching.value = true
       const dx = e.touches[0].clientX - e.touches[1].clientX
@@ -81,7 +80,7 @@ export function usePanZoom(
   }
 
   function handleTouchMove(e: TouchEvent) {
-    if (isPinching.value && e.touches.length === 2) {
+    if (isPinching.value && e.touches.length >= 2) {
       e.preventDefault()
       const dx = e.touches[0].clientX - e.touches[1].clientX
       const dy = e.touches[0].clientY - e.touches[1].clientY
@@ -131,9 +130,32 @@ export function usePanZoom(
     if (e.touches.length < 2) {
       isPinching.value = false
     }
-    if (e.touches.length === 0) {
+
+    if (e.touches.length >= 2) {
+      isPinching.value = true
+      const dx = e.touches[0].clientX - e.touches[1].clientX
+      const dy = e.touches[0].clientY - e.touches[1].clientY
+      initialPinchDist = Math.sqrt(dx * dx + dy * dy)
+      initialPinchScale = scale.value
+      initialPinchCenter = {
+        x: (e.touches[0].clientX + e.touches[1].clientX) / 2,
+        y: (e.touches[0].clientY + e.touches[1].clientY) / 2,
+      }
+    }
+    else if (e.touches.length === 1) {
+      if (scale.value > 1) {
+        isPanning.value = true
+        startPanX = e.touches[0].clientX - panX.value
+        startPanY = e.touches[0].clientY - panY.value
+      }
+      else {
+        isPanning.value = false
+      }
+    }
+    else if (e.touches.length === 0) {
       isPanning.value = false
     }
+
     if (scale.value === 1) {
       panX.value = 0
       panY.value = 0

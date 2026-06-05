@@ -247,7 +247,7 @@ function onScroll() {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 16px;
+  padding: 0px;
   position: relative;
 }
 
@@ -256,6 +256,7 @@ function onScroll() {
   justify-content: center;
   align-items: center;
   width: 100%;
+  user-select: none;
 }
 
 .manga-page-wrapper {
@@ -273,7 +274,6 @@ function onScroll() {
   max-height: 85vh;
   display: block;
   object-fit: contain;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
   border-radius: 4px;
   pointer-events: none;
 }
