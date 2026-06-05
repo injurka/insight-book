@@ -45,8 +45,6 @@ function handleBubbleClick(event: MouseEvent, box: any) {
     activeBubble.value = box
     bubbleReference.value = event.currentTarget as HTMLElement
   }
-  // В режиме hover мы НЕ останавливаем всплытие.
-  // Клик пройдёт дальше к manga-page-wrapper и вызовет onWordClick (для .word-popover).
 }
 
 function handleBubblePointerDown(event: MouseEvent | TouchEvent, box: any) {
@@ -87,6 +85,9 @@ function onContentEnter(el: Element) {
 }
 
 watch(() => readerStore.isPageLoading, async (isLoading) => {
+  if (isLoading) {
+    closeBubblePopover()
+  }
   if (!isLoading && readerStore.currentPage) {
     await nextTick()
     setTimeout(restoreScrollPosition, 50)
@@ -144,7 +145,6 @@ function onScroll() {
                 @touchstart="handleBubblePointerDown($event, box)"
                 @click="handleBubbleClick($event, box)"
               >
-                <!-- Текст внутри бабла рендерится ТОЛЬКО в режиме hover -->
                 <div v-if="settingsStore.mangaOcrDisplayMode === 'hover'" class="bubble-text-preview" v-html="box.html || box.text.replace(/\n+/g, '')" />
               </div>
             </div>
@@ -153,7 +153,6 @@ function onScroll() {
       </Transition>
     </div>
 
-    <!-- Декомпозированный BubblePopover -->
     <BubblePopover
       :box="activeBubble"
       :reference-el="bubbleReference"
@@ -277,7 +276,6 @@ function onScroll() {
     z-index: 1;
   }
 
-  /* === РЕЖИМ 1: НАВЕДЕНИЕ === */
   &.mode-hover {
     .bubble-text-preview {
       position: absolute;
@@ -352,7 +350,6 @@ function onScroll() {
     }
   }
 
-  /* === РЕЖИМ 2: POPOVER === */
   &.mode-popover {
     &.is-active::before {
       border-color: var(--fg-accent-color);

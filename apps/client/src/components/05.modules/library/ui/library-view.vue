@@ -54,16 +54,6 @@ function getFolderIcon(view: string) {
   return 'mdi:folder'
 }
 
-async function handleUploadArchive(file: File) {
-  try {
-    await store.uploadBook(file)
-    toast.success('Архив/Книга успешно добавлена')
-  }
-  catch (e) {
-    toast.error(e instanceof Error ? e.message : 'Ошибка загрузки')
-  }
-}
-
 function openBookInfo(book: Book) {
   router.push(AppRoutePaths.Book.Info(book.id))
 }
@@ -240,7 +230,6 @@ onMounted(() => {
 
       <UploadBookModal
         v-model:visible="isUploadModalOpen"
-        @upload-archive="handleUploadArchive"
       />
 
       <KitPrompt

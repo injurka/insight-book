@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ref } from 'vue'
 import { KitBtn, KitPrompt } from '~/components/01.kit'
 import { useReaderStore } from '../store/reader.store'
 
@@ -25,7 +26,7 @@ function handlePageSubmit(value: string) {
 </script>
 
 <template>
-  <footer class="reader-footer" @click.stop>
+  <footer class="reader-footer">
     <KitBtn
       icon="mdi:chevron-left"
       variant="text"

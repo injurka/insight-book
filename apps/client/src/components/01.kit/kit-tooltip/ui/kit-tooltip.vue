@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { arrow, autoUpdate, flip, offset, shift, useFloating } from '@floating-ui/vue'
+import { useMediaQuery } from '@vueuse/core'
+import { computed, onUnmounted, ref } from 'vue'
 
 interface Props {
   text?: string
@@ -17,6 +19,8 @@ const floatingRef = ref<HTMLElement | null>(null)
 const arrowRef = ref<HTMLElement | null>(null)
 const isVisible = ref(false)
 
+const isHoverable = useMediaQuery('(hover: hover)')
+
 const { x, y, strategy, middlewareData, placement: finalPlacement } = useFloating(referenceRef, floatingRef, {
   placement: props.placement,
   whileElementsMounted: autoUpdate,
@@ -32,12 +36,12 @@ const { x, y, strategy, middlewareData, placement: finalPlacement } = useFloatin
 let timeout: ReturnType<typeof setTimeout>
 
 function show() {
-  if (props.disabled || !props.text)
+  if (props.disabled || !props.text || !isHoverable.value)
     return
   clearTimeout(timeout)
   timeout = setTimeout(() => {
     isVisible.value = true
-  }, 200) // Небольшая задержка, чтобы не было "мельтешения"
+  }, 200)
 }
 
 function hide() {
@@ -50,11 +54,9 @@ const floatingStyle = computed(() => {
 
   return {
     position: strategy.value,
-    // Используем top и left вместо transform, чтобы не конфликтовать с анимацией
     top: isPositioned ? `${y.value}px` : '0',
     left: isPositioned ? `${x.value}px` : '0',
     width: 'max-content',
-    // Скрываем элемент в самый первый кадр, пока Floating UI не рассчитал координаты
     visibility: isPositioned ? 'visible' as const : 'hidden' as const,
   }
 })
@@ -89,6 +91,7 @@ onUnmounted(() => {
     @mouseleave="hide"
     @focusin="show"
     @focusout="hide"
+    @click="hide"
   >
     <div ref="referenceRef" class="kit-tooltip-trigger">
       <slot />
@@ -176,7 +179,6 @@ onUnmounted(() => {
 
 .tooltip-fade-enter-active,
 .tooltip-fade-leave-active {
-  // Анимируем только прозрачность и масштаб! top и left не затронуты
   transition:
     opacity 0.15s ease,
     transform 0.15s ease;

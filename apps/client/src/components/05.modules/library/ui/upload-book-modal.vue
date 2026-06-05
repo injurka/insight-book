@@ -1,25 +1,23 @@
 <script setup lang="ts">
 import { Icon } from '@iconify/vue'
 import { computed, ref } from 'vue'
-// Добавляем импорт KitTabs
 import { KitBtn, KitDialog, KitInput, KitSelect, KitTabs } from '~/components/01.kit'
+import { useToast } from '~/shared/composables/use-toast'
 import { useLibraryStore } from '../store/library.store'
 
-const emit = defineEmits(['uploadArchive'])
 const visible = defineModel<boolean>('visible', { required: true })
 const store = useLibraryStore()
+const toast = useToast()
 
 const activeTab = ref<'file' | 'images'>('file')
 const isUploading = ref(false)
 const uploadProgressText = ref('')
 
-// Определяем элементы вкладок для KitTabs
 const tabItems = [
   { id: 'file', label: 'Готовый файл' },
   { id: 'images', label: 'Собрать из изображений' },
 ]
 
-// Состояние для манги из изображений
 const customManga = ref({
   title: '',
   author: '',
@@ -43,12 +41,26 @@ function triggerArchiveUpload() {
   archiveInputRef.value?.click()
 }
 
-function onArchiveSelected(e: Event) {
+async function onArchiveSelected(e: Event) {
   const target = e.target as HTMLInputElement
   if (target.files && target.files.length > 0) {
-    emit('uploadArchive', target.files[0])
+    const file = target.files[0]
     target.value = ''
-    visible.value = false
+
+    isUploading.value = true
+    uploadProgressText.value = 'Загрузка файла и обработка...'
+
+    try {
+      await store.uploadBook(file)
+      toast.success('Книга успешно добавлена')
+      visible.value = false
+    }
+    catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Ошибка загрузки')
+    }
+    finally {
+      isUploading.value = false
+    }
   }
 }
 
@@ -104,7 +116,6 @@ async function submitCustomManga() {
     uploadProgressText.value = 'Завершено!'
     setTimeout(() => {
       visible.value = false
-      // Сброс формы
       customManga.value = {
         title: '',
         author: '',
@@ -131,9 +142,7 @@ async function submitCustomManga() {
     </div>
 
     <div v-else class="upload-modal-content">
-      <!-- ИСПОЛЬЗУЕМ ВАШ КОМПОНЕНТ KitTabs -->
       <KitTabs v-model="activeTab" :items="tabItems" :cache="false">
-        <!-- РЕЖИМ 1: Архив (используем слот с именем 'file') -->
         <template #file>
           <div class="tab-pane archive-pane">
             <Icon icon="mdi:file-document-multiple-outline" class="pane-icon" />
@@ -146,7 +155,6 @@ async function submitCustomManga() {
           </div>
         </template>
 
-        <!-- РЕЖИМ 2: Из изображений (используем слот с именем 'images') -->
         <template #images>
           <div class="tab-pane images-pane">
             <div class="form-row">

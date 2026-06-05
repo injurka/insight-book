@@ -57,7 +57,7 @@ const fontOptions = [
 </script>
 
 <template>
-  <header class="reader-header" @click.stop>
+  <header class="reader-header">
     <KitTooltip text="Вернуться назад" placement="bottom">
       <KitBtn icon="mdi:arrow-left" variant="text" size="sm" @click="goBack" />
     </KitTooltip>

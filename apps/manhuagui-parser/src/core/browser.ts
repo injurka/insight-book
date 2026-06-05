@@ -2,7 +2,7 @@ import puppeteer, { Browser, Page } from 'puppeteer'
 
 export async function launchBrowser(): Promise<{ browser: Browser, page: Page }> {
   const browser = await puppeteer.launch({
-    headless: true, // Поставьте false для визуальной отладки
+    headless: false, // Поставьте false для визуальной отладки
     args: [
       '--no-sandbox',
       '--disable-setuid-sandbox',
@@ -15,18 +15,18 @@ export async function launchBrowser(): Promise<{ browser: Browser, page: Page }>
 
   // Внедряем скрытие признаков автоматизации (webdriver) до загрузки страницы
   await page.evaluateOnNewDocument(() => {
-    Object.defineProperty(navigator, 'webdriver', { get: () => undefined })
+    Object.defineProperty(navigator, 'webdriver', { get: () => false })
     Object.defineProperty(navigator, 'plugins', { get: () => [1, 2, 3, 4, 5] })
     // @ts-ignore
     window.chrome = { runtime: {} }
 
     const originalQuery = window.navigator.permissions.query
     // @ts-ignore
-    window.navigator.permissions.query = (parameters) => (
-      parameters.name === 'notifications' ?
+    window.navigator.permissions.query = function (parameters) {
+      return parameters.name === 'notifications' ?
         Promise.resolve({ state: Notification.permission } as PermissionStatus) :
-        originalQuery(parameters)
-    )
+        originalQuery.call(navigator.permissions, parameters)
+    }
   })
 
   // Оставляем только языковой заголовок. Использование Sec-Fetch-* здесь 
