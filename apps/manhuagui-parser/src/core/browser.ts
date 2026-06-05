@@ -2,7 +2,7 @@ import puppeteer, { Browser, Page } from 'puppeteer'
 
 export async function launchBrowser(): Promise<{ browser: Browser, page: Page }> {
   const browser = await puppeteer.launch({
-    headless: false, // Поставьте false для визуальной отладки
+    headless: true, // Поставьте false для визуальной отладки
     args: [
       '--no-sandbox',
       '--disable-setuid-sandbox',

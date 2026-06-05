@@ -10,6 +10,8 @@ export const POS_TAGS_MAP: Record<string, string> = {
   c: 'Союз',
   u: 'Служебное слово / Частица',
   x: 'Пунктуация / Прочее',
+  unk: 'Неизвестно',
+  word: 'Слово',
 
   // ----- Специфичные для Китайского (Jieba / ICTCLAS) -----
 

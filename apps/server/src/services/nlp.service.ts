@@ -231,6 +231,10 @@ export async function tokenizeHtmlPage(html: string, language: string) {
 
         const encodedRaw = encodeURIComponent(sent)
         for (let i = 0; i < finalTokens.length; i++) {
+          if (finalTokens[i].pos === 'x' && /[\p{L}\p{N}]/u.test(finalTokens[i].word)) {
+            finalTokens[i].pos = 'unk'
+          }
+
           blockTokens.push({ text: finalTokens[i].word, pos: finalTokens[i].pos, sentId: sentenceIdCounter, tokenIdx: i, encodedRaw, isValidSent: true })
           if (/[\p{L}\p{N}]/u.test(finalTokens[i].word)) {
             allWords.add(finalTokens[i].word)
@@ -330,6 +334,10 @@ export async function analyzeBookVocabulary(bookId: number, language: string) {
       const tokens = await tokenizer.tokenize(raw)
 
       for (const t of tokens) {
+        if (t.pos === 'x' && /[\p{L}\p{N}]/u.test(t.word)) {
+          t.pos = 'unk'
+        }
+
         if (['x', 'u', 'p', 'c', 'm', 'r'].includes(t.pos))
           continue
         if (t.word.length < (language === 'en' ? 2 : 1))
@@ -392,6 +400,11 @@ export async function tokenizeOcrBlocks(blocks: any[], language: string) {
 
       for (let i = 0; i < tokens.length; i++) {
         const t = tokens[i]
+
+        if (t.pos === 'x' && /[\p{L}\p{N}]/u.test(t.word)) {
+          t.pos = 'unk'
+        }
+
         if (/[\p{L}\p{N}]/u.test(t.word)) {
           allWords.add(t.word)
           allWords.add(t.word.toLowerCase())

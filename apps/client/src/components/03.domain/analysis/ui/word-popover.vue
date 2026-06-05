@@ -220,6 +220,12 @@ onUnmounted(() => {
     flex-direction: column;
     overflow-y: auto;
     flex: 1;
+
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE and Edge */
+    &::-webkit-scrollbar {
+      display: none; /* Chrome, Safari and Opera */
+    }
   }
 
   .transcription-header {

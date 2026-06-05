@@ -51,7 +51,6 @@ function handleWrapperClick(e: MouseEvent) {
   onWordClick(e)
 }
 
-// === ЛОГИКА POPOVER ===
 const activeBubble = ref<any>(null)
 const bubbleReference = ref<HTMLElement | null>(null)
 
@@ -59,6 +58,11 @@ function handleBubbleClick(event: MouseEvent, box: any) {
   if (dragDist.value > 10 && scale.value > 1) {
     return
   }
+
+  if (analysisStore.wordPopover) {
+    analysisStore.closePopover()
+  }
+
   if (settingsStore.mangaOcrDisplayMode === 'popover') {
     event.stopPropagation()
     activeBubble.value = box
@@ -73,8 +77,25 @@ function handleBubblePointerDown(event: MouseEvent | TouchEvent, box: any) {
 }
 
 function closeBubblePopover() {
+  const target = event?.target as HTMLElement | null
+  if (target?.closest('.word-popover') || target?.closest('.kit-dialog') || target?.closest('.selection-tooltip')) {
+    return
+  }
+
   activeBubble.value = null
   bubbleReference.value = null
+}
+
+function handleBubblePopoverClick(event: MouseEvent) {
+  const target = (event.target as HTMLElement).closest('.word') as HTMLElement | null
+  const pos = target?.dataset.pos
+
+  if (!target || pos === 'x') {
+    analysisStore.closePopover()
+  }
+  else {
+    onWordClick(event)
+  }
 }
 
 onMounted(() => {
@@ -182,7 +203,7 @@ function onScroll() {
     <BubblePopover
       :box="activeBubble"
       :reference-el="bubbleReference"
-      @click.stop="onWordClick"
+      @click.stop="handleBubblePopoverClick"
       @mousedown.stop="onPointerDown($event, activeBubble?.text)"
       @touchstart.stop="onPointerDown($event, activeBubble?.text)"
       @mouseup="onPointerUp"
@@ -210,10 +231,23 @@ function onScroll() {
 
     <ReaderFooter @prev="prevPage" @next="nextPage" @go-to="goToPage" />
 
-    <KitDialog v-model:visible="readerStore.tocOpen" title="Навигация" :max-width="500">
-      <div class="toc-list">
-        <div v-for="i in readerStore.currentBook?.totalPages" :key="i" class="toc-item" @click="goToPage(i)">
-          <span class="toc-title">Страница {{ i }}</span>
+    <KitDialog v-model:visible="readerStore.tocOpen" title="Оглавление" :max-width="500" icon="mdi:format-list-bulleted">
+      <div v-if="readerStore.currentToc && readerStore.currentToc.length > 0" class="toc-list">
+        <div
+          v-for="item in readerStore.currentToc"
+          :key="item.id"
+          class="toc-item"
+          :style="{ paddingLeft: `${(item.level - 1) * 16}px` }"
+          @click="goToPage(item.pageNum)"
+        >
+          <span class="toc-title">{{ item.title }}</span>
+          <span class="toc-dots" />
+          <span class="toc-page">{{ item.pageNum || '-' }}</span>
+        </div>
+      </div>
+      <div v-else class="toc-grid">
+        <div v-for="i in readerStore.currentBook?.totalPages" :key="i" class="toc-grid-item" @click="goToPage(i)">
+          {{ i }}
         </div>
       </div>
     </KitDialog>
@@ -263,6 +297,7 @@ function onScroll() {
   position: relative;
   display: inline-block;
   max-width: 100%;
+  z-index: 1;
 
   & ::selection {
     background-color: var(--bg-accent-overlay-color);
@@ -451,19 +486,85 @@ function onScroll() {
 }
 
 .toc-list {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
-  gap: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 0;
   max-height: 50vh;
   overflow-y: auto;
+
+  &::-webkit-scrollbar {
+    width: 4px;
+  }
+  &::-webkit-scrollbar-thumb {
+    background-color: var(--border-secondary-color);
+    border-radius: 4px;
+  }
 }
 
 .toc-item {
-  padding: 8px;
+  display: flex;
+  align-items: flex-end;
+  padding: 6px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition:
+    background-color 0.2s,
+    color 0.2s;
+  color: var(--fg-secondary-color);
+
+  &:hover {
+    background-color: var(--bg-secondary-color);
+    color: var(--fg-primary-color);
+    .toc-page {
+      color: var(--fg-accent-color);
+      font-weight: 600;
+    }
+  }
+  .toc-title {
+    flex-shrink: 0;
+    font-size: 0.95rem;
+  }
+  .toc-dots {
+    flex-grow: 1;
+    border-bottom: 1px dotted var(--border-secondary-color);
+    margin: 0 12px 5px 12px;
+    opacity: 0.5;
+  }
+  .toc-page {
+    flex-shrink: 0;
+    font-size: 0.9rem;
+    transition: color 0.2s;
+  }
+}
+
+.toc-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(48px, 1fr));
+  gap: 8px;
+  max-height: 50vh;
+  overflow-y: auto;
+  padding-right: 4px;
+
+  &::-webkit-scrollbar {
+    width: 4px;
+  }
+  &::-webkit-scrollbar-thumb {
+    background-color: var(--border-secondary-color);
+    border-radius: 4px;
+  }
+}
+
+.toc-grid-item {
+  padding: 8px 4px;
   text-align: center;
   cursor: pointer;
   border-radius: 8px;
   background-color: var(--bg-secondary-color);
+  font-weight: 500;
+  font-size: 0.9rem;
+  color: var(--fg-primary-color);
+  transition: all 0.2s;
 
   &:hover {
     background-color: var(--bg-hover-color);

@@ -67,10 +67,11 @@ export function useTextSelection() {
       return
 
     const pos = target.dataset.pos
-    if (pos === 'x')
+    const word = decodeURIComponent(target.dataset.word || '')
+
+    if (pos === 'x' || !/[\p{L}\p{N}]/u.test(word))
       return
 
-    const word = decodeURIComponent(target.dataset.word || '')
     const sentenceId = Number(target.dataset.sentId)
     const tokenIndex = Number(target.dataset.tokenIdx)
 
