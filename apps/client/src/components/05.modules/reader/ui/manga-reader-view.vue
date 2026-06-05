@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import { nextTick, onMounted, onUnmounted, ref, useTemplateRef, watch } from 'vue'
-
 import { KitBtn, KitDialog } from '~/components/01.kit'
 import { PageLoader } from '~/components/02.shared/page-loader'
 import { BubblePopover, SelectionTooltip, SentenceAnalysis, useTextSelection, WordPopover } from '~/components/03.domain/analysis'
@@ -8,11 +6,13 @@ import { useAnalysisStore } from '~/shared/store/analysis.store'
 import { useGlobalSettingsStore } from '~/shared/store/settings.store'
 import { getMediaUrl } from '~/workers/service/lib/utils'
 
+import { usePanZoom } from '../composables/use-pan-zoom'
 import { useReaderDomHighlights } from '../composables/use-reader-dom-highlights'
 import { useReaderNavigation } from '../composables/use-reader-navigation'
 import { useReaderWakeLock } from '../composables/use-reader-wakelock'
 import { useScrollRestoration } from '../composables/use-scroll-restoration'
 import { useReaderStore } from '../store/reader.store'
+
 import ReaderFooter from './reader-footer.vue'
 import ReaderHeader from './reader-header.vue'
 
@@ -21,6 +21,8 @@ const analysisStore = useAnalysisStore()
 const settingsStore = useGlobalSettingsStore()
 
 const readerViewRef = useTemplateRef<HTMLElement>('readerViewRef')
+const mangaContainerRef = useTemplateRef<HTMLElement>('mangaContainerRef')
+const mangaWrapperRef = useTemplateRef<HTMLElement>('mangaWrapperRef')
 
 const { saveScrollPosition, restoreScrollPosition, setScrollIntent } = useScrollRestoration(
   readerViewRef,
@@ -34,13 +36,30 @@ const { onSentenceHover, onSentenceOut } = useReaderDomHighlights(readerViewRef)
 const { prevPage, nextPage, goToPage } = useReaderNavigation(setScrollIntent)
 const { onPointerDown, onPointerUp, onWordClick } = useTextSelection()
 
+// === ЛОГИКА PAN & ZOOM ===
+const { scale, panX, panY, isPanning, isPinching, dragDist, resetZoom } = usePanZoom(mangaContainerRef, mangaWrapperRef)
+
+watch(() => readerStore.currentPage, () => {
+  resetZoom()
+})
+
+function handleWrapperClick(e: MouseEvent) {
+  if (dragDist.value > 10 && scale.value > 1) {
+    dragDist.value = 0
+    return
+  }
+  onWordClick(e)
+}
+
 // === ЛОГИКА POPOVER ===
 const activeBubble = ref<any>(null)
 const bubbleReference = ref<HTMLElement | null>(null)
 
 function handleBubbleClick(event: MouseEvent, box: any) {
+  if (dragDist.value > 10 && scale.value > 1) {
+    return
+  }
   if (settingsStore.mangaOcrDisplayMode === 'popover') {
-    // В режиме попапа останавливаем всплытие, чтобы не триггерить клик по странице
     event.stopPropagation()
     activeBubble.value = box
     bubbleReference.value = event.currentTarget as HTMLElement
@@ -65,7 +84,6 @@ onMounted(() => {
 onUnmounted(() => {
   document.removeEventListener('click', closeBubblePopover)
 })
-// =======================
 
 function getBoxStyle(box: any) {
   if (!readerStore.currentPage?.imageWidth || !readerStore.currentPage?.imageHeight)
@@ -119,10 +137,18 @@ function onScroll() {
           </p>
         </div>
 
-        <div v-else-if="readerStore.currentPage?.imageUrl" class="manga-container">
+        <div v-else-if="readerStore.currentPage?.imageUrl" ref="mangaContainerRef" class="manga-container">
           <div
+            ref="mangaWrapperRef"
             class="manga-page-wrapper js-tooltip-selectable"
-            @click="onWordClick"
+            :style="{
+              transform: `translate(${panX}px, ${panY}px) scale(${scale})`,
+              transformOrigin: '0 0',
+              cursor: scale > 1 ? (isPanning ? 'grabbing' : 'grab') : 'default',
+              transition: isPinching || isPanning ? 'none' : 'transform 0.1s ease-out',
+              willChange: 'transform',
+            }"
+            @click="handleWrapperClick"
             @mouseup="onPointerUp"
             @touchend="onPointerUp"
             @touchcancel="onPointerUp"
@@ -249,6 +275,7 @@ function onScroll() {
   object-fit: contain;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
   border-radius: 4px;
+  pointer-events: none;
 }
 
 .ocr-overlay {
