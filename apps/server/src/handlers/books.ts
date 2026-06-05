@@ -6,7 +6,9 @@ import { rm, unlink } from 'node:fs/promises'
 import path from 'node:path'
 import { and, desc, eq, or } from 'drizzle-orm'
 import { parse as parseHtml } from 'node-html-parser'
+import sharp from 'sharp'
 import { z } from 'zod'
+
 import { BOOKS_PATH, CORS_HEADERS, COVERS_PATH } from '../config'
 import { db } from '../db'
 import * as schema from '../db/schema'
@@ -31,7 +33,6 @@ function extractUniqueWordsFromHtml(html: string): string[] {
   const regex = /data-word="([^"]+)"/g
   let match
 
-  // eslint-disable-next-line no-cond-assign
   while ((match = regex.exec(html)) !== null) {
     try {
       const word = decodeURIComponent(match[1])
@@ -97,7 +98,6 @@ export async function handleGetBooks(req: Request, userId: number): Promise<Resp
     orderBy: [desc(schema.books.updatedAt)],
   })
 
-  // Фильтруем те публичные книги, которые юзер еще не начал читать (чтобы они не захламляли библиотеку)
   const result = allBooks
     .filter(b => b.userId === userId || b.progresses.length > 0)
     .map((book) => {
@@ -176,7 +176,6 @@ export async function handleUpdateBook(req: Request, userId: number): Promise<Re
   if (!book)
     throw new AppError(404, 'Книга не найдена')
 
-  // Если это не владелец, он может только сохранить свой прогресс
   if (book.userId !== userId) {
     if (!book.isPublic)
       throw new AppError(404, 'Книга не найдена или доступ закрыт')
@@ -195,7 +194,6 @@ export async function handleUpdateBook(req: Request, userId: number): Promise<Re
     return json({ success: true })
   }
 
-  // Обновление от лица владельца
   await db.update(schema.books).set({
     title: body.title,
     author: body.author,
@@ -378,7 +376,6 @@ export async function handleCreateCustomBook(req: Request, userId: number): Prom
   const safeName = `${Date.now()}_custom_manga`
   const filePath = path.join(BOOKS_PATH, safeName)
 
-  // Создаем папку под будущие страницы
   mkdirSync(filePath, { recursive: true })
 
   const [insertedBook] = await db.insert(schema.books).values({
@@ -417,7 +414,6 @@ export async function handleAppendMangaChapter(req: Request, userId: number): Pr
     throw new AppError(403, 'Нет доступа к книге')
   }
 
-  // Делегируем логику сохранения страниц в сервис
   const { appendMangaChapter } = await import('../services/manga.service')
   await appendMangaChapter(book, chapterTitle, files)
 
@@ -431,7 +427,6 @@ export async function handleDeleteBook(req: Request, userId: number): Promise<Re
   if (!book)
     throw new AppError(404, 'Книга не найдена')
 
-  // Если это не владелец, то мы просто скрываем её (удаляем его личный прогресс)
   if (book.userId !== userId) {
     await db.delete(schema.readingProgress).where(and(eq(schema.readingProgress.bookId, id), eq(schema.readingProgress.userId, userId)))
     return json({ success: true })
@@ -444,21 +439,17 @@ export async function handleDeleteBook(req: Request, userId: number): Promise<Re
   try {
     if (book.filePath) {
       const resolvedPath = path.resolve(book.filePath)
-
       if (!resolvedPath.startsWith(path.resolve(BOOKS_PATH))) {
         throw new Error('Security violation: Invalid book path')
       }
-
       await rm(resolvedPath, { recursive: true, force: true })
     }
     if (book.coverUrl && book.coverUrl.startsWith('/api/uploads/covers/')) {
       const coverFilename = book.coverUrl.split('/').pop()!
       const resolvedCoverPath = path.resolve(path.join(COVERS_PATH, coverFilename))
-
       if (!resolvedCoverPath.startsWith(path.resolve(COVERS_PATH))) {
         throw new Error('Security violation: Invalid cover path')
       }
-
       await unlink(resolvedCoverPath).catch(() => { })
     }
   }
@@ -513,9 +504,28 @@ export async function handleGetPage(req: Request, userId: number): Promise<Respo
 
     if (ocrBlocks === null && pageRow.imageUrl) {
       try {
-        const imageBuffer = readFileSync(pageRow.imageUrl)
-        const base64 = imageBuffer.toString('base64')
-        ocrBlocks = await recognizeMangaPage(base64, config)
+        const fileBuffer = readFileSync(pageRow.imageUrl)
+        let base64 = ''
+
+        // 1. Проверяем расширение
+        const ext = path.extname(pageRow.imageUrl).toLowerCase()
+        const isSupportedOCR = ['.jpg', '.jpeg', '.png', '.pdf'].includes(ext)
+
+        // 2. Проверяем вес (лимит OCR ~10MB, берем 9.5MB для безопасности)
+        const isTooLarge = fileBuffer.byteLength > 9.5 * 1024 * 1024
+
+        if (!isSupportedOCR || isTooLarge) {
+          const optimizedBuffer = await sharp(fileBuffer)
+            .resize({ width: 3000, height: 4000, fit: 'inside', withoutEnlargement: true })
+            .jpeg({ quality: 80 })
+            .toBuffer()
+          base64 = optimizedBuffer.toString('base64')
+        } else {
+          base64 = fileBuffer.toString('base64')
+        }
+
+        ocrBlocks = await recognizeMangaPage(base64, book.language, config)
+        
         await db.update(schema.mangaPages).set({ ocrData: JSON.stringify(ocrBlocks) }).where(eq(schema.mangaPages.id, pageRow.id))
       }
       catch (e: any) {

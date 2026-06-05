@@ -1,6 +1,7 @@
+
 import type { LlmConfig } from '../types'
 import { LLM_API_URL } from '../config'
-import { OCR_PROMPT } from '../prompts'
+import { getOcrPrompt } from '../prompts'
 import { AppError } from '../utils/errors'
 
 export interface OcrBlock {
@@ -12,7 +13,8 @@ export interface OcrBlock {
   h: number
 }
 
-export async function recognizeMangaPage(base64Image: string, config: LlmConfig): Promise<OcrBlock[]> {
+// ДОБАВЛЕН ПАРАМЕТР language: string
+export async function recognizeMangaPage(base64Image: string, language: string, config: LlmConfig): Promise<OcrBlock[]> {
   if (!config.url)
     throw new AppError(500, 'API ключ / URL не настроен')
 
@@ -21,8 +23,6 @@ export async function recognizeMangaPage(base64Image: string, config: LlmConfig)
     imageUrl = `data:image/jpeg;base64,${base64Image}`
   }
 
-  // Если используется дефолт, применяем оптимизированную модель glm-ocr
-  // Если кастомный локальный LLM (Ollama, LM Studio), прокидываем модель пользователя
   const model = config.url === LLM_API_URL ? 'glm-ocr' : config.model
 
   const headers: Record<string, string> = {
@@ -31,6 +31,9 @@ export async function recognizeMangaPage(base64Image: string, config: LlmConfig)
   if (config.key) {
     headers.Authorization = `Bearer ${config.key}`
   }
+
+  // Генерируем промпт с учетом языка
+  const promptText = getOcrPrompt(language)
 
   const response = await fetch(`${config.url}/chat/completions`, {
     method: 'POST',
@@ -43,7 +46,7 @@ export async function recognizeMangaPage(base64Image: string, config: LlmConfig)
           content: [
             {
               type: 'text',
-              text: OCR_PROMPT,
+              text: promptText, // <--- Используем сгенерированный промпт
             },
             {
               type: 'image_url',
@@ -65,7 +68,6 @@ export async function recognizeMangaPage(base64Image: string, config: LlmConfig)
   const data = await response.json() as any
   const blocks: OcrBlock[] = []
 
-  // 1. Ищем детальную структуру координат, которую отдает glm-ocr
   const glmDetail = data.choices?.[0]?.glm_ocr_detail
   if (glmDetail && glmDetail.layout_details && glmDetail.layout_details[0]) {
     const layoutDetails = glmDetail.layout_details[0]
@@ -92,7 +94,6 @@ export async function recognizeMangaPage(base64Image: string, config: LlmConfig)
     return blocks
   }
 
-  // 2. Fallback: Если детализации нет, пробуем распарсить обычный текст от стандартных моделей (GPT4-o, Llama-3.2-Vision)
   const content = data.choices?.[0]?.message?.content
   if (content && content.trim() !== '') {
     const lines = content.split('\n')

@@ -69,7 +69,7 @@ export async function downloadChapter(
   chapter: ChapterInfo,
   chapterDir: string,
   onProgress: (p: number, total: number) => void
-) {
+): Promise<number> {
   await page.goto(chapter.url, { waitUntil: 'domcontentloaded', timeout: 60000 })
 
   const adultBtn = await page.$('#checkAdult').catch(() => null)
@@ -78,7 +78,6 @@ export async function downloadChapter(
     await page.waitForNavigation({ waitUntil: 'domcontentloaded' }).catch(() => { })
   }
 
-  // Ожидаем появления контейнера, чтобы отсеять возможные защиты или блокировки региона
   const mangaFileExists = await page.waitForSelector('#mangaFile', { timeout: 15000 }).then(() => true).catch(() => false)
   if (!mangaFileExists) {
     const errorTxt = await page.$eval('#errorTxt, .errorTxt, .warning, .block-msg', el => el.textContent?.trim()).catch(() => '')
@@ -90,9 +89,9 @@ export async function downloadChapter(
 
   let prevSrc = ''
   const DELAY_BETWEEN_PAGES = 1000
+  let downloadedCount = 0
 
   for (let p = 1; p <= chapter.pages; p++) {
-    // Явно переключаем страницу (даже 1-ую), чтобы гарантированно "подтолкнуть" JS ридера сайта
     await page.evaluate((pageNum) => {
       if (typeof (window as any).SMH !== 'undefined' && (window as any).SMH.reader) {
         (window as any).SMH.reader.goto(pageNum)
@@ -109,7 +108,6 @@ export async function downloadChapter(
     }, p)
 
     let imgUrl = ''
-    // Три попытки перехватить src на случай медленной отработки скриптов Manhuagui
     for (let retry = 0; retry < 3; retry++) {
       try {
         await page.waitForFunction((prev) => {
@@ -127,7 +125,6 @@ export async function downloadChapter(
         imgUrl = await page.$eval('#mangaFile', (el) => (el as HTMLImageElement).src).catch(() => '')
         if (imgUrl && !imgUrl.includes('loading.gif') && imgUrl !== prevSrc) break
 
-        // Повторный толчок переключения при застревании
         await page.evaluate((pageNum) => {
           if (typeof (window as any).SMH !== 'undefined' && (window as any).SMH.reader) {
             (window as any).SMH.reader.goto(pageNum)
@@ -146,20 +143,21 @@ export async function downloadChapter(
       throw new Error(`Не удалось получить ссылку для страницы ${p}`)
     }
 
-    // На случай если URL каким-то образом оказался относительным
     if (imgUrl.startsWith('//')) {
       imgUrl = 'https:' + imgUrl
     } else if (imgUrl.startsWith('/')) {
       imgUrl = 'https://www.manhuagui.com' + imgUrl
     }
 
-    const ext = imgUrl.includes('.webp') ? '.webp' : '.jpg'
-    const pageFileName = `page_${p.toString().padStart(3, '0')}${ext}`
-    const savePath = path.join(chapterDir, pageFileName)
+    const pageFileName = `page_${p.toString().padStart(3, '0')}`
+    const savePathWithoutExt = path.join(chapterDir, pageFileName)
 
-    await downloadImageNode(imgUrl, savePath, page.url())
+    await downloadImageNode(imgUrl, savePathWithoutExt, page.url())
+    downloadedCount++
 
     onProgress(p, chapter.pages)
     await sleep(DELAY_BETWEEN_PAGES)
   }
+
+  return downloadedCount
 }

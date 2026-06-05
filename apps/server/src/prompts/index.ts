@@ -11,6 +11,14 @@ export function getLangName(code: string): string {
   return map[code.toLowerCase()] || 'иностранного'
 }
 
+export function getOcrPrompt(language: string): string {
+  const langName = getLangName(language)
+  return `Extract all text from this image perfectly. The primary language is ${langName}. 
+Preserve the original language exactly as written. 
+If this is a comic/manga, read bubbles in the correct natural order (e.g. right-to-left, top-to-bottom for manga/manhua). 
+Do NOT translate the text. Return only the extracted text and its structural layout.`
+}
+
 export function getSystemPrompt(language: string): string {
   const langName = getLangName(language)
   return `Ты — экспертный лингвист и терпеливый преподаватель ${langName} языка для русскоязычных студентов.

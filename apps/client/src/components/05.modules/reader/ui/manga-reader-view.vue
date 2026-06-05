@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { nextTick, useTemplateRef, watch } from 'vue'
-import { KitBtn, KitDialog } from '~/components/01.kit'
+import { nextTick, onMounted, onUnmounted, ref, useTemplateRef, watch } from 'vue'
 
+import { KitBtn, KitDialog } from '~/components/01.kit'
 import { PageLoader } from '~/components/02.shared/page-loader'
-import { SelectionTooltip, SentenceAnalysis, useTextSelection, WordPopover } from '~/components/03.domain/analysis'
+import { BubblePopover, SelectionTooltip, SentenceAnalysis, useTextSelection, WordPopover } from '~/components/03.domain/analysis'
 import { useAnalysisStore } from '~/shared/store/analysis.store'
+import { useGlobalSettingsStore } from '~/shared/store/settings.store'
 import { getMediaUrl } from '~/workers/service/lib/utils'
 
 import { useReaderDomHighlights } from '../composables/use-reader-dom-highlights'
@@ -17,6 +18,7 @@ import ReaderHeader from './reader-header.vue'
 
 const readerStore = useReaderStore()
 const analysisStore = useAnalysisStore()
+const settingsStore = useGlobalSettingsStore()
 
 const readerViewRef = useTemplateRef<HTMLElement>('readerViewRef')
 
@@ -28,9 +30,44 @@ const { saveScrollPosition, restoreScrollPosition, setScrollIntent } = useScroll
 )
 
 useReaderWakeLock()
-useReaderDomHighlights(readerViewRef)
+const { onSentenceHover, onSentenceOut } = useReaderDomHighlights(readerViewRef)
 const { prevPage, nextPage, goToPage } = useReaderNavigation(setScrollIntent)
 const { onPointerDown, onPointerUp, onWordClick } = useTextSelection()
+
+// === ЛОГИКА POPOVER ===
+const activeBubble = ref<any>(null)
+const bubbleReference = ref<HTMLElement | null>(null)
+
+function handleBubbleClick(event: MouseEvent, box: any) {
+  if (settingsStore.mangaOcrDisplayMode === 'popover') {
+    // В режиме попапа останавливаем всплытие, чтобы не триггерить клик по странице
+    event.stopPropagation()
+    activeBubble.value = box
+    bubbleReference.value = event.currentTarget as HTMLElement
+  }
+  // В режиме hover мы НЕ останавливаем всплытие.
+  // Клик пройдёт дальше к manga-page-wrapper и вызовет onWordClick (для .word-popover).
+}
+
+function handleBubblePointerDown(event: MouseEvent | TouchEvent, box: any) {
+  if (settingsStore.mangaOcrDisplayMode === 'hover') {
+    onPointerDown(event, box.text)
+  }
+}
+
+function closeBubblePopover() {
+  activeBubble.value = null
+  bubbleReference.value = null
+}
+
+onMounted(() => {
+  document.addEventListener('click', closeBubblePopover)
+})
+
+onUnmounted(() => {
+  document.removeEventListener('click', closeBubblePopover)
+})
+// =======================
 
 function getBoxStyle(box: any) {
   if (!readerStore.currentPage?.imageWidth || !readerStore.currentPage?.imageHeight)
@@ -63,6 +100,7 @@ function onScroll() {
   if (analysisStore.selectionTooltip) {
     analysisStore.closeSelectionTooltip()
   }
+  closeBubblePopover()
   saveScrollPosition()
 }
 </script>
@@ -96,17 +134,39 @@ function onScroll() {
                 v-for="box in readerStore.currentPage.ocrBlocks"
                 :key="box.id"
                 class="ocr-bubble"
+                :class="{
+                  'is-active': activeBubble?.id === box.id && settingsStore.mangaOcrDisplayMode === 'popover',
+                  'mode-hover': settingsStore.mangaOcrDisplayMode === 'hover',
+                  'mode-popover': settingsStore.mangaOcrDisplayMode === 'popover',
+                }"
                 :style="getBoxStyle(box)"
-                @mousedown="onPointerDown($event, box.text)"
-                @touchstart="onPointerDown($event, box.text)"
+                @mousedown="handleBubblePointerDown($event, box)"
+                @touchstart="handleBubblePointerDown($event, box)"
+                @click="handleBubbleClick($event, box)"
               >
-                <div class="bubble-text-preview" v-html="box.html || box.text.replace(/\n+/g, '')" />
+                <!-- Текст внутри бабла рендерится ТОЛЬКО в режиме hover -->
+                <div v-if="settingsStore.mangaOcrDisplayMode === 'hover'" class="bubble-text-preview" v-html="box.html || box.text.replace(/\n+/g, '')" />
               </div>
             </div>
           </div>
         </div>
       </Transition>
     </div>
+
+    <!-- Декомпозированный BubblePopover -->
+    <BubblePopover
+      :box="activeBubble"
+      :reference-el="bubbleReference"
+      @click.stop="onWordClick"
+      @mousedown.stop="onPointerDown($event, activeBubble?.text)"
+      @touchstart.stop="onPointerDown($event, activeBubble?.text)"
+      @mouseup="onPointerUp"
+      @touchend="onPointerUp"
+      @touchcancel="onPointerUp"
+      @mouseleave="onPointerUp"
+      @mouseover="onSentenceHover"
+      @mouseout="onSentenceOut"
+    />
 
     <Transition name="fade">
       <div v-if="analysisStore.isAnalyzingPage" class="page-analysis-overlay">
@@ -212,79 +272,91 @@ function onScroll() {
     inset: -12px;
     border-radius: 12px;
     background-color: transparent;
+    border: 2px solid transparent;
     transition: all 0.2s ease;
     z-index: 1;
   }
 
-  .bubble-text-preview {
-    position: absolute;
-    inset: 0;
-    z-index: 2;
-    opacity: 0;
-    color: var(--fg-primary-color);
-    font-size: 0.95rem;
-    font-weight: 600;
-    text-align: center;
-    word-break: break-all;
-    transition: opacity 0.2s ease;
+  /* === РЕЖИМ 1: НАВЕДЕНИЕ === */
+  &.mode-hover {
+    .bubble-text-preview {
+      position: absolute;
+      inset: 0;
+      z-index: 2;
+      opacity: 0;
+      color: var(--fg-primary-color);
+      font-size: 0.95rem;
+      font-weight: 600;
+      text-align: center;
+      word-break: break-all;
+      transition: opacity 0.2s ease;
 
-    display: flex;
-    flex-wrap: wrap;
-    align-content: center;
-    justify-content: center;
+      display: flex;
+      flex-wrap: wrap;
+      align-content: center;
+      justify-content: center;
 
-    text-shadow:
-      -1px -1px 0 var(--bg-primary-color),
-      1px -1px 0 var(--bg-primary-color),
-      -1px 1px 0 var(--bg-primary-color),
-      1px 1px 0 var(--bg-primary-color);
+      text-shadow:
+        -1px -1px 0 var(--bg-primary-color),
+        1px -1px 0 var(--bg-primary-color),
+        -1px 1px 0 var(--bg-primary-color),
+        1px 1px 0 var(--bg-primary-color);
 
-    :deep(.sentence) {
-      display: inline;
-      cursor: pointer;
-      border-radius: 4px;
-      transition: background-color 0.2s ease;
+      :deep(.sentence) {
+        display: inline;
+        cursor: pointer;
+        border-radius: 4px;
+        transition: background-color 0.2s ease;
 
-      &:hover {
-        background-color: var(--bg-hover-color);
-      }
-    }
-
-    :deep(.word) {
-      padding: 0;
-      border-radius: 4px;
-      transition:
-        background-color 0.1s,
-        color 0.1s;
-
-      &.add-space {
-        margin-right: 0.25em;
-      }
-
-      &.is-punctuation {
-        cursor: default;
         &:hover {
-          background-color: transparent;
-          color: inherit;
+          background-color: var(--bg-hover-color);
         }
       }
 
-      &.is-active {
-        background-color: var(--fg-accent-color);
-        color: var(--bg-primary-color);
-        font-weight: bold;
-        text-shadow: none;
+      :deep(.word) {
+        padding: 0;
+        border-radius: 4px;
+        transition:
+          background-color 0.1s,
+          color 0.1s;
+
+        &.add-space {
+          margin-right: 0.25em;
+        }
+
+        &.is-punctuation {
+          cursor: default;
+          &:hover {
+            background-color: transparent;
+            color: inherit;
+          }
+        }
+
+        &.is-active {
+          background-color: var(--fg-accent-color);
+          color: var(--bg-primary-color);
+          font-weight: bold;
+          text-shadow: none;
+        }
+      }
+    }
+
+    &:hover {
+      &::before {
+        background-color: rgba(var(--bg-accent-color-rgb, 201, 117, 222), 0.4);
+        backdrop-filter: blur(4px) brightness(1.2);
+      }
+      .bubble-text-preview {
+        opacity: 1;
       }
     }
   }
 
-  &:hover {
-    &::before {
-      background-color: rgba(var(--bg-accent-color-rgb, 201, 117, 222), 0.4);
-      backdrop-filter: blur(4px) brightness(1.2);
-    }
-    .bubble-text-preview {
-      opacity: 1;
+  /* === РЕЖИМ 2: POPOVER === */
+  &.mode-popover {
+    &.is-active::before {
+      border-color: var(--fg-accent-color);
+      background-color: rgba(var(--bg-accent-color-rgb, 201, 117, 222), 0.2);
     }
   }
 }
@@ -373,5 +445,17 @@ function onScroll() {
     background-color: var(--bg-hover-color);
     color: var(--fg-accent-color);
   }
+}
+
+.fade-enter-active,
+.fade-leave-active {
+  transition:
+    opacity 0.2s,
+    transform 0.2s;
+}
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+  transform: translateY(-5px);
 }
 </style>

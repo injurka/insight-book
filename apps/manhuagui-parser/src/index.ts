@@ -8,8 +8,15 @@ import { launchBrowser } from './core/browser'
 import { getMangaInfo, downloadChapter } from './core/parser'
 import { packToCbz } from './core/zipper'
 import { downloadImageNode } from './core/downloader'
+import { writeComicInfo, BookmarkInfo } from './core/metadata'
 
 const DOWNLOADS_DIR = path.resolve(process.cwd(), 'downloads')
+
+function getTimestamp(): string {
+  const now = new Date()
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}_${pad(now.getHours())}-${pad(now.getMinutes())}-${pad(now.getSeconds())}`
+}
 
 async function main() {
   intro(pc.bgCyan(pc.black(' 📖 Manhuagui Parser ')))
@@ -68,13 +75,12 @@ async function main() {
     const selectedGroups = (selectedIndices as number[]).map(i => mangaInfo.groups[i])
     const chaptersToDownload = selectedGroups.flatMap(g => g.chapters).filter(c => c.pages > 0)
 
-    // --- НОВЫЙ ШАГ: ВЫБОР ДИАПАЗОНА ГЛАВ ---
     const rangePrompt = await text({
       message: `Выбрано ${chaptersToDownload.length} глав. Введите диапазон (например: 1-10, 5) или оставьте пустым для скачивания всех:`,
       placeholder: `1-${chaptersToDownload.length}`,
       validate(value) {
-        if (!value.trim()) return // Если пусто — пропускаем (значит качаем всё)
-        const match = value.match(/^(\d+)(?:\s*-\s*(\d+))?$/)
+        if (!value!.trim()) return
+        const match = value!.match(/^(\d+)(?:\s*-\s*(\d+))?$/)
         if (!match) return 'Введите в формате "Начало-Конец" (например: 1-5) или просто одно число'
 
         const start = parseInt(match[1], 10)
@@ -98,7 +104,6 @@ async function main() {
       const end = match[2] ? parseInt(match[2], 10) : start + 1
       finalChapters = chaptersToDownload.slice(start, end)
     }
-    // ---------------------------------------
 
     const format = await select({
       message: 'Выберите формат вывода:',
@@ -114,33 +119,48 @@ async function main() {
     }
 
     const isCbz = format === 'cbz'
-
-    // Подготовка директорий
     const safeTitle = mangaInfo.title.replace(/[^\wА-Яа-я0-9 \-]/gi, '_')
-    const mangaDir = path.join(DOWNLOADS_DIR, safeTitle)
-    mkdirSync(mangaDir, { recursive: true })
+    const baseMangaDir = path.join(DOWNLOADS_DIR, safeTitle)
+    const timestamp = getTimestamp()
+    const mangaDir = path.join(baseMangaDir, timestamp)
 
-    if (mangaInfo.coverUrl) {
-      const fullCoverUrl = mangaInfo.coverUrl.startsWith('//') ? `https:${mangaInfo.coverUrl}` : mangaInfo.coverUrl
-      await downloadImageNode(fullCoverUrl, path.join(mangaDir, 'cover.jpg'), targetUrl).catch(() => {
-        log.warn('Не удалось скачать обложку')
-      })
-    }
+    mkdirSync(mangaDir, { recursive: true })
 
     log.info(`Всего будет скачано глав: ${finalChapters.length}`)
 
-    // Процесс скачивания
+    let globalPageCounter = 0
+    const bookmarks: BookmarkInfo[] = []
+
+    if (mangaInfo.coverUrl) {
+      const fullCoverUrl = mangaInfo.coverUrl.startsWith('//') ? `https:${mangaInfo.coverUrl}` : mangaInfo.coverUrl
+      try {
+        await downloadImageNode(fullCoverUrl, path.join(mangaDir, '000_cover'), targetUrl)
+        globalPageCounter++
+      } catch (err) {
+        log.warn('Не удалось скачать обложку')
+      }
+    }
+
     for (const [idx, chapter] of finalChapters.entries()) {
+      const folderPrefix = String(idx + 1).padStart(3, '0')
       const safeChapterTitle = chapter.title.replace(/[^\wА-Яа-я0-9 \-]/gi, '_')
-      const chapterDir = path.join(mangaDir, safeChapterTitle)
+      const chapterDirName = `${folderPrefix}_${safeChapterTitle}`
+      const chapterDir = path.join(mangaDir, chapterDirName)
+
       mkdirSync(chapterDir, { recursive: true })
+
+      bookmarks.push({
+        pageIndex: globalPageCounter,
+        title: chapter.title
+      })
 
       s.start(`[${idx + 1}/${finalChapters.length}] Скачивается: ${chapter.title} (0/${chapter.pages} стр.)`)
 
       try {
-        await downloadChapter(page, chapter, chapterDir, (p, total) => {
+        const downloadedPages = await downloadChapter(page, chapter, chapterDir, (p, total) => {
           s.message(`[${idx + 1}/${finalChapters.length}] Скачивается: ${chapter.title} (${p}/${total} стр.)`)
         })
+        globalPageCounter += downloadedPages
         s.stop(`✅ [${idx + 1}/${finalChapters.length}] Глава "${chapter.title}" скачана.`)
       } catch (err: any) {
         s.stop(`❌ Ошибка в главе "${chapter.title}": ${err.message}`)
@@ -148,9 +168,11 @@ async function main() {
       }
     }
 
+    writeComicInfo(mangaDir, mangaInfo.title, globalPageCounter, bookmarks)
+
     if (isCbz) {
       s.start('Упаковка в CBZ архив...')
-      const cbzPath = packToCbz(mangaDir, DOWNLOADS_DIR, safeTitle)
+      const cbzPath = packToCbz(mangaDir, baseMangaDir, timestamp)
       s.stop(`📦 Архив сохранен: ${cbzPath}`)
     } else {
       log.success(`📁 Манга сохранена в папку: ${mangaDir}`)

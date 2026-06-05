@@ -317,6 +317,7 @@ onUnmounted(() => {
   justify-content: space-between;
   align-items: center;
   flex-shrink: 0;
+  margin-bottom: 12px;
 
   &.is-draggable {
     cursor: grab;

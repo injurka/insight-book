@@ -1,6 +1,7 @@
 import { writeFileSync } from 'node:fs'
+import sharp from 'sharp'
 
-export async function downloadImageNode(url: string, savePath: string, referer: string, retries = 3): Promise<void> {
+export async function downloadImageNode(url: string, savePathWithoutExt: string, referer: string, retries = 3): Promise<string> {
   for (let i = 0; i < retries; i++) {
     try {
       const response = await fetch(url, {
@@ -16,12 +17,29 @@ export async function downloadImageNode(url: string, savePath: string, referer: 
       }
 
       const arrayBuffer = await response.arrayBuffer()
-      writeFileSync(savePath, Buffer.from(arrayBuffer))
-      return
+      const buffer = Buffer.from(arrayBuffer)
+
+      // Проверяем реальный формат изображения с помощью sharp
+      const metadata = await sharp(buffer).metadata()
+      const format = metadata.format?.toLowerCase()
+
+      let finalBuffer = buffer
+      let ext = format === 'png' ? '.png' : '.jpg'
+
+      // Если формат не поддерживается (например, webp, avif, heif), конвертируем в JPEG
+      if (format && !['jpeg', 'jpg', 'png', 'pdf'].includes(format)) {
+        finalBuffer = await sharp(buffer).jpeg({ quality: 90 }).toBuffer()
+        ext = '.jpg'
+      }
+
+      const finalPath = `${savePathWithoutExt}${ext}`
+      writeFileSync(finalPath, finalBuffer)
+      return finalPath
+
     } catch (error) {
       if (i === retries - 1) throw new Error(`Ошибка скачивания: ${url} (${error})`)
-      // Экспоненциальная задержка перед следующей попыткой
       await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1)))
     }
   }
+  throw new Error(`Не удалось скачать: ${url}`)
 }

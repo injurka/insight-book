@@ -162,6 +162,20 @@ const fontOptions = [
 
         <div v-if="readerStore.currentBook?.type !== 'manga'" class="divider" />
 
+        <!-- Отображение Манги -->
+        <div v-if="readerStore.currentBook?.type === 'manga'" class="menu-section">
+          <div class="section-title">
+            Отображение текста
+          </div>
+          <div class="menu-item" @click="settingsStore.mangaOcrDisplayMode = settingsStore.mangaOcrDisplayMode === 'hover' ? 'popover' : 'hover'">
+            <div class="item-label">
+              <Icon icon="mdi:message-text-outline" class="item-icon" />
+              <span>Режим перевода</span>
+            </div>
+            <span class="value-text">{{ settingsStore.mangaOcrDisplayMode === 'hover' ? 'Наведение' : 'Окно (Popover)' }}</span>
+          </div>
+        </div>
+
         <!-- Отображение текста (Типографика) -->
         <div v-if="readerStore.currentBook?.type !== 'manga'" class="menu-section">
           <div class="section-title">
