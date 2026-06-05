@@ -18,6 +18,9 @@
 		{
 			"path": "apps/en-dict-parser"
 		},
+		{
+			"path": "apps/manhuagui-parser"
+		},
 	],
 	"settings": {
 		"explorer.fileNesting.expand": false

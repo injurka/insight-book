@@ -1,0 +1,20 @@
+{
+  "name": "@injurka/insight-book-manhuagui-parser",
+  "type": "module",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "start": "bun src/index.ts",
+    "lint": "eslint ."
+  },
+  "dependencies": {
+    "@clack/prompts": "^1.5.1",
+    "adm-zip": "^0.5.17",
+    "picocolors": "^1.1.1",
+    "puppeteer": "^25.1.0"
+  },
+  "devDependencies": {
+    "@types/adm-zip": "^0.5.8",
+    "@types/bun": "^1.3.14"
+  }
+}
