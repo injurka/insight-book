@@ -27,6 +27,7 @@
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1058.0",
     "adm-zip": "^0.5.17",
+    "az": "^0.2.3",
     "cheerio": "^1.2.0",
     "compromise": "^14.15.0",
     "drizzle-orm": "^0.45.2",

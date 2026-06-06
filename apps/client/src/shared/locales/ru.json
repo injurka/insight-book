@@ -393,7 +393,7 @@
     "context": "Контекст",
     "grammarColon": "Грамматика:",
     "vocabularyColon": "Лексика:",
-    "searchingTranslation": "Поиск перевода...",
+    "wordNotFoundInDict": "Слово не найдено в локальном словаре. Воспользуйтесь ИИ переводом",
     "offlineTranslationNotFound": "Оффлайн: перевод не найден в кэше"
   },
   "dictWord": {

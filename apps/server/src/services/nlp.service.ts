@@ -135,6 +135,85 @@ class EnglishTokenizer implements LanguageTokenizer {
   }
 }
 
+class RussianTokenizer implements LanguageTokenizer {
+  private initPromise: Promise<void> | null = null
+  private isReady = false
+  private segmenter = new Intl.Segmenter('ru', { granularity: 'word' })
+  private Az: any
+
+  public init(): Promise<void> {
+    if (this.isReady)
+      return Promise.resolve()
+    if (this.initPromise)
+      return this.initPromise
+
+    this.initPromise = new Promise((resolve, reject) => {
+      import('az').then((azModule) => {
+        this.Az = azModule.default || azModule
+        this.Az.Morph.init(() => {
+          this.isReady = true
+          resolve()
+        })
+      }).catch((err) => {
+        console.error('[NLP] Az.js load failed:', err)
+        reject(err)
+      })
+    })
+    return this.initPromise
+  }
+
+  private mapPos(tag: string): string {
+    if (!tag)
+      return 'unk'
+    if (['NOUN'].includes(tag))
+      return 'n'
+    if (['VERB', 'INFN', 'PRTF', 'PRTS', 'GRND'].includes(tag))
+      return 'v'
+    if (['ADJF', 'ADJS', 'COMP'].includes(tag))
+      return 'a'
+    if (['ADVB'].includes(tag))
+      return 'd'
+    if (['NPRO'].includes(tag))
+      return 'r' // местоимение
+    if (['PREP'].includes(tag))
+      return 'p' // предлог
+    if (['CONJ'].includes(tag))
+      return 'c' // союз
+    if (['PRCL', 'INTJ'].includes(tag))
+      return 'x' // частица, междометие
+    return 'unk'
+  }
+
+  async tokenize(text: string): Promise<TokenizedWord[]> {
+    // Если по какой-то причине az не загрузился, падаем на обычный сегментер
+    try {
+      await this.init()
+    }
+    catch {
+      const tokens: TokenizedWord[] = []
+      for (const { segment, isWordLike } of this.segmenter.segment(text)) {
+        tokens.push({ word: segment, pos: isWordLike ? 'unk' : 'x' })
+      }
+      return tokens
+    }
+
+    const tokens: TokenizedWord[] = []
+
+    for (const { segment, isWordLike } of this.segmenter.segment(text)) {
+      if (!isWordLike) {
+        tokens.push({ word: segment, pos: 'x' })
+        continue
+      }
+
+      const parses = this.Az.Morph(segment)
+      const pos = parses.length > 0 ? this.mapPos(parses[0].tag.POS) : 'unk'
+      tokens.push({ word: segment, pos })
+    }
+
+    return tokens
+  }
+}
+
 class DefaultTokenizer implements LanguageTokenizer {
   private segmenter: Intl.Segmenter
   constructor(language: string) { this.segmenter = new Intl.Segmenter(language, { granularity: 'word' }) }
@@ -149,11 +228,15 @@ class DefaultTokenizer implements LanguageTokenizer {
 const zhTokenizer = new ChineseTokenizer()
 const jaTokenizer = new JapaneseTokenizer()
 const enTokenizer = new EnglishTokenizer()
+const ruTokenizer = new RussianTokenizer()
 
 export async function initNLP() {
   // eslint-disable-next-line no-console
   console.log('🤖 Initializing NLP tokenizers...')
-  await jaTokenizer.init()
+  await Promise.all([
+    jaTokenizer.init(),
+    ruTokenizer.init().catch(() => { }),
+  ])
   // eslint-disable-next-line no-console
   console.log('✅ NLP tokenizers ready')
 }
@@ -163,6 +246,7 @@ function getTokenizer(language: string): LanguageTokenizer {
     case 'zh': return zhTokenizer
     case 'ja': return jaTokenizer
     case 'en': return enTokenizer
+    case 'ru': return ruTokenizer
     default: return new DefaultTokenizer(language)
   }
 }
@@ -340,7 +424,7 @@ export async function analyzeBookVocabulary(bookId: number, language: string) {
 
         if (['x', 'u', 'p', 'c', 'm', 'r'].includes(t.pos))
           continue
-        if (t.word.length < (language === 'en' ? 2 : 1))
+        if (t.word.length < (['zh', 'ja'].includes(language) ? 1 : 2))
           continue
 
         totalValidTokens++
@@ -367,7 +451,8 @@ export async function analyzeBookVocabulary(bookId: number, language: string) {
   const verbs = allWordsArr.filter(w => w.pos.startsWith('v')).sort((a, b) => b.count - a.count).slice(0, 30)
   const adjs = allWordsArr.filter(w => (w.pos.startsWith('a') || w.pos.startsWith('d')) && !isProper(w.word)).sort((a, b) => b.count - a.count).slice(0, 30)
 
-  const minLength = language === 'en' ? 6 : 2
+  // Минимальная длина слова для "редких", чтобы отсекать предлоги (особенно для ru и en)
+  const minLength = ['zh', 'ja'].includes(language) ? 2 : 5
   const rareWords = allWordsArr.filter(w => w.count >= 2 && w.count <= 5 && w.word.length >= minLength && !isProper(w.word)).sort((a, b) => b.word.length - a.word.length).slice(0, 30)
 
   return { posDistribution: posCounts, topWords: { nouns, verbs, adjs, properNouns, rareWords }, lexicalDiversity }

@@ -393,7 +393,7 @@
     "context": "Context",
     "grammarColon": "Grammar:",
     "vocabularyColon": "Vocabulary:",
-    "searchingTranslation": "Searching translation...",
+    "wordNotFoundInDict": "Word not found in local dictionary. Try AI translation",
     "offlineTranslationNotFound": "Offline: translation not found in cache"
   },
   "dictWord": {

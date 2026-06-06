@@ -393,7 +393,7 @@
     "context": "语境",
     "grammarColon": "语法：",
     "vocabularyColon": "词汇：",
-    "searchingTranslation": "正在搜索翻译...",
+    "wordNotFoundInDict": "在本地词典中未找到该词。请尝试使用 AI 翻译",
     "offlineTranslationNotFound": "离线：缓存中未找到翻译"
   },
   "dictWord": {

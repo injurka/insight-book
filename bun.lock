@@ -119,6 +119,7 @@
       "dependencies": {
         "@aws-sdk/client-s3": "^3.1058.0",
         "adm-zip": "^0.5.17",
+        "az": "^0.2.3",
         "cheerio": "^1.2.0",
         "compromise": "^14.15.0",
         "drizzle-orm": "^0.45.2",
@@ -1236,6 +1237,8 @@
     "aws-sign2": ["aws-sign2@0.7.0", "", {}, "sha512-08kcGqnYf/YmjoRhfxyu+CLxBjUtHLXLXX/vUfx9l2LYzG3c1m61nrpyFUZI6zeS+Li/wWMMidD9KgrqtGq3mA=="],
 
     "aws4": ["aws4@1.13.2", "", {}, "sha512-lHe62zvbTB5eEABUVi/AwVh0ZKY9rMMDhmm+eeyuuUQbQ3+J+fONVQOZyj+DdrvD4BY33uYniyRJ4UJIaSKAfw=="],
+
+    "az": ["az@0.2.3", "", {}, "sha512-U8d6Tw8ohZ8dcEp8aKjFYo+DU3BT8JPmYqmW0A0BsWW8ocP+F6gLZvrtglHq7pYa84dCEp3NHAoZoC4W3Lth2w=="],
 
     "babel-plugin-polyfill-corejs2": ["babel-plugin-polyfill-corejs2@0.4.17", "", { "dependencies": { "@babel/compat-data": "^7.28.6", "@babel/helper-define-polyfill-provider": "^0.6.8", "semver": "^6.3.1" }, "peerDependencies": { "@babel/core": "^7.4.0 || ^8.0.0-0 <8.0.0" } }, "sha512-aTyf30K/rqAsNwN76zYrdtx8obu0E4KoUME29B1xj+B3WxgvWkp943vYQ+z8Mv3lw9xHXMHpvSPOBxzAkIa94w=="],
 

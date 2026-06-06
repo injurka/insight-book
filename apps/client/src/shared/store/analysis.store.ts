@@ -192,11 +192,16 @@ export const useAnalysisStore = defineStore('analysis', () => {
       isSaved: !!entry?.isUserDict,
     }
 
-    if (entry && settingsStore.translationPriority === 'dict') {
+    if (settingsStore.translationPriority === 'dict') {
       if (wordAbortController)
         wordAbortController.abort()
 
-      wordPopover.value = { ...basePopoverData, transcription: entry.transcription, translation: entry.translation, showAi: false, isAiLoading: false }
+      if (entry) {
+        wordPopover.value = { ...basePopoverData, transcription: entry.transcription, translation: entry.translation, showAi: false, isAiLoading: false }
+      }
+      else {
+        wordPopover.value = { ...basePopoverData, transcription: '', translation: i18n.global.t('analysis.wordNotFoundInDict'), showAi: false, isAiLoading: false }
+      }
       return
     }
 
@@ -208,7 +213,7 @@ export const useAnalysisStore = defineStore('analysis', () => {
     wordPopover.value = {
       ...basePopoverData,
       transcription: entry ? entry.transcription : '',
-      translation: entry ? entry.translation : i18n.global.t('analysis.searchingTranslation'),
+      translation: entry ? entry.translation : i18n.global.t('analysis.wordNotFoundInDict'),
       showAi: true,
       isAiLoading: true,
     }
@@ -257,18 +262,32 @@ export const useAnalysisStore = defineStore('analysis', () => {
       if (wordAbortController !== controller)
         return
 
-      wordPopover.value = {
-        word,
-        pos,
-        transcription: '',
-        translation: i18n.global.t('analysis.searchingTranslation'),
-        targetRect,
-        showAi: true,
-        isAiLoading: true,
-        isSaved: false,
+      const settingsStore = useGlobalSettingsStore()
+      if (settingsStore.translationPriority === 'dict') {
+        wordPopover.value = {
+          word,
+          pos,
+          transcription: '',
+          translation: i18n.global.t('analysis.wordNotFoundInDict'),
+          targetRect,
+          showAi: false,
+          isAiLoading: false,
+          isSaved: false,
+        }
       }
-
-      fetchAiTranslation()
+      else {
+        wordPopover.value = {
+          word,
+          pos,
+          transcription: '',
+          translation: i18n.global.t('analysis.wordNotFoundInDict'),
+          targetRect,
+          showAi: true,
+          isAiLoading: true,
+          isSaved: false,
+        }
+        fetchAiTranslation()
+      }
     }
   }
 

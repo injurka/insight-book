@@ -146,12 +146,15 @@ onMounted(() => {
             @open-upload-modal="isUploadModalOpen = true"
           />
 
-          <div v-if="store.isLoading && !store.books.length" class="books-grid">
-            <div v-for="i in 4" :key="i" class="book-card-skeleton">
-              <div class="cover-skeleton" />
-              <div class="info-skeleton">
-                <KitSkeleton width="80%" height="18px" />
-                <KitSkeleton width="50%" height="14px" />
+          <div v-if="store.isLoading && !store.books.length" class="skeleton-section">
+            <div class="title-skeleton" />
+            <div class="books-grid">
+              <div v-for="i in 14" :key="i" class="book-card-skeleton">
+                <div class="cover-skeleton" />
+                <div class="info-skeleton">
+                  <KitSkeleton width="80%" height="18px" />
+                  <KitSkeleton width="50%" height="14px" />
+                </div>
               </div>
             </div>
           </div>
@@ -439,6 +442,15 @@ onMounted(() => {
   }
 }
 
+.skeleton-section {
+  display: flex;
+  flex-direction: column;
+
+  .title-skeleton {
+    height: 44px;
+  }
+}
+
 .books-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
@@ -455,6 +467,7 @@ onMounted(() => {
   border-radius: 12px;
   overflow: hidden;
   border: 1px solid var(--border-secondary-color);
+
   .cover-skeleton {
     width: 100%;
     aspect-ratio: 2 / 3;
