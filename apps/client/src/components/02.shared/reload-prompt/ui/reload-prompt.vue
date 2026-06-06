@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { Icon } from '@iconify/vue'
+import { useI18n } from 'vue-i18n'
 import { KitBtn } from '~/components/01.kit'
 import { usePwaStore } from '~/shared/store/pwa.store'
 
 const pwaStore = usePwaStore()
+const { t } = useI18n()
 
 const { offlineReady, needRefresh } = storeToRefs(pwaStore)
 </script>
@@ -22,16 +24,12 @@ const { offlineReady, needRefresh } = storeToRefs(pwaStore)
         <div class="prompt-content-wrapper">
           <div class="prompt-message">
             <h4 class="prompt-title">
-              <span v-if="offlineReady">Готово к оффлайн-работе</span>
-              <span v-else>Доступно обновление</span>
+              <span v-if="offlineReady">{{ t('pwa.offlineReadyTitle') }}</span>
+              <span v-else>{{ t('pwa.updateAvailableTitle') }}</span>
             </h4>
             <p class="prompt-description">
-              <span v-if="offlineReady">
-                Приложение было успешно кэшировано и теперь доступно без подключения к сети.
-              </span>
-              <span v-else>
-                Новая версия приложения загружена. Нажмите "Обновить", чтобы применить изменения.
-              </span>
+              <span v-if="offlineReady">{{ t('pwa.offlineReadyDesc') }}</span>
+              <span v-else>{{ t('pwa.updateAvailableDesc') }}</span>
             </p>
           </div>
           <div class="prompt-actions">
@@ -41,14 +39,14 @@ const { offlineReady, needRefresh } = storeToRefs(pwaStore)
               color="primary"
               @click="pwaStore.triggerUpdate()"
             >
-              Обновить
+              {{ t('pwa.updateBtn') }}
             </KitBtn>
             <KitBtn
               variant="outlined"
               color="secondary"
               @click="pwaStore.closePrompt()"
             >
-              Закрыть
+              {{ t('pwa.closeBtn') }}
             </KitBtn>
           </div>
         </div>
@@ -74,7 +72,6 @@ const { offlineReady, needRefresh } = storeToRefs(pwaStore)
   box-shadow: 0 8px 32px var(--bg-overlay-primary-color);
   max-width: 480px;
   backdrop-filter: blur(8px);
-
   @include media-down(sm) {
     flex-direction: column;
     right: var(--p-s, 12px);
@@ -83,14 +80,12 @@ const { offlineReady, needRefresh } = storeToRefs(pwaStore)
     max-width: calc(100% - 24px);
   }
 }
-
 .prompt-icon {
   font-size: 2rem;
   color: var(--fg-accent-color);
   flex-shrink: 0;
   margin-top: 2px;
 }
-
 .prompt-content-wrapper {
   display: flex;
   flex-direction: column;
@@ -98,35 +93,29 @@ const { offlineReady, needRefresh } = storeToRefs(pwaStore)
   flex-grow: 1;
   width: 100%;
 }
-
 .prompt-message {
   flex-grow: 1;
 }
-
 .prompt-title {
   margin: 0 0 4px 0;
   font-size: 1.05rem;
   font-weight: 600;
   color: var(--fg-primary-color);
 }
-
 .prompt-description {
   margin: 0;
   font-size: 0.9rem;
   color: var(--fg-secondary-color);
   line-height: 1.5;
 }
-
 .prompt-actions {
   display: flex;
   gap: var(--p-xs, 8px);
   align-self: flex-end;
-
   @include media-down(xs) {
     width: 100%;
     flex-direction: column;
     align-self: stretch;
-
     .kit-btn {
       width: 100%;
     }

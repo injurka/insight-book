@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { Icon } from '@iconify/vue'
+import { useI18n } from 'vue-i18n'
 import { useLibraryStore } from '~/components/05.modules/library/store/library.store'
 import { useAnalysisStore } from '~/shared/store/analysis.store'
 import { useBookLexicalStats } from '../composables/use-book-lexical-stats'
 
+const { t } = useI18n()
 const libraryStore = useLibraryStore()
 const analysisStore = useAnalysisStore()
 
@@ -21,19 +23,19 @@ function handleWordClick(word: string, pos: string, event: MouseEvent) {
 <template>
   <div v-if="libraryStore.isAnalyzingVocab" class="ai-analysis-box is-loading">
     <Icon icon="mdi:loading" class="spin-icon" />
-    <p>Изучаем словарный запас книги...</p>
+    <p>{{ t('bookLexical.analyzingVocab') }}</p>
     <p class="sub-text">
-      Токенизация и подсчет частотности займут несколько секунд.
+      {{ t('bookLexical.tokenizationInfo') }}
     </p>
   </div>
 
   <div v-else-if="libraryStore.currentBookInfo?.stats?.topWords" class="ai-analysis-box lexical-box">
     <div class="box-header expandable-header" @click="isLexicalExpanded = !isLexicalExpanded">
       <div class="header-info">
-        <h3><Icon icon="mdi:chart-arc" /> Лексический профиль</h3>
+        <h3><Icon icon="mdi:chart-arc" /> {{ t('bookLexical.lexicalProfile') }}</h3>
         <span class="diversity-inline">
           <span class="dot-divider">•</span>
-          Разнообразие: <b class="diversity-value">{{ libraryStore.currentBookInfo.stats.lexicalDiversity }}%</b>
+          {{ t('bookLexical.diversity') }} <b class="diversity-value">{{ libraryStore.currentBookInfo.stats.lexicalDiversity }}%</b>
         </span>
       </div>
       <Icon :icon="isLexicalExpanded ? 'mdi:chevron-up' : 'mdi:chevron-down'" class="header-chevron" />
@@ -41,15 +43,15 @@ function handleWordClick(word: string, pos: string, event: MouseEvent) {
 
     <div v-show="isLexicalExpanded" class="lexical-expanded-content">
       <p class="lexical-description">
-        Показатель разнообразия отражает процент уникальных слов в тексте. Чем он выше, тем сложнее лексика книги.
-        <b>Нажмите на слово, чтобы перевести его.</b>
+        {{ t('bookLexical.diversityDesc') }}
+        <b>{{ t('bookLexical.clickToTranslate') }}</b>
       </p>
 
       <div v-if="posStats" class="pos-container">
         <div class="pos-labels">
-          <span class="noun-dot">Существительные {{ posStats.nouns }}%</span>
-          <span class="verb-dot">Глаголы {{ posStats.verbs }}%</span>
-          <span class="adj-dot">Прил/Нареч {{ posStats.adjs }}%</span>
+          <span class="noun-dot">{{ t('bookLexical.nouns') }} {{ posStats.nouns }}%</span>
+          <span class="verb-dot">{{ t('bookLexical.verbs') }} {{ posStats.verbs }}%</span>
+          <span class="adj-dot">{{ t('bookLexical.adjectives') }} {{ posStats.adjs }}%</span>
         </div>
         <div class="pos-bar">
           <div class="pos-segment noun" :style="{ width: `${posStats.nouns}%` }" />
@@ -60,7 +62,7 @@ function handleWordClick(word: string, pos: string, event: MouseEvent) {
 
       <template v-if="isLegacyLexical">
         <h4 class="top-words-title">
-          Самые частые слова:
+          {{ t('bookLexical.topWords') }}
         </h4>
         <div class="top-words-cloud">
           <div
@@ -82,20 +84,20 @@ function handleWordClick(word: string, pos: string, event: MouseEvent) {
       <template v-else>
         <div class="lexical-tabs-nav">
           <button :class="{ active: lexicalActiveTab === 'core' }" @click="lexicalActiveTab = 'core'">
-            <Icon icon="mdi:bullseye-arrow" /> Ядро
+            <Icon icon="mdi:bullseye-arrow" /> {{ t('bookLexical.core') }}
           </button>
           <button :class="{ active: lexicalActiveTab === 'entities' }" @click="lexicalActiveTab = 'entities'">
-            <Icon icon="mdi:account-group-outline" /> Имена
+            <Icon icon="mdi:account-group-outline" /> {{ t('bookLexical.names') }}
           </button>
           <button :class="{ active: lexicalActiveTab === 'rare' }" @click="lexicalActiveTab = 'rare'">
-            <Icon icon="mdi:diamond-stone" /> Самородки
+            <Icon icon="mdi:diamond-stone" /> {{ t('bookLexical.nuggets') }}
           </button>
         </div>
 
         <div class="lexical-tab-content">
           <div v-show="lexicalActiveTab === 'core'" class="tab-pane">
             <div class="word-group">
-              <h5><Icon icon="mdi:shape-outline" /> Существительные <span>(Тематика)</span></h5>
+              <h5><Icon icon="mdi:shape-outline" /> {{ t('bookLexical.nouns') }} <span>{{ t('bookLexical.themes') }}</span></h5>
               <div class="top-words-cloud">
                 <div
                   v-for="w in lexData?.nouns"
@@ -108,7 +110,7 @@ function handleWordClick(word: string, pos: string, event: MouseEvent) {
               </div>
             </div>
             <div class="word-group">
-              <h5><Icon icon="mdi:run-fast" /> Глаголы <span>(Динамика)</span></h5>
+              <h5><Icon icon="mdi:run-fast" /> {{ t('bookLexical.verbs') }} <span>{{ t('bookLexical.dynamics') }}</span></h5>
               <div class="top-words-cloud">
                 <div
                   v-for="w in lexData?.verbs"
@@ -121,7 +123,7 @@ function handleWordClick(word: string, pos: string, event: MouseEvent) {
               </div>
             </div>
             <div class="word-group">
-              <h5><Icon icon="mdi:weather-partly-cloudy" /> Прилагательные <span>(Атмосфера)</span></h5>
+              <h5><Icon icon="mdi:weather-partly-cloudy" /> {{ t('bookLexical.adjectives') }} <span>{{ t('bookLexical.atmosphere') }}</span></h5>
               <div class="top-words-cloud">
                 <div
                   v-for="w in lexData?.adjs"
@@ -137,7 +139,7 @@ function handleWordClick(word: string, pos: string, event: MouseEvent) {
 
           <div v-show="lexicalActiveTab === 'entities'" class="tab-pane">
             <p class="tab-desc">
-              Собственные имена, названия мест и организаций, встречающиеся в тексте.
+              {{ t('bookLexical.namesDesc') }}
             </p>
             <div class="top-words-cloud">
               <div
@@ -149,14 +151,14 @@ function handleWordClick(word: string, pos: string, event: MouseEvent) {
                 {{ w.word }} <span class="count">{{ w.count }}</span>
               </div>
               <div v-if="!lexData?.properNouns?.length" class="empty-state-text">
-                Имена не распознаны
+                {{ t('bookLexical.noNamesFound') }}
               </div>
             </div>
           </div>
 
           <div v-show="lexicalActiveTab === 'rare'" class="tab-pane">
             <p class="tab-desc">
-              Редкие слова, которые встречаются в книге всего от 2 до 5 раз. Отличный источник сложных терминов и авторских неологизмов.
+              {{ t('bookLexical.rareDesc') }}
             </p>
             <div class="top-words-cloud">
               <div
@@ -168,7 +170,7 @@ function handleWordClick(word: string, pos: string, event: MouseEvent) {
                 {{ w.word }} <span class="count">{{ w.count }}</span>
               </div>
               <div v-if="!lexData?.rareWords?.length" class="empty-state-text">
-                Редких слов не найдено
+                {{ t('bookLexical.noRareFound') }}
               </div>
             </div>
           </div>

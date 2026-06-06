@@ -8,6 +8,7 @@ import { vRipple } from '~/shared/directives/ripple'
 import router from '~/shared/lib/router'
 import App from './app.vue'
 
+import { i18n } from './shared/plugins/i18n.ts'
 import '~/assets/scss/global.scss'
 import '~/assets/scss/normalize.scss'
 
@@ -24,6 +25,7 @@ async function bootstrap() {
   app.directive('longPress', vLongPress)
 
   app.use(pinia)
+  app.use(i18n)
   app.use(head)
   app.use(router)
 

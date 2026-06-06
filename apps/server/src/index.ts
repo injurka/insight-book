@@ -14,6 +14,7 @@ import {
   handleGetBooks,
   handleGetCoverImage,
   handleGetPage,
+  handleGetPageDictionary,
   handleGetPageImage,
   handleGetToc,
   handleLookupWord,
@@ -81,6 +82,7 @@ const apiRoutes = {
   '/api/books/:id/analyze-vocabulary': { OPTIONS: corsOk, POST: apiWrapper(authWrapper(handleAnalyzeVocabulary)) },
   '/api/books/:id/toc': { OPTIONS: corsOk, GET: apiWrapper(authWrapper(handleGetToc)) },
   '/api/books/:id/page/:pageNum': { OPTIONS: corsOk, GET: apiWrapper(authWrapper(handleGetPage)) },
+  '/api/books/:id/page/:pageNum/dict': { OPTIONS: corsOk, GET: apiWrapper(authWrapper(handleGetPageDictionary)) },
   '/api/books/:id/page/:pageNum/image': { OPTIONS: corsOk, GET: apiWrapper(handleGetPageImage) },
   '/api/books/:id/word/:word': { OPTIONS: corsOk, GET: apiWrapper(authWrapper(handleLookupWord)) },
   '/api/books/:id/analyze': { OPTIONS: corsOk, POST: apiWrapper(authWrapper(handleAnalyzeSentence)) },
@@ -119,7 +121,7 @@ Bun.serve({
   port: PORT,
   idleTimeout: 255,
   routes: apiRoutes,
-  maxRequestBodySize: 5000 * 1024 * 1024, 
+  maxRequestBodySize: 5000 * 1024 * 1024,
   fetch() { return withCors(new Response('Not Found', { status: 404 })) },
   error(err: any) {
     console.error('[Server Error]', err)

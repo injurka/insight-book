@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { GeneratedWordExamples } from '~/shared/types/models'
 import { Icon } from '@iconify/vue'
+import { useI18n } from 'vue-i18n'
 import { KitDialog, KitSkeleton } from '~/components/01.kit'
 
 defineProps<{
@@ -9,16 +10,17 @@ defineProps<{
 }>()
 
 const visible = defineModel<boolean>('visible', { required: true })
+const { t } = useI18n()
 </script>
 
 <template>
-  <KitDialog v-model:visible="visible" title="Контекст и Примеры (ИИ)" :max-width="650" :floating="false" :minimizable="false">
+  <KitDialog v-model:visible="visible" :title="t('analysis.aiContextAndExamples')" :max-width="650" :floating="false" :minimizable="false">
     <div v-if="loading" class="ai-loading">
       <KitSkeleton width="100%" height="24px" class="mb-3" />
       <KitSkeleton width="80%" height="24px" class="mb-3" />
       <KitSkeleton width="100%" height="150px" />
       <p style="text-align: center; color: var(--fg-secondary-color); margin-top: 12px; font-style: italic;">
-        Генерируем контекст...
+        {{ t('analysis.generatingContext') }}
       </p>
     </div>
 
@@ -26,7 +28,7 @@ const visible = defineModel<boolean>('visible', { required: true })
       <!-- Новый блок лексики -->
       <div v-if="data.vocabulary && data.vocabulary.length" class="ai-section">
         <div class="ai-section-title">
-          <Icon icon="mdi:book-open-page-variant-outline" /> Лексика
+          <Icon icon="mdi:book-open-page-variant-outline" /> {{ t('analysis.vocabulary') }}
         </div>
         <ul class="ai-list">
           <li v-for="(voc, i) in data.vocabulary" :key="i">
@@ -37,7 +39,7 @@ const visible = defineModel<boolean>('visible', { required: true })
 
       <div v-if="data.mnemonics" class="ai-section">
         <div class="ai-section-title">
-          <Icon icon="mdi:lightbulb-on-outline" /> Мнемоника
+          <Icon icon="mdi:lightbulb-on-outline" /> {{ t('analysis.mnemonics') }}
         </div>
         <p class="ai-text">
           {{ data.mnemonics }}
@@ -46,7 +48,7 @@ const visible = defineModel<boolean>('visible', { required: true })
 
       <div v-if="data.grammar_note" class="ai-section">
         <div class="ai-section-title">
-          <Icon icon="mdi:book-open-variant" /> Грамматика
+          <Icon icon="mdi:book-open-variant" /> {{ t('analysis.grammar') }}
         </div>
         <p class="ai-text">
           {{ data.grammar_note }}
@@ -55,7 +57,7 @@ const visible = defineModel<boolean>('visible', { required: true })
 
       <div v-if="data.examples && data.examples.length" class="ai-section">
         <div class="ai-section-title">
-          <Icon icon="mdi:format-list-bulleted" /> Примеры
+          <Icon icon="mdi:format-list-bulleted" /> {{ t('analysis.examples') }}
         </div>
         <ul class="ai-list">
           <li v-for="(ex, i) in data.examples" :key="i">
@@ -70,7 +72,7 @@ const visible = defineModel<boolean>('visible', { required: true })
               {{ ex.translation }}
             </div>
             <div class="ex-literal">
-              Дословно: {{ ex.literal_translation }}
+              {{ t('analysis.literalTranslation') }}: {{ ex.literal_translation }}
             </div>
           </li>
         </ul>
@@ -78,7 +80,7 @@ const visible = defineModel<boolean>('visible', { required: true })
 
       <div v-if="data.collocations && data.collocations.length" class="ai-section">
         <div class="ai-section-title">
-          <Icon icon="mdi:link-variant" /> Словосочетания
+          <Icon icon="mdi:link-variant" /> {{ t('analysis.collocations') }}
         </div>
         <ul class="ai-list">
           <li v-for="(col, i) in data.collocations" :key="i">
@@ -90,7 +92,7 @@ const visible = defineModel<boolean>('visible', { required: true })
       <div v-if="data.relations && (data.relations.synonyms?.length || data.relations.antonyms?.length)" class="ai-section relations-section">
         <div v-if="data.relations.synonyms?.length">
           <div class="ai-section-title">
-            <Icon icon="mdi:swap-horizontal" /> Синонимы
+            <Icon icon="mdi:swap-horizontal" /> {{ t('analysis.synonyms') }}
           </div>
           <ul class="ai-list">
             <li v-for="(syn, i) in data.relations.synonyms" :key="i">
@@ -101,7 +103,7 @@ const visible = defineModel<boolean>('visible', { required: true })
 
         <div v-if="data.relations.antonyms?.length" :style="data.relations.synonyms?.length ? 'margin-top: 16px;' : ''">
           <div class="ai-section-title">
-            <Icon icon="mdi:swap-horizontal-bold" /> Антонимы
+            <Icon icon="mdi:swap-horizontal-bold" /> {{ t('analysis.antonyms') }}
           </div>
           <ul class="ai-list">
             <li v-for="(ant, i) in data.relations.antonyms" :key="i">

@@ -6,8 +6,10 @@
 // biome-ignore lint: disable
 export {}
 declare global {
+  const ALLOWED_TAG_KEYS: typeof import('../../constants/tags').ALLOWED_TAG_KEYS
   const AppRouteNames: typeof import('../../constants/routes').AppRouteNames
   const AppRoutePaths: typeof import('../../constants/routes').AppRoutePaths
+  const BOOK_TAGS: typeof import('../../constants/tags').BOOK_TAGS
   const DIFFICULTY_SYSTEMS: typeof import('../../constants/difficulties').DIFFICULTY_SYSTEMS
   const EffectScope: typeof import('vue').EffectScope
   const POS_TAGS_MAP: typeof import('../../constants/pos-tags').POS_TAGS_MAP
@@ -336,6 +338,9 @@ declare global {
   // @ts-ignore
   export type { AppRouteNames } from '../../constants/routes'
   import('../../constants/routes')
+  // @ts-ignore
+  export type { TagKey } from '../../constants/tags'
+  import('../../constants/tags')
 }
 
 // for vue template auto import
@@ -343,8 +348,10 @@ import { UnwrapRef } from 'vue'
 declare module 'vue' {
   interface GlobalComponents {}
   interface ComponentCustomProperties {
+    readonly ALLOWED_TAG_KEYS: UnwrapRef<typeof import('../../constants/tags')['ALLOWED_TAG_KEYS']>
     readonly AppRouteNames: UnwrapRef<typeof import('../../constants/routes')['AppRouteNames']>
     readonly AppRoutePaths: UnwrapRef<typeof import('../../constants/routes')['AppRoutePaths']>
+    readonly BOOK_TAGS: UnwrapRef<typeof import('../../constants/tags')['BOOK_TAGS']>
     readonly DIFFICULTY_SYSTEMS: UnwrapRef<typeof import('../../constants/difficulties')['DIFFICULTY_SYSTEMS']>
     readonly EffectScope: UnwrapRef<typeof import('vue')['EffectScope']>
     readonly POS_TAGS_MAP: UnwrapRef<typeof import('../../constants/pos-tags')['POS_TAGS_MAP']>

@@ -1,5 +1,8 @@
 <script setup lang="ts">
 import { Icon } from '@iconify/vue'
+import { ref } from 'vue'
+import { useI18n } from 'vue-i18n'
+import { useRouter } from 'vue-router'
 import { KitBtn, KitImage } from '~/components/01.kit'
 import { useLibraryStore } from '~/components/05.modules/library/store/library.store'
 import { AppRoutePaths } from '~/shared/constants/routes'
@@ -14,6 +17,7 @@ const emit = defineEmits<{
 const libraryStore = useLibraryStore()
 const authStore = useAuthStore()
 const router = useRouter()
+const { t } = useI18n()
 
 const coverInputRef = ref<HTMLInputElement | null>(null)
 
@@ -52,18 +56,18 @@ function startReading() {
       />
 
       <div v-if="authStore.user" class="cover-overlay">
-        <Icon icon="mdi:image-edit" /> Изменить
+        <Icon icon="mdi:image-edit" /> {{ t('bookInfo.changeCover') }}
       </div>
       <input ref="coverInputRef" type="file" accept="image/*" hidden @change="onCoverChange">
     </div>
 
     <div class="action-buttons">
       <KitBtn color="primary" class="full-width" @click="startReading">
-        {{ (libraryStore.currentBookInfo?.currentPage || 1) > 1 ? 'Продолжить чтение' : 'Начать чтение' }}
+        {{ (libraryStore.currentBookInfo?.currentPage || 1) > 1 ? t('bookInfo.continueReading') : t('bookInfo.startReading') }}
       </KitBtn>
 
       <KitBtn variant="tonal" color="secondary" class="full-width" icon="mdi:cloud-download-outline" @click="emit('openSync')">
-        Кэшировать / Анализ
+        {{ t('bookInfo.cacheAnalysis') }}
       </KitBtn>
 
       <KitBtn
@@ -71,11 +75,11 @@ function startReading() {
         variant="tonal" color="accent" class="full-width" icon="mdi:image-plus"
         @click="emit('openAppendChapter')"
       >
-        Добавить страницы
+        {{ t('bookInfo.addPages') }}
       </KitBtn>
 
       <KitBtn v-if="authStore.user && libraryStore.currentBookInfo?.userId === authStore.user?.id" variant="text" size="sm" class="edit-btn" @click="emit('editStats')">
-        Редактировать
+        {{ t('bookInfo.edit') }}
       </KitBtn>
     </div>
   </div>

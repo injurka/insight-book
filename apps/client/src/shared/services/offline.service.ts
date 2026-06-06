@@ -1,8 +1,9 @@
-import type { Book, DictDeck, LlmAnalysis, PagePayload, TocItem, UserDictItem } from '../types/models'
+import type { Book, DictDeck, LlmAnalysis, PageDictEntry, PagePayload, TocItem, UserDictItem } from '../types/models'
 import localforage from 'localforage'
 import { AppRoutePaths } from '~/shared/constants/routes'
 import router from '~/shared/lib/router'
 import { useToastStore } from '~/shared/store/toast.store'
+import { useGlobalSettingsStore } from '../store/settings.store'
 
 localforage.config({
   name: 'InsightBook',
@@ -13,6 +14,19 @@ localforage.config({
 function getKey(key: string) {
   const uid = localStorage.getItem('insight_uid') || '1'
   return `u${uid}_${key}`
+}
+
+function getAppLanguage() {
+  if (getActivePinia()) {
+    return useGlobalSettingsStore().appLanguage
+  }
+  try {
+    const saved = localStorage.getItem('global-app-language')
+    if (saved)
+      return JSON.parse(saved)
+  }
+  catch (e) { }
+  return 'ru'
 }
 
 async function safeSetItem<T>(key: string, value: T): Promise<void> {
@@ -51,6 +65,14 @@ export const offlineService = {
     return await safeGetItem(`book_${bookId}_page_${pageNum}`)
   },
 
+  async savePageDictionary(bookId: number, pageNum: number, dict: Record<string, PageDictEntry>) {
+    await safeSetItem(`book_${bookId}_page_${pageNum}_dict`, JSON.parse(JSON.stringify(dict)))
+  },
+
+  async getPageDictionary(bookId: number, pageNum: number): Promise<Record<string, PageDictEntry> | null> {
+    return await safeGetItem(`book_${bookId}_page_${pageNum}_dict`)
+  },
+
   async saveBookInfo(bookId: number, info: Book) {
     await safeSetItem(`book_info_${bookId}`, JSON.parse(JSON.stringify(info)))
   },
@@ -76,27 +98,33 @@ export const offlineService = {
   },
 
   async saveDictionary(words: UserDictItem[]) {
-    await safeSetItem('dictionary_words', JSON.parse(JSON.stringify(words)))
+    const lang = getAppLanguage()
+    await safeSetItem(`dictionary_words_${lang}`, JSON.parse(JSON.stringify(words)))
   },
 
   async getDictionary(): Promise<UserDictItem[] | null> {
-    return await safeGetItem('dictionary_words')
+    const lang = getAppLanguage()
+    return await safeGetItem(`dictionary_words_${lang}`)
   },
 
   async saveDecks(decks: DictDeck[]) {
-    await safeSetItem('dictionary_decks', JSON.parse(JSON.stringify(decks)))
+    const lang = getAppLanguage()
+    await safeSetItem(`dictionary_decks_${lang}`, JSON.parse(JSON.stringify(decks)))
   },
 
   async getDecks(): Promise<DictDeck[] | null> {
-    return await safeGetItem('dictionary_decks')
+    const lang = getAppLanguage()
+    return await safeGetItem(`dictionary_decks_${lang}`)
   },
 
   async saveAnalysis(bookId: number, text: string, analysis: LlmAnalysis) {
-    await safeSetItem(`analysis_${bookId}_${text}`, JSON.parse(JSON.stringify(analysis)))
+    const lang = getAppLanguage()
+    await safeSetItem(`analysis_${bookId}_${text}_${lang}`, JSON.parse(JSON.stringify(analysis)))
   },
 
   async getAnalysis(bookId: number, text: string): Promise<LlmAnalysis | null> {
-    return await safeGetItem(`analysis_${bookId}_${text}`)
+    const lang = getAppLanguage()
+    return await safeGetItem(`analysis_${bookId}_${text}_${lang}`)
   },
 
   async saveTts(hashKey: string, audioBase64: string) {
@@ -144,19 +172,22 @@ export const offlineService = {
     let totalSize = 0
 
     for (const fullKey of userKeys) {
-      const key = fullKey.replace(prefix, '') // убираем "u1_"
+      const key = fullKey.replace(prefix, '')
       const item = await localforage.getItem(fullKey)
       const itemSize = item ? JSON.stringify(item).length : 0
       totalSize += itemSize
 
-      if (key === 'dictionary_words') {
-        totalDictionaryWords = Array.isArray(item) ? item.length : 0
+      if (key.startsWith('dictionary_words_')) {
+        totalDictionaryWords += Array.isArray(item) ? item.length : 0
       }
       else if (key.startsWith('book_') && key.includes('_page_')) {
         const bookId = Number(key.split('_')[1])
+        const isDict = key.endsWith('_dict')
         const pageNum = Number(key.split('_')[3])
         if (bookStats[bookId]) {
-          bookStats[bookId].cachedPages.push(pageNum)
+          if (!isDict && !bookStats[bookId].cachedPages.includes(pageNum)) {
+            bookStats[bookId].cachedPages.push(pageNum)
+          }
           bookStats[bookId].sizeBytes += itemSize
         }
       }
@@ -186,6 +217,7 @@ export const offlineService = {
       if (!fullKey.startsWith(prefix))
         return false
       const key = fullKey.replace(prefix, '')
+      // Это условие захватит и "book_1_page_1", и "book_1_page_1_dict"
       return key.startsWith(`book_${bookId}_page_`) || key.startsWith(`analysis_${bookId}_`) || key === `book_info_${bookId}` || key === `book_toc_${bookId}`
     })
 

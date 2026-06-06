@@ -1,13 +1,14 @@
 <script setup lang="ts">
 import type { UserDictItem, WordEncounter } from '~/shared/types/models'
 import { computed, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { KitBtn, KitDialog, KitInput, KitPrompt, KitSelect, KitTooltip } from '~/components/01.kit'
 import { useToast } from '~/shared/composables/use-toast'
 import { useTts } from '~/shared/composables/use-tts'
 import { DIFFICULTY_SYSTEMS } from '~/shared/constants/difficulties'
 import { api } from '~/shared/services/api.service'
 import { useAnalysisStore } from '~/shared/store/analysis.store'
-import { useDictionaryStore } from '../store/dictionary.store'
+import { useDictionaryStore } from '../../store/dictionary.store'
 
 interface WordFormData extends Partial<UserDictItem> {
   contextSentence?: string
@@ -19,6 +20,7 @@ const analysisStore = useAnalysisStore()
 const dictStore = useDictionaryStore()
 const { speak, isPlaying, isLoading } = useTts()
 const toast = useToast()
+const { t } = useI18n()
 
 const localWord = ref<WordFormData>({})
 const isEditing = computed(() => !!localWord.value.id)
@@ -87,10 +89,10 @@ async function autoFillWithAI() {
     if (res.vocabularyNote)
       localWord.value.vocabularyNote = res.vocabularyNote
 
-    toast.success('Поля успешно заполнены!')
+    toast.success(t('dictionary.fieldsAutoFilled'))
   }
   catch (e) {
-    toast.error(e instanceof Error ? e.message : 'Ошибка автозаполнения ИИ')
+    toast.error(e instanceof Error ? e.message : t('dictionary.aiAutoFillError'))
   }
   finally {
     isAutoFilling.value = false
@@ -113,8 +115,8 @@ const deckIdModel = computed<string | number>({
 
 const deckOptions = computed(() => {
   if (!localWord.value.language)
-    return [{ label: 'Без колоды', value: 'none' }]
-  const opts: any[] = [{ label: 'Без колоды (Общая)', value: 'none' }]
+    return [{ label: t('dictionary.noDeckGeneral'), value: 'none' }]
+  const opts: any[] = [{ label: t('dictionary.noDeckGeneral'), value: 'none' }]
   const langDecks = dictStore.decks.filter(d => d.language === localWord.value.language)
   langDecks.forEach(d => opts.push({ label: d.name, value: d.id }))
   return opts
@@ -125,7 +127,7 @@ const currentDifficultyOptions = computed(() => {
   const system = DIFFICULTY_SYSTEMS[lang] || DIFFICULTY_SYSTEMS.default
 
   return [
-    { label: 'Не указана', value: '' },
+    { label: t('dictionary.noDifficulty'), value: '' },
     ...system.map(opt => ({ label: opt.label, value: opt.value })),
   ]
 })
@@ -137,7 +139,7 @@ const difficultyModel = computed({
 </script>
 
 <template>
-  <KitDialog v-model:visible="analysisStore.addEditWordModalOpen" :title="isEditing ? 'Редактировать карточку' : 'Добавить в словарь'" :max-width="550">
+  <KitDialog v-model:visible="analysisStore.addEditWordModalOpen" :title="isEditing ? t('dictionary.editCard') : t('dictionary.addToDict')" :max-width="550">
     <div v-if="localWord" class="dialog-content">
       <div class="word-preview">
         <div class="word-header">
@@ -146,7 +148,7 @@ const difficultyModel = computed({
             {{ localWord.word }}
           </h3>
           <div class="tts-wrapper">
-            <KitTooltip text="Озвучить">
+            <KitTooltip :text="t('analysis.voice')">
               <KitBtn
                 :icon="isLoading ? 'mdi:loading' : (isPlaying ? 'mdi:volume-high' : 'mdi:volume-medium')"
                 variant="text"
@@ -164,87 +166,86 @@ const difficultyModel = computed({
       </div>
 
       <div v-if="localWord.contextSentence || (localWord.encounters && localWord.encounters.length)" class="encounters-box">
-        <h4>Журнал встреч (Контекст)</h4>
+        <h4>{{ t('dictionary.journalContext') }}</h4>
         <div v-if="localWord.contextSentence && !localWord.encounters?.some(e => e.sentence === localWord.contextSentence)" class="encounter-item new">
-          <span class="badge">Новое</span> {{ localWord.contextSentence }}
+          <span class="badge">{{ t('dictionary.statusNew') }}</span> {{ localWord.contextSentence }}
         </div>
         <div v-for="enc in localWord.encounters" :key="enc.id" class="encounter-item">
-          <span class="source">{{ enc.book?.title || 'Из книги' }}:</span>
+          <span class="source">{{ enc.book?.title || t('dictWord.fromBook') }}:</span>
           {{ enc.sentence }}
         </div>
       </div>
 
       <div class="form-fields">
         <div class="form-group">
-          <label>Колода</label>
+          <label>{{ t('dictionary.deck') }}</label>
           <div class="deck-selector-row">
-            <KitSelect v-model="deckIdModel" :options="deckOptions" placeholder="Выберите колоду" />
+            <KitSelect v-model="deckIdModel" :options="deckOptions" :placeholder="t('dictionary.selectDeck')" />
             <KitBtn icon="mdi:plus" variant="outlined" color="secondary" @click="openCreateDeckPrompt">
-              Новая
+              {{ t('dictionary.new') }}
             </KitBtn>
           </div>
         </div>
 
         <div class="row-flex">
           <div class="form-group flex-1">
-            <label>Сложность</label>
+            <label>{{ t('dictionary.difficulty') }}</label>
             <KitSelect v-model="difficultyModel" :options="currentDifficultyOptions" />
           </div>
           <div class="form-group flex-1">
-            <label>Теги (через запятую)</label>
-            <KitInput v-model="localWord.tags" placeholder="глагол, фраза, JLPT N5..." />
+            <label>{{ t('dictionary.tagsComma') }}</label>
+            <KitInput v-model="localWord.tags" :placeholder="t('dictionary.tagsPlaceholder')" />
           </div>
         </div>
 
         <div class="form-group">
-          <label>Перевод (поддерживает HTML разметку)</label>
+          <label>{{ t('dictionary.translationHtml') }}</label>
           <textarea v-model="localWord.translation" class="custom-textarea" rows="4" />
         </div>
 
         <div class="form-group">
-          <label>Грамматика</label>
-          <textarea v-model="localWord.grammarNote" class="custom-textarea" rows="2" placeholder="Дополнительные грамматические правила..." />
+          <label>{{ t('dictionary.grammar') }}</label>
+          <textarea v-model="localWord.grammarNote" class="custom-textarea" rows="2" :placeholder="t('dictionary.grammarRulesExtra')" />
         </div>
 
         <div class="form-group">
-          <label>Лексика</label>
-          <textarea v-model="localWord.vocabularyNote" class="custom-textarea" rows="2" placeholder="Связанная лексика..." />
+          <label>{{ t('dictionary.vocabulary') }}</label>
+          <textarea v-model="localWord.vocabularyNote" class="custom-textarea" rows="2" :placeholder="t('dictionary.relatedVocab')" />
         </div>
 
         <div class="form-group">
-          <label>Заметки (Мнемоника, примеры)</label>
+          <label>{{ t('dictionary.notesMnemonic') }}</label>
           <textarea v-model="localWord.notes" class="custom-textarea" rows="2" />
         </div>
       </div>
     </div>
     <template #footer>
       <div class="footer-actions">
-        <KitTooltip text="Автозаполнить поля с помощью ИИ" placement="top">
+        <KitTooltip :text="t('dictionary.autoFillAi')" placement="top">
           <KitBtn variant="tonal" color="accent" :icon="isAutoFilling ? 'mdi:loading' : 'mdi:robot-outline'" :class="{ 'spin-animation': isAutoFilling }" :disabled="isAutoFilling" @click="autoFillWithAI">
-            <span class="hide-mobile">Автозаполнение</span>
+            <span class="hide-mobile">{{ t('dictionary.autoFill') }}</span>
           </KitBtn>
         </KitTooltip>
 
         <KitBtn v-if="isEditing" variant="outlined" color="secondary" @click="handleDelete">
-          Удалить
+          {{ t('dictionary.deleteItem') }}
         </KitBtn>
         <div class="spacer" />
         <KitBtn variant="tonal" @click="analysisStore.addEditWordModalOpen = false">
-          Отмена
+          {{ t('dictionary.cancel') }}
         </KitBtn>
         <KitBtn color="primary" @click="handleSave">
-          {{ isEditing ? 'Сохранить' : 'Добавить' }}
+          {{ isEditing ? t('dictionary.save') : t('library.addBook') }}
         </KitBtn>
       </div>
     </template>
   </KitDialog>
 
-  <!-- Окно создания колоды -->
   <KitPrompt
     v-model:visible="isDeckPromptOpen"
-    title="Новая колода"
-    placeholder="Название колоды"
-    confirm-text="Создать"
+    :title="t('dictionary.newDeckName')"
+    :placeholder="t('opds.name')"
+    :confirm-text="t('dictionary.create')"
     @submit="onInlineDeckSubmit"
   />
 </template>

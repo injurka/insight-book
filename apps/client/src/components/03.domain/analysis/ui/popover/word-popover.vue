@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { GeneratedWordExamples } from '~/shared/types/models'
 import { Icon } from '@iconify/vue'
+import { useI18n } from 'vue-i18n'
 import { KitBtn, KitSkeleton, KitTooltip } from '~/components/01.kit'
 import { useLibraryStore } from '~/components/05.modules/library/store/library.store'
 import { useReaderStore } from '~/components/05.modules/reader/store/reader.store'
@@ -10,12 +11,13 @@ import { POS_TAGS_MAP } from '~/shared/constants/pos-tags'
 import { api } from '~/shared/services/api.service'
 import { useAnalysisStore } from '~/shared/store/analysis.store'
 import { useAuthStore } from '~/shared/store/auth.store'
-import AiExamplesModal from './ai-examples-modal.vue'
+import AiExamplesModal from '../modal/ai-examples-modal.vue'
 
 const analysisStore = useAnalysisStore()
 const authStore = useAuthStore()
 const { speak, stop, isPlaying, isLoading } = useTts()
 const toast = useToast()
+const { t } = useI18n()
 
 const popoverRef = ref<HTMLElement | null>(null)
 const popoverPos = ref({ top: '-9999px', left: '-9999px', transform: 'none' })
@@ -101,7 +103,7 @@ async function fetchAiExamples() {
     aiData.value = await api.dictionary.generateExamples(word, lang)
   }
   catch (e) {
-    toast.error(e instanceof Error ? e.message : 'Ошибка генерации примеров')
+    toast.error(e instanceof Error ? e.message : t('dictionary.errorExamples'))
     isAiModalOpen.value = false
   }
   finally {
@@ -144,7 +146,7 @@ onUnmounted(() => {
             <template v-if="analysisStore.wordPopover.showAi && analysisStore.wordPopover.aiData">
               <div v-if="analysisStore.wordPopover.aiData.grammarRules?.length" class="ai-section">
                 <div class="ai-subtitle">
-                  Грамматика:
+                  {{ t('analysis.grammarColon') }}
                 </div>
                 <div v-for="(rule, idx) in analysisStore.wordPopover.aiData.grammarRules" :key="idx" class="ai-rule">
                   <b>{{ rule.pattern }}</b> — {{ rule.explanation }}
@@ -152,7 +154,7 @@ onUnmounted(() => {
               </div>
               <div v-if="analysisStore.wordPopover.aiData.vocabulary?.length" class="ai-section">
                 <div class="ai-subtitle">
-                  Лексика:
+                  {{ t('analysis.vocabularyColon') }}
                 </div>
                 <div v-for="(vocab, idx) in analysisStore.wordPopover.aiData.vocabulary" :key="idx" class="ai-vocab">
                   <b>{{ vocab.word }}</b> ({{ vocab.transcription }}) — {{ vocab.meaning }}
@@ -167,19 +169,19 @@ onUnmounted(() => {
           </div>
           <div v-else class="pos-badge-placeholder" />
           <div class="popover-actions">
-            <KitTooltip text="Озвучить" placement="top">
+            <KitTooltip :text="t('analysis.voice')" placement="top">
               <KitBtn :icon="isLoading ? 'mdi:loading' : (isPlaying ? 'mdi:volume-high' : 'mdi:volume-medium')" size="xs" variant="text" color="primary" :class="{ 'pulse-animation': isPlaying, 'spin-animation': isLoading }" @click.stop="playWordTTS" />
             </KitTooltip>
 
-            <KitTooltip text="Подробно с ИИ" placement="top">
+            <KitTooltip :text="t('analysis.detailedWithAi')" placement="top">
               <KitBtn icon="mdi:text-box-search-outline" size="xs" variant="text" color="secondary" @click.stop="fetchAiExamples" />
             </KitTooltip>
 
-            <KitTooltip text="Перевести с ИИ" placement="top">
+            <KitTooltip :text="t('analysis.translateWithAi')" placement="top">
               <KitBtn icon="mdi:robot-outline" size="xs" variant="text" :color="analysisStore.wordPopover.showAi ? 'accent' : 'secondary'" @click.stop="analysisStore.toggleAiTranslation" />
             </KitTooltip>
 
-            <KitTooltip v-if="authStore.user" :text="analysisStore.wordPopover.isSaved ? 'Редактировать карточку' : 'Сохранить в словарь'" placement="top-end">
+            <KitTooltip v-if="authStore.user" :text="analysisStore.wordPopover.isSaved ? t('analysis.editCard') : t('analysis.saveToDict')" placement="top-end">
               <KitBtn
                 :icon="analysisStore.wordPopover.isSaved ? 'mdi:star' : 'mdi:star-outline'"
                 size="xs"
@@ -238,7 +240,7 @@ onUnmounted(() => {
     position: sticky;
     top: 0;
     z-index: 2;
-    min-height: 28px;
+    min-height: 44px;
 
     .header-text {
       font-weight: 600;

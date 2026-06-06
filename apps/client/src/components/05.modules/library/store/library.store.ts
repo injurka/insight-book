@@ -58,18 +58,32 @@ export const useLibraryStore = defineStore('library', () => {
       }
       catch { }
 
-      // 2. Страницы и текст
+      // 2. Страницы, текст и словари
       if (options.cachePages || options.analyzeSentences) {
         for (let i = 1; i <= book.totalPages; i++) {
           if (signal.aborted)
             throw new Error('Aborted')
           syncProgress.value.currentTask = `Загрузка страницы ${i} из ${book.totalPages}`
 
+          // 2.1 Страница
           let page = await offlineService.getPage(bookId, i)
           if (!page) {
             page = await api.books.getPage(bookId, i, true)
             await offlineService.savePage(bookId, i, page)
           }
+
+          // 2.2 Словарь страницы
+          const dict = await offlineService.getPageDictionary(bookId, i)
+          if (!dict) {
+            try {
+              const dictRes = await api.books.getPageDict(bookId, i)
+              await offlineService.savePageDictionary(bookId, i, dictRes.pageDictionary)
+            }
+            catch (e) {
+              console.warn(`Failed to fetch dictionary for page ${i}`, e)
+            }
+          }
+
           syncProgress.value.pagesDone = i
 
           // Собираем предложения для последующего перевода
@@ -278,7 +292,8 @@ export const useLibraryStore = defineStore('library', () => {
       const res = await api.books.createCustomBook({ title, author, language, type: 'manga' })
       books.value.unshift(res.book)
       return res.book
-    } finally {
+    }
+    finally {
       isLoading.value = false
     }
   }
@@ -290,18 +305,17 @@ export const useLibraryStore = defineStore('library', () => {
 
     const res = await api.books.appendMangaChapter(bookId, fd)
 
-    // Аккуратно вливаем обновленные данные в стейт, чтобы не затереть другие локальные ключи
     const index = books.value.findIndex(b => b.id === bookId)
     if (index !== -1) {
       Object.assign(books.value[index], res.book)
     }
     if (currentBookInfo.value?.id === bookId) {
       Object.assign(currentBookInfo.value, res.book)
-      // Парсим оглавление для UI, так как бэк отдает его как строку JSON
       if (typeof res.book.toc === 'string') {
         try {
           currentBookInfo.value.toc = JSON.parse(res.book.toc)
-        } catch { }
+        }
+        catch { }
       }
     }
     return res.book

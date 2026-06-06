@@ -6,7 +6,7 @@ const dbPath = process.env.DB_PATH || path.resolve(process.cwd(), 'db', 'insight
 
 export default defineConfig({
   schema: './src/db/schema.ts',
-  out: './drizzle',
+  out: './src/db/migrations',
   dialect: 'sqlite',
   dbCredentials: {
     url: `file:${dbPath}`,

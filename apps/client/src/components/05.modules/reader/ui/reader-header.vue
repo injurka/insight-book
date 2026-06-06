@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Icon } from '@iconify/vue'
+import { useI18n } from 'vue-i18n'
 import { KitBtn, KitDropdown, KitSelect, KitTooltip } from '~/components/01.kit'
 import { ThemesVariant, useChangeTheme } from '~/shared/composables/use-change-theme'
 import { AppRoutePaths } from '~/shared/constants/routes'
@@ -10,6 +11,7 @@ import { useReaderStore } from '../store/reader.store'
 const readerStore = useReaderStore()
 const analysisStore = useAnalysisStore()
 const settingsStore = useGlobalSettingsStore()
+const { t } = useI18n()
 
 const router = useRouter()
 const { theme, toggleTheme } = useChangeTheme()
@@ -48,17 +50,17 @@ function adjustLineHeight(delta: number) {
   }
 }
 
-const fontOptions = [
-  { label: 'По умолчанию (Maple Mono)', value: '\'Maple Mono CN\', \'Microsoft YaHei\', sans-serif' },
-  { label: 'Без засечек (Sans-serif)', value: 'system-ui, -apple-system, sans-serif' },
-  { label: 'С засечками (Serif)', value: 'Georgia, \'Times New Roman\', serif' },
-  { label: 'Рукописный (Cursive)', value: '\'Comic Sans MS\', cursive, sans-serif' },
-]
+const fontOptions = computed(() => [
+  { label: t('reader.fontDefault'), value: '\'Maple Mono CN\', \'Microsoft YaHei\', sans-serif' },
+  { label: t('reader.fontSans'), value: 'system-ui, -apple-system, sans-serif' },
+  { label: t('reader.fontSerif'), value: 'Georgia, \'Times New Roman\', serif' },
+  { label: t('reader.fontCursive'), value: '\'Comic Sans MS\', cursive, sans-serif' },
+])
 </script>
 
 <template>
   <header class="reader-header">
-    <KitTooltip text="Вернуться назад" placement="bottom">
+    <KitTooltip :text="t('reader.goBack')" placement="bottom">
       <KitBtn icon="mdi:arrow-left" variant="text" size="sm" @click="goBack" />
     </KitTooltip>
 
@@ -68,7 +70,7 @@ const fontOptions = [
 
     <KitTooltip
       v-if="readerStore.currentBook?.type !== 'manga'"
-      text="Параллельное чтение"
+      :text="t('reader.parallelReading')"
       placement="bottom"
       class="desktop-only"
     >
@@ -94,20 +96,20 @@ const fontOptions = [
       <div class="dropdown-menu-list">
         <button class="dropdown-item" @click="analysisStore.analyzeWholePage('sentences'); dropdownRef?.close()">
           <Icon icon="mdi:text-short" />
-          Все предложения
+          {{ t('analysis.sentences') }}
         </button>
         <button class="dropdown-item" @click="analysisStore.analyzeWholePage('words'); dropdownRef?.close()">
           <Icon icon="mdi:format-text" />
-          Все слова
+          {{ t('analysis.words') }}
         </button>
         <button class="dropdown-item" @click="analysisStore.analyzeWholePage('all'); dropdownRef?.close()">
           <Icon icon="mdi:text-box-multiple-outline" />
-          Предложения и слова
+          {{ t('reader.sentencesAndWords') }}
         </button>
       </div>
     </KitDropdown>
 
-    <KitTooltip text="Оглавление" placement="bottom-end">
+    <KitTooltip :text="t('bookInfo.tableOfContents')" placement="bottom-end">
       <KitBtn icon="mdi:format-list-bulleted" variant="text" size="sm" @click="readerStore.tocOpen = true" />
     </KitTooltip>
 
@@ -117,44 +119,42 @@ const fontOptions = [
           icon="mdi:cog-outline"
           variant="text"
           size="sm"
-          title="Настройки"
+          :title="t('settings.title')"
           :class="{ 'is-active-btn': dropdownProps?.isOpen }"
         />
       </template>
 
       <div class="menu-content">
-        <!-- Внешний вид и интерфейс -->
         <div class="menu-section">
           <div class="section-title">
-            Внешний вид
+            {{ t('settings.interfaceTitle') }}
           </div>
           <div class="menu-item" @click="toggleTheme">
             <div class="item-label">
               <Icon :icon="currentThemeIcon" class="item-icon" />
-              <span>Оформление</span>
+              <span>{{ t('reader.appearance') }}</span>
             </div>
-            <span class="value-text">{{ theme === 'light' ? 'Светлая' : 'Темная' }}</span>
+            <span class="value-text">{{ theme === 'light' ? t('reader.light') : t('reader.dark') }}</span>
           </div>
         </div>
 
         <div class="divider" />
 
-        <!-- Чтение и озвучка -->
         <div class="menu-section">
           <div class="section-title">
-            Перевод и Озвучка
+            {{ t('reader.translationAndVoice') }}
           </div>
           <div class="menu-item" @click="togglePriority">
             <div class="item-label">
               <Icon icon="mdi:translate" class="item-icon" />
-              <span>Приоритет перевода</span>
+              <span>{{ t('reader.translationPriority') }}</span>
             </div>
-            <span class="value-text">{{ settingsStore.translationPriority === 'dict' ? 'Словарь' : 'Нейросеть' }}</span>
+            <span class="value-text">{{ settingsStore.translationPriority === 'dict' ? t('reader.dictionary') : t('reader.neuralNetwork') }}</span>
           </div>
           <div class="menu-item" @click="cycleTtsSpeed">
             <div class="item-label">
               <Icon icon="mdi:play-speed" class="item-icon" />
-              <span>Скорость озвучки</span>
+              <span>{{ t('reader.voiceSpeed') }}</span>
             </div>
             <span class="value-text">{{ settingsStore.ttsSpeed }}x</span>
           </div>
@@ -162,29 +162,27 @@ const fontOptions = [
 
         <div v-if="readerStore.currentBook?.type !== 'manga'" class="divider" />
 
-        <!-- Отображение Манги -->
         <div v-if="readerStore.currentBook?.type === 'manga'" class="menu-section">
           <div class="section-title">
-            Отображение текста
+            {{ t('reader.textDisplayManga') }}
           </div>
           <div class="menu-item" @click="settingsStore.mangaOcrDisplayMode = settingsStore.mangaOcrDisplayMode === 'hover' ? 'popover' : 'hover'">
             <div class="item-label">
               <Icon icon="mdi:message-text-outline" class="item-icon" />
-              <span>Режим перевода</span>
+              <span>{{ t('reader.translationMode') }}</span>
             </div>
-            <span class="value-text">{{ settingsStore.mangaOcrDisplayMode === 'hover' ? 'Наведение' : 'Окно (Popover)' }}</span>
+            <span class="value-text">{{ settingsStore.mangaOcrDisplayMode === 'hover' ? t('reader.hover') : t('reader.popover') }}</span>
           </div>
         </div>
 
-        <!-- Отображение текста (Типографика) -->
         <div v-if="readerStore.currentBook?.type !== 'manga'" class="menu-section">
           <div class="section-title">
-            Отображение текста
+            {{ t('reader.textDisplay') }}
           </div>
 
           <div class="typography-controls">
             <div class="typography-row">
-              <span class="typography-label">Размер</span>
+              <span class="typography-label">{{ t('reader.size') }}</span>
               <div class="typography-stepper">
                 <KitBtn icon="mdi:minus" size="xs" variant="outlined" color="secondary" @click="adjustFontSize(-0.1)" />
                 <span class="stepper-value">{{ settingsStore.readerFontSize.toFixed(1) }}rem</span>
@@ -193,7 +191,7 @@ const fontOptions = [
             </div>
 
             <div class="typography-row">
-              <span class="typography-label">Интервал</span>
+              <span class="typography-label">{{ t('reader.lineHeight') }}</span>
               <div class="typography-stepper">
                 <KitBtn icon="mdi:minus" size="xs" variant="outlined" color="secondary" @click="adjustLineHeight(-0.1)" />
                 <span class="stepper-value">{{ settingsStore.readerLineHeight.toFixed(1) }}</span>
@@ -202,7 +200,7 @@ const fontOptions = [
             </div>
 
             <div class="typography-row font-row">
-              <span class="typography-label">Шрифт</span>
+              <span class="typography-label">{{ t('reader.font') }}</span>
               <KitSelect v-model="settingsStore.readerFontFamily" :options="fontOptions" size="sm" class="font-select" />
             </div>
           </div>

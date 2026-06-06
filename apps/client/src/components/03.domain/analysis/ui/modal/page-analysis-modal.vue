@@ -1,25 +1,24 @@
 <script setup lang="ts">
 import { Icon } from '@iconify/vue'
+import { useI18n } from 'vue-i18n'
 import { KitBtn } from '~/components/01.kit'
 import { useAnalysisStore } from '~/shared/store/analysis.store'
 
 const analysisStore = useAnalysisStore()
+const { t } = useI18n()
 </script>
 
 <template>
   <Transition name="fade">
     <div v-if="analysisStore.isAnalyzingPage" class="page-analysis-overlay">
       <div class="analysis-dialog">
-        <!-- Шапка окна с иконкой ИИ -->
         <div class="dialog-header">
           <Icon icon="mdi:robot-outline" class="title-icon" />
-          <h3>Анализ страницы</h3>
+          <h3>{{ t('analysis.pageAnalysis') }}</h3>
         </div>
 
-        <!-- Состояние обработки -->
         <template v-if="!analysisStore.isPageAnalysisFinished">
           <div class="analysis-steps">
-            <!-- Карточка предложений -->
             <div
               v-if="analysisStore.pageAnalysisMode === 'sentences' || analysisStore.pageAnalysisMode === 'all'"
               class="progress-card"
@@ -27,10 +26,10 @@ const analysisStore = useAnalysisStore()
               <div class="progress-header">
                 <span class="label-group">
                   <Icon icon="mdi:text-short" class="step-icon pulse-animation" />
-                  Предложения
+                  {{ t('analysis.sentences') }}
                 </span>
                 <span class="progress-values">
-                  <b>{{ analysisStore.pageAnalysisSentencesCurrent }}</b> из {{ analysisStore.pageAnalysisSentencesTotal }}
+                  <b>{{ analysisStore.pageAnalysisSentencesCurrent }}</b> {{ t('bookStats.outOf') }} {{ analysisStore.pageAnalysisSentencesTotal }}
                 </span>
               </div>
               <div class="progress-bar">
@@ -38,7 +37,6 @@ const analysisStore = useAnalysisStore()
               </div>
             </div>
 
-            <!-- Карточка слов -->
             <div
               v-if="analysisStore.pageAnalysisMode === 'words' || analysisStore.pageAnalysisMode === 'all'"
               class="progress-card"
@@ -46,10 +44,10 @@ const analysisStore = useAnalysisStore()
               <div class="progress-header">
                 <span class="label-group">
                   <Icon icon="mdi:format-text" class="step-icon pulse-animation" />
-                  Слова
+                  {{ t('analysis.words') }}
                 </span>
                 <span class="progress-values">
-                  <b>{{ analysisStore.pageAnalysisWordsCurrent }}</b> из {{ analysisStore.pageAnalysisWordsTotal }}
+                  <b>{{ analysisStore.pageAnalysisWordsCurrent }}</b> {{ t('bookStats.outOf') }} {{ analysisStore.pageAnalysisWordsTotal }}
                 </span>
               </div>
               <div class="progress-bar">
@@ -59,21 +57,20 @@ const analysisStore = useAnalysisStore()
           </div>
 
           <KitBtn color="secondary" variant="outlined" style="width: 100%; margin-top: 4px;" @click="analysisStore.closePageAnalysisModal()">
-            Отмена
+            {{ t('analysis.cancel') }}
           </KitBtn>
         </template>
 
-        <!-- Состояние завершения -->
         <template v-else>
           <div class="finished-state">
             <Icon icon="mdi:checkbox-marked-circle-outline" class="success-icon" />
             <div class="success-text">
-              <h4>Готово!</h4>
-              <p>Все элементы успешно проанализированы и кэшированы для автономной работы.</p>
+              <h4>{{ t('analysis.done') }}</h4>
+              <p>{{ t('analysis.allElementsAnalyzed') }}</p>
             </div>
           </div>
           <KitBtn color="primary" style="width: 100%;" @click="analysisStore.closePageAnalysisModal()">
-            Отлично
+            {{ t('analysis.excellent') }}
           </KitBtn>
         </template>
       </div>

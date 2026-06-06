@@ -2,6 +2,7 @@
 import type { Book } from '~/shared/types/models'
 import { Icon } from '@iconify/vue'
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { KitImage, KitTooltip } from '~/components/01.kit'
 import { useAuthStore } from '~/shared/store/auth.store'
 
@@ -13,6 +14,7 @@ const emit = defineEmits<{
 }>()
 
 const authStore = useAuthStore()
+const { t } = useI18n()
 
 const progressPercent = computed(() => {
   const current = props.book.currentPage || 1
@@ -26,7 +28,7 @@ const progressPercent = computed(() => {
     <div class="cover-wrapper">
       <KitImage
         :src="book.coverUrl"
-        alt="Обложка"
+        :alt="t('library.cover')"
         fallback-icon="mdi:book-open-blank-variant"
       />
 
@@ -44,7 +46,7 @@ const progressPercent = computed(() => {
         </h2>
 
         <div v-if="authStore.user" class="header-actions">
-          <KitTooltip :text="book.userId === authStore.user.id ? 'Редактировать' : 'Удалить из библиотеки'" placement="top-end">
+          <KitTooltip :text="book.userId === authStore.user.id ? t('library.edit') : t('library.removeFromLibrary')" placement="top-end">
             <button class="edit-btn" @click.stop="emit('edit')">
               <Icon :icon="book.userId === authStore.user.id ? 'mdi:dots-vertical' : 'mdi:close'" />
             </button>
@@ -57,7 +59,7 @@ const progressPercent = computed(() => {
       </p>
 
       <div class="progress">
-        <span>Стр. {{ book.currentPage || 1 }} из {{ book.totalPages }}</span>
+        <span>{{ t('library.pageProgress', { current: book.currentPage || 1, total: book.totalPages }) }}</span>
         <div class="progress-bar">
           <div class="progress-fill" :style="{ width: `${progressPercent}%` }" />
         </div>
@@ -233,15 +235,23 @@ const progressPercent = computed(() => {
     }
 
     .cover-wrapper {
-      width: 72px;
-      height: 108px;
+      width: auto;
+      height: 120px;
       flex-shrink: 0;
       border-bottom: none;
       border-radius: 6px;
 
-      .lang-badge,
+      .lang-badge {
+        top: 4px;
+        left: 4px;
+        padding: 2px 4px;
+        font-size: 0.65rem;
+      }
+
       .series-number-badge {
-        display: none;
+        bottom: 4px;
+        right: 6px;
+        font-size: 1.5rem;
       }
     }
 

@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { KitBtn, KitDialog, KitInput } from '~/components/01.kit'
 
 interface Props {
@@ -14,10 +15,7 @@ interface Props {
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  title: 'Ввод данных',
   inputType: 'text',
-  confirmText: 'ОК',
-  cancelText: 'Отмена',
   hideInput: false,
 })
 
@@ -25,6 +23,8 @@ const emit = defineEmits<{
   (e: 'submit', value: string): void
   (e: 'cancel'): void
 }>()
+
+const { t } = useI18n()
 
 const visible = defineModel<boolean>('visible', { required: true })
 const inputValue = ref<string>('')
@@ -49,7 +49,7 @@ function onCancel() {
 <template>
   <KitDialog
     v-model:visible="visible"
-    :title="title"
+    :title="title || t('kit.prompt.title')"
     :max-width="360"
     :resizable="false"
     :minimizable="false"
@@ -71,10 +71,10 @@ function onCancel() {
     <template #footer>
       <div class="prompt-actions">
         <KitBtn variant="tonal" @click="onCancel">
-          {{ cancelText }}
+          {{ cancelText || t('kit.prompt.cancel') }}
         </KitBtn>
         <KitBtn color="primary" @click="onSubmit">
-          {{ confirmText }}
+          {{ confirmText || t('kit.prompt.confirm') }}
         </KitBtn>
       </div>
     </template>

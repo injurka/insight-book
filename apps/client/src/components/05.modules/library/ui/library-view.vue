@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { Book } from '~/shared/types/models'
 import { Icon } from '@iconify/vue'
+import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { KitBtn, KitDialog, KitPrompt, KitSkeleton } from '~/components/01.kit'
 import { HoverRevealBg } from '~/components/02.shared/hover-reveal-bg'
@@ -12,15 +13,16 @@ import { useLibraryDisplay } from '../composables/use-library-display'
 import { useLibraryStore } from '../store/library.store'
 
 import BookCard from './book-card.vue'
-import EditBookModal from './edit-book-modal.vue'
 import LibraryHeader from './library-header.vue'
+import EditBookModal from './modal/edit-book-modal.vue'
+import UploadBookModal from './modal/upload-book-modal.vue'
 import OpdsBrowser from './opds-browser.vue'
-import UploadBookModal from './upload-book-modal.vue'
 
 const store = useLibraryStore()
 const authStore = useAuthStore()
 const router = useRouter()
 const toast = useToast()
+const { t } = useI18n()
 
 const { searchQuery, selectedLang, currentView, activeFolder, langOptions, displayGroups } = useLibraryDisplay()
 
@@ -32,17 +34,17 @@ const bookToHideId = ref<number | null>(null)
 const isMobileMenuOpen = ref(false)
 const isUploadModalOpen = ref(false)
 
-const menuItems = [
-  { id: 'reading-now', label: 'Читаю сейчас', icon: 'mdi:book-open-page-variant-outline' },
-  { id: 'books', label: 'Книги и документы', icon: 'mdi:book-open-blank-variant' },
-  { id: 'favorites', label: 'Избранное', icon: 'mdi:star-outline' },
-  { id: 'to-read', label: 'Хочу прочитать', icon: 'mdi:clock-outline' },
-  { id: 'have-read', label: 'Прочитано', icon: 'mdi:check-all' },
-  { id: 'authors', label: 'Авторы', icon: 'mdi:account-group-outline' },
-  { id: 'series', label: 'Серии', icon: 'mdi:folder-outline' },
-  { id: 'collections', label: 'Коллекции', icon: 'mdi:bookshelf' },
-  { id: 'opds', label: 'OPDS Каталоги', icon: 'mdi:web' },
-]
+const menuItems = computed(() => [
+  { id: 'reading-now', label: t('library.menuReadingNow'), icon: 'mdi:book-open-page-variant-outline' },
+  { id: 'books', label: t('library.menuBooks'), icon: 'mdi:book-open-blank-variant' },
+  { id: 'favorites', label: t('library.menuFavorites'), icon: 'mdi:star-outline' },
+  { id: 'to-read', label: t('library.menuToRead'), icon: 'mdi:clock-outline' },
+  { id: 'have-read', label: t('library.menuHaveRead'), icon: 'mdi:check-all' },
+  { id: 'authors', label: t('library.menuAuthors'), icon: 'mdi:account-group-outline' },
+  { id: 'series', label: t('library.menuSeries'), icon: 'mdi:folder-outline' },
+  { id: 'collections', label: t('library.menuCollections'), icon: 'mdi:bookshelf' },
+  { id: 'opds', label: t('library.menuOpds'), icon: 'mdi:web' },
+])
 
 function getFolderIcon(view: string) {
   if (view === 'authors')
@@ -83,17 +85,17 @@ async function handleSaveEdit({ bookData, coverFile }: { bookData: Partial<Book>
     }
     await store.updateBookInfo(bookData.id!, bookData)
     editModalOpen.value = false
-    toast.success('Книга обновлена')
+    toast.success(t('library.bookUpdated'))
   }
   catch (e) {
-    toast.error(e instanceof Error ? e.message : 'Ошибка обновления')
+    toast.error(e instanceof Error ? e.message : t('library.updateError'))
   }
 }
 
 async function handleDeleteBook(id: number) {
   await store.deleteBook(id)
   editModalOpen.value = false
-  toast.success('Книга удалена')
+  toast.success(t('library.bookDeleted'))
 }
 
 onMounted(() => {
@@ -121,7 +123,7 @@ onMounted(() => {
           </ul>
         </aside>
 
-        <KitDialog v-model:visible="isMobileMenuOpen" title="Меню" :max-width="400" :floating="false">
+        <KitDialog v-model:visible="isMobileMenuOpen" :title="t('library.menuTitle')" :max-width="400" :floating="false">
           <ul class="nav-menu mobile-menu">
             <li
               v-for="item in menuItems"
@@ -159,12 +161,12 @@ onMounted(() => {
           </div>
 
           <div v-else-if="store.books.length === 0" class="empty-state">
-            <h2>Библиотека пуста</h2>
+            <h2>{{ t('library.emptyStateTitle') }}</h2>
             <p v-if="authStore.user">
-              Загрузите свою первую книгу или мангу.
+              {{ t('library.emptyStateAuth') }}
             </p>
             <p v-else>
-              Авторизуйтесь, чтобы загружать и читать книги.
+              {{ t('library.emptyStateGuest') }}
             </p>
           </div>
 
@@ -186,7 +188,7 @@ onMounted(() => {
 
                 <div v-if="group.folders" class="folders-list">
                   <div v-if="group.folders.length === 0" class="empty-state">
-                    <h2>В этом разделе пока пусто</h2>
+                    <h2>{{ t('library.emptySection') }}</h2>
                   </div>
                   <div
                     v-for="folder in group.folders"
@@ -203,7 +205,7 @@ onMounted(() => {
 
                 <div v-else>
                   <div v-if="group.books?.length === 0" class="empty-state">
-                    <h2>В этом разделе пока пусто</h2>
+                    <h2>{{ t('library.emptySection') }}</h2>
                   </div>
                   <div v-else-if="group.books" class="books-grid">
                     <BookCard
@@ -234,11 +236,11 @@ onMounted(() => {
 
       <KitPrompt
         v-model:visible="isHidePromptOpen"
-        title="Скрыть книгу"
-        description="Скрыть эту публичную книгу из вашей библиотеки? Ваш личный прогресс чтения будет удален."
+        :title="t('library.hidePromptTitle')"
+        :description="t('library.hidePromptDesc')"
         :hide-input="true"
-        confirm-text="Скрыть"
-        cancel-text="Отмена"
+        :confirm-text="t('library.hideBtn')"
+        :cancel-text="t('library.cancelBtn')"
         @submit="onConfirmHideBook"
       />
     </div>
@@ -287,11 +289,10 @@ onMounted(() => {
 }
 
 .library-sidebar {
-  width: 250px;
+  width: 220px;
   position: sticky;
-  top: 228px;
+  top: 204px;
   border-radius: 12px;
-  padding: 12px;
   flex-shrink: 0;
 
   &.desktop-only {

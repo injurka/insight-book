@@ -79,7 +79,7 @@ export interface PagePayload {
   pageNum: number
   totalPages: number
   content: string
-  pageDictionary: Record<string, PageDictEntry>
+  pageDictionary?: Record<string, PageDictEntry>
   type?: 'epub' | 'manga'
   imageUrl?: string
   imageWidth?: number
@@ -112,6 +112,7 @@ export interface DictDeck {
   userId: number
   name: string
   language: string
+  targetLanguage: string
   createdAt: string
 }
 
@@ -131,6 +132,7 @@ export interface UserDictItem {
   transcription: string | null
   translation: string | null
   language: string
+  targetLanguage: string
   notes: string | null
   tags: string | null
   difficulty: string | null

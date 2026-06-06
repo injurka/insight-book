@@ -6,7 +6,7 @@ import * as schema from '../db/schema'
 import { AppError } from '../utils/errors'
 import { trackActivity } from './activity.service'
 
-export async function lookupWords(words: string[], language: string, userId: number): Promise<Record<string, PageDictEntry>> {
+export async function lookupWords(words: string[], language: string, targetLang: string, userId: number): Promise<Record<string, PageDictEntry>> {
   if (!words.length)
     return {}
 
@@ -18,7 +18,11 @@ export async function lookupWords(words: string[], language: string, userId: num
     const chunk = words.slice(i, i + chunkSize)
 
     const userRows = await db.query.userDictionary.findMany({
-      where: and(inArray(schema.userDictionary.word, chunk), eq(schema.userDictionary.userId, userId)),
+      where: and(
+        inArray(schema.userDictionary.word, chunk),
+        eq(schema.userDictionary.userId, userId),
+        eq(schema.userDictionary.targetLanguage, targetLang),
+      ),
       columns: { word: true, transcription: true, translation: true },
     })
 
@@ -32,7 +36,7 @@ export async function lookupWords(words: string[], language: string, userId: num
   }
 
   // 2. Ищем ненайденные слова во внешнем словаре
-  const conn = getDictConnection(language)
+  const conn = getDictConnection(language, targetLang)
   if (conn) {
     // Динамически строим Drizzle-схему для внешнего словаря
     const schemaObj: any = {}
@@ -88,15 +92,19 @@ export async function lookupWords(words: string[], language: string, userId: num
   return dict
 }
 
-export async function lookupSingleWord(word: string, language: string, userId: number): Promise<PageDictEntry | null> {
+export async function lookupSingleWord(word: string, language: string, targetLang: string, userId: number): Promise<PageDictEntry | null> {
   const userWord = await db.query.userDictionary.findFirst({
-    where: and(eq(schema.userDictionary.word, word), eq(schema.userDictionary.userId, userId)),
+    where: and(
+      eq(schema.userDictionary.word, word),
+      eq(schema.userDictionary.userId, userId),
+      eq(schema.userDictionary.targetLanguage, targetLang),
+    ),
   })
   if (userWord) {
     return { transcription: userWord.transcription || '', translation: userWord.translation || '', isUserDict: true }
   }
 
-  const conn = getDictConnection(language)
+  const conn = getDictConnection(language, targetLang)
   if (!conn)
     return null
 
@@ -144,16 +152,20 @@ export async function lookupSingleWord(word: string, language: string, userId: n
   return null
 }
 
-export async function getUserDecks(userId: number) {
-  return await db.query.dictDecks.findMany({ where: eq(schema.dictDecks.userId, userId) })
+export async function getUserDecks(userId: number, targetLang: string) {
+  return await db.query.dictDecks.findMany({
+    where: and(eq(schema.dictDecks.userId, userId), eq(schema.dictDecks.targetLanguage, targetLang)),
+  })
 }
 
-export async function createDeck(userId: number, name: string, language: string) {
+export async function createDeck(userId: number, name: string, language: string, targetLang: string) {
   const [newDeck] = await db.insert(schema.dictDecks).values({
     userId,
     name,
     language,
+    targetLanguage: targetLang,
   }).returning()
+
   return newDeck
 }
 
@@ -176,9 +188,9 @@ export async function deleteDeck(deckId: number, userId: number) {
     throw new AppError(404, 'Колода не найдена')
 }
 
-export async function getUserDictionary(userId: number): Promise<UserDictItem[]> {
+export async function getUserDictionary(userId: number, targetLang: string): Promise<UserDictItem[]> {
   return await db.query.userDictionary.findMany({
-    where: eq(schema.userDictionary.userId, userId),
+    where: and(eq(schema.userDictionary.userId, userId), eq(schema.userDictionary.targetLanguage, targetLang)),
     with: {
       encounters: {
         with: { book: { columns: { title: true } } },
@@ -188,9 +200,13 @@ export async function getUserDictionary(userId: number): Promise<UserDictItem[]>
   }) as unknown as UserDictItem[]
 }
 
-export async function getWordFromUserDictionary(word: string, userId: number): Promise<UserDictItem | null> {
+export async function getWordFromUserDictionary(word: string, userId: number, targetLang: string): Promise<UserDictItem | null> {
   const item = await db.query.userDictionary.findFirst({
-    where: and(eq(schema.userDictionary.word, word), eq(schema.userDictionary.userId, userId)),
+    where: and(
+      eq(schema.userDictionary.word, word),
+      eq(schema.userDictionary.userId, userId),
+      eq(schema.userDictionary.targetLanguage, targetLang),
+    ),
     with: {
       encounters: {
         with: { book: { columns: { title: true } } },
@@ -203,14 +219,20 @@ export async function getWordFromUserDictionary(word: string, userId: number): P
 export async function upsertToUserDictionary(
   item: Partial<UserDictItem> & { contextSentence?: string, contextBookId?: number },
   userId: number,
+  targetLang: string,
 ): Promise<void> {
   let deckId = item.deckId
   if (deckId === undefined || deckId === null) {
     let defaultDeck = await db.query.dictDecks.findFirst({
-      where: and(eq(schema.dictDecks.userId, userId), eq(schema.dictDecks.language, item.language || 'en')),
+      where: and(
+        eq(schema.dictDecks.userId, userId),
+        eq(schema.dictDecks.language, item.language || 'en'),
+        eq(schema.dictDecks.targetLanguage, targetLang),
+      ),
     })
     if (!defaultDeck) {
-      defaultDeck = await createDeck(userId, 'Основная колода', item.language || 'en')
+      const deckName = targetLang === 'ru' ? 'Основная колода' : (targetLang === 'cn' ? '默认词库' : 'Main deck')
+      defaultDeck = await createDeck(userId, deckName, item.language || 'en', targetLang)
     }
     deckId = defaultDeck.id
   }
@@ -222,6 +244,7 @@ export async function upsertToUserDictionary(
     transcription: item.transcription,
     translation: item.translation,
     language: item.language || 'en',
+    targetLanguage: targetLang,
     notes: item.notes,
     tags: item.tags,
     difficulty: item.difficulty,
@@ -229,7 +252,7 @@ export async function upsertToUserDictionary(
     vocabularyNote: item.vocabularyNote,
     updatedAt: new Date().toISOString(),
   }).onConflictDoUpdate({
-    target: [schema.userDictionary.userId, schema.userDictionary.word],
+    target: [schema.userDictionary.userId, schema.userDictionary.word, schema.userDictionary.targetLanguage],
     set: {
       transcription: item.transcription,
       translation: item.translation,
@@ -255,13 +278,18 @@ export async function upsertToUserDictionary(
   await trackActivity(userId, 'added', 1)
 }
 
-export async function removeFromUserDictionary(word: string, userId: number): Promise<void> {
-  await db.delete(schema.userDictionary).where(and(eq(schema.userDictionary.word, word), eq(schema.userDictionary.userId, userId)))
+export async function removeFromUserDictionary(word: string, userId: number, targetLang: string): Promise<void> {
+  await db.delete(schema.userDictionary).where(and(
+    eq(schema.userDictionary.word, word),
+    eq(schema.userDictionary.userId, userId),
+    eq(schema.userDictionary.targetLanguage, targetLang),
+  ))
 }
 
-export async function getReviewQueue(userId: number, language?: string, mode: 'srs' | 'random' = 'srs', deckId?: number | 'none', difficulty?: string) {
+export async function getReviewQueue(userId: number, language: string | undefined, targetLang: string, mode: 'srs' | 'random' = 'srs', deckId?: number | 'none', difficulty?: string) {
   const filters: any[] = [
     eq(schema.userDictionary.userId, userId),
+    eq(schema.userDictionary.targetLanguage, targetLang),
   ]
 
   if (language && language !== 'all') {

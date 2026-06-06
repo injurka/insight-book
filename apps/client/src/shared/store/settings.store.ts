@@ -2,6 +2,7 @@ import { useLocalStorage } from '@vueuse/core'
 import { defineStore } from 'pinia'
 
 export const useGlobalSettingsStore = defineStore('globalSettings', () => {
+  const appLanguage = useLocalStorage<string>('global-app-language', 'ru')
   const translationPriority = useLocalStorage<'dict' | 'llm'>('global-translation-priority', 'dict')
   const ttsSpeed = useLocalStorage<number>('global-tts-speed', 1)
 
@@ -17,12 +18,13 @@ export const useGlobalSettingsStore = defineStore('globalSettings', () => {
   const customLlmModel = useLocalStorage<string>('global-custom-llm-model', 'llama3')
 
   return {
+    appLanguage,
     translationPriority,
     ttsSpeed,
     readerFontSize,
     readerLineHeight,
     readerFontFamily,
-    mangaOcrDisplayMode, // <--- Экспортируем
+    mangaOcrDisplayMode,
     useCustomLlm,
     customLlmUrl,
     customLlmKey,

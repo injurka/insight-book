@@ -1,9 +1,9 @@
-import AiExamplesModal from './ui/ai-examples-modal.vue'
-import BubblePopover from './ui/bubble-popover.vue'
-import PageAnalysisModal from './ui/page-analysis-modal.vue'
+import AiExamplesModal from './ui/modal/ai-examples-modal.vue'
+import PageAnalysisModal from './ui/modal/page-analysis-modal.vue'
+import BubblePopover from './ui/popover/bubble-popover.vue'
+import WordPopover from './ui/popover/word-popover.vue'
 import SelectionTooltip from './ui/selection-tooltip.vue'
 import SentenceAnalysis from './ui/sentence-analysis.vue'
-import WordPopover from './ui/word-popover.vue'
 
 export * from './composables/use-text-selection'
 

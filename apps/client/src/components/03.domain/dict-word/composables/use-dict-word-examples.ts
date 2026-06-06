@@ -1,6 +1,7 @@
 import type { GeneratedWordExamples } from '~/shared/types/models'
 import { ref } from 'vue'
 import { useToast } from '~/shared/composables/use-toast'
+import { i18n } from '~/shared/plugins/i18n'
 import { api } from '~/shared/services/api.service'
 
 export function useDictWordExamples() {
@@ -15,7 +16,7 @@ export function useDictWordExamples() {
       aiData.value = await api.dictionary.generateExamples(word, language)
     }
     catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Ошибка генерации примеров (ИИ)')
+      toast.error(e instanceof Error ? e.message : i18n.global.t('dictionary.errorExamples'))
     }
     finally {
       isAiLoading.value = false

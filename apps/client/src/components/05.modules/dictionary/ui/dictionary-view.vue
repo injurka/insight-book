@@ -2,6 +2,7 @@
 import type { UserDictItem } from '~/shared/types/models'
 import { Icon } from '@iconify/vue'
 import { useVirtualList } from '@vueuse/core'
+import { useI18n } from 'vue-i18n'
 import { KitBtn, KitCheckbox, KitDialog, KitDropdown, KitInput, KitPrompt, KitSelect, KitTooltip } from '~/components/01.kit'
 import KitSkeleton from '~/components/01.kit/kit-skeleton/ui/kit-skeleton.vue'
 import ActivityHeatmap from '~/components/02.shared/activity-heatmap/ui/activity-heatmap.vue'
@@ -14,13 +15,14 @@ import { api } from '~/shared/services/api.service'
 import { useAnalysisStore } from '~/shared/store/analysis.store'
 import { useAuthStore } from '~/shared/store/auth.store'
 import { useDictionaryStore } from '../store/dictionary.store'
-import SrsTrainingDialog from './srs-training-dialog.vue'
+import SrsTrainingDialog from './dialog/srs-training-dialog.vue'
 
 const store = useDictionaryStore()
 const analysisStore = useAnalysisStore()
 const router = useRouter()
 const toast = useToast()
 const authStore = useAuthStore()
+const { t } = useI18n()
 
 const isTrainingOpen = ref(false)
 const isMobileFiltersOpen = ref(false)
@@ -28,7 +30,6 @@ const dropdownRef = ref<InstanceType<typeof KitDropdown> | null>(null)
 const isStatsModalOpen = ref(false)
 const isEditMode = ref(false)
 
-// Детальный просмотр
 const isDetailsModalOpen = ref(false)
 const selectedWordDetails = ref<UserDictItem | null>(null)
 
@@ -44,51 +45,62 @@ const deleteDeckTarget = ref<{ id: number, name: string } | null>(null)
 const isBulkMoveOpen = ref(false)
 
 const langOptions = computed(() => {
-  const opts = [{ label: 'Все языки', value: 'all' }]
-  store.availableLanguages.forEach(l => opts.push({ label: l.toUpperCase(), value: l }))
+  const opts = [{ label: t('dictionary.allLanguages'), value: 'all' }]
+  store.availableLanguages.forEach((l) => {
+    const key = `library.lang${l.charAt(0).toUpperCase() + l.slice(1)}`
+    const translated = t(key)
+    opts.push({ label: translated !== key ? translated : l.toUpperCase(), value: l })
+  })
   return opts
 })
 
 const deckOptions = computed(() => {
   const opts: any[] = [
-    { label: 'Все колоды', value: 'all' },
-    { label: 'Без колоды', value: 'none' },
+    { label: t('dictionary.allDecks'), value: 'all' },
+    { label: t('dictionary.noDeck'), value: 'none' },
   ]
   store.decks.forEach((d) => {
     if (store.selectedLanguage === 'all' || d.language === store.selectedLanguage) {
       opts.push({ label: d.name, value: d.id })
     }
   })
-
-  if (!opts.some(o => o.value === store.selectedDeckId)) {
-    store.selectedDeckId = 'all'
-  }
   return opts
 })
 
 const difficultyOptions = computed(() => {
-  const opts: any[] = [{ label: 'Все сложности', value: 'all' }, { label: 'Без сложности', value: 'none' }]
-  const lang = store.selectedLanguage !== 'all' ? store.selectedLanguage : 'default'
-  const sys = DIFFICULTY_SYSTEMS[lang] || DIFFICULTY_SYSTEMS.default
+  const opts: any[] = [{ label: t('dictionary.allDifficulties'), value: 'all' }, { label: t('dictionary.noDifficulty'), value: 'none' }]
+  const lang = store.selectedLanguage !== 'all' ? store.selectedLanguage : 'all'
+  const sys = DIFFICULTY_SYSTEMS[lang] || DIFFICULTY_SYSTEMS.all
   sys.forEach(d => opts.push({ label: d.label, value: d.value }))
-
-  if (!opts.some(o => o.value === store.selectedDifficulty)) {
-    store.selectedDifficulty = 'all'
-  }
   return opts
 })
 
-const statusOptions = [
-  { label: 'Все статусы', value: 'all' },
-  { label: 'Новые', value: '0' },
-  { label: 'Изучаю', value: '1' },
-  { label: 'Повторение', value: '2' },
-  { label: 'Выучено', value: '3' },
-]
+// Корректный сброс фильтров при смене языка
+watch(() => store.selectedLanguage, () => {
+  if (store.selectedDeckId !== 'all' && store.selectedDeckId !== 'none') {
+    const deck = store.decks.find(d => d.id === store.selectedDeckId)
+    if (deck && deck.language !== store.selectedLanguage && store.selectedLanguage !== 'all') {
+      store.selectedDeckId = 'all'
+    }
+  }
+  store.selectedDifficulty = 'all'
+})
+
+const statusOptions = computed(() => [
+  { label: t('dictionary.allStatuses'), value: 'all' },
+  { label: t('dictionary.statusNew'), value: '0' },
+  { label: t('dictionary.statusLearning'), value: '1' },
+  { label: t('dictionary.statusReview'), value: '2' },
+  { label: t('dictionary.statusLearned'), value: '3' },
+])
 
 const newDeckLangOptions = computed(() => {
-  const langs = new Set(['en', 'zh', 'ja', ...store.availableLanguages])
-  return Array.from(langs).map(l => ({ label: l.toUpperCase(), value: l }))
+  const langs = new Set(['en', 'zh', 'ja', 'ko', 'ru', 'fr', 'de', 'es', 'it', ...store.availableLanguages])
+  return Array.from(langs).map((l) => {
+    const key = `library.lang${l.charAt(0).toUpperCase() + l.slice(1)}`
+    const translated = t(key)
+    return { label: translated !== key ? translated : l.toUpperCase(), value: l }
+  })
 })
 
 const { list, containerProps, wrapperProps } = useVirtualList(
@@ -103,11 +115,11 @@ onMounted(() => {
 
 function getStatusLabel(status: number) {
   switch (status) {
-    case 0: return { label: 'Новое', color: 'var(--fg-info-color)' }
-    case 1: return { label: 'Изучаю', color: 'var(--fg-warning-color)' }
-    case 2: return { label: 'Повторение', color: 'var(--fg-accent-color)' }
-    case 3: return { label: 'Выучено', color: 'var(--fg-success-color)' }
-    default: return { label: 'Неизв.', color: 'var(--fg-muted-color)' }
+    case 0: return { label: t('dictionary.statusNew'), color: 'var(--fg-info-color)' }
+    case 1: return { label: t('dictionary.statusLearning'), color: 'var(--fg-warning-color)' }
+    case 2: return { label: t('dictionary.statusReview'), color: 'var(--fg-accent-color)' }
+    case 3: return { label: t('dictionary.statusLearned'), color: 'var(--fg-success-color)' }
+    default: return { label: t('dictionary.statusUnknown'), color: 'var(--fg-muted-color)' }
   }
 }
 
@@ -193,7 +205,7 @@ function exportToAnki() {
   URL.revokeObjectURL(url)
 
   store.clearSelection()
-  toast.success('Файл для Anki скачан!')
+  toast.success(t('dictionary.ankiExported'))
 }
 
 const activityData = ref<{ date: string, count: number }[]>([])
@@ -239,7 +251,7 @@ watch(isEditMode, (val) => {
       <div class="header-top">
         <div class="title-group">
           <KitBtn icon="mdi:arrow-left" variant="text" @click="router.back()" />
-          <h1>Мой словарь</h1>
+          <h1>{{ t('dictionary.title') }}</h1>
         </div>
         <GlobalActions hide-dictionary />
       </div>
@@ -248,7 +260,7 @@ watch(isEditMode, (val) => {
         <div class="search-wrapper">
           <KitInput
             v-model="store.searchTerm"
-            placeholder="Поиск по слову, переводу..."
+            :placeholder="t('dictionary.searchPlaceholder')"
             class="search-input"
           />
           <div class="mobile-controls">
@@ -295,29 +307,29 @@ watch(isEditMode, (val) => {
                   :class="{ 'is-active-btn': props.isOpen }"
                   class="full-width-btn"
                 >
-                  Тренировка <Icon icon="mdi:chevron-down" class="ml-1" />
+                  {{ t('dictionary.training') }} <Icon icon="mdi:chevron-down" class="ml-1" />
                 </KitBtn>
               </template>
               <div class="dropdown-menu-list">
                 <button class="dropdown-item" :disabled="store.words.length === 0" @click="openTrainingSettings('srs')">
                   <Icon icon="mdi:calendar-clock" />
-                  Интервальное (SRS)
+                  {{ t('dictionary.srsTraining') }}
                 </button>
                 <button class="dropdown-item" :disabled="store.words.length === 0" @click="openTrainingSettings('random')">
                   <Icon icon="mdi:shuffle-variant" />
-                  Случайная разминка
+                  {{ t('dictionary.randomTraining') }}
                 </button>
               </div>
             </KitDropdown>
 
-            <KitTooltip text="Управление колодами" placement="bottom">
+            <KitTooltip :text="t('dictionary.manageDecks')" placement="bottom">
               <KitBtn icon="mdi:folder-cog-outline" variant="tonal" color="secondary" @click="isManageDecksOpen = true" />
             </KitTooltip>
           </div>
 
           <div class="stats-badge">
-            <span class="badge">{{ store.filteredWords.length }} слов</span>
-            <KitTooltip :text="isEditMode ? 'Готово' : 'Редактировать'" placement="bottom-end">
+            <span class="badge">{{ t('dictionary.wordsCount', { count: store.filteredWords.length }) }}</span>
+            <KitTooltip :text="isEditMode ? t('dictionary.done') : t('dictionary.edit')" placement="bottom-end">
               <KitBtn
                 :icon="isEditMode ? 'mdi:check' : 'mdi:pencil-outline'"
                 variant="text"
@@ -325,7 +337,7 @@ watch(isEditMode, (val) => {
                 @click="isEditMode = !isEditMode"
               />
             </KitTooltip>
-            <KitTooltip text="Статистика" placement="bottom-end">
+            <KitTooltip :text="t('dictionary.stats')" placement="bottom-end">
               <KitBtn
                 icon="mdi:chart-box-outline"
                 variant="text"
@@ -340,39 +352,41 @@ watch(isEditMode, (val) => {
 
     <div class="dict-layout">
       <div class="words-content">
-        <!-- БАР МАССОВЫХ ДЕЙСТВИЙ -->
         <Transition name="fade">
           <div v-if="store.selectedWordIds.size > 0 && isEditMode" class="bulk-action-bar">
-            <span class="selected-count">Выбрано: {{ store.selectedWordIds.size }}</span>
+            <span class="selected-count">{{ t('dictionary.selectedCount', { count: store.selectedWordIds.size }) }}</span>
             <div class="actions">
               <KitBtn size="sm" variant="text" @click="store.selectAllFiltered()">
-                Выбрать все
+                {{ t('dictionary.selectAll') }}
               </KitBtn>
               <KitBtn size="sm" variant="text" @click="store.clearSelection()">
-                Сбросить
+                {{ t('dictionary.resetSelection') }}
               </KitBtn>
               <div class="divider" />
-              <KitTooltip text="Экспорт выделенного в файл (.txt TSV) для импорта в Anki" placement="top">
+              <KitTooltip :text="t('dictionary.exportAnkiHint')" placement="top">
                 <KitBtn size="sm" color="primary" variant="tonal" icon="mdi:export-variant" @click="exportToAnki">
-                  Anki
+                  {{ t('dictionary.exportAnki') }}
                 </KitBtn>
               </KitTooltip>
               <KitBtn size="sm" color="primary" variant="tonal" icon="mdi:folder-move-outline" @click="isBulkMoveOpen = true">
-                Переместить
+                {{ t('dictionary.move') }}
               </KitBtn>
               <KitBtn size="sm" color="error" variant="tonal" icon="mdi:delete-outline" @click="store.bulkDelete()">
-                Удалить
+                {{ t('dictionary.delete') }}
               </KitBtn>
             </div>
           </div>
         </Transition>
 
         <div v-if="!store.words.length && !store.isLoading" class="empty-state">
-          <p>Вы пока не добавили ни одного слова.</p>
+          <p>{{ t('dictionary.emptyState') }}</p>
         </div>
 
         <div v-else-if="!store.filteredWords.length && !store.isLoading" class="empty-state">
-          <p>По вашему запросу ничего не найдено.</p>
+          <p>{{ t('dictionary.emptySearch') }}</p>
+          <p class="empty-hint">
+            {{ t('dictionary.emptySearchHint') }}
+          </p>
         </div>
 
         <div v-else class="virtual-list-container" v-bind="containerProps">
@@ -401,10 +415,10 @@ watch(isEditMode, (val) => {
                 <div class="dict-translation" v-html="item.data.translation" />
               </div>
               <div v-if="isEditMode" class="dict-actions" @click.stop>
-                <KitTooltip text="Редактировать" placement="top">
+                <KitTooltip :text="t('dictionary.editItem')" placement="top">
                   <KitBtn icon="mdi:pencil" variant="text" size="xs" @click="analysisStore.wordToEdit = item.data; analysisStore.addEditWordModalOpen = true;" />
                 </KitTooltip>
-                <KitTooltip text="Удалить" placement="top-end">
+                <KitTooltip :text="t('dictionary.deleteItem')" placement="top-end">
                   <KitBtn icon="mdi:delete-outline" variant="text" size="xs" color="error" @click="store.deleteWord(item.data.word)" />
                 </KitTooltip>
               </div>
@@ -415,16 +429,16 @@ watch(isEditMode, (val) => {
     </div>
 
     <!-- Управление колодами -->
-    <KitDialog v-model:visible="isManageDecksOpen" title="Управление колодами" :max-width="500">
+    <KitDialog v-model:visible="isManageDecksOpen" :title="t('dictionary.manageDecks')" :max-width="500">
       <div class="manage-decks-content">
         <div class="create-deck-row">
-          <KitInput v-model="newDeckName" placeholder="Новое название" @keyup.enter="createNewDeck" />
+          <KitInput v-model="newDeckName" :placeholder="t('dictionary.newDeckName')" @keyup.enter="createNewDeck" />
           <KitSelect v-model="newDeckLang" :options="newDeckLangOptions" class="new-deck-lang" />
           <KitBtn color="primary" icon="mdi:plus" @click="createNewDeck" />
         </div>
 
         <div v-if="store.decks.length === 0" class="empty-state">
-          <p>У вас пока нет пользовательских колод.</p>
+          <p>{{ t('dictionary.noDecks') }}</p>
         </div>
         <ul v-else class="decks-manage-list">
           <li v-for="deck in store.decks" :key="deck.id" class="deck-manage-item">
@@ -442,10 +456,10 @@ watch(isEditMode, (val) => {
       </div>
     </KitDialog>
 
-    <KitDialog v-model:visible="isBulkMoveOpen" title="Переместить в колоду" :max-width="400">
+    <KitDialog v-model:visible="isBulkMoveOpen" :title="t('dictionary.moveToDeck')" :max-width="400">
       <div style="display: flex; flex-direction: column; gap: 16px;">
         <KitBtn variant="outlined" style="width: 100%" @click="store.bulkMoveToDeck(null); isBulkMoveOpen = false">
-          Без колоды (Общая)
+          {{ t('dictionary.noDeckGeneral') }}
         </KitBtn>
         <KitBtn v-for="deck in store.decks" :key="deck.id" variant="tonal" style="width: 100%" @click="store.bulkMoveToDeck(deck.id); isBulkMoveOpen = false">
           <Icon icon="mdi:folder-outline" class="mr-2" /> {{ deck.name }}
@@ -458,27 +472,27 @@ watch(isEditMode, (val) => {
 
     <KitPrompt
       v-model:visible="isRenamePromptOpen"
-      title="Переименовать колоду"
-      placeholder="Новое название"
+      :title="t('dictionary.renameDeck')"
+      :placeholder="t('dictionary.newDeckName')"
       :default-value="renameDeckTarget?.name"
-      confirm-text="Сохранить"
+      :confirm-text="t('dictionary.save')"
       @submit="onRenameDeckSubmit"
     />
 
     <KitPrompt
       v-model:visible="isDeleteConfirmOpen"
-      title="Удаление колоды"
-      :description="`Удалить колоду «${deleteDeckTarget?.name}»? Сами карточки не удалятся, а просто перейдут в список «Без колоды».`"
+      :title="t('dictionary.deleteDeckTitle')"
+      :description="t('dictionary.deleteDeckDesc', { name: deleteDeckTarget?.name || '' })"
       :hide-input="true"
-      confirm-text="Удалить"
-      cancel-text="Отмена"
+      :confirm-text="t('dictionary.deleteItem')"
+      :cancel-text="t('dictionary.cancel')"
       @submit="onDeleteDeckConfirm"
     />
 
     <KitDialog
       v-if="authStore.user"
       v-model:visible="isStatsModalOpen"
-      title="Статистика активности"
+      :title="t('dictionary.activityStats')"
       icon="mdi:chart-box-outline"
       :max-width="650"
     >
@@ -823,6 +837,12 @@ watch(isEditMode, (val) => {
   text-align: center;
   margin-top: 60px;
   color: var(--fg-secondary-color);
+
+  .empty-hint {
+    font-size: 0.9rem;
+    margin-top: 8px;
+    opacity: 0.8;
+  }
 }
 
 .dropdown-menu-list {

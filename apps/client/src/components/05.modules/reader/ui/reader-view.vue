@@ -3,12 +3,13 @@ import { useResizeObserver } from '@vueuse/core'
 import DOMPurify from 'dompurify'
 import { computed, nextTick, useTemplateRef, watch } from 'vue'
 
+import { useI18n } from 'vue-i18n'
 import { KitDialog } from '~/components/01.kit'
 import { PageLoader } from '~/components/02.shared/page-loader'
 import { PageAnalysisModal, SelectionTooltip, SentenceAnalysis, useTextSelection, WordPopover } from '~/components/03.domain/analysis'
 import { useAnalysisStore } from '~/shared/store/analysis.store'
-import { useGlobalSettingsStore } from '~/shared/store/settings.store'
 
+import { useGlobalSettingsStore } from '~/shared/store/settings.store'
 import { useReaderDomHighlights } from '../composables/use-reader-dom-highlights'
 import { useReaderNavigation } from '../composables/use-reader-navigation'
 import { useScrollRestoration } from '../composables/use-scroll-restoration'
@@ -19,6 +20,7 @@ import ReaderHeader from './reader-header.vue'
 const readerStore = useReaderStore()
 const analysisStore = useAnalysisStore()
 const settingsStore = useGlobalSettingsStore()
+const { t } = useI18n()
 
 const readerViewRef = useTemplateRef<HTMLElement>('readerViewRef')
 
@@ -192,10 +194,10 @@ function onScroll() {
               <PageLoader />
             </div>
             <h3 class="loading-text">
-              Подготовка страницы...
+              {{ t('reader.preparingPageTitle') }}
             </h3>
             <p class="loading-subtext">
-              Первичное чтение текста и распознавание слов может занять несколько секунд.
+              {{ t('reader.preparingPageDesc') }}
             </p>
           </div>
 
@@ -249,9 +251,9 @@ function onScroll() {
     <WordPopover />
     <SelectionTooltip />
 
-    <KitDialog v-model:visible="readerStore.tocOpen" title="Оглавление" :max-width="500" icon="mdi:format-list-bulleted">
+    <KitDialog v-model:visible="readerStore.tocOpen" :title="t('bookInfo.tableOfContents')" :max-width="500" icon="mdi:format-list-bulleted">
       <div v-if="readerStore.currentToc.length === 0" class="empty-state">
-        <p>Оглавление пусто или не загружено.</p>
+        <p>{{ t('reader.tocEmpty') }}</p>
       </div>
       <div v-else class="toc-list">
         <div

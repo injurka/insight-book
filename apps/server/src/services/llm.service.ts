@@ -52,9 +52,10 @@ const LlmAnalysisSchema = z.object({
   vocabulary: z.array(VocabItemSchema).default([]),
 })
 
-function hashSentence(sentence: string, language: string, model: string): string {
+function hashSentence(sentence: string, language: string, model: string, targetLang: string): string {
   const hasher = new Bun.CryptoHasher('sha256')
-  hasher.update(`${language.toLowerCase()}::${model}::${sentence.trim()}`)
+  hasher.update(`${(language || 'en').toLowerCase()}::${(targetLang || 'ru').toLowerCase()}::${model}::${sentence.trim()}`)
+
   return hasher.digest('hex')
 }
 
@@ -93,8 +94,8 @@ async function _callLlmApi(model: string, messages: any[], temperature: number, 
   return data.choices[0].message.content
 }
 
-export async function analyzeSentence(bookId: number, sentence: string, language: string, config: LlmConfig): Promise<LlmAnalysis> {
-  const hash = hashSentence(sentence, language, config.model)
+export async function analyzeSentence(bookId: number, sentence: string, language: string, targetLang: string, config: LlmConfig): Promise<LlmAnalysis> {
+  const hash = hashSentence(sentence, language, config.model, targetLang)
 
   const cached = await db.query.llmCache.findFirst({
     where: eq(schema.llmCache.sentenceHash, hash),
@@ -113,7 +114,7 @@ export async function analyzeSentence(bookId: number, sentence: string, language
     throw new AppError(500, 'LLM API не настроен')
 
   const messages = [
-    { role: 'system', content: getSystemPrompt(language) },
+    { role: 'system', content: getSystemPrompt(language, targetLang) }, // ИСПРАВЛЕНИЕ ЗДЕСЬ
     { role: 'user', content: `Текст: ${sentence}` },
   ]
 
@@ -150,12 +151,12 @@ export async function analyzeSentence(bookId: number, sentence: string, language
   throw new AppError(500, `Не удалось получить валидный ответ от ИИ: ${lastError?.message || 'Unknown error'}`)
 }
 
-export async function generateWordExamples(word: string, language: string, config: LlmConfig): Promise<GeneratedWordExamples> {
+export async function generateWordExamples(word: string, language: string, targetLang: string, config: LlmConfig): Promise<GeneratedWordExamples> {
   if (!config.url)
     throw new AppError(500, 'LLM API не настроен')
 
   const messages = [
-    { role: 'system', content: getWordExamplesPrompt(language) },
+    { role: 'system', content: getWordExamplesPrompt(language, targetLang) },
     { role: 'user', content: `Слово: ${word}` },
   ]
 
@@ -177,12 +178,12 @@ export async function generateWordExamples(word: string, language: string, confi
   throw new AppError(500, `Не удалось получить валидный ответ от ИИ: ${lastError?.message || 'Unknown error'}`)
 }
 
-export async function generateWordAutoFill(word: string, language: string, config: LlmConfig): Promise<WordAutoFillResponse> {
+export async function generateWordAutoFill(word: string, language: string, targetLang: string, config: LlmConfig): Promise<WordAutoFillResponse> {
   if (!config.url)
     throw new AppError(500, 'LLM API не настроен')
 
   const messages = [
-    { role: 'system', content: getWordAutoFillPrompt(language) },
+    { role: 'system', content: getWordAutoFillPrompt(language, targetLang) },
     { role: 'user', content: `Слово: ${word}` },
   ]
 
@@ -204,7 +205,7 @@ export async function generateWordAutoFill(word: string, language: string, confi
   throw new AppError(500, `Не удалось получить валидный ответ от ИИ: ${lastError?.message || 'Unknown error'}`)
 }
 
-export async function analyzeBookExcerpt(excerpt: string, config: LlmConfig): Promise<{ description: string, difficulty: string, tags: string[] }> {
+export async function analyzeBookExcerpt(excerpt: string, config: LlmConfig): Promise<{ description: any, difficulty: string, tags: string[] }> {
   if (!config.url)
     throw new AppError(500, 'LLM API не настроен')
 
@@ -312,7 +313,7 @@ export async function generateTts(text: string, language: string, config: LlmCon
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
   }
-  
+
   if (ttsKey)
     headers.Authorization = `Bearer ${ttsKey}`
 

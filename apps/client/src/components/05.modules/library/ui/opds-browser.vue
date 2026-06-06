@@ -1,16 +1,17 @@
 <script setup lang="ts">
 import { Icon } from '@iconify/vue'
 import { onMounted, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { KitBtn, KitDialog, KitInput, KitSkeleton } from '~/components/01.kit'
 import { useOpdsStore } from '../store/opds.store'
 
 const opdsStore = useOpdsStore()
+const { t } = useI18n()
 
 const isAddPromptOpen = ref(false)
 const newCatalogTitle = ref('')
 const newCatalogUrl = ref('')
 
-// Предустановленные популярные каталоги
 const SUGGESTED_CATALOGS = [
   { title: 'Flibusta (Флибуста)', url: 'http://flibusta.is/opds' },
   { title: 'Project Gutenberg', url: 'https://m.gutenberg.org/ebooks.opds' },
@@ -18,7 +19,6 @@ const SUGGESTED_CATALOGS = [
   { title: 'Internet Archive', url: 'https://bookserver.archive.org/catalog/' },
 ]
 
-// Navigation history
 const history = ref<string[]>([])
 const currentUrl = ref<string | null>(null)
 
@@ -95,9 +95,9 @@ function onDownload(url: string, title: string, type: string) {
   <div class="opds-browser">
     <div v-if="!currentUrl" class="catalogs-view">
       <div class="header-row">
-        <h2>Мои каталоги OPDS</h2>
+        <h2>{{ t('opds.myCatalogs') }}</h2>
         <KitBtn icon="mdi:plus" color="primary" @click="openAddCatalog">
-          Добавить
+          {{ t('opds.add') }}
         </KitBtn>
       </div>
 
@@ -107,8 +107,8 @@ function onDownload(url: string, title: string, type: string) {
 
       <div v-else-if="opdsStore.catalogs.length === 0" class="empty-state">
         <Icon icon="mdi:web-off" />
-        <p>У вас пока нет добавленных OPDS каталогов.</p>
-        <p>Нажмите «Добавить», чтобы выбрать из популярных или ввести свой.</p>
+        <p>{{ t('opds.emptyState1') }}</p>
+        <p>{{ t('opds.emptyState2') }}</p>
       </div>
 
       <div v-else class="catalogs-list">
@@ -128,7 +128,7 @@ function onDownload(url: string, title: string, type: string) {
     <div v-else class="feed-view">
       <div class="feed-header">
         <KitBtn icon="mdi:arrow-left" variant="text" @click="goBack" />
-        <h3>{{ opdsStore.currentFeed?.title || 'Загрузка...' }}</h3>
+        <h3>{{ opdsStore.currentFeed?.title || t('opds.loading') }}</h3>
       </div>
 
       <div v-if="opdsStore.isBrowsing" class="loading-grid">
@@ -164,7 +164,7 @@ function onDownload(url: string, title: string, type: string) {
                     v-if="link.rel === 'subsection' || link.type?.includes('atom+xml')"
                     variant="tonal" size="sm" @click="browse(link.href)"
                   >
-                    Открыть
+                    {{ t('opds.open') }}
                   </KitBtn>
                 </template>
                 <div class="download-links">
@@ -181,19 +181,13 @@ function onDownload(url: string, title: string, type: string) {
             </div>
           </div>
         </div>
-
-        <div v-if="getNavLinks().length > 0" class="nav-links bottom">
-          <KitBtn v-for="l in getNavLinks()" :key="l.href" variant="tonal" size="sm" @click="browse(l.href)">
-            {{ l.title || l.rel }}
-          </KitBtn>
-        </div>
       </div>
     </div>
 
-    <KitDialog v-model:visible="isAddPromptOpen" title="Добавить OPDS каталог" :max-width="450">
+    <KitDialog v-model:visible="isAddPromptOpen" :title="t('opds.addCatalog')" :max-width="450">
       <div style="display: flex; flex-direction: column; gap: 16px;">
         <div class="suggested-catalogs">
-          <label>Популярные каталоги:</label>
+          <label>{{ t('opds.popularCatalogs') }}</label>
           <div class="chips">
             <KitBtn
               v-for="cat in SUGGESTED_CATALOGS"
@@ -210,8 +204,8 @@ function onDownload(url: string, title: string, type: string) {
         <div class="divider" />
 
         <div>
-          <label style="font-size: 0.85rem; color: var(--fg-secondary-color)">Название</label>
-          <KitInput v-model="newCatalogTitle" placeholder="Моя библиотека" />
+          <label style="font-size: 0.85rem; color: var(--fg-secondary-color)">{{ t('opds.name') }}</label>
+          <KitInput v-model="newCatalogTitle" :placeholder="t('opds.myLibrary')" />
         </div>
         <div>
           <label style="font-size: 0.85rem; color: var(--fg-secondary-color)">URL</label>
@@ -220,10 +214,10 @@ function onDownload(url: string, title: string, type: string) {
       </div>
       <template #footer>
         <KitBtn variant="tonal" @click="isAddPromptOpen = false">
-          Отмена
+          {{ t('opds.cancel') }}
         </KitBtn>
         <KitBtn color="primary" @click="handleAddSubmit">
-          Сохранить
+          {{ t('opds.save') }}
         </KitBtn>
       </template>
     </KitDialog>
@@ -231,7 +225,7 @@ function onDownload(url: string, title: string, type: string) {
     <div v-if="opdsStore.isDownloading" class="downloading-overlay">
       <div class="loader-box">
         <Icon icon="mdi:cloud-download-outline" class="spin-icon" />
-        <p>Скачивание книги...</p>
+        <p>{{ t('opds.downloadingBook') }}</p>
       </div>
     </div>
   </div>

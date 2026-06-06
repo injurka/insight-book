@@ -1,9 +1,12 @@
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n'
+import { useRouter } from 'vue-router'
 import { AppRoutePaths } from '~/shared/constants/routes'
 import { useLibraryStore } from '../../library/store/library.store'
 
 const libraryStore = useLibraryStore()
 const router = useRouter()
+const { t } = useI18n()
 
 function goToPage(pageNum?: number) {
   if (!pageNum || !libraryStore.currentBookInfo)
@@ -17,7 +20,7 @@ function goToPage(pageNum?: number) {
 
 <template>
   <div v-if="libraryStore.currentBookInfo?.toc && libraryStore.currentBookInfo.toc.length > 0" class="toc-section">
-    <h3>Оглавление</h3>
+    <h3>{{ t('bookInfo.tableOfContents') }}</h3>
     <div class="toc-list">
       <div
         v-for="item in libraryStore.currentBookInfo.toc"

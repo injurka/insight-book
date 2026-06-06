@@ -2,6 +2,7 @@ import type { DictDeck, UserDictItem } from '~/shared/types/models'
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 import { useToast } from '~/shared/composables/use-toast'
+import { DIFFICULTY_SYSTEMS } from '~/shared/constants/difficulties'
 import { api } from '~/shared/services/api.service'
 import { offlineService } from '~/shared/services/offline.service'
 import { useAnalysisStore } from '~/shared/store/analysis.store'
@@ -71,12 +72,27 @@ export const useDictionaryStore = defineStore('dictionary', () => {
           langToFetch = deck.language
       }
 
-      reviewQueue.value = await api.dictionary.getReviewQueue({
+      // Если сложность общая ("level_X"), на бэкенд шлём 'all' и фильтруем локально
+      const backendDifficulty = opts.difficulty.startsWith('level_') ? 'all' : opts.difficulty
+
+      let queue = await api.dictionary.getReviewQueue({
         lang: langToFetch,
         mode: opts.mode,
         deckId: opts.deckId,
-        difficulty: opts.difficulty,
+        difficulty: backendDifficulty,
       })
+
+      // Локальная фильтрация по универсальному уровню сложности
+      if (opts.difficulty.startsWith('level_')) {
+        const targetLevel = Number.parseInt(opts.difficulty.split('_')[1], 10)
+        queue = queue.filter((w) => {
+          const sys = DIFFICULTY_SYSTEMS[w.language] || DIFFICULTY_SYSTEMS.default
+          const diffDef = sys.find(s => s.value === w.difficulty)
+          return diffDef && diffDef.level === targetLevel
+        })
+      }
+
+      reviewQueue.value = queue
     }
     catch (e) {
       console.warn('Could not fetch queue:', e)
@@ -166,6 +182,14 @@ export const useDictionaryStore = defineStore('dictionary', () => {
     if (selectedDifficulty.value !== 'all') {
       if (selectedDifficulty.value === 'none') {
         result = result.filter(w => !w.difficulty)
+      }
+      else if (selectedDifficulty.value.startsWith('level_')) {
+        const targetLevel = Number.parseInt(selectedDifficulty.value.split('_')[1], 10)
+        result = result.filter((w) => {
+          const sys = DIFFICULTY_SYSTEMS[w.language] || DIFFICULTY_SYSTEMS.default
+          const diffDef = sys.find(s => s.value === w.difficulty)
+          return diffDef && diffDef.level === targetLevel
+        })
       }
       else {
         result = result.filter(w => w.difficulty === selectedDifficulty.value)

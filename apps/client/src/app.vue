@@ -1,15 +1,23 @@
 <script setup lang="ts">
 import { useHead } from '@vueuse/head'
+import { useI18n } from 'vue-i18n'
 import { ReloadPrompt } from '~/components/02.shared/reload-prompt'
 import { DefaultLayout } from '~/components/06.layouts/default'
 import { useChangeTheme } from '~/shared/composables/use-change-theme'
 import { useAnalysisStore } from '~/shared/store/analysis.store'
+import { useGlobalSettingsStore } from '~/shared/store/settings.store'
 import { AddEditWordDialog } from './components/05.modules/dictionary'
 
 useChangeTheme()
 
 const route = useRoute()
 const analysisStore = useAnalysisStore()
+const settingsStore = useGlobalSettingsStore()
+const { locale, t } = useI18n()
+
+watch(() => settingsStore.appLanguage, (newLang) => {
+  locale.value = newLang
+}, { immediate: true })
 
 const layoutName = computed(() => (route.meta.layout as string) || 'default')
 
@@ -19,12 +27,12 @@ const layouts: Record<string, Component> = {
 
 const siteUrl = 'https://insight-book.trip-scheduler.ru'
 const siteName = 'InsightBook'
-const description = 'InsightBook'
+const description = computed(() => t('app.description'))
 
 useHead({
   titleTemplate: titleChunk => titleChunk ? `${titleChunk} | ${siteName}` : siteName,
   htmlAttrs: {
-    lang: 'ru',
+    lang: computed(() => locale.value),
   },
   meta: [
     { name: 'description', content: description },
@@ -43,13 +51,13 @@ useHead({
   script: [
     {
       type: 'application/ld+json',
-      children: JSON.stringify({
+      children: computed(() => JSON.stringify({
         '@context': 'https://schema.org',
         '@type': 'WebApplication',
         'name': siteName,
-        'alternateName': ['Блокнот', 'Личные заметки', 'Менеджер заметок'],
+        'alternateName': [t('app.alternateName1'), t('app.alternateName2'), t('app.alternateName3')],
         'url': siteUrl,
-        'description': description,
+        'description': description.value,
         'applicationCategory': 'UtilityApplication',
         'operatingSystem': 'Any',
         'offers': {
@@ -57,7 +65,7 @@ useHead({
           'price': '0',
           'priceCurrency': 'RUB',
         },
-      }),
+      })),
     },
   ],
 })

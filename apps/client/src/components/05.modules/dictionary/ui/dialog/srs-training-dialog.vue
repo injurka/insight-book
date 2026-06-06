@@ -2,21 +2,23 @@
 import type { GeneratedWordExamples } from '~/shared/types/models'
 import { Icon } from '@iconify/vue'
 import { computed, nextTick, reactive, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { KitBtn, KitDialog, KitInput, KitSelect } from '~/components/01.kit'
 import { AiExamplesModal } from '~/components/03.domain/analysis'
 import { useToast } from '~/shared/composables/use-toast'
 import { useTts } from '~/shared/composables/use-tts'
 import { DIFFICULTY_SYSTEMS } from '~/shared/constants/difficulties'
 import { api } from '~/shared/services/api.service'
-import { useSrsQuiz } from '../composables/use-srs-quiz'
-import { useSrsSession } from '../composables/use-srs-session'
-import { useDictionaryStore } from '../store/dictionary.store'
-import HanziBoard from './hanzi-board.vue'
+import { useSrsQuiz } from '../../composables/use-srs-quiz'
+import { useSrsSession } from '../../composables/use-srs-session'
+import { useDictionaryStore } from '../../store/dictionary.store'
+import HanziBoard from '../hanzi-board.vue'
 
 const visible = defineModel<boolean>('visible', { required: true })
 const dictStore = useDictionaryStore()
 const { speak, stop, isPlaying, isLoading } = useTts()
 const toast = useToast()
+const { t } = useI18n()
 
 const {
   sessionState,
@@ -46,11 +48,9 @@ const setupOptions = reactive({
   difficulty: 'all' as string | 'all' | 'none',
 })
 
-// Текущий режим конкретной карточки
 type TrainingMode = 'standard' | 'audio' | 'writing' | 'typing' | 'choice'
 const currentMode = ref<TrainingMode>('standard')
 
-// Стейты для объективной проверки
 const typedAnswer = ref('')
 const typoFeedback = ref('')
 const isAnswerChecked = ref(false)
@@ -58,7 +58,6 @@ const isAnswerCorrect = ref(false)
 const choiceOptions = ref<{ text: string, isCorrect: boolean }[]>([])
 const selectedChoice = ref<string | null>(null)
 
-// Стейты для чипсов "Грамматика", "Лексика", "Заметки"
 const expandedSections = reactive<Record<string, boolean>>({
   grammar: false,
   vocab: false,
@@ -81,11 +80,9 @@ const hasChineseWords = computed(() => {
 
 const originalSentence = computed(() => currentCard.value?.encounters?.[0]?.sentence || '')
 
-// Анимация иероглифов
 const showAnimation = ref(false)
 const hanziBoardRef = ref<InstanceType<typeof HanziBoard> | null>(null)
 
-// AI Подсказка
 const isAiModalOpen = ref(false)
 const isAiLoading = ref(false)
 const aiData = ref<GeneratedWordExamples | null>(null)
@@ -96,36 +93,41 @@ const currentLang = computed(() => {
     if (deck)
       return deck.language
   }
-  return dictStore.selectedLanguage !== 'all' ? dictStore.selectedLanguage : 'default'
+  return dictStore.selectedLanguage !== 'all' ? dictStore.selectedLanguage : 'all'
 })
 
 const deckOptions = computed(() => {
   const opts: any[] = [
-    { label: 'Все колоды', value: 'all' },
-    { label: 'Без колоды', value: 'none' },
+    { label: t('dictionary.allDecks'), value: 'all' },
+    { label: t('dictionary.noDeck'), value: 'none' },
   ]
   dictStore.decks.forEach((d) => {
     if (dictStore.selectedLanguage === 'all' || d.language === dictStore.selectedLanguage) {
       opts.push({ label: d.name, value: d.id })
     }
   })
-  if (!opts.some(o => o.value === setupOptions.deckId)) {
-    // eslint-disable-next-line vue/no-side-effects-in-computed-properties
-    setupOptions.deckId = 'all'
-  }
   return opts
 })
 
 const difficultyOptions = computed(() => {
-  const opts: any[] = [{ label: 'Все сложности', value: 'all' }, { label: 'Без сложности', value: 'none' }]
-  const sys = DIFFICULTY_SYSTEMS[currentLang.value] || DIFFICULTY_SYSTEMS.default
+  const opts: any[] = [{ label: t('dictionary.allDifficulties'), value: 'all' }, { label: t('dictionary.noDifficulty'), value: 'none' }]
+  const sys = DIFFICULTY_SYSTEMS[currentLang.value] || DIFFICULTY_SYSTEMS.all
   sys.forEach(d => opts.push({ label: d.label, value: d.value }))
+  return opts
+})
 
-  if (!opts.some(o => o.value === setupOptions.difficulty)) {
-    // eslint-disable-next-line vue/no-side-effects-in-computed-properties
+// Очистка при смене списка колод
+watch(deckOptions, (newOpts) => {
+  if (!newOpts.some(o => o.value === setupOptions.deckId)) {
+    setupOptions.deckId = 'all'
+  }
+})
+
+// Очистка при смене списка сложностей
+watch(difficultyOptions, (newOpts) => {
+  if (!newOpts.some(o => o.value === setupOptions.difficulty)) {
     setupOptions.difficulty = 'all'
   }
-  return opts
 })
 
 async function fetchAiExamples() {
@@ -140,7 +142,7 @@ async function fetchAiExamples() {
     aiData.value = res
   }
   catch (e) {
-    toast.error(e instanceof Error ? e.message : 'Ошибка генерации примеров')
+    toast.error(e instanceof Error ? e.message : t('dictionary.errorExamples'))
     isAiModalOpen.value = false
   }
   finally {
@@ -157,7 +159,7 @@ async function startSession() {
     })
 
     if (dictStore.reviewQueue.length === 0) {
-      toast.info('Нет карточек по выбранным критериям.')
+      toast.info(t('dictionary.emptySearch'))
       return
     }
 
@@ -169,7 +171,7 @@ async function startSession() {
     initCard()
   }
   catch {
-    toast.error('Ошибка загрузки карточек')
+    toast.error(t('dictionary.loadCardsError'))
   }
 }
 
@@ -183,7 +185,6 @@ function initCard() {
   selectedChoice.value = null
   choiceOptions.value = []
 
-  // Сбрасываем чипсы заметок
   expandedSections.grammar = false
   expandedSections.vocab = false
   expandedSections.notes = false
@@ -211,7 +212,6 @@ function initCard() {
   if (availableModes.length === 0)
     availableModes.push('standard')
 
-  // Для новых слов (статус 0) с большей вероятностью даем Multiple Choice, чтобы легче запомнить
   if (allowChoice.value && currentCard.value.status === 0 && Math.random() > 0.3) {
     currentMode.value = 'choice'
   }
@@ -219,16 +219,14 @@ function initCard() {
     currentMode.value = availableModes[Math.floor(Math.random() * availableModes.length)]
   }
 
-  // Генерация вариантов для Multiple Choice
   if (currentMode.value === 'choice') {
-    const correctTrans = currentCard.value.translation?.split(',')[0].split(';')[0].replace(/<[^>]+(>|$)/g, '').trim() || 'Перевод'
+    const correctTrans = currentCard.value.translation?.split(',')[0].split(';')[0].replace(/<[^>]+(>|$)/g, '').trim() || t('analysis.translation')
     const distractors = generateDistractors(currentCard.value, dictStore.words, 3)
     const options = distractors.map(d => ({ text: d, isCorrect: false }))
     options.push({ text: correctTrans, isCorrect: true })
     choiceOptions.value = options.sort(() => 0.5 - Math.random())
   }
 
-  // Автозапуск аудио
   if (currentMode.value === 'audio') {
     setTimeout(() => {
       if (currentCard.value?.word) {
@@ -245,7 +243,6 @@ function flip() {
   }
 }
 
-// Оценка ввода пользователя (Typing)
 function submitTyping() {
   if (isAnswerChecked.value || !typedAnswer.value.trim() || !currentCard.value)
     return
@@ -258,17 +255,16 @@ function submitTyping() {
     setTimeout(flip, 400)
   }
   else if (isTypo) {
-    typoFeedback.value = `Почти верно! Опечатка. Ожидалось: ${currentCard.value.word}`
+    typoFeedback.value = t('dictionary.almostCorrectTypo', { expected: currentCard.value.word })
   }
   else {
     isAnswerCorrect.value = false
     isAnswerChecked.value = true
-    typoFeedback.value = `Неверно. Правильный ответ: ${currentCard.value.word}`
+    typoFeedback.value = t('dictionary.incorrectAnswer', { expected: currentCard.value.word })
     setTimeout(flip, 1200)
   }
 }
 
-// Выбор варианта (Multiple Choice)
 function selectChoice(option: { text: string, isCorrect: boolean }) {
   if (isAnswerChecked.value)
     return
@@ -405,140 +401,136 @@ watch(currentIndex, () => {
       <div class="srs-header">
         <h2 class="dialog-title">
           <template v-if="sessionState === 'setup'">
-            Настройки ({{ dictStore.trainingMode === 'srs' ? 'SRS' : 'Разминка' }})
+            {{ dictStore.trainingMode === 'srs' ? t('dictionary.setupSrs') : t('dictionary.setupWarmup') }}
           </template>
           <template v-else-if="sessionState === 'finished'">
-            Итоги сессии
+            {{ t('dictionary.sessionSummary') }}
           </template>
           <template v-else>
-            {{ dictStore.trainingMode === 'srs' ? 'Повторение (SRS)' : 'Случайная тренировка' }}
+            {{ dictStore.trainingMode === 'srs' ? t('dictionary.reviewSrs') : t('dictionary.randomTraining') }}
             <span v-if="!isFinished" class="mode-badge">
               ({{
-                currentMode === 'audio' ? 'Аудирование'
-                : currentMode === 'writing' ? 'Письмо'
-                  : currentMode === 'typing' ? 'Ввод'
-                    : currentMode === 'choice' ? 'Тест' : 'Чтение'
+                currentMode === 'audio' ? t('dictionary.listening')
+                : currentMode === 'writing' ? t('dictionary.writing')
+                  : currentMode === 'typing' ? t('dictionary.typing')
+                    : currentMode === 'choice' ? t('dictionary.test') : t('dictionary.reading')
               }})
             </span>
           </template>
         </h2>
 
         <div v-if="sessionState === 'active' && !isFinished && dictStore.trainingMode === 'srs'" class="srs-stats">
-          <span class="stat-new" title="Новые карточки">{{ newCount }}</span>
-          <span class="stat-review" title="На повторении">{{ reviewCount }}</span>
+          <span class="stat-new" :title="t('dictionary.newCards')">{{ newCount }}</span>
+          <span class="stat-review" :title="t('dictionary.onReview')">{{ reviewCount }}</span>
         </div>
         <div v-else-if="sessionState === 'active' && !isFinished" class="srs-stats">
-          <span class="stat-review" title="Осталось карточек">{{ remainingQueue.length }}</span>
+          <span class="stat-review" :title="t('dictionary.cardsLeft')">{{ remainingQueue.length }}</span>
         </div>
       </div>
     </template>
 
-    <!-- ЭКРАН НАСТРОЙКИ (SETUP) -->
     <div v-if="sessionState === 'setup'" class="setup-state">
       <p class="setup-desc">
-        Настройте фильтры и выберите режимы, которые будут использоваться при тренировке.
+        {{ t('dictionary.setupFilters') }}
       </p>
 
       <div class="settings-group filters-group">
         <div class="form-row">
           <div class="form-col">
-            <label>Колода</label>
+            <label>{{ t('dictionary.deck') }}</label>
             <KitSelect v-model="setupOptions.deckId" :options="deckOptions" />
           </div>
           <div class="form-col">
-            <label>Сложность</label>
+            <label>{{ t('dictionary.difficulty') }}</label>
             <KitSelect v-model="setupOptions.difficulty" :options="difficultyOptions" />
           </div>
         </div>
       </div>
 
       <div class="settings-group">
-        <label class="group-label">Режимы тренировки</label>
+        <label class="group-label">{{ t('dictionary.trainingModes') }}</label>
         <div class="modes-grid">
           <div class="mode-card" :class="{ 'is-active': allowStandard }" @click="allowStandard = !allowStandard">
             <Icon icon="mdi:card-text-outline" class="mode-icon" />
-            <span class="mode-title">Чтение</span>
-            <span class="mode-desc">Классические карточки</span>
+            <span class="mode-title">{{ t('dictionary.reading') }}</span>
+            <span class="mode-desc">{{ t('dictionary.classicCards') }}</span>
           </div>
 
           <div class="mode-card" :class="{ 'is-active': allowTyping }" @click="allowTyping = !allowTyping">
             <Icon icon="mdi:keyboard-outline" class="mode-icon" />
-            <span class="mode-title">Ввод текста</span>
-            <span class="mode-desc">Написать по памяти</span>
+            <span class="mode-title">{{ t('dictionary.typing') }}</span>
+            <span class="mode-desc">{{ t('dictionary.writeByMemory') }}</span>
           </div>
 
           <div class="mode-card" :class="{ 'is-active': allowChoice }" @click="allowChoice = !allowChoice">
             <Icon icon="mdi:format-list-checks" class="mode-icon" />
-            <span class="mode-title">Тест</span>
-            <span class="mode-desc">Выбор из вариантов</span>
+            <span class="mode-title">{{ t('dictionary.test') }}</span>
+            <span class="mode-desc">{{ t('dictionary.multipleChoice') }}</span>
           </div>
 
           <div class="mode-card" :class="{ 'is-active': allowAudio }" @click="allowAudio = !allowAudio">
             <Icon icon="mdi:headphones" class="mode-icon" />
-            <span class="mode-title">На слух</span>
-            <span class="mode-desc">Восприятие ИИ речи</span>
+            <span class="mode-title">{{ t('dictionary.listening') }}</span>
+            <span class="mode-desc">{{ t('dictionary.aiSpeech') }}</span>
           </div>
 
           <div v-if="hasChineseWords" class="mode-card" :class="{ 'is-active': allowWriting }" @click="allowWriting = !allowWriting">
             <Icon icon="mdi:draw" class="mode-icon" />
-            <span class="mode-title">Письмо</span>
-            <span class="mode-desc">Иероглифы по памяти</span>
+            <span class="mode-title">{{ t('dictionary.writing') }}</span>
+            <span class="mode-desc">{{ t('dictionary.hanziByMemory') }}</span>
           </div>
         </div>
       </div>
 
       <div class="setup-actions">
         <KitBtn variant="tonal" size="sm" @click="visible = false">
-          Отмена
+          {{ t('dictionary.cancel') }}
         </KitBtn>
         <KitBtn color="primary" size="sm" @click="startSession">
-          Начать
+          {{ t('dictionary.start') }}
         </KitBtn>
       </div>
     </div>
 
-    <!-- ЭКРАН ЗАВЕРШЕНИЯ И ДЕТАЛЬНОЙ СТАТИСТИКИ -->
     <div v-else-if="sessionState === 'finished'" class="finished-state">
-      <h2>🎉 Отличная работа!</h2>
+      <h2>{{ t('dictionary.greatJob') }}</h2>
       <p v-if="dictStore.trainingMode === 'srs'">
-        Вы повторили все карточки на сегодня по выбранным параметрам.
+        {{ t('dictionary.reviewedAll') }}
       </p>
       <p v-else>
-        Разминка успешно завершена.
+        {{ t('dictionary.warmupFinished') }}
       </p>
 
       <div class="summary-stats">
         <div class="stat-box">
           <Icon icon="mdi:star-four-points-outline" class="stat-icon new" />
           <span class="stat-val">{{ stats.newStudied }}</span>
-          <span class="stat-name">Новых</span>
+          <span class="stat-name">{{ t('dictionary.newStudied') }}</span>
         </div>
         <div class="stat-box">
           <Icon icon="mdi:refresh" class="stat-icon review" />
           <span class="stat-val">{{ stats.reviewed }}</span>
-          <span class="stat-name">Повторено</span>
+          <span class="stat-name">{{ t('dictionary.reviewed') }}</span>
         </div>
         <div class="stat-box">
           <Icon icon="mdi:bullseye-arrow" class="stat-icon accuracy" />
           <span class="stat-val">{{ accuracy }}%</span>
-          <span class="stat-name">Точность</span>
+          <span class="stat-name">{{ t('dictionary.accuracy') }}</span>
         </div>
         <div class="stat-box">
           <Icon icon="mdi:clock-outline" class="stat-icon time" />
           <span class="stat-val">{{ formatTime(timeSpentMs) }}</span>
-          <span class="stat-name">Время</span>
+          <span class="stat-name">{{ t('dictionary.time') }}</span>
         </div>
       </div>
 
       <KitBtn color="primary" size="lg" @click="visible = false">
-        Завершить сессию
+        {{ t('dictionary.finishSession') }}
       </KitBtn>
     </div>
 
-    <!-- АКТИВНАЯ ТРЕНИРОВКА -->
     <div v-else-if="currentCard" class="flashcard">
       <div class="card-front">
-        <!-- РЕЖИМ: АУДИРОВАНИЕ -->
         <div v-if="currentMode === 'audio'" class="audio-mode">
           <KitBtn
             :icon="isLoading ? 'mdi:loading' : (isPlaying ? 'mdi:volume-high' : 'mdi:volume-medium')"
@@ -547,25 +539,23 @@ watch(currentIndex, () => {
             :class="{ 'spin-animation': isLoading, 'pulse-animation': isPlaying }"
             @click="speak(currentCard.word, currentCard.language)"
           />
-          <p>Послушайте и вспомните слово</p>
+          <p>{{ t('dictionary.listenAndRecall') }}</p>
         </div>
 
-        <!-- РЕЖИМ: ПИСЬМО -->
         <div v-else-if="currentMode === 'writing'" class="writing-mode">
           <p class="writing-hint">
-            Напишите иероглиф(ы) по памяти:
+            {{ t('dictionary.writeHanzi') }}
           </p>
           <div class="translation-hint" v-html="currentCard.translation" />
           <HanziBoard :text="currentCard.word" mode="quiz" :size="120" @complete="flip" />
         </div>
 
-        <!-- РЕЖИМ: ВВОД ТЕКСТА (TYPING) -->
         <div v-else-if="currentMode === 'typing'" class="typing-mode">
           <div class="translation-hint" v-html="currentCard.translation" />
           <div class="typing-area">
-            <KitInput v-model="typedAnswer" placeholder="Напишите слово на изучаемом языке..." :disabled="isAnswerChecked" @keyup.enter="submitTyping" />
+            <KitInput v-model="typedAnswer" :placeholder="t('dictionary.writeWord')" :disabled="isAnswerChecked" @keyup.enter="submitTyping" />
             <KitBtn color="primary" :disabled="!typedAnswer || isAnswerChecked" @click="submitTyping">
-              Проверить
+              {{ t('dictionary.check') }}
             </KitBtn>
           </div>
           <p v-if="typoFeedback" class="typo-feedback" :class="{ 'is-typo': !isAnswerCorrect }">
@@ -573,7 +563,6 @@ watch(currentIndex, () => {
           </p>
         </div>
 
-        <!-- РЕЖИМ: ВЫБОР ВАРИАНТОВ -->
         <div v-else-if="currentMode === 'choice'" class="choice-mode">
           <div class="word-huge">
             {{ currentCard.word }}
@@ -596,7 +585,6 @@ watch(currentIndex, () => {
           </div>
         </div>
 
-        <!-- РЕЖИМ: СТАНДАРТ -->
         <div v-else class="standard-mode">
           <div class="word-huge">
             {{ currentCard.word }}
@@ -607,7 +595,6 @@ watch(currentIndex, () => {
       <div v-if="isFlipped" class="card-back fade-in">
         <hr>
 
-        <!-- Для аудио и письма показываем слово крупно -->
         <div v-if="currentMode === 'audio' || currentMode === 'writing'" class="word-huge back-word fade-in">
           {{ currentCard.word }}
         </div>
@@ -619,10 +606,9 @@ watch(currentIndex, () => {
         <div v-if="currentMode !== 'choice' && currentMode !== 'typing'" class="translation" v-html="currentCard.translation" />
 
         <div v-if="originalSentence" class="original-sentence fade-in">
-          <b>Контекст:</b> {{ originalSentence }}
+          <b>{{ t('analysis.context') }}</b> {{ originalSentence }}
         </div>
 
-        <!-- Чипсы (типчики) для заметок -->
         <div v-if="currentCard.grammarNote || currentCard.vocabularyNote || currentCard.notes" class="notes-toggle-row fade-in">
           <KitBtn
             v-if="currentCard.grammarNote"
@@ -632,7 +618,7 @@ watch(currentIndex, () => {
             icon="mdi:puzzle-outline"
             @click="toggleSection('grammar')"
           >
-            Грамматика
+            {{ t('dictionary.grammar') }}
           </KitBtn>
           <KitBtn
             v-if="currentCard.vocabularyNote"
@@ -642,7 +628,7 @@ watch(currentIndex, () => {
             icon="mdi:book-open-page-variant-outline"
             @click="toggleSection('vocab')"
           >
-            Лексика
+            {{ t('dictionary.vocabulary') }}
           </KitBtn>
           <KitBtn
             v-if="currentCard.notes"
@@ -652,11 +638,10 @@ watch(currentIndex, () => {
             icon="mdi:note-text-outline"
             @click="toggleSection('notes')"
           >
-            Заметки
+            {{ t('dictionary.notesMnemonic') }}
           </KitBtn>
         </div>
 
-        <!-- Контент заметок -->
         <div v-if="expandedSections.grammar && currentCard.grammarNote" class="word-notes fade-in">
           <div class="notes-text">
             {{ currentCard.grammarNote }}
@@ -675,16 +660,14 @@ watch(currentIndex, () => {
           </div>
         </div>
 
-        <!-- БЛОК АНИМАЦИИ ИЕРОГЛИФА -->
         <div v-if="showAnimation" class="animation-container fade-in">
-          <h4>Порядок черт</h4>
+          <h4>{{ t('dictionary.strokeOrder') }}</h4>
           <HanziBoard ref="hanziBoardRef" :text="currentCard.word" mode="animation" :size="80" />
           <KitBtn icon="mdi:replay" variant="text" size="xs" color="secondary" @click="hanziBoardRef?.replay()">
-            Повторить
+            {{ t('dictionary.repeat') }}
           </KitBtn>
         </div>
 
-        <!-- Кнопки действий -->
         <div class="back-actions-row fade-in">
           <KitBtn
             :icon="isLoading ? 'mdi:loading' : (isPlaying ? 'mdi:volume-high' : 'mdi:volume-medium')"
@@ -693,7 +676,7 @@ watch(currentIndex, () => {
             :class="{ 'spin-animation': isLoading, 'pulse-animation': isPlaying }"
             @click="speak(currentCard.word, currentCard.language)"
           >
-            Прослушать
+            {{ t('dictionary.listenVoice') }}
           </KitBtn>
 
           <KitBtn
@@ -702,7 +685,7 @@ watch(currentIndex, () => {
             size="sm"
             @click="fetchAiExamples"
           >
-            ИИ Подсказка
+            {{ t('dictionary.aiHint') }}
           </KitBtn>
 
           <KitBtn
@@ -713,40 +696,38 @@ watch(currentIndex, () => {
             :class="{ 'is-active-btn': showAnimation }"
             @click="toggleAnimation"
           >
-            Написание
+            {{ t('dictionary.writingPractice') }}
           </KitBtn>
         </div>
       </div>
 
       <div class="actions">
-        <!-- Кнопки фронтальной стороны карточки -->
         <template v-if="!isFlipped">
           <div class="front-actions">
             <KitBtn v-if="!['typing', 'choice'].includes(currentMode)" color="primary" size="lg" @click="flip">
-              {{ currentMode === 'writing' ? 'Не помню / Показать ответ' : 'Показать ответ' }}
+              {{ currentMode === 'writing' ? t('dictionary.dontRememberShow') : t('dictionary.showAnswer') }}
             </KitBtn>
             <KitBtn v-else variant="tonal" size="md" @click="skipObjectiveTest">
-              Не помню / Пропустить
+              {{ t('dictionary.dontRememberSkip') }}
             </KitBtn>
           </div>
         </template>
 
-        <!-- Кнопки оценки после переворота -->
         <div v-else-if="intervals" class="grade-buttons fade-in">
           <button class="grade-btn error" :class="{ 'is-suggested': isAnswerChecked && !isAnswerCorrect }" :disabled="isSubmitting" @click="gradeCard(0)">
-            <span class="g-label">Снова</span>
+            <span class="g-label">{{ t('dictionary.again') }}</span>
             <span v-if="dictStore.trainingMode === 'srs'" class="g-time">{{ intervals.again }}</span>
           </button>
           <button class="grade-btn warning" :disabled="isSubmitting" @click="gradeCard(1)">
-            <span class="g-label">Тяжело</span>
+            <span class="g-label">{{ t('dictionary.hard') }}</span>
             <span v-if="dictStore.trainingMode === 'srs'" class="g-time">{{ intervals.hard }}</span>
           </button>
           <button class="grade-btn primary" :class="{ 'is-suggested': isAnswerChecked && isAnswerCorrect }" :disabled="isSubmitting" @click="gradeCard(2)">
-            <span class="g-label">Хорошо</span>
+            <span class="g-label">{{ t('dictionary.good') }}</span>
             <span v-if="dictStore.trainingMode === 'srs'" class="g-time">{{ intervals.good }}</span>
           </button>
           <button class="grade-btn success" :disabled="isSubmitting" @click="gradeCard(3)">
-            <span class="g-label">Легко</span>
+            <span class="g-label">{{ t('dictionary.easy') }}</span>
             <span v-if="dictStore.trainingMode === 'srs'" class="g-time">{{ intervals.easy }}</span>
           </button>
         </div>
@@ -1033,7 +1014,6 @@ watch(currentIndex, () => {
   }
 }
 
-/* НОВЫЕ РЕЖИМЫ (TYPING, CHOICE) */
 .typing-mode {
   width: 100%;
   display: flex;

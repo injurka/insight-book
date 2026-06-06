@@ -2,6 +2,7 @@ import type { LlmAnalysis, UserDictItem } from '~/shared/types/models'
 import { useDictionaryStore } from '~/components/05.modules/dictionary/store/dictionary.store'
 import { useLibraryStore } from '~/components/05.modules/library/store/library.store'
 import { useReaderStore } from '~/components/05.modules/reader/store/reader.store'
+import { i18n } from '~/shared/plugins/i18n'
 import { api } from '~/shared/services/api.service'
 import { offlineService } from '~/shared/services/offline.service'
 import { useGlobalSettingsStore } from '~/shared/store/settings.store'
@@ -149,7 +150,7 @@ export const useAnalysisStore = defineStore('analysis', () => {
         return
 
       if (currentBook && wordPopover.value && wordAbortController === controller) {
-        wordPopover.value.aiTranslation = 'Оффлайн: перевод не найден в кэше'
+        wordPopover.value.aiTranslation = i18n.global.t('analysis.offlineTranslationNotFound')
       }
     }
     finally {
@@ -179,7 +180,8 @@ export const useAnalysisStore = defineStore('analysis', () => {
     activeTokenId.value = `${sentenceId}-${tokenIndex}`
     const targetRect = target.getBoundingClientRect()
 
-    const entry = readerStore.currentPage.pageDictionary[word]
+    // Обращаемся напрямую к словарю на уровне стора
+    const entry = readerStore.currentPageDictionary[word] || readerStore.currentPageDictionary[word.toLowerCase()]
 
     const basePopoverData = {
       word,
@@ -206,7 +208,7 @@ export const useAnalysisStore = defineStore('analysis', () => {
     wordPopover.value = {
       ...basePopoverData,
       transcription: entry ? entry.transcription : '',
-      translation: entry ? entry.translation : 'Поиск перевода...',
+      translation: entry ? entry.translation : i18n.global.t('analysis.searchingTranslation'),
       showAi: true,
       isAiLoading: true,
     }
@@ -255,13 +257,11 @@ export const useAnalysisStore = defineStore('analysis', () => {
       if (wordAbortController !== controller)
         return
 
-      // Если в локальных словарях слово не найдено (404),
-      // падаем в ИИ-перевод автоматически.
       wordPopover.value = {
         word,
         pos,
         transcription: '',
-        translation: 'Поиск перевода...',
+        translation: i18n.global.t('analysis.searchingTranslation'),
         targetRect,
         showAi: true,
         isAiLoading: true,
@@ -290,7 +290,6 @@ export const useAnalysisStore = defineStore('analysis', () => {
       return
     }
 
-    // СТРОГИЙ CACHE-FIRST
     const cached = await offlineService.getAnalysis(currentBook.id, sentence)
     if (cached) {
       sidebarAnalysis.value = cached
@@ -322,7 +321,6 @@ export const useAnalysisStore = defineStore('analysis', () => {
       if (sentenceAbortController !== controller)
         return
 
-      // Сохраняем в оффлайн-кэш
       await offlineService.saveAnalysis(currentBook.id, sentence, res)
 
       sidebarAnalysis.value = res
@@ -362,7 +360,6 @@ export const useAnalysisStore = defineStore('analysis', () => {
       if (mode === 'sentences' || mode === 'all') {
         const sentRegex = /data-raw-sent="([^"]+)"/g
         let match
-        // eslint-disable-next-line no-cond-assign
         while ((match = sentRegex.exec(html)) !== null) {
           sentencesToAnalyze.add(decodeURIComponent(match[1]))
         }
@@ -371,7 +368,6 @@ export const useAnalysisStore = defineStore('analysis', () => {
       if (mode === 'words' || mode === 'all') {
         const wordRegex = /data-word="([^"]+)"[^>]*?data-pos="([^"]+)"/g
         let match
-        // eslint-disable-next-line no-cond-assign
         while ((match = wordRegex.exec(html)) !== null) {
           if (match[2] !== 'x') { // Игнорируем пунктуацию
             wordsToAnalyze.add(decodeURIComponent(match[1]))
@@ -390,7 +386,6 @@ export const useAnalysisStore = defineStore('analysis', () => {
       extractFromHtml(readerStore.currentPage.content)
     }
 
-    // Отсеиваем фрагменты, в которых нет букв или цифр
     const sentences = Array.from(sentencesToAnalyze).filter(s => /[\p{L}\p{N}]/u.test(s))
     const words = Array.from(wordsToAnalyze).filter(w => /[\p{L}\p{N}]/u.test(w))
 
@@ -413,7 +408,6 @@ export const useAnalysisStore = defineStore('analysis', () => {
     const signal = pageAnalysisAbortController.signal
 
     try {
-      // 1. Анализируем предложения
       if (mode === 'sentences' || mode === 'all') {
         for (let i = 0; i < sentences.length; i++) {
           if (signal.aborted)
@@ -468,7 +462,6 @@ export const useAnalysisStore = defineStore('analysis', () => {
         }
       }
 
-      // 2. Анализируем слова
       if (mode === 'words' || mode === 'all') {
         for (let i = 0; i < words.length; i++) {
           if (signal.aborted)
@@ -507,12 +500,11 @@ export const useAnalysisStore = defineStore('analysis', () => {
       }
 
       if (!signal.aborted) {
-        useToastStore().success('Анализ завершен!')
+        useToastStore().success(i18n.global.t('analysis.done'))
         isPageAnalysisFinished.value = true
       }
     }
     finally {
-      // Оставляем модалку открытой для просмотра результатов (закрывается по кнопке)
       pageAnalysisAbortController = null
     }
   }
@@ -567,15 +559,15 @@ export const useAnalysisStore = defineStore('analysis', () => {
     await dictStore.fetchDictionary()
 
     const readerStore = useReaderStore()
-    if (readerStore.currentPage?.pageDictionary && item.word) {
-      readerStore.currentPage.pageDictionary[item.word] = {
-        ...(readerStore.currentPage.pageDictionary[item.word] || {}),
+    if (item.word) {
+      readerStore.currentPageDictionary[item.word] = {
+        ...(readerStore.currentPageDictionary[item.word] || {}),
         transcription: item.transcription || '',
         translation: item.translation || '',
         isUserDict: true,
       }
-      if (readerStore.currentBook) {
-        await offlineService.savePage(readerStore.currentBook.id, readerStore.currentPage.pageNum, readerStore.currentPage)
+      if (readerStore.currentBook && readerStore.currentPage) {
+        await offlineService.savePageDictionary(readerStore.currentBook.id, readerStore.currentPage.pageNum, readerStore.currentPageDictionary)
       }
     }
 
@@ -594,10 +586,10 @@ export const useAnalysisStore = defineStore('analysis', () => {
     await dictStore.fetchDictionary()
 
     const readerStore = useReaderStore()
-    if (readerStore.currentPage?.pageDictionary && readerStore.currentPage.pageDictionary[word]) {
-      readerStore.currentPage.pageDictionary[word].isUserDict = false
-      if (readerStore.currentBook) {
-        await offlineService.savePage(readerStore.currentBook.id, readerStore.currentPage.pageNum, readerStore.currentPage)
+    if (readerStore.currentPageDictionary[word]) {
+      readerStore.currentPageDictionary[word].isUserDict = false
+      if (readerStore.currentBook && readerStore.currentPage) {
+        await offlineService.savePageDictionary(readerStore.currentBook.id, readerStore.currentPage.pageNum, readerStore.currentPageDictionary)
       }
     }
 
@@ -618,7 +610,6 @@ export const useAnalysisStore = defineStore('analysis', () => {
     isAnalyzing,
     analysisHistory,
 
-    // Page Analysis State
     isAnalyzingPage,
     isPageAnalysisFinished,
     pageAnalysisMode,

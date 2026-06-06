@@ -1,24 +1,25 @@
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n'
 import { KitDialog } from '~/components/01.kit'
 import { PageLoader } from '~/components/02.shared/page-loader'
 import { BubblePopover, PageAnalysisModal, SelectionTooltip, SentenceAnalysis, useTextSelection, WordPopover } from '~/components/03.domain/analysis'
 import { useAnalysisStore } from '~/shared/store/analysis.store'
 import { useGlobalSettingsStore } from '~/shared/store/settings.store'
-import { getMediaUrl } from '~/workers/service/lib/utils'
 
+import { getMediaUrl } from '~/workers/service/lib/utils'
 import { usePanZoom } from '../composables/use-pan-zoom'
 import { useReaderDomHighlights } from '../composables/use-reader-dom-highlights'
 import { useReaderNavigation } from '../composables/use-reader-navigation'
-import { useReaderWakeLock } from '../composables/use-reader-wakelock'
 import { useScrollRestoration } from '../composables/use-scroll-restoration'
-import { useReaderStore } from '../store/reader.store'
 
+import { useReaderStore } from '../store/reader.store'
 import ReaderFooter from './reader-footer.vue'
 import ReaderHeader from './reader-header.vue'
 
 const readerStore = useReaderStore()
 const analysisStore = useAnalysisStore()
 const settingsStore = useGlobalSettingsStore()
+const { t } = useI18n()
 
 const readerViewRef = useTemplateRef<HTMLElement>('readerViewRef')
 const mangaContainerRef = useTemplateRef<HTMLElement>('mangaContainerRef')
@@ -31,12 +32,11 @@ const { saveScrollPosition, restoreScrollPosition, setScrollIntent } = useScroll
   () => readerStore.isPageLoading,
 )
 
-useReaderWakeLock()
 const { onSentenceHover, onSentenceOut } = useReaderDomHighlights(readerViewRef)
 const { prevPage, nextPage, goToPage } = useReaderNavigation(setScrollIntent)
 const { onPointerDown, onPointerUp, onWordClick } = useTextSelection()
+useAppWakeLock(() => analysisStore.isAnalyzingPage)
 
-// === ЛОГИКА PAN & ZOOM ===
 const { scale, panX, panY, isPanning, isPinching, dragDist, resetZoom } = usePanZoom(mangaContainerRef, mangaWrapperRef)
 
 watch(() => readerStore.currentPage, () => {
@@ -154,7 +154,7 @@ function onScroll() {
         <div v-if="readerStore.isPageLoading" class="reader-loading-wrapper">
           <PageLoader />
           <p class="loading-text">
-            Подготовка страницы (OCR & NLP)...
+            {{ t('reader.preparingPage') }}
           </p>
         </div>
 
@@ -216,7 +216,7 @@ function onScroll() {
 
     <ReaderFooter @prev="prevPage" @next="nextPage" @go-to="goToPage" />
 
-    <KitDialog v-model:visible="readerStore.tocOpen" title="Оглавление" :max-width="500" icon="mdi:format-list-bulleted">
+    <KitDialog v-model:visible="readerStore.tocOpen" :title="t('bookInfo.tableOfContents')" :max-width="500" icon="mdi:format-list-bulleted">
       <div v-if="readerStore.currentToc && readerStore.currentToc.length > 0" class="toc-list">
         <div
           v-for="item in readerStore.currentToc"

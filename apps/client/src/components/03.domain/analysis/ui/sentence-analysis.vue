@@ -2,10 +2,12 @@
 import type { AnalysisHistoryItem } from '~/shared/store/analysis.store'
 import { Icon } from '@iconify/vue'
 import { onUnmounted, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { KitDialog, KitSkeleton, KitTooltip } from '~/components/01.kit'
 import { useTts } from '~/shared/composables/use-tts'
 import { useAnalysisStore } from '~/shared/store/analysis.store'
 
+const { t } = useI18n()
 const analysisStore = useAnalysisStore()
 const { speak, stop, isPlaying, isLoading } = useTts()
 
@@ -42,15 +44,13 @@ function playTTS() {
   }
 }
 
-onUnmounted(() => {
-  stop()
-})
+onUnmounted(() => stop())
 </script>
 
 <template>
   <KitDialog
     v-model:visible="analysisStore.sidebarOpen"
-    :title="showHistory ? 'История сессии' : 'Анализ ИИ'"
+    :title="showHistory ? t('analysis.sessionHistory') : t('analysis.aiAnalysis')"
     :max-width="650"
     icon="mdi:robot-outline"
     :floating="!isPinned"
@@ -58,7 +58,7 @@ onUnmounted(() => {
     :key-trigger="analysisStore.sidebarSentence"
   >
     <template #header-actions>
-      <KitTooltip :text="showHistory ? 'Скрыть историю' : 'История сессии'" placement="bottom">
+      <KitTooltip :text="showHistory ? t('analysis.hideHistory') : t('analysis.sessionHistory')" placement="bottom">
         <button
           class="dialog-icon-btn"
           :class="{ 'is-active': showHistory }"
@@ -67,7 +67,7 @@ onUnmounted(() => {
           <Icon icon="mdi:history" />
         </button>
       </KitTooltip>
-      <KitTooltip :text="isPinned ? 'Открепить (свободное перемещение)' : 'Закрепить окно'" placement="bottom-end">
+      <KitTooltip :text="isPinned ? t('analysis.unpin') : t('analysis.pin')" placement="bottom-end">
         <button
           class="dialog-icon-btn pin-btn"
           :class="{ 'is-active': !isPinned }"
@@ -80,7 +80,7 @@ onUnmounted(() => {
 
     <div v-if="showHistory" class="history-content">
       <div v-if="analysisStore.analysisHistory.length === 0" class="empty-history">
-        Вы еще не анализировали предложения в этой сессии.
+        {{ t('analysis.noSentencesAnalyzed') }}
       </div>
       <div v-else class="history-list">
         <div
@@ -108,7 +108,7 @@ onUnmounted(() => {
         <KitSkeleton width="80%" height="20px" class="mb-3" />
         <KitSkeleton width="90%" height="20px" />
         <p class="loading-text">
-          Анализ...
+          {{ t('analysis.analyzing') }}
         </p>
       </div>
 
@@ -122,7 +122,7 @@ onUnmounted(() => {
               {{ analysisStore.sidebarAnalysis.transcription }}
             </div>
           </div>
-          <KitTooltip text="Озвучить" placement="top-end">
+          <KitTooltip :text="t('analysis.voice')" placement="top-end">
             <button class="tts-btn" @click="playTTS">
               <Icon
                 :icon="isLoading ? 'mdi:loading' : (isPlaying ? 'mdi:volume-high' : 'mdi:volume-medium')"
@@ -133,14 +133,14 @@ onUnmounted(() => {
         </div>
 
         <div class="analysis-block">
-          <h3><Icon icon="mdi:translate" class="inline-icon" /> Перевод</h3>
+          <h3><Icon icon="mdi:translate" class="inline-icon" /> {{ t('analysis.translation') }}</h3>
           <p class="translation-text">
             {{ analysisStore.sidebarAnalysis.translation }}
           </p>
         </div>
 
         <div v-if="analysisStore.sidebarAnalysis.grammarRules?.length" class="analysis-block">
-          <h3><Icon icon="mdi:puzzle-outline" class="inline-icon" /> Грамматика</h3>
+          <h3><Icon icon="mdi:puzzle-outline" class="inline-icon" /> {{ t('analysis.grammar') }}</h3>
           <div v-for="(rule, idx) in analysisStore.sidebarAnalysis.grammarRules" :key="idx" class="grammar-card">
             <div class="rule-pattern">
               {{ rule.pattern }}
@@ -149,13 +149,13 @@ onUnmounted(() => {
               {{ rule.explanation }}
             </div>
             <div v-if="rule.example" class="rule-ex">
-              Пример: {{ rule.example }}
+              {{ t('analysis.example') }}: {{ rule.example }}
             </div>
           </div>
         </div>
 
         <div v-if="analysisStore.sidebarAnalysis.vocabulary?.length" class="analysis-block">
-          <h3><Icon icon="mdi:book-open-page-variant-outline" class="inline-icon" /> Лексика</h3>
+          <h3><Icon icon="mdi:book-open-page-variant-outline" class="inline-icon" /> {{ t('analysis.vocabulary') }}</h3>
           <ul class="vocab-list">
             <li v-for="(v, idx) in analysisStore.sidebarAnalysis.vocabulary" :key="idx">
               <div class="vocab-word">
@@ -166,7 +166,7 @@ onUnmounted(() => {
                 {{ v.meaning }}
               </div>
               <div v-if="v.usageInContext" class="vocab-context">
-                Контекст: {{ v.usageInContext }}
+                {{ t('analysis.context') }}: {{ v.usageInContext }}
               </div>
             </li>
           </ul>

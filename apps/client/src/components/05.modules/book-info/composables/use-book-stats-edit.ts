@@ -3,6 +3,7 @@ import { computed, reactive, watch } from 'vue'
 import { useLibraryStore } from '~/components/05.modules/library/store/library.store'
 import { useToast } from '~/shared/composables/use-toast'
 import { DIFFICULTY_SYSTEMS } from '~/shared/constants/difficulties'
+import { i18n } from '~/shared/plugins/i18n'
 
 export function useBookStatsEdit(isEditingStats: Ref<boolean>) {
   const libraryStore = useLibraryStore()
@@ -19,7 +20,7 @@ export function useBookStatsEdit(isEditingStats: Ref<boolean>) {
     const system = DIFFICULTY_SYSTEMS[lang] || DIFFICULTY_SYSTEMS.default
 
     return [
-      { label: 'Не указана', value: '' },
+      { label: i18n.global.t('dictionary.noDifficulty'), value: '' },
       ...system.map(opt => ({ label: opt.label, value: opt.value })),
     ]
   })
@@ -66,10 +67,10 @@ export function useBookStatsEdit(isEditingStats: Ref<boolean>) {
         description: editForm.description,
       })
       isEditingStats.value = false
-      toast.success('Информация о книге обновлена')
+      toast.success(i18n.global.t('library.infoUpdated'))
     }
     catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Не удалось сохранить информацию')
+      toast.error(e instanceof Error ? e.message : i18n.global.t('library.updateInfoError'))
     }
   }
 
@@ -79,10 +80,10 @@ export function useBookStatsEdit(isEditingStats: Ref<boolean>) {
     try {
       await libraryStore.analyzeFullBook(libraryStore.currentBookInfo.id)
       isEditingStats.value = false
-      toast.success('Нейросеть успешно завершила анализ!')
+      toast.success(i18n.global.t('library.aiAnalysisSuccess'))
     }
     catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Ошибка ИИ анализа')
+      toast.error(e instanceof Error ? e.message : i18n.global.t('library.aiAnalysisError'))
     }
   }
 
@@ -92,10 +93,10 @@ export function useBookStatsEdit(isEditingStats: Ref<boolean>) {
     try {
       await libraryStore.analyzeVocabulary(libraryStore.currentBookInfo.id)
       isEditingStats.value = false
-      toast.success('Лексический профиль составлен!')
+      toast.success(i18n.global.t('library.vocabProfileSuccess'))
     }
     catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Ошибка анализа лексики')
+      toast.error(e instanceof Error ? e.message : i18n.global.t('library.vocabAnalysisError'))
     }
   }
 

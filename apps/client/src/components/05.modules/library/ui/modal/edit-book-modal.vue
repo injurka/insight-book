@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import type { Book } from '~/shared/types/models'
 import { useClipboard } from '@vueuse/core'
+import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { KitBtn, KitCheckbox, KitDialog, KitImage, KitInput, KitSelect, KitTooltip } from '~/components/01.kit'
 import { useToast } from '~/shared/composables/use-toast'
-import { useEditBookForm } from '../composables/use-edit-book-form'
+import { useEditBookForm } from '../../composables/use-edit-book-form'
 
 const props = defineProps<{
   book: Book | null
@@ -16,6 +18,7 @@ const emit = defineEmits<{
 
 const { copy } = useClipboard()
 const toast = useToast()
+const { t } = useI18n()
 
 const visible = defineModel<boolean>('visible', { required: true })
 
@@ -27,76 +30,76 @@ const {
   handleDelete,
 } = useEditBookForm(toRef(props, 'book'), emit)
 
-const bookLanguageOptions = [
-  { label: 'Английский (en)', value: 'en' },
-  { label: 'Китайский (zh)', value: 'zh' },
-  { label: 'Японский (ja)', value: 'ja' },
-]
+const bookLanguageOptions = computed(() => [
+  { label: t('library.langEn'), value: 'en' },
+  { label: t('library.langZh'), value: 'zh' },
+  { label: t('library.langRu'), value: 'ru' },
+])
 
-const statusOptions = [
-  { label: 'Читаю', value: 'reading' },
-  { label: 'Хочу прочитать', value: 'to-read' },
-  { label: 'Прочитано', value: 'have-read' },
-]
+const statusOptions = computed(() => [
+  { label: t('library.statusReading'), value: 'reading' },
+  { label: t('library.statusToRead'), value: 'to-read' },
+  { label: t('library.statusRead'), value: 'have-read' },
+])
 
 function copyLink() {
   if (editingBook.value.id) {
     const link = `${window.location.origin}/book/${editingBook.value.id}`
     copy(link)
-    toast.success('Ссылка на книгу скопирована!')
+    toast.success(t('library.bookLinkCopied'))
   }
 }
 </script>
 
 <template>
-  <KitDialog v-model:visible="visible" title="Редактировать книгу" icon="mdi:file-document-edit-outline" :max-width="500">
+  <KitDialog v-model:visible="visible" :title="t('library.editBook')" icon="mdi:file-document-edit-outline" :max-width="500">
     <div class="edit-form-grid">
       <div class="form-group">
-        <label>Обложка</label>
+        <label>{{ t('library.cover') }}</label>
         <div class="edit-cover-preview" @click="editCoverInput?.click()">
           <KitImage
             :src="editingBook.coverUrl"
             fallback-icon="mdi:image-plus"
           />
           <div class="overlay">
-            Изменить
+            {{ t('bookInfo.changeCover') }}
           </div>
         </div>
         <input ref="editCoverInput" type="file" accept="image/*" hidden @change="onEditCoverChange">
       </div>
 
       <div class="form-group">
-        <label>Название</label>
-        <KitInput v-model="editingBook.title" placeholder="Название книги" />
+        <label>{{ t('opds.name') }}</label>
+        <KitInput v-model="editingBook.title" :placeholder="t('library.bookTitle')" />
       </div>
 
       <div class="form-group">
-        <label>Автор</label>
-        <KitInput v-model="editingBook.author" placeholder="Имя автора" />
+        <label>{{ t('library.author') }}</label>
+        <KitInput v-model="editingBook.author" :placeholder="t('library.authorName')" />
       </div>
 
       <div class="form-group row-group">
         <div class="form-group" style="flex: 1">
-          <label>Язык</label>
+          <label>{{ t('settings.appLanguage') }}</label>
           <KitSelect v-if="editingBook.language !== undefined" v-model="editingBook.language" :options="bookLanguageOptions" />
         </div>
         <div class="form-group" style="flex: 1">
-          <label>Статус</label>
+          <label>{{ t('dictionary.status') }}</label>
           <KitSelect v-if="editingBook.status !== undefined" v-model="editingBook.status" :options="statusOptions" />
         </div>
       </div>
 
       <div class="form-group">
-        <label>Коллекция</label>
-        <KitInput v-model="editingBook.collection" placeholder="Например: Избранное фентези" />
+        <label>{{ t('library.collection') }}</label>
+        <KitInput v-model="editingBook.collection" :placeholder="t('library.collectionPlaceholder')" />
       </div>
 
       <div class="checkbox-row">
-        <KitCheckbox v-model="editingBook.isFavorite" label="Добавить в Избранное" />
+        <KitCheckbox v-model="editingBook.isFavorite" :label="t('library.addToFavorites')" />
 
         <div class="public-wrapper">
-          <KitCheckbox v-model="editingBook.isPublic" label="Сделать публичной" />
-          <KitTooltip v-if="editingBook.isPublic" text="Скопировать ссылку для друзей" placement="top">
+          <KitCheckbox v-model="editingBook.isPublic" :label="t('library.makePublic')" />
+          <KitTooltip v-if="editingBook.isPublic" :text="t('library.copyLink')" placement="top">
             <KitBtn size="xs" variant="outlined" icon="mdi:link-variant" @click="copyLink" />
           </KitTooltip>
         </div>
@@ -104,30 +107,30 @@ function copyLink() {
 
       <div class="form-group row-group">
         <div class="form-group" style="flex: 2">
-          <label>Серия</label>
-          <KitInput v-model="editingBook.series" placeholder="Например: Гарри Поттер" />
+          <label>{{ t('library.series') }}</label>
+          <KitInput v-model="editingBook.series" :placeholder="t('library.seriesPlaceholder')" />
         </div>
         <div class="form-group" style="flex: 1">
-          <label>Том (№)</label>
+          <label>{{ t('library.volumeNumber') }}</label>
           <KitInput v-model="editingBook.seriesNumber" type="number" placeholder="1" />
         </div>
       </div>
 
       <div class="form-group">
-        <label>Дата добавления</label>
+        <label>{{ t('library.dateAdded') }}</label>
         <input v-model="editingBook.createdAt" type="datetime-local" class="native-date-input">
       </div>
     </div>
     <template #footer>
       <KitBtn variant="text" class="mr-auto" @click="handleDelete">
-        Удалить
+        {{ t('dictionary.deleteItem') }}
       </KitBtn>
       <div style="flex-grow:1" />
       <KitBtn variant="tonal" @click="visible = false">
-        Отмена
+        {{ t('dictionary.cancel') }}
       </KitBtn>
       <KitBtn color="primary" @click="handleSave">
-        Сохранить
+        {{ t('dictionary.save') }}
       </KitBtn>
     </template>
   </KitDialog>

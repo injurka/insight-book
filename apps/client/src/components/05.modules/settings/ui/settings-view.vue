@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { Icon } from '@iconify/vue'
 import { computed, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
-import { KitBtn, KitCheckbox, KitInput, KitSkeleton, KitTooltip } from '~/components/01.kit'
+import { KitBtn, KitCheckbox, KitInput, KitSelect, KitSkeleton, KitTooltip } from '~/components/01.kit'
 import { HoverRevealBg } from '~/components/02.shared/hover-reveal-bg'
 import { AppRoutePaths } from '~/shared/constants/routes'
 import { useCacheStore } from '~/shared/store/cache.store'
@@ -12,6 +13,13 @@ import { formatBytes, formatPagesList } from '../lib/formatters'
 const cacheStore = useCacheStore()
 const settingsStore = useGlobalSettingsStore()
 const router = useRouter()
+const { t } = useI18n()
+
+const appLangOptions = [
+  { label: 'Русский', value: 'ru' },
+  { label: 'English', value: 'en' },
+  { label: '中文', value: 'cn' },
+]
 
 onMounted(() => {
   cacheStore.loadStats()
@@ -22,6 +30,18 @@ const storagePercent = computed(() => {
     return 0
   return Math.min(100, Math.round((cacheStore.deviceStorage.usage / cacheStore.deviceStorage.quota) * 100))
 })
+
+const activeBookStats = computed(() => {
+  if (!cacheStore.stats?.bookStats)
+    return {}
+  const res: Record<string, any> = {}
+  for (const [id, book] of Object.entries(cacheStore.stats.bookStats)) {
+    if (book.sizeBytes > 0 || book.cachedPages.length > 0 || book.analysesCount > 0) {
+      res[id] = book
+    }
+  }
+  return res
+})
 </script>
 
 <template>
@@ -31,37 +51,46 @@ const storagePercent = computed(() => {
     <header class="page-header">
       <KitBtn icon="mdi:arrow-left" variant="text" @click="router.push(AppRoutePaths.Home)" />
       <div class="header-title">
-        <h1>Настройки</h1>
-        <p>Память, оффлайн режим и ИИ</p>
+        <h1>{{ t('settings.title') }}</h1>
+        <p>{{ t('settings.subtitle') }}</p>
       </div>
     </header>
 
     <div class="content">
+      <!-- Настройки Интерфейса -->
+      <h2 class="section-title">
+        {{ t('settings.interfaceTitle') }}
+      </h2>
+      <div class="settings-card lang-card">
+        <div class="form-group">
+          <label>{{ t('settings.appLanguage') }}</label>
+          <KitSelect v-model="settingsStore.appLanguage" :options="appLangOptions" />
+        </div>
+      </div>
+
       <!-- Настройки ИИ -->
       <h2 class="section-title">
-        Искусственный интеллект
+        {{ t('settings.aiTitle') }}
       </h2>
       <div class="settings-card llm-card">
         <div class="llm-toggle">
-          <KitCheckbox v-model="settingsStore.useCustomLlm" label="Использовать локальный/собственный LLM (Ollama, LM Studio и др.)" />
+          <KitCheckbox v-model="settingsStore.useCustomLlm" :label="t('settings.useCustomLlm')" />
         </div>
 
         <Transition name="fade">
           <div v-if="settingsStore.useCustomLlm" class="custom-llm-form">
-            <p class="hint">
-              Укажите эндпоинт, совместимый с OpenAI API. Убедитесь, что ваш сервер разрешает CORS-запросы (например, для Ollama <code>OLLAMA_ORIGINS="*"</code>).
-            </p>
+            <p class="hint" v-html="t('settings.customLlmHint')" />
             <div class="form-row">
               <div class="form-group flex-2">
-                <label>API URL</label>
+                <label>{{ t('settings.apiUrl') }}</label>
                 <KitInput v-model="settingsStore.customLlmUrl" placeholder="http://localhost:11434/v1" />
               </div>
               <div class="form-group flex-1">
-                <label>Название модели</label>
+                <label>{{ t('settings.modelName') }}</label>
                 <KitInput v-model="settingsStore.customLlmModel" placeholder="llama3, qwen2..." />
               </div>
               <div class="form-group flex-1">
-                <label>API Key</label>
+                <label>{{ t('settings.apiKey') }}</label>
                 <KitInput v-model="settingsStore.customLlmKey" placeholder="Любой ключ" />
               </div>
             </div>
@@ -71,29 +100,29 @@ const storagePercent = computed(() => {
 
       <!-- Хранилище -->
       <h2 class="section-title">
-        Локальная память
+        {{ t('settings.storageTitle') }}
       </h2>
 
       <div class="settings-card quota-card">
         <div class="quota-header">
           <div class="quota-title">
-            <h3>Хранилище браузера</h3>
+            <h3>{{ t('settings.browserStorage') }}</h3>
             <KitTooltip
               v-if="cacheStore.isPersisted"
-              text="Браузер не удалит ваши данные при нехватке места"
+              :text="t('settings.protectedHint')"
               placement="top"
             >
               <div class="badge-safe">
-                <Icon icon="mdi:shield-check" /> Защищено
+                <Icon icon="mdi:shield-check" /> {{ t('settings.protected') }}
               </div>
             </KitTooltip>
             <KitTooltip
               v-else
-              text="При нехватке памяти браузер может автоматически удалить кэш"
+              :text="t('settings.notProtectedHint')"
               placement="top"
             >
               <div class="badge-warn">
-                <Icon icon="mdi:shield-alert-outline" /> Не защищено
+                <Icon icon="mdi:shield-alert-outline" /> {{ t('settings.notProtected') }}
               </div>
             </KitTooltip>
           </div>
@@ -115,25 +144,25 @@ const storagePercent = computed(() => {
           />
         </div>
         <p class="quota-desc">
-          Показан общий объем, выделенный браузером. Само приложение занимает около {{ formatBytes(cacheStore.stats?.totalSizeBytes || 0) }}.
+          {{ t('settings.quotaDesc').replace('{size}', formatBytes(cacheStore.stats?.totalSizeBytes || 0)) }}
         </p>
       </div>
 
       <div class="settings-card total-card">
         <div class="stat-item">
-          <span class="label">Занято базой данных:</span>
+          <span class="label">{{ t('settings.dbUsage') }}</span>
           <KitSkeleton v-if="cacheStore.isLoading && !cacheStore.stats" width="120px" height="32px" color="var(--bg-tertiary-color)" />
           <span v-else class="value text-accent">{{ formatBytes(cacheStore.stats?.totalSizeBytes || 0) }}</span>
         </div>
         <div class="stat-item">
-          <span class="label">Слов в словаре:</span>
+          <span class="label">{{ t('settings.dictWords') }}</span>
           <KitSkeleton v-if="cacheStore.isLoading && !cacheStore.stats" width="80px" height="32px" color="var(--bg-tertiary-color)" />
           <span v-else class="value">{{ cacheStore.stats?.totalDictionaryWords || 0 }}</span>
         </div>
       </div>
 
       <h2 class="section-title">
-        Сохраненные данные книг
+        {{ t('settings.savedBooksData') }}
       </h2>
       <div class="books-list">
         <template v-if="cacheStore.isLoading && !cacheStore.stats">
@@ -173,7 +202,7 @@ const storagePercent = computed(() => {
 
         <template v-else-if="cacheStore.stats">
           <div
-            v-for="(book, id) in cacheStore.stats.bookStats"
+            v-for="(book, id) in activeBookStats"
             :key="id"
             class="settings-card book-cache-card"
           >
@@ -189,7 +218,6 @@ const storagePercent = computed(() => {
                 icon="mdi:delete-outline"
                 variant="outlined"
                 class="delete-btn"
-                :disabled="book.cachedPages.length === 0 && book.analysesCount === 0 && book.sizeBytes === 0"
                 @click="cacheStore.clearBookCache(Number(id))"
               />
             </div>
@@ -202,11 +230,11 @@ const storagePercent = computed(() => {
                 </div>
                 <div class="badge">
                   <Icon icon="mdi:robot-outline" />
-                  <span>Анализов ИИ: <b>{{ book.analysesCount }}</b></span>
+                  <span>{{ t('settings.cacheAiAnalyses') }} <b>{{ book.analysesCount }}</b></span>
                 </div>
                 <div class="badge">
                   <Icon icon="mdi:file-document-edit-outline" />
-                  <span>Страниц в кэше: <b>{{ book.cachedPages.length }} / {{ book.totalPages }}</b></span>
+                  <span>{{ t('settings.cachePages') }} <b>{{ book.cachedPages.length }} / {{ book.totalPages }}</b></span>
                 </div>
               </div>
 
@@ -218,21 +246,19 @@ const storagePercent = computed(() => {
                   />
                 </div>
                 <div class="progress-footer">
-                  <span class="progress-text">
-                    Оффлайн доступно <b>{{ book.totalPages > 0 ? Math.round((book.cachedPages.length / book.totalPages) * 100) : 0 }}%</b> книги
-                  </span>
+                  <span class="progress-text" v-html="t('settings.offlineAvailable').replace('{percent}', `<b>${book.totalPages > 0 ? Math.round((book.cachedPages.length / book.totalPages) * 100) : 0}</b>`)" />
 
                   <KitTooltip v-if="book.cachedPages.length > 0" :text="formatPagesList(book.cachedPages)" placement="top-end">
-                    <span class="pages-list-hint">Номера страниц</span>
+                    <span class="pages-list-hint">{{ t('settings.pageNumbers') }}</span>
                   </KitTooltip>
                 </div>
               </div>
             </div>
           </div>
 
-          <div v-if="Object.keys(cacheStore.stats.bookStats).length === 0" class="empty-state">
+          <div v-if="Object.keys(activeBookStats).length === 0" class="empty-state">
             <Icon icon="mdi:folder-open-outline" class="empty-icon" />
-            <p>Книг в библиотеке нет.</p>
+            <p>{{ t('settings.noBooks') }}</p>
           </div>
         </template>
       </div>
@@ -287,6 +313,20 @@ const storagePercent = computed(() => {
   border-radius: 12px;
   border: 1px solid var(--border-secondary-color);
   margin-bottom: 16px;
+}
+
+.lang-card {
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+
+    label {
+      font-size: 0.85rem;
+      font-weight: 500;
+      color: var(--fg-secondary-color);
+    }
+  }
 }
 
 .llm-card {
@@ -598,7 +638,7 @@ const storagePercent = computed(() => {
         color: var(--fg-secondary-color);
         display: inline-flex;
         align-items: center;
-        b {
+        :deep(b) {
           color: var(--fg-primary-color);
           margin: 0 4px;
         }

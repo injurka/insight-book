@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Icon } from '@iconify/vue'
 import { computed, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { KitBtn, KitDialog, KitInput } from '~/components/01.kit'
 import { useLibraryStore } from '~/components/05.modules/library/store/library.store'
 import { useToast } from '~/shared/composables/use-toast'
@@ -8,6 +9,7 @@ import { useToast } from '~/shared/composables/use-toast'
 const visible = defineModel<boolean>('visible', { required: true })
 const store = useLibraryStore()
 const toast = useToast()
+const { t } = useI18n()
 
 const isUploading = ref(false)
 const chapterTitle = ref('')
@@ -16,7 +18,6 @@ const selectedFiles = ref<File[]>([])
 function onFilesChange(e: Event) {
   const target = e.target as HTMLInputElement
   if (target.files && target.files.length > 0) {
-    // Сортируем так же, как и при массовой загрузке
     selectedFiles.value = Array.from(target.files).sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }))
   }
 }
@@ -32,7 +33,6 @@ async function submit() {
     await store.uploadMangaChapter(store.currentBookInfo.id, chapterTitle.value, selectedFiles.value)
     toast.success(`Успешно добавлено ${selectedFiles.value.length} страниц`)
 
-    // Очистка и закрытие
     visible.value = false
     chapterTitle.value = ''
     selectedFiles.value = []
@@ -47,37 +47,37 @@ async function submit() {
 </script>
 
 <template>
-  <KitDialog v-model:visible="visible" title="Добавление страниц" icon="mdi:image-plus" :max-width="500" :persistent="isUploading">
+  <KitDialog v-model:visible="visible" :title="t('bookInfo.addPages')" icon="mdi:image-plus" :max-width="500" :persistent="isUploading">
     <div v-if="isUploading" class="uploading-state">
       <Icon icon="mdi:cloud-upload-outline" class="spin-icon pulse" />
-      <h3>Загрузка страниц...</h3>
-      <p>Пожалуйста, подождите. Это может занять некоторое время.</p>
+      <h3>{{ t('library.downloadingBook') }}</h3>
+      <p>{{ t('bookStats.takesFewSeconds') }}</p>
     </div>
 
     <div v-else class="form-content">
       <div class="form-group">
-        <label>Название главы (опционально)</label>
-        <KitInput v-model="chapterTitle" placeholder="Например: Глава 2" />
-        <span class="hint">Если оставить пустым, страницы просто добавятся в конец.</span>
+        <label>{{ t('library.chapterTitlePlaceholder') }}</label>
+        <KitInput v-model="chapterTitle" :placeholder="t('library.chapterTitlePlaceholder')" />
+        <span class="hint">{{ t('bookInfo.chapterTitleHint') }}</span>
       </div>
 
       <div class="form-group">
-        <label>Страницы (изображения)</label>
+        <label>{{ t('bookInfo.pagesImages') }}</label>
         <input id="append-files-input" type="file" multiple accept="image/jpeg, image/png, image/webp" class="hidden-file-input" @change="onFilesChange">
 
         <label for="append-files-input" class="file-drop-area" :class="{ 'has-files': selectedFiles.length > 0 }">
           <Icon :icon="selectedFiles.length > 0 ? 'mdi:check-circle' : 'mdi:image-multiple-outline'" />
-          <span>{{ selectedFiles.length > 0 ? `Выбрано изображений: ${selectedFiles.length}` : 'Нажмите, чтобы выбрать изображения' }}</span>
+          <span>{{ selectedFiles.length > 0 ? t('library.selectedCount', { count: selectedFiles.length }) : t('library.clickToSelect') }}</span>
         </label>
       </div>
     </div>
 
     <template v-if="!isUploading" #footer>
       <KitBtn variant="tonal" @click="visible = false">
-        Отмена
+        {{ t('dictionary.cancel') }}
       </KitBtn>
       <KitBtn color="primary" :disabled="!canSubmit" @click="submit">
-        Добавить
+        {{ t('library.addBook') }}
       </KitBtn>
     </template>
   </KitDialog>

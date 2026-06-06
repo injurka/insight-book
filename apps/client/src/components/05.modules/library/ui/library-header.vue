@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { KitBtn, KitInput, KitSelect } from '~/components/01.kit'
 import { GlobalActions } from '~/components/04.features/global-actions'
 import { useAuthStore } from '~/shared/store/auth.store'
@@ -19,6 +20,7 @@ const search = defineModel<string>('search', { required: true })
 const lang = defineModel<string>('lang', { required: true })
 
 const authStore = useAuthStore()
+const { t } = useI18n()
 const isMobileFiltersOpen = ref(false)
 </script>
 
@@ -34,7 +36,7 @@ const isMobileFiltersOpen = ref(false)
         />
         <div class="header-title">
           <h1>Insight Book</h1>
-          <p>Ваша умная библиотека для изучения языков</p>
+          <p>{{ t('library.headerSubtitle') }}</p>
         </div>
       </div>
 
@@ -43,7 +45,7 @@ const isMobileFiltersOpen = ref(false)
 
     <div class="header-bottom">
       <div class="search-wrapper">
-        <KitInput v-model="search" placeholder="Поиск книг..." size="md" class="search-input" />
+        <KitInput v-model="search" :placeholder="t('library.searchPlaceholder')" size="md" class="search-input" />
 
         <KitBtn
           class="mobile-filter-btn"
@@ -59,7 +61,7 @@ const isMobileFiltersOpen = ref(false)
           v-model="lang"
           :options="langOptions"
           size="md"
-          aria-label="Выбор языка"
+          :aria-label="t('library.selectLanguage')"
           class="lang-select"
         />
 
@@ -67,7 +69,7 @@ const isMobileFiltersOpen = ref(false)
 
         <div class="header-actions">
           <KitBtn v-if="authStore.user" icon="mdi:upload" color="primary" @click="emit('openUploadModal')">
-            Добавить
+            {{ t('library.addBook') }}
           </KitBtn>
         </div>
       </div>

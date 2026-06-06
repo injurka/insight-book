@@ -1,4 +1,5 @@
 import type { UserDictItem } from '~/shared/types/models'
+import { i18n } from '~/shared/plugins/i18n'
 
 // Вычисление расстояния Левенштейна для проверки опечаток
 function getLevenshteinDistance(a: string, b: string): number {
@@ -53,7 +54,7 @@ export function useSrsQuiz() {
     }
 
     // Фолбеки на случай, если в словаре пользователя мало слов
-    const fallbacks = ['Яблоко', 'Бежать', 'Быстрый', 'Красиво', 'Вчера', 'Окно', 'Смотреть', 'Дом', 'Время', 'Делать']
+    const fallbacks = (i18n.global.t('srs.fallbackWords') as string).split(',')
     let i = 0
     while (distractors.size < count && i < fallbacks.length) {
       distractors.add(fallbacks[i])

@@ -1,6 +1,7 @@
 <script lang="ts" setup>
 import { Icon } from '@iconify/vue'
 import { useDraggable } from '@vueuse/core'
+import { useI18n } from 'vue-i18n'
 import { useDialogHistory } from '../composables/use-dialog-history'
 import { useDialogResize } from '../composables/use-dialog-resize'
 import { useDialogSwipe } from '../composables/use-dialog-swipe'
@@ -26,6 +27,7 @@ const props = withDefaults(defineProps<Props>(), {
   minimizable: true,
 })
 
+const { t } = useI18n()
 const visible = defineModel<boolean>('visible', { required: true })
 const dialogId = useId()
 
@@ -33,15 +35,12 @@ const dialogContentRef = ref<HTMLElement | null>(null)
 const dialogHeaderRef = ref<HTMLElement | null>(null)
 const isMinimized = ref(false)
 
-// Props to Refs for Composables
 const isFloatingRef = computed(() => props.floating)
 const isResizableRef = computed(() => props.resizable)
 const isMinimizableRef = computed(() => props.minimizable)
 
-// --- History API (Back Button) ---
 useDialogHistory(dialogId, visible)
 
-// --- Dragging (Desktop Floating) ---
 const initialX = typeof window !== 'undefined' ? Math.max((window.innerWidth - props.maxWidth) / 2, 0) : 0
 const initialY = typeof window !== 'undefined' ? 100 : 0
 
@@ -50,7 +49,6 @@ const { x, y, style: dragStyle } = useDraggable(dialogContentRef, {
   handle: dialogHeaderRef,
 })
 
-// --- Swiping (Mobile Bottom Sheet) ---
 const { isMobile, isSwiping, direction, swipeOffset } = useDialogSwipe({
   headerRef: dialogHeaderRef,
   visible,
@@ -59,7 +57,6 @@ const { isMobile, isSwiping, direction, swipeOffset } = useDialogSwipe({
   isMinimizable: isMinimizableRef,
 })
 
-// --- Resizing ---
 const { dialogWidth, dialogHeight, hasResized, startResize, resetResize } = useDialogResize({
   dialogContentRef,
   x,
@@ -169,16 +166,16 @@ onUnmounted(() => {
               <button
                 v-if="minimizable"
                 class="dialog-icon-btn minimize-button"
-                :aria-label="`Свернуть диалог ${title ?? ''}`"
-                title="Свернуть"
+                :aria-label="t('kit.dialog.minimize')"
+                :title="t('kit.dialog.minimize')"
                 @click="isMinimized = true"
               >
                 <Icon icon="mdi:minus" />
               </button>
               <button
                 class="dialog-icon-btn close-button"
-                :aria-label="`Закрыть диалог ${title ?? ''}`"
-                title="Закрыть"
+                :aria-label="t('kit.dialog.close')"
+                :title="t('kit.dialog.close')"
                 @click="visible = false"
               >
                 <Icon icon="mdi:close" />
@@ -205,7 +202,7 @@ onUnmounted(() => {
       <button
         v-if="visible && isMinimized"
         class="dialog-minimized-fab"
-        :title="title || 'Развернуть'"
+        :title="title || t('kit.dialog.expand')"
         @click="isMinimized = false"
       >
         <Icon :icon="icon || 'mdi:chevron-up'" />
@@ -226,18 +223,15 @@ onUnmounted(() => {
   white-space: nowrap;
   border: 0;
 }
-
 .dialog-root {
   position: relative;
   z-index: var(--z-modal, 1200);
 }
-
 .dialog-overlay {
   background-color: rgba(0, 0, 0, 0.4);
   position: fixed;
   inset: 0;
   top: env(safe-area-inset-top);
-
   .dialog-enter-active & {
     animation: overlay-show 200ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
   }
@@ -245,7 +239,6 @@ onUnmounted(() => {
     animation: overlay-hide 200ms cubic-bezier(0.7, 0, 0.84, 0) forwards;
   }
 }
-
 .dialog-content-wrapper {
   position: fixed;
   top: 50%;
@@ -260,11 +253,9 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   box-shadow: none;
-
   &:focus {
     outline: none;
   }
-
   &:not(.is-floating) {
     .dialog-enter-active & {
       animation: content-warp-in 250ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
@@ -273,13 +264,11 @@ onUnmounted(() => {
       animation: content-warp-out 200ms cubic-bezier(0.7, 0, 0.84, 0) forwards;
     }
   }
-
   &.is-floating {
     transform: none !important;
     animation: none !important;
     margin: 0;
   }
-
   @include media-down(sm) {
     padding: 12px;
     top: auto;
@@ -291,14 +280,11 @@ onUnmounted(() => {
     border-bottom-left-radius: 0;
     border-bottom-right-radius: 0;
     max-height: 92dvh !important;
-
     transform: translateY(var(--swipe-offset, 0));
     transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.5, 1);
-
     &.is-dragging {
       transition: none;
     }
-
     &:not(.is-floating) {
       .dialog-enter-active & {
         animation: content-slide-up 300ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
@@ -310,7 +296,6 @@ onUnmounted(() => {
     }
   }
 }
-
 .dialog-header {
   position: relative;
   display: flex;
@@ -318,21 +303,17 @@ onUnmounted(() => {
   align-items: center;
   flex-shrink: 0;
   margin-bottom: 12px;
-
   &.is-draggable {
     cursor: grab;
     user-select: none;
-
     &:active {
       cursor: grabbing;
     }
   }
 }
-
 .mobile-drag-indicator {
   display: none;
 }
-
 @include media-down(sm) {
   .mobile-drag-indicator {
     display: block;
@@ -345,42 +326,35 @@ onUnmounted(() => {
     border-radius: 2px;
     background-color: var(--border-primary-color);
   }
-
   .dialog-header {
     padding-top: 14px;
   }
 }
-
 .title-container {
   display: flex;
   align-items: center;
   gap: 10px;
   color: var(--fg-primary-color);
 }
-
 .title-icon {
   font-size: 1.25rem;
 }
-
 .dialog-title {
   font-size: 1.125rem;
   font-weight: 600;
   margin: 0;
 }
-
 .dialog-description {
   font-size: 0.875rem;
   color: var(--fg-secondary-color);
   margin-top: -8px;
   margin-bottom: 0;
 }
-
 .header-actions {
   display: flex;
   align-items: center;
   gap: 4px;
 }
-
 .dialog-icon-btn,
 :slotted(.dialog-icon-btn) {
   background: transparent;
@@ -397,20 +371,17 @@ onUnmounted(() => {
   font-size: 1.25rem;
   width: 32px;
   height: 32px;
-
   &:hover,
   &.is-active {
     background-color: var(--bg-hover-color);
     color: var(--fg-accent-color);
   }
 }
-
 .dialog-body {
   flex-grow: 1;
   overflow-y: auto;
   touch-action: pan-y;
 }
-
 .dialog-footer {
   flex-shrink: 0;
   padding-top: 16px;
@@ -418,7 +389,6 @@ onUnmounted(() => {
   justify-content: flex-end;
   gap: 8px;
 }
-
 .dialog-minimized-fab {
   position: fixed;
   bottom: calc(env(safe-area-inset-bottom, 20px) + 20px);
@@ -442,7 +412,6 @@ onUnmounted(() => {
     background-color 0.2s,
     transform 0.2s;
   outline: none;
-
   &:hover,
   &:active {
     border-color: var(--fg-accent-color);
@@ -451,7 +420,6 @@ onUnmounted(() => {
     transform: translateY(-2px);
   }
 }
-
 .fab-zoom-enter-active,
 .fab-zoom-leave-active {
   transition:
@@ -463,7 +431,6 @@ onUnmounted(() => {
   opacity: 0;
   transform: scale(0.5) translateY(20px);
 }
-
 @keyframes overlay-show {
   from {
     opacity: 0;
@@ -480,7 +447,6 @@ onUnmounted(() => {
     opacity: 0;
   }
 }
-
 @keyframes content-warp-in {
   from {
     opacity: 0;
@@ -505,7 +471,6 @@ onUnmounted(() => {
     filter: blur(8px);
   }
 }
-
 @keyframes content-slide-up {
   from {
     opacity: 0;

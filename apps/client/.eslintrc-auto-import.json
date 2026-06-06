@@ -1,7 +1,9 @@
 {
   "globals": {
+    "ALLOWED_TAG_KEYS": true,
     "AppRouteNames": true,
     "AppRoutePaths": true,
+    "BOOK_TAGS": true,
     "Component": true,
     "ComponentPublicInstance": true,
     "ComputedRef": true,
@@ -21,6 +23,7 @@
     "ShallowRef": true,
     "Slot": true,
     "Slots": true,
+    "TagKey": true,
     "ThemesVariant": true,
     "VNode": true,
     "WritableComputedRef": true,

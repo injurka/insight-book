@@ -93,13 +93,15 @@ export interface DictConnection {
 
 const dictConnections = new Map<string, DictConnection>()
 
-export function getDictConnection(language: string): DictConnection | null {
+export function getDictConnection(language: string, targetLanguage: string): DictConnection | null {
   const lang = language.toLowerCase()
+  const target = targetLanguage.toLowerCase()
+  const cacheKey = `${lang}_${target}`
 
-  if (dictConnections.has(lang))
-    return dictConnections.get(lang)!
+  if (dictConnections.has(cacheKey))
+    return dictConnections.get(cacheKey)!
 
-  const specificPath = path.join(DICTS_PATH, `dict_${lang}.sqlite`)
+  const specificPath = path.join(DICTS_PATH, `dict_${lang}_${target}.sqlite`)
 
   if (existsSync(specificPath)) {
     const dictDb = new Database(specificPath)

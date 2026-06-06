@@ -1,4 +1,4 @@
-import type { Book, BookStats, DictDeck, GeneratedWordExamples, LlmAnalysis, OpdsCatalog, OpdsFeed, PagePayload, TocItem, UserDictItem, WordAutoFillResponse } from '../types/models'
+import type { Book, BookStats, DictDeck, GeneratedWordExamples, LlmAnalysis, OpdsCatalog, OpdsFeed, PageDictEntry, PagePayload, TocItem, UserDictItem, WordAutoFillResponse } from '../types/models'
 import { getActivePinia } from 'pinia'
 import { useGlobalSettingsStore } from '../store/settings.store'
 
@@ -14,11 +14,25 @@ async function request<T>(url: string, opts?: RequestInit): Promise<T> {
 
   if (getActivePinia()) {
     const settings = useGlobalSettingsStore()
+
+    if (settings.appLanguage) {
+      headers.set('Accept-Language', settings.appLanguage)
+    }
+
     if (settings.useCustomLlm && settings.customLlmUrl && settings.customLlmModel) {
       headers.set('X-Custom-Llm-Url', settings.customLlmUrl)
       headers.set('X-Custom-Llm-Key', settings.customLlmKey || '')
       headers.set('X-Custom-Llm-Model', settings.customLlmModel)
     }
+  }
+  else {
+    try {
+      const savedLang = localStorage.getItem('global-app-language')
+      if (savedLang) {
+        headers.set('Accept-Language', JSON.parse(savedLang))
+      }
+    }
+    catch (e) { }
   }
 
   const res = await fetch(`${BASE}${url}`, { ...opts, headers })
@@ -94,6 +108,9 @@ export const api = {
 
     getPage: (bookId: number, page: number, isSync?: boolean) =>
       request<PagePayload>(`/api/books/${bookId}/page/${page}${isSync ? '?sync=true' : ''}`),
+
+    getPageDict: (bookId: number, page: number) =>
+      request<{ pageDictionary: Record<string, PageDictEntry> }>(`/api/books/${bookId}/page/${page}/dict`),
 
     lookupWord: (bookId: number, word: string, signal?: AbortSignal) =>
       request<{ transcription: string, translation: string, isUserDict?: boolean }>(`/api/books/${bookId}/word/${encodeURIComponent(word)}`, { signal }),

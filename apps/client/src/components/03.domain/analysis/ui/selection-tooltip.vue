@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import { Icon } from '@iconify/vue'
 import { useDebounceFn } from '@vueuse/core'
+import { useI18n } from 'vue-i18n'
 import { useTts } from '~/shared/composables/use-tts'
 import { useAnalysisStore } from '~/shared/store/analysis.store'
 
 const analysisStore = useAnalysisStore()
 const { speak, stop, isPlaying, isLoading } = useTts()
+const { t } = useI18n()
 
 const popoverRef = ref<HTMLElement | null>(null)
 const popoverPos = ref({ top: '-9999px', left: '-9999px', transform: 'none' })
@@ -153,17 +155,17 @@ onUnmounted(() => {
         @touchstart.stop
         @click.stop
       >
-        <button class="tooltip-btn" title="Анализ ИИ" @click="analyzeFragment">
+        <button class="tooltip-btn" :title="t('analysis.aiAnalysis')" @click="analyzeFragment">
           <Icon icon="mdi:robot-outline" />
-          <span>Анализ</span>
+          <span>{{ t('analysis.aiAnalysis') }}</span>
         </button>
         <div class="divider" />
-        <button class="tooltip-btn" title="Озвучить" @click="playTTS">
+        <button class="tooltip-btn" :title="t('analysis.voice')" @click="playTTS">
           <Icon
             :icon="isLoading ? 'mdi:loading' : (isPlaying ? 'mdi:volume-high' : 'mdi:volume-medium')"
             :class="{ 'pulse-animation': isPlaying, 'spin-animation': isLoading }"
           />
-          <span>Слушать</span>
+          <span>{{ t('analysis.listen') }}</span>
         </button>
       </div>
     </Transition>

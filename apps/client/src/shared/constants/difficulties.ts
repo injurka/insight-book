@@ -5,14 +5,23 @@ export interface DifficultyLevel {
 }
 
 export const DIFFICULTY_SYSTEMS: Record<string, DifficultyLevel[]> = {
+  // Универсальная система уровней для вкладки "Все языки"
+  all: [
+    { value: 'level_1', label: 'Начальный', level: 1 },
+    { value: 'level_2', label: 'Базовый', level: 2 },
+    { value: 'level_3', label: 'Средний', level: 3 },
+    { value: 'level_4', label: 'Выше среднего', level: 4 },
+    { value: 'level_5', label: 'Продвинутый', level: 5 },
+    { value: 'level_6', label: 'Владение', level: 6 },
+  ],
   // Для европейских языков (Английский, Французский, Немецкий и т.д.)
   default: [
-    { value: 'A1', label: 'A1 (Начальный)', level: 1 },
-    { value: 'A2', label: 'A2 (Базовый)', level: 2 },
-    { value: 'B1', label: 'B1 (Средний)', level: 3 },
-    { value: 'B2', label: 'B2 (Выше среднего)', level: 4 },
-    { value: 'C1', label: 'C1 (Продвинутый)', level: 5 },
-    { value: 'C2', label: 'C2 (Владение)', level: 6 },
+    { value: 'A1', label: 'A1', level: 1 },
+    { value: 'A2', label: 'A2', level: 2 },
+    { value: 'B1', label: 'B1', level: 3 },
+    { value: 'B2', label: 'B2', level: 4 },
+    { value: 'C1', label: 'C1', level: 5 },
+    { value: 'C2', label: 'C2', level: 6 },
   ],
   // Для китайского
   zh: [

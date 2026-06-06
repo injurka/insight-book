@@ -1,16 +1,21 @@
 <script setup lang="ts">
 import { Icon } from '@iconify/vue'
 import { computed, onMounted, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { KitBtn, KitInput, KitSelect } from '~/components/01.kit'
 import { useLibraryStore } from '~/components/05.modules/library/store/library.store'
+import { BOOK_TAGS } from '~/shared/constants/tags'
 import { useAuthStore } from '~/shared/store/auth.store'
 import { useCacheStore } from '~/shared/store/cache.store'
+import { useGlobalSettingsStore } from '~/shared/store/settings.store'
 import { useBookStatsEdit } from '../composables/use-book-stats-edit'
 import { formatNumber } from '../lib/formatters'
 
 const libraryStore = useLibraryStore()
 const cacheStore = useCacheStore()
 const authStore = useAuthStore()
+const settingsStore = useGlobalSettingsStore()
+const { t } = useI18n()
 
 const isEditingStats = defineModel<boolean>('isEditing', { default: false })
 
@@ -27,6 +32,26 @@ const bookCacheStats = computed(() => {
   if (!cacheStore.stats || !libraryStore.currentBookInfo)
     return null
   return cacheStore.stats.bookStats[libraryStore.currentBookInfo.id] || { cachedPages: [], analysesCount: 0 }
+})
+
+const bookDescription = computed(() => {
+  const desc = libraryStore.currentBookInfo?.stats?.description
+  if (!desc)
+    return t('bookStats.noDescription')
+  try {
+    const parsed = JSON.parse(desc)
+    return parsed[settingsStore.appLanguage] || parsed.ru || desc
+  }
+  catch {
+    return desc
+  }
+})
+
+const localizedTags = computed(() => {
+  const tags = libraryStore.currentBookInfo?.stats?.tags || []
+  return tags.map((tag: string) => {
+    return (BOOK_TAGS as any)[tag]?.[settingsStore.appLanguage] || tag
+  })
 })
 
 watch(() => libraryStore.syncState, (val) => {
@@ -46,12 +71,12 @@ onMounted(() => {
       {{ libraryStore.currentBookInfo.title }}
     </h1>
     <p class="book-author">
-      {{ libraryStore.currentBookInfo.author || 'Автор не указан' }}
+      {{ libraryStore.currentBookInfo.author || t('bookStats.authorNotSpecified') }}
     </p>
 
     <div class="progress-section">
       <div class="progress-text">
-        Прогресс: Страница {{ libraryStore.currentBookInfo.currentPage || 1 }} из {{ formatNumber(libraryStore.currentBookInfo.totalPages) }}
+        {{ t('bookStats.progressPage') }} {{ libraryStore.currentBookInfo.currentPage || 1 }} {{ t('bookStats.outOf') }} {{ formatNumber(libraryStore.currentBookInfo.totalPages) }}
       </div>
       <div class="progress-bar">
         <div class="progress-fill" :style="{ width: `${((libraryStore.currentBookInfo.currentPage || 1) / libraryStore.currentBookInfo.totalPages) * 100}%` }" />
@@ -60,59 +85,59 @@ onMounted(() => {
       <div class="cache-compact-info" :class="{ 'is-loaded': !!bookCacheStats }">
         <div class="cache-item">
           <Icon :icon="(bookCacheStats?.cachedPages?.length || 0) >= libraryStore.currentBookInfo.totalPages ? 'mdi:cloud-check-variant' : 'mdi:cloud-download-outline'" :class="{ 'icon-success': (bookCacheStats?.cachedPages?.length || 0) >= libraryStore.currentBookInfo.totalPages }" />
-          <span>В кэше: <b>{{ formatNumber(bookCacheStats?.cachedPages?.length || 0) }}</b> / {{ formatNumber(libraryStore.currentBookInfo.totalPages) }} стр.</span>
+          <span>{{ t('bookStats.inCache') }} <b>{{ formatNumber(bookCacheStats?.cachedPages?.length || 0) }}</b> / {{ formatNumber(libraryStore.currentBookInfo.totalPages) }} {{ t('bookInfo.pages') }}</span>
         </div>
         <div class="cache-item">
           <Icon icon="mdi:robot-outline" :class="{ 'icon-success': (bookCacheStats?.analysesCount || 0) > 0 }" />
-          <span>ИИ переводы: <b>{{ formatNumber(bookCacheStats?.analysesCount || 0) }}</b> фраз</span>
+          <span>{{ t('bookStats.aiTranslations') }} <b>{{ formatNumber(bookCacheStats?.analysesCount || 0) }}</b> {{ t('bookStats.phrases') }}</span>
         </div>
       </div>
     </div>
 
     <div v-if="libraryStore.isAnalyzingBook" class="ai-analysis-box is-loading">
       <Icon icon="mdi:robot-outline" class="spin-icon pulse" />
-      <p>Нейросеть анализирует информацию...</p>
+      <p>{{ t('bookStats.aiAnalyzing') }}</p>
       <p class="sub-text">
-        Это займет несколько секунд.
+        {{ t('bookStats.takesFewSeconds') }}
       </p>
     </div>
 
     <div v-else class="ai-analysis-box">
       <div class="box-header">
-        <h3>Информация</h3>
+        <h3>{{ t('bookStats.info') }}</h3>
       </div>
 
       <template v-if="isEditingStats && libraryStore.currentBookInfo.userId === authStore.user?.id">
         <div class="edit-form">
           <div class="ai-generate-actions">
             <KitBtn variant="outlined" color="accent" icon="mdi:robot-outline" class="flex-1" :disabled="libraryStore.isAnalyzingBook" @click="triggerAiAnalysis">
-              Сгенерировать AI Инфо
+              {{ t('bookStats.generateAiInfo') }}
             </KitBtn>
             <KitBtn v-if="libraryStore.currentBookInfo.type !== 'manga'" variant="outlined" color="secondary" icon="mdi:chart-pie" class="flex-1" :disabled="libraryStore.isAnalyzingVocab" @click="triggerVocabularyAnalysis">
-              Собрать лексику
+              {{ t('bookStats.collectVocab') }}
             </KitBtn>
           </div>
           <div class="edit-divider">
-            <span>Или заполните вручную</span>
+            <span>{{ t('bookStats.fillManually') }}</span>
           </div>
           <div class="form-group">
-            <label>Сложность</label>
+            <label>{{ t('bookStats.difficulty') }}</label>
             <KitSelect v-model="editForm.difficulty" :options="currentDifficultyOptions" />
           </div>
           <div class="form-group">
-            <label>Теги (через запятую)</label>
-            <KitInput v-model="editForm.tags" placeholder="Фэнтези, Повседневность" />
+            <label>{{ t('bookStats.tagsComma') }}</label>
+            <KitInput v-model="editForm.tags" :placeholder="t('dictionary.tagsComma')" />
           </div>
           <div class="form-group">
-            <label>Аннотация</label>
-            <textarea v-model="editForm.description" class="custom-textarea" rows="4" placeholder="О чем эта книга..." />
+            <label>{{ t('bookStats.annotation') }}</label>
+            <textarea v-model="editForm.description" class="custom-textarea" rows="4" :placeholder="t('bookStats.annotation')" />
           </div>
           <div class="form-actions">
             <KitBtn variant="tonal" @click="isEditingStats = false">
-              Отмена
+              {{ t('bookStats.cancel') }}
             </KitBtn>
             <KitBtn color="primary" @click="saveStats">
-              Сохранить
+              {{ t('bookStats.save') }}
             </KitBtn>
           </div>
         </div>
@@ -121,35 +146,35 @@ onMounted(() => {
       <template v-else-if="libraryStore.currentBookInfo.stats">
         <div class="stats-grid" :class="{ 'single-col': libraryStore.currentBookInfo.type === 'manga' }">
           <div class="stat-item">
-            <span class="stat-label">Сложность</span>
+            <span class="stat-label">{{ t('bookStats.difficulty') }}</span>
             <span class="stat-value difficulty-badge" :class="difficultyLevelClass">
               {{ libraryStore.currentBookInfo.stats.difficulty || '?' }}
             </span>
           </div>
           <template v-if="libraryStore.currentBookInfo.type !== 'manga'">
             <div class="stat-item">
-              <span class="stat-label">Всего символов</span>
+              <span class="stat-label">{{ t('bookStats.totalChars') }}</span>
               <span class="stat-value">{{ formatNumber(libraryStore.currentBookInfo.stats.totalChars) }}</span>
             </div>
             <div class="stat-item">
-              <span class="stat-label">Уник. символов</span>
+              <span class="stat-label">{{ t('bookStats.uniqueChars') }}</span>
               <span class="stat-value text-accent">{{ formatNumber(libraryStore.currentBookInfo.stats.uniqueChars) }}</span>
             </div>
           </template>
         </div>
-        <div v-if="libraryStore.currentBookInfo.stats.tags?.length" class="tags-list">
-          <span v-for="tag in libraryStore.currentBookInfo.stats.tags" :key="tag" class="tag-badge">{{ tag }}</span>
+        <div v-if="localizedTags.length" class="tags-list">
+          <span v-for="tag in localizedTags" :key="tag" class="tag-badge">{{ tag }}</span>
         </div>
         <div class="book-description">
-          <p>{{ libraryStore.currentBookInfo.stats.description || 'Описание пока не добавлено.' }}</p>
+          <p>{{ bookDescription }}</p>
         </div>
       </template>
 
       <template v-else>
         <div class="empty-stats">
-          <p>Информация о книге отсутствует.</p>
+          <p>{{ t('bookStats.noBookInfo') }}</p>
           <KitBtn variant="outlined" color="primary" @click="isEditingStats = true">
-            Добавить
+            {{ t('bookStats.add') }}
           </KitBtn>
         </div>
       </template>

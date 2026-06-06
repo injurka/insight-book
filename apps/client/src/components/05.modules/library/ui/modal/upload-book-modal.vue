@@ -1,42 +1,43 @@
 <script setup lang="ts">
 import { Icon } from '@iconify/vue'
 import { computed, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { KitBtn, KitDialog, KitInput, KitSelect, KitTabs } from '~/components/01.kit'
 import { useToast } from '~/shared/composables/use-toast'
-import { useLibraryStore } from '../store/library.store'
+import { useLibraryStore } from '../../store/library.store'
 
 const visible = defineModel<boolean>('visible', { required: true })
 const store = useLibraryStore()
 const toast = useToast()
+const { t } = useI18n()
 
 const activeTab = ref<'file' | 'images'>('file')
 const isUploading = ref(false)
 const uploadProgressText = ref('')
 
-const tabItems = [
-  { id: 'file', label: 'Готовый файл' },
-  { id: 'images', label: 'Собрать из изображений' },
-]
+const tabItems = computed(() => [
+  { id: 'file', label: t('library.readyFile') },
+  { id: 'images', label: t('library.buildFromImages') },
+])
 
 const customManga = ref({
   title: '',
   author: '',
   language: 'ja',
   chapters: [
-    { id: Date.now(), title: 'Глава 1', files: [] as File[] },
+    { id: Date.now(), title: `${t('library.chapter')} 1`, files: [] as File[] },
   ],
 })
 
-const langOptions = [
-  { label: 'Японский (ja)', value: 'ja' },
-  { label: 'Китайский (zh)', value: 'zh' },
-  { label: 'Английский (en)', value: 'en' },
-  { label: 'Корейский (ko)', value: 'ko' },
-]
+const langOptions = computed(() => [
+  { label: t('library.langJa'), value: 'ja' },
+  { label: t('library.langZh'), value: 'zh' },
+  { label: t('library.langEn'), value: 'en' },
+  { label: t('library.langRu'), value: 'ru' },
+])
 
 const archiveInputRef = ref<HTMLInputElement | null>(null)
 
-// --- Загрузка готового файла ---
 function triggerArchiveUpload() {
   archiveInputRef.value?.click()
 }
@@ -48,15 +49,15 @@ async function onArchiveSelected(e: Event) {
     target.value = ''
 
     isUploading.value = true
-    uploadProgressText.value = 'Загрузка файла и обработка...'
+    uploadProgressText.value = t('library.uploadingAndProcessing')
 
     try {
       await store.uploadBook(file)
-      toast.success('Книга успешно добавлена')
+      toast.success(t('library.uploadSuccess'))
       visible.value = false
     }
     catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Ошибка загрузки')
+      toast.error(err instanceof Error ? err.message : t('library.uploadError'))
     }
     finally {
       isUploading.value = false
@@ -64,11 +65,10 @@ async function onArchiveSelected(e: Event) {
   }
 }
 
-// --- Сборка из изображений ---
 function addChapter() {
   customManga.value.chapters.push({
     id: Date.now(),
-    title: `Глава ${customManga.value.chapters.length + 1}`,
+    title: `${t('library.chapter')} ${customManga.value.chapters.length + 1}`,
     files: [],
   })
 }
@@ -95,7 +95,7 @@ async function submitCustomManga() {
 
   isUploading.value = true
   try {
-    uploadProgressText.value = 'Создание книги...'
+    uploadProgressText.value = t('library.creatingBook')
     const newBook = await store.createCustomManga(
       customManga.value.title,
       customManga.value.author,
@@ -109,18 +109,18 @@ async function submitCustomManga() {
       if (chapter.files.length === 0)
         continue
 
-      uploadProgressText.value = `Загрузка главы ${i + 1} из ${totalChapters}... (${chapter.files.length} стр.)`
+      uploadProgressText.value = t('library.uploadingChapter', { current: i + 1, total: totalChapters, pages: chapter.files.length })
       await store.uploadMangaChapter(newBook.id, chapter.title, chapter.files)
     }
 
-    uploadProgressText.value = 'Завершено!'
+    uploadProgressText.value = t('analysis.done')
     setTimeout(() => {
       visible.value = false
       customManga.value = {
         title: '',
         author: '',
         language: 'ja',
-        chapters: [{ id: Date.now(), title: 'Глава 1', files: [] }],
+        chapters: [{ id: Date.now(), title: `${t('library.chapter')} 1`, files: [] }],
       }
     }, 1000)
   }
@@ -134,10 +134,10 @@ async function submitCustomManga() {
 </script>
 
 <template>
-  <KitDialog v-model:visible="visible" title="Добавление книги" icon="mdi:book-plus-outline" :max-width="600" :persistent="isUploading">
+  <KitDialog v-model:visible="visible" :title="t('library.addBookTitle')" icon="mdi:book-plus-outline" :max-width="600" :persistent="isUploading">
     <div v-if="isUploading" class="uploading-state">
       <Icon icon="mdi:cloud-upload-outline" class="spin-icon pulse" />
-      <h3>Подождите, идет загрузка...</h3>
+      <h3>{{ t('library.uploadingWait') }}</h3>
       <p>{{ uploadProgressText }}</p>
     </div>
 
@@ -147,9 +147,9 @@ async function submitCustomManga() {
           <div class="tab-pane archive-pane">
             <Icon icon="mdi:file-document-multiple-outline" class="pane-icon" />
             <h4>EPUB, FB2, CBZ, ZIP</h4>
-            <p>Загрузите готовую книгу или архив со страницами манги.</p>
+            <p>{{ t('library.uploadReadyBook') }}</p>
             <KitBtn size="lg" color="primary" icon="mdi:upload" @click="triggerArchiveUpload">
-              Выбрать файл
+              {{ t('library.selectFile') }}
             </KitBtn>
             <input ref="archiveInputRef" type="file" accept=".epub,.cbz,.zip,.fb2" hidden @change="onArchiveSelected">
           </div>
@@ -159,34 +159,34 @@ async function submitCustomManga() {
           <div class="tab-pane images-pane">
             <div class="form-row">
               <div class="form-group flex-2">
-                <label>Название манги / комикса *</label>
-                <KitInput v-model="customManga.title" placeholder="Введите название..." />
+                <label>{{ t('library.mangaTitle') }}</label>
+                <KitInput v-model="customManga.title" :placeholder="t('library.mangaTitlePlaceholder')" />
               </div>
             </div>
 
             <div class="form-row">
               <div class="form-group flex-1">
-                <label>Автор (опционально)</label>
-                <KitInput v-model="customManga.author" placeholder="Имя автора" />
+                <label>{{ t('library.authorOptional') }}</label>
+                <KitInput v-model="customManga.author" :placeholder="t('library.authorName')" />
               </div>
               <div class="form-group flex-1">
-                <label>Язык оригинала</label>
+                <label>{{ t('library.originalLanguage') }}</label>
                 <KitSelect v-model="customManga.language" :options="langOptions" />
               </div>
             </div>
 
             <div class="chapters-section">
               <div class="chapters-header">
-                <label>Главы и страницы</label>
+                <label>{{ t('library.chaptersAndPages') }}</label>
                 <KitBtn size="xs" variant="text" color="primary" icon="mdi:plus" @click="addChapter">
-                  Добавить главу
+                  {{ t('library.addChapter') }}
                 </KitBtn>
               </div>
 
               <div class="chapters-list">
                 <div v-for="(chapter, idx) in customManga.chapters" :key="chapter.id" class="chapter-card">
                   <div class="chapter-header">
-                    <KitInput v-model="chapter.title" placeholder="Название главы (например, Глава 1)" class="chapter-input" />
+                    <KitInput v-model="chapter.title" :placeholder="t('library.chapterTitlePlaceholder')" class="chapter-input" />
                     <KitBtn v-if="customManga.chapters.length > 1" size="sm" variant="text" color="error" icon="mdi:delete-outline" @click="removeChapter(idx)" />
                   </div>
 
@@ -195,7 +195,7 @@ async function submitCustomManga() {
 
                     <label :for="`file-${chapter.id}`" class="file-drop-area" :class="{ 'has-files': chapter.files.length > 0 }">
                       <Icon :icon="chapter.files.length > 0 ? 'mdi:check-circle' : 'mdi:image-multiple-outline'" />
-                      <span>{{ chapter.files.length > 0 ? `Выбрано: ${chapter.files.length}` : 'Нажмите, чтобы выбрать изображения' }}</span>
+                      <span>{{ chapter.files.length > 0 ? t('library.selectedCount', { count: chapter.files.length }) : t('library.clickToSelect') }}</span>
                     </label>
                   </div>
                 </div>
@@ -208,10 +208,10 @@ async function submitCustomManga() {
 
     <template v-if="!isUploading && activeTab === 'images'" #footer>
       <KitBtn variant="tonal" @click="visible = false">
-        Отмена
+        {{ t('dictionary.cancel') }}
       </KitBtn>
       <KitBtn color="primary" :disabled="!canSubmitManga" @click="submitCustomManga">
-        Сохранить и загрузить
+        {{ t('library.saveAndUpload') }}
       </KitBtn>
     </template>
   </KitDialog>

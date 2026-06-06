@@ -58,30 +58,40 @@ const GenerateExamplesSchema = z.object({
 export async function handleGenerateExamples(req: Request, userId: number): Promise<Response> {
   dictAiLimiter(String(userId))
   const config = extractLlmConfig(req)
+  const targetLang = req.headers.get('Accept-Language') || 'ru'
   const { word, language } = GenerateExamplesSchema.parse(await req.json())
-  const result = await generateWordExamples(word, language, config)
+  const result = await generateWordExamples(word, language, targetLang, config)
+  
   return json(result)
 }
 
 export async function handleAutoFillWord(req: Request, userId: number): Promise<Response> {
   dictAiLimiter(String(userId))
   const config = extractLlmConfig(req)
+  const targetLang = req.headers.get('Accept-Language') || 'ru'
   const { word, language } = GenerateExamplesSchema.parse(await req.json())
-  const result = await generateWordAutoFill(word, language, config)
+  const result = await generateWordAutoFill(word, language, targetLang, config)
+  
   return json(result)
 }
 
 export async function handleGetUserDict(req: Request, userId: number): Promise<Response> {
-  return json(await getUserDictionary(userId), 200, { 'Cache-Control': 'private, stale-while-revalidate=60' })
+  const targetLang = req.headers.get('Accept-Language') || 'ru'
+  
+  return json(await getUserDictionary(userId, targetLang), 200, { 'Cache-Control': 'private, stale-while-revalidate=60' })
 }
 
 export async function handleGetDecks(req: Request, userId: number): Promise<Response> {
-  return json(await getUserDecks(userId), 200, { 'Cache-Control': 'private, stale-while-revalidate=60' })
+  const targetLang = req.headers.get('Accept-Language') || 'ru'
+  
+  return json(await getUserDecks(userId, targetLang), 200, { 'Cache-Control': 'private, stale-while-revalidate=60' })
 }
 
 export async function handleCreateDeck(req: Request, userId: number): Promise<Response> {
   const body = DeckSchema.parse(await req.json())
-  const newDeck = await createDeck(userId, body.name, body.language || 'en')
+  const targetLang = req.headers.get('Accept-Language') || 'ru'
+  const newDeck = await createDeck(userId, body.name, body.language || 'en', targetLang)
+  
   return json(newDeck)
 }
 
@@ -89,30 +99,37 @@ export async function handleUpdateDeck(req: Request, userId: number): Promise<Re
   const id = Number((req as any).params.id)
   const body = DeckSchema.parse(await req.json())
   await updateDeck(id, userId, body.name)
+  
   return json({ success: true })
 }
 
 export async function handleDeleteDeck(req: Request, userId: number): Promise<Response> {
   const id = Number((req as any).params.id)
   await deleteDeck(id, userId)
+  
   return json({ success: true })
 }
 
 export async function handleUpsertToUserDict(req: Request, userId: number): Promise<Response> {
   const body = UpsertUserDictSchema.parse(await req.json())
-  await upsertToUserDictionary(body, userId)
+  const targetLang = req.headers.get('Accept-Language') || 'ru'
+  await upsertToUserDictionary(body, userId, targetLang)
+  
   return json({ success: true })
 }
 
 export async function handleRemoveFromUserDict(req: Request, userId: number): Promise<Response> {
   const word = (req as any).params.word
-  await removeFromUserDictionary(decodeURIComponent(word), userId)
+  const targetLang = req.headers.get('Accept-Language') || 'ru'
+  await removeFromUserDictionary(decodeURIComponent(word), userId, targetLang)
+  
   return json({ success: true })
 }
 
 export async function handleGetWordFromUserDict(req: Request, userId: number): Promise<Response> {
   const word = (req as any).params.word
-  const entry = await getWordFromUserDictionary(decodeURIComponent(word), userId)
+  const targetLang = req.headers.get('Accept-Language') || 'ru'
+  const entry = await getWordFromUserDictionary(decodeURIComponent(word), userId, targetLang)
 
   if (!entry) {
     throw new AppError(404, 'Слово не найдено в словаре пользователя')
@@ -127,6 +144,7 @@ export async function handleGetReviewQueue(req: Request, userId: number): Promis
   const mode = url.searchParams.get('mode') as 'srs' | 'random' || 'srs'
   const deckIdStr = url.searchParams.get('deckId')
   const difficulty = url.searchParams.get('difficulty')
+  const targetLang = req.headers.get('Accept-Language') || 'ru'
 
   let deckId: number | 'none' | undefined
   if (deckIdStr === 'none')
@@ -134,7 +152,7 @@ export async function handleGetReviewQueue(req: Request, userId: number): Promis
   else if (deckIdStr && deckIdStr !== 'all')
     deckId = Number(deckIdStr)
 
-  return json(await getReviewQueue(userId, lang, mode, deckId, difficulty || undefined))
+  return json(await getReviewQueue(userId, lang, targetLang, mode, deckId, difficulty || undefined))
 }
 
 export async function handleSrsReview(req: Request, userId: number): Promise<Response> {

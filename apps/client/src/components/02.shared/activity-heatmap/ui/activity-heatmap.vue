@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 
 const props = defineProps<{ activityData: { date: string, count: number }[] }>()
-
+const { t } = useI18n()
 const scrollAreaRef = ref<HTMLElement | null>(null)
 
-const WEEKS_TO_SHOW = 26 // Полгода
+const WEEKS_TO_SHOW = 26
 
 const heatmapData = computed(() => {
   const today = new Date()
@@ -13,7 +14,7 @@ const heatmapData = computed(() => {
 
   let dayOfWeek = today.getDay()
   if (dayOfWeek === 0)
-    dayOfWeek = 7 // 1=Пн .. 7=Вс
+    dayOfWeek = 7
 
   const daysToSunday = 7 - dayOfWeek
 
@@ -39,17 +40,14 @@ const heatmapData = computed(() => {
     const dd = String(d.getDate()).padStart(2, '0')
     const dateStr = `${yyyy}-${mm}-${dd}`
 
-    // Добавляем месяц в массив, если это 1-е число ИЛИ самый первый день в графике
     if (d.getDate() === 1 || i === 0) {
       const m = d.getMonth()
       if (m !== currentMonth) {
         currentMonth = m
         const col = Math.floor(i / 7) + 1
 
-        // Предотвращаем наложение текста месяцев (НояДек)
         if (months.length > 0) {
           const lastMonth = months[months.length - 1]
-          // Если между прошлым лейблом и новым меньше 3-х колонок, удаляем прошлый
           if (col - lastMonth.col < 3) {
             months.pop()
           }
@@ -58,7 +56,7 @@ const heatmapData = computed(() => {
         if (col <= WEEKS_TO_SHOW - 1) {
           months.push({
             id: `${yyyy}-${m}`,
-            name: d.toLocaleString('ru-RU', { month: 'short' }).replace('.', ''),
+            name: d.toLocaleString('default', { month: 'short' }).replace('.', ''),
             col,
           })
         }
@@ -82,7 +80,7 @@ const heatmapData = computed(() => {
 
     days.push({
       date: dateStr,
-      dateFormatted: d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' }),
+      dateFormatted: d.toLocaleDateString('default', { day: 'numeric', month: 'long', year: 'numeric' }),
       level,
       count,
       future: isFuture,
@@ -143,11 +141,11 @@ onMounted(async () => {
     <div class="stats-overview">
       <div class="stat-box">
         <span class="stat-value">{{ totalActivity }}</span>
-        <span class="stat-label">Всего действий</span>
+        <span class="stat-label">{{ t('activityHeatmap.totalActions') }}</span>
       </div>
       <div class="stat-box">
         <span class="stat-value">{{ maxStreak }}</span>
-        <span class="stat-label">Макс. серия дней</span>
+        <span class="stat-label">{{ t('activityHeatmap.maxStreak') }}</span>
       </div>
     </div>
 
@@ -162,13 +160,13 @@ onMounted(async () => {
 
           <div class="heatmap-main">
             <div class="weekday-labels">
-              <span>Пн</span>
+              <span>{{ t('activityHeatmap.mon') }}</span>
               <span />
-              <span>Ср</span>
+              <span>{{ t('activityHeatmap.wed') }}</span>
               <span />
-              <span>Пт</span>
+              <span>{{ t('activityHeatmap.fri') }}</span>
               <span />
-              <span>Вс</span>
+              <span>{{ t('activityHeatmap.sun') }}</span>
             </div>
 
             <div class="heatmap-grid">
@@ -177,7 +175,7 @@ onMounted(async () => {
                 :key="day.date"
                 class="heatmap-cell"
                 :class="[{ 'is-future': day.future }, `level-${day.level}`]"
-                :title="day.future ? '' : `${day.count} действий (${day.dateFormatted})`"
+                :title="day.future ? '' : `${day.count} ${t('activityHeatmap.actions')} (${day.dateFormatted})`"
               />
             </div>
           </div>
@@ -185,7 +183,7 @@ onMounted(async () => {
       </div>
 
       <div class="heatmap-footer">
-        <span>Меньше</span>
+        <span>{{ t('activityHeatmap.less') }}</span>
         <div class="legend-boxes">
           <div class="legend-box level-0" />
           <div class="legend-box level-1" />
@@ -193,7 +191,7 @@ onMounted(async () => {
           <div class="legend-box level-3" />
           <div class="legend-box level-4" />
         </div>
-        <span>Больше</span>
+        <span>{{ t('activityHeatmap.more') }}</span>
       </div>
     </div>
   </div>

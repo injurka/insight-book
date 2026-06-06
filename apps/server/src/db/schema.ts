@@ -132,6 +132,7 @@ export const dictDecks = sqliteTable('dict_decks', {
   userId: integer('userId').notNull().references(() => users.id, { onDelete: 'cascade' }),
   name: text('name').notNull(),
   language: text('language').notNull().default('en'),
+  targetLanguage: text('targetLanguage').notNull().default('ru'),
   createdAt: text('createdAt').notNull().default(sql`(datetime('now'))`),
 })
 
@@ -143,6 +144,7 @@ export const userDictionary = sqliteTable('user_dictionary', {
   transcription: text('transcription'),
   translation: text('translation'),
   language: text('language').notNull().default('en'),
+  targetLanguage: text('targetLanguage').notNull().default('ru'),
   notes: text('notes'),
   tags: text('tags'),
   difficulty: text('difficulty'),
@@ -158,7 +160,7 @@ export const userDictionary = sqliteTable('user_dictionary', {
   createdAt: text('createdAt').notNull().default(sql`(datetime('now'))`),
   updatedAt: text('updatedAt').notNull().default(sql`(datetime('now'))`),
 }, t => ({
-  unq: unique().on(t.userId, t.word),
+  unq: unique().on(t.userId, t.word, t.targetLanguage),
 }))
 
 export const wordEncounters = sqliteTable('word_encounters', {

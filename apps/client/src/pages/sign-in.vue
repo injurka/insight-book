@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import { ref } from 'vue'
+import { useI18n } from 'vue-i18n'
+import { useRouter } from 'vue-router'
 import { KitBtn, KitInput } from '~/components/01.kit'
 import { useToast } from '~/shared/composables/use-toast'
 import { api } from '~/shared/services/api.service'
@@ -7,6 +10,7 @@ import { useAuthStore } from '~/shared/store/auth.store'
 const router = useRouter()
 const authStore = useAuthStore()
 const toast = useToast()
+const { t } = useI18n()
 
 const username = ref('')
 const password = ref('')
@@ -24,7 +28,7 @@ async function handleSignIn() {
     router.push('/')
   }
   catch (e) {
-    toast.error(e instanceof Error ? e.message : 'Ошибка авторизации')
+    toast.error(e instanceof Error ? e.message : t('signIn.errorAuth'))
   }
   finally {
     isLoading.value = false
@@ -35,16 +39,16 @@ async function handleSignIn() {
 <template>
   <div class="sign-in-wrapper">
     <form class="sign-in-card" @submit.prevent="handleSignIn">
-      <h2>Вход в библиотеку</h2>
-      <p>Введите учетные данные для доступа</p>
+      <h2>{{ t('signIn.title') }}</h2>
+      <p>{{ t('signIn.subtitle') }}</p>
 
       <div class="form-fields">
-        <KitInput v-model="username" placeholder="Имя пользователя" autocomplete="username" />
-        <KitInput v-model="password" type="password" placeholder="Пароль" autocomplete="current-password" />
+        <KitInput v-model="username" :placeholder="t('signIn.username')" autocomplete="username" />
+        <KitInput v-model="password" type="password" :placeholder="t('signIn.password')" autocomplete="current-password" />
       </div>
 
       <KitBtn type="submit" color="primary" class="sign-in-btn" :disabled="isLoading">
-        Войти
+        {{ t('signIn.loginBtn') }}
       </KitBtn>
     </form>
   </div>

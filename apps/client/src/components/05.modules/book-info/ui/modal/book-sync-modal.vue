@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Icon } from '@iconify/vue'
 import { computed, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { KitBtn, KitCheckbox, KitDialog } from '~/components/01.kit'
 import { useLibraryStore } from '~/components/05.modules/library/store/library.store'
 import { useAppWakeLock } from '~/shared/composables/use-app-wake-lock'
@@ -8,6 +9,7 @@ import { useAppWakeLock } from '~/shared/composables/use-app-wake-lock'
 const props = defineProps<{ bookId: number }>()
 const visible = defineModel<boolean>('visible', { required: true })
 const libraryStore = useLibraryStore()
+const { t } = useI18n()
 
 const options = ref({
   cachePages: true,
@@ -58,11 +60,11 @@ watch(visible, (val) => {
 </script>
 
 <template>
-  <KitDialog v-model:visible="visible" title="Синхронизация книги" icon="mdi:cloud-download-outline" :persistent="isRunning" :max-width="500">
+  <KitDialog v-model:visible="visible" :title="t('bookInfo.cacheAnalysis')" icon="mdi:cloud-download-outline" :persistent="isRunning" :max-width="500">
     <div v-if="!isRunning && !isFinished" class="sync-setup">
       <div class="setup-header">
         <Icon icon="mdi:wifi-off" class="setup-icon" />
-        <p>Выберите, что нужно загрузить для работы в оффлайн-режиме.</p>
+        <p>{{ t('bookInfo.syncSetupHint') }}</p>
       </div>
 
       <div class="sync-options">
@@ -70,8 +72,8 @@ watch(visible, (val) => {
           <div class="option-content">
             <Icon icon="mdi:file-document-multiple-outline" class="option-icon" />
             <div class="option-texts">
-              <span class="option-title">Кэшировать страницы</span>
-              <span class="option-desc">Текст, стили и изображения</span>
+              <span class="option-title">{{ t('bookInfo.cachePages') }}</span>
+              <span class="option-desc">{{ t('bookInfo.cachePagesDesc') }}</span>
             </div>
           </div>
           <KitCheckbox :model-value="options.cachePages" style="pointer-events: none;" />
@@ -81,8 +83,8 @@ watch(visible, (val) => {
           <div class="option-content">
             <Icon icon="mdi:brain" class="option-icon" />
             <div class="option-texts">
-              <span class="option-title">Глубокий анализ</span>
-              <span class="option-desc">Предварительный ИИ перевод предложений</span>
+              <span class="option-title">{{ t('bookInfo.deepAnalysis') }}</span>
+              <span class="option-desc">{{ t('bookInfo.deepAnalysisDesc') }}</span>
             </div>
           </div>
           <KitCheckbox :model-value="options.analyzeSentences" style="pointer-events: none;" />
@@ -93,8 +95,8 @@ watch(visible, (val) => {
         <div v-if="options.analyzeSentences" class="warning-box">
           <Icon icon="mdi:alert-outline" class="warning-icon" />
           <div class="warning-content">
-            <strong>Внимание!</strong>
-            <p>Процесс может занять много времени и активно расходовать лимиты API. Рекомендуется использовать с локальными моделями (Ollama).</p>
+            <strong>{{ t('bookInfo.warning') }}</strong>
+            <p>{{ t('bookInfo.warningDesc') }}</p>
           </div>
         </div>
       </Transition>
@@ -111,7 +113,7 @@ watch(visible, (val) => {
       <div class="progress-bars-container">
         <div v-if="options.cachePages" class="progress-section">
           <div class="progress-info">
-            <span class="label"><Icon icon="mdi:file-document-multiple-outline" /> Страницы</span>
+            <span class="label"><Icon icon="mdi:file-document-multiple-outline" /> {{ t('bookInfo.pages') }}</span>
             <span class="value">{{ libraryStore.syncProgress.pagesDone }} / {{ libraryStore.syncProgress.pagesTotal }}</span>
           </div>
           <div class="progress-bar">
@@ -124,7 +126,7 @@ watch(visible, (val) => {
 
         <div v-if="options.analyzeSentences && libraryStore.syncProgress.sentencesTotal > 0" class="progress-section">
           <div class="progress-info">
-            <span class="label"><Icon icon="mdi:brain" /> Предложения</span>
+            <span class="label"><Icon icon="mdi:brain" /> {{ t('bookInfo.sentences') }}</span>
             <span class="value">{{ libraryStore.syncProgress.sentencesDone }} / {{ libraryStore.syncProgress.sentencesTotal }}</span>
           </div>
           <div class="progress-bar">
@@ -139,17 +141,17 @@ watch(visible, (val) => {
 
     <template #footer>
       <KitBtn v-if="!isRunning && !isFinished" variant="tonal" @click="close">
-        Отмена
+        {{ t('dictionary.cancel') }}
       </KitBtn>
       <KitBtn v-if="!isRunning && !isFinished" color="primary" @click="start">
-        Начать
+        {{ t('dictionary.start') }}
       </KitBtn>
 
       <KitBtn v-if="isRunning" color="error" variant="outlined" @click="cancel">
-        Остановить
+        {{ t('bookInfo.stop') }}
       </KitBtn>
       <KitBtn v-if="isFinished || hasError" color="primary" @click="close">
-        Закрыть
+        {{ t('dictWord.close') }}
       </KitBtn>
     </template>
   </KitDialog>

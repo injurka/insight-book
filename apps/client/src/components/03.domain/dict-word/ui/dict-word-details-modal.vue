@@ -2,6 +2,7 @@
 import type { UserDictItem } from '~/shared/types/models'
 import { Icon } from '@iconify/vue'
 import { computed, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { KitBtn, KitDialog, KitSkeleton, KitTooltip } from '~/components/01.kit'
 import { useTts } from '~/shared/composables/use-tts'
 import { DIFFICULTY_SYSTEMS } from '~/shared/constants/difficulties'
@@ -13,6 +14,7 @@ const visible = defineModel<boolean>('visible', { required: true })
 const { speak, isPlaying, isLoading: isTtsLoading, stop } = useTts()
 const { aiData, isAiLoading, generateExamples, clear } = useDictWordExamples()
 const analysisStore = useAnalysisStore()
+const { t } = useI18n()
 
 watch(visible, (isOpen) => {
   if (isOpen) {
@@ -45,11 +47,11 @@ function openEdit() {
 
 function getStatusLabel(status: number) {
   switch (status) {
-    case 0: return { label: 'Новое', color: 'var(--fg-info-color)' }
-    case 1: return { label: 'Изучаю', color: 'var(--fg-warning-color)' }
-    case 2: return { label: 'Повторение', color: 'var(--fg-accent-color)' }
-    case 3: return { label: 'Выучено', color: 'var(--fg-success-color)' }
-    default: return { label: 'Неизвестно', color: 'var(--fg-muted-color)' }
+    case 0: return { label: t('dictWord.statusNew'), color: 'var(--fg-info-color)' }
+    case 1: return { label: t('dictWord.statusLearning'), color: 'var(--fg-warning-color)' }
+    case 2: return { label: t('dictWord.statusReview'), color: 'var(--fg-accent-color)' }
+    case 3: return { label: t('dictWord.statusLearned'), color: 'var(--fg-success-color)' }
+    default: return { label: t('dictWord.statusUnknown'), color: 'var(--fg-muted-color)' }
   }
 }
 
@@ -76,9 +78,8 @@ const tagsList = computed(() => {
 </script>
 
 <template>
-  <KitDialog v-model:visible="visible" title="Подробности карточки" :max-width="650">
+  <KitDialog v-model:visible="visible" :title="t('dictWord.cardDetails')" :max-width="650">
     <div v-if="word" class="word-details-content">
-      <!-- Заголовок -->
       <div class="word-header-box">
         <div class="title-row">
           <div class="title-spacer" />
@@ -86,7 +87,7 @@ const tagsList = computed(() => {
             {{ word.word }}
           </h2>
           <div class="tts-wrapper">
-            <KitTooltip text="Озвучить">
+            <KitTooltip :text="t('analysis.voice')">
               <KitBtn
                 :icon="isTtsLoading ? 'mdi:loading' : (isPlaying ? 'mdi:volume-high' : 'mdi:volume-medium')"
                 variant="text"
@@ -115,48 +116,44 @@ const tagsList = computed(() => {
         </div>
       </div>
 
-      <!-- Основной перевод -->
       <div v-if="word.translation" class="detail-section">
         <h4 class="section-title">
-          <Icon icon="mdi:translate" /> Перевод
+          <Icon icon="mdi:translate" /> {{ t('analysis.translation') }}
         </h4>
         <div class="html-content" v-html="word.translation" />
       </div>
 
-      <!-- Грамматика и Лексика -->
       <div v-if="word.grammarNote || word.vocabularyNote" class="rule-sections">
         <div v-if="word.grammarNote" class="detail-section">
           <h4 class="section-title">
-            <Icon icon="mdi:puzzle-outline" /> Грамматика
+            <Icon icon="mdi:puzzle-outline" /> {{ t('analysis.grammar') }}
           </h4>
           <div class="html-content" v-html="word.grammarNote" />
         </div>
         <div v-if="word.vocabularyNote" class="detail-section">
           <h4 class="section-title">
-            <Icon icon="mdi:book-open-page-variant-outline" /> Лексика
+            <Icon icon="mdi:book-open-page-variant-outline" /> {{ t('analysis.vocabulary') }}
           </h4>
           <div class="html-content" v-html="word.vocabularyNote" />
         </div>
       </div>
 
-      <!-- Пользовательские заметки -->
       <div v-if="word.notes" class="detail-section">
         <h4 class="section-title">
-          <Icon icon="mdi:note-text-outline" /> Заметки
+          <Icon icon="mdi:note-text-outline" /> {{ t('dictionary.notesMnemonic') }}
         </h4>
         <div class="html-content plain-text">
           {{ word.notes }}
         </div>
       </div>
 
-      <!-- Встречи в контексте -->
       <div v-if="word.encounters && word.encounters.length > 0" class="detail-section">
         <h4 class="section-title">
-          <Icon icon="mdi:text-search" /> Контекст из книг
+          <Icon icon="mdi:text-search" /> {{ t('dictWord.contextFromBooks') }}
         </h4>
         <ul class="encounters-list">
           <li v-for="enc in word.encounters" :key="enc.id" class="encounter-item">
-            <span class="book-title">{{ enc.book?.title || 'Из книги' }}:</span>
+            <span class="book-title">{{ enc.book?.title || t('dictWord.fromBook') }}:</span>
             <span class="sentence">{{ enc.sentence }}</span>
           </li>
         </ul>
@@ -164,11 +161,10 @@ const tagsList = computed(() => {
 
       <div class="divider" />
 
-      <!-- Блок AI -->
       <div class="ai-examples-section">
         <div class="ai-header">
           <h4 class="section-title">
-            <Icon icon="mdi:robot-outline" /> ИИ-Ассистент
+            <Icon icon="mdi:robot-outline" /> {{ t('dictWord.aiAssistant') }}
           </h4>
           <KitBtn
             v-if="!isAiLoading"
@@ -178,7 +174,7 @@ const tagsList = computed(() => {
             :icon="aiData ? 'mdi:refresh' : undefined"
             @click="handleGenerate"
           >
-            {{ aiData ? 'Перегенерировать' : 'Сгенерировать примеры' }}
+            {{ aiData ? t('dictWord.regenerate') : t('dictWord.generateExamples') }}
           </KitBtn>
         </div>
 
@@ -190,12 +186,12 @@ const tagsList = computed(() => {
 
         <div v-else-if="aiData" class="ai-results fade-in">
           <div v-if="aiData.mnemonics" class="ai-block">
-            <h5>Мнемоника / Этимология</h5>
+            <h5>{{ t('dictWord.mnemonicsEtymology') }}</h5>
             <p>{{ aiData.mnemonics }}</p>
           </div>
 
           <div v-if="aiData.examples && aiData.examples.length" class="ai-block">
-            <h5>Примеры употребления</h5>
+            <h5>{{ t('dictWord.usageExamples') }}</h5>
             <ul class="ai-list">
               <li v-for="(ex, i) in aiData.examples" :key="i">
                 <span class="ex-type">{{ ex.type }}</span>
@@ -209,14 +205,14 @@ const tagsList = computed(() => {
                   {{ ex.translation }}
                 </div>
                 <div class="ex-literal">
-                  Дословно: {{ ex.literal_translation }}
+                  {{ t('analysis.literalTranslation') }}: {{ ex.literal_translation }}
                 </div>
               </li>
             </ul>
           </div>
 
           <div v-if="aiData.collocations && aiData.collocations.length" class="ai-block">
-            <h5>Словосочетания</h5>
+            <h5>{{ t('analysis.collocations') }}</h5>
             <ul class="ai-list simple">
               <li v-for="(col, i) in aiData.collocations" :key="i">
                 <b>{{ col.original }}</b> ({{ col.transcription }}) — {{ col.translation }}
@@ -226,7 +222,7 @@ const tagsList = computed(() => {
 
           <div v-if="aiData.relations && (aiData.relations.synonyms?.length || aiData.relations.antonyms?.length)" class="grid-sections">
             <div v-if="aiData.relations.synonyms?.length" class="ai-block">
-              <h5>Синонимы</h5>
+              <h5>{{ t('analysis.synonyms') }}</h5>
               <ul class="ai-list simple">
                 <li v-for="(syn, i) in aiData.relations.synonyms" :key="i">
                   <b>{{ syn.word }}</b> — {{ syn.translation }}
@@ -234,7 +230,7 @@ const tagsList = computed(() => {
               </ul>
             </div>
             <div v-if="aiData.relations.antonyms?.length" class="ai-block">
-              <h5>Антонимы</h5>
+              <h5>{{ t('analysis.antonyms') }}</h5>
               <ul class="ai-list simple">
                 <li v-for="(ant, i) in aiData.relations.antonyms" :key="i">
                   <b>{{ ant.word }}</b> — {{ ant.translation }}
@@ -248,10 +244,10 @@ const tagsList = computed(() => {
 
     <template #footer>
       <KitBtn variant="tonal" @click="visible = false">
-        Закрыть
+        {{ t('dictWord.close') }}
       </KitBtn>
       <KitBtn color="primary" icon="mdi:pencil-outline" @click="openEdit">
-        Редактировать
+        {{ t('dictWord.edit') }}
       </KitBtn>
     </template>
   </KitDialog>

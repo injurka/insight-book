@@ -1,6 +1,6 @@
 /// <reference types="bun-types" />
 
-import type { PagePayload } from '../types'
+import type { PageDictEntry, PagePayload } from '../types'
 import { mkdirSync, readFileSync } from 'node:fs'
 import { rm, unlink } from 'node:fs/promises'
 import path from 'node:path'
@@ -28,7 +28,7 @@ function json(data: unknown, status = 200, extraHeaders: Record<string, string> 
   })
 }
 
-function extractUniqueWordsFromHtml(html: string): string[] {
+export function extractUniqueWordsFromHtml(html: string): string[] {
   const words = new Set<string>()
   const regex = /data-word="([^"]+)"/g
   let match
@@ -275,8 +275,26 @@ export async function handleAnalyzeBookStats(req: Request, userId: number): Prom
   }
 
   const tagsJson = JSON.stringify(aiData.tags || [])
+  const descriptionJson = typeof aiData.description === 'string' ? aiData.description : JSON.stringify(aiData.description || {})
 
-  await db.insert(schema.bookStats).values({ bookId: id, description: aiData.description, difficulty: aiData.difficulty, tags: tagsJson, totalChars: totalItems, uniqueChars: uniqueSet.size }).onConflictDoUpdate({ target: schema.bookStats.bookId, set: { description: aiData.description, difficulty: aiData.difficulty, tags: tagsJson, totalChars: totalItems, uniqueChars: uniqueSet.size } })
+  await db.insert(schema.bookStats).values({
+    bookId: id,
+    description: descriptionJson,
+    difficulty: aiData.difficulty,
+    tags: tagsJson,
+    totalChars: totalItems,
+    uniqueChars: uniqueSet.size,
+  }).onConflictDoUpdate({
+    target: schema.bookStats.bookId,
+    set: {
+      description: descriptionJson,
+      difficulty: aiData.difficulty,
+      tags: tagsJson,
+      totalChars: totalItems,
+      uniqueChars: uniqueSet.size,
+    },
+  })
+
   const newStats = await db.query.bookStats.findFirst({ where: eq(schema.bookStats.bookId, id) })
   return json({ success: true, stats: newStats ? { ...newStats, tags: newStats.tags ? JSON.parse(newStats.tags) : [], posDistribution: newStats.posDistribution ? JSON.parse(newStats.posDistribution) : null, topWords: newStats.topWords ? JSON.parse(newStats.topWords) : null } : null })
 }
@@ -483,9 +501,13 @@ export async function handleGetToc(req: Request, userId: number): Promise<Respon
   })
 }
 
+// ------------------------------------------------------------------
+// Выдача СТАТИЧЕСКОЙ страницы (без персонализированного словаря)
+// ------------------------------------------------------------------
 export async function handleGetPage(req: Request, userId: number): Promise<Response> {
-  const { id: bookId, pageNum } = (req as any).params
-  const config = extractLlmConfig(req)
+  const { id: bookIdStr, pageNum: pageNumStr } = (req as any).params
+  const bookId = Number(bookIdStr)
+  const pageNum = Number(pageNumStr)
   const url = new URL(req.url)
   const isSync = url.searchParams.get('sync') === 'true'
 
@@ -511,18 +533,15 @@ export async function handleGetPage(req: Request, userId: number): Promise<Respo
       throw new AppError(404, 'Страница манги не найдена')
 
     let ocrBlocks = pageRow.ocrData ? JSON.parse(pageRow.ocrData) : null
-    let pageDictionary = {}
 
     if (ocrBlocks === null && pageRow.imageUrl) {
       try {
+        const config = extractLlmConfig(req)
         const fileBuffer = readFileSync(pageRow.imageUrl)
         let base64 = ''
 
-        // 1. Проверяем расширение
         const ext = path.extname(pageRow.imageUrl).toLowerCase()
         const isSupportedOCR = ['.jpg', '.jpeg', '.png', '.pdf'].includes(ext)
-
-        // 2. Проверяем вес (лимит OCR ~10MB, берем 9.5MB для безопасности)
         const isTooLarge = fileBuffer.byteLength > 9.5 * 1024 * 1024
 
         if (!isSupportedOCR || isTooLarge) {
@@ -531,12 +550,12 @@ export async function handleGetPage(req: Request, userId: number): Promise<Respo
             .jpeg({ quality: 80 })
             .toBuffer()
           base64 = optimizedBuffer.toString('base64')
-        } else {
+        }
+        else {
           base64 = fileBuffer.toString('base64')
         }
 
         ocrBlocks = await recognizeMangaPage(base64, book.language, config)
-
         await db.update(schema.mangaPages).set({ ocrData: JSON.stringify(ocrBlocks) }).where(eq(schema.mangaPages.id, pageRow.id))
       }
       catch (e: any) {
@@ -546,9 +565,8 @@ export async function handleGetPage(req: Request, userId: number): Promise<Respo
     }
 
     if (ocrBlocks && ocrBlocks.length > 0) {
-      const { processedBlocks, uniqueWords } = await runWorkerTask('tokenizeOcrBlocks', { blocks: ocrBlocks, language: book.language })
+      const { processedBlocks } = await runWorkerTask('tokenizeOcrBlocks', { blocks: ocrBlocks, language: book.language })
       ocrBlocks = processedBlocks
-      pageDictionary = await lookupWords(uniqueWords, book.language, userId)
     }
 
     return json({
@@ -561,7 +579,6 @@ export async function handleGetPage(req: Request, userId: number): Promise<Respo
       imageHeight: pageRow.imageHeight,
       ocrBlocks: ocrBlocks || [],
       content: '',
-      pageDictionary,
     }, 200, { 'Cache-Control': 'public, max-age=86400' })
   }
 
@@ -572,8 +589,7 @@ export async function handleGetPage(req: Request, userId: number): Promise<Respo
   if (cached) {
     try {
       const parsed = JSON.parse(cached.data) as PagePayload
-      const uniqueWords = extractUniqueWordsFromHtml(parsed.content)
-      parsed.pageDictionary = await lookupWords(uniqueWords, book.language, userId)
+      delete parsed.pageDictionary // Убираем, если это остаток от старого кэша
       return json(parsed, 200, { 'Cache-Control': 'public, max-age=86400' })
     }
     catch { }
@@ -583,9 +599,8 @@ export async function handleGetPage(req: Request, userId: number): Promise<Respo
   if (!pageRow)
     throw new AppError(404, 'Страница не найдена')
 
-  const { processedHtml, uniqueWords } = await runWorkerTask('tokenizeHtmlPage', { html: pageRow.content, language: book.language })
-  const pageDictionary = await lookupWords(uniqueWords, book.language, userId)
-  const payload: PagePayload = { bookId, pageNum, totalPages: book.totalPages, content: processedHtml, pageDictionary, type: 'epub' }
+  const { processedHtml } = await runWorkerTask('tokenizeHtmlPage', { html: pageRow.content, language: book.language })
+  const payload: PagePayload = { bookId, pageNum, totalPages: book.totalPages, content: processedHtml, type: 'epub' }
 
   await db.transaction(async (tx) => {
     await tx.delete(schema.nlpCache).where(and(eq(schema.nlpCache.bookId, bookId), eq(schema.nlpCache.pageNum, pageNum)))
@@ -595,14 +610,69 @@ export async function handleGetPage(req: Request, userId: number): Promise<Respo
   return json(payload, 200, { 'Cache-Control': 'public, max-age=86400' })
 }
 
+// ------------------------------------------------------------------
+// Асинхронная выгрузка персонализированного словаря для страницы
+// ------------------------------------------------------------------
+export async function handleGetPageDictionary(req: Request, userId: number): Promise<Response> {
+  const { id: bookIdStr, pageNum: pageNumStr } = (req as any).params
+  const bookId = Number(bookIdStr)
+  const pageNum = Number(pageNumStr)
+  const targetLang = req.headers.get('Accept-Language') || 'ru'
+
+  const book = await db.query.books.findFirst({
+    where: eq(schema.books.id, bookId),
+    columns: { language: true, type: true, userId: true, isPublic: true },
+  })
+  if (!book)
+    throw new AppError(404, 'Книга не найдена')
+  if (book.userId !== userId && !book.isPublic)
+    throw new AppError(403, 'Нет доступа к книге')
+
+  let uniqueWords: string[] = []
+
+  if (book.type === 'manga') {
+    const pageRow = await db.query.mangaPages.findFirst({
+      where: and(eq(schema.mangaPages.bookId, bookId), eq(schema.mangaPages.pageNum, pageNum)),
+    })
+    const ocrBlocks = pageRow?.ocrData ? JSON.parse(pageRow.ocrData) : []
+    if (ocrBlocks && ocrBlocks.length > 0) {
+      const { uniqueWords: ocrWords } = await runWorkerTask('tokenizeOcrBlocks', { blocks: ocrBlocks, language: book.language })
+      uniqueWords = ocrWords
+    }
+  }
+  else {
+    const cached = await db.query.nlpCache.findFirst({
+      where: and(eq(schema.nlpCache.bookId, bookId), eq(schema.nlpCache.pageNum, pageNum)),
+    })
+    if (cached) {
+      const parsed = JSON.parse(cached.data) as PagePayload
+      uniqueWords = extractUniqueWordsFromHtml(parsed.content)
+    }
+    else {
+      const pageRow = await db.query.bookPages.findFirst({
+        where: and(eq(schema.bookPages.bookId, bookId), eq(schema.bookPages.pageNum, pageNum)),
+      })
+      if (pageRow) {
+        const { uniqueWords: epWords } = await runWorkerTask('tokenizeHtmlPage', { html: pageRow.content, language: book.language })
+        uniqueWords = epWords
+      }
+    }
+  }
+
+  const pageDictionary = await lookupWords(uniqueWords, book.language, targetLang, userId)
+
+  return json({ pageDictionary }, 200, { 'Cache-Control': 'private, max-age=86400' })
+}
+
 export async function handleLookupWord(req: Request, userId: number): Promise<Response> {
   const { id: bookId, word } = (req as any).params
+  const targetLang = req.headers.get('Accept-Language') || 'ru'
   const book = await db.query.books.findFirst({ where: eq(schema.books.id, bookId), columns: { language: true, userId: true, isPublic: true } })
   if (!book || (book.userId !== userId && !book.isPublic))
     throw new AppError(403, 'Нет доступа')
 
   const lang = book.language || 'en'
-  const entry = await lookupSingleWord(decodeURIComponent(word), lang, userId)
+  const entry = await lookupSingleWord(decodeURIComponent(word), lang, targetLang, userId)
   if (!entry)
     throw new AppError(404, 'Слово не найдено в локальном словаре')
   return json(entry)
@@ -611,6 +681,7 @@ export async function handleLookupWord(req: Request, userId: number): Promise<Re
 export async function handleAnalyzeSentence(req: Request, userId: number): Promise<Response> {
   llmLimiter(String(userId))
   const config = extractLlmConfig(req)
+  const targetLang = req.headers.get('Accept-Language') || 'ru'
 
   const bookId = Number((req as any).params.id)
   const book = await db.query.books.findFirst({ where: eq(schema.books.id, bookId), columns: { id: true, userId: true, isPublic: true } })
@@ -618,7 +689,7 @@ export async function handleAnalyzeSentence(req: Request, userId: number): Promi
     throw new AppError(403, 'Нет доступа')
 
   const { sentence, language } = AnalyzeSentenceSchema.parse(await req.json())
-  const analysis = await analyzeSentence(bookId, sentence, language, config)
+  const analysis = await analyzeSentence(bookId, sentence, language, targetLang, config)
   return json(analysis)
 }
 

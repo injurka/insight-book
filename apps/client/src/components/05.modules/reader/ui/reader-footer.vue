@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { KitBtn, KitPrompt } from '~/components/01.kit'
 import { useReaderStore } from '../store/reader.store'
 
 const emit = defineEmits(['prev', 'next', 'goTo'])
 const readerStore = useReaderStore()
+const { t } = useI18n()
 
 const isPromptOpen = ref(false)
 
@@ -33,13 +35,13 @@ function handlePageSubmit(value: string) {
       :disabled="(readerStore.currentBook?.currentPage || 1) <= 1"
       @click="emit('prev')"
     >
-      Назад
+      {{ t('reader.back') }}
     </KitBtn>
 
     <span
       v-if="readerStore.currentBook"
       class="page-info"
-      title="Перейти на страницу"
+      :title="t('reader.goToPage')"
       @click="openPrompt"
     >
       {{ readerStore.currentBook.currentPage }} / {{ readerStore.currentBook.totalPages }}
@@ -51,17 +53,17 @@ function handlePageSubmit(value: string) {
       :disabled="(readerStore.currentBook?.currentPage || 1) >= (readerStore.currentBook?.totalPages || 1)"
       @click="emit('next')"
     >
-      Вперед
+      {{ t('reader.forward') }}
     </KitBtn>
 
     <KitPrompt
       v-model:visible="isPromptOpen"
-      title="Переход на страницу"
-      :description="`Введите номер страницы (от 1 до ${readerStore.currentBook?.totalPages || 1}):`"
+      :title="t('reader.goToPage')"
+      :description="t('reader.enterPageNumber', { total: readerStore.currentBook?.totalPages || 1 })"
       input-type="number"
-      placeholder="Номер страницы"
+      :placeholder="t('reader.pageNumber')"
       :default-value="readerStore.currentBook?.currentPage || 1"
-      confirm-text="Перейти"
+      :confirm-text="t('reader.go')"
       @submit="handlePageSubmit"
     />
   </footer>
