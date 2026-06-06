@@ -49,9 +49,12 @@ export const useAnalysisStore = defineStore('analysis', () => {
 
   // Whole Page Analysis
   const isAnalyzingPage = ref(false)
-  const pageAnalysisProgress = ref(0)
-  const pageAnalysisCurrent = ref(0)
-  const pageAnalysisTotal = ref(0)
+  const isPageAnalysisFinished = ref(false)
+  const pageAnalysisMode = ref<'sentences' | 'words' | 'all'>('sentences')
+  const pageAnalysisSentencesCurrent = ref(0)
+  const pageAnalysisSentencesTotal = ref(0)
+  const pageAnalysisWordsCurrent = ref(0)
+  const pageAnalysisWordsTotal = ref(0)
 
   // Dictionary Modal
   const addEditWordModalOpen = ref(false)
@@ -81,6 +84,11 @@ export const useAnalysisStore = defineStore('analysis', () => {
       pageAnalysisAbortController = null
     }
     isAnalyzingPage.value = false
+    isPageAnalysisFinished.value = false
+  }
+
+  function closePageAnalysisModal() {
+    cancelPageAnalysis()
   }
 
   async function fetchAiTranslation() {
@@ -393,53 +401,97 @@ export const useAnalysisStore = defineStore('analysis', () => {
     }
 
     isAnalyzingPage.value = true
-    pageAnalysisTotal.value = totalItems
-    pageAnalysisCurrent.value = 0
-    pageAnalysisProgress.value = 0
+    isPageAnalysisFinished.value = false
+    pageAnalysisMode.value = mode
+
+    pageAnalysisSentencesTotal.value = sentences.length
+    pageAnalysisSentencesCurrent.value = 0
+    pageAnalysisWordsTotal.value = words.length
+    pageAnalysisWordsCurrent.value = 0
 
     pageAnalysisAbortController = new AbortController()
     const signal = pageAnalysisAbortController.signal
 
     try {
       // 1. Анализируем предложения
-      for (let i = 0; i < sentences.length; i++) {
-        if (signal.aborted)
-          break
-        const sentence = sentences[i]
+      if (mode === 'sentences' || mode === 'all') {
+        for (let i = 0; i < sentences.length; i++) {
+          if (signal.aborted)
+            break
+          const sentence = sentences[i]
 
-        const existing = analysisHistory.value.find(h => h.sentence === sentence)
-        if (!existing) {
+          const existing = analysisHistory.value.find(h => h.sentence === sentence)
+          if (!existing) {
+            try {
+              let cached = null
+              if (readerStore.currentBook) {
+                cached = await offlineService.getAnalysis(readerStore.currentBook.id, sentence)
+              }
+
+              if (cached) {
+                analysisHistory.value.unshift({
+                  sentence,
+                  analysis: cached,
+                  timestamp: Date.now(),
+                })
+              }
+              else {
+                const res = await api.books.analyze(
+                  readerStore.currentBook.id,
+                  sentence,
+                  readerStore.currentBook.language,
+                  signal,
+                )
+                if (signal.aborted)
+                  break
+
+                await offlineService.saveAnalysis(readerStore.currentBook.id, sentence, res)
+
+                analysisHistory.value.unshift({
+                  sentence,
+                  analysis: res,
+                  timestamp: Date.now(),
+                })
+              }
+            }
+            catch (err: unknown) {
+              if (!(err instanceof Error))
+                return
+
+              if (err.name === 'AbortError')
+                break
+
+              console.error('Ошибка анализа предложения:', err)
+            }
+          }
+          pageAnalysisSentencesCurrent.value++
+        }
+      }
+
+      // 2. Анализируем слова
+      if (mode === 'words' || mode === 'all') {
+        for (let i = 0; i < words.length; i++) {
+          if (signal.aborted)
+            break
+          const word = words[i]
+
           try {
-            // CACHE-FIRST для пакетного анализа тоже
             let cached = null
             if (readerStore.currentBook) {
-              cached = await offlineService.getAnalysis(readerStore.currentBook.id, sentence)
+              cached = await offlineService.getAnalysis(readerStore.currentBook.id, word)
             }
 
-            if (cached) {
-              analysisHistory.value.unshift({
-                sentence,
-                analysis: cached,
-                timestamp: Date.now(),
-              })
-            }
-            else {
+            if (!cached && readerStore.currentBook) {
               const res = await api.books.analyze(
                 readerStore.currentBook.id,
-                sentence,
+                word,
                 readerStore.currentBook.language,
                 signal,
               )
               if (signal.aborted)
                 break
 
-              await offlineService.saveAnalysis(readerStore.currentBook.id, sentence, res)
-
-              analysisHistory.value.unshift({
-                sentence,
-                analysis: res,
-                timestamp: Date.now(),
-              })
+              await offlineService.saveAnalysis(readerStore.currentBook.id, word, res)
             }
           }
           catch (err: unknown) {
@@ -448,60 +500,19 @@ export const useAnalysisStore = defineStore('analysis', () => {
 
             if (err.name === 'AbortError')
               break
-
-            console.error('Ошибка анализа предложения:', err)
+            console.error(`Ошибка анализа слова "${word}":`, err)
           }
+          pageAnalysisWordsCurrent.value++
         }
-
-        pageAnalysisCurrent.value++
-        pageAnalysisProgress.value = Math.round((pageAnalysisCurrent.value / pageAnalysisTotal.value) * 100)
-      }
-
-      // 2. Анализируем слова
-      for (let i = 0; i < words.length; i++) {
-        if (signal.aborted)
-          break
-        const word = words[i]
-
-        try {
-          // Для слов мы не добавляем их в HistorySidebar, только сохраняем в оффлайн-кэш
-          let cached = null
-          if (readerStore.currentBook) {
-            cached = await offlineService.getAnalysis(readerStore.currentBook.id, word)
-          }
-
-          if (!cached && readerStore.currentBook) {
-            const res = await api.books.analyze(
-              readerStore.currentBook.id,
-              word,
-              readerStore.currentBook.language,
-              signal,
-            )
-            if (signal.aborted)
-              break
-
-            await offlineService.saveAnalysis(readerStore.currentBook.id, word, res)
-          }
-        }
-        catch (err: unknown) {
-          if (!(err instanceof Error))
-            return
-
-          if (err.name === 'AbortError')
-            break
-          console.error(`Ошибка анализа слова "${word}":`, err)
-        }
-
-        pageAnalysisCurrent.value++
-        pageAnalysisProgress.value = Math.round((pageAnalysisCurrent.value / pageAnalysisTotal.value) * 100)
       }
 
       if (!signal.aborted) {
         useToastStore().success('Анализ завершен!')
+        isPageAnalysisFinished.value = true
       }
     }
     finally {
-      isAnalyzingPage.value = false
+      // Оставляем модалку открытой для просмотра результатов (закрывается по кнопке)
       pageAnalysisAbortController = null
     }
   }
@@ -606,16 +617,23 @@ export const useAnalysisStore = defineStore('analysis', () => {
     sidebarSentence,
     isAnalyzing,
     analysisHistory,
+
+    // Page Analysis State
     isAnalyzingPage,
-    pageAnalysisProgress,
-    pageAnalysisCurrent,
-    pageAnalysisTotal,
+    isPageAnalysisFinished,
+    pageAnalysisMode,
+    pageAnalysisSentencesCurrent,
+    pageAnalysisSentencesTotal,
+    pageAnalysisWordsCurrent,
+    pageAnalysisWordsTotal,
+
     addEditWordModalOpen,
     wordToEdit,
 
     closePopover,
     closeSelectionTooltip,
     cancelPageAnalysis,
+    closePageAnalysisModal,
     fetchAiTranslation,
     toggleAiTranslation,
     handleWordClick,

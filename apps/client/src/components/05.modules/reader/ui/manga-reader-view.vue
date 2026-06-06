@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { KitBtn, KitDialog } from '~/components/01.kit'
+import { KitDialog } from '~/components/01.kit'
 import { PageLoader } from '~/components/02.shared/page-loader'
-import { BubblePopover, SelectionTooltip, SentenceAnalysis, useTextSelection, WordPopover } from '~/components/03.domain/analysis'
+import { BubblePopover, PageAnalysisModal, SelectionTooltip, SentenceAnalysis, useTextSelection, WordPopover } from '~/components/03.domain/analysis'
 import { useAnalysisStore } from '~/shared/store/analysis.store'
 import { useGlobalSettingsStore } from '~/shared/store/settings.store'
 import { getMediaUrl } from '~/workers/service/lib/utils'
@@ -78,7 +78,7 @@ function handleBubblePointerDown(event: MouseEvent | TouchEvent, box: any) {
 
 function closeBubblePopover() {
   const target = event?.target as HTMLElement | null
-  if (target?.closest('.word-popover') || target?.closest('.kit-dialog') || target?.closest('.selection-tooltip')) {
+  if (target?.closest('.word-popover') || target?.closest('.kit-dialog') || target?.closest('.selection-tooltip') || target?.closest('.page-analysis-overlay')) {
     return
   }
 
@@ -214,21 +214,6 @@ function onScroll() {
       @mouseout="onSentenceOut"
     />
 
-    <Transition name="fade">
-      <div v-if="analysisStore.isAnalyzingPage" class="page-analysis-overlay">
-        <div class="analysis-dialog">
-          <h3>Анализ страницы</h3>
-          <p>Обработано <b>{{ analysisStore.pageAnalysisCurrent }}</b> из <b>{{ analysisStore.pageAnalysisTotal }}</b> элементов...</p>
-          <div class="progress-bar">
-            <div class="progress-fill" :style="{ width: `${analysisStore.pageAnalysisProgress}%` }" />
-          </div>
-          <KitBtn color="secondary" variant="outlined" @click="analysisStore.cancelPageAnalysis">
-            Отмена
-          </KitBtn>
-        </div>
-      </div>
-    </Transition>
-
     <ReaderFooter @prev="prevPage" @next="nextPage" @go-to="goToPage" />
 
     <KitDialog v-model:visible="readerStore.tocOpen" title="Оглавление" :max-width="500" icon="mdi:format-list-bulleted">
@@ -255,6 +240,7 @@ function onScroll() {
     <WordPopover />
     <SelectionTooltip />
     <SentenceAnalysis />
+    <PageAnalysisModal />
   </div>
 </template>
 
@@ -425,63 +411,6 @@ function onScroll() {
   .loading-text {
     margin-top: 16px;
     color: var(--fg-secondary-color);
-  }
-}
-
-.page-analysis-overlay {
-  position: fixed;
-  inset: 0;
-  background-color: rgba(0, 0, 0, 0.4);
-  backdrop-filter: blur(4px);
-  z-index: var(--z-modal, 1200);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 16px;
-
-  .analysis-dialog {
-    background-color: var(--bg-secondary-color);
-    padding: 24px;
-    border-radius: 12px;
-    border: 1px solid var(--border-primary-color);
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
-    text-align: center;
-    width: 100%;
-    max-width: 400px;
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-
-    h3 {
-      margin: 0;
-      color: var(--fg-primary-color);
-      font-size: 1.25rem;
-    }
-
-    p {
-      margin: 0;
-      color: var(--fg-secondary-color);
-      font-size: 0.95rem;
-      font-variant-numeric: tabular-nums;
-
-      b {
-        color: var(--fg-primary-color);
-      }
-    }
-
-    .progress-bar {
-      width: 100%;
-      height: 8px;
-      background-color: var(--bg-tertiary-color);
-      border-radius: 4px;
-      overflow: hidden;
-
-      .progress-fill {
-        height: 100%;
-        background-color: var(--fg-accent-color);
-        transition: width 0.3s ease;
-      }
-    }
   }
 }
 
