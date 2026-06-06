@@ -6,7 +6,6 @@ import { api } from '~/shared/services/api.service'
 import { useToastStore } from '~/shared/store/toast.store'
 import { useLibraryStore } from './library.store'
 
-// Проксируем URL для обхода CORS и локальных блокировок провайдеров
 function getCorsProxyUrl(targetUrl: string) {
   return `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`
 }
@@ -18,7 +17,6 @@ export const useOpdsStore = defineStore('opds', () => {
   const isDownloading = ref(false)
   const currentFeed = ref<OpdsFeed | null>(null)
 
-  // Получение, добавление и удаление списка каталогов оставляем через API бэкенда (работает с БД)
   async function fetchCatalogs() {
     isLoading.value = true
     try {
@@ -141,11 +139,10 @@ export const useOpdsStore = defineStore('opds', () => {
         else ext = '.zip'
       }
 
-      // 3. Создаем File объект из скачанного Blob
+      // eslint-disable-next-line regexp/no-obscure-range
       const filename = `${title.replace(/[^\wА-ЯЁ.-]/gi, '_')}${ext}`
       const file = new File([blob], filename, { type: blob.type || 'application/octet-stream' })
 
-      // 4. Отправляем книгу на наш бэкенд через уже существующий метод загрузки готового файла
       const libraryStore = useLibraryStore()
       const book = await libraryStore.uploadBook(file)
 

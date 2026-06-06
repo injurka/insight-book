@@ -174,6 +174,17 @@ export const wordEncounters = sqliteTable('word_encounters', {
   unq: unique().on(t.wordId, t.sentence),
 }))
 
+export const dailyActivity = sqliteTable('daily_activity', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  userId: integer('userId').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  date: text('date').notNull(),
+  wordsAdded: integer('wordsAdded').notNull().default(0),
+  wordsReviewed: integer('wordsReviewed').notNull().default(0),
+  pagesRead: integer('pagesRead').notNull().default(0),
+}, t => ({
+  unq: unique().on(t.userId, t.date),
+}))
+
 export const usersRelations = relations(users, ({ many }) => ({
   books: many(books),
   dictionary: many(userDictionary),
@@ -232,17 +243,6 @@ export const userDictionaryRelations = relations(userDictionary, ({ one, many })
   user: one(users, { fields: [userDictionary.userId], references: [users.id] }),
   deck: one(dictDecks, { fields: [userDictionary.deckId], references: [dictDecks.id] }),
   encounters: many(wordEncounters),
-}))
-
-export const dailyActivity = sqliteTable('daily_activity', {
-  id: integer('id').primaryKey({ autoIncrement: true }),
-  userId: integer('userId').notNull().references(() => users.id, { onDelete: 'cascade' }),
-  date: text('date').notNull(),
-  wordsAdded: integer('wordsAdded').notNull().default(0),
-  wordsReviewed: integer('wordsReviewed').notNull().default(0),
-  pagesRead: integer('pagesRead').notNull().default(0),
-}, t => ({
-  unq: unique().on(t.userId, t.date),
 }))
 
 export const dailyActivityRelations = relations(dailyActivity, ({ one }) => ({

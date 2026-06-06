@@ -28,11 +28,12 @@ async function request<T>(url: string, opts?: RequestInit): Promise<T> {
   else {
     try {
       const savedLang = localStorage.getItem('global-app-language')
+
       if (savedLang) {
         headers.set('Accept-Language', JSON.parse(savedLang))
       }
     }
-    catch (e) { }
+    catch { }
   }
 
   const res = await fetch(`${BASE}${url}`, { ...opts, headers })

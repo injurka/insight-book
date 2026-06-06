@@ -42,13 +42,14 @@ export async function handleDeleteCatalog(req: Request, userId: number) {
   return json({ success: true })
 }
 
-export async function handleBrowseOpds(req: Request, userId: number) {
+export async function handleBrowseOpds(req: Request) {
   const url = new URL(req.url)
   const opdsUrl = url.searchParams.get('url')
   if (!opdsUrl)
     throw new AppError(400, 'url is required')
 
   const data = await fetchAndParseOpds(opdsUrl)
+
   return json(data)
 }
 
@@ -77,6 +78,7 @@ export async function handleDownloadOpdsBook(req: Request, userId: number) {
     else ext = '.zip'
   }
 
+  // eslint-disable-next-line regexp/no-obscure-range
   const filename = `${title.replace(/[^\wА-Я.-]/gi, '_')}${ext}`
 
   let bookId: number

@@ -87,11 +87,13 @@ class S3Service {
       )
     }
     catch (error: any) {
-      // Если бакет не найден (HTTP 404), пробуем его создать
       if (error.name === 'NotFound' || error.$metadata?.httpStatusCode === 404) {
+        /* eslint-disable no-console */
         console.log(`⚠️ Bucket '${this.bucket}' not found. Attempting to create it...`)
+
         try {
           await this.client.send(new CreateBucketCommand({ Bucket: this.bucket }))
+          // Если бакет не найден (HTTP 404), пробуем его создать
           console.log(`✅ Bucket '${this.bucket}' created successfully.`)
         }
         catch (createError) {

@@ -1,6 +1,6 @@
 /// <reference types="bun-types" />
 
-import type { PageDictEntry, PagePayload } from '../types'
+import type { PagePayload } from '../types'
 import { mkdirSync, readFileSync } from 'node:fs'
 import { rm, unlink } from 'node:fs/promises'
 import path from 'node:path'
@@ -33,6 +33,7 @@ export function extractUniqueWordsFromHtml(html: string): string[] {
   const regex = /data-word="([^"]+)"/g
   let match
 
+  // eslint-disable-next-line no-cond-assign
   while ((match = regex.exec(html)) !== null) {
     try {
       const word = decodeURIComponent(match[1])
@@ -135,11 +136,11 @@ export async function handleGetBookInfo(req: Request, userId: number): Promise<R
   const { progresses, stats, ...bookData } = book
   const statsResult = stats
     ? {
-      ...stats,
-      tags: stats.tags ? JSON.parse(stats.tags) : [],
-      posDistribution: stats.posDistribution ? JSON.parse(stats.posDistribution) : null,
-      topWords: stats.topWords ? JSON.parse(stats.topWords) : null,
-    }
+        ...stats,
+        tags: stats.tags ? JSON.parse(stats.tags) : [],
+        posDistribution: stats.posDistribution ? JSON.parse(stats.posDistribution) : null,
+        topWords: stats.topWords ? JSON.parse(stats.topWords) : null,
+      }
     : null
 
   return json({ ...bookData, currentPage: progress?.currentPage ?? null, toc: book.toc ? JSON.parse(book.toc) : [], stats: statsResult }, 200, {

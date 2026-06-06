@@ -61,7 +61,7 @@ export async function handleGenerateExamples(req: Request, userId: number): Prom
   const targetLang = req.headers.get('Accept-Language') || 'ru'
   const { word, language } = GenerateExamplesSchema.parse(await req.json())
   const result = await generateWordExamples(word, language, targetLang, config)
-  
+
   return json(result)
 }
 
@@ -71,19 +71,19 @@ export async function handleAutoFillWord(req: Request, userId: number): Promise<
   const targetLang = req.headers.get('Accept-Language') || 'ru'
   const { word, language } = GenerateExamplesSchema.parse(await req.json())
   const result = await generateWordAutoFill(word, language, targetLang, config)
-  
+
   return json(result)
 }
 
 export async function handleGetUserDict(req: Request, userId: number): Promise<Response> {
   const targetLang = req.headers.get('Accept-Language') || 'ru'
-  
+
   return json(await getUserDictionary(userId, targetLang), 200, { 'Cache-Control': 'private, stale-while-revalidate=60' })
 }
 
 export async function handleGetDecks(req: Request, userId: number): Promise<Response> {
   const targetLang = req.headers.get('Accept-Language') || 'ru'
-  
+
   return json(await getUserDecks(userId, targetLang), 200, { 'Cache-Control': 'private, stale-while-revalidate=60' })
 }
 
@@ -91,7 +91,7 @@ export async function handleCreateDeck(req: Request, userId: number): Promise<Re
   const body = DeckSchema.parse(await req.json())
   const targetLang = req.headers.get('Accept-Language') || 'ru'
   const newDeck = await createDeck(userId, body.name, body.language || 'en', targetLang)
-  
+
   return json(newDeck)
 }
 
@@ -99,14 +99,14 @@ export async function handleUpdateDeck(req: Request, userId: number): Promise<Re
   const id = Number((req as any).params.id)
   const body = DeckSchema.parse(await req.json())
   await updateDeck(id, userId, body.name)
-  
+
   return json({ success: true })
 }
 
 export async function handleDeleteDeck(req: Request, userId: number): Promise<Response> {
   const id = Number((req as any).params.id)
   await deleteDeck(id, userId)
-  
+
   return json({ success: true })
 }
 
@@ -114,7 +114,7 @@ export async function handleUpsertToUserDict(req: Request, userId: number): Prom
   const body = UpsertUserDictSchema.parse(await req.json())
   const targetLang = req.headers.get('Accept-Language') || 'ru'
   await upsertToUserDictionary(body, userId, targetLang)
-  
+
   return json({ success: true })
 }
 
@@ -122,7 +122,7 @@ export async function handleRemoveFromUserDict(req: Request, userId: number): Pr
   const word = (req as any).params.word
   const targetLang = req.headers.get('Accept-Language') || 'ru'
   await removeFromUserDictionary(decodeURIComponent(word), userId, targetLang)
-  
+
   return json({ success: true })
 }
 

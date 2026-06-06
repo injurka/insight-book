@@ -4,7 +4,8 @@ import { ALLOWED_TAG_KEYS } from '../constants/tags'
  * Возвращает название языка на английском для лучшего понимания LLM-моделями
  */
 export function getLangName(code?: string): string {
-  if (!code) return 'Foreign'
+  if (!code)
+    return 'Foreign'
   const map: Record<string, string> = {
     zh: 'Chinese',
     cn: 'Chinese',

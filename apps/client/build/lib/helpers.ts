@@ -11,9 +11,9 @@ export function visualizerPlugin(title: string): PluginOption[] {
   if (process.env.ANALYZE === 'true' || process.env.ANALYZE === '1') {
     return [
       visualizer({
-        open: true, 
+        open: true,
         title: `Bundle Visualizer - ${title}`,
-        filename: `dist/stats-${title}.html`, 
+        filename: `dist/stats-${title}.html`,
         gzipSize: true,
         brotliSize: true,
       }) as unknown as PluginOption,

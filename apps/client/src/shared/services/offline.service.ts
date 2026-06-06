@@ -20,12 +20,14 @@ function getAppLanguage() {
   if (getActivePinia()) {
     return useGlobalSettingsStore().appLanguage
   }
+
   try {
     const saved = localStorage.getItem('global-app-language')
     if (saved)
       return JSON.parse(saved)
   }
-  catch (e) { }
+  catch { }
+
   return 'ru'
 }
 
@@ -216,8 +218,9 @@ export const offlineService = {
     const keysToRemove = keys.filter((fullKey) => {
       if (!fullKey.startsWith(prefix))
         return false
+
       const key = fullKey.replace(prefix, '')
-      // Это условие захватит и "book_1_page_1", и "book_1_page_1_dict"
+
       return key.startsWith(`book_${bookId}_page_`) || key.startsWith(`analysis_${bookId}_`) || key === `book_info_${bookId}` || key === `book_toc_${bookId}`
     })
 

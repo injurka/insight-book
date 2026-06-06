@@ -360,6 +360,8 @@ export const useAnalysisStore = defineStore('analysis', () => {
       if (mode === 'sentences' || mode === 'all') {
         const sentRegex = /data-raw-sent="([^"]+)"/g
         let match
+
+        // eslint-disable-next-line no-cond-assign
         while ((match = sentRegex.exec(html)) !== null) {
           sentencesToAnalyze.add(decodeURIComponent(match[1]))
         }
@@ -368,8 +370,10 @@ export const useAnalysisStore = defineStore('analysis', () => {
       if (mode === 'words' || mode === 'all') {
         const wordRegex = /data-word="([^"]+)"[^>]*?data-pos="([^"]+)"/g
         let match
+
+        // eslint-disable-next-line no-cond-assign
         while ((match = wordRegex.exec(html)) !== null) {
-          if (match[2] !== 'x') { // Игнорируем пунктуацию
+          if (match[2] !== 'x') {
             wordsToAnalyze.add(decodeURIComponent(match[1]))
           }
         }

@@ -1,4 +1,3 @@
-
 import type { LlmConfig } from '../types'
 import { LLM_API_URL } from '../config'
 import { getOcrPrompt } from '../prompts'
