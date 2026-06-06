@@ -11,7 +11,6 @@ import { useGlobalSettingsStore } from '~/shared/store/settings.store'
 
 import { useReaderDomHighlights } from '../composables/use-reader-dom-highlights'
 import { useReaderNavigation } from '../composables/use-reader-navigation'
-import { useReaderWakeLock } from '../composables/use-reader-wakelock'
 import { useScrollRestoration } from '../composables/use-scroll-restoration'
 import { useReaderStore } from '../store/reader.store'
 import ReaderFooter from './reader-footer.vue'
@@ -30,10 +29,10 @@ const { saveScrollPosition, restoreScrollPosition, setScrollIntent } = useScroll
   () => readerStore.isPageLoading,
 )
 
-useReaderWakeLock()
 const { onSentenceHover, onSentenceOut } = useReaderDomHighlights(readerViewRef)
 const { prevPage, nextPage, goToPage } = useReaderNavigation(setScrollIntent)
 const { onPointerDown, onPointerUp, onWordClick } = useTextSelection()
+useAppWakeLock(() => analysisStore.isAnalyzingPage)
 
 const safePageContent = computed(() => {
   if (!readerStore.currentPage?.content)

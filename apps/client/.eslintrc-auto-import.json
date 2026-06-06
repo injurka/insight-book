@@ -144,6 +144,7 @@
     "until": true,
     "useActiveElement": true,
     "useAnimate": true,
+    "useAppWakeLock": true,
     "useArrayDifference": true,
     "useArrayEvery": true,
     "useArrayFilter": true,

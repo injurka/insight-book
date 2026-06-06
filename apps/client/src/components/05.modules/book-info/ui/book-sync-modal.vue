@@ -1,9 +1,9 @@
 <script setup lang="ts">
+import { Icon } from '@iconify/vue'
 import { computed, ref, watch } from 'vue'
 import { KitBtn, KitCheckbox, KitDialog } from '~/components/01.kit'
 import { useLibraryStore } from '~/components/05.modules/library/store/library.store'
-import { Icon } from '@iconify/vue'
-import { useWakeLock } from '@vueuse/core'
+import { useAppWakeLock } from '~/shared/composables/use-app-wake-lock'
 
 const props = defineProps<{ bookId: number }>()
 const visible = defineModel<boolean>('visible', { required: true })
@@ -18,31 +18,21 @@ const isRunning = computed(() => libraryStore.syncState === 'running')
 const isFinished = computed(() => libraryStore.syncState === 'finished')
 const hasError = computed(() => libraryStore.syncState === 'error')
 
-const { isSupported: isWakeLockSupported, request: requestWakeLock, release: releaseWakeLock } = useWakeLock()
-
-watch(isRunning, async (running) => {
-  if (!isWakeLockSupported.value) return
-  
-  if (running) {
-    try {
-      await requestWakeLock('screen')
-    } catch (err) {
-      console.warn('Wake Lock request failed:', err)
-    }
-  } else {
-    await releaseWakeLock()
-  }
-})
+useAppWakeLock(isRunning)
 
 const syncStateIcon = computed(() => {
-  if (hasError.value) return 'mdi:alert-circle-outline'
-  if (isFinished.value) return 'mdi:check-circle-outline'
+  if (hasError.value)
+    return 'mdi:alert-circle-outline'
+  if (isFinished.value)
+    return 'mdi:check-circle-outline'
   return 'mdi:loading'
 })
 
 const syncStateClass = computed(() => {
-  if (hasError.value) return 'is-error'
-  if (isFinished.value) return 'is-success'
+  if (hasError.value)
+    return 'is-error'
+  if (isFinished.value)
+    return 'is-success'
   return 'is-running'
 })
 
@@ -350,7 +340,7 @@ watch(visible, (val) => {
         align-items: center;
         gap: 6px;
         color: var(--fg-primary-color);
-        
+
         svg {
           color: var(--fg-secondary-color);
           font-size: 1.1rem;
@@ -387,13 +377,19 @@ watch(visible, (val) => {
 }
 
 @keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .fade-enter-active,
 .fade-leave-active {
-  transition: opacity 0.3s, transform 0.3s;
+  transition:
+    opacity 0.3s,
+    transform 0.3s;
 }
 .fade-enter-from,
 .fade-leave-to {
