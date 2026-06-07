@@ -42,6 +42,10 @@
     }
   },
   "bookInfo": {
+    "cacheTtsSentences": "句子语音",
+    "cacheTtsSentencesDesc": "为所有短语生成音频",
+    "cacheTtsWords": "单词语音",
+    "cacheTtsWordsDesc": "为每个单词生成音频",
     "aboutBook": "关于本书",
     "changeCover": "更改封面",
     "continueReading": "继续阅读",
@@ -178,6 +182,11 @@
     "vocabAnalysisError": "词汇分析错误"
   },
   "reader": {
+    "analyzePage": "处理页面",
+    "selectOptions": "选择操作：",
+    "textAnalysis": "文本分析 (AI)",
+    "voiceTts": "语音 (TTS)",
+    "startAnalysis": "开始处理",
     "preparingPage": "正在准备页面 (OCR & NLP)...",
     "preparingPageTitle": "正在准备页面...",
     "preparingPageDesc": "初步文本读取和单词识别可能需要几秒钟时间。",
@@ -360,6 +369,8 @@
     "more": "多"
   },
   "analysis": {
+    "voiceProgress": "正在生成音频",
+    "allElementsAnalyzed": "所选页面元素已成功处理。",
     "aiContextAndExamples": "语境与示例 (AI)",
     "generatingContext": "正在生成语境...",
     "vocabulary": "词汇",
@@ -375,7 +386,6 @@
     "words": "单词",
     "cancel": "取消",
     "done": "完成！",
-    "allElementsAnalyzed": "所有元素已成功分析并缓存，可供离线使用。",
     "excellent": "太棒了",
     "voice": "朗读",
     "detailedWithAi": "AI 详细信息",

@@ -55,10 +55,14 @@
     "syncSetupHint": "Выберите, что нужно загрузить для работы в оффлайн-режиме.",
     "cachePages": "Кэшировать страницы",
     "cachePagesDesc": "Текст, стили и изображения",
-    "deepAnalysis": "Глубокий анализ",
+    "deepAnalysis": "Анализ предложений",
     "deepAnalysisDesc": "Предварительный ИИ перевод предложений",
     "analyzeWords": "Анализ слов",
     "analyzeWordsDesc": "Глубокий ИИ анализ каждого слова",
+    "cacheTtsSentences": "Озвучка предложений",
+    "cacheTtsSentencesDesc": "Генерация аудио для всех фраз",
+    "cacheTtsWords": "Озвучка слов",
+    "cacheTtsWordsDesc": "Генерация аудио для каждого слова",
     "warning": "Внимание!",
     "warningDesc": "Процесс может занять много времени и активно расходовать лимиты API. Рекомендуется использовать с локальными моделями (Ollama).",
     "pages": "Страницы",
@@ -210,7 +214,12 @@
     "fontSans": "Без засечек (Sans-serif)",
     "fontSerif": "С засечками (Serif)",
     "fontCursive": "Рукописный (Cursive)",
-    "tocEmpty": "Оглавление пусто или не загружено."
+    "tocEmpty": "Оглавление пусто или не загружено.",
+    "analyzePage": "Обработка страницы",
+    "selectOptions": "Выберите действия:",
+    "textAnalysis": "Текстовый анализ (ИИ)",
+    "voiceTts": "Озвучка (TTS)",
+    "startAnalysis": "Начать обработку"
   },
   "dictionary": {
     "title": "Мой словарь",
@@ -375,7 +384,7 @@
     "words": "Слова",
     "cancel": "Отмена",
     "done": "Готово!",
-    "allElementsAnalyzed": "Все элементы успешно проанализированы и кэшированы для автономной работы.",
+    "allElementsAnalyzed": "Выбранные элементы страницы успешно обработаны.",
     "excellent": "Отлично",
     "voice": "Озвучить",
     "detailedWithAi": "Подробно с ИИ",
@@ -396,7 +405,8 @@
     "grammarColon": "Грамматика:",
     "vocabularyColon": "Лексика:",
     "wordNotFoundInDict": "Слово не найдено в локальном словаре. Воспользуйтесь ИИ переводом",
-    "offlineTranslationNotFound": "Оффлайн: перевод не найден в кэше"
+    "offlineTranslationNotFound": "Оффлайн: перевод не найден в кэше",
+    "voiceProgress": "Генерация озвучки"
   },
   "dictWord": {
     "cardDetails": "Подробности карточки",

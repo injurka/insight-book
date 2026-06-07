@@ -59,7 +59,7 @@ LLM_API_KEY=sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 LLM_API_URL=https://api.aihubmix.com/v1
 
 # Модели для анализа текста (основная и запасная)
-LLM_MODEL=gemini-3.1-flash-lite-preview
+LLM_MODEL=gemini-3.1-flash-lite
 LLM_FALLBACK_MODEL=gpt-4o-mini
 
 # Опционально: API ключ для TTS, если он отличается от LLM_API_KEY

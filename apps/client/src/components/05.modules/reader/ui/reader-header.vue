@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { Icon } from '@iconify/vue'
+import { reactive, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { KitBtn, KitDropdown, KitSelect, KitTooltip } from '~/components/01.kit'
+import { KitBtn, KitCheckbox, KitDropdown, KitSelect, KitTooltip } from '~/components/01.kit'
 import { ThemesVariant, useChangeTheme } from '~/shared/composables/use-change-theme'
 import { AppRoutePaths } from '~/shared/constants/routes'
 import { useAnalysisStore } from '~/shared/store/analysis.store'
@@ -17,6 +18,25 @@ const router = useRouter()
 const { theme, toggleTheme } = useChangeTheme()
 
 const dropdownRef = ref<InstanceType<typeof KitDropdown> | null>(null)
+const pageAnalysisDropdownRef = ref<InstanceType<typeof KitDropdown> | null>(null)
+
+// Опции для выпадающего меню обработки страницы
+const pageActionOpts = reactive({
+  sentences: true,
+  words: false,
+  ttsSentences: false,
+  ttsWords: false,
+})
+
+function startPageAnalysis() {
+  pageAnalysisDropdownRef.value?.close()
+  analysisStore.analyzeWholePage({
+    sentences: pageActionOpts.sentences,
+    words: pageActionOpts.words,
+    ttsSentences: pageActionOpts.ttsSentences,
+    ttsWords: pageActionOpts.ttsWords,
+  })
+}
 
 function goBack() {
   router.push(AppRoutePaths.Home)
@@ -83,29 +103,50 @@ const fontOptions = computed(() => [
       />
     </KitTooltip>
 
-    <KitDropdown placement="bottom-end" width="240px">
+    <!-- Новое меню для действий со страницей -->
+    <KitDropdown ref="pageAnalysisDropdownRef" placement="bottom-end" width="260px" :close-on-content-click="false">
       <template #activator="{ props: dropdownProps }">
-        <KitBtn
-          icon="mdi:text-box-search-outline"
-          variant="text"
-          size="sm"
-          :disabled="analysisStore.isAnalyzingPage"
-          :class="{ 'is-active-btn': dropdownProps.isOpen }"
-        />
+        <KitTooltip :text="t('reader.analyzePage')" placement="bottom">
+          <KitBtn
+            icon="mdi:text-box-search-outline"
+            variant="text"
+            size="sm"
+            :disabled="analysisStore.isAnalyzingPage"
+            :class="{ 'is-active-btn': dropdownProps.isOpen }"
+          />
+        </KitTooltip>
       </template>
-      <div class="dropdown-menu-list">
-        <button class="dropdown-item" @click="analysisStore.analyzeWholePage('sentences'); dropdownRef?.close()">
-          <Icon icon="mdi:text-short" />
-          {{ t('analysis.sentences') }}
-        </button>
-        <button class="dropdown-item" @click="analysisStore.analyzeWholePage('words'); dropdownRef?.close()">
-          <Icon icon="mdi:format-text" />
-          {{ t('analysis.words') }}
-        </button>
-        <button class="dropdown-item" @click="analysisStore.analyzeWholePage('all'); dropdownRef?.close()">
-          <Icon icon="mdi:text-box-multiple-outline" />
-          {{ t('reader.sentencesAndWords') }}
-        </button>
+
+      <div class="menu-content">
+        <div class="menu-section">
+          <div class="section-title">
+            {{ t('reader.selectOptions') }}
+          </div>
+
+          <!-- Группа текстового анализа -->
+          <div class="settings-group">
+            <div style="font-weight: 500; font-size: 0.9rem; display: flex; align-items: center; gap: 6px;">
+              <Icon icon="mdi:robot-outline" class="item-icon" /> {{ t('reader.textAnalysis') }}
+            </div>
+            <KitCheckbox v-model="pageActionOpts.sentences" :label="t('bookInfo.sentences')" />
+            <KitCheckbox v-model="pageActionOpts.words" :label="t('analysis.words')" />
+          </div>
+
+          <div class="divider" />
+
+          <!-- Группа генерации озвучки -->
+          <div class="settings-group">
+            <div style="font-weight: 500; font-size: 0.9rem; display: flex; align-items: center; gap: 6px;">
+              <Icon icon="mdi:headphones" class="item-icon" /> {{ t('reader.voiceTts') }}
+            </div>
+            <KitCheckbox v-model="pageActionOpts.ttsSentences" :label="t('bookInfo.sentences')" />
+            <KitCheckbox v-model="pageActionOpts.ttsWords" :label="t('analysis.words')" />
+          </div>
+
+          <KitBtn style="width: 100%; margin-top: 8px;" color="primary" @click="startPageAnalysis">
+            {{ t('reader.startAnalysis') }}
+          </KitBtn>
+        </div>
       </div>
     </KitDropdown>
 
@@ -325,7 +366,7 @@ const fontOptions = computed(() => [
   display: flex;
   flex-direction: column;
   gap: 8px;
-  padding: 4px 8px 8px;
+  padding: 8px;
 
   :deep(.kit-checkbox) {
     .checkbox-box {
@@ -397,44 +438,6 @@ const fontOptions = computed(() => [
 
   .font-select {
     width: 100%;
-  }
-}
-
-.dropdown-menu-list {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.dropdown-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 6px 8px;
-  border: none;
-  background: transparent;
-  color: var(--fg-primary-color);
-  font-size: 0.9rem;
-  font-family: inherit;
-  cursor: pointer;
-  border-radius: 6px;
-  transition:
-    background-color 0.2s,
-    color 0.2s;
-  text-align: left;
-
-  &:hover {
-    background-color: var(--bg-hover-color);
-    color: var(--fg-accent-color);
-  }
-
-  svg {
-    font-size: 1.25rem;
-    color: var(--fg-secondary-color);
-  }
-
-  &:hover svg {
-    color: var(--fg-accent-color);
   }
 }
 </style>

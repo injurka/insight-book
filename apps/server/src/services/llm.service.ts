@@ -52,9 +52,9 @@ const LlmAnalysisSchema = z.object({
   vocabulary: z.array(VocabItemSchema).default([]),
 })
 
-function hashSentence(sentence: string, language: string, model: string, targetLang: string): string {
+function hashSentence(sentence: string, language: string, targetLang: string): string {
   const hasher = new Bun.CryptoHasher('sha256')
-  hasher.update(`${(language || 'en').toLowerCase()}::${(targetLang || 'ru').toLowerCase()}::${model}::${sentence.trim().toLowerCase()}`)
+  hasher.update(`${(language || 'en').toLowerCase()}::${(targetLang || 'ru').toLowerCase()}::${sentence.trim().toLowerCase()}`)
 
   return hasher.digest('hex')
 }
@@ -76,12 +76,12 @@ async function _callLlmApi(model: string, messages: any[], temperature: number, 
     response_format: { type: 'json_object' },
     messages,
     temperature,
-    max_tokens: 16384
+    max_tokens: 8192,
   }
 
   // 2. Если запрос идет к Ollama (по порту 11434), добавляем лайфхаки
   if (config.url.includes('11434') || config.url.includes('localhost')) {
-    payload.keep_alive = "-1"
+    payload.keep_alive = '-1'
     payload.options = {
       num_ctx: 8192, // Ограничить контекст для ускорения старта
       stream: false,
@@ -111,7 +111,7 @@ async function _callLlmApi(model: string, messages: any[], temperature: number, 
 }
 
 export async function analyzeSentence(bookId: number, sentence: string, language: string, targetLang: string, config: LlmConfig): Promise<LlmAnalysis> {
-  const hash = hashSentence(sentence, language, config.model, targetLang)
+  const hash = hashSentence(sentence, language, targetLang)
 
   const cached = await db.query.llmCache.findFirst({
     where: eq(schema.llmCache.sentenceHash, hash),

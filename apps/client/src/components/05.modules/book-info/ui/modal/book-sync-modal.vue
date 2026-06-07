@@ -15,6 +15,8 @@ const options = ref({
   cachePages: true,
   analyzeSentences: false,
   analyzeWords: false,
+  ttsSentences: false,
+  ttsWords: false,
 })
 
 const isRunning = computed(() => libraryStore.syncState === 'running')
@@ -80,31 +82,55 @@ watch(visible, (val) => {
           <KitCheckbox :model-value="options.cachePages" style="pointer-events: none;" />
         </div>
 
-        <div class="sync-option" :class="{ 'is-active': options.analyzeSentences }" @click="options.analyzeSentences = !options.analyzeSentences">
-          <div class="option-content">
-            <Icon icon="mdi:brain" class="option-icon" />
-            <div class="option-texts">
-              <span class="option-title">{{ t('bookInfo.deepAnalysis') }}</span>
-              <span class="option-desc">{{ t('bookInfo.deepAnalysisDesc') }}</span>
+        <!-- Группа анализа текста -->
+        <div class="sync-option-group">
+          <div class="sync-option-half" :class="{ 'is-active': options.analyzeSentences }" @click="options.analyzeSentences = !options.analyzeSentences">
+            <div class="option-content">
+              <Icon icon="mdi:brain" class="option-icon" />
+              <div class="option-texts">
+                <span class="option-title">{{ t('bookInfo.deepAnalysis') }}</span>
+              </div>
             </div>
+            <KitCheckbox :model-value="options.analyzeSentences" style="pointer-events: none;" />
           </div>
-          <KitCheckbox :model-value="options.analyzeSentences" style="pointer-events: none;" />
+
+          <div class="sync-option-half" :class="{ 'is-active': options.analyzeWords }" @click="options.analyzeWords = !options.analyzeWords">
+            <div class="option-content">
+              <Icon icon="mdi:format-text" class="option-icon" />
+              <div class="option-texts">
+                <span class="option-title">{{ t('bookInfo.analyzeWords') }}</span>
+              </div>
+            </div>
+            <KitCheckbox :model-value="options.analyzeWords" style="pointer-events: none;" />
+          </div>
         </div>
 
-        <div class="sync-option" :class="{ 'is-active': options.analyzeWords }" @click="options.analyzeWords = !options.analyzeWords">
-          <div class="option-content">
-            <Icon icon="mdi:format-text" class="option-icon" />
-            <div class="option-texts">
-              <span class="option-title">{{ t('bookInfo.analyzeWords') }}</span>
-              <span class="option-desc">{{ t('bookInfo.analyzeWordsDesc') }}</span>
+        <!-- Группа TTS -->
+        <div class="sync-option-group">
+          <div class="sync-option-half" :class="{ 'is-active': options.ttsSentences }" @click="options.ttsSentences = !options.ttsSentences">
+            <div class="option-content">
+              <Icon icon="mdi:headphones" class="option-icon" />
+              <div class="option-texts">
+                <span class="option-title">{{ t('bookInfo.cacheTtsSentences') }}</span>
+              </div>
             </div>
+            <KitCheckbox :model-value="options.ttsSentences" style="pointer-events: none;" />
           </div>
-          <KitCheckbox :model-value="options.analyzeWords" style="pointer-events: none;" />
+
+          <div class="sync-option-half" :class="{ 'is-active': options.ttsWords }" @click="options.ttsWords = !options.ttsWords">
+            <div class="option-content">
+              <Icon icon="mdi:headphones" class="option-icon" />
+              <div class="option-texts">
+                <span class="option-title">{{ t('bookInfo.cacheTtsWords') }}</span>
+              </div>
+            </div>
+            <KitCheckbox :model-value="options.ttsWords" style="pointer-events: none;" />
+          </div>
         </div>
       </div>
 
       <Transition name="fade">
-        <div v-if="options.analyzeSentences || options.analyzeWords" class="warning-box">
+        <div v-if="options.analyzeSentences || options.analyzeWords || options.ttsSentences || options.ttsWords" class="warning-box">
           <Icon icon="mdi:alert-outline" class="warning-icon" />
           <div class="warning-content">
             <strong>{{ t('bookInfo.warning') }}</strong>
@@ -161,6 +187,20 @@ watch(visible, (val) => {
             />
           </div>
         </div>
+
+        <!-- Прогресс для TTS -->
+        <div v-if="(options.ttsSentences || options.ttsWords) && libraryStore.syncProgress.ttsTotal > 0" class="progress-section">
+          <div class="progress-info">
+            <span class="label"><Icon icon="mdi:headphones" /> {{ t('reader.voiceTts') }}</span>
+            <span class="value">{{ libraryStore.syncProgress.ttsDone }} / {{ libraryStore.syncProgress.ttsTotal }}</span>
+          </div>
+          <div class="progress-bar">
+            <div
+              class="progress-fill tts-fill"
+              :style="{ width: `${(libraryStore.syncProgress.ttsDone / libraryStore.syncProgress.ttsTotal) * 100}%` }"
+            />
+          </div>
+        </div>
       </div>
     </div>
 
@@ -213,6 +253,63 @@ watch(visible, (val) => {
     display: flex;
     flex-direction: column;
     gap: 12px;
+  }
+
+  .sync-option-group {
+    display: flex;
+    gap: 12px;
+    @include media-down(sm) {
+      flex-direction: column;
+    }
+  }
+
+  .sync-option-half {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    background: var(--bg-secondary-color);
+    border: 1px solid var(--border-secondary-color);
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    &:hover {
+      border-color: var(--border-primary-color);
+    }
+
+    &.is-active {
+      border-color: var(--fg-accent-color);
+      background: rgba(var(--bg-accent-color-rgb, 201, 117, 222), 0.05);
+
+      .option-icon {
+        color: var(--fg-accent-color);
+      }
+    }
+
+    .option-content {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .option-icon {
+      font-size: 1.6rem;
+      color: var(--fg-secondary-color);
+      transition: color 0.2s ease;
+    }
+
+    .option-texts {
+      display: flex;
+      flex-direction: column;
+
+      .option-title {
+        font-weight: 500;
+        font-size: 0.95rem;
+        color: var(--fg-primary-color);
+      }
+    }
   }
 
   .sync-option {
@@ -401,6 +498,10 @@ watch(visible, (val) => {
 
         &.words-fill {
           background-color: var(--fg-accent-color);
+        }
+
+        &.tts-fill {
+          background-color: var(--fg-info-color);
         }
       }
     }

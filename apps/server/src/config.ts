@@ -16,7 +16,7 @@ export const COVERS_PATH = path.join(UPLOADS_PATH, 'covers')
 // --- AI & External APIs ---
 export const LLM_API_KEY = process.env.LLM_API_KEY || ''
 export const LLM_API_URL = process.env.LLM_API_URL || 'https://aihubmix.com/v1'
-export const LLM_MODEL = process.env.LLM_MODEL || 'gemini-3.1-flash-lite-preview'
+export const LLM_MODEL = process.env.LLM_MODEL || 'gemini-3.1-flash-lite'
 export const LLM_FALLBACK_MODEL = process.env.LLM_FALLBACK_MODEL || 'gpt-4o-mini'
 export const TTS_API_KEY = process.env.TTS_API_KEY || LLM_API_KEY
 export const TTS_MODEL = process.env.TTS_MODEL || 'gpt-4o-mini-tts'

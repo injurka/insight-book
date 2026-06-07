@@ -20,7 +20,7 @@ const { t } = useI18n()
         <template v-if="!analysisStore.isPageAnalysisFinished">
           <div class="analysis-steps">
             <div
-              v-if="analysisStore.pageAnalysisMode === 'sentences' || analysisStore.pageAnalysisMode === 'all'"
+              v-if="analysisStore.pageAnalysisSentencesTotal > 0"
               class="progress-card"
             >
               <div class="progress-header">
@@ -38,7 +38,7 @@ const { t } = useI18n()
             </div>
 
             <div
-              v-if="analysisStore.pageAnalysisMode === 'words' || analysisStore.pageAnalysisMode === 'all'"
+              v-if="analysisStore.pageAnalysisWordsTotal > 0"
               class="progress-card"
             >
               <div class="progress-header">
@@ -52,6 +52,25 @@ const { t } = useI18n()
               </div>
               <div class="progress-bar">
                 <div class="progress-fill" :style="{ width: `${analysisStore.pageAnalysisWordsTotal > 0 ? (analysisStore.pageAnalysisWordsCurrent / analysisStore.pageAnalysisWordsTotal) * 100 : 0}%` }" />
+              </div>
+            </div>
+
+            <!-- Прогресс для TTS -->
+            <div
+              v-if="analysisStore.pageAnalysisTtsTotal > 0"
+              class="progress-card"
+            >
+              <div class="progress-header">
+                <span class="label-group">
+                  <Icon icon="mdi:headphones" class="step-icon pulse-animation" />
+                  {{ t('analysis.voiceProgress') }}
+                </span>
+                <span class="progress-values">
+                  <b>{{ analysisStore.pageAnalysisTtsCurrent }}</b> {{ t('bookStats.outOf') }} {{ analysisStore.pageAnalysisTtsTotal }}
+                </span>
+              </div>
+              <div class="progress-bar">
+                <div class="progress-fill tts-fill" :style="{ width: `${analysisStore.pageAnalysisTtsTotal > 0 ? (analysisStore.pageAnalysisTtsCurrent / analysisStore.pageAnalysisTtsTotal) * 100 : 0}%` }" />
               </div>
             </div>
           </div>
@@ -183,6 +202,10 @@ const { t } = useI18n()
           background-color: var(--fg-accent-color);
           border-radius: 3px;
           transition: width 0.3s ease;
+
+          &.tts-fill {
+            background-color: var(--fg-info-color);
+          }
         }
       }
     }

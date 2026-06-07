@@ -48,14 +48,16 @@ export const useAnalysisStore = defineStore('analysis', () => {
   const isAnalyzing = ref(false)
   const analysisHistory = ref<AnalysisHistoryItem[]>([])
 
-  // Whole Page Analysis
+  // Whole Page Analysis & TTS
   const isAnalyzingPage = ref(false)
   const isPageAnalysisFinished = ref(false)
-  const pageAnalysisMode = ref<'sentences' | 'words' | 'all'>('sentences')
+
   const pageAnalysisSentencesCurrent = ref(0)
   const pageAnalysisSentencesTotal = ref(0)
   const pageAnalysisWordsCurrent = ref(0)
   const pageAnalysisWordsTotal = ref(0)
+  const pageAnalysisTtsCurrent = ref(0)
+  const pageAnalysisTtsTotal = ref(0)
 
   // Dictionary Modal
   const addEditWordModalOpen = ref(false)
@@ -86,6 +88,12 @@ export const useAnalysisStore = defineStore('analysis', () => {
     }
     isAnalyzingPage.value = false
     isPageAnalysisFinished.value = false
+    pageAnalysisSentencesCurrent.value = 0
+    pageAnalysisSentencesTotal.value = 0
+    pageAnalysisWordsCurrent.value = 0
+    pageAnalysisWordsTotal.value = 0
+    pageAnalysisTtsCurrent.value = 0
+    pageAnalysisTtsTotal.value = 0
   }
 
   function closePageAnalysisModal() {
@@ -180,7 +188,6 @@ export const useAnalysisStore = defineStore('analysis', () => {
     activeTokenId.value = `${sentenceId}-${tokenIndex}`
     const targetRect = target.getBoundingClientRect()
 
-    // Обращаемся напрямую к словарю на уровне стора
     const entry = readerStore.currentPageDictionary[word] || readerStore.currentPageDictionary[word.toLowerCase()]
 
     const basePopoverData = {
@@ -365,35 +372,39 @@ export const useAnalysisStore = defineStore('analysis', () => {
     }
   }
 
-  async function analyzeWholePage(mode: 'sentences' | 'words' | 'all' = 'sentences') {
+  // Обновленная функция обработки страницы (поддерживает и анализ, и TTS)
+  async function analyzeWholePage(options: { sentences: boolean, words: boolean, ttsSentences: boolean, ttsWords: boolean }) {
     const readerStore = useReaderStore()
     if (!readerStore.currentPage || !readerStore.currentBook)
       return
     if (isAnalyzingPage.value)
       return
 
-    const sentencesToAnalyze = new Set<string>()
-    const wordsToAnalyze = new Set<string>()
+    const { sentences: doSent, words: doWords, ttsSentences: doTtsSent, ttsWords: doTtsWords } = options
+
+    if (!doSent && !doWords && !doTtsSent && !doTtsWords) {
+      useToastStore().info('Выберите хотя бы одно действие.')
+      return
+    }
+
+    const sentencesToProcess = new Set<string>()
+    const wordsToProcess = new Set<string>()
 
     const extractFromHtml = (html: string) => {
-      if (mode === 'sentences' || mode === 'all') {
+      if (doSent || doTtsSent) {
         const sentRegex = /data-raw-sent="([^"]+)"/g
         let match
-
-        // eslint-disable-next-line no-cond-assign
         while ((match = sentRegex.exec(html)) !== null) {
-          sentencesToAnalyze.add(decodeURIComponent(match[1]))
+          sentencesToProcess.add(decodeURIComponent(match[1]))
         }
       }
 
-      if (mode === 'words' || mode === 'all') {
+      if (doWords || doTtsWords) {
         const wordRegex = /data-word="([^"]+)"[^>]*?data-pos="([^"]+)"/g
         let match
-
-        // eslint-disable-next-line no-cond-assign
         while ((match = wordRegex.exec(html)) !== null) {
           if (match[2] !== 'x') {
-            wordsToAnalyze.add(decodeURIComponent(match[1]))
+            wordsToProcess.add(decodeURIComponent(match[1]))
           }
         }
       }
@@ -409,111 +420,72 @@ export const useAnalysisStore = defineStore('analysis', () => {
       extractFromHtml(readerStore.currentPage.content)
     }
 
-    const sentences = Array.from(sentencesToAnalyze).filter(s => /[\p{L}\p{N}]/u.test(s))
-    const words = Array.from(wordsToAnalyze).filter(w => /[\p{L}\p{N}]/u.test(w))
+    const sentences = Array.from(sentencesToProcess).filter(s => /[\p{L}\p{N}]/u.test(s))
+    const words = Array.from(wordsToProcess).filter(w => /[\p{L}\p{N}]/u.test(w))
 
-    const totalItems = sentences.length + words.length
-    if (totalItems === 0) {
-      useToastStore().info('На странице нет элементов для анализа.')
+    const totalAnalysisItems = (doSent ? sentences.length : 0) + (doWords ? words.length : 0)
+    const totalTtsItems = (doTtsSent ? sentences.length : 0) + (doTtsWords ? words.length : 0)
+
+    if (totalAnalysisItems === 0 && totalTtsItems === 0) {
+      useToastStore().info('На странице нет элементов для обработки.')
       return
     }
 
     isAnalyzingPage.value = true
     isPageAnalysisFinished.value = false
-    pageAnalysisMode.value = mode
 
-    pageAnalysisSentencesTotal.value = sentences.length
+    pageAnalysisSentencesTotal.value = doSent ? sentences.length : 0
     pageAnalysisSentencesCurrent.value = 0
-    pageAnalysisWordsTotal.value = words.length
+    pageAnalysisWordsTotal.value = doWords ? words.length : 0
     pageAnalysisWordsCurrent.value = 0
+    pageAnalysisTtsTotal.value = totalTtsItems
+    pageAnalysisTtsCurrent.value = 0
 
     pageAnalysisAbortController = new AbortController()
     const signal = pageAnalysisAbortController.signal
+    const bookLanguage = readerStore.currentBook.language
 
     try {
-      if (mode === 'sentences' || mode === 'all') {
+      // 1. Анализ LLM
+      if (doSent) {
         for (let i = 0; i < sentences.length; i++) {
           if (signal.aborted)
             break
           const sentence = sentences[i]
 
-          const existing = analysisHistory.value.find(h => h.sentence.trim().toLowerCase() === sentence.trim().toLowerCase())
-          if (!existing) {
-            try {
-              let cached = null
-              if (readerStore.currentBook) {
-                cached = await offlineService.getAnalysis(readerStore.currentBook.id, sentence)
-              }
-
-              if (cached) {
-                analysisHistory.value.unshift({
-                  sentence,
-                  analysis: cached,
-                  timestamp: Date.now(),
-                })
-              }
-              else {
-                const res = await api.books.analyze(
-                  readerStore.currentBook.id,
-                  sentence,
-                  readerStore.currentBook.language,
-                  signal,
-                )
-                if (signal.aborted)
-                  break
-
-                await offlineService.saveAnalysis(readerStore.currentBook.id, sentence, res)
-
-                analysisHistory.value.unshift({
-                  sentence,
-                  analysis: res,
-                  timestamp: Date.now(),
-                })
-              }
-            }
-            catch (err: unknown) {
-              if (!(err instanceof Error))
-                return
-
-              if (err.name === 'AbortError')
+          try {
+            const cached = await offlineService.getAnalysis(readerStore.currentBook.id, sentence)
+            if (!cached) {
+              const res = await api.books.analyze(readerStore.currentBook.id, sentence, bookLanguage, signal)
+              if (signal.aborted)
                 break
-
-              console.error('Ошибка анализа предложения:', err)
+              await offlineService.saveAnalysis(readerStore.currentBook.id, sentence, res)
             }
+          }
+          catch (err: any) {
+            if (err.name === 'AbortError')
+              break
+            console.error('Ошибка анализа предложения:', err)
           }
           pageAnalysisSentencesCurrent.value++
         }
       }
 
-      if (mode === 'words' || mode === 'all') {
+      if (doWords) {
         for (let i = 0; i < words.length; i++) {
           if (signal.aborted)
             break
           const word = words[i]
-
           try {
-            let cached = null
-            if (readerStore.currentBook) {
-              cached = await offlineService.getAnalysis(readerStore.currentBook.id, word)
-            }
-
-            if (!cached && readerStore.currentBook) {
-              const res = await api.books.analyze(
-                readerStore.currentBook.id,
-                word,
-                readerStore.currentBook.language,
-                signal,
-              )
+            const cached = await offlineService.getAnalysis(readerStore.currentBook.id, word)
+            if (!cached) {
+              const res = await api.books.analyze(readerStore.currentBook.id, word, bookLanguage, signal)
               if (signal.aborted)
                 break
-
               await offlineService.saveAnalysis(readerStore.currentBook.id, word, res)
             }
           }
-          catch (err: unknown) {
-            if (!(err instanceof Error))
-              return
-
+          catch (err: any) {
             if (err.name === 'AbortError')
               break
             console.error(`Ошибка анализа слова "${word}":`, err)
@@ -522,8 +494,46 @@ export const useAnalysisStore = defineStore('analysis', () => {
         }
       }
 
+      // 2. Генерация TTS
+      if (doTtsSent || doTtsWords) {
+        const ttsQueue: string[] = []
+        if (doTtsSent)
+          ttsQueue.push(...sentences)
+        if (doTtsWords)
+          ttsQueue.push(...words)
+
+        // Для ускорения делаем небольшую конкурентность, но TTS API часто имеет жесткие лимиты
+        const concurrency = 2
+        for (let j = 0; j < ttsQueue.length; j += concurrency) {
+          if (signal.aborted)
+            break
+          const batch = ttsQueue.slice(j, j + concurrency)
+
+          await Promise.all(batch.map(async (text) => {
+            if (signal.aborted)
+              return
+
+            const normalizedText = text.trim().toLowerCase()
+            const cacheKey = `${readerStore.currentBook!.id}_${normalizedText}`
+
+            try {
+              const cached = await offlineService.getTts(cacheKey)
+              if (!cached) {
+                const res = await api.books.generateTts(readerStore.currentBook!.id, text, signal)
+                await offlineService.saveTts(cacheKey, res.audioBase64)
+              }
+            }
+            catch (err: any) {
+              if (err.name !== 'AbortError')
+                console.error(`TTS Error for "${text}":`, err)
+            }
+            pageAnalysisTtsCurrent.value++
+          }))
+        }
+      }
+
       if (!signal.aborted) {
-        useToastStore().success(i18n.global.t('analysis.done'))
+        useToastStore().success(i18n.global.t('analysis.allElementsAnalyzed'))
         isPageAnalysisFinished.value = true
       }
     }
@@ -635,11 +645,12 @@ export const useAnalysisStore = defineStore('analysis', () => {
 
     isAnalyzingPage,
     isPageAnalysisFinished,
-    pageAnalysisMode,
     pageAnalysisSentencesCurrent,
     pageAnalysisSentencesTotal,
     pageAnalysisWordsCurrent,
     pageAnalysisWordsTotal,
+    pageAnalysisTtsCurrent,
+    pageAnalysisTtsTotal,
 
     addEditWordModalOpen,
     wordToEdit,

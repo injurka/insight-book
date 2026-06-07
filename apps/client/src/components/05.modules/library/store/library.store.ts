@@ -1,4 +1,4 @@
-import type { Book, BookStats } from '~/shared/types/models'
+import type { Book, BookStats, PageDictEntry, PagePayload, TocItem } from '~/shared/types/models'
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { api } from '~/shared/services/api.service'
@@ -20,6 +20,8 @@ export const useLibraryStore = defineStore('library', () => {
     sentencesDone: 0,
     wordsTotal: 0,
     wordsDone: 0,
+    ttsTotal: 0,
+    ttsDone: 0,
     currentTask: '',
   })
 
@@ -33,7 +35,7 @@ export const useLibraryStore = defineStore('library', () => {
     syncState.value = 'idle'
   }
 
-  async function startWholeBookSync(bookId: number, options: { cachePages: boolean, analyzeSentences: boolean, analyzeWords?: boolean }) {
+  async function startWholeBookSync(bookId: number, options: { cachePages: boolean, analyzeSentences: boolean, analyzeWords?: boolean, ttsSentences?: boolean, ttsWords?: boolean }) {
     const book = books.value.find(b => b.id === bookId) || currentBookInfo.value
     if (!book)
       return
@@ -49,6 +51,8 @@ export const useLibraryStore = defineStore('library', () => {
       sentencesDone: 0,
       wordsTotal: 0,
       wordsDone: 0,
+      ttsTotal: 0,
+      ttsDone: 0,
       currentTask: 'Подготовка...',
     }
 
@@ -61,7 +65,7 @@ export const useLibraryStore = defineStore('library', () => {
       catch { }
 
       // 2. Постраничная загрузка и анализ
-      if (options.cachePages || options.analyzeSentences || options.analyzeWords) {
+      if (options.cachePages || options.analyzeSentences || options.analyzeWords || options.ttsSentences || options.ttsWords) {
         for (let i = 1; i <= book.totalPages; i++) {
           if (signal.aborted)
             throw new Error('Aborted')
@@ -69,20 +73,22 @@ export const useLibraryStore = defineStore('library', () => {
 
           // 2.1 Кэширование самой страницы
           let page = await offlineService.getPage(bookId, i)
-          if (!page) {
+          if (!page && options.cachePages) {
             page = await api.books.getPage(bookId, i, true)
             await offlineService.savePage(bookId, i, page)
           }
 
           // 2.2 Словарь страницы
-          const dict = await offlineService.getPageDictionary(bookId, i)
-          if (!dict) {
-            try {
-              const dictRes = await api.books.getPageDict(bookId, i)
-              await offlineService.savePageDictionary(bookId, i, dictRes.pageDictionary)
-            }
-            catch (e) {
-              console.warn(`Failed to fetch dictionary for page ${i}`, e)
+          if (options.cachePages) {
+            const dict = await offlineService.getPageDictionary(bookId, i)
+            if (!dict) {
+              try {
+                const dictRes = await api.books.getPageDict(bookId, i)
+                await offlineService.savePageDictionary(bookId, i, dictRes.pageDictionary)
+              }
+              catch (e) {
+                console.warn(`Failed to fetch dictionary for page ${i}`, e)
+              }
             }
           }
 
@@ -92,16 +98,16 @@ export const useLibraryStore = defineStore('library', () => {
           const pageSentences = new Set<string>()
           const pageWords = new Set<string>()
 
-          if ((options.analyzeSentences || options.analyzeWords) && page) {
+          if ((options.analyzeSentences || options.analyzeWords || options.ttsSentences || options.ttsWords) && page) {
             const extractData = (html: string) => {
-              if (options.analyzeSentences) {
+              if (options.analyzeSentences || options.ttsSentences) {
                 const sentRegex = /data-raw-sent="([^"]+)"/g
                 let match
                 while ((match = sentRegex.exec(html)) !== null) {
                   pageSentences.add(decodeURIComponent(match[1]))
                 }
               }
-              if (options.analyzeWords) {
+              if (options.analyzeWords || options.ttsWords) {
                 const wordRegex = /data-word="([^"]+)"[^>]*?data-pos="([^"]+)"/g
                 let match
                 while ((match = wordRegex.exec(html)) !== null) {
@@ -123,9 +129,11 @@ export const useLibraryStore = defineStore('library', () => {
             }
           }
 
+          const sentences = Array.from(pageSentences).filter(s => /[\p{L}\p{N}]/u.test(s))
+          const words = Array.from(pageWords).filter(w => /[\p{L}\p{N}]/u.test(w))
+
           // 2.3 Анализ предложений страницы
           if (options.analyzeSentences) {
-            const sentences = Array.from(pageSentences).filter(s => /[\p{L}\p{N}]/u.test(s))
             syncProgress.value.sentencesTotal += sentences.length
 
             const concurrency = 2
@@ -157,7 +165,6 @@ export const useLibraryStore = defineStore('library', () => {
 
           // 2.4 Анализ слов страницы
           if (options.analyzeWords) {
-            const words = Array.from(pageWords).filter(w => /[\p{L}\p{N}]/u.test(w))
             syncProgress.value.wordsTotal += words.length
 
             const concurrency = 2
@@ -186,6 +193,45 @@ export const useLibraryStore = defineStore('library', () => {
               syncProgress.value.currentTask = `Анализ слов: стр. ${i}, ${syncProgress.value.wordsDone} / ${syncProgress.value.wordsTotal}`
             }
           }
+
+          // 2.5 TTS (Озвучка)
+          if (options.ttsSentences || options.ttsWords) {
+            const ttsItems: string[] = []
+            if (options.ttsSentences)
+              ttsItems.push(...sentences)
+            if (options.ttsWords)
+              ttsItems.push(...words)
+
+            syncProgress.value.ttsTotal += ttsItems.length
+
+            const concurrency = 2
+            for (let j = 0; j < ttsItems.length; j += concurrency) {
+              if (signal.aborted)
+                throw new Error('Aborted')
+              const batch = ttsItems.slice(j, j + concurrency)
+
+              await Promise.all(batch.map(async (text) => {
+                if (signal.aborted)
+                  return
+                const normalizedText = text.trim().toLowerCase()
+                const cacheKey = `${bookId}_${normalizedText}`
+
+                try {
+                  const cached = await offlineService.getTts(cacheKey)
+                  if (!cached) {
+                    const res = await api.books.generateTts(bookId, text, signal)
+                    await offlineService.saveTts(cacheKey, res.audioBase64)
+                  }
+                }
+                catch (e: any) {
+                  if (e.name !== 'AbortError')
+                    console.error('TTS Sync error:', e)
+                }
+                syncProgress.value.ttsDone++
+              }))
+              syncProgress.value.currentTask = `Генерация аудио: стр. ${i}, ${syncProgress.value.ttsDone} / ${syncProgress.value.ttsTotal}`
+            }
+          }
         }
       }
 
@@ -209,6 +255,7 @@ export const useLibraryStore = defineStore('library', () => {
     }
   }
 
+  // ... (Остальной код library.store.ts без изменений)
   async function fetchBooks() {
     isLoading.value = true
     try {
