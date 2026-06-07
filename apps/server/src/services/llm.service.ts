@@ -77,13 +77,29 @@ async function _callLlmApi(model: string, messages: any[], temperature: number, 
     messages,
     temperature,
     max_tokens: 8192,
+
+    // Глобальное отключение Reasoning / Thinking для всех поддерживающих это моделей
+    reasoning_effort: 'none',
+
+    // Специфичные флаги для агрегаторов (aihubmix, OpenRouter и т.д.)
+    thinking_config: {
+      thinking_budget: 0,
+    },
+    providerOptions: {
+      google: {
+        thinkingConfig: { thinkingBudget: 0 },
+      },
+      anthropic: {
+        thinking: { type: 'disabled' },
+      },
+    },
   }
 
   // 2. Если запрос идет к Ollama (по порту 11434), добавляем лайфхаки
   if (config.url.includes('11434') || config.url.includes('localhost')) {
     payload.keep_alive = '-1'
     payload.options = {
-      num_ctx: 8192, // Ограничить контекст для ускорения старта
+      num_ctx: 8192,
       stream: false,
     }
   }

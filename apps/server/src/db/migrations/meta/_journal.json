@@ -5,36 +5,8 @@
     {
       "idx": 0,
       "version": "6",
-      "when": 1779920146893,
-      "tag": "0000_chunky_forge",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "6",
-      "when": 1779920151369,
-      "tag": "0001_short_ma_gnuci",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "6",
-      "when": 1780485401003,
-      "tag": "0002_material_psynapse",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "6",
-      "when": 1780610536541,
-      "tag": "0003_swift_korath",
-      "breakpoints": true
-    },
-    {
-      "idx": 4,
-      "version": "6",
-      "when": 1780755223220,
-      "tag": "0004_panoramic_the_phantom",
+      "when": 1780852742581,
+      "tag": "0000_jittery_black_bird",
       "breakpoints": true
     }
   ]

@@ -44,7 +44,6 @@ export const db = drizzle(sqlite, { schema, logger: false })
     console.log('🔄 Checking and applying database migrations...')
 
     try {
-      // Применяем классические миграции из сгенерированных .sql файлов
       migrate(db, { migrationsFolder: path.resolve(import.meta.dir, 'migrations') })
       console.log('✅ Database migrations applied successfully!')
     }

@@ -39,7 +39,11 @@ function startPageAnalysis() {
 }
 
 function goBack() {
-  router.push(AppRoutePaths.Home)
+  if (readerStore.currentBook?.id) {
+    router.push(AppRoutePaths.Book.Info(readerStore.currentBook.id))
+  } else {
+    router.push(AppRoutePaths.Home)
+  }
 }
 
 const currentThemeIcon = computed(() =>

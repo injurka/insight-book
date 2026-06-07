@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "260ffddc-effa-442b-a524-48b692c9d325",
+  "id": "775ee401-d50c-4dd7-9edf-605eae8d66f8",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "book_llm_cache": {
@@ -320,6 +320,37 @@
           "notNull": false,
           "autoincrement": false
         },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'reading'"
+        },
+        "isFavorite": {
+          "name": "isFavorite",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "0"
+        },
+        "collection": {
+          "name": "collection",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "isPublic": {
+          "name": "isPublic",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "0"
+        },
         "createdAt": {
           "name": "createdAt",
           "type": "text",
@@ -467,6 +498,14 @@
           "autoincrement": false,
           "default": "'en'"
         },
+        "targetLanguage": {
+          "name": "targetLanguage",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'ru'"
+        },
         "createdAt": {
           "name": "createdAt",
           "type": "text",
@@ -492,6 +531,60 @@
           "onUpdate": "no action"
         }
       },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "dump_logs": {
+      "name": "dump_logs",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": true
+        },
+        "prefix": {
+          "name": "prefix",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'in-progress'"
+        },
+        "error": {
+          "name": "error",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "(datetime('now'))"
+        },
+        "completedAt": {
+          "name": "completedAt",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "checkConstraints": {}
@@ -656,15 +749,83 @@
       "uniqueConstraints": {},
       "checkConstraints": {}
     },
+    "opds_catalogs": {
+      "name": "opds_catalogs",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": true
+        },
+        "userId": {
+          "name": "userId",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "title": {
+          "name": "title",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "url": {
+          "name": "url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "(datetime('now'))"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "opds_catalogs_userId_users_id_fk": {
+          "name": "opds_catalogs_userId_users_id_fk",
+          "tableFrom": "opds_catalogs",
+          "tableTo": "users",
+          "columnsFrom": [
+            "userId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
     "reading_progress": {
       "name": "reading_progress",
       "columns": {
         "bookId": {
           "name": "bookId",
           "type": "integer",
-          "primaryKey": true,
+          "primaryKey": false,
           "notNull": true,
           "autoincrement": false
+        },
+        "userId": {
+          "name": "userId",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 1
         },
         "currentPage": {
           "name": "currentPage",
@@ -697,9 +858,30 @@
           ],
           "onDelete": "cascade",
           "onUpdate": "no action"
+        },
+        "reading_progress_userId_users_id_fk": {
+          "name": "reading_progress_userId_users_id_fk",
+          "tableFrom": "reading_progress",
+          "tableTo": "users",
+          "columnsFrom": [
+            "userId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
-      "compositePrimaryKeys": {},
+      "compositePrimaryKeys": {
+        "reading_progress_bookId_userId_pk": {
+          "columns": [
+            "bookId",
+            "userId"
+          ],
+          "name": "reading_progress_bookId_userId_pk"
+        }
+      },
       "uniqueConstraints": {},
       "checkConstraints": {}
     },
@@ -796,6 +978,14 @@
           "autoincrement": false,
           "default": "'en'"
         },
+        "targetLanguage": {
+          "name": "targetLanguage",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'ru'"
+        },
         "notes": {
           "name": "notes",
           "type": "text",
@@ -812,6 +1002,20 @@
         },
         "difficulty": {
           "name": "difficulty",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "grammarNote": {
+          "name": "grammarNote",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "vocabularyNote": {
+          "name": "vocabularyNote",
           "type": "text",
           "primaryKey": false,
           "notNull": false,
@@ -875,11 +1079,12 @@
         }
       },
       "indexes": {
-        "user_dictionary_userId_word_unique": {
-          "name": "user_dictionary_userId_word_unique",
+        "user_dictionary_userId_word_targetLanguage_unique": {
+          "name": "user_dictionary_userId_word_targetLanguage_unique",
           "columns": [
             "userId",
-            "word"
+            "word",
+            "targetLanguage"
           ],
           "isUnique": true
         }

@@ -26,6 +26,27 @@ const isAiModalOpen = ref(false)
 const isAiLoading = ref(false)
 const aiData = ref<GeneratedWordExamples | null>(null)
 
+const headerText = computed(() => {
+  if (!analysisStore.wordPopover)
+    return ''
+  return analysisStore.wordPopover.showAi ? (analysisStore.wordPopover.aiTranscription || analysisStore.wordPopover.transcription) : analysisStore.wordPopover.transcription
+})
+
+function getPosClass(pos: string) {
+  if (!pos)
+    return 'pos-default'
+  const p = pos.toLowerCase()
+  if (p.startsWith('n'))
+    return 'pos-noun'
+  if (p.startsWith('v'))
+    return 'pos-verb'
+  if (p.startsWith('a') || p.startsWith('d'))
+    return 'pos-adj'
+  if (p.startsWith('r'))
+    return 'pos-pronoun'
+  return 'pos-default'
+}
+
 watch(
   () => analysisStore.wordPopover,
   async (val) => {
@@ -129,13 +150,14 @@ onUnmounted(() => {
   <Teleport to="body">
     <Transition name="fade">
       <div v-if="analysisStore.wordPopover" ref="popoverRef" class="word-popover" :style="popoverPos" @click.stop>
+        <div class="transcription-header">
+          <span class="header-text">{{ headerText }}</span>
+          <button class="close-btn" @click.stop="analysisStore.closePopover()">
+            <Icon width="18" height="18" icon="mdi:chevron-down" />
+          </button>
+        </div>
+
         <div class="popover-content">
-          <div class="transcription-header">
-            <span class="header-text">{{ analysisStore.wordPopover.showAi ? (analysisStore.wordPopover.aiTranscription || analysisStore.wordPopover.transcription) : analysisStore.wordPopover.transcription }}</span>
-            <button class="close-btn" @click.stop="analysisStore.closePopover()">
-              <Icon width="16" height="16" icon="mdi:chevron-down" />
-            </button>
-          </div>
           <div v-if="analysisStore.wordPopover.showAi && analysisStore.wordPopover.isAiLoading" class="ai-loader">
             <KitSkeleton width="95%" height="16px" />
             <KitSkeleton width="75%" height="16px" />
@@ -163,22 +185,24 @@ onUnmounted(() => {
             </template>
           </div>
         </div>
+
         <div class="popover-footer">
-          <div v-if="analysisStore.wordPopover.pos" class="pos-badge">
+          <div v-if="analysisStore.wordPopover.pos" class="pos-badge" :class="getPosClass(analysisStore.wordPopover.pos)">
             {{ POS_TAGS_MAP[analysisStore.wordPopover.pos] || analysisStore.wordPopover.pos }}
           </div>
           <div v-else class="pos-badge-placeholder" />
+
           <div class="popover-actions">
             <KitTooltip :text="t('analysis.voice')" placement="top">
-              <KitBtn :icon="isLoading ? 'mdi:loading' : (isPlaying ? 'mdi:volume-high' : 'mdi:volume-medium')" size="xs" variant="text" color="primary" :class="{ 'pulse-animation': isPlaying, 'spin-animation': isLoading }" @click.stop="playWordTTS" />
+              <KitBtn :icon="isLoading ? 'mdi:loading' : (isPlaying ? 'mdi:volume-high' : 'mdi:volume-medium')" size="xs" variant="text" :class="{ 'pulse-animation': isPlaying, 'spin-animation': isLoading }" @click.stop="playWordTTS" />
             </KitTooltip>
 
             <KitTooltip :text="t('analysis.detailedWithAi')" placement="top">
-              <KitBtn icon="mdi:text-box-search-outline" size="xs" variant="text" color="secondary" @click.stop="fetchAiExamples" />
+              <KitBtn icon="mdi:text-box-search-outline" size="xs" variant="text" @click.stop="fetchAiExamples" />
             </KitTooltip>
 
             <KitTooltip :text="t('analysis.translateWithAi')" placement="top">
-              <KitBtn icon="mdi:robot-outline" size="xs" variant="text" :color="analysisStore.wordPopover.showAi ? 'accent' : 'secondary'" @click.stop="analysisStore.toggleAiTranslation" />
+              <KitBtn icon="mdi:robot-outline" size="xs" variant="text" :class="{ 'is-active-ai': analysisStore.wordPopover.showAi }" @click.stop="analysisStore.toggleAiTranslation" />
             </KitTooltip>
 
             <KitTooltip v-if="authStore.user" :text="analysisStore.wordPopover.isSaved ? t('analysis.editCard') : t('analysis.saveToDict')" placement="top-end">
@@ -202,12 +226,11 @@ onUnmounted(() => {
 <style lang="scss" scoped>
 .word-popover {
   position: fixed;
-  background-color: rgba(var(--bg-tertiary-color-rgb, 33, 38, 45), 0.8);
-  backdrop-filter: blur(10px);
+  z-index: var(--z-popover, 1300);
+  background-color: var(--bg-tertiary-color);
   border: 1px solid var(--border-primary-color);
   border-radius: 12px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
-  z-index: var(--z-popover, 1300);
   width: 90vw;
   max-width: 450px;
   min-width: 280px;
@@ -215,145 +238,187 @@ onUnmounted(() => {
   flex-direction: column;
   overflow: hidden;
   max-height: 70vh;
-  min-height: 250px;
+  min-height: 150px;
+}
 
-  .popover-content {
-    display: flex;
-    flex-direction: column;
-    overflow-y: auto;
-    flex: 1;
+.transcription-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 16px 8px 16px;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  min-height: 44px;
 
-    scrollbar-width: none; /* Firefox */
-    -ms-overflow-style: none; /* IE and Edge */
-    &::-webkit-scrollbar {
-      display: none; /* Chrome, Safari and Opera */
-    }
+  .header-text {
+    font-weight: 600;
+    font-size: 1.15rem;
+    color: var(--fg-accent-color);
+    text-align: center;
   }
 
-  .transcription-header {
-    background-color: rgba(var(--bg-tertiary-color-rgb, 33, 38, 45), 0.8);
-    backdrop-filter: blur(4px);
+  .close-btn {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: transparent;
+    border: none;
+    color: var(--fg-secondary-color);
+    cursor: pointer;
+    padding: 6px;
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 12px 16px 8px 16px;
-    position: sticky;
-    top: 0;
-    z-index: 2;
-    min-height: 44px;
+    border-radius: 50%;
+    transition:
+      background-color 0.2s,
+      color 0.2s;
 
-    .header-text {
-      font-weight: 600;
-      font-size: 1.15rem;
-      color: var(--fg-accent-color);
-      text-align: center;
-    }
-    .close-btn {
-      position: absolute;
-      right: 8px;
-      top: 50%;
-      transform: translateY(-50%);
-      background: transparent;
-      border: none;
-      color: var(--fg-secondary-color);
-      cursor: pointer;
-      padding: 6px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border-radius: 50%;
-      transition:
-        background-color 0.2s,
-        color 0.2s;
-      &:hover {
-        background-color: var(--bg-hover-color);
-        color: var(--fg-primary-color);
-      }
-      svg {
-        font-size: 1.4rem;
-      }
-    }
-  }
-  .popover-body {
-    padding: 8px 12px;
-    position: relative;
-  }
-  .ai-loader {
-    padding: 16px;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-  }
-  .translation {
-    font-size: 0.95rem;
-    color: var(--fg-primary-color);
-    line-height: 1.45;
-    text-align: left;
-    margin-bottom: 8px;
-    word-break: break-word;
-    white-space: pre-wrap;
-    display: flex;
-    flex-direction: column;
-  }
-  .ai-section {
-    margin-top: 12px;
-    border-top: 1px dashed var(--border-secondary-color);
-    padding-top: 8px;
-    text-align: left;
-    .ai-subtitle {
-      font-size: 0.85rem;
-      color: var(--fg-secondary-color);
-      margin-bottom: 4px;
-      font-weight: 500;
-    }
-    .ai-rule,
-    .ai-vocab {
-      font-size: 0.85rem;
-      line-height: 1.4;
+    &:hover {
+      background-color: var(--bg-hover-color);
       color: var(--fg-primary-color);
-      margin-bottom: 6px;
-      b {
-        color: var(--fg-accent-color);
-      }
+    }
+
+    svg {
+      font-size: 1.4rem;
     }
   }
-  .popover-footer {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 6px 12px;
-    background-color: var(--bg-secondary-color);
-    border-top: 1px solid var(--border-primary-color);
+}
+
+.popover-content {
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  flex: 1;
+
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  &::-webkit-scrollbar {
+    display: none;
   }
-  .pos-badge {
-    font-size: 0.75rem;
+}
+
+.popover-body {
+  padding: 8px 16px;
+  position: relative;
+}
+
+.ai-loader {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.translation {
+  font-size: 0.95rem;
+  color: var(--fg-primary-color);
+  line-height: 1.45;
+  text-align: left;
+  margin-bottom: 8px;
+  word-break: break-word;
+  white-space: pre-wrap;
+  display: flex;
+  flex-direction: column;
+}
+
+.ai-section {
+  margin-top: 12px;
+  border-top: 1px dashed var(--border-secondary-color);
+  padding-top: 8px;
+  text-align: left;
+  .ai-subtitle {
+    font-size: 0.85rem;
+    color: var(--fg-secondary-color);
+    margin-bottom: 4px;
+    font-weight: 500;
+  }
+  .ai-rule,
+  .ai-vocab {
+    font-size: 0.85rem;
+    line-height: 1.4;
+    color: var(--fg-primary-color);
+    margin-bottom: 6px;
+    b {
+      color: var(--fg-accent-color);
+    }
+  }
+}
+
+.popover-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  background-color: var(--bg-secondary-color);
+  border-top: 1px solid var(--border-secondary-color);
+}
+
+.pos-badge {
+  font-size: 0.75rem;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-weight: 500;
+  white-space: nowrap;
+
+  &.pos-noun {
+    color: #3b82f6;
+    background-color: rgba(59, 130, 246, 0.15);
+  }
+  &.pos-verb {
+    color: #ef4444;
+    background-color: rgba(239, 68, 68, 0.15);
+  }
+  &.pos-adj {
+    color: #10b981;
+    background-color: rgba(16, 185, 129, 0.15);
+  }
+  &.pos-pronoun {
+    color: #8b5cf6;
+    background-color: rgba(139, 92, 246, 0.15);
+  }
+  &.pos-default {
+    color: var(--fg-primary-color);
     background-color: var(--bg-overlay-secondary-color);
-    color: var(--fg-inverted-color);
-    padding: 2px 8px;
-    border-radius: 4px;
-    white-space: nowrap;
   }
-  .popover-actions {
-    display: flex;
-    gap: 4px;
+}
+
+.popover-actions {
+  display: flex;
+  gap: 4px;
+
+  :deep(.kit-btn-icon) {
+    font-size: 1.2rem;
   }
+
+  .is-active-ai {
+    :deep(.kit-btn-icon) {
+      color: var(--fg-accent-color) !important;
+    }
+  }
+
   .is-saved-star {
     :deep(.kit-btn-icon) {
       color: #e3b341 !important;
     }
   }
+
   .pulse-animation {
     :deep(.kit-btn-icon) {
       animation: pulse-op 1.5s infinite;
-      color: var(--fg-accent-color);
+      color: var(--fg-accent-color) !important;
     }
   }
+
   .spin-animation {
     :deep(.kit-btn-icon) {
       animation: spin 1s linear infinite;
     }
   }
 }
+
 @keyframes pulse-op {
   0% {
     opacity: 1;
@@ -368,11 +433,13 @@ onUnmounted(() => {
     transform: scale(1);
   }
 }
+
 @keyframes spin {
   to {
     transform: rotate(360deg);
   }
 }
+
 .fade-enter-active,
 .fade-leave-active {
   transition: opacity 0.2s;
