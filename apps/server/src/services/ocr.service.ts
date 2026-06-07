@@ -22,7 +22,7 @@ export async function recognizeMangaPage(base64Image: string, language: string, 
     imageUrl = `data:image/jpeg;base64,${base64Image}`
   }
 
-  const model = config.url === LLM_API_URL ? 'glm-ocr' : config.model
+  const model = config.url === LLM_API_URL ? 'glm-ocr' : (config.model || 'glm-ocr')
 
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',

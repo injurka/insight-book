@@ -1,4 +1,4 @@
-import type { GeneratedWordExamples, LlmAnalysis, LlmConfig, WordAutoFillResponse } from '../types'
+import type { GeneratedWordExamples, LlmAnalysis, LlmConfig, ModelMessage, WordAutoFillResponse } from '../types'
 import { eq } from 'drizzle-orm'
 import { z } from 'zod'
 import { callLlmApi } from '~/utils/llm-api'
@@ -79,7 +79,7 @@ export async function analyzeSentence(bookId: number, sentence: string, language
   if (!config.url)
     throw new AppError(500, 'LLM API не настроен')
 
-  const messages = [
+  const messages: ModelMessage[] = [
     { role: 'system', content: getSystemPrompt(language, targetLang) },
     { role: 'user', content: `Текст: ${sentence}` },
   ]
@@ -121,7 +121,7 @@ export async function generateWordExamples(word: string, language: string, targe
   if (!config.url)
     throw new AppError(500, 'LLM API не настроен')
 
-  const messages = [
+  const messages: ModelMessage[] = [
     { role: 'system', content: getWordExamplesPrompt(language, targetLang) },
     { role: 'user', content: `Слово: ${word}` },
   ]
@@ -148,7 +148,7 @@ export async function generateWordAutoFill(word: string, language: string, targe
   if (!config.url)
     throw new AppError(500, 'LLM API не настроен')
 
-  const messages = [
+  const messages: ModelMessage[] = [
     { role: 'system', content: getWordAutoFillPrompt(language, targetLang) },
     { role: 'user', content: `Слово: ${word}` },
   ]
@@ -175,7 +175,7 @@ export async function analyzeBookExcerpt(excerpt: string, config: LlmConfig): Pr
   if (!config.url)
     throw new AppError(500, 'LLM API не настроен')
 
-  const messages = [
+  const messages: ModelMessage[] = [
     { role: 'system', content: BOOK_ANALYSIS_PROMPT },
     { role: 'user', content: `Отрывок книги:\n\n${excerpt}` },
   ]
@@ -214,7 +214,7 @@ export async function analyzeMangaInfo(title: string, author: string | null, lan
   const promptText = getMangaAnalysisPrompt(language)
   const authorInfo = author ? ` Автор: ${author}` : ''
 
-  const messages = [
+  const messages: ModelMessage[] = [
     { role: 'system', content: promptText },
     { role: 'user', content: `Название манги/комикса: "${title}".${authorInfo}` },
   ]
