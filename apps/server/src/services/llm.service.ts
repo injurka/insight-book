@@ -68,15 +68,31 @@ async function _callLlmApi(model: string, messages: any[], temperature: number, 
     headers.Authorization = `Bearer ${config.key}`
   }
 
+  // 1. Собираем стандартный Payload
+  const payload: any = {
+    model,
+    // Ollama отлично понимает этот стандартный OpenAI параметр,
+    // так что format: "json" писать не обязательно.
+    response_format: { type: 'json_object' },
+    messages,
+    temperature,
+    max_tokens: 16384
+  }
+
+  // 2. Если запрос идет к Ollama (по порту 11434), добавляем лайфхаки
+  if (config.url.includes('11434') || config.url.includes('localhost')) {
+    payload.keep_alive = "-1"
+    payload.options = {
+      num_ctx: 8192, // Ограничить контекст для ускорения старта
+      stream: false,
+    }
+  }
+
+  // 3. Отправляем запрос
   const response = await fetch(`${config.url}/chat/completions`, {
     method: 'POST',
     headers,
-    body: JSON.stringify({
-      model,
-      response_format: { type: 'json_object' },
-      messages,
-      temperature,
-    }),
+    body: JSON.stringify(payload),
     signal,
   })
 

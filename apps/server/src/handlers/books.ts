@@ -69,16 +69,22 @@ const UpdateStatsSchema = z.object({
 })
 
 const AnalyzeSentenceSchema = z.object({
-  sentence: z.string().min(1, 'Предложение не может быть пустым'),
+  sentence: z.string()
+    .min(1, 'Предложение не может быть пустым')
+    .max(600, 'Фраза слишком длинная для детального анализа (макс. 600 символов)'),
   language: z.string().min(1, 'Язык обязателен'),
 })
 
 const GenerateTtsSchema = z.object({
-  text: z.string().min(1, 'Текст не передан'),
+  text: z.string()
+    .min(1, 'Текст не передан')
+    .max(600, 'Текст слишком длинный для озвучки'),
 })
 
 const GenerateTtsStandaloneSchema = z.object({
-  text: z.string().min(1, 'Текст не передан'),
+  text: z.string()
+    .min(1, 'Текст не передан')
+    .max(600, 'Текст слишком длинный'),
   language: z.string().min(1, 'Язык обязателен'),
 })
 

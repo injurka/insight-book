@@ -51,7 +51,9 @@ const DeckSchema = z.object({
 })
 
 const GenerateExamplesSchema = z.object({
-  word: z.string().min(1, 'Слово обязательно'),
+  word: z.string()
+    .min(1, 'Слово обязательно')
+    .max(100, 'Выделен слишком большой фрагмент текста (макс. 100 символов)'),
   language: z.string().min(1, 'Язык обязателен'),
 })
 

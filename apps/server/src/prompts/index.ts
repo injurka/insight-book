@@ -45,7 +45,7 @@ MANDATORY: Return the response STRICTLY as a valid JSON. No greetings, no markdo
 
 Instructions:
 1. Translation: Natural, literary (not word-for-word), adapted for ${tgtLang}.
-2. Grammar: Highlight 1-3 key grammatical patterns. Explain them concisely in ${tgtLang}.
+2. Grammar: Highlight 1-4 key grammatical patterns. Explain them concisely in ${tgtLang}.
 3. Vocabulary: 
    - Provide words in their BASE (DICTIONARY) FORM.
    - If input is a SINGLE word (especially compound/multi-character): break it down into logical parts and explain each in ${tgtLang}.
