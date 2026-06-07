@@ -46,7 +46,7 @@ const statusOptions = computed(() => [
 const textDirectionOptions = computed(() => [
   { label: t('library.dirAuto'), value: 'auto' },
   { label: t('library.dirLtr'), value: 'ltr' },
-  { label: t('library.dirVertical'), value: 'vertical' },
+  { label: t('library.dirVertical'), value: 'v_rtl' },
   { label: t('library.dirRtl'), value: 'rtl' },
 ])
 

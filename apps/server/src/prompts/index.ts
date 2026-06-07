@@ -23,8 +23,8 @@ export function getOcrPrompt(language: string, textDirection?: string | null): s
 
   let layoutHint = 'Read bubbles and text in the standard horizontal order: left-to-right, top-to-bottom.'
 
-  if (textDirection === 'vertical') {
-    layoutHint = 'Pay close attention to VERTICAL text (top-to-bottom, right-to-left columns). Read vertical bubbles correctly from right to left.'
+  if (textDirection === 'v_rtl') {
+    layoutHint = 'Pay close attention to VERTICAL text. Read columns from top-to-bottom, and proceed strictly from RIGHT to LEFT.'
   }
   else if (textDirection === 'rtl') {
     layoutHint = 'Read bubbles and text in horizontal right-to-left order.'
@@ -34,9 +34,11 @@ export function getOcrPrompt(language: string, textDirection?: string | null): s
   }
   else {
     if (language === 'ja' || language === 'zh') {
-      layoutHint = 'Pay close attention to VERTICAL text (top-to-bottom, right-to-left columns) which is standard for manga/manhua. Read vertical bubbles correctly from right to left. Also parse any horizontal text if present.'
+      layoutHint = 'Pay close attention to VERTICAL text which is standard for manga/manhua. Read vertical bubbles correctly from top-to-bottom, right-to-left. If the layout is clearly left-to-right, adjust your reading order accordingly. Also parse any horizontal text if present.'
     }
   }
+
+  
 
   return `You are a highly precise OCR system. Extract all text from this image.
 The primary language of the text is ${langName}.
@@ -45,6 +47,8 @@ CRITICAL CONSTRAINTS:
 1. NO TRANSLATIONS: Output EXACTLY the original text found in the image. If the text is in ${langName}, output ONLY ${langName} characters. Do NOT translate to English.
 2. NO DESCRIPTIONS: Do not describe the image, the characters, or what is happening. Output ONLY the transcribed text.
 3. NO FORMATTING: Do NOT output any markdown (like ** or __), HTML tags, XML tags, or code blocks. Return purely plain, unformatted text.
+4. READING ORDER: Strictly follow the layout instructions below. Do not jumble or mix text from different columns. Read each column fully before moving to the next.
+5. COLUMN SEPARATION: If a bubble contains multiple vertical columns, separate the transcribed columns with a space or newline to preserve logical reading flow and prevent words from fusing together.
 
 LAYOUT AND READING DIRECTION:
 ${layoutHint}
