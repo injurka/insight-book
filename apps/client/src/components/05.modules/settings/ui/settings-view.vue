@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { Icon } from '@iconify/vue'
-import { computed, onMounted } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { KitBtn, KitCheckbox, KitInput, KitSelect, KitSkeleton, KitTooltip } from '~/components/01.kit'
 import { HoverRevealBg } from '~/components/02.shared/hover-reveal-bg'
+import { useToast } from '~/shared/composables/use-toast'
 import { AppRoutePaths } from '~/shared/constants/routes'
 import { useCacheStore } from '~/shared/store/cache.store'
 import { useGlobalSettingsStore } from '~/shared/store/settings.store'
@@ -13,6 +14,7 @@ import { formatBytes, formatPagesList } from '../lib/formatters'
 const cacheStore = useCacheStore()
 const settingsStore = useGlobalSettingsStore()
 const router = useRouter()
+const toast = useToast()
 const { t } = useI18n()
 
 const appLangOptions = [
@@ -42,6 +44,65 @@ const activeBookStats = computed(() => {
   }
   return res
 })
+
+const availableModels = ref<{ label: string, value: string }[]>([])
+const isFetchingModels = ref(false)
+
+async function fetchModels() {
+  if (!settingsStore.customLlmUrl) {
+    toast.warn('Сначала укажите URL API')
+    return
+  }
+
+  isFetchingModels.value = true
+  try {
+    const baseUrl = settingsStore.customLlmUrl.replace(/\/$/, '')
+
+    const res = await fetch(`${baseUrl}/models`, {
+      headers: settingsStore.customLlmKey
+        ? {
+            Authorization: `Bearer ${settingsStore.customLlmKey}`,
+          }
+        : undefined,
+    })
+
+    if (!res.ok) {
+      throw new Error(`Ошибка HTTP: ${res.status}`)
+    }
+
+    const data = await res.json()
+
+    if (data && data.data && Array.isArray(data.data)) {
+      availableModels.value = data.data.map((m: any) => ({
+        label: m.id,
+        value: m.id,
+      }))
+
+      if (availableModels.value.length > 0) {
+        toast.success('Список моделей успешно загружен')
+
+        // Если текущей модели нет в новом списке, автоматически выбираем первую
+        if (!availableModels.value.some(m => m.value === settingsStore.customLlmModel)) {
+          settingsStore.customLlmModel = availableModels.value[0].value
+        }
+      }
+      else {
+        toast.info('Сервер вернул пустой список')
+        availableModels.value = []
+      }
+    }
+    else {
+      throw new Error('Неизвестный формат ответа сервера')
+    }
+  }
+  catch (e) {
+    toast.error(e instanceof Error ? e.message : 'Не удалось загрузить модели')
+    availableModels.value = []
+  }
+  finally {
+    isFetchingModels.value = false
+  }
+}
 </script>
 
 <template>
@@ -85,10 +146,38 @@ const activeBookStats = computed(() => {
                 <label>{{ t('settings.apiUrl') }}</label>
                 <KitInput v-model="settingsStore.customLlmUrl" placeholder="http://localhost:11434/v1" />
               </div>
+
               <div class="form-group flex-1">
                 <label>{{ t('settings.modelName') }}</label>
-                <KitInput v-model="settingsStore.customLlmModel" placeholder="llama3, qwen2..." />
+                <div style="display: flex; gap: 8px; align-items: center;">
+                  <!-- Показываем селект, если модели загрузились -->
+                  <KitSelect
+                    v-if="availableModels.length > 0"
+                    v-model="settingsStore.customLlmModel"
+                    :options="availableModels"
+                    style="flex: 1; min-width: 0;"
+                  />
+                  <!-- Или обычный текстовый инпут, если списка нет -->
+                  <KitInput
+                    v-else
+                    v-model="settingsStore.customLlmModel"
+                    placeholder="llama3, qwen2..."
+                    style="flex: 1; min-width: 0;"
+                  />
+                  <KitTooltip text="Загрузить список моделей" placement="top">
+                    <KitBtn
+                      variant="outlined"
+                      color="secondary"
+                      :icon="isFetchingModels ? 'mdi:loading' : 'mdi:refresh'"
+                      :class="{ 'spin-animation': isFetchingModels }"
+                      :disabled="isFetchingModels"
+                      style="padding: 0; width: 38px; height: 38px; flex-shrink: 0;"
+                      @click="fetchModels"
+                    />
+                  </KitTooltip>
+                </div>
               </div>
+
               <div class="form-group flex-1">
                 <label>{{ t('settings.apiKey') }}</label>
                 <KitInput v-model="settingsStore.customLlmKey" placeholder="Любой ключ" />
@@ -690,5 +779,17 @@ const activeBookStats = computed(() => {
 .fade-leave-to {
   opacity: 0;
   transform: translateY(-5px);
+}
+
+.spin-animation {
+  :deep(svg) {
+    animation: spin 1s linear infinite;
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 </style>
