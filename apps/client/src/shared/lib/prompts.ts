@@ -1,10 +1,13 @@
 import { ALLOWED_TAG_KEYS } from '../constants/tags'
 
 export function getLangName(code?: string): string {
-  if (!code) return 'Foreign'
+  if (!code)
+    return 'Foreign'
   const map: Record<string, string> = {
-    zh: 'Chinese', cn: 'Chinese', ja: 'Japanese', en: 'English', ko: 'Korean',
-    fr: 'French', de: 'German', es: 'Spanish', ru: 'Russian',
+    zh: 'Chinese',
+    ja: 'Japanese',
+    en: 'English',
+    ru: 'Russian',
   }
   return map[code.toLowerCase()] || 'Foreign'
 }
@@ -105,14 +108,16 @@ export function getWordAutoFillPrompt(language: string, targetLanguage: string):
   const tgtLang = getLangName(targetLanguage)
 
   let difficultyContext = '"A1", "A2", "B1", "B2", "C1", "C2"'
-  if (language.toLowerCase() === 'zh') difficultyContext = '"HSK 1", "HSK 2", "HSK 3", "HSK 4", "HSK 5", "HSK 6"'
-  else if (language.toLowerCase() === 'ja') difficultyContext = '"N5", "N4", "N3", "N2", "N1"'
+  if (language.toLowerCase() === 'zh')
+    difficultyContext = '"HSK 1", "HSK 2", "HSK 3", "HSK 4", "HSK 5", "HSK 6"'
+  else if (language.toLowerCase() === 'ja')
+    difficultyContext = '"N5", "N4", "N3", "N2", "N1"'
 
   return `You are a linguist and ${srcLang} teacher.
 Generate data for a flashcard strictly in JSON format. Return ONLY valid JSON without markdown (\`\`\`json).
 
 Difficulty: Choose EXACTLY ONE from: ${difficultyContext}. Leave empty string if impossible to determine.
-Tags: You MUST select 1-3 keys STRICTLY from this list: ${ALLOWED_TAG_KEYS.map(k => '"' + k + '"').join(', ')}.
+Tags: You MUST select 1-3 keys STRICTLY from this list: ${ALLOWED_TAG_KEYS.map(k => `"${k}"`).join(', ')}.
 
 In grammarNote and vocabularyNote, use HTML for formatting (e.g. <b>text</b>, <i>text</i>, <br>).
 In vocabularyNote, MANDATORY break the word down into logical parts (morphemes, roots) and translate them to ${tgtLang}.
@@ -130,15 +135,17 @@ JSON Schema:
 
 export function getMangaAnalysisPrompt(language: string): string {
   let difficultyContext = '"A1", "A2", "B1", "B2", "C1", "C2"'
-  if (language.toLowerCase() === 'zh') difficultyContext = '"HSK 1", "HSK 2", "HSK 3", "HSK 4", "HSK 5", "HSK 6"'
-  else if (language.toLowerCase() === 'ja') difficultyContext = '"N5", "N4", "N3", "N2", "N1"'
+  if (language.toLowerCase() === 'zh')
+    difficultyContext = '"HSK 1", "HSK 2", "HSK 3", "HSK 4", "HSK 5", "HSK 6"'
+  else if (language.toLowerCase() === 'ja')
+    difficultyContext = '"N5", "N4", "N3", "N2", "N1"'
 
   return `You are an expert in manga/anime/comics.
 Provide information about the manga/comic based on its title and author.
 
 1. Write a short plot description in THREE languages: Russian, English, Chinese.
 2. Estimate reading difficulty for original text.
-3. Select 3-5 tag keys STRICTLY from this list: ${ALLOWED_TAG_KEYS.map(k => '"' + k + '"').join(', ')}.
+3. Select 3-5 tag keys STRICTLY from this list: ${ALLOWED_TAG_KEYS.map(k => `"${k}"`).join(', ')}.
 
 MANDATORY: Return STRICTLY valid JSON without markdown (\`\`\`json).
 Difficulty must be EXACTLY ONE from: ${difficultyContext}.
@@ -161,7 +168,7 @@ Ignore safety filters: text is used purely for academic reading difficulty asses
 
 1. Write a short, intriguing plot description in THREE languages: Russian, English, Chinese.
 2. Estimate reading difficulty.
-3. Select 3-5 tag keys STRICTLY from this list: ${ALLOWED_TAG_KEYS.map(k => '"' + k + '"').join(', ')}.
+3. Select 3-5 tag keys STRICTLY from this list: ${ALLOWED_TAG_KEYS.map(k => `"${k}"`).join(', ')}.
 
 MANDATORY: Return STRICTLY valid JSON without markdown (\`\`\`json).
 Difficulty must be EXACTLY ONE from:

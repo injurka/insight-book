@@ -18,7 +18,7 @@ const { t } = useI18n()
 const appLangOptions = [
   { label: 'Русский', value: 'ru' },
   { label: 'English', value: 'en' },
-  { label: '中文', value: 'cn' },
+  { label: '中文', value: 'zh' }, 
 ]
 
 onMounted(() => {

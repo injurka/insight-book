@@ -231,7 +231,7 @@ export async function upsertToUserDictionary(
       ),
     })
     if (!defaultDeck) {
-      const deckName = targetLang === 'ru' ? 'Основная колода' : (targetLang === 'cn' ? '默认词库' : 'Main deck')
+      const deckName = targetLang === 'ru' ? 'Основная колода' : (targetLang === 'zh' ? '默认词库' : 'Main deck')
       defaultDeck = await createDeck(userId, deckName, item.language || 'en', targetLang)
     }
     deckId = defaultDeck.id

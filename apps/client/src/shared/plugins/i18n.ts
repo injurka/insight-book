@@ -1,7 +1,7 @@
 import { createI18n } from 'vue-i18n'
-import cn from '../locales/cn.json'
 import en from '../locales/en.json'
 import ru from '../locales/ru.json'
+import zh from '../locales/zh.json'
 
 let locale = 'ru'
 try {
@@ -21,6 +21,6 @@ export const i18n = createI18n({
   messages: {
     ru,
     en,
-    cn,
+    zh,
   },
 })

@@ -8,13 +8,8 @@ export function getLangName(code?: string): string {
     return 'Foreign'
   const map: Record<string, string> = {
     zh: 'Chinese',
-    cn: 'Chinese',
     ja: 'Japanese',
     en: 'English',
-    ko: 'Korean',
-    fr: 'French',
-    de: 'German',
-    es: 'Spanish',
     ru: 'Russian',
   }
   return map[code.toLowerCase()] || 'Foreign'
