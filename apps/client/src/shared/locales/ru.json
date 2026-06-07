@@ -97,6 +97,11 @@
     "noBooks": "Книг в библиотеке нет."
   },
   "library": {
+    "textDirection": "Направление текста",
+    "dirAuto": "Авто (по языку)",
+    "dirLtr": "Слева направо",
+    "dirVertical": "Вертикально (Сверху вниз)",
+    "dirRtl": "Справа налево",
     "headerSubtitle": "Ваша умная библиотека для изучения языков",
     "searchPlaceholder": "Поиск книг...",
     "selectLanguage": "Выбор языка",

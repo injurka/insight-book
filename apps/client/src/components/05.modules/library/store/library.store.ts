@@ -1,4 +1,4 @@
-import type { Book, BookStats, PageDictEntry, PagePayload, TocItem } from '~/shared/types/models'
+import type { Book, BookStats } from '~/shared/types/models'
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { api } from '~/shared/services/api.service'

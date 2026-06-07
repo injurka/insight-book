@@ -97,6 +97,11 @@
     "noBooks": "书库中没有书。"
   },
   "library": {
+    "textDirection": "Text Direction",
+    "dirAuto": "Auto (by language)",
+    "dirLtr": "Left to Right",
+    "dirVertical": "Vertical (Top to Bottom)",
+    "dirRtl": "Right to Left",
     "headerSubtitle": "您的智能语言学习库",
     "searchPlaceholder": "搜索书籍...",
     "selectLanguage": "选择语言",

@@ -148,7 +148,7 @@ class RussianTokenizer implements LanguageTokenizer {
       return this.initPromise
 
     this.initPromise = new Promise((resolve, reject) => {
-      // @ts-ignore
+      // @ts-expect-error no dts
       import('az').then((azModule) => {
         this.Az = azModule.default || azModule
         this.Az.Morph.init(() => {

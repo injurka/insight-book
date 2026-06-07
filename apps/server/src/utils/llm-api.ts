@@ -25,10 +25,11 @@ async function callLlmApi(
         ) {
           const body = parsedBody as Record<string, any>
 
-          const usesResponsesApi
-            = 'input' in body || 'modalities' in body || 'audio' in body
+          const isOllama = config.url.includes('11434') || config.url.includes('localhost')
 
-          if (usesResponsesApi) {
+          const usesResponsesApi = 'input' in body || 'modalities' in body || 'audio' in body
+
+          if (usesResponsesApi && !isOllama) {
             const textConfig
               = body.text && typeof body.text === 'object' && !Array.isArray(body.text)
                 ? body.text
@@ -47,8 +48,6 @@ async function callLlmApi(
             body.response_format = { type: 'json_object' }
           }
 
-          const isOllama
-            = config.url.includes('11434') || config.url.includes('localhost')
           if (isOllama) {
             body.keep_alive = '-1'
             body.options = {
@@ -61,6 +60,7 @@ async function callLlmApi(
             = config.isAggregator
             || config.url.includes('openrouter.ai')
             || config.url.includes('aihubmix')
+
           if (isAggregator) {
             body.thinking_config = { thinking_budget: 0 }
             body.providerOptions = {

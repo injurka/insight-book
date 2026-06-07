@@ -41,7 +41,8 @@ function startPageAnalysis() {
 function goBack() {
   if (readerStore.currentBook?.id) {
     router.push(AppRoutePaths.Book.Info(readerStore.currentBook.id))
-  } else {
+  }
+  else {
     router.push(AppRoutePaths.Home)
   }
 }

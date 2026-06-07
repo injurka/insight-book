@@ -18,13 +18,25 @@ export function getLangName(code?: string): string {
 /**
  * Генерирует промпт для OCR с учетом целевого языка и направления чтения
  */
-export function getOcrPrompt(language: string): string {
+export function getOcrPrompt(language: string, textDirection?: string | null): string {
   const langName = getLangName(language)
 
   // Динамическая подсказка по направлению текста
   let layoutHint = 'Read bubbles and text in the standard horizontal order: left-to-right, top-to-bottom.'
-  if (language === 'ja' || language === 'zh') {
-    layoutHint = 'Pay close attention to VERTICAL text (top-to-bottom, right-to-left columns) which is standard for manga/manhua. Read vertical bubbles correctly from right to left. Also parse any horizontal text if present.'
+
+  if (textDirection === 'vertical') {
+    layoutHint = 'Pay close attention to VERTICAL text (top-to-bottom, right-to-left columns). Read vertical bubbles correctly from right to left.'
+  }
+  else if (textDirection === 'rtl') {
+    layoutHint = 'Read bubbles and text in horizontal right-to-left order.'
+  }
+  else if (textDirection === 'ltr') {
+    layoutHint = 'Read bubbles and text in the standard horizontal order: left-to-right, top-to-bottom.'
+  }
+  else {
+    if (language === 'ja' || language === 'zh') {
+      layoutHint = 'Pay close attention to VERTICAL text (top-to-bottom, right-to-left columns) which is standard for manga/manhua. Read vertical bubbles correctly from right to left. Also parse any horizontal text if present.'
+    }
   }
 
   return `You are a highly precise OCR system. Extract all text from this image.
@@ -230,10 +242,3 @@ JSON Schema:
   "difficulty": "Strict value from list",
   "tags": ["tag_key1", "tag_key2"]
 }`
-
-/**
- * Статичный промпт для распознавания изображений (OCR) 
- */
-export const OCR_PROMPT = `Extract all text from this image perfectly. Preserve the original language. 
-If this is a comic/manga, read bubbles in the correct natural order (e.g. right-to-left, top-to-bottom for manga/manhua). 
-Do NOT translate the text. Return only the extracted text and its structural layout.`

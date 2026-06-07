@@ -25,7 +25,7 @@ function cleanOcrText(rawText: string): string {
   return text.trim()
 }
 
-export async function recognizeMangaPage(base64Image: string, language: string, config: LlmConfig): Promise<OcrBlock[]> {
+export async function recognizeMangaPage(base64Image: string, language: string, textDirection: string | undefined, config: LlmConfig): Promise<OcrBlock[]> {
   if (!config.url)
     throw new AppError(500, 'API ключ / URL не настроен')
 
@@ -43,8 +43,8 @@ export async function recognizeMangaPage(base64Image: string, language: string, 
     headers.Authorization = `Bearer ${config.key}`
   }
 
-  // Генерируем строгий промпт с учетом языка и направления чтения
-  const promptText = getOcrPrompt(language)
+  // Генерируем промпт с учетом языка и направления
+  const promptText = getOcrPrompt(language, textDirection)
 
   const response = await fetch(`${config.url}/chat/completions`, {
     method: 'POST',

@@ -57,6 +57,7 @@ const UpdateBookSchema = z.object({
   isFavorite: z.boolean().optional(),
   collection: z.string().nullable().optional(),
   isPublic: z.boolean().optional(),
+  textDirection: z.string().nullable().optional(), // <-- НОВОЕ ПОЛЕ
 })
 
 const UpdateStatsSchema = z.object({
@@ -139,11 +140,11 @@ export async function handleGetBookInfo(req: Request, userId: number): Promise<R
   const { progresses, stats, ...bookData } = book
   const statsResult = stats
     ? {
-      ...stats,
-      tags: stats.tags ? JSON.parse(stats.tags) : [],
-      posDistribution: stats.posDistribution ? JSON.parse(stats.posDistribution) : null,
-      topWords: stats.topWords ? JSON.parse(stats.topWords) : null,
-    }
+        ...stats,
+        tags: stats.tags ? JSON.parse(stats.tags) : [],
+        posDistribution: stats.posDistribution ? JSON.parse(stats.posDistribution) : null,
+        topWords: stats.topWords ? JSON.parse(stats.topWords) : null,
+      }
     : null
 
   return json({ ...bookData, currentPage: progress?.currentPage ?? null, toc: book.toc ? JSON.parse(book.toc) : [], stats: statsResult }, 200, {
@@ -214,6 +215,7 @@ export async function handleUpdateBook(req: Request, userId: number): Promise<Re
     isFavorite: body.isFavorite,
     collection: body.collection,
     isPublic: body.isPublic,
+    textDirection: body.textDirection, // <-- Обновляем поле
     updatedAt: new Date().toISOString(),
   }).where(eq(schema.books.id, id))
 
@@ -514,7 +516,14 @@ export async function handleGetPage(req: Request, userId: number): Promise<Respo
   const url = new URL(req.url)
   const isSync = url.searchParams.get('sync') === 'true'
 
-  const book = db.select({ totalPages: schema.books.totalPages, language: schema.books.language, type: schema.books.type, userId: schema.books.userId, isPublic: schema.books.isPublic })
+  const book = db.select({
+    totalPages: schema.books.totalPages,
+    language: schema.books.language,
+    type: schema.books.type,
+    userId: schema.books.userId,
+    isPublic: schema.books.isPublic,
+    textDirection: schema.books.textDirection, // <-- ДОСТАЕМ ИЗ БД
+  })
     .from(schema.books)
     .where(eq(schema.books.id, bookId))
     .get()
@@ -558,7 +567,9 @@ export async function handleGetPage(req: Request, userId: number): Promise<Respo
           base64 = fileBuffer.toString('base64')
         }
 
-        ocrBlocks = await recognizeMangaPage(base64, book.language, config)
+        // Передаем textDirection в OCR сервис
+        ocrBlocks = await recognizeMangaPage(base64, book.language, book.textDirection || undefined, config)
+
         await db.update(schema.mangaPages).set({ ocrData: JSON.stringify(ocrBlocks) }).where(eq(schema.mangaPages.id, pageRow.id))
       }
       catch (e: any) {
@@ -613,9 +624,8 @@ export async function handleGetPage(req: Request, userId: number): Promise<Respo
   return json(payload, 200, { 'Cache-Control': 'public, max-age=86400' })
 }
 
-// ------------------------------------------------------------------
-// Асинхронная выгрузка персонализированного словаря для страницы
-// ------------------------------------------------------------------
+// ... остальной код (без изменений)
+
 export async function handleGetPageDictionary(req: Request, userId: number): Promise<Response> {
   const { id: bookIdStr, pageNum: pageNumStr } = (req as any).params
   const bookId = Number(bookIdStr)
@@ -709,7 +719,7 @@ export async function handleGenerateTts(req: Request, userId: number): Promise<R
   return json({ audioBase64 })
 }
 
-export async function handleStandaloneTts(req: Request, userId: number): Promise<Response> {
+export async function handleStandaloneTts(req: Request): Promise<Response> {
   const config = extractLlmConfig(req)
 
   const { text, language } = GenerateTtsStandaloneSchema.parse(await req.json())

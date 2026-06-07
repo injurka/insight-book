@@ -45,6 +45,7 @@ export interface Book {
   isFavorite?: boolean
   collection?: string | null
   isPublic?: boolean
+  textDirection?: string | null
   progressUpdatedAt?: string | null
 }
 

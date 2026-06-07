@@ -394,6 +394,7 @@ export const useAnalysisStore = defineStore('analysis', () => {
       if (doSent || doTtsSent) {
         const sentRegex = /data-raw-sent="([^"]+)"/g
         let match
+        // eslint-disable-next-line no-cond-assign
         while ((match = sentRegex.exec(html)) !== null) {
           sentencesToProcess.add(decodeURIComponent(match[1]))
         }
@@ -402,6 +403,7 @@ export const useAnalysisStore = defineStore('analysis', () => {
       if (doWords || doTtsWords) {
         const wordRegex = /data-word="([^"]+)"[^>]*?data-pos="([^"]+)"/g
         let match
+        // eslint-disable-next-line no-cond-assign
         while ((match = wordRegex.exec(html)) !== null) {
           if (match[2] !== 'x') {
             wordsToProcess.add(decodeURIComponent(match[1]))

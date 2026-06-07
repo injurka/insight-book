@@ -51,6 +51,8 @@ export const books = sqliteTable('books', {
   collection: text('collection'),
   isPublic: integer('isPublic', { mode: 'boolean' }).notNull().default(sql`0`),
 
+  textDirection: text('textDirection'), 
+
   createdAt: text('createdAt').notNull().default(sql`(datetime('now'))`),
   updatedAt: text('updatedAt').notNull().default(sql`(datetime('now'))`),
 })

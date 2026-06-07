@@ -97,6 +97,11 @@
     "noBooks": "No books in the library."
   },
   "library": {
+    "textDirection": "文字方向",
+    "dirAuto": "自动 (按语言)",
+    "dirLtr": "从左到右",
+    "dirVertical": "垂直 (从上到下)",
+    "dirRtl": "从右到左",
     "headerSubtitle": "Your smart library for language learning",
     "searchPlaceholder": "Search books...",
     "selectLanguage": "Select language",

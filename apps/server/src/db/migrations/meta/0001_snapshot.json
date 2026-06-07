@@ -1,8 +1,8 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "775ee401-d50c-4dd7-9edf-605eae8d66f8",
-  "prevId": "00000000-0000-0000-0000-000000000000",
+  "id": "ecf0e196-cfd9-4879-acc3-ad1fc4bb2ea4",
+  "prevId": "775ee401-d50c-4dd7-9edf-605eae8d66f8",
   "tables": {
     "book_llm_cache": {
       "name": "book_llm_cache",
@@ -350,6 +350,13 @@
           "notNull": true,
           "autoincrement": false,
           "default": "0"
+        },
+        "textDirection": {
+          "name": "textDirection",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
         },
         "createdAt": {
           "name": "createdAt",

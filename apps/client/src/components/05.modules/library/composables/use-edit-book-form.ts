@@ -18,6 +18,7 @@ export function useEditBookForm(bookProp: Ref<Book | null>, emit: any) {
         status: newBook.status || 'reading',
         isFavorite: newBook.isFavorite || false,
         isPublic: newBook.isPublic || false,
+        textDirection: newBook.textDirection || 'auto',
       }
     }
     else {
@@ -47,6 +48,11 @@ export function useEditBookForm(bookProp: Ref<Book | null>, emit: any) {
 
     if (payload.createdAt) {
       payload.createdAt = parseFromDateTimeLocal(payload.createdAt)
+    }
+
+    // Если направление стоит Авто, передаем null, чтобы сработал дефолтный обработчик LLM
+    if (payload.textDirection === 'auto') {
+      payload.textDirection = null
     }
 
     payload.currentPage = Number(payload.currentPage) || 1

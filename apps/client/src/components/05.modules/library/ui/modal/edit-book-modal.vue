@@ -34,12 +34,20 @@ const bookLanguageOptions = computed(() => [
   { label: t('library.langEn'), value: 'en' },
   { label: t('library.langZh'), value: 'zh' },
   { label: t('library.langRu'), value: 'ru' },
+  { label: t('library.langJa'), value: 'ja' },
 ])
 
 const statusOptions = computed(() => [
   { label: t('library.statusReading'), value: 'reading' },
   { label: t('library.statusToRead'), value: 'to-read' },
   { label: t('library.statusRead'), value: 'have-read' },
+])
+
+const textDirectionOptions = computed(() => [
+  { label: t('library.dirAuto'), value: 'auto' },
+  { label: t('library.dirLtr'), value: 'ltr' },
+  { label: t('library.dirVertical'), value: 'vertical' },
+  { label: t('library.dirRtl'), value: 'rtl' },
 ])
 
 function copyLink() {
@@ -87,6 +95,11 @@ function copyLink() {
           <label>{{ t('dictionary.status') }}</label>
           <KitSelect v-if="editingBook.status !== undefined" v-model="editingBook.status" :options="statusOptions" />
         </div>
+      </div>
+
+      <div v-if="editingBook.type === 'manga'" class="form-group">
+        <label>{{ t('library.textDirection') }}</label>
+        <KitSelect v-if="editingBook.textDirection !== undefined" v-model="editingBook.textDirection" :options="textDirectionOptions" />
       </div>
 
       <div class="form-group">
