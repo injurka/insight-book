@@ -401,6 +401,7 @@ export async function handleUploadBook(req: Request, userId: number): Promise<Re
   }
 
   const book = await db.query.books.findFirst({ where: eq(schema.books.id, bookId) })
+  
   return json({ success: true, book })
 }
 
@@ -622,8 +623,6 @@ export async function handleGetPage(req: Request, userId: number): Promise<Respo
 
   return json(payload, 200, { 'Cache-Control': 'public, max-age=86400' })
 }
-
-// ... остальной код (без изменений)
 
 export async function handleGetPageDictionary(req: Request, userId: number): Promise<Response> {
   const { id: bookIdStr, pageNum: pageNumStr } = (req as any).params
