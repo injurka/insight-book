@@ -57,6 +57,8 @@
     "cachePagesDesc": "Text, styles, and images",
     "deepAnalysis": "Deep analysis",
     "deepAnalysisDesc": "Preliminary AI translation of sentences",
+    "analyzeWords": "Analyze words",
+    "analyzeWordsDesc": "Deep AI analysis of each word",
     "warning": "Warning!",
     "warningDesc": "The process can take a long time and actively consume API limits. Recommended for local models (Ollama).",
     "pages": "Pages",

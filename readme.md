@@ -105,17 +105,17 @@ docker compose -f ./docker/docker-compose.local.yml up -d --build
 
 **Посмотреть список всех пользователей:**
 ```bash
-docker compose -f ./docker/docker-compose.local.yml exec server bun run users list
+docker compose exec -it docker-insight-book-server-1 bun ./src/cli.ts users list
 ```
 
 **Добавить нового пользователя:**
 ```bash
-docker compose -f ./docker/docker-compose.local.yml exec server bun run users add <логин> <пароль>
+docker compose exec -it docker-insight-book-server-1 bun ./src/cli.ts <логин> <пароль>
 ```
 
 **Сменить пароль (в том числе администратору):**
 ```bash
-docker compose -f ./docker/docker-compose.local.yml exec server bun run users passwd <логин> <новый_пароль>
+docker compose exec -it docker-insight-book-server-1 bun ./src/cli.ts users passwd <логин> <новый_пароль>
 ```
 
 *(Примечание: если ваш контейнер с сервером называется иначе, замените слово `server` на нужное имя).*

@@ -18,6 +18,8 @@ export const useLibraryStore = defineStore('library', () => {
     pagesDone: 0,
     sentencesTotal: 0,
     sentencesDone: 0,
+    wordsTotal: 0,
+    wordsDone: 0,
     currentTask: '',
   })
 
@@ -31,7 +33,7 @@ export const useLibraryStore = defineStore('library', () => {
     syncState.value = 'idle'
   }
 
-  async function startWholeBookSync(bookId: number, options: { cachePages: boolean, analyzeSentences: boolean }) {
+  async function startWholeBookSync(bookId: number, options: { cachePages: boolean, analyzeSentences: boolean, analyzeWords?: boolean }) {
     const book = books.value.find(b => b.id === bookId) || currentBookInfo.value
     if (!book)
       return
@@ -45,12 +47,12 @@ export const useLibraryStore = defineStore('library', () => {
       pagesDone: 0,
       sentencesTotal: 0,
       sentencesDone: 0,
+      wordsTotal: 0,
+      wordsDone: 0,
       currentTask: 'Подготовка...',
     }
 
     try {
-      const sentencesToAnalyze = new Set<string>()
-
       // 1. Оглавление
       try {
         const toc = await api.books.getToc(bookId)
@@ -58,14 +60,14 @@ export const useLibraryStore = defineStore('library', () => {
       }
       catch { }
 
-      // 2. Страницы, текст и словари
-      if (options.cachePages || options.analyzeSentences) {
+      // 2. Постраничная загрузка и анализ
+      if (options.cachePages || options.analyzeSentences || options.analyzeWords) {
         for (let i = 1; i <= book.totalPages; i++) {
           if (signal.aborted)
             throw new Error('Aborted')
           syncProgress.value.currentTask = `Загрузка страницы ${i} из ${book.totalPages}`
 
-          // 2.1 Страница
+          // 2.1 Кэширование самой страницы
           let page = await offlineService.getPage(bookId, i)
           if (!page) {
             page = await api.books.getPage(bookId, i, true)
@@ -86,60 +88,104 @@ export const useLibraryStore = defineStore('library', () => {
 
           syncProgress.value.pagesDone = i
 
-          // Собираем предложения для последующего перевода
-          if (options.analyzeSentences && page) {
-            const extractSentences = (html: string) => {
-              const sentRegex = /data-raw-sent="([^"]+)"/g
-              let match
-              // eslint-disable-next-line no-cond-assign
-              while ((match = sentRegex.exec(html)) !== null) {
-                sentencesToAnalyze.add(decodeURIComponent(match[1]))
+          // Извлекаем элементы для анализа из загруженной страницы
+          const pageSentences = new Set<string>()
+          const pageWords = new Set<string>()
+
+          if ((options.analyzeSentences || options.analyzeWords) && page) {
+            const extractData = (html: string) => {
+              if (options.analyzeSentences) {
+                const sentRegex = /data-raw-sent="([^"]+)"/g
+                let match
+                while ((match = sentRegex.exec(html)) !== null) {
+                  pageSentences.add(decodeURIComponent(match[1]))
+                }
+              }
+              if (options.analyzeWords) {
+                const wordRegex = /data-word="([^"]+)"[^>]*?data-pos="([^"]+)"/g
+                let match
+                while ((match = wordRegex.exec(html)) !== null) {
+                  if (match[2] !== 'x') {
+                    pageWords.add(decodeURIComponent(match[1]))
+                  }
+                }
               }
             }
 
             if (page.type === 'manga' && page.ocrBlocks) {
               page.ocrBlocks.forEach((b) => {
                 if (b.html)
-                  extractSentences(b.html)
+                  extractData(b.html)
               })
             }
             else if (page.content) {
-              extractSentences(page.content)
+              extractData(page.content)
             }
           }
-        }
-      }
 
-      // 3. Анализ и перевод предложений через ИИ
-      if (options.analyzeSentences) {
-        const sentences = Array.from(sentencesToAnalyze).filter(s => /[\p{L}\p{N}]/u.test(s))
-        syncProgress.value.sentencesTotal = sentences.length
-        syncProgress.value.sentencesDone = 0
+          // 2.3 Анализ предложений страницы
+          if (options.analyzeSentences) {
+            const sentences = Array.from(pageSentences).filter(s => /[\p{L}\p{N}]/u.test(s))
+            syncProgress.value.sentencesTotal += sentences.length
 
-        const concurrency = 2
-        for (let i = 0; i < sentences.length; i += concurrency) {
-          if (signal.aborted)
-            throw new Error('Aborted')
-          const batch = sentences.slice(i, i + concurrency)
+            const concurrency = 2
+            for (let j = 0; j < sentences.length; j += concurrency) {
+              if (signal.aborted)
+                throw new Error('Aborted')
+              const batch = sentences.slice(j, j + concurrency)
 
-          await Promise.all(batch.map(async (sentence) => {
-            if (signal.aborted)
-              return
-            const cached = await offlineService.getAnalysis(bookId, sentence)
-            if (!cached) {
-              try {
-                const res = await api.books.analyze(bookId, sentence, book.language, signal)
-                await offlineService.saveAnalysis(bookId, sentence, res)
-              }
-              catch (e) {
-                const err = e as Error
-                if (err.name !== 'AbortError')
-                  console.error('Analyze error:', err)
-              }
+              await Promise.all(batch.map(async (sentence) => {
+                if (signal.aborted)
+                  return
+                const cached = await offlineService.getAnalysis(bookId, sentence)
+                if (!cached) {
+                  try {
+                    const res = await api.books.analyze(bookId, sentence, book.language, signal)
+                    await offlineService.saveAnalysis(bookId, sentence, res)
+                  }
+                  catch (e) {
+                    const err = e as Error
+                    if (err.name !== 'AbortError')
+                      console.error('Analyze error:', err)
+                  }
+                }
+                syncProgress.value.sentencesDone++
+              }))
+              syncProgress.value.currentTask = `Анализ предложений: стр. ${i}, ${syncProgress.value.sentencesDone} / ${syncProgress.value.sentencesTotal}`
             }
-            syncProgress.value.sentencesDone++
-          }))
-          syncProgress.value.currentTask = `Анализ ИИ: ${syncProgress.value.sentencesDone} / ${syncProgress.value.sentencesTotal}`
+          }
+
+          // 2.4 Анализ слов страницы
+          if (options.analyzeWords) {
+            const words = Array.from(pageWords).filter(w => /[\p{L}\p{N}]/u.test(w))
+            syncProgress.value.wordsTotal += words.length
+
+            const concurrency = 2
+            for (let j = 0; j < words.length; j += concurrency) {
+              if (signal.aborted)
+                throw new Error('Aborted')
+              const batch = words.slice(j, j + concurrency)
+
+              await Promise.all(batch.map(async (word) => {
+                if (signal.aborted)
+                  return
+                const cached = await offlineService.getAnalysis(bookId, word)
+                if (!cached) {
+                  try {
+                    const res = await api.books.analyze(bookId, word, book.language, signal)
+                    await offlineService.saveAnalysis(bookId, word, res)
+                  }
+                  catch (e) {
+                    const err = e as Error
+                    if (err.name !== 'AbortError')
+                      console.error('Analyze word error:', err)
+                  }
+                }
+                syncProgress.value.wordsDone++
+              }))
+              syncProgress.value.currentTask = `Анализ слов: стр. ${i}, ${syncProgress.value.wordsDone} / ${syncProgress.value.wordsTotal}`
+            }
+          }
         }
       }
 

@@ -57,6 +57,8 @@
     "cachePagesDesc": "文本、样式和图片",
     "deepAnalysis": "深度分析",
     "deepAnalysisDesc": "句子的初步 AI 翻译",
+    "analyzeWords": "分析单词",
+    "analyzeWordsDesc": "对每个单词进行深度AI分析",
     "warning": "警告！",
     "warningDesc": "该过程可能需要很长时间并大量消耗 API 限制。建议使用本地模型 (Ollama)。",
     "pages": "页面",

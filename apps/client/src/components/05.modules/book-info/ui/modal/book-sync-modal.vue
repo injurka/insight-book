@@ -14,6 +14,7 @@ const { t } = useI18n()
 const options = ref({
   cachePages: true,
   analyzeSentences: false,
+  analyzeWords: false,
 })
 
 const isRunning = computed(() => libraryStore.syncState === 'running')
@@ -89,10 +90,21 @@ watch(visible, (val) => {
           </div>
           <KitCheckbox :model-value="options.analyzeSentences" style="pointer-events: none;" />
         </div>
+
+        <div class="sync-option" :class="{ 'is-active': options.analyzeWords }" @click="options.analyzeWords = !options.analyzeWords">
+          <div class="option-content">
+            <Icon icon="mdi:format-text" class="option-icon" />
+            <div class="option-texts">
+              <span class="option-title">{{ t('bookInfo.analyzeWords') }}</span>
+              <span class="option-desc">{{ t('bookInfo.analyzeWordsDesc') }}</span>
+            </div>
+          </div>
+          <KitCheckbox :model-value="options.analyzeWords" style="pointer-events: none;" />
+        </div>
       </div>
 
       <Transition name="fade">
-        <div v-if="options.analyzeSentences" class="warning-box">
+        <div v-if="options.analyzeSentences || options.analyzeWords" class="warning-box">
           <Icon icon="mdi:alert-outline" class="warning-icon" />
           <div class="warning-content">
             <strong>{{ t('bookInfo.warning') }}</strong>
@@ -133,6 +145,19 @@ watch(visible, (val) => {
             <div
               class="progress-fill sentences-fill"
               :style="{ width: `${(libraryStore.syncProgress.sentencesDone / libraryStore.syncProgress.sentencesTotal) * 100}%` }"
+            />
+          </div>
+        </div>
+
+        <div v-if="options.analyzeWords && libraryStore.syncProgress.wordsTotal > 0" class="progress-section">
+          <div class="progress-info">
+            <span class="label"><Icon icon="mdi:format-text" /> {{ t('analysis.words') }}</span>
+            <span class="value">{{ libraryStore.syncProgress.wordsDone }} / {{ libraryStore.syncProgress.wordsTotal }}</span>
+          </div>
+          <div class="progress-bar">
+            <div
+              class="progress-fill words-fill"
+              :style="{ width: `${(libraryStore.syncProgress.wordsDone / libraryStore.syncProgress.wordsTotal) * 100}%` }"
             />
           </div>
         </div>
@@ -371,6 +396,10 @@ watch(visible, (val) => {
         }
 
         &.sentences-fill {
+          background-color: var(--fg-accent-color);
+        }
+
+        &.words-fill {
           background-color: var(--fg-accent-color);
         }
       }
