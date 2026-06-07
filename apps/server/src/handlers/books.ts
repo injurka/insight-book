@@ -140,11 +140,11 @@ export async function handleGetBookInfo(req: Request, userId: number): Promise<R
   const { progresses, stats, ...bookData } = book
   const statsResult = stats
     ? {
-        ...stats,
-        tags: stats.tags ? JSON.parse(stats.tags) : [],
-        posDistribution: stats.posDistribution ? JSON.parse(stats.posDistribution) : null,
-        topWords: stats.topWords ? JSON.parse(stats.topWords) : null,
-      }
+      ...stats,
+      tags: stats.tags ? JSON.parse(stats.tags) : [],
+      posDistribution: stats.posDistribution ? JSON.parse(stats.posDistribution) : null,
+      topWords: stats.topWords ? JSON.parse(stats.topWords) : null,
+    }
     : null
 
   return json({ ...bookData, currentPage: progress?.currentPage ?? null, toc: book.toc ? JSON.parse(book.toc) : [], stats: statsResult }, 200, {
@@ -215,7 +215,7 @@ export async function handleUpdateBook(req: Request, userId: number): Promise<Re
     isFavorite: body.isFavorite,
     collection: body.collection,
     isPublic: body.isPublic,
-    textDirection: body.textDirection, // <-- Обновляем поле
+    textDirection: body.textDirection,
     updatedAt: new Date().toISOString(),
   }).where(eq(schema.books.id, id))
 
@@ -522,7 +522,7 @@ export async function handleGetPage(req: Request, userId: number): Promise<Respo
     type: schema.books.type,
     userId: schema.books.userId,
     isPublic: schema.books.isPublic,
-    textDirection: schema.books.textDirection, // <-- ДОСТАЕМ ИЗ БД
+    textDirection: schema.books.textDirection,
   })
     .from(schema.books)
     .where(eq(schema.books.id, bookId))
@@ -567,7 +567,6 @@ export async function handleGetPage(req: Request, userId: number): Promise<Respo
           base64 = fileBuffer.toString('base64')
         }
 
-        // Передаем textDirection в OCR сервис
         ocrBlocks = await recognizeMangaPage(base64, book.language, book.textDirection || undefined, config)
 
         await db.update(schema.mangaPages).set({ ocrData: JSON.stringify(ocrBlocks) }).where(eq(schema.mangaPages.id, pageRow.id))

@@ -43,7 +43,6 @@ export async function recognizeMangaPage(base64Image: string, language: string, 
     headers.Authorization = `Bearer ${config.key}`
   }
 
-  // Генерируем промпт с учетом языка и направления
   const promptText = getOcrPrompt(language, textDirection)
 
   const response = await fetch(`${config.url}/chat/completions`, {

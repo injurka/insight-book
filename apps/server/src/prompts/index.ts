@@ -21,7 +21,6 @@ export function getLangName(code?: string): string {
 export function getOcrPrompt(language: string, textDirection?: string | null): string {
   const langName = getLangName(language)
 
-  // Динамическая подсказка по направлению текста
   let layoutHint = 'Read bubbles and text in the standard horizontal order: left-to-right, top-to-bottom.'
 
   if (textDirection === 'vertical') {
