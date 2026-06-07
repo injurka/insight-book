@@ -9,6 +9,7 @@ declare global {
   const ALLOWED_TAG_KEYS: typeof import('../../constants/tags').ALLOWED_TAG_KEYS
   const AppRouteNames: typeof import('../../constants/routes').AppRouteNames
   const AppRoutePaths: typeof import('../../constants/routes').AppRoutePaths
+  const BOOK_ANALYSIS_PROMPT: typeof import('../../lib/prompts').BOOK_ANALYSIS_PROMPT
   const BOOK_TAGS: typeof import('../../constants/tags').BOOK_TAGS
   const DIFFICULTY_SYSTEMS: typeof import('../../constants/difficulties').DIFFICULTY_SYSTEMS
   const EffectScope: typeof import('vue').EffectScope
@@ -49,6 +50,12 @@ declare global {
   const getCurrentInstance: typeof import('vue').getCurrentInstance
   const getCurrentScope: typeof import('vue').getCurrentScope
   const getCurrentWatcher: typeof import('vue').getCurrentWatcher
+  const getLangName: typeof import('../../lib/prompts').getLangName
+  const getMangaAnalysisPrompt: typeof import('../../lib/prompts').getMangaAnalysisPrompt
+  const getOcrPrompt: typeof import('../../lib/prompts').getOcrPrompt
+  const getSystemPrompt: typeof import('../../lib/prompts').getSystemPrompt
+  const getWordAutoFillPrompt: typeof import('../../lib/prompts').getWordAutoFillPrompt
+  const getWordExamplesPrompt: typeof import('../../lib/prompts').getWordExamplesPrompt
   const h: typeof import('vue').h
   const ignorableWatch: typeof import('@vueuse/core').ignorableWatch
   const inject: typeof import('vue').inject
@@ -351,6 +358,7 @@ declare module 'vue' {
     readonly ALLOWED_TAG_KEYS: UnwrapRef<typeof import('../../constants/tags')['ALLOWED_TAG_KEYS']>
     readonly AppRouteNames: UnwrapRef<typeof import('../../constants/routes')['AppRouteNames']>
     readonly AppRoutePaths: UnwrapRef<typeof import('../../constants/routes')['AppRoutePaths']>
+    readonly BOOK_ANALYSIS_PROMPT: UnwrapRef<typeof import('../../lib/prompts')['BOOK_ANALYSIS_PROMPT']>
     readonly BOOK_TAGS: UnwrapRef<typeof import('../../constants/tags')['BOOK_TAGS']>
     readonly DIFFICULTY_SYSTEMS: UnwrapRef<typeof import('../../constants/difficulties')['DIFFICULTY_SYSTEMS']>
     readonly EffectScope: UnwrapRef<typeof import('vue')['EffectScope']>
@@ -391,6 +399,11 @@ declare module 'vue' {
     readonly getCurrentInstance: UnwrapRef<typeof import('vue')['getCurrentInstance']>
     readonly getCurrentScope: UnwrapRef<typeof import('vue')['getCurrentScope']>
     readonly getCurrentWatcher: UnwrapRef<typeof import('vue')['getCurrentWatcher']>
+    readonly getLangName: UnwrapRef<typeof import('../../lib/prompts')['getLangName']>
+    readonly getMangaAnalysisPrompt: UnwrapRef<typeof import('../../lib/prompts')['getMangaAnalysisPrompt']>
+    readonly getSystemPrompt: UnwrapRef<typeof import('../../lib/prompts')['getSystemPrompt']>
+    readonly getWordAutoFillPrompt: UnwrapRef<typeof import('../../lib/prompts')['getWordAutoFillPrompt']>
+    readonly getWordExamplesPrompt: UnwrapRef<typeof import('../../lib/prompts')['getWordExamplesPrompt']>
     readonly h: UnwrapRef<typeof import('vue')['h']>
     readonly ignorableWatch: UnwrapRef<typeof import('@vueuse/core')['ignorableWatch']>
     readonly inject: UnwrapRef<typeof import('vue')['inject']>

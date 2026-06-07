@@ -4,7 +4,7 @@ import { useGlobalSettingsStore } from '../store/settings.store'
 
 const BASE = import.meta.env.VITE_API_URL || 'https://insight-api.trip-scheduler.ru'
 
-async function request<T>(url: string, opts?: RequestInit): Promise<T> {
+export async function request<T>(url: string, opts?: RequestInit): Promise<T> {
   const headers = new Headers(opts?.headers)
 
   const token = localStorage.getItem('insight_token')
@@ -18,17 +18,10 @@ async function request<T>(url: string, opts?: RequestInit): Promise<T> {
     if (settings.appLanguage) {
       headers.set('Accept-Language', settings.appLanguage)
     }
-
-    if (settings.useCustomLlm && settings.customLlmUrl && settings.customLlmModel) {
-      headers.set('X-Custom-Llm-Url', settings.customLlmUrl)
-      headers.set('X-Custom-Llm-Key', settings.customLlmKey || '')
-      headers.set('X-Custom-Llm-Model', settings.customLlmModel)
-    }
   }
   else {
     try {
       const savedLang = localStorage.getItem('global-app-language')
-
       if (savedLang) {
         headers.set('Accept-Language', JSON.parse(savedLang))
       }
@@ -61,7 +54,16 @@ export const api = {
         body: JSON.stringify(data),
       }),
 
-    analyzeBook: (id: number) => request<{ success: boolean, stats: Book['stats'] }>(`/api/books/${id}/analyze-book`, { method: 'POST' }),
+    analyzeBook: async (id: number) => {
+      if (getActivePinia()) {
+        const settings = useGlobalSettingsStore()
+        if (settings.useCustomLlm) {
+          const { localLlmService } = await import('./local-llm.service')
+          return localLlmService.analyzeBookStats(id, settings)
+        }
+      }
+      return request<{ success: boolean, stats: BookStats }>(`/api/books/${id}/analyze-book`, { method: 'POST' })
+    },
 
     analyzeVocabulary: (id: number) => request<{ success: boolean, lexicalStats: any }>(`/api/books/${id}/analyze-vocabulary`, { method: 'POST' }),
 
@@ -116,13 +118,30 @@ export const api = {
     lookupWord: (bookId: number, word: string, signal?: AbortSignal) =>
       request<{ transcription: string, translation: string, isUserDict?: boolean }>(`/api/books/${bookId}/word/${encodeURIComponent(word)}`, { signal }),
 
-    analyze: (bookId: number, sentence: string, language: string, signal?: AbortSignal) =>
-      request<LlmAnalysis>(`/api/books/${bookId}/analyze`, {
+    analyze: async (bookId: number, sentence: string, language: string, signal?: AbortSignal) => {
+      if (getActivePinia()) {
+        const settings = useGlobalSettingsStore()
+        if (settings.useCustomLlm) {
+          const { localLlmService } = await import('./local-llm.service')
+          const targetLang = settings.appLanguage || 'ru'
+          const analysis = await localLlmService.analyzeSentence(sentence, language, targetLang, settings, signal)
+
+          request(`/api/books/${bookId}/analyze/save`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ sentence, language, analysis })
+          }).catch(console.error)
+
+          return analysis
+        }
+      }
+      return request<LlmAnalysis>(`/api/books/${bookId}/analyze`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ sentence, language }),
         signal,
-      }),
+      })
+    },
 
     generateTts: (bookId: number, text: string, signal?: AbortSignal) =>
       request<{ audioBase64: string, timings?: any[] }>(`/api/books/${bookId}/tts`, {
@@ -195,19 +214,37 @@ export const api = {
     bulkDelete: (wordIds: number[]) => request<{ success: boolean }>('/api/dictionary/bulk/delete', { method: 'POST', body: JSON.stringify({ wordIds }) }),
     bulkMove: (wordIds: number[], deckId: number | null) => request<{ success: boolean }>('/api/dictionary/bulk/move', { method: 'POST', body: JSON.stringify({ wordIds, deckId }) }),
 
-    generateExamples: (word: string, language: string) =>
-      request<GeneratedWordExamples>('/api/dictionary/generate-examples', {
+    generateExamples: async (word: string, language: string) => {
+      if (getActivePinia()) {
+        const settings = useGlobalSettingsStore()
+        if (settings.useCustomLlm) {
+          const { localLlmService } = await import('./local-llm.service')
+          const targetLang = settings.appLanguage || 'ru'
+          return localLlmService.generateWordExamples(word, language, targetLang, settings)
+        }
+      }
+      return request<GeneratedWordExamples>('/api/dictionary/generate-examples', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ word, language }),
-      }),
+      })
+    },
 
-    autoFillWord: (word: string, language: string) =>
-      request<WordAutoFillResponse>('/api/dictionary/auto-fill', {
+    autoFillWord: async (word: string, language: string) => {
+      if (getActivePinia()) {
+        const settings = useGlobalSettingsStore()
+        if (settings.useCustomLlm) {
+          const { localLlmService } = await import('./local-llm.service')
+          const targetLang = settings.appLanguage || 'ru'
+          return localLlmService.generateWordAutoFill(word, language, targetLang, settings)
+        }
+      }
+      return request<WordAutoFillResponse>('/api/dictionary/auto-fill', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ word, language }),
-      }),
+      })
+    },
   },
 
   activity: {

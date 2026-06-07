@@ -23,6 +23,7 @@ import {
   handleUpdateCover,
   handleUpdateStats,
   handleUploadBook,
+  handleSaveAnalysis
 } from './handlers/books'
 import {
   handleAutoFillWord,
@@ -86,6 +87,7 @@ const apiRoutes = {
   '/api/books/:id/page/:pageNum/image': { OPTIONS: corsOk, GET: apiWrapper(handleGetPageImage) },
   '/api/books/:id/word/:word': { OPTIONS: corsOk, GET: apiWrapper(authWrapper(handleLookupWord)) },
   '/api/books/:id/analyze': { OPTIONS: corsOk, POST: apiWrapper(authWrapper(handleAnalyzeSentence)) },
+  '/api/books/:id/analyze/save': { OPTIONS: corsOk, POST: apiWrapper(authWrapper(handleSaveAnalysis)) },
 
   // --- Global TTS API ---
   '/api/tts': { OPTIONS: corsOk, POST: apiWrapper(authWrapper(handleStandaloneTts)) },

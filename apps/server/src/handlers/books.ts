@@ -95,6 +95,12 @@ const CreateCustomBookSchema = z.object({
   type: z.enum(['manga']).default('manga'),
 })
 
+const SaveAnalysisSchema = z.object({
+  sentence: z.string(),
+  language: z.string(),
+  analysis: z.any()
+})
+
 export async function handleGetBooks(req: Request, userId: number): Promise<Response> {
   const allBooks = await db.query.books.findMany({
     where: or(
@@ -508,9 +514,6 @@ export async function handleGetToc(req: Request, userId: number): Promise<Respon
   })
 }
 
-// ------------------------------------------------------------------
-// Выдача СТАТИЧЕСКОЙ страницы (без персонализированного словаря)
-// ------------------------------------------------------------------
 export async function handleGetPage(req: Request, userId: number): Promise<Response> {
   const { id: bookIdStr, pageNum: pageNumStr } = (req as any).params
   const bookId = Number(bookIdStr)
@@ -617,9 +620,6 @@ export async function handleGetPage(req: Request, userId: number): Promise<Respo
   return json(payload, 200, { 'Cache-Control': 'public, max-age=86400' })
 }
 
-// ------------------------------------------------------------------
-// Асинхронная выгрузка персонализированного словаря для страницы
-// ------------------------------------------------------------------
 export async function handleGetPageDictionary(req: Request, userId: number): Promise<Response> {
   const { id: bookIdStr, pageNum: pageNumStr } = (req as any).params
   const bookId = Number(bookIdStr)
@@ -699,6 +699,32 @@ export async function handleAnalyzeSentence(req: Request, userId: number): Promi
   const analysis = await analyzeSentence(bookId, sentence, language, targetLang, config)
 
   return json(analysis)
+}
+
+export async function handleSaveAnalysis(req: Request, userId: number): Promise<Response> {
+  const bookId = Number((req as any).params.id)
+  const book = await db.query.books.findFirst({ where: eq(schema.books.id, bookId) })
+  if (!book || (book.userId !== userId && !book.isPublic)) throw new AppError(403, 'Нет доступа')
+
+  const { sentence, language, analysis } = SaveAnalysisSchema.parse(await req.json())
+
+  const { hashSentence } = await import('../services/llm.service')
+  const targetLang = req.headers.get('Accept-Language') || 'ru'
+  const hash = hashSentence(sentence, language, "client_llm", targetLang)
+
+  await db.insert(schema.llmCache).values({
+    sentenceHash: hash,
+    language,
+    sentence,
+    analysis: JSON.stringify(analysis),
+  }).onConflictDoNothing()
+
+  await db.insert(schema.bookLlmCache).values({
+    bookId,
+    sentenceHash: hash,
+  }).onConflictDoNothing()
+
+  return json({ success: true })
 }
 
 export async function handleGenerateTts(req: Request, userId: number): Promise<Response> {
