@@ -54,7 +54,7 @@ const LlmAnalysisSchema = z.object({
 
 function hashSentence(sentence: string, language: string, model: string, targetLang: string): string {
   const hasher = new Bun.CryptoHasher('sha256')
-  hasher.update(`${(language || 'en').toLowerCase()}::${(targetLang || 'ru').toLowerCase()}::${model}::${sentence.trim()}`)
+  hasher.update(`${(language || 'en').toLowerCase()}::${(targetLang || 'ru').toLowerCase()}::${model}::${sentence.trim().toLowerCase()}`)
 
   return hasher.digest('hex')
 }
@@ -114,7 +114,7 @@ export async function analyzeSentence(bookId: number, sentence: string, language
     throw new AppError(500, 'LLM API не настроен')
 
   const messages = [
-    { role: 'system', content: getSystemPrompt(language, targetLang) }, // ИСПРАВЛЕНИЕ ЗДЕСЬ
+    { role: 'system', content: getSystemPrompt(language, targetLang) },
     { role: 'user', content: `Текст: ${sentence}` },
   ]
 
@@ -273,7 +273,7 @@ export async function analyzeMangaInfo(title: string, author: string | null, lan
 
 function hashTtsText(text: string, voice: string): string {
   const hasher = new Bun.CryptoHasher('sha256')
-  hasher.update(text.trim() + voice)
+  hasher.update(text.trim().toLowerCase() + voice)
 
   return hasher.digest('hex')
 }

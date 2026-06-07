@@ -302,7 +302,7 @@ export const useAnalysisStore = defineStore('analysis', () => {
     sidebarSentence.value = sentence
     sidebarOpen.value = true
 
-    const existing = analysisHistory.value.find(h => h.sentence === sentence)
+    const existing = analysisHistory.value.find(h => h.sentence.trim().toLowerCase() === sentence.trim().toLowerCase())
     if (existing) {
       sidebarAnalysis.value = existing.analysis
       isAnalyzing.value = false
@@ -437,7 +437,7 @@ export const useAnalysisStore = defineStore('analysis', () => {
             break
           const sentence = sentences[i]
 
-          const existing = analysisHistory.value.find(h => h.sentence === sentence)
+          const existing = analysisHistory.value.find(h => h.sentence.trim().toLowerCase() === sentence.trim().toLowerCase())
           if (!existing) {
             try {
               let cached = null

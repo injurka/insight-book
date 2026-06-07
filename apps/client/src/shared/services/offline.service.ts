@@ -121,12 +121,12 @@ export const offlineService = {
 
   async saveAnalysis(bookId: number, text: string, analysis: LlmAnalysis) {
     const lang = getAppLanguage()
-    await safeSetItem(`analysis_${bookId}_${text}_${lang}`, JSON.parse(JSON.stringify(analysis)))
+    await safeSetItem(`analysis_${bookId}_${text.trim().toLowerCase()}_${lang}`, JSON.parse(JSON.stringify(analysis)))
   },
 
   async getAnalysis(bookId: number, text: string): Promise<LlmAnalysis | null> {
     const lang = getAppLanguage()
-    return await safeGetItem(`analysis_${bookId}_${text}_${lang}`)
+    return await safeGetItem(`analysis_${bookId}_${text.trim().toLowerCase()}_${lang}`)
   },
 
   async saveTts(hashKey: string, audioBase64: string) {

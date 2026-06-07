@@ -33,7 +33,8 @@ export function useTts() {
       const bookId = readerStore.currentBook?.id
       const lang = explicitLanguage || readerStore.currentBook?.language || 'en'
 
-      const cacheKey = bookId ? `${bookId}_${text}` : `dict_${lang}_${text}`
+      const normalizedText = text.trim().toLowerCase()
+      const cacheKey = bookId ? `${bookId}_${normalizedText}` : `dict_${lang}_${normalizedText}`
       let audioBase64 = await offlineService.getTts(cacheKey)
 
       if (!audioBase64) {

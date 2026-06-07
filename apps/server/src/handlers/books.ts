@@ -136,11 +136,11 @@ export async function handleGetBookInfo(req: Request, userId: number): Promise<R
   const { progresses, stats, ...bookData } = book
   const statsResult = stats
     ? {
-        ...stats,
-        tags: stats.tags ? JSON.parse(stats.tags) : [],
-        posDistribution: stats.posDistribution ? JSON.parse(stats.posDistribution) : null,
-        topWords: stats.topWords ? JSON.parse(stats.topWords) : null,
-      }
+      ...stats,
+      tags: stats.tags ? JSON.parse(stats.tags) : [],
+      posDistribution: stats.posDistribution ? JSON.parse(stats.posDistribution) : null,
+      topWords: stats.topWords ? JSON.parse(stats.topWords) : null,
+    }
     : null
 
   return json({ ...bookData, currentPage: progress?.currentPage ?? null, toc: book.toc ? JSON.parse(book.toc) : [], stats: statsResult }, 200, {
@@ -691,6 +691,7 @@ export async function handleAnalyzeSentence(req: Request, userId: number): Promi
 
   const { sentence, language } = AnalyzeSentenceSchema.parse(await req.json())
   const analysis = await analyzeSentence(bookId, sentence, language, targetLang, config)
+
   return json(analysis)
 }
 
