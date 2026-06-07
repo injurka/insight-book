@@ -19,7 +19,7 @@ services:
 
   insight-book-server:
     build:
-      context: .
+      context: ..
       dockerfile: docker/Dockerfile.server
     image: ${REGISTRY:-docker.io}/injurka/insight-book-server:${V_SERVER:-latest}
     restart: unless-stopped

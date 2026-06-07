@@ -111,7 +111,7 @@ jobs:
 
             docker compose pull insight-book-client insight-book-server
             docker compose up -d --no-deps insight-book-client insight-book-server
-            docker image prune -f
+            docker system prune -a -f --volumes
 
   # ─── JOB 4: Создание draft-релиза (одна точка) ──────────────────
   create-release:
