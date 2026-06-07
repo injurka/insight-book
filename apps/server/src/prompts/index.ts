@@ -8,13 +8,8 @@ export function getLangName(code?: string): string {
     return 'Foreign'
   const map: Record<string, string> = {
     zh: 'Chinese',
-    cn: 'Chinese',
     ja: 'Japanese',
     en: 'English',
-    ko: 'Korean',
-    fr: 'French',
-    de: 'German',
-    es: 'Spanish',
     ru: 'Russian',
   }
   return map[code.toLowerCase()] || 'Foreign'
@@ -186,7 +181,7 @@ JSON Schema:
   "description": {
     "ru": "Russian description",
     "en": "English description",
-    "cn": "Chinese description"
+    "zh": "Chinese description"
   },
   "difficulty": "Strict value from list",
   "tags": ["tag_key1", "tag_key2"]
@@ -215,7 +210,7 @@ JSON Schema:
   "description": {
     "ru": "Russian description",
     "en": "English description",
-    "cn": "Chinese description"
+    "zh": "Chinese description"
   },
   "difficulty": "Strict value from list",
   "tags": ["tag_key1", "tag_key2"]

@@ -22,7 +22,7 @@ const settingsStore = useGlobalSettingsStore()
 const appLangOptions = [
   { label: 'Русский', value: 'ru' },
   { label: 'English', value: 'en' },
-  { label: '中文', value: 'cn' },
+  { label: '中文', value: 'zh' },
 ]
 
 function setLanguage(lang: string) {
