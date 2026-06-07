@@ -31,7 +31,7 @@ export function getOcrPrompt(language: string): string {
 The primary language of the text is ${langName}.
 
 CRITICAL CONSTRAINTS:
-1. NO TRANSLATIONS: Output EXACTLY the original text found in the image. If the text is in ${langName}, output ONLY ${langName} characters. Do NOT translate.
+1. NO TRANSLATIONS: Output EXACTLY the original text found in the image. If the text is in ${langName}, output ONLY ${langName} characters. Do NOT translate to English.
 2. NO DESCRIPTIONS: Do not describe the image, the characters, or what is happening. Output ONLY the transcribed text.
 3. NO FORMATTING: Do NOT output any markdown (like ** or __), HTML tags, XML tags, or code blocks. Return purely plain, unformatted text.
 
