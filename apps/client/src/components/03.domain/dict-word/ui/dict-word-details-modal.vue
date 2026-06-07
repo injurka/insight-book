@@ -142,9 +142,7 @@ const tagsList = computed(() => {
         <h4 class="section-title">
           <Icon icon="mdi:note-text-outline" /> {{ t('dictionary.notesMnemonic') }}
         </h4>
-        <div class="html-content plain-text">
-          {{ word.notes }}
-        </div>
+        <div class="html-content plain-text" v-html="word.notes" />
       </div>
 
       <div v-if="word.encounters && word.encounters.length > 0" class="detail-section">

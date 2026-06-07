@@ -643,21 +643,15 @@ watch(currentIndex, () => {
         </div>
 
         <div v-if="expandedSections.grammar && currentCard.grammarNote" class="word-notes fade-in">
-          <div class="notes-text">
-            {{ currentCard.grammarNote }}
-          </div>
+          <div class="notes-text" v-html="currentCard.grammarNote" />
         </div>
 
         <div v-if="expandedSections.vocab && currentCard.vocabularyNote" class="word-notes fade-in">
-          <div class="notes-text">
-            {{ currentCard.vocabularyNote }}
-          </div>
+          <div class="notes-text" v-html="currentCard.vocabularyNote" />
         </div>
 
         <div v-if="expandedSections.notes && currentCard.notes" class="word-notes fade-in">
-          <div class="notes-text">
-            {{ currentCard.notes }}
-          </div>
+          <div class="notes-text" v-html="currentCard.notes" />
         </div>
 
         <div v-if="showAnimation" class="animation-container fade-in">
@@ -1192,6 +1186,10 @@ watch(currentIndex, () => {
     line-height: 1.5;
     color: var(--fg-secondary-color);
     white-space: pre-wrap;
+
+    :deep(b) {
+      color: var(--fg-primary-color);
+    }
   }
 }
 
