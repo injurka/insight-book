@@ -16,14 +16,29 @@ export function getLangName(code?: string): string {
 }
 
 /**
- * Генерирует промпт для OCR с учетом целевого языка
+ * Генерирует промпт для OCR с учетом целевого языка и направления чтения
  */
 export function getOcrPrompt(language: string): string {
   const langName = getLangName(language)
-  return `Extract all text from this image perfectly. The primary language is ${langName}. 
-Preserve the original language exactly as written. 
-If this is a comic/manga, read bubbles in the correct natural order (e.g. right-to-left, top-to-bottom for manga/manhua). 
-Do NOT translate the text. Return only the extracted text and its structural layout.`
+
+  // Динамическая подсказка по направлению текста
+  let layoutHint = 'Read bubbles and text in the standard horizontal order: left-to-right, top-to-bottom.'
+  if (language === 'ja' || language === 'zh') {
+    layoutHint = 'Pay close attention to VERTICAL text (top-to-bottom, right-to-left columns) which is standard for manga/manhua. Read vertical bubbles correctly from right to left. Also parse any horizontal text if present.'
+  }
+
+  return `You are a highly precise OCR system. Extract all text from this image.
+The primary language of the text is ${langName}.
+
+CRITICAL CONSTRAINTS:
+1. NO TRANSLATIONS: Output EXACTLY the original text found in the image. If the text is in ${langName}, output ONLY ${langName} characters. Do NOT translate.
+2. NO DESCRIPTIONS: Do not describe the image, the characters, or what is happening. Output ONLY the transcribed text.
+3. NO FORMATTING: Do NOT output any markdown (like ** or __), HTML tags, XML tags, or code blocks. Return purely plain, unformatted text.
+
+LAYOUT AND READING DIRECTION:
+${layoutHint}
+
+Return only the extracted text and its structural layout.`
 }
 
 /**
@@ -217,7 +232,7 @@ JSON Schema:
 }`
 
 /**
- * Статичный промпт для распознавания изображений (OCR)
+ * Статичный промпт для распознавания изображений (OCR) 
  */
 export const OCR_PROMPT = `Extract all text from this image perfectly. Preserve the original language. 
 If this is a comic/manga, read bubbles in the correct natural order (e.g. right-to-left, top-to-bottom for manga/manhua). 

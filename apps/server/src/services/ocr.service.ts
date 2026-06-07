@@ -12,7 +12,19 @@ export interface OcrBlock {
   h: number
 }
 
-// ДОБАВЛЕН ПАРАМЕТР language: string
+// Агрессивная очистка текста от мусора, генерируемого LLM
+function cleanOcrText(rawText: string): string {
+  let text = rawText || ''
+  // Убираем блоки markdown вида ```markdown ... ```
+  text = text.replace(/```[a-z]*\n?/gi, '').replace(/```/g, '')
+  // Убираем случайные html/xml теги (например <p>, <box>, <text>)
+  text = text.replace(/<[^>]*>/g, '')
+  // Убираем маркдаун выделения (**, __), если они появились
+  text = text.replace(/(\*\*|__)(.*?)\1/g, '$2')
+  // Убираем лишние пробелы по краям
+  return text.trim()
+}
+
 export async function recognizeMangaPage(base64Image: string, language: string, config: LlmConfig): Promise<OcrBlock[]> {
   if (!config.url)
     throw new AppError(500, 'API ключ / URL не настроен')
@@ -31,7 +43,7 @@ export async function recognizeMangaPage(base64Image: string, language: string, 
     headers.Authorization = `Bearer ${config.key}`
   }
 
-  // Генерируем промпт с учетом языка
+  // Генерируем строгий промпт с учетом языка и направления чтения
   const promptText = getOcrPrompt(language)
 
   const response = await fetch(`${config.url}/chat/completions`, {
@@ -45,7 +57,7 @@ export async function recognizeMangaPage(base64Image: string, language: string, 
           content: [
             {
               type: 'text',
-              text: promptText, // <--- Используем сгенерированный промпт
+              text: promptText,
             },
             {
               type: 'image_url',
@@ -72,8 +84,7 @@ export async function recognizeMangaPage(base64Image: string, language: string, 
     const layoutDetails = glmDetail.layout_details[0]
 
     layoutDetails.forEach((item: any, index: number) => {
-      let text = item.content || ''
-      text = text.replace(/```markdown/gi, '').replace(/```/g, '').trim()
+      const text = cleanOcrText(item.content)
 
       if (!text)
         return
@@ -96,7 +107,7 @@ export async function recognizeMangaPage(base64Image: string, language: string, 
   const content = data.choices?.[0]?.message?.content
   if (content && content.trim() !== '') {
     const lines = content.split('\n')
-      .map((line: string) => line.replace(/```markdown/gi, '').replace(/```/g, '').trim())
+      .map((line: string) => cleanOcrText(line))
       .filter((line: string) => line.length > 0)
 
     return lines.map((line: string, index: number) => ({
