@@ -4,7 +4,11 @@ import { useGlobalSettingsStore } from '../store/settings.store'
 
 const BASE = import.meta.env.VITE_API_URL || 'https://insight-api.trip-scheduler.ru'
 
-async function request<T>(url: string, opts?: RequestInit): Promise<T> {
+interface ApiRequestInit extends RequestInit {
+  withLlm?: boolean
+}
+
+async function request<T>(url: string, opts?: ApiRequestInit): Promise<T> {
   const headers = new Headers(opts?.headers)
 
   const token = localStorage.getItem('insight_token')
@@ -19,7 +23,7 @@ async function request<T>(url: string, opts?: RequestInit): Promise<T> {
       headers.set('Accept-Language', settings.appLanguage)
     }
 
-    if (settings.useCustomLlm && settings.customLlmUrl && settings.customLlmModel) {
+    if (opts?.withLlm && settings.useCustomLlm && settings.customLlmUrl && settings.customLlmModel) {
       headers.set('X-Custom-Llm-Url', settings.customLlmUrl)
       headers.set('X-Custom-Llm-Key', settings.customLlmKey || '')
       headers.set('X-Custom-Llm-Model', settings.customLlmModel)
@@ -36,7 +40,8 @@ async function request<T>(url: string, opts?: RequestInit): Promise<T> {
     catch { }
   }
 
-  const res = await fetch(`${BASE}${url}`, { ...opts, headers })
+  const { withLlm, ...fetchOpts } = opts || {}
+  const res = await fetch(`${BASE}${url}`, { ...fetchOpts, headers })
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: res.statusText })) as { error: string }
     throw new Error(err.error || `HTTP ${res.status}`)
@@ -61,9 +66,9 @@ export const api = {
         body: JSON.stringify(data),
       }),
 
-    analyzeBook: (id: number) => request<{ success: boolean, stats: Book['stats'] }>(`/api/books/${id}/analyze-book`, { method: 'POST' }),
+    analyzeBook: (id: number) => request<{ success: boolean, stats: Book['stats'] }>(`/api/books/${id}/analyze-book`, { method: 'POST', withLlm: true }),
 
-    analyzeVocabulary: (id: number) => request<{ success: boolean, lexicalStats: any }>(`/api/books/${id}/analyze-vocabulary`, { method: 'POST' }),
+    analyzeVocabulary: (id: number) => request<{ success: boolean, lexicalStats: any }>(`/api/books/${id}/analyze-vocabulary`, { method: 'POST', withLlm: true }),
 
     updateCover: (id: number, file: File) => {
       const fd = new FormData()
@@ -122,6 +127,7 @@ export const api = {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ sentence, language }),
         signal,
+        withLlm: true,
       }),
 
     generateTts: (bookId: number, text: string, signal?: AbortSignal) =>
@@ -200,6 +206,7 @@ export const api = {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ word, language }),
+        withLlm: true,
       }),
 
     autoFillWord: (word: string, language: string) =>
@@ -207,6 +214,7 @@ export const api = {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ word, language }),
+        withLlm: true,
       }),
   },
 

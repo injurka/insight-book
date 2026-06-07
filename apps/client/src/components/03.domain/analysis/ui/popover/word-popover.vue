@@ -188,7 +188,7 @@ onUnmounted(() => {
 
         <div class="popover-footer">
           <div v-if="analysisStore.wordPopover.pos" class="pos-badge" :class="getPosClass(analysisStore.wordPopover.pos)">
-            {{ POS_TAGS_MAP[analysisStore.wordPopover.pos] || analysisStore.wordPopover.pos }}
+            {{ POS_TAGS_MAP[analysisStore.wordPopover.pos] ? t(POS_TAGS_MAP[analysisStore.wordPopover.pos]) : analysisStore.wordPopover.pos }}
           </div>
           <div v-else class="pos-badge-placeholder" />
 
