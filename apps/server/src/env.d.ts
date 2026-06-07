@@ -1,6 +1,8 @@
 /// <reference types="@types/bun" />
 /// <reference types="bun-types" />
 
+import '@ai-sdk/openai'
+
 declare module 'az' {
   export const Morph: {
     // eslint-disable-next-line ts/method-signature-style
@@ -14,3 +16,14 @@ declare module 'az' {
     }>
   }
 }
+
+declare module '@ai-sdk/openai' {
+  interface OpenAIProviderSettings {
+    /**
+     * 'strict' — дефолт (проверять название модели),
+     * 'compatible' — принимать любые openai-совместимые модели.
+     */
+    compatibility?: 'strict' | 'compatible'
+  }
+}
+export { }

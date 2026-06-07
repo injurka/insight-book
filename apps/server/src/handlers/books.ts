@@ -16,10 +16,7 @@ import { lookupSingleWord, lookupWords } from '../services/dictionary.service'
 import { analyzeBookExcerpt, analyzeMangaInfo, analyzeSentence, extractLlmConfig, generateTts } from '../services/llm.service'
 import { recognizeMangaPage } from '../services/ocr.service'
 import { AppError } from '../utils/errors'
-import { createRateLimiter } from '../utils/rate-limit'
 import { runWorkerTask } from '../workers/worker-client'
-
-const llmLimiter = createRateLimiter(600, 60 * 1000)
 
 function json(data: unknown, status = 200, extraHeaders: Record<string, string> = {}) {
   return new Response(JSON.stringify(data), {
@@ -235,7 +232,6 @@ export async function handleUpdateBook(req: Request, userId: number): Promise<Re
 }
 
 export async function handleAnalyzeBookStats(req: Request, userId: number): Promise<Response> {
-  llmLimiter(String(userId))
   const config = extractLlmConfig(req)
 
   const id = Number((req as any).params.id)
@@ -686,7 +682,6 @@ export async function handleLookupWord(req: Request, userId: number): Promise<Re
 }
 
 export async function handleAnalyzeSentence(req: Request, userId: number): Promise<Response> {
-  llmLimiter(String(userId))
   const config = extractLlmConfig(req)
   const targetLang = req.headers.get('Accept-Language') || 'ru'
 
@@ -702,7 +697,6 @@ export async function handleAnalyzeSentence(req: Request, userId: number): Promi
 }
 
 export async function handleGenerateTts(req: Request, userId: number): Promise<Response> {
-  llmLimiter(String(userId))
   const config = extractLlmConfig(req)
 
   const bookId = Number((req as any).params.id)
@@ -716,7 +710,6 @@ export async function handleGenerateTts(req: Request, userId: number): Promise<R
 }
 
 export async function handleStandaloneTts(req: Request, userId: number): Promise<Response> {
-  llmLimiter(String(userId))
   const config = extractLlmConfig(req)
 
   const { text, language } = GenerateTtsStandaloneSchema.parse(await req.json())

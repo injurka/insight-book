@@ -25,8 +25,10 @@
     "typecheck": "bunx tsc --noEmit"
   },
   "dependencies": {
+    "@ai-sdk/openai": "^3.0.68",
     "@aws-sdk/client-s3": "^3.1058.0",
     "adm-zip": "^0.5.17",
+    "ai": "^6.0.197",
     "az": "^0.2.3",
     "cheerio": "^1.2.0",
     "compromise": "^14.15.0",

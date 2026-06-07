@@ -1,6 +1,7 @@
 import type { GeneratedWordExamples, LlmAnalysis, LlmConfig, WordAutoFillResponse } from '../types'
 import { eq } from 'drizzle-orm'
 import { z } from 'zod'
+import { callLlmApi } from '~/utils/llm-api'
 import {
   LLM_API_KEY,
   LLM_API_URL,
@@ -59,73 +60,6 @@ function hashSentence(sentence: string, language: string, targetLang: string): s
   return hasher.digest('hex')
 }
 
-async function _callLlmApi(model: string, messages: any[], temperature: number, signal: AbortSignal, config: LlmConfig) {
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-  }
-
-  if (config.key) {
-    headers.Authorization = `Bearer ${config.key}`
-  }
-
-  // 1. Собираем стандартный Payload
-  const payload: any = {
-    model,
-    // Ollama отлично понимает этот стандартный OpenAI параметр,
-    // так что format: "json" писать не обязательно.
-    response_format: { type: 'json_object' },
-    messages,
-    temperature,
-    max_tokens: 8192,
-
-    // Глобальное отключение Reasoning / Thinking для всех поддерживающих это моделей
-    reasoning_effort: 'none',
-
-    // Специфичные флаги для агрегаторов (aihubmix, OpenRouter и т.д.)
-    thinking_config: {
-      thinking_budget: 0,
-    },
-    providerOptions: {
-      google: {
-        thinkingConfig: { thinkingBudget: 0 },
-      },
-      anthropic: {
-        thinking: { type: 'disabled' },
-      },
-    },
-  }
-
-  // 2. Если запрос идет к Ollama (по порту 11434), добавляем лайфхаки
-  if (config.url.includes('11434') || config.url.includes('localhost')) {
-    payload.keep_alive = '-1'
-    payload.options = {
-      num_ctx: 8192,
-      stream: false,
-    }
-  }
-
-  // 3. Отправляем запрос
-  const response = await fetch(`${config.url}/chat/completions`, {
-    method: 'POST',
-    headers,
-    body: JSON.stringify(payload),
-    signal,
-  })
-
-  if (!response.ok)
-    throw new Error(`LLM API error ${response.status}: ${await response.text()}`)
-
-  const data = await response.json() as any
-
-  if (data.error)
-    throw new Error(`LLM API error from [${model}]: ${data.error.message || JSON.stringify(data.error)}`)
-
-  if (!data.choices || !data.choices[0]?.message?.content)
-    throw new Error(`Invalid LLM response from [${model}]: ${JSON.stringify(data)}`)
-
-  return data.choices[0].message.content
-}
-
 export async function analyzeSentence(bookId: number, sentence: string, language: string, targetLang: string, config: LlmConfig): Promise<LlmAnalysis> {
   const hash = hashSentence(sentence, language, targetLang)
 
@@ -155,7 +89,7 @@ export async function analyzeSentence(bookId: number, sentence: string, language
 
   for (const model of modelsToTry) {
     try {
-      const raw = await _callLlmApi(model, messages, 0.2, AbortSignal.timeout(60000), config)
+      const raw = await callLlmApi(model, messages, 0.2, AbortSignal.timeout(60000), config)
       const cleanJson = raw.replace(/^```json\n?/, '').replace(/\n?```$/, '').trim()
       const parsed = JSON.parse(cleanJson)
       const analysis = LlmAnalysisSchema.parse(parsed) as LlmAnalysis
@@ -197,7 +131,7 @@ export async function generateWordExamples(word: string, language: string, targe
 
   for (const model of modelsToTry) {
     try {
-      const raw = await _callLlmApi(model, messages, 0.4, AbortSignal.timeout(60000), config)
+      const raw = await callLlmApi(model, messages, 0.4, AbortSignal.timeout(60000), config)
       const cleanJson = raw.replace(/^```json\n?/, '').replace(/\n?```$/, '').trim()
       return JSON.parse(cleanJson) as GeneratedWordExamples
     }
@@ -224,7 +158,7 @@ export async function generateWordAutoFill(word: string, language: string, targe
 
   for (const model of modelsToTry) {
     try {
-      const raw = await _callLlmApi(model, messages, 0.4, AbortSignal.timeout(60000), config)
+      const raw = await callLlmApi(model, messages, 0.4, AbortSignal.timeout(60000), config)
       const cleanJson = raw.replace(/^```json\n?/, '').replace(/\n?```$/, '').trim()
       return JSON.parse(cleanJson) as WordAutoFillResponse
     }
@@ -251,7 +185,7 @@ export async function analyzeBookExcerpt(excerpt: string, config: LlmConfig): Pr
 
   for (const model of modelsToTry) {
     try {
-      const raw = await _callLlmApi(model, messages, 0.3, AbortSignal.timeout(90000), config)
+      const raw = await callLlmApi(model, messages, 0.3, AbortSignal.timeout(90000), config)
       const cleanJson = raw.replace(/^```json\n?/, '').replace(/\n?```$/, '').trim()
       return JSON.parse(cleanJson)
     }
@@ -290,7 +224,7 @@ export async function analyzeMangaInfo(title: string, author: string | null, lan
 
   for (const model of modelsToTry) {
     try {
-      const raw = await _callLlmApi(model, messages, 0.3, AbortSignal.timeout(90000), config)
+      const raw = await callLlmApi(model, messages, 0.3, AbortSignal.timeout(90000), config)
       const cleanJson = raw.replace(/^```json\n?/, '').replace(/\n?```$/, '').trim()
       return JSON.parse(cleanJson)
     }

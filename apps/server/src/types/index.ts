@@ -1,3 +1,5 @@
+export type { ModelMessage } from 'ai'
+
 export interface LexicalWordData {
   word: string
   pos: string
@@ -153,9 +155,9 @@ export interface UserDictItem {
 
 export interface LlmConfig {
   url: string
-  key: string
-  model: string
-  fallbackModel?: string
+  key?: string
+  // Флаг для агрегаторов (OpenRouter, AiHubMix и т.д.)
+  isAggregator?: boolean
 }
 
 export interface WordExample {
