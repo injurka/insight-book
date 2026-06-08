@@ -22,6 +22,13 @@
       "when": 1780927148121,
       "tag": "0002_sudden_whizzer",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1780954305261,
+      "tag": "0003_condemned_microchip",
+      "breakpoints": true
     }
   ]
 }
