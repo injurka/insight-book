@@ -6,12 +6,14 @@ import { ALLOWED_TAG_KEYS } from '../constants/tags'
 export function getLangName(code?: string): string {
   if (!code)
     return 'Foreign'
+
   const map: Record<string, string> = {
     zh: 'Chinese',
     ja: 'Japanese',
     en: 'English',
     ru: 'Russian',
   }
+
   return map[code.toLowerCase()] || 'Foreign'
 }
 
@@ -38,8 +40,6 @@ export function getOcrPrompt(language: string, textDirection?: string | null): s
     }
   }
 
-  
-
   return `You are a highly precise OCR system. Extract all text from this image.
 The primary language of the text is ${langName}.
 
@@ -54,6 +54,41 @@ LAYOUT AND READING DIRECTION:
 ${layoutHint}
 
 Return only the extracted text and its structural layout.`
+}
+
+/**
+ * Генерирует промпт для уточнения OCR-распознавания (Refinement Pass)
+ */
+export function getOcrRefinementPrompt(language: string, imageCount: number, textDirection?: string | null): string {
+  const langName = getLangName(language)
+
+  let layoutHint = 'Read the text carefully in its natural reading order.'
+  if (textDirection === 'v_rtl') {
+    layoutHint = 'This is vertical text. Read columns from top-to-bottom, and proceed strictly from RIGHT to LEFT.'
+  }
+  else if (textDirection === 'rtl') {
+    layoutHint = 'This is horizontal text. Read right-to-left.'
+  }
+  else if (textDirection === 'ltr') {
+    layoutHint = 'This is horizontal text. Read left-to-right.'
+  }
+  else if (language === 'ja' || language === 'zh') {
+    layoutHint = 'Pay close attention to vertical text. Read vertical bubbles top-to-bottom, right-to-left. If it is clearly horizontal, read left-to-right.'
+  }
+
+  return `You are an expert at reading manga/comic text. I am providing you with ${imageCount} cropped images of text bubbles from a page.
+The primary language of the text is ${langName}.
+
+Your task is to read the text in EACH image carefully.
+CRITICAL INSTRUCTIONS:
+1. ${layoutHint}
+2. DO NOT translate the text. Output the EXACT original text.
+3. Ignore noise or partial characters at the edges of the crop.
+4. Output EXACTLY a JSON array of strings in the SAME ORDER as the images provided. Do not include markdown formatting (\`\`\`json). Just the raw JSON array.
+5. The length of the JSON array MUST be exactly ${imageCount}.
+
+Example of expected output:
+["text from image 1", "text from image 2"]`
 }
 
 /**

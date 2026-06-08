@@ -1,8 +1,16 @@
 import type { LlmConfig } from '../types'
-import { LLM_API_URL } from '../config'
-import { getLangName, getOcrPrompt } from '../prompts'
-import { AppError } from '../utils/errors'
 import sharp from 'sharp'
+import {
+  LLM_API_KEY,
+  LLM_API_URL,
+  LLM_MODEL,
+  OCR_API_KEY,
+  OCR_API_URL,
+  OCR_MODEL,
+  OCR_REFINEMENT_MODEL,
+} from '../config'
+import { getOcrPrompt, getOcrRefinementPrompt } from '../prompts'
+import { AppError } from '../utils/errors'
 
 export interface OcrBlock {
   id: number
@@ -27,26 +35,41 @@ function cleanOcrText(rawText: string): string {
 }
 
 export async function recognizeMangaPage(base64Image: string, language: string, textDirection: string | undefined, config: LlmConfig): Promise<OcrBlock[]> {
-  if (!config.url)
-    throw new AppError(500, 'API ключ / URL не настроен')
-
   let imageUrl = base64Image
   if (!base64Image.startsWith('data:image/')) {
     imageUrl = `data:image/jpeg;base64,${base64Image}`
   }
 
-  const model = config.url === LLM_API_URL ? 'glm-ocr' : (config.model || 'glm-ocr')
+  // 1. Первый проход: получаем координаты блоков текста (layout pass)
+  const blocks = await getOcrLayout(imageUrl, language, textDirection, config)
+
+  // 2. Второй проход: вырезаем фрагменты и запрашиваем точный текст у модели-рефайна
+  if (blocks.length > 0 && blocks.some(b => b.w > 0 && b.h > 0)) {
+    return await refineOcrText(base64Image, blocks, language, textDirection, config)
+  }
+
+  return blocks
+}
+
+async function getOcrLayout(imageUrl: string, language: string, textDirection: string | undefined, config: LlmConfig): Promise<OcrBlock[]> {
+  // Используем кастомные данные из запроса, если они есть. Иначе берем из ENV (OCR)
+  const apiUrl = config.url === LLM_API_URL ? OCR_API_URL : config.url
+  const apiKey = config.key === LLM_API_KEY ? OCR_API_KEY : config.key
+  const model = config.model === LLM_MODEL ? OCR_MODEL : (config.model || OCR_MODEL)
+
+  if (!apiUrl)
+    throw new AppError(500, 'API URL для OCR не настроен')
 
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
   }
-  if (config.key) {
-    headers.Authorization = `Bearer ${config.key}`
+  if (apiKey) {
+    headers.Authorization = `Bearer ${apiKey}`
   }
 
   const promptText = getOcrPrompt(language, textDirection)
 
-  const response = await fetch(`${config.url}/chat/completions`, {
+  const response = await fetch(`${apiUrl}/chat/completions`, {
     method: 'POST',
     headers,
     body: JSON.stringify({
@@ -77,7 +100,7 @@ export async function recognizeMangaPage(base64Image: string, language: string, 
   }
 
   const data = await response.json() as any
-  let blocks: OcrBlock[] = []
+  const blocks: OcrBlock[] = []
 
   const glmDetail = data.choices?.[0]?.glm_ocr_detail
   if (glmDetail && glmDetail.layout_details && glmDetail.layout_details[0]) {
@@ -100,169 +123,134 @@ export async function recognizeMangaPage(base64Image: string, language: string, 
         h: y2 - y1,
       })
     })
-  } else {
-    const content = data.choices?.[0]?.message?.content
-    if (content && content.trim() !== '') {
-      const lines = content.split('\n')
-        .map((line: string) => cleanOcrText(line))
-        .filter((line: string) => line.length > 0)
 
-      blocks = lines.map((line: string, index: number) => ({
-        id: index,
-        text: line,
-        x: 0,
-        y: 0,
-        w: 0,
-        h: 0,
-      }))
-    }
+    return blocks
   }
 
-  // 2. ВТОРОЙ ПРОХОД: Уточняем текст вырезанных фрагментов с помощью основной LLM (например, gemini-3.1-flash-lite)
-  if (blocks.length > 0 && blocks.some(b => b.w > 0 && b.h > 0)) {
-    try {
-      blocks = await refineOcrBlocksText(base64Image, blocks, language, textDirection, config)
-    } catch (e: any) {
-      console.warn('[OCR Refinement] Failed to refine text:', e.message)
-      // При ошибке рефайна просто возвращаем исходные блоки (fallback)
-    }
+  const content = data.choices?.[0]?.message?.content
+  if (content && content.trim() !== '') {
+    const lines = content.split('\n')
+      .map((line: string) => cleanOcrText(line))
+      .filter((line: string) => line.length > 0)
+
+    return lines.map((line: string, index: number) => ({
+      id: index,
+      text: line,
+      x: 0,
+      y: 0,
+      w: 0,
+      h: 0,
+    }))
   }
 
-  return blocks
+  return []
 }
 
-async function refineOcrBlocksText(base64Image: string, blocks: OcrBlock[], language: string, textDirection: string | undefined, config: LlmConfig): Promise<OcrBlock[]> {
-  const imageBuffer = Buffer.from(base64Image.replace(/^data:image\/\w+;base64,/, ''), 'base64')
-  const metadata = await sharp(imageBuffer).metadata()
-  const imgWidth = metadata.width || 0
-  const imgHeight = metadata.height || 0
+async function refineOcrText(base64Image: string, blocks: OcrBlock[], language: string, textDirection: string | undefined, config: LlmConfig): Promise<OcrBlock[]> {
+  const validBlocks = blocks.filter(b => b.w > 0 && b.h > 0)
+  if (validBlocks.length === 0)
+    return blocks
 
-  if (imgWidth === 0 || imgHeight === 0) return blocks
+  const base64Data = base64Image.replace(/^data:image\/\w+;base64,/, '')
+  const imageBuffer = Buffer.from(base64Data, 'base64')
 
-  const contentParts: any[] = []
+  try {
+    const image = sharp(imageBuffer)
+    const metadata = await image.metadata()
 
-  let layoutHint = 'Read bubbles and text in the standard horizontal order: left-to-right, top-to-bottom.'
-  if (textDirection === 'v_rtl') {
-    layoutHint = 'Pay close attention to VERTICAL text. Read columns from top-to-bottom, and proceed strictly from RIGHT to LEFT.'
-  } else if (textDirection === 'rtl') {
-    layoutHint = 'Read bubbles and text in horizontal right-to-left order.'
-  } else if (language === 'ja' || language === 'zh') {
-    layoutHint = 'Pay close attention to VERTICAL text which is standard for manga/manhua. Read vertical bubbles correctly from top-to-bottom, right-to-left. If the layout is clearly left-to-right, adjust your reading order accordingly. Also parse any horizontal text if present.'
-  }
+    if (!metadata.width || !metadata.height)
+      return blocks
 
-  contentParts.push({
-    type: 'text',
-    text: `Here are ${blocks.length} cropped text bubbles from a manga page.
-The primary language of the text is ${getLangName(language)}.
-${layoutHint}
-
-CRITICAL CONSTRAINTS:
-1. Extract the text for EACH image in the EXACT same order they are provided.
-2. NO TRANSLATIONS. Output exactly the original text.
-3. DO NOT describe the images.
-4. RETURN STRICTLY A JSON OBJECT WITH A SINGLE KEY "texts" CONTAINING AN ARRAY OF STRINGS. Example: { "texts": ["text from image 1", "text from image 2"] }
-5. Do not include markdown formatting like \`\`\`json or explanations. Just the JSON object.`
-  })
-
-  let validImageCount = 0
-
-  for (const block of blocks) {
-    const left = Math.max(0, Math.min(Math.round(block.x), imgWidth - 1))
-    const top = Math.max(0, Math.min(Math.round(block.y), imgHeight - 1))
-    const width = Math.round(block.w)
-    const height = Math.round(block.h)
-
-    // Небольшой padding (отступ), чтобы LLM лучше видела контекст и края иероглифов
-    const padding = 8
-    const pLeft = Math.max(0, left - padding)
-    const pTop = Math.max(0, top - padding)
-    const pRight = Math.min(imgWidth, left + width + padding)
-    const pBottom = Math.min(imgHeight, top + height + padding)
-
-    const pWidth = pRight - pLeft
-    const pHeight = pBottom - pTop
-
-    if (pWidth <= 0 || pHeight <= 0) {
-      contentParts.push({
+    const contentArray: any[] = [
+      {
         type: 'text',
-        text: '[Empty or Invalid Block Image]'
-      })
-      continue
+        text: getOcrRefinementPrompt(language, validBlocks.length, textDirection),
+      },
+    ]
+
+    const padding = 15 // Контекст (padding) вокруг текста помогает ИИ лучше понимать структуру баббла
+
+    for (const block of validBlocks) {
+      const left = Math.max(0, Math.floor(block.x) - padding)
+      const top = Math.max(0, Math.floor(block.y) - padding)
+      const right = Math.min(metadata.width, Math.ceil(block.x + block.w) + padding)
+      const bottom = Math.min(metadata.height, Math.ceil(block.y + block.h) + padding)
+      const width = right - left
+      const height = bottom - top
+
+      if (width > 0 && height > 0) {
+        // Вырезаем изображение и конвертируем в JPEG
+        const cropBuffer = await sharp(imageBuffer)
+          .extract({ left, top, width, height })
+          .jpeg({ quality: 90 })
+          .toBuffer()
+
+        contentArray.push({
+          type: 'image_url',
+          image_url: {
+            url: `data:image/jpeg;base64,${cropBuffer.toString('base64')}`,
+          },
+        })
+      }
     }
 
-    try {
-      const croppedBuffer = await sharp(imageBuffer)
-        .extract({ left: pLeft, top: pTop, width: pWidth, height: pHeight })
-        .jpeg({ quality: 90 })
-        .toBuffer()
+    const apiUrl = config.url
+    const apiKey = config.key
+    const model = config.model === LLM_MODEL ? OCR_REFINEMENT_MODEL : (config.model || OCR_REFINEMENT_MODEL)
 
-      const croppedBase64 = croppedBuffer.toString('base64')
-      contentParts.push({
-        type: 'image_url',
-        image_url: {
-          url: `data:image/jpeg;base64,${croppedBase64}`
-        }
-      })
-      validImageCount++
-    } catch (e) {
-      contentParts.push({
-        type: 'text',
-        text: '[Error Extracting Block Image]'
-      })
+    if (!apiUrl)
+      throw new AppError(500, 'API URL для OCR Refinement не настроен')
+
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
     }
-  }
+    if (apiKey) {
+      headers.Authorization = `Bearer ${apiKey}`
+    }
 
-  if (validImageCount === 0) return blocks
+    const response = await fetch(`${apiUrl}/chat/completions`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        model,
+        messages: [
+          {
+            role: 'user',
+            content: contentArray,
+          },
+        ],
+        temperature: 0.1,
+      }),
+      signal: AbortSignal.timeout(120000),
+    })
 
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-  }
-  if (config.key) {
-    headers.Authorization = `Bearer ${config.key}`
-  }
+    if (response.ok) {
+      const data = await response.json() as any
+      const content = data.choices?.[0]?.message?.content || ''
+      const cleanJson = content.replace(/^```json\n?/, '').replace(/\n?```$/, '').trim()
 
-
-  const response = await fetch(`${config.url}/chat/completions`, {
-    method: 'POST',
-    headers,
-    body: JSON.stringify({
-      model: config.model,
-      messages: [
-        {
-          role: 'user',
-          content: contentParts,
-        },
-      ],
-      temperature: 0.1,
-      response_format: { type: "json_object" }
-    }),
-    signal: AbortSignal.timeout(120000),
-  })
-
-  if (!response.ok) {
-    throw new Error(`Refinement API Error: ${await response.text()}`)
-  }
-
-  const data = await response.json() as any
-  const content = data.choices?.[0]?.message?.content
-
-  if (content) {
-    const cleanJson = content.replace(/^```json\n?/i, '').replace(/\n?```$/i, '').trim()
-    try {
-      const parsed = JSON.parse(cleanJson)
-      const texts = parsed.texts
-
-      if (Array.isArray(texts)) {
-        for (let i = 0; i < Math.min(blocks.length, texts.length); i++) {
-          const refinedText = cleanOcrText(texts[i] || '')
-          if (refinedText) {
-            blocks[i].text = refinedText
+      try {
+        const refinedTexts = JSON.parse(cleanJson)
+        if (Array.isArray(refinedTexts) && refinedTexts.length === validBlocks.length) {
+          // Заменяем оригинальный текст на точный из Gemini, сохраняя координаты
+          for (let i = 0; i < validBlocks.length; i++) {
+            validBlocks[i].text = cleanOcrText(refinedTexts[i]) || validBlocks[i].text
           }
         }
+        else {
+          console.warn(`[OCR Refinement] Array length mismatch. Expected ${validBlocks.length}, got ${Array.isArray(refinedTexts) ? refinedTexts.length : 'non-array'}.`)
+        }
       }
-    } catch (parseError) {
-      console.warn('[OCR Refinement] Failed to parse LLM response as JSON', parseError, content)
+      catch (parseError) {
+        console.error('[OCR Refinement] Failed to parse JSON response:', cleanJson, parseError)
+      }
     }
+    else {
+      console.warn(`[OCR Refinement] API returned status ${response.status}: ${await response.text()}`)
+    }
+  }
+  catch (error) {
+    console.error('[OCR Refinement] Failed to refine OCR text:', error)
   }
 
   return blocks
