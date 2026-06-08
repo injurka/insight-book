@@ -176,7 +176,6 @@ function onScroll() {
             @touchcancel="onPointerUp"
             @mouseleave="onPointerUp"
           >
-            <!-- Обновлено! Если картинка есть в кэше, отображаем Blob URL, иначе оригинальный API URL -->
             <img :src="readerStore.currentPage.localImageUrl || (readerStore.currentPage.imageUrl ? getMediaUrl(readerStore.currentPage.imageUrl) : '')" class="manga-image" @load="restoreScrollPosition">
 
             <div class="ocr-overlay">
