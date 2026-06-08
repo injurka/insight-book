@@ -9,11 +9,13 @@ import { useToast } from '~/shared/composables/use-toast'
 import { AppRoutePaths } from '~/shared/constants/routes'
 import { api } from '~/shared/services/api.service'
 import { useCacheStore } from '~/shared/store/cache.store'
+import { usePwaStore } from '~/shared/store/pwa.store' // <-- НОВОЕ
 import { useGlobalSettingsStore } from '~/shared/store/settings.store'
 import { formatBytes, formatNumber, formatPagesList } from '../lib/formatters'
 
 const cacheStore = useCacheStore()
 const settingsStore = useGlobalSettingsStore()
+const pwaStore = usePwaStore()
 const router = useRouter()
 const toast = useToast()
 const { t } = useI18n()
@@ -44,7 +46,24 @@ async function fetchTokensInfo() {
 onMounted(() => {
   cacheStore.loadStats()
   fetchTokensInfo()
+  pwaStore.checkPushStatus() // <-- НОВОЕ
 })
+
+// <-- НОВАЯ ФУНКЦИЯ ДЛЯ PUSH -->
+async function handlePushToggle() {
+  try {
+    await pwaStore.togglePushSubscription()
+    if (pwaStore.isPushSubscribed) {
+      toast.success(t('settings.pushEnabled'))
+    }
+    else {
+      toast.info(t('settings.pushDisabled'))
+    }
+  }
+  catch (err: any) {
+    toast.error(err.message || t('settings.pushError'))
+  }
+}
 
 const storagePercent = computed(() => {
   if (!cacheStore.deviceStorage || cacheStore.deviceStorage.quota === 0)
@@ -100,10 +119,8 @@ const tokensByModel = computed<ModelStats[]>(() => {
     })
   })
 
-  // Сортируем модели по общему числу токенов
   const result = Array.from(map.values()).sort((a, b) => (b.input + b.output) - (a.input + a.output))
 
-  // Сортируем действия внутри модели по числу токенов
   result.forEach((m) => {
     m.actions.sort((a, b) => (b.input + b.output) - (a.input + a.output))
   })
@@ -195,6 +212,25 @@ async function fetchModels() {
         <div class="form-group">
           <label>{{ t('settings.appLanguage') }}</label>
           <KitSelect v-model="settingsStore.appLanguage" :options="appLangOptions" />
+        </div>
+
+        <div class="divider" style="margin: 16px 0;" />
+        <div class="push-setting-row" style="display: flex; justify-content: space-between; align-items: center; gap: 16px;">
+          <div style="display: flex; flex-direction: column; gap: 4px;">
+            <span style="font-weight: 500; color: var(--fg-primary-color);">
+              <Icon icon="mdi:bell-ring-outline" style="vertical-align: text-bottom; font-size: 1.1em; color: var(--fg-accent-color);" />
+              {{ t('settings.pushNotifications') }}
+            </span>
+            <span style="font-size: 0.85rem; color: var(--fg-secondary-color);">{{ t('settings.pushDesc') }}</span>
+          </div>
+          <KitBtn
+            :variant="pwaStore.isPushSubscribed ? 'tonal' : 'outlined'"
+            :color="pwaStore.isPushSubscribed ? 'success' : 'secondary'"
+            style="flex-shrink: 0;"
+            @click="handlePushToggle"
+          >
+            {{ pwaStore.isPushSubscribed ? t('settings.pushActive') : t('settings.pushEnable') }}
+          </KitBtn>
         </div>
       </div>
 
@@ -341,7 +377,6 @@ async function fetchModels() {
 
           <div class="models-tokens-list">
             <div v-for="mod in tokensByModel" :key="mod.model" class="model-row-wrapper">
-              <!-- Основной ряд модели -->
               <div class="model-row" :class="{ 'is-expanded': expandedModels[mod.model] }" @click="toggleModelExpand(mod.model)">
                 <div class="model-name">
                   <Icon :icon="expandedModels[mod.model] ? 'mdi:chevron-down' : 'mdi:chevron-right'" class="expand-icon" />
@@ -358,10 +393,8 @@ async function fetchModels() {
                 </div>
               </div>
 
-              <!-- Развернутые детали -->
               <div v-show="expandedModels[mod.model]" class="model-details">
                 <div v-for="act in mod.actions" :key="act.action" class="action-row">
-                  <!-- Для получения перевода действий ищем по ключу `settings.actions.Название` или выводим как есть -->
                   <span class="action-name">{{ t(`settings.actions.${act.action}`) !== `settings.actions.${act.action}` ? t(`settings.actions.${act.action}`) : act.action }}</span>
                   <div class="action-stats">
                     <span class="m-in"><Icon icon="mdi:arrow-down" /> {{ formatNumber(act.input) }}</span>

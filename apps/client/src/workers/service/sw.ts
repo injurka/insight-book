@@ -198,3 +198,46 @@ if (import.meta.env.DEV) {
     }
   })
 }
+
+self.addEventListener('push', (event: PushEvent) => {
+  if (event.data) {
+    try {
+      const data = event.data.json()
+
+      const options = {
+        body: data.body,
+        icon: data.icon || '/logo.svg',
+        badge: data.badge || '/logo.svg',
+        data: {
+          url: data.url || '/',
+        },
+        vibrate: [200, 100, 200],
+      }
+
+      event.waitUntil(self.registration.showNotification(data.title, options as any))
+    }
+    catch {
+      event.waitUntil(self.registration.showNotification('InsightBook', { body: event.data.text() }))
+    }
+  }
+})
+
+self.addEventListener('notificationclick', (event: NotificationEvent) => {
+  event.notification.close()
+  const urlToOpen = event.notification.data?.url || '/'
+
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
+      for (let i = 0; i < windowClients.length; i++) {
+        const client = windowClients[i]
+        if (client.url.includes(self.location.origin) && 'focus' in client) {
+          client.navigate(urlToOpen)
+          return client.focus()
+        }
+      }
+      if (self.clients.openWindow) {
+        return self.clients.openWindow(urlToOpen)
+      }
+    }),
+  )
+})

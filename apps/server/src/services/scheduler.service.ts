@@ -3,6 +3,7 @@ import { desc, eq } from 'drizzle-orm'
 import { db } from '../db'
 import * as schema from '../db/schema'
 import { executeDump } from './dump.service'
+import { sendDailyMotivations } from './push.service'
 
 const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000
 const CHECK_INTERVAL_MS = 60 * 60 * 1000 // Проверять каждый 1 час
@@ -39,13 +40,24 @@ async function checkAndRunDump() {
 }
 
 export function initScheduler() {
-  if (process.env.ENABLE_AUTO_DUMP !== 'true') {
+  console.log('🕒 Initializing background scheduler...')
+
+  if (process.env.ENABLE_AUTO_DUMP === 'true') {
+    setTimeout(checkAndRunDump, 5000)
+    setInterval(checkAndRunDump, CHECK_INTERVAL_MS)
+  } else {
     console.log('🕒 Background scheduler (Weekly backups) is DISABLED via env.')
-    return
   }
 
-  console.log('🕒 Initializing background scheduler (Weekly backups)...')
-
-  setTimeout(checkAndRunDump, 5000)
-  setInterval(checkAndRunDump, CHECK_INTERVAL_MS)
+  setInterval(() => {
+    const now = new Date()
+    if (now.getHours() === 14) {
+      if (!(global as any).__pushSentToday) {
+        (global as any).__pushSentToday = true
+        sendDailyMotivations().catch(err => console.error(err))
+      }
+    } else {
+      (global as any).__pushSentToday = false
+    }
+  }, 60 * 60 * 1000) 
 }

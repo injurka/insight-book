@@ -70,6 +70,13 @@
     "stop": "停止"
   },
   "settings": {
+    "pushNotifications": "推送通知",
+    "pushDesc": "来自 AI 的每日鼓励和难词提醒",
+    "pushActive": "已启用",
+    "pushEnable": "启用",
+    "pushEnabled": "通知启用成功！",
+    "pushDisabled": "通知已禁用",
+    "pushError": "配置通知时出错。您可能在浏览器中阻止了它们。",
     "title": "设置",
     "subtitle": "存储、离线模式和 AI",
     "interfaceTitle": "界面",

@@ -32,6 +32,11 @@ export const TTS_MODEL = process.env.TTS_MODEL || 'gpt-4o-mini-tts'
 export const ADMIN_USERNAME = process.env.ADMIN_USERNAME || 'admin'
 export const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin'
 
+// --- Push Notifications (Web Push) ---
+export const VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY || ''
+export const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY || ''
+export const VAPID_SUBJECT = process.env.VAPID_SUBJECT || 'mailto:admin@insight-book.com'
+
 // --- Limits & Configs ---
 export const PAGE_SIZE_CHARS = 1500
 

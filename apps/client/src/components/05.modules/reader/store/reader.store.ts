@@ -112,9 +112,9 @@ export const useReaderStore = defineStore('reader', () => {
 
       // Ищем картинку в локальном IndexedDB-кэше
       if (page && page.type === 'manga' && page.imageUrl) {
-        const cachedBlob = await offlineService.getImage(bookId, pageNum);
+        const cachedBlob = await offlineService.getImage(bookId, pageNum)
         if (cachedBlob) {
-          page.localImageUrl = URL.createObjectURL(cachedBlob);
+          page.localImageUrl = URL.createObjectURL(cachedBlob)
         }
       }
 

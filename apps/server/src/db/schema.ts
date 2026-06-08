@@ -199,6 +199,18 @@ export const dailyActivity = sqliteTable('daily_activity', {
   unq: unique().on(t.userId, t.date),
 }))
 
+export const webPushSubscriptions = sqliteTable('web_push_subscriptions', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  userId: integer('userId').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  endpoint: text('endpoint').notNull().unique(),
+  keys: text('keys').notNull(),
+  createdAt: text('createdAt').notNull().default(sql`(datetime('now'))`),
+});
+
+export const webPushSubscriptionsRelations = relations(webPushSubscriptions, ({ one }) => ({
+  user: one(users, { fields: [webPushSubscriptions.userId], references: [users.id] }),
+}));
+
 export const usersRelations = relations(users, ({ many }) => ({
   books: many(books),
   dictionary: many(userDictionary),

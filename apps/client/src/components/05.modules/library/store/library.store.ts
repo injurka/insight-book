@@ -31,12 +31,15 @@ export const useLibraryStore = defineStore('library', () => {
 
   async function attachCachedCovers(booksArr: Book[]) {
     for (const b of booksArr) {
-      if (!b) continue;
+      if (!b)
+        continue
       if (b.coverUrl && !b.localCoverUrl) {
         try {
           const cached = await offlineService.getCover(b.id)
-          if (cached) b.localCoverUrl = URL.createObjectURL(cached)
-        } catch { }
+          if (cached)
+            b.localCoverUrl = URL.createObjectURL(cached)
+        }
+        catch { }
       }
     }
   }
@@ -93,7 +96,8 @@ export const useLibraryStore = defineStore('library', () => {
             const blob = await api.books.fetchImageBlob(book.coverUrl)
             await offlineService.saveCover(book.id, blob)
             book.localCoverUrl = URL.createObjectURL(blob)
-          } catch (e) {
+          }
+          catch (e) {
             console.warn('Failed to cache cover', e)
           }
         }
@@ -117,13 +121,14 @@ export const useLibraryStore = defineStore('library', () => {
 
           // Если это манга и есть картинка, качаем Blob
           if (options.cachePages && page.type === 'manga' && page.imageUrl) {
-            const cachedImage = await offlineService.getImage(bookId, i);
+            const cachedImage = await offlineService.getImage(bookId, i)
             if (!cachedImage) {
               try {
-                const blob = await api.books.fetchImageBlob(page.imageUrl);
-                await offlineService.saveImage(bookId, i, blob);
-              } catch (e) {
-                console.warn(`Failed to cache image for page ${i}`, e);
+                const blob = await api.books.fetchImageBlob(page.imageUrl)
+                await offlineService.saveImage(bookId, i, blob)
+              }
+              catch (e) {
+                console.warn(`Failed to cache image for page ${i}`, e)
               }
             }
           }
@@ -394,7 +399,8 @@ export const useLibraryStore = defineStore('library', () => {
       await api.books.updateInfo(id, data)
     }
     catch (e) {
-      console.warn('Failed to sync book info', e); throw e
+      console.warn('Failed to sync book info', e)
+      throw e
     }
   }
 

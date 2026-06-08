@@ -2,6 +2,7 @@
 import { CORS_HEADERS, PORT } from './config'
 import { handleGetHeatmapData, handleGetTokenUsage } from './handlers/activity'
 import { handleGetMe, handleLogin } from './handlers/auth'
+import { handleGetVapidKey, handleSubscribe, handleUnsubscribe } from './handlers/push'
 import {
   handleAnalyzeBatch,
   handleAnalyzeBookStats,
@@ -115,6 +116,11 @@ const apiRoutes = {
   '/api/opds/catalogs/:id': { OPTIONS: corsOk, DELETE: apiWrapper(authWrapper(handleDeleteCatalog)) },
   '/api/opds/browse': { OPTIONS: corsOk, GET: apiWrapper(authWrapper(handleBrowseOpds)) },
   '/api/opds/download': { OPTIONS: corsOk, POST: apiWrapper(authWrapper(handleDownloadOpdsBook)) },
+
+  // --- Push ---
+  '/api/push/vapid-public-key': { OPTIONS: corsOk, GET: apiWrapper(handleGetVapidKey) },
+  '/api/push/subscribe': { OPTIONS: corsOk, POST: apiWrapper(authWrapper(handleSubscribe)) },
+  '/api/push/unsubscribe': { OPTIONS: corsOk, POST: apiWrapper(authWrapper(handleUnsubscribe)) },
 }
 
 Bun.serve({

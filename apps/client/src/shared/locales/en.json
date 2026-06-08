@@ -70,6 +70,13 @@
     "cacheTtsWordsDesc": "Generate audio for each word"
   },
   "settings": {
+    "pushNotifications": "Push Notifications",
+    "pushDesc": "Daily motivation from AI and reminders of hard words",
+    "pushActive": "Enabled",
+    "pushEnable": "Enable",
+    "pushEnabled": "Notifications enabled successfully!",
+    "pushDisabled": "Notifications disabled",
+    "pushError": "Error configuring notifications. You may have blocked them in your browser.",
     "title": "Settings",
     "subtitle": "Storage, Offline Mode, and AI",
     "interfaceTitle": "Interface",
