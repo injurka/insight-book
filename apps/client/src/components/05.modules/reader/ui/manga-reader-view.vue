@@ -79,7 +79,6 @@ function handleBubblePointerDown(event: MouseEvent | TouchEvent, box: any) {
 
 function closeBubblePopover() {
   const target = event?.target as HTMLElement | null
-  // Изменен список игнорируемых элементов (убран page-analysis-overlay)
   if (target?.closest('.word-popover') || target?.closest('.kit-dialog') || target?.closest('.selection-tooltip')) {
     return
   }
@@ -177,7 +176,8 @@ function onScroll() {
             @touchcancel="onPointerUp"
             @mouseleave="onPointerUp"
           >
-            <img :src="`${getMediaUrl(readerStore.currentPage.imageUrl)}`" class="manga-image" @load="restoreScrollPosition">
+            <!-- Обновлено! Если картинка есть в кэше, отображаем Blob URL, иначе оригинальный API URL -->
+            <img :src="readerStore.currentPage.localImageUrl || (readerStore.currentPage.imageUrl ? getMediaUrl(readerStore.currentPage.imageUrl) : '')" class="manga-image" @load="restoreScrollPosition">
 
             <div class="ocr-overlay">
               <div

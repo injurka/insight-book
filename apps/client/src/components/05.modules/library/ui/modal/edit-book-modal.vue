@@ -71,7 +71,7 @@ function copyLink() {
         <label>{{ t('library.cover') }}</label>
         <div class="edit-cover-preview" @click="editCoverInput?.click()">
           <KitImage
-            :src="editingBook.coverUrl"
+            :src="editingBook.localCoverUrl || editingBook.coverUrl"
             fallback-icon="mdi:image-plus"
           />
           <div class="overlay">

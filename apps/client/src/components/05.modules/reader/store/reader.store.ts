@@ -103,19 +103,24 @@ export const useReaderStore = defineStore('reader', () => {
     isPageLoading.value = true
 
     try {
-      const cachedPage = await offlineService.getPage(bookId, pageNum)
-      if (cachedPage) {
-        currentPage.value = cachedPage
-        fetchPageDictionary(bookId, pageNum).catch(console.error)
-        libraryStore.updateBookInfo(bookId, { currentPage: pageNum })
-      }
-      else {
-        const page = await api.books.getPage(bookId, pageNum)
-        currentPage.value = page
-        fetchPageDictionary(bookId, pageNum).catch(console.error)
+      let page: PagePayload | null = await offlineService.getPage(bookId, pageNum)
+
+      if (!page) {
+        page = await api.books.getPage(bookId, pageNum)
         await offlineService.savePage(bookId, pageNum, page)
-        libraryStore.updateBookInfo(bookId, { currentPage: pageNum })
       }
+
+      // Ищем картинку в локальном IndexedDB-кэше
+      if (page && page.type === 'manga' && page.imageUrl) {
+        const cachedBlob = await offlineService.getImage(bookId, pageNum);
+        if (cachedBlob) {
+          page.localImageUrl = URL.createObjectURL(cachedBlob);
+        }
+      }
+
+      currentPage.value = page
+      fetchPageDictionary(bookId, pageNum).catch(console.error)
+      libraryStore.updateBookInfo(bookId, { currentPage: pageNum })
 
       const settingsStore = useGlobalSettingsStore()
       if (settingsStore.autoAnalyzePage && !analysisStore.isManualPageAnalysisActive) {

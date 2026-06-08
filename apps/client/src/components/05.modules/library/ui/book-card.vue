@@ -27,7 +27,7 @@ const progressPercent = computed(() => {
   <div class="book-card" @click="emit('click')">
     <div class="cover-wrapper">
       <KitImage
-        :src="book.coverUrl"
+        :src="book.localCoverUrl || book.coverUrl"
         :alt="t('library.cover')"
         fallback-icon="mdi:book-open-blank-variant"
       />
@@ -224,7 +224,6 @@ const progressPercent = computed(() => {
     }
   }
 
-  // ===== МОБИЛЬНЫЙ ВИД =====
   @include media-down(sm) {
     flex-direction: row;
     padding: 12px;

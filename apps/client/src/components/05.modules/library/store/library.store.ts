@@ -29,6 +29,18 @@ export const useLibraryStore = defineStore('library', () => {
 
   let syncAbortController: AbortController | null = null
 
+  async function attachCachedCovers(booksArr: Book[]) {
+    for (const b of booksArr) {
+      if (!b) continue;
+      if (b.coverUrl && !b.localCoverUrl) {
+        try {
+          const cached = await offlineService.getCover(b.id)
+          if (cached) b.localCoverUrl = URL.createObjectURL(cached)
+        } catch { }
+      }
+    }
+  }
+
   function cancelSync() {
     if (syncAbortController) {
       syncAbortController.abort()
@@ -72,6 +84,21 @@ export const useLibraryStore = defineStore('library', () => {
 
       const needPageContent = options.cachePages || options.analyzeSentences || options.analyzeWords || options.ttsSentences || options.ttsWords
 
+      // 1.5 Кэширование обложки
+      if (options.cachePages && book.coverUrl && !book.localCoverUrl) {
+        syncProgress.value.currentTask = 'Кэширование обложки...'
+        const cachedCover = await offlineService.getCover(book.id)
+        if (!cachedCover) {
+          try {
+            const blob = await api.books.fetchImageBlob(book.coverUrl)
+            await offlineService.saveCover(book.id, blob)
+            book.localCoverUrl = URL.createObjectURL(blob)
+          } catch (e) {
+            console.warn('Failed to cache cover', e)
+          }
+        }
+      }
+
       // 2. Постраничная загрузка и анализ
       if (needPageContent) {
         for (let i = 1; i <= book.totalPages; i++) {
@@ -85,6 +112,19 @@ export const useLibraryStore = defineStore('library', () => {
             page = await api.books.getPage(bookId, i, true)
             if (options.cachePages) {
               await offlineService.savePage(bookId, i, page)
+            }
+          }
+
+          // Если это манга и есть картинка, качаем Blob
+          if (options.cachePages && page.type === 'manga' && page.imageUrl) {
+            const cachedImage = await offlineService.getImage(bookId, i);
+            if (!cachedImage) {
+              try {
+                const blob = await api.books.fetchImageBlob(page.imageUrl);
+                await offlineService.saveImage(bookId, i, blob);
+              } catch (e) {
+                console.warn(`Failed to cache image for page ${i}`, e);
+              }
             }
           }
 
@@ -312,6 +352,7 @@ export const useLibraryStore = defineStore('library', () => {
         books.value = cached
     }
     finally {
+      await attachCachedCovers(books.value)
       isLoading.value = false
     }
   }
@@ -333,6 +374,9 @@ export const useLibraryStore = defineStore('library', () => {
       else throw e
     }
     finally {
+      if (currentBookInfo.value) {
+        await attachCachedCovers([currentBookInfo.value])
+      }
       isLoading.value = false
     }
   }

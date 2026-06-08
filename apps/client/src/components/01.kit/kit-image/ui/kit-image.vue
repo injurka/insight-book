@@ -23,7 +23,7 @@ const hasError = ref(false)
 const resolvedSrc = computed(() => {
   if (!props.src)
     return ''
-  if (props.src.startsWith('data:') || props.src.startsWith('http')) {
+  if (props.src.startsWith('data:') || props.src.startsWith('http') || props.src.startsWith('blob:')) {
     return props.src
   }
   const BASE = import.meta.env.VITE_API_URL || 'https://insight-api.trip-scheduler.ru'

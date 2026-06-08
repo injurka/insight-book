@@ -51,7 +51,7 @@ function startReading() {
   <div class="cover-col">
     <div class="cover-wrapper group" :class="{ 'is-editable': authStore.user }" @click="triggerCoverInput">
       <KitImage
-        :src="libraryStore.currentBookInfo?.coverUrl"
+        :src="libraryStore.currentBookInfo?.localCoverUrl || libraryStore.currentBookInfo?.coverUrl"
         fallback-icon="mdi:book-open-blank-variant"
       />
 
