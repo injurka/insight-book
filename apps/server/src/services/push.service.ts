@@ -4,6 +4,8 @@ import webpush from 'web-push'
 import { LLM_API_KEY, LLM_API_URL, LLM_MODEL, VAPID_PRIVATE_KEY, VAPID_PUBLIC_KEY, VAPID_SUBJECT } from '../config'
 import { db } from '../db'
 import * as schema from '../db/schema'
+import { getGeneralPushPrompt, getWordPushPrompt } from '../prompts'
+import { parseLlmJson } from '../utils/helpers'
 import { callLlmApi } from '../utils/llm-api'
 
 if (VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY) {
@@ -38,8 +40,9 @@ export async function sendDailyMotivations(customMessage?: string) {
   const config = { url: LLM_API_URL, key: LLM_API_KEY, model: LLM_MODEL }
 
   for (const [userId, subs] of userSubsMap.entries()) {
+    // eslint-disable-next-line prefer-const
     let messageTitle = 'InsightBook'
-    let messageBody = customMessage || 'Пора уделить немного времени изучению языка! Возвращайтесь к чтению.'
+    let messageBody = customMessage || 'Время изучать языки!'
     let targetUrl = '/'
 
     if (!customMessage) {
@@ -55,37 +58,38 @@ export async function sendDailyMotivations(customMessage?: string) {
         targetUrl = '/dictionary'
         const wordStr = hardestWord.word
         const transStr = hardestWord.translation?.split(/<br>|,|;/)[0].replace(/<[^>]+>/g, '').trim() || ''
+        const transcriptionStr = hardestWord.transcription ? ` [${hardestWord.transcription}]` : ''
 
         try {
-          const prompt = `Сгенерируй ОДНО короткое, креативное и мотивирующее предложение (push-уведомление) для пользователя приложения по изучению языков. 
-Обязательно упомяни, что ему нужно повторить слово "${wordStr}" (перевод: ${transStr}).
-Текст должен быть на русском языке. Без кавычек в начале и конце. Не более 120 символов.`
+          const prompt = getWordPushPrompt(wordStr, transStr)
 
           const response = await callLlmApi(
             config.model,
             [{ role: 'user', content: prompt }],
-            0.7,
+            0.8,
             AbortSignal.timeout(15000),
             config,
           )
 
-          if (response.text) {
-            messageTitle = `Время повторить: ${wordStr}`
-            messageBody = response.text.replace(/^["']|["']$/g, '')
+          const parsed = parseLlmJson<{ message: string }>(response.text)
+
+          if (parsed && parsed.message) {
+            messageBody = `${parsed.message}\n\n${wordStr}${transcriptionStr} — ${transStr}`
           }
         }
-        catch (err) {
-          console.warn(`[Push] LLM failed for user ${userId}, using fallback. ${err}`)
-          messageTitle = 'Слова ждут!'
-          messageBody = `Кажется, вы стали забывать слово "${wordStr}". Заходите в словарь, чтобы повторить!`
+        catch {
+          console.warn(`[Push] LLM failed for user ${userId}, using fallback.`)
+          messageBody = `Кажется, вы стали забывать это слово:\n\n${wordStr}${transcriptionStr} — ${transStr}`
         }
       }
       else {
         try {
-          const prompt = `Сгенерируй короткое (1 предложение) мотивирующее push-уведомление, чтобы пользователь зашел почитать книгу на иностранном языке.`
-          const response = await callLlmApi(config.model, [{ role: 'user', content: prompt }], 0.7, AbortSignal.timeout(10000), config)
-          if (response.text)
-            messageBody = response.text.replace(/^["']|["']$/g, '')
+          const prompt = getGeneralPushPrompt()
+          const response = await callLlmApi(config.model, [{ role: 'user', content: prompt }], 0.8, AbortSignal.timeout(10000), config)
+          const parsed = parseLlmJson<{ message: string }>(response.text)
+          if (parsed && parsed.message) {
+            messageBody = parsed.message
+          }
         }
         catch { }
       }
