@@ -7,9 +7,10 @@ import { KitBtn, KitCheckbox, KitInput, KitSelect, KitSkeleton, KitTooltip } fro
 import { HoverRevealBg } from '~/components/02.shared/hover-reveal-bg'
 import { useToast } from '~/shared/composables/use-toast'
 import { AppRoutePaths } from '~/shared/constants/routes'
+import { api } from '~/shared/services/api.service'
 import { useCacheStore } from '~/shared/store/cache.store'
 import { useGlobalSettingsStore } from '~/shared/store/settings.store'
-import { formatBytes, formatPagesList } from '../lib/formatters'
+import { formatBytes, formatNumber, formatPagesList } from '../lib/formatters'
 
 const cacheStore = useCacheStore()
 const settingsStore = useGlobalSettingsStore()
@@ -23,8 +24,26 @@ const appLangOptions = [
   { label: '中文', value: 'zh' },
 ]
 
+const tokensData = ref<{ stats: any[], daily: any[] } | null>(null)
+const isTokensLoading = ref(true)
+const expandedModels = ref<Record<string, boolean>>({})
+
+async function fetchTokensInfo() {
+  try {
+    isTokensLoading.value = true
+    tokensData.value = await api.activity.getTokens()
+  }
+  catch (e) {
+    console.error('Failed to load token usage:', e)
+  }
+  finally {
+    isTokensLoading.value = false
+  }
+}
+
 onMounted(() => {
   cacheStore.loadStats()
+  fetchTokensInfo()
 })
 
 const storagePercent = computed(() => {
@@ -44,6 +63,57 @@ const activeBookStats = computed(() => {
   }
   return res
 })
+
+const totalTokens = computed(() => {
+  if (!tokensData.value)
+    return { input: 0, output: 0 }
+  return tokensData.value.stats.reduce((acc, curr) => {
+    acc.input += curr.inputTokens
+    acc.output += curr.outputTokens
+    return acc
+  }, { input: 0, output: 0 })
+})
+
+interface ModelStats {
+  model: string
+  input: number
+  output: number
+  actions: { action: string, input: number, output: number }[]
+}
+
+const tokensByModel = computed<ModelStats[]>(() => {
+  if (!tokensData.value)
+    return []
+  const map = new Map<string, ModelStats>()
+
+  tokensData.value.stats.forEach((s) => {
+    if (!map.has(s.model)) {
+      map.set(s.model, { model: s.model, input: 0, output: 0, actions: [] })
+    }
+    const existing = map.get(s.model)!
+    existing.input += s.inputTokens
+    existing.output += s.outputTokens
+    existing.actions.push({
+      action: s.action,
+      input: s.inputTokens,
+      output: s.outputTokens,
+    })
+  })
+
+  // Сортируем модели по общему числу токенов
+  const result = Array.from(map.values()).sort((a, b) => (b.input + b.output) - (a.input + a.output))
+
+  // Сортируем действия внутри модели по числу токенов
+  result.forEach((m) => {
+    m.actions.sort((a, b) => (b.input + b.output) - (a.input + a.output))
+  })
+
+  return result
+})
+
+function toggleModelExpand(model: string) {
+  expandedModels.value[model] = !expandedModels.value[model]
+}
 
 const availableModels = ref<{ label: string, value: string }[]>([])
 const isFetchingModels = ref(false)
@@ -81,7 +151,6 @@ async function fetchModels() {
       if (availableModels.value.length > 0) {
         toast.success('Список моделей успешно загружен')
 
-        // Если текущей модели нет в новом списке, автоматически выбираем первую
         if (!availableModels.value.some(m => m.value === settingsStore.customLlmModel)) {
           settingsStore.customLlmModel = availableModels.value[0].value
         }
@@ -150,14 +219,12 @@ async function fetchModels() {
               <div class="form-group flex-1">
                 <label>{{ t('settings.modelName') }}</label>
                 <div style="display: flex; gap: 8px; align-items: center;">
-                  <!-- Показываем селект, если модели загрузились -->
                   <KitSelect
                     v-if="availableModels.length > 0"
                     v-model="settingsStore.customLlmModel"
                     :options="availableModels"
                     style="flex: 1; min-width: 0;"
                   />
-                  <!-- Или обычный текстовый инпут, если списка нет -->
                   <KitInput
                     v-else
                     v-model="settingsStore.customLlmModel"
@@ -185,6 +252,8 @@ async function fetchModels() {
             </div>
           </div>
         </Transition>
+
+        <KitCheckbox v-model="settingsStore.autoAnalyzePage" :label="t('settings.autoAnalyzePage')" />
       </div>
 
       <!-- Хранилище -->
@@ -247,6 +316,65 @@ async function fetchModels() {
           <span class="label">{{ t('settings.dictWords') }}</span>
           <KitSkeleton v-if="cacheStore.isLoading && !cacheStore.stats" width="80px" height="32px" color="var(--bg-tertiary-color)" />
           <span v-else class="value">{{ cacheStore.stats?.totalDictionaryWords || 0 }}</span>
+        </div>
+      </div>
+
+      <!-- Использование токенов -->
+      <h2 class="section-title">
+        {{ t('settings.tokenUsageTitle') }}
+      </h2>
+      <div class="settings-card tokens-card">
+        <KitSkeleton v-if="isTokensLoading" width="100%" height="150px" color="var(--bg-tertiary-color)" />
+        <template v-else-if="totalTokens.input > 0 || totalTokens.output > 0">
+          <div class="total-tokens">
+            <div class="stat-item">
+              <span class="label">{{ t('settings.inputTokens') }}</span>
+              <span class="value text-accent">{{ formatNumber(totalTokens.input) }}</span>
+            </div>
+            <div class="stat-item">
+              <span class="label">{{ t('settings.outputTokens') }}</span>
+              <span class="value">{{ formatNumber(totalTokens.output) }}</span>
+            </div>
+          </div>
+
+          <div class="divider" />
+
+          <div class="models-tokens-list">
+            <div v-for="mod in tokensByModel" :key="mod.model" class="model-row-wrapper">
+              <!-- Основной ряд модели -->
+              <div class="model-row" :class="{ 'is-expanded': expandedModels[mod.model] }" @click="toggleModelExpand(mod.model)">
+                <div class="model-name">
+                  <Icon :icon="expandedModels[mod.model] ? 'mdi:chevron-down' : 'mdi:chevron-right'" class="expand-icon" />
+                  <Icon icon="mdi:robot-outline" class="bot-icon" />
+                  <span>{{ mod.model }}</span>
+                </div>
+                <div class="model-stats">
+                  <span class="m-in" :title="t('settings.inputTokens')">
+                    <Icon icon="mdi:arrow-down" class="token-icon" /> {{ formatNumber(mod.input) }}
+                  </span>
+                  <span class="m-out" :title="t('settings.outputTokens')">
+                    <Icon icon="mdi:arrow-up" class="token-icon" /> {{ formatNumber(mod.output) }}
+                  </span>
+                </div>
+              </div>
+
+              <!-- Развернутые детали -->
+              <div v-show="expandedModels[mod.model]" class="model-details">
+                <div v-for="act in mod.actions" :key="act.action" class="action-row">
+                  <!-- Для получения перевода действий ищем по ключу `settings.actions.Название` или выводим как есть -->
+                  <span class="action-name">{{ t(`settings.actions.${act.action}`) !== `settings.actions.${act.action}` ? t(`settings.actions.${act.action}`) : act.action }}</span>
+                  <div class="action-stats">
+                    <span class="m-in"><Icon icon="mdi:arrow-down" /> {{ formatNumber(act.input) }}</span>
+                    <span class="m-out"><Icon icon="mdi:arrow-up" /> {{ formatNumber(act.output) }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </template>
+        <div v-else class="empty-state">
+          <Icon icon="mdi:database-off-outline" class="empty-icon" />
+          <p>{{ t('settings.tokensNoData') }}</p>
         </div>
       </div>
 
@@ -557,10 +685,10 @@ async function fetchModels() {
   }
 }
 
-.total-card {
+.total-card,
+.tokens-card {
   display: flex;
   gap: 48px;
-  margin-bottom: 32px;
 
   @include media-down(sm) {
     flex-direction: column;
@@ -586,6 +714,143 @@ async function fetchModels() {
 
       &.text-accent {
         color: var(--fg-accent-color);
+      }
+    }
+  }
+}
+
+.tokens-card {
+  flex-direction: column;
+  gap: 24px;
+
+  .total-tokens {
+    display: flex;
+    gap: 48px;
+
+    @include media-down(sm) {
+      gap: 24px;
+    }
+  }
+
+  .divider {
+    height: 1px;
+    background: var(--border-secondary-color);
+  }
+
+  .models-tokens-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .model-row-wrapper {
+    display: flex;
+    flex-direction: column;
+    background: var(--bg-tertiary-color);
+    border-radius: 8px;
+    border: 1px solid var(--border-secondary-color);
+    overflow: hidden;
+
+    .model-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 16px;
+      cursor: pointer;
+      user-select: none;
+      transition: background-color 0.2s;
+
+      &:hover {
+        background: var(--bg-hover-color);
+      }
+
+      &.is-expanded {
+        border-bottom: 1px dashed var(--border-secondary-color);
+        background: var(--bg-primary-color);
+      }
+
+      .model-name {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-weight: 500;
+        color: var(--fg-primary-color);
+
+        .expand-icon {
+          font-size: 1.4rem;
+          color: var(--fg-secondary-color);
+        }
+
+        .bot-icon {
+          font-size: 1.2rem;
+          color: var(--fg-accent-color);
+        }
+      }
+
+      .model-stats {
+        display: flex;
+        gap: 16px;
+        font-size: 0.9rem;
+        font-variant-numeric: tabular-nums;
+        font-weight: 500;
+
+        .token-icon {
+          font-size: 1rem;
+          margin-right: 2px;
+        }
+
+        .m-in {
+          color: var(--fg-accent-color);
+          display: flex;
+          align-items: center;
+        }
+        .m-out {
+          color: var(--fg-secondary-color);
+          display: flex;
+          align-items: center;
+        }
+      }
+    }
+
+    .model-details {
+      display: flex;
+      flex-direction: column;
+      background: var(--bg-primary-color);
+      padding: 8px 16px 16px 16px;
+      gap: 12px;
+
+      .action-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 0.85rem;
+
+        .action-name {
+          color: var(--fg-primary-color);
+          font-weight: 500;
+          display: flex;
+          align-items: center;
+
+          &::before {
+            content: '•';
+            color: var(--fg-accent-color);
+            margin-right: 8px;
+            font-size: 1.2rem;
+          }
+        }
+
+        .action-stats {
+          display: flex;
+          gap: 12px;
+          color: var(--fg-secondary-color);
+          font-variant-numeric: tabular-nums;
+
+          span {
+            display: flex;
+            align-items: center;
+            gap: 2px;
+          }
+        }
       }
     }
   }

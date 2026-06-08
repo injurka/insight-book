@@ -17,3 +17,9 @@ export function formatPagesList(pages: number[]): string {
     return sorted.join(', ')
   return `${sorted.slice(0, 15).join(', ')} ... и ещё ${sorted.length - 15}`
 }
+
+export function formatNumber(num: number | undefined | null): string {
+  if (num === undefined || num === null)
+    return '0'
+  return new Intl.NumberFormat('ru-RU').format(num)
+}

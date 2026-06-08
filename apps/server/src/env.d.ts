@@ -12,4 +12,11 @@ declare module '@ai-sdk/openai' {
     compatibility?: 'strict' | 'compatible'
   }
 }
+
+declare global {
+  interface Request {
+    params: Record<string, string>
+  }
+}
+
 export { }

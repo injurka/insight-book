@@ -11,6 +11,7 @@ import {
 } from '../config'
 import { getOcrPrompt, getOcrRefinementPrompt } from '../prompts'
 import { AppError } from '../utils/errors'
+import { trackTokenUsage } from './token.service'
 
 export interface OcrBlock {
   id: number
@@ -21,38 +22,30 @@ export interface OcrBlock {
   h: number
 }
 
-// Агрессивная очистка текста от мусора, генерируемого LLM
 function cleanOcrText(rawText: string): string {
   let text = rawText || ''
-  // Убираем блоки markdown вида ```markdown ... ```
   text = text.replace(/```[a-z]*\n?/gi, '').replace(/```/g, '')
-  // Убираем случайные html/xml теги (например <p>, <box>, <text>)
   text = text.replace(/<[^>]*>/g, '')
-  // Убираем маркдаун выделения (**, __), если они появились
   text = text.replace(/(\*\*|__)(.*?)\1/g, '$2')
-  // Убираем лишние пробелы по краям
   return text.trim()
 }
 
-export async function recognizeMangaPage(base64Image: string, language: string, textDirection: string | undefined, config: LlmConfig): Promise<OcrBlock[]> {
+export async function recognizeMangaPage(userId: number, base64Image: string, language: string, textDirection: string | undefined, config: LlmConfig): Promise<OcrBlock[]> {
   let imageUrl = base64Image
   if (!base64Image.startsWith('data:image/')) {
     imageUrl = `data:image/jpeg;base64,${base64Image}`
   }
 
-  // 1. Первый проход: получаем координаты блоков текста (layout pass)
-  const blocks = await getOcrLayout(imageUrl, language, textDirection, config)
+  const blocks = await getOcrLayout(userId, imageUrl, language, textDirection, config)
 
-  // 2. Второй проход: вырезаем фрагменты и запрашиваем точный текст у модели-рефайна
   if (blocks.length > 0 && blocks.some(b => b.w > 0 && b.h > 0)) {
-    return await refineOcrText(base64Image, blocks, language, textDirection, config)
+    return await refineOcrText(userId, base64Image, blocks, language, textDirection, config)
   }
 
   return blocks
 }
 
-async function getOcrLayout(imageUrl: string, language: string, textDirection: string | undefined, config: LlmConfig): Promise<OcrBlock[]> {
-  // Используем кастомные данные из запроса, если они есть. Иначе берем из ENV (OCR)
+async function getOcrLayout(userId: number, imageUrl: string, language: string, textDirection: string | undefined, config: LlmConfig): Promise<OcrBlock[]> {
   const apiUrl = config.url === LLM_API_URL ? OCR_API_URL : config.url
   const apiKey = config.key === LLM_API_KEY ? OCR_API_KEY : config.key
   const model = config.model === LLM_MODEL ? OCR_MODEL : (config.model || OCR_MODEL)
@@ -100,15 +93,18 @@ async function getOcrLayout(imageUrl: string, language: string, textDirection: s
   }
 
   const data = await response.json() as any
-  const blocks: OcrBlock[] = []
+  const promptTokens = data.usage?.prompt_tokens || 0
+  const completionTokens = data.usage?.completion_tokens || 0
+  trackTokenUsage(userId, 'ocr_layout', model, promptTokens, completionTokens)
 
+  const blocks: OcrBlock[] = []
   const glmDetail = data.choices?.[0]?.glm_ocr_detail
+
   if (glmDetail && glmDetail.layout_details && glmDetail.layout_details[0]) {
     const layoutDetails = glmDetail.layout_details[0]
 
     layoutDetails.forEach((item: any, index: number) => {
       const text = cleanOcrText(item.content)
-
       if (!text)
         return
 
@@ -146,7 +142,7 @@ async function getOcrLayout(imageUrl: string, language: string, textDirection: s
   return []
 }
 
-async function refineOcrText(base64Image: string, blocks: OcrBlock[], language: string, textDirection: string | undefined, config: LlmConfig): Promise<OcrBlock[]> {
+async function refineOcrText(userId: number, base64Image: string, blocks: OcrBlock[], language: string, textDirection: string | undefined, config: LlmConfig): Promise<OcrBlock[]> {
   const validBlocks = blocks.filter(b => b.w > 0 && b.h > 0)
   if (validBlocks.length === 0)
     return blocks
@@ -168,7 +164,7 @@ async function refineOcrText(base64Image: string, blocks: OcrBlock[], language: 
       },
     ]
 
-    const padding = 15 // Контекст (padding) вокруг текста помогает ИИ лучше понимать структуру баббла
+    const padding = 15
 
     for (const block of validBlocks) {
       const left = Math.max(0, Math.floor(block.x) - padding)
@@ -179,7 +175,6 @@ async function refineOcrText(base64Image: string, blocks: OcrBlock[], language: 
       const height = bottom - top
 
       if (width > 0 && height > 0) {
-        // Вырезаем изображение и конвертируем в JPEG
         const cropBuffer = await sharp(imageBuffer)
           .extract({ left, top, width, height })
           .jpeg({ quality: 90 })
@@ -227,26 +222,24 @@ async function refineOcrText(base64Image: string, blocks: OcrBlock[], language: 
     if (response.ok) {
       const data = await response.json() as any
       const content = data.choices?.[0]?.message?.content || ''
+
+      const promptTokens = data.usage?.prompt_tokens || 0
+      const completionTokens = data.usage?.completion_tokens || 0
+      trackTokenUsage(userId, 'ocr_refine', model, promptTokens, completionTokens)
+
       const cleanJson = content.replace(/^```json\n?/, '').replace(/\n?```$/, '').trim()
 
       try {
         const refinedTexts = JSON.parse(cleanJson)
         if (Array.isArray(refinedTexts) && refinedTexts.length === validBlocks.length) {
-          // Заменяем оригинальный текст на точный из Gemini, сохраняя координаты
           for (let i = 0; i < validBlocks.length; i++) {
             validBlocks[i].text = cleanOcrText(refinedTexts[i]) || validBlocks[i].text
           }
-        }
-        else {
-          console.warn(`[OCR Refinement] Array length mismatch. Expected ${validBlocks.length}, got ${Array.isArray(refinedTexts) ? refinedTexts.length : 'non-array'}.`)
         }
       }
       catch (parseError) {
         console.error('[OCR Refinement] Failed to parse JSON response:', cleanJson, parseError)
       }
-    }
-    else {
-      console.warn(`[OCR Refinement] API returned status ${response.status}: ${await response.text()}`)
     }
   }
   catch (error) {

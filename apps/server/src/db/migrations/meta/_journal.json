@@ -15,6 +15,13 @@
       "when": 1780859047991,
       "tag": "0001_gorgeous_whirlwind",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1780927148121,
+      "tag": "0002_sudden_whizzer",
+      "breakpoints": true
     }
   ]
 }

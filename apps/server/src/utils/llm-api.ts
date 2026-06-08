@@ -19,6 +19,11 @@ interface GeminiContent {
   parts: Array<{ text: string }>
 }
 
+export interface TokenUsage {
+  promptTokens: number
+  completionTokens: number
+}
+
 class LlmHttpError extends Error {
   status?: number
   body?: string
@@ -37,7 +42,7 @@ async function callLlmApi(
   temperature: number,
   signal: AbortSignal,
   config: LlmConfig,
-) {
+): Promise<{ text: string, usage: TokenUsage }> {
   try {
     if (isOllamaNativeUrl(config.url)) {
       return await callOllamaNative({
@@ -76,27 +81,13 @@ async function callLlmApi(
 
 export { callLlmApi }
 
-/**
- * OpenAI-compatible API.
- *
- * Подходит для:
- * - OpenAI Chat Completions
- * - OpenRouter
- * - AIHubMix
- * - LM Studio OpenAI-compatible
- * - Ollama, если используешь http://localhost:11434/v1
- *
- * Важно:
- * Здесь специально НЕ добавляется reasoning_effort.
- * Для gpt-4o-mini reasoning/thinking нет, отключать нечего.
- */
 async function callOpenAiCompatible(params: {
   modelName: string
   messages: ModelMessage[]
   temperature: number
   signal: AbortSignal
   config: LlmConfig
-}) {
+}): Promise<{ text: string, usage: TokenUsage }> {
   const {
     modelName,
     messages,
@@ -127,10 +118,6 @@ async function callOpenAiCompatible(params: {
     headers.Authorization = `Bearer ${config.key}`
   }
 
-  /**
-   * Некоторые OpenAI-compatible провайдеры не поддерживают response_format.
-   * Поэтому сначала пробуем с JSON mode, потом без него.
-   */
   const bodyVariants: Record<string, any>[] = [
     baseBody,
   ]
@@ -141,10 +128,6 @@ async function callOpenAiCompatible(params: {
     bodyVariants.push(withoutResponseFormat)
   }
 
-  /**
-   * Некоторые совместимые API могут ругаться на max_tokens.
-   * В таком случае пробуем ещё раз без лимита.
-   */
   const withoutMaxTokens = { ...baseBody }
   delete withoutMaxTokens.max_tokens
 
@@ -171,32 +154,29 @@ async function callOpenAiCompatible(params: {
       })
 
       const content = data?.choices?.[0]?.message?.content
+      const promptTokens = data?.usage?.prompt_tokens || 0
+      const completionTokens = data?.usage?.completion_tokens || 0
+      const usage = { promptTokens, completionTokens }
 
       if (typeof content === 'string') {
-        return content
+        return { text: content, usage }
       }
 
       if (Array.isArray(content)) {
         const text = content
           .map((part: any) => {
-            if (typeof part === 'string') {
+            if (typeof part === 'string')
               return part
-            }
-
-            if (part?.type === 'text') {
+            if (part?.type === 'text')
               return part.text ?? ''
-            }
-
-            if ('text' in part) {
+            if ('text' in part)
               return part.text ?? ''
-            }
-
             return ''
           })
           .join('')
 
         if (text) {
-          return text
+          return { text, usage }
         }
       }
 
@@ -214,30 +194,13 @@ async function callOpenAiCompatible(params: {
   throw lastError
 }
 
-/**
- * Gemini native API.
- *
- * Подходит для:
- * https://generativelanguage.googleapis.com/v1beta
- *
- * Здесь thinking отключается корректно:
- *
- * generationConfig: {
- *   thinkingConfig: {
- *     thinkingBudget: 0
- *   }
- * }
- *
- * Если конкретная модель/endpoint не поддерживает thinkingConfig,
- * код автоматически повторит запрос без этого поля.
- */
 async function callGeminiNative(params: {
   modelName: string
   messages: ModelMessage[]
   temperature: number
   signal: AbortSignal
   config: LlmConfig
-}) {
+}): Promise<{ text: string, usage: TokenUsage }> {
   const {
     modelName,
     messages,
@@ -266,42 +229,21 @@ async function callGeminiNative(params: {
 
   const bodyVariants: Record<string, any>[] = []
 
-  /**
-   * 1. Самый желаемый вариант:
-   * JSON output + thinkingBudget 0.
-   */
   {
     const body = structuredCloneJson(baseBody)
-
-    if (FORCE_JSON_OUTPUT) {
+    if (FORCE_JSON_OUTPUT)
       body.generationConfig.responseMimeType = 'application/json'
-    }
-
-    body.generationConfig.thinkingConfig = {
-      thinkingBudget: 0,
-    }
-
+    body.generationConfig.thinkingConfig = { thinkingBudget: 0 }
     bodyVariants.push(body)
   }
 
-  /**
-   * 2. Если thinkingConfig не поддерживается:
-   * JSON output без thinkingConfig.
-   */
   {
     const body = structuredCloneJson(baseBody)
-
-    if (FORCE_JSON_OUTPUT) {
+    if (FORCE_JSON_OUTPUT)
       body.generationConfig.responseMimeType = 'application/json'
-    }
-
     bodyVariants.push(body)
   }
 
-  /**
-   * 3. Если responseMimeType тоже не поддерживается:
-   * обычный текстовый ответ.
-   */
   bodyVariants.push(structuredCloneJson(baseBody))
 
   let lastError: unknown
@@ -318,6 +260,9 @@ async function callGeminiNative(params: {
       })
 
       const parts = data?.candidates?.[0]?.content?.parts
+      const promptTokens = data?.usageMetadata?.promptTokenCount || 0
+      const completionTokens = data?.usageMetadata?.candidatesTokenCount || 0
+      const usage = { promptTokens, completionTokens }
 
       if (Array.isArray(parts)) {
         const text = parts
@@ -325,7 +270,7 @@ async function callGeminiNative(params: {
           .join('')
 
         if (text) {
-          return text
+          return { text, usage }
         }
       }
 
@@ -343,27 +288,13 @@ async function callGeminiNative(params: {
   throw lastError
 }
 
-/**
- * Ollama native API.
- *
- * Подходит для:
- * http://localhost:11434
- * http://127.0.0.1:11434
- *
- * Если хочешь использовать Ollama через OpenAI-compatible API,
- * укажи URL так:
- *
- * http://localhost:11434/v1
- *
- * Тогда будет использован callOpenAiCompatible.
- */
 async function callOllamaNative(params: {
   modelName: string
   messages: ModelMessage[]
   temperature: number
   signal: AbortSignal
   config: LlmConfig
-}) {
+}): Promise<{ text: string, usage: TokenUsage }> {
   const {
     modelName,
     messages,
@@ -399,9 +330,12 @@ async function callOllamaNative(params: {
   })
 
   const content = data?.message?.content
+  const promptTokens = data?.prompt_eval_count || 0
+  const completionTokens = data?.eval_count || 0
+  const usage = { promptTokens, completionTokens }
 
   if (typeof content === 'string') {
-    return content
+    return { text: content, usage }
   }
 
   throw new Error(`Пустой ответ от Ollama API: ${JSON.stringify(data)}`)
@@ -514,34 +448,18 @@ function contentToText(content: any): string {
   if (Array.isArray(content)) {
     return content
       .map((part) => {
-        if (part == null) {
+        if (part == null)
           return ''
-        }
-
-        if (typeof part === 'string') {
+        if (typeof part === 'string')
           return part
-        }
-
-        if (part.type === 'text') {
+        if (part.type === 'text')
           return part.text ?? ''
-        }
-
-        if ('text' in part) {
+        if ('text' in part)
           return part.text ?? ''
-        }
-
-        /**
-         * Если у тебя есть мультимодальные сообщения,
-         * сюда можно добавить обработку image/file.
-         */
-        if (part.type === 'image') {
+        if (part.type === 'image')
           return '[image omitted]'
-        }
-
-        if (part.type === 'file') {
+        if (part.type === 'file')
           return '[file omitted]'
-        }
-
         return ''
       })
       .join('')
@@ -559,30 +477,20 @@ function contentToText(content: any): string {
 }
 
 function normalizeOpenAiRole(role: string): OpenAiChatMessage['role'] {
-  if (role === 'system') {
+  if (role === 'system')
     return 'system'
-  }
-
-  if (role === 'assistant') {
+  if (role === 'assistant')
     return 'assistant'
-  }
-
-  if (role === 'tool') {
+  if (role === 'tool')
     return 'tool'
-  }
-
   return 'user'
 }
 
 function normalizeOllamaRole(role: string): 'system' | 'user' | 'assistant' {
-  if (role === 'system') {
+  if (role === 'system')
     return 'system'
-  }
-
-  if (role === 'assistant') {
+  if (role === 'assistant')
     return 'assistant'
-  }
-
   return 'user'
 }
 
@@ -612,17 +520,12 @@ function isGeminiNativeUrl(url: string): boolean {
 function buildOpenAiChatCompletionsUrl(baseUrl: string): string {
   const url = stripTrailingSlash(baseUrl)
 
-  if (url.endsWith('/chat/completions')) {
+  if (url.endsWith('/chat/completions'))
     return url
-  }
-
-  if (url.endsWith('/responses')) {
+  if (url.endsWith('/responses'))
     return `${url.slice(0, -'/responses'.length)}/chat/completions`
-  }
-
-  if (/\/v\d+(?:beta)?$/i.test(url)) {
+  if (/\/v\d+(?:beta)?$/i.test(url))
     return `${url}/chat/completions`
-  }
 
   return `${url}/v1/chat/completions`
 }
@@ -667,13 +570,10 @@ function buildGeminiGenerateContentUrl(
 function buildOllamaChatUrl(baseUrl: string): string {
   let url = stripTrailingSlash(baseUrl)
 
-  if (url.endsWith('/api/chat')) {
+  if (url.endsWith('/api/chat'))
     return url
-  }
-
-  if (url.endsWith('/v1')) {
+  if (url.endsWith('/v1'))
     url = url.slice(0, -'/v1'.length)
-  }
 
   return `${url}/api/chat`
 }

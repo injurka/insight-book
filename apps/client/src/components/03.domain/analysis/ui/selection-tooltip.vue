@@ -59,14 +59,25 @@ const checkTextSelection = useDebounceFn(() => {
 }, 250)
 
 function analyzeFragment() {
-  if (!analysisStore.selectionTooltip)
-    return
+  if (!analysisStore.selectionTooltip) return
   const text = analysisStore.selectionTooltip.text
+  let context = ''
+
+  const selection = window.getSelection()
+  if (selection && selection.anchorNode) {
+    const span = selection.anchorNode.parentElement?.closest('.sentence')
+    
+    if (span) {
+      const prev = span.previousElementSibling?.textContent || ''
+      const next = span.nextElementSibling?.textContent || ''
+      context = `${prev} [${text}] ${next}`.trim()
+    }
+  }
 
   window.getSelection()?.removeAllRanges()
 
   analysisStore.closeSelectionTooltip()
-  analysisStore.handleSentenceAnalysis(text)
+  analysisStore.handleSentenceAnalysis(text, context)
 }
 
 function playTTS() {
@@ -230,31 +241,18 @@ onUnmounted(() => {
 }
 
 @keyframes pulse-op {
-  0% {
-    opacity: 1;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 0.6;
-    transform: scale(0.85);
-  }
-  100% {
-    opacity: 1;
-    transform: scale(1);
-  }
+  0% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.6; transform: scale(0.85); }
+  100% { opacity: 1; transform: scale(1); }
 }
 
 @keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
+  to { transform: rotate(360deg); }
 }
 
 .fade-enter-active,
 .fade-leave-active {
-  transition:
-    opacity 0.2s,
-    transform 0.2s;
+  transition: opacity 0.2s, transform 0.2s;
 }
 .fade-enter-from,
 .fade-leave-to {

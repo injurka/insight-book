@@ -7,91 +7,17 @@ import path from 'node:path'
 import { and, desc, eq, or } from 'drizzle-orm'
 import { parse as parseHtml } from 'node-html-parser'
 import sharp from 'sharp'
-import { z } from 'zod'
 
+import { AnalyzeBatchSchema, AnalyzeSentenceSchema, CreateCustomBookSchema, GenerateTtsSchema, GenerateTtsStandaloneSchema, UpdateBookSchema, UpdateStatsSchema } from '~/types/schemas'
+import { extractLlmConfig, extractUniqueWordsFromHtml, json } from '~/utils/helpers'
 import { BOOKS_PATH, CORS_HEADERS, COVERS_PATH } from '../config'
 import { db } from '../db'
 import * as schema from '../db/schema'
 import { lookupSingleWord, lookupWords } from '../services/dictionary.service'
-import { analyzeBookExcerpt, analyzeMangaInfo, analyzeSentence, extractLlmConfig, generateTts } from '../services/llm.service'
+import { analyzeBatch, analyzeBookExcerpt, analyzeMangaInfo, analyzeSentence, generateTts } from '../services/llm.service'
 import { recognizeMangaPage } from '../services/ocr.service'
 import { AppError } from '../utils/errors'
 import { runWorkerTask } from '../workers/worker-client'
-
-function json(data: unknown, status = 200, extraHeaders: Record<string, string> = {}) {
-  return new Response(JSON.stringify(data), {
-    status,
-    headers: { ...CORS_HEADERS, 'Content-Type': 'application/json', ...extraHeaders },
-  })
-}
-
-export function extractUniqueWordsFromHtml(html: string): string[] {
-  const words = new Set<string>()
-  const regex = /data-word="([^"]+)"/g
-  let match
-
-  // eslint-disable-next-line no-cond-assign
-  while ((match = regex.exec(html)) !== null) {
-    try {
-      const word = decodeURIComponent(match[1])
-      if (/[\p{L}\p{N}]/u.test(word)) {
-        words.add(word)
-        words.add(word.toLowerCase())
-      }
-    }
-    catch { }
-  }
-  return Array.from(words)
-}
-
-const UpdateBookSchema = z.object({
-  title: z.string().optional(),
-  author: z.string().nullable().optional(),
-  coverUrl: z.string().nullable().optional(),
-  language: z.string().optional(),
-  createdAt: z.string().optional(),
-  currentPage: z.number().optional(),
-  series: z.string().nullable().optional(),
-  seriesNumber: z.number().nullable().optional(),
-  status: z.enum(['reading', 'to-read', 'have-read']).optional(),
-  isFavorite: z.boolean().optional(),
-  collection: z.string().nullable().optional(),
-  isPublic: z.boolean().optional(),
-  textDirection: z.string().nullable().optional(), // <-- НОВОЕ ПОЛЕ
-})
-
-const UpdateStatsSchema = z.object({
-  description: z.string().optional(),
-  difficulty: z.string().optional(),
-  tags: z.array(z.string()).optional(),
-})
-
-const AnalyzeSentenceSchema = z.object({
-  sentence: z.string()
-    .min(1, 'Предложение не может быть пустым')
-    .max(600, 'Фраза слишком длинная для детального анализа (макс. 600 символов)'),
-  language: z.string().min(1, 'Язык обязателен'),
-})
-
-const GenerateTtsSchema = z.object({
-  text: z.string()
-    .min(1, 'Текст не передан')
-    .max(600, 'Текст слишком длинный для озвучки'),
-})
-
-const GenerateTtsStandaloneSchema = z.object({
-  text: z.string()
-    .min(1, 'Текст не передан')
-    .max(600, 'Текст слишком длинный'),
-  language: z.string().min(1, 'Язык обязателен'),
-})
-
-const CreateCustomBookSchema = z.object({
-  title: z.string().min(1, 'Название обязательно'),
-  author: z.string().nullable().optional(),
-  language: z.string().default('ja'),
-  type: z.enum(['manga']).default('manga'),
-})
 
 export async function handleGetBooks(req: Request, userId: number): Promise<Response> {
   const allBooks = await db.query.books.findMany({
@@ -125,7 +51,7 @@ export async function handleGetBooks(req: Request, userId: number): Promise<Resp
 }
 
 export async function handleGetBookInfo(req: Request, userId: number): Promise<Response> {
-  const id = Number((req as any).params.id)
+  const id = Number(req.params.id)
   const book = await db.query.books.findFirst({
     where: and(
       eq(schema.books.id, id),
@@ -140,20 +66,25 @@ export async function handleGetBookInfo(req: Request, userId: number): Promise<R
   const { progresses, stats, ...bookData } = book
   const statsResult = stats
     ? {
-      ...stats,
-      tags: stats.tags ? JSON.parse(stats.tags) : [],
-      posDistribution: stats.posDistribution ? JSON.parse(stats.posDistribution) : null,
-      topWords: stats.topWords ? JSON.parse(stats.topWords) : null,
-    }
+        ...stats,
+        tags: stats.tags ? JSON.parse(stats.tags) : [],
+        posDistribution: stats.posDistribution ? JSON.parse(stats.posDistribution) : null,
+        topWords: stats.topWords ? JSON.parse(stats.topWords) : null,
+      }
     : null
 
-  return json({ ...bookData, currentPage: progress?.currentPage ?? null, toc: book.toc ? JSON.parse(book.toc) : [], stats: statsResult }, 200, {
+  return json({
+    ...bookData,
+    currentPage: progress?.currentPage ?? null,
+    toc: book.toc ? JSON.parse(book.toc) : [],
+    stats: statsResult,
+  }, 200, {
     'Cache-Control': 'private, stale-while-revalidate=60',
   })
 }
 
 export async function handleAnalyzeVocabulary(req: Request, userId: number): Promise<Response> {
-  const id = Number((req as any).params.id)
+  const id = Number(req.params.id)
   const book = await db.query.books.findFirst({ where: eq(schema.books.id, id) })
   if (!book || book.userId !== userId)
     throw new AppError(403, 'Нет доступа')
@@ -171,14 +102,18 @@ export async function handleAnalyzeVocabulary(req: Request, userId: number): Pro
     lexicalDiversity: result.lexicalDiversity,
   }).onConflictDoUpdate({
     target: schema.bookStats.bookId,
-    set: { posDistribution: JSON.stringify(result.posDistribution), topWords: JSON.stringify(result.topWords), lexicalDiversity: result.lexicalDiversity },
+    set: {
+      posDistribution: JSON.stringify(result.posDistribution),
+      topWords: JSON.stringify(result.topWords),
+      lexicalDiversity: result.lexicalDiversity,
+    },
   })
 
   return json({ success: true, lexicalStats: result })
 }
 
 export async function handleUpdateBook(req: Request, userId: number): Promise<Response> {
-  const id = Number((req as any).params.id)
+  const id = Number(req.params.id)
   const body = UpdateBookSchema.parse(await req.json())
 
   const book = await db.query.books.findFirst({ where: eq(schema.books.id, id) })
@@ -236,7 +171,7 @@ export async function handleUpdateBook(req: Request, userId: number): Promise<Re
 export async function handleAnalyzeBookStats(req: Request, userId: number): Promise<Response> {
   const config = extractLlmConfig(req)
 
-  const id = Number((req as any).params.id)
+  const id = Number(req.params.id)
   const book = await db.query.books.findFirst({ where: eq(schema.books.id, id) })
   if (!book || book.userId !== userId)
     throw new AppError(403, 'Нет доступа')
@@ -246,7 +181,7 @@ export async function handleAnalyzeBookStats(req: Request, userId: number): Prom
   const uniqueSet = new Set<string>()
 
   if (book.type === 'manga') {
-    aiData = await analyzeMangaInfo(book.title, book.author, book.language, config)
+    aiData = await analyzeMangaInfo(userId, book.title, book.author, book.language, config)
   }
   else {
     const pages = await db.select({ content: schema.bookPages.content }).from(schema.bookPages).where(eq(schema.bookPages.bookId, id)).orderBy(schema.bookPages.pageNum)
@@ -262,7 +197,7 @@ export async function handleAnalyzeBookStats(req: Request, userId: number): Prom
     }
     excerpt = excerpt.substring(0, 3000)
 
-    aiData = await analyzeBookExcerpt(excerpt, config)
+    aiData = await analyzeBookExcerpt(userId, excerpt, config)
 
     for (const p of pages) {
       const plainText = parseHtml(p.content).textContent
@@ -305,7 +240,7 @@ export async function handleAnalyzeBookStats(req: Request, userId: number): Prom
 }
 
 export async function handleUpdateCover(req: Request, userId: number): Promise<Response> {
-  const id = Number((req as any).params.id)
+  const id = Number(req.params.id)
 
   const oldBook = await db.query.books.findFirst({ where: eq(schema.books.id, id), columns: { coverUrl: true, userId: true } })
   if (!oldBook || oldBook.userId !== userId)
@@ -340,7 +275,7 @@ export async function handleUpdateCover(req: Request, userId: number): Promise<R
 }
 
 export async function handleGetCoverImage(req: Request): Promise<Response> {
-  const filename = (req as any).params.filename
+  const filename = req.params.filename
   const filepath = path.join(COVERS_PATH, filename)
   const file = Bun.file(filepath)
 
@@ -356,7 +291,7 @@ export async function handleGetCoverImage(req: Request): Promise<Response> {
 }
 
 export async function handleUpdateStats(req: Request, userId: number): Promise<Response> {
-  const id = Number((req as any).params.id)
+  const id = Number(req.params.id)
   const book = await db.query.books.findFirst({ where: eq(schema.books.id, id) })
   if (!book || book.userId !== userId)
     throw new AppError(403, 'Нет доступа')
@@ -401,7 +336,7 @@ export async function handleUploadBook(req: Request, userId: number): Promise<Re
   }
 
   const book = await db.query.books.findFirst({ where: eq(schema.books.id, bookId) })
-  
+
   return json({ success: true, book })
 }
 
@@ -434,7 +369,7 @@ export async function handleCreateCustomBook(req: Request, userId: number): Prom
 }
 
 export async function handleAppendMangaChapter(req: Request, userId: number): Promise<Response> {
-  const id = Number((req as any).params.id)
+  const id = Number(req.params.id)
   const formData = await req.formData()
 
   const chapterTitle = formData.get('chapterTitle') as string || ''
@@ -457,7 +392,7 @@ export async function handleAppendMangaChapter(req: Request, userId: number): Pr
 }
 
 export async function handleDeleteBook(req: Request, userId: number): Promise<Response> {
-  const id = Number((req as any).params.id)
+  const id = Number(req.params.id)
   const book = await db.query.books.findFirst({ where: eq(schema.books.id, id), columns: { filePath: true, coverUrl: true, userId: true } })
   if (!book)
     throw new AppError(404, 'Книга не найдена')
@@ -496,7 +431,7 @@ export async function handleDeleteBook(req: Request, userId: number): Promise<Re
 }
 
 export async function handleGetToc(req: Request, userId: number): Promise<Response> {
-  const bookId = Number((req as any).params.id)
+  const bookId = Number(req.params.id)
   const book = await db.query.books.findFirst({ where: eq(schema.books.id, bookId), columns: { toc: true, userId: true, isPublic: true } })
 
   if (!book || (book.userId !== userId && !book.isPublic))
@@ -511,7 +446,7 @@ export async function handleGetToc(req: Request, userId: number): Promise<Respon
 // Выдача СТАТИЧЕСКОЙ страницы (без персонализированного словаря)
 // ------------------------------------------------------------------
 export async function handleGetPage(req: Request, userId: number): Promise<Response> {
-  const { id: bookIdStr, pageNum: pageNumStr } = (req as any).params
+  const { id: bookIdStr, pageNum: pageNumStr } = req.params
   const bookId = Number(bookIdStr)
   const pageNum = Number(pageNumStr)
   const url = new URL(req.url)
@@ -568,7 +503,7 @@ export async function handleGetPage(req: Request, userId: number): Promise<Respo
           base64 = fileBuffer.toString('base64')
         }
 
-        ocrBlocks = await recognizeMangaPage(base64, book.language, book.textDirection || undefined, config)
+        ocrBlocks = await recognizeMangaPage(userId, base64, book.language, book.textDirection || undefined, config)
 
         await db.update(schema.mangaPages).set({ ocrData: JSON.stringify(ocrBlocks) }).where(eq(schema.mangaPages.id, pageRow.id))
       }
@@ -596,6 +531,7 @@ export async function handleGetPage(req: Request, userId: number): Promise<Respo
     }, 200, { 'Cache-Control': 'public, max-age=86400' })
   }
 
+  // Остальная часть handleGetPage для ePub/Text...
   const cached = await db.query.nlpCache.findFirst({
     where: and(eq(schema.nlpCache.bookId, bookId), eq(schema.nlpCache.pageNum, pageNum)),
   })
@@ -603,7 +539,7 @@ export async function handleGetPage(req: Request, userId: number): Promise<Respo
   if (cached) {
     try {
       const parsed = JSON.parse(cached.data) as PagePayload
-      delete parsed.pageDictionary // Убираем, если это остаток от старого кэша
+      delete parsed.pageDictionary
       return json(parsed, 200, { 'Cache-Control': 'public, max-age=86400' })
     }
     catch { }
@@ -625,7 +561,7 @@ export async function handleGetPage(req: Request, userId: number): Promise<Respo
 }
 
 export async function handleGetPageDictionary(req: Request, userId: number): Promise<Response> {
-  const { id: bookIdStr, pageNum: pageNumStr } = (req as any).params
+  const { id: bookIdStr, pageNum: pageNumStr } = req.params
   const bookId = Number(bookIdStr)
   const pageNum = Number(pageNumStr)
   const targetLang = req.headers.get('Accept-Language') || 'ru'
@@ -676,7 +612,8 @@ export async function handleGetPageDictionary(req: Request, userId: number): Pro
 }
 
 export async function handleLookupWord(req: Request, userId: number): Promise<Response> {
-  const { id: bookId, word } = (req as any).params
+  const bookId = Number(req.params.id)
+  const word = req.params.word
   const targetLang = req.headers.get('Accept-Language') || 'ru'
   const book = await db.query.books.findFirst({ where: eq(schema.books.id, bookId), columns: { language: true, userId: true, isPublic: true } })
   if (!book || (book.userId !== userId && !book.isPublic))
@@ -693,13 +630,13 @@ export async function handleAnalyzeSentence(req: Request, userId: number): Promi
   const config = extractLlmConfig(req)
   const targetLang = req.headers.get('Accept-Language') || 'ru'
 
-  const bookId = Number((req as any).params.id)
+  const bookId = Number(req.params.id)
   const book = await db.query.books.findFirst({ where: eq(schema.books.id, bookId), columns: { id: true, userId: true, isPublic: true } })
   if (!book || (book.userId !== userId && !book.isPublic))
     throw new AppError(403, 'Нет доступа')
 
   const { sentence, language } = AnalyzeSentenceSchema.parse(await req.json())
-  const analysis = await analyzeSentence(bookId, sentence, language, targetLang, config)
+  const analysis = await analyzeSentence(userId, bookId, sentence, language, targetLang, config)
 
   return json(analysis)
 }
@@ -707,26 +644,27 @@ export async function handleAnalyzeSentence(req: Request, userId: number): Promi
 export async function handleGenerateTts(req: Request, userId: number): Promise<Response> {
   const config = extractLlmConfig(req)
 
-  const bookId = Number((req as any).params.id)
+  const bookId = Number(req.params.id)
   const book = await db.query.books.findFirst({ where: eq(schema.books.id, bookId), columns: { language: true, userId: true, isPublic: true } })
   if (!book || (book.userId !== userId && !book.isPublic))
     throw new AppError(403, 'Нет доступа')
 
   const { text } = GenerateTtsSchema.parse(await req.json())
-  const audioBase64 = await generateTts(text, book.language, config)
+  const audioBase64 = await generateTts(userId, text, book.language, config)
   return json({ audioBase64 })
 }
 
-export async function handleStandaloneTts(req: Request): Promise<Response> {
+export async function handleStandaloneTts(req: Request, userId: number): Promise<Response> {
   const config = extractLlmConfig(req)
 
   const { text, language } = GenerateTtsStandaloneSchema.parse(await req.json())
-  const audioBase64 = await generateTts(text, language, config)
+  const audioBase64 = await generateTts(userId, text, language, config)
   return json({ audioBase64 })
 }
 
 export async function handleGetPageImage(req: Request): Promise<Response> {
-  const { id: bookId, pageNum } = (req as any).params
+  const bookId = Number(req.params.id)
+  const pageNum = Number(req.params.pageNum)
   const pageRow = db.select({ imageUrl: schema.mangaPages.imageUrl })
     .from(schema.mangaPages)
     .where(and(eq(schema.mangaPages.bookId, bookId), eq(schema.mangaPages.pageNum, pageNum)))
@@ -745,4 +683,19 @@ export async function handleGetPageImage(req: Request): Promise<Response> {
       'Cache-Control': 'public, max-age=31536000, immutable',
     },
   })
+}
+
+export async function handleAnalyzeBatch(req: Request, userId: number): Promise<Response> {
+  const config = extractLlmConfig(req)
+  const targetLang = req.headers.get('Accept-Language') || 'ru'
+  const bookId = Number(req.params.id)
+
+  const book = await db.query.books.findFirst({ where: eq(schema.books.id, bookId) })
+  if (!book || (book.userId !== userId && !book.isPublic))
+    throw new AppError(403, 'Нет доступа')
+
+  const { items, language } = AnalyzeBatchSchema.parse(await req.json())
+  const results = await analyzeBatch(userId, bookId, items, language, targetLang, config)
+
+  return json({ results })
 }

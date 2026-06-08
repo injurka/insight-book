@@ -3,6 +3,7 @@ import { autoUpdate, flip, offset, shift, useFloating } from '@floating-ui/vue'
 import { Icon } from '@iconify/vue'
 import { computed, onUnmounted, ref, toRef } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useReaderStore } from '~/components/05.modules/reader/store/reader.store'
 import { useTts } from '~/shared/composables/use-tts'
 import { useAnalysisStore } from '~/shared/store/analysis.store'
 
@@ -36,8 +37,21 @@ const { speak, stop, isPlaying, isLoading } = useTts()
 
 function analyzeSentence() {
   if (props.box?.text) {
+    const readerStore = useReaderStore()
+    const text = props.box.text.replace(/\n+/g, '')
+    let context = ''
+
+    // Ищем соседей в OCR-блоках
+    const blocks = readerStore.currentPage?.ocrBlocks || []
+    const idx = blocks.findIndex(b => b.id === props.box.id)
+    if (idx !== -1) {
+      const prev = idx > 0 ? blocks[idx - 1].text.replace(/\n+/g, '') : ''
+      const next = idx < blocks.length - 1 ? blocks[idx + 1].text.replace(/\n+/g, '') : ''
+      context = `${prev} [${text}] ${next}`.trim()
+    }
+
     analysisStore.closePopover()
-    analysisStore.handleSentenceAnalysis(props.box.text.replace(/\n+/g, ''))
+    analysisStore.handleSentenceAnalysis(text, context)
   }
 }
 

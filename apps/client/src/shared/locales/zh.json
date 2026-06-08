@@ -80,6 +80,7 @@
     "apiUrl": "API URL",
     "modelName": "模型名称",
     "apiKey": "API Key",
+    "autoAnalyzePage": "在后台自动分析页面",
     "storageTitle": "本地存储",
     "browserStorage": "浏览器存储",
     "protected": "受保护",
@@ -89,12 +90,27 @@
     "quotaDesc": "显示浏览器分配的总配额。应用本身约占用 {size}。",
     "dbUsage": "数据库已用：",
     "dictWords": "字典中的单词：",
+    "tokenUsageTitle": "Token 使用情况",
+    "inputTokens": "输入 (Prompt)",
+    "outputTokens": "输出 (Completion)",
+    "tokensNoData": "暂无 token 数据。",
     "savedBooksData": "已保存的图书数据",
     "cacheAiAnalyses": "AI 分析：",
     "cachePages": "已缓存页面：",
     "offlineAvailable": "离线可用 {percent}% 的内容",
     "pageNumbers": "页码",
-    "noBooks": "书库中没有书。"
+    "noBooks": "书库中没有书。",
+    "actions": {
+      "analyze_sentence": "句子翻译（手动）",
+      "analyze_batch": "批量分析（离线同步）",
+      "analyze_book": "书籍分析（流派、标签）",
+      "analyze_manga": "漫画分析（流派、标签）",
+      "dict_examples": "生成示例（词典）",
+      "dict_autofill": "卡片自动填充（词典）",
+      "tts_generation": "语音合成 (TTS)",
+      "ocr_layout": "OCR (区块识别)",
+      "ocr_refine": "OCR (文本提取)"
+    }
   },
   "library": {
     "textDirection": "Text Direction",

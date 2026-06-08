@@ -1,8 +1,10 @@
-import type { Book, BookStats } from '~/shared/types/models'
+import type { Book, BookStats, PageDictEntry, PagePayload, TocItem } from '~/shared/types/models'
 import { defineStore } from 'pinia'
+import { v4 as uuidv4 } from 'uuid'
 import { ref } from 'vue'
 import { api } from '~/shared/services/api.service'
 import { offlineService } from '~/shared/services/offline.service'
+import { useGlobalSettingsStore } from '~/shared/store/settings.store'
 
 export const useLibraryStore = defineStore('library', () => {
   const books = ref<Book[]>([])
@@ -43,6 +45,9 @@ export const useLibraryStore = defineStore('library', () => {
     syncState.value = 'running'
     syncAbortController = new AbortController()
     const signal = syncAbortController.signal
+
+    const settingsStore = useGlobalSettingsStore()
+    const batchSize = settingsStore.useCustomLlm ? 1 : 5
 
     syncProgress.value = {
       pagesTotal: book.totalPages,
@@ -103,6 +108,7 @@ export const useLibraryStore = defineStore('library', () => {
               if (options.analyzeSentences || options.ttsSentences) {
                 const sentRegex = /data-raw-sent="([^"]+)"/g
                 let match
+                // eslint-disable-next-line no-cond-assign
                 while ((match = sentRegex.exec(html)) !== null) {
                   pageSentences.add(decodeURIComponent(match[1]))
                 }
@@ -110,6 +116,7 @@ export const useLibraryStore = defineStore('library', () => {
               if (options.analyzeWords || options.ttsWords) {
                 const wordRegex = /data-word="([^"]+)"[^>]*?data-pos="([^"]+)"/g
                 let match
+                // eslint-disable-next-line no-cond-assign
                 while ((match = wordRegex.exec(html)) !== null) {
                   if (match[2] !== 'x') {
                     pageWords.add(decodeURIComponent(match[1]))
@@ -132,64 +139,85 @@ export const useLibraryStore = defineStore('library', () => {
           const sentences = Array.from(pageSentences).filter(s => /[\p{L}\p{N}]/u.test(s))
           const words = Array.from(pageWords).filter(w => /[\p{L}\p{N}]/u.test(w))
 
-          // 2.3 Анализ предложений страницы
+          // 2.3 Анализ предложений страницы (Батчинг)
           if (options.analyzeSentences) {
             syncProgress.value.sentencesTotal += sentences.length
 
-            const concurrency = 2
-            for (let j = 0; j < sentences.length; j += concurrency) {
+            for (let j = 0; j < sentences.length; j += batchSize) {
               if (signal.aborted)
                 throw new Error('Aborted')
-              const batch = sentences.slice(j, j + concurrency)
+              const batch = sentences.slice(j, j + batchSize)
 
-              await Promise.all(batch.map(async (sentence) => {
-                if (signal.aborted)
-                  return
+              const itemsToAnalyze: { id: string, sentence: string }[] = []
+
+              for (const sentence of batch) {
                 const cached = await offlineService.getAnalysis(bookId, sentence)
                 if (!cached) {
-                  try {
-                    const res = await api.books.analyze(bookId, sentence, book.language, signal)
-                    await offlineService.saveAnalysis(bookId, sentence, res)
-                  }
-                  catch (e) {
-                    const err = e as Error
-                    if (err.name !== 'AbortError')
-                      console.error('Analyze error:', err)
+                  itemsToAnalyze.push({ id: uuidv4(), sentence })
+                }
+                else {
+                  syncProgress.value.sentencesDone++
+                }
+              }
+
+              if (itemsToAnalyze.length > 0) {
+                try {
+                  const res = await api.books.analyzeBatch(bookId, itemsToAnalyze, book.language, signal)
+                  for (const result of res.results) {
+                    const item = itemsToAnalyze.find(i => i.id === result.id)
+                    if (item) {
+                      await offlineService.saveAnalysis(bookId, item.sentence, result.analysis)
+                      syncProgress.value.sentencesDone++
+                    }
                   }
                 }
-                syncProgress.value.sentencesDone++
-              }))
+                catch (e: any) {
+                  if (e.name !== 'AbortError')
+                    console.error('Analyze error:', e)
+                }
+              }
               syncProgress.value.currentTask = `Анализ предложений: стр. ${i}, ${syncProgress.value.sentencesDone} / ${syncProgress.value.sentencesTotal}`
             }
           }
 
-          // 2.4 Анализ слов страницы
+          // 2.4 Анализ слов страницы (Батчинг)
           if (options.analyzeWords) {
             syncProgress.value.wordsTotal += words.length
 
-            const concurrency = 2
-            for (let j = 0; j < words.length; j += concurrency) {
+            for (let j = 0; j < words.length; j += batchSize) {
               if (signal.aborted)
                 throw new Error('Aborted')
-              const batch = words.slice(j, j + concurrency)
+              const batch = words.slice(j, j + batchSize)
 
-              await Promise.all(batch.map(async (word) => {
-                if (signal.aborted)
-                  return
+              const itemsToAnalyze: { id: string, sentence: string }[] = []
+
+              for (const word of batch) {
                 const cached = await offlineService.getAnalysis(bookId, word)
                 if (!cached) {
-                  try {
-                    const res = await api.books.analyze(bookId, word, book.language, signal)
-                    await offlineService.saveAnalysis(bookId, word, res)
-                  }
-                  catch (e) {
-                    const err = e as Error
-                    if (err.name !== 'AbortError')
-                      console.error('Analyze word error:', err)
+                  itemsToAnalyze.push({ id: uuidv4(), sentence: word })
+                }
+                else {
+                  syncProgress.value.wordsDone++
+                }
+              }
+
+              if (itemsToAnalyze.length > 0) {
+                try {
+                  const res = await api.books.analyzeBatch(bookId, itemsToAnalyze, book.language, signal)
+                  for (const result of res.results) {
+                    const item = itemsToAnalyze.find(i => i.id === result.id)
+                    if (item) {
+                      await offlineService.saveAnalysis(bookId, item.sentence, result.analysis)
+                      syncProgress.value.wordsDone++
+                    }
                   }
                 }
-                syncProgress.value.wordsDone++
-              }))
+                catch (e) {
+                  const err = e as Error
+                  if (err.name !== 'AbortError')
+                    console.error('Analyze word error:', err)
+                }
+              }
               syncProgress.value.currentTask = `Анализ слов: стр. ${i}, ${syncProgress.value.wordsDone} / ${syncProgress.value.wordsTotal}`
             }
           }
@@ -255,7 +283,6 @@ export const useLibraryStore = defineStore('library', () => {
     }
   }
 
-  // ... (Остальной код library.store.ts без изменений)
   async function fetchBooks() {
     isLoading.value = true
     try {

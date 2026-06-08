@@ -32,6 +32,18 @@ export const opdsCatalogs = sqliteTable('opds_catalogs', {
   createdAt: text('createdAt').notNull().default(sql`(datetime('now'))`),
 })
 
+export const tokenUsage = sqliteTable('token_usage', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  userId: integer('userId').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  date: text('date').notNull(),
+  action: text('action').notNull(),
+  model: text('model').notNull(),
+  inputTokens: integer('inputTokens').notNull().default(0),
+  outputTokens: integer('outputTokens').notNull().default(0),
+}, t => ({
+  unq: unique().on(t.userId, t.date, t.action, t.model),
+}))
+
 export const books = sqliteTable('books', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   userId: integer('userId').notNull().references(() => users.id, { onDelete: 'cascade' }).default(1),
@@ -51,7 +63,7 @@ export const books = sqliteTable('books', {
   collection: text('collection'),
   isPublic: integer('isPublic', { mode: 'boolean' }).notNull().default(sql`0`),
 
-  textDirection: text('textDirection'), 
+  textDirection: text('textDirection'),
 
   createdAt: text('createdAt').notNull().default(sql`(datetime('now'))`),
   updatedAt: text('updatedAt').notNull().default(sql`(datetime('now'))`),
@@ -194,6 +206,11 @@ export const usersRelations = relations(users, ({ many }) => ({
   activity: many(dailyActivity),
   progresses: many(readingProgress),
   opdsCatalogs: many(opdsCatalogs),
+  tokenUsages: many(tokenUsage),
+}))
+
+export const tokenUsageRelations = relations(tokenUsage, ({ one }) => ({
+  user: one(users, { fields: [tokenUsage.userId], references: [users.id] }),
 }))
 
 export const dictDecksRelations = relations(dictDecks, ({ one, many }) => ({

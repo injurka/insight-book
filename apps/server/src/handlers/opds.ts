@@ -1,28 +1,17 @@
 import { and, eq } from 'drizzle-orm'
-import { z } from 'zod'
-import { CORS_HEADERS } from '../config'
+import { CatalogSchema } from '~/types/schemas'
+import { json } from '~/utils/helpers'
 import { db } from '../db'
 import * as schema from '../db/schema'
 import { fetchAndParseOpds } from '../services/opds.service'
 import { AppError } from '../utils/errors'
 import { runWorkerTask } from '../workers/worker-client'
 
-function json(data: unknown, status = 200, extraHeaders: Record<string, string> = {}) {
-  return new Response(JSON.stringify(data), {
-    status,
-    headers: { ...CORS_HEADERS, 'Content-Type': 'application/json', ...extraHeaders },
-  })
-}
-
-const CatalogSchema = z.object({
-  title: z.string().min(1),
-  url: z.string().url(),
-})
-
 export async function handleGetCatalogs(req: Request, userId: number) {
   const catalogs = await db.query.opdsCatalogs.findMany({
     where: eq(schema.opdsCatalogs.userId, userId),
   })
+
   return json(catalogs)
 }
 
@@ -37,7 +26,7 @@ export async function handleAddCatalog(req: Request, userId: number) {
 }
 
 export async function handleDeleteCatalog(req: Request, userId: number) {
-  const id = Number((req as any).params.id)
+  const id = Number(req.params.id)
   await db.delete(schema.opdsCatalogs).where(and(eq(schema.opdsCatalogs.id, id), eq(schema.opdsCatalogs.userId, userId)))
   return json({ success: true })
 }

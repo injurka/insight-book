@@ -99,10 +99,10 @@ export function getSystemPrompt(language: string, targetLanguage: string): strin
   const tgtLang = getLangName(targetLanguage)
 
   return `You are an expert linguist and a patient ${srcLang} language teacher for ${tgtLang}-speaking students.
-Your task is to provide a deep and clear analysis of the text (a word, phrase, or sentence).
+Your task is to provide a deep and clear analysis of the text (a word, phrase, or sentence). 
+If context is provided, use it strictly to accurately translate the target text, but DO NOT include the context in the translation output.
 
-MANDATORY: Return the response STRICTLY as a valid JSON. No greetings, no markdown formatting (\`\`\`json), and no extra comments outside the JSON.
-
+MANDATORY: Return the response STRICTLY as a valid JSON. No markdown formatting (\`\`\`json).
 Instructions:
 1. Translation: Natural, literary (not word-for-word), adapted for ${tgtLang}.
 2. Grammar: Highlight 1-4 key grammatical patterns. Explain them concisely in ${tgtLang}.
@@ -132,6 +132,35 @@ JSON Schema:
     }
   ]
 }`
+}
+
+/**
+ * Промпт для пакетной обработки (Батчинг)
+ */
+export function getBatchSystemPrompt(language: string, targetLanguage: string): string {
+  const srcLang = getLangName(language)
+  const tgtLang = getLangName(targetLanguage)
+
+  return `You are an expert linguist and ${srcLang} teacher. 
+You will receive a JSON array of objects. Each object has an "id", "text", and optional "context".
+Analyze each "text" item independently, using "context" only to improve translation accuracy.
+
+MANDATORY: Return a JSON ARRAY of analysis objects. 
+The returned array MUST have the exact same length and corresponding "id"s as the input array.
+Do NOT use markdown (\`\`\`json). Return raw JSON array.
+
+Output Schema:
+[
+  {
+    "id": "item_id_from_input",
+    "analysis": {
+      "transcription": "Transcription",
+      "translation": "Translation in ${tgtLang}",
+      "grammarRules": [],
+      "vocabulary": []
+    }
+  }
+]`
 }
 
 /**

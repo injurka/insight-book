@@ -235,3 +235,14 @@ export interface OpdsFeed {
   links: OpdsLink[]
   entries: OpdsEntry[]
 }
+
+export interface BatchAnalysisRequest {
+  id: string
+  sentence: string
+  context?: string
+}
+
+export interface BatchAnalysisResponse {
+  id: string
+  analysis: LlmAnalysis
+}

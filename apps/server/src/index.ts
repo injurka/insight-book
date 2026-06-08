@@ -1,8 +1,9 @@
 /* eslint-disable no-console */
 import { CORS_HEADERS, PORT } from './config'
-import { handleGetHeatmapData } from './handlers/activity'
+import { handleGetHeatmapData, handleGetTokenUsage } from './handlers/activity'
 import { handleGetMe, handleLogin } from './handlers/auth'
 import {
+  handleAnalyzeBatch,
   handleAnalyzeBookStats,
   handleAnalyzeSentence,
   handleAnalyzeVocabulary,
@@ -51,14 +52,11 @@ import {
 import { initScheduler } from './services/scheduler.service'
 import { authWrapper } from './utils/auth'
 import { withCors } from './utils/cors'
-
 import { apiWrapper } from './utils/errors'
+import { corsOk } from './utils/helpers'
 import { logRoutes } from './utils/print-routes'
-import './db'
 
-function corsOk() {
-  return new Response(null, { status: 204, headers: CORS_HEADERS })
-}
+import './db'
 
 const apiRoutes = {
   '/health': { GET: apiWrapper(() => new Response(JSON.stringify({ status: 'ok' }), { status: 200, headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' } })) },
@@ -80,6 +78,7 @@ const apiRoutes = {
   '/api/books/:id/stats': { OPTIONS: corsOk, PATCH: apiWrapper(authWrapper(handleUpdateStats)) },
   '/api/books/:id/analyze-book': { OPTIONS: corsOk, POST: apiWrapper(authWrapper(handleAnalyzeBookStats)) },
   '/api/books/:id/analyze-vocabulary': { OPTIONS: corsOk, POST: apiWrapper(authWrapper(handleAnalyzeVocabulary)) },
+  '/api/books/:id/analyze-batch': { OPTIONS: corsOk, POST: apiWrapper(authWrapper(handleAnalyzeBatch)) },
   '/api/books/:id/toc': { OPTIONS: corsOk, GET: apiWrapper(authWrapper(handleGetToc)) },
   '/api/books/:id/page/:pageNum': { OPTIONS: corsOk, GET: apiWrapper(authWrapper(handleGetPage)) },
   '/api/books/:id/page/:pageNum/dict': { OPTIONS: corsOk, GET: apiWrapper(authWrapper(handleGetPageDictionary)) },
@@ -106,6 +105,7 @@ const apiRoutes = {
 
   // --- Activity API ---
   '/api/activity/heatmap': { OPTIONS: corsOk, GET: apiWrapper(authWrapper(handleGetHeatmapData)) },
+  '/api/activity/tokens': { OPTIONS: corsOk, GET: apiWrapper(authWrapper(handleGetTokenUsage)) },
 
   // Words
   '/api/dictionary/:word': { OPTIONS: corsOk, GET: apiWrapper(authWrapper(handleGetWordFromUserDict)), DELETE: apiWrapper(authWrapper(handleRemoveFromUserDict)) },

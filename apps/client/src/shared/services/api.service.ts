@@ -121,11 +121,20 @@ export const api = {
     lookupWord: (bookId: number, word: string, signal?: AbortSignal) =>
       request<{ transcription: string, translation: string, isUserDict?: boolean }>(`/api/books/${bookId}/word/${encodeURIComponent(word)}`, { signal }),
 
-    analyze: (bookId: number, sentence: string, language: string, signal?: AbortSignal) =>
+    analyzeBatch: (bookId: number, items: { id: string, sentence: string, context?: string }[], language: string, signal?: AbortSignal) =>
+      request<{ results: { id: string, analysis: LlmAnalysis }[] }>(`/api/books/${bookId}/analyze-batch`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ items, language }),
+        signal,
+        withLlm: true,
+      }),
+
+    analyze: (bookId: number, sentence: string, language: string, context?: string, signal?: AbortSignal) =>
       request<LlmAnalysis>(`/api/books/${bookId}/analyze`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sentence, language }),
+        body: JSON.stringify({ sentence, language, context }),
         signal,
         withLlm: true,
       }),
@@ -220,6 +229,7 @@ export const api = {
 
   activity: {
     getHeatmap: () => request<{ date: string, count: number }[]>('/api/activity/heatmap'),
+    getTokens: () => request<{ stats: { action: string, model: string, inputTokens: number, outputTokens: number }[], daily: { date: string, inputTokens: number, outputTokens: number }[] }>('/api/activity/tokens'),
   },
 
   opds: {

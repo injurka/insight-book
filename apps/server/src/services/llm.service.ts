@@ -1,66 +1,37 @@
-import type { GeneratedWordExamples, LlmAnalysis, LlmConfig, ModelMessage, WordAutoFillResponse } from '../types'
+import type { BatchAnalysisRequest, BatchAnalysisResponse, GeneratedWordExamples, LlmAnalysis, LlmConfig, ModelMessage, WordAutoFillResponse } from '../types'
 import { eq } from 'drizzle-orm'
-import { z } from 'zod'
+import { LlmAnalysisSchema } from '~/types/schemas'
+import { getVoiceForLanguage, hashSentence, hashTtsText, parseLlmJson } from '~/utils/helpers'
 import { callLlmApi } from '~/utils/llm-api'
 import {
   LLM_API_KEY,
   LLM_API_URL,
-  LLM_FALLBACK_MODEL,
   LLM_MODEL,
   TTS_API_KEY,
   TTS_MODEL,
 } from '../config'
 import { db } from '../db'
 import * as schema from '../db/schema'
-import { BOOK_ANALYSIS_PROMPT, getMangaAnalysisPrompt, getSystemPrompt, getWordAutoFillPrompt, getWordExamplesPrompt } from '../prompts'
+import {
+  BOOK_ANALYSIS_PROMPT,
+  getBatchSystemPrompt,
+  getMangaAnalysisPrompt,
+  getSystemPrompt,
+  getWordAutoFillPrompt,
+  getWordExamplesPrompt,
+} from '../prompts'
 import { AppError } from '../utils/errors'
+import { trackTokenUsage } from './token.service'
 
-export function extractLlmConfig(req: Request): LlmConfig {
-  const customUrl = req.headers.get('x-custom-llm-url')
-  const customModel = req.headers.get('x-custom-llm-model')
-
-  if (customUrl && customModel) {
-    return {
-      url: customUrl,
-      key: req.headers.get('x-custom-llm-key') || '',
-      model: customModel,
-    }
-  }
-
-  return {
-    url: LLM_API_URL,
-    key: LLM_API_KEY,
-    model: LLM_MODEL,
-    fallbackModel: LLM_FALLBACK_MODEL,
-  }
-}
-
-const GrammarRuleSchema = z.object({
-  pattern: z.string().catch(''),
-  explanation: z.string().catch(''),
-  example: z.string().catch(''),
-})
-const VocabItemSchema = z.object({
-  word: z.string().catch(''),
-  transcription: z.string().catch(''),
-  meaning: z.string().catch(''),
-  usageInContext: z.string().catch(''),
-})
-const LlmAnalysisSchema = z.object({
-  transcription: z.string().catch(''),
-  translation: z.string().catch(''),
-  grammarRules: z.array(GrammarRuleSchema).default([]),
-  vocabulary: z.array(VocabItemSchema).default([]),
-})
-
-function hashSentence(sentence: string, language: string, targetLang: string): string {
-  const hasher = new Bun.CryptoHasher('sha256')
-  hasher.update(`${(language || 'en').toLowerCase()}::${(targetLang || 'ru').toLowerCase()}::${sentence.trim().toLowerCase()}`)
-
-  return hasher.digest('hex')
-}
-
-export async function analyzeSentence(bookId: number, sentence: string, language: string, targetLang: string, config: LlmConfig): Promise<LlmAnalysis> {
+export async function analyzeSentence(
+  userId: number,
+  bookId: number,
+  sentence: string,
+  language: string,
+  targetLang: string,
+  config: LlmConfig,
+  context?: string,
+): Promise<LlmAnalysis> {
   const hash = hashSentence(sentence, language, targetLang)
 
   const cached = await db.query.llmCache.findFirst({
@@ -81,7 +52,7 @@ export async function analyzeSentence(bookId: number, sentence: string, language
 
   const messages: ModelMessage[] = [
     { role: 'system', content: getSystemPrompt(language, targetLang) },
-    { role: 'user', content: `Текст: ${sentence}` },
+    { role: 'user', content: `Текст: ${sentence}${context ? `\nКонтекст: ${context}` : ''}` },
   ]
 
   const modelsToTry = [config.model, config.fallbackModel].filter(Boolean) as string[]
@@ -89,9 +60,10 @@ export async function analyzeSentence(bookId: number, sentence: string, language
 
   for (const model of modelsToTry) {
     try {
-      const raw = await callLlmApi(model, messages, 0.2, AbortSignal.timeout(60000), config)
-      const cleanJson = raw.replace(/^```json\n?/, '').replace(/\n?```$/, '').trim()
-      const parsed = JSON.parse(cleanJson)
+      const { text: raw, usage } = await callLlmApi(model, messages, 0.2, AbortSignal.timeout(60000), config)
+      trackTokenUsage(userId, 'analyze_sentence', model, usage.promptTokens, usage.completionTokens)
+
+      const parsed = parseLlmJson(raw)
       const analysis = LlmAnalysisSchema.parse(parsed) as LlmAnalysis
 
       await db.insert(schema.llmCache).values({
@@ -117,7 +89,7 @@ export async function analyzeSentence(bookId: number, sentence: string, language
   throw new AppError(500, `Не удалось получить валидный ответ от ИИ: ${lastError?.message || 'Unknown error'}`)
 }
 
-export async function generateWordExamples(word: string, language: string, targetLang: string, config: LlmConfig): Promise<GeneratedWordExamples> {
+export async function generateWordExamples(userId: number, word: string, language: string, targetLang: string, config: LlmConfig): Promise<GeneratedWordExamples> {
   if (!config.url)
     throw new AppError(500, 'LLM API не настроен')
 
@@ -131,9 +103,10 @@ export async function generateWordExamples(word: string, language: string, targe
 
   for (const model of modelsToTry) {
     try {
-      const raw = await callLlmApi(model, messages, 0.4, AbortSignal.timeout(60000), config)
-      const cleanJson = raw.replace(/^```json\n?/, '').replace(/\n?```$/, '').trim()
-      return JSON.parse(cleanJson) as GeneratedWordExamples
+      const { text: raw, usage } = await callLlmApi(model, messages, 0.4, AbortSignal.timeout(60000), config)
+      trackTokenUsage(userId, 'dict_examples', model, usage.promptTokens, usage.completionTokens)
+
+      return parseLlmJson<GeneratedWordExamples>(raw)
     }
     catch (e) {
       lastError = e as Error
@@ -144,7 +117,7 @@ export async function generateWordExamples(word: string, language: string, targe
   throw new AppError(500, `Не удалось получить валидный ответ от ИИ: ${lastError?.message || 'Unknown error'}`)
 }
 
-export async function generateWordAutoFill(word: string, language: string, targetLang: string, config: LlmConfig): Promise<WordAutoFillResponse> {
+export async function generateWordAutoFill(userId: number, word: string, language: string, targetLang: string, config: LlmConfig): Promise<WordAutoFillResponse> {
   if (!config.url)
     throw new AppError(500, 'LLM API не настроен')
 
@@ -158,9 +131,10 @@ export async function generateWordAutoFill(word: string, language: string, targe
 
   for (const model of modelsToTry) {
     try {
-      const raw = await callLlmApi(model, messages, 0.4, AbortSignal.timeout(60000), config)
-      const cleanJson = raw.replace(/^```json\n?/, '').replace(/\n?```$/, '').trim()
-      return JSON.parse(cleanJson) as WordAutoFillResponse
+      const { text: raw, usage } = await callLlmApi(model, messages, 0.4, AbortSignal.timeout(60000), config)
+      trackTokenUsage(userId, 'dict_autofill', model, usage.promptTokens, usage.completionTokens)
+
+      return parseLlmJson<WordAutoFillResponse>(raw)
     }
     catch (e) {
       lastError = e as Error
@@ -171,7 +145,7 @@ export async function generateWordAutoFill(word: string, language: string, targe
   throw new AppError(500, `Не удалось получить валидный ответ от ИИ: ${lastError?.message || 'Unknown error'}`)
 }
 
-export async function analyzeBookExcerpt(excerpt: string, config: LlmConfig): Promise<{ description: any, difficulty: string, tags: string[] }> {
+export async function analyzeBookExcerpt(userId: number, excerpt: string, config: LlmConfig): Promise<{ description: any, difficulty: string, tags: string[] }> {
   if (!config.url)
     throw new AppError(500, 'LLM API не настроен')
 
@@ -185,9 +159,10 @@ export async function analyzeBookExcerpt(excerpt: string, config: LlmConfig): Pr
 
   for (const model of modelsToTry) {
     try {
-      const raw = await callLlmApi(model, messages, 0.3, AbortSignal.timeout(90000), config)
-      const cleanJson = raw.replace(/^```json\n?/, '').replace(/\n?```$/, '').trim()
-      return JSON.parse(cleanJson)
+      const { text: raw, usage } = await callLlmApi(model, messages, 0.3, AbortSignal.timeout(90000), config)
+      trackTokenUsage(userId, 'analyze_book', model, usage.promptTokens, usage.completionTokens)
+
+      return parseLlmJson(raw)
     }
     catch (e) {
       lastError = e as Error
@@ -207,7 +182,7 @@ export async function analyzeBookExcerpt(excerpt: string, config: LlmConfig): Pr
   throw new AppError(500, `Ошибка LLM: ${lastError?.message || 'Неизвестная ошибка'}`)
 }
 
-export async function analyzeMangaInfo(title: string, author: string | null, language: string, config: LlmConfig): Promise<{ description: string, difficulty: string, tags: string[] }> {
+export async function analyzeMangaInfo(userId: number, title: string, author: string | null, language: string, config: LlmConfig): Promise<{ description: string, difficulty: string, tags: string[] }> {
   if (!config.url)
     throw new AppError(500, 'LLM API не настроен')
 
@@ -224,9 +199,10 @@ export async function analyzeMangaInfo(title: string, author: string | null, lan
 
   for (const model of modelsToTry) {
     try {
-      const raw = await callLlmApi(model, messages, 0.3, AbortSignal.timeout(90000), config)
-      const cleanJson = raw.replace(/^```json\n?/, '').replace(/\n?```$/, '').trim()
-      return JSON.parse(cleanJson)
+      const { text: raw, usage } = await callLlmApi(model, messages, 0.3, AbortSignal.timeout(90000), config)
+      trackTokenUsage(userId, 'analyze_manga', model, usage.promptTokens, usage.completionTokens)
+
+      return parseLlmJson(raw)
     }
     catch (e) {
       lastError = e as Error
@@ -237,23 +213,73 @@ export async function analyzeMangaInfo(title: string, author: string | null, lan
   throw new AppError(500, `Ошибка LLM: ${lastError?.message || 'Неизвестная ошибка'}`)
 }
 
-function hashTtsText(text: string, voice: string): string {
-  const hasher = new Bun.CryptoHasher('sha256')
-  hasher.update(text.trim().toLowerCase() + voice)
+export async function analyzeBatch(userId: number, bookId: number, items: BatchAnalysisRequest[], language: string, targetLang: string, config: LlmConfig): Promise<BatchAnalysisResponse[]> {
+  const results: BatchAnalysisResponse[] = []
+  const missingItems: BatchAnalysisRequest[] = []
 
-  return hasher.digest('hex')
-}
+  for (const item of items) {
+    const hash = hashSentence(item.sentence, language, targetLang)
+    const cached = await db.query.llmCache.findFirst({ where: eq(schema.llmCache.sentenceHash, hash) })
 
-function getVoiceForLanguage(language: string): string {
-  switch (language.toLowerCase()) {
-    case 'en': return 'alloy'
-    case 'zh': return 'shimmer'
-    case 'ja': return 'nova'
-    default: return 'alloy'
+    if (cached) {
+      await db.insert(schema.bookLlmCache).values({ bookId, sentenceHash: hash }).onConflictDoNothing()
+      results.push({ id: item.id, analysis: JSON.parse(cached.analysis) })
+    }
+    else {
+      missingItems.push(item)
+    }
   }
+
+  if (missingItems.length === 0)
+    return results
+
+  const payload = missingItems.map(m => ({ id: m.id, text: m.sentence, context: m.context }))
+  const messages: ModelMessage[] = [
+    { role: 'system', content: getBatchSystemPrompt(language, targetLang) },
+    { role: 'user', content: JSON.stringify(payload) },
+  ]
+
+  const modelsToTry = [config.model, config.fallbackModel].filter(Boolean) as string[]
+  for (const model of modelsToTry) {
+    try {
+      const { text: raw, usage } = await callLlmApi(model, messages, 0.2, AbortSignal.timeout(90000), config)
+      trackTokenUsage(userId, 'analyze_batch', model, usage.promptTokens, usage.completionTokens)
+
+      const parsedData = parseLlmJson<any>(raw)
+
+      const parsedArray = Array.isArray(parsedData)
+        ? parsedData
+        : (parsedData.results || parsedData.items || parsedData.analysis || [])
+
+      if (!Array.isArray(parsedArray)) {
+        throw new TypeError('Ожидался массив, но ИИ вернул не поддерживаемый формат')
+      }
+
+      for (const res of parsedArray as BatchAnalysisResponse[]) {
+        const originalItem = missingItems.find(m => m.id === res.id)
+        if (originalItem) {
+          const hash = hashSentence(originalItem.sentence, language, targetLang)
+          await db.insert(schema.llmCache).values({
+            sentenceHash: hash,
+            language,
+            sentence: originalItem.sentence,
+            analysis: JSON.stringify(res.analysis),
+          }).onConflictDoNothing()
+          await db.insert(schema.bookLlmCache).values({ bookId, sentenceHash: hash }).onConflictDoNothing()
+        }
+        results.push(res)
+      }
+      return results
+    }
+    catch (e) {
+      console.warn(`[LLM Batch] Failed with model [${model}]:`, e)
+    }
+  }
+
+  return results
 }
 
-export async function generateTts(text: string, language: string, config: LlmConfig): Promise<string> {
+export async function generateTts(userId: number, text: string, language: string, config: LlmConfig): Promise<string> {
   const normalizedText = text.trim()
   const voice = getVoiceForLanguage(language)
 
@@ -282,6 +308,9 @@ export async function generateTts(text: string, language: string, config: LlmCon
 
   if (ttsKey)
     headers.Authorization = `Bearer ${ttsKey}`
+
+  // Логируем объем синтезированного текста (символы как токены inputTokens)
+  trackTokenUsage(userId, 'tts_generation', ttsModel, normalizedText.length, 0)
 
   const response = await fetch(`${ttsUrl}/audio/speech`, {
     method: 'POST',

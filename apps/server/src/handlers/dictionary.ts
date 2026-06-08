@@ -1,5 +1,5 @@
-import { z } from 'zod'
-import { CORS_HEADERS } from '../config'
+import { BulkActionSchema, DeckSchema, GenerateExamplesSchema, SrsReviewSchema, UpsertUserDictSchema } from '~/types/schemas'
+import { extractLlmConfig, json } from '~/utils/helpers'
 import {
   createDeck,
   deleteDeck,
@@ -12,57 +12,18 @@ import {
   updateDeck,
   upsertToUserDictionary,
 } from '../services/dictionary.service'
-import { extractLlmConfig, generateWordAutoFill, generateWordExamples } from '../services/llm.service'
+import { generateWordAutoFill, generateWordExamples } from '../services/llm.service'
 import { AppError } from '../utils/errors'
 import { createRateLimiter } from '../utils/rate-limit'
 
 const dictAiLimiter = createRateLimiter(60, 60 * 1000)
-
-function json(data: unknown, status = 200, extraHeaders: Record<string, string> = {}) {
-  return new Response(JSON.stringify(data), {
-    status,
-    headers: { ...CORS_HEADERS, 'Content-Type': 'application/json', ...extraHeaders },
-  })
-}
-
-const UpsertUserDictSchema = z.object({
-  word: z.string().min(1, 'Слово обязательно'),
-  transcription: z.string().nullable().optional(),
-  translation: z.string().nullable().optional(),
-  language: z.string().min(1, 'Язык обязателен'),
-  notes: z.string().nullable().optional(),
-  tags: z.string().nullable().optional(),
-  difficulty: z.string().nullable().optional(),
-  grammarNote: z.string().nullable().optional(),
-  vocabularyNote: z.string().nullable().optional(),
-  deckId: z.number().nullable().optional(),
-  contextSentence: z.string().optional(),
-  contextBookId: z.number().optional(),
-})
-
-const SrsReviewSchema = z.object({
-  wordId: z.number(),
-  grade: z.number().min(0).max(3),
-})
-
-const DeckSchema = z.object({
-  name: z.string().min(1, 'Название обязательно'),
-  language: z.string().optional(),
-})
-
-const GenerateExamplesSchema = z.object({
-  word: z.string()
-    .min(1, 'Слово обязательно')
-    .max(100, 'Выделен слишком большой фрагмент текста (макс. 100 символов)'),
-  language: z.string().min(1, 'Язык обязателен'),
-})
 
 export async function handleGenerateExamples(req: Request, userId: number): Promise<Response> {
   dictAiLimiter(String(userId))
   const config = extractLlmConfig(req)
   const targetLang = req.headers.get('Accept-Language') || 'ru'
   const { word, language } = GenerateExamplesSchema.parse(await req.json())
-  const result = await generateWordExamples(word, language, targetLang, config)
+  const result = await generateWordExamples(userId, word, language, targetLang, config)
 
   return json(result)
 }
@@ -72,7 +33,7 @@ export async function handleAutoFillWord(req: Request, userId: number): Promise<
   const config = extractLlmConfig(req)
   const targetLang = req.headers.get('Accept-Language') || 'ru'
   const { word, language } = GenerateExamplesSchema.parse(await req.json())
-  const result = await generateWordAutoFill(word, language, targetLang, config)
+  const result = await generateWordAutoFill(userId, word, language, targetLang, config)
 
   return json(result)
 }
@@ -98,7 +59,7 @@ export async function handleCreateDeck(req: Request, userId: number): Promise<Re
 }
 
 export async function handleUpdateDeck(req: Request, userId: number): Promise<Response> {
-  const id = Number((req as any).params.id)
+  const id = Number(req.params.id)
   const body = DeckSchema.parse(await req.json())
   await updateDeck(id, userId, body.name)
 
@@ -106,7 +67,7 @@ export async function handleUpdateDeck(req: Request, userId: number): Promise<Re
 }
 
 export async function handleDeleteDeck(req: Request, userId: number): Promise<Response> {
-  const id = Number((req as any).params.id)
+  const id = Number(req.params.id)
   await deleteDeck(id, userId)
 
   return json({ success: true })
@@ -121,7 +82,7 @@ export async function handleUpsertToUserDict(req: Request, userId: number): Prom
 }
 
 export async function handleRemoveFromUserDict(req: Request, userId: number): Promise<Response> {
-  const word = (req as any).params.word
+  const word = req.params.word
   const targetLang = req.headers.get('Accept-Language') || 'ru'
   await removeFromUserDictionary(decodeURIComponent(word), userId, targetLang)
 
@@ -129,7 +90,7 @@ export async function handleRemoveFromUserDict(req: Request, userId: number): Pr
 }
 
 export async function handleGetWordFromUserDict(req: Request, userId: number): Promise<Response> {
-  const word = (req as any).params.word
+  const word = req.params.word
   const targetLang = req.headers.get('Accept-Language') || 'ru'
   const entry = await getWordFromUserDictionary(decodeURIComponent(word), userId, targetLang)
 
@@ -162,11 +123,6 @@ export async function handleSrsReview(req: Request, userId: number): Promise<Res
   await processSrsReview(wordId, userId, grade)
   return json({ success: true })
 }
-
-const BulkActionSchema = z.object({
-  wordIds: z.array(z.number()),
-  deckId: z.number().nullable().optional(),
-})
 
 export async function handleBulkDeleteDict(req: Request, userId: number): Promise<Response> {
   const { wordIds } = BulkActionSchema.parse(await req.json())

@@ -1,8 +1,8 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "ecf0e196-cfd9-4879-acc3-ad1fc4bb2ea4",
-  "prevId": "775ee401-d50c-4dd7-9edf-605eae8d66f8",
+  "id": "b145cc18-f306-4a73-9374-49889153a6be",
+  "prevId": "ecf0e196-cfd9-4879-acc3-ad1fc4bb2ea4",
   "tables": {
     "book_llm_cache": {
       "name": "book_llm_cache",
@@ -889,6 +889,92 @@
           "name": "reading_progress_bookId_userId_pk"
         }
       },
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "token_usage": {
+      "name": "token_usage",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": true
+        },
+        "userId": {
+          "name": "userId",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "date": {
+          "name": "date",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "action": {
+          "name": "action",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "model": {
+          "name": "model",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "inputTokens": {
+          "name": "inputTokens",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
+        },
+        "outputTokens": {
+          "name": "outputTokens",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
+        }
+      },
+      "indexes": {
+        "token_usage_userId_date_action_model_unique": {
+          "name": "token_usage_userId_date_action_model_unique",
+          "columns": [
+            "userId",
+            "date",
+            "action",
+            "model"
+          ],
+          "isUnique": true
+        }
+      },
+      "foreignKeys": {
+        "token_usage_userId_users_id_fk": {
+          "name": "token_usage_userId_users_id_fk",
+          "tableFrom": "token_usage",
+          "tableTo": "users",
+          "columnsFrom": [
+            "userId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "checkConstraints": {}
     },

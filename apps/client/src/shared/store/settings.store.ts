@@ -17,8 +17,11 @@ export const useGlobalSettingsStore = defineStore('globalSettings', () => {
   const customLlmKey = useLocalStorage<string>('global-custom-llm-key', 'ollama')
   const customLlmModel = useLocalStorage<string>('global-custom-llm-model', 'llama3')
 
+  const autoAnalyzePage = useLocalStorage<boolean>('global-auto-analyze-page', true)
+
   return {
     appLanguage,
+    autoAnalyzePage,
     translationPriority,
     ttsSpeed,
     readerFontSize,

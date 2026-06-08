@@ -48,10 +48,17 @@ export function useTextSelection() {
         return
       }
 
+      let context = ''
+      if (target) {
+        const prev = target.previousElementSibling?.textContent || ''
+        const next = target.nextElementSibling?.textContent || ''
+        context = `${prev} [${rawSent}] ${next}`.trim()
+      }
+
       analysisStore.closePopover()
       analysisStore.closeSelectionTooltip()
       window.getSelection()?.empty()
-      analysisStore.handleSentenceAnalysis(rawSent)
+      analysisStore.handleSentenceAnalysis(rawSent, context)
     }, 500)
   }
 

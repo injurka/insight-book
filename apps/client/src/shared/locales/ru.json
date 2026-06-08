@@ -80,6 +80,7 @@
     "apiUrl": "API URL",
     "modelName": "Название модели",
     "apiKey": "API Key",
+    "autoAnalyzePage": "Фоновый анализ",
     "storageTitle": "Локальная память",
     "browserStorage": "Хранилище браузера",
     "protected": "Защищено",
@@ -89,12 +90,27 @@
     "quotaDesc": "Показан общий объем, выделенный браузером. Само приложение занимает около {size}.",
     "dbUsage": "Занято базой данных:",
     "dictWords": "Слов в словаре:",
+    "tokenUsageTitle": "Использование токенов",
+    "inputTokens": "Входящие (Prompt)",
+    "outputTokens": "Исходящие (Completion)",
+    "tokensNoData": "Данных по использованию токенов пока нет.",
     "savedBooksData": "Сохраненные данные книг",
     "cacheAiAnalyses": "Анализов ИИ: ",
     "cachePages": "Страниц в кэше: ",
     "offlineAvailable": "Оффлайн доступно {percent}% книги",
     "pageNumbers": "Номера страниц",
-    "noBooks": "Книг в библиотеке нет."
+    "noBooks": "Книг в библиотеке нет.",
+    "actions": {
+      "analyze_sentence": "Перевод предложений (Ручной)",
+      "analyze_batch": "Пакетный анализ (Оффлайн-синхронизация)",
+      "analyze_book": "Анализ книги (Жанры, Теги)",
+      "analyze_manga": "Анализ манги (Жанры, Теги)",
+      "dict_examples": "Генерация примеров (Словарь)",
+      "dict_autofill": "Автозаполнение карточки (Словарь)",
+      "tts_generation": "Озвучка (TTS)",
+      "ocr_layout": "OCR (Распознавание блоков)",
+      "ocr_refine": "OCR (Улучшение текста)"
+    }
   },
   "library": {
     "textDirection": "Направление текста",
@@ -374,6 +390,8 @@
     "more": "Больше"
   },
   "analysis": {
+    "voiceProgress": "Генерация озвучки",
+    "allElementsAnalyzed": "Выбранные элементы страницы успешно обработаны.",
     "aiContextAndExamples": "Контекст и Примеры (ИИ)",
     "generatingContext": "Генерируем контекст...",
     "vocabulary": "Лексика",
@@ -389,7 +407,6 @@
     "words": "Слова",
     "cancel": "Отмена",
     "done": "Готово!",
-    "allElementsAnalyzed": "Выбранные элементы страницы успешно обработаны.",
     "excellent": "Отлично",
     "voice": "Озвучить",
     "detailedWithAi": "Подробно с ИИ",
@@ -410,8 +427,7 @@
     "grammarColon": "Грамматика:",
     "vocabularyColon": "Лексика:",
     "wordNotFoundInDict": "Слово не найдено в локальном словаре. Воспользуйтесь ИИ переводом",
-    "offlineTranslationNotFound": "Оффлайн: перевод не найден в кэше",
-    "voiceProgress": "Генерация озвучки"
+    "offlineTranslationNotFound": "Оффлайн: перевод не найден в кэше"
   },
   "dictWord": {
     "cardDetails": "Подробности карточки",

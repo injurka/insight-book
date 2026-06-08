@@ -1,9 +1,12 @@
 import type { Book, PageDictEntry, PagePayload, TocItem } from '~/shared/types/models'
+import { defineStore } from 'pinia'
+import { computed, ref, watch } from 'vue'
 import { useLibraryStore } from '~/components/05.modules/library/store/library.store'
 import { i18n } from '~/shared/plugins/i18n'
 import { api } from '~/shared/services/api.service'
 import { offlineService } from '~/shared/services/offline.service'
 import { useAnalysisStore } from '~/shared/store/analysis.store'
+import { useGlobalSettingsStore } from '~/shared/store/settings.store'
 import { useToastStore } from '~/shared/store/toast.store'
 
 export const useReaderStore = defineStore('reader', () => {
@@ -12,7 +15,6 @@ export const useReaderStore = defineStore('reader', () => {
   const currentBook = computed(() => libraryStore.currentBookInfo)
   const currentPage = ref<PagePayload | null>(null)
 
-  // Словарь теперь независим от объекта страницы
   const currentPageDictionary = ref<Record<string, PageDictEntry>>({})
   const currentToc = ref<TocItem[]>([])
 
@@ -26,6 +28,20 @@ export const useReaderStore = defineStore('reader', () => {
     if (!newBook) {
       currentPage.value = null
       currentPageDictionary.value = {}
+    }
+  })
+
+  watch(() => useGlobalSettingsStore().autoAnalyzePage, (isActive) => {
+    const analysisStore = useAnalysisStore()
+    if (isActive) {
+      if (currentPage.value && !analysisStore.isManualPageAnalysisActive && !analysisStore.isAutoPageAnalysisActive) {
+        analysisStore.analyzeWholePage({ sentences: true, words: true, ttsSentences: false, ttsWords: false }, true)
+      }
+    }
+    else {
+      if (analysisStore.isAutoPageAnalysisActive) {
+        analysisStore.cancelPageAnalysis()
+      }
     }
   })
 
@@ -49,9 +65,7 @@ export const useReaderStore = defineStore('reader', () => {
 
   async function fetchPageDictionary(bookId: number, pageNum: number) {
     try {
-      // 1. Ищем в кэше
       const cachedDict = await offlineService.getPageDictionary(bookId, pageNum)
-      // Проверяем, что кэш не пустой, чтобы избежать бага вечно пустого словаря
       if (cachedDict && Object.keys(cachedDict).length > 0) {
         if (Number(currentPage.value?.bookId) === Number(bookId) && Number(currentPage.value?.pageNum) === Number(pageNum)) {
           currentPageDictionary.value = cachedDict
@@ -59,11 +73,9 @@ export const useReaderStore = defineStore('reader', () => {
         return
       }
 
-      // 2. Если нет, грузим с сервера
       const res = await api.books.getPageDict(bookId, pageNum)
       if (Number(currentPage.value?.bookId) === Number(bookId) && Number(currentPage.value?.pageNum) === Number(pageNum)) {
         currentPageDictionary.value = res.pageDictionary || {}
-        // Сохраняем в оффлайн-кэш
         await offlineService.savePageDictionary(bookId, pageNum, currentPageDictionary.value)
       }
     }
@@ -87,7 +99,6 @@ export const useReaderStore = defineStore('reader', () => {
       await fetchToc(bookId).catch(() => { })
     }
 
-    // Сбрасываем словарь, чтобы не было фантомных кликов от старой страницы
     currentPageDictionary.value = {}
     isPageLoading.value = true
 
@@ -97,21 +108,24 @@ export const useReaderStore = defineStore('reader', () => {
         currentPage.value = cachedPage
         fetchPageDictionary(bookId, pageNum).catch(console.error)
         libraryStore.updateBookInfo(bookId, { currentPage: pageNum })
-        return
+      }
+      else {
+        const page = await api.books.getPage(bookId, pageNum)
+        currentPage.value = page
+        fetchPageDictionary(bookId, pageNum).catch(console.error)
+        await offlineService.savePage(bookId, pageNum, page)
+        libraryStore.updateBookInfo(bookId, { currentPage: pageNum })
       }
 
-      const page = await api.books.getPage(bookId, pageNum)
-      currentPage.value = page
-
-      // Запрашиваем словарь асинхронно, не дожидаясь ответа
-      fetchPageDictionary(bookId, pageNum).catch(console.error)
-
-      await offlineService.savePage(bookId, pageNum, page)
-      libraryStore.updateBookInfo(bookId, { currentPage: pageNum })
+      const settingsStore = useGlobalSettingsStore()
+      if (settingsStore.autoAnalyzePage && !analysisStore.isManualPageAnalysisActive) {
+        setTimeout(() => {
+          analysisStore.analyzeWholePage({ sentences: true, words: true, ttsSentences: false, ttsWords: false }, true)
+        }, 1000)
+      }
     }
     catch (e) {
       libraryStore.updateBookInfo(bookId, { currentPage: prevPageNum })
-
       toastStore.error(i18n.global.t('dictionary.pageOfflineError'))
       throw e
     }

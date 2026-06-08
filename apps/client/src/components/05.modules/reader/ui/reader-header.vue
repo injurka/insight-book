@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { Icon } from '@iconify/vue'
-import { reactive, ref } from 'vue'
+import { computed, reactive, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useRouter } from 'vue-router'
 import { KitBtn, KitCheckbox, KitDropdown, KitSelect, KitTooltip } from '~/components/01.kit'
 import { ThemesVariant, useChangeTheme } from '~/shared/composables/use-change-theme'
 import { AppRoutePaths } from '~/shared/constants/routes'
@@ -17,10 +18,8 @@ const { t } = useI18n()
 const router = useRouter()
 const { theme, toggleTheme } = useChangeTheme()
 
-const dropdownRef = ref<InstanceType<typeof KitDropdown> | null>(null)
 const pageAnalysisDropdownRef = ref<InstanceType<typeof KitDropdown> | null>(null)
 
-// Опции для выпадающего меню обработки страницы
 const pageActionOpts = reactive({
   sentences: true,
   words: false,
@@ -35,7 +34,7 @@ function startPageAnalysis() {
     words: pageActionOpts.words,
     ttsSentences: pageActionOpts.ttsSentences,
     ttsWords: pageActionOpts.ttsWords,
-  })
+  }, false)
 }
 
 function goBack() {
@@ -108,17 +107,18 @@ const fontOptions = computed(() => [
       />
     </KitTooltip>
 
-    <!-- Новое меню для действий со страницей -->
     <KitDropdown ref="pageAnalysisDropdownRef" placement="bottom-end" width="260px" :close-on-content-click="false">
       <template #activator="{ props: dropdownProps }">
         <KitTooltip :text="t('reader.analyzePage')" placement="bottom">
-          <KitBtn
-            icon="mdi:text-box-search-outline"
-            variant="text"
-            size="sm"
-            :disabled="analysisStore.isAnalyzingPage"
-            :class="{ 'is-active-btn': dropdownProps.isOpen }"
-          />
+          <div class="analyze-btn-wrapper" @click.stop="analysisStore.isManualPageAnalysisActive ? analysisStore.isPageAnalysisModalOpen = true : dropdownProps.toggle()">
+            <KitBtn
+              icon="mdi:text-box-search-outline"
+              variant="text"
+              size="sm"
+              :class="{ 'is-active-btn': dropdownProps.isOpen || analysisStore.isManualPageAnalysisActive }"
+            />
+            <span v-if="analysisStore.isManualPageAnalysisActive" class="blinking-dot" />
+          </div>
         </KitTooltip>
       </template>
 
@@ -128,7 +128,6 @@ const fontOptions = computed(() => [
             {{ t('reader.selectOptions') }}
           </div>
 
-          <!-- Группа текстового анализа -->
           <div class="settings-group">
             <div style="font-weight: 500; font-size: 0.9rem; display: flex; align-items: center; gap: 6px;">
               <Icon icon="mdi:robot-outline" class="item-icon" /> {{ t('reader.textAnalysis') }}
@@ -139,7 +138,6 @@ const fontOptions = computed(() => [
 
           <div class="divider" />
 
-          <!-- Группа генерации озвучки -->
           <div class="settings-group">
             <div style="font-weight: 500; font-size: 0.9rem; display: flex; align-items: center; gap: 6px;">
               <Icon icon="mdi:headphones" class="item-icon" /> {{ t('reader.voiceTts') }}
@@ -159,7 +157,7 @@ const fontOptions = computed(() => [
       <KitBtn icon="mdi:format-list-bulleted" variant="text" size="sm" @click="readerStore.tocOpen = true" />
     </KitTooltip>
 
-    <KitDropdown ref="dropdownRef" placement="left" :width="340" :close-on-content-click="false">
+    <KitDropdown placement="left" :width="340" :close-on-content-click="false">
       <template #activator="{ props: dropdownProps }">
         <KitBtn
           icon="mdi:cog-outline"
@@ -203,6 +201,14 @@ const fontOptions = computed(() => [
               <span>{{ t('reader.voiceSpeed') }}</span>
             </div>
             <span class="value-text">{{ settingsStore.ttsSpeed }}x</span>
+          </div>
+
+          <div class="menu-item" @click="settingsStore.autoAnalyzePage = !settingsStore.autoAnalyzePage">
+            <div class="item-label">
+              <Icon icon="mdi:robot-outline" class="item-icon" />
+              <span>{{ t('settings.autoAnalyzePage') }}</span>
+            </div>
+            <KitCheckbox v-model="settingsStore.autoAnalyzePage" style="pointer-events: none;" />
           </div>
         </div>
 
@@ -287,6 +293,40 @@ const fontOptions = computed(() => [
 
   .is-active-btn {
     color: var(--fg-accent-color) !important;
+  }
+}
+
+.analyze-btn-wrapper {
+  position: relative;
+  display: inline-block;
+  cursor: pointer;
+}
+
+.blinking-dot {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 8px;
+  height: 8px;
+  background-color: var(--fg-accent-color);
+  border-radius: 50%;
+  box-shadow: 0 0 4px var(--fg-accent-color);
+  animation: pulse-dot 1.5s infinite;
+  pointer-events: none;
+}
+
+@keyframes pulse-dot {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.3);
+    opacity: 0.5;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
   }
 }
 

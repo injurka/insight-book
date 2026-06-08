@@ -34,7 +34,8 @@ const { saveScrollPosition, restoreScrollPosition, setScrollIntent } = useScroll
 const { onSentenceHover, onSentenceOut } = useReaderDomHighlights(readerViewRef)
 const { prevPage, nextPage, goToPage } = useReaderNavigation(setScrollIntent)
 const { onPointerDown, onPointerUp, onWordClick } = useTextSelection()
-useAppWakeLock(() => analysisStore.isAnalyzingPage)
+
+useAppWakeLock(() => analysisStore.isManualPageAnalysisActive || analysisStore.isAutoPageAnalysisActive)
 
 const safePageContent = computed(() => {
   if (!readerStore.currentPage?.content)

@@ -50,6 +50,11 @@ const textDirectionOptions = computed(() => [
   { label: t('library.dirRtl'), value: 'rtl' },
 ])
 
+const textDirectionModel = computed({
+  get: () => editingBook.value.textDirection || 'auto',
+  set: (val) => { editingBook.value.textDirection = val === 'auto' ? null : String(val) }
+})
+
 function copyLink() {
   if (editingBook.value.id) {
     const link = `${window.location.origin}/book/${editingBook.value.id}`
@@ -99,7 +104,7 @@ function copyLink() {
 
       <div v-if="editingBook.type === 'manga'" class="form-group">
         <label>{{ t('library.textDirection') }}</label>
-        <KitSelect v-if="editingBook.textDirection !== undefined" v-model="editingBook.textDirection" :options="textDirectionOptions" />
+        <KitSelect v-if="editingBook.textDirection !== undefined" v-model="textDirectionModel" :options="textDirectionOptions" />
       </div>
 
       <div class="form-group">

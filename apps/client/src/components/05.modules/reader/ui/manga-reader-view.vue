@@ -35,7 +35,8 @@ const { saveScrollPosition, restoreScrollPosition, setScrollIntent } = useScroll
 const { onSentenceHover, onSentenceOut } = useReaderDomHighlights(readerViewRef)
 const { prevPage, nextPage, goToPage } = useReaderNavigation(setScrollIntent)
 const { onPointerDown, onPointerUp, onWordClick } = useTextSelection()
-useAppWakeLock(() => analysisStore.isAnalyzingPage)
+
+useAppWakeLock(() => analysisStore.isManualPageAnalysisActive || analysisStore.isAutoPageAnalysisActive)
 
 const { scale, panX, panY, isPanning, isPinching, dragDist, resetZoom } = usePanZoom(mangaContainerRef, mangaWrapperRef)
 
@@ -78,7 +79,8 @@ function handleBubblePointerDown(event: MouseEvent | TouchEvent, box: any) {
 
 function closeBubblePopover() {
   const target = event?.target as HTMLElement | null
-  if (target?.closest('.word-popover') || target?.closest('.kit-dialog') || target?.closest('.selection-tooltip') || target?.closest('.page-analysis-overlay')) {
+  // Изменен список игнорируемых элементов (убран page-analysis-overlay)
+  if (target?.closest('.word-popover') || target?.closest('.kit-dialog') || target?.closest('.selection-tooltip')) {
     return
   }
 
