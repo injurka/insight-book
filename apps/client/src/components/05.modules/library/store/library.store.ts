@@ -1,4 +1,4 @@
-import type { Book, BookStats, PageDictEntry, PagePayload, TocItem } from '~/shared/types/models'
+import type { Book, BookStats } from '~/shared/types/models'
 import { defineStore } from 'pinia'
 import { v4 as uuidv4 } from 'uuid'
 import { ref } from 'vue'
@@ -48,6 +48,7 @@ export const useLibraryStore = defineStore('library', () => {
 
     const settingsStore = useGlobalSettingsStore()
     const batchSize = settingsStore.useCustomLlm ? 1 : 5
+    const concurrencyLimit = settingsStore.useCustomLlm ? 1 : 5
 
     syncProgress.value = {
       pagesTotal: book.totalPages,
@@ -69,21 +70,25 @@ export const useLibraryStore = defineStore('library', () => {
       }
       catch { }
 
+      const needPageContent = options.cachePages || options.analyzeSentences || options.analyzeWords || options.ttsSentences || options.ttsWords
+
       // 2. Постраничная загрузка и анализ
-      if (options.cachePages || options.analyzeSentences || options.analyzeWords || options.ttsSentences || options.ttsWords) {
+      if (needPageContent) {
         for (let i = 1; i <= book.totalPages; i++) {
           if (signal.aborted)
             throw new Error('Aborted')
           syncProgress.value.currentTask = `Загрузка страницы ${i} из ${book.totalPages}`
 
-          // 2.1 Кэширование самой страницы
+          // 2.1 Получение страницы (Сохраняем ТОЛЬКО если стоит галочка)
           let page = await offlineService.getPage(bookId, i)
-          if (!page && options.cachePages) {
+          if (!page) {
             page = await api.books.getPage(bookId, i, true)
-            await offlineService.savePage(bookId, i, page)
+            if (options.cachePages) {
+              await offlineService.savePage(bookId, i, page)
+            }
           }
 
-          // 2.2 Словарь страницы
+          // 2.2 Словарь страницы (Только если стоит галочка cachePages)
           if (options.cachePages) {
             const dict = await offlineService.getPageDictionary(bookId, i)
             if (!dict) {
@@ -99,11 +104,11 @@ export const useLibraryStore = defineStore('library', () => {
 
           syncProgress.value.pagesDone = i
 
-          // Извлекаем элементы для анализа из загруженной страницы
+          // Извлекаем элементы для анализа
           const pageSentences = new Set<string>()
           const pageWords = new Set<string>()
 
-          if ((options.analyzeSentences || options.analyzeWords || options.ttsSentences || options.ttsWords) && page) {
+          if (page) {
             const extractData = (html: string) => {
               if (options.analyzeSentences || options.ttsSentences) {
                 const sentRegex = /data-raw-sent="([^"]+)"/g
@@ -139,73 +144,85 @@ export const useLibraryStore = defineStore('library', () => {
           const sentences = Array.from(pageSentences).filter(s => /[\p{L}\p{N}]/u.test(s))
           const words = Array.from(pageWords).filter(w => /[\p{L}\p{N}]/u.test(w))
 
-          // 2.3 Анализ предложений страницы (Батчинг)
+          // 2.3 Анализ предложений страницы (Батчинг + Параллелизм)
           if (options.analyzeSentences) {
             syncProgress.value.sentencesTotal += sentences.length
+            const missingSentences: string[] = []
 
-            for (let j = 0; j < sentences.length; j += batchSize) {
+            for (const sentence of sentences) {
+              const cached = await offlineService.getAnalysis(bookId, sentence)
+              if (cached) {
+                syncProgress.value.sentencesDone++
+              }
+              else {
+                missingSentences.push(sentence)
+              }
+            }
+
+            // Разбиваем строго на полные батчи
+            const batches: string[][] = []
+            for (let j = 0; j < missingSentences.length; j += batchSize) {
+              batches.push(missingSentences.slice(j, j + batchSize))
+            }
+
+            for (let j = 0; j < batches.length; j += concurrencyLimit) {
               if (signal.aborted)
                 throw new Error('Aborted')
-              const batch = sentences.slice(j, j + batchSize)
+              const currentBatches = batches.slice(j, j + concurrencyLimit)
 
-              const itemsToAnalyze: { id: string, sentence: string }[] = []
-
-              for (const sentence of batch) {
-                const cached = await offlineService.getAnalysis(bookId, sentence)
-                if (!cached) {
-                  itemsToAnalyze.push({ id: uuidv4(), sentence })
-                }
-                else {
-                  syncProgress.value.sentencesDone++
-                }
-              }
-
-              if (itemsToAnalyze.length > 0) {
+              await Promise.all(currentBatches.map(async (batch) => {
+                const itemsToAnalyze = batch.map(s => ({ id: uuidv4(), sentence: s }))
                 try {
                   const res = await api.books.analyzeBatch(bookId, itemsToAnalyze, book.language, signal)
                   for (const result of res.results) {
-                    const item = itemsToAnalyze.find(i => i.id === result.id)
+                    const item = itemsToAnalyze.find(it => it.id === result.id)
                     if (item) {
                       await offlineService.saveAnalysis(bookId, item.sentence, result.analysis)
                       syncProgress.value.sentencesDone++
                     }
                   }
                 }
-                catch (e: any) {
-                  if (e.name !== 'AbortError')
-                    console.error('Analyze error:', e)
+                catch (e) {
+                  const err = e as Error
+                  if (err.name !== 'AbortError')
+                    console.error('Analyze sentence error:', err)
                 }
-              }
+              }))
               syncProgress.value.currentTask = `Анализ предложений: стр. ${i}, ${syncProgress.value.sentencesDone} / ${syncProgress.value.sentencesTotal}`
             }
           }
 
-          // 2.4 Анализ слов страницы (Батчинг)
+          // 2.4 Анализ слов страницы (Батчинг + Параллелизм)
           if (options.analyzeWords) {
             syncProgress.value.wordsTotal += words.length
+            const missingWords: string[] = []
 
-            for (let j = 0; j < words.length; j += batchSize) {
+            for (const word of words) {
+              const cached = await offlineService.getAnalysis(bookId, word)
+              if (cached) {
+                syncProgress.value.wordsDone++
+              }
+              else {
+                missingWords.push(word)
+              }
+            }
+
+            const batches: string[][] = []
+            for (let j = 0; j < missingWords.length; j += batchSize) {
+              batches.push(missingWords.slice(j, j + batchSize))
+            }
+
+            for (let j = 0; j < batches.length; j += concurrencyLimit) {
               if (signal.aborted)
                 throw new Error('Aborted')
-              const batch = words.slice(j, j + batchSize)
+              const currentBatches = batches.slice(j, j + concurrencyLimit)
 
-              const itemsToAnalyze: { id: string, sentence: string }[] = []
-
-              for (const word of batch) {
-                const cached = await offlineService.getAnalysis(bookId, word)
-                if (!cached) {
-                  itemsToAnalyze.push({ id: uuidv4(), sentence: word })
-                }
-                else {
-                  syncProgress.value.wordsDone++
-                }
-              }
-
-              if (itemsToAnalyze.length > 0) {
+              await Promise.all(currentBatches.map(async (batch) => {
+                const itemsToAnalyze = batch.map(w => ({ id: uuidv4(), sentence: w }))
                 try {
                   const res = await api.books.analyzeBatch(bookId, itemsToAnalyze, book.language, signal)
                   for (const result of res.results) {
-                    const item = itemsToAnalyze.find(i => i.id === result.id)
+                    const item = itemsToAnalyze.find(it => it.id === result.id)
                     if (item) {
                       await offlineService.saveAnalysis(bookId, item.sentence, result.analysis)
                       syncProgress.value.wordsDone++
@@ -217,7 +234,7 @@ export const useLibraryStore = defineStore('library', () => {
                   if (err.name !== 'AbortError')
                     console.error('Analyze word error:', err)
                 }
-              }
+              }))
               syncProgress.value.currentTask = `Анализ слов: стр. ${i}, ${syncProgress.value.wordsDone} / ${syncProgress.value.wordsTotal}`
             }
           }
@@ -231,12 +248,12 @@ export const useLibraryStore = defineStore('library', () => {
               ttsItems.push(...words)
 
             syncProgress.value.ttsTotal += ttsItems.length
+            const ttsConcurrency = 3
 
-            const concurrency = 2
-            for (let j = 0; j < ttsItems.length; j += concurrency) {
+            for (let j = 0; j < ttsItems.length; j += ttsConcurrency) {
               if (signal.aborted)
                 throw new Error('Aborted')
-              const batch = ttsItems.slice(j, j + concurrency)
+              const batch = ttsItems.slice(j, j + ttsConcurrency)
 
               await Promise.all(batch.map(async (text) => {
                 if (signal.aborted)
@@ -303,7 +320,6 @@ export const useLibraryStore = defineStore('library', () => {
     if (currentBookInfo.value?.id !== id) {
       currentBookInfo.value = null
     }
-
     isLoading.value = true
     try {
       const info = await api.books.getInfo(id)
@@ -330,13 +346,11 @@ export const useLibraryStore = defineStore('library', () => {
       Object.assign(currentBookInfo.value, data)
       await offlineService.saveBookInfo(id, currentBookInfo.value)
     }
-
     try {
       await api.books.updateInfo(id, data)
     }
     catch (e) {
-      console.warn('Failed to sync book info to server', e)
-      throw e
+      console.warn('Failed to sync book info', e); throw e
     }
   }
 
@@ -349,9 +363,7 @@ export const useLibraryStore = defineStore('library', () => {
         await offlineService.saveBookInfo(id, currentBookInfo.value)
       }
     }
-    finally {
-      isAnalyzingBook.value = false
-    }
+    finally { isAnalyzingBook.value = false }
   }
 
   async function analyzeVocabulary(id: number) {
@@ -367,9 +379,7 @@ export const useLibraryStore = defineStore('library', () => {
         await offlineService.saveBookInfo(id, currentBookInfo.value)
       }
     }
-    finally {
-      isAnalyzingVocab.value = false
-    }
+    finally { isAnalyzingVocab.value = false }
   }
 
   async function updateBookCover(id: number, file: File) {
@@ -396,14 +406,11 @@ export const useLibraryStore = defineStore('library', () => {
     try {
       const res = await api.books.upload(file)
       const book = 'book' in res ? res.book : (res as unknown as Book)
-      if (book) {
+      if (book)
         books.value.unshift(book)
-      }
       return book
     }
-    finally {
-      isLoading.value = false
-    }
+    finally { isLoading.value = false }
   }
 
   async function createCustomManga(title: string, author: string, language: string) {
@@ -413,22 +420,19 @@ export const useLibraryStore = defineStore('library', () => {
       books.value.unshift(res.book)
       return res.book
     }
-    finally {
-      isLoading.value = false
-    }
+    finally { isLoading.value = false }
   }
 
   async function uploadMangaChapter(bookId: number, chapterTitle: string, files: File[]) {
     const fd = new FormData()
     fd.append('chapterTitle', chapterTitle)
     files.forEach(f => fd.append('files', f))
-
     const res = await api.books.appendMangaChapter(bookId, fd)
 
     const index = books.value.findIndex(b => b.id === bookId)
-    if (index !== -1) {
+    if (index !== -1)
       Object.assign(books.value[index], res.book)
-    }
+
     if (currentBookInfo.value?.id === bookId) {
       Object.assign(currentBookInfo.value, res.book)
       if (typeof res.book.toc === 'string') {
@@ -444,9 +448,8 @@ export const useLibraryStore = defineStore('library', () => {
   async function deleteBook(id: number) {
     await api.books.delete(id)
     books.value = books.value.filter(b => b.id !== id)
-    if (currentBookInfo.value?.id === id) {
+    if (currentBookInfo.value?.id === id)
       currentBookInfo.value = null
-    }
   }
 
   return {

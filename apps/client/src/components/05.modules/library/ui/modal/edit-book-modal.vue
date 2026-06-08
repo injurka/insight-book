@@ -52,7 +52,7 @@ const textDirectionOptions = computed(() => [
 
 const textDirectionModel = computed({
   get: () => editingBook.value.textDirection || 'auto',
-  set: (val) => { editingBook.value.textDirection = val === 'auto' ? null : String(val) }
+  set: (val) => { editingBook.value.textDirection = val === 'auto' ? null : String(val) },
 })
 
 function copyLink() {

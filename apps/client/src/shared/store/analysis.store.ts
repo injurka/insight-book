@@ -184,12 +184,11 @@ export const useAnalysisStore = defineStore('analysis', () => {
 
       if (textTasks.length > 0) {
         const batchSize = settingsStore.useCustomLlm ? 1 : 5
-        const batch = textTasks.slice(0, batchSize)
-
-        batch.forEach(t => t.status = 'processing')
         const itemsToFetch: AnalysisTask[] = []
 
-        for (const task of batch) {
+        // Отбираем ИМЕННО batchSize фраз, которых нет в кэше
+        for (const task of textTasks) {
+          task.status = 'processing'
           const cached = await offlineService.getAnalysis(book.id, task.text)
           if (cached) {
             handleTaskSuccess(task, cached)
@@ -198,6 +197,8 @@ export const useAnalysisStore = defineStore('analysis', () => {
           }
           else {
             itemsToFetch.push(task)
+            if (itemsToFetch.length >= batchSize)
+              break
           }
         }
 
@@ -216,10 +217,13 @@ export const useAnalysisStore = defineStore('analysis', () => {
               }
             }
           }
-          catch (e: any) {
-            if (e.name === 'AbortError')
+          catch (e) {
+            const err = e as Error
+
+            if (err.name === 'AbortError')
               break
-            console.error('Batch analyze error:', e)
+
+            console.error('Batch analyze error:', err)
             taskQueue.value = taskQueue.value.filter(t => !itemsToFetch.some(it => it.id === t.id))
             queueDone.value += itemsToFetch.length
           }
@@ -350,6 +354,7 @@ export const useAnalysisStore = defineStore('analysis', () => {
       if (doSent || doTtsSent) {
         const sentRegex = /data-raw-sent="([^"]+)"/g
         let match
+        // eslint-disable-next-line no-cond-assign
         while ((match = sentRegex.exec(html)) !== null) {
           sentencesToProcess.add(decodeURIComponent(match[1]))
         }
@@ -358,6 +363,7 @@ export const useAnalysisStore = defineStore('analysis', () => {
       if (doWords || doTtsWords) {
         const wordRegex = /data-word="([^"]+)"[^>]*?data-pos="([^"]+)"/g
         let match
+        // eslint-disable-next-line no-cond-assign
         while ((match = wordRegex.exec(html)) !== null) {
           if (match[2] !== 'x') {
             wordsToProcess.add(decodeURIComponent(match[1]))
