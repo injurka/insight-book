@@ -8,6 +8,9 @@ import { db } from '../db'
 import * as schema from '../db/schema'
 import { AppError } from '../utils/errors'
 
+// Выводим строгий тип пользователя напрямую из Drizzle-схемы
+type DbUser = typeof schema.users.$inferSelect
+
 const LoginSchema = z.object({
   username: z.string().min(1, 'Имя пользователя обязательно'),
   password: z.string().min(1, 'Пароль обязателен'),
@@ -20,16 +23,29 @@ function json(data: unknown, status = 200, extraHeaders: Record<string, string> 
   })
 }
 
-async function getUserPayload(user: any) {
+async function getUserPayload(user: DbUser) {
   const [{ count: usedBooks }] = await db.select({ count: sql<number>`count(*)` })
     .from(schema.books)
     .where(eq(schema.books.userId, user.id))
+
+  const [{ totalTokens }] = await db.select({
+    totalTokens: sql<number>`COALESCE(SUM(${schema.tokenUsage.inputTokens} + ${schema.tokenUsage.outputTokens}), 0)`.mapWith(Number),
+  })
+    .from(schema.tokenUsage)
+    .where(eq(schema.tokenUsage.userId, user.id))
+
+  if (user.usedTokens !== totalTokens) {
+    await db.update(schema.users)
+      .set({ usedTokens: totalTokens })
+      .where(eq(schema.users.id, user.id))
+      .catch(console.error)
+  }
 
   return {
     id: user.id,
     username: user.username,
     role: user.role,
-    usedTokens: user.usedTokens,
+    usedTokens: totalTokens,
     tokenLimit: user.tokenLimit,
     usedBooks,
     bookLimit: user.bookLimit,
@@ -134,5 +150,6 @@ export async function handleUpdateUsername(req: Request, userId: number): Promis
   }
 
   await db.update(schema.users).set({ username: newUsername }).where(eq(schema.users.id, userId))
+
   return json({ success: true, username: newUsername })
 }

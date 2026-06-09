@@ -3,7 +3,7 @@ import { Icon } from '@iconify/vue'
 import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
-import { KitBtn, KitDropdown, KitSelect, KitPrompt } from '~/components/01.kit'
+import { KitBtn, KitDropdown, KitPrompt, KitSelect } from '~/components/01.kit'
 import { ThemesVariant, useChangeTheme } from '~/shared/composables/use-change-theme'
 import { useToast } from '~/shared/composables/use-toast'
 import { AppRoutePaths } from '~/shared/constants/routes'
@@ -218,7 +218,7 @@ async function handleUsernameSubmit(newUsername: string) {
         </div>
       </KitDropdown>
     </template>
-    
+
     <KitPrompt
       v-model:visible="isUsernamePromptOpen"
       :title="t('globalActions.changeUsername')"
@@ -348,7 +348,9 @@ async function handleUsernameSubmit(newUsername: string) {
       text-overflow: ellipsis;
       cursor: pointer;
       border-bottom: 1px dashed transparent;
-      transition: color 0.2s, border-color 0.2s;
+      transition:
+        color 0.2s,
+        border-color 0.2s;
 
       &:hover {
         color: var(--fg-accent-color);
@@ -377,7 +379,9 @@ async function handleUsernameSubmit(newUsername: string) {
     border-radius: 8px;
     border: 1px solid var(--border-secondary-color);
     font-size: 0.85rem;
-    transition: border-color 0.2s, background-color 0.2s;
+    transition:
+      border-color 0.2s,
+      background-color 0.2s;
 
     &:hover {
       border-color: var(--border-primary-color);
