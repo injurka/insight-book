@@ -38,7 +38,7 @@ export const router = createRouter({
   ],
 })
 
-router.beforeEach(async (to, _from, next) => {
+router.beforeEach(async (to) => {
   const authStore = useAuthStore()
 
   if (!authStore.isAuthReady) {
@@ -48,15 +48,13 @@ router.beforeEach(async (to, _from, next) => {
   const isAuthRoute = to.name === AppRouteNames.SignIn
 
   if (authStore.user && isAuthRoute) {
-    return next({ name: AppRouteNames.Home })
+    return { name: AppRouteNames.Home }
   }
 
   const protectedRoutes = [AppRouteNames.Dictionary, AppRouteNames.Reader, AppRouteNames.Settings]
   if (!authStore.user && !authStore.isSingleMode && protectedRoutes.includes(to.name as AppRouteNames)) {
-    return next({ name: AppRouteNames.SignIn })
+    return { name: AppRouteNames.SignIn }
   }
-
-  next()
 })
 
 export default router

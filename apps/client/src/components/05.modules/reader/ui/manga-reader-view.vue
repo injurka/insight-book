@@ -77,9 +77,9 @@ function handleBubblePointerDown(event: MouseEvent | TouchEvent, box: any) {
   }
 }
 
-function closeBubblePopover() {
+function closeBubblePopover(event?: Event) {
   const target = event?.target as HTMLElement | null
-  if (target?.closest('.word-popover') || target?.closest('.kit-dialog') || target?.closest('.selection-tooltip')) {
+  if (target?.closest && (target.closest('.word-popover') || target.closest('.kit-dialog') || target.closest('.selection-tooltip'))) {
     return
   }
 
