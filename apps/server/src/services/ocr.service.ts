@@ -11,6 +11,7 @@ import {
 } from '../config'
 import { getOcrPrompt, getOcrRefinementPrompt } from '../prompts'
 import { AppError } from '../utils/errors'
+import { checkTokenLimit } from './limits.service'
 import { trackTokenUsage } from './token.service'
 
 export interface OcrBlock {
@@ -31,6 +32,8 @@ function cleanOcrText(rawText: string): string {
 }
 
 export async function recognizeMangaPage(userId: number, base64Image: string, language: string, textDirection: string | undefined, config: LlmConfig): Promise<OcrBlock[]> {
+  await checkTokenLimit(userId)
+
   let imageUrl = base64Image
   if (!base64Image.startsWith('data:image/')) {
     imageUrl = `data:image/jpeg;base64,${base64Image}`

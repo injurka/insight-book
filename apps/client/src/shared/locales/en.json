@@ -11,7 +11,17 @@
     "switchTheme": "Switch Theme",
     "switchLanguage": "Change Language",
     "signIn": "Sign In",
-    "signOut": "Sign Out"
+    "signOut": "Sign Out",
+    "aiTokens": "AI Tokens",
+    "booksLimit": "Books",
+    "roleAdmin": "Admin",
+    "roleUser": "User",
+    "theme": "Theme",
+    "language": "Language",
+    "changeUsername": "Change username",
+    "changeAvatar": "Change avatar",
+    "avatarUpdated": "Avatar updated",
+    "usernameUpdated": "Username updated"
   },
   "signIn": {
     "title": "Library Login",

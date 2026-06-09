@@ -43,6 +43,20 @@
       "when": 1781025620462,
       "tag": "0005_cynical_gateway",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1781031663758,
+      "tag": "0006_opposite_silver_fox",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1781033938321,
+      "tag": "0007_legal_doctor_octopus",
+      "breakpoints": true
     }
   ]
 }

@@ -11,7 +11,17 @@
     "switchTheme": "Переключить тему",
     "switchLanguage": "Сменить язык",
     "signIn": "Войти",
-    "signOut": "Выйти"
+    "signOut": "Выйти",
+    "aiTokens": "ИИ Токены",
+    "booksLimit": "Книги",
+    "roleAdmin": "Админ",
+    "roleUser": "Пользователь",
+    "theme": "Тема",
+    "language": "Язык",
+    "changeUsername": "Изменить никнейм",
+    "changeAvatar": "Изменить аватар",
+    "avatarUpdated": "Аватар обновлен",
+    "usernameUpdated": "Имя пользователя изменено"
   },
   "signIn": {
     "title": "Вход в библиотеку",
@@ -108,7 +118,7 @@
     "tokenUsageTitle": "Использование токенов",
     "inputTokens": "Входящие (Prompt)",
     "outputTokens": "Исходящие (Completion)",
-    "tokensNoData": "Данных по использованию токенов пока нет.",
+    "tokensNoData": "Данных по использования токенов пока нет.",
     "savedBooksData": "Сохраненные данные книг",
     "cacheAiAnalyses": "Анализов ИИ: ",
     "cachePages": "Страниц в кэше: ",

@@ -10,7 +10,7 @@ async function main() {
   if (command === 'list') {
     const users = await db.query.users.findMany()
     console.log('--- Список пользователей ---')
-    users.forEach(u => console.log(`ID: ${u.id} | Логин: ${u.username} | Создан: ${u.createdAt}`))
+    users.forEach(u => console.log(`ID: ${u.id} | Логин: ${u.username} | Роль: ${u.role} | Создан: ${u.createdAt}`))
     return
   }
 
@@ -26,7 +26,12 @@ async function main() {
     }
 
     const passwordHash = await Bun.password.hash(password)
-    await db.insert(schema.users).values({ username, passwordHash })
+    await db.insert(schema.users).values({
+      username,
+      passwordHash,
+      tokenLimit: 1000000,
+      bookLimit: 10,
+    })
     console.log(`✅ Пользователь ${username} успешно добавлен!`)
     return
   }

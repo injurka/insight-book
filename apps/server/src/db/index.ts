@@ -26,6 +26,7 @@ mkdirSync(DICTS_PATH, { recursive: true })
 mkdirSync(UPLOADS_PATH, { recursive: true })
 mkdirSync(BOOKS_PATH, { recursive: true })
 mkdirSync(COVERS_PATH, { recursive: true })
+mkdirSync(path.join(UPLOADS_PATH, 'avatars'), { recursive: true })
 
 // ============================================================================
 // 1. ИНИЦИАЛИЗАЦИЯ ПОДКЛЮЧЕНИЯ
@@ -62,6 +63,9 @@ export const db = drizzle(sqlite, { schema, logger: false })
           id: 1,
           username: ADMIN_USERNAME,
           passwordHash,
+          role: 'admin',
+          tokenLimit: null,
+          bookLimit: null,
         })
         console.log(`👤 Default Admin user created (Username: ${ADMIN_USERNAME}).`)
       }

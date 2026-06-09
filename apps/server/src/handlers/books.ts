@@ -14,6 +14,7 @@ import { BOOKS_PATH, CORS_HEADERS, COVERS_PATH } from '../config'
 import { db } from '../db'
 import * as schema from '../db/schema'
 import { lookupSingleWord, lookupWords } from '../services/dictionary.service'
+import { checkBookLimit } from '../services/limits.service'
 import { analyzeBatch, analyzeBookExcerpt, analyzeMangaInfo, analyzeSentence, generateTts } from '../services/llm.service'
 import { recognizeMangaPage } from '../services/ocr.service'
 import { AppError } from '../utils/errors'
@@ -30,7 +31,7 @@ export async function handleGetBooks(req: Request, userId: number | null): Promi
     const search = url.searchParams.get('search')
     const language = url.searchParams.get('lang')
 
-    let conditions = [eq(schema.books.isPublic, true)]
+    const conditions = [eq(schema.books.isPublic, true)]
 
     const baseQuery = db.select({
       book: schema.books,
@@ -144,11 +145,11 @@ export async function handleGetBookInfo(req: Request, userId: number | null): Pr
   const { progresses, stats, ...bookData } = book
   const statsResult = stats
     ? {
-      ...stats,
-      tags: stats.tags ? JSON.parse(stats.tags) : [],
-      posDistribution: stats.posDistribution ? JSON.parse(stats.posDistribution) : null,
-      topWords: stats.topWords ? JSON.parse(stats.topWords) : null,
-    }
+        ...stats,
+        tags: stats.tags ? JSON.parse(stats.tags) : [],
+        posDistribution: stats.posDistribution ? JSON.parse(stats.posDistribution) : null,
+        topWords: stats.topWords ? JSON.parse(stats.topWords) : null,
+      }
     : null
 
   return json({
@@ -401,6 +402,8 @@ export async function handleUpdateStats(req: Request, userId: number): Promise<R
 }
 
 export async function handleUploadBook(req: Request, userId: number): Promise<Response> {
+  await checkBookLimit(userId)
+
   const formData = await req.formData()
   const file = formData.get('file') as File | null
 
@@ -437,6 +440,8 @@ export async function handleUploadBook(req: Request, userId: number): Promise<Re
 }
 
 export async function handleCreateCustomBook(req: Request, userId: number): Promise<Response> {
+  await checkBookLimit(userId)
+
   const body = CreateCustomBookSchema.parse(await req.json())
 
   const safeName = `${Date.now()}_custom_manga`

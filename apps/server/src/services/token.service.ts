@@ -1,4 +1,4 @@
-import { sql } from 'drizzle-orm'
+import { eq, sql } from 'drizzle-orm'
 import { db } from '../db'
 import * as schema from '../db/schema'
 
@@ -24,6 +24,10 @@ export function trackTokenUsage(userId: number, action: string, model: string, i
           outputTokens: sql`${schema.tokenUsage.outputTokens} + ${outputTokens}`,
         },
       })
+
+      await db.update(schema.users).set({
+        usedTokens: sql`${schema.users.usedTokens} + ${inputTokens + outputTokens}`,
+      }).where(eq(schema.users.id, userId))
     }
     catch (e) {
       console.error('[Token Tracker Error]', e)

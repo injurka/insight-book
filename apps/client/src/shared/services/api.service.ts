@@ -53,6 +53,19 @@ export const api = {
   auth: {
     login: (data: any) => request<{ token: string, user: any }>('/api/auth/login', { method: 'POST', body: JSON.stringify(data) }),
     me: () => request<{ user: any, mode: string }>('/api/auth/me'),
+    updateAvatar: (file: File) => {
+      const fd = new FormData()
+      fd.append('file', file)
+      return request<{ success: boolean, avatarUrl: string }>('/api/auth/me/avatar', {
+        method: 'PATCH',
+        body: fd,
+      })
+    },
+    updateUsername: (username: string) => request<{ success: boolean, username: string }>('/api/auth/me/username', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username }),
+    }),
   },
   books: {
     list: () => request<Book[]>('/api/books'),

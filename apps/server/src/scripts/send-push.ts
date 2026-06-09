@@ -8,7 +8,8 @@ async function main() {
 
   if (customMessage) {
     console.log(`💬 Using custom broadcast message: "${customMessage}"`)
-  } else {
+  }
+  else {
     console.log('🤖 Using AI-generated motivations based on user progress.')
   }
 

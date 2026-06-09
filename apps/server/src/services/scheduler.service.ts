@@ -35,6 +35,7 @@ async function checkAndRunDump() {
 }
 
 export function initScheduler() {
+  // eslint-disable-next-line no-console
   console.log('🕒 Initializing background scheduler...')
 
   if (process.env.ENABLE_AUTO_DUMP === 'true') {

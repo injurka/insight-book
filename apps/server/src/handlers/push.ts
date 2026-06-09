@@ -5,7 +5,7 @@ import * as schema from '../db/schema'
 import { AppError } from '../utils/errors'
 import { json } from '../utils/helpers'
 
-export async function handleGetVapidKey(req: Request) {
+export async function handleGetVapidKey(_req: Request) {
   return json({ publicKey: VAPID_PUBLIC_KEY })
 }
 

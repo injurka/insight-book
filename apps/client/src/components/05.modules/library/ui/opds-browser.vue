@@ -3,9 +3,11 @@ import { Icon } from '@iconify/vue'
 import { onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { KitBtn, KitDialog, KitInput, KitSkeleton } from '~/components/01.kit'
+import { useAuthStore } from '~/shared/store/auth.store'
 import { useOpdsStore } from '../store/opds.store'
 
 const opdsStore = useOpdsStore()
+const authStore = useAuthStore()
 const { t } = useI18n()
 
 const isAddPromptOpen = ref(false)
@@ -86,8 +88,9 @@ function getExt(type: string) {
   return type.split('/').pop()?.toUpperCase() || 'DL'
 }
 
-function onDownload(url: string, title: string, type: string) {
-  opdsStore.downloadBook(url, title, type)
+async function onDownload(url: string, title: string, type: string) {
+  await opdsStore.downloadBook(url, title, type)
+  await authStore.checkAuth() // Обновляем лимиты пользователя после скачивания
 }
 </script>
 

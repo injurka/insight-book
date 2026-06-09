@@ -3,6 +3,7 @@ import { CatalogSchema } from '~/types/schemas'
 import { json } from '~/utils/helpers'
 import { db } from '../db'
 import * as schema from '../db/schema'
+import { checkBookLimit } from '../services/limits.service'
 import { fetchAndParseOpds } from '../services/opds.service'
 import { AppError } from '../utils/errors'
 import { runWorkerTask } from '../workers/worker-client'
@@ -43,6 +44,8 @@ export async function handleBrowseOpds(req: Request) {
 }
 
 export async function handleDownloadOpdsBook(req: Request, userId: number) {
+  await checkBookLimit(userId)
+
   const { downloadUrl, title, type } = await req.json()
 
   const res = await fetch(downloadUrl, { headers: { 'User-Agent': 'InsightBook/1.0' } })

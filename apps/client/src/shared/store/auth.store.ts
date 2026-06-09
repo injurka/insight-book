@@ -1,17 +1,10 @@
+import type { UserData } from '../types/models'
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { api } from '../services/api.service'
 
 export const useAuthStore = defineStore('auth', () => {
-  const user = ref<{
-    id: number
-    username: string
-    pushTargetDeckId?: number | null
-    pushTimeStart?: string
-    pushTimeEnd?: string
-    timezone?: string
-    uiLanguage?: string 
-  } | null>(null)
+  const user = ref<UserData | null>(null)
 
   const isSingleMode = ref(false)
   const isAuthReady = ref(false)
@@ -58,5 +51,21 @@ export const useAuthStore = defineStore('auth', () => {
     user.value = null
   }
 
-  return { user, isSingleMode, isAuthReady, checkAuth, logout }
+  async function updateAvatar(file: File) {
+    const res = await api.auth.updateAvatar(file)
+    if (user.value) {
+      user.value.avatarUrl = res.avatarUrl
+      localStorage.setItem('insight_user_data', JSON.stringify(user.value))
+    }
+  }
+
+  async function updateUsername(username: string) {
+    const res = await api.auth.updateUsername(username)
+    if (user.value) {
+      user.value.username = res.username
+      localStorage.setItem('insight_user_data', JSON.stringify(user.value))
+    }
+  }
+
+  return { user, isSingleMode, isAuthReady, checkAuth, logout, updateAvatar, updateUsername }
 })

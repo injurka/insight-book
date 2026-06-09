@@ -1,8 +1,8 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "c3e682dd-7d29-451a-8afe-a081aafc7840",
-  "prevId": "dad8c347-d030-4cc2-8db0-09f5eca200b2",
+  "id": "850d194e-89cd-4514-b741-308c198d3517",
+  "prevId": "c3e682dd-7d29-451a-8afe-a081aafc7840",
   "tables": {
     "book_llm_cache": {
       "name": "book_llm_cache",
@@ -1237,6 +1237,36 @@
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
+        },
+        "role": {
+          "name": "role",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'user'"
+        },
+        "tokenLimit": {
+          "name": "tokenLimit",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "bookLimit": {
+          "name": "bookLimit",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "usedTokens": {
+          "name": "usedTokens",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
         },
         "createdAt": {
           "name": "createdAt",

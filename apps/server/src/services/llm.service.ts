@@ -21,6 +21,7 @@ import {
   getWordExamplesPrompt,
 } from '../prompts'
 import { AppError } from '../utils/errors'
+import { checkTokenLimit } from './limits.service'
 import { trackTokenUsage } from './token.service'
 
 export async function analyzeSentence(
@@ -32,6 +33,8 @@ export async function analyzeSentence(
   config: LlmConfig,
   context?: string,
 ): Promise<LlmAnalysis> {
+  await checkTokenLimit(userId)
+
   const hash = hashSentence(sentence, language, targetLang)
 
   const cached = await db.query.llmCache.findFirst({
@@ -90,6 +93,8 @@ export async function analyzeSentence(
 }
 
 export async function generateWordExamples(userId: number, word: string, language: string, targetLang: string, config: LlmConfig): Promise<GeneratedWordExamples> {
+  await checkTokenLimit(userId)
+
   if (!config.url)
     throw new AppError(500, 'LLM API не настроен')
 
@@ -118,6 +123,8 @@ export async function generateWordExamples(userId: number, word: string, languag
 }
 
 export async function generateWordAutoFill(userId: number, word: string, language: string, targetLang: string, config: LlmConfig): Promise<WordAutoFillResponse> {
+  await checkTokenLimit(userId)
+
   if (!config.url)
     throw new AppError(500, 'LLM API не настроен')
 
@@ -146,6 +153,8 @@ export async function generateWordAutoFill(userId: number, word: string, languag
 }
 
 export async function analyzeBookExcerpt(userId: number, excerpt: string, config: LlmConfig): Promise<{ description: any, difficulty: string, tags: string[] }> {
+  await checkTokenLimit(userId)
+
   if (!config.url)
     throw new AppError(500, 'LLM API не настроен')
 
@@ -183,6 +192,8 @@ export async function analyzeBookExcerpt(userId: number, excerpt: string, config
 }
 
 export async function analyzeMangaInfo(userId: number, title: string, author: string | null, language: string, config: LlmConfig): Promise<{ description: string, difficulty: string, tags: string[] }> {
+  await checkTokenLimit(userId)
+
   if (!config.url)
     throw new AppError(500, 'LLM API не настроен')
 
@@ -232,6 +243,8 @@ export async function analyzeBatch(userId: number, bookId: number, items: BatchA
 
   if (missingItems.length === 0)
     return results
+
+  await checkTokenLimit(userId)
 
   const payload = missingItems.map(m => ({ id: m.id, text: m.sentence, context: m.context }))
   const messages: ModelMessage[] = [
@@ -301,6 +314,8 @@ export async function generateTts(userId: number, text: string, language: string
 
   if (cached)
     return cached.audioBase64
+
+  await checkTokenLimit(userId)
 
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',

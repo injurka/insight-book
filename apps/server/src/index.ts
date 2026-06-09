@@ -1,7 +1,7 @@
 /* eslint-disable no-console */
 import { CORS_HEADERS, PORT } from './config'
 import { handleGetHeatmapData, handleGetTokenUsage } from './handlers/activity'
-import { handleGetMe, handleLogin } from './handlers/auth'
+import { handleGetAvatarImage, handleGetMe, handleLogin, handleUpdateAvatar, handleUpdateUsername } from './handlers/auth'
 import {
   handleAnalyzeBatch,
   handleAnalyzeBookStats,
@@ -66,6 +66,9 @@ const apiRoutes = {
   // --- Auth ---
   '/api/auth/login': { OPTIONS: corsOk, POST: apiWrapper(handleLogin) },
   '/api/auth/me': { OPTIONS: corsOk, GET: apiWrapper(authWrapper(handleGetMe)) },
+  '/api/auth/me/avatar': { OPTIONS: corsOk, PATCH: apiWrapper(authWrapper(handleUpdateAvatar)) },
+  '/api/auth/me/username': { OPTIONS: corsOk, PATCH: apiWrapper(authWrapper(handleUpdateUsername)) },
+  '/api/uploads/avatars/:filename': { OPTIONS: corsOk, GET: apiWrapper(handleGetAvatarImage) },
 
   // --- Books API ---
   '/api/books': { OPTIONS: corsOk, GET: apiWrapper(optionalAuthWrapper(handleGetBooks)), POST: apiWrapper(authWrapper(handleUploadBook)) },

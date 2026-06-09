@@ -11,7 +11,17 @@
     "switchTheme": "切换主题",
     "switchLanguage": "更改语言",
     "signIn": "登录",
-    "signOut": "退出"
+    "signOut": "退出",
+    "aiTokens": "AI 额度 (Tokens)",
+    "booksLimit": "书籍",
+    "roleAdmin": "管理员",
+    "roleUser": "用户",
+    "theme": "主题",
+    "language": "语言",
+    "changeUsername": "更改用户名",
+    "changeAvatar": "更改头像",
+    "avatarUpdated": "头像已更新",
+    "usernameUpdated": "用户名已更改"
   },
   "signIn": {
     "title": "登录书库",

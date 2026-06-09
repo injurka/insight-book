@@ -21,6 +21,13 @@ export const users = sqliteTable('users', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   username: text('username').notNull().unique(),
   passwordHash: text('passwordHash').notNull(),
+  role: text('role').notNull().default('user'),
+
+  // Лимиты
+  tokenLimit: integer('tokenLimit'),
+  bookLimit: integer('bookLimit'),
+  usedTokens: integer('usedTokens').notNull().default(0),
+
   createdAt: text('createdAt').notNull().default(sql`(datetime('now'))`),
 
   // PUSH-уведомления
@@ -30,6 +37,7 @@ export const users = sqliteTable('users', {
   timezone: text('timezone').notNull().default('UTC'),
   uiLanguage: text('uiLanguage').notNull().default('ru'),
   lastPushSentAt: text('lastPushSentAt'),
+  avatarUrl: text('avatarUrl'),
 })
 
 export const opdsCatalogs = sqliteTable('opds_catalogs', {

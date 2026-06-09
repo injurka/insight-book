@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Icon } from '@iconify/vue'
 import { useI18n } from 'vue-i18n'
-import { KitBtn, KitSelect } from '~/components/01.kit' 
+import { KitBtn, KitSelect } from '~/components/01.kit'
 import { useGlobalSettingsStore } from '~/shared/store/settings.store'
 import { usePushSettings } from '../../composables/use-push-settings'
 

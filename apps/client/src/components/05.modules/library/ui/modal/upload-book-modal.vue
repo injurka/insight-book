@@ -4,12 +4,14 @@ import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { KitBtn, KitDialog, KitInput, KitSelect, KitTabs } from '~/components/01.kit'
 import { useToast } from '~/shared/composables/use-toast'
+import { useAuthStore } from '~/shared/store/auth.store'
 import { useLibraryStore } from '../../store/library.store'
 
 const visible = defineModel<boolean>('visible', { required: true })
 const store = useLibraryStore()
 const toast = useToast()
 const { t } = useI18n()
+const authStore = useAuthStore()
 
 const activeTab = ref<'file' | 'images'>('file')
 const isUploading = ref(false)
@@ -53,6 +55,7 @@ async function onArchiveSelected(e: Event) {
 
     try {
       await store.uploadBook(file)
+      await authStore.checkAuth() // Обновляем лимиты пользователя
       toast.success(t('library.uploadSuccess'))
       visible.value = false
     }
@@ -112,6 +115,8 @@ async function submitCustomManga() {
       uploadProgressText.value = t('library.uploadingChapter', { current: i + 1, total: totalChapters, pages: chapter.files.length })
       await store.uploadMangaChapter(newBook.id, chapter.title, chapter.files)
     }
+
+    await authStore.checkAuth()
 
     uploadProgressText.value = t('analysis.done')
     setTimeout(() => {
