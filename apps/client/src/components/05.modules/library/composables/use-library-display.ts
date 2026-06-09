@@ -59,8 +59,8 @@ export function useLibraryDisplay() {
     if (currentView.value === 'reading-now') {
       filtered = filtered.filter(b => b.status === 'reading' || !b.status)
       filtered.sort((a, b) => {
-        const tA = new Date(a.progressUpdatedAt || a.updatedAt).getTime()
-        const tB = new Date(b.progressUpdatedAt || b.updatedAt).getTime()
+        const tA = new Date(a.progressUpdatedAt || a.updatedAt || 0).getTime()
+        const tB = new Date(b.progressUpdatedAt || b.updatedAt || 0).getTime()
         return tB - tA
       })
       return [{ seriesName: t('library.menuReadingNow'), icon: 'mdi:book-open-page-variant-outline', books: filtered }]
@@ -82,7 +82,7 @@ export function useLibraryDisplay() {
     }
 
     if (currentView.value === 'books') {
-      return [{ seriesName: t('library.menuBooks'), icon: 'mdi:book-open-blank-variant', books: filtered.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()) }]
+      return [{ seriesName: t('library.menuBooks'), icon: 'mdi:book-open-blank-variant', books: filtered.sort((a, b) => new Date(b.updatedAt || 0).getTime() - new Date(a.updatedAt || 0).getTime()) }]
     }
 
     if (currentView.value === 'authors') {

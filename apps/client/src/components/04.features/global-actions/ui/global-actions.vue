@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { Icon } from '@iconify/vue'
-import { computed } from 'vue'
+import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
-import { KitBtn, KitDropdown, KitSelect } from '~/components/01.kit'
+import { KitBtn, KitDropdown, KitSelect, KitPrompt } from '~/components/01.kit'
 import { ThemesVariant, useChangeTheme } from '~/shared/composables/use-change-theme'
+import { useToast } from '~/shared/composables/use-toast'
 import { AppRoutePaths } from '~/shared/constants/routes'
 import { useAuthStore } from '~/shared/store/auth.store'
 import { usePwaStore } from '~/shared/store/pwa.store'
@@ -19,6 +20,7 @@ defineProps<Props>()
 const router = useRouter()
 const authStore = useAuthStore()
 const pwaStore = usePwaStore()
+const toast = useToast()
 const { theme, toggleTheme } = useChangeTheme()
 const { t } = useI18n()
 const settingsStore = useGlobalSettingsStore()
@@ -29,23 +31,14 @@ const appLangOptions = [
   { label: '中文', value: 'zh' },
 ]
 
+const avatarInputRef = ref<HTMLInputElement | null>(null)
+const isUsernamePromptOpen = ref(false)
+
 function formatNumber(num: number | undefined | null) {
   if (num == null)
     return '0'
   return new Intl.NumberFormat('ru-RU').format(num)
 }
-
-const tokenPercent = computed(() => {
-  if (!authStore.user?.tokenLimit)
-    return 0
-  return Math.min(100, Math.round(((authStore.user.usedTokens || 0) / authStore.user.tokenLimit) * 100))
-})
-
-const bookPercent = computed(() => {
-  if (!authStore.user?.bookLimit)
-    return 0
-  return Math.min(100, Math.round(((authStore.user.usedBooks || 0) / authStore.user.bookLimit) * 100))
-})
 
 function setLanguage(lang: string) {
   settingsStore.appLanguage = lang
@@ -74,6 +67,33 @@ function handleSignIn() {
 function handleLogout() {
   authStore.logout()
   window.location.reload()
+}
+
+function triggerAvatarUpload() {
+  avatarInputRef.value?.click()
+}
+
+async function onAvatarChange(e: Event) {
+  const target = e.target as HTMLInputElement
+  if (target.files && target.files.length > 0) {
+    try {
+      await authStore.updateAvatar(target.files[0])
+      toast.success(t('globalActions.avatarUpdated'))
+    }
+    catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Ошибка загрузки аватара')
+    }
+  }
+}
+
+async function handleUsernameSubmit(newUsername: string) {
+  try {
+    await authStore.updateUsername(newUsername)
+    toast.success(t('globalActions.usernameUpdated'))
+  }
+  catch (err) {
+    toast.error(err instanceof Error ? err.message : 'Ошибка')
+  }
 }
 </script>
 
@@ -122,6 +142,7 @@ function handleLogout() {
             :icon="authStore.isSingleMode ? 'mdi:cog-outline' : 'mdi:account-circle-outline'"
             variant="text"
             :class="{ 'is-active-btn': dropdownProps.isOpen }"
+            @click="!dropdownProps.isOpen && authStore.checkAuth()"
           />
         </template>
 
@@ -129,11 +150,15 @@ function handleLogout() {
           <!-- Профиль и Лимиты -->
           <div v-if="!authStore.isSingleMode" class="user-profile">
             <div class="user-header">
-              <div class="user-avatar">
-                <Icon icon="mdi:account-circle" />
+              <div class="user-avatar" :title="t('globalActions.changeAvatar')" @click="triggerAvatarUpload">
+                <img v-if="authStore.user?.avatarUrl" :src="authStore.user.avatarUrl" alt="Avatar" class="avatar-img">
+                <Icon v-else icon="mdi:account-circle" />
+                <div class="avatar-overlay">
+                  <Icon icon="mdi:camera-plus" />
+                </div>
               </div>
               <div class="user-info">
-                <span class="username">{{ authStore.user?.username }}</span>
+                <span class="username" :title="t('globalActions.changeUsername')" @click="isUsernamePromptOpen = true">{{ authStore.user?.username }}</span>
                 <span class="role-badge">{{ authStore.user?.role === 'admin' ? t('globalActions.roleAdmin') : t('globalActions.roleUser') }}</span>
               </div>
             </div>
@@ -141,24 +166,14 @@ function handleLogout() {
             <div v-if="authStore.user?.role !== 'admin'" class="limits-section">
               <!-- ИИ Токены -->
               <div class="limit-item">
-                <div class="limit-labels">
-                  <span>{{ t('globalActions.aiTokens') }}</span>
-                  <span>{{ formatNumber(authStore.user?.usedTokens) }} / {{ authStore.user?.tokenLimit ? formatNumber(authStore.user?.tokenLimit) : '∞' }}</span>
-                </div>
-                <div class="progress-bar">
-                  <div class="progress-fill" :style="{ width: `${tokenPercent}%` }" />
-                </div>
+                <span class="limit-title">{{ t('globalActions.aiTokens') }}</span>
+                <span class="limit-value">{{ formatNumber(authStore.user?.usedTokens) }} / {{ authStore.user?.tokenLimit ? formatNumber(authStore.user?.tokenLimit) : '∞' }}</span>
               </div>
 
               <!-- Лимит книг -->
               <div class="limit-item">
-                <div class="limit-labels">
-                  <span>{{ t('globalActions.booksLimit') }}</span>
-                  <span>{{ authStore.user?.usedBooks || 0 }} / {{ authStore.user?.bookLimit ? authStore.user?.bookLimit : '∞' }}</span>
-                </div>
-                <div class="progress-bar">
-                  <div class="progress-fill" :style="{ width: `${bookPercent}%` }" />
-                </div>
+                <span class="limit-title">{{ t('globalActions.booksLimit') }}</span>
+                <span class="limit-value">{{ authStore.user?.usedBooks || 0 }} / {{ authStore.user?.bookLimit ? authStore.user?.bookLimit : '∞' }}</span>
               </div>
             </div>
           </div>
@@ -203,6 +218,14 @@ function handleLogout() {
         </div>
       </KitDropdown>
     </template>
+    
+    <KitPrompt
+      v-model:visible="isUsernamePromptOpen"
+      :title="t('globalActions.changeUsername')"
+      :default-value="authStore.user?.username"
+      @submit="handleUsernameSubmit"
+    />
+    <input ref="avatarInputRef" type="file" accept="image/*" hidden @change="onAvatarChange">
   </div>
 </template>
 
@@ -267,18 +290,54 @@ function handleLogout() {
   gap: 12px;
 
   .user-avatar {
-    font-size: 2.2rem;
-    color: var(--fg-accent-color);
-    opacity: 0.9;
+    position: relative;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background-color: var(--bg-tertiary-color);
     display: flex;
     align-items: center;
     justify-content: center;
+    cursor: pointer;
+    overflow: hidden;
+    flex-shrink: 0;
+
+    .avatar-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    > svg {
+      font-size: 2.2rem;
+      color: var(--fg-accent-color);
+    }
+
+    .avatar-overlay {
+      position: absolute;
+      inset: 0;
+      background-color: rgba(0, 0, 0, 0.4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      transition: opacity 0.2s;
+      svg {
+        color: white;
+        font-size: 1.4rem;
+      }
+    }
+
+    &:hover .avatar-overlay {
+      opacity: 1;
+    }
   }
 
   .user-info {
     display: flex;
     flex-direction: column;
     gap: 2px;
+    min-width: 0;
 
     .username {
       font-weight: 600;
@@ -287,6 +346,14 @@ function handleLogout() {
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
+      cursor: pointer;
+      border-bottom: 1px dashed transparent;
+      transition: color 0.2s, border-color 0.2s;
+
+      &:hover {
+        color: var(--fg-accent-color);
+        border-color: var(--fg-accent-color);
+      }
     }
 
     .role-badge {
@@ -299,32 +366,33 @@ function handleLogout() {
 .limits-section {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
 
   .limit-item {
     display: flex;
-    flex-direction: column;
-    gap: 4px;
+    justify-content: space-between;
+    align-items: center;
+    background-color: var(--bg-tertiary-color);
+    padding: 10px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--border-secondary-color);
+    font-size: 0.85rem;
+    transition: border-color 0.2s, background-color 0.2s;
 
-    .limit-labels {
-      display: flex;
-      justify-content: space-between;
-      font-size: 0.8rem;
-      color: var(--fg-secondary-color);
-      font-variant-numeric: tabular-nums;
+    &:hover {
+      border-color: var(--border-primary-color);
+      background-color: var(--bg-hover-color);
     }
 
-    .progress-bar {
-      height: 4px;
-      background: var(--bg-tertiary-color);
-      border-radius: 2px;
-      overflow: hidden;
+    .limit-title {
+      font-weight: 500;
+      color: var(--fg-secondary-color);
+    }
 
-      .progress-fill {
-        height: 100%;
-        background: var(--fg-accent-color);
-        transition: width 0.3s ease;
-      }
+    .limit-value {
+      font-weight: 600;
+      color: var(--fg-primary-color);
+      font-variant-numeric: tabular-nums;
     }
   }
 }
@@ -383,7 +451,7 @@ function handleLogout() {
 
   &.pseudo-btn {
     cursor: default;
-    padding-right: 4px; /* Компенсация внутреннего отступа kit-select */
+    padding-right: 4px;
   }
 
   &.text-error {

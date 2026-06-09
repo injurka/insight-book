@@ -180,7 +180,9 @@ onUnmounted(() => {
                 </div>
                 <template v-for="(vocab, idx) in analysisStore.wordPopover.aiData.vocabulary" :key="idx">
                   <div v-if="vocab && vocab.word" class="ai-vocab">
-                    <b>{{ vocab.word }}</b> ({{ vocab.transcription || vocab.pinyin }}) — {{ vocab.meaning }}
+                    <b>{{ vocab.word }}</b> <template v-if="vocab.transcription">
+                      ({{ vocab.transcription }})
+                    </template> — {{ vocab.meaning }}
                   </div>
                 </template>
               </div>
