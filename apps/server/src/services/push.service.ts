@@ -40,6 +40,9 @@ export async function sendDailyMotivations(customMessage?: string) {
   const config = { url: LLM_API_URL, key: LLM_API_KEY, model: LLM_MODEL }
 
   for (const [userId, subs] of userSubsMap.entries()) {
+    const user = subs[0].user
+    const uiLanguage = user.uiLanguage || 'ru'
+
     // eslint-disable-next-line prefer-const
     let messageTitle = 'InsightBook'
     let messageBody = customMessage || 'Время изучать языки!'
@@ -61,7 +64,7 @@ export async function sendDailyMotivations(customMessage?: string) {
         const transcriptionStr = hardestWord.transcription ? ` [${hardestWord.transcription}]` : ''
 
         try {
-          const prompt = getWordPushPrompt(wordStr, transStr)
+          const prompt = getWordPushPrompt(wordStr, transStr, uiLanguage)
 
           const response = await callLlmApi(
             config.model,
@@ -79,12 +82,14 @@ export async function sendDailyMotivations(customMessage?: string) {
         }
         catch {
           console.warn(`[Push] LLM failed for user ${userId}, using fallback.`)
-          messageBody = `Кажется, вы стали забывать это слово:\n\n${wordStr}${transcriptionStr} — ${transStr}`
+          messageBody = uiLanguage === 'ru'
+            ? `Кажется, вы стали забывать это слово:\n\n${wordStr}${transcriptionStr} — ${transStr}`
+            : `It seems you're starting to forget this word:\n\n${wordStr}${transcriptionStr} — ${transStr}`
         }
       }
       else {
         try {
-          const prompt = getGeneralPushPrompt()
+          const prompt = getGeneralPushPrompt(uiLanguage)
           const response = await callLlmApi(config.model, [{ role: 'user', content: prompt }], 0.8, AbortSignal.timeout(10000), config)
           const parsed = parseLlmJson<{ message: string }>(response.text)
           if (parsed && parsed.message) {
@@ -102,7 +107,6 @@ export async function sendDailyMotivations(customMessage?: string) {
       icon: '/logo.png',
     })
 
-    // Рассылаем на все девайсы юзера
     for (const sub of subs) {
       try {
         const keys = JSON.parse(sub.keys)

@@ -335,22 +335,29 @@ JSON Schema:
 /**
  * Генерирует промпт для Push-уведомления со словом для интервального повторения
  */
-export function getWordPushPrompt(wordStr: string, transStr: string): string {
-  return `Ты креативный ИИ-помощник. Твоя задача сгенерировать забавное, прикольное и короткое сообщение (ровно одно предложение) для push-уведомления.
-Условия:
-1. Никаких призывов к действию (запрещено использовать слова вроде "Зайди", "Перейди", "Повтори", "Открой", "Учи").
-2. Просто классная мысль, шутка, метафора или абсурдное наблюдение, которое органично включает в себя смысл слова "${wordStr}" (перевод: ${transStr}).
-3. Строго одно предложение на русском языке.
+export function getWordPushPrompt(wordStr: string, transStr: string, uiLanguage: string = 'ru'): string {
+  const langMap: Record<string, string> = { ru: 'Russian', en: 'English', zh: 'Chinese' }
+  const targetLang = langMap[uiLanguage] || 'Russian'
 
-ОБЯЗАТЕЛЬНО верни ответ в формате JSON:
+  return `You are a creative AI assistant. Your task is to generate a funny, cool, and short push notification message (exactly one sentence).
+Conditions:
+1. No call to action (do NOT use words like "Come in", "Learn", "Open", "Repeat").
+2. Just a cool thought, joke, metaphor, or absurd observation that organically includes the meaning of the word "${wordStr}" (translation: ${transStr}).
+3. Strictly one sentence.
+4. The output language MUST BE: ${targetLang}.
+
+MUST return response in JSON format:
 {
-  "message": "твое предложение"
+  "message": "your sentence"
 }`
 }
 
 /**
  * Генерирует промпт для Push-уведомления, если нет слов на повторении
  */
-export function getGeneralPushPrompt(): string {
-  return `Сгенерируй короткую (1 предложение) забавную философскую мысль об изучении иностранных языков. Без призывов "Зайди" или "Учи". Верни JSON: { "message": "текст" }`
+export function getGeneralPushPrompt(uiLanguage: string = 'ru'): string {
+  const langMap: Record<string, string> = { ru: 'Russian', en: 'English', zh: 'Chinese' }
+  const targetLang = langMap[uiLanguage] || 'Russian'
+
+  return `Generate a short (1 sentence) funny philosophical thought about learning foreign languages. No "Come back and learn" calls to action. The output language MUST BE: ${targetLang}. Return JSON: { "message": "text" }`
 }

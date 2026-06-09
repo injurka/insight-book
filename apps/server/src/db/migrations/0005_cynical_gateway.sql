@@ -1,0 +1,1 @@
+ALTER TABLE `users` ADD `uiLanguage` text DEFAULT 'ru' NOT NULL;

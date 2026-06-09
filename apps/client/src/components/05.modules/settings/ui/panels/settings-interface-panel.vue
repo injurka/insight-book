@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Icon } from '@iconify/vue'
 import { useI18n } from 'vue-i18n'
-import { KitBtn, KitSelect } from '~/components/01.kit' // Удалили KitInput за ненадобностью
+import { KitBtn, KitSelect } from '~/components/01.kit' 
 import { useGlobalSettingsStore } from '~/shared/store/settings.store'
 import { usePushSettings } from '../../composables/use-push-settings'
 
@@ -16,6 +16,7 @@ const {
   pushTimeEndModel,
   savePushSettings,
   handlePushToggle,
+  isPushLoading,
 } = usePushSettings()
 
 const appLangOptions = [
@@ -49,6 +50,9 @@ const appLangOptions = [
         :variant="pwaStore.isPushSubscribed ? 'tonal' : 'outlined'"
         :color="pwaStore.isPushSubscribed ? 'success' : 'secondary'"
         class="push-btn"
+        :disabled="isPushLoading"
+        :icon="isPushLoading ? 'mdi:loading' : undefined"
+        :class="{ 'is-loading': isPushLoading }"
         @click="handlePushToggle"
       >
         {{ pwaStore.isPushSubscribed ? t('settings.pushActive') : t('settings.pushEnable') }}
@@ -78,7 +82,6 @@ const appLangOptions = [
 </template>
 
 <style lang="scss" scoped>
-/* Стили остаются без изменений */
 .section-title {
   margin-top: 32px;
   margin-bottom: 16px;
@@ -126,6 +129,11 @@ const appLangOptions = [
   }
   .push-btn {
     flex-shrink: 0;
+    &.is-loading {
+      :deep(.kit-btn-icon) {
+        animation: spin 1s linear infinite;
+      }
+    }
   }
 }
 .push-details {
@@ -157,5 +165,10 @@ const appLangOptions = [
 .divider {
   height: 1px;
   background-color: var(--border-secondary-color);
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 </style>

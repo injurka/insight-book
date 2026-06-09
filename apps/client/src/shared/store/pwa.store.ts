@@ -1,5 +1,7 @@
 import { defineStore } from 'pinia'
+import { i18n } from '~/shared/plugins/i18n'
 import { useAuthStore } from './auth.store'
+import { useToastStore } from './toast.store'
 
 type UpdateServiceWorkerFunction = (reloadPage?: boolean) => Promise<void>
 
@@ -63,8 +65,12 @@ export const usePwaStore = defineStore('pwa', {
     },
 
     async togglePushSubscription() {
+      const toast = useToastStore()
+      const t = i18n.global.t
+
       if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
-        throw new Error('Push уведомления не поддерживаются в этом браузере или устройство не добавлено на главный экран (iOS)')
+        toast.error(t('settings.pushNotSupported'))
+        throw new Error('Push not supported')
       }
 
       const BASE = import.meta.env.VITE_API_URL || 'https://insight-api.trip-scheduler.ru'
@@ -84,31 +90,66 @@ export const usePwaStore = defineStore('pwa', {
           body: JSON.stringify({ endpoint: sub.endpoint }),
         })
         this.isPushSubscribed = false
+        toast.info(t('settings.pushDisabled'))
       }
       else {
+        // Запрос прав у пользователя
+        const permission = await Notification.requestPermission()
+        if (permission === 'denied') {
+          toast.error(t('settings.pushDenied'))
+          throw new Error('Permission denied')
+        }
+
         const res = await fetch(`${BASE}/api/push/vapid-public-key`, { headers })
+        if (!res.ok) {
+          toast.error(t('settings.pushKeyError'))
+          throw new Error('VAPID key fetch failed')
+        }
+
         const { publicKey } = await res.json()
 
-        sub = await reg.pushManager.subscribe({
-          userVisibleOnly: true,
-          applicationServerKey: urlBase64ToUint8Array(publicKey),
-        })
+        try {
+          sub = await reg.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: urlBase64ToUint8Array(publicKey),
+          })
+        }
+        catch (e: any) {
+          toast.error(`${t('settings.pushSubError')}: ${e.message}`)
+          throw e
+        }
 
-        await fetch(`${BASE}/api/push/subscribe`, {
+        const subRes = await fetch(`${BASE}/api/push/subscribe`, {
           method: 'POST',
           headers,
           body: JSON.stringify(sub),
         })
 
+        if (!subRes.ok) {
+          toast.error(t('settings.pushSubError'))
+          throw new Error('Subscription API request failed')
+        }
+
         this.isPushSubscribed = true
+        toast.success(t('settings.pushEnabled'))
+
+        const authStore = useAuthStore()
+        this.updatePushSettings({
+          deckId: authStore.user?.pushTargetDeckId ?? 'all',
+          timeStart: authStore.user?.pushTimeStart ?? '10:00',
+          timeEnd: authStore.user?.pushTimeEnd ?? '21:00',
+        }).catch(console.error)
       }
     },
 
     async updatePushSettings(settings: { deckId: number | 'all', timeStart: string, timeEnd: string }) {
       const BASE = import.meta.env.VITE_API_URL || 'https://insight-api.trip-scheduler.ru'
-
-      // Автоматически получаем таймзону браузера
       const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'
+
+      // Динамический импорт, чтобы избежать циклической зависимости
+      const { useGlobalSettingsStore } = await import('./settings.store')
+      const settingsStore = useGlobalSettingsStore()
+      const uiLanguage = settingsStore.appLanguage || 'ru'
 
       await fetch(`${BASE}/api/push/settings`, {
         method: 'PATCH',
@@ -121,6 +162,7 @@ export const usePwaStore = defineStore('pwa', {
           timeStart: settings.timeStart,
           timeEnd: settings.timeEnd,
           timezone,
+          uiLanguage, // Передаем на сервер текущий язык приложения
         }),
       })
 
@@ -130,6 +172,7 @@ export const usePwaStore = defineStore('pwa', {
         authStore.user.pushTimeStart = settings.timeStart
         authStore.user.pushTimeEnd = settings.timeEnd
         authStore.user.timezone = timezone
+        authStore.user.uiLanguage = uiLanguage
       }
     },
   },

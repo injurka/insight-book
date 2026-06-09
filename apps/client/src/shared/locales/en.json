@@ -70,6 +70,10 @@
     "cacheTtsWordsDesc": "Generate audio for each word"
   },
   "settings": {
+    "pushNotSupported": "Push notifications are not supported in this browser or the app is not added to the home screen (iOS).",
+    "pushDenied": "Notifications are blocked. Please allow them in your browser settings.",
+    "pushKeyError": "Failed to retrieve the server key for push notifications.",
+    "pushSubError": "Failed to subscribe to notifications.",
     "pushNotifications": "Push Notifications",
     "pushDesc": "Daily AI motivation and word reminders",
     "pushActive": "Enabled",

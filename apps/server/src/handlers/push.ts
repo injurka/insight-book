@@ -37,13 +37,14 @@ export async function handleUnsubscribe(req: Request, userId: number) {
 
 export async function handleUpdatePushSettings(req: Request, userId: number) {
   const body = await req.json()
-  const { targetDeckId, timeStart, timeEnd, timezone } = body
+  const { targetDeckId, timeStart, timeEnd, timezone, uiLanguage } = body
 
   await db.update(schema.users).set({
     pushTargetDeckId: targetDeckId === 'all' || !targetDeckId ? null : targetDeckId,
     pushTimeStart: timeStart || '10:00',
     pushTimeEnd: timeEnd || '21:00',
     timezone: timezone || 'UTC',
+    uiLanguage: uiLanguage || 'ru',
   }).where(eq(schema.users.id, userId))
 
   return json({ success: true })

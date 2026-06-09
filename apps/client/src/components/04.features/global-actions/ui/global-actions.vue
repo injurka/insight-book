@@ -5,6 +5,7 @@ import { KitBtn, KitDropdown, KitTooltip } from '~/components/01.kit'
 import { ThemesVariant, useChangeTheme } from '~/shared/composables/use-change-theme'
 import { AppRoutePaths } from '~/shared/constants/routes'
 import { useAuthStore } from '~/shared/store/auth.store'
+import { usePwaStore } from '~/shared/store/pwa.store'
 import { useGlobalSettingsStore } from '~/shared/store/settings.store'
 
 interface Props {
@@ -15,6 +16,7 @@ defineProps<Props>()
 
 const router = useRouter()
 const authStore = useAuthStore()
+const pwaStore = usePwaStore()
 const { theme, toggleTheme } = useChangeTheme()
 const { t } = useI18n()
 const settingsStore = useGlobalSettingsStore()
@@ -27,6 +29,14 @@ const appLangOptions = [
 
 function setLanguage(lang: string) {
   settingsStore.appLanguage = lang
+
+  if (authStore.user) {
+    pwaStore.updatePushSettings({
+      deckId: authStore.user.pushTargetDeckId ?? 'all',
+      timeStart: authStore.user.pushTimeStart || '10:00',
+      timeEnd: authStore.user.pushTimeEnd || '21:00',
+    }).catch(() => {})
+  }
 }
 
 function openDictionary() {

@@ -10,6 +10,7 @@ export const useAuthStore = defineStore('auth', () => {
     pushTimeStart?: string
     pushTimeEnd?: string
     timezone?: string
+    uiLanguage?: string 
   } | null>(null)
 
   const isSingleMode = ref(false)

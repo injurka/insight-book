@@ -15,6 +15,8 @@ export function usePushSettings() {
   const pushTimeStartModel = ref(authStore.user?.pushTimeStart || '10:00')
   const pushTimeEndModel = ref(authStore.user?.pushTimeEnd || '21:00')
 
+  const isPushLoading = ref(false)
+
   onMounted(() => {
     pwaStore.checkPushStatus()
     dictStore.fetchDecks()
@@ -70,17 +72,19 @@ export function usePushSettings() {
   }
 
   async function handlePushToggle() {
+    if (isPushLoading.value)
+      return
+
+    isPushLoading.value = true
+
     try {
       await pwaStore.togglePushSubscription()
-      if (pwaStore.isPushSubscribed) {
-        toast.success(t('settings.pushEnabled'))
-      }
-      else {
-        toast.info(t('settings.pushDisabled'))
-      }
     }
-    catch (err: any) {
-      toast.error(err.message || t('settings.pushError'))
+    catch (err) {
+      console.warn('[Push Service] Toggle error:', err)
+    }
+    finally {
+      isPushLoading.value = false
     }
   }
 
@@ -93,5 +97,6 @@ export function usePushSettings() {
     pushTimeEndModel,
     savePushSettings,
     handlePushToggle,
+    isPushLoading,
   }
 }
