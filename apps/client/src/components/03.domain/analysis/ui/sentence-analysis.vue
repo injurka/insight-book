@@ -142,15 +142,22 @@ onUnmounted(() => stop())
         <div v-if="analysisStore.sidebarAnalysis.grammarRules?.length" class="analysis-block">
           <h3><Icon icon="mdi:puzzle-outline" class="inline-icon" /> {{ t('analysis.grammar') }}</h3>
           <div v-for="(rule, idx) in analysisStore.sidebarAnalysis.grammarRules" :key="idx" class="grammar-card">
-            <div class="rule-pattern">
-              {{ rule.pattern }}
-            </div>
-            <div class="rule-exp">
-              {{ rule.explanation }}
-            </div>
-            <div v-if="rule.example" class="rule-ex">
-              {{ t('analysis.example') }}: {{ rule.example }}
-            </div>
+            <template v-if="typeof rule === 'string'">
+              <div class="rule-pattern">
+                {{ rule }}
+              </div>
+            </template>
+            <template v-else>
+              <div class="rule-pattern">
+                {{ rule.pattern }}
+              </div>
+              <div class="rule-exp">
+                {{ rule.explanation }}
+              </div>
+              <div v-if="rule.example" class="rule-ex">
+                {{ t('analysis.example') }}: {{ rule.example }}
+              </div>
+            </template>
           </div>
         </div>
 
@@ -160,7 +167,7 @@ onUnmounted(() => stop())
             <li v-for="(v, idx) in analysisStore.sidebarAnalysis.vocabulary" :key="idx">
               <div class="vocab-word">
                 <span class="dict-word">{{ v.word }}</span>
-                <span class="dict-transcription">{{ v.transcription }}</span>
+                <span class="dict-transcription">{{ v.transcription || v.pinyin }}</span>
               </div>
               <div class="vocab-meaning">
                 {{ v.meaning }}

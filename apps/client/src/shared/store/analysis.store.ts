@@ -84,6 +84,7 @@ export const useAnalysisStore = defineStore('analysis', () => {
   // Abort Controllers
   let wordAbortController: AbortController | null = null
   let pageAnalysisAbortController: AbortController | null = null
+  let manualAnalysisAbortController: AbortController | null = null
 
   // Dictionary Modal
   const addEditWordModalOpen = ref(false)
@@ -186,7 +187,6 @@ export const useAnalysisStore = defineStore('analysis', () => {
         const batchSize = settingsStore.useCustomLlm ? 1 : 5
         const itemsToFetch: AnalysisTask[] = []
 
-        // Отбираем ИМЕННО batchSize фраз, которых нет в кэше
         for (const task of textTasks) {
           task.status = 'processing'
           const cached = await offlineService.getAnalysis(book.id, task.text)
@@ -296,6 +296,11 @@ export const useAnalysisStore = defineStore('analysis', () => {
     if (!currentBook)
       return
 
+    if (manualAnalysisAbortController) {
+      manualAnalysisAbortController.abort()
+      manualAnalysisAbortController = null
+    }
+
     sidebarSentence.value = sentence
     sidebarOpen.value = true
     sidebarAnalysis.value = null
@@ -316,9 +321,33 @@ export const useAnalysisStore = defineStore('analysis', () => {
       return
     }
 
-    taskQueue.value.push({ id: uuidv4(), type: 'sentence', text: sentence, context, priority: 1, status: 'pending' })
-    queueTotal.value++
-    processQueue()
+    manualAnalysisAbortController = new AbortController()
+    const signal = manualAnalysisAbortController.signal
+
+    try {
+      const res = await api.books.analyze(currentBook.id, sentence, currentBook.language, context, signal)
+      if (signal.aborted)
+        return
+
+      await offlineService.saveAnalysis(currentBook.id, sentence, res)
+
+      if (sidebarSentence.value === sentence) {
+        sidebarAnalysis.value = res
+        analysisHistory.value.unshift({ sentence, analysis: res, timestamp: Date.now() })
+      }
+    }
+    catch (err: unknown) {
+      const e = err as Error
+      if (e.name !== 'AbortError') {
+        console.error('Manual analyze error:', e)
+        useToastStore().error('Ошибка анализа предложения')
+      }
+    }
+    finally {
+      if (sidebarSentence.value === sentence && !signal.aborted) {
+        isAnalyzing.value = false
+      }
+    }
   }
 
   async function analyzeWholePage(options: { sentences: boolean, words: boolean, ttsSentences: boolean, ttsWords: boolean }, isBackground: boolean = false) {
@@ -437,7 +466,7 @@ export const useAnalysisStore = defineStore('analysis', () => {
 
       const targetWord = wordPopover.value.word
       const vocabMatch = cached.vocabulary?.find(v => v.word.includes(targetWord) || targetWord.includes(v.word))
-      wordPopover.value.aiTranscription = cached.transcription || vocabMatch?.transcription || ''
+      wordPopover.value.aiTranscription = cached.transcription || vocabMatch?.transcription || vocabMatch?.pinyin || ''
       wordPopover.value.isAiLoading = false
       return
     }
@@ -468,7 +497,7 @@ export const useAnalysisStore = defineStore('analysis', () => {
 
         const targetWord = wordPopover.value.word
         const vocabMatch = res.vocabulary?.find(v => v.word.includes(targetWord) || targetWord.includes(v.word))
-        wordPopover.value.aiTranscription = res.transcription || vocabMatch?.transcription || ''
+        wordPopover.value.aiTranscription = res.transcription || vocabMatch?.transcription || vocabMatch?.pinyin || ''
       }
     }
     catch (err: unknown) {
@@ -638,10 +667,10 @@ export const useAnalysisStore = defineStore('analysis', () => {
       let vocabularyNote = null
       if (wordData.showAi && wordData.aiData) {
         if (wordData.aiData.grammarRules?.length) {
-          grammarNote = wordData.aiData.grammarRules.map(r => `<b>${r.pattern}</b> — ${r.explanation}`).join('<br>')
+          grammarNote = wordData.aiData.grammarRules.map(r => typeof r === 'string' ? r : `<b>${r.pattern}</b> — ${r.explanation}`).join('<br>')
         }
         if (wordData.aiData.vocabulary?.length) {
-          vocabularyNote = wordData.aiData.vocabulary.map(v => `<b>${v.word}</b> (${v.transcription}) — ${v.meaning}`).join('<br>')
+          vocabularyNote = wordData.aiData.vocabulary.map(v => `<b>${v.word}</b> (${v.transcription || v.pinyin}) — ${v.meaning}`).join('<br>')
         }
       }
 

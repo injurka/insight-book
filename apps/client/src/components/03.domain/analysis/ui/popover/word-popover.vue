@@ -171,7 +171,12 @@ onUnmounted(() => {
                   {{ t('analysis.grammarColon') }}
                 </div>
                 <div v-for="(rule, idx) in analysisStore.wordPopover.aiData.grammarRules" :key="idx" class="ai-rule">
-                  <b>{{ rule.pattern }}</b> — {{ rule.explanation }}
+                  <template v-if="typeof rule === 'string'">
+                    {{ rule }}
+                  </template>
+                  <template v-else>
+                    <b>{{ rule.pattern }}</b> — {{ rule.explanation }}
+                  </template>
                 </div>
               </div>
               <div v-if="analysisStore.wordPopover.aiData.vocabulary?.length" class="ai-section">
@@ -179,7 +184,7 @@ onUnmounted(() => {
                   {{ t('analysis.vocabularyColon') }}
                 </div>
                 <div v-for="(vocab, idx) in analysisStore.wordPopover.aiData.vocabulary" :key="idx" class="ai-vocab">
-                  <b>{{ vocab.word }}</b> ({{ vocab.transcription }}) — {{ vocab.meaning }}
+                  <b>{{ vocab.word }}</b> ({{ vocab.transcription || vocab.pinyin }}) — {{ vocab.meaning }}
                 </div>
               </div>
             </template>

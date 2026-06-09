@@ -110,12 +110,13 @@ export interface VocabItem {
   transcription: string
   meaning: string
   usageInContext: string
+  pinyin?: string
 }
 
 export interface LlmAnalysis {
   transcription: string
   translation: string
-  grammarRules: GrammarRule[]
+  grammarRules: (GrammarRule | string)[] 
   vocabulary: VocabItem[]
 }
 
