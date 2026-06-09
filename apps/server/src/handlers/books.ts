@@ -4,7 +4,7 @@ import type { PagePayload } from '../types'
 import { mkdirSync, readFileSync } from 'node:fs'
 import { rm, unlink } from 'node:fs/promises'
 import path from 'node:path'
-import { and, desc, eq, or } from 'drizzle-orm'
+import { and, desc, eq, like, or, sql } from 'drizzle-orm'
 import { parse as parseHtml } from 'node-html-parser'
 import sharp from 'sharp'
 
@@ -19,7 +19,69 @@ import { recognizeMangaPage } from '../services/ocr.service'
 import { AppError } from '../utils/errors'
 import { runWorkerTask } from '../workers/worker-client'
 
-export async function handleGetBooks(req: Request, userId: number): Promise<Response> {
+export async function handleGetBooks(req: Request, userId: number | null): Promise<Response> {
+  const url = new URL(req.url)
+  const tab = url.searchParams.get('tab') || 'my'
+
+  if (tab === 'public') {
+    const page = Math.max(1, Number.parseInt(url.searchParams.get('page') || '1'))
+    const limit = Math.max(1, Number.parseInt(url.searchParams.get('limit') || '20'))
+    const tag = url.searchParams.get('tag')
+    const search = url.searchParams.get('search')
+    const language = url.searchParams.get('lang')
+
+    let conditions = [eq(schema.books.isPublic, true)]
+
+    const baseQuery = db.select({
+      book: schema.books,
+      stats: schema.bookStats,
+      progress: schema.readingProgress,
+    })
+      .from(schema.books)
+      .leftJoin(schema.bookStats, eq(schema.books.id, schema.bookStats.bookId))
+      .leftJoin(schema.readingProgress, and(
+        eq(schema.readingProgress.bookId, schema.books.id),
+        userId ? eq(schema.readingProgress.userId, userId) : sql`1=0`,
+      ))
+
+    if (tag && tag !== 'all') {
+      conditions.push(like(schema.bookStats.tags, `%"${tag}"%`))
+    }
+    if (search) {
+      conditions.push(like(schema.books.title, `%${search}%`))
+    }
+    if (language && language !== 'all') {
+      conditions.push(eq(schema.books.language, language))
+    }
+
+    const totalRes = await db.select({ count: sql<number>`count(*)` })
+      .from(schema.books)
+      .leftJoin(schema.bookStats, eq(schema.books.id, schema.bookStats.bookId))
+      .where(and(...conditions))
+      .get()
+    const total = totalRes?.count || 0
+
+    const rows = await baseQuery
+      .where(and(...conditions))
+      .orderBy(desc(schema.books.createdAt))
+      .limit(limit)
+      .offset((page - 1) * limit)
+
+    const data = rows.map(r => ({
+      ...r.book,
+      stats: r.stats ? { ...r.stats, tags: JSON.parse(r.stats.tags || '[]') } : null,
+      currentPage: r.progress?.currentPage ?? null,
+      progressUpdatedAt: r.progress?.updatedAt ?? null,
+    }))
+
+    return json({ data, total, page, limit })
+  }
+
+  if (!userId) {
+    throw new AppError(401, 'Необходима авторизация')
+  }
+
+  // Мои книги
   const allBooks = await db.query.books.findMany({
     where: or(
       eq(schema.books.userId, userId),
@@ -50,27 +112,43 @@ export async function handleGetBooks(req: Request, userId: number): Promise<Resp
   return json(result)
 }
 
-export async function handleGetBookInfo(req: Request, userId: number): Promise<Response> {
+export async function handleGetBookInfo(req: Request, userId: number | null): Promise<Response> {
   const id = Number(req.params.id)
-  const book = await db.query.books.findFirst({
-    where: and(
+
+  let condition
+  if (userId) {
+    condition = and(
       eq(schema.books.id, id),
       or(eq(schema.books.userId, userId), eq(schema.books.isPublic, true)),
-    ),
-    with: { progresses: { where: eq(schema.readingProgress.userId, userId), limit: 1 }, stats: true },
+    )
+  }
+  else {
+    condition = and(
+      eq(schema.books.id, id),
+      eq(schema.books.isPublic, true),
+    )
+  }
+
+  const book = await db.query.books.findFirst({
+    where: condition,
+    with: {
+      progresses: userId ? { where: eq(schema.readingProgress.userId, userId), limit: 1 } : undefined,
+      stats: true,
+    },
   })
+
   if (!book)
     throw new AppError(404, 'Книга не найдена или доступ закрыт')
 
-  const progress = book.progresses[0]
+  const progress = book.progresses ? book.progresses[0] : null
   const { progresses, stats, ...bookData } = book
   const statsResult = stats
     ? {
-        ...stats,
-        tags: stats.tags ? JSON.parse(stats.tags) : [],
-        posDistribution: stats.posDistribution ? JSON.parse(stats.posDistribution) : null,
-        topWords: stats.topWords ? JSON.parse(stats.topWords) : null,
-      }
+      ...stats,
+      tags: stats.tags ? JSON.parse(stats.tags) : [],
+      posDistribution: stats.posDistribution ? JSON.parse(stats.posDistribution) : null,
+      topWords: stats.topWords ? JSON.parse(stats.topWords) : null,
+    }
     : null
 
   return json({
@@ -81,6 +159,24 @@ export async function handleGetBookInfo(req: Request, userId: number): Promise<R
   }, 200, {
     'Cache-Control': 'private, stale-while-revalidate=60',
   })
+}
+
+export async function handleStartReading(req: Request, userId: number): Promise<Response> {
+  const id = Number(req.params.id)
+  const book = await db.query.books.findFirst({ where: eq(schema.books.id, id) })
+  if (!book)
+    throw new AppError(404, 'Книга не найдена')
+  if (!book.isPublic && book.userId !== userId)
+    throw new AppError(403, 'Нет доступа')
+
+  await db.insert(schema.readingProgress).values({
+    bookId: id,
+    userId,
+    currentPage: 1,
+    updatedAt: new Date().toISOString(),
+  }).onConflictDoNothing()
+
+  return json({ success: true })
 }
 
 export async function handleAnalyzeVocabulary(req: Request, userId: number): Promise<Response> {

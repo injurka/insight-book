@@ -56,8 +56,11 @@ export const api = {
   },
   books: {
     list: () => request<Book[]>('/api/books'),
+    getPublic: (query: string) => request<{ data: Book[], total: number, page: number, limit: number }>(`/api/books?${query}`),
 
     getInfo: (id: number) => request<Book>(`/api/books/${id}/info`),
+
+    startReading: (id: number) => request<{ success: boolean }>(`/api/books/${id}/start`, { method: 'POST' }),
 
     updateInfo: (id: number, data: Partial<Book>) =>
       request<{ success: boolean }>(`/api/books/${id}`, {
@@ -151,10 +154,12 @@ export const api = {
       const url = path.startsWith('http') ? path : `${BASE}${path}`
       const headers = new Headers()
       const token = localStorage.getItem('insight_token')
-      if (token) headers.set('Authorization', `Bearer ${token}`)
+      if (token)
+        headers.set('Authorization', `Bearer ${token}`)
 
       const res = await fetch(url, { headers })
-      if (!res.ok) throw new Error(`Failed to fetch image: ${res.statusText}`)
+      if (!res.ok)
+        throw new Error(`Failed to fetch image: ${res.statusText}`)
       return res.blob()
     },
   },

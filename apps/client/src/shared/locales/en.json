@@ -124,6 +124,10 @@
     }
   },
   "library": {
+    "menuPublicCatalog": "Public Catalog",
+    "allTags": "All Tags",
+    "prevPage": "Prev",
+    "nextPage": "Next",
     "textDirection": "Text Direction",
     "dirAuto": "Auto (by language)",
     "dirLtr": "Left to Right",

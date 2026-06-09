@@ -4,10 +4,16 @@ import { v4 as uuidv4 } from 'uuid'
 import { ref } from 'vue'
 import { api } from '~/shared/services/api.service'
 import { offlineService } from '~/shared/services/offline.service'
+import { useAuthStore } from '~/shared/store/auth.store'
 import { useGlobalSettingsStore } from '~/shared/store/settings.store'
 
 export const useLibraryStore = defineStore('library', () => {
   const books = ref<Book[]>([])
+  const publicBooks = ref<Book[]>([])
+  const publicTotal = ref(0)
+  const publicPage = ref(1)
+  const publicLimit = ref(20)
+
   const currentBookInfo = ref<Book | null>(null)
 
   const isLoading = ref(false)
@@ -78,7 +84,6 @@ export const useLibraryStore = defineStore('library', () => {
     }
 
     try {
-      // 1. Оглавление
       try {
         const toc = await api.books.getToc(bookId)
         await offlineService.saveToc(bookId, toc)
@@ -87,7 +92,6 @@ export const useLibraryStore = defineStore('library', () => {
 
       const needPageContent = options.cachePages || options.analyzeSentences || options.analyzeWords || options.ttsSentences || options.ttsWords
 
-      // 1.5 Кэширование обложки
       if (options.cachePages && book.coverUrl && !book.localCoverUrl) {
         syncProgress.value.currentTask = 'Кэширование обложки...'
         const cachedCover = await offlineService.getCover(book.id)
@@ -103,14 +107,12 @@ export const useLibraryStore = defineStore('library', () => {
         }
       }
 
-      // 2. Постраничная загрузка и анализ
       if (needPageContent) {
         for (let i = 1; i <= book.totalPages; i++) {
           if (signal.aborted)
             throw new Error('Aborted')
           syncProgress.value.currentTask = `Загрузка страницы ${i} из ${book.totalPages}`
 
-          // 2.1 Получение страницы (Сохраняем ТОЛЬКО если стоит галочка)
           let page = await offlineService.getPage(bookId, i)
           if (!page) {
             page = await api.books.getPage(bookId, i, true)
@@ -119,7 +121,6 @@ export const useLibraryStore = defineStore('library', () => {
             }
           }
 
-          // Если это манга и есть картинка, качаем Blob
           if (options.cachePages && page.type === 'manga' && page.imageUrl) {
             const cachedImage = await offlineService.getImage(bookId, i)
             if (!cachedImage) {
@@ -133,7 +134,6 @@ export const useLibraryStore = defineStore('library', () => {
             }
           }
 
-          // 2.2 Словарь страницы (Только если стоит галочка cachePages)
           if (options.cachePages) {
             const dict = await offlineService.getPageDictionary(bookId, i)
             if (!dict) {
@@ -149,7 +149,6 @@ export const useLibraryStore = defineStore('library', () => {
 
           syncProgress.value.pagesDone = i
 
-          // Извлекаем элементы для анализа
           const pageSentences = new Set<string>()
           const pageWords = new Set<string>()
 
@@ -189,7 +188,6 @@ export const useLibraryStore = defineStore('library', () => {
           const sentences = Array.from(pageSentences).filter(s => /[\p{L}\p{N}]/u.test(s))
           const words = Array.from(pageWords).filter(w => /[\p{L}\p{N}]/u.test(w))
 
-          // 2.3 Анализ предложений страницы (Батчинг + Параллелизм)
           if (options.analyzeSentences) {
             syncProgress.value.sentencesTotal += sentences.length
             const missingSentences: string[] = []
@@ -204,7 +202,6 @@ export const useLibraryStore = defineStore('library', () => {
               }
             }
 
-            // Разбиваем строго на полные батчи
             const batches: string[][] = []
             for (let j = 0; j < missingSentences.length; j += batchSize) {
               batches.push(missingSentences.slice(j, j + batchSize))
@@ -237,7 +234,6 @@ export const useLibraryStore = defineStore('library', () => {
             }
           }
 
-          // 2.4 Анализ слов страницы (Батчинг + Параллелизм)
           if (options.analyzeWords) {
             syncProgress.value.wordsTotal += words.length
             const missingWords: string[] = []
@@ -284,7 +280,6 @@ export const useLibraryStore = defineStore('library', () => {
             }
           }
 
-          // 2.5 TTS (Озвучка)
           if (options.ttsSentences || options.ttsWords) {
             const ttsItems: string[] = []
             if (options.ttsSentences)
@@ -346,6 +341,11 @@ export const useLibraryStore = defineStore('library', () => {
   }
 
   async function fetchBooks() {
+    const authStore = useAuthStore()
+    if (!authStore.user && !authStore.isSingleMode) {
+      return // Не загружать личные книги, если гость
+    }
+
     isLoading.value = true
     try {
       books.value = await api.books.list()
@@ -359,6 +359,42 @@ export const useLibraryStore = defineStore('library', () => {
     finally {
       await attachCachedCovers(books.value)
       isLoading.value = false
+    }
+  }
+
+  async function fetchPublicBooks(page: number, tag?: string, search?: string, lang?: string) {
+    isLoading.value = true
+    try {
+      const q = new URLSearchParams()
+      q.set('tab', 'public')
+      q.set('page', String(page))
+      if (tag)
+        q.set('tag', tag)
+      if (search)
+        q.set('search', search)
+      if (lang)
+        q.set('lang', lang)
+
+      const res = await api.books.getPublic(q.toString())
+      publicBooks.value = res.data
+      publicTotal.value = res.total
+      publicPage.value = res.page
+      publicLimit.value = res.limit
+    }
+    finally {
+      await attachCachedCovers(publicBooks.value)
+      isLoading.value = false
+    }
+  }
+
+  async function startReadingPublicBook(id: number) {
+    await api.books.startReading(id)
+    if (currentBookInfo.value?.id === id) {
+      currentBookInfo.value.currentPage = 1
+    }
+    const authStore = useAuthStore()
+    if (authStore.user || authStore.isSingleMode) {
+      await fetchBooks()
     }
   }
 
@@ -504,6 +540,10 @@ export const useLibraryStore = defineStore('library', () => {
 
   return {
     books,
+    publicBooks,
+    publicTotal,
+    publicPage,
+    publicLimit,
     currentBookInfo,
     isLoading,
     isAnalyzingBook,
@@ -515,6 +555,8 @@ export const useLibraryStore = defineStore('library', () => {
     cancelSync,
 
     fetchBooks,
+    fetchPublicBooks,
+    startReadingPublicBook,
     fetchBookInfo,
     updateBookInfo,
     analyzeFullBook,

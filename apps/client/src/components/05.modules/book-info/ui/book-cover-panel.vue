@@ -34,8 +34,16 @@ function onCoverChange(e: Event) {
   }
 }
 
-function startReading() {
+async function startReading() {
+  if (!authStore.user && !authStore.isSingleMode) {
+    router.push(AppRoutePaths.SignIn)
+    return
+  }
+
   if (libraryStore.currentBookInfo) {
+    if (libraryStore.currentBookInfo.currentPage === null) {
+      await libraryStore.startReadingPublicBook(libraryStore.currentBookInfo.id)
+    }
     router.push({
       path: AppRoutePaths.Reader,
       query: {
@@ -49,13 +57,13 @@ function startReading() {
 
 <template>
   <div class="cover-col">
-    <div class="cover-wrapper group" :class="{ 'is-editable': authStore.user }" @click="triggerCoverInput">
+    <div class="cover-wrapper group" :class="{ 'is-editable': authStore.user && libraryStore.currentBookInfo?.userId === authStore.user?.id }" @click="triggerCoverInput">
       <KitImage
         :src="libraryStore.currentBookInfo?.localCoverUrl || libraryStore.currentBookInfo?.coverUrl"
         fallback-icon="mdi:book-open-blank-variant"
       />
 
-      <div v-if="authStore.user" class="cover-overlay">
+      <div v-if="authStore.user && libraryStore.currentBookInfo?.userId === authStore.user?.id" class="cover-overlay">
         <Icon icon="mdi:image-edit" /> {{ t('bookInfo.changeCover') }}
       </div>
       <input ref="coverInputRef" type="file" accept="image/*" hidden @change="onCoverChange">

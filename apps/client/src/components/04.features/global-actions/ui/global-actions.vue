@@ -58,7 +58,7 @@ function handleLogout() {
       />
     </KitTooltip>
 
-    <KitTooltip :text="t('globalActions.storageManagement')" placement="bottom">
+    <KitTooltip v-if="authStore.user || authStore.isSingleMode" :text="t('globalActions.storageManagement')" placement="bottom">
       <KitBtn
         icon="mdi:database-outline"
         variant="text"

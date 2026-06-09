@@ -7,7 +7,9 @@ import { KitBtn, KitDialog, KitPrompt, KitSkeleton } from '~/components/01.kit'
 import { HoverRevealBg } from '~/components/02.shared/hover-reveal-bg'
 import { useToast } from '~/shared/composables/use-toast'
 import { AppRoutePaths } from '~/shared/constants/routes'
+import { BOOK_TAGS } from '~/shared/constants/tags'
 import { useAuthStore } from '~/shared/store/auth.store'
+import { useGlobalSettingsStore } from '~/shared/store/settings.store'
 
 import { useLibraryDisplay } from '../composables/use-library-display'
 import { useLibraryStore } from '../store/library.store'
@@ -20,6 +22,7 @@ import OpdsBrowser from './opds-browser.vue'
 
 const store = useLibraryStore()
 const authStore = useAuthStore()
+const settingsStore = useGlobalSettingsStore()
 const router = useRouter()
 const toast = useToast()
 const { t } = useI18n()
@@ -34,17 +37,54 @@ const bookToHideId = ref<number | null>(null)
 const isMobileMenuOpen = ref(false)
 const isUploadModalOpen = ref(false)
 
-const menuItems = computed(() => [
-  { id: 'reading-now', label: t('library.menuReadingNow'), icon: 'mdi:book-open-page-variant-outline' },
-  { id: 'books', label: t('library.menuBooks'), icon: 'mdi:book-open-blank-variant' },
-  { id: 'favorites', label: t('library.menuFavorites'), icon: 'mdi:star-outline' },
-  { id: 'to-read', label: t('library.menuToRead'), icon: 'mdi:clock-outline' },
-  { id: 'have-read', label: t('library.menuHaveRead'), icon: 'mdi:check-all' },
-  { id: 'authors', label: t('library.menuAuthors'), icon: 'mdi:account-group-outline' },
-  { id: 'series', label: t('library.menuSeries'), icon: 'mdi:folder-outline' },
-  { id: 'collections', label: t('library.menuCollections'), icon: 'mdi:bookshelf' },
-  { id: 'opds', label: t('library.menuOpds'), icon: 'mdi:web' },
-])
+const publicTagFilter = ref('all')
+const tagOptions = computed(() => {
+  const opts = [{ label: t('library.allTags'), value: 'all' }]
+  for (const [key, val] of Object.entries(BOOK_TAGS)) {
+    opts.push({ label: val[settingsStore.appLanguage as keyof typeof val] || val.en, value: key })
+  }
+  return opts
+})
+
+function loadPublic(page: number) {
+  store.fetchPublicBooks(page, publicTagFilter.value === 'all' ? undefined : publicTagFilter.value, searchQuery.value, selectedLang.value === 'all' ? undefined : selectedLang.value)
+}
+
+watch([searchQuery, selectedLang, publicTagFilter], () => {
+  if (currentView.value === 'public-catalog') {
+    loadPublic(1)
+  }
+})
+
+watch(currentView, (val) => {
+  activeFolder.value = null
+  if (val === 'public-catalog' && store.publicBooks.length === 0) {
+    loadPublic(1)
+  }
+})
+
+const menuItems = computed(() => {
+  const items = []
+  if (authStore.user || authStore.isSingleMode) {
+    items.push({ id: 'reading-now', label: t('library.menuReadingNow'), icon: 'mdi:book-open-page-variant-outline' })
+    items.push({ id: 'books', label: t('library.menuBooks'), icon: 'mdi:book-open-blank-variant' })
+    items.push({ id: 'favorites', label: t('library.menuFavorites'), icon: 'mdi:star-outline' })
+    items.push({ id: 'to-read', label: t('library.menuToRead'), icon: 'mdi:clock-outline' })
+    items.push({ id: 'have-read', label: t('library.menuHaveRead'), icon: 'mdi:check-all' })
+    items.push({ id: 'authors', label: t('library.menuAuthors'), icon: 'mdi:account-group-outline' })
+    items.push({ id: 'series', label: t('library.menuSeries'), icon: 'mdi:folder-outline' })
+    items.push({ id: 'collections', label: t('library.menuCollections'), icon: 'mdi:bookshelf' })
+  }
+
+  if (!authStore.isSingleMode) {
+    items.push({ id: 'public-catalog', label: t('library.menuPublicCatalog'), icon: 'mdi:earth' })
+  }
+
+  if (authStore.user || authStore.isSingleMode) {
+    items.push({ id: 'opds', label: t('library.menuOpds'), icon: 'mdi:web' })
+  }
+  return items
+})
 
 function getFolderIcon(view: string) {
   if (view === 'authors')
@@ -99,7 +139,13 @@ async function handleDeleteBook(id: number) {
 }
 
 onMounted(() => {
-  store.fetchBooks().catch(() => {})
+  if (!authStore.user && !authStore.isSingleMode) {
+    currentView.value = 'public-catalog'
+    loadPublic(1)
+  }
+  else {
+    store.fetchBooks().catch(() => {})
+  }
 })
 </script>
 
@@ -109,7 +155,8 @@ onMounted(() => {
 
     <div class="library-view">
       <div class="library-layout">
-        <aside class="library-sidebar desktop-only">
+        <!-- Скрываем сайдбар, если пункт меню всего один (Для неавторизованных) -->
+        <aside v-if="menuItems.length > 1" class="library-sidebar desktop-only">
           <ul class="nav-menu">
             <li
               v-for="item in menuItems"
@@ -141,12 +188,16 @@ onMounted(() => {
           <LibraryHeader
             v-model:search="searchQuery"
             v-model:lang="selectedLang"
+            v-model:tag="publicTagFilter"
             :lang-options="langOptions"
+            :tag-options="tagOptions"
+            :show-tag-filter="currentView === 'public-catalog'"
+            :show-menu-btn="menuItems.length > 1"
             @open-menu="isMobileMenuOpen = true"
             @open-upload-modal="isUploadModalOpen = true"
           />
 
-          <div v-if="store.isLoading && !store.books.length" class="skeleton-section">
+          <div v-if="store.isLoading && (!store.books.length && !store.publicBooks.length)" class="skeleton-section">
             <div class="title-skeleton" />
             <div class="books-grid">
               <div v-for="i in 14" :key="i" class="book-card-skeleton">
@@ -161,6 +212,45 @@ onMounted(() => {
 
           <div v-else-if="currentView === 'opds'" style="padding-top: 16px;">
             <OpdsBrowser />
+          </div>
+
+          <div v-else-if="currentView === 'public-catalog'" class="public-catalog-view">
+            <div v-if="store.isLoading" class="skeleton-section">
+              <div class="books-grid">
+                <div v-for="i in 10" :key="i" class="book-card-skeleton">
+                  <div class="cover-skeleton" />
+                  <div class="info-skeleton">
+                    <KitSkeleton width="80%" height="18px" />
+                    <KitSkeleton width="50%" height="14px" />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div v-else-if="store.publicBooks.length === 0" class="empty-state">
+              <h2>{{ t('library.emptySection') }}</h2>
+            </div>
+
+            <div v-else>
+              <div class="books-grid">
+                <BookCard
+                  v-for="book in store.publicBooks"
+                  :key="book.id"
+                  :book="book"
+                  @click="openBookInfo(book)"
+                  @edit="openEditModal(book)"
+                />
+              </div>
+              <div v-if="store.publicTotal > store.publicLimit" class="pagination">
+                <KitBtn variant="tonal" :disabled="store.publicPage <= 1" @click="loadPublic(store.publicPage - 1)">
+                  {{ t('library.prevPage') }}
+                </KitBtn>
+                <span>{{ store.publicPage }} / {{ Math.ceil(store.publicTotal / store.publicLimit) }}</span>
+                <KitBtn variant="tonal" :disabled="store.publicPage >= Math.ceil(store.publicTotal / store.publicLimit)" @click="loadPublic(store.publicPage + 1)">
+                  {{ t('library.nextPage') }}
+                </KitBtn>
+              </div>
+            </div>
           </div>
 
           <div v-else-if="store.books.length === 0" class="empty-state">
@@ -350,6 +440,24 @@ onMounted(() => {
   min-width: 0;
   display: flex;
   flex-direction: column;
+}
+
+.public-catalog-view {
+  display: flex;
+  flex-direction: column;
+  padding-bottom: 24px;
+
+  .pagination {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    margin-top: 32px;
+    padding-top: 24px;
+    border-top: 1px solid var(--border-secondary-color);
+    color: var(--fg-secondary-color);
+    font-weight: 500;
+  }
 }
 
 .empty-state {

@@ -24,7 +24,8 @@ export function useCustomModels() {
           : undefined,
       })
 
-      if (!res.ok) throw new Error(`Ошибка HTTP: ${res.status}`)
+      if (!res.ok)
+        throw new Error(`Ошибка HTTP: ${res.status}`)
 
       const data = await res.json()
 
@@ -61,6 +62,6 @@ export function useCustomModels() {
   return {
     availableModels,
     isFetchingModels,
-    fetchModels
+    fetchModels,
   }
 }

@@ -220,11 +220,13 @@ export const offlineService = {
       }
       else if (key.startsWith('image_')) {
         const bookId = Number(key.split('_')[1])
-        if (bookStats[bookId]) bookStats[bookId].sizeBytes += itemSize
+        if (bookStats[bookId])
+          bookStats[bookId].sizeBytes += itemSize
       }
       else if (key.startsWith('cover_')) {
         const bookId = Number(key.replace('cover_', ''))
-        if (bookStats[bookId]) bookStats[bookId].sizeBytes += itemSize
+        if (bookStats[bookId])
+          bookStats[bookId].sizeBytes += itemSize
       }
       else if (key.startsWith('analysis_')) {
         const bookId = Number(key.split('_')[1])

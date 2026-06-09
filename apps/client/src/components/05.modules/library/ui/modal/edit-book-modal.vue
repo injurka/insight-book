@@ -5,6 +5,7 @@ import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { KitBtn, KitCheckbox, KitDialog, KitImage, KitInput, KitSelect, KitTooltip } from '~/components/01.kit'
 import { useToast } from '~/shared/composables/use-toast'
+import { useAuthStore } from '~/shared/store/auth.store'
 import { useEditBookForm } from '../../composables/use-edit-book-form'
 
 const props = defineProps<{
@@ -18,6 +19,7 @@ const emit = defineEmits<{
 
 const { copy } = useClipboard()
 const toast = useToast()
+const authStore = useAuthStore()
 const { t } = useI18n()
 
 const visible = defineModel<boolean>('visible', { required: true })
@@ -115,7 +117,7 @@ function copyLink() {
       <div class="checkbox-row">
         <KitCheckbox v-model="editingBook.isFavorite" :label="t('library.addToFavorites')" />
 
-        <div class="public-wrapper">
+        <div v-if="!authStore.isSingleMode" class="public-wrapper">
           <KitCheckbox v-model="editingBook.isPublic" :label="t('library.makePublic')" />
           <KitTooltip v-if="editingBook.isPublic" :text="t('library.copyLink')" placement="top">
             <KitBtn size="xs" variant="outlined" icon="mdi:link-variant" @click="copyLink" />

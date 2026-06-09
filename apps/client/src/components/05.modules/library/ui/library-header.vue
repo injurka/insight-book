@@ -7,9 +7,15 @@ import { useAuthStore } from '~/shared/store/auth.store'
 
 interface Props {
   langOptions: Array<{ label: string, value: string }>
+  tagOptions?: Array<{ label: string, value: string }>
+  showTagFilter?: boolean
+  showMenuBtn?: boolean
 }
 
-defineProps<Props>()
+withDefaults(defineProps<Props>(), {
+  showTagFilter: false,
+  showMenuBtn: true,
+})
 
 const emit = defineEmits<{
   (e: 'openMenu'): void
@@ -18,6 +24,7 @@ const emit = defineEmits<{
 
 const search = defineModel<string>('search', { required: true })
 const lang = defineModel<string>('lang', { required: true })
+const tag = defineModel<string>('tag')
 
 const authStore = useAuthStore()
 const { t } = useI18n()
@@ -29,6 +36,7 @@ const isMobileFiltersOpen = ref(false)
     <div class="header-top">
       <div class="header-title-wrap">
         <KitBtn
+          v-if="showMenuBtn"
           class="mobile-menu-btn"
           icon="mdi:menu"
           variant="text"
@@ -58,11 +66,19 @@ const isMobileFiltersOpen = ref(false)
 
       <div class="filters-and-actions" :class="{ 'is-open': isMobileFiltersOpen }">
         <KitSelect
+          v-if="showTagFilter && tagOptions"
+          v-model="tag!"
+          :options="tagOptions"
+          size="md"
+          class="filter-select tag-select"
+        />
+
+        <KitSelect
           v-model="lang"
           :options="langOptions"
           size="md"
           :aria-label="t('library.selectLanguage')"
-          class="lang-select"
+          class="filter-select lang-select"
         />
 
         <div class="spacer" />
@@ -154,11 +170,17 @@ const isMobileFiltersOpen = ref(false)
     .filters-and-actions {
       display: flex;
       align-items: center;
-      gap: 16px;
+      gap: 12px;
       flex-grow: 1;
 
-      .lang-select {
-        width: 160px;
+      .filter-select {
+        flex-shrink: 0;
+        &.lang-select {
+          width: 160px;
+        }
+        &.tag-select {
+          width: 200px;
+        }
       }
 
       .spacer {
@@ -194,7 +216,7 @@ const isMobileFiltersOpen = ref(false)
         padding: 16px;
         border-radius: 12px;
         border: 1px solid var(--border-secondary-color);
-        gap: 16px;
+        gap: 12px;
 
         &.is-open {
           display: flex;
@@ -205,8 +227,8 @@ const isMobileFiltersOpen = ref(false)
           display: none;
         }
 
-        .lang-select {
-          width: 100%;
+        .filter-select {
+          width: 100% !important;
         }
 
         .header-actions {

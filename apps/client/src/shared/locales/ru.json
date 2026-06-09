@@ -124,6 +124,10 @@
     }
   },
   "library": {
+    "menuPublicCatalog": "Публичный каталог",
+    "allTags": "Все теги",
+    "prevPage": "Назад",
+    "nextPage": "Вперед",
     "textDirection": "Направление текста",
     "dirAuto": "Авто (по языку)",
     "dirLtr": "Слева направо",

@@ -2,7 +2,6 @@
 import { CORS_HEADERS, PORT } from './config'
 import { handleGetHeatmapData, handleGetTokenUsage } from './handlers/activity'
 import { handleGetMe, handleLogin } from './handlers/auth'
-import { handleGetVapidKey, handleSubscribe, handleUnsubscribe } from './handlers/push'
 import {
   handleAnalyzeBatch,
   handleAnalyzeBookStats,
@@ -21,6 +20,7 @@ import {
   handleGetToc,
   handleLookupWord,
   handleStandaloneTts,
+  handleStartReading,
   handleUpdateBook,
   handleUpdateCover,
   handleUpdateStats,
@@ -49,9 +49,10 @@ import {
   handleDownloadOpdsBook,
   handleGetCatalogs,
 } from './handlers/opds'
+import { handleGetVapidKey, handleSubscribe, handleUnsubscribe } from './handlers/push'
 
 import { initScheduler } from './services/scheduler.service'
-import { authWrapper } from './utils/auth'
+import { authWrapper, optionalAuthWrapper } from './utils/auth'
 import { withCors } from './utils/cors'
 import { apiWrapper } from './utils/errors'
 import { corsOk } from './utils/helpers'
@@ -67,12 +68,13 @@ const apiRoutes = {
   '/api/auth/me': { OPTIONS: corsOk, GET: apiWrapper(authWrapper(handleGetMe)) },
 
   // --- Books API ---
-  '/api/books': { OPTIONS: corsOk, GET: apiWrapper(authWrapper(handleGetBooks)), POST: apiWrapper(authWrapper(handleUploadBook)) },
+  '/api/books': { OPTIONS: corsOk, GET: apiWrapper(optionalAuthWrapper(handleGetBooks)), POST: apiWrapper(authWrapper(handleUploadBook)) },
   '/api/books/upload': { OPTIONS: corsOk, POST: apiWrapper(authWrapper(handleUploadBook)) },
   '/api/books/custom': { OPTIONS: corsOk, POST: apiWrapper(authWrapper(handleCreateCustomBook)) },
+  '/api/books/:id/start': { OPTIONS: corsOk, POST: apiWrapper(authWrapper(handleStartReading)) },
   '/api/books/:id/manga-chapter': { OPTIONS: corsOk, POST: apiWrapper(authWrapper(handleAppendMangaChapter)) },
   '/api/books/:id': { OPTIONS: corsOk, PATCH: apiWrapper(authWrapper(handleUpdateBook)), DELETE: apiWrapper(authWrapper(handleDeleteBook)) },
-  '/api/books/:id/info': { OPTIONS: corsOk, GET: apiWrapper(authWrapper(handleGetBookInfo)) },
+  '/api/books/:id/info': { OPTIONS: corsOk, GET: apiWrapper(optionalAuthWrapper(handleGetBookInfo)) },
   '/api/books/:id/cover': { OPTIONS: corsOk, PATCH: apiWrapper(authWrapper(handleUpdateCover)) },
   '/api/uploads/covers/:filename': { OPTIONS: corsOk, GET: apiWrapper(handleGetCoverImage) },
   '/api/books/:id/tts': { OPTIONS: corsOk, POST: apiWrapper(authWrapper(handleGenerateTts)) },
