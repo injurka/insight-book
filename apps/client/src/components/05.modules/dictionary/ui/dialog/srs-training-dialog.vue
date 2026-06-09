@@ -28,6 +28,13 @@ const {
 } = useSrsSession()
 
 const isSubmittingGrade = ref(false)
+const activeModes = ref<Record<string, boolean>>({
+  standard: true,
+  audio: true,
+  writing: false,
+  typing: true,
+  choice: true,
+})
 
 const remainingQueue = computed(() => dictStore.reviewQueue.slice(currentIndex.value))
 const newCount = computed(() => remainingQueue.value.filter(c => c.status === 0).length)
@@ -49,6 +56,7 @@ async function startSession(options: {
   modes: Record<string, boolean>
 }) {
   try {
+    activeModes.value = options.modes
     await dictStore.fetchTrainingQueue({
       mode: dictStore.trainingMode,
       deckId: options.deckId,
@@ -114,7 +122,7 @@ watch(currentIndex, () => {
 </script>
 
 <template>
-  <KitDialog v-model:visible="visible" :max-width="800" persistent>
+  <KitDialog v-model:visible="visible" :max-width="800" persistent class="srs-dialog">
     <template #header>
       <div class="srs-header">
         <h2 class="dialog-title">
@@ -148,6 +156,7 @@ watch(currentIndex, () => {
           :accuracy="accuracy"
           :time-spent-ms="timeSpentMs"
           :is-submitting-grade="isSubmittingGrade"
+          :modes="activeModes"
           @start="startSession"
           @grade="handleGrade"
           @close="handleClose"
@@ -156,6 +165,18 @@ watch(currentIndex, () => {
     </div>
   </KitDialog>
 </template>
+
+<style lang="scss">
+.srs-dialog {
+  .dialog-body {
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
+    &::-webkit-scrollbar {
+      display: none !important;
+    }
+  }
+}
+</style>
 
 <style lang="scss" scoped>
 .srs-header {

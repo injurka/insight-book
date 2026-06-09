@@ -15,6 +15,7 @@ import HanziBoard from '../../hanzi-board.vue'
 const props = defineProps<{
   card: UserDictItem | null
   isSubmittingGrade: boolean
+  modes?: Record<string, boolean>
 }>()
 
 const emit = defineEmits(['grade'])
@@ -87,7 +88,7 @@ function initCard() {
   if (!props.card)
     return
 
-  const modesConfig = { standard: true, audio: true, writing: true, typing: true, choice: true }
+  const modesConfig = props.modes || { standard: true, audio: true, writing: false, typing: true, choice: true }
   const availableModes: ('standard' | 'audio' | 'writing' | 'typing' | 'choice')[] = []
   if (modesConfig.standard)
     availableModes.push('standard')
@@ -103,7 +104,7 @@ function initCard() {
   if (availableModes.length === 0)
     availableModes.push('standard')
 
-  if (modesConfig.choice && props.card.status === 0 && Math.random() > 0.3) {
+  if (modesConfig.choice && availableModes.includes('choice') && props.card.status === 0 && Math.random() > 0.3) {
     currentMode.value = 'choice'
   }
   else {
@@ -293,8 +294,8 @@ watch(() => props.card, initCard, { immediate: true })
     </div>
 
     <div v-if="isFlipped" class="card-back fade-in">
-      <div v-if="currentMode === 'audio' || currentMode === 'writing' || card.transcription" class="back-word-row">
-        <div v-if="currentMode === 'audio' || currentMode === 'writing'" class="word-huge back-word fade-in">
+      <div v-if="currentMode === 'audio' || currentMode === 'writing' || currentMode === 'typing' || card.transcription" class="back-word-row">
+        <div v-if="currentMode === 'audio' || currentMode === 'writing' || currentMode === 'typing'" class="word-huge back-word fade-in">
           {{ card.word }}
         </div>
         <div v-if="card.transcription" class="transcription-badge fade-in">
@@ -420,17 +421,14 @@ watch(() => props.card, initCard, { immediate: true })
   border-top: 1px dashed var(--border-secondary-color);
   max-height: 40vh;
   overflow-y: auto;
-  padding-right: 4px;
   display: flex;
   flex-direction: column;
   gap: 16px;
 
+  scrollbar-width: none;
+  -ms-overflow-style: none;
   &::-webkit-scrollbar {
-    width: 4px;
-  }
-  &::-webkit-scrollbar-thumb {
-    background-color: var(--border-secondary-color);
-    border-radius: 4px;
+    display: none;
   }
 }
 

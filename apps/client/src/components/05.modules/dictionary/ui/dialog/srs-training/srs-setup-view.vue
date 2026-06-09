@@ -24,10 +24,6 @@ const modes = reactive({
   choice: true,
 })
 
-const hasChineseWords = computed(() => {
-  return dictStore.words.some(c => c.language === 'zh' && /[\u4E00-\u9FA5]/.test(c.word || ''))
-})
-
 const currentLang = computed(() => {
   if (setupOptions.deckId !== 'all' && setupOptions.deckId !== 'none') {
     const deck = dictStore.decks.find(d => d.id === setupOptions.deckId)
@@ -36,6 +32,17 @@ const currentLang = computed(() => {
   }
   return dictStore.selectedLanguage !== 'all' ? dictStore.selectedLanguage : 'all'
 })
+
+const showWritingMode = computed(() => {
+  const hasChinese = dictStore.words.some(c => c.language === 'zh' && /[\u4E00-\u9FA5]/.test(c.word || ''))
+  return currentLang.value === 'zh' && hasChinese
+})
+
+watch(showWritingMode, (newVal) => {
+  if (!newVal) {
+    modes.writing = false
+  }
+}, { immediate: true })
 
 const deckOptions = computed(() => {
   const opts: any[] = [
@@ -52,7 +59,8 @@ const deckOptions = computed(() => {
 
 const difficultyOptions = computed(() => {
   const opts: any[] = [{ label: t('dictionary.allDifficulties'), value: 'all' }, { label: t('dictionary.noDifficulty'), value: 'none' }]
-  const sys = DIFFICULTY_SYSTEMS[currentLang.value] || DIFFICULTY_SYSTEMS.all
+  const lang = currentLang.value !== 'all' ? currentLang.value : 'all'
+  const sys = DIFFICULTY_SYSTEMS[lang] || DIFFICULTY_SYSTEMS.all
   sys.forEach(d => opts.push({ label: d.label, value: d.value }))
   return opts
 })
@@ -120,7 +128,7 @@ function start() {
           <span class="mode-title">{{ t('dictionary.listening') }}</span>
           <span class="mode-desc">{{ t('dictionary.aiSpeech') }}</span>
         </div>
-        <div v-if="hasChineseWords" class="mode-card" :class="{ 'is-active': modes.writing }" @click="modes.writing = !modes.writing">
+        <div v-if="showWritingMode" class="mode-card" :class="{ 'is-active': modes.writing }" @click="modes.writing = !modes.writing">
           <Icon icon="mdi:draw" class="mode-icon" />
           <span class="mode-title">{{ t('dictionary.writing') }}</span>
           <span class="mode-desc">{{ t('dictionary.hanziByMemory') }}</span>

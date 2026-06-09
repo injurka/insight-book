@@ -7,6 +7,7 @@ import { KitBtn, KitDropdown, KitPrompt, KitSelect } from '~/components/01.kit'
 import { ThemesVariant, useChangeTheme } from '~/shared/composables/use-change-theme'
 import { useToast } from '~/shared/composables/use-toast'
 import { AppRoutePaths } from '~/shared/constants/routes'
+import { getMediaUrl } from '~/shared/lib/helpers'
 import { useAuthStore } from '~/shared/store/auth.store'
 import { usePwaStore } from '~/shared/store/pwa.store'
 import { useGlobalSettingsStore } from '~/shared/store/settings.store'
@@ -151,7 +152,12 @@ async function handleUsernameSubmit(newUsername: string) {
           <div v-if="!authStore.isSingleMode" class="user-profile">
             <div class="user-header">
               <div class="user-avatar" :title="t('globalActions.changeAvatar')" @click="triggerAvatarUpload">
-                <img v-if="authStore.user?.avatarUrl" :src="authStore.user.avatarUrl" alt="Avatar" class="avatar-img">
+                <img
+                  v-if="authStore.user?.avatarUrl"
+                  :src="getMediaUrl(authStore.user.avatarUrl)"
+                  alt="Avatar"
+                  class="avatar-img"
+                >
                 <Icon v-else icon="mdi:account-circle" />
                 <div class="avatar-overlay">
                   <Icon icon="mdi:camera-plus" />
