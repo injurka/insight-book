@@ -465,7 +465,7 @@ export const useAnalysisStore = defineStore('analysis', () => {
       wordPopover.value.aiTranslation = cached.translation
 
       const targetWord = wordPopover.value.word
-      const vocabMatch = cached.vocabulary?.find(v => v.word.includes(targetWord) || targetWord.includes(v.word))
+      const vocabMatch = cached.vocabulary?.find(v => v?.word && (v.word.includes(targetWord) || targetWord.includes(v.word)))
       wordPopover.value.aiTranscription = cached.transcription || vocabMatch?.transcription || vocabMatch?.pinyin || ''
       wordPopover.value.isAiLoading = false
       return
@@ -496,7 +496,7 @@ export const useAnalysisStore = defineStore('analysis', () => {
         wordPopover.value.aiTranslation = res.translation
 
         const targetWord = wordPopover.value.word
-        const vocabMatch = res.vocabulary?.find(v => v.word.includes(targetWord) || targetWord.includes(v.word))
+        const vocabMatch = res.vocabulary?.find(v => v?.word && (v.word.includes(targetWord) || targetWord.includes(v.word)))
         wordPopover.value.aiTranscription = res.transcription || vocabMatch?.transcription || vocabMatch?.pinyin || ''
       }
     }
@@ -670,7 +670,10 @@ export const useAnalysisStore = defineStore('analysis', () => {
           grammarNote = wordData.aiData.grammarRules.map(r => typeof r === 'string' ? r : `<b>${r.pattern}</b> — ${r.explanation}`).join('<br>')
         }
         if (wordData.aiData.vocabulary?.length) {
-          vocabularyNote = wordData.aiData.vocabulary.map(v => `<b>${v.word}</b> (${v.transcription || v.pinyin}) — ${v.meaning}`).join('<br>')
+          vocabularyNote = wordData.aiData.vocabulary
+            .filter(v => v && v.word)
+            .map(v => `<b>${v.word}</b> (${v.transcription || v.pinyin || ''}) — ${v.meaning || ''}`)
+            .join('<br>')
         }
       }
 

@@ -164,18 +164,20 @@ onUnmounted(() => stop())
         <div v-if="analysisStore.sidebarAnalysis.vocabulary?.length" class="analysis-block">
           <h3><Icon icon="mdi:book-open-page-variant-outline" class="inline-icon" /> {{ t('analysis.vocabulary') }}</h3>
           <ul class="vocab-list">
-            <li v-for="(v, idx) in analysisStore.sidebarAnalysis.vocabulary" :key="idx">
-              <div class="vocab-word">
-                <span class="dict-word">{{ v.word }}</span>
-                <span class="dict-transcription">{{ v.transcription || v.pinyin }}</span>
-              </div>
-              <div class="vocab-meaning">
-                {{ v.meaning }}
-              </div>
-              <div v-if="v.usageInContext" class="vocab-context">
-                {{ t('analysis.context') }}: {{ v.usageInContext }}
-              </div>
-            </li>
+            <template v-for="(v, idx) in analysisStore.sidebarAnalysis.vocabulary" :key="idx">
+              <li v-if="v && v.word">
+                <div class="vocab-word">
+                  <span class="dict-word">{{ v.word }}</span>
+                  <span class="dict-transcription">{{ v.transcription || v.pinyin }}</span>
+                </div>
+                <div class="vocab-meaning">
+                  {{ v.meaning }}
+                </div>
+                <div v-if="v.usageInContext" class="vocab-context">
+                  {{ t('analysis.context') }}: {{ v.usageInContext }}
+                </div>
+              </li>
+            </template>
           </ul>
         </div>
       </div>

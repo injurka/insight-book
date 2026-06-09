@@ -31,9 +31,11 @@ const { t } = useI18n()
           <Icon icon="mdi:book-open-page-variant-outline" /> {{ t('analysis.vocabulary') }}
         </div>
         <ul class="ai-list">
-          <li v-for="(voc, i) in data.vocabulary" :key="i">
-            <b>{{ voc.word }}</b> <span v-if="voc.transcription">({{ voc.transcription }})</span> — {{ voc.meaning }}
-          </li>
+          <template v-for="(voc, i) in data.vocabulary" :key="i">
+            <li v-if="voc && voc.word">
+              <b>{{ voc.word }}</b> <span v-if="voc.transcription">({{ voc.transcription }})</span> — {{ voc.meaning }}
+            </li>
+          </template>
         </ul>
       </div>
 
