@@ -1,5 +1,3 @@
-/// <reference types="bun-types" />
-
 import { eq } from 'drizzle-orm'
 import jwt from 'jsonwebtoken'
 import { z } from 'zod'
@@ -20,30 +18,35 @@ function json(data: unknown, status = 200, extraHeaders: Record<string, string> 
   })
 }
 
+function getUserPayload(user: any) {
+  return {
+    id: user.id,
+    username: user.username,
+    pushTargetDeckId: user.pushTargetDeckId,
+    pushTimeStart: user.pushTimeStart,
+    pushTimeEnd: user.pushTimeEnd,
+    timezone: user.timezone,
+  }
+}
+
 export async function handleLogin(req: Request): Promise<Response> {
   if (AUTH_MODE === 'single') {
-    return json({ token: 'dummy-token', user: { id: 1, username: 'admin' } })
+    return json({ token: 'dummy-token', user: { id: 1, username: 'admin', pushTimeStart: '10:00', pushTimeEnd: '21:00' } })
   }
 
   const { username, password } = LoginSchema.parse(await req.json())
 
-  // Ищем юзера
   const user = await db.query.users.findFirst({ where: eq(schema.users.username, username) })
-
-  // Если юзера нет или пароль не совпадает — выдаем ошибку 401
-  if (!user) {
+  if (!user)
     throw new AppError(401, 'Неверный логин или пароль')
-  }
 
   const isMatch = await Bun.password.verify(password, user.passwordHash)
-  if (!isMatch) {
+  if (!isMatch)
     throw new AppError(401, 'Неверный логин или пароль')
-  }
 
-  // Выдаем токен
   const token = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: '30d' })
 
-  return json({ token, user: { id: user.id, username: user.username } })
+  return json({ token, user: getUserPayload(user) })
 }
 
 export async function handleGetMe(req: Request, userId: number): Promise<Response> {
@@ -52,7 +55,7 @@ export async function handleGetMe(req: Request, userId: number): Promise<Respons
     throw new AppError(404, 'Пользователь не найден')
 
   return json({
-    user: { id: user.id, username: user.username },
+    user: getUserPayload(user),
     mode: AUTH_MODE,
   })
 }

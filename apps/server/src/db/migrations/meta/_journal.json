@@ -29,6 +29,13 @@
       "when": 1780954305261,
       "tag": "0003_condemned_microchip",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1781001362239,
+      "tag": "0004_complete_shiver_man",
+      "breakpoints": true
     }
   ]
 }

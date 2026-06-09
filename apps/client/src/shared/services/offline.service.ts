@@ -67,6 +67,24 @@ export const offlineService = {
     return await safeGetItem(`book_${bookId}_page_${pageNum}`)
   },
 
+  // Кэширование картинок (манга)
+  async saveImage(bookId: number, pageNum: number, blob: Blob) {
+    await safeSetItem(`image_${bookId}_${pageNum}`, blob)
+  },
+
+  async getImage(bookId: number, pageNum: number): Promise<Blob | null> {
+    return await safeGetItem<Blob>(`image_${bookId}_${pageNum}`)
+  },
+
+  // Кэширование обложек
+  async saveCover(bookId: number, blob: Blob) {
+    await safeSetItem(`cover_${bookId}`, blob)
+  },
+
+  async getCover(bookId: number): Promise<Blob | null> {
+    return await safeGetItem<Blob>(`cover_${bookId}`)
+  },
+
   async savePageDictionary(bookId: number, pageNum: number, dict: Record<string, PageDictEntry>) {
     await safeSetItem(`book_${bookId}_page_${pageNum}_dict`, JSON.parse(JSON.stringify(dict)))
   },
@@ -176,22 +194,37 @@ export const offlineService = {
     for (const fullKey of userKeys) {
       const key = fullKey.replace(prefix, '')
       const item = await localforage.getItem(fullKey)
-      const itemSize = item ? JSON.stringify(item).length : 0
+
+      // Blob объекты не могут быть посчитаны через JSON.stringify
+      const itemSize = item instanceof Blob ? item.size : (item ? JSON.stringify(item).length : 0)
       totalSize += itemSize
 
       if (key.startsWith('dictionary_words_')) {
         totalDictionaryWords += Array.isArray(item) ? item.length : 0
       }
-      else if (key.startsWith('book_') && key.includes('_page_')) {
+      else if (key.startsWith('book_') && key.includes('_page_') && !key.endsWith('_dict')) {
         const bookId = Number(key.split('_')[1])
-        const isDict = key.endsWith('_dict')
         const pageNum = Number(key.split('_')[3])
         if (bookStats[bookId]) {
-          if (!isDict && !bookStats[bookId].cachedPages.includes(pageNum)) {
+          if (!bookStats[bookId].cachedPages.includes(pageNum)) {
             bookStats[bookId].cachedPages.push(pageNum)
           }
           bookStats[bookId].sizeBytes += itemSize
         }
+      }
+      else if (key.startsWith('book_') && key.endsWith('_dict')) {
+        const bookId = Number(key.split('_')[1])
+        if (bookStats[bookId]) {
+          bookStats[bookId].sizeBytes += itemSize
+        }
+      }
+      else if (key.startsWith('image_')) {
+        const bookId = Number(key.split('_')[1])
+        if (bookStats[bookId]) bookStats[bookId].sizeBytes += itemSize
+      }
+      else if (key.startsWith('cover_')) {
+        const bookId = Number(key.replace('cover_', ''))
+        if (bookStats[bookId]) bookStats[bookId].sizeBytes += itemSize
       }
       else if (key.startsWith('analysis_')) {
         const bookId = Number(key.split('_')[1])
@@ -221,7 +254,7 @@ export const offlineService = {
 
       const key = fullKey.replace(prefix, '')
 
-      return key.startsWith(`book_${bookId}_page_`) || key.startsWith(`analysis_${bookId}_`) || key === `book_info_${bookId}` || key === `book_toc_${bookId}`
+      return key.startsWith(`book_${bookId}_page_`) || key.startsWith(`analysis_${bookId}_`) || key === `book_info_${bookId}` || key === `book_toc_${bookId}` || key.startsWith(`image_${bookId}_`) || key === `cover_${bookId}`
     })
 
     for (const key of keysToRemove) {

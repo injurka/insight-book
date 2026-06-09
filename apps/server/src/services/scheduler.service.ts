@@ -1,4 +1,3 @@
-/* eslint-disable no-console */
 import { desc, eq } from 'drizzle-orm'
 import { db } from '../db'
 import * as schema from '../db/schema'
@@ -23,12 +22,8 @@ async function checkAndRunDump() {
     const now = Date.now()
 
     if (!lastDump || (now - new Date(lastDump.createdAt).getTime() > SEVEN_DAYS_MS)) {
-      console.log('⏰ Time for a weekly backup! Starting dump process...')
       isDumping = true
-
       await executeDump()
-
-      console.log('⏰ Weekly backup finished successfully.')
     }
   }
   catch (error) {
@@ -45,19 +40,10 @@ export function initScheduler() {
   if (process.env.ENABLE_AUTO_DUMP === 'true') {
     setTimeout(checkAndRunDump, 5000)
     setInterval(checkAndRunDump, CHECK_INTERVAL_MS)
-  } else {
-    console.log('🕒 Background scheduler (Weekly backups) is DISABLED via env.')
   }
 
+  // Запускаем рассылку каждый час (внутри функции есть проверка времени и lastPushSentAt)
   setInterval(() => {
-    const now = new Date()
-    if (now.getHours() === 14) {
-      if (!(global as any).__pushSentToday) {
-        (global as any).__pushSentToday = true
-        sendDailyMotivations().catch(err => console.error(err))
-      }
-    } else {
-      (global as any).__pushSentToday = false
-    }
-  }, 60 * 60 * 1000) 
+    sendDailyMotivations().catch(err => console.error(err))
+  }, CHECK_INTERVAL_MS)
 }

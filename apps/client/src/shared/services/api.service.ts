@@ -147,6 +147,16 @@ export const api = {
         signal,
       }),
 
+    fetchImageBlob: async (path: string) => {
+      const url = path.startsWith('http') ? path : `${BASE}${path}`
+      const headers = new Headers()
+      const token = localStorage.getItem('insight_token')
+      if (token) headers.set('Authorization', `Bearer ${token}`)
+
+      const res = await fetch(url, { headers })
+      if (!res.ok) throw new Error(`Failed to fetch image: ${res.statusText}`)
+      return res.blob()
+    },
   },
 
   tts: {

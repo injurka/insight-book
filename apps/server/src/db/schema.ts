@@ -22,6 +22,13 @@ export const users = sqliteTable('users', {
   username: text('username').notNull().unique(),
   passwordHash: text('passwordHash').notNull(),
   createdAt: text('createdAt').notNull().default(sql`(datetime('now'))`),
+
+  // PUSH-уведомления
+  pushTargetDeckId: integer('pushTargetDeckId'),
+  pushTimeStart: text('pushTimeStart').notNull().default('10:00'),
+  pushTimeEnd: text('pushTimeEnd').notNull().default('21:00'),
+  timezone: text('timezone').notNull().default('UTC'),
+  lastPushSentAt: text('lastPushSentAt'),
 })
 
 export const opdsCatalogs = sqliteTable('opds_catalogs', {
@@ -205,11 +212,11 @@ export const webPushSubscriptions = sqliteTable('web_push_subscriptions', {
   endpoint: text('endpoint').notNull().unique(),
   keys: text('keys').notNull(),
   createdAt: text('createdAt').notNull().default(sql`(datetime('now'))`),
-});
+})
 
 export const webPushSubscriptionsRelations = relations(webPushSubscriptions, ({ one }) => ({
   user: one(users, { fields: [webPushSubscriptions.userId], references: [users.id] }),
-}));
+}))
 
 export const usersRelations = relations(users, ({ many }) => ({
   books: many(books),

@@ -31,6 +31,7 @@ export interface Book {
   title: string
   author: string | null
   coverUrl: string | null
+  localCoverUrl?: string // <-- Для оффлайн обложек (Blob URL)
   filePath: string
   language: string
   totalPages: number
@@ -92,6 +93,7 @@ export interface PagePayload {
   content: string
   type?: 'epub' | 'manga'
   imageUrl?: string
+  localImageUrl?: string // <-- Для оффлайн страниц манги (Blob URL)
   imageWidth?: number
   imageHeight?: number
   ocrBlocks?: OcrBlock[]

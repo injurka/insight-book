@@ -1,4 +1,5 @@
 import { defineStore } from 'pinia'
+import { useAuthStore } from './auth.store'
 
 type UpdateServiceWorkerFunction = (reloadPage?: boolean) => Promise<void>
 
@@ -100,6 +101,35 @@ export const usePwaStore = defineStore('pwa', {
         })
 
         this.isPushSubscribed = true
+      }
+    },
+
+    async updatePushSettings(settings: { deckId: number | 'all', timeStart: string, timeEnd: string }) {
+      const BASE = import.meta.env.VITE_API_URL || 'https://insight-api.trip-scheduler.ru'
+
+      // Автоматически получаем таймзону браузера
+      const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'
+
+      await fetch(`${BASE}/api/push/settings`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('insight_token')}`,
+        },
+        body: JSON.stringify({
+          targetDeckId: settings.deckId,
+          timeStart: settings.timeStart,
+          timeEnd: settings.timeEnd,
+          timezone,
+        }),
+      })
+
+      const authStore = useAuthStore()
+      if (authStore.user) {
+        authStore.user.pushTargetDeckId = settings.deckId === 'all' ? null : settings.deckId
+        authStore.user.pushTimeStart = settings.timeStart
+        authStore.user.pushTimeEnd = settings.timeEnd
+        authStore.user.timezone = timezone
       }
     },
   },

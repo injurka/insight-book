@@ -3,7 +3,15 @@ import { ref } from 'vue'
 import { api } from '../services/api.service'
 
 export const useAuthStore = defineStore('auth', () => {
-  const user = ref<{ id: number, username: string } | null>(null)
+  const user = ref<{
+    id: number
+    username: string
+    pushTargetDeckId?: number | null
+    pushTimeStart?: string
+    pushTimeEnd?: string
+    timezone?: string
+  } | null>(null)
+
   const isSingleMode = ref(false)
   const isAuthReady = ref(false)
 
