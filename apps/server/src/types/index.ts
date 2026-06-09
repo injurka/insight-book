@@ -31,13 +31,25 @@ export interface Book {
   title: string
   author: string | null
   coverUrl: string | null
+  localCoverUrl?: string
   filePath: string
   language: string
   totalPages: number
   currentPage: number | null
   createdAt: string
+  updatedAt?: string
+  userId?: number
+  type?: string
   toc?: TocItem[]
   stats?: BookStats | null
+  series?: string | null
+  seriesNumber?: number | null
+  status?: string
+  isFavorite?: boolean
+  collection?: string | null
+  isPublic?: boolean
+  textDirection?: string | null
+  progressUpdatedAt?: string | null
 }
 
 export interface TocItem {
@@ -84,6 +96,7 @@ export interface PagePayload {
   pageDictionary?: Record<string, PageDictEntry>
   type?: 'epub' | 'manga'
   imageUrl?: string
+  localImageUrl?: string
   imageWidth?: number
   imageHeight?: number
   ocrBlocks?: OcrBlock[]
@@ -125,6 +138,7 @@ export interface WordEncounter {
   sentence: string
   createdAt: string
   bookTitle?: string
+  book?: { title: string }
 }
 
 export interface UserDictItem {
@@ -158,7 +172,6 @@ export interface LlmConfig {
   key?: string
   model?: string
   fallbackModel?: string
-  // Флаг для агрегаторов (OpenRouter, AiHubMix и т.д.)
   isAggregator?: boolean
 }
 

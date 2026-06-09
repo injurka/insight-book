@@ -171,12 +171,7 @@ onUnmounted(() => {
                   {{ t('analysis.grammarColon') }}
                 </div>
                 <div v-for="(rule, idx) in analysisStore.wordPopover.aiData.grammarRules" :key="idx" class="ai-rule">
-                  <template v-if="typeof rule === 'string'">
-                    {{ rule }}
-                  </template>
-                  <template v-else>
-                    <b>{{ rule.pattern }}</b> — {{ rule.explanation }}
-                  </template>
+                  <b>{{ rule.pattern }}</b> — {{ rule.explanation }}
                 </div>
               </div>
               <div v-if="analysisStore.wordPopover.aiData.vocabulary?.length" class="ai-section">
@@ -231,6 +226,7 @@ onUnmounted(() => {
 </template>
 
 <style lang="scss" scoped>
+/* Стили остаются без изменений */
 .word-popover {
   position: fixed;
   z-index: var(--z-popover, 1300);

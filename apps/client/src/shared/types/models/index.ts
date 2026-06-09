@@ -26,18 +26,18 @@ export interface BookStats {
 
 export interface Book {
   id: number
-  userId: number
-  type: string
   title: string
   author: string | null
   coverUrl: string | null
-  localCoverUrl?: string // <-- Для оффлайн обложек (Blob URL)
+  localCoverUrl?: string
   filePath: string
   language: string
   totalPages: number
   currentPage: number | null
   createdAt: string
-  updatedAt: string
+  updatedAt?: string
+  userId?: number
+  type?: string
   toc?: TocItem[]
   stats?: BookStats | null
   series?: string | null
@@ -91,6 +91,7 @@ export interface PagePayload {
   pageNum: number
   totalPages: number
   content: string
+  pageDictionary?: Record<string, PageDictEntry>
   type?: 'epub' | 'manga'
   imageUrl?: string
   localImageUrl?: string // <-- Для оффлайн страниц манги (Blob URL)
@@ -110,13 +111,12 @@ export interface VocabItem {
   transcription: string
   meaning: string
   usageInContext: string
-  pinyin?: string
 }
 
 export interface LlmAnalysis {
   transcription: string
   translation: string
-  grammarRules: (GrammarRule | string)[] 
+  grammarRules: GrammarRule[]
   vocabulary: VocabItem[]
 }
 
@@ -167,9 +167,10 @@ export interface UserDictItem {
 
 export interface LlmConfig {
   url: string
-  key: string
-  model: string
+  key?: string
+  model?: string
   fallbackModel?: string
+  isAggregator?: boolean
 }
 
 export interface WordExample {
@@ -244,4 +245,15 @@ export interface OpdsFeed {
   title: string
   links: OpdsLink[]
   entries: OpdsEntry[]
+}
+
+export interface BatchAnalysisRequest {
+  id: string
+  sentence: string
+  context?: string
+}
+
+export interface BatchAnalysisResponse {
+  id: string
+  analysis: LlmAnalysis
 }

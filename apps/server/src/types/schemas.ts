@@ -1,17 +1,41 @@
 import { z } from 'zod'
 
-export const GrammarRuleSchema = z.object({
+export const GrammarRuleSchema = z.preprocess((val: any) => {
+  if (typeof val === 'string') {
+    return {
+      pattern: val,
+      explanation: '',
+      example: '',
+    }
+  }
+  return val
+}, z.object({
   pattern: z.string().catch(''),
   explanation: z.string().catch(''),
   example: z.string().catch(''),
-})
+}))
 
-export const VocabItemSchema = z.object({
+export const VocabItemSchema = z.preprocess((val: any) => {
+  if (typeof val === 'string') {
+    return { word: val, transcription: '', meaning: '', usageInContext: '' }
+  }
+  // Deprecated
+  // Поддержка старых ключей (pinyin -> transcription, translation -> meaning)
+  if (val && typeof val === 'object') {
+    return {
+      word: val.word || '',
+      transcription: val.transcription || val.pinyin || '',
+      meaning: val.meaning || val.translation || '',
+      usageInContext: val.usageInContext || '',
+    }
+  }
+  return val
+}, z.object({
   word: z.string().catch(''),
   transcription: z.string().catch(''),
   meaning: z.string().catch(''),
   usageInContext: z.string().catch(''),
-})
+}))
 
 export const LlmAnalysisSchema = z.object({
   transcription: z.string().catch(''),

@@ -103,18 +103,25 @@ Your task is to provide a deep and clear analysis of the text (a word, phrase, o
 If context is provided, use it strictly to accurately translate the target text, but DO NOT include the context in the translation output.
 
 MANDATORY: Return the response STRICTLY as a valid JSON. No markdown formatting (\`\`\`json).
+
+CRITICAL SCHEMA RULES:
+- "grammarRules" MUST be an array of objects. NEVER return an array of strings.
+- "vocabulary" MUST be an array of objects. NEVER return an array of strings.
+- Always use the key "transcription" (NEVER use "pinyin", "romaji", etc. use "transcription" for all phonetic spelling).
+- Always use the key "meaning" inside vocabulary.
+
 Instructions:
 1. Translation: Natural, literary (not word-for-word), adapted for ${tgtLang}.
 2. Grammar: Highlight 1-4 key grammatical patterns. Explain them concisely in ${tgtLang}.
 3. Vocabulary: 
    - Provide words in their BASE (DICTIONARY) FORM.
    - If input is a SINGLE word (especially compound/multi-character): break it down into logical parts and explain each in ${tgtLang}.
-   - If input is a sentence: extract key words and explain their meaning in this specific context (field 'usageInContext').
+   - If input is a sentence: extract key words and explain their meaning in this specific context.
    - Ignore simple punctuation and interjections.
 
 JSON Schema:
 {
-  "transcription": "Transcription of the text (IPA for English, Pinyin with tones for Chinese, Romaji/Hiragana for Japanese)",
+  "transcription": "Transcription of the text",
   "translation": "Natural translation in ${tgtLang}",
   "grammarRules": [
     {
@@ -145,19 +152,34 @@ export function getBatchSystemPrompt(language: string, targetLanguage: string): 
 You will receive a JSON array of objects. Each object has an "id", "text", and optional "context".
 Analyze each "text" item independently, using "context" only to improve translation accuracy.
 
-MANDATORY: Return a JSON ARRAY of analysis objects. 
-The returned array MUST have the exact same length and corresponding "id"s as the input array.
-Do NOT use markdown (\`\`\`json). Return raw JSON array.
+MANDATORY RULES: 
+1. Return a JSON ARRAY of analysis objects.
+2. The returned array MUST have the exact same length and corresponding "id"s as the input array.
+3. "grammarRules" and "vocabulary" MUST ALWAYS be arrays of objects. NEVER return arrays of strings.
+4. Do NOT use markdown (\`\`\`json). Return raw JSON array.
 
 Output Schema:
 [
   {
     "id": "item_id_from_input",
     "analysis": {
-      "transcription": "Transcription",
+      "transcription": "Transcription of the text",
       "translation": "Translation in ${tgtLang}",
-      "grammarRules": [],
-      "vocabulary": []
+      "grammarRules": [
+        {
+          "pattern": "Pattern / Rule",
+          "explanation": "Explanation in ${tgtLang}",
+          "example": "Example (optional)"
+        }
+      ],
+      "vocabulary": [
+        {
+          "word": "Word",
+          "transcription": "Transcription",
+          "meaning": "Meaning in ${tgtLang}",
+          "usageInContext": "Contextual meaning (optional)"
+        }
+      ]
     }
   }
 ]`
