@@ -3,7 +3,7 @@ import { useUmami } from '~/shared/composables/use-umami'
 import { api } from '../services/api.service'
 
 export const useAuthStore = defineStore('auth', () => {
-  const { identifyUser } = useUmami()
+  const { identifyUser, trackEvent } = useUmami()
 
   const user = ref<UserData | null>(null)
 
@@ -23,7 +23,8 @@ export const useAuthStore = defineStore('auth', () => {
         localStorage.setItem('insight_auth_mode', res.mode)
 
         identifyUser({
-          userId: res.user.id,
+          id: String(res.user.id),
+          username: res.user.username,
           role: res.user.role || 'user',
         })
       }
@@ -39,6 +40,12 @@ export const useAuthStore = defineStore('auth', () => {
 
       if ((token || isSingleMode.value) && cachedUser) {
         user.value = JSON.parse(cachedUser)
+
+        identifyUser({
+          id: String(user.value!.id),
+          username: user.value!.username,
+          role: user.value!.role || 'user',
+        })
       }
       else {
         user.value = null
@@ -50,6 +57,8 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   function logout() {
+    trackEvent('logout')
+
     localStorage.removeItem('insight_token')
     localStorage.removeItem('insight_uid')
     localStorage.removeItem('insight_user_data')

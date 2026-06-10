@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { KitBtn, KitInput } from '~/components/01.kit'
 import { useToast } from '~/shared/composables/use-toast'
+import { useUmami } from '~/shared/composables/use-umami'
 import { api } from '~/shared/services/api.service'
 import { useAuthStore } from '~/shared/store/auth.store'
 
@@ -11,6 +12,7 @@ const router = useRouter()
 const authStore = useAuthStore()
 const toast = useToast()
 const { t } = useI18n()
+const { trackEvent } = useUmami()
 
 const username = ref('')
 const password = ref('')
@@ -25,6 +27,8 @@ async function handleSignIn() {
     const res = await api.auth.login({ username: username.value, password: password.value })
     localStorage.setItem('insight_token', res.token)
     await authStore.checkAuth()
+
+    trackEvent('login_success')
     router.push('/')
   }
   catch (e) {

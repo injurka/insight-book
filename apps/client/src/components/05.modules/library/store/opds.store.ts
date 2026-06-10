@@ -1,6 +1,7 @@
 import type { OpdsCatalog, OpdsFeed } from '~/shared/types/models'
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
+import { useUmami } from '~/shared/composables/use-umami'
 import { i18n } from '~/shared/plugins/i18n'
 import { api } from '~/shared/services/api.service'
 import { useToastStore } from '~/shared/store/toast.store'
@@ -11,6 +12,8 @@ function getCorsProxyUrl(targetUrl: string) {
 }
 
 export const useOpdsStore = defineStore('opds', () => {
+  const { trackEvent } = useUmami()
+
   const catalogs = ref<OpdsCatalog[]>([])
   const isLoading = ref(false)
   const isBrowsing = ref(false)
@@ -37,12 +40,9 @@ export const useOpdsStore = defineStore('opds', () => {
     catalogs.value = catalogs.value.filter(c => c.id !== id)
   }
 
-  // --- НОВАЯ ЛОГИКА ФРОНТЕНДА ДЛЯ OPDS ---
-
   async function browse(url: string) {
     isBrowsing.value = true
     try {
-      // 1. Скачиваем OPDS через CORS-прокси
       const res = await fetch(getCorsProxyUrl(url), {
         headers: { Accept: 'application/atom+xml,application/xml,text/xml' },
       })
@@ -50,7 +50,6 @@ export const useOpdsStore = defineStore('opds', () => {
         throw new Error(`HTTP ${res.status}`)
       const xml = await res.text()
 
-      // 2. Парсим XML встроенным в браузер парсером
       const parser = new DOMParser()
       const doc = parser.parseFromString(xml, 'text/xml')
 
@@ -116,13 +115,11 @@ export const useOpdsStore = defineStore('opds', () => {
   async function downloadBook(downloadUrl: string, title: string, type?: string) {
     isDownloading.value = true
     try {
-      // 1. Скачиваем саму книгу в память браузера (в виде Blob)
       const res = await fetch(getCorsProxyUrl(downloadUrl))
       if (!res.ok)
         throw new Error('Ошибка скачивания файла')
       const blob = await res.blob()
 
-      // 2. Определяем расширение
       let ext = '.epub'
       if (type?.includes('epub')) {
         ext = '.epub'
@@ -148,6 +145,7 @@ export const useOpdsStore = defineStore('opds', () => {
 
       if (book) {
         useToastStore().success(i18n.global.t('opds.bookDownloaded'))
+        trackEvent('opds_downloaded', { ext })
       }
     }
     catch (e) {

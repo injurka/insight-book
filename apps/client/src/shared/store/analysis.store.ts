@@ -44,11 +44,13 @@ export interface AnalysisTask {
   type: 'sentence' | 'word' | 'tts_sentence' | 'tts_word'
   text: string
   context?: string
-  priority: number // 1 = ручной клик, 0 = фоновая обработка страницы
+  priority: number
   status: 'pending' | 'processing' | 'done' | 'error'
 }
 
 export const useAnalysisStore = defineStore('analysis', () => {
+  const { trackEvent } = useUmami()
+
   // Popovers & Tooltips
   const activeTokenId = ref<string | null>(null)
   const wordPopover = ref<WordPopoverData | null>(null)
@@ -82,7 +84,6 @@ export const useAnalysisStore = defineStore('analysis', () => {
 
   const isBackgroundActive = computed(() => taskQueue.value.length > 0 || isQueueProcessing.value)
 
-  // Abort Controllers
   let wordAbortController: AbortController | null = null
   let pageAnalysisAbortController: AbortController | null = null
   let manualAnalysisAbortController: AbortController | null = null
@@ -116,7 +117,6 @@ export const useAnalysisStore = defineStore('analysis', () => {
       pageAnalysisAbortController = null
     }
 
-    // Удаляем фоновые задачи (оставляем только ручные клики)
     taskQueue.value = taskQueue.value.filter(t => t.priority !== 0)
 
     isQueueProcessing.value = false
@@ -181,7 +181,6 @@ export const useAnalysisStore = defineStore('analysis', () => {
 
       taskQueue.value.sort((a, b) => b.priority - a.priority)
 
-      // 1. ПАКЕТНАЯ ОБРАБОТКА ТЕКСТА
       const textTasks = taskQueue.value.filter(t => (t.type === 'sentence' || t.type === 'word') && t.status === 'pending')
 
       if (textTasks.length > 0) {
@@ -235,7 +234,6 @@ export const useAnalysisStore = defineStore('analysis', () => {
         continue
       }
 
-      // 2. ОБРАБОТКА АУДИО (TTS)
       const ttsTask = taskQueue.value.find(t => t.type.startsWith('tts_') && t.status === 'pending')
       if (ttsTask) {
         ttsTask.status = 'processing'
@@ -290,8 +288,6 @@ export const useAnalysisStore = defineStore('analysis', () => {
   }
 
   async function handleSentenceAnalysis(sentence: string, context?: string) {
-    const { trackEvent } = useUmami()
-
     const settingsStore = useGlobalSettingsStore()
     const readerStore = useReaderStore()
     const libraryStore = useLibraryStore()
@@ -365,6 +361,14 @@ export const useAnalysisStore = defineStore('analysis', () => {
     if (!readerStore.currentPage || !readerStore.currentBook)
       return
 
+    trackEvent('page_analysis_started', {
+      sentences: options.sentences,
+      words: options.words,
+      ttsSentences: options.ttsSentences,
+      ttsWords: options.ttsWords,
+      isBackground,
+    })
+
     if (!isBackground) {
       cancelPageAnalysis()
       isManualPageAnalysisActive.value = true
@@ -392,7 +396,6 @@ export const useAnalysisStore = defineStore('analysis', () => {
       if (doSent || doTtsSent) {
         const sentRegex = /data-raw-sent="([^"]+)"/g
         let match
-        // eslint-disable-next-line no-cond-assign
         while ((match = sentRegex.exec(html)) !== null) {
           sentencesToProcess.add(decodeURIComponent(match[1]))
         }
@@ -401,7 +404,6 @@ export const useAnalysisStore = defineStore('analysis', () => {
       if (doWords || doTtsWords) {
         const wordRegex = /data-word="([^"]+)"[^>]*?data-pos="([^"]+)"/g
         let match
-        // eslint-disable-next-line no-cond-assign
         while ((match = wordRegex.exec(html)) !== null) {
           if (match[2] !== 'x') {
             wordsToProcess.add(decodeURIComponent(match[1]))
@@ -703,6 +705,8 @@ export const useAnalysisStore = defineStore('analysis', () => {
   async function saveWordToDict(item: Partial<UserDictItem> & { contextSentence?: string, contextBookId?: number }) {
     await api.dictionary.upsert(item)
     addEditWordModalOpen.value = false
+
+    trackEvent('word_saved_to_dict', { language: item.language })
 
     const dictStore = useDictionaryStore()
     await dictStore.fetchDictionary()

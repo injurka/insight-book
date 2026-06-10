@@ -2,6 +2,7 @@ import type { Book, PageDictEntry, PagePayload, TocItem } from '~/shared/types/m
 import { defineStore } from 'pinia'
 import { computed, ref, watch } from 'vue'
 import { useLibraryStore } from '~/components/05.modules/library/store/library.store'
+import { useUmami } from '~/shared/composables/use-umami'
 import { i18n } from '~/shared/plugins/i18n'
 import { api } from '~/shared/services/api.service'
 import { offlineService } from '~/shared/services/offline.service'
@@ -11,6 +12,7 @@ import { useToastStore } from '~/shared/store/toast.store'
 
 export const useReaderStore = defineStore('reader', () => {
   const libraryStore = useLibraryStore()
+  const { trackEvent } = useUmami()
 
   const currentBook = computed(() => libraryStore.currentBookInfo)
   const currentPage = ref<PagePayload | null>(null)
@@ -110,7 +112,6 @@ export const useReaderStore = defineStore('reader', () => {
         await offlineService.savePage(bookId, pageNum, page)
       }
 
-      // Ищем картинку в локальном IndexedDB-кэше
       if (page && page.type === 'manga' && page.imageUrl) {
         const cachedBlob = await offlineService.getImage(bookId, pageNum)
         if (cachedBlob) {
@@ -140,6 +141,8 @@ export const useReaderStore = defineStore('reader', () => {
   }
 
   async function openBook(book: Book) {
+    trackEvent('book_opened', { bookId: book.id, type: book.type, language: book.language })
+
     libraryStore.currentBookInfo = book
     currentPage.value = null
     currentPageDictionary.value = {}
@@ -160,6 +163,8 @@ export const useReaderStore = defineStore('reader', () => {
       const book = libraryStore.books.find(b => b.id === id)
       if (!book)
         throw new Error(i18n.global.t('dictionary.bookNotFoundError'))
+
+      trackEvent('book_opened', { bookId: book.id, type: book.type, language: book.language })
 
       libraryStore.currentBookInfo = book
       currentPage.value = null

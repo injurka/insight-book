@@ -6,6 +6,7 @@ import { useRouter } from 'vue-router'
 import { KitBtn, KitDropdown, KitPrompt, KitSelect } from '~/components/01.kit'
 import { ThemesVariant, useChangeTheme } from '~/shared/composables/use-change-theme'
 import { useToast } from '~/shared/composables/use-toast'
+import { useUmami } from '~/shared/composables/use-umami'
 import { AppRoutePaths } from '~/shared/constants/routes'
 import { getMediaUrl } from '~/shared/lib/helpers'
 import { useAuthStore } from '~/shared/store/auth.store'
@@ -25,6 +26,7 @@ const toast = useToast()
 const { theme, toggleTheme } = useChangeTheme()
 const { t } = useI18n()
 const settingsStore = useGlobalSettingsStore()
+const { trackEvent } = useUmami()
 
 const appLangOptions = [
   { label: 'Русский', value: 'ru' },
@@ -43,6 +45,8 @@ function formatNumber(num: number | undefined | null) {
 
 function setLanguage(lang: string) {
   settingsStore.appLanguage = lang
+
+  trackEvent('app_language_changed', { language: lang })
 
   if (authStore.user) {
     pwaStore.updatePushSettings({

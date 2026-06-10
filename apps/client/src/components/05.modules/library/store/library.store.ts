@@ -9,6 +9,8 @@ import { useAuthStore } from '~/shared/store/auth.store'
 import { useGlobalSettingsStore } from '~/shared/store/settings.store'
 
 export const useLibraryStore = defineStore('library', () => {
+  const { trackEvent } = useUmami()
+
   const books = ref<Book[]>([])
   const publicBooks = ref<Book[]>([])
   const publicTotal = ref(0)
@@ -63,6 +65,14 @@ export const useLibraryStore = defineStore('library', () => {
     const book = books.value.find(b => b.id === bookId) || currentBookInfo.value
     if (!book)
       return
+
+    trackEvent('book_sync_started', {
+      cachePages: options.cachePages,
+      analyzeSentences: options.analyzeSentences,
+      analyzeWords: !!options.analyzeWords,
+      ttsSentences: !!options.ttsSentences,
+      ttsWords: !!options.ttsWords,
+    })
 
     syncState.value = 'running'
     syncAbortController = new AbortController()
@@ -344,7 +354,7 @@ export const useLibraryStore = defineStore('library', () => {
   async function fetchBooks() {
     const authStore = useAuthStore()
     if (!authStore.user && !authStore.isSingleMode) {
-      return // Не загружать личные книги, если гость
+      return
     }
 
     isLoading.value = true
@@ -489,8 +499,6 @@ export const useLibraryStore = defineStore('library', () => {
   }
 
   async function uploadBook(file: File) {
-    const { trackEvent } = useUmami()
-
     isLoading.value = true
 
     try {
@@ -513,6 +521,9 @@ export const useLibraryStore = defineStore('library', () => {
     try {
       const res = await api.books.createCustomBook({ title, author, language, type: 'manga' })
       books.value.unshift(res.book)
+
+      trackEvent('custom_manga_created', { language })
+
       return res.book
     }
     finally { isLoading.value = false }
@@ -545,6 +556,8 @@ export const useLibraryStore = defineStore('library', () => {
     books.value = books.value.filter(b => b.id !== id)
     if (currentBookInfo.value?.id === id)
       currentBookInfo.value = null
+
+    trackEvent('book_deleted')
   }
 
   return {

@@ -1,5 +1,6 @@
 import { useStorage } from '@vueuse/core'
 import { useHead } from '@vueuse/head'
+import { useUmami } from '~/shared/composables/use-umami'
 
 export enum ThemesVariant {
   Light = 'light',
@@ -14,6 +15,8 @@ const themesColors: Record<ThemesVariant, string> = {
 const themePreference = useStorage<ThemesVariant>('app-theme', ThemesVariant.Light)
 
 export function useChangeTheme() {
+  const { trackEvent } = useUmami()
+
   function applyTheme(value: ThemesVariant) {
     document.documentElement.setAttribute('data-theme', value)
     useHead({
@@ -32,7 +35,9 @@ export function useChangeTheme() {
   }
 
   const toggleTheme = () => {
-    setTheme(themePreference.value === ThemesVariant.Light ? ThemesVariant.Dark : ThemesVariant.Light)
+    const newTheme = themePreference.value === ThemesVariant.Light ? ThemesVariant.Dark : ThemesVariant.Light
+    setTheme(newTheme)
+    trackEvent('theme_changed', { theme: newTheme })
   }
 
   return {

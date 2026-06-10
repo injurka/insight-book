@@ -2,6 +2,7 @@ import type { DictDeck, UserDictItem } from '~/shared/types/models'
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 import { useToast } from '~/shared/composables/use-toast'
+import { useUmami } from '~/shared/composables/use-umami'
 import { DIFFICULTY_SYSTEMS } from '~/shared/constants/difficulties'
 import { api } from '~/shared/services/api.service'
 import { offlineService } from '~/shared/services/offline.service'
@@ -9,6 +10,7 @@ import { useAnalysisStore } from '~/shared/store/analysis.store'
 
 export const useDictionaryStore = defineStore('dictionary', () => {
   const toast = useToast()
+  const { trackEvent } = useUmami()
 
   const words = ref<UserDictItem[]>([])
   const decks = ref<DictDeck[]>([])
@@ -65,14 +67,12 @@ export const useDictionaryStore = defineStore('dictionary', () => {
     trainingMode.value = opts.mode
     try {
       let langToFetch = selectedLanguage.value
-      // Умное определение языка: если выбрана конкретная колода, берем ее язык
       if (opts.deckId !== 'all' && opts.deckId !== 'none') {
         const deck = decks.value.find(d => d.id === opts.deckId)
         if (deck)
           langToFetch = deck.language
       }
 
-      // Если сложность общая ("level_X"), на бэкенд шлём 'all' и фильтруем локально
       const backendDifficulty = opts.difficulty.startsWith('level_') ? 'all' : opts.difficulty
 
       let queue = await api.dictionary.getReviewQueue({
@@ -82,7 +82,6 @@ export const useDictionaryStore = defineStore('dictionary', () => {
         difficulty: backendDifficulty,
       })
 
-      // Локальная фильтрация по универсальному уровню сложности
       if (opts.difficulty.startsWith('level_')) {
         const targetLevel = Number.parseInt(opts.difficulty.split('_')[1], 10)
         queue = queue.filter((w) => {
@@ -106,6 +105,9 @@ export const useDictionaryStore = defineStore('dictionary', () => {
       const newDeck = await api.dictionary.createDeck({ name, language })
       decks.value.push(newDeck)
       toast.success('Колода создана')
+
+      trackEvent('deck_created', { language })
+
       return newDeck
     }
     catch (e) {
@@ -152,6 +154,8 @@ export const useDictionaryStore = defineStore('dictionary', () => {
       words.value = words.value.filter(w => w.word !== word)
       reviewQueue.value = reviewQueue.value.filter(w => w.word !== word)
       toast.success('Слово удалено')
+
+      trackEvent('word_deleted')
     }
     catch (e) {
       toast.error(e instanceof Error ? e.message : 'Не удалось удалить слово')
@@ -249,6 +253,8 @@ export const useDictionaryStore = defineStore('dictionary', () => {
       words.value = words.value.filter(w => !ids.includes(w.id))
       clearSelection()
       toast.success(`Удалено ${ids.length} слов`)
+
+      trackEvent('bulk_words_deleted', { count: ids.length })
     }
     catch {
       toast.error('Ошибка удаления')
@@ -268,6 +274,8 @@ export const useDictionaryStore = defineStore('dictionary', () => {
       })
       clearSelection()
       toast.success(`Перемещено ${ids.length} слов`)
+
+      trackEvent('bulk_words_moved', { count: ids.length })
     }
     catch {
       toast.error('Ошибка перемещения')
