@@ -78,6 +78,18 @@ services:
       - "traefik.http.services.insight-analytics.loadbalancer.server.port=3000"
       - "traefik.docker.network=trip-net"
 
+      - "traefik.http.routers.umami-script.rule=Host(`insight-book.trip-scheduler.ru`) && Path(`/stats/app.js`)"
+      - "traefik.http.routers.umami-script.entrypoints=websecure"
+      - "traefik.http.routers.umami-script.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.umami-script.service=insight-analytics"
+      - "traefik.http.routers.umami-script.middlewares=umami-script-rw"
+      - "traefik.http.middlewares.umami-script-rw.replacepath.path=/script.js"
+
+      - "traefik.http.routers.umami-api.rule=Host(`insight-book.trip-scheduler.ru`) && PathPrefix(`/api/send`)"
+      - "traefik.http.routers.umami-api.entrypoints=websecure"
+      - "traefik.http.routers.umami-api.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.umami-api.service=insight-analytics"
+
   umami-db:
     image: postgres:15-alpine
     restart: unless-stopped

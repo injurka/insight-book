@@ -5,6 +5,7 @@ import { computed, ref } from 'vue'
 import { useDictionaryStore } from '~/components/05.modules/dictionary/store/dictionary.store'
 import { useLibraryStore } from '~/components/05.modules/library/store/library.store'
 import { useReaderStore } from '~/components/05.modules/reader/store/reader.store'
+import { useUmami } from '~/shared/composables/use-umami'
 import { i18n } from '~/shared/plugins/i18n'
 import { api } from '~/shared/services/api.service'
 import { offlineService } from '~/shared/services/offline.service'
@@ -289,6 +290,9 @@ export const useAnalysisStore = defineStore('analysis', () => {
   }
 
   async function handleSentenceAnalysis(sentence: string, context?: string) {
+    const { trackEvent } = useUmami()
+
+    const settingsStore = useGlobalSettingsStore()
     const readerStore = useReaderStore()
     const libraryStore = useLibraryStore()
     const currentBook = readerStore.currentBook || libraryStore.currentBookInfo
@@ -330,6 +334,11 @@ export const useAnalysisStore = defineStore('analysis', () => {
         return
 
       await offlineService.saveAnalysis(currentBook.id, sentence, res)
+
+      trackEvent('ai_analyze', {
+        language: currentBook.language,
+        customLlm: settingsStore.useCustomLlm ? 'yes' : 'no',
+      })
 
       if (sidebarSentence.value === sentence) {
         sidebarAnalysis.value = res

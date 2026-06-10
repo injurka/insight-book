@@ -1,9 +1,10 @@
 import type { UserData } from '../types/models'
-import { defineStore } from 'pinia'
-import { ref } from 'vue'
+import { useUmami } from '~/shared/composables/use-umami'
 import { api } from '../services/api.service'
 
 export const useAuthStore = defineStore('auth', () => {
+  const { identifyUser } = useUmami()
+
   const user = ref<UserData | null>(null)
 
   const isSingleMode = ref(false)
@@ -20,6 +21,11 @@ export const useAuthStore = defineStore('auth', () => {
         localStorage.setItem('insight_uid', String(res.user.id))
         localStorage.setItem('insight_user_data', JSON.stringify(res.user))
         localStorage.setItem('insight_auth_mode', res.mode)
+
+        identifyUser({
+          userId: res.user.id,
+          role: res.user.role || 'user',
+        })
       }
     }
     catch {

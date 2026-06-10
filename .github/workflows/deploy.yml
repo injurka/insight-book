@@ -50,6 +50,8 @@ jobs:
           cache-to: type=gha,mode=max
           build-args: |
             APP_VERSION=${{ github.ref_name }}
+            VITE_UMAMI_WEBSITE_ID=${{ secrets.VITE_UMAMI_WEBSITE_ID }}
+            VITE_UMAMI_URL=${{ secrets.VITE_UMAMI_URL }}
 
   # ─── JOB 2: Сборка и пуш сервера ───────────────────────────────
   build-server:

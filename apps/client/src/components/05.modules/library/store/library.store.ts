@@ -2,6 +2,7 @@ import type { Book, BookStats } from '~/shared/types/models'
 import { defineStore } from 'pinia'
 import { v4 as uuidv4 } from 'uuid'
 import { ref } from 'vue'
+import { useUmami } from '~/shared/composables/use-umami'
 import { api } from '~/shared/services/api.service'
 import { offlineService } from '~/shared/services/offline.service'
 import { useAuthStore } from '~/shared/store/auth.store'
@@ -488,12 +489,20 @@ export const useLibraryStore = defineStore('library', () => {
   }
 
   async function uploadBook(file: File) {
+    const { trackEvent } = useUmami()
+
     isLoading.value = true
+
     try {
       const res = await api.books.upload(file)
       const book = 'book' in res ? res.book : (res as unknown as Book)
+      const ext = file.name.split('.').pop()?.toLowerCase() || 'unknown'
+
       if (book)
         books.value.unshift(book)
+
+      trackEvent('book_uploaded', { format: ext, size_mb: Math.round(file.size / 1048576) })
+
       return book
     }
     finally { isLoading.value = false }

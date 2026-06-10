@@ -1,6 +1,7 @@
 import type { ToastMessage, ToastOptions } from '../types/models/toast'
 import { defineStore } from 'pinia'
 import { v4 as uuidv4 } from 'uuid'
+import { useUmami } from '~/shared/composables/use-umami'
 
 export interface ToastState {
   messages: ToastMessage[]
@@ -47,7 +48,11 @@ export const useToastStore = defineStore('toast', {
     },
 
     error(detail: string, options: ToastOptions = {}) {
+      const { trackEvent } = useUmami()
+
       this.add({ type: 'error', detail, ...options })
+
+      trackEvent('app_error', { message: detail })
     },
 
     info(detail: string, options: ToastOptions = {}) {

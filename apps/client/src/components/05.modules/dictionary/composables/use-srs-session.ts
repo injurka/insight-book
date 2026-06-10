@@ -1,4 +1,5 @@
 import { computed, ref } from 'vue'
+import { useUmami } from '~/shared/composables/use-umami'
 
 export function useSrsSession() {
   const sessionState = ref<'setup' | 'active' | 'finished'>('setup')
@@ -12,23 +13,6 @@ export function useSrsSession() {
     correctAnswers: 0,
     totalAnswers: 0,
   })
-
-  function startSession() {
-    sessionState.value = 'active'
-    currentIndex.value = 0
-    startTime.value = Date.now()
-    stats.value = {
-      newStudied: 0,
-      reviewed: 0,
-      correctAnswers: 0,
-      totalAnswers: 0,
-    }
-  }
-
-  function finishSession() {
-    sessionState.value = 'finished'
-    endTime.value = Date.now()
-  }
 
   const timeSpentMs = computed(() => {
     if (startTime.value === 0)
@@ -50,6 +34,31 @@ export function useSrsSession() {
     stats.value.totalAnswers++
     if (grade >= 2) { // 2 = Good, 3 = Easy
       stats.value.correctAnswers++
+    }
+  }
+
+  function finishSession() {
+    const { trackEvent } = useUmami()
+
+    sessionState.value = 'finished'
+    endTime.value = Date.now()
+
+    trackEvent('srs_training_finished', {
+      accuracy: accuracy.value,
+      totalAnswers: stats.value.totalAnswers,
+      timeSpentSeconds: Math.round(timeSpentMs.value / 1000),
+    })
+  }
+
+  function startSession() {
+    sessionState.value = 'active'
+    currentIndex.value = 0
+    startTime.value = Date.now()
+    stats.value = {
+      newStudied: 0,
+      reviewed: 0,
+      correctAnswers: 0,
+      totalAnswers: 0,
     }
   }
 

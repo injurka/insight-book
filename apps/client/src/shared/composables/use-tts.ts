@@ -1,11 +1,13 @@
-import { ref } from 'vue'
 import { useReaderStore } from '~/components/05.modules/reader/store/reader.store'
 import { useToast } from '~/shared/composables/use-toast'
+import { useUmami } from '~/shared/composables/use-umami'
 import { api } from '~/shared/services/api.service'
 import { offlineService } from '~/shared/services/offline.service'
 import { useGlobalSettingsStore } from '~/shared/store/settings.store'
 
 export function useTts() {
+  const { trackEvent } = useUmami()
+
   const readerStore = useReaderStore()
   const settingsStore = useGlobalSettingsStore()
   const toast = useToast()
@@ -58,6 +60,8 @@ export function useTts() {
 
       currentAudio.onplay = () => isPlaying.value = true
       currentAudio.onended = () => isPlaying.value = false
+
+      trackEvent('tts_played', { lang })
 
       await currentAudio.play()
     }
