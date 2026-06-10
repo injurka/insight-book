@@ -29,7 +29,6 @@ const siteUrl = 'https://insight-book.trip-scheduler.ru'
 const siteName = 'InsightBook'
 const description = computed(() => t('app.description'))
 
-// Формируем список скриптов
 const headScripts: any[] = [
   {
     type: 'application/ld+json',
@@ -51,16 +50,15 @@ const headScripts: any[] = [
   },
 ]
 
-// Подтягиваем конфигурацию Umami из .env
 const umamiWebsiteId = import.meta.env.VITE_UMAMI_WEBSITE_ID
 const umamiUrl = import.meta.env.VITE_UMAMI_URL
 
 if (umamiWebsiteId && umamiUrl) {
   headScripts.push({
-    async: true,
-    defer: true,
+    'async': true,
+    'defer': true,
     'data-website-id': umamiWebsiteId,
-    src: umamiUrl,
+    'src': umamiUrl,
   })
 }
 
