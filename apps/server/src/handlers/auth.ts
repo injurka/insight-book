@@ -52,6 +52,7 @@ async function getUserPayload(user: DbUser) {
     pushTargetDeckId: user.pushTargetDeckId,
     pushTimeStart: user.pushTimeStart,
     pushTimeEnd: user.pushTimeEnd,
+    pushCount: user.pushCount,
     timezone: user.timezone,
     uiLanguage: user.uiLanguage,
     avatarUrl: user.avatarUrl,

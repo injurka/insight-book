@@ -93,7 +93,6 @@ export const usePwaStore = defineStore('pwa', {
         toast.info(t('settings.pushDisabled'))
       }
       else {
-        // Запрос прав у пользователя
         const permission = await Notification.requestPermission()
         if (permission === 'denied') {
           toast.error(t('settings.pushDenied'))
@@ -138,15 +137,15 @@ export const usePwaStore = defineStore('pwa', {
           deckId: authStore.user?.pushTargetDeckId ?? 'all',
           timeStart: authStore.user?.pushTimeStart ?? '10:00',
           timeEnd: authStore.user?.pushTimeEnd ?? '21:00',
+          pushCount: authStore.user?.pushCount ?? 1,
         }).catch(console.error)
       }
     },
 
-    async updatePushSettings(settings: { deckId: number | 'all', timeStart: string, timeEnd: string }) {
+    async updatePushSettings(settings: { deckId: number | 'all', timeStart: string, timeEnd: string, pushCount: number }) {
       const BASE = import.meta.env.VITE_API_URL || 'https://insight-api.trip-scheduler.ru'
       const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'
 
-      // Динамический импорт, чтобы избежать циклической зависимости
       const { useGlobalSettingsStore } = await import('./settings.store')
       const settingsStore = useGlobalSettingsStore()
       const uiLanguage = settingsStore.appLanguage || 'ru'
@@ -162,7 +161,8 @@ export const usePwaStore = defineStore('pwa', {
           timeStart: settings.timeStart,
           timeEnd: settings.timeEnd,
           timezone,
-          uiLanguage, // Передаем на сервер текущий язык приложения
+          uiLanguage,
+          pushCount: settings.pushCount,
         }),
       })
 
@@ -171,6 +171,7 @@ export const usePwaStore = defineStore('pwa', {
         authStore.user.pushTargetDeckId = settings.deckId === 'all' ? null : settings.deckId
         authStore.user.pushTimeStart = settings.timeStart
         authStore.user.pushTimeEnd = settings.timeEnd
+        authStore.user.pushCount = settings.pushCount
         authStore.user.timezone = timezone
         authStore.user.uiLanguage = uiLanguage
       }

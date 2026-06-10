@@ -14,6 +14,7 @@ export function usePushSettings() {
 
   const pushTimeStartModel = ref(authStore.user?.pushTimeStart || '10:00')
   const pushTimeEndModel = ref(authStore.user?.pushTimeEnd || '21:00')
+  const pushCountModel = ref(authStore.user?.pushCount || 1)
 
   const isPushLoading = ref(false)
 
@@ -40,6 +41,16 @@ export function usePushSettings() {
     return opts
   })
 
+  const countOptions = computed(() => {
+    return [
+      { label: `1 ${t('settings.timesPerDay1')}`, value: 1 },
+      { label: `2 ${t('settings.timesPerDay2')}`, value: 2 },
+      { label: `3 ${t('settings.timesPerDay2')}`, value: 3 },
+      { label: `5 ${t('settings.timesPerDay5')}`, value: 5 },
+      { label: `10 ${t('settings.timesPerDay5')}`, value: 10 },
+    ]
+  })
+
   const pushTargetDeckModel = computed({
     get: () => authStore.user?.pushTargetDeckId || 'all',
     set: async (val) => {
@@ -48,6 +59,7 @@ export function usePushSettings() {
           deckId: val,
           timeStart: pushTimeStartModel.value,
           timeEnd: pushTimeEndModel.value,
+          pushCount: pushCountModel.value,
         })
         toast.success(t('settings.pushSettingsUpdated'))
       }
@@ -63,6 +75,7 @@ export function usePushSettings() {
         deckId: pushTargetDeckModel.value,
         timeStart: pushTimeStartModel.value,
         timeEnd: pushTimeEndModel.value,
+        pushCount: pushCountModel.value,
       })
       toast.success(t('settings.pushSettingsUpdated'))
     }
@@ -92,9 +105,11 @@ export function usePushSettings() {
     pwaStore,
     pushDeckOptions,
     timeOptions,
+    countOptions,
     pushTargetDeckModel,
     pushTimeStartModel,
     pushTimeEndModel,
+    pushCountModel,
     savePushSettings,
     handlePushToggle,
     isPushLoading,

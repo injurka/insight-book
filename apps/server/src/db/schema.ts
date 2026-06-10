@@ -34,6 +34,7 @@ export const users = sqliteTable('users', {
   pushTargetDeckId: integer('pushTargetDeckId'),
   pushTimeStart: text('pushTimeStart').notNull().default('10:00'),
   pushTimeEnd: text('pushTimeEnd').notNull().default('21:00'),
+  pushCount: integer('pushCount').notNull().default(1),
   timezone: text('timezone').notNull().default('UTC'),
   uiLanguage: text('uiLanguage').notNull().default('ru'),
   lastPushSentAt: text('lastPushSentAt'),

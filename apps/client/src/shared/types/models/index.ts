@@ -94,7 +94,7 @@ export interface PagePayload {
   pageDictionary?: Record<string, PageDictEntry>
   type?: 'epub' | 'manga'
   imageUrl?: string
-  localImageUrl?: string // <-- Для оффлайн страниц манги (Blob URL)
+  localImageUrl?: string
   imageWidth?: number
   imageHeight?: number
   ocrBlocks?: OcrBlock[]
@@ -269,6 +269,7 @@ export interface UserData {
   pushTargetDeckId?: number | null
   pushTimeStart?: string
   pushTimeEnd?: string
+  pushCount?: number
   timezone?: string
   uiLanguage?: string
   avatarUrl?: string

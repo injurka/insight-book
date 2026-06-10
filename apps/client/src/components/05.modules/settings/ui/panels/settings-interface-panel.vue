@@ -11,9 +11,11 @@ const {
   pwaStore,
   pushDeckOptions,
   timeOptions,
+  countOptions,
   pushTargetDeckModel,
   pushTimeStartModel,
   pushTimeEndModel,
+  pushCountModel,
   savePushSettings,
   handlePushToggle,
   isPushLoading,
@@ -74,6 +76,10 @@ const appLangOptions = [
           <div class="form-group flex-1">
             <label>{{ t('settings.pushTimeEnd') }}</label>
             <KitSelect v-model="pushTimeEndModel" :options="timeOptions" @update:model-value="savePushSettings" />
+          </div>
+          <div class="form-group flex-1">
+            <label>{{ t('settings.pushCount') }}</label>
+            <KitSelect v-model="pushCountModel" :options="countOptions" @update:model-value="savePushSettings" />
           </div>
         </div>
       </div>
@@ -147,6 +153,9 @@ const appLangOptions = [
 .form-row {
   display: flex;
   gap: 16px;
+  @include media-down(sm) {
+    flex-direction: column;
+  }
   .flex-1 {
     flex: 1;
   }
