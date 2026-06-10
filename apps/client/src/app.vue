@@ -29,6 +29,41 @@ const siteUrl = 'https://insight-book.trip-scheduler.ru'
 const siteName = 'InsightBook'
 const description = computed(() => t('app.description'))
 
+// Формируем список скриптов
+const headScripts: any[] = [
+  {
+    type: 'application/ld+json',
+    children: computed(() => JSON.stringify({
+      '@context': 'https://schema.org',
+      '@type': 'WebApplication',
+      'name': siteName,
+      'alternateName': [t('app.alternateName1'), t('app.alternateName2'), t('app.alternateName3')],
+      'url': siteUrl,
+      'description': description.value,
+      'applicationCategory': 'UtilityApplication',
+      'operatingSystem': 'Any',
+      'offers': {
+        '@type': 'Offer',
+        'price': '0',
+        'priceCurrency': 'RUB',
+      },
+    })),
+  },
+]
+
+// Подтягиваем конфигурацию Umami из .env
+const umamiWebsiteId = import.meta.env.VITE_UMAMI_WEBSITE_ID
+const umamiUrl = import.meta.env.VITE_UMAMI_URL
+
+if (umamiWebsiteId && umamiUrl) {
+  headScripts.push({
+    async: true,
+    defer: true,
+    'data-website-id': umamiWebsiteId,
+    src: umamiUrl,
+  })
+}
+
 useHead({
   titleTemplate: titleChunk => titleChunk ? `${titleChunk} | ${siteName}` : siteName,
   htmlAttrs: {
@@ -48,26 +83,7 @@ useHead({
       href: '/logo.svg',
     },
   ],
-  script: [
-    {
-      type: 'application/ld+json',
-      children: computed(() => JSON.stringify({
-        '@context': 'https://schema.org',
-        '@type': 'WebApplication',
-        'name': siteName,
-        'alternateName': [t('app.alternateName1'), t('app.alternateName2'), t('app.alternateName3')],
-        'url': siteUrl,
-        'description': description.value,
-        'applicationCategory': 'UtilityApplication',
-        'operatingSystem': 'Any',
-        'offers': {
-          '@type': 'Offer',
-          'price': '0',
-          'priceCurrency': 'RUB',
-        },
-      })),
-    },
-  ],
+  script: headScripts,
 })
 
 watch(() => route.path, () => {
