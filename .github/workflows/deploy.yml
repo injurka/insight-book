@@ -20,6 +20,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Generate .env file
+        run: |
+          echo "VITE_UMAMI_WEBSITE_ID=${{ secrets.VITE_UMAMI_WEBSITE_ID }}" >> .env
+          echo "VITE_UMAMI_URL=${{ secrets.VITE_UMAMI_URL }}" >> .env
+
       - name: Docker meta
         id: meta
         uses: docker/metadata-action@v5

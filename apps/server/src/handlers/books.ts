@@ -72,6 +72,9 @@ export async function handleGetBooks(req: Request, userId: number | null): Promi
       ...r.book,
       stats: r.stats ? { ...r.stats, tags: JSON.parse(r.stats.tags || '[]') } : null,
       currentPage: r.progress?.currentPage ?? null,
+      status: r.progress?.status ?? 'reading',
+      isFavorite: r.progress?.isFavorite ?? false,
+      collection: r.progress?.collection ?? null,
       progressUpdatedAt: r.progress?.updatedAt ?? null,
     }))
 
@@ -100,6 +103,9 @@ export async function handleGetBooks(req: Request, userId: number | null): Promi
       return {
         ...bookData,
         currentPage: progress?.currentPage ?? null,
+        status: progress?.status ?? 'reading',
+        isFavorite: progress?.isFavorite ?? false,
+        collection: progress?.collection ?? null,
         progressUpdatedAt: progress?.updatedAt ?? null,
       }
     })
@@ -145,16 +151,19 @@ export async function handleGetBookInfo(req: Request, userId: number | null): Pr
   const { progresses, stats, ...bookData } = book
   const statsResult = stats
     ? {
-        ...stats,
-        tags: stats.tags ? JSON.parse(stats.tags) : [],
-        posDistribution: stats.posDistribution ? JSON.parse(stats.posDistribution) : null,
-        topWords: stats.topWords ? JSON.parse(stats.topWords) : null,
-      }
+      ...stats,
+      tags: stats.tags ? JSON.parse(stats.tags) : [],
+      posDistribution: stats.posDistribution ? JSON.parse(stats.posDistribution) : null,
+      topWords: stats.topWords ? JSON.parse(stats.topWords) : null,
+    }
     : null
 
   return json({
     ...bookData,
     currentPage: progress?.currentPage ?? null,
+    status: progress?.status ?? 'reading',
+    isFavorite: progress?.isFavorite ?? false,
+    collection: progress?.collection ?? null,
     toc: book.toc ? JSON.parse(book.toc) : [],
     stats: statsResult,
   }, 200, {
@@ -174,6 +183,9 @@ export async function handleStartReading(req: Request, userId: number): Promise<
     bookId: id,
     userId,
     currentPage: 1,
+    status: 'reading',
+    isFavorite: false,
+    collection: null,
     updatedAt: new Date().toISOString(),
   }).onConflictDoNothing()
 
@@ -217,51 +229,56 @@ export async function handleUpdateBook(req: Request, userId: number): Promise<Re
   if (!book)
     throw new AppError(404, 'Книга не найдена')
 
-  if (book.userId !== userId) {
-    if (!book.isPublic)
-      throw new AppError(404, 'Книга не найдена или доступ закрыт')
-
-    if (typeof body.currentPage === 'number') {
-      await db.insert(schema.readingProgress).values({
-        bookId: id,
-        userId,
-        currentPage: body.currentPage,
-        updatedAt: new Date().toISOString(),
-      }).onConflictDoUpdate({
-        target: [schema.readingProgress.bookId, schema.readingProgress.userId],
-        set: { currentPage: body.currentPage, updatedAt: new Date().toISOString() },
-      })
-    }
-    return json({ success: true })
+  if (book.userId !== userId && !book.isPublic) {
+    throw new AppError(404, 'Книга не найдена или доступ закрыт')
   }
 
-  await db.update(schema.books).set({
-    title: body.title,
-    author: body.author,
-    coverUrl: body.coverUrl,
-    language: body.language,
-    series: body.series,
-    seriesNumber: body.seriesNumber,
-    createdAt: body.createdAt,
-    status: body.status,
-    isFavorite: body.isFavorite,
-    collection: body.collection,
-    isPublic: body.isPublic,
-    textDirection: body.textDirection,
-    updatedAt: new Date().toISOString(),
-  }).where(eq(schema.books.id, id))
+  const metadataKeys = ['title', 'author', 'coverUrl', 'language', 'series', 'seriesNumber', 'createdAt', 'isPublic', 'textDirection']
+  const hasMetadataChanges = metadataKeys.some(key => body[key as keyof typeof body] !== undefined)
 
-  if (typeof body.currentPage === 'number') {
+  if (hasMetadataChanges && book.userId === userId) {
+    await db.update(schema.books).set({
+      title: body.title,
+      author: body.author,
+      coverUrl: body.coverUrl,
+      language: body.language,
+      series: body.series,
+      seriesNumber: body.seriesNumber,
+      createdAt: body.createdAt,
+      isPublic: body.isPublic,
+      textDirection: body.textDirection,
+      updatedAt: new Date().toISOString(),
+    }).where(eq(schema.books.id, id))
+  }
+
+  const progressKeys = ['currentPage', 'status', 'isFavorite', 'collection']
+  const hasProgressChanges = progressKeys.some(key => body[key as keyof typeof body] !== undefined)
+
+  if (hasProgressChanges) {
+    const updatePayload: any = { updatedAt: new Date().toISOString() }
+    if (body.currentPage !== undefined)
+      updatePayload.currentPage = body.currentPage
+    if (body.status !== undefined)
+      updatePayload.status = body.status
+    if (body.isFavorite !== undefined)
+      updatePayload.isFavorite = body.isFavorite
+    if (body.collection !== undefined)
+      updatePayload.collection = body.collection
+
     await db.insert(schema.readingProgress).values({
       bookId: id,
       userId,
-      currentPage: body.currentPage,
+      currentPage: body.currentPage ?? 1,
+      status: body.status ?? 'reading',
+      isFavorite: body.isFavorite ?? false,
+      collection: body.collection ?? null,
       updatedAt: new Date().toISOString(),
     }).onConflictDoUpdate({
       target: [schema.readingProgress.bookId, schema.readingProgress.userId],
-      set: { currentPage: body.currentPage, updatedAt: new Date().toISOString() },
+      set: updatePayload,
     })
   }
+
   return json({ success: true })
 }
 
@@ -572,8 +589,19 @@ export async function handleGetPage(req: Request, userId: number): Promise<Respo
 
   if (!isSync) {
     await db.insert(schema.readingProgress)
-      .values({ bookId, userId, currentPage: pageNum, updatedAt: new Date().toISOString() })
-      .onConflictDoUpdate({ target: [schema.readingProgress.bookId, schema.readingProgress.userId], set: { currentPage: pageNum, updatedAt: new Date().toISOString() } })
+      .values({
+        bookId,
+        userId,
+        currentPage: pageNum,
+        status: 'reading',
+        isFavorite: false,
+        collection: null,
+        updatedAt: new Date().toISOString(),
+      })
+      .onConflictDoUpdate({
+        target: [schema.readingProgress.bookId, schema.readingProgress.userId],
+        set: { currentPage: pageNum, updatedAt: new Date().toISOString() },
+      })
   }
 
   if (book.type === 'manga') {

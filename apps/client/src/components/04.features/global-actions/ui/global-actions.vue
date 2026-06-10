@@ -381,7 +381,7 @@ async function handleUsernameSubmit(newUsername: string) {
     justify-content: space-between;
     align-items: center;
     background-color: var(--bg-tertiary-color);
-    padding: 14px 6px;
+    padding: 6px;
     border-radius: 8px;
     border: 1px solid var(--border-secondary-color);
     font-size: 0.85rem;

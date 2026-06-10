@@ -1,3 +1,4 @@
+// filepath: db/schema.ts
 import { relations, sql } from 'drizzle-orm'
 import {
   integer,
@@ -75,11 +76,7 @@ export const books = sqliteTable('books', {
   series: text('series'),
   seriesNumber: integer('seriesNumber'),
 
-  status: text('status').notNull().default('reading'),
-  isFavorite: integer('isFavorite', { mode: 'boolean' }).notNull().default(sql`0`),
-  collection: text('collection'),
   isPublic: integer('isPublic', { mode: 'boolean' }).notNull().default(sql`0`),
-
   textDirection: text('textDirection'),
 
   createdAt: text('createdAt').notNull().default(sql`(datetime('now'))`),
@@ -111,6 +108,9 @@ export const readingProgress = sqliteTable('reading_progress', {
   bookId: integer('bookId').notNull().references(() => books.id, { onDelete: 'cascade' }),
   userId: integer('userId').notNull().references(() => users.id, { onDelete: 'cascade' }).default(1),
   currentPage: integer('currentPage').notNull().default(1),
+  status: text('status').notNull().default('reading'),
+  isFavorite: integer('isFavorite', { mode: 'boolean' }).notNull().default(sql`0`),
+  collection: text('collection'),
   updatedAt: text('updatedAt').notNull().default(sql`(datetime('now'))`),
 }, t => ({
   pk: primaryKey({ columns: [t.bookId, t.userId] }),
