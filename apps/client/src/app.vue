@@ -62,9 +62,9 @@ if (umamiWebsiteId && umamiUrl) {
     'defer': true,
     'data-website-id': umamiWebsiteId,
     'src': umamiUrl,
-    'data-performance': 'true', // Сбор метрик Core Web Vitals (LCP, INP, CLS и др.)
-    'data-mask-level': 'strict', // Уровень скрытия данных в Session Replay (strict - скрывает весь текст)
-    'data-sample-rate': '1', // Процент записываемых сессий (1 = 100%, 0.5 = 50%)
+
+    'data-mask-level': 'strict',
+    'data-sample-rate': '1',
   })
 }
 
