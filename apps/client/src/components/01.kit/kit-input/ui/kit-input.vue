@@ -43,6 +43,7 @@ function onInput(e: Event) {
       class="kit-input"
       :class="`kit-input--size-${size}`"
       :placeholder="placeholder"
+      :data-umami-mask="type === 'password' ? 'true' : undefined"
       @input="onInput"
     >
   </div>
