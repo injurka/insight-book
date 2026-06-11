@@ -33,6 +33,10 @@ export const useReaderStore = defineStore('reader', () => {
     }
   })
 
+  watch(isParallelView, (isParallel) => {
+    trackEvent('parallel_view_toggled', { enabled: isParallel })
+  })
+
   watch(() => useGlobalSettingsStore().autoAnalyzePage, (isActive) => {
     const analysisStore = useAnalysisStore()
     if (isActive) {
@@ -44,6 +48,12 @@ export const useReaderStore = defineStore('reader', () => {
       if (analysisStore.isAutoPageAnalysisActive) {
         analysisStore.cancelPageAnalysis()
       }
+    }
+  })
+
+  watch(tocOpen, (isOpen) => {
+    if (isOpen) {
+      trackEvent('toc_opened', { bookId: currentBook.value?.id })
     }
   })
 
@@ -122,6 +132,8 @@ export const useReaderStore = defineStore('reader', () => {
       currentPage.value = page
       fetchPageDictionary(bookId, pageNum).catch(console.error)
       libraryStore.updateBookInfo(bookId, { currentPage: pageNum })
+
+      trackEvent('page_loaded', { bookId, pageNum, type: page?.type })
 
       const settingsStore = useGlobalSettingsStore()
       if (settingsStore.autoAnalyzePage && !analysisStore.isManualPageAnalysisActive) {

@@ -377,13 +377,19 @@ export const useLibraryStore = defineStore('library', () => {
     isLoading.value = true
     try {
       const q = new URLSearchParams()
+
       q.set('tab', 'public')
       q.set('page', String(page))
+
       if (tag)
         q.set('tag', tag)
-      if (search)
+
+      if (search) {
         q.set('search', search)
+        trackEvent('public_book_search', { query: search })
+      }
       if (lang)
+
         q.set('lang', lang)
 
       const res = await api.books.getPublic(q.toString())
@@ -400,6 +406,8 @@ export const useLibraryStore = defineStore('library', () => {
 
   async function startReadingPublicBook(id: number) {
     await api.books.startReading(id)
+    trackEvent('public_book_downloaded', { bookId: id })
+
     if (currentBookInfo.value?.id === id) {
       currentBookInfo.value.currentPage = 1
     }
@@ -453,6 +461,7 @@ export const useLibraryStore = defineStore('library', () => {
 
   async function analyzeFullBook(id: number) {
     isAnalyzingBook.value = true
+    trackEvent('book_full_analysis_started', { bookId: id })
     try {
       const res = await api.books.analyzeBook(id)
       if (currentBookInfo.value && currentBookInfo.value.id === id) {
@@ -465,6 +474,7 @@ export const useLibraryStore = defineStore('library', () => {
 
   async function analyzeVocabulary(id: number) {
     isAnalyzingVocab.value = true
+    trackEvent('vocabulary_analysis_started', { bookId: id })
     try {
       const res = await api.books.analyzeVocabulary(id)
       if (currentBookInfo.value?.id === id) {

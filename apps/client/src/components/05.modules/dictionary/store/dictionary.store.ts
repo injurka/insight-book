@@ -124,6 +124,8 @@ export const useDictionaryStore = defineStore('dictionary', () => {
       if (deck)
         deck.name = name
 
+      trackEvent('deck_updated', { deckId: id })
+
       toast.success('Название колоды обновлено')
     }
     catch (e) {
@@ -142,6 +144,8 @@ export const useDictionaryStore = defineStore('dictionary', () => {
           w.deckId = null
       })
       toast.success('Колода удалена')
+
+      trackEvent('deck_deleted', { deckId: id })
     }
     catch (e) {
       toast.error(e instanceof Error ? e.message : 'Ошибка удаления колоды')

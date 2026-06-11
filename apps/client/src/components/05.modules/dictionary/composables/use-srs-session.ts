@@ -51,6 +51,9 @@ export function useSrsSession() {
   }
 
   function startSession() {
+    const { trackEvent } = useUmami()
+    trackEvent('srs_training_started')
+
     sessionState.value = 'active'
     currentIndex.value = 0
     startTime.value = Date.now()

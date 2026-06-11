@@ -396,6 +396,7 @@ export const useAnalysisStore = defineStore('analysis', () => {
       if (doSent || doTtsSent) {
         const sentRegex = /data-raw-sent="([^"]+)"/g
         let match
+        // eslint-disable-next-line no-cond-assign
         while ((match = sentRegex.exec(html)) !== null) {
           sentencesToProcess.add(decodeURIComponent(match[1]))
         }
@@ -404,6 +405,7 @@ export const useAnalysisStore = defineStore('analysis', () => {
       if (doWords || doTtsWords) {
         const wordRegex = /data-word="([^"]+)"[^>]*?data-pos="([^"]+)"/g
         let match
+        // eslint-disable-next-line no-cond-assign
         while ((match = wordRegex.exec(html)) !== null) {
           if (match[2] !== 'x') {
             wordsToProcess.add(decodeURIComponent(match[1]))
@@ -488,6 +490,8 @@ export const useAnalysisStore = defineStore('analysis', () => {
     wordAbortController = controller
 
     wordPopover.value.isAiLoading = true
+    trackEvent('ai_translation_requested', { word: wordPopover.value.word })
+
     try {
       const res = await api.books.analyze(
         currentBook.id,
@@ -600,6 +604,7 @@ export const useAnalysisStore = defineStore('analysis', () => {
     wordAbortController = controller
 
     try {
+      trackEvent('ai_word_lookup', { word })
       const result = await api.books.lookupWord(bookId, word, controller.signal)
       if (wordAbortController !== controller)
         return
@@ -731,6 +736,8 @@ export const useAnalysisStore = defineStore('analysis', () => {
   async function removeFromDict(word: string) {
     await api.dictionary.remove(word)
     addEditWordModalOpen.value = false
+
+    trackEvent('word_removed_from_dict', { word })
 
     const dictStore = useDictionaryStore()
     await dictStore.fetchDictionary()

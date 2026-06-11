@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n'
 import { ReloadPrompt } from '~/components/02.shared/reload-prompt'
 import { DefaultLayout } from '~/components/06.layouts/default'
 import { useChangeTheme } from '~/shared/composables/use-change-theme'
+import { useGlobalTracking } from '~/shared/composables/use-global-tracking'
 import { useAnalysisStore } from '~/shared/store/analysis.store'
 import { useGlobalSettingsStore } from '~/shared/store/settings.store'
 import { AddEditWordDialog } from './components/05.modules/dictionary'
@@ -14,6 +15,8 @@ const route = useRoute()
 const analysisStore = useAnalysisStore()
 const settingsStore = useGlobalSettingsStore()
 const { locale, t } = useI18n()
+
+useGlobalTracking()
 
 watch(() => settingsStore.appLanguage, (newLang) => {
   locale.value = newLang

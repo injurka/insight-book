@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import { useResizeObserver } from '@vueuse/core'
 import DOMPurify from 'dompurify'
-import { computed, nextTick, useTemplateRef, watch } from 'vue'
+import { computed, nextTick, onMounted, onUnmounted, useTemplateRef, watch } from 'vue'
 
 import { useI18n } from 'vue-i18n'
 import { KitDialog } from '~/components/01.kit'
 import { PageLoader } from '~/components/02.shared/page-loader'
 import { PageAnalysisModal, SelectionTooltip, SentenceAnalysis, useTextSelection, WordPopover } from '~/components/03.domain/analysis'
+import { useUmami } from '~/shared/composables/use-umami'
 import { useAnalysisStore } from '~/shared/store/analysis.store'
 
 import { useGlobalSettingsStore } from '~/shared/store/settings.store'
@@ -34,6 +35,23 @@ const { saveScrollPosition, restoreScrollPosition, setScrollIntent } = useScroll
 const { onSentenceHover, onSentenceOut } = useReaderDomHighlights(readerViewRef)
 const { prevPage, nextPage, goToPage } = useReaderNavigation(setScrollIntent)
 const { onPointerDown, onPointerUp, onWordClick } = useTextSelection()
+const { trackEvent } = useUmami()
+
+let readingSessionStartTime = 0
+
+onMounted(() => {
+  readingSessionStartTime = Date.now()
+})
+
+onUnmounted(() => {
+  const durationSeconds = Math.round((Date.now() - readingSessionStartTime) / 1000)
+  if (durationSeconds > 10) {
+    trackEvent('reading_session_ended', {
+      duration_seconds: durationSeconds,
+      book_id: readerStore.currentBook?.id,
+    })
+  }
+})
 
 useAppWakeLock(() => analysisStore.isManualPageAnalysisActive || analysisStore.isAutoPageAnalysisActive)
 

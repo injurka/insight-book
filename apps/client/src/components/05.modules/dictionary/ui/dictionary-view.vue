@@ -10,6 +10,7 @@ import { HoverRevealBg } from '~/components/02.shared/hover-reveal-bg'
 import { DictWordDetailsModal } from '~/components/03.domain/dict-word'
 import { GlobalActions } from '~/components/04.features/global-actions'
 import { useToast } from '~/shared/composables/use-toast'
+import { useUmami } from '~/shared/composables/use-umami'
 import { DIFFICULTY_SYSTEMS } from '~/shared/constants/difficulties'
 import { api } from '~/shared/services/api.service'
 import { useAnalysisStore } from '~/shared/store/analysis.store'
@@ -23,6 +24,7 @@ const router = useRouter()
 const toast = useToast()
 const authStore = useAuthStore()
 const { t } = useI18n()
+const { trackEvent } = useUmami()
 
 const isTrainingOpen = ref(false)
 const isMobileFiltersOpen = ref(false)
@@ -206,6 +208,7 @@ function exportToAnki() {
 
   store.clearSelection()
   toast.success(t('dictionary.ankiExported'))
+  trackEvent('anki_export_downloaded')
 }
 
 const activityData = ref<{ date: string, count: number }[]>([])
