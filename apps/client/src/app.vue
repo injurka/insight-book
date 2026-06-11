@@ -63,6 +63,7 @@ if (umamiWebsiteId && umamiUrl) {
     'data-website-id': umamiWebsiteId,
     'src': umamiUrl,
 
+    'data-performance': 'true',
     'data-mask-level': 'strict',
     'data-sample-rate': '1',
   })
