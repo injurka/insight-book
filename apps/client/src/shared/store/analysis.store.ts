@@ -559,16 +559,11 @@ export const useAnalysisStore = defineStore('analysis', () => {
       isSaved: !!entry?.isUserDict,
     }
 
-    if (settingsStore.translationPriority === 'dict') {
+    if (settingsStore.translationPriority === 'dict' && entry?.translation) {
       if (wordAbortController)
         wordAbortController.abort()
 
-      if (entry) {
-        wordPopover.value = { ...basePopoverData, transcription: entry.transcription, translation: entry.translation, showAi: false, isAiLoading: false }
-      }
-      else {
-        wordPopover.value = { ...basePopoverData, transcription: '', translation: i18n.global.t('analysis.wordNotFoundInDict'), showAi: false, isAiLoading: false }
-      }
+      wordPopover.value = { ...basePopoverData, transcription: entry.transcription, translation: entry.translation, showAi: false, isAiLoading: false }
       return
     }
 
@@ -609,15 +604,32 @@ export const useAnalysisStore = defineStore('analysis', () => {
       if (wordAbortController !== controller)
         return
 
-      wordPopover.value = {
-        word,
-        pos,
-        transcription: result.transcription,
-        translation: result.translation,
-        targetRect,
-        showAi: false,
-        isAiLoading: false,
-        isSaved: !!result.isUserDict,
+      const settingsStore = useGlobalSettingsStore()
+
+      if (settingsStore.translationPriority === 'dict' && result.translation) {
+        wordPopover.value = {
+          word,
+          pos,
+          transcription: result.transcription,
+          translation: result.translation,
+          targetRect,
+          showAi: false,
+          isAiLoading: false,
+          isSaved: !!result.isUserDict,
+        }
+      }
+      else {
+        wordPopover.value = {
+          word,
+          pos,
+          transcription: result.transcription,
+          translation: result.translation || i18n.global.t('analysis.wordNotFoundInDict'),
+          targetRect,
+          showAi: true,
+          isAiLoading: true,
+          isSaved: !!result.isUserDict,
+        }
+        fetchAiTranslation()
       }
     }
     catch (err: unknown) {
@@ -628,32 +640,17 @@ export const useAnalysisStore = defineStore('analysis', () => {
       if (wordAbortController !== controller)
         return
 
-      const settingsStore = useGlobalSettingsStore()
-      if (settingsStore.translationPriority === 'dict') {
-        wordPopover.value = {
-          word,
-          pos,
-          transcription: '',
-          translation: i18n.global.t('analysis.wordNotFoundInDict'),
-          targetRect,
-          showAi: false,
-          isAiLoading: false,
-          isSaved: false,
-        }
+      wordPopover.value = {
+        word,
+        pos,
+        transcription: '',
+        translation: i18n.global.t('analysis.wordNotFoundInDict'),
+        targetRect,
+        showAi: true,
+        isAiLoading: true,
+        isSaved: false,
       }
-      else {
-        wordPopover.value = {
-          word,
-          pos,
-          transcription: '',
-          translation: i18n.global.t('analysis.wordNotFoundInDict'),
-          targetRect,
-          showAi: true,
-          isAiLoading: true,
-          isSaved: false,
-        }
-        fetchAiTranslation()
-      }
+      fetchAiTranslation()
     }
   }
 
