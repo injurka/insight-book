@@ -24,6 +24,33 @@ import { AppError } from '../utils/errors'
 import { checkTokenLimit } from './limits.service'
 import { trackTokenUsage } from './token.service'
 
+/**
+ * TODO(legacy-cache): Remove this function in the future when all old cached data
+ * (where grammarRules/vocabulary are arrays of strings) is fully overwritten.
+ *
+ * Проверяет, сохранен ли анализ в старом формате,
+ * где grammarRules или vocabulary являлись массивами строк, а не объектов.
+ */
+function isOldFormatAnalysis(parsed: any): boolean {
+  if (!parsed || typeof parsed !== 'object')
+    return true
+
+  // Проверяем правила грамматики
+  if (Array.isArray(parsed.grammarRules)) {
+    // Если хотя бы один элемент не является объектом (например, строка), значит это старый формат
+    if (parsed.grammarRules.some((r: any) => typeof r !== 'object' || r === null))
+      return true
+  }
+
+  // Проверяем словарный запас
+  if (Array.isArray(parsed.vocabulary)) {
+    if (parsed.vocabulary.some((v: any) => typeof v !== 'object' || v === null))
+      return true
+  }
+
+  return false
+}
+
 export async function analyzeSentence(
   userId: number,
   bookId: number,
@@ -42,12 +69,22 @@ export async function analyzeSentence(
   })
 
   if (cached) {
-    await db.insert(schema.bookLlmCache).values({
-      bookId,
-      sentenceHash: hash,
-    }).onConflictDoNothing()
+    // TODO(legacy-cache): Remove this try-catch block and just return JSON.parse(cached.analysis) in the future.
+    try {
+      const parsed = JSON.parse(cached.analysis)
+      // Возвращаем кэш только если он соответствует новому формату
+      if (!isOldFormatAnalysis(parsed)) {
+        await db.insert(schema.bookLlmCache).values({
+          bookId,
+          sentenceHash: hash,
+        }).onConflictDoNothing()
 
-    return JSON.parse(cached.analysis) as LlmAnalysis
+        return parsed as LlmAnalysis
+      }
+    }
+    catch {
+      // Игнорируем ошибку парсинга, падаем дальше к генерации
+    }
   }
 
   if (!config.url)
@@ -69,12 +106,19 @@ export async function analyzeSentence(
       const parsed = parseLlmJson(raw)
       const analysis = LlmAnalysisSchema.parse(parsed) as LlmAnalysis
 
+      // TODO(legacy-cache): Revert to .onConflictDoNothing() in the future once old format caches are eliminated.
+      // Сохраняем в кэш с перезаписью старого формата, если таковой имелся
       await db.insert(schema.llmCache).values({
         sentenceHash: hash,
         language,
         sentence,
         analysis: JSON.stringify(analysis),
-      }).onConflictDoNothing()
+      }).onConflictDoUpdate({
+        target: schema.llmCache.sentenceHash,
+        set: {
+          analysis: JSON.stringify(analysis),
+        },
+      })
 
       await db.insert(schema.bookLlmCache).values({
         bookId,
@@ -233,12 +277,20 @@ export async function analyzeBatch(userId: number, bookId: number, items: BatchA
     const cached = await db.query.llmCache.findFirst({ where: eq(schema.llmCache.sentenceHash, hash) })
 
     if (cached) {
-      await db.insert(schema.bookLlmCache).values({ bookId, sentenceHash: hash }).onConflictDoNothing()
-      results.push({ id: item.id, analysis: JSON.parse(cached.analysis) })
+      // TODO(legacy-cache): Remove parsing and format check here in the future.
+      try {
+        const parsed = JSON.parse(cached.analysis)
+        if (!isOldFormatAnalysis(parsed)) {
+          await db.insert(schema.bookLlmCache).values({ bookId, sentenceHash: hash }).onConflictDoNothing()
+          results.push({ id: item.id, analysis: parsed })
+          continue
+        }
+      }
+      catch (e) {
+        // Игнорируем ошибку парсинга
+      }
     }
-    else {
-      missingItems.push(item)
-    }
+    missingItems.push(item)
   }
 
   if (missingItems.length === 0)
@@ -272,12 +324,20 @@ export async function analyzeBatch(userId: number, bookId: number, items: BatchA
         const originalItem = missingItems.find(m => m.id === res.id)
         if (originalItem) {
           const hash = hashSentence(originalItem.sentence, language, targetLang)
+
+          // TODO(legacy-cache): Revert to .onConflictDoNothing() in the future.
+          // Сохраняем в кэш с перезаписью старого формата, если таковой имелся
           await db.insert(schema.llmCache).values({
             sentenceHash: hash,
             language,
             sentence: originalItem.sentence,
             analysis: JSON.stringify(res.analysis),
-          }).onConflictDoNothing()
+          }).onConflictDoUpdate({
+            target: schema.llmCache.sentenceHash,
+            set: {
+              analysis: JSON.stringify(res.analysis),
+            },
+          })
           await db.insert(schema.bookLlmCache).values({ bookId, sentenceHash: hash }).onConflictDoNothing()
         }
         results.push(res)
