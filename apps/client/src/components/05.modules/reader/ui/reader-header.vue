@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Icon } from '@iconify/vue'
-import { computed, reactive, ref } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { KitBtn, KitCheckbox, KitDropdown, KitSelect, KitTooltip } from '~/components/01.kit'
@@ -9,6 +9,12 @@ import { AppRoutePaths } from '~/shared/constants/routes'
 import { useAnalysisStore } from '~/shared/store/analysis.store'
 import { useGlobalSettingsStore } from '~/shared/store/settings.store'
 import { useReaderStore } from '../store/reader.store'
+
+const props = withDefaults(defineProps<{
+  isVisible?: boolean
+}>(), {
+  isVisible: true,
+})
 
 const readerStore = useReaderStore()
 const analysisStore = useAnalysisStore()
@@ -19,12 +25,21 @@ const router = useRouter()
 const { theme, toggleTheme } = useChangeTheme()
 
 const pageAnalysisDropdownRef = ref<InstanceType<typeof KitDropdown> | null>(null)
+const settingsDropdownRef = ref<InstanceType<typeof KitDropdown> | null>(null)
 
 const pageActionOpts = reactive({
   sentences: true,
   words: false,
   ttsSentences: false,
   ttsWords: false,
+})
+
+// Закрываем открытые менюшки, если хэдер скрылся из-за скролла
+watch(() => props.isVisible, (visible) => {
+  if (!visible) {
+    pageAnalysisDropdownRef.value?.close()
+    settingsDropdownRef.value?.close()
+  }
 })
 
 function startPageAnalysis() {
@@ -83,7 +98,7 @@ const fontOptions = computed(() => [
 </script>
 
 <template>
-  <header class="reader-header">
+  <header class="reader-header" :class="{ 'is-hidden': !isVisible }">
     <KitTooltip :text="t('reader.goBack')" placement="bottom">
       <KitBtn icon="mdi:arrow-left" variant="text" size="sm" @click="goBack" />
     </KitTooltip>
@@ -157,7 +172,7 @@ const fontOptions = computed(() => [
       <KitBtn icon="mdi:format-list-bulleted" variant="text" size="sm" @click="readerStore.tocOpen = true" />
     </KitTooltip>
 
-    <KitDropdown placement="left" :width="340" :close-on-content-click="false">
+    <KitDropdown ref="settingsDropdownRef" placement="left" :width="340" :close-on-content-click="false">
       <template #activator="{ props: dropdownProps }">
         <KitBtn
           icon="mdi:cog-outline"
@@ -266,14 +281,37 @@ const fontOptions = computed(() => [
 
 <style lang="scss" scoped>
 .reader-header {
-  flex-shrink: 0;
+  position: fixed;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%) translateY(0);
+  z-index: var(--z-header, 1100);
+
+  background-color: rgba(var(--bg-secondary-color-rgb, 33, 38, 45), 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+
+  border: 1px solid var(--border-secondary-color);
+  border-radius: 20px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.2);
+
   display: flex;
   align-items: center;
-  padding: 12px;
+  padding: 8px 12px;
   gap: 8px;
+  width: calc(100% - 32px);
   max-width: 800px;
-  width: 100%;
-  margin: 0 auto;
+  margin: 0;
+
+  transition:
+    transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    opacity 0.3s ease;
+
+  &.is-hidden {
+    transform: translateX(-50%) translateY(calc(-100% - 24px));
+    opacity: 0;
+    pointer-events: none;
+  }
 
   .book-title {
     font-weight: 500;

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useScroll } from '@vueuse/core'
 import { useI18n } from 'vue-i18n'
 import { KitDialog } from '~/components/01.kit'
 import { PageLoader } from '~/components/02.shared/page-loader'
@@ -24,6 +25,12 @@ const { t } = useI18n()
 const readerViewRef = useTemplateRef<HTMLElement>('readerViewRef')
 const mangaContainerRef = useTemplateRef<HTMLElement>('mangaContainerRef')
 const mangaWrapperRef = useTemplateRef<HTMLElement>('mangaWrapperRef')
+
+const { y, directions } = useScroll(readerViewRef)
+
+const isHeaderVisible = computed(() => {
+  return y.value < 80 || directions.top
+})
 
 const { saveScrollPosition, restoreScrollPosition, setScrollIntent } = useScrollRestoration(
   readerViewRef,
@@ -148,7 +155,7 @@ function onScroll() {
 
 <template>
   <div ref="readerViewRef" class="manga-reader-view" @scroll.passive="onScroll">
-    <ReaderHeader />
+    <ReaderHeader :is-visible="isHeaderVisible" />
 
     <div class="reader-content-wrapper">
       <Transition name="fade" mode="out-in" @enter="onContentEnter">
@@ -270,6 +277,7 @@ function onScroll() {
   justify-content: center;
   padding: 0px;
   position: relative;
+  padding-top: 80px;
 }
 
 .manga-container {

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useResizeObserver } from '@vueuse/core'
 import DOMPurify from 'dompurify'
-import { computed, nextTick, onMounted, onUnmounted, useTemplateRef, watch } from 'vue'
+import { computed, nextTick, onMounted, onUnmounted, ref, useTemplateRef, watch } from 'vue'
 
 import { useI18n } from 'vue-i18n'
 import { KitDialog } from '~/components/01.kit'
@@ -24,6 +24,10 @@ const settingsStore = useGlobalSettingsStore()
 const { t } = useI18n()
 
 const readerViewRef = useTemplateRef<HTMLElement>('readerViewRef')
+
+const isHeaderVisible = ref(true)
+let lastScrollY = 0
+let scrollAccumulator = 0
 
 const { saveScrollPosition, restoreScrollPosition, setScrollIntent } = useScrollRestoration(
   readerViewRef,
@@ -190,7 +194,7 @@ useResizeObserver(readerViewRef, () => {
   }
 })
 
-function onScroll() {
+function onScroll(e: Event) {
   if (analysisStore.wordPopover) {
     analysisStore.closePopover()
   }
@@ -198,13 +202,40 @@ function onScroll() {
     analysisStore.closeSelectionTooltip()
   }
   saveScrollPosition()
+
+  // Логика видимости хэдера с буфером (предотвращает скрытие от микро-сдвигов пальца)
+  const target = e.target as HTMLElement
+  const currentY = Math.max(0, target.scrollTop)
+  const delta = currentY - lastScrollY
+  lastScrollY = currentY
+
+  if (currentY < 80) {
+    isHeaderVisible.value = true
+    scrollAccumulator = 0
+  }
+  else {
+    // Сброс буфера при смене направления
+    if ((delta > 0 && scrollAccumulator < 0) || (delta < 0 && scrollAccumulator > 0)) {
+      scrollAccumulator = 0
+    }
+    scrollAccumulator += delta
+
+    if (scrollAccumulator > 50) {
+      isHeaderVisible.value = false
+      scrollAccumulator = 50 // cap
+    }
+    else if (scrollAccumulator < -50) {
+      isHeaderVisible.value = true
+      scrollAccumulator = -50 // cap
+    }
+  }
 }
 </script>
 
 <template>
   <div ref="readerViewRef" class="reader-view" @scroll.passive="onScroll">
     <div class="swipe-container">
-      <ReaderHeader />
+      <ReaderHeader :is-visible="isHeaderVisible" />
 
       <div class="reader-content-wrapper">
         <Transition name="fade" mode="out-in" @enter="onContentEnter">
@@ -312,6 +343,7 @@ function onScroll() {
   display: flex;
   flex-direction: column;
   position: relative;
+  padding-top: 80px;
 }
 .reader-layout-wrapper {
   width: 100%;
