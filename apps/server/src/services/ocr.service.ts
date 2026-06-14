@@ -98,7 +98,10 @@ async function getOcrLayout(userId: number, imageUrl: string, language: string, 
   const data = await response.json() as any
   const promptTokens = data.usage?.prompt_tokens || 0
   const completionTokens = data.usage?.completion_tokens || 0
-  trackTokenUsage(userId, 'ocr_layout', model, promptTokens, completionTokens)
+
+  const inputTextForLog = JSON.stringify({ prompt: promptText, imageBase64: imageUrl.substring(0, 100) + '...[TRUNCATED]' }, null, 2)
+  const outputTextForLog = JSON.stringify(data, null, 2)
+  trackTokenUsage(userId, 'ocr_layout', model, promptTokens, completionTokens, inputTextForLog, outputTextForLog)
 
   const blocks: OcrBlock[] = []
   const glmDetail = data.choices?.[0]?.glm_ocr_detail
@@ -228,7 +231,13 @@ async function refineOcrText(userId: number, base64Image: string, blocks: OcrBlo
 
       const promptTokens = data.usage?.prompt_tokens || 0
       const completionTokens = data.usage?.completion_tokens || 0
-      trackTokenUsage(userId, 'ocr_refine', model, promptTokens, completionTokens)
+
+      const safeInput = contentArray.map((c: any) => {
+        if (c.type === 'image_url') return { type: 'image_url', image_url: { url: c.image_url.url.substring(0, 100) + '...[TRUNCATED]' } }
+        return c
+      })
+      const inputTextForLog = JSON.stringify(safeInput, null, 2)
+      trackTokenUsage(userId, 'ocr_refine', model, promptTokens, completionTokens, inputTextForLog, content)
 
       const cleanJson = content.replace(/^```json\n?/, '').replace(/\n?```$/, '').trim()
 

@@ -1,3 +1,4 @@
+// filepath: src/handlers/books.ts
 /// <reference types="bun-types" />
 
 import type { PagePayload } from '../types'
@@ -19,6 +20,10 @@ import { analyzeBatch, analyzeBookExcerpt, analyzeMangaInfo, analyzeSentence, ge
 import { recognizeMangaPage } from '../services/ocr.service'
 import { AppError } from '../utils/errors'
 import { runWorkerTask } from '../workers/worker-client'
+import { createRateLimiter } from '../utils/rate-limit'
+
+// Лимитер: 40 запросов в минуту на пользователя (остановит спам от расширений-переводчиков)
+const bookAiLimiter = createRateLimiter(40, 60 * 1000)
 
 export async function handleGetBooks(req: Request, userId: number | null): Promise<Response> {
   const url = new URL(req.url)
@@ -193,6 +198,7 @@ export async function handleStartReading(req: Request, userId: number): Promise<
 }
 
 export async function handleAnalyzeVocabulary(req: Request, userId: number): Promise<Response> {
+  bookAiLimiter(String(userId)) 
   const id = Number(req.params.id)
   const book = await db.query.books.findFirst({ where: eq(schema.books.id, id) })
   if (!book || book.userId !== userId)
@@ -283,6 +289,7 @@ export async function handleUpdateBook(req: Request, userId: number): Promise<Re
 }
 
 export async function handleAnalyzeBookStats(req: Request, userId: number): Promise<Response> {
+  bookAiLimiter(String(userId)) 
   const config = extractLlmConfig(req)
 
   const id = Number(req.params.id)
@@ -764,8 +771,8 @@ export async function handleAnalyzeSentence(req: Request, userId: number): Promi
   if (!book || (book.userId !== userId && !book.isPublic))
     throw new AppError(403, 'Нет доступа')
 
-  const { sentence, language } = AnalyzeSentenceSchema.parse(await req.json())
-  const analysis = await analyzeSentence(userId, bookId, sentence, language, targetLang, config)
+  const { sentence, language, context } = AnalyzeSentenceSchema.parse(await req.json())
+  const analysis = await analyzeSentence(userId, bookId, sentence, language, targetLang, config, context)
 
   return json(analysis)
 }

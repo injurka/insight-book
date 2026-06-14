@@ -1,4 +1,6 @@
-import { eq, sql } from 'drizzle-orm'
+// filepath: src/services/limits.service.ts
+import { and, eq, sql } from 'drizzle-orm'
+import { MAX_DAILY_TOKENS } from '../config'
 import { db } from '../db'
 import * as schema from '../db/schema'
 import { AppError } from '../utils/errors'
@@ -9,8 +11,26 @@ export async function checkTokenLimit(userId: number): Promise<void> {
     columns: { usedTokens: true, tokenLimit: true },
   })
 
+  // 1. Абсолютный исторический лимит пользователя (если он задан)
   if (user && user.tokenLimit !== null && user.usedTokens >= user.tokenLimit) {
     throw new AppError(403, 'Превышен лимит использования ИИ (токенов)')
+  }
+
+  // 2. Дневной лимит - защита от багов, циклов и парсинга (спасет бюджет)
+  const date = new Date().toISOString().split('T')[0]
+  const [{ todayTokens }] = await db.select({
+    todayTokens: sql<number>`COALESCE(SUM(${schema.tokenUsage.inputTokens} + ${schema.tokenUsage.outputTokens}), 0)`.mapWith(Number),
+  })
+    .from(schema.tokenUsage)
+    .where(
+      and(
+        eq(schema.tokenUsage.userId, userId),
+        eq(schema.tokenUsage.date, date)
+      )
+    )
+
+  if (todayTokens >= MAX_DAILY_TOKENS) {
+    throw new AppError(429, `Превышен дневной лимит токенов безопасности (${MAX_DAILY_TOKENS}). Пожалуйста, сделайте паузу до завтра или увеличьте MAX_DAILY_TOKENS в настройках сервера.`)
   }
 }
 

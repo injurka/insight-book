@@ -2,7 +2,15 @@ import { eq, sql } from 'drizzle-orm'
 import { db } from '../db'
 import * as schema from '../db/schema'
 
-export function trackTokenUsage(userId: number, action: string, model: string, inputTokens: number, outputTokens: number) {
+export function trackTokenUsage(
+  userId: number,
+  action: string,
+  model: string,
+  inputTokens: number,
+  outputTokens: number,
+  inputText?: string,
+  outputText?: string
+) {
   if (!userId || (!inputTokens && !outputTokens))
     return
 
@@ -10,6 +18,7 @@ export function trackTokenUsage(userId: number, action: string, model: string, i
 
   Promise.resolve().then(async () => {
     try {
+      // 1. Агрегация по дням
       await db.insert(schema.tokenUsage).values({
         userId,
         date,
@@ -25,9 +34,21 @@ export function trackTokenUsage(userId: number, action: string, model: string, i
         },
       })
 
+      // 2. Обновление общего счетчика пользователя
       await db.update(schema.users).set({
         usedTokens: sql`${schema.users.usedTokens} + ${inputTokens + outputTokens}`,
       }).where(eq(schema.users.id, userId))
+
+      // 3. Запись подробного лога для отладки
+      await db.insert(schema.llmLogs).values({
+        userId,
+        action,
+        model,
+        inputTokens,
+        outputTokens,
+        inputText,
+        outputText,
+      })
     }
     catch (e) {
       console.error('[Token Tracker Error]', e)

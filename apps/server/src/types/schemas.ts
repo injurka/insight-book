@@ -48,7 +48,7 @@ export const AnalyzeBatchSchema = z.object({
   items: z.array(z.object({
     id: z.string(),
     sentence: z.string(),
-    context: z.string().optional(),
+    context: z.string().max(5000, 'Контекст слишком большой').optional(),
   })).max(20, 'Слишком большой пакет'),
   language: z.string(),
 })
@@ -80,6 +80,7 @@ export const AnalyzeSentenceSchema = z.object({
     .min(1, 'Предложение не может быть пустым')
     .max(600, 'Фраза слишком длинная для детального анализа (макс. 600 символов)'),
   language: z.string().min(1, 'Язык обязателен'),
+  context: z.string().max(5000, 'Контекст слишком большой').optional(),
 })
 
 export const GenerateTtsSchema = z.object({

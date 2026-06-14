@@ -1,4 +1,3 @@
-// filepath: db/schema.ts
 import { relations, sql } from 'drizzle-orm'
 import {
   integer,
@@ -61,6 +60,19 @@ export const tokenUsage = sqliteTable('token_usage', {
 }, t => ({
   unq: unique().on(t.userId, t.date, t.action, t.model),
 }))
+
+// НОВАЯ ТАБЛИЦА: Подробные логи запросов к LLM (чтобы понимать откуда миллионы токенов)
+export const llmLogs = sqliteTable('llm_logs', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  userId: integer('userId').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  action: text('action').notNull(),
+  model: text('model').notNull(),
+  inputTokens: integer('inputTokens').notNull().default(0),
+  outputTokens: integer('outputTokens').notNull().default(0),
+  inputText: text('inputText'),
+  outputText: text('outputText'),
+  createdAt: text('createdAt').notNull().default(sql`(datetime('now'))`),
+})
 
 export const books = sqliteTable('books', {
   id: integer('id').primaryKey({ autoIncrement: true }),
@@ -236,10 +248,15 @@ export const usersRelations = relations(users, ({ many }) => ({
   progresses: many(readingProgress),
   opdsCatalogs: many(opdsCatalogs),
   tokenUsages: many(tokenUsage),
+  llmLogs: many(llmLogs),
 }))
 
 export const tokenUsageRelations = relations(tokenUsage, ({ one }) => ({
   user: one(users, { fields: [tokenUsage.userId], references: [users.id] }),
+}))
+
+export const llmLogsRelations = relations(llmLogs, ({ one }) => ({
+  user: one(users, { fields: [llmLogs.userId], references: [users.id] }),
 }))
 
 export const dictDecksRelations = relations(dictDecks, ({ one, many }) => ({

@@ -69,10 +69,8 @@ export async function analyzeSentence(
   })
 
   if (cached) {
-    // TODO(legacy-cache): Remove this try-catch block and just return JSON.parse(cached.analysis) in the future.
     try {
       const parsed = JSON.parse(cached.analysis)
-      // Возвращаем кэш только если он соответствует новому формату
       if (!isOldFormatAnalysis(parsed)) {
         await db.insert(schema.bookLlmCache).values({
           bookId,
@@ -101,13 +99,11 @@ export async function analyzeSentence(
   for (const model of modelsToTry) {
     try {
       const { text: raw, usage } = await callLlmApi(model, messages, 0.2, AbortSignal.timeout(60000), config)
-      trackTokenUsage(userId, 'analyze_sentence', model, usage.promptTokens, usage.completionTokens)
+      trackTokenUsage(userId, 'analyze_sentence', model, usage.promptTokens, usage.completionTokens, JSON.stringify(messages, null, 2), raw)
 
       const parsed = parseLlmJson(raw)
       const analysis = LlmAnalysisSchema.parse(parsed) as LlmAnalysis
 
-      // TODO(legacy-cache): Revert to .onConflictDoNothing() in the future once old format caches are eliminated.
-      // Сохраняем в кэш с перезаписью старого формата, если таковой имелся
       await db.insert(schema.llmCache).values({
         sentenceHash: hash,
         language,
@@ -153,7 +149,7 @@ export async function generateWordExamples(userId: number, word: string, languag
   for (const model of modelsToTry) {
     try {
       const { text: raw, usage } = await callLlmApi(model, messages, 0.4, AbortSignal.timeout(60000), config)
-      trackTokenUsage(userId, 'dict_examples', model, usage.promptTokens, usage.completionTokens)
+      trackTokenUsage(userId, 'dict_examples', model, usage.promptTokens, usage.completionTokens, JSON.stringify(messages, null, 2), raw)
 
       return parseLlmJson<GeneratedWordExamples>(raw)
     }
@@ -183,7 +179,7 @@ export async function generateWordAutoFill(userId: number, word: string, languag
   for (const model of modelsToTry) {
     try {
       const { text: raw, usage } = await callLlmApi(model, messages, 0.4, AbortSignal.timeout(60000), config)
-      trackTokenUsage(userId, 'dict_autofill', model, usage.promptTokens, usage.completionTokens)
+      trackTokenUsage(userId, 'dict_autofill', model, usage.promptTokens, usage.completionTokens, JSON.stringify(messages, null, 2), raw)
 
       return parseLlmJson<WordAutoFillResponse>(raw)
     }
@@ -213,7 +209,7 @@ export async function analyzeBookExcerpt(userId: number, excerpt: string, config
   for (const model of modelsToTry) {
     try {
       const { text: raw, usage } = await callLlmApi(model, messages, 0.3, AbortSignal.timeout(90000), config)
-      trackTokenUsage(userId, 'analyze_book', model, usage.promptTokens, usage.completionTokens)
+      trackTokenUsage(userId, 'analyze_book', model, usage.promptTokens, usage.completionTokens, JSON.stringify(messages, null, 2), raw)
 
       return parseLlmJson(raw)
     }
@@ -255,7 +251,7 @@ export async function analyzeMangaInfo(userId: number, title: string, author: st
   for (const model of modelsToTry) {
     try {
       const { text: raw, usage } = await callLlmApi(model, messages, 0.3, AbortSignal.timeout(90000), config)
-      trackTokenUsage(userId, 'analyze_manga', model, usage.promptTokens, usage.completionTokens)
+      trackTokenUsage(userId, 'analyze_manga', model, usage.promptTokens, usage.completionTokens, JSON.stringify(messages, null, 2), raw)
 
       return parseLlmJson(raw)
     }
@@ -277,7 +273,6 @@ export async function analyzeBatch(userId: number, bookId: number, items: BatchA
     const cached = await db.query.llmCache.findFirst({ where: eq(schema.llmCache.sentenceHash, hash) })
 
     if (cached) {
-      // TODO(legacy-cache): Remove parsing and format check here in the future.
       try {
         const parsed = JSON.parse(cached.analysis)
         if (!isOldFormatAnalysis(parsed)) {
@@ -308,7 +303,7 @@ export async function analyzeBatch(userId: number, bookId: number, items: BatchA
   for (const model of modelsToTry) {
     try {
       const { text: raw, usage } = await callLlmApi(model, messages, 0.2, AbortSignal.timeout(90000), config)
-      trackTokenUsage(userId, 'analyze_batch', model, usage.promptTokens, usage.completionTokens)
+      trackTokenUsage(userId, 'analyze_batch', model, usage.promptTokens, usage.completionTokens, JSON.stringify(messages, null, 2), raw)
 
       const parsedData = parseLlmJson<any>(raw)
 
@@ -325,8 +320,6 @@ export async function analyzeBatch(userId: number, bookId: number, items: BatchA
         if (originalItem) {
           const hash = hashSentence(originalItem.sentence, language, targetLang)
 
-          // TODO(legacy-cache): Revert to .onConflictDoNothing() in the future.
-          // Сохраняем в кэш с перезаписью старого формата, если таковой имелся
           await db.insert(schema.llmCache).values({
             sentenceHash: hash,
             language,
@@ -384,8 +377,8 @@ export async function generateTts(userId: number, text: string, language: string
   if (ttsKey)
     headers.Authorization = `Bearer ${ttsKey}`
 
-  // Логируем объем синтезированного текста (символы как токены inputTokens)
-  trackTokenUsage(userId, 'tts_generation', ttsModel, normalizedText.length, 0)
+  // Логируем объем синтезированного текста
+  trackTokenUsage(userId, 'tts_generation', ttsModel, normalizedText.length, 0, normalizedText, '[AUDIO BASE64]')
 
   const response = await fetch(`${ttsUrl}/audio/speech`, {
     method: 'POST',
