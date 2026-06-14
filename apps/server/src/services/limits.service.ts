@@ -16,22 +16,23 @@ export async function checkTokenLimit(userId: number): Promise<void> {
     throw new AppError(403, 'Превышен лимит использования ИИ (токенов)')
   }
 
+  // Todo МБ
   // 2. Дневной лимит - защита от багов, циклов и парсинга (спасет бюджет)
-  const date = new Date().toISOString().split('T')[0]
-  const [{ todayTokens }] = await db.select({
-    todayTokens: sql<number>`COALESCE(SUM(${schema.tokenUsage.inputTokens} + ${schema.tokenUsage.outputTokens}), 0)`.mapWith(Number),
-  })
-    .from(schema.tokenUsage)
-    .where(
-      and(
-        eq(schema.tokenUsage.userId, userId),
-        eq(schema.tokenUsage.date, date)
-      )
-    )
+  // const date = new Date().toISOString().split('T')[0]
+  // const [{ todayTokens }] = await db.select({
+  //   todayTokens: sql<number>`COALESCE(SUM(${schema.tokenUsage.inputTokens} + ${schema.tokenUsage.outputTokens}), 0)`.mapWith(Number),
+  // })
+  //   .from(schema.tokenUsage)
+  //   .where(
+  //     and(
+  //       eq(schema.tokenUsage.userId, userId),
+  //       eq(schema.tokenUsage.date, date),
+  //     ),
+  //   )
 
-  if (todayTokens >= MAX_DAILY_TOKENS) {
-    throw new AppError(429, `Превышен дневной лимит токенов безопасности (${MAX_DAILY_TOKENS}). Пожалуйста, сделайте паузу до завтра или увеличьте MAX_DAILY_TOKENS в настройках сервера.`)
-  }
+  // if (todayTokens >= MAX_DAILY_TOKENS) {
+  //   throw new AppError(429, `Превышен дневной лимит токенов безопасности (${MAX_DAILY_TOKENS}). Пожалуйста, сделайте паузу до завтра или увеличьте MAX_DAILY_TOKENS в настройках сервера.`)
+  // }
 }
 
 export async function checkBookLimit(userId: number): Promise<void> {
