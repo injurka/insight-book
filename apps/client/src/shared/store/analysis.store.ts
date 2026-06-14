@@ -18,6 +18,7 @@ export interface WordPopoverData {
   transcription: string
   translation: string
   targetRect: DOMRect
+  target?: HTMLElement
   showAi: boolean
   isAiLoading: boolean
   aiTranslation?: string
@@ -558,6 +559,7 @@ export const useAnalysisStore = defineStore('analysis', () => {
       word,
       pos,
       targetRect,
+      target,
       contextSentence,
       contextBookId: readerStore.currentBook.id,
       isSaved: !!entry?.isUserDict,
@@ -618,6 +620,7 @@ export const useAnalysisStore = defineStore('analysis', () => {
           transcription: result.transcription,
           translation: result.translation,
           targetRect,
+          target,
           showAi: false,
           isAiLoading: false,
           isSaved: !!result.isUserDict,
@@ -630,6 +633,7 @@ export const useAnalysisStore = defineStore('analysis', () => {
           transcription: result.transcription,
           translation: result.translation || i18n.global.t('analysis.wordNotFoundInDict'),
           targetRect,
+          target,
           showAi: true,
           isAiLoading: true,
           isSaved: !!result.isUserDict,
@@ -651,6 +655,7 @@ export const useAnalysisStore = defineStore('analysis', () => {
         transcription: '',
         translation: i18n.global.t('analysis.wordNotFoundInDict'),
         targetRect,
+        target,
         showAi: true,
         isAiLoading: true,
         isSaved: false,

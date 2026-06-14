@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import type { GeneratedWordExamples } from '~/shared/types/models'
+import { autoUpdate, flip, offset, shift, useFloating } from '@floating-ui/vue'
 import { Icon } from '@iconify/vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { KitBtn, KitSkeleton, KitTooltip } from '~/components/01.kit'
 import { useLibraryStore } from '~/components/05.modules/library/store/library.store'
@@ -20,7 +22,30 @@ const toast = useToast()
 const { t } = useI18n()
 
 const popoverRef = ref<HTMLElement | null>(null)
-const popoverPos = ref({ top: '-9999px', left: '-9999px', transform: 'none' })
+const referenceEl = computed(() => analysisStore.wordPopover?.target || null)
+
+const { x, y, strategy } = useFloating(referenceEl, popoverRef, {
+  placement: 'bottom',
+  strategy: 'fixed',
+  middleware: [
+    offset(8),
+    flip({ padding: 10 }),
+    shift({ padding: 10 }),
+  ],
+  whileElementsMounted: autoUpdate,
+})
+
+const popoverPos = computed(() => {
+  if (!analysisStore.wordPopover || x.value == null || y.value == null) {
+    return { top: '-9999px', left: '-9999px', visibility: 'hidden' as const }
+  }
+  return {
+    position: strategy.value,
+    top: `${y.value}px`,
+    left: `${x.value}px`,
+    visibility: 'visible' as const,
+  }
+})
 
 const isAiModalOpen = ref(false)
 const isAiLoading = ref(false)
@@ -49,44 +74,11 @@ function getPosClass(pos: string) {
 
 watch(
   () => analysisStore.wordPopover,
-  async (val) => {
+  (val) => {
     if (!val) {
-      popoverPos.value = { top: '-9999px', left: '-9999px', transform: 'none' }
       stop()
-      return
     }
-    await nextTick()
-    if (!popoverRef.value || !val.targetRect)
-      return
-
-    const rect = val.targetRect
-    const popRect = popoverRef.value.getBoundingClientRect()
-    const ww = window.innerWidth
-    const wh = window.innerHeight
-
-    let left = rect.left + rect.width / 2
-    let top = rect.bottom + 8
-
-    if (top + popRect.height > wh) {
-      if (rect.top > popRect.height + 8) {
-        top = rect.top - popRect.height - 8
-      }
-      else {
-        top = wh - popRect.height - 10
-      }
-    }
-    if (top < 10)
-      top = 10
-    if (left - popRect.width / 2 < 10) {
-      left = popRect.width / 2 + 10
-    }
-    else if (left + popRect.width / 2 > ww - 10) {
-      left = ww - popRect.width / 2 - 10
-    }
-
-    popoverPos.value = { top: `${top}px`, left: `${left}px`, transform: 'translateX(-50%)' }
   },
-  { deep: true },
 )
 
 function openSaveDialog() {
@@ -158,36 +150,38 @@ onUnmounted(() => {
         </div>
 
         <div class="popover-content">
-          <div v-if="analysisStore.wordPopover.showAi && analysisStore.wordPopover.isAiLoading" class="ai-loader">
-            <KitSkeleton width="95%" height="16px" />
-            <KitSkeleton width="75%" height="16px" />
-            <KitSkeleton width="90%" height="16px" />
-          </div>
-          <div v-else class="popover-body">
-            <div class="translation" v-html="analysisStore.wordPopover.showAi ? analysisStore.wordPopover.aiTranslation : analysisStore.wordPopover.translation" />
-            <template v-if="analysisStore.wordPopover.showAi && analysisStore.wordPopover.aiData">
-              <div v-if="analysisStore.wordPopover.aiData.grammarRules?.length" class="ai-section">
-                <div class="ai-subtitle">
-                  {{ t('analysis.grammarColon') }}
-                </div>
-                <div v-for="(rule, idx) in analysisStore.wordPopover.aiData.grammarRules" :key="idx" class="ai-rule">
-                  <b>{{ rule.pattern }}</b> — {{ rule.explanation }}
-                </div>
-              </div>
-              <div v-if="analysisStore.wordPopover.aiData.vocabulary?.length" class="ai-section">
-                <div class="ai-subtitle">
-                  {{ t('analysis.vocabularyColon') }}
-                </div>
-                <template v-for="(vocab, idx) in analysisStore.wordPopover.aiData.vocabulary" :key="idx">
-                  <div v-if="vocab && vocab.word" class="ai-vocab">
-                    <b>{{ vocab.word }}</b> <template v-if="vocab.transcription">
-                      ({{ vocab.transcription }})
-                    </template> — {{ vocab.meaning }}
+          <Transition name="fade" mode="out-in">
+            <div v-if="analysisStore.wordPopover.showAi && analysisStore.wordPopover.isAiLoading" key="loader" class="ai-loader">
+              <KitSkeleton width="95%" height="16px" />
+              <KitSkeleton width="75%" height="16px" />
+              <KitSkeleton width="90%" height="16px" />
+            </div>
+            <div v-else key="content" class="popover-body">
+              <div class="translation" v-html="analysisStore.wordPopover.showAi ? analysisStore.wordPopover.aiTranslation : analysisStore.wordPopover.translation" />
+              <template v-if="analysisStore.wordPopover.showAi && analysisStore.wordPopover.aiData">
+                <div v-if="analysisStore.wordPopover.aiData.grammarRules?.length" class="ai-section">
+                  <div class="ai-subtitle">
+                    {{ t('analysis.grammarColon') }}
                   </div>
-                </template>
-              </div>
-            </template>
-          </div>
+                  <div v-for="(rule, idx) in analysisStore.wordPopover.aiData.grammarRules" :key="idx" class="ai-rule">
+                    <b>{{ rule.pattern }}</b> — {{ rule.explanation }}
+                  </div>
+                </div>
+                <div v-if="analysisStore.wordPopover.aiData.vocabulary?.length" class="ai-section">
+                  <div class="ai-subtitle">
+                    {{ t('analysis.vocabularyColon') }}
+                  </div>
+                  <template v-for="(vocab, idx) in analysisStore.wordPopover.aiData.vocabulary" :key="idx">
+                    <div v-if="vocab && vocab.word" class="ai-vocab">
+                      <b>{{ vocab.word }}</b> <template v-if="vocab.transcription">
+                        ({{ vocab.transcription }})
+                      </template> — {{ vocab.meaning }}
+                    </div>
+                  </template>
+                </div>
+              </template>
+            </div>
+          </Transition>
         </div>
 
         <div class="popover-footer">
@@ -228,7 +222,6 @@ onUnmounted(() => {
 </template>
 
 <style lang="scss" scoped>
-/* Стили остаются без изменений */
 .word-popover {
   position: fixed;
   z-index: var(--z-popover, 1300);
@@ -244,6 +237,11 @@ onUnmounted(() => {
   overflow: hidden;
   max-height: 70vh;
   min-height: 150px;
+
+  transition:
+    top 0.25s cubic-bezier(0.25, 0.8, 0.25, 1),
+    left 0.25s cubic-bezier(0.25, 0.8, 0.25, 1);
+  will-change: top, left;
 }
 
 .transcription-header {
