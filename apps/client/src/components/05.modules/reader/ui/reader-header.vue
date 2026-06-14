@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Icon } from '@iconify/vue'
+import { useFullscreen } from '@vueuse/core'
 import { computed, reactive, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
@@ -23,6 +24,7 @@ const { t } = useI18n()
 
 const router = useRouter()
 const { theme, toggleTheme } = useChangeTheme()
+const { isFullscreen, toggle: toggleFullscreen } = useFullscreen()
 
 const pageAnalysisDropdownRef = ref<InstanceType<typeof KitDropdown> | null>(null)
 const settingsDropdownRef = ref<InstanceType<typeof KitDropdown> | null>(null)
@@ -34,7 +36,6 @@ const pageActionOpts = reactive({
   ttsWords: false,
 })
 
-// Закрываем открытые менюшки, если хэдер скрылся из-за скролла
 watch(() => props.isVisible, (visible) => {
   if (!visible) {
     pageAnalysisDropdownRef.value?.close()
@@ -106,6 +107,15 @@ const fontOptions = computed(() => [
     <span class="book-title">{{ readerStore.currentBook?.title }}</span>
 
     <div class="spacer" />
+
+    <KitTooltip :text="isFullscreen ? t('reader.exitFullscreen') : t('reader.fullscreen')" placement="bottom" class="desktop-only">
+      <KitBtn
+        :icon="isFullscreen ? 'mdi:fullscreen-exit' : 'mdi:fullscreen'"
+        variant="text"
+        size="sm"
+        @click="toggleFullscreen"
+      />
+    </KitTooltip>
 
     <KitTooltip
       v-if="readerStore.currentBook?.type !== 'manga'"

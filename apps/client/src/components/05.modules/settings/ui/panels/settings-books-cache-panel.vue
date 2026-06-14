@@ -65,7 +65,14 @@ const activeBookStats = computed(() => {
             </div>
             <h3>{{ book.title }}</h3>
           </div>
-          <KitBtn icon="mdi:delete-outline" variant="outlined" class="delete-btn" @click="cacheStore.clearBookCache(Number(id))" />
+          <div class="header-actions">
+            <KitTooltip v-if="book.ttsSizeBytes > 0" :text="t('settings.clearTtsHint')" placement="top">
+              <KitBtn icon="mdi:headphones-off" variant="outlined" class="delete-tts-btn" @click="cacheStore.clearBookTtsCache(Number(id))" />
+            </KitTooltip>
+            <KitTooltip :text="t('settings.clearAllHint')" placement="top-end">
+              <KitBtn icon="mdi:delete-outline" variant="outlined" class="delete-btn" @click="cacheStore.clearBookCache(Number(id))" />
+            </KitTooltip>
+          </div>
         </div>
 
         <div class="book-card-body">
@@ -81,6 +88,10 @@ const activeBookStats = computed(() => {
             <div class="badge">
               <Icon icon="mdi:file-document-edit-outline" />
               <span>{{ t('settings.cachePages') }} <b>{{ book.cachedPages.length }} / {{ book.totalPages }}</b></span>
+            </div>
+            <div v-if="book.ttsSizeBytes > 0" class="badge">
+              <Icon icon="mdi:waveform" />
+              <span>{{ t('settings.ttsSizeBytes') }} <b>{{ formatBytes(book.ttsSizeBytes) }}</b></span>
             </div>
           </div>
 
@@ -173,13 +184,26 @@ const activeBookStats = computed(() => {
         word-break: break-word;
       }
     }
+    .header-actions {
+      display: flex;
+      gap: 8px;
+      flex-shrink: 0;
+    }
     .delete-btn {
       color: var(--fg-error-color) !important;
       border-color: var(--border-error-color) !important;
-      flex-shrink: 0;
       padding: 0.5rem;
       &:hover:not(:disabled) {
         background-color: var(--bg-error-color) !important;
+        color: white !important;
+      }
+    }
+    .delete-tts-btn {
+      color: var(--fg-warning-color) !important;
+      border-color: var(--border-warning-color) !important;
+      padding: 0.5rem;
+      &:hover:not(:disabled) {
+        background-color: var(--bg-warning-color) !important;
         color: white !important;
       }
     }

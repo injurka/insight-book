@@ -67,7 +67,6 @@ export const offlineService = {
     return await safeGetItem(`book_${bookId}_page_${pageNum}`)
   },
 
-  // Кэширование картинок (манга)
   async saveImage(bookId: number, pageNum: number, blob: Blob) {
     await safeSetItem(`image_${bookId}_${pageNum}`, blob)
   },
@@ -76,7 +75,6 @@ export const offlineService = {
     return await safeGetItem<Blob>(`image_${bookId}_${pageNum}`)
   },
 
-  // Кэширование обложек
   async saveCover(bookId: number, blob: Blob) {
     await safeSetItem(`cover_${bookId}`, blob)
   },
@@ -178,14 +176,13 @@ export const offlineService = {
     const keys = await localforage.keys()
     const prefix = getKey('') // "u1_"
 
-    // Фильтруем ключи только текущего юзера
     const userKeys = keys.filter(k => k.startsWith(prefix))
 
     const booksList = await this.getBooksList() || []
     const bookStats: Record<number, any> = {}
 
     booksList.forEach((b) => {
-      bookStats[b.id] = { title: b.title, totalPages: b.totalPages || 0, cachedPages: [], analysesCount: 0, sizeBytes: 0 }
+      bookStats[b.id] = { title: b.title, totalPages: b.totalPages || 0, cachedPages: [], analysesCount: 0, sizeBytes: 0, ttsSizeBytes: 0 }
     })
 
     let totalDictionaryWords = 0
@@ -195,7 +192,6 @@ export const offlineService = {
       const key = fullKey.replace(prefix, '')
       const item = await localforage.getItem(fullKey)
 
-      // Blob объекты не могут быть посчитаны через JSON.stringify
       const itemSize = item instanceof Blob ? item.size : (item ? JSON.stringify(item).length : 0)
       totalSize += itemSize
 
@@ -241,6 +237,15 @@ export const offlineService = {
           bookStats[bookId].sizeBytes += itemSize
         }
       }
+      else if (key.startsWith('tts_')) {
+        // Формат ключа tts_{bookId}_{normalizedText}
+        const parts = key.replace('tts_', '').split('_')
+        const bookId = Number(parts[0])
+        if (!isNaN(bookId) && bookStats[bookId]) {
+          bookStats[bookId].ttsSizeBytes += itemSize
+          bookStats[bookId].sizeBytes += itemSize
+        }
+      }
     }
 
     return { bookStats, totalDictionaryWords, totalSizeBytes: totalSize }
@@ -255,12 +260,23 @@ export const offlineService = {
         return false
 
       const key = fullKey.replace(prefix, '')
-
-      return key.startsWith(`book_${bookId}_page_`) || key.startsWith(`analysis_${bookId}_`) || key === `book_info_${bookId}` || key === `book_toc_${bookId}` || key.startsWith(`image_${bookId}_`) || key === `cover_${bookId}`
+      return key.startsWith(`book_${bookId}_page_`) || key.startsWith(`analysis_${bookId}_`) || key === `book_info_${bookId}` || key === `book_toc_${bookId}` || key.startsWith(`image_${bookId}_`) || key === `cover_${bookId}` || key.startsWith(`tts_${bookId}_`)
     })
 
     for (const key of keysToRemove) {
       await localforage.removeItem(key)
     }
   },
+
+  async clearBookTtsCache(bookId: number) {
+    const keys = await localforage.keys()
+    const prefix = getKey('')
+    const ttsPrefix = `${prefix}tts_${bookId}_`
+
+    const keysToRemove = keys.filter(fullKey => fullKey.startsWith(ttsPrefix))
+
+    for (const key of keysToRemove) {
+      await localforage.removeItem(key)
+    }
+  }
 }

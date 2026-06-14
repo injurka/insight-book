@@ -13,9 +13,7 @@ export const useCacheStore = defineStore('cache', () => {
     isLoading.value = true
     try {
       isPersisted.value = await offlineService.requestPersistentStorage()
-
       deviceStorage.value = await offlineService.getStorageEstimate()
-
       stats.value = await offlineService.getCacheStats()
     }
     catch {
@@ -32,6 +30,12 @@ export const useCacheStore = defineStore('cache', () => {
     await loadStats()
   }
 
+  async function clearBookTtsCache(bookId: number) {
+    await offlineService.clearBookTtsCache(bookId)
+    useToastStore().success('Аудиофайлы для книги удалены')
+    await loadStats()
+  }
+
   return {
     stats,
     deviceStorage,
@@ -39,5 +43,6 @@ export const useCacheStore = defineStore('cache', () => {
     isLoading,
     loadStats,
     clearBookCache,
+    clearBookTtsCache,
   }
 })

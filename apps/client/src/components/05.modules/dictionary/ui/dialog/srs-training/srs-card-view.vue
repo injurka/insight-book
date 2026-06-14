@@ -43,7 +43,7 @@ const hanziBoardRef = ref<InstanceType<typeof HanziBoard> | null>(null)
 const isAiModalOpen = ref(false)
 const isAiLoading = ref(false)
 const aiData = ref<GeneratedWordExamples | null>(null)
-const currentMode = ref<'standard' | 'audio' | 'writing' | 'typing' | 'choice'>('standard')
+const currentMode = ref<'standard' | 'audio' | 'writing' | 'typing' | 'choice' | 'cloze' | 'dictation'>('standard')
 
 const originalSentence = computed(() => props.card?.encounters?.[0]?.sentence || '')
 
@@ -71,6 +71,14 @@ async function fetchAiExamples() {
   }
 }
 
+function getClozeHtml() {
+  if (!originalSentence.value || !props.card?.word)
+    return ''
+  const escapeRegExp = (string: string) => string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  const regex = new RegExp(`(${escapeRegExp(props.card.word)})`, 'gi')
+  return originalSentence.value.replace(regex, '<span class="cloze-gap">[ ___ ]</span>')
+}
+
 function initCard() {
   isFlipped.value = false
   showAnimation.value = false
@@ -88,8 +96,9 @@ function initCard() {
   if (!props.card)
     return
 
-  const modesConfig = props.modes || { standard: true, audio: true, writing: false, typing: true, choice: true }
-  const availableModes: ('standard' | 'audio' | 'writing' | 'typing' | 'choice')[] = []
+  const modesConfig = props.modes || { standard: true, audio: true, writing: false, typing: true, choice: true, cloze: true, dictation: true }
+  const availableModes: ('standard' | 'audio' | 'writing' | 'typing' | 'choice' | 'cloze' | 'dictation')[] = []
+
   if (modesConfig.standard)
     availableModes.push('standard')
   if (modesConfig.audio && props.card.word)
@@ -100,6 +109,10 @@ function initCard() {
     availableModes.push('typing')
   if (modesConfig.choice)
     availableModes.push('choice')
+  if (modesConfig.cloze && originalSentence.value && originalSentence.value.toLowerCase().includes(props.card.word.toLowerCase()))
+    availableModes.push('cloze')
+  if (modesConfig.dictation && props.card.word)
+    availableModes.push('dictation')
 
   if (availableModes.length === 0)
     availableModes.push('standard')
@@ -119,7 +132,7 @@ function initCard() {
     choiceOptions.value = options.sort(() => 0.5 - Math.random())
   }
 
-  if (currentMode.value === 'audio') {
+  if (currentMode.value === 'audio' || currentMode.value === 'dictation') {
     setTimeout(() => {
       if (props.card?.word) {
         speak(props.card.word, props.card.language)
@@ -130,7 +143,7 @@ function initCard() {
 
 function flip() {
   isFlipped.value = true
-  if (currentMode.value !== 'audio' && props.card?.word) {
+  if (currentMode.value !== 'audio' && currentMode.value !== 'dictation' && props.card?.word) {
     speak(props.card.word, props.card.language)
   }
 }
@@ -243,6 +256,29 @@ watch(() => props.card, initCard, { immediate: true })
         <p>{{ t('dictionary.listenAndRecall') }}</p>
       </div>
 
+      <div v-else-if="currentMode === 'dictation'" class="typing-mode dictation-mode">
+        <KitBtn
+          :icon="isLoading ? 'mdi:loading' : (isPlaying ? 'mdi:volume-high' : 'mdi:volume-medium')"
+          size="lg"
+          color="accent"
+          :class="{ 'spin-animation': isLoading, 'pulse-animation': isPlaying }"
+          style="margin-bottom: 8px;"
+          @click="speak(card.word, card.language)"
+        />
+        <p class="writing-hint">
+          {{ t('dictionary.audioDictationDesc') }}
+        </p>
+        <div class="typing-area">
+          <KitInput v-model="typedAnswer" :placeholder="t('dictionary.writeWord')" :disabled="isAnswerChecked" @keyup.enter="submitTyping" />
+          <KitBtn color="primary" :disabled="!typedAnswer || isAnswerChecked" @click="submitTyping">
+            {{ t('dictionary.check') }}
+          </KitBtn>
+        </div>
+        <p v-if="typoFeedback" class="typo-feedback" :class="{ 'is-typo': !isAnswerCorrect }">
+          {{ typoFeedback }}
+        </p>
+      </div>
+
       <div v-else-if="currentMode === 'writing'" class="writing-mode">
         <p class="writing-hint">
           {{ t('dictionary.writeHanzi') }}
@@ -253,6 +289,19 @@ watch(() => props.card, initCard, { immediate: true })
 
       <div v-else-if="currentMode === 'typing'" class="typing-mode">
         <div class="translation-hint" v-html="card.translation" />
+        <div class="typing-area">
+          <KitInput v-model="typedAnswer" :placeholder="t('dictionary.writeWord')" :disabled="isAnswerChecked" @keyup.enter="submitTyping" />
+          <KitBtn color="primary" :disabled="!typedAnswer || isAnswerChecked" @click="submitTyping">
+            {{ t('dictionary.check') }}
+          </KitBtn>
+        </div>
+        <p v-if="typoFeedback" class="typo-feedback" :class="{ 'is-typo': !isAnswerCorrect }">
+          {{ typoFeedback }}
+        </p>
+      </div>
+
+      <div v-else-if="currentMode === 'cloze'" class="typing-mode cloze-mode">
+        <div class="cloze-sentence" v-html="getClozeHtml()" />
         <div class="typing-area">
           <KitInput v-model="typedAnswer" :placeholder="t('dictionary.writeWord')" :disabled="isAnswerChecked" @keyup.enter="submitTyping" />
           <KitBtn color="primary" :disabled="!typedAnswer || isAnswerChecked" @click="submitTyping">
@@ -294,8 +343,8 @@ watch(() => props.card, initCard, { immediate: true })
     </div>
 
     <div v-if="isFlipped" class="card-back fade-in">
-      <div v-if="currentMode === 'audio' || currentMode === 'writing' || currentMode === 'typing' || card.transcription" class="back-word-row">
-        <div v-if="currentMode === 'audio' || currentMode === 'writing' || currentMode === 'typing'" class="word-huge back-word fade-in">
+      <div v-if="currentMode === 'audio' || currentMode === 'writing' || currentMode === 'typing' || currentMode === 'cloze' || currentMode === 'dictation' || card.transcription" class="back-word-row">
+        <div v-if="currentMode === 'audio' || currentMode === 'writing' || currentMode === 'typing' || currentMode === 'cloze' || currentMode === 'dictation'" class="word-huge back-word fade-in">
           {{ card.word }}
         </div>
         <div v-if="card.transcription" class="transcription-badge fade-in">
@@ -307,7 +356,7 @@ watch(() => props.card, initCard, { immediate: true })
 
       <div v-if="originalSentence" class="original-sentence fade-in">
         <Icon icon="mdi:format-quote-close" class="quote-icon" />
-        <span>{{ originalSentence }}</span>
+        <span v-html="currentMode === 'cloze' ? getClozeHtml().replace('[ ___ ]', `<b style='color: var(--fg-accent-color)'>${card.word}</b>`) : originalSentence" />
       </div>
 
       <div class="card-toolbar fade-in">
@@ -374,7 +423,7 @@ watch(() => props.card, initCard, { immediate: true })
     <div class="actions">
       <template v-if="!isFlipped">
         <div class="front-actions">
-          <KitBtn v-if="!['typing', 'choice'].includes(currentMode)" color="primary" size="lg" @click="flip">
+          <KitBtn v-if="!['typing', 'choice', 'cloze', 'dictation'].includes(currentMode)" color="primary" size="lg" @click="flip">
             {{ currentMode === 'writing' ? t('dictionary.dontRememberShow') : t('dictionary.showAnswer') }}
           </KitBtn>
           <KitBtn v-else variant="tonal" size="md" @click="skipObjectiveTest">
@@ -479,10 +528,30 @@ watch(() => props.card, initCard, { immediate: true })
   align-items: center;
   gap: 16px;
 
+  .writing-hint {
+    color: var(--fg-secondary-color);
+    margin: 0;
+  }
+
   .translation-hint {
     font-size: 1.3rem;
     font-weight: 500;
     color: var(--fg-primary-color);
+  }
+
+  .cloze-sentence {
+    font-size: 1.25rem;
+    line-height: 1.6;
+    color: var(--fg-primary-color);
+    margin-bottom: 8px;
+
+    :deep(.cloze-gap) {
+      color: var(--fg-accent-color);
+      font-weight: bold;
+      opacity: 0.6;
+      letter-spacing: 2px;
+      margin: 0 4px;
+    }
   }
 
   .typing-area {

@@ -81,6 +81,9 @@
     "cacheTtsWordsDesc": "Generate audio for each word"
   },
   "settings": {
+    "clearAllHint": "Clear all book data (text, images, audio)",
+    "clearTtsHint": "Clear only audio (TTS) files",
+    "ttsSizeBytes": "Audio (TTS) size: ",
     "pushNotSupported": "Push notifications are not supported in this browser or the app is not added to the home screen (iOS).",
     "pushDenied": "Notifications are blocked. Please allow them in your browser settings.",
     "pushKeyError": "Failed to retrieve the server key for push notifications.",
@@ -237,6 +240,8 @@
     "vocabAnalysisError": "Vocabulary analysis error"
   },
   "reader": {
+    "fullscreen": "Fullscreen",
+    "exitFullscreen": "Exit Fullscreen",
     "analyzePage": "Process Page",
     "selectOptions": "Select actions:",
     "textAnalysis": "Text Analysis (AI)",
@@ -277,6 +282,10 @@
     "tocEmpty": "Table of contents is empty or not loaded."
   },
   "dictionary": {
+    "cloze": "Cloze Test",
+    "clozeDesc": "Fill in the blank in context",
+    "audioDictation": "Dictation",
+    "audioDictationDesc": "Type the word by ear",
     "title": "My Dictionary",
     "searchPlaceholder": "Search by word, translation...",
     "allLanguages": "All languages",
@@ -369,7 +378,8 @@
     "finishSession": "Finish Session",
     "listenAndRecall": "Listen and recall the word",
     "writeHanzi": "Write Hanzi by memory:",
-    "writeWord": "Write the word in target language...",
+    "writeWord": "Type the word in target language...",
+    "fillBlank": "Type the word in the blank...",
     "check": "Check",
     "dontRememberSkip": "Don't remember / Skip",
     "dontRememberShow": "Don't remember / Show answer",

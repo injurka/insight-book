@@ -81,6 +81,9 @@
     "stop": "停止"
   },
   "settings": {
+    "clearAllHint": "清除所有书籍数据（文本、图片、音频）",
+    "clearTtsHint": "仅清除音频文件 (TTS)",
+    "ttsSizeBytes": "音频 (TTS) 大小：",
     "pushNotSupported": "此浏览器不支持推送通知，或者应用未添加到主屏幕（iOS）。",
     "pushDenied": "通知已被阻止。请在浏览器设置中允许通知。",
     "pushKeyError": "无法获取推送通知的服务器密钥。",
@@ -237,6 +240,8 @@
     "vocabAnalysisError": "词汇分析错误"
   },
   "reader": {
+    "fullscreen": "全屏",
+    "exitFullscreen": "退出全屏",
     "analyzePage": "处理页面",
     "selectOptions": "选择操作：",
     "textAnalysis": "文本分析 (AI)",
@@ -277,6 +282,10 @@
     "tocEmpty": "目录为空或未加载。"
   },
   "dictionary": {
+    "cloze": "填空",
+    "clozeDesc": "在语境中填写单词",
+    "audioDictation": "听写",
+    "audioDictationDesc": "凭听觉输入单词",
     "title": "我的词典",
     "searchPlaceholder": "按单词、翻译搜索...",
     "allLanguages": "所有语言",
@@ -370,6 +379,7 @@
     "listenAndRecall": "听并回想单词",
     "writeHanzi": "凭记忆书写汉字：",
     "writeWord": "写出目标语言的单词...",
+    "fillBlank": "在空白处填入单词...",
     "check": "检查",
     "dontRememberSkip": "不记得 / 跳过",
     "dontRememberShow": "不记得 / 显示答案",
