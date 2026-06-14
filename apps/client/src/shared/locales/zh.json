@@ -29,7 +29,8 @@
     "username": "用户名",
     "password": "密码",
     "loginBtn": "登录",
-    "errorAuth": "授权错误"
+    "errorAuth": "授权错误",
+    "betaWarning": "该项目尚未准备好投入生产。目前未开放注册，仅可通过白名单访问。"
   },
   "pwa": {
     "offlineReadyTitle": "已准备好离线使用",

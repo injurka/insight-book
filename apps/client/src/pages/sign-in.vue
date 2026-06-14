@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { Icon } from '@iconify/vue'
 import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
@@ -54,6 +55,11 @@ async function handleSignIn() {
       <KitBtn type="submit" color="primary" class="sign-in-btn" :disabled="isLoading">
         {{ t('signIn.loginBtn') }}
       </KitBtn>
+
+      <div class="beta-warning">
+        <Icon icon="mdi:information-outline" />
+        <span>{{ t('signIn.betaWarning') }}</span>
+      </div>
     </form>
   </div>
 </template>
@@ -97,6 +103,27 @@ async function handleSignIn() {
 
   .sign-in-btn {
     width: 100%;
+  }
+
+  .beta-warning {
+    margin-top: 24px;
+    padding: 12px;
+    background-color: rgba(var(--bg-warning-color-rgb, 227, 179, 65), 0.15);
+    border: 1px solid rgba(var(--border-warning-color-rgb, 227, 179, 65), 0.3);
+    border-radius: 8px;
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+    text-align: left;
+    font-size: 0.85rem;
+    color: var(--fg-warning-color);
+    line-height: 1.4;
+
+    svg {
+      font-size: 1.25rem;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
   }
 }
 </style>

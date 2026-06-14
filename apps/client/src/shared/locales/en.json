@@ -29,7 +29,8 @@
     "username": "Username",
     "password": "Password",
     "loginBtn": "Login",
-    "errorAuth": "Authorization Error"
+    "errorAuth": "Authorization Error",
+    "betaWarning": "The project is not production-ready yet. There is no open registration, access is by whitelist only."
   },
   "pwa": {
     "offlineReadyTitle": "Ready for offline use",

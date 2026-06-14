@@ -23,10 +23,10 @@ export const useAuthStore = defineStore('auth', () => {
         localStorage.setItem('insight_auth_mode', res.mode)
 
         identifyUser({
-          id: String(res.user.id),
-          username: res.user.username,
-          role: res.user.role || 'user',
-          auth_mode: res.mode || 'single',
+          id: String(user.value!.id),
+          username: user.value!.username,
+          role: user.value!.role || 'user',
+          auth_mode: isSingleMode.value ? 'single' : 'multi',
         })
       }
     }
