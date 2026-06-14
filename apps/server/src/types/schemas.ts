@@ -53,6 +53,11 @@ export const AnalyzeBatchSchema = z.object({
   language: z.string(),
 })
 
+export const CheckCacheSchema = z.object({
+  items: z.array(z.string()).max(200, 'Слишком большой пакет'),
+  language: z.string(),
+})
+
 export const UpdateBookSchema = z.object({
   title: z.string().optional(),
   author: z.string().nullable().optional(),

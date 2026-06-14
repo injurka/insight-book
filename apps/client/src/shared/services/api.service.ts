@@ -137,6 +137,14 @@ export const api = {
     lookupWord: (bookId: number, word: string, signal?: AbortSignal) =>
       request<{ transcription: string, translation: string, isUserDict?: boolean }>(`/api/books/${bookId}/word/${encodeURIComponent(word)}`, { signal }),
 
+    checkCache: (bookId: number, items: string[], language: string, signal?: AbortSignal) =>
+      request<{ results: { sentence: string, analysis: LlmAnalysis }[] }>(`/api/books/${bookId}/cache-check`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ items, language }),
+        signal,
+      }),
+
     analyzeBatch: (bookId: number, items: { id: string, sentence: string, context?: string }[], language: string, signal?: AbortSignal) =>
       request<{ results: { id: string, analysis: LlmAnalysis }[] }>(`/api/books/${bookId}/analyze-batch`, {
         method: 'POST',

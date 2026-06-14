@@ -67,7 +67,6 @@ export const offlineService = {
     return await safeGetItem(`book_${bookId}_page_${pageNum}`)
   },
 
-  // Кэширование картинок (манга)
   async saveImage(bookId: number, pageNum: number, blob: Blob) {
     await safeSetItem(`image_${bookId}_${pageNum}`, blob)
   },
@@ -76,7 +75,6 @@ export const offlineService = {
     return await safeGetItem<Blob>(`image_${bookId}_${pageNum}`)
   },
 
-  // Кэширование обложек
   async saveCover(bookId: number, blob: Blob) {
     await safeSetItem(`cover_${bookId}`, blob)
   },
@@ -137,14 +135,14 @@ export const offlineService = {
     return await safeGetItem(`dictionary_decks_${lang}`)
   },
 
-  async saveAnalysis(bookId: number, text: string, analysis: LlmAnalysis) {
+  async saveAnalysis(text: string, analysis: LlmAnalysis) {
     const lang = getAppLanguage()
-    await safeSetItem(`analysis_${bookId}_${text.trim().toLowerCase()}_${lang}`, JSON.parse(JSON.stringify(analysis)))
+    await safeSetItem(`analysis_${lang}_${text.trim().toLowerCase()}`, JSON.parse(JSON.stringify(analysis)))
   },
 
-  async getAnalysis(bookId: number, text: string): Promise<LlmAnalysis | null> {
+  async getAnalysis(text: string): Promise<LlmAnalysis | null> {
     const lang = getAppLanguage()
-    return await safeGetItem(`analysis_${bookId}_${text.trim().toLowerCase()}_${lang}`)
+    return await safeGetItem(`analysis_${lang}_${text.trim().toLowerCase()}`)
   },
 
   async saveTts(hashKey: string, audioBase64: string) {
@@ -178,7 +176,6 @@ export const offlineService = {
     const keys = await localforage.keys()
     const prefix = getKey('') // "u1_"
 
-    // Фильтруем ключи только текущего юзера
     const userKeys = keys.filter(k => k.startsWith(prefix))
 
     const booksList = await this.getBooksList() || []
@@ -195,7 +192,6 @@ export const offlineService = {
       const key = fullKey.replace(prefix, '')
       const item = await localforage.getItem(fullKey)
 
-      // Blob объекты не могут быть посчитаны через JSON.stringify
       const itemSize = item instanceof Blob ? item.size : (item ? JSON.stringify(item).length : 0)
       totalSize += itemSize
 
@@ -228,13 +224,6 @@ export const offlineService = {
         if (bookStats[bookId])
           bookStats[bookId].sizeBytes += itemSize
       }
-      else if (key.startsWith('analysis_')) {
-        const bookId = Number(key.split('_')[1])
-        if (bookStats[bookId]) {
-          bookStats[bookId].analysesCount++
-          bookStats[bookId].sizeBytes += itemSize
-        }
-      }
       else if (key.startsWith('book_info_') || key.startsWith('book_toc_')) {
         const bookId = Number(key.split('_')[2])
         if (bookStats[bookId]) {
@@ -256,7 +245,7 @@ export const offlineService = {
 
       const key = fullKey.replace(prefix, '')
 
-      return key.startsWith(`book_${bookId}_page_`) || key.startsWith(`analysis_${bookId}_`) || key === `book_info_${bookId}` || key === `book_toc_${bookId}` || key.startsWith(`image_${bookId}_`) || key === `cover_${bookId}`
+      return key.startsWith(`book_${bookId}_page_`) || key === `book_info_${bookId}` || key === `book_toc_${bookId}` || key.startsWith(`image_${bookId}_`) || key === `cover_${bookId}`
     })
 
     for (const key of keysToRemove) {

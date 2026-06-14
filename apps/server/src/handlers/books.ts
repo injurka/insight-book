@@ -8,18 +8,18 @@ import { and, desc, eq, like, or, sql } from 'drizzle-orm'
 import { parse as parseHtml } from 'node-html-parser'
 import sharp from 'sharp'
 
-import { AnalyzeBatchSchema, AnalyzeSentenceSchema, CreateCustomBookSchema, GenerateTtsSchema, GenerateTtsStandaloneSchema, UpdateBookSchema, UpdateStatsSchema } from '~/types/schemas'
+import { AnalyzeBatchSchema, AnalyzeSentenceSchema, CheckCacheSchema, CreateCustomBookSchema, GenerateTtsSchema, GenerateTtsStandaloneSchema, UpdateBookSchema, UpdateStatsSchema } from '~/types/schemas'
 import { extractLlmConfig, extractUniqueWordsFromHtml, json } from '~/utils/helpers'
 import { BOOKS_PATH, CORS_HEADERS, COVERS_PATH } from '../config'
 import { db } from '../db'
 import * as schema from '../db/schema'
 import { lookupSingleWord, lookupWords } from '../services/dictionary.service'
 import { checkBookLimit } from '../services/limits.service'
-import { analyzeBatch, analyzeBookExcerpt, analyzeMangaInfo, analyzeSentence, generateTts } from '../services/llm.service'
+import { analyzeBatch, analyzeBookExcerpt, analyzeMangaInfo, analyzeSentence, checkCacheBatch, generateTts } from '../services/llm.service'
 import { recognizeMangaPage } from '../services/ocr.service'
 import { AppError } from '../utils/errors'
-import { runWorkerTask } from '../workers/worker-client'
 import { createRateLimiter } from '../utils/rate-limit'
+import { runWorkerTask } from '../workers/worker-client'
 
 const bookAiLimiter = createRateLimiter(10, 60 * 1000)
 
@@ -196,7 +196,7 @@ export async function handleStartReading(req: Request, userId: number): Promise<
 }
 
 export async function handleAnalyzeVocabulary(req: Request, userId: number): Promise<Response> {
-  bookAiLimiter(String(userId)) 
+  bookAiLimiter(String(userId))
   const id = Number(req.params.id)
   const book = await db.query.books.findFirst({ where: eq(schema.books.id, id) })
   if (!book || book.userId !== userId)
@@ -287,7 +287,7 @@ export async function handleUpdateBook(req: Request, userId: number): Promise<Re
 }
 
 export async function handleAnalyzeBookStats(req: Request, userId: number): Promise<Response> {
-  bookAiLimiter(String(userId)) 
+  bookAiLimiter(String(userId))
   const config = extractLlmConfig(req)
 
   const id = Number(req.params.id)
@@ -758,6 +758,19 @@ export async function handleLookupWord(req: Request, userId: number): Promise<Re
   if (!entry)
     throw new AppError(404, 'Слово не найдено в локальном словаре')
   return json(entry)
+}
+
+export async function handleCheckCache(req: Request, userId: number): Promise<Response> {
+  const bookId = Number(req.params.id)
+  const book = await db.query.books.findFirst({ where: eq(schema.books.id, bookId), columns: { id: true, userId: true, isPublic: true } })
+  if (!book || (book.userId !== userId && !book.isPublic))
+    throw new AppError(403, 'Нет доступа')
+
+  const targetLang = req.headers.get('Accept-Language') || 'ru'
+  const { items, language } = CheckCacheSchema.parse(await req.json())
+
+  const results = await checkCacheBatch(bookId, items, language, targetLang)
+  return json({ results })
 }
 
 export async function handleAnalyzeSentence(req: Request, userId: number): Promise<Response> {

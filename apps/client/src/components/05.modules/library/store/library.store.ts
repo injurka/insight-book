@@ -204,12 +204,35 @@ export const useLibraryStore = defineStore('library', () => {
             const missingSentences: string[] = []
 
             for (const sentence of sentences) {
-              const cached = await offlineService.getAnalysis(bookId, sentence)
+              const cached = await offlineService.getAnalysis(sentence)
               if (cached) {
                 syncProgress.value.sentencesDone++
               }
               else {
                 missingSentences.push(sentence)
+              }
+            }
+
+            // Массовая проверка через бэкенд без LLM (только SQLite)
+            if (missingSentences.length > 0) {
+              try {
+                const res = await api.books.checkCache(bookId, missingSentences, book.language, signal)
+                const cacheMap = new Map(res.results.map((r: any) => [r.sentence, r.analysis]))
+
+                for (let j = missingSentences.length - 1; j >= 0; j--) {
+                  const s = missingSentences[j]
+                  const serverCached = cacheMap.get(s)
+                  if (serverCached) {
+                    await offlineService.saveAnalysis(s, serverCached)
+                    syncProgress.value.sentencesDone++
+                    missingSentences.splice(j, 1)
+                  }
+                }
+              }
+              catch (e) {
+                const err = e as Error
+                if (err.name === 'AbortError')
+                  throw err
               }
             }
 
@@ -230,7 +253,7 @@ export const useLibraryStore = defineStore('library', () => {
                   for (const result of res.results) {
                     const item = itemsToAnalyze.find(it => it.id === result.id)
                     if (item) {
-                      await offlineService.saveAnalysis(bookId, item.sentence, result.analysis)
+                      await offlineService.saveAnalysis(item.sentence, result.analysis)
                       syncProgress.value.sentencesDone++
                     }
                   }
@@ -250,12 +273,34 @@ export const useLibraryStore = defineStore('library', () => {
             const missingWords: string[] = []
 
             for (const word of words) {
-              const cached = await offlineService.getAnalysis(bookId, word)
+              const cached = await offlineService.getAnalysis(word)
               if (cached) {
                 syncProgress.value.wordsDone++
               }
               else {
                 missingWords.push(word)
+              }
+            }
+
+            if (missingWords.length > 0) {
+              try {
+                const res = await api.books.checkCache(bookId, missingWords, book.language, signal)
+                const cacheMap = new Map(res.results.map((r: any) => [r.sentence, r.analysis]))
+
+                for (let j = missingWords.length - 1; j >= 0; j--) {
+                  const w = missingWords[j]
+                  const serverCached = cacheMap.get(w)
+                  if (serverCached) {
+                    await offlineService.saveAnalysis(w, serverCached)
+                    syncProgress.value.wordsDone++
+                    missingWords.splice(j, 1)
+                  }
+                }
+              }
+              catch (e) {
+                const err = e as Error
+                if (err.name === 'AbortError')
+                  throw err
               }
             }
 
@@ -276,7 +321,7 @@ export const useLibraryStore = defineStore('library', () => {
                   for (const result of res.results) {
                     const item = itemsToAnalyze.find(it => it.id === result.id)
                     if (item) {
-                      await offlineService.saveAnalysis(bookId, item.sentence, result.analysis)
+                      await offlineService.saveAnalysis(item.sentence, result.analysis)
                       syncProgress.value.wordsDone++
                     }
                   }

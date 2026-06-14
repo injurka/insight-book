@@ -74,7 +74,7 @@ const activeBookStats = computed(() => {
               <Icon icon="mdi:database-outline" />
               <span>{{ formatBytes(book.sizeBytes) }}</span>
             </div>
-            <div class="badge">
+            <div v-if="book.analysesCount > 0" class="badge">
               <Icon icon="mdi:robot-outline" />
               <span>{{ t('settings.cacheAiAnalyses') }} <b>{{ book.analysesCount }}</b></span>
             </div>

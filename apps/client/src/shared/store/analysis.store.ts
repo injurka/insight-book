@@ -46,7 +46,7 @@ export interface AnalysisTask {
   text: string
   context?: string
   priority: number
-  status: 'pending' | 'processing' | 'done' | 'error'
+  status: 'pending' | 'checking_cache' | 'pending_llm' | 'processing' | 'done' | 'error'
 }
 
 export const useAnalysisStore = defineStore('analysis', () => {
@@ -182,51 +182,63 @@ export const useAnalysisStore = defineStore('analysis', () => {
 
       taskQueue.value.sort((a, b) => b.priority - a.priority)
 
-      const textTasks = taskQueue.value.filter(t => (t.type === 'sentence' || t.type === 'word') && t.status === 'pending')
+      // --- ФАЗА 1: Кэширование (IndexedDB + API /cache-check) ---
+      const pendingCacheTasks = taskQueue.value.filter(t => (t.type === 'sentence' || t.type === 'word') && t.status === 'pending')
 
-      if (textTasks.length > 0) {
-        const batchSize = settingsStore.useCustomLlm ? 1 : 5
-        const itemsToFetch: AnalysisTask[] = []
+      if (pendingCacheTasks.length > 0) {
+        // Берем батч до 200 задач за раз
+        const currentChunk = pendingCacheTasks.slice(0, 200)
+        currentChunk.forEach(t => t.status = 'checking_cache')
 
-        for (const task of textTasks) {
-          task.status = 'processing'
-          const cached = await offlineService.getAnalysis(book.id, task.text)
+        // 1.1 Параллельная проверка IndexedDB (без bookId)
+        const cacheChecks = await Promise.all(
+          currentChunk.map(async (task) => {
+            const cached = await offlineService.getAnalysis(task.text)
+            return { task, cached }
+          }),
+        )
+
+        const missingInLocalCache: AnalysisTask[] = []
+
+        for (const { task, cached } of cacheChecks) {
           if (cached) {
             handleTaskSuccess(task, cached)
             queueDone.value++
             taskQueue.value = taskQueue.value.filter(t => t.id !== task.id)
           }
           else {
-            itemsToFetch.push(task)
-            if (itemsToFetch.length >= batchSize)
-              break
+            missingInLocalCache.push(task)
           }
         }
 
-        if (itemsToFetch.length > 0) {
+        // 1.2 Массовая проверка кэша на сервере (без LLM)
+        if (missingInLocalCache.length > 0) {
           try {
-            const apiPayload = itemsToFetch.map(t => ({ id: t.id, sentence: t.text, context: t.context }))
-            const res = await api.books.analyzeBatch(book.id, apiPayload, book.language, signal)
+            const textsToCheck = missingInLocalCache.map(t => t.text)
+            const uniqueTexts = Array.from(new Set(textsToCheck))
 
-            for (const result of res.results) {
-              const task = itemsToFetch.find(t => t.id === result.id)
-              if (task) {
-                await offlineService.saveAnalysis(book.id, task.text, result.analysis)
-                handleTaskSuccess(task, result.analysis)
+            const res = await api.books.checkCache(book.id, uniqueTexts, book.language, signal)
+            const serverCacheMap = new Map(res.results.map((r: any) => [r.sentence, r.analysis]))
+
+            for (const task of missingInLocalCache) {
+              const serverCached = serverCacheMap.get(task.text)
+              if (serverCached) {
+                await offlineService.saveAnalysis(task.text, serverCached)
+                handleTaskSuccess(task, serverCached)
                 queueDone.value++
                 taskQueue.value = taskQueue.value.filter(t => t.id !== task.id)
+              }
+              else {
+                task.status = 'pending_llm'
               }
             }
           }
           catch (e) {
             const err = e as Error
-
             if (err.name === 'AbortError')
               break
-
-            console.error('Batch analyze error:', err)
-            taskQueue.value = taskQueue.value.filter(t => !itemsToFetch.some(it => it.id === t.id))
-            queueDone.value += itemsToFetch.length
+            console.warn('Server cache check failed:', e)
+            missingInLocalCache.forEach(t => t.status = 'pending_llm')
           }
         }
 
@@ -235,6 +247,51 @@ export const useAnalysisStore = defineStore('analysis', () => {
         continue
       }
 
+      // --- ФАЗА 2: Обработка нейросетью ---
+      const pendingLlmTasks = taskQueue.value.filter(t => (t.type === 'sentence' || t.type === 'word') && t.status === 'pending_llm')
+
+      if (pendingLlmTasks.length > 0) {
+        const batchSize = settingsStore.useCustomLlm ? 1 : 5
+        const concurrencyLimit = settingsStore.useCustomLlm ? 1 : 5
+
+        const llmChunk = pendingLlmTasks.slice(0, batchSize * concurrencyLimit)
+        llmChunk.forEach(t => t.status = 'processing')
+
+        const batches: AnalysisTask[][] = []
+        for (let j = 0; j < llmChunk.length; j += batchSize) {
+          batches.push(llmChunk.slice(j, j + batchSize))
+        }
+
+        await Promise.all(batches.map(async (batch) => {
+          const itemsToAnalyze = batch.map(t => ({ id: t.id, sentence: t.text, context: t.context }))
+          try {
+            const res = await api.books.analyzeBatch(book.id, itemsToAnalyze, book.language, signal)
+            for (const result of res.results) {
+              const task = batch.find(it => it.id === result.id)
+              if (task) {
+                await offlineService.saveAnalysis(task.text, result.analysis)
+                handleTaskSuccess(task, result.analysis)
+                queueDone.value++
+                taskQueue.value = taskQueue.value.filter(t => t.id !== task.id)
+              }
+            }
+          }
+          catch (e) {
+            const err = e as Error
+            if (err.name !== 'AbortError') {
+              console.error('Analyze batch error:', err)
+            }
+            taskQueue.value = taskQueue.value.filter(t => !batch.some(it => it.id === t.id))
+            queueDone.value += batch.length
+          }
+        }))
+
+        if (!signal.aborted)
+          checkPageAnalysisCompletion()
+        continue
+      }
+
+      // --- ФАЗА 3: TTS Озвучка ---
       const ttsTask = taskQueue.value.find(t => t.type.startsWith('tts_') && t.status === 'pending')
       if (ttsTask) {
         ttsTask.status = 'processing'
@@ -314,7 +371,7 @@ export const useAnalysisStore = defineStore('analysis', () => {
       return
     }
 
-    const cached = await offlineService.getAnalysis(currentBook.id, sentence)
+    const cached = await offlineService.getAnalysis(sentence)
     if (cached) {
       sidebarAnalysis.value = cached
       analysisHistory.value.unshift({ sentence, analysis: cached, timestamp: Date.now() })
@@ -330,7 +387,7 @@ export const useAnalysisStore = defineStore('analysis', () => {
       if (signal.aborted)
         return
 
-      await offlineService.saveAnalysis(currentBook.id, sentence, res)
+      await offlineService.saveAnalysis(sentence, res)
 
       trackEvent('ai_analyze', {
         language: currentBook.language,
@@ -473,7 +530,7 @@ export const useAnalysisStore = defineStore('analysis', () => {
     if (!wordPopover.value || wordPopover.value.aiTranslation || !currentBook)
       return
 
-    const cached = await offlineService.getAnalysis(currentBook.id, wordPopover.value.word)
+    const cached = await offlineService.getAnalysis(wordPopover.value.word)
     if (cached && wordPopover.value) {
       wordPopover.value.aiData = cached
       wordPopover.value.aiTranslation = cached.translation
@@ -505,7 +562,7 @@ export const useAnalysisStore = defineStore('analysis', () => {
       if (wordAbortController !== controller)
         return
 
-      await offlineService.saveAnalysis(currentBook.id, wordPopover.value.word, res)
+      await offlineService.saveAnalysis(wordPopover.value.word, res)
 
       if (wordPopover.value) {
         wordPopover.value.aiData = res

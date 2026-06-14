@@ -1,5 +1,5 @@
 import type { BatchAnalysisRequest, BatchAnalysisResponse, GeneratedWordExamples, LlmAnalysis, LlmConfig, ModelMessage, WordAutoFillResponse } from '../types'
-import { eq } from 'drizzle-orm'
+import { eq, inArray, sql } from 'drizzle-orm'
 import { LlmAnalysisSchema } from '~/types/schemas'
 import { getVoiceForLanguage, hashSentence, hashTtsText, parseLlmJson } from '~/utils/helpers'
 import { callLlmApi } from '~/utils/llm-api'
@@ -24,30 +24,17 @@ import { AppError } from '../utils/errors'
 import { checkTokenLimit } from './limits.service'
 import { trackTokenUsage } from './token.service'
 
-/**
- * TODO(legacy-cache): Remove this function in the future when all old cached data
- * (where grammarRules/vocabulary are arrays of strings) is fully overwritten.
- *
- * Проверяет, сохранен ли анализ в старом формате,
- * где grammarRules или vocabulary являлись массивами строк, а не объектов.
- */
 function isOldFormatAnalysis(parsed: any): boolean {
   if (!parsed || typeof parsed !== 'object')
     return true
-
-  // Проверяем правила грамматики
   if (Array.isArray(parsed.grammarRules)) {
-    // Если хотя бы один элемент не является объектом (например, строка), значит это старый формат
     if (parsed.grammarRules.some((r: any) => typeof r !== 'object' || r === null))
       return true
   }
-
-  // Проверяем словарный запас
   if (Array.isArray(parsed.vocabulary)) {
     if (parsed.vocabulary.some((v: any) => typeof v !== 'object' || v === null))
       return true
   }
-
   return false
 }
 
@@ -80,9 +67,7 @@ export async function analyzeSentence(
         return parsed as LlmAnalysis
       }
     }
-    catch {
-      // Игнорируем ошибку парсинга, падаем дальше к генерации
-    }
+    catch { }
   }
 
   if (!config.url)
@@ -130,6 +115,44 @@ export async function analyzeSentence(
   }
 
   throw new AppError(500, `Не удалось получить валидный ответ от ИИ: ${lastError?.message || 'Unknown error'}`)
+}
+
+export async function checkCacheBatch(bookId: number, sentences: string[], language: string, targetLang: string) {
+  if (!sentences.length)
+    return []
+
+  const uniqueSentences = Array.from(new Set(sentences))
+  const hashes = uniqueSentences.map(s => hashSentence(s, language, targetLang))
+
+  const cachedDocs = await db.query.llmCache.findMany({
+    where: inArray(schema.llmCache.sentenceHash, hashes),
+  })
+
+  const results: { sentence: string, analysis: any }[] = []
+  const bookCacheInserts: { bookId: number, sentenceHash: string }[] = []
+
+  const cacheMap = new Map(cachedDocs.map(d => [d.sentenceHash, d.analysis]))
+
+  for (const sentence of uniqueSentences) {
+    const hash = hashSentence(sentence, language, targetLang)
+    const cachedAnalysisStr = cacheMap.get(hash)
+    if (cachedAnalysisStr) {
+      try {
+        const parsed = JSON.parse(cachedAnalysisStr)
+        if (!isOldFormatAnalysis(parsed)) {
+          bookCacheInserts.push({ bookId, sentenceHash: hash })
+          results.push({ sentence, analysis: parsed })
+        }
+      }
+      catch (e) { }
+    }
+  }
+
+  if (bookCacheInserts.length > 0) {
+    await db.insert(schema.bookLlmCache).values(bookCacheInserts).onConflictDoNothing()
+  }
+
+  return results
 }
 
 export async function generateWordExamples(userId: number, word: string, language: string, targetLang: string, config: LlmConfig): Promise<GeneratedWordExamples> {
@@ -268,24 +291,40 @@ export async function analyzeBatch(userId: number, bookId: number, items: BatchA
   const results: BatchAnalysisResponse[] = []
   const missingItems: BatchAnalysisRequest[] = []
 
-  for (const item of items) {
-    const hash = hashSentence(item.sentence, language, targetLang)
-    const cached = await db.query.llmCache.findFirst({ where: eq(schema.llmCache.sentenceHash, hash) })
+  const itemHashes = items.map(item => ({
+    ...item,
+    hash: hashSentence(item.sentence, language, targetLang),
+  }))
 
-    if (cached) {
+  const hashesToFind = itemHashes.map(i => i.hash)
+
+  const cachedDocs = hashesToFind.length > 0
+    ? await db.query.llmCache.findMany({
+      where: inArray(schema.llmCache.sentenceHash, hashesToFind),
+    })
+    : []
+
+  const cacheMap = new Map(cachedDocs.map(d => [d.sentenceHash, d.analysis]))
+  const bookCacheInserts: { bookId: number, sentenceHash: string }[] = []
+
+  for (const item of itemHashes) {
+    const cachedAnalysisStr = cacheMap.get(item.hash)
+    if (cachedAnalysisStr) {
       try {
-        const parsed = JSON.parse(cached.analysis)
+        const parsed = JSON.parse(cachedAnalysisStr)
         if (!isOldFormatAnalysis(parsed)) {
-          await db.insert(schema.bookLlmCache).values({ bookId, sentenceHash: hash }).onConflictDoNothing()
+          bookCacheInserts.push({ bookId, sentenceHash: item.hash })
           results.push({ id: item.id, analysis: parsed })
           continue
         }
       }
-      catch (e) {
-        // Игнорируем ошибку парсинга
-      }
+      catch (e) { }
     }
     missingItems.push(item)
+  }
+
+  if (bookCacheInserts.length > 0) {
+    await db.insert(schema.bookLlmCache).values(bookCacheInserts).onConflictDoNothing()
   }
 
   if (missingItems.length === 0)
@@ -315,26 +354,33 @@ export async function analyzeBatch(userId: number, bookId: number, items: BatchA
         throw new TypeError('Ожидался массив, но ИИ вернул не поддерживаемый формат')
       }
 
+      const llmCacheInserts: any[] = []
+      const newBookCacheInserts: any[] = []
+
       for (const res of parsedArray as BatchAnalysisResponse[]) {
         const originalItem = missingItems.find(m => m.id === res.id)
         if (originalItem) {
           const hash = hashSentence(originalItem.sentence, language, targetLang)
 
-          await db.insert(schema.llmCache).values({
+          llmCacheInserts.push({
             sentenceHash: hash,
             language,
             sentence: originalItem.sentence,
             analysis: JSON.stringify(res.analysis),
-          }).onConflictDoUpdate({
-            target: schema.llmCache.sentenceHash,
-            set: {
-              analysis: JSON.stringify(res.analysis),
-            },
           })
-          await db.insert(schema.bookLlmCache).values({ bookId, sentenceHash: hash }).onConflictDoNothing()
+          newBookCacheInserts.push({ bookId, sentenceHash: hash })
         }
         results.push(res)
       }
+
+      if (llmCacheInserts.length > 0) {
+        await db.insert(schema.llmCache).values(llmCacheInserts).onConflictDoUpdate({
+          target: schema.llmCache.sentenceHash,
+          set: { analysis: sql`excluded.analysis` },
+        })
+        await db.insert(schema.bookLlmCache).values(newBookCacheInserts).onConflictDoNothing()
+      }
+
       return results
     }
     catch (e) {
@@ -377,7 +423,6 @@ export async function generateTts(userId: number, text: string, language: string
   if (ttsKey)
     headers.Authorization = `Bearer ${ttsKey}`
 
-  // Логируем объем синтезированного текста
   trackTokenUsage(userId, 'tts_generation', ttsModel, normalizedText.length, 0, normalizedText, '[AUDIO BASE64]')
 
   const response = await fetch(`${ttsUrl}/audio/speech`, {
