@@ -1,4 +1,3 @@
-// filepath: src/config.ts
 import path from 'node:path'
 
 export const PORT = Number.parseInt(process.env.PORT || '4444')

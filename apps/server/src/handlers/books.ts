@@ -1,4 +1,3 @@
-// filepath: src/handlers/books.ts
 /// <reference types="bun-types" />
 
 import type { PagePayload } from '../types'
@@ -22,8 +21,7 @@ import { AppError } from '../utils/errors'
 import { runWorkerTask } from '../workers/worker-client'
 import { createRateLimiter } from '../utils/rate-limit'
 
-// Лимитер: 40 запросов в минуту на пользователя (остановит спам от расширений-переводчиков)
-const bookAiLimiter = createRateLimiter(40, 60 * 1000)
+const bookAiLimiter = createRateLimiter(10, 60 * 1000)
 
 export async function handleGetBooks(req: Request, userId: number | null): Promise<Response> {
   const url = new URL(req.url)

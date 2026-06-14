@@ -47,7 +47,7 @@ export const LlmAnalysisSchema = z.object({
 export const AnalyzeBatchSchema = z.object({
   items: z.array(z.object({
     id: z.string(),
-    sentence: z.string(),
+    sentence: z.string().max(1000, 'Фраза слишком длинная (макс. 1000 символов)'),
     context: z.string().max(5000, 'Контекст слишком большой').optional(),
   })).max(20, 'Слишком большой пакет'),
   language: z.string(),
