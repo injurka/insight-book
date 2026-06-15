@@ -81,18 +81,27 @@ export function corsOk() {
 export function parseLlmJson<T = any>(raw: string): T {
   let text = raw.trim()
 
-  // eslint-disable-next-line regexp/no-super-linear-backtracking
-  const jsonMatch = text.match(/```(?:json)?\s*([\s\S]*?)\s*```/i)
-  if (jsonMatch) {
+  // Символ $ в конце разрешает частичное совпадение при обрыве текста
+  const jsonMatch = text.match(/```(?:json)?\s*([\s\S]*?)(?:```|$)/i)
+  if (jsonMatch && jsonMatch[1].trim()) {
     text = jsonMatch[1].trim()
   }
-  else {
-    const firstBrace = text.search(/[{[]/)
-    const lastBrace = Math.max(text.lastIndexOf('}'), text.lastIndexOf(']'))
-    if (firstBrace !== -1 && lastBrace !== -1) {
-      text = text.substring(firstBrace, lastBrace + 1)
-    }
+
+  const firstBrace = text.search(/[{[]/)
+  const lastBrace = Math.max(text.lastIndexOf('}'), text.lastIndexOf(']'))
+
+  if (firstBrace !== -1 && lastBrace !== -1 && lastBrace >= firstBrace) {
+    // Есть начало и конец JSON-объекта
+    text = text.substring(firstBrace, lastBrace + 1)
+  } else if (firstBrace !== -1) {
+    // Ответ оборван ИИ-моделью (таймаут или max_tokens) – забираем от открывающей скобки до конца
+    text = text.substring(firstBrace)
   }
 
-  return JSON.parse(text) as T
+  try {
+    return JSON.parse(text) as T
+  } catch (error: any) {
+    const snippet = text.length > 100 ? `${text.substring(0, 100)}...` : text
+    throw new Error(`JSON Parse Error: ${error.message}. Snippet: ${snippet}`)
+  }
 }

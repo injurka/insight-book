@@ -40,7 +40,11 @@ const isUsernamePromptOpen = ref(false)
 function formatNumber(num: number | undefined | null) {
   if (num == null)
     return '0'
-  return new Intl.NumberFormat('ru-RU').format(num)
+
+  return new Intl.NumberFormat(settingsStore.appLanguage || 'ru-RU', {
+    notation: 'compact',
+    maximumFractionDigits: 1,
+  }).format(num)
 }
 
 function setLanguage(lang: string) {
@@ -53,6 +57,7 @@ function setLanguage(lang: string) {
       deckId: authStore.user.pushTargetDeckId ?? 'all',
       timeStart: authStore.user.pushTimeStart || '10:00',
       timeEnd: authStore.user.pushTimeEnd || '21:00',
+      pushCount: authStore.user.pushCount ?? 1,
     }).catch(() => {})
   }
 }

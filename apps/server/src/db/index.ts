@@ -41,45 +41,45 @@ export const db = drizzle(sqlite, { schema, logger: false })
   // 2. АВТОМАТИЧЕСКАЯ СИНХРОНИЗАЦИЯ БАЗЫ ДАННЫХ И ДЕФОЛТНЫЙ ЮЗЕР
   // ============================================================================
   ; (async () => {
-  if (isMainThread) {
-    console.log('🔄 Checking and applying database migrations...')
+    if (isMainThread) {
+      console.log('🔄 Checking and applying database migrations...')
 
-    try {
-      migrate(db, { migrationsFolder: path.resolve(import.meta.dir, 'migrations') })
-      console.log('✅ Database migrations applied successfully!')
-    }
-    catch (e) {
-      console.error('❌ Failed to run migrations. Check if you generated them using `bunx drizzle-kit generate`. Error:', e)
-    }
-
-    try {
-      const adminExists = await db.query.users.findFirst({ where: eq(schema.users.id, 1) })
-
-      if (!adminExists) {
-        console.log('👤 Default admin user not found. Creating one...')
-        const passwordHash = await Bun.password.hash(ADMIN_PASSWORD)
-
-        await db.insert(schema.users).values({
-          id: 1,
-          username: ADMIN_USERNAME,
-          passwordHash,
-          role: 'admin',
-          tokenLimit: null,
-          bookLimit: null,
-        })
-        console.log(`👤 Default Admin user created (Username: ${ADMIN_USERNAME}).`)
+      try {
+        migrate(db, { migrationsFolder: path.resolve(import.meta.dir, 'migrations') })
+        console.log('✅ Database migrations applied successfully!')
       }
-    }
-    catch (e) {
-      console.error('⚠️ Could not check/create admin user:', e)
-    }
+      catch (e) {
+        console.error('❌ Failed to run migrations. Check if you generated them using `bunx drizzle-kit generate`. Error:', e)
+      }
 
-    console.log(`🗄️ Main SQLite Database initialized at ${DB_PATH}`)
-  }
-})().catch((err) => {
-  console.error('❌ Critical error during database initialization:', err)
-  process.exit(1)
-})
+      try {
+        const adminExists = await db.query.users.findFirst({ where: eq(schema.users.id, 1) })
+
+        if (!adminExists) {
+          console.log('👤 Default admin user not found. Creating one...')
+          const passwordHash = await Bun.password.hash(ADMIN_PASSWORD)
+
+          await db.insert(schema.users).values({
+            id: 1,
+            username: ADMIN_USERNAME,
+            passwordHash,
+            role: 'admin',
+            tokenLimit: null,
+            bookLimit: null,
+          })
+          console.log(`👤 Default Admin user created (Username: ${ADMIN_USERNAME}).`)
+        }
+      }
+      catch (e) {
+        console.error('⚠️ Could not check/create admin user:', e)
+      }
+
+      console.log(`🗄️ Main SQLite Database initialized at ${DB_PATH}`)
+    }
+  })().catch((err) => {
+    console.error('❌ Critical error during database initialization:', err)
+    process.exit(1)
+  })
 
 // ============================================================================
 // 3. ДИНАМИЧЕСКИЙ МЕНЕДЖЕР СЛОВАРЕЙ
@@ -168,7 +168,8 @@ export function getDictConnection(language: string, targetLanguage: string): Dic
 
     const dDb = drizzle(dictDb, { logger: false })
     const conn = { db: dictDb, dDb, tableName, wordCol, translationCol, hasTranscription, transcriptionCol }
-    dictConnections.set(lang, conn)
+
+    dictConnections.set(cacheKey, conn)
 
     if (isMainThread)
       console.log(`📖 Loaded dictionary for [${lang}] at ${specificPath} (Table: ${tableName})`)

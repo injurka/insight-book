@@ -162,7 +162,7 @@ export const usePwaStore = defineStore('pwa', {
           timeEnd: settings.timeEnd,
           timezone,
           uiLanguage,
-          pushCount: settings.pushCount,
+          pushCount: settings.pushCount ?? 1,
         }),
       })
 
@@ -171,7 +171,7 @@ export const usePwaStore = defineStore('pwa', {
         authStore.user.pushTargetDeckId = settings.deckId === 'all' ? null : settings.deckId
         authStore.user.pushTimeStart = settings.timeStart
         authStore.user.pushTimeEnd = settings.timeEnd
-        authStore.user.pushCount = settings.pushCount
+        authStore.user.pushCount = settings.pushCount ?? authStore.user.pushCount ?? 1
         authStore.user.timezone = timezone
         authStore.user.uiLanguage = uiLanguage
       }

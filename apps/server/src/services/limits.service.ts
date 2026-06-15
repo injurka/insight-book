@@ -1,4 +1,3 @@
-// filepath: src/services/limits.service.ts
 import { and, eq, sql } from 'drizzle-orm'
 import { MAX_DAILY_TOKENS } from '../config'
 import { db } from '../db'

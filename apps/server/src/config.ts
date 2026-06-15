@@ -39,7 +39,7 @@ export const VAPID_SUBJECT = process.env.VAPID_SUBJECT || 'mailto:admin@insight-
 
 // --- Limits & Configs ---
 export const PAGE_SIZE_CHARS = 1500
-export const MAX_DAILY_TOKENS = Number.parseInt(process.env.MAX_DAILY_TOKENS || '500000')
+export const MAX_DAILY_TOKENS = Number.parseInt(process.env.MAX_DAILY_TOKENS || '1_000_000')
 
 export const MIME_OVERRIDES: Record<string, string> = {
   '.md': 'text/markdown; charset=utf-8',
