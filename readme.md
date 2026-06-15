@@ -117,27 +117,27 @@ docker compose -f ./docker/docker-compose.local.yml up -d --build
 
 **Посмотреть список всех пользователей:**
 ```bash
-docker exec-it docker-insight-book-server-1 bun ./src/cli.ts list
+docker exec -it docker-insight-book-server-1 bun ./src/cli.ts list
 ```
 
 **Добавить нового пользователя:**
 ```bash
-docker exec-it docker-insight-book-server-1 bun ./src/cli.ts add <логин> <пароль>
+docker exec -it docker-insight-book-server-1 bun ./src/cli.ts add <логин> <пароль>
 ```
 
 **Сменить пароль (в том числе администратору):**
 ```bash
-docker exec-it docker-insight-book-server-1 bun ./src/cli.ts passwd <логин> <новый_пароль>
+docker exec -it docker-insight-book-server-1 bun ./src/cli.ts passwd <логин> <новый_пароль>
 ```
 
 ### Бэкапы (S3 Dumps)
 При настроенном S3 вы можете вручную управлять дампами:
 ```bash
 # Создать и загрузить дамп БД и файлов вручную
-docker exec-it docker-insight-book-server-1 bun run dump:create
+docker exec -it docker-insight-book-server-1 bun run dump:create
 
 # Восстановить БД и файлы из последнего дампа S3
-docker exec-it docker-insight-book-server-1 bun run dump:seed
+docker exec -it docker-insight-book-server-1 bun run dump:seed
 ```
 
 ---

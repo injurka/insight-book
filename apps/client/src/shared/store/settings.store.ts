@@ -3,7 +3,7 @@ import { defineStore } from 'pinia'
 
 export const useGlobalSettingsStore = defineStore('globalSettings', () => {
   const appLanguage = useLocalStorage<string>('global-app-language', 'ru')
-  const translationPriority = useLocalStorage<'dict' | 'llm'>('global-translation-priority', 'dict')
+  const translationPriority = useLocalStorage<'dict' | 'llm'>('global-translation-priority', 'llm')
   const ttsSpeed = useLocalStorage<number>('global-tts-speed', 1)
 
   const readerFontSize = useLocalStorage<number>('global-reader-font-size', 1.4)

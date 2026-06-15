@@ -85,8 +85,10 @@ async function main() {
     }
 
     const updatePayload: any = {}
-    if (tokenLimit !== undefined) updatePayload.tokenLimit = tokenLimit
-    if (bookLimit !== undefined) updatePayload.bookLimit = bookLimit
+    if (tokenLimit !== undefined)
+      updatePayload.tokenLimit = tokenLimit
+    if (bookLimit !== undefined)
+      updatePayload.bookLimit = bookLimit
 
     await db.update(schema.users).set(updatePayload).where(eq(schema.users.id, existing.id))
 
