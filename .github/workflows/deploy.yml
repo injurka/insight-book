@@ -162,6 +162,29 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Update version from tag
+        shell: bash
+        run: |
+          VERSION=${GITHUB_REF_NAME#v}
+          echo "Syncing version to $VERSION"
+          
+          node -e "
+            const fs = require('fs');
+            const paths = [
+              'apps/client/src-tauri/tauri.conf.json', 
+              'apps/client/package.json',
+              'package.json'
+            ];
+            paths.forEach(p => {
+              if(fs.existsSync(p)) {
+                const json = JSON.parse(fs.readFileSync(p));
+                json.version = '$VERSION';
+                fs.writeFileSync(p, JSON.stringify(json, null, 2));
+                console.log('Updated ' + p);
+              }
+            });
+          "
+
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
@@ -212,6 +235,27 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Update version from tag
+        shell: bash
+        run: |
+          VERSION=${GITHUB_REF_NAME#v}
+          node -e "
+            const fs = require('fs');
+            const paths = [
+              'apps/client/src-tauri/tauri.conf.json', 
+              'apps/client/package.json',
+              'package.json'
+            ];
+            paths.forEach(p => {
+              if(fs.existsSync(p)) {
+                const json = JSON.parse(fs.readFileSync(p));
+                json.version = '$VERSION';
+                fs.writeFileSync(p, JSON.stringify(json, null, 2));
+                console.log('Updated ' + p);
+              }
+            });
+          "
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
