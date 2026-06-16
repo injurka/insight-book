@@ -174,6 +174,8 @@ watch(currentIndex, () => {
   .dialog-body {
     scrollbar-width: none !important;
     -ms-overflow-style: none !important;
+    flex-grow: 1;
+
     &::-webkit-scrollbar {
       display: none !important;
     }
