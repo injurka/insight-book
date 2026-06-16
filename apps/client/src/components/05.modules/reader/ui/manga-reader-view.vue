@@ -254,7 +254,7 @@ function onScroll() {
 
 <style lang="scss" scoped>
 .manga-reader-view {
-  height: 100dvh;
+  height: 100%;
   padding-bottom: env(safe-area-inset-bottom, 0px);
   display: flex;
   flex-direction: column;

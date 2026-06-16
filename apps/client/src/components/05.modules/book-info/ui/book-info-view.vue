@@ -89,7 +89,7 @@ function goBack() {
 
 <style lang="scss" scoped>
 .book-info-scroll-wrapper {
-  height: 100dvh;
+  height: 100%;
   width: 100%;
   overflow-x: hidden;
   overflow-y: auto;

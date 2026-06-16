@@ -52,7 +52,7 @@ onMounted(() => {
   margin: 0 auto;
   padding: 32px;
   width: 100%;
-  height: 100dvh;
+  height: 100%;
   padding-bottom: env(safe-area-inset-bottom, 0px);
   overflow-y: auto;
 

@@ -1,17 +1,31 @@
 <script lang="ts" setup>
-
+import { AppTitlebar } from '~/components/02.shared/app-titlebar'
 </script>
 
 <template>
-  <main class="main-content">
-    <slot />
-  </main>
+  <div class="layout-root">
+    <AppTitlebar />
+    <main class="main-content">
+      <slot />
+    </main>
+  </div>
 </template>
 
 <style scoped lang="scss">
-.main-content {
-  min-height: 100dvh;
+.layout-root {
   display: flex;
   flex-direction: column;
+  height: 100dvh;
+  width: 100vw;
+  overflow: hidden;
+}
+
+.main-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+  position: relative;
 }
 </style>

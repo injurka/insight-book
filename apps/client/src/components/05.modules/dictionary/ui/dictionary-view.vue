@@ -515,7 +515,7 @@ watch(isEditMode, (val) => {
   max-width: 1200px;
   width: 100%;
   margin: 0 auto;
-  height: 100dvh;
+  height: 100%;
   padding-bottom: env(safe-area-inset-bottom, 0px);
   display: flex;
   flex-direction: column;
