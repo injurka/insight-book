@@ -68,6 +68,33 @@ const safePageContent = computed(() => {
   })
 })
 
+const leftPaneContent = computed(() => {
+  if (!safePageContent.value) return ''
+  
+  if (settingsStore.parallelViewMode === 'interleaved') {
+    const parser = new DOMParser()
+    const doc = parser.parseFromString(safePageContent.value, 'text/html')
+    const map = translationMap.value
+
+    const translatedSentIds = new Set<string>()
+
+    doc.querySelectorAll('.sentence').forEach((span) => {
+      const rawSent = decodeURIComponent(span.getAttribute('data-raw-sent') || '')
+      const sentId = span.getAttribute('data-sent-id') || ''
+      
+      if (map[rawSent] && !translatedSentIds.has(sentId)) {
+        const blurClass = settingsStore.parallelBlurTranslation ? 'is-blurred' : ''
+        const translationHtml = `<span class="interleaved-translation ${blurClass}" onclick="this.classList.remove('is-blurred')">${map[rawSent]}</span>`
+        span.insertAdjacentHTML('afterend', translationHtml)
+        translatedSentIds.add(sentId)
+      }
+    })
+    return doc.body.innerHTML
+  }
+  
+  return safePageContent.value
+})
+
 const translationMap = computed(() => {
   const map: Record<string, string> = {}
   for (const item of analysisStore.analysisHistory) {
@@ -95,7 +122,8 @@ const translatedPageContent = computed(() => {
         (span as any).style.display = 'none'
       }
       else {
-        span.innerHTML = map[rawSent]
+        const blurClass = settingsStore.parallelBlurTranslation ? 'is-blurred' : ''
+        span.innerHTML = `<span class="split-translation ${blurClass}" onclick="this.classList.remove('is-blurred')">${map[rawSent]}</span>`
         span.classList.add('has-translation')
         translatedSentIds.add(sentId)
       }
@@ -269,7 +297,7 @@ function onScroll(e: Event) {
                 @mouseleave="onPointerUp"
                 @mouseover="onSentenceHover"
                 @mouseout="onSentenceOut"
-                v-html="safePageContent"
+                v-html="leftPaneContent"
               />
 
               <div
@@ -480,6 +508,39 @@ function onScroll(e: Event) {
       background-color: var(--fg-accent-color);
       color: var(--bg-primary-color);
       font-weight: 600;
+    }
+  }
+  :deep(.interleaved-translation) {
+    display: block;
+    color: var(--fg-secondary-color);
+    font-size: 0.9em;
+    margin-top: 4px;
+    margin-bottom: 12px;
+    line-height: 1.5;
+    padding-left: 8px;
+    border-left: 2px solid var(--border-secondary-color);
+
+    &.is-blurred {
+      filter: blur(5px);
+      cursor: pointer;
+      opacity: 0.7;
+      transition: filter 0.2s, opacity 0.2s;
+      
+      &:hover {
+        opacity: 1;
+      }
+    }
+  }
+  :deep(.split-translation) {
+    &.is-blurred {
+      filter: blur(5px);
+      cursor: pointer;
+      opacity: 0.7;
+      transition: filter 0.2s, opacity 0.2s;
+      
+      &:hover {
+        opacity: 1;
+      }
     }
   }
 }

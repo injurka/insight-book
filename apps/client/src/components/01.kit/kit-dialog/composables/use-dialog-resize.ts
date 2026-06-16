@@ -22,6 +22,7 @@ export function useDialogResize({ dialogContentRef, x, y, isFloating, isResizabl
   let startHeight = 0
   let startPosX = 0
   let startPosY = 0
+  let resizeRaf: number | null = null
 
   function startResize(handle: string, e: MouseEvent) {
     if (!isResizable.value)
@@ -54,64 +55,70 @@ export function useDialogResize({ dialogContentRef, x, y, isFloating, isResizabl
   function onResize(e: MouseEvent) {
     if (!isResizing || !isResizable.value)
       return
-    const dx = e.clientX - startX
-    const dy = e.clientY - startY
+    
+    if (resizeRaf) cancelAnimationFrame(resizeRaf)
 
-    let newWidth = startWidth
-    let newHeight = startHeight
-    let newX = startPosX
-    let newY = startPosY
+    resizeRaf = requestAnimationFrame(() => {
+      const dx = e.clientX - startX
+      const dy = e.clientY - startY
 
-    if (isFloating.value) {
-      if (currentHandle.includes('right'))
-        newWidth = startWidth + dx
-      if (currentHandle.includes('left')) {
-        newWidth = startWidth - dx
-        newX = startPosX + dx
+      let newWidth = startWidth
+      let newHeight = startHeight
+      let newX = startPosX
+      let newY = startPosY
+
+      if (isFloating.value) {
+        if (currentHandle.includes('right'))
+          newWidth = startWidth + dx
+        if (currentHandle.includes('left')) {
+          newWidth = startWidth - dx
+          newX = startPosX + dx
+        }
+        if (currentHandle.includes('bottom'))
+          newHeight = startHeight + dy
+        if (currentHandle.includes('top')) {
+          newHeight = startHeight - dy
+          newY = startPosY + dy
+        }
       }
-      if (currentHandle.includes('bottom'))
-        newHeight = startHeight + dy
-      if (currentHandle.includes('top')) {
-        newHeight = startHeight - dy
-        newY = startPosY + dy
+      else {
+        if (currentHandle.includes('right'))
+          newWidth = startWidth + dx * 2
+        if (currentHandle.includes('left'))
+          newWidth = startWidth - dx * 2
+        if (currentHandle.includes('bottom'))
+          newHeight = startHeight + dy * 2
+        if (currentHandle.includes('top'))
+          newHeight = startHeight - dy * 2
       }
-    }
-    else {
-      if (currentHandle.includes('right'))
-        newWidth = startWidth + dx * 2
-      if (currentHandle.includes('left'))
-        newWidth = startWidth - dx * 2
-      if (currentHandle.includes('bottom'))
-        newHeight = startHeight + dy * 2
-      if (currentHandle.includes('top'))
-        newHeight = startHeight - dy * 2
-    }
 
-    const MIN_W = 300
-    const MIN_H = 200
+      const MIN_W = 300
+      const MIN_H = 200
 
-    if (newWidth < MIN_W) {
-      if (isFloating.value && currentHandle.includes('left'))
-        newX -= (MIN_W - newWidth)
-      newWidth = MIN_W
-    }
-    if (newHeight < MIN_H) {
-      if (isFloating.value && currentHandle.includes('top'))
-        newY -= (MIN_H - newHeight)
-      newHeight = MIN_H
-    }
+      if (newWidth < MIN_W) {
+        if (isFloating.value && currentHandle.includes('left'))
+          newX -= (MIN_W - newWidth)
+        newWidth = MIN_W
+      }
+      if (newHeight < MIN_H) {
+        if (isFloating.value && currentHandle.includes('top'))
+          newY -= (MIN_H - newHeight)
+        newHeight = MIN_H
+      }
 
-    dialogWidth.value = newWidth
-    dialogHeight.value = newHeight
+      dialogWidth.value = newWidth
+      dialogHeight.value = newHeight
 
-    if (isFloating.value) {
-      x.value = newX
-      y.value = newY
-    }
+      if (isFloating.value) {
+        x.value = newX
+        y.value = newY
+      }
+    })
   }
 
   function stopResize() {
     isResizing = false
+    if (resizeRaf) cancelAnimationFrame(resizeRaf)
     document.removeEventListener('mousemove', onResize)
     document.removeEventListener('mouseup', stopResize)
     document.body.style.userSelect = ''

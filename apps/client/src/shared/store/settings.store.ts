@@ -19,9 +19,14 @@ export const useGlobalSettingsStore = defineStore('globalSettings', () => {
 
   const autoAnalyzePage = useLocalStorage<boolean>('global-auto-analyze-page', true)
 
+  const parallelViewMode = useLocalStorage<'none' | 'split' | 'interleaved'>('global-parallel-view-mode', 'none')
+  const parallelBlurTranslation = useLocalStorage<boolean>('global-parallel-blur-translation', false)
+
   return {
     appLanguage,
     autoAnalyzePage,
+    parallelViewMode,
+    parallelBlurTranslation,
     translationPriority,
     ttsSpeed,
     readerFontSize,

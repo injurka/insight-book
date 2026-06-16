@@ -79,13 +79,8 @@ const difficultyOptions = computed(() => {
 
 // Корректный сброс фильтров при смене языка
 watch(() => store.selectedLanguage, () => {
-  if (store.selectedDeckId !== 'all' && store.selectedDeckId !== 'none') {
-    const deck = store.decks.find(d => d.id === store.selectedDeckId)
-    if (deck && deck.language !== store.selectedLanguage && store.selectedLanguage !== 'all') {
-      store.selectedDeckId = 'all'
-    }
-  }
-  store.selectedDifficulty = 'all'
+  store.selectedDeckId = ['all']
+  store.selectedDifficulty = ['all']
 })
 
 const statusOptions = computed(() => [
@@ -234,7 +229,7 @@ async function fetchActivity() {
 
 watch(isTrainingOpen, (newVal, oldVal) => {
   if (oldVal === true && newVal === false) {
-    store.fetchTrainingQueue({ mode: 'srs', deckId: 'all', difficulty: 'all' })
+    store.fetchTrainingQueue({ mode: 'srs', deckId: 'all', difficulty: ['all'] })
     fetchActivity()
   }
 })
@@ -286,16 +281,19 @@ watch(isEditMode, (val) => {
             v-model="store.selectedDeckId"
             :options="deckOptions"
             class="filter-select"
+            multiple
           />
           <KitSelect
             v-model="store.selectedDifficulty"
             :options="difficultyOptions"
             class="filter-select"
+            multiple
           />
           <KitSelect
             v-model="store.selectedStatus"
             :options="statusOptions"
             class="filter-select"
+            multiple
           />
         </div>
 

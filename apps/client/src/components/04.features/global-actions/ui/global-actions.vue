@@ -146,6 +146,13 @@ async function handleUsernameSubmit(newUsername: string) {
 
     <!-- Для авторизованных или single-mode: единое меню -->
     <template v-else>
+      <KitBtn
+        v-if="!hideDictionary"
+        icon="mdi:book-alphabet"
+        variant="text"
+        :aria-label="t('globalActions.myDictionary')"
+        @click="openDictionary"
+      />
       <KitDropdown placement="bottom-end" width="280px">
         <template #activator="{ props: dropdownProps }">
           <KitBtn
@@ -197,9 +204,6 @@ async function handleUsernameSubmit(newUsername: string) {
 
           <!-- Меню действий -->
           <div class="menu-items">
-            <button v-if="!hideDictionary" class="menu-btn" @click="openDictionary">
-              <Icon icon="mdi:book-alphabet" /> <span class="flex-grow">{{ t('globalActions.myDictionary') }}</span>
-            </button>
             <button class="menu-btn" @click="openSettings">
               <Icon icon="mdi:database-outline" /> <span class="flex-grow">{{ t('globalActions.storageManagement') }}</span>
             </button>

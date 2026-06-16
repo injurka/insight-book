@@ -246,6 +246,7 @@
     "textAnalysis": "Text Analysis (AI)",
     "voiceTts": "Voiceover (TTS)",
     "startAnalysis": "Start processing",
+    "fullscreen": "Fullscreen",
     "preparingPage": "Preparing page (OCR & NLP)...",
     "preparingPageTitle": "Preparing page...",
     "preparingPageDesc": "Initial text reading and word recognition may take a few seconds.",

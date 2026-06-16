@@ -8,12 +8,15 @@ import { useTts } from '~/shared/composables/use-tts'
 import { DIFFICULTY_SYSTEMS } from '~/shared/constants/difficulties'
 import { useAnalysisStore } from '~/shared/store/analysis.store'
 import { useDictWordExamples } from '../composables/use-dict-word-examples'
+import { BOOK_TAGS } from '~/shared/constants/tags'
+import { useGlobalSettingsStore } from '~/shared/store/settings.store'
 
 const props = defineProps<{ word: UserDictItem | null }>()
 const visible = defineModel<boolean>('visible', { required: true })
 const { speak, isPlaying, isLoading: isTtsLoading, stop } = useTts()
 const { aiData, isAiLoading, generateExamples, clear } = useDictWordExamples()
 const analysisStore = useAnalysisStore()
+const settingsStore = useGlobalSettingsStore()
 const { t } = useI18n()
 
 watch(visible, (isOpen) => {
@@ -73,7 +76,12 @@ const difficultyClass = computed(() => {
 const tagsList = computed(() => {
   if (!props.word?.tags)
     return []
-  return props.word.tags.split(',').map(t => t.trim()).filter(Boolean)
+  const tags = props.word.tags.split(',').map(t => t.trim()).filter(Boolean)
+  return tags.map(tag => {
+    const match = (BOOK_TAGS as any)[tag]?.[settingsStore.appLanguage]
+    if (match) return match
+    return tag.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
+  })
 })
 </script>
 

@@ -246,6 +246,7 @@
     "textAnalysis": "文本分析 (AI)",
     "voiceTts": "语音 (TTS)",
     "startAnalysis": "开始处理",
+    "fullscreen": "全屏",
     "preparingPage": "正在准备页面 (OCR & NLP)...",
     "preparingPageTitle": "正在准备页面...",
     "preparingPageDesc": "初步文本读取和单词识别可能需要几秒钟时间。",

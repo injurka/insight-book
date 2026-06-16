@@ -335,12 +335,16 @@ export const useAnalysisStore = defineStore('analysis', () => {
   function handleTaskSuccess(task: AnalysisTask, analysis: LlmAnalysis) {
     if (task.priority === 1 && sidebarSentence.value === task.text) {
       sidebarAnalysis.value = analysis
-      analysisHistory.value.unshift({ sentence: task.text, analysis, timestamp: Date.now() })
       isAnalyzing.value = false
     }
 
-    if (task.type === 'sentence')
+    if (task.type === 'sentence') {
+      const exists = analysisHistory.value.find(h => h.sentence === task.text)
+      if (!exists) {
+        analysisHistory.value.unshift({ sentence: task.text, analysis, timestamp: Date.now() })
+      }
       pageAnalysisSentencesCurrent.value++
+    }
     if (task.type === 'word')
       pageAnalysisWordsCurrent.value++
   }

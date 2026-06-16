@@ -12,8 +12,8 @@ const dictStore = useDictionaryStore()
 const { t } = useI18n()
 
 const setupOptions = reactive({
-  deckId: dictStore.selectedDeckId as number | 'all' | 'none',
-  difficulty: dictStore.selectedDifficulty as string | 'all' | 'none',
+  deckId: (Array.isArray(dictStore.selectedDeckId) ? (dictStore.selectedDeckId.length === 1 ? dictStore.selectedDeckId[0] : 'all') : dictStore.selectedDeckId) as number | 'all' | 'none',
+  difficulty: (Array.isArray(dictStore.selectedDifficulty) ? [...dictStore.selectedDifficulty] : [dictStore.selectedDifficulty]) as string[],
 })
 
 const modes = reactive({
@@ -99,8 +99,9 @@ watch(deckOptions, (newOpts) => {
 })
 
 watch(difficultyOptions, (newOpts) => {
-  if (!newOpts.some(o => o.value === setupOptions.difficulty)) {
-    setupOptions.difficulty = 'all'
+  setupOptions.difficulty = setupOptions.difficulty.filter(d => newOpts.some(o => o.value === d))
+  if (setupOptions.difficulty.length === 0) {
+    setupOptions.difficulty = ['all']
   }
 })
 
@@ -132,7 +133,7 @@ function start() {
         </div>
         <div class="form-col">
           <label>{{ t('dictionary.difficulty') }}</label>
-          <KitSelect v-model="setupOptions.difficulty" :options="difficultyOptions" />
+          <KitSelect v-model="setupOptions.difficulty" :options="difficultyOptions" multiple />
         </div>
       </div>
     </div>

@@ -21,9 +21,9 @@ export const useDictionaryStore = defineStore('dictionary', () => {
   const isLoading = ref(false)
   const searchTerm = ref('')
   const selectedLanguage = ref('all')
-  const selectedDeckId = ref<number | 'all' | 'none'>('all')
-  const selectedDifficulty = ref<string | 'all' | 'none'>('all')
-  const selectedStatus = ref<'all' | '0' | '1' | '2' | '3'>('all')
+  const selectedDeckId = ref<(number | 'all' | 'none')[]>(['all'])
+  const selectedDifficulty = ref<(string | 'all' | 'none')[]>(['all'])
+  const selectedStatus = ref<('all' | '0' | '1' | '2' | '3')[]>(['all'])
 
   async function fetchDictionary() {
     isLoading.value = true
@@ -37,7 +37,7 @@ export const useDictionaryStore = defineStore('dictionary', () => {
       await offlineService.saveDictionary(words.value)
       await offlineService.saveDecks(decks.value)
 
-      await fetchTrainingQueue({ mode: 'srs', deckId: 'all', difficulty: 'all' })
+      await fetchTrainingQueue({ mode: 'srs', deckId: 'all', difficulty: ['all'] })
     }
     catch {
       const cached = await offlineService.getDictionary()
@@ -63,7 +63,7 @@ export const useDictionaryStore = defineStore('dictionary', () => {
     }
   }
 
-  async function fetchTrainingQueue(opts: { mode: 'srs' | 'random' | 'deep_dive', deckId: number | 'none' | 'all', difficulty: string }) {
+  async function fetchTrainingQueue(opts: { mode: 'srs' | 'random' | 'deep_dive', deckId: number | 'none' | 'all', difficulty: string[] }) {
     trainingMode.value = opts.mode
     try {
       let langToFetch = selectedLanguage.value
@@ -73,21 +73,25 @@ export const useDictionaryStore = defineStore('dictionary', () => {
           langToFetch = deck.language
       }
 
-      const backendDifficulty = opts.difficulty.startsWith('level_') ? 'all' : opts.difficulty
-
       let queue = await api.dictionary.getReviewQueue({
         lang: langToFetch,
         mode: opts.mode,
         deckId: opts.deckId,
-        difficulty: backendDifficulty,
+        difficulty: 'all',
       })
 
-      if (opts.difficulty.startsWith('level_')) {
-        const targetLevel = Number.parseInt(opts.difficulty.split('_')[1], 10)
-        queue = queue.filter((w) => {
-          const sys = DIFFICULTY_SYSTEMS[w.language] || DIFFICULTY_SYSTEMS.default
-          const diffDef = sys.find(s => s.value === w.difficulty)
-          return diffDef && diffDef.level === targetLevel
+      if (!opts.difficulty.includes('all') && opts.difficulty.length > 0) {
+        queue = queue.filter(w => {
+            return opts.difficulty.some(d => {
+                if (d === 'none') return !w.difficulty
+                if (d.startsWith('level_')) {
+                   const targetLevel = Number.parseInt(d.split('_')[1], 10)
+                   const sys = DIFFICULTY_SYSTEMS[w.language] || DIFFICULTY_SYSTEMS.default
+                   const diffDef = sys.find(s => s.value === w.difficulty)
+                   return diffDef && diffDef.level === targetLevel
+                }
+                return w.difficulty === d
+            })
         })
       }
 
@@ -137,8 +141,10 @@ export const useDictionaryStore = defineStore('dictionary', () => {
     try {
       await api.dictionary.deleteDeck(id)
       decks.value = decks.value.filter(d => d.id !== id)
-      if (selectedDeckId.value === id)
-        selectedDeckId.value = 'all'
+      if (selectedDeckId.value.includes(id)) {
+        selectedDeckId.value = selectedDeckId.value.filter(d => d !== id)
+        if (selectedDeckId.value.length === 0) selectedDeckId.value = ['all']
+      }
       words.value.forEach((w) => {
         if (w.deckId === id)
           w.deckId = null
@@ -178,35 +184,27 @@ export const useDictionaryStore = defineStore('dictionary', () => {
       result = result.filter(w => w.language === selectedLanguage.value)
     }
 
-    if (selectedDeckId.value !== 'all') {
-      if (selectedDeckId.value === 'none') {
-        result = result.filter(w => w.deckId === null)
-      }
-      else {
-        result = result.filter(w => w.deckId === selectedDeckId.value)
-      }
+    if (!selectedDeckId.value.includes('all') && selectedDeckId.value.length > 0) {
+      result = result.filter(w => selectedDeckId.value.includes(w.deckId ?? 'none'))
     }
 
-    if (selectedDifficulty.value !== 'all') {
-      if (selectedDifficulty.value === 'none') {
-        result = result.filter(w => !w.difficulty)
-      }
-      else if (selectedDifficulty.value.startsWith('level_')) {
-        const targetLevel = Number.parseInt(selectedDifficulty.value.split('_')[1], 10)
-        result = result.filter((w) => {
-          const sys = DIFFICULTY_SYSTEMS[w.language] || DIFFICULTY_SYSTEMS.default
-          const diffDef = sys.find(s => s.value === w.difficulty)
-          return diffDef && diffDef.level === targetLevel
-        })
-      }
-      else {
-        result = result.filter(w => w.difficulty === selectedDifficulty.value)
-      }
+    if (!selectedDifficulty.value.includes('all') && selectedDifficulty.value.length > 0) {
+      result = result.filter(w => {
+         return selectedDifficulty.value.some(d => {
+             if (d === 'none') return !w.difficulty
+             if (d.startsWith('level_')) {
+               const targetLevel = Number.parseInt(d.split('_')[1], 10)
+               const sys = DIFFICULTY_SYSTEMS[w.language] || DIFFICULTY_SYSTEMS.default
+               const diffDef = sys.find(s => s.value === w.difficulty)
+               return diffDef && diffDef.level === targetLevel
+             }
+             return w.difficulty === d
+         })
+      })
     }
 
-    if (selectedStatus.value !== 'all') {
-      const statusNum = Number.parseInt(selectedStatus.value, 10)
-      result = result.filter(w => w.status === statusNum)
+    if (!selectedStatus.value.includes('all') && selectedStatus.value.length > 0) {
+      result = result.filter(w => selectedStatus.value.includes(String(w.status) as any))
     }
 
     if (searchTerm.value) {

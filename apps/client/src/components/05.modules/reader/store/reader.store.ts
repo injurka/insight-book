@@ -21,7 +21,7 @@ export const useReaderStore = defineStore('reader', () => {
   const currentToc = ref<TocItem[]>([])
 
   const isPageLoading = ref(false)
-  const isParallelView = ref(false)
+  const isParallelView = computed(() => useGlobalSettingsStore().parallelViewMode === 'split')
   const tocOpen = ref(false)
 
   let lastTocBookId = 0
@@ -33,8 +33,8 @@ export const useReaderStore = defineStore('reader', () => {
     }
   })
 
-  watch(isParallelView, (isParallel) => {
-    trackEvent('parallel_view_toggled', { enabled: isParallel })
+  watch(() => useGlobalSettingsStore().parallelViewMode, (mode) => {
+    trackEvent('parallel_view_toggled', { mode })
   })
 
   watch(() => useGlobalSettingsStore().autoAnalyzePage, (isActive) => {

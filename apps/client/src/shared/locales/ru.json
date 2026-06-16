@@ -252,6 +252,13 @@
     "go": "Перейти",
     "goBack": "Вернуться назад",
     "parallelReading": "Параллельное чтение",
+    "parallelReadingOff": "Выключено",
+    "parallelReadingSplit": "Параллельно",
+    "parallelReadingInterleaved": "Текст, а под ним перевод",
+    "parallelReadingBlur": "Заблюрить перевод",
+    "parallelReadingHint": "Для отображения текста необходимо перевести все предложения на странице.",
+    "translateWholePage": "Перевести страницу",
+    "translatingPage": "Перевод...",
     "sentencesAndWords": "Предложения и слова",
     "appearance": "Оформление",
     "light": "Светлая",
@@ -278,7 +285,8 @@
     "selectOptions": "Выберите действия:",
     "textAnalysis": "Текстовый анализ (ИИ)",
     "voiceTts": "Озвучка (TTS)",
-    "startAnalysis": "Начать обработку"
+    "startAnalysis": "Начать обработку",
+    "fullscreen": "На весь экран"
   },
   "dictionary": {
     "title": "Мой словарь",

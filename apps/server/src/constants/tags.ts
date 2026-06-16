@@ -26,6 +26,17 @@ export const BOOK_TAGS = {
   school: { ru: 'школа', en: 'school', zh: '校园' },
   mecha: { ru: 'меха', en: 'mecha', zh: '机甲' },
   isekai: { ru: 'исекай (попаданцы)', en: 'isekai', zh: '异世界' },
+  game: { ru: 'игра', en: 'game', zh: '游戏' },
+  dystopia: { ru: 'антиутопия', en: 'dystopia', zh: '反乌托邦' },
+  music: { ru: 'музыка', en: 'music', zh: '音乐' },
+  sports: { ru: 'спорт', en: 'sports', zh: '体育' },
+  tragedy: { ru: 'трагедия', en: 'tragedy', zh: '悲剧' },
+  space: { ru: 'космос', en: 'space', zh: '太空' },
+  vampire: { ru: 'вампиры', en: 'vampire', zh: '吸血鬼' },
+  zombie: { ru: 'зомби', en: 'zombie', zh: '丧尸' },
+  military: { ru: 'военный', en: 'military', zh: '军事' },
+  wuxia: { ru: 'уся', en: 'wuxia', zh: '武侠' },
+  xianxia: { ru: 'сянься', en: 'xianxia', zh: '仙侠' },
 }
 
 export const ALLOWED_TAG_KEYS = Object.keys(BOOK_TAGS)

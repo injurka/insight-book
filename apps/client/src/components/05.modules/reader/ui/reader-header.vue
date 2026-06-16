@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Icon } from '@iconify/vue'
+import { useFullscreen } from '@vueuse/core'
 import { computed, reactive, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
@@ -23,8 +24,10 @@ const { t } = useI18n()
 
 const router = useRouter()
 const { theme, toggleTheme } = useChangeTheme()
+const { isFullscreen, toggle: toggleFullscreen } = useFullscreen()
 
 const pageAnalysisDropdownRef = ref<InstanceType<typeof KitDropdown> | null>(null)
+const parallelDropdownRef = ref<InstanceType<typeof KitDropdown> | null>(null)
 const settingsDropdownRef = ref<InstanceType<typeof KitDropdown> | null>(null)
 
 const pageActionOpts = reactive({
@@ -39,6 +42,7 @@ watch(() => props.isVisible, (visible) => {
   if (!visible) {
     pageAnalysisDropdownRef.value?.close()
     settingsDropdownRef.value?.close()
+    parallelDropdownRef.value?.close()
   }
 })
 
@@ -49,6 +53,16 @@ function startPageAnalysis() {
     words: pageActionOpts.words,
     ttsSentences: pageActionOpts.ttsSentences,
     ttsWords: pageActionOpts.ttsWords,
+  }, false)
+}
+
+function startParallelAnalysis() {
+  parallelDropdownRef.value?.close()
+  analysisStore.analyzeWholePage({
+    sentences: true,
+    words: false,
+    ttsSentences: false,
+    ttsWords: false,
   }, false)
 }
 
@@ -107,20 +121,85 @@ const fontOptions = computed(() => [
 
     <div class="spacer" />
 
-    <KitTooltip
-      v-if="readerStore.currentBook?.type !== 'manga'"
-      :text="t('reader.parallelReading')"
-      placement="bottom"
-      class="desktop-only"
-    >
-      <KitBtn
-        icon="mdi:view-split-vertical"
-        variant="text"
-        size="sm"
-        :class="{ 'is-active-btn': readerStore.isParallelView }"
-        @click="readerStore.isParallelView = !readerStore.isParallelView"
-      />
-    </KitTooltip>
+    <KitDropdown ref="parallelDropdownRef" v-if="readerStore.currentBook?.type !== 'manga'" placement="bottom-end" width="300px" :close-on-content-click="false">
+      <template #activator="{ props: dropdownProps }">
+        <KitTooltip :text="t('reader.parallelReading')" placement="bottom">
+          <KitBtn
+            icon="mdi:view-split-vertical"
+            variant="text"
+            size="sm"
+            :class="{ 'is-active-btn': settingsStore.parallelViewMode !== 'none' || dropdownProps?.isOpen }"
+          />
+        </KitTooltip>
+      </template>
+
+      <div class="menu-content">
+        <div class="menu-section">
+          <div class="section-title">
+            {{ t('reader.parallelReading') }}
+          </div>
+
+          <div class="menu-item" @click="settingsStore.parallelViewMode = 'none'">
+            <div class="item-label">
+              <Icon icon="mdi:cancel" class="item-icon" />
+              <span>{{ t('reader.parallelReadingOff') }}</span>
+            </div>
+            <span v-if="settingsStore.parallelViewMode === 'none'" class="value-text">
+              <Icon icon="mdi:check" />
+            </span>
+          </div>
+
+          <div class="menu-item desktop-only" @click="settingsStore.parallelViewMode = 'split'">
+            <div class="item-label">
+              <Icon icon="mdi:view-split-vertical" class="item-icon" />
+              <span>{{ t('reader.parallelReadingSplit') }}</span>
+            </div>
+            <span v-if="settingsStore.parallelViewMode === 'split'" class="value-text">
+              <Icon icon="mdi:check" />
+            </span>
+          </div>
+
+          <div class="menu-item" @click="settingsStore.parallelViewMode = 'interleaved'">
+            <div class="item-label">
+              <Icon icon="mdi:format-list-text" class="item-icon" />
+              <span>{{ t('reader.parallelReadingInterleaved') }}</span>
+            </div>
+            <span v-if="settingsStore.parallelViewMode === 'interleaved'" class="value-text">
+              <Icon icon="mdi:check" />
+            </span>
+          </div>
+        </div>
+
+        <div v-if="settingsStore.parallelViewMode !== 'none'" class="divider" />
+
+        <div v-if="settingsStore.parallelViewMode !== 'none'" class="menu-section">
+          <div class="menu-item" @click="settingsStore.parallelBlurTranslation = !settingsStore.parallelBlurTranslation">
+            <div class="item-label">
+              <Icon icon="mdi:blur" class="item-icon" />
+              <span>{{ t('reader.parallelReadingBlur') }}</span>
+            </div>
+            <KitCheckbox :model-value="settingsStore.parallelBlurTranslation" style="pointer-events: none;" />
+          </div>
+        </div>
+
+        <div v-if="settingsStore.parallelViewMode !== 'none'" class="divider" />
+
+        <div v-if="settingsStore.parallelViewMode !== 'none'" class="menu-section">
+          <div style="font-size: 0.8rem; color: var(--fg-secondary-color); padding: 4px 8px; line-height: 1.3;">
+            {{ t('reader.parallelReadingHint') }}
+          </div>
+          <KitBtn 
+            color="primary" 
+            style="margin: 4px 8px 8px 8px;" 
+            :disabled="analysisStore.isManualPageAnalysisActive"
+            @click="startParallelAnalysis"
+          >
+            <Icon icon="mdi:translate" style="margin-right: 6px;" /> 
+            {{ analysisStore.isManualPageAnalysisActive ? t('reader.translatingPage') : t('reader.translateWholePage') }}
+          </KitBtn>
+        </div>
+      </div>
+    </KitDropdown>
 
     <KitDropdown ref="pageAnalysisDropdownRef" placement="bottom-end" width="260px" :close-on-content-click="false">
       <template #activator="{ props: dropdownProps }">
@@ -187,6 +266,13 @@ const fontOptions = computed(() => [
         <div class="menu-section">
           <div class="section-title">
             {{ t('settings.interfaceTitle') }}
+          </div>
+          <div class="menu-item" @click="toggleFullscreen">
+            <div class="item-label">
+              <Icon :icon="isFullscreen ? 'mdi:fullscreen-exit' : 'mdi:fullscreen'" class="item-icon" />
+              <span>{{ t('reader.fullscreen') }}</span>
+            </div>
+            <KitCheckbox :model-value="isFullscreen" style="pointer-events: none;" />
           </div>
           <div class="menu-item" @click="toggleTheme">
             <div class="item-label">

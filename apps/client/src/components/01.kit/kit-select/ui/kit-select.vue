@@ -9,13 +9,15 @@ interface Option {
 }
 
 interface Props {
-  modelValue: string | number
+  modelValue: string | number | (string | number)[]
   options: Option[]
   size?: 'xs' | 'sm' | 'md' | 'lg'
+  multiple?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
   size: 'md',
+  multiple: false,
 })
 
 const emit = defineEmits(['update:modelValue'])
@@ -25,6 +27,13 @@ const referenceRef = ref<HTMLElement | null>(null)
 const floatingRef = ref<HTMLElement | null>(null)
 
 const selectedLabel = computed(() => {
+  if (props.multiple && Array.isArray(props.modelValue)) {
+    if (props.modelValue.length === 0) return ''
+    return props.modelValue.map(v => {
+      const opt = props.options.find(o => o.value === v)
+      return opt ? opt.label : ''
+    }).filter(Boolean).join(', ')
+  }
   const opt = props.options.find(o => o.value === props.modelValue)
   return opt ? opt.label : ''
 })
@@ -59,8 +68,23 @@ function toggle() {
 }
 
 function selectOption(val: string | number) {
-  emit('update:modelValue', val)
-  isOpen.value = false
+  if (props.multiple) {
+    const current = Array.isArray(props.modelValue) ? props.modelValue : []
+    if (val === 'all') {
+      emit('update:modelValue', ['all'])
+      return
+    }
+    const isSelected = current.includes(val)
+    let next = isSelected ? current.filter(v => v !== val) : [...current, val]
+    next = next.filter(v => v !== 'all')
+    if (next.length === 0) {
+      next = ['all']
+    }
+    emit('update:modelValue', next)
+  } else {
+    emit('update:modelValue', val)
+    isOpen.value = false
+  }
 }
 
 onUnmounted(() => {
@@ -79,7 +103,12 @@ onUnmounted(() => {
       ]"
       @click="toggle"
     >
-      <span class="selected-label">{{ selectedLabel }}</span>
+      <div class="label-wrapper">
+        <span class="selected-label">{{ selectedLabel }}</span>
+        <span v-if="multiple && Array.isArray(modelValue) && modelValue.length > 1 && !modelValue.includes('all')" class="count-badge">
+          {{ modelValue.length }}
+        </span>
+      </div>
       <Icon
         icon="mdi:chevron-down"
         class="trigger-icon"
@@ -105,7 +134,7 @@ onUnmounted(() => {
               v-for="opt in options"
               :key="opt.value"
               class="kit-select-option"
-              :class="{ 'is-selected': opt.value === modelValue }"
+              :class="{ 'is-selected': multiple ? (Array.isArray(modelValue) && modelValue.includes(opt.value)) : opt.value === modelValue }"
               @click.stop="selectOption(opt.value)"
             >
               {{ opt.label }}
@@ -170,12 +199,34 @@ onUnmounted(() => {
   }
 }
 
+.label-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-grow: 1;
+  min-width: 0;
+}
+
 .selected-label {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  flex-grow: 1;
   text-align: left;
+}
+
+.count-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--fg-accent-color);
+  color: var(--bg-primary-color);
+  font-size: 0.75rem;
+  font-weight: 700;
+  border-radius: 99px;
+  padding: 0 5px;
+  height: 20px;
+  min-width: 20px;
+  flex-shrink: 0;
 }
 
 .trigger-icon {
