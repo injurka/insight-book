@@ -64,8 +64,6 @@ if (umamiWebsiteId && umamiUrl) {
     'src': umamiUrl,
 
     'data-performance': 'true',
-    'data-mask-level': 'strict',
-    'data-sample-rate': '1',
   })
 }
 
