@@ -1,5 +1,4 @@
 import type { Book } from '~/shared/types/models'
-import { computed, ref, watch } from 'vue'
 import { i18n } from '~/shared/plugins/i18n'
 import { useLibraryStore } from '../store/library.store'
 
@@ -13,15 +12,63 @@ export interface DisplayGroup {
 
 export function useLibraryDisplay() {
   const store = useLibraryStore()
+  const route = useRoute()
+  const router = useRouter()
 
-  const searchQuery = ref('')
-  const selectedLang = ref('all')
-  const currentView = ref('reading-now')
-  const activeFolder = ref<string | null>(null)
+  const searchQuery = ref((route.query.q as string) || '')
+  const selectedLang = ref((route.query.lang as string) || 'all')
+  const currentView = ref((route.query.view as string) || 'reading-now')
+  const activeFolder = ref<string | null>((route.query.folder as string) || null)
 
-  watch(currentView, () => {
-    activeFolder.value = null
+  const isSyncing = ref(false)
+
+  // 1. Синхронизируем состояние приложения с URL при навигации "вперед/назад"
+  watch(
+    () => route.query,
+    (query) => {
+      isSyncing.value = true
+      currentView.value = (query.view as string) || 'reading-now'
+      activeFolder.value = (query.folder as string) || null
+      searchQuery.value = (query.q as string) || ''
+      selectedLang.value = (query.lang as string) || 'all'
+
+      // Снимаем блокировку после того как все локальные вотчеры отработают
+      nextTick(() => {
+        isSyncing.value = false
+      })
+    },
+    { immediate: true },
+  )
+
+  // 2. Сбрасываем папку, если пользователь вручную кликает на другой раздел
+  watch(currentView, (newView, oldView) => {
+    if (!isSyncing.value && newView !== oldView) {
+      activeFolder.value = null
+    }
   })
+
+  // 3. Обновляем URL, если пользователь производит изменения в UI
+  watch(
+    [currentView, activeFolder, searchQuery, selectedLang],
+    ([view, folder, q, lang]) => {
+      if (isSyncing.value)
+        return
+
+      const query: Record<string, string | undefined> = { ...route.query }
+
+      if (view === 'reading-now')
+        delete query.view; else query.view = view
+      if (!folder)
+        delete query.folder; else query.folder = folder
+      if (!q)
+        delete query.q; else query.q = q
+      if (lang === 'all')
+        delete query.lang; else query.lang = lang
+
+      router.push({ query }).catch(() => { })
+    },
+    { deep: true },
+  )
 
   const langOptions = computed(() => {
     const langs = new Set(store.books.map(b => b.language))

@@ -29,7 +29,6 @@ export function useDialogResize({ dialogContentRef, x, y, isFloating, isResizabl
 
     isResizing = true
     currentHandle = handle
-    hasResized.value = true
     startX = e.clientX
     startY = e.clientY
 
@@ -37,7 +36,12 @@ export function useDialogResize({ dialogContentRef, x, y, isFloating, isResizabl
       const rect = dialogContentRef.value.getBoundingClientRect()
       startWidth = rect.width
       startHeight = rect.height
+
+      dialogWidth.value = startWidth
+      dialogHeight.value = startHeight
     }
+
+    hasResized.value = true
 
     startPosX = x.value
     startPosY = y.value
