@@ -57,4 +57,10 @@ router.beforeEach(async (to) => {
   }
 })
 
+
+router.afterEach((to) => {
+  const { trackPageview } = useUmami()
+  trackPageview(to.fullPath, String(to.name || ''))
+})
+
 export default router

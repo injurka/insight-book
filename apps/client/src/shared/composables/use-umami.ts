@@ -65,5 +65,15 @@ export function useUmami() {
     })
   }
 
-  return { trackEvent, identifyUser }
+  function trackPageview(url: string, title?: string) {
+    enqueue(() => {
+      window.umami?.track(props => ({
+        ...props,
+        url,
+        title: title || document.title,
+      }))
+    })
+  }
+
+  return { trackEvent, identifyUser, trackPageview }
 }

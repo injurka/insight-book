@@ -1,10 +1,12 @@
 import { onMounted, watch } from 'vue'
+import { useChangeTheme } from '~/shared/composables/use-change-theme'
 import { useGlobalSettingsStore } from '~/shared/store/settings.store'
 import { useUmami } from './use-umami'
 
 export function useGlobalTracking() {
   const settingsStore = useGlobalSettingsStore()
-  const { trackEvent } = useUmami()
+  const { theme } = useChangeTheme()
+  const { trackEvent, identifyUser } = useUmami()
 
   watch(() => settingsStore.useCustomLlm, (val) => {
     trackEvent('custom_llm_enabled', { enabled: val })
@@ -28,6 +30,16 @@ export function useGlobalTracking() {
 
   watch(() => settingsStore.mangaOcrDisplayMode, (val) => {
     trackEvent('manga_ocr_mode_changed', { mode: val })
+  })
+
+  watch(theme, (val) => {
+    trackEvent('theme_changed', { theme: val })
+    identifyUser({ current_theme: val } as any)
+  })
+
+  watch(() => settingsStore.appLanguage, (val) => {
+    trackEvent('app_language_changed', { language: val })
+    identifyUser({ current_language: val } as any)
   })
 
   onMounted(() => {
