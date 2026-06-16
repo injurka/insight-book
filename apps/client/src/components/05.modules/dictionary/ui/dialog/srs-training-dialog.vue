@@ -34,6 +34,9 @@ const activeModes = ref<Record<string, boolean>>({
   writing: false,
   typing: true,
   choice: true,
+  scramble: false,
+  collocations: false,
+  radicals: false,
 })
 
 const remainingQueue = computed(() => dictStore.reviewQueue.slice(currentIndex.value))
@@ -82,7 +85,7 @@ async function handleGrade(grade: number) {
   const isNew = currentCard.value.status === 0
   recordAnswer(isNew, grade)
 
-  if (dictStore.trainingMode === 'random') {
+  if (dictStore.trainingMode === 'random' || dictStore.trainingMode === 'deep_dive') {
     currentIndex.value++
     return
   }
@@ -122,18 +125,18 @@ watch(currentIndex, () => {
 </script>
 
 <template>
-  <KitDialog v-model:visible="visible" :max-width="800" persistent class="srs-dialog">
+  <KitDialog v-model:visible="visible" :max-width="800" persistent class="srs-dialog" :minimizable="false">
     <template #header>
       <div class="srs-header">
         <h2 class="dialog-title">
           <template v-if="sessionState === 'setup'">
-            {{ dictStore.trainingMode === 'srs' ? t('dictionary.setupSrs') : t('dictionary.setupWarmup') }}
+            {{ dictStore.trainingMode === 'srs' ? t('dictionary.setupSrs') : (dictStore.trainingMode === 'deep_dive' ? t('dictionary.deepDiveTraining') : t('dictionary.setupWarmup')) }}
           </template>
           <template v-else-if="sessionState === 'finished'">
             {{ t('dictionary.sessionSummary') }}
           </template>
           <template v-else>
-            {{ dictStore.trainingMode === 'srs' ? t('dictionary.reviewSrs') : t('dictionary.randomTraining') }}
+            {{ dictStore.trainingMode === 'srs' ? t('dictionary.reviewSrs') : (dictStore.trainingMode === 'deep_dive' ? t('dictionary.deepDiveTraining') : t('dictionary.randomTraining')) }}
           </template>
         </h2>
 

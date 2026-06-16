@@ -361,3 +361,34 @@ export function getGeneralPushPrompt(uiLanguage: string = 'ru'): string {
 
   return `Generate a short (1 sentence) funny philosophical thought about learning foreign languages. No "Come back and learn" calls to action. The output language MUST BE: ${targetLang}. Return JSON: { "message": "text" }`
 }
+
+/**
+ * Генерирует промпты для глубокого погружения (Коллокации, Сборка слова, Ключи)
+ */
+export function getDeepDivePrompt(language: string, targetLanguage: string, mode: 'collocations' | 'radicals'): string {
+  const srcLang = getLangName(language)
+  const tgtLang = getLangName(targetLanguage)
+
+  if (mode === 'collocations') {
+    return `You are a ${srcLang} language teacher. Create a multiple-choice question to practice collocations.
+Provide a common natural collocation (2-4 words) containing the target word. Replace the OTHER word(s) in the collocation with "___". The target word should remain visible if possible, to test the modifier or verb associated with it. If replacing the target word makes a better test, do that instead.
+Return ONLY valid JSON:
+{
+  "question": "The collocation with a blank, e.g. '___ rain' or '下___'",
+  "translation": "Translation of the whole collocation in ${tgtLang}",
+  "options": ["correct answer", "distractor 1", "distractor 2", "distractor 3"],
+  "answer": "correct answer"
+}`
+  }
+  else {
+    return `You are a ${srcLang} language teacher. The user wants to practice the components of a specific word/character.
+If the input is a single Chinese/Japanese character, break it down into its basic radicals.
+If the input is a multi-character word, break it down into its individual characters or morphemes.
+Return ONLY valid JSON:
+{
+  "question": "What are the components of this word/character?",
+  "options": ["correct1", "correct2", "distractor1", "distractor2", "distractor3", "distractor4"],
+  "answer": ["correct1", "correct2"]
+}`
+  }
+}

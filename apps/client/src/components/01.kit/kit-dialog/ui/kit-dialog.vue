@@ -7,6 +7,10 @@ import { useDialogResize } from '../composables/use-dialog-resize'
 import { useDialogSwipe } from '../composables/use-dialog-swipe'
 import DialogResizeHandles from './dialog-resize-handles.vue'
 
+defineOptions({
+  inheritAttrs: false,
+})
+
 interface Props {
   maxWidth?: number
   title?: string
@@ -127,6 +131,7 @@ onUnmounted(() => {
         <div
           ref="dialogContentRef"
           class="dialog-content-wrapper"
+          v-bind="$attrs"
           :class="{
             'is-floating': floating,
             'is-dragging': isSwiping && direction === 'down',

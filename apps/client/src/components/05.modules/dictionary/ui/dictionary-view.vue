@@ -140,7 +140,7 @@ function getDifficultyClass(lang: string, diffValue: string | null) {
   return 'level-hard'
 }
 
-function openTrainingSettings(mode: 'srs' | 'random') {
+function openTrainingSettings(mode: 'srs' | 'random' | 'deep_dive') {
   store.trainingMode = mode
   isTrainingOpen.value = true
   dropdownRef.value?.close()
@@ -301,7 +301,7 @@ watch(isEditMode, (val) => {
 
         <div class="actions-and-stats">
           <div class="main-actions">
-            <KitDropdown ref="dropdownRef" placement="bottom-end" width="250px" class="training-dropdown">
+            <KitDropdown ref="dropdownRef" placement="bottom-end" width="260px" class="training-dropdown">
               <template #activator="{ props }">
                 <KitBtn
                   icon="mdi:brain"
@@ -321,6 +321,10 @@ watch(isEditMode, (val) => {
                 <button class="dropdown-item" :disabled="store.words.length === 0" @click="openTrainingSettings('random')">
                   <Icon icon="mdi:shuffle-variant" />
                   {{ t('dictionary.randomTraining') }}
+                </button>
+                <button class="dropdown-item" :disabled="store.words.length === 0" @click="openTrainingSettings('deep_dive')">
+                  <Icon icon="mdi:diving-scuba" />
+                  {{ t('dictionary.deepDiveTraining') }}
                 </button>
               </div>
             </KitDropdown>

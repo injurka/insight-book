@@ -167,11 +167,16 @@ export interface UserDictItem {
   encounters?: WordEncounter[]
 }
 
+// РАСШИРЕННЫЙ ИНТЕРФЕЙС
 export interface LlmConfig {
   url: string
   key?: string
   model?: string
   fallbackModel?: string
+  ttsModel?: string
+  sttModel?: string
+  ocrModel?: string
+  ocrRefinementModel?: string
   isAggregator?: boolean
 }
 
@@ -258,4 +263,21 @@ export interface BatchAnalysisRequest {
 export interface BatchAnalysisResponse {
   id: string
   analysis: LlmAnalysis
+}
+
+export interface UserData {
+  id: number
+  username: string
+  role?: string
+  usedTokens?: number
+  tokenLimit?: number | null
+  usedBooks?: number
+  bookLimit?: number | null
+  pushTargetDeckId?: number | null
+  pushTimeStart?: string
+  pushTimeEnd?: string
+  pushCount?: number
+  timezone?: string
+  uiLanguage?: string
+  avatarUrl?: string
 }

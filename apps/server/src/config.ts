@@ -25,8 +25,10 @@ export const OCR_API_KEY = process.env.OCR_API_KEY || LLM_API_KEY
 export const OCR_MODEL = process.env.OCR_MODEL || 'glm-ocr'
 export const OCR_REFINEMENT_MODEL = process.env.OCR_REFINEMENT_MODEL || 'gemini-3.1-flash-lite'
 
+// --- Audio Specific APIs (TTS / STT) ---
 export const TTS_API_KEY = process.env.TTS_API_KEY || LLM_API_KEY
 export const TTS_MODEL = process.env.TTS_MODEL || 'gpt-4o-mini-tts'
+export const STT_MODEL = process.env.STT_MODEL || 'whisper-1' // ДОБАВЛЕНО
 
 // -- Default ADMIN user ---
 export const ADMIN_USERNAME = process.env.ADMIN_USERNAME || 'admin'

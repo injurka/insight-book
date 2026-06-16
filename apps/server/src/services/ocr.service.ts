@@ -1,14 +1,5 @@
 import type { LlmConfig } from '../types'
 import sharp from 'sharp'
-import {
-  LLM_API_KEY,
-  LLM_API_URL,
-  LLM_MODEL,
-  OCR_API_KEY,
-  OCR_API_URL,
-  OCR_MODEL,
-  OCR_REFINEMENT_MODEL,
-} from '../config'
 import { getOcrPrompt, getOcrRefinementPrompt } from '../prompts'
 import { AppError } from '../utils/errors'
 import { checkTokenLimit } from './limits.service'
@@ -49,9 +40,10 @@ export async function recognizeMangaPage(userId: number, base64Image: string, la
 }
 
 async function getOcrLayout(userId: number, imageUrl: string, language: string, textDirection: string | undefined, config: LlmConfig): Promise<OcrBlock[]> {
-  const apiUrl = config.url === LLM_API_URL ? OCR_API_URL : config.url
-  const apiKey = config.key === LLM_API_KEY ? OCR_API_KEY : config.key
-  const model = config.model === LLM_MODEL ? OCR_MODEL : (config.model || OCR_MODEL)
+  const apiUrl = config.url
+  const apiKey = config.key
+  // === ИСПОЛЬЗУЕМ ЧИСТЫЙ КОНФИГ ===
+  const model = config.ocrModel || 'glm-ocr'
 
   if (!apiUrl)
     throw new AppError(500, 'API URL для OCR не настроен')
@@ -99,7 +91,7 @@ async function getOcrLayout(userId: number, imageUrl: string, language: string, 
   const promptTokens = data.usage?.prompt_tokens || 0
   const completionTokens = data.usage?.completion_tokens || 0
 
-  const inputTextForLog = JSON.stringify({ prompt: promptText, imageBase64: imageUrl.substring(0, 100) + '...[TRUNCATED]' }, null, 2)
+  const inputTextForLog = JSON.stringify({ prompt: promptText, imageBase64: `${imageUrl.substring(0, 100)}...[TRUNCATED]` }, null, 2)
   const outputTextForLog = JSON.stringify(data, null, 2)
   trackTokenUsage(userId, 'ocr_layout', model, promptTokens, completionTokens, inputTextForLog, outputTextForLog)
 
@@ -197,7 +189,8 @@ async function refineOcrText(userId: number, base64Image: string, blocks: OcrBlo
 
     const apiUrl = config.url
     const apiKey = config.key
-    const model = config.model === LLM_MODEL ? OCR_REFINEMENT_MODEL : (config.model || OCR_REFINEMENT_MODEL)
+    // === ИСПОЛЬЗУЕМ ЧИСТЫЙ КОНФИГ ===
+    const model = config.ocrRefinementModel || 'gemini-3.1-flash-lite'
 
     if (!apiUrl)
       throw new AppError(500, 'API URL для OCR Refinement не настроен')
@@ -233,7 +226,8 @@ async function refineOcrText(userId: number, base64Image: string, blocks: OcrBlo
       const completionTokens = data.usage?.completion_tokens || 0
 
       const safeInput = contentArray.map((c: any) => {
-        if (c.type === 'image_url') return { type: 'image_url', image_url: { url: c.image_url.url.substring(0, 100) + '...[TRUNCATED]' } }
+        if (c.type === 'image_url')
+          return { type: 'image_url', image_url: { url: `${c.image_url.url.substring(0, 100)}...[TRUNCATED]` } }
         return c
       })
       const inputTextForLog = JSON.stringify(safeInput, null, 2)

@@ -22,6 +22,9 @@ const modes = reactive({
   writing: false,
   typing: true,
   choice: true,
+  scramble: false,
+  collocations: false,
+  radicals: false,
 })
 
 const currentLang = computed(() => {
@@ -38,9 +41,33 @@ const showWritingMode = computed(() => {
   return currentLang.value === 'zh' && hasChinese
 })
 
+watch(() => dictStore.trainingMode, (mode) => {
+  if (mode === 'deep_dive') {
+    modes.standard = false
+    modes.audio = false
+    modes.writing = false
+    modes.typing = false
+    modes.choice = false
+    modes.scramble = true
+    modes.collocations = true
+    modes.radicals = showWritingMode.value
+  }
+  else {
+    modes.standard = true
+    modes.audio = true
+    modes.writing = false
+    modes.typing = true
+    modes.choice = true
+    modes.scramble = false
+    modes.collocations = false
+    modes.radicals = false
+  }
+}, { immediate: true })
+
 watch(showWritingMode, (newVal) => {
   if (!newVal) {
     modes.writing = false
+    modes.radicals = false
   }
 }, { immediate: true })
 
@@ -79,8 +106,13 @@ watch(difficultyOptions, (newOpts) => {
 
 function start() {
   const selectedModes = { ...modes }
-  if (!selectedModes.standard && !selectedModes.audio && !selectedModes.writing && !selectedModes.typing && !selectedModes.choice) {
-    selectedModes.standard = true
+  if (!selectedModes.standard && !selectedModes.audio && !selectedModes.writing && !selectedModes.typing && !selectedModes.choice && !selectedModes.scramble && !selectedModes.collocations && !selectedModes.radicals) {
+    if (dictStore.trainingMode === 'deep_dive') {
+      selectedModes.scramble = true
+    }
+    else {
+      selectedModes.standard = true
+    }
   }
   emit('start', { ...setupOptions, modes: selectedModes })
 }
@@ -108,31 +140,50 @@ function start() {
     <div class="settings-group">
       <label class="group-label">{{ t('dictionary.trainingModes') }}</label>
       <div class="modes-grid">
-        <div class="mode-card" :class="{ 'is-active': modes.standard }" @click="modes.standard = !modes.standard">
-          <Icon icon="mdi:card-text-outline" class="mode-icon" />
-          <span class="mode-title">{{ t('dictionary.reading') }}</span>
-          <span class="mode-desc">{{ t('dictionary.classicCards') }}</span>
-        </div>
-        <div class="mode-card" :class="{ 'is-active': modes.typing }" @click="modes.typing = !modes.typing">
-          <Icon icon="mdi:keyboard-outline" class="mode-icon" />
-          <span class="mode-title">{{ t('dictionary.typing') }}</span>
-          <span class="mode-desc">{{ t('dictionary.writeByMemory') }}</span>
-        </div>
-        <div class="mode-card" :class="{ 'is-active': modes.choice }" @click="modes.choice = !modes.choice">
-          <Icon icon="mdi:format-list-checks" class="mode-icon" />
-          <span class="mode-title">{{ t('dictionary.test') }}</span>
-          <span class="mode-desc">{{ t('dictionary.multipleChoice') }}</span>
-        </div>
-        <div class="mode-card" :class="{ 'is-active': modes.audio }" @click="modes.audio = !modes.audio">
-          <Icon icon="mdi:headphones" class="mode-icon" />
-          <span class="mode-title">{{ t('dictionary.listening') }}</span>
-          <span class="mode-desc">{{ t('dictionary.aiSpeech') }}</span>
-        </div>
-        <div v-if="showWritingMode" class="mode-card" :class="{ 'is-active': modes.writing }" @click="modes.writing = !modes.writing">
-          <Icon icon="mdi:draw" class="mode-icon" />
-          <span class="mode-title">{{ t('dictionary.writing') }}</span>
-          <span class="mode-desc">{{ t('dictionary.hanziByMemory') }}</span>
-        </div>
+        <template v-if="dictStore.trainingMode !== 'deep_dive'">
+          <div class="mode-card" :class="{ 'is-active': modes.standard }" @click="modes.standard = !modes.standard">
+            <Icon icon="mdi:card-text-outline" class="mode-icon" />
+            <span class="mode-title">{{ t('dictionary.reading') }}</span>
+            <span class="mode-desc">{{ t('dictionary.classicCards') }}</span>
+          </div>
+          <div class="mode-card" :class="{ 'is-active': modes.typing }" @click="modes.typing = !modes.typing">
+            <Icon icon="mdi:keyboard-outline" class="mode-icon" />
+            <span class="mode-title">{{ t('dictionary.typing') }}</span>
+            <span class="mode-desc">{{ t('dictionary.writeByMemory') }}</span>
+          </div>
+          <div class="mode-card" :class="{ 'is-active': modes.choice }" @click="modes.choice = !modes.choice">
+            <Icon icon="mdi:format-list-checks" class="mode-icon" />
+            <span class="mode-title">{{ t('dictionary.test') }}</span>
+            <span class="mode-desc">{{ t('dictionary.multipleChoice') }}</span>
+          </div>
+          <div class="mode-card" :class="{ 'is-active': modes.audio }" @click="modes.audio = !modes.audio">
+            <Icon icon="mdi:headphones" class="mode-icon" />
+            <span class="mode-title">{{ t('dictionary.listening') }}</span>
+            <span class="mode-desc">{{ t('dictionary.aiSpeech') }}</span>
+          </div>
+          <div v-if="showWritingMode" class="mode-card" :class="{ 'is-active': modes.writing }" @click="modes.writing = !modes.writing">
+            <Icon icon="mdi:draw" class="mode-icon" />
+            <span class="mode-title">{{ t('dictionary.writing') }}</span>
+            <span class="mode-desc">{{ t('dictionary.hanziByMemory') }}</span>
+          </div>
+        </template>
+        <template v-else>
+          <div class="mode-card" :class="{ 'is-active': modes.scramble }" @click="modes.scramble = !modes.scramble">
+            <Icon icon="mdi:puzzle-outline" class="mode-icon" />
+            <span class="mode-title">{{ t('dictionary.scramble') }}</span>
+            <span class="mode-desc">{{ t('dictionary.scrambleDesc') }}</span>
+          </div>
+          <div class="mode-card" :class="{ 'is-active': modes.collocations }" @click="modes.collocations = !modes.collocations">
+            <Icon icon="mdi:link-variant" class="mode-icon" />
+            <span class="mode-title">{{ t('dictionary.collocations') }}</span>
+            <span class="mode-desc">{{ t('dictionary.collocationsDesc') }}</span>
+          </div>
+          <div v-if="showWritingMode" class="mode-card" :class="{ 'is-active': modes.radicals }" @click="modes.radicals = !modes.radicals">
+            <Icon icon="mdi:format-annotation-plus" class="mode-icon" />
+            <span class="mode-title">{{ t('dictionary.radicals') }}</span>
+            <span class="mode-desc">{{ t('dictionary.radicalsDesc') }}</span>
+          </div>
+        </template>
       </div>
     </div>
 

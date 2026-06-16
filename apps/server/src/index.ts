@@ -33,6 +33,7 @@ import {
   handleBulkMoveDict,
   handleCreateDeck,
   handleDeleteDeck,
+  handleGenerateDeepDive,
   handleGenerateExamples,
   handleGetDecks,
   handleGetReviewQueue,
@@ -40,6 +41,7 @@ import {
   handleGetWordFromUserDict,
   handleRemoveFromUserDict,
   handleSrsReview,
+  handleCheckPronunciation,
   handleUpdateDeck,
   handleUpsertToUserDict,
 } from './handlers/dictionary'
@@ -103,13 +105,17 @@ const apiRoutes = {
   '/api/dictionary/bulk/move': { OPTIONS: corsOk, POST: apiWrapper(authWrapper(handleBulkMoveDict)) },
   '/api/dictionary/generate-examples': { OPTIONS: corsOk, POST: apiWrapper(authWrapper(handleGenerateExamples)) },
   '/api/dictionary/auto-fill': { OPTIONS: corsOk, POST: apiWrapper(authWrapper(handleAutoFillWord)) },
+  '/api/dictionary/deep-dive': { OPTIONS: corsOk, POST: apiWrapper(authWrapper(handleGenerateDeepDive)) },
 
   // Decks
   '/api/dictionary/decks': { OPTIONS: corsOk, GET: apiWrapper(authWrapper(handleGetDecks)), POST: apiWrapper(authWrapper(handleCreateDeck)) },
   '/api/dictionary/decks/:id': { OPTIONS: corsOk, PATCH: apiWrapper(authWrapper(handleUpdateDeck)), DELETE: apiWrapper(authWrapper(handleDeleteDeck)) },
+  
 
   // Review & SRS
   '/api/dictionary/review': { OPTIONS: corsOk, GET: apiWrapper(authWrapper(handleGetReviewQueue)), POST: apiWrapper(authWrapper(handleSrsReview)) },
+  '/api/dictionary/pronunciation': { OPTIONS: corsOk, POST: apiWrapper(authWrapper(handleCheckPronunciation)) },
+
 
   // --- Activity API ---
   '/api/activity/heatmap': { OPTIONS: corsOk, GET: apiWrapper(authWrapper(handleGetHeatmapData)) },
@@ -128,6 +134,7 @@ const apiRoutes = {
   '/api/push/vapid-public-key': { OPTIONS: corsOk, GET: apiWrapper(handleGetVapidKey) },
   '/api/push/subscribe': { OPTIONS: corsOk, POST: apiWrapper(authWrapper(handleSubscribe)) },
   '/api/push/unsubscribe': { OPTIONS: corsOk, POST: apiWrapper(authWrapper(handleUnsubscribe)) },
+
 }
 
 Bun.serve({

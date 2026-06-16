@@ -103,6 +103,7 @@ function close() {
   border: none;
   color: var(--fg-secondary-color);
   cursor: pointer;
+  -webkit-app-region: no-drag;
   transition:
     background-color 0.2s,
     color 0.2s;

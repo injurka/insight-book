@@ -139,7 +139,11 @@
       "dict_autofill": "Автозаполнение карточки (Словарь)",
       "tts_generation": "Озвучка (TTS)",
       "ocr_layout": "OCR (Распознавание блоков)",
-      "ocr_refine": "OCR (Улучшение текста)"
+      "ocr_refine": "OCR (Улучшение текста)",
+      "deep_dive_collocations": "Глубокое погружение (Словосочетания)",
+      "deep_dive_radicals": "Глубокое погружение (Ключи)",
+      "check_pronunciation_stt": "Распознавание речи (STT)",
+      "check_pronunciation_llm": "Анализ произношения (LLM)"
     }
   },
   "library": {
@@ -293,6 +297,7 @@
     "training": "Тренировка",
     "srsTraining": "Интервальное (SRS)",
     "randomTraining": "Случайная разминка",
+    "deepDiveTraining": "Глубокое погружение",
     "manageDecks": "Управление колодами",
     "wordsCount": "{count} слов",
     "done": "Готово",
@@ -345,6 +350,15 @@
     "writing": "Письмо",
     "typing": "Ввод",
     "test": "Тест",
+    "scramble": "Сборка слова",
+    "scrambleDesc": "Соберите слово из слогов/иероглифов",
+    "scrambleTask": "Соберите слово в правильном порядке:",
+    "collocations": "С чем это едят",
+    "collocationsDesc": "Угадайте правильное словосочетание",
+    "collocationsTask": "Заполните пропуск в словосочетании:",
+    "radicals": "Разбор по косточкам",
+    "radicalsDesc": "Из каких ключей состоит слово",
+    "radicalsTask": "Выберите все ключи (радикалы), входящие в это слово:",
     "reading": "Чтение",
     "newCards": "Новые карточки",
     "onReview": "На повторении",

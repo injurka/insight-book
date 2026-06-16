@@ -1,20 +1,16 @@
 import type { BatchAnalysisRequest, BatchAnalysisResponse, GeneratedWordExamples, LlmAnalysis, LlmConfig, ModelMessage, WordAutoFillResponse } from '../types'
 import { eq, inArray, sql } from 'drizzle-orm'
+import { pinyin } from 'pinyin-pro'
 import { LlmAnalysisSchema } from '~/types/schemas'
 import { getVoiceForLanguage, hashSentence, hashTtsText, parseLlmJson } from '~/utils/helpers'
 import { callLlmApi } from '~/utils/llm-api'
-import {
-  LLM_API_KEY,
-  LLM_API_URL,
-  LLM_MODEL,
-  TTS_API_KEY,
-  TTS_MODEL,
-} from '../config'
+import { LLM_API_KEY, LLM_API_URL, LLM_MODEL, TTS_API_KEY } from '../config'
 import { db } from '../db'
 import * as schema from '../db/schema'
 import {
   BOOK_ANALYSIS_PROMPT,
   getBatchSystemPrompt,
+  getDeepDivePrompt,
   getMangaAnalysisPrompt,
   getSystemPrompt,
   getWordAutoFillPrompt,
@@ -144,7 +140,7 @@ export async function checkCacheBatch(bookId: number, sentences: string[], langu
           results.push({ sentence, analysis: parsed })
         }
       }
-      catch (e) { }
+      catch { }
     }
   }
 
@@ -213,6 +209,35 @@ export async function generateWordAutoFill(userId: number, word: string, languag
   }
 
   throw new AppError(500, `Не удалось получить валидный ответ от ИИ: ${lastError?.message || 'Unknown error'}`)
+}
+
+export async function generateDeepDiveQuiz(userId: number, word: string, language: string, targetLang: string, mode: 'collocations' | 'radicals', config: LlmConfig): Promise<any> {
+  await checkTokenLimit(userId)
+  if (!config.url)
+    throw new AppError(500, 'LLM API не настроен')
+
+  const messages: ModelMessage[] = [
+    { role: 'system', content: getDeepDivePrompt(language, targetLang, mode) },
+    { role: 'user', content: `Word: ${word}` },
+  ]
+
+  const modelsToTry = [config.model, config.fallbackModel].filter(Boolean) as string[]
+  let lastError: Error | null = null
+
+  for (const model of modelsToTry) {
+    try {
+      const { text: raw, usage } = await callLlmApi(model, messages, 0.4, AbortSignal.timeout(60000), config)
+      trackTokenUsage(userId, `deep_dive_${mode}`, model, usage.promptTokens, usage.completionTokens, JSON.stringify(messages, null, 2), raw)
+
+      return parseLlmJson<any>(raw)
+    }
+    catch (e) {
+      lastError = e as Error
+      console.warn(`[LLM] Failed with model [${model}]:`, lastError.message)
+    }
+  }
+
+  throw new AppError(500, `Не удалось получить ответ от ИИ: ${lastError?.message || 'Unknown error'}`)
 }
 
 export async function analyzeBookExcerpt(userId: number, excerpt: string, config: LlmConfig): Promise<{ description: any, difficulty: string, tags: string[] }> {
@@ -318,7 +343,7 @@ export async function analyzeBatch(userId: number, bookId: number, items: BatchA
           continue
         }
       }
-      catch (e) { }
+      catch { }
     }
     missingItems.push(item)
   }
@@ -400,7 +425,7 @@ export async function generateTts(userId: number, text: string, language: string
 
   const ttsUrl = config.url === LLM_API_URL ? LLM_API_URL : config.url
   const ttsKey = config.key === LLM_API_KEY && TTS_API_KEY ? TTS_API_KEY : config.key
-  const ttsModel = config.model === LLM_MODEL && TTS_MODEL ? TTS_MODEL : 'tts-1'
+  const ttsModel = config.ttsModel!
 
   if (!ttsUrl)
     throw new AppError(500, 'TTS API не настроен')
@@ -456,4 +481,147 @@ export async function generateTts(userId: number, text: string, language: string
   })
 
   return base64
+}
+
+// Алгоритм расстояния Левенштейна для базовой оценки ( fallback )
+function calculatePhoneticSimilarity(expected: string, heard: string, language: string): number {
+  let s1 = expected.toLowerCase().replace(/[.,!?;:()\s]/g, '')
+  let s2 = heard.toLowerCase().replace(/[.,!?;:()\s]/g, '')
+
+  if (language.startsWith('zh')) {
+    s1 = pinyin(expected, { toneType: 'num', type: 'array' }).join('')
+    s2 = pinyin(heard, { toneType: 'num', type: 'array' }).join('')
+  }
+
+  if (s1.length === 0 && s2.length === 0)
+    return 100
+  if (s1.length === 0 || s2.length === 0)
+    return 0
+
+  const matrix = Array.from({ length: s1.length + 1 }, () => Array.from({ length: s2.length + 1 }).fill(0)) as number[][]
+
+  for (let i = 0; i <= s1.length; i++) matrix[i][0] = i
+  for (let j = 0; j <= s2.length; j++) matrix[0][j] = j
+
+  for (let i = 1; i <= s1.length; i++) {
+    for (let j = 1; j <= s2.length; j++) {
+      if (s1[i - 1] === s2[j - 1]) {
+        matrix[i][j] = matrix[i - 1][j - 1]
+      }
+      else {
+        matrix[i][j] = Math.min(
+          matrix[i - 1][j - 1] + 1,
+          matrix[i][j - 1] + 1,
+          matrix[i - 1][j] + 1,
+        )
+      }
+    }
+  }
+
+  const distance = matrix[s1.length][s2.length]
+  const maxLength = Math.max(s1.length, s2.length)
+
+  return Math.max(0, Math.round(((maxLength - distance) / maxLength) * 100))
+}
+
+export async function checkPronunciationAudio(userId: number, word: string, language: string, targetLang: string, audioFile: File, config: LlmConfig) {
+  await checkTokenLimit(userId)
+
+  if (!config.url)
+    throw new AppError(500, 'LLM API не настроен')
+
+  let apiUrl = config.url
+  if (apiUrl.endsWith('/chat/completions')) {
+    apiUrl = apiUrl.replace(/\/chat\/completions$/, '/audio/transcriptions')
+  }
+  else if (apiUrl.endsWith('/v1')) {
+    apiUrl = `${apiUrl}/audio/transcriptions`
+  }
+  else {
+    apiUrl = `${apiUrl}/v1/audio/transcriptions`
+  }
+
+  const sttModel = config.sttModel!
+
+  const fd = new FormData()
+  fd.append('file', audioFile)
+  fd.append('model', sttModel)
+  fd.append('prompt', 'Transcribe exactly what is spoken phonetically, even if it contains tonal or pronunciation errors. Do not auto-correct.')
+
+  if (language) {
+    fd.append('language', language.substring(0, 2))
+  }
+
+  try {
+    const response = await fetch(apiUrl, {
+      method: 'POST',
+      headers: config.key ? { Authorization: `Bearer ${config.key}` } : {},
+      body: fd,
+      signal: AbortSignal.timeout(30000),
+    })
+
+    if (!response.ok) {
+      const errorText = await response.text()
+      throw new Error(`STT API Error: ${response.status} ${errorText}`)
+    }
+
+    const data = await response.json() as any
+    const heardText = data.text?.trim() || ''
+
+    const textSimilarity = calculatePhoneticSimilarity(word, heardText, language)
+
+    let finalScore = textSimilarity
+    let heardPhonetic = ''
+    let mistakeAnalysis = ''
+
+    const sttPromptTokens = data.usage?.prompt_tokens || Math.round(audioFile.size / 100)
+    const sttCompletionTokens = data.usage?.completion_tokens || heardText.length
+    trackTokenUsage(userId, 'check_pronunciation_stt', sttModel, sttPromptTokens, sttCompletionTokens, `[AUDIO ${Math.round(audioFile.size / 1024)}KB]`, heardText)
+
+    if (heardText && textSimilarity < 100) {
+      try {
+        const messages: ModelMessage[] = [
+          {
+            role: 'system',
+            content: `You are a strict phonetic and linguistic analyzer. The user was supposed to pronounce a word in ${language}.
+Analyze the pronunciation mistake phonetically (e.g., Pinyin tones, Romaji, consonants/vowels).
+Return ONLY valid JSON:
+{
+  "score": <number 0-100, based on phonetic similarity, not just text similarity>,
+  "heard_phonetic": "<phonetic transcription (pinyin/romaji/etc) of what they actually said>",
+  "mistake_analysis": "<Brief explanation of the mistake in ${targetLang}. e.g., 'You said J instead of ZH', 'Wrong tone'>."
+}`,
+          },
+          { role: 'user', content: `Expected word: ${word}\nHeard by STT: ${heardText}` },
+        ]
+        const llmModel = config.model || LLM_MODEL
+        const aiRes = await callLlmApi(llmModel, messages, 0.2, AbortSignal.timeout(15000), config)
+        const parsed = parseLlmJson<{ score?: number, heard_phonetic?: string, mistake_analysis?: string }>(aiRes.text)
+
+        if (parsed.score !== undefined)
+          finalScore = parsed.score
+        heardPhonetic = parsed.heard_phonetic || ''
+        mistakeAnalysis = parsed.mistake_analysis || ''
+
+        trackTokenUsage(userId, 'check_pronunciation_llm', llmModel, aiRes.usage.promptTokens, aiRes.usage.completionTokens, heardText, aiRes.text)
+      }
+      catch (e) {
+        console.warn('[Audio Service] Failed to analyze heard text via LLM:', e)
+      }
+    }
+    else if (textSimilarity === 100) {
+      mistakeAnalysis = targetLang === 'ru' ? 'Идеальное произношение!' : (targetLang === 'zh' ? '发音完美！' : 'Perfect pronunciation!')
+    }
+
+    return {
+      heardText,
+      score: finalScore,
+      heardPhonetic,
+      mistakeAnalysis,
+    }
+  }
+  catch (error: any) {
+    console.error('[Audio Service] Pronunciation Check Failed:', error.message)
+    throw new AppError(500, `Ошибка распознавания речи: ${error.message}`)
+  }
 }

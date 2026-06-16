@@ -149,3 +149,9 @@ export const CatalogSchema = z.object({
   title: z.string().min(1),
   url: z.string().url(),
 })
+
+export const DeepDiveRequestSchema = z.object({
+  word: z.string().min(1),
+  language: z.string().min(1),
+  mode: z.enum(['collocations', 'radicals']),
+})

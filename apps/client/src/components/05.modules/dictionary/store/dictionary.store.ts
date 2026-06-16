@@ -16,7 +16,7 @@ export const useDictionaryStore = defineStore('dictionary', () => {
   const decks = ref<DictDeck[]>([])
   const selectedWordIds = ref<Set<number>>(new Set())
   const reviewQueue = ref<UserDictItem[]>([])
-  const trainingMode = ref<'srs' | 'random'>('srs')
+  const trainingMode = ref<'srs' | 'random' | 'deep_dive'>('srs')
 
   const isLoading = ref(false)
   const searchTerm = ref('')
@@ -63,7 +63,7 @@ export const useDictionaryStore = defineStore('dictionary', () => {
     }
   }
 
-  async function fetchTrainingQueue(opts: { mode: 'srs' | 'random', deckId: number | 'none' | 'all', difficulty: string }) {
+  async function fetchTrainingQueue(opts: { mode: 'srs' | 'random' | 'deep_dive', deckId: number | 'none' | 'all', difficulty: string }) {
     trainingMode.value = opts.mode
     try {
       let langToFetch = selectedLanguage.value

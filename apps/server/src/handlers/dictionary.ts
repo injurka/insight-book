@@ -1,4 +1,4 @@
-import { BulkActionSchema, DeckSchema, GenerateExamplesSchema, SrsReviewSchema, UpsertUserDictSchema } from '~/types/schemas'
+import { BulkActionSchema, DeckSchema, DeepDiveRequestSchema, GenerateExamplesSchema, SrsReviewSchema, UpsertUserDictSchema } from '~/types/schemas'
 import { extractLlmConfig, json } from '~/utils/helpers'
 import {
   createDeck,
@@ -12,7 +12,7 @@ import {
   updateDeck,
   upsertToUserDictionary,
 } from '../services/dictionary.service'
-import { generateWordAutoFill, generateWordExamples } from '../services/llm.service'
+import { checkPronunciationAudio, generateWordAutoFill, generateWordExamples } from '../services/llm.service'
 import { AppError } from '../utils/errors'
 import { createRateLimiter } from '../utils/rate-limit'
 
@@ -34,6 +34,37 @@ export async function handleAutoFillWord(req: Request, userId: number): Promise<
   const targetLang = req.headers.get('Accept-Language') || 'ru'
   const { word, language } = GenerateExamplesSchema.parse(await req.json())
   const result = await generateWordAutoFill(userId, word, language, targetLang, config)
+
+  return json(result)
+}
+
+export async function handleGenerateDeepDive(req: Request, userId: number): Promise<Response> {
+  dictAiLimiter(String(userId))
+  const config = extractLlmConfig(req)
+  const targetLang = req.headers.get('Accept-Language') || 'ru'
+  const { word, language, mode } = DeepDiveRequestSchema.parse(await req.json())
+
+  const { generateDeepDiveQuiz } = await import('../services/llm.service')
+  const result = await generateDeepDiveQuiz(userId, word, language, targetLang, mode, config)
+
+  return json(result)
+}
+
+export async function handleCheckPronunciation(req: Request, userId: number): Promise<Response> {
+  dictAiLimiter(String(userId))
+
+  const formData = await req.formData()
+  const audioFile = formData.get('audio') as File | null
+  const word = formData.get('word') as string
+  const language = formData.get('language') as string
+  const targetLang = req.headers.get('Accept-Language') || 'ru'
+
+  if (!audioFile || !word) {
+    throw new AppError(400, 'Audio file and word are required')
+  }
+
+  const config = extractLlmConfig(req)
+  const result = await checkPronunciationAudio(userId, word, language, targetLang, audioFile, config)
 
   return json(result)
 }
@@ -104,7 +135,7 @@ export async function handleGetWordFromUserDict(req: Request, userId: number): P
 export async function handleGetReviewQueue(req: Request, userId: number): Promise<Response> {
   const url = new URL(req.url)
   const lang = url.searchParams.get('lang') || 'all'
-  const mode = url.searchParams.get('mode') as 'srs' | 'random' || 'srs'
+  const mode = url.searchParams.get('mode') as 'srs' | 'random' | 'deep_dive' || 'srs'
   const deckIdStr = url.searchParams.get('deckId')
   const difficulty = url.searchParams.get('difficulty')
   const targetLang = req.headers.get('Accept-Language') || 'ru'

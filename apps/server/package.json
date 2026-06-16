@@ -39,6 +39,7 @@
     "kuromoji": "^0.1.2",
     "node-html-parser": "^7.1.0",
     "nodejieba": "^3.5.8",
+    "pinyin-pro": "^3.28.1",
     "sharp": "^0.34.5",
     "web-push": "^3.6.7",
     "zod": "^4.4.3"

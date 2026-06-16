@@ -1,10 +1,20 @@
-import { createRouter, createWebHistory } from 'vue-router'
+import { createRouter, createWebHashHistory, createWebHistory } from 'vue-router'
 import { AppRouteNames } from '~/shared/constants/routes'
 import { useAuthStore } from '~/shared/store/auth.store'
 
+const isTauri = '__TAURI_INTERNALS__' in window
+
 export const router = createRouter({
-  history: createWebHistory(import.meta.env.BASE_URL),
+  history: isTauri
+    ? createWebHashHistory(import.meta.env.BASE_URL)
+    : createWebHistory(import.meta.env.BASE_URL),
+
   routes: [
+    {
+      path: '/sign-in',
+      name: AppRouteNames.SignIn,
+      component: () => import('~/pages/sign-in.vue'),
+    },
     {
       path: '/sign-in',
       name: AppRouteNames.SignIn,
@@ -56,7 +66,6 @@ router.beforeEach(async (to) => {
     return { name: AppRouteNames.SignIn }
   }
 })
-
 
 router.afterEach((to) => {
   const { trackPageview } = useUmami()

@@ -286,7 +286,7 @@ export async function removeFromUserDictionary(word: string, userId: number, tar
   ))
 }
 
-export async function getReviewQueue(userId: number, language: string | undefined, targetLang: string, mode: 'srs' | 'random' = 'srs', deckId?: number | 'none', difficulty?: string) {
+export async function getReviewQueue(userId: number, language: string | undefined, targetLang: string, mode: 'srs' | 'random' | 'deep_dive' = 'srs', deckId?: number | 'none', difficulty?: string) {
   const filters: any[] = [
     eq(schema.userDictionary.userId, userId),
     eq(schema.userDictionary.targetLanguage, targetLang),

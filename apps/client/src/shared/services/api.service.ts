@@ -225,7 +225,7 @@ export const api = {
     remove: (word: string) =>
       request<{ success: boolean }>(`/api/dictionary/${encodeURIComponent(word)}`, { method: 'DELETE' }),
 
-    getReviewQueue: (opts: { lang: string, mode: 'srs' | 'random', deckId?: number | 'none' | 'all', difficulty?: string }) => {
+    getReviewQueue: (opts: { lang: string, mode: 'srs' | 'random' | 'deep_dive', deckId?: number | 'none' | 'all', difficulty?: string }) => {
       const q = new URLSearchParams()
       q.set('lang', opts.lang)
       q.set('mode', opts.mode)
@@ -261,6 +261,26 @@ export const api = {
         body: JSON.stringify({ word, language }),
         withLlm: true,
       }),
+
+    generateDeepDive: (word: string, language: string, mode: 'collocations' | 'radicals') =>
+      request<any>('/api/dictionary/deep-dive', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ word, language, mode }),
+        withLlm: true,
+      }),
+
+    checkPronunciation: (word: string, language: string, audioBlob: Blob) => {
+      const fd = new FormData()
+      fd.append('audio', audioBlob, 'speech.webm')
+      fd.append('word', word)
+      fd.append('language', language)
+      return request<{ score: number, heardText: string, heardPhonetic?: string, mistakeAnalysis?: string }>('/api/dictionary/pronunciation', {
+        method: 'POST',
+        body: fd,
+        withLlm: true,
+      })
+    },
   },
 
   activity: {
