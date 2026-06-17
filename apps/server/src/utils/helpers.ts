@@ -73,6 +73,7 @@ export function extractUniqueWordsFromHtml(html: string): string[] {
   const regex = /data-word="([^"]+)"/g
   let match
 
+  // eslint-disable-next-line no-cond-assign
   while ((match = regex.exec(html)) !== null) {
     try {
       const word = decodeURIComponent(match[1])

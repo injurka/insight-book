@@ -342,7 +342,7 @@ onMounted(() => {
 
 <style lang="scss" scoped>
 .library-page-scroll {
-  height: 100%; 
+  height: 100%;
   padding-bottom: env(safe-area-inset-bottom, 0px);
   box-sizing: border-box;
   width: 100%;

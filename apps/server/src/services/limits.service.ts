@@ -1,5 +1,4 @@
-import { and, eq, sql } from 'drizzle-orm'
-import { MAX_DAILY_TOKENS } from '../config'
+import { eq, sql } from 'drizzle-orm'
 import { db } from '../db'
 import * as schema from '../db/schema'
 import { AppError } from '../utils/errors'

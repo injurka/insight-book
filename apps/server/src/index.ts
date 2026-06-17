@@ -31,6 +31,7 @@ import {
   handleAutoFillWord,
   handleBulkDeleteDict,
   handleBulkMoveDict,
+  handleCheckPronunciation,
   handleCreateDeck,
   handleDeleteDeck,
   handleGenerateDeepDive,
@@ -41,7 +42,6 @@ import {
   handleGetWordFromUserDict,
   handleRemoveFromUserDict,
   handleSrsReview,
-  handleCheckPronunciation,
   handleUpdateDeck,
   handleUpsertToUserDict,
 } from './handlers/dictionary'
@@ -112,12 +112,10 @@ const apiRoutes = {
   // Decks
   '/api/dictionary/decks': { OPTIONS: corsOk, GET: apiWrapper(authWrapper(handleGetDecks)), POST: apiWrapper(authWrapper(handleCreateDeck)) },
   '/api/dictionary/decks/:id': { OPTIONS: corsOk, PATCH: apiWrapper(authWrapper(handleUpdateDeck)), DELETE: apiWrapper(authWrapper(handleDeleteDeck)) },
-  
 
   // Review & SRS
   '/api/dictionary/review': { OPTIONS: corsOk, GET: apiWrapper(authWrapper(handleGetReviewQueue)), POST: apiWrapper(authWrapper(handleSrsReview)) },
   '/api/dictionary/pronunciation': { OPTIONS: corsOk, POST: apiWrapper(authWrapper(handleCheckPronunciation)) },
-
 
   // --- Activity API ---
   '/api/activity/heatmap': { OPTIONS: corsOk, GET: apiWrapper(authWrapper(handleGetHeatmapData)) },

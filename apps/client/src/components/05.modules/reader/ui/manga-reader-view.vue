@@ -130,7 +130,8 @@ function getBoxStyle(box: any) {
 }
 
 function getOuterNumberStyle(box: any) {
-  if (!readerStore.currentPage?.imageWidth || !readerStore.currentPage?.imageHeight) return {}
+  if (!readerStore.currentPage?.imageWidth || !readerStore.currentPage?.imageHeight)
+    return {}
   const imgWidth = readerStore.currentPage.imageWidth || 1
   const imgHeight = readerStore.currentPage.imageHeight || 1
 
@@ -633,10 +634,10 @@ function onScroll() {
   font-weight: 600;
   font-size: 0.8rem;
   z-index: 10;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
   pointer-events: none;
   transform: translate(-50%, -50%);
-  text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
   transition: all 0.2s ease;
 }
 

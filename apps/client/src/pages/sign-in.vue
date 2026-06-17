@@ -98,7 +98,9 @@ function handleYandexLogin() {
   border: 1px solid var(--border-secondary-color);
   border-radius: 24px;
   text-align: center;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(255, 255, 255, 0.05) inset;
+  box-shadow:
+    0 20px 40px rgba(0, 0, 0, 0.15),
+    0 0 0 1px rgba(255, 255, 255, 0.05) inset;
   backdrop-filter: blur(10px);
   display: flex;
   flex-direction: column;

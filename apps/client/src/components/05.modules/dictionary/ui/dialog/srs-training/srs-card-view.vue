@@ -131,7 +131,7 @@ async function toggleRecording() {
         pronHeardPhonetic.value = res.heardPhonetic || ''
         pronMistakeAnalysis.value = res.mistakeAnalysis || ''
       }
-      catch (err) {
+      catch {
         toast.error('Не удалось проверить произношение (Проверьте API-ключи)')
       }
       finally {
@@ -143,7 +143,7 @@ async function toggleRecording() {
     isRecording.value = true
     pronScore.value = null
   }
-  catch (err) {
+  catch {
     toast.error('Доступ к микрофону запрещен')
   }
 }
@@ -161,6 +161,7 @@ const pronScoreClass = computed(() => {
 async function fetchAiExamples() {
   if (!props.card?.word)
     return
+
   isAiModalOpen.value = true
   isAiLoading.value = true
   aiData.value = null
@@ -214,9 +215,11 @@ function checkScramble() {
   const answerStr = scrambleAnswer.value.map(c => c.text).join('')
   isAnswerChecked.value = true
   isAnswerCorrect.value = answerStr === props.card!.word
+
   if (!isAnswerCorrect.value) {
     typoFeedback.value = t('dictionary.incorrectAnswer', { expected: props.card!.word })
   }
+
   setTimeout(flip, 1200)
 }
 
@@ -233,7 +236,7 @@ async function initDeepDive(mode: 'collocations' | 'radicals') {
       choiceOptions.value = res.options.map((text: string) => ({ text, isCorrect: text === res.answer })).sort(() => Math.random() - 0.5)
     }
   }
-  catch (e) {
+  catch {
     toast.error('Failed to load deep dive data')
     currentMode.value = 'standard'
   }

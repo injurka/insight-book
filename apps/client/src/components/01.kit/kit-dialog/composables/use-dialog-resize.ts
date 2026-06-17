@@ -55,8 +55,9 @@ export function useDialogResize({ dialogContentRef, x, y, isFloating, isResizabl
   function onResize(e: MouseEvent) {
     if (!isResizing || !isResizable.value)
       return
-    
-    if (resizeRaf) cancelAnimationFrame(resizeRaf)
+
+    if (resizeRaf)
+      cancelAnimationFrame(resizeRaf)
 
     resizeRaf = requestAnimationFrame(() => {
       const dx = e.clientX - startX
@@ -118,7 +119,8 @@ export function useDialogResize({ dialogContentRef, x, y, isFloating, isResizabl
 
   function stopResize() {
     isResizing = false
-    if (resizeRaf) cancelAnimationFrame(resizeRaf)
+    if (resizeRaf)
+      cancelAnimationFrame(resizeRaf)
     document.removeEventListener('mousemove', onResize)
     document.removeEventListener('mouseup', stopResize)
     document.body.style.userSelect = ''

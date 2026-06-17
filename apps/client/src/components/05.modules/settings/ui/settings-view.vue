@@ -11,7 +11,6 @@ import SettingsAiPanel from './panels/settings-ai-panel.vue'
 import SettingsBooksCachePanel from './panels/settings-books-cache-panel.vue'
 import SettingsInterfacePanel from './panels/settings-interface-panel.vue'
 import SettingsStoragePanel from './panels/settings-storage-panel.vue'
-import SettingsTokensPanel from './panels/settings-tokens-panel.vue'
 
 const cacheStore = useCacheStore()
 const router = useRouter()
@@ -38,7 +37,7 @@ onMounted(() => {
       <SettingsInterfacePanel />
       <SettingsAiPanel />
       <SettingsStoragePanel />
-      <SettingsTokensPanel />
+
       <SettingsBooksCachePanel />
     </div>
   </div>

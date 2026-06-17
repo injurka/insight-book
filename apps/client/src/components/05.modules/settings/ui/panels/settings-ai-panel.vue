@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
 import { KitBtn, KitCheckbox, KitInput, KitSelect, KitTooltip } from '~/components/01.kit'
-import { useGlobalSettingsStore } from '~/shared/store/settings.store'
 import { useAuthStore } from '~/shared/store/auth.store'
+import { useGlobalSettingsStore } from '~/shared/store/settings.store'
 import { useCustomModels } from '../../composables/use-custom-models'
 
 const { t } = useI18n()

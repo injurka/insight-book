@@ -188,13 +188,13 @@ const fontOptions = computed(() => [
           <div style="font-size: 0.8rem; color: var(--fg-secondary-color); padding: 4px 8px; line-height: 1.3;">
             {{ t('reader.parallelReadingHint') }}
           </div>
-          <KitBtn 
-            color="primary" 
-            style="margin: 4px 8px 8px 8px;" 
+          <KitBtn
+            color="primary"
+            style="margin: 4px 8px 8px 8px;"
             :disabled="analysisStore.isManualPageAnalysisActive"
             @click="startParallelAnalysis"
           >
-            <Icon icon="mdi:translate" style="margin-right: 6px;" /> 
+            <Icon icon="mdi:translate" style="margin-right: 6px;" />
             {{ analysisStore.isManualPageAnalysisActive ? t('reader.translatingPage') : t('reader.translateWholePage') }}
           </KitBtn>
         </div>

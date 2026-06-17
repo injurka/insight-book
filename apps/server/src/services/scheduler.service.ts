@@ -5,7 +5,7 @@ import { executeDump } from './dump.service'
 import { sendDailyMotivations } from './push.service'
 
 const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000
-const CHECK_INTERVAL_MS = 15 * 60 * 1000 
+const CHECK_INTERVAL_MS = 15 * 60 * 1000
 
 let isDumping = false
 

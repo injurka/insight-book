@@ -63,7 +63,7 @@ async function startSession(options: {
     await dictStore.fetchTrainingQueue({
       mode: dictStore.trainingMode,
       deckId: options.deckId,
-      difficulty: options.difficulty,
+      difficulty: [options.difficulty],
     })
 
     if (dictStore.reviewQueue.length === 0) {
@@ -113,7 +113,7 @@ watch(visible, (val) => {
     resetSession()
   }
   else {
-    dictStore.fetchTrainingQueue({ mode: 'srs', deckId: 'all', difficulty: 'all' })
+    dictStore.fetchTrainingQueue({ mode: 'srs', deckId: 'all', difficulty: ['all'] })
   }
 })
 

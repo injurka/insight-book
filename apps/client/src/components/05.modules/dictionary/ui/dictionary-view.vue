@@ -92,7 +92,7 @@ const statusOptions = computed(() => [
 ])
 
 const newDeckLangOptions = computed(() => {
-  const langs = new Set(['en', 'zh', 'ja', 'ko', 'ru', 'fr', 'de', 'es', 'it', ...store.availableLanguages])
+  const langs = new Set(['en', 'zh', 'ja', 'ru', ...store.availableLanguages])
   return Array.from(langs).map((l) => {
     const key = `library.lang${l.charAt(0).toUpperCase() + l.slice(1)}`
     const translated = t(key)

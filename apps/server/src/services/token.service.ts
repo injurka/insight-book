@@ -9,7 +9,7 @@ export function trackTokenUsage(
   inputTokens: number,
   outputTokens: number,
   inputText?: string,
-  outputText?: string
+  outputText?: string,
 ) {
   if (!userId || (!inputTokens && !outputTokens))
     return

@@ -11,6 +11,14 @@ defineOptions({
   inheritAttrs: false,
 })
 
+const props = withDefaults(defineProps<Props>(), {
+  maxWidth: 700,
+  persistent: false,
+  floating: false,
+  resizable: true,
+  minimizable: true,
+})
+
 interface Props {
   maxWidth?: number
   title?: string
@@ -22,14 +30,6 @@ interface Props {
   minimizable?: boolean
   keyTrigger?: any
 }
-
-const props = withDefaults(defineProps<Props>(), {
-  maxWidth: 700,
-  persistent: false,
-  floating: false,
-  resizable: true,
-  minimizable: true,
-})
 
 const { t } = useI18n()
 const visible = defineModel<boolean>('visible', { required: true })

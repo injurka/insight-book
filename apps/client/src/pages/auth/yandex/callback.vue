@@ -14,7 +14,8 @@ onMounted(async () => {
     localStorage.setItem('insight_token', token)
     await authStore.checkAuth()
     router.push('/')
-  } else {
+  }
+  else {
     // If no token, just redirect to sign-in
     router.push('/sign-in')
   }
@@ -23,7 +24,9 @@ onMounted(async () => {
 
 <template>
   <div class="callback-wrapper">
-    <div class="loader">Loading...</div>
+    <div class="loader">
+      Loading...
+    </div>
   </div>
 </template>
 

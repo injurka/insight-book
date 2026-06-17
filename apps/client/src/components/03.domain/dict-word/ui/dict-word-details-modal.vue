@@ -6,10 +6,10 @@ import { useI18n } from 'vue-i18n'
 import { KitBtn, KitDialog, KitSkeleton, KitTooltip } from '~/components/01.kit'
 import { useTts } from '~/shared/composables/use-tts'
 import { DIFFICULTY_SYSTEMS } from '~/shared/constants/difficulties'
-import { useAnalysisStore } from '~/shared/store/analysis.store'
-import { useDictWordExamples } from '../composables/use-dict-word-examples'
 import { BOOK_TAGS } from '~/shared/constants/tags'
+import { useAnalysisStore } from '~/shared/store/analysis.store'
 import { useGlobalSettingsStore } from '~/shared/store/settings.store'
+import { useDictWordExamples } from '../composables/use-dict-word-examples'
 
 const props = defineProps<{ word: UserDictItem | null }>()
 const visible = defineModel<boolean>('visible', { required: true })
@@ -77,9 +77,10 @@ const tagsList = computed(() => {
   if (!props.word?.tags)
     return []
   const tags = props.word.tags.split(',').map(t => t.trim()).filter(Boolean)
-  return tags.map(tag => {
+  return tags.map((tag) => {
     const match = (BOOK_TAGS as any)[tag]?.[settingsStore.appLanguage]
-    if (match) return match
+    if (match)
+      return match
     return tag.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
   })
 })

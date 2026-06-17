@@ -28,8 +28,9 @@ const floatingRef = ref<HTMLElement | null>(null)
 
 const selectedLabel = computed(() => {
   if (props.multiple && Array.isArray(props.modelValue)) {
-    if (props.modelValue.length === 0) return ''
-    return props.modelValue.map(v => {
+    if (props.modelValue.length === 0)
+      return ''
+    return props.modelValue.map((v) => {
       const opt = props.options.find(o => o.value === v)
       return opt ? opt.label : ''
     }).filter(Boolean).join(', ')
@@ -81,7 +82,8 @@ function selectOption(val: string | number) {
       next = ['all']
     }
     emit('update:modelValue', next)
-  } else {
+  }
+  else {
     emit('update:modelValue', val)
     isOpen.value = false
   }

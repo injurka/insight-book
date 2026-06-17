@@ -594,5 +594,16 @@
     "l": "Fixed expression / Phrase",
     "j": "Abbreviation",
     "eng": "Foreign word (Latin)"
+  },
+  "limits": {
+    "title": "Account Limits",
+    "subtitle": "Detailed information about available limits and their usage",
+    "generalTitle": "General Limits",
+    "aiTokensTitle": "AI Tokens",
+    "aiTokensDesc": "Used for AI operations (translation, analysis, TTS)",
+    "booksTitle": "Books",
+    "booksDesc": "Number of uploaded and saved books in the library",
+    "used": "Used",
+    "infinite": "∞"
   }
 }

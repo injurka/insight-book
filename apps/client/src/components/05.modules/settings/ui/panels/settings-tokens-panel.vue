@@ -2,10 +2,12 @@
 import { Icon } from '@iconify/vue'
 import { useI18n } from 'vue-i18n'
 import { KitSkeleton } from '~/components/01.kit'
+import { useGlobalSettingsStore } from '~/shared/store/settings.store'
 import { useTokenStats } from '../../composables/use-token-stats'
 import { formatNumber } from '../../lib/formatters'
 
 const { t } = useI18n()
+const settingsStore = useGlobalSettingsStore()
 const { isTokensLoading, totalTokens, tokensByModel, expandedModels, toggleModelExpand } = useTokenStats()
 </script>
 
@@ -19,11 +21,11 @@ const { isTokensLoading, totalTokens, tokensByModel, expandedModels, toggleModel
       <div class="total-tokens">
         <div class="stat-item">
           <span class="label">{{ t('settings.inputTokens') }}</span>
-          <span class="value text-accent">{{ formatNumber(totalTokens.input) }}</span>
+          <span class="value text-accent">{{ formatNumber(totalTokens.input, settingsStore.appLanguage) }}</span>
         </div>
         <div class="stat-item">
           <span class="label">{{ t('settings.outputTokens') }}</span>
-          <span class="value">{{ formatNumber(totalTokens.output) }}</span>
+          <span class="value">{{ formatNumber(totalTokens.output, settingsStore.appLanguage) }}</span>
         </div>
       </div>
 
@@ -33,26 +35,30 @@ const { isTokensLoading, totalTokens, tokensByModel, expandedModels, toggleModel
         <div v-for="mod in tokensByModel" :key="mod.model" class="model-row-wrapper">
           <div class="model-row" :class="{ 'is-expanded': expandedModels[mod.model] }" @click="toggleModelExpand(mod.model)">
             <div class="model-name">
-              <Icon :icon="expandedModels[mod.model] ? 'mdi:chevron-down' : 'mdi:chevron-right'" class="expand-icon" />
+              <Icon icon="mdi:chevron-right" class="expand-icon" />
               <Icon icon="mdi:robot-outline" class="bot-icon" />
               <span>{{ mod.model }}</span>
             </div>
             <div class="model-stats">
               <span class="m-in" :title="t('settings.inputTokens')">
-                <Icon icon="mdi:arrow-down" class="token-icon" /> {{ formatNumber(mod.input) }}
+                <Icon icon="mdi:arrow-down" class="token-icon" /> {{ formatNumber(mod.input, settingsStore.appLanguage) }}
               </span>
               <span class="m-out" :title="t('settings.outputTokens')">
-                <Icon icon="mdi:arrow-up" class="token-icon" /> {{ formatNumber(mod.output) }}
+                <Icon icon="mdi:arrow-up" class="token-icon" /> {{ formatNumber(mod.output, settingsStore.appLanguage) }}
               </span>
             </div>
           </div>
 
-          <div v-show="expandedModels[mod.model]" class="model-details">
-            <div v-for="act in mod.actions" :key="act.action" class="action-row">
-              <span class="action-name">{{ t(`settings.actions.${act.action}`) !== `settings.actions.${act.action}` ? t(`settings.actions.${act.action}`) : act.action }}</span>
-              <div class="action-stats">
-                <span class="m-in"><Icon icon="mdi:arrow-down" /> {{ formatNumber(act.input) }}</span>
-                <span class="m-out"><Icon icon="mdi:arrow-up" /> {{ formatNumber(act.output) }}</span>
+          <div class="model-details-container" :class="{ 'is-expanded': expandedModels[mod.model] }">
+            <div class="model-details-wrapper">
+              <div class="model-details">
+                <div v-for="act in mod.actions" :key="act.action" class="action-row">
+                  <span class="action-name">{{ t(`settings.actions.${act.action}`) !== `settings.actions.${act.action}` ? t(`settings.actions.${act.action}`) : act.action }}</span>
+                  <div class="action-stats">
+                    <span class="m-in"><Icon icon="mdi:arrow-down" /> {{ formatNumber(act.input, settingsStore.appLanguage) }}</span>
+                    <span class="m-out"><Icon icon="mdi:arrow-up" /> {{ formatNumber(act.output, settingsStore.appLanguage) }}</span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -118,8 +124,11 @@ const { isTokensLoading, totalTokens, tokensByModel, expandedModels, toggleModel
         background: var(--bg-hover-color);
       }
       &.is-expanded {
-        border-bottom: 1px dashed var(--border-secondary-color);
         background: var(--bg-primary-color);
+
+        .expand-icon {
+          transform: rotate(90deg);
+        }
       }
       .model-name {
         display: flex;
@@ -130,6 +139,7 @@ const { isTokensLoading, totalTokens, tokensByModel, expandedModels, toggleModel
         .expand-icon {
           font-size: 1.4rem;
           color: var(--fg-secondary-color);
+          transition: transform 0.2s ease;
         }
         .bot-icon {
           font-size: 1.2rem;
@@ -158,12 +168,26 @@ const { isTokensLoading, totalTokens, tokensByModel, expandedModels, toggleModel
         }
       }
     }
+    .model-details-container {
+      display: grid;
+      grid-template-rows: 0fr;
+      transition: grid-template-rows 0.3s ease;
+
+      &.is-expanded {
+        grid-template-rows: 1fr;
+      }
+    }
+    .model-details-wrapper {
+      min-height: 0;
+      overflow: hidden;
+    }
     .model-details {
       display: flex;
       flex-direction: column;
       background: var(--bg-primary-color);
       padding: 8px 16px 16px 16px;
       gap: 12px;
+      border-top: 1px dashed var(--border-secondary-color);
       .action-row {
         display: flex;
         justify-content: space-between;

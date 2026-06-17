@@ -68,9 +68,18 @@ const safePageContent = computed(() => {
   })
 })
 
+const translationMap = computed(() => {
+  const map: Record<string, string> = {}
+  for (const item of analysisStore.analysisHistory) {
+    map[item.sentence] = item.analysis.translation
+  }
+  return map
+})
+
 const leftPaneContent = computed(() => {
-  if (!safePageContent.value) return ''
-  
+  if (!safePageContent.value)
+    return ''
+
   if (settingsStore.parallelViewMode === 'interleaved') {
     const parser = new DOMParser()
     const doc = parser.parseFromString(safePageContent.value, 'text/html')
@@ -81,7 +90,7 @@ const leftPaneContent = computed(() => {
     doc.querySelectorAll('.sentence').forEach((span) => {
       const rawSent = decodeURIComponent(span.getAttribute('data-raw-sent') || '')
       const sentId = span.getAttribute('data-sent-id') || ''
-      
+
       if (map[rawSent] && !translatedSentIds.has(sentId)) {
         const blurClass = settingsStore.parallelBlurTranslation ? 'is-blurred' : ''
         const translationHtml = `<span class="interleaved-translation ${blurClass}" onclick="this.classList.remove('is-blurred')">${map[rawSent]}</span>`
@@ -91,16 +100,8 @@ const leftPaneContent = computed(() => {
     })
     return doc.body.innerHTML
   }
-  
-  return safePageContent.value
-})
 
-const translationMap = computed(() => {
-  const map: Record<string, string> = {}
-  for (const item of analysisStore.analysisHistory) {
-    map[item.sentence] = item.analysis.translation
-  }
-  return map
+  return safePageContent.value
 })
 
 const translatedPageContent = computed(() => {
@@ -355,7 +356,7 @@ function onScroll(e: Event) {
 
 <style lang="scss" scoped>
 .reader-view {
-  height: 100%; 
+  height: 100%;
   padding-bottom: env(safe-area-inset-bottom, 0px);
   overflow-y: auto;
   overflow-x: hidden;
@@ -524,8 +525,10 @@ function onScroll(e: Event) {
       filter: blur(5px);
       cursor: pointer;
       opacity: 0.7;
-      transition: filter 0.2s, opacity 0.2s;
-      
+      transition:
+        filter 0.2s,
+        opacity 0.2s;
+
       &:hover {
         opacity: 1;
       }
@@ -536,8 +539,10 @@ function onScroll(e: Event) {
       filter: blur(5px);
       cursor: pointer;
       opacity: 0.7;
-      transition: filter 0.2s, opacity 0.2s;
-      
+      transition:
+        filter 0.2s,
+        opacity 0.2s;
+
       &:hover {
         opacity: 1;
       }

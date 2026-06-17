@@ -54,16 +54,27 @@ export function useLibraryDisplay() {
       if (isSyncing.value)
         return
 
-      const query: Record<string, string | undefined> = { ...route.query }
+      const query: Record<string, any> = { ...route.query }
 
       if (view === 'reading-now')
-        delete query.view; else query.view = view
+        delete query.view
+      else
+        query.view = view
+
       if (!folder)
-        delete query.folder; else query.folder = folder
+        delete query.folder
+      else
+        query.folder = folder
+
       if (!q)
-        delete query.q; else query.q = q
+        delete query.q
+      else
+        query.q = q
+
       if (lang === 'all')
-        delete query.lang; else query.lang = lang
+        delete query.lang
+      else
+        query.lang = lang
 
       router.push({ query }).catch(() => { })
     },

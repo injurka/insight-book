@@ -325,8 +325,8 @@ export async function analyzeBatch(userId: number, bookId: number, items: BatchA
 
   const cachedDocs = hashesToFind.length > 0
     ? await db.query.llmCache.findMany({
-      where: inArray(schema.llmCache.sentenceHash, hashesToFind),
-    })
+        where: inArray(schema.llmCache.sentenceHash, hashesToFind),
+      })
     : []
 
   const cacheMap = new Map(cachedDocs.map(d => [d.sentenceHash, d.analysis]))

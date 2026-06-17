@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Icon } from '@iconify/vue'
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { KitBtn, KitDropdown, KitPrompt, KitSelect } from '~/components/01.kit'
@@ -27,6 +27,34 @@ const { theme, toggleTheme } = useChangeTheme()
 const { t } = useI18n()
 const settingsStore = useGlobalSettingsStore()
 const { trackEvent } = useUmami()
+
+const tokenPercent = computed(() => {
+  const used = authStore.user?.usedTokens ?? 0
+  const limit = authStore.user?.tokenLimit
+  if (limit === null || limit === undefined)
+    return 0
+  if (limit === 0)
+    return 100
+  return Math.min(100, Math.round((used / limit) * 100))
+})
+
+const bookPercent = computed(() => {
+  const used = authStore.user?.usedBooks ?? 0
+  const limit = authStore.user?.bookLimit
+  if (limit === null || limit === undefined)
+    return 0
+  if (limit === 0)
+    return 100
+  return Math.min(100, Math.round((used / limit) * 100))
+})
+
+function getPercentClass(percentage: number) {
+  if (percentage < 70)
+    return 'is-success'
+  if (percentage <= 90)
+    return 'is-warning'
+  return 'is-error'
+}
 
 const appLangOptions = [
   { label: 'Русский', value: 'ru' },
@@ -68,6 +96,10 @@ function openDictionary() {
 
 function openSettings() {
   router.push(AppRoutePaths.Settings)
+}
+
+function openLimits() {
+  router.push(AppRoutePaths.Limits)
 }
 
 function handleSignIn() {
@@ -185,18 +217,32 @@ async function handleUsernameSubmit(newUsername: string) {
               </div>
             </div>
 
-            <div v-if="authStore.user?.role !== 'admin'" class="limits-section">
-              <!-- ИИ Токены -->
-              <div class="limit-item">
-                <span class="limit-title">{{ t('globalActions.aiTokens') }}</span>
-                <span class="limit-value">{{ formatNumber(authStore.user?.usedTokens) }} / {{ authStore.user?.tokenLimit ? formatNumber(authStore.user?.tokenLimit) : '∞' }}</span>
+            <div v-if="authStore.user?.role !== 'admin'" class="limits-section" @click="openLimits">
+              <div class="limits-content">
+                <!-- ИИ Токены -->
+                <div class="limit-item">
+                  <div class="limit-row">
+                    <span class="limit-title">{{ t('globalActions.aiTokens') }}</span>
+                    <span class="limit-value">{{ formatNumber(authStore.user?.usedTokens) }} / {{ authStore.user?.tokenLimit !== null && authStore.user?.tokenLimit !== undefined ? formatNumber(authStore.user?.tokenLimit) : '∞' }}</span>
+                  </div>
+                  <div v-if="authStore.user?.tokenLimit !== null && authStore.user?.tokenLimit !== undefined" class="limit-progress-track">
+                    <div class="limit-progress-bar" :style="{ width: `${tokenPercent}%` }" :class="getPercentClass(tokenPercent)" />
+                  </div>
+                </div>
+
+                <!-- Лимит книг -->
+                <div class="limit-item">
+                  <div class="limit-row">
+                    <span class="limit-title">{{ t('globalActions.booksLimit') }}</span>
+                    <span class="limit-value">{{ authStore.user?.usedBooks || 0 }} / {{ authStore.user?.bookLimit !== null && authStore.user?.bookLimit !== undefined ? authStore.user?.bookLimit : '∞' }}</span>
+                  </div>
+                  <div v-if="authStore.user?.bookLimit !== null && authStore.user?.bookLimit !== undefined" class="limit-progress-track">
+                    <div class="limit-progress-bar" :style="{ width: `${bookPercent}%` }" :class="getPercentClass(bookPercent)" />
+                  </div>
+                </div>
               </div>
 
-              <!-- Лимит книг -->
-              <div class="limit-item">
-                <span class="limit-title">{{ t('globalActions.booksLimit') }}</span>
-                <span class="limit-value">{{ authStore.user?.usedBooks || 0 }} / {{ authStore.user?.bookLimit ? authStore.user?.bookLimit : '∞' }}</span>
-              </div>
+              <Icon icon="mdi:chevron-right" class="limits-chevron" />
             </div>
           </div>
 
@@ -386,25 +432,52 @@ async function handleUsernameSubmit(newUsername: string) {
 
 .limits-section {
   display: flex;
-  flex-direction: column;
-  gap: 8px;
+  align-items: center;
+  gap: 12px;
+  background-color: var(--bg-tertiary-color);
+  padding: 4px 6px;
+  border-radius: 8px;
+  border: 1px solid var(--border-secondary-color);
+  cursor: pointer;
+  transition:
+    border-color 0.2s,
+    background-color 0.2s;
+
+  &:hover {
+    border-color: var(--border-primary-color);
+    background-color: var(--bg-hover-color);
+
+    .limits-chevron {
+      color: var(--fg-accent-color);
+    }
+  }
+
+  .limits-content {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    flex-grow: 1;
+    min-width: 0;
+  }
+
+  .limits-chevron {
+    font-size: 1.25rem;
+    color: var(--fg-secondary-color);
+    transition: color 0.2s;
+    flex-shrink: 0;
+  }
 
   .limit-item {
     display: flex;
-    justify-content: space-between;
-    align-items: center;
-    background-color: var(--bg-tertiary-color);
-    padding: 6px;
-    border-radius: 8px;
-    border: 1px solid var(--border-secondary-color);
+    flex-direction: column;
+    gap: 4px;
     font-size: 0.85rem;
-    transition:
-      border-color 0.2s,
-      background-color 0.2s;
 
-    &:hover {
-      border-color: var(--border-primary-color);
-      background-color: var(--bg-hover-color);
+    .limit-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
     }
 
     .limit-title {
@@ -417,6 +490,32 @@ async function handleUsernameSubmit(newUsername: string) {
       font-weight: 600;
       color: var(--fg-primary-color);
       font-variant-numeric: tabular-nums;
+    }
+
+    .limit-progress-track {
+      height: 4px;
+      background-color: var(--border-secondary-color);
+      border-radius: 2px;
+      overflow: hidden;
+      width: 100%;
+    }
+
+    .limit-progress-bar {
+      height: 100%;
+      border-radius: 2px;
+      transition:
+        width 0.3s ease,
+        background-color 0.3s ease;
+
+      &.is-success {
+        background-color: var(--fg-success-color);
+      }
+      &.is-warning {
+        background-color: var(--fg-warning-color);
+      }
+      &.is-error {
+        background-color: var(--fg-error-color);
+      }
     }
   }
 }

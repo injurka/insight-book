@@ -154,11 +154,11 @@ export async function handleGetBookInfo(req: Request, userId: number | null): Pr
   const { progresses, stats, ...bookData } = book
   const statsResult = stats
     ? {
-      ...stats,
-      tags: stats.tags ? JSON.parse(stats.tags) : [],
-      posDistribution: stats.posDistribution ? JSON.parse(stats.posDistribution) : null,
-      topWords: stats.topWords ? JSON.parse(stats.topWords) : null,
-    }
+        ...stats,
+        tags: stats.tags ? JSON.parse(stats.tags) : [],
+        posDistribution: stats.posDistribution ? JSON.parse(stats.posDistribution) : null,
+        topWords: stats.topWords ? JSON.parse(stats.topWords) : null,
+      }
     : null
 
   return json({

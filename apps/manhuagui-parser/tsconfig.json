@@ -2,26 +2,26 @@
   "compilerOptions": {
     /* Базовые настройки */
     "target": "ESNext",
-    "module": "ESNext",
-    "moduleResolution": "Bundler",
     "lib": [
       "ESNext",
       "DOM"
     ],
+    "rootDir": "./src",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "resolveJsonModule": true,
+    "strict": true,
+    "strictFunctionTypes": true,
+    "strictNullChecks": true,
+    "noImplicitAny": true,
     /* Директории */
     "outDir": "./dist",
-    "rootDir": "./src",
-    "strict": true,
-    "noImplicitAny": true,
-    "strictNullChecks": true,
-    "strictFunctionTypes": true,
+    "allowSyntheticDefaultImports": true,
     /* Интероп и оптимизация */
     "esModuleInterop": true,
-    "allowSyntheticDefaultImports": true,
-    "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "resolveJsonModule": true,
-    "isolatedModules": true
+    "isolatedModules": true,
+    "skipLibCheck": true
   },
   "include": [
     "src/**/*"

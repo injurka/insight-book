@@ -594,5 +594,16 @@
     "l": "习用语",
     "j": "简称略语",
     "eng": "外语 (拉丁字母)"
+  },
+  "limits": {
+    "title": "账户额度",
+    "subtitle": "可用额度及使用情况的详细信息",
+    "generalTitle": "常规额度",
+    "aiTokensTitle": "AI Token",
+    "aiTokensDesc": "用于 AI 操作 (翻译、分析、TTS)",
+    "booksTitle": "图书",
+    "booksDesc": "图书馆中已上传和保存的图书数量",
+    "used": "已使用",
+    "infinite": "∞"
   }
 }

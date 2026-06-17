@@ -55,6 +55,11 @@ export const router = createRouter({
       name: AppRouteNames.Settings,
       component: () => import('~/pages/settings.vue'),
     },
+    {
+      path: '/limits',
+      name: AppRouteNames.Limits,
+      component: () => import('~/pages/limits.vue'),
+    },
   ],
 })
 
@@ -71,7 +76,7 @@ router.beforeEach(async (to) => {
     return { name: AppRouteNames.Home }
   }
 
-  const protectedRoutes = [AppRouteNames.Dictionary, AppRouteNames.Reader, AppRouteNames.Settings]
+  const protectedRoutes = [AppRouteNames.Dictionary, AppRouteNames.Reader, AppRouteNames.Settings, AppRouteNames.Limits]
   if (!authStore.user && !authStore.isSingleMode && protectedRoutes.includes(to.name as AppRouteNames)) {
     return { name: AppRouteNames.SignIn }
   }

@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 import { and, asc, eq, lte } from 'drizzle-orm'
 import webpush from 'web-push'
 import { LLM_API_KEY, LLM_API_URL, LLM_MODEL, VAPID_PRIVATE_KEY, VAPID_PUBLIC_KEY, VAPID_SUBJECT } from '../config'
@@ -52,7 +53,9 @@ function getTargetUtcTimesForDate(dateObj: Date, user: any): number[] {
 
   const parts = formatter.formatToParts(dateObj)
   const p: Record<string, string> = {}
-  parts.forEach(part => { p[part.type] = part.value })
+  parts.forEach((part) => {
+    p[part.type] = part.value
+  })
 
   const dateStr = `${p.year}-${p.month}-${p.day}`
   const currentLocalMs = (Number(p.hour) * 60 * 60 + Number(p.minute) * 60 + Number(p.second)) * 1000
@@ -145,7 +148,7 @@ export async function sendDailyMotivations(customMessage?: string) {
       continue
     }
 
-    let messageTitle = 'InsightBook'
+    const messageTitle = 'InsightBook'
     let messageBody = customMessage || 'Время изучать языки!'
     let targetUrl = '/'
 

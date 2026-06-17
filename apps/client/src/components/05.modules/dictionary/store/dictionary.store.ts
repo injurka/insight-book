@@ -81,17 +81,18 @@ export const useDictionaryStore = defineStore('dictionary', () => {
       })
 
       if (!opts.difficulty.includes('all') && opts.difficulty.length > 0) {
-        queue = queue.filter(w => {
-            return opts.difficulty.some(d => {
-                if (d === 'none') return !w.difficulty
-                if (d.startsWith('level_')) {
-                   const targetLevel = Number.parseInt(d.split('_')[1], 10)
-                   const sys = DIFFICULTY_SYSTEMS[w.language] || DIFFICULTY_SYSTEMS.default
-                   const diffDef = sys.find(s => s.value === w.difficulty)
-                   return diffDef && diffDef.level === targetLevel
-                }
-                return w.difficulty === d
-            })
+        queue = queue.filter((w) => {
+          return opts.difficulty.some((d) => {
+            if (d === 'none')
+              return !w.difficulty
+            if (d.startsWith('level_')) {
+              const targetLevel = Number.parseInt(d.split('_')[1], 10)
+              const sys = DIFFICULTY_SYSTEMS[w.language] || DIFFICULTY_SYSTEMS.default
+              const diffDef = sys.find(s => s.value === w.difficulty)
+              return diffDef && diffDef.level === targetLevel
+            }
+            return w.difficulty === d
+          })
         })
       }
 
@@ -143,7 +144,8 @@ export const useDictionaryStore = defineStore('dictionary', () => {
       decks.value = decks.value.filter(d => d.id !== id)
       if (selectedDeckId.value.includes(id)) {
         selectedDeckId.value = selectedDeckId.value.filter(d => d !== id)
-        if (selectedDeckId.value.length === 0) selectedDeckId.value = ['all']
+        if (selectedDeckId.value.length === 0)
+          selectedDeckId.value = ['all']
       }
       words.value.forEach((w) => {
         if (w.deckId === id)
@@ -189,17 +191,18 @@ export const useDictionaryStore = defineStore('dictionary', () => {
     }
 
     if (!selectedDifficulty.value.includes('all') && selectedDifficulty.value.length > 0) {
-      result = result.filter(w => {
-         return selectedDifficulty.value.some(d => {
-             if (d === 'none') return !w.difficulty
-             if (d.startsWith('level_')) {
-               const targetLevel = Number.parseInt(d.split('_')[1], 10)
-               const sys = DIFFICULTY_SYSTEMS[w.language] || DIFFICULTY_SYSTEMS.default
-               const diffDef = sys.find(s => s.value === w.difficulty)
-               return diffDef && diffDef.level === targetLevel
-             }
-             return w.difficulty === d
-         })
+      result = result.filter((w) => {
+        return selectedDifficulty.value.some((d) => {
+          if (d === 'none')
+            return !w.difficulty
+          if (d.startsWith('level_')) {
+            const targetLevel = Number.parseInt(d.split('_')[1], 10)
+            const sys = DIFFICULTY_SYSTEMS[w.language] || DIFFICULTY_SYSTEMS.default
+            const diffDef = sys.find(s => s.value === w.difficulty)
+            return diffDef && diffDef.level === targetLevel
+          }
+          return w.difficulty === d
+        })
       })
     }
 
