@@ -1,7 +1,8 @@
 /* eslint-disable no-console */
 import { and, asc, eq, lte } from 'drizzle-orm'
 import webpush from 'web-push'
-import { LLM_API_KEY, LLM_API_URL, LLM_MODEL, VAPID_PRIVATE_KEY, VAPID_PUBLIC_KEY, VAPID_SUBJECT } from '../config'
+import { getAiConfig } from '~/utils/ai-config'
+import { VAPID_PRIVATE_KEY, VAPID_PUBLIC_KEY, VAPID_SUBJECT } from '../config'
 import { db } from '../db'
 import * as schema from '../db/schema'
 import { getGeneralPushPrompt, getWordPushPrompt } from '../prompts'
@@ -138,7 +139,9 @@ export async function sendDailyMotivations(customMessage?: string) {
 
   const now = new Date()
   const nowIso = now.toISOString()
-  const config = { url: LLM_API_URL, key: LLM_API_KEY, model: LLM_MODEL }
+
+  const aiConfig = getAiConfig()
+  const config = { url: aiConfig.llm.url, key: aiConfig.llm.key, model: aiConfig.llm.model }
 
   for (const [userId, subs] of userSubsMap.entries()) {
     const user = subs[0].user

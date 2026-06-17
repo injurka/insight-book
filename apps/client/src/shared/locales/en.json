@@ -81,6 +81,7 @@
     "cacheTtsWordsDesc": "Generate audio for each word"
   },
   "settings": {
+    "totalCost": "Estimated Cost (USD)",
     "pushNotSupported": "Push notifications are not supported in this browser or the app is not added to the home screen (iOS).",
     "pushDenied": "Notifications are blocked. Please allow them in your browser settings.",
     "pushKeyError": "Failed to retrieve the server key for push notifications.",

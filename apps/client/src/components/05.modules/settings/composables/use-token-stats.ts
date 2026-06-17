@@ -5,11 +5,12 @@ export interface ModelStats {
   model: string
   input: number
   output: number
-  actions: { action: string, input: number, output: number }[]
+  cost: number
+  actions: { action: string, input: number, output: number, cost: number }[]
 }
 
 export function useTokenStats() {
-  const tokensData = ref<{ stats: any[], daily: any[] } | null>(null)
+  const tokensData = ref<{ stats: any[], daily: any[], totalCost: number } | null>(null)
   const isTokensLoading = ref(true)
   const expandedModels = ref<Record<string, boolean>>({})
 
@@ -40,6 +41,8 @@ export function useTokenStats() {
     }, { input: 0, output: 0 })
   })
 
+  const totalCost = computed(() => tokensData.value?.totalCost || 0)
+
   const tokensByModel = computed<ModelStats[]>(() => {
     if (!tokensData.value)
       return []
@@ -47,15 +50,17 @@ export function useTokenStats() {
 
     tokensData.value.stats.forEach((s) => {
       if (!map.has(s.model)) {
-        map.set(s.model, { model: s.model, input: 0, output: 0, actions: [] })
+        map.set(s.model, { model: s.model, input: 0, output: 0, cost: 0, actions: [] })
       }
       const existing = map.get(s.model)!
       existing.input += s.inputTokens
       existing.output += s.outputTokens
+      existing.cost += s.cost || 0
       existing.actions.push({
         action: s.action,
         input: s.inputTokens,
         output: s.outputTokens,
+        cost: s.cost || 0
       })
     })
 
@@ -74,6 +79,7 @@ export function useTokenStats() {
   return {
     isTokensLoading,
     totalTokens,
+    totalCost,
     tokensByModel,
     expandedModels,
     toggleModelExpand,

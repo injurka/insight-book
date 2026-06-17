@@ -167,16 +167,21 @@ export interface UserDictItem {
   encounters?: WordEncounter[]
 }
 
-// РАСШИРЕННЫЙ ИНТЕРФЕЙС
 export interface LlmConfig {
   url: string
   key?: string
   model?: string
   fallbackModel?: string
   ttsModel?: string
+  ttsUrl?: string
+  ttsKey?: string
   sttModel?: string
+  sttUrl?: string
+  sttKey?: string
   ocrModel?: string
   ocrRefinementModel?: string
+  ocrUrl?: string
+  ocrKey?: string
   isAggregator?: boolean
 }
 

@@ -31,19 +31,7 @@ services:
       - DB_PATH=/db/insight-book.sqlite
       - DICTS_PATH=/db/dicts
       - UPLOADS_PATH=/uploads
-      - LLM_API_KEY=${LLM_API_KEY}
-      - LLM_API_URL=${LLM_API_URL:-https://aihubmix.com/v1}
-      - LLM_MODEL=${LLM_MODEL:-gemini-3.1-flash-lite}
-      - LLM_FALLBACK_MODEL=${LLM_FALLBACK_MODEL:-gpt-4o-mini}
-      # Настройки моделей аудио (TTS / STT)
-      - TTS_API_KEY=${TTS_API_KEY}
-      - TTS_MODEL=${TTS_MODEL:-gpt-4o-mini-tts}
-      - STT_MODEL=${STT_MODEL:-whisper-1}
-      # Настройки моделей распознавания (OCR)
-      - OCR_API_KEY=${OCR_API_KEY}
-      - OCR_API_URL=${OCR_API_URL}
-      - OCR_MODEL=${OCR_MODEL:-glm-ocr}
-      - OCR_REFINEMENT_MODEL=${OCR_REFINEMENT_MODEL:-gemini-3.1-flash-lite}
+      # Настройки ИИ моделей и API-ключи теперь загружаются динамически из /configs/ai-config.json
       # Динамические переменные авторизации
       - AUTH_MODE=${AUTH_MODE:-single}
       - JWT_SECRET=${JWT_SECRET:-super-secret-key}
@@ -59,6 +47,7 @@ services:
     volumes:
       - ./db:/db
       - ./uploads:/uploads
+      - ./configs:/configs
     networks:
       - trip-net
     labels:

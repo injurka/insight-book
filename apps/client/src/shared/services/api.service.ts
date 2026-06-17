@@ -285,7 +285,7 @@ export const api = {
 
   activity: {
     getHeatmap: () => request<{ date: string, count: number }[]>('/api/activity/heatmap'),
-    getTokens: () => request<{ stats: { action: string, model: string, inputTokens: number, outputTokens: number }[], daily: { date: string, inputTokens: number, outputTokens: number }[] }>('/api/activity/tokens'),
+    getTokens: () => request<{ stats: { action: string, model: string, inputTokens: number, outputTokens: number, cost?: number }[], daily: { date: string, inputTokens: number, outputTokens: number, cost?: number }[], totalCost: number }>('/api/activity/tokens'),
   },
 
   opds: {

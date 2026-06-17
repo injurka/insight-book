@@ -23,3 +23,15 @@ export function formatNumber(num: number | undefined | null, locale = 'ru-RU'): 
     return '0'
   return new Intl.NumberFormat(locale).format(num)
 }
+
+export function formatCurrency(num: number | undefined | null): string {
+  if (num === undefined || num === null || num === 0)
+    return '$0.00'
+
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: num < 0.01 ? 4 : 2,
+  }).format(num)
+}

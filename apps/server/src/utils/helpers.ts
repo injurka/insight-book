@@ -1,15 +1,6 @@
 import type { LlmConfig } from '~/types'
-import {
-  CORS_HEADERS,
-  LLM_API_KEY,
-  LLM_API_URL,
-  LLM_FALLBACK_MODEL,
-  LLM_MODEL,
-  OCR_MODEL,
-  OCR_REFINEMENT_MODEL,
-  STT_MODEL,
-  TTS_MODEL,
-} from '~/config'
+import { CORS_HEADERS } from '~/config'
+import { getAiConfig } from './ai-config'
 
 export function hashTtsText(text: string, voice: string): string {
   const hasher = new Bun.CryptoHasher('sha256')
@@ -34,10 +25,10 @@ export function hashSentence(sentence: string, language: string, targetLang: str
   return hasher.digest('hex')
 }
 
-// ОБНОВЛЕННАЯ ФУНКЦИЯ КОНФИГА
 export function extractLlmConfig(req: Request): LlmConfig {
   const customUrl = req.headers.get('x-custom-llm-url')
   const customModel = req.headers.get('x-custom-llm-model')
+  const aiConfig = getAiConfig()
 
   if (customUrl && customModel) {
     return {
@@ -45,26 +36,34 @@ export function extractLlmConfig(req: Request): LlmConfig {
       key: req.headers.get('x-custom-llm-key') || '',
       model: customModel,
       fallbackModel: customModel,
-      // При кастомном LLM (например Ollama), скорее всего у нас нет выделенных TTS/STT,
-      // но если клиент шлет запросы на совместимый с OpenAI агрегатор (OneAPI, LiteLLM),
-      // то стандартные имена моделей сработают.
       ttsModel: 'tts-1',
+      ttsUrl: customUrl,
+      ttsKey: req.headers.get('x-custom-llm-key') || '',
       sttModel: 'whisper-1',
-      // OCR пытаемся сделать той же Vision-моделью, которую указал юзер
+      sttUrl: customUrl,
+      sttKey: req.headers.get('x-custom-llm-key') || '',
       ocrModel: customModel,
       ocrRefinementModel: customModel,
+      ocrUrl: customUrl,
+      ocrKey: req.headers.get('x-custom-llm-key') || '',
     }
   }
 
   return {
-    url: LLM_API_URL,
-    key: LLM_API_KEY,
-    model: LLM_MODEL,
-    fallbackModel: LLM_FALLBACK_MODEL,
-    ttsModel: TTS_MODEL,
-    sttModel: STT_MODEL,
-    ocrModel: OCR_MODEL,
-    ocrRefinementModel: OCR_REFINEMENT_MODEL,
+    url: aiConfig.llm.url,
+    key: aiConfig.llm.key,
+    model: aiConfig.llm.model,
+    fallbackModel: aiConfig.llm.fallbackModel,
+    ttsModel: aiConfig.tts.model,
+    ttsUrl: aiConfig.tts.url,
+    ttsKey: aiConfig.tts.key,
+    sttModel: aiConfig.stt.model,
+    sttUrl: aiConfig.stt.url,
+    sttKey: aiConfig.stt.key,
+    ocrModel: aiConfig.ocr.model,
+    ocrRefinementModel: aiConfig.ocr.refinementModel,
+    ocrUrl: aiConfig.ocr.url,
+    ocrKey: aiConfig.ocr.key,
   }
 }
 

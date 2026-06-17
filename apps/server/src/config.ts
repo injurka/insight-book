@@ -16,23 +16,6 @@ export const UPLOADS_PATH = process.env.UPLOADS_PATH || path.resolve(process.cwd
 export const BOOKS_PATH = path.join(UPLOADS_PATH, 'books')
 export const COVERS_PATH = path.join(UPLOADS_PATH, 'covers')
 
-// --- AI & External APIs ---
-export const LLM_API_KEY = process.env.LLM_API_KEY || ''
-export const LLM_API_URL = process.env.LLM_API_URL || 'https://aihubmix.com/v1'
-export const LLM_MODEL = process.env.LLM_MODEL || 'gemini-3.1-flash-lite'
-export const LLM_FALLBACK_MODEL = process.env.LLM_FALLBACK_MODEL || 'gpt-4o-mini'
-
-// --- OCR Specific APIs ---
-export const OCR_API_URL = process.env.OCR_API_URL || LLM_API_URL
-export const OCR_API_KEY = process.env.OCR_API_KEY || LLM_API_KEY
-export const OCR_MODEL = process.env.OCR_MODEL || 'glm-ocr'
-export const OCR_REFINEMENT_MODEL = process.env.OCR_REFINEMENT_MODEL || 'gemini-3.1-flash-lite'
-
-// --- Audio Specific APIs (TTS / STT) ---
-export const TTS_API_KEY = process.env.TTS_API_KEY || LLM_API_KEY
-export const TTS_MODEL = process.env.TTS_MODEL || 'gpt-4o-mini-tts'
-export const STT_MODEL = process.env.STT_MODEL || 'whisper-1'
-
 // -- Default ADMIN user ---
 export const ADMIN_USERNAME = process.env.ADMIN_USERNAME || 'admin'
 export const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin'

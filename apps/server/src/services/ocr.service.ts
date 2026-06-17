@@ -40,10 +40,9 @@ export async function recognizeMangaPage(userId: number, base64Image: string, la
 }
 
 async function getOcrLayout(userId: number, imageUrl: string, language: string, textDirection: string | undefined, config: LlmConfig): Promise<OcrBlock[]> {
-  const apiUrl = config.url
-  const apiKey = config.key
-  // === ИСПОЛЬЗУЕМ ЧИСТЫЙ КОНФИГ ===
-  const model = config.ocrModel || 'glm-ocr'
+  const apiUrl = config.ocrUrl || config.url
+  const apiKey = config.ocrKey || config.key
+  const model = config.ocrModel!
 
   if (!apiUrl)
     throw new AppError(500, 'API URL для OCR не настроен')
@@ -187,10 +186,9 @@ async function refineOcrText(userId: number, base64Image: string, blocks: OcrBlo
       }
     }
 
-    const apiUrl = config.url
-    const apiKey = config.key
-    // === ИСПОЛЬЗУЕМ ЧИСТЫЙ КОНФИГ ===
-    const model = config.ocrRefinementModel || 'gemini-3.1-flash-lite'
+    const apiUrl = config.ocrUrl || config.url
+    const apiKey = config.ocrKey || config.key
+    const model = config.ocrRefinementModel!
 
     if (!apiUrl)
       throw new AppError(500, 'API URL для OCR Refinement не настроен')

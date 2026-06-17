@@ -31,3 +31,4 @@ docker/vault/**
 .venv
 db/**
 uploads/**
+configs/**

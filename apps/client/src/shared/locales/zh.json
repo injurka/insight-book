@@ -81,6 +81,7 @@
     "stop": "停止"
   },
   "settings": {
+    "totalCost": "预估成本 (USD)",
     "pushNotSupported": "此浏览器不支持推送通知，或者应用未添加到主屏幕（iOS）。",
     "pushDenied": "通知已被阻止。请在浏览器设置中允许通知。",
     "pushKeyError": "无法获取推送通知的服务器密钥。",

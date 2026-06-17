@@ -4,7 +4,6 @@ import { pinyin } from 'pinyin-pro'
 import { LlmAnalysisSchema } from '~/types/schemas'
 import { getVoiceForLanguage, hashSentence, hashTtsText, parseLlmJson } from '~/utils/helpers'
 import { callLlmApi } from '~/utils/llm-api'
-import { LLM_API_KEY, LLM_API_URL, LLM_MODEL, TTS_API_KEY } from '../config'
 import { db } from '../db'
 import * as schema from '../db/schema'
 import {
@@ -325,8 +324,8 @@ export async function analyzeBatch(userId: number, bookId: number, items: BatchA
 
   const cachedDocs = hashesToFind.length > 0
     ? await db.query.llmCache.findMany({
-        where: inArray(schema.llmCache.sentenceHash, hashesToFind),
-      })
+      where: inArray(schema.llmCache.sentenceHash, hashesToFind),
+    })
     : []
 
   const cacheMap = new Map(cachedDocs.map(d => [d.sentenceHash, d.analysis]))
@@ -423,8 +422,8 @@ export async function generateTts(userId: number, text: string, language: string
   if (!normalizedText)
     throw new AppError(400, 'Текст не передан')
 
-  const ttsUrl = config.url === LLM_API_URL ? LLM_API_URL : config.url
-  const ttsKey = config.key === LLM_API_KEY && TTS_API_KEY ? TTS_API_KEY : config.key
+  const ttsUrl = config.ttsUrl || config.url
+  const ttsKey = config.ttsKey || config.key
   const ttsModel = config.ttsModel!
 
   if (!ttsUrl)
@@ -530,7 +529,7 @@ export async function checkPronunciationAudio(userId: number, word: string, lang
   if (!config.url)
     throw new AppError(500, 'LLM API не настроен')
 
-  let apiUrl = config.url
+  let apiUrl = config.sttUrl || config.url
   if (apiUrl.endsWith('/chat/completions')) {
     apiUrl = apiUrl.replace(/\/chat\/completions$/, '/audio/transcriptions')
   }
@@ -542,6 +541,7 @@ export async function checkPronunciationAudio(userId: number, word: string, lang
   }
 
   const sttModel = config.sttModel!
+  const sttKey = config.sttKey || config.key
 
   const fd = new FormData()
   fd.append('file', audioFile)
@@ -555,7 +555,7 @@ export async function checkPronunciationAudio(userId: number, word: string, lang
   try {
     const response = await fetch(apiUrl, {
       method: 'POST',
-      headers: config.key ? { Authorization: `Bearer ${config.key}` } : {},
+      headers: sttKey ? { Authorization: `Bearer ${sttKey}` } : {},
       body: fd,
       signal: AbortSignal.timeout(30000),
     })
@@ -594,7 +594,7 @@ Return ONLY valid JSON:
           },
           { role: 'user', content: `Expected word: ${word}\nHeard by STT: ${heardText}` },
         ]
-        const llmModel = config.model || LLM_MODEL
+        const llmModel = config.model!
         const aiRes = await callLlmApi(llmModel, messages, 0.2, AbortSignal.timeout(15000), config)
         const parsed = parseLlmJson<{ score?: number, heard_phonetic?: string, mistake_analysis?: string }>(aiRes.text)
 
