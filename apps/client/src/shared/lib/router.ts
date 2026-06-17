@@ -16,6 +16,16 @@ export const router = createRouter({
       component: () => import('~/pages/sign-in.vue'),
     },
     {
+      path: '/api/auth/yandex/callback',
+      name: 'YandexApiCallbackProxy',
+      component: () => import('~/pages/auth/yandex/callback.vue'),
+      beforeEnter: (to) => {
+        const BASE_API_URL = import.meta.env.VITE_API_URL || 'https://insight-api.trip-scheduler.ru'
+        window.location.href = `${BASE_API_URL}${to.fullPath}`
+        return false
+      },
+    },
+    {
       path: '/auth/yandex/callback',
       name: AppRouteNames.YandexCallback,
       component: () => import('~/pages/auth/yandex/callback.vue'),
