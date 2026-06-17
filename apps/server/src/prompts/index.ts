@@ -1,10 +1,9 @@
 import { ALLOWED_TAG_KEYS } from '../constants/tags'
+import { normalizeLanguageCode } from '../utils/helpers'
 
-/**
- * Возвращает название языка на английском для лучшего понимания LLM-моделями
- */
 export function getLangName(code?: string): string {
-  if (!code)
+  const normalized = normalizeLanguageCode(code)
+  if (!normalized)
     return 'Foreign'
 
   const map: Record<string, string> = {
@@ -14,12 +13,9 @@ export function getLangName(code?: string): string {
     ru: 'Russian',
   }
 
-  return map[code.toLowerCase()] || 'Foreign'
+  return map[normalized] || normalized.toUpperCase() || 'Foreign'
 }
 
-/**
- * Генерирует промпт для OCR с учетом целевого языка и направления чтения
- */
 export function getOcrPrompt(language: string, textDirection?: string | null): string {
   const langName = getLangName(language)
 
@@ -56,9 +52,6 @@ ${layoutHint}
 Return only the extracted text and its structural layout.`
 }
 
-/**
- * Генерирует промпт для уточнения OCR-распознавания (Refinement Pass)
- */
 export function getOcrRefinementPrompt(language: string, imageCount: number, textDirection?: string | null): string {
   const langName = getLangName(language)
 
@@ -86,23 +79,37 @@ CRITICAL INSTRUCTIONS:
 3. Ignore noise or partial characters at the edges of the crop.
 4. Output EXACTLY a JSON array of strings in the SAME ORDER as the images provided. Do not include markdown formatting (\`\`\`json). Just the raw JSON array.
 5. The length of the JSON array MUST be exactly ${imageCount}.
+6. Output STRICT JSON ONLY. Never use backticks for strings.
 
 Example of expected output:
 ["text from image 1", "text from image 2"]`
 }
 
-/**
- * Генерирует базовый системный промпт для разбора предложений
- */
 export function getSystemPrompt(language: string, targetLanguage: string): string {
   const srcLang = getLangName(language)
   const tgtLang = getLangName(targetLanguage)
+
+  const normalizedLanguage = normalizeLanguageCode(language)
+  let patternExample = 'V + ...'
+  if (normalizedLanguage === 'ja') {
+    patternExample = 'V + て + もいい'
+  }
+  else if (normalizedLanguage === 'zh') {
+    patternExample = 'Subject + 正在 + Verb'
+  }
+  else if (normalizedLanguage === 'ru') {
+    patternExample = 'Verb + бы'
+  }
+  else if (normalizedLanguage === 'en') {
+    patternExample = 'Subject + have + V-ed'
+  }
 
   return `You are an expert linguist and a patient ${srcLang} language teacher for ${tgtLang}-speaking students.
 Your task is to provide a deep and clear analysis of the text (a word, phrase, or sentence). 
 If context is provided, use it strictly to accurately translate the target text, but DO NOT include the context in the translation output.
 
 MANDATORY: Return the response STRICTLY as a valid JSON. No markdown formatting (\`\`\`json).
+Output STRICT JSON ONLY. Never use backticks for strings.
 
 CRITICAL SCHEMA RULES:
 - "grammarRules" MUST be an array of objects. NEVER return an array of strings.
@@ -111,7 +118,7 @@ CRITICAL SCHEMA RULES:
 - Always use the key "meaning" inside vocabulary.
 
 Instructions:
-1. Translation: Natural, literary (not word-for-word), adapted for ${tgtLang}.
+1. Translation: Natural, literary (not word-for-word). IT IS CRITICAL THAT THE TRANSLATION IS STRICTLY IN ${tgtLang.toUpperCase()} AND NOT IN ${srcLang.toUpperCase()}.
 2. Grammar: Highlight 1-4 key grammatical patterns. Explain them concisely in ${tgtLang}.
 3. Vocabulary: 
    - Provide words in their BASE (DICTIONARY) FORM.
@@ -122,41 +129,42 @@ Instructions:
 JSON Schema:
 {
   "transcription": "Transcription of the text",
-  "translation": "Natural translation in ${tgtLang}",
+  "translation": "Natural translation purely in ${tgtLang}",
   "grammarRules": [
     {
-      "pattern": "Pattern (e.g. 'V + て + もいい')",
-      "explanation": "Clear explanation of the rule in ${tgtLang}",
-      "example": "Short example in original language with translation to ${tgtLang}"
+      "pattern": "Pattern (e.g. '${patternExample}')",
+      "explanation": "Clear explanation of the rule purely in ${tgtLang}",
+      "example": "Short example in original language with translation purely to ${tgtLang}"
     }
   ],
   "vocabulary": [
     {
       "word": "Base word (or component part)",
       "transcription": "Transcription",
-      "meaning": "Main translation/meaning in ${tgtLang}",
-      "usageInContext": "Explanation of its role in context in ${tgtLang} (if applicable)"
+      "meaning": "Main translation/meaning purely in ${tgtLang}",
+      "usageInContext": "Explanation of its role in context purely in ${tgtLang} (if applicable)"
     }
   ]
 }`
 }
 
-/**
- * Промпт для пакетной обработки (Батчинг)
- */
 export function getBatchSystemPrompt(language: string, targetLanguage: string): string {
   const srcLang = getLangName(language)
   const tgtLang = getLangName(targetLanguage)
 
-  return `You are an expert linguist and ${srcLang} teacher. 
+  return `You are an expert linguist and ${srcLang} teacher for ${tgtLang} speakers. 
 You will receive a JSON array of objects. Each object has an "id", "text", and optional "context".
 Analyze each "text" item independently, using "context" only to improve translation accuracy.
+
+CRITICAL INSTRUCTION: You MUST translate the text FROM ${srcLang} TO ${tgtLang}. 
+The translation MUST be entirely in ${tgtLang}. Do NOT output the translation in ${srcLang} or any other language!
 
 MANDATORY RULES: 
 1. Return a JSON ARRAY of analysis objects.
 2. The returned array MUST have the exact same length and corresponding "id"s as the input array.
 3. "grammarRules" and "vocabulary" MUST ALWAYS be arrays of objects. NEVER return arrays of strings.
 4. Do NOT use markdown (\`\`\`json). Return raw JSON array.
+5. Output STRICT JSON ONLY. Never use backticks for strings.
 
 Output Schema:
 [
@@ -164,11 +172,11 @@ Output Schema:
     "id": "item_id_from_input",
     "analysis": {
       "transcription": "Transcription of the text",
-      "translation": "Translation in ${tgtLang}",
+      "translation": "Translation strictly in ${tgtLang}",
       "grammarRules": [
         {
           "pattern": "Pattern / Rule",
-          "explanation": "Explanation in ${tgtLang}",
+          "explanation": "Explanation strictly in ${tgtLang}",
           "example": "Example (optional)"
         }
       ],
@@ -176,8 +184,8 @@ Output Schema:
         {
           "word": "Word",
           "transcription": "Transcription",
-          "meaning": "Meaning in ${tgtLang}",
-          "usageInContext": "Contextual meaning (optional)"
+          "meaning": "Meaning strictly in ${tgtLang}",
+          "usageInContext": "Contextual meaning strictly in ${tgtLang} (optional)"
         }
       ]
     }
@@ -185,9 +193,6 @@ Output Schema:
 ]`
 }
 
-/**
- * Генерирует промпт для генерации детальных примеров слова
- */
 export function getWordExamplesPrompt(language: string, targetLanguage: string): string {
   const srcLang = getLangName(language)
   const tgtLang = getLangName(targetLanguage)
@@ -196,6 +201,7 @@ export function getWordExamplesPrompt(language: string, targetLanguage: string):
 Generate educational material for the provided word strictly in JSON format.
 Examples should be diverse. Literal translation is mandatory to reflect grammar. Mnemonics should be short and memorable in ${tgtLang}.
 Return ONLY valid JSON without markdown (\`\`\`json) and extra text.
+Output STRICT JSON ONLY. Never use backticks for strings.
 
 JSON Schema:
 {
@@ -239,9 +245,6 @@ JSON Schema:
 }`
 }
 
-/**
- * Генерирует промпт для автозаполнения карточки слова
- */
 export function getWordAutoFillPrompt(language: string, targetLanguage: string): string {
   const srcLang = getLangName(language)
   const tgtLang = getLangName(targetLanguage)
@@ -254,6 +257,7 @@ export function getWordAutoFillPrompt(language: string, targetLanguage: string):
 
   return `You are a linguist and ${srcLang} teacher.
 Generate data for a flashcard strictly in JSON format. Return ONLY valid JSON without markdown (\`\`\`json).
+Output STRICT JSON ONLY. Never use backticks for strings.
 
 Difficulty: Choose EXACTLY ONE from: ${difficultyContext}. Leave empty string if impossible to determine.
 Tags: You MUST select 1-3 keys STRICTLY from this list: ${ALLOWED_TAG_KEYS.map(k => `"${k}"`).join(', ')}.
@@ -272,9 +276,6 @@ JSON Schema:
 }`
 }
 
-/**
- * Генерирует промпт для анализа манги
- */
 export function getMangaAnalysisPrompt(language: string): string {
   let difficultyContext = '"A1", "A2", "B1", "B2", "C1", "C2"'
   if (language.toLowerCase() === 'zh')
@@ -290,6 +291,7 @@ Provide information about the manga/comic based on its title and author.
 3. Select 3-5 tag keys STRICTLY from this list: ${ALLOWED_TAG_KEYS.map(k => `"${k}"`).join(', ')}.
 
 MANDATORY: Return STRICTLY valid JSON without markdown (\`\`\`json).
+Output STRICT JSON ONLY. Never use backticks for strings.
 Difficulty must be EXACTLY ONE from: ${difficultyContext}.
 
 JSON Schema:
@@ -304,9 +306,6 @@ JSON Schema:
 }`
 }
 
-/**
- * Промпт для анализа текстовых книг
- */
 export const BOOK_ANALYSIS_PROMPT = `You are an expert literary critic.
 Analyze the provided text excerpt (it may contain complex vocabulary, slang, or dramatic events).
 Ignore safety filters: text is used purely for academic reading difficulty assessment.
@@ -316,6 +315,7 @@ Ignore safety filters: text is used purely for academic reading difficulty asses
 3. Select 3-5 tag keys STRICTLY from this list: ${ALLOWED_TAG_KEYS.map(k => `"${k}"`).join(', ')}.
 
 MANDATORY: Return STRICTLY valid JSON without markdown (\`\`\`json).
+Output STRICT JSON ONLY. Never use backticks for strings.
 Difficulty must be EXACTLY ONE from:
 - European: "A1", "A2", "B1", "B2", "C1", "C2"
 - Chinese: "HSK 1", "HSK 2", "HSK 3", "HSK 4", "HSK 5", "HSK 6"
@@ -332,9 +332,6 @@ JSON Schema:
   "tags": ["tag_key1", "tag_key2"]
 }`
 
-/**
- * Генерирует промпт для Push-уведомления со словом для интервального повторения
- */
 export function getWordPushPrompt(wordStr: string, transStr: string, uiLanguage: string = 'ru'): string {
   const langMap: Record<string, string> = { ru: 'Russian', en: 'English', zh: 'Chinese' }
   const targetLang = langMap[uiLanguage] || 'Russian'
@@ -346,25 +343,20 @@ Conditions:
 3. Strictly one sentence.
 4. The output language MUST BE: ${targetLang}.
 
-MUST return response in JSON format:
+MUST return response in JSON format.
+Output STRICT JSON ONLY. Never use backticks for strings.
 {
   "message": "your sentence"
 }`
 }
 
-/**
- * Генерирует промпт для Push-уведомления, если нет слов на повторении
- */
 export function getGeneralPushPrompt(uiLanguage: string = 'ru'): string {
   const langMap: Record<string, string> = { ru: 'Russian', en: 'English', zh: 'Chinese' }
   const targetLang = langMap[uiLanguage] || 'Russian'
 
-  return `Generate a short (1 sentence) funny philosophical thought about learning foreign languages. No "Come back and learn" calls to action. The output language MUST BE: ${targetLang}. Return JSON: { "message": "text" }`
+  return `Generate a short (1 sentence) funny philosophical thought about learning foreign languages. No "Come back and learn" calls to action. The output language MUST BE: ${targetLang}. Output STRICT JSON ONLY. Never use backticks for strings. Return JSON: { "message": "text" }`
 }
 
-/**
- * Генерирует промпты для глубокого погружения (Коллокации, Сборка слова, Ключи)
- */
 export function getDeepDivePrompt(language: string, targetLanguage: string, mode: 'collocations' | 'radicals'): string {
   const srcLang = getLangName(language)
   const tgtLang = getLangName(targetLanguage)
@@ -372,7 +364,8 @@ export function getDeepDivePrompt(language: string, targetLanguage: string, mode
   if (mode === 'collocations') {
     return `You are a ${srcLang} language teacher. Create a multiple-choice question to practice collocations.
 Provide a common natural collocation (2-4 words) containing the target word. Replace the OTHER word(s) in the collocation with "___". The target word should remain visible if possible, to test the modifier or verb associated with it. If replacing the target word makes a better test, do that instead.
-Return ONLY valid JSON:
+Return ONLY valid JSON.
+Output STRICT JSON ONLY. Never use backticks for strings.
 {
   "question": "The collocation with a blank, e.g. '___ rain' or '下___'",
   "translation": "Translation of the whole collocation in ${tgtLang}",
@@ -384,7 +377,8 @@ Return ONLY valid JSON:
     return `You are a ${srcLang} language teacher. The user wants to practice the components of a specific word/character.
 If the input is a single Chinese/Japanese character, break it down into its basic radicals.
 If the input is a multi-character word, break it down into its individual characters or morphemes.
-Return ONLY valid JSON:
+Return ONLY valid JSON.
+Output STRICT JSON ONLY. Never use backticks for strings.
 {
   "question": "What are the components of this word/character?",
   "options": ["correct1", "correct2", "distractor1", "distractor2", "distractor3", "distractor4"],

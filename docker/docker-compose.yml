@@ -31,6 +31,7 @@ services:
       - DB_PATH=/db/insight-book.sqlite
       - DICTS_PATH=/db/dicts
       - UPLOADS_PATH=/uploads
+      - AI_CONFIG_PATH=${AI_CONFIG_PATH:-/configs/ai-config.json}
       # Настройки ИИ моделей и API-ключи теперь загружаются динамически из /configs/ai-config.json
       # Динамические переменные авторизации
       - AUTH_MODE=${AUTH_MODE:-single}

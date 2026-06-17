@@ -2,6 +2,13 @@ import type { LlmConfig } from '~/types'
 import { CORS_HEADERS } from '~/config'
 import { getAiConfig } from './ai-config'
 
+export function normalizeLanguageCode(code?: string | null): string {
+  if (!code)
+    return ''
+
+  return code.toLowerCase().split(/[-,;]/)[0].trim()
+}
+
 export function hashTtsText(text: string, voice: string): string {
   const hasher = new Bun.CryptoHasher('sha256')
   hasher.update(text.trim().toLowerCase() + voice)

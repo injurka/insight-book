@@ -145,23 +145,52 @@ export const api = {
         signal,
       }),
 
-    analyzeBatch: (bookId: number, items: { id: string, sentence: string, context?: string }[], language: string, signal?: AbortSignal) =>
-      request<{ results: { id: string, analysis: LlmAnalysis }[] }>(`/api/books/${bookId}/analyze-batch`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ items, language }),
-        signal,
-        withLlm: true,
-      }),
+    analyzeBatch: (bookId: number, items: { id: string, sentence: string, context?: string }[], language: string, signal?: AbortSignal) => {
+      let targetLanguage = 'ru'
 
-    analyze: (bookId: number, sentence: string, language: string, context?: string, signal?: AbortSignal) =>
-      request<LlmAnalysis>(`/api/books/${bookId}/analyze`, {
+      if (getActivePinia()) {
+        targetLanguage = useGlobalSettingsStore().appLanguage || 'ru'
+      }
+      else {
+        try {
+          const savedLang = localStorage.getItem('global-app-language')
+          if (savedLang)
+            targetLanguage = JSON.parse(savedLang)
+        }
+        catch { }
+      }
+
+      return request<{ results: { id: string, analysis: LlmAnalysis }[] }>(`/api/books/${bookId}/analyze-batch`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sentence, language, context }),
+        body: JSON.stringify({ items, language, targetLanguage }),
         signal,
         withLlm: true,
-      }),
+      })
+    },
+
+    analyze: (bookId: number, sentence: string, language: string, context?: string, signal?: AbortSignal) => {
+      let targetLanguage = 'ru'
+      if (getActivePinia()) {
+        targetLanguage = useGlobalSettingsStore().appLanguage || 'ru'
+      }
+      else {
+        try {
+          const savedLang = localStorage.getItem('global-app-language')
+
+          if (savedLang)
+            targetLanguage = JSON.parse(savedLang)
+        }
+        catch { }
+      }
+      return request<LlmAnalysis>(`/api/books/${bookId}/analyze`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sentence, language, context, targetLanguage }),
+        signal,
+        withLlm: true,
+      })
+    },
 
     generateTts: (bookId: number, text: string, signal?: AbortSignal) =>
       request<{ audioBase64: string, timings?: any[] }>(`/api/books/${bookId}/tts`, {

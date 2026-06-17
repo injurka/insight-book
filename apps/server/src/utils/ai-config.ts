@@ -15,7 +15,8 @@ export const CONFIG_PATH = process.env.AI_CONFIG_PATH || defaultPath
 if (existsSync(CONFIG_PATH)) {
   // eslint-disable-next-line no-console
   console.log(`🤖 AI Config loaded from: ${CONFIG_PATH}`)
-} else {
+}
+else {
   // eslint-disable-next-line no-console
   console.log(`⚠️ AI Config file not found at ${CONFIG_PATH}, using defaults/env.`)
 }
@@ -31,7 +32,8 @@ export function getAiConfig() {
     if (existsSync(CONFIG_PATH)) {
       fileConfig = JSON.parse(readFileSync(CONFIG_PATH, 'utf-8'))
     }
-  } catch (e) {
+  }
+  catch (e) {
     console.error('[AI Config] Failed to read config file:', e)
   }
 
@@ -61,6 +63,6 @@ export function getAiConfig() {
       model: fileConfig.ocr?.model || process.env.OCR_MODEL || 'glm-ocr',
       refinementModel: fileConfig.ocr?.refinementModel || process.env.OCR_REFINEMENT_MODEL || 'gemini-3.1-flash-lite',
     },
-    pricing: (fileConfig.pricing || {}) as Record<string, ModelPrice>
+    pricing: (fileConfig.pricing || {}) as Record<string, ModelPrice>,
   }
 }

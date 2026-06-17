@@ -200,24 +200,26 @@ async function refineOcrText(userId: number, base64Image: string, blocks: OcrBlo
       headers.Authorization = `Bearer ${apiKey}`
     }
 
-    const response = await fetch(`${apiUrl}/chat/completions`, {
+    const messages = [
+      {
+        role: 'user',
+        content: contentArray,
+      },
+    ]
+
+    let response = await fetch(`${apiUrl}/chat/completions`, {
       method: 'POST',
       headers,
       body: JSON.stringify({
         model,
-        messages: [
-          {
-            role: 'user',
-            content: contentArray,
-          },
-        ],
+        messages,
         temperature: 0.1,
       }),
       signal: AbortSignal.timeout(120000),
     })
 
     if (response.ok) {
-      const data = await response.json() as any
+      let data = await response.json() as any
       const content = data.choices?.[0]?.message?.content || ''
 
       const promptTokens = data.usage?.prompt_tokens || 0
@@ -231,18 +233,71 @@ async function refineOcrText(userId: number, base64Image: string, blocks: OcrBlo
       const inputTextForLog = JSON.stringify(safeInput, null, 2)
       trackTokenUsage(userId, 'ocr_refine', model, promptTokens, completionTokens, inputTextForLog, content)
 
-      const cleanJson = content.replace(/^```json\n?/, '').replace(/\n?```$/, '').trim()
+      let cleanJson = content.replace(/^```json\n?/, '').replace(/\n?```$/, '').trim()
 
       try {
         const refinedTexts = JSON.parse(cleanJson)
-        if (Array.isArray(refinedTexts) && refinedTexts.length === validBlocks.length) {
-          for (let i = 0; i < validBlocks.length; i++) {
-            validBlocks[i].text = cleanOcrText(refinedTexts[i]) || validBlocks[i].text
-          }
+        if (!Array.isArray(refinedTexts)) {
+          throw new TypeError('Expected an array of strings')
+        }
+        if (refinedTexts.length !== validBlocks.length) {
+          throw new Error(`Expected exactly ${validBlocks.length} elements, but got ${refinedTexts.length}`)
+        }
+        for (let i = 0; i < validBlocks.length; i++) {
+          validBlocks[i].text = cleanOcrText(refinedTexts[i]) || validBlocks[i].text
         }
       }
-      catch (parseError) {
-        console.error('[OCR Refinement] Failed to parse JSON response:', cleanJson, parseError)
+      catch (parseError: any) {
+        console.warn(`[OCR Refinement] First attempt failed to parse JSON. Error: ${parseError.message || parseError}. Retrying...`)
+
+        // Выполняем ровно 1 повторный запрос с инструкцией об ошибке
+        const retryMessages = [
+          ...messages,
+          { role: 'assistant', content },
+          { role: 'user', content: `Your previous response was not valid JSON or did not contain the correct number of items. Please fix it. Error details: ${parseError.message || parseError}. Make sure to output ONLY valid JSON.` },
+        ]
+
+        response = await fetch(`${apiUrl}/chat/completions`, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({
+            model,
+            messages: retryMessages,
+            temperature: 0.1,
+          }),
+          signal: AbortSignal.timeout(120000),
+        })
+
+        if (response.ok) {
+          data = await response.json() as any
+          const retryContent = data.choices?.[0]?.message?.content || ''
+          const retryPromptTokens = data.usage?.prompt_tokens || 0
+          const retryCompletionTokens = data.usage?.completion_tokens || 0
+
+          const retryInputTextForLog = JSON.stringify([
+            ...safeInput,
+            { role: 'assistant', content },
+            { role: 'user', content: 'Your previous response was not valid JSON or did not contain the correct number of items...' },
+          ], null, 2)
+
+          trackTokenUsage(userId, 'ocr_refine', model, retryPromptTokens, retryCompletionTokens, retryInputTextForLog, retryContent)
+
+          cleanJson = retryContent.replace(/^```json\n?/, '').replace(/\n?```$/, '').trim()
+          try {
+            const refinedTexts = JSON.parse(cleanJson)
+            if (Array.isArray(refinedTexts) && refinedTexts.length === validBlocks.length) {
+              for (let i = 0; i < validBlocks.length; i++) {
+                validBlocks[i].text = cleanOcrText(refinedTexts[i]) || validBlocks[i].text
+              }
+            }
+            else {
+              console.error('[OCR Refinement] Second attempt failed validation. Length:', refinedTexts?.length)
+            }
+          }
+          catch (retryParseError) {
+            console.error('[OCR Refinement] Second attempt failed to parse JSON response:', cleanJson, retryParseError)
+          }
+        }
       }
     }
   }

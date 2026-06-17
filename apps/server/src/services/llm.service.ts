@@ -3,7 +3,7 @@ import { eq, inArray, sql } from 'drizzle-orm'
 import { pinyin } from 'pinyin-pro'
 import { LlmAnalysisSchema } from '~/types/schemas'
 import { getVoiceForLanguage, hashSentence, hashTtsText, parseLlmJson } from '~/utils/helpers'
-import { callLlmApi } from '~/utils/llm-api'
+import { callLlmJsonWithRetry } from '~/utils/llm-api'
 import { db } from '../db'
 import * as schema from '../db/schema'
 import {
@@ -78,11 +78,17 @@ export async function analyzeSentence(
 
   for (const model of modelsToTry) {
     try {
-      const { text: raw, usage } = await callLlmApi(model, messages, 0.2, AbortSignal.timeout(60000), config)
-      trackTokenUsage(userId, 'analyze_sentence', model, usage.promptTokens, usage.completionTokens, JSON.stringify(messages, null, 2), raw)
-
-      const parsed = parseLlmJson(raw)
-      const analysis = LlmAnalysisSchema.parse(parsed) as LlmAnalysis
+      const { parsed: analysis } = await callLlmJsonWithRetry<LlmAnalysis>(
+        model,
+        messages,
+        0.2,
+        AbortSignal.timeout(60000),
+        config,
+        raw => LlmAnalysisSchema.parse(parseLlmJson(raw)) as LlmAnalysis,
+        (usage, rawText, messagesUsed) => {
+          trackTokenUsage(userId, 'analyze_sentence', model, usage.promptTokens, usage.completionTokens, JSON.stringify(messagesUsed, null, 2), rawText)
+        },
+      )
 
       await db.insert(schema.llmCache).values({
         sentenceHash: hash,
@@ -166,10 +172,18 @@ export async function generateWordExamples(userId: number, word: string, languag
 
   for (const model of modelsToTry) {
     try {
-      const { text: raw, usage } = await callLlmApi(model, messages, 0.4, AbortSignal.timeout(60000), config)
-      trackTokenUsage(userId, 'dict_examples', model, usage.promptTokens, usage.completionTokens, JSON.stringify(messages, null, 2), raw)
-
-      return parseLlmJson<GeneratedWordExamples>(raw)
+      const { parsed } = await callLlmJsonWithRetry<GeneratedWordExamples>(
+        model,
+        messages,
+        0.4,
+        AbortSignal.timeout(60000),
+        config,
+        raw => parseLlmJson<GeneratedWordExamples>(raw),
+        (usage, rawText, messagesUsed) => {
+          trackTokenUsage(userId, 'dict_examples', model, usage.promptTokens, usage.completionTokens, JSON.stringify(messagesUsed, null, 2), rawText)
+        },
+      )
+      return parsed
     }
     catch (e) {
       lastError = e as Error
@@ -196,10 +210,18 @@ export async function generateWordAutoFill(userId: number, word: string, languag
 
   for (const model of modelsToTry) {
     try {
-      const { text: raw, usage } = await callLlmApi(model, messages, 0.4, AbortSignal.timeout(60000), config)
-      trackTokenUsage(userId, 'dict_autofill', model, usage.promptTokens, usage.completionTokens, JSON.stringify(messages, null, 2), raw)
-
-      return parseLlmJson<WordAutoFillResponse>(raw)
+      const { parsed } = await callLlmJsonWithRetry<WordAutoFillResponse>(
+        model,
+        messages,
+        0.4,
+        AbortSignal.timeout(60000),
+        config,
+        raw => parseLlmJson<WordAutoFillResponse>(raw),
+        (usage, rawText, messagesUsed) => {
+          trackTokenUsage(userId, 'dict_autofill', model, usage.promptTokens, usage.completionTokens, JSON.stringify(messagesUsed, null, 2), rawText)
+        },
+      )
+      return parsed
     }
     catch (e) {
       lastError = e as Error
@@ -225,10 +247,18 @@ export async function generateDeepDiveQuiz(userId: number, word: string, languag
 
   for (const model of modelsToTry) {
     try {
-      const { text: raw, usage } = await callLlmApi(model, messages, 0.4, AbortSignal.timeout(60000), config)
-      trackTokenUsage(userId, `deep_dive_${mode}`, model, usage.promptTokens, usage.completionTokens, JSON.stringify(messages, null, 2), raw)
-
-      return parseLlmJson<any>(raw)
+      const { parsed } = await callLlmJsonWithRetry<any>(
+        model,
+        messages,
+        0.4,
+        AbortSignal.timeout(60000),
+        config,
+        raw => parseLlmJson<any>(raw),
+        (usage, rawText, messagesUsed) => {
+          trackTokenUsage(userId, `deep_dive_${mode}`, model, usage.promptTokens, usage.completionTokens, JSON.stringify(messagesUsed, null, 2), rawText)
+        },
+      )
+      return parsed
     }
     catch (e) {
       lastError = e as Error
@@ -255,10 +285,18 @@ export async function analyzeBookExcerpt(userId: number, excerpt: string, config
 
   for (const model of modelsToTry) {
     try {
-      const { text: raw, usage } = await callLlmApi(model, messages, 0.3, AbortSignal.timeout(90000), config)
-      trackTokenUsage(userId, 'analyze_book', model, usage.promptTokens, usage.completionTokens, JSON.stringify(messages, null, 2), raw)
-
-      return parseLlmJson(raw)
+      const { parsed } = await callLlmJsonWithRetry<{ description: any, difficulty: string, tags: string[] }>(
+        model,
+        messages,
+        0.3,
+        AbortSignal.timeout(90000),
+        config,
+        raw => parseLlmJson(raw),
+        (usage, rawText, messagesUsed) => {
+          trackTokenUsage(userId, 'analyze_book', model, usage.promptTokens, usage.completionTokens, JSON.stringify(messagesUsed, null, 2), rawText)
+        },
+      )
+      return parsed
     }
     catch (e) {
       lastError = e as Error
@@ -297,10 +335,18 @@ export async function analyzeMangaInfo(userId: number, title: string, author: st
 
   for (const model of modelsToTry) {
     try {
-      const { text: raw, usage } = await callLlmApi(model, messages, 0.3, AbortSignal.timeout(90000), config)
-      trackTokenUsage(userId, 'analyze_manga', model, usage.promptTokens, usage.completionTokens, JSON.stringify(messages, null, 2), raw)
-
-      return parseLlmJson(raw)
+      const { parsed } = await callLlmJsonWithRetry<{ description: string, difficulty: string, tags: string[] }>(
+        model,
+        messages,
+        0.3,
+        AbortSignal.timeout(90000),
+        config,
+        raw => parseLlmJson(raw),
+        (usage, rawText, messagesUsed) => {
+          trackTokenUsage(userId, 'analyze_manga', model, usage.promptTokens, usage.completionTokens, JSON.stringify(messagesUsed, null, 2), rawText)
+        },
+      )
+      return parsed
     }
     catch (e) {
       lastError = e as Error
@@ -365,23 +411,31 @@ export async function analyzeBatch(userId: number, bookId: number, items: BatchA
   const modelsToTry = [config.model, config.fallbackModel].filter(Boolean) as string[]
   for (const model of modelsToTry) {
     try {
-      const { text: raw, usage } = await callLlmApi(model, messages, 0.2, AbortSignal.timeout(90000), config)
-      trackTokenUsage(userId, 'analyze_batch', model, usage.promptTokens, usage.completionTokens, JSON.stringify(messages, null, 2), raw)
-
-      const parsedData = parseLlmJson<any>(raw)
-
-      const parsedArray = Array.isArray(parsedData)
-        ? parsedData
-        : (parsedData.results || parsedData.items || parsedData.analysis || [])
-
-      if (!Array.isArray(parsedArray)) {
-        throw new TypeError('Ожидался массив, но ИИ вернул не поддерживаемый формат')
-      }
+      const { parsed: parsedArray } = await callLlmJsonWithRetry<BatchAnalysisResponse[]>(
+        model,
+        messages,
+        0.2,
+        AbortSignal.timeout(90000),
+        config,
+        (raw) => {
+          const parsedData = parseLlmJson<any>(raw)
+          const arr = Array.isArray(parsedData)
+            ? parsedData
+            : (parsedData.results || parsedData.items || parsedData.analysis || [])
+          if (!Array.isArray(arr)) {
+            throw new TypeError('Ожидался массив, но ИИ вернул не поддерживаемый формат')
+          }
+          return arr as BatchAnalysisResponse[]
+        },
+        (usage, rawText, messagesUsed) => {
+          trackTokenUsage(userId, 'analyze_batch', model, usage.promptTokens, usage.completionTokens, JSON.stringify(messagesUsed, null, 2), rawText)
+        },
+      )
 
       const llmCacheInserts: any[] = []
       const newBookCacheInserts: any[] = []
 
-      for (const res of parsedArray as BatchAnalysisResponse[]) {
+      for (const res of parsedArray) {
         const originalItem = missingItems.find(m => m.id === res.id)
         if (originalItem) {
           const hash = hashSentence(originalItem.sentence, language, targetLang)
@@ -482,7 +536,7 @@ export async function generateTts(userId: number, text: string, language: string
   return base64
 }
 
-// Алгоритм расстояния Левенштейна для базовой оценки ( fallback )
+// Алгоритм расстояния Левенштейна для базовой оценки
 function calculatePhoneticSimilarity(expected: string, heard: string, language: string): number {
   let s1 = expected.toLowerCase().replace(/[.,!?;:()\s]/g, '')
   let s2 = heard.toLowerCase().replace(/[.,!?;:()\s]/g, '')
@@ -585,7 +639,8 @@ export async function checkPronunciationAudio(userId: number, word: string, lang
             role: 'system',
             content: `You are a strict phonetic and linguistic analyzer. The user was supposed to pronounce a word in ${language}.
 Analyze the pronunciation mistake phonetically (e.g., Pinyin tones, Romaji, consonants/vowels).
-Return ONLY valid JSON:
+Return ONLY valid JSON.
+Output STRICT JSON ONLY. Never use backticks for strings.
 {
   "score": <number 0-100, based on phonetic similarity, not just text similarity>,
   "heard_phonetic": "<phonetic transcription (pinyin/romaji/etc) of what they actually said>",
@@ -595,15 +650,24 @@ Return ONLY valid JSON:
           { role: 'user', content: `Expected word: ${word}\nHeard by STT: ${heardText}` },
         ]
         const llmModel = config.model!
-        const aiRes = await callLlmApi(llmModel, messages, 0.2, AbortSignal.timeout(15000), config)
-        const parsed = parseLlmJson<{ score?: number, heard_phonetic?: string, mistake_analysis?: string }>(aiRes.text)
+
+        // Оборачиваем вызов анализа произношения
+        const { parsed } = await callLlmJsonWithRetry<{ score?: number, heard_phonetic?: string, mistake_analysis?: string }>(
+          llmModel,
+          messages,
+          0.2,
+          AbortSignal.timeout(15000),
+          config,
+          raw => parseLlmJson<{ score?: number, heard_phonetic?: string, mistake_analysis?: string }>(raw),
+          (usage, rawText, messagesUsed) => {
+            trackTokenUsage(userId, 'check_pronunciation_llm', llmModel, usage.promptTokens, usage.completionTokens, JSON.stringify(messagesUsed, null, 2), rawText)
+          },
+        )
 
         if (parsed.score !== undefined)
           finalScore = parsed.score
         heardPhonetic = parsed.heard_phonetic || ''
         mistakeAnalysis = parsed.mistake_analysis || ''
-
-        trackTokenUsage(userId, 'check_pronunciation_llm', llmModel, aiRes.usage.promptTokens, aiRes.usage.completionTokens, heardText, aiRes.text)
       }
       catch (e) {
         console.warn('[Audio Service] Failed to analyze heard text via LLM:', e)

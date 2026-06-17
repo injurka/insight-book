@@ -1,11 +1,11 @@
 import type { ModelMessage } from 'ai'
 import type { LlmConfig } from '~/types'
+import { parseLlmJson } from './helpers'
 
 const MAX_OUTPUT_TOKENS = 8192
 
 /**
- * Если твои промпты всегда ожидают JSON — оставь true.
- * Если эта функция используется не только для JSON-ответов — поставь false.
+ * Принудительное использование нативного JSON-режима (Native JSON Mode)
  */
 const FORCE_JSON_OUTPUT = true
 
@@ -79,7 +79,67 @@ async function callLlmApi(
   }
 }
 
-export { callLlmApi }
+/**
+ * Универсальная обертка для запросов с автоматическим Retry в случае невалидного JSON
+ */
+async function callLlmJsonWithRetry<T = any>(
+  modelName: string,
+  messages: ModelMessage[],
+  temperature: number,
+  signal: AbortSignal,
+  config: LlmConfig,
+  parseFn: (text: string) => T = parseLlmJson,
+  onTokenUsage?: (usage: TokenUsage, rawText: string, messagesUsed: ModelMessage[]) => void,
+): Promise<{ parsed: T, text: string, usage: TokenUsage }> {
+  const res = await callLlmApi(modelName, messages, temperature, signal, config)
+  const rawResponse = res.text
+  const usage = res.usage
+
+  if (onTokenUsage) {
+    onTokenUsage(usage, rawResponse, messages)
+  }
+
+  try {
+    const parsed = parseFn(rawResponse)
+    return { parsed, text: rawResponse, usage }
+  }
+  catch (parseError: any) {
+    console.warn(`[LLM JSON Parse Retry] First attempt failed to parse JSON. Error: ${parseError.message || parseError}. Retrying...`)
+
+    // Отправляем модели её же ответ и текст ошибки парсинга, требуя строгий JSON
+    const retryMessages: ModelMessage[] = [
+      ...messages,
+      { role: 'assistant', content: rawResponse },
+      {
+        role: 'user',
+        content: `Your previous response was not valid JSON. Please fix it. Error details: ${parseError.message || parseError}. Make sure to output ONLY valid JSON.`,
+      },
+    ]
+
+    const retryRes = await callLlmApi(modelName, retryMessages, temperature, signal, config)
+    const retryRawResponse = retryRes.text
+    const retryUsage = retryRes.usage
+
+    if (onTokenUsage) {
+      onTokenUsage(retryUsage, retryRawResponse, retryMessages)
+    }
+
+    try {
+      const parsed = parseFn(retryRawResponse)
+      const combinedUsage = {
+        promptTokens: usage.promptTokens + retryUsage.promptTokens,
+        completionTokens: usage.completionTokens + retryUsage.completionTokens,
+      }
+      return { parsed, text: retryRawResponse, usage: combinedUsage }
+    }
+    catch (retryParseError: any) {
+      console.error(`[LLM JSON Parse Retry] Second attempt also failed to parse JSON. Error: ${retryParseError.message || retryParseError}`)
+      throw retryParseError
+    }
+  }
+}
+
+export { callLlmApi, callLlmJsonWithRetry }
 
 async function callOpenAiCompatible(params: {
   modelName: string
@@ -106,6 +166,7 @@ async function callOpenAiCompatible(params: {
     max_tokens: MAX_OUTPUT_TOKENS,
   }
 
+  // Native JSON Mode для OpenAI
   if (FORCE_JSON_OUTPUT) {
     baseBody.response_format = { type: 'json_object' }
   }
@@ -231,16 +292,20 @@ async function callGeminiNative(params: {
 
   {
     const body = structuredCloneJson(baseBody)
-    if (FORCE_JSON_OUTPUT)
+    if (FORCE_JSON_OUTPUT) {
       body.generationConfig.responseMimeType = 'application/json'
+      body.generationConfig.response_mime_type = 'application/json'
+    }
     body.generationConfig.thinkingConfig = { thinkingBudget: 0 }
     bodyVariants.push(body)
   }
 
   {
     const body = structuredCloneJson(baseBody)
-    if (FORCE_JSON_OUTPUT)
+    if (FORCE_JSON_OUTPUT) {
       body.generationConfig.responseMimeType = 'application/json'
+      body.generationConfig.response_mime_type = 'application/json'
+    }
     bodyVariants.push(body)
   }
 
@@ -316,6 +381,7 @@ async function callOllamaNative(params: {
     },
   }
 
+  // Native JSON Mode для Ollama
   if (FORCE_JSON_OUTPUT) {
     body.format = 'json'
   }

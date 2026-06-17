@@ -7,7 +7,7 @@ import { db } from '../db'
 import * as schema from '../db/schema'
 import { getGeneralPushPrompt, getWordPushPrompt } from '../prompts'
 import { parseLlmJson } from '../utils/helpers'
-import { callLlmApi } from '../utils/llm-api'
+import { callLlmJsonWithRetry } from '../utils/llm-api'
 
 if (VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY) {
   webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY)
@@ -173,15 +173,14 @@ export async function sendDailyMotivations(customMessage?: string) {
         try {
           const prompt = getWordPushPrompt(wordStr, transStr, uiLanguage)
 
-          const response = await callLlmApi(
+          const { parsed } = await callLlmJsonWithRetry<{ message: string }>(
             config.model,
             [{ role: 'user', content: prompt }],
             0.8,
             AbortSignal.timeout(15000),
             config,
+            raw => parseLlmJson<{ message: string }>(raw),
           )
-
-          const parsed = parseLlmJson<{ message: string }>(response.text)
 
           if (parsed && parsed.message) {
             messageBody = `${parsed.message}\n\n${wordStr}${transcriptionStr} — ${transStr}`
@@ -197,8 +196,14 @@ export async function sendDailyMotivations(customMessage?: string) {
       else {
         try {
           const prompt = getGeneralPushPrompt(uiLanguage)
-          const response = await callLlmApi(config.model, [{ role: 'user', content: prompt }], 0.8, AbortSignal.timeout(10000), config)
-          const parsed = parseLlmJson<{ message: string }>(response.text)
+          const { parsed } = await callLlmJsonWithRetry<{ message: string }>(
+            config.model,
+            [{ role: 'user', content: prompt }],
+            0.8,
+            AbortSignal.timeout(10000),
+            config,
+            raw => parseLlmJson<{ message: string }>(raw),
+          )
           if (parsed && parsed.message) {
             messageBody = parsed.message
           }
