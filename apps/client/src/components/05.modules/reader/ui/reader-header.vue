@@ -251,7 +251,7 @@ const fontOptions = computed(() => [
       <KitBtn icon="mdi:format-list-bulleted" variant="text" size="sm" @click="readerStore.tocOpen = true" />
     </KitTooltip>
 
-    <KitDropdown ref="settingsDropdownRef" placement="left" :width="340" :close-on-content-click="false">
+    <KitDropdown ref="settingsDropdownRef" placement="left" :width="330" :close-on-content-click="false">
       <template #activator="{ props: dropdownProps }">
         <KitBtn
           icon="mdi:cog-outline"

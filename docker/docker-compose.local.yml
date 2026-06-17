@@ -33,3 +33,4 @@ services:
     volumes:
       - ./db:/db
       - ./uploads:/uploads
+      - ./configs:/configs
