@@ -144,9 +144,7 @@ const fontOptions = computed(() => [
               <Icon icon="mdi:cancel" class="item-icon" />
               <span>{{ t('reader.parallelReadingOff') }}</span>
             </div>
-            <span v-if="settingsStore.parallelViewMode === 'none'" class="value-text">
-              <Icon icon="mdi:check" />
-            </span>
+            <Icon v-if="settingsStore.parallelViewMode === 'none'" icon="mdi:check" class="check-icon" />
           </div>
 
           <div class="menu-item" :class="{ 'desktop-only': readerStore.currentBook?.type !== 'manga' }" @click="settingsStore.parallelViewMode = 'split'">
@@ -154,9 +152,7 @@ const fontOptions = computed(() => [
               <Icon icon="mdi:view-split-vertical" class="item-icon" />
               <span>{{ t('reader.parallelReadingSplit') }}</span>
             </div>
-            <span v-if="settingsStore.parallelViewMode === 'split' || (readerStore.currentBook?.type === 'manga' && settingsStore.parallelViewMode !== 'none')" class="value-text">
-              <Icon icon="mdi:check" />
-            </span>
+            <Icon v-if="settingsStore.parallelViewMode === 'split' || (readerStore.currentBook?.type === 'manga' && settingsStore.parallelViewMode !== 'none')" icon="mdi:check" class="check-icon" />
           </div>
 
           <div v-if="readerStore.currentBook?.type !== 'manga'" class="menu-item" @click="settingsStore.parallelViewMode = 'interleaved'">
@@ -164,9 +160,7 @@ const fontOptions = computed(() => [
               <Icon icon="mdi:format-list-text" class="item-icon" />
               <span>{{ t('reader.parallelReadingInterleaved') }}</span>
             </div>
-            <span v-if="settingsStore.parallelViewMode === 'interleaved'" class="value-text">
-              <Icon icon="mdi:check" />
-            </span>
+            <Icon v-if="settingsStore.parallelViewMode === 'interleaved'" icon="mdi:check" class="check-icon" />
           </div>
         </div>
 
@@ -251,7 +245,7 @@ const fontOptions = computed(() => [
       <KitBtn icon="mdi:format-list-bulleted" variant="text" size="sm" @click="readerStore.tocOpen = true" />
     </KitTooltip>
 
-    <KitDropdown ref="settingsDropdownRef" placement="left" :width="330" :close-on-content-click="false">
+    <KitDropdown ref="settingsDropdownRef" placement="bottom-end" :width="330" :close-on-content-click="false">
       <template #activator="{ props: dropdownProps }">
         <KitBtn
           icon="mdi:cog-outline"
@@ -279,7 +273,7 @@ const fontOptions = computed(() => [
               <Icon :icon="currentThemeIcon" class="item-icon" />
               <span>{{ t('reader.appearance') }}</span>
             </div>
-            <span class="value-text">{{ theme === 'light' ? t('reader.light') : t('reader.dark') }}</span>
+            <span class="value-badge">{{ theme === 'light' ? t('reader.light') : t('reader.dark') }}</span>
           </div>
         </div>
 
@@ -294,14 +288,14 @@ const fontOptions = computed(() => [
               <Icon icon="mdi:translate" class="item-icon" />
               <span>{{ t('reader.translationPriority') }}</span>
             </div>
-            <span class="value-text">{{ settingsStore.translationPriority === 'dict' ? t('reader.dictionary') : t('reader.neuralNetwork') }}</span>
+            <span class="value-badge">{{ settingsStore.translationPriority === 'dict' ? t('reader.dictionary') : t('reader.neuralNetwork') }}</span>
           </div>
           <div class="menu-item" @click="cycleTtsSpeed">
             <div class="item-label">
               <Icon icon="mdi:play-speed" class="item-icon" />
               <span>{{ t('reader.voiceSpeed') }}</span>
             </div>
-            <span class="value-text">{{ settingsStore.ttsSpeed }}x</span>
+            <span class="value-badge">{{ settingsStore.ttsSpeed }}x</span>
           </div>
 
           <div class="menu-item" @click="settingsStore.autoAnalyzePage = !settingsStore.autoAnalyzePage">
@@ -324,7 +318,7 @@ const fontOptions = computed(() => [
               <Icon icon="mdi:message-text-outline" class="item-icon" />
               <span>{{ t('reader.translationMode') }}</span>
             </div>
-            <span class="value-text">{{ settingsStore.mangaOcrDisplayMode === 'hover' ? t('reader.hover') : t('reader.popover') }}</span>
+            <span class="value-badge">{{ settingsStore.mangaOcrDisplayMode === 'hover' ? t('reader.hover') : t('reader.popover') }}</span>
           </div>
         </div>
 
@@ -333,29 +327,44 @@ const fontOptions = computed(() => [
             {{ t('reader.textDisplay') }}
           </div>
 
-          <div class="typography-controls">
-            <div class="typography-row">
-              <span class="typography-label">{{ t('reader.size') }}</span>
-              <div class="typography-stepper">
-                <KitBtn icon="mdi:minus" size="xs" variant="outlined" color="secondary" @click="adjustFontSize(-0.1)" />
-                <span class="stepper-value">{{ settingsStore.readerFontSize.toFixed(1) }}rem</span>
-                <KitBtn icon="mdi:plus" size="xs" variant="outlined" color="secondary" @click="adjustFontSize(0.1)" />
-              </div>
+          <div class="settings-row">
+            <div class="item-label">
+              <Icon icon="mdi:format-size" class="item-icon" />
+              <span>{{ t('reader.size') }}</span>
             </div>
+            <div class="control-pill stepper-pill">
+              <button class="stepper-btn" @click="adjustFontSize(-0.1)">
+                <Icon icon="mdi:minus" />
+              </button>
+              <span class="stepper-value">{{ settingsStore.readerFontSize.toFixed(1) }}rem</span>
+              <button class="stepper-btn" @click="adjustFontSize(0.1)">
+                <Icon icon="mdi:plus" />
+              </button>
+            </div>
+          </div>
 
-            <div class="typography-row">
-              <span class="typography-label">{{ t('reader.lineHeight') }}</span>
-              <div class="typography-stepper">
-                <KitBtn icon="mdi:minus" size="xs" variant="outlined" color="secondary" @click="adjustLineHeight(-0.1)" />
-                <span class="stepper-value">{{ settingsStore.readerLineHeight.toFixed(1) }}</span>
-                <KitBtn icon="mdi:plus" size="xs" variant="outlined" color="secondary" @click="adjustLineHeight(0.1)" />
-              </div>
+          <div class="settings-row">
+            <div class="item-label">
+              <Icon icon="mdi:format-line-spacing" class="item-icon" />
+              <span>{{ t('reader.lineHeight') }}</span>
             </div>
+            <div class="control-pill stepper-pill">
+              <button class="stepper-btn" @click="adjustLineHeight(-0.1)">
+                <Icon icon="mdi:minus" />
+              </button>
+              <span class="stepper-value">{{ settingsStore.readerLineHeight.toFixed(1) }}</span>
+              <button class="stepper-btn" @click="adjustLineHeight(0.1)">
+                <Icon icon="mdi:plus" />
+              </button>
+            </div>
+          </div>
 
-            <div class="typography-row font-row">
-              <span class="typography-label">{{ t('reader.font') }}</span>
-              <KitSelect v-model="settingsStore.readerFontFamily" :options="fontOptions" size="sm" class="font-select" />
+          <div class="settings-row">
+            <div class="item-label">
+              <Icon icon="mdi:format-font" class="item-icon" />
+              <span>{{ t('reader.font') }}</span>
             </div>
+            <KitSelect v-model="settingsStore.readerFontFamily" :options="fontOptions" size="xs" class="font-select" />
           </div>
         </div>
 
@@ -482,6 +491,7 @@ const fontOptions = computed(() => [
   letter-spacing: 0.5px;
 }
 
+/* Элементы меню (Кликабельные строки) */
 .menu-item {
   display: flex;
   align-items: center;
@@ -498,6 +508,34 @@ const fontOptions = computed(() => [
     .item-icon {
       color: var(--fg-accent-color);
     }
+
+    .value-badge {
+      background-color: rgba(128, 128, 128, 0.2);
+      color: var(--fg-primary-color);
+    }
+  }
+}
+
+/* Информационные/интерактивные строки без ховера (для размера и шрифтов) */
+.settings-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 8px;
+  border-radius: 6px;
+
+  .item-label {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 0.95rem;
+    color: var(--fg-primary-color);
+    font-weight: 500;
+
+    .item-icon {
+      font-size: 1.2rem;
+      color: var(--fg-secondary-color);
+    }
   }
 }
 
@@ -508,7 +546,6 @@ const fontOptions = computed(() => [
   font-size: 0.95rem;
   color: var(--fg-primary-color);
   font-weight: 500;
-  height: 21px;
 }
 
 .item-icon {
@@ -517,12 +554,99 @@ const fontOptions = computed(() => [
   transition: color 0.2s;
 }
 
-.value-text {
+/* Унифицированные мягкие плашки-значения */
+.value-badge {
   font-size: 0.8rem;
   color: var(--fg-secondary-color);
+  background-color: rgba(128, 128, 128, 0.1);
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-weight: 500;
   display: flex;
-  height: 21px;
   align-items: center;
+  transition:
+    background-color 0.2s,
+    color 0.2s;
+}
+
+.control-pill {
+  background-color: rgba(128, 128, 128, 0.1);
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  color: var(--fg-secondary-color);
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+/* Контролы размера шрифта и высоты строки */
+.stepper-pill {
+  padding: 2px;
+  gap: 2px;
+
+  .stepper-btn {
+    background: transparent;
+    border: none;
+    color: inherit;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition:
+      background-color 0.2s,
+      color 0.2s;
+
+    &:hover {
+      background-color: rgba(128, 128, 128, 0.15);
+      color: var(--fg-primary-color);
+    }
+  }
+
+  .stepper-value {
+    min-width: 44px;
+    text-align: center;
+  }
+}
+
+/* Выпадающий список выбора шрифта */
+.font-select {
+  width: 150px;
+  :deep(.kit-select-trigger) {
+    background-color: rgba(128, 128, 128, 0.1);
+    border: 1px solid transparent;
+    padding: 4px 8px;
+    height: auto;
+    min-height: 30px;
+    box-shadow: none;
+    border-radius: 6px;
+
+    .selected-label {
+      font-size: 0.8rem;
+      color: var(--fg-secondary-color);
+      font-weight: 500;
+    }
+
+    .trigger-icon {
+      font-size: 1rem;
+      color: var(--fg-secondary-color);
+    }
+
+    &:hover {
+      background-color: rgba(128, 128, 128, 0.2);
+      .selected-label,
+      .trigger-icon {
+        color: var(--fg-primary-color);
+      }
+    }
+  }
+}
+
+.check-icon {
+  font-size: 1.2rem;
+  color: var(--fg-accent-color);
 }
 
 .divider {
@@ -546,67 +670,6 @@ const fontOptions = computed(() => [
       margin-left: 6px;
       font-weight: 500;
     }
-  }
-}
-
-.typography-controls {
-  padding: 4px 8px 8px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-
-  :deep(.kit-select-trigger) {
-    background-color: transparent;
-    border: none;
-    padding: 0;
-  }
-
-  .typography-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-
-    &.font-row {
-      flex-direction: column;
-      align-items: flex-start;
-      gap: 6px;
-
-      .kit-select-trigger {
-        background-color: var(--bg-tertiary-color) !important;
-        padding: 0;
-
-        &:hover {
-          border-color: transparent !important;
-        }
-
-        &.is-open {
-          border-color: transparent !important;
-        }
-      }
-    }
-  }
-
-  .typography-label {
-    font-size: 0.9rem;
-    color: var(--fg-primary-color);
-    font-weight: 500;
-  }
-
-  .typography-stepper {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-
-    .stepper-value {
-      font-size: 0.85rem;
-      width: 44px;
-      text-align: center;
-      color: var(--fg-secondary-color);
-    }
-  }
-
-  .font-select {
-    width: 100%;
   }
 }
 </style>
