@@ -2,8 +2,9 @@
 import { Icon } from '@iconify/vue'
 import { computed, onMounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { KitBtn, KitInput, KitSelect } from '~/components/01.kit'
+import { KitBtn, KitInput, KitSelect, KitTooltip } from '~/components/01.kit'
 import { useLibraryStore } from '~/components/05.modules/library/store/library.store'
+import { formatBytes, formatPagesList } from '~/components/05.modules/settings/lib/formatters'
 import { BOOK_TAGS } from '~/shared/constants/tags'
 import { useAuthStore } from '~/shared/store/auth.store'
 import { useCacheStore } from '~/shared/store/cache.store'
@@ -31,7 +32,8 @@ const {
 const bookCacheStats = computed(() => {
   if (!cacheStore.stats || !libraryStore.currentBookInfo)
     return null
-  return cacheStore.stats.bookStats[libraryStore.currentBookInfo.id] || { cachedPages: [], analysesCount: 0 }
+
+  return cacheStore.stats.bookStats[libraryStore.currentBookInfo.id] || { cachedPages: [], analysesCount: 0, sizeBytes: 0 }
 })
 
 const bookDescription = computed(() => {
@@ -57,6 +59,10 @@ const localizedTags = computed(() => {
 watch(() => libraryStore.syncState, (val) => {
   if (val === 'finished') {
     cacheStore.loadStats()
+    // После успешной синхронизации (которая могла перевести фразы) обновляем текущую инфу о книге
+    if (libraryStore.currentBookInfo) {
+      libraryStore.fetchBookInfo(libraryStore.currentBookInfo.id)
+    }
   }
 })
 
@@ -83,14 +89,32 @@ onMounted(() => {
       </div>
 
       <div class="cache-compact-info" :class="{ 'is-loaded': !!bookCacheStats }">
-        <div class="cache-item">
-          <Icon :icon="(bookCacheStats?.cachedPages?.length || 0) >= libraryStore.currentBookInfo.totalPages ? 'mdi:cloud-check-variant' : 'mdi:cloud-download-outline'" :class="{ 'icon-success': (bookCacheStats?.cachedPages?.length || 0) >= libraryStore.currentBookInfo.totalPages }" />
-          <span>{{ t('bookStats.inCache') }} <b>{{ formatNumber(bookCacheStats?.cachedPages?.length || 0) }}</b> / {{ formatNumber(libraryStore.currentBookInfo.totalPages) }} {{ t('bookInfo.pages') }}</span>
-        </div>
-        <div class="cache-item">
-          <Icon icon="mdi:robot-outline" :class="{ 'icon-success': (bookCacheStats?.analysesCount || 0) > 0 }" />
-          <span>{{ t('bookStats.aiTranslations') }} <b>{{ formatNumber(bookCacheStats?.analysesCount || 0) }}</b> {{ t('bookStats.phrases') }}</span>
-        </div>
+        <KitTooltip placement="top">
+          <template #content>
+            <div class="cache-tooltip-content">
+              <div><b>{{ t('bookStats.cacheSize') }}</b> {{ formatBytes(bookCacheStats?.sizeBytes || 0) }}</div>
+              <div class="pages-list">
+                <b>{{ t('bookStats.cachedPagesList') }}</b> {{ formatPagesList(bookCacheStats?.cachedPages || []) }}
+              </div>
+            </div>
+          </template>
+          <div class="cache-item">
+            <Icon :icon="(bookCacheStats?.cachedPages?.length || 0) >= libraryStore.currentBookInfo.totalPages ? 'mdi:cloud-check-variant' : 'mdi:cloud-download-outline'" :class="{ 'icon-success': (bookCacheStats?.cachedPages?.length || 0) >= libraryStore.currentBookInfo.totalPages }" />
+            <span>{{ t('bookStats.inCache') }} <b>{{ formatNumber(bookCacheStats?.cachedPages?.length || 0) }}</b> / {{ formatNumber(libraryStore.currentBookInfo.totalPages) }} {{ t('bookInfo.pages') }}</span>
+          </div>
+        </KitTooltip>
+
+        <KitTooltip placement="top">
+          <template #content>
+            <div class="cache-tooltip-content ai-hint">
+              {{ t('bookStats.aiTranslationsHint') }}
+            </div>
+          </template>
+          <div class="cache-item">
+            <Icon icon="mdi:robot-outline" :class="{ 'icon-success': (libraryStore.currentBookInfo?.analysesCount || 0) > 0 }" />
+            <span>{{ t('bookStats.aiTranslations') }} <b>{{ formatNumber(libraryStore.currentBookInfo?.analysesCount || 0) }}</b> {{ t('bookStats.phrases') }}</span>
+          </div>
+        </KitTooltip>
       </div>
     </div>
 
@@ -241,6 +265,7 @@ onMounted(() => {
       gap: 6px;
       font-size: 0.85rem;
       color: var(--fg-secondary-color);
+      cursor: help;
 
       svg {
         font-size: 1.15rem;
@@ -258,6 +283,32 @@ onMounted(() => {
     }
   }
 }
+
+.cache-tooltip-content {
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.85rem;
+
+  .pages-list {
+    max-width: 220px;
+    white-space: normal;
+    word-wrap: break-word;
+    line-height: 1.4;
+  }
+
+  &.ai-hint {
+    max-width: 250px;
+    white-space: normal;
+    line-height: 1.4;
+  }
+
+  b {
+    color: var(--fg-accent-color);
+  }
+}
+
 .ai-analysis-box {
   background-color: rgba(var(--bg-accent-color-rgb, 48, 33, 61), 0.3);
   border: 1px solid var(--border-accent-color);

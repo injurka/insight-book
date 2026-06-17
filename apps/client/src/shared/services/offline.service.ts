@@ -182,7 +182,7 @@ export const offlineService = {
     const bookStats: Record<number, any> = {}
 
     booksList.forEach((b) => {
-      bookStats[b.id] = { title: b.title, totalPages: b.totalPages || 0, cachedPages: [], analysesCount: 0, sizeBytes: 0 }
+      bookStats[b.id] = { title: b.title, totalPages: b.totalPages || 0, cachedPages: [], analysesCount: b.analysesCount || 0, sizeBytes: 0 }
     })
 
     let totalDictionaryWords = 0

@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { arrow, autoUpdate, flip, offset, shift, useFloating } from '@floating-ui/vue'
 import { useMediaQuery } from '@vueuse/core'
-import { computed, onUnmounted, ref } from 'vue'
 
 interface Props {
   text?: string
@@ -13,6 +12,8 @@ const props = withDefaults(defineProps<Props>(), {
   placement: 'top',
   disabled: false,
 })
+
+const slots = useSlots()
 
 const referenceRef = ref<HTMLElement | null>(null)
 const floatingRef = ref<HTMLElement | null>(null)
@@ -36,7 +37,8 @@ const { x, y, strategy, middlewareData, placement: finalPlacement } = useFloatin
 let timeout: ReturnType<typeof setTimeout>
 
 function show() {
-  if (props.disabled || !props.text || !isHoverable.value)
+  // Теперь тултип откроется, если есть ЛИБО текст, ЛИБО кастомный слот content
+  if (props.disabled || (!props.text && !slots.content) || !isHoverable.value)
     return
   clearTimeout(timeout)
   timeout = setTimeout(() => {

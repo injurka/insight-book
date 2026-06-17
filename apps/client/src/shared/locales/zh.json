@@ -131,6 +131,13 @@
     "offlineAvailable": "离线可用 {percent}% 的内容",
     "pageNumbers": "页码",
     "noBooks": "书库中没有书。",
+    "noSavedPages": "没有保存的页面",
+    "andMore": "还有 {count} 个",
+    "bytes": "字节",
+    "kb": "KB",
+    "mb": "MB",
+    "gb": "GB",
+    "tb": "TB",
     "actions": {
       "analyze_sentence": "句子翻译（手动）",
       "analyze_batch": "批量分析（离线同步）",
@@ -265,6 +272,7 @@
     "parallelReadingBlur": "模糊翻译",
     "parallelReadingHint": "必须翻译页面上的所有句子才能显示文本。",
     "translateWholePage": "翻译整页",
+    "translatingPage": "翻译中...",
     "sentencesAndWords": "句子和单词",
     "appearance": "外观",
     "light": "浅色",
@@ -526,6 +534,9 @@
     "noRareFound": "未找到生僻词"
   },
   "bookStats": {
+    "cacheSize": "缓存大小：",
+    "cachedPagesList": "页面：",
+    "aiTranslationsHint": "本书中已被 AI 翻译并缓存在服务器上的句子和单词数量（可立即获取）。",
     "authorNotSpecified": "未知作者",
     "progressPage": "进度：第",
     "outOf": "页，共",

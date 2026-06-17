@@ -4,7 +4,7 @@ import type { PagePayload } from '../types'
 import { mkdirSync, readFileSync } from 'node:fs'
 import { rm, unlink } from 'node:fs/promises'
 import path from 'node:path'
-import { and, desc, eq, like, or, sql } from 'drizzle-orm'
+import { and, desc, eq, inArray, like, or, sql } from 'drizzle-orm'
 import { parse as parseHtml } from 'node-html-parser'
 import sharp from 'sharp'
 
@@ -71,6 +71,15 @@ export async function handleGetBooks(req: Request, userId: number | null): Promi
       .limit(limit)
       .offset((page - 1) * limit)
 
+    const bookIds = rows.map(r => r.book.id)
+    const llmCounts = bookIds.length > 0
+      ? await db.select({
+        bookId: schema.bookLlmCache.bookId,
+        count: sql<number>`count(*)`.mapWith(Number),
+      }).from(schema.bookLlmCache).where(inArray(schema.bookLlmCache.bookId, bookIds)).groupBy(schema.bookLlmCache.bookId)
+      : []
+    const countMap = new Map(llmCounts.map(r => [r.bookId, r.count]))
+
     const data = rows.map(r => ({
       ...r.book,
       stats: r.stats ? { ...r.stats, tags: JSON.parse(r.stats.tags || '[]') } : null,
@@ -79,6 +88,7 @@ export async function handleGetBooks(req: Request, userId: number | null): Promi
       isFavorite: r.progress?.isFavorite ?? false,
       collection: r.progress?.collection ?? null,
       progressUpdatedAt: r.progress?.updatedAt ?? null,
+      analysesCount: countMap.get(r.book.id) || 0,
     }))
 
     return json({ data, total, page, limit })
@@ -113,13 +123,27 @@ export async function handleGetBooks(req: Request, userId: number | null): Promi
       }
     })
 
-  result.sort((a, b) => {
+  const bookIds = result.map(b => b.id)
+  const llmCounts = bookIds.length > 0
+    ? await db.select({
+      bookId: schema.bookLlmCache.bookId,
+      count: sql<number>`count(*)`.mapWith(Number),
+    }).from(schema.bookLlmCache).where(inArray(schema.bookLlmCache.bookId, bookIds)).groupBy(schema.bookLlmCache.bookId)
+    : []
+  const countMap = new Map(llmCounts.map(r => [r.bookId, r.count]))
+
+  const finalResult = result.map(b => ({
+    ...b,
+    analysesCount: countMap.get(b.id) || 0,
+  }))
+
+  finalResult.sort((a, b) => {
     const tA = new Date(a.progressUpdatedAt || a.updatedAt).getTime()
     const tB = new Date(b.progressUpdatedAt || b.updatedAt).getTime()
     return tB - tA
   })
 
-  return json(result)
+  return json(finalResult)
 }
 
 export async function handleGetBookInfo(req: Request, userId: number | null): Promise<Response> {
@@ -154,12 +178,17 @@ export async function handleGetBookInfo(req: Request, userId: number | null): Pr
   const { progresses, stats, ...bookData } = book
   const statsResult = stats
     ? {
-        ...stats,
-        tags: stats.tags ? JSON.parse(stats.tags) : [],
-        posDistribution: stats.posDistribution ? JSON.parse(stats.posDistribution) : null,
-        topWords: stats.topWords ? JSON.parse(stats.topWords) : null,
-      }
+      ...stats,
+      tags: stats.tags ? JSON.parse(stats.tags) : [],
+      posDistribution: stats.posDistribution ? JSON.parse(stats.posDistribution) : null,
+      topWords: stats.topWords ? JSON.parse(stats.topWords) : null,
+    }
     : null
+
+  const llmCountRes = await db.select({ count: sql<number>`count(*)` })
+    .from(schema.bookLlmCache)
+    .where(eq(schema.bookLlmCache.bookId, id))
+    .get()
 
   return json({
     ...bookData,
@@ -169,6 +198,7 @@ export async function handleGetBookInfo(req: Request, userId: number | null): Pr
     collection: progress?.collection ?? null,
     toc: book.toc ? JSON.parse(book.toc) : [],
     stats: statsResult,
+    analysesCount: llmCountRes?.count || 0,
   }, 200, {
     'Cache-Control': 'private, stale-while-revalidate=60',
   })
@@ -668,7 +698,6 @@ export async function handleGetPage(req: Request, userId: number): Promise<Respo
     }, 200, { 'Cache-Control': 'public, max-age=86400' })
   }
 
-  // Остальная часть handleGetPage для ePub/Text...
   const cached = await db.query.nlpCache.findFirst({
     where: and(eq(schema.nlpCache.bookId, bookId), eq(schema.nlpCache.pageNum, pageNum)),
   })

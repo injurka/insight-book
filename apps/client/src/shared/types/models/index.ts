@@ -48,6 +48,7 @@ export interface Book {
   isPublic?: boolean
   textDirection?: string | null
   progressUpdatedAt?: string | null
+  analysesCount?: number
 }
 
 export interface TocItem {
@@ -170,6 +171,16 @@ export interface LlmConfig {
   key?: string
   model?: string
   fallbackModel?: string
+  ttsModel?: string
+  ttsUrl?: string
+  ttsKey?: string
+  sttModel?: string
+  sttUrl?: string
+  sttKey?: string
+  ocrModel?: string
+  ocrRefinementModel?: string
+  ocrUrl?: string
+  ocrKey?: string
   isAggregator?: boolean
 }
 
