@@ -155,9 +155,8 @@ export async function handleUpdateUsername(req: Request, userId: number): Promis
   return json({ success: true, username: newUsername })
 }
 
-export async function handleYandexAuth(req: Request): Promise<Response> {
-  const reqUrl = new URL(req.url)
-  const redirectUri = `${reqUrl.protocol}//${reqUrl.host}/api/auth/yandex/callback`
+export async function handleYandexAuth(_req: Request): Promise<Response> {
+  const redirectUri = `${FRONTEND_URL}/api/auth/yandex/callback`
 
   const url = new URL('https://oauth.yandex.ru/authorize')
   url.searchParams.set('response_type', 'code')
@@ -176,7 +175,7 @@ export async function handleYandexCallback(req: Request): Promise<Response> {
   if (!code)
     throw new AppError(400, 'No code provided')
 
-  const redirectUri = `${url.protocol}//${url.host}/api/auth/yandex/callback`
+  const redirectUri = `${FRONTEND_URL}/api/auth/yandex/callback`
 
   const tokenRes = await fetch('https://oauth.yandex.ru/token', {
     method: 'POST',
