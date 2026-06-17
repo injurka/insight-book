@@ -3,7 +3,7 @@ import path from 'node:path'
 import { eq, sql } from 'drizzle-orm'
 import jwt from 'jsonwebtoken'
 import { z } from 'zod'
-import { AUTH_MODE, CORS_HEADERS, JWT_SECRET, UPLOADS_PATH } from '../config'
+import { AUTH_MODE, CORS_HEADERS, FRONTEND_URL, JWT_SECRET, UPLOADS_PATH, YANDEX_CLIENT_ID, YANDEX_CLIENT_SECRET } from '../config'
 import { db } from '../db'
 import * as schema from '../db/schema'
 import { AppError } from '../utils/errors'
@@ -153,4 +153,79 @@ export async function handleUpdateUsername(req: Request, userId: number): Promis
   await db.update(schema.users).set({ username: newUsername }).where(eq(schema.users.id, userId))
 
   return json({ success: true, username: newUsername })
+}
+
+export async function handleYandexAuth(req: Request): Promise<Response> {
+  const reqUrl = new URL(req.url)
+  const redirectUri = `${reqUrl.protocol}//${reqUrl.host}/api/auth/yandex/callback`
+
+  const url = new URL('https://oauth.yandex.ru/authorize')
+  url.searchParams.set('response_type', 'code')
+  url.searchParams.set('client_id', YANDEX_CLIENT_ID)
+  url.searchParams.set('redirect_uri', redirectUri)
+
+  return new Response(null, {
+    status: 302,
+    headers: { Location: url.toString() },
+  })
+}
+
+export async function handleYandexCallback(req: Request): Promise<Response> {
+  const url = new URL(req.url)
+  const code = url.searchParams.get('code')
+  if (!code)
+    throw new AppError(400, 'No code provided')
+
+  const redirectUri = `${url.protocol}//${url.host}/api/auth/yandex/callback`
+
+  const tokenRes = await fetch('https://oauth.yandex.ru/token', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+      'Authorization': `Basic ${Buffer.from(`${YANDEX_CLIENT_ID}:${YANDEX_CLIENT_SECRET}`).toString('base64')}`,
+    },
+    body: new URLSearchParams({ grant_type: 'authorization_code', code, redirect_uri: redirectUri }).toString(),
+  })
+
+  if (!tokenRes.ok)
+    throw new AppError(400, 'Failed to exchange token')
+  const tokenData = (await tokenRes.json()) as any
+
+  const userRes = await fetch('https://login.yandex.ru/info?format=json', {
+    headers: { Authorization: `OAuth ${tokenData.access_token}` },
+  })
+
+  if (!userRes.ok)
+    throw new AppError(400, 'Failed to fetch user info')
+  const userData = (await userRes.json()) as any
+
+  const yandexId = String(userData.id)
+  let user = await db.query.users.findFirst({ where: eq(schema.users.yandexId, yandexId) })
+
+  if (!user) {
+    let proposedUsername = userData.login || `yandex_${yandexId}`
+    const existing = await db.query.users.findFirst({ where: eq(schema.users.username, proposedUsername) })
+    if (existing) {
+      proposedUsername = `yandex_${yandexId}_${Date.now()}`
+    }
+
+    const dummyPassword = await Bun.password.hash(crypto.randomUUID())
+    const [newUser] = await db.insert(schema.users).values({
+      yandexId,
+      username: proposedUsername,
+      passwordHash: dummyPassword,
+      avatarUrl: userData.default_avatar_id ? `https://avatars.yandex.net/get-yapic/${userData.default_avatar_id}/islands-200` : null,
+    }).returning()
+    user = newUser
+  }
+
+  const token = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: '30d' })
+  const frontendUrl = new URL(FRONTEND_URL)
+  frontendUrl.pathname = '/auth/yandex/callback'
+  frontendUrl.searchParams.set('token', token)
+
+  return new Response(null, {
+    status: 302,
+    headers: { Location: frontendUrl.toString() },
+  })
 }

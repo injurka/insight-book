@@ -5,6 +5,8 @@ export enum AppRouteNames {
   Dictionary = 'dictionary',
   Settings = 'settings',
   SignIn = 'sign-in',
+  //
+  YandexCallback = 'yandex-callback',
 }
 
 export const AppRoutePaths = {
@@ -13,8 +15,11 @@ export const AppRoutePaths = {
   Reader: '/reader',
   Settings: '/settings',
   SignIn: '/sign-in',
-
   Book: {
     Info: (id: string | number) => `/book/${id}`,
   },
+
+  //
+  YandexCallback: '/auth/yandex/callback',
+
 }

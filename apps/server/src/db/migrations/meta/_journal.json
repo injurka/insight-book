@@ -78,6 +78,20 @@
       "when": 1781453018511,
       "tag": "0010_gorgeous_centennial",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "6",
+      "when": 1781686094779,
+      "tag": "0011_acoustic_wild_child",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "6",
+      "when": 1781687550449,
+      "tag": "0012_dark_stellaris",
+      "breakpoints": true
     }
   ]
 }

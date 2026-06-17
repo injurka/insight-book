@@ -5,6 +5,9 @@ export const PORT = Number.parseInt(process.env.PORT || '4444')
 // --- Authentication ---
 export const AUTH_MODE = process.env.AUTH_MODE || 'single' // 'single' | 'multi'
 export const JWT_SECRET = process.env.JWT_SECRET || 'super-secret-local-key'
+export const YANDEX_CLIENT_ID = process.env.YANDEX_CLIENT_ID || ''
+export const YANDEX_CLIENT_SECRET = process.env.YANDEX_CLIENT_SECRET || ''
+export const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173'
 
 // --- Paths ---
 export const DB_PATH = process.env.DB_PATH || path.resolve(process.cwd(), 'db', 'insight-book.sqlite')
@@ -28,7 +31,7 @@ export const OCR_REFINEMENT_MODEL = process.env.OCR_REFINEMENT_MODEL || 'gemini-
 // --- Audio Specific APIs (TTS / STT) ---
 export const TTS_API_KEY = process.env.TTS_API_KEY || LLM_API_KEY
 export const TTS_MODEL = process.env.TTS_MODEL || 'gpt-4o-mini-tts'
-export const STT_MODEL = process.env.STT_MODEL || 'whisper-1' // ДОБАВЛЕНО
+export const STT_MODEL = process.env.STT_MODEL || 'whisper-1'
 
 // -- Default ADMIN user ---
 export const ADMIN_USERNAME = process.env.ADMIN_USERNAME || 'admin'
@@ -41,7 +44,7 @@ export const VAPID_SUBJECT = process.env.VAPID_SUBJECT || 'mailto:admin@insight-
 
 // --- Limits & Configs ---
 export const PAGE_SIZE_CHARS = 1500
-export const MAX_DAILY_TOKENS = Number.parseInt(process.env.MAX_DAILY_TOKENS || '1_000_000')
+export const MAX_DAILY_TOKENS = Number.parseInt(process.env.MAX_DAILY_TOKENS || '100_000')
 
 export const MIME_OVERRIDES: Record<string, string> = {
   '.md': 'text/markdown; charset=utf-8',

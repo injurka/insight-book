@@ -130,21 +130,21 @@
     "offlineAvailable": "Offline available: {percent}% of the book",
     "pageNumbers": "Page Numbers",
     "noBooks": "No books in the library.",
-"actions": {
-  "analyze_sentence": "Sentence Translation (Manual)",
-  "analyze_batch": "Batch Analysis (Offline sync)",
-  "analyze_book": "Book Analysis (Genres, Tags)",
-  "analyze_manga": "Manga Analysis (Genres, Tags)",
-  "dict_examples": "Generate Examples (Dictionary)",
-  "dict_autofill": "Card Autofill (Dictionary)",
-  "tts_generation": "Voiceover (TTS)",
-  "ocr_layout": "OCR (Block Detection)",
-  "ocr_refine": "OCR (Text Refinement)",
-  "deep_dive_collocations": "Deep Dive (Collocations)",
-  "deep_dive_radicals": "Deep Dive (Radicals)",
-  "check_pronunciation_stt": "Speech Recognition (STT)",
-  "check_pronunciation_llm": "Pronunciation Analysis (LLM)"
-}
+    "actions": {
+      "analyze_sentence": "Sentence Translation (Manual)",
+      "analyze_batch": "Batch Analysis (Offline sync)",
+      "analyze_book": "Book Analysis (Genres, Tags)",
+      "analyze_manga": "Manga Analysis (Genres, Tags)",
+      "dict_examples": "Generate Examples (Dictionary)",
+      "dict_autofill": "Card Autofill (Dictionary)",
+      "tts_generation": "Voiceover (TTS)",
+      "ocr_layout": "OCR (Block Detection)",
+      "ocr_refine": "OCR (Text Refinement)",
+      "deep_dive_collocations": "Deep Dive (Collocations)",
+      "deep_dive_radicals": "Deep Dive (Radicals)",
+      "check_pronunciation_stt": "Speech Recognition (STT)",
+      "check_pronunciation_llm": "Pronunciation Analysis (LLM)"
+    }
   },
   "library": {
     "menuPublicCatalog": "Public Catalog",

@@ -24,8 +24,8 @@ export const users = sqliteTable('users', {
   role: text('role').notNull().default('user'),
 
   // Лимиты
-  tokenLimit: integer('tokenLimit'),
-  bookLimit: integer('bookLimit'),
+  tokenLimit: integer('tokenLimit').default(1000000),
+  bookLimit: integer('bookLimit').default(10),
   usedTokens: integer('usedTokens').notNull().default(0),
 
   createdAt: text('createdAt').notNull().default(sql`(datetime('now'))`),
@@ -39,6 +39,9 @@ export const users = sqliteTable('users', {
   uiLanguage: text('uiLanguage').notNull().default('ru'),
   lastPushSentAt: text('lastPushSentAt'),
   avatarUrl: text('avatarUrl'),
+
+  // Auth
+  yandexId: text('yandexId').unique(),
 })
 
 export const opdsCatalogs = sqliteTable('opds_catalogs', {

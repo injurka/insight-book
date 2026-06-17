@@ -121,7 +121,7 @@ const fontOptions = computed(() => [
 
     <div class="spacer" />
 
-    <KitDropdown ref="parallelDropdownRef" v-if="readerStore.currentBook?.type !== 'manga'" placement="bottom-end" width="300px" :close-on-content-click="false">
+    <KitDropdown ref="parallelDropdownRef" placement="bottom-end" width="300px" :close-on-content-click="false">
       <template #activator="{ props: dropdownProps }">
         <KitTooltip :text="t('reader.parallelReading')" placement="bottom">
           <KitBtn
@@ -149,17 +149,17 @@ const fontOptions = computed(() => [
             </span>
           </div>
 
-          <div class="menu-item desktop-only" @click="settingsStore.parallelViewMode = 'split'">
+          <div class="menu-item" :class="{ 'desktop-only': readerStore.currentBook?.type !== 'manga' }" @click="settingsStore.parallelViewMode = 'split'">
             <div class="item-label">
               <Icon icon="mdi:view-split-vertical" class="item-icon" />
               <span>{{ t('reader.parallelReadingSplit') }}</span>
             </div>
-            <span v-if="settingsStore.parallelViewMode === 'split'" class="value-text">
+            <span v-if="settingsStore.parallelViewMode === 'split' || (readerStore.currentBook?.type === 'manga' && settingsStore.parallelViewMode !== 'none')" class="value-text">
               <Icon icon="mdi:check" />
             </span>
           </div>
 
-          <div class="menu-item" @click="settingsStore.parallelViewMode = 'interleaved'">
+          <div v-if="readerStore.currentBook?.type !== 'manga'" class="menu-item" @click="settingsStore.parallelViewMode = 'interleaved'">
             <div class="item-label">
               <Icon icon="mdi:format-list-text" class="item-icon" />
               <span>{{ t('reader.parallelReadingInterleaved') }}</span>

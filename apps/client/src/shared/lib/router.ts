@@ -16,9 +16,9 @@ export const router = createRouter({
       component: () => import('~/pages/sign-in.vue'),
     },
     {
-      path: '/sign-in',
-      name: AppRouteNames.SignIn,
-      component: () => import('~/pages/sign-in.vue'),
+      path: '/auth/yandex/callback',
+      name: AppRouteNames.YandexCallback,
+      component: () => import('~/pages/auth/yandex/callback.vue'),
     },
     {
       path: '/',
@@ -55,7 +55,7 @@ router.beforeEach(async (to) => {
     await authStore.checkAuth()
   }
 
-  const isAuthRoute = to.name === AppRouteNames.SignIn
+  const isAuthRoute = to.name === AppRouteNames.SignIn || to.name === AppRouteNames.YandexCallback
 
   if (authStore.user && isAuthRoute) {
     return { name: AppRouteNames.Home }

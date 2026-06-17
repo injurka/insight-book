@@ -117,11 +117,26 @@ onUnmounted(() => {
 function getBoxStyle(box: any) {
   if (!readerStore.currentPage?.imageWidth || !readerStore.currentPage?.imageHeight)
     return {}
+
+  const imgWidth = readerStore.currentPage.imageWidth || 1
+  const imgHeight = readerStore.currentPage.imageHeight || 1
+
   return {
-    left: `${(box.x / readerStore.currentPage.imageWidth) * 100}%`,
-    top: `${(box.y / readerStore.currentPage.imageHeight) * 100}%`,
-    width: `${(box.w / readerStore.currentPage.imageWidth) * 100}%`,
-    height: `${(box.h / readerStore.currentPage.imageHeight) * 100}%`,
+    left: `${(box.x / imgWidth) * 100}%`,
+    top: `${(box.y / imgHeight) * 100}%`,
+    width: `${(box.w / imgWidth) * 100}%`,
+    height: `${(box.h / imgHeight) * 100}%`,
+  }
+}
+
+function getOuterNumberStyle(box: any) {
+  if (!readerStore.currentPage?.imageWidth || !readerStore.currentPage?.imageHeight) return {}
+  const imgWidth = readerStore.currentPage.imageWidth || 1
+  const imgHeight = readerStore.currentPage.imageHeight || 1
+
+  return {
+    left: `calc(${(box.x / imgWidth) * 100}% - 8px)`,
+    top: `calc(${(box.y / imgHeight) * 100}% - 8px)`,
   }
 }
 
@@ -140,6 +155,49 @@ watch(() => readerStore.isPageLoading, async (isLoading) => {
     setTimeout(restoreScrollPosition, 50)
   }
 }, { immediate: true })
+
+const translationMap = computed(() => {
+  const map: Record<string, string> = {}
+  for (const item of analysisStore.analysisHistory) {
+    map[item.sentence] = item.analysis.translation
+  }
+  return map
+})
+
+const parallelTranslations = computed(() => {
+  if (settingsStore.parallelViewMode === 'none' || !readerStore.currentPage?.ocrBlocks) {
+    return []
+  }
+  const map = translationMap.value
+  const parser = new DOMParser()
+
+  return readerStore.currentPage.ocrBlocks.map((box) => {
+    let resultHtml = ''
+    if (box.html) {
+      const doc = parser.parseFromString(box.html, 'text/html')
+      doc.querySelectorAll('.sentence').forEach((span) => {
+        const rawSent = decodeURIComponent(span.getAttribute('data-raw-sent') || '')
+        if (map[rawSent]) {
+          const blurClass = settingsStore.parallelBlurTranslation ? 'is-blurred' : ''
+          span.innerHTML = `<span class="split-translation ${blurClass}" onclick="this.classList.remove('is-blurred')">${map[rawSent]}</span>`
+        }
+        else {
+          span.innerHTML = `<span class="untranslated-text">${span.innerHTML}</span>`
+        }
+        span.insertAdjacentHTML('afterend', ' ')
+      })
+      resultHtml = doc.body.innerHTML
+    }
+    else {
+      resultHtml = `<span class="untranslated-text">${box.text.replace(/\n+/g, '')}</span>`
+    }
+
+    return {
+      id: box.id,
+      html: resultHtml,
+    }
+  })
+})
 
 function onScroll() {
   if (analysisStore.wordPopover) {
@@ -166,41 +224,61 @@ function onScroll() {
           </p>
         </div>
 
-        <div v-else-if="readerStore.currentPage?.imageUrl" ref="mangaContainerRef" class="manga-container">
-          <div
-            ref="mangaWrapperRef"
-            class="manga-page-wrapper js-tooltip-selectable"
-            :style="{
-              transform: `translate(${panX}px, ${panY}px) scale(${scale})`,
-              transformOrigin: '0 0',
-              cursor: scale > 1 ? (isPanning ? 'grabbing' : 'grab') : 'default',
-              transition: isPinching || isPanning ? 'none' : 'transform 0.1s ease-out',
-              willChange: 'transform',
-            }"
-            @click="handleWrapperClick"
-            @mouseup="onPointerUp"
-            @touchend="onPointerUp"
-            @touchcancel="onPointerUp"
-            @mouseleave="onPointerUp"
-          >
-            <img :src="readerStore.currentPage.localImageUrl || (readerStore.currentPage.imageUrl ? getMediaUrl(readerStore.currentPage.imageUrl) : '')" class="manga-image" @load="restoreScrollPosition">
+        <div v-else-if="readerStore.currentPage?.imageUrl" class="manga-layout-wrapper" :class="{ 'is-parallel': settingsStore.parallelViewMode !== 'none' }">
+          <div ref="mangaContainerRef" class="manga-container left-pane">
+            <div
+              ref="mangaWrapperRef"
+              class="manga-page-wrapper js-tooltip-selectable"
+              :style="{
+                transform: `translate(${panX}px, ${panY}px) scale(${scale})`,
+                transformOrigin: '0 0',
+                cursor: scale > 1 ? (isPanning ? 'grabbing' : 'grab') : 'default',
+                transition: isPinching || isPanning ? 'none' : 'transform 0.1s ease-out',
+                willChange: 'transform',
+              }"
+              @click="handleWrapperClick"
+              @mouseup="onPointerUp"
+              @touchend="onPointerUp"
+              @touchcancel="onPointerUp"
+              @mouseleave="onPointerUp"
+            >
+              <img :src="readerStore.currentPage.localImageUrl || (readerStore.currentPage.imageUrl ? getMediaUrl(readerStore.currentPage.imageUrl) : '')" class="manga-image" @load="restoreScrollPosition">
 
-            <div class="ocr-overlay">
-              <div
-                v-for="box in readerStore.currentPage.ocrBlocks"
-                :key="box.id"
-                class="ocr-bubble"
-                :class="{
-                  'is-active': activeBubble?.id === box.id && settingsStore.mangaOcrDisplayMode === 'popover',
-                  'mode-hover': settingsStore.mangaOcrDisplayMode === 'hover',
-                  'mode-popover': settingsStore.mangaOcrDisplayMode === 'popover',
-                }"
-                :style="getBoxStyle(box)"
-                @mousedown="handleBubblePointerDown($event, box)"
-                @touchstart="handleBubblePointerDown($event, box)"
-                @click="handleBubbleClick($event, box)"
-              >
-                <div v-if="settingsStore.mangaOcrDisplayMode === 'hover'" class="bubble-text-preview" v-html="box.html || box.text.replace(/\n+/g, '')" />
+              <div class="ocr-overlay">
+                <template v-for="(box, idx) in readerStore.currentPage.ocrBlocks" :key="box.id">
+                  <div
+                    class="ocr-bubble"
+                    :class="{
+                      'is-active': (activeBubble?.id === box.id && settingsStore.mangaOcrDisplayMode === 'popover') || settingsStore.parallelViewMode !== 'none',
+                      'mode-hover': settingsStore.mangaOcrDisplayMode === 'hover',
+                      'mode-popover': settingsStore.mangaOcrDisplayMode === 'popover' || settingsStore.parallelViewMode !== 'none',
+                      'has-parallel': settingsStore.parallelViewMode !== 'none',
+                    }"
+                    :style="getBoxStyle(box)"
+                    @mousedown="handleBubblePointerDown($event, box)"
+                    @touchstart="handleBubblePointerDown($event, box)"
+                    @click="handleBubbleClick($event, box)"
+                  >
+                    <div v-if="settingsStore.mangaOcrDisplayMode === 'hover'" class="bubble-text-preview" v-html="box.html || box.text.replace(/\n+/g, '')" />
+                  </div>
+                  <div
+                    v-if="settingsStore.parallelViewMode !== 'none'"
+                    class="bubble-number-outer"
+                    :style="getOuterNumberStyle(box)"
+                  >
+                    {{ idx + 1 }}
+                  </div>
+                </template>
+              </div>
+            </div>
+          </div>
+          <div v-if="settingsStore.parallelViewMode !== 'none'" class="manga-translations-pane right-pane">
+            <div class="translations-scroll">
+              <div v-for="(trans, idx) in parallelTranslations" :key="trans.id" class="manga-translation-item" @mousedown="onPointerDown" @touchstart="onPointerDown" @mouseup="onPointerUp" @touchend="onPointerUp" @touchcancel="onPointerUp" @mouseleave="onPointerUp" @mouseover="onSentenceHover" @mouseout="onSentenceOut">
+                <div class="translation-number">
+                  {{ idx + 1 }}
+                </div>
+                <div class="translation-html" v-html="trans.html" />
               </div>
             </div>
           </div>
@@ -280,12 +358,135 @@ function onScroll() {
   padding-top: 80px;
 }
 
+.manga-layout-wrapper {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 24px;
+  @include media-down(sm) {
+    padding: 16px;
+  }
+
+  &.is-parallel {
+    align-items: flex-start;
+    .left-pane {
+      flex: 1;
+      height: 100%;
+      min-width: 0;
+      justify-content: flex-end;
+      padding-right: 24px;
+    }
+    .right-pane {
+      flex: 1;
+      min-width: 0;
+      border-left: 1px dashed var(--border-secondary-color);
+      padding-left: 24px;
+      height: 100%;
+      overflow-y: auto;
+    }
+    @include media-down(md) {
+      flex-direction: column;
+      .left-pane {
+        padding-right: 0;
+        justify-content: center;
+        height: auto;
+      }
+      .right-pane {
+        border-left: none;
+        border-top: 1px dashed var(--border-secondary-color);
+        padding-left: 0;
+        padding-top: 24px;
+        margin-top: 24px;
+        height: auto;
+        overflow-y: visible;
+      }
+    }
+  }
+}
+
 .manga-container {
   display: flex;
   justify-content: center;
   align-items: center;
   width: 100%;
+  height: 100%;
   user-select: none;
+}
+
+.manga-translations-pane {
+  display: flex;
+  flex-direction: column;
+
+  .translations-scroll {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    width: 100%;
+    max-width: 600px;
+  }
+
+  .manga-translation-item {
+    display: flex;
+    gap: 12px;
+    color: var(--fg-primary-color);
+    font-size: 1.1rem;
+    line-height: 1.6;
+
+    .translation-number {
+      flex-shrink: 0;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background-color: var(--fg-accent-color);
+      color: var(--bg-primary-color);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      font-size: 0.9rem;
+    }
+
+    .translation-html {
+      flex-grow: 1;
+
+      :deep(.sentence) {
+        display: inline;
+        cursor: pointer;
+        border-radius: 4px;
+        transition: background-color 0.2s ease;
+        &:hover,
+        &.is-hovered {
+          background-color: var(--bg-hover-color);
+        }
+      }
+      :deep(.word) {
+        border-radius: 4px;
+        &.is-active {
+          background-color: var(--fg-accent-color);
+          color: var(--bg-primary-color);
+          font-weight: 600;
+        }
+      }
+      :deep(.untranslated-text) {
+        opacity: 0.4;
+      }
+      :deep(.split-translation) {
+        &.is-blurred {
+          filter: blur(5px);
+          cursor: pointer;
+          opacity: 0.7;
+          transition:
+            filter 0.2s,
+            opacity 0.2s;
+          &:hover {
+            opacity: 1;
+          }
+        }
+      }
+    }
+  }
 }
 
 .manga-page-wrapper {
@@ -413,6 +614,30 @@ function onScroll() {
       background-color: rgba(var(--bg-accent-color-rgb, 201, 117, 222), 0.2);
     }
   }
+}
+
+.bubble-number-outer {
+  position: absolute;
+  min-width: 24px;
+  height: 24px;
+  padding: 0 6px;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 0.8rem;
+  z-index: 10;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+  text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+  transition: all 0.2s ease;
 }
 
 .reader-loading-wrapper {

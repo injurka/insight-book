@@ -130,21 +130,21 @@
     "offlineAvailable": "离线可用 {percent}% 的内容",
     "pageNumbers": "页码",
     "noBooks": "书库中没有书。",
-"actions": {
-  "analyze_sentence": "句子翻译（手动）",
-  "analyze_batch": "批量分析（离线同步）",
-  "analyze_book": "书籍分析（流派、标签）",
-  "analyze_manga": "漫画分析（流派、标签）",
-  "dict_examples": "生成示例（词典）",
-  "dict_autofill": "卡片自动填充（词典）",
-  "tts_generation": "语音合成 (TTS)",
-  "ocr_layout": "OCR (区块识别)",
-  "ocr_refine": "OCR (文本提取)",
-  "deep_dive_collocations": "深度沉浸 (词语搭配)",
-  "deep_dive_radicals": "深度沉浸 (偏旁部首)",
-  "check_pronunciation_stt": "语音识别 (STT)",
-  "check_pronunciation_llm": "发音分析 (LLM)"
-}
+    "actions": {
+      "analyze_sentence": "句子翻译（手动）",
+      "analyze_batch": "批量分析（离线同步）",
+      "analyze_book": "书籍分析（流派、标签）",
+      "analyze_manga": "漫画分析（流派、标签）",
+      "dict_examples": "生成示例（词典）",
+      "dict_autofill": "卡片自动填充（词典）",
+      "tts_generation": "语音合成 (TTS)",
+      "ocr_layout": "OCR (区块识别)",
+      "ocr_refine": "OCR (文本提取)",
+      "deep_dive_collocations": "深度沉浸 (词语搭配)",
+      "deep_dive_radicals": "深度沉浸 (偏旁部首)",
+      "check_pronunciation_stt": "语音识别 (STT)",
+      "check_pronunciation_llm": "发音分析 (LLM)"
+    }
   },
   "library": {
     "menuPublicCatalog": "公共目录",

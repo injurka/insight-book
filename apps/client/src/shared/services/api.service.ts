@@ -2,7 +2,7 @@ import type { Book, BookStats, DictDeck, GeneratedWordExamples, LlmAnalysis, Opd
 import { getActivePinia } from 'pinia'
 import { useGlobalSettingsStore } from '../store/settings.store'
 
-const BASE = import.meta.env.VITE_API_URL || 'https://insight-api.trip-scheduler.ru'
+export const BASE_API_URL = import.meta.env.VITE_API_URL || 'https://insight-api.trip-scheduler.ru'
 
 interface ApiRequestInit extends RequestInit {
   withLlm?: boolean
@@ -41,7 +41,7 @@ async function request<T>(url: string, opts?: ApiRequestInit): Promise<T> {
   }
 
   const { withLlm, ...fetchOpts } = opts || {}
-  const res = await fetch(`${BASE}${url}`, { ...fetchOpts, headers })
+  const res = await fetch(`${BASE_API_URL}${url}`, { ...fetchOpts, headers })
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: res.statusText })) as { error: string }
     throw new Error(err.error || `HTTP ${res.status}`)
@@ -172,7 +172,7 @@ export const api = {
       }),
 
     fetchImageBlob: async (path: string) => {
-      const url = path.startsWith('http') ? path : `${BASE}${path}`
+      const url = path.startsWith('http') ? path : `${BASE_API_URL}${path}`
       const headers = new Headers()
       const token = localStorage.getItem('insight_token')
       if (token)
