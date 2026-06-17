@@ -484,7 +484,8 @@
     "grammarColon": "Грамматика:",
     "vocabularyColon": "Лексика:",
     "wordNotFoundInDict": "Слово не найдено в локальном словаре. Воспользуйтесь ИИ переводом",
-    "offlineTranslationNotFound": "Оффлайн: перевод не найден в кэше"
+    "offlineTranslationNotFound": "Оффлайн: перевод не найден в кэше",
+    "toBackground": "В фон"
   },
   "dictWord": {
     "cardDetails": "Подробности карточки",

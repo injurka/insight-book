@@ -483,7 +483,8 @@
     "grammarColon": "Grammar:",
     "vocabularyColon": "Vocabulary:",
     "wordNotFoundInDict": "Word not found in local dictionary. Try AI translation",
-    "offlineTranslationNotFound": "Offline: translation not found in cache"
+    "offlineTranslationNotFound": "Offline: translation not found in cache",
+    "toBackground": "To background"
   },
   "dictWord": {
     "cardDetails": "Card Details",

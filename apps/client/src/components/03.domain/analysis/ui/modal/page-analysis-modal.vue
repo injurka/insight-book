@@ -82,7 +82,7 @@ const { t } = useI18n()
         </KitBtn>
         <div style="flex-grow: 1" />
         <KitBtn color="primary" variant="tonal" @click="analysisStore.isPageAnalysisModalOpen = false">
-          В фон
+          {{ t('analysis.toBackground') }}
         </KitBtn>
       </template>
       <template v-else>
