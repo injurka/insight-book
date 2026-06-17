@@ -138,6 +138,14 @@ async function handleDeleteBook(id: number) {
   toast.success(t('library.bookDeleted'))
 }
 
+function onMenuClick(id: string) {
+  isMobileMenuOpen.value = false
+
+  setTimeout(() => {
+    currentView.value = id
+  }, 100)
+}
+
 onMounted(() => {
   if (!authStore.user && !authStore.isSingleMode) {
     currentView.value = 'public-catalog'
@@ -163,7 +171,7 @@ onMounted(() => {
               :key="item.id"
               class="nav-item"
               :class="{ active: currentView === item.id }"
-              @click="currentView = item.id"
+              @click="onMenuClick(item.id)"
             >
               <Icon :icon="item.icon" /> {{ item.label }}
             </li>
@@ -177,7 +185,7 @@ onMounted(() => {
               :key="item.id"
               class="nav-item"
               :class="{ active: currentView === item.id }"
-              @click="currentView = item.id; isMobileMenuOpen = false"
+              @click="onMenuClick(item.id)"
             >
               <Icon :icon="item.icon" /> {{ item.label }}
             </li>
