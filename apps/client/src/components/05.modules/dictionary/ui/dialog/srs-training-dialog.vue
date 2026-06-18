@@ -55,7 +55,7 @@ const activeView = computed(() => {
 
 async function startSession(options: {
   deckId: number | 'all' | 'none'
-  difficulty: string | 'all' | 'none'
+  difficulty: string[]
   modes: Record<string, boolean>
 }) {
   try {
@@ -63,7 +63,7 @@ async function startSession(options: {
     await dictStore.fetchTrainingQueue({
       mode: dictStore.trainingMode,
       deckId: options.deckId,
-      difficulty: [options.difficulty],
+      difficulty: options.difficulty,
     })
 
     if (dictStore.reviewQueue.length === 0) {
