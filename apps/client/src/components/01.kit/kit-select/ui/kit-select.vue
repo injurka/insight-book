@@ -56,11 +56,7 @@ const { x, y, strategy } = useFloating(referenceRef, floatingRef, {
   ],
 })
 
-onClickOutside(floatingRef, (e) => {
-  // Игнорируем клик по самому триггеру (так как там срабатывает toggle)
-  if (referenceRef.value && referenceRef.value.contains(e.target as Node)) {
-    return
-  }
+onClickOutside(floatingRef, () => {
   isOpen.value = false
 }, { ignore: [referenceRef] })
 
