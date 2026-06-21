@@ -53,7 +53,19 @@ void (async () => {
 
     try {
       initCatalogDb()
-      console.log('✅ Catalog database tables verified/created.')
+
+      const deckRes = catalogSqlite.query('SELECT count(*) as count FROM official_decks').get() as { count: number } | undefined
+      const wordRes = catalogSqlite.query('SELECT count(*) as count FROM official_deck_words').get() as { count: number } | undefined
+
+      const decksCount = deckRes?.count || 0
+      const wordsCount = wordRes?.count || 0
+
+      if (decksCount > 0) {
+        console.log(`✅ Catalog database verified: found ${decksCount} decks and ${wordsCount} words.`)
+      } else {
+        console.log(`✅ Catalog database verified (Empty).`)
+        console.log(`💡 Tip: Run 'bun run deck:seed' to populate the catalog with standard decks.`)
+      }
     }
     catch (e) {
       console.error('❌ Failed to setup catalog database tables:', e)
