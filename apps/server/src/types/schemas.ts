@@ -157,3 +157,21 @@ export const DeepDiveRequestSchema = z.object({
   language: z.string().min(1),
   mode: z.enum(['collocations', 'radicals']),
 })
+
+export const CreateHighlightSchema = z.object({
+  bookId: z.coerce.number({ message: 'bookId обязателен' }),
+  text: z.string().min(1, 'Текст выделения не может быть пустым'),
+  translation: z.string().nullable().optional(),
+  note: z.string().nullable().optional(),
+  color: z.string().default('#fde047'),
+  chapter: z.string().nullable().optional(),
+  pageNum: z.coerce.number().int().min(1, 'Номер страницы должен быть больше 0'),
+})
+
+export const UpdateHighlightSchema = z.object({
+  translation: z.string().nullable().optional(),
+  note: z.string().nullable().optional(),
+  color: z.string().optional(),
+  chapter: z.string().nullable().optional(),
+  pageNum: z.coerce.number().int().min(1).optional(),
+})

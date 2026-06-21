@@ -19,7 +19,7 @@
     "build:client": "bun --parallel run --filter='./apps/client' build",
     "build:server": "bun --parallel run --filter='./apps/server' build",
     "--------------------------------< LINT & FORMAT >---------------------------------": "",
-    "lint": "bun run --filter='./apps/*' lint",
+    "lint": "bun run --filter='./apps/*' lint --fix",
     "typecheck": "bun --filter='./apps/*' typecheck",
     "--------------------------------<     HELPERS   >---------------------------------": "",
     "postinstall": "simple-git-hooks"

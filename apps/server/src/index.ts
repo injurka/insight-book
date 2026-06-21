@@ -32,19 +32,29 @@ import {
   handleBulkDeleteDict,
   handleBulkMoveDict,
   handleCheckPronunciation,
+  handleCloneCatalogDeck,
   handleCreateDeck,
   handleDeleteDeck,
   handleGenerateDeepDive,
   handleGenerateExamples,
+  handleGetCatalogDecks,
+  handleGetCatalogWords,
   handleGetDecks,
   handleGetReviewQueue,
   handleGetUserDict,
   handleGetWordFromUserDict,
+  handleImportCsv,
   handleRemoveFromUserDict,
   handleSrsReview,
   handleUpdateDeck,
   handleUpsertToUserDict,
 } from './handlers/dictionary'
+import {
+  handleCreateHighlight,
+  handleDeleteHighlight,
+  handleGetHighlights,
+  handleUpdateHighlight,
+} from './handlers/highlights'
 import {
   handleAddCatalog,
   handleBrowseOpds,
@@ -113,6 +123,12 @@ const apiRoutes = {
   '/api/dictionary/decks': { OPTIONS: corsOk, GET: apiWrapper(authWrapper(handleGetDecks)), POST: apiWrapper(authWrapper(handleCreateDeck)) },
   '/api/dictionary/decks/:id': { OPTIONS: corsOk, PATCH: apiWrapper(authWrapper(handleUpdateDeck)), DELETE: apiWrapper(authWrapper(handleDeleteDeck)) },
 
+  // Catalog & Import
+  '/api/dictionary/catalog': { OPTIONS: corsOk, GET: apiWrapper(authWrapper(handleGetCatalogDecks)) },
+  '/api/dictionary/catalog/:id/words': { OPTIONS: corsOk, GET: apiWrapper(authWrapper(handleGetCatalogWords)) },
+  '/api/dictionary/catalog/:id/clone': { OPTIONS: corsOk, POST: apiWrapper(authWrapper(handleCloneCatalogDeck)) },
+  '/api/dictionary/import': { OPTIONS: corsOk, POST: apiWrapper(authWrapper(handleImportCsv)) },
+
   // Review & SRS
   '/api/dictionary/review': { OPTIONS: corsOk, GET: apiWrapper(authWrapper(handleGetReviewQueue)), POST: apiWrapper(authWrapper(handleSrsReview)) },
   '/api/dictionary/pronunciation': { OPTIONS: corsOk, POST: apiWrapper(authWrapper(handleCheckPronunciation)) },
@@ -129,6 +145,10 @@ const apiRoutes = {
   '/api/opds/catalogs/:id': { OPTIONS: corsOk, DELETE: apiWrapper(authWrapper(handleDeleteCatalog)) },
   '/api/opds/browse': { OPTIONS: corsOk, GET: apiWrapper(authWrapper(handleBrowseOpds)) },
   '/api/opds/download': { OPTIONS: corsOk, POST: apiWrapper(authWrapper(handleDownloadOpdsBook)) },
+
+  // --- Highlights API ---
+  '/api/highlights': { OPTIONS: corsOk, GET: apiWrapper(authWrapper(handleGetHighlights)), POST: apiWrapper(authWrapper(handleCreateHighlight)) },
+  '/api/highlights/:id': { OPTIONS: corsOk, PUT: apiWrapper(authWrapper(handleUpdateHighlight)), DELETE: apiWrapper(authWrapper(handleDeleteHighlight)) },
 
   // --- Push ---
   '/api/push/vapid-public-key': { OPTIONS: corsOk, GET: apiWrapper(handleGetVapidKey) },

@@ -3,14 +3,131 @@ import { autoUpdate, flip, offset, shift, useFloating } from '@floating-ui/vue'
 import { Icon } from '@iconify/vue'
 import { computed, onUnmounted, ref, toRef } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { KitBtn, KitDialog } from '~/components/01.kit'
+import { useHighlightsStore } from '~/components/05.modules/reader/store/highlights.store'
 import { useReaderStore } from '~/components/05.modules/reader/store/reader.store'
 import { useTts } from '~/shared/composables/use-tts'
+import { normalizeString } from '~/shared/lib/helpers'
+import { api } from '~/shared/services/api.service'
+import { offlineService } from '~/shared/services/offline.service'
 import { useAnalysisStore } from '~/shared/store/analysis.store'
 
 const props = defineProps<{
   box: any
   referenceEl: HTMLElement | null
 }>()
+const highlightsStore = useHighlightsStore()
+const readerStore = useReaderStore()
+const isSavingHighlight = ref(false)
+
+const highlightColors = ['#fde047', '#86efac', '#f472b6', '#93c5fd', '#c4b5fd']
+const isSaveModalOpen = ref(false)
+const selectedColor = ref(highlightColors[0])
+const modalText = ref('')
+const modalTranslation = ref('')
+const isFetchingTranslation = ref(false)
+const previewTranslation = ref(true)
+
+async function openSaveModal() {
+  if (!props.box?.text || !readerStore.currentBook)
+    return
+
+  modalText.value = props.box.text.replace(/\n+/g, '')
+  modalTranslation.value = ''
+  previewTranslation.value = true
+  isSaveModalOpen.value = true
+  isFetchingTranslation.value = true
+
+  try {
+    const cached = await offlineService.getAnalysis(modalText.value)
+    if (cached && cached.translation) {
+      modalTranslation.value = cached.translation
+    }
+    else {
+      const language = readerStore.currentBook.language || 'en'
+      const res = await api.books.analyze(readerStore.currentBook.id, modalText.value, language)
+      await offlineService.saveAnalysis(modalText.value, res)
+      modalTranslation.value = res.translation || ''
+    }
+  }
+  catch (e) {
+    console.error('Translation failed:', e)
+  }
+  finally {
+    isFetchingTranslation.value = false
+  }
+}
+
+async function confirmSaveHighlight() {
+  await createHighlight(selectedColor.value)
+  isSaveModalOpen.value = false
+}
+
+const matchingHighlight = computed(() => {
+  if (!props.box?.text || !readerStore.currentBook)
+    return null
+  const rawNorm = normalizeString(props.box.text)
+  return highlightsStore.highlights.find((h) => {
+    const hNorm = normalizeString(h.text)
+    return Number(h.bookId) === Number(readerStore.currentBook?.id) && (rawNorm === hNorm || (hNorm.length >= 2 && (rawNorm.includes(hNorm) || hNorm.includes(rawNorm))))
+  })
+})
+
+async function createHighlight(color: string) {
+  if (!modalText.value || !readerStore.currentBook || !readerStore.currentPage)
+    return
+  if (isSavingHighlight.value)
+    return
+
+  const text = modalText.value
+  const translation = modalTranslation.value
+  const pageNum = readerStore.currentPage.pageNum
+  const bookId = readerStore.currentBook.id
+  const language = readerStore.currentBook.language || 'en'
+
+  let chapter: string | null = null
+  if (readerStore.currentToc && readerStore.currentToc.length) {
+    let currentItem = null
+    for (const item of readerStore.currentToc) {
+      if (item.pageNum !== undefined && item.pageNum <= pageNum) {
+        if (!currentItem || item.pageNum > (currentItem.pageNum || 0)) {
+          currentItem = item
+        }
+      }
+    }
+    chapter = currentItem ? currentItem.title : null
+  }
+
+  isSavingHighlight.value = true
+
+  try {
+    await highlightsStore.createHighlight({
+      bookId,
+      text,
+      color,
+      pageNum,
+      chapter,
+      translation,
+    })
+
+    analysisStore.closePopover()
+  }
+  catch (err) {
+    console.error('Failed to create highlight', err)
+  }
+  finally {
+    isSavingHighlight.value = false
+  }
+}
+
+async function deleteHighlight(id: number) {
+  try {
+    await highlightsStore.deleteHighlight(id)
+  }
+  catch (err) {
+    console.error('Failed to delete highlight', err)
+  }
+}
 
 const floating = ref<HTMLElement | null>(null)
 
@@ -41,7 +158,6 @@ function analyzeSentence() {
     const text = props.box.text.replace(/\n+/g, '')
     let context = ''
 
-    // Ищем соседей в OCR-блоках
     const blocks = readerStore.currentPage?.ocrBlocks || []
     const idx = blocks.findIndex(b => b.id === props.box.id)
     if (idx !== -1) {
@@ -87,6 +203,28 @@ onUnmounted(() => stop())
             :class="{ 'spin-animation': isLoading, 'pulse-animation': isPlaying }"
           />
         </button>
+
+        <button
+          v-if="matchingHighlight"
+          class="action-btn delete-btn"
+          :title="t('analysis.removeHighlight')"
+          @click.stop="deleteHighlight(matchingHighlight.id)"
+        >
+          <Icon icon="mdi:marker-cancel" />
+        </button>
+        <template v-else>
+          <div v-if="isSavingHighlight" class="action-btn" style="cursor: default;">
+            <Icon icon="mdi:loading" class="spin-animation" style="color: var(--fg-accent-color);" />
+          </div>
+          <button
+            v-else
+            class="action-btn"
+            :title="t('analysis.saveToNotebook')"
+            @click.stop="openSaveModal"
+          >
+            <Icon icon="mdi:bookmark-plus-outline" />
+          </button>
+        </template>
       </div>
 
       <div class="bubble-popover js-tooltip-selectable">
@@ -94,9 +232,233 @@ onUnmounted(() => stop())
       </div>
     </div>
   </Transition>
+
+  <KitDialog
+    v-model:visible="isSaveModalOpen"
+    :title="t('analysis.saveToNotebook')"
+    :max-width="500"
+  >
+    <div class="save-quote-content">
+      <div class="quote-preview" :style="{ borderLeftColor: selectedColor }">
+        <p>“{{ modalText }}”</p>
+      </div>
+
+      <div class="input-group">
+        <div class="form-group-header">
+          <label class="input-label">{{ t('notebook.translation') }}</label>
+          <div class="mode-toggle">
+            <KitBtn :variant="!previewTranslation ? 'tonal' : 'text'" size="sm" icon="mdi:pencil" @click="previewTranslation = false" />
+            <KitBtn :variant="previewTranslation ? 'tonal' : 'text'" size="sm" icon="mdi:eye" @click="previewTranslation = true" />
+          </div>
+        </div>
+        <div v-if="previewTranslation" class="markdown-preview preview-box" v-html="modalTranslation || (isFetchingTranslation ? t('analysis.analyzing') : '')" />
+        <textarea
+          v-else
+          v-model="modalTranslation"
+          class="translation-input"
+          rows="3"
+          :placeholder="isFetchingTranslation ? t('analysis.analyzing') : ''"
+          :disabled="isFetchingTranslation"
+        />
+      </div>
+
+      <div class="input-group">
+        <label class="input-label">{{ t('notebook.color') }}</label>
+        <div class="color-picker">
+          <button
+            v-for="color in highlightColors"
+            :key="color"
+            type="button"
+            class="color-btn"
+            :class="{ 'is-active': selectedColor === color }"
+            :style="{ backgroundColor: color }"
+            @click="selectedColor = color"
+          />
+          <div
+            class="color-btn custom-color-wrapper"
+            :class="{ 'is-active': !highlightColors.includes(selectedColor) }"
+            :style="{ background: !highlightColors.includes(selectedColor) ? selectedColor : 'conic-gradient(red, yellow, lime, aqua, blue, magenta, red)' }"
+          >
+            <Icon v-if="highlightColors.includes(selectedColor)" icon="mdi:palette" class="custom-color-icon" />
+            <input
+              v-model="selectedColor"
+              type="color"
+              class="invisible-color-input"
+            >
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <template #footer>
+      <div class="dialog-actions">
+        <KitBtn variant="tonal" @click="isSaveModalOpen = false">
+          {{ t('notebook.cancel') }}
+        </KitBtn>
+        <KitBtn v-if="isFetchingTranslation" color="primary" disabled>
+          <Icon icon="mdi:loading" class="spin-animation" />
+        </KitBtn>
+        <KitBtn v-else color="primary" @click="confirmSaveHighlight">
+          {{ t('notebook.save') }}
+        </KitBtn>
+      </div>
+    </template>
+  </KitDialog>
 </template>
 
 <style lang="scss" scoped>
+.save-quote-content {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 8px 0;
+
+  .quote-preview {
+    background-color: var(--bg-tertiary-color);
+    border-left: 4px solid;
+    padding: 12px;
+    border-radius: 4px;
+    p {
+      margin: 0;
+      font-style: italic;
+      font-size: 0.95rem;
+      color: var(--fg-secondary-color);
+      line-height: 1.4;
+    }
+  }
+
+  .input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+
+    .input-label {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--fg-secondary-color);
+      margin: 0;
+    }
+
+    .form-group-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 2px;
+    }
+
+    .mode-toggle {
+      display: flex;
+      gap: 2px;
+      background: var(--bg-secondary-color, #f3f4f6);
+      padding: 2px;
+      border-radius: 6px;
+
+      :deep(.kit-btn) {
+        min-width: 28px;
+        height: 24px;
+        padding: 0;
+        --btn-border-radius: 4px;
+
+        svg {
+          width: 14px;
+          height: 14px;
+        }
+      }
+    }
+
+    .preview-box {
+      width: 100%;
+      background-color: var(--bg-secondary-color, #f3f4f6);
+      color: var(--fg-primary-color);
+      border-radius: 6px;
+      padding: 10px 12px;
+      font-size: 0.95rem;
+      min-height: 48px;
+      max-height: 300px;
+      overflow-y: auto;
+      line-height: 1.5;
+    }
+
+    .translation-input {
+      width: 100%;
+      padding: 8px 12px;
+      border-radius: 6px;
+      border: 1px solid var(--border-primary-color);
+      background-color: transparent;
+      color: var(--fg-primary-color);
+      font-family: inherit;
+      font-size: 0.95rem;
+      resize: vertical;
+      outline: none;
+      transition: border-color 0.2s;
+
+      &:focus {
+        border-color: var(--fg-primary-color);
+      }
+
+      &:disabled {
+        opacity: 0.7;
+        cursor: not-allowed;
+      }
+    }
+  }
+
+  .color-picker {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    flex-wrap: wrap;
+
+    .color-btn {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      cursor: pointer;
+      border: none;
+      outline: 2px solid transparent;
+      outline-offset: -2px;
+      transition: outline-color 0.1s;
+      padding: 0;
+
+      &.is-active {
+        outline-color: var(--fg-primary-color);
+      }
+    }
+
+    .custom-color-wrapper {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      .custom-color-icon {
+        color: white;
+        font-size: 18px;
+        filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.5));
+        pointer-events: none;
+        z-index: 1;
+      }
+
+      .invisible-color-input {
+        position: absolute;
+        top: -5px;
+        left: -5px;
+        width: calc(100% + 10px);
+        height: calc(100% + 10px);
+        opacity: 0;
+        cursor: pointer;
+      }
+    }
+  }
+}
+
+.dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  width: 100%;
+}
+
 .bubble-popover-container {
   position: fixed;
   z-index: var(--z-modal, 1250);
@@ -133,6 +495,15 @@ onUnmounted(() => stop())
       color: var(--fg-accent-color);
       transform: scale(1.05);
     }
+  }
+
+  .action-btn.color-btn {
+    border-color: rgba(0, 0, 0, 0.1);
+  }
+
+  .action-btn.delete-btn {
+    color: var(--fg-error-color, #ef4444);
+    border-color: var(--fg-error-color, #ef4444);
   }
 }
 

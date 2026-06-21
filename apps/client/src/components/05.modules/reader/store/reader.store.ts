@@ -9,6 +9,7 @@ import { offlineService } from '~/shared/services/offline.service'
 import { useAnalysisStore } from '~/shared/store/analysis.store'
 import { useGlobalSettingsStore } from '~/shared/store/settings.store'
 import { useToastStore } from '~/shared/store/toast.store'
+import { useHighlightsStore } from './highlights.store'
 
 export const useReaderStore = defineStore('reader', () => {
   const libraryStore = useLibraryStore()
@@ -30,6 +31,8 @@ export const useReaderStore = defineStore('reader', () => {
     if (!newBook) {
       currentPage.value = null
       currentPageDictionary.value = {}
+      const highlightsStore = useHighlightsStore()
+      highlightsStore.clear()
     }
   })
 
@@ -155,6 +158,10 @@ export const useReaderStore = defineStore('reader', () => {
   async function openBook(book: Book) {
     trackEvent('book_opened', { bookId: book.id, type: book.type, language: book.language })
 
+    const highlightsStore = useHighlightsStore()
+    highlightsStore.clear()
+    highlightsStore.fetchHighlights(book.id).catch(console.error)
+
     libraryStore.currentBookInfo = book
     currentPage.value = null
     currentPageDictionary.value = {}
@@ -177,6 +184,10 @@ export const useReaderStore = defineStore('reader', () => {
         throw new Error(i18n.global.t('dictionary.bookNotFoundError'))
 
       trackEvent('book_opened', { bookId: book.id, type: book.type, language: book.language })
+
+      const highlightsStore = useHighlightsStore()
+      highlightsStore.clear()
+      highlightsStore.fetchHighlights(book.id).catch(console.error)
 
       libraryStore.currentBookInfo = book
       currentPage.value = null

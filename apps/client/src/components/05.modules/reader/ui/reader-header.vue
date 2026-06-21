@@ -37,15 +37,6 @@ const pageActionOpts = reactive({
   ttsWords: false,
 })
 
-// Закрываем открытые менюшки, если хэдер скрылся из-за скролла
-watch(() => props.isVisible, (visible) => {
-  if (!visible) {
-    pageAnalysisDropdownRef.value?.close()
-    settingsDropdownRef.value?.close()
-    parallelDropdownRef.value?.close()
-  }
-})
-
 function startPageAnalysis() {
   pageAnalysisDropdownRef.value?.close()
   analysisStore.analyzeWholePage({
@@ -74,10 +65,6 @@ function goBack() {
     router.push(AppRoutePaths.Home)
   }
 }
-
-const currentThemeIcon = computed(() =>
-  theme.value === ThemesVariant.Light ? 'mdi:weather-sunny' : 'mdi:weather-night',
-)
 
 function togglePriority() {
   settingsStore.translationPriority = settingsStore.translationPriority === 'dict' ? 'llm' : 'dict'
@@ -109,6 +96,36 @@ const fontOptions = computed(() => [
   { label: t('reader.fontSerif'), value: 'Georgia, \'Times New Roman\', serif' },
   { label: t('reader.fontCursive'), value: '\'Comic Sans MS\', cursive, sans-serif' },
 ])
+
+const currentThemeIcon = computed(() => {
+  switch (theme.value) {
+    case ThemesVariant.Light: return 'mdi:weather-sunny'
+    case ThemesVariant.Dark: return 'mdi:weather-night'
+    case ThemesVariant.Sepia: return 'mdi:book-open-page-variant'
+    case ThemesVariant.Green: return 'mdi:leaf'
+    case ThemesVariant.Oled: return 'mdi:moon-waning-crescent'
+    default: return 'mdi:weather-sunny'
+  }
+})
+
+const currentThemeName = computed(() => {
+  switch (theme.value) {
+    case ThemesVariant.Light: return t('reader.light')
+    case ThemesVariant.Dark: return t('reader.dark')
+    case ThemesVariant.Sepia: return t('reader.sepia')
+    case ThemesVariant.Green: return t('reader.green')
+    case ThemesVariant.Oled: return t('reader.oled')
+    default: return t('reader.light')
+  }
+})
+
+watch(() => props.isVisible, (visible) => {
+  if (!visible) {
+    pageAnalysisDropdownRef.value?.close()
+    settingsDropdownRef.value?.close()
+    parallelDropdownRef.value?.close()
+  }
+})
 </script>
 
 <template>
@@ -273,7 +290,7 @@ const fontOptions = computed(() => [
               <Icon :icon="currentThemeIcon" class="item-icon" />
               <span>{{ t('reader.appearance') }}</span>
             </div>
-            <span class="value-badge">{{ theme === 'light' ? t('reader.light') : t('reader.dark') }}</span>
+            <span class="value-badge">{{ currentThemeName }}</span>
           </div>
         </div>
 
@@ -304,6 +321,14 @@ const fontOptions = computed(() => [
               <span>{{ t('settings.autoAnalyzePage') }}</span>
             </div>
             <KitCheckbox v-model="settingsStore.autoAnalyzePage" style="pointer-events: none;" />
+          </div>
+          
+          <div class="menu-item" @click="settingsStore.highlightSavedQuotes = !settingsStore.highlightSavedQuotes">
+            <div class="item-label">
+              <Icon icon="mdi:format-color-highlight" class="item-icon" />
+              <span>{{ t('settings.highlightSavedQuotes') }}</span>
+            </div>
+            <KitCheckbox v-model="settingsStore.highlightSavedQuotes" style="pointer-events: none;" />
           </div>
         </div>
 

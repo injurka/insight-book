@@ -74,9 +74,9 @@ export async function handleGetBooks(req: Request, userId: number | null): Promi
     const bookIds = rows.map(r => r.book.id)
     const llmCounts = bookIds.length > 0
       ? await db.select({
-        bookId: schema.bookLlmCache.bookId,
-        count: sql<number>`count(*)`.mapWith(Number),
-      }).from(schema.bookLlmCache).where(inArray(schema.bookLlmCache.bookId, bookIds)).groupBy(schema.bookLlmCache.bookId)
+          bookId: schema.bookLlmCache.bookId,
+          count: sql<number>`count(*)`.mapWith(Number),
+        }).from(schema.bookLlmCache).where(inArray(schema.bookLlmCache.bookId, bookIds)).groupBy(schema.bookLlmCache.bookId)
       : []
     const countMap = new Map(llmCounts.map(r => [r.bookId, r.count]))
 
@@ -126,9 +126,9 @@ export async function handleGetBooks(req: Request, userId: number | null): Promi
   const bookIds = result.map(b => b.id)
   const llmCounts = bookIds.length > 0
     ? await db.select({
-      bookId: schema.bookLlmCache.bookId,
-      count: sql<number>`count(*)`.mapWith(Number),
-    }).from(schema.bookLlmCache).where(inArray(schema.bookLlmCache.bookId, bookIds)).groupBy(schema.bookLlmCache.bookId)
+        bookId: schema.bookLlmCache.bookId,
+        count: sql<number>`count(*)`.mapWith(Number),
+      }).from(schema.bookLlmCache).where(inArray(schema.bookLlmCache.bookId, bookIds)).groupBy(schema.bookLlmCache.bookId)
     : []
   const countMap = new Map(llmCounts.map(r => [r.bookId, r.count]))
 
@@ -178,11 +178,11 @@ export async function handleGetBookInfo(req: Request, userId: number | null): Pr
   const { progresses, stats, ...bookData } = book
   const statsResult = stats
     ? {
-      ...stats,
-      tags: stats.tags ? JSON.parse(stats.tags) : [],
-      posDistribution: stats.posDistribution ? JSON.parse(stats.posDistribution) : null,
-      topWords: stats.topWords ? JSON.parse(stats.topWords) : null,
-    }
+        ...stats,
+        tags: stats.tags ? JSON.parse(stats.tags) : [],
+        posDistribution: stats.posDistribution ? JSON.parse(stats.posDistribution) : null,
+        topWords: stats.topWords ? JSON.parse(stats.topWords) : null,
+      }
     : null
 
   const llmCountRes = await db.select({ count: sql<number>`count(*)` })

@@ -1,13 +1,14 @@
-import { describe, it, expect, vi } from 'vitest'
-import { mount } from '@vue/test-utils'
-import { ref, nextTick } from 'vue'
-import KitToastItem from './kit-toast-item.vue'
 import type { ToastMessage } from '~/shared/types/models/toast'
+import { mount } from '@vue/test-utils'
+import { describe, expect, it, vi } from 'vitest'
+import { nextTick, ref } from 'vue'
+import KitToastItem from './kit-toast-item.vue'
 
 export const mockSwipeState = {
   isSwiping: ref(false),
   direction: ref('none'),
   lengthX: ref(0),
+  // eslint-disable-next-line ts/no-unsafe-function-type
   onSwipeEnd: null as Function | null,
 }
 
@@ -22,7 +23,7 @@ vi.mock('@vueuse/core', async (importOriginal) => {
         direction: mockSwipeState.direction,
         lengthX: mockSwipeState.lengthX,
       }
-    })
+    }),
   }
 })
 
@@ -40,7 +41,7 @@ describe('kit-toast-item.vue', () => {
         message: defaultMessage,
       },
     })
-    
+
     expect(wrapper.text()).toContain('Operation successful')
     expect(wrapper.classes()).toContain('kit-toast-item--success')
   })
@@ -161,7 +162,7 @@ describe('kit-toast-item.vue', () => {
     const wrapper = mount(KitToastItem, {
       props: { message: defaultMessage },
     })
-    
+
     // We try to call handleAction directly if exposed, to cover the branch
     if ('handleAction' in wrapper.vm) {
       ;(wrapper.vm as any).handleAction()

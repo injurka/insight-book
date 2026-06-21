@@ -1,19 +1,19 @@
 <script setup lang="ts">
-import { useResizeObserver } from '@vueuse/core'
-import DOMPurify from 'dompurify'
-import { computed, nextTick, onMounted, onUnmounted, ref, useTemplateRef, watch } from 'vue'
-
 import { useI18n } from 'vue-i18n'
 import { KitDialog } from '~/components/01.kit'
 import { PageLoader } from '~/components/02.shared/page-loader'
 import { PageAnalysisModal, SelectionTooltip, SentenceAnalysis, useTextSelection, WordPopover } from '~/components/03.domain/analysis'
-import { useUmami } from '~/shared/composables/use-umami'
 import { useAnalysisStore } from '~/shared/store/analysis.store'
-
 import { useGlobalSettingsStore } from '~/shared/store/settings.store'
+import { useParallelSync } from '../composables/use-parallel-sync'
+import { useReaderContent } from '../composables/use-reader-content'
 import { useReaderDomHighlights } from '../composables/use-reader-dom-highlights'
+
 import { useReaderNavigation } from '../composables/use-reader-navigation'
+import { useReaderScroll } from '../composables/use-reader-scroll'
+import { useReadingSession } from '../composables/use-reading-session'
 import { useScrollRestoration } from '../composables/use-scroll-restoration'
+
 import { useReaderStore } from '../store/reader.store'
 import ReaderFooter from './reader-footer.vue'
 import ReaderHeader from './reader-header.vue'
@@ -25,9 +25,8 @@ const { t } = useI18n()
 
 const readerViewRef = useTemplateRef<HTMLElement>('readerViewRef')
 
-const isHeaderVisible = ref(true)
-let lastScrollY = 0
-let scrollAccumulator = 0
+useAppWakeLock(() => analysisStore.isManualPageAnalysisActive || analysisStore.isAutoPageAnalysisActive)
+useReadingSession()
 
 const { saveScrollPosition, restoreScrollPosition, setScrollIntent } = useScrollRestoration(
   readerViewRef,
@@ -39,155 +38,10 @@ const { saveScrollPosition, restoreScrollPosition, setScrollIntent } = useScroll
 const { onSentenceHover, onSentenceOut } = useReaderDomHighlights(readerViewRef)
 const { prevPage, nextPage, goToPage } = useReaderNavigation(setScrollIntent)
 const { onPointerDown, onPointerUp, onWordClick } = useTextSelection()
-const { trackEvent } = useUmami()
 
-let readingSessionStartTime = 0
-
-onMounted(() => {
-  readingSessionStartTime = Date.now()
-})
-
-onUnmounted(() => {
-  const durationSeconds = Math.round((Date.now() - readingSessionStartTime) / 1000)
-  if (durationSeconds > 10) {
-    trackEvent('reading_session_ended', {
-      duration_seconds: durationSeconds,
-      book_id: readerStore.currentBook?.id,
-    })
-  }
-})
-
-useAppWakeLock(() => analysisStore.isManualPageAnalysisActive || analysisStore.isAutoPageAnalysisActive)
-
-const safePageContent = computed(() => {
-  if (!readerStore.currentPage?.content)
-    return ''
-
-  return DOMPurify.sanitize(readerStore.currentPage.content, {
-    ADD_ATTR: ['data-sent-id', 'data-raw-sent', 'data-word', 'data-pos', 'data-token-idx'],
-  })
-})
-
-const translationMap = computed(() => {
-  const map: Record<string, string> = {}
-  for (const item of analysisStore.analysisHistory) {
-    map[item.sentence] = item.analysis.translation
-  }
-  return map
-})
-
-const leftPaneContent = computed(() => {
-  if (!safePageContent.value)
-    return ''
-
-  if (settingsStore.parallelViewMode === 'interleaved') {
-    const parser = new DOMParser()
-    const doc = parser.parseFromString(safePageContent.value, 'text/html')
-    const map = translationMap.value
-
-    const translatedSentIds = new Set<string>()
-
-    doc.querySelectorAll('.sentence').forEach((span) => {
-      const rawSent = decodeURIComponent(span.getAttribute('data-raw-sent') || '')
-      const sentId = span.getAttribute('data-sent-id') || ''
-
-      if (map[rawSent] && !translatedSentIds.has(sentId)) {
-        const blurClass = settingsStore.parallelBlurTranslation ? 'is-blurred' : ''
-        const translationHtml = `<span class="interleaved-translation ${blurClass}" onclick="this.classList.remove('is-blurred')">${map[rawSent]}</span>`
-        span.insertAdjacentHTML('afterend', translationHtml)
-        translatedSentIds.add(sentId)
-      }
-    })
-    return doc.body.innerHTML
-  }
-
-  return safePageContent.value
-})
-
-const translatedPageContent = computed(() => {
-  if (!safePageContent.value || !readerStore.isParallelView)
-    return ''
-  const parser = new DOMParser()
-  const doc = parser.parseFromString(safePageContent.value, 'text/html')
-  const map = translationMap.value
-
-  const translatedSentIds = new Set<string>()
-
-  doc.querySelectorAll('.sentence').forEach((span) => {
-    const rawSent = decodeURIComponent(span.getAttribute('data-raw-sent') || '')
-    const sentId = span.getAttribute('data-sent-id') || ''
-
-    if (map[rawSent]) {
-      if (translatedSentIds.has(sentId)) {
-        span.innerHTML = '';
-        (span as any).style.display = 'none'
-      }
-      else {
-        const blurClass = settingsStore.parallelBlurTranslation ? 'is-blurred' : ''
-        span.innerHTML = `<span class="split-translation ${blurClass}" onclick="this.classList.remove('is-blurred')">${map[rawSent]}</span>`
-        span.classList.add('has-translation')
-        translatedSentIds.add(sentId)
-      }
-    }
-    else {
-      span.innerHTML = `<span class="untranslated-text">${span.innerHTML}</span>`
-    }
-  })
-  return doc.body.innerHTML
-})
-
-function syncHeights() {
-  const leftPane = readerViewRef.value?.querySelector('.left-pane')
-  const rightPane = readerViewRef.value?.querySelector('.right-pane')
-
-  if (!leftPane || !rightPane)
-    return
-
-  const selectors = 'p, h1, h2, h3, h4, h5, h6, blockquote, li, img'
-
-  const getNodes = (pane: Element) => {
-    const all = Array.from(pane.querySelectorAll(selectors)) as HTMLElement[]
-    return all.filter(el => el.querySelectorAll(selectors).length === 0)
-  }
-
-  const leftNodes = getNodes(leftPane)
-  const rightNodes = getNodes(rightPane)
-
-  leftNodes.forEach(el => el.style.minHeight = '')
-  rightNodes.forEach(el => el.style.minHeight = '')
-
-  if (!readerStore.isParallelView)
-    return
-
-  const leftRect = leftPane.getBoundingClientRect()
-  const rightRect = rightPane.getBoundingClientRect()
-  if (Math.abs(leftRect.top - rightRect.top) > 10) {
-    return
-  }
-
-  const minLen = Math.min(leftNodes.length, rightNodes.length)
-  const heights = [minLen].fill(0)
-
-  for (let i = 0; i < minLen; i++) {
-    const leftHeight = leftNodes[i].getBoundingClientRect().height
-    const rightHeight = rightNodes[i].getBoundingClientRect().height
-    heights[i] = Math.max(leftHeight, rightHeight)
-  }
-
-  for (let i = 0; i < minLen; i++) {
-    if (heights[i] > 0) {
-      leftNodes[i].style.minHeight = `${heights[i]}px`
-      rightNodes[i].style.minHeight = `${heights[i]}px`
-    }
-  }
-}
-
-function performLayoutSync() {
-  if (readerStore.isParallelView) {
-    syncHeights()
-  }
-  restoreScrollPosition()
-}
+const { isHeaderVisible, onScroll } = useReaderScroll(saveScrollPosition)
+const { performLayoutSync } = useParallelSync(readerViewRef, restoreScrollPosition)
+const { leftPaneContent, translatedPageContent } = useReaderContent()
 
 function onContentEnter(el: Element) {
   if (el.classList.contains('reader-layout-wrapper')) {
@@ -216,49 +70,6 @@ watch(() => readerStore.isPageLoading, async (isLoading) => {
     setTimeout(performLayoutSync, 50)
   }
 }, { immediate: true })
-
-useResizeObserver(readerViewRef, () => {
-  if (readerStore.isParallelView && !readerStore.isPageLoading) {
-    syncHeights()
-  }
-})
-
-function onScroll(e: Event) {
-  if (analysisStore.wordPopover) {
-    analysisStore.closePopover()
-  }
-  if (analysisStore.selectionTooltip) {
-    analysisStore.closeSelectionTooltip()
-  }
-  saveScrollPosition()
-
-  // Логика видимости хэдера с буфером (предотвращает скрытие от микро-сдвигов пальца)
-  const target = e.target as HTMLElement
-  const currentY = Math.max(0, target.scrollTop)
-  const delta = currentY - lastScrollY
-  lastScrollY = currentY
-
-  if (currentY < 80) {
-    isHeaderVisible.value = true
-    scrollAccumulator = 0
-  }
-  else {
-    // Сброс буфера при смене направления
-    if ((delta > 0 && scrollAccumulator < 0) || (delta < 0 && scrollAccumulator > 0)) {
-      scrollAccumulator = 0
-    }
-    scrollAccumulator += delta
-
-    if (scrollAccumulator > 50) {
-      isHeaderVisible.value = false
-      scrollAccumulator = 50 // cap
-    }
-    else if (scrollAccumulator < -50) {
-      isHeaderVisible.value = true
-      scrollAccumulator = -50 // cap
-    }
-  }
-}
 </script>
 
 <template>
@@ -479,7 +290,6 @@ function onScroll(e: Event) {
   :deep(.sentence) {
     display: inline;
     cursor: pointer;
-    border-radius: 4px;
     transition: background-color 0.2s ease;
     &:hover,
     &.is-hovered {

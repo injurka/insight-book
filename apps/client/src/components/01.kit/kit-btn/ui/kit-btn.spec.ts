@@ -1,7 +1,7 @@
-import { mount } from '@vue/test-utils'
-import { describe, it, expect } from 'vitest'
-import KitBtn from './kit-btn.vue'
 import { Icon } from '@iconify/vue'
+import { mount } from '@vue/test-utils'
+import { describe, expect, it } from 'vitest'
+import KitBtn from './kit-btn.vue'
 
 // Mock v-ripple directive
 const vRipple = {
@@ -18,7 +18,7 @@ const globalConfig = {
   },
 }
 
-describe('KitBtn', () => {
+describe('kitBtn', () => {
   it('renders default slot content', () => {
     const wrapper = mount(KitBtn, {
       global: globalConfig,
@@ -63,7 +63,7 @@ describe('KitBtn', () => {
         disabled: true,
       },
     })
-    
+
     expect(wrapper.attributes('disabled')).toBeDefined()
     expect(wrapper.element.disabled).toBe(true)
   })
@@ -79,7 +79,7 @@ describe('KitBtn', () => {
         default: 'Home',
       },
     })
-    
+
     const icons = wrapper.findAllComponents(Icon)
     expect(icons.length).toBe(2)
     expect(icons[0].props('icon')).toBe('mdi:home')
@@ -93,7 +93,7 @@ describe('KitBtn', () => {
         icon: 'mdi:plus',
       },
     })
-    
+
     expect(wrapper.classes()).toContain('kit-btn--icon-only')
     const icon = wrapper.findComponent(Icon)
     expect(icon.exists()).toBe(true)
@@ -110,15 +110,15 @@ describe('KitBtn', () => {
         default: 'Add',
       },
     })
-    
+
     expect(wrapper.classes()).not.toContain('kit-btn--icon-only')
   })
-  
+
   it('emits native click event when clicked', async () => {
     const wrapper = mount(KitBtn, {
       global: globalConfig,
     })
-    
+
     await wrapper.trigger('click')
     expect(wrapper.emitted('click')).toBeTruthy()
     expect(wrapper.emitted('click')?.length).toBe(1)

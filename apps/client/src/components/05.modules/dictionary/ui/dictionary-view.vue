@@ -16,6 +16,7 @@ import { api } from '~/shared/services/api.service'
 import { useAnalysisStore } from '~/shared/store/analysis.store'
 import { useAuthStore } from '~/shared/store/auth.store'
 import { useDictionaryStore } from '../store/dictionary.store'
+import DictionaryDiscoverDialog from './dialog/dictionary-discover-dialog.vue'
 import SrsTrainingDialog from './dialog/srs-training-dialog.vue'
 
 const store = useDictionaryStore()
@@ -36,6 +37,7 @@ const isDetailsModalOpen = ref(false)
 const selectedWordDetails = ref<UserDictItem | null>(null)
 
 const isManageDecksOpen = ref(false)
+const isDiscoverOpen = ref(false)
 const newDeckName = ref('')
 const newDeckLang = ref('en')
 
@@ -327,6 +329,10 @@ watch(isEditMode, (val) => {
               </div>
             </KitDropdown>
 
+            <KitTooltip text="Discover & Import" placement="bottom">
+              <KitBtn icon="mdi:bookshelf" variant="tonal" color="primary" @click="isDiscoverOpen = true" />
+            </KitTooltip>
+
             <KitTooltip :text="t('dictionary.manageDecks')" placement="bottom">
               <KitBtn icon="mdi:folder-cog-outline" variant="tonal" color="secondary" @click="isManageDecksOpen = true" />
             </KitTooltip>
@@ -473,6 +479,7 @@ watch(isEditMode, (val) => {
     </KitDialog>
 
     <SrsTrainingDialog v-model:visible="isTrainingOpen" />
+    <DictionaryDiscoverDialog v-model:visible="isDiscoverOpen" />
     <DictWordDetailsModal v-model:visible="isDetailsModalOpen" :word="selectedWordDetails" />
 
     <KitPrompt
@@ -576,7 +583,7 @@ watch(isEditMode, (val) => {
       align-items: center;
 
       .filter-select {
-        width: 150px;
+        width: 170px;
         flex-shrink: 0;
       }
     }
@@ -907,7 +914,7 @@ watch(isEditMode, (val) => {
       flex: 1;
     }
     .new-deck-lang {
-      width: 90px;
+      width: 140px;
       flex-shrink: 0;
     }
   }

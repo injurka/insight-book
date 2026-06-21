@@ -1,8 +1,8 @@
-import { describe, it, expect } from 'vitest'
 import { mount } from '@vue/test-utils'
+import { describe, expect, it } from 'vitest'
 import KitInput from './kit-input.vue'
 
-describe('KitInput', () => {
+describe('kitInput', () => {
   it('renders correctly with default props', () => {
     const wrapper = mount(KitInput)
 
@@ -16,7 +16,7 @@ describe('KitInput', () => {
   it('renders with placeholder', () => {
     const placeholder = 'Enter your name'
     const wrapper = mount(KitInput, {
-      props: { placeholder }
+      props: { placeholder },
     })
 
     const input = wrapper.find('input')
@@ -25,7 +25,7 @@ describe('KitInput', () => {
 
   it('applies rounded class when rounded prop is true', () => {
     const wrapper = mount(KitInput, {
-      props: { rounded: true }
+      props: { rounded: true },
     })
 
     const wrapperDiv = wrapper.find('.kit-input-wrapper')
@@ -34,7 +34,7 @@ describe('KitInput', () => {
 
   it('applies solo class when variant is solo', () => {
     const wrapper = mount(KitInput, {
-      props: { variant: 'solo' }
+      props: { variant: 'solo' },
     })
 
     const wrapperDiv = wrapper.find('.kit-input-wrapper')
@@ -43,12 +43,12 @@ describe('KitInput', () => {
 
   it('applies size classes correctly', () => {
     const sizes = ['xs', 'sm', 'md', 'lg'] as const
-    
-    sizes.forEach(size => {
+
+    sizes.forEach((size) => {
       const wrapper = mount(KitInput, {
-        props: { size }
+        props: { size },
       })
-      
+
       const input = wrapper.find('input')
       expect(input.classes()).toContain(`kit-input--size-${size}`)
     })
@@ -56,7 +56,7 @@ describe('KitInput', () => {
 
   it('emits update:modelValue on text input', async () => {
     const wrapper = mount(KitInput, {
-      props: { modelValue: '' }
+      props: { modelValue: '' },
     })
 
     const input = wrapper.find('input')
@@ -68,7 +68,7 @@ describe('KitInput', () => {
 
   it('emits update:modelValue as number when type is number', async () => {
     const wrapper = mount(KitInput, {
-      props: { type: 'number', modelValue: null }
+      props: { type: 'number', modelValue: null },
     })
 
     const input = wrapper.find('input')
@@ -80,7 +80,7 @@ describe('KitInput', () => {
 
   it('emits update:modelValue as null when type is number and input is cleared', async () => {
     const wrapper = mount(KitInput, {
-      props: { type: 'number', modelValue: 42 }
+      props: { type: 'number', modelValue: 42 },
     })
 
     const input = wrapper.find('input')
@@ -93,17 +93,17 @@ describe('KitInput', () => {
   it('passes down non-prop attributes to the input element', () => {
     const wrapper = mount(KitInput, {
       attrs: {
-        id: 'my-input',
+        'id': 'my-input',
         'data-test': 'input-element',
-        disabled: true
-      }
+        'disabled': true,
+      },
     })
 
     const input = wrapper.find('input')
     expect(input.attributes('id')).toBe('my-input')
     expect(input.attributes('data-test')).toBe('input-element')
     expect(input.attributes('disabled')).toBeDefined()
-    
+
     // Wrapper should not have the attributes because of inheritAttrs: false
     const wrapperDiv = wrapper.find('.kit-input-wrapper')
     expect(wrapperDiv.attributes('id')).toBeUndefined()
@@ -111,7 +111,7 @@ describe('KitInput', () => {
 
   it('sets data-umami-mask for password type', () => {
     const wrapper = mount(KitInput, {
-      props: { type: 'password' }
+      props: { type: 'password' },
     })
 
     const input = wrapper.find('input')

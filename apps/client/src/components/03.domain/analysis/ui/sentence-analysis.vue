@@ -1,18 +1,40 @@
 <script setup lang="ts">
 import type { AnalysisHistoryItem } from '~/shared/store/analysis.store'
 import { Icon } from '@iconify/vue'
-import { onUnmounted, ref, watch } from 'vue'
+import { computed, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { KitDialog, KitSkeleton, KitTooltip } from '~/components/01.kit'
+import { useLibraryStore } from '~/components/05.modules/library/store/library.store'
+import { useHighlightsStore } from '~/components/05.modules/reader/store/highlights.store'
+import { useReaderStore } from '~/components/05.modules/reader/store/reader.store'
 import { useTts } from '~/shared/composables/use-tts'
+import { normalizeString } from '~/shared/lib/helpers'
 import { useAnalysisStore } from '~/shared/store/analysis.store'
 
 const { t } = useI18n()
 const analysisStore = useAnalysisStore()
 const { speak, stop, isPlaying, isLoading } = useTts()
+const readerStore = useReaderStore()
+const libraryStore = useLibraryStore()
+const highlightsStore = useHighlightsStore()
 
 const isPinned = ref(true)
 const showHistory = ref(false)
+const isSavingHighlight = ref(false)
+
+const matchingHighlight = computed(() => {
+  if (!analysisStore.sidebarSentence)
+    return null
+  const rawNorm = normalizeString(analysisStore.sidebarSentence)
+  const book = readerStore.currentBook || libraryStore.currentBookInfo
+  if (!book)
+    return null
+
+  return highlightsStore.highlights.find((h) => {
+    const hNorm = normalizeString(h.text)
+    return Number(h.bookId) === Number(book.id) && (rawNorm === hNorm || (hNorm.length >= 2 && (rawNorm.includes(hNorm) || hNorm.includes(rawNorm))))
+  })
+})
 
 watch(() => analysisStore.sidebarSentence, () => {
   showHistory.value = false
@@ -41,6 +63,54 @@ function playTTS() {
   }
   else {
     speak(analysisStore.sidebarSentence)
+  }
+}
+
+async function toggleHighlight() {
+  const book = readerStore.currentBook || libraryStore.currentBookInfo
+  if (!book)
+    return
+
+  if (matchingHighlight.value) {
+    await highlightsStore.deleteHighlight(matchingHighlight.value.id)
+    return
+  }
+
+  if (isSavingHighlight.value)
+    return
+  isSavingHighlight.value = true
+
+  try {
+    const text = analysisStore.sidebarSentence!
+    const pageNum = readerStore.currentPage?.pageNum || 1
+
+    let chapter: string | null = null
+    if (readerStore.currentToc && readerStore.currentToc.length) {
+      let currentItem = null
+      for (const item of readerStore.currentToc) {
+        if (item.pageNum !== undefined && item.pageNum <= pageNum) {
+          if (!currentItem || item.pageNum > (currentItem.pageNum || 0)) {
+            currentItem = item
+          }
+        }
+      }
+      chapter = currentItem ? currentItem.title : null
+    }
+
+    await highlightsStore.createHighlight({
+      bookId: book.id,
+      text,
+      color: '#fde047', // По умолчанию желтый маркер
+      pageNum,
+      chapter,
+      translation: analysisStore.sidebarAnalysis?.translation || null,
+    })
+  }
+  catch (err) {
+    console.error(err)
+  }
+  finally {
+    isSavingHighlight.value = false
   }
 }
 
@@ -122,14 +192,23 @@ onUnmounted(() => stop())
               {{ analysisStore.sidebarAnalysis.transcription }}
             </div>
           </div>
-          <KitTooltip :text="t('analysis.voice')" placement="top-end">
-            <button class="tts-btn" @click="playTTS">
-              <Icon
-                :icon="isLoading ? 'mdi:loading' : (isPlaying ? 'mdi:volume-high' : 'mdi:volume-medium')"
-                :class="{ 'pulse-animation': isPlaying, 'spin-animation': isLoading }"
-              />
-            </button>
-          </KitTooltip>
+
+          <div class="sentence-actions">
+            <KitTooltip :text="t('analysis.voice')" placement="top-end">
+              <button class="action-btn" @click="playTTS">
+                <Icon
+                  :icon="isLoading ? 'mdi:loading' : (isPlaying ? 'mdi:volume-high' : 'mdi:volume-medium')"
+                  :class="{ 'pulse-animation': isPlaying, 'spin-animation': isLoading }"
+                />
+              </button>
+            </KitTooltip>
+
+            <KitTooltip :text="matchingHighlight ? t('analysis.removeHighlight') : t('analysis.saveToDict')" placement="top-end">
+              <button class="action-btn" :class="{ 'is-saved': matchingHighlight }" @click="toggleHighlight">
+                <Icon :icon="isSavingHighlight ? 'mdi:loading' : (matchingHighlight ? 'mdi:bookmark' : 'mdi:bookmark-outline')" :class="{ 'spin-animation': isSavingHighlight }" />
+              </button>
+            </KitTooltip>
+          </div>
         </div>
 
         <div class="analysis-block">
@@ -255,25 +334,41 @@ onUnmounted(() => stop())
     align-items: flex-start;
     gap: 12px;
     margin-bottom: 24px;
-    .tts-btn {
-      flex-shrink: 0;
+
+    .sentence-actions {
       display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 49px;
-      height: 49px;
-      border-radius: 8px;
-      background-color: var(--bg-tertiary-color);
-      border: 1px solid var(--border-secondary-color);
-      color: var(--fg-accent-color);
-      font-size: 1.5rem;
-      cursor: pointer;
-      transition: all 0.2s;
-      &:hover {
-        background-color: var(--bg-hover-color);
-        color: var(--fg-primary-color);
+      flex-direction: column;
+      gap: 8px;
+      flex-shrink: 0;
+
+      .action-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 49px;
+        height: 49px;
+        border-radius: 8px;
+        background-color: var(--bg-tertiary-color);
+        border: 1px solid var(--border-secondary-color);
+        color: var(--fg-accent-color);
+        font-size: 1.5rem;
+        cursor: pointer;
+        transition: all 0.2s;
+        &:hover {
+          background-color: var(--bg-hover-color);
+          color: var(--fg-primary-color);
+        }
+        &.is-saved {
+          color: #e3b341;
+          background-color: rgba(227, 179, 65, 0.1);
+          border-color: rgba(227, 179, 65, 0.3);
+          &:hover {
+            background-color: rgba(227, 179, 65, 0.2);
+          }
+        }
       }
     }
+
     .sentence-content {
       flex-grow: 1;
       padding: 10px 16px;
@@ -392,8 +487,8 @@ onUnmounted(() => stop())
 @include media-down(md) {
   .analysis-content {
     .sentence-header {
-      gap: 4px;
-      .tts-btn {
+      gap: 8px;
+      .sentence-actions .action-btn {
         width: 44px;
         height: 44px;
       }

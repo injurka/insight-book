@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { ref } from 'vue'
 import { useDialogResize } from './use-dialog-resize'
 
@@ -19,7 +19,11 @@ describe('use-dialog-resize', () => {
     const isResizable = ref(false)
 
     const { startResize, hasResized } = useDialogResize({
-      dialogContentRef, x, y, isFloating, isResizable
+      dialogContentRef,
+      x,
+      y,
+      isFloating,
+      isResizable,
     })
 
     startResize('right', new MouseEvent('mousedown'))
@@ -33,10 +37,14 @@ describe('use-dialog-resize', () => {
     const isFloating = ref(false)
     const isResizable = ref(true)
 
-    const { dialogWidth, dialogHeight } = useDialogResize({
-      dialogContentRef, x, y, isFloating, isResizable
+    const { dialogWidth } = useDialogResize({
+      dialogContentRef,
+      x,
+      y,
+      isFloating,
+      isResizable,
     })
-    
+
     // Call mousemove without starting resize
     document.dispatchEvent(new MouseEvent('mousemove', { clientX: 10, clientY: 10 }))
     expect(dialogWidth.value).toBe('100%')
@@ -46,7 +54,7 @@ describe('use-dialog-resize', () => {
     const div = document.createElement('div')
     // Mock getBoundingClientRect
     div.getBoundingClientRect = () => ({ width: 400, height: 300 } as DOMRect)
-    
+
     const dialogContentRef = ref<HTMLElement | null>(div)
     const x = ref(100)
     const y = ref(100)
@@ -54,13 +62,17 @@ describe('use-dialog-resize', () => {
     const isResizable = ref(true)
 
     const { startResize, dialogWidth, dialogHeight, hasResized } = useDialogResize({
-      dialogContentRef, x, y, isFloating, isResizable
+      dialogContentRef,
+      x,
+      y,
+      isFloating,
+      isResizable,
     })
 
     // start resize bottom right
     const mousedownEvent = new MouseEvent('mousedown', { clientX: 200, clientY: 200 })
     startResize('bottom-right', mousedownEvent)
-    
+
     expect(hasResized.value).toBe(true)
     expect(dialogWidth.value).toBe(400)
     expect(dialogHeight.value).toBe(300)
@@ -72,7 +84,7 @@ describe('use-dialog-resize', () => {
     // dx = 50, dy = 50. width: 400 + 50 = 450, height: 300 + 50 = 350
     expect(dialogWidth.value).toBe(450)
     expect(dialogHeight.value).toBe(350)
-    
+
     // Trigger stopResize
     const mouseupEvent = new MouseEvent('mouseup')
     document.dispatchEvent(mouseupEvent)
@@ -81,7 +93,7 @@ describe('use-dialog-resize', () => {
   it('resizes non-floating dialog from center', () => {
     const div = document.createElement('div')
     div.getBoundingClientRect = () => ({ width: 400, height: 300 } as DOMRect)
-    
+
     const dialogContentRef = ref<HTMLElement | null>(div)
     const x = ref(0)
     const y = ref(0)
@@ -89,12 +101,16 @@ describe('use-dialog-resize', () => {
     const isResizable = ref(true)
 
     const { startResize, dialogWidth, dialogHeight } = useDialogResize({
-      dialogContentRef, x, y, isFloating, isResizable
+      dialogContentRef,
+      x,
+      y,
+      isFloating,
+      isResizable,
     })
 
     const mousedownEvent = new MouseEvent('mousedown', { clientX: 200, clientY: 200 })
     startResize('top-left', mousedownEvent)
-    
+
     const mousemoveEvent = new MouseEvent('mousemove', { clientX: 180, clientY: 180 })
     document.dispatchEvent(mousemoveEvent)
 
@@ -117,7 +133,7 @@ describe('use-dialog-resize', () => {
   it('respects MIN_W and MIN_H limits', () => {
     const div = document.createElement('div')
     div.getBoundingClientRect = () => ({ width: 400, height: 300 } as DOMRect)
-    
+
     const dialogContentRef = ref<HTMLElement | null>(div)
     const x = ref(100)
     const y = ref(100)
@@ -125,12 +141,16 @@ describe('use-dialog-resize', () => {
     const isResizable = ref(true)
 
     const { startResize, dialogWidth, dialogHeight } = useDialogResize({
-      dialogContentRef, x, y, isFloating, isResizable
+      dialogContentRef,
+      x,
+      y,
+      isFloating,
+      isResizable,
     })
 
     const mousedownEvent = new MouseEvent('mousedown', { clientX: 200, clientY: 200 })
     startResize('top-left', mousedownEvent)
-    
+
     // move so width goes below 300 (dx > 100) and height below 200 (dy > 100)
     const mousemoveEvent = new MouseEvent('mousemove', { clientX: 350, clientY: 350 }) // dx = 150, dy = 150
     document.dispatchEvent(mousemoveEvent)
@@ -147,14 +167,18 @@ describe('use-dialog-resize', () => {
     const isResizable = ref(true)
 
     const { resetResize, dialogWidth, dialogHeight, hasResized } = useDialogResize({
-      dialogContentRef, x, y, isFloating, isResizable
+      dialogContentRef,
+      x,
+      y,
+      isFloating,
+      isResizable,
     })
-    
+
     hasResized.value = true
     dialogWidth.value = 500
-    
+
     resetResize()
-    
+
     expect(hasResized.value).toBe(false)
     expect(dialogWidth.value).toBe('100%')
     expect(dialogHeight.value).toBe('auto')

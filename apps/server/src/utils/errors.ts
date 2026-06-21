@@ -22,7 +22,13 @@ export function apiWrapper(handler: (req: Request) => Promise<Response> | Respon
       }
       else if (error?.name === 'ZodError') {
         status = 400
-        message = 'Ошибка валидации данных ИИ.'
+        const issues = error.issues || error.errors || []
+        if (issues.length > 0) {
+          message = issues.map((e: any) => `${e.path.join('.')}: ${e.message}`).join('; ')
+        }
+        else {
+          message = 'Ошибка валидации данных.'
+        }
       }
 
       if (status >= 500) {

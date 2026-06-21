@@ -18,7 +18,7 @@ export function useTts() {
   let currentAudio: HTMLAudioElement | null = null
   let abortController: AbortController | null = null
 
-  async function speak(text: string | null | undefined, explicitLanguage?: string) {
+  async function speak(text: string | null | undefined, explicitLanguage?: string, explicitBookId?: number) {
     if (!text)
       return
 
@@ -32,7 +32,7 @@ export function useTts() {
     abortController = new AbortController()
 
     try {
-      const bookId = readerStore.currentBook?.id
+      const bookId = explicitBookId || readerStore.currentBook?.id
       const lang = explicitLanguage || readerStore.currentBook?.language || 'en'
 
       const normalizedText = text.trim().toLowerCase()

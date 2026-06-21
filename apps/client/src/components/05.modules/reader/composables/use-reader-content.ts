@@ -1,0 +1,130 @@
+import DOMPurify from 'dompurify'
+import { computed } from 'vue'
+import { normalizeString } from '~/shared/lib/helpers'
+import { useAnalysisStore } from '~/shared/store/analysis.store'
+import { useGlobalSettingsStore } from '~/shared/store/settings.store'
+import { highlightExactText } from '../lib/dom-highlighter'
+import { useHighlightsStore } from '../store/highlights.store'
+import { useReaderStore } from '../store/reader.store'
+
+export function useReaderContent() {
+  const readerStore = useReaderStore()
+  const analysisStore = useAnalysisStore()
+  const highlightsStore = useHighlightsStore()
+  const settingsStore = useGlobalSettingsStore()
+
+  const translationMap = computed(() => {
+    const map: Record<string, string> = {}
+    for (const item of analysisStore.analysisHistory) {
+      map[item.sentence] = item.analysis.translation
+    }
+    return map
+  })
+
+  const safePageContent = computed(() => {
+    if (!readerStore.currentPage?.content)
+      return ''
+    return DOMPurify.sanitize(readerStore.currentPage.content, {
+      ADD_ATTR: ['data-sent-id', 'data-raw-sent', 'data-word', 'data-pos', 'data-token-idx'],
+    })
+  })
+
+  function applyHighlightsAndTranslations(doc: Document, map: Record<string, string>, pageNum: number, mode: 'left' | 'right') {
+    const pageHighlights = highlightsStore.highlights.filter(h => Number(h.pageNum) === pageNum)
+    const translatedSentIds = new Set<string>()
+
+    doc.querySelectorAll('.sentence').forEach((span) => {
+      const rawSent = decodeURIComponent(span.getAttribute('data-raw-sent') || '')
+      const sentId = span.getAttribute('data-sent-id') || ''
+      const rawNorm = normalizeString(rawSent)
+
+      const matchingHighlights = pageHighlights.filter((h) => {
+        const hNorm = normalizeString(h.text)
+        return rawNorm === hNorm || (hNorm.length >= 2 && (rawNorm.includes(hNorm) || hNorm.includes(rawNorm)))
+      })
+
+      if (settingsStore.highlightSavedQuotes) {
+        matchingHighlights.forEach((matching) => {
+          highlightExactText(span as HTMLElement, matching.text, matching.color || '#fde047')
+        })
+      }
+
+      if (mode === 'left') {
+        if (settingsStore.parallelViewMode === 'interleaved' && map[rawSent] && !translatedSentIds.has(sentId)) {
+          const blurClass = settingsStore.parallelBlurTranslation ? 'is-blurred' : ''
+          const translationHtml = `<span class="interleaved-translation ${blurClass}" onclick="this.classList.remove('is-blurred')">${map[rawSent]}</span>`
+          span.insertAdjacentHTML('afterend', translationHtml)
+          translatedSentIds.add(sentId)
+        }
+      }
+      else if (mode === 'right') {
+        if (map[rawSent]) {
+          if (translatedSentIds.has(sentId)) {
+            span.innerHTML = '';
+            (span as any).style.display = 'none'
+          }
+          else {
+            const blurClass = settingsStore.parallelBlurTranslation ? 'is-blurred' : ''
+            span.innerHTML = `<span class="split-translation ${blurClass}" onclick="this.classList.remove('is-blurred')">${map[rawSent]}</span>`
+            span.classList.add('has-translation')
+            translatedSentIds.add(sentId)
+          }
+        }
+        else {
+          span.innerHTML = `<span class="untranslated-text">${span.innerHTML}</span>`
+        }
+      }
+    })
+  }
+
+  const leftPaneContent = computed(() => {
+    if (!safePageContent.value)
+      return ''
+    const parser = new DOMParser()
+    const doc = parser.parseFromString(safePageContent.value, 'text/html')
+    applyHighlightsAndTranslations(doc, translationMap.value, Number(readerStore.currentPage?.pageNum), 'left')
+    return doc.body.innerHTML
+  })
+
+  const translatedPageContent = computed(() => {
+    if (!safePageContent.value || !readerStore.isParallelView)
+      return ''
+    const parser = new DOMParser()
+    const doc = parser.parseFromString(safePageContent.value, 'text/html')
+    applyHighlightsAndTranslations(doc, translationMap.value, Number(readerStore.currentPage?.pageNum), 'right')
+    return doc.body.innerHTML
+  })
+
+  const parallelTranslations = computed(() => {
+    if (settingsStore.parallelViewMode === 'none' || !readerStore.currentPage?.ocrBlocks) {
+      return []
+    }
+    const map = translationMap.value
+    const parser = new DOMParser()
+    const pageNum = Number(readerStore.currentPage?.pageNum)
+
+    return readerStore.currentPage.ocrBlocks.map((box) => {
+      let resultHtml = ''
+      if (box.html) {
+        const doc = parser.parseFromString(box.html, 'text/html')
+        applyHighlightsAndTranslations(doc, map, pageNum, 'right')
+        resultHtml = doc.body.innerHTML
+      }
+      else {
+        resultHtml = `<span class="untranslated-text">${box.text.replace(/\n+/g, '')}</span>`
+      }
+
+      return {
+        id: box.id,
+        text: box.text,
+        html: resultHtml,
+      }
+    })
+  })
+
+  return {
+    leftPaneContent,
+    translatedPageContent,
+    parallelTranslations,
+  }
+}

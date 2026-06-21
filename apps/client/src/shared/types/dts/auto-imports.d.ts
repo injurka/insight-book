@@ -51,6 +51,7 @@ declare global {
   const getCurrentWatcher: typeof import('vue').getCurrentWatcher
   const getMediaUrl: typeof import('../../lib/helpers').getMediaUrl
   const h: typeof import('vue').h
+  const hexToRgba: typeof import('../../lib/helpers').hexToRgba
   const ignorableWatch: typeof import('@vueuse/core').ignorableWatch
   const inject: typeof import('vue').inject
   const injectLocal: typeof import('@vueuse/core').injectLocal
@@ -68,6 +69,7 @@ declare global {
   const mapWritableState: typeof import('pinia').mapWritableState
   const markRaw: typeof import('vue').markRaw
   const nextTick: typeof import('vue').nextTick
+  const normalizeString: typeof import('../../lib/helpers').normalizeString
   const onActivated: typeof import('vue').onActivated
   const onBeforeMount: typeof import('vue').onBeforeMount
   const onBeforeRouteLeave: typeof import('vue-router').onBeforeRouteLeave
@@ -396,6 +398,7 @@ declare module 'vue' {
     readonly getCurrentWatcher: UnwrapRef<typeof import('vue')['getCurrentWatcher']>
     readonly getMediaUrl: UnwrapRef<typeof import('../../lib/helpers')['getMediaUrl']>
     readonly h: UnwrapRef<typeof import('vue')['h']>
+    readonly hexToRgba: UnwrapRef<typeof import('../../lib/helpers')['hexToRgba']>
     readonly ignorableWatch: UnwrapRef<typeof import('@vueuse/core')['ignorableWatch']>
     readonly inject: UnwrapRef<typeof import('vue')['inject']>
     readonly injectLocal: UnwrapRef<typeof import('@vueuse/core')['injectLocal']>
@@ -413,6 +416,7 @@ declare module 'vue' {
     readonly mapWritableState: UnwrapRef<typeof import('pinia')['mapWritableState']>
     readonly markRaw: UnwrapRef<typeof import('vue')['markRaw']>
     readonly nextTick: UnwrapRef<typeof import('vue')['nextTick']>
+    readonly normalizeString: UnwrapRef<typeof import('../../lib/helpers')['normalizeString']>
     readonly onActivated: UnwrapRef<typeof import('vue')['onActivated']>
     readonly onBeforeMount: UnwrapRef<typeof import('vue')['onBeforeMount']>
     readonly onBeforeRouteLeave: UnwrapRef<typeof import('vue-router')['onBeforeRouteLeave']>

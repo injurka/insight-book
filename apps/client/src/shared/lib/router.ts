@@ -60,6 +60,11 @@ export const router = createRouter({
       name: AppRouteNames.Limits,
       component: () => import('~/pages/limits.vue'),
     },
+    {
+      path: '/notebook',
+      name: AppRouteNames.Notebook,
+      component: () => import('~/pages/notebook.vue'),
+    },
   ],
 })
 
@@ -76,7 +81,13 @@ router.beforeEach(async (to) => {
     return { name: AppRouteNames.Home }
   }
 
-  const protectedRoutes = [AppRouteNames.Dictionary, AppRouteNames.Reader, AppRouteNames.Settings, AppRouteNames.Limits]
+  const protectedRoutes = [
+    AppRouteNames.Dictionary,
+    AppRouteNames.Reader,
+    AppRouteNames.Settings,
+    AppRouteNames.Limits,
+    AppRouteNames.Notebook,
+  ]
   if (!authStore.user && !authStore.isSingleMode && protectedRoutes.includes(to.name as AppRouteNames)) {
     return { name: AppRouteNames.SignIn }
   }

@@ -1,5 +1,10 @@
+import { and, eq, inArray, sql } from 'drizzle-orm'
 import { BulkActionSchema, DeckSchema, DeepDiveRequestSchema, GenerateExamplesSchema, SrsReviewSchema, UpsertUserDictSchema } from '~/types/schemas'
 import { extractLlmConfig, json, normalizeLanguageCode } from '~/utils/helpers'
+import { catalogDb, db } from '../db'
+import { officialDecks, officialDeckWords } from '../db/catalog-schema'
+import { userDictionary } from '../db/schema'
+import { trackActivity } from '../services/activity.service'
 import {
   createDeck,
   deleteDeck,
@@ -12,7 +17,7 @@ import {
   updateDeck,
   upsertToUserDictionary,
 } from '../services/dictionary.service'
-import { checkPronunciationAudio, generateWordAutoFill, generateWordExamples } from '../services/llm.service'
+import { checkPronunciationAudio, generateDeepDiveQuiz, generateWordAutoFill, generateWordExamples } from '../services/llm.service'
 import { AppError } from '../utils/errors'
 import { createRateLimiter } from '../utils/rate-limit'
 
@@ -44,7 +49,6 @@ export async function handleGenerateDeepDive(req: Request, userId: number): Prom
   const targetLang = normalizeLanguageCode(req.headers.get('Accept-Language') || 'ru')
   const { word, language, mode } = DeepDiveRequestSchema.parse(await req.json())
 
-  const { generateDeepDiveQuiz } = await import('../services/llm.service')
   const result = await generateDeepDiveQuiz(userId, word, normalizeLanguageCode(language), targetLang, mode, config)
 
   return json(result)
@@ -162,9 +166,6 @@ export async function handleSrsReview(req: Request, userId: number): Promise<Res
 
 export async function handleBulkDeleteDict(req: Request, userId: number): Promise<Response> {
   const { wordIds } = BulkActionSchema.parse(await req.json())
-  const { db } = await import('../db')
-  const { userDictionary } = await import('../db/schema')
-  const { inArray, and, eq } = await import('drizzle-orm')
 
   await db.delete(userDictionary).where(and(
     inArray(userDictionary.id, wordIds),
@@ -175,13 +176,141 @@ export async function handleBulkDeleteDict(req: Request, userId: number): Promis
 
 export async function handleBulkMoveDict(req: Request, userId: number): Promise<Response> {
   const { wordIds, deckId } = BulkActionSchema.parse(await req.json())
-  const { db } = await import('../db')
-  const { userDictionary } = await import('../db/schema')
-  const { inArray, and, eq } = await import('drizzle-orm')
 
   await db.update(userDictionary).set({ deckId: deckId || null }).where(and(
     inArray(userDictionary.id, wordIds),
     eq(userDictionary.userId, userId),
   ))
+  return json({ success: true })
+}
+
+export async function handleGetCatalogDecks(_req: Request, _userId: number): Promise<Response> {
+  const decks = await catalogDb.select().from(officialDecks)
+  return json(decks)
+}
+
+export async function handleGetCatalogWords(req: Request, _userId: number): Promise<Response> {
+  const deckId = Number(req.params.id)
+  const words = await catalogDb.select().from(officialDeckWords).where(eq(officialDeckWords.deckId, deckId))
+  return json(words)
+}
+
+export async function handleCloneCatalogDeck(req: Request, userId: number): Promise<Response> {
+  const deckId = Number(req.params.id)
+
+  const deckToClone = await catalogDb.select().from(officialDecks).where(eq(officialDecks.id, deckId)).get()
+  if (!deckToClone)
+    throw new AppError(404, 'Deck not found')
+
+  const wordsToClone = await catalogDb.select().from(officialDeckWords).where(eq(officialDeckWords.deckId, deckId))
+
+  // Create user deck
+  const targetLang = normalizeLanguageCode(req.headers.get('Accept-Language') || 'ru')
+  const newDeck = await createDeck(userId, deckToClone.title, deckToClone.language, targetLang)
+
+  if (wordsToClone.length > 0) {
+    const userWords = wordsToClone.map(w => ({
+      userId,
+      deckId: newDeck.id,
+      word: w.word,
+      transcription: w.transcription,
+      translation: w.translation,
+      difficulty: w.difficulty,
+      tags: w.tags,
+      language: deckToClone.language,
+      targetLanguage: targetLang,
+      grammarNote: w.grammarNote,
+      vocabularyNote: w.vocabularyNote,
+      updatedAt: new Date().toISOString(),
+    }))
+
+    await db.insert(userDictionary).values(userWords).onConflictDoUpdate({
+      target: [userDictionary.userId, userDictionary.word, userDictionary.targetLanguage],
+      set: {
+        transcription: sql`excluded.transcription`,
+        translation: sql`excluded.translation`,
+        grammarNote: sql`excluded.grammarNote`,
+        vocabularyNote: sql`excluded.vocabularyNote`,
+        deckId: newDeck.id,
+        updatedAt: new Date().toISOString(),
+      },
+    })
+
+    await trackActivity(userId, 'added', userWords.length)
+  }
+
+  return json({ success: true, deckId: newDeck.id })
+}
+
+async function processAutofillInBackground(
+  userId: number,
+  targetDeckId: number | undefined,
+  targetLang: string,
+  wordsToFill: string[],
+  language: string | undefined,
+  config: any,
+) {
+  for (const word of wordsToFill) {
+    try {
+      const result = await generateWordAutoFill(userId, word, normalizeLanguageCode(language || 'en'), targetLang, config)
+      if (result) {
+        await upsertToUserDictionary({
+          word,
+          translation: result.translation || '',
+          transcription: result.transcription || '',
+          language: normalizeLanguageCode(language || 'en'),
+          deckId: targetDeckId,
+        }, userId, targetLang)
+      }
+    }
+    catch (e) {
+      console.error('Failed to background autofill word:', word, e)
+    }
+  }
+}
+
+export async function handleImportCsv(req: Request, userId: number): Promise<Response> {
+  const body = await req.json()
+  // Assuming body has { rows: Array<Record<string, string>>, mapping: { word: string, translation?: string, transcription?: string, tags?: string }, deckId?: number, newDeckName?: string, language?: string, autoFill?: boolean }
+  const { rows, mapping, deckId, newDeckName, language, autoFill } = body
+  const targetLang = normalizeLanguageCode(req.headers.get('Accept-Language') || 'ru')
+
+  let targetDeckId = deckId
+  if (newDeckName) {
+    const newDeck = await createDeck(userId, newDeckName, normalizeLanguageCode(language || 'en'), targetLang)
+    targetDeckId = newDeck.id
+  }
+
+  const wordsToFill: string[] = []
+  for (const row of rows) {
+    const word = row[mapping.word]
+    if (!word)
+      continue
+
+    const translation = mapping.translation ? row[mapping.translation] : ''
+    const transcription = mapping.transcription ? row[mapping.transcription] : ''
+    const tags = mapping.tags ? row[mapping.tags] : ''
+
+    await upsertToUserDictionary({
+      word,
+      translation,
+      transcription,
+      tags,
+      deckId: targetDeckId,
+      language: normalizeLanguageCode(language || 'en'),
+    }, userId, targetLang)
+
+    if (autoFill && !translation) {
+      wordsToFill.push(word)
+    }
+  }
+
+  if (wordsToFill.length > 0) {
+    const config = extractLlmConfig(req)
+    processAutofillInBackground(userId, targetDeckId, targetLang, wordsToFill, language, config).catch((e) => {
+      console.error('Background autofill loop crashed:', e)
+    })
+  }
+
   return json({ success: true })
 }

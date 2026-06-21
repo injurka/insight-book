@@ -1,0 +1,23 @@
+{
+  "mcpServers": {
+    "vue-docs": {
+      "httpUrl": "https://mcp.vue-mcp.org/mcp",
+      "headers": {
+        "Accept": "application/json, text/event-stream"
+      }
+    },
+    "sqlite-main-db": {
+      "command": "bunx",
+      "args": [
+        "mcp-server-sqlite-npx",
+        "apps/server/db/insight-book.sqlite"
+      ]
+    },
+    "bun-docs": {
+      "httpUrl": "https://bun.com/docs/mcp",
+      "headers": {
+        "Accept": "application/json, text/event-stream"
+      }
+    }
+  }
+}

@@ -6,6 +6,7 @@ export enum AppRouteNames {
   Settings = 'settings',
   Limits = 'limits',
   SignIn = 'sign-in',
+  Notebook = 'notebook',
   //
   YandexCallback = 'yandex-callback',
 }
@@ -17,6 +18,7 @@ export const AppRoutePaths = {
   Settings: '/settings',
   Limits: '/limits',
   SignIn: '/sign-in',
+  Notebook: '/notebook',
   Book: {
     Info: (id: string | number) => `/book/${id}`,
   },

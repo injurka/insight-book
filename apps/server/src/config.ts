@@ -11,6 +11,7 @@ export const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173'
 
 // --- Paths ---
 export const DB_PATH = process.env.DB_PATH || path.resolve(process.cwd(), 'db', 'insight-book.sqlite')
+export const CATALOG_DB_PATH = process.env.CATALOG_DB_PATH || path.resolve(process.cwd(), 'db', 'catalog.db')
 export const DICTS_PATH = process.env.DICTS_PATH || path.resolve(process.cwd(), 'db', 'dicts')
 export const UPLOADS_PATH = process.env.UPLOADS_PATH || path.resolve(process.cwd(), 'uploads')
 export const BOOKS_PATH = path.join(UPLOADS_PATH, 'books')

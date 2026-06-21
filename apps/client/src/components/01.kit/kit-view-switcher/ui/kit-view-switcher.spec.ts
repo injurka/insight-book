@@ -1,7 +1,7 @@
-import { describe, it, expect, vi } from 'vitest'
-import { mount } from '@vue/test-utils'
-import KitViewSwitcher from './kit-view-switcher.vue'
 import type { ViewSwitcherItem } from '../models/types'
+import { mount } from '@vue/test-utils'
+import { describe, expect, it, vi } from 'vitest'
+import KitViewSwitcher from './kit-view-switcher.vue'
 
 let resizeCallback: any = null
 vi.mock('@vueuse/core', () => ({
@@ -29,7 +29,7 @@ describe('kit-view-switcher', () => {
 
     expect(buttons[0].text()).toContain('View 1')
     expect(buttons[0].classes()).toContain('is-active')
-    
+
     expect(buttons[1].text()).toContain('View 2')
     expect(buttons[1].classes()).not.toContain('is-active')
   })
@@ -37,14 +37,14 @@ describe('kit-view-switcher', () => {
   it('updates model and emits change event on item click', async () => {
     const wrapper = mount(KitViewSwitcher, {
       props: {
-        modelValue: 'view1',
+        'modelValue': 'view1',
         'onUpdate:modelValue': (e: string) => wrapper.setProps({ modelValue: e }),
-        items: defaultItems,
+        'items': defaultItems,
       },
     })
 
     const buttons = wrapper.findAll('.kit-view-switcher-button')
-    
+
     // Click the second item
     await buttons[1].trigger('click')
 
@@ -64,8 +64,8 @@ describe('kit-view-switcher', () => {
 
     expect(wrapper.classes()).toContain('is-disabled')
     const buttons = wrapper.findAll('.kit-view-switcher-button')
-    
-    buttons.forEach(button => {
+
+    buttons.forEach((button) => {
       // Vue test utils returns '' for boolean attributes that are present
       expect(button.attributes('disabled')).toBe('')
     })
@@ -96,18 +96,18 @@ describe('kit-view-switcher', () => {
         items: defaultItems,
       },
     })
-    
+
     await wrapper.vm.$nextTick()
   })
 
   it('handles resize observer callback', () => {
-    const wrapper = mount(KitViewSwitcher, {
+    mount(KitViewSwitcher, {
       props: {
         modelValue: 'view1',
         items: defaultItems,
       },
     })
-    
+
     if (resizeCallback) {
       resizeCallback()
     }
@@ -120,7 +120,7 @@ describe('kit-view-switcher', () => {
         items: defaultItems,
       },
     })
-    
+
     wrapper.unmount()
     if (resizeCallback) {
       resizeCallback()

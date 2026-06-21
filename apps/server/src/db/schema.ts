@@ -243,6 +243,19 @@ export const webPushSubscriptionsRelations = relations(webPushSubscriptions, ({ 
   user: one(users, { fields: [webPushSubscriptions.userId], references: [users.id] }),
 }))
 
+export const highlights = sqliteTable('highlights', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  userId: integer('userId').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  bookId: integer('bookId').notNull().references(() => books.id, { onDelete: 'cascade' }),
+  text: text('text').notNull(),
+  translation: text('translation'),
+  note: text('note'),
+  color: text('color').notNull().default('#fde047'),
+  chapter: text('chapter'),
+  pageNum: integer('pageNum').notNull(),
+  createdAt: text('createdAt').notNull().default(sql`(datetime('now'))`),
+})
+
 export const usersRelations = relations(users, ({ many }) => ({
   books: many(books),
   dictionary: many(userDictionary),
@@ -252,6 +265,7 @@ export const usersRelations = relations(users, ({ many }) => ({
   opdsCatalogs: many(opdsCatalogs),
   tokenUsages: many(tokenUsage),
   llmLogs: many(llmLogs),
+  highlights: many(highlights),
 }))
 
 export const tokenUsageRelations = relations(tokenUsage, ({ one }) => ({
@@ -284,6 +298,7 @@ export const booksRelations = relations(books, ({ one, many }) => ({
   pages: many(bookPages),
   mangaPages: many(mangaPages),
   bookLlmCache: many(bookLlmCache),
+  highlights: many(highlights),
 }))
 
 export const llmCacheRelations = relations(llmCache, ({ many }) => ({
@@ -315,4 +330,9 @@ export const userDictionaryRelations = relations(userDictionary, ({ one, many })
 
 export const dailyActivityRelations = relations(dailyActivity, ({ one }) => ({
   user: one(users, { fields: [dailyActivity.userId], references: [users.id] }),
+}))
+
+export const highlightsRelations = relations(highlights, ({ one }) => ({
+  user: one(users, { fields: [highlights.userId], references: [users.id] }),
+  book: one(books, { fields: [highlights.bookId], references: [books.id] }),
 }))

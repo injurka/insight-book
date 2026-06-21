@@ -310,6 +310,11 @@ export const api = {
         withLlm: true,
       })
     },
+
+    importCsv: (data: any) => request<{ success: boolean }>('/api/dictionary/import', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+    catalog: () => request<any[]>('/api/dictionary/catalog'),
+    catalogWords: (id: number) => request<any[]>(`/api/dictionary/catalog/${id}/words`),
+    cloneCatalog: (id: number) => request<{ success: boolean, deckId: number }>(`/api/dictionary/catalog/${id}/clone`, { method: 'POST' }),
   },
 
   activity: {
@@ -323,5 +328,40 @@ export const api = {
     deleteCatalog: (id: number) => request<{ success: boolean }>(`/api/opds/catalogs/${id}`, { method: 'DELETE' }),
     browse: (url: string) => request<OpdsFeed>(`/api/opds/browse?url=${encodeURIComponent(url)}`),
     download: (data: { downloadUrl: string, title: string, type?: string }) => request<{ success: boolean, book: Book }>('/api/opds/download', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+  },
+
+  highlights: {
+    list: (bookId?: number) => {
+      const q = bookId ? `?bookId=${bookId}` : ''
+      return request<any[]>(`/api/highlights${q}`)
+    },
+    create: (data: {
+      bookId: number
+      text: string
+      translation?: string | null
+      note?: string | null
+      color?: string
+      chapter?: string | null
+      pageNum: number
+    }) =>
+      request<any>('/api/highlights', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      }),
+    update: (id: number, data: {
+      translation?: string | null
+      note?: string | null
+      color?: string
+      chapter?: string | null
+      pageNum?: number
+    }) =>
+      request<any>(`/api/highlights/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      }),
+    delete: (id: number) =>
+      request<{ success: boolean }>(`/api/highlights/${id}`, { method: 'DELETE' }),
   },
 }

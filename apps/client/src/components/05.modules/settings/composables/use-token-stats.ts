@@ -60,7 +60,7 @@ export function useTokenStats() {
         action: s.action,
         input: s.inputTokens,
         output: s.outputTokens,
-        cost: s.cost || 0
+        cost: s.cost || 0,
       })
     })
 

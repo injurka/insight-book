@@ -1,36 +1,36 @@
 import { mount } from '@vue/test-utils'
-import { describe, it, expect } from 'vitest'
-import { h, defineComponent, markRaw } from 'vue'
-import KitTabs from './kit-tabs.vue'
+import { describe, expect, it } from 'vitest'
+import { defineComponent, h, markRaw } from 'vue'
 import { KitViewSwitcher } from '~/components/01.kit/kit-view-switcher'
+import KitTabs from './kit-tabs.vue'
 
 const DummyComponent1 = defineComponent({
   name: 'DummyComponent1',
-  render: () => h('div', { class: 'dummy-1' }, 'Component 1 Content')
+  render: () => h('div', { class: 'dummy-1' }, 'Component 1 Content'),
 })
 
 const DummyComponent2 = defineComponent({
   name: 'DummyComponent2',
   props: ['text'],
-  render: (props: any) => h('div', { class: 'dummy-2' }, `Component 2: ${props.text}`)
+  render: (props: any) => h('div', { class: 'dummy-2' }, `Component 2: ${props.text}`),
 })
 
 describe('kit-tabs', () => {
   const defaultItems = [
     { id: 'tab1', name: 'Tab 1' },
     { id: 'tab2', name: 'Tab 2' },
-    { id: 'tab3', name: 'Tab 3' }
+    { id: 'tab3', name: 'Tab 3' },
   ]
 
   it('renders correctly with required props', () => {
     const wrapper = mount(KitTabs, {
       props: {
         modelValue: 'tab1',
-        items: defaultItems
+        items: defaultItems,
       },
       global: {
-        components: { KitViewSwitcher }
-      }
+        components: { KitViewSwitcher },
+      },
     })
 
     expect(wrapper.exists()).toBe(true)
@@ -44,11 +44,11 @@ describe('kit-tabs', () => {
     const wrapper = mount(KitTabs, {
       props: {
         modelValue: 'tab1',
-        items: [{ id: 'tab1', name: 'Tab 1' }]
+        items: [{ id: 'tab1', name: 'Tab 1' }],
       },
       global: {
-        components: { KitViewSwitcher }
-      }
+        components: { KitViewSwitcher },
+      },
     })
 
     expect(wrapper.classes()).toContain('single')
@@ -59,15 +59,15 @@ describe('kit-tabs', () => {
       props: {
         modelValue: 'tab2',
         items: defaultItems,
-        cache: false
+        cache: false,
       },
       slots: {
         tab1: '<div class="slot-1">Slot 1</div>',
-        tab2: '<div class="slot-2">Slot 2</div>'
+        tab2: '<div class="slot-2">Slot 2</div>',
       },
       global: {
-        components: { KitViewSwitcher }
-      }
+        components: { KitViewSwitcher },
+      },
     })
 
     expect(wrapper.find('.slot-2').exists()).toBe(true)
@@ -79,21 +79,21 @@ describe('kit-tabs', () => {
       props: {
         modelValue: 'tab1',
         items: defaultItems,
-        cache: false
+        cache: false,
       },
       slots: {
         tab1: '<div class="slot-1">Slot 1</div>',
-        tab2: '<div class="slot-2">Slot 2</div>'
+        tab2: '<div class="slot-2">Slot 2</div>',
       },
       global: {
-        components: { KitViewSwitcher }
-      }
+        components: { KitViewSwitcher },
+      },
     })
 
     expect(wrapper.find('.slot-1').exists()).toBe(true)
-    
+
     await wrapper.setProps({ modelValue: 'tab2' })
-    
+
     expect(wrapper.find('.slot-1').exists()).toBe(false)
     expect(wrapper.find('.slot-2').exists()).toBe(true)
   })
@@ -101,18 +101,18 @@ describe('kit-tabs', () => {
   it('renders components with props when cache is true', () => {
     const componentItems = [
       { id: 'tab1', name: 'Tab 1', component: markRaw(DummyComponent1) },
-      { id: 'tab2', name: 'Tab 2', component: markRaw(DummyComponent2), props: { text: 'Hello' } }
+      { id: 'tab2', name: 'Tab 2', component: markRaw(DummyComponent2), props: { text: 'Hello' } },
     ]
 
     const wrapper = mount(KitTabs, {
       props: {
         modelValue: 'tab2',
         items: componentItems,
-        cache: true
+        cache: true,
       },
       global: {
-        components: { KitViewSwitcher }
-      }
+        components: { KitViewSwitcher },
+      },
     })
 
     const dummy2 = wrapper.findComponent(DummyComponent2)
@@ -124,19 +124,19 @@ describe('kit-tabs', () => {
     const wrapper = mount(KitTabs, {
       props: {
         modelValue: 'tab1',
-        items: defaultItems
+        items: defaultItems,
       },
       slots: {
         tab1: '<div>1</div>',
         tab2: '<div>2</div>',
-        tab3: '<div>3</div>'
+        tab3: '<div>3</div>',
       },
       global: {
         components: { KitViewSwitcher },
         stubs: {
-          Transition: false
-        }
-      }
+          Transition: false,
+        },
+      },
     })
 
     await wrapper.setProps({ modelValue: 'tab3' })
@@ -150,11 +150,11 @@ describe('kit-tabs', () => {
     const wrapper = mount(KitTabs, {
       props: {
         modelValue: 'tab1',
-        items: defaultItems
+        items: defaultItems,
       },
       global: {
-        components: { KitViewSwitcher }
-      }
+        components: { KitViewSwitcher },
+      },
     })
 
     const switcher = wrapper.findComponent(KitViewSwitcher)

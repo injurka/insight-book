@@ -136,6 +136,10 @@ const difficultyModel = computed({
   get: () => localWord.value.difficulty || '',
   set: (val) => { localWord.value.difficulty = val || null },
 })
+
+const previewTranslation = ref(true)
+const previewGrammar = ref(true)
+const previewVocabulary = ref(true)
 </script>
 
 <template>
@@ -199,18 +203,39 @@ const difficultyModel = computed({
         </div>
 
         <div class="form-group">
-          <label>{{ t('dictionary.translationHtml') }}</label>
-          <textarea v-model="localWord.translation" class="custom-textarea" rows="4" />
+          <div class="form-group-header">
+            <label>{{ t('dictionary.translationHtml') }}</label>
+            <div class="mode-toggle">
+              <KitBtn :variant="!previewTranslation ? 'tonal' : 'text'" size="sm" icon="mdi:pencil" @click="previewTranslation = false" />
+              <KitBtn :variant="previewTranslation ? 'tonal' : 'text'" size="sm" icon="mdi:eye" @click="previewTranslation = true" />
+            </div>
+          </div>
+          <div v-if="previewTranslation" class="markdown-preview preview-box" v-html="localWord.translation || ''" />
+          <textarea v-else v-model="localWord.translation" class="custom-textarea" rows="4" />
         </div>
 
         <div class="form-group">
-          <label>{{ t('dictionary.grammar') }}</label>
-          <textarea v-model="localWord.grammarNote" class="custom-textarea" rows="2" :placeholder="t('dictionary.grammarRulesExtra')" />
+          <div class="form-group-header">
+            <label>{{ t('dictionary.grammar') }}</label>
+            <div class="mode-toggle">
+              <KitBtn :variant="!previewGrammar ? 'tonal' : 'text'" size="sm" icon="mdi:pencil" @click="previewGrammar = false" />
+              <KitBtn :variant="previewGrammar ? 'tonal' : 'text'" size="sm" icon="mdi:eye" @click="previewGrammar = true" />
+            </div>
+          </div>
+          <div v-if="previewGrammar" class="markdown-preview preview-box" v-html="localWord.grammarNote || ''" />
+          <textarea v-else v-model="localWord.grammarNote" class="custom-textarea" rows="2" :placeholder="t('dictionary.grammarRulesExtra')" />
         </div>
 
         <div class="form-group">
-          <label>{{ t('dictionary.vocabulary') }}</label>
-          <textarea v-model="localWord.vocabularyNote" class="custom-textarea" rows="2" :placeholder="t('dictionary.relatedVocab')" />
+          <div class="form-group-header">
+            <label>{{ t('dictionary.vocabulary') }}</label>
+            <div class="mode-toggle">
+              <KitBtn :variant="!previewVocabulary ? 'tonal' : 'text'" size="sm" icon="mdi:pencil" @click="previewVocabulary = false" />
+              <KitBtn :variant="previewVocabulary ? 'tonal' : 'text'" size="sm" icon="mdi:eye" @click="previewVocabulary = true" />
+            </div>
+          </div>
+          <div v-if="previewVocabulary" class="markdown-preview preview-box" v-html="localWord.vocabularyNote || ''" />
+          <textarea v-else v-model="localWord.vocabularyNote" class="custom-textarea" rows="2" :placeholder="t('dictionary.relatedVocab')" />
         </div>
 
         <div class="form-group">
@@ -348,6 +373,49 @@ const difficultyModel = computed({
   font-size: 0.9rem;
   font-weight: 500;
   color: var(--fg-secondary-color);
+  margin: 0;
+}
+.form-group-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2px;
+}
+.mode-toggle {
+  display: flex;
+  gap: 2px;
+  background: var(--bg-secondary-color);
+  padding: 2px;
+  border-radius: 6px;
+
+  :deep(.kit-btn) {
+    min-width: 28px;
+    height: 24px;
+    padding: 0;
+    --btn-border-radius: 4px;
+
+    svg {
+      width: 14px;
+      height: 14px;
+    }
+  }
+}
+.preview-box {
+  width: 100%;
+  background-color: var(--bg-secondary-color);
+  color: var(--fg-primary-color);
+  border-radius: 6px;
+  padding: 10px 12px;
+  font-size: 0.95rem;
+  min-height: 48px;
+  max-height: 300px;
+  overflow-y: auto;
+  line-height: 1.5;
+}
+.preview-box:empty::after {
+  content: 'Нет данных для предпросмотра...';
+  color: var(--fg-tertiary-color);
+  font-style: italic;
 }
 .deck-selector-row {
   display: flex;

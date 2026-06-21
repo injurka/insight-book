@@ -1,10 +1,12 @@
 <script setup lang="ts">
+import { useHighlightsStore } from '~/components/05.modules/reader/store/highlights.store'
 import { useReaderStore } from '~/components/05.modules/reader/store/reader.store'
 import MangaReaderView from '~/components/05.modules/reader/ui/manga-reader-view.vue'
 import ReaderView from '~/components/05.modules/reader/ui/reader-view.vue'
 import { AppRoutePaths } from '~/shared/constants/routes'
 
 const store = useReaderStore()
+const highlightsStore = useHighlightsStore()
 const router = useRouter()
 const route = useRoute()
 
@@ -24,6 +26,9 @@ onMounted(async () => {
       }
     }
     else {
+      highlightsStore.clear()
+      highlightsStore.fetchHighlights(bookId).catch(console.error)
+
       const targetPage = page || store.currentBook.currentPage || 1
       if (!store.currentPage || store.currentPage.pageNum !== targetPage) {
         store.loadPage(bookId, targetPage)

@@ -22,6 +22,8 @@ export const useGlobalSettingsStore = defineStore('globalSettings', () => {
   const parallelViewMode = useLocalStorage<'none' | 'split' | 'interleaved'>('global-parallel-view-mode', 'none')
   const parallelBlurTranslation = useLocalStorage<boolean>('global-parallel-blur-translation', false)
 
+  const highlightSavedQuotes = useLocalStorage<boolean>('global-highlight-saved-quotes', true)
+
   return {
     appLanguage,
     autoAnalyzePage,
@@ -37,5 +39,6 @@ export const useGlobalSettingsStore = defineStore('globalSettings', () => {
     customLlmUrl,
     customLlmKey,
     customLlmModel,
+    highlightSavedQuotes,
   }
 })

@@ -1,7 +1,13 @@
 @use './light/theme.scss' as light;
 @use './dark/theme.scss' as dark;
+@use './sepia/theme.scss' as sepia;
+@use './green/theme.scss' as greenTheme;
+@use './oled/theme.scss' as oled;
 
 $themes: (
   light: light.$theme,
   dark: dark.$theme,
+  sepia: sepia.$theme,
+  green: greenTheme.$theme,
+  oled: oled.$theme,
 );

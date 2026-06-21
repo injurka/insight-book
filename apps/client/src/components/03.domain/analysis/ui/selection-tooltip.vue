@@ -1,11 +1,112 @@
 <script setup lang="ts">
 import { Icon } from '@iconify/vue'
 import { useDebounceFn } from '@vueuse/core'
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useHighlightsStore } from '~/components/05.modules/reader/store/highlights.store'
+import { useReaderStore } from '~/components/05.modules/reader/store/reader.store'
 import { useTts } from '~/shared/composables/use-tts'
+import { normalizeString } from '~/shared/lib/helpers'
+import { api } from '~/shared/services/api.service'
+import { offlineService } from '~/shared/services/offline.service'
 import { useAnalysisStore } from '~/shared/store/analysis.store'
 
+const highlightsStore = useHighlightsStore()
+const readerStore = useReaderStore()
 const analysisStore = useAnalysisStore()
+
+const isSavingHighlight = ref(false)
+
+const highlightColors = ['#fde047', '#86efac', '#f472b6', '#93c5fd', '#c4b5fd']
+
+const matchingHighlight = computed(() => {
+  if (!analysisStore.selectionTooltip || !readerStore.currentBook)
+    return null
+  const rawNorm = normalizeString(analysisStore.selectionTooltip.text)
+  return highlightsStore.highlights.find((h) => {
+    const hNorm = normalizeString(h.text)
+    return Number(h.bookId) === Number(readerStore.currentBook?.id) && (rawNorm === hNorm || (hNorm.length >= 2 && (rawNorm.includes(hNorm) || hNorm.includes(rawNorm))))
+  })
+})
+
+async function createHighlight(color: string) {
+  if (!analysisStore.selectionTooltip || !readerStore.currentBook || !readerStore.currentPage)
+    return
+  if (isSavingHighlight.value)
+    return
+
+  const text = analysisStore.selectionTooltip.text
+  const bookId = readerStore.currentBook.id
+  const pageNum = readerStore.currentPage.pageNum
+  const language = readerStore.currentBook.language || 'en'
+
+  let chapter: string | null = null
+  if (readerStore.currentToc && readerStore.currentToc.length) {
+    let currentItem = null
+    for (const item of readerStore.currentToc) {
+      if (item.pageNum !== undefined && item.pageNum <= pageNum) {
+        if (!currentItem || item.pageNum > (currentItem.pageNum || 0)) {
+          currentItem = item
+        }
+      }
+    }
+    chapter = currentItem ? currentItem.title : null
+  }
+
+  isSavingHighlight.value = true
+
+  try {
+    let translation: string | undefined
+
+    try {
+      const cached = await offlineService.getAnalysis(text)
+      if (cached)
+        translation = cached.translation
+    }
+    catch (e) {}
+
+    if (!translation) {
+      try {
+        const res = await api.books.analyze(bookId, text, language)
+        await offlineService.saveAnalysis(text, res)
+        translation = res.translation
+      }
+      catch (e) {
+        console.error('Translation failed:', e)
+      }
+    }
+
+    await highlightsStore.createHighlight({
+      bookId,
+      text,
+      color,
+      pageNum,
+      chapter,
+      translation,
+    })
+
+    analysisStore.closeSelectionTooltip()
+    window.getSelection()?.removeAllRanges()
+  }
+  catch (err) {
+    console.error('Failed to create highlight', err)
+  }
+  finally {
+    isSavingHighlight.value = false
+  }
+}
+
+async function deleteHighlight(id: number) {
+  try {
+    await highlightsStore.deleteHighlight(id)
+    analysisStore.closeSelectionTooltip()
+    window.getSelection()?.removeAllRanges()
+  }
+  catch (err) {
+    console.error('Failed to delete highlight', err)
+  }
+}
+
 const { speak, stop, isPlaying, isLoading } = useTts()
 const { t } = useI18n()
 
@@ -179,6 +280,28 @@ onUnmounted(() => {
           />
           <span>{{ t('analysis.listen') }}</span>
         </button>
+        <div class="divider" />
+        <div v-if="matchingHighlight" class="highlight-actions">
+          <button class="tooltip-btn delete-btn" :title="t('analysis.removeHighlight')" @click="deleteHighlight(matchingHighlight.id)">
+            <Icon icon="mdi:marker-cancel" />
+            <span>{{ t('analysis.removeHighlight') }}</span>
+          </button>
+        </div>
+        <div v-else class="highlight-colors">
+          <div v-if="isSavingHighlight" class="saving-loader">
+            <Icon icon="mdi:loading" class="spin-animation" />
+          </div>
+          <template v-else>
+            <button
+              v-for="color in highlightColors"
+              :key="color"
+              class="color-btn"
+              :style="{ backgroundColor: color }"
+              :title="t(`analysis.saveToNotebook`)"
+              @click="createHighlight(color)"
+            />
+          </template>
+        </div>
       </div>
     </Transition>
   </Teleport>
@@ -227,6 +350,43 @@ onUnmounted(() => {
   height: 20px;
   background-color: var(--border-primary-color);
   margin: 0 4px;
+}
+
+.highlight-colors {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 8px;
+  min-height: 28px;
+}
+
+.saving-loader {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 132px; /* 5 buttons */
+  color: var(--fg-accent-color);
+  font-size: 1.4rem;
+}
+
+.color-btn {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 1px solid var(--border-primary-color);
+  cursor: pointer;
+  transition: transform 0.15s ease;
+
+  &:hover {
+    transform: scale(1.2);
+  }
+}
+
+.delete-btn {
+  color: var(--fg-error-color, #ef4444);
+  &:hover {
+    background: rgba(239, 68, 68, 0.1);
+  }
 }
 
 .pulse-animation {

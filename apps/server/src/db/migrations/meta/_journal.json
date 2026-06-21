@@ -92,6 +92,13 @@
       "when": 1781687550449,
       "tag": "0012_dark_stellaris",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "6",
+      "when": 1782057036697,
+      "tag": "0013_amazing_gunslinger",
+      "breakpoints": true
     }
   ]
 }

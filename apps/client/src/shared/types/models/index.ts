@@ -285,3 +285,16 @@ export interface UserData {
   uiLanguage?: string
   avatarUrl?: string
 }
+
+export interface Highlight {
+  id: number
+  userId: number
+  bookId: number
+  text: string
+  translation: string | null
+  note: string | null
+  color: string
+  chapter: string | null
+  pageNum: number
+  createdAt: string
+}

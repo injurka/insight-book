@@ -201,7 +201,7 @@ onMounted(async () => {
 .activity-section {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 24px;
 }
 
 .stats-overview {
@@ -212,22 +212,34 @@ onMounted(async () => {
     flex: 1;
     background-color: var(--bg-secondary-color);
     border: 1px solid var(--border-secondary-color);
-    padding: 16px;
-    border-radius: 12px;
+    padding: 20px 16px;
+    border-radius: 16px;
     display: flex;
     flex-direction: column;
     align-items: center;
     text-align: center;
-    gap: 4px;
+    gap: 8px;
+    transition:
+      transform 0.2s ease,
+      box-shadow 0.2s ease,
+      border-color 0.2s ease;
+
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06);
+      border-color: var(--border-primary-color);
+    }
 
     .stat-value {
-      font-size: 1.8rem;
-      font-weight: 700;
+      font-size: 2.2rem;
+      font-weight: 800;
       color: var(--fg-accent-color);
+      line-height: 1;
     }
 
     .stat-label {
-      font-size: 0.85rem;
+      font-size: 0.9rem;
+      font-weight: 500;
       color: var(--fg-secondary-color);
     }
   }
@@ -239,22 +251,30 @@ onMounted(async () => {
   flex-direction: column;
   background-color: var(--bg-secondary-color);
   border: 1px solid var(--border-secondary-color);
-  padding: 16px;
-  border-radius: 12px;
+  padding: 24px;
+  border-radius: 16px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
 }
 
 .heatmap-scroll-area {
   width: 100%;
   overflow-x: auto;
   overflow-y: hidden;
-  padding-bottom: 12px;
+  padding-bottom: 16px;
 
   &::-webkit-scrollbar {
     height: 6px;
   }
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
   &::-webkit-scrollbar-thumb {
-    background-color: var(--border-primary-color);
-    border-radius: 4px;
+    background-color: var(--border-secondary-color);
+    border-radius: 6px;
+
+    &:hover {
+      background-color: var(--border-primary-color);
+    }
   }
 }
 
@@ -270,9 +290,10 @@ onMounted(async () => {
   display: grid;
   grid-template-columns: repeat(26, 14px);
   gap: 4px;
-  margin-bottom: 8px;
-  margin-left: 28px;
+  margin-bottom: 10px;
+  margin-left: 36px; /* 28px width + 8px gap */
   font-size: 0.75rem;
+  font-weight: 600;
   color: var(--fg-secondary-color);
 
   span {
@@ -291,7 +312,9 @@ onMounted(async () => {
   flex-direction: column;
   gap: 4px;
   font-size: 0.75rem;
+  font-weight: 500;
   color: var(--fg-secondary-color);
+  width: 28px;
 
   span {
     display: flex;
@@ -315,7 +338,7 @@ onMounted(async () => {
 .legend-box {
   width: 14px;
   height: 14px;
-  border-radius: 3px;
+  border-radius: 4px; /* Более округлые ячейки */
 
   &.level-0 {
     background-color: var(--bg-tertiary-color);
@@ -323,13 +346,13 @@ onMounted(async () => {
 
   /* Используем --fg-accent-color-rgb чтобы цвет был насыщенным в обеих темах */
   &.level-1 {
-    background-color: rgba(var(--fg-accent-color-rgb, 225, 96, 50), 0.25);
+    background-color: rgba(var(--fg-accent-color-rgb, 225, 96, 50), 0.3);
   }
   &.level-2 {
-    background-color: rgba(var(--fg-accent-color-rgb, 225, 96, 50), 0.5);
+    background-color: rgba(var(--fg-accent-color-rgb, 225, 96, 50), 0.55);
   }
   &.level-3 {
-    background-color: rgba(var(--fg-accent-color-rgb, 225, 96, 50), 0.75);
+    background-color: rgba(var(--fg-accent-color-rgb, 225, 96, 50), 0.8);
   }
   &.level-4 {
     background-color: var(--fg-accent-color);
@@ -338,14 +361,15 @@ onMounted(async () => {
 
 .heatmap-cell {
   transition:
-    opacity 0.2s,
-    transform 0.1s;
+    opacity 0.2s ease,
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
 
   &:not(.is-future):hover {
-    opacity: 0.8;
-    transform: scale(1.2);
-    box-shadow: 0 0 4px rgba(0, 0, 0, 0.2);
-    z-index: 1;
+    opacity: 1;
+    transform: scale(1.15);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+    z-index: 10;
   }
 
   &.is-future {
@@ -359,9 +383,10 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 8px;
-  margin-top: 8px;
-  font-size: 0.8rem;
+  gap: 12px;
+  margin-top: 16px;
+  font-size: 0.85rem;
+  font-weight: 500;
   color: var(--fg-secondary-color);
 
   .legend-boxes {

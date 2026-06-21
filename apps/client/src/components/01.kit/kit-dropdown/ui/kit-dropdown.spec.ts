@@ -1,11 +1,11 @@
-import { mount, enableAutoUnmount } from '@vue/test-utils'
-import { describe, it, expect, beforeEach, afterEach } from 'vitest'
-import KitDropdown from './kit-dropdown.vue'
+import { enableAutoUnmount, mount } from '@vue/test-utils'
+import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { nextTick } from 'vue'
+import KitDropdown from './kit-dropdown.vue'
 
 enableAutoUnmount(afterEach)
 
-describe('KitDropdown', () => {
+describe('kitDropdown', () => {
   beforeEach(() => {
     document.body.innerHTML = ''
   })
@@ -14,10 +14,10 @@ describe('KitDropdown', () => {
     const wrapper = mount(KitDropdown, {
       slots: {
         activator: '<button class="activator-btn">Toggle</button>',
-        default: '<div class="content">Content</div>'
-      }
+        default: '<div class="content">Content</div>',
+      },
     })
-    
+
     expect(wrapper.exists()).toBe(true)
     expect(wrapper.find('.activator-btn').exists()).toBe(true)
   })
@@ -26,8 +26,8 @@ describe('KitDropdown', () => {
     const wrapper = mount(KitDropdown, {
       slots: {
         activator: '<button class="activator-btn">Toggle</button>',
-        default: '<div class="content">Content</div>'
-      }
+        default: '<div class="content">Content</div>',
+      },
     })
 
     // Initially closed
@@ -37,7 +37,7 @@ describe('KitDropdown', () => {
     await wrapper.find('.dropdown-trigger').trigger('click')
     expect(document.querySelector('.dropdown-menu')).not.toBeNull()
     expect(document.querySelector('.content')).not.toBeNull()
-    
+
     // Click again to close
     await wrapper.find('.dropdown-trigger').trigger('click')
     await nextTick()
@@ -47,12 +47,12 @@ describe('KitDropdown', () => {
   it('supports v-model', async () => {
     const wrapper = mount(KitDropdown, {
       props: {
-        modelValue: true,
-        'onUpdate:modelValue': (e: boolean) => wrapper.setProps({ modelValue: e })
+        'modelValue': true,
+        'onUpdate:modelValue': (e: boolean) => wrapper.setProps({ modelValue: e }),
       },
       slots: {
-        default: '<div class="content">Content</div>'
-      }
+        default: '<div class="content">Content</div>',
+      },
     })
 
     expect(document.querySelector('.dropdown-menu')).not.toBeNull()
@@ -65,17 +65,17 @@ describe('KitDropdown', () => {
   it('closes on content click by default', async () => {
     const wrapper = mount(KitDropdown, {
       slots: {
-        default: '<div class="content">Content</div>'
-      }
+        default: '<div class="content">Content</div>',
+      },
     })
 
     await wrapper.find('.dropdown-trigger').trigger('click')
-    
+
     const menu = document.querySelector('.dropdown-menu')
     expect(menu).not.toBeNull()
 
     menu?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
-    
+
     await nextTick()
     expect(document.querySelector('.dropdown-menu')).toBeNull()
   })
@@ -83,20 +83,20 @@ describe('KitDropdown', () => {
   it('does not close on content click if closeOnContentClick is false', async () => {
     const wrapper = mount(KitDropdown, {
       props: {
-        closeOnContentClick: false
+        closeOnContentClick: false,
       },
       slots: {
-        default: '<div class="content">Content</div>'
-      }
+        default: '<div class="content">Content</div>',
+      },
     })
 
     await wrapper.find('.dropdown-trigger').trigger('click')
-    
+
     const menu = document.querySelector('.dropdown-menu')
     expect(menu).not.toBeNull()
 
     menu?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
-    
+
     await nextTick()
     expect(document.querySelector('.dropdown-menu')).not.toBeNull()
   })
@@ -108,7 +108,7 @@ describe('KitDropdown', () => {
     expect(document.querySelector('.dropdown-menu')).not.toBeNull()
 
     window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))
-    
+
     await nextTick()
     expect(document.querySelector('.dropdown-menu')).toBeNull()
   })
@@ -131,7 +131,7 @@ describe('KitDropdown', () => {
     const wrapper = mount(KitDropdown, {
       slots: {
         activator: '<button class="activator-btn">Toggle</button>',
-      }
+      },
     })
 
     await wrapper.find('.dropdown-trigger').trigger('click')
@@ -139,7 +139,7 @@ describe('KitDropdown', () => {
 
     // Dispatch pointerdown on the activator (which is inside referenceRef)
     wrapper.find('.activator-btn').element.dispatchEvent(new Event('pointerdown', { bubbles: true }))
-    
+
     await nextTick()
     expect(document.querySelector('.dropdown-menu')).not.toBeNull()
   })
@@ -157,7 +157,7 @@ describe('KitDropdown', () => {
     outside.dispatchEvent(new Event('pointerdown', { bubbles: true }))
     outside.dispatchEvent(new Event('mousedown', { bubbles: true }))
     outside.dispatchEvent(new MouseEvent('click', { bubbles: true }))
-    
+
     await nextTick()
     expect(document.querySelector('.dropdown-menu')).toBeNull()
   })
@@ -165,18 +165,18 @@ describe('KitDropdown', () => {
   it('does not close on content click if target is within .kit-select-wrapper', async () => {
     const wrapper = mount(KitDropdown, {
       slots: {
-        default: '<div class="kit-select-wrapper"><button class="inner-btn">Click</button></div>'
-      }
+        default: '<div class="kit-select-wrapper"><button class="inner-btn">Click</button></div>',
+      },
     })
 
     await wrapper.find('.dropdown-trigger').trigger('click')
-    
+
     const menu = document.querySelector('.dropdown-menu')
     expect(menu).not.toBeNull()
 
     const innerBtn = document.querySelector('.inner-btn')
     innerBtn?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
-    
+
     await nextTick()
     expect(document.querySelector('.dropdown-menu')).not.toBeNull()
   })

@@ -1,5 +1,5 @@
-import { describe, it, expect, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
+import { describe, expect, it, vi } from 'vitest'
 import KitPrompt from './kit-prompt.vue'
 
 vi.mock('vue-i18n', () => ({
@@ -8,7 +8,7 @@ vi.mock('vue-i18n', () => ({
   }),
 }))
 
-describe('KitPrompt', () => {
+describe('kitPrompt', () => {
   const mountComponent = (props = {}) => {
     return mount(KitPrompt, {
       props: {
@@ -67,7 +67,7 @@ describe('KitPrompt', () => {
   it('sets initial input value based on defaultValue when dialog opens', async () => {
     const wrapper = mountComponent({ visible: false, defaultValue: 'initial test' })
     await wrapper.setProps({ visible: true })
-    
+
     const input = wrapper.find('.kit-input-stub')
     expect((input.element as HTMLInputElement).value).toBe('initial test')
   })
@@ -76,10 +76,10 @@ describe('KitPrompt', () => {
     const wrapper = mountComponent()
     const input = wrapper.find('.kit-input-stub')
     await input.setValue('typed value')
-    
+
     const buttons = wrapper.findAll('.kit-btn-stub')
     await buttons[1].trigger('click') // Confirm button
-    
+
     expect(wrapper.emitted('submit')).toBeDefined()
     expect(wrapper.emitted('submit')?.[0]).toEqual(['typed value'])
     expect(wrapper.emitted('update:visible')?.[0]).toEqual([false])
@@ -87,10 +87,10 @@ describe('KitPrompt', () => {
 
   it('emits cancel and closes dialog on cancel button click', async () => {
     const wrapper = mountComponent()
-    
+
     const buttons = wrapper.findAll('.kit-btn-stub')
     await buttons[0].trigger('click') // Cancel button
-    
+
     expect(wrapper.emitted('cancel')).toBeDefined()
     expect(wrapper.emitted('update:visible')?.[0]).toEqual([false])
   })
@@ -100,7 +100,7 @@ describe('KitPrompt', () => {
     const input = wrapper.find('.kit-input-stub')
     await input.setValue('enter value')
     await input.trigger('keyup.enter')
-    
+
     expect(wrapper.emitted('submit')).toBeDefined()
     expect(wrapper.emitted('submit')?.[0]).toEqual(['enter value'])
     expect(wrapper.emitted('update:visible')?.[0]).toEqual([false])

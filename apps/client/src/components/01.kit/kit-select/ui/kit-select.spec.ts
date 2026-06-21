@@ -3,13 +3,14 @@ import { describe, expect, it } from 'vitest'
 import KitSelect from './kit-select.vue'
 
 // Mock ResizeObserver for floating-ui
+// eslint-disable-next-line no-restricted-globals
 global.ResizeObserver = class ResizeObserver {
-  observe() {}
-  unobserve() {}
-  disconnect() {}
+  observe() { }
+  unobserve() { }
+  disconnect() { }
 }
 
-describe('KitSelect', () => {
+describe('kitSelect', () => {
   const defaultOptions = [
     { label: 'Option 1', value: 'opt1' },
     { label: 'Option 2', value: 'opt2' },
@@ -53,7 +54,7 @@ describe('KitSelect', () => {
 
   it('toggles dropdown on trigger click', async () => {
     const wrapper = factory()
-    
+
     // Dropdown is initially closed
     expect(wrapper.find('.kit-select-dropdown').exists()).toBe(false)
 
@@ -69,44 +70,44 @@ describe('KitSelect', () => {
   it('emits update:modelValue in single mode and closes dropdown', async () => {
     const wrapper = factory()
     await wrapper.find('.kit-select-trigger').trigger('click')
-    
+
     const options = wrapper.findAll('.kit-select-option')
     expect(options.length).toBe(3)
-    
+
     // Click second option
     await options[1].trigger('click')
-    
+
     const emitted = wrapper.emitted('update:modelValue')
     expect(emitted).toBeTruthy()
     expect(emitted?.[0]).toEqual(['opt2'])
-    
+
     // Dropdown should be closed
     expect(wrapper.find('.kit-select-dropdown').exists()).toBe(false)
   })
 
   it('handles multiple selection correctly', async () => {
-    const wrapper = factory({ 
+    const wrapper = factory({
       multiple: true,
       modelValue: ['opt1'],
     })
 
     await wrapper.find('.kit-select-trigger').trigger('click')
     const options = wrapper.findAll('.kit-select-option')
-    
+
     // Click second option
     await options[1].trigger('click')
-    
+
     const emitted = wrapper.emitted('update:modelValue')
     expect(emitted).toBeTruthy()
     expect(emitted?.[0]).toEqual([['opt1', 'opt2']])
-    
+
     // Dropdown should stay open
     expect(wrapper.find('.kit-select-dropdown').exists()).toBe(true)
   })
 
   it('handles "all" selection in multiple mode', async () => {
     const optionsWithAll = [{ label: 'All', value: 'all' }, ...defaultOptions]
-    const wrapper = factory({ 
+    const wrapper = factory({
       multiple: true,
       modelValue: ['opt1'],
       options: optionsWithAll,
@@ -114,48 +115,48 @@ describe('KitSelect', () => {
 
     await wrapper.find('.kit-select-trigger').trigger('click')
     const options = wrapper.findAll('.kit-select-option')
-    
+
     // Click "all" option
     await options[0].trigger('click')
-    
+
     const emitted = wrapper.emitted('update:modelValue')
     expect(emitted?.[0]).toEqual([['all']])
   })
 
   it('deselects option in multiple mode if already selected', async () => {
-    const wrapper = factory({ 
+    const wrapper = factory({
       multiple: true,
       modelValue: ['opt1', 'opt2'],
     })
 
     await wrapper.find('.kit-select-trigger').trigger('click')
     const options = wrapper.findAll('.kit-select-option')
-    
+
     // Click second option again to deselect
     await options[1].trigger('click')
-    
+
     const emitted = wrapper.emitted('update:modelValue')
     expect(emitted?.[0]).toEqual([['opt1']])
   })
 
   it('defaults to "all" if all options are deselected', async () => {
-    const wrapper = factory({ 
+    const wrapper = factory({
       multiple: true,
       modelValue: ['opt1'],
     })
 
     await wrapper.find('.kit-select-trigger').trigger('click')
     const options = wrapper.findAll('.kit-select-option')
-    
+
     // Deselect the only selected option
     await options[0].trigger('click')
-    
+
     const emitted = wrapper.emitted('update:modelValue')
     expect(emitted?.[0]).toEqual([['all']])
   })
 
   it('displays multiple selection count badge and joined labels', () => {
-    const wrapper = factory({ 
+    const wrapper = factory({
       multiple: true,
       modelValue: ['opt1', 'opt2'],
     })
@@ -165,7 +166,7 @@ describe('KitSelect', () => {
   })
 
   it('returns empty string for empty modelValue in multiple mode', () => {
-    const wrapper = factory({ 
+    const wrapper = factory({
       multiple: true,
       modelValue: [],
     })
@@ -180,7 +181,7 @@ describe('KitSelect', () => {
     // Simulate click outside
     document.body.dispatchEvent(new Event('pointerdown', { bubbles: true }))
     document.body.dispatchEvent(new Event('click', { bubbles: true }))
-    
+
     await wrapper.vm.$nextTick()
     // Teleport is stubbed, so the dropdown is inside the wrapper, but the event is on document.body
     // which should trigger onClickOutside
@@ -189,11 +190,11 @@ describe('KitSelect', () => {
   it('ignores click on trigger for onClickOutside', async () => {
     const wrapper = factory({}, { attachTo: document.body })
     await wrapper.find('.kit-select-trigger').trigger('click')
-    
+
     // Simulate pointerdown on the inner element
     wrapper.find('.label-wrapper').element.dispatchEvent(new Event('pointerdown', { bubbles: true }))
     wrapper.find('.label-wrapper').element.dispatchEvent(new Event('click', { bubbles: true }))
-    
+
     await wrapper.vm.$nextTick()
   })
 

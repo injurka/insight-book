@@ -4,7 +4,6 @@ import { useAnalysisStore } from '~/shared/store/analysis.store'
 export function useReaderDomHighlights(containerRef: Ref<HTMLElement | null>) {
   const analysisStore = useAnalysisStore()
 
-  // Подсветка активного токена (слова), на которое кликнули
   watch(() => analysisStore.activeTokenId, (newId, oldId) => {
     if (oldId) {
       const [sentId, tokenIdx] = oldId.split('-')
@@ -20,7 +19,6 @@ export function useReaderDomHighlights(containerRef: Ref<HTMLElement | null>) {
     }
   })
 
-  // Подсветка всего предложения при наведении (используется для EPUB)
   function onSentenceHover(event: MouseEvent) {
     const target = (event.target as HTMLElement).closest('.sentence') as HTMLElement | null
     if (!target)

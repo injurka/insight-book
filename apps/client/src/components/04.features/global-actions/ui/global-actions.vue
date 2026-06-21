@@ -15,6 +15,7 @@ import { useGlobalSettingsStore } from '~/shared/store/settings.store'
 
 interface Props {
   hideDictionary?: boolean
+  hideNotebook?: boolean
 }
 
 defineProps<Props>()
@@ -27,6 +28,28 @@ const { theme, toggleTheme } = useChangeTheme()
 const { t } = useI18n()
 const settingsStore = useGlobalSettingsStore()
 const { trackEvent } = useUmami()
+
+const currentThemeIcon = computed(() => {
+  switch (theme.value) {
+    case ThemesVariant.Light: return 'mdi:weather-sunny'
+    case ThemesVariant.Dark: return 'mdi:weather-night'
+    case ThemesVariant.Sepia: return 'mdi:book-open-page-variant'
+    case ThemesVariant.Green: return 'mdi:leaf'
+    case ThemesVariant.Oled: return 'mdi:moon-waning-crescent'
+    default: return 'mdi:weather-sunny'
+  }
+})
+
+const currentThemeName = computed(() => {
+  switch (theme.value) {
+    case ThemesVariant.Light: return t('reader.light')
+    case ThemesVariant.Dark: return t('reader.dark')
+    case ThemesVariant.Sepia: return t('reader.sepia')
+    case ThemesVariant.Green: return t('reader.green')
+    case ThemesVariant.Oled: return t('reader.oled')
+    default: return t('reader.light')
+  }
+})
 
 const tokenPercent = computed(() => {
   const used = authStore.user?.usedTokens ?? 0
@@ -64,6 +87,7 @@ const appLangOptions = [
 
 const avatarInputRef = ref<HTMLInputElement | null>(null)
 const isUsernamePromptOpen = ref(false)
+const mainDropdownRef = ref<InstanceType<typeof KitDropdown> | null>(null)
 
 function formatNumber(num: number | undefined | null) {
   if (num == null)
@@ -91,14 +115,22 @@ function setLanguage(lang: string) {
 }
 
 function openDictionary() {
+  mainDropdownRef.value?.close()
   router.push(AppRoutePaths.Dictionary)
 }
 
+function openNotebook() {
+  mainDropdownRef.value?.close()
+  router.push(AppRoutePaths.Notebook)
+}
+
 function openSettings() {
+  mainDropdownRef.value?.close()
   router.push(AppRoutePaths.Settings)
 }
 
 function openLimits() {
+  mainDropdownRef.value?.close()
   router.push(AppRoutePaths.Limits)
 }
 
@@ -107,6 +139,7 @@ function handleSignIn() {
 }
 
 function handleLogout() {
+  mainDropdownRef.value?.close()
   authStore.logout()
   window.location.reload()
 }
@@ -165,7 +198,7 @@ async function handleUsernameSubmit(newUsername: string) {
         </div>
       </KitDropdown>
       <KitBtn
-        :icon="theme === ThemesVariant.Light ? 'mdi:weather-night' : 'mdi:weather-sunny'"
+        :icon="currentThemeIcon"
         variant="text"
         :aria-label="t('globalActions.switchTheme')"
         @click="toggleTheme"
@@ -185,7 +218,14 @@ async function handleUsernameSubmit(newUsername: string) {
         :aria-label="t('globalActions.myDictionary')"
         @click="openDictionary"
       />
-      <KitDropdown placement="bottom-end" width="280px">
+      <KitBtn
+        v-if="!hideNotebook"
+        icon="mdi:notebook"
+        variant="text"
+        :aria-label="t('globalActions.myNotebook')"
+        @click="openNotebook"
+      />
+      <KitDropdown ref="mainDropdownRef" placement="bottom-end" width="280px" :close-on-content-click="false">
         <template #activator="{ props: dropdownProps }">
           <KitBtn
             :icon="authStore.isSingleMode ? 'mdi:cog-outline' : 'mdi:account-circle-outline'"
@@ -257,9 +297,9 @@ async function handleUsernameSubmit(newUsername: string) {
             <div class="divider" />
 
             <button class="menu-btn" @click="toggleTheme">
-              <Icon :icon="theme === 'light' ? 'mdi:weather-sunny' : 'mdi:weather-night'" />
+              <Icon :icon="currentThemeIcon" />
               <span class="flex-grow">{{ t('globalActions.theme') }}</span>
-              <span class="row-value">{{ theme === 'light' ? t('reader.light') : t('reader.dark') }}</span>
+              <span class="row-value">{{ currentThemeName }}</span>
             </button>
 
             <div class="menu-btn pseudo-btn">

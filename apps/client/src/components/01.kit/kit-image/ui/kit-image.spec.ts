@@ -15,7 +15,7 @@ describe('kit-image', () => {
 
   it('renders fallback icon when src is not provided', () => {
     const wrapper = mount(KitImage)
-    
+
     expect(wrapper.find('.fallback').exists()).toBe(true)
     expect(wrapper.find('img').exists()).toBe(false)
   })
@@ -26,7 +26,7 @@ describe('kit-image', () => {
         src: 'https://example.com/image.jpg',
       },
     })
-    
+
     expect(wrapper.find('.placeholder').exists()).toBe(true)
     expect(wrapper.find('img').exists()).toBe(true)
     expect(wrapper.find('img').classes()).not.toContain('is-loaded')
@@ -36,7 +36,7 @@ describe('kit-image', () => {
     const wrapper = mount(KitImage, {
       props: { src: 'https://example.com/image.jpg' },
     })
-    
+
     expect(wrapper.find('img').attributes('src')).toBe('https://example.com/image.jpg')
   })
 
@@ -44,7 +44,7 @@ describe('kit-image', () => {
     const wrapper = mount(KitImage, {
       props: { src: '/images/test.jpg' },
     })
-    
+
     expect(wrapper.find('img').attributes('src')).toBe('https://mock-api.com/images/test.jpg')
   })
 
@@ -53,7 +53,7 @@ describe('kit-image', () => {
     const wrapper = mount(KitImage, {
       props: { src: '/images/test.jpg' },
     })
-    
+
     expect(wrapper.find('img').attributes('src')).toBe('https://insight-api.trip-scheduler.ru/images/test.jpg')
   })
 
@@ -61,7 +61,7 @@ describe('kit-image', () => {
     const wrapper = mount(KitImage, {
       props: { src: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==' },
     })
-    
+
     expect(wrapper.find('img').attributes('src')).toContain('data:image/png;base64')
   })
 
@@ -69,9 +69,9 @@ describe('kit-image', () => {
     const wrapper = mount(KitImage, {
       props: { src: '/test.jpg' },
     })
-    
+
     await wrapper.find('img').trigger('load')
-    
+
     expect(wrapper.find('img').classes()).toContain('is-loaded')
     expect(wrapper.find('.placeholder').exists()).toBe(false)
   })
@@ -80,9 +80,9 @@ describe('kit-image', () => {
     const wrapper = mount(KitImage, {
       props: { src: '/test.jpg' },
     })
-    
+
     await wrapper.find('img').trigger('error')
-    
+
     expect(wrapper.find('.fallback').exists()).toBe(true)
     expect(wrapper.find('.placeholder').exists()).toBe(false)
   })
@@ -91,12 +91,12 @@ describe('kit-image', () => {
     const wrapper = mount(KitImage, {
       props: { src: '/first.jpg' },
     })
-    
+
     await wrapper.find('img').trigger('load')
     expect(wrapper.find('img').classes()).toContain('is-loaded')
 
     await wrapper.setProps({ src: '/second.jpg' })
-    
+
     expect(wrapper.find('img').classes()).not.toContain('is-loaded')
     expect(wrapper.find('.placeholder').exists()).toBe(true)
   })
@@ -110,7 +110,7 @@ describe('kit-image', () => {
         objectFit: 'contain',
       },
     })
-    
+
     const img = wrapper.find('img')
     expect(img.attributes('alt')).toBe('Test Alt')
     expect(img.attributes('loading')).toBe('eager')
@@ -125,11 +125,11 @@ describe('kit-image', () => {
         error: '<div class="custom-error">Error!</div>',
       },
     })
-    
+
     expect(wrapper.find('.custom-loader').exists()).toBe(true)
-    
+
     await wrapper.find('img').trigger('error')
-    
+
     expect(wrapper.find('.custom-error').exists()).toBe(true)
   })
 })

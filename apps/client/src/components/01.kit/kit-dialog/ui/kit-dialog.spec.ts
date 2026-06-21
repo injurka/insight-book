@@ -1,5 +1,6 @@
+/* eslint-disable no-restricted-globals */
 import { mount } from '@vue/test-utils'
-import { describe, it, expect, vi } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import KitDialog from './kit-dialog.vue'
 
 // Mock dependencies
@@ -78,7 +79,7 @@ describe('kit-dialog.vue', () => {
     const wrapper = createWrapper()
     const closeBtn = wrapper.find('.close-button')
     await closeBtn.trigger('click')
-    
+
     expect(wrapper.emitted('update:visible')).toBeTruthy()
     expect(wrapper.emitted('update:visible')?.[0]).toEqual([false])
   })
@@ -107,15 +108,15 @@ describe('kit-dialog.vue', () => {
     const wrapper = createWrapper({ minimizable: true, title: 'Min test' })
     const minBtn = wrapper.find('.minimize-button')
     await minBtn.trigger('click')
-    
+
     // The dialog should be hidden via v-show
     const root = wrapper.find('.dialog-root')
     expect(root.attributes('style')).toContain('display: none')
-    
+
     // The FAB should appear
     const fab = wrapper.find('.dialog-minimized-fab')
     expect(fab.exists()).toBe(true)
-    
+
     // Expand again
     await fab.trigger('click')
     expect(root.attributes('style') || '').not.toContain('display: none')
@@ -124,19 +125,19 @@ describe('kit-dialog.vue', () => {
 
   it('closes on escape key if not persistent', async () => {
     const wrapper = createWrapper({ persistent: false })
-    
+
     const event = new KeyboardEvent('keydown', { key: 'Escape' })
     document.dispatchEvent(event)
-    
+
     expect(wrapper.emitted('update:visible')?.[0]).toEqual([false])
   })
 
   it('does not close on escape key if persistent', async () => {
     const wrapper = createWrapper({ persistent: true })
-    
+
     const event = new KeyboardEvent('keydown', { key: 'Escape' })
     document.dispatchEvent(event)
-    
+
     expect(wrapper.emitted('update:visible')).toBeFalsy()
   })
 
@@ -161,9 +162,9 @@ describe('kit-dialog.vue', () => {
     const wrapper = createWrapper()
     const removeEventListenerSpy = vi.spyOn(document, 'removeEventListener')
     const removePropertySpy = vi.spyOn(document.body.style, 'removeProperty')
-    
+
     wrapper.unmount()
-    
+
     expect(removeEventListenerSpy).toHaveBeenCalledWith('keydown', expect.any(Function))
     expect(removePropertySpy).toHaveBeenCalledWith('overflow')
   })
@@ -171,12 +172,11 @@ describe('kit-dialog.vue', () => {
   it('handles watch when window is undefined', async () => {
     const wrapper = createWrapper()
     const originalWindow = global.window
-    // @ts-ignore
     delete global.window
-    
+
     // Trigger the watch
     await wrapper.setProps({ floating: true })
-    
+
     // It should not throw and just return
     global.window = originalWindow
   })
