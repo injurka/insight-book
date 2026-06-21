@@ -37,14 +37,12 @@ export async function handleGetTokenUsage(req: Request, userId: number): Promise
     .where(eq(schema.tokenUsage.userId, userId))
     .groupBy(schema.tokenUsage.action, schema.tokenUsage.model)
 
-  // Добавляем расчет цены для каждого действия/модели
   const stats = statsRaw.map((row) => {
     const price = pricing[row.model] || { input: 0, output: 0 }
     const cost = (row.inputTokens / 1_000_000) * price.input + (row.outputTokens / 1_000_000) * price.output
     return { ...row, cost }
   })
 
-  // Рассчитываем общую сумму затрат (в долларах, по конфигурации)
   const totalCost = stats.reduce((sum, item) => sum + item.cost, 0)
 
   const dailyRaw = await db.select({
@@ -58,7 +56,6 @@ export async function handleGetTokenUsage(req: Request, userId: number): Promise
     .groupBy(schema.tokenUsage.date, schema.tokenUsage.model)
     .orderBy(desc(schema.tokenUsage.date))
 
-  // Агрегируем по дням в JS, чтобы точно учесть цены разных моделей
   const dailyMap = new Map<string, any>()
   for (const row of dailyRaw) {
     const price = pricing[row.model] || { input: 0, output: 0 }
@@ -74,7 +71,7 @@ export async function handleGetTokenUsage(req: Request, userId: number): Promise
   }
 
   const daily = Array.from(dailyMap.values()).slice(0, 30)
-  daily.sort((a, b) => b.date.localeCompare(a.date)) // сортируем по убыванию даты
+  daily.sort((a, b) => b.date.localeCompare(a.date))
 
   return json({ stats, daily, totalCost })
 }

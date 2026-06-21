@@ -64,7 +64,6 @@ export const tokenUsage = sqliteTable('token_usage', {
   unq: unique().on(t.userId, t.date, t.action, t.model),
 }))
 
-// НОВАЯ ТАБЛИЦА: Подробные логи запросов к LLM (чтобы понимать откуда миллионы токенов)
 export const llmLogs = sqliteTable('llm_logs', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   userId: integer('userId').notNull().references(() => users.id, { onDelete: 'cascade' }),

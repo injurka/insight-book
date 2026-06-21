@@ -9,6 +9,7 @@ const catalogDbDir = path.dirname(CATALOG_DB_PATH)
 mkdirSync(catalogDbDir, { recursive: true })
 
 export const catalogSqlite = new Database(CATALOG_DB_PATH)
+
 catalogSqlite.run(`PRAGMA journal_mode = WAL`)
 catalogSqlite.run(`PRAGMA foreign_keys = ON`)
 

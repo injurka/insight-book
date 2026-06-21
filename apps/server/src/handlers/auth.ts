@@ -8,7 +8,6 @@ import { db } from '../db'
 import * as schema from '../db/schema'
 import { AppError } from '../utils/errors'
 
-// Выводим строгий тип пользователя напрямую из Drizzle-схемы
 type DbUser = typeof schema.users.$inferSelect
 
 const LoginSchema = z.object({

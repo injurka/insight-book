@@ -187,12 +187,14 @@ export async function handleBulkMoveDict(req: Request, userId: number): Promise<
 
 export async function handleGetCatalogDecks(_req: Request, _userId: number): Promise<Response> {
   const decks = await catalogDb.select().from(officialDecks)
+
   return json(decks)
 }
 
 export async function handleGetCatalogWords(req: Request, _userId: number): Promise<Response> {
   const deckId = Number(req.params.id)
   const words = await catalogDb.select().from(officialDeckWords).where(eq(officialDeckWords.deckId, deckId))
+
   return json(words)
 }
 
