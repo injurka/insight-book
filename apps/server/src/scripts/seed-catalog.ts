@@ -89,7 +89,6 @@ async function seed() {
   finally {
     try {
       catalogSqlite.close()
-      sqlite.close()
     }
     catch { }
     process.exit(0)
