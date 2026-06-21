@@ -18,8 +18,8 @@ import {
   DICTS_PATH,
   UPLOADS_PATH,
 } from '../config'
+import { catalogSqlite, initCatalogDb } from './catalog'
 import * as schema from './schema'
-import { catalogSqlite, catalogDb, initCatalogDb } from './catalog'
 
 const dbDir = path.dirname(DB_PATH)
 
@@ -38,8 +38,6 @@ sqlite.run(`PRAGMA journal_mode = WAL`)
 sqlite.run(`PRAGMA foreign_keys = ON`)
 
 export const db = drizzle(sqlite, { schema, logger: false })
-
-
 
 // ============================================================================
 // 2. АВТОМАТИЧЕСКАЯ СИНХРОНИЗАЦИЯ БАЗЫ ДАННЫХ И ДЕФОЛТНЫЙ ЮЗЕР
@@ -62,7 +60,8 @@ void (async () => {
 
       if (decksCount > 0) {
         console.log(`✅ Catalog database verified: found ${decksCount} decks and ${wordsCount} words.`)
-      } else {
+      }
+      else {
         console.log(`✅ Catalog database verified (Empty).`)
         console.log(`💡 Tip: Run 'bun run deck:seed' to populate the catalog with standard decks.`)
       }

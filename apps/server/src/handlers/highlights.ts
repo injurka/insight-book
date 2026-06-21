@@ -47,7 +47,7 @@ export async function handleUpdateHighlight(req: Request, userId: number): Promi
     .set(body)
     .where(and(
       eq(schema.highlights.id, id),
-      eq(schema.highlights.userId, userId)
+      eq(schema.highlights.userId, userId),
     ))
     .returning()
 
@@ -64,7 +64,7 @@ export async function handleDeleteHighlight(req: Request, userId: number): Promi
   const deleted = await db.delete(schema.highlights)
     .where(and(
       eq(schema.highlights.id, id),
-      eq(schema.highlights.userId, userId)
+      eq(schema.highlights.userId, userId),
     ))
     .returning()
 

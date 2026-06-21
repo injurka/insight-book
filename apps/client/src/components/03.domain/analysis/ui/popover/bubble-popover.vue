@@ -16,17 +16,22 @@ const props = defineProps<{
   box: any
   referenceEl: HTMLElement | null
 }>()
-const highlightsStore = useHighlightsStore()
-const readerStore = useReaderStore()
-const isSavingHighlight = ref(false)
 
 const highlightColors = ['#fde047', '#86efac', '#f472b6', '#93c5fd', '#c4b5fd']
+
+const highlightsStore = useHighlightsStore()
+const readerStore = useReaderStore()
+const { t } = useI18n()
+const analysisStore = useAnalysisStore()
+const { speak, stop, isPlaying, isLoading } = useTts()
+
 const isSaveModalOpen = ref(false)
 const selectedColor = ref(highlightColors[0])
 const modalText = ref('')
 const modalTranslation = ref('')
 const isFetchingTranslation = ref(false)
 const previewTranslation = ref(true)
+const isSavingHighlight = ref(false)
 
 async function openSaveModal() {
   if (!props.box?.text || !readerStore.currentBook)
@@ -83,7 +88,6 @@ async function createHighlight(color: string) {
   const translation = modalTranslation.value
   const pageNum = readerStore.currentPage.pageNum
   const bookId = readerStore.currentBook.id
-  const language = readerStore.currentBook.language || 'en'
 
   let chapter: string | null = null
   if (readerStore.currentToc && readerStore.currentToc.length) {
@@ -147,10 +151,6 @@ const style = computed(() => {
     visibility: isPositioned ? 'visible' as const : 'hidden' as const,
   }
 })
-
-const { t } = useI18n()
-const analysisStore = useAnalysisStore()
-const { speak, stop, isPlaying, isLoading } = useTts()
 
 function analyzeSentence() {
   if (props.box?.text) {

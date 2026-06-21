@@ -115,9 +115,11 @@ async function openPreview(deck: any) {
   isPreviewLoading.value = true
   try {
     previewWords.value = await api.dictionary.catalogWords(deck.id)
-  } catch (err: any) {
+  }
+  catch (err: any) {
     toast.error(t('dictionary.discover.preview_failed', { error: err.message }))
-  } finally {
+  }
+  finally {
     isPreviewLoading.value = false
   }
 }
@@ -132,7 +134,7 @@ async function cloneDeck(id: number) {
     toast.success(t('dictionary.discover.clone_success'))
     store.fetchDictionary()
     store.fetchDecks()
-    
+
     previewDeck.value = null
     visible.value = false
   }
@@ -241,7 +243,7 @@ onMounted(() => {
                   <div v-for="w in previewWords" :key="w.id" class="preview-word-item">
                     <div class="w-main">
                       <span class="w-text">{{ w.word }}</span>
-                      <span class="w-tr" v-if="w.transcription">{{ w.transcription }}</span>
+                      <span v-if="w.transcription" class="w-tr">{{ w.transcription }}</span>
                     </div>
                     <div class="w-trans" v-html="w.translation" />
                   </div>
@@ -586,7 +588,9 @@ onMounted(() => {
 
 .fade-enter-active,
 .fade-leave-active {
-  transition: opacity 0.2s, transform 0.2s;
+  transition:
+    opacity 0.2s,
+    transform 0.2s;
 }
 .fade-enter-from,
 .fade-leave-to {

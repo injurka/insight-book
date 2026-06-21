@@ -10,7 +10,6 @@ import { GlobalActions } from '~/components/04.features/global-actions'
 import { useLibraryStore } from '~/components/05.modules/library/store/library.store'
 import { useToast } from '~/shared/composables/use-toast'
 import { useTts } from '~/shared/composables/use-tts'
-import { hexToRgba } from '~/shared/lib/helpers'
 import { api } from '~/shared/services/api.service'
 
 interface BookGroup {
@@ -813,7 +812,9 @@ async function translateEditForm() {
   position: relative;
   overflow: hidden;
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.05);
-  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition:
+    transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   break-inside: avoid;
 
   &::before {
@@ -943,7 +944,7 @@ async function translateEditForm() {
       transition: opacity 0.2s;
     }
   }
-  
+
   &:hover .highlight-actions {
     opacity: 1;
   }

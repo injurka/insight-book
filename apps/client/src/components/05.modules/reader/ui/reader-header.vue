@@ -322,7 +322,7 @@ watch(() => props.isVisible, (visible) => {
             </div>
             <KitCheckbox v-model="settingsStore.autoAnalyzePage" style="pointer-events: none;" />
           </div>
-          
+
           <div class="menu-item" @click="settingsStore.highlightSavedQuotes = !settingsStore.highlightSavedQuotes">
             <div class="item-label">
               <Icon icon="mdi:format-color-highlight" class="item-icon" />

@@ -63,7 +63,7 @@ async function createHighlight(color: string) {
       if (cached)
         translation = cached.translation
     }
-    catch (e) {}
+    catch {}
 
     if (!translation) {
       try {

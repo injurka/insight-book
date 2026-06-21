@@ -1,8 +1,7 @@
 import { readdir, readFile } from 'node:fs/promises'
 import path from 'node:path'
-import { officialDecks, officialDeckWords } from '../db/catalog-schema'
-
 import { catalogDb, catalogSqlite, initCatalogDb } from '../db/catalog'
+import { officialDecks, officialDeckWords } from '../db/catalog-schema'
 
 const DECKS_DIR = path.resolve(process.cwd(), 'assets', 'decks')
 
