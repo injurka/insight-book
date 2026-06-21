@@ -1,39 +1,10 @@
 import { readdir, readFile } from 'node:fs/promises'
 import path from 'node:path'
 import { officialDecks, officialDeckWords } from '../db/catalog-schema'
-import { catalogDb, catalogSqlite, sqlite } from '../db/index'
+
+import { catalogDb, catalogSqlite, initCatalogDb } from '../db/catalog'
 
 const DECKS_DIR = path.resolve(process.cwd(), 'assets', 'decks')
-
-export function initCatalogDb() {
-  catalogSqlite.run(`
-    CREATE TABLE IF NOT EXISTS official_decks (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      language TEXT NOT NULL,
-      title TEXT NOT NULL,
-      description TEXT,
-      difficulty TEXT,
-      tags TEXT,
-      wordCount INTEGER DEFAULT 0
-    );
-  `)
-  catalogSqlite.run(`
-    CREATE TABLE IF NOT EXISTS official_deck_words (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      deckId INTEGER REFERENCES official_decks(id),
-      word TEXT NOT NULL,
-      difficulty TEXT,
-      tags TEXT,
-      transcription TEXT,
-      translation TEXT,
-      grammarNote TEXT,
-      vocabularyNote TEXT
-    );
-  `)
-  catalogSqlite.run(`
-    CREATE INDEX IF NOT EXISTS idx_official_deck_words_deck_id ON official_deck_words(deckId);
-  `)
-}
 
 async function seed() {
   console.log('🌱 Начинаем импорт каталога из папки assets/decks...')
