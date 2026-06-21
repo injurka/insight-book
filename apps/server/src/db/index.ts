@@ -9,6 +9,7 @@ import { Database } from 'bun:sqlite'
 import { eq } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/bun-sqlite'
 import { migrate } from 'drizzle-orm/bun-sqlite/migrator'
+import { catalogSqlite, initCatalogDb } from '~/db/catalog'
 import {
   ADMIN_PASSWORD,
   ADMIN_USERNAME,
@@ -18,7 +19,6 @@ import {
   DICTS_PATH,
   UPLOADS_PATH,
 } from '../config'
-import { catalogSqlite, initCatalogDb } from './catalog'
 import * as schema from './schema'
 
 const dbDir = path.dirname(DB_PATH)
