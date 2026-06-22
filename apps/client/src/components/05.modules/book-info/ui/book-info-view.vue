@@ -1,20 +1,20 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import { KitBtn, KitSkeleton } from '~/components/01.kit'
 import { HoverRevealBg } from '~/components/02.shared/hover-reveal-bg'
-import { SelectionTooltip, SentenceAnalysis, WordPopover } from '~/components/03.domain/analysis'
-
 import { useLibraryStore } from '~/components/05.modules/library/store/library.store'
 import { AppRoutePaths } from '~/shared/constants/routes'
-
 import BookCoverPanel from './book-cover-panel.vue'
 import BookLexicalPanel from './book-lexical-panel.vue'
 import BookStatsPanel from './book-stats-panel.vue'
 import BookTocPanel from './book-toc-panel.vue'
-import AppendMangaModal from './modal/append-manga-modal.vue'
-import BookSyncModal from './modal/book-sync-modal.vue'
+
+const SelectionTooltip = lazyComponent(() => import('~/components/03.domain/analysis/ui/selection-tooltip.vue'))
+const SentenceAnalysis = lazyComponent(() => import('~/components/03.domain/analysis/ui/sentence-analysis.vue'))
+const WordPopover = lazyComponent(() => import('~/components/03.domain/analysis/ui/popover/word-popover.vue'))
+const AppendMangaModal = lazyComponent(() => import('./modal/append-manga-modal.vue'))
+const BookSyncModal = lazyComponent(() => import('./modal/book-sync-modal.vue'))
 
 const route = useRoute()
 const router = useRouter()

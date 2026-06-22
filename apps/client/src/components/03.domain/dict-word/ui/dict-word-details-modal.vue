@@ -4,7 +4,6 @@ import { Icon } from '@iconify/vue'
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { KitBtn, KitDialog, KitSkeleton, KitTooltip } from '~/components/01.kit'
-import { LlmChatModal } from '~/components/04.features/llm-chat'
 import { useTts } from '~/shared/composables/use-tts'
 import { DIFFICULTY_SYSTEMS } from '~/shared/constants/difficulties'
 import { BOOK_TAGS } from '~/shared/constants/tags'
@@ -19,6 +18,8 @@ const { aiData, isAiLoading, generateExamples, clear } = useDictWordExamples()
 const analysisStore = useAnalysisStore()
 const settingsStore = useGlobalSettingsStore()
 const { t } = useI18n()
+
+const LlmChatModal = lazyComponent(() => import('~/components/04.features/llm-chat/ui/llm-chat-modal.vue'))
 
 const isChatModalOpen = ref(false)
 

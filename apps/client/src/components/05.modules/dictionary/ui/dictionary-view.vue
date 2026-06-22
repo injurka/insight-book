@@ -5,9 +5,7 @@ import { useVirtualList } from '@vueuse/core'
 import { useI18n } from 'vue-i18n'
 import { KitBtn, KitCheckbox, KitDialog, KitDropdown, KitInput, KitPrompt, KitSelect, KitTooltip } from '~/components/01.kit'
 import KitSkeleton from '~/components/01.kit/kit-skeleton/ui/kit-skeleton.vue'
-import ActivityHeatmap from '~/components/02.shared/activity-heatmap/ui/activity-heatmap.vue'
 import { HoverRevealBg } from '~/components/02.shared/hover-reveal-bg'
-import { DictWordDetailsModal } from '~/components/03.domain/dict-word'
 import { GlobalActions } from '~/components/04.features/global-actions'
 import { useToast } from '~/shared/composables/use-toast'
 import { useUmami } from '~/shared/composables/use-umami'
@@ -16,8 +14,11 @@ import { api } from '~/shared/services/api.service'
 import { useAnalysisStore } from '~/shared/store/analysis.store'
 import { useAuthStore } from '~/shared/store/auth.store'
 import { useDictionaryStore } from '../store/dictionary.store'
-import DictionaryDiscoverDialog from './dialog/dictionary-discover-dialog.vue'
-import SrsTrainingDialog from './dialog/srs-training-dialog.vue'
+
+const ActivityHeatmap = lazyComponent(() => import('~/components/02.shared/activity-heatmap/ui/activity-heatmap.vue'))
+const DictWordDetailsModal = lazyComponent(() => import('~/components/03.domain/dict-word/ui/dict-word-details-modal.vue'))
+const DictionaryDiscoverDialog = lazyComponent(() => import('./dialog/dictionary-discover-dialog.vue'))
+const SrsTrainingDialog = lazyComponent(() => import('./dialog/srs-training-dialog.vue'))
 
 const store = useDictionaryStore()
 const analysisStore = useAnalysisStore()

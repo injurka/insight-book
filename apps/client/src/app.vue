@@ -7,7 +7,8 @@ import { useChangeTheme } from '~/shared/composables/use-change-theme'
 import { useGlobalTracking } from '~/shared/composables/use-global-tracking'
 import { useAnalysisStore } from '~/shared/store/analysis.store'
 import { useGlobalSettingsStore } from '~/shared/store/settings.store'
-import { AddEditWordDialog } from './components/05.modules/dictionary'
+
+const AddEditWordDialog = lazyComponent(() => import('~/components/05.modules/dictionary/ui/dialog/add-edit-word-dialog.vue'))
 
 useChangeTheme()
 

@@ -39,6 +39,10 @@ export default defineConfig({
       algorithms: ['gzip'],
       exclude: [/\.(br)$/, /\.(gz)$/],
     }),
+    Compression({
+      algorithms: ['brotliCompress'],
+      exclude: [/\.(br)$/, /\.(gz)$/],
+    }),
     VitePWA(pwaCfg(buildRevision)),
     Icons(iconsCfg),
     ...visualizerPlugin('renderer'),
@@ -71,30 +75,33 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks(id) {
+          // node_modules логика остается как у вас...
           if (id.includes('node_modules')) {
-            // 1. Ядро Vue (всегда нужно сразу)
-            if (/[\\/]node_modules[\\/](?:vue|vue-router|pinia|@vueuse)[\\/]/.test(id)) {
+            if (/[\\/]node_modules[\\/](?:vue|vue-router|pinia|@vueuse)[\\/]/.test(id))
               return 'vendor-core'
-            }
-            // 2. Специфичные тяжелые библиотеки (загрузятся только там, где нужны)
-            if (id.includes('hanzi-writer')) {
+            if (id.includes('hanzi-writer'))
               return 'vendor-hanzi'
-            }
-            if (id.includes('dompurify')) {
+            if (id.includes('dompurify'))
               return 'vendor-dompurify'
-            }
-            // 3. UI инструменты
-            if (id.includes('@floating-ui') || id.includes('@iconify')) {
+            if (id.includes('@floating-ui') || id.includes('@iconify'))
               return 'vendor-ui'
-            }
-            // 4. База данных и PWA
-            if (id.includes('localforage') || id.includes('workbox')) {
+            if (id.includes('localforage') || id.includes('workbox'))
               return 'vendor-storage'
-            }
 
-            // Все остальное
             return 'vendor-others'
           }
+
+          if (id.includes('/src/components/05.modules/reader/'))
+            return 'app-reader'
+
+          if (id.includes('/src/components/05.modules/dictionary/'))
+            return 'app-dictionary'
+
+          if (id.includes('/src/components/03.domain/analysis/'))
+            return 'app-analysis'
+
+          if (id.includes('/src/shared/locales/'))
+            return 'app-locales'
         },
       },
     },

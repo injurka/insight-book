@@ -2,21 +2,18 @@ import { addCollection } from '@iconify/vue'
 import { createHead } from '@vueuse/head'
 import { createPinia } from 'pinia'
 import { createApp } from 'vue'
-import iconsBundle from '~/assets/icons-bundle.json'
 import { vLongPress } from '~/shared/directives/long-press'
 import { vRipple } from '~/shared/directives/ripple'
 import router from '~/shared/lib/router'
 import App from './app.vue'
-
 import { i18n } from './shared/plugins/i18n.ts'
+
 import '~/assets/scss/global.scss'
 import '~/assets/scss/normalize.scss'
 
 const isTauri = '__TAURI_INTERNALS__' in window
 
 async function bootstrap() {
-  addCollection(iconsBundle)
-
   const app = createApp(App)
   const pinia = createPinia()
   const head = createHead()
@@ -47,5 +44,9 @@ async function bootstrap() {
     app.config.performance = true
   }
 }
+
+import('~/assets/icons-bundle.json').then((module) => {
+  addCollection(module.default)
+})
 
 bootstrap()

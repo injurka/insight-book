@@ -31,6 +31,10 @@ export default defineConfig({
       algorithms: ['gzip'],
       exclude: [/\.(br)$/, /\.(gz)$/],
     }),
+    Compression({
+      algorithms: ['brotliCompress'],
+      exclude: [/\.(br)$/, /\.(gz)$/],
+    }),
     Icons(iconsCfg),
     ...visualizerPlugin('renderer'),
   ],

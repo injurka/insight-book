@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { autoUpdate, flip, offset, shift, useFloating } from '@floating-ui/vue'
 import { Icon } from '@iconify/vue'
-import { computed, onUnmounted, ref, toRef } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { KitBtn, KitDialog } from '~/components/01.kit'
 import { useHighlightsStore } from '~/components/05.modules/reader/store/highlights.store'
@@ -11,6 +10,10 @@ import { normalizeString } from '~/shared/lib/helpers'
 import { api } from '~/shared/services/api.service'
 import { offlineService } from '~/shared/services/offline.service'
 import { useAnalysisStore } from '~/shared/store/analysis.store'
+
+defineOptions({
+  inheritAttrs: false,
+})
 
 const props = defineProps<{
   box: any
@@ -192,8 +195,9 @@ onUnmounted(() => stop())
       ref="floating"
       class="bubble-popover-container"
       :style="style"
+      v-bind="$attrs"
     >
-      <div class="bubble-actions" @mousedown.stop @touchstart.stop>
+      <div class="bubble-actions" @mousedown.stop @touchstart.stop @click.stop>
         <button class="action-btn" :title="t('analysis.aiAnalysis')" @click.stop="analyzeSentence">
           <Icon icon="mdi:robot-outline" />
         </button>

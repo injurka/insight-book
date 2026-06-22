@@ -2,7 +2,6 @@
 import type { GeneratedWordExamples } from '~/shared/types/models'
 import { autoUpdate, flip, offset, shift, useFloating } from '@floating-ui/vue'
 import { Icon } from '@iconify/vue'
-import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { KitBtn, KitSkeleton, KitTooltip } from '~/components/01.kit'
 import { useLibraryStore } from '~/components/05.modules/library/store/library.store'
@@ -13,7 +12,6 @@ import { POS_TAGS_MAP } from '~/shared/constants/pos-tags'
 import { api } from '~/shared/services/api.service'
 import { useAnalysisStore } from '~/shared/store/analysis.store'
 import { useAuthStore } from '~/shared/store/auth.store'
-import AiExamplesModal from '../modal/ai-examples-modal.vue'
 
 const analysisStore = useAnalysisStore()
 const authStore = useAuthStore()
@@ -21,7 +19,10 @@ const { speak, stop, isPlaying, isLoading } = useTts()
 const toast = useToast()
 const { t } = useI18n()
 
+const AiExamplesModal = lazyComponent(() => import('../modal/ai-examples-modal.vue'))
+
 const popoverRef = ref<HTMLElement | null>(null)
+
 const referenceEl = computed(() => analysisStore.wordPopover?.target || null)
 
 const { x, y, strategy } = useFloating(referenceEl, popoverRef, {

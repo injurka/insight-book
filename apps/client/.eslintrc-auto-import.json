@@ -74,6 +74,7 @@
     "isReadonly": true,
     "isRef": true,
     "isShallow": true,
+    "lazyComponent": true,
     "makeDestructurable": true,
     "mapActions": true,
     "mapGetters": true,

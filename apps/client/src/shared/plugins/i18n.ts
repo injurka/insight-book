@@ -1,26 +1,28 @@
 import { createI18n } from 'vue-i18n'
-import en from '../locales/en.json'
-import ru from '../locales/ru.json'
-import zh from '../locales/zh.json'
 
 let locale = 'ru'
+
 try {
   const saved = localStorage.getItem('global-app-language')
-  if (saved) {
+  if (saved)
     locale = JSON.parse(saved)
-  }
 }
-catch {
-  // ignore
-}
+catch { }
 
 export const i18n = createI18n({
   legacy: false,
   locale,
   fallbackLocale: 'en',
-  messages: {
-    ru,
-    en,
-    zh,
-  },
+  messages: {},
 })
+
+export async function loadLanguageAsync(lang: string) {
+  const messages = await import(`../locales/${lang}.json`)
+
+  i18n.global.setLocaleMessage(lang, messages.default)
+  i18n.global.locale.value = lang
+
+  return nextTick()
+}
+
+loadLanguageAsync(locale)

@@ -10,15 +10,14 @@ import { AppRoutePaths } from '~/shared/constants/routes'
 import { BOOK_TAGS } from '~/shared/constants/tags'
 import { useAuthStore } from '~/shared/store/auth.store'
 import { useGlobalSettingsStore } from '~/shared/store/settings.store'
-
 import { useLibraryDisplay } from '../composables/use-library-display'
 import { useLibraryStore } from '../store/library.store'
-
 import BookCard from './book-card.vue'
 import LibraryHeader from './library-header.vue'
-import EditBookModal from './modal/edit-book-modal.vue'
-import UploadBookModal from './modal/upload-book-modal.vue'
 import OpdsBrowser from './opds-browser.vue'
+
+const EditBookModal = lazyComponent(() => import('./modal/edit-book-modal.vue'))
+const UploadBookModal = lazyComponent(() => import('./modal/upload-book-modal.vue'))
 
 const store = useLibraryStore()
 const authStore = useAuthStore()

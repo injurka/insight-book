@@ -345,8 +345,8 @@ onUnmounted(() => stop())
         display: flex;
         align-items: center;
         justify-content: center;
-        width: 49px;
-        height: 49px;
+        width: 40px;
+        height: 40px;
         border-radius: 8px;
         background-color: var(--bg-tertiary-color);
         border: 1px solid var(--border-secondary-color);
@@ -371,13 +371,14 @@ onUnmounted(() => stop())
 
     .sentence-content {
       flex-grow: 1;
-      padding: 10px 16px;
+      padding: 14px 16px;
       background-color: var(--bg-tertiary-color);
       border-left: 4px solid var(--fg-accent-color);
       border-radius: 4px 8px 8px 4px;
       display: flex;
       flex-direction: column;
       gap: 6px;
+
       .original-sentence {
         font-size: 1.3rem;
         font-weight: 500;

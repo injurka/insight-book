@@ -4,22 +4,22 @@ import { Icon } from '@iconify/vue'
 import { computed, nextTick, reactive, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { KitBtn, KitDropdown, KitInput, KitTooltip } from '~/components/01.kit'
-import { AiExamplesModal } from '~/components/03.domain/analysis'
-import { LlmChatModal } from '~/components/04.features/llm-chat'
 import { useToast } from '~/shared/composables/use-toast'
 import { useTts } from '~/shared/composables/use-tts'
 import { api } from '~/shared/services/api.service'
 import { useSrsQuiz } from '../../../composables/use-srs-quiz'
 import { useDictionaryStore } from '../../../store/dictionary.store'
-import HanziBoard from '../../hanzi-board.vue'
 
 const props = defineProps<{
   card: UserDictItem | null
   isSubmittingGrade: boolean
   modes?: Record<string, boolean>
 }>()
-
 const emit = defineEmits(['grade'])
+
+const AiExamplesModal = lazyComponent(() => import('~/components/03.domain/analysis/ui/modal/ai-examples-modal.vue'))
+const LlmChatModal = lazyComponent(() => import('~/components/04.features/llm-chat/ui/llm-chat-modal.vue'))
+const HanziBoard = lazyComponent(() => import('../../hanzi-board.vue'))
 
 const dictStore = useDictionaryStore()
 const { speak, stop, isPlaying, isLoading } = useTts()

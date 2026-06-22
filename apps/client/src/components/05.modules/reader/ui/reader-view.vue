@@ -2,29 +2,30 @@
 import { useI18n } from 'vue-i18n'
 import { KitDialog } from '~/components/01.kit'
 import { PageLoader } from '~/components/02.shared/page-loader'
-import { PageAnalysisModal, SelectionTooltip, SentenceAnalysis, useTextSelection, WordPopover } from '~/components/03.domain/analysis'
+import { useTextSelection } from '~/components/03.domain/analysis'
 import { useAnalysisStore } from '~/shared/store/analysis.store'
 import { useGlobalSettingsStore } from '~/shared/store/settings.store'
 import { useParallelSync } from '../composables/use-parallel-sync'
 import { useReaderContent } from '../composables/use-reader-content'
 import { useReaderDomHighlights } from '../composables/use-reader-dom-highlights'
-
 import { useReaderNavigation } from '../composables/use-reader-navigation'
 import { useReaderScroll } from '../composables/use-reader-scroll'
 import { useReadingSession } from '../composables/use-reading-session'
 import { useScrollRestoration } from '../composables/use-scroll-restoration'
-
 import { useReaderStore } from '../store/reader.store'
 import ReaderFooter from './reader-footer.vue'
 import ReaderHeader from './reader-header.vue'
+
+const PageAnalysisModal = lazyComponent(() => import('~/components/03.domain/analysis/ui/modal/page-analysis-modal.vue'))
+const SelectionTooltip = lazyComponent(() => import('~/components/03.domain/analysis/ui/selection-tooltip.vue'))
+const SentenceAnalysis = lazyComponent(() => import('~/components/03.domain/analysis/ui/sentence-analysis.vue'))
+const WordPopover = lazyComponent(() => import('~/components/03.domain/analysis/ui/popover/word-popover.vue'))
 
 const readerStore = useReaderStore()
 const analysisStore = useAnalysisStore()
 const settingsStore = useGlobalSettingsStore()
 const { t } = useI18n()
-
 const readerViewRef = useTemplateRef<HTMLElement>('readerViewRef')
-
 useAppWakeLock(() => analysisStore.isManualPageAnalysisActive || analysisStore.isAutoPageAnalysisActive)
 useReadingSession()
 
