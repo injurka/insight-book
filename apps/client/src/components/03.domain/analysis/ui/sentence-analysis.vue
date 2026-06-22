@@ -4,6 +4,7 @@ import { Icon } from '@iconify/vue'
 import { computed, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { KitDialog, KitSkeleton, KitTooltip } from '~/components/01.kit'
+import { QuoteModal } from '~/components/04.features/quote-modal'
 import { useLibraryStore } from '~/components/05.modules/library/store/library.store'
 import { useHighlightsStore } from '~/components/05.modules/reader/store/highlights.store'
 import { useReaderStore } from '~/components/05.modules/reader/store/reader.store'
@@ -66,6 +67,9 @@ function playTTS() {
   }
 }
 
+const isSaveModalOpen = ref(false)
+const modalInitialData = ref({ text: '', translation: '', color: '#fde047', note: '' })
+
 async function toggleHighlight() {
   const book = readerStore.currentBook || libraryStore.currentBookInfo
   if (!book)
@@ -76,12 +80,25 @@ async function toggleHighlight() {
     return
   }
 
+  modalInitialData.value = {
+    text: analysisStore.sidebarSentence!,
+    translation: analysisStore.sidebarAnalysis?.translation || '',
+    color: '#fde047',
+    note: '',
+  }
+  isSaveModalOpen.value = true
+}
+
+async function handleSaveQuote(data: { text: string, translation: string, note: string, color: string }) {
+  const book = readerStore.currentBook || libraryStore.currentBookInfo
+  if (!book)
+    return
+
   if (isSavingHighlight.value)
     return
   isSavingHighlight.value = true
 
   try {
-    const text = analysisStore.sidebarSentence!
     const pageNum = readerStore.currentPage?.pageNum || 1
 
     let chapter: string | null = null
@@ -99,12 +116,14 @@ async function toggleHighlight() {
 
     await highlightsStore.createHighlight({
       bookId: book.id,
-      text,
-      color: '#fde047', // По умолчанию желтый маркер
+      text: data.text,
+      color: data.color,
       pageNum,
       chapter,
-      translation: analysisStore.sidebarAnalysis?.translation || null,
+      translation: data.translation,
+      note: data.note || null,
     })
+    isSaveModalOpen.value = false
   }
   catch (err) {
     console.error(err)
@@ -255,6 +274,13 @@ onUnmounted(() => stop())
       </div>
     </template>
   </KitDialog>
+
+  <QuoteModal
+    v-model:visible="isSaveModalOpen"
+    mode="create"
+    :initial-data="modalInitialData"
+    @save="handleSaveQuote"
+  />
 </template>
 
 <style lang="scss" scoped>
@@ -489,9 +515,10 @@ onUnmounted(() => stop())
   .analysis-content {
     .sentence-header {
       gap: 8px;
+
       .sentence-actions .action-btn {
-        width: 44px;
-        height: 44px;
+        width: 36px;
+        height: 36px;
       }
     }
   }

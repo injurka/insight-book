@@ -4,9 +4,10 @@ import { Icon } from '@iconify/vue'
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
-import { KitBtn, KitDialog, KitDropdown, KitImage, KitInput, KitPrompt, KitSkeleton, KitTooltip } from '~/components/01.kit'
+import { KitBtn, KitDropdown, KitImage, KitInput, KitPrompt, KitSkeleton, KitTooltip } from '~/components/01.kit'
 import { HoverRevealBg } from '~/components/02.shared/hover-reveal-bg'
 import { GlobalActions } from '~/components/04.features/global-actions'
+import { QuoteModal } from '~/components/04.features/quote-modal'
 import { useLibraryStore } from '~/components/05.modules/library/store/library.store'
 import { useToast } from '~/shared/composables/use-toast'
 import { useTts } from '~/shared/composables/use-tts'
@@ -22,6 +23,9 @@ const router = useRouter()
 const { t } = useI18n()
 const toast = useToast()
 const libraryStore = useLibraryStore()
+const tts = useTts()
+
+const activeTtsId = ref<number | null>(null)
 
 const highlights = ref<Highlight[]>([])
 const isLoading = ref(false)
@@ -46,25 +50,6 @@ const editForm = ref<{
 // Delete state
 const isDeleteConfirmOpen = ref(false)
 const deleteTargetId = ref<number | null>(null)
-
-// Highlight colors list
-const colorOptions = ['#fde047', '#86efac', '#f472b6', '#93c5fd', '#c4b5fd']
-
-onMounted(async () => {
-  isLoading.value = true
-  try {
-    if (libraryStore.books.length === 0) {
-      await libraryStore.fetchBooks()
-    }
-    highlights.value = await api.highlights.list()
-  }
-  catch (err) {
-    toast.error(err instanceof Error ? err.message : 'Ошибка загрузки цитат')
-  }
-  finally {
-    isLoading.value = false
-  }
-})
 
 // Group quotes by book and filter by search
 const filteredBookGroups = computed(() => {
@@ -114,6 +99,8 @@ const filteredBookGroups = computed(() => {
   )
 })
 
+const isTtsActive = computed(() => tts.isPlaying.value || tts.isLoading.value)
+
 // Edit Actions
 function openEditModal(h: Highlight) {
   editForm.value = {
@@ -126,16 +113,16 @@ function openEditModal(h: Highlight) {
   isEditModalOpen.value = true
 }
 
-async function saveEdit() {
+async function saveEdit(data: { text: string, translation: string, note: string, color: string }) {
   const id = editForm.value.id
   if (!id)
     return
 
   try {
     const updated = await api.highlights.update(id, {
-      translation: editForm.value.translation || null,
-      note: editForm.value.note || null,
-      color: editForm.value.color,
+      translation: data.translation || null,
+      note: data.note || null,
+      color: data.color,
     })
 
     // Update in local state
@@ -251,11 +238,6 @@ function exportToPlainText(group: BookGroup) {
   toast.success('Экспорт в текст завершен')
 }
 
-// TTS Playback state
-const tts = useTts()
-const activeTtsId = ref<number | null>(null)
-const isTtsActive = computed(() => tts.isPlaying.value || tts.isLoading.value)
-
 async function playTts(h: Highlight, book: Book) {
   if (activeTtsId.value === h.id && tts.isPlaying.value) {
     tts.stop()
@@ -273,10 +255,6 @@ async function playTts(h: Highlight, book: Book) {
     activeTtsId.value = null
   }
 }
-
-onUnmounted(() => {
-  tts.stop()
-})
 
 // AI Translation state
 const translatingId = ref<number | null>(null)
@@ -308,39 +286,25 @@ async function translateQuote(h: Highlight, book: Book) {
   }
 }
 
-// Edit Dialog AI Translation state
-const isEditDialogTranslating = ref(false)
+onUnmounted(() => {
+  tts.stop()
+})
 
-async function translateEditForm() {
-  if (!editForm.value.text || !editForm.value.id)
-    return
-
-  const h = highlights.value.find(item => item.id === editForm.value.id)
-  if (!h)
-    return
-
-  const book = libraryStore.books.find(b => b.id === h.bookId)
-  if (!book)
-    return
-
-  isEditDialogTranslating.value = true
+onMounted(async () => {
+  isLoading.value = true
   try {
-    const res = await api.books.analyze(book.id, editForm.value.text, book.language)
-    if (res && res.translation) {
-      editForm.value.translation = res.translation
-      toast.success('Перевод заполнен')
+    if (libraryStore.books.length === 0) {
+      await libraryStore.fetchBooks()
     }
-    else {
-      toast.error('Не удалось получить перевод')
-    }
+    highlights.value = await api.highlights.list()
   }
   catch (err) {
-    toast.error(err instanceof Error ? err.message : 'Ошибка перевода')
+    toast.error(err instanceof Error ? err.message : 'Ошибка загрузки цитат')
   }
   finally {
-    isEditDialogTranslating.value = false
+    isLoading.value = false
   }
-}
+})
 </script>
 
 <template>
@@ -524,75 +488,17 @@ async function translateEditForm() {
     </div>
 
     <!-- Edit Highlight Modal Dialog -->
-    <KitDialog
+    <QuoteModal
       v-model:visible="isEditModalOpen"
-      :title="t('notebook.editQuote')"
-      :max-width="500"
-    >
-      <div class="edit-quote-content">
-        <div class="quote-preview">
-          <p>“{{ editForm.text }}”</p>
-        </div>
-
-        <div class="input-group">
-          <div class="input-header-row" style="display: flex; align-items: center; justify-content: space-between;">
-            <label class="input-label">{{ t('notebook.translation') }}</label>
-            <button
-              v-if="editForm.text"
-              type="button"
-              class="ai-translate-link-btn"
-              :disabled="isEditDialogTranslating"
-              style="background: transparent; border: none; color: var(--fg-accent-color); font-size: 0.8rem; display: flex; align-items: center; gap: 4px; cursor: pointer; padding: 2px 4px; border-radius: 4px;"
-              @click="translateEditForm"
-            >
-              <Icon :icon="isEditDialogTranslating ? 'mdi:loading' : 'mdi:robot-outline'" :class="{ 'spin-animation': isEditDialogTranslating }" />
-              <span>{{ isEditDialogTranslating ? t('notebook.translating') : t('notebook.aiTranslate') }}</span>
-            </button>
-          </div>
-          <KitInput
-            v-model="editForm.translation"
-            type="text"
-            :placeholder="t('notebook.translation')"
-            class="full-width-input"
-          />
-        </div>
-
-        <div class="input-group">
-          <label class="input-label">{{ t('notebook.note') }}</label>
-          <textarea
-            v-model="editForm.note"
-            :placeholder="t('notebook.note')"
-            class="note-textarea"
-          />
-        </div>
-
-        <div class="input-group">
-          <label class="input-label">{{ t('notebook.color') }}</label>
-          <div class="color-picker">
-            <button
-              v-for="color in colorOptions"
-              :key="color"
-              type="button"
-              class="color-btn"
-              :class="{ 'is-active': editForm.color === color }"
-              :style="{ backgroundColor: color }"
-              @click="editForm.color = color"
-            />
-          </div>
-        </div>
-      </div>
-
-      <template #footer>
-        <div class="dialog-actions">
-          <KitBtn variant="tonal" @click="isEditModalOpen = false">
-            {{ t('notebook.cancel') }}
-          </KitBtn>
-          <KitBtn color="primary" @click="saveEdit">
-            {{ t('notebook.save') }}
-          </KitBtn>
-        </div>
-      </template>
-    </KitDialog>
+      mode="edit"
+      :initial-data="editForm"
+      :book-context="(() => {
+        const h = highlights.find(item => item.id === editForm.id)
+        const book = h ? libraryStore.books.find(b => b.id === h.bookId) : undefined
+        return book ? { id: book.id, language: book.language } : undefined
+      })()"
+      @save="saveEdit"
+    />
 
     <!-- Delete Confirmation -->
     <KitPrompt
@@ -730,8 +636,8 @@ async function translateEditForm() {
   margin-bottom: 8px;
 
   @include media-down(xs) {
-    flex-direction: column;
-    align-items: flex-start;
+    padding: 12px 16px;
+    gap: 12px;
   }
 
   .book-cover-container {
@@ -783,11 +689,6 @@ async function translateEditForm() {
 
   .book-actions {
     flex-shrink: 0;
-
-    @include media-down(xs) {
-      align-self: flex-end;
-      margin-top: -8px;
-    }
   }
 }
 
@@ -805,7 +706,7 @@ async function translateEditForm() {
   -webkit-backdrop-filter: blur(12px);
   border: 1px solid rgba(255, 255, 255, 0.05);
   border-radius: 16px;
-  padding: 24px;
+  padding: 16px;
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -915,7 +816,6 @@ async function translateEditForm() {
     font-size: 0.8rem;
     color: var(--fg-muted-color);
     border-top: 1px solid rgba(255, 255, 255, 0.05);
-    padding-top: 16px;
     margin-top: 4px;
     position: relative;
     z-index: 1;
