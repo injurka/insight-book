@@ -18,7 +18,6 @@ const { aiData, isAiLoading, generateExamples, clear } = useDictWordExamples()
 const analysisStore = useAnalysisStore()
 const settingsStore = useGlobalSettingsStore()
 const { t } = useI18n()
-
 const LlmChatModal = lazyComponent(() => import('~/components/04.features/llm-chat/ui/llm-chat-modal.vue'))
 
 const isChatModalOpen = ref(false)
@@ -91,7 +90,12 @@ const tagsList = computed(() => {
 </script>
 
 <template>
-  <KitDialog v-model:visible="visible" :title="t('dictWord.cardDetails')" :max-width="650">
+  <KitDialog
+    v-model:visible="visible"
+    :title="t('dictWord.cardDetails')"
+    :max-width="650"
+    z-index="1350"
+  >
     <div v-if="word" class="word-details-content">
       <div class="word-header-box">
         <div class="title-row">

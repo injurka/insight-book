@@ -279,7 +279,12 @@ onMounted(() => {
 </script>
 
 <template>
-  <KitDialog v-model:visible="visible" :title="`${t('dictionary.aiFreeQuestion')}: ${word}`" :max-width="650">
+  <KitDialog
+    v-model:visible="visible"
+    :title="`${t('dictionary.aiFreeQuestion')}: ${word}`"
+    :max-width="650"
+    z-index="1400"
+  >
     <div class="chat-modal-layout" :class="{ 'with-sidebar': isManagingPrompts }">
       <div class="chat-main-panel">
         <div ref="chatHistoryRef" class="chat-history">
@@ -365,6 +370,7 @@ onMounted(() => {
           <KitBtn
             color="primary"
             :disabled="isAiLoading || (!messageText.trim() && !selectedPromptId)"
+            size="md"
             @click="sendMessage"
           >
             <Icon icon="mdi:send" />
@@ -449,6 +455,7 @@ onMounted(() => {
   min-height: 450px;
   max-height: 80vh;
   transition: all 0.3s ease;
+  height: 100%;
 
   &.with-sidebar {
     .chat-main-panel {
@@ -488,7 +495,6 @@ onMounted(() => {
   flex-direction: column;
   gap: 12px;
   min-height: 350px;
-  max-height: 500px;
   box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.02);
 }
 
@@ -638,7 +644,6 @@ onMounted(() => {
     overflow-x: auto;
   }
 
-  /* Стили для корректного отображения списков */
   :deep(ul),
   :deep(ol) {
     margin: 8px 0;
@@ -822,9 +827,9 @@ onMounted(() => {
   color: var(--fg-primary-color);
   border: 1px solid var(--border-primary-color);
   border-radius: 6px;
-  padding: 10px 12px;
+  padding: 9px 12px;
   font-family: inherit;
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   resize: vertical;
   outline: none;
   transition: border-color 0.2s;
@@ -833,7 +838,7 @@ onMounted(() => {
   }
 }
 
-@media (max-width: 650px) {
+@include media-down(md) {
   .chat-modal-layout {
     &.with-sidebar {
       .chat-main-panel {

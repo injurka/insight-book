@@ -324,6 +324,7 @@ onUnmounted(() => {
       v-model:visible="isSaveModalOpen"
       :title="t('analysis.saveToNotebook')"
       :max-width="500"
+      z-index="1450"
     >
       <div class="save-quote-content">
         <div class="quote-preview" :style="{ borderLeftColor: selectedColor }">

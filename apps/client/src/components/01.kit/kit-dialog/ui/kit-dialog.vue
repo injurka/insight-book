@@ -29,6 +29,7 @@ interface Props {
   resizable?: boolean
   minimizable?: boolean
   keyTrigger?: any
+  zIndex?: number | string
 }
 
 const { t } = useI18n()
@@ -125,7 +126,7 @@ onUnmounted(() => {
 <template>
   <Teleport to="body">
     <Transition name="dialog" :duration="300" appear>
-      <div v-if="visible" v-show="!isMinimized" class="dialog-root">
+      <div v-if="visible" v-show="!isMinimized" class="dialog-root" :style="zIndex ? { '--z-modal': zIndex } : undefined">
         <div v-if="!floating" class="dialog-overlay" @mousedown="handleOverlayClick" />
 
         <div
@@ -207,6 +208,7 @@ onUnmounted(() => {
       <button
         v-if="visible && isMinimized"
         class="dialog-minimized-fab"
+        :style="zIndex ? { '--z-modal': zIndex } : undefined"
         :title="title || t('kit.dialog.expand')"
         @click="isMinimized = false"
       >

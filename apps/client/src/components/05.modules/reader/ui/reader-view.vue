@@ -75,69 +75,67 @@ watch(() => readerStore.isPageLoading, async (isLoading) => {
 
 <template>
   <div ref="readerViewRef" class="reader-view" @scroll.passive="onScroll">
-    <div class="swipe-container">
-      <ReaderHeader :is-visible="isHeaderVisible" />
+    <ReaderHeader :is-visible="isHeaderVisible" />
 
-      <div class="reader-content-wrapper">
-        <Transition name="fade" mode="out-in" @enter="onContentEnter">
-          <div v-if="readerStore.isPageLoading" class="reader-loading-wrapper">
-            <div class="spinner-box">
-              <PageLoader />
-            </div>
-            <h3 class="loading-text">
-              {{ t('reader.preparingPageTitle') }}
-            </h3>
-            <p class="loading-subtext">
-              {{ t('reader.preparingPageDesc') }}
-            </p>
+    <div class="reader-content-wrapper">
+      <Transition name="fade" mode="out-in" @enter="onContentEnter">
+        <div v-if="readerStore.isPageLoading" class="reader-loading-wrapper">
+          <div class="spinner-box">
+            <PageLoader />
           </div>
+          <h3 class="loading-text">
+            {{ t('reader.preparingPageTitle') }}
+          </h3>
+          <p class="loading-subtext">
+            {{ t('reader.preparingPageDesc') }}
+          </p>
+        </div>
 
-          <div v-else-if="readerStore.currentPage" class="reader-layout-wrapper">
-            <div class="reader-content-layout" :class="{ 'is-parallel': readerStore.isParallelView }">
-              <div
-                class="reader-content left-pane js-tooltip-selectable"
-                :style="{
-                  fontSize: `${settingsStore.readerFontSize}rem`,
-                  lineHeight: settingsStore.readerLineHeight,
-                  fontFamily: settingsStore.readerFontFamily,
-                }"
-                @click="onWordClick"
-                @mousedown="onPointerDown"
-                @touchstart="onPointerDown"
-                @mouseup="onPointerUp"
-                @touchend="onPointerUp"
-                @touchcancel="onPointerUp"
-                @mouseleave="onPointerUp"
-                @mouseover="onSentenceHover"
-                @mouseout="onSentenceOut"
-                v-html="leftPaneContent"
-              />
+        <div v-else-if="readerStore.currentPage" class="reader-layout-wrapper">
+          <div class="reader-content-layout" :class="{ 'is-parallel': readerStore.isParallelView }">
+            <div
+              class="reader-content left-pane js-tooltip-selectable"
+              :style="{
+                fontSize: `${settingsStore.readerFontSize}rem`,
+                lineHeight: settingsStore.readerLineHeight,
+                fontFamily: settingsStore.readerFontFamily,
+              }"
+              @click="onWordClick"
+              @mousedown="onPointerDown"
+              @touchstart="onPointerDown"
+              @mouseup="onPointerUp"
+              @touchend="onPointerUp"
+              @touchcancel="onPointerUp"
+              @mouseleave="onPointerUp"
+              @mouseover="onSentenceHover"
+              @mouseout="onSentenceOut"
+              v-html="leftPaneContent"
+            />
 
-              <div
-                v-if="readerStore.isParallelView"
-                class="reader-content right-pane"
-                :style="{
-                  fontSize: `${settingsStore.readerFontSize}rem`,
-                  lineHeight: settingsStore.readerLineHeight,
-                  fontFamily: settingsStore.readerFontFamily,
-                }"
-                @mousedown="onPointerDown"
-                @touchstart="onPointerDown"
-                @mouseup="onPointerUp"
-                @touchend="onPointerUp"
-                @touchcancel="onPointerUp"
-                @mouseleave="onPointerUp"
-                @mouseover="onSentenceHover"
-                @mouseout="onSentenceOut"
-                v-html="translatedPageContent"
-              />
-            </div>
+            <div
+              v-if="readerStore.isParallelView"
+              class="reader-content right-pane"
+              :style="{
+                fontSize: `${settingsStore.readerFontSize}rem`,
+                lineHeight: settingsStore.readerLineHeight,
+                fontFamily: settingsStore.readerFontFamily,
+              }"
+              @mousedown="onPointerDown"
+              @touchstart="onPointerDown"
+              @mouseup="onPointerUp"
+              @touchend="onPointerUp"
+              @touchcancel="onPointerUp"
+              @mouseleave="onPointerUp"
+              @mouseover="onSentenceHover"
+              @mouseout="onSentenceOut"
+              v-html="translatedPageContent"
+            />
           </div>
-        </Transition>
-      </div>
-
-      <ReaderFooter @prev="prevPage" @next="nextPage" @go-to="goToPage" />
+        </div>
+      </Transition>
     </div>
+
+    <ReaderFooter @prev="prevPage" @next="nextPage" @go-to="goToPage" />
 
     <WordPopover />
     <SelectionTooltip />
@@ -173,11 +171,6 @@ watch(() => readerStore.isPageLoading, async (isLoading) => {
   overflow-y: auto;
   overflow-x: hidden;
   background-color: var(--bg-primary-color);
-}
-.swipe-container {
-  display: flex;
-  flex-direction: column;
-  min-height: 100%;
 }
 .reader-content-wrapper {
   flex-grow: 1;

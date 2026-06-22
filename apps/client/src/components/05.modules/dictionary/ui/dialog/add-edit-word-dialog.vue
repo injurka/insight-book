@@ -143,7 +143,12 @@ const previewVocabulary = ref(true)
 </script>
 
 <template>
-  <KitDialog v-model:visible="analysisStore.addEditWordModalOpen" :title="isEditing ? t('dictionary.editCard') : t('dictionary.addToDict')" :max-width="550">
+  <KitDialog
+    v-model:visible="analysisStore.addEditWordModalOpen"
+    :title="isEditing ? t('dictionary.editCard') : t('dictionary.addToDict')"
+    :max-width="550"
+    z-index="1500"
+  >
     <div v-if="localWord" class="dialog-content">
       <div class="word-preview">
         <div class="word-header">

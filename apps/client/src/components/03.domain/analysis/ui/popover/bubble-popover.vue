@@ -14,7 +14,6 @@ import { useAnalysisStore } from '~/shared/store/analysis.store'
 defineOptions({
   inheritAttrs: false,
 })
-
 const props = defineProps<{
   box: any
   referenceEl: HTMLElement | null
@@ -195,9 +194,8 @@ onUnmounted(() => stop())
       ref="floating"
       class="bubble-popover-container"
       :style="style"
-      v-bind="$attrs"
     >
-      <div class="bubble-actions" @mousedown.stop @touchstart.stop @click.stop>
+      <div class="bubble-actions" @mousedown.stop @touchstart.stop>
         <button class="action-btn" :title="t('analysis.aiAnalysis')" @click.stop="analyzeSentence">
           <Icon icon="mdi:robot-outline" />
         </button>
@@ -241,6 +239,7 @@ onUnmounted(() => stop())
     v-model:visible="isSaveModalOpen"
     :title="t('analysis.saveToNotebook')"
     :max-width="500"
+    z-index="1450"
   >
     <div class="save-quote-content">
       <div class="quote-preview" :style="{ borderLeftColor: selectedColor }">

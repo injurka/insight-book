@@ -14,7 +14,14 @@ const { t } = useI18n()
 </script>
 
 <template>
-  <KitDialog v-model:visible="visible" :title="t('analysis.aiContextAndExamples')" :max-width="650" :floating="false" :minimizable="false">
+  <KitDialog
+    v-model:visible="visible"
+    :title="t('analysis.aiContextAndExamples')"
+    :max-width="650"
+    :floating="false"
+    :minimizable="false"
+    z-index="1400"
+  >
     <div v-if="loading" class="ai-loading">
       <KitSkeleton width="100%" height="24px" class="mb-3" />
       <KitSkeleton width="80%" height="24px" class="mb-3" />

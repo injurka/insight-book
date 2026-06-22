@@ -104,137 +104,135 @@ onUnmounted(() => {
 
 <template>
   <div ref="readerViewRef" class="manga-reader-view" @scroll.passive="onScroll">
-    <div class="swipe-container">
-      <ReaderHeader :is-visible="isHeaderVisible" />
+    <ReaderHeader :is-visible="isHeaderVisible" />
 
-      <div class="reader-content-wrapper">
-        <Transition name="fade" mode="out-in" @enter="onContentEnter">
-          <div v-if="readerStore.isPageLoading" class="reader-loading-wrapper">
-            <PageLoader />
-            <p class="loading-text">
-              {{ t('reader.preparingPage') }}
-            </p>
+    <div class="reader-content-wrapper">
+      <Transition name="fade" mode="out-in" @enter="onContentEnter">
+        <div v-if="readerStore.isPageLoading" class="reader-loading-wrapper">
+          <PageLoader />
+          <p class="loading-text">
+            {{ t('reader.preparingPage') }}
+          </p>
+        </div>
+
+        <div v-else-if="readerStore.currentPage?.imageUrl" class="manga-layout-wrapper" :class="{ 'is-parallel': settingsStore.parallelViewMode !== 'none' }">
+          <div ref="mangaContainerRef" class="manga-container left-pane">
+            <div
+              ref="mangaWrapperRef"
+              class="manga-page-wrapper js-tooltip-selectable"
+              :style="{
+                transform: `translate(${panX}px, ${panY}px) scale(${scale})`,
+                transformOrigin: '0 0',
+                cursor: scale > 1 ? (isPanning ? 'grabbing' : 'grab') : 'default',
+                transition: isPinching || isPanning ? 'none' : 'transform 0.1s ease-out',
+                willChange: 'transform',
+              }"
+              @click="handleWrapperClick"
+              @mouseup="onPointerUp"
+              @touchend="onPointerUp"
+              @touchcancel="onPointerUp"
+              @mouseleave="onPointerUp"
+            >
+              <img :src="readerStore.currentPage.localImageUrl || (readerStore.currentPage.imageUrl ? getMediaUrl(readerStore.currentPage.imageUrl) : '')" class="manga-image" @load="restoreScrollPosition">
+
+              <div class="ocr-overlay">
+                <template v-for="(box, idx) in readerStore.currentPage.ocrBlocks" :key="box.id">
+                  <div
+                    class="ocr-bubble"
+                    :class="[
+                      {
+                        'is-active': (activeBubble?.id === box.id && settingsStore.mangaOcrDisplayMode === 'popover') || settingsStore.parallelViewMode !== 'none',
+                        'mode-hover': settingsStore.mangaOcrDisplayMode === 'hover',
+                        'mode-popover': settingsStore.mangaOcrDisplayMode === 'popover' || settingsStore.parallelViewMode !== 'none',
+                        'has-parallel': settingsStore.parallelViewMode !== 'none',
+                        'has-highlight': Object.keys(getBubbleHighlightStyle(box)).length > 0,
+                      },
+                    ]"
+                    :style="[getBoxStyle(box), getBubbleHighlightStyle(box)]"
+                    @mousedown="handleBubblePointerDown($event, box)"
+                    @touchstart="handleBubblePointerDown($event, box)"
+                    @click="handleBubbleClick($event, box, dragDist, scale)"
+                  >
+                    <div v-if="settingsStore.mangaOcrDisplayMode === 'hover'" class="bubble-text-preview" v-html="box.html || box.text.replace(/\n+/g, '')" />
+                  </div>
+                  <div
+                    v-if="settingsStore.parallelViewMode !== 'none'"
+                    class="bubble-number-outer"
+                    :style="getOuterNumberStyle(box)"
+                  >
+                    {{ idx + 1 }}
+                  </div>
+                </template>
+              </div>
+            </div>
           </div>
-
-          <div v-else-if="readerStore.currentPage?.imageUrl" class="manga-layout-wrapper" :class="{ 'is-parallel': settingsStore.parallelViewMode !== 'none' }">
-            <div ref="mangaContainerRef" class="manga-container left-pane">
+          <div v-if="settingsStore.parallelViewMode !== 'none'" class="manga-translations-pane right-pane">
+            <div class="translations-scroll">
               <div
-                ref="mangaWrapperRef"
-                class="manga-page-wrapper js-tooltip-selectable"
-                :style="{
-                  transform: `translate(${panX}px, ${panY}px) scale(${scale})`,
-                  transformOrigin: '0 0',
-                  cursor: scale > 1 ? (isPanning ? 'grabbing' : 'grab') : 'default',
-                  transition: isPinching || isPanning ? 'none' : 'transform 0.1s ease-out',
-                  willChange: 'transform',
-                }"
-                @click="handleWrapperClick"
+                v-for="(trans, idx) in parallelTranslations"
+                :key="trans.id"
+                class="manga-translation-item"
+                @mousedown="onPointerDown"
+                @touchstart="onPointerDown"
                 @mouseup="onPointerUp"
                 @touchend="onPointerUp"
                 @touchcancel="onPointerUp"
                 @mouseleave="onPointerUp"
+                @mouseover="onSentenceHover"
+                @mouseout="onSentenceOut"
               >
-                <img :src="readerStore.currentPage.localImageUrl || (readerStore.currentPage.imageUrl ? getMediaUrl(readerStore.currentPage.imageUrl) : '')" class="manga-image" @load="restoreScrollPosition">
-
-                <div class="ocr-overlay">
-                  <template v-for="(box, idx) in readerStore.currentPage.ocrBlocks" :key="box.id">
-                    <div
-                      class="ocr-bubble"
-                      :class="[
-                        {
-                          'is-active': (activeBubble?.id === box.id && settingsStore.mangaOcrDisplayMode === 'popover') || settingsStore.parallelViewMode !== 'none',
-                          'mode-hover': settingsStore.mangaOcrDisplayMode === 'hover',
-                          'mode-popover': settingsStore.mangaOcrDisplayMode === 'popover' || settingsStore.parallelViewMode !== 'none',
-                          'has-parallel': settingsStore.parallelViewMode !== 'none',
-                          'has-highlight': Object.keys(getBubbleHighlightStyle(box)).length > 0,
-                        },
-                      ]"
-                      :style="[getBoxStyle(box), getBubbleHighlightStyle(box)]"
-                      @mousedown="handleBubblePointerDown($event, box)"
-                      @touchstart="handleBubblePointerDown($event, box)"
-                      @click="handleBubbleClick($event, box, dragDist, scale)"
-                    >
-                      <div v-if="settingsStore.mangaOcrDisplayMode === 'hover'" class="bubble-text-preview" v-html="box.html || box.text.replace(/\n+/g, '')" />
-                    </div>
-                    <div
-                      v-if="settingsStore.parallelViewMode !== 'none'"
-                      class="bubble-number-outer"
-                      :style="getOuterNumberStyle(box)"
-                    >
-                      {{ idx + 1 }}
-                    </div>
-                  </template>
+                <div class="translation-number">
+                  {{ idx + 1 }}
                 </div>
-              </div>
-            </div>
-            <div v-if="settingsStore.parallelViewMode !== 'none'" class="manga-translations-pane right-pane">
-              <div class="translations-scroll">
-                <div
-                  v-for="(trans, idx) in parallelTranslations"
-                  :key="trans.id"
-                  class="manga-translation-item"
-                  @mousedown="onPointerDown"
-                  @touchstart="onPointerDown"
-                  @mouseup="onPointerUp"
-                  @touchend="onPointerUp"
-                  @touchcancel="onPointerUp"
-                  @mouseleave="onPointerUp"
-                  @mouseover="onSentenceHover"
-                  @mouseout="onSentenceOut"
-                >
-                  <div class="translation-number">
-                    {{ idx + 1 }}
-                  </div>
-                  <div class="translation-html" v-html="trans.html" />
-                </div>
+                <div class="translation-html" v-html="trans.html" />
               </div>
             </div>
           </div>
-        </Transition>
-      </div>
-
-      <BubblePopover
-        :box="activeBubble"
-        :reference-el="bubbleReference"
-        @click.stop="handleBubblePopoverClick"
-        @mousedown.stop="onPointerDown($event, activeBubble?.text)"
-        @touchstart.stop="onPointerDown($event, activeBubble?.text)"
-        @mouseup="onPointerUp"
-        @touchend="onPointerUp"
-        @touchcancel="onPointerUp"
-        @mouseleave="onPointerUp"
-        @mouseover="onSentenceHover"
-        @mouseout="onSentenceOut"
-      />
-
-      <ReaderFooter @prev="prevPage" @next="nextPage" @go-to="goToPage" />
-
-      <KitDialog v-model:visible="readerStore.tocOpen" :title="t('bookInfo.tableOfContents')" :max-width="500" icon="mdi:format-list-bulleted">
-        <div v-if="readerStore.currentToc && readerStore.currentToc.length > 0" class="toc-list">
-          <div
-            v-for="item in readerStore.currentToc"
-            :key="item.id"
-            class="toc-item"
-            :style="{ paddingLeft: `${(item.level - 1) * 16}px` }"
-            @click="goToPage(item.pageNum)"
-          >
-            <span class="toc-title">{{ item.title }}</span>
-            <span class="toc-dots" />
-            <span class="toc-page">{{ item.pageNum || '-' }}</span>
-          </div>
         </div>
-        <div v-else class="toc-grid">
-          <div v-for="i in readerStore.currentBook?.totalPages" :key="i" class="toc-grid-item" @click="goToPage(i)">
-            {{ i }}
-          </div>
-        </div>
-      </KitDialog>
-
-      <WordPopover />
-      <SelectionTooltip />
-      <SentenceAnalysis />
-      <PageAnalysisModal />
+      </Transition>
     </div>
+
+    <BubblePopover
+      :box="activeBubble"
+      :reference-el="bubbleReference"
+      @click.stop="handleBubblePopoverClick"
+      @mousedown.stop="onPointerDown($event, activeBubble?.text)"
+      @touchstart.stop="onPointerDown($event, activeBubble?.text)"
+      @mouseup="onPointerUp"
+      @touchend="onPointerUp"
+      @touchcancel="onPointerUp"
+      @mouseleave="onPointerUp"
+      @mouseover="onSentenceHover"
+      @mouseout="onSentenceOut"
+    />
+
+    <ReaderFooter @prev="prevPage" @next="nextPage" @go-to="goToPage" />
+
+    <KitDialog v-model:visible="readerStore.tocOpen" :title="t('bookInfo.tableOfContents')" :max-width="500" icon="mdi:format-list-bulleted">
+      <div v-if="readerStore.currentToc && readerStore.currentToc.length > 0" class="toc-list">
+        <div
+          v-for="item in readerStore.currentToc"
+          :key="item.id"
+          class="toc-item"
+          :style="{ paddingLeft: `${(item.level - 1) * 16}px` }"
+          @click="goToPage(item.pageNum)"
+        >
+          <span class="toc-title">{{ item.title }}</span>
+          <span class="toc-dots" />
+          <span class="toc-page">{{ item.pageNum || '-' }}</span>
+        </div>
+      </div>
+      <div v-else class="toc-grid">
+        <div v-for="i in readerStore.currentBook?.totalPages" :key="i" class="toc-grid-item" @click="goToPage(i)">
+          {{ i }}
+        </div>
+      </div>
+    </KitDialog>
+
+    <WordPopover />
+    <SelectionTooltip />
+    <SentenceAnalysis />
+    <PageAnalysisModal />
   </div>
 </template>
 

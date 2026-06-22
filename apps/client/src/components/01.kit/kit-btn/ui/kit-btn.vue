@@ -88,6 +88,7 @@ const componentClasses = computed(() => [
     box-shadow: none;
     background-color: var(--bg-disabled-color) !important;
     color: var(--fg-disabled-color) !important;
+    border-color: var(--fg-disabled-color) !important;
   }
 
   &--size-xs {
