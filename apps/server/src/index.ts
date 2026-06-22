@@ -67,7 +67,12 @@ import {
   handleDownloadOpdsBook,
   handleGetCatalogs,
 } from './handlers/opds'
-import { handleGetVapidKey, handleSubscribe, handleUnsubscribe } from './handlers/push'
+import {
+  handleGetVapidKey,
+  handleSubscribe,
+  handleUnsubscribe,
+  handleUpdatePushSettings,
+} from './handlers/push'
 
 import { initScheduler } from './services/scheduler.service'
 import { authWrapper, optionalAuthWrapper } from './utils/auth'
@@ -162,6 +167,7 @@ const apiRoutes = {
   '/api/push/vapid-public-key': { OPTIONS: corsOk, GET: apiWrapper(handleGetVapidKey) },
   '/api/push/subscribe': { OPTIONS: corsOk, POST: apiWrapper(authWrapper(handleSubscribe)) },
   '/api/push/unsubscribe': { OPTIONS: corsOk, POST: apiWrapper(authWrapper(handleUnsubscribe)) },
+  '/api/push/settings': { OPTIONS: corsOk, PATCH: apiWrapper(authWrapper(handleUpdatePushSettings)) },
 
 }
 
