@@ -14,6 +14,7 @@ import { useAnalysisStore } from '~/shared/store/analysis.store'
 defineOptions({
   inheritAttrs: false,
 })
+
 const props = defineProps<{
   box: any
   referenceEl: HTMLElement | null
@@ -185,6 +186,7 @@ onUnmounted(() => stop())
       ref="floating"
       class="bubble-popover-container"
       :style="style"
+      v-bind="$attrs"
     >
       <div class="bubble-actions" @mousedown.stop @touchstart.stop>
         <button class="action-btn" :title="t('analysis.aiAnalysis')" @click.stop="analyzeSentence">
