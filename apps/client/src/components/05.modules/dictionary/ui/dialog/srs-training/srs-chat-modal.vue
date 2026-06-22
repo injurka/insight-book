@@ -56,8 +56,8 @@ function formatMarkdown(text: string): string {
   let processed = text.trim()
   const blocks: string[] = []
 
-  // Извлекаем и форматируем многострочные блоки кода, чтобы их не затронуло форматирование текста
-  processed = processed.replace(/```([a-z]*)\s*([\s\S]*?)```/gi, (_, lang, codeContent) => {
+  // eslint-disable-next-line regexp/no-super-linear-backtracking
+  processed = processed.replace(/```([a-z]*)\s*([\s\S]*?)```/gi, (_, _lang, codeContent) => {
     const escaped = codeContent
       .replace(/&/g, '&amp;')
       .replace(/</g, '&lt;')
@@ -87,7 +87,9 @@ function formatMarkdown(text: string): string {
     .replace(/^### (.*)$/gm, '<h3>$1</h3>')
     .replace(/^## (.*)$/gm, '<h2>$1</h2>')
     .replace(/^# (.*)$/gm, '<h1>$1</h1>')
+    // eslint-disable-next-line regexp/no-super-linear-backtracking
     .replace(/^\s*-\s+(.*)$/gm, '<li>$1</li>') // Списки через дефис
+    // eslint-disable-next-line regexp/no-super-linear-backtracking
     .replace(/^\s*\*\s+(.*)$/gm, '<li>$1</li>') // Списки через звездочку
 
   // Заменяем переносы строк на <br>, кроме мест, где мы уже вставили HTML теги

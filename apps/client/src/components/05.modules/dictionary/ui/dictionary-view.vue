@@ -340,22 +340,24 @@ watch(isEditMode, (val) => {
 
           <div class="stats-badge">
             <span class="badge">{{ t('dictionary.wordsCount', { count: store.filteredWords.length }) }}</span>
-            <KitTooltip :text="isEditMode ? t('dictionary.done') : t('dictionary.edit')" placement="bottom-end">
-              <KitBtn
-                :icon="isEditMode ? 'mdi:check' : 'mdi:pencil-outline'"
-                variant="text"
-                :color="isEditMode ? 'primary' : 'secondary'"
-                @click="isEditMode = !isEditMode"
-              />
-            </KitTooltip>
-            <KitTooltip :text="t('dictionary.stats')" placement="bottom-end">
-              <KitBtn
-                icon="mdi:chart-box-outline"
-                variant="text"
-                color="secondary"
-                @click="isStatsModalOpen = true"
-              />
-            </KitTooltip>
+            <div class="badge-actions">
+              <KitTooltip :text="isEditMode ? t('dictionary.done') : t('dictionary.edit')" placement="bottom-end">
+                <KitBtn
+                  :icon="isEditMode ? 'mdi:check' : 'mdi:pencil-outline'"
+                  variant="text"
+                  :color="isEditMode ? 'primary' : 'secondary'"
+                  @click="isEditMode = !isEditMode"
+                />
+              </KitTooltip>
+              <KitTooltip :text="t('dictionary.stats')" placement="bottom-end">
+                <KitBtn
+                  icon="mdi:chart-box-outline"
+                  variant="text"
+                  color="secondary"
+                  @click="isStatsModalOpen = true"
+                />
+              </KitTooltip>
+            </div>
           </div>
         </div>
       </div>
@@ -621,6 +623,13 @@ watch(isEditMode, (val) => {
           white-space: nowrap;
           display: inline-block;
         }
+
+        .badge-actions {
+          display: flex;
+          align-items: center;
+          gap: 4px;
+          margin-left: auto;
+        }
       }
     }
 
@@ -657,12 +666,16 @@ watch(isEditMode, (val) => {
       }
 
       .actions-and-stats {
-        justify-content: space-between;
+        flex-direction: column;
+        align-items: stretch;
+        justify-content: flex-start;
         width: 100%;
         margin-left: 0;
+        gap: 12px;
 
         .main-actions {
-          flex: 1;
+          width: 100%;
+          display: flex;
           .training-dropdown {
             flex: 1;
             :deep(.kit-select-trigger),
@@ -674,7 +687,7 @@ watch(isEditMode, (val) => {
         }
 
         .stats-badge {
-          flex-shrink: 0;
+          width: 100%;
         }
       }
     }
