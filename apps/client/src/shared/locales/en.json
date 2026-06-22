@@ -153,7 +153,8 @@
       "deep_dive_collocations": "Deep Dive (Collocations)",
       "deep_dive_radicals": "Deep Dive (Radicals)",
       "check_pronunciation_stt": "Speech Recognition (STT)",
-      "check_pronunciation_llm": "Pronunciation Analysis (LLM)"
+      "check_pronunciation_llm": "Pronunciation Analysis (LLM)",
+      "chat_ai": "Free Question (AI Chat)"
     }
   },
   "library": {
