@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import type { UserDictItem } from '~/shared/types/models'
 import { Icon } from '@iconify/vue'
-import { computed, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { KitBtn, KitDialog, KitSkeleton, KitTooltip } from '~/components/01.kit'
+import { LlmChatModal } from '~/components/04.features/llm-chat'
 import { useTts } from '~/shared/composables/use-tts'
 import { DIFFICULTY_SYSTEMS } from '~/shared/constants/difficulties'
 import { BOOK_TAGS } from '~/shared/constants/tags'
@@ -18,6 +19,8 @@ const { aiData, isAiLoading, generateExamples, clear } = useDictWordExamples()
 const analysisStore = useAnalysisStore()
 const settingsStore = useGlobalSettingsStore()
 const { t } = useI18n()
+
+const isChatModalOpen = ref(false)
 
 watch(visible, (isOpen) => {
   if (isOpen) {
@@ -173,16 +176,27 @@ const tagsList = computed(() => {
           <h4 class="section-title">
             <Icon icon="mdi:robot-outline" /> {{ t('dictWord.aiAssistant') }}
           </h4>
-          <KitBtn
-            v-if="!isAiLoading"
-            variant="outlined"
-            color="accent"
-            size="xs"
-            :icon="aiData ? 'mdi:refresh' : undefined"
-            @click="handleGenerate"
-          >
-            {{ aiData ? t('dictWord.regenerate') : t('dictWord.generateExamples') }}
-          </KitBtn>
+          <div class="ai-header-actions" style="display: flex; gap: 8px;">
+            <KitBtn
+              variant="outlined"
+              color="secondary"
+              size="xs"
+              icon="mdi:chat-processing-outline"
+              @click="isChatModalOpen = true"
+            >
+              {{ t('dictionary.aiFreeQuestion') }}
+            </KitBtn>
+            <KitBtn
+              v-if="!isAiLoading"
+              variant="outlined"
+              color="accent"
+              size="xs"
+              :icon="aiData ? 'mdi:refresh' : undefined"
+              @click="handleGenerate"
+            >
+              {{ aiData ? t('dictWord.regenerate') : t('dictWord.generateExamples') }}
+            </KitBtn>
+          </div>
         </div>
 
         <div v-if="isAiLoading" class="ai-loading">
@@ -258,6 +272,8 @@ const tagsList = computed(() => {
       </KitBtn>
     </template>
   </KitDialog>
+
+  <LlmChatModal v-if="word" v-model:visible="isChatModalOpen" :word="word.word" :language="word.language || 'en'" />
 </template>
 
 <style lang="scss" scoped>
@@ -428,6 +444,8 @@ const tagsList = computed(() => {
     align-items: center;
     margin-bottom: 16px;
     height: 28px;
+    flex-wrap: wrap;
+    gap: 8px;
 
     .section-title {
       display: flex;

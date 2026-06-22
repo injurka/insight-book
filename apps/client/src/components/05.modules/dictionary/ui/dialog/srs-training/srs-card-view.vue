@@ -5,13 +5,13 @@ import { computed, nextTick, reactive, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { KitBtn, KitDropdown, KitInput, KitTooltip } from '~/components/01.kit'
 import { AiExamplesModal } from '~/components/03.domain/analysis'
+import { LlmChatModal } from '~/components/04.features/llm-chat'
 import { useToast } from '~/shared/composables/use-toast'
 import { useTts } from '~/shared/composables/use-tts'
 import { api } from '~/shared/services/api.service'
 import { useSrsQuiz } from '../../../composables/use-srs-quiz'
 import { useDictionaryStore } from '../../../store/dictionary.store'
 import HanziBoard from '../../hanzi-board.vue'
-import SrsChatModal from './srs-chat-modal.vue'
 
 const props = defineProps<{
   card: UserDictItem | null
@@ -802,7 +802,7 @@ watch(() => props.card, initCard, { immediate: true })
     </div>
 
     <AiExamplesModal v-model:visible="isAiModalOpen" :loading="isAiLoading" :data="aiData" />
-    <SrsChatModal v-model:visible="isChatModalOpen" :word="card.word" :language="card.language || 'en'" />
+    <LlmChatModal v-model:visible="isChatModalOpen" :word="card.word" :language="card.language || 'en'" />
   </div>
 </template>
 

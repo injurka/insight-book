@@ -72,6 +72,7 @@ const { offlineReady, needRefresh } = storeToRefs(pwaStore)
   box-shadow: 0 8px 32px var(--bg-overlay-primary-color);
   max-width: 480px;
   backdrop-filter: blur(8px);
+
   @include media-down(sm) {
     flex-direction: column;
     right: var(--p-s, 12px);

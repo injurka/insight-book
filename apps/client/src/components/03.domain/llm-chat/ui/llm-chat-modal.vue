@@ -1,3 +1,4 @@
+<!-- eslint-disable regexp/no-super-linear-backtracking -->
 <script setup lang="ts">
 import { Icon } from '@iconify/vue'
 import DOMPurify from 'dompurify'
@@ -56,7 +57,7 @@ function formatMarkdown(text: string): string {
   let processed = text.trim()
   const blocks: string[] = []
 
-  // eslint-disable-next-line regexp/no-super-linear-backtracking
+  // 1. Извлекаем и форматируем многострочные блоки кода
   processed = processed.replace(/```([a-z]*)\s*([\s\S]*?)```/gi, (_, _lang, codeContent) => {
     const escaped = codeContent
       .replace(/&/g, '&amp;')
@@ -68,7 +69,7 @@ function formatMarkdown(text: string): string {
     return placeholder
   })
 
-  // Извлекаем инлайн-код
+  // 2. Извлекаем инлайн-код
   processed = processed.replace(/`([^`]+)`/g, (_, inlineCode) => {
     const escaped = inlineCode
       .replace(/&/g, '&amp;')
@@ -80,27 +81,34 @@ function formatMarkdown(text: string): string {
     return placeholder
   })
 
-  // Базовый Markdown
+  // 3. Базовый Markdown (жирный, курсив, заголовки)
   processed = processed
     .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
     .replace(/\*(.*?)\*/g, '<em>$1</em>')
     .replace(/^### (.*)$/gm, '<h3>$1</h3>')
     .replace(/^## (.*)$/gm, '<h2>$1</h2>')
     .replace(/^# (.*)$/gm, '<h1>$1</h1>')
-    // eslint-disable-next-line regexp/no-super-linear-backtracking
-    .replace(/^\s*-\s+(.*)$/gm, '<li>$1</li>') // Списки через дефис
-    // eslint-disable-next-line regexp/no-super-linear-backtracking
-    .replace(/^\s*\*\s+(.*)$/gm, '<li>$1</li>') // Списки через звездочку
 
-  // Заменяем переносы строк на <br>, кроме мест, где мы уже вставили HTML теги
+  // 4. Списки: превращаем строки с дефисами или звездочками в <li>
+  processed = processed.replace(/^\s*[-*]\s+(.*)$/gm, '<li>$1</li>')
+
+  // Оборачиваем группы <li> в родительский <ul>
+  processed = processed.replace(/(?:<li>.*?<\/li>\s*)+/g, match => `<ul>${match}</ul>`)
+
+  // 5. Заменяем переносы строк на <br> для обычного текста
   processed = processed.replace(/\n/g, '<br>')
 
-  // Возвращаем блоки кода на место
+  // Очищаем лишние <br> внутри и вокруг блочных элементов (чтобы списки не разъезжались)
+  processed = processed.replace(/(<\/h[1-6]>|<\/ul>|<\/li>|<br>)(<br>)+/g, '$1')
+  processed = processed.replace(/<ul><br>/g, '<ul>')
+  processed = processed.replace(/<\/li><br>/g, '</li>')
+
+  // 6. Возвращаем блоки кода на место
   for (let i = 0; i < blocks.length; i++) {
     processed = processed.replace(`__BLOCK_PLACEHOLDER_${i}__`, blocks[i])
   }
 
-  // Очищаем итоговый HTML, разрешая безопасные теги (DOMPurify делает это по умолчанию)
+  // Очищаем итоговый HTML для безопасности (DOMPurify сохраняет нужные нам теги)
   return DOMPurify.sanitize(processed)
 }
 
@@ -590,12 +598,68 @@ onMounted(() => {
 
 .message-bubble {
   max-width: 85%;
-  padding: 8px 12px;
+  padding: 8px 14px;
   border-radius: 10px;
-  border: 1px solid var(--border-primary-color);
   font-size: 0.95rem;
   line-height: 1.45;
   word-break: break-word;
+}
+
+.message-content {
+  :deep(h1),
+  :deep(h2),
+  :deep(h3) {
+    margin: 12px 0 6px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--fg-primary-color);
+  }
+  :deep(strong) {
+    font-weight: 600;
+    color: var(--fg-accent-color);
+  }
+  :deep(em) {
+    font-style: italic;
+  }
+  :deep(code.chat-code) {
+    background-color: var(--bg-hover-color);
+    color: var(--fg-accent-color);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: monospace;
+    font-size: 0.9em;
+  }
+  :deep(.chat-code-block) {
+    background-color: var(--bg-primary-color);
+    border: 1px solid var(--border-secondary-color);
+    border-radius: 6px;
+    padding: 10px;
+    margin: 8px 0;
+    overflow-x: auto;
+  }
+
+  /* Стили для корректного отображения списков */
+  :deep(ul),
+  :deep(ol) {
+    margin: 8px 0;
+    padding-left: 24px;
+  }
+  :deep(li) {
+    margin-bottom: 4px;
+    line-height: 1.4;
+    list-style-type: disc;
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
+  :deep(p) {
+    margin-top: 0;
+    margin-bottom: 8px;
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
 }
 
 .chat-input-row {
@@ -782,186 +846,6 @@ onMounted(() => {
         padding-left: 0;
       }
     }
-  }
-}
-</style>
-
-<style lang="scss">
-@keyframes markdown-appear {
-  from {
-    opacity: 0;
-    transform: translateY(15px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.message-content {
-  animation: markdown-appear 0.4s cubic-bezier(0.25, 1, 0.5, 1) forwards;
-  line-height: 1.7;
-  color: var(--fg-primary-color);
-  font-size: 1.05rem;
-
-  h1,
-  h2,
-  h3,
-  h4,
-  h5,
-  h6 {
-    margin-top: 2rem;
-    margin-bottom: 1rem;
-    font-weight: 600;
-    line-height: 1.3;
-    color: var(--fg-primary-color);
-
-    a {
-      border-bottom: none;
-      &:hover {
-        background-color: transparent;
-        border-bottom-color: transparent;
-      }
-    }
-  }
-  h1 {
-    font-size: 2rem;
-    border-bottom: 1px solid var(--border-secondary-color);
-    padding-bottom: 0.5rem;
-  }
-  h2 {
-    font-size: 1.5rem;
-    border: none;
-    border-left: 4px solid var(--fg-accent-color);
-    background: linear-gradient(90deg, rgba(var(--bg-accent-color-rgb), 0.5) 0%, transparent 100%);
-    padding: 0.5rem 1rem;
-    border-radius: 0 8px 8px 0;
-  }
-  h3 {
-    font-size: 1.25rem;
-    border: none;
-    border-bottom: 2px solid var(--border-secondary-color);
-    padding-bottom: 0.3rem;
-    width: fit-content;
-    padding-right: 20px;
-  }
-  p {
-    margin-bottom: 1.2rem;
-  }
-  p + ul {
-    padding-top: 0;
-  }
-  strong {
-    color: var(--fg-primary-color);
-    font-weight: 700;
-  }
-  a {
-    color: var(--fg-accent-color);
-    font-weight: 500;
-    text-decoration: none;
-    border-bottom: 1px solid rgba(var(--fg-accent-color-rgb), 0.4);
-    transition: all 0.2s ease-in-out;
-    &:hover {
-      background-color: rgba(var(--fg-accent-color-rgb), 0.1);
-      border-bottom-color: var(--fg-accent-color);
-    }
-  }
-  em {
-    color: var(--fg-accent-color);
-    font-style: italic;
-  }
-  code:not(pre > code) {
-    background-color: rgba(var(--fg-accent-color-rgb), 0.1);
-    border: 1px solid rgba(var(--fg-accent-color-rgb), 0.2);
-    color: var(--fg-accent-color);
-    padding: 0.1em 0.4em;
-    margin: 0 0.1em;
-    font-size: 0.9em;
-    border-radius: 6px;
-    font-family: 'Maple Mono CN', 'JetBrains Mono', monospace;
-    font-weight: 600;
-    vertical-align: baseline;
-    display: inline-block;
-  }
-  pre {
-    background: var(--bg-tertiary-color);
-    padding: 1rem;
-    border-radius: 8px;
-    overflow-x: auto;
-    code {
-      font-family: 'Maple Mono CN', 'JetBrains Mono', monospace;
-      background: transparent;
-      padding: 0;
-      color: inherit;
-      border: none;
-    }
-  }
-  ul,
-  ol {
-    padding-left: 1.5rem;
-    margin-bottom: 1.5rem;
-    > li {
-      ul {
-        margin: 0;
-      }
-    }
-  }
-  ul > li {
-    list-style-type: disc;
-    margin-bottom: 0.5rem;
-    &::marker {
-      color: var(--fg-accent-color);
-    }
-  }
-  blockquote {
-    border-left: 4px solid var(--fg-accent-color);
-    background-color: var(--bg-secondary-color);
-    padding: 1rem 1.5rem;
-    border-radius: 0 8px 8px 0;
-    margin: 1.5rem 0;
-    font-style: italic;
-    color: var(--fg-secondary-color);
-    p {
-      margin: 0;
-    }
-  }
-  img {
-    border-radius: 8px;
-    max-width: 100%;
-    height: auto;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-    margin: 1rem 0;
-  }
-  .table-container {
-    display: block;
-    width: 100%;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    margin: 2rem 0;
-    border-radius: 8px;
-    box-shadow: 0 0 0 1px var(--border-secondary-color);
-  }
-  table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 0.95rem;
-  }
-  th {
-    background-color: var(--bg-tertiary-color);
-    text-align: left;
-    padding: 12px 16px;
-    font-weight: 600;
-    border-bottom: 2px solid var(--border-secondary-color);
-  }
-  td {
-    padding: 12px 16px;
-    border-bottom: 1px solid var(--border-secondary-color);
-  }
-  tr:last-child td {
-    border-bottom: none;
-  }
-  tr:hover td {
-    background-color: var(--bg-hover-color);
   }
 }
 </style>
