@@ -10,5 +10,6 @@ export default antfu({
     '**/vite-env.d.ts',
     'bun.lock',
     '**/src-tauri/**',
+    '**/*.md',
   ],
 })

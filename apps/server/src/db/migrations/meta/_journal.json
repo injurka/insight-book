@@ -99,6 +99,13 @@
       "when": 1782057036697,
       "tag": "0013_amazing_gunslinger",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "6",
+      "when": 1782131681244,
+      "tag": "0014_outgoing_karnak",
+      "breakpoints": true
     }
   ]
 }

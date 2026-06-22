@@ -386,3 +386,35 @@ Output STRICT JSON ONLY. Never use backticks for strings.
 }`
   }
 }
+
+export function getDictionaryChatPrompt(uiLanguage?: string): string {
+  let promptText = `You are a helpful dictionary learning assistant. Help the user learn, understand, and memorize the word in the context of the requested language.
+
+CRITICAL CONCISENESS & SPAM PREVENTION INSTRUCTIONS:
+1. Direct Answers: Answer the user's question directly and concisely. Do not provide a pre-canned dictionary definition, translation, or transcription unless explicitly asked or required to answer the user's specific query.
+2. Prevent Over-detailed Responses: For simple, specific queries (e.g., asking for pronunciation, asking for a synonym, or asking for word gender), provide ONLY the requested information. Do NOT include redundant details like word meaning, spelling, etymology, or multiple example sentences unless the user explicitly asks for them.
+3. No redundant introduction or metadata: Avoid wrapping your response in conversational filler like "Sure, I can help you with that!" or repeating the query parameters.`
+
+  if (uiLanguage) {
+    const lang = uiLanguage.toLowerCase()
+    let localizationRule = ''
+
+    if (lang.startsWith('ru')) {
+      localizationRule = `If you generate any JSON structure, code block, or key-value pair, you MUST translate the keys/field labels directly to Russian. For example, use keys like 'Произношение' (not 'Pronunciation'), 'Значение' (not 'Meaning'), 'Слово' (not 'Word'), 'Транскрипция' (not 'Transcription'), 'Перевод' (not 'Translation'), 'Грамматика' (not 'Grammar'), and 'Примеры' (not 'Examples').`
+    }
+    else if (lang.startsWith('zh')) {
+      localizationRule = `If you generate any JSON structure, code block, or key-value pair, you MUST translate the keys/field labels directly to Chinese. For example, use keys like '发音' (not 'Pronunciation'), '释义' (not 'Meaning'), '单词' (not 'Word'), '拼音' (not 'Transcription'), '翻译' (not 'Translation'), '语法' (not 'Grammar'), and '例句' (not 'Examples').`
+    }
+    else {
+      localizationRule = `If you generate any JSON structure, code block, or key-value pair, you MUST use English keys/field labels (e.g., 'Word', 'Transcription', 'Translation', 'Meaning', 'Grammar', 'Examples', 'Pronunciation').`
+    }
+
+    promptText += `\n\nIMPORTANT:
+- The user's interface language is '${uiLanguage}'. You MUST write your explanations, translations, and general response primarily in that language.
+- Provide a natural, conversational, and human-readable response using Markdown.
+- ${localizationRule}
+- DO NOT output JSON unless the user's question explicitly requests code or structured output. DO NOT include redundant fields (like repeating the word, language, or pinyin/meaning on every request unless explicitly asked). Simply answer the user's question directly and concisely.`
+  }
+
+  return promptText
+}

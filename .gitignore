@@ -26,3 +26,4 @@ dist-ssr
 .env
 src_prompt.md
 ./db/*
+ORIGINAL_REQUEST.md

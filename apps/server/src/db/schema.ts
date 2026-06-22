@@ -255,6 +255,15 @@ export const highlights = sqliteTable('highlights', {
   createdAt: text('createdAt').notNull().default(sql`(datetime('now'))`),
 })
 
+export const customPrompts = sqliteTable('custom_prompts', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  userId: integer('userId').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  name: text('name').notNull(),
+  prompt: text('prompt').notNull(),
+  createdAt: text('createdAt').notNull().default(sql`(datetime('now'))`),
+  updatedAt: text('updatedAt').notNull().default(sql`(datetime('now'))`),
+})
+
 export const usersRelations = relations(users, ({ many }) => ({
   books: many(books),
   dictionary: many(userDictionary),
@@ -265,6 +274,7 @@ export const usersRelations = relations(users, ({ many }) => ({
   tokenUsages: many(tokenUsage),
   llmLogs: many(llmLogs),
   highlights: many(highlights),
+  customPrompts: many(customPrompts),
 }))
 
 export const tokenUsageRelations = relations(tokenUsage, ({ one }) => ({
@@ -334,4 +344,8 @@ export const dailyActivityRelations = relations(dailyActivity, ({ one }) => ({
 export const highlightsRelations = relations(highlights, ({ one }) => ({
   user: one(users, { fields: [highlights.userId], references: [users.id] }),
   book: one(books, { fields: [highlights.bookId], references: [books.id] }),
+}))
+
+export const customPromptsRelations = relations(customPrompts, ({ one }) => ({
+  user: one(users, { fields: [customPrompts.userId], references: [users.id] }),
 }))

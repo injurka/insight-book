@@ -1,6 +1,0 @@
-name: Monorepo Linter
-description: Линтит все проекты после изменений
-events:
-  - post-generation
-command: bun run lint
-on_failure: feedback_to_agent

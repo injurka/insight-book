@@ -3,8 +3,10 @@ import { db } from '~/db'
 import { catalogDb } from '~/db/catalog'
 import { BulkActionSchema, DeckSchema, DeepDiveRequestSchema, GenerateExamplesSchema, SrsReviewSchema, UpsertUserDictSchema } from '~/types/schemas'
 import { extractLlmConfig, json, normalizeLanguageCode } from '~/utils/helpers'
+import { callLlmApi } from '~/utils/llm-api'
 import { officialDecks, officialDeckWords } from '../db/catalog-schema'
-import { userDictionary } from '../db/schema'
+import { customPrompts, userDictionary } from '../db/schema'
+import { getDictionaryChatPrompt } from '../prompts'
 import { trackActivity } from '../services/activity.service'
 import {
   createDeck,
@@ -18,7 +20,9 @@ import {
   updateDeck,
   upsertToUserDictionary,
 } from '../services/dictionary.service'
+import { checkTokenLimit } from '../services/limits.service'
 import { checkPronunciationAudio, generateDeepDiveQuiz, generateWordAutoFill, generateWordExamples } from '../services/llm.service'
+import { trackTokenUsage } from '../services/token.service'
 import { AppError } from '../utils/errors'
 import { createRateLimiter } from '../utils/rate-limit'
 
@@ -316,4 +320,131 @@ export async function handleImportCsv(req: Request, userId: number): Promise<Res
   }
 
   return json({ success: true })
+}
+
+export async function handleGetCustomPrompts(req: Request, userId: number): Promise<Response> {
+  const prompts = await db
+    .select()
+    .from(customPrompts)
+    .where(eq(customPrompts.userId, userId))
+
+  return json(prompts)
+}
+
+export async function handleCreateCustomPrompt(req: Request, userId: number): Promise<Response> {
+  const { name, prompt } = await req.json()
+  if (!name || !prompt) {
+    throw new AppError(400, 'Name and prompt are required')
+  }
+
+  const [newPrompt] = await db
+    .insert(customPrompts)
+    .values({
+      userId,
+      name,
+      prompt,
+    })
+    .returning()
+
+  return json(newPrompt)
+}
+
+export async function handleUpdateCustomPrompt(req: Request, userId: number): Promise<Response> {
+  const id = Number(req.params.id)
+  if (Number.isNaN(id)) {
+    throw new AppError(400, 'Invalid custom prompt ID')
+  }
+
+  const body = await req.json()
+  const updateData: Record<string, any> = {}
+  if (body.name !== undefined)
+    updateData.name = body.name
+  if (body.prompt !== undefined)
+    updateData.prompt = body.prompt
+
+  updateData.updatedAt = sql`(datetime('now'))`
+
+  const [updatedPrompt] = await db
+    .update(customPrompts)
+    .set(updateData)
+    .where(and(eq(customPrompts.id, id), eq(customPrompts.userId, userId)))
+    .returning()
+
+  if (!updatedPrompt) {
+    throw new AppError(404, 'Custom prompt not found')
+  }
+
+  return json(updatedPrompt)
+}
+
+export async function handleDeleteCustomPrompt(req: Request, userId: number): Promise<Response> {
+  const id = Number(req.params.id)
+  if (Number.isNaN(id)) {
+    throw new AppError(400, 'Invalid custom prompt ID')
+  }
+
+  const [deletedPrompt] = await db
+    .delete(customPrompts)
+    .where(and(eq(customPrompts.id, id), eq(customPrompts.userId, userId)))
+    .returning()
+
+  if (!deletedPrompt) {
+    throw new AppError(404, 'Custom prompt not found')
+  }
+
+  return json({ success: true })
+}
+
+export async function handleDictionaryChat(req: Request, userId: number): Promise<Response> {
+  await checkTokenLimit(userId)
+
+  const { word, language, customPromptId, userPromptText, uiLanguage } = await req.json()
+  if (!word || !language) {
+    throw new AppError(400, 'Word and language are required')
+  }
+
+  let systemPrompt = getDictionaryChatPrompt(uiLanguage)
+  if (customPromptId) {
+    const [dbPrompt] = await db
+      .select()
+      .from(customPrompts)
+      .where(and(eq(customPrompts.id, Number(customPromptId)), eq(customPrompts.userId, userId)))
+    if (!dbPrompt) {
+      throw new AppError(404, 'Custom prompt not found')
+    }
+    systemPrompt += `\n\nAdditional Instructions:\n${dbPrompt.prompt}`
+  }
+
+  let userContent = `Word: ${word}\nLanguage: ${language}`
+  if (userPromptText) {
+    userContent += `\nQuestion: ${userPromptText}`
+  }
+
+  const config = extractLlmConfig(req)
+  const modelName = config.model || config.fallbackModel || 'gpt-4o'
+
+  const messages = [
+    { role: 'system' as const, content: systemPrompt },
+    { role: 'user' as const, content: userContent },
+  ]
+
+  const result = await callLlmApi(
+    modelName,
+    messages,
+    0.3,
+    AbortSignal.timeout(60000),
+    config,
+  )
+
+  trackTokenUsage(
+    userId,
+    'chat_ai',
+    modelName,
+    result.usage.promptTokens,
+    result.usage.completionTokens,
+    JSON.stringify(messages),
+    result.text,
+  )
+
+  return json({ response: result.text })
 }

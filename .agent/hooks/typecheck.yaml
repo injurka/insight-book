@@ -1,6 +1,0 @@
-name: Monorepo Type Check
-description: Проверяет типизацию во всех проектах монорепозитория
-events:
-  - post-generation
-command: bun run typecheck
-on_failure: feedback_to_agent

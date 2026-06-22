@@ -4,11 +4,6 @@ import { parseLlmJson } from './helpers'
 
 const MAX_OUTPUT_TOKENS = 8192
 
-/**
- * Принудительное использование нативного JSON-режима (Native JSON Mode)
- */
-const FORCE_JSON_OUTPUT = true
-
 interface OpenAiChatMessage {
   role: 'system' | 'user' | 'assistant' | 'tool'
   content: string
@@ -42,6 +37,7 @@ async function callLlmApi(
   temperature: number,
   signal: AbortSignal,
   config: LlmConfig,
+  forceJson: boolean = false,
 ): Promise<{ text: string, usage: TokenUsage }> {
   try {
     if (isOllamaNativeUrl(config.url)) {
@@ -51,6 +47,7 @@ async function callLlmApi(
         temperature,
         signal,
         config,
+        forceJson,
       })
     }
 
@@ -61,6 +58,7 @@ async function callLlmApi(
         temperature,
         signal,
         config,
+        forceJson,
       })
     }
 
@@ -70,6 +68,7 @@ async function callLlmApi(
       temperature,
       signal,
       config,
+      forceJson,
     })
   }
   catch (error: any) {
@@ -91,7 +90,8 @@ async function callLlmJsonWithRetry<T = any>(
   parseFn: (text: string) => T = parseLlmJson,
   onTokenUsage?: (usage: TokenUsage, rawText: string, messagesUsed: ModelMessage[]) => void,
 ): Promise<{ parsed: T, text: string, usage: TokenUsage }> {
-  const res = await callLlmApi(modelName, messages, temperature, signal, config)
+  // Для JSON структуры принудительно требуем JSON формат
+  const res = await callLlmApi(modelName, messages, temperature, signal, config, true)
   const rawResponse = res.text
   const usage = res.usage
 
@@ -116,7 +116,7 @@ async function callLlmJsonWithRetry<T = any>(
       },
     ]
 
-    const retryRes = await callLlmApi(modelName, retryMessages, temperature, signal, config)
+    const retryRes = await callLlmApi(modelName, retryMessages, temperature, signal, config, true)
     const retryRawResponse = retryRes.text
     const retryUsage = retryRes.usage
 
@@ -147,6 +147,7 @@ async function callOpenAiCompatible(params: {
   temperature: number
   signal: AbortSignal
   config: LlmConfig
+  forceJson?: boolean
 }): Promise<{ text: string, usage: TokenUsage }> {
   const {
     modelName,
@@ -154,6 +155,7 @@ async function callOpenAiCompatible(params: {
     temperature,
     signal,
     config,
+    forceJson,
   } = params
 
   const url = buildOpenAiChatCompletionsUrl(config.url)
@@ -167,7 +169,7 @@ async function callOpenAiCompatible(params: {
   }
 
   // Native JSON Mode для OpenAI
-  if (FORCE_JSON_OUTPUT) {
+  if (forceJson) {
     baseBody.response_format = { type: 'json_object' }
   }
 
@@ -183,7 +185,7 @@ async function callOpenAiCompatible(params: {
     baseBody,
   ]
 
-  if (FORCE_JSON_OUTPUT) {
+  if (forceJson) {
     const withoutResponseFormat = { ...baseBody }
     delete withoutResponseFormat.response_format
     bodyVariants.push(withoutResponseFormat)
@@ -192,7 +194,7 @@ async function callOpenAiCompatible(params: {
   const withoutMaxTokens = { ...baseBody }
   delete withoutMaxTokens.max_tokens
 
-  if (FORCE_JSON_OUTPUT) {
+  if (forceJson) {
     bodyVariants.push(withoutMaxTokens)
 
     const withoutMaxTokensAndResponseFormat = { ...withoutMaxTokens }
@@ -261,6 +263,7 @@ async function callGeminiNative(params: {
   temperature: number
   signal: AbortSignal
   config: LlmConfig
+  forceJson?: boolean
 }): Promise<{ text: string, usage: TokenUsage }> {
   const {
     modelName,
@@ -268,6 +271,7 @@ async function callGeminiNative(params: {
     temperature,
     signal,
     config,
+    forceJson,
   } = params
 
   const url = buildGeminiGenerateContentUrl(config.url, modelName, config.key)
@@ -292,7 +296,7 @@ async function callGeminiNative(params: {
 
   {
     const body = structuredCloneJson(baseBody)
-    if (FORCE_JSON_OUTPUT) {
+    if (forceJson) {
       body.generationConfig.responseMimeType = 'application/json'
       body.generationConfig.response_mime_type = 'application/json'
     }
@@ -302,7 +306,7 @@ async function callGeminiNative(params: {
 
   {
     const body = structuredCloneJson(baseBody)
-    if (FORCE_JSON_OUTPUT) {
+    if (forceJson) {
       body.generationConfig.responseMimeType = 'application/json'
       body.generationConfig.response_mime_type = 'application/json'
     }
@@ -359,6 +363,7 @@ async function callOllamaNative(params: {
   temperature: number
   signal: AbortSignal
   config: LlmConfig
+  forceJson?: boolean
 }): Promise<{ text: string, usage: TokenUsage }> {
   const {
     modelName,
@@ -366,6 +371,7 @@ async function callOllamaNative(params: {
     temperature,
     signal,
     config,
+    forceJson,
   } = params
 
   const url = buildOllamaChatUrl(config.url)
@@ -382,7 +388,7 @@ async function callOllamaNative(params: {
   }
 
   // Native JSON Mode для Ollama
-  if (FORCE_JSON_OUTPUT) {
+  if (forceJson) {
     body.format = 'json'
   }
 

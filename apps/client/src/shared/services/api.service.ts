@@ -315,6 +315,11 @@ export const api = {
     catalog: () => request<any[]>('/api/dictionary/catalog'),
     catalogWords: (id: number) => request<any[]>(`/api/dictionary/catalog/${id}/words`),
     cloneCatalog: (id: number) => request<{ success: boolean, deckId: number }>(`/api/dictionary/catalog/${id}/clone`, { method: 'POST' }),
+    promptsList: () => request<any[]>('/api/dictionary/prompts'),
+    promptsCreate: (data: { name: string, prompt: string }) => request<any>('/api/dictionary/prompts', { method: 'POST', body: JSON.stringify(data), headers: { 'Content-Type': 'application/json' } }),
+    promptsUpdate: (id: number, data: { name?: string, prompt?: string }) => request<any>(`/api/dictionary/prompts/${id}`, { method: 'PATCH', body: JSON.stringify(data), headers: { 'Content-Type': 'application/json' } }),
+    promptsDelete: (id: number) => request<{ success: boolean }>(`/api/dictionary/prompts/${id}`, { method: 'DELETE' }),
+    chat: (data: { word: string, language: string, customPromptId?: number, userPromptText?: string }) => request<{ response: string }>('/api/dictionary/chat', { method: 'POST', body: JSON.stringify(data), headers: { 'Content-Type': 'application/json' }, withLlm: true }),
   },
 
   activity: {

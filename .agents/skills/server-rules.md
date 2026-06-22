@@ -1,7 +1,10 @@
 ---
-description: Архитектура Server (Bun)
+name: server-architecture
+description: КРИТИЧЕСКИ ВАЖНО: Правила архитектуры server
 globs: "apps/server/**/*"
 ---
+
+# Архитектура Backend (Server)
 
 ## Работа с Базой Данных (Drizzle + SQLite)
 1. **Схема:** Вся структура БД описана в `apps/server/src/db/schema.ts`. Если тебе нужно написать новый запрос или создать таблицу, СНАЧАЛА прочитай этот файл.

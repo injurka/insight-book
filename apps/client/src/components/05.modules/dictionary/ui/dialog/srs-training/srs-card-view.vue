@@ -3,7 +3,7 @@ import type { GeneratedWordExamples, UserDictItem } from '~/shared/types/models'
 import { Icon } from '@iconify/vue'
 import { computed, nextTick, reactive, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { KitBtn, KitInput, KitTooltip } from '~/components/01.kit'
+import { KitBtn, KitDropdown, KitInput, KitTooltip } from '~/components/01.kit'
 import { AiExamplesModal } from '~/components/03.domain/analysis'
 import { useToast } from '~/shared/composables/use-toast'
 import { useTts } from '~/shared/composables/use-tts'
@@ -11,6 +11,7 @@ import { api } from '~/shared/services/api.service'
 import { useSrsQuiz } from '../../../composables/use-srs-quiz'
 import { useDictionaryStore } from '../../../store/dictionary.store'
 import HanziBoard from '../../hanzi-board.vue'
+import SrsChatModal from './srs-chat-modal.vue'
 
 const props = defineProps<{
   card: UserDictItem | null
@@ -41,6 +42,7 @@ const expandedSections = reactive<Record<string, boolean>>({
 const showAnimation = ref(false)
 const hanziBoardRef = ref<InstanceType<typeof HanziBoard> | null>(null)
 const isAiModalOpen = ref(false)
+const isChatModalOpen = ref(false)
 const isAiLoading = ref(false)
 const aiData = ref<GeneratedWordExamples | null>(null)
 const currentMode = ref<'standard' | 'audio' | 'writing' | 'typing' | 'choice' | 'scramble' | 'collocations' | 'radicals'>('standard')
@@ -662,9 +664,29 @@ watch(() => props.card, initCard, { immediate: true })
             />
           </KitTooltip>
 
-          <KitTooltip :text="t('dictionary.aiHint')" placement="top">
-            <KitBtn icon="mdi:robot-outline" variant="tonal" color="secondary" size="sm" @click="fetchAiExamples" />
-          </KitTooltip>
+          <KitDropdown placement="top-start" width="240px">
+            <template #activator="{ props: dropdownProps }">
+              <KitTooltip :text="t('dictionary.aiHint')" placement="top">
+                <KitBtn
+                  icon="mdi:robot-outline"
+                  variant="tonal"
+                  color="secondary"
+                  size="sm"
+                  :class="{ 'is-active-btn': dropdownProps.isOpen }"
+                />
+              </KitTooltip>
+            </template>
+            <div class="dropdown-menu-list">
+              <button class="dropdown-item" @click="fetchAiExamples">
+                <Icon icon="mdi:text-box-search-outline" />
+                {{ t('analysis.aiContextAndExamples') }}
+              </button>
+              <button class="dropdown-item" @click="isChatModalOpen = true">
+                <Icon icon="mdi:chat-processing-outline" />
+                {{ t('dictionary.aiFreeQuestion') }}
+              </button>
+            </div>
+          </KitDropdown>
           <KitTooltip v-if="card.language === 'zh' && /[\u4E00-\u9FA5]/.test(card.word)" :text="t('dictionary.writingPractice')" placement="top">
             <KitBtn icon="mdi:draw" variant="tonal" color="secondary" size="sm" :class="{ 'is-active-btn': showAnimation }" @click="toggleAnimation" />
           </KitTooltip>
@@ -780,6 +802,7 @@ watch(() => props.card, initCard, { immediate: true })
     </div>
 
     <AiExamplesModal v-model:visible="isAiModalOpen" :loading="isAiLoading" :data="aiData" />
+    <SrsChatModal v-model:visible="isChatModalOpen" :word="card.word" :language="card.language || 'en'" />
   </div>
 </template>
 
@@ -1488,6 +1511,50 @@ watch(() => props.card, initCard, { immediate: true })
   }
   100% {
     transform: scale(1);
+  }
+}
+
+.dropdown-menu-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border: none;
+  background: transparent;
+  color: var(--fg-primary-color);
+  font-size: 0.95rem;
+  font-family: inherit;
+  cursor: pointer;
+  border-radius: 6px;
+  transition:
+    background-color 0.2s,
+    color 0.2s;
+  text-align: left;
+  width: 100%;
+
+  &:hover:not(:disabled) {
+    background-color: var(--bg-hover-color);
+    color: var(--fg-accent-color);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  svg {
+    font-size: 1.25rem;
+    color: var(--fg-secondary-color);
+  }
+
+  &:hover:not(:disabled) svg {
+    color: var(--fg-accent-color);
   }
 }
 </style>
