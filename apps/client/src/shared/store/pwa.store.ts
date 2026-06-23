@@ -113,8 +113,8 @@ export const usePwaStore = defineStore('pwa', {
             applicationServerKey: urlBase64ToUint8Array(publicKey),
           })
         }
-        catch (e: any) {
-          toast.error(`${t('settings.pushSubError')}: ${e.message}`)
+        catch (e: unknown) {
+          toast.error(`${t('settings.pushSubError')}: ${(e as Error).message}`)
           throw e
         }
 

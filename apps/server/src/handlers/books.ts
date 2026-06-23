@@ -576,7 +576,7 @@ export async function handleDeleteBook(req: Request, userId: number): Promise<Re
       await unlink(resolvedCoverPath).catch(() => { })
     }
   }
-  catch (err: any) {
+  catch (err: unknown) {
     console.warn(`[File Delete Warning] Не удалось удалить файлы книги:`, err.message)
   }
 
@@ -670,7 +670,7 @@ export async function handleGetPage(req: Request, userId: number): Promise<Respo
 
         await db.update(schema.mangaPages).set({ ocrData: JSON.stringify(ocrBlocks) }).where(eq(schema.mangaPages.id, pageRow.id))
       }
-      catch (e: any) {
+      catch (e: unknown) {
         console.error('OCR Error:', e.message)
         ocrBlocks = []
       }
@@ -726,7 +726,7 @@ export async function handleGetPageDictionary(req: Request, userId: number): Pro
   const { id: bookIdStr, pageNum: pageNumStr } = req.params
   const bookId = Number(bookIdStr)
   const pageNum = Number(pageNumStr)
-  const targetLang = normalizeLanguageCode(req.headers.get('Accept-Language') || 'ru')
+  const targetLang = normalizeLanguageCode((new URL(req.url).searchParams.get('lang')) || 'ru')
 
   const book = await db.query.books.findFirst({
     where: eq(schema.books.id, bookId),
@@ -777,7 +777,7 @@ export async function handleGetPageDictionary(req: Request, userId: number): Pro
 export async function handleLookupWord(req: Request, userId: number): Promise<Response> {
   const bookId = Number(req.params.id)
   const word = req.params.word
-  const targetLang = normalizeLanguageCode(req.headers.get('Accept-Language') || 'ru')
+  const targetLang = normalizeLanguageCode((new URL(req.url).searchParams.get('lang')) || 'ru')
   const book = await db.query.books.findFirst({ where: eq(schema.books.id, bookId), columns: { language: true, userId: true, isPublic: true } })
   if (!book || (book.userId !== userId && !book.isPublic))
     throw new AppError(403, 'Нет доступа')
@@ -795,7 +795,7 @@ export async function handleCheckCache(req: Request, userId: number): Promise<Re
   if (!book || (book.userId !== userId && !book.isPublic))
     throw new AppError(403, 'Нет доступа')
 
-  const targetLang = normalizeLanguageCode(req.headers.get('Accept-Language') || 'ru')
+  const targetLang = normalizeLanguageCode((new URL(req.url).searchParams.get('lang')) || 'ru')
   const { items, language } = CheckCacheSchema.parse(await req.json())
 
   const results = await checkCacheBatch(bookId, items, normalizeLanguageCode(language), targetLang)
@@ -811,7 +811,7 @@ export async function handleAnalyzeSentence(req: Request, userId: number): Promi
     throw new AppError(403, 'Нет доступа')
 
   const { sentence, language, context, targetLanguage } = AnalyzeSentenceSchema.parse(await req.json())
-  const finalTargetLang = normalizeLanguageCode(targetLanguage || req.headers.get('Accept-Language') || 'ru')
+  const finalTargetLang = normalizeLanguageCode(targetLanguage || (new URL(req.url).searchParams.get('lang')) || 'ru')
   const analysis = await analyzeSentence(
     userId,
     bookId,
@@ -878,7 +878,7 @@ export async function handleAnalyzeBatch(req: Request, userId: number): Promise<
     throw new AppError(403, 'Нет доступа')
 
   const { items, language, targetLanguage } = AnalyzeBatchSchema.parse(await req.json())
-  const finalTargetLang = normalizeLanguageCode(targetLanguage || req.headers.get('Accept-Language') || 'ru')
+  const finalTargetLang = normalizeLanguageCode(targetLanguage || (new URL(req.url).searchParams.get('lang')) || 'ru')
   const results = await analyzeBatch(userId, bookId, items, normalizeLanguageCode(language), finalTargetLang, config)
 
   return json({ results })

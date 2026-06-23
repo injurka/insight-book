@@ -191,7 +191,6 @@
     "menuAuthors": "作者",
     "menuSeries": "系列",
     "menuCollections": "合集",
-    "menuOpds": "OPDS 目录",
     "cover": "封面",
     "pageProgress": "第 {current} 页，共 {total} 页",
     "edit": "编辑",
@@ -484,23 +483,6 @@
       "preview_failed": "预览错误: {error}"
     }
   },
-  "opds": {
-    "myCatalogs": "我的 OPDS 目录",
-    "add": "添加",
-    "emptyState1": "您还没有添加任何 OPDS 目录。",
-    "emptyState2": "点击“添加”从热门选项中选择或输入您自己的。",
-    "loading": "加载中...",
-    "open": "打开",
-    "addCatalog": "添加 OPDS 目录",
-    "popularCatalogs": "热门目录：",
-    "name": "名称",
-    "myLibrary": "我的书库",
-    "save": "保存",
-    "cancel": "取消",
-    "downloadingBook": "正在下载书籍...",
-    "bookDownloaded": "书籍下载完成并已添加到库中！",
-    "downloadError": "下载错误"
-  },
   "activityHeatmap": {
     "totalActions": "总操作数",
     "maxStreak": "最长连续天数",
@@ -716,5 +698,10 @@
     "aiTranslate": "AI 翻译",
     "translating": "翻译中...",
     "speak": "朗读"
+  },
+  "errors": {
+    "network": "请检查您的网络连接。",
+    "server500": "内部服务器错误。",
+    "aiServer": "AI服务器暂时不可用。"
   }
 }

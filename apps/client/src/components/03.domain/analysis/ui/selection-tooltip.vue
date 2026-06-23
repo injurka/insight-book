@@ -2,6 +2,7 @@
 import { Icon } from '@iconify/vue'
 import { useDebounceFn } from '@vueuse/core'
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { QuoteModal } from '~/components/04.features/quote-modal'
 import { useHighlightsStore } from '~/components/05.modules/reader/store/highlights.store'
 import { useReaderStore } from '~/components/05.modules/reader/store/reader.store'
@@ -18,6 +19,7 @@ const analysisStore = useAnalysisStore()
 const isSavingHighlight = ref(false)
 
 const isSaveModalOpen = ref(false)
+const highlightColors = ['#fde047', '#86efac', '#f472b6', '#93c5fd', '#c4b5fd']
 const modalInitialData = ref({ text: '', translation: '', color: highlightColors[0], note: '' })
 const isFetchingTranslation = ref(false)
 

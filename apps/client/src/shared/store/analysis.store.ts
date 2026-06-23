@@ -307,8 +307,8 @@ export const useAnalysisStore = defineStore('analysis', () => {
           if (ttsTask.type === 'tts_word')
             pageAnalysisTtsCurrent.value++
         }
-        catch (e: any) {
-          if (e.name === 'AbortError')
+        catch (e: unknown) {
+          if ((e as Error).name === 'AbortError')
             break
           console.error('TTS Task Error:', e)
         }
@@ -405,7 +405,7 @@ export const useAnalysisStore = defineStore('analysis', () => {
     }
     catch (err: unknown) {
       const e = err as Error
-      if (e.name !== 'AbortError') {
+      if ((e as Error).name !== 'AbortError') {
         console.error('Manual analyze error:', e)
         useToastStore().error('Ошибка анализа предложения')
       }

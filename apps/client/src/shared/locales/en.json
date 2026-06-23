@@ -191,7 +191,6 @@
     "menuAuthors": "Authors",
     "menuSeries": "Series",
     "menuCollections": "Collections",
-    "menuOpds": "OPDS Catalogs",
     "cover": "Cover",
     "pageProgress": "Page {current} of {total}",
     "edit": "Edit",
@@ -484,23 +483,6 @@
       "preview_failed": "Preview error: {error}"
     }
   },
-  "opds": {
-    "myCatalogs": "My OPDS Catalogs",
-    "add": "Add",
-    "emptyState1": "You haven't added any OPDS catalogs yet.",
-    "emptyState2": "Click «Add» to choose from popular ones or enter your own.",
-    "loading": "Loading...",
-    "open": "Open",
-    "addCatalog": "Add OPDS catalog",
-    "popularCatalogs": "Popular catalogs:",
-    "name": "Name",
-    "myLibrary": "My Library",
-    "save": "Save",
-    "cancel": "Cancel",
-    "downloadingBook": "Downloading book...",
-    "bookDownloaded": "Book downloaded and added to library!",
-    "downloadError": "Download error"
-  },
   "activityHeatmap": {
     "totalActions": "Total actions",
     "maxStreak": "Max streak",
@@ -716,5 +698,10 @@
     "aiTranslate": "AI Translate",
     "translating": "Translating...",
     "speak": "Speak"
+  },
+  "errors": {
+    "network": "Please check your internet connection.",
+    "server500": "Internal server error.",
+    "aiServer": "AI server is temporarily unavailable."
   }
 }

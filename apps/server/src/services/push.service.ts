@@ -229,7 +229,7 @@ export async function sendDailyMotivations(customMessage?: string) {
         }, payload)
         sentCount++
       }
-      catch (error: any) {
+      catch (error: unknown) {
         if (error.statusCode === 410 || error.statusCode === 404) {
           console.log(`[Push] Subscription expired for user ${userId}, deleting...`)
           await db.delete(schema.webPushSubscriptions).where(eq(schema.webPushSubscriptions.id, sub.id))

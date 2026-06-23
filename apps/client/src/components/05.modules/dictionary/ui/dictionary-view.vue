@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { UserDictItem } from '~/shared/types/models'
+import type { SelectOption, UserDictItem } from '~/shared/types/models'
 import { Icon } from '@iconify/vue'
 import { useVirtualList } from '@vueuse/core'
 import { useI18n } from 'vue-i18n'
@@ -60,7 +60,7 @@ const langOptions = computed(() => {
 })
 
 const deckOptions = computed(() => {
-  const opts: any[] = [
+  const opts: SelectOption[] = [
     { label: t('dictionary.allDecks'), value: 'all' },
     { label: t('dictionary.noDeck'), value: 'none' },
   ]
@@ -73,7 +73,7 @@ const deckOptions = computed(() => {
 })
 
 const difficultyOptions = computed(() => {
-  const opts: any[] = [{ label: t('dictionary.allDifficulties'), value: 'all' }, { label: t('dictionary.noDifficulty'), value: 'none' }]
+  const opts: SelectOption[] = [{ label: t('dictionary.allDifficulties'), value: 'all' }, { label: t('dictionary.noDifficulty'), value: 'none' }]
   const lang = store.selectedLanguage !== 'all' ? store.selectedLanguage : 'all'
   const sys = DIFFICULTY_SYSTEMS[lang] || DIFFICULTY_SYSTEMS.all
   sys.forEach(d => opts.push({ label: d.label, value: d.value }))

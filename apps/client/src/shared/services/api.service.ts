@@ -1,58 +1,94 @@
-import type { Book, BookStats, DictDeck, GeneratedWordExamples, LlmAnalysis, OpdsCatalog, OpdsFeed, PageDictEntry, PagePayload, TocItem, UserDictItem, WordAutoFillResponse } from '../types/models'
+import type { Book, BookStats, CatalogDeck, CatalogWord, DictDeck, GeneratedWordExamples, Highlight, LlmAnalysis, PageDictEntry, PagePayload, PromptItem, TocItem, UserData, UserDictItem, WordAutoFillResponse } from '../types/models'
+import { ofetch } from 'ofetch'
 import { getActivePinia } from 'pinia'
+
+import { i18n } from '../plugins/i18n'
+import { useAuthStore } from '../store/auth.store'
 import { useGlobalSettingsStore } from '../store/settings.store'
+import { useToastStore } from '../store/toast.store'
+
+declare module 'ofetch' {
+  interface FetchOptions {
+    withLlm?: boolean
+  }
+}
 
 export const BASE_API_URL = import.meta.env.VITE_API_URL || 'https://insight-api.trip-scheduler.ru'
 
-interface ApiRequestInit extends RequestInit {
-  withLlm?: boolean
-}
+export const request = ofetch.create({
+  baseURL: BASE_API_URL,
+  async onRequest({ options }) {
+    options.headers = new Headers(options.headers || {})
 
-async function request<T>(url: string, opts?: ApiRequestInit): Promise<T> {
-  const headers = new Headers(opts?.headers)
-
-  const token = localStorage.getItem('insight_token')
-  if (token) {
-    headers.set('Authorization', `Bearer ${token}`)
-  }
-
-  if (getActivePinia()) {
-    const settings = useGlobalSettingsStore()
-
-    if (settings.appLanguage) {
-      headers.set('Accept-Language', settings.appLanguage)
+    const token = localStorage.getItem('insight_token')
+    if (token) {
+      options.headers.set('Authorization', `Bearer ${token}`)
     }
 
-    if (opts?.withLlm && settings.useCustomLlm && settings.customLlmUrl && settings.customLlmModel) {
-      headers.set('X-Custom-Llm-Url', settings.customLlmUrl)
-      headers.set('X-Custom-Llm-Key', settings.customLlmKey || '')
-      headers.set('X-Custom-Llm-Model', settings.customLlmModel)
-    }
-  }
-  else {
-    try {
-      const savedLang = localStorage.getItem('global-app-language')
+    if (getActivePinia()) {
+      const settings = useGlobalSettingsStore()
 
-      if (savedLang) {
-        headers.set('Accept-Language', JSON.parse(savedLang))
+      if (settings.appLanguage) {
+        options.query = { ...options.query, lang: settings.appLanguage }
+      }
+
+      if (options.withLlm && settings.useCustomLlm && settings.customLlmUrl && settings.customLlmModel) {
+        options.headers.set('X-Custom-Llm-Url', settings.customLlmUrl)
+        options.headers.set('X-Custom-Llm-Key', settings.customLlmKey || '')
+        options.headers.set('X-Custom-Llm-Model', settings.customLlmModel)
       }
     }
-    catch { }
-  }
+    else {
+      try {
+        const savedLang = localStorage.getItem('global-app-language')
+        if (savedLang) {
+          options.query = { ...options.query, lang: JSON.parse(savedLang) }
+        }
+      }
+      catch { }
+    }
+  },
+  async onResponseError({ response, options }) {
+    let errMessage = response._data?.error || `HTTP ${response.status} ${response.statusText}`
 
-  const { withLlm, ...fetchOpts } = opts || {}
-  const res = await fetch(`${BASE_API_URL}${url}`, { ...fetchOpts, headers })
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: res.statusText })) as { error: string }
-    throw new Error(err.error || `HTTP ${res.status}`)
-  }
-  return res.json() as Promise<T>
-}
+    if (response.status === 500) {
+      if (options.withLlm || errMessage.includes('LLM') || errMessage.includes('AI')) {
+        errMessage = i18n.global.t('errors.aiServer') || 'Сервер ИИ временно недоступен'
+      }
+      else {
+        errMessage = i18n.global.t('errors.server500') || 'Внутренняя ошибка сервера'
+      }
+    }
+
+    if (getActivePinia()) {
+      useToastStore().error(errMessage)
+
+      if (response.status === 401) {
+        const authStore = useAuthStore()
+        authStore.logout()
+      }
+    }
+
+    throw new Error(errMessage)
+  },
+  async onRequestError({ error }) {
+    let errMessage = error.message
+    if (errMessage.includes('Failed to fetch') || errMessage.includes('Network Error')) {
+      errMessage = i18n.global.t('errors.network') || 'Проверьте подключение к интернету'
+    }
+
+    if (getActivePinia()) {
+      useToastStore().error(errMessage)
+    }
+
+    throw new Error(errMessage)
+  },
+})
 
 export const api = {
   auth: {
-    login: (data: any) => request<{ token: string, user: any }>('/api/auth/login', { method: 'POST', body: JSON.stringify(data) }),
-    me: () => request<{ user: any, mode: string }>('/api/auth/me'),
+    login: (data: unknown) => request<{ token: string, user: UserData }>('/api/auth/login', { method: 'POST', body: JSON.stringify(data) }),
+    me: () => request<{ user: UserData, mode: string }>('/api/auth/me'),
     updateAvatar: (file: File) => {
       const fd = new FormData()
       fd.append('file', file)
@@ -84,7 +120,7 @@ export const api = {
 
     analyzeBook: (id: number) => request<{ success: boolean, stats: Book['stats'] }>(`/api/books/${id}/analyze-book`, { method: 'POST', withLlm: true }),
 
-    analyzeVocabulary: (id: number) => request<{ success: boolean, lexicalStats: any }>(`/api/books/${id}/analyze-vocabulary`, { method: 'POST', withLlm: true }),
+    analyzeVocabulary: (id: number) => request<{ success: boolean, lexicalStats: Pick<BookStats, 'posDistribution' | 'topWords' | 'lexicalDiversity'> }>(`/api/books/${id}/analyze-vocabulary`, { method: 'POST', withLlm: true }),
 
     updateCover: (id: number, file: File) => {
       const fd = new FormData()
@@ -193,7 +229,7 @@ export const api = {
     },
 
     generateTts: (bookId: number, text: string, signal?: AbortSignal) =>
-      request<{ audioBase64: string, timings?: any[] }>(`/api/books/${bookId}/tts`, {
+      request<{ audioBase64: string, timings?: unknown[] }>(`/api/books/${bookId}/tts`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text }),
@@ -292,7 +328,7 @@ export const api = {
       }),
 
     generateDeepDive: (word: string, language: string, mode: 'collocations' | 'radicals') =>
-      request<any>('/api/dictionary/deep-dive', {
+      request<unknown>('/api/dictionary/deep-dive', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ word, language, mode }),
@@ -311,13 +347,13 @@ export const api = {
       })
     },
 
-    importCsv: (data: any) => request<{ success: boolean }>('/api/dictionary/import', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
-    catalog: () => request<any[]>('/api/dictionary/catalog'),
-    catalogWords: (id: number) => request<any[]>(`/api/dictionary/catalog/${id}/words`),
+    importCsv: (data: unknown) => request<{ success: boolean }>('/api/dictionary/import', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+    catalog: () => request<CatalogDeck[]>('/api/dictionary/catalog'),
+    catalogWords: (id: number) => request<CatalogWord[]>(`/api/dictionary/catalog/${id}/words`),
     cloneCatalog: (id: number) => request<{ success: boolean, deckId: number }>(`/api/dictionary/catalog/${id}/clone`, { method: 'POST' }),
-    promptsList: () => request<any[]>('/api/dictionary/prompts'),
-    promptsCreate: (data: { name: string, prompt: string }) => request<any>('/api/dictionary/prompts', { method: 'POST', body: JSON.stringify(data), headers: { 'Content-Type': 'application/json' } }),
-    promptsUpdate: (id: number, data: { name?: string, prompt?: string }) => request<any>(`/api/dictionary/prompts/${id}`, { method: 'PATCH', body: JSON.stringify(data), headers: { 'Content-Type': 'application/json' } }),
+    promptsList: () => request<PromptItem[]>('/api/dictionary/prompts'),
+    promptsCreate: (data: { name: string, prompt: string }) => request<PromptItem>('/api/dictionary/prompts', { method: 'POST', body: JSON.stringify(data), headers: { 'Content-Type': 'application/json' } }),
+    promptsUpdate: (id: number, data: { name?: string, prompt?: string }) => request<PromptItem>(`/api/dictionary/prompts/${id}`, { method: 'PATCH', body: JSON.stringify(data), headers: { 'Content-Type': 'application/json' } }),
     promptsDelete: (id: number) => request<{ success: boolean }>(`/api/dictionary/prompts/${id}`, { method: 'DELETE' }),
     chat: (data: { word: string, language: string, customPromptId?: number, userPromptText?: string }) => request<{ response: string }>('/api/dictionary/chat', { method: 'POST', body: JSON.stringify(data), headers: { 'Content-Type': 'application/json' }, withLlm: true }),
   },
@@ -327,18 +363,10 @@ export const api = {
     getTokens: () => request<{ stats: { action: string, model: string, inputTokens: number, outputTokens: number, cost?: number }[], daily: { date: string, inputTokens: number, outputTokens: number, cost?: number }[], totalCost: number }>('/api/activity/tokens'),
   },
 
-  opds: {
-    getCatalogs: () => request<OpdsCatalog[]>('/api/opds/catalogs'),
-    addCatalog: (data: { title: string, url: string }) => request<OpdsCatalog>('/api/opds/catalogs', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
-    deleteCatalog: (id: number) => request<{ success: boolean }>(`/api/opds/catalogs/${id}`, { method: 'DELETE' }),
-    browse: (url: string) => request<OpdsFeed>(`/api/opds/browse?url=${encodeURIComponent(url)}`),
-    download: (data: { downloadUrl: string, title: string, type?: string }) => request<{ success: boolean, book: Book }>('/api/opds/download', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
-  },
-
   highlights: {
     list: (bookId?: number) => {
       const q = bookId ? `?bookId=${bookId}` : ''
-      return request<any[]>(`/api/highlights${q}`)
+      return request<Highlight[]>(`/api/highlights${q}`)
     },
     create: (data: {
       bookId: number
@@ -349,7 +377,7 @@ export const api = {
       chapter?: string | null
       pageNum: number
     }) =>
-      request<any>('/api/highlights', {
+      request<Highlight>('/api/highlights', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
@@ -361,7 +389,7 @@ export const api = {
       chapter?: string | null
       pageNum?: number
     }) =>
-      request<any>(`/api/highlights/${id}`, {
+      request<Highlight>(`/api/highlights/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),

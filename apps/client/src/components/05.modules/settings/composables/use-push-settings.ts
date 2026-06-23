@@ -1,3 +1,4 @@
+import type { SelectOption } from '~/shared/types/models'
 import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useDictionaryStore } from '~/components/05.modules/dictionary/store/dictionary.store'
@@ -24,7 +25,7 @@ export function usePushSettings() {
   })
 
   const pushDeckOptions = computed(() => {
-    const opts: any[] = [{ label: t('dictionary.allDecks'), value: 'all' }]
+    const opts: SelectOption[] = [{ label: t('dictionary.allDecks'), value: 'all' }]
     dictStore.decks.forEach((d) => {
       opts.push({ label: d.name, value: d.id })
     })

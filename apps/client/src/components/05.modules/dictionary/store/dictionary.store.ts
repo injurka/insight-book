@@ -207,7 +207,7 @@ export const useDictionaryStore = defineStore('dictionary', () => {
     }
 
     if (!selectedStatus.value.includes('all') && selectedStatus.value.length > 0) {
-      result = result.filter(w => selectedStatus.value.includes(String(w.status) as any))
+      result = result.filter(w => selectedStatus.value.includes(String(w.status) as '0' | '1' | '2' | '3'))
     }
 
     if (searchTerm.value) {

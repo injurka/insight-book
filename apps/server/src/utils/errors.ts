@@ -12,7 +12,7 @@ export function apiWrapper(handler: (req: Request) => Promise<Response> | Respon
     try {
       return await handler(req)
     }
-    catch (error: any) {
+    catch (error: unknown) {
       let status = 500
       let message = 'Внутренняя ошибка сервера. Пожалуйста, попробуйте позже.'
 

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { TagKey } from '~/shared/constants/tags'
 import { Icon } from '@iconify/vue'
 import { computed, onMounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -52,7 +53,7 @@ const bookDescription = computed(() => {
 const localizedTags = computed(() => {
   const tags = libraryStore.currentBookInfo?.stats?.tags || []
   return tags.map((tag: string) => {
-    return (BOOK_TAGS as any)[tag]?.[settingsStore.appLanguage] || tag
+    return BOOK_TAGS[tag as TagKey]?.[settingsStore.appLanguage as keyof (typeof BOOK_TAGS)[TagKey]] || tag
   })
 })
 

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { TagKey } from '~/shared/constants/tags'
 import type { UserDictItem } from '~/shared/types/models'
 import { Icon } from '@iconify/vue'
 import { computed, ref, watch } from 'vue'
@@ -81,7 +82,7 @@ const tagsList = computed(() => {
     return []
   const tags = props.word.tags.split(',').map(t => t.trim()).filter(Boolean)
   return tags.map((tag) => {
-    const match = (BOOK_TAGS as any)[tag]?.[settingsStore.appLanguage]
+    const match = BOOK_TAGS[tag as TagKey]?.[settingsStore.appLanguage as keyof (typeof BOOK_TAGS)[TagKey]]
     if (match)
       return match
     return tag.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())

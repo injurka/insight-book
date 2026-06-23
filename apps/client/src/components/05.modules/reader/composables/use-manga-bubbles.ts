@@ -1,3 +1,4 @@
+import type { OcrBlock } from '~/shared/types/models'
 import { ref } from 'vue'
 import { hexToRgba, normalizeString } from '~/shared/lib/helpers'
 import { useAnalysisStore } from '~/shared/store/analysis.store'
@@ -14,10 +15,10 @@ export function useMangaBubbles(
   const readerStore = useReaderStore()
   const highlightsStore = useHighlightsStore()
 
-  const activeBubble = ref<any>(null)
+  const activeBubble = ref<OcrBlock | null>(null)
   const bubbleReference = ref<HTMLElement | null>(null)
 
-  function handleBubbleClick(event: MouseEvent, box: any, dragDist: number, scale: number) {
+  function handleBubbleClick(event: MouseEvent, box: OcrBlock, dragDist: number, scale: number) {
     if (dragDist > 10 && scale > 1)
       return
 
@@ -32,7 +33,7 @@ export function useMangaBubbles(
     }
   }
 
-  function handleBubblePointerDown(event: MouseEvent | TouchEvent, box: any) {
+  function handleBubblePointerDown(event: MouseEvent | TouchEvent, box: OcrBlock) {
     if (settingsStore.mangaOcrDisplayMode === 'hover') {
       onPointerDown(event, box.text)
     }
@@ -59,7 +60,7 @@ export function useMangaBubbles(
     }
   }
 
-  function getBoxStyle(box: any) {
+  function getBoxStyle(box: OcrBlock) {
     if (!readerStore.currentPage?.imageWidth || !readerStore.currentPage?.imageHeight)
       return {}
     const imgWidth = readerStore.currentPage.imageWidth || 1
@@ -72,7 +73,7 @@ export function useMangaBubbles(
     }
   }
 
-  function getOuterNumberStyle(box: any) {
+  function getOuterNumberStyle(box: OcrBlock) {
     if (!readerStore.currentPage?.imageWidth || !readerStore.currentPage?.imageHeight)
       return {}
     const imgWidth = readerStore.currentPage.imageWidth || 1
@@ -83,7 +84,7 @@ export function useMangaBubbles(
     }
   }
 
-  function getBubbleHighlightStyle(box: any) {
+  function getBubbleHighlightStyle(box: OcrBlock) {
     if (!box?.text || !settingsStore.highlightSavedQuotes)
       return {}
     const rawNorm = normalizeString(box.text)

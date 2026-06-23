@@ -14,7 +14,6 @@ import { useLibraryDisplay } from '../composables/use-library-display'
 import { useLibraryStore } from '../store/library.store'
 import BookCard from './book-card.vue'
 import LibraryHeader from './library-header.vue'
-import OpdsBrowser from './opds-browser.vue'
 
 const EditBookModal = lazyComponent(() => import('./modal/edit-book-modal.vue'))
 const UploadBookModal = lazyComponent(() => import('./modal/upload-book-modal.vue'))
@@ -79,9 +78,6 @@ const menuItems = computed(() => {
     items.push({ id: 'public-catalog', label: t('library.menuPublicCatalog'), icon: 'mdi:earth' })
   }
 
-  if (authStore.user || authStore.isSingleMode) {
-    items.push({ id: 'opds', label: t('library.menuOpds'), icon: 'mdi:web' })
-  }
   return items
 })
 
@@ -215,10 +211,6 @@ onMounted(() => {
                 </div>
               </div>
             </div>
-          </div>
-
-          <div v-else-if="currentView === 'opds'" style="padding-top: 16px;">
-            <OpdsBrowser />
           </div>
 
           <div v-else-if="currentView === 'public-catalog'" class="public-catalog-view">

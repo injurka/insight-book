@@ -364,8 +364,8 @@ export const useLibraryStore = defineStore('library', () => {
                     await offlineService.saveTts(cacheKey, res.audioBase64)
                   }
                 }
-                catch (e: any) {
-                  if (e.name !== 'AbortError')
+                catch (e: unknown) {
+                  if ((e as Error).name !== 'AbortError')
                     console.error('TTS Sync error:', e)
                 }
                 syncProgress.value.ttsDone++

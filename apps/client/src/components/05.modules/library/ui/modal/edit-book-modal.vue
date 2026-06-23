@@ -84,7 +84,7 @@ function copyLink() {
       </div>
 
       <div class="form-group">
-        <label>{{ t('opds.name') }}</label>
+        <label>{{ t('library.bookTitle') }}</label>
         <KitInput v-model="editingBook.title" :placeholder="t('library.bookTitle')" />
       </div>
 

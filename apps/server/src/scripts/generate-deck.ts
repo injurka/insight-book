@@ -91,7 +91,7 @@ async function main() {
 
       await new Promise(r => setTimeout(r, 600))
     }
-    catch (e: any) {
+    catch (e: unknown) {
       console.error(`❌ Ошибка при обработке слова "${word}":`, e.message)
     }
   }

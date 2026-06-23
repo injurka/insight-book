@@ -71,7 +71,7 @@ async function callLlmApi(
       forceJson,
     })
   }
-  catch (error: any) {
+  catch (error: unknown) {
     throw new Error(
       `AI SDK Error[${modelName}]: ${error?.message || JSON.stringify(error)} `,
     )
@@ -103,7 +103,7 @@ async function callLlmJsonWithRetry<T = any>(
     const parsed = parseFn(rawResponse)
     return { parsed, text: rawResponse, usage }
   }
-  catch (parseError: any) {
+  catch (parseError: unknown) {
     console.warn(`[LLM JSON Parse Retry] First attempt failed to parse JSON. Error: ${parseError.message || parseError}. Retrying...`)
 
     // Отправляем модели её же ответ и текст ошибки парсинга, требуя строгий JSON
@@ -245,7 +245,7 @@ async function callOpenAiCompatible(params: {
 
       throw new Error(`Пустой ответ от OpenAI-compatible API: ${JSON.stringify(data)}`)
     }
-    catch (error: any) {
+    catch (error: unknown) {
       lastError = error
 
       if (!isProbablyUnsupportedParameterError(error)) {
@@ -345,7 +345,7 @@ async function callGeminiNative(params: {
 
       throw new Error(`Пустой ответ от Gemini API: ${JSON.stringify(data)}`)
     }
-    catch (error: any) {
+    catch (error: unknown) {
       lastError = error
 
       if (!isProbablyUnsupportedParameterError(error)) {

@@ -47,6 +47,7 @@
     "dompurify": "^3.4.11",
     "hanzi-writer": "^3.7.3",
     "localforage": "^1.10.0",
+    "ofetch": "^1.5.1",
     "pinia": "3.0.4",
     "tauri": "^0.15.0",
     "uuid": "^14.0.1",

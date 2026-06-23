@@ -71,7 +71,7 @@ class S3Service {
         contentType: response.ContentType || 'application/octet-stream',
       }
     }
-    catch (error: any) {
+    catch (error: unknown) {
       if (error.name === 'NoSuchKey' || error.name === 'NotFound' || error.$metadata?.httpStatusCode === 404) {
         return null
       }
@@ -86,7 +86,7 @@ class S3Service {
         new HeadBucketCommand({ Bucket: this.bucket }),
       )
     }
-    catch (error: any) {
+    catch (error: unknown) {
       if (error.name === 'NotFound' || error.$metadata?.httpStatusCode === 404) {
         /* eslint-disable no-console */
         console.log(`⚠️ Bucket '${this.bucket}' not found. Attempting to create it...`)

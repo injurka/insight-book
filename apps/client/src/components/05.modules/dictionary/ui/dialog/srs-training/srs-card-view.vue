@@ -235,7 +235,7 @@ async function initDeepDive(mode: 'collocations' | 'radicals') {
       selectedRadicals.value = []
     }
     else if (mode === 'collocations') {
-      choiceOptions.value = res.options.map((text: string) => ({ text, isCorrect: text === res.answer })).sort(() => Math.random() - 0.5)
+      choiceOptions.value = (res as any).options.map((text: string) => ({ text, isCorrect: text === (res as any).answer })).sort(() => Math.random() - 0.5)
     }
   }
   catch {

@@ -1,4 +1,4 @@
-import type { LexicalWordData } from '~/shared/types/models'
+import type { LexicalDataGroup, LexicalWordData } from '~/shared/types/models'
 import { computed } from 'vue'
 import { useLibraryStore } from '~/components/05.modules/library/store/library.store'
 
@@ -18,7 +18,7 @@ export function useBookLexicalStats() {
   const lexData = computed(() => {
     if (isLegacyLexical.value)
       return null
-    return libraryStore.currentBookInfo?.stats?.topWords as any
+    return libraryStore.currentBookInfo?.stats?.topWords as LexicalDataGroup
   })
 
   const posStats = computed(() => {

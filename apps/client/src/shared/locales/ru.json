@@ -191,7 +191,6 @@
     "menuAuthors": "Авторы",
     "menuSeries": "Серии",
     "menuCollections": "Коллекции",
-    "menuOpds": "OPDS Каталоги",
     "cover": "Обложка",
     "pageProgress": "Стр. {current} из {total}",
     "edit": "Редактировать",
@@ -484,23 +483,6 @@
       "preview_failed": "Ошибка предпросмотра: {error}"
     }
   },
-  "opds": {
-    "myCatalogs": "Мои каталоги OPDS",
-    "add": "Добавить",
-    "emptyState1": "У вас пока нет добавленных OPDS каталогов.",
-    "emptyState2": "Нажмите «Добавить», чтобы выбрать из популярных или ввести свой.",
-    "loading": "Загрузка...",
-    "open": "Открыть",
-    "addCatalog": "Добавить OPDS каталог",
-    "popularCatalogs": "Популярные каталоги:",
-    "name": "Название",
-    "myLibrary": "Моя библиотека",
-    "save": "Сохранить",
-    "cancel": "Отмена",
-    "downloadingBook": "Скачивание книги...",
-    "bookDownloaded": "Книга скачана и добавлена в библиотеку!",
-    "downloadError": "Ошибка скачивания"
-  },
   "activityHeatmap": {
     "totalActions": "Всего действий",
     "maxStreak": "Макс. серия дней",
@@ -716,5 +698,10 @@
     "aiTranslate": "ИИ Перевод",
     "translating": "Перевод...",
     "speak": "Озвучить"
+  },
+  "errors": {
+    "network": "Проверьте подключение к интернету.",
+    "server500": "Внутренняя ошибка сервера.",
+    "aiServer": "Сервер ИИ временно недоступен."
   }
 }

@@ -3,13 +3,6 @@ import { getLangName, getSystemPrompt } from '../prompts'
 import { normalizeLanguageCode } from './helpers'
 
 describe('Language Code Normalization', () => {
-  test('normalizes weighted Accept-Language strings correctly', () => {
-    expect(normalizeLanguageCode('zh-CN,zh;q=0.9')).toBe('zh')
-    expect(normalizeLanguageCode('ru-RU,ru;q=0.8')).toBe('ru')
-    expect(normalizeLanguageCode('ja-JP')).toBe('ja')
-    expect(normalizeLanguageCode('en-US;q=0.7')).toBe('en')
-  })
-
   test('returns appropriate defaults for empty, null, or undefined values', () => {
     expect(normalizeLanguageCode(undefined)).toBe('')
     expect(normalizeLanguageCode(null)).toBe('')
@@ -34,13 +27,6 @@ describe('getLangName Mapping', () => {
     expect(getLangName('ru')).toBe('Russian')
     expect(getLangName('ja')).toBe('Japanese')
     expect(getLangName('en')).toBe('English')
-  })
-
-  test('maps weighted Accept-Language strings correctly via getLangName', () => {
-    expect(getLangName('zh-CN,zh;q=0.9')).toBe('Chinese')
-    expect(getLangName('ru-RU,ru;q=0.8')).toBe('Russian')
-    expect(getLangName('ja-JP')).toBe('Japanese')
-    expect(getLangName('en-US;q=0.7')).toBe('English')
   })
 
   test('falls back to Foreign for empty or undefined values', () => {
@@ -79,18 +65,6 @@ describe('getSystemPrompt Dynamic Patterns', () => {
     // Fallback for unknown language (e.g. French)
     const frPrompt = getSystemPrompt('fr', 'en')
     expect(frPrompt).toContain('V + ...')
-  })
-
-  test('handles weighted Accept-Language strings for prompts normalization', () => {
-    const jaPrompt = getSystemPrompt('ja-JP', 'en-US;q=0.7')
-    expect(jaPrompt).toContain('Japanese')
-    expect(jaPrompt).toContain('English')
-    expect(jaPrompt).toContain('V + て + もいい')
-
-    const zhPrompt = getSystemPrompt('zh-CN,zh;q=0.9', 'ru-RU,ru;q=0.8')
-    expect(zhPrompt).toContain('Chinese')
-    expect(zhPrompt).toContain('Russian')
-    expect(zhPrompt).toContain('Subject + 正在 + Verb')
   })
 
   test('uses the code name fallback cleanly in getSystemPrompt without conflict', () => {

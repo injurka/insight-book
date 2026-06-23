@@ -247,7 +247,7 @@ async function refineOcrText(userId: number, base64Image: string, blocks: OcrBlo
           validBlocks[i].text = cleanOcrText(refinedTexts[i]) || validBlocks[i].text
         }
       }
-      catch (parseError: any) {
+      catch (parseError: unknown) {
         console.warn(`[OCR Refinement] First attempt failed to parse JSON. Error: ${parseError.message || parseError}. Retrying...`)
 
         // Выполняем ровно 1 повторный запрос с инструкцией об ошибке

@@ -684,7 +684,7 @@ Output STRICT JSON ONLY. Never use backticks for strings.
       mistakeAnalysis,
     }
   }
-  catch (error: any) {
+  catch (error: unknown) {
     console.error('[Audio Service] Pronunciation Check Failed:', error.message)
     throw new AppError(500, `Ошибка распознавания речи: ${error.message}`)
   }

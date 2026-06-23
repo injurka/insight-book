@@ -44,14 +44,6 @@ export const users = sqliteTable('users', {
   yandexId: text('yandexId').unique(),
 })
 
-export const opdsCatalogs = sqliteTable('opds_catalogs', {
-  id: integer('id').primaryKey({ autoIncrement: true }),
-  userId: integer('userId').notNull().references(() => users.id, { onDelete: 'cascade' }),
-  title: text('title').notNull(),
-  url: text('url').notNull(),
-  createdAt: text('createdAt').notNull().default(sql`(datetime('now'))`),
-})
-
 export const tokenUsage = sqliteTable('token_usage', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   userId: integer('userId').notNull().references(() => users.id, { onDelete: 'cascade' }),
@@ -270,7 +262,7 @@ export const usersRelations = relations(users, ({ many }) => ({
   decks: many(dictDecks),
   activity: many(dailyActivity),
   progresses: many(readingProgress),
-  opdsCatalogs: many(opdsCatalogs),
+
   tokenUsages: many(tokenUsage),
   llmLogs: many(llmLogs),
   highlights: many(highlights),

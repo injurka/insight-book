@@ -40,7 +40,7 @@ self.onmessage = async (event: MessageEvent) => {
 
     self.postMessage({ id, success: true, data: result })
   }
-  catch (error: any) {
+  catch (error: unknown) {
     self.postMessage({ id, success: false, error: error.message || String(error) })
   }
 }

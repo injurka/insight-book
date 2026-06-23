@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { CatalogDeck, CatalogWord, SelectOption } from '~/shared/types/models'
 import { Icon } from '@iconify/vue'
 import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -30,7 +31,7 @@ const importAutoFill = ref(false)
 const isImporting = ref(false)
 
 const deckOptions = computed(() => {
-  const opts: any[] = [{ label: t('dictionary.discover.no_deck'), value: 'none' }]
+  const opts: SelectOption[] = [{ label: t('dictionary.discover.no_deck'), value: 'none' }]
   store.decks.forEach((d) => {
     opts.push({ label: d.name, value: d.id })
   })
@@ -77,8 +78,8 @@ async function doImport() {
     store.fetchDecks()
     visible.value = false
   }
-  catch (err: any) {
-    toast.error(t('dictionary.discover.import_failed', { error: err.message }))
+  catch (err: unknown) {
+    toast.error(t('dictionary.discover.import_failed', { error: (err as Error).message }))
   }
   finally {
     isImporting.value = false
@@ -88,20 +89,20 @@ async function doImport() {
 }
 
 // -- Catalog Block --
-const catalogDecks = ref<any[]>([])
+const catalogDecks = ref<CatalogDeck[]>([])
 const isCatalogLoading = ref(false)
 
-const previewDeck = ref<any | null>(null)
-const previewWords = ref<any[]>([])
+const previewDeck = ref<CatalogDeck | null>(null)
+const previewWords = ref<CatalogWord[]>([])
 const isPreviewLoading = ref(false)
 
 async function loadCatalog() {
   isCatalogLoading.value = true
   try {
     const res = await api.dictionary.catalog()
-    catalogDecks.value = Array.isArray(res) ? res : (res as any).data || []
+    catalogDecks.value = Array.isArray(res) ? res : (res as unknown as { data: CatalogDeck[] }).data || []
   }
-  catch (err: any) {
+  catch (err: unknown) {
     console.error(err)
   }
   finally {
@@ -109,15 +110,15 @@ async function loadCatalog() {
   }
 }
 
-async function openPreview(deck: any) {
+async function openPreview(deck: CatalogDeck) {
   previewDeck.value = deck
   previewWords.value = []
   isPreviewLoading.value = true
   try {
     previewWords.value = await api.dictionary.catalogWords(deck.id)
   }
-  catch (err: any) {
-    toast.error(t('dictionary.discover.preview_failed', { error: err.message }))
+  catch (err: unknown) {
+    toast.error(t('dictionary.discover.preview_failed', { error: (err as Error).message }))
   }
   finally {
     isPreviewLoading.value = false
@@ -138,8 +139,8 @@ async function cloneDeck(id: number) {
     previewDeck.value = null
     visible.value = false
   }
-  catch (err: any) {
-    toast.error(t('dictionary.discover.clone_failed', { error: err.message }))
+  catch (err: unknown) {
+    toast.error(t('dictionary.discover.clone_failed', { error: (err as Error).message }))
   }
 }
 
@@ -230,7 +231,7 @@ onMounted(() => {
               <div v-if="previewDeck" key="preview" class="preview-container">
                 <div class="preview-header">
                   <KitBtn icon="mdi:arrow-left" variant="text" @click="closePreview" />
-                  <h3>{{ previewDeck.title }}</h3>
+                  <h3>{{ previewDeck.name }}</h3>
                   <div class="spacer" style="flex-grow: 1" />
                   <KitBtn color="primary" size="sm" icon="mdi:plus" @click="cloneDeck(previewDeck.id)">
                     {{ t('dictionary.discover.add_to_library') }}
@@ -260,7 +261,7 @@ onMounted(() => {
                 <div v-else class="catalog-grid">
                   <div v-for="deck in catalogDecks" :key="deck.id" class="catalog-card" @click="openPreview(deck)">
                     <div class="card-header">
-                      <h4>{{ deck.title }}</h4>
+                      <h4>{{ deck.name }}</h4>
                       <span class="deck-lang">{{ deck.language }}</span>
                     </div>
                     <p class="deck-desc">

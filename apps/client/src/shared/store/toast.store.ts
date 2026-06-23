@@ -19,6 +19,10 @@ export const useToastStore = defineStore('toast', {
 
   actions: {
     add(message: Omit<Partial<ToastMessage>, 'id'>) {
+      if (this.messages.some(m => m.detail === message.detail && m.type === message.type)) {
+        return
+      }
+
       const id = uuidv4()
       const defaults: ToastMessage = {
         id,

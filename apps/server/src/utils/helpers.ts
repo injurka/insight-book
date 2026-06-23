@@ -130,7 +130,7 @@ export function parseLlmJson<T = any>(raw: string): T {
   try {
     return JSON.parse(text) as T
   }
-  catch (error: any) {
+  catch (error: unknown) {
     const snippet = text.length > 100 ? `${text.substring(0, 100)}...` : text
     throw new Error(`JSON Parse Error: ${error.message}. Snippet: ${snippet}`)
   }

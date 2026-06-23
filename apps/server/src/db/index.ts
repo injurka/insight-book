@@ -188,7 +188,7 @@ export function getDictConnection(language: string, targetLanguage: string): Dic
     try {
       dictDb.run(`CREATE INDEX IF NOT EXISTS "idx_${tableName}_${wordCol}" ON "${tableName}" ("${wordCol}")`)
     }
-    catch (e: any) {
+    catch (e: unknown) {
       console.warn(`[DB Warning] Could not create index on dict_${lang}.sqlite (maybe read-only volume?):`, e.message)
     }
 

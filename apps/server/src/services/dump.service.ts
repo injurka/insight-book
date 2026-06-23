@@ -91,7 +91,7 @@ export async function executeDump(logCallback?: (msg: string) => void): Promise<
       .set({ status: 'success', completedAt: new Date().toISOString() })
       .where(eq(schema.dumpLogs.id, logEntry.id))
   }
-  catch (error: any) {
+  catch (error: unknown) {
     log(`❌ Dump failed: ${error.message}`)
 
     // 4. Логируем ошибку

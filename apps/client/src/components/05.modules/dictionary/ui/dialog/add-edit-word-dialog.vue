@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { UserDictItem, WordEncounter } from '~/shared/types/models'
+import type { SelectOption, UserDictItem, WordEncounter } from '~/shared/types/models'
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { KitBtn, KitDialog, KitInput, KitPrompt, KitSelect, KitTooltip } from '~/components/01.kit'
@@ -116,7 +116,7 @@ const deckIdModel = computed<string | number>({
 const deckOptions = computed(() => {
   if (!localWord.value.language)
     return [{ label: t('dictionary.noDeckGeneral'), value: 'none' }]
-  const opts: any[] = [{ label: t('dictionary.noDeckGeneral'), value: 'none' }]
+  const opts: SelectOption[] = [{ label: t('dictionary.noDeckGeneral'), value: 'none' }]
   const langDecks = dictStore.decks.filter(d => d.language === localWord.value.language)
   langDecks.forEach(d => opts.push({ label: d.name, value: d.id }))
   return opts
@@ -274,7 +274,7 @@ const previewVocabulary = ref(true)
   <KitPrompt
     v-model:visible="isDeckPromptOpen"
     :title="t('dictionary.newDeckName')"
-    :placeholder="t('opds.name')"
+    :placeholder="t('dictionary.newDeckName')"
     :confirm-text="t('dictionary.create')"
     @submit="onInlineDeckSubmit"
   />

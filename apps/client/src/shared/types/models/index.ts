@@ -130,6 +130,24 @@ export interface DictDeck {
   createdAt: string
 }
 
+export interface CatalogDeck {
+  id: number
+  name: string
+  language: string
+  targetLanguage: string
+  wordCount: number
+  description?: string
+  author?: string
+  difficulty?: string
+}
+
+export interface CatalogWord {
+  id: number
+  word: string
+  translation?: string
+  transcription?: string
+}
+
 export interface WordEncounter {
   id: number
   wordId: number
@@ -230,34 +248,6 @@ export interface WordAutoFillResponse {
   vocabularyNote: string
 }
 
-export interface OpdsCatalog {
-  id: number
-  userId: number
-  title: string
-  url: string
-  createdAt: string
-}
-
-export interface OpdsLink {
-  rel: string
-  href: string
-  type: string
-  title?: string
-}
-
-export interface OpdsEntry {
-  title: string
-  author: string
-  content: string
-  links: OpdsLink[]
-}
-
-export interface OpdsFeed {
-  title: string
-  links: OpdsLink[]
-  entries: OpdsEntry[]
-}
-
 export interface BatchAnalysisRequest {
   id: string
   sentence: string
@@ -267,6 +257,11 @@ export interface BatchAnalysisRequest {
 export interface BatchAnalysisResponse {
   id: string
   analysis: LlmAnalysis
+}
+
+export interface SelectOption {
+  label: string
+  value: string | number
 }
 
 export interface UserData {
@@ -297,4 +292,11 @@ export interface Highlight {
   chapter: string | null
   pageNum: number
   createdAt: string
+}
+
+export interface PromptItem {
+  id: number
+  name: string
+  prompt: string
+  userId?: number
 }

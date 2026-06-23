@@ -60,13 +60,7 @@ import {
   handleGetHighlights,
   handleUpdateHighlight,
 } from './handlers/highlights'
-import {
-  handleAddCatalog,
-  handleBrowseOpds,
-  handleDeleteCatalog,
-  handleDownloadOpdsBook,
-  handleGetCatalogs,
-} from './handlers/opds'
+
 import {
   handleGetVapidKey,
   handleSubscribe,
@@ -153,11 +147,6 @@ const apiRoutes = {
   // Words
   '/api/dictionary/:word': { OPTIONS: corsOk, GET: apiWrapper(authWrapper(handleGetWordFromUserDict)), DELETE: apiWrapper(authWrapper(handleRemoveFromUserDict)) },
 
-  // --- OPDS API ---
-  '/api/opds/catalogs': { OPTIONS: corsOk, GET: apiWrapper(authWrapper(handleGetCatalogs)), POST: apiWrapper(authWrapper(handleAddCatalog)) },
-  '/api/opds/catalogs/:id': { OPTIONS: corsOk, DELETE: apiWrapper(authWrapper(handleDeleteCatalog)) },
-  '/api/opds/browse': { OPTIONS: corsOk, GET: apiWrapper(authWrapper(handleBrowseOpds)) },
-  '/api/opds/download': { OPTIONS: corsOk, POST: apiWrapper(authWrapper(handleDownloadOpdsBook)) },
 
   // --- Highlights API ---
   '/api/highlights': { OPTIONS: corsOk, GET: apiWrapper(authWrapper(handleGetHighlights)), POST: apiWrapper(authWrapper(handleCreateHighlight)) },
