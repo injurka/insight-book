@@ -167,7 +167,12 @@ export const offlineService = {
 
   async requestPersistentStorage(): Promise<boolean> {
     if (navigator.storage && navigator.storage.persist) {
-      return await navigator.storage.persist()
+      try {
+        return await navigator.storage.persist()
+      }
+      catch {
+        return false
+      }
     }
     return false
   },

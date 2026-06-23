@@ -36,7 +36,7 @@ async function openSaveModal() {
     return
 
   const text = analysisStore.selectionTooltip.text.replace(/\n+/g, '')
-  modalInitialData.value = { text, translation: '', color: highlightColors[0], note: '' }
+  modalInitialData.value = { text, translation: '', color: '#fde047', note: '' }
   isSaveModalOpen.value = true
   isFetchingTranslation.value = true
 

@@ -88,7 +88,7 @@ onMounted(() => {
         <div class="progress-fill" :style="{ width: `${((libraryStore.currentBookInfo.currentPage || 1) / libraryStore.currentBookInfo.totalPages) * 100}%` }" />
       </div>
 
-      <div class="cache-compact-info" :class="{ 'is-loaded': !!bookCacheStats }">
+      <div class="cache-compact-info" :class="{ 'is-loaded': bookCacheStats !== null }">
         <KitTooltip placement="top">
           <template #content>
             <div class="cache-tooltip-content">
