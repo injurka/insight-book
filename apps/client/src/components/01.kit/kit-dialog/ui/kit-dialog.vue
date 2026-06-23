@@ -36,6 +36,9 @@ const { t } = useI18n()
 const visible = defineModel<boolean>('visible', { required: true })
 const dialogId = useId()
 
+const effectiveZIndex = computed(() => Number(props.zIndex ?? 1200))
+provide('kit-dialog-z-index', effectiveZIndex)
+
 const dialogContentRef = ref<HTMLElement | null>(null)
 const dialogHeaderRef = ref<HTMLElement | null>(null)
 const isMinimized = ref(false)

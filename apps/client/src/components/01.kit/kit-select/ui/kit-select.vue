@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { Ref } from 'vue'
 import { autoUpdate, flip, size as floatingSize, offset, useFloating } from '@floating-ui/vue'
 import { Icon } from '@iconify/vue'
 import { onClickOutside } from '@vueuse/core'
@@ -25,6 +26,9 @@ const emit = defineEmits(['update:modelValue'])
 const isOpen = ref(false)
 const referenceRef = ref<HTMLElement | null>(null)
 const floatingRef = ref<HTMLElement | null>(null)
+
+const dialogZIndex = inject<Ref<number> | undefined>('kit-dialog-z-index', undefined)
+const dropdownZIndex = computed(() => dialogZIndex ? dialogZIndex.value + 10 : undefined)
 
 const selectedLabel = computed(() => {
   if (props.multiple && Array.isArray(props.modelValue)) {
@@ -125,6 +129,7 @@ onUnmounted(() => {
             top: `${y ?? 0}px`,
             left: `${x ?? 0}px`,
             visibility: x == null ? 'hidden' : 'visible',
+            zIndex: dropdownZIndex,
           }"
         >
           <div class="kit-select-options-list">
