@@ -675,7 +675,7 @@
   },
   "notebook": {
     "title": "Цитаты и заметки",
-    "searchPlaceholder": "Поиск по цитатам и заметкам...",
+    "searchPlaceholder": "Поиск по оригиналу, переводу и заметкам...",
     "emptyState": "У вас пока нет сохраненных цитат.",
     "emptySearch": "Цитаты не найдены",
     "emptySearchHint": "Попробуйте изменить поисковый запрос.",
@@ -687,6 +687,7 @@
     "deleteQuote": "Удалить цитату",
     "deleteConfirmTitle": "Удаление цитаты",
     "deleteConfirmDesc": "Вы уверены, что хотите удалить эту цитату? Это действие нельзя отменить.",
+    "export": "Экспорт",
     "exportMarkdown": "Markdown",
     "exportText": "Текст",
     "translation": "Перевод",
@@ -697,7 +698,10 @@
     "delete": "Удалить",
     "aiTranslate": "ИИ Перевод",
     "translating": "Перевод...",
-    "speak": "Озвучить"
+    "speak": "Озвучить",
+    "expand": "Развернуть",
+    "collapse": "Свернуть",
+    "detailsHint": "Здесь появится дополнительная информация"
   },
   "errors": {
     "network": "Проверьте подключение к интернету.",

@@ -675,7 +675,7 @@
   },
   "notebook": {
     "title": "Quotes & Notes",
-    "searchPlaceholder": "Search quotes and notes...",
+    "searchPlaceholder": "Search by original, translation and notes...",
     "emptyState": "You don't have any saved quotes yet.",
     "emptySearch": "No quotes found",
     "emptySearchHint": "Try changing your search query.",
@@ -687,6 +687,7 @@
     "deleteQuote": "Delete Quote",
     "deleteConfirmTitle": "Delete Quote",
     "deleteConfirmDesc": "Are you sure you want to delete this quote? This action cannot be undone.",
+    "export": "Export",
     "exportMarkdown": "Markdown",
     "exportText": "Text",
     "translation": "Translation",
@@ -697,7 +698,10 @@
     "delete": "Delete",
     "aiTranslate": "AI Translate",
     "translating": "Translating...",
-    "speak": "Speak"
+    "speak": "Speak",
+    "expand": "Expand",
+    "collapse": "Collapse",
+    "detailsHint": "Additional information will appear here"
   },
   "errors": {
     "network": "Please check your internet connection.",

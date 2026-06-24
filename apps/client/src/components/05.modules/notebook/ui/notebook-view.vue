@@ -31,6 +31,41 @@ const highlights = ref<Highlight[]>([])
 const isLoading = ref(false)
 const searchQuery = ref('')
 
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;')
+}
+
+function escapeRegExp(str: string): string {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
+function highlightText(text: string | null | undefined, query: string): string {
+  if (!text)
+    return ''
+  const trimmedQuery = query.trim()
+  if (!trimmedQuery)
+    return escapeHtml(text)
+
+  const re = new RegExp(escapeRegExp(trimmedQuery), 'gi')
+  let result = ''
+  let lastIndex = 0
+
+  text.replace(re, (match, offset) => {
+    result += escapeHtml(text.slice(lastIndex, offset))
+    result += `<mark class="text-match">${escapeHtml(match)}</mark>`
+    lastIndex = offset + match.length
+    return match
+  })
+  result += escapeHtml(text.slice(lastIndex))
+
+  return result
+}
+
 // Edit state
 const isEditModalOpen = ref(false)
 const editForm = ref<{
@@ -51,9 +86,11 @@ const editForm = ref<{
 const isDeleteConfirmOpen = ref(false)
 const deleteTargetId = ref<number | null>(null)
 
+const searchQueryTrimmed = computed(() => searchQuery.value.trim().toLowerCase())
+
 // Group quotes by book and filter by search
 const filteredBookGroups = computed(() => {
-  const query = searchQuery.value.trim().toLowerCase()
+  const query = searchQueryTrimmed.value
   const groupsMap: Record<number, Highlight[]> = {}
 
   highlights.value.forEach((h) => {
@@ -375,9 +412,10 @@ onMounted(async () => {
                     variant="tonal"
                     color="secondary"
                     size="sm"
+                    class="export-btn"
                     :class="{ 'is-active-btn': dropdownProps.isOpen }"
                   >
-                    Экспорт
+                    <span class="btn-text">{{ t('notebook.export') }}</span>
                   </KitBtn>
                 </template>
                 <div class="dropdown-menu-list">
@@ -405,11 +443,9 @@ onMounted(async () => {
               <div class="highlight-body">
                 <div class="quote-content">
                   <p class="highlight-text">
-                    “{{ h.text }}”
+                    “<span v-html="highlightText(h.text, searchQuery)" />”
                   </p>
-                  <p v-if="h.translation" class="highlight-translation">
-                    {{ h.translation }}
-                  </p>
+                  <p v-if="h.translation" class="highlight-translation" v-html="highlightText(h.translation, searchQuery)" />
                 </div>
 
                 <div v-if="h.note" class="highlight-note">
@@ -432,7 +468,7 @@ onMounted(async () => {
                     {{ new Date(h.createdAt).toLocaleDateString() }}
                   </span>
                 </div>
-                <div class="highlight-actions">
+                <div class="highlight-actions" @click.stop>
                   <!-- TTS Audio Playback Button -->
                   <KitTooltip :text="activeTtsId === h.id && tts.isPlaying.value ? t('bookInfo.stop') : t('notebook.speak')" placement="top">
                     <KitBtn
@@ -443,7 +479,7 @@ onMounted(async () => {
                       size="xs"
                       color="primary"
                       :disabled="activeTtsId !== null && activeTtsId !== h.id && isTtsActive"
-                      @click="playTts(h, group.book)"
+                      @click.stop="playTts(h, group.book)"
                     />
                   </KitTooltip>
 
@@ -457,7 +493,7 @@ onMounted(async () => {
                       size="xs"
                       color="primary"
                       :disabled="translatingId !== null"
-                      @click="translateQuote(h, group.book)"
+                      @click.stop="translateQuote(h, group.book)"
                     />
                   </KitTooltip>
 
@@ -467,7 +503,7 @@ onMounted(async () => {
                       variant="text"
                       size="xs"
                       color="secondary"
-                      @click="openEditModal(h)"
+                      @click.stop="openEditModal(h)"
                     />
                   </KitTooltip>
                   <KitTooltip :text="t('notebook.deleteQuote')" placement="top-end">
@@ -476,7 +512,7 @@ onMounted(async () => {
                       variant="text"
                       size="xs"
                       color="error"
-                      @click="confirmDelete(h)"
+                      @click.stop="confirmDelete(h)"
                     />
                   </KitTooltip>
                 </div>
@@ -811,6 +847,7 @@ onMounted(async () => {
 
   .highlight-footer {
     display: flex;
+    padding-top: 8px;
     align-items: center;
     justify-content: space-between;
     font-size: 0.8rem;
@@ -847,6 +884,26 @@ onMounted(async () => {
 
   &:hover .highlight-actions {
     opacity: 1;
+  }
+
+  .text-match {
+    background: rgba(var(--fg-accent-color-rgb, 255, 193, 7), 0.35);
+    border-radius: 2px;
+    color: inherit;
+  }
+}
+
+.export-btn {
+  .btn-text {
+    @include media-down(xs) {
+      display: none;
+    }
+  }
+
+  :deep(.kit-btn-icon) {
+    @include media-down(xs) {
+      margin-right: 0;
+    }
   }
 }
 

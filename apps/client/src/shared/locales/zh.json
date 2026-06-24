@@ -675,7 +675,7 @@
   },
   "notebook": {
     "title": "笔记本和笔记",
-    "searchPlaceholder": "搜索摘录和笔记...",
+    "searchPlaceholder": "按原文、翻译和笔记搜索...",
     "emptyState": "您还没有保存的摘录。",
     "emptySearch": "未找到摘录",
     "emptySearchHint": "请尝试更改您的搜索查询。",
@@ -687,6 +687,7 @@
     "deleteQuote": "删除摘录",
     "deleteConfirmTitle": "删除摘录",
     "deleteConfirmDesc": "您确定要删除此摘录吗？此操作无法撤销。",
+    "export": "导出",
     "exportMarkdown": "导出为 Markdown",
     "exportText": "导出为文本",
     "translation": "翻译",
@@ -697,7 +698,10 @@
     "delete": "删除",
     "aiTranslate": "AI 翻译",
     "translating": "翻译中...",
-    "speak": "朗读"
+    "speak": "朗读",
+    "expand": "展开",
+    "collapse": "收起",
+    "detailsHint": "更多信息将显示在这里"
   },
   "errors": {
     "network": "请检查您的网络连接。",
