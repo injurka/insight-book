@@ -370,8 +370,8 @@ export async function analyzeBatch(userId: number, bookId: number, items: BatchA
 
   const cachedDocs = hashesToFind.length > 0
     ? await db.query.llmCache.findMany({
-        where: inArray(schema.llmCache.sentenceHash, hashesToFind),
-      })
+      where: inArray(schema.llmCache.sentenceHash, hashesToFind),
+    })
     : []
 
   const cacheMap = new Map(cachedDocs.map(d => [d.sentenceHash, d.analysis]))
@@ -505,13 +505,23 @@ export async function generateTts(userId: number, text: string, language: string
 
   const isGeminiTts = ttsModel.toLowerCase().includes('gemini')
 
+  let finalVoice = voice
+  if (isGeminiTts) {
+    if (voice === 'alloy')
+      finalVoice = 'kore'
+    else if (voice === 'shimmer')
+      finalVoice = 'callirrhoe'
+    else if (voice === 'nova')
+      finalVoice = 'orus'
+  }
+
   const response = await fetch(`${ttsUrl}/audio/speech`, {
     method: 'POST',
     headers,
     body: JSON.stringify({
       model: ttsModel,
       input: normalizedText,
-      voice,
+      voice: finalVoice,
       response_format: isGeminiTts ? 'wav' : 'mp3',
     }),
     signal: AbortSignal.timeout(60000),
