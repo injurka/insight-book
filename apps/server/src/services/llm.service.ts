@@ -508,11 +508,11 @@ export async function generateTts(userId: number, text: string, language: string
   let finalVoice = voice
   if (isGeminiTts) {
     if (voice === 'alloy')
-      finalVoice = 'kore'
+      finalVoice = 'Kore'
     else if (voice === 'shimmer')
-      finalVoice = 'callirrhoe'
+      finalVoice = 'Callirrhoe'
     else if (voice === 'nova')
-      finalVoice = 'orus'
+      finalVoice = 'Orus'
   }
 
   const response = await fetch(`${ttsUrl}/audio/speech`, {
