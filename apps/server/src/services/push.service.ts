@@ -1,5 +1,4 @@
-/* eslint-disable no-console */
-import { and, asc, eq, lte } from 'drizzle-orm'
+import { and, eq, lte, sql } from 'drizzle-orm'
 import webpush from 'web-push'
 import { getAiConfig } from '~/utils/ai-config'
 import { VAPID_PRIVATE_KEY, VAPID_PUBLIC_KEY, VAPID_SUBJECT } from '../config'
@@ -156,19 +155,25 @@ export async function sendDailyMotivations(customMessage?: string) {
     let targetUrl = '/'
 
     if (!customMessage) {
-      const hardestWord = await db.query.userDictionary.findFirst({
-        where: and(
-          eq(schema.userDictionary.userId, userId),
-          lte(schema.userDictionary.nextReviewDate, nowIso),
-        ),
-        orderBy: [asc(schema.userDictionary.easeFactor)],
+      const filters: any[] = [
+        eq(schema.userDictionary.userId, userId),
+        lte(schema.userDictionary.nextReviewDate, nowIso),
+      ]
+
+      if (user.pushTargetDeckId) {
+        filters.push(eq(schema.userDictionary.deckId, user.pushTargetDeckId))
+      }
+
+      const randomWord = await db.query.userDictionary.findFirst({
+        where: and(...filters),
+        orderBy: [sql`RANDOM()`],
       })
 
-      if (hardestWord) {
+      if (randomWord) {
         targetUrl = '/dictionary'
-        const wordStr = hardestWord.word
-        const transStr = hardestWord.translation?.split(/<br>|,|;/)[0].replace(/<[^>]+>/g, '').trim() || ''
-        const transcriptionStr = hardestWord.transcription ? ` [${hardestWord.transcription}]` : ''
+        const wordStr = randomWord.word
+        const transStr = randomWord.translation?.split(/<br>|,|;/)[0].replace(/<[^>]+>/g, '').trim() || ''
+        const transcriptionStr = randomWord.transcription ? ` [${randomWord.transcription}]` : ''
 
         try {
           const prompt = getWordPushPrompt(wordStr, transStr, uiLanguage)
@@ -217,6 +222,7 @@ export async function sendDailyMotivations(customMessage?: string) {
       body: messageBody,
       url: targetUrl,
       icon: '/logo.png',
+      tag: 'insight-book-daily',
     })
 
     let sentCount = 0

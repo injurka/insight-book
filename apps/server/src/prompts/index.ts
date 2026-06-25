@@ -335,6 +335,7 @@ JSON Schema:
 export function getWordPushPrompt(wordStr: string, transStr: string, uiLanguage: string = 'ru'): string {
   const langMap: Record<string, string> = { ru: 'Russian', en: 'English', zh: 'Chinese' }
   const targetLang = langMap[uiLanguage] || 'Russian'
+  const seed = Math.random().toString(36).substring(2, 9)
 
   return `You are a creative AI assistant. Your task is to generate a funny, cool, and short push notification message (exactly one sentence).
 Conditions:
@@ -342,6 +343,7 @@ Conditions:
 2. Just a cool thought, joke, metaphor, or absurd observation that organically includes the meaning of the word "${wordStr}" (translation: ${transStr}).
 3. Strictly one sentence.
 4. The output language MUST BE: ${targetLang}.
+5. Random seed for uniqueness: ${seed}. Ensure the response is COMPLETELY DIFFERENT from previous ones!
 
 MUST return response in JSON format.
 Output STRICT JSON ONLY. Never use backticks for strings.
@@ -353,8 +355,9 @@ Output STRICT JSON ONLY. Never use backticks for strings.
 export function getGeneralPushPrompt(uiLanguage: string = 'ru'): string {
   const langMap: Record<string, string> = { ru: 'Russian', en: 'English', zh: 'Chinese' }
   const targetLang = langMap[uiLanguage] || 'Russian'
+  const seed = Math.random().toString(36).substring(2, 9)
 
-  return `Generate a short (1 sentence) funny philosophical thought about learning foreign languages. No "Come back and learn" calls to action. The output language MUST BE: ${targetLang}. Output STRICT JSON ONLY. Never use backticks for strings. Return JSON: { "message": "text" }`
+  return `Generate a short (1 sentence) funny philosophical thought about learning foreign languages. No "Come back and learn" calls to action. The output language MUST BE: ${targetLang}. Random seed for uniqueness: ${seed}. Output STRICT JSON ONLY. Never use backticks for strings. Return JSON: { "message": "text" }`
 }
 
 export function getDeepDivePrompt(language: string, targetLanguage: string, mode: 'collocations' | 'radicals'): string {
