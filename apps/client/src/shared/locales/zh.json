@@ -7,7 +7,7 @@
   },
   "globalActions": {
     "myDictionary": "我的词典",
-    "myNotebook": "笔记本",
+    "myNotebook": "摘录",
     "storageManagement": "存储管理",
     "switchTheme": "切换主题",
     "switchLanguage": "更改语言",
@@ -54,10 +54,6 @@
     }
   },
   "bookInfo": {
-    "cacheTtsSentences": "句子语音",
-    "cacheTtsSentencesDesc": "为所有短语生成音频",
-    "cacheTtsWords": "单词语音",
-    "cacheTtsWordsDesc": "为每个单词生成音频",
     "aboutBook": "关于本书",
     "changeCover": "更改封面",
     "continueReading": "继续阅读",
@@ -71,10 +67,14 @@
     "syncSetupHint": "选择下载以供离线使用的内容。",
     "cachePages": "缓存页面",
     "cachePagesDesc": "文本、样式和图片",
-    "deepAnalysis": "深度分析",
+    "deepAnalysis": "句子分析",
     "deepAnalysisDesc": "句子的初步 AI 翻译",
     "analyzeWords": "分析单词",
     "analyzeWordsDesc": "对每个单词进行深度AI分析",
+    "cacheTtsSentences": "句子语音",
+    "cacheTtsSentencesDesc": "为所有短语生成音频",
+    "cacheTtsWords": "单词语音",
+    "cacheTtsWordsDesc": "为每个单词生成音频",
     "warning": "警告！",
     "warningDesc": "该过程可能需要很长时间并大量消耗 API 限制。建议使用本地模型 (Ollama)。",
     "pages": "页面",
@@ -251,12 +251,6 @@
     "vocabAnalysisError": "词汇分析错误"
   },
   "reader": {
-    "analyzePage": "处理页面",
-    "selectOptions": "选择操作：",
-    "textAnalysis": "文本分析 (AI)",
-    "voiceTts": "语音 (TTS)",
-    "startAnalysis": "开始处理",
-    "fullscreen": "全屏",
     "preparingPage": "正在准备页面 (OCR & NLP)...",
     "preparingPageTitle": "正在准备页面...",
     "preparingPageDesc": "初步文本读取和单词识别可能需要几秒钟时间。",
@@ -270,7 +264,7 @@
     "parallelReading": "双语阅读",
     "parallelReadingOff": "关闭",
     "parallelReadingSplit": "并排显示",
-    "parallelReadingInterleaved": "交替显示",
+    "parallelReadingInterleaved": "文本，下方翻译",
     "parallelReadingBlur": "模糊翻译",
     "parallelReadingHint": "必须翻译页面上的所有句子才能显示文本。",
     "translateWholePage": "翻译整页",
@@ -281,7 +275,7 @@
     "dark": "深色",
     "sepia": "护眼 (Sepia)",
     "green": "柔绿 (Green)",
-    "oled": "纯黑 (OLED)",
+    "oled": "OLED (纯黑)",
     "translationAndVoice": "翻译与语音",
     "translationPriority": "翻译优先级",
     "dictionary": "词典",
@@ -299,7 +293,13 @@
     "fontSans": "无衬线 (Sans-serif)",
     "fontSerif": "衬线 (Serif)",
     "fontCursive": "手写体 (Cursive)",
-    "tocEmpty": "目录为空或未加载。"
+    "tocEmpty": "目录为空或未加载。",
+    "analyzePage": "处理页面",
+    "selectOptions": "选择操作：",
+    "textAnalysis": "文本分析 (AI)",
+    "voiceTts": "语音 (TTS)",
+    "startAnalysis": "开始处理",
+    "fullscreen": "全屏"
   },
   "dictionary": {
     "title": "我的词典",
@@ -377,7 +377,7 @@
     "collocations": "词语搭配",
     "collocationsDesc": "猜出正确的词语组合",
     "collocationsTask": "填空完成词语搭配：",
-    "radicals": "偏旁部首",
+    "radicals": "偏旁部首拆解",
     "radicalsDesc": "该字由哪些偏旁部首组成",
     "radicalsTask": "选择组成此字的所有偏旁部首：",
     "reading": "阅读",
@@ -474,7 +474,7 @@
       "import_btn": "导入数据",
       "no_decks": "暂无官方牌组。",
       "all_levels": "所有等级",
-      "words_count": "{count} 个词",
+      "words_count": "单词数: {count}",
       "add_to_library": "加入我的书库",
       "import_success": "成功导入单词",
       "import_failed": "导入失败: {error}",
@@ -539,8 +539,8 @@
     "vocabularyColon": "词汇：",
     "wordNotFoundInDict": "在本地词典中未找到该词。请尝试使用 AI 翻译",
     "offlineTranslationNotFound": "离线：缓存中未找到翻译",
-    "saveToNotebook": "用引号",
-    "toBackground": "在后台运行"
+    "saveToNotebook": "存为摘录",
+    "toBackground": "转入后台"
   },
   "dictWord": {
     "cardDetails": "卡片详情",
@@ -674,7 +674,7 @@
     "infinite": "∞"
   },
   "notebook": {
-    "title": "笔记本和笔记",
+    "title": "摘录与笔记",
     "searchPlaceholder": "按原文、翻译和笔记搜索...",
     "emptyState": "您还没有保存的摘录。",
     "emptySearch": "未找到摘录",
