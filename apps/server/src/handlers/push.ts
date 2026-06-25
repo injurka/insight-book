@@ -19,7 +19,13 @@ export async function handleSubscribe(req: Request, userId: number) {
     userId,
     endpoint,
     keys: JSON.stringify(keys),
-  }).onConflictDoNothing()
+  }).onConflictDoUpdate({
+    target: schema.webPushSubscriptions.endpoint,
+    set: {
+      userId,
+      keys: JSON.stringify(keys),
+    }
+  })
 
   return json({ success: true })
 }

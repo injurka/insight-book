@@ -7,6 +7,7 @@ import * as schema from '../db/schema'
 import { getGeneralPushPrompt, getWordPushPrompt } from '../prompts'
 import { parseLlmJson } from '../utils/helpers'
 import { callLlmJsonWithRetry } from '../utils/llm-api'
+import { checkTokenLimit } from './limits.service'
 
 if (VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY) {
   webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY)
@@ -35,6 +36,7 @@ function getTargetUtcTimesForDate(dateObj: Date, user: any): number[] {
       minute: '2-digit',
       second: '2-digit',
       hour12: false,
+      hourCycle: 'h23', // Гарантирует часы от 00 до 23 вместо '24'
     })
   }
   catch {
@@ -48,6 +50,7 @@ function getTargetUtcTimesForDate(dateObj: Date, user: any): number[] {
       minute: '2-digit',
       second: '2-digit',
       hour12: false,
+      hourCycle: 'h23',
     })
   }
 
@@ -142,113 +145,127 @@ export async function sendDailyMotivations(customMessage?: string) {
   const aiConfig = getAiConfig()
   const config = { url: aiConfig.llm.url, key: aiConfig.llm.key, model: aiConfig.llm.model }
 
-  for (const [userId, subs] of userSubsMap.entries()) {
-    const user = subs[0].user
-    const uiLanguage = user.uiLanguage || 'ru'
+  // Асинхронный батчинг по 10 пользователей за раз, чтобы избежать блокировки (Bottle-neck)
+  const userEntries = Array.from(userSubsMap.entries())
+  const batchSize = 10
 
-    if (!customMessage && !shouldSendPush(user, now)) {
-      continue
-    }
+  for (let i = 0; i < userEntries.length; i += batchSize) {
+    const batch = userEntries.slice(i, i + batchSize)
 
-    const messageTitle = 'InsightBook'
-    let messageBody = customMessage || 'Время изучать языки!'
-    let targetUrl = '/'
+    await Promise.all(batch.map(async ([userId, subs]) => {
+      const user = subs[0].user
+      const uiLanguage = user.uiLanguage || 'ru'
 
-    if (!customMessage) {
-      const filters: any[] = [
-        eq(schema.userDictionary.userId, userId),
-        lte(schema.userDictionary.nextReviewDate, nowIso),
-      ]
-
-      if (user.pushTargetDeckId) {
-        filters.push(eq(schema.userDictionary.deckId, user.pushTargetDeckId))
+      if (!customMessage && !shouldSendPush(user, now)) {
+        return
       }
 
-      const randomWord = await db.query.userDictionary.findFirst({
-        where: and(...filters),
-        orderBy: [sql`RANDOM()`],
-      })
+      const messageTitle = 'InsightBook'
+      let messageBody = customMessage || 'Время изучать языки!'
+      let targetUrl = '/'
+      let wordStrForTag = ''
 
-      if (randomWord) {
-        targetUrl = '/dictionary'
-        const wordStr = randomWord.word
-        const transStr = randomWord.translation?.split(/<br>|,|;/)[0].replace(/<[^>]+>/g, '').trim() || ''
-        const transcriptionStr = randomWord.transcription ? ` [${randomWord.transcription}]` : ''
+      if (!customMessage) {
+        const filters: any[] = [
+          eq(schema.userDictionary.userId, userId),
+          lte(schema.userDictionary.nextReviewDate, nowIso),
+        ]
 
-        try {
-          const prompt = getWordPushPrompt(wordStr, transStr, uiLanguage)
+        if (user.pushTargetDeckId) {
+          filters.push(eq(schema.userDictionary.deckId, user.pushTargetDeckId))
+        }
 
-          const { parsed } = await callLlmJsonWithRetry<{ message: string }>(
-            config.model,
-            [{ role: 'user', content: prompt }],
-            0.8,
-            AbortSignal.timeout(15000),
-            config,
-            raw => parseLlmJson<{ message: string }>(raw),
-          )
+        const randomWord = await db.query.userDictionary.findFirst({
+          where: and(...filters),
+          orderBy: [sql`RANDOM()`],
+        })
 
-          if (parsed && parsed.message) {
-            messageBody = `${parsed.message}\n\n${wordStr}${transcriptionStr} — ${transStr}`
+        if (randomWord) {
+          targetUrl = '/dictionary'
+          wordStrForTag = randomWord.word
+          const wordStr = randomWord.word
+          const transStr = randomWord.translation?.split(/<br>|,|;/)[0].replace(/<[^>]+>/g, '').trim() || ''
+          const transcriptionStr = randomWord.transcription ? ` [${randomWord.transcription}]` : ''
+
+          try {
+            await checkTokenLimit(userId) // Критично: проверяем лимиты перед LLM
+            const prompt = getWordPushPrompt(wordStr, transStr, uiLanguage)
+
+            const { parsed } = await callLlmJsonWithRetry<{ message: string }>(
+              config.model,
+              [{ role: 'user', content: prompt }],
+              0.8,
+              AbortSignal.timeout(15000),
+              config,
+              raw => parseLlmJson<{ message: string }>(raw),
+            )
+
+            if (parsed && parsed.message) {
+              messageBody = `${parsed.message}\n\n${wordStr}${transcriptionStr} — ${transStr}`
+            }
           }
-        }
-        catch {
-          console.warn(`[Push] LLM failed for user ${userId}, using fallback.`)
-          messageBody = uiLanguage === 'ru'
-            ? `Кажется, вы стали забывать это слово:\n\n${wordStr}${transcriptionStr} — ${transStr}`
-            : `It seems you're starting to forget this word:\n\n${wordStr}${transcriptionStr} — ${transStr}`
-        }
-      }
-      else {
-        try {
-          const prompt = getGeneralPushPrompt(uiLanguage)
-          const { parsed } = await callLlmJsonWithRetry<{ message: string }>(
-            config.model,
-            [{ role: 'user', content: prompt }],
-            0.8,
-            AbortSignal.timeout(10000),
-            config,
-            raw => parseLlmJson<{ message: string }>(raw),
-          )
-          if (parsed && parsed.message) {
-            messageBody = parsed.message
+          catch {
+            console.warn(`[Push] LLM failed/limit reached for user ${userId}, using fallback.`)
+            messageBody = uiLanguage === 'ru'
+              ? `Пора повторить слово:\n\n${wordStr}${transcriptionStr} — ${transStr}`
+              : `Time to review this word:\n\n${wordStr}${transcriptionStr} — ${transStr}`
           }
-        }
-        catch { }
-      }
-    }
-
-    const payload = JSON.stringify({
-      title: messageTitle,
-      body: messageBody,
-      url: targetUrl,
-      icon: '/logo.png',
-      tag: 'insight-book-daily',
-    })
-
-    let sentCount = 0
-    for (const sub of subs) {
-      try {
-        const keys = JSON.parse(sub.keys)
-        await webpush.sendNotification({
-          endpoint: sub.endpoint,
-          keys,
-        }, payload)
-        sentCount++
-      }
-      catch (error: unknown) {
-        if (error.statusCode === 410 || error.statusCode === 404) {
-          console.log(`[Push] Subscription expired for user ${userId}, deleting...`)
-          await db.delete(schema.webPushSubscriptions).where(eq(schema.webPushSubscriptions.id, sub.id))
         }
         else {
-          console.error(`[Push] Error sending to user ${userId}:`, error.message)
+          try {
+            await checkTokenLimit(userId)
+            const prompt = getGeneralPushPrompt(uiLanguage)
+            const { parsed } = await callLlmJsonWithRetry<{ message: string }>(
+              config.model,
+              [{ role: 'user', content: prompt }],
+              0.8,
+              AbortSignal.timeout(10000),
+              config,
+              raw => parseLlmJson<{ message: string }>(raw),
+            )
+            if (parsed && parsed.message) {
+              messageBody = parsed.message
+            }
+          }
+          catch {
+            messageBody = uiLanguage === 'ru' ? 'Самое время немного позаниматься!' : 'It is a good time to study!'
+          }
         }
       }
-    }
 
-    if (sentCount > 0) {
-      await db.update(schema.users).set({ lastPushSentAt: now.toISOString() }).where(eq(schema.users.id, userId))
-    }
+      const payload = JSON.stringify({
+        title: messageTitle,
+        body: messageBody,
+        url: targetUrl,
+        icon: '/logo.png',
+        tag: `insight-book-daily-${wordStrForTag || Date.now()}`, // Уникальный тег для каждого слова
+      })
+
+      let sentCount = 0
+      for (const sub of subs) {
+        try {
+          const keys = JSON.parse(sub.keys)
+          await webpush.sendNotification({
+            endpoint: sub.endpoint,
+            keys,
+          }, payload)
+          sentCount++
+        }
+        catch (error: unknown) {
+          if ((error as any).statusCode === 410 || (error as any).statusCode === 404) {
+            console.log(`[Push] Subscription expired for user ${userId}, deleting...`)
+            await db.delete(schema.webPushSubscriptions).where(eq(schema.webPushSubscriptions.id, sub.id))
+          }
+          else {
+            console.error(`[Push] Error sending to user ${userId}:`, (error as Error).message)
+          }
+        }
+      }
+
+      if (sentCount > 0) {
+        await db.update(schema.users).set({ lastPushSentAt: now.toISOString() }).where(eq(schema.users.id, userId))
+      }
+    }))
   }
   console.log('✅ Push dispatch finished.')
 }

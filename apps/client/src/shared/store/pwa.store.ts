@@ -61,7 +61,22 @@ export const usePwaStore = defineStore('pwa', {
         return
       const reg = await navigator.serviceWorker.ready
       const sub = await reg.pushManager.getSubscription()
-      this.isPushSubscribed = !!sub
+      const hasPermission = Notification.permission === 'granted'
+
+      this.isPushSubscribed = !!sub && hasPermission
+
+      // Синхронизируем свежие ключи с бэкендом, если подписка активна
+      if (this.isPushSubscribed && sub) {
+        const BASE = import.meta.env.VITE_API_URL || 'https://insight-api.trip-scheduler.ru'
+        fetch(`${BASE}/api/push/subscribe`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('insight_token')}`,
+          },
+          body: JSON.stringify(sub),
+        }).catch(() => { })
+      }
     },
 
     async togglePushSubscription() {
@@ -106,6 +121,10 @@ export const usePwaStore = defineStore('pwa', {
         }
 
         const { publicKey } = await res.json()
+        if (!publicKey) {
+          toast.error(t('settings.pushKeyError') || 'VAPID key missing')
+          throw new Error('No public key')
+        }
 
         try {
           sub = await reg.pushManager.subscribe({

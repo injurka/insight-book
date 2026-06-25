@@ -1,26 +1,33 @@
 {
 	"folders": [
 		{
+			"name": "insight-book",
 			"path": "."
 		},
 		{
+			"name": "client",
 			"path": "apps/client"
 		},
 		{
+			"name": "server",
 			"path": "apps/server"
 		},
 		{
+			"name": "zh-dict-parser",
 			"path": "apps/zh-dict-parser"
 		},
 		{
+			"name": "jp-dict-parser",
 			"path": "apps/jp-dict-parser"
 		},
 		{
+			"name": "en-dict-parser",
 			"path": "apps/en-dict-parser"
 		},
 		{
+			"name": "manhuagui-parser",
 			"path": "apps/manhuagui-parser"
-		},
+		}
 	],
 	"settings": {
 		"explorer.fileNesting.expand": false

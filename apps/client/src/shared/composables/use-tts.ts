@@ -54,7 +54,8 @@ export function useTts() {
       if (abortController.signal.aborted)
         return
 
-      const audioSrc = `data:audio/mp3;base64,${audioBase64}`
+      const mimeType = audioBase64.startsWith('UklGR') ? 'audio/wav' : 'audio/mp3'
+      const audioSrc = `data:${mimeType};base64,${audioBase64}`
       currentAudio = new Audio(audioSrc)
       currentAudio.playbackRate = settingsStore.ttsSpeed
 

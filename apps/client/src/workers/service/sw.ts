@@ -206,8 +206,8 @@ self.addEventListener('push', (event: PushEvent) => {
 
       const options = {
         body: data.body,
-        icon: data.icon || '/logo.svg',
-        badge: data.badge || '/logo.svg',
+        icon: data.icon || '/logo.png', // Android плохо переваривает SVG в пушах
+        badge: data.badge || '/logo.png',
         data: {
           url: data.url || '/',
         },
@@ -231,7 +231,8 @@ self.addEventListener('notificationclick', (event: NotificationEvent) => {
       for (let i = 0; i < windowClients.length; i++) {
         const client = windowClients[i]
         if (client.url.includes(self.location.origin) && 'focus' in client) {
-          client.navigate(urlToOpen)
+          // Вместо перезагрузки SPA используем обмен сообщениями для навигации
+          client.postMessage({ type: 'NAVIGATE', url: urlToOpen })
           return client.focus()
         }
       }

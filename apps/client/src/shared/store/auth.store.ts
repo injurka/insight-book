@@ -58,8 +58,31 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  function logout() {
+  async function logout() {
     trackEvent('logout')
+
+    // Отписываемся от Push перед выходом, чтобы пуши не приходили на чужой ПК
+    try {
+      const { usePwaStore } = await import('~/shared/store/pwa.store')
+      const pwaStore = usePwaStore()
+      if (pwaStore.isPushSubscribed && 'serviceWorker' in navigator && 'PushManager' in window) {
+        const reg = await navigator.serviceWorker.ready
+        const sub = await reg.pushManager.getSubscription()
+        if (sub) {
+          await sub.unsubscribe()
+          const token = localStorage.getItem('insight_token')
+          const BASE = import.meta.env.VITE_API_URL || 'https://insight-api.trip-scheduler.ru'
+          await fetch(`${BASE}/api/push/unsubscribe`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify({ endpoint: sub.endpoint }),
+          }).catch(() => { })
+        }
+      }
+    }
+    catch (e) {
+      console.warn('Failed to unsubscribe on logout', e)
+    }
 
     localStorage.removeItem('insight_token')
     localStorage.removeItem('insight_uid')

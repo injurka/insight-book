@@ -1,6 +1,7 @@
 /* eslint-disable no-console */
 import type { Pinia } from 'pinia'
 import { useRegisterSW } from 'virtual:pwa-register/vue'
+import router from '~/shared/lib/router'
 import { usePwaStore } from '~/shared/store/pwa.store'
 
 /**
@@ -46,6 +47,15 @@ function initializePwaUpdater(pinia: Pinia): void {
   }, { immediate: true })
 
   pwaStore.setUpdateFunction(updateServiceWorker)
+
+  // Перехватываем сообщение от ServiceWorker при клике на Push
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.addEventListener('message', (event) => {
+      if (event.data && event.data.type === 'NAVIGATE' && event.data.url) {
+        router.push(event.data.url)
+      }
+    })
+  }
 }
 
 export { initializePwaUpdater }

@@ -8,6 +8,7 @@ const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000
 const CHECK_INTERVAL_MS = 15 * 60 * 1000
 
 let isDumping = false
+let isPushing = false
 
 async function checkAndRunDump() {
   if (isDumping)
@@ -43,7 +44,18 @@ export function initScheduler() {
     setInterval(checkAndRunDump, CHECK_INTERVAL_MS)
   }
 
-  setInterval(() => {
-    sendDailyMotivations().catch(err => console.error(err))
+  setInterval(async () => {
+    if (isPushing)
+      return
+    isPushing = true
+    try {
+      await sendDailyMotivations()
+    }
+    catch (err) {
+      console.error(err)
+    }
+    finally {
+      isPushing = false
+    }
   }, CHECK_INTERVAL_MS)
 }

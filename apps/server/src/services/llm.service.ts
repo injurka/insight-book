@@ -503,6 +503,8 @@ export async function generateTts(userId: number, text: string, language: string
 
   trackTokenUsage(userId, 'tts_generation', ttsModel, normalizedText.length, 0, normalizedText, '[AUDIO BASE64]')
 
+  const isGeminiTts = ttsModel.toLowerCase().includes('gemini')
+
   const response = await fetch(`${ttsUrl}/audio/speech`, {
     method: 'POST',
     headers,
@@ -510,7 +512,7 @@ export async function generateTts(userId: number, text: string, language: string
       model: ttsModel,
       input: normalizedText,
       voice,
-      response_format: 'mp3',
+      response_format: isGeminiTts ? 'wav' : 'mp3',
     }),
     signal: AbortSignal.timeout(60000),
   })
