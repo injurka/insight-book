@@ -9,8 +9,10 @@ import { useToast } from '~/shared/composables/use-toast'
 import { useUmami } from '~/shared/composables/use-umami'
 import { AppRoutePaths } from '~/shared/constants/routes'
 import { getMediaUrl } from '~/shared/lib/helpers'
+import { loadLanguageAsync } from '~/shared/plugins/i18n'
 import { useAuthStore } from '~/shared/store/auth.store'
 import { usePwaStore } from '~/shared/store/pwa.store'
+
 import { useGlobalSettingsStore } from '~/shared/store/settings.store'
 
 interface Props {
@@ -99,7 +101,9 @@ function formatNumber(num: number | undefined | null) {
   }).format(num)
 }
 
-function setLanguage(lang: string) {
+async function setLanguage(lang: string) {
+  await loadLanguageAsync(lang)
+
   settingsStore.appLanguage = lang
 
   trackEvent('app_language_changed', { language: lang })

@@ -29,7 +29,7 @@ export const request = ofetch.create({
       const settings = useGlobalSettingsStore()
 
       if (settings.appLanguage) {
-        options.query = { ...options.query, lang: settings.appLanguage }
+        options.query = { ...options.query, targetLang: settings.appLanguage }
       }
 
       if (options.withLlm && settings.useCustomLlm && settings.customLlmUrl && settings.customLlmModel) {
@@ -42,7 +42,7 @@ export const request = ofetch.create({
       try {
         const savedLang = localStorage.getItem('global-app-language')
         if (savedLang) {
-          options.query = { ...options.query, lang: JSON.parse(savedLang) }
+          options.query = { ...options.query, targetLang: JSON.parse(savedLang) }
         }
       }
       catch { }

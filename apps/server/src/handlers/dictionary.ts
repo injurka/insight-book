@@ -31,7 +31,7 @@ const dictAiLimiter = createRateLimiter(60, 60 * 1000)
 export async function handleGenerateExamples(req: Request, userId: number): Promise<Response> {
   dictAiLimiter(String(userId))
   const config = extractLlmConfig(req)
-  const targetLang = normalizeLanguageCode((new URL(req.url).searchParams.get('lang')) || 'ru')
+  const targetLang = normalizeLanguageCode((new URL(req.url).searchParams.get('targetLang')) || 'ru')
   const { word, language } = GenerateExamplesSchema.parse(await req.json())
   const result = await generateWordExamples(userId, word, normalizeLanguageCode(language), targetLang, config)
 
@@ -41,7 +41,7 @@ export async function handleGenerateExamples(req: Request, userId: number): Prom
 export async function handleAutoFillWord(req: Request, userId: number): Promise<Response> {
   dictAiLimiter(String(userId))
   const config = extractLlmConfig(req)
-  const targetLang = normalizeLanguageCode((new URL(req.url).searchParams.get('lang')) || 'ru')
+  const targetLang = normalizeLanguageCode((new URL(req.url).searchParams.get('targetLang')) || 'ru')
   const { word, language } = GenerateExamplesSchema.parse(await req.json())
   const result = await generateWordAutoFill(userId, word, normalizeLanguageCode(language), targetLang, config)
 
@@ -51,7 +51,7 @@ export async function handleAutoFillWord(req: Request, userId: number): Promise<
 export async function handleGenerateDeepDive(req: Request, userId: number): Promise<Response> {
   dictAiLimiter(String(userId))
   const config = extractLlmConfig(req)
-  const targetLang = normalizeLanguageCode((new URL(req.url).searchParams.get('lang')) || 'ru')
+  const targetLang = normalizeLanguageCode((new URL(req.url).searchParams.get('targetLang')) || 'ru')
   const { word, language, mode } = DeepDiveRequestSchema.parse(await req.json())
 
   const result = await generateDeepDiveQuiz(userId, word, normalizeLanguageCode(language), targetLang, mode, config)
@@ -66,7 +66,7 @@ export async function handleCheckPronunciation(req: Request, userId: number): Pr
   const audioFile = formData.get('audio') as File | null
   const word = formData.get('word') as string
   const language = formData.get('language') as string
-  const targetLang = normalizeLanguageCode((new URL(req.url).searchParams.get('lang')) || 'ru')
+  const targetLang = normalizeLanguageCode((new URL(req.url).searchParams.get('targetLang')) || 'ru')
 
   if (!audioFile || !word) {
     throw new AppError(400, 'Audio file and word are required')
@@ -79,20 +79,20 @@ export async function handleCheckPronunciation(req: Request, userId: number): Pr
 }
 
 export async function handleGetUserDict(req: Request, userId: number): Promise<Response> {
-  const targetLang = normalizeLanguageCode((new URL(req.url).searchParams.get('lang')) || 'ru')
+  const targetLang = normalizeLanguageCode((new URL(req.url).searchParams.get('targetLang')) || 'ru')
 
   return json(await getUserDictionary(userId, targetLang), 200, { 'Cache-Control': 'private, stale-while-revalidate=60' })
 }
 
 export async function handleGetDecks(req: Request, userId: number): Promise<Response> {
-  const targetLang = normalizeLanguageCode((new URL(req.url).searchParams.get('lang')) || 'ru')
+  const targetLang = normalizeLanguageCode((new URL(req.url).searchParams.get('targetLang')) || 'ru')
 
   return json(await getUserDecks(userId, targetLang), 200, { 'Cache-Control': 'private, stale-while-revalidate=60' })
 }
 
 export async function handleCreateDeck(req: Request, userId: number): Promise<Response> {
   const body = DeckSchema.parse(await req.json())
-  const targetLang = normalizeLanguageCode((new URL(req.url).searchParams.get('lang')) || 'ru')
+  const targetLang = normalizeLanguageCode((new URL(req.url).searchParams.get('targetLang')) || 'ru')
   const newDeck = await createDeck(userId, body.name, normalizeLanguageCode(body.language || 'en'), targetLang)
 
   return json(newDeck)
@@ -115,7 +115,7 @@ export async function handleDeleteDeck(req: Request, userId: number): Promise<Re
 
 export async function handleUpsertToUserDict(req: Request, userId: number): Promise<Response> {
   const body = UpsertUserDictSchema.parse(await req.json())
-  const targetLang = normalizeLanguageCode((new URL(req.url).searchParams.get('lang')) || 'ru')
+  const targetLang = normalizeLanguageCode((new URL(req.url).searchParams.get('targetLang')) || 'ru')
   if (body.language) {
     body.language = normalizeLanguageCode(body.language)
   }
@@ -126,7 +126,7 @@ export async function handleUpsertToUserDict(req: Request, userId: number): Prom
 
 export async function handleRemoveFromUserDict(req: Request, userId: number): Promise<Response> {
   const word = req.params.word
-  const targetLang = normalizeLanguageCode((new URL(req.url).searchParams.get('lang')) || 'ru')
+  const targetLang = normalizeLanguageCode((new URL(req.url).searchParams.get('targetLang')) || 'ru')
   await removeFromUserDictionary(decodeURIComponent(word), userId, targetLang)
 
   return json({ success: true })
@@ -134,7 +134,7 @@ export async function handleRemoveFromUserDict(req: Request, userId: number): Pr
 
 export async function handleGetWordFromUserDict(req: Request, userId: number): Promise<Response> {
   const word = req.params.word
-  const targetLang = normalizeLanguageCode((new URL(req.url).searchParams.get('lang')) || 'ru')
+  const targetLang = normalizeLanguageCode((new URL(req.url).searchParams.get('targetLang')) || 'ru')
   const entry = await getWordFromUserDictionary(decodeURIComponent(word), userId, targetLang)
 
   if (!entry) {
@@ -150,7 +150,7 @@ export async function handleGetReviewQueue(req: Request, userId: number): Promis
   const mode = url.searchParams.get('mode') as 'srs' | 'random' | 'deep_dive' || 'srs'
   const deckIdStr = url.searchParams.get('deckId')
   const difficulty = url.searchParams.get('difficulty')
-  const targetLang = normalizeLanguageCode((new URL(req.url).searchParams.get('lang')) || 'ru')
+  const targetLang = normalizeLanguageCode((new URL(req.url).searchParams.get('targetLang')) || 'ru')
 
   let deckId: number | 'none' | undefined
   if (deckIdStr === 'none')
@@ -212,7 +212,7 @@ export async function handleCloneCatalogDeck(req: Request, userId: number): Prom
   const wordsToClone = await catalogDb.select().from(officialDeckWords).where(eq(officialDeckWords.deckId, deckId))
 
   // Create user deck
-  const targetLang = normalizeLanguageCode((new URL(req.url).searchParams.get('lang')) || 'ru')
+  const targetLang = normalizeLanguageCode((new URL(req.url).searchParams.get('targetLang')) || 'ru')
   const newDeck = await createDeck(userId, deckToClone.title, deckToClone.language, targetLang)
 
   if (wordsToClone.length > 0) {
@@ -280,7 +280,7 @@ export async function handleImportCsv(req: Request, userId: number): Promise<Res
   const body = await req.json()
   // Assuming body has { rows: Array<Record<string, string>>, mapping: { word: string, translation?: string, transcription?: string, tags?: string }, deckId?: number, newDeckName?: string, language?: string, autoFill?: boolean }
   const { rows, mapping, deckId, newDeckName, language, autoFill } = body
-  const targetLang = normalizeLanguageCode((new URL(req.url).searchParams.get('lang')) || 'ru')
+  const targetLang = normalizeLanguageCode((new URL(req.url).searchParams.get('targetLang')) || 'ru')
 
   let targetDeckId = deckId
   if (newDeckName) {
