@@ -42,7 +42,7 @@ export const request = ofetch.create({
       try {
         const savedLang = localStorage.getItem('global-app-language')
         if (savedLang) {
-          options.query = { ...options.query, targetLang: JSON.parse(savedLang) }
+          options.query = { ...options.query, targetLang: savedLang.replace(/^"|"$/g, '') }
         }
       }
       catch { }
@@ -191,7 +191,7 @@ export const api = {
         try {
           const savedLang = localStorage.getItem('global-app-language')
           if (savedLang)
-            targetLanguage = JSON.parse(savedLang)
+            targetLanguage = savedLang.replace(/^"|"$/g, '')
         }
         catch { }
       }
@@ -215,7 +215,7 @@ export const api = {
           const savedLang = localStorage.getItem('global-app-language')
 
           if (savedLang)
-            targetLanguage = JSON.parse(savedLang)
+            targetLanguage = savedLang.replace(/^"|"$/g, '')
         }
         catch { }
       }
