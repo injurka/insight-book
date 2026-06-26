@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { Icon } from '@iconify/vue'
-import { computed, nextTick, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { DIFFICULTY_SYSTEMS } from '~/shared/constants/difficulties'
 
@@ -140,7 +139,7 @@ const maxStreak = computed(() => {
 const userLevels = computed(() => {
   if (!props.stats || !props.stats.difficulties)
     return {}
-  const levels: Record<string, { current: string, next: string | null, progress: number }> = {}
+  const levels: Record<string, { current: string, next: string | null, progress: number, count: number, target: number }> = {}
 
   const langGroups: Record<string, { difficulty: string, count: number }[]> = {}
   for (const d of props.stats.difficulties) {
@@ -156,9 +155,11 @@ const userLevels = computed(() => {
     const userDiffCounts = new Map<string, number>()
     diffs.forEach(d => userDiffCounts.set(d.difficulty, d.count))
 
+    // Порог слов, которые нужно выучить (статус=3) чтобы "закрыть" уровень
     const TARGET_WORDS = 50
 
     let achievedHighest = -1
+    // Находим максимальный уровень, в котором выучено >= 50 слов
     for (let i = sysLevels.length - 1; i >= 0; i--) {
       if ((userDiffCounts.get(sysLevels[i].value) || 0) >= TARGET_WORDS) {
         achievedHighest = i
@@ -186,7 +187,13 @@ const userLevels = computed(() => {
       ? 100
       : Math.min(100, Math.round((countInWorking / TARGET_WORDS) * 100))
 
-    levels[lang] = { current, next, progress }
+    levels[lang] = {
+      current,
+      next,
+      progress,
+      count: countInWorking,
+      target: TARGET_WORDS,
+    }
   }
 
   return levels
@@ -231,15 +238,19 @@ onMounted(async () => {
             <span class="lang-badge">{{ lang.toUpperCase() }}</span>
             <span class="current-level">{{ lvl.current }}</span>
           </div>
-          <div v-if="lvl.next" class="level-progress">
+
+          <div v-if="lvl.next" class="level-progress-box">
             <div class="progress-info">
-              <span>{{ t('activityHeatmap.nextLevel') }}: {{ lvl.next }}</span>
-              <span>{{ lvl.progress }}%</span>
+              <span class="next-label">
+                {{ t('activityHeatmap.nextLevel') }}: <span class="next-value">{{ lvl.next }}</span>
+              </span>
+              <span class="progress-fraction" :title="t('activityHeatmap.learnedWords')">{{ lvl.count }} / {{ lvl.target }}</span>
             </div>
             <div class="progress-bar">
               <div class="progress-fill" :style="{ width: `${lvl.progress}%` }" />
             </div>
           </div>
+
           <div v-else class="level-max">
             <Icon icon="mdi:star-face" class="max-icon" /> {{ t('activityHeatmap.maxLevelReached') }}
           </div>
@@ -373,7 +384,7 @@ onMounted(async () => {
 
   .levels-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
     gap: 16px;
     padding: 6px;
     margin: -6px;
@@ -422,17 +433,40 @@ onMounted(async () => {
       }
     }
 
-    .level-progress {
+    .level-progress-box {
+      background: var(--bg-primary-color);
+      border: 1px dashed var(--border-primary-color);
+      padding: 12px;
+      border-radius: 8px;
       display: flex;
       flex-direction: column;
-      gap: 8px;
+      gap: 10px;
 
       .progress-info {
         display: flex;
         justify-content: space-between;
-        font-size: 0.85rem;
-        color: var(--fg-secondary-color);
-        font-weight: 500;
+        align-items: center;
+
+        .next-label {
+          font-size: 0.85rem;
+          color: var(--fg-secondary-color);
+
+          .next-value {
+            color: var(--fg-primary-color);
+            font-weight: 600;
+            margin-left: 4px;
+          }
+        }
+
+        .progress-fraction {
+          font-size: 0.8rem;
+          font-weight: 600;
+          color: var(--fg-accent-color);
+          background: rgba(var(--bg-accent-color-rgb, 201, 117, 222), 0.1);
+          padding: 2px 8px;
+          border-radius: 99px;
+          font-variant-numeric: tabular-nums;
+        }
       }
 
       .progress-bar {
@@ -444,7 +478,7 @@ onMounted(async () => {
         .progress-fill {
           height: 100%;
           background-color: var(--fg-accent-color);
-          transition: width 0.3s ease;
+          transition: width 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
         }
       }
     }
