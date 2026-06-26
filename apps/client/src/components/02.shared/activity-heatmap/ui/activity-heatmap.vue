@@ -1,12 +1,21 @@
 <script setup lang="ts">
+import { Icon } from '@iconify/vue'
 import { computed, nextTick, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { DIFFICULTY_SYSTEMS } from '~/shared/constants/difficulties'
 
-const props = defineProps<{ activityData: { date: string, count: number }[] }>()
-const { t } = useI18n()
+const props = defineProps<{
+  activityData: { date: string, count: number }[]
+  stats?: { learnedWords: number, readPages: number, difficulties: { language: string, difficulty: string, count: number }[] }
+}>()
+const { t, locale } = useI18n()
 const scrollAreaRef = ref<HTMLElement | null>(null)
 
 const WEEKS_TO_SHOW = 26
+
+function formatNum(num: number) {
+  return new Intl.NumberFormat(locale.value).format(num || 0)
+}
 
 const heatmapData = computed(() => {
   const today = new Date()
@@ -128,6 +137,55 @@ const maxStreak = computed(() => {
   return max
 })
 
+const userLevels = computed(() => {
+  if (!props.stats)
+    return {}
+  const levels: Record<string, { current: string, next: string | null, progress: number }> = {}
+
+  const langGroups: Record<string, { difficulty: string, count: number }[]> = {}
+  for (const d of props.stats.difficulties) {
+    if (!langGroups[d.language])
+      langGroups[d.language] = []
+    langGroups[d.language].push(d)
+  }
+
+  for (const [lang, diffs] of Object.entries(langGroups)) {
+    const sys = DIFFICULTY_SYSTEMS[lang] || DIFFICULTY_SYSTEMS.default
+
+    const sysLevels = [...sys].sort((a, b) => a.level - b.level)
+
+    let maxValidIdx = -1
+
+    const userDiffCounts = new Map<string, number>()
+    diffs.forEach(d => userDiffCounts.set(d.difficulty, d.count))
+
+    for (let i = 0; i < sysLevels.length; i++) {
+      const count = userDiffCounts.get(sysLevels[i].value) || 0
+      if (count >= 5) {
+        maxValidIdx = i
+      }
+    }
+
+    if (maxValidIdx === -1 && diffs.length > 0) {
+      const lowestHaveWords = sysLevels.findIndex(s => (userDiffCounts.get(s.value) || 0) > 0)
+      maxValidIdx = lowestHaveWords !== -1 ? lowestHaveWords : 0
+    }
+
+    if (maxValidIdx !== -1) {
+      const current = sysLevels[maxValidIdx].label
+      const nextObj = maxValidIdx + 1 < sysLevels.length ? sysLevels[maxValidIdx + 1] : null
+      const next = nextObj ? nextObj.label : null
+
+      const countInCurrent = userDiffCounts.get(sysLevels[maxValidIdx].value) || 0
+      const progress = Math.min(100, Math.round((countInCurrent / 50) * 100))
+
+      levels[lang] = { current, next, progress }
+    }
+  }
+
+  return levels
+})
+
 onMounted(async () => {
   await nextTick()
   if (scrollAreaRef.value) {
@@ -140,12 +198,46 @@ onMounted(async () => {
   <div class="activity-section">
     <div class="stats-overview">
       <div class="stat-box">
-        <span class="stat-value">{{ totalActivity }}</span>
+        <span class="stat-value">{{ formatNum(totalActivity) }}</span>
         <span class="stat-label">{{ t('activityHeatmap.totalActions') }}</span>
       </div>
       <div class="stat-box">
-        <span class="stat-value">{{ maxStreak }}</span>
+        <span class="stat-value">{{ formatNum(maxStreak) }}</span>
         <span class="stat-label">{{ t('activityHeatmap.maxStreak') }}</span>
+      </div>
+      <div class="stat-box">
+        <span class="stat-value">{{ formatNum(stats?.readPages || 0) }}</span>
+        <span class="stat-label">{{ t('activityHeatmap.readPages') }}</span>
+      </div>
+      <div class="stat-box">
+        <span class="stat-value">{{ formatNum(stats?.learnedWords || 0) }}</span>
+        <span class="stat-label">{{ t('activityHeatmap.learnedWords') }}</span>
+      </div>
+    </div>
+
+    <div v-if="Object.keys(userLevels).length > 0" class="levels-section">
+      <h3 class="section-title">
+        <Icon icon="mdi:trophy-outline" /> {{ t('activityHeatmap.achievements') }}
+      </h3>
+      <div class="levels-grid">
+        <div v-for="(lvl, lang) in userLevels" :key="lang" class="level-card">
+          <div class="level-header">
+            <span class="lang-badge">{{ lang.toUpperCase() }}</span>
+            <span class="current-level">{{ lvl.current }}</span>
+          </div>
+          <div v-if="lvl.next" class="level-progress">
+            <div class="progress-info">
+              <span>{{ t('activityHeatmap.nextLevel') }}: {{ lvl.next }}</span>
+              <span>{{ lvl.progress }}%</span>
+            </div>
+            <div class="progress-bar">
+              <div class="progress-fill" :style="{ width: `${lvl.progress}%` }" />
+            </div>
+          </div>
+          <div v-else class="level-max">
+            <Icon icon="mdi:star-face" class="max-icon" /> {{ t('activityHeatmap.maxLevelReached') }}
+          </div>
+        </div>
       </div>
     </div>
 
@@ -175,7 +267,7 @@ onMounted(async () => {
                 :key="day.date"
                 class="heatmap-cell"
                 :class="[{ 'is-future': day.future }, `level-${day.level}`]"
-                :title="day.future ? '' : `${day.count} ${t('activityHeatmap.actions')} (${day.dateFormatted})`"
+                :title="day.future ? '' : `${formatNum(day.count)} ${t('activityHeatmap.actions')} (${day.dateFormatted})`"
               />
             </div>
           </div>
@@ -205,8 +297,15 @@ onMounted(async () => {
 }
 
 .stats-overview {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
   gap: 16px;
+  padding: 6px;
+  margin: -6px;
+
+  @include media-down(md) {
+    grid-template-columns: repeat(2, 1fr);
+  }
 
   .stat-box {
     flex: 1;
@@ -219,13 +318,14 @@ onMounted(async () => {
     align-items: center;
     text-align: center;
     gap: 8px;
+    position: relative;
+    z-index: 0;
     transition:
-      transform 0.2s ease,
       box-shadow 0.2s ease,
       border-color 0.2s ease;
 
     &:hover {
-      transform: translateY(-2px);
+      z-index: 1;
       box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06);
       border-color: var(--border-primary-color);
     }
@@ -241,6 +341,119 @@ onMounted(async () => {
       font-size: 0.9rem;
       font-weight: 500;
       color: var(--fg-secondary-color);
+    }
+  }
+}
+
+.levels-section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+
+  .section-title {
+    font-size: 1.15rem;
+    font-weight: 600;
+    color: var(--fg-primary-color);
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    svg {
+      color: var(--fg-accent-color);
+      font-size: 1.4rem;
+    }
+  }
+
+  .levels-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 16px;
+    padding: 6px;
+    margin: -6px;
+  }
+
+  .level-card {
+    background-color: var(--bg-secondary-color);
+    border: 1px solid var(--border-secondary-color);
+    border-radius: 12px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    position: relative;
+    z-index: 0;
+    transition:
+      transform 0.2s ease,
+      border-color 0.2s ease,
+      box-shadow 0.2s ease;
+
+    &:hover {
+      z-index: 1;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06);
+      border-color: var(--border-primary-color);
+    }
+
+    .level-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+
+      .lang-badge {
+        background: rgba(var(--fg-accent-color-rgb, 225, 96, 50), 0.15);
+        color: var(--fg-accent-color);
+        padding: 4px 8px;
+        border-radius: 6px;
+        font-size: 0.8rem;
+        font-weight: 800;
+      }
+
+      .current-level {
+        font-size: 1.2rem;
+        font-weight: 700;
+        color: var(--fg-primary-color);
+      }
+    }
+
+    .level-progress {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+
+      .progress-info {
+        display: flex;
+        justify-content: space-between;
+        font-size: 0.85rem;
+        color: var(--fg-secondary-color);
+        font-weight: 500;
+      }
+
+      .progress-bar {
+        height: 6px;
+        background-color: var(--bg-tertiary-color);
+        border-radius: 3px;
+        overflow: hidden;
+
+        .progress-fill {
+          height: 100%;
+          background-color: var(--fg-accent-color);
+          transition: width 0.3s ease;
+        }
+      }
+    }
+
+    .level-max {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--fg-success-color);
+      font-weight: 600;
+      font-size: 0.95rem;
+
+      .max-icon {
+        font-size: 1.2rem;
+      }
     }
   }
 }

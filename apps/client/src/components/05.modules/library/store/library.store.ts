@@ -374,7 +374,7 @@ export const useLibraryStore = defineStore('library', () => {
                 const cacheKey = `${bookId}_${normalizedText}`
 
                 try {
-                  const cached = await offlineService.getTts(cacheKey)
+                  const cached = await offlineService.getTtsBlob(cacheKey)
                   if (!cached) {
                     const res = await api.books.generateTts(bookId, text, signal)
                     await offlineService.saveTts(cacheKey, res.audioBase64)

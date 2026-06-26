@@ -24,13 +24,26 @@ const progressPercent = computed(() => {
 </script>
 
 <template>
-  <div class="book-card" @click="emit('click')">
+  <div class="book-card" @click="(!book.processStatus || book.processStatus === 'ready') ? emit('click') : null">
     <div class="cover-wrapper">
       <KitImage
         :src="book.localCoverUrl || book.coverUrl"
         :alt="t('library.cover')"
         fallback-icon="mdi:book-open-blank-variant"
       />
+
+      <!-- Оверлей статуса обработки -->
+      <div v-if="book.processStatus === 'processing'" class="processing-overlay">
+        <Icon icon="mdi:loading" class="spin-icon" />
+        <span class="overlay-text">{{ t('library.uploadingWait') }}</span>
+      </div>
+
+      <div v-else-if="book.processStatus === 'error'" class="processing-overlay error">
+        <Icon icon="mdi:alert-circle-outline" class="error-icon" />
+        <span class="overlay-text error-text" :title="book.processError || t('library.updateError')">
+          {{ book.processError || t('library.updateError') }}
+        </span>
+      </div>
 
       <span class="lang-badge">{{ book.language.toUpperCase() }}</span>
 
@@ -59,7 +72,7 @@ const progressPercent = computed(() => {
       </p>
 
       <div class="progress">
-        <span>{{ t('library.pageProgress', { current: book.currentPage || 1, total: book.totalPages }) }}</span>
+        <span>{{ t('library.pageProgress', { current: book.currentPage || 1, total: book.totalPages || 0 }) }}</span>
         <div class="progress-bar">
           <div class="progress-fill" :style="{ width: `${progressPercent}%` }" />
         </div>
@@ -131,6 +144,52 @@ const progressPercent = computed(() => {
       z-index: 5;
       pointer-events: none;
       user-select: none;
+    }
+
+    .processing-overlay {
+      position: absolute;
+      inset: 0;
+      background-color: rgba(var(--bg-primary-color-rgb, 0, 0, 0), 0.75);
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+      z-index: 20;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: var(--fg-primary-color);
+      text-align: center;
+      padding: 16px;
+      gap: 12px;
+
+      .spin-icon {
+        font-size: 2.5rem;
+        color: var(--fg-accent-color);
+        animation: spin 1s linear infinite;
+      }
+
+      .error-icon {
+        font-size: 2.5rem;
+        color: var(--fg-error-color);
+      }
+
+      .overlay-text {
+        font-size: 0.9rem;
+        font-weight: 500;
+        line-height: 1.4;
+      }
+
+      .error-text {
+        color: var(--fg-error-color);
+        display: -webkit-box;
+        -webkit-line-clamp: 3;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+      }
+
+      &.error {
+        background-color: rgba(var(--bg-error-color-rgb, 248, 81, 73), 0.15);
+      }
     }
 
     :deep(.kit-image) {
@@ -252,6 +311,16 @@ const progressPercent = computed(() => {
         right: 6px;
         font-size: 1.5rem;
       }
+
+      .processing-overlay {
+        .spin-icon,
+        .error-icon {
+          font-size: 1.5rem;
+        }
+        .overlay-text {
+          display: none; // Скрываем текст лоадера на мобилках из-за нехватки места
+        }
+      }
     }
 
     .book-info {
@@ -281,6 +350,12 @@ const progressPercent = computed(() => {
         font-size: 0.8rem;
       }
     }
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
   }
 }
 </style>

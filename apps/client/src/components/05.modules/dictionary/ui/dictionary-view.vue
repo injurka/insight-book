@@ -210,13 +210,20 @@ function exportToAnki() {
 }
 
 const activityData = ref<{ date: string, count: number }[]>([])
+const activityStats = ref({ learnedWords: 0, readPages: 0, difficulties: [] as any[] })
 const isActivityLoading = ref(true)
 
 async function fetchActivity() {
   if (authStore.user) {
     isActivityLoading.value = true
     try {
-      activityData.value = await api.activity.getHeatmap()
+      const res = await api.activity.getStats()
+      activityData.value = res.heatmap
+      activityStats.value = {
+        learnedWords: res.learnedWords,
+        readPages: res.readPages,
+        difficulties: res.difficulties,
+      }
     }
     catch (e) {
       console.error('Failed to load activity data:', e)
@@ -509,11 +516,11 @@ watch(isEditMode, (val) => {
       v-model:visible="isStatsModalOpen"
       :title="t('dictionary.activityStats')"
       icon="mdi:chart-box-outline"
-      :max-width="650"
+      :max-width="850"
     >
       <div class="stats-modal-content">
         <KitSkeleton v-if="isActivityLoading" width="100%" height="250px" />
-        <ActivityHeatmap v-else :activity-data="activityData" />
+        <ActivityHeatmap v-else :activity-data="activityData" :stats="activityStats" />
       </div>
     </KitDialog>
   </div>
@@ -894,6 +901,7 @@ watch(isEditMode, (val) => {
     background-color 0.2s,
     color 0.2s;
   text-align: left;
+  width: 100%;
 
   &:hover:not(:disabled) {
     background-color: var(--bg-hover-color);

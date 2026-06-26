@@ -486,6 +486,11 @@
   "activityHeatmap": {
     "totalActions": "总操作数",
     "maxStreak": "最长连续天数",
+    "readPages": "阅读页数",
+    "learnedWords": "已学单词",
+    "achievements": "成就与等级",
+    "nextLevel": "下一等级",
+    "maxLevelReached": "已达最高等级！",
     "mon": "一",
     "wed": "三",
     "fri": "五",

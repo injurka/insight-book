@@ -1,3 +1,4 @@
+import { ref } from 'vue'
 import { useReaderStore } from '~/components/05.modules/reader/store/reader.store'
 import { useToast } from '~/shared/composables/use-toast'
 import { useUmami } from '~/shared/composables/use-umami'
@@ -16,6 +17,7 @@ export function useTts() {
   const isLoading = ref(false)
 
   let currentAudio: HTMLAudioElement | null = null
+  let currentAudioUrl: string | null = null
   let abortController: AbortController | null = null
 
   async function speak(text: string | null | undefined, explicitLanguage?: string, explicitBookId?: number) {
@@ -37,9 +39,11 @@ export function useTts() {
 
       const normalizedText = text.trim().toLowerCase()
       const cacheKey = bookId ? `${bookId}_${normalizedText}` : `dict_${lang}_${normalizedText}`
-      let audioBase64 = await offlineService.getTts(cacheKey)
 
-      if (!audioBase64) {
+      let audioBlob = await offlineService.getTtsBlob(cacheKey)
+
+      if (!audioBlob) {
+        let audioBase64 = ''
         if (bookId) {
           const res = await api.books.generateTts(bookId, text, abortController.signal)
           audioBase64 = res.audioBase64
@@ -49,22 +53,30 @@ export function useTts() {
           audioBase64 = res.audioBase64
         }
         await offlineService.saveTts(cacheKey, audioBase64)
+        audioBlob = await offlineService.getTtsBlob(cacheKey)
       }
 
       if (abortController.signal.aborted)
         return
 
-      const mimeType = audioBase64.startsWith('UklGR') ? 'audio/wav' : 'audio/mp3'
-      const audioSrc = `data:${mimeType};base64,${audioBase64}`
-      currentAudio = new Audio(audioSrc)
-      currentAudio.playbackRate = settingsStore.ttsSpeed
+      if (audioBlob) {
+        currentAudioUrl = URL.createObjectURL(audioBlob)
+        currentAudio = new Audio(currentAudioUrl)
+        currentAudio.playbackRate = settingsStore.ttsSpeed
 
-      currentAudio.onplay = () => isPlaying.value = true
-      currentAudio.onended = () => isPlaying.value = false
+        currentAudio.onplay = () => isPlaying.value = true
+        currentAudio.onended = () => {
+          isPlaying.value = false
+          if (currentAudioUrl) {
+            URL.revokeObjectURL(currentAudioUrl)
+            currentAudioUrl = null
+          }
+        }
 
-      trackEvent('tts_played', { lang })
+        trackEvent('tts_played', { lang })
 
-      await currentAudio.play()
+        await currentAudio.play()
+      }
     }
     catch (e) {
       const err = e as Error
@@ -89,6 +101,10 @@ export function useTts() {
     if (currentAudio) {
       currentAudio.pause()
       currentAudio = null
+    }
+    if (currentAudioUrl) {
+      URL.revokeObjectURL(currentAudioUrl)
+      currentAudioUrl = null
     }
     isPlaying.value = false
     isLoading.value = false

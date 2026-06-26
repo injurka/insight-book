@@ -486,6 +486,11 @@
   "activityHeatmap": {
     "totalActions": "Total actions",
     "maxStreak": "Max streak",
+    "readPages": "Read pages",
+    "learnedWords": "Learned words",
+    "achievements": "Achievements & Levels",
+    "nextLevel": "Next level",
+    "maxLevelReached": "Max level reached!",
     "mon": "Mon",
     "wed": "Wed",
     "fri": "Fri",

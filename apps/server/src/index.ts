@@ -1,6 +1,6 @@
 /* eslint-disable no-console */
 import { CORS_HEADERS, PORT } from './config'
-import { handleGetHeatmapData, handleGetTokenUsage } from './handlers/activity'
+import { handleGetActivityStats, handleGetTokenUsage } from './handlers/activity'
 import { handleGetAvatarImage, handleGetMe, handleLogin, handleUpdateAvatar, handleUpdateUsername, handleYandexAuth, handleYandexCallback } from './handlers/auth'
 import {
   handleAnalyzeBatch,
@@ -141,12 +141,11 @@ const apiRoutes = {
   '/api/dictionary/pronunciation': { OPTIONS: corsOk, POST: apiWrapper(authWrapper(handleCheckPronunciation)) },
 
   // --- Activity API ---
-  '/api/activity/heatmap': { OPTIONS: corsOk, GET: apiWrapper(authWrapper(handleGetHeatmapData)) },
+  '/api/activity/stats': { OPTIONS: corsOk, GET: apiWrapper(authWrapper(handleGetActivityStats)) },
   '/api/activity/tokens': { OPTIONS: corsOk, GET: apiWrapper(authWrapper(handleGetTokenUsage)) },
 
   // Words
   '/api/dictionary/:word': { OPTIONS: corsOk, GET: apiWrapper(authWrapper(handleGetWordFromUserDict)), DELETE: apiWrapper(authWrapper(handleRemoveFromUserDict)) },
-
 
   // --- Highlights API ---
   '/api/highlights': { OPTIONS: corsOk, GET: apiWrapper(authWrapper(handleGetHighlights)), POST: apiWrapper(authWrapper(handleCreateHighlight)) },

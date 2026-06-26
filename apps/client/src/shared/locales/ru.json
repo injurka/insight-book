@@ -486,6 +486,11 @@
   "activityHeatmap": {
     "totalActions": "Всего действий",
     "maxStreak": "Макс. серия дней",
+    "readPages": "Прочитано страниц",
+    "learnedWords": "Выучено слов",
+    "achievements": "Достижения и уровни",
+    "nextLevel": "Следующий уровень",
+    "maxLevelReached": "Достигнут максимальный уровень!",
     "mon": "Пн",
     "wed": "Ср",
     "fri": "Пт",

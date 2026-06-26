@@ -4,11 +4,11 @@ import { json } from '~/utils/helpers'
 import { db } from '../db'
 import * as schema from '../db/schema'
 
-export async function handleGetHeatmapData(req: Request, userId: number): Promise<Response> {
+export async function handleGetActivityStats(req: Request, userId: number): Promise<Response> {
   const sinceDate = new Date()
   sinceDate.setDate(sinceDate.getDate() - 182)
 
-  const activity = await db
+  const heatmap = await db
     .select({
       date: schema.dailyActivity.date,
       count: sql<number>`${schema.dailyActivity.wordsAdded} + ${schema.dailyActivity.wordsReviewed} + ${schema.dailyActivity.pagesRead}`.mapWith(Number),
@@ -20,7 +20,40 @@ export async function handleGetHeatmapData(req: Request, userId: number): Promis
     ))
     .orderBy(desc(schema.dailyActivity.date))
 
-  return json(activity)
+  const [{ learnedWords }] = await db.select({
+    learnedWords: sql<number>`count(*)`.mapWith(Number),
+  })
+    .from(schema.userDictionary)
+    .where(and(
+      eq(schema.userDictionary.userId, userId),
+      eq(schema.userDictionary.status, 3),
+    ))
+
+  const [{ readPages }] = await db.select({
+    readPages: sql<number>`SUM(${schema.dailyActivity.pagesRead})`.mapWith(Number),
+  })
+    .from(schema.dailyActivity)
+    .where(eq(schema.dailyActivity.userId, userId))
+
+  const difficulties = await db.select({
+    language: schema.userDictionary.language,
+    difficulty: schema.userDictionary.difficulty,
+    count: sql<number>`count(*)`.mapWith(Number),
+  })
+    .from(schema.userDictionary)
+    .where(and(
+      eq(schema.userDictionary.userId, userId),
+      sql`${schema.userDictionary.difficulty} IS NOT NULL`,
+      sql`${schema.userDictionary.difficulty} != ''`,
+    ))
+    .groupBy(schema.userDictionary.language, schema.userDictionary.difficulty)
+
+  return json({
+    heatmap,
+    learnedWords: learnedWords || 0,
+    readPages: readPages || 0,
+    difficulties,
+  })
 }
 
 export async function handleGetTokenUsage(req: Request, userId: number): Promise<Response> {

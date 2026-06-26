@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { Placement } from '@floating-ui/vue'
+import type { Ref } from 'vue'
 import { autoUpdate, flip, offset, shift, useFloating } from '@floating-ui/vue'
 import { onClickOutside, onKeyStroke } from '@vueuse/core'
 
@@ -31,6 +32,9 @@ const isOpen = computed({
 
 const referenceRef = ref<HTMLElement | null>(null)
 const floatingRef = ref<HTMLElement | null>(null)
+
+const dialogZIndex = inject<Ref<number> | undefined>('kit-dialog-z-index', undefined)
+const dropdownZIndex = computed(() => dialogZIndex ? dialogZIndex.value + 10 : undefined)
 
 const { x, y, strategy, placement: finalPlacement } = useFloating(referenceRef, floatingRef, {
   placement: computed(() => props.placement),
@@ -80,6 +84,7 @@ const contentStyle = computed(() => {
     left: isPositioned ? `${x.value}px` : '0',
     width: typeof props.width === 'number' ? `${props.width}px` : props.width,
     visibility: isPositioned ? 'visible' as const : 'hidden' as const,
+    zIndex: dropdownZIndex.value,
   }
 })
 

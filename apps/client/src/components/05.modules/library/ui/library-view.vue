@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import type { Book } from '~/shared/types/models'
-import { Icon } from '@iconify/vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
-import { KitBtn, KitDialog, KitPrompt, KitSkeleton } from '~/components/01.kit'
+import { KitPrompt } from '~/components/01.kit'
 import { HoverRevealBg } from '~/components/02.shared/hover-reveal-bg'
 import { useToast } from '~/shared/composables/use-toast'
 import { AppRoutePaths } from '~/shared/constants/routes'
@@ -12,9 +12,16 @@ import { useAuthStore } from '~/shared/store/auth.store'
 import { useGlobalSettingsStore } from '~/shared/store/settings.store'
 import { useLibraryDisplay } from '../composables/use-library-display'
 import { useLibraryStore } from '../store/library.store'
-import BookCard from './book-card.vue'
+
 import LibraryHeader from './library-header.vue'
 
+// Подкомпоненты
+import LibraryPersonalGroups from './partials/library-personal-groups.vue'
+import LibraryPublicCatalog from './partials/library-public-catalog.vue'
+import LibrarySidebar from './partials/library-sidebar.vue'
+import LibrarySkeletonGrid from './partials/library-skeleton-grid.vue'
+
+// Модалки
 const EditBookModal = lazyComponent(() => import('./modal/edit-book-modal.vue'))
 const UploadBookModal = lazyComponent(() => import('./modal/upload-book-modal.vue'))
 
@@ -73,23 +80,11 @@ const menuItems = computed(() => {
     items.push({ id: 'series', label: t('library.menuSeries'), icon: 'mdi:folder-outline' })
     items.push({ id: 'collections', label: t('library.menuCollections'), icon: 'mdi:bookshelf' })
   }
-
   if (!authStore.isSingleMode) {
     items.push({ id: 'public-catalog', label: t('library.menuPublicCatalog'), icon: 'mdi:earth' })
   }
-
   return items
 })
-
-function getFolderIcon(view: string) {
-  if (view === 'authors')
-    return 'mdi:account'
-  if (view === 'series')
-    return 'mdi:folder'
-  if (view === 'collections')
-    return 'mdi:bookshelf'
-  return 'mdi:folder'
-}
 
 function openBookInfo(book: Book) {
   router.push(AppRoutePaths.Book.Info(book.id))
@@ -106,9 +101,8 @@ function openEditModal(book: Book) {
 }
 
 function onConfirmHideBook() {
-  if (bookToHideId.value) {
+  if (bookToHideId.value)
     handleDeleteBook(bookToHideId.value)
-  }
   bookToHideId.value = null
 }
 
@@ -133,13 +127,27 @@ async function handleDeleteBook(id: number) {
   toast.success(t('library.bookDeleted'))
 }
 
-function onMenuClick(id: string) {
-  isMobileMenuOpen.value = false
+// --- Поллинг статуса обработки книг ---
+let pollInterval: ReturnType<typeof setInterval> | null = null
 
-  setTimeout(() => {
-    currentView.value = id
-  }, 100)
+function setupPolling() {
+  if (pollInterval)
+    clearInterval(pollInterval)
+
+  if (store.books.some(b => b.processStatus === 'processing')) {
+    pollInterval = setInterval(async () => {
+      await store.fetchBooks()
+      if (!store.books.some(b => b.processStatus === 'processing')) {
+        clearInterval(pollInterval!)
+        pollInterval = null
+      }
+    }, 3000)
+  }
 }
+
+watch(() => store.books, () => {
+  setupPolling()
+}, { deep: true })
 
 onMounted(() => {
   if (!authStore.user && !authStore.isSingleMode) {
@@ -147,8 +155,13 @@ onMounted(() => {
     loadPublic(1)
   }
   else {
-    store.fetchBooks().catch(() => {})
+    store.fetchBooks().then(setupPolling).catch(() => {})
   }
+})
+
+onUnmounted(() => {
+  if (pollInterval)
+    clearInterval(pollInterval)
 })
 </script>
 
@@ -158,34 +171,12 @@ onMounted(() => {
 
     <div class="library-view">
       <div class="library-layout">
-        <!-- Скрываем сайдбар, если пункт меню всего один (Для неавторизованных) -->
-        <aside v-if="menuItems.length > 1" class="library-sidebar desktop-only">
-          <ul class="nav-menu">
-            <li
-              v-for="item in menuItems"
-              :key="item.id"
-              class="nav-item"
-              :class="{ active: currentView === item.id }"
-              @click="onMenuClick(item.id)"
-            >
-              <Icon :icon="item.icon" /> {{ item.label }}
-            </li>
-          </ul>
-        </aside>
-
-        <KitDialog v-model:visible="isMobileMenuOpen" :title="t('library.menuTitle')" :max-width="400" :floating="false">
-          <ul class="nav-menu mobile-menu">
-            <li
-              v-for="item in menuItems"
-              :key="item.id"
-              class="nav-item"
-              :class="{ active: currentView === item.id }"
-              @click="onMenuClick(item.id)"
-            >
-              <Icon :icon="item.icon" /> {{ item.label }}
-            </li>
-          </ul>
-        </KitDialog>
+        <LibrarySidebar
+          v-model:is-mobile-menu-open="isMobileMenuOpen"
+          :items="menuItems"
+          :current-view="currentView"
+          @select="(id) => currentView = id"
+        />
 
         <div class="library-main">
           <LibraryHeader
@@ -200,58 +191,23 @@ onMounted(() => {
             @open-upload-modal="isUploadModalOpen = true"
           />
 
-          <div v-if="store.isLoading && (!store.books.length && !store.publicBooks.length)" class="skeleton-section">
-            <div class="title-skeleton" />
-            <div class="books-grid">
-              <div v-for="i in 14" :key="i" class="book-card-skeleton">
-                <div class="cover-skeleton" />
-                <div class="info-skeleton">
-                  <KitSkeleton width="80%" height="18px" />
-                  <KitSkeleton width="50%" height="14px" />
-                </div>
-              </div>
-            </div>
-          </div>
+          <!-- Если грузим личную библиотеку -->
+          <LibrarySkeletonGrid v-if="store.isLoading && (!store.books.length && !store.publicBooks.length)" :show-title="true" />
 
-          <div v-else-if="currentView === 'public-catalog'" class="public-catalog-view">
-            <div v-if="store.isLoading" class="skeleton-section">
-              <div class="books-grid">
-                <div v-for="i in 10" :key="i" class="book-card-skeleton">
-                  <div class="cover-skeleton" />
-                  <div class="info-skeleton">
-                    <KitSkeleton width="80%" height="18px" />
-                    <KitSkeleton width="50%" height="14px" />
-                  </div>
-                </div>
-              </div>
-            </div>
+          <!-- Публичный каталог -->
+          <LibraryPublicCatalog
+            v-else-if="currentView === 'public-catalog'"
+            :books="store.publicBooks"
+            :is-loading="store.isLoading"
+            :page="store.publicPage"
+            :total="store.publicTotal"
+            :limit="store.publicLimit"
+            @load-page="loadPublic"
+            @open-book="openBookInfo"
+            @edit-book="openEditModal"
+          />
 
-            <div v-else-if="store.publicBooks.length === 0" class="empty-state">
-              <h2>{{ t('library.emptySection') }}</h2>
-            </div>
-
-            <div v-else>
-              <div class="books-grid">
-                <BookCard
-                  v-for="book in store.publicBooks"
-                  :key="book.id"
-                  :book="book"
-                  @click="openBookInfo(book)"
-                  @edit="openEditModal(book)"
-                />
-              </div>
-              <div v-if="store.publicTotal > store.publicLimit" class="pagination">
-                <KitBtn variant="tonal" :disabled="store.publicPage <= 1" @click="loadPublic(store.publicPage - 1)">
-                  {{ t('library.prevPage') }}
-                </KitBtn>
-                <span>{{ store.publicPage }} / {{ Math.ceil(store.publicTotal / store.publicLimit) }}</span>
-                <KitBtn variant="tonal" :disabled="store.publicPage >= Math.ceil(store.publicTotal / store.publicLimit)" @click="loadPublic(store.publicPage + 1)">
-                  {{ t('library.nextPage') }}
-                </KitBtn>
-              </div>
-            </div>
-          </div>
-
+          <!-- Личная библиотека (пустое состояние) -->
           <div v-else-if="store.books.length === 0" class="empty-state">
             <h2>{{ t('library.emptyStateTitle') }}</h2>
             <p v-if="authStore.user">
@@ -262,56 +218,15 @@ onMounted(() => {
             </p>
           </div>
 
-          <div v-else class="library-groups">
-            <template v-for="group in displayGroups" :key="group.seriesName">
-              <div class="series-section">
-                <h3 class="series-title">
-                  <KitBtn
-                    v-if="group.isFolderContent"
-                    icon="mdi:arrow-left"
-                    variant="text"
-                    size="xs"
-                    class="back-btn"
-                    @click="activeFolder = null"
-                  />
-                  <Icon v-else :icon="group.icon || 'mdi:folder-outline'" />
-                  <span class="text">{{ group.seriesName }}</span>
-                </h3>
-
-                <div v-if="group.folders" class="folders-list">
-                  <div v-if="group.folders.length === 0" class="empty-state">
-                    <h2>{{ t('library.emptySection') }}</h2>
-                  </div>
-                  <div
-                    v-for="folder in group.folders"
-                    v-else
-                    :key="folder.name"
-                    class="folder-item"
-                    @click="activeFolder = folder.name"
-                  >
-                    <Icon :icon="getFolderIcon(currentView)" class="folder-icon" />
-                    <span class="folder-name">{{ folder.name }}</span>
-                    <span class="folder-count">{{ folder.count }}</span>
-                  </div>
-                </div>
-
-                <div v-else>
-                  <div v-if="group.books?.length === 0" class="empty-state">
-                    <h2>{{ t('library.emptySection') }}</h2>
-                  </div>
-                  <div v-else-if="group.books" class="books-grid">
-                    <BookCard
-                      v-for="book in group.books"
-                      :key="book.id"
-                      :book="book"
-                      @click="openBookInfo(book)"
-                      @edit="openEditModal(book)"
-                    />
-                  </div>
-                </div>
-              </div>
-            </template>
-          </div>
+          <!-- Личная библиотека (сгруппированная) -->
+          <LibraryPersonalGroups
+            v-else
+            v-model:active-folder="activeFolder"
+            :groups="displayGroups"
+            :current-view="currentView"
+            @open-book="openBookInfo"
+            @edit-book="openEditModal"
+          />
         </div>
       </div>
 
@@ -322,9 +237,7 @@ onMounted(() => {
         @delete="handleDeleteBook"
       />
 
-      <UploadBookModal
-        v-model:visible="isUploadModalOpen"
-      />
+      <UploadBookModal v-model:visible="isUploadModalOpen" />
 
       <KitPrompt
         v-model:visible="isHidePromptOpen"
@@ -380,83 +293,11 @@ onMounted(() => {
   height: 100%;
 }
 
-.library-sidebar {
-  width: 220px;
-  position: sticky;
-  top: 204px;
-  border-radius: 12px;
-  flex-shrink: 0;
-
-  &.desktop-only {
-    @include media-down(md) {
-      display: none;
-    }
-  }
-}
-
-.nav-menu {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-
-  &.mobile-menu {
-    padding: 8px 0;
-  }
-}
-
-.nav-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 10px 12px;
-  border-radius: 8px;
-  cursor: pointer;
-  color: var(--fg-secondary-color);
-  transition: all 0.2s;
-  font-size: 0.95rem;
-  font-weight: 500;
-
-  svg {
-    font-size: 1.3rem;
-  }
-
-  &:hover {
-    background-color: var(--bg-hover-color);
-    color: var(--fg-primary-color);
-  }
-
-  &.active {
-    background-color: rgba(var(--bg-accent-color-rgb, 201, 117, 222), 0.15);
-    color: var(--fg-accent-color);
-  }
-}
-
 .library-main {
   flex-grow: 1;
   min-width: 0;
   display: flex;
   flex-direction: column;
-}
-
-.public-catalog-view {
-  display: flex;
-  flex-direction: column;
-  padding-bottom: 24px;
-
-  .pagination {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 16px;
-    margin-top: 32px;
-    padding-top: 24px;
-    border-top: 1px solid var(--border-secondary-color);
-    color: var(--fg-secondary-color);
-    font-weight: 500;
-  }
 }
 
 .empty-state {
@@ -471,139 +312,6 @@ onMounted(() => {
   }
   p {
     color: var(--fg-secondary-color);
-  }
-}
-
-.library-groups {
-  display: flex;
-  flex-direction: column;
-  gap: 32px;
-  padding-bottom: 24px;
-}
-
-.series-title {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 1.25rem;
-  color: var(--fg-accent-color);
-  margin: 0 0 16px 0;
-  border-bottom: 2px solid var(--border-secondary-color);
-  padding-bottom: 8px;
-  height: 28px;
-
-  .back-btn {
-    margin-right: -4px;
-    margin-left: -8px;
-  }
-  .text {
-    flex-grow: 1;
-  }
-}
-
-.folders-list {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.folder-item {
-  display: flex;
-  align-items: center;
-  background-color: var(--bg-secondary-color);
-  padding: 16px;
-  border-radius: 12px;
-  border: 1px solid var(--border-secondary-color);
-  cursor: pointer;
-  transition:
-    transform 0.2s,
-    border-color 0.2s;
-
-  &:hover {
-    transform: translateY(-2px);
-    border-color: var(--fg-accent-color);
-  }
-
-  .folder-icon {
-    font-size: 1.5rem;
-    color: var(--fg-secondary-color);
-    margin-right: 16px;
-  }
-
-  .folder-name {
-    flex-grow: 1;
-    font-size: 1.05rem;
-    color: var(--fg-primary-color);
-    font-weight: 500;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  .folder-count {
-    font-size: 0.95rem;
-    color: var(--fg-secondary-color);
-    background-color: var(--bg-tertiary-color);
-    padding: 2px 10px;
-    border-radius: 99px;
-  }
-}
-
-.skeleton-section {
-  display: flex;
-  flex-direction: column;
-
-  .title-skeleton {
-    height: 44px;
-  }
-}
-
-.books-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 24px;
-
-  @include media-down(sm) {
-    grid-template-columns: 1fr;
-    gap: 12px;
-  }
-}
-
-.book-card-skeleton {
-  background-color: var(--bg-secondary-color);
-  border-radius: 12px;
-  overflow: hidden;
-  border: 1px solid var(--border-secondary-color);
-
-  .cover-skeleton {
-    width: 100%;
-    aspect-ratio: 2 / 3;
-    background-color: var(--bg-tertiary-color);
-  }
-  .info-skeleton {
-    padding: 16px;
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-  }
-
-  @include media-down(sm) {
-    display: flex;
-    flex-direction: row;
-    height: 120px;
-    padding: 12px;
-    align-items: center;
-
-    .cover-skeleton {
-      width: 72px;
-      height: 108px;
-      flex-shrink: 0;
-      border-radius: 6px;
-    }
-    .info-skeleton {
-      flex-grow: 1;
-      justify-content: center;
-    }
   }
 }
 </style>

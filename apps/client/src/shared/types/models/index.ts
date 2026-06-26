@@ -49,6 +49,8 @@ export interface Book {
   textDirection?: string | null
   progressUpdatedAt?: string | null
   analysesCount?: number
+  processStatus?: 'processing' | 'ready' | 'error'
+  processError?: string | null
 }
 
 export interface TocItem {
