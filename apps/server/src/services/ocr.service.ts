@@ -248,13 +248,14 @@ async function refineOcrText(userId: number, base64Image: string, blocks: OcrBlo
         }
       }
       catch (parseError: unknown) {
-        console.warn(`[OCR Refinement] First attempt failed to parse JSON. Error: ${parseError.message || parseError}. Retrying...`)
+        const err = parseError as Error
+        console.warn(`[OCR Refinement] First attempt failed to parse JSON. Error: ${err.message || err}. Retrying...`)
 
         // Выполняем ровно 1 повторный запрос с инструкцией об ошибке
         const retryMessages = [
           ...messages,
           { role: 'assistant', content },
-          { role: 'user', content: `Your previous response was not valid JSON or did not contain the correct number of items. Please fix it. Error details: ${parseError.message || parseError}. Make sure to output ONLY valid JSON.` },
+          { role: 'user', content: `Your previous response was not valid JSON or did not contain the correct number of items. Please fix it. Error details: ${err.message || err}. Make sure to output ONLY valid JSON.` },
         ]
 
         response = await fetch(`${apiUrl}/chat/completions`, {

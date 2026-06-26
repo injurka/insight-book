@@ -24,7 +24,7 @@ export async function handleSubscribe(req: Request, userId: number) {
     set: {
       userId,
       keys: JSON.stringify(keys),
-    }
+    },
   })
 
   return json({ success: true })

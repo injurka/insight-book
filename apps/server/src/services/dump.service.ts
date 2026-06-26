@@ -92,11 +92,12 @@ export async function executeDump(logCallback?: (msg: string) => void): Promise<
       .where(eq(schema.dumpLogs.id, logEntry.id))
   }
   catch (error: unknown) {
-    log(`❌ Dump failed: ${error.message}`)
+    const err = error as Error
+    log(`❌ Dump failed: ${err.message}`)
 
     // 4. Логируем ошибку
     await db.update(schema.dumpLogs)
-      .set({ status: 'failed', error: error.message || 'Unknown error', completedAt: new Date().toISOString() })
+      .set({ status: 'failed', error: err.message || 'Unknown error', completedAt: new Date().toISOString() })
       .where(eq(schema.dumpLogs.id, logEntry.id))
 
     throw error

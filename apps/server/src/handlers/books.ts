@@ -75,9 +75,9 @@ export async function handleGetBooks(req: Request, userId: number | null): Promi
     const bookIds = rows.map(r => r.book.id)
     const llmCounts = bookIds.length > 0
       ? await db.select({
-        bookId: schema.bookLlmCache.bookId,
-        count: sql<number>`count(*)`.mapWith(Number),
-      }).from(schema.bookLlmCache).where(inArray(schema.bookLlmCache.bookId, bookIds)).groupBy(schema.bookLlmCache.bookId)
+          bookId: schema.bookLlmCache.bookId,
+          count: sql<number>`count(*)`.mapWith(Number),
+        }).from(schema.bookLlmCache).where(inArray(schema.bookLlmCache.bookId, bookIds)).groupBy(schema.bookLlmCache.bookId)
       : []
     const countMap = new Map(llmCounts.map(r => [r.bookId, r.count]))
 
@@ -126,9 +126,9 @@ export async function handleGetBooks(req: Request, userId: number | null): Promi
   const bookIds = result.map(b => b.id)
   const llmCounts = bookIds.length > 0
     ? await db.select({
-      bookId: schema.bookLlmCache.bookId,
-      count: sql<number>`count(*)`.mapWith(Number),
-    }).from(schema.bookLlmCache).where(inArray(schema.bookLlmCache.bookId, bookIds)).groupBy(schema.bookLlmCache.bookId)
+        bookId: schema.bookLlmCache.bookId,
+        count: sql<number>`count(*)`.mapWith(Number),
+      }).from(schema.bookLlmCache).where(inArray(schema.bookLlmCache.bookId, bookIds)).groupBy(schema.bookLlmCache.bookId)
     : []
   const countMap = new Map(llmCounts.map(r => [r.bookId, r.count]))
 
@@ -178,11 +178,11 @@ export async function handleGetBookInfo(req: Request, userId: number | null): Pr
   const { progresses, stats, ...bookData } = book
   const statsResult = stats
     ? {
-      ...stats,
-      tags: stats.tags ? JSON.parse(stats.tags) : [],
-      posDistribution: stats.posDistribution ? JSON.parse(stats.posDistribution) : null,
-      topWords: stats.topWords ? JSON.parse(stats.topWords) : null,
-    }
+        ...stats,
+        tags: stats.tags ? JSON.parse(stats.tags) : [],
+        posDistribution: stats.posDistribution ? JSON.parse(stats.posDistribution) : null,
+        topWords: stats.topWords ? JSON.parse(stats.topWords) : null,
+      }
     : null
 
   const llmCountRes = await db.select({ count: sql<number>`count(*)` })
@@ -578,7 +578,7 @@ export async function handleDeleteBook(req: Request, userId: number): Promise<Re
     }
   }
   catch (err: unknown) {
-    console.warn(`[File Delete Warning] Не удалось удалить файлы книги:`, err.message)
+    console.warn(`[File Delete Warning] Не удалось удалить файлы книги:`, (err as Error).message)
   }
 
   return json({ success: true })
@@ -674,7 +674,7 @@ export async function handleGetPage(req: Request, userId: number): Promise<Respo
         await db.update(schema.mangaPages).set({ ocrData: JSON.stringify(ocrBlocks) }).where(eq(schema.mangaPages.id, pageRow.id))
       }
       catch (e: unknown) {
-        console.error('OCR Error:', e.message)
+        console.error('OCR Error:', (e as Error).message)
         ocrBlocks = []
       }
     }

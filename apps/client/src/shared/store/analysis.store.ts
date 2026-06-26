@@ -297,7 +297,7 @@ export const useAnalysisStore = defineStore('analysis', () => {
         ttsTask.status = 'processing'
         try {
           const cacheKey = `${book.id}_${ttsTask.text.trim().toLowerCase()}`
-          const cached = await offlineService.getTts(cacheKey)
+          const cached = await offlineService.getTtsBlob(cacheKey)
           if (!cached) {
             const res = await api.books.generateTts(book.id, ttsTask.text, signal)
             await offlineService.saveTts(cacheKey, res.audioBase64)

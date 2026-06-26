@@ -72,8 +72,9 @@ async function callLlmApi(
     })
   }
   catch (error: unknown) {
+    const errObj = error as any
     throw new Error(
-      `AI SDK Error[${modelName}]: ${error?.message || JSON.stringify(error)} `,
+      `AI SDK Error[${modelName}]: ${errObj?.message || JSON.stringify(error)} `,
     )
   }
 }
@@ -104,7 +105,8 @@ async function callLlmJsonWithRetry<T = any>(
     return { parsed, text: rawResponse, usage }
   }
   catch (parseError: unknown) {
-    console.warn(`[LLM JSON Parse Retry] First attempt failed to parse JSON. Error: ${parseError.message || parseError}. Retrying...`)
+    const err = parseError as Error
+    console.warn(`[LLM JSON Parse Retry] First attempt failed to parse JSON. Error: ${err.message || err}. Retrying...`)
 
     // Отправляем модели её же ответ и текст ошибки парсинга, требуя строгий JSON
     const retryMessages: ModelMessage[] = [
@@ -112,7 +114,7 @@ async function callLlmJsonWithRetry<T = any>(
       { role: 'assistant', content: rawResponse },
       {
         role: 'user',
-        content: `Your previous response was not valid JSON. Please fix it. Error details: ${parseError.message || parseError}. Make sure to output ONLY valid JSON.`,
+        content: `Your previous response was not valid JSON. Please fix it. Error details: ${err.message || err}. Make sure to output ONLY valid JSON.`,
       },
     ]
 

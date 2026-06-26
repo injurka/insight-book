@@ -3,7 +3,7 @@ import { KitSkeleton } from '~/components/01.kit'
 
 withDefaults(defineProps<{ count?: number, showTitle?: boolean }>(), {
   count: 14,
-  showTitle: false
+  showTitle: false,
 })
 </script>
 

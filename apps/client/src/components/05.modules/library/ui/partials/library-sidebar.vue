@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Icon } from '@iconify/vue'
-import { KitDialog } from '~/components/01.kit'
 import { useI18n } from 'vue-i18n'
+import { KitDialog } from '~/components/01.kit'
 
 interface MenuItem {
   id: string
@@ -9,7 +9,7 @@ interface MenuItem {
   icon: string
 }
 
-const props = defineProps<{
+defineProps<{
   items: MenuItem[]
   currentView: string
 }>()

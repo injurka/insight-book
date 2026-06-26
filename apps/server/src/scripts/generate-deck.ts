@@ -92,7 +92,7 @@ async function main() {
       await new Promise(r => setTimeout(r, 600))
     }
     catch (e: unknown) {
-      console.error(`❌ Ошибка при обработке слова "${word}":`, e.message)
+      console.error(`❌ Ошибка при обработке слова "${word}":`, (e as Error).message)
     }
   }
 

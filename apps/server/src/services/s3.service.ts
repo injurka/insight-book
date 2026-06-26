@@ -72,7 +72,8 @@ class S3Service {
       }
     }
     catch (error: unknown) {
-      if (error.name === 'NoSuchKey' || error.name === 'NotFound' || error.$metadata?.httpStatusCode === 404) {
+      const err = error as any
+      if (err.name === 'NoSuchKey' || err.name === 'NotFound' || err.$metadata?.httpStatusCode === 404) {
         return null
       }
       throw error
@@ -87,7 +88,8 @@ class S3Service {
       )
     }
     catch (error: unknown) {
-      if (error.name === 'NotFound' || error.$metadata?.httpStatusCode === 404) {
+      const err = error as any
+      if (err.name === 'NotFound' || err.$metadata?.httpStatusCode === 404) {
         /* eslint-disable no-console */
         console.log(`⚠️ Bucket '${this.bucket}' not found. Attempting to create it...`)
 

@@ -20,9 +20,10 @@ export function apiWrapper(handler: (req: Request) => Promise<Response> | Respon
         status = error.statusCode
         message = error.message
       }
-      else if (error?.name === 'ZodError') {
+      else if (error && typeof error === 'object' && 'name' in error && error.name === 'ZodError') {
         status = 400
-        const issues = error.issues || error.errors || []
+        const zodError = error as any
+        const issues = zodError.issues || zodError.errors || []
         if (issues.length > 0) {
           message = issues.map((e: any) => `${e.path.join('.')}: ${e.message}`).join('; ')
         }
@@ -32,7 +33,7 @@ export function apiWrapper(handler: (req: Request) => Promise<Response> | Respon
       }
 
       if (status >= 500) {
-        console.error(`[API Error] ${req.method} ${req.url}:`, error.message)
+        console.error(`[API Error] ${req.method} ${req.url}:`, error instanceof Error ? error.message : String(error))
       }
 
       return new Response(JSON.stringify({ error: message }), {

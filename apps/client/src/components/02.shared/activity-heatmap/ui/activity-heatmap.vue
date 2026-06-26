@@ -168,13 +168,13 @@ const userLevels = computed(() => {
 
     let workingIdx = 0
     if (achievedHighest === -1) {
-      workingIdx = 0 
+      workingIdx = 0
     }
     else if (achievedHighest === sysLevels.length - 1) {
-      workingIdx = sysLevels.length - 1 
+      workingIdx = sysLevels.length - 1
     }
     else {
-      workingIdx = achievedHighest + 1 
+      workingIdx = achievedHighest + 1
     }
 
     const current = sysLevels[workingIdx].label

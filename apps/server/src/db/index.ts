@@ -189,7 +189,7 @@ export function getDictConnection(language: string, targetLanguage: string): Dic
       dictDb.run(`CREATE INDEX IF NOT EXISTS "idx_${tableName}_${wordCol}" ON "${tableName}" ("${wordCol}")`)
     }
     catch (e: unknown) {
-      console.warn(`[DB Warning] Could not create index on dict_${lang}.sqlite (maybe read-only volume?):`, e.message)
+      console.warn(`[DB Warning] Could not create index on dict_${lang}.sqlite (maybe read-only volume?):`, (e as Error).message)
     }
 
     const dDb = drizzle(dictDb, { logger: false })

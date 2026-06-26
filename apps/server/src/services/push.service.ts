@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 import { and, eq, lte, sql } from 'drizzle-orm'
 import webpush from 'web-push'
 import { getAiConfig } from '~/utils/ai-config'
