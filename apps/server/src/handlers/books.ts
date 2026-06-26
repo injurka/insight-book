@@ -13,6 +13,7 @@ import { extractLlmConfig, extractUniqueWordsFromHtml, json, normalizeLanguageCo
 import { BOOKS_PATH, CORS_HEADERS, COVERS_PATH } from '../config'
 import { db } from '../db'
 import * as schema from '../db/schema'
+import { trackActivity } from '../services/activity.service'
 import { lookupSingleWord, lookupWords } from '../services/dictionary.service'
 import { checkBookLimit } from '../services/limits.service'
 import { analyzeBatch, analyzeBookExcerpt, analyzeMangaInfo, analyzeSentence, checkCacheBatch, generateTts } from '../services/llm.service'
@@ -636,6 +637,8 @@ export async function handleGetPage(req: Request, userId: number): Promise<Respo
         target: [schema.readingProgress.bookId, schema.readingProgress.userId],
         set: { currentPage: pageNum, updatedAt: new Date().toISOString() },
       })
+
+    await trackActivity(userId, 'read', 1)
   }
 
   if (book.type === 'manga') {

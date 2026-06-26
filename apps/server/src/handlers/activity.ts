@@ -38,7 +38,7 @@ export async function handleGetActivityStats(req: Request, userId: number): Prom
   const difficulties = await db.select({
     language: schema.userDictionary.language,
     difficulty: schema.userDictionary.difficulty,
-    count: sql<number>`count(*)`.mapWith(Number),
+    count: sql<number>`SUM(CASE WHEN ${schema.userDictionary.status} = 3 THEN 1 ELSE 0 END)`.mapWith(Number),
   })
     .from(schema.userDictionary)
     .where(and(

@@ -138,7 +138,7 @@ const maxStreak = computed(() => {
 })
 
 const userLevels = computed(() => {
-  if (!props.stats)
+  if (!props.stats || !props.stats.difficulties)
     return {}
   const levels: Record<string, { current: string, next: string | null, progress: number }> = {}
 
@@ -151,36 +151,42 @@ const userLevels = computed(() => {
 
   for (const [lang, diffs] of Object.entries(langGroups)) {
     const sys = DIFFICULTY_SYSTEMS[lang] || DIFFICULTY_SYSTEMS.default
-
     const sysLevels = [...sys].sort((a, b) => a.level - b.level)
-
-    let maxValidIdx = -1
 
     const userDiffCounts = new Map<string, number>()
     diffs.forEach(d => userDiffCounts.set(d.difficulty, d.count))
 
-    for (let i = 0; i < sysLevels.length; i++) {
-      const count = userDiffCounts.get(sysLevels[i].value) || 0
-      if (count >= 5) {
-        maxValidIdx = i
+    const TARGET_WORDS = 50
+
+    let achievedHighest = -1
+    for (let i = sysLevels.length - 1; i >= 0; i--) {
+      if ((userDiffCounts.get(sysLevels[i].value) || 0) >= TARGET_WORDS) {
+        achievedHighest = i
+        break
       }
     }
 
-    if (maxValidIdx === -1 && diffs.length > 0) {
-      const lowestHaveWords = sysLevels.findIndex(s => (userDiffCounts.get(s.value) || 0) > 0)
-      maxValidIdx = lowestHaveWords !== -1 ? lowestHaveWords : 0
+    let workingIdx = 0
+    if (achievedHighest === -1) {
+      workingIdx = 0 
+    }
+    else if (achievedHighest === sysLevels.length - 1) {
+      workingIdx = sysLevels.length - 1 
+    }
+    else {
+      workingIdx = achievedHighest + 1 
     }
 
-    if (maxValidIdx !== -1) {
-      const current = sysLevels[maxValidIdx].label
-      const nextObj = maxValidIdx + 1 < sysLevels.length ? sysLevels[maxValidIdx + 1] : null
-      const next = nextObj ? nextObj.label : null
+    const current = sysLevels[workingIdx].label
+    const nextObj = workingIdx + 1 < sysLevels.length ? sysLevels[workingIdx + 1] : null
+    const next = nextObj ? nextObj.label : null
 
-      const countInCurrent = userDiffCounts.get(sysLevels[maxValidIdx].value) || 0
-      const progress = Math.min(100, Math.round((countInCurrent / 50) * 100))
+    const countInWorking = userDiffCounts.get(sysLevels[workingIdx].value) || 0
+    const progress = achievedHighest === sysLevels.length - 1
+      ? 100
+      : Math.min(100, Math.round((countInWorking / TARGET_WORDS) * 100))
 
-      levels[lang] = { current, next, progress }
-    }
+    levels[lang] = { current, next, progress }
   }
 
   return levels
