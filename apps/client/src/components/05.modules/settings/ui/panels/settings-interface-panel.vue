@@ -1,12 +1,18 @@
 <script setup lang="ts">
 import { Icon } from '@iconify/vue'
+import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { KitBtn, KitSelect } from '~/components/01.kit'
+import { KitBtn, KitSelect, KitTooltip } from '~/components/01.kit'
+import { ThemesVariant, useChangeTheme } from '~/shared/composables/use-change-theme'
+import { useTts } from '~/shared/composables/use-tts'
 import { useGlobalSettingsStore } from '~/shared/store/settings.store'
 import { usePushSettings } from '../../composables/use-push-settings'
 
 const { t } = useI18n()
 const settingsStore = useGlobalSettingsStore()
+const { theme } = useChangeTheme()
+const { speak, stop, isPlaying, isLoading } = useTts()
+
 const {
   pwaStore,
   pushDeckOptions,
@@ -26,19 +32,100 @@ const appLangOptions = [
   { label: 'English', value: 'en' },
   { label: '中文', value: 'zh' },
 ]
+
+const themeOptions = computed(() => [
+  { label: t('reader.light'), value: ThemesVariant.Light },
+  { label: t('reader.dark'), value: ThemesVariant.Dark },
+  { label: t('reader.sepia'), value: ThemesVariant.Sepia },
+  { label: t('reader.green'), value: ThemesVariant.Green },
+  { label: t('reader.oled'), value: ThemesVariant.Oled },
+])
+
+const voiceOptions = computed(() => [
+  { label: 'Kore (Female)', value: 'Kore' },
+  { label: 'Callirrhoe (Female)', value: 'Callirrhoe' },
+  { label: 'Leda (Female)', value: 'Leda' },
+  { label: 'Orus (Male)', value: 'Orus' },
+  { label: 'Puck (Male)', value: 'Puck' },
+  { label: 'Charon (Male)', value: 'Charon' },
+  { label: 'Fenrir (Male)', value: 'Fenrir' },
+])
+
+const priorityOptions = computed(() => [
+  { label: t('reader.dictionary'), value: 'dict' },
+  { label: t('reader.neuralNetwork'), value: 'llm' },
+])
+
+const speedOptions = [
+  { label: '0.75x', value: 0.75 },
+  { label: '1.0x', value: 1 },
+  { label: '1.25x', value: 1.25 },
+  { label: '1.5x', value: 1.5 },
+]
+
+function previewVoice() {
+  if (isPlaying.value || isLoading.value) {
+    stop()
+  }
+  else {
+    speak(t('settings.previewVoiceText'), settingsStore.appLanguage || 'en')
+  }
+}
 </script>
 
 <template>
   <h2 class="section-title">
     {{ t('settings.interfaceTitle') }}
   </h2>
+
+  <!-- Основные настройки -->
   <div class="settings-card lang-card">
-    <div class="form-group">
-      <label>{{ t('settings.appLanguage') }}</label>
-      <KitSelect v-model="settingsStore.appLanguage" :options="appLangOptions" />
+    <div class="form-row">
+      <div class="form-group flex-1">
+        <label>{{ t('settings.appLanguage') }}</label>
+        <KitSelect v-model="settingsStore.appLanguage" :options="appLangOptions" />
+      </div>
+      <div class="form-group flex-1">
+        <label>{{ t('globalActions.theme') }}</label>
+        <KitSelect v-model="theme" :options="themeOptions" />
+      </div>
     </div>
 
-    <div class="divider" style="margin: 16px 0;" />
+    <div class="divider" style="margin: 24px 0;" />
+
+    <h3 style="margin-top: 0; font-size: 1.1rem; color: var(--fg-primary-color); margin-bottom: 16px;">
+      {{ t('reader.translationAndVoice') }}
+    </h3>
+
+    <div class="form-row">
+      <div class="form-group flex-1">
+        <label>{{ t('reader.translationPriority') }}</label>
+        <KitSelect v-model="settingsStore.translationPriority" :options="priorityOptions" />
+      </div>
+      <div class="form-group flex-1">
+        <label>{{ t('reader.voiceSpeed') }}</label>
+        <KitSelect v-model="settingsStore.ttsSpeed" :options="speedOptions" />
+      </div>
+    </div>
+
+    <div class="form-group" style="margin-top: 16px;">
+      <label>{{ t('reader.voice') }}</label>
+      <div style="display: flex; gap: 8px; align-items: center;">
+        <KitSelect v-model="settingsStore.ttsVoice" :options="voiceOptions" style="flex: 1; min-width: 0;" />
+        <KitTooltip :text="t('settings.previewVoice')" placement="top">
+          <KitBtn
+            :icon="isLoading ? 'mdi:loading' : (isPlaying ? 'mdi:stop' : 'mdi:play')"
+            :class="{ 'spin-animation': isLoading, 'pulse-animation': isPlaying }"
+            variant="outlined"
+            color="secondary"
+            style="padding: 0; width: 38px; height: 38px; flex-shrink: 0;"
+            @click="previewVoice"
+          />
+        </KitTooltip>
+      </div>
+    </div>
+
+    <div class="divider" style="margin: 24px 0;" />
 
     <div class="push-setting-row">
       <div class="push-info">
@@ -175,9 +262,34 @@ const appLangOptions = [
   height: 1px;
   background-color: var(--border-secondary-color);
 }
+.spin-animation {
+  :deep(svg) {
+    animation: spin 1s linear infinite;
+  }
+}
+.pulse-animation {
+  :deep(svg) {
+    animation: pulse-op 1.2s infinite;
+    color: var(--fg-accent-color) !important;
+  }
+}
 @keyframes spin {
   to {
     transform: rotate(360deg);
+  }
+}
+@keyframes pulse-op {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
   }
 }
 </style>

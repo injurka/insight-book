@@ -8,7 +8,7 @@
   "globalActions": {
     "myDictionary": "Мой словарь",
     "myNotebook": "Цитаты",
-    "storageManagement": "Управление памятью",
+    "storageManagement": "Настройки",
     "switchTheme": "Переключить тему",
     "switchLanguage": "Сменить язык",
     "signIn": "Войти",
@@ -82,6 +82,8 @@
     "stop": "Остановить"
   },
   "settings": {
+    "previewVoice": "Прослушать голос",
+    "previewVoiceText": "Привет! Как звучит мой голос?",
     "totalCost": "Затраты (USD)",
     "pushNotSupported": "Push-уведомления не поддерживаются в браузере или приложение не добавлено на главный экран (iOS).",
     "pushDenied": "Уведомления заблокированы. Разрешите их в настройках браузера.",
@@ -281,6 +283,7 @@
     "dictionary": "Словарь",
     "neuralNetwork": "Нейросеть",
     "voiceSpeed": "Скорость озвучки",
+    "voice": "Голос",
     "textDisplayManga": "Отображение текста",
     "translationMode": "Режим перевода",
     "hover": "Наведение",

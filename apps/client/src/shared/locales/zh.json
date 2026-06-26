@@ -8,7 +8,7 @@
   "globalActions": {
     "myDictionary": "我的词典",
     "myNotebook": "摘录",
-    "storageManagement": "存储管理",
+    "storageManagement": "设置",
     "switchTheme": "切换主题",
     "switchLanguage": "更改语言",
     "signIn": "登录",
@@ -82,6 +82,8 @@
     "stop": "停止"
   },
   "settings": {
+    "previewVoice": "试听声音",
+    "previewVoiceText": "你好！我的声音听起来怎么样？",
     "totalCost": "预估成本 (USD)",
     "pushNotSupported": "此浏览器不支持推送通知，或者应用未添加到主屏幕（iOS）。",
     "pushDenied": "通知已被阻止。请在浏览器设置中允许通知。",
@@ -281,6 +283,7 @@
     "dictionary": "词典",
     "neuralNetwork": "神经网络",
     "voiceSpeed": "语音速度",
+    "voice": "声音",
     "textDisplayManga": "文本显示",
     "translationMode": "翻译模式",
     "hover": "悬停",

@@ -8,7 +8,7 @@
   "globalActions": {
     "myDictionary": "My Dictionary",
     "myNotebook": "Quotes",
-    "storageManagement": "Storage Management",
+    "storageManagement": "Settings",
     "switchTheme": "Switch Theme",
     "switchLanguage": "Change Language",
     "signIn": "Sign In",
@@ -82,6 +82,8 @@
     "stop": "Stop"
   },
   "settings": {
+    "previewVoice": "Preview voice",
+    "previewVoiceText": "Hello! How does my voice sound?",
     "totalCost": "Estimated Cost (USD)",
     "pushNotSupported": "Push notifications are not supported in this browser or the app is not added to the home screen (iOS).",
     "pushDenied": "Notifications are blocked. Please allow them in your browser settings.",
@@ -281,6 +283,7 @@
     "dictionary": "Dictionary",
     "neuralNetwork": "Neural Network",
     "voiceSpeed": "Voice speed",
+    "voice": "Voice",
     "textDisplayManga": "Text display",
     "translationMode": "Translation mode",
     "hover": "Hover",

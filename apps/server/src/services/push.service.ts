@@ -182,7 +182,7 @@ export async function sendDailyMotivations(customMessage?: string) {
         })
 
         if (randomWord) {
-          targetUrl = '/dictionary'
+          targetUrl = `/dictionary?word=${encodeURIComponent(randomWord.word)}`
           wordStrForTag = randomWord.word
           const wordStr = randomWord.word
           const transStr = randomWord.translation?.split(/<br>|,|;/)[0].replace(/<[^>]+>/g, '').trim() || ''

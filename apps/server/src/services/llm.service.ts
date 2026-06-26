@@ -2,7 +2,7 @@ import type { BatchAnalysisRequest, BatchAnalysisResponse, GeneratedWordExamples
 import { eq, inArray, sql } from 'drizzle-orm'
 import { pinyin } from 'pinyin-pro'
 import { LlmAnalysisSchema } from '~/types/schemas'
-import { getVoiceForLanguage, hashSentence, hashTtsText, parseLlmJson } from '~/utils/helpers'
+import { getVoiceForLanguage, hashSentence, hashTtsText, mapVoiceToOpenAi, parseLlmJson } from '~/utils/helpers'
 import { callLlmJsonWithRetry } from '~/utils/llm-api'
 import { db } from '../db'
 import * as schema from '../db/schema'
@@ -370,8 +370,8 @@ export async function analyzeBatch(userId: number, bookId: number, items: BatchA
 
   const cachedDocs = hashesToFind.length > 0
     ? await db.query.llmCache.findMany({
-        where: inArray(schema.llmCache.sentenceHash, hashesToFind),
-      })
+      where: inArray(schema.llmCache.sentenceHash, hashesToFind),
+    })
     : []
 
   const cacheMap = new Map(cachedDocs.map(d => [d.sentenceHash, d.analysis]))
@@ -469,20 +469,21 @@ export async function analyzeBatch(userId: number, bookId: number, items: BatchA
   return results
 }
 
-export async function generateTts(userId: number, text: string, language: string, config: LlmConfig): Promise<string> {
+export async function generateTts(userId: number, text: string, language: string, config: LlmConfig, selectedVoice?: string): Promise<string> {
   const normalizedText = text.trim()
-  const voice = getVoiceForLanguage(language)
 
   if (!normalizedText)
     throw new AppError(400, 'Текст не передан')
 
   const ttsUrl = config.ttsUrl || config.url
   const ttsKey = config.ttsKey || config.key
-  const ttsModel = config.ttsModel!
+  const primaryModel = config.ttsModel!
+  const fallbackModel = config.fallbackTtsModel || 'tts-1'
 
   if (!ttsUrl)
     throw new AppError(500, 'TTS API не настроен')
 
+  const voice = selectedVoice || 'Kore'
   const hash = hashTtsText(normalizedText, voice)
 
   const cached = await db.query.ttsCache.findFirst({
@@ -501,78 +502,88 @@ export async function generateTts(userId: number, text: string, language: string
   if (ttsKey)
     headers.Authorization = `Bearer ${ttsKey}`
 
-  trackTokenUsage(userId, 'tts_generation', ttsModel, normalizedText.length, 0, normalizedText, '[AUDIO BASE64]')
+  trackTokenUsage(userId, 'tts_generation', primaryModel, normalizedText.length, 0, normalizedText, '[AUDIO BASE64]')
 
-  const isGeminiTts = ttsModel.toLowerCase().includes('gemini')
-
-  let finalVoice = voice
-  if (isGeminiTts) {
-    if (voice === 'alloy')
-      finalVoice = 'Kore'
-    else if (voice === 'shimmer')
-      finalVoice = 'Callirrhoe'
-    else if (voice === 'nova')
-      finalVoice = 'Orus'
+  let textToRead = normalizedText
+  if (!/[.!?。！？]$/.test(textToRead)) {
+    textToRead += '.'
   }
 
-  const maxRetries = 3
-  let lastError: unknown
-
-  for (let attempt = 0; attempt < maxRetries; attempt++) {
-    try {
-      const response = await fetch(`${ttsUrl}/audio/speech`, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({
-          model: ttsModel,
-          input: normalizedText,
-          voice: finalVoice,
-          response_format: isGeminiTts ? 'wav' : 'mp3',
-        }),
-        signal: AbortSignal.timeout(60000),
-      })
-
-      if (!response.ok) {
-        const errorText = await response.text()
-        throw new AppError(500, `TTS API error ${response.status}: ${errorText}`)
-      }
-
-      const arrayBuffer = await response.arrayBuffer()
-
-      if (arrayBuffer.byteLength === 0) {
-        throw new AppError(500, 'TTS API returned empty audio data')
-      }
-
-      const base64 = Buffer.from(arrayBuffer).toString('base64')
-
-      await db.insert(schema.ttsCache).values({
-        textHash: hash,
-        text: normalizedText,
-        audioBase64: base64,
-      }).onConflictDoUpdate({
-        target: schema.ttsCache.textHash,
-        set: {
-          text: normalizedText,
-          audioBase64: base64,
-        },
-      })
-
-      return base64
+  async function tryGenerate(model: string, voiceName: string, isGemini: boolean) {
+    const requestBody = {
+      model,
+      input: textToRead,
+      voice: voiceName,
+      response_format: isGemini ? 'wav' : 'mp3',
     }
-    catch (error: unknown) {
-      if ((error as Error).name === 'AbortError')
-        throw error
 
-      lastError = error
-      console.warn(`[TTS] Attempt ${attempt + 1} failed for text: "${normalizedText.substring(0, 20)}...". Error: ${(error as Error).message}`)
+    const response = await fetch(`${ttsUrl}/audio/speech`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(requestBody),
+      signal: AbortSignal.timeout(60000),
+    })
 
-      if (attempt < maxRetries - 1) {
-        await new Promise(resolve => setTimeout(resolve, 1500 * (attempt + 1)))
+    if (!response.ok) {
+      const errorText = await response.text()
+      throw new AppError(500, `TTS API error ${response.status}: ${errorText}`)
+    }
+
+    const arrayBuffer = await response.arrayBuffer()
+
+    if (arrayBuffer.byteLength === 0) {
+      throw new AppError(500, 'TTS API returned empty audio data')
+    }
+
+    return Buffer.from(arrayBuffer).toString('base64')
+  }
+
+  let base64 = ''
+  const isPrimaryGemini = primaryModel.toLowerCase().includes('gemini')
+
+  try {
+    base64 = await tryGenerate(primaryModel, voice, isPrimaryGemini)
+  }
+  catch (error: unknown) {
+    if ((error as Error).name === 'AbortError')
+      throw error
+
+    console.warn(`[TTS] Primary model (${primaryModel}) failed for text: "${normalizedText.substring(0, 20)}". Error: ${(error as Error).message}`)
+
+    if (fallbackModel && fallbackModel !== primaryModel) {
+      // eslint-disable-next-line no-console
+      console.log(`[TTS] Trying fallback model (${fallbackModel})...`)
+      const isFallbackGemini = fallbackModel.toLowerCase().includes('gemini')
+      const fallbackVoice = isFallbackGemini ? voice : mapVoiceToOpenAi(voice)
+
+      try {
+        base64 = await tryGenerate(fallbackModel, fallbackVoice, isFallbackGemini)
       }
+      catch (fallbackError: unknown) {
+        if ((fallbackError as Error).name === 'AbortError')
+          throw fallbackError
+        console.error(`[TTS] Fallback model (${fallbackModel}) also failed.`)
+        throw fallbackError
+      }
+    }
+    else {
+      throw error
     }
   }
 
-  throw lastError
+  await db.insert(schema.ttsCache).values({
+    textHash: hash,
+    text: normalizedText,
+    audioBase64: base64,
+  }).onConflictDoUpdate({
+    target: schema.ttsCache.textHash,
+    set: {
+      text: normalizedText,
+      audioBase64: base64,
+    },
+  })
+
+  return base64
 }
 
 // Алгоритм расстояния Левенштейна для базовой оценки

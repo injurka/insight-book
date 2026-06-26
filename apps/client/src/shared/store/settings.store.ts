@@ -4,13 +4,13 @@ import { defineStore } from 'pinia'
 export const useGlobalSettingsStore = defineStore('globalSettings', () => {
   const appLanguage = useLocalStorage<string>('global-app-language', 'ru')
 
-  // TODO deprecated
   if (appLanguage.value.startsWith('"') && appLanguage.value.endsWith('"')) {
     appLanguage.value = appLanguage.value.replace(/^"|"$/g, '')
   }
 
   const translationPriority = useLocalStorage<'dict' | 'llm'>('global-translation-priority', 'llm')
   const ttsSpeed = useLocalStorage<number>('global-tts-speed', 1)
+  const ttsVoice = useLocalStorage<string>('global-tts-voice', 'Kore')
 
   const readerFontSize = useLocalStorage<number>('global-reader-font-size', 1.4)
   const readerLineHeight = useLocalStorage<number>('global-reader-line-height', 1.8)
@@ -37,6 +37,7 @@ export const useGlobalSettingsStore = defineStore('globalSettings', () => {
     parallelBlurTranslation,
     translationPriority,
     ttsSpeed,
+    ttsVoice,
     readerFontSize,
     readerLineHeight,
     readerFontFamily,

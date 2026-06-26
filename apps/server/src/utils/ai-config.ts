@@ -50,6 +50,7 @@ export function getAiConfig() {
     tts: {
       url: fileConfig.tts?.url || process.env.TTS_API_URL || llmUrl,
       model: fileConfig.tts?.model || process.env.TTS_MODEL || 'gpt-4o-mini-tts',
+      fallbackModel: fileConfig.tts?.fallbackModel || process.env.FALLBACK_TTS_MODEL || 'tts-1',
       key: fileConfig.tts?.key || process.env.TTS_API_KEY || llmKey,
     },
     stt: {

@@ -3,6 +3,7 @@ import type { SelectOption, UserDictItem } from '~/shared/types/models'
 import { Icon } from '@iconify/vue'
 import { useVirtualList } from '@vueuse/core'
 import { useI18n } from 'vue-i18n'
+import { useRoute } from 'vue-router'
 import { KitBtn, KitCheckbox, KitDialog, KitDropdown, KitInput, KitPrompt, KitSelect, KitTooltip } from '~/components/01.kit'
 import KitSkeleton from '~/components/01.kit/kit-skeleton/ui/kit-skeleton.vue'
 import { HoverRevealBg } from '~/components/02.shared/hover-reveal-bg'
@@ -23,6 +24,7 @@ const SrsTrainingDialog = lazyComponent(() => import('./dialog/srs-training-dial
 const store = useDictionaryStore()
 const analysisStore = useAnalysisStore()
 const router = useRouter()
+const route = useRoute()
 const toast = useToast()
 const authStore = useAuthStore()
 const { t } = useI18n()
@@ -108,7 +110,15 @@ const { list, containerProps, wrapperProps } = useVirtualList(
 )
 
 onMounted(() => {
-  store.fetchDictionary()
+  store.fetchDictionary().then(() => {
+    const queryWord = route.query.word as string
+    if (queryWord) {
+      const found = store.words.find(w => w.word === queryWord)
+      if (found) {
+        openDetails(found)
+      }
+    }
+  })
   fetchActivity()
 })
 
@@ -246,6 +256,21 @@ watch(isTrainingOpen, (newVal, oldVal) => {
 watch(isEditMode, (val) => {
   if (!val) {
     store.clearSelection()
+  }
+})
+
+watch(() => route.query.word, (newWord) => {
+  if (newWord) {
+    const found = store.words.find(w => w.word === newWord)
+    if (found) {
+      openDetails(found)
+    }
+  }
+})
+
+watch(isDetailsModalOpen, (isOpen) => {
+  if (!isOpen && route.query.word) {
+    router.replace({ query: { ...route.query, word: undefined } })
   }
 })
 </script>
@@ -913,112 +938,69 @@ watch(isEditMode, (val) => {
   }
 
   svg {
-    font-size: 1.25rem;
-    color: var(--fg-secondary-color);
+    font-size: 1.15rem;
   }
+}
 
-  &:hover:not(:disabled) svg {
-    color: var(--fg-accent-color);
-  }
+.dropdown-divider {
+  height: 1px;
+  background-color: var(--border-secondary-color);
+  margin: 4px 0;
 }
 
 .manage-decks-content {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 12px;
+}
 
-  .create-deck-row {
-    display: flex;
-    gap: 8px;
+.create-deck-row {
+  display: flex;
+  gap: 8px;
+}
 
-    :deep(.kit-input-wrapper) {
-      flex: 1;
-    }
-    .new-deck-lang {
-      width: 140px;
-      flex-shrink: 0;
-    }
-  }
+.decks-manage-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 250px;
+  overflow-y: auto;
+}
 
-  .decks-manage-list {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    max-height: 350px;
-    overflow-y: auto;
+.deck-manage-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background-color: var(--bg-tertiary-color);
+  border-radius: 6px;
+  border: 1px solid var(--border-secondary-color);
 
-    &::-webkit-scrollbar {
-      width: 4px;
-    }
-    &::-webkit-scrollbar-thumb {
-      background-color: var(--border-primary-color);
-      border-radius: 4px;
-    }
-  }
-
-  .deck-manage-item {
+  .deck-info {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    padding: 10px 12px;
-    background-color: var(--bg-tertiary-color);
-    border-radius: 8px;
-    border: 1px solid var(--border-secondary-color);
+    gap: 8px;
+    min-width: 0;
 
-    .deck-info {
-      display: flex;
-      align-items: center;
-      gap: 12px;
+    .deck-name {
+      font-weight: 500;
+      white-space: nowrap;
       overflow: hidden;
-      flex-grow: 1;
-
-      svg {
-        font-size: 1.2rem;
-        color: var(--fg-secondary-color);
-        flex-shrink: 0;
-      }
-
-      .deck-name {
-        font-weight: 500;
-        color: var(--fg-primary-color);
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-      }
-
-      .deck-lang {
-        font-size: 0.75rem;
-        background-color: var(--bg-primary-color);
-        padding: 2px 6px;
-        border-radius: 4px;
-        color: var(--fg-secondary-color);
-        border: 1px solid var(--border-primary-color);
-      }
+      text-overflow: ellipsis;
     }
 
-    .deck-actions {
-      display: flex;
-      gap: 4px;
-      flex-shrink: 0;
+    .deck-lang {
+      font-size: 0.75rem;
+      background: var(--bg-primary-color);
+      padding: 1px 4px;
+      border-radius: 4px;
+      color: var(--fg-secondary-color);
     }
   }
-}
 
-@keyframes slideDown {
-  from {
-    opacity: 0;
-    transform: translateY(-8px);
+  .deck-actions {
+    display: flex;
+    gap: 4px;
   }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.mr-2 {
-  margin-right: 8px;
 }
 </style>

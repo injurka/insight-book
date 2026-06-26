@@ -228,11 +228,11 @@ export const api = {
       })
     },
 
-    generateTts: (bookId: number, text: string, signal?: AbortSignal) =>
+    generateTts: (bookId: number, text: string, voice?: string, signal?: AbortSignal) =>
       request<{ audioBase64: string, timings?: unknown[] }>(`/api/books/${bookId}/tts`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text }),
+        body: JSON.stringify({ text, voice }),
         signal,
       }),
 
@@ -251,11 +251,11 @@ export const api = {
   },
 
   tts: {
-    generate: (text: string, language: string, signal?: AbortSignal) =>
+    generate: (text: string, language: string, voice?: string, signal?: AbortSignal) =>
       request<{ audioBase64: string }>(`/api/tts`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text, language }),
+        body: JSON.stringify({ text, language, voice }),
         signal,
       }),
   },

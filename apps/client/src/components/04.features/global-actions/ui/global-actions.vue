@@ -217,14 +217,14 @@ async function handleUsernameSubmit(newUsername: string) {
     <template v-else>
       <KitBtn
         v-if="!hideDictionary"
-        icon="mdi:book-alphabet"
+        icon="mdi:book-open-page-variant-outline"
         variant="text"
         :aria-label="t('globalActions.myDictionary')"
         @click="openDictionary"
       />
       <KitBtn
         v-if="!hideNotebook"
-        icon="mdi:notebook"
+        icon="mdi:bookmark-outline"
         variant="text"
         :aria-label="t('globalActions.myNotebook')"
         @click="openNotebook"
@@ -295,7 +295,7 @@ async function handleUsernameSubmit(newUsername: string) {
           <!-- Меню действий -->
           <div class="menu-items">
             <button class="menu-btn" @click="openSettings">
-              <Icon icon="mdi:database-outline" /> <span class="flex-grow">{{ t('globalActions.storageManagement') }}</span>
+              <Icon icon="mdi:cog-outline" /> <span class="flex-grow">{{ t('settings.title') }}</span>
             </button>
 
             <div class="divider" />

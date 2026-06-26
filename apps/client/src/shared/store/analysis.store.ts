@@ -296,10 +296,11 @@ export const useAnalysisStore = defineStore('analysis', () => {
       if (ttsTask) {
         ttsTask.status = 'processing'
         try {
-          const cacheKey = `${book.id}_${ttsTask.text.trim().toLowerCase()}`
+          const voice = settingsStore.ttsVoice || 'Kore'
+          const cacheKey = `${book.id}_${voice}_${ttsTask.text.trim().toLowerCase()}`
           const cached = await offlineService.getTtsBlob(cacheKey)
           if (!cached) {
-            const res = await api.books.generateTts(book.id, ttsTask.text, signal)
+            const res = await api.books.generateTts(book.id, ttsTask.text, voice, signal)
             await offlineService.saveTts(cacheKey, res.audioBase64)
           }
           if (ttsTask.type === 'tts_sentence')

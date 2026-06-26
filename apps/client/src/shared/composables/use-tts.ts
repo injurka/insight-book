@@ -36,20 +36,21 @@ export function useTts() {
     try {
       const bookId = explicitBookId || readerStore.currentBook?.id
       const lang = explicitLanguage || readerStore.currentBook?.language || 'en'
+      const voice = settingsStore.ttsVoice || 'Kore'
 
       const normalizedText = text.trim().toLowerCase()
-      const cacheKey = bookId ? `${bookId}_${normalizedText}` : `dict_${lang}_${normalizedText}`
+      const cacheKey = bookId ? `${bookId}_${voice}_${normalizedText}` : `dict_${lang}_${voice}_${normalizedText}`
 
       let audioBlob = await offlineService.getTtsBlob(cacheKey)
 
       if (!audioBlob) {
         let audioBase64 = ''
         if (bookId) {
-          const res = await api.books.generateTts(bookId, text, abortController.signal)
+          const res = await api.books.generateTts(bookId, text, voice, abortController.signal)
           audioBase64 = res.audioBase64
         }
         else {
-          const res = await api.tts.generate(text, lang, abortController.signal)
+          const res = await api.tts.generate(text, lang, voice, abortController.signal)
           audioBase64 = res.audioBase64
         }
         await offlineService.saveTts(cacheKey, audioBase64)
@@ -73,7 +74,7 @@ export function useTts() {
           }
         }
 
-        trackEvent('tts_played', { lang })
+        trackEvent('tts_played', { lang, voice })
 
         await currentAudio.play()
       }
@@ -84,7 +85,7 @@ export function useTts() {
         return
 
       console.error('TTS Error:', err)
-      toast.error('Озвучка недоступна без интернета')
+      toast.error('Озвучка недоступна без интернета или произошла ошибка сервера')
     }
     finally {
       if (abortController?.signal.aborted === false) {

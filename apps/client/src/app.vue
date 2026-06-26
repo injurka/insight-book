@@ -56,14 +56,14 @@ const headScripts: any[] = [
 
 const umamiWebsiteId = import.meta.env.VITE_UMAMI_WEBSITE_ID
 const umamiUrl = import.meta.env.VITE_UMAMI_URL
+const isDev = import.meta.env.DEV
 
-if (umamiWebsiteId && umamiUrl) {
+if (!isDev && umamiWebsiteId && umamiUrl) {
   headScripts.push({
     'async': true,
     'defer': true,
     'data-website-id': umamiWebsiteId,
     'src': umamiUrl,
-
     'data-performance': 'true',
   })
 }

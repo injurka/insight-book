@@ -197,6 +197,7 @@ export interface LlmConfig {
   model?: string
   fallbackModel?: string
   ttsModel?: string
+  fallbackTtsModel?: string
   ttsUrl?: string
   ttsKey?: string
   sttModel?: string

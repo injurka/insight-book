@@ -6,6 +6,7 @@ import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { KitBtn, KitCheckbox, KitDropdown, KitSelect, KitTooltip } from '~/components/01.kit'
 import { ThemesVariant, useChangeTheme } from '~/shared/composables/use-change-theme'
+import { useTts } from '~/shared/composables/use-tts'
 import { AppRoutePaths } from '~/shared/constants/routes'
 import { useAnalysisStore } from '~/shared/store/analysis.store'
 import { useGlobalSettingsStore } from '~/shared/store/settings.store'
@@ -21,6 +22,7 @@ const readerStore = useReaderStore()
 const analysisStore = useAnalysisStore()
 const settingsStore = useGlobalSettingsStore()
 const { t } = useI18n()
+const { speak, stop, isPlaying, isLoading } = useTts()
 
 const router = useRouter()
 const { theme, toggleTheme } = useChangeTheme()
@@ -71,9 +73,18 @@ function togglePriority() {
 }
 
 function cycleTtsSpeed() {
-  const speeds = [0.75, 1, 1.25]
+  const speeds = [0.75, 1, 1.25, 1.5]
   const idx = speeds.indexOf(settingsStore.ttsSpeed)
-  settingsStore.ttsSpeed = speeds[(idx + 1) % speeds.length]
+  settingsStore.ttsSpeed = speeds[(idx + 1) % speeds.length] || 1
+}
+
+function previewVoice() {
+  if (isPlaying.value || isLoading.value) {
+    stop()
+  }
+  else {
+    speak(t('settings.previewVoiceText'), settingsStore.appLanguage || 'en')
+  }
 }
 
 function adjustFontSize(delta: number) {
@@ -95,6 +106,16 @@ const fontOptions = computed(() => [
   { label: t('reader.fontSans'), value: 'system-ui, -apple-system, sans-serif' },
   { label: t('reader.fontSerif'), value: 'Georgia, \'Times New Roman\', serif' },
   { label: t('reader.fontCursive'), value: '\'Comic Sans MS\', cursive, sans-serif' },
+])
+
+const voiceOptions = computed(() => [
+  { label: 'Kore (Female)', value: 'Kore' },
+  { label: 'Callirrhoe (Female)', value: 'Callirrhoe' },
+  { label: 'Leda (Female)', value: 'Leda' },
+  { label: 'Orus (Male)', value: 'Orus' },
+  { label: 'Puck (Male)', value: 'Puck' },
+  { label: 'Charon (Male)', value: 'Charon' },
+  { label: 'Fenrir (Male)', value: 'Fenrir' },
 ])
 
 const currentThemeIcon = computed(() => {
@@ -307,6 +328,26 @@ watch(() => props.isVisible, (visible) => {
             </div>
             <span class="value-badge">{{ settingsStore.translationPriority === 'dict' ? t('reader.dictionary') : t('reader.neuralNetwork') }}</span>
           </div>
+
+          <div class="settings-row">
+            <div class="item-label">
+              <Icon icon="mdi:account" class="item-icon" />
+              <span>{{ t('reader.voice') }}</span>
+            </div>
+            <div style="display: flex; gap: 4px; align-items: center;">
+              <KitSelect v-model="settingsStore.ttsVoice" :options="voiceOptions" size="xs" class="font-select" />
+              <KitBtn
+                :icon="isLoading ? 'mdi:loading' : (isPlaying ? 'mdi:stop' : 'mdi:play')"
+                :class="{ 'spin-animation': isLoading, 'pulse-animation': isPlaying }"
+                variant="tonal"
+                color="secondary"
+                size="xs"
+                style="min-height: 30px; width: 30px; padding: 0;"
+                @click="previewVoice"
+              />
+            </div>
+          </div>
+
           <div class="menu-item" @click="cycleTtsSpeed">
             <div class="item-label">
               <Icon icon="mdi:play-speed" class="item-icon" />
@@ -695,6 +736,37 @@ watch(() => props.isVisible, (visible) => {
       margin-left: 6px;
       font-weight: 500;
     }
+  }
+}
+
+.spin-animation {
+  :deep(.kit-btn-icon) {
+    animation: spin 1s linear infinite;
+  }
+}
+.pulse-animation {
+  :deep(.kit-btn-icon) {
+    animation: pulse-op 1.2s infinite;
+    color: var(--fg-accent-color) !important;
+  }
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes pulse-op {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
   }
 }
 </style>

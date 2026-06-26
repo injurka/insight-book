@@ -131,6 +131,24 @@ export interface DictDeck {
   createdAt: string
 }
 
+export interface CatalogDeck {
+  id: number
+  name: string
+  language: string
+  targetLanguage: string
+  wordCount: number
+  description?: string
+  author?: string
+  difficulty?: string
+}
+
+export interface CatalogWord {
+  id: number
+  word: string
+  translation?: string
+  transcription?: string
+}
+
 export interface WordEncounter {
   id: number
   wordId: number
@@ -178,6 +196,7 @@ export interface LlmConfig {
   model?: string
   fallbackModel?: string
   ttsModel?: string
+  fallbackTtsModel?: string
   ttsUrl?: string
   ttsKey?: string
   sttModel?: string

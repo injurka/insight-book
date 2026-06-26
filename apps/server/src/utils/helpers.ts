@@ -11,18 +11,21 @@ export function normalizeLanguageCode(code?: string | null): string {
 
 export function hashTtsText(text: string, voice: string): string {
   const hasher = new Bun.CryptoHasher('sha256')
-  hasher.update(text.trim().toLowerCase() + voice)
-
+  hasher.update(text.trim().toLowerCase() + voice.toLowerCase())
   return hasher.digest('hex')
 }
 
-export function getVoiceForLanguage(language: string): string {
-  switch (language.toLowerCase()) {
-    case 'en': return 'alloy'
-    case 'zh': return 'shimmer'
-    case 'ja': return 'nova'
-    default: return 'alloy'
+export function mapVoiceToOpenAi(geminiVoice: string): string {
+  const map: Record<string, string> = {
+    'kore': 'alloy',
+    'callirrhoe': 'shimmer',
+    'orus': 'nova',
+    'puck': 'echo',
+    'charon': 'onyx',
+    'fenrir': 'fable',
+    'leda': 'alloy'
   }
+  return map[geminiVoice.toLowerCase()] || 'alloy'
 }
 
 export function hashSentence(sentence: string, language: string, targetLang: string): string {
@@ -44,6 +47,7 @@ export function extractLlmConfig(req: Request): LlmConfig {
       model: customModel,
       fallbackModel: customModel,
       ttsModel: 'tts-1',
+      fallbackTtsModel: 'tts-1',
       ttsUrl: customUrl,
       ttsKey: req.headers.get('x-custom-llm-key') || '',
       sttModel: 'whisper-1',
@@ -62,6 +66,7 @@ export function extractLlmConfig(req: Request): LlmConfig {
     model: aiConfig.llm.model,
     fallbackModel: aiConfig.llm.fallbackModel,
     ttsModel: aiConfig.tts.model,
+    fallbackTtsModel: aiConfig.tts.fallbackModel,
     ttsUrl: aiConfig.tts.url,
     ttsKey: aiConfig.tts.key,
     sttModel: aiConfig.stt.model,

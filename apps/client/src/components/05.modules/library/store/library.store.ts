@@ -361,6 +361,7 @@ export const useLibraryStore = defineStore('library', () => {
 
             syncProgress.value.ttsTotal += ttsItems.length
             const ttsConcurrency = 3
+            const voice = settingsStore.ttsVoice || 'Kore'
 
             for (let j = 0; j < ttsItems.length; j += ttsConcurrency) {
               if (signal.aborted)
@@ -371,12 +372,12 @@ export const useLibraryStore = defineStore('library', () => {
                 if (signal.aborted)
                   return
                 const normalizedText = text.trim().toLowerCase()
-                const cacheKey = `${bookId}_${normalizedText}`
+                const cacheKey = `${bookId}_${voice}_${normalizedText}`
 
                 try {
                   const cached = await offlineService.getTtsBlob(cacheKey)
                   if (!cached) {
-                    const res = await api.books.generateTts(bookId, text, signal)
+                    const res = await api.books.generateTts(bookId, text, voice, signal)
                     await offlineService.saveTts(cacheKey, res.audioBase64)
                   }
                 }
