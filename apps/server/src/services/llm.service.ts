@@ -515,37 +515,64 @@ export async function generateTts(userId: number, text: string, language: string
       finalVoice = 'Orus'
   }
 
-  const response = await fetch(`${ttsUrl}/audio/speech`, {
-    method: 'POST',
-    headers,
-    body: JSON.stringify({
-      model: ttsModel,
-      input: normalizedText,
-      voice: finalVoice,
-      response_format: isGeminiTts ? 'wav' : 'mp3',
-    }),
-    signal: AbortSignal.timeout(60000),
-  })
+  const maxRetries = 3
+  let lastError: unknown
 
-  if (!response.ok)
-    throw new AppError(500, `TTS API error ${response.status}: ${await response.text()}`)
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      const response = await fetch(`${ttsUrl}/audio/speech`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          model: ttsModel,
+          input: normalizedText,
+          voice: finalVoice,
+          response_format: isGeminiTts ? 'wav' : 'mp3',
+        }),
+        signal: AbortSignal.timeout(60000),
+      })
 
-  const arrayBuffer = await response.arrayBuffer()
-  const base64 = Buffer.from(arrayBuffer).toString('base64')
+      if (!response.ok) {
+        const errorText = await response.text()
+        throw new AppError(500, `TTS API error ${response.status}: ${errorText}`)
+      }
 
-  await db.insert(schema.ttsCache).values({
-    textHash: hash,
-    text: normalizedText,
-    audioBase64: base64,
-  }).onConflictDoUpdate({
-    target: schema.ttsCache.textHash,
-    set: {
-      text: normalizedText,
-      audioBase64: base64,
-    },
-  })
+      const arrayBuffer = await response.arrayBuffer()
 
-  return base64
+      if (arrayBuffer.byteLength === 0) {
+        throw new AppError(500, 'TTS API returned empty audio data')
+      }
+
+      const base64 = Buffer.from(arrayBuffer).toString('base64')
+
+      await db.insert(schema.ttsCache).values({
+        textHash: hash,
+        text: normalizedText,
+        audioBase64: base64,
+      }).onConflictDoUpdate({
+        target: schema.ttsCache.textHash,
+        set: {
+          text: normalizedText,
+          audioBase64: base64,
+        },
+      })
+
+      return base64
+    }
+    catch (error: unknown) {
+      if ((error as Error).name === 'AbortError')
+        throw error
+
+      lastError = error
+      console.warn(`[TTS] Attempt ${attempt + 1} failed for text: "${normalizedText.substring(0, 20)}...". Error: ${(error as Error).message}`)
+
+      if (attempt < maxRetries - 1) {
+        await new Promise(resolve => setTimeout(resolve, 1500 * (attempt + 1)))
+      }
+    }
+  }
+
+  throw lastError
 }
 
 // Алгоритм расстояния Левенштейна для базовой оценки
@@ -696,8 +723,13 @@ Output STRICT JSON ONLY. Never use backticks for strings.
       mistakeAnalysis,
     }
   }
-  catch (error: unknown) {
-    console.error('[Audio Service] Pronunciation Check Failed:', error.message)
-    throw new AppError(500, `Ошибка распознавания речи: ${error.message}`)
+  catch (err: unknown) {
+    if (!(err instanceof Error))
+      return
+    if (err.name === 'AbortError')
+      return
+
+    console.error('[Audio Service] Pronunciation Check Failed:', err.message)
+    throw new AppError(500, `Ошибка распознавания речи: ${err.message}`)
   }
 }
