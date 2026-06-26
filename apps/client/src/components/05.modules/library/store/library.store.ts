@@ -36,6 +36,14 @@ export const useLibraryStore = defineStore('library', () => {
     currentTask: '',
   })
 
+  const syncOptions = ref({
+    cachePages: true,
+    analyzeSentences: false,
+    analyzeWords: false,
+    ttsSentences: false,
+    ttsWords: false,
+  })
+
   let syncAbortController: AbortController | null = null
 
   async function attachCachedCovers(booksArr: Book[]) {
@@ -65,6 +73,14 @@ export const useLibraryStore = defineStore('library', () => {
     const book = books.value.find(b => b.id === bookId) || currentBookInfo.value
     if (!book)
       return
+
+    syncOptions.value = {
+      cachePages: options.cachePages,
+      analyzeSentences: options.analyzeSentences,
+      analyzeWords: !!options.analyzeWords,
+      ttsSentences: !!options.ttsSentences,
+      ttsWords: !!options.ttsWords,
+    }
 
     trackEvent('book_sync_started', {
       cachePages: options.cachePages,
@@ -434,7 +450,6 @@ export const useLibraryStore = defineStore('library', () => {
         trackEvent('public_book_search', { query: search })
       }
       if (lang)
-
         q.set('lang', lang)
 
       const res = await api.books.getPublic(q.toString())
@@ -628,6 +643,7 @@ export const useLibraryStore = defineStore('library', () => {
 
     syncState,
     syncProgress,
+    syncOptions,
     startWholeBookSync,
     cancelSync,
 

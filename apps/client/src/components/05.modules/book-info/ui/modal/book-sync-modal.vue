@@ -58,6 +58,7 @@ function close() {
 watch(visible, (val) => {
   if (val && libraryStore.syncState !== 'running') {
     libraryStore.syncState = 'idle'
+    options.value = { ...libraryStore.syncOptions }
   }
 })
 </script>
@@ -149,7 +150,7 @@ watch(visible, (val) => {
       </div>
 
       <div class="progress-bars-container">
-        <div v-if="options.cachePages" class="progress-section">
+        <div v-if="libraryStore.syncOptions.cachePages" class="progress-section">
           <div class="progress-info">
             <span class="label"><Icon icon="mdi:file-document-multiple-outline" /> {{ t('bookInfo.pages') }}</span>
             <span class="value">{{ libraryStore.syncProgress.pagesDone }} / {{ libraryStore.syncProgress.pagesTotal }}</span>
@@ -162,7 +163,7 @@ watch(visible, (val) => {
           </div>
         </div>
 
-        <div v-if="options.analyzeSentences && libraryStore.syncProgress.sentencesTotal > 0" class="progress-section">
+        <div v-if="libraryStore.syncOptions.analyzeSentences" class="progress-section">
           <div class="progress-info">
             <span class="label"><Icon icon="mdi:brain" /> {{ t('bookInfo.sentences') }}</span>
             <span class="value">{{ libraryStore.syncProgress.sentencesDone }} / {{ libraryStore.syncProgress.sentencesTotal }}</span>
@@ -170,12 +171,12 @@ watch(visible, (val) => {
           <div class="progress-bar">
             <div
               class="progress-fill sentences-fill"
-              :style="{ width: `${(libraryStore.syncProgress.sentencesDone / libraryStore.syncProgress.sentencesTotal) * 100}%` }"
+              :style="{ width: `${libraryStore.syncProgress.sentencesTotal > 0 ? (libraryStore.syncProgress.sentencesDone / libraryStore.syncProgress.sentencesTotal) * 100 : 0}%` }"
             />
           </div>
         </div>
 
-        <div v-if="options.analyzeWords && libraryStore.syncProgress.wordsTotal > 0" class="progress-section">
+        <div v-if="libraryStore.syncOptions.analyzeWords" class="progress-section">
           <div class="progress-info">
             <span class="label"><Icon icon="mdi:format-text" /> {{ t('analysis.words') }}</span>
             <span class="value">{{ libraryStore.syncProgress.wordsDone }} / {{ libraryStore.syncProgress.wordsTotal }}</span>
@@ -183,13 +184,13 @@ watch(visible, (val) => {
           <div class="progress-bar">
             <div
               class="progress-fill words-fill"
-              :style="{ width: `${(libraryStore.syncProgress.wordsDone / libraryStore.syncProgress.wordsTotal) * 100}%` }"
+              :style="{ width: `${libraryStore.syncProgress.wordsTotal > 0 ? (libraryStore.syncProgress.wordsDone / libraryStore.syncProgress.wordsTotal) * 100 : 0}%` }"
             />
           </div>
         </div>
 
         <!-- Прогресс для TTS -->
-        <div v-if="(options.ttsSentences || options.ttsWords) && libraryStore.syncProgress.ttsTotal > 0" class="progress-section">
+        <div v-if="(libraryStore.syncOptions.ttsSentences || libraryStore.syncOptions.ttsWords)" class="progress-section">
           <div class="progress-info">
             <span class="label"><Icon icon="mdi:headphones" /> {{ t('reader.voiceTts') }}</span>
             <span class="value">{{ libraryStore.syncProgress.ttsDone }} / {{ libraryStore.syncProgress.ttsTotal }}</span>
@@ -197,7 +198,7 @@ watch(visible, (val) => {
           <div class="progress-bar">
             <div
               class="progress-fill tts-fill"
-              :style="{ width: `${(libraryStore.syncProgress.ttsDone / libraryStore.syncProgress.ttsTotal) * 100}%` }"
+              :style="{ width: `${libraryStore.syncProgress.ttsTotal > 0 ? (libraryStore.syncProgress.ttsDone / libraryStore.syncProgress.ttsTotal) * 100 : 0}%` }"
             />
           </div>
         </div>
