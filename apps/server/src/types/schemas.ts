@@ -127,7 +127,8 @@ export const UpsertUserDictSchema = z.object({
 
 export const SrsReviewSchema = z.object({
   wordId: z.number(),
-  grade: z.number().min(0).max(3),
+  // 1: Again, 2: Hard, 3: Good, 4: Easy
+  grade: z.number().min(1).max(4),
 })
 
 export const DeckSchema = z.object({

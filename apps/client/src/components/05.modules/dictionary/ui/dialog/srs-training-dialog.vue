@@ -40,8 +40,8 @@ const activeModes = ref<Record<string, boolean>>({
 })
 
 const remainingQueue = computed(() => dictStore.reviewQueue.slice(currentIndex.value))
-const newCount = computed(() => remainingQueue.value.filter(c => c.status === 0).length)
-const reviewCount = computed(() => remainingQueue.value.filter(c => c.status > 0).length)
+const newCount = computed(() => remainingQueue.value.filter(c => c.state === 0).length)
+const reviewCount = computed(() => remainingQueue.value.filter(c => c.state > 0).length)
 const currentCard = computed(() => dictStore.reviewQueue[currentIndex.value])
 const isFinished = computed(() => currentIndex.value >= dictStore.reviewQueue.length)
 
@@ -82,7 +82,7 @@ async function handleGrade(grade: number) {
   if (isSubmittingGrade.value || !currentCard.value)
     return
 
-  const isNew = currentCard.value.status === 0
+  const isNew = currentCard.value.state === 0
   recordAnswer(isNew, grade)
 
   if (dictStore.trainingMode === 'random' || dictStore.trainingMode === 'deep_dive') {
@@ -94,7 +94,7 @@ async function handleGrade(grade: number) {
   try {
     const cardRef = currentCard.value
     await api.dictionary.submitReview(cardRef.id, grade)
-    if (grade === 0) {
+    if (grade === 1) { // 1 = Rating.Again in FSRS
       dictStore.reviewQueue.push(cardRef)
     }
     currentIndex.value++

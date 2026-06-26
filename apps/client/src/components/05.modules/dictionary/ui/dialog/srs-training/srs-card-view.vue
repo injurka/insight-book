@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { GeneratedWordExamples, UserDictItem } from '~/shared/types/models'
 import { Icon } from '@iconify/vue'
+import { createEmptyCard, FSRS, Rating } from 'ts-fsrs'
 import { computed, nextTick, reactive, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { KitBtn, KitDropdown, KitInput, KitTooltip } from '~/components/01.kit'
@@ -26,6 +27,7 @@ const { speak, stop, isPlaying, isLoading } = useTts()
 const toast = useToast()
 const { t } = useI18n()
 const { generateDistractors, checkTypo } = useSrsQuiz()
+const fsrs = new FSRS({})
 
 const isFlipped = ref(false)
 const typedAnswer = ref('')
@@ -332,7 +334,7 @@ function initCard() {
   if (availableModes.length === 0)
     availableModes.push('standard')
 
-  if (modesConfig.choice && availableModes.includes('choice') && props.card.status === 0 && Math.random() > 0.3) {
+  if (modesConfig.choice && availableModes.includes('choice') && props.card.state === 0 && Math.random() > 0.3) {
     currentMode.value = 'choice'
   }
   else {
@@ -425,29 +427,11 @@ function toggleAnimation() {
   }
 }
 
-function calculateNextInterval(grade: number): number {
-  if (!props.card)
-    return 0
-  const { repetitions, interval, easeFactor } = props.card
-
-  if (grade === 0)
-    return 1 / 1440
-  if (grade === 1)
-    return (repetitions === 0 || interval < 1) ? 30 / 1440 : interval * 1.2
-  if (grade === 2)
-    return (repetitions === 0 || interval < 1) ? 1 : interval * easeFactor
-  if (grade === 3)
-    return (repetitions === 0 || interval < 1) ? 4 : interval * easeFactor * 1.3
-  return interval
-}
-
-function formatInterval(days: number): string {
-  const minutes = Math.round(days * 1440)
-  if (minutes < 60)
-    return `${minutes} м`
-  const hours = Math.round(days * 24)
-  if (hours < 24)
-    return `${hours} ч`
+function formatInterval(days: number, due: Date, now: Date): string {
+  if (days === 0) {
+    const diffMin = Math.round((due.getTime() - now.getTime()) / 60000)
+    return diffMin > 0 ? `${diffMin} м` : '<1 м'
+  }
   if (days < 30)
     return `${Math.round(days)} дн`
   if (days < 365)
@@ -458,11 +442,26 @@ function formatInterval(days: number): string {
 const intervals = computed(() => {
   if (!isFlipped.value || !props.card)
     return null
+
+  const fsrsCard = createEmptyCard()
+  fsrsCard.due = new Date(props.card.due)
+  fsrsCard.stability = props.card.stability
+  fsrsCard.difficulty = props.card.difficultyFsrs
+  fsrsCard.scheduled_days = props.card.scheduledDays
+  fsrsCard.reps = props.card.reps
+  fsrsCard.lapses = props.card.lapses
+  fsrsCard.state = props.card.state
+  fsrsCard.last_review = props.card.lastReview ? new Date(props.card.lastReview) : undefined
+  fsrsCard.learning_steps = props.card.learningSteps ?? 0
+
+  const now = new Date()
+  const schedulingCards = fsrs.repeat(fsrsCard, now)
+
   return {
-    again: formatInterval(calculateNextInterval(0)),
-    hard: formatInterval(calculateNextInterval(1)),
-    good: formatInterval(calculateNextInterval(2)),
-    easy: formatInterval(calculateNextInterval(3)),
+    again: formatInterval(schedulingCards[Rating.Again].card.scheduled_days, schedulingCards[Rating.Again].card.due, now),
+    hard: formatInterval(schedulingCards[Rating.Hard].card.scheduled_days, schedulingCards[Rating.Hard].card.due, now),
+    good: formatInterval(schedulingCards[Rating.Good].card.scheduled_days, schedulingCards[Rating.Good].card.due, now),
+    easy: formatInterval(schedulingCards[Rating.Easy].card.scheduled_days, schedulingCards[Rating.Easy].card.due, now),
   }
 })
 
@@ -782,19 +781,19 @@ watch(() => props.card, initCard, { immediate: true })
       </template>
 
       <div v-else-if="intervals" class="grade-buttons fade-in">
-        <button class="grade-btn error" :class="{ 'is-suggested': isAnswerChecked && !isAnswerCorrect }" :disabled="isSubmittingGrade" @click="gradeCard(0)">
+        <button class="grade-btn error" :class="{ 'is-suggested': isAnswerChecked && !isAnswerCorrect }" :disabled="isSubmittingGrade" @click="gradeCard(Rating.Again)">
           <span class="g-label">{{ t('dictionary.again') }}</span>
           <span v-if="dictStore.trainingMode === 'srs'" class="g-time">{{ intervals.again }}</span>
         </button>
-        <button class="grade-btn warning" :disabled="isSubmittingGrade" @click="gradeCard(1)">
+        <button class="grade-btn warning" :disabled="isSubmittingGrade" @click="gradeCard(Rating.Hard)">
           <span class="g-label">{{ t('dictionary.hard') }}</span>
           <span v-if="dictStore.trainingMode === 'srs'" class="g-time">{{ intervals.hard }}</span>
         </button>
-        <button class="grade-btn primary" :class="{ 'is-suggested': isAnswerChecked && isAnswerCorrect }" :disabled="isSubmittingGrade" @click="gradeCard(2)">
+        <button class="grade-btn primary" :class="{ 'is-suggested': isAnswerChecked && isAnswerCorrect }" :disabled="isSubmittingGrade" @click="gradeCard(Rating.Good)">
           <span class="g-label">{{ t('dictionary.good') }}</span>
           <span v-if="dictStore.trainingMode === 'srs'" class="g-time">{{ intervals.good }}</span>
         </button>
-        <button class="grade-btn success" :disabled="isSubmittingGrade" @click="gradeCard(3)">
+        <button class="grade-btn success" :disabled="isSubmittingGrade" @click="gradeCard(Rating.Easy)">
           <span class="g-label">{{ t('dictionary.easy') }}</span>
           <span v-if="dictStore.trainingMode === 'srs'" class="g-time">{{ intervals.easy }}</span>
         </button>
@@ -807,6 +806,7 @@ watch(() => props.card, initCard, { immediate: true })
 </template>
 
 <style lang="scss" scoped>
+/* Стили без изменений, скрыты для краткости ответа... */
 .flashcard {
   display: flex;
   flex-direction: column;

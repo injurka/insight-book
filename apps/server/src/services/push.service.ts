@@ -169,7 +169,7 @@ export async function sendDailyMotivations(customMessage?: string) {
       if (!customMessage) {
         const filters: any[] = [
           eq(schema.userDictionary.userId, userId),
-          lte(schema.userDictionary.nextReviewDate, nowIso),
+          lte(schema.userDictionary.due, nowIso),
         ]
 
         if (user.pushTargetDeckId) {

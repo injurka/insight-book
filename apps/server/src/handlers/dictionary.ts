@@ -1,4 +1,5 @@
 import { and, eq, inArray, sql } from 'drizzle-orm'
+import { createEmptyCard } from 'ts-fsrs'
 import { db } from '~/db'
 import { catalogDb } from '~/db/catalog'
 import { BulkActionSchema, DeckSchema, DeepDiveRequestSchema, GenerateExamplesSchema, SrsReviewSchema, UpsertUserDictSchema } from '~/types/schemas'
@@ -216,6 +217,8 @@ export async function handleCloneCatalogDeck(req: Request, userId: number): Prom
   const newDeck = await createDeck(userId, deckToClone.title, deckToClone.language, targetLang)
 
   if (wordsToClone.length > 0) {
+    const emptyCard = createEmptyCard()
+
     const userWords = wordsToClone.map(w => ({
       userId,
       deckId: newDeck.id,
@@ -228,6 +231,14 @@ export async function handleCloneCatalogDeck(req: Request, userId: number): Prom
       targetLanguage: targetLang,
       grammarNote: w.grammarNote,
       vocabularyNote: w.vocabularyNote,
+      state: emptyCard.state,
+      due: emptyCard.due.toISOString(),
+      stability: emptyCard.stability,
+      difficulty_fsrs: emptyCard.difficulty,
+      scheduled_days: emptyCard.scheduled_days,
+      reps: emptyCard.reps,
+      lapses: emptyCard.lapses,
+      last_review: null,
       updatedAt: new Date().toISOString(),
     }))
 
@@ -278,7 +289,6 @@ async function processAutofillInBackground(
 
 export async function handleImportCsv(req: Request, userId: number): Promise<Response> {
   const body = await req.json()
-  // Assuming body has { rows: Array<Record<string, string>>, mapping: { word: string, translation?: string, transcription?: string, tags?: string }, deckId?: number, newDeckName?: string, language?: string, autoFill?: boolean }
   const { rows, mapping, deckId, newDeckName, language, autoFill } = body
   const targetLang = normalizeLanguageCode((new URL(req.url).searchParams.get('targetLang')) || 'ru')
 

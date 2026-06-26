@@ -207,7 +207,7 @@ export const useDictionaryStore = defineStore('dictionary', () => {
     }
 
     if (!selectedStatus.value.includes('all') && selectedStatus.value.length > 0) {
-      result = result.filter(w => selectedStatus.value.includes(String(w.status) as '0' | '1' | '2' | '3'))
+      result = result.filter(w => selectedStatus.value.includes(String(w.state) as '0' | '1' | '2' | '3'))
     }
 
     if (searchTerm.value) {
@@ -230,8 +230,8 @@ export const useDictionaryStore = defineStore('dictionary', () => {
     analysisStore.addEditWordModalOpen = true
   }
 
-  const newWordsQueueCount = computed(() => reviewQueue.value.filter(w => w.status === 0).length)
-  const reviewWordsQueueCount = computed(() => reviewQueue.value.filter(w => w.status > 0).length)
+  const newWordsQueueCount = computed(() => reviewQueue.value.filter(w => w.state === 0).length)
+  const reviewWordsQueueCount = computed(() => reviewQueue.value.filter(w => w.state > 0).length)
   const totalReviewCount = computed(() => reviewQueue.value.length)
 
   function toggleWordSelection(id: number) {

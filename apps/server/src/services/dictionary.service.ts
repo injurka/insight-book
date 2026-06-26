@@ -1,6 +1,7 @@
 import type { PageDictEntry, UserDictItem } from '../types'
 import { and, desc, eq, inArray, lte, sql } from 'drizzle-orm'
 import { sqliteTable, text } from 'drizzle-orm/sqlite-core'
+import { createEmptyCard, FSRS, Rating } from 'ts-fsrs'
 import { db, getDictConnection } from '../db'
 import * as schema from '../db/schema'
 import { AppError } from '../utils/errors'
@@ -13,7 +14,6 @@ export async function lookupWords(words: string[], language: string, targetLang:
   const dict: Record<string, PageDictEntry> = {}
   const chunkSize = 500
 
-  // 1. Сначала ищем слова в пользовательском словаре
   for (let i = 0; i < words.length; i += chunkSize) {
     const chunk = words.slice(i, i + chunkSize)
 
@@ -35,10 +35,8 @@ export async function lookupWords(words: string[], language: string, targetLang:
     }
   }
 
-  // 2. Ищем ненайденные слова во внешнем словаре
   const conn = getDictConnection(language, targetLang)
   if (conn) {
-    // Динамически строим Drizzle-схему для внешнего словаря
     const schemaObj: any = {}
     schemaObj[conn.wordCol] = text(conn.wordCol).notNull()
     schemaObj[conn.translationCol] = text(conn.translationCol)
@@ -79,7 +77,6 @@ export async function lookupWords(words: string[], language: string, targetLang:
             translation: row.translation || '',
             isUserDict: false,
           }
-          // Записываем в двух регистрах, чтобы 100% матчить на клиенте
           dict[row.word as string] = entry
           dict[(row.word as string).toLowerCase()] = entry
         }
@@ -108,7 +105,6 @@ export async function lookupSingleWord(word: string, language: string, targetLan
   if (!conn)
     return null
 
-  // Динамически строим Drizzle-схему для внешнего словаря
   const schemaObj: any = {}
   schemaObj[conn.wordCol] = text(conn.wordCol).notNull()
   schemaObj[conn.translationCol] = text(conn.translationCol)
@@ -128,7 +124,6 @@ export async function lookupSingleWord(word: string, language: string, targetLan
       selection.transcription = dictTable[conn.transcriptionCol]
     }
 
-    // Ищем точное совпадение по оригиналу и нижнему регистру (позволяет использовать индекс SQLite)
     const searchWords = Array.from(new Set([word, word.toLowerCase()]))
 
     const rows = await conn.dDb
@@ -237,6 +232,8 @@ export async function upsertToUserDictionary(
     deckId = defaultDeck.id
   }
 
+  const emptyCard = createEmptyCard()
+
   const [upserted] = await db.insert(schema.userDictionary).values({
     userId,
     deckId,
@@ -250,6 +247,17 @@ export async function upsertToUserDictionary(
     difficulty: item.difficulty,
     grammarNote: item.grammarNote,
     vocabularyNote: item.vocabularyNote,
+
+    state: emptyCard.state,
+    due: emptyCard.due.toISOString(),
+    stability: emptyCard.stability,
+    difficultyFsrs: emptyCard.difficulty,
+    scheduledDays: emptyCard.scheduled_days,
+    reps: emptyCard.reps,
+    lapses: emptyCard.lapses,
+    lastReview: null,
+    learningSteps: emptyCard.learning_steps ?? 0,
+
     updatedAt: new Date().toISOString(),
   }).onConflictDoUpdate({
     target: [schema.userDictionary.userId, schema.userDictionary.word, schema.userDictionary.targetLanguage],
@@ -314,12 +322,12 @@ export async function getReviewQueue(userId: number, language: string | undefine
 
   if (mode === 'srs') {
     const now = new Date().toISOString()
-    filters.push(lte(schema.userDictionary.nextReviewDate, now))
+    filters.push(lte(schema.userDictionary.due, now))
 
     return await db.query.userDictionary.findMany({
       where: and(...filters),
       with: { encounters: true },
-      orderBy: [schema.userDictionary.nextReviewDate],
+      orderBy: [schema.userDictionary.due],
       limit: 50,
     })
   }
@@ -341,61 +349,45 @@ export async function processSrsReview(wordId: number, userId: number, grade: nu
   if (!word)
     throw new Error('Word not found')
 
-  let { repetitions, interval, easeFactor, status, updatedAt } = word
+  const fsrs = new FSRS({})
 
-  const now = Date.now()
-  const lastUpdate = new Date(updatedAt).getTime()
-  const daysSinceUpdate = Math.max(0, (now - lastUpdate) / (1000 * 60 * 60 * 24))
+  const card = createEmptyCard()
+  card.due = new Date(word.due)
+  card.stability = word.stability
+  card.difficulty = word.difficultyFsrs
+  card.scheduled_days = word.scheduledDays
+  card.reps = word.reps
+  card.lapses = word.lapses
+  card.state = word.state
+  card.last_review = word.lastReview ? new Date(word.lastReview) : undefined
+  card.learning_steps = word.learningSteps ?? 0
 
-  const actualInterval = Math.max(interval, daysSinceUpdate)
+  const now = new Date()
+  const schedulingCards = fsrs.repeat(card, now)
 
-  if (grade === 0) {
-    repetitions = 0
-    interval = 1 / 1440
-    status = 1
-    easeFactor = Math.max(1.3, easeFactor - 0.2)
+  let recordLog
+  switch (grade) {
+    case Rating.Again: recordLog = schedulingCards[Rating.Again]
+      break
+    case Rating.Hard: recordLog = schedulingCards[Rating.Hard]
+      break
+    case Rating.Good: recordLog = schedulingCards[Rating.Good]
+      break
+    case Rating.Easy: recordLog = schedulingCards[Rating.Easy]
+      break
+    default: throw new Error('Invalid grade rating')
   }
-  else if (grade === 1) {
-    easeFactor = Math.max(1.3, easeFactor - 0.15)
-    if (repetitions === 0 || interval < 1) {
-      interval = 30 / 1440
-      repetitions = 0
-    }
-    else {
-      interval = interval * 1.2
-    }
-    status = interval < 1 ? 1 : 2
-  }
-  else if (grade === 2) {
-    if (repetitions === 0 || interval < 1) {
-      interval = 1
-    }
-    else {
-      interval = actualInterval * easeFactor
-    }
-    repetitions += 1
-    status = interval > 21 ? 3 : 2
-  }
-  else if (grade === 3) {
-    easeFactor += 0.15
-    if (repetitions === 0 || interval < 1) {
-      interval = 4
-    }
-    else {
-      interval = actualInterval * easeFactor * 1.3
-    }
-    repetitions += 1
-    status = interval > 21 ? 3 : 2
-  }
-
-  const nextDate = new Date(now + interval * 24 * 60 * 60 * 1000)
 
   await db.update(schema.userDictionary).set({
-    repetitions,
-    interval,
-    easeFactor,
-    status,
-    nextReviewDate: nextDate.toISOString(),
+    due: recordLog.card.due.toISOString(),
+    stability: recordLog.card.stability,
+    difficultyFsrs: recordLog.card.difficulty,
+    scheduledDays: recordLog.card.scheduled_days,
+    reps: recordLog.card.reps,
+    lapses: recordLog.card.lapses,
+    state: recordLog.card.state,
+    lastReview: recordLog.card.last_review?.toISOString() || null,
+    learningSteps: recordLog.card.learning_steps ?? 0,
     updatedAt: new Date().toISOString(),
   }).where(eq(schema.userDictionary.id, wordId))
 

@@ -26,7 +26,7 @@ export async function handleGetActivityStats(req: Request, userId: number): Prom
     .from(schema.userDictionary)
     .where(and(
       eq(schema.userDictionary.userId, userId),
-      eq(schema.userDictionary.status, 3),
+      eq(schema.userDictionary.state, 2), // 2 = FSRS State.Review (Выучено/Повторение)
     ))
 
   const [{ readPages }] = await db.select({
@@ -38,7 +38,7 @@ export async function handleGetActivityStats(req: Request, userId: number): Prom
   const difficulties = await db.select({
     language: schema.userDictionary.language,
     difficulty: schema.userDictionary.difficulty,
-    count: sql<number>`SUM(CASE WHEN ${schema.userDictionary.status} = 3 THEN 1 ELSE 0 END)`.mapWith(Number),
+    count: sql<number>`SUM(CASE WHEN ${schema.userDictionary.state} = 2 THEN 1 ELSE 0 END)`.mapWith(Number),
   })
     .from(schema.userDictionary)
     .where(and(

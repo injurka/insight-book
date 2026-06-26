@@ -314,7 +314,7 @@
     "statusNew": "Новые",
     "statusLearning": "Изучаю",
     "statusReview": "Повторение",
-    "statusLearned": "Выучено",
+    "statusRelearning": "Переучивание",
     "training": "Тренировка",
     "srsTraining": "Интервальное (SRS)",
     "randomTraining": "Случайная разминка",

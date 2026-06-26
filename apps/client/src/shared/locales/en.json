@@ -314,7 +314,7 @@
     "statusNew": "New",
     "statusLearning": "Learning",
     "statusReview": "Reviewing",
-    "statusLearned": "Learned",
+    "statusRelearning": "Relearning",
     "training": "Training",
     "srsTraining": "Spaced Repetition (SRS)",
     "randomTraining": "Random warm-up",

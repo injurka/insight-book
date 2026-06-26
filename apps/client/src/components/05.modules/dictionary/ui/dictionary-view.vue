@@ -80,7 +80,6 @@ const difficultyOptions = computed(() => {
   return opts
 })
 
-// Корректный сброс фильтров при смене языка
 watch(() => store.selectedLanguage, () => {
   store.selectedDeckId = ['all']
   store.selectedDifficulty = ['all']
@@ -91,7 +90,7 @@ const statusOptions = computed(() => [
   { label: t('dictionary.statusNew'), value: '0' },
   { label: t('dictionary.statusLearning'), value: '1' },
   { label: t('dictionary.statusReview'), value: '2' },
-  { label: t('dictionary.statusLearned'), value: '3' },
+  { label: t('dictionary.statusRelearning'), value: '3' },
 ])
 
 const newDeckLangOptions = computed(() => {
@@ -113,12 +112,12 @@ onMounted(() => {
   fetchActivity()
 })
 
-function getStatusLabel(status: number) {
-  switch (status) {
+function getStatusLabel(state: number) {
+  switch (state) {
     case 0: return { label: t('dictionary.statusNew'), color: 'var(--fg-info-color)' }
     case 1: return { label: t('dictionary.statusLearning'), color: 'var(--fg-warning-color)' }
-    case 2: return { label: t('dictionary.statusReview'), color: 'var(--fg-accent-color)' }
-    case 3: return { label: t('dictionary.statusLearned'), color: 'var(--fg-success-color)' }
+    case 2: return { label: t('dictionary.statusReview'), color: 'var(--fg-success-color)' }
+    case 3: return { label: t('dictionary.statusRelearning'), color: 'var(--fg-error-color)' }
     default: return { label: t('dictionary.statusUnknown'), color: 'var(--fg-muted-color)' }
   }
 }
@@ -429,8 +428,8 @@ watch(isEditMode, (val) => {
                   >
                     {{ item.data.difficulty }}
                   </span>
-                  <span class="srs-badge" :style="{ color: getStatusLabel(item.data.status).color }">
-                    {{ getStatusLabel(item.data.status).label }}
+                  <span class="srs-badge" :style="{ color: getStatusLabel(item.data.state).color }">
+                    {{ getStatusLabel(item.data.state).label }}
                   </span>
                 </div>
                 <div class="dict-translation" v-html="item.data.translation" />

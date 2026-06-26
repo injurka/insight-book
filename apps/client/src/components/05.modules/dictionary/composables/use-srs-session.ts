@@ -32,7 +32,7 @@ export function useSrsSession() {
     else stats.value.reviewed++
 
     stats.value.totalAnswers++
-    if (grade >= 2) { // 2 = Good, 3 = Easy
+    if (grade >= 3) { // 3 = Good, 4 = Easy (Rating Enum в ts-fsrs)
       stats.value.correctAnswers++
     }
   }

@@ -174,11 +174,16 @@ export interface UserDictItem {
   grammarNote: string | null
   vocabularyNote: string | null
 
-  status: number
-  repetitions: number
-  interval: number
-  easeFactor: number
-  nextReviewDate: string
+  // FSRS Fields
+  state: number
+  due: string
+  stability: number
+  difficultyFsrs: number
+  scheduledDays: number
+  reps: number
+  lapses: number
+  lastReview: string | null
+  learningSteps: number
 
   createdAt: string
   updatedAt: string

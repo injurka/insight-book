@@ -52,13 +52,13 @@ function openEdit() {
   }
 }
 
-function getStatusLabel(status: number) {
-  switch (status) {
-    case 0: return { label: t('dictWord.statusNew'), color: 'var(--fg-info-color)' }
-    case 1: return { label: t('dictWord.statusLearning'), color: 'var(--fg-warning-color)' }
-    case 2: return { label: t('dictWord.statusReview'), color: 'var(--fg-accent-color)' }
-    case 3: return { label: t('dictWord.statusLearned'), color: 'var(--fg-success-color)' }
-    default: return { label: t('dictWord.statusUnknown'), color: 'var(--fg-muted-color)' }
+function getStatusLabel(state: number) {
+  switch (state) {
+    case 0: return { label: t('dictionary.statusNew'), color: 'var(--fg-info-color)' }
+    case 1: return { label: t('dictionary.statusLearning'), color: 'var(--fg-warning-color)' }
+    case 2: return { label: t('dictionary.statusReview'), color: 'var(--fg-success-color)' }
+    case 3: return { label: t('dictionary.statusRelearning'), color: 'var(--fg-error-color)' }
+    default: return { label: t('dictionary.statusUnknown'), color: 'var(--fg-muted-color)' }
   }
 }
 
@@ -122,8 +122,8 @@ const tagsList = computed(() => {
         </p>
 
         <div class="badges-row">
-          <span class="status-badge" :style="{ color: getStatusLabel(word.status).color, borderColor: getStatusLabel(word.status).color }">
-            {{ getStatusLabel(word.status).label }}
+          <span class="status-badge" :style="{ color: getStatusLabel(word.state).color, borderColor: getStatusLabel(word.state).color }">
+            {{ getStatusLabel(word.state).label }}
           </span>
           <span v-if="word.difficulty" class="diff-badge" :class="difficultyClass">
             {{ word.difficulty }}

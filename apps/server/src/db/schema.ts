@@ -188,11 +188,16 @@ export const userDictionary = sqliteTable('user_dictionary', {
   grammarNote: text('grammarNote'),
   vocabularyNote: text('vocabularyNote'),
 
-  status: integer('status').notNull().default(0),
-  repetitions: integer('repetitions').notNull().default(0),
-  interval: real('interval').notNull().default(0),
-  easeFactor: real('easeFactor').notNull().default(2.5),
-  nextReviewDate: text('nextReviewDate').notNull().default(sql`(datetime('now'))`),
+  // FSRS Fields
+  state: integer('state').notNull().default(0), // 0: New, 1: Learning, 2: Review, 3: Relearning
+  due: text('due').notNull().default(sql`(datetime('now'))`),
+  stability: real('stability').notNull().default(0),
+  difficultyFsrs: real('difficultyFsrs').notNull().default(0),
+  scheduledDays: integer('scheduledDays').notNull().default(0),
+  reps: integer('reps').notNull().default(0),
+  lapses: integer('lapses').notNull().default(0),
+  lastReview: text('lastReview'),
+  learningSteps: integer('learningSteps').notNull().default(0),
 
   createdAt: text('createdAt').notNull().default(sql`(datetime('now'))`),
   updatedAt: text('updatedAt').notNull().default(sql`(datetime('now'))`),
