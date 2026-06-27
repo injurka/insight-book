@@ -5,9 +5,11 @@ import { Icon } from '@iconify/vue'
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { KitBtn, KitDialog, KitSkeleton, KitTooltip } from '~/components/01.kit'
+import { useToast } from '~/shared/composables/use-toast'
 import { useTts } from '~/shared/composables/use-tts'
 import { DIFFICULTY_SYSTEMS } from '~/shared/constants/difficulties'
 import { BOOK_TAGS } from '~/shared/constants/tags'
+import { api } from '~/shared/services/api.service'
 import { useAnalysisStore } from '~/shared/store/analysis.store'
 import { useGlobalSettingsStore } from '~/shared/store/settings.store'
 import { useDictWordExamples } from '../composables/use-dict-word-examples'
@@ -21,7 +23,23 @@ const settingsStore = useGlobalSettingsStore()
 const { t } = useI18n()
 const LlmChatModal = lazyComponent(() => import('~/components/04.features/llm-chat/ui/llm-chat-modal.vue'))
 
+const toast = useToast()
 const isChatModalOpen = ref(false)
+
+// --- Pronunciation Check State ---
+const isRecording = ref(false)
+const isAnalyzingAudio = ref(false)
+const pronScore = ref<number | null>(null)
+const pronHeardText = ref<string>('')
+const pronHeardPhonetic = ref<string>('')
+const pronMistakeAnalysis = ref<string>('')
+
+let mediaRecorder: MediaRecorder | null = null
+let audioChunks: Blob[] = []
+
+const userAudioUrl = ref<string | null>(null)
+let userAudio: HTMLAudioElement | null = null
+const isUserAudioPlaying = ref(false)
 
 watch(visible, (isOpen) => {
   if (isOpen) {
@@ -29,7 +47,108 @@ watch(visible, (isOpen) => {
   }
   else {
     stop()
+    pronScore.value = null
+    pronHeardText.value = ''
+    pronHeardPhonetic.value = ''
+    pronMistakeAnalysis.value = ''
+    isRecording.value = false
+    isAnalyzingAudio.value = false
+    isUserAudioPlaying.value = false
+    if (userAudio) {
+      userAudio.pause()
+      userAudio = null
+    }
+    if (userAudioUrl.value) {
+      URL.revokeObjectURL(userAudioUrl.value)
+      userAudioUrl.value = null
+    }
+    if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+      mediaRecorder.stop()
+    }
   }
+})
+
+// --- Pronunciation Check Logic ---
+function playUserAudio() {
+  if (!userAudioUrl.value)
+    return
+  if (isUserAudioPlaying.value && userAudio) {
+    userAudio.pause()
+    userAudio.currentTime = 0
+    isUserAudioPlaying.value = false
+    return
+  }
+  userAudio = new Audio(userAudioUrl.value)
+  userAudio.onplay = () => isUserAudioPlaying.value = true
+  userAudio.onended = () => isUserAudioPlaying.value = false
+  userAudio.play()
+}
+
+async function toggleRecording() {
+  if (isRecording.value) {
+    if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+      mediaRecorder.stop()
+    }
+    isRecording.value = false
+    return
+  }
+
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+    mediaRecorder = new MediaRecorder(stream)
+    audioChunks = []
+
+    mediaRecorder.ondataavailable = (e) => {
+      if (e.data.size > 0)
+        audioChunks.push(e.data)
+    }
+
+    mediaRecorder.onstop = async () => {
+      const audioBlob = new Blob(audioChunks, { type: 'audio/webm' })
+      stream.getTracks().forEach(track => track.stop())
+
+      if (userAudioUrl.value)
+        URL.revokeObjectURL(userAudioUrl.value)
+      userAudioUrl.value = URL.createObjectURL(audioBlob)
+
+      if (!props.word?.word)
+        return
+
+      isAnalyzingAudio.value = true
+      pronScore.value = null
+
+      try {
+        const res = await api.dictionary.checkPronunciation(props.word.word, props.word.language, audioBlob)
+        pronScore.value = res.score
+        pronHeardText.value = res.heardText
+        pronHeardPhonetic.value = res.heardPhonetic || ''
+        pronMistakeAnalysis.value = res.mistakeAnalysis || ''
+      }
+      catch {
+        toast.error('Не удалось проверить произношение (Проверьте API-ключи)')
+      }
+      finally {
+        isAnalyzingAudio.value = false
+      }
+    }
+
+    mediaRecorder.start()
+    isRecording.value = true
+    pronScore.value = null
+  }
+  catch {
+    toast.error('Доступ к микрофону запрещен')
+  }
+}
+
+const pronScoreClass = computed(() => {
+  if (pronScore.value === null)
+    return ''
+  if (pronScore.value >= 85)
+    return 'is-success'
+  if (pronScore.value >= 50)
+    return 'is-warning'
+  return 'is-error'
 })
 
 function playTTS() {
@@ -115,11 +234,56 @@ const tagsList = computed(() => {
                 @click="playTTS"
               />
             </KitTooltip>
+            <KitTooltip :text="isRecording ? 'Остановить запись' : 'Проверить произношение'" placement="top">
+              <KitBtn
+                :icon="isAnalyzingAudio ? 'mdi:loading' : (isRecording ? 'mdi:stop' : 'mdi:microphone')"
+                variant="text"
+                size="md"
+                :color="isRecording ? 'error' : 'secondary'"
+                :class="{ 'spin-animation': isAnalyzingAudio, 'pulse-animation': isRecording }"
+                @click="toggleRecording"
+              />
+            </KitTooltip>
           </div>
         </div>
         <p v-if="word.transcription" class="transcription">
           {{ word.transcription }}
         </p>
+
+        <div v-if="pronScore !== null" class="pronunciation-result fade-in" style="margin-top: 16px;">
+          <div class="pron-header">
+            <span class="pron-score" :class="pronScoreClass">{{ pronScore }}%</span>
+            <span class="pron-label">Точность произношения</span>
+
+            <div style="flex-grow: 1;" />
+
+            <KitTooltip text="Прослушать свой голос" placement="top">
+              <KitBtn
+                v-if="userAudioUrl"
+                :icon="isUserAudioPlaying ? 'mdi:stop' : 'mdi:play'"
+                size="xs"
+                variant="tonal"
+                color="primary"
+                class="user-audio-btn"
+                @click="playUserAudio"
+              />
+            </KitTooltip>
+          </div>
+
+          <div class="pron-details">
+            <div class="pron-row">
+              <span class="row-label">Услышано:</span>
+              <span class="row-value" :class="{ 'is-error': pronScore < 100 }">
+                <b>{{ pronHeardText || 'Ничего не распознано' }}</b>
+                <span v-if="pronHeardPhonetic" class="transcription-hint">({{ pronHeardPhonetic }})</span>
+              </span>
+            </div>
+            <div v-if="pronMistakeAnalysis" class="pron-row analysis-row">
+              <span class="row-label">Анализ:</span>
+              <span class="row-value" v-html="pronMistakeAnalysis" />
+            </div>
+          </div>
+        </div>
 
         <div class="badges-row">
           <span class="status-badge" :style="{ color: getStatusLabel(word.state).color, borderColor: getStatusLabel(word.state).color }">
@@ -600,5 +764,107 @@ const tagsList = computed(() => {
 }
 .mb-2 {
   margin-bottom: 8px;
+}
+
+.pronunciation-result {
+  background-color: var(--bg-secondary-color);
+  border-radius: 12px;
+  padding: 16px;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+
+  .pron-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+
+    .pron-score {
+      font-size: 1.3rem;
+      font-weight: bold;
+      padding: 4px 12px;
+      border-radius: 6px;
+      color: white;
+
+      &.is-success {
+        background-color: var(--fg-success-color);
+      }
+      &.is-warning {
+        background-color: var(--fg-warning-color);
+      }
+      &.is-error {
+        background-color: var(--fg-error-color);
+      }
+    }
+
+    .pron-label {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--fg-primary-color);
+    }
+
+    .user-audio-btn {
+      margin-left: auto;
+    }
+  }
+
+  .pron-details {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    background: var(--bg-primary-color);
+    padding: 12px;
+    border-radius: 8px;
+    border: 1px dashed var(--border-primary-color);
+
+    .pron-row {
+      display: flex;
+      gap: 8px;
+      font-size: 0.95rem;
+
+      .row-label {
+        color: var(--fg-secondary-color);
+        min-width: 80px;
+        flex-shrink: 0;
+      }
+
+      .row-value {
+        color: var(--fg-primary-color);
+        font-weight: 500;
+
+        .transcription-hint {
+          color: var(--fg-muted-color);
+          font-weight: normal;
+          font-size: 0.9em;
+          margin-left: 4px;
+        }
+
+        &.is-error b {
+          color: var(--fg-error-color);
+        }
+
+        b {
+          font-weight: 600;
+        }
+      }
+
+      &.analysis-row {
+        margin-top: 4px;
+        padding-top: 8px;
+        border-top: 1px dotted var(--border-secondary-color);
+
+        .row-value {
+          font-weight: normal;
+          color: var(--fg-secondary-color);
+
+          :deep(*) {
+            margin: 0;
+            display: inline;
+          }
+        }
+      }
+    }
+  }
 }
 </style>

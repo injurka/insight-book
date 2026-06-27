@@ -52,6 +52,18 @@ class S3Service {
     }
   }
 
+  async deleteFolder(prefix: string) {
+    try {
+      const keys = await this.listFilesInFolder(prefix)
+      for (const key of keys) {
+        await this.deleteFile(key)
+      }
+    }
+    catch (error) {
+      console.error(`S3 DeleteFolder Error for prefix ${prefix}:`, error)
+    }
+  }
+
   async getFile(key: string): Promise<{ buffer: Uint8Array, contentType: string } | null> {
     try {
       const response = await this.client.send(

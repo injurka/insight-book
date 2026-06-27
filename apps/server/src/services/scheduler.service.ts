@@ -4,7 +4,7 @@ import * as schema from '../db/schema'
 import { executeDump } from './dump.service'
 import { sendDailyMotivations } from './push.service'
 
-const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000
+const ONE_DAY_MS = 24 * 60 * 60 * 1000
 const CHECK_INTERVAL_MS = 15 * 60 * 1000
 
 let isDumping = false
@@ -22,7 +22,7 @@ async function checkAndRunDump() {
 
     const now = Date.now()
 
-    if (!lastDump || (now - new Date(lastDump.createdAt).getTime() > SEVEN_DAYS_MS)) {
+    if (!lastDump || (now - new Date(lastDump.createdAt).getTime() > ONE_DAY_MS)) {
       isDumping = true
       await executeDump()
     }

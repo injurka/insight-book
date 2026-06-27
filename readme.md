@@ -61,22 +61,29 @@
 LLM_API_KEY=sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 
 # URL эндпоинта, совместимого с OpenAI API
-LLM_API_URL=https://api.aihubmix.com/v1
+LLM_API_URL=https://aihubmix.com/v1
 
 # Модели для анализа текста (основная и запасная)
-LLM_MODEL=gemini-3.1-flash-lite
+LLM_MODEL=gemini-3-flash-preview
 LLM_FALLBACK_MODEL=gpt-4o-mini
 
-# Опционально: API ключи и модели для TTS / OCR / STT, если они отличаются
+# TTS — синтез речи (основная и запасная модель)
 TTS_API_KEY=
-TTS_MODEL=gpt-4o-mini-tts
+TTS_API_URL=
+TTS_MODEL=gemini-2.5-pro-preview-tts
+TTS_FALLBACK_MODEL=gpt-4o-mini-tts
 
-STT_MODEL=whisper-1
+# STT — распознавание речи (основная и запасная модель)
+STT_API_KEY=
+STT_API_URL=
+STT_MODEL=whisper-large-v3
+STT_FALLBACK_MODEL=whisper-large-v3-turbo
 
+# OCR — распознавание текста на изображениях (основная + уточняющая модель)
 OCR_API_KEY=
 OCR_API_URL=
 OCR_MODEL=glm-ocr
-OCR_REFINEMENT_MODEL=gemini-3.1-flash-lite
+OCR_REFINEMENT_MODEL=gemini-3-flash-preview
 
 # --- Авторизация и пользователи ---
 # 'single' - вход без пароля (для локального использования)

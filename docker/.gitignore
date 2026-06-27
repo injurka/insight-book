@@ -1,3 +1,4 @@
 .env
 db/**
 uploads/**
+configs/ai-config.json

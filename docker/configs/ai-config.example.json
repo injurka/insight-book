@@ -1,0 +1,68 @@
+{
+  "llm": {
+    "url": "https://aihubmix.com/v1",
+    "key": "...",
+    "model": "gemini-3-flash-preview",
+    "fallbackModel": "gpt-4o-mini"
+  },
+  "tts": {
+    "url": "",
+    "key": "",
+    "model": "gemini-2.5-pro-preview-tts",
+    "fallbackModel": "gpt-4o-mini-tts"
+  },
+  "stt": {
+    "url": "",
+    "key": "",
+    "model": "whisper-large-v3",
+    "fallbackModel": "whisper-large-v3-turbo"
+  },
+  "ocr": {
+    "url": "",
+    "key": "",
+    "model": "glm-ocr",
+    "refinementModel": "gemini-3-flash-preview"
+  },
+  "pricing": {
+    "gemini-3-flash-preview": {
+      "input": 0.50,
+      "output": 3.00
+    },
+    "gemini-3.1-flash-lite": {
+      "input": 0.25,
+      "output": 1.50
+    },
+    "gpt-4o-mini": {
+      "input": 0.15,
+      "output": 0.60
+    },
+    "gpt-4o-mini-tts": {
+      "input": 0.60,
+      "output": 0.60
+    },
+    "glm-ocr": {
+      "input": 0.03,
+      "output": 0.03
+    },
+    "whisper-1": {
+      "input": 0.006,
+      "output": 0.0
+    },
+    "gemini-2.5-pro-preview-tts": {
+      "input": 1,
+      "output": 20
+    },
+    "whisper-large-v3": {
+      "input": 0.111,
+      "output": 0.111
+    },
+    "whisper-large-v3-turbo": {
+      "input": 0.044,
+      "output": 0.044
+    },
+    "qwen2.5:14b": {
+      "input": 0.0,
+      "output": 0.0
+    }
+  }
+}

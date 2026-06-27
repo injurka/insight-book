@@ -200,6 +200,7 @@ export interface LlmConfig {
   ttsUrl?: string
   ttsKey?: string
   sttModel?: string
+  fallbackSttModel?: string
   sttUrl?: string
   sttKey?: string
   ocrModel?: string

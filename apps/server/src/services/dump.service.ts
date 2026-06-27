@@ -86,6 +86,17 @@ export async function executeDump(logCallback?: (msg: string) => void): Promise<
 
     log(`🎉 Dump created successfully: ${dumpPrefix}`)
 
+    // Очистка старых дампов, оставляем только 10
+    const dumpFolders = await s3Service.listDumpFolders('dumps')
+    dumpFolders.sort() // Сортируем по возрастанию (самые старые первыми)
+    while (dumpFolders.length > 10) {
+      const oldest = dumpFolders.shift()
+      if (oldest) {
+        log(`🗑️ Deleting old dump: ${oldest}`)
+        await s3Service.deleteFolder(oldest)
+      }
+    }
+
     // 3. Успешное завершение
     await db.update(schema.dumpLogs)
       .set({ status: 'success', completedAt: new Date().toISOString() })

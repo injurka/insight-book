@@ -478,7 +478,7 @@ export async function generateTts(userId: number, text: string, language: string
   const ttsUrl = config.ttsUrl || config.url
   const ttsKey = config.ttsKey || config.key
   const primaryModel = config.ttsModel!
-  const fallbackModel = config.fallbackTtsModel || 'tts-1'
+  const fallbackModel = config.fallbackTtsModel || 'gemini-2.5-pro-preview-tts'
 
   if (!ttsUrl)
     throw new AppError(500, 'TTS API не настроен')
@@ -645,18 +645,19 @@ export async function checkPronunciationAudio(userId: number, word: string, lang
   }
 
   const sttModel = config.sttModel!
+  const fallbackSttModel = config.fallbackSttModel
   const sttKey = config.sttKey || config.key
 
-  const fd = new FormData()
-  fd.append('file', audioFile)
-  fd.append('model', sttModel)
-  fd.append('prompt', 'Transcribe exactly what is spoken phonetically, even if it contains tonal or pronunciation errors. Do not auto-correct.')
+  const doSttRequest = async (model: string) => {
+    const fd = new FormData()
+    fd.append('file', audioFile)
+    fd.append('model', model)
+    fd.append('prompt', 'Transcribe exactly what is spoken phonetically, even if it contains tonal or pronunciation errors. Do not auto-correct.')
 
-  if (language) {
-    fd.append('language', language.substring(0, 2))
-  }
+    if (language) {
+      fd.append('language', language.substring(0, 2))
+    }
 
-  try {
     const response = await fetch(apiUrl, {
       method: 'POST',
       headers: sttKey ? { Authorization: `Bearer ${sttKey}` } : {},
@@ -669,7 +670,27 @@ export async function checkPronunciationAudio(userId: number, word: string, lang
       throw new Error(`STT API Error: ${response.status} ${errorText}`)
     }
 
-    const data = await response.json() as any
+    return response.json() as Promise<any>
+  }
+
+  try {
+    let data: any
+    let usedSttModel = sttModel
+
+    try {
+      data = await doSttRequest(sttModel)
+    }
+    catch (primaryErr: unknown) {
+      if (fallbackSttModel && fallbackSttModel !== sttModel) {
+        console.warn(`[STT] Primary model (${sttModel}) failed, trying fallback (${fallbackSttModel})...`)
+        data = await doSttRequest(fallbackSttModel)
+        usedSttModel = fallbackSttModel
+      }
+      else {
+        throw primaryErr
+      }
+    }
+
     const heardText = data.text?.trim() || ''
 
     const textSimilarity = calculatePhoneticSimilarity(word, heardText, language)
@@ -680,7 +701,7 @@ export async function checkPronunciationAudio(userId: number, word: string, lang
 
     const sttPromptTokens = data.usage?.prompt_tokens || Math.round(audioFile.size / 100)
     const sttCompletionTokens = data.usage?.completion_tokens || heardText.length
-    trackTokenUsage(userId, 'check_pronunciation_stt', sttModel, sttPromptTokens, sttCompletionTokens, `[AUDIO ${Math.round(audioFile.size / 1024)}KB]`, heardText)
+    trackTokenUsage(userId, 'check_pronunciation_stt', usedSttModel, sttPromptTokens, sttCompletionTokens, `[AUDIO ${Math.round(audioFile.size / 1024)}KB]`, heardText)
 
     if (heardText && textSimilarity < 100) {
       try {

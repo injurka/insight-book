@@ -268,7 +268,7 @@ export const offlineService = {
     const bookStats: Record<number, any> = {}
 
     booksList.forEach((b) => {
-      bookStats[b.id] = { title: b.title, totalPages: b.totalPages || 0, cachedPages: [], analysesCount: b.analysesCount || 0, sizeBytes: 0 }
+      bookStats[b.id] = { title: b.title, totalPages: b.totalPages || 0, cachedPages: [], analysesCount: b.analysesCount || 0, sizeBytes: 0, imagesCount: 0, ttsCount: 0, dictPagesCount: 0 }
     })
 
     let totalDictionaryWords = 0
@@ -299,12 +299,15 @@ export const offlineService = {
         const bookId = Number(key.split('_')[1])
         if (bookStats[bookId]) {
           bookStats[bookId].sizeBytes += itemSize
+          bookStats[bookId].dictPagesCount++
         }
       }
       else if (key.startsWith('image_')) {
         const bookId = Number(key.split('_')[1])
-        if (bookStats[bookId])
+        if (bookStats[bookId]) {
           bookStats[bookId].sizeBytes += itemSize
+          bookStats[bookId].imagesCount++
+        }
       }
       else if (key.startsWith('cover_')) {
         const bookId = Number(key.replace('cover_', ''))
@@ -317,6 +320,7 @@ export const offlineService = {
         const bookId = Number(bookIdStr)
         if (!Number.isNaN(bookId) && bookStats[bookId]) {
           bookStats[bookId].sizeBytes += itemSize
+          bookStats[bookId].ttsCount++
         }
       }
       else if (key.startsWith('book_info_') || key.startsWith('book_toc_')) {
@@ -344,6 +348,7 @@ export const offlineService = {
           const bookId = Number(pathParts[3])
           if (bookStats[bookId]) {
             bookStats[bookId].sizeBytes += size
+            if (type === 'image') bookStats[bookId].imagesCount++
           }
         }
         else if (type === 'tts') {
@@ -353,6 +358,7 @@ export const offlineService = {
             const bookId = Number(bookIdStr)
             if (!Number.isNaN(bookId) && bookStats[bookId]) {
               bookStats[bookId].sizeBytes += size
+              bookStats[bookId].ttsCount++
             }
           }
         }

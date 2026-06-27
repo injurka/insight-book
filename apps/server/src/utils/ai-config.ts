@@ -44,25 +44,26 @@ export function getAiConfig() {
     llm: {
       url: llmUrl,
       key: llmKey,
-      model: fileConfig.llm?.model || process.env.LLM_MODEL || 'gemini-3.1-flash-lite',
+      model: fileConfig.llm?.model || process.env.LLM_MODEL || 'gemini-3-flash-preview',
       fallbackModel: fileConfig.llm?.fallbackModel || process.env.LLM_FALLBACK_MODEL || 'gpt-4o-mini',
     },
     tts: {
       url: fileConfig.tts?.url || process.env.TTS_API_URL || llmUrl,
-      model: fileConfig.tts?.model || process.env.TTS_MODEL || 'gpt-4o-mini-tts',
-      fallbackModel: fileConfig.tts?.fallbackModel || process.env.FALLBACK_TTS_MODEL || 'tts-1',
+      model: fileConfig.tts?.model || process.env.TTS_MODEL || 'gemini-2.5-pro-preview-tts',
+      fallbackModel: fileConfig.tts?.fallbackModel || process.env.TTS_FALLBACK_MODEL || 'gpt-4o-mini-tts',
       key: fileConfig.tts?.key || process.env.TTS_API_KEY || llmKey,
     },
     stt: {
       url: fileConfig.stt?.url || process.env.STT_API_URL || llmUrl,
-      model: fileConfig.stt?.model || process.env.STT_MODEL || 'whisper-1',
+      model: fileConfig.stt?.model || process.env.STT_MODEL || 'whisper-large-v3',
+      fallbackModel: fileConfig.stt?.fallbackModel || process.env.STT_FALLBACK_MODEL || 'whisper-large-v3-turbo',
       key: fileConfig.stt?.key || process.env.STT_API_KEY || llmKey,
     },
     ocr: {
       url: fileConfig.ocr?.url || process.env.OCR_API_URL || llmUrl,
       key: fileConfig.ocr?.key || process.env.OCR_API_KEY || llmKey,
       model: fileConfig.ocr?.model || process.env.OCR_MODEL || 'glm-ocr',
-      refinementModel: fileConfig.ocr?.refinementModel || process.env.OCR_REFINEMENT_MODEL || 'gemini-3.1-flash-lite',
+      refinementModel: fileConfig.ocr?.refinementModel || process.env.OCR_REFINEMENT_MODEL || 'gemini-3-flash-preview',
     },
     pricing: (fileConfig.pricing || {}) as Record<string, ModelPrice>,
   }
