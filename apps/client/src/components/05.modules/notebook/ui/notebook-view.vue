@@ -7,6 +7,7 @@ import { useRouter } from 'vue-router'
 import { KitBtn, KitDropdown, KitImage, KitInput, KitPrompt, KitSkeleton, KitTooltip } from '~/components/01.kit'
 import { HoverRevealBg } from '~/components/02.shared/hover-reveal-bg'
 import { GlobalActions } from '~/components/04.features/global-actions'
+import { PronunciationCheck } from '~/components/04.features/pronunciation-check'
 import { QuoteModal } from '~/components/04.features/quote-modal'
 import { useLibraryStore } from '~/components/05.modules/library/store/library.store'
 import { useToast } from '~/shared/composables/use-toast'
@@ -469,6 +470,7 @@ onMounted(async () => {
                   </span>
                 </div>
                 <div class="highlight-actions" @click.stop>
+                  <PronunciationCheck :word="h.text" :language="group.book.language" variant="button" />
                   <!-- TTS Audio Playback Button -->
                   <KitTooltip :text="activeTtsId === h.id && tts.isPlaying.value ? t('bookInfo.stop') : t('notebook.speak')" placement="top">
                     <KitBtn

@@ -348,7 +348,8 @@ export const offlineService = {
           const bookId = Number(pathParts[3])
           if (bookStats[bookId]) {
             bookStats[bookId].sizeBytes += size
-            if (type === 'image') bookStats[bookId].imagesCount++
+            if (type === 'image')
+              bookStats[bookId].imagesCount++
           }
         }
         else if (type === 'tts') {

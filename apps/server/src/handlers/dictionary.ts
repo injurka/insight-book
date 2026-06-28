@@ -67,7 +67,8 @@ export async function handleCheckPronunciation(req: Request, userId: number): Pr
   const audioFile = formData.get('audio') as File | null
   const word = formData.get('word') as string
   const language = formData.get('language') as string
-  const targetLang = normalizeLanguageCode((new URL(req.url).searchParams.get('targetLang')) || 'ru')
+  const rawTargetLang = new URL(req.url).searchParams.get('targetLang')
+  const targetLang = normalizeLanguageCode(rawTargetLang && rawTargetLang.trim() !== '' ? rawTargetLang : 'ru')
 
   if (!audioFile || !word) {
     throw new AppError(400, 'Audio file and word are required')

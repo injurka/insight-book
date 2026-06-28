@@ -715,5 +715,13 @@
     "network": "请检查您的网络连接。",
     "server500": "内部服务器错误。",
     "aiServer": "AI服务器暂时不可用。"
+  },
+  "pronunciation": {
+    "accuracy": "发音准确度",
+    "listenSelf": "听取录音",
+    "heard": "听到内容：",
+    "nothingRecognized": "未识别到语音",
+    "analysis": "发音分析：",
+    "check": "检查发音"
   }
 }

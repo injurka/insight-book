@@ -49,9 +49,18 @@ function loadMore() {
   currentPage.value++
 }
 
+const confirmVisible = ref(false)
+const confirmBookId = ref<number | null>(null)
+
 function confirmClearCache(bookId: string) {
-  if (window.confirm(t('settings.confirmClearCache', 'Вы уверены, что хотите удалить все сохраненные данные этой книги?'))) {
-    cacheStore.clearBookCache(Number(bookId))
+  confirmBookId.value = Number(bookId)
+  confirmVisible.value = true
+}
+
+function handleConfirmClear() {
+  if (confirmBookId.value !== null) {
+    cacheStore.clearBookCache(confirmBookId.value)
+    confirmBookId.value = null
   }
 }
 </script>
@@ -171,6 +180,12 @@ function confirmClearCache(bookId: string) {
         </div>
       </template>
     </TransitionGroup>
+
+    <KitConfirm
+      v-model:visible="confirmVisible"
+      :description="t('settings.confirmClearCache', 'Вы уверены, что хотите удалить все сохраненные данные этой книги?')"
+      @confirm="handleConfirmClear"
+    />
   </div>
 </template>
 

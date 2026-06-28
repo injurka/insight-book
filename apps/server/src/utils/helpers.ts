@@ -17,13 +17,13 @@ export function hashTtsText(text: string, voice: string): string {
 
 export function mapVoiceToOpenAi(geminiVoice: string): string {
   const map: Record<string, string> = {
-    'kore': 'alloy',
-    'callirrhoe': 'shimmer',
-    'orus': 'nova',
-    'puck': 'echo',
-    'charon': 'onyx',
-    'fenrir': 'fable',
-    'leda': 'alloy'
+    kore: 'alloy',
+    callirrhoe: 'shimmer',
+    orus: 'nova',
+    puck: 'echo',
+    charon: 'onyx',
+    fenrir: 'fable',
+    leda: 'alloy',
   }
   return map[geminiVoice.toLowerCase()] || 'alloy'
 }

@@ -1,5 +1,5 @@
 ---
-name: client-architecture
+name: client-rules
 description: КРИТИЧЕСКИ ВАЖНО: Правила архитектуры client
 globs: "apps/client/**/*"
 ---

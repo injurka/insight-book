@@ -715,5 +715,13 @@
     "network": "Please check your internet connection.",
     "server500": "Internal server error.",
     "aiServer": "AI server is temporarily unavailable."
+  },
+  "pronunciation": {
+    "accuracy": "Pronunciation accuracy",
+    "listenSelf": "Listen to your voice",
+    "heard": "Heard:",
+    "nothingRecognized": "Nothing recognized",
+    "analysis": "Analysis:",
+    "check": "Check pronunciation"
   }
 }

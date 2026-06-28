@@ -2,7 +2,7 @@ import type { BatchAnalysisRequest, BatchAnalysisResponse, GeneratedWordExamples
 import { eq, inArray, sql } from 'drizzle-orm'
 import { pinyin } from 'pinyin-pro'
 import { LlmAnalysisSchema } from '~/types/schemas'
-import { getVoiceForLanguage, hashSentence, hashTtsText, mapVoiceToOpenAi, parseLlmJson } from '~/utils/helpers'
+import { hashSentence, hashTtsText, mapVoiceToOpenAi, parseLlmJson } from '~/utils/helpers'
 import { callLlmJsonWithRetry } from '~/utils/llm-api'
 import { db } from '../db'
 import * as schema from '../db/schema'
@@ -370,8 +370,8 @@ export async function analyzeBatch(userId: number, bookId: number, items: BatchA
 
   const cachedDocs = hashesToFind.length > 0
     ? await db.query.llmCache.findMany({
-      where: inArray(schema.llmCache.sentenceHash, hashesToFind),
-    })
+        where: inArray(schema.llmCache.sentenceHash, hashesToFind),
+      })
     : []
 
   const cacheMap = new Map(cachedDocs.map(d => [d.sentenceHash, d.analysis]))
@@ -508,7 +508,7 @@ export async function generateTts(userId: number, text: string, language: string
   if (!/[.!?。！？]$/.test(textToRead)) {
     textToRead += '.'
   }
-  
+
   async function tryGenerate(model: string, voiceName: string, isGemini: boolean) {
     const requestBody = {
       model,
@@ -630,8 +630,26 @@ function calculatePhoneticSimilarity(expected: string, heard: string, language: 
 export async function checkPronunciationAudio(userId: number, word: string, language: string, targetLang: string, audioFile: File, config: LlmConfig) {
   await checkTokenLimit(userId)
 
+  const getErrorMsg = (type: 'not_configured' | 'recognition_failed', detail?: string) => {
+    if (type === 'not_configured') {
+      if (targetLang === 'ru')
+        return 'LLM API не настроен'
+      if (targetLang === 'zh')
+        return 'LLM API 未配置'
+      return 'LLM API is not configured'
+    }
+    else {
+      const suffix = detail ? `: ${detail}` : ''
+      if (targetLang === 'ru')
+        return `Ошибка распознавания речи${suffix}`
+      if (targetLang === 'zh')
+        return `语音识别错误${suffix}`
+      return `Speech recognition error${suffix}`
+    }
+  }
+
   if (!config.url)
-    throw new AppError(500, 'LLM API не настроен')
+    throw new AppError(500, getErrorMsg('not_configured'))
 
   let apiUrl = config.sttUrl || config.url
   if (apiUrl.endsWith('/chat/completions')) {
@@ -762,6 +780,6 @@ Output STRICT JSON ONLY. Never use backticks for strings.
       return
 
     console.error('[Audio Service] Pronunciation Check Failed:', err.message)
-    throw new AppError(500, `Ошибка распознавания речи: ${err.message}`)
+    throw new AppError(500, getErrorMsg('recognition_failed', err.message))
   }
 }

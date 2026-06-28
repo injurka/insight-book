@@ -1,0 +1,370 @@
+<script setup lang="ts">
+import type { UserDictItem } from '~/shared/types/models'
+import { useVirtualList } from '@vueuse/core'
+import { useI18n } from 'vue-i18n'
+import { KitBtn, KitCheckbox, KitTooltip } from '~/components/01.kit'
+import { useToast } from '~/shared/composables/use-toast'
+import { useUmami } from '~/shared/composables/use-umami'
+import { DIFFICULTY_SYSTEMS } from '~/shared/constants/difficulties'
+import { useAnalysisStore } from '~/shared/store/analysis.store'
+import { useDictionaryStore } from '../../store/dictionary.store'
+
+const props = defineProps<{
+  isEditMode: boolean
+}>()
+
+const emit = defineEmits<{
+  openDetails: [item: UserDictItem]
+  openBulkMove: []
+}>()
+
+const store = useDictionaryStore()
+const analysisStore = useAnalysisStore()
+const toast = useToast()
+const { trackEvent } = useUmami()
+const { t } = useI18n()
+
+const { list, containerProps, wrapperProps } = useVirtualList(
+  computed(() => store.filteredWords),
+  { itemHeight: 110 },
+)
+
+function getStatusLabel(state: number) {
+  switch (state) {
+    case 0: return { label: t('dictionary.statusNew'), color: 'var(--fg-info-color)' }
+    case 1: return { label: t('dictionary.statusLearning'), color: 'var(--fg-warning-color)' }
+    case 2: return { label: t('dictionary.statusReview'), color: 'var(--fg-success-color)' }
+    case 3: return { label: t('dictionary.statusRelearning'), color: 'var(--fg-error-color)' }
+    default: return { label: t('dictionary.statusUnknown'), color: 'var(--fg-muted-color)' }
+  }
+}
+
+function getDifficultyClass(lang: string, diffValue: string | null) {
+  if (!diffValue)
+    return ''
+  const system = DIFFICULTY_SYSTEMS[lang] || DIFFICULTY_SYSTEMS.default
+  const found = system.find(s => s.value === diffValue)
+  if (!found)
+    return ''
+  if (found.level <= 2)
+    return 'level-easy'
+  if (found.level <= 4)
+    return 'level-medium'
+  return 'level-hard'
+}
+
+function handleItemClick(item: UserDictItem) {
+  if (props.isEditMode) {
+    store.toggleWordSelection(item.id)
+    return
+  }
+  emit('openDetails', item)
+}
+
+function exportToAnki() {
+  const wordsToExport = store.words.filter(w => store.selectedWordIds.has(w.id))
+  if (!wordsToExport.length)
+    return
+
+  const rows = wordsToExport.map((w) => {
+    const translation = (w.translation || '').replace(/\n/g, '<br>')
+    const notes = (w.notes || '').replace(/\n/g, '<br>')
+    return `${w.word}\t${w.transcription || ''}\t${translation}\t${notes}`
+  })
+
+  const content = rows.join('\n')
+  const blob = new Blob([content], { type: 'text/plain;charset=utf-8' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `insight_anki_export_${Date.now()}.txt`
+  a.click()
+  URL.revokeObjectURL(url)
+
+  store.clearSelection()
+  toast.success(t('dictionary.ankiExported'))
+  trackEvent('anki_export_downloaded')
+}
+</script>
+
+<template>
+  <div class="words-content">
+    <Transition name="fade">
+      <div v-if="store.selectedWordIds.size > 0 && isEditMode" class="bulk-action-bar">
+        <span class="selected-count">{{ t('dictionary.selectedCount', { count: store.selectedWordIds.size }) }}</span>
+        <div class="actions">
+          <KitBtn size="sm" variant="text" @click="store.selectAllFiltered()">
+            {{ t('dictionary.selectAll') }}
+          </KitBtn>
+          <KitBtn size="sm" variant="text" @click="store.clearSelection()">
+            {{ t('dictionary.resetSelection') }}
+          </KitBtn>
+          <div class="divider" />
+          <KitTooltip :text="t('dictionary.exportAnkiHint')" placement="top">
+            <KitBtn size="sm" color="primary" variant="tonal" icon="mdi:export-variant" @click="exportToAnki">
+              {{ t('dictionary.exportAnki') }}
+            </KitBtn>
+          </KitTooltip>
+          <KitBtn size="sm" color="primary" variant="tonal" icon="mdi:folder-move-outline" @click="emit('openBulkMove')">
+            {{ t('dictionary.move') }}
+          </KitBtn>
+          <KitBtn size="sm" color="error" variant="tonal" icon="mdi:delete-outline" @click="store.bulkDelete()">
+            {{ t('dictionary.delete') }}
+          </KitBtn>
+        </div>
+      </div>
+    </Transition>
+
+    <div v-if="!store.words.length && !store.isLoading" class="empty-state">
+      <p>{{ t('dictionary.emptyState') }}</p>
+    </div>
+
+    <div v-else-if="!store.filteredWords.length && !store.isLoading" class="empty-state">
+      <p>{{ t('dictionary.emptySearch') }}</p>
+      <p class="empty-hint">
+        {{ t('dictionary.emptySearchHint') }}
+      </p>
+    </div>
+
+    <div v-else class="virtual-list-container" v-bind="containerProps">
+      <div v-bind="wrapperProps" class="virtual-list-wrapper">
+        <div
+          v-for="item in list"
+          :key="item.data.id"
+          class="dict-item"
+          :class="{ 'is-selected': store.selectedWordIds.has(item.data.id) }"
+          @click="handleItemClick(item.data)"
+        >
+          <div v-if="isEditMode" class="checkbox-col" @click.stop>
+            <KitCheckbox
+              :model-value="store.selectedWordIds.has(item.data.id)"
+              @update:model-value="store.toggleWordSelection(item.data.id)"
+            />
+          </div>
+          <div class="dict-item-content">
+            <div class="dict-word-container">
+              <span class="dict-word">{{ item.data.word }}</span>
+              <span class="dict-transcription">{{ item.data.transcription }}</span>
+              <span
+                v-if="item.data.difficulty"
+                class="diff-badge"
+                :class="getDifficultyClass(item.data.language, item.data.difficulty)"
+              >
+                {{ item.data.difficulty }}
+              </span>
+              <span class="srs-badge" :style="{ color: getStatusLabel(item.data.state).color }">
+                {{ getStatusLabel(item.data.state).label }}
+              </span>
+            </div>
+            <div class="dict-translation" v-html="item.data.translation" />
+          </div>
+          <div v-if="isEditMode" class="dict-actions" @click.stop>
+            <KitTooltip :text="t('dictionary.editItem')" placement="top">
+              <KitBtn
+                icon="mdi:pencil"
+                variant="text"
+                size="xs"
+                @click="analysisStore.wordToEdit = item.data; analysisStore.addEditWordModalOpen = true"
+              />
+            </KitTooltip>
+            <KitTooltip :text="t('dictionary.deleteItem')" placement="top-end">
+              <KitBtn icon="mdi:delete-outline" variant="text" size="xs" color="error" @click="store.deleteWord(item.data.word)" />
+            </KitTooltip>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<style lang="scss" scoped>
+.words-content {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+.bulk-action-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background-color: var(--bg-tertiary-color);
+  padding: 8px 16px;
+  border-radius: 8px;
+  margin-bottom: 12px;
+  border: 1px solid var(--border-primary-color);
+  flex-wrap: wrap;
+  gap: 8px;
+
+  .selected-count {
+    font-weight: 600;
+    color: var(--fg-accent-color);
+  }
+
+  .actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  .divider {
+    width: 1px;
+    height: 20px;
+    background-color: var(--border-secondary-color);
+    margin: 0 4px;
+
+    @include media-down(sm) {
+      display: none;
+    }
+  }
+}
+
+.virtual-list-container {
+  flex-grow: 1;
+  overflow-y: auto;
+
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background-color: var(--border-secondary-color);
+    border-radius: 4px;
+  }
+}
+
+.virtual-list-wrapper {
+  display: flex;
+  flex-direction: column;
+}
+
+.dict-item {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  padding: 16px;
+  background-color: var(--bg-secondary-color);
+  border-radius: 8px;
+  border: 1px solid var(--border-secondary-color);
+  margin-bottom: 12px;
+  overflow: hidden;
+  cursor: pointer;
+  transition:
+    border-color 0.2s,
+    background-color 0.2s,
+    box-shadow 0.2s;
+
+  &:hover {
+    border-color: var(--fg-accent-color);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  }
+
+  &.is-selected {
+    border-color: var(--fg-accent-color);
+    background-color: rgba(var(--bg-accent-color-rgb, 201, 117, 222), 0.05);
+  }
+
+  .checkbox-col {
+    padding-top: 2px;
+  }
+
+  .dict-item-content {
+    flex-grow: 1;
+    min-width: 0;
+  }
+
+  .dict-word-container {
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+
+    .dict-word {
+      font-size: 1.2rem;
+      font-weight: bold;
+      color: var(--fg-accent-color);
+    }
+
+    .dict-transcription {
+      font-size: 0.9rem;
+      color: var(--fg-secondary-color);
+    }
+  }
+
+  .dict-translation {
+    font-size: 0.95rem;
+    line-height: 1.4;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .dict-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+}
+
+.diff-badge {
+  font-size: 0.7rem;
+  background-color: var(--bg-tertiary-color);
+  color: var(--fg-primary-color);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 500;
+
+  &.level-easy {
+    background-color: rgba(var(--bg-success-color-rgb, 86, 211, 100), 0.15);
+    color: var(--fg-success-color);
+  }
+
+  &.level-medium {
+    background-color: rgba(var(--bg-warning-color-rgb, 227, 179, 65), 0.15);
+    color: var(--fg-warning-color);
+  }
+
+  &.level-hard {
+    background-color: rgba(var(--bg-error-color-rgb, 248, 81, 73), 0.15);
+    color: var(--fg-error-color);
+  }
+}
+
+.srs-badge {
+  font-size: 0.7rem;
+  padding: 1px 5px;
+  border: 1px solid currentColor;
+  border-radius: 4px;
+  font-weight: 500;
+  opacity: 0.8;
+  margin-left: auto;
+  margin-right: 8px;
+}
+
+.empty-state {
+  text-align: center;
+  margin-top: 60px;
+  color: var(--fg-secondary-color);
+
+  .empty-hint {
+    font-size: 0.9rem;
+    margin-top: 8px;
+    opacity: 0.8;
+  }
+}
+
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.2s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+</style>
