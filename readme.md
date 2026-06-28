@@ -64,13 +64,13 @@ LLM_API_KEY=sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 LLM_API_URL=https://aihubmix.com/v1
 
 # Модели для анализа текста (основная и запасная)
-LLM_MODEL=gemini-3-flash-preview
+LLM_MODEL=gemini-3.1-flash-lite
 LLM_FALLBACK_MODEL=gpt-4o-mini
 
 # TTS — синтез речи (основная и запасная модель)
 TTS_API_KEY=
 TTS_API_URL=
-TTS_MODEL=gemini-2.5-pro-preview-tts
+TTS_MODEL=gemini-2.5-flash-preview-tts
 TTS_FALLBACK_MODEL=gpt-4o-mini-tts
 
 # STT — распознавание речи (основная и запасная модель)
@@ -83,7 +83,7 @@ STT_FALLBACK_MODEL=whisper-large-v3-turbo
 OCR_API_KEY=
 OCR_API_URL=
 OCR_MODEL=glm-ocr
-OCR_REFINEMENT_MODEL=gemini-3-flash-preview
+OCR_REFINEMENT_MODEL=gemini-3.1-flash-lite
 
 # --- Авторизация и пользователи ---
 # 'single' - вход без пароля (для локального использования)

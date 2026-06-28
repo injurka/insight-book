@@ -2,13 +2,13 @@
   "llm": {
     "url": "https://aihubmix.com/v1",
     "key": "...",
-    "model": "gemini-3-flash-preview",
+    "model": "gemini-3.1-flash-lite",
     "fallbackModel": "gpt-4o-mini"
   },
   "tts": {
     "url": "",
     "key": "",
-    "model": "gemini-2.5-pro-preview-tts",
+    "model": "gemini-2.5-flash-preview-tts",
     "fallbackModel": "gpt-4o-mini-tts"
   },
   "stt": {
@@ -21,10 +21,10 @@
     "url": "",
     "key": "",
     "model": "glm-ocr",
-    "refinementModel": "gemini-3-flash-preview"
+    "refinementModel": "gemini-3.1-flash-lite"
   },
   "pricing": {
-    "gemini-3-flash-preview": {
+    "gemini-3.1-flash-lite": {
       "input": 0.50,
       "output": 3.00
     },
@@ -48,7 +48,7 @@
       "input": 0.006,
       "output": 0.0
     },
-    "gemini-2.5-pro-preview-tts": {
+    "gemini-2.5-flash-preview-tts": {
       "input": 1,
       "output": 20
     },

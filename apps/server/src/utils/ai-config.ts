@@ -44,12 +44,12 @@ export function getAiConfig() {
     llm: {
       url: llmUrl,
       key: llmKey,
-      model: fileConfig.llm?.model || process.env.LLM_MODEL || 'gemini-3-flash-preview',
+      model: fileConfig.llm?.model || process.env.LLM_MODEL || 'gemini-3.1-flash-lite',
       fallbackModel: fileConfig.llm?.fallbackModel || process.env.LLM_FALLBACK_MODEL || 'gpt-4o-mini',
     },
     tts: {
       url: fileConfig.tts?.url || process.env.TTS_API_URL || llmUrl,
-      model: fileConfig.tts?.model || process.env.TTS_MODEL || 'gemini-2.5-pro-preview-tts',
+      model: fileConfig.tts?.model || process.env.TTS_MODEL || 'gemini-2.5-flash-preview-tts',
       fallbackModel: fileConfig.tts?.fallbackModel || process.env.TTS_FALLBACK_MODEL || 'gpt-4o-mini-tts',
       key: fileConfig.tts?.key || process.env.TTS_API_KEY || llmKey,
     },
@@ -63,7 +63,7 @@ export function getAiConfig() {
       url: fileConfig.ocr?.url || process.env.OCR_API_URL || llmUrl,
       key: fileConfig.ocr?.key || process.env.OCR_API_KEY || llmKey,
       model: fileConfig.ocr?.model || process.env.OCR_MODEL || 'glm-ocr',
-      refinementModel: fileConfig.ocr?.refinementModel || process.env.OCR_REFINEMENT_MODEL || 'gemini-3-flash-preview',
+      refinementModel: fileConfig.ocr?.refinementModel || process.env.OCR_REFINEMENT_MODEL || 'gemini-3.1-flash-lite',
     },
     pricing: (fileConfig.pricing || {}) as Record<string, ModelPrice>,
   }

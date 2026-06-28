@@ -103,14 +103,14 @@ const apiRoutes = {
   '/api/books/:id/stats': { OPTIONS: corsOk, PATCH: apiWrapper(authWrapper(handleUpdateStats)) },
   '/api/books/:id/analyze-book': { OPTIONS: corsOk, POST: apiWrapper(authWrapper(handleAnalyzeBookStats)) },
   '/api/books/:id/analyze-vocabulary': { OPTIONS: corsOk, POST: apiWrapper(authWrapper(handleAnalyzeVocabulary)) },
-  '/api/books/:id/cache-check': { OPTIONS: corsOk, POST: apiWrapper(authWrapper(handleCheckCache)) },
   '/api/books/:id/analyze-batch': { OPTIONS: corsOk, POST: apiWrapper(authWrapper(handleAnalyzeBatch)) },
+  '/api/books/:id/analyze': { OPTIONS: corsOk, POST: apiWrapper(authWrapper(handleAnalyzeSentence)) },
+  '/api/books/:id/cache-check': { OPTIONS: corsOk, POST: apiWrapper(authWrapper(handleCheckCache)) },
   '/api/books/:id/toc': { OPTIONS: corsOk, GET: apiWrapper(authWrapper(handleGetToc)) },
   '/api/books/:id/page/:pageNum': { OPTIONS: corsOk, GET: apiWrapper(authWrapper(handleGetPage)) },
   '/api/books/:id/page/:pageNum/dict': { OPTIONS: corsOk, GET: apiWrapper(authWrapper(handleGetPageDictionary)) },
   '/api/books/:id/page/:pageNum/image': { OPTIONS: corsOk, GET: apiWrapper(handleGetPageImage) },
   '/api/books/:id/word/:word': { OPTIONS: corsOk, GET: apiWrapper(authWrapper(handleLookupWord)) },
-  '/api/books/:id/analyze': { OPTIONS: corsOk, POST: apiWrapper(authWrapper(handleAnalyzeSentence)) },
 
   // --- Global TTS API ---
   '/api/tts': { OPTIONS: corsOk, POST: apiWrapper(authWrapper(handleStandaloneTts)) },

@@ -262,6 +262,7 @@ onUnmounted(() => {
   padding: 0px;
   position: relative;
   padding-top: 80px;
+  min-height: calc(100% - 70px);
 }
 
 .manga-layout-wrapper {

@@ -178,6 +178,7 @@ watch(() => readerStore.isPageLoading, async (isLoading) => {
   flex-direction: column;
   position: relative;
   padding-top: 80px;
+  min-height: calc(100% - 70px);
 }
 .reader-layout-wrapper {
   width: 100%;

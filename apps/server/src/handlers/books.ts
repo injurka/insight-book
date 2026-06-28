@@ -838,6 +838,7 @@ export async function handleGenerateTts(req: Request, userId: number): Promise<R
 
   const { text, voice } = GenerateTtsSchema.parse(await req.json())
   const audioBase64 = await generateTts(userId, text, normalizeLanguageCode(book.language), config, voice)
+  
   return json({ audioBase64 })
 }
 
