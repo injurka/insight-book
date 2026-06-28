@@ -478,7 +478,7 @@ export async function generateTts(userId: number, text: string, language: string
   const ttsUrl = config.ttsUrl || config.url
   const ttsKey = config.ttsKey || config.key
   const primaryModel = config.ttsModel!
-  const fallbackModel = config.fallbackTtsModel || 'gemini-2.5-pro-preview-tts'
+  const fallbackModel = config.fallbackTtsModel || 'gemini-2.5-flash-preview-tts'
 
   if (!ttsUrl)
     throw new AppError(500, 'TTS API не настроен')
