@@ -24,7 +24,7 @@
     "refinementModel": "gemini-3.1-flash-lite"
   },
   "pricing": {
-    "gemini-3.1-flash-lite": {
+    "gemini-3-flash-preview": {
       "input": 0.50,
       "output": 3.00
     },
@@ -48,9 +48,13 @@
       "input": 0.006,
       "output": 0.0
     },
-    "gemini-2.5-flash-preview-tts": {
+    "gemini-2.5-pro-preview-tts": {
       "input": 1,
       "output": 20
+    },
+    "gemini-2.5-flash-preview-tts": {
+      "input": 0.5,
+      "output": 10
     },
     "whisper-large-v3": {
       "input": 0.111,
