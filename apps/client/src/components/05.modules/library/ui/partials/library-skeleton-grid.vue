@@ -9,7 +9,10 @@ withDefaults(defineProps<{ count?: number, showTitle?: boolean }>(), {
 
 <template>
   <div class="skeleton-section">
-    <div v-if="showTitle" class="title-skeleton" />
+    <div v-if="showTitle" class="title-skeleton">
+      <KitSkeleton width="24px" height="24px" border-radius="4px" />
+      <KitSkeleton width="160px" height="20px" border-radius="4px" />
+    </div>
     <div class="books-grid">
       <div v-for="i in count" :key="i" class="book-card-skeleton">
         <div class="cover-skeleton" />
@@ -28,7 +31,13 @@ withDefaults(defineProps<{ count?: number, showTitle?: boolean }>(), {
   flex-direction: column;
 
   .title-skeleton {
-    height: 44px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0 0 16px 0;
+    border-bottom: 2px solid var(--border-secondary-color);
+    padding-bottom: 8px;
+    height: 28px;
   }
 }
 

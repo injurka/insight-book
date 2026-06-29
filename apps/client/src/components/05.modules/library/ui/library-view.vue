@@ -191,10 +191,8 @@ onUnmounted(() => {
             @open-upload-modal="isUploadModalOpen = true"
           />
 
-          <!-- Если грузим личную библиотеку -->
           <LibrarySkeletonGrid v-if="store.isLoading && (!store.books.length && !store.publicBooks.length)" :show-title="true" />
 
-          <!-- Публичный каталог -->
           <LibraryPublicCatalog
             v-else-if="currentView === 'public-catalog'"
             :books="store.publicBooks"
@@ -207,7 +205,6 @@ onUnmounted(() => {
             @edit-book="openEditModal"
           />
 
-          <!-- Личная библиотека (пустое состояние) -->
           <div v-else-if="store.books.length === 0" class="empty-state">
             <h2>{{ t('library.emptyStateTitle') }}</h2>
             <p v-if="authStore.user">
@@ -218,7 +215,6 @@ onUnmounted(() => {
             </p>
           </div>
 
-          <!-- Личная библиотека (сгруппированная) -->
           <LibraryPersonalGroups
             v-else
             v-model:active-folder="activeFolder"

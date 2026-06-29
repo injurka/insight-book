@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { Book } from '~/shared/types/models'
+import { Icon } from '@iconify/vue'
 import { useI18n } from 'vue-i18n'
 import { KitBtn } from '~/components/01.kit'
 import BookCard from '../book-card.vue'
@@ -26,6 +27,11 @@ const totalPages = computed(() => Math.ceil(props.total / props.limit))
 
 <template>
   <div class="public-catalog-view">
+    <h3 class="series-title">
+      <Icon icon="mdi:earth" />
+      <span class="text">{{ t('library.menuPublicCatalog') }}</span>
+    </h3>
+
     <LibrarySkeletonGrid v-if="isLoading" :count="10" />
 
     <div v-else-if="books.length === 0" class="empty-state">
@@ -71,6 +77,22 @@ const totalPages = computed(() => Math.ceil(props.total / props.limit))
     border-top: 1px solid var(--border-secondary-color);
     color: var(--fg-secondary-color);
     font-weight: 500;
+  }
+}
+
+.series-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 1.25rem;
+  color: var(--fg-accent-color);
+  margin: 0 0 16px 0;
+  border-bottom: 2px solid var(--border-secondary-color);
+  padding-bottom: 8px;
+  height: 28px;
+
+  .text {
+    flex-grow: 1;
   }
 }
 
