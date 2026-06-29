@@ -68,11 +68,28 @@ export const router = createRouter({
   ],
 })
 
-router.beforeEach(async (to) => {
+const LAST_VIEW_QUERY_KEY = 'library_last_view_query'
+
+router.beforeEach(async (to, from) => {
   const authStore = useAuthStore()
 
   if (!authStore.isAuthReady) {
     await authStore.checkAuth()
+  }
+
+  if (to.name === AppRouteNames.Home && Object.keys(to.query).length === 0 && !from.name) {
+    try {
+      const savedQueryStr = localStorage.getItem(LAST_VIEW_QUERY_KEY)
+      if (savedQueryStr) {
+        const savedQuery = JSON.parse(savedQueryStr)
+        if (Object.keys(savedQuery).length > 0) {
+          return { name: AppRouteNames.Home, query: savedQuery, replace: true }
+        }
+      }
+    }
+    catch (e) {
+      console.warn('Failed to parse saved query', e)
+    }
   }
 
   const isAuthRoute = to.name === AppRouteNames.SignIn || to.name === AppRouteNames.YandexCallback
@@ -96,6 +113,10 @@ router.beforeEach(async (to) => {
 router.afterEach((to) => {
   const { trackPageview } = useUmami()
   trackPageview(to.fullPath, String(to.name || ''))
+
+  if (to.name === AppRouteNames.Home) {
+    localStorage.setItem(LAST_VIEW_QUERY_KEY, JSON.stringify(to.query))
+  }
 })
 
 export default router
