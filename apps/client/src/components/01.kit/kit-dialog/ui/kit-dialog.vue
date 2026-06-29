@@ -287,8 +287,20 @@ onUnmounted(() => {
     height: 100dvh !important;
     max-width: 100vw !important;
     max-height: 100dvh !important;
-    border-radius: 0;
-    border: none;
+    border-radius: 0 !important;
+    border: none !important;
+    top: 0 !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    transform: none !important;
+
+    .mobile-drag-indicator {
+      display: none !important;
+    }
+    .dialog-header {
+      padding-top: 0 !important;
+    }
   }
   @include media-down(sm) {
     padding: 12px;
