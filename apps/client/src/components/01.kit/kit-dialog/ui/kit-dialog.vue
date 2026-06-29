@@ -294,6 +294,17 @@ onUnmounted(() => {
     left: 0 !important;
     right: 0 !important;
     transform: none !important;
+    padding-top: max(16px, env(safe-area-inset-top, 0px)) !important;
+    padding-bottom: max(16px, env(safe-area-inset-bottom, 0px)) !important;
+    padding-left: max(16px, env(safe-area-inset-left, 0px)) !important;
+    padding-right: max(16px, env(safe-area-inset-right, 0px)) !important;
+
+    @include media-down(sm) {
+      padding-top: max(12px, env(safe-area-inset-top, 0px)) !important;
+      padding-bottom: max(12px, env(safe-area-inset-bottom, 0px)) !important;
+      padding-left: max(12px, env(safe-area-inset-left, 0px)) !important;
+      padding-right: max(12px, env(safe-area-inset-right, 0px)) !important;
+    }
 
     .mobile-drag-indicator {
       display: none !important;
@@ -304,6 +315,7 @@ onUnmounted(() => {
   }
   @include media-down(sm) {
     padding: 12px;
+    padding-bottom: max(12px, env(safe-area-inset-bottom, 0px));
     top: auto;
     bottom: 0;
     left: 0;
