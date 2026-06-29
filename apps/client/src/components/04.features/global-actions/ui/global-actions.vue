@@ -160,7 +160,7 @@ async function onAvatarChange(e: Event) {
       toast.success(t('globalActions.avatarUpdated'))
     }
     catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Ошибка загрузки аватара')
+      toast.error(err instanceof Error ? err.message : (t('common.avatarLoadError') || 'Ошибка загрузки аватара'))
     }
   }
 }
@@ -171,9 +171,17 @@ async function handleUsernameSubmit(newUsername: string) {
     toast.success(t('globalActions.usernameUpdated'))
   }
   catch (err) {
-    toast.error(err instanceof Error ? err.message : 'Ошибка')
+    toast.error(err instanceof Error ? err.message : (t('common.error') || 'Ошибка'))
   }
 }
+
+const userRoleName = computed(() => {
+  const role = authStore.user?.role
+  if (!role || role === 'user') return t('globalActions.roleUser')
+  if (role === 'admin') return t('globalActions.roleAdmin')
+  
+  return role.charAt(0).toUpperCase() + role.slice(1)
+})
 </script>
 
 <template>
@@ -257,7 +265,7 @@ async function handleUsernameSubmit(newUsername: string) {
               </div>
               <div class="user-info">
                 <span class="username" :title="t('globalActions.changeUsername')" @click="isUsernamePromptOpen = true">{{ authStore.user?.username }}</span>
-                <span class="role-badge">{{ authStore.user?.role === 'admin' ? t('globalActions.roleAdmin') : t('globalActions.roleUser') }}</span>
+                <span class="role-badge">{{ userRoleName }}</span>
               </div>
             </div>
 

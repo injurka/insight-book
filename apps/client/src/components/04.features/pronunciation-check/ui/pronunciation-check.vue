@@ -80,7 +80,7 @@ defineExpose({
         :disabled="true"
       >
         <template #activator>
-          <KitTooltip :text="isRecording ? 'Остановить запись' : t('pronunciation.check')">
+          <KitTooltip :text="isRecording ? (t('pronunciation.stopRecording') || 'Остановить запись') : t('pronunciation.check')">
             <KitBtn
               class="speak-btn"
               :icon="isRecording ? 'mdi:stop' : 'mdi:microphone'"

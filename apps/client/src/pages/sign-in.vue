@@ -56,11 +56,11 @@ function handleYandexLogin() {
 
       <KitBtn type="button" class="sign-in-yandex-btn" :disabled="isLoading" @click="handleYandexLogin">
         <Icon icon="mdi:yandex-international" class="yandex-icon" />
-        Вход через Яндекс
+        {{ t('signIn.yandexLogin') || 'Вход через Яндекс' }}
       </KitBtn>
 
       <div class="advanced-login-toggle" @click="showAdvanced = !showAdvanced">
-        <span>Вход по белому списку</span>
+        <span>{{ t('signIn.whitelistLogin') || 'Вход по белому списку' }}</span>
         <Icon :icon="showAdvanced ? 'mdi:chevron-up' : 'mdi:chevron-down'" />
       </div>
 

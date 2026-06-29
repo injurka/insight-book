@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { Icon } from '@iconify/vue'
+import { useI18n } from 'vue-i18n'
 import { useAnalysisStore } from '~/shared/store/analysis.store'
 
+const { t } = useI18n()
 const analysisStore = useAnalysisStore()
 
 const percent = computed(() => {
@@ -21,10 +23,10 @@ const isWidgetVisible = computed(() => {
     <div v-if="isWidgetVisible" class="background-progress-widget">
       <div class="widget-info">
         <Icon icon="mdi:robot-outline" class="spin-animation" />
-        <span class="text">Анализ страницы...</span>
+        <span class="text">{{ t('analysis.analyzing') || 'Анализ страницы...' }}</span>
         <span class="count">{{ analysisStore.queueDone }} / {{ analysisStore.queueTotal }}</span>
 
-        <button class="cancel-btn" title="Отменить" @click="analysisStore.cancelPageAnalysis()">
+        <button class="cancel-btn" :title="t('common.cancel') || 'Отменить'" @click="analysisStore.cancelPageAnalysis()">
           <Icon icon="mdi:close" />
         </button>
       </div>

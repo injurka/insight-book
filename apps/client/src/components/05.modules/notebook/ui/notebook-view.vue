@@ -225,10 +225,10 @@ async function onDeleteConfirmSubmit() {
   try {
     await api.highlights.delete(id)
     highlights.value = highlights.value.filter(h => h.id !== id)
-    toast.success('Цитата удалена')
+    toast.success(t('notebook.quoteDeleted') || 'Цитата удалена')
   }
   catch (err) {
-    toast.error(err instanceof Error ? err.message : 'Не удалось удалить цитату')
+    toast.error(err instanceof Error ? err.message : (t('notebook.quoteDeleteError') || 'Не удалось удалить цитату'))
   }
   finally {
     deleteTargetId.value = null
@@ -238,28 +238,28 @@ async function onDeleteConfirmSubmit() {
 // Exports Features
 function exportToMarkdown(group: BookGroup) {
   const { book, highlights } = group
-  let content = `# Цитаты из книги: ${book.title}\n`
+  let content = `${t('notebook.exportMd.title') || '# Цитаты из книги:'} ${book.title}\n`
   if (book.author) {
-    content += `**Автор**: ${book.author}\n`
+    content += `${t('notebook.exportMd.author') || '**Автор**:'} ${book.author}\n`
   }
-  content += `**Всего цитат**: ${highlights.length}\n\n---\n\n`
+  content += `${t('notebook.exportMd.totalQuotes') || '**Всего цитат**:'} ${highlights.length}\n\n---\n\n`
 
   // Sort highlights by page number ascending for export
   const sortedHighlights = [...highlights].sort((a, b) => a.pageNum - b.pageNum)
 
   sortedHighlights.forEach((h, index) => {
-    content += `### Цитата №${index + 1} (Стр. ${h.pageNum})\n`
+    content += `${t('notebook.exportMd.quotePrefix') || '### Цитата №'}${index + 1} (${t('notebook.exportMd.page') || 'Стр.'} ${h.pageNum})\n`
     if (h.chapter) {
-      content += `*Глава: ${h.chapter}*\n\n`
+      content += `*${t('notebook.exportMd.chapter') || 'Глава:'} ${h.chapter}*\n\n`
     }
     content += `> ${h.text}\n\n`
     if (h.translation) {
-      content += `**Перевод**:\n> ${h.translation}\n\n`
+      content += `${t('notebook.exportMd.translation') || '**Перевод**:'}\n> ${h.translation}\n\n`
     }
     if (h.note) {
-      content += `**Заметка**:\n${h.note}\n\n`
+      content += `${t('notebook.exportMd.note') || '**Заметка**:'}\n${h.note}\n\n`
     }
-    content += `*Добавлено: ${new Date(h.createdAt).toLocaleDateString()}*\n\n---\n\n`
+    content += `*${t('notebook.exportMd.added') || 'Добавлено:'} ${new Date(h.createdAt).toLocaleDateString()}*\n\n---\n\n`
   })
 
   const blob = new Blob([content], { type: 'text/markdown;charset=utf-8' })
@@ -269,34 +269,34 @@ function exportToMarkdown(group: BookGroup) {
   a.download = `${book.title.replace(/[/\\?%*:|"<>\s]/g, '_')}_quotes.md`
   a.click()
   URL.revokeObjectURL(url)
-  toast.success('Экспорт в Markdown завершен')
+  toast.success(t('notebook.exportMd.done') || 'Экспорт в Markdown завершен')
 }
 
 function exportToPlainText(group: BookGroup) {
   const { book, highlights } = group
-  let content = `Цитаты из книги: ${book.title}\n`
+  let content = `${t('notebook.exportTxt.title') || 'Цитаты из книги:'} ${book.title}\n`
   if (book.author) {
-    content += `Автор: ${book.author}\n`
+    content += `${t('notebook.exportTxt.author') || 'Автор:'} ${book.author}\n`
   }
-  content += `Всего цитат: ${highlights.length}\n\n`
+  content += `${t('notebook.exportTxt.totalQuotes') || 'Всего цитат:'} ${highlights.length}\n\n`
   content += `=========================================\n\n`
 
   const sortedHighlights = [...highlights].sort((a, b) => a.pageNum - b.pageNum)
 
   sortedHighlights.forEach((h, index) => {
-    content += `Цитата №${index + 1} (Стр. ${h.pageNum})\n`
+    content += `${t('notebook.exportTxt.quotePrefix') || 'Цитата №'}${index + 1} (${t('notebook.exportTxt.page') || 'Стр.'} ${h.pageNum})\n`
     if (h.chapter) {
-      content += `Глава: ${h.chapter}\n`
+      content += `${t('notebook.exportTxt.chapter') || 'Глава:'} ${h.chapter}\n`
     }
     content += `-----------------------------------------\n`
     content += `"${h.text}"\n`
     if (h.translation) {
-      content += `Перевод: ${h.translation}\n`
+      content += `${t('notebook.exportTxt.translation') || 'Перевод:'} ${h.translation}\n`
     }
     if (h.note) {
-      content += `Заметка: ${h.note}\n`
+      content += `${t('notebook.exportTxt.note') || 'Заметка:'} ${h.note}\n`
     }
-    content += `Добавлено: ${new Date(h.createdAt).toLocaleDateString()}\n`
+    content += `${t('notebook.exportTxt.added') || 'Добавлено:'} ${new Date(h.createdAt).toLocaleDateString()}\n`
     content += `=========================================\n\n`
   })
 
@@ -307,7 +307,7 @@ function exportToPlainText(group: BookGroup) {
   a.download = `${book.title.replace(/[/\\?%*:|"<>\s]/g, '_')}_quotes.txt`
   a.click()
   URL.revokeObjectURL(url)
-  toast.success('Экспорт в текст завершен')
+  toast.success(t('notebook.exportTxt.done') || 'Экспорт в текст завершен')
 }
 
 async function playTts(h: Highlight, book: Book) {
@@ -344,14 +344,14 @@ async function translateQuote(h: Highlight, book: Book) {
       if (index !== -1) {
         highlights.value[index] = { ...highlights.value[index], translation: res.translation }
       }
-      toast.success('Перевод получен и сохранен')
+      toast.success(t('notebook.translationSaved') || 'Перевод получен и сохранен')
     }
     else {
-      toast.error('Не удалось получить перевод')
+      toast.error(t('notebook.translationFailed') || 'Не удалось получить перевод')
     }
   }
   catch (err) {
-    toast.error(err instanceof Error ? err.message : 'Ошибка при получении перевода')
+    toast.error(err instanceof Error ? err.message : (t('notebook.translationError') || 'Ошибка при получении перевода'))
   }
   finally {
     translatingId.value = null
@@ -371,7 +371,7 @@ onMounted(async () => {
     highlights.value = await api.highlights.list()
   }
   catch (err) {
-    toast.error(err instanceof Error ? err.message : 'Ошибка загрузки цитат')
+    toast.error(err instanceof Error ? err.message : (t('notebook.loadQuotesError') || 'Ошибка загрузки цитат'))
   }
   finally {
     isLoading.value = false

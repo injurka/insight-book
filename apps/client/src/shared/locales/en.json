@@ -31,7 +31,9 @@
     "password": "Password",
     "loginBtn": "Sign In",
     "errorAuth": "Authorization Error",
-    "betaWarning": "The project is not production-ready yet. There is no open registration, access is by whitelist only."
+    "betaWarning": "The project is not production-ready yet. There is no open registration, access is by whitelist only.",
+    "yandexLogin": "Sign in with Yandex",
+    "whitelistLogin": "Sign in via whitelist"
   },
   "pwa": {
     "offlineReadyTitle": "Ready for offline use",
@@ -527,14 +529,14 @@
     "translateWithAi": "Translate with AI",
     "editCard": "Edit card",
     "saveToDict": "Save to dictionary",
-    "aiAnalysis": "AI Analysis",
+    "aiAnalysis": "Deep quote analysis",
     "listen": "Listen",
     "sessionHistory": "Session History",
     "hideHistory": "Hide history",
     "unpin": "Unpin (free movement)",
     "pin": "Pin window",
     "noSentencesAnalyzed": "You haven't analyzed any sentences in this session yet.",
-    "analyzing": "Analyzing...",
+    "analyzing": "Analyzing page...",
     "removeHighlight": "Remove Highlight",
     "highlightColor": {
       "yellow": "Yellow Highlight",
@@ -714,13 +716,43 @@
     "collapse": "Collapse",
     "detailsHint": "Additional information will appear here",
     "practiceRandom": "Practice",
-    "selfCheck": "Self-check",
+    "selfCheck": "Self Check",
     "correct": "Correct! Great job!",
     "wrong": "Almost! Try again.",
     "check": "Check",
     "reset": "Reset",
     "close": "Close",
-    "tapWordsToBuild": "Tap words to build the phrase"
+    "tapWordsToBuild": "Tap words to build the phrase",
+    "quoteDeleted": "Quote deleted",
+    "quoteDeleteError": "Failed to delete quote",
+    "translationSaved": "Translation received and saved",
+    "translationFailed": "Failed to get translation",
+    "translationError": "Error getting translation",
+    "loadQuotesError": "Error loading quotes",
+    "exportMd": {
+      "title": "# Quotes from book:",
+      "author": "**Author**:",
+      "totalQuotes": "**Total quotes**:",
+      "quotePrefix": "### Quote #",
+      "page": "Page",
+      "chapter": "Chapter:",
+      "translation": "**Translation**:",
+      "note": "**Note**:",
+      "added": "Added:",
+      "done": "Export to Markdown completed"
+    },
+    "exportTxt": {
+      "title": "Quotes from book:",
+      "author": "Author:",
+      "totalQuotes": "Total quotes:",
+      "quotePrefix": "Quote #",
+      "page": "Page",
+      "chapter": "Chapter:",
+      "translation": "Translation:",
+      "note": "Note:",
+      "added": "Added:",
+      "done": "Export to text completed"
+    }
   },
   "errors": {
     "network": "Please check your internet connection.",
@@ -733,6 +765,15 @@
     "heard": "Heard:",
     "nothingRecognized": "Nothing recognized",
     "analysis": "Analysis:",
-    "check": "Check pronunciation"
+    "check": "Check pronunciation",
+    "stopRecording": "Stop recording"
+  },
+  "common": {
+    "cancel": "Cancel",
+    "avatarLoadError": "Error loading avatar",
+    "error": "Error"
+  },
+  "quote": {
+    "translationError": "Translation error"
   }
 }

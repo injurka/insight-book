@@ -75,7 +75,7 @@ async function translate() {
     }
   }
   catch (err) {
-    toast.error(err instanceof Error ? err.message : 'Ошибка перевода')
+    toast.error(err instanceof Error ? err.message : (t('quote.translationError') || 'Ошибка перевода'))
   }
   finally {
     isTranslating.value = false
