@@ -297,11 +297,14 @@ watch(() => readerStore.isPageLoading, async (isLoading) => {
   :deep(.word) {
     padding: 0;
     border-radius: 4px;
+    &.exact-highlight {
+      border-radius: 0;
+    }
     transition:
       background-color 0.1s,
       color 0.1s;
     &.add-space {
-      margin-right: 0.25em;
+      padding-right: 0.25em;
     }
     &.is-punctuation {
       cursor: default;

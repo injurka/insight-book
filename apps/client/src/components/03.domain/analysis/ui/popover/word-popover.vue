@@ -2,6 +2,7 @@
 import type { GeneratedWordExamples } from '~/shared/types/models'
 import { autoUpdate, flip, offset, shift, useFloating } from '@floating-ui/vue'
 import { Icon } from '@iconify/vue'
+import { useResizeObserver } from '@vueuse/core'
 import { useI18n } from 'vue-i18n'
 import { KitBtn, KitSkeleton, KitTooltip } from '~/components/01.kit'
 import { useLibraryStore } from '~/components/05.modules/library/store/library.store'
@@ -56,6 +57,14 @@ const headerText = computed(() => {
   if (!analysisStore.wordPopover)
     return ''
   return analysisStore.wordPopover.showAi ? (analysisStore.wordPopover.aiTranscription || analysisStore.wordPopover.transcription) : analysisStore.wordPopover.transcription
+})
+
+const innerRef = ref<HTMLElement | null>(null)
+const contentHeight = ref<string>('auto')
+
+useResizeObserver(innerRef, (entries) => {
+  const target = entries[0].target as HTMLElement
+  contentHeight.value = `${target.offsetHeight}px`
 })
 
 function getPosClass(pos: string) {
@@ -151,38 +160,42 @@ onUnmounted(() => {
         </div>
 
         <div class="popover-content">
-          <Transition name="fade" mode="out-in">
-            <div v-if="analysisStore.wordPopover.showAi && analysisStore.wordPopover.isAiLoading" key="loader" class="ai-loader">
-              <KitSkeleton width="95%" height="16px" />
-              <KitSkeleton width="75%" height="16px" />
-              <KitSkeleton width="90%" height="16px" />
-            </div>
-            <div v-else key="content" class="popover-body">
-              <div class="translation" v-html="analysisStore.wordPopover.showAi ? analysisStore.wordPopover.aiTranslation : analysisStore.wordPopover.translation" />
-              <template v-if="analysisStore.wordPopover.showAi && analysisStore.wordPopover.aiData">
-                <div v-if="analysisStore.wordPopover.aiData.grammarRules?.length" class="ai-section">
-                  <div class="ai-subtitle">
-                    {{ t('analysis.grammarColon') }}
-                  </div>
-                  <div v-for="(rule, idx) in analysisStore.wordPopover.aiData.grammarRules" :key="idx" class="ai-rule">
-                    <b>{{ rule.pattern }}</b> — {{ rule.explanation }}
-                  </div>
-                </div>
-                <div v-if="analysisStore.wordPopover.aiData.vocabulary?.length" class="ai-section">
-                  <div class="ai-subtitle">
-                    {{ t('analysis.vocabularyColon') }}
-                  </div>
-                  <template v-for="(vocab, idx) in analysisStore.wordPopover.aiData.vocabulary" :key="idx">
-                    <div v-if="vocab && vocab.word" class="ai-vocab">
-                      <b>{{ vocab.word }}</b> <template v-if="vocab.transcription">
-                        ({{ vocab.transcription }})
-                      </template> — {{ vocab.meaning }}
+          <div class="height-animator" :style="{ height: contentHeight, transition: 'height 0.25s ease', overflow: 'hidden' }">
+            <div ref="innerRef" class="popover-inner-grid">
+              <Transition name="content-fade">
+              <div v-if="analysisStore.wordPopover.showAi && analysisStore.wordPopover.isAiLoading" key="loader" class="ai-loader">
+                <KitSkeleton width="95%" height="16px" />
+                <KitSkeleton width="75%" height="16px" />
+                <KitSkeleton width="90%" height="16px" />
+              </div>
+              <div v-else key="content" class="popover-body">
+                <div class="translation" v-html="analysisStore.wordPopover.showAi ? analysisStore.wordPopover.aiTranslation : analysisStore.wordPopover.translation" />
+                <template v-if="analysisStore.wordPopover.showAi && analysisStore.wordPopover.aiData">
+                  <div v-if="analysisStore.wordPopover.aiData.grammarRules?.length" class="ai-section">
+                    <div class="ai-subtitle">
+                      {{ t('analysis.grammarColon') }}
                     </div>
-                  </template>
-                </div>
-              </template>
-            </div>
-          </Transition>
+                    <div v-for="(rule, idx) in analysisStore.wordPopover.aiData.grammarRules" :key="idx" class="ai-rule">
+                      <b>{{ rule.pattern }}</b> — {{ rule.explanation }}
+                    </div>
+                  </div>
+                  <div v-if="analysisStore.wordPopover.aiData.vocabulary?.length" class="ai-section">
+                    <div class="ai-subtitle">
+                      {{ t('analysis.vocabularyColon') }}
+                    </div>
+                    <template v-for="(vocab, idx) in analysisStore.wordPopover.aiData.vocabulary" :key="idx">
+                      <div v-if="vocab && vocab.word" class="ai-vocab">
+                        <b>{{ vocab.word }}</b> <template v-if="vocab.transcription">
+                          ({{ vocab.transcription }})
+                        </template> — {{ vocab.meaning }}
+                      </div>
+                    </template>
+                  </div>
+                </template>
+              </div>
+            </Transition>
+          </div>
+          </div>
         </div>
 
         <div class="popover-footer">
@@ -245,11 +258,6 @@ onUnmounted(() => {
   overflow: hidden;
   max-height: 70vh;
   min-height: 150px;
-
-  transition:
-    top 0.25s cubic-bezier(0.25, 0.8, 0.25, 1),
-    left 0.25s cubic-bezier(0.25, 0.8, 0.25, 1);
-  will-change: top, left;
 }
 
 .transcription-header {
@@ -299,8 +307,7 @@ onUnmounted(() => {
 }
 
 .popover-content {
-  display: flex;
-  flex-direction: column;
+  display: block;
   overflow-y: auto;
   flex: 1;
 
@@ -309,6 +316,20 @@ onUnmounted(() => {
   &::-webkit-scrollbar {
     display: none;
   }
+}
+
+.height-animator {
+  width: 100%;
+}
+
+.popover-inner-grid {
+  display: grid;
+  grid-template-columns: 100%;
+}
+
+.popover-inner-grid > * {
+  grid-column: 1;
+  grid-row: 1;
 }
 
 .popover-body {
@@ -458,5 +479,20 @@ onUnmounted(() => {
 .fade-enter-from,
 .fade-leave-to {
   opacity: 0;
+}
+
+.content-fade-enter-active {
+  transition: opacity 0.3s ease 0.15s, transform 0.3s ease 0.15s;
+}
+.content-fade-leave-active {
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+.content-fade-enter-from {
+  opacity: 0;
+  transform: translateY(4px);
+}
+.content-fade-leave-to {
+  opacity: 0;
+  transform: translateY(-4px);
 }
 </style>

@@ -2,6 +2,7 @@ import { hexToRgba } from '~/shared/lib/helpers'
 
 function applyHighlight(textNodes: Text[], startIndex: number, endIndex: number, color: string) {
   let currentIndex = 0
+  const marks: { mark: HTMLElement; parent: ParentNode | null }[] = []
   for (const textNode of textNodes) {
     const nodeStart = currentIndex
     const nodeEnd = currentIndex + (textNode.nodeValue?.length || 0)
@@ -15,25 +16,57 @@ function applyHighlight(textNodes: Text[], startIndex: number, endIndex: number,
       const match = originalText.substring(overlapStart, overlapEnd)
       const after = originalText.substring(overlapEnd)
 
-      const fragment = document.createDocumentFragment()
-      if (before)
-        fragment.appendChild(document.createTextNode(before))
-      if (match) {
-        const mark = document.createElement('mark')
-        mark.style.backgroundColor = hexToRgba(color, 0.35)
-        mark.style.color = 'inherit'
-        mark.style.borderRadius = '4px'
-        mark.style.padding = '2px 0'
-        mark.className = 'exact-highlight'
-        mark.textContent = match
-        fragment.appendChild(mark)
+      const parent = textNode.parentNode as HTMLElement
+      if (
+        parent && 
+        parent.classList?.contains('word') && 
+        overlapStart === 0 && 
+        overlapEnd === originalText.length &&
+        parent.childNodes.length === 1
+      ) {
+        parent.style.backgroundColor = hexToRgba(color, 0.35)
+        parent.classList.add('exact-highlight')
+        marks.push({ mark: parent, parent: null })
+      } else {
+        const fragment = document.createDocumentFragment()
+        if (before)
+          fragment.appendChild(document.createTextNode(before))
+        if (match) {
+          const mark = document.createElement('mark')
+          mark.style.backgroundColor = hexToRgba(color, 0.35)
+          mark.style.color = 'inherit'
+          mark.className = 'exact-highlight'
+          mark.textContent = match
+          fragment.appendChild(mark)
+          marks.push({ mark, parent: textNode.parentNode })
+        }
+        if (after)
+          fragment.appendChild(document.createTextNode(after))
+        
+        parent?.replaceChild(fragment, textNode)
       }
-      if (after)
-        fragment.appendChild(document.createTextNode(after))
-
-      textNode.parentNode?.replaceChild(fragment, textNode)
     }
     currentIndex = nodeEnd
+  }
+
+  if (marks.length > 0) {
+    const first = marks[0].mark
+    const last = marks[marks.length - 1].mark
+    const bgColor = hexToRgba(color, 0.35)
+
+    first.style.borderTopLeftRadius = '4px'
+    first.style.borderBottomLeftRadius = '4px'
+    
+    last.style.borderTopRightRadius = '4px'
+    last.style.borderBottomRightRadius = '4px'
+
+    for (let i = 0; i < marks.length; i++) {
+      const { mark } = marks[i]
+      if (mark.tagName.toLowerCase() === 'mark') {
+        mark.style.paddingTop = '2px'
+        mark.style.paddingBottom = '2px'
+      }
+    }
   }
 }
 
