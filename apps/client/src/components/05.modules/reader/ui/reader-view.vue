@@ -347,7 +347,7 @@ watch(() => readerStore.isPageLoading, async (isLoading) => {
       border: 1px solid var(--border-primary-color);
       padding: 2px 8px;
       border-radius: 6px;
-      font-size: 0.85em;
+      font-size: 0.75em;
       font-weight: 500;
       cursor: pointer;
       transition: all 0.2s ease;
