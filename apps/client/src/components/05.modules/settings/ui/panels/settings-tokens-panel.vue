@@ -2,21 +2,33 @@
 import { Icon } from '@iconify/vue'
 import { useI18n } from 'vue-i18n'
 import { KitSkeleton } from '~/components/01.kit'
+import { KitViewSwitcher } from '~/components/01.kit/kit-view-switcher'
 import { useGlobalSettingsStore } from '~/shared/store/settings.store'
 import { useTokenStats } from '../../composables/use-token-stats'
 import { formatCurrency, formatNumber } from '../../lib/formatters'
 
 const { t } = useI18n()
 const settingsStore = useGlobalSettingsStore()
-const { isTokensLoading, totalTokens, totalCost, tokensByModel, expandedModels, toggleModelExpand } = useTokenStats()
+const { isTokensLoading, totalTokens, totalCost, tokensByModel, expandedModels, selectedPeriod, toggleModelExpand } = useTokenStats()
+
+const periodOptions = [
+  { id: 'today', label: 'Сегодня', icon: 'mdi:calendar-today' },
+  { id: 'week', label: 'Неделя', icon: 'mdi:calendar-week' },
+  { id: 'all', label: 'Все время', icon: 'mdi:infinity' },
+]
 </script>
 
 <template>
-  <h2 class="section-title">
-    {{ t('settings.tokenUsageTitle') }}
-  </h2>
-  <div class="settings-card tokens-card">
-    <KitSkeleton v-if="isTokensLoading" width="100%" height="150px" color="var(--bg-tertiary-color)" />
+  <div class="header-row">
+    <h2 class="section-title">
+      {{ t('settings.tokenUsageTitle') }}
+    </h2>
+    <KitViewSwitcher v-model="selectedPeriod" :items="periodOptions" />
+  </div>
+
+  <div class="settings-card tokens-card" :class="{ 'is-loading': isTokensLoading }">
+    <KitSkeleton v-if="isTokensLoading && totalTokens.input === 0 && totalTokens.output === 0" width="100%" height="150px" color="var(--bg-tertiary-color)" />
+    
     <template v-else-if="totalTokens.input > 0 || totalTokens.output > 0">
       <div class="total-tokens">
         <div class="stat-item">
@@ -81,18 +93,39 @@ const { isTokensLoading, totalTokens, totalCost, tokensByModel, expandedModels, 
 </template>
 
 <style lang="scss" scoped>
-.section-title {
+.header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   margin-top: 32px;
   margin-bottom: 16px;
+  gap: 16px;
+
+  @include media-down(sm) {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
+.section-title {
+  margin: 0;
   font-size: 1.4rem;
 }
+
 .settings-card {
   background: var(--bg-secondary-color);
   padding: 24px;
   border-radius: 12px;
   border: 1px solid var(--border-secondary-color);
   margin-bottom: 16px;
+  transition: opacity 0.2s ease;
+
+  &.is-loading {
+    opacity: 0.6;
+    pointer-events: none;
+  }
 }
+
 .tokens-card {
   display: flex;
   flex-direction: column;

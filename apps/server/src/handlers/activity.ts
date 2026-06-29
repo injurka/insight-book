@@ -60,6 +60,19 @@ export async function handleGetTokenUsage(req: Request, userId: number): Promise
   const aiConfig = getAiConfig()
   const pricing = aiConfig.pricing
 
+  const url = new URL(req.url)
+  const period = url.searchParams.get('period') || 'all'
+
+  let dateFilter = sql`1=1`
+  if (period === 'today') {
+    const today = new Date().toISOString().split('T')[0]
+    dateFilter = eq(schema.tokenUsage.date, today)
+  } else if (period === 'week') {
+    const weekAgo = new Date()
+    weekAgo.setDate(weekAgo.getDate() - 7)
+    dateFilter = sql`${schema.tokenUsage.date} >= ${weekAgo.toISOString().split('T')[0]}`
+  }
+
   const statsRaw = await db.select({
     action: schema.tokenUsage.action,
     model: schema.tokenUsage.model,
@@ -67,7 +80,7 @@ export async function handleGetTokenUsage(req: Request, userId: number): Promise
     outputTokens: sql<number>`SUM(${schema.tokenUsage.outputTokens})`.mapWith(Number),
   })
     .from(schema.tokenUsage)
-    .where(eq(schema.tokenUsage.userId, userId))
+    .where(and(eq(schema.tokenUsage.userId, userId), dateFilter))
     .groupBy(schema.tokenUsage.action, schema.tokenUsage.model)
 
   const stats = statsRaw.map((row) => {
@@ -85,7 +98,7 @@ export async function handleGetTokenUsage(req: Request, userId: number): Promise
     outputTokens: sql<number>`SUM(${schema.tokenUsage.outputTokens})`.mapWith(Number),
   })
     .from(schema.tokenUsage)
-    .where(eq(schema.tokenUsage.userId, userId))
+    .where(and(eq(schema.tokenUsage.userId, userId), dateFilter))
     .groupBy(schema.tokenUsage.date, schema.tokenUsage.model)
     .orderBy(desc(schema.tokenUsage.date))
 

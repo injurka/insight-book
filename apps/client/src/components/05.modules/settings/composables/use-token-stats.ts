@@ -1,4 +1,4 @@
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { api } from '~/shared/services/api.service'
 
 export interface ModelStats {
@@ -13,11 +13,12 @@ export function useTokenStats() {
   const tokensData = ref<{ stats: any[], daily: any[], totalCost: number } | null>(null)
   const isTokensLoading = ref(true)
   const expandedModels = ref<Record<string, boolean>>({})
+  const selectedPeriod = ref<'today' | 'week' | 'all'>('all')
 
   async function fetchTokensInfo() {
     try {
       isTokensLoading.value = true
-      tokensData.value = await api.activity.getTokens()
+      tokensData.value = await api.activity.getTokens(selectedPeriod.value)
     }
     catch (e) {
       console.error('Failed to load token usage:', e)
@@ -28,6 +29,10 @@ export function useTokenStats() {
   }
 
   onMounted(() => {
+    fetchTokensInfo()
+  })
+
+  watch(selectedPeriod, () => {
     fetchTokensInfo()
   })
 
@@ -82,6 +87,7 @@ export function useTokenStats() {
     totalCost,
     tokensByModel,
     expandedModels,
+    selectedPeriod,
     toggleModelExpand,
     fetchTokensInfo,
   }
