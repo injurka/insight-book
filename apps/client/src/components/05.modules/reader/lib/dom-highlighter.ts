@@ -2,7 +2,7 @@ import { hexToRgba } from '~/shared/lib/helpers'
 
 function applyHighlight(textNodes: Text[], startIndex: number, endIndex: number, color: string) {
   let currentIndex = 0
-  const marks: { mark: HTMLElement; parent: ParentNode | null }[] = []
+  const marks: { mark: HTMLElement, parent: ParentNode | null }[] = []
   for (const textNode of textNodes) {
     const nodeStart = currentIndex
     const nodeEnd = currentIndex + (textNode.nodeValue?.length || 0)
@@ -18,16 +18,17 @@ function applyHighlight(textNodes: Text[], startIndex: number, endIndex: number,
 
       const parent = textNode.parentNode as HTMLElement
       if (
-        parent && 
-        parent.classList?.contains('word') && 
-        overlapStart === 0 && 
-        overlapEnd === originalText.length &&
-        parent.childNodes.length === 1
+        parent
+        && parent.classList?.contains('word')
+        && overlapStart === 0
+        && overlapEnd === originalText.length
+        && parent.childNodes.length === 1
       ) {
         parent.style.backgroundColor = hexToRgba(color, 0.35)
         parent.classList.add('exact-highlight')
         marks.push({ mark: parent, parent: null })
-      } else {
+      }
+      else {
         const fragment = document.createDocumentFragment()
         if (before)
           fragment.appendChild(document.createTextNode(before))
@@ -42,7 +43,7 @@ function applyHighlight(textNodes: Text[], startIndex: number, endIndex: number,
         }
         if (after)
           fragment.appendChild(document.createTextNode(after))
-        
+
         parent?.replaceChild(fragment, textNode)
       }
     }
@@ -52,11 +53,10 @@ function applyHighlight(textNodes: Text[], startIndex: number, endIndex: number,
   if (marks.length > 0) {
     const first = marks[0].mark
     const last = marks[marks.length - 1].mark
-    const bgColor = hexToRgba(color, 0.35)
 
     first.style.borderTopLeftRadius = '4px'
     first.style.borderBottomLeftRadius = '4px'
-    
+
     last.style.borderTopRightRadius = '4px'
     last.style.borderBottomRightRadius = '4px'
 

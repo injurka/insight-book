@@ -52,7 +52,8 @@ const isDropdownOpen = ref(false)
 watch(pronScore, (newVal) => {
   if (newVal !== null) {
     isDropdownOpen.value = true
-  } else {
+  }
+  else {
     isDropdownOpen.value = false
   }
 })

@@ -122,6 +122,7 @@ async function handleSaveQuote(data: { text: string, translation: string, note: 
       chapter,
       translation: data.translation,
       note: data.note || null,
+      analysisData: analysisStore.sidebarAnalysis || null,
     })
     isSaveModalOpen.value = false
   }

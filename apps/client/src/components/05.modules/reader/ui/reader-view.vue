@@ -20,6 +20,7 @@ const PageAnalysisModal = lazyComponent(() => import('~/components/03.domain/ana
 const SelectionTooltip = lazyComponent(() => import('~/components/03.domain/analysis/ui/selection-tooltip.vue'))
 const SentenceAnalysis = lazyComponent(() => import('~/components/03.domain/analysis/ui/sentence-analysis.vue'))
 const WordPopover = lazyComponent(() => import('~/components/03.domain/analysis/ui/popover/word-popover.vue'))
+const GrammarPopover = lazyComponent(() => import('~/components/03.domain/analysis/ui/popover/grammar-popover.vue'))
 
 const readerStore = useReaderStore()
 const analysisStore = useAnalysisStore()
@@ -138,6 +139,7 @@ watch(() => readerStore.isPageLoading, async (isLoading) => {
     <ReaderFooter @prev="prevPage" @next="nextPage" @go-to="goToPage" />
 
     <WordPopover />
+    <GrammarPopover />
     <SelectionTooltip />
 
     <KitDialog v-model:visible="readerStore.tocOpen" :title="t('bookInfo.tableOfContents')" :max-width="500" icon="mdi:format-list-bulleted">
@@ -321,6 +323,7 @@ watch(() => readerStore.isPageLoading, async (isLoading) => {
   }
   :deep(.interleaved-translation) {
     display: block;
+    text-indent: 0;
     color: var(--fg-secondary-color);
     font-size: 0.9em;
     margin-top: 4px;
@@ -328,6 +331,37 @@ watch(() => readerStore.isPageLoading, async (isLoading) => {
     line-height: 1.5;
     padding-left: 8px;
     border-left: 2px solid var(--border-secondary-color);
+
+    .interleaved-grammar-rules {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 8px;
+    }
+
+    .grammar-rule-badge {
+      display: inline-flex;
+      align-items: center;
+      background-color: var(--bg-hover-color, rgba(0, 0, 0, 0.04));
+      color: var(--fg-secondary-color);
+      border: 1px solid var(--border-primary-color);
+      padding: 2px 8px;
+      border-radius: 6px;
+      font-size: 0.85em;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      user-select: none;
+
+      &:hover {
+        color: var(--fg-secondary-color);
+        background-color: var(--border-primary-color);
+      }
+
+      &:active {
+        background-color: var(--border-secondary-color);
+      }
+    }
 
     &.is-blurred {
       filter: blur(5px);
@@ -339,6 +373,14 @@ watch(() => readerStore.isPageLoading, async (isLoading) => {
 
       &:hover {
         opacity: 1;
+      }
+
+      .grammar-rule-badge {
+        color: var(--fg-secondary-color);
+        background-color: var(--bg-hover-color, rgba(0, 0, 0, 0.02));
+        border-color: transparent;
+        box-shadow: none;
+        pointer-events: none;
       }
     }
   }

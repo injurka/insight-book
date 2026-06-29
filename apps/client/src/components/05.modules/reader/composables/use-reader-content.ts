@@ -7,6 +7,15 @@ import { highlightExactText } from '../lib/dom-highlighter'
 import { useHighlightsStore } from '../store/highlights.store'
 import { useReaderStore } from '../store/reader.store'
 
+function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;')
+}
+
 export function useReaderContent() {
   const readerStore = useReaderStore()
   const analysisStore = useAnalysisStore()
@@ -14,9 +23,9 @@ export function useReaderContent() {
   const settingsStore = useGlobalSettingsStore()
 
   const translationMap = computed(() => {
-    const map: Record<string, string> = {}
+    const map: Record<string, any> = {}
     for (const item of analysisStore.analysisHistory) {
-      map[item.sentence] = item.analysis.translation
+      map[item.sentence] = item.analysis
     }
     return map
   })
@@ -29,7 +38,7 @@ export function useReaderContent() {
     })
   })
 
-  function applyHighlightsAndTranslations(doc: Document, map: Record<string, string>, pageNum: number, mode: 'left' | 'right') {
+  function applyHighlightsAndTranslations(doc: Document, map: Record<string, any>, pageNum: number, mode: 'left' | 'right') {
     const pageHighlights = highlightsStore.highlights.filter(h => Number(h.pageNum) === pageNum)
     const translatedSentIds = new Set<string>()
 
@@ -52,20 +61,36 @@ export function useReaderContent() {
       if (mode === 'left') {
         if (settingsStore.parallelViewMode === 'interleaved' && map[rawSent] && !translatedSentIds.has(sentId)) {
           const blurClass = settingsStore.parallelBlurTranslation ? 'is-blurred' : ''
-          const translationHtml = `<span class="interleaved-translation ${blurClass}" onclick="this.classList.remove('is-blurred')">${map[rawSent]}</span>`
+          const analysisObj = map[rawSent]
+          const translationText = analysisObj.translation || ''
+
+          let grammarHtml = ''
+          if (settingsStore.parallelShowGrammar && analysisObj.grammarRules && analysisObj.grammarRules.length > 0) {
+            const badges = analysisObj.grammarRules.map((rule: any) => {
+              const patternEscaped = encodeURIComponent(rule.pattern || '')
+              const explanationEscaped = encodeURIComponent(rule.explanation || '')
+              const exampleEscaped = encodeURIComponent(rule.example || '')
+              return `<span class="grammar-rule-badge" data-pattern="${patternEscaped}" data-explanation="${explanationEscaped}" data-example="${exampleEscaped}">${escapeHtml(rule.pattern)}</span>`
+            }).join('')
+            grammarHtml = `<span class="interleaved-grammar-rules">${badges}</span>`
+          }
+
+          const translationHtml = `<span class="interleaved-translation ${blurClass}" onclick="this.classList.remove('is-blurred')"><span class="translation-text">${translationText}</span>${grammarHtml}</span>`
           span.insertAdjacentHTML('afterend', translationHtml)
           translatedSentIds.add(sentId)
         }
       }
       else if (mode === 'right') {
         if (map[rawSent]) {
+          const analysisObj = map[rawSent]
+          const translationText = analysisObj.translation || ''
           if (translatedSentIds.has(sentId)) {
             span.innerHTML = '';
             (span as any).style.display = 'none'
           }
           else {
             const blurClass = settingsStore.parallelBlurTranslation ? 'is-blurred' : ''
-            span.innerHTML = `<span class="split-translation ${blurClass}" onclick="this.classList.remove('is-blurred')">${map[rawSent]}</span>`
+            span.innerHTML = `<span class="split-translation ${blurClass}" onclick="this.classList.remove('is-blurred')">${translationText}</span>`
             span.classList.add('has-translation')
             translatedSentIds.add(sentId)
           }

@@ -52,7 +52,8 @@ const { x, y, strategy, placement: finalPlacement } = useFloating(referenceRef, 
 })
 
 onClickOutside(floatingRef, (e) => {
-  if (!props.closeOnOutsideClick) return
+  if (!props.closeOnOutsideClick)
+    return
   if (referenceRef.value && referenceRef.value.contains(e.target as Node)) {
     return
   }
@@ -60,7 +61,8 @@ onClickOutside(floatingRef, (e) => {
 }, { ignore: [referenceRef, '.kit-select-dropdown'] })
 
 onKeyStroke('Escape', (e) => {
-  if (!props.closeOnOutsideClick) return
+  if (!props.closeOnOutsideClick)
+    return
   if (isOpen.value) {
     e.preventDefault()
     isOpen.value = false
@@ -68,7 +70,8 @@ onKeyStroke('Escape', (e) => {
 })
 
 function toggle() {
-  if (props.disabled) return
+  if (props.disabled)
+    return
   isOpen.value = !isOpen.value
 }
 

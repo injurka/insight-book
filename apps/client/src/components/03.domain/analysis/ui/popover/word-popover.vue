@@ -163,38 +163,38 @@ onUnmounted(() => {
           <div class="height-animator" :style="{ height: contentHeight, transition: 'height 0.25s ease', overflow: 'hidden' }">
             <div ref="innerRef" class="popover-inner-grid">
               <Transition name="content-fade">
-              <div v-if="analysisStore.wordPopover.showAi && analysisStore.wordPopover.isAiLoading" key="loader" class="ai-loader">
-                <KitSkeleton width="95%" height="16px" />
-                <KitSkeleton width="75%" height="16px" />
-                <KitSkeleton width="90%" height="16px" />
-              </div>
-              <div v-else key="content" class="popover-body">
-                <div class="translation" v-html="analysisStore.wordPopover.showAi ? analysisStore.wordPopover.aiTranslation : analysisStore.wordPopover.translation" />
-                <template v-if="analysisStore.wordPopover.showAi && analysisStore.wordPopover.aiData">
-                  <div v-if="analysisStore.wordPopover.aiData.grammarRules?.length" class="ai-section">
-                    <div class="ai-subtitle">
-                      {{ t('analysis.grammarColon') }}
-                    </div>
-                    <div v-for="(rule, idx) in analysisStore.wordPopover.aiData.grammarRules" :key="idx" class="ai-rule">
-                      <b>{{ rule.pattern }}</b> — {{ rule.explanation }}
-                    </div>
-                  </div>
-                  <div v-if="analysisStore.wordPopover.aiData.vocabulary?.length" class="ai-section">
-                    <div class="ai-subtitle">
-                      {{ t('analysis.vocabularyColon') }}
-                    </div>
-                    <template v-for="(vocab, idx) in analysisStore.wordPopover.aiData.vocabulary" :key="idx">
-                      <div v-if="vocab && vocab.word" class="ai-vocab">
-                        <b>{{ vocab.word }}</b> <template v-if="vocab.transcription">
-                          ({{ vocab.transcription }})
-                        </template> — {{ vocab.meaning }}
+                <div v-if="analysisStore.wordPopover.showAi && analysisStore.wordPopover.isAiLoading" key="loader" class="ai-loader">
+                  <KitSkeleton width="95%" height="16px" />
+                  <KitSkeleton width="75%" height="16px" />
+                  <KitSkeleton width="90%" height="16px" />
+                </div>
+                <div v-else key="content" class="popover-body">
+                  <div class="translation" v-html="analysisStore.wordPopover.showAi ? analysisStore.wordPopover.aiTranslation : analysisStore.wordPopover.translation" />
+                  <template v-if="analysisStore.wordPopover.showAi && analysisStore.wordPopover.aiData">
+                    <div v-if="analysisStore.wordPopover.aiData.grammarRules?.length" class="ai-section">
+                      <div class="ai-subtitle">
+                        {{ t('analysis.grammarColon') }}
                       </div>
-                    </template>
-                  </div>
-                </template>
-              </div>
-            </Transition>
-          </div>
+                      <div v-for="(rule, idx) in analysisStore.wordPopover.aiData.grammarRules" :key="idx" class="ai-rule">
+                        <b>{{ rule.pattern }}</b> — {{ rule.explanation }}
+                      </div>
+                    </div>
+                    <div v-if="analysisStore.wordPopover.aiData.vocabulary?.length" class="ai-section">
+                      <div class="ai-subtitle">
+                        {{ t('analysis.vocabularyColon') }}
+                      </div>
+                      <template v-for="(vocab, idx) in analysisStore.wordPopover.aiData.vocabulary" :key="idx">
+                        <div v-if="vocab && vocab.word" class="ai-vocab">
+                          <b>{{ vocab.word }}</b> <template v-if="vocab.transcription">
+                            ({{ vocab.transcription }})
+                          </template> — {{ vocab.meaning }}
+                        </div>
+                      </template>
+                    </div>
+                  </template>
+                </div>
+              </Transition>
+            </div>
           </div>
         </div>
 
@@ -482,10 +482,14 @@ onUnmounted(() => {
 }
 
 .content-fade-enter-active {
-  transition: opacity 0.3s ease 0.15s, transform 0.3s ease 0.15s;
+  transition:
+    opacity 0.3s ease 0.15s,
+    transform 0.3s ease 0.15s;
 }
 .content-fade-leave-active {
-  transition: opacity 0.15s ease, transform 0.15s ease;
+  transition:
+    opacity 0.15s ease,
+    transform 0.15s ease;
 }
 .content-fade-enter-from {
   opacity: 0;

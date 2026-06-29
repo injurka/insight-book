@@ -4,11 +4,13 @@ import { Icon } from '@iconify/vue'
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
-import { KitBtn, KitDropdown, KitImage, KitInput, KitPrompt, KitSkeleton, KitTooltip } from '~/components/01.kit'
+import { KitBtn, KitDialog, KitDropdown, KitImage, KitInput, KitPrompt, KitSkeleton, KitTooltip } from '~/components/01.kit'
 import { HoverRevealBg } from '~/components/02.shared/hover-reveal-bg'
 import { GlobalActions } from '~/components/04.features/global-actions'
 import { PronunciationCheck } from '~/components/04.features/pronunciation-check'
 import { QuoteModal } from '~/components/04.features/quote-modal'
+import { QuotePractice } from '~/components/04.features/quote-practice'
+import QuoteAnalysisModal from './modal/quote-analysis-modal.vue'
 import { useLibraryStore } from '~/components/05.modules/library/store/library.store'
 import { useToast } from '~/shared/composables/use-toast'
 import { useTts } from '~/shared/composables/use-tts'
@@ -27,6 +29,13 @@ const libraryStore = useLibraryStore()
 const tts = useTts()
 
 const activeTtsId = ref<number | null>(null)
+const isAnalysisModalOpen = ref(false)
+const activeAnalysisHighlight = ref<Highlight | null>(null)
+
+function openAnalysisModal(h: Highlight) {
+  activeAnalysisHighlight.value = h
+  isAnalysisModalOpen.value = true
+}
 
 const highlights = ref<Highlight[]>([])
 const isLoading = ref(false)
@@ -86,6 +95,31 @@ const editForm = ref<{
 // Delete state
 const isDeleteConfirmOpen = ref(false)
 const deleteTargetId = ref<number | null>(null)
+
+// Practice state
+const isPracticeModalOpen = ref(false)
+const practiceQuoteText = ref('')
+const practiceQuoteTranslation = ref('')
+const practiceBookLanguage = ref('')
+
+function openPractice(h: Highlight, bookId: number) {
+  if (!h.translation) return
+  const book = libraryStore.books.find(b => b.id === bookId)
+  practiceQuoteText.value = h.text
+  practiceQuoteTranslation.value = h.translation
+  practiceBookLanguage.value = book?.language || ''
+  isPracticeModalOpen.value = true
+}
+
+function startRandomPractice() {
+  const practiceableQuotes = highlights.value.filter(h => h.translation && h.text)
+  if (practiceableQuotes.length === 0) {
+    toast.error('Нет цитат с переводами для тренировки')
+    return
+  }
+  const randomQuote = practiceableQuotes[Math.floor(Math.random() * practiceableQuotes.length)]
+  openPractice(randomQuote, randomQuote.bookId)
+}
 
 const searchQueryTrimmed = computed(() => searchQuery.value.trim().toLowerCase())
 
@@ -367,6 +401,14 @@ onMounted(async () => {
             clearable
           />
         </div>
+        <KitBtn
+          icon="mdi:gamepad-variant"
+          variant="tonal"
+          color="success"
+          @click="startRandomPractice"
+        >
+          {{ t('notebook.practiceRandom') }}
+        </KitBtn>
       </div>
     </header>
 
@@ -439,7 +481,8 @@ onMounted(async () => {
               v-for="h in group.highlights"
               :key="h.id"
               class="highlight-item"
-              :style="{ '--highlight-color': h.color || '#fde047' }"
+              :style="{ '--highlight-color': h.color || '#fde047', 'cursor': h.analysisData ? 'pointer' : 'default' }"
+              @click="h.analysisData ? openAnalysisModal(h) : null"
             >
               <div class="highlight-body">
                 <div class="quote-content">
@@ -539,6 +582,15 @@ onMounted(async () => {
       @save="saveEdit"
     />
 
+    <!-- Practice / Self-Check Modal -->
+    <QuotePractice
+      v-model:visible="isPracticeModalOpen"
+      :quote-text="practiceQuoteText"
+      :quote-translation="practiceQuoteTranslation"
+      :book-language="practiceBookLanguage"
+      @next="startRandomPractice"
+    />
+
     <!-- Delete Confirmation -->
     <KitPrompt
       v-model:visible="isDeleteConfirmOpen"
@@ -548,6 +600,12 @@ onMounted(async () => {
       :confirm-text="t('notebook.delete')"
       :cancel-text="t('notebook.cancel')"
       @submit="onDeleteConfirmSubmit"
+    />
+
+    <!-- Analysis Modal -->
+    <QuoteAnalysisModal
+      v-model:visible="isAnalysisModalOpen"
+      :highlight="activeAnalysisHighlight"
     />
   </div>
 </template>
@@ -597,6 +655,7 @@ onMounted(async () => {
 
   .header-bottom {
     display: flex;
+    gap: 12px;
     .search-wrapper {
       flex-grow: 1;
       .search-input {

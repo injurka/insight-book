@@ -69,7 +69,23 @@ export function useTextSelection() {
   function onWordClick(event: MouseEvent) {
     clearPressTimer()
 
-    const target = (event.target as HTMLElement).closest('.word') as HTMLElement | null
+    const targetEl = event.target as HTMLElement
+    const grammarBadge = targetEl.closest('.grammar-rule-badge') as HTMLElement | null
+    if (grammarBadge) {
+      const translationSpan = grammarBadge.closest('.interleaved-translation') as HTMLElement | null
+      if (translationSpan && translationSpan.classList.contains('is-blurred')) {
+        event.stopPropagation()
+        return
+      }
+      event.stopPropagation()
+      const pattern = decodeURIComponent(grammarBadge.dataset.pattern || '')
+      const explanation = decodeURIComponent(grammarBadge.dataset.explanation || '')
+      const example = decodeURIComponent(grammarBadge.dataset.example || '')
+      analysisStore.openGrammarPopover(pattern, explanation, example, grammarBadge)
+      return
+    }
+
+    const target = targetEl.closest('.word') as HTMLElement | null
     if (!target)
       return
 

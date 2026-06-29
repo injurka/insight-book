@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { LlmAnalysis } from '~/shared/types/models'
 import { autoUpdate, flip, offset, shift, useFloating } from '@floating-ui/vue'
 import { Icon } from '@iconify/vue'
 import { useI18n } from 'vue-i18n'
@@ -32,6 +33,7 @@ const isSaveModalOpen = ref(false)
 const modalInitialData = ref({ text: '', translation: '', color: highlightColors[0], note: '' })
 const isFetchingTranslation = ref(false)
 const isSavingHighlight = ref(false)
+const analysisData = ref<LlmAnalysis | null>(null)
 
 async function openSaveModal() {
   if (!props.box?.text || !readerStore.currentBook)
@@ -46,12 +48,14 @@ async function openSaveModal() {
     const cached = await offlineService.getAnalysis(text)
     if (cached && cached.translation) {
       modalInitialData.value.translation = cached.translation
+      analysisData.value = cached
     }
     else {
       const language = readerStore.currentBook.language || 'en'
       const res = await api.books.analyze(readerStore.currentBook.id, text, language)
       await offlineService.saveAnalysis(text, res)
       modalInitialData.value.translation = res.translation || ''
+      analysisData.value = res
     }
   }
   catch (e) {
@@ -105,6 +109,7 @@ async function handleSaveQuote(data: { text: string, translation: string, note: 
       chapter,
       translation: data.translation,
       note: data.note || null,
+      analysisData: analysisData.value,
     })
 
     isSaveModalOpen.value = false

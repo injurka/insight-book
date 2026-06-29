@@ -49,7 +49,7 @@ export const useReaderStore = defineStore('reader', () => {
           sentences: settingsStore.autoAnalyzeSentences,
           words: settingsStore.autoAnalyzeWords,
           ttsSentences: settingsStore.autoAnalyzeTtsSentences,
-          ttsWords: settingsStore.autoAnalyzeTtsWords
+          ttsWords: settingsStore.autoAnalyzeTtsWords,
         }, true)
       }
     }
@@ -151,7 +151,7 @@ export const useReaderStore = defineStore('reader', () => {
             sentences: settingsStore.autoAnalyzeSentences,
             words: settingsStore.autoAnalyzeWords,
             ttsSentences: settingsStore.autoAnalyzeTtsSentences,
-            ttsWords: settingsStore.autoAnalyzeTtsWords
+            ttsWords: settingsStore.autoAnalyzeTtsWords,
           }, true)
         }, 1000)
       }

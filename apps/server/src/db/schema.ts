@@ -249,6 +249,7 @@ export const highlights = sqliteTable('highlights', {
   color: text('color').notNull().default('#fde047'),
   chapter: text('chapter'),
   pageNum: integer('pageNum').notNull(),
+  analysisData: text('analysisData', { mode: 'json' }),
   createdAt: text('createdAt').notNull().default(sql`(datetime('now'))`),
 })
 

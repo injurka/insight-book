@@ -1,3 +1,4 @@
+import type { LlmAnalysis } from '~/shared/types/models'
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { api } from '~/shared/services/api.service'
@@ -40,6 +41,7 @@ export const useHighlightsStore = defineStore('highlights', () => {
     chapter?: string | null
     translation?: string | null
     note?: string | null
+    analysisData?: LlmAnalysis | null
   }) {
     try {
       const newHighlight = await api.highlights.create(data)

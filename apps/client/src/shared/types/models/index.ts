@@ -299,6 +299,7 @@ export interface Highlight {
   color: string
   chapter: string | null
   pageNum: number
+  analysisData?: LlmAnalysis | null
   createdAt: string
 }
 

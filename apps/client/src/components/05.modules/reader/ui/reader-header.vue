@@ -212,6 +212,13 @@ watch(() => props.isVisible, (visible) => {
             </div>
             <KitCheckbox :model-value="settingsStore.parallelBlurTranslation" style="pointer-events: none;" />
           </div>
+          <div class="menu-item" @click="settingsStore.parallelShowGrammar = !settingsStore.parallelShowGrammar">
+            <div class="item-label">
+              <Icon icon="mdi:book-open-page-variant-outline" class="item-icon" />
+              <span>{{ t('reader.parallelReadingShowGrammar') }}</span>
+            </div>
+            <KitCheckbox :model-value="settingsStore.parallelShowGrammar" style="pointer-events: none;" />
+          </div>
         </div>
 
         <div v-if="settingsStore.parallelViewMode !== 'none'" class="divider" />

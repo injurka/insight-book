@@ -168,6 +168,7 @@ export const CreateHighlightSchema = z.object({
   color: z.string().default('#fde047'),
   chapter: z.string().nullable().optional(),
   pageNum: z.coerce.number().int().min(1, 'Номер страницы должен быть больше 0'),
+  analysisData: LlmAnalysisSchema.nullable().optional(),
 })
 
 export const UpdateHighlightSchema = z.object({

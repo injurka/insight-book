@@ -268,6 +268,7 @@
     "parallelReadingSplit": "Side-by-side",
     "parallelReadingInterleaved": "Text, translation below",
     "parallelReadingBlur": "Blur translation",
+    "parallelReadingShowGrammar": "Show grammar",
     "parallelReadingHint": "All sentences on the page must be translated to display the text.",
     "translateWholePage": "Translate whole page",
     "translatingPage": "Translating...",
@@ -542,6 +543,7 @@
     },
     "translation": "Translation",
     "example": "Example",
+    "explanation": "Explanation",
     "context": "Context",
     "grammarColon": "Grammar:",
     "vocabularyColon": "Vocabulary:",
@@ -709,7 +711,15 @@
     "speak": "Speak",
     "expand": "Expand",
     "collapse": "Collapse",
-    "detailsHint": "Additional information will appear here"
+    "detailsHint": "Additional information will appear here",
+    "practiceRandom": "Practice",
+    "selfCheck": "Self-check",
+    "correct": "Correct! Great job!",
+    "wrong": "Almost! Try again.",
+    "check": "Check",
+    "reset": "Reset",
+    "close": "Close",
+    "tapWordsToBuild": "Tap words to build the phrase"
   },
   "errors": {
     "network": "Please check your internet connection.",

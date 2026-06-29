@@ -40,6 +40,13 @@ export interface SelectionTooltipData {
   targetRect: DOMRect
 }
 
+export interface GrammarPopoverData {
+  pattern: string
+  explanation: string
+  example: string
+  target: HTMLElement
+}
+
 export interface AnalysisTask {
   id: string
   type: 'sentence' | 'word' | 'tts_sentence' | 'tts_word'
@@ -56,6 +63,7 @@ export const useAnalysisStore = defineStore('analysis', () => {
   const activeTokenId = ref<string | null>(null)
   const wordPopover = ref<WordPopoverData | null>(null)
   const selectionTooltip = ref<SelectionTooltipData | null>(null)
+  const grammarPopover = ref<GrammarPopoverData | null>(null)
 
   // Sidebar Analysis
   const sidebarOpen = ref(false)
@@ -100,10 +108,26 @@ export const useAnalysisStore = defineStore('analysis', () => {
     }
     wordPopover.value = null
     activeTokenId.value = null
+    grammarPopover.value = null
   }
 
   function closeSelectionTooltip() {
     selectionTooltip.value = null
+  }
+
+  function openGrammarPopover(pattern: string, explanation: string, example: string, target: HTMLElement) {
+    closePopover()
+    closeSelectionTooltip()
+    grammarPopover.value = {
+      pattern,
+      explanation,
+      example,
+      target,
+    }
+  }
+
+  function closeGrammarPopover() {
+    grammarPopover.value = null
   }
 
   function clearQueue() {
@@ -854,6 +878,9 @@ export const useAnalysisStore = defineStore('analysis', () => {
     addEditWordModalOpen,
     wordToEdit,
 
+    grammarPopover,
+    openGrammarPopover,
+    closeGrammarPopover,
     closePopover,
     closeSelectionTooltip,
     clearQueue,

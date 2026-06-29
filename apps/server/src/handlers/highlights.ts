@@ -34,6 +34,7 @@ export async function handleCreateHighlight(req: Request, userId: number): Promi
     color: body.color,
     chapter: body.chapter,
     pageNum: body.pageNum,
+    analysisData: body.analysisData,
   }).returning()
 
   return json(newHighlight, 201)
