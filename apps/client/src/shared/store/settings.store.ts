@@ -24,6 +24,10 @@ export const useGlobalSettingsStore = defineStore('globalSettings', () => {
   const customLlmModel = useLocalStorage<string>('global-custom-llm-model', 'llama3')
 
   const autoAnalyzePage = useLocalStorage<boolean>('global-auto-analyze-page', true)
+  const autoAnalyzeSentences = useLocalStorage<boolean>('global-auto-analyze-sentences', true)
+  const autoAnalyzeWords = useLocalStorage<boolean>('global-auto-analyze-words', true)
+  const autoAnalyzeTtsSentences = useLocalStorage<boolean>('global-auto-analyze-tts-sentences', false)
+  const autoAnalyzeTtsWords = useLocalStorage<boolean>('global-auto-analyze-tts-words', false)
 
   const parallelViewMode = useLocalStorage<'none' | 'split' | 'interleaved'>('global-parallel-view-mode', 'none')
   const parallelBlurTranslation = useLocalStorage<boolean>('global-parallel-blur-translation', false)
@@ -33,6 +37,10 @@ export const useGlobalSettingsStore = defineStore('globalSettings', () => {
   return {
     appLanguage,
     autoAnalyzePage,
+    autoAnalyzeSentences,
+    autoAnalyzeWords,
+    autoAnalyzeTtsSentences,
+    autoAnalyzeTtsWords,
     parallelViewMode,
     parallelBlurTranslation,
     translationPriority,

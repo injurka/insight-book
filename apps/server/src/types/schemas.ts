@@ -101,7 +101,6 @@ export const GenerateTtsStandaloneSchema = z.object({
   text: z.string()
     .min(1, 'Текст не передан')
     .max(600, 'Текст слишком длинный'),
-  language: z.string().min(1, 'Язык обязателен'),
   voice: z.string().optional(),
 })
 

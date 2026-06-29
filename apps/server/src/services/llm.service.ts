@@ -469,7 +469,7 @@ export async function analyzeBatch(userId: number, bookId: number, items: BatchA
   return results
 }
 
-export async function generateTts(userId: number, text: string, language: string, config: LlmConfig, selectedVoice?: string): Promise<string> {
+export async function generateTts(userId: number, text: string, config: LlmConfig, selectedVoice?: string): Promise<string> {
   const normalizedText = text.trim()
 
   if (!normalizedText)

@@ -50,7 +50,7 @@ export function useTts() {
           audioBase64 = res.audioBase64
         }
         else {
-          const res = await api.tts.generate(text, lang, voice, abortController.signal)
+          const res = await api.tts.generate(text, voice, abortController.signal)
           audioBase64 = res.audioBase64
         }
         await offlineService.saveTts(cacheKey, audioBase64)

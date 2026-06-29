@@ -44,7 +44,13 @@ export const useReaderStore = defineStore('reader', () => {
     const analysisStore = useAnalysisStore()
     if (isActive) {
       if (currentPage.value && !analysisStore.isManualPageAnalysisActive && !analysisStore.isAutoPageAnalysisActive) {
-        analysisStore.analyzeWholePage({ sentences: true, words: true, ttsSentences: false, ttsWords: false }, true)
+        const settingsStore = useGlobalSettingsStore()
+        analysisStore.analyzeWholePage({
+          sentences: settingsStore.autoAnalyzeSentences,
+          words: settingsStore.autoAnalyzeWords,
+          ttsSentences: settingsStore.autoAnalyzeTtsSentences,
+          ttsWords: settingsStore.autoAnalyzeTtsWords
+        }, true)
       }
     }
     else {
@@ -141,7 +147,12 @@ export const useReaderStore = defineStore('reader', () => {
       const settingsStore = useGlobalSettingsStore()
       if (settingsStore.autoAnalyzePage && !analysisStore.isManualPageAnalysisActive) {
         setTimeout(() => {
-          analysisStore.analyzeWholePage({ sentences: true, words: true, ttsSentences: false, ttsWords: false }, true)
+          analysisStore.analyzeWholePage({
+            sentences: settingsStore.autoAnalyzeSentences,
+            words: settingsStore.autoAnalyzeWords,
+            ttsSentences: settingsStore.autoAnalyzeTtsSentences,
+            ttsWords: settingsStore.autoAnalyzeTtsWords
+          }, true)
         }, 1000)
       }
     }

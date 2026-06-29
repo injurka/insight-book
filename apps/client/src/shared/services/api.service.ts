@@ -251,11 +251,11 @@ export const api = {
   },
 
   tts: {
-    generate: (text: string, language: string, voice?: string, signal?: AbortSignal) =>
+    generate: (text: string, voice?: string, signal?: AbortSignal) =>
       request<{ audioBase64: string }>(`/api/tts`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text, language, voice }),
+        body: JSON.stringify({ text, voice }),
         signal,
       }),
   },
