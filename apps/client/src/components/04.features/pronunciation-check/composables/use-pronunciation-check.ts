@@ -4,23 +4,23 @@ import { useI18n } from 'vue-i18n'
 import { useToast } from '~/shared/composables/use-toast'
 import { api } from '~/shared/services/api.service'
 
-const isRecording = ref(false)
-const isAnalyzingAudio = ref(false)
-const pronScore = ref<number | null>(null)
-const pronHeardText = ref('')
-const pronHeardPhonetic = ref('')
-const pronMistakeAnalysis = ref('')
-const userAudioUrl = ref('')
-const isUserAudioPlaying = ref(false)
-
-let mediaRecorder: MediaRecorder | null = null
-let audioChunks: Blob[] = []
-let userAudio: HTMLAudioElement | null = null
-
 export function usePronunciationCheck(
   word?: MaybeRef<string> | (() => string),
   language?: MaybeRef<string> | (() => string),
 ) {
+  const isRecording = ref(false)
+  const isAnalyzingAudio = ref(false)
+  const pronScore = ref<number | null>(null)
+  const pronHeardText = ref('')
+  const pronHeardPhonetic = ref('')
+  const pronMistakeAnalysis = ref('')
+  const userAudioUrl = ref('')
+  const isUserAudioPlaying = ref(false)
+
+  let mediaRecorder: MediaRecorder | null = null
+  let audioChunks: Blob[] = []
+  let userAudio: HTMLAudioElement | null = null
+
   const toast = useToast()
   const { t } = useI18n()
 

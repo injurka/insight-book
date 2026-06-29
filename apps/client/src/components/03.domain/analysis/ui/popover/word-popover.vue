@@ -193,7 +193,14 @@ onUnmounted(() => {
 
           <div class="popover-actions">
             <KitTooltip :text="t('analysis.voice')" placement="top">
-              <KitBtn :icon="isLoading ? 'mdi:loading' : (isPlaying ? 'mdi:volume-high' : 'mdi:volume-medium')" size="xs" variant="text" :class="{ 'pulse-animation': isPlaying, 'spin-animation': isLoading }" @click.stop="playWordTTS" />
+              <KitBtn
+                :icon="isPlaying ? 'mdi:volume-high' : 'mdi:volume-medium'"
+                size="xs"
+                variant="text"
+                :loading="isLoading"
+                :class="{ 'pulse-animation': isPlaying }"
+                @click.stop="playWordTTS"
+              />
             </KitTooltip>
 
             <KitTooltip :text="t('analysis.detailedWithAi')" placement="top">

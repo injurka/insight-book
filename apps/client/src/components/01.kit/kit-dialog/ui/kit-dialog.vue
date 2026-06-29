@@ -17,6 +17,7 @@ const props = withDefaults(defineProps<Props>(), {
   floating: false,
   resizable: true,
   minimizable: true,
+  fullscreen: false,
 })
 
 interface Props {
@@ -28,6 +29,7 @@ interface Props {
   floating?: boolean
   resizable?: boolean
   minimizable?: boolean
+  fullscreen?: boolean
   keyTrigger?: any
   zIndex?: number | string
 }
@@ -139,6 +141,7 @@ onUnmounted(() => {
           :class="{
             'is-floating': floating,
             'is-dragging': isSwiping && direction === 'down',
+            'is-fullscreen': fullscreen,
           }"
           :style="[
             floating ? dragStyle : {},
@@ -156,7 +159,7 @@ onUnmounted(() => {
           :aria-describedby="description ? `dialog-desc-${dialogId}` : undefined"
           @mousedown.stop
         >
-          <DialogResizeHandles v-if="resizable" @resize="startResize" />
+          <DialogResizeHandles v-if="resizable && !fullscreen" @resize="startResize" />
 
           <div ref="dialogHeaderRef" class="dialog-header" :class="{ 'is-draggable': floating || (!floating && isMobile) }">
             <div class="mobile-drag-indicator" />
@@ -278,6 +281,14 @@ onUnmounted(() => {
     transform: none !important;
     animation: none !important;
     margin: 0;
+  }
+  &.is-fullscreen {
+    width: 100vw !important;
+    height: 100dvh !important;
+    max-width: 100vw !important;
+    max-height: 100dvh !important;
+    border-radius: 0;
+    border: none;
   }
   @include media-down(sm) {
     padding: 12px;

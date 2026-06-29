@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { KitBtn, KitDropdown, KitTooltip } from '~/components/01.kit'
 import { usePronunciationCheck } from '../composables/use-pronunciation-check'
@@ -47,6 +47,20 @@ const pronScoreClass = computed(() => {
   return 'is-error'
 })
 
+const isDropdownOpen = ref(false)
+
+watch(pronScore, (newVal) => {
+  if (newVal !== null) {
+    isDropdownOpen.value = true
+  } else {
+    isDropdownOpen.value = false
+  }
+})
+
+function closeDropdown() {
+  isDropdownOpen.value = false
+}
+
 // Exposed for testing
 defineExpose({
   check,
@@ -56,25 +70,32 @@ defineExpose({
 <template>
   <div class="pronunciation-check">
     <template v-if="variant === 'button'">
-      <KitDropdown placement="bottom-end" width="280px" :close-on-content-click="false">
+      <KitDropdown
+        v-model="isDropdownOpen"
+        placement="bottom-end"
+        width="280px"
+        :close-on-content-click="false"
+        :close-on-outside-click="false"
+        :disabled="true"
+      >
         <template #activator>
           <KitTooltip :text="isRecording ? 'Остановить запись' : t('pronunciation.check')">
             <KitBtn
               class="speak-btn"
-              :icon="isAnalyzingAudio ? 'mdi:loading' : (isRecording ? 'mdi:stop' : 'mdi:microphone')"
+              :icon="isRecording ? 'mdi:stop' : 'mdi:microphone'"
               :color="isRecording ? 'error' : btnColor"
               :variant="btnVariant"
               :size="btnSize"
+              :loading="isAnalyzingAudio"
               :class="{
                 'pulse-animation': isRecording,
-                'spin-animation': isAnalyzingAudio,
               }"
               @click="toggleRecording(word, language)"
             />
           </KitTooltip>
         </template>
 
-        <div v-if="pronScore !== null" style="padding: 8px;">
+        <div style="padding: 8px;">
           <div class="pronunciation-result">
             <div class="pron-header">
               <span class="pron-score" :class="pronScoreClass">{{ pronScore }}%</span>
@@ -93,12 +114,20 @@ defineExpose({
                   @click.stop="playUserAudio"
                 />
               </KitTooltip>
+
+              <KitBtn
+                icon="mdi:close"
+                size="xs"
+                variant="text"
+                color="secondary"
+                @click.stop="closeDropdown"
+              />
             </div>
 
             <div class="pron-details">
               <div class="pron-row">
                 <span class="row-label">{{ t('pronunciation.heard') }}</span>
-                <span class="row-value" :class="{ 'is-error': pronScore < 100 }">
+                <span class="row-value" :class="{ 'is-error': (pronScore || 0) < 100 }">
                   <b>{{ pronHeardText || t('pronunciation.nothingRecognized') }}</b>
                   <span v-if="pronHeardPhonetic" class="transcription-hint">({{ pronHeardPhonetic }})</span>
                 </span>
@@ -239,10 +268,6 @@ defineExpose({
   animation: pulse 1.5s infinite;
 }
 
-.spin-animation {
-  animation: spin 1s linear infinite;
-}
-
 @keyframes pulse {
   0% {
     box-shadow: 0 0 0 0 rgba(var(--color-error-rgb, 220, 53, 69), 0.4);
@@ -252,15 +277,6 @@ defineExpose({
   }
   100% {
     box-shadow: 0 0 0 0 rgba(var(--color-error-rgb, 220, 53, 69), 0);
-  }
-}
-
-@keyframes spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
   }
 }
 </style>

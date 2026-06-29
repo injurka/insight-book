@@ -9,6 +9,8 @@ interface Props {
   placement?: Placement
   width?: string | number
   closeOnContentClick?: boolean
+  disabled?: boolean
+  closeOnOutsideClick?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -16,6 +18,8 @@ const props = withDefaults(defineProps<Props>(), {
   placement: 'bottom-start',
   width: '220px',
   closeOnContentClick: true,
+  disabled: false,
+  closeOnOutsideClick: true,
 })
 
 const emit = defineEmits(['update:modelValue'])
@@ -48,6 +52,7 @@ const { x, y, strategy, placement: finalPlacement } = useFloating(referenceRef, 
 })
 
 onClickOutside(floatingRef, (e) => {
+  if (!props.closeOnOutsideClick) return
   if (referenceRef.value && referenceRef.value.contains(e.target as Node)) {
     return
   }
@@ -55,6 +60,7 @@ onClickOutside(floatingRef, (e) => {
 }, { ignore: [referenceRef, '.kit-select-dropdown'] })
 
 onKeyStroke('Escape', (e) => {
+  if (!props.closeOnOutsideClick) return
   if (isOpen.value) {
     e.preventDefault()
     isOpen.value = false
@@ -62,6 +68,7 @@ onKeyStroke('Escape', (e) => {
 })
 
 function toggle() {
+  if (props.disabled) return
   isOpen.value = !isOpen.value
 }
 

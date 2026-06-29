@@ -108,11 +108,11 @@ const tagsList = computed(() => {
           <div class="tts-wrapper">
             <KitTooltip :text="t('analysis.voice')">
               <KitBtn
-                :icon="isTtsLoading ? 'mdi:loading' : (isPlaying ? 'mdi:volume-high' : 'mdi:volume-medium')"
+                :icon="isPlaying ? 'mdi:stop' : 'mdi:volume-high'"
                 variant="text"
-                size="md"
-                color="accent"
-                :class="{ 'spin-animation': isTtsLoading, 'pulse-animation': isPlaying }"
+                color="primary"
+                :loading="isTtsLoading"
+                :class="{ 'pulse-animation': isPlaying }"
                 @click="playTTS"
               />
             </KitTooltip>

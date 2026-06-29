@@ -9,6 +9,7 @@ interface Props {
   variant?: 'solid' | 'outlined' | 'text' | 'subtle' | 'tonal'
   color?: 'primary' | 'secondary' | 'accent' | 'error' | 'success' | 'warning' | 'info'
   disabled?: boolean
+  loading?: boolean
   size?: 'xs' | 'sm' | 'md' | 'lg'
   density?: 'default' | 'compact'
 }
@@ -17,14 +18,15 @@ const props = withDefaults(defineProps<Props>(), {
   variant: 'solid',
   color: 'primary',
   disabled: false,
+  loading: false,
   size: 'md',
   density: 'default',
 })
 
 const slots = useSlots()
 
-const isIconOnly = computed(() => (props.icon || props.prependIcon) && !slots.default && !props.appendIcon)
-const finalIcon = computed(() => props.icon || props.prependIcon)
+const isIconOnly = computed(() => (props.loading || props.icon || props.prependIcon) && !slots.default && !props.appendIcon)
+const finalIcon = computed(() => props.loading ? 'mdi:loading' : (props.icon || props.prependIcon))
 
 const componentClasses = computed(() => [
   'kit-btn',
@@ -40,11 +42,19 @@ const componentClasses = computed(() => [
   <button
     v-ripple
     :class="componentClasses"
-    :disabled="props.disabled"
+    :disabled="props.disabled || props.loading"
     type="button"
   >
     <span class="kit-btn-content">
-      <Icon v-if="finalIcon" :icon="finalIcon" class="kit-btn-icon" :class="{ 'mr-2': !isIconOnly && slots.default }" />
+      <Icon
+        v-if="finalIcon"
+        :icon="finalIcon"
+        class="kit-btn-icon"
+        :class="{
+          'mr-2': !isIconOnly && slots.default,
+          'kit-btn-icon--spin': props.loading,
+        }"
+      />
       <slot />
       <Icon v-if="props.appendIcon" :icon="props.appendIcon" class="kit-btn-icon ml-2" />
     </span>
@@ -232,6 +242,10 @@ const componentClasses = computed(() => [
   &-icon {
     flex-shrink: 0;
     font-size: 1.45em;
+
+    &--spin {
+      animation: kit-btn-spin 1s linear infinite;
+    }
   }
 
   .mr-2 {
@@ -239,6 +253,15 @@ const componentClasses = computed(() => [
   }
   .ml-2 {
     margin-left: 0.5rem;
+  }
+}
+
+@keyframes kit-btn-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
   }
 }
 </style>

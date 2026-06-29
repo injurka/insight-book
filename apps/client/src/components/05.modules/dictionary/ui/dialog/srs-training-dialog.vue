@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { Icon } from '@iconify/vue'
+import { useFullscreen } from '@vueuse/core'
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { KitDialog } from '~/components/01.kit'
@@ -14,6 +16,7 @@ const visible = defineModel<boolean>('visible', { required: true })
 const dictStore = useDictionaryStore()
 const toast = useToast()
 const { t } = useI18n()
+const { isFullscreen, toggle: toggleFullscreen } = useFullscreen()
 
 const {
   sessionState,
@@ -125,7 +128,25 @@ watch(currentIndex, () => {
 </script>
 
 <template>
-  <KitDialog v-model:visible="visible" :max-width="800" persistent class="srs-dialog" :minimizable="false">
+  <KitDialog
+    v-model:visible="visible"
+    :max-width="800"
+    persistent
+    class="srs-dialog"
+    :minimizable="false"
+    :fullscreen="isFullscreen"
+  >
+    <template #header-actions>
+      <button
+        class="dialog-icon-btn fullscreen-button"
+        :aria-label="isFullscreen ? 'Обычный экран' : 'На весь экран'"
+        :title="isFullscreen ? 'Обычный экран' : 'На весь экран'"
+        @click="toggleFullscreen"
+      >
+        <Icon :icon="isFullscreen ? 'mdi:fullscreen-exit' : 'mdi:fullscreen'" />
+      </button>
+    </template>
+
     <template #header>
       <div class="srs-header">
         <h2 class="dialog-title">
@@ -221,5 +242,6 @@ watch(currentIndex, () => {
   min-height: 650px;
   display: flex;
   flex-direction: column;
+  height: 100%;
 }
 </style>

@@ -557,7 +557,6 @@ watch(() => props.isVisible, (visible) => {
   letter-spacing: 0.5px;
 }
 
-/* Элементы меню (Кликабельные строки) */
 .menu-item {
   display: flex;
   align-items: center;
@@ -582,7 +581,6 @@ watch(() => props.isVisible, (visible) => {
   }
 }
 
-/* Информационные/интерактивные строки без ховера (для размера и шрифтов) */
 .settings-row {
   display: flex;
   align-items: center;
@@ -620,7 +618,6 @@ watch(() => props.isVisible, (visible) => {
   transition: color 0.2s;
 }
 
-/* Унифицированные мягкие плашки-значения */
 .value-badge {
   font-size: 0.8rem;
   color: var(--fg-secondary-color);
@@ -645,7 +642,6 @@ watch(() => props.isVisible, (visible) => {
   font-weight: 500;
 }
 
-/* Контролы размера шрифта и высоты строки */
 .stepper-pill {
   padding: 2px;
   gap: 2px;
@@ -677,7 +673,6 @@ watch(() => props.isVisible, (visible) => {
   }
 }
 
-/* Выпадающий список выбора шрифта */
 .font-select {
   width: 150px;
   :deep(.kit-select-trigger) {

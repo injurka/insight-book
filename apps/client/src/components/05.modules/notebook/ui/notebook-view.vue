@@ -475,8 +475,9 @@ onMounted(async () => {
                   <KitTooltip :text="activeTtsId === h.id && tts.isPlaying.value ? t('bookInfo.stop') : t('notebook.speak')" placement="top">
                     <KitBtn
                       class="tts-speak-btn"
-                      :icon="activeTtsId === h.id && tts.isPlaying.value ? 'mdi:stop' : (activeTtsId === h.id && tts.isLoading.value ? 'mdi:loading' : 'mdi:volume-high')"
-                      :class="{ 'pulse-animation': activeTtsId === h.id && tts.isPlaying.value, 'spin-animation': activeTtsId === h.id && tts.isLoading.value }"
+                      :icon="activeTtsId === h.id && tts.isPlaying.value ? 'mdi:stop' : 'mdi:volume-high'"
+                      :class="{ 'pulse-animation': activeTtsId === h.id && tts.isPlaying.value }"
+                      :loading="activeTtsId === h.id && tts.isLoading.value"
                       variant="text"
                       size="xs"
                       color="primary"
@@ -489,8 +490,8 @@ onMounted(async () => {
                   <KitTooltip v-if="!h.translation" :text="translatingId === h.id ? t('notebook.translating') : t('notebook.aiTranslate')" placement="top">
                     <KitBtn
                       class="ai-translate-btn"
-                      :icon="translatingId === h.id ? 'mdi:loading' : 'mdi:translate'"
-                      :class="{ 'spin-animation': translatingId === h.id }"
+                      icon="mdi:translate"
+                      :loading="translatingId === h.id"
                       variant="text"
                       size="xs"
                       color="primary"
@@ -824,7 +825,7 @@ onMounted(async () => {
       display: flex;
       align-items: flex-start;
       gap: 12px;
-      padding: 14px 16px;
+      padding: 6px 8px;
       background: rgba(var(--bg-primary-color-rgb, 24, 24, 27), 0.5);
       border-radius: 12px;
       border: 1px solid rgba(255, 255, 255, 0.05);
