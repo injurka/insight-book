@@ -685,6 +685,7 @@
   },
   "notebook": {
     "title": "Quotes & Notes",
+    "next": "Next",
     "searchPlaceholder": "Search by original, translation and notes...",
     "emptyState": "You don't have any saved quotes yet.",
     "emptySearch": "No quotes found",
