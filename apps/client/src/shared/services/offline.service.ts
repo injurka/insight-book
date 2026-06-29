@@ -62,7 +62,19 @@ async function safeSetItem<T>(key: string, value: T): Promise<void> {
 }
 
 async function safeGetItem<T>(key: string): Promise<T | null> {
-  return await localforage.getItem<T>(getKey(key))
+  try {
+    return await localforage.getItem<T>(getKey(key))
+  }
+  catch (e) {
+    console.error(`[OfflineService] Error reading from localForage (key: ${key}):`, e)
+    try {
+      await localforage.removeItem(getKey(key))
+    }
+    catch (removeErr) {
+      console.warn(`[OfflineService] Failed to remove corrupted item (key: ${key}):`, removeErr)
+    }
+    return null
+  }
 }
 
 export const offlineService = {
