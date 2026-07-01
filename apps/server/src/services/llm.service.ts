@@ -502,8 +502,6 @@ export async function generateTts(userId: number, text: string, config: LlmConfi
   if (ttsKey)
     headers.Authorization = `Bearer ${ttsKey}`
 
-  trackTokenUsage(userId, 'tts_generation', primaryModel, normalizedText.length, 0, normalizedText, '[AUDIO BASE64]')
-
   let textToRead = normalizedText
   if (!/[.!?。！？]$/.test(textToRead)) {
     textToRead += '.'
@@ -540,6 +538,7 @@ export async function generateTts(userId: number, text: string, config: LlmConfi
 
   let base64 = ''
   const isPrimaryGemini = primaryModel.toLowerCase().includes('gemini')
+  let usedModel = primaryModel
 
   try {
     base64 = await tryGenerate(primaryModel, voice, isPrimaryGemini)
@@ -558,6 +557,7 @@ export async function generateTts(userId: number, text: string, config: LlmConfi
 
       try {
         base64 = await tryGenerate(fallbackModel, fallbackVoice, isFallbackGemini)
+        usedModel = fallbackModel
       }
       catch (fallbackError: unknown) {
         if ((fallbackError as Error).name === 'AbortError')
@@ -582,6 +582,8 @@ export async function generateTts(userId: number, text: string, config: LlmConfi
       audioBase64: base64,
     },
   })
+
+  trackTokenUsage(userId, 'tts_generation', usedModel, normalizedText.length, 0, normalizedText, '[AUDIO BASE64]')
 
   return base64
 }

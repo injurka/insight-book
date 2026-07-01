@@ -1,8 +1,8 @@
 <script setup lang="ts">
+import { Icon } from '@iconify/vue'
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { KitBtn, KitDialog } from '~/components/01.kit'
-import { Icon } from '@iconify/vue'
 import { useTts } from '~/shared/composables/use-tts'
 
 const props = defineProps<{
@@ -44,14 +44,14 @@ function initPractice() {
   if (props.visible && props.quoteText) {
     isSuccess.value = false
     hasError.value = false
-    
+
     const segmenter = new Intl.Segmenter(props.bookLanguage || undefined, { granularity: 'word' })
     const segments = Array.from(segmenter.segment(props.quoteText))
-    
+
     const words = segments
       .filter(s => s.isWordLike)
       .map((s, idx) => ({ id: idx, text: s.segment }))
-      
+
     allWords.value = words
     selectedWords.value = []
     poolWords.value = shuffle(words)
@@ -62,7 +62,8 @@ watch(() => props.visible, initPractice)
 watch(() => props.quoteText, initPractice)
 
 const isCorrect = computed(() => {
-  if (selectedWords.value.length !== allWords.value.length) return false
+  if (selectedWords.value.length !== allWords.value.length)
+    return false
   const currentText = selectedWords.value.map(w => w.text).join('').toLowerCase()
   const targetText = allWords.value.map(w => w.text).join('').toLowerCase()
   return currentText === targetText
@@ -77,20 +78,23 @@ function handleCheck() {
         tts.speak(props.quoteText, props.bookLanguage)
       }, 500)
     }
-  } else {
+  }
+  else {
     hasError.value = true
   }
 }
 
 function selectWord(word: WordToken) {
-  if (isSuccess.value) return
+  if (isSuccess.value)
+    return
   hasError.value = false
   poolWords.value = poolWords.value.filter(w => w.id !== word.id)
   selectedWords.value.push(word)
 }
 
 function removeWord(word: WordToken) {
-  if (isSuccess.value) return
+  if (isSuccess.value)
+    return
   hasError.value = false
   selectedWords.value = selectedWords.value.filter(w => w.id !== word.id)
   poolWords.value.push(word)
@@ -168,7 +172,7 @@ function handleReset() {
 
     <template #footer>
       <div class="dialog-actions" style="justify-content: space-between;">
-        <KitBtn variant="text" @click="handleReset" :disabled="isSuccess">
+        <KitBtn variant="text" :disabled="isSuccess" @click="handleReset">
           {{ t('notebook.reset') || 'Сбросить' }}
         </KitBtn>
         <div style="display: flex; gap: 8px;">
@@ -177,15 +181,15 @@ function handleReset() {
             {{ t('notebook.next') || 'Далее' }}
           </KitBtn>
 
-          <KitBtn 
-            v-if="!isSuccess" 
-            color="primary" 
-            @click="handleCheck"
+          <KitBtn
+            v-if="!isSuccess"
+            color="primary"
             :disabled="selectedWords.length !== allWords.length"
+            @click="handleCheck"
           >
             {{ t('notebook.check') || 'Проверить' }}
           </KitBtn>
-          <KitBtn 
+          <KitBtn
             v-else
             color="success"
             @click="emit('update:visible', false)"
@@ -289,7 +293,10 @@ function handleReset() {
   font-weight: 500;
   cursor: pointer;
   user-select: none;
-  transition: transform 0.1s, box-shadow 0.1s, background-color 0.2s;
+  transition:
+    transform 0.1s,
+    box-shadow 0.1s,
+    background-color 0.2s;
   border: 1px solid transparent;
 }
 
@@ -303,7 +310,7 @@ function handleReset() {
   &:hover {
     background: rgba(255, 255, 255, 0.05);
   }
-  
+
   &:active {
     transform: translateY(4px);
     box-shadow: 0 0 0 rgba(0, 0, 0, 0.2);
@@ -315,7 +322,7 @@ function handleReset() {
   color: var(--fg-primary-color);
   border: 1px solid rgba(255, 255, 255, 0.08);
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  
+
   &:hover {
     background: var(--bg-tertiary-color);
     border-color: rgba(255, 255, 255, 0.2);
@@ -333,7 +340,7 @@ function handleReset() {
   border-radius: 12px;
   border: 1px solid rgba(var(--success-color-rgb, 76, 175, 80), 0.3);
   animation: slide-up 0.4s ease-out forwards;
-  
+
   .success-icon {
     font-size: 1.8rem;
   }
@@ -364,7 +371,8 @@ function handleReset() {
   justify-content: center;
 }
 
-.success-banner, .error-banner {
+.success-banner,
+.error-banner {
   width: 100%;
 }
 
@@ -379,7 +387,7 @@ function handleReset() {
   border-radius: 12px;
   border: 1px solid rgba(var(--error-color-rgb, 244, 67, 54), 0.3);
   animation: shake 0.4s ease-out forwards;
-  
+
   .error-icon {
     font-size: 1.8rem;
     flex-shrink: 0;
@@ -396,7 +404,7 @@ function handleReset() {
     font-weight: 600;
     opacity: 0.9;
   }
-  
+
   .correct-text {
     font-size: 1.05rem;
     font-weight: 500;
@@ -404,9 +412,16 @@ function handleReset() {
 }
 
 @keyframes shake {
-  0%, 100% { transform: translateX(0); }
-  25% { transform: translateX(-5px); }
-  75% { transform: translateX(5px); }
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-5px);
+  }
+  75% {
+    transform: translateX(5px);
+  }
 }
 
 .dialog-actions {
@@ -447,7 +462,9 @@ function handleReset() {
 /* Banner transitions */
 .fade-enter-active,
 .fade-leave-active {
-  transition: opacity 0.3s, transform 0.3s;
+  transition:
+    opacity 0.3s,
+    transform 0.3s;
 }
 .fade-enter-from,
 .fade-leave-to {

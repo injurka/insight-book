@@ -177,9 +177,11 @@ async function handleUsernameSubmit(newUsername: string) {
 
 const userRoleName = computed(() => {
   const role = authStore.user?.role
-  if (!role || role === 'user') return t('globalActions.roleUser')
-  if (role === 'admin') return t('globalActions.roleAdmin')
-  
+  if (!role || role === 'user')
+    return t('globalActions.roleUser')
+  if (role === 'admin')
+    return t('globalActions.roleAdmin')
+
   return role.charAt(0).toUpperCase() + role.slice(1)
 })
 </script>

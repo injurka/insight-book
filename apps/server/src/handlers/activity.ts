@@ -67,7 +67,8 @@ export async function handleGetTokenUsage(req: Request, userId: number): Promise
   if (period === 'today') {
     const today = new Date().toISOString().split('T')[0]
     dateFilter = eq(schema.tokenUsage.date, today)
-  } else if (period === 'week') {
+  }
+  else if (period === 'week') {
     const weekAgo = new Date()
     weekAgo.setDate(weekAgo.getDate() - 7)
     dateFilter = sql`${schema.tokenUsage.date} >= ${weekAgo.toISOString().split('T')[0]}`
