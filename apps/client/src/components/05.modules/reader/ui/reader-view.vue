@@ -293,6 +293,43 @@ watch(() => readerStore.isPageLoading, async (isLoading) => {
       background-color: var(--bg-hover-color);
     }
   }
+  :deep(.sentence-tts-btn) {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    vertical-align: text-bottom;
+    position: relative;
+    top: -2px;
+    width: 28px;
+    height: 28px;
+    margin-left: 8px;
+    margin-right: 4px;
+    border: none;
+    background: var(--bg-secondary-color);
+    color: var(--fg-secondary-color);
+    cursor: pointer;
+    border-radius: 50%;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    opacity: 0.6;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+
+    svg {
+      width: 16px;
+      height: 16px;
+    }
+
+    &:hover {
+      opacity: 1;
+      background-color: var(--fg-accent-color);
+      color: var(--bg-primary-color);
+      transform: scale(1.15);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    &:active {
+      transform: scale(0.95);
+    }
+  }
   :deep(.untranslated-text) {
     opacity: 0.4;
   }

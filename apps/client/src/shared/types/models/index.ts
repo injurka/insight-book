@@ -19,6 +19,8 @@ export interface BookStats {
   tags: string[]
   totalChars: number
   uniqueChars: number
+  totalSentences?: number
+  totalWords?: number
   posDistribution?: Record<string, number> | null
   topWords?: LexicalWordData[] | LexicalDataGroup | null
   lexicalDiversity?: number | null
@@ -49,6 +51,9 @@ export interface Book {
   textDirection?: string | null
   progressUpdatedAt?: string | null
   analysesCount?: number
+  cachedSentences?: number
+  cachedWords?: number
+  cachedTts?: number
   processStatus?: 'processing' | 'ready' | 'error'
   processError?: string | null
 }
@@ -260,6 +265,7 @@ export interface BatchAnalysisRequest {
   id: string
   sentence: string
   context?: string
+  type?: 'sentence' | 'word'
 }
 
 export interface BatchAnalysisResponse {

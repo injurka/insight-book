@@ -50,14 +50,24 @@ function goBack() {
         <span class="header-title">{{ t('bookInfo.aboutBook') }}</span>
       </header>
 
-      <div v-if="libraryStore.isLoading && !libraryStore.currentBookInfo" class="loading-state">
+      <div v-if="libraryStore.isLoading && !libraryStore.currentBookInfo" class="loading-state book-container">
         <div class="layout-top">
-          <KitSkeleton width="100%" height="400px" border-radius="12px" />
-          <div class="content-col">
-            <KitSkeleton width="80%" height="32px" class="title-skeleton" />
-            <KitSkeleton width="40%" height="20px" class="author-skeleton" />
-            <KitSkeleton width="100%" height="150px" border-radius="12px" />
+          <div class="cover-col">
+            <KitSkeleton width="100%" height="auto" class="cover-skeleton" border-radius="12px" />
+            <div class="action-buttons">
+              <KitSkeleton width="100%" height="38px" border-radius="6px" />
+              <KitSkeleton width="100%" height="38px" border-radius="6px" />
+            </div>
           </div>
+          <div class="content-col">
+            <KitSkeleton width="80%" height="40px" class="title-skeleton" border-radius="8px" />
+            <KitSkeleton width="40%" height="24px" class="author-skeleton" border-radius="6px" />
+            <KitSkeleton width="100%" height="100px" border-radius="12px" class="progress-skeleton" />
+            <KitSkeleton width="100%" height="250px" border-radius="12px" />
+          </div>
+        </div>
+        <div class="layout-bottom">
+          <KitSkeleton width="100%" height="300px" border-radius="12px" />
         </div>
       </div>
 
@@ -151,11 +161,23 @@ function goBack() {
 }
 
 .loading-state {
+  .cover-skeleton {
+    aspect-ratio: 2 / 3;
+    margin-bottom: 24px;
+  }
+  .action-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
   .title-skeleton {
-    margin-bottom: 16px;
+    margin-bottom: 8px;
   }
   .author-skeleton {
-    margin-bottom: 16px;
+    margin-bottom: 24px;
+  }
+  .progress-skeleton {
+    margin-bottom: 24px;
   }
 }
 

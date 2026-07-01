@@ -232,7 +232,8 @@ export const useLibraryStore = defineStore('library', () => {
             // Массовая проверка через бэкенд без LLM (только SQLite)
             if (missingSentences.length > 0) {
               try {
-                const res = await api.books.checkCache(bookId, missingSentences, book.language, signal)
+                const checkItems = missingSentences.map(s => ({ text: s, type: 'sentence' as const }))
+                const res = await api.books.checkCache(bookId, checkItems, book.language, signal)
                 const cacheMap = new Map(res.results.map((r: any) => [r.sentence, r.analysis]))
 
                 for (let j = missingSentences.length - 1; j >= 0; j--) {
@@ -263,7 +264,8 @@ export const useLibraryStore = defineStore('library', () => {
               const currentBatches = batches.slice(j, j + concurrencyLimit)
 
               await Promise.all(currentBatches.map(async (batch) => {
-                const itemsToAnalyze = batch.map(s => ({ id: uuidv4(), sentence: s }))
+                const itemsToAnalyze = batch.map(s => ({ id: uuidv4(), sentence: s, type: 'sentence' as const }))
+
                 try {
                   const res = await api.books.analyzeBatch(bookId, itemsToAnalyze, book.language, signal)
                   for (const result of res.results) {
@@ -300,7 +302,8 @@ export const useLibraryStore = defineStore('library', () => {
 
             if (missingWords.length > 0) {
               try {
-                const res = await api.books.checkCache(bookId, missingWords, book.language, signal)
+                const checkItems = missingWords.map(w => ({ text: w, type: 'word' as const }))
+                const res = await api.books.checkCache(bookId, checkItems, book.language, signal)
                 const cacheMap = new Map(res.results.map((r: any) => [r.sentence, r.analysis]))
 
                 for (let j = missingWords.length - 1; j >= 0; j--) {
@@ -331,11 +334,14 @@ export const useLibraryStore = defineStore('library', () => {
               const currentBatches = batches.slice(j, j + concurrencyLimit)
 
               await Promise.all(currentBatches.map(async (batch) => {
-                const itemsToAnalyze = batch.map(w => ({ id: uuidv4(), sentence: w }))
+                const itemsToAnalyze = batch.map(w => ({ id: uuidv4(), sentence: w, type: 'word' as const }))
+
                 try {
                   const res = await api.books.analyzeBatch(bookId, itemsToAnalyze, book.language, signal)
+
                   for (const result of res.results) {
                     const item = itemsToAnalyze.find(it => it.id === result.id)
+
                     if (item) {
                       await offlineService.saveAnalysis(item.sentence, result.analysis)
                       syncProgress.value.wordsDone++

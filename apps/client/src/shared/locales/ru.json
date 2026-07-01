@@ -118,6 +118,7 @@
     "apiKey": "API Key",
     "autoAnalyzePage": "Фоновый анализ",
     "highlightSavedQuotes": "Подсветка сохраненных цитат",
+    "showSentenceTtsButton": "Кнопка озвучки предложений",
     "storageTitle": "Локальная память",
     "browserStorage": "Хранилище браузера",
     "protected": "Защищено",
@@ -144,6 +145,8 @@
     "mb": "МБ",
     "gb": "ГБ",
     "tb": "ТБ",
+    "confirmClearCache": "Вы уверены, что хотите удалить все сохраненные данные этой книги?",
+    "showMore": "Показать еще",
     "actions": {
       "analyze_sentence": "Перевод предложений (Ручной)",
       "analyze_batch": "Пакетный анализ (Оффлайн-синхронизация)",
@@ -776,5 +779,10 @@
   },
   "quote": {
     "translationError": "Ошибка перевода"
-  }
+  },
+  "aiAnalysisError": "Ошибка ИИ анализа",
+  "globalAiCache": "Доступность перевода",
+  "translatedSentences": "Переведено предложений",
+  "translatedWords": "Переведено слов",
+  "voicedTts": "Озвучено (TTS)"
 }

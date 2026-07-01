@@ -4,7 +4,7 @@ import { useFullscreen } from '@vueuse/core'
 import { computed, reactive, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
-import { KitBtn, KitCheckbox, KitDropdown, KitSelect, KitTooltip } from '~/components/01.kit'
+import { KitBtn, KitCheckbox, KitDialog, KitDropdown, KitSelect, KitTooltip } from '~/components/01.kit'
 import { ThemesVariant, useChangeTheme } from '~/shared/composables/use-change-theme'
 import { useTts } from '~/shared/composables/use-tts'
 import { AppRoutePaths } from '~/shared/constants/routes'
@@ -28,9 +28,9 @@ const router = useRouter()
 const { theme, toggleTheme } = useChangeTheme()
 const { isFullscreen, toggle: toggleFullscreen } = useFullscreen()
 
-const pageAnalysisDropdownRef = ref<InstanceType<typeof KitDropdown> | null>(null)
 const parallelDropdownRef = ref<InstanceType<typeof KitDropdown> | null>(null)
 const settingsDropdownRef = ref<InstanceType<typeof KitDropdown> | null>(null)
+const isPageAnalysisModalOpen = ref(false)
 
 const pageActionOpts = reactive({
   sentences: true,
@@ -39,14 +39,31 @@ const pageActionOpts = reactive({
   ttsWords: false,
 })
 
+function openPageAnalysisModal() {
+  settingsDropdownRef.value?.close()
+
+  if (analysisStore.isManualPageAnalysisActive) {
+    analysisStore.isPageAnalysisModalOpen = true
+  }
+  else {
+    isPageAnalysisModalOpen.value = true
+  }
+}
+
 function startPageAnalysis() {
-  pageAnalysisDropdownRef.value?.close()
-  analysisStore.analyzeWholePage({
-    sentences: pageActionOpts.sentences,
-    words: pageActionOpts.words,
-    ttsSentences: pageActionOpts.ttsSentences,
-    ttsWords: pageActionOpts.ttsWords,
-  }, false)
+  isPageAnalysisModalOpen.value = false
+
+  if (analysisStore.isManualPageAnalysisActive) {
+    analysisStore.isPageAnalysisModalOpen = true
+  }
+  else {
+    analysisStore.analyzeWholePage({
+      sentences: pageActionOpts.sentences,
+      words: pageActionOpts.words,
+      ttsSentences: pageActionOpts.ttsSentences,
+      ttsWords: pageActionOpts.ttsWords,
+    }, false)
+  }
 }
 
 function startParallelAnalysis() {
@@ -142,7 +159,6 @@ const currentThemeName = computed(() => {
 
 watch(() => props.isVisible, (visible) => {
   if (!visible) {
-    pageAnalysisDropdownRef.value?.close()
     settingsDropdownRef.value?.close()
     parallelDropdownRef.value?.close()
   }
@@ -240,65 +256,23 @@ watch(() => props.isVisible, (visible) => {
       </div>
     </KitDropdown>
 
-    <KitDropdown ref="pageAnalysisDropdownRef" placement="bottom-end" width="260px" :close-on-content-click="false">
-      <template #activator="{ props: dropdownProps }">
-        <KitTooltip :text="t('reader.analyzePage')" placement="bottom">
-          <div class="analyze-btn-wrapper" @click.stop="analysisStore.isManualPageAnalysisActive ? analysisStore.isPageAnalysisModalOpen = true : dropdownProps.toggle()">
-            <KitBtn
-              icon="mdi:text-box-search-outline"
-              variant="text"
-              size="sm"
-              :class="{ 'is-active-btn': dropdownProps.isOpen || analysisStore.isManualPageAnalysisActive }"
-            />
-            <span v-if="analysisStore.isManualPageAnalysisActive" class="blinking-dot" />
-          </div>
-        </KitTooltip>
-      </template>
-
-      <div class="menu-content">
-        <div class="menu-section">
-          <div class="section-title">
-            {{ t('reader.selectOptions') }}
-          </div>
-
-          <div class="settings-group">
-            <div style="font-weight: 500; font-size: 0.9rem; display: flex; align-items: center; gap: 6px;">
-              <Icon icon="mdi:robot-outline" class="item-icon" /> {{ t('reader.textAnalysis') }}
-            </div>
-            <KitCheckbox v-model="pageActionOpts.sentences" :label="t('bookInfo.sentences')" />
-            <KitCheckbox v-model="pageActionOpts.words" :label="t('analysis.words')" />
-          </div>
-
-          <div class="divider" />
-
-          <div class="settings-group">
-            <div style="font-weight: 500; font-size: 0.9rem; display: flex; align-items: center; gap: 6px;">
-              <Icon icon="mdi:headphones" class="item-icon" /> {{ t('reader.voiceTts') }}
-            </div>
-            <KitCheckbox v-model="pageActionOpts.ttsSentences" :label="t('bookInfo.sentences')" />
-            <KitCheckbox v-model="pageActionOpts.ttsWords" :label="t('analysis.words')" />
-          </div>
-
-          <KitBtn style="width: 100%; margin-top: 8px;" color="primary" @click="startPageAnalysis">
-            {{ t('reader.startAnalysis') }}
-          </KitBtn>
-        </div>
-      </div>
-    </KitDropdown>
-
     <KitTooltip :text="t('bookInfo.tableOfContents')" placement="bottom-end">
       <KitBtn icon="mdi:format-list-bulleted" variant="text" size="sm" @click="readerStore.tocOpen = true" />
     </KitTooltip>
 
     <KitDropdown ref="settingsDropdownRef" placement="bottom-end" :width="330" :close-on-content-click="false">
       <template #activator="{ props: dropdownProps }">
-        <KitBtn
-          icon="mdi:cog-outline"
-          variant="text"
-          size="sm"
-          :title="t('settings.title')"
-          :class="{ 'is-active-btn': dropdownProps?.isOpen }"
-        />
+        <KitTooltip :text="t('settings.title')" placement="bottom">
+          <div class="settings-btn-wrapper" @click.stop="dropdownProps.toggle()">
+            <KitBtn
+              icon="mdi:cog-outline"
+              variant="text"
+              size="sm"
+              :class="{ 'is-active-btn': dropdownProps?.isOpen || analysisStore.isManualPageAnalysisActive }"
+            />
+            <span v-if="analysisStore.isManualPageAnalysisActive" class="blinking-dot" />
+          </div>
+        </KitTooltip>
       </template>
 
       <div class="menu-content">
@@ -378,6 +352,14 @@ watch(() => props.isVisible, (visible) => {
             </div>
             <KitCheckbox v-model="settingsStore.highlightSavedQuotes" style="pointer-events: none;" />
           </div>
+
+          <div class="menu-item" @click="settingsStore.showSentenceTtsButton = !settingsStore.showSentenceTtsButton">
+            <div class="item-label">
+              <Icon icon="mdi:headphones" class="item-icon" />
+              <span>{{ t('settings.showSentenceTtsButton') }}</span>
+            </div>
+            <KitCheckbox v-model="settingsStore.showSentenceTtsButton" style="pointer-events: none;" />
+          </div>
         </div>
 
         <div v-if="readerStore.currentBook?.type !== 'manga'" class="divider" />
@@ -442,8 +424,47 @@ watch(() => props.isVisible, (visible) => {
         </div>
 
         <div class="divider" />
+
+        <div class="menu-section">
+          <div class="menu-item" @click="openPageAnalysisModal">
+            <div class="item-label">
+              <Icon :icon="analysisStore.isManualPageAnalysisActive ? 'mdi:loading' : 'mdi:text-box-search-outline'" class="item-icon" :class="[analysisStore.isManualPageAnalysisActive ? 'spin-animation' : '']" />
+              <span>{{ analysisStore.isManualPageAnalysisActive ? t('reader.translatingPage') : t('reader.analyzePage') }}</span>
+            </div>
+            <Icon icon="mdi:chevron-right" class="item-icon" style="margin-right: -4px;" />
+          </div>
+        </div>
       </div>
     </KitDropdown>
+
+    <KitDialog v-model:visible="isPageAnalysisModalOpen" :title="t('reader.analyzePage')" :max-width="400" icon="mdi:robot-outline">
+      <div style="padding: 16px 0;">
+        <div class="settings-group" style="padding: 0 0 16px 0; border-bottom: 1px solid var(--border-secondary-color); margin-bottom: 16px;">
+          <div style="font-weight: 500; font-size: 0.95rem; display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+            <Icon icon="mdi:text-search" class="item-icon" /> {{ t('reader.textAnalysis') }}
+          </div>
+          <KitCheckbox v-model="pageActionOpts.sentences" :label="t('bookInfo.sentences')" />
+          <KitCheckbox v-model="pageActionOpts.words" :label="t('analysis.words')" />
+        </div>
+
+        <div class="settings-group" style="padding: 0 0 16px 0;">
+          <div style="font-weight: 500; font-size: 0.95rem; display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+            <Icon icon="mdi:headphones" class="item-icon" /> {{ t('reader.voiceTts') }}
+          </div>
+          <KitCheckbox v-model="pageActionOpts.ttsSentences" :label="t('bookInfo.sentences')" />
+          <KitCheckbox v-model="pageActionOpts.ttsWords" :label="t('analysis.words')" />
+        </div>
+
+        <KitBtn
+          style="width: 100%; margin-top: 8px;"
+          color="primary"
+          @click="startPageAnalysis"
+        >
+          <Icon icon="mdi:play" style="margin-right: 6px;" />
+          {{ t('reader.startAnalysis') }}
+        </KitBtn>
+      </div>
+    </KitDialog>
   </header>
 </template>
 
@@ -502,7 +523,7 @@ watch(() => props.isVisible, (visible) => {
   }
 }
 
-.analyze-btn-wrapper {
+.settings-btn-wrapper {
   position: relative;
   display: inline-block;
   cursor: pointer;

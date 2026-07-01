@@ -403,16 +403,14 @@ export async function tokenizeHtmlPage(html: string, language: string) {
 }
 
 export async function analyzeBookVocabulary(bookId: number, language: string) {
-  const pages = await db.select({ content: schema.bookPages.content }).from(schema.bookPages).where(eq(schema.bookPages.bookId, bookId))
+  const book = await db.select({ type: schema.books.type }).from(schema.books).where(eq(schema.books.id, bookId)).get()
   const tokenizer = getTokenizer(language)
   const posCounts: Record<string, number> = {}
   const wordFreq: Record<string, { count: number, pos: string, original: string }> = {}
   let totalValidTokens = 0
+  let totalSentencesCount = 0
 
-  for (const page of pages) {
-    const plainText = parseHtml(page.content).textContent
-    const sentences = splitIntoSentences(plainText, language)
-
+  async function processSentences(sentences: string[]) {
     for (const raw of sentences) {
       if (/^\s+$/.test(raw))
         continue
@@ -441,6 +439,29 @@ export async function analyzeBookVocabulary(bookId: number, language: string) {
     }
   }
 
+  if (book?.type === 'manga') {
+    const pages = await db.select({ ocrData: schema.mangaPages.ocrData }).from(schema.mangaPages).where(eq(schema.mangaPages.bookId, bookId))
+    for (const page of pages) {
+      if (!page.ocrData)
+        continue
+      const blocks = JSON.parse(page.ocrData)
+      for (const block of blocks) {
+        const sentences = splitIntoSentences(block.text || '', language)
+        totalSentencesCount += sentences.length
+        await processSentences(sentences)
+      }
+    }
+  }
+  else {
+    const pages = await db.select({ content: schema.bookPages.content }).from(schema.bookPages).where(eq(schema.bookPages.bookId, bookId))
+    for (const page of pages) {
+      const plainText = parseHtml(page.content).textContent
+      const sentences = splitIntoSentences(plainText, language)
+      totalSentencesCount += sentences.length
+      await processSentences(sentences)
+    }
+  }
+
   const uniqueTokens = Object.keys(wordFreq).length
   const lexicalDiversity = totalValidTokens > 0 ? Math.round((uniqueTokens / totalValidTokens) * 100) : 0
   const allWordsArr = Object.values(wordFreq).map(data => ({ word: data.original, pos: data.pos, count: data.count }))
@@ -456,7 +477,13 @@ export async function analyzeBookVocabulary(bookId: number, language: string) {
   const minLength = ['zh', 'ja'].includes(language) ? 2 : 5
   const rareWords = allWordsArr.filter(w => w.count >= 2 && w.count <= 5 && w.word.length >= minLength && !isProper(w.word)).sort((a, b) => b.word.length - a.word.length).slice(0, 30)
 
-  return { posDistribution: posCounts, topWords: { nouns, verbs, adjs, properNouns, rareWords }, lexicalDiversity }
+  return {
+    posDistribution: posCounts,
+    topWords: { nouns, verbs, adjs, properNouns, rareWords },
+    lexicalDiversity,
+    totalSentences: totalSentencesCount,
+    totalWords: uniqueTokens,
+  }
 }
 
 export async function tokenizeOcrBlocks(blocks: any[], language: string) {

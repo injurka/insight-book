@@ -173,7 +173,7 @@ export const api = {
     lookupWord: (bookId: number, word: string, signal?: AbortSignal) =>
       request<{ transcription: string, translation: string, isUserDict?: boolean }>(`/api/books/${bookId}/word/${encodeURIComponent(word)}`, { signal }),
 
-    checkCache: (bookId: number, items: string[], language: string, signal?: AbortSignal) =>
+    checkCache: (bookId: number, items: { text: string, type: 'sentence' | 'word' }[], language: string, signal?: AbortSignal) =>
       request<{ results: { sentence: string, analysis: LlmAnalysis }[] }>(`/api/books/${bookId}/cache-check`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -181,11 +181,12 @@ export const api = {
         signal,
       }),
 
-    analyzeBatch: (bookId: number, items: { id: string, sentence: string, context?: string }[], language: string, signal?: AbortSignal) => {
+    analyzeBatch: (bookId: number, items: { id: string, sentence: string, context?: string, type?: 'sentence' | 'word' }[], language: string, signal?: AbortSignal) => {
       let targetLanguage = 'ru'
 
       if (getActivePinia()) {
-        targetLanguage = useGlobalSettingsStore().appLanguage || 'ru'
+        const settings = useGlobalSettingsStore()
+        targetLanguage = settings.appLanguage || 'ru'
       }
       else {
         try {
@@ -205,15 +206,15 @@ export const api = {
       })
     },
 
-    analyze: (bookId: number, sentence: string, language: string, context?: string, signal?: AbortSignal) => {
+    analyze: (bookId: number, sentence: string, language: string, context?: string, signal?: AbortSignal, type: 'sentence' | 'word' = 'sentence') => {
       let targetLanguage = 'ru'
       if (getActivePinia()) {
-        targetLanguage = useGlobalSettingsStore().appLanguage || 'ru'
+        const settings = useGlobalSettingsStore()
+        targetLanguage = settings.appLanguage || 'ru'
       }
       else {
         try {
           const savedLang = localStorage.getItem('global-app-language')
-
           if (savedLang)
             targetLanguage = savedLang.replace(/^"|"$/g, '')
         }
@@ -222,7 +223,7 @@ export const api = {
       return request<LlmAnalysis>(`/api/books/${bookId}/analyze`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sentence, language, context, targetLanguage }),
+        body: JSON.stringify({ sentence, language, context, targetLanguage, type }),
         signal,
         withLlm: true,
       })
@@ -261,7 +262,6 @@ export const api = {
   },
 
   dictionary: {
-
     list: () => request<UserDictItem[]>('/api/dictionary'),
 
     decks: () => request<DictDeck[]>('/api/dictionary/decks'),

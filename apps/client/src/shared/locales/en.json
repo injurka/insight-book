@@ -118,6 +118,7 @@
     "apiKey": "API Key",
     "autoAnalyzePage": "Analyze in background",
     "highlightSavedQuotes": "Highlight saved quotes",
+    "showSentenceTtsButton": "Sentence TTS button",
     "storageTitle": "Local Storage",
     "browserStorage": "Browser Storage",
     "protected": "Protected",
@@ -144,6 +145,8 @@
     "mb": "MB",
     "gb": "GB",
     "tb": "TB",
+    "confirmClearCache": "Are you sure you want to delete all saved data for this book?",
+    "showMore": "Show more",
     "actions": {
       "analyze_sentence": "Sentence Translation (Manual)",
       "analyze_batch": "Batch Analysis (Offline sync)",
@@ -497,6 +500,7 @@
     "achievements": "Achievements & Levels",
     "nextLevel": "Next level",
     "maxLevelReached": "Max level reached!",
+    "next": "Next",
     "mon": "Mon",
     "wed": "Wed",
     "fri": "Fri",
@@ -775,5 +779,10 @@
   },
   "quote": {
     "translationError": "Translation error"
-  }
+  },
+  "aiAnalysisError": "AI analysis error",
+  "globalAiCache": "Translation Availability",
+  "translatedSentences": "Translated sentences",
+  "translatedWords": "Translated words",
+  "voicedTts": "Voiced (TTS)"
 }

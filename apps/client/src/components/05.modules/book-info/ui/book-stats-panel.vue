@@ -1,17 +1,17 @@
 <script setup lang="ts">
 import type { TagKey } from '~/shared/constants/tags'
 import { Icon } from '@iconify/vue'
-import { computed, onMounted, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { KitBtn, KitInput, KitSelect, KitTooltip } from '~/components/01.kit'
+import { KitBtn, KitDropdown, KitInput, KitSelect, KitTooltip } from '~/components/01.kit'
 import { useLibraryStore } from '~/components/05.modules/library/store/library.store'
-import { formatBytes, formatPagesList } from '~/components/05.modules/settings/lib/formatters'
 import { BOOK_TAGS } from '~/shared/constants/tags'
 import { useAuthStore } from '~/shared/store/auth.store'
 import { useCacheStore } from '~/shared/store/cache.store'
 import { useGlobalSettingsStore } from '~/shared/store/settings.store'
 import { useBookStatsEdit } from '../composables/use-book-stats-edit'
 import { formatNumber } from '../lib/formatters'
+import CachePopover from './CachePopover.vue'
 
 const libraryStore = useLibraryStore()
 const cacheStore = useCacheStore()
@@ -20,6 +20,7 @@ const settingsStore = useGlobalSettingsStore()
 const { t } = useI18n()
 
 const isEditingStats = defineModel<boolean>('isEditing', { default: false })
+const showCrowdsource = ref(false)
 
 const {
   editForm,
@@ -67,6 +68,13 @@ watch(() => libraryStore.syncState, (val) => {
   }
 })
 
+function percent(part: number | undefined, total: number | undefined) {
+  if (!total || total === 0)
+    return '0%'
+  const p = Math.round(((part || 0) / total) * 100)
+  return `${Math.min(100, Math.max(0, p))}%`
+}
+
 onMounted(() => {
   cacheStore.loadStats()
 })
@@ -82,40 +90,24 @@ onMounted(() => {
     </p>
 
     <div class="progress-section">
-      <div class="progress-text">
-        {{ t('bookStats.progressPage') }} {{ libraryStore.currentBookInfo.currentPage || 1 }} {{ t('bookStats.outOf') }} {{ formatNumber(libraryStore.currentBookInfo.totalPages) }}
+      <div class="progress-header">
+        <div class="progress-text">
+          {{ t('bookStats.progressPage') }} {{ libraryStore.currentBookInfo.currentPage || 1 }} {{ t('bookStats.outOf') }} {{ formatNumber(libraryStore.currentBookInfo.totalPages) }}
+        </div>
+        <KitDropdown placement="bottom-end" width="300px">
+          <template #activator="{ props: slotProps }">
+            <KitTooltip :text="t('bookStats.inCache')" placement="top">
+              <button class="cache-trigger-btn" :class="{ 'is-active': slotProps.isOpen, 'is-loaded': bookCacheStats !== null }">
+                <Icon icon="mdi:cloud-outline" />
+              </button>
+            </KitTooltip>
+          </template>
+
+          <CachePopover />
+        </KitDropdown>
       </div>
       <div class="progress-bar">
         <div class="progress-fill" :style="{ width: `${((libraryStore.currentBookInfo.currentPage || 1) / libraryStore.currentBookInfo.totalPages) * 100}%` }" />
-      </div>
-
-      <div class="cache-compact-info" :class="{ 'is-loaded': bookCacheStats !== null }">
-        <KitTooltip placement="top">
-          <template #content>
-            <div class="cache-tooltip-content">
-              <div><b>{{ t('bookStats.cacheSize') }}</b> {{ formatBytes(bookCacheStats?.sizeBytes || 0) }}</div>
-              <div class="pages-list">
-                <b>{{ t('bookStats.cachedPagesList') }}</b> {{ formatPagesList(bookCacheStats?.cachedPages || []) }}
-              </div>
-            </div>
-          </template>
-          <div class="cache-item">
-            <Icon :icon="(bookCacheStats?.cachedPages?.length || 0) >= libraryStore.currentBookInfo.totalPages ? 'mdi:cloud-check-variant' : 'mdi:cloud-download-outline'" :class="{ 'icon-success': (bookCacheStats?.cachedPages?.length || 0) >= libraryStore.currentBookInfo.totalPages }" />
-            <span>{{ t('bookStats.inCache') }} <b>{{ formatNumber(bookCacheStats?.cachedPages?.length || 0) }}</b> / {{ formatNumber(libraryStore.currentBookInfo.totalPages) }} {{ t('bookInfo.pages') }}</span>
-          </div>
-        </KitTooltip>
-
-        <KitTooltip placement="top">
-          <template #content>
-            <div class="cache-tooltip-content ai-hint">
-              {{ t('bookStats.aiTranslationsHint') }}
-            </div>
-          </template>
-          <div class="cache-item">
-            <Icon icon="mdi:robot-outline" :class="{ 'icon-success': (libraryStore.currentBookInfo?.analysesCount || 0) > 0 }" />
-            <span>{{ t('bookStats.aiTranslations') }} <b>{{ formatNumber(libraryStore.currentBookInfo?.analysesCount || 0) }}</b> {{ t('bookStats.phrases') }}</span>
-          </div>
-        </KitTooltip>
       </div>
     </div>
 
@@ -138,7 +130,7 @@ onMounted(() => {
             <KitBtn variant="outlined" color="accent" icon="mdi:robot-outline" class="flex-1" :disabled="libraryStore.isAnalyzingBook" @click="triggerAiAnalysis">
               {{ t('bookStats.generateAiInfo') }}
             </KitBtn>
-            <KitBtn v-if="libraryStore.currentBookInfo.type !== 'manga'" variant="outlined" color="secondary" icon="mdi:chart-pie" class="flex-1" :disabled="libraryStore.isAnalyzingVocab" @click="triggerVocabularyAnalysis">
+            <KitBtn variant="outlined" color="secondary" icon="mdi:chart-pie" class="flex-1" :disabled="libraryStore.isAnalyzingVocab" @click="triggerVocabularyAnalysis">
               {{ t('bookStats.collectVocab') }}
             </KitBtn>
           </div>
@@ -193,6 +185,47 @@ onMounted(() => {
         <div class="book-description">
           <p>{{ bookDescription }}</p>
         </div>
+
+        <div v-if="libraryStore.currentBookInfo.stats.totalSentences" class="crowdsource-section">
+          <div class="cs-box-header" @click="showCrowdsource = !showCrowdsource">
+            <h3><Icon icon="mdi:earth" /> {{ t('globalAiCache') }}</h3>
+            <Icon :icon="showCrowdsource ? 'mdi:chevron-up' : 'mdi:chevron-down'" class="cs-toggle-icon" />
+          </div>
+          <Transition name="fade-slide">
+            <div v-show="showCrowdsource" class="crowdsource-list">
+              <!-- Предложения -->
+              <div class="cs-item">
+                <div class="cs-info">
+                  <span><Icon icon="mdi:brain" /> {{ t('translatedSentences') }}</span>
+                  <span>{{ formatNumber(libraryStore.currentBookInfo.cachedSentences) }} / {{ formatNumber(libraryStore.currentBookInfo.stats.totalSentences) }}</span>
+                </div>
+                <div class="cs-bar">
+                  <div class="cs-fill" :style="{ width: percent(libraryStore.currentBookInfo.cachedSentences, libraryStore.currentBookInfo.stats.totalSentences) }" />
+                </div>
+              </div>
+              <!-- Слова -->
+              <div class="cs-item">
+                <div class="cs-info">
+                  <span><Icon icon="mdi:format-text" /> {{ t('translatedWords') }}</span>
+                  <span>{{ formatNumber(libraryStore.currentBookInfo.cachedWords) }} / {{ formatNumber(libraryStore.currentBookInfo.stats.totalWords) }}</span>
+                </div>
+                <div class="cs-bar">
+                  <div class="cs-fill" :style="{ width: percent(libraryStore.currentBookInfo.cachedWords, libraryStore.currentBookInfo.stats.totalWords) }" />
+                </div>
+              </div>
+              <!-- Озвучка -->
+              <div class="cs-item">
+                <div class="cs-info">
+                  <span><Icon icon="mdi:headphones" /> {{ t('voicedTts') }}</span>
+                  <span>{{ formatNumber(libraryStore.currentBookInfo.cachedTts) }} / {{ formatNumber((libraryStore.currentBookInfo.stats.totalSentences || 0) + (libraryStore.currentBookInfo.stats.totalWords || 0)) }}</span>
+                </div>
+                <div class="cs-bar">
+                  <div class="cs-fill tts" :style="{ width: percent(libraryStore.currentBookInfo.cachedTts, (libraryStore.currentBookInfo.stats.totalSentences || 0) + (libraryStore.currentBookInfo.stats.totalWords || 0)) }" />
+                </div>
+              </div>
+            </div>
+          </Transition>
+        </div>
       </template>
 
       <template v-else>
@@ -224,11 +257,42 @@ onMounted(() => {
   padding: 16px;
   border-radius: 12px;
   margin-bottom: 24px;
+
+  .progress-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+
   .progress-text {
     font-size: 0.95rem;
     color: var(--fg-primary-color);
-    margin-bottom: 8px;
     font-weight: 500;
+  }
+
+  .cache-trigger-btn {
+    background: transparent;
+    border: none;
+    color: var(--fg-secondary-color);
+    cursor: pointer;
+    font-size: 1.2rem;
+    padding: 4px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+
+    &.is-loaded {
+      color: var(--fg-accent-color);
+    }
+
+    &:hover,
+    &.is-active {
+      color: var(--fg-primary-color);
+      background-color: var(--bg-tertiary-color);
+    }
   }
   .progress-bar {
     height: 6px;
@@ -240,73 +304,6 @@ onMounted(() => {
       background-color: var(--fg-accent-color);
       transition: width 0.3s ease;
     }
-  }
-
-  .cache-compact-info {
-    display: flex;
-    gap: 16px;
-    margin-top: 14px;
-    padding-top: 14px;
-    border-top: 1px dashed var(--border-secondary-color);
-    flex-wrap: wrap;
-    opacity: 0;
-    visibility: hidden;
-    transition:
-      opacity 0.3s ease,
-      visibility 0.3s ease;
-
-    &.is-loaded {
-      opacity: 1;
-      visibility: visible;
-    }
-
-    .cache-item {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 0.85rem;
-      color: var(--fg-secondary-color);
-      cursor: help;
-
-      svg {
-        font-size: 1.15rem;
-        color: var(--fg-muted-color);
-
-        &.icon-success {
-          color: var(--fg-success-color);
-        }
-      }
-
-      b {
-        color: var(--fg-primary-color);
-        font-weight: 600;
-      }
-    }
-  }
-}
-
-.cache-tooltip-content {
-  text-align: left;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  font-size: 0.85rem;
-
-  .pages-list {
-    max-width: 220px;
-    white-space: normal;
-    word-wrap: break-word;
-    line-height: 1.4;
-  }
-
-  &.ai-hint {
-    max-width: 250px;
-    white-space: normal;
-    line-height: 1.4;
-  }
-
-  b {
-    color: var(--fg-accent-color);
   }
 }
 
@@ -502,6 +499,112 @@ onMounted(() => {
     margin-top: 8px;
   }
 }
+
+.crowdsource-section {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border-secondary-color);
+
+  .cs-box-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    user-select: none;
+    padding: 10px 12px;
+    margin: 0 -12px;
+    border-radius: 8px;
+    transition: background-color 0.2s ease;
+
+    &:hover {
+      background-color: var(--bg-tertiary-color);
+    }
+
+    h3 {
+      font-size: 1rem;
+      font-weight: 500;
+      color: var(--fg-secondary-color);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 0;
+
+      svg {
+        color: var(--fg-secondary-color);
+        font-size: 1.2rem;
+      }
+    }
+
+    .cs-toggle-icon {
+      font-size: 1.2rem;
+      color: var(--fg-secondary-color);
+    }
+  }
+}
+
+.fade-slide-enter-active,
+.fade-slide-leave-active {
+  transition:
+    opacity 0.3s ease,
+    transform 0.3s ease;
+}
+.fade-slide-enter-from,
+.fade-slide-leave-to {
+  opacity: 0;
+  transform: translateY(-5px);
+}
+
+.crowdsource-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.cs-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+
+  .cs-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--fg-primary-color);
+    span:first-child {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--fg-secondary-color);
+      svg {
+        font-size: 1.1em;
+      }
+    }
+    span:last-child {
+      font-variant-numeric: tabular-nums;
+    }
+  }
+
+  .cs-bar {
+    height: 6px;
+    background-color: var(--bg-tertiary-color);
+    border-radius: 3px;
+    overflow: hidden;
+
+    .cs-fill {
+      height: 100%;
+      background-color: var(--fg-accent-color);
+      transition: width 0.3s ease;
+
+      &.tts {
+        background-color: var(--fg-info-color);
+      }
+    }
+  }
+}
+
 @keyframes pulse {
   0% {
     transform: scale(1);

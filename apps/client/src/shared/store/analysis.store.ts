@@ -238,10 +238,11 @@ export const useAnalysisStore = defineStore('analysis', () => {
         // 1.2 Массовая проверка кэша на сервере (без LLM)
         if (missingInLocalCache.length > 0) {
           try {
-            const textsToCheck = missingInLocalCache.map(t => t.text)
-            const uniqueTexts = Array.from(new Set(textsToCheck))
+            const uniqueMap = new Map<string, 'sentence' | 'word'>()
+            missingInLocalCache.forEach(t => uniqueMap.set(t.text, t.type === 'sentence' ? 'sentence' : 'word'))
+            const itemsToCheck = Array.from(uniqueMap.entries()).map(([text, type]) => ({ text, type }))
 
-            const res = await api.books.checkCache(book.id, uniqueTexts, book.language, signal)
+            const res = await api.books.checkCache(book.id, itemsToCheck, book.language, signal)
             const serverCacheMap = new Map(res.results.map((r: any) => [r.sentence, r.analysis]))
 
             for (const task of missingInLocalCache) {
@@ -287,7 +288,7 @@ export const useAnalysisStore = defineStore('analysis', () => {
         }
 
         await Promise.all(batches.map(async (batch) => {
-          const itemsToAnalyze = batch.map(t => ({ id: t.id, sentence: t.text, context: t.context }))
+          const itemsToAnalyze = batch.map(t => ({ id: t.id, sentence: t.text, context: t.context, type: t.type === 'sentence' ? 'sentence' : 'word' as 'sentence' | 'word' }))
           try {
             const res = await api.books.analyzeBatch(book.id, itemsToAnalyze, book.language, signal)
             for (const result of res.results) {
@@ -412,7 +413,7 @@ export const useAnalysisStore = defineStore('analysis', () => {
     const signal = manualAnalysisAbortController.signal
 
     try {
-      const res = await api.books.analyze(currentBook.id, sentence, currentBook.language, context, signal)
+      const res = await api.books.analyze(currentBook.id, sentence, currentBook.language, context, signal, 'sentence')
       if (signal.aborted)
         return
 
@@ -586,6 +587,7 @@ export const useAnalysisStore = defineStore('analysis', () => {
         currentBook.language,
         undefined,
         controller.signal,
+        'word',
       )
 
       if (wordAbortController !== controller)

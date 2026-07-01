@@ -1,7 +1,9 @@
+import { useTts } from '~/shared/composables/use-tts'
 import { useAnalysisStore } from '~/shared/store/analysis.store'
 
 export function useTextSelection() {
   const analysisStore = useAnalysisStore()
+  const { speak } = useTts()
   let pressTimer: ReturnType<typeof setTimeout> | null = null
   let selectionChangeListener: (() => void) | null = null
 
@@ -70,6 +72,17 @@ export function useTextSelection() {
     clearPressTimer()
 
     const targetEl = event.target as HTMLElement
+    const ttsBtn = targetEl.closest('.sentence-tts-btn') as HTMLElement | null
+    if (ttsBtn) {
+      event.stopPropagation()
+      event.preventDefault()
+      const text = decodeURIComponent(ttsBtn.dataset.ttsText || '')
+      if (text) {
+        speak(text)
+      }
+      return
+    }
+
     const grammarBadge = targetEl.closest('.grammar-rule-badge') as HTMLElement | null
     if (grammarBadge) {
       const translationSpan = grammarBadge.closest('.interleaved-translation') as HTMLElement | null

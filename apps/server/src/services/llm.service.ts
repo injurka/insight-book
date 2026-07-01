@@ -41,6 +41,7 @@ export async function analyzeSentence(
   targetLang: string,
   config: LlmConfig,
   context?: string,
+  type: 'sentence' | 'word' = 'sentence',
 ): Promise<LlmAnalysis> {
   await checkTokenLimit(userId)
 
@@ -57,6 +58,7 @@ export async function analyzeSentence(
         await db.insert(schema.bookLlmCache).values({
           bookId,
           sentenceHash: hash,
+          type,
         }).onConflictDoNothing()
 
         return parsed as LlmAnalysis
@@ -105,6 +107,7 @@ export async function analyzeSentence(
       await db.insert(schema.bookLlmCache).values({
         bookId,
         sentenceHash: hash,
+        type,
       }).onConflictDoNothing()
 
       return analysis
@@ -118,31 +121,31 @@ export async function analyzeSentence(
   throw new AppError(500, `Не удалось получить валидный ответ от ИИ: ${lastError?.message || 'Unknown error'}`)
 }
 
-export async function checkCacheBatch(bookId: number, sentences: string[], language: string, targetLang: string) {
-  if (!sentences.length)
+export async function checkCacheBatch(bookId: number, items: { text: string, type: 'sentence' | 'word' }[], language: string, targetLang: string) {
+  if (!items.length)
     return []
 
-  const uniqueSentences = Array.from(new Set(sentences))
-  const hashes = uniqueSentences.map(s => hashSentence(s, language, targetLang))
+  const uniqueTexts = Array.from(new Set(items.map(i => i.text)))
+  const hashes = uniqueTexts.map(s => hashSentence(s, language, targetLang))
 
   const cachedDocs = await db.query.llmCache.findMany({
     where: inArray(schema.llmCache.sentenceHash, hashes),
   })
 
   const results: { sentence: string, analysis: any }[] = []
-  const bookCacheInserts: { bookId: number, sentenceHash: string }[] = []
+  const bookCacheInserts: { bookId: number, sentenceHash: string, type: 'sentence' | 'word' }[] = []
 
   const cacheMap = new Map(cachedDocs.map(d => [d.sentenceHash, d.analysis]))
 
-  for (const sentence of uniqueSentences) {
-    const hash = hashSentence(sentence, language, targetLang)
+  for (const item of items) {
+    const hash = hashSentence(item.text, language, targetLang)
     const cachedAnalysisStr = cacheMap.get(hash)
     if (cachedAnalysisStr) {
       try {
         const parsed = JSON.parse(cachedAnalysisStr)
         if (!isOldFormatAnalysis(parsed)) {
-          bookCacheInserts.push({ bookId, sentenceHash: hash })
-          results.push({ sentence, analysis: parsed })
+          bookCacheInserts.push({ bookId, sentenceHash: hash, type: item.type })
+          results.push({ sentence: item.text, analysis: parsed })
         }
       }
       catch { }
@@ -375,7 +378,7 @@ export async function analyzeBatch(userId: number, bookId: number, items: BatchA
     : []
 
   const cacheMap = new Map(cachedDocs.map(d => [d.sentenceHash, d.analysis]))
-  const bookCacheInserts: { bookId: number, sentenceHash: string }[] = []
+  const bookCacheInserts: { bookId: number, sentenceHash: string, type: 'sentence' | 'word' }[] = []
 
   for (const item of itemHashes) {
     const cachedAnalysisStr = cacheMap.get(item.hash)
@@ -383,7 +386,7 @@ export async function analyzeBatch(userId: number, bookId: number, items: BatchA
       try {
         const parsed = JSON.parse(cachedAnalysisStr)
         if (!isOldFormatAnalysis(parsed)) {
-          bookCacheInserts.push({ bookId, sentenceHash: item.hash })
+          bookCacheInserts.push({ bookId, sentenceHash: item.hash, type: item.type || 'sentence' })
           results.push({ id: item.id, analysis: parsed })
           continue
         }
@@ -446,7 +449,7 @@ export async function analyzeBatch(userId: number, bookId: number, items: BatchA
             sentence: originalItem.sentence,
             analysis: JSON.stringify(res.analysis),
           })
-          newBookCacheInserts.push({ bookId, sentenceHash: hash })
+          newBookCacheInserts.push({ bookId, sentenceHash: hash, type: originalItem.type || 'sentence' })
         }
         results.push(res)
       }
@@ -469,7 +472,7 @@ export async function analyzeBatch(userId: number, bookId: number, items: BatchA
   return results
 }
 
-export async function generateTts(userId: number, text: string, config: LlmConfig, selectedVoice?: string): Promise<string> {
+export async function generateTts(userId: number, bookId: number | null, text: string, config: LlmConfig, selectedVoice?: string): Promise<string> {
   const normalizedText = text.trim()
 
   if (!normalizedText)
@@ -490,8 +493,12 @@ export async function generateTts(userId: number, text: string, config: LlmConfi
     where: eq(schema.ttsCache.textHash, hash),
   })
 
-  if (cached)
+  if (cached) {
+    if (bookId) {
+      await db.insert(schema.bookTtsCache).values({ bookId, textHash: hash }).onConflictDoNothing()
+    }
     return cached.audioBase64
+  }
 
   await checkTokenLimit(userId)
 
@@ -582,6 +589,10 @@ export async function generateTts(userId: number, text: string, config: LlmConfi
       audioBase64: base64,
     },
   })
+
+  if (bookId) {
+    await db.insert(schema.bookTtsCache).values({ bookId, textHash: hash }).onConflictDoNothing()
+  }
 
   trackTokenUsage(userId, 'tts_generation', usedModel, normalizedText.length, 0, normalizedText, '[AUDIO BASE64]')
 

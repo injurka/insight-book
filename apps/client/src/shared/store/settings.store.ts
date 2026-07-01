@@ -34,6 +34,7 @@ export const useGlobalSettingsStore = defineStore('globalSettings', () => {
   const parallelShowGrammar = useLocalStorage<boolean>('global-parallel-show-grammar', false)
 
   const highlightSavedQuotes = useLocalStorage<boolean>('global-highlight-saved-quotes', true)
+  const showSentenceTtsButton = useLocalStorage<boolean>('global-show-sentence-tts-button', false)
 
   return {
     appLanguage,
@@ -57,5 +58,6 @@ export const useGlobalSettingsStore = defineStore('globalSettings', () => {
     customLlmKey,
     customLlmModel,
     highlightSavedQuotes,
+    showSentenceTtsButton,
   }
 })

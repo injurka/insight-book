@@ -49,13 +49,17 @@ export const AnalyzeBatchSchema = z.object({
     id: z.string(),
     sentence: z.string().max(1000, 'Фраза слишком длинная (макс. 1000 символов)'),
     context: z.string().max(5000, 'Контекст слишком большой').optional(),
+    type: z.enum(['sentence', 'word']).default('sentence'),
   })).max(20, 'Слишком большой пакет'),
   language: z.string(),
   targetLanguage: z.string().optional(),
 })
 
 export const CheckCacheSchema = z.object({
-  items: z.array(z.string()).max(200, 'Слишком большой пакет'),
+  items: z.array(z.object({
+    text: z.string(),
+    type: z.enum(['sentence', 'word']).default('sentence'),
+  })).max(200, 'Слишком большой пакет'),
   language: z.string(),
 })
 
@@ -88,6 +92,7 @@ export const AnalyzeSentenceSchema = z.object({
   language: z.string().min(1, 'Язык обязателен'),
   context: z.string().max(5000, 'Контекст слишком большой').optional(),
   targetLanguage: z.string().optional(),
+  type: z.enum(['sentence', 'word']).optional().default('sentence'),
 })
 
 export const GenerateTtsSchema = z.object({

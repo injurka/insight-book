@@ -21,6 +21,8 @@ export interface BookStats {
   tags: string[]
   totalChars: number
   uniqueChars: number
+  totalSentences?: number
+  totalWords?: number
   posDistribution?: Record<string, number> | null
   topWords?: LexicalWordData[] | LexicalDataGroup | null
   lexicalDiversity?: number | null
@@ -50,6 +52,12 @@ export interface Book {
   isPublic?: boolean
   textDirection?: string | null
   progressUpdatedAt?: string | null
+  analysesCount?: number
+  cachedSentences?: number
+  cachedWords?: number
+  cachedTts?: number
+  processStatus?: 'processing' | 'ready' | 'error'
+  processError?: string | null
 }
 
 export interface TocItem {
@@ -200,7 +208,6 @@ export interface LlmConfig {
   ttsUrl?: string
   ttsKey?: string
   sttModel?: string
-  fallbackSttModel?: string
   sttUrl?: string
   sttKey?: string
   ocrModel?: string
@@ -288,6 +295,7 @@ export interface BatchAnalysisRequest {
   id: string
   sentence: string
   context?: string
+  type?: 'sentence' | 'word'
 }
 
 export interface BatchAnalysisResponse {

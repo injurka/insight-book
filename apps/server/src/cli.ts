@@ -58,7 +58,7 @@ async function main() {
   if (command === 'limit') {
     if (!username || !arg3) {
       console.error('❌ Использование: bun cli.ts limit <username> <token_limit> [book_limit]')
-      console.error('   Пример: bun cli.ts limit admin 10000000 50')
+      console.error('   Пример: bun cli.ts limit admin 10_000_000 50')
       console.error('   Для отключения лимита укажите "null" или "none": bun cli.ts limit admin null null')
       return
     }

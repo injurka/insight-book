@@ -185,10 +185,20 @@ export async function handleGetBookInfo(req: Request, userId: number | null): Pr
       }
     : null
 
-  const llmCountRes = await db.select({ count: sql<number>`count(*)` })
-    .from(schema.bookLlmCache)
-    .where(eq(schema.bookLlmCache.bookId, id))
-    .get()
+  const [sentencesCountRes, wordsCountRes, ttsCountRes] = await Promise.all([
+    db.select({ count: sql<number>`count(*)` })
+      .from(schema.bookLlmCache)
+      .where(and(eq(schema.bookLlmCache.bookId, id), eq(schema.bookLlmCache.type, 'sentence')))
+      .get(),
+    db.select({ count: sql<number>`count(*)` })
+      .from(schema.bookLlmCache)
+      .where(and(eq(schema.bookLlmCache.bookId, id), eq(schema.bookLlmCache.type, 'word')))
+      .get(),
+    db.select({ count: sql<number>`count(*)` })
+      .from(schema.bookTtsCache)
+      .where(eq(schema.bookTtsCache.bookId, id))
+      .get(),
+  ])
 
   return json({
     ...bookData,
@@ -198,7 +208,10 @@ export async function handleGetBookInfo(req: Request, userId: number | null): Pr
     collection: progress?.collection ?? null,
     toc: book.toc ? JSON.parse(book.toc) : [],
     stats: statsResult,
-    analysesCount: llmCountRes?.count || 0,
+    analysesCount: (sentencesCountRes?.count || 0) + (wordsCountRes?.count || 0),
+    cachedSentences: sentencesCountRes?.count || 0,
+    cachedWords: wordsCountRes?.count || 0,
+    cachedTts: ttsCountRes?.count || 0,
   }, 200, {
     'Cache-Control': 'private, stale-while-revalidate=60',
   })
@@ -232,10 +245,6 @@ export async function handleAnalyzeVocabulary(req: Request, userId: number): Pro
   if (!book || book.userId !== userId)
     throw new AppError(403, 'Нет доступа')
 
-  if (book.type === 'manga') {
-    throw new AppError(400, 'Лексический анализ пока недоступен для манги')
-  }
-
   const result = await runWorkerTask('analyzeBookVocabulary', { bookId: id, language: normalizeLanguageCode(book.language) })
 
   await db.insert(schema.bookStats).values({
@@ -243,12 +252,16 @@ export async function handleAnalyzeVocabulary(req: Request, userId: number): Pro
     posDistribution: JSON.stringify(result.posDistribution),
     topWords: JSON.stringify(result.topWords),
     lexicalDiversity: result.lexicalDiversity,
+    totalSentences: result.totalSentences,
+    totalWords: result.totalWords,
   }).onConflictDoUpdate({
     target: schema.bookStats.bookId,
     set: {
       posDistribution: JSON.stringify(result.posDistribution),
       topWords: JSON.stringify(result.topWords),
       lexicalDiversity: result.lexicalDiversity,
+      totalSentences: result.totalSentences,
+      totalWords: result.totalWords,
     },
   })
 
@@ -813,7 +826,7 @@ export async function handleAnalyzeSentence(req: Request, userId: number): Promi
   if (!book || (book.userId !== userId && !book.isPublic))
     throw new AppError(403, 'Нет доступа')
 
-  const { sentence, language, context, targetLanguage } = AnalyzeSentenceSchema.parse(await req.json())
+  const { sentence, language, context, targetLanguage, type } = AnalyzeSentenceSchema.parse(await req.json())
   const finalTargetLang = normalizeLanguageCode(targetLanguage || (new URL(req.url).searchParams.get('targetLang')) || 'ru')
   const analysis = await analyzeSentence(
     userId,
@@ -823,6 +836,7 @@ export async function handleAnalyzeSentence(req: Request, userId: number): Promi
     finalTargetLang,
     config,
     context,
+    type,
   )
 
   return json(analysis)
@@ -837,7 +851,7 @@ export async function handleGenerateTts(req: Request, userId: number): Promise<R
     throw new AppError(403, 'Нет доступа')
 
   const { text, voice } = GenerateTtsSchema.parse(await req.json())
-  const audioBase64 = await generateTts(userId, text, config, voice)
+  const audioBase64 = await generateTts(userId, bookId, text, config, voice)
 
   return json({ audioBase64 })
 }
@@ -846,7 +860,7 @@ export async function handleStandaloneTts(req: Request, userId: number): Promise
   const config = extractLlmConfig(req)
 
   const { text, voice } = GenerateTtsStandaloneSchema.parse(await req.json())
-  const audioBase64 = await generateTts(userId, text, config, voice)
+  const audioBase64 = await generateTts(userId, null, text, config, voice)
 
   return json({ audioBase64 })
 }
