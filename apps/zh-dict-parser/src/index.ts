@@ -12,6 +12,7 @@ interface DictEntry {
   $word: string
   $transcription: string | null
   $translation: string
+  [key: string]: string | null
 }
 
 /**
@@ -45,7 +46,7 @@ function parseDictionaryMarkup(text: string): string {
 async function importDictionary() {
   console.log('Начинаем импорт словаря...')
 
-  const insertStmt = db.prepare(`
+  const insertStmt = db.prepare<unknown, DictEntry>(`
     INSERT OR REPLACE INTO words (word, transcription, translation)
     VALUES ($word, $transcription, $translation)
   `)

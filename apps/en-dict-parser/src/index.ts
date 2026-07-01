@@ -20,6 +20,7 @@ interface DictEntry {
   $word: string
   $transcription: string | null
   $translation: string
+  [key: string]: string | null
 }
 
 function getLeadingSpaces(line: string): number {
@@ -182,7 +183,7 @@ async function parseDictFile(filePath: string, insertMany: (entries: DictEntry[]
 async function importDictionary() {
   console.log('Начинаем импорт словаря Мюллера...')
 
-  const insertStmt = db.prepare(`
+  const insertStmt = db.prepare<unknown, DictEntry>(`
     INSERT OR REPLACE INTO words (word, transcription, translation)
     VALUES ($word, $transcription, $translation)
   `)

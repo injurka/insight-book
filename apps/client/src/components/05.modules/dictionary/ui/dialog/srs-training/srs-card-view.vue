@@ -1,16 +1,25 @@
 <script setup lang="ts">
 import type { GeneratedWordExamples, UserDictItem } from '~/shared/types/models'
 import { Icon } from '@iconify/vue'
-import { createEmptyCard, FSRS, Rating } from 'ts-fsrs'
+import { Rating } from 'ts-fsrs'
 import { computed, nextTick, reactive, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { KitBtn, KitDropdown, KitInput, KitTooltip } from '~/components/01.kit'
+import { KitBtn, KitDropdown, KitTooltip } from '~/components/01.kit'
 import { PronunciationCheck } from '~/components/04.features/pronunciation-check'
 import { useToast } from '~/shared/composables/use-toast'
 import { useTts } from '~/shared/composables/use-tts'
 import { api } from '~/shared/services/api.service'
 import { useSrsQuiz } from '../../../composables/use-srs-quiz'
 import { useDictionaryStore } from '../../../store/dictionary.store'
+import { useFsrsScheduling } from './composables/use-fsrs-scheduling'
+import SrsModeAudio from './srs-modes/srs-mode-audio.vue'
+import SrsModeChoice from './srs-modes/srs-mode-choice.vue'
+import SrsModeCollocations from './srs-modes/srs-mode-collocations.vue'
+import SrsModeRadicals from './srs-modes/srs-mode-radicals.vue'
+import SrsModeScramble from './srs-modes/srs-mode-scramble.vue'
+import SrsModeStandard from './srs-modes/srs-mode-standard.vue'
+import SrsModeTyping from './srs-modes/srs-mode-typing.vue'
+import SrsModeWriting from './srs-modes/srs-mode-writing.vue'
 
 const props = defineProps<{
   card: UserDictItem | null
@@ -18,7 +27,6 @@ const props = defineProps<{
   modes?: Record<string, boolean>
 }>()
 const emit = defineEmits(['grade'])
-
 const AiExamplesModal = lazyComponent(() => import('~/components/03.domain/analysis/ui/modal/ai-examples-modal.vue'))
 const LlmChatModal = lazyComponent(() => import('~/components/04.features/llm-chat/ui/llm-chat-modal.vue'))
 const HanziBoard = lazyComponent(() => import('../../hanzi-board.vue'))
@@ -28,7 +36,6 @@ const { speak, stop, isPlaying, isLoading } = useTts()
 const toast = useToast()
 const { t } = useI18n()
 const { generateDistractors, checkTypo } = useSrsQuiz()
-const fsrs = new FSRS({})
 
 const isFlipped = ref(false)
 const typedAnswer = ref('')
@@ -59,7 +66,105 @@ const deepDiveData = ref<any>(null)
 const selectedRadicals = ref<string[]>([])
 const isAiLoadingMode = ref(false)
 
+const cardRef = computed(() => props.card)
+const { intervals } = useFsrsScheduling(cardRef, isFlipped)
+
+// Strategy pattern: map mode → component
+const modeComponentMap = {
+  audio: SrsModeAudio,
+  writing: SrsModeWriting,
+  typing: SrsModeTyping,
+  choice: SrsModeChoice,
+  scramble: SrsModeScramble,
+  collocations: SrsModeCollocations,
+  radicals: SrsModeRadicals,
+  standard: SrsModeStandard,
+}
+
+const currentModeComponent = computed(() => modeComponentMap[currentMode.value] ?? SrsModeStandard)
+
 const originalSentence = computed(() => props.card?.encounters?.[0]?.sentence || '')
+
+const modeProps = computed(() => {
+  const card = props.card!
+  switch (currentMode.value) {
+    case 'audio':
+      return { card, isLoading: isLoading.value, isPlaying: isPlaying.value }
+    case 'writing':
+      return { card }
+    case 'typing':
+      return {
+        card,
+        typedAnswer: typedAnswer.value,
+        isAnswerChecked: isAnswerChecked.value,
+        typoFeedback: typoFeedback.value,
+        isAnswerCorrect: isAnswerCorrect.value,
+      }
+    case 'choice':
+      return {
+        card,
+        choiceOptions: choiceOptions.value,
+        isAnswerChecked: isAnswerChecked.value,
+        selectedChoice: selectedChoice.value,
+      }
+    case 'scramble':
+      return {
+        card,
+        scrambleChunks: scrambleChunks.value,
+        scrambleAnswer: scrambleAnswer.value,
+        isAnswerChecked: isAnswerChecked.value,
+        typoFeedback: typoFeedback.value,
+        isAnswerCorrect: isAnswerCorrect.value,
+      }
+    case 'collocations':
+      return {
+        deepDiveData: deepDiveData.value,
+        choiceOptions: choiceOptions.value,
+        isAnswerChecked: isAnswerChecked.value,
+        selectedChoice: selectedChoice.value,
+      }
+    case 'radicals':
+      return {
+        card,
+        deepDiveData: deepDiveData.value,
+        selectedRadicals: selectedRadicals.value,
+        isAnswerChecked: isAnswerChecked.value,
+      }
+    case 'standard':
+    default:
+      return { card }
+  }
+})
+
+const modeEmits = computed(() => {
+  switch (currentMode.value) {
+    case 'audio':
+      return {
+        speak: () => props.card && speak(props.card.word, props.card.language),
+        flip,
+      }
+    case 'writing':
+      return { flip }
+    case 'typing':
+      return {
+        'update:typedAnswer': (val: string) => { typedAnswer.value = val },
+        'submit': submitTyping,
+      }
+    case 'choice':
+      return { select: selectChoice }
+    case 'scramble':
+      return { chunkClick: handleScrambleChunkClick }
+    case 'collocations':
+      return { select: selectChoice }
+    case 'radicals':
+      return {
+        toggleRadical,
+        check: checkRadicals,
+      }
+    default:
+      return {}
+  }
+})
 
 function toggleSection(sec: 'grammar' | 'vocab' | 'notes') {
   expandedSections[sec] = !expandedSections[sec]
@@ -311,44 +416,6 @@ function toggleAnimation() {
   }
 }
 
-function formatInterval(days: number, due: Date, now: Date): string {
-  if (days === 0) {
-    const diffMin = Math.round((due.getTime() - now.getTime()) / 60000)
-    return diffMin > 0 ? `${diffMin} м` : '<1 м'
-  }
-  if (days < 30)
-    return `${Math.round(days)} дн`
-  if (days < 365)
-    return `${Math.round(days / 30)} мес`
-  return `${Math.round(days / 365)} г`
-}
-
-const intervals = computed(() => {
-  if (!isFlipped.value || !props.card)
-    return null
-
-  const fsrsCard = createEmptyCard()
-  fsrsCard.due = new Date(props.card.due)
-  fsrsCard.stability = props.card.stability
-  fsrsCard.difficulty = props.card.difficultyFsrs
-  fsrsCard.scheduled_days = props.card.scheduledDays
-  fsrsCard.reps = props.card.reps
-  fsrsCard.lapses = props.card.lapses
-  fsrsCard.state = props.card.state
-  fsrsCard.last_review = props.card.lastReview ? new Date(props.card.lastReview) : undefined
-  fsrsCard.learning_steps = props.card.learningSteps ?? 0
-
-  const now = new Date()
-  const schedulingCards = fsrs.repeat(fsrsCard, now)
-
-  return {
-    again: formatInterval(schedulingCards[Rating.Again].card.scheduled_days, schedulingCards[Rating.Again].card.due, now),
-    hard: formatInterval(schedulingCards[Rating.Hard].card.scheduled_days, schedulingCards[Rating.Hard].card.due, now),
-    good: formatInterval(schedulingCards[Rating.Good].card.scheduled_days, schedulingCards[Rating.Good].card.due, now),
-    easy: formatInterval(schedulingCards[Rating.Easy].card.scheduled_days, schedulingCards[Rating.Easy].card.due, now),
-  }
-})
-
 function gradeCard(grade: number) {
   emit('grade', grade)
 }
@@ -364,146 +431,12 @@ watch(() => props.card, initCard, { immediate: true })
         <p>{{ t('analysis.generatingContext') }}</p>
       </div>
 
-      <div v-else-if="currentMode === 'audio'" class="audio-mode">
-        <KitBtn
-          :icon="isLoading ? 'mdi:loading' : (isPlaying ? 'mdi:volume-high' : 'mdi:volume-medium')"
-          size="lg"
-          color="accent"
-          :class="{ 'spin-animation': isLoading, 'pulse-animation': isPlaying }"
-          @click="speak(card.word, card.language)"
-        />
-        <p>{{ t('dictionary.listenAndRecall') }}</p>
-      </div>
-
-      <div v-else-if="currentMode === 'writing'" class="writing-mode">
-        <p class="writing-hint">
-          {{ t('dictionary.writeHanzi') }}
-        </p>
-        <div class="translation-hint" v-html="card.translation" />
-        <HanziBoard :text="card.word" mode="quiz" :size="120" @complete="flip" />
-      </div>
-
-      <div v-else-if="currentMode === 'typing'" class="typing-mode">
-        <div class="translation-hint" v-html="card.translation" />
-        <div class="typing-area">
-          <KitInput v-model="typedAnswer" :placeholder="t('dictionary.writeWord')" :disabled="isAnswerChecked" @keyup.enter="submitTyping" />
-          <KitBtn color="primary" :disabled="!typedAnswer || isAnswerChecked" @click="submitTyping">
-            {{ t('dictionary.check') }}
-          </KitBtn>
-        </div>
-        <p v-if="typoFeedback" class="typo-feedback" :class="{ 'is-typo': !isAnswerCorrect }">
-          {{ typoFeedback }}
-        </p>
-      </div>
-
-      <div v-else-if="currentMode === 'choice'" class="choice-mode">
-        <div class="word-huge">
-          {{ card.word }}
-        </div>
-        <div class="options-grid">
-          <button
-            v-for="opt in choiceOptions"
-            :key="opt.text"
-            class="choice-btn"
-            :class="{
-              'is-correct': isAnswerChecked && opt.isCorrect,
-              'is-wrong': isAnswerChecked && selectedChoice === opt.text && !opt.isCorrect,
-              'is-disabled': isAnswerChecked,
-            }"
-            :disabled="isAnswerChecked"
-            @click="selectChoice(opt)"
-          >
-            {{ opt.text }}
-          </button>
-        </div>
-      </div>
-
-      <div v-else-if="currentMode === 'scramble'" class="scramble-mode">
-        <p class="writing-hint">
-          {{ t('dictionary.scrambleTask') }}
-        </p>
-        <div class="translation-hint" v-html="card.translation" />
-
-        <div class="scramble-answer-box">
-          <div v-for="chunk in scrambleAnswer" :key="`ans-${chunk.id}`" class="scramble-chunk" @click="handleScrambleChunkClick(chunk, 'answer')">
-            {{ chunk.text }}
-          </div>
-        </div>
-
-        <div class="scramble-source-box">
-          <div v-for="chunk in scrambleChunks" :key="`src-${chunk.id}`" class="scramble-chunk" @click="handleScrambleChunkClick(chunk, 'source')">
-            {{ chunk.text }}
-          </div>
-        </div>
-
-        <p v-if="typoFeedback" class="typo-feedback" :class="{ 'is-typo': !isAnswerCorrect }">
-          {{ typoFeedback }}
-        </p>
-      </div>
-
-      <div v-else-if="currentMode === 'collocations' && deepDiveData" class="collocations-mode">
-        <p class="writing-hint">
-          {{ t('dictionary.collocationsTask') }}
-        </p>
-        <div class="collocation-question">
-          {{ deepDiveData.question }}
-        </div>
-        <div class="translation-hint">
-          {{ deepDiveData.translation }}
-        </div>
-        <div class="options-grid">
-          <button
-            v-for="opt in choiceOptions"
-            :key="opt.text"
-            class="choice-btn"
-            :class="{
-              'is-correct': isAnswerChecked && opt.isCorrect,
-              'is-wrong': isAnswerChecked && selectedChoice === opt.text && !opt.isCorrect,
-              'is-disabled': isAnswerChecked,
-            }"
-            :disabled="isAnswerChecked"
-            @click="selectChoice(opt)"
-          >
-            {{ opt.text }}
-          </button>
-        </div>
-      </div>
-
-      <div v-else-if="currentMode === 'radicals' && deepDiveData" class="radicals-mode">
-        <p class="writing-hint">
-          {{ t('dictionary.radicalsTask') }}
-        </p>
-        <div class="word-huge">
-          {{ card.word }}
-        </div>
-
-        <div class="radicals-grid">
-          <button
-            v-for="opt in deepDiveData.options"
-            :key="opt"
-            class="radical-btn"
-            :class="{
-              'is-selected': selectedRadicals.includes(opt),
-              'is-correct': isAnswerChecked && deepDiveData.answer.includes(opt),
-              'is-wrong': isAnswerChecked && selectedRadicals.includes(opt) && !deepDiveData.answer.includes(opt),
-              'is-disabled': isAnswerChecked,
-            }"
-            @click="toggleRadical(opt)"
-          >
-            {{ opt }}
-          </button>
-        </div>
-
-        <KitBtn color="primary" :disabled="selectedRadicals.length === 0 || isAnswerChecked" style="margin-top: 16px;" @click="checkRadicals">
-          {{ t('dictionary.check') }}
-        </KitBtn>
-      </div>
-
-      <div v-else class="standard-mode">
-        <div class="word-huge">
-          {{ card.word }}
-        </div>
-      </div>
+      <component
+        :is="currentModeComponent"
+        v-else-if="currentMode !== 'collocations' || deepDiveData"
+        v-bind="modeProps"
+        v-on="modeEmits"
+      />
     </div>
 
     <div v-if="isFlipped" class="card-back fade-in">
@@ -707,300 +640,6 @@ watch(() => props.card, initCard, { immediate: true })
   }
 }
 
-.writing-mode {
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12px;
-
-  .writing-hint {
-    color: var(--fg-secondary-color);
-    margin: 0;
-  }
-
-  .translation-hint {
-    font-size: 1.15rem;
-    font-weight: 500;
-    color: var(--fg-primary-color);
-  }
-}
-
-.typing-mode {
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 16px;
-
-  .translation-hint {
-    font-size: 1.3rem;
-    font-weight: 500;
-    color: var(--fg-primary-color);
-  }
-
-  .typing-area {
-    display: flex;
-    gap: 8px;
-    width: 100%;
-    max-width: 400px;
-
-    :deep(.kit-input-wrapper) {
-      flex: 1;
-    }
-  }
-
-  .typo-feedback {
-    margin: 0;
-    font-size: 0.95rem;
-    color: var(--fg-warning-color);
-    &.is-typo {
-      color: var(--fg-error-color);
-    }
-  }
-}
-
-.choice-mode {
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 24px;
-
-  .options-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
-    width: 100%;
-    max-width: 500px;
-
-    @include media-down(sm) {
-      grid-template-columns: 1fr;
-    }
-
-    .choice-btn {
-      padding: 16px;
-      border-radius: 8px;
-      border: 1px solid var(--border-primary-color);
-      background: var(--bg-secondary-color);
-      color: var(--fg-primary-color);
-      font-size: 1.05rem;
-      cursor: pointer;
-      transition: all 0.2s;
-
-      &:hover:not(:disabled) {
-        background: var(--bg-hover-color);
-        border-color: var(--fg-accent-color);
-      }
-
-      &.is-correct {
-        background: rgba(var(--bg-success-color-rgb, 86, 211, 100), 0.2);
-        border-color: var(--fg-success-color);
-        color: var(--fg-success-color);
-        font-weight: bold;
-      }
-
-      &.is-wrong {
-        background: rgba(var(--bg-error-color-rgb, 248, 81, 73), 0.2);
-        border-color: var(--fg-error-color);
-        color: var(--fg-error-color);
-        text-decoration: line-through;
-      }
-
-      &:disabled {
-        cursor: default;
-        opacity: 0.7;
-      }
-    }
-  }
-}
-
-.scramble-mode {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 16px;
-  width: 100%;
-
-  .writing-hint {
-    color: var(--fg-secondary-color);
-    margin: 0;
-  }
-
-  .translation-hint {
-    font-size: 1.15rem;
-    font-weight: 500;
-    color: var(--fg-primary-color);
-  }
-
-  .scramble-answer-box {
-    min-height: 50px;
-    width: 100%;
-    max-width: 400px;
-    border: 2px dashed var(--border-secondary-color);
-    border-radius: 8px;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    padding: 8px;
-    justify-content: center;
-    background: var(--bg-tertiary-color);
-  }
-
-  .scramble-source-box {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    justify-content: center;
-    max-width: 400px;
-  }
-
-  .scramble-chunk {
-    padding: 8px 16px;
-    background: var(--bg-primary-color);
-    border: 1px solid var(--border-primary-color);
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 1.2rem;
-    font-weight: 500;
-    color: var(--fg-primary-color);
-    user-select: none;
-    transition:
-      transform 0.1s,
-      background-color 0.2s;
-
-    &:hover {
-      background: var(--bg-hover-color);
-      transform: translateY(-2px);
-    }
-  }
-}
-
-.collocations-mode {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 16px;
-  width: 100%;
-
-  .writing-hint {
-    color: var(--fg-secondary-color);
-    margin: 0;
-  }
-
-  .collocation-question {
-    font-size: 2rem;
-    font-weight: bold;
-    color: var(--fg-primary-color);
-  }
-
-  .translation-hint {
-    font-size: 1.1rem;
-    color: var(--fg-secondary-color);
-  }
-
-  .options-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
-    width: 100%;
-    max-width: 500px;
-
-    @include media-down(sm) {
-      grid-template-columns: 1fr;
-    }
-
-    .choice-btn {
-      padding: 16px;
-      border-radius: 8px;
-      border: 1px solid var(--border-primary-color);
-      background: var(--bg-secondary-color);
-      color: var(--fg-primary-color);
-      font-size: 1.05rem;
-      cursor: pointer;
-      transition: all 0.2s;
-
-      &:hover:not(:disabled) {
-        background: var(--bg-hover-color);
-        border-color: var(--fg-accent-color);
-      }
-
-      &.is-correct {
-        background: rgba(var(--bg-success-color-rgb, 86, 211, 100), 0.2);
-        border-color: var(--fg-success-color);
-        color: var(--fg-success-color);
-        font-weight: bold;
-      }
-
-      &.is-wrong {
-        background: rgba(var(--bg-error-color-rgb, 248, 81, 73), 0.2);
-        border-color: var(--fg-error-color);
-        color: var(--fg-error-color);
-        text-decoration: line-through;
-      }
-
-      &:disabled {
-        cursor: default;
-        opacity: 0.7;
-      }
-    }
-  }
-}
-
-.radicals-mode {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 16px;
-  width: 100%;
-
-  .writing-hint {
-    color: var(--fg-secondary-color);
-    margin: 0;
-  }
-
-  .radicals-grid {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 12px;
-    justify-content: center;
-    max-width: 400px;
-
-    .radical-btn {
-      padding: 12px 20px;
-      font-size: 1.5rem;
-      border: 1px solid var(--border-primary-color);
-      border-radius: 8px;
-      background: var(--bg-secondary-color);
-      color: var(--fg-primary-color);
-      cursor: pointer;
-      transition: all 0.2s;
-
-      &:hover:not(.is-disabled) {
-        border-color: var(--fg-accent-color);
-      }
-
-      &.is-selected {
-        background: rgba(var(--bg-accent-color-rgb, 201, 117, 222), 0.2);
-        border-color: var(--fg-accent-color);
-      }
-
-      &.is-correct {
-        background: rgba(var(--bg-success-color-rgb, 86, 211, 100), 0.2);
-        border-color: var(--fg-success-color);
-        color: var(--fg-success-color);
-      }
-
-      &.is-wrong {
-        background: rgba(var(--bg-error-color-rgb, 248, 81, 73), 0.2);
-        border-color: var(--fg-error-color);
-        color: var(--fg-error-color);
-        text-decoration: line-through;
-      }
-    }
-  }
-}
-
 .animation-container {
   margin-top: 16px;
   background-color: rgba(var(--bg-tertiary-color-rgb), 0.5);
@@ -1019,10 +658,6 @@ watch(() => props.card, initCard, { immediate: true })
 .is-active-btn {
   color: var(--fg-accent-color) !important;
   background-color: rgba(var(--bg-accent-color-rgb, 201, 117, 222), 0.1) !important;
-}
-
-.standard-mode {
-  width: 100%;
 }
 
 .word-huge {

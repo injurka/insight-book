@@ -23,7 +23,7 @@ export async function downloadImageNode(url: string, savePathWithoutExt: string,
       const metadata = await sharp(buffer).metadata()
       const format = metadata.format?.toLowerCase()
 
-      let finalBuffer = buffer
+      let finalBuffer: Buffer<ArrayBufferLike> = buffer
       let ext = format === 'png' ? '.png' : '.jpg'
 
       // Если формат не поддерживается (например, webp, avif, heif), конвертируем в JPEG

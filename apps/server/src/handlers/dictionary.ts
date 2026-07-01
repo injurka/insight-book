@@ -193,8 +193,12 @@ export async function handleBulkMoveDict(req: Request, userId: number): Promise<
 
 export async function handleGetCatalogDecks(_req: Request, _userId: number): Promise<Response> {
   const decks = await catalogDb.select().from(officialDecks)
+  const mapped = decks.map(d => ({
+    ...d,
+    name: d.title,
+  }))
 
-  return json(decks)
+  return json(mapped)
 }
 
 export async function handleGetCatalogWords(req: Request, _userId: number): Promise<Response> {

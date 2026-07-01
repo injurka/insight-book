@@ -2,28 +2,64 @@ import type { DictDeck, UserDictItem } from '~/shared/types/models'
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 import { useToast } from '~/shared/composables/use-toast'
-import { useUmami } from '~/shared/composables/use-umami'
-import { DIFFICULTY_SYSTEMS } from '~/shared/constants/difficulties'
 import { api } from '~/shared/services/api.service'
 import { offlineService } from '~/shared/services/offline.service'
 import { useAnalysisStore } from '~/shared/store/analysis.store'
 
+import { useDecksStore } from './decks.store'
+import { useDictionaryFiltersStore } from './dictionary-filters.store'
+import { useTrainingStore } from './training.store'
+
 export const useDictionaryStore = defineStore('dictionary', () => {
   const toast = useToast()
-  const { trackEvent } = useUmami()
 
   const words = ref<UserDictItem[]>([])
-  const decks = ref<DictDeck[]>([])
-  const selectedWordIds = ref<Set<number>>(new Set())
-  const reviewQueue = ref<UserDictItem[]>([])
-  const trainingMode = ref<'srs' | 'random' | 'deep_dive'>('srs')
-
   const isLoading = ref(false)
-  const searchTerm = ref('')
-  const selectedLanguage = ref('all')
-  const selectedDeckId = ref<(number | 'all' | 'none')[]>(['all'])
-  const selectedDifficulty = ref<(string | 'all' | 'none')[]>(['all'])
-  const selectedStatus = ref<('all' | '0' | '1' | '2' | '3')[]>(['all'])
+
+  // Proxied/aliased fields/computed for backward compatibility
+  const decks = computed<DictDeck[]>({
+    get: () => useDecksStore().decks,
+    set: (val: DictDeck[]) => { useDecksStore().decks = val },
+  })
+  const reviewQueue = computed<UserDictItem[]>({
+    get: () => useTrainingStore().reviewQueue,
+    set: (val: UserDictItem[]) => { useTrainingStore().reviewQueue = val },
+  })
+  const trainingMode = computed<'srs' | 'random' | 'deep_dive'>({
+    get: () => useTrainingStore().trainingMode,
+    set: (val: 'srs' | 'random' | 'deep_dive') => { useTrainingStore().trainingMode = val },
+  })
+  const searchTerm = computed<string>({
+    get: () => useDictionaryFiltersStore().searchTerm,
+    set: (val: string) => { useDictionaryFiltersStore().searchTerm = val },
+  })
+  const selectedLanguage = computed<string>({
+    get: () => useDictionaryFiltersStore().selectedLanguage,
+    set: (val: string) => { useDictionaryFiltersStore().selectedLanguage = val },
+  })
+  const selectedDeckId = computed<(number | 'all' | 'none')[]>({
+    get: () => useDictionaryFiltersStore().selectedDeckId,
+    set: (val: (number | 'all' | 'none')[]) => { useDictionaryFiltersStore().selectedDeckId = val },
+  })
+  const selectedDifficulty = computed<(string | 'all' | 'none')[]>({
+    get: () => useDictionaryFiltersStore().selectedDifficulty,
+    set: (val: (string | 'all' | 'none')[]) => { useDictionaryFiltersStore().selectedDifficulty = val },
+  })
+  const selectedStatus = computed<('all' | '0' | '1' | '2' | '3')[]>({
+    get: () => useDictionaryFiltersStore().selectedStatus,
+    set: (val: ('all' | '0' | '1' | '2' | '3')[]) => { useDictionaryFiltersStore().selectedStatus = val },
+  })
+  const selectedWordIds = computed<Set<number>>({
+    get: () => useDictionaryFiltersStore().selectedWordIds,
+    set: (val: Set<number>) => { useDictionaryFiltersStore().selectedWordIds = val },
+  })
+
+  // Computed counts
+  const newWordsQueueCount = computed<number>(() => useTrainingStore().newWordsQueueCount)
+  const reviewWordsQueueCount = computed<number>(() => useTrainingStore().reviewWordsQueueCount)
+  const totalReviewCount = computed<number>(() => useTrainingStore().totalReviewCount)
+  const availableLanguages = computed<string[]>(() => useDictionaryFiltersStore().availableLanguages)
+  const filteredWords = computed<UserDictItem[]>(() => useDictionaryFiltersStore().filteredWords)
 
   async function fetchDictionary() {
     isLoading.value = true
@@ -33,11 +69,11 @@ export const useDictionaryStore = defineStore('dictionary', () => {
         api.dictionary.decks(),
       ])
       words.value = wordsData
-      decks.value = decksData
+      useDecksStore().decks = decksData
       await offlineService.saveDictionary(words.value)
-      await offlineService.saveDecks(decks.value)
+      await offlineService.saveDecks(useDecksStore().decks)
 
-      await fetchTrainingQueue({ mode: 'srs', deckId: 'all', difficulty: ['all'] })
+      await useTrainingStore().fetchTrainingQueue({ mode: 'srs', deckId: 'all', difficulty: ['all'] })
     }
     catch {
       const cached = await offlineService.getDictionary()
@@ -47,116 +83,10 @@ export const useDictionaryStore = defineStore('dictionary', () => {
         words.value = cached
 
       if (cachedDecks)
-        decks.value = cachedDecks
+        useDecksStore().decks = cachedDecks
     }
     finally {
       isLoading.value = false
-    }
-  }
-
-  async function fetchDecks() {
-    try {
-      decks.value = await api.dictionary.decks()
-    }
-    catch (e) {
-      console.warn('Could not fetch decks:', e)
-    }
-  }
-
-  async function fetchTrainingQueue(opts: { mode: 'srs' | 'random' | 'deep_dive', deckId: number | 'none' | 'all', difficulty: string[] }) {
-    trainingMode.value = opts.mode
-    try {
-      let langToFetch = selectedLanguage.value
-      if (opts.deckId !== 'all' && opts.deckId !== 'none') {
-        const deck = decks.value.find(d => d.id === opts.deckId)
-        if (deck)
-          langToFetch = deck.language
-      }
-
-      let queue = await api.dictionary.getReviewQueue({
-        lang: langToFetch,
-        mode: opts.mode,
-        deckId: opts.deckId,
-        difficulty: 'all',
-      })
-
-      if (!opts.difficulty.includes('all') && opts.difficulty.length > 0) {
-        queue = queue.filter((w) => {
-          return opts.difficulty.some((d) => {
-            if (d === 'none')
-              return !w.difficulty
-            if (d.startsWith('level_')) {
-              const targetLevel = Number.parseInt(d.split('_')[1], 10)
-              const sys = DIFFICULTY_SYSTEMS[w.language] || DIFFICULTY_SYSTEMS.default
-              const diffDef = sys.find(s => s.value === w.difficulty)
-              return diffDef && diffDef.level === targetLevel
-            }
-            return w.difficulty === d
-          })
-        })
-      }
-
-      reviewQueue.value = queue
-    }
-    catch (e) {
-      console.warn('Could not fetch queue:', e)
-      reviewQueue.value = []
-      throw e
-    }
-  }
-
-  async function createDeck(name: string, language: string) {
-    try {
-      const newDeck = await api.dictionary.createDeck({ name, language })
-      decks.value.push(newDeck)
-      toast.success('Колода создана')
-
-      trackEvent('deck_created', { language })
-
-      return newDeck
-    }
-    catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Ошибка создания колоды')
-      throw e
-    }
-  }
-
-  async function updateDeck(id: number, name: string) {
-    try {
-      await api.dictionary.updateDeck(id, { name })
-      const deck = decks.value.find(d => d.id === id)
-
-      if (deck)
-        deck.name = name
-
-      trackEvent('deck_updated', { deckId: id })
-
-      toast.success('Название колоды обновлено')
-    }
-    catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Ошибка обновления колоды')
-    }
-  }
-
-  async function deleteDeck(id: number) {
-    try {
-      await api.dictionary.deleteDeck(id)
-      decks.value = decks.value.filter(d => d.id !== id)
-      if (selectedDeckId.value.includes(id)) {
-        selectedDeckId.value = selectedDeckId.value.filter(d => d !== id)
-        if (selectedDeckId.value.length === 0)
-          selectedDeckId.value = ['all']
-      }
-      words.value.forEach((w) => {
-        if (w.deckId === id)
-          w.deckId = null
-      })
-      toast.success('Колода удалена')
-
-      trackEvent('deck_deleted', { deckId: id })
-    }
-    catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Ошибка удаления колоды')
     }
   }
 
@@ -164,65 +94,13 @@ export const useDictionaryStore = defineStore('dictionary', () => {
     try {
       await api.dictionary.remove(word)
       words.value = words.value.filter(w => w.word !== word)
-      reviewQueue.value = reviewQueue.value.filter(w => w.word !== word)
+      useTrainingStore().reviewQueue = useTrainingStore().reviewQueue.filter(w => w.word !== word)
       toast.success('Слово удалено')
-
-      trackEvent('word_deleted')
     }
     catch (e) {
       toast.error(e instanceof Error ? e.message : 'Не удалось удалить слово')
     }
   }
-
-  const availableLanguages = computed(() => {
-    const langs = new Set(words.value.map(w => w.language))
-    return Array.from(langs)
-  })
-
-  const filteredWords = computed(() => {
-    let result = words.value
-
-    if (selectedLanguage.value !== 'all') {
-      result = result.filter(w => w.language === selectedLanguage.value)
-    }
-
-    if (!selectedDeckId.value.includes('all') && selectedDeckId.value.length > 0) {
-      result = result.filter(w => selectedDeckId.value.includes(w.deckId ?? 'none'))
-    }
-
-    if (!selectedDifficulty.value.includes('all') && selectedDifficulty.value.length > 0) {
-      result = result.filter((w) => {
-        return selectedDifficulty.value.some((d) => {
-          if (d === 'none')
-            return !w.difficulty
-          if (d.startsWith('level_')) {
-            const targetLevel = Number.parseInt(d.split('_')[1], 10)
-            const sys = DIFFICULTY_SYSTEMS[w.language] || DIFFICULTY_SYSTEMS.default
-            const diffDef = sys.find(s => s.value === w.difficulty)
-            return diffDef && diffDef.level === targetLevel
-          }
-          return w.difficulty === d
-        })
-      })
-    }
-
-    if (!selectedStatus.value.includes('all') && selectedStatus.value.length > 0) {
-      result = result.filter(w => selectedStatus.value.includes(String(w.state) as '0' | '1' | '2' | '3'))
-    }
-
-    if (searchTerm.value) {
-      const lowerTerm = searchTerm.value.toLowerCase()
-      result = result.filter(item =>
-        item.word.toLowerCase().includes(lowerTerm)
-        || item.transcription?.toLowerCase().includes(lowerTerm)
-        || item.translation?.toLowerCase().includes(lowerTerm)
-        || item.notes?.toLowerCase().includes(lowerTerm)
-        || item.tags?.toLowerCase().includes(lowerTerm)
-        || item.difficulty?.toLowerCase().includes(lowerTerm),
-      )
-    }
-    return result
-  })
 
   function openEditModal(word: UserDictItem) {
     const analysisStore = useAnalysisStore()
@@ -230,62 +108,17 @@ export const useDictionaryStore = defineStore('dictionary', () => {
     analysisStore.addEditWordModalOpen = true
   }
 
-  const newWordsQueueCount = computed(() => reviewQueue.value.filter(w => w.state === 0).length)
-  const reviewWordsQueueCount = computed(() => reviewQueue.value.filter(w => w.state > 0).length)
-  const totalReviewCount = computed(() => reviewQueue.value.length)
-
-  function toggleWordSelection(id: number) {
-    if (selectedWordIds.value.has(id))
-      selectedWordIds.value.delete(id)
-    else selectedWordIds.value.add(id)
-  }
-
-  function clearSelection() {
-    selectedWordIds.value.clear()
-  }
-
-  function selectAllFiltered() {
-    filteredWords.value.forEach(w => selectedWordIds.value.add(w.id))
-  }
-
-  async function bulkDelete() {
-    const ids = Array.from(selectedWordIds.value)
-    if (!ids.length)
-      return
-
-    try {
-      await api.dictionary.bulkDelete(ids)
-      words.value = words.value.filter(w => !ids.includes(w.id))
-      clearSelection()
-      toast.success(`Удалено ${ids.length} слов`)
-
-      trackEvent('bulk_words_deleted', { count: ids.length })
-    }
-    catch {
-      toast.error('Ошибка удаления')
-    }
-  }
-
-  async function bulkMoveToDeck(deckId: number | null) {
-    const ids = Array.from(selectedWordIds.value)
-    if (!ids.length)
-      return
-
-    try {
-      await api.dictionary.bulkMove(ids, deckId)
-      words.value.forEach((w) => {
-        if (ids.includes(w.id))
-          w.deckId = deckId
-      })
-      clearSelection()
-      toast.success(`Перемещено ${ids.length} слов`)
-
-      trackEvent('bulk_words_moved', { count: ids.length })
-    }
-    catch {
-      toast.error('Ошибка перемещения')
-    }
-  }
+  // Delegated methods
+  const fetchDecks = () => useDecksStore().fetchDecks()
+  const fetchTrainingQueue = (opts: any) => useTrainingStore().fetchTrainingQueue(opts)
+  const createDeck = (name: string, language: string) => useDecksStore().createDeck(name, language)
+  const updateDeck = (id: number, name: string) => useDecksStore().updateDeck(id, name)
+  const deleteDeck = (id: number) => useDecksStore().deleteDeck(id)
+  const toggleWordSelection = (id: number) => useDictionaryFiltersStore().toggleWordSelection(id)
+  const clearSelection = () => useDictionaryFiltersStore().clearSelection()
+  const selectAllFiltered = () => useDictionaryFiltersStore().selectAllFiltered()
+  const bulkDelete = () => useDictionaryFiltersStore().bulkDelete()
+  const bulkMoveToDeck = (deckId: number | null) => useDictionaryFiltersStore().bulkMoveToDeck(deckId)
 
   return {
     words,

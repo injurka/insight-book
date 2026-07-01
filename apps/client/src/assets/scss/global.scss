@@ -1,4 +1,5 @@
 @use 'sass:map';
+@use './animations' as *;
 
 :root {
    font-family:  'Inter', 'Maple Mono CN', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;

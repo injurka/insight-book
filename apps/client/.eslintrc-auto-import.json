@@ -58,6 +58,7 @@
     "eagerComputed": true,
     "effectScope": true,
     "extendRef": true,
+    "formatMarkdown": true,
     "getActivePinia": true,
     "getCurrentInstance": true,
     "getCurrentScope": true,

@@ -12,6 +12,7 @@ interface DictEntry {
   $word: string
   $transcription: string | null
   $translation: string
+  [key: string]: string | null
 }
 
 /**
@@ -88,7 +89,7 @@ function buildTranslation(rawLines: string[], kanji: string | null, corpusTag: s
 async function importDictionary() {
   console.log('Начинаем импорт японского словаря...')
 
-  const insertStmt = db.prepare(`
+  const insertStmt = db.prepare<unknown, DictEntry>(`
     INSERT OR REPLACE INTO words (word, transcription, translation)
     VALUES ($word, $transcription, $translation)
   `)
