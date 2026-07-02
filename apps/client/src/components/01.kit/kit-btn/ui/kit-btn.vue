@@ -157,12 +157,33 @@ const componentClasses = computed(() => [
   }
 
   &--solid {
-    &.kit-btn--color-primary {
+    &.kit-btn--color-primary,
+    &.kit-btn--color-accent {
       background-color: var(--fg-accent-color);
       border-color: var(--fg-accent-color);
       color: var(--fg-inverted-color);
       &:hover {
         background-color: var(--fg-action-color);
+        border-color: var(--fg-action-color);
+      }
+    }
+    &.kit-btn--color-secondary {
+      background-color: var(--bg-tertiary-color);
+      border-color: var(--bg-tertiary-color);
+      color: var(--fg-primary-color);
+      &:hover {
+        background-color: var(--bg-hover-color);
+        border-color: var(--bg-hover-color);
+      }
+    }
+    @each $name in (error, success, warning, info) {
+      &.kit-btn--color-#{$name} {
+        background-color: var(--fg-#{$name}-color);
+        border-color: var(--fg-#{$name}-color);
+        color: var(--fg-inverted-color);
+        &:hover {
+          filter: brightness(1.1);
+        }
       }
     }
   }
@@ -170,51 +191,50 @@ const componentClasses = computed(() => [
   &--tonal {
     border: none;
     &.kit-btn--color-primary,
-    &.kit-btn--color-secondary {
+    &.kit-btn--color-secondary,
+    &.kit-btn--color-accent {
       background-color: var(--bg-tertiary-color);
       color: var(--fg-primary-color);
       &:hover {
         background-color: var(--bg-hover-color);
       }
     }
-    &.kit-btn--color-error {
-      background-color: rgba(var(--bg-error-color-rgb, 248, 81, 73), 0.15);
-      color: var(--fg-error-color);
-      &:hover {
-        background-color: rgba(var(--bg-error-color-rgb, 248, 81, 73), 0.25);
-      }
-    }
-    &.kit-btn--color-success {
-      background-color: rgba(var(--bg-success-color-rgb, 86, 211, 100), 0.15);
-      color: var(--fg-success-color);
-      &:hover {
-        background-color: rgba(var(--bg-success-color-rgb, 86, 211, 100), 0.25);
-      }
-    }
-    &.kit-btn--color-warning {
-      background-color: rgba(var(--bg-warning-color-rgb, 227, 179, 65), 0.15);
-      color: var(--fg-warning-color);
-      &:hover {
-        background-color: rgba(var(--bg-warning-color-rgb, 227, 179, 65), 0.25);
-      }
-    }
-    &.kit-btn--color-info {
-      background-color: rgba(var(--bg-info-color-rgb, 118, 227, 234), 0.15);
-      color: var(--fg-info-color);
-      &:hover {
-        background-color: rgba(var(--bg-info-color-rgb, 118, 227, 234), 0.25);
+    @each $name, $rgb in (error: '248, 81, 73', success: '86, 211, 100', warning: '227, 179, 65', info: '118, 227, 234')
+    {
+      &.kit-btn--color-#{$name} {
+        background-color: rgba(var(--bg-#{$name}-color-rgb, #{$rgb}), 0.15);
+        color: var(--fg-#{$name}-color);
+        &:hover {
+          background-color: rgba(var(--bg-#{$name}-color-rgb, #{$rgb}), 0.25);
+        }
       }
     }
   }
 
   &--outlined {
     background-color: transparent;
-    border: 1px solid var(--border-primary-color);
-    color: var(--fg-primary-color);
     box-shadow: none;
-    &:hover {
-      border-color: var(--fg-accent-color);
-      color: var(--fg-accent-color);
+
+    &.kit-btn--color-primary,
+    &.kit-btn--color-secondary,
+    &.kit-btn--color-accent {
+      border: 1px solid var(--border-primary-color);
+      color: var(--fg-primary-color);
+      &:hover {
+        border-color: var(--fg-accent-color);
+        color: var(--fg-accent-color);
+      }
+    }
+
+    @each $name, $rgb in (error: '248, 81, 73', success: '86, 211, 100', warning: '227, 179, 65', info: '118, 227, 234')
+    {
+      &.kit-btn--color-#{$name} {
+        border: 1px solid var(--fg-#{$name}-color);
+        color: var(--fg-#{$name}-color);
+        &:hover {
+          background-color: rgba(var(--bg-#{$name}-color-rgb, #{$rgb}), 0.1);
+        }
+      }
     }
   }
 
@@ -222,13 +242,29 @@ const componentClasses = computed(() => [
     background-color: transparent;
     box-shadow: none;
     border-color: transparent;
-    color: var(--fg-primary-color);
 
+    &.kit-btn--color-primary,
+    &.kit-btn--color-secondary {
+      color: var(--fg-primary-color);
+      &:hover {
+        background-color: var(--bg-hover-color);
+      }
+    }
     &.kit-btn--color-accent {
       color: var(--fg-accent-color);
+      &:hover {
+        background-color: var(--bg-hover-color);
+      }
     }
-    &:hover {
-      background-color: var(--bg-hover-color);
+
+    @each $name, $rgb in (error: '248, 81, 73', success: '86, 211, 100', warning: '227, 179, 65', info: '118, 227, 234')
+    {
+      &.kit-btn--color-#{$name} {
+        color: var(--fg-#{$name}-color);
+        &:hover {
+          background-color: rgba(var(--bg-#{$name}-color-rgb, #{$rgb}), 0.1);
+        }
+      }
     }
   }
 
