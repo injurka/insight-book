@@ -4,7 +4,7 @@ import { autoUpdate, flip, offset, shift, useFloating } from '@floating-ui/vue'
 import { Icon } from '@iconify/vue'
 import { useResizeObserver } from '@vueuse/core'
 import { useI18n } from 'vue-i18n'
-import { KitBtn, KitSkeleton, KitTooltip } from '~/components/01.kit'
+import { KitBtn, KitDropdown, KitSkeleton, KitTooltip } from '~/components/01.kit'
 import { useLibraryStore } from '~/components/05.modules/library/store/library.store'
 import { useReaderStore } from '~/components/05.modules/reader/store/reader.store'
 import { useToast } from '~/shared/composables/use-toast'
@@ -21,6 +21,7 @@ const toast = useToast()
 const { t } = useI18n()
 
 const AiExamplesModal = lazyComponent(() => import('../modal/ai-examples-modal.vue'))
+const LlmChatModal = lazyComponent(() => import('~/components/04.features/llm-chat/ui/llm-chat-modal.vue'))
 
 const popoverRef = ref<HTMLElement | null>(null)
 
@@ -50,8 +51,15 @@ const popoverPos = computed(() => {
 })
 
 const isAiModalOpen = ref(false)
+const isChatModalOpen = ref(false)
 const isAiLoading = ref(false)
 const aiData = ref<GeneratedWordExamples | null>(null)
+
+const currentLanguage = computed(() => {
+  const readerStore = useReaderStore()
+  const libraryStore = useLibraryStore()
+  return (readerStore.currentBook || libraryStore.currentBookInfo)?.language || 'en'
+})
 
 const headerText = computed(() => {
   if (!analysisStore.wordPopover)
@@ -111,11 +119,6 @@ async function fetchAiExamples() {
     return
   const word = analysisStore.wordPopover.word
 
-  const readerStore = useReaderStore()
-  const libraryStore = useLibraryStore()
-  const currentBook = readerStore.currentBook || libraryStore.currentBookInfo
-  const lang = currentBook?.language || 'en'
-
   analysisStore.closePopover()
 
   isAiModalOpen.value = true
@@ -123,7 +126,7 @@ async function fetchAiExamples() {
   aiData.value = null
 
   try {
-    aiData.value = await api.dictionary.generateExamples(word, lang)
+    aiData.value = await api.dictionary.generateExamples(word, currentLanguage.value)
   }
   catch (e) {
     toast.error(e instanceof Error ? e.message : t('dictionary.errorExamples'))
@@ -132,6 +135,12 @@ async function fetchAiExamples() {
   finally {
     isAiLoading.value = false
   }
+}
+
+function openFreeQuestion() {
+  if (!analysisStore.wordPopover?.word) return
+  analysisStore.closePopover()
+  isChatModalOpen.value = true
 }
 
 function closePopover(event?: MouseEvent) {
@@ -216,9 +225,28 @@ onUnmounted(() => {
               />
             </KitTooltip>
 
-            <KitTooltip :text="t('analysis.detailedWithAi')" placement="top">
-              <KitBtn icon="mdi:text-box-search-outline" size="xs" variant="text" @click.stop="fetchAiExamples" />
-            </KitTooltip>
+            <KitDropdown placement="top" width="220px">
+              <template #activator="{ isOpen, toggle }">
+                <KitTooltip :text="t('analysis.detailedWithAi')" placement="top">
+                  <KitBtn
+                    icon="mdi:text-box-search-outline"
+                    size="xs"
+                    variant="text"
+                    :class="{ 'is-active-ai': isOpen }"
+                    @click.stop="toggle"
+                  />
+                </KitTooltip>
+              </template>
+
+              <div class="dropdown-menu-list">
+                <button class="dropdown-item" @click.stop="fetchAiExamples">
+                  <Icon icon="mdi:text-box-search-outline" /> {{ t('analysis.aiContextAndExamples') }}
+                </button>
+                <button class="dropdown-item" @click.stop="openFreeQuestion">
+                  <Icon icon="mdi:robot-outline" /> {{ t('dictionary.aiFreeQuestion') }}
+                </button>
+              </div>
+            </KitDropdown>
 
             <KitTooltip :text="t('analysis.translateWithAi')" placement="top">
               <KitBtn icon="mdi:robot-outline" size="xs" variant="text" :class="{ 'is-active-ai': analysisStore.wordPopover.showAi }" @click.stop="analysisStore.toggleAiTranslation" />
@@ -240,6 +268,12 @@ onUnmounted(() => {
   </Teleport>
 
   <AiExamplesModal v-model:visible="isAiModalOpen" :loading="isAiLoading" :data="aiData" />
+  <LlmChatModal
+    v-if="isChatModalOpen"
+    v-model:visible="isChatModalOpen"
+    :word="analysisStore.wordPopover?.word"
+    :language="currentLanguage"
+  />
 </template>
 
 <style lang="scss" scoped>
@@ -498,5 +532,49 @@ onUnmounted(() => {
 .content-fade-leave-to {
   opacity: 0;
   transform: translateY(-4px);
+}
+
+.dropdown-menu-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border: none;
+  background: transparent;
+  color: var(--fg-primary-color);
+  font-size: 0.95rem;
+  font-family: inherit;
+  cursor: pointer;
+  border-radius: 6px;
+  transition:
+    background-color 0.2s,
+    color 0.2s;
+  text-align: left;
+  width: 100%;
+
+  &:hover:not(:disabled) {
+    background-color: var(--bg-hover-color);
+    color: var(--fg-accent-color);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  svg {
+    font-size: 1.25rem;
+    color: var(--fg-secondary-color);
+  }
+
+  &:hover:not(:disabled) svg {
+    color: var(--fg-accent-color);
+  }
 }
 </style>
