@@ -302,8 +302,8 @@ jobs:
         run: |
           echo "${{ secrets.ANDROID_KEY_BASE64 }}" \
             | base64 --decode > $RUNNER_TEMP/release.keystore
-          mkdir -p src-tauri/gen/android
-          cat > src-tauri/gen/android/keystore.properties <<EOF
+          mkdir -p apps/client/src-tauri/gen/android
+          cat > apps/client/src-tauri/gen/android/keystore.properties <<EOF
           storePassword=${{ secrets.ANDROID_KEY_PASSWORD }}
           keyPassword=${{ secrets.ANDROID_KEY_PASSWORD }}
           keyAlias=${{ secrets.ANDROID_KEY_ALIAS }}
