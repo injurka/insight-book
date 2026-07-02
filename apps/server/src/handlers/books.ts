@@ -4,7 +4,7 @@ import type { PagePayload } from '../types'
 import { mkdirSync, readFileSync } from 'node:fs'
 import { rm, unlink } from 'node:fs/promises'
 import path from 'node:path'
-import { and, desc, eq, inArray, like, or, sql } from 'drizzle-orm'
+import { and, desc, eq, inArray, isNotNull, like, or, sql } from 'drizzle-orm'
 import { parse as parseHtml } from 'node-html-parser'
 import sharp from 'sharp'
 
@@ -230,6 +230,15 @@ export async function handleGetBookInfo(req: Request, userId: number | null): Pr
       .get(),
   ])
 
+  let analysesCount = (sentencesCountRes?.count || 0) + (wordsCountRes?.count || 0)
+  if (book.type === 'manga') {
+    const analyzedPagesRes = await db.select({ count: sql<number>`count(*)` })
+      .from(schema.mangaPages)
+      .where(and(eq(schema.mangaPages.bookId, id), isNotNull(schema.mangaPages.ocrData)))
+      .get()
+    analysesCount = analyzedPagesRes?.count || 0
+  }
+
   return json({
     ...bookData,
     currentPage: progress?.currentPage ?? null,
@@ -238,7 +247,7 @@ export async function handleGetBookInfo(req: Request, userId: number | null): Pr
     collection: progress?.collection ?? null,
     toc: book.toc ? JSON.parse(book.toc) : [],
     stats: statsResult,
-    analysesCount: (sentencesCountRes?.count || 0) + (wordsCountRes?.count || 0),
+    analysesCount,
     cachedSentences: sentencesCountRes?.count || 0,
     cachedWords: wordsCountRes?.count || 0,
     cachedTts: ttsCountRes?.count || 0,

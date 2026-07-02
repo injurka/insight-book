@@ -195,7 +195,7 @@ onUnmounted(() => stop())
     >
       <div class="bubble-actions" @mousedown.stop @touchstart.stop>
         <button class="action-btn" :title="t('analysis.aiAnalysis')" @click.stop="analyzeSentence">
-          <Icon icon="mdi:robot-outline" />
+          <Icon icon="mdi:text-search" />
         </button>
         <button class="action-btn" :title="t('analysis.voice')" @click.stop="playTTS">
           <Icon

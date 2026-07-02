@@ -142,7 +142,7 @@ onUnmounted(() => stop())
     v-model:visible="analysisStore.sidebarOpen"
     :title="showHistory ? t('analysis.sessionHistory') : t('analysis.aiAnalysis')"
     :max-width="650"
-    icon="mdi:robot-outline"
+    icon="mdi:text-search"
     :floating="!isPinned"
     :persistent="!isPinned"
     :key-trigger="analysisStore.sidebarSentence"
@@ -404,6 +404,8 @@ onUnmounted(() => stop())
       border-radius: 4px 8px 8px 4px;
       display: flex;
       flex-direction: column;
+      justify-content: space-between;
+      min-height: 88px;
       gap: 6px;
 
       .original-sentence {

@@ -53,7 +53,7 @@ const { x, y, strategy } = useFloating(referenceRef, floatingRef, {
     floatingSize({
       apply({ rects, elements }) {
         Object.assign(elements.floating.style, {
-          width: `${rects.reference.width}px`,
+          minWidth: `${rects.reference.width}px`,
         })
       },
     }),
@@ -277,6 +277,7 @@ onUnmounted(() => {
   cursor: pointer;
   color: var(--fg-primary-color);
   border-radius: 6px;
+  white-space: nowrap;
   transition:
     background-color 0.2s,
     color 0.2s;

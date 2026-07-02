@@ -283,7 +283,7 @@ onUnmounted(() => {
         @click.stop
       >
         <button class="tooltip-btn" :title="t('analysis.aiAnalysis')" @click="analyzeFragment">
-          <Icon icon="mdi:robot-outline" />
+          <Icon icon="mdi:text-search" />
           <span>{{ t('analysis.aiAnalysis') }}</span>
         </button>
         <div class="divider" />
@@ -294,22 +294,6 @@ onUnmounted(() => {
           />
           <span>{{ t('analysis.listen') }}</span>
         </button>
-        <div class="divider" />
-        <div v-if="matchingHighlight" class="highlight-actions">
-          <button class="tooltip-btn delete-btn" :title="t('analysis.removeHighlight')" @click="deleteHighlight(matchingHighlight.id)">
-            <Icon icon="mdi:marker-cancel" />
-            <span>{{ t('analysis.removeHighlight') }}</span>
-          </button>
-        </div>
-        <div v-else class="highlight-actions">
-          <div v-if="isSavingHighlight" class="saving-loader">
-            <Icon icon="mdi:loading" class="spin-animation" />
-          </div>
-          <button v-else class="tooltip-btn" :title="t('analysis.saveToNotebook')" @click="openSaveModal">
-            <Icon icon="mdi:bookmark-plus-outline" />
-            <span>{{ t('analysis.saveToNotebook') }}</span>
-          </button>
-        </div>
       </div>
     </Transition>
 
