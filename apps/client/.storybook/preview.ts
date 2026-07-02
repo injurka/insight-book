@@ -16,6 +16,24 @@ const preview: Preview = {
       test: 'todo'
     }
   },
+  globalTypes: {
+    theme: {
+      description: 'Global theme for components',
+      defaultValue: 'light',
+      toolbar: {
+        title: 'Theme',
+        icon: 'circlehollow',
+        items: ['light', 'dark'],
+        dynamicTitle: true,
+      },
+    },
+  },
+  decorators: [
+    (story, context) => {
+      document.documentElement.setAttribute('data-theme', context.globals.theme);
+      return story();
+    },
+  ],
 };
 
 export default preview;
