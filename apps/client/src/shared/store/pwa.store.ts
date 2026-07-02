@@ -163,7 +163,7 @@ export const usePwaStore = defineStore('pwa', {
 
     async updatePushSettings(settings: { deckId: number | 'all', timeStart: string, timeEnd: string, pushCount: number }) {
       const BASE = import.meta.env.VITE_API_URL || 'https://insight-api.trip-scheduler.ru'
-      const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'
+      const timezone = new Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'
 
       const { useGlobalSettingsStore } = await import('./settings.store')
       const settingsStore = useGlobalSettingsStore()
