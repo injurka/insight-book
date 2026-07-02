@@ -54,6 +54,7 @@ const popoverPos = computed(() => {
 
 const isAiModalOpen = ref(false)
 const isChatModalOpen = ref(false)
+const chatWord = ref('')
 const isAiLoading = ref(false)
 const aiData = ref<GeneratedWordExamples | null>(null)
 
@@ -142,6 +143,7 @@ async function fetchAiExamples() {
 function openFreeQuestion() {
   if (!analysisStore.wordPopover?.word)
     return
+  chatWord.value = analysisStore.wordPopover.word
   analysisStore.closePopover()
   isChatModalOpen.value = true
 }
@@ -228,8 +230,8 @@ onUnmounted(() => {
               />
             </KitTooltip>
 
-            <KitDropdown placement="top" width="220px">
-              <template #activator="{ isOpen, toggle }">
+            <KitDropdown placement="top" width="240px">
+              <template #activator="{ props: { isOpen, toggle } }">
                 <KitTooltip :text="t('analysis.detailedWithAi')" placement="top">
                   <KitBtn
                     icon="mdi:text-box-search-outline"
@@ -274,7 +276,7 @@ onUnmounted(() => {
   <LlmChatModal
     v-if="isChatModalOpen"
     v-model:visible="isChatModalOpen"
-    :word="analysisStore.wordPopover?.word"
+    :word="chatWord"
     :language="currentLanguage"
   />
 </template>

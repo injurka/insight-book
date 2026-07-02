@@ -1,15 +1,11 @@
 <script setup lang="ts">
 import { Icon } from '@iconify/vue'
 import { useDebounceFn } from '@vueuse/core'
-import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { QuoteModal } from '~/components/04.features/quote-modal'
 import { useHighlightsStore } from '~/components/05.modules/reader/store/highlights.store'
 import { useReaderStore } from '~/components/05.modules/reader/store/reader.store'
 import { useTts } from '~/shared/composables/use-tts'
-import { normalizeString } from '~/shared/lib/helpers'
-import { api } from '~/shared/services/api.service'
-import { offlineService } from '~/shared/services/offline.service'
 import { useAnalysisStore } from '~/shared/store/analysis.store'
 
 const highlightsStore = useHighlightsStore()
@@ -22,48 +18,6 @@ const isSaveModalOpen = ref(false)
 const highlightColors = ['#fde047', '#86efac', '#f472b6', '#93c5fd', '#c4b5fd']
 const modalInitialData = ref({ text: '', translation: '', color: highlightColors[0], note: '' })
 const isFetchingTranslation = ref(false)
-
-const matchingHighlight = computed(() => {
-  if (!analysisStore.selectionTooltip || !readerStore.currentBook)
-    return null
-  const rawNorm = normalizeString(analysisStore.selectionTooltip.text)
-  return highlightsStore.highlights.find((h) => {
-    const hNorm = normalizeString(h.text)
-    return Number(h.bookId) === Number(readerStore.currentBook?.id) && (rawNorm === hNorm || (hNorm.length >= 2 && (rawNorm.includes(hNorm) || hNorm.includes(rawNorm))))
-  })
-})
-
-async function openSaveModal() {
-  if (!analysisStore.selectionTooltip || !readerStore.currentBook)
-    return
-
-  const text = analysisStore.selectionTooltip.text.replace(/\n+/g, '')
-  modalInitialData.value = { text, translation: '', color: '#fde047', note: '' }
-  isSaveModalOpen.value = true
-  isFetchingTranslation.value = true
-
-  analysisStore.closeSelectionTooltip()
-  window.getSelection()?.removeAllRanges()
-
-  try {
-    const cached = await offlineService.getAnalysis(text)
-    if (cached && cached.translation) {
-      modalInitialData.value.translation = cached.translation
-    }
-    else {
-      const language = readerStore.currentBook.language || 'en'
-      const res = await api.books.analyze(readerStore.currentBook.id, text, language)
-      await offlineService.saveAnalysis(text, res)
-      modalInitialData.value.translation = res.translation || ''
-    }
-  }
-  catch (e) {
-    console.error('Translation failed:', e)
-  }
-  finally {
-    isFetchingTranslation.value = false
-  }
-}
 
 async function handleSaveQuote(data: { text: string, translation: string, note: string, color: string }) {
   if (!readerStore.currentBook || !readerStore.currentPage)
@@ -107,17 +61,6 @@ async function handleSaveQuote(data: { text: string, translation: string, note: 
   }
   finally {
     isSavingHighlight.value = false
-  }
-}
-
-async function deleteHighlight(id: number) {
-  try {
-    await highlightsStore.deleteHighlight(id)
-    analysisStore.closeSelectionTooltip()
-    window.getSelection()?.removeAllRanges()
-  }
-  catch (err) {
-    console.error('Failed to delete highlight', err)
   }
 }
 

@@ -1,14 +1,14 @@
-import type { Meta, StoryObj } from '@storybook/vue3';
-import KitBtn from './kit-btn.vue';
+import type { Meta, StoryObj } from '@storybook/vue3'
+import KitBtn from './kit-btn.vue'
 
 const meta: Meta<typeof KitBtn> = {
   title: 'Kit/KitBtn',
   component: KitBtn,
   tags: ['autodocs'],
-};
+}
 
-export default meta;
-type Story = StoryObj<typeof KitBtn>;
+export default meta
+type Story = StoryObj<typeof KitBtn>
 
 export const Variants: Story = {
   render: () => ({
@@ -22,7 +22,7 @@ export const Variants: Story = {
       </div>
     `,
   }),
-};
+}
 
 export const ColorsSolid: Story = {
   render: () => ({
@@ -39,7 +39,7 @@ export const ColorsSolid: Story = {
       </div>
     `,
   }),
-};
+}
 
 export const WithIcons: Story = {
   render: () => ({
@@ -52,4 +52,4 @@ export const WithIcons: Story = {
       </div>
     `,
   }),
-};
+}
