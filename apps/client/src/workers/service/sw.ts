@@ -144,6 +144,7 @@ if (import.meta.env.PROD) {
     /^\/sw\.js$/,
     /^\/manifest-(.*)\.webmanifest$/,
     /^\/workbox-.*\.js$/,
+    /^\/docs/,
   ]
 }
 
