@@ -26,6 +26,7 @@ ENV VITE_APP_VERSION=$V_CLIENT
 ENV VITE_API_URL=$VITE_API_URL
 
 RUN bun --cwd=apps/client run build
+RUN bun --cwd=apps/client run story:build
 
 # =================================================================
 # Этап 2: "release" - Создание финального образа с Nginx
@@ -33,6 +34,7 @@ RUN bun --cwd=apps/client run build
 FROM nginx:stable-alpine
 
 COPY --from=builder /usr/src/app/apps/client/dist /usr/share/nginx/html
+COPY --from=builder /usr/src/app/apps/client/storybook-static /usr/share/nginx/html/docs
 COPY docker/nginx.conf /etc/nginx/conf.d/default.conf
 
 EXPOSE 3334

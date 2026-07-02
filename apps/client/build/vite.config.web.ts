@@ -43,7 +43,7 @@ export default defineConfig({
       algorithms: ['brotliCompress'],
       exclude: [/\.(br)$/, /\.(gz)$/],
     }),
-    VitePWA(pwaCfg(buildRevision)),
+    process.env.STORYBOOK_ENV ? null : VitePWA(pwaCfg(buildRevision)),
     Icons(iconsCfg),
     ...visualizerPlugin('renderer'),
   ],
