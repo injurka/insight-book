@@ -1,0 +1,1 @@
+ALTER TABLE `llm_cache` ADD `targetLanguage` text DEFAULT 'ru' NOT NULL;

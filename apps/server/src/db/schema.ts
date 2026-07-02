@@ -148,6 +148,8 @@ export const llmCache = sqliteTable('llm_cache', {
   language: text('language').notNull().default('en'),
   sentence: text('sentence').notNull(),
   analysis: text('analysis').notNull(),
+  targetLanguage: text('targetLanguage').notNull().default('ru'),
+
   createdAt: text('createdAt').notNull().default(sql`(datetime('now'))`),
 })
 

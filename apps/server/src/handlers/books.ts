@@ -73,11 +73,20 @@ export async function handleGetBooks(req: Request, userId: number | null): Promi
       .offset((page - 1) * limit)
 
     const bookIds = rows.map(r => r.book.id)
+    const targetLang = normalizeLanguageCode(url.searchParams.get('targetLang') || 'ru')
+
     const llmCounts = bookIds.length > 0
       ? await db.select({
           bookId: schema.bookLlmCache.bookId,
           count: sql<number>`count(*)`.mapWith(Number),
-        }).from(schema.bookLlmCache).where(inArray(schema.bookLlmCache.bookId, bookIds)).groupBy(schema.bookLlmCache.bookId)
+        })
+        .from(schema.bookLlmCache)
+        .innerJoin(schema.llmCache, eq(schema.bookLlmCache.sentenceHash, schema.llmCache.sentenceHash))
+        .where(and(
+          inArray(schema.bookLlmCache.bookId, bookIds),
+          eq(schema.llmCache.targetLanguage, targetLang)
+        ))
+        .groupBy(schema.bookLlmCache.bookId)
       : []
     const countMap = new Map(llmCounts.map(r => [r.bookId, r.count]))
 
@@ -124,11 +133,20 @@ export async function handleGetBooks(req: Request, userId: number | null): Promi
     })
 
   const bookIds = result.map(b => b.id)
+  const targetLang = normalizeLanguageCode((new URL(req.url).searchParams.get('targetLang')) || 'ru')
+
   const llmCounts = bookIds.length > 0
     ? await db.select({
         bookId: schema.bookLlmCache.bookId,
         count: sql<number>`count(*)`.mapWith(Number),
-      }).from(schema.bookLlmCache).where(inArray(schema.bookLlmCache.bookId, bookIds)).groupBy(schema.bookLlmCache.bookId)
+      })
+      .from(schema.bookLlmCache)
+      .innerJoin(schema.llmCache, eq(schema.bookLlmCache.sentenceHash, schema.llmCache.sentenceHash))
+      .where(and(
+        inArray(schema.bookLlmCache.bookId, bookIds),
+        eq(schema.llmCache.targetLanguage, targetLang)
+      ))
+      .groupBy(schema.bookLlmCache.bookId)
     : []
   const countMap = new Map(llmCounts.map(r => [r.bookId, r.count]))
 
@@ -185,14 +203,26 @@ export async function handleGetBookInfo(req: Request, userId: number | null): Pr
       }
     : null
 
+  const targetLang = normalizeLanguageCode((new URL(req.url).searchParams.get('targetLang')) || 'ru')
+
   const [sentencesCountRes, wordsCountRes, ttsCountRes] = await Promise.all([
     db.select({ count: sql<number>`count(*)` })
       .from(schema.bookLlmCache)
-      .where(and(eq(schema.bookLlmCache.bookId, id), eq(schema.bookLlmCache.type, 'sentence')))
+      .innerJoin(schema.llmCache, eq(schema.bookLlmCache.sentenceHash, schema.llmCache.sentenceHash))
+      .where(and(
+        eq(schema.bookLlmCache.bookId, id),
+        eq(schema.bookLlmCache.type, 'sentence'),
+        eq(schema.llmCache.targetLanguage, targetLang)
+      ))
       .get(),
     db.select({ count: sql<number>`count(*)` })
       .from(schema.bookLlmCache)
-      .where(and(eq(schema.bookLlmCache.bookId, id), eq(schema.bookLlmCache.type, 'word')))
+      .innerJoin(schema.llmCache, eq(schema.bookLlmCache.sentenceHash, schema.llmCache.sentenceHash))
+      .where(and(
+        eq(schema.bookLlmCache.bookId, id),
+        eq(schema.bookLlmCache.type, 'word'),
+        eq(schema.llmCache.targetLanguage, targetLang)
+      ))
       .get(),
     db.select({ count: sql<number>`count(*)` })
       .from(schema.bookTtsCache)

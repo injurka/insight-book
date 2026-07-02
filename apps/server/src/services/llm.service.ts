@@ -95,6 +95,7 @@ export async function analyzeSentence(
       await db.insert(schema.llmCache).values({
         sentenceHash: hash,
         language,
+        targetLanguage: targetLang,
         sentence,
         analysis: JSON.stringify(analysis),
       }).onConflictDoUpdate({
@@ -446,6 +447,7 @@ export async function analyzeBatch(userId: number, bookId: number, items: BatchA
           llmCacheInserts.push({
             sentenceHash: hash,
             language,
+            targetLanguage: targetLang,
             sentence: originalItem.sentence,
             analysis: JSON.stringify(res.analysis),
           })
