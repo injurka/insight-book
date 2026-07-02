@@ -23,6 +23,8 @@ const { t } = useI18n()
 const AiExamplesModal = lazyComponent(() => import('../modal/ai-examples-modal.vue'))
 const LlmChatModal = lazyComponent(() => import('~/components/04.features/llm-chat/ui/llm-chat-modal.vue'))
 
+provide('kit-dialog-z-index', ref(1300))
+
 const popoverRef = ref<HTMLElement | null>(null)
 
 const referenceEl = computed(() => analysisStore.wordPopover?.target || null)
@@ -138,7 +140,8 @@ async function fetchAiExamples() {
 }
 
 function openFreeQuestion() {
-  if (!analysisStore.wordPopover?.word) return
+  if (!analysisStore.wordPopover?.word)
+    return
   analysisStore.closePopover()
   isChatModalOpen.value = true
 }
