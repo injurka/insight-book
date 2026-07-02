@@ -313,9 +313,26 @@ watch(() => readerStore.isPageLoading, async (isLoading) => {
     opacity: 0.6;
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
 
-    svg {
+    .icon-play,
+    .icon-playing {
       width: 16px;
       height: 16px;
+    }
+
+    .icon-playing {
+      display: none;
+    }
+
+    &.is-playing {
+      opacity: 1;
+      color: var(--fg-accent-color);
+      .icon-play {
+        display: none;
+      }
+      .icon-playing {
+        display: block;
+        animation: pulse 1.5s infinite ease-in-out;
+      }
     }
 
     &:hover {

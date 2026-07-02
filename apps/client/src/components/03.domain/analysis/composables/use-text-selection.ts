@@ -1,11 +1,21 @@
+import { watch } from 'vue'
 import { useTts } from '~/shared/composables/use-tts'
 import { useAnalysisStore } from '~/shared/store/analysis.store'
 
 export function useTextSelection() {
   const analysisStore = useAnalysisStore()
-  const { speak } = useTts()
+  const { speak, isPlaying } = useTts()
   let pressTimer: ReturnType<typeof setTimeout> | null = null
   let selectionChangeListener: (() => void) | null = null
+
+  let currentPlayingBtn: HTMLElement | null = null
+
+  watch(isPlaying, (playing) => {
+    if (!playing && currentPlayingBtn) {
+      currentPlayingBtn.classList.remove('is-playing')
+      currentPlayingBtn = null
+    }
+  })
 
   function clearPressTimer() {
     if (pressTimer) {
@@ -78,6 +88,9 @@ export function useTextSelection() {
       event.preventDefault()
       const text = decodeURIComponent(ttsBtn.dataset.ttsText || '')
       if (text) {
+        if (currentPlayingBtn) currentPlayingBtn.classList.remove('is-playing')
+        ttsBtn.classList.add('is-playing')
+        currentPlayingBtn = ttsBtn
         speak(text)
       }
       return
