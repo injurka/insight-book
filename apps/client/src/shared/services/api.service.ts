@@ -389,6 +389,7 @@ export const api = {
       color?: string
       chapter?: string | null
       pageNum?: number
+      analysisData?: LlmAnalysis | null
     }) =>
       request<Highlight>(`/api/highlights/${id}`, {
         method: 'PUT',

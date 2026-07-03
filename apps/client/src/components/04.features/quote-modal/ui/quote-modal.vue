@@ -1,8 +1,9 @@
 <script setup lang="ts">
+import type { LlmAnalysis } from '~/shared/types/models'
 import { Icon } from '@iconify/vue'
 import { ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { KitBtn, KitDialog } from '~/components/01.kit'
+import { KitBtn, KitDialog, KitToggle } from '~/components/01.kit'
 import { useToast } from '~/shared/composables/use-toast'
 import { api } from '~/shared/services/api.service'
 
@@ -10,10 +11,12 @@ const props = defineProps<{
   visible: boolean
   mode: 'create' | 'edit'
   initialData: {
+    id?: number | null
     text: string
     translation?: string
     note?: string
     color?: string
+    analysisData?: LlmAnalysis | null
   }
   bookContext?: {
     id: number
@@ -24,7 +27,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   'update:visible': [value: boolean]
-  'save': [data: { text: string, translation: string, note: string, color: string }]
+  'save': [data: { text: string, translation: string, note: string, color: string, analysisData: LlmAnalysis | null }]
 }>()
 
 const { t } = useI18n()
@@ -39,6 +42,9 @@ const form = ref({
   color: highlightColors[0],
 })
 
+const analysisData = ref<LlmAnalysis | null>(null)
+const showAdditionalFields = ref(false)
+
 watch(() => props.visible, (val) => {
   if (val) {
     form.value = {
@@ -47,6 +53,12 @@ watch(() => props.visible, (val) => {
       note: props.initialData.note || '',
       color: props.initialData.color || highlightColors[0],
     }
+    analysisData.value = props.initialData.analysisData || null
+    showAdditionalFields.value = !!(
+      props.initialData.note
+      || props.initialData.analysisData?.grammarRules?.length
+      || props.initialData.analysisData?.vocabulary?.length
+    )
   }
 })
 
@@ -68,6 +80,13 @@ async function translate() {
     const res = await api.books.analyze(props.bookContext.id, form.value.text, props.bookContext.language)
     if (res && res.translation) {
       form.value.translation = res.translation
+      analysisData.value = res
+
+      // Auto expand additional fields if grammar/vocab is present in LLM response
+      if (res.grammarRules?.length || res.vocabulary?.length) {
+        showAdditionalFields.value = true
+      }
+
       toast.success(t('notebook.translation'))
     }
     else {
@@ -83,7 +102,7 @@ async function translate() {
 }
 
 function handleSave() {
-  emit('save', { ...form.value })
+  emit('save', { ...form.value, analysisData: analysisData.value })
 }
 </script>
 
@@ -105,7 +124,7 @@ function handleSave() {
           <label class="input-label">{{ t('notebook.translation') }}</label>
           <div style="display: flex; gap: 8px; align-items: center">
             <button
-              v-if="bookContext && form.text"
+              v-if="mode === 'create' && bookContext && form.text"
               type="button"
               class="ai-translate-link-btn"
               :disabled="isTranslating || isFetchingTranslation"
@@ -115,10 +134,14 @@ function handleSave() {
               <Icon :icon="(isTranslating || isFetchingTranslation) ? 'mdi:loading' : 'mdi:robot-outline'" :class="{ 'spin-animation': (isTranslating || isFetchingTranslation) }" />
               <span>{{ (isTranslating || isFetchingTranslation) ? t('notebook.translating') : t('notebook.aiTranslate') }}</span>
             </button>
-            <div class="mode-toggle">
-              <KitBtn :variant="!previewTranslation ? 'tonal' : 'text'" size="sm" icon="mdi:pencil" @click="previewTranslation = false" />
-              <KitBtn :variant="previewTranslation ? 'tonal' : 'text'" size="sm" icon="mdi:eye" @click="previewTranslation = true" />
-            </div>
+            <KitToggle
+              v-model="previewTranslation"
+              :options="[
+                { value: false, icon: 'mdi:pencil', tooltip: t('notebook.edit') || 'Редактировать' },
+                { value: true, icon: 'mdi:eye', tooltip: t('notebook.preview') || 'Предпросмотр' },
+              ]"
+              size="sm"
+            />
           </div>
         </div>
 
@@ -130,16 +153,6 @@ function handleSave() {
           rows="3"
           :placeholder="isFetchingTranslation ? t('analysis.analyzing') : t('notebook.translation')"
           :disabled="isFetchingTranslation || isTranslating"
-        />
-      </div>
-
-      <div class="input-group">
-        <label class="input-label">{{ t('notebook.note') }}</label>
-        <textarea
-          v-model="form.note"
-          :placeholder="t('notebook.note')"
-          class="note-textarea translation-input"
-          rows="2"
         />
       </div>
 
@@ -166,6 +179,76 @@ function handleSave() {
               type="color"
               class="invisible-color-input"
             >
+          </div>
+        </div>
+      </div>
+
+      <div class="additional-toggle-wrapper">
+        <button
+          type="button"
+          class="additional-toggle-btn"
+          @click="showAdditionalFields = !showAdditionalFields"
+        >
+          <span>{{ showAdditionalFields ? (t('quote.hideAdditional') || 'Скрыть дополнительные поля') : (t('quote.showAdditional') || 'Показать дополнительные поля (заметка, грамматика, словарь)') }}</span>
+          <Icon :icon="showAdditionalFields ? 'mdi:chevron-up' : 'mdi:chevron-down'" />
+        </button>
+      </div>
+
+      <div v-show="showAdditionalFields" class="additional-fields-container">
+        <div class="input-group">
+          <label class="input-label">{{ t('notebook.note') }}</label>
+          <textarea
+            v-model="form.note"
+            :placeholder="t('quote.notePlaceholder') || 'Ваш комментарий к цитате...'"
+            class="note-textarea translation-input"
+            rows="2"
+          />
+        </div>
+
+        <div v-if="analysisData" class="analysis-details">
+          <!-- Grammar -->
+          <div v-if="analysisData.grammarRules?.length" class="analysis-sub-section">
+            <h4 class="sub-section-title">
+              <Icon icon="mdi:puzzle-outline" class="sub-section-icon text-accent" />
+              <span>{{ t('analysis.grammar') || 'Грамматика' }}</span>
+            </h4>
+            <div class="compact-cards-list">
+              <div v-for="(rule, idx) in analysisData.grammarRules" :key="idx" class="compact-info-card">
+                <div class="rule-pattern">
+                  {{ rule.pattern }}
+                </div>
+                <div class="rule-explanation">
+                  {{ rule.explanation }}
+                </div>
+                <div v-if="rule.example" class="rule-example">
+                  <span>{{ rule.example }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Vocabulary -->
+          <div v-if="analysisData.vocabulary?.length" class="analysis-sub-section">
+            <h4 class="sub-section-title">
+              <Icon icon="mdi:text-box-search-outline" class="sub-section-icon text-secondary" />
+              <span>{{ t('analysis.vocabulary') || 'Словарь' }}</span>
+            </h4>
+            <div class="compact-cards-list">
+              <template v-for="(v, idx) in analysisData.vocabulary" :key="idx">
+                <div v-if="v && v.word" class="compact-info-card">
+                  <div class="vocab-header">
+                    <span class="vocab-word">{{ v.word }}</span>
+                    <span v-if="v.transcription" class="vocab-transcription">[{{ v.transcription }}]</span>
+                  </div>
+                  <div class="vocab-meaning">
+                    {{ v.meaning }}
+                  </div>
+                  <div v-if="v.usageInContext" class="vocab-context">
+                    {{ v.usageInContext }}
+                  </div>
+                </div>
+              </template>
+            </div>
           </div>
         </div>
       </div>
@@ -227,26 +310,6 @@ function handleSave() {
       margin-bottom: 2px;
     }
 
-    .mode-toggle {
-      display: flex;
-      gap: 2px;
-      background: var(--bg-secondary-color, #f3f4f6);
-      padding: 2px;
-      border-radius: 6px;
-
-      :deep(.kit-btn) {
-        min-width: 28px;
-        height: 24px;
-        padding: 0;
-        --btn-border-radius: 4px;
-
-        svg {
-          width: 14px;
-          height: 14px;
-        }
-      }
-    }
-
     .preview-box {
       width: 100%;
       background-color: var(--bg-secondary-color, #f3f4f6);
@@ -254,7 +317,7 @@ function handleSave() {
       border-radius: 6px;
       padding: 10px 12px;
       font-size: 0.95rem;
-      min-height: 48px;
+      min-height: 44px;
       max-height: 300px;
       overflow-y: auto;
       line-height: 1.5;
@@ -330,6 +393,141 @@ function handleSave() {
         cursor: pointer;
       }
     }
+  }
+}
+
+.additional-toggle-wrapper {
+  display: flex;
+  justify-content: center;
+  margin-top: 4px;
+}
+
+.additional-toggle-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  border: none;
+  color: var(--fg-accent-color);
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 6px 12px;
+  border-radius: 6px;
+  transition: background-color 0.2s;
+
+  &:hover {
+    background-color: var(--bg-secondary-color);
+  }
+}
+
+.additional-fields-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  border-top: 1px solid var(--border-primary-color, rgba(255, 255, 255, 0.05));
+  padding-top: 16px;
+  margin-top: 8px;
+}
+
+.analysis-details {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.analysis-sub-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sub-section-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  margin: 0;
+  color: var(--fg-primary-color);
+
+  .sub-section-icon {
+    font-size: 1.1rem;
+  }
+  .text-accent {
+    color: var(--fg-accent-color);
+  }
+  .text-secondary {
+    color: var(--fg-secondary-color);
+  }
+}
+
+.compact-cards-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.compact-info-card {
+  padding: 10px 12px;
+  background-color: var(--bg-secondary-color, rgba(0, 0, 0, 0.02));
+  border-radius: 8px;
+  border-left: 3px solid var(--border-primary-color, rgba(255, 255, 255, 0.1));
+
+  .rule-pattern {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--fg-primary-color);
+    margin-bottom: 4px;
+  }
+
+  .rule-explanation {
+    font-size: 0.85rem;
+    color: var(--fg-secondary-color);
+    line-height: 1.4;
+  }
+
+  .rule-example {
+    font-size: 0.8rem;
+    color: var(--fg-muted-color);
+    font-style: italic;
+    margin-top: 4px;
+    padding-left: 8px;
+    border-left: 2px solid var(--fg-accent-color);
+  }
+
+  .vocab-header {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    margin-bottom: 4px;
+  }
+
+  .vocab-word {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--fg-primary-color);
+  }
+
+  .vocab-transcription {
+    font-size: 0.8rem;
+    color: var(--fg-muted-color);
+    font-family: monospace;
+  }
+
+  .vocab-meaning {
+    font-size: 0.85rem;
+    color: var(--fg-primary-color);
+  }
+
+  .vocab-context {
+    font-size: 0.8rem;
+    color: var(--fg-secondary-color);
+    margin-top: 4px;
+    background: rgba(0, 0, 0, 0.05);
+    padding: 6px 8px;
+    border-radius: 4px;
+    font-style: italic;
   }
 }
 

@@ -88,7 +88,8 @@ export function useTextSelection() {
       event.preventDefault()
       const text = decodeURIComponent(ttsBtn.dataset.ttsText || '')
       if (text) {
-        if (currentPlayingBtn) currentPlayingBtn.classList.remove('is-playing')
+        if (currentPlayingBtn)
+          currentPlayingBtn.classList.remove('is-playing')
         ttsBtn.classList.add('is-playing')
         currentPlayingBtn = ttsBtn
         speak(text)

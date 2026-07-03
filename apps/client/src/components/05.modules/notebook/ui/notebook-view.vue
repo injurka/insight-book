@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { Book, Highlight } from '~/shared/types/models'
+import type { Book, Highlight, LlmAnalysis } from '~/shared/types/models'
 import { Icon } from '@iconify/vue'
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -84,12 +84,14 @@ const editForm = ref<{
   translation: string
   note: string
   color: string
+  analysisData?: LlmAnalysis | null
 }>({
   id: null,
   text: '',
   translation: '',
   note: '',
   color: '#fde047',
+  analysisData: null,
 })
 
 // Delete state
@@ -182,11 +184,12 @@ function openEditModal(h: Highlight) {
     translation: h.translation || '',
     note: h.note || '',
     color: h.color || '#fde047',
+    analysisData: h.analysisData || null,
   }
   isEditModalOpen.value = true
 }
 
-async function saveEdit(data: { text: string, translation: string, note: string, color: string }) {
+async function saveEdit(data: { text: string, translation: string, note: string, color: string, analysisData?: LlmAnalysis | null }) {
   const id = editForm.value.id
   if (!id)
     return
@@ -196,6 +199,7 @@ async function saveEdit(data: { text: string, translation: string, note: string,
       translation: data.translation || null,
       note: data.note || null,
       color: data.color,
+      analysisData: data.analysisData || null,
     })
 
     // Update in local state

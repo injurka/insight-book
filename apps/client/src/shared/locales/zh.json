@@ -779,7 +779,10 @@
     "error": "错误"
   },
   "quote": {
-    "translationError": "翻译错误"
+    "translationError": "翻译错误",
+    "hideAdditional": "隐藏附加字段",
+    "showAdditional": "显示附加字段（备注、语法、词汇）",
+    "notePlaceholder": "您对该引用的评论..."
   },
   "aiAnalysisError": "AI 分析错误",
   "globalAiCache": "翻译可用性",

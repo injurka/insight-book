@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { AnalysisHistoryItem } from '~/shared/store/analysis.store'
+import type { LlmAnalysis } from '~/shared/types/models'
 import { Icon } from '@iconify/vue'
 import { computed, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -68,7 +69,13 @@ function playTTS() {
 }
 
 const isSaveModalOpen = ref(false)
-const modalInitialData = ref({ text: '', translation: '', color: '#fde047', note: '' })
+const modalInitialData = ref<{
+  text: string
+  translation: string
+  color: string
+  note: string
+  analysisData?: LlmAnalysis | null
+}>({ text: '', translation: '', color: '#fde047', note: '', analysisData: null })
 
 async function toggleHighlight() {
   const book = readerStore.currentBook || libraryStore.currentBookInfo
@@ -85,11 +92,12 @@ async function toggleHighlight() {
     translation: analysisStore.sidebarAnalysis?.translation || '',
     color: '#fde047',
     note: '',
+    analysisData: analysisStore.sidebarAnalysis || null,
   }
   isSaveModalOpen.value = true
 }
 
-async function handleSaveQuote(data: { text: string, translation: string, note: string, color: string }) {
+async function handleSaveQuote(data: { text: string, translation: string, note: string, color: string, analysisData?: LlmAnalysis | null }) {
   const book = readerStore.currentBook || libraryStore.currentBookInfo
   if (!book)
     return
@@ -122,7 +130,7 @@ async function handleSaveQuote(data: { text: string, translation: string, note: 
       chapter,
       translation: data.translation,
       note: data.note || null,
-      analysisData: analysisStore.sidebarAnalysis || null,
+      analysisData: data.analysisData || analysisStore.sidebarAnalysis || null,
     })
     isSaveModalOpen.value = false
   }
@@ -518,6 +526,10 @@ onUnmounted(() => stop())
   .analysis-content {
     .sentence-header {
       gap: 8px;
+
+      .sentence-content {
+        min-height: 80px;
+      }
 
       .sentence-actions .action-btn {
         width: 36px;

@@ -219,7 +219,7 @@ onUnmounted(() => {
           <div v-else class="pos-badge-placeholder" />
 
           <div class="popover-actions">
-            <KitTooltip :text="t('analysis.voice')" placement="top">
+            <KitTooltip :text="t('analysis.voice')" placement="bottom">
               <KitBtn
                 :icon="isPlaying ? 'mdi:volume-high' : 'mdi:volume-medium'"
                 size="xs"
@@ -232,7 +232,7 @@ onUnmounted(() => {
 
             <KitDropdown placement="top" width="240px">
               <template #activator="{ props: { isOpen, toggle } }">
-                <KitTooltip :text="t('analysis.detailedWithAi')" placement="top">
+                <KitTooltip :text="t('analysis.detailedWithAi')" placement="bottom">
                   <KitBtn
                     icon="mdi:text-box-search-outline"
                     size="xs"
@@ -253,11 +253,11 @@ onUnmounted(() => {
               </div>
             </KitDropdown>
 
-            <KitTooltip :text="t('analysis.translateWithAi')" placement="top">
+            <KitTooltip :text="t('analysis.translateWithAi')" placement="bottom">
               <KitBtn icon="mdi:robot-outline" size="xs" variant="text" :class="{ 'is-active-ai': analysisStore.wordPopover.showAi }" @click.stop="analysisStore.toggleAiTranslation" />
             </KitTooltip>
 
-            <KitTooltip v-if="authStore.user" :text="analysisStore.wordPopover.isSaved ? t('analysis.editCard') : t('analysis.saveToDict')" placement="top-end">
+            <KitTooltip v-if="authStore.user" :text="analysisStore.wordPopover.isSaved ? t('analysis.editCard') : t('analysis.saveToDict')" placement="bottom-end">
               <KitBtn
                 :icon="analysisStore.wordPopover.isSaved ? 'mdi:star' : 'mdi:star-outline'"
                 size="xs"

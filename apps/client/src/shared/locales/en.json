@@ -779,7 +779,10 @@
     "error": "Error"
   },
   "quote": {
-    "translationError": "Translation error"
+    "translationError": "Translation error",
+    "hideAdditional": "Hide additional fields",
+    "showAdditional": "Show additional fields (note, grammar, vocabulary)",
+    "notePlaceholder": "Your comment on the quote..."
   },
   "aiAnalysisError": "AI analysis error",
   "globalAiCache": "Translation Availability",

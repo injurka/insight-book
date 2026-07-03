@@ -182,4 +182,5 @@ export const UpdateHighlightSchema = z.object({
   color: z.string().optional(),
   chapter: z.string().nullable().optional(),
   pageNum: z.coerce.number().int().min(1).optional(),
+  analysisData: LlmAnalysisSchema.nullable().optional(),
 })

@@ -80,13 +80,13 @@ export async function handleGetBooks(req: Request, userId: number | null): Promi
           bookId: schema.bookLlmCache.bookId,
           count: sql<number>`count(*)`.mapWith(Number),
         })
-        .from(schema.bookLlmCache)
-        .innerJoin(schema.llmCache, eq(schema.bookLlmCache.sentenceHash, schema.llmCache.sentenceHash))
-        .where(and(
-          inArray(schema.bookLlmCache.bookId, bookIds),
-          eq(schema.llmCache.targetLanguage, targetLang)
-        ))
-        .groupBy(schema.bookLlmCache.bookId)
+          .from(schema.bookLlmCache)
+          .innerJoin(schema.llmCache, eq(schema.bookLlmCache.sentenceHash, schema.llmCache.sentenceHash))
+          .where(and(
+            inArray(schema.bookLlmCache.bookId, bookIds),
+            eq(schema.llmCache.targetLanguage, targetLang),
+          ))
+          .groupBy(schema.bookLlmCache.bookId)
       : []
     const countMap = new Map(llmCounts.map(r => [r.bookId, r.count]))
 
@@ -140,13 +140,13 @@ export async function handleGetBooks(req: Request, userId: number | null): Promi
         bookId: schema.bookLlmCache.bookId,
         count: sql<number>`count(*)`.mapWith(Number),
       })
-      .from(schema.bookLlmCache)
-      .innerJoin(schema.llmCache, eq(schema.bookLlmCache.sentenceHash, schema.llmCache.sentenceHash))
-      .where(and(
-        inArray(schema.bookLlmCache.bookId, bookIds),
-        eq(schema.llmCache.targetLanguage, targetLang)
-      ))
-      .groupBy(schema.bookLlmCache.bookId)
+        .from(schema.bookLlmCache)
+        .innerJoin(schema.llmCache, eq(schema.bookLlmCache.sentenceHash, schema.llmCache.sentenceHash))
+        .where(and(
+          inArray(schema.bookLlmCache.bookId, bookIds),
+          eq(schema.llmCache.targetLanguage, targetLang),
+        ))
+        .groupBy(schema.bookLlmCache.bookId)
     : []
   const countMap = new Map(llmCounts.map(r => [r.bookId, r.count]))
 
@@ -212,7 +212,7 @@ export async function handleGetBookInfo(req: Request, userId: number | null): Pr
       .where(and(
         eq(schema.bookLlmCache.bookId, id),
         eq(schema.bookLlmCache.type, 'sentence'),
-        eq(schema.llmCache.targetLanguage, targetLang)
+        eq(schema.llmCache.targetLanguage, targetLang),
       ))
       .get(),
     db.select({ count: sql<number>`count(*)` })
@@ -221,7 +221,7 @@ export async function handleGetBookInfo(req: Request, userId: number | null): Pr
       .where(and(
         eq(schema.bookLlmCache.bookId, id),
         eq(schema.bookLlmCache.type, 'word'),
-        eq(schema.llmCache.targetLanguage, targetLang)
+        eq(schema.llmCache.targetLanguage, targetLang),
       ))
       .get(),
     db.select({ count: sql<number>`count(*)` })

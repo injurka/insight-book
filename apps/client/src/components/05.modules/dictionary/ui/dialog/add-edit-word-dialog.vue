@@ -2,7 +2,7 @@
 import type { SelectOption, UserDictItem, WordEncounter } from '~/shared/types/models'
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { KitBtn, KitDialog, KitInput, KitPrompt, KitSelect, KitTooltip } from '~/components/01.kit'
+import { KitBtn, KitDialog, KitInput, KitPrompt, KitSelect, KitToggle, KitTooltip } from '~/components/01.kit'
 import { useToast } from '~/shared/composables/use-toast'
 import { useTts } from '~/shared/composables/use-tts'
 import { DIFFICULTY_SYSTEMS } from '~/shared/constants/difficulties'
@@ -210,10 +210,14 @@ const previewVocabulary = ref(true)
         <div class="form-group">
           <div class="form-group-header">
             <label>{{ t('dictionary.translationHtml') }}</label>
-            <div class="mode-toggle">
-              <KitBtn :variant="!previewTranslation ? 'tonal' : 'text'" size="sm" icon="mdi:pencil" @click="previewTranslation = false" />
-              <KitBtn :variant="previewTranslation ? 'tonal' : 'text'" size="sm" icon="mdi:eye" @click="previewTranslation = true" />
-            </div>
+            <KitToggle
+              v-model="previewTranslation"
+              :options="[
+                { value: false, icon: 'mdi:pencil', tooltip: t('dictionary.edit') || 'Редактировать' },
+                { value: true, icon: 'mdi:eye', tooltip: t('dictionary.preview') || 'Предпросмотр' },
+              ]"
+              size="sm"
+            />
           </div>
           <div v-if="previewTranslation" class="markdown-preview preview-box" v-html="localWord.translation || ''" />
           <textarea v-else v-model="localWord.translation" class="custom-textarea" rows="4" />
@@ -222,10 +226,14 @@ const previewVocabulary = ref(true)
         <div class="form-group">
           <div class="form-group-header">
             <label>{{ t('dictionary.grammar') }}</label>
-            <div class="mode-toggle">
-              <KitBtn :variant="!previewGrammar ? 'tonal' : 'text'" size="sm" icon="mdi:pencil" @click="previewGrammar = false" />
-              <KitBtn :variant="previewGrammar ? 'tonal' : 'text'" size="sm" icon="mdi:eye" @click="previewGrammar = true" />
-            </div>
+            <KitToggle
+              v-model="previewGrammar"
+              :options="[
+                { value: false, icon: 'mdi:pencil', tooltip: t('dictionary.edit') || 'Редактировать' },
+                { value: true, icon: 'mdi:eye', tooltip: t('dictionary.preview') || 'Предпросмотр' },
+              ]"
+              size="sm"
+            />
           </div>
           <div v-if="previewGrammar" class="markdown-preview preview-box" v-html="localWord.grammarNote || ''" />
           <textarea v-else v-model="localWord.grammarNote" class="custom-textarea" rows="2" :placeholder="t('dictionary.grammarRulesExtra')" />
@@ -234,10 +242,14 @@ const previewVocabulary = ref(true)
         <div class="form-group">
           <div class="form-group-header">
             <label>{{ t('dictionary.vocabulary') }}</label>
-            <div class="mode-toggle">
-              <KitBtn :variant="!previewVocabulary ? 'tonal' : 'text'" size="sm" icon="mdi:pencil" @click="previewVocabulary = false" />
-              <KitBtn :variant="previewVocabulary ? 'tonal' : 'text'" size="sm" icon="mdi:eye" @click="previewVocabulary = true" />
-            </div>
+            <KitToggle
+              v-model="previewVocabulary"
+              :options="[
+                { value: false, icon: 'mdi:pencil', tooltip: t('dictionary.edit') || 'Редактировать' },
+                { value: true, icon: 'mdi:eye', tooltip: t('dictionary.preview') || 'Предпросмотр' },
+              ]"
+              size="sm"
+            />
           </div>
           <div v-if="previewVocabulary" class="markdown-preview preview-box" v-html="localWord.vocabularyNote || ''" />
           <textarea v-else v-model="localWord.vocabularyNote" class="custom-textarea" rows="2" :placeholder="t('dictionary.relatedVocab')" />
@@ -386,25 +398,6 @@ const previewVocabulary = ref(true)
   align-items: center;
   margin-bottom: 2px;
 }
-.mode-toggle {
-  display: flex;
-  gap: 2px;
-  background: var(--bg-secondary-color);
-  padding: 2px;
-  border-radius: 6px;
-
-  :deep(.kit-btn) {
-    min-width: 28px;
-    height: 24px;
-    padding: 0;
-    --btn-border-radius: 4px;
-
-    svg {
-      width: 14px;
-      height: 14px;
-    }
-  }
-}
 .preview-box {
   width: 100%;
   background-color: var(--bg-secondary-color);
@@ -412,7 +405,7 @@ const previewVocabulary = ref(true)
   border-radius: 6px;
   padding: 10px 12px;
   font-size: 0.95rem;
-  min-height: 48px;
+  min-height: 44px;
   max-height: 300px;
   overflow-y: auto;
   line-height: 1.5;

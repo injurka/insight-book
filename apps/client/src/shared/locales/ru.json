@@ -779,7 +779,10 @@
     "error": "Ошибка"
   },
   "quote": {
-    "translationError": "Ошибка перевода"
+    "translationError": "Ошибка перевода",
+    "hideAdditional": "Скрыть дополнительные поля",
+    "showAdditional": "Показать дополнительные поля (заметка, грамматика, словарь)",
+    "notePlaceholder": "Ваш комментарий к цитате..."
   },
   "aiAnalysisError": "Ошибка ИИ анализа",
   "globalAiCache": "Доступность перевода",

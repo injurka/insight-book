@@ -30,7 +30,13 @@ const analysisStore = useAnalysisStore()
 const { speak, stop, isPlaying, isLoading } = useTts()
 
 const isSaveModalOpen = ref(false)
-const modalInitialData = ref({ text: '', translation: '', color: highlightColors[0], note: '' })
+const modalInitialData = ref<{
+  text: string
+  translation: string
+  color: string
+  note: string
+  analysisData?: LlmAnalysis | null
+}>({ text: '', translation: '', color: highlightColors[0], note: '', analysisData: null })
 const isFetchingTranslation = ref(false)
 const isSavingHighlight = ref(false)
 const analysisData = ref<LlmAnalysis | null>(null)
@@ -40,7 +46,7 @@ async function openSaveModal() {
     return
 
   const text = props.box.text.replace(/\n+/g, '')
-  modalInitialData.value = { text, translation: '', color: highlightColors[0], note: '' }
+  modalInitialData.value = { text, translation: '', color: highlightColors[0], note: '', analysisData: null }
   isSaveModalOpen.value = true
   isFetchingTranslation.value = true
 
@@ -48,6 +54,7 @@ async function openSaveModal() {
     const cached = await offlineService.getAnalysis(text)
     if (cached && cached.translation) {
       modalInitialData.value.translation = cached.translation
+      modalInitialData.value.analysisData = cached
       analysisData.value = cached
     }
     else {
@@ -55,6 +62,7 @@ async function openSaveModal() {
       const res = await api.books.analyze(readerStore.currentBook.id, text, language)
       await offlineService.saveAnalysis(text, res)
       modalInitialData.value.translation = res.translation || ''
+      modalInitialData.value.analysisData = res
       analysisData.value = res
     }
   }
@@ -76,7 +84,7 @@ const matchingHighlight = computed(() => {
   })
 })
 
-async function handleSaveQuote(data: { text: string, translation: string, note: string, color: string }) {
+async function handleSaveQuote(data: { text: string, translation: string, note: string, color: string, analysisData?: LlmAnalysis | null }) {
   if (!readerStore.currentBook || !readerStore.currentPage)
     return
   if (isSavingHighlight.value)
@@ -109,7 +117,7 @@ async function handleSaveQuote(data: { text: string, translation: string, note: 
       chapter,
       translation: data.translation,
       note: data.note || null,
-      analysisData: analysisData.value,
+      analysisData: data.analysisData || analysisData.value,
     })
 
     isSaveModalOpen.value = false

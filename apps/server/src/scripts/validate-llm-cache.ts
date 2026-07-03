@@ -4,21 +4,22 @@ import * as schema from '../db/schema'
 
 // Функция проверки наличия символов нужного языка
 function hasTargetLanguageScript(text: string, lang: string): boolean {
-  if (!text) return false
+  if (!text)
+    return false
 
   switch (lang) {
     case 'zh':
       // Китайские иероглифы (Han)
-      return /[\u4e00-\u9fa5]/.test(text)
+      return /[\u4E00-\u9FA5]/.test(text)
     case 'ru':
       // Кириллица
-      return /[а-яА-ЯёЁ]/.test(text)
+      return /[\u0430-\u044F\u0410-\u042F\u0451\u0401]/.test(text)
     case 'ja':
       // Хирагана, Катакана, Кандзи
       return /[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF]/.test(text)
     case 'en':
       // Латиница
-      return /[a-zA-Z]/.test(text)
+      return /[a-z]/i.test(text)
     default:
       // Для остальных языков пропускаем строгую проверку, считая их валидными
       return true
@@ -45,7 +46,7 @@ async function run() {
       const textsToCheck = [
         parsed.translation,
         ...(parsed.grammarRules || []).map((r: any) => r.explanation),
-        ...(parsed.vocabulary || []).map((v: any) => v.meaning)
+        ...(parsed.vocabulary || []).map((v: any) => v.meaning),
       ].filter(Boolean).join(' ')
 
       // Если текст есть, проверяем, содержит ли он символы целевого языка
@@ -54,7 +55,8 @@ async function run() {
           isValid = false
         }
       }
-    } catch (e) {
+    }
+    catch {
       // Если JSON невалидный (не парсится), тоже удаляем
       isValid = false
     }
@@ -82,7 +84,8 @@ async function run() {
     }
 
     console.log('✅ Невалидные записи успешно удалены!')
-  } else {
+  }
+  else {
     console.log('✅ Все записи в кэше валидны. Удалять нечего.')
   }
 }

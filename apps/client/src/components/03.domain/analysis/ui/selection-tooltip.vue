@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { LlmAnalysis } from '~/shared/types/models'
 import { Icon } from '@iconify/vue'
 import { useDebounceFn } from '@vueuse/core'
 import { useI18n } from 'vue-i18n'
@@ -16,10 +17,16 @@ const isSavingHighlight = ref(false)
 
 const isSaveModalOpen = ref(false)
 const highlightColors = ['#fde047', '#86efac', '#f472b6', '#93c5fd', '#c4b5fd']
-const modalInitialData = ref({ text: '', translation: '', color: highlightColors[0], note: '' })
+const modalInitialData = ref<{
+  text: string
+  translation: string
+  color: string
+  note: string
+  analysisData?: LlmAnalysis | null
+}>({ text: '', translation: '', color: highlightColors[0], note: '', analysisData: null })
 const isFetchingTranslation = ref(false)
 
-async function handleSaveQuote(data: { text: string, translation: string, note: string, color: string }) {
+async function handleSaveQuote(data: { text: string, translation: string, note: string, color: string, analysisData?: LlmAnalysis | null }) {
   if (!readerStore.currentBook || !readerStore.currentPage)
     return
   if (isSavingHighlight.value)
@@ -52,6 +59,7 @@ async function handleSaveQuote(data: { text: string, translation: string, note: 
       chapter,
       translation: data.translation,
       note: data.note || null,
+      analysisData: data.analysisData || null,
     })
 
     isSaveModalOpen.value = false
@@ -81,7 +89,7 @@ const checkTextSelection = useDebounceFn(() => {
   }
 
   const text = selection.toString().trim()
-  if (!text || !/[\p{L}\p{N}]/u.test(text)) {
+  if (!text || text.length > 250 || !/[\p{L}\p{N}]/u.test(text)) {
     analysisStore.closeSelectionTooltip()
     return
   }
