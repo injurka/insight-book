@@ -261,9 +261,6 @@ jobs:
         with:
           targets: |
             aarch64-linux-android
-            armv7-linux-androideabi
-            i686-linux-android
-            x86_64-linux-android
 
       - name: Cache Rust
         uses: Swatinem/rust-cache@v2
@@ -297,6 +294,9 @@ jobs:
           keyPassword: ${{ secrets.ANDROID_KEY_PASSWORD }}
         env:
           BUILD_TOOLS_VERSION: "34.0.0" 
+          
+      - name: Rename APK
+        run: mv ${{ steps.sign_app.outputs.signedReleaseFile }} insight-book-${{ github.ref_name }}-android.apk
 
       - name: Upload APK to GitHub Release
         uses: softprops/action-gh-release@v3
