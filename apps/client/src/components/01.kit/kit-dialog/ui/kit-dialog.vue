@@ -2,9 +2,11 @@
 import { Icon } from '@iconify/vue'
 import { useDraggable } from '@vueuse/core'
 import { useI18n } from 'vue-i18n'
+import { useBackHandler } from '~/shared/composables/use-back-handler'
 import { useDialogHistory } from '../composables/use-dialog-history'
 import { useDialogResize } from '../composables/use-dialog-resize'
 import { useDialogSwipe } from '../composables/use-dialog-swipe'
+
 import DialogResizeHandles from './dialog-resize-handles.vue'
 
 defineOptions({
@@ -107,9 +109,22 @@ watch([visible, isMinimized, () => props.floating], ([isOpen, isMin, isFloating]
   }
 }, { immediate: true })
 
+const { registerBackHandler } = useBackHandler()
+let unregisterBack: (() => void) | null = null
+
 watch(visible, (isOpen) => {
-  if (!isOpen)
+  if (!isOpen) {
     isMinimized.value = false
+    if (unregisterBack) {
+      unregisterBack()
+      unregisterBack = null
+    }
+  }
+  else {
+    unregisterBack = registerBackHandler(() => {
+      visible.value = false
+    })
+  }
 })
 
 watch(() => props.keyTrigger, () => {

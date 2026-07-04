@@ -3,21 +3,42 @@ import { useHead } from '@vueuse/head'
 import { useI18n } from 'vue-i18n'
 import { ReloadPrompt } from '~/components/02.shared/reload-prompt'
 import { DefaultLayout } from '~/components/06.layouts/default'
+import { useBackHandler } from '~/shared/composables/use-back-handler'
 import { useChangeTheme } from '~/shared/composables/use-change-theme'
 import { useGlobalTracking } from '~/shared/composables/use-global-tracking'
 import { useAnalysisStore } from '~/shared/store/analysis.store'
+
 import { useGlobalSettingsStore } from '~/shared/store/settings.store'
 
 const AddEditWordDialog = lazyComponent(() => import('~/components/05.modules/dictionary/ui/dialog/add-edit-word-dialog.vue'))
 
 useChangeTheme()
+useGlobalTracking()
 
 const route = useRoute()
 const analysisStore = useAnalysisStore()
 const settingsStore = useGlobalSettingsStore()
 const { locale, t } = useI18n()
 
-useGlobalTracking()
+const router = useRouter()
+const { triggerBack } = useBackHandler()
+
+onMounted(async () => {
+  if ('__TAURI_INTERNALS__' in window && /android/i.test(navigator.userAgent)) {
+    try {
+      const { listen } = await import('@tauri-apps/api/event')
+      await listen('tauri://go-back', () => {
+        const wasHandled = triggerBack()
+        if (!wasHandled) {
+          router.back()
+        }
+      })
+    }
+    catch (e) {
+      console.warn('Failed to attach Android back button listener', e)
+    }
+  }
+})
 
 watch(() => settingsStore.appLanguage, (newLang) => {
   locale.value = newLang

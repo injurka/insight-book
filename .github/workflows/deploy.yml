@@ -199,7 +199,7 @@ jobs:
       - name: Cache Rust
         uses: Swatinem/rust-cache@v2
         with:
-          workspaces: './src-tauri -> target'
+          workspaces: 'apps/client/src-tauri -> apps/client/src-tauri/target'
 
       - name: Install frontend dependencies
         run: bun install
@@ -264,7 +264,7 @@ jobs:
       - name: Cache Rust
         uses: Swatinem/rust-cache@v2
         with:
-          workspaces: './src-tauri -> target'
+          workspaces: 'apps/client/src-tauri -> apps/client/src-tauri/target'
 
       - name: Install frontend dependencies
         run: bun install
@@ -302,6 +302,6 @@ jobs:
         with:
           tag_name: ${{ github.ref_name }}
           release_id: ${{ needs.create-release.outputs.release_id }}
-          files: ${{ steps.sign_app.outputs.signedReleaseFile }}
+          files: insight-book-${{ github.ref_name }}-android.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

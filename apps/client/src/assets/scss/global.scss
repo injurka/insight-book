@@ -26,6 +26,7 @@ body {
   background-color: var(--bg-primary-color);
   color: var(--fg-primary-color);
   overflow-y: auto;
+  overscroll-behavior-y: none;
 }
 
 *,
@@ -33,5 +34,11 @@ body {
 *::after {
   box-sizing: border-box;
   -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+}
+
+.no-select {
+  user-select: none;
+  -webkit-touch-callout: none;
 }
 

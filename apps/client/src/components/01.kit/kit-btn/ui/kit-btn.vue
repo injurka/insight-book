@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Icon } from '@iconify/vue'
+import { useHaptic } from '~/shared/composables/use-haptic'
 import { vRipple } from '~/shared/directives/ripple'
 
 interface Props {
@@ -23,6 +24,11 @@ const props = withDefaults(defineProps<Props>(), {
   density: 'default',
 })
 
+const emit = defineEmits<{
+  (e: 'click', event: MouseEvent): void
+}>()
+
+const { hapticLight } = useHaptic()
 const slots = useSlots()
 
 const isIconOnly = computed(() => (props.loading || props.icon || props.prependIcon) && !slots.default && !props.appendIcon)
@@ -36,6 +42,14 @@ const componentClasses = computed(() => [
   `kit-btn--density-${props.density}`,
   { 'kit-btn--icon-only': isIconOnly.value },
 ])
+
+function handleClick(event: MouseEvent) {
+  if (props.disabled || props.loading)
+    return
+
+  hapticLight()
+  emit('click', event)
+}
 </script>
 
 <template>
@@ -44,6 +58,7 @@ const componentClasses = computed(() => [
     :class="componentClasses"
     :disabled="props.disabled || props.loading"
     type="button"
+    @click="handleClick"
   >
     <span class="kit-btn-content">
       <Icon
