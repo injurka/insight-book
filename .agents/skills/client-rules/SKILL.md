@@ -1,7 +1,6 @@
 ---
 name: client-rules
-description: КРИТИЧЕСКИ ВАЖНО: Правила архитектуры client
-globs: "apps/client/**/*"
+description: КРИТИЧЕСКИ ВАЖНО: Правила архитектуры client. Применяется для всех файлов в apps/client/
 ---
 
 # Архитектура Frontend (Client)

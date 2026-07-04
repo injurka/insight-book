@@ -1,6 +1,6 @@
 ---
 name: project-architecture
-description: Структура проекта
+description: Структура проекта. Применяется всегда для всех файлов.
 ---
 
 # Архитектура Монорепозитория (Bun Workspaces)
