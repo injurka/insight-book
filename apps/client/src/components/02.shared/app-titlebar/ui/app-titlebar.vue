@@ -3,6 +3,8 @@ import { Icon } from '@iconify/vue'
 import { onMounted, onUnmounted, ref } from 'vue'
 
 const isTauri = '__TAURI_INTERNALS__' in window
+const isMobile = /android|iphone|ipad|ipod/i.test(navigator.userAgent)
+const showTitlebar = isTauri && !isMobile
 const isMaximized = ref(false)
 
 let appWindow: any = null
@@ -45,7 +47,7 @@ function close() {
 </script>
 
 <template>
-  <div v-if="isTauri" data-tauri-drag-region class="app-titlebar">
+  <div v-if="showTitlebar" data-tauri-drag-region class="app-titlebar">
     <div class="titlebar-title" data-tauri-drag-region>
       InsightBook
     </div>
