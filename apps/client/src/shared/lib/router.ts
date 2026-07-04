@@ -2,10 +2,14 @@ import { createRouter, createWebHashHistory, createWebHistory } from 'vue-router
 import { AppRouteNames } from '~/shared/constants/routes'
 import { useAuthStore } from '~/shared/store/auth.store'
 
-const isTauri = '__TAURI_INTERNALS__' in window
+function isTauriEnv() {
+  return !!(window as any).__TAURI__
+    || '__TAURI_INTERNALS__' in window
+    || !!(window as any).__TAURI_IPC__
+}
 
 export const router = createRouter({
-  history: isTauri
+  history: isTauriEnv()
     ? createWebHashHistory(import.meta.env.BASE_URL)
     : createWebHistory(import.meta.env.BASE_URL),
 
@@ -22,6 +26,7 @@ export const router = createRouter({
       beforeEnter: (to) => {
         const BASE_API_URL = import.meta.env.VITE_API_URL || 'https://insight-api.trip-scheduler.ru'
         window.location.href = `${BASE_API_URL}${to.fullPath}`
+
         return false
       },
     },
