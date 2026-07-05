@@ -276,6 +276,10 @@ jobs:
         env:
           NDK_HOME: ${{ env.ANDROID_HOME }}/ndk/26.3.11579264
 
+      - name: Copy custom Android icons
+        run: |
+          cp -r apps/client/src-tauri/icons/android/* apps/client/src-tauri/gen/android/app/src/main/res/
+
       - name: Build Android APK
         run: bun run --cwd apps/client tauri:android:build
         env:

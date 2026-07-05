@@ -63,11 +63,13 @@ function translateWord(id: string) {
     <div class="interactive-zone">
       <div class="mock-sentence">
         <template v-for="(w, i) in words" :key="w.id">
-          <span
-            class="clickable-word"
-            :class="{ 'is-active': isWordTranslated && activeWordId === w.id }"
-            @click="translateWord(w.id)"
-          >{{ w.text }}</span><span v-if="w.suffix">{{ w.suffix }}</span><span v-if="i < words.length - 1" />
+          <div class="word-wrapper">
+            <span
+              class="clickable-word"
+              :class="{ 'is-active': isWordTranslated && activeWordId === w.id }"
+              @click="translateWord(w.id)"
+            >{{ w.text }}</span><span v-if="w.suffix" class="suffix">{{ w.suffix }}</span>
+          </div>
         </template>
       </div>
 
@@ -128,12 +130,11 @@ function translateWord(id: string) {
   color: var(--fg-accent-color) !important;
 }
 
-/* Фиксируем высоту чтобы убрать прыжки */
 .interactive-zone {
   width: 100%;
   padding: 16px;
   margin-bottom: 16px;
-  height: 320px;
+  height: 350px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -148,7 +149,6 @@ function translateWord(id: string) {
   width: 100%;
 }
 
-/* Зона для кнопок внизу */
 .step-actions {
   height: 60px;
   width: 100%;
@@ -158,13 +158,28 @@ function translateWord(id: string) {
 }
 
 .mock-sentence {
-  font-size: 1.5rem;
+  font-size: 1.4rem;
   font-family: 'Maple Mono CN', 'Courier New', monospace;
   color: var(--fg-primary-color);
-  padding: 4px 8px;
+  padding: 4px;
   border-radius: 4px;
   text-align: center;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  column-gap: 6px;
+  row-gap: 8px;
   flex-shrink: 0;
+
+  @include media-down(sm) {
+    font-size: 1.25rem;
+  }
+}
+
+.word-wrapper {
+  display: inline-flex;
+  align-items: baseline;
 }
 
 .clickable-word {
@@ -184,6 +199,10 @@ function translateWord(id: string) {
     color: var(--bg-primary-color);
     font-weight: bold;
   }
+}
+
+.suffix {
+  margin-left: 1px;
 }
 
 .mock-word-popover {

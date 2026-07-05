@@ -20,23 +20,51 @@ function toggleOffline() {
   <OnboardingStepLayout
     :title="t('onboarding.step6_title')"
     :description="t('onboarding.step6_desc')"
-    icon="mdi:wifi-off"
-    :icon-class="isOffline ? 'success-icon' : 'error-icon blink-fast'"
+    icon="mdi:cloud-sync-outline"
+    :icon-class="isOffline ? 'success-icon' : 'accent-icon blink-fast'"
   >
     <div class="interactive-zone" :class="{ 'is-offline-mode': isOffline }">
       <div class="ambient-glow" />
 
-      <div class="mock-ui">
+      <div class="mock-ui cache-dialog" :class="{ 'is-caching': isOffline }">
         <div class="mock-header">
-          <div class="mock-title" />
-          <div class="mock-toggle" :class="{ active: isOffline }" @click="toggleOffline">
-            <div class="toggle-knob" />
-            <Icon icon="mdi:airplane" class="airplane-icon" />
-          </div>
+          <Icon icon="mdi:cloud-download-outline" class="title-icon" />
+          <div class="mock-title-text">Кэшировать / Анализ</div>
         </div>
         <div class="mock-body">
-          <div v-for="i in 3" :key="i" class="mock-line" />
+          <div class="mock-option" @click="toggleOffline">
+            <Icon icon="mdi:text-box-outline" class="option-icon" />
+            <div class="option-texts">
+              <span class="option-title">Кэшировать страницы</span>
+            </div>
+            <div class="mock-checkbox" :class="{ checked: isOffline }">
+              <Icon v-if="isOffline" icon="mdi:check" />
+            </div>
+          </div>
+          <div class="mock-option" @click="toggleOffline">
+            <Icon icon="mdi:text-search" class="option-icon" />
+            <div class="option-texts">
+              <span class="option-title">Анализ предложений</span>
+            </div>
+            <div class="mock-checkbox" :class="{ checked: isOffline }">
+              <Icon v-if="isOffline" icon="mdi:check" />
+            </div>
+          </div>
+          <div class="mock-option" @click="toggleOffline">
+            <Icon icon="mdi:volume-high" class="option-icon" />
+            <div class="option-texts">
+              <span class="option-title">Озвучка</span>
+            </div>
+            <div class="mock-checkbox" :class="{ checked: isOffline }">
+              <Icon v-if="isOffline" icon="mdi:check" />
+            </div>
+          </div>
         </div>
+        <Transition name="fade">
+          <div v-if="isOffline" class="mock-progress-container">
+            <div class="mock-progress-bar" />
+          </div>
+        </Transition>
       </div>
 
       <p v-if="isOffline" class="success-text">
@@ -51,7 +79,7 @@ function toggleOffline() {
           {{ t('onboarding.next') }} <Icon icon="mdi:arrow-right" />
         </KitBtn>
         <div v-else class="hint-action blink" @click="toggleOffline">
-          <Icon icon="mdi:toggle-switch-outline" />
+          <Icon icon="mdi:cloud-download" />
           <span>{{ t('onboarding.step6_action') }}</span>
         </div>
       </Transition>
@@ -85,12 +113,8 @@ function toggleOffline() {
     .ambient-glow {
       opacity: 1;
     }
-    .mock-line {
-      background: var(--fg-primary-color);
-      box-shadow: 0 0 8px rgba(255, 255, 255, 0.2);
-    }
-    .mock-title {
-      background: var(--fg-primary-color);
+    .mock-option {
+      background: var(--bg-hover-color);
     }
   }
 }
@@ -107,7 +131,7 @@ function toggleOffline() {
 .ambient-glow {
   position: absolute;
   inset: 0;
-  background: radial-gradient(circle at center, rgba(253, 224, 71, 0.15) 0%, transparent 70%);
+  background: radial-gradient(circle at center, rgba(34, 197, 94, 0.15) 0%, transparent 70%);
   opacity: 0;
   transition: opacity 1s;
   pointer-events: none;
@@ -128,63 +152,21 @@ function toggleOffline() {
 
 .mock-header {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  margin-bottom: 24px;
-}
-
-.mock-title {
-  width: 120px;
-  height: 16px;
-  background: var(--border-secondary-color);
-  border-radius: 8px;
-  transition: all 0.5s;
-}
-
-.mock-toggle {
-  width: 52px;
-  height: 28px;
-  background: var(--border-secondary-color);
-  border-radius: 14px;
-  position: relative;
-  cursor: pointer;
-  transition: all 0.3s;
-  display: flex;
-  align-items: center;
-
-  .toggle-knob {
-    width: 24px;
-    height: 24px;
-    background: #fff;
-    border-radius: 50%;
-    position: absolute;
-    left: 2px;
-    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  gap: 8px;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border-secondary-color);
+  
+  .title-icon {
+    font-size: 1.2rem;
+    color: var(--fg-secondary-color);
   }
-
-  .airplane-icon {
-    position: absolute;
-    right: 6px;
-    font-size: 14px;
-    color: var(--fg-tertiary-color);
-    opacity: 0;
-    transition: opacity 0.3s;
-  }
-
-  &.active {
-    background: var(--fg-success-color);
-
-    .toggle-knob {
-      transform: translateX(24px);
-    }
-
-    .airplane-icon {
-      opacity: 1;
-      left: 6px;
-      right: auto;
-      color: #fff;
-    }
+  
+  .mock-title-text {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--fg-primary-color);
   }
 }
 
@@ -194,21 +176,74 @@ function toggleOffline() {
   gap: 12px;
 }
 
-.mock-line {
-  height: 12px;
-  background: var(--border-secondary-color);
-  border-radius: 6px;
-  transition: all 0.5s;
+.mock-option {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: var(--bg-secondary-color);
+  transition: all 0.3s;
+  cursor: pointer;
+  
+  .option-icon {
+    font-size: 1.2rem;
+    color: var(--fg-tertiary-color);
+  }
+  
+  .option-texts {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    
+    .option-title {
+      font-size: 0.9rem;
+      color: var(--fg-primary-color);
+      font-weight: 500;
+    }
+  }
+  
+  .mock-checkbox {
+    width: 20px;
+    height: 20px;
+    border-radius: 4px;
+    border: 1px solid var(--border-secondary-color);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s;
+    background: transparent;
+    
+    &.checked {
+      background: var(--fg-success-color);
+      border-color: var(--fg-success-color);
+      color: white;
+    }
+    
+    svg {
+      font-size: 14px;
+    }
+  }
+}
 
-  &:nth-child(1) {
-    width: 100%;
+.mock-progress-container {
+  margin-top: 16px;
+  height: 4px;
+  background: var(--border-secondary-color);
+  border-radius: 2px;
+  overflow: hidden;
+  
+  .mock-progress-bar {
+    height: 100%;
+    width: 0%;
+    background: var(--fg-success-color);
+    animation: progress 1s ease-out forwards;
   }
-  &:nth-child(2) {
-    width: 85%;
-  }
-  &:nth-child(3) {
-    width: 60%;
-  }
+}
+
+@keyframes progress {
+  from { width: 0%; }
+  to { width: 100%; }
 }
 
 .success-text {

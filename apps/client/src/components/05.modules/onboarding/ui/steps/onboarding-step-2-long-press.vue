@@ -34,13 +34,13 @@ function startPress(e: MouseEvent | TouchEvent) {
   ringX.value = clientX - rect.left
   ringY.value = clientY - rect.top
 
-  // Ускоренное долгое нажатие (350мс)
+  // Ускоренное долгое нажатие (200мс)
   pressTimer = setTimeout(() => {
     isTranslated.value = true
     isPressing.value = false
     if ('vibrate' in navigator)
       navigator.vibrate(50)
-  }, 350)
+  }, 200)
 }
 
 function cancelPress() {
@@ -116,14 +116,6 @@ function cancelPress() {
                     [Сино эн керер сьемпре ло ке се асе]
                   </div>
                 </div>
-                <div class="sentence-actions">
-                  <button class="action-btn">
-                    <Icon icon="mdi:volume-medium" />
-                  </button>
-                  <button class="action-btn">
-                    <Icon icon="mdi:bookmark-outline" />
-                  </button>
-                </div>
               </div>
 
               <div class="analysis-block">
@@ -152,7 +144,6 @@ function cancelPress() {
 
     <!-- Фиксированная зона действий -->
     <div class="step-actions">
-      <Transition name="fade" mode="out-in">
         <KitBtn v-if="isTranslated" color="primary" class="next-btn" @click="emit('next')">
           {{ t('onboarding.next') }} <Icon icon="mdi:arrow-right" />
         </KitBtn>
@@ -160,7 +151,6 @@ function cancelPress() {
           <Icon icon="mdi:cursor-pointer" />
           <span>{{ t('onboarding.step2_action') }}</span>
         </div>
-      </Transition>
     </div>
   </OnboardingStepLayout>
 </template>
@@ -170,17 +160,22 @@ function cancelPress() {
   color: var(--fg-accent-color) !important;
 }
 
-/* Фиксируем высоту чтобы убрать прыжки */
 .interactive-zone {
   width: 100%;
   padding: 0 16px;
   margin-bottom: 16px;
-  height: 460px;
+  min-height: 250px;
+  max-height: 450px;
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
   position: relative;
+
+  @include media-down(sm) {
+    min-height: 200px;
+    max-height: 380px;
+  }
 }
 
 .mock-paragraph-container {
@@ -200,13 +195,13 @@ function cancelPress() {
   justify-content: center;
 }
 
-/* Имитация KitDialog -> SentenceAnalysis */
 .mock-dialog-wrapper {
   background-color: var(--bg-primary-color);
   border: 1px solid var(--border-secondary-color);
   border-radius: 16px;
   width: 100%;
   max-width: 650px;
+  max-height: 100%;
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.25);
   display: flex;
   flex-direction: column;
@@ -217,7 +212,7 @@ function cancelPress() {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 14px 16px;
+    padding: 8px 16px;
     border-bottom: 1px solid rgba(0, 0, 0, 0.05);
 
     .title-container {
@@ -226,11 +221,11 @@ function cancelPress() {
       gap: 10px;
 
       .title-icon {
-        font-size: 1.25rem;
+        font-size: 1.05rem; /* Было 1.25rem */
         color: var(--fg-primary-color);
       }
       .dialog-title {
-        font-size: 1.125rem;
+        font-size: 0.85rem; /* Было 1rem */
         font-weight: 600;
         margin: 0;
         color: var(--fg-primary-color);
@@ -251,9 +246,9 @@ function cancelPress() {
       display: flex;
       align-items: center;
       justify-content: center;
-      width: 32px;
-      height: 32px;
-      font-size: 1.25rem;
+      width: 28px; /* Было 32px */
+      height: 28px;
+      font-size: 1.05rem; /* Было 1.25rem */
       cursor: pointer;
       transition: background-color 0.2s;
 
@@ -267,6 +262,7 @@ function cancelPress() {
   .dialog-body {
     padding: 16px;
     overflow-y: auto;
+    flex: 1;
 
     .analysis-content {
       .sentence-header {
@@ -277,7 +273,7 @@ function cancelPress() {
 
         .sentence-content {
           flex-grow: 1;
-          padding: 14px 16px;
+          padding: 12px 14px;
           background-color: var(--bg-tertiary-color);
           border-left: 4px solid var(--fg-accent-color);
           border-radius: 4px 8px 8px 4px;
@@ -286,36 +282,15 @@ function cancelPress() {
           gap: 6px;
 
           .original-sentence {
-            font-size: 1.3rem;
+            font-size: 1.1rem; /* Было 1.3rem */
             font-weight: 500;
             margin: 0;
             color: var(--fg-primary-color);
           }
           .sentence-transcription {
-            font-size: 1.05rem;
+            font-size: 0.9rem; /* Было 1.05rem */
             color: var(--fg-secondary-color);
             line-height: 1.4;
-          }
-        }
-
-        .sentence-actions {
-          display: flex;
-          flex-direction: column;
-          gap: 8px;
-          flex-shrink: 0;
-
-          .action-btn {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 40px;
-            height: 40px;
-            border-radius: 8px;
-            background-color: var(--bg-tertiary-color);
-            border: 1px solid var(--border-secondary-color);
-            color: var(--fg-accent-color);
-            font-size: 1.5rem;
-            cursor: pointer;
           }
         }
       }
@@ -324,19 +299,19 @@ function cancelPress() {
         margin-bottom: 16px;
 
         h3 {
-          font-size: 1.1rem;
-          margin-bottom: 12px;
+          font-size: 0.95rem; /* Было 1.1rem */
+          margin-bottom: 10px;
           color: var(--fg-accent-color);
           display: flex;
           align-items: center;
           gap: 8px;
           .inline-icon {
-            font-size: 1.3rem;
+            font-size: 1.1rem; /* Было 1.3rem */
           }
         }
 
         .translation-text {
-          font-size: 1.05rem;
+          font-size: 0.9rem; /* Было 1.05rem */
           line-height: 1.5;
           margin: 0;
           color: var(--fg-primary-color);
@@ -350,11 +325,12 @@ function cancelPress() {
 
           .rule-pattern {
             font-weight: bold;
+            font-size: 0.9rem;
             color: var(--fg-primary-color);
             margin-bottom: 4px;
           }
           .rule-exp {
-            font-size: 0.95rem;
+            font-size: 0.8rem; /* Было 0.95rem */
             color: var(--fg-secondary-color);
           }
         }
@@ -387,7 +363,6 @@ function cancelPress() {
   justify-content: center;
 }
 
-/* Новая анимация круга */
 .ripple-circle {
   width: 100%;
   height: 100%;
@@ -435,9 +410,11 @@ function cancelPress() {
   transform: scale(0.95) translateY(-10px);
 }
 
-.fade-enter-active,
+.fade-enter-active {
+  transition: opacity 0.2s;
+}
 .fade-leave-active {
-  transition: opacity 0.3s;
+  transition: opacity 0.05s;
 }
 .fade-enter-from,
 .fade-leave-to {

@@ -66,15 +66,13 @@ function onSave() {
 
     <!-- Фиксированная зона действий -->
     <div class="step-actions">
-      <Transition name="fade" mode="out-in">
-        <KitBtn v-if="isSaved" color="primary" class="next-btn" @click="emit('next')">
+        <KitBtn v-if="isSelected || isSaved" color="primary" class="next-btn" @click="emit('next')">
           {{ t('onboarding.next') }} <Icon icon="mdi:arrow-right" />
         </KitBtn>
         <div v-else class="hint-action blink" @click="onSelect">
-          <Icon icon="mdi:format-text-variant" />
+          <Icon icon="mdi:bookmark-plus" />
           <span>{{ t('onboarding.step5_action') }}</span>
         </div>
-      </Transition>
     </div>
   </OnboardingStepLayout>
 </template>
@@ -190,12 +188,12 @@ function onSave() {
     &.bookmark-btn {
       background: transparent;
       color: var(--fg-primary-color);
-      font-size: 1.2rem;
+      font-size: 1.5rem;
       display: flex;
       align-items: center;
       justify-content: center;
-      width: 32px;
-      height: 32px;
+      width: 36px;
+      height: 36px;
 
       &:hover {
         transform: scale(1.1);
@@ -309,9 +307,11 @@ function onSave() {
   transform: translateX(-50%) scale(0.8) translateY(10px);
 }
 
-.fade-enter-active,
+.fade-enter-active {
+  transition: opacity 0.2s;
+}
 .fade-leave-active {
-  transition: opacity 0.3s;
+  transition: opacity 0.05s;
 }
 .fade-enter-from,
 .fade-leave-to {

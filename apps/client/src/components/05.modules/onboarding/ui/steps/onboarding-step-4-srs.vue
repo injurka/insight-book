@@ -38,29 +38,35 @@ function onDrop() {
     icon-class="warning-icon"
   >
     <div class="interactive-zone dictionary-zone">
-      <Transition name="fade">
-        <div
-          v-if="!isWordSaved"
-          class="mock-word-card"
-          :class="{ dragging: isDragging }"
-          draggable="true"
-          @dragstart="onDragStart"
-          @dragend="onDragEnd"
-        >
-          <div style="display: flex; align-items: center; gap: 12px;">
-            <Icon icon="mdi:drag" class="drag-handle" />
-            <span class="word-text">{{ t('onboarding.step3_word') }}</span>
-          </div>
-          <KitBtn
-            icon="mdi:bookmark-plus-outline"
-            color="warning"
-            size="sm"
-            @click="isWordSaved = true"
+      <!-- Зона с фиксированной высотой для карточки, чтобы избежать скачков -->
+      <div class="zone-top">
+        <Transition name="fade-slide-down" mode="out-in">
+          <div
+            v-if="!isWordSaved"
+            class="mock-word-card"
+            :class="{ dragging: isDragging }"
+            draggable="true"
+            @dragstart="onDragStart"
+            @dragend="onDragEnd"
           >
-            {{ t('onboarding.step4_action') }}
-          </KitBtn>
-        </div>
-      </Transition>
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <Icon icon="mdi:drag" class="drag-handle" />
+              <span class="word-text">{{ t('onboarding.step3_word') }}</span>
+            </div>
+            <KitBtn
+              icon="mdi:bookmark-plus-outline"
+              color="warning"
+              size="sm"
+              @click="isWordSaved = true"
+            >
+              {{ t('onboarding.step4_action') }}
+            </KitBtn>
+          </div>
+          <p v-else class="success-text">
+            {{ t('onboarding.step4_success') }}
+          </p>
+        </Transition>
+      </div>
 
       <div
         class="chest-dropzone"
@@ -81,9 +87,7 @@ function onDrop() {
         </div>
       </div>
 
-      <p v-if="isWordSaved" class="success-text">
-        {{ t('onboarding.step4_success') }}
-      </p>
+
     </div>
 
     <!-- Фиксированная зона действий -->
@@ -110,8 +114,19 @@ function onDrop() {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 24px;
+  gap: 16px; /* Немного уменьшили gap из-за врапперов */
 }
+
+/* Контейнеры с фиксированной высотой предотвращают прыжки */
+.zone-top {
+  width: 100%;
+  height: 72px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+
 
 /* Зона для кнопок внизу */
 .step-actions {
@@ -258,5 +273,13 @@ function onDrop() {
 .fade-enter-from,
 .fade-leave-to {
   opacity: 0;
+}
+
+.fade-slide-down-leave-active {
+  transition: all 0.3s ease-in;
+}
+.fade-slide-down-leave-to {
+  opacity: 0;
+  transform: translateY(30px) scale(0.85);
 }
 </style>
