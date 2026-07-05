@@ -103,7 +103,6 @@ const isMobileFiltersOpen = ref(false)
   .header-top {
     display: flex;
     justify-content: space-between;
-    align-items: flex-start;
 
     .header-title-wrap {
       display: flex;

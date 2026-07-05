@@ -617,22 +617,23 @@ onMounted(async () => {
 
 <style lang="scss" scoped>
 .notebook-page {
-  padding-top: var(--safe-area-top);
+  padding: 16px;
+  padding-top: calc(16px + var(--safe-area-top));
+  padding-bottom: env(safe-area-inset-bottom, 24px);
 
   position: relative;
   z-index: 1;
-  padding: 16px;
   max-width: 1000px;
   width: 100%;
   margin: 0 auto;
   height: 100%;
   overflow-y: auto;
-  padding-bottom: env(safe-area-inset-bottom, 24px);
   display: flex;
   flex-direction: column;
 
   @include media-down(md) {
     padding: 8px;
+    padding-top: calc(8px + var(--safe-area-top));
   }
 }
 

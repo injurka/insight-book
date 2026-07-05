@@ -144,13 +144,13 @@ function cancelPress() {
 
     <!-- Фиксированная зона действий -->
     <div class="step-actions">
-        <KitBtn v-if="isTranslated" color="primary" class="next-btn" @click="emit('next')">
-          {{ t('onboarding.next') }} <Icon icon="mdi:arrow-right" />
-        </KitBtn>
-        <div v-else class="hint-action blink">
-          <Icon icon="mdi:cursor-pointer" />
-          <span>{{ t('onboarding.step2_action') }}</span>
-        </div>
+      <KitBtn v-if="isTranslated" color="primary" class="next-btn" @click="emit('next')">
+        {{ t('onboarding.next') }} <Icon icon="mdi:arrow-right" />
+      </KitBtn>
+      <div v-else class="hint-action blink">
+        <Icon icon="mdi:cursor-pointer" />
+        <span>{{ t('onboarding.step2_action') }}</span>
+      </div>
     </div>
   </OnboardingStepLayout>
 </template>
@@ -162,7 +162,7 @@ function cancelPress() {
 
 .interactive-zone {
   width: 100%;
-  padding: 0 16px;
+  padding: 16px;
   margin-bottom: 16px;
   min-height: 250px;
   max-height: 450px;

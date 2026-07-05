@@ -62,7 +62,7 @@ function translateWord(id: string) {
   >
     <div class="interactive-zone">
       <div class="mock-sentence">
-        <template v-for="(w, i) in words" :key="w.id">
+        <template v-for="w in words" :key="w.id">
           <div class="word-wrapper">
             <span
               class="clickable-word"

@@ -11,10 +11,20 @@ export const useAuthStore = defineStore('auth', () => {
   const isAuthReady = ref(false)
 
   async function checkAuth() {
+    const token = localStorage.getItem('insight_token')
+    const cachedMode = localStorage.getItem('insight_auth_mode')
+
+    if (!token && cachedMode === 'multi') {
+      isSingleMode.value = false
+      user.value = null
+      isAuthReady.value = true
+      return
+    }
+
     try {
       const res = await api.auth.me()
 
-      user.value = res.user
+      user.value = res.user || null
       isSingleMode.value = res.mode === 'single'
 
       if (res.user) {
@@ -28,6 +38,12 @@ export const useAuthStore = defineStore('auth', () => {
           role: user.value!.role || 'user',
           auth_mode: isSingleMode.value ? 'single' : 'multi',
         })
+      }
+      else {
+        localStorage.setItem('insight_auth_mode', res.mode)
+        localStorage.removeItem('insight_token')
+        localStorage.removeItem('insight_uid')
+        localStorage.removeItem('insight_user_data')
       }
     }
     catch {

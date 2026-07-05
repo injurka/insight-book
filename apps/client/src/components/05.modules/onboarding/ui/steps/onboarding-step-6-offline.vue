@@ -29,7 +29,9 @@ function toggleOffline() {
       <div class="mock-ui cache-dialog" :class="{ 'is-caching': isOffline }">
         <div class="mock-header">
           <Icon icon="mdi:cloud-download-outline" class="title-icon" />
-          <div class="mock-title-text">Кэшировать / Анализ</div>
+          <div class="mock-title-text">
+            Кэшировать / Анализ
+          </div>
         </div>
         <div class="mock-body">
           <div class="mock-option" @click="toggleOffline">
@@ -157,12 +159,12 @@ function toggleOffline() {
   margin-bottom: 16px;
   padding-bottom: 12px;
   border-bottom: 1px solid var(--border-secondary-color);
-  
+
   .title-icon {
     font-size: 1.2rem;
     color: var(--fg-secondary-color);
   }
-  
+
   .mock-title-text {
     font-size: 1rem;
     font-weight: 600;
@@ -185,24 +187,24 @@ function toggleOffline() {
   background: var(--bg-secondary-color);
   transition: all 0.3s;
   cursor: pointer;
-  
+
   .option-icon {
     font-size: 1.2rem;
     color: var(--fg-tertiary-color);
   }
-  
+
   .option-texts {
     flex: 1;
     display: flex;
     flex-direction: column;
-    
+
     .option-title {
       font-size: 0.9rem;
       color: var(--fg-primary-color);
       font-weight: 500;
     }
   }
-  
+
   .mock-checkbox {
     width: 20px;
     height: 20px;
@@ -213,13 +215,13 @@ function toggleOffline() {
     justify-content: center;
     transition: all 0.3s;
     background: transparent;
-    
+
     &.checked {
       background: var(--fg-success-color);
       border-color: var(--fg-success-color);
       color: white;
     }
-    
+
     svg {
       font-size: 14px;
     }
@@ -232,7 +234,7 @@ function toggleOffline() {
   background: var(--border-secondary-color);
   border-radius: 2px;
   overflow: hidden;
-  
+
   .mock-progress-bar {
     height: 100%;
     width: 0%;
@@ -242,8 +244,12 @@ function toggleOffline() {
 }
 
 @keyframes progress {
-  from { width: 0%; }
-  to { width: 100%; }
+  from {
+    width: 0%;
+  }
+  to {
+    width: 100%;
+  }
 }
 
 .success-text {

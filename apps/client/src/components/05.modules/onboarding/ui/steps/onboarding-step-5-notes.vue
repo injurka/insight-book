@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Icon } from '@iconify/vue'
-import { ref } from 'vue'
+import { onUnmounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { KitBtn } from '~/components/01.kit'
 import OnboardingStepLayout from './onboarding-step-layout.vue'
@@ -12,11 +12,27 @@ const { t } = useI18n()
 const isSelected = ref(false)
 const isSaved = ref(false)
 const hlClass = ref('hl-yellow')
+const showBtnBlink = ref(false)
+
+let timer: ReturnType<typeof setTimeout> | null = null
+
+onUnmounted(() => {
+  if (timer)
+    clearTimeout(timer)
+})
 
 function onSelect() {
   if (isSaved.value)
     return
   isSelected.value = true
+
+  if (timer)
+    clearTimeout(timer)
+  timer = setTimeout(() => {
+    if (!isSaved.value) {
+      showBtnBlink.value = true
+    }
+  }, 3000)
 }
 
 function onSave() {
@@ -24,6 +40,9 @@ function onSave() {
     return
   isSelected.value = false
   isSaved.value = true
+  showBtnBlink.value = false
+  if (timer)
+    clearTimeout(timer)
 }
 </script>
 
@@ -46,7 +65,7 @@ function onSave() {
             <button class="action-btn color-2" :class="{ 'is-active': hlClass === 'hl-green' }" @click.stop="hlClass = 'hl-green'" />
             <button class="action-btn color-3" :class="{ 'is-active': hlClass === 'hl-pink' }" @click.stop="hlClass = 'hl-pink'" />
             <div class="divider" />
-            <button class="action-btn bookmark-btn" @click.stop="onSave">
+            <button class="action-btn bookmark-btn" :class="{ blink: showBtnBlink }" @click.stop="onSave">
               <Icon icon="mdi:bookmark-plus" />
             </button>
           </div>
@@ -66,13 +85,13 @@ function onSave() {
 
     <!-- Фиксированная зона действий -->
     <div class="step-actions">
-        <KitBtn v-if="isSelected || isSaved" color="primary" class="next-btn" @click="emit('next')">
-          {{ t('onboarding.next') }} <Icon icon="mdi:arrow-right" />
-        </KitBtn>
-        <div v-else class="hint-action blink" @click="onSelect">
-          <Icon icon="mdi:bookmark-plus" />
-          <span>{{ t('onboarding.step5_action') }}</span>
-        </div>
+      <KitBtn v-if="isSaved" color="primary" class="next-btn" @click="emit('next')">
+        {{ t('onboarding.next') }} <Icon icon="mdi:arrow-right" />
+      </KitBtn>
+      <div v-else-if="!isSelected" class="hint-action blink" @click="onSelect">
+        <Icon icon="mdi:bookmark-plus" />
+        <span>{{ t('onboarding.step5_action') }}</span>
+      </div>
     </div>
   </OnboardingStepLayout>
 </template>
@@ -205,7 +224,7 @@ function onSave() {
   .divider {
     width: 1px;
     height: 24px;
-    background: var(--border-secondary-color);
+    background-color: var(--border-primary-color);
     margin: 0 4px;
   }
 }

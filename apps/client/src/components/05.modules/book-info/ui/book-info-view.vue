@@ -99,7 +99,7 @@ function goBack() {
 
 <style lang="scss" scoped>
 .book-info-scroll-wrapper {
-  padding-top: var(--safe-area-top);
+  padding-top: var(--safe-area-top) !;
 
   height: 100%;
   width: 100%;

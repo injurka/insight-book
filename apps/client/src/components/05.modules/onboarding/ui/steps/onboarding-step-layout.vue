@@ -79,3 +79,11 @@ defineProps<{
   max-width: 480px;
 }
 </style>
+
+<style lang="scss">
+.step-card .interactive-zone {
+  background-color: rgba(150, 150, 150, 0.08);
+  border: 2px dashed var(--border-secondary-color);
+  border-radius: 16px;
+}
+</style>

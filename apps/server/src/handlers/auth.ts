@@ -84,7 +84,11 @@ export async function handleLogin(req: Request): Promise<Response> {
   return json({ token, user: userPayload })
 }
 
-export async function handleGetMe(req: Request, userId: number): Promise<Response> {
+export async function handleGetMe(req: Request, userId: number | null): Promise<Response> {
+  if (userId === null) {
+    return json({ user: null, mode: AUTH_MODE })
+  }
+
   const user = await db.query.users.findFirst({ where: eq(schema.users.id, userId) })
   if (!user)
     throw new AppError(404, 'Пользователь не найден')

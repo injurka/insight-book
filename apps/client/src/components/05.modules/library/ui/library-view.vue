@@ -191,7 +191,7 @@ onUnmounted(() => {
             @open-upload-modal="isUploadModalOpen = true"
           />
 
-          <LibrarySkeletonGrid v-if="store.isLoading && (!store.books.length && !store.publicBooks.length)" :show-title="true" />
+          <LibrarySkeletonGrid v-if="(!store.isInitialized || store.isLoading) && (!store.books.length && !store.publicBooks.length)" :show-title="true" />
 
           <LibraryPublicCatalog
             v-else-if="currentView === 'public-catalog'"
@@ -205,7 +205,7 @@ onUnmounted(() => {
             @edit-book="openEditModal"
           />
 
-          <div v-else-if="store.books.length === 0" class="empty-state">
+          <div v-else-if="store.books.length === 0 && store.isInitialized" class="empty-state">
             <h2>{{ t('library.emptyStateTitle') }}</h2>
             <p v-if="authStore.user">
               {{ t('library.emptyStateAuth') }}
@@ -251,9 +251,9 @@ onUnmounted(() => {
 <style lang="scss" scoped>
 .library-page-scroll {
   padding-top: var(--safe-area-top);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
 
   height: 100%;
-  padding-bottom: env(safe-area-inset-bottom, 0px);
   box-sizing: border-box;
   width: 100%;
   overflow-x: hidden;

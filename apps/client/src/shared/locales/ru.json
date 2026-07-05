@@ -33,7 +33,11 @@
     "errorAuth": "Ошибка авторизации",
     "betaWarning": "Проект еще не готов к production. Свободной регистрации нет, доступ возможен только по вайтлисту.",
     "yandexLogin": "Вход через Яндекс",
-    "whitelistLogin": "Вход по белому списку"
+    "whitelistLogin": "Вход по белому списку",
+    "earlyAccess": "Ранний доступ",
+    "statBook": "Книга",
+    "statManga": "Манга",
+    "statDict": "Словарь"
   },
   "pwa": {
     "offlineReadyTitle": "Готово к оффлайн-работе",

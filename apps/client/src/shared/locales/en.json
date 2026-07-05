@@ -33,7 +33,11 @@
     "errorAuth": "Authorization Error",
     "betaWarning": "The project is not production-ready yet. There is no open registration, access is by whitelist only.",
     "yandexLogin": "Sign in with Yandex",
-    "whitelistLogin": "Sign in via whitelist"
+    "whitelistLogin": "Sign in via whitelist",
+    "earlyAccess": "Early Access",
+    "statBook": "Book",
+    "statManga": "Manga",
+    "statDict": "Dictionary"
   },
   "pwa": {
     "offlineReadyTitle": "Ready for offline use",

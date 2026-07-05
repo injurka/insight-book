@@ -84,7 +84,7 @@ const apiRoutes = {
   '/api/auth/login': { OPTIONS: corsOk, POST: apiWrapper(handleLogin) },
   '/api/auth/yandex': { OPTIONS: corsOk, GET: apiWrapper(handleYandexAuth) },
   '/api/auth/yandex/callback': { OPTIONS: corsOk, GET: apiWrapper(handleYandexCallback) },
-  '/api/auth/me': { OPTIONS: corsOk, GET: apiWrapper(authWrapper(handleGetMe)) },
+  '/api/auth/me': { OPTIONS: corsOk, GET: apiWrapper(optionalAuthWrapper(handleGetMe)) },
   '/api/auth/me/avatar': { OPTIONS: corsOk, PATCH: apiWrapper(authWrapper(handleUpdateAvatar)) },
   '/api/auth/me/username': { OPTIONS: corsOk, PATCH: apiWrapper(authWrapper(handleUpdateUsername)) },
   '/api/uploads/avatars/:filename': { OPTIONS: corsOk, GET: apiWrapper(handleGetAvatarImage) },

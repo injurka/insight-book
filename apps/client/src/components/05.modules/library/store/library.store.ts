@@ -26,6 +26,7 @@ export const useLibraryStore = defineStore('library', () => {
   const currentBookInfo = ref<Book | null>(null)
 
   const isLoading = ref(false)
+  const isInitialized = ref(false)
   const isAnalyzingBook = ref(false)
   const isAnalyzingVocab = ref(false)
 
@@ -48,6 +49,7 @@ export const useLibraryStore = defineStore('library', () => {
     finally {
       await attachCachedCovers(books.value)
       isLoading.value = false
+      isInitialized.value = true
     }
   }
 
@@ -78,6 +80,7 @@ export const useLibraryStore = defineStore('library', () => {
     finally {
       await attachCachedCovers(publicBooks.value)
       isLoading.value = false
+      isInitialized.value = true
     }
   }
 
@@ -255,6 +258,7 @@ export const useLibraryStore = defineStore('library', () => {
     publicLimit,
     currentBookInfo,
     isLoading,
+    isInitialized,
     isAnalyzingBook,
     isAnalyzingVocab,
 

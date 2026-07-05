@@ -67,13 +67,12 @@ onMounted(() => {
 
 <style lang="scss" scoped>
 .settings-page {
-  padding-top: var(--safe-area-top);
-
   position: relative;
   z-index: 1;
   max-width: 900px;
   margin: 0 auto;
   padding: 32px;
+  padding-top: calc(32px + var(--safe-area-top));
   width: 100%;
   height: 100%;
   padding-bottom: env(safe-area-inset-bottom, 0px);
@@ -81,6 +80,7 @@ onMounted(() => {
 
   @include media-down(md) {
     padding: 16px;
+    padding-top: calc(16px + var(--safe-area-top));
   }
 }
 

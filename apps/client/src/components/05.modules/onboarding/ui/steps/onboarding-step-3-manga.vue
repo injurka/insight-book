@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Icon } from '@iconify/vue'
-import { computed, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { KitBtn } from '~/components/01.kit'
 import OnboardingStepLayout from './onboarding-step-layout.vue'
@@ -13,6 +13,28 @@ const { t } = useI18n()
 // 0 - ждем клика по облачку, 1 - облачко нажато (sentence popover), 2 - нажато слово (word popover)
 const currentStep = ref(0)
 const activeWordId = ref<string | null>(null)
+const wordClicked = ref(false)
+const showBubbleHint = ref(false)
+const showWordHint = ref(false)
+const randomWordIdForHint = ref('nàme')
+
+let bubbleTimer: ReturnType<typeof setTimeout> | null = null
+let wordTimer: ReturnType<typeof setTimeout> | null = null
+
+onMounted(() => {
+  bubbleTimer = setTimeout(() => {
+    if (currentStep.value === 0) {
+      showBubbleHint.value = true
+    }
+  }, 3000)
+})
+
+onUnmounted(() => {
+  if (bubbleTimer)
+    clearTimeout(bubbleTimer)
+  if (wordTimer)
+    clearTimeout(wordTimer)
+})
 
 // Словарик из вашего примера HTML
 const mockDict: Record<string, any> = {
@@ -71,6 +93,17 @@ const activeDict = computed(() => activeWordId.value ? mockDict[activeWordId.val
 function handleBubbleClick() {
   if (currentStep.value === 0) {
     currentStep.value = 1
+    showBubbleHint.value = false
+    if (bubbleTimer)
+      clearTimeout(bubbleTimer)
+
+    wordTimer = setTimeout(() => {
+      if (!wordClicked.value) {
+        showWordHint.value = true
+        const words = ['nàme', 'yǒu', 'shénme', 'shì me', 'dàshù', 'tóngxué']
+        randomWordIdForHint.value = words[Math.floor(Math.random() * words.length)]
+      }
+    }, 3000)
   }
 }
 
@@ -79,6 +112,10 @@ function handleWordClick(id: string, isPunct: boolean) {
     return
   activeWordId.value = id
   currentStep.value = 2
+  wordClicked.value = true
+  showWordHint.value = false
+  if (wordTimer)
+    clearTimeout(wordTimer)
 }
 
 function closeWordPopover() {
@@ -102,7 +139,7 @@ function closeWordPopover() {
         <!-- Интерактивный блок OCR (Координаты настроены под облачко справа вверху) -->
         <div
           class="ocr-bubble"
-          :class="{ 'is-active': currentStep >= 1 }"
+          :class="{ 'is-active': currentStep >= 1, 'blink': showBubbleHint && currentStep === 0 }"
           @click="handleBubbleClick"
         />
 
@@ -111,15 +148,15 @@ function closeWordPopover() {
           <div v-if="currentStep >= 1" class="bubble-popover js-tooltip-selectable">
             <div class="bubble-popover-text">
               <span class="sentence">
-                <span class="word" :class="{ 'is-active': activeWordId === 'nàme' }" @click.stop="handleWordClick('nàme', false)">那么</span>
-                <span class="word" :class="{ 'is-active': activeWordId === 'yǒu' }" @click.stop="handleWordClick('yǒu', false)">有</span>
-                <span class="word" :class="{ 'is-active': activeWordId === 'shénme' }" @click.stop="handleWordClick('shénme', false)">什么</span>
-                <span class="word" :class="{ 'is-active': activeWordId === 'shì me' }" @click.stop="handleWordClick('shì me', false)">事么</span>
+                <span class="word" :class="{ 'is-active': activeWordId === 'nàme', 'blink': showWordHint && randomWordIdForHint === 'nàme' }" @click.stop="handleWordClick('nàme', false)">那么</span>
+                <span class="word" :class="{ 'is-active': activeWordId === 'yǒu', 'blink': showWordHint && randomWordIdForHint === 'yǒu' }" @click.stop="handleWordClick('yǒu', false)">有</span>
+                <span class="word" :class="{ 'is-active': activeWordId === 'shénme', 'blink': showWordHint && randomWordIdForHint === 'shénme' }" @click.stop="handleWordClick('shénme', false)">什么</span>
+                <span class="word" :class="{ 'is-active': activeWordId === 'shì me', 'blink': showWordHint && randomWordIdForHint === 'shì me' }" @click.stop="handleWordClick('shì me', false)">事么</span>
                 <span class="word is-punctuation" @click.stop>？</span>
               </span>
               <span class="sentence">
-                <span class="word" :class="{ 'is-active': activeWordId === 'dàshù' }" @click.stop="handleWordClick('dàshù', false)">大树</span>
-                <span class="word" :class="{ 'is-active': activeWordId === 'tóngxué' }" @click.stop="handleWordClick('tóngxué', false)">同学</span>
+                <span class="word" :class="{ 'is-active': activeWordId === 'dàshù', 'blink': showWordHint && randomWordIdForHint === 'dàshù' }" @click.stop="handleWordClick('dàshù', false)">大树</span>
+                <span class="word" :class="{ 'is-active': activeWordId === 'tóngxué', 'blink': showWordHint && randomWordIdForHint === 'tóngxué' }" @click.stop="handleWordClick('tóngxué', false)">同学</span>
               </span>
             </div>
           </div>
@@ -169,8 +206,6 @@ function closeWordPopover() {
               <div class="pos-badge" :class="activeDict.posClass">
                 {{ activeDict.pos }}
               </div>
-
-
             </div>
           </div>
         </Transition>
@@ -178,14 +213,22 @@ function closeWordPopover() {
     </div>
 
     <!-- Фиксированная зона действий -->
-    <div class="step-actions">
-        <KitBtn v-if="currentStep >= 1" color="primary" class="next-btn" @click="emit('next')">
-          {{ t('onboarding.step3_success') }} <Icon icon="mdi:arrow-right" class="ml-2" />
-        </KitBtn>
-        <div v-else class="hint-action blink" @click="currentStep === 0 ? handleBubbleClick() : handleWordClick('nàme', false)">
-          <Icon icon="mdi:cursor-pointer" />
-          <span>{{ currentStep === 0 ? t('onboarding.step3_action') : 'Кликни на слово' }}</span>
-        </div>
+    <div class="step-actions" style="flex-direction: column; gap: 8px;">
+      <div v-if="currentStep >= 1 && !wordClicked" class="success-text" style="color: var(--fg-accent-color); font-weight: 500; font-size: 1.1rem; text-align: center;">
+        {{ t('onboarding.step3_success') }}
+      </div>
+
+      <KitBtn v-if="wordClicked" color="primary" class="next-btn" @click="emit('next')">
+        Далее <Icon icon="mdi:arrow-right" class="ml-2" />
+      </KitBtn>
+      <div v-else-if="currentStep === 0" class="hint-action blink" @click="handleBubbleClick">
+        <Icon icon="mdi:cursor-pointer" />
+        <span>{{ t('onboarding.step3_action') }}</span>
+      </div>
+      <div v-else-if="currentStep === 1 && !wordClicked" class="hint-action blink" @click="handleWordClick('nàme', false)">
+        <Icon icon="mdi:cursor-pointer" />
+        <span>Кликни на слово</span>
+      </div>
     </div>
   </OnboardingStepLayout>
 </template>
@@ -267,7 +310,7 @@ function closeWordPopover() {
   border: 1px solid var(--border-primary-color);
   border-radius: 12px;
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
-  padding: 16px;
+  padding: 12px 8px;
   z-index: 10;
   color: var(--fg-primary-color);
   text-align: left;
@@ -280,7 +323,7 @@ function closeWordPopover() {
   }
   .word {
     cursor: pointer;
-    padding: 2px 4px;
+    padding: 2px;
     border-radius: 4px;
     transition: background-color 0.2s;
 
@@ -415,8 +458,6 @@ function closeWordPopover() {
         background-color: var(--bg-overlay-secondary-color);
       }
     }
-
-
   }
 }
 

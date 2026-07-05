@@ -11,6 +11,7 @@ const emit = defineEmits<{
 const { t } = useI18n()
 const isWordSaved = ref(false)
 const isDragging = ref(false)
+const showNextBtn = ref(false)
 
 function onDragStart(e: DragEvent) {
   isDragging.value = true
@@ -27,6 +28,28 @@ function onDragEnd() {
 function onDrop() {
   isWordSaved.value = true
   isDragging.value = false
+  setTimeout(() => {
+    showNextBtn.value = true
+  }, 1000)
+}
+
+function onTouchStart(_e: TouchEvent) {
+  isDragging.value = true
+}
+
+function onTouchMove(e: TouchEvent) {
+  e.preventDefault() // prevent scroll
+}
+
+function onTouchEnd(e: TouchEvent) {
+  isDragging.value = false
+  const touch = e.changedTouches[0]
+  if (touch) {
+    const target = document.elementFromPoint(touch.clientX, touch.clientY)
+    if (target && target.closest('.chest-dropzone')) {
+      onDrop()
+    }
+  }
 }
 </script>
 
@@ -48,6 +71,9 @@ function onDrop() {
             draggable="true"
             @dragstart="onDragStart"
             @dragend="onDragEnd"
+            @touchstart="onTouchStart"
+            @touchmove="onTouchMove"
+            @touchend="onTouchEnd"
           >
             <div style="display: flex; align-items: center; gap: 12px;">
               <Icon icon="mdi:drag" class="drag-handle" />
@@ -86,14 +112,12 @@ function onDrop() {
           <span class="phase p3">Выучено</span>
         </div>
       </div>
-
-
     </div>
 
     <!-- Фиксированная зона действий -->
     <div class="step-actions">
       <Transition name="fade" mode="out-in">
-        <KitBtn v-if="isWordSaved" color="primary" class="next-btn" @click="emit('next')">
+        <KitBtn v-if="showNextBtn" color="primary" class="next-btn" @click="emit('next')">
           {{ t('onboarding.next') }} <Icon icon="mdi:arrow-right" />
         </KitBtn>
       </Transition>
@@ -125,8 +149,6 @@ function onDrop() {
   justify-content: center;
   align-items: center;
 }
-
-
 
 /* Зона для кнопок внизу */
 .step-actions {

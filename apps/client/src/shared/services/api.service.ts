@@ -88,7 +88,7 @@ export const request = ofetch.create({
 export const api = {
   auth: {
     login: (data: unknown) => request<{ token: string, user: UserData }>('/api/auth/login', { method: 'POST', body: JSON.stringify(data) }),
-    me: () => request<{ user: UserData, mode: string }>('/api/auth/me'),
+    me: () => request<{ user: UserData | null, mode: string }>('/api/auth/me'),
     updateAvatar: (file: File) => {
       const fd = new FormData()
       fd.append('file', file)
