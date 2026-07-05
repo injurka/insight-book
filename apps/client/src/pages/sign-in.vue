@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { Icon } from '@iconify/vue'
+import { isTauri } from '@tauri-apps/api/core'
+import { openUrl } from '@tauri-apps/plugin-opener'
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
@@ -70,6 +72,15 @@ async function handleSignIn() {
   }
 }
 
+async function loginYandex() {
+  const url = `${BASE_API_URL}/api/auth/yandex?source=tauri`
+  if (isTauri()) {
+    await openUrl(url)
+  }
+  else {
+    window.location.href = `${BASE_API_URL}/api/auth/yandex`
+  }
+}
 const bookTiles = [
   { top: '8%', left: '10%', delay: '0s', size: 52, hue: 260 },
   { top: '12%', left: '55%', delay: '0.6s', size: 40, hue: 300 },
@@ -179,9 +190,10 @@ const bookTiles = [
         </div>
 
         <a
-          :href="`${BASE_API_URL}/api/auth/yandex`"
+          href="#"
           class="yandex-btn yandex-btn-link"
           :class="{ 'is-disabled': isLoading }"
+          @click.prevent="loginYandex"
         >
           <span class="yandex-btn-inner">
             <span class="yandex-icon-wrap">
@@ -281,7 +293,7 @@ const bookTiles = [
   }
 
   @media (max-width: 480px) {
-    top: calc(12px + var(--safe-area-top));
+    top: 12px;
     right: 12px;
   }
 }

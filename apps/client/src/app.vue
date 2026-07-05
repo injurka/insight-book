@@ -24,18 +24,40 @@ const router = useRouter()
 const { triggerBack } = useBackHandler()
 
 onMounted(async () => {
-  if ('__TAURI_INTERNALS__' in window && /android/i.test(navigator.userAgent)) {
+  if ('__TAURI_INTERNALS__' in window) {
     try {
-      const { listen } = await import('@tauri-apps/api/event')
-      await listen('tauri://go-back', () => {
-        const wasHandled = triggerBack()
-        if (!wasHandled) {
-          router.back()
+      const { onOpenUrl } = await import('@tauri-apps/plugin-deep-link')
+      await onOpenUrl((urls) => {
+        for (const url of urls) {
+          try {
+            const parsed = new URL(url)
+            if (parsed.pathname.includes('/callback') || parsed.host.includes('callback')) {
+              router.push({ path: '/auth/yandex/callback', query: Object.fromEntries(parsed.searchParams) })
+            }
+          }
+          catch (e) {
+            console.error('Invalid deep link URL', e)
+          }
         }
       })
     }
     catch (e) {
-      console.warn('Failed to attach Android back button listener', e)
+      console.warn('Failed to attach deep link listener', e)
+    }
+
+    if (/android/i.test(navigator.userAgent)) {
+      try {
+        const { listen } = await import('@tauri-apps/api/event')
+        await listen('tauri://go-back', () => {
+          const wasHandled = triggerBack()
+          if (!wasHandled) {
+            router.back()
+          }
+        })
+      }
+      catch (e) {
+        console.warn('Failed to attach Android back button listener', e)
+      }
     }
   }
 })

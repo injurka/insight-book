@@ -24,6 +24,8 @@ const { speak, stop, isPlaying, isLoading } = useTts()
 const { theme, toggleTheme } = useChangeTheme()
 const { isFullscreen, toggle: toggleFullscreen } = useFullscreen()
 
+const isApk = '__TAURI_INTERNALS__' in window && /android|iphone|ipad|ipod/i.test(navigator.userAgent)
+
 const isPageAnalysisModalOpen = ref(false)
 
 const pageActionOpts = reactive({
@@ -34,9 +36,8 @@ const pageActionOpts = reactive({
 })
 
 function openPageAnalysisModal() {
-  emit('closeDropdown')
-
   if (analysisStore.isManualPageAnalysisActive) {
+    emit('closeDropdown')
     analysisStore.isPageAnalysisModalOpen = true
   }
   else {
@@ -46,6 +47,7 @@ function openPageAnalysisModal() {
 
 function startPageAnalysis() {
   isPageAnalysisModalOpen.value = false
+  emit('closeDropdown')
 
   if (analysisStore.isManualPageAnalysisActive) {
     analysisStore.isPageAnalysisModalOpen = true
@@ -139,7 +141,7 @@ const currentThemeName = computed(() => {
       <div class="section-title">
         {{ t('settings.interfaceTitle') }}
       </div>
-      <div class="menu-item" @click="toggleFullscreen">
+      <div v-if="!isApk" class="menu-item" @click="toggleFullscreen">
         <div class="item-label">
           <Icon :icon="isFullscreen ? 'mdi:fullscreen-exit' : 'mdi:fullscreen'" class="item-icon" />
           <span>{{ t('reader.fullscreen') }}</span>

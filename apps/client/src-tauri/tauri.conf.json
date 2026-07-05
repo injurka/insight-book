@@ -34,5 +34,13 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ]
+  },
+  "plugins": {
+    "deep-link": {
+      "desktop": { "schemes": ["insightbook"] },
+      "mobile": [
+        { "host": "insight-api.trip-scheduler.ru", "pathPrefix": ["/api/auth/yandex/callback"] }
+      ]
+    }
   }
 }

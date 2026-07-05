@@ -14,14 +14,14 @@ function compareVersions(v1: string, v2: string): number {
   for (let i = 0; i < Math.max(parts1.length, parts2.length); i++) {
     const p1 = parts1[i] || 0
     const p2 = parts2[i] || 0
-    
+
     if (p1 > p2)
       return 1
 
     if (p1 < p2)
       return -1
   }
-  
+
   return 0
 }
 
@@ -46,7 +46,7 @@ export async function initializeTauriUpdater(pinia: Pinia): Promise<void> {
 
       pwaStore.setNeedRefresh(true)
       pwaStore.setUpdateFunction(async () => {
-        const apkAsset = release.assets?.find((a: any) => a.name.endsWith('.apk'))
+        const apkAsset = release.assets?.find((a: { name: string }) => a.name.endsWith('.apk'))
         const urlToOpen = apkAsset ? apkAsset.browser_download_url : release.html_url
 
         await openUrl(urlToOpen)
