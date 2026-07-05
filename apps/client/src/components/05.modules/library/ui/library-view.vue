@@ -250,6 +250,8 @@ onUnmounted(() => {
 
 <style lang="scss" scoped>
 .library-page-scroll {
+  padding-top: var(--safe-area-top);
+
   height: 100%;
   padding-bottom: env(safe-area-inset-bottom, 0px);
   box-sizing: border-box;

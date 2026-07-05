@@ -139,6 +139,8 @@ function handleYandexLogin() {
 
 <style scoped lang="scss">
 .sign-in-wrapper {
+  padding-top: var(--safe-area-top);
+
   position: relative;
   width: 100%;
   height: 100%;

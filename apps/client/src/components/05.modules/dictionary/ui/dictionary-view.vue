@@ -17,7 +17,6 @@ const store = useDictionaryStore()
 const router = useRouter()
 const route = useRoute()
 
-// — Dialog visibility state
 const isTrainingOpen = ref(false)
 const isEditMode = ref(false)
 const isManageDecksOpen = ref(false)
@@ -107,6 +106,8 @@ watch(isDetailsModalOpen, (isOpen) => {
 
 <style lang="scss" scoped>
 .dictionary-page {
+  padding-top: var(--safe-area-top);
+
   position: relative;
   z-index: 1;
   padding: 16px;

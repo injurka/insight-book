@@ -49,6 +49,7 @@ onMounted(async () => {
 
 <style scoped>
 .reader-page-wrapper {
+  padding-top: var(--safe-area-top);
   width: 100%;
   height: 100%;
 }

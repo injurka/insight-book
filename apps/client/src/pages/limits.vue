@@ -144,6 +144,8 @@ function formatNumber(num: number | undefined | null) {
 
 <style lang="scss" scoped>
 .limits-page {
+  padding-top: var(--safe-area-top);
+
   position: relative;
   z-index: 1;
   max-width: 900px;

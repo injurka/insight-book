@@ -18,7 +18,6 @@ import { AppTitlebar } from '~/components/02.shared/app-titlebar'
   height: 100dvh;
   width: 100vw;
   overflow: hidden;
-  padding-top: var(--safe-area-top);
   padding-left: env(safe-area-inset-left, 0px);
   padding-right: env(safe-area-inset-right, 0px);
 }

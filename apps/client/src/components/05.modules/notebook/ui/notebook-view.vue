@@ -617,6 +617,8 @@ onMounted(async () => {
 
 <style lang="scss" scoped>
 .notebook-page {
+  padding-top: var(--safe-area-top);
+
   position: relative;
   z-index: 1;
   padding: 16px;

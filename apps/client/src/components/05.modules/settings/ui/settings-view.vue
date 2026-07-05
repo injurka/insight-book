@@ -18,10 +18,6 @@ const cacheStore = useCacheStore()
 const router = useRouter()
 const { t } = useI18n()
 
-onMounted(() => {
-  cacheStore.loadStats()
-})
-
 const currentTab = ref('interface')
 
 const tabs = computed<TabItem<string>[]>(() => [
@@ -29,6 +25,9 @@ const tabs = computed<TabItem<string>[]>(() => [
   { id: 'ai', label: t('settings.aiTitle'), icon: 'mdi:robot-outline' },
   { id: 'storage', label: t('settings.storageTitle'), icon: 'mdi:database-outline' },
 ])
+onMounted(() => {
+  cacheStore.loadStats()
+})
 </script>
 
 <template>
@@ -68,6 +67,8 @@ const tabs = computed<TabItem<string>[]>(() => [
 
 <style lang="scss" scoped>
 .settings-page {
+  padding-top: var(--safe-area-top);
+
   position: relative;
   z-index: 1;
   max-width: 900px;
