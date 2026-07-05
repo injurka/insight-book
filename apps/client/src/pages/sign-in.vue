@@ -70,10 +70,6 @@ async function handleSignIn() {
   }
 }
 
-function handleYandexLogin() {
-  window.location.href = `${BASE_API_URL}/api/auth/yandex`
-}
-
 const bookTiles = [
   { top: '8%', left: '10%', delay: '0s', size: 52, hue: 260 },
   { top: '12%', left: '55%', delay: '0.6s', size: 40, hue: 300 },
@@ -90,34 +86,6 @@ const bookTiles = [
 
 <template>
   <div class="sign-in-root">
-    <div class="settings-bar">
-      <KitDropdown width="140px" placement="bottom-end">
-        <template #activator>
-          <button class="settings-btn" :aria-label="t('globalActions.switchLanguage')">
-            <Icon icon="mdi:translate" />
-          </button>
-        </template>
-        <div class="lang-dropdown-list">
-          <button
-            v-for="lang in appLangOptions"
-            :key="lang.value"
-            class="lang-dropdown-item"
-            :class="{ 'is-active': settingsStore.appLanguage === lang.value }"
-            @click="setLanguage(lang.value)"
-          >
-            <span>{{ lang.label }}</span>
-            <Icon v-if="settingsStore.appLanguage === lang.value" icon="mdi:check" class="check-icon" />
-          </button>
-        </div>
-      </KitDropdown>
-
-      <div class="settings-divider" />
-
-      <button class="settings-btn" :aria-label="t('globalActions.switchTheme')" @click="toggleTheme">
-        <Icon :icon="currentThemeIcon" />
-      </button>
-    </div>
-
     <aside class="deco-panel" aria-hidden="true">
       <div
         v-for="(tile, i) in bookTiles"
@@ -168,6 +136,34 @@ const bookTiles = [
     </aside>
 
     <main class="auth-panel">
+      <div class="settings-bar">
+        <KitDropdown width="140px" placement="bottom-end">
+          <template #activator>
+            <button class="settings-btn" :aria-label="t('globalActions.switchLanguage')">
+              <Icon icon="mdi:translate" />
+            </button>
+          </template>
+          <div class="lang-dropdown-list">
+            <button
+              v-for="lang in appLangOptions"
+              :key="lang.value"
+              class="lang-dropdown-item"
+              :class="{ 'is-active': settingsStore.appLanguage === lang.value }"
+              @click="setLanguage(lang.value)"
+            >
+              <span>{{ lang.label }}</span>
+              <Icon v-if="settingsStore.appLanguage === lang.value" icon="mdi:check" class="check-icon" />
+            </button>
+          </div>
+        </KitDropdown>
+
+        <div class="settings-divider" />
+
+        <button class="settings-btn" :aria-label="t('globalActions.switchTheme')" @click="toggleTheme">
+          <Icon :icon="currentThemeIcon" />
+        </button>
+      </div>
+
       <div class="auth-card">
         <div class="auth-header">
           <div class="auth-badge">
@@ -182,11 +178,10 @@ const bookTiles = [
           </p>
         </div>
 
-        <KitBtn
-          type="button"
-          class="yandex-btn"
-          :disabled="isLoading"
-          @click="handleYandexLogin"
+        <a
+          :href="`${BASE_API_URL}/api/auth/yandex`"
+          class="yandex-btn yandex-btn-link"
+          :class="{ 'is-disabled': isLoading }"
         >
           <span class="yandex-btn-inner">
             <span class="yandex-icon-wrap">
@@ -194,7 +189,7 @@ const bookTiles = [
             </span>
             <span class="yandex-btn-label">{{ t('signIn.yandexLogin') }}</span>
           </span>
-        </KitBtn>
+        </a>
 
         <div class="divider">
           <span class="divider-line" />
@@ -264,7 +259,7 @@ const bookTiles = [
 }
 
 .settings-bar {
-  position: fixed;
+  position: absolute;
   top: calc(20px + var(--safe-area-top));
   right: 20px;
   display: flex;
@@ -652,6 +647,11 @@ const bookTiles = [
 }
 
 .yandex-btn {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-decoration: none !important;
+  cursor: pointer !important;
   width: 100% !important;
   height: 52px !important;
   border-radius: 14px !important;
@@ -661,14 +661,19 @@ const bookTiles = [
   box-shadow: 0 4px 20px rgba(252, 63, 29, 0.3) !important;
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
 
-  &:hover:not(:disabled) {
+  &:hover:not(.is-disabled) {
     transform: translateY(-2px) !important;
     box-shadow: 0 8px 28px rgba(252, 63, 29, 0.45) !important;
     background: linear-gradient(135deg, #ff4d27 0%, #e0381a 100%) !important;
   }
 
-  &:active:not(:disabled) {
+  &:active:not(.is-disabled) {
     transform: translateY(0) !important;
+  }
+
+  &.is-disabled {
+    opacity: 0.7 !important;
+    pointer-events: none !important;
   }
 }
 

@@ -40,6 +40,16 @@ async function bootstrap() {
       })
   }
 
+  if (isTauri) {
+    import('~/shared/services/tauri-update.service')
+      .then(({ initializeTauriUpdater }) => {
+        initializeTauriUpdater(pinia)
+      })
+      .catch((err) => {
+        console.warn('Tauri updater failed to initialize:', err)
+      })
+  }
+
   if (import.meta.env.DEV) {
     app.config.performance = true
   }
