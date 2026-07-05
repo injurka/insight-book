@@ -106,11 +106,11 @@ watch(isDetailsModalOpen, (isOpen) => {
 
 <style lang="scss" scoped>
 .dictionary-page {
-  padding-top: var(--safe-area-top) !;
+  padding-top: calc(16px + var(--safe-area-top));
+  padding: 16px;
 
   position: relative;
   z-index: 1;
-  padding: 16px;
   max-width: 1200px;
   width: 100%;
   margin: 0 auto;
@@ -120,7 +120,7 @@ watch(isDetailsModalOpen, (isOpen) => {
   flex-direction: column;
 
   @include media-down(md) {
-    padding: 8px;
+    padding-top: calc(8px + var(--safe-area-top));
   }
 }
 
