@@ -92,7 +92,7 @@ watch(() => props.isVisible, (visible) => {
 <style lang="scss" scoped>
 .reader-header {
   position: fixed;
-  top: calc(16px + var(--safe-area-top));
+  top: calc(16px + env(safe-area-inset-top, 0px));
   left: 50%;
   transform: translateX(-50%) translateY(0);
   z-index: var(--z-header, 1100);

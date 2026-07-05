@@ -168,6 +168,8 @@ watch(() => readerStore.isPageLoading, async (isLoading) => {
 
 <style lang="scss" scoped>
 .reader-view {
+  padding-top: var(--safe-area-top);
+
   height: 100%;
   padding-bottom: env(safe-area-inset-bottom, 0px);
   overflow-y: auto;

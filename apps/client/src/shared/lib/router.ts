@@ -70,6 +70,11 @@ export const router = createRouter({
       name: AppRouteNames.Notebook,
       component: () => import('~/pages/notebook.vue'),
     },
+    {
+      path: '/onboarding',
+      name: AppRouteNames.Onboarding,
+      component: () => import('~/pages/onboarding.vue'),
+    },
   ],
 })
 
@@ -80,6 +85,16 @@ router.beforeEach(async (to, from) => {
 
   if (!authStore.isAuthReady) {
     await authStore.checkAuth()
+  }
+
+  const hasSeenOnboarding = localStorage.getItem('insight_onboarding_completed') === 'true'
+
+  if (
+    !hasSeenOnboarding && to.name !== AppRouteNames.Onboarding
+    && to.name !== AppRouteNames.SignIn
+    && to.name !== AppRouteNames.YandexCallback
+  ) {
+    return { name: AppRouteNames.Onboarding }
   }
 
   if (to.name === AppRouteNames.Home && Object.keys(to.query).length === 0 && !from.name) {
