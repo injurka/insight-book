@@ -75,6 +75,21 @@ export const router = createRouter({
       name: AppRouteNames.Onboarding,
       component: () => import('~/pages/onboarding.vue'),
     },
+    {
+      path: '/about',
+      name: AppRouteNames.About,
+      component: () => import('~/pages/about.vue'),
+    },
+    {
+      path: '/copyright',
+      name: AppRouteNames.Copyright,
+      component: () => import('~/pages/copyright.vue'),
+    },
+    {
+      path: '/privacy',
+      name: AppRouteNames.Privacy,
+      component: () => import('~/pages/privacy.vue'),
+    },
   ],
 })
 

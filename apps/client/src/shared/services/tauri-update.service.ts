@@ -3,9 +3,9 @@ import type { Pinia } from 'pinia'
 import { getVersion } from '@tauri-apps/api/app'
 import { isTauri } from '@tauri-apps/api/core'
 import { openUrl } from '@tauri-apps/plugin-opener'
+import { i18n } from '~/shared/plugins/i18n'
 import { usePwaStore } from '~/shared/store/pwa.store'
 import { useToastStore } from '~/shared/store/toast.store'
-import { i18n } from '~/shared/plugins/i18n'
 
 const GITHUB_REPO = 'injurka/insight-book'
 

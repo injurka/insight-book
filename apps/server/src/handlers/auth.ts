@@ -236,8 +236,19 @@ export async function handleYandexCallback(req: Request): Promise<Response> {
 
   if (state === 'tauri') {
     // For Android/iOS: Chrome often blocks 302 redirects to custom schemes
-    // We must return an HTML page with a JS redirect and a fallback button.
-    const tauriUrl = `insightbook://auth/callback?token=${token}`
+    // We use an Android intent:// URI to force open the app by package name
+    // bypassing App Link verification.
+    const webUrl = new URL(WEB_REDIRECT_URI)
+    webUrl.searchParams.set('token', token)
+    
+    const intentHostPath = `${webUrl.host}${webUrl.pathname}${webUrl.search}`
+    const scheme = webUrl.protocol.replace(':', '')
+    // Fallback for non-Android or if intent fails
+    const fallbackUrl = `insightbook://auth/callback?token=${token}`
+    
+    // Construct the Android intent URL
+    const tauriUrl = `intent://${intentHostPath}#Intent;scheme=${scheme};package=ru.insightbook.insightbook;S.browser_fallback_url=${encodeURIComponent(fallbackUrl)};end`
+    
     const html = `
       <!DOCTYPE html>
       <html lang="ru">

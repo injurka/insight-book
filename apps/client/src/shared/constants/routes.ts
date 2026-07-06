@@ -8,6 +8,9 @@ export enum AppRouteNames {
   SignIn = 'sign-in',
   Notebook = 'notebook',
   Onboarding = 'onboarding',
+  About = 'about',
+  Copyright = 'copyright',
+  Privacy = 'privacy',
   //
   YandexCallback = 'yandex-callback',
 }
@@ -20,6 +23,9 @@ export const AppRoutePaths = {
   Limits: '/limits',
   SignIn: '/sign-in',
   Notebook: '/notebook',
+  About: '/about',
+  Copyright: '/copyright',
+  Privacy: '/privacy',
   Book: {
     Info: (id: string | number) => `/book/${id}`,
   },

@@ -245,6 +245,22 @@ onUnmounted(() => {
         @submit="onConfirmHideBook"
       />
     </div>
+
+    <footer class="library-footer">
+      <div class="footer-links">
+        <router-link :to="AppRoutePaths.About" class="footer-link">
+          О сайте
+        </router-link>
+        <span class="dot">·</span>
+        <router-link :to="AppRoutePaths.Privacy" class="footer-link">
+          Конфиденциальность
+        </router-link>
+        <span class="dot">·</span>
+        <router-link :to="AppRoutePaths.Copyright" class="footer-link">
+          Правообладателям
+        </router-link>
+      </div>
+    </footer>
   </div>
 </template>
 
@@ -254,10 +270,13 @@ onUnmounted(() => {
   padding-bottom: env(safe-area-inset-bottom, 0px);
 
   height: 100%;
-  box-sizing: border-box;
   width: 100%;
   overflow-x: hidden;
   overflow-y: auto;
+  box-sizing: border-box;
+
+  display: flex;
+  flex-direction: column;
 
   &::-webkit-scrollbar {
     width: 6px;
@@ -271,6 +290,7 @@ onUnmounted(() => {
 .library-view {
   padding: 16px;
   max-width: 1300px;
+  width: 100%;
   margin: 0 auto;
   min-height: 100vh;
   display: flex;
@@ -310,6 +330,38 @@ onUnmounted(() => {
   }
   p {
     color: var(--fg-secondary-color);
+  }
+}
+
+.library-footer {
+  padding: 24px 16px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: auto;
+
+  .footer-links {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .footer-link {
+    color: var(--fg-secondary-color);
+    font-size: 0.85rem;
+    text-decoration: none;
+    transition: color 0.2s ease;
+
+    &:hover {
+      color: var(--fg-primary-color);
+    }
+  }
+
+  .dot {
+    color: var(--border-secondary-color);
+    font-size: 0.85rem;
   }
 }
 </style>
