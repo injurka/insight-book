@@ -73,7 +73,6 @@ async function handleSignIn() {
 }
 
 async function loginYandex() {
-  toast.info(`Вызов loginYandex... ${isTauri() ? 'через Tauri' : 'через Web'}`)
   try {
     const url = `${BASE_API_URL}/api/auth/yandex?source=tauri`
     if (isTauri()) {

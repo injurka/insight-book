@@ -30,8 +30,14 @@ onMounted(async () => {
       await onOpenUrl((urls) => {
         for (const url of urls) {
           try {
+            console.log('[DeepLink] Received URL:', url)
             const parsed = new URL(url)
-            if (parsed.pathname.includes('/callback') || parsed.host.includes('callback')) {
+            const isCallback = parsed.pathname.includes('/callback') || parsed.host.includes('callback')
+            const isInsightbookScheme = parsed.protocol === 'insightbook:'
+
+            if (isCallback || isInsightbookScheme) {
+              const token = parsed.searchParams.get('token')
+              console.log('[DeepLink] Navigating to yandex callback, token present:', !!token)
               router.push({ path: '/auth/yandex/callback', query: Object.fromEntries(parsed.searchParams) })
             }
           }
