@@ -53,6 +53,8 @@ services:
       - VAPID_PUBLIC_KEY=${VAPID_PUBLIC_KEY}
       - VAPID_PRIVATE_KEY=${VAPID_PRIVATE_KEY}
       - VAPID_SUBJECT=${VAPID_SUBJECT}
+      # Firebase Admin
+      - GOOGLE_APPLICATION_CREDENTIALS=/configs/firebase-service-account.json
     volumes:
       - ./db:/db
       - ./uploads:/uploads

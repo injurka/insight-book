@@ -1,5 +1,7 @@
 /* eslint-disable no-console */
 import { and, eq, lte, sql } from 'drizzle-orm'
+import * as admin from 'firebase-admin'
+import { getMessaging } from 'firebase-admin/messaging'
 import webpush from 'web-push'
 import { getAiConfig } from '~/utils/ai-config'
 import { VAPID_PRIVATE_KEY, VAPID_PUBLIC_KEY, VAPID_SUBJECT } from '../config'
@@ -7,11 +9,25 @@ import { db } from '../db'
 import * as schema from '../db/schema'
 import { getGeneralPushPrompt, getWordPushPrompt } from '../prompts'
 import { parseLlmJson } from '../utils/helpers'
+
 import { callLlmJsonWithRetry } from '../utils/llm-api'
 import { checkTokenLimit } from './limits.service'
 
 if (VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY) {
   webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY)
+}
+
+try {
+  if (process.env.GOOGLE_APPLICATION_CREDENTIALS || process.env.FIREBASE_CONFIG) {
+    admin.initializeApp()
+  }
+  else {
+    // Attempt default initialization if service account is provided in environment implicitly
+    admin.initializeApp()
+  }
+}
+catch {
+  // Ignore already initialized or missing credentials at startup
 }
 
 function getSeededRandom(seedStr: string) {
@@ -124,20 +140,30 @@ export async function sendDailyMotivations(customMessage?: string) {
   }
 
   console.log('🚀 Starting push notifications dispatch...')
-  const subscriptions = await db.query.webPushSubscriptions.findMany({
-    with: { user: true },
-  })
+  const [webSubscriptions, fcmSubscriptions] = await Promise.all([
+    db.query.webPushSubscriptions.findMany({ with: { user: true } }),
+    db.query.fcmSubscriptions.findMany({ with: { user: true } }),
+  ])
 
-  if (!subscriptions.length) {
+  if (!webSubscriptions.length && !fcmSubscriptions.length) {
     console.log('[Push] No active subscriptions found.')
     return
   }
 
-  const userSubsMap = new Map<number, typeof subscriptions>()
-  subscriptions.forEach((sub) => {
-    const arr = userSubsMap.get(sub.userId) || []
-    arr.push(sub)
-    userSubsMap.set(sub.userId, arr)
+  const userSubsMap = new Map<number, { user: any, web: typeof webSubscriptions, fcm: typeof fcmSubscriptions }>()
+
+  webSubscriptions.forEach((sub) => {
+    if (!userSubsMap.has(sub.userId)) {
+      userSubsMap.set(sub.userId, { user: sub.user, web: [], fcm: [] })
+    }
+    userSubsMap.get(sub.userId)!.web.push(sub)
+  })
+
+  fcmSubscriptions.forEach((sub) => {
+    if (!userSubsMap.has(sub.userId)) {
+      userSubsMap.set(sub.userId, { user: sub.user, web: [], fcm: [] })
+    }
+    userSubsMap.get(sub.userId)!.fcm.push(sub)
   })
 
   const now = new Date()
@@ -153,8 +179,8 @@ export async function sendDailyMotivations(customMessage?: string) {
   for (let i = 0; i < userEntries.length; i += batchSize) {
     const batch = userEntries.slice(i, i + batchSize)
 
-    await Promise.all(batch.map(async ([userId, subs]) => {
-      const user = subs[0].user
+    await Promise.all(batch.map(async ([userId, data]) => {
+      const user = data.user
       const uiLanguage = user.uiLanguage || 'ru'
 
       if (!customMessage && !shouldSendPush(user, now)) {
@@ -243,7 +269,8 @@ export async function sendDailyMotivations(customMessage?: string) {
       })
 
       let sentCount = 0
-      for (const sub of subs) {
+
+      for (const sub of data.web) {
         try {
           const keys = JSON.parse(sub.keys)
           await webpush.sendNotification({
@@ -259,6 +286,38 @@ export async function sendDailyMotivations(customMessage?: string) {
           }
           else {
             console.error(`[Push] Error sending to user ${userId}:`, (error as Error).message)
+          }
+        }
+      }
+
+      for (const sub of data.fcm) {
+        try {
+          await getMessaging().send({
+            token: sub.token,
+            notification: {
+              title: messageTitle,
+              body: messageBody,
+            },
+            data: {
+              url: targetUrl,
+            },
+            android: {
+              notification: {
+                icon: 'ic_notification',
+                color: '#fde047',
+                tag: `insight-book-daily-${wordStrForTag || Date.now()}`,
+              },
+            },
+          })
+          sentCount++
+        }
+        catch (error: any) {
+          if (error.code === 'messaging/registration-token-not-registered' || error.code === 'messaging/invalid-registration-token') {
+            console.log(`[FCM] Token expired for user ${userId}, deleting...`)
+            await db.delete(schema.fcmSubscriptions).where(eq(schema.fcmSubscriptions.id, sub.id))
+          }
+          else {
+            console.error(`[FCM] Error sending to user ${userId}:`, error.message)
           }
         }
       }

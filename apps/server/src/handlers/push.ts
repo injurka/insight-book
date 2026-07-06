@@ -41,6 +41,36 @@ export async function handleUnsubscribe(req: Request, userId: number) {
   return json({ success: true })
 }
 
+export async function handleFcmSubscribe(req: Request, userId: number) {
+  const body = await req.json()
+  const { token } = body
+  if (!token)
+    throw new AppError(400, 'Invalid FCM token')
+
+  await db.insert(schema.fcmSubscriptions).values({
+    userId,
+    token,
+  }).onConflictDoUpdate({
+    target: schema.fcmSubscriptions.token,
+    set: {
+      userId,
+    },
+  })
+
+  return json({ success: true })
+}
+
+export async function handleFcmUnsubscribe(req: Request, userId: number) {
+  const body = await req.json()
+  const { token } = body
+  if (token) {
+    await db.delete(schema.fcmSubscriptions).where(
+      and(eq(schema.fcmSubscriptions.userId, userId), eq(schema.fcmSubscriptions.token, token)),
+    )
+  }
+  return json({ success: true })
+}
+
 export async function handleUpdatePushSettings(req: Request, userId: number) {
   const body = await req.json()
   const { targetDeckId, timeStart, timeEnd, timezone, uiLanguage, pushCount } = body

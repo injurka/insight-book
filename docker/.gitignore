@@ -2,3 +2,4 @@
 db/**
 uploads/**
 configs/ai-config.json
+firebase-service-account.json

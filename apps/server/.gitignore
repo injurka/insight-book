@@ -33,3 +33,5 @@ db/**
 uploads/**
 configs/**
 assets/decks/raw/**
+
+firebase-service-account.json

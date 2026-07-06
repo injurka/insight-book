@@ -51,9 +51,11 @@ export const usePwaStore = defineStore('pwa', {
         if (this.updateServiceWorker) {
           await this.updateServiceWorker(true)
         }
-      } catch (error) {
+      }
+      catch (error) {
         console.error('Failed to trigger update:', error)
-      } finally {
+      }
+      finally {
         this.needRefresh = false
       }
     },

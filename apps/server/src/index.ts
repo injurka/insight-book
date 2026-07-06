@@ -62,6 +62,8 @@ import {
 } from './handlers/highlights'
 
 import {
+  handleFcmSubscribe,
+  handleFcmUnsubscribe,
   handleGetVapidKey,
   handleSubscribe,
   handleUnsubscribe,
@@ -151,10 +153,12 @@ const apiRoutes = {
   '/api/highlights': { OPTIONS: corsOk, GET: apiWrapper(authWrapper(handleGetHighlights)), POST: apiWrapper(authWrapper(handleCreateHighlight)) },
   '/api/highlights/:id': { OPTIONS: corsOk, PUT: apiWrapper(authWrapper(handleUpdateHighlight)), DELETE: apiWrapper(authWrapper(handleDeleteHighlight)) },
 
-  // --- Push ---
-  '/api/push/vapid-public-key': { OPTIONS: corsOk, GET: apiWrapper(handleGetVapidKey) },
+  //  // Push API
+  '/api/push/vapid-public-key': { OPTIONS: corsOk, GET: apiWrapper(authWrapper(handleGetVapidKey)) },
   '/api/push/subscribe': { OPTIONS: corsOk, POST: apiWrapper(authWrapper(handleSubscribe)) },
   '/api/push/unsubscribe': { OPTIONS: corsOk, POST: apiWrapper(authWrapper(handleUnsubscribe)) },
+  '/api/push/fcm-subscribe': { OPTIONS: corsOk, POST: apiWrapper(authWrapper(handleFcmSubscribe)) },
+  '/api/push/fcm-unsubscribe': { OPTIONS: corsOk, POST: apiWrapper(authWrapper(handleFcmUnsubscribe)) },
   '/api/push/settings': { OPTIONS: corsOk, PATCH: apiWrapper(authWrapper(handleUpdatePushSettings)) },
 
 }
