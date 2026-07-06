@@ -318,6 +318,7 @@ function openLimits() {
       font-weight: 600;
       color: var(--fg-primary-color);
       font-variant-numeric: tabular-nums;
+      font-size: 0.8rem;
     }
 
     .limit-progress-track {
