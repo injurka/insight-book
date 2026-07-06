@@ -2,7 +2,7 @@
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "insight-book",
   "version": "0.1.0",
-  "identifier": "com.insight-book.dev",
+  "identifier": "ru.insightbook.insightbook",
   "build": {
     "frontendDist": "../dist",
     "devUrl": "http://localhost:5173",
@@ -37,9 +37,18 @@
   },
   "plugins": {
     "deep-link": {
-      "desktop": { "schemes": ["insightbook"] },
+      "desktop": {
+        "schemes": [
+          "insightbook"
+        ]
+      },
       "mobile": [
-        { "host": "insight-api.trip-scheduler.ru", "pathPrefix": ["/api/auth/yandex/callback"] }
+        {
+          "host": "insight-api.trip-scheduler.ru",
+          "pathPrefix": [
+            "/api/auth/yandex/callback"
+          ]
+        }
       ]
     }
   }

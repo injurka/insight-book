@@ -1,3 +1,5 @@
+import { invoke, isTauri } from '@tauri-apps/api/core'
+
 import { defineStore } from 'pinia'
 import { i18n } from '~/shared/plugins/i18n'
 import { useAuthStore } from './auth.store'
@@ -45,10 +47,15 @@ export const usePwaStore = defineStore('pwa', {
     },
 
     async triggerUpdate() {
-      if (this.updateServiceWorker) {
-        await this.updateServiceWorker(true)
+      try {
+        if (this.updateServiceWorker) {
+          await this.updateServiceWorker(true)
+        }
+      } catch (error) {
+        console.error('Failed to trigger update:', error)
+      } finally {
+        this.needRefresh = false
       }
-      this.needRefresh = false
     },
 
     closePrompt() {
@@ -57,8 +64,35 @@ export const usePwaStore = defineStore('pwa', {
     },
 
     async checkPushStatus() {
+      const BASE = import.meta.env.VITE_API_URL || 'https://insight-api.trip-scheduler.ru'
+      const headers = {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('insight_token')}`,
+      }
+
+      if (isTauri()) {
+        try {
+          // Вызываем нативную Rust-функцию, которая вернет сохраненный токен
+          const fcmToken = await invoke<string | null>('get_fcm_token').catch(() => null)
+          this.isPushSubscribed = !!fcmToken
+
+          if (this.isPushSubscribed && fcmToken) {
+            fetch(`${BASE}/api/push/fcm-subscribe`, {
+              method: 'POST',
+              headers,
+              body: JSON.stringify({ token: fcmToken }),
+            }).catch(() => { })
+          }
+        }
+        catch (e) {
+          console.warn('FCM plugin error', e)
+        }
+        return
+      }
+
       if (!('serviceWorker' in navigator) || !('PushManager' in window))
         return
+
       const reg = await navigator.serviceWorker.ready
       const sub = await reg.pushManager.getSubscription()
       const hasPermission = Notification.permission === 'granted'
@@ -67,13 +101,9 @@ export const usePwaStore = defineStore('pwa', {
 
       // Синхронизируем свежие ключи с бэкендом, если подписка активна
       if (this.isPushSubscribed && sub) {
-        const BASE = import.meta.env.VITE_API_URL || 'https://insight-api.trip-scheduler.ru'
         fetch(`${BASE}/api/push/subscribe`, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${localStorage.getItem('insight_token')}`,
-          },
+          headers,
           body: JSON.stringify(sub),
         }).catch(() => { })
       }
@@ -82,16 +112,64 @@ export const usePwaStore = defineStore('pwa', {
     async togglePushSubscription() {
       const toast = useToastStore()
       const t = i18n.global.t
-
-      if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
-        toast.error(t('settings.pushNotSupported'))
-        throw new Error('Push not supported')
-      }
-
       const BASE = import.meta.env.VITE_API_URL || 'https://insight-api.trip-scheduler.ru'
       const headers = {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${localStorage.getItem('insight_token')}`,
+      }
+
+      if (isTauri()) {
+        if (this.isPushSubscribed) {
+          const fcmToken = await invoke<string | null>('get_fcm_token').catch(() => null)
+          if (fcmToken) {
+            await fetch(`${BASE}/api/push/fcm-unsubscribe`, {
+              method: 'POST',
+              headers,
+              body: JSON.stringify({ token: fcmToken }),
+            })
+            await invoke('unsubscribe_fcm').catch(() => null)
+          }
+          this.isPushSubscribed = false
+          toast.info(t('settings.pushDisabled'))
+        }
+        else {
+          try {
+            const fcmToken = await invoke<string>('request_fcm_token')
+            if (!fcmToken)
+              throw new Error('No FCM token returned')
+
+            const subRes = await fetch(`${BASE}/api/push/fcm-subscribe`, {
+              method: 'POST',
+              headers,
+              body: JSON.stringify({ token: fcmToken }),
+            })
+
+            if (!subRes.ok) {
+              throw new Error('Subscription API request failed')
+            }
+
+            this.isPushSubscribed = true
+            toast.success(t('settings.pushEnabled'))
+
+            const authStore = useAuthStore()
+            this.updatePushSettings({
+              deckId: authStore.user?.pushTargetDeckId ?? 'all',
+              timeStart: authStore.user?.pushTimeStart ?? '10:00',
+              timeEnd: authStore.user?.pushTimeEnd ?? '21:00',
+              pushCount: authStore.user?.pushCount ?? 1,
+            }).catch(console.error)
+          }
+          catch (e: any) {
+            toast.error(`${t('settings.pushSubError')}: ${e.message || e}`)
+            throw e
+          }
+        }
+        return
+      }
+
+      if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+        toast.error(t('settings.pushNotSupported'))
+        throw new Error('Push not supported')
       }
 
       const reg = await navigator.serviceWorker.ready
