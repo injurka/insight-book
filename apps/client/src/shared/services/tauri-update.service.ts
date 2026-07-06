@@ -4,6 +4,8 @@ import { getVersion } from '@tauri-apps/api/app'
 import { isTauri } from '@tauri-apps/api/core'
 import { openUrl } from '@tauri-apps/plugin-opener'
 import { usePwaStore } from '~/shared/store/pwa.store'
+import { useToastStore } from '~/shared/store/toast.store'
+import { i18n } from '~/shared/plugins/i18n'
 
 const GITHUB_REPO = 'injurka/insight-book'
 
@@ -41,7 +43,11 @@ export async function initializeTauriUpdater(pinia: Pinia): Promise<void> {
     const release = await res.json()
     const latestVersion = release.tag_name
 
-    if (compareVersions(latestVersion, currentVersion) > 0) {
+    const lastPromptStr = localStorage.getItem('insight_last_update_prompt')
+    const lastPrompt = lastPromptStr ? parseInt(lastPromptStr, 10) : 0
+    const ONE_DAY = 24 * 60 * 60 * 1000
+
+    if (compareVersions(latestVersion, currentVersion) > 0 && Date.now() - lastPrompt > ONE_DAY) {
       console.log(`Update available: ${latestVersion} (current: ${currentVersion})`)
 
       pwaStore.setNeedRefresh(true)
@@ -50,6 +56,10 @@ export async function initializeTauriUpdater(pinia: Pinia): Promise<void> {
         const urlToOpen = apkAsset ? apkAsset.browser_download_url : release.html_url
 
         await openUrl(urlToOpen)
+
+        const toastStore = useToastStore(pinia)
+        toastStore.success(i18n.global.t('pwa.tauriUpdateToast'), { expire: 8000 })
+
         pwaStore.closePrompt()
       })
     }

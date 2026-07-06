@@ -57,12 +57,14 @@ export const usePwaStore = defineStore('pwa', {
       }
       finally {
         this.needRefresh = false
+        localStorage.setItem('insight_last_update_prompt', Date.now().toString())
       }
     },
 
     closePrompt() {
       this.offlineReady = false
       this.needRefresh = false
+      localStorage.setItem('insight_last_update_prompt', Date.now().toString())
     },
 
     async checkPushStatus() {

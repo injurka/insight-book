@@ -8,6 +8,7 @@ const pwaStore = usePwaStore()
 const { t } = useI18n()
 
 const { offlineReady, needRefresh } = storeToRefs(pwaStore)
+const isTauriApp = '__TAURI_INTERNALS__' in window
 </script>
 
 <template>
@@ -29,6 +30,7 @@ const { offlineReady, needRefresh } = storeToRefs(pwaStore)
             </h4>
             <p class="prompt-description">
               <span v-if="offlineReady">{{ t('pwa.offlineReadyDesc') }}</span>
+              <span v-else-if="isTauriApp">{{ t('pwa.tauriUpdateAvailableDesc') }}</span>
               <span v-else>{{ t('pwa.updateAvailableDesc') }}</span>
             </p>
           </div>
@@ -39,7 +41,7 @@ const { offlineReady, needRefresh } = storeToRefs(pwaStore)
               color="primary"
               @click="pwaStore.triggerUpdate()"
             >
-              {{ t('pwa.updateBtn') }}
+              {{ isTauriApp ? t('pwa.tauriUpdateBtn') : t('pwa.updateBtn') }}
             </KitBtn>
             <KitBtn
               variant="outlined"

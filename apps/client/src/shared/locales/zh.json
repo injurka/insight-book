@@ -44,7 +44,10 @@
     "updateAvailableTitle": "有可用更新",
     "offlineReadyDesc": "应用程序已成功缓存，现在可以离线使用。",
     "updateAvailableDesc": "应用程序的新版本已下载。点击“更新”应用更改。",
+    "tauriUpdateAvailableDesc": "有新版本的应用程序可用。点击“下载”在浏览器中下载安装程序 (.apk)。",
+    "tauriUpdateToast": "浏览器已打开以进行下载。请安装下载的文件以更新应用程序。",
     "updateBtn": "更新",
+    "tauriUpdateBtn": "下载",
     "closeBtn": "关闭"
   },
   "kit": {

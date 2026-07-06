@@ -44,7 +44,10 @@
     "updateAvailableTitle": "Update available",
     "offlineReadyDesc": "The app has been successfully cached and is now available offline.",
     "updateAvailableDesc": "A new version of the app is downloaded. Click 'Update' to apply changes.",
+    "tauriUpdateAvailableDesc": "A new version of the app is available. Click 'Download' to download the installer (.apk) in the browser.",
+    "tauriUpdateToast": "Browser opened for downloading. Please install the downloaded file to update the app.",
     "updateBtn": "Update",
+    "tauriUpdateBtn": "Download",
     "closeBtn": "Close"
   },
   "kit": {
