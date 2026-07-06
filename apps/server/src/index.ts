@@ -1,7 +1,7 @@
 /* eslint-disable no-console */
 import { CORS_HEADERS, PORT } from './config'
 import { handleGetActivityStats, handleGetTokenUsage } from './handlers/activity'
-import { handleGetAvatarImage, handleGetMe, handleLogin, handleUpdateAvatar, handleUpdateUsername, handleYandexAuth, handleYandexCallback } from './handlers/auth'
+import { handleGetAvatarImage, handleGetMe, handleLogin, handleUpdateAvatar, handleUpdateUsername, handleYandexAuth, handleYandexCallback, handleYandexMobileExchange } from './handlers/auth'
 import {
   handleAnalyzeBatch,
   handleAnalyzeBookStats,
@@ -86,6 +86,7 @@ const apiRoutes = {
   '/api/auth/login': { OPTIONS: corsOk, POST: apiWrapper(handleLogin) },
   '/api/auth/yandex': { OPTIONS: corsOk, GET: apiWrapper(handleYandexAuth) },
   '/api/auth/yandex/callback': { OPTIONS: corsOk, GET: apiWrapper(handleYandexCallback) },
+  '/api/auth/yandex/mobile-exchange': { OPTIONS: corsOk, POST: apiWrapper(handleYandexMobileExchange) },
   '/api/auth/me': { OPTIONS: corsOk, GET: apiWrapper(optionalAuthWrapper(handleGetMe)) },
   '/api/auth/me/avatar': { OPTIONS: corsOk, PATCH: apiWrapper(authWrapper(handleUpdateAvatar)) },
   '/api/auth/me/username': { OPTIONS: corsOk, PATCH: apiWrapper(authWrapper(handleUpdateUsername)) },
