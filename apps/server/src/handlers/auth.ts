@@ -235,7 +235,8 @@ export async function handleYandexCallback(req: Request): Promise<Response> {
   const token = await exchangeYandexCode(code)
 
   if (state === 'tauri') {
-    const tauriUrl = `insightbook://auth/callback?token=${token}`
+    const intentUrl = `intent://auth/callback?token=${token}#Intent;scheme=insightbook;package=ru.insightbook.insightbook;action=android.intent.action.VIEW;end`
+    const directUrl = `insightbook://auth/callback?token=${token}`
 
     const html = `
       <!DOCTYPE html>
@@ -248,20 +249,28 @@ export async function handleYandexCallback(req: Request): Promise<Response> {
           body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; background: #0d1117; color: #fff; text-align: center; padding: 20px; box-sizing: border-box; }
           h2 { margin-bottom: 8px; font-size: 1.6rem; }
           p { color: #8b949e; margin-bottom: 24px; font-size: 1rem; line-height: 1.5; }
-          .btn { display: inline-flex; align-items: center; justify-content: center; padding: 16px 32px; background: #c975de; color: white; text-decoration: none; border-radius: 12px; font-weight: bold; font-size: 1.1rem; box-shadow: 0 4px 16px rgba(201, 117, 222, 0.4); transition: transform 0.2s; -webkit-tap-highlight-color: transparent; }
-          .btn:active { transform: scale(0.95); }
+          .btn { display: flex; align-items: center; justify-content: center; width: 100%; max-width: 320px; padding: 16px; margin-bottom: 12px; background: #c975de; color: white; text-decoration: none; border-radius: 12px; font-weight: bold; font-size: 1.1rem; box-shadow: 0 4px 16px rgba(201, 117, 222, 0.4); }
+          .btn-outline { background: transparent; border: 2px solid #c975de; color: #c975de; box-shadow: none; }
+          .warning { margin-top: 32px; font-size: 0.85rem; color: #ef4444; background: rgba(239, 68, 68, 0.1); padding: 12px; border-radius: 8px; border: 1px solid rgba(239, 68, 68, 0.3); text-align: left; max-width: 320px; }
         </style>
       </head>
       <body>
         <h2>Вход выполнен!</h2>
-        <p>Если приложение не открылось автоматически, нажмите на кнопку ниже, чтобы продолжить.</p>
+        <p>Браузер заблокировал автоматический переход. Нажмите кнопку, чтобы вернуться в приложение.</p>
         
-        <a class="btn" href="${tauriUrl}">Вернуться в приложение</a>
+        <a class="btn" href="${intentUrl}">Вернуться в приложение</a>
+        <a class="btn btn-outline" href="${directUrl}">Альтернативный вход</a>
+        
+        <div class="warning">
+          <b>Если ни одна кнопка не работает:</b><br>
+          На вашем устройстве установлен старый APK, в котором еще не прописана схема <code>insightbook://</code>. 
+          Вам необходимо дождаться сборки в GitHub Actions, скачать свежий APK-файл и установить его поверх старого.
+        </div>
         
         <script>
           setTimeout(() => {
-            window.location.href = "${tauriUrl}";
-          }, 300);
+            window.location.href = "${intentUrl}";
+          }, 500);
         </script>
       </body>
       </html>
