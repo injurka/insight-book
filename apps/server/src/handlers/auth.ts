@@ -159,6 +159,7 @@ export async function handleUpdateUsername(req: Request, userId: number): Promis
 }
 
 const WEB_REDIRECT_URI = `${FRONTEND_URL}/api/auth/yandex/callback`
+const authSessions = new Map<string, string>()
 
 async function exchangeYandexCode(code: string) {
   const tokenRes = await fetch('https://oauth.yandex.ru/token', {
@@ -209,14 +210,15 @@ async function exchangeYandexCode(code: string) {
 
 export async function handleYandexAuth(req: Request): Promise<Response> {
   const reqUrl = new URL(req.url)
-  const isMobile = reqUrl.searchParams.get('source') === 'tauri'
+  const sessionId = reqUrl.searchParams.get('session_id')
 
   const url = new URL('https://oauth.yandex.ru/authorize')
   url.searchParams.set('response_type', 'code')
   url.searchParams.set('client_id', YANDEX_CLIENT_ID)
   url.searchParams.set('redirect_uri', WEB_REDIRECT_URI)
-  if (isMobile) {
-    url.searchParams.set('state', 'tauri')
+  
+  if (sessionId) {
+    url.searchParams.set('state', sessionId)
   }
 
   return new Response(null, {
@@ -234,9 +236,9 @@ export async function handleYandexCallback(req: Request): Promise<Response> {
 
   const token = await exchangeYandexCode(code)
 
-  if (state === 'tauri') {
-    const tauriUrl = `insightbook://auth/callback?token=${token}`
-
+  if (state && state.length > 10) {
+    authSessions.set(state, token)
+    
     const html = `
       <!DOCTYPE html>
       <html lang="ru">
@@ -245,22 +247,14 @@ export async function handleYandexCallback(req: Request): Promise<Response> {
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <title>Авторизация</title>
         <style>
-          body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; background: #0d1117; color: #fff; text-align: center; padding: 20px; box-sizing: border-box; }
-          h2 { margin-bottom: 8px; font-size: 1.6rem; }
-          p { color: #8b949e; margin-bottom: 24px; font-size: 1rem; line-height: 1.5; }
-          .btn { display: inline-flex; align-items: center; justify-content: center; width: 100%; max-width: 320px; padding: 16px; background: #c975de; color: white; text-decoration: none; border-radius: 12px; font-weight: bold; font-size: 1.1rem; box-shadow: 0 4px 16px rgba(201, 117, 222, 0.4); }
+          body { font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; background: #0d1117; color: #fff; text-align: center; }
+          .icon { font-size: 64px; margin-bottom: 16px; color: #22c55e; }
         </style>
       </head>
       <body>
-        <h2>Успешный вход</h2>
-        <p>Возвращаем вас в приложение...</p>
-        
-        <a class="btn" href="${tauriUrl}">Продолжить в приложении</a>
-        
-        <script>
-          // Выполняем мгновенный редирект (работает в 90% случаев)
-          window.location.replace("${tauriUrl}");
-        </script>
+        <div class="icon">✓</div>
+        <h2>Вход успешно выполнен!</h2>
+        <p style="color: #8b949e;">Вы можете закрыть этот браузер и вернуться в приложение InsightBook.</p>
       </body>
       </html>
     `
@@ -282,4 +276,19 @@ export async function handleYandexCallback(req: Request): Promise<Response> {
 
 export async function handleYandexMobileExchange(_req: Request): Promise<Response> {
   throw new AppError(400, 'Not implemented')
+}
+
+export async function handleAuthSessionStatus(req: Request): Promise<Response> {
+  const url = new URL(req.url)
+  const sessionId = url.searchParams.get('session_id')
+  
+  if (!sessionId) throw new AppError(400, 'No session id')
+
+  const token = authSessions.get(sessionId)
+  if (token) {
+    authSessions.delete(sessionId)
+    return json({ status: 'success', token })
+  }
+
+  return json({ status: 'pending' })
 }

@@ -2,7 +2,7 @@
 import { Icon } from '@iconify/vue'
 import { isTauri } from '@tauri-apps/api/core'
 import { openUrl } from '@tauri-apps/plugin-opener'
-import { computed, ref } from 'vue'
+import { v4 as uuidv4 } from 'uuid'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { KitBtn, KitDropdown, KitInput } from '~/components/01.kit'
@@ -72,11 +72,35 @@ async function handleSignIn() {
   }
 }
 
+let pollingInterval: any = null
+
 async function loginYandex() {
   try {
-    const url = `${BASE_API_URL}/api/auth/yandex?source=tauri`
     if (isTauri()) {
+      isLoading.value = true
+
+      const sessionId = uuidv4()
+      const url = `${BASE_API_URL}/api/auth/yandex?session_id=${sessionId}`
+
       await openUrl(url)
+
+      pollingInterval = setInterval(async () => {
+        try {
+          const res = await fetch(`${BASE_API_URL}/api/auth/status?session_id=${sessionId}`)
+          const data = await res.json()
+
+          if (data.status === 'success') {
+            clearInterval(pollingInterval)
+            localStorage.setItem('insight_token', data.token)
+            await authStore.checkAuth()
+            trackEvent('login_success')
+            router.push('/')
+          }
+        }
+        catch {
+          // Игнорируем сетевые ошибки пуллинга
+        }
+      }, 2000)
     }
     else {
       window.location.href = `${BASE_API_URL}/api/auth/yandex`
@@ -84,9 +108,11 @@ async function loginYandex() {
   }
   catch (e: any) {
     console.error('Yandex login error:', e)
+    isLoading.value = false
     toast.error(e.message || 'Error opening Yandex login')
   }
 }
+
 const bookTiles = [
   { top: '8%', left: '10%', delay: '0s', size: 52, hue: 260 },
   { top: '12%', left: '55%', delay: '0.6s', size: 40, hue: 300 },
@@ -99,6 +125,11 @@ const bookTiles = [
   { top: '20%', left: '80%', delay: '2.1s', size: 58, hue: 250 },
   { top: '65%', left: '35%', delay: '0.7s', size: 42, hue: 290 },
 ]
+
+onUnmounted(() => {
+  if (pollingInterval)
+    clearInterval(pollingInterval)
+})
 </script>
 
 <template>
