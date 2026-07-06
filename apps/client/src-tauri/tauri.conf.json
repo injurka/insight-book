@@ -48,6 +48,10 @@
           "pathPrefix": [
             "/api/auth/yandex/callback"
           ]
+        },
+        {
+          "scheme": "insightbook",
+          "host": "auth"
         }
       ]
     }

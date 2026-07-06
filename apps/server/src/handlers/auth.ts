@@ -158,13 +158,19 @@ export async function handleUpdateUsername(req: Request, userId: number): Promis
   return json({ success: true, username: newUsername })
 }
 
-export async function handleYandexAuth(_req: Request): Promise<Response> {
+export async function handleYandexAuth(req: Request): Promise<Response> {
+  const reqUrl = new URL(req.url)
+  const source = reqUrl.searchParams.get('source') || ''
+
   const redirectUri = `${FRONTEND_URL}/api/auth/yandex/callback`
 
   const url = new URL('https://oauth.yandex.ru/authorize')
   url.searchParams.set('response_type', 'code')
   url.searchParams.set('client_id', YANDEX_CLIENT_ID)
   url.searchParams.set('redirect_uri', redirectUri)
+  if (source) {
+    url.searchParams.set('state', source)
+  }
 
   return new Response(null, {
     status: 302,
@@ -175,6 +181,7 @@ export async function handleYandexAuth(_req: Request): Promise<Response> {
 export async function handleYandexCallback(req: Request): Promise<Response> {
   const url = new URL(req.url)
   const code = url.searchParams.get('code')
+  const state = url.searchParams.get('state')
   if (!code)
     throw new AppError(400, 'No code provided')
 
@@ -222,6 +229,17 @@ export async function handleYandexCallback(req: Request): Promise<Response> {
   }
 
   const token = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: '30d' })
+  
+  if (state === 'tauri') {
+    // Redirect to custom scheme for Tauri mobile app
+    const tauriUrl = new URL(`insightbook://auth/yandex/callback`)
+    tauriUrl.searchParams.set('token', token)
+    return new Response(null, {
+      status: 302,
+      headers: { Location: tauriUrl.toString() },
+    })
+  }
+
   const frontendUrl = new URL(FRONTEND_URL)
   frontendUrl.pathname = '/auth/yandex/callback'
   frontendUrl.searchParams.set('token', token)
