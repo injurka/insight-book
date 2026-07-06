@@ -50,7 +50,7 @@
           ]
         },
         {
-          "scheme": "insightbook",
+          "schemes": ["insightbook"],
           "host": "auth"
         }
       ]
