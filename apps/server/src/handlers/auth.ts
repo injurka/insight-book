@@ -158,19 +158,16 @@ export async function handleUpdateUsername(req: Request, userId: number): Promis
   return json({ success: true, username: newUsername })
 }
 
-// For mobile (Tauri APK): Yandex redirects directly to the app via custom scheme
-// IMPORTANT: register 'insightbook://auth/callback' in Yandex OAuth settings
-const MOBILE_REDIRECT_URI = 'insightbook://auth/callback'
 const WEB_REDIRECT_URI = `${FRONTEND_URL}/api/auth/yandex/callback`
 
-async function exchangeYandexCode(code: string, redirectUri: string) {
+async function exchangeYandexCode(code: string) {
   const tokenRes = await fetch('https://oauth.yandex.ru/token', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/x-www-form-urlencoded',
       'Authorization': `Basic ${Buffer.from(`${YANDEX_CLIENT_ID}:${YANDEX_CLIENT_SECRET}`).toString('base64')}`,
     },
-    body: new URLSearchParams({ grant_type: 'authorization_code', code, redirect_uri: redirectUri }).toString(),
+    body: new URLSearchParams({ grant_type: 'authorization_code', code, redirect_uri: WEB_REDIRECT_URI }).toString(),
   })
 
   if (!tokenRes.ok) {
@@ -213,12 +210,14 @@ async function exchangeYandexCode(code: string, redirectUri: string) {
 export async function handleYandexAuth(req: Request): Promise<Response> {
   const reqUrl = new URL(req.url)
   const isMobile = reqUrl.searchParams.get('source') === 'tauri'
-  const redirectUri = isMobile ? MOBILE_REDIRECT_URI : WEB_REDIRECT_URI
 
   const url = new URL('https://oauth.yandex.ru/authorize')
   url.searchParams.set('response_type', 'code')
   url.searchParams.set('client_id', YANDEX_CLIENT_ID)
-  url.searchParams.set('redirect_uri', redirectUri)
+  url.searchParams.set('redirect_uri', WEB_REDIRECT_URI)
+  if (isMobile) {
+    url.searchParams.set('state', 'tauri')
+  }
 
   return new Response(null, {
     status: 302,
@@ -226,14 +225,48 @@ export async function handleYandexAuth(req: Request): Promise<Response> {
   })
 }
 
-// Web-only: called by browser after Yandex redirects with code
 export async function handleYandexCallback(req: Request): Promise<Response> {
   const url = new URL(req.url)
   const code = url.searchParams.get('code')
+  const state = url.searchParams.get('state')
   if (!code)
     throw new AppError(400, 'No code provided')
 
-  const token = await exchangeYandexCode(code, WEB_REDIRECT_URI)
+  const token = await exchangeYandexCode(code)
+
+  if (state === 'tauri') {
+    // For Android/iOS: Chrome often blocks 302 redirects to custom schemes
+    // We must return an HTML page with a JS redirect and a fallback button.
+    const tauriUrl = `insightbook://auth/callback?token=${token}`
+    const html = `
+      <!DOCTYPE html>
+      <html lang="ru">
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>Авторизация InsightBook</title>
+        <style>
+          body { font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; background: #1a1a1a; color: white; }
+          a { display: inline-block; padding: 12px 24px; background: #4caf50; color: white; text-decoration: none; border-radius: 8px; font-weight: bold; margin-top: 20px; }
+        </style>
+      </head>
+      <body>
+        <h2>Авторизация успешна</h2>
+        <p>Возвращаем вас в приложение...</p>
+        <a id="redirect-link" href="${tauriUrl}">Нажмите сюда, если ничего не произошло</a>
+        <script>
+          setTimeout(() => {
+            window.location.href = "${tauriUrl}";
+          }, 500);
+        </script>
+      </body>
+      </html>
+    `
+    return new Response(html, {
+      status: 200,
+      headers: { 'Content-Type': 'text/html; charset=utf-8' },
+    })
+  }
 
   const frontendUrl = new URL(FRONTEND_URL)
   frontendUrl.pathname = '/auth/yandex/callback'
@@ -245,14 +278,6 @@ export async function handleYandexCallback(req: Request): Promise<Response> {
   })
 }
 
-// Mobile-only: APK receives code via insightbook://auth/callback?code=...
-// then POST here to exchange code for JWT
-export async function handleYandexMobileExchange(req: Request): Promise<Response> {
-  const body = await req.json().catch(() => ({}))
-  const code = (body as any)?.code
-  if (!code)
-    throw new AppError(400, 'No code provided')
-
-  const token = await exchangeYandexCode(code, MOBILE_REDIRECT_URI)
-  return json({ token })
+export async function handleYandexMobileExchange(_req: Request): Promise<Response> {
+  throw new AppError(400, 'Not implemented')
 }
