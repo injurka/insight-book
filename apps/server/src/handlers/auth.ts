@@ -235,14 +235,7 @@ export async function handleYandexCallback(req: Request): Promise<Response> {
   const token = await exchangeYandexCode(code)
 
   if (state === 'tauri') {
-    // For Android/iOS: Chrome often blocks 302 redirects to custom schemes
-    // We use an Android intent:// URI to force open the app by package name
-    // bypassing App Link verification.
-    const fallbackUrl = `${FRONTEND_URL}/sign-in`
-
-    // Формируем Intent: он будет искать приложение ru.insightbook.insightbook,
-    // которое откликается на insightbook://auth/callback
-    const tauriUrl = `intent://auth/callback?token=${token}#Intent;scheme=insightbook;package=ru.insightbook.insightbook;S.browser_fallback_url=${encodeURIComponent(fallbackUrl)};end`
+    const tauriUrl = `insightbook://auth/callback?token=${token}`
 
     const html = `
       <!DOCTYPE html>
@@ -252,18 +245,23 @@ export async function handleYandexCallback(req: Request): Promise<Response> {
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <title>Авторизация InsightBook</title>
         <style>
-          body { font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; background: #1a1a1a; color: white; }
-          a { display: inline-block; padding: 12px 24px; background: #4caf50; color: white; text-decoration: none; border-radius: 8px; font-weight: bold; margin-top: 20px; }
+          body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; background: #0d1117; color: #fff; text-align: center; padding: 20px; box-sizing: border-box; }
+          h2 { margin-bottom: 8px; font-size: 1.6rem; }
+          p { color: #8b949e; margin-bottom: 24px; font-size: 1rem; line-height: 1.5; }
+          .btn { display: inline-flex; align-items: center; justify-content: center; padding: 16px 32px; background: #c975de; color: white; text-decoration: none; border-radius: 12px; font-weight: bold; font-size: 1.1rem; box-shadow: 0 4px 16px rgba(201, 117, 222, 0.4); transition: transform 0.2s; -webkit-tap-highlight-color: transparent; }
+          .btn:active { transform: scale(0.95); }
         </style>
       </head>
       <body>
-        <h2>Авторизация успешна</h2>
-        <p>Возвращаем вас в приложение...</p>
-        <a id="redirect-link" href="${tauriUrl}">Нажмите сюда, если ничего не произошло</a>
+        <h2>Вход выполнен!</h2>
+        <p>Если приложение не открылось автоматически, нажмите на кнопку ниже, чтобы продолжить.</p>
+        
+        <a class="btn" href="${tauriUrl}">Вернуться в приложение</a>
+        
         <script>
           setTimeout(() => {
             window.location.href = "${tauriUrl}";
-          }, 500);
+          }, 300);
         </script>
       </body>
       </html>
