@@ -73,12 +73,18 @@ async function handleSignIn() {
 }
 
 async function loginYandex() {
-  const url = `${BASE_API_URL}/api/auth/yandex?source=tauri`
-  if (isTauri()) {
-    await openUrl(url)
+  try {
+    const url = `${BASE_API_URL}/api/auth/yandex?source=tauri`
+    if (isTauri()) {
+      await openUrl(url)
+    }
+    else {
+      window.location.href = `${BASE_API_URL}/api/auth/yandex`
+    }
   }
-  else {
-    window.location.href = `${BASE_API_URL}/api/auth/yandex`
+  catch (e: any) {
+    console.error('Yandex login error:', e)
+    toast.error(e.message || 'Error opening Yandex login')
   }
 }
 const bookTiles = [
