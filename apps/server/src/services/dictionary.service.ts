@@ -1,5 +1,5 @@
 import type { PageDictEntry, UserDictItem } from '../types'
-import { and, desc, eq, exists, inArray, lte, notExists, sql } from 'drizzle-orm'
+import { and, desc, eq, exists, inArray, notInArray, lte, notExists, sql } from 'drizzle-orm'
 import { sqliteTable, text } from 'drizzle-orm/sqlite-core'
 import { createEmptyCard, FSRS, Rating } from 'ts-fsrs'
 import { db, getDictConnection } from '../db'
@@ -288,7 +288,7 @@ export async function upsertToUserDictionary(
   if (upserted) {
     await db.delete(schema.wordToDeck).where(eq(schema.wordToDeck.wordId, upserted.id))
     if (deckIds.length > 0) {
-      const links = deckIds.map((did: number) => ({
+      const links = deckIds.map(did => ({
         wordId: upserted.id,
         deckId: did,
       }))
@@ -327,10 +327,10 @@ export async function getReviewQueue(userId: number, language: string | undefine
   }
 
   if (deckId === 'none') {
-    filters.push(notExists(db.select().from(schema.wordToDeck).where(eq(schema.wordToDeck.wordId, schema.userDictionary.id))))
+    filters.push(notInArray(schema.userDictionary.id, db.select({ id: schema.wordToDeck.wordId }).from(schema.wordToDeck)))
   }
   else if (deckId !== undefined) {
-    filters.push(exists(db.select().from(schema.wordToDeck).where(and(eq(schema.wordToDeck.wordId, schema.userDictionary.id), eq(schema.wordToDeck.deckId, deckId)))))
+    filters.push(inArray(schema.userDictionary.id, db.select({ id: schema.wordToDeck.wordId }).from(schema.wordToDeck).where(eq(schema.wordToDeck.deckId, deckId))))
   }
 
   if (difficulty && difficulty !== 'all') {

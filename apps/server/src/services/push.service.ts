@@ -1,5 +1,5 @@
 /* eslint-disable no-console */
-import { and, eq, exists, lte, sql } from 'drizzle-orm'
+import { and, eq, inArray, lte, sql } from 'drizzle-orm'
 import * as admin from 'firebase-admin'
 import { getMessaging } from 'firebase-admin/messaging'
 import webpush from 'web-push'
@@ -199,12 +199,11 @@ export async function sendDailyMotivations(customMessage?: string) {
         ]
 
         if (user.pushTargetDeckId) {
-          filters.push(exists(
-            db.select().from(schema.wordToDeck)
-              .where(and(
-                eq(schema.wordToDeck.wordId, schema.userDictionary.id),
-                eq(schema.wordToDeck.deckId, user.pushTargetDeckId)
-              ))
+          filters.push(inArray(
+            schema.userDictionary.id,
+            db.select({ id: schema.wordToDeck.wordId })
+              .from(schema.wordToDeck)
+              .where(eq(schema.wordToDeck.deckId, user.pushTargetDeckId))
           ))
         }
 

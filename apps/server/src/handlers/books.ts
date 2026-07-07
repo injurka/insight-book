@@ -320,9 +320,11 @@ export async function handleUpdateBook(req: Request, userId: number): Promise<Re
   }
 
   const metadataKeys = ['title', 'author', 'coverUrl', 'language', 'series', 'seriesNumber', 'createdAt', 'isPublic', 'isUnlisted', 'publicStatus', 'textDirection'] as const
-  const hasMetadataChanges = metadataKeys.some(key => {
-    if (body[key] === undefined) return false
-    if (key === 'language' && body.language) return normalizeLanguageCode(body.language) !== book.language
+  const hasMetadataChanges = metadataKeys.some((key) => {
+    if (body[key] === undefined)
+      return false
+    if (key === 'language' && body.language)
+      return normalizeLanguageCode(body.language) !== book.language
     return body[key] !== book[key]
   })
   const isReadOnly = book.isPublic || book.publicStatus === 'public'

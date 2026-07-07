@@ -6,7 +6,6 @@ import { BulkActionSchema, DeckSchema, DeepDiveRequestSchema, GenerateExamplesSc
 import { extractLlmConfig, json, normalizeLanguageCode } from '~/utils/helpers'
 import { callLlmApi } from '~/utils/llm-api'
 import { officialDecks, officialDeckWords } from '../db/catalog-schema'
-import * as schema from '../db/schema'
 import { customPrompts, userDictionary } from '../db/schema'
 import { getDictionaryChatPrompt } from '../prompts'
 import { trackActivity } from '../services/activity.service'
@@ -185,24 +184,11 @@ export async function handleBulkDeleteDict(req: Request, userId: number): Promis
 export async function handleBulkMoveDict(req: Request, userId: number): Promise<Response> {
   const { wordIds, deckIds } = BulkActionSchema.parse(await req.json())
 
-  const validWords = await db.select({ id: userDictionary.id })
-    .from(userDictionary)
-    .where(and(
-      inArray(userDictionary.id, wordIds),
-      eq(userDictionary.userId, userId),
-    ))
-
-  const validWordIds = validWords.map(w => w.id)
-
-  if (validWordIds.length === 0) {
-    return json({ success: true })
-  }
-
-  await db.delete(schema.wordToDeck).where(inArray(schema.wordToDeck.wordId, validWordIds))
+  await db.delete(schema.wordToDeck).where(inArray(schema.wordToDeck.wordId, wordIds))
 
   if (deckIds && deckIds.length > 0) {
     const links = []
-    for (const wordId of validWordIds) {
+    for (const wordId of wordIds) {
       for (const deckId of deckIds) {
         links.push({ wordId, deckId })
       }

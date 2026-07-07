@@ -31,7 +31,7 @@ CREATE TABLE `__new_users` (
 	`yandexId` text
 );
 --> statement-breakpoint
-INSERT INTO `__new_users`("id", "username", "passwordHash", "role", "tokenLimit", "bookLimit", "usedTokens", "periodStart", "createdAt", "pushTargetDeckId", "pushTimeStart", "pushTimeEnd", "pushCount", "timezone", "uiLanguage", "lastPushSentAt", "avatarUrl", "email", "yandexId") SELECT "id", "username", "passwordHash", "role", "tokenLimit", "bookLimit", "usedTokens", "periodStart", "createdAt", "pushTargetDeckId", "pushTimeStart", "pushTimeEnd", "pushCount", "timezone", "uiLanguage", "lastPushSentAt", "avatarUrl", "email", "yandexId" FROM `users`;--> statement-breakpoint
+INSERT INTO `__new_users`("id", "username", "passwordHash", "role", "tokenLimit", "bookLimit", "usedTokens", "createdAt", "pushTargetDeckId", "pushTimeStart", "pushTimeEnd", "pushCount", "timezone", "uiLanguage", "lastPushSentAt", "avatarUrl", "email", "yandexId") SELECT "id", "username", "passwordHash", "role", "tokenLimit", "bookLimit", "usedTokens", "createdAt", "pushTargetDeckId", "pushTimeStart", "pushTimeEnd", "pushCount", "timezone", "uiLanguage", "lastPushSentAt", "avatarUrl", "email", "yandexId" FROM `users`;--> statement-breakpoint
 DROP TABLE `users`;--> statement-breakpoint
 ALTER TABLE `__new_users` RENAME TO `users`;--> statement-breakpoint
 PRAGMA foreign_keys=ON;--> statement-breakpoint
