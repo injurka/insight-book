@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { Icon } from '@iconify/vue'
 import { useFullscreen } from '@vueuse/core'
-import { computed, reactive, ref } from 'vue'
+import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { KitBtn, KitCheckbox, KitDialog, KitSelect } from '~/components/01.kit'
+import { KitBtn, KitCheckbox, KitSelect } from '~/components/01.kit'
 import { ThemesVariant, useChangeTheme } from '~/shared/composables/use-change-theme'
 import { useTts } from '~/shared/composables/use-tts'
 import { useAnalysisStore } from '~/shared/store/analysis.store'
@@ -26,39 +26,13 @@ const { isFullscreen, toggle: toggleFullscreen } = useFullscreen()
 
 const isApk = '__TAURI_INTERNALS__' in window && /android|iphone|ipad|ipod/i.test(navigator.userAgent)
 
-const isPageAnalysisModalOpen = ref(false)
-
-const pageActionOpts = reactive({
-  sentences: true,
-  words: false,
-  ttsSentences: false,
-  ttsWords: false,
-})
-
 function openPageAnalysisModal() {
-  if (analysisStore.isManualPageAnalysisActive) {
-    emit('closeDropdown')
-    analysisStore.isPageAnalysisModalOpen = true
-  }
-  else {
-    isPageAnalysisModalOpen.value = true
-  }
-}
-
-function startPageAnalysis() {
-  isPageAnalysisModalOpen.value = false
   emit('closeDropdown')
-
   if (analysisStore.isManualPageAnalysisActive) {
     analysisStore.isPageAnalysisModalOpen = true
   }
   else {
-    analysisStore.analyzeWholePage({
-      sentences: pageActionOpts.sentences,
-      words: pageActionOpts.words,
-      ttsSentences: pageActionOpts.ttsSentences,
-      ttsWords: pageActionOpts.ttsWords,
-    }, false)
+    analysisStore.isPageAnalysisSetupModalOpen = true
   }
 }
 
@@ -198,7 +172,7 @@ const currentThemeName = computed(() => {
         <span class="value-badge">{{ settingsStore.ttsSpeed }}x</span>
       </div>
 
-      <div class="menu-item" @click="settingsStore.autoAnalyzePage = !settingsStore.autoAnalyzePage">
+      <div v-if="readerStore.currentBook?.language !== settingsStore.appLanguage" class="menu-item" @click="settingsStore.autoAnalyzePage = !settingsStore.autoAnalyzePage">
         <div class="item-label">
           <Icon icon="mdi:robot-outline" class="item-icon" />
           <span>{{ t('settings.autoAnalyzePage') }}</span>
@@ -284,9 +258,9 @@ const currentThemeName = computed(() => {
       </div>
     </div>
 
-    <div class="divider" />
+    <div v-if="readerStore.currentBook?.language !== settingsStore.appLanguage" class="divider" />
 
-    <div class="menu-section">
+    <div v-if="readerStore.currentBook?.language !== settingsStore.appLanguage" class="menu-section">
       <div class="menu-item" @click="openPageAnalysisModal">
         <div class="item-label">
           <Icon :icon="analysisStore.isManualPageAnalysisActive ? 'mdi:loading' : 'mdi:text-box-search-outline'" class="item-icon" :class="[analysisStore.isManualPageAnalysisActive ? 'spin-animation' : '']" />
@@ -296,35 +270,6 @@ const currentThemeName = computed(() => {
       </div>
     </div>
   </div>
-
-  <KitDialog v-model:visible="isPageAnalysisModalOpen" :title="t('reader.analyzePage')" :max-width="400" icon="mdi:robot-outline">
-    <div style="padding: 16px 0;">
-      <div class="settings-group" style="padding: 0 0 16px 0; border-bottom: 1px solid var(--border-secondary-color); margin-bottom: 16px;">
-        <div style="font-weight: 500; font-size: 0.95rem; display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
-          <Icon icon="mdi:text-search" class="item-icon" /> {{ t('reader.textAnalysis') }}
-        </div>
-        <KitCheckbox v-model="pageActionOpts.sentences" :label="t('bookInfo.sentences')" />
-        <KitCheckbox v-model="pageActionOpts.words" :label="t('analysis.words')" />
-      </div>
-
-      <div class="settings-group" style="padding: 0 0 16px 0;">
-        <div style="font-weight: 500; font-size: 0.95rem; display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
-          <Icon icon="mdi:headphones" class="item-icon" /> {{ t('reader.voiceTts') }}
-        </div>
-        <KitCheckbox v-model="pageActionOpts.ttsSentences" :label="t('bookInfo.sentences')" />
-        <KitCheckbox v-model="pageActionOpts.ttsWords" :label="t('analysis.words')" />
-      </div>
-
-      <KitBtn
-        style="width: 100%; margin-top: 8px;"
-        color="primary"
-        @click="startPageAnalysis"
-      >
-        <Icon icon="mdi:play" style="margin-right: 6px;" />
-        {{ t('reader.startAnalysis') }}
-      </KitBtn>
-    </div>
-  </KitDialog>
 </template>
 
 <style lang="scss" scoped>

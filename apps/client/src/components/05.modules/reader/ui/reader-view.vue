@@ -1,6 +1,7 @@
 <script setup lang="ts">
+import { Icon } from '@iconify/vue'
 import { useI18n } from 'vue-i18n'
-import { KitDialog } from '~/components/01.kit'
+import { KitBtn, KitCheckbox, KitDialog } from '~/components/01.kit'
 import { PageLoader } from '~/components/02.shared/page-loader'
 import { useTextSelection } from '~/components/03.domain/analysis'
 import { useAnalysisStore } from '~/shared/store/analysis.store'
@@ -44,6 +45,22 @@ const { onPointerDown, onPointerUp, onWordClick } = useTextSelection()
 const { isHeaderVisible, onScroll } = useReaderScroll(saveScrollPosition)
 const { performLayoutSync } = useParallelSync(readerViewRef, restoreScrollPosition)
 const { leftPaneContent, translatedPageContent } = useReaderContent()
+
+function startPageAnalysis() {
+  analysisStore.isPageAnalysisSetupModalOpen = false
+
+  if (analysisStore.isManualPageAnalysisActive) {
+    analysisStore.isPageAnalysisModalOpen = true
+  }
+  else {
+    analysisStore.analyzeWholePage({
+      sentences: analysisStore.pageActionOpts.sentences,
+      words: analysisStore.pageActionOpts.words,
+      ttsSentences: analysisStore.pageActionOpts.ttsSentences,
+      ttsWords: analysisStore.pageActionOpts.ttsWords,
+    }, false)
+  }
+}
 
 function onContentEnter(el: Element) {
   if (el.classList.contains('reader-layout-wrapper')) {
@@ -161,12 +178,58 @@ watch(() => readerStore.isPageLoading, async (isLoading) => {
       </div>
     </KitDialog>
 
+    <KitDialog v-model:visible="analysisStore.isPageAnalysisSetupModalOpen" :title="t('reader.analyzePage')" :max-width="400" icon="mdi:robot-outline">
+      <div style="padding: 16px 0;">
+        <div class="settings-group" style="padding: 0 0 16px 0; border-bottom: 1px solid var(--border-secondary-color); margin-bottom: 16px;">
+          <div style="font-weight: 500; font-size: 0.95rem; display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+            <Icon icon="mdi:text-search" class="item-icon" style="font-size: 1.2rem; color: var(--fg-secondary-color);" /> {{ t('reader.textAnalysis') }}
+          </div>
+          <KitCheckbox v-model="analysisStore.pageActionOpts.sentences" :label="t('bookInfo.sentences')" />
+          <KitCheckbox v-model="analysisStore.pageActionOpts.words" :label="t('analysis.words')" />
+        </div>
+
+        <div class="settings-group" style="padding: 0 0 16px 0;">
+          <div style="font-weight: 500; font-size: 0.95rem; display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+            <Icon icon="mdi:headphones" class="item-icon" style="font-size: 1.2rem; color: var(--fg-secondary-color);" /> {{ t('reader.voiceTts') }}
+          </div>
+          <KitCheckbox v-model="analysisStore.pageActionOpts.ttsSentences" :label="t('bookInfo.sentences')" />
+          <KitCheckbox v-model="analysisStore.pageActionOpts.ttsWords" :label="t('analysis.words')" />
+        </div>
+
+        <KitBtn
+          style="width: 100%; margin-top: 8px;"
+          color="primary"
+          @click="startPageAnalysis"
+        >
+          <Icon icon="mdi:play" style="margin-right: 6px;" />
+          {{ t('reader.startAnalysis') }}
+        </KitBtn>
+      </div>
+    </KitDialog>
+
     <SentenceAnalysis />
     <PageAnalysisModal />
   </div>
 </template>
 
 <style lang="scss" scoped>
+.settings-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px;
+
+  :deep(.kit-checkbox) {
+    .checkbox-box {
+      margin-left: 2px;
+    }
+
+    .checkbox-label {
+      margin-left: 6px;
+      font-weight: 500;
+    }
+  }
+}
 .reader-view {
   padding-top: var(--safe-area-top);
   height: 100%;

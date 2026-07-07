@@ -77,6 +77,13 @@ export const useAnalysisStore = defineStore('analysis', () => {
   const isAutoPageAnalysisActive = ref(false)
   const isPageAnalysisFinished = ref(false)
   const isPageAnalysisModalOpen = ref(false)
+  const isPageAnalysisSetupModalOpen = ref(false)
+  const pageActionOpts = ref({
+    sentences: true,
+    words: false,
+    ttsSentences: false,
+    ttsWords: false,
+  })
 
   const pageAnalysisSentencesCurrent = ref(0)
   const pageAnalysisSentencesTotal = ref(0)
@@ -149,6 +156,7 @@ export const useAnalysisStore = defineStore('analysis', () => {
     isAutoPageAnalysisActive.value = false
     isPageAnalysisFinished.value = false
     isPageAnalysisModalOpen.value = false
+    isPageAnalysisSetupModalOpen.value = false
 
     pageAnalysisSentencesCurrent.value = 0
     pageAnalysisSentencesTotal.value = 0
@@ -448,8 +456,12 @@ export const useAnalysisStore = defineStore('analysis', () => {
 
   async function analyzeWholePage(options: { sentences: boolean, words: boolean, ttsSentences: boolean, ttsWords: boolean }, isBackground: boolean = false) {
     const readerStore = useReaderStore()
+    const settingsStore = useGlobalSettingsStore()
 
     if (!readerStore.currentPage || !readerStore.currentBook)
+      return
+
+    if (readerStore.currentBook.language === settingsStore.appLanguage)
       return
 
     trackEvent('page_analysis_started', {
@@ -881,6 +893,8 @@ export const useAnalysisStore = defineStore('analysis', () => {
     isAutoPageAnalysisActive,
     isPageAnalysisFinished,
     isPageAnalysisModalOpen,
+    isPageAnalysisSetupModalOpen,
+    pageActionOpts,
     pageAnalysisSentencesCurrent,
     pageAnalysisSentencesTotal,
     pageAnalysisWordsCurrent,

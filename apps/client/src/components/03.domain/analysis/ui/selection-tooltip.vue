@@ -8,6 +8,7 @@ import { useHighlightsStore } from '~/components/05.modules/reader/store/highlig
 import { useReaderStore } from '~/components/05.modules/reader/store/reader.store'
 import { useTts } from '~/shared/composables/use-tts'
 import { useAnalysisStore } from '~/shared/store/analysis.store'
+import { useGlobalSettingsStore } from '~/shared/store/settings.store'
 
 const highlightsStore = useHighlightsStore()
 const readerStore = useReaderStore()
@@ -81,6 +82,12 @@ const popoverPos = ref({ top: '-9999px', left: '-9999px', transform: 'none' })
 const offset = 24
 
 const checkTextSelection = useDebounceFn(() => {
+  const settingsStore = useGlobalSettingsStore()
+  if (readerStore.currentBook?.language === settingsStore.appLanguage) {
+    analysisStore.closeSelectionTooltip()
+    return
+  }
+
   const selection = window.getSelection()
 
   if (!selection || selection.isCollapsed) {

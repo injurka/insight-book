@@ -52,7 +52,7 @@ watch(() => props.isVisible, (visible) => {
     <span class="book-title">{{ readerStore.currentBook?.title }}</span>
     <div class="spacer" />
 
-    <KitDropdown ref="parallelDropdownRef" placement="bottom-end" width="300px" :close-on-content-click="false">
+    <KitDropdown v-if="readerStore.currentBook?.language !== settingsStore.appLanguage" ref="parallelDropdownRef" placement="bottom-end" width="300px" :close-on-content-click="false">
       <template #activator="{ props: dropdownProps }">
         <KitTooltip :text="t('reader.parallelReading')" placement="bottom">
           <KitBtn
