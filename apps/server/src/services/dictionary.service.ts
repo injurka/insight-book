@@ -229,9 +229,8 @@ export async function upsertToUserDictionary(
   userId: number,
   targetLang: string,
 ): Promise<void> {
-  if (item.language === targetLang) {
+  if (item.language === targetLang) 
     return
-  }
 
   let deckIds = item.deckIds || []
   if (deckIds.length === 0) {
