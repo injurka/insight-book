@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { Icon } from '@iconify/vue'
+import { invoke } from '@tauri-apps/api/core'
 import { onMounted, onUnmounted, ref } from 'vue'
 
 const isTauri = '__TAURI_INTERNALS__' in window
 const isMobile = /android|iphone|ipad|ipod/i.test(navigator.userAgent)
-const showTitlebar = isTauri && !isMobile
+const showTitlebar = ref(isTauri && !isMobile)
 const isMaximized = ref(false)
 
 let appWindow: any = null
@@ -13,6 +14,12 @@ let unlistenResize: (() => void) | null = null
 onMounted(async () => {
   if (isTauri) {
     try {
+      const isHypr = await invoke<boolean>('is_hyprland').catch(() => false)
+      if (isHypr) {
+        showTitlebar.value = false
+        return
+      }
+
       const { getCurrentWindow } = await import('@tauri-apps/api/window')
       appWindow = getCurrentWindow()
       isMaximized.value = await appWindow.isMaximized()
