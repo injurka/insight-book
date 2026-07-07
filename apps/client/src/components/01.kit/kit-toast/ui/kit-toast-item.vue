@@ -110,7 +110,9 @@ function handleAction() {
     gap: 8px;
 
     .detail-text {
+      font-size: 0.9rem;
       word-break: break-word;
+      font-family: 'Maple Mono CN', 'Inter', Courier, monospace;
     }
   }
 

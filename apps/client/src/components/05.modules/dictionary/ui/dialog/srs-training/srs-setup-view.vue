@@ -18,11 +18,12 @@ const setupOptions = reactive({
 })
 
 const modes = reactive({
-  standard: true,
-  audio: true,
+  standard: false,
+  audio: false,
   writing: false,
-  typing: true,
-  choice: true,
+  typing: false,
+  choice: false,
+  'choice-reverse': false,
   scramble: false,
   collocations: false,
   radicals: false,
@@ -49,16 +50,18 @@ watch(() => dictStore.trainingMode, (mode) => {
     modes.writing = false
     modes.typing = false
     modes.choice = false
-    modes.scramble = true
-    modes.collocations = true
-    modes.radicals = showWritingMode.value
+    modes['choice-reverse'] = false
+    modes.scramble = false
+    modes.collocations = false
+    modes.radicals = false
   }
   else {
-    modes.standard = true
-    modes.audio = true
+    modes.standard = false
+    modes.audio = false
     modes.writing = false
-    modes.typing = true
-    modes.choice = true
+    modes.typing = false
+    modes.choice = false
+    modes['choice-reverse'] = false
     modes.scramble = false
     modes.collocations = false
     modes.radicals = false
@@ -108,7 +111,7 @@ watch(difficultyOptions, (newOpts) => {
 
 function start() {
   const selectedModes = { ...modes }
-  if (!selectedModes.standard && !selectedModes.audio && !selectedModes.writing && !selectedModes.typing && !selectedModes.choice && !selectedModes.scramble && !selectedModes.collocations && !selectedModes.radicals) {
+  if (!selectedModes.standard && !selectedModes.audio && !selectedModes.writing && !selectedModes.typing && !selectedModes.choice && !selectedModes['choice-reverse'] && !selectedModes.scramble && !selectedModes.collocations && !selectedModes.radicals) {
     if (dictStore.trainingMode === 'deep_dive') {
       selectedModes.scramble = true
     }
@@ -157,6 +160,11 @@ function start() {
             <Icon icon="mdi:format-list-checks" class="mode-icon" />
             <span class="mode-title">{{ t('dictionary.test') }}</span>
             <span class="mode-desc">{{ t('dictionary.multipleChoice') }}</span>
+          </div>
+          <div class="mode-card" :class="{ 'is-active': modes['choice-reverse'] }" @click="modes['choice-reverse'] = !modes['choice-reverse']">
+            <Icon icon="mdi:format-list-checks" class="mode-icon" style="transform: scaleX(-1);" />
+            <span class="mode-title">Обратный тест</span>
+            <span class="mode-desc">Вспомнить слово по переводу</span>
           </div>
           <div class="mode-card" :class="{ 'is-active': modes.audio }" @click="modes.audio = !modes.audio">
             <Icon icon="mdi:headphones" class="mode-icon" />

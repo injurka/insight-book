@@ -16,7 +16,17 @@ const emit = defineEmits<{
 const containerRefs = ref<HTMLElement[]>([])
 const writers = shallowRef<HanziWriter[]>([])
 
+const currentIndex = ref(0)
 let currentSequenceId = 0
+
+const trackTransform = computed(() => {
+  const smallSize = props.size * 0.25
+  const gap = 16
+  const activeCenter = currentIndex.value * (smallSize + gap) + (props.size / 2)
+  return {
+    transform: `translateX(-${activeCenter}px)`,
+  }
+})
 
 const validChars = computed(() => {
   if (!props.text)
@@ -27,6 +37,7 @@ const validChars = computed(() => {
 async function initWriters() {
   currentSequenceId++
   const seqId = currentSequenceId
+  currentIndex.value = 0
 
   containerRefs.value.forEach((el) => {
     if (el)
@@ -86,6 +97,7 @@ function startQuizSequence(index: number, seqId: number) {
     emit('complete')
     return
   }
+  currentIndex.value = index
   writers.value[index].quiz({
     onComplete: () => {
       if (seqId !== currentSequenceId)
@@ -100,6 +112,7 @@ function startAnimationSequence(index: number, seqId: number) {
     return
   if (index >= writers.value.length)
     return
+  currentIndex.value = index
   writers.value[index].animateCharacter({
     onComplete: () => {
       if (seqId !== currentSequenceId)
@@ -137,40 +150,78 @@ onMounted(initWriters)
 </script>
 
 <template>
-  <div class="hanzi-board">
-    <div
-      v-for="(char, i) in validChars"
-      :key="char"
-      :ref="el => { if (el) containerRefs[i] = el as HTMLElement }"
-      class="hanzi-char-container"
-      :class="{ 'is-quiz': mode === 'quiz' }"
-      :style="{ width: `${size}px`, height: `${size}px` }"
-    />
+  <div class="hanzi-board" :class="{ 'has-multiple': validChars.length > 1 }" :style="{ height: `${size + 16}px` }">
+    <div class="board-track" :style="trackTransform">
+      <div
+        v-for="(char, i) in validChars"
+        :key="char"
+        :ref="el => { if (el) containerRefs[i] = el as HTMLElement }"
+        class="hanzi-char-container"
+        :class="{
+          'is-quiz': mode === 'quiz' && i === currentIndex,
+          'is-active': i === currentIndex,
+          'is-past': i < currentIndex,
+          'is-future': i > currentIndex,
+        }"
+        :style="{
+          width: i === currentIndex ? `${size}px` : `${size * 0.25}px`,
+          height: i === currentIndex ? `${size}px` : `${size * 0.25}px`,
+        }"
+      />
+    </div>
   </div>
 </template>
 
 <style lang="scss" scoped>
 .hanzi-board {
+  position: relative;
   display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  justify-content: center;
   align-items: center;
   margin: 16px 0;
+  width: 100%;
+  overflow: hidden;
+}
+
+.board-track {
+  position: absolute;
+  left: 50%;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .hanzi-char-container {
   background-color: var(--bg-tertiary-color);
-  border-radius: 8px;
-  border: 1px dashed var(--border-primary-color);
+  border-radius: 12px;
+  border: 2px dashed var(--border-primary-color);
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  opacity: 0.5;
+
+  &.is-active {
+    opacity: 1;
+    border-color: var(--fg-accent-color);
+  }
+
+  &.is-past {
+    opacity: 0.8;
+    border-style: solid;
+    border-color: var(--border-secondary-color);
+    background-color: var(--bg-secondary-color);
+  }
 
   &.is-quiz {
     cursor: crosshair;
     touch-action: none;
-    box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.05);
+  }
+
+  :deep(svg) {
+    width: 100% !important;
+    height: 100% !important;
+    transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
   }
 }
 </style>

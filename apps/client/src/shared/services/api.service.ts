@@ -78,7 +78,7 @@ export const request = ofetch.create({
       errMessage = i18n.global.t('errors.network') || 'Проверьте подключение к интернету'
     }
 
-    const isAbort = error.name === 'AbortError' || errMessage.toLowerCase().includes('abort')
+    const isAbort = error.name === 'AbortError' || errMessage.toLowerCase().includes('abort') || errMessage.toLowerCase().includes('cancel')
 
     if (getActivePinia() && !options?.silentErrors && !isAbort) {
       useToastStore().error(errMessage)

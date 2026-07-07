@@ -14,6 +14,7 @@ import { useDictionaryStore } from '../../../store/dictionary.store'
 import { useFsrsScheduling } from './composables/use-fsrs-scheduling'
 import SrsModeAudio from './srs-modes/srs-mode-audio.vue'
 import SrsModeChoice from './srs-modes/srs-mode-choice.vue'
+import SrsModeChoiceReverse from './srs-modes/srs-mode-choice-reverse.vue'
 import SrsModeCollocations from './srs-modes/srs-mode-collocations.vue'
 import SrsModeRadicals from './srs-modes/srs-mode-radicals.vue'
 import SrsModeScramble from './srs-modes/srs-mode-scramble.vue'
@@ -35,7 +36,7 @@ const dictStore = useDictionaryStore()
 const { speak, stop, isPlaying, isLoading } = useTts()
 const toast = useToast()
 const { t } = useI18n()
-const { generateDistractors, checkTypo } = useSrsQuiz()
+const { generateDistractors, generateWordDistractors, checkTypo } = useSrsQuiz()
 
 const isFlipped = ref(false)
 const typedAnswer = ref('')
@@ -55,7 +56,7 @@ const isAiModalOpen = ref(false)
 const isChatModalOpen = ref(false)
 const isAiLoading = ref(false)
 const aiData = ref<GeneratedWordExamples | null>(null)
-const currentMode = ref<'standard' | 'audio' | 'writing' | 'typing' | 'choice' | 'scramble' | 'collocations' | 'radicals'>('standard')
+const currentMode = ref<'standard' | 'audio' | 'writing' | 'typing' | 'choice' | 'choice-reverse' | 'scramble' | 'collocations' | 'radicals'>('standard')
 
 // Scramble state
 const scrambleChunks = ref<{ id: number, text: string }[]>([])
@@ -75,6 +76,7 @@ const modeComponentMap = {
   writing: SrsModeWriting,
   typing: SrsModeTyping,
   choice: SrsModeChoice,
+  'choice-reverse': SrsModeChoiceReverse,
   scramble: SrsModeScramble,
   collocations: SrsModeCollocations,
   radicals: SrsModeRadicals,
@@ -101,6 +103,7 @@ const modeProps = computed(() => {
         isAnswerCorrect: isAnswerCorrect.value,
       }
     case 'choice':
+    case 'choice-reverse':
       return {
         card,
         choiceOptions: choiceOptions.value,
@@ -151,6 +154,7 @@ const modeEmits = computed(() => {
         'submit': submitTyping,
       }
     case 'choice':
+    case 'choice-reverse':
       return { select: selectChoice }
     case 'scramble':
       return { chunkClick: handleScrambleChunkClick }
@@ -299,8 +303,8 @@ function initCard() {
   if (!props.card)
     return
 
-  const modesConfig = props.modes || { standard: true, audio: true, writing: false, typing: true, choice: true, scramble: false, collocations: false, radicals: false }
-  const availableModes: ('standard' | 'audio' | 'writing' | 'typing' | 'choice' | 'scramble' | 'collocations' | 'radicals')[] = []
+  const modesConfig = props.modes || { standard: true, audio: true, writing: false, typing: true, choice: true, 'choice-reverse': false, scramble: false, collocations: false, radicals: false }
+  const availableModes: ('standard' | 'audio' | 'writing' | 'typing' | 'choice' | 'choice-reverse' | 'scramble' | 'collocations' | 'radicals')[] = []
 
   if (modesConfig.standard)
     availableModes.push('standard')
@@ -312,6 +316,8 @@ function initCard() {
     availableModes.push('typing')
   if (modesConfig.choice)
     availableModes.push('choice')
+  if (modesConfig['choice-reverse'])
+    availableModes.push('choice-reverse')
 
   if (modesConfig.scramble)
     availableModes.push('scramble')
@@ -326,6 +332,9 @@ function initCard() {
   if (modesConfig.choice && availableModes.includes('choice') && props.card.state === 0 && Math.random() > 0.3) {
     currentMode.value = 'choice'
   }
+  else if (modesConfig['choice-reverse'] && availableModes.includes('choice-reverse') && props.card.state === 0 && Math.random() > 0.3) {
+    currentMode.value = 'choice-reverse'
+  }
   else {
     currentMode.value = availableModes[Math.floor(Math.random() * availableModes.length)]
   }
@@ -335,6 +344,13 @@ function initCard() {
     const distractors = generateDistractors(props.card, dictStore.words, 3)
     const options = distractors.map(d => ({ text: d, isCorrect: false }))
     options.push({ text: correctTrans, isCorrect: true })
+    choiceOptions.value = options.sort(() => 0.5 - Math.random())
+  }
+  else if (currentMode.value === 'choice-reverse') {
+    const correctWord = props.card.word
+    const distractors = generateWordDistractors(props.card, dictStore.words, 3)
+    const options = distractors.map(d => ({ text: d, isCorrect: false }))
+    options.push({ text: correctWord, isCorrect: true })
     choiceOptions.value = options.sort(() => 0.5 - Math.random())
   }
   else if (currentMode.value === 'scramble') {
@@ -449,7 +465,7 @@ watch(() => props.card, initCard, { immediate: true })
         </div>
       </div>
 
-      <div v-if="currentMode !== 'choice' && currentMode !== 'typing'" class="translation-box fade-in" v-html="card.translation" />
+      <div v-if="currentMode !== 'choice' && currentMode !== 'choice-reverse' && currentMode !== 'typing'" class="translation-box fade-in" v-html="card.translation" />
 
       <div v-if="originalSentence" class="original-sentence fade-in">
         <Icon icon="mdi:format-quote-close" class="quote-icon" />
@@ -759,6 +775,10 @@ watch(() => props.card, initCard, { immediate: true })
   border-radius: 8px;
   padding: 16px;
   text-align: left;
+
+  &:not(:first-of-type) {
+    margin-top: 8px;
+  }
 
   .notes-label {
     display: flex;

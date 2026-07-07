@@ -16,7 +16,31 @@ const visible = defineModel<boolean>('visible', { required: true })
 const dictStore = useDictionaryStore()
 const toast = useToast()
 const { t } = useI18n()
-const { isFullscreen, toggle: toggleFullscreen } = useFullscreen()
+const {
+  isFullscreen: isNativeFullscreen,
+  toggle: toggleNativeFullscreen,
+  isSupported: isNativeFullscreenSupported,
+} = useFullscreen()
+const isLocalFullscreen = ref(false)
+
+const isFullscreen = computed(() => isNativeFullscreen.value || isLocalFullscreen.value)
+
+async function toggleFullscreen() {
+  isLocalFullscreen.value = !isLocalFullscreen.value
+  if (isNativeFullscreenSupported.value) {
+    try {
+      if (isLocalFullscreen.value && !isNativeFullscreen.value) {
+        await toggleNativeFullscreen()
+      }
+      else if (!isLocalFullscreen.value && isNativeFullscreen.value) {
+        await toggleNativeFullscreen()
+      }
+    }
+    catch (e) {
+      console.warn('Native fullscreen failed', e)
+    }
+  }
+}
 
 const {
   sessionState,
@@ -32,11 +56,12 @@ const {
 
 const isSubmittingGrade = ref(false)
 const activeModes = ref<Record<string, boolean>>({
-  standard: true,
-  audio: true,
+  standard: false,
+  audio: false,
   writing: false,
-  typing: true,
-  choice: true,
+  typing: false,
+  choice: false,
+  'choice-reverse': false,
   scramble: false,
   collocations: false,
   radicals: false,

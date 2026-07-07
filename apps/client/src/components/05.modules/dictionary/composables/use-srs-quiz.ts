@@ -64,6 +64,33 @@ export function useSrsQuiz() {
     return Array.from(distractors)
   }
 
+  function generateWordDistractors(correctItem: UserDictItem, allWords: UserDictItem[], count = 3): string[] {
+    const distractors = new Set<string>()
+    const pool = allWords.filter(w => w.id !== correctItem.id && w.language === correctItem.language && w.word)
+
+    const shuffled = [...pool].sort(() => 0.5 - Math.random())
+
+    for (const w of shuffled) {
+      if (distractors.size >= count)
+        break
+      if (w.word && w.word !== correctItem.word) {
+        distractors.add(w.word)
+      }
+    }
+
+    // В качестве фолбека можно использовать случайные слоги или похожие иероглифы
+    const fallbacks = ['的', '一', '是', '不', '了', '人', '我', '在', '有', '他']
+    let i = 0
+    while (distractors.size < count && i < fallbacks.length) {
+      if (fallbacks[i] !== correctItem.word) {
+        distractors.add(fallbacks[i])
+      }
+      i++
+    }
+
+    return Array.from(distractors)
+  }
+
   function checkTypo(input: string, correct: string) {
     const cleanInput = input.trim().toLowerCase()
     const cleanCorrect = correct.trim().toLowerCase()
@@ -93,6 +120,7 @@ export function useSrsQuiz() {
 
   return {
     generateDistractors,
+    generateWordDistractors,
     checkTypo,
     formatTime,
   }
