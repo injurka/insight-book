@@ -384,6 +384,9 @@ export const useAnalysisStore = defineStore('analysis', () => {
     if (!currentBook)
       return
 
+    if (currentBook.language === settingsStore.appLanguage)
+      return
+
     if (manualAnalysisAbortController) {
       manualAnalysisAbortController.abort()
       manualAnalysisAbortController = null
@@ -637,6 +640,9 @@ export const useAnalysisStore = defineStore('analysis', () => {
     if (!readerStore.currentPage || !readerStore.currentBook)
       return
 
+    if (readerStore.currentBook.language === settingsStore.appLanguage)
+      return
+
     closeSelectionTooltip()
     activeTokenId.value = `${sentenceId}-${tokenIndex}`
     const targetRect = target.getBoundingClientRect()
@@ -681,8 +687,13 @@ export const useAnalysisStore = defineStore('analysis', () => {
     const libraryStore = useLibraryStore()
     const readerStore = useReaderStore()
 
+    const bookLanguage = libraryStore.currentBookInfo?.language || readerStore.currentBook?.language
     const bookId = libraryStore.currentBookInfo?.id || readerStore.currentBook?.id
     if (!bookId)
+      return
+
+    const settingsStore = useGlobalSettingsStore()
+    if (bookLanguage === settingsStore.appLanguage)
       return
 
     closeSelectionTooltip()
@@ -798,6 +809,12 @@ export const useAnalysisStore = defineStore('analysis', () => {
   }
 
   async function saveWordToDict(item: Partial<UserDictItem> & { contextSentence?: string, contextBookId?: number }) {
+    const settingsStore = useGlobalSettingsStore()
+    if (item.language === settingsStore.appLanguage) {
+      useToastStore().info(i18n.global.t('dictionary.cannotSaveSameLanguage'))
+      return
+    }
+
     await api.dictionary.upsert(item)
     addEditWordModalOpen.value = false
 

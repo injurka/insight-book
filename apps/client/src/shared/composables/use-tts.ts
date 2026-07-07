@@ -24,6 +24,14 @@ export function useTts() {
     if (!text)
       return
 
+    const hasChineseChars = /[\u4e00-\u9fa5]/.test(text)
+    const maxLength = hasChineseChars ? 80 : 250
+
+    if (text.length > maxLength) {
+      toast.error('Текст слишком длинный (максимум ~15 секунд звучания)')
+      return
+    }
+
     if (isLoading.value && abortController) {
       abortController.abort()
     }

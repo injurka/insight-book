@@ -1,4 +1,4 @@
-import { mkdirSync } from 'node:fs'
+import { existsSync, mkdirSync, unlinkSync } from 'node:fs'
 import path from 'node:path'
 import { eq, sql } from 'drizzle-orm'
 import jwt from 'jsonwebtoken'
@@ -234,6 +234,8 @@ export async function handleUpdateAvatar(req: Request, userId: number): Promise<
   if (!file)
     throw new AppError(400, 'Файл не передан')
 
+  const user = await db.query.users.findFirst({ where: eq(schema.users.id, userId) })
+
   const buffer = await file.arrayBuffer()
   const ext = path.extname(file.name).toLowerCase() || '.jpg'
   const filename = `${Date.now()}_avatar_${userId}${ext}`
@@ -241,6 +243,21 @@ export async function handleUpdateAvatar(req: Request, userId: number): Promise<
   const filepath = path.join(avatarsDir, filename)
 
   mkdirSync(avatarsDir, { recursive: true })
+
+  if (user?.avatarUrl && user.avatarUrl.startsWith('/api/uploads/avatars/')) {
+    const oldFilename = user.avatarUrl.split('/').pop()
+    if (oldFilename) {
+      const oldFilepath = path.join(avatarsDir, oldFilename)
+      try {
+        if (existsSync(oldFilepath)) {
+          unlinkSync(oldFilepath)
+        }
+      } catch (e) {
+        console.error('Failed to delete old avatar', e)
+      }
+    }
+  }
+
   await Bun.write(filepath, buffer)
 
   const avatarUrl = `/api/uploads/avatars/${filename}`

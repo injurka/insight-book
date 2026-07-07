@@ -480,6 +480,13 @@ export async function generateTts(userId: number, bookId: number | null, text: s
   if (!normalizedText)
     throw new AppError(400, 'Текст не передан')
 
+  const hasChineseChars = /[\u4e00-\u9fa5]/.test(normalizedText)
+  const maxLength = hasChineseChars ? 80 : 250
+
+  if (normalizedText.length > maxLength) {
+    throw new AppError(400, 'Текст слишком длинный (максимум ~15 секунд звучания)')
+  }
+
   const ttsUrl = config.ttsUrl || config.url
   const ttsKey = config.ttsKey || config.key
   const primaryModel = config.ttsModel!

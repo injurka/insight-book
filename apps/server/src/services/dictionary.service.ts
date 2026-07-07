@@ -229,6 +229,10 @@ export async function upsertToUserDictionary(
   userId: number,
   targetLang: string,
 ): Promise<void> {
+  if (item.language === targetLang) {
+    return
+  }
+
   let deckIds = item.deckIds || []
   if (deckIds.length === 0) {
     let defaultDeck = await db.query.dictDecks.findFirst({
