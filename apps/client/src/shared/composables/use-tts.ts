@@ -24,7 +24,7 @@ export function useTts() {
     if (!text)
       return
 
-    const hasChineseChars = /[\u4e00-\u9fa5]/.test(text)
+    const hasChineseChars = /[\u4E00-\u9FA5]/.test(text)
     const maxLength = hasChineseChars ? 80 : 250
 
     if (text.length > maxLength) {

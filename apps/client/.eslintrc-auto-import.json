@@ -311,7 +311,6 @@
     "useToast": true,
     "useToggle": true,
     "useTransition": true,
-    "useTts": true,
     "useUmami": true,
     "useUrlSearchParams": true,
     "useUserMedia": true,

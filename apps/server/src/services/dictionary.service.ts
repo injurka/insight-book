@@ -1,5 +1,5 @@
 import type { PageDictEntry, UserDictItem } from '../types'
-import { and, desc, eq, exists, inArray, notInArray, lte, notExists, sql } from 'drizzle-orm'
+import { and, desc, eq, inArray, lte, notInArray, sql } from 'drizzle-orm'
 import { sqliteTable, text } from 'drizzle-orm/sqlite-core'
 import { createEmptyCard, FSRS, Rating } from 'ts-fsrs'
 import { db, getDictConnection } from '../db'
@@ -229,7 +229,7 @@ export async function upsertToUserDictionary(
   userId: number,
   targetLang: string,
 ): Promise<void> {
-  if (item.language === targetLang) 
+  if (item.language === targetLang)
     return
 
   let deckIds = item.deckIds || []

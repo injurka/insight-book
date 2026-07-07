@@ -6,7 +6,7 @@ import { BulkActionSchema, DeckSchema, DeepDiveRequestSchema, GenerateExamplesSc
 import { extractLlmConfig, json, normalizeLanguageCode } from '~/utils/helpers'
 import { callLlmApi } from '~/utils/llm-api'
 import { officialDecks, officialDeckWords } from '../db/catalog-schema'
-import { customPrompts, userDictionary } from '../db/schema'
+import { customPrompts, userDictionary, wordToDeck } from '../db/schema'
 import { getDictionaryChatPrompt } from '../prompts'
 import { trackActivity } from '../services/activity.service'
 import {
@@ -181,10 +181,10 @@ export async function handleBulkDeleteDict(req: Request, userId: number): Promis
   return json({ success: true })
 }
 
-export async function handleBulkMoveDict(req: Request, userId: number): Promise<Response> {
+export async function handleBulkMoveDict(req: Request, _userId: number): Promise<Response> {
   const { wordIds, deckIds } = BulkActionSchema.parse(await req.json())
 
-  await db.delete(schema.wordToDeck).where(inArray(schema.wordToDeck.wordId, wordIds))
+  await db.delete(wordToDeck).where(inArray(wordToDeck.wordId, wordIds))
 
   if (deckIds && deckIds.length > 0) {
     const links = []
@@ -193,7 +193,7 @@ export async function handleBulkMoveDict(req: Request, userId: number): Promise<
         links.push({ wordId, deckId })
       }
     }
-    await db.insert(schema.wordToDeck).values(links).onConflictDoNothing()
+    await db.insert(wordToDeck).values(links).onConflictDoNothing()
   }
 
   return json({ success: true })
@@ -270,7 +270,7 @@ export async function handleCloneCatalogDeck(req: Request, userId: number): Prom
         wordId: u.id,
         deckId: newDeck.id,
       }))
-      await db.insert(schema.wordToDeck).values(links).onConflictDoNothing()
+      await db.insert(wordToDeck).values(links).onConflictDoNothing()
     }
 
     await trackActivity(userId, 'added', userWords.length)

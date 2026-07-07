@@ -252,7 +252,8 @@ export async function handleUpdateAvatar(req: Request, userId: number): Promise<
         if (existsSync(oldFilepath)) {
           unlinkSync(oldFilepath)
         }
-      } catch (e) {
+      }
+      catch (e) {
         console.error('Failed to delete old avatar', e)
       }
     }

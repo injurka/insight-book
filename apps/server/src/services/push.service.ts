@@ -203,7 +203,7 @@ export async function sendDailyMotivations(customMessage?: string) {
             schema.userDictionary.id,
             db.select({ id: schema.wordToDeck.wordId })
               .from(schema.wordToDeck)
-              .where(eq(schema.wordToDeck.deckId, user.pushTargetDeckId))
+              .where(eq(schema.wordToDeck.deckId, user.pushTargetDeckId)),
           ))
         }
 

@@ -480,7 +480,7 @@ export async function generateTts(userId: number, bookId: number | null, text: s
   if (!normalizedText)
     throw new AppError(400, 'Текст не передан')
 
-  const hasChineseChars = /[\u4e00-\u9fa5]/.test(normalizedText)
+  const hasChineseChars = /[\u4E00-\u9FA5]/.test(normalizedText)
   const maxLength = hasChineseChars ? 80 : 250
 
   if (normalizedText.length > maxLength) {
