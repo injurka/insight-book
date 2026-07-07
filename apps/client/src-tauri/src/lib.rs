@@ -107,7 +107,7 @@ fn unsubscribe_fcm_native() {
         
     if let Ok(class) = class {
         let null_obj = jni::objects::JObject::null();
-        let _ = env.set_static_field(&class, "_fcmToken", "Ljava/lang/String;", jni::objects::JValue::Object(&null_obj));
+        let _ = env.set_static_field(&class, (&class, "_fcmToken", "Ljava/lang/String;"), jni::objects::JValue::Object(&null_obj));
     }
     
     // Async delete token from Firebase Messaging

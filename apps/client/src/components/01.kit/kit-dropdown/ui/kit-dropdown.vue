@@ -11,6 +11,7 @@ interface Props {
   closeOnContentClick?: boolean
   disabled?: boolean
   closeOnOutsideClick?: boolean
+  zIndex?: number | string
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -20,6 +21,7 @@ const props = withDefaults(defineProps<Props>(), {
   closeOnContentClick: true,
   disabled: false,
   closeOnOutsideClick: true,
+  zIndex: undefined,
 })
 
 const emit = defineEmits(['update:modelValue'])
@@ -94,7 +96,7 @@ const contentStyle = computed(() => {
     left: isPositioned ? `${x.value}px` : '0',
     width: typeof props.width === 'number' ? `${props.width}px` : props.width,
     visibility: isPositioned ? 'visible' as const : 'hidden' as const,
-    zIndex: dropdownZIndex.value,
+    zIndex: props.zIndex !== undefined ? props.zIndex : dropdownZIndex.value,
   }
 })
 

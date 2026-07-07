@@ -83,7 +83,7 @@ function finishOnboarding() {
 
     <!-- Настройки: тема и язык -->
     <div class="settings-bar">
-      <KitDropdown width="140px" placement="bottom-end">
+      <KitDropdown width="140px" placement="bottom-end" :z-index="10001">
         <template #activator>
           <button class="settings-btn" :aria-label="t('globalActions.switchLanguage')">
             <Icon icon="mdi:translate" />
