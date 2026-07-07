@@ -85,7 +85,7 @@ fn unsubscribe_fcm_native() {
     // Reset the local token variable
     let class = env.find_class("ru/insightbook/insightbook/MainActivity").unwrap();
     let null_obj = jni::objects::JObject::null();
-    let _ = env.set_static_field(&class, (&class, "fcmToken", "Ljava/lang/String;"), jni::objects::JValue::Object(&null_obj));
+    let _ = env.set_static_field(&class, (&class, "_fcmToken", "Ljava/lang/String;"), jni::objects::JValue::Object(&null_obj));
     
     // Async delete token from Firebase Messaging
     let fm_class = env.find_class("com/google/firebase/messaging/FirebaseMessaging").unwrap();

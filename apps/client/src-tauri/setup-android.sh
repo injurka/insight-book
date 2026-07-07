@@ -75,21 +75,21 @@ class MainActivity : TauriActivity() {
         // Fetch token initially
         FirebaseMessaging.getInstance().token.addOnCompleteListener { task ->
             if (task.isSuccessful) {
-                fcmToken = task.result
+                _fcmToken = task.result
             }
         }
     }
 
     companion object {
         @Volatile
-        var fcmToken: String? = null
+        var _fcmToken: String? = null
         
         @Volatile
         var isRequesting: Boolean = false
 
         @JvmStatic
         fun getFcmToken(): String? {
-            return fcmToken
+            return _fcmToken
         }
 
         @JvmStatic
@@ -106,7 +106,7 @@ class MainActivity : TauriActivity() {
 
             FirebaseMessaging.getInstance().token.addOnCompleteListener { task ->
                 if (task.isSuccessful) {
-                    fcmToken = task.result
+                    _fcmToken = task.result
                 }
                 isRequesting = false
             }
