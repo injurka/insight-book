@@ -47,9 +47,12 @@ async function setLanguage(lang: string) {
 }
 
 const username = ref('')
+const email = ref('')
 const password = ref('')
+const code = ref('')
 const isLoading = ref(false)
-const showAdvanced = ref(false)
+const isCodeSent = ref(false)
+const currentTab = ref<'login' | 'register'>('login')
 
 async function handleSignIn() {
   if (!username.value || !password.value)
@@ -57,7 +60,7 @@ async function handleSignIn() {
   isLoading.value = true
 
   try {
-    const res = await api.auth.login({ username: username.value, password: password.value })
+    const res = await api.auth.login({ login: username.value, password: password.value })
     localStorage.setItem('insight_token', res.token)
     await authStore.checkAuth()
 
@@ -66,6 +69,42 @@ async function handleSignIn() {
   }
   catch (e) {
     toast.error(e instanceof Error ? e.message : t('signIn.errorAuth'))
+  }
+  finally {
+    isLoading.value = false
+  }
+}
+
+async function handleSendCode() {
+  if (!email.value)
+    return
+  isLoading.value = true
+  try {
+    await api.auth.sendCode({ email: email.value })
+    isCodeSent.value = true
+    toast.success('Код отправлен на почту')
+  }
+  catch (e: any) {
+    toast.error(e.message)
+  }
+  finally {
+    isLoading.value = false
+  }
+}
+
+async function handleRegister() {
+  if (!email.value || !code.value || !password.value)
+    return
+  isLoading.value = true
+  try {
+    const res = await api.auth.register({ email: email.value, code: code.value, password: password.value })
+    localStorage.setItem('insight_token', res.token)
+    await authStore.checkAuth()
+    trackEvent('register_success')
+    router.push('/')
+  }
+  catch (e: any) {
+    toast.error(e.message)
   }
   finally {
     isLoading.value = false
@@ -246,31 +285,36 @@ onUnmounted(() => {
           <span class="divider-line" />
         </div>
 
-        <button
-          class="whitelist-toggle"
-          :class="{ 'is-open': showAdvanced }"
-          @click="showAdvanced = !showAdvanced"
-        >
-          <span class="whitelist-toggle-text">
-            <Icon icon="mdi:shield-key-outline" />
-            {{ t('signIn.whitelistLogin') }}
-          </span>
-          <span class="whitelist-toggle-chevron">
-            <Icon :icon="showAdvanced ? 'mdi:chevron-up' : 'mdi:chevron-down'" />
-          </span>
-        </button>
+        <div class="auth-tabs">
+          <button
+            class="auth-tab-btn"
+            :class="{ 'is-active': currentTab === 'login' }"
+            type="button"
+            @click="currentTab = 'login'"
+          >
+            Вход
+          </button>
+          <button
+            class="auth-tab-btn"
+            :class="{ 'is-active': currentTab === 'register' }"
+            type="button"
+            @click="currentTab = 'register'"
+          >
+            Регистрация
+          </button>
+        </div>
 
-        <Transition name="expand">
-          <form v-show="showAdvanced" class="whitelist-form" @submit.prevent="handleSignIn">
+        <Transition name="fade" mode="out-in">
+          <form v-if="currentTab === 'login'" class="whitelist-form" @submit.prevent="handleSignIn">
             <KitInput
               v-model="username"
-              :placeholder="t('signIn.username')"
+              placeholder="Логин или email"
               autocomplete="username"
             />
             <KitInput
               v-model="password"
               type="password"
-              :placeholder="t('signIn.password')"
+              placeholder="Пароль"
               autocomplete="current-password"
             />
             <KitBtn
@@ -280,8 +324,52 @@ onUnmounted(() => {
               :disabled="isLoading"
             >
               <Icon v-if="isLoading" icon="mdi:loading" class="spin" />
-              <span>{{ t('signIn.loginBtn') }}</span>
+              <span>Войти</span>
             </KitBtn>
+          </form>
+
+          <form v-else class="whitelist-form" @submit.prevent="isCodeSent ? handleRegister() : handleSendCode()">
+            <KitInput
+              v-model="email"
+              type="email"
+              placeholder="Email"
+              autocomplete="email"
+              :disabled="isCodeSent"
+            />
+
+            <template v-if="isCodeSent">
+              <KitInput
+                v-model="code"
+                placeholder="Код подтверждения"
+                autocomplete="one-time-code"
+              />
+              <KitInput
+                v-model="password"
+                type="password"
+                placeholder="Придумайте пароль"
+                autocomplete="new-password"
+              />
+            </template>
+
+            <KitBtn
+              type="submit"
+              color="primary"
+              class="submit-btn"
+              :disabled="isLoading"
+            >
+              <Icon v-if="isLoading" icon="mdi:loading" class="spin" />
+              <span>{{ isCodeSent ? 'Зарегистрироваться' : 'Получить код' }}</span>
+            </KitBtn>
+
+            <button
+              v-if="isCodeSent"
+              type="button"
+              class="back-btn"
+              :disabled="isLoading"
+              @click="isCodeSent = false"
+            >
+              Изменить email
+            </button>
           </form>
         </Transition>
       </div>
@@ -886,5 +974,60 @@ onUnmounted(() => {
   .auth-title {
     font-size: 1.7rem;
   }
+}
+</style>
+
+<style scoped>
+.auth-tabs {
+  display: flex;
+  gap: 8px;
+  background: var(--bg-secondary-color);
+  padding: 4px;
+  border-radius: 12px;
+  border: 1px solid var(--border-primary-color);
+}
+
+.auth-tab-btn {
+  flex: 1;
+  padding: 10px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: var(--fg-secondary-color);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.auth-tab-btn:hover {
+  color: var(--fg-primary-color);
+}
+
+.auth-tab-btn.is-active {
+  background: var(--bg-primary-color);
+  color: var(--fg-primary-color);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.back-btn {
+  background: transparent;
+  border: none;
+  color: var(--fg-secondary-color);
+  margin-top: 8px;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+.back-btn:hover {
+  text-decoration: underline;
+}
+
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.2s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
 }
 </style>

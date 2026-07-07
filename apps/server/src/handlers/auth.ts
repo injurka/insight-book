@@ -3,7 +3,7 @@ import path from 'node:path'
 import { eq, sql } from 'drizzle-orm'
 import jwt from 'jsonwebtoken'
 import { z } from 'zod'
-import { AUTH_MODE, CORS_HEADERS, FRONTEND_URL, JWT_SECRET, UPLOADS_PATH, YANDEX_CLIENT_ID, YANDEX_CLIENT_SECRET } from '../config'
+import { AUTH_MODE, CORS_HEADERS, FRONTEND_URL, JWT_SECRET, UNISENDER_API_KEY, UPLOADS_PATH, YANDEX_CLIENT_ID, YANDEX_CLIENT_SECRET } from '../config'
 import { db } from '../db'
 import * as schema from '../db/schema'
 import { AppError } from '../utils/errors'
@@ -11,7 +11,7 @@ import { AppError } from '../utils/errors'
 type DbUser = typeof schema.users.$inferSelect
 
 const LoginSchema = z.object({
-  username: z.string().min(1, 'Имя пользователя обязательно'),
+  login: z.string().min(1, 'Логин или email обязателен'),
   password: z.string().min(1, 'Пароль обязателен'),
 })
 
@@ -25,13 +25,17 @@ function json(data: unknown, status = 200, extraHeaders: Record<string, string> 
 async function getUserPayload(user: DbUser) {
   const [{ count: usedBooks }] = await db.select({ count: sql<number>`count(*)` })
     .from(schema.books)
-    .where(eq(schema.books.userId, user.id))
+    .where(
+      sql`${schema.books.userId} = ${user.id} AND datetime(${schema.books.createdAt}) >= datetime(${user.periodStart})`,
+    )
 
   const [{ totalTokens }] = await db.select({
     totalTokens: sql<number>`COALESCE(SUM(${schema.tokenUsage.inputTokens} + ${schema.tokenUsage.outputTokens}), 0)`.mapWith(Number),
   })
     .from(schema.tokenUsage)
-    .where(eq(schema.tokenUsage.userId, user.id))
+    .where(
+      sql`${schema.tokenUsage.userId} = ${user.id} AND date(${schema.tokenUsage.date}) >= date(${user.periodStart})`,
+    )
 
   if (user.usedTokens !== totalTokens) {
     await db.update(schema.users)
@@ -68,9 +72,12 @@ export async function handleLogin(req: Request): Promise<Response> {
     return json({ token: 'dummy-token', user: { id: 1, username: 'admin', role: 'admin' } })
   }
 
-  const { username, password } = LoginSchema.parse(await req.json())
+  const { login, password } = LoginSchema.parse(await req.json())
 
-  const user = await db.query.users.findFirst({ where: eq(schema.users.username, username) })
+  const user = await db.query.users.findFirst({
+    where: sql`${schema.users.username} = ${login} OR ${schema.users.email} = ${login}`,
+  })
+
   if (!user)
     throw new AppError(401, 'Неверный логин или пароль')
 
@@ -80,6 +87,126 @@ export async function handleLogin(req: Request): Promise<Response> {
 
   const token = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: '30d' })
   const userPayload = await getUserPayload(user)
+
+  return json({ token, user: userPayload })
+}
+
+const SendCodeSchema = z.object({
+  email: z.string().email('Некорректный email'),
+})
+
+export async function handleSendCode(req: Request): Promise<Response> {
+  const { email } = SendCodeSchema.parse(await req.json())
+
+  const existingUser = await db.query.users.findFirst({
+    where: eq(schema.users.email, email),
+  })
+  if (existingUser) {
+    throw new AppError(400, 'Пользователь с таким email уже существует')
+  }
+
+  const code = Math.floor(100000 + Math.random() * 900000).toString()
+
+  await db.insert(schema.emailConfirmations).values({ email, code })
+
+  if (UNISENDER_API_KEY) {
+    const htmlBody = `
+      <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 500px; margin: 0 auto; padding: 30px; background-color: #ffffff; border: 1px solid #e0e0e0; border-radius: 12px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.05);">
+        <h2 style="color: #1a1a1a; margin-top: 0; font-size: 24px;">Добро пожаловать в InsightBook!</h2>
+        <p style="color: #555555; font-size: 16px; line-height: 1.5; margin-bottom: 25px;">
+          Для завершения регистрации, пожалуйста, введите следующий код подтверждения:
+        </p>
+        <div style="background-color: #f3f4f6; border-radius: 8px; padding: 15px; margin-bottom: 25px;">
+          <span style="font-size: 32px; font-weight: bold; color: #22c55e; letter-spacing: 8px;">${code}</span>
+        </div>
+        <p style="color: #888888; font-size: 13px; margin-bottom: 0;">
+          Если вы не запрашивали этот код, просто проигнорируйте данное письмо.
+        </p>
+      </div>
+      <div style="text-align: center; margin-top: 20px; color: #aaaaaa; font-size: 12px;">
+        © ${new Date().getFullYear()} InsightBook. Все права защищены.
+      </div>
+    `
+
+    const res = await fetch(`https://goapi.unisender.ru/ru/transactional/api/v1/email/send.json`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify({
+        api_key: UNISENDER_API_KEY,
+        message: {
+          skip_unsubscribe: 0,
+          recipients: [{ email }],
+          body: {
+            html: htmlBody,
+            plaintext: `Добро пожаловать в InsightBook!\n\nВаш код подтверждения: ${code}\n\nЕсли вы не запрашивали этот код, просто проигнорируйте данное письмо.`,
+          },
+          subject: 'Код подтверждения регистрации 🔐',
+          from_email: 'noreply@insight-book.ru',
+          from_name: 'InsightBook',
+        },
+      }),
+    })
+
+    const jsonRes = await res.json()
+
+    if (jsonRes.status !== 'success') {
+      console.error('Unisender Go error:', jsonRes)
+      const errorMessage = jsonRes.message || (jsonRes.errors && jsonRes.errors[0]?.message) || 'Неизвестная ошибка'
+      throw new AppError(500, `Ошибка при отправке письма: ${errorMessage}`)
+    }
+  }
+  else {
+    console.warn(`[DEV] Registration code for ${email}: ${code}`)
+  }
+
+  return json({ success: true, message: 'Код отправлен на почту' })
+}
+
+const RegisterSchema = z.object({
+  email: z.string().email('Некорректный email'),
+  code: z.string().length(6, 'Код должен состоять из 6 цифр'),
+  password: z.string().min(6, 'Пароль должен быть не менее 6 символов'),
+})
+
+export async function handleRegister(req: Request): Promise<Response> {
+  const { email, code, password } = RegisterSchema.parse(await req.json())
+
+  const confirmation = await db.query.emailConfirmations.findFirst({
+    where: sql`${schema.emailConfirmations.email} = ${email} AND ${schema.emailConfirmations.code} = ${code}`,
+    orderBy: (c, { desc }) => [desc(c.createdAt)],
+  })
+
+  if (!confirmation) {
+    throw new AppError(400, 'Неверный код подтверждения')
+  }
+
+  const createdAt = new Date(`${confirmation.createdAt}Z`).getTime()
+  if (Date.now() - createdAt > 15 * 60 * 1000) {
+    throw new AppError(400, 'Код подтверждения истек')
+  }
+
+  let randomUsername = `user_${Math.random().toString(36).substring(2, 8)}`
+  let existingUser = await db.query.users.findFirst({ where: eq(schema.users.username, randomUsername) })
+  while (existingUser) {
+    randomUsername = `user_${Math.random().toString(36).substring(2, 8)}`
+    existingUser = await db.query.users.findFirst({ where: eq(schema.users.username, randomUsername) })
+  }
+
+  const passwordHash = await Bun.password.hash(password)
+
+  const [newUser] = await db.insert(schema.users).values({
+    email,
+    username: randomUsername,
+    passwordHash,
+  }).returning()
+
+  await db.delete(schema.emailConfirmations).where(eq(schema.emailConfirmations.email, email))
+
+  const token = jwt.sign({ userId: newUser.id }, JWT_SECRET, { expiresIn: '30d' })
+  const userPayload = await getUserPayload(newUser)
 
   return json({ token, user: userPayload })
 }
@@ -216,7 +343,7 @@ export async function handleYandexAuth(req: Request): Promise<Response> {
   url.searchParams.set('response_type', 'code')
   url.searchParams.set('client_id', YANDEX_CLIENT_ID)
   url.searchParams.set('redirect_uri', WEB_REDIRECT_URI)
-  
+
   if (sessionId) {
     url.searchParams.set('state', sessionId)
   }
@@ -238,7 +365,7 @@ export async function handleYandexCallback(req: Request): Promise<Response> {
 
   if (state && state.length > 10) {
     authSessions.set(state, token)
-    
+
     const html = `
       <!DOCTYPE html>
       <html lang="ru">
@@ -281,8 +408,9 @@ export async function handleYandexMobileExchange(_req: Request): Promise<Respons
 export async function handleAuthSessionStatus(req: Request): Promise<Response> {
   const url = new URL(req.url)
   const sessionId = url.searchParams.get('session_id')
-  
-  if (!sessionId) throw new AppError(400, 'No session id')
+
+  if (!sessionId)
+    throw new AppError(400, 'No session id')
 
   const token = authSessions.get(sessionId)
   if (token) {

@@ -33,7 +33,11 @@ export const useDictionaryFiltersStore = defineStore('dictionary-filters', () =>
     }
 
     if (!selectedDeckId.value.includes('all') && selectedDeckId.value.length > 0) {
-      result = result.filter(w => selectedDeckId.value.includes(w.deckId ?? 'none'))
+      result = result.filter((w) => {
+        if (!w.deckIds || w.deckIds.length === 0)
+          return selectedDeckId.value.includes('none')
+        return w.deckIds.some((id: number) => selectedDeckId.value.includes(id))
+      })
     }
 
     if (!selectedDifficulty.value.includes('all') && selectedDifficulty.value.length > 0) {
@@ -103,18 +107,18 @@ export const useDictionaryFiltersStore = defineStore('dictionary-filters', () =>
     }
   }
 
-  async function bulkMoveToDeck(deckId: number | null) {
+  async function bulkMoveToDecks(deckIds: number[]) {
     const ids = Array.from(selectedWordIds.value)
     if (!ids.length)
       return
 
     try {
-      await api.dictionary.bulkMove(ids, deckId)
+      await api.dictionary.bulkMove(ids, deckIds)
       const dictStore = useDictionaryStore() as any
       if (dictStore.words) {
         dictStore.words.forEach((w: any) => {
           if (ids.includes(w.id))
-            w.deckId = deckId
+            w.deckIds = [...deckIds]
         })
       }
       clearSelection()
@@ -140,6 +144,6 @@ export const useDictionaryFiltersStore = defineStore('dictionary-filters', () =>
     clearSelection,
     selectAllFiltered,
     bulkDelete,
-    bulkMoveToDeck,
+    bulkMoveToDecks,
   }
 })

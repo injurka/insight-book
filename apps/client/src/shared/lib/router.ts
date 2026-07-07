@@ -24,7 +24,7 @@ export const router = createRouter({
       name: 'YandexApiCallbackProxy',
       component: () => import('~/pages/auth/yandex/callback.vue'),
       beforeEnter: (to) => {
-        const BASE_API_URL = import.meta.env.VITE_API_URL || 'https://insight-api.trip-scheduler.ru'
+        const BASE_API_URL = import.meta.env.VITE_API_URL || 'https://api.insight-book.ru'
         window.location.href = `${BASE_API_URL}${to.fullPath}`
 
         return false

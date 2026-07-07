@@ -319,8 +319,17 @@ export async function handleUpdateBook(req: Request, userId: number): Promise<Re
     throw new AppError(404, 'Книга не найдена или доступ закрыт')
   }
 
-  const metadataKeys = ['title', 'author', 'coverUrl', 'language', 'series', 'seriesNumber', 'createdAt', 'isPublic', 'textDirection']
-  const hasMetadataChanges = metadataKeys.some(key => body[key as keyof typeof body] !== undefined)
+  const metadataKeys = ['title', 'author', 'coverUrl', 'language', 'series', 'seriesNumber', 'createdAt', 'isPublic', 'isUnlisted', 'publicStatus', 'textDirection'] as const
+  const hasMetadataChanges = metadataKeys.some(key => {
+    if (body[key] === undefined) return false
+    if (key === 'language' && body.language) return normalizeLanguageCode(body.language) !== book.language
+    return body[key] !== book[key]
+  })
+  const isReadOnly = book.isPublic || book.publicStatus === 'public'
+
+  if (hasMetadataChanges && isReadOnly) {
+    throw new AppError(403, 'Публичные книги нельзя редактировать')
+  }
 
   if (hasMetadataChanges && book.userId === userId) {
     await db.update(schema.books).set({
@@ -332,6 +341,8 @@ export async function handleUpdateBook(req: Request, userId: number): Promise<Re
       seriesNumber: body.seriesNumber,
       createdAt: body.createdAt,
       isPublic: body.isPublic,
+      isUnlisted: body.isUnlisted,
+      publicStatus: body.publicStatus,
       textDirection: body.textDirection,
       updatedAt: new Date().toISOString(),
     }).where(eq(schema.books.id, id))
@@ -599,13 +610,17 @@ export async function handleAppendMangaChapter(req: Request, userId: number): Pr
 
 export async function handleDeleteBook(req: Request, userId: number): Promise<Response> {
   const id = Number(req.params.id)
-  const book = await db.query.books.findFirst({ where: eq(schema.books.id, id), columns: { filePath: true, coverUrl: true, userId: true } })
+  const book = await db.query.books.findFirst({ where: eq(schema.books.id, id), columns: { filePath: true, coverUrl: true, userId: true, isPublic: true, publicStatus: true } })
   if (!book)
     throw new AppError(404, 'Книга не найдена')
 
   if (book.userId !== userId) {
     await db.delete(schema.readingProgress).where(and(eq(schema.readingProgress.bookId, id), eq(schema.readingProgress.userId, userId)))
     return json({ success: true })
+  }
+
+  if (book.isPublic || book.publicStatus === 'public') {
+    throw new AppError(403, 'Публичные книги нельзя удалить')
   }
 
   await db.transaction(async (tx) => {

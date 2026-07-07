@@ -1,3 +1,5 @@
+version: "3.8"
+
 services:
   insight-book-client:
     build:
@@ -14,7 +16,7 @@ services:
       - trip-net
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.insight-client.rule=Host(`insight-book.trip-scheduler.ru`)"
+      - "traefik.http.routers.insight-client.rule=Host(`insight-book.ru`)"
       - "traefik.http.routers.insight-client.entrypoints=websecure"
       - "traefik.http.routers.insight-client.tls.certresolver=letsencrypt"
       - "traefik.http.services.insight-client.loadbalancer.server.port=3334"
@@ -32,28 +34,22 @@ services:
       - DICTS_PATH=/db/dicts
       - UPLOADS_PATH=/uploads
       - AI_CONFIG_PATH=${AI_CONFIG_PATH:-/configs/ai-config.json}
-      # Настройки ИИ моделей и API-ключи теперь загружаются динамически из /configs/ai-config.json
-      # Динамические переменные авторизации
       - AUTH_MODE=${AUTH_MODE:-single}
       - JWT_SECRET=${JWT_SECRET:-super-secret-key}
       - ADMIN_USERNAME=${ADMIN_USERNAME:-admin}
       - ADMIN_PASSWORD=${ADMIN_PASSWORD:-admin}
-      # Настройки бэкапов (S3 Dump)
       - ENABLE_AUTO_DUMP=${ENABLE_AUTO_DUMP:-true}
       - S3_BUCKET=${S3_BUCKET}
       - S3_REGION=${S3_REGION}
       - S3_ENDPOINT=${S3_ENDPOINT}
       - S3_ACCESS_KEY=${S3_ACCESS_KEY}
       - S3_SECRET_KEY=${S3_SECRET_KEY}
-      # OAuth
       - FRONTEND_URL=${FRONTEND_URL}
       - YANDEX_CLIENT_ID=${YANDEX_CLIENT_ID}
       - YANDEX_CLIENT_SECRET=${YANDEX_CLIENT_SECRET}
-      # WebPush
       - VAPID_PUBLIC_KEY=${VAPID_PUBLIC_KEY}
       - VAPID_PRIVATE_KEY=${VAPID_PRIVATE_KEY}
       - VAPID_SUBJECT=${VAPID_SUBJECT}
-      # Firebase Admin
       - GOOGLE_APPLICATION_CREDENTIALS=/configs/firebase-service-account.json
     volumes:
       - ./db:/db
@@ -63,7 +59,7 @@ services:
       - trip-net
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.insight-server.rule=Host(`insight-api.trip-scheduler.ru`)"
+      - "traefik.http.routers.insight-server.rule=Host(`api.insight-book.ru`)"
       - "traefik.http.routers.insight-server.entrypoints=websecure"
       - "traefik.http.routers.insight-server.tls.certresolver=letsencrypt"
       - "traefik.http.services.insight-server.loadbalancer.server.port=4445"
@@ -83,20 +79,20 @@ services:
       - trip-net
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.insight-analytics.rule=Host(`insight-analytics.trip-scheduler.ru`)"
+      - "traefik.http.routers.insight-analytics.rule=Host(`analytics.insight-book.ru`)"
       - "traefik.http.routers.insight-analytics.entrypoints=websecure"
       - "traefik.http.routers.insight-analytics.tls.certresolver=letsencrypt"
       - "traefik.http.services.insight-analytics.loadbalancer.server.port=3000"
       - "traefik.docker.network=trip-net"
 
-      - "traefik.http.routers.umami-script.rule=Host(`insight-book.trip-scheduler.ru`) && Path(`/stats/app.js`)"
+      - "traefik.http.routers.umami-script.rule=Host(`insight-book.ru`) && Path(`/stats/app.js`)"
       - "traefik.http.routers.umami-script.entrypoints=websecure"
       - "traefik.http.routers.umami-script.tls.certresolver=letsencrypt"
       - "traefik.http.routers.umami-script.service=insight-analytics"
       - "traefik.http.routers.umami-script.middlewares=umami-script-rw"
       - "traefik.http.middlewares.umami-script-rw.replacepath.path=/script.js"
 
-      - "traefik.http.routers.umami-api.rule=Host(`insight-book.trip-scheduler.ru`) && PathPrefix(`/api/send`)"
+      - "traefik.http.routers.umami-api.rule=Host(`insight-book.ru`) && PathPrefix(`/api/send`)"
       - "traefik.http.routers.umami-api.entrypoints=websecure"
       - "traefik.http.routers.umami-api.tls.certresolver=letsencrypt"
       - "traefik.http.routers.umami-api.service=insight-analytics"

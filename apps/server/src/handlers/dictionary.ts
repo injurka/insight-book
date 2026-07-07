@@ -6,6 +6,7 @@ import { BulkActionSchema, DeckSchema, DeepDiveRequestSchema, GenerateExamplesSc
 import { extractLlmConfig, json, normalizeLanguageCode } from '~/utils/helpers'
 import { callLlmApi } from '~/utils/llm-api'
 import { officialDecks, officialDeckWords } from '../db/catalog-schema'
+import * as schema from '../db/schema'
 import { customPrompts, userDictionary } from '../db/schema'
 import { getDictionaryChatPrompt } from '../prompts'
 import { trackActivity } from '../services/activity.service'
@@ -182,12 +183,33 @@ export async function handleBulkDeleteDict(req: Request, userId: number): Promis
 }
 
 export async function handleBulkMoveDict(req: Request, userId: number): Promise<Response> {
-  const { wordIds, deckId } = BulkActionSchema.parse(await req.json())
+  const { wordIds, deckIds } = BulkActionSchema.parse(await req.json())
 
-  await db.update(userDictionary).set({ deckId: deckId || null }).where(and(
-    inArray(userDictionary.id, wordIds),
-    eq(userDictionary.userId, userId),
-  ))
+  const validWords = await db.select({ id: userDictionary.id })
+    .from(userDictionary)
+    .where(and(
+      inArray(userDictionary.id, wordIds),
+      eq(userDictionary.userId, userId),
+    ))
+
+  const validWordIds = validWords.map(w => w.id)
+
+  if (validWordIds.length === 0) {
+    return json({ success: true })
+  }
+
+  await db.delete(schema.wordToDeck).where(inArray(schema.wordToDeck.wordId, validWordIds))
+
+  if (deckIds && deckIds.length > 0) {
+    const links = []
+    for (const wordId of validWordIds) {
+      for (const deckId of deckIds) {
+        links.push({ wordId, deckId })
+      }
+    }
+    await db.insert(schema.wordToDeck).values(links).onConflictDoNothing()
+  }
+
   return json({ success: true })
 }
 
@@ -226,7 +248,6 @@ export async function handleCloneCatalogDeck(req: Request, userId: number): Prom
 
     const userWords = wordsToClone.map(w => ({
       userId,
-      deckId: newDeck.id,
       word: w.word,
       transcription: w.transcription,
       translation: w.translation,
@@ -239,25 +260,32 @@ export async function handleCloneCatalogDeck(req: Request, userId: number): Prom
       state: emptyCard.state,
       due: emptyCard.due.toISOString(),
       stability: emptyCard.stability,
-      difficulty_fsrs: emptyCard.difficulty,
-      scheduled_days: emptyCard.scheduled_days,
+      difficultyFsrs: emptyCard.difficulty,
+      scheduledDays: emptyCard.scheduled_days,
       reps: emptyCard.reps,
       lapses: emptyCard.lapses,
-      last_review: null,
+      lastReview: null,
       updatedAt: new Date().toISOString(),
     }))
 
-    await db.insert(userDictionary).values(userWords).onConflictDoUpdate({
+    const upserted = await db.insert(userDictionary).values(userWords).onConflictDoUpdate({
       target: [userDictionary.userId, userDictionary.word, userDictionary.targetLanguage],
       set: {
         transcription: sql`excluded.transcription`,
         translation: sql`excluded.translation`,
         grammarNote: sql`excluded.grammarNote`,
         vocabularyNote: sql`excluded.vocabularyNote`,
-        deckId: newDeck.id,
         updatedAt: new Date().toISOString(),
       },
-    })
+    }).returning({ id: userDictionary.id })
+
+    if (upserted.length > 0) {
+      const links = upserted.map(u => ({
+        wordId: u.id,
+        deckId: newDeck.id,
+      }))
+      await db.insert(schema.wordToDeck).values(links).onConflictDoNothing()
+    }
 
     await trackActivity(userId, 'added', userWords.length)
   }
@@ -282,7 +310,7 @@ async function processAutofillInBackground(
           translation: result.translation || '',
           transcription: result.transcription || '',
           language: normalizeLanguageCode(language || 'en'),
-          deckId: targetDeckId,
+          deckIds: targetDeckId ? [targetDeckId] : [],
         }, userId, targetLang)
       }
     }
@@ -318,7 +346,7 @@ export async function handleImportCsv(req: Request, userId: number): Promise<Res
       translation,
       transcription,
       tags,
-      deckId: targetDeckId,
+      deckIds: targetDeckId ? [targetDeckId] : [],
       language: normalizeLanguageCode(language || 'en'),
     }, userId, targetLang)
 

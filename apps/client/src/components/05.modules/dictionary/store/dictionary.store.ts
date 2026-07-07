@@ -118,7 +118,7 @@ export const useDictionaryStore = defineStore('dictionary', () => {
   const clearSelection = () => useDictionaryFiltersStore().clearSelection()
   const selectAllFiltered = () => useDictionaryFiltersStore().selectAllFiltered()
   const bulkDelete = () => useDictionaryFiltersStore().bulkDelete()
-  const bulkMoveToDeck = (deckId: number | null) => useDictionaryFiltersStore().bulkMoveToDeck(deckId)
+  const bulkMoveToDecks = (deckIds: number[]) => useDictionaryFiltersStore().bulkMoveToDecks(deckIds)
 
   return {
     words,
@@ -150,6 +150,6 @@ export const useDictionaryStore = defineStore('dictionary', () => {
     clearSelection,
     selectAllFiltered,
     bulkDelete,
-    bulkMoveToDeck,
+    bulkMoveToDecks,
   }
 })

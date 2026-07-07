@@ -169,7 +169,7 @@ export interface WordEncounter {
 
 export interface UserDictItem {
   id: number
-  deckId: number | null
+  deckIds: number[]
   word: string
   transcription: string | null
   translation: string | null

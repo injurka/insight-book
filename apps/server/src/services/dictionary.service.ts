@@ -1,5 +1,5 @@
 import type { PageDictEntry, UserDictItem } from '../types'
-import { and, desc, eq, inArray, lte, sql } from 'drizzle-orm'
+import { and, desc, eq, exists, inArray, lte, notExists, sql } from 'drizzle-orm'
 import { sqliteTable, text } from 'drizzle-orm/sqlite-core'
 import { createEmptyCard, FSRS, Rating } from 'ts-fsrs'
 import { db, getDictConnection } from '../db'
@@ -184,15 +184,21 @@ export async function deleteDeck(deckId: number, userId: number) {
 }
 
 export async function getUserDictionary(userId: number, targetLang: string): Promise<UserDictItem[]> {
-  return await db.query.userDictionary.findMany({
+  const words = await db.query.userDictionary.findMany({
     where: and(eq(schema.userDictionary.userId, userId), eq(schema.userDictionary.targetLanguage, targetLang)),
     with: {
+      wordToDecks: true,
       encounters: {
         with: { book: { columns: { title: true } } },
       },
     },
     orderBy: [desc(schema.userDictionary.updatedAt)],
-  }) as unknown as UserDictItem[]
+  })
+
+  return words.map(w => ({
+    ...w,
+    deckIds: w.wordToDecks.map((wd: any) => wd.deckId),
+  })) as unknown as UserDictItem[]
 }
 
 export async function getWordFromUserDictionary(word: string, userId: number, targetLang: string): Promise<UserDictItem | null> {
@@ -203,12 +209,19 @@ export async function getWordFromUserDictionary(word: string, userId: number, ta
       eq(schema.userDictionary.targetLanguage, targetLang),
     ),
     with: {
+      wordToDecks: true,
       encounters: {
         with: { book: { columns: { title: true } } },
       },
     },
   })
-  return (item as unknown as UserDictItem) || null
+  if (!item)
+    return null
+
+  return {
+    ...item,
+    deckIds: item.wordToDecks.map((wd: any) => wd.deckId),
+  } as unknown as UserDictItem
 }
 
 export async function upsertToUserDictionary(
@@ -216,8 +229,8 @@ export async function upsertToUserDictionary(
   userId: number,
   targetLang: string,
 ): Promise<void> {
-  let deckId = item.deckId
-  if (deckId === undefined || deckId === null) {
+  let deckIds = item.deckIds || []
+  if (deckIds.length === 0) {
     let defaultDeck = await db.query.dictDecks.findFirst({
       where: and(
         eq(schema.dictDecks.userId, userId),
@@ -229,14 +242,13 @@ export async function upsertToUserDictionary(
       const deckName = targetLang === 'ru' ? 'Основная колода' : (targetLang === 'zh' ? '默认词库' : 'Main deck')
       defaultDeck = await createDeck(userId, deckName, item.language || 'en', targetLang)
     }
-    deckId = defaultDeck.id
+    deckIds = [defaultDeck.id]
   }
 
   const emptyCard = createEmptyCard()
 
   const [upserted] = await db.insert(schema.userDictionary).values({
     userId,
-    deckId,
     word: item.word!,
     transcription: item.transcription,
     translation: item.translation,
@@ -269,10 +281,20 @@ export async function upsertToUserDictionary(
       difficulty: item.difficulty,
       grammarNote: item.grammarNote,
       vocabularyNote: item.vocabularyNote,
-      deckId,
       updatedAt: new Date().toISOString(),
     },
   }).returning({ id: schema.userDictionary.id })
+
+  if (upserted) {
+    await db.delete(schema.wordToDeck).where(eq(schema.wordToDeck.wordId, upserted.id))
+    if (deckIds.length > 0) {
+      const links = deckIds.map((did: number) => ({
+        wordId: upserted.id,
+        deckId: did,
+      }))
+      await db.insert(schema.wordToDeck).values(links)
+    }
+  }
 
   if (item.contextSentence) {
     await db.insert(schema.wordEncounters).values({
@@ -305,10 +327,10 @@ export async function getReviewQueue(userId: number, language: string | undefine
   }
 
   if (deckId === 'none') {
-    filters.push(sql`${schema.userDictionary.deckId} IS NULL`)
+    filters.push(notExists(db.select().from(schema.wordToDeck).where(eq(schema.wordToDeck.wordId, schema.userDictionary.id))))
   }
   else if (deckId !== undefined) {
-    filters.push(eq(schema.userDictionary.deckId, deckId))
+    filters.push(exists(db.select().from(schema.wordToDeck).where(and(eq(schema.wordToDeck.wordId, schema.userDictionary.id), eq(schema.wordToDeck.deckId, deckId)))))
   }
 
   if (difficulty && difficulty !== 'all') {

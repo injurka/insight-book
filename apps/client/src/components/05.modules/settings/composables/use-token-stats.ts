@@ -1,18 +1,16 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import { api } from '~/shared/services/api.service'
 
-export interface ModelStats {
-  model: string
+export interface ActionStats {
+  action: string
   input: number
   output: number
   cost: number
-  actions: { action: string, input: number, output: number, cost: number }[]
 }
 
 export function useTokenStats() {
   const tokensData = ref<{ stats: any[], daily: any[], totalCost: number } | null>(null)
   const isTokensLoading = ref(true)
-  const expandedModels = ref<Record<string, boolean>>({})
   const selectedPeriod = ref<'today' | 'week' | 'all'>('all')
 
   async function fetchTokensInfo() {
@@ -48,47 +46,28 @@ export function useTokenStats() {
 
   const totalCost = computed(() => tokensData.value?.totalCost || 0)
 
-  const tokensByModel = computed<ModelStats[]>(() => {
+  const tokensByAction = computed<ActionStats[]>(() => {
     if (!tokensData.value)
       return []
-    const map = new Map<string, ModelStats>()
 
-    tokensData.value.stats.forEach((s) => {
-      if (!map.has(s.model)) {
-        map.set(s.model, { model: s.model, input: 0, output: 0, cost: 0, actions: [] })
-      }
-      const existing = map.get(s.model)!
-      existing.input += s.inputTokens
-      existing.output += s.outputTokens
-      existing.cost += s.cost || 0
-      existing.actions.push({
-        action: s.action,
-        input: s.inputTokens,
-        output: s.outputTokens,
-        cost: s.cost || 0,
-      })
-    })
+    const result = tokensData.value.stats.map(s => ({
+      action: s.action,
+      input: s.inputTokens,
+      output: s.outputTokens,
+      cost: s.cost || 0,
+    }))
 
-    const result = Array.from(map.values()).sort((a, b) => (b.input + b.output) - (a.input + a.output))
-    result.forEach((m) => {
-      m.actions.sort((a, b) => (b.input + b.output) - (a.input + a.output))
-    })
+    result.sort((a, b) => (b.input + b.output) - (a.input + a.output))
 
     return result
   })
-
-  function toggleModelExpand(model: string) {
-    expandedModels.value[model] = !expandedModels.value[model]
-  }
 
   return {
     isTokensLoading,
     totalTokens,
     totalCost,
-    tokensByModel,
-    expandedModels,
+    tokensByAction,
     selectedPeriod,
-    toggleModelExpand,
     fetchTokensInfo,
   }
 }

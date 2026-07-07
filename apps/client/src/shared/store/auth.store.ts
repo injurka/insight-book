@@ -87,7 +87,7 @@ export const useAuthStore = defineStore('auth', () => {
         if (sub) {
           await sub.unsubscribe()
           const token = localStorage.getItem('insight_token')
-          const BASE = import.meta.env.VITE_API_URL || 'https://insight-api.trip-scheduler.ru'
+          const BASE = import.meta.env.VITE_API_URL || 'https://api.insight-book.ru'
           await fetch(`${BASE}/api/push/unsubscribe`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },

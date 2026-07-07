@@ -13,6 +13,7 @@ interface Props {
   loading?: boolean
   size?: 'xs' | 'sm' | 'md' | 'lg'
   density?: 'default' | 'compact'
+  type?: 'button' | 'submit' | 'reset'
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -22,6 +23,7 @@ const props = withDefaults(defineProps<Props>(), {
   loading: false,
   size: 'md',
   density: 'default',
+  type: 'button',
 })
 
 const emit = defineEmits<{
@@ -57,7 +59,7 @@ function handleClick(event: MouseEvent) {
     v-ripple
     :class="componentClasses"
     :disabled="props.disabled || props.loading"
-    type="button"
+    :type="props.type"
     @click="handleClick"
   >
     <span class="kit-btn-content">

@@ -17,10 +17,11 @@ const emit = defineEmits<{
 <template>
   <div class="audio-mode">
     <KitBtn
-      :icon="props.isLoading ? 'mdi:loading' : (props.isPlaying ? 'mdi:volume-high' : 'mdi:volume-medium')"
+      :icon="props.isPlaying ? 'mdi:volume-high' : 'mdi:volume-medium'"
+      :loading="props.isLoading"
       size="lg"
       color="accent"
-      :class="{ 'spin-animation': props.isLoading, 'pulse-animation': props.isPlaying }"
+      :class="{ 'is-playing-pulse': props.isPlaying }"
       @click="emit('speak')"
     />
     <p>{{ $t('dictionary.listenAndRecall') }}</p>
@@ -38,6 +39,13 @@ const emit = defineEmits<{
   p {
     color: var(--fg-secondary-color);
     margin: 0;
+  }
+}
+
+.is-playing-pulse {
+  :deep(.kit-btn-icon) {
+    animation: pulse-op 1.2s infinite;
+    color: var(--fg-error-color) !important;
   }
 }
 </style>

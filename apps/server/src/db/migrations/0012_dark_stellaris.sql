@@ -1,4 +1,4 @@
-PRAGMA foreign_keys=OFF;--> statement-breakpoint
+PRAGMA defer_foreign_keys=ON;--> statement-breakpoint
 CREATE TABLE `__new_users` (
 	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
 	`username` text NOT NULL,

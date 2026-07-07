@@ -9,7 +9,7 @@ import { formatCurrency, formatNumber } from '../../lib/formatters'
 
 const { t } = useI18n()
 const settingsStore = useGlobalSettingsStore()
-const { isTokensLoading, totalTokens, totalCost, tokensByModel, expandedModels, selectedPeriod, toggleModelExpand } = useTokenStats()
+const { isTokensLoading, totalTokens, totalCost, tokensByAction, selectedPeriod } = useTokenStats()
 
 const periodOptions = [
   { id: 'today', label: 'Сегодня', icon: 'mdi:calendar-today' },
@@ -39,7 +39,7 @@ const periodOptions = [
           <span class="label">{{ t('settings.outputTokens') }}</span>
           <span class="value">{{ formatNumber(totalTokens.output, settingsStore.appLanguage) }}</span>
         </div>
-        <div v-if="totalCost > 0" class="stat-item">
+        <div v-if="totalCost" class="stat-item">
           <span class="label">{{ t('settings.totalCost') }}</span>
           <span class="value text-success">{{ formatCurrency(totalCost) }}</span>
         </div>
@@ -48,38 +48,22 @@ const periodOptions = [
       <div class="divider" />
 
       <div class="models-tokens-list">
-        <div v-for="mod in tokensByModel" :key="mod.model" class="model-row-wrapper">
-          <div class="model-row" :class="{ 'is-expanded': expandedModels[mod.model] }" @click="toggleModelExpand(mod.model)">
+        <div v-for="act in tokensByAction" :key="act.action" class="model-row-wrapper">
+          <div class="model-row">
             <div class="model-name">
-              <Icon icon="mdi:chevron-right" class="expand-icon" />
-              <Icon icon="mdi:robot-outline" class="bot-icon" />
-              <span>{{ mod.model }}</span>
+              <Icon icon="mdi:flash-outline" class="bot-icon" />
+              <span>{{ t(`settings.actions.${act.action}`) !== `settings.actions.${act.action}` ? t(`settings.actions.${act.action}`) : act.action }}</span>
             </div>
             <div class="model-stats">
               <span class="m-in" :title="t('settings.inputTokens')">
-                <Icon icon="mdi:arrow-down" class="token-icon" /> {{ formatNumber(mod.input, settingsStore.appLanguage) }}
+                <Icon icon="mdi:arrow-down" class="token-icon" /> {{ formatNumber(act.input, settingsStore.appLanguage) }}
               </span>
               <span class="m-out" :title="t('settings.outputTokens')">
-                <Icon icon="mdi:arrow-up" class="token-icon" /> {{ formatNumber(mod.output, settingsStore.appLanguage) }}
+                <Icon icon="mdi:arrow-up" class="token-icon" /> {{ formatNumber(act.output, settingsStore.appLanguage) }}
               </span>
-              <span v-if="mod.cost > 0" class="m-cost" :title="t('settings.totalCost')">
-                ~{{ formatCurrency(mod.cost) }}
+              <span v-if="act.cost" class="m-cost" :title="t('settings.totalCost')">
+                ~{{ formatCurrency(act.cost) }}
               </span>
-            </div>
-          </div>
-
-          <div class="model-details-container" :class="{ 'is-expanded': expandedModels[mod.model] }">
-            <div class="model-details-wrapper">
-              <div class="model-details">
-                <div v-for="act in mod.actions" :key="act.action" class="action-row">
-                  <span class="action-name">{{ t(`settings.actions.${act.action}`) !== `settings.actions.${act.action}` ? t(`settings.actions.${act.action}`) : act.action }}</span>
-                  <div class="action-stats">
-                    <span class="m-in"><Icon icon="mdi:arrow-down" /> {{ formatNumber(act.input, settingsStore.appLanguage) }}</span>
-                    <span class="m-out"><Icon icon="mdi:arrow-up" /> {{ formatNumber(act.output, settingsStore.appLanguage) }}</span>
-                    <span v-if="act.cost > 0" class="m-cost">~{{ formatCurrency(act.cost) }}</span>
-                  </div>
-                </div>
-              </div>
             </div>
           </div>
         </div>
@@ -159,23 +143,10 @@ const periodOptions = [
       justify-content: space-between;
       align-items: center;
       padding: 12px 16px;
-      cursor: pointer;
-      user-select: none;
-      transition: background-color 0.2s;
       @include media-down(md) {
         flex-direction: column;
         align-items: flex-start;
         gap: 8px;
-      }
-      &:hover {
-        background: var(--bg-hover-color);
-      }
-      &.is-expanded {
-        background: var(--bg-primary-color);
-
-        .expand-icon {
-          transform: rotate(90deg);
-        }
       }
       .model-name {
         display: flex;
@@ -183,11 +154,6 @@ const periodOptions = [
         gap: 8px;
         font-weight: 500;
         color: var(--fg-primary-color);
-        .expand-icon {
-          font-size: 1.4rem;
-          color: var(--fg-secondary-color);
-          transition: transform 0.2s ease;
-        }
         .bot-icon {
           font-size: 1.2rem;
           color: var(--fg-accent-color);
@@ -225,73 +191,6 @@ const periodOptions = [
           margin-left: 8px;
           @include media-down(sm) {
             margin-left: 0;
-          }
-        }
-      }
-    }
-    .model-details-container {
-      display: grid;
-      grid-template-rows: 0fr;
-      transition: grid-template-rows 0.3s ease;
-
-      &.is-expanded {
-        grid-template-rows: 1fr;
-      }
-    }
-    .model-details-wrapper {
-      min-height: 0;
-      overflow: hidden;
-    }
-    .model-details {
-      display: flex;
-      flex-direction: column;
-      background: var(--bg-primary-color);
-      padding: 8px 16px 16px 16px;
-      gap: 12px;
-      border-top: 1px dashed var(--border-secondary-color);
-      .action-row {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        font-size: 0.85rem;
-        @include media-down(md) {
-          flex-direction: column;
-          align-items: flex-start;
-          gap: 4px;
-        }
-        .action-name {
-          color: var(--fg-primary-color);
-          font-weight: 500;
-          display: flex;
-          align-items: center;
-          &::before {
-            content: '•';
-            color: var(--fg-accent-color);
-            margin-right: 8px;
-            font-size: 1.2rem;
-          }
-        }
-        .action-stats {
-          display: flex;
-          gap: 12px;
-          color: var(--fg-secondary-color);
-          font-variant-numeric: tabular-nums;
-          @include media-down(sm) {
-            margin-left: 14px;
-            flex-wrap: wrap;
-          }
-          span {
-            display: flex;
-            align-items: center;
-            gap: 2px;
-          }
-          .m-cost {
-            color: var(--fg-success-color);
-            opacity: 0.8;
-            margin-left: 4px;
-            @include media-down(sm) {
-              margin-left: 0;
-            }
           }
         }
       }

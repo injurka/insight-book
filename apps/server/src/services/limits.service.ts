@@ -36,11 +36,15 @@ export async function checkTokenLimit(userId: number): Promise<void> {
 export async function checkBookLimit(userId: number): Promise<void> {
   const user = await db.query.users.findFirst({
     where: eq(schema.users.id, userId),
-    columns: { bookLimit: true },
+    columns: { bookLimit: true, periodStart: true },
   })
 
   if (user && user.bookLimit !== null) {
-    const [{ count }] = await db.select({ count: sql<number>`count(*)` }).from(schema.books).where(eq(schema.books.userId, userId))
+    const [{ count }] = await db.select({ count: sql<number>`count(*)` })
+      .from(schema.books)
+      .where(
+        sql`${schema.books.userId} = ${userId} AND datetime(${schema.books.createdAt}) >= datetime(${user.periodStart})`,
+      )
     if (count >= user.bookLimit) {
       throw new AppError(403, `Превышен лимит книг в библиотеке (макс. ${user.bookLimit})`)
     }

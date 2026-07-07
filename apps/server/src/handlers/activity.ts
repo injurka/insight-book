@@ -84,12 +84,22 @@ export async function handleGetTokenUsage(req: Request, userId: number): Promise
     .where(and(eq(schema.tokenUsage.userId, userId), dateFilter))
     .groupBy(schema.tokenUsage.action, schema.tokenUsage.model)
 
-  const stats = statsRaw.map((row) => {
+  const actionMap = new Map<string, any>()
+
+  for (const row of statsRaw) {
     const price = pricing[row.model] || { input: 0, output: 0 }
     const cost = (row.inputTokens / 1_000_000) * price.input + (row.outputTokens / 1_000_000) * price.output
-    return { ...row, cost }
-  })
 
+    if (!actionMap.has(row.action)) {
+      actionMap.set(row.action, { action: row.action, inputTokens: 0, outputTokens: 0, cost: 0 })
+    }
+    const act = actionMap.get(row.action)
+    act.inputTokens += row.inputTokens
+    act.outputTokens += row.outputTokens
+    act.cost += cost
+  }
+
+  const stats = Array.from(actionMap.values())
   const totalCost = stats.reduce((sum, item) => sum + item.cost, 0)
 
   const dailyRaw = await db.select({
@@ -120,5 +130,13 @@ export async function handleGetTokenUsage(req: Request, userId: number): Promise
   const daily = Array.from(dailyMap.values()).slice(0, 30)
   daily.sort((a, b) => b.date.localeCompare(a.date))
 
-  return json({ stats, daily, totalCost })
+  const user = await db.query.users.findFirst({ where: eq(schema.users.id, userId) })
+  const isAdmin = user?.role === 'admin'
+
+  if (!isAdmin) {
+    stats.forEach(s => s.cost = null)
+    daily.forEach(d => d.cost = null)
+  }
+
+  return json({ stats, daily, totalCost: isAdmin ? totalCost : null })
 }

@@ -54,10 +54,15 @@ async function onArchiveSelected(e: Event) {
     uploadProgressText.value = t('library.uploadingAndProcessing')
 
     try {
-      await store.uploadBook(file)
-      await authStore.checkAuth() // Обновляем лимиты пользователя
+      const book = await store.uploadBook(file)
+      await authStore.checkAuth()
       toast.success(t('library.uploadSuccess'))
       visible.value = false
+
+      if (book && book.id) {
+        store.analyzeFullBook(book.id).catch(e => console.error('Auto AI analysis failed', e))
+        store.analyzeVocabulary(book.id).catch(e => console.error('Auto vocab analysis failed', e))
+      }
     }
     catch (err) {
       toast.error(err instanceof Error ? err.message : t('library.uploadError'))
@@ -117,6 +122,11 @@ async function submitCustomManga() {
     }
 
     await authStore.checkAuth()
+
+    if (newBook && newBook.id) {
+      store.analyzeFullBook(newBook.id).catch(e => console.error('Auto AI analysis failed', e))
+      store.analyzeVocabulary(newBook.id).catch(e => console.error('Auto vocab analysis failed', e))
+    }
 
     uploadProgressText.value = t('analysis.done')
     setTimeout(() => {

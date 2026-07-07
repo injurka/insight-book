@@ -460,12 +460,13 @@ watch(() => props.card, initCard, { immediate: true })
         <div class="toolbar-group">
           <KitTooltip :text="t('dictionary.listenVoice')" placement="top">
             <KitBtn
-              :icon="isLoading ? 'mdi:loading' : (isPlaying ? 'mdi:volume-high' : 'mdi:volume-medium')"
+              :icon="isPlaying ? 'mdi:volume-high' : 'mdi:volume-medium'"
+              :loading="isLoading"
               variant="tonal"
               color="secondary"
               size="sm"
-              :class="{ 'spin-animation': isLoading, 'pulse-animation': isPlaying }"
-              @click="speak(card.word, card.language)"
+              :class="{ 'is-playing-pulse': isPlaying }"
+              @click="speak(card.word, card.language, undefined)"
             />
           </KitTooltip>
 
@@ -526,7 +527,6 @@ watch(() => props.card, initCard, { immediate: true })
         :word="card.word"
         :language="card.language"
         variant="inline"
-        style="margin-top: 16px; display: block;"
       />
     </div>
 
@@ -571,22 +571,29 @@ watch(() => props.card, initCard, { immediate: true })
     </template>
 
     <div v-else-if="intervals" class="grade-buttons fade-in">
-      <button class="grade-btn error" :class="{ 'is-suggested': isAnswerChecked && !isAnswerCorrect }" :disabled="isSubmittingGrade" @click="gradeCard(Rating.Again)">
-        <span class="g-label">{{ t('dictionary.again') }}</span>
-        <span v-if="dictStore.trainingMode === 'srs'" class="g-time">{{ intervals.again }}</span>
-      </button>
-      <button class="grade-btn warning" :disabled="isSubmittingGrade" @click="gradeCard(Rating.Hard)">
-        <span class="g-label">{{ t('dictionary.hard') }}</span>
-        <span v-if="dictStore.trainingMode === 'srs'" class="g-time">{{ intervals.hard }}</span>
-      </button>
-      <button class="grade-btn primary" :class="{ 'is-suggested': isAnswerChecked && isAnswerCorrect }" :disabled="isSubmittingGrade" @click="gradeCard(Rating.Good)">
-        <span class="g-label">{{ t('dictionary.good') }}</span>
-        <span v-if="dictStore.trainingMode === 'srs'" class="g-time">{{ intervals.good }}</span>
-      </button>
-      <button class="grade-btn success" :disabled="isSubmittingGrade" @click="gradeCard(Rating.Easy)">
-        <span class="g-label">{{ t('dictionary.easy') }}</span>
-        <span v-if="dictStore.trainingMode === 'srs'" class="g-time">{{ intervals.easy }}</span>
-      </button>
+      <template v-if="dictStore.trainingMode !== 'srs'">
+        <button class="grade-btn primary" :class="{ 'is-suggested': isAnswerChecked && isAnswerCorrect }" :disabled="isSubmittingGrade" @click="gradeCard(Rating.Good)">
+          <span class="g-label">{{ t('dictionary.next') }}</span>
+        </button>
+      </template>
+      <template v-else>
+        <button class="grade-btn error" :class="{ 'is-suggested': isAnswerChecked && !isAnswerCorrect }" :disabled="isSubmittingGrade" @click="gradeCard(Rating.Again)">
+          <span class="g-label">{{ t('dictionary.again') }}</span>
+          <span class="g-time">{{ intervals.again }}</span>
+        </button>
+        <button class="grade-btn warning" :disabled="isSubmittingGrade" @click="gradeCard(Rating.Hard)">
+          <span class="g-label">{{ t('dictionary.hard') }}</span>
+          <span class="g-time">{{ intervals.hard }}</span>
+        </button>
+        <button class="grade-btn primary" :class="{ 'is-suggested': isAnswerChecked && isAnswerCorrect }" :disabled="isSubmittingGrade" @click="gradeCard(Rating.Good)">
+          <span class="g-label">{{ t('dictionary.good') }}</span>
+          <span class="g-time">{{ intervals.good }}</span>
+        </button>
+        <button class="grade-btn success" :disabled="isSubmittingGrade" @click="gradeCard(Rating.Easy)">
+          <span class="g-label">{{ t('dictionary.easy') }}</span>
+          <span class="g-time">{{ intervals.easy }}</span>
+        </button>
+      </template>
     </div>
   </div>
 
@@ -890,6 +897,7 @@ watch(() => props.card, initCard, { immediate: true })
   .front-actions {
     display: flex;
     justify-content: center;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
   }
 }
 
@@ -972,13 +980,7 @@ watch(() => props.card, initCard, { immediate: true })
   }
 }
 
-.spin-animation {
-  :deep(.kit-btn-icon) {
-    animation: spin 1s linear infinite;
-  }
-}
-
-.pulse-animation {
+.is-playing-pulse {
   :deep(.kit-btn-icon) {
     animation: pulse-op 1.2s infinite;
     color: var(--fg-error-color) !important;

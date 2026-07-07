@@ -54,7 +54,7 @@ describe('kit-image', () => {
       props: { src: '/images/test.jpg' },
     })
 
-    expect(wrapper.find('img').attributes('src')).toBe('https://insight-api.trip-scheduler.ru/images/test.jpg')
+    expect(wrapper.find('img').attributes('src')).toBe('https://api.insight-book.ru/images/test.jpg')
   })
 
   it('handles base64 data urls correctly', () => {

@@ -100,12 +100,31 @@ async function main() {
     return
   }
 
+  if (command === 'role') {
+    const role = arg3
+    if (!username || !role) {
+      console.error('❌ Использование: bun cli.ts role <username> <role>')
+      return
+    }
+
+    const existing = await db.query.users.findFirst({ where: eq(schema.users.username, username) })
+    if (!existing) {
+      console.error(`❌ Пользователь ${username} не найден!`)
+      return
+    }
+
+    await db.update(schema.users).set({ role }).where(eq(schema.users.id, existing.id))
+    console.log(`✅ Роль для пользователя ${username} успешно изменена на ${role}!`)
+    return
+  }
+
   console.log(`
 Использование CLI:
   bun cli.ts list                              - Показать всех пользователей
   bun cli.ts add <username> <password>         - Добавить нового пользователя
   bun cli.ts passwd <username> <new_password>  - Изменить пароль пользователя
   bun cli.ts limit <username> <tokens> [books] - Изменить лимиты токенов и книг (null/none для отключения)
+  bun cli.ts role <username> <role>            - Изменить роль пользователя
   `)
 }
 

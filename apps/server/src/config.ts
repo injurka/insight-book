@@ -7,6 +7,7 @@ export const AUTH_MODE = process.env.AUTH_MODE || 'single' // 'single' | 'multi'
 export const JWT_SECRET = process.env.JWT_SECRET || 'super-secret-local-key'
 export const YANDEX_CLIENT_ID = process.env.YANDEX_CLIENT_ID || ''
 export const YANDEX_CLIENT_SECRET = process.env.YANDEX_CLIENT_SECRET || ''
+export const UNISENDER_API_KEY = process.env.UNISENDER_API_KEY || ''
 export const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173'
 
 // --- Paths ---

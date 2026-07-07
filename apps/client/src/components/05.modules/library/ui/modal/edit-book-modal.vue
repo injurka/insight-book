@@ -64,6 +64,8 @@ function copyLink() {
     toast.success(t('library.bookLinkCopied'))
   }
 }
+
+const isReadOnly = computed(() => editingBook.value.publicStatus === 'public' || editingBook.value.isPublic)
 </script>
 
 <template>
@@ -115,14 +117,40 @@ function copyLink() {
       </div>
 
       <div class="checkbox-row">
-        <KitCheckbox v-model="editingBook.isFavorite" :label="t('library.addToFavorites')" />
+        <KitCheckbox v-model="editingBook.isFavorite" :label="t('library.addToFavorites')" :disabled="isReadOnly" />
 
         <div v-if="!authStore.isSingleMode" class="public-wrapper">
-          <KitCheckbox v-model="editingBook.isPublic" :label="t('library.makePublic')" />
-          <KitTooltip v-if="editingBook.isPublic" :text="t('library.copyLink')" placement="top">
+          <KitCheckbox v-model="editingBook.isUnlisted" :label="t('library.availableByLink')" :disabled="isReadOnly" />
+          <KitTooltip v-if="editingBook.isUnlisted || editingBook.isPublic" :text="t('library.copyLink')" placement="top">
             <KitBtn size="xs" variant="outlined" icon="mdi:link-variant" @click="copyLink" />
           </KitTooltip>
         </div>
+      </div>
+
+      <div v-if="!authStore.isSingleMode" class="publish-request-block">
+        <template v-if="isReadOnly">
+          <div class="status-badge success">
+            <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" class="iconify iconify--mdi"><path fill="currentColor" d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10s10-4.5 10-10S17.5 2 12 2m-2 15l-5-5l1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9Z" /></svg>
+            {{ t('library.publicStatusPublished') }}
+          </div>
+          <p class="warning-text">
+            {{ t('library.publicBookWarning') }}
+          </p>
+        </template>
+        <template v-else-if="editingBook.publicStatus === 'pending'">
+          <div class="status-badge warning">
+            <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" class="iconify iconify--mdi"><path fill="currentColor" d="M12 20c4.42 0 8-3.58 8-8s-3.58-8-8-8s-8 3.58-8 8s3.58 8 8 8m0-18c5.5 0 10 4.5 10 10s-4.5 10-10 10S2 17.5 2 12S6.5 2 12 2m-.5 5h1.5v6.25l5.5 3.25l-.75 1.25l-6.25-3.75V7Z" /></svg>
+            {{ t('library.publicStatusPending') }}
+          </div>
+          <KitBtn variant="outlined" color="error" size="sm" @click="editingBook.publicStatus = 'private'">
+            {{ t('library.cancelPublishRequest') }}
+          </KitBtn>
+        </template>
+        <template v-else>
+          <KitBtn variant="outlined" color="primary" size="sm" icon="mdi:earth" @click="editingBook.publicStatus = 'pending'">
+            {{ t('library.sendPublishRequest') }}
+          </KitBtn>
+        </template>
       </div>
 
       <div class="form-group row-group">
@@ -149,7 +177,7 @@ function copyLink() {
       <KitBtn variant="tonal" @click="visible = false">
         {{ t('dictionary.cancel') }}
       </KitBtn>
-      <KitBtn color="primary" @click="handleSave">
+      <KitBtn color="primary" :disabled="isReadOnly" @click="handleSave">
         {{ t('dictionary.save') }}
       </KitBtn>
     </template>
@@ -257,5 +285,41 @@ function copyLink() {
 }
 .mr-auto {
   margin-right: auto;
+}
+.publish-request-block {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 8px;
+  padding: 12px;
+  border-radius: 8px;
+  background-color: var(--bg-secondary-color);
+  border: 1px solid var(--border-primary-color);
+}
+.status-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  padding: 4px 10px;
+  border-radius: 16px;
+  &.success {
+    background-color: rgba(var(--v-theme-success), 0.15);
+    color: var(--fg-success-color, #4caf50);
+  }
+  &.warning {
+    background-color: rgba(var(--v-theme-warning), 0.15);
+    color: var(--fg-warning-color, #ff9800);
+  }
+  .iconify {
+    font-size: 1.1rem;
+  }
+}
+.warning-text {
+  font-size: 0.8rem;
+  color: var(--fg-error-color, #f44336);
+  margin: 0;
 }
 </style>

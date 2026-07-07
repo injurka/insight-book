@@ -136,7 +136,6 @@ const tagsList = computed(() => {
           :word="word.word"
           :language="word.language"
           variant="inline"
-          style="margin-top: 16px; display: block;"
         />
 
         <div class="badges-row">

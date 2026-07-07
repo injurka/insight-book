@@ -15,7 +15,7 @@
       "identifier": "http:default",
       "allow": [
         {
-          "url": "https://insight-api.trip-scheduler.ru/*"
+          "url": "https://api.insight-book.ru/*"
         },
         {
           "url": "http://localhost:*/*"

@@ -59,7 +59,7 @@ async function onInlineDeckSubmit(name: string) {
     const lang = localWord.value.language || 'en'
     try {
       const newDeck = await dictStore.createDeck(name.trim(), lang)
-      localWord.value.deckId = newDeck.id
+      localWord.value.deckIds = [...(localWord.value.deckIds || []), newDeck.id]
     }
     catch {
       // Ошибка обрабатывается в сторе (показывается toast)
@@ -108,9 +108,20 @@ watch(() => analysisStore.wordToEdit, (newWord) => {
   }
 }, { deep: true })
 
-const deckIdModel = computed<string | number>({
-  get: () => localWord.value.deckId ?? 'none',
-  set: (val) => { localWord.value.deckId = val === 'none' ? null : Number(val) },
+const deckIdsModel = computed<(string | number)[]>({
+  get: () => {
+    if (!localWord.value.deckIds || localWord.value.deckIds.length === 0)
+      return ['none']
+    return localWord.value.deckIds
+  },
+  set: (val) => {
+    if (val.includes('none')) {
+      localWord.value.deckIds = []
+    }
+    else {
+      localWord.value.deckIds = val.map(Number)
+    }
+  },
 })
 
 const deckOptions = computed(() => {
@@ -189,7 +200,7 @@ const previewVocabulary = ref(true)
         <div class="form-group">
           <label>{{ t('dictionary.deck') }}</label>
           <div class="deck-selector-row">
-            <KitSelect v-model="deckIdModel" :options="deckOptions" :placeholder="t('dictionary.selectDeck')" />
+            <KitSelect v-model="deckIdsModel" :options="deckOptions" :placeholder="t('dictionary.selectDeck')" multiple />
             <KitBtn icon="mdi:plus" variant="outlined" color="secondary" @click="openCreateDeckPrompt">
               {{ t('dictionary.new') }}
             </KitBtn>

@@ -141,6 +141,41 @@
       "when": 1783295573667,
       "tag": "0019_loud_robin_chapel",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "6",
+      "when": 1783351776576,
+      "tag": "0020_amused_silver_samurai",
+      "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "6",
+      "when": 1783352279769,
+      "tag": "0021_curved_hellfire_club",
+      "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "6",
+      "when": 1783365914868,
+      "tag": "0022_aspiring_iron_man",
+      "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "6",
+      "when": 1783407277672,
+      "tag": "0023_magical_falcon",
+      "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "6",
+      "when": 1783407309120,
+      "tag": "0024_plain_gladiator",
+      "breakpoints": true
     }
   ]
 }

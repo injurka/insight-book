@@ -24,9 +24,10 @@ export const users = sqliteTable('users', {
   role: text('role').notNull().default('user'),
 
   // Лимиты
-  tokenLimit: integer('tokenLimit').default(1000000),
-  bookLimit: integer('bookLimit').default(10),
+  tokenLimit: integer('tokenLimit').default(100000),
+  bookLimit: integer('bookLimit').default(3),
   usedTokens: integer('usedTokens').notNull().default(0),
+  periodStart: text('periodStart').notNull().default(sql`(datetime('now'))`),
 
   createdAt: text('createdAt').notNull().default(sql`(datetime('now'))`),
 
@@ -41,7 +42,24 @@ export const users = sqliteTable('users', {
   avatarUrl: text('avatarUrl'),
 
   // Auth
+  email: text('email').unique(),
   yandexId: text('yandexId').unique(),
+})
+
+export const emailConfirmations = sqliteTable('email_confirmations', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  email: text('email').notNull(),
+  code: text('code').notNull(),
+  createdAt: text('createdAt').notNull().default(sql`(datetime('now'))`),
+})
+
+export const limitHistory = sqliteTable('limit_history', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  userId: integer('userId').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  periodStart: text('periodStart').notNull(),
+  periodEnd: text('periodEnd').notNull(),
+  usedTokens: integer('usedTokens').notNull().default(0),
+  usedBooks: integer('usedBooks').notNull().default(0),
 })
 
 export const tokenUsage = sqliteTable('token_usage', {
@@ -52,9 +70,9 @@ export const tokenUsage = sqliteTable('token_usage', {
   model: text('model').notNull(),
   inputTokens: integer('inputTokens').notNull().default(0),
   outputTokens: integer('outputTokens').notNull().default(0),
-}, t => ({
-  unq: unique().on(t.userId, t.date, t.action, t.model),
-}))
+}, t => [
+  unique().on(t.userId, t.date, t.action, t.model),
+])
 
 export const llmLogs = sqliteTable('llm_logs', {
   id: integer('id').primaryKey({ autoIncrement: true }),
@@ -83,6 +101,8 @@ export const books = sqliteTable('books', {
   seriesNumber: integer('seriesNumber'),
 
   isPublic: integer('isPublic', { mode: 'boolean' }).notNull().default(sql`0`),
+  isUnlisted: integer('isUnlisted', { mode: 'boolean' }).notNull().default(sql`0`),
+  publicStatus: text('publicStatus').notNull().default('private'),
   textDirection: text('textDirection'),
 
   createdAt: text('createdAt').notNull().default(sql`(datetime('now'))`),
@@ -97,18 +117,18 @@ export const mangaPages = sqliteTable('manga_pages', {
   imageWidth: integer('imageWidth').notNull(),
   imageHeight: integer('imageHeight').notNull(),
   ocrData: text('ocrData'),
-}, t => ({
-  unq: unique().on(t.bookId, t.pageNum),
-}))
+}, t => [
+  unique().on(t.bookId, t.pageNum),
+])
 
 export const bookPages = sqliteTable('book_pages', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   bookId: integer('bookId').notNull().references(() => books.id, { onDelete: 'cascade' }),
   pageNum: integer('pageNum').notNull(),
   content: text('content').notNull(),
-}, t => ({
-  unq: unique().on(t.bookId, t.pageNum),
-}))
+}, t => [
+  unique().on(t.bookId, t.pageNum),
+])
 
 export const readingProgress = sqliteTable('reading_progress', {
   bookId: integer('bookId').notNull().references(() => books.id, { onDelete: 'cascade' }),
@@ -118,9 +138,9 @@ export const readingProgress = sqliteTable('reading_progress', {
   isFavorite: integer('isFavorite', { mode: 'boolean' }).notNull().default(sql`0`),
   collection: text('collection'),
   updatedAt: text('updatedAt').notNull().default(sql`(datetime('now'))`),
-}, t => ({
-  pk: primaryKey({ columns: [t.bookId, t.userId] }),
-}))
+}, t => [
+  primaryKey({ columns: [t.bookId, t.userId] }),
+])
 
 export const bookStats = sqliteTable('book_stats', {
   bookId: integer('bookId').primaryKey().references(() => books.id, { onDelete: 'cascade' }),
@@ -158,9 +178,9 @@ export const bookLlmCache = sqliteTable('book_llm_cache', {
   sentenceHash: text('sentenceHash').notNull().references(() => llmCache.sentenceHash, { onDelete: 'cascade' }),
   type: text('type').notNull().default('sentence'),
   createdAt: text('createdAt').notNull().default(sql`(datetime('now'))`),
-}, t => ({
-  pk: primaryKey({ columns: [t.bookId, t.sentenceHash] }),
-}))
+}, t => [
+  primaryKey({ columns: [t.bookId, t.sentenceHash] }),
+])
 
 export const ttsCache = sqliteTable('tts_cache', {
   textHash: text('textHash').primaryKey(),
@@ -173,9 +193,9 @@ export const bookTtsCache = sqliteTable('book_tts_cache', {
   bookId: integer('bookId').notNull().references(() => books.id, { onDelete: 'cascade' }),
   textHash: text('textHash').notNull().references(() => ttsCache.textHash, { onDelete: 'cascade' }),
   createdAt: text('createdAt').notNull().default(sql`(datetime('now'))`),
-}, t => ({
-  pk: primaryKey({ columns: [t.bookId, t.textHash] }),
-}))
+}, t => [
+  primaryKey({ columns: [t.bookId, t.textHash] }),
+])
 
 export const dictDecks = sqliteTable('dict_decks', {
   id: integer('id').primaryKey({ autoIncrement: true }),
@@ -189,7 +209,6 @@ export const dictDecks = sqliteTable('dict_decks', {
 export const userDictionary = sqliteTable('user_dictionary', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   userId: integer('userId').notNull().references(() => users.id, { onDelete: 'cascade' }).default(1),
-  deckId: integer('deckId').references(() => dictDecks.id, { onDelete: 'set null' }),
   word: text('word').notNull(),
   transcription: text('transcription'),
   translation: text('translation'),
@@ -214,9 +233,16 @@ export const userDictionary = sqliteTable('user_dictionary', {
 
   createdAt: text('createdAt').notNull().default(sql`(datetime('now'))`),
   updatedAt: text('updatedAt').notNull().default(sql`(datetime('now'))`),
-}, t => ({
-  unq: unique().on(t.userId, t.word, t.targetLanguage),
-}))
+}, t => [
+  unique().on(t.userId, t.word, t.targetLanguage),
+])
+
+export const wordToDeck = sqliteTable('word_to_deck', {
+  wordId: integer('wordId').notNull().references(() => userDictionary.id, { onDelete: 'cascade' }),
+  deckId: integer('deckId').notNull().references(() => dictDecks.id, { onDelete: 'cascade' }),
+}, t => [
+  primaryKey({ columns: [t.wordId, t.deckId] }),
+])
 
 export const wordEncounters = sqliteTable('word_encounters', {
   id: integer('id').primaryKey({ autoIncrement: true }),
@@ -225,9 +251,9 @@ export const wordEncounters = sqliteTable('word_encounters', {
   bookId: integer('bookId').references(() => books.id, { onDelete: 'set null' }),
   sentence: text('sentence').notNull(),
   createdAt: text('createdAt').notNull().default(sql`(datetime('now'))`),
-}, t => ({
-  unq: unique().on(t.wordId, t.sentence),
-}))
+}, t => [
+  unique().on(t.wordId, t.sentence),
+])
 
 export const dailyActivity = sqliteTable('daily_activity', {
   id: integer('id').primaryKey({ autoIncrement: true }),
@@ -236,9 +262,9 @@ export const dailyActivity = sqliteTable('daily_activity', {
   wordsAdded: integer('wordsAdded').notNull().default(0),
   wordsReviewed: integer('wordsReviewed').notNull().default(0),
   pagesRead: integer('pagesRead').notNull().default(0),
-}, t => ({
-  unq: unique().on(t.userId, t.date),
-}))
+}, t => [
+  unique().on(t.userId, t.date),
+])
 
 export const webPushSubscriptions = sqliteTable('web_push_subscriptions', {
   id: integer('id').primaryKey({ autoIncrement: true }),
@@ -310,6 +336,7 @@ export const llmLogsRelations = relations(llmLogs, ({ one }) => ({
 export const dictDecksRelations = relations(dictDecks, ({ one, many }) => ({
   user: one(users, { fields: [dictDecks.userId], references: [users.id] }),
   words: many(userDictionary),
+  wordToDecks: many(wordToDeck),
 }))
 
 export const wordEncountersRelations = relations(wordEncounters, ({ one }) => ({
@@ -365,8 +392,13 @@ export const bookPagesRelations = relations(bookPages, ({ one }) => ({
 
 export const userDictionaryRelations = relations(userDictionary, ({ one, many }) => ({
   user: one(users, { fields: [userDictionary.userId], references: [users.id] }),
-  deck: one(dictDecks, { fields: [userDictionary.deckId], references: [dictDecks.id] }),
+  wordToDecks: many(wordToDeck),
   encounters: many(wordEncounters),
+}))
+
+export const wordToDeckRelations = relations(wordToDeck, ({ one }) => ({
+  word: one(userDictionary, { fields: [wordToDeck.wordId], references: [userDictionary.id] }),
+  deck: one(dictDecks, { fields: [wordToDeck.deckId], references: [dictDecks.id] }),
 }))
 
 export const dailyActivityRelations = relations(dailyActivity, ({ one }) => ({

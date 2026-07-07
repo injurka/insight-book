@@ -10,10 +10,11 @@ import { useToastStore } from '../store/toast.store'
 declare module 'ofetch' {
   interface FetchOptions {
     withLlm?: boolean
+    silentErrors?: boolean
   }
 }
 
-export const BASE_API_URL = import.meta.env.VITE_API_URL || 'https://insight-api.trip-scheduler.ru'
+export const BASE_API_URL = import.meta.env.VITE_API_URL || 'https://api.insight-book.ru'
 
 export const request = ofetch.create({
   baseURL: BASE_API_URL,
@@ -60,7 +61,7 @@ export const request = ofetch.create({
       }
     }
 
-    if (getActivePinia()) {
+    if (getActivePinia() && !options.silentErrors) {
       useToastStore().error(errMessage)
 
       if (response.status === 401) {
@@ -71,13 +72,15 @@ export const request = ofetch.create({
 
     throw new Error(errMessage)
   },
-  async onRequestError({ error }) {
+  async onRequestError({ error, options }) {
     let errMessage = error.message
     if (errMessage.includes('Failed to fetch') || errMessage.includes('Network Error')) {
       errMessage = i18n.global.t('errors.network') || 'Проверьте подключение к интернету'
     }
 
-    if (getActivePinia()) {
+    const isAbort = error.name === 'AbortError' || errMessage.toLowerCase().includes('abort')
+
+    if (getActivePinia() && !options?.silentErrors && !isAbort) {
       useToastStore().error(errMessage)
     }
 
@@ -88,6 +91,8 @@ export const request = ofetch.create({
 export const api = {
   auth: {
     login: (data: unknown) => request<{ token: string, user: UserData }>('/api/auth/login', { method: 'POST', body: JSON.stringify(data) }),
+    sendCode: (data: { email: string }) => request<{ success: boolean, message: string }>('/api/auth/send-code', { method: 'POST', body: JSON.stringify(data) }),
+    register: (data: unknown) => request<{ token: string, user: UserData }>('/api/auth/register', { method: 'POST', body: JSON.stringify(data) }),
     me: () => request<{ user: UserData | null, mode: string }>('/api/auth/me'),
     updateAvatar: (file: File) => {
       const fd = new FormData()
@@ -171,7 +176,7 @@ export const api = {
       request<{ pageDictionary: Record<string, PageDictEntry> }>(`/api/books/${bookId}/page/${page}/dict`),
 
     lookupWord: (bookId: number, word: string, signal?: AbortSignal) =>
-      request<{ transcription: string, translation: string, isUserDict?: boolean }>(`/api/books/${bookId}/word/${encodeURIComponent(word)}`, { signal }),
+      request<{ transcription: string, translation: string, isUserDict?: boolean }>(`/api/books/${bookId}/word/${encodeURIComponent(word)}`, { signal, silentErrors: true }),
 
     checkCache: (bookId: number, items: { text: string, type: 'sentence' | 'word' }[], language: string, signal?: AbortSignal) =>
       request<{ results: { sentence: string, analysis: LlmAnalysis }[] }>(`/api/books/${bookId}/cache-check`, {
@@ -280,7 +285,7 @@ export const api = {
     deleteDeck: (id: number) =>
       request<{ success: boolean }>(`/api/dictionary/decks/${id}`, { method: 'DELETE' }),
 
-    get: (word: string) => request<UserDictItem>(`/api/dictionary/${encodeURIComponent(word)}`),
+    get: (word: string) => request<UserDictItem>(`/api/dictionary/${encodeURIComponent(word)}`, { silentErrors: true }),
     upsert: (item: Partial<UserDictItem> & { contextSentence?: string, contextBookId?: number }) =>
       request<{ success: boolean }>('/api/dictionary', {
         method: 'POST',
@@ -309,7 +314,7 @@ export const api = {
       }),
 
     bulkDelete: (wordIds: number[]) => request<{ success: boolean }>('/api/dictionary/bulk/delete', { method: 'POST', body: JSON.stringify({ wordIds }) }),
-    bulkMove: (wordIds: number[], deckId: number | null) => request<{ success: boolean }>('/api/dictionary/bulk/move', { method: 'POST', body: JSON.stringify({ wordIds, deckId }) }),
+    bulkMove: (wordIds: number[], deckIds: number[]) => request<{ success: boolean }>('/api/dictionary/bulk/move', { method: 'POST', body: JSON.stringify({ wordIds, deckIds }) }),
 
     generateExamples: (word: string, language: string) =>
       request<GeneratedWordExamples>('/api/dictionary/generate-examples', {
@@ -360,7 +365,7 @@ export const api = {
 
   activity: {
     getStats: () => request<{ heatmap: { date: string, count: number }[], learnedWords: number, readPages: number, difficulties: { language: string, difficulty: string, count: number }[] }>('/api/activity/stats'),
-    getTokens: (period?: string) => request<{ stats: { action: string, model: string, inputTokens: number, outputTokens: number, cost?: number }[], daily: { date: string, inputTokens: number, outputTokens: number, cost?: number }[], totalCost: number }>(`/api/activity/tokens${period ? `?period=${period}` : ''}`),
+    getTokens: (period?: string) => request<{ stats: { action: string, inputTokens: number, outputTokens: number, cost: number }[], daily: { date: string, inputTokens: number, outputTokens: number, cost?: number }[], totalCost: number }>(`/api/activity/tokens${period ? `?period=${period}` : ''}`),
   },
 
   highlights: {

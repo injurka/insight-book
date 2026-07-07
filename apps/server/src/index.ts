@@ -1,7 +1,7 @@
 /* eslint-disable no-console */
 import { CORS_HEADERS, PORT } from './config'
 import { handleGetActivityStats, handleGetTokenUsage } from './handlers/activity'
-import { handleGetAvatarImage, handleGetMe, handleLogin, handleUpdateAvatar, handleUpdateUsername, handleYandexAuth, handleYandexCallback, handleYandexMobileExchange, handleAuthSessionStatus } from './handlers/auth'
+import { handleAuthSessionStatus, handleGetAvatarImage, handleGetMe, handleLogin, handleRegister, handleSendCode, handleUpdateAvatar, handleUpdateUsername, handleYandexAuth, handleYandexCallback, handleYandexMobileExchange } from './handlers/auth'
 import {
   handleAnalyzeBatch,
   handleAnalyzeBookStats,
@@ -84,6 +84,8 @@ const apiRoutes = {
 
   // --- Auth ---
   '/api/auth/login': { OPTIONS: corsOk, POST: apiWrapper(handleLogin) },
+  '/api/auth/send-code': { OPTIONS: corsOk, POST: apiWrapper(handleSendCode) },
+  '/api/auth/register': { OPTIONS: corsOk, POST: apiWrapper(handleRegister) },
   '/api/auth/yandex': { OPTIONS: corsOk, GET: apiWrapper(handleYandexAuth) },
   '/api/auth/yandex/callback': { OPTIONS: corsOk, GET: apiWrapper(handleYandexCallback) },
   '/api/auth/status': { OPTIONS: corsOk, GET: apiWrapper(handleAuthSessionStatus) },

@@ -48,6 +48,8 @@ export interface Book {
   isFavorite?: boolean
   collection?: string | null
   isPublic?: boolean
+  isUnlisted?: boolean
+  publicStatus?: 'private' | 'pending' | 'public' | 'rejected'
   textDirection?: string | null
   progressUpdatedAt?: string | null
   analysesCount?: number
@@ -167,7 +169,7 @@ export interface WordEncounter {
 
 export interface UserDictItem {
   id: number
-  deckId: number | null
+  deckIds: number[]
   word: string
   transcription: string | null
   translation: string | null

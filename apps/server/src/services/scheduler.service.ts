@@ -1,4 +1,4 @@
-import { desc, eq } from 'drizzle-orm'
+import { desc, eq, sql } from 'drizzle-orm'
 import { db } from '../db'
 import * as schema from '../db/schema'
 import { executeDump } from './dump.service'
@@ -35,6 +35,52 @@ async function checkAndRunDump() {
   }
 }
 
+let isResettingLimits = false
+
+async function checkAndResetLimits() {
+  if (isResettingLimits)
+    return
+  isResettingLimits = true
+  try {
+    const usersToReset = await db.query.users.findMany({
+      where: sql`datetime(${schema.users.periodStart}, '+7 days') <= datetime('now')`,
+    })
+
+    for (const user of usersToReset) {
+      const [{ count: usedBooks }] = await db.select({ count: sql<number>`count(*)` })
+        .from(schema.books)
+        .where(sql`${schema.books.userId} = ${user.id} AND datetime(${schema.books.createdAt}) >= datetime(${user.periodStart})`)
+
+      const [{ totalTokens }] = await db.select({
+        totalTokens: sql<number>`COALESCE(SUM(${schema.tokenUsage.inputTokens} + ${schema.tokenUsage.outputTokens}), 0)`.mapWith(Number),
+      })
+        .from(schema.tokenUsage)
+        .where(sql`${schema.tokenUsage.userId} = ${user.id} AND date(${schema.tokenUsage.date}) >= date(${user.periodStart})`)
+
+      await db.insert(schema.limitHistory).values({
+        userId: user.id,
+        periodStart: user.periodStart,
+        periodEnd: sql`(datetime('now'))`,
+        usedTokens: totalTokens,
+        usedBooks,
+      })
+
+      await db.update(schema.users).set({
+        periodStart: sql`(datetime('now'))`,
+        usedTokens: 0,
+      }).where(eq(schema.users.id, user.id))
+
+      console.warn(`✅ Reset limits for user ${user.username}`)
+    }
+  }
+  catch (error) {
+    console.error('❌ Error during limits reset:', error)
+  }
+  finally {
+    isResettingLimits = false
+  }
+}
+
 export function initScheduler() {
   // eslint-disable-next-line no-console
   console.log('🕒 Initializing background scheduler...')
@@ -43,6 +89,8 @@ export function initScheduler() {
     setTimeout(checkAndRunDump, 5000)
     setInterval(checkAndRunDump, CHECK_INTERVAL_MS)
   }
+
+  setInterval(checkAndResetLimits, CHECK_INTERVAL_MS)
 
   setInterval(async () => {
     if (isPushing)

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { UserDictItem } from '~/shared/types/models'
+import { Icon } from '@iconify/vue'
 import { useVirtualList } from '@vueuse/core'
 import { useI18n } from 'vue-i18n'
 import { KitBtn, KitCheckbox, KitTooltip } from '~/components/01.kit'
@@ -152,6 +153,11 @@ function exportToAnki() {
               >
                 {{ item.data.difficulty }}
               </span>
+              <KitTooltip v-if="item.data.deckIds && item.data.deckIds.length > 1" :text="t('dictionary.inMultipleDecks') || 'Слово в нескольких колодах'">
+                <span class="multi-deck-badge">
+                  <Icon icon="mdi:folder-multiple-outline" />
+                </span>
+              </KitTooltip>
               <span class="srs-badge" :style="{ color: getStatusLabel(item.data.state).color }">
                 {{ getStatusLabel(item.data.state).label }}
               </span>
@@ -344,6 +350,15 @@ function exportToAnki() {
   opacity: 0.8;
   margin-left: auto;
   margin-right: 8px;
+}
+
+.multi-deck-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--fg-secondary-color);
+  font-size: 1.1rem;
+  margin-left: 4px;
 }
 
 .empty-state {

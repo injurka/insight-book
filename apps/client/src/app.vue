@@ -2,12 +2,12 @@
 import { useHead } from '@vueuse/head'
 import { useI18n } from 'vue-i18n'
 import { ReloadPrompt } from '~/components/02.shared/reload-prompt'
+import { ToastManager } from '~/components/02.shared/toast-manager'
 import { DefaultLayout } from '~/components/06.layouts/default'
 import { useBackHandler } from '~/shared/composables/use-back-handler'
 import { useChangeTheme } from '~/shared/composables/use-change-theme'
 import { useGlobalTracking } from '~/shared/composables/use-global-tracking'
 import { useAnalysisStore } from '~/shared/store/analysis.store'
-
 import { useGlobalSettingsStore } from '~/shared/store/settings.store'
 
 const AddEditWordDialog = lazyComponent(() => import('~/components/05.modules/dictionary/ui/dialog/add-edit-word-dialog.vue'))
@@ -80,7 +80,7 @@ const layouts: Record<string, Component> = {
   default: DefaultLayout,
 }
 
-const siteUrl = 'https://insight-book.trip-scheduler.ru'
+const siteUrl = 'https://insight-book.ru'
 const siteName = 'InsightBook'
 const description = computed(() => t('app.description'))
 
@@ -132,11 +132,6 @@ useHead({
       rel: 'canonical',
       href: computed(() => `${siteUrl}${route.path}`),
     },
-    {
-      rel: 'icon',
-      type: 'image/svg+xml',
-      href: '/logo.svg',
-    },
   ],
   script: headScripts,
 })
@@ -167,4 +162,5 @@ watch(() => route.path, () => {
 
   <ReloadPrompt />
   <AddEditWordDialog />
+  <ToastManager />
 </template>

@@ -44,7 +44,7 @@
       },
       "mobile": [
         {
-          "host": "insight-api.trip-scheduler.ru",
+          "host": "api.insight-book.ru",
           "pathPrefix": [
             "/api/auth/yandex/callback"
           ]
