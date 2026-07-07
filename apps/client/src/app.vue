@@ -120,13 +120,39 @@ if (!isDev && umamiWebsiteId && umamiUrl) {
   })
 }
 
+const titleChunk = computed(() => {
+  if (route.name) {
+    const key = `routes.${String(route.name)}`
+    const val = t(key)
+    if (val && val !== key) {
+      return val
+    }
+  }
+  return ''
+})
+
 useHead({
+  title: titleChunk,
   titleTemplate: titleChunk => titleChunk ? `${titleChunk} | ${siteName}` : siteName,
   htmlAttrs: {
     lang: computed(() => locale.value),
   },
   meta: [
     { name: 'description', content: description },
+    // Open Graph
+    { property: 'og:type', content: 'website' },
+    { property: 'og:title', content: computed(() => titleChunk.value ? `${titleChunk.value} | ${siteName}` : siteName) },
+    { property: 'og:description', content: description },
+    { property: 'og:url', content: computed(() => `${siteUrl}${route.path}`) },
+    { property: 'og:site_name', content: siteName },
+    { property: 'og:image', content: `${siteUrl}/logo.png` },
+    // Twitter Card
+    { name: 'twitter:card', content: 'summary_large_image' },
+    { name: 'twitter:title', content: computed(() => titleChunk.value ? `${titleChunk.value} | ${siteName}` : siteName) },
+    { name: 'twitter:description', content: description },
+    { name: 'twitter:image', content: `${siteUrl}/logo.png` },
+    // Additional SEO Tags
+    { name: 'robots', content: 'index, follow' },
   ],
   link: [
     {

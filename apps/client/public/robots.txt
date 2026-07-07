@@ -1,1 +1,12 @@
+User-agent: *
+Allow: /
+Disallow: /reader
+Disallow: /dictionary
+Disallow: /settings
+Disallow: /limits
+Disallow: /notebook
+Disallow: /onboarding
+Disallow: /auth/
+Disallow: /api/
 
+Sitemap: https://insight-book.ru/sitemap.xml

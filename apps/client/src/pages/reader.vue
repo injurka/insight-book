@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { useHead } from '@vueuse/head'
+import { useI18n } from 'vue-i18n'
 import { useHighlightsStore } from '~/components/05.modules/reader/store/highlights.store'
 import { useReaderStore } from '~/components/05.modules/reader/store/reader.store'
 import MangaReaderView from '~/components/05.modules/reader/ui/manga-reader-view.vue'
@@ -9,6 +11,11 @@ const store = useReaderStore()
 const highlightsStore = useHighlightsStore()
 const router = useRouter()
 const route = useRoute()
+const { t } = useI18n()
+
+useHead({
+  title: computed(() => store.currentBook ? `${store.currentBook.title} — ${t('routes.reader')}` : t('routes.reader')),
+})
 
 onMounted(async () => {
   const bookId = Number(route.query.bookId)

@@ -5,6 +5,20 @@
     "alternateName2": "Personal Notes",
     "alternateName3": "Notes Manager"
   },
+  "routes": {
+    "home": "Home",
+    "book-info": "Book Details",
+    "reader": "Reader",
+    "dictionary": "Dictionary",
+    "settings": "Settings",
+    "limits": "Limits",
+    "sign-in": "Sign In",
+    "notebook": "Notebook",
+    "onboarding": "Welcome",
+    "about": "About",
+    "copyright": "Copyright",
+    "privacy": "Privacy Policy"
+  },
   "globalActions": {
     "myDictionary": "My Dictionary",
     "myNotebook": "Quotes",

@@ -5,6 +5,20 @@
     "alternateName2": "个人笔记",
     "alternateName3": "笔记管理器"
   },
+  "routes": {
+    "home": "首页",
+    "book-info": "书籍详情",
+    "reader": "阅读器",
+    "dictionary": "单词本",
+    "settings": "设置",
+    "limits": "限制",
+    "sign-in": "登录",
+    "notebook": "笔记本",
+    "onboarding": "新手引导",
+    "about": "关于",
+    "copyright": "版权声明",
+    "privacy": "隐私政策"
+  },
   "globalActions": {
     "myDictionary": "我的词典",
     "myNotebook": "摘录",

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useHead } from '@vueuse/head'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import { KitBtn, KitSkeleton } from '~/components/01.kit'
@@ -20,6 +21,10 @@ const route = useRoute()
 const router = useRouter()
 const libraryStore = useLibraryStore()
 const { t } = useI18n()
+
+useHead({
+  title: computed(() => libraryStore.currentBookInfo?.title || t('bookInfo.aboutBook')),
+})
 
 const bookId = computed(() => Number(route.params.id))
 const isEditingStats = ref(false)

@@ -5,6 +5,20 @@
     "alternateName2": "Личные заметки",
     "alternateName3": "Менеджер заметок"
   },
+  "routes": {
+    "home": "Главная",
+    "book-info": "О книге",
+    "reader": "Чтение",
+    "dictionary": "Словарь",
+    "settings": "Настройки",
+    "limits": "Лимиты",
+    "sign-in": "Вход",
+    "notebook": "Блокнот",
+    "onboarding": "Приветствие",
+    "about": "О сайте",
+    "copyright": "Правообладателям",
+    "privacy": "Политика конфиденциальности"
+  },
   "globalActions": {
     "myDictionary": "Мой словарь",
     "myNotebook": "Цитаты",

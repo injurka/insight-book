@@ -649,6 +649,7 @@ declare module 'vue' {
     readonly useToast: UnwrapRef<typeof import('../../composables/use-toast')['useToast']>
     readonly useToggle: UnwrapRef<typeof import('@vueuse/core')['useToggle']>
     readonly useTransition: UnwrapRef<typeof import('@vueuse/core')['useTransition']>
+    readonly useTts: UnwrapRef<typeof import('../../composables/use-tts')['useTts']>
     readonly useUmami: UnwrapRef<typeof import('../../composables/use-umami')['useUmami']>
     readonly useUrlSearchParams: UnwrapRef<typeof import('@vueuse/core')['useUrlSearchParams']>
     readonly useUserMedia: UnwrapRef<typeof import('@vueuse/core')['useUserMedia']>
