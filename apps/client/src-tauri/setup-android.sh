@@ -13,12 +13,16 @@ APP_GRADLE="$ANDROID_DIR/app/build.gradle"
 APP_GRADLE_KTS="$ANDROID_DIR/app/build.gradle.kts"
 MAIN_ACTIVITY="$ANDROID_DIR/app/src/main/java/ru/insightbook/insightbook/MainActivity.kt"
 
-# 1. Inject Permissions into AndroidManifest.xml
+# 1. Inject Permissions and Services into AndroidManifest.xml
 if [ -f "$MANIFEST_PATH" ]; then
     echo "Updating AndroidManifest.xml..."
     # Add permissions before the <application tag if not already present
     if ! grep -q "RECORD_AUDIO" "$MANIFEST_PATH"; then
         sed -i '/<application/i \    <uses-permission android:name="android.permission.RECORD_AUDIO" />\n    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />\n    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />' "$MANIFEST_PATH"
+    fi
+    # Add service declaration inside <application> tag
+    if ! grep -q "MyFirebaseMessagingService" "$MANIFEST_PATH"; then
+        sed -i '/<\/application>/i \        <service\n            android:name=".MyFirebaseMessagingService"\n            android:exported="false">\n            <intent-filter>\n                <action android:name="com.google.firebase.MESSAGING_EVENT" />\n            </intent-filter>\n        </service>' "$MANIFEST_PATH"
     fi
 fi
 
@@ -62,6 +66,7 @@ package ru.insightbook.insightbook
 
 import android.os.Bundle
 import android.os.Build
+import android.content.Context
 import android.Manifest
 import android.content.pm.PackageManager
 import androidx.core.app.ActivityCompat
@@ -72,10 +77,16 @@ class MainActivity : TauriActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
+        // Load initial token from SharedPreferences if available
+        val sharedPref = applicationContext.getSharedPreferences("insight_push", Context.MODE_PRIVATE)
+        _fcmToken = sharedPref.getString("fcm_token", null)
+
         // Fetch token initially
         FirebaseMessaging.getInstance().token.addOnCompleteListener { task ->
             if (task.isSuccessful) {
-                _fcmToken = task.result
+                val token = task.result
+                _fcmToken = token
+                sharedPref.edit().putString("fcm_token", token).apply()
             }
         }
     }
@@ -106,10 +117,38 @@ class MainActivity : TauriActivity() {
 
             FirebaseMessaging.getInstance().token.addOnCompleteListener { task ->
                 if (task.isSuccessful) {
-                    _fcmToken = task.result
+                    val token = task.result
+                    _fcmToken = token
+                    val sharedPref = activity.applicationContext.getSharedPreferences("insight_push", Context.MODE_PRIVATE)
+                    sharedPref.edit().putString("fcm_token", token).apply()
                 }
                 isRequesting = false
             }
+        }
+    }
+}
+EOF
+fi
+
+# 5. Create MyFirebaseMessagingService.kt
+MESSAGING_SERVICE="$ANDROID_DIR/app/src/main/java/ru/insightbook/insightbook/MyFirebaseMessagingService.kt"
+if [ -f "$MAIN_ACTIVITY" ]; then
+    echo "Creating MyFirebaseMessagingService.kt..."
+    cat << 'EOF' > "$MESSAGING_SERVICE"
+package ru.insightbook.insightbook
+
+import android.content.Context
+import com.google.firebase.messaging.FirebaseMessagingService
+
+class MyFirebaseMessagingService : FirebaseMessagingService() {
+    override fun onNewToken(token: String) {
+        super.onNewToken(token)
+        MainActivity._fcmToken = token
+        
+        val sharedPref = applicationContext.getSharedPreferences("insight_push", Context.MODE_PRIVATE)
+        with(sharedPref.edit()) {
+            putString("fcm_token", token)
+            apply()
         }
     }
 }

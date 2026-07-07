@@ -201,26 +201,34 @@ if (import.meta.env.DEV) {
 }
 
 self.addEventListener('push', (event: PushEvent) => {
-  if (event.data) {
-    try {
-      const data = event.data.json()
+  if (!event.data)
+    return
 
-      const options = {
-        body: data.body,
-        icon: data.icon || '/logo.png', // Android плохо переваривает SVG в пушах
-        badge: data.badge || '/logo.png',
-        data: {
-          url: data.url || '/',
-        },
-        vibrate: [200, 100, 200],
-      }
+  let title = 'InsightBook'
+  let options: any = {
+    icon: '/logo.png',
+    badge: '/logo.png',
+  }
 
-      event.waitUntil(self.registration.showNotification(data.title, options as any))
-    }
-    catch {
-      event.waitUntil(self.registration.showNotification('InsightBook', { body: event.data.text() }))
+  try {
+    const data = event.data.json()
+    title = data.title || title
+    options = {
+      ...options,
+      body: data.body,
+      icon: data.icon || options.icon,
+      badge: data.badge || options.badge,
+      vibrate: [200, 100, 200],
+      data: {
+        url: data.url || '/',
+      },
     }
   }
+  catch {
+    options.body = event.data.text() || 'Новое уведомление'
+  }
+
+  event.waitUntil(self.registration.showNotification(title, options))
 })
 
 self.addEventListener('notificationclick', (event: NotificationEvent) => {

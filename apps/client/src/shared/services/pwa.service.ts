@@ -50,8 +50,17 @@ function initializePwaUpdater(pinia: Pinia): void {
 
   // Перехватываем сообщение от ServiceWorker при клике на Push
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.addEventListener('message', (event) => {
+    navigator.serviceWorker.addEventListener('message', async (event) => {
       if (event.data && event.data.type === 'NAVIGATE' && event.data.url) {
+        try {
+          const { useAnalysisStore } = await import('~/shared/store/analysis.store')
+          const analysisStore = useAnalysisStore(pinia)
+          analysisStore.isPageAnalysisModalOpen = false
+          analysisStore.addEditWordModalOpen = false
+        }
+        catch (e) {
+          console.warn('Failed to close global modals before navigation:', e)
+        }
         router.push(event.data.url)
       }
     })

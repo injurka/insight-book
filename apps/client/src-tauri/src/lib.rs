@@ -16,8 +16,8 @@ async fn request_fcm_token() -> Result<Option<String>, String> {
     {
         trigger_request_fcm_token_native();
 
-        // Poll the token for up to 10 seconds (100 * 100ms)
-        for _ in 0..100 {
+        // Poll the token for up to 60 seconds (600 * 100ms) to allow user to permit notifications
+        for _ in 0..600 {
             if let Some(token) = get_fcm_token_native() {
                 return Ok(Some(token));
             }

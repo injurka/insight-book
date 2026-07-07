@@ -69,9 +69,10 @@ export const usePwaStore = defineStore('pwa', {
 
     async checkPushStatus() {
       const BASE = import.meta.env.VITE_API_URL || 'https://api.insight-book.ru'
+      const token = localStorage.getItem('insight_token')
       const headers = {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('insight_token')}`,
+        'Authorization': `Bearer ${token}`,
       }
 
       if (isTauri()) {
@@ -80,7 +81,7 @@ export const usePwaStore = defineStore('pwa', {
           const fcmToken = await invoke<string | null>('get_fcm_token').catch(() => null)
           this.isPushSubscribed = !!fcmToken
 
-          if (this.isPushSubscribed && fcmToken) {
+          if (this.isPushSubscribed && fcmToken && token) {
             fetch(`${BASE}/api/push/fcm-subscribe`, {
               method: 'POST',
               headers,
@@ -91,25 +92,54 @@ export const usePwaStore = defineStore('pwa', {
         catch (e) {
           console.warn('FCM plugin error', e)
         }
-        return
+      }
+      else {
+        if ('permissions' in navigator) {
+          navigator.permissions.query({ name: 'notifications' as PermissionName }).then((status) => {
+            status.onchange = () => {
+              if (status.state === 'denied' || status.state === 'prompt') {
+                this.isPushSubscribed = false
+              }
+              else if (status.state === 'granted') {
+                this.checkPushStatus()
+              }
+            }
+          }).catch(() => {})
+        }
+
+        if ('serviceWorker' in navigator && 'PushManager' in window) {
+          try {
+            const reg = await navigator.serviceWorker.ready
+            const sub = await reg.pushManager.getSubscription()
+            const hasPermission = Notification.permission === 'granted'
+
+            this.isPushSubscribed = !!sub && hasPermission
+
+            // Синхронизируем свежие ключи с бэкендом, если подписка активна
+            if (this.isPushSubscribed && sub && token) {
+              fetch(`${BASE}/api/push/subscribe`, {
+                method: 'POST',
+                headers,
+                body: JSON.stringify(sub),
+              }).catch(() => { })
+            }
+          }
+          catch (e) {
+            console.warn('Web Push status check failed', e)
+          }
+        }
       }
 
-      if (!('serviceWorker' in navigator) || !('PushManager' in window))
-        return
-
-      const reg = await navigator.serviceWorker.ready
-      const sub = await reg.pushManager.getSubscription()
-      const hasPermission = Notification.permission === 'granted'
-
-      this.isPushSubscribed = !!sub && hasPermission
-
-      // Синхронизируем свежие ключи с бэкендом, если подписка активна
-      if (this.isPushSubscribed && sub) {
-        fetch(`${BASE}/api/push/subscribe`, {
-          method: 'POST',
-          headers,
-          body: JSON.stringify(sub),
-        }).catch(() => { })
+      // Sync timezone if changed
+      const authStore = useAuthStore()
+      const currentTimezone = new Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'
+      if (token && authStore.user && authStore.user.timezone !== currentTimezone) {
+        this.updatePushSettings({
+          deckId: authStore.user.pushTargetDeckId ?? 'all',
+          timeStart: authStore.user.pushTimeStart ?? '10:00',
+          timeEnd: authStore.user.pushTimeEnd ?? '21:00',
+          pushCount: authStore.user.pushCount ?? 1,
+        }).catch(console.error)
       }
     },
 

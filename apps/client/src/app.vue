@@ -9,6 +9,7 @@ import { useChangeTheme } from '~/shared/composables/use-change-theme'
 import { useGlobalTracking } from '~/shared/composables/use-global-tracking'
 import { loadLanguageAsync } from '~/shared/plugins/i18n'
 import { useAnalysisStore } from '~/shared/store/analysis.store'
+import { usePwaStore } from '~/shared/store/pwa.store'
 import { useGlobalSettingsStore } from '~/shared/store/settings.store'
 
 const AddEditWordDialog = lazyComponent(() => import('~/components/05.modules/dictionary/ui/dialog/add-edit-word-dialog.vue'))
@@ -25,6 +26,9 @@ const router = useRouter()
 const { triggerBack } = useBackHandler()
 
 onMounted(async () => {
+  const pwaStore = usePwaStore()
+  pwaStore.checkPushStatus()
+
   if ('__TAURI_INTERNALS__' in window) {
     try {
       const { onOpenUrl } = await import('@tauri-apps/plugin-deep-link')
