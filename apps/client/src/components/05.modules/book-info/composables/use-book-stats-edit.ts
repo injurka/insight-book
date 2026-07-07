@@ -1,18 +1,62 @@
 import type { Ref } from 'vue'
-import { computed, reactive, watch } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
 import { useLibraryStore } from '~/components/05.modules/library/store/library.store'
 import { useToast } from '~/shared/composables/use-toast'
 import { DIFFICULTY_SYSTEMS } from '~/shared/constants/difficulties'
 import { i18n } from '~/shared/plugins/i18n'
+import { useGlobalSettingsStore } from '~/shared/store/settings.store'
+
+const DESCRIPTION_LANGS = ['ru', 'en', 'zh'] as const
+type DescLang = typeof DESCRIPTION_LANGS[number]
+
+function parseDescriptionJson(raw: string | undefined): Record<DescLang, string> {
+  const result: Record<DescLang, string> = { ru: '', en: '', zh: '' }
+  if (!raw)
+    return result
+  try {
+    const parsed = JSON.parse(raw)
+    if (typeof parsed === 'object' && parsed !== null) {
+      for (const lang of DESCRIPTION_LANGS) {
+        result[lang] = parsed[lang] || ''
+      }
+    }
+    else {
+      // Plain string — put into all langs
+      result.ru = raw
+    }
+  }
+  catch {
+    result.ru = raw
+  }
+  return result
+}
+
+function serializeDescriptionJson(byLang: Record<DescLang, string>): string {
+  const nonEmpty = DESCRIPTION_LANGS.some(l => byLang[l].trim())
+  if (!nonEmpty)
+    return ''
+  return JSON.stringify({ ru: byLang.ru, en: byLang.en, zh: byLang.zh })
+}
 
 export function useBookStatsEdit(isEditingStats: Ref<boolean>) {
   const libraryStore = useLibraryStore()
+  const settingsStore = useGlobalSettingsStore()
   const toast = useToast()
+
+  // Language selector for viewing description (defaults to app UI language)
+  const descriptionLang = ref<DescLang>(
+    (DESCRIPTION_LANGS as readonly string[]).includes(settingsStore.appLanguage)
+      ? settingsStore.appLanguage as DescLang
+      : 'ru',
+  )
+
+  // Language selector for editing description (same default)
+  const editDescLang = ref<DescLang>(descriptionLang.value)
 
   const editForm = reactive({
     difficulty: '',
     tags: '',
-    description: '',
+    descriptionByLang: { ru: '', en: '', zh: '' } as Record<DescLang, string>,
   })
 
   const currentDifficultyOptions = computed(() => {
@@ -44,6 +88,39 @@ export function useBookStatsEdit(isEditingStats: Ref<boolean>) {
     return 'level-hard'
   })
 
+  // Available desc langs (where there's content) for the view selector
+  const availableDescLangs = computed<DescLang[]>(() => {
+    const raw = libraryStore.currentBookInfo?.stats?.description
+    if (!raw)
+      return []
+    try {
+      const parsed = JSON.parse(raw)
+      if (typeof parsed === 'object' && parsed !== null) {
+        return DESCRIPTION_LANGS.filter(l => parsed[l]?.trim())
+      }
+    }
+    catch { /* plain string */ }
+    return raw.trim() ? ['ru'] : []
+  })
+
+  // Computed description text for currently selected lang (view mode)
+  const currentDescription = computed(() => {
+    const raw = libraryStore.currentBookInfo?.stats?.description
+    if (!raw)
+      return i18n.global.t('bookStats.noDescription')
+    try {
+      const parsed = JSON.parse(raw)
+      if (typeof parsed === 'object' && parsed !== null) {
+        return parsed[descriptionLang.value]
+          || parsed[settingsStore.appLanguage as DescLang]
+          || parsed.ru
+          || raw
+      }
+    }
+    catch { /* plain string */ }
+    return raw
+  })
+
   watch(isEditingStats, (val) => {
     if (val) {
       const stats = libraryStore.currentBookInfo?.stats
@@ -52,7 +129,9 @@ export function useBookStatsEdit(isEditingStats: Ref<boolean>) {
 
       editForm.difficulty = opts.includes(currentDiff) ? currentDiff : ''
       editForm.tags = stats?.tags?.join(', ') || ''
-      editForm.description = stats?.description || ''
+      editForm.descriptionByLang = parseDescriptionJson(stats?.description)
+      // reset edit lang to current view lang
+      editDescLang.value = descriptionLang.value
     }
   })
 
@@ -61,10 +140,11 @@ export function useBookStatsEdit(isEditingStats: Ref<boolean>) {
       return
     try {
       const tagsArray = editForm.tags.split(',').map(t => t.trim()).filter(Boolean)
+      const description = serializeDescriptionJson(editForm.descriptionByLang)
       await libraryStore.updateBookStats(libraryStore.currentBookInfo.id, {
         difficulty: editForm.difficulty,
         tags: tagsArray,
-        description: editForm.description,
+        description,
       })
       isEditingStats.value = false
       toast.success(i18n.global.t('library.infoUpdated'))
@@ -102,10 +182,15 @@ export function useBookStatsEdit(isEditingStats: Ref<boolean>) {
 
   return {
     editForm,
+    editDescLang,
+    descriptionLang,
+    availableDescLangs,
+    currentDescription,
     currentDifficultyOptions,
     difficultyLevelClass,
     saveStats,
     triggerAiAnalysis,
     triggerVocabularyAnalysis,
+    DESCRIPTION_LANGS,
   }
 }

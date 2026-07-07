@@ -82,12 +82,16 @@ class MainActivity : TauriActivity() {
         _fcmToken = sharedPref.getString("fcm_token", null)
 
         // Fetch token initially
-        FirebaseMessaging.getInstance().token.addOnCompleteListener { task ->
-            if (task.isSuccessful) {
-                val token = task.result
-                _fcmToken = token
-                sharedPref.edit().putString("fcm_token", token).apply()
+        try {
+            FirebaseMessaging.getInstance().token.addOnCompleteListener { task ->
+                if (task.isSuccessful) {
+                    val token = task.result
+                    _fcmToken = token
+                    sharedPref.edit().putString("fcm_token", token).apply()
+                }
             }
+        } catch (e: Exception) {
+            e.printStackTrace()
         }
     }
 
@@ -115,13 +119,18 @@ class MainActivity : TauriActivity() {
                 }
             }
 
-            FirebaseMessaging.getInstance().token.addOnCompleteListener { task ->
-                if (task.isSuccessful) {
-                    val token = task.result
-                    _fcmToken = token
-                    val sharedPref = activity.applicationContext.getSharedPreferences("insight_push", Context.MODE_PRIVATE)
-                    sharedPref.edit().putString("fcm_token", token).apply()
+            try {
+                FirebaseMessaging.getInstance().token.addOnCompleteListener { task ->
+                    if (task.isSuccessful) {
+                        val token = task.result
+                        _fcmToken = token
+                        val sharedPref = activity.applicationContext.getSharedPreferences("insight_push", Context.MODE_PRIVATE)
+                        sharedPref.edit().putString("fcm_token", token).apply()
+                    }
+                    isRequesting = false
                 }
+            } catch (e: Exception) {
+                e.printStackTrace()
                 isRequesting = false
             }
         }

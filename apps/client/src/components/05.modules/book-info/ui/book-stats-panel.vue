@@ -24,11 +24,16 @@ const showCrowdsource = ref(false)
 
 const {
   editForm,
+  editDescLang,
+  descriptionLang,
+  availableDescLangs,
+  currentDescription,
   currentDifficultyOptions,
   difficultyLevelClass,
   saveStats,
   triggerAiAnalysis,
   triggerVocabularyAnalysis,
+  DESCRIPTION_LANGS,
 } = useBookStatsEdit(isEditingStats)
 
 const bookCacheStats = computed(() => {
@@ -39,16 +44,7 @@ const bookCacheStats = computed(() => {
 })
 
 const bookDescription = computed(() => {
-  const desc = libraryStore.currentBookInfo?.stats?.description
-  if (!desc)
-    return t('bookStats.noDescription')
-  try {
-    const parsed = JSON.parse(desc)
-    return parsed[settingsStore.appLanguage] || parsed.ru || desc
-  }
-  catch {
-    return desc
-  }
+  return currentDescription.value
 })
 
 const localizedTags = computed(() => {
@@ -146,8 +142,21 @@ onMounted(() => {
             <KitInput v-model="editForm.tags" :placeholder="t('dictionary.tagsComma')" />
           </div>
           <div class="form-group">
-            <label>{{ t('bookStats.annotation') }}</label>
-            <textarea v-model="editForm.description" class="custom-textarea" rows="4" :placeholder="t('bookStats.annotation')" />
+            <div class="desc-lang-header">
+              <label>{{ t('bookStats.annotation') }}</label>
+              <div class="desc-lang-tabs">
+                <button
+                  v-for="lang in DESCRIPTION_LANGS"
+                  :key="lang"
+                  class="desc-lang-btn"
+                  :class="{ active: editDescLang === lang }"
+                  @click="editDescLang = lang"
+                >
+                  {{ lang.toUpperCase() }}
+                </button>
+              </div>
+            </div>
+            <textarea v-model="editForm.descriptionByLang[editDescLang]" class="custom-textarea" rows="4" :placeholder="t('bookStats.annotation')" />
           </div>
           <div class="form-actions">
             <KitBtn variant="tonal" @click="isEditingStats = false">
@@ -183,6 +192,17 @@ onMounted(() => {
           <span v-for="tag in localizedTags" :key="tag" class="tag-badge">{{ tag }}</span>
         </div>
         <div class="book-description">
+          <div v-if="availableDescLangs.length > 1" class="desc-lang-tabs">
+            <button
+              v-for="lang in availableDescLangs"
+              :key="lang"
+              class="desc-lang-btn"
+              :class="{ active: descriptionLang === lang }"
+              @click="descriptionLang = lang"
+            >
+              {{ lang.toUpperCase() }}
+            </button>
+          </div>
           <p>{{ bookDescription }}</p>
         </div>
 
@@ -439,12 +459,14 @@ onMounted(() => {
       font-weight: 500;
     }
   }
-  .book-description p {
-    margin: 0;
-    line-height: 1.6;
-    font-size: 0.95rem;
-    color: var(--fg-primary-color);
-    white-space: pre-wrap;
+  .book-description {
+    p {
+      margin: 0;
+      line-height: 1.6;
+      font-size: 0.95rem;
+      color: var(--fg-primary-color);
+      white-space: pre-wrap;
+    }
   }
 }
 .edit-form {
@@ -505,6 +527,15 @@ onMounted(() => {
       &:focus {
         border-color: var(--fg-accent-color);
       }
+    }
+  }
+  .desc-lang-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    label {
+      flex: 1;
     }
   }
   .form-actions {
@@ -631,6 +662,36 @@ onMounted(() => {
   100% {
     transform: scale(1);
     opacity: 1;
+  }
+}
+
+.desc-lang-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.desc-lang-btn {
+  background: transparent;
+  border: 1px solid var(--border-primary-color);
+  border-radius: 6px;
+  color: var(--fg-secondary-color);
+  cursor: pointer;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  padding: 2px 8px;
+  transition: all 0.15s ease;
+
+  &:hover {
+    border-color: var(--fg-accent-color);
+    color: var(--fg-accent-color);
+  }
+
+  &.active {
+    background-color: var(--fg-accent-color);
+    border-color: var(--fg-accent-color);
+    color: var(--bg-primary-color);
   }
 }
 </style>

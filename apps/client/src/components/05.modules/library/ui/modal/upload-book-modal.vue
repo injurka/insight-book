@@ -60,7 +60,6 @@ async function onArchiveSelected(e: Event) {
       visible.value = false
 
       if (book && book.id) {
-        store.analyzeFullBook(book.id).catch(e => console.error('Auto AI analysis failed', e))
         store.analyzeVocabulary(book.id).catch(e => console.error('Auto vocab analysis failed', e))
       }
     }
@@ -124,7 +123,6 @@ async function submitCustomManga() {
     await authStore.checkAuth()
 
     if (newBook && newBook.id) {
-      store.analyzeFullBook(newBook.id).catch(e => console.error('Auto AI analysis failed', e))
       store.analyzeVocabulary(newBook.id).catch(e => console.error('Auto vocab analysis failed', e))
     }
 

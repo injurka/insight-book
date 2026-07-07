@@ -60,38 +60,62 @@ fn get_fcm_token_native() -> Option<String> {
 #[cfg(target_os = "android")]
 fn trigger_request_fcm_token_native() {
     let ctx = ndk_context::android_context();
-    let vm = unsafe { jni::JavaVM::from_raw(ctx.vm() as *mut _) }.unwrap();
-    let mut env = vm.attach_current_thread().unwrap();
+    let vm = match unsafe { jni::JavaVM::from_raw(ctx.vm() as *mut _) } {
+        Ok(vm) => vm,
+        Err(_) => return,
+    };
+    let mut env = match vm.attach_current_thread() {
+        Ok(env) => env,
+        Err(_) => return,
+    };
     
     let activity = ctx.context();
-    let class = env.find_class("ru/insightbook/insightbook/MainActivity").unwrap();
     let activity_obj = unsafe { jni::objects::JObject::from_raw(activity as *mut _) };
-    let activity_val = jni::objects::JValue::Object(&activity_obj);
     
-    let _ = env.call_static_method(
-        &class,
-        "requestFcmToken",
-        "(Lru/insightbook/insightbook/MainActivity;)V",
-        &[activity_val]
-    );
+    // Fallback to get_object_class if find_class fails (due to ClassLoader issues on detached threads)
+    let class = env.get_object_class(&activity_obj)
+        .or_else(|_| env.find_class("ru/insightbook/insightbook/MainActivity"));
+        
+    if let Ok(class) = class {
+        let activity_val = jni::objects::JValue::Object(&activity_obj);
+        let _ = env.call_static_method(
+            &class,
+            "requestFcmToken",
+            "(Lru/insightbook/insightbook/MainActivity;)V",
+            &[activity_val]
+        );
+    }
 }
 
 #[cfg(target_os = "android")]
 fn unsubscribe_fcm_native() {
     let ctx = ndk_context::android_context();
-    let vm = unsafe { jni::JavaVM::from_raw(ctx.vm() as *mut _) }.unwrap();
-    let mut env = vm.attach_current_thread().unwrap();
+    let vm = match unsafe { jni::JavaVM::from_raw(ctx.vm() as *mut _) } {
+        Ok(vm) => vm,
+        Err(_) => return,
+    };
+    let mut env = match vm.attach_current_thread() {
+        Ok(env) => env,
+        Err(_) => return,
+    };
     
     // Reset the local token variable
-    let class = env.find_class("ru/insightbook/insightbook/MainActivity").unwrap();
-    let null_obj = jni::objects::JObject::null();
-    let _ = env.set_static_field(&class, (&class, "_fcmToken", "Ljava/lang/String;"), jni::objects::JValue::Object(&null_obj));
+    let activity = ctx.context();
+    let activity_obj = unsafe { jni::objects::JObject::from_raw(activity as *mut _) };
+    let class = env.get_object_class(&activity_obj)
+        .or_else(|_| env.find_class("ru/insightbook/insightbook/MainActivity"));
+        
+    if let Ok(class) = class {
+        let null_obj = jni::objects::JObject::null();
+        let _ = env.set_static_field(&class, "_fcmToken", "Ljava/lang/String;", jni::objects::JValue::Object(&null_obj));
+    }
     
     // Async delete token from Firebase Messaging
-    let fm_class = env.find_class("com/google/firebase/messaging/FirebaseMessaging").unwrap();
-    if let Ok(fm_inst_res) = env.call_static_method(&fm_class, "getInstance", "()Lcom/google/firebase/messaging/FirebaseMessaging;", &[]) {
-        if let Ok(fm_inst) = fm_inst_res.l() {
-            let _ = env.call_method(&fm_inst, "deleteToken", "()Lcom/google/android/gms/tasks/Task;", &[]);
+    if let Ok(fm_class) = env.find_class("com/google/firebase/messaging/FirebaseMessaging") {
+        if let Ok(fm_inst_res) = env.call_static_method(&fm_class, "getInstance", "()Lcom/google/firebase/messaging/FirebaseMessaging;", &[]) {
+            if let Ok(fm_inst) = fm_inst_res.l() {
+                let _ = env.call_method(&fm_inst, "deleteToken", "()Lcom/google/android/gms/tasks/Task;", &[]);
+            }
         }
     }
 }

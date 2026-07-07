@@ -75,6 +75,7 @@ const { availableModels, isFetchingModels, fetchModels } = useCustomModels()
 
     <Transition name="fade">
       <div v-if="settingsStore.autoAnalyzePage" class="custom-llm-form">
+        <p class="hint" v-html="t('settings.autoAnalyzePageDesc')" />
         <div class="sync-options">
           <div class="sync-option-group">
             <div class="sync-option-half" :class="{ 'is-active': settingsStore.autoAnalyzeSentences }" @click="settingsStore.autoAnalyzeSentences = !settingsStore.autoAnalyzeSentences">
@@ -150,9 +151,10 @@ const { availableModels, isFetchingModels, fetchModels } = useCustomModels()
     border-top: 1px dashed var(--border-secondary-color);
   }
   .hint {
-    margin: 0;
+    margin: 0 0 4px 0;
     font-size: 0.85rem;
     color: var(--fg-secondary-color);
+    line-height: 1.4;
     :deep(code) {
       background: var(--bg-tertiary-color);
       padding: 2px 6px;
