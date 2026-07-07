@@ -94,10 +94,10 @@ function handleSignIn() {
   router.push(AppRoutePaths.SignIn)
 }
 
-function handleLogout() {
+async function handleLogout() {
   mainDropdownRef.value?.close()
-  authStore.logout()
-  window.location.reload()
+  await authStore.logout()
+  router.push(AppRoutePaths.SignIn)
 }
 </script>
 

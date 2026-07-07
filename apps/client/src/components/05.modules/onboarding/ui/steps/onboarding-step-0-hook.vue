@@ -13,10 +13,16 @@ const { t } = useI18n()
   <OnboardingStepLayout
     :title="t('onboarding.step0_title')"
     :description="t('onboarding.step0_desc')"
-    icon="mdi:book-open-page-variant"
-    wrapper-class="pulse-book"
     @click="emit('next')"
   >
+    <template #icon>
+      <div class="logo-onboarding-container">
+        <div class="glow-orb" />
+        <div class="glow-orb second" />
+        <img src="/logo.png" alt="Insight Logo" class="logo-image">
+      </div>
+    </template>
+
     <div class="hint-action blink" @click="emit('next')">
       <Icon icon="mdi:gesture-tap" />
       <span>{{ t('onboarding.step0_action') }}</span>
@@ -42,26 +48,102 @@ const { t } = useI18n()
   }
 }
 
-:deep(.pulse-book) {
-  cursor: pointer;
-  border-color: var(--fg-accent-color);
-  box-shadow: 0 0 0 0 rgba(var(--fg-accent-color-rgb, 201, 117, 222), 0.4);
-  animation: pulse-border 2s infinite;
+:deep(.step-icon-wrapper) {
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+  width: 200px;
+  height: 200px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 
-  &:hover {
-    transform: scale(1.05);
+  @include media-down(sm) {
+    width: 140px;
+    height: 140px;
   }
 }
 
-@keyframes pulse-border {
-  0% {
-    box-shadow: 0 0 0 0 rgba(var(--fg-accent-color-rgb, 201, 117, 222), 0.4);
+.logo-onboarding-container {
+  position: relative;
+  width: 180px;
+  height: 180px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1;
+
+  @include media-down(sm) {
+    width: 120px;
+    height: 120px;
   }
-  70% {
-    box-shadow: 0 0 0 20px rgba(var(--fg-accent-color-rgb, 201, 117, 222), 0);
+}
+
+.logo-image {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  z-index: 2;
+  animation: float-logo 3.5s ease-in-out infinite;
+  filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.15));
+  transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+
+  &:hover {
+    transform: scale(1.15) rotate(4deg);
+  }
+}
+
+.glow-orb {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 140px;
+  height: 140px;
+  background: radial-gradient(circle, var(--fg-accent-color) 0%, transparent 70%);
+  opacity: 0.45;
+  filter: blur(16px);
+  z-index: 1;
+  animation: pulse-glow 4s ease-in-out infinite alternate;
+
+  @include media-down(sm) {
+    width: 100px;
+    height: 100px;
+    filter: blur(12px);
+  }
+
+  &.second {
+    background: radial-gradient(circle, var(--fg-tertiary-color) 0%, transparent 70%);
+    animation: pulse-glow 6s ease-in-out infinite alternate-reverse;
+    width: 160px;
+    height: 160px;
+
+    @include media-down(sm) {
+      width: 120px;
+      height: 120px;
+    }
+  }
+}
+
+@keyframes float-logo {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+@keyframes pulse-glow {
+  0% {
+    transform: translate(-50%, -50%) scale(0.9);
+    opacity: 0.3;
   }
   100% {
-    box-shadow: 0 0 0 0 rgba(var(--fg-accent-color-rgb, 201, 117, 222), 0);
+    transform: translate(-50%, -50%) scale(1.25);
+    opacity: 0.55;
   }
 }
 

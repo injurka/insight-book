@@ -7,6 +7,7 @@ import { DefaultLayout } from '~/components/06.layouts/default'
 import { useBackHandler } from '~/shared/composables/use-back-handler'
 import { useChangeTheme } from '~/shared/composables/use-change-theme'
 import { useGlobalTracking } from '~/shared/composables/use-global-tracking'
+import { loadLanguageAsync } from '~/shared/plugins/i18n'
 import { useAnalysisStore } from '~/shared/store/analysis.store'
 import { useGlobalSettingsStore } from '~/shared/store/settings.store'
 
@@ -71,7 +72,7 @@ onMounted(async () => {
 })
 
 watch(() => settingsStore.appLanguage, (newLang) => {
-  locale.value = newLang
+  loadLanguageAsync(newLang)
 }, { immediate: true })
 
 const layoutName = computed(() => (route.meta.layout as string) || 'default')

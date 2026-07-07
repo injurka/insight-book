@@ -37,7 +37,17 @@
     "earlyAccess": "Early Access",
     "statBook": "Book",
     "statManga": "Manga",
-    "statDict": "Dictionary"
+    "statDict": "Dictionary",
+    "tagline": "Your personal library of books and manga",
+    "or": "or",
+    "loginTab": "Login",
+    "registerTab": "Register",
+    "loginOrEmail": "Login or email",
+    "verificationCode": "Verification code",
+    "createPassword": "Create a password",
+    "registerBtn": "Register",
+    "getCode": "Get code",
+    "changeEmail": "Change email"
   },
   "pwa": {
     "offlineReadyTitle": "Ready for offline use",

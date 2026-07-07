@@ -191,7 +191,7 @@ onUnmounted(() => {
 
       <div class="grid-overlay" />
 
-      <div class="deco-logo">
+      <div class="deco-logo" @click="router.push('/')">
         <div class="deco-logo-icon">
           <Icon icon="mdi:book-open-page-variant" />
         </div>
@@ -200,7 +200,7 @@ onUnmounted(() => {
           <span class="logo-sub">Book</span>
         </div>
         <p class="deco-tagline">
-          Ваша личная библиотека манги и&nbsp;ранобэ
+          {{ t('signIn.tagline') }}
         </p>
       </div>
 
@@ -281,7 +281,7 @@ onUnmounted(() => {
 
         <div class="divider">
           <span class="divider-line" />
-          <span class="divider-text">или</span>
+          <span class="divider-text">{{ t('signIn.or') }}</span>
           <span class="divider-line" />
         </div>
 
@@ -292,7 +292,7 @@ onUnmounted(() => {
             type="button"
             @click="currentTab = 'login'"
           >
-            Вход
+            {{ t('signIn.loginTab') }}
           </button>
           <button
             class="auth-tab-btn"
@@ -300,7 +300,7 @@ onUnmounted(() => {
             type="button"
             @click="currentTab = 'register'"
           >
-            Регистрация
+            {{ t('signIn.registerTab') }}
           </button>
         </div>
 
@@ -308,13 +308,13 @@ onUnmounted(() => {
           <form v-if="currentTab === 'login'" class="whitelist-form" @submit.prevent="handleSignIn">
             <KitInput
               v-model="username"
-              placeholder="Логин или email"
+              :placeholder="t('signIn.loginOrEmail')"
               autocomplete="username"
             />
             <KitInput
               v-model="password"
               type="password"
-              placeholder="Пароль"
+              :placeholder="t('signIn.password')"
               autocomplete="current-password"
             />
             <KitBtn
@@ -324,7 +324,7 @@ onUnmounted(() => {
               :disabled="isLoading"
             >
               <Icon v-if="isLoading" icon="mdi:loading" class="spin" />
-              <span>Войти</span>
+              <span>{{ t('signIn.loginBtn') }}</span>
             </KitBtn>
           </form>
 
@@ -340,13 +340,13 @@ onUnmounted(() => {
             <template v-if="isCodeSent">
               <KitInput
                 v-model="code"
-                placeholder="Код подтверждения"
+                :placeholder="t('signIn.verificationCode')"
                 autocomplete="one-time-code"
               />
               <KitInput
                 v-model="password"
                 type="password"
-                placeholder="Придумайте пароль"
+                :placeholder="t('signIn.createPassword')"
                 autocomplete="new-password"
               />
             </template>
@@ -358,7 +358,7 @@ onUnmounted(() => {
               :disabled="isLoading"
             >
               <Icon v-if="isLoading" icon="mdi:loading" class="spin" />
-              <span>{{ isCodeSent ? 'Зарегистрироваться' : 'Получить код' }}</span>
+              <span>{{ isCodeSent ? t('signIn.registerBtn') : t('signIn.getCode') }}</span>
             </KitBtn>
 
             <button
@@ -368,7 +368,7 @@ onUnmounted(() => {
               :disabled="isLoading"
               @click="isCodeSent = false"
             >
-              Изменить email
+              {{ t('signIn.changeEmail') }}
             </button>
           </form>
         </Transition>
@@ -580,6 +580,20 @@ onUnmounted(() => {
   align-items: center;
   gap: 14px;
   text-align: center;
+  cursor: pointer;
+  user-select: none;
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease;
+}
+
+.deco-logo:hover {
+  opacity: 0.9;
+  transform: translateY(-2px);
+}
+
+.deco-logo:active {
+  transform: translateY(0);
 }
 
 .deco-logo-icon {

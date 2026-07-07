@@ -37,7 +37,17 @@
     "earlyAccess": "抢先体验",
     "statBook": "书籍",
     "statManga": "漫画",
-    "statDict": "字典"
+    "statDict": "字典",
+    "tagline": "您的个人图书和漫画库",
+    "or": "或",
+    "loginTab": "登录",
+    "registerTab": "注册",
+    "loginOrEmail": "用户名或邮箱",
+    "verificationCode": "验证码",
+    "createPassword": "设置密码",
+    "registerBtn": "注册",
+    "getCode": "获取验证码",
+    "changeEmail": "更改邮箱"
   },
   "pwa": {
     "offlineReadyTitle": "已准备好离线使用",

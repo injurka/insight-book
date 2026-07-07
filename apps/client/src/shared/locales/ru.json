@@ -37,7 +37,17 @@
     "earlyAccess": "Ранний доступ",
     "statBook": "Книга",
     "statManga": "Манга",
-    "statDict": "Словарь"
+    "statDict": "Словарь",
+    "tagline": "Ваша личная библиотека книг и манги",
+    "or": "или",
+    "loginTab": "Вход",
+    "registerTab": "Регистрация",
+    "loginOrEmail": "Логин или email",
+    "verificationCode": "Код подтверждения",
+    "createPassword": "Придумайте пароль",
+    "registerBtn": "Зарегистрироваться",
+    "getCode": "Получить код",
+    "changeEmail": "Изменить email"
   },
   "pwa": {
     "offlineReadyTitle": "Готово к оффлайн-работе",
