@@ -8,7 +8,9 @@ echo "Configuring Android project for Firebase and Permissions..."
 ANDROID_DIR="apps/client/src-tauri/gen/android"
 MANIFEST_PATH="$ANDROID_DIR/app/src/main/AndroidManifest.xml"
 PROJECT_GRADLE="$ANDROID_DIR/build.gradle"
+PROJECT_GRADLE_KTS="$ANDROID_DIR/build.gradle.kts"
 APP_GRADLE="$ANDROID_DIR/app/build.gradle"
+APP_GRADLE_KTS="$ANDROID_DIR/app/build.gradle.kts"
 MAIN_ACTIVITY="$ANDROID_DIR/app/src/main/java/ru/insightbook/insightbook/MainActivity.kt"
 
 # 1. Inject Permissions into AndroidManifest.xml
@@ -20,24 +22,35 @@ if [ -f "$MANIFEST_PATH" ]; then
     fi
 fi
 
-# 2. Add Google Services to project build.gradle
+# 2. Add Google Services to project build.gradle(.kts)
 if [ -f "$PROJECT_GRADLE" ]; then
     echo "Updating project build.gradle..."
-    # Add classpath 'com.google.gms:google-services:4.4.0' to dependencies
     if ! grep -q "google-services" "$PROJECT_GRADLE"; then
         sed -i 's/dependencies {/dependencies {\n        classpath '\''com.google.gms:google-services:4.4.0'\''/' "$PROJECT_GRADLE"
     fi
+elif [ -f "$PROJECT_GRADLE_KTS" ]; then
+    echo "Updating project build.gradle.kts..."
+    if ! grep -q "google-services" "$PROJECT_GRADLE_KTS"; then
+        sed -i 's/dependencies {/dependencies {\n        classpath("com.google.gms:google-services:4.4.0")/' "$PROJECT_GRADLE_KTS"
+    fi
 fi
 
-# 3. Add Firebase plugins and dependencies to app build.gradle
+# 3. Add Firebase plugins and dependencies to app build.gradle(.kts)
 if [ -f "$APP_GRADLE" ]; then
     echo "Updating app build.gradle..."
-    # Add apply plugin: 'com.google.gms.google-services' and dependencies
     if ! grep -q "google-services" "$APP_GRADLE"; then
-        # Insert plugins block if not exists or apply it
         sed -i '1s/^/apply plugin: '\''com.google.gms.google-services'\''\n/' "$APP_GRADLE"
-        # Add dependency
         sed -i '/dependencies {/a \    implementation platform('\''com.google.firebase:firebase-bom:32.7.0'\'')\n    implementation '\''com.google.firebase:firebase-messaging'\''' "$APP_GRADLE"
+    fi
+elif [ -f "$APP_GRADLE_KTS" ]; then
+    echo "Updating app build.gradle.kts..."
+    if ! grep -q "google-services" "$APP_GRADLE_KTS"; then
+        if grep -q "plugins {" "$APP_GRADLE_KTS"; then
+            sed -i '/plugins {/a \    id("com.google.gms.google-services")' "$APP_GRADLE_KTS"
+        else
+            sed -i '1s/^/plugins {\n    id("com.google.gms.google-services")\n}\n/' "$APP_GRADLE_KTS"
+        fi
+        sed -i '/dependencies {/a \    implementation(platform("com.google.firebase:firebase-bom:32.7.0"))\n    implementation("com.google.firebase:firebase-messaging")' "$APP_GRADLE_KTS"
     fi
 fi
 
@@ -54,7 +67,6 @@ import android.content.pm.PackageManager
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.google.firebase.messaging.FirebaseMessaging
-import tauri.TauriActivity
 
 class MainActivity : TauriActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
