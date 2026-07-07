@@ -106,8 +106,7 @@ fn unsubscribe_fcm_native_impl(env: &mut jni::JNIEnv) -> jni::errors::Result<()>
     let class = env.get_object_class(&activity_obj)?;
     
     let null_obj = jni::objects::JObject::null();
-    // Using string class descriptor instead of tuple
-    env.set_static_field(&class, "_fcmToken", "Ljava/lang/String;", jni::objects::JValue::Object(&null_obj))?;
+    env.set_static_field(&class, ("_fcmToken", "Ljava/lang/String;"), jni::objects::JValue::Object(&null_obj))?;
     
     if let Ok(fm_class) = env.find_class("com/google/firebase/messaging/FirebaseMessaging") {
         if let Ok(fm_inst_res) = env.call_static_method(&fm_class, "getInstance", "()Lcom/google/firebase/messaging/FirebaseMessaging;", &[]) {
