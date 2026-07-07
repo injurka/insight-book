@@ -50,6 +50,7 @@ services:
       - VAPID_PRIVATE_KEY=${VAPID_PRIVATE_KEY:-}
       - VAPID_SUBJECT=${VAPID_SUBJECT:-}
       - GOOGLE_APPLICATION_CREDENTIALS=/configs/firebase-service-account.json
+      - UNISENDER_API_KEY=${UNISENDER_API_KEY:-}
     volumes:
       - ./db:/db
       - ./uploads:/uploads
