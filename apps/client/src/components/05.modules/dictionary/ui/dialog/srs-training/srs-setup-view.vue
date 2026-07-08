@@ -18,15 +18,15 @@ const setupOptions = reactive({
 })
 
 const modes = reactive({
-  standard: false,
-  audio: false,
-  writing: false,
-  typing: false,
-  choice: false,
+  'standard': false,
+  'audio': false,
+  'writing': false,
+  'typing': false,
+  'choice': false,
   'choice-reverse': false,
-  scramble: false,
-  collocations: false,
-  radicals: false,
+  'scramble': false,
+  'collocations': false,
+  'radicals': false,
 })
 
 const currentLang = computed(() => {

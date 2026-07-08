@@ -13,8 +13,8 @@ import { useSrsQuiz } from '../../../composables/use-srs-quiz'
 import { useDictionaryStore } from '../../../store/dictionary.store'
 import { useFsrsScheduling } from './composables/use-fsrs-scheduling'
 import SrsModeAudio from './srs-modes/srs-mode-audio.vue'
-import SrsModeChoice from './srs-modes/srs-mode-choice.vue'
 import SrsModeChoiceReverse from './srs-modes/srs-mode-choice-reverse.vue'
+import SrsModeChoice from './srs-modes/srs-mode-choice.vue'
 import SrsModeCollocations from './srs-modes/srs-mode-collocations.vue'
 import SrsModeRadicals from './srs-modes/srs-mode-radicals.vue'
 import SrsModeScramble from './srs-modes/srs-mode-scramble.vue'
@@ -72,15 +72,15 @@ const { intervals } = useFsrsScheduling(cardRef, isFlipped)
 
 // Strategy pattern: map mode → component
 const modeComponentMap = {
-  audio: SrsModeAudio,
-  writing: SrsModeWriting,
-  typing: SrsModeTyping,
-  choice: SrsModeChoice,
+  'audio': SrsModeAudio,
+  'writing': SrsModeWriting,
+  'typing': SrsModeTyping,
+  'choice': SrsModeChoice,
   'choice-reverse': SrsModeChoiceReverse,
-  scramble: SrsModeScramble,
-  collocations: SrsModeCollocations,
-  radicals: SrsModeRadicals,
-  standard: SrsModeStandard,
+  'scramble': SrsModeScramble,
+  'collocations': SrsModeCollocations,
+  'radicals': SrsModeRadicals,
+  'standard': SrsModeStandard,
 }
 
 const currentModeComponent = computed(() => modeComponentMap[currentMode.value] ?? SrsModeStandard)
@@ -303,7 +303,7 @@ function initCard() {
   if (!props.card)
     return
 
-  const modesConfig = props.modes || { standard: true, audio: true, writing: false, typing: true, choice: true, 'choice-reverse': false, scramble: false, collocations: false, radicals: false }
+  const modesConfig = props.modes || { 'standard': true, 'audio': true, 'writing': false, 'typing': true, 'choice': true, 'choice-reverse': false, 'scramble': false, 'collocations': false, 'radicals': false }
   const availableModes: ('standard' | 'audio' | 'writing' | 'typing' | 'choice' | 'choice-reverse' | 'scramble' | 'collocations' | 'radicals')[] = []
 
   if (modesConfig.standard)

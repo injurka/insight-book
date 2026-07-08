@@ -56,15 +56,15 @@ const {
 
 const isSubmittingGrade = ref(false)
 const activeModes = ref<Record<string, boolean>>({
-  standard: false,
-  audio: false,
-  writing: false,
-  typing: false,
-  choice: false,
+  'standard': false,
+  'audio': false,
+  'writing': false,
+  'typing': false,
+  'choice': false,
   'choice-reverse': false,
-  scramble: false,
-  collocations: false,
-  radicals: false,
+  'scramble': false,
+  'collocations': false,
+  'radicals': false,
 })
 
 const remainingQueue = computed(() => dictStore.reviewQueue.slice(currentIndex.value))
