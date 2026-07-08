@@ -149,7 +149,7 @@ export async function handleGetWordFromUserDict(req: Request, userId: number): P
 export async function handleGetReviewQueue(req: Request, userId: number): Promise<Response> {
   const url = new URL(req.url)
   const lang = url.searchParams.get('lang') || 'all'
-  const mode = url.searchParams.get('mode') as 'srs' | 'random' | 'deep_dive' || 'srs'
+  const mode = url.searchParams.get('mode') as 'srs' | 'random' | 'deep_dive' | 'cram' || 'srs'
   const deckIdStr = url.searchParams.get('deckId')
   const difficulty = url.searchParams.get('difficulty')
   const targetLang = normalizeLanguageCode((new URL(req.url).searchParams.get('targetLang')) || 'ru')

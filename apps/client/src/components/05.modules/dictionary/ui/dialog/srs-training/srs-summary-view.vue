@@ -5,6 +5,10 @@ import { KitBtn } from '~/components/01.kit'
 import { useSrsQuiz } from '../../../composables/use-srs-quiz'
 import { useDictionaryStore } from '../../../store/dictionary.store'
 
+defineOptions({
+  inheritAttrs: false,
+})
+
 defineProps<{
   stats: { newStudied: number, reviewed: number }
   accuracy: number

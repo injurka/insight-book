@@ -11,6 +11,7 @@ import KitTabs from './kit-tabs/ui/kit-tabs.vue'
 import KitToast from './kit-toast/ui/kit-toast-item.vue'
 import KitToggle from './kit-toggle/ui/kit-toggle.vue'
 import KitTooltip from './kit-tooltip/ui/kit-tooltip.vue'
+import KitViewSwitcher from './kit-view-switcher/ui/kit-view-switcher.vue'
 
 export {
   KitBtn,
@@ -26,4 +27,5 @@ export {
   KitToast,
   KitToggle,
   KitTooltip,
+  KitViewSwitcher,
 }

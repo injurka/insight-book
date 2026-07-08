@@ -7,6 +7,10 @@ import { KitBtn, KitSelect } from '~/components/01.kit'
 import { DIFFICULTY_SYSTEMS } from '~/shared/constants/difficulties'
 import { useDictionaryStore } from '../../../store/dictionary.store'
 
+defineOptions({
+  inheritAttrs: false,
+})
+
 const emit = defineEmits(['start', 'close'])
 
 const dictStore = useDictionaryStore()
@@ -111,6 +115,10 @@ watch(difficultyOptions, (newOpts) => {
 
 function start() {
   const selectedModes = { ...modes }
+  if (dictStore.trainingMode === 'match') {
+    emit('start', { ...setupOptions, modes: selectedModes })
+    return
+  }
   if (!selectedModes.standard && !selectedModes.audio && !selectedModes.writing && !selectedModes.typing && !selectedModes.choice && !selectedModes['choice-reverse'] && !selectedModes.scramble && !selectedModes.collocations && !selectedModes.radicals) {
     if (dictStore.trainingMode === 'deep_dive') {
       selectedModes.scramble = true
@@ -144,7 +152,11 @@ function start() {
 
     <div class="settings-group">
       <label class="group-label">{{ t('dictionary.trainingModes') }}</label>
-      <div class="modes-grid">
+
+      <div v-if="dictStore.trainingMode === 'match'" class="empty-modes-message">
+        {{ t('dictionary.noExtraModesForMatch') }}
+      </div>
+      <div v-else class="modes-grid">
         <template v-if="dictStore.trainingMode !== 'deep_dive'">
           <div class="mode-card" :class="{ 'is-active': modes.standard }" @click="modes.standard = !modes.standard">
             <Icon icon="mdi:card-text-outline" class="mode-icon" />
@@ -239,9 +251,21 @@ function start() {
       margin-bottom: 4px;
     }
 
+    .empty-modes-message {
+      color: var(--fg-secondary-color);
+      font-size: 0.9rem;
+      padding: 12px 0;
+      text-align: center;
+      border-radius: 12px;
+    }
+
     .modes-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+      grid-template-columns: repeat(3, 1fr);
+
+      @include media-down(sm) {
+        grid-template-columns: repeat(2, 1fr);
+      }
       gap: 12px;
 
       .mode-card {

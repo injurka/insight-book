@@ -301,7 +301,7 @@ export const api = {
     remove: (word: string) =>
       request<{ success: boolean }>(`/api/dictionary/${encodeURIComponent(word)}`, { method: 'DELETE' }),
 
-    getReviewQueue: (opts: { lang: string, mode: 'srs' | 'random' | 'deep_dive', deckId?: number | 'none' | 'all', difficulty?: string }) => {
+    getReviewQueue: (opts: { lang: string, mode: 'srs' | 'random' | 'deep_dive' | 'cram' | 'match', deckId?: number | 'none' | 'all', difficulty?: string }) => {
       const q = new URLSearchParams()
       q.set('lang', opts.lang)
       q.set('mode', opts.mode)

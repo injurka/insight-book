@@ -25,9 +25,9 @@ export const useDictionaryStore = defineStore('dictionary', () => {
     get: () => useTrainingStore().reviewQueue,
     set: (val: UserDictItem[]) => { useTrainingStore().reviewQueue = val },
   })
-  const trainingMode = computed<'srs' | 'random' | 'deep_dive'>({
+  const trainingMode = computed<'srs' | 'deep_dive' | 'cram' | 'match'>({
     get: () => useTrainingStore().trainingMode,
-    set: (val: 'srs' | 'random' | 'deep_dive') => { useTrainingStore().trainingMode = val },
+    set: (val: 'srs' | 'deep_dive' | 'cram' | 'match') => { useTrainingStore().trainingMode = val },
   })
   const searchTerm = computed<string>({
     get: () => useDictionaryFiltersStore().searchTerm,

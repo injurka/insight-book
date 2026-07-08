@@ -618,9 +618,17 @@ watch(() => props.card, initCard, { immediate: true })
     </template>
 
     <div v-else-if="intervals" class="grade-buttons fade-in">
-      <template v-if="dictStore.trainingMode !== 'srs'">
+      <template v-if="dictStore.trainingMode === 'deep_dive'">
         <button class="grade-btn primary" :class="{ 'is-suggested': isAnswerChecked && isAnswerCorrect }" :disabled="isSubmittingGrade" @click="gradeCard(Rating.Good)">
           <span class="g-label">{{ t('dictionary.next') }}</span>
+        </button>
+      </template>
+      <template v-else-if="dictStore.trainingMode === 'cram'">
+        <button class="grade-btn error" :class="{ 'is-suggested': isAnswerChecked && !isAnswerCorrect }" :disabled="isSubmittingGrade" @click="gradeCard(Rating.Again)">
+          <span class="g-label">{{ t('dictionary.again') }}</span>
+        </button>
+        <button class="grade-btn primary" :class="{ 'is-suggested': isAnswerChecked && isAnswerCorrect }" :disabled="isSubmittingGrade" @click="gradeCard(Rating.Good)">
+          <span class="g-label">{{ t('dictionary.good') }}</span>
         </button>
       </template>
       <template v-else>

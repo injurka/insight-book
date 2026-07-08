@@ -319,7 +319,14 @@ export async function removeFromUserDictionary(word: string, userId: number, tar
   ))
 }
 
-export async function getReviewQueue(userId: number, language: string | undefined, targetLang: string, mode: 'srs' | 'random' | 'deep_dive' = 'srs', deckId?: number | 'none', difficulty?: string) {
+export async function getReviewQueue(
+  userId: number,
+  language: string | undefined,
+  targetLang: string,
+  mode: 'srs' | 'random' | 'deep_dive' | 'cram' = 'srs',
+  deckId?: number | 'none',
+  difficulty?: string,
+) {
   const filters: any[] = [
     eq(schema.userDictionary.userId, userId),
     eq(schema.userDictionary.targetLanguage, targetLang),
@@ -361,7 +368,7 @@ export async function getReviewQueue(userId: number, language: string | undefine
       where: and(...filters),
       with: { encounters: true },
       orderBy: [sql`RANDOM()`],
-      limit: 50,
+      limit: mode === 'cram' ? 500 : 50,
     })
   }
 }

@@ -1,22 +1,30 @@
 <script setup lang="ts">
 import { Icon } from '@iconify/vue'
+import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { KitBtn, KitDropdown, KitInput, KitSelect, KitTooltip } from '~/components/01.kit'
+import { KitBtn, KitDropdown, KitInput, KitSelect, KitTooltip, KitViewSwitcher } from '~/components/01.kit'
 import { GlobalActions } from '~/components/04.features/global-actions'
 import { useDictFilterOptions } from '../../composables/use-dict-filter-options'
 import { useDictionaryStore } from '../../store/dictionary.store'
 
 const emit = defineEmits<{
-  openTraining: [mode: 'srs' | 'random' | 'deep_dive']
+  openTraining: [mode: 'srs' | 'deep_dive' | 'cram' | 'match']
   openDiscover: []
   openManageDecks: []
   openStats: []
 }>()
 
 const isEditMode = defineModel<boolean>('isEditMode', { required: true })
+const viewMode = defineModel<'list' | 'grid'>('viewMode', { required: true })
+
+const { t } = useI18n()
+
+const viewOptions = computed(() => [
+  { id: 'list', icon: 'mdi:format-list-bulleted', label: t('dictionary.viewList') },
+  { id: 'grid', icon: 'mdi:view-grid-outline', label: t('dictionary.viewGrid') },
+])
 
 const store = useDictionaryStore()
-const { t } = useI18n()
 const { langOptions, deckOptions, difficultyOptions, statusOptions } = useDictFilterOptions()
 
 const router = useRouter()
@@ -28,7 +36,7 @@ watch(() => store.selectedLanguage, () => {
   store.selectedDifficulty = ['all']
 })
 
-function openTrainingSettings(mode: 'srs' | 'random' | 'deep_dive') {
+function openTrainingSettings(mode: 'srs' | 'deep_dive' | 'cram' | 'match') {
   store.trainingMode = mode
   emit('openTraining', mode)
   dropdownRef.value?.close()
@@ -104,16 +112,20 @@ function openTrainingSettings(mode: 'srs' | 'random' | 'deep_dive') {
             </template>
             <div class="dropdown-menu-list">
               <button class="dropdown-item" :disabled="store.words.length === 0" @click="openTrainingSettings('srs')">
-                <Icon icon="mdi:calendar-clock" />
-                {{ t('dictionary.srsTraining') }}
-              </button>
-              <button class="dropdown-item" :disabled="store.words.length === 0" @click="openTrainingSettings('random')">
-                <Icon icon="mdi:shuffle-variant" />
-                {{ t('dictionary.randomTraining') }}
+                <Icon icon="mdi:calendar-clock" style="color: var(--fg-accent-color)" />
+                <span style="color: var(--fg-accent-color); font-weight: 700;">{{ t('dictionary.srsTraining') }}</span>
               </button>
               <button class="dropdown-item" :disabled="store.words.length === 0" @click="openTrainingSettings('deep_dive')">
                 <Icon icon="mdi:diving-scuba" />
                 {{ t('dictionary.deepDiveTraining') }}
+              </button>
+              <button class="dropdown-item" :disabled="store.words.length === 0" @click="openTrainingSettings('cram')">
+                <Icon icon="mdi:lightning-bolt-outline" />
+                {{ t('dictionary.cramTraining') }}
+              </button>
+              <button class="dropdown-item" :disabled="store.words.length === 0" @click="openTrainingSettings('match')">
+                <Icon icon="mdi:puzzle-outline" />
+                {{ t('dictionary.matchTraining') }}
               </button>
             </div>
           </KitDropdown>
@@ -128,6 +140,7 @@ function openTrainingSettings(mode: 'srs' | 'random' | 'deep_dive') {
         </div>
 
         <div class="stats-badge">
+          <KitViewSwitcher v-model="viewMode" :items="viewOptions" class="view-switcher-custom" />
           <span class="badge">{{ t('dictionary.wordsCount', { count: store.filteredWords.length }) }}</span>
           <div class="badge-actions">
             <KitTooltip :text="isEditMode ? t('dictionary.done') : t('dictionary.edit')" placement="bottom-end">
@@ -233,6 +246,31 @@ function openTrainingSettings(mode: 'srs' | 'random' | 'deep_dive') {
         display: flex;
         align-items: center;
         gap: 8px;
+
+        .view-switcher-custom {
+          margin-right: 8px;
+          background: var(--bg-tertiary-color);
+          border-color: transparent;
+          height: 36px;
+          border-radius: 99px;
+
+          :deep(.kit-view-switcher-glider) {
+            border-radius: 99px;
+            background-color: var(--bg-secondary-color);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+          }
+
+          :deep(.kit-view-switcher-button) {
+            min-height: 28px;
+            padding: 4px 12px;
+            border-radius: 99px;
+            font-size: 0.85rem;
+          }
+
+          @include media-down(sm) {
+            display: none;
+          }
+        }
 
         .badge {
           background: var(--bg-tertiary-color);

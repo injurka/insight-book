@@ -19,6 +19,7 @@ const route = useRoute()
 
 const isTrainingOpen = ref(false)
 const isEditMode = ref(false)
+const viewMode = ref<'list' | 'grid'>('list')
 const isManageDecksOpen = ref(false)
 const isDiscoverOpen = ref(false)
 const isBulkMoveOpen = ref(false)
@@ -44,7 +45,7 @@ function openDetails(item: UserDictItem) {
   isDetailsModalOpen.value = true
 }
 
-function openTrainingSettings(mode: 'srs' | 'random' | 'deep_dive') {
+function openTrainingSettings(mode: 'srs' | 'deep_dive' | 'cram' | 'match') {
   store.trainingMode = mode
   isTrainingOpen.value = true
 }
@@ -81,6 +82,7 @@ watch(isDetailsModalOpen, (isOpen) => {
 
     <DictionaryHeader
       v-model:is-edit-mode="isEditMode"
+      v-model:view-mode="viewMode"
       @open-training="openTrainingSettings"
       @open-discover="isDiscoverOpen = true"
       @open-manage-decks="isManageDecksOpen = true"
@@ -90,6 +92,7 @@ watch(isDetailsModalOpen, (isOpen) => {
     <div class="dict-layout">
       <DictionaryList
         :is-edit-mode="isEditMode"
+        :view-mode="viewMode"
         @open-details="openDetails"
         @open-bulk-move="isBulkMoveOpen = true"
       />

@@ -9,6 +9,7 @@ import { api } from '~/shared/services/api.service'
 import { useSrsSession } from '../../composables/use-srs-session'
 import { useDictionaryStore } from '../../store/dictionary.store'
 import SrsCardView from './srs-training/srs-card-view.vue'
+import SrsModeMatch from './srs-training/srs-mode-match.vue'
 import SrsSetupView from './srs-training/srs-setup-view.vue'
 import SrsSummaryView from './srs-training/srs-summary-view.vue'
 
@@ -78,6 +79,8 @@ const activeView = computed(() => {
     return SrsSetupView
   if (sessionState.value === 'finished')
     return SrsSummaryView
+  if (dictStore.trainingMode === 'match')
+    return SrsModeMatch
   return SrsCardView
 })
 
@@ -113,7 +116,10 @@ async function handleGrade(grade: number) {
   const isNew = currentCard.value.state === 0
   recordAnswer(isNew, grade)
 
-  if (dictStore.trainingMode === 'random' || dictStore.trainingMode === 'deep_dive') {
+  if (dictStore.trainingMode === 'deep_dive' || dictStore.trainingMode === 'cram' || dictStore.trainingMode === 'match') {
+    if (grade === 1 && dictStore.trainingMode === 'cram') {
+      dictStore.reviewQueue.push(currentCard.value)
+    }
     currentIndex.value++
     return
   }
@@ -176,13 +182,13 @@ watch(currentIndex, () => {
       <div class="srs-header">
         <h2 class="dialog-title">
           <template v-if="sessionState === 'setup'">
-            {{ dictStore.trainingMode === 'srs' ? t('dictionary.setupSrs') : (dictStore.trainingMode === 'deep_dive' ? t('dictionary.deepDiveTraining') : t('dictionary.setupWarmup')) }}
+            {{ dictStore.trainingMode === 'srs' ? t('dictionary.setupSrs') : dictStore.trainingMode === 'cram' ? 'Зубрёжка' : dictStore.trainingMode === 'match' ? 'Матчинг' : t('dictionary.deepDiveTraining') }}
           </template>
           <template v-else-if="sessionState === 'finished'">
             {{ t('dictionary.sessionSummary') }}
           </template>
           <template v-else>
-            {{ dictStore.trainingMode === 'srs' ? t('dictionary.reviewSrs') : (dictStore.trainingMode === 'deep_dive' ? t('dictionary.deepDiveTraining') : t('dictionary.randomTraining')) }}
+            {{ dictStore.trainingMode === 'srs' ? t('dictionary.reviewSrs') : dictStore.trainingMode === 'cram' ? 'Зубрёжка' : dictStore.trainingMode === 'match' ? 'Матчинг' : t('dictionary.deepDiveTraining') }}
           </template>
         </h2>
 
@@ -201,6 +207,7 @@ watch(currentIndex, () => {
         <component
           :is="activeView"
           :card="currentCard"
+          :current-index="currentIndex"
           :stats="stats"
           :accuracy="accuracy"
           :time-spent-ms="timeSpentMs"

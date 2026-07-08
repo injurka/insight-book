@@ -12,6 +12,7 @@ import { useDictionaryStore } from '../../store/dictionary.store'
 
 const props = defineProps<{
   isEditMode: boolean
+  viewMode: 'list' | 'grid'
 }>()
 
 const emit = defineEmits<{
@@ -141,6 +142,62 @@ function handleConfirmDelete() {
       </p>
     </div>
 
+    <div v-else-if="viewMode === 'grid'" class="dict-grid-container">
+      <div
+        v-for="item in store.filteredWords"
+        :key="item.id"
+        class="dict-item is-grid-mode"
+        :class="{ 'is-selected': store.selectedWordIds.has(item.id) }"
+        @click="handleItemClick(item)"
+      >
+        <div v-if="isEditMode" class="checkbox-col" @click.stop>
+          <KitCheckbox
+            :model-value="store.selectedWordIds.has(item.id)"
+            @update:model-value="store.toggleWordSelection(item.id)"
+          />
+        </div>
+        <div class="dict-item-content">
+          <div class="dict-word-container">
+            <div class="word-group">
+              <span class="dict-word">{{ item.word }}</span>
+              <span class="dict-transcription">{{ item.transcription }}</span>
+            </div>
+            <div class="badges-group">
+              <span
+                v-if="item.difficulty"
+                class="diff-badge"
+                :class="getDifficultyClass(item.language, item.difficulty)"
+              >
+                {{ item.difficulty }}
+              </span>
+              <KitTooltip v-if="item.deckIds && item.deckIds.length > 1" :text="t('dictionary.inMultipleDecks') || 'Слово в нескольких колодах'">
+                <span class="multi-deck-badge">
+                  <Icon icon="mdi:folder-multiple-outline" />
+                </span>
+              </KitTooltip>
+              <span class="srs-badge" :style="{ color: getStatusLabel(item.state).color }">
+                {{ getStatusLabel(item.state).label }}
+              </span>
+            </div>
+          </div>
+          <div class="dict-translation" v-html="item.translation" />
+        </div>
+        <div v-if="isEditMode" class="dict-actions" @click.stop>
+          <KitTooltip :text="t('dictionary.editItem')" placement="top">
+            <KitBtn
+              icon="mdi:pencil"
+              variant="text"
+              size="xs"
+              @click="analysisStore.wordToEdit = item; analysisStore.addEditWordModalOpen = true"
+            />
+          </KitTooltip>
+          <KitTooltip :text="t('dictionary.deleteItem')" placement="top-end">
+            <KitBtn icon="mdi:delete-outline" variant="text" size="xs" color="error" @click="openDeleteWord(item.word)" />
+          </KitTooltip>
+        </div>
+      </div>
+    </div>
+
     <div v-else class="virtual-list-container" v-bind="containerProps">
       <div v-bind="wrapperProps" class="virtual-list-wrapper">
         <div
@@ -158,23 +215,27 @@ function handleConfirmDelete() {
           </div>
           <div class="dict-item-content">
             <div class="dict-word-container">
-              <span class="dict-word">{{ item.data.word }}</span>
-              <span class="dict-transcription">{{ item.data.transcription }}</span>
-              <span
-                v-if="item.data.difficulty"
-                class="diff-badge"
-                :class="getDifficultyClass(item.data.language, item.data.difficulty)"
-              >
-                {{ item.data.difficulty }}
-              </span>
-              <KitTooltip v-if="item.data.deckIds && item.data.deckIds.length > 1" :text="t('dictionary.inMultipleDecks') || 'Слово в нескольких колодах'">
-                <span class="multi-deck-badge">
-                  <Icon icon="mdi:folder-multiple-outline" />
+              <div class="word-group">
+                <span class="dict-word">{{ item.data.word }}</span>
+                <span class="dict-transcription">{{ item.data.transcription }}</span>
+              </div>
+              <div class="badges-group">
+                <span
+                  v-if="item.data.difficulty"
+                  class="diff-badge"
+                  :class="getDifficultyClass(item.data.language, item.data.difficulty)"
+                >
+                  {{ item.data.difficulty }}
                 </span>
-              </KitTooltip>
-              <span class="srs-badge" :style="{ color: getStatusLabel(item.data.state).color }">
-                {{ getStatusLabel(item.data.state).label }}
-              </span>
+                <KitTooltip v-if="item.data.deckIds && item.data.deckIds.length > 1" :text="t('dictionary.inMultipleDecks') || 'Слово в нескольких колодах'">
+                  <span class="multi-deck-badge">
+                    <Icon icon="mdi:folder-multiple-outline" />
+                  </span>
+                </KitTooltip>
+                <span class="srs-badge" :style="{ color: getStatusLabel(item.data.state).color }">
+                  {{ getStatusLabel(item.data.state).label }}
+                </span>
+              </div>
             </div>
             <div class="dict-translation" v-html="item.data.translation" />
           </div>
@@ -270,6 +331,25 @@ function handleConfirmDelete() {
   flex-direction: column;
 }
 
+.dict-grid-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+  overflow-y: auto;
+  padding-right: 8px;
+  padding-bottom: 24px;
+  flex-grow: 1;
+  align-content: start;
+
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+  &::-webkit-scrollbar-thumb {
+    background-color: var(--border-secondary-color);
+    border-radius: 4px;
+  }
+}
+
 .dict-item {
   display: flex;
   gap: 16px;
@@ -308,14 +388,33 @@ function handleConfirmDelete() {
   .dict-word-container {
     margin-bottom: 8px;
     display: flex;
-    align-items: center;
+    align-items: flex-start;
+    justify-content: space-between;
     gap: 8px;
-    flex-wrap: wrap;
+
+    .word-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      min-width: 0;
+    }
+
+    .badges-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-left: auto;
+      flex-shrink: 0;
+      padding-top: 2px;
+    }
 
     .dict-word {
       font-size: 1.2rem;
       font-weight: bold;
       color: var(--fg-accent-color);
+      word-break: break-word;
+      overflow-wrap: break-word;
     }
 
     .dict-transcription {
@@ -337,6 +436,47 @@ function handleConfirmDelete() {
     display: flex;
     flex-direction: column;
     gap: 4px;
+  }
+
+  &.is-grid-mode {
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
+    margin-bottom: 0;
+    height: auto;
+    min-height: 120px;
+    position: relative;
+
+    .checkbox-col {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      padding-top: 0;
+      z-index: 2;
+    }
+
+    .dict-item-content {
+      display: flex;
+      flex-direction: column;
+      flex-grow: 1;
+      width: 100%;
+      min-width: 0;
+    }
+
+    .dict-word-container {
+      margin-bottom: 12px;
+      min-width: 0;
+      width: 100%;
+    }
+
+    .dict-actions {
+      flex-direction: row;
+      margin-top: auto;
+      justify-content: flex-end;
+      width: 100%;
+      border-top: 1px solid var(--border-secondary-color);
+      padding-top: 8px;
+    }
   }
 }
 
@@ -371,8 +511,6 @@ function handleConfirmDelete() {
   border-radius: 4px;
   font-weight: 500;
   opacity: 0.8;
-  margin-left: auto;
-  margin-right: 8px;
 }
 
 .multi-deck-badge {

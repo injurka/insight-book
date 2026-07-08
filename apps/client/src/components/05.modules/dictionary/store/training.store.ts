@@ -7,13 +7,17 @@ import { useDictionaryFiltersStore } from './dictionary-filters.store'
 
 export const useTrainingStore = defineStore('training', () => {
   const reviewQueue = ref<any[]>([])
-  const trainingMode = ref<'srs' | 'random' | 'deep_dive'>('srs')
+  const trainingMode = ref<'srs' | 'deep_dive' | 'cram' | 'match'>('srs')
 
   const newWordsQueueCount = computed(() => reviewQueue.value.filter(w => w.state === 0).length)
   const reviewWordsQueueCount = computed(() => reviewQueue.value.filter(w => w.state > 0).length)
   const totalReviewCount = computed(() => reviewQueue.value.length)
 
-  async function fetchTrainingQueue(opts: { mode: 'srs' | 'random' | 'deep_dive', deckId: number | 'none' | 'all', difficulty: string[] }) {
+  async function fetchTrainingQueue(opts: {
+    mode: 'srs' | 'deep_dive' | 'cram' | 'match'
+    deckId: number | 'none' | 'all'
+    difficulty: string[]
+  }) {
     trainingMode.value = opts.mode
     try {
       const filtersStore = useDictionaryFiltersStore()
