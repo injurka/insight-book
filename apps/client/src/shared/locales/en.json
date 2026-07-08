@@ -610,9 +610,10 @@
     "regenerate": "Regenerate",
     "generateExamples": "Generate examples",
     "mnemonicsEtymology": "Mnemonics / Etymology",
-    "usageExamples": "Usage Examples",
+    "usageExamples": "Usage examples",
     "close": "Close",
-    "edit": "Edit"
+    "edit": "Edit",
+    "forceNewVoiceover": "Make new voiceover"
   },
   "bookLexical": {
     "analyzingVocab": "Analyzing the book's vocabulary...",

@@ -612,7 +612,8 @@
     "mnemonicsEtymology": "助记法 / 词源",
     "usageExamples": "使用示例",
     "close": "关闭",
-    "edit": "编辑"
+    "edit": "编辑",
+    "forceNewVoiceover": "重新生成语音"
   },
   "bookLexical": {
     "analyzingVocab": "正在分析书籍的词汇...",

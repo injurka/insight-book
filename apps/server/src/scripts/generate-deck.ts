@@ -10,6 +10,56 @@ import { normalizeLanguageCode } from '../utils/helpers'
 const args = process.argv.slice(2)
 const inputArg = args[0]
 
+const ALLOWED_TAGS = [
+  'sci_fi',
+  'fantasy',
+  'adventure',
+  'shounen',
+  'shoujo',
+  'seinen',
+  'josei',
+  'romance',
+  'comedy',
+  'drama',
+  'slice_of_life',
+  'action',
+  'thriller',
+  'mystery',
+  'horror',
+  'post_apocalyptic',
+  'cyberpunk',
+  'historical',
+  'martial_arts',
+  'psychological',
+  'supernatural',
+  'magic',
+  'school',
+  'mecha',
+  'isekai',
+  'game',
+  'dystopia',
+  'music',
+  'sports',
+  'tragedy',
+  'space',
+  'vampire',
+  'zombie',
+  'military',
+  'wuxia',
+  'xianxia',
+]
+
+function filterAllowedTags(rawTags: string | undefined | null): string {
+  if (!rawTags)
+    return ''
+
+  const parsedTags = rawTags.split(',').map(t => t.trim().toLowerCase())
+
+  const validTags = parsedTags.filter(t => ALLOWED_TAGS.includes(t))
+
+  return validTags.join(', ')
+}
+
 async function main() {
   if (!inputArg) {
     console.error('❌ Использование: bun src/scripts/generate-deck.ts <имя_файла.json или путь>')
@@ -35,9 +85,9 @@ async function main() {
   const title = data.title
   const description = data.description || ''
   const difficulty = data.difficulty || ''
-  const lang = normalizeLanguageCode(data.lang || 'zh')
-  const targetLang = data.targetLang || 'ru'
-  const words = data.words as string[]
+  const lang = normalizeLanguageCode(data.lang || data.language || 'zh')
+  const targetLang = data.targetLanguage || data.targetLang || 'ru'
+  const words = data.words as any[]
 
   if (!title || !words || !Array.isArray(words)) {
     console.error('❌ Неверный формат JSON. Ожидается: { "title": "...", "words": ["..."] }')
@@ -53,13 +103,11 @@ async function main() {
   }
 
   const enrichedWords = []
-  const tagsSet = new Set<string>()
-  const diffCount: Record<string, number> = {}
 
   console.log(`🚀 Начинаем обогащение колоды: "${title}" (${words.length} слов)`)
 
   for (let i = 0; i < words.length; i++) {
-    const item = words[i] as any
+    const item = words[i]
 
     const word = typeof item === 'string' ? item : (item.word || item.text)
 
@@ -74,20 +122,13 @@ async function main() {
 
       enrichedWords.push({
         word,
-        tags: res.tags,
-        difficulty,
+        tags: filterAllowedTags(res.tags),
         transcription: res.transcription || '',
         translation: res.translation || '',
         grammarNote: res.grammarNote || '',
         vocabularyNote: res.vocabularyNote || '',
+        difficulty: res.difficulty || difficulty,
       })
-
-      if (res.difficulty) {
-        diffCount[res.difficulty] = (diffCount[res.difficulty] || 0) + 1
-      }
-      if (res.tags) {
-        res.tags.split(',').map(t => t.trim()).filter(Boolean).forEach(t => tagsSet.add(t))
-      }
 
       await new Promise(r => setTimeout(r, 600))
     }
@@ -96,15 +137,12 @@ async function main() {
     }
   }
 
-  const dominantDifficulty = Object.entries(diffCount).sort((a, b) => b[1] - a[1])[0]?.[0] || ''
-  const allTags = Array.from(tagsSet).slice(0, 5).join(', ')
-
   const finalDeck = {
     title,
     description,
     language: lang,
-    difficulty: dominantDifficulty,
-    tags: allTags,
+    targetLanguage: targetLang,
+    difficulty,
     words: enrichedWords,
   }
 

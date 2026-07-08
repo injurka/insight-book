@@ -8,7 +8,9 @@ import { KitBtn, KitDropdown, KitTooltip } from '~/components/01.kit'
 import { PronunciationCheck } from '~/components/04.features/pronunciation-check'
 import { useToast } from '~/shared/composables/use-toast'
 import { useTts } from '~/shared/composables/use-tts'
+import { vLongPress } from '~/shared/directives/long-press'
 import { api } from '~/shared/services/api.service'
+import { useAuthStore } from '~/shared/store/auth.store'
 import { useSrsQuiz } from '../../../composables/use-srs-quiz'
 import { useDictionaryStore } from '../../../store/dictionary.store'
 import { useFsrsScheduling } from './composables/use-fsrs-scheduling'
@@ -57,6 +59,22 @@ const isChatModalOpen = ref(false)
 const isAiLoading = ref(false)
 const aiData = ref<GeneratedWordExamples | null>(null)
 const currentMode = ref<'standard' | 'audio' | 'writing' | 'typing' | 'choice' | 'choice-reverse' | 'scramble' | 'collocations' | 'radicals'>('standard')
+
+const authStore = useAuthStore()
+const isAdmin = computed(() => authStore.user?.role === 'admin')
+const isTtsPopoverOpen = ref(false)
+
+function openTtsPopover() {
+  if (isAdmin.value) {
+    isTtsPopoverOpen.value = true
+  }
+}
+
+function playTTS(forceCacheBypass = false) {
+  if (props.card?.word) {
+    speak(props.card.word, props.card.language, undefined, forceCacheBypass)
+  }
+}
 
 // Scramble state
 const scrambleChunks = ref<{ id: number, text: string }[]>([])
@@ -474,17 +492,29 @@ watch(() => props.card, initCard, { immediate: true })
 
       <div class="card-toolbar fade-in">
         <div class="toolbar-group">
-          <KitTooltip :text="t('dictionary.listenVoice')" placement="top">
-            <KitBtn
-              :icon="isPlaying ? 'mdi:volume-high' : 'mdi:volume-medium'"
-              :loading="isLoading"
-              variant="tonal"
-              color="secondary"
-              size="sm"
-              :class="{ 'is-playing-pulse': isPlaying }"
-              @click="speak(card.word, card.language, undefined)"
-            />
-          </KitTooltip>
+          <KitDropdown v-model="isTtsPopoverOpen" placement="bottom-start" width="220px" :disabled="true">
+            <template #activator>
+              <KitTooltip :text="t('dictionary.listenVoice')" placement="bottom">
+                <KitBtn
+                  v-long-press="openTtsPopover"
+                  :icon="isPlaying ? 'mdi:volume-high' : 'mdi:volume-medium'"
+                  :loading="isLoading"
+                  variant="tonal"
+                  color="secondary"
+                  size="sm"
+                  :class="{ 'is-playing-pulse': isPlaying, 'is-active-btn': isTtsPopoverOpen }"
+                  @click="playTTS(false)"
+                  @contextmenu.prevent="openTtsPopover"
+                />
+              </KitTooltip>
+            </template>
+            <div class="dropdown-menu-list">
+              <button class="dropdown-item" @click="playTTS(true); isTtsPopoverOpen = false">
+                <Icon icon="mdi:refresh" />
+                {{ t('dictWord.forceNewVoiceover') }}
+              </button>
+            </div>
+          </KitDropdown>
 
           <PronunciationCheck
             v-if="card"
@@ -494,11 +524,12 @@ watch(() => props.card, initCard, { immediate: true })
             btn-size="sm"
             btn-color="secondary"
             btn-variant="tonal"
+            tooltip-placement="bottom"
           />
 
-          <KitDropdown placement="top-start" width="240px">
+          <KitDropdown placement="bottom-start" width="240px">
             <template #activator="{ props: dropdownProps }">
-              <KitTooltip :text="t('dictionary.aiHint')" placement="top">
+              <KitTooltip :text="t('dictionary.aiHint')" placement="bottom">
                 <KitBtn
                   icon="mdi:robot-outline"
                   variant="tonal"
@@ -519,20 +550,20 @@ watch(() => props.card, initCard, { immediate: true })
               </button>
             </div>
           </KitDropdown>
-          <KitTooltip v-if="card.language === 'zh' && /[\u4E00-\u9FA5]/.test(card.word)" :text="t('dictionary.writingPractice')" placement="top">
+          <KitTooltip v-if="card.language === 'zh' && /[\u4E00-\u9FA5]/.test(card.word)" :text="t('dictionary.writingPractice')" placement="bottom">
             <KitBtn icon="mdi:draw" variant="tonal" color="secondary" size="sm" :class="{ 'is-active-btn': showAnimation }" @click="toggleAnimation" />
           </KitTooltip>
         </div>
 
         <div v-if="card.grammarNote || card.vocabularyNote || card.notes" class="toolbar-divider" />
         <div v-if="card.grammarNote || card.vocabularyNote || card.notes" class="toolbar-group">
-          <KitTooltip v-if="card.grammarNote" :text="t('dictionary.grammar')" placement="top">
+          <KitTooltip v-if="card.grammarNote" :text="t('dictionary.grammar')" placement="bottom">
             <KitBtn size="sm" :variant="expandedSections.grammar ? 'solid' : 'tonal'" :color="expandedSections.grammar ? 'primary' : 'secondary'" icon="mdi:puzzle-outline" @click="toggleSection('grammar')" />
           </KitTooltip>
-          <KitTooltip v-if="card.vocabularyNote" :text="t('dictionary.vocabulary')" placement="top">
+          <KitTooltip v-if="card.vocabularyNote" :text="t('dictionary.vocabulary')" placement="bottom">
             <KitBtn size="sm" :variant="expandedSections.vocab ? 'solid' : 'tonal'" :color="expandedSections.vocab ? 'primary' : 'secondary'" icon="mdi:book-open-page-variant-outline" @click="toggleSection('vocab')" />
           </KitTooltip>
-          <KitTooltip v-if="card.notes" :text="t('dictionary.notesMnemonic')" placement="top">
+          <KitTooltip v-if="card.notes" :text="t('dictionary.notesMnemonic')" placement="bottom">
             <KitBtn size="sm" :variant="expandedSections.notes ? 'solid' : 'tonal'" :color="expandedSections.notes ? 'primary' : 'secondary'" icon="mdi:note-text-outline" @click="toggleSection('notes')" />
           </KitTooltip>
         </div>
@@ -664,7 +695,7 @@ watch(() => props.card, initCard, { immediate: true })
 }
 
 .animation-container {
-  margin-top: 16px;
+  margin-top: 8px;
   background-color: rgba(var(--bg-tertiary-color-rgb), 0.5);
   padding: 12px;
   border-radius: 8px;
@@ -1063,6 +1094,7 @@ watch(() => props.card, initCard, { immediate: true })
   svg {
     font-size: 1.25rem;
     color: var(--fg-secondary-color);
+    flex-shrink: 0;
   }
 
   &:hover:not(:disabled) svg {

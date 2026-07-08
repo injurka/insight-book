@@ -1,16 +1,15 @@
 <script setup lang="ts">
-import type { TagKey } from '~/shared/constants/tags'
 import type { UserDictItem } from '~/shared/types/models'
 import { Icon } from '@iconify/vue'
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { KitBtn, KitDialog, KitSkeleton, KitTooltip } from '~/components/01.kit'
+import { KitBtn, KitDialog, KitDropdown, KitTooltip } from '~/components/01.kit'
 import { PronunciationCheck } from '~/components/04.features/pronunciation-check'
 import { useTts } from '~/shared/composables/use-tts'
 import { DIFFICULTY_SYSTEMS } from '~/shared/constants/difficulties'
-import { BOOK_TAGS } from '~/shared/constants/tags'
+import { vLongPress } from '~/shared/directives/long-press'
 import { useAnalysisStore } from '~/shared/store/analysis.store'
-import { useGlobalSettingsStore } from '~/shared/store/settings.store'
+import { useAuthStore } from '~/shared/store/auth.store'
 import { useDictWordExamples } from '../composables/use-dict-word-examples'
 
 const props = defineProps<{ word: UserDictItem | null }>()
@@ -18,11 +17,13 @@ const visible = defineModel<boolean>('visible', { required: true })
 const { speak, isPlaying, isLoading: isTtsLoading, stop } = useTts()
 const { aiData, isAiLoading, generateExamples, clear } = useDictWordExamples()
 const analysisStore = useAnalysisStore()
-const settingsStore = useGlobalSettingsStore()
+const authStore = useAuthStore()
 const { t } = useI18n()
 const LlmChatModal = lazyComponent(() => import('~/components/04.features/llm-chat/ui/llm-chat-modal.vue'))
 
 const isChatModalOpen = ref(false)
+const isTtsPopoverOpen = ref(false)
+const isAdmin = computed(() => authStore.user?.role === 'admin')
 
 watch(visible, (isOpen) => {
   if (isOpen) {
@@ -33,9 +34,15 @@ watch(visible, (isOpen) => {
   }
 })
 
-function playTTS() {
+function openTtsPopover() {
+  if (isAdmin.value) {
+    isTtsPopoverOpen.value = true
+  }
+}
+
+function playTTS(forceCacheBypass = false) {
   if (props.word?.word) {
-    speak(props.word.word, props.word.language)
+    speak(props.word.word, props.word.language, undefined, forceCacheBypass)
   }
 }
 
@@ -77,18 +84,6 @@ const difficultyClass = computed(() => {
     return 'level-medium'
   return 'level-hard'
 })
-
-const tagsList = computed(() => {
-  if (!props.word?.tags)
-    return []
-  const tags = props.word.tags.split(',').map(t => t.trim()).filter(Boolean)
-  return tags.map((tag) => {
-    const match = BOOK_TAGS[tag as TagKey]?.[settingsStore.appLanguage as keyof (typeof BOOK_TAGS)[TagKey]]
-    if (match)
-      return match
-    return tag.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
-  })
-})
 </script>
 
 <template>
@@ -100,33 +95,16 @@ const tagsList = computed(() => {
   >
     <div v-if="word" class="word-details-content">
       <div class="word-header-box">
-        <div class="title-row">
-          <div class="title-spacer" />
-          <h2 class="main-word">
-            {{ word.word }}
-          </h2>
-          <div class="tts-wrapper">
-            <KitTooltip :text="t('analysis.voice')">
-              <KitBtn
-                :icon="isPlaying ? 'mdi:stop' : 'mdi:volume-high'"
-                variant="text"
-                color="primary"
-                :loading="isTtsLoading"
-                :class="{ 'pulse-animation': isPlaying }"
-                @click="playTTS"
-              />
-            </KitTooltip>
-            <PronunciationCheck
-              v-if="word"
-              :word="word.word"
-              :language="word.language"
-              variant="button"
-              btn-size="md"
-              btn-color="secondary"
-              btn-variant="text"
-            />
-          </div>
-        </div>
+        <span class="status-badge" :style="{ color: getStatusLabel(word.state).color, borderColor: getStatusLabel(word.state).color }">
+          {{ getStatusLabel(word.state).label }}
+        </span>
+        <span v-if="word.difficulty" class="diff-badge" :class="difficultyClass">
+          {{ word.difficulty }}
+        </span>
+
+        <h2 class="main-word">
+          {{ word.word }}
+        </h2>
         <p v-if="word.transcription" class="transcription">
           {{ word.transcription }}
         </p>
@@ -138,16 +116,64 @@ const tagsList = computed(() => {
           variant="inline"
         />
 
-        <div class="badges-row">
-          <span class="status-badge" :style="{ color: getStatusLabel(word.state).color, borderColor: getStatusLabel(word.state).color }">
-            {{ getStatusLabel(word.state).label }}
-          </span>
-          <span v-if="word.difficulty" class="diff-badge" :class="difficultyClass">
-            {{ word.difficulty }}
-          </span>
-          <span v-for="tag in tagsList" :key="tag" class="tag-badge">
-            {{ tag }}
-          </span>
+        <div class="card-toolbar">
+          <div class="toolbar-group">
+            <KitDropdown v-model="isTtsPopoverOpen" placement="bottom-start" width="260px" :disabled="true">
+              <template #activator>
+                <KitTooltip :text="t('analysis.voice')" placement="bottom">
+                  <KitBtn
+                    v-long-press="openTtsPopover"
+                    :icon="isPlaying ? 'mdi:stop' : 'mdi:volume-high'"
+                    variant="tonal"
+                    color="secondary"
+                    size="sm"
+                    :loading="isTtsLoading"
+                    :class="{ 'pulse-animation': isPlaying, 'is-active-btn': isTtsPopoverOpen }"
+                    @click="playTTS(false)"
+                    @contextmenu.prevent="openTtsPopover"
+                  />
+                </KitTooltip>
+              </template>
+              <div class="dropdown-menu-list">
+                <button class="dropdown-item" @click="playTTS(true); isTtsPopoverOpen = false">
+                  <Icon icon="mdi:refresh" />
+                  {{ t('dictWord.forceNewVoiceover') }}
+                </button>
+              </div>
+            </KitDropdown>
+            <PronunciationCheck
+              v-if="word"
+              :word="word.word"
+              :language="word.language"
+              variant="button"
+              btn-size="sm"
+              btn-color="secondary"
+              btn-variant="tonal"
+              tooltip-placement="bottom"
+            />
+          </div>
+          <div class="toolbar-divider" />
+          <div class="toolbar-group">
+            <KitTooltip :text="t('dictionary.aiFreeQuestion')" placement="bottom">
+              <KitBtn
+                variant="tonal"
+                color="secondary"
+                size="sm"
+                icon="mdi:chat-processing-outline"
+                @click="isChatModalOpen = true"
+              />
+            </KitTooltip>
+            <KitTooltip :text="aiData ? t('dictWord.regenerate') : t('dictWord.generateExamples')" placement="bottom">
+              <KitBtn
+                v-if="!isAiLoading"
+                variant="tonal"
+                color="secondary"
+                size="sm"
+                :icon="aiData ? 'mdi:refresh' : 'mdi:robot-outline'"
+                @click="handleGenerate"
+              />
+            </KitTooltip>
+          </div>
         </div>
       </div>
 
@@ -191,99 +217,6 @@ const tagsList = computed(() => {
           </li>
         </ul>
       </div>
-
-      <div class="divider" />
-
-      <div class="ai-examples-section">
-        <div class="ai-header">
-          <h4 class="section-title">
-            <Icon icon="mdi:robot-outline" /> {{ t('dictWord.aiAssistant') }}
-          </h4>
-          <div class="ai-header-actions" style="display: flex; gap: 8px;">
-            <KitBtn
-              variant="outlined"
-              color="secondary"
-              size="xs"
-              icon="mdi:chat-processing-outline"
-              @click="isChatModalOpen = true"
-            >
-              {{ t('dictionary.aiFreeQuestion') }}
-            </KitBtn>
-            <KitBtn
-              v-if="!isAiLoading"
-              variant="outlined"
-              color="accent"
-              size="xs"
-              :icon="aiData ? 'mdi:refresh' : undefined"
-              @click="handleGenerate"
-            >
-              {{ aiData ? t('dictWord.regenerate') : t('dictWord.generateExamples') }}
-            </KitBtn>
-          </div>
-        </div>
-
-        <div v-if="isAiLoading" class="ai-loading">
-          <KitSkeleton width="100%" height="20px" class="mb-2" />
-          <KitSkeleton width="80%" height="20px" class="mb-2" />
-          <KitSkeleton width="90%" height="80px" />
-        </div>
-
-        <div v-else-if="aiData" class="ai-results fade-in">
-          <div v-if="aiData.mnemonics" class="ai-block">
-            <h5>{{ t('dictWord.mnemonicsEtymology') }}</h5>
-            <p>{{ aiData.mnemonics }}</p>
-          </div>
-
-          <div v-if="aiData.examples && aiData.examples.length" class="ai-block">
-            <h5>{{ t('dictWord.usageExamples') }}</h5>
-            <ul class="ai-list">
-              <li v-for="(ex, i) in aiData.examples" :key="i">
-                <span class="ex-type">{{ ex.type }}</span>
-                <div class="ex-orig">
-                  {{ ex.original }}
-                </div>
-                <div class="ex-transc">
-                  {{ ex.transcription }}
-                </div>
-                <div class="ex-transl">
-                  {{ ex.translation }}
-                </div>
-                <div class="ex-literal">
-                  {{ t('analysis.literalTranslation') }}: {{ ex.literal_translation }}
-                </div>
-              </li>
-            </ul>
-          </div>
-
-          <div v-if="aiData.collocations && aiData.collocations.length" class="ai-block">
-            <h5>{{ t('analysis.collocations') }}</h5>
-            <ul class="ai-list simple">
-              <li v-for="(col, i) in aiData.collocations" :key="i">
-                <b>{{ col.original }}</b> ({{ col.transcription }}) — {{ col.translation }}
-              </li>
-            </ul>
-          </div>
-
-          <div v-if="aiData.relations && (aiData.relations.synonyms?.length || aiData.relations.antonyms?.length)" class="grid-sections">
-            <div v-if="aiData.relations.synonyms?.length" class="ai-block">
-              <h5>{{ t('analysis.synonyms') }}</h5>
-              <ul class="ai-list simple">
-                <li v-for="(syn, i) in aiData.relations.synonyms" :key="i">
-                  <b>{{ syn.word }}</b> — {{ syn.translation }}
-                </li>
-              </ul>
-            </div>
-            <div v-if="aiData.relations.antonyms?.length" class="ai-block">
-              <h5>{{ t('analysis.antonyms') }}</h5>
-              <ul class="ai-list simple">
-                <li v-for="(ant, i) in aiData.relations.antonyms" :key="i">
-                  <b>{{ ant.word }}</b> — {{ ant.translation }}
-                </li>
-              </ul>
-            </div>
-          </div>
-        </div>
-      </div>
     </div>
 
     <template #footer>
@@ -307,26 +240,15 @@ const tagsList = computed(() => {
 }
 
 .word-header-box {
+  position: relative;
   text-align: center;
   background: var(--bg-secondary-color);
-  padding: 24px;
+  padding: 56px 24px 24px;
+  padding-bottom: 16px;
   border-radius: 12px;
   border: 1px solid var(--border-secondary-color);
 
-  .title-row {
-    display: grid;
-    grid-template-columns: 1fr auto 1fr;
-    align-items: center;
-    width: 100%;
-    gap: 8px;
-  }
-
-  .title-spacer {
-    grid-column: 1;
-  }
-
   .main-word {
-    grid-column: 2;
     font-size: 2.5rem;
     font-weight: 700;
     margin: 0;
@@ -335,60 +257,69 @@ const tagsList = computed(() => {
     word-break: break-word;
   }
 
-  .tts-wrapper {
-    grid-column: 3;
-    justify-self: start;
-  }
-
   .transcription {
     font-size: 1.2rem;
     color: var(--fg-secondary-color);
-    margin: 8px 0 16px 0;
+    margin: 8px 0 0 0;
   }
 
-  .badges-row {
+  .card-toolbar {
     display: flex;
+    align-items: center;
     justify-content: center;
     flex-wrap: wrap;
-    gap: 8px;
+    gap: 12px;
+    padding: 8px 12px;
+    border-radius: 12px;
+    margin: 0px auto 0 auto;
+    width: fit-content;
 
-    .status-badge {
-      font-size: 0.8rem;
-      padding: 2px 8px;
-      border: 1px solid;
-      border-radius: 6px;
-      font-weight: 600;
-      background: var(--bg-primary-color);
+    .toolbar-group {
+      display: flex;
+      gap: 8px;
     }
 
-    .diff-badge {
-      font-size: 0.8rem;
-      padding: 3px 8px;
-      border-radius: 6px;
-      font-weight: 500;
-      background-color: var(--bg-tertiary-color);
-      color: var(--fg-primary-color);
-
-      &.level-easy {
-        background-color: rgba(var(--bg-success-color-rgb, 86, 211, 100), 0.15);
-        color: var(--fg-success-color);
-      }
-      &.level-medium {
-        background-color: rgba(var(--bg-warning-color-rgb, 227, 179, 65), 0.15);
-        color: var(--fg-warning-color);
-      }
-      &.level-hard {
-        background-color: rgba(var(--bg-error-color-rgb, 248, 81, 73), 0.15);
-        color: var(--fg-error-color);
-      }
+    .toolbar-divider {
+      width: 1px;
+      height: 24px;
+      background-color: var(--border-secondary-color);
     }
+  }
 
-    .tag-badge {
-      font-size: 0.8rem;
-      padding: 3px 8px;
-      border-radius: 6px;
-      background-color: var(--bg-tertiary-color);
-      color: var(--fg-secondary-color);
+  .status-badge {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    font-size: 0.8rem;
+    padding: 2px 8px;
+    border: 1px solid;
+    border-radius: 6px;
+    font-weight: 600;
+    background: var(--bg-primary-color);
+  }
+
+  .diff-badge {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    font-size: 0.8rem;
+    padding: 3px 8px;
+    border-radius: 6px;
+    font-weight: 500;
+    background-color: var(--bg-tertiary-color);
+    color: var(--fg-primary-color);
+
+    &.level-easy {
+      background-color: rgba(var(--bg-success-color-rgb, 86, 211, 100), 0.15);
+      color: var(--fg-success-color);
+    }
+    &.level-medium {
+      background-color: rgba(var(--bg-warning-color-rgb, 227, 179, 65), 0.15);
+      color: var(--fg-warning-color);
+    }
+    &.level-hard {
+      background-color: rgba(var(--bg-error-color-rgb, 248, 81, 73), 0.15);
+      color: var(--fg-error-color);
     }
   }
 }
@@ -450,129 +381,6 @@ const tagsList = computed(() => {
       color: var(--fg-secondary-color);
       margin-right: 6px;
       font-style: normal;
-    }
-  }
-}
-
-.divider {
-  height: 1px;
-  background-color: var(--border-secondary-color);
-  margin: 8px 0;
-}
-
-.ai-examples-section {
-  .ai-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 16px;
-    height: 28px;
-    flex-wrap: wrap;
-    gap: 8px;
-
-    .section-title {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 0.95rem;
-      color: var(--fg-accent-color);
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      margin: 0;
-    }
-  }
-
-  .ai-loading {
-    padding: 16px;
-    background: rgba(var(--bg-accent-color-rgb, 201, 117, 222), 0.05);
-    border-radius: 12px;
-    border: 1px dashed var(--fg-accent-color);
-  }
-
-  .ai-results {
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-
-    .ai-block {
-      background: var(--bg-secondary-color);
-      border-radius: 8px;
-      padding: 16px;
-      border: 1px solid var(--border-secondary-color);
-
-      h5 {
-        margin: 0 0 12px 0;
-        font-size: 0.95rem;
-        color: var(--fg-primary-color);
-      }
-
-      p {
-        margin: 0;
-        font-size: 0.95rem;
-        line-height: 1.4;
-      }
-    }
-
-    .ai-list {
-      list-style: none;
-      padding: 0;
-      margin: 0;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-
-      li {
-        border-bottom: 1px dashed var(--border-primary-color);
-        padding-bottom: 12px;
-        &:last-child {
-          border-bottom: none;
-          padding-bottom: 0;
-        }
-      }
-
-      &.simple li {
-        border-bottom: none;
-        padding-bottom: 0;
-        padding-left: 12px;
-        position: relative;
-
-        &::before {
-          content: '•';
-          position: absolute;
-          left: 0;
-          color: var(--fg-accent-color);
-        }
-      }
-
-      .ex-type {
-        display: inline-block;
-        background: var(--bg-tertiary-color);
-        color: var(--fg-secondary-color);
-        font-size: 0.75rem;
-        padding: 2px 6px;
-        border-radius: 4px;
-        margin-bottom: 4px;
-      }
-      .ex-orig {
-        font-size: 1.1rem;
-        font-weight: 500;
-        color: var(--fg-primary-color);
-      }
-      .ex-transc {
-        font-size: 0.9rem;
-        color: var(--fg-secondary-color);
-        margin-bottom: 4px;
-      }
-      .ex-transl {
-        font-size: 0.95rem;
-        color: var(--fg-primary-color);
-      }
-      .ex-literal {
-        font-size: 0.85rem;
-        color: var(--fg-muted-color);
-        font-style: italic;
-        margin-top: 4px;
-      }
     }
   }
 }
@@ -718,6 +526,51 @@ const tagsList = computed(() => {
         }
       }
     }
+  }
+}
+
+.dropdown-menu-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border: none;
+  background: transparent;
+  color: var(--fg-primary-color);
+  font-size: 0.95rem;
+  font-family: inherit;
+  cursor: pointer;
+  border-radius: 6px;
+  transition:
+    background-color 0.2s,
+    color 0.2s;
+  text-align: left;
+  width: 100%;
+
+  &:hover:not(:disabled) {
+    background-color: var(--bg-hover-color);
+    color: var(--fg-accent-color);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  svg {
+    font-size: 1.25rem;
+    color: var(--fg-secondary-color);
+    flex-shrink: 0;
+  }
+
+  &:hover:not(:disabled) svg {
+    color: var(--fg-accent-color);
   }
 }
 </style>

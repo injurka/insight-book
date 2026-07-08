@@ -20,7 +20,12 @@ export function useTts() {
   let currentAudioUrl: string | null = null
   let abortController: AbortController | null = null
 
-  async function speak(text: string | null | undefined, explicitLanguage?: string, explicitBookId?: number) {
+  async function speak(
+    text: string | null | undefined,
+    explicitLanguage?: string,
+    explicitBookId?: number,
+    forceCacheBypass?: boolean,
+  ) {
     if (!text)
       return
 
@@ -49,16 +54,17 @@ export function useTts() {
       const normalizedText = text.trim().toLowerCase()
       const cacheKey = bookId ? `${bookId}_${voice}_${normalizedText}` : `dict_${lang}_${voice}_${normalizedText}`
 
-      let audioBlob = await offlineService.getTtsBlob(cacheKey)
+      let audioBlob = forceCacheBypass ? null : await offlineService.getTtsBlob(cacheKey)
 
       if (!audioBlob) {
         let audioBase64 = ''
         if (bookId) {
-          const res = await api.books.generateTts(bookId, text, voice, abortController.signal)
+          const res = await api.books.generateTts(bookId, text, voice, abortController.signal, forceCacheBypass)
+
           audioBase64 = res.audioBase64
         }
         else {
-          const res = await api.tts.generate(text, voice, abortController.signal)
+          const res = await api.tts.generate(text, voice, abortController.signal, forceCacheBypass)
           audioBase64 = res.audioBase64
         }
         await offlineService.saveTts(cacheKey, audioBase64)
@@ -89,8 +95,13 @@ export function useTts() {
     }
     catch (e) {
       const err = e as Error
-      if (err.name === 'AbortError')
+      if (
+        err.name === 'AbortError'
+        || err.name === 'CanceledError'
+        || err.message?.includes('is aborted')
+      ) {
         return
+      }
 
       console.error('TTS Error:', err)
       toast.error('Озвучка недоступна без интернета или произошла ошибка сервера')

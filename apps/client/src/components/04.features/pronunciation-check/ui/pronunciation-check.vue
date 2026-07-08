@@ -12,12 +12,14 @@ const props = withDefaults(
     btnColor?: 'primary' | 'secondary' | 'accent' | 'error' | 'success' | 'warning' | 'info'
     btnVariant?: 'solid' | 'outlined' | 'text' | 'subtle' | 'tonal'
     btnSize?: 'xs' | 'sm' | 'md' | 'lg'
+    tooltipPlacement?: 'top' | 'bottom' | 'left' | 'right' | 'top-start' | 'top-end' | 'bottom-start' | 'bottom-end'
   }>(),
   {
     variant: 'button',
     btnColor: 'secondary',
     btnVariant: 'tonal',
     btnSize: 'sm',
+    tooltipPlacement: 'top',
   },
 )
 
@@ -80,7 +82,7 @@ defineExpose({
         :disabled="true"
       >
         <template #activator>
-          <KitTooltip :text="isRecording ? (t('pronunciation.stopRecording') || 'Остановить запись') : t('pronunciation.check')">
+          <KitTooltip :text="isRecording ? (t('pronunciation.stopRecording') || 'Остановить запись') : t('pronunciation.check')" :placement="tooltipPlacement">
             <KitBtn
               class="speak-btn"
               :icon="isRecording ? 'mdi:stop' : 'mdi:microphone'"

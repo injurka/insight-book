@@ -102,6 +102,7 @@ export const GenerateTtsSchema = z.object({
     .min(1, 'Текст не передан')
     .max(600, 'Текст слишком длинный для озвучки'),
   voice: z.string().optional(),
+  forceCacheBypass: z.boolean().optional(),
 })
 
 export const GenerateTtsStandaloneSchema = z.object({
@@ -109,6 +110,7 @@ export const GenerateTtsStandaloneSchema = z.object({
     .min(1, 'Текст не передан')
     .max(600, 'Текст слишком длинный'),
   voice: z.string().optional(),
+  forceCacheBypass: z.boolean().optional(),
 })
 
 export const CreateCustomBookSchema = z.object({

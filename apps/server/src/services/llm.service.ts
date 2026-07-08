@@ -474,7 +474,14 @@ export async function analyzeBatch(userId: number, bookId: number, items: BatchA
   return results
 }
 
-export async function generateTts(userId: number, bookId: number | null, text: string, config: LlmConfig, selectedVoice?: string): Promise<string> {
+export async function generateTts(
+  userId: number,
+  bookId: number | null,
+  text: string,
+  config: LlmConfig,
+  selectedVoice?: string,
+  forceCacheBypass?: boolean,
+): Promise<string> {
   const normalizedText = text.trim()
 
   if (!normalizedText)
@@ -502,7 +509,7 @@ export async function generateTts(userId: number, bookId: number | null, text: s
     where: eq(schema.ttsCache.textHash, hash),
   })
 
-  if (cached) {
+  if (cached && !forceCacheBypass) {
     if (bookId) {
       await db.insert(schema.bookTtsCache).values({ bookId, textHash: hash }).onConflictDoNothing()
     }

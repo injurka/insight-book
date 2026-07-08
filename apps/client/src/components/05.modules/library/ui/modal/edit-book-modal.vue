@@ -3,7 +3,7 @@ import type { Book } from '~/shared/types/models'
 import { useClipboard } from '@vueuse/core'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { KitBtn, KitCheckbox, KitDialog, KitImage, KitInput, KitSelect, KitTooltip } from '~/components/01.kit'
+import { KitBtn, KitCheckbox, KitDialog, KitImage, KitInput, KitPrompt, KitSelect, KitTooltip } from '~/components/01.kit'
 import { useToast } from '~/shared/composables/use-toast'
 import { useAuthStore } from '~/shared/store/auth.store'
 import { useEditBookForm } from '../../composables/use-edit-book-form'
@@ -31,6 +31,12 @@ const {
   handleSave,
   handleDelete,
 } = useEditBookForm(toRef(props, 'book'), emit)
+
+const confirmDeleteVisible = ref(false)
+
+function onConfirmDelete() {
+  handleDelete()
+}
 
 const bookLanguageOptions = computed(() => [
   { label: t('library.langEn'), value: 'en' },
@@ -170,7 +176,7 @@ const isReadOnly = computed(() => editingBook.value.publicStatus === 'public' ||
       </div>
     </div>
     <template #footer>
-      <KitBtn variant="text" class="mr-auto" @click="handleDelete">
+      <KitBtn variant="text" class="mr-auto" color="error" @click="confirmDeleteVisible = true">
         {{ t('dictionary.deleteItem') }}
       </KitBtn>
       <div style="flex-grow:1" />
@@ -182,6 +188,15 @@ const isReadOnly = computed(() => editingBook.value.publicStatus === 'public' ||
       </KitBtn>
     </template>
   </KitDialog>
+
+  <KitPrompt
+    v-model:visible="confirmDeleteVisible"
+    :title="t('dictionary.deleteItem')"
+    :description="t('library.deletePrompt') || 'Удалить эту книгу?'"
+    :hide-input="true"
+    :confirm-text="t('dictionary.deleteItem')"
+    @submit="onConfirmDelete"
+  />
 </template>
 
 <style lang="scss" scoped>

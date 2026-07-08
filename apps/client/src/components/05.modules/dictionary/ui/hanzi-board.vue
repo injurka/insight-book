@@ -17,27 +17,39 @@ const containerRefs = ref<HTMLElement[]>([])
 const writers = shallowRef<HanziWriter[]>([])
 
 const currentIndex = ref(0)
+const isComplete = ref(false)
 let currentSequenceId = 0
-
-const trackTransform = computed(() => {
-  const smallSize = props.size * 0.25
-  const gap = 16
-  const activeCenter = currentIndex.value * (smallSize + gap) + (props.size / 2)
-  return {
-    transform: `translateX(-${activeCenter}px)`,
-  }
-})
 
 const validChars = computed(() => {
   if (!props.text)
     return []
+
   return props.text.split('').filter(c => /[\u4E00-\u9FA5]/.test(c))
+})
+
+const trackTransform = computed(() => {
+  const gap = 16
+  let activeCenter = 0
+
+  if (isComplete.value) {
+    const totalWidth = validChars.value.length * props.size + (validChars.value.length - 1) * gap
+    activeCenter = totalWidth / 2
+  }
+  else {
+    const smallSize = props.size * 0.25
+    activeCenter = currentIndex.value * (smallSize + gap) + (props.size / 2)
+  }
+
+  return {
+    transform: `translateX(-${activeCenter}px)`,
+  }
 })
 
 async function initWriters() {
   currentSequenceId++
   const seqId = currentSequenceId
   currentIndex.value = 0
+  isComplete.value = false
 
   containerRefs.value.forEach((el) => {
     if (el)
@@ -94,6 +106,7 @@ function startQuizSequence(index: number, seqId: number) {
   if (seqId !== currentSequenceId)
     return
   if (index >= writers.value.length) {
+    isComplete.value = true
     emit('complete')
     return
   }
@@ -110,8 +123,11 @@ function startQuizSequence(index: number, seqId: number) {
 function startAnimationSequence(index: number, seqId: number) {
   if (seqId !== currentSequenceId)
     return
-  if (index >= writers.value.length)
+  if (index >= writers.value.length) {
+    isComplete.value = true
+    emit('complete')
     return
+  }
   currentIndex.value = index
   writers.value[index].animateCharacter({
     onComplete: () => {
@@ -125,6 +141,7 @@ function startAnimationSequence(index: number, seqId: number) {
 function replay() {
   currentSequenceId++
   const seqId = currentSequenceId
+  isComplete.value = false
 
   writers.value.forEach((w) => {
     w.cancelQuiz()
@@ -158,14 +175,15 @@ onMounted(initWriters)
         :ref="el => { if (el) containerRefs[i] = el as HTMLElement }"
         class="hanzi-char-container"
         :class="{
-          'is-quiz': mode === 'quiz' && i === currentIndex,
-          'is-active': i === currentIndex,
-          'is-past': i < currentIndex,
-          'is-future': i > currentIndex,
+          'is-quiz': mode === 'quiz' && i === currentIndex && !isComplete,
+          'is-active': i === currentIndex && !isComplete,
+          'is-past': i < currentIndex && !isComplete,
+          'is-future': i > currentIndex && !isComplete,
+          'is-complete': isComplete,
         }"
         :style="{
-          width: i === currentIndex ? `${size}px` : `${size * 0.25}px`,
-          height: i === currentIndex ? `${size}px` : `${size * 0.25}px`,
+          width: isComplete ? `${size}px` : (i === currentIndex ? `${size}px` : `${size * 0.25}px`),
+          height: isComplete ? `${size}px` : (i === currentIndex ? `${size}px` : `${size * 0.25}px`),
         }"
       />
     </div>
@@ -216,6 +234,12 @@ onMounted(initWriters)
   &.is-quiz {
     cursor: crosshair;
     touch-action: none;
+  }
+
+  &.is-complete {
+    opacity: 1;
+    border-color: transparent;
+    background-color: transparent;
   }
 
   :deep(svg) {

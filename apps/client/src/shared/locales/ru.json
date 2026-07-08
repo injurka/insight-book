@@ -612,7 +612,8 @@
     "mnemonicsEtymology": "Мнемоника / Этимология",
     "usageExamples": "Примеры употребления",
     "close": "Закрыть",
-    "edit": "Редактировать"
+    "edit": "Редактировать",
+    "forceNewVoiceover": "Сделать новую озвучку"
   },
   "bookLexical": {
     "analyzingVocab": "Изучаем словарный запас книги...",

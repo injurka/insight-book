@@ -3,7 +3,7 @@ import type { UserDictItem } from '~/shared/types/models'
 import { Icon } from '@iconify/vue'
 import { useVirtualList } from '@vueuse/core'
 import { useI18n } from 'vue-i18n'
-import { KitBtn, KitCheckbox, KitTooltip } from '~/components/01.kit'
+import { KitBtn, KitCheckbox, KitPrompt, KitTooltip } from '~/components/01.kit'
 import { useToast } from '~/shared/composables/use-toast'
 import { useUmami } from '~/shared/composables/use-umami'
 import { DIFFICULTY_SYSTEMS } from '~/shared/constants/difficulties'
@@ -85,6 +85,20 @@ function exportToAnki() {
   store.clearSelection()
   toast.success(t('dictionary.ankiExported'))
   trackEvent('anki_export_downloaded')
+}
+
+const confirmDeleteVisible = ref(false)
+const wordToDelete = ref<string | null>(null)
+function openDeleteWord(word: string) {
+  wordToDelete.value = word
+  confirmDeleteVisible.value = true
+}
+
+function handleConfirmDelete() {
+  if (wordToDelete.value) {
+    store.deleteWord(wordToDelete.value)
+    wordToDelete.value = null
+  }
 }
 </script>
 
@@ -174,12 +188,21 @@ function exportToAnki() {
               />
             </KitTooltip>
             <KitTooltip :text="t('dictionary.deleteItem')" placement="top-end">
-              <KitBtn icon="mdi:delete-outline" variant="text" size="xs" color="error" @click="store.deleteWord(item.data.word)" />
+              <KitBtn icon="mdi:delete-outline" variant="text" size="xs" color="error" @click="openDeleteWord(item.data.word)" />
             </KitTooltip>
           </div>
         </div>
       </div>
     </div>
+
+    <KitPrompt
+      v-model:visible="confirmDeleteVisible"
+      :title="t('dictionary.delete')"
+      :description="t('dictionary.deletePrompt') || 'Удалить это слово?'"
+      :hide-input="true"
+      :confirm-text="t('dictionary.delete')"
+      @submit="handleConfirmDelete"
+    />
   </div>
 </template>
 

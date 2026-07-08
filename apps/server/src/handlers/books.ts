@@ -906,8 +906,16 @@ export async function handleGenerateTts(req: Request, userId: number): Promise<R
   if (!book || (book.userId !== userId && !book.isPublic))
     throw new AppError(403, 'Нет доступа')
 
-  const { text, voice } = GenerateTtsSchema.parse(await req.json())
-  const audioBase64 = await generateTts(userId, bookId, text, config, voice)
+  const { text, voice, forceCacheBypass } = GenerateTtsSchema.parse(await req.json())
+
+  if (forceCacheBypass) {
+    const user = await db.query.users.findFirst({ where: eq(schema.users.id, userId), columns: { role: true } })
+    if (user?.role !== 'admin') {
+      throw new AppError(403, 'Только администратор может игнорировать кэш')
+    }
+  }
+
+  const audioBase64 = await generateTts(userId, bookId, text, config, voice, forceCacheBypass)
 
   return json({ audioBase64 })
 }
@@ -915,8 +923,16 @@ export async function handleGenerateTts(req: Request, userId: number): Promise<R
 export async function handleStandaloneTts(req: Request, userId: number): Promise<Response> {
   const config = extractLlmConfig(req)
 
-  const { text, voice } = GenerateTtsStandaloneSchema.parse(await req.json())
-  const audioBase64 = await generateTts(userId, null, text, config, voice)
+  const { text, voice, forceCacheBypass } = GenerateTtsStandaloneSchema.parse(await req.json())
+
+  if (forceCacheBypass) {
+    const user = await db.query.users.findFirst({ where: eq(schema.users.id, userId), columns: { role: true } })
+    if (user?.role !== 'admin') {
+      throw new AppError(403, 'Только администратор может игнорировать кэш')
+    }
+  }
+
+  const audioBase64 = await generateTts(userId, null, text, config, voice, forceCacheBypass)
 
   return json({ audioBase64 })
 }
