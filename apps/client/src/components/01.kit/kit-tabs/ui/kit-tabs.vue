@@ -106,6 +106,12 @@ watch(model, (newVal, oldVal) => {
       opacity: 0 !important;
     }
   }
+
+  :deep(.kit-view-switcher-button) {
+    .kit-view-switcher-label {
+      display: block !important;
+    }
+  }
 }
 
 @keyframes fade-in {

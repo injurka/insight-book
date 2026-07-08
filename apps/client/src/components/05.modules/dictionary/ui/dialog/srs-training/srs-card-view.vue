@@ -951,7 +951,11 @@ watch(() => props.card, initCard, { immediate: true })
   flex-direction: column;
   justify-content: flex-end;
   margin-top: auto;
-  padding-top: 16px;
+  padding-top: 8px;
+  position: sticky;
+  bottom: 0;
+  z-index: 10;
+  background-color: var(--bg-primary-color);
 
   .front-actions {
     display: flex;

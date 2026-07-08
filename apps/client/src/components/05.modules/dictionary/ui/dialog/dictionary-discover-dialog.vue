@@ -16,8 +16,8 @@ const { t } = useI18n()
 const activeTab = ref<'import' | 'catalog'>('import')
 
 const tabItems = computed(() => [
-  { id: 'import', label: t('dictionary.discover.import_tab') },
-  { id: 'catalog', label: t('dictionary.discover.marketplace_tab') },
+  { id: 'import', label: t('dictionary.discover.import_tab'), icon: 'mdi:file-import-outline' },
+  { id: 'catalog', label: t('dictionary.discover.marketplace_tab'), icon: 'mdi:store-search-outline' },
 ])
 
 // -- Import Block --

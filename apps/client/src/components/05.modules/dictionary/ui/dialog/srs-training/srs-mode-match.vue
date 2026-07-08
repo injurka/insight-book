@@ -1,7 +1,19 @@
 <script setup lang="ts">
 import type { UserDictItem } from '~/shared/types/models'
-import { ref, watch } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
 import { useDictionaryStore } from '../../../store/dictionary.store'
+import { useTts } from '~/shared/composables/use-tts'
+import { Icon } from '@iconify/vue'
+import { useI18n } from 'vue-i18n'
+import { KitBtn, KitDropdown, KitTooltip } from '~/components/01.kit'
+import { PronunciationCheck } from '~/components/04.features/pronunciation-check'
+import { useAuthStore } from '~/shared/store/auth.store'
+import { vLongPress } from '~/shared/directives/long-press'
+import { api } from '~/shared/services/api.service'
+import { useToast } from '~/shared/composables/use-toast'
+
+const AiExamplesModal = lazyComponent(() => import('~/components/03.domain/analysis/ui/modal/ai-examples-modal.vue'))
+const LlmChatModal = lazyComponent(() => import('~/components/04.features/llm-chat/ui/llm-chat-modal.vue'))
 
 defineOptions({
   inheritAttrs: false,
@@ -14,6 +26,24 @@ const props = defineProps<{
 
 const emit = defineEmits(['grade'])
 const dictStore = useDictionaryStore()
+const { speak, isPlaying, isLoading } = useTts()
+const { t } = useI18n()
+const toast = useToast()
+const authStore = useAuthStore()
+
+const isAdmin = computed(() => authStore.user?.role === 'admin')
+const isTtsPopoverOpen = ref(false)
+
+const expandedSections = reactive<Record<string, boolean>>({
+  grammar: false,
+  vocab: false,
+  notes: false,
+})
+
+const isAiModalOpen = ref(false)
+const isChatModalOpen = ref(false)
+const isAiLoading = ref(false)
+const aiData = ref<any>(null)
 
 const leftItems = ref<UserDictItem[]>([])
 const rightItems = ref<UserDictItem[]>([])
@@ -23,6 +53,7 @@ const selectedRight = ref<UserDictItem | null>(null)
 const matchedIds = ref<Set<number>>(new Set())
 const wrongPair = ref<{ leftId: number, rightId: number } | null>(null)
 const currentChunkEndIndex = ref(0)
+const matchedCard = ref<UserDictItem | null>(null)
 
 function shuffle<T>(array: T[]): T[] {
   const result = [...array]
@@ -69,13 +100,16 @@ function checkMatch() {
   if (selectedLeft.value && selectedRight.value) {
     if (selectedLeft.value.id === selectedRight.value.id) {
       const matchId = selectedLeft.value.id
+      const mCard = selectedLeft.value
+      
       matchedIds.value.add(matchId)
       selectedLeft.value = null
       selectedRight.value = null
 
-      setTimeout(() => {
-        emit('grade', 3) // Advance progress
-      }, 300)
+      matchedCard.value = mCard
+      if (mCard.word) {
+        speak(mCard.word, mCard.language)
+      }
     }
     else {
       wrongPair.value = { leftId: selectedLeft.value.id, rightId: selectedRight.value.id }
@@ -86,6 +120,53 @@ function checkMatch() {
       selectedRight.value = null
     }
   }
+}
+
+function dismissMatchedCard() {
+  matchedCard.value = null
+  expandedSections.grammar = false
+  expandedSections.vocab = false
+  expandedSections.notes = false
+  setTimeout(() => {
+    emit('grade', 3) // Advance progress
+  }, 100) // Slight delay to allow animation to start smoothly
+}
+
+function openTtsPopover() {
+  if (isAdmin.value) {
+    isTtsPopoverOpen.value = true
+  }
+}
+
+function playTTS(forceCacheBypass = false) {
+  if (matchedCard.value?.word) {
+    speak(matchedCard.value.word, matchedCard.value.language, undefined, forceCacheBypass)
+  }
+}
+
+async function fetchAiExamples() {
+  if (!matchedCard.value?.word)
+    return
+
+  isAiModalOpen.value = true
+  isAiLoading.value = true
+  aiData.value = null
+
+  try {
+    const res = await api.dictionary.generateExamples(matchedCard.value.word, matchedCard.value.language || 'en')
+    aiData.value = res
+  }
+  catch (e) {
+    toast.error(e instanceof Error ? e.message : t('dictionary.errorExamples'))
+    isAiModalOpen.value = false
+  }
+  finally {
+    isAiLoading.value = false
+  }
+}
+
+function toggleSection(sec: 'grammar' | 'vocab' | 'notes') {
+  expandedSections[sec] = !expandedSections[sec]
 }
 </script>
 
@@ -123,6 +204,121 @@ function checkMatch() {
         </button>
       </div>
     </div>
+
+    <Transition name="fade">
+      <div v-if="matchedCard" class="matched-overlay" @click="dismissMatchedCard">
+        <div class="matched-card" @click.stop="dismissMatchedCard">
+          <div class="word-huge">{{ matchedCard.word }}</div>
+          <div v-if="matchedCard.transcription" class="transcription-badge">
+            {{ matchedCard.transcription }}
+          </div>
+          <div class="translation-box" v-html="matchedCard.translation" />
+          
+          <div v-if="matchedCard.encounters?.[0]?.sentence" class="original-sentence">
+            <Icon icon="mdi:format-quote-close" class="quote-icon" />
+            <span>{{ matchedCard.encounters[0].sentence }}</span>
+          </div>
+          
+          <div class="card-toolbar fade-in" @click.stop>
+            <div class="toolbar-group">
+              <KitDropdown v-model="isTtsPopoverOpen" placement="bottom-start" width="220px" :disabled="true">
+                <template #activator>
+                  <KitTooltip :text="t('dictionary.listenVoice')" placement="bottom">
+                    <KitBtn
+                      v-long-press="openTtsPopover"
+                      :icon="isPlaying ? 'mdi:volume-high' : 'mdi:volume-medium'"
+                      :loading="isLoading"
+                      variant="tonal"
+                      color="secondary"
+                      size="sm"
+                      :class="{ 'is-playing-pulse': isPlaying, 'is-active-btn': isTtsPopoverOpen }"
+                      @click="playTTS(false)"
+                      @contextmenu.prevent="openTtsPopover"
+                    />
+                  </KitTooltip>
+                </template>
+                <div class="dropdown-menu-list">
+                  <button class="dropdown-item" @click="playTTS(true); isTtsPopoverOpen = false">
+                    <Icon icon="mdi:refresh" />
+                    {{ t('dictWord.forceNewVoiceover') }}
+                  </button>
+                </div>
+              </KitDropdown>
+
+              <PronunciationCheck
+                v-if="matchedCard"
+                :word="matchedCard.word"
+                :language="matchedCard.language"
+                variant="button"
+                btn-size="sm"
+                btn-color="secondary"
+                btn-variant="tonal"
+                tooltip-placement="bottom"
+              />
+
+              <KitDropdown placement="bottom-start" width="240px">
+                <template #activator="{ props: dropdownProps }">
+                  <KitTooltip :text="t('dictionary.aiHint')" placement="bottom">
+                    <KitBtn
+                      icon="mdi:robot-outline"
+                      variant="tonal"
+                      color="secondary"
+                      size="sm"
+                      :class="{ 'is-active-btn': dropdownProps.isOpen }"
+                    />
+                  </KitTooltip>
+                </template>
+                <div class="dropdown-menu-list">
+                  <button class="dropdown-item" @click="fetchAiExamples">
+                    <Icon icon="mdi:text-box-search-outline" />
+                    {{ t('analysis.aiContextAndExamples') }}
+                  </button>
+                  <button class="dropdown-item" @click="isChatModalOpen = true">
+                    <Icon icon="mdi:chat-processing-outline" />
+                    {{ t('dictionary.aiFreeQuestion') }}
+                  </button>
+                </div>
+              </KitDropdown>
+            </div>
+
+            <div v-if="matchedCard.grammarNote || matchedCard.vocabularyNote || matchedCard.notes" class="toolbar-divider" />
+            <div v-if="matchedCard.grammarNote || matchedCard.vocabularyNote || matchedCard.notes" class="toolbar-group">
+              <KitTooltip v-if="matchedCard.grammarNote" :text="t('dictionary.grammar')" placement="bottom">
+                <KitBtn size="sm" :variant="expandedSections.grammar ? 'solid' : 'tonal'" :color="expandedSections.grammar ? 'primary' : 'secondary'" icon="mdi:puzzle-outline" @click="toggleSection('grammar')" />
+              </KitTooltip>
+              <KitTooltip v-if="matchedCard.vocabularyNote" :text="t('dictionary.vocabulary')" placement="bottom">
+                <KitBtn size="sm" :variant="expandedSections.vocab ? 'solid' : 'tonal'" :color="expandedSections.vocab ? 'primary' : 'secondary'" icon="mdi:book-open-page-variant-outline" @click="toggleSection('vocab')" />
+              </KitTooltip>
+              <KitTooltip v-if="matchedCard.notes" :text="t('dictionary.notesMnemonic')" placement="bottom">
+                <KitBtn size="sm" :variant="expandedSections.notes ? 'solid' : 'tonal'" :color="expandedSections.notes ? 'primary' : 'secondary'" icon="mdi:note-text-outline" @click="toggleSection('notes')" />
+              </KitTooltip>
+            </div>
+          </div>
+          
+          <div v-if="expandedSections.grammar && matchedCard.grammarNote" class="word-notes fade-in">
+            <div class="notes-label">
+              <Icon icon="mdi:puzzle-outline" /> {{ t('dictionary.grammar') }}
+            </div>
+            <div class="notes-text" v-html="matchedCard.grammarNote" />
+          </div>
+          <div v-if="expandedSections.vocab && matchedCard.vocabularyNote" class="word-notes fade-in">
+            <div class="notes-label">
+              <Icon icon="mdi:book-open-page-variant-outline" /> {{ t('dictionary.vocabulary') }}
+            </div>
+            <div class="notes-text" v-html="matchedCard.vocabularyNote" />
+          </div>
+          <div v-if="expandedSections.notes && matchedCard.notes" class="word-notes fade-in">
+            <div class="notes-label">
+              <Icon icon="mdi:note-text-outline" /> {{ t('dictionary.notesMnemonic') }}
+            </div>
+            <div class="notes-text" v-html="matchedCard.notes" />
+          </div>
+        </div>
+      </div>
+    </Transition>
+
+    <AiExamplesModal v-model:visible="isAiModalOpen" :loading="isAiLoading" :data="aiData" />
+    <LlmChatModal v-if="matchedCard" v-model:visible="isChatModalOpen" :word="matchedCard.word" :language="matchedCard.language || 'en'" />
   </div>
 </template>
 
@@ -134,6 +330,7 @@ function checkMatch() {
   padding: 16px 12px;
   height: 100%;
   justify-content: center;
+  position: relative;
 }
 
 .match-columns {
@@ -251,6 +448,213 @@ function checkMatch() {
   40%,
   60% {
     transform: translate3d(4px, 0, 0);
+  }
+}
+
+.matched-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  cursor: pointer;
+}
+
+.matched-card {
+  background: var(--bg-primary-color);
+  border-radius: 16px;
+  padding: 32px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  align-items: center;
+  max-width: 500px;
+  width: 90%;
+  text-align: center;
+  border: 1px solid var(--border-secondary-color);
+  cursor: pointer;
+
+  .word-huge {
+    font-size: 3rem;
+    font-weight: bold;
+    color: var(--fg-primary-color);
+  }
+
+  .transcription-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px 12px;
+    background-color: var(--bg-tertiary-color);
+    color: var(--fg-secondary-color);
+    border-radius: 8px;
+    font-size: 1.1rem;
+    font-weight: 500;
+    font-family: 'Maple Mono CN', 'Courier New', monospace;
+  }
+
+  .translation-box {
+    background-color: rgba(var(--bg-accent-color-rgb, 201, 117, 222), 0.1);
+    border-left: 4px solid var(--fg-accent-color);
+    padding: 12px 16px;
+    border-radius: 4px 8px 8px 4px;
+    font-size: 1.15rem;
+    line-height: 1.5;
+    color: var(--fg-primary-color);
+    text-align: left;
+    width: 100%;
+  }
+
+  .original-sentence {
+    display: flex;
+    gap: 12px;
+    background-color: var(--bg-secondary-color);
+    border: 1px solid var(--border-secondary-color);
+    padding: 12px 16px;
+    border-radius: 8px;
+    text-align: left;
+    font-size: 0.95rem;
+    color: var(--fg-secondary-color);
+    line-height: 1.5;
+    width: 100%;
+
+    .quote-icon {
+      font-size: 1.5rem;
+      color: var(--fg-muted-color);
+      flex-shrink: 0;
+    }
+  }
+}
+
+.card-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  background-color: var(--bg-secondary-color);
+  padding: 8px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--border-secondary-color);
+  width: 100%;
+
+  .toolbar-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .toolbar-divider {
+    width: 1px;
+    height: 24px;
+    background-color: var(--border-secondary-color);
+  }
+}
+
+.word-notes {
+  background-color: var(--bg-secondary-color);
+  border: 1px solid var(--border-secondary-color);
+  padding: 12px 16px;
+  border-radius: 8px;
+  text-align: left;
+  font-size: 0.95rem;
+  color: var(--fg-secondary-color);
+  line-height: 1.5;
+  width: 100%;
+
+  .notes-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+    color: var(--fg-primary-color);
+    margin-bottom: 8px;
+
+    svg {
+      color: var(--fg-accent-color);
+    }
+  }
+
+  .notes-text {
+    :deep(p) {
+      margin: 0;
+      &:not(:last-child) {
+        margin-bottom: 8px;
+      }
+    }
+  }
+}
+
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
+.is-playing-pulse {
+  :deep(.kit-btn-icon) {
+    animation: pulse-op 1.2s infinite;
+    color: var(--fg-error-color) !important;
+  }
+}
+
+@keyframes pulse-op {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.1); opacity: 0.8; }
+  100% { transform: scale(1); }
+}
+
+.dropdown-menu-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border: none;
+  background: transparent;
+  color: var(--fg-primary-color);
+  font-size: 0.95rem;
+  font-family: inherit;
+  cursor: pointer;
+  border-radius: 6px;
+  transition:
+    background-color 0.2s,
+    color 0.2s;
+  text-align: left;
+  width: 100%;
+
+  &:hover:not(:disabled) {
+    background-color: var(--bg-hover-color);
+    color: var(--fg-accent-color);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  svg {
+    font-size: 1.25rem;
+    color: var(--fg-secondary-color);
+    flex-shrink: 0;
+  }
+
+  &:hover:not(:disabled) svg {
+    color: var(--fg-accent-color);
   }
 }
 </style>
