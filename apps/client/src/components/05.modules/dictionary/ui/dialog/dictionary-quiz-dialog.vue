@@ -45,7 +45,20 @@ interface Question {
   isCorrect?: boolean
 }
 
-const levels = ref<{ id: number, language: string, levelValue: string, bestScore: number, stars: number, unlocked: boolean }[]>([])
+interface LevelNode {
+  id: number
+  language: string
+  levelValue: string
+  bestScore: number
+  stars: number
+  unlocked: boolean
+}
+
+const levelsByLang = ref<Record<string, LevelNode[]>>({
+  zh: [],
+  ja: [],
+  en: [],
+})
 const questions = ref<Question[]>([])
 const currentQuestionIndex = ref(0)
 const lives = ref(3)
@@ -78,9 +91,10 @@ const LEVEL_ORDER: Record<string, string[]> = {
 }
 
 const activeLevelValue = computed(() => {
-  const active = levels.value.find(lvl => lvl.unlocked && lvl.bestScore < 80)
+  const currentLevels = levelsByLang.value[selectedLang.value] || []
+  const active = currentLevels.find(lvl => lvl.unlocked && lvl.bestScore < 80)
   if (!active) {
-    const unlocked = levels.value.filter(lvl => lvl.unlocked)
+    const unlocked = currentLevels.filter(lvl => lvl.unlocked)
     return unlocked[unlocked.length - 1]?.levelValue || ''
   }
   return active.levelValue
@@ -88,14 +102,17 @@ const activeLevelValue = computed(() => {
 
 // Initialize levels map
 async function loadLevels() {
+  if (levelsByLang.value[selectedLang.value]?.length > 0)
+    return
+
   isLoading.value = true
   errorMessage.value = ''
-  levels.value = [] 
-  
+
+  const lang = selectedLang.value
   try {
-    const res = await api.quiz.getLevels(selectedLang.value)
-    const order = LEVEL_ORDER[selectedLang.value] || LEVEL_ORDER.default
-    levels.value = res.sort((a, b) => {
+    const res = await api.quiz.getLevels(lang)
+    const order = LEVEL_ORDER[lang] || LEVEL_ORDER.default
+    levelsByLang.value[lang] = res.sort((a, b) => {
       const idxA = order.indexOf(a.levelValue)
       const idxB = order.indexOf(b.levelValue)
       return idxA - idxB
@@ -114,6 +131,7 @@ async function loadLevels() {
 watch(visible, (isOpen) => {
   if (isOpen) {
     currentState.value = 'select_level'
+    levelsByLang.value = { zh: [], ja: [], en: [] }
     if (props.initialLang) {
       selectedLang.value = props.initialLang
     }
@@ -314,131 +332,179 @@ function exitQuiz() {
       <KitTabs v-model="selectedLang" :items="tabItems" :cache="false">
         <template #zh>
           <div class="roadmap-grid">
-            <div
-              v-for="lvl in levels"
-              :key="lvl.levelValue"
-              class="roadmap-node"
-              :class="{ 'locked': !lvl.unlocked, 'passed': lvl.bestScore >= 80, 'is-active-target': lvl.levelValue === activeLevelValue }"
-            >
-              <div class="node-header">
-                <span class="node-level">{{ lvl.levelValue }}</span>
-                <div class="node-stars">
-                  <Icon
-                    v-for="n in 3"
-                    :key="n"
-                    :icon="n <= lvl.stars ? 'mdi:star' : 'mdi:star-outline'"
-                    :class="{ active: n <= lvl.stars }"
-                  />
+            <template v-if="isLoading && !levelsByLang.zh.length">
+              <div v-for="i in 6" :key="i" class="roadmap-node skeleton">
+                <div class="node-header">
+                  <span class="skeleton-text level" />
+                  <span class="skeleton-text stars" />
+                </div>
+                <div class="node-body">
+                  <span class="skeleton-text score" />
+                </div>
+                <div class="node-footer">
+                  <span class="skeleton-btn" />
                 </div>
               </div>
+            </template>
+            <template v-else>
+              <div
+                v-for="lvl in levelsByLang.zh"
+                :key="lvl.levelValue"
+                class="roadmap-node"
+                :class="{ 'locked': !lvl.unlocked, 'passed': lvl.bestScore >= 80, 'is-active-target': lvl.levelValue === activeLevelValue }"
+              >
+                <div class="node-header">
+                  <span class="node-level">{{ lvl.levelValue }}</span>
+                  <div class="node-stars">
+                    <Icon
+                      v-for="n in 3"
+                      :key="n"
+                      :icon="n <= lvl.stars ? 'mdi:star' : 'mdi:star-outline'"
+                      :class="{ active: n <= lvl.stars }"
+                    />
+                  </div>
+                </div>
 
-              <div class="node-body">
-                <span v-if="lvl.bestScore > 0" class="best-score">{{ t('dictionary.quiz.bestScore', { score: lvl.bestScore }) }}</span>
-                <span v-else class="best-score">{{ t('dictionary.quiz.notPassed') }}</span>
-              </div>
+                <div class="node-body">
+                  <span v-if="lvl.bestScore > 0" class="best-score">{{ t('dictionary.quiz.bestScore', { score: lvl.bestScore }) }}</span>
+                  <span v-else class="best-score">{{ t('dictionary.quiz.notPassed') }}</span>
+                </div>
 
-              <div class="node-footer">
-                <KitBtn
-                  v-if="lvl.unlocked"
-                  icon="mdi:play"
-                  color="primary"
-                  variant="tonal"
-                  class="start-node-btn"
-                  @click="startQuizFlow(lvl.levelValue)"
-                >
-                  {{ lvl.bestScore >= 80 ? t('dictionary.quiz.repeat') : t('dictionary.quiz.start') }}
-                </KitBtn>
-                <div v-else class="locked-label">
-                  <Icon icon="mdi:lock" /> {{ t('dictionary.quiz.locked') }}
+                <div class="node-footer">
+                  <KitBtn
+                    v-if="lvl.unlocked"
+                    icon="mdi:play"
+                    color="primary"
+                    variant="tonal"
+                    class="start-node-btn"
+                    @click="startQuizFlow(lvl.levelValue)"
+                  >
+                    {{ lvl.bestScore >= 80 ? t('dictionary.quiz.repeat') : t('dictionary.quiz.start') }}
+                  </KitBtn>
+                  <div v-else class="locked-label">
+                    <Icon icon="mdi:lock" /> {{ t('dictionary.quiz.locked') }}
+                  </div>
                 </div>
               </div>
-            </div>
+            </template>
           </div>
         </template>
         <template #ja>
           <div class="roadmap-grid">
-            <div
-              v-for="lvl in levels"
-              :key="lvl.levelValue"
-              class="roadmap-node"
-              :class="{ 'locked': !lvl.unlocked, 'passed': lvl.bestScore >= 80, 'is-active-target': lvl.levelValue === activeLevelValue }"
-            >
-              <div class="node-header">
-                <span class="node-level">{{ lvl.levelValue }}</span>
-                <div class="node-stars">
-                  <Icon
-                    v-for="n in 3"
-                    :key="n"
-                    :icon="n <= lvl.stars ? 'mdi:star' : 'mdi:star-outline'"
-                    :class="{ active: n <= lvl.stars }"
-                  />
+            <template v-if="isLoading && !levelsByLang.ja.length">
+              <div v-for="i in 5" :key="i" class="roadmap-node skeleton">
+                <div class="node-header">
+                  <span class="skeleton-text level" />
+                  <span class="skeleton-text stars" />
+                </div>
+                <div class="node-body">
+                  <span class="skeleton-text score" />
+                </div>
+                <div class="node-footer">
+                  <span class="skeleton-btn" />
                 </div>
               </div>
+            </template>
+            <template v-else>
+              <div
+                v-for="lvl in levelsByLang.ja"
+                :key="lvl.levelValue"
+                class="roadmap-node"
+                :class="{ 'locked': !lvl.unlocked, 'passed': lvl.bestScore >= 80, 'is-active-target': lvl.levelValue === activeLevelValue }"
+              >
+                <div class="node-header">
+                  <span class="node-level">{{ lvl.levelValue }}</span>
+                  <div class="node-stars">
+                    <Icon
+                      v-for="n in 3"
+                      :key="n"
+                      :icon="n <= lvl.stars ? 'mdi:star' : 'mdi:star-outline'"
+                      :class="{ active: n <= lvl.stars }"
+                    />
+                  </div>
+                </div>
 
-              <div class="node-body">
-                <span v-if="lvl.bestScore > 0" class="best-score">{{ t('dictionary.quiz.bestScore', { score: lvl.bestScore }) }}</span>
-                <span v-else class="best-score">{{ t('dictionary.quiz.notPassed') }}</span>
-              </div>
+                <div class="node-body">
+                  <span v-if="lvl.bestScore > 0" class="best-score">{{ t('dictionary.quiz.bestScore', { score: lvl.bestScore }) }}</span>
+                  <span v-else class="best-score">{{ t('dictionary.quiz.notPassed') }}</span>
+                </div>
 
-              <div class="node-footer">
-                <KitBtn
-                  v-if="lvl.unlocked"
-                  icon="mdi:play"
-                  color="primary"
-                  variant="tonal"
-                  class="start-node-btn"
-                  @click="startQuizFlow(lvl.levelValue)"
-                >
-                  {{ lvl.bestScore >= 80 ? t('dictionary.quiz.repeat') : t('dictionary.quiz.start') }}
-                </KitBtn>
-                <div v-else class="locked-label">
-                  <Icon icon="mdi:lock" /> {{ t('dictionary.quiz.locked') }}
+                <div class="node-footer">
+                  <KitBtn
+                    v-if="lvl.unlocked"
+                    icon="mdi:play"
+                    color="primary"
+                    variant="tonal"
+                    class="start-node-btn"
+                    @click="startQuizFlow(lvl.levelValue)"
+                  >
+                    {{ lvl.bestScore >= 80 ? t('dictionary.quiz.repeat') : t('dictionary.quiz.start') }}
+                  </KitBtn>
+                  <div v-else class="locked-label">
+                    <Icon icon="mdi:lock" /> {{ t('dictionary.quiz.locked') }}
+                  </div>
                 </div>
               </div>
-            </div>
+            </template>
           </div>
         </template>
         <template #en>
           <div class="roadmap-grid">
-            <div
-              v-for="lvl in levels"
-              :key="lvl.levelValue"
-              class="roadmap-node"
-              :class="{ 'locked': !lvl.unlocked, 'passed': lvl.bestScore >= 80, 'is-active-target': lvl.levelValue === activeLevelValue }"
-            >
-              <div class="node-header">
-                <span class="node-level">{{ lvl.levelValue }}</span>
-                <div class="node-stars">
-                  <Icon
-                    v-for="n in 3"
-                    :key="n"
-                    :icon="n <= lvl.stars ? 'mdi:star' : 'mdi:star-outline'"
-                    :class="{ active: n <= lvl.stars }"
-                  />
+            <template v-if="isLoading && !levelsByLang.en.length">
+              <div v-for="i in 6" :key="i" class="roadmap-node skeleton">
+                <div class="node-header">
+                  <span class="skeleton-text level" />
+                  <span class="skeleton-text stars" />
+                </div>
+                <div class="node-body">
+                  <span class="skeleton-text score" />
+                </div>
+                <div class="node-footer">
+                  <span class="skeleton-btn" />
                 </div>
               </div>
+            </template>
+            <template v-else>
+              <div
+                v-for="lvl in levelsByLang.en"
+                :key="lvl.levelValue"
+                class="roadmap-node"
+                :class="{ 'locked': !lvl.unlocked, 'passed': lvl.bestScore >= 80, 'is-active-target': lvl.levelValue === activeLevelValue }"
+              >
+                <div class="node-header">
+                  <span class="node-level">{{ lvl.levelValue }}</span>
+                  <div class="node-stars">
+                    <Icon
+                      v-for="n in 3"
+                      :key="n"
+                      :icon="n <= lvl.stars ? 'mdi:star' : 'mdi:star-outline'"
+                      :class="{ active: n <= lvl.stars }"
+                    />
+                  </div>
+                </div>
 
-              <div class="node-body">
-                <span v-if="lvl.bestScore > 0" class="best-score">{{ t('dictionary.quiz.bestScore', { score: lvl.bestScore }) }}</span>
-                <span v-else class="best-score">{{ t('dictionary.quiz.notPassed') }}</span>
-              </div>
+                <div class="node-body">
+                  <span v-if="lvl.bestScore > 0" class="best-score">{{ t('dictionary.quiz.bestScore', { score: lvl.bestScore }) }}</span>
+                  <span v-else class="best-score">{{ t('dictionary.quiz.notPassed') }}</span>
+                </div>
 
-              <div class="node-footer">
-                <KitBtn
-                  v-if="lvl.unlocked"
-                  icon="mdi:play"
-                  color="primary"
-                  variant="tonal"
-                  class="start-node-btn"
-                  @click="startQuizFlow(lvl.levelValue)"
-                >
-                  {{ lvl.bestScore >= 80 ? t('dictionary.quiz.repeat') : t('dictionary.quiz.start') }}
-                </KitBtn>
-                <div v-else class="locked-label">
-                  <Icon icon="mdi:lock" /> {{ t('dictionary.quiz.locked') }}
+                <div class="node-footer">
+                  <KitBtn
+                    v-if="lvl.unlocked"
+                    icon="mdi:play"
+                    color="primary"
+                    variant="tonal"
+                    class="start-node-btn"
+                    @click="startQuizFlow(lvl.levelValue)"
+                  >
+                    {{ lvl.bestScore >= 80 ? t('dictionary.quiz.repeat') : t('dictionary.quiz.start') }}
+                  </KitBtn>
+                  <div v-else class="locked-label">
+                    <Icon icon="mdi:lock" /> {{ t('dictionary.quiz.locked') }}
+                  </div>
                 </div>
               </div>
-            </div>
+            </template>
           </div>
         </template>
       </KitTabs>
@@ -1385,5 +1451,56 @@ function exitQuiz() {
 
 .ml-1 {
   margin-left: 4px;
+}
+
+@keyframes skeleton-pulse {
+  0% {
+    background-color: var(--bg-secondary-color);
+    opacity: 0.6;
+  }
+  50% {
+    background-color: var(--bg-tertiary-color);
+    opacity: 0.85;
+  }
+  100% {
+    background-color: var(--bg-secondary-color);
+    opacity: 0.6;
+  }
+}
+
+.roadmap-node.skeleton {
+  pointer-events: none;
+  border-style: dashed;
+  background: var(--bg-secondary-color);
+  opacity: 0.8;
+
+  .skeleton-text {
+    height: 16px;
+    border-radius: 4px;
+    animation: skeleton-pulse 1.5s infinite ease-in-out;
+    background-color: var(--bg-tertiary-color);
+
+    &.level {
+      width: 60px;
+      height: 24px;
+    }
+    &.stars {
+      width: 45px;
+      height: 16px;
+    }
+    &.score {
+      width: 100px;
+      height: 18px;
+    }
+  }
+
+  .skeleton-btn {
+    display: block;
+    width: 100%;
+    height: 36px;
+    border-radius: 8px;
+    animation: skeleton-pulse 1.5s infinite ease-in-out;
+    background-color: var(--bg-tertiary-color);
+  }
 }
 </style>

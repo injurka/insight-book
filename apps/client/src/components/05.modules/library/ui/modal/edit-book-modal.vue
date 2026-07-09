@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { Icon } from '@iconify/vue'
 import type { Book } from '~/shared/types/models'
+import { Icon } from '@iconify/vue'
 import { useClipboard } from '@vueuse/core'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -321,7 +321,7 @@ const isReadOnly = computed(() => editingBook.value.publicStatus === 'public' ||
   border-radius: 12px;
   background-color: var(--bg-tertiary-color);
   border: 1px solid var(--border-secondary-color);
-  
+
   .status-info {
     display: flex;
     flex-direction: column;
