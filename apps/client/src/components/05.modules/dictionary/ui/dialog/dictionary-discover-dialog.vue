@@ -132,7 +132,8 @@ function closePreview() {
 const cloningDeckId = ref<number | null>(null)
 
 async function cloneDeck(id: number) {
-  if (cloningDeckId.value !== null) return
+  if (cloningDeckId.value !== null)
+    return
   cloningDeckId.value = id
   try {
     await api.dictionary.cloneCatalog(id)
