@@ -244,23 +244,23 @@ onUnmounted(() => {
         :cancel-text="t('library.cancelBtn')"
         @submit="onConfirmHideBook"
       />
-    </div>
 
-    <footer class="library-footer">
-      <div class="footer-links">
-        <router-link :to="AppRoutePaths.About" class="footer-link">
-          О сайте
-        </router-link>
-        <span class="dot">·</span>
-        <router-link :to="AppRoutePaths.Privacy" class="footer-link">
-          Конфиденциальность
-        </router-link>
-        <span class="dot">·</span>
-        <router-link :to="AppRoutePaths.Copyright" class="footer-link">
-          Правообладателям
-        </router-link>
-      </div>
-    </footer>
+      <footer class="library-footer">
+        <div class="footer-links">
+          <router-link :to="AppRoutePaths.About" class="footer-link">
+            О сайте
+          </router-link>
+          <span class="dot">·</span>
+          <router-link :to="AppRoutePaths.Privacy" class="footer-link">
+            Конфиденциальность
+          </router-link>
+          <span class="dot">·</span>
+          <router-link :to="AppRoutePaths.Copyright" class="footer-link">
+            Правообладателям
+          </router-link>
+        </div>
+      </footer>
+    </div>
   </div>
 </template>
 
@@ -292,7 +292,7 @@ onUnmounted(() => {
   max-width: 1300px;
   width: 100%;
   margin: 0 auto;
-  min-height: 100vh;
+  flex: 1;
   display: flex;
   flex-direction: column;
   position: relative;
