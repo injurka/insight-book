@@ -121,7 +121,6 @@ export async function handleGenerateQuiz(req: Request, userId: number): Promise<
 
   const normalizedLang = normalizeLanguageCode(language)
 
-  // Verify that the level is unlocked for the user
   const progress = await db.select()
     .from(schema.userQuizProgress)
     .where(and(
@@ -135,7 +134,6 @@ export async function handleGenerateQuiz(req: Request, userId: number): Promise<
     throw new AppError(403, 'quiz_level_locked')
   }
 
-  // Fetch official deck words to feed to LLM
   const deck = await catalogDb.select()
     .from(officialDecks)
     .where(and(

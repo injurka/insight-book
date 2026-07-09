@@ -403,7 +403,7 @@ function submitTyping() {
     isAnswerCorrect.value = true
     isAnswerChecked.value = true
     typoFeedback.value = ''
-    setTimeout(flip, 400)
+    flip()
   }
   else if (isTypo) {
     typoFeedback.value = t('dictionary.almostCorrectTypo', { expected: props.card.word })

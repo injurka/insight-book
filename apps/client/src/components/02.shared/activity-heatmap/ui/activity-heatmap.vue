@@ -144,77 +144,106 @@ const maxStreak = computed(() => {
   return max
 })
 
-const userLevels = computed(() => {
-  if (!props.stats || !props.stats.difficulties)
-    return {}
-  const levels: Record<string, { current: string, next: string | null, progress: number, count: number, target: number, testPassed?: boolean, testStars?: number, testScore?: number }> = {}
+const userAchievements = computed(() => {
+  const achs: Array<{
+    type: 'vocab' | 'quiz'
+    lang: string
+    current: string
+    next?: string | null
+    progress?: number
+    count?: number
+    target?: number
+    testPassed?: boolean
+    testStars?: number
+    testScore?: number
+    labelType: string
+  }> = []
 
-  const langGroups: Record<string, { difficulty: string, count: number }[]> = {}
-  for (const d of props.stats.difficulties) {
-    if (!langGroups[d.language])
-      langGroups[d.language] = []
-    langGroups[d.language].push(d)
+  if (!props.stats)
+    return achs
+
+  // 1. Vocabulary achievements
+  if (props.stats.difficulties) {
+    const langGroups: Record<string, number> = {}
+    for (const d of props.stats.difficulties) {
+      langGroups[d.language] = (langGroups[d.language] || 0) + d.count
+    }
+
+    const VOCAB_RANKS = [
+      { label: t('activityHeatmap.ranks.beginner', 'Новичок'), target: 50 },
+      { label: t('activityHeatmap.ranks.seeker', 'Искатель'), target: 150 },
+      { label: t('activityHeatmap.ranks.apprentice', 'Ученик'), target: 300 },
+      { label: t('activityHeatmap.ranks.knower', 'Знаток'), target: 500 },
+      { label: t('activityHeatmap.ranks.experienced', 'Опытный'), target: 1000 },
+      { label: t('activityHeatmap.ranks.expert', 'Эксперт'), target: 3000 },
+      { label: t('activityHeatmap.ranks.master', 'Мастер'), target: 5000 },
+      { label: t('activityHeatmap.ranks.polyglot', 'Полиглот'), target: 10000 },
+    ]
+
+    for (const [lang, totalWords] of Object.entries(langGroups)) {
+      let currentRankIdx = 0
+      for (let i = 0; i < VOCAB_RANKS.length; i++) {
+        if (totalWords >= (i === 0 ? 0 : VOCAB_RANKS[i - 1].target)) {
+          currentRankIdx = i
+        }
+      }
+
+      const current = VOCAB_RANKS[currentRankIdx].label
+      const nextObj = currentRankIdx + 1 < VOCAB_RANKS.length ? VOCAB_RANKS[currentRankIdx + 1] : null
+      const next = nextObj ? nextObj.label : null
+
+      const target = nextObj ? nextObj.target : VOCAB_RANKS[currentRankIdx].target
+      const progress = nextObj
+        ? Math.min(100, Math.round((totalWords / target) * 100))
+        : 100
+
+      achs.push({
+        type: 'vocab',
+        lang,
+        current,
+        next,
+        count: totalWords,
+        target,
+        progress,
+        labelType: t('activityHeatmap.vocabLevel', 'Словарный запас'),
+      })
+    }
   }
 
-  for (const [lang, diffs] of Object.entries(langGroups)) {
-    const sys = DIFFICULTY_SYSTEMS[lang] || DIFFICULTY_SYSTEMS.default
-    const sysLevels = [...sys].sort((a, b) => a.level - b.level)
+  // 2. Quiz Level achievements
+  if (props.stats.quizProgress) {
+    const passedQuizzes = props.stats.quizProgress.filter(q => q.bestScore >= 80)
+    const highestQuizPerLang: Record<string, any> = {}
 
-    const userDiffCounts = new Map<string, number>()
-    diffs.forEach(d => userDiffCounts.set(d.difficulty, d.count))
+    for (const q of passedQuizzes) {
+      const sys = DIFFICULTY_SYSTEMS[q.language] || DIFFICULTY_SYSTEMS.default
+      const sysLevels = [...sys].sort((a, b) => a.level - b.level)
 
-    // Порог слов, которые нужно выучить (статус=3) чтобы "закрыть" уровень
-    const TARGET_WORDS = 50
+      const qLevelIdx = sysLevels.findIndex(l => l.value === q.levelValue || l.label === q.levelValue)
 
-    let achievedHighest = -1
-    // Находим максимальный уровень, в котором выучено >= 50 слов
-    for (let i = sysLevels.length - 1; i >= 0; i--) {
-      if ((userDiffCounts.get(sysLevels[i].value) || 0) >= TARGET_WORDS) {
-        achievedHighest = i
-        break
+      if (!highestQuizPerLang[q.language] || highestQuizPerLang[q.language].levelIdx < qLevelIdx) {
+        highestQuizPerLang[q.language] = {
+          ...q,
+          levelIdx: qLevelIdx,
+          current: q.levelValue,
+        }
       }
     }
 
-    let workingIdx = 0
-    if (achievedHighest === -1) {
-      workingIdx = 0
-    }
-    else if (achievedHighest === sysLevels.length - 1) {
-      workingIdx = sysLevels.length - 1
-    }
-    else {
-      workingIdx = achievedHighest + 1
-    }
-
-    const current = sysLevels[workingIdx].label
-    const nextObj = workingIdx + 1 < sysLevels.length ? sysLevels[workingIdx + 1] : null
-    const next = nextObj ? nextObj.label : null
-
-    const countInWorking = userDiffCounts.get(sysLevels[workingIdx].value) || 0
-    const progress = achievedHighest === sysLevels.length - 1
-      ? 100
-      : Math.min(100, Math.round((countInWorking / TARGET_WORDS) * 100))
-
-    const qProg = props.stats?.quizProgress?.find(
-      q => q.language === lang && q.levelValue === current,
-    )
-    const testPassed = qProg ? qProg.bestScore >= 80 : false
-    const testStars = qProg ? qProg.stars : 0
-    const testScore = qProg ? qProg.bestScore : 0
-
-    levels[lang] = {
-      current,
-      next,
-      progress,
-      count: countInWorking,
-      target: TARGET_WORDS,
-      testPassed,
-      testStars,
-      testScore,
+    for (const [lang, q] of Object.entries(highestQuizPerLang)) {
+      achs.push({
+        type: 'quiz',
+        lang,
+        current: q.current,
+        testPassed: true,
+        testScore: q.bestScore,
+        testStars: q.stars,
+        labelType: t('activityHeatmap.langLevel', 'Уровень языка'),
+      })
     }
   }
 
-  return levels
+  return achs
 })
 
 onMounted(async () => {
@@ -246,21 +275,25 @@ onMounted(async () => {
       </div>
     </div>
 
-    <div v-if="Object.keys(userLevels).length > 0" class="levels-section">
+    <div v-if="userAchievements.length > 0" class="levels-section">
       <h3 class="section-title">
         <Icon icon="mdi:trophy-outline" /> {{ t('activityHeatmap.achievements') }}
       </h3>
       <div class="levels-grid">
         <div
-          v-for="(lvl, lang) in userLevels"
-          :key="lang"
-          class="level-card is-interactive"
-          @click="emit('clickLevel', { language: lang, levelValue: lvl.current })"
+          v-for="lvl in userAchievements"
+          :key="`${lvl.lang}-${lvl.type}`"
+          class="level-card"
+          :class="{ 'is-interactive': lvl.type === 'quiz' }"
+          @click="lvl.type === 'quiz' ? emit('clickLevel', { language: lvl.lang, levelValue: lvl.current }) : undefined"
         >
           <div class="level-header">
             <div class="level-main-info">
-              <span class="lang-badge">{{ lang.toUpperCase() }}</span>
-              <span class="current-level">{{ lvl.current }}</span>
+              <span class="lang-badge">{{ lvl.lang.toUpperCase() }}</span>
+              <div style="display: flex; flex-direction: column; gap: 2px;">
+                <span class="current-level">{{ lvl.current }}</span>
+                <span class="label-type">{{ lvl.labelType }}</span>
+              </div>
             </div>
             <!-- Иконка верификации теста -->
             <div v-if="lvl.testPassed" class="test-verified-badge" :title="`Уровень подтвержден тестом на ${lvl.testScore}%`">
@@ -271,7 +304,7 @@ onMounted(async () => {
             </div>
           </div>
 
-          <div v-if="lvl.next" class="level-progress-box">
+          <div v-if="lvl.type === 'vocab' && lvl.next" class="level-progress-box">
             <div class="progress-info">
               <span class="next-label">
                 {{ t('activityHeatmap.nextLevel') }}: <span class="next-value">{{ lvl.next }}</span>
@@ -283,7 +316,7 @@ onMounted(async () => {
             </div>
           </div>
 
-          <div v-else class="level-max">
+          <div v-else-if="lvl.type === 'vocab'" class="level-max">
             <Icon icon="mdi:star-face" class="max-icon" /> {{ t('activityHeatmap.maxLevelReached') }}
           </div>
         </div>
@@ -469,6 +502,14 @@ onMounted(async () => {
         font-size: 1.2rem;
         font-weight: 700;
         color: var(--fg-primary-color);
+        line-height: 1.2;
+      }
+
+      .label-type {
+        font-size: 0.75rem;
+        color: var(--fg-secondary-color);
+        font-weight: 500;
+        line-height: 1;
       }
 
       .test-verified-badge {

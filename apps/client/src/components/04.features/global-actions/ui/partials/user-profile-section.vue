@@ -125,7 +125,7 @@ function openLimits() {
       </div>
     </div>
 
-    <div v-if="authStore.user?.role !== 'admin'" class="limits-section" @click="openLimits">
+    <div class="limits-section" @click="openLimits">
       <div class="limits-content">
         <!-- ИИ Токены -->
         <div class="limit-item">

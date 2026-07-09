@@ -130,7 +130,6 @@ async function onDeleteDeckConfirm() {
 .manage-decks-content {
   display: flex;
   flex-direction: column;
-  gap: 12px;
 }
 
 .create-deck-row {
@@ -142,7 +141,6 @@ async function onDeleteDeckConfirm() {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  max-height: 250px;
   overflow-y: auto;
 }
 

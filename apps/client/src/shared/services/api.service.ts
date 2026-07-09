@@ -84,7 +84,11 @@ export const request = ofetch.create({
       useToastStore().error(errMessage)
     }
 
-    throw new Error(errMessage)
+    const finalError = new Error(errMessage)
+    if (isAbort) {
+      finalError.name = 'AbortError'
+    }
+    throw finalError
   },
 })
 

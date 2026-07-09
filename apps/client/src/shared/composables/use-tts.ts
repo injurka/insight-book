@@ -95,11 +95,14 @@ export function useTts() {
     }
     catch (e) {
       const err = e as Error
-      if (
-        err.name === 'AbortError'
-        || err.name === 'CanceledError'
-        || err.message?.includes('is aborted')
-      ) {
+      const isAbort
+        = err.name === 'AbortError'
+          || err.name === 'CanceledError'
+          || err.message?.toLowerCase().includes('abort')
+          || err.message?.toLowerCase().includes('cancel')
+          || err.message?.includes('is aborted')
+
+      if (isAbort) {
         return
       }
 

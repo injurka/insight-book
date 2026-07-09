@@ -99,13 +99,43 @@ async function seed() {
               difficulty: data.difficulty || '',
             }
           }
+
+          let grammarNote = w.grammarNote || ''
+          if (!grammarNote && Array.isArray(w.grammarRules) && w.grammarRules.length > 0) {
+            grammarNote = w.grammarRules.map((r: any) => {
+              let note = `<b>${r.pattern}</b> — ${r.explanation}`
+              if (r.example) {
+                note += `<br><i>Пример: ${r.example}</i>`
+              }
+              return note
+            }).join('<br><br>')
+          }
+
+          let vocabularyNote = w.vocabularyNote || ''
+          if (!vocabularyNote && Array.isArray(w.vocabulary) && w.vocabulary.length > 0) {
+            vocabularyNote = w.vocabulary
+              .filter((v: any) => v && v.word)
+              .map((v: any) => {
+                let note = `<b>${v.word}</b>`
+                if (v.transcription) {
+                  note += ` (${v.transcription})`
+                }
+                note += ` — ${v.meaning || v.translation || ''}`
+                if (v.usageInContext) {
+                  note += `<br><i>Использование: ${v.usageInContext}</i>`
+                }
+                return note
+              })
+              .join('<br><br>')
+          }
+
           return {
             deckId,
             word: w.word,
             transcription: w.transcription || '',
             translation: w.translation || '',
-            grammarNote: w.grammarNote || '',
-            vocabularyNote: w.vocabularyNote || '',
+            grammarNote,
+            vocabularyNote,
             tags: w.tags || '',
             difficulty: w.difficulty || data.difficulty || '',
           }

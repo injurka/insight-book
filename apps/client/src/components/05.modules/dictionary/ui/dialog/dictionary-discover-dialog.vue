@@ -74,8 +74,8 @@ async function doImport() {
     })
 
     toast.success(t('dictionary.discover.import_success'))
-    store.fetchDictionary()
-    store.fetchDecks()
+    await store.fetchDictionary()
+    await store.fetchDecks()
     visible.value = false
   }
   catch (err: unknown) {
@@ -133,8 +133,8 @@ async function cloneDeck(id: number) {
   try {
     await api.dictionary.cloneCatalog(id)
     toast.success(t('dictionary.discover.clone_success'))
-    store.fetchDictionary()
-    store.fetchDecks()
+    await store.fetchDictionary()
+    await store.fetchDecks()
 
     previewDeck.value = null
     visible.value = false
@@ -226,7 +226,7 @@ onMounted(() => {
         </template>
 
         <template #catalog>
-          <div class="tab-pane catalog-pane">
+          <div class="catalog-pane">
             <Transition name="fade" mode="out-in">
               <div v-if="previewDeck" key="preview" class="preview-container">
                 <div class="preview-header">
@@ -286,10 +286,6 @@ onMounted(() => {
 </template>
 
 <style scoped lang="scss">
-.tab-pane {
-  padding: 20px 16px;
-}
-
 .upload-area {
   text-align: center;
   padding: 48px;
@@ -540,7 +536,6 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  max-height: 400px;
   overflow-y: auto;
   padding-right: 4px;
 

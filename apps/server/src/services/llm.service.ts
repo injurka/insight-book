@@ -10,6 +10,7 @@ import {
   BOOK_ANALYSIS_PROMPT,
   getBatchSystemPrompt,
   getDeepDivePrompt,
+  getLangName,
   getMangaAnalysisPrompt,
   getQuizGenerationPrompt,
   getSystemPrompt,
@@ -913,7 +914,7 @@ export async function generateLevelQuiz(
         config,
         raw => parseLlmJson<any[]>(raw),
         (usage, rawText, messagesUsed) => {
-          trackTokenUsage(userId, `generate_quiz_${levelValue}`, model, usage.promptTokens, usage.completionTokens, JSON.stringify(messagesUsed, null, 2), rawText)
+          trackTokenUsage(userId, `generate_quiz`, model, usage.promptTokens, usage.completionTokens, JSON.stringify(messagesUsed, null, 2), rawText)
         },
       )
 
@@ -937,7 +938,7 @@ export async function generateLevelQuiz(
             config,
             raw => parseLlmJson<any[]>(raw),
             (usage, rawText, messagesUsed) => {
-              trackTokenUsage(userId, `generate_quiz_correct_${levelValue}`, model, usage.promptTokens, usage.completionTokens, JSON.stringify(messagesUsed, null, 2), rawText)
+              trackTokenUsage(userId, `generate_quiz`, model, usage.promptTokens, usage.completionTokens, JSON.stringify(messagesUsed, null, 2), rawText)
             },
           )
 
@@ -950,16 +951,20 @@ export async function generateLevelQuiz(
           }
         }
 
+        const srcLangName = getLangName(language)
+        const targetLangName = getLangName(targetLang)
+
         const reviewerMessages: ModelMessage[] = [
           {
             role: 'system',
-            content: `You are an expert ${language} linguist and test reviewer for the ${levelValue} level. 
+            content: `You are an expert ${srcLangName} linguist and test reviewer for the ${levelValue} level. 
 Your task is to review the provided JSON quiz.
 1. Fix any grammatical or logical errors in the questions, options, or explanations.
 2. Ensure that the vocabulary and grammar strictly adhere to the ${levelValue} level. Simplify overly complex sentences or words.
 3. Ensure the 'correctAnswer' perfectly solves the question and is mathematically/logically sound.
 4. For 'reorder' questions, DO NOT remove extra distractor words from the 'options' array. Distractors are intentional and MUST be kept!
-5. If the quiz is mostly good, just return the improved JSON array of questions with your fixes applied.
+5. CRITICAL: The "question" field for "choice" and "reorder" types MUST remain strictly in the student's native language (${targetLangName}). Do NOT translate these question texts to ${srcLangName}.
+6. If the quiz is mostly good, just return the improved JSON array of questions with your fixes applied.
 Output MUST be a valid JSON array of question objects, exactly matching the schema. No markdown formatting outside of JSON.`,
           },
           { role: 'user', content: JSON.stringify(validQuiz) },
@@ -974,7 +979,7 @@ Output MUST be a valid JSON array of question objects, exactly matching the sche
             config,
             raw => parseLlmJson<any[]>(raw),
             (usage, rawText, messagesUsed) => {
-              trackTokenUsage(userId, `generate_quiz_review_${levelValue}`, model, usage.promptTokens, usage.completionTokens, JSON.stringify(messagesUsed, null, 2), rawText)
+              trackTokenUsage(userId, `generate_quiz`, model, usage.promptTokens, usage.completionTokens, JSON.stringify(messagesUsed, null, 2), rawText)
             },
           )
 

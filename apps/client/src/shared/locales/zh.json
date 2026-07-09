@@ -193,7 +193,8 @@
       "deep_dive_radicals": "深度沉浸 (偏旁部首)",
       "check_pronunciation_stt": "语音识别 (STT)",
       "check_pronunciation_llm": "发音分析 (LLM)",
-      "chat_ai": "自由提问 (AI聊天)"
+      "chat_ai": "自由提问 (AI聊天)",
+      "generate_quiz": "测验生成"
     }
   },
   "library": {

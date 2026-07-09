@@ -81,6 +81,11 @@ function finishOnboarding() {
   <div class="onboarding-page">
     <HoverRevealBg :opacity="0.05" />
 
+    <!-- Кнопка пропуска -->
+    <button class="skip-btn" title="Пропустить обучение" @click="finishOnboarding">
+      <Icon icon="mdi:close" />
+    </button>
+
     <!-- Настройки: тема и язык -->
     <div class="settings-bar">
       <KitDropdown width="140px" placement="bottom-end" :z-index="10001">
@@ -109,11 +114,6 @@ function finishOnboarding() {
         <Icon :icon="currentThemeIcon" />
       </button>
     </div>
-
-    <!-- Кнопка пропуска -->
-    <button class="skip-btn" title="Пропустить обучение" @click="finishOnboarding">
-      <Icon icon="mdi:close" />
-    </button>
 
     <div class="onboarding-container">
       <Transition name="fade-slide" mode="out-in">
@@ -149,7 +149,7 @@ function finishOnboarding() {
 .settings-bar {
   position: absolute;
   top: max(16px, env(safe-area-inset-top, 16px));
-  right: max(16px, env(safe-area-inset-right, 16px));
+  left: max(16px, env(safe-area-inset-left, 16px));
   display: flex;
   align-items: center;
   gap: 6px;
@@ -242,7 +242,7 @@ function finishOnboarding() {
 .skip-btn {
   position: absolute;
   top: max(16px, env(safe-area-inset-top, 16px));
-  left: max(16px, env(safe-area-inset-left, 16px));
+  right: max(16px, env(safe-area-inset-right, 16px));
   z-index: 1000;
   width: 44px;
   height: 44px;
