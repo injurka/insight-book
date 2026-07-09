@@ -507,6 +507,7 @@
     "promptPronunciationText": "这个单词如何发音？解释发音规则。请使用 Markdown 格式（例如，加粗术语）。",
     "promptExamplesText": "请提供3个使用该单词的不同例句。使用 Markdown 列表以提高可读性。",
     "promptGrammarText": "有哪些与该单词相关的语法结构？请返回结构化的 Markdown 列表。",
+    "inMultipleDecks": "单词在多个牌组中",
     "discover": {
       "title": "发现与导入",
       "import_tab": "导入 (CSV/Anki)",

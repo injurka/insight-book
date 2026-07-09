@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { UserDictItem } from '~/shared/types/models'
 import { Icon } from '@iconify/vue'
-import { computed, reactive, ref, watch } from 'vue'
+import { computed, nextTick, reactive, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { KitBtn, KitDropdown, KitTooltip } from '~/components/01.kit'
 import { PronunciationCheck } from '~/components/04.features/pronunciation-check'
@@ -25,6 +25,7 @@ const emit = defineEmits(['grade'])
 
 const AiExamplesModal = lazyComponent(() => import('~/components/03.domain/analysis/ui/modal/ai-examples-modal.vue'))
 const LlmChatModal = lazyComponent(() => import('~/components/04.features/llm-chat/ui/llm-chat-modal.vue'))
+const HanziBoard = lazyComponent(() => import('../../hanzi-board.vue'))
 
 const dictStore = useDictionaryStore()
 const { speak, isPlaying, isLoading } = useTts()
@@ -123,14 +124,27 @@ function checkMatch() {
   }
 }
 
+const showAnimation = ref(false)
+const hanziBoardRef = ref<any>(null)
+
 function dismissMatchedCard() {
   matchedCard.value = null
   expandedSections.grammar = false
   expandedSections.vocab = false
   expandedSections.notes = false
+  showAnimation.value = false
   setTimeout(() => {
     emit('grade', 3) // Advance progress
   }, 100) // Slight delay to allow animation to start smoothly
+}
+
+function toggleAnimation() {
+  showAnimation.value = !showAnimation.value
+  if (showAnimation.value) {
+    nextTick(() => {
+      hanziBoardRef.value?.replay()
+    })
+  }
 }
 
 function openTtsPopover() {
@@ -282,6 +296,9 @@ function toggleSection(sec: 'grammar' | 'vocab' | 'notes') {
                   </button>
                 </div>
               </KitDropdown>
+              <KitTooltip v-if="matchedCard.language === 'zh' && /[\u4E00-\u9FA5]/.test(matchedCard.word)" :text="t('dictionary.writingPractice')" placement="bottom">
+                <KitBtn icon="mdi:draw" variant="tonal" color="secondary" size="sm" :class="{ 'is-active-btn': showAnimation }" @click="toggleAnimation" />
+              </KitTooltip>
             </div>
 
             <div v-if="matchedCard.grammarNote || matchedCard.vocabularyNote || matchedCard.notes" class="toolbar-divider" />
@@ -315,6 +332,14 @@ function toggleSection(sec: 'grammar' | 'vocab' | 'notes') {
               <Icon icon="mdi:note-text-outline" /> {{ t('dictionary.notesMnemonic') }}
             </div>
             <div class="notes-text" v-html="matchedCard.notes" />
+          </div>
+
+          <div v-if="showAnimation" class="animation-container fade-in">
+            <h4>{{ t('dictionary.strokeOrder') }}</h4>
+            <HanziBoard ref="hanziBoardRef" :text="matchedCard.word" mode="animation" :size="80" />
+            <KitBtn icon="mdi:replay" variant="text" size="xs" color="secondary" @click="hanziBoardRef?.replay()">
+              {{ t('dictionary.repeat') }}
+            </KitBtn>
           </div>
         </div>
       </div>
@@ -666,5 +691,25 @@ function toggleSection(sec: 'grammar' | 'vocab' | 'notes') {
   &:hover:not(:disabled) svg {
     color: var(--fg-accent-color);
   }
+}
+
+.animation-container {
+  background-color: rgba(var(--bg-tertiary-color-rgb), 0.5);
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border-secondary-color);
+  width: 100%;
+
+  h4 {
+    margin: 0 0 8px 0;
+    font-size: 0.9rem;
+    color: var(--fg-secondary-color);
+    text-transform: uppercase;
+  }
+}
+
+.is-active-btn {
+  color: var(--fg-accent-color) !important;
+  background-color: rgba(var(--bg-accent-color-rgb, 201, 117, 222), 0.1) !important;
 }
 </style>

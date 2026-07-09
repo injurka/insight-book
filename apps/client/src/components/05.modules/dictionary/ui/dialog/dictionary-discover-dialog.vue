@@ -13,11 +13,11 @@ const store = useDictionaryStore()
 const toast = useToast()
 const { t } = useI18n()
 
-const activeTab = ref<'import' | 'catalog'>('import')
+const activeTab = ref<'import' | 'catalog'>('catalog')
 
 const tabItems = computed(() => [
-  { id: 'import', label: t('dictionary.discover.import_tab'), icon: 'mdi:file-import-outline' },
   { id: 'catalog', label: t('dictionary.discover.marketplace_tab'), icon: 'mdi:store-search-outline' },
+  { id: 'import', label: t('dictionary.discover.import_tab'), icon: 'mdi:file-import-outline' },
 ])
 
 // -- Import Block --

@@ -507,6 +507,7 @@
     "promptPronunciationText": "How is this word pronounced? Explain any rules. Use Markdown for formatting (e.g., bold text for terms).",
     "promptExamplesText": "Please provide 3 diverse example sentences with this word. Use Markdown lists for readability.",
     "promptGrammarText": "What grammatical patterns are associated with this word? Return a structured Markdown list.",
+    "inMultipleDecks": "Word in multiple decks",
     "discover": {
       "title": "Discover & Import",
       "import_tab": "Import (CSV/Anki)",

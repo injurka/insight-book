@@ -130,7 +130,7 @@ function openTrainingSettings(mode: 'srs' | 'deep_dive' | 'cram' | 'match') {
             </div>
           </KitDropdown>
 
-          <KitTooltip text="Discover & Import" placement="bottom">
+          <KitTooltip :text="t('dictionary.discover.title')" placement="bottom">
             <KitBtn icon="mdi:bookshelf" variant="tonal" color="primary" @click="emit('openDiscover')" />
           </KitTooltip>
 
