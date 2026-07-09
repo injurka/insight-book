@@ -814,6 +814,29 @@ Output STRICT JSON ONLY. Never use backticks for strings.
   }
 }
 
+/**
+ * Вспомогательная функция для пересборки кнопок (слов) из правильного ответа.
+ * Автоматически исключает несовпадения в артиклях/словах и случайные опечатки ИИ.
+ */
+function reconstructReorderOptions(questions: any[], language: string): any[] {
+  const isCJK = ['zh', 'ja'].includes(language)
+  return questions.map((q) => {
+    if (q.type === 'reorder' && !isCJK && q.correctAnswer) {
+      // Разбиваем правильный ответ по пробелам, предварительно удалив знаки препинания
+      const words = q.correctAnswer
+        .replace(/[.,!?;:()¿¡"']/g, '')
+        .split(/\s+/)
+        .filter(Boolean)
+
+      if (words.length > 0) {
+        // Заменяем варианты на точные слова из ответа и перемешиваем их
+        q.options = words.sort(() => Math.random() - 0.5)
+      }
+    }
+    return q
+  })
+}
+
 function validateQuizQuestions(questions: any[]): string | null {
   if (!Array.isArray(questions))
     return 'Quiz is not a valid JSON array'
@@ -836,6 +859,14 @@ function validateQuizQuestions(questions: any[]): string | null {
     }
     if (!q.explanation || typeof q.explanation !== 'string') {
       return `Question ${i + 1} is missing explanation`
+    }
+
+    // Проверяем, перевела ли модель вопрос на русский (или целевой язык).
+    // Если вопрос в reorder совпадает с ответом на изучаемом языке — отправляем на перегенерацию.
+    if (q.type === 'reorder') {
+      if (q.question.trim().toLowerCase() === q.correctAnswer.trim().toLowerCase()) {
+        return `Question ${i + 1} of type 'reorder' must contain the TRANSLATION of the sentence, not the sentence itself.`
+      }
     }
 
     if (q.type === 'choice' || q.type === 'cloze') {
@@ -945,14 +976,14 @@ Output MUST be a valid JSON array of question objects, exactly matching the sche
 
           const reviewError = validateQuizQuestions(reviewed.parsed)
           if (!reviewError && Array.isArray(reviewed.parsed) && reviewed.parsed.length > 0) {
-            return reviewed.parsed
+            return reconstructReorderOptions(reviewed.parsed, language)
           }
           console.warn(`[Quiz Reviewer] Semantic correction broke schema: ${reviewError}. Returning original technically valid quiz.`)
-          return validQuiz
+          return reconstructReorderOptions(validQuiz, language)
         }
         catch (revError) {
           console.warn(`[Quiz Reviewer] LLM reviewer failed. Returning original technically valid quiz.`, revError)
-          return validQuiz
+          return reconstructReorderOptions(validQuiz, language)
         }
       }
       throw new Error('LLM did not return a valid quiz array')

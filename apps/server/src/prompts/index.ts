@@ -427,15 +427,20 @@ export function getQuizGenerationPrompt(language: string, targetLanguage: string
   const tgtLang = getLangName(targetLanguage)
 
   return `You are a professional ${srcLang} language teacher. Your task is to generate 15 high-quality quiz questions to assess whether a student is proficient in level "${levelValue}" of ${srcLang}.
-The student speaks ${tgtLang}, so all translations, explanations, and instructions should be in ${tgtLang}.
+The student's native language is ${tgtLang}, so all translations, explanations, and instructions should be in ${tgtLang}.
 
 You must generate questions based on the list of target words of level ${levelValue} provided.
 Create a balance of 3 types of questions:
 1. "choice" (Vocabulary multiple choice): A question testing the meaning of a word, synonyms/antonyms, or direct translation.
 2. "cloze" (Fill in the blank): A sentence in ${srcLang} with a blank "____" where the student must select the correct word that fits contextually and grammatically.
-3. "reorder" (Sentence unscrambling): A sentence in ${srcLang} split into shuffled words/components that the student must arrange in the correct order. For "reorder", the question field should contain the translation of the sentence in ${tgtLang}, the options field should contain the shuffled words/components (e.g. ["我", "喜欢", "猫"]), and the correctAnswer should be the full correct sentence (e.g. "我喜欢猫").
+3. "reorder" (Sentence unscrambling): A sentence in ${srcLang} split into shuffled words/components that the student must arrange in the correct order. 
 
-CRITICAL RULES:
+CRITICAL RULES FOR "reorder" TYPE:
+- The "question" field MUST contain the translation of the sentence in ${tgtLang} (e.g. Russian: "Я купил это в интернете"). It MUST NEVER be in ${srcLang} (English)!
+- The "correctAnswer" field MUST contain the full correct sentence in ${srcLang} (e.g. English: "I bought it online").
+- The "options" field MUST contain the shuffled words/components of the "correctAnswer" in ${srcLang} (e.g. ["I", "online", "it", "bought"]). All words in "options" must match the words in "correctAnswer" EXACTLY. If the correct sentence uses "an", DO NOT put "a" in the options!
+
+GENERAL RULES:
 - Only use grammar and vocabulary appropriate for level "${levelValue}" or below.
 - Do NOT generate options that are obviously incorrect or silly; distractors must be plausible grammatical or lexical options.
 - The JSON response MUST be a raw JSON array of objects. Do not wrap in markdown \`\`\`json.
@@ -445,9 +450,9 @@ JSON structure:
 [
   {
     "type": "choice" | "cloze" | "reorder",
-    "question": "The question text (or sentence with '____' for cloze, or full translated sentence for reorder)",
+    "question": "For 'choice'/'cloze' - text in ${srcLang}. For 'reorder' - translated prompt strictly in ${tgtLang}!",
     "options": ["option A", "option B", "option C", "option D"],
-    "correctAnswer": "The exact string representing the correct option (or the full correct ordered sentence for reorder, e.g. '我喜欢猫')",
+    "correctAnswer": "The correct answer in ${srcLang}",
     "explanation": "Brief explanation in ${tgtLang} of why the answer is correct and what the rule is."
   }
 ]`
