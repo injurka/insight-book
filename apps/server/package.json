@@ -19,6 +19,7 @@
     "--------------------------------< BACKUP & DUMP >---------------------------------": "",
     "dump:create": "bun src/scripts/create-dump.ts",
     "dump:seed": "bun src/scripts/seed-from-dump.ts",
+    "s3:migrate": "bun src/scripts/migrate-to-s3.ts",
     "deck:generate": "bun src/scripts/generate-deck.ts",
     "deck:seed": "bun src/scripts/seed-catalog.ts",
     "deck:inject": "bun src/scripts/inject-deck-cache.ts",
