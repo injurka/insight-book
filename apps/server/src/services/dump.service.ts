@@ -2,7 +2,7 @@ import { readdir } from 'node:fs/promises'
 import path from 'node:path'
 import { Database } from 'bun:sqlite'
 import { eq } from 'drizzle-orm'
-import { DB_PATH, UPLOADS_PATH } from '../config'
+import { DB_PATH, UPLOAD_STORAGE, UPLOADS_PATH } from '../config'
 import { db } from '../db'
 import * as schema from '../db/schema'
 import { s3Service } from './s3.service'
@@ -57,29 +57,55 @@ export async function executeDump(logCallback?: (msg: string) => void): Promise<
     })
 
     // Файлы
-    const uploadFiles = await getFilesRecursively(UPLOADS_PATH)
-    for (const filePath of uploadFiles) {
-      const relativePath = path.relative(UPLOADS_PATH, filePath)
-      const s3Path = relativePath.split(path.sep).join('/')
-      filesToUpload.push({
-        localPath: filePath,
-        s3Key: `${dumpPrefix}/uploads/${s3Path}`,
-      })
+    if (UPLOAD_STORAGE === 's3') {
+      // В S3-режиме медиафайлы уже в S3: копируем uploads/* → dumpPrefix/uploads/*
+      log('📂 S3 mode: copying media from s3 uploads/ to dump...')
+      const s3MediaKeys = await s3Service.listFilesInFolder('uploads/')
+      for (const s3Key of s3MediaKeys) {
+        // s3Key: uploads/books/folder/page.jpg → dumpKey: dumps/ts/uploads/books/folder/page.jpg
+        const fileData = await s3Service.getFile(s3Key)
+        if (fileData) {
+          await s3Service.uploadFile(`${dumpPrefix}/${s3Key}`, fileData.buffer, fileData.contentType)
+        }
+      }
+      // Также копируем covers/ и avatars/ которые хранятся без префикса uploads/
+      for (const prefix of ['covers/', 'avatars/', 'books/']) {
+        const keys = await s3Service.listFilesInFolder(prefix)
+        for (const s3Key of keys) {
+          const fileData = await s3Service.getFile(s3Key)
+          if (fileData) {
+            await s3Service.uploadFile(`${dumpPrefix}/uploads/${s3Key}`, fileData.buffer, fileData.contentType)
+          }
+        }
+      }
+    }
+    else {
+      // local-режим: читаем из локальной файловой системы
+      const uploadFiles = await getFilesRecursively(UPLOADS_PATH)
+      for (const filePath of uploadFiles) {
+        const relativePath = path.relative(UPLOADS_PATH, filePath)
+        const s3Path = relativePath.split(path.sep).join('/')
+        filesToUpload.push({
+          localPath: filePath,
+          s3Key: `${dumpPrefix}/uploads/${s3Path}`,
+        })
+      }
     }
 
-    log(`🚀 Uploading ${filesToUpload.length} files to S3...`)
-    let uploaded = 0
+    if (UPLOAD_STORAGE !== 's3' && filesToUpload.length > 0) {
+      log(`🚀 Uploading ${filesToUpload.length} files to S3...`)
+      let uploaded = 0
 
-    for (const { localPath, s3Key } of filesToUpload) {
-      const file = Bun.file(localPath)
-      if (await file.exists()) {
-        const buffer = await file.arrayBuffer() // Асинхронно, не блокирует Event Loop!
-        await s3Service.uploadFile(s3Key, buffer)
-        uploaded++
+      for (const { localPath, s3Key } of filesToUpload) {
+        const file = Bun.file(localPath)
+        if (await file.exists()) {
+          const buffer = await file.arrayBuffer()
+          await s3Service.uploadFile(s3Key, buffer)
+          uploaded++
 
-        // Раз в 10 файлов можно выводить лог, чтобы не спамить
-        if (uploaded % 10 === 0 || uploaded === filesToUpload.length) {
-          log(`✅ Progress: ${uploaded}/${filesToUpload.length}`)
+          if (uploaded % 10 === 0 || uploaded === filesToUpload.length) {
+            log(`✅ Progress: ${uploaded}/${filesToUpload.length}`)
+          }
         }
       }
     }

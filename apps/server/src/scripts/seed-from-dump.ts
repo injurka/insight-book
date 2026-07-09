@@ -1,13 +1,13 @@
 import { mkdir, rm } from 'node:fs/promises'
 import path from 'node:path'
-import { DB_PATH, UPLOADS_PATH } from '../config'
+import { DB_PATH, UPLOAD_STORAGE, UPLOADS_PATH } from '../config'
 import { s3Service } from '../services/s3.service'
 
 const args = process.argv.slice(2)
 const specificDump = args[0] // Например: dumps/2026-06-02T12-00-00/
 
 async function main() {
-  console.log('⚠️ WARNING: Restoring from a dump will overwrite current database and uploads.')
+  console.log('⚠️  WARNING: Restoring from a dump will overwrite current database and uploads.')
   console.log('🔄 Checking S3 connection...')
   await s3Service.checkConnection()
   console.log('✅ S3 Connection OK')
@@ -32,6 +32,7 @@ async function main() {
   }
 
   console.log(`📦 Using dump: ${dumpPrefixToUse}`)
+  console.log(`📦 Storage mode: ${UPLOAD_STORAGE}`)
 
   const s3Keys = await s3Service.listFilesInFolder(dumpPrefixToUse)
   if (s3Keys.length === 0) {
@@ -39,7 +40,7 @@ async function main() {
     process.exit(1)
   }
 
-  console.log(`📥 Downloading ${s3Keys.length} files...`)
+  console.log(`📥 Restoring ${s3Keys.length} files...`)
 
   // Удаляем старые WAL файлы БД, чтобы не было конфликта при подмене основной БД
   try {
@@ -48,38 +49,58 @@ async function main() {
   }
   catch { }
 
-  let downloaded = 0
+  let restored = 0
 
   for (const s3Key of s3Keys) {
     // Убираем префикс дампа (dumps/YYYY-MM-DD/), чтобы получить относительный путь (db/... или uploads/...)
     const relativeKey = s3Key.substring(dumpPrefixToUse.length)
-    let localDestPath = ''
 
     if (relativeKey.startsWith('db/insight-book.sqlite')) {
-      localDestPath = DB_PATH
+      // ── БД: всегда восстанавливаем на диск ────────────────────────
+      await mkdir(path.dirname(DB_PATH), { recursive: true })
+      const fileData = await s3Service.getFile(s3Key)
+      if (fileData) {
+        await Bun.write(DB_PATH, fileData.buffer)
+        restored++
+        process.stdout.write(`\r✅ Progress: ${restored}/${s3Keys.length}`)
+      }
+      else {
+        console.error(`\n❌ Failed to download DB: ${s3Key}`)
+      }
     }
     else if (relativeKey.startsWith('uploads/')) {
       const uploadRelativePath = relativeKey.substring('uploads/'.length)
-      // Преобразуем S3-путь в системный путь
-      localDestPath = path.join(UPLOADS_PATH, ...uploadRelativePath.split('/'))
+      // uploadRelativePath = "books/folder/page.jpg" | "covers/..." | "avatars/..."
+
+      if (UPLOAD_STORAGE === 's3') {
+        // ── S3-режим: медиа восстанавливаем обратно в S3 ────────────
+        const fileData = await s3Service.getFile(s3Key)
+        if (fileData) {
+          await s3Service.uploadFile(uploadRelativePath, fileData.buffer, fileData.contentType)
+          restored++
+          process.stdout.write(`\r✅ Progress: ${restored}/${s3Keys.length}`)
+        }
+        else {
+          console.error(`\n❌ Failed to download from dump: ${s3Key}`)
+        }
+      }
+      else {
+        // ── local-режим: медиа пишем на локальный диск ──────────────
+        const localDestPath = path.join(UPLOADS_PATH, ...uploadRelativePath.split('/'))
+        await mkdir(path.dirname(localDestPath), { recursive: true })
+        const fileData = await s3Service.getFile(s3Key)
+        if (fileData) {
+          await Bun.write(localDestPath, fileData.buffer)
+          restored++
+          process.stdout.write(`\r✅ Progress: ${restored}/${s3Keys.length}`)
+        }
+        else {
+          console.error(`\n❌ Failed to download: ${s3Key}`)
+        }
+      }
     }
     else {
-      console.warn(`\n⚠️ Skipping unknown file mapping: ${s3Key}`)
-      continue
-    }
-
-    // Создаем директории, если их нет
-    await mkdir(path.dirname(localDestPath), { recursive: true })
-
-    // Скачиваем и сохраняем
-    const fileData = await s3Service.getFile(s3Key)
-    if (fileData) {
-      await Bun.write(localDestPath, fileData.buffer)
-      downloaded++
-      process.stdout.write(`\r✅ Progress: ${downloaded}/${s3Keys.length}`)
-    }
-    else {
-      console.error(`\n❌ Failed to download: ${s3Key}`)
+      console.warn(`\n⚠️  Skipping unknown file mapping: ${s3Key}`)
     }
   }
 
