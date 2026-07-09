@@ -11,7 +11,10 @@ import { s3Service } from './s3.service'
 export async function processFb2(fileBuffer: ArrayBuffer, filename: string, userId: number): Promise<number> {
   const safeName = `${Date.now()}_${filename.replace(/[^\w.-]/g, '_')}`
   const filePath = path.join(BOOKS_PATH, safeName)
-  await Bun.write(filePath, fileBuffer)
+
+  if (UPLOAD_STORAGE !== 's3') {
+    await Bun.write(filePath, fileBuffer)
+  }
 
   try {
     let fileContent = ''
@@ -29,7 +32,12 @@ export async function processFb2(fileBuffer: ArrayBuffer, filename: string, user
     }
 
     if (!fileContent) {
-      fileContent = await Bun.file(filePath).text()
+      if (UPLOAD_STORAGE === 's3') {
+        fileContent = Buffer.from(fileBuffer).toString('utf-8')
+      }
+      else {
+        fileContent = await Bun.file(filePath).text()
+      }
     }
 
     const $ = cheerio.load(fileContent, { xmlMode: true })
@@ -174,11 +182,15 @@ export async function processFb2(fileBuffer: ArrayBuffer, filename: string, user
       currentPage: 1,
     }).onConflictDoNothing()
 
-    await unlink(filePath).catch(() => {})
+    if (UPLOAD_STORAGE !== 's3') {
+      await unlink(filePath).catch(() => {})
+    }
     return bookId
   }
   catch (error) {
-    await unlink(filePath).catch(() => {})
+    if (UPLOAD_STORAGE !== 's3') {
+      await unlink(filePath).catch(() => {})
+    }
     throw error
   }
 }
