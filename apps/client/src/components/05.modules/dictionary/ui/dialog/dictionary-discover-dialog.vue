@@ -129,7 +129,11 @@ function closePreview() {
   previewDeck.value = null
 }
 
+const cloningDeckId = ref<number | null>(null)
+
 async function cloneDeck(id: number) {
+  if (cloningDeckId.value !== null) return
+  cloningDeckId.value = id
   try {
     await api.dictionary.cloneCatalog(id)
     toast.success(t('dictionary.discover.clone_success'))
@@ -141,6 +145,9 @@ async function cloneDeck(id: number) {
   }
   catch (err: unknown) {
     toast.error(t('dictionary.discover.clone_failed', { error: (err as Error).message }))
+  }
+  finally {
+    cloningDeckId.value = null
   }
 }
 
@@ -233,7 +240,7 @@ onMounted(() => {
                   <KitBtn icon="mdi:arrow-left" variant="text" @click="closePreview" />
                   <h3>{{ previewDeck.name }}</h3>
                   <div class="spacer" style="flex-grow: 1" />
-                  <KitBtn color="primary" size="sm" icon="mdi:plus" @click="cloneDeck(previewDeck.id)">
+                  <KitBtn color="primary" size="sm" icon="mdi:plus" :loading="cloningDeckId === previewDeck.id" @click="cloneDeck(previewDeck.id)">
                     {{ t('dictionary.discover.add_to_library') }}
                   </KitBtn>
                 </div>
@@ -272,7 +279,7 @@ onMounted(() => {
                         <span>{{ deck.difficulty || t('dictionary.discover.all_levels') }}</span>
                         <span>{{ t('dictionary.discover.words_count', { count: deck.wordCount }) }}</span>
                       </div>
-                      <KitBtn variant="tonal" color="primary" size="sm" icon="mdi:plus" class="card-btn" :title="t('dictionary.discover.add_to_library')" @click.stop="cloneDeck(deck.id)" />
+                      <KitBtn variant="tonal" color="primary" size="sm" icon="mdi:plus" class="card-btn" :title="t('dictionary.discover.add_to_library')" :loading="cloningDeckId === deck.id" @click.stop="cloneDeck(deck.id)" />
                     </div>
                   </div>
                 </div>

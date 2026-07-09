@@ -30,8 +30,6 @@ async function main() {
     await db.insert(schema.users).values({
       username,
       passwordHash,
-      tokenLimit: 1000000,
-      bookLimit: 10,
     })
     console.log(`✅ Пользователь ${username} успешно добавлен!`)
     return
@@ -118,6 +116,23 @@ async function main() {
     return
   }
 
+  if (command === 'del' || command === 'delete' || command === 'rm') {
+    if (!username) {
+      console.error('❌ Использование: bun cli.ts delete <username>')
+      return
+    }
+
+    const existing = await db.query.users.findFirst({ where: eq(schema.users.username, username) })
+    if (!existing) {
+      console.error(`❌ Пользователь ${username} не найден!`)
+      return
+    }
+
+    await db.delete(schema.users).where(eq(schema.users.id, existing.id))
+    console.log(`✅ Пользователь ${username} успешно удален!`)
+    return
+  }
+
   console.log(`
 Использование CLI:
   bun cli.ts list                              - Показать всех пользователей
@@ -125,6 +140,7 @@ async function main() {
   bun cli.ts passwd <username> <new_password>  - Изменить пароль пользователя
   bun cli.ts limit <username> <tokens> [books] - Изменить лимиты токенов и книг (null/none для отключения)
   bun cli.ts role <username> <role>            - Изменить роль пользователя
+  bun cli.ts delete <username>                 - Удалить пользователя
   `)
 }
 
