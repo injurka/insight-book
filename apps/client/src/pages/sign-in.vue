@@ -169,7 +169,9 @@ const showAuthControls = ref(false)
 let pressTimer: any = null
 
 function startPress() {
-  if (showAuthControls.value) return
+  if (showAuthControls.value)
+    return
+
   pressTimer = setTimeout(() => {
     showAuthControls.value = true
   }, 1000)

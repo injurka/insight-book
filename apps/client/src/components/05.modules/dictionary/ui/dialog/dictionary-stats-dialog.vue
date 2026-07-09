@@ -5,12 +5,20 @@ import KitSkeleton from '~/components/01.kit/kit-skeleton/ui/kit-skeleton.vue'
 import { api } from '~/shared/services/api.service'
 import { useAuthStore } from '~/shared/store/auth.store'
 
+const emit = defineEmits<{
+  openQuiz: [data: { language: string, levelValue: string }]
+}>()
+
 const ActivityHeatmap = lazyComponent(() => import('~/components/02.shared/activity-heatmap/ui/activity-heatmap.vue'))
 
 const visible = defineModel<boolean>('visible', { required: true })
-
 const authStore = useAuthStore()
 const { t } = useI18n()
+
+function onLevelClick(data: { language: string, levelValue: string }) {
+  visible.value = false
+  emit('openQuiz', data)
+}
 
 const activityData = ref<{ date: string, count: number }[]>([])
 const activityStats = ref({ learnedWords: 0, readPages: 0, difficulties: [] as any[] })
@@ -59,7 +67,7 @@ defineExpose({ fetchActivity })
   >
     <div class="stats-modal-content">
       <KitSkeleton v-if="isActivityLoading" width="100%" height="250px" />
-      <ActivityHeatmap v-else :activity-data="activityData" :stats="activityStats" />
+      <ActivityHeatmap v-else :activity-data="activityData" :stats="activityStats" @click-level="onLevelClick" />
     </div>
   </KitDialog>
 </template>

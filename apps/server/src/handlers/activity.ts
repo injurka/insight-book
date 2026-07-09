@@ -48,11 +48,22 @@ export async function handleGetActivityStats(req: Request, userId: number): Prom
     ))
     .groupBy(schema.userDictionary.language, schema.userDictionary.difficulty)
 
+  const quizProgress = await db.select({
+    language: schema.userQuizProgress.language,
+    levelValue: schema.userQuizProgress.levelValue,
+    bestScore: schema.userQuizProgress.bestScore,
+    stars: schema.userQuizProgress.stars,
+    unlocked: schema.userQuizProgress.unlocked,
+  })
+    .from(schema.userQuizProgress)
+    .where(eq(schema.userQuizProgress.userId, userId))
+
   return json({
     heatmap,
     learnedWords: learnedWords || 0,
     readPages: readPages || 0,
     difficulties,
+    quizProgress,
   })
 }
 

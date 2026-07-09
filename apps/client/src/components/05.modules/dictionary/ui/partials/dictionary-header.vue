@@ -12,6 +12,7 @@ const emit = defineEmits<{
   openDiscover: []
   openManageDecks: []
   openStats: []
+  openQuiz: []
 }>()
 
 const isEditMode = defineModel<boolean>('isEditMode', { required: true })
@@ -94,6 +95,10 @@ function openTrainingSettings(mode: 'srs' | 'deep_dive' | 'cram' | 'match') {
 
           <KitTooltip :text="t('dictionary.manageDecks')" placement="bottom">
             <KitBtn icon="mdi:folder-cog-outline" variant="tonal" color="secondary" @click="emit('openManageDecks')" />
+          </KitTooltip>
+
+          <KitTooltip text="Пройти квиз по уровням" placement="bottom">
+            <KitBtn icon="mdi:trophy-outline" variant="tonal" color="accent" @click="emit('openQuiz')" />
           </KitTooltip>
         </div>
 

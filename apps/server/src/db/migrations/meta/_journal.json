@@ -176,6 +176,13 @@
       "when": 1783407309120,
       "tag": "0024_plain_gladiator",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "6",
+      "when": 1783607718573,
+      "tag": "0025_green_taskmaster",
+      "breakpoints": true
     }
   ]
 }

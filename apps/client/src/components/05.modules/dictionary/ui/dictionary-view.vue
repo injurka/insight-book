@@ -5,6 +5,7 @@ import { HoverRevealBg } from '~/components/02.shared/hover-reveal-bg'
 import { useDictionaryStore } from '../store/dictionary.store'
 import BulkMoveDialog from './dialog/bulk-move-dialog.vue'
 import DictionaryDiscoverDialog from './dialog/dictionary-discover-dialog.vue'
+import DictionaryQuizDialog from './dialog/dictionary-quiz-dialog.vue'
 import DictionaryStatsDialog from './dialog/dictionary-stats-dialog.vue'
 import ManageDecksDialog from './dialog/manage-decks-dialog.vue'
 import SrsTrainingDialog from './dialog/srs-training-dialog.vue'
@@ -26,6 +27,16 @@ const isBulkMoveOpen = ref(false)
 const isStatsModalOpen = ref(false)
 const isDetailsModalOpen = ref(false)
 const selectedWordDetails = ref<UserDictItem | null>(null)
+
+const isQuizOpen = ref(false)
+const quizLang = ref('zh')
+const quizLevel = ref('')
+
+function handleOpenQuiz(data: { language: string, levelValue: string }) {
+  quizLang.value = data.language
+  quizLevel.value = data.levelValue
+  isQuizOpen.value = true
+}
 
 const statsDialog = ref<InstanceType<typeof DictionaryStatsDialog> | null>(null)
 
@@ -87,6 +98,7 @@ watch(isDetailsModalOpen, (isOpen) => {
       @open-discover="isDiscoverOpen = true"
       @open-manage-decks="isManageDecksOpen = true"
       @open-stats="isStatsModalOpen = true"
+      @open-quiz="handleOpenQuiz({ language: 'zh', levelValue: '' })"
     />
 
     <div class="dict-layout">
@@ -100,7 +112,8 @@ watch(isDetailsModalOpen, (isOpen) => {
 
     <ManageDecksDialog v-model:visible="isManageDecksOpen" />
     <BulkMoveDialog v-model:visible="isBulkMoveOpen" />
-    <DictionaryStatsDialog ref="statsDialog" v-model:visible="isStatsModalOpen" />
+    <DictionaryStatsDialog ref="statsDialog" v-model:visible="isStatsModalOpen" @open-quiz="handleOpenQuiz" />
+    <DictionaryQuizDialog v-model:visible="isQuizOpen" :initial-lang="quizLang" :initial-level="quizLevel" @success="store.fetchDictionary(); statsDialog?.fetchActivity()" />
     <SrsTrainingDialog v-model:visible="isTrainingOpen" />
     <DictionaryDiscoverDialog v-model:visible="isDiscoverOpen" />
     <DictWordDetailsModal v-model:visible="isDetailsModalOpen" :word="selectedWordDetails" />

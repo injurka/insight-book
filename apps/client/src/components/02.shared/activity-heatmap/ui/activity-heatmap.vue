@@ -5,7 +5,15 @@ import { DIFFICULTY_SYSTEMS } from '~/shared/constants/difficulties'
 
 const props = defineProps<{
   activityData: { date: string, count: number }[]
-  stats?: { learnedWords: number, readPages: number, difficulties: { language: string, difficulty: string, count: number }[] }
+  stats?: {
+    learnedWords: number
+    readPages: number
+    difficulties: { language: string, difficulty: string, count: number }[]
+    quizProgress?: { language: string, levelValue: string, bestScore: number, stars: number, unlocked: boolean }[]
+  }
+}>()
+const emit = defineEmits<{
+  clickLevel: [data: { language: string, levelValue: string }]
 }>()
 const { t, locale } = useI18n()
 const scrollAreaRef = ref<HTMLElement | null>(null)
@@ -139,7 +147,7 @@ const maxStreak = computed(() => {
 const userLevels = computed(() => {
   if (!props.stats || !props.stats.difficulties)
     return {}
-  const levels: Record<string, { current: string, next: string | null, progress: number, count: number, target: number }> = {}
+  const levels: Record<string, { current: string, next: string | null, progress: number, count: number, target: number, testPassed?: boolean, testStars?: number, testScore?: number }> = {}
 
   const langGroups: Record<string, { difficulty: string, count: number }[]> = {}
   for (const d of props.stats.difficulties) {
@@ -187,12 +195,22 @@ const userLevels = computed(() => {
       ? 100
       : Math.min(100, Math.round((countInWorking / TARGET_WORDS) * 100))
 
+    const qProg = props.stats?.quizProgress?.find(
+      q => q.language === lang && q.levelValue === current,
+    )
+    const testPassed = qProg ? qProg.bestScore >= 80 : false
+    const testStars = qProg ? qProg.stars : 0
+    const testScore = qProg ? qProg.bestScore : 0
+
     levels[lang] = {
       current,
       next,
       progress,
       count: countInWorking,
       target: TARGET_WORDS,
+      testPassed,
+      testStars,
+      testScore,
     }
   }
 
@@ -233,10 +251,24 @@ onMounted(async () => {
         <Icon icon="mdi:trophy-outline" /> {{ t('activityHeatmap.achievements') }}
       </h3>
       <div class="levels-grid">
-        <div v-for="(lvl, lang) in userLevels" :key="lang" class="level-card">
+        <div
+          v-for="(lvl, lang) in userLevels"
+          :key="lang"
+          class="level-card is-interactive"
+          @click="emit('clickLevel', { language: lang, levelValue: lvl.current })"
+        >
           <div class="level-header">
-            <span class="lang-badge">{{ lang.toUpperCase() }}</span>
-            <span class="current-level">{{ lvl.current }}</span>
+            <div class="level-main-info">
+              <span class="lang-badge">{{ lang.toUpperCase() }}</span>
+              <span class="current-level">{{ lvl.current }}</span>
+            </div>
+            <!-- Иконка верификации теста -->
+            <div v-if="lvl.testPassed" class="test-verified-badge" :title="`Уровень подтвержден тестом на ${lvl.testScore}%`">
+              <Icon icon="mdi:check-decagram" class="verified-icon" />
+              <span class="stars-indicator">
+                <Icon v-for="n in lvl.testStars" :key="n" icon="mdi:star" class="star-icon" />
+              </span>
+            </div>
           </div>
 
           <div v-if="lvl.next" class="level-progress-box">
@@ -403,17 +435,26 @@ onMounted(async () => {
       border-color 0.2s ease,
       box-shadow 0.2s ease;
 
-    &:hover {
-      z-index: 1;
-      transform: translateY(-2px);
-      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06);
-      border-color: var(--border-primary-color);
+    &.is-interactive {
+      cursor: pointer;
+      &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06);
+        border-color: var(--fg-accent-color);
+      }
     }
 
     .level-header {
       display: flex;
       align-items: center;
-      gap: 12px;
+      justify-content: space-between;
+      width: 100%;
+
+      .level-main-info {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
 
       .lang-badge {
         background: rgba(var(--fg-accent-color-rgb, 225, 96, 50), 0.15);
@@ -428,6 +469,32 @@ onMounted(async () => {
         font-size: 1.2rem;
         font-weight: 700;
         color: var(--fg-primary-color);
+      }
+
+      .test-verified-badge {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        background: rgba(255, 179, 0, 0.08);
+        border: 1px solid rgba(255, 179, 0, 0.2);
+        padding: 2px 6px;
+        border-radius: 99px;
+
+        .verified-icon {
+          color: #ff9800;
+          font-size: 1rem;
+        }
+
+        .stars-indicator {
+          display: flex;
+          align-items: center;
+          gap: 1px;
+
+          .star-icon {
+            color: #ffc107;
+            font-size: 0.75rem;
+          }
+        }
       }
     }
 

@@ -373,8 +373,14 @@ export const api = {
   },
 
   activity: {
-    getStats: () => request<{ heatmap: { date: string, count: number }[], learnedWords: number, readPages: number, difficulties: { language: string, difficulty: string, count: number }[] }>('/api/activity/stats'),
+    getStats: () => request<{ heatmap: { date: string, count: number }[], learnedWords: number, readPages: number, difficulties: { language: string, difficulty: string, count: number }[], quizProgress?: { language: string, levelValue: string, bestScore: number, stars: number, unlocked: boolean }[] }>('/api/activity/stats'),
     getTokens: (period?: string) => request<{ stats: { action: string, inputTokens: number, outputTokens: number, cost: number }[], daily: { date: string, inputTokens: number, outputTokens: number, cost?: number }[], totalCost: number }>(`/api/activity/tokens${period ? `?period=${period}` : ''}`),
+  },
+
+  quiz: {
+    getLevels: (language: string) => request<{ id: number, language: string, levelValue: string, bestScore: number, stars: number, unlocked: boolean }[]>(`/api/quiz/levels?language=${language}`),
+    generate: (language: string, levelValue: string) => request<{ questions: { type: 'choice' | 'cloze' | 'reorder', question: string, options: string[], correctAnswer: string, explanation: string }[], cached: boolean }>('/api/quiz/generate', { method: 'POST', body: JSON.stringify({ language, levelValue }), headers: { 'Content-Type': 'application/json' }, withLlm: true }),
+    submit: (language: string, levelValue: string, score: number) => request<{ success: boolean, score: number, starsEarned: number, isPassed: boolean, nextLevelUnlocked: boolean, nextLevelValue: string | null }>('/api/quiz/submit', { method: 'POST', body: JSON.stringify({ language, levelValue, score }), headers: { 'Content-Type': 'application/json' } }),
   },
 
   highlights: {

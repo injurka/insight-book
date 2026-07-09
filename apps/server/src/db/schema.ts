@@ -413,3 +413,27 @@ export const highlightsRelations = relations(highlights, ({ one }) => ({
 export const customPromptsRelations = relations(customPrompts, ({ one }) => ({
   user: one(users, { fields: [customPrompts.userId], references: [users.id] }),
 }))
+
+export const userQuizProgress = sqliteTable('user_quiz_progress', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  userId: integer('userId').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  language: text('language').notNull(),
+  levelValue: text('levelValue').notNull(),
+  bestScore: integer('bestScore').notNull().default(0),
+  stars: integer('stars').notNull().default(0),
+  unlocked: integer('unlocked', { mode: 'boolean' }).notNull().default(sql`0`),
+  updatedAt: text('updatedAt').notNull().default(sql`(datetime('now'))`),
+})
+
+export const pregeneratedQuestions = sqliteTable('pregenerated_questions', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  language: text('language').notNull(),
+  levelValue: text('levelValue').notNull(),
+  questionType: text('questionType').notNull(),
+  questionData: text('questionData').notNull(),
+  createdAt: text('createdAt').notNull().default(sql`(datetime('now'))`),
+})
+
+export const userQuizProgressRelations = relations(userQuizProgress, ({ one }) => ({
+  user: one(users, { fields: [userQuizProgress.userId], references: [users.id] }),
+}))

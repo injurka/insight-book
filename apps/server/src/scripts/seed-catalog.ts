@@ -1,9 +1,19 @@
-import { readdir, readFile } from 'node:fs/promises'
+import { readdir, readFile, stat } from 'node:fs/promises'
 import path from 'node:path'
 import { catalogDb, catalogSqlite, initCatalogDb } from '../db/catalog'
 import { officialDecks, officialDeckWords } from '../db/catalog-schema'
 
 const DECKS_DIR = path.resolve(process.cwd(), 'assets', 'decks')
+
+async function exists(p: string) {
+  try {
+    await stat(p)
+    return true
+  }
+  catch {
+    return false
+  }
+}
 
 async function seed() {
   console.log('🌱 Начинаем импорт каталога из папки assets/decks...')
@@ -16,9 +26,10 @@ async function seed() {
 
     initCatalogDb()
 
-    let files: string[] = []
+    let subdirs: string[] = []
     try {
-      files = await readdir(DECKS_DIR)
+      const items = await readdir(DECKS_DIR, { withFileTypes: true })
+      subdirs = items.filter(item => item.isDirectory()).map(item => item.name)
     }
     catch {
       console.warn(`⚠️ Папка ${DECKS_DIR} не найдена. Создаем пустую папку...`)
@@ -28,7 +39,21 @@ async function seed() {
       process.exit(0)
     }
 
-    const jsonFiles = files.filter(f => f.endsWith('.json'))
+    const jsonFiles: string[] = []
+
+    for (const subdir of subdirs) {
+      const subdirPath = path.join(DECKS_DIR, subdir)
+      const resultPath = path.join(subdirPath, 'result')
+
+      if (await exists(resultPath)) {
+        const files = await readdir(resultPath)
+        for (const file of files) {
+          if (file.endsWith('.json')) {
+            jsonFiles.push(path.join(resultPath, file))
+          }
+        }
+      }
+    }
 
     if (jsonFiles.length === 0) {
       console.log('ℹ️ В папке assets/decks не найдено JSON-файлов для импорта.')
@@ -37,8 +62,8 @@ async function seed() {
 
     console.log(`📂 Найдено файлов для импорта: ${jsonFiles.length}`)
 
-    for (const file of jsonFiles) {
-      const filePath = path.join(DECKS_DIR, file)
+    for (const filePath of jsonFiles) {
+      const file = path.basename(filePath)
       console.log(`📖 Импорт файла: ${file}`)
 
       const raw = await readFile(filePath, 'utf-8')
@@ -61,16 +86,30 @@ async function seed() {
       const deckId = insertedDeck.id
 
       if (data.words.length > 0) {
-        const wordsToInsert = data.words.map((w: any) => ({
-          deckId,
-          word: w.word,
-          transcription: w.transcription || '',
-          translation: w.translation || '',
-          grammarNote: w.grammarNote || '',
-          vocabularyNote: w.vocabularyNote || '',
-          tags: w.tags || '',
-          difficulty: w.difficulty || '',
-        }))
+        const wordsToInsert = data.words.map((w: any) => {
+          if (typeof w === 'string') {
+            return {
+              deckId,
+              word: w,
+              transcription: '',
+              translation: '',
+              grammarNote: '',
+              vocabularyNote: '',
+              tags: '',
+              difficulty: data.difficulty || '',
+            }
+          }
+          return {
+            deckId,
+            word: w.word,
+            transcription: w.transcription || '',
+            translation: w.translation || '',
+            grammarNote: w.grammarNote || '',
+            vocabularyNote: w.vocabularyNote || '',
+            tags: w.tags || '',
+            difficulty: w.difficulty || data.difficulty || '',
+          }
+        })
 
         const chunkSize = 500
         for (let i = 0; i < wordsToInsert.length; i += chunkSize) {

@@ -11,6 +11,7 @@ import {
   getBatchSystemPrompt,
   getDeepDivePrompt,
   getMangaAnalysisPrompt,
+  getQuizGenerationPrompt,
   getSystemPrompt,
   getWordAutoFillPrompt,
   getWordExamplesPrompt,
@@ -811,4 +812,156 @@ Output STRICT JSON ONLY. Never use backticks for strings.
     console.error('[Audio Service] Pronunciation Check Failed:', err.message)
     throw new AppError(500, getErrorMsg('recognition_failed', err.message))
   }
+}
+
+function validateQuizQuestions(questions: any[]): string | null {
+  if (!Array.isArray(questions))
+    return 'Quiz is not a valid JSON array'
+  if (questions.length < 10)
+    return `Quiz array length ${questions.length} is too short, must be at least 10 questions`
+
+  for (let i = 0; i < questions.length; i++) {
+    const q = questions[i]
+    if (!q.type || !['choice', 'cloze', 'reorder'].includes(q.type)) {
+      return `Question ${i + 1} has invalid type: ${q?.type}`
+    }
+    if (!q.question || typeof q.question !== 'string') {
+      return `Question ${i + 1} is missing a text question query`
+    }
+    if (!q.options || !Array.isArray(q.options) || q.options.length === 0) {
+      return `Question ${i + 1} is missing options array`
+    }
+    if (!q.correctAnswer || typeof q.correctAnswer !== 'string') {
+      return `Question ${i + 1} is missing correctAnswer`
+    }
+    if (!q.explanation || typeof q.explanation !== 'string') {
+      return `Question ${i + 1} is missing explanation`
+    }
+
+    if (q.type === 'choice' || q.type === 'cloze') {
+      if (!q.options.includes(q.correctAnswer)) {
+        return `Question ${i + 1} correctAnswer "${q.correctAnswer}" is not present in options list [${q.options.join(', ')}]`
+      }
+    }
+  }
+  return null
+}
+
+export async function generateLevelQuiz(
+  userId: number,
+  language: string,
+  targetLang: string,
+  levelValue: string,
+  words: string[],
+  config: LlmConfig,
+): Promise<any[]> {
+  await checkTokenLimit(userId)
+  if (!config.url)
+    throw new AppError(500, 'LLM API не настроен')
+
+  const prompt = getQuizGenerationPrompt(language, targetLang, levelValue)
+
+  const messages: ModelMessage[] = [
+    { role: 'system', content: prompt },
+    { role: 'user', content: `Generate a quiz using a selection from these words: ${words.join(', ')}` },
+  ]
+
+  const modelsToTry = [config.model, config.fallbackModel].filter(Boolean) as string[]
+  let lastError: Error | null = null
+
+  for (const model of modelsToTry) {
+    try {
+      const { parsed } = await callLlmJsonWithRetry<any[]>(
+        model,
+        messages,
+        0.5,
+        AbortSignal.timeout(90000),
+        config,
+        raw => parseLlmJson<any[]>(raw),
+        (usage, rawText, messagesUsed) => {
+          trackTokenUsage(userId, `generate_quiz_${levelValue}`, model, usage.promptTokens, usage.completionTokens, JSON.stringify(messagesUsed, null, 2), rawText)
+        },
+      )
+
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        let validQuiz = parsed
+        const validationError = validateQuizQuestions(parsed)
+        if (validationError) {
+          console.warn(`[Quiz critic] Validation failed: ${validationError}. Requesting correction...`)
+
+          const correctionMessages: ModelMessage[] = [
+            ...messages,
+            { role: 'assistant', content: JSON.stringify(parsed) },
+            { role: 'user', content: `CRITICAL ERROR in your generated quiz: ${validationError}. Please fix the errors and output the corrected full JSON array of questions.` },
+          ]
+
+          const corrected = await callLlmJsonWithRetry<any[]>(
+            model,
+            correctionMessages,
+            0.2,
+            AbortSignal.timeout(90000),
+            config,
+            raw => parseLlmJson<any[]>(raw),
+            (usage, rawText, messagesUsed) => {
+              trackTokenUsage(userId, `generate_quiz_correct_${levelValue}`, model, usage.promptTokens, usage.completionTokens, JSON.stringify(messagesUsed, null, 2), rawText)
+            },
+          )
+
+          const finalError = validateQuizQuestions(corrected.parsed)
+          if (!finalError) {
+            validQuiz = corrected.parsed
+          }
+          else {
+            console.warn(`[Quiz critic] Correction also failed: ${finalError}. Proceeding with original.`)
+          }
+        }
+
+        const reviewerMessages: ModelMessage[] = [
+          {
+            role: 'system',
+            content: `You are an expert ${language} linguist and test reviewer for the ${levelValue} level. 
+Your task is to review the provided JSON quiz.
+1. Fix any grammatical or logical errors in the questions, options, or explanations.
+2. Ensure that the vocabulary and grammar strictly adhere to the ${levelValue} level. Simplify overly complex sentences or words.
+3. Ensure the 'correctAnswer' perfectly solves the question and is mathematically/logically sound.
+4. If the quiz is mostly good, just return the improved JSON array of questions with your fixes applied.
+Output MUST be a valid JSON array of question objects, exactly matching the schema. No markdown formatting outside of JSON.`,
+          },
+          { role: 'user', content: JSON.stringify(validQuiz) },
+        ]
+
+        try {
+          const reviewed = await callLlmJsonWithRetry<any[]>(
+            model,
+            reviewerMessages,
+            0.3,
+            AbortSignal.timeout(90000),
+            config,
+            raw => parseLlmJson<any[]>(raw),
+            (usage, rawText, messagesUsed) => {
+              trackTokenUsage(userId, `generate_quiz_review_${levelValue}`, model, usage.promptTokens, usage.completionTokens, JSON.stringify(messagesUsed, null, 2), rawText)
+            },
+          )
+
+          const reviewError = validateQuizQuestions(reviewed.parsed)
+          if (!reviewError && Array.isArray(reviewed.parsed) && reviewed.parsed.length > 0) {
+            return reviewed.parsed
+          }
+          console.warn(`[Quiz Reviewer] Semantic correction broke schema: ${reviewError}. Returning original technically valid quiz.`)
+          return validQuiz
+        }
+        catch (revError) {
+          console.warn(`[Quiz Reviewer] LLM reviewer failed. Returning original technically valid quiz.`, revError)
+          return validQuiz
+        }
+      }
+      throw new Error('LLM did not return a valid quiz array')
+    }
+    catch (e) {
+      lastError = e as Error
+      console.warn(`[LLM Quiz Generation] Failed with model [${model}]:`, lastError.message)
+    }
+  }
+
+  throw new AppError(500, `Не удалось сгенерировать вопросы: ${lastError?.message || 'Unknown error'}`)
 }

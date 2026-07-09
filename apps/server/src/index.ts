@@ -70,6 +70,12 @@ import {
   handleUpdatePushSettings,
 } from './handlers/push'
 
+import {
+  handleGenerateQuiz,
+  handleGetQuizLevels,
+  handleSubmitQuiz,
+} from './handlers/quiz'
+
 import { initScheduler } from './services/scheduler.service'
 import { authWrapper, optionalAuthWrapper } from './utils/auth'
 import { withCors } from './utils/cors'
@@ -149,6 +155,11 @@ const apiRoutes = {
   // --- Activity API ---
   '/api/activity/stats': { OPTIONS: corsOk, GET: apiWrapper(authWrapper(handleGetActivityStats)) },
   '/api/activity/tokens': { OPTIONS: corsOk, GET: apiWrapper(authWrapper(handleGetTokenUsage)) },
+
+  // --- Quiz API ---
+  '/api/quiz/levels': { OPTIONS: corsOk, GET: apiWrapper(authWrapper(handleGetQuizLevels)) },
+  '/api/quiz/generate': { OPTIONS: corsOk, POST: apiWrapper(authWrapper(handleGenerateQuiz)) },
+  '/api/quiz/submit': { OPTIONS: corsOk, POST: apiWrapper(authWrapper(handleSubmitQuiz)) },
 
   // Words
   '/api/dictionary/:word': { OPTIONS: corsOk, GET: apiWrapper(authWrapper(handleGetWordFromUserDict)), DELETE: apiWrapper(authWrapper(handleRemoveFromUserDict)) },
