@@ -90,6 +90,8 @@ const activeLevelValue = computed(() => {
 async function loadLevels() {
   isLoading.value = true
   errorMessage.value = ''
+  levels.value = [] 
+  
   try {
     const res = await api.quiz.getLevels(selectedLang.value)
     const order = LEVEL_ORDER[selectedLang.value] || LEVEL_ORDER.default
@@ -203,7 +205,8 @@ function checkAnswer() {
   let answerStr = ''
 
   if (q.type === 'reorder') {
-    answerStr = reorderSelected.value.join('')
+    const needsSpaces = !['zh', 'ja'].includes(selectedLang.value)
+    answerStr = reorderSelected.value.join(needsSpaces ? ' ' : '')
   }
   else {
     answerStr = selectedOption.value || ''
@@ -215,7 +218,15 @@ function checkAnswer() {
   isChecked.value = true
   q.userAnswer = answerStr
 
-  const isCorrect = answerStr === q.correctAnswer
+  let isCorrect = false
+  if (q.type === 'reorder') {
+    const normalize = (str: string) => str.replace(/[\s.,!?;:()¿¡"']/g, '').toLowerCase()
+    isCorrect = normalize(answerStr) === normalize(q.correctAnswer)
+  }
+  else {
+    isCorrect = answerStr === q.correctAnswer
+  }
+
   isCorrectAnswer.value = isCorrect
   q.isCorrect = isCorrect
 
