@@ -791,7 +791,9 @@ function exitQuiz() {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 12px;
+  justify-content: space-between;
+  height: 160px;
+  box-sizing: border-box;
   text-align: center;
   transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
 

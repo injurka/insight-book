@@ -130,6 +130,7 @@ watch(model, (newVal, oldVal) => {
   transition: height 0.3s ease-in-out;
   min-height: 50px;
   z-index: 6;
+  overflow: hidden;
 }
 
 .kit-tabs-pane {

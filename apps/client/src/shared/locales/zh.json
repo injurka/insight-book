@@ -198,6 +198,7 @@
   },
   "library": {
     "deletePrompt": "您确定要删除这本书吗？",
+    "notPublished": "未发布",
     "menuPublicCatalog": "公共目录",
     "allTags": "所有标签",
     "prevPage": "上一页",

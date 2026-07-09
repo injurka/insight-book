@@ -198,6 +198,7 @@
   },
   "library": {
     "deletePrompt": "Вы уверены, что хотите удалить эту книгу?",
+    "notPublished": "Не опубликовано",
     "menuPublicCatalog": "Публичный каталог",
     "allTags": "Все теги",
     "prevPage": "Назад",

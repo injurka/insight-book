@@ -198,6 +198,7 @@
   },
   "library": {
     "deletePrompt": "Are you sure you want to delete this book?",
+    "notPublished": "Not Published",
     "menuPublicCatalog": "Public Catalog",
     "allTags": "All Tags",
     "prevPage": "Prev",
