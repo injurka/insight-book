@@ -829,8 +829,13 @@ function reconstructReorderOptions(questions: any[], language: string): any[] {
         .filter(Boolean)
 
       if (words.length > 0) {
-        // Заменяем варианты на точные слова из ответа и перемешиваем их
-        q.options = words.sort(() => Math.random() - 0.5)
+        const answerWordsLower = words.map((w: string) => w.toLowerCase())
+        const originalOptionsLower = (q.options || []).map((o: string) => typeof o === 'string' ? o.toLowerCase() : String(o))
+
+        const distractors = originalOptionsLower.filter((opt: string) => !answerWordsLower.includes(opt))
+
+        const allOptions = [...answerWordsLower, ...distractors]
+        q.options = allOptions.sort(() => Math.random() - 0.5)
       }
     }
     return q
@@ -861,8 +866,6 @@ function validateQuizQuestions(questions: any[]): string | null {
       return `Question ${i + 1} is missing explanation`
     }
 
-    // Проверяем, перевела ли модель вопрос на русский (или целевой язык).
-    // Если вопрос в reorder совпадает с ответом на изучаемом языке — отправляем на перегенерацию.
     if (q.type === 'reorder') {
       if (q.question.trim().toLowerCase() === q.correctAnswer.trim().toLowerCase()) {
         return `Question ${i + 1} of type 'reorder' must contain the TRANSLATION of the sentence, not the sentence itself.`
@@ -955,7 +958,8 @@ Your task is to review the provided JSON quiz.
 1. Fix any grammatical or logical errors in the questions, options, or explanations.
 2. Ensure that the vocabulary and grammar strictly adhere to the ${levelValue} level. Simplify overly complex sentences or words.
 3. Ensure the 'correctAnswer' perfectly solves the question and is mathematically/logically sound.
-4. If the quiz is mostly good, just return the improved JSON array of questions with your fixes applied.
+4. For 'reorder' questions, DO NOT remove extra distractor words from the 'options' array. Distractors are intentional and MUST be kept!
+5. If the quiz is mostly good, just return the improved JSON array of questions with your fixes applied.
 Output MUST be a valid JSON array of question objects, exactly matching the schema. No markdown formatting outside of JSON.`,
           },
           { role: 'user', content: JSON.stringify(validQuiz) },

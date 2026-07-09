@@ -132,7 +132,7 @@ export async function handleGenerateQuiz(req: Request, userId: number): Promise<
     .get()
 
   if (!progress || !progress.unlocked) {
-    throw new AppError(403, 'Этот уровень еще заблокирован. Сначала сдайте предыдущие уровни!')
+    throw new AppError(403, 'quiz_level_locked')
   }
 
   // Fetch official deck words to feed to LLM
@@ -148,7 +148,7 @@ export async function handleGenerateQuiz(req: Request, userId: number): Promise<
     .get()
 
   if (!deck) {
-    throw new AppError(404, `Официальная колода для уровня ${levelValue} (${normalizedLang}) не найдена в каталоге.`)
+    throw new AppError(404, `quiz_deck_not_found:${levelValue}:${normalizedLang}`)
   }
 
   const deckWords = await catalogDb.select()
@@ -156,7 +156,7 @@ export async function handleGenerateQuiz(req: Request, userId: number): Promise<
     .where(eq(officialDeckWords.deckId, deck.id))
 
   if (deckWords.length === 0) {
-    throw new AppError(404, 'В официальной колоде нет слов для составления квиза.')
+    throw new AppError(404, 'quiz_no_words')
   }
 
   // Sample words
@@ -168,7 +168,7 @@ export async function handleGenerateQuiz(req: Request, userId: number): Promise<
   // Generate quiz via LLM
   const questions = await generateLevelQuiz(userId, normalizedLang, targetLang, levelValue, wordsSample, config)
 
-  return json({ questions, cached: false })
+  return json({ questions })
 }
 
 export async function handleSubmitQuiz(req: Request, userId: number): Promise<Response> {

@@ -413,7 +413,12 @@
       "toRoadmap": "返回等级地图",
       "tryAgain": "再试一次",
       "nextLevelBtn": "前往 {level}",
-      "doneBtn": "完成"
+      "doneBtn": "完成",
+      "errors": {
+        "levelLocked": "该级别仍然锁定。请先通过前面的级别！",
+        "deckNotFound": "未找到 {level} ({lang}) 级别的官方牌组。",
+        "noWords": "官方牌组中没有用于生成测试的单词。"
+      }
     },
     "selectAll": "全选",
     "resetSelection": "重置",

@@ -413,7 +413,12 @@
       "toRoadmap": "To level map",
       "tryAgain": "Try again",
       "nextLevelBtn": "Go to {level}",
-      "doneBtn": "Done"
+      "doneBtn": "Done",
+      "errors": {
+        "levelLocked": "This level is still locked. Please pass previous levels first!",
+        "deckNotFound": "Official deck for level {level} ({lang}) not found in the catalog.",
+        "noWords": "There are no words in the official deck to generate the quiz."
+      }
     },
     "selectAll": "Select all",
     "resetSelection": "Reset",

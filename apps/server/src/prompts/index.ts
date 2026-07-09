@@ -439,9 +439,9 @@ CRITICAL RULES FOR "choice" TYPE:
 - The "question" field MUST be written strictly in ${tgtLang} (e.g., "Выберите синоним к слову 'fast'"). It MUST NEVER be in ${srcLang}!
 
 CRITICAL RULES FOR "reorder" TYPE:
-- The "question" field MUST contain the translation of the sentence in ${tgtLang} (e.g. Russian: "Я купил это в интернете"). It MUST NEVER be in ${srcLang} (English)!
-- The "correctAnswer" field MUST contain the full correct sentence in ${srcLang} (e.g. English: "I bought it online").
-- The "options" field MUST contain the shuffled words/components of the "correctAnswer" in ${srcLang} AND you MUST add 1-2 extra distractor words that do not belong in the sentence to make it harder. To prevent giving away the first word, ALL words in "options" (including distractors) MUST be converted to lowercase (e.g. ["she", "dance", "well", "can", "is"]). Do not include punctuation in the options.
+- The "question" field MUST contain ONLY the translation of the sentence in ${tgtLang} without any prefixes (e.g. "Я купил это в интернете"). It MUST NEVER be in ${srcLang} (English)!
+- The "correctAnswer" field MUST contain the full correct sentence in ${srcLang} (e.g. "I bought it online").
+- The "options" field MUST contain the shuffled words/components of the "correctAnswer" in ${srcLang} PLUS 2-3 extra distractor words. It is EXTREMELY IMPORTANT to add these distractors! These distractors MUST be incorrect but related words from the same semantic category as the correct words (e.g., if the sentence contains "friday", add "monday" or "sunday" as a distractor; if it contains "apple", add "orange" or "banana"). To prevent giving away the first word, ALL words in "options" (including distractors) MUST be converted to lowercase. Do not include punctuation in the options.
 
 GENERAL RULES:
 - Only use grammar and vocabulary appropriate for level "${levelValue}" or below.
