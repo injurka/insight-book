@@ -102,7 +102,19 @@ async function main() {
     fallbackModel: aiConfigObj.llm.fallbackModel,
   }
 
-  const enrichedWords = []
+  const enrichedWords: any[] = []
+
+  try {
+    const existingRaw = await readFile(outputFile, 'utf-8')
+    const existingData = JSON.parse(existingRaw)
+    if (existingData && Array.isArray(existingData.words)) {
+      enrichedWords.push(...existingData.words)
+      console.log(`ℹ️ Найдено ${enrichedWords.length} уже обработанных слов. Возобновляем прогресс...`)
+    }
+  }
+  catch {
+    // Файл не существует или поврежден, начнем заново
+  }
 
   console.log(`🚀 Начинаем обогащение колоды: "${title}" (${words.length} слов)`)
 
@@ -113,6 +125,11 @@ async function main() {
 
     if (!word || typeof word !== 'string') {
       console.warn(`⚠️ [${i + 1}/${words.length}] Пропуск: не удалось извлечь слово из`, item)
+      continue
+    }
+
+    const alreadyProcessed = enrichedWords.find((w: any) => w.word === word)
+    if (alreadyProcessed) {
       continue
     }
 
@@ -130,6 +147,17 @@ async function main() {
         difficulty: res.difficulty || difficulty,
       })
 
+      const finalDeck = {
+        title,
+        description,
+        language: lang,
+        targetLanguage: targetLang,
+        difficulty,
+        words: enrichedWords,
+      }
+
+      await writeFile(outputFile, JSON.stringify(finalDeck, null, 2), 'utf-8')
+
       await new Promise(r => setTimeout(r, 600))
     }
     catch (e: unknown) {
@@ -137,16 +165,6 @@ async function main() {
     }
   }
 
-  const finalDeck = {
-    title,
-    description,
-    language: lang,
-    targetLanguage: targetLang,
-    difficulty,
-    words: enrichedWords,
-  }
-
-  await writeFile(outputFile, JSON.stringify(finalDeck, null, 2), 'utf-8')
   console.log(`✅ Готово! Результат сохранен в ${outputFile}`)
 
   await new Promise(r => setTimeout(r, 1500))

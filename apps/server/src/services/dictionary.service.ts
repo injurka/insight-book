@@ -174,7 +174,48 @@ export async function updateDeck(deckId: number, userId: number, name: string) {
     throw new AppError(404, 'Колода не найдена')
 }
 
-export async function deleteDeck(deckId: number, userId: number) {
+export async function deleteDeck(deckId: number, userId: number, mode: 'keep' | 'delete_all' | 'delete_exclusive' = 'keep') {
+  const deck = await db.query.dictDecks.findFirst({
+    where: and(eq(schema.dictDecks.id, deckId), eq(schema.dictDecks.userId, userId)),
+  })
+
+  if (!deck) {
+    throw new AppError(404, 'Колода не найдена')
+  }
+
+  if (mode === 'delete_all') {
+    const wordsInDeck = await db.select({ id: schema.wordToDeck.wordId })
+      .from(schema.wordToDeck)
+      .where(eq(schema.wordToDeck.deckId, deckId))
+
+    const wordIds = wordsInDeck.map(w => w.id)
+    if (wordIds.length > 0) {
+      await db.delete(schema.userDictionary).where(inArray(schema.userDictionary.id, wordIds))
+    }
+  }
+  else if (mode === 'delete_exclusive') {
+    const wordsInDeck = await db.select({ id: schema.wordToDeck.wordId })
+      .from(schema.wordToDeck)
+      .where(eq(schema.wordToDeck.deckId, deckId))
+
+    const wordIds = wordsInDeck.map(w => w.id)
+    if (wordIds.length > 0) {
+      const wordsWithOtherLinks = await db.selectDistinct({ id: schema.wordToDeck.wordId })
+        .from(schema.wordToDeck)
+        .where(and(
+          inArray(schema.wordToDeck.wordId, wordIds),
+          sql`${schema.wordToDeck.deckId} != ${deckId}`,
+        ))
+
+      const wordsWithOtherLinksSet = new Set(wordsWithOtherLinks.map(w => w.id))
+      const wordsToDelete = wordIds.filter(id => !wordsWithOtherLinksSet.has(id))
+
+      if (wordsToDelete.length > 0) {
+        await db.delete(schema.userDictionary).where(inArray(schema.userDictionary.id, wordsToDelete))
+      }
+    }
+  }
+
   const res = await db.delete(schema.dictDecks)
     .where(and(eq(schema.dictDecks.id, deckId), eq(schema.dictDecks.userId, userId)))
     .returning({ id: schema.dictDecks.id })

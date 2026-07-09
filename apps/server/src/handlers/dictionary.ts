@@ -110,7 +110,8 @@ export async function handleUpdateDeck(req: Request, userId: number): Promise<Re
 
 export async function handleDeleteDeck(req: Request, userId: number): Promise<Response> {
   const id = Number(req.params.id)
-  await deleteDeck(id, userId)
+  const mode = new URL(req.url).searchParams.get('mode') as 'keep' | 'delete_all' | 'delete_exclusive' | null
+  await deleteDeck(id, userId, mode || 'keep')
 
   return json({ success: true })
 }

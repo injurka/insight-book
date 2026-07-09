@@ -55,9 +55,9 @@ export const useDecksStore = defineStore('decks', () => {
     }
   }
 
-  async function deleteDeck(id: number) {
+  async function deleteDeck(id: number, mode: 'keep' | 'delete_all' | 'delete_exclusive' = 'keep') {
     try {
-      await api.dictionary.deleteDeck(id)
+      await api.dictionary.deleteDeck(id, mode)
       decks.value = decks.value.filter(d => d.id !== id)
 
       const filtersStore = useDictionaryFiltersStore()

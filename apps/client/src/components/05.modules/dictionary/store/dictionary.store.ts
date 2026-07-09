@@ -113,7 +113,7 @@ export const useDictionaryStore = defineStore('dictionary', () => {
   const fetchTrainingQueue = (opts: any) => useTrainingStore().fetchTrainingQueue(opts)
   const createDeck = (name: string, language: string) => useDecksStore().createDeck(name, language)
   const updateDeck = (id: number, name: string) => useDecksStore().updateDeck(id, name)
-  const deleteDeck = (id: number) => useDecksStore().deleteDeck(id)
+  const deleteDeck = (id: number, mode: 'keep' | 'delete_all' | 'delete_exclusive' = 'keep') => useDecksStore().deleteDeck(id, mode)
   const toggleWordSelection = (id: number) => useDictionaryFiltersStore().toggleWordSelection(id)
   const clearSelection = () => useDictionaryFiltersStore().clearSelection()
   const selectAllFiltered = () => useDictionaryFiltersStore().selectAllFiltered()

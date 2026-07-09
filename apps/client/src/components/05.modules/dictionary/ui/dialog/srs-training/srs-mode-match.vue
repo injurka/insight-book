@@ -1,19 +1,16 @@
 <script setup lang="ts">
 import type { UserDictItem } from '~/shared/types/models'
-import { computed, reactive, ref, watch } from 'vue'
-import { useDictionaryStore } from '../../../store/dictionary.store'
-import { useTts } from '~/shared/composables/use-tts'
 import { Icon } from '@iconify/vue'
+import { computed, reactive, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { KitBtn, KitDropdown, KitTooltip } from '~/components/01.kit'
 import { PronunciationCheck } from '~/components/04.features/pronunciation-check'
-import { useAuthStore } from '~/shared/store/auth.store'
+import { useToast } from '~/shared/composables/use-toast'
+import { useTts } from '~/shared/composables/use-tts'
 import { vLongPress } from '~/shared/directives/long-press'
 import { api } from '~/shared/services/api.service'
-import { useToast } from '~/shared/composables/use-toast'
-
-const AiExamplesModal = lazyComponent(() => import('~/components/03.domain/analysis/ui/modal/ai-examples-modal.vue'))
-const LlmChatModal = lazyComponent(() => import('~/components/04.features/llm-chat/ui/llm-chat-modal.vue'))
+import { useAuthStore } from '~/shared/store/auth.store'
+import { useDictionaryStore } from '../../../store/dictionary.store'
 
 defineOptions({
   inheritAttrs: false,
@@ -25,6 +22,10 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits(['grade'])
+
+const AiExamplesModal = lazyComponent(() => import('~/components/03.domain/analysis/ui/modal/ai-examples-modal.vue'))
+const LlmChatModal = lazyComponent(() => import('~/components/04.features/llm-chat/ui/llm-chat-modal.vue'))
+
 const dictStore = useDictionaryStore()
 const { speak, isPlaying, isLoading } = useTts()
 const { t } = useI18n()
@@ -101,7 +102,7 @@ function checkMatch() {
     if (selectedLeft.value.id === selectedRight.value.id) {
       const matchId = selectedLeft.value.id
       const mCard = selectedLeft.value
-      
+
       matchedIds.value.add(matchId)
       selectedLeft.value = null
       selectedRight.value = null
@@ -208,17 +209,19 @@ function toggleSection(sec: 'grammar' | 'vocab' | 'notes') {
     <Transition name="fade">
       <div v-if="matchedCard" class="matched-overlay" @click="dismissMatchedCard">
         <div class="matched-card" @click.stop="dismissMatchedCard">
-          <div class="word-huge">{{ matchedCard.word }}</div>
+          <div class="word-huge">
+            {{ matchedCard.word }}
+          </div>
           <div v-if="matchedCard.transcription" class="transcription-badge">
             {{ matchedCard.transcription }}
           </div>
           <div class="translation-box" v-html="matchedCard.translation" />
-          
+
           <div v-if="matchedCard.encounters?.[0]?.sentence" class="original-sentence">
             <Icon icon="mdi:format-quote-close" class="quote-icon" />
             <span>{{ matchedCard.encounters[0].sentence }}</span>
           </div>
-          
+
           <div class="card-toolbar fade-in" @click.stop>
             <div class="toolbar-group">
               <KitDropdown v-model="isTtsPopoverOpen" placement="bottom-start" width="220px" :disabled="true">
@@ -294,7 +297,7 @@ function toggleSection(sec: 'grammar' | 'vocab' | 'notes') {
               </KitTooltip>
             </div>
           </div>
-          
+
           <div v-if="expandedSections.grammar && matchedCard.grammarNote" class="word-notes fade-in">
             <div class="notes-label">
               <Icon icon="mdi:puzzle-outline" /> {{ t('dictionary.grammar') }}
@@ -608,9 +611,16 @@ function toggleSection(sec: 'grammar' | 'vocab' | 'notes') {
 }
 
 @keyframes pulse-op {
-  0% { transform: scale(1); }
-  50% { transform: scale(1.1); opacity: 0.8; }
-  100% { transform: scale(1); }
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(1);
+  }
 }
 
 .dropdown-menu-list {

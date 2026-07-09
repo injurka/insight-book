@@ -288,8 +288,11 @@ export const api = {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
       }),
-    deleteDeck: (id: number) =>
-      request<{ success: boolean }>(`/api/dictionary/decks/${id}`, { method: 'DELETE' }),
+    deleteDeck: (
+      id: number,
+      mode: 'keep' | 'delete_all' | 'delete_exclusive' = 'keep',
+    ) =>
+      request<{ success: boolean }>(`/api/dictionary/decks/${id}?mode=${mode}`, { method: 'DELETE' }),
 
     get: (word: string) => request<UserDictItem>(`/api/dictionary/${encodeURIComponent(word)}`, { silentErrors: true }),
     upsert: (item: Partial<UserDictItem> & { contextSentence?: string, contextBookId?: number }) =>

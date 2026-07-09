@@ -18,6 +18,13 @@ const isRenamePromptOpen = ref(false)
 const isDeleteConfirmOpen = ref(false)
 const renameDeckTarget = ref<{ id: number, name: string } | null>(null)
 const deleteDeckTarget = ref<{ id: number, name: string } | null>(null)
+const deleteMode = ref<'keep' | 'delete_all' | 'delete_exclusive'>('keep')
+
+const deleteModeOptions = computed(() => [
+  { value: 'keep', label: t('dictionary.deleteModeKeep') },
+  { value: 'delete_exclusive', label: t('dictionary.deleteModeExclusive') },
+  { value: 'delete_all', label: t('dictionary.deleteModeAll') },
+])
 
 async function createNewDeck() {
   if (newDeckName.value.trim()) {
@@ -45,9 +52,11 @@ function openDeleteDeck(id: number, name: string) {
 
 async function onDeleteDeckConfirm() {
   if (deleteDeckTarget.value) {
-    await store.deleteDeck(deleteDeckTarget.value.id)
+    await store.deleteDeck(deleteDeckTarget.value.id, deleteMode.value)
   }
+  isDeleteConfirmOpen.value = false
   deleteDeckTarget.value = null
+  deleteMode.value = 'keep'
 }
 </script>
 
@@ -88,15 +97,33 @@ async function onDeleteDeckConfirm() {
     @submit="onRenameDeckSubmit"
   />
 
-  <KitPrompt
+  <KitDialog
     v-model:visible="isDeleteConfirmOpen"
     :title="t('dictionary.deleteDeckTitle')"
-    :description="t('dictionary.deleteDeckDesc', { name: deleteDeckTarget?.name || '' })"
-    :hide-input="true"
-    :confirm-text="t('dictionary.deleteItem')"
-    :cancel-text="t('dictionary.cancel')"
-    @submit="onDeleteDeckConfirm"
-  />
+    :max-width="400"
+  >
+    <div class="delete-confirm-content">
+      <p>{{ t('dictionary.deleteDeckDesc', { name: deleteDeckTarget?.name || '' }) }}</p>
+
+      <div class="delete-options">
+        <div v-for="option in deleteModeOptions" :key="option.value" class="delete-option">
+          <label>
+            <input v-model="deleteMode" type="radio" :value="option.value">
+            <span>{{ option.label }}</span>
+          </label>
+        </div>
+      </div>
+
+      <div class="delete-actions">
+        <KitBtn variant="outlined" @click="isDeleteConfirmOpen = false">
+          {{ t('dictionary.cancel') }}
+        </KitBtn>
+        <KitBtn color="error" @click="onDeleteDeckConfirm">
+          {{ t('dictionary.deleteItem') }}
+        </KitBtn>
+      </div>
+    </div>
+  </KitDialog>
 </template>
 
 <style lang="scss" scoped>
@@ -160,5 +187,49 @@ async function onDeleteDeckConfirm() {
   text-align: center;
   padding: 24px 0;
   color: var(--fg-secondary-color);
+}
+
+.delete-confirm-content {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+
+  p {
+    margin: 0;
+    color: var(--fg-primary-color);
+  }
+
+  .delete-options {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 8px;
+
+    .delete-option {
+      label {
+        display: flex;
+        align-items: flex-start;
+        gap: 8px;
+        cursor: pointer;
+
+        input {
+          margin-top: 4px;
+        }
+
+        span {
+          font-size: 0.9rem;
+          color: var(--fg-secondary-color);
+          line-height: 1.4;
+        }
+      }
+    }
+  }
+
+  .delete-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 16px;
+  }
 }
 </style>
