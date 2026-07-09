@@ -4,15 +4,18 @@ import AdmZip from 'adm-zip'
 import * as cheerio from 'cheerio'
 import { eq } from 'drizzle-orm'
 import sizeOf from 'image-size'
-import { BOOKS_PATH, COVERS_PATH } from '../config'
+import { BOOKS_PATH, COVERS_PATH, UPLOAD_STORAGE } from '../config'
 import { db } from '../db'
 import * as schema from '../db/schema'
+import { s3Service } from './s3.service'
 
 export async function processCbz(fileBuffer: ArrayBuffer, filename: string, userId: number): Promise<number> {
   const safeName = `${Date.now()}_${filename.replace(/[^\w.-]/g, '_')}`
   const mangaDir = path.join(BOOKS_PATH, safeName.replace(/\.(cbz|zip)$/i, ''))
 
-  mkdirSync(mangaDir, { recursive: true })
+  if (UPLOAD_STORAGE !== 's3') {
+    mkdirSync(mangaDir, { recursive: true })
+  }
 
   const zip = new AdmZip(Buffer.from(fileBuffer))
   const zipEntries = zip.getEntries()
@@ -67,8 +70,13 @@ export async function processCbz(fileBuffer: ArrayBuffer, filename: string, user
   const coverBuffer = coverEntry.getData()
   const coverExt = path.extname(coverEntry.entryName).toLowerCase() || '.jpg'
   const coverFilename = `${Date.now()}_cover${coverExt}`
-  const coverPath = path.join(COVERS_PATH, coverFilename)
-  writeFileSync(coverPath, coverBuffer)
+  if (UPLOAD_STORAGE === 's3') {
+    await s3Service.uploadFile(`covers/${coverFilename}`, coverBuffer, `image/${coverExt.slice(1)}`)
+  }
+  else {
+    const coverPath = path.join(COVERS_PATH, coverFilename)
+    writeFileSync(coverPath, coverBuffer)
+  }
   const coverUrl = `/api/uploads/covers/${coverFilename}`
 
   const title = xmlTitle || filename.replace(/\.(cbz|zip)$/i, '')
@@ -89,23 +97,33 @@ export async function processCbz(fileBuffer: ArrayBuffer, filename: string, user
 
   const pagesToInsert: { bookId: number, pageNum: number, imageUrl: string, imageWidth: number, imageHeight: number }[] = []
 
-  imageEntries.forEach((entry, idx) => {
+  for (let idx = 0; idx < imageEntries.length; idx++) {
+    const entry = imageEntries[idx]
     const pageNum = idx + 1
-    const ext = path.extname(entry.entryName)
-    const outPath = path.join(mangaDir, `page_${pageNum}${ext}`)
+    const ext = path.extname(entry.entryName).toLowerCase()
     const buffer = entry.getData()
-
-    writeFileSync(outPath, buffer)
     const dimensions = sizeOf(buffer)
+
+    let imageUrl: string
+    if (UPLOAD_STORAGE === 's3') {
+      const s3Key = `books/${safeName.replace(/\.(cbz|zip)$/i, '')}/page_${pageNum}${ext}`
+      await s3Service.uploadFile(s3Key, buffer, `image/${ext.slice(1)}`)
+      imageUrl = s3Key
+    }
+    else {
+      const outPath = path.join(mangaDir, `page_${pageNum}${ext}`)
+      writeFileSync(outPath, buffer)
+      imageUrl = outPath
+    }
 
     pagesToInsert.push({
       bookId,
       pageNum,
-      imageUrl: outPath,
+      imageUrl,
       imageWidth: dimensions.width || 0,
       imageHeight: dimensions.height || 0,
     })
-  })
+  }
 
   const chunkSize = 1000
   for (let i = 0; i < pagesToInsert.length; i += chunkSize) {
@@ -136,23 +154,39 @@ export async function appendMangaChapter(book: any, chapterTitle: string, files:
     const buffer = await file.arrayBuffer()
     const ext = path.extname(file.name).toLowerCase() || '.jpg'
     const filename = `page_${currentPageNum}${ext}`
-    const outPath = path.join(book.filePath, filename)
 
-    writeFileSync(outPath, Buffer.from(buffer))
+    let imageUrl: string
     const dimensions = sizeOf(Buffer.from(buffer))
+
+    if (UPLOAD_STORAGE === 's3') {
+      const folderName = path.basename(book.filePath)
+      const s3Key = `books/${folderName}/${filename}`
+      await s3Service.uploadFile(s3Key, buffer, `image/${ext.slice(1)}`)
+      imageUrl = s3Key
+    }
+    else {
+      const outPath = path.join(book.filePath, filename)
+      writeFileSync(outPath, Buffer.from(buffer))
+      imageUrl = outPath
+    }
 
     pagesToInsert.push({
       bookId: book.id,
       pageNum: currentPageNum,
-      imageUrl: outPath,
+      imageUrl,
       imageWidth: dimensions.width || 0,
       imageHeight: dimensions.height || 0,
     })
 
     if (currentPageNum === 1 && !coverUrl) {
       const coverFilename = `${Date.now()}_cover${ext}`
-      const coverPath = path.join(COVERS_PATH, coverFilename)
-      writeFileSync(coverPath, Buffer.from(buffer))
+      if (UPLOAD_STORAGE === 's3') {
+        await s3Service.uploadFile(`covers/${coverFilename}`, buffer, `image/${ext.slice(1)}`)
+      }
+      else {
+        const coverPath = path.join(COVERS_PATH, coverFilename)
+        writeFileSync(coverPath, Buffer.from(buffer))
+      }
       coverUrl = `/api/uploads/covers/${coverFilename}`
     }
 

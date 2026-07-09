@@ -58,66 +58,7 @@ async function getJsonFiles(dir: string, baseDir: string = dir): Promise<string[
   return files
 }
 
-async function main() {
-  let langPair = ''
-  let relativePath = ''
-  let inputFile = ''
-
-  const decksDir = path.resolve(process.cwd(), 'assets', 'decks')
-
-  if (inputArg) {
-    inputFile = path.resolve(inputArg)
-    if (!(await exists(inputFile))) {
-      console.error(`❌ Ошибка: Файл не найден по пути ${inputFile}`)
-      process.exit(1)
-    }
-  }
-  else {
-    const pairs = await getLanguagePairs(decksDir)
-    if (pairs.length === 0) {
-      console.error(`❌ Ошибка: В папке ${decksDir} не найдено языковых пар (поддиректорий).`)
-      process.exit(1)
-    }
-
-    intro('Inject Deck into LLM Cache')
-
-    const selectedPair = await select({
-      message: '📂 Выберите языковую пару:',
-      options: pairs.map(p => ({ value: p, label: p })),
-    })
-
-    if (isCancel(selectedPair)) {
-      cancel('Отменено')
-      process.exit(0)
-    }
-    langPair = selectedPair as string
-
-    // Choose from "result" folder since this is where the enriched JSONs are
-    const resultDir = path.resolve(decksDir, langPair, 'result')
-    if (!(await exists(resultDir))) {
-      console.error(`❌ Ошибка: Папка result не найдена по пути ${resultDir}. Сначала сгенерируйте колоду.`)
-      process.exit(1)
-    }
-
-    const jsonFiles = await getJsonFiles(resultDir)
-    if (jsonFiles.length === 0) {
-      console.error(`❌ Ошибка: В папке ${resultDir} не найдено JSON файлов.`)
-      process.exit(1)
-    }
-
-    const selectedFile = await select({
-      message: '📄 Выберите JSON файл из папки result:',
-      options: jsonFiles.map(f => ({ value: f, label: f })),
-    })
-
-    if (isCancel(selectedFile)) {
-      cancel('Отменено')
-      process.exit(0)
-    }
-    relativePath = selectedFile as string
-    inputFile = path.resolve(resultDir, relativePath)
-  }
-
+async function injectFile(inputFile: string): Promise<{ injected: number, skipped: number }> {
   console.log(`📖 Чтение файла: ${inputFile}`)
   const raw = await readFile(inputFile, 'utf-8')
   const data = JSON.parse(raw)
@@ -127,8 +68,8 @@ async function main() {
   const words = data.words as any[]
 
   if (!words || !Array.isArray(words)) {
-    console.error('❌ Неверный формат JSON. Ожидается: { "words": [{ "word": "...", ... }] }')
-    process.exit(1)
+    console.error(`❌ Неверный формат JSON в ${inputFile}. Ожидается: { "words": [{ "word": "...", ... }] }`)
+    return { injected: 0, skipped: 0 }
   }
 
   let injectedCount = 0
@@ -174,9 +115,146 @@ async function main() {
     }
   }
 
-  console.log(`\n🎉 Инжект завершен!`)
-  console.log(`Добавлено: ${injectedCount}`)
-  console.log(`Пропущено (уже были): ${skippedCount}`)
+  return { injected: injectedCount, skipped: skippedCount }
+}
+
+async function main() {
+  const decksDir = path.resolve(process.cwd(), 'assets', 'decks')
+
+  if (inputArg) {
+    const inputFile = path.resolve(inputArg)
+    if (!(await exists(inputFile))) {
+      console.error(`❌ Ошибка: Файл не найден по пути ${inputFile}`)
+      process.exit(1)
+    }
+    const { injected, skipped } = await injectFile(inputFile)
+    console.log(`\n🎉 Инжект завершен!`)
+    console.log(`Добавлено: ${injected}`)
+    console.log(`Пропущено (уже были): ${skipped}`)
+    return
+  }
+
+  const pairs = await getLanguagePairs(decksDir)
+  if (pairs.length === 0) {
+    console.error(`❌ Ошибка: В папке ${decksDir} не найдено языковых пар (поддиректорий).`)
+    process.exit(1)
+  }
+
+  intro('Inject Deck into LLM Cache')
+
+  const mode = await select({
+    message: '⚙️ Выберите режим работы:',
+    options: [
+      { value: 'single', label: 'Выбрать один файл' },
+      { value: 'all_in_pair', label: 'Выбрать сразу все файлы в одной языковой паре' },
+      { value: 'all', label: 'Выбрать сразу все файлы из всех языковых пар' },
+    ],
+  })
+
+  if (isCancel(mode)) {
+    cancel('Отменено')
+    process.exit(0)
+  }
+
+  const filesToInject: string[] = []
+
+  if (mode === 'single') {
+    const selectedPair = await select({
+      message: '📂 Выберите языковую пару:',
+      options: pairs.map(p => ({ value: p, label: p })),
+    })
+
+    if (isCancel(selectedPair)) {
+      cancel('Отменено')
+      process.exit(0)
+    }
+    const langPair = selectedPair as string
+    const resultDir = path.resolve(decksDir, langPair, 'result')
+
+    if (!(await exists(resultDir))) {
+      console.error(`❌ Ошибка: Папка result не найдена по пути ${resultDir}. Сначала сгенерируйте колоду.`)
+      process.exit(1)
+    }
+
+    const jsonFiles = await getJsonFiles(resultDir)
+    if (jsonFiles.length === 0) {
+      console.error(`❌ Ошибка: В папке ${resultDir} не найдено JSON файлов.`)
+      process.exit(1)
+    }
+
+    const selectedFile = await select({
+      message: '📄 Выберите JSON файл из папки result:',
+      options: jsonFiles.map(f => ({ value: f, label: f })),
+    })
+
+    if (isCancel(selectedFile)) {
+      cancel('Отменено')
+      process.exit(0)
+    }
+    const relativePath = selectedFile as string
+    filesToInject.push(path.resolve(resultDir, relativePath))
+  }
+  else if (mode === 'all_in_pair') {
+    const selectedPair = await select({
+      message: '📂 Выберите языковую пару:',
+      options: pairs.map(p => ({ value: p, label: p })),
+    })
+
+    if (isCancel(selectedPair)) {
+      cancel('Отменено')
+      process.exit(0)
+    }
+    const langPair = selectedPair as string
+    const resultDir = path.resolve(decksDir, langPair, 'result')
+
+    if (!(await exists(resultDir))) {
+      console.error(`❌ Ошибка: Папка result не найдена по пути ${resultDir}. Сначала сгенерируйте колоду.`)
+      process.exit(1)
+    }
+
+    const jsonFiles = await getJsonFiles(resultDir)
+    if (jsonFiles.length === 0) {
+      console.error(`❌ Ошибка: В папке ${resultDir} не найдено JSON файлов.`)
+      process.exit(1)
+    }
+
+    for (const f of jsonFiles) {
+      filesToInject.push(path.resolve(resultDir, f))
+    }
+  }
+  else if (mode === 'all') {
+    for (const langPair of pairs) {
+      const resultDir = path.resolve(decksDir, langPair, 'result')
+      if (await exists(resultDir)) {
+        const jsonFiles = await getJsonFiles(resultDir)
+        for (const f of jsonFiles) {
+          filesToInject.push(path.resolve(resultDir, f))
+        }
+      }
+    }
+
+    if (filesToInject.length === 0) {
+      console.error(`❌ Ошибка: Не найдено ни одного JSON файла в папках result всех языковых пар.`)
+      process.exit(1)
+    }
+  }
+
+  let totalInjected = 0
+  let totalSkipped = 0
+
+  console.log(`\n📚 Найдено файлов для импорта: ${filesToInject.length}`)
+  for (const file of filesToInject) {
+    console.log(`\n----------------------------------------`)
+    const { injected, skipped } = await injectFile(file)
+    totalInjected += injected
+    totalSkipped += skipped
+  }
+
+  console.log(`\n========================================`)
+  console.log(`🎉 Весь инжект завершен!`)
+  console.log(`Всего файлов обработано: ${filesToInject.length}`)
+  console.log(`Всего добавлено слов: ${totalInjected}`)
+  console.log(`Всего пропущено слов: ${totalSkipped}`)
 }
 
 main()

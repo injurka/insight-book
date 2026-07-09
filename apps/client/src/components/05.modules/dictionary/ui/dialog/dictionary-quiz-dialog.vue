@@ -283,6 +283,7 @@ function exitQuiz() {
     :max-width="currentState === 'testing' ? 680 : 780"
     :minimizable="false"
     :fullscreen="isFullscreen"
+    :persistent="true"
   >
     <template #header-actions>
       <button

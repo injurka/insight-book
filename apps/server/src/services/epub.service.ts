@@ -1,9 +1,11 @@
 import type { TocItem } from '../types'
+import { unlink } from 'node:fs/promises'
 import path from 'node:path'
 import { parse as parseHtml } from 'node-html-parser'
-import { BOOKS_PATH, COVERS_PATH, PAGE_SIZE_CHARS } from '../config'
+import { BOOKS_PATH, COVERS_PATH, PAGE_SIZE_CHARS, UPLOAD_STORAGE } from '../config'
 import { db } from '../db'
 import * as schema from '../db/schema'
+import { s3Service } from './s3.service'
 
 async function extractCover(epub: any): Promise<{ buffer: Buffer, ext: string } | null> {
   try {
@@ -107,7 +109,10 @@ export async function processEpub(fileBuffer: ArrayBuffer, filename: string, use
   return new Promise<number>((resolve, reject) => {
     const epub = new EPub(filePath)
 
-    epub.on('error', reject)
+    epub.on('error', async (err: any) => {
+      await unlink(filePath).catch(() => {})
+      reject(err)
+    })
     epub.on('end', async () => {
       try {
         const title = epub.metadata?.title || filename.replace('.epub', '')
@@ -117,7 +122,12 @@ export async function processEpub(fileBuffer: ArrayBuffer, filename: string, use
         let coverUrl = null
         if (coverData) {
           const coverFilename = `${Date.now()}_cover${coverData.ext}`
-          await Bun.write(path.join(COVERS_PATH, coverFilename), coverData.buffer)
+          if (UPLOAD_STORAGE === 's3') {
+            await s3Service.uploadFile(`covers/${coverFilename}`, coverData.buffer, `image/${coverData.ext.slice(1)}`)
+          }
+          else {
+            await Bun.write(path.join(COVERS_PATH, coverFilename), coverData.buffer)
+          }
           coverUrl = `/api/uploads/covers/${coverFilename}`
         }
 
@@ -301,9 +311,11 @@ export async function processEpub(fileBuffer: ArrayBuffer, filename: string, use
           currentPage: 1,
         }).onConflictDoNothing()
 
+        await unlink(filePath).catch(() => {})
         resolve(bookId)
       }
       catch (e) {
+        await unlink(filePath).catch(() => {})
         reject(e)
       }
     })

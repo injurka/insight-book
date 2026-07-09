@@ -10,7 +10,7 @@ import sharp from 'sharp'
 
 import { AnalyzeBatchSchema, AnalyzeSentenceSchema, CheckCacheSchema, CreateCustomBookSchema, GenerateTtsSchema, GenerateTtsStandaloneSchema, UpdateBookSchema, UpdateStatsSchema } from '~/types/schemas'
 import { extractLlmConfig, extractUniqueWordsFromHtml, json, normalizeLanguageCode } from '~/utils/helpers'
-import { BOOKS_PATH, CORS_HEADERS, COVERS_PATH } from '../config'
+import { BOOKS_PATH, CORS_HEADERS, COVERS_PATH, UPLOAD_STORAGE } from '../config'
 import { db } from '../db'
 import * as schema from '../db/schema'
 import { trackActivity } from '../services/activity.service'
@@ -18,6 +18,7 @@ import { lookupSingleWord, lookupWords } from '../services/dictionary.service'
 import { checkBookLimit } from '../services/limits.service'
 import { analyzeBatch, analyzeBookExcerpt, analyzeMangaInfo, analyzeSentence, checkCacheBatch, generateTts } from '../services/llm.service'
 import { recognizeMangaPage } from '../services/ocr.service'
+import { s3Service } from '../services/s3.service'
 import { AppError } from '../utils/errors'
 import { createRateLimiter } from '../utils/rate-limit'
 import { runWorkerTask } from '../workers/worker-client'
@@ -469,9 +470,14 @@ export async function handleUpdateCover(req: Request, userId: number): Promise<R
   const buffer = await file.arrayBuffer()
   const ext = path.extname(file.name).toLowerCase() || '.jpg'
   const filename = `${Date.now()}_cover${ext}`
-  const filepath = path.join(COVERS_PATH, filename)
 
-  await Bun.write(filepath, buffer)
+  if (UPLOAD_STORAGE === 's3') {
+    await s3Service.uploadFile(`covers/${filename}`, buffer, `image/${ext.slice(1)}`)
+  }
+  else {
+    const filepath = path.join(COVERS_PATH, filename)
+    await Bun.write(filepath, buffer)
+  }
   const coverUrl = `/api/uploads/covers/${filename}`
 
   await db.transaction(async (tx) => {
@@ -480,9 +486,14 @@ export async function handleUpdateCover(req: Request, userId: number): Promise<R
 
   if (oldBook.coverUrl && oldBook.coverUrl.startsWith('/api/uploads/covers/')) {
     const oldFile = oldBook.coverUrl.split('/').pop()!
-    const resolvedOld = path.resolve(path.join(COVERS_PATH, oldFile))
-    if (resolvedOld.startsWith(path.resolve(COVERS_PATH))) {
-      await unlink(resolvedOld).catch(() => { })
+    if (UPLOAD_STORAGE === 's3') {
+      await s3Service.deleteFile(`covers/${oldFile}`)
+    }
+    else {
+      const resolvedOld = path.resolve(path.join(COVERS_PATH, oldFile))
+      if (resolvedOld.startsWith(path.resolve(COVERS_PATH))) {
+        await unlink(resolvedOld).catch(() => { })
+      }
     }
   }
 
@@ -491,18 +502,35 @@ export async function handleUpdateCover(req: Request, userId: number): Promise<R
 
 export async function handleGetCoverImage(req: Request): Promise<Response> {
   const filename = req.params.filename
-  const filepath = path.join(COVERS_PATH, filename)
-  const file = Bun.file(filepath)
 
-  if (!(await file.exists()))
-    return new Response('Not found', { status: 404 })
+  if (UPLOAD_STORAGE === 's3') {
+    const s3Key = `covers/${filename}`
+    const fileData = await s3Service.getFile(s3Key)
+    if (!fileData) {
+      return new Response('Not found', { status: 404 })
+    }
+    return new Response(fileData.buffer as any, {
+      headers: {
+        ...CORS_HEADERS,
+        'Content-Type': fileData.contentType,
+        'Cache-Control': 'public, max-age=31536000, immutable',
+      },
+    })
+  }
+  else {
+    const filepath = path.join(COVERS_PATH, filename)
+    const file = Bun.file(filepath)
 
-  return new Response(file, {
-    headers: {
-      ...CORS_HEADERS,
-      'Cache-Control': 'public, max-age=31536000, immutable',
-    },
-  })
+    if (!(await file.exists()))
+      return new Response('Not found', { status: 404 })
+
+    return new Response(file, {
+      headers: {
+        ...CORS_HEADERS,
+        'Cache-Control': 'public, max-age=31536000, immutable',
+      },
+    })
+  }
 }
 
 export async function handleUpdateStats(req: Request, userId: number): Promise<Response> {
@@ -565,7 +593,9 @@ export async function handleCreateCustomBook(req: Request, userId: number): Prom
   const safeName = `${Date.now()}_custom_manga`
   const filePath = path.join(BOOKS_PATH, safeName)
 
-  mkdirSync(filePath, { recursive: true })
+  if (UPLOAD_STORAGE !== 's3') {
+    mkdirSync(filePath, { recursive: true })
+  }
 
   const [insertedBook] = await db.insert(schema.books).values({
     userId,
@@ -631,19 +661,30 @@ export async function handleDeleteBook(req: Request, userId: number): Promise<Re
 
   try {
     if (book.filePath) {
-      const resolvedPath = path.resolve(book.filePath)
-      if (!resolvedPath.startsWith(path.resolve(BOOKS_PATH))) {
-        throw new Error('Security violation: Invalid book path')
+      if (UPLOAD_STORAGE === 's3') {
+        const folderName = path.basename(book.filePath)
+        await s3Service.deleteFolder(`books/${folderName}`)
       }
-      await rm(resolvedPath, { recursive: true, force: true })
+      else {
+        const resolvedPath = path.resolve(book.filePath)
+        if (!resolvedPath.startsWith(path.resolve(BOOKS_PATH))) {
+          throw new Error('Security violation: Invalid book path')
+        }
+        await rm(resolvedPath, { recursive: true, force: true })
+      }
     }
     if (book.coverUrl && book.coverUrl.startsWith('/api/uploads/covers/')) {
       const coverFilename = book.coverUrl.split('/').pop()!
-      const resolvedCoverPath = path.resolve(path.join(COVERS_PATH, coverFilename))
-      if (!resolvedCoverPath.startsWith(path.resolve(COVERS_PATH))) {
-        throw new Error('Security violation: Invalid cover path')
+      if (UPLOAD_STORAGE === 's3') {
+        await s3Service.deleteFile(`covers/${coverFilename}`)
       }
-      await unlink(resolvedCoverPath).catch(() => { })
+      else {
+        const resolvedCoverPath = path.resolve(path.join(COVERS_PATH, coverFilename))
+        if (!resolvedCoverPath.startsWith(path.resolve(COVERS_PATH))) {
+          throw new Error('Security violation: Invalid cover path')
+        }
+        await unlink(resolvedCoverPath).catch(() => { })
+      }
     }
   }
   catch (err: unknown) {
@@ -720,7 +761,16 @@ export async function handleGetPage(req: Request, userId: number): Promise<Respo
     if (ocrBlocks === null && pageRow.imageUrl) {
       try {
         const config = extractLlmConfig(req)
-        const fileBuffer = readFileSync(pageRow.imageUrl)
+        let fileBuffer: Buffer
+        if (UPLOAD_STORAGE === 's3') {
+          const fileData = await s3Service.getFile(pageRow.imageUrl)
+          if (!fileData)
+            throw new Error('S3 file not found')
+          fileBuffer = Buffer.from(fileData.buffer)
+        }
+        else {
+          fileBuffer = readFileSync(pageRow.imageUrl)
+        }
         let base64 = ''
 
         const ext = path.extname(pageRow.imageUrl).toLowerCase()
@@ -948,10 +998,23 @@ export async function handleGetPageImage(req: Request): Promise<Response> {
   if (!pageRow || !pageRow.imageUrl)
     return new Response('Not found', { status: 404 })
 
-  const buffer = readFileSync(pageRow.imageUrl)
-  const ext = path.extname(pageRow.imageUrl).slice(1).toLowerCase()
+  let buffer: Buffer | Uint8Array
+  let ext: string
 
-  return new Response(buffer, {
+  if (UPLOAD_STORAGE === 's3') {
+    const fileData = await s3Service.getFile(pageRow.imageUrl)
+    if (!fileData) {
+      return new Response('Not found', { status: 404 })
+    }
+    buffer = fileData.buffer
+    ext = path.extname(pageRow.imageUrl).slice(1).toLowerCase()
+  }
+  else {
+    buffer = readFileSync(pageRow.imageUrl)
+    ext = path.extname(pageRow.imageUrl).slice(1).toLowerCase()
+  }
+
+  return new Response(buffer as any, {
     headers: {
       ...CORS_HEADERS,
       'Content-Type': `image/${ext === 'jpg' ? 'jpeg' : ext}`,

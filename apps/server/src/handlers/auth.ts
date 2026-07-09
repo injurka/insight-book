@@ -3,9 +3,10 @@ import path from 'node:path'
 import { eq, sql } from 'drizzle-orm'
 import jwt from 'jsonwebtoken'
 import { z } from 'zod'
-import { AUTH_MODE, CORS_HEADERS, FRONTEND_URL, JWT_SECRET, UNISENDER_API_KEY, UPLOADS_PATH, YANDEX_CLIENT_ID, YANDEX_CLIENT_SECRET } from '../config'
+import { AUTH_MODE, CORS_HEADERS, FRONTEND_URL, JWT_SECRET, UNISENDER_API_KEY, UPLOAD_STORAGE, UPLOADS_PATH, YANDEX_CLIENT_ID, YANDEX_CLIENT_SECRET } from '../config'
 import { db } from '../db'
 import * as schema from '../db/schema'
+import { s3Service } from '../services/s3.service'
 import { AppError } from '../utils/errors'
 
 type DbUser = typeof schema.users.$inferSelect
@@ -239,27 +240,37 @@ export async function handleUpdateAvatar(req: Request, userId: number): Promise<
   const buffer = await file.arrayBuffer()
   const ext = path.extname(file.name).toLowerCase() || '.jpg'
   const filename = `${Date.now()}_avatar_${userId}${ext}`
-  const avatarsDir = path.join(UPLOADS_PATH, 'avatars')
-  const filepath = path.join(avatarsDir, filename)
 
-  mkdirSync(avatarsDir, { recursive: true })
-
-  if (user?.avatarUrl && user.avatarUrl.startsWith('/api/uploads/avatars/')) {
-    const oldFilename = user.avatarUrl.split('/').pop()
-    if (oldFilename) {
-      const oldFilepath = path.join(avatarsDir, oldFilename)
-      try {
-        if (existsSync(oldFilepath)) {
-          unlinkSync(oldFilepath)
-        }
-      }
-      catch (e) {
-        console.error('Failed to delete old avatar', e)
+  if (UPLOAD_STORAGE === 's3') {
+    if (user?.avatarUrl && user.avatarUrl.startsWith('/api/uploads/avatars/')) {
+      const oldFilename = user.avatarUrl.split('/').pop()
+      if (oldFilename) {
+        await s3Service.deleteFile(`avatars/${oldFilename}`)
       }
     }
+    await s3Service.uploadFile(`avatars/${filename}`, buffer, `image/${ext.slice(1)}`)
   }
+  else {
+    const avatarsDir = path.join(UPLOADS_PATH, 'avatars')
+    const filepath = path.join(avatarsDir, filename)
+    mkdirSync(avatarsDir, { recursive: true })
 
-  await Bun.write(filepath, buffer)
+    if (user?.avatarUrl && user.avatarUrl.startsWith('/api/uploads/avatars/')) {
+      const oldFilename = user.avatarUrl.split('/').pop()
+      if (oldFilename) {
+        const oldFilepath = path.join(avatarsDir, oldFilename)
+        try {
+          if (existsSync(oldFilepath)) {
+            unlinkSync(oldFilepath)
+          }
+        }
+        catch (e) {
+          console.error('Failed to delete old avatar', e)
+        }
+      }
+    }
+    await Bun.write(filepath, buffer)
+  }
 
   const avatarUrl = `/api/uploads/avatars/${filename}`
   await db.update(schema.users).set({ avatarUrl }).where(eq(schema.users.id, userId))
@@ -269,18 +280,35 @@ export async function handleUpdateAvatar(req: Request, userId: number): Promise<
 
 export async function handleGetAvatarImage(req: Request): Promise<Response> {
   const filename = req.params.filename
-  const filepath = path.join(UPLOADS_PATH, 'avatars', filename)
-  const file = Bun.file(filepath)
 
-  if (!(await file.exists()))
-    return new Response('Not found', { status: 404 })
+  if (UPLOAD_STORAGE === 's3') {
+    const s3Key = `avatars/${filename}`
+    const fileData = await s3Service.getFile(s3Key)
+    if (!fileData) {
+      return new Response('Not found', { status: 404 })
+    }
+    return new Response(fileData.buffer as any, {
+      headers: {
+        ...CORS_HEADERS,
+        'Content-Type': fileData.contentType,
+        'Cache-Control': 'public, max-age=31536000, immutable',
+      },
+    })
+  }
+  else {
+    const filepath = path.join(UPLOADS_PATH, 'avatars', filename)
+    const file = Bun.file(filepath)
 
-  return new Response(file, {
-    headers: {
-      ...CORS_HEADERS,
-      'Cache-Control': 'public, max-age=31536000, immutable',
-    },
-  })
+    if (!(await file.exists()))
+      return new Response('Not found', { status: 404 })
+
+    return new Response(file, {
+      headers: {
+        ...CORS_HEADERS,
+        'Cache-Control': 'public, max-age=31536000, immutable',
+      },
+    })
+  }
 }
 
 export async function handleUpdateUsername(req: Request, userId: number): Promise<Response> {

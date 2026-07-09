@@ -17,6 +17,7 @@ export const DICTS_PATH = process.env.DICTS_PATH || path.resolve(process.cwd(), 
 export const UPLOADS_PATH = process.env.UPLOADS_PATH || path.resolve(process.cwd(), 'uploads')
 export const BOOKS_PATH = path.join(UPLOADS_PATH, 'books')
 export const COVERS_PATH = path.join(UPLOADS_PATH, 'covers')
+export const UPLOAD_STORAGE = process.env.UPLOAD_STORAGE || 'local' // 'local' | 's3'
 
 // -- Default ADMIN user ---
 export const ADMIN_USERNAME = process.env.ADMIN_USERNAME || 'admin'
