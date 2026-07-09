@@ -376,6 +376,7 @@
     "next": "Next",
     "edit": "Edit",
     "stats": "Statistics",
+    "filters": "Filters",
     "selectedCount": "Selected: {count}",
     "selectAll": "Select all",
     "resetSelection": "Reset",

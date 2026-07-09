@@ -28,7 +28,7 @@ const store = useDictionaryStore()
 const { langOptions, deckOptions, difficultyOptions, statusOptions } = useDictFilterOptions()
 
 const router = useRouter()
-const isMobileFiltersOpen = ref(false)
+const isFiltersOpen = ref(false)
 const dropdownRef = ref<InstanceType<typeof KitDropdown> | null>(null)
 
 watch(() => store.selectedLanguage, () => {
@@ -54,48 +54,6 @@ function openTrainingSettings(mode: 'srs' | 'deep_dive' | 'cram' | 'match') {
     </div>
 
     <div class="header-bottom">
-      <div class="search-wrapper">
-        <KitInput
-          v-model="store.searchTerm"
-          :placeholder="t('dictionary.searchPlaceholder')"
-          class="search-input"
-        />
-        <div class="mobile-controls">
-          <KitBtn
-            :icon="isMobileFiltersOpen ? 'mdi:chevron-up' : 'mdi:tune-variant'"
-            variant="tonal"
-            color="secondary"
-            @click="isMobileFiltersOpen = !isMobileFiltersOpen"
-          />
-        </div>
-      </div>
-
-      <div class="extra-filters" :class="{ 'is-open': isMobileFiltersOpen }">
-        <KitSelect
-          v-model="store.selectedLanguage"
-          :options="langOptions"
-          class="filter-select"
-        />
-        <KitSelect
-          v-model="store.selectedDeckId"
-          :options="deckOptions"
-          class="filter-select"
-          multiple
-        />
-        <KitSelect
-          v-model="store.selectedDifficulty"
-          :options="difficultyOptions"
-          class="filter-select"
-          multiple
-        />
-        <KitSelect
-          v-model="store.selectedStatus"
-          :options="statusOptions"
-          class="filter-select"
-          multiple
-        />
-      </div>
-
       <div class="actions-and-stats">
         <div class="main-actions">
           <KitDropdown ref="dropdownRef" placement="bottom-end" width="260px" class="training-dropdown">
@@ -159,8 +117,47 @@ function openTrainingSettings(mode: 'srs' | 'deep_dive' | 'cram' | 'match') {
                 @click="emit('openStats')"
               />
             </KitTooltip>
+            <KitTooltip :text="t('dictionary.filters')" placement="bottom-end">
+              <KitBtn
+                :icon="isFiltersOpen ? 'mdi:chevron-up' : 'mdi:tune-variant'"
+                variant="text"
+                :color="isFiltersOpen ? 'primary' : 'secondary'"
+                @click="isFiltersOpen = !isFiltersOpen"
+              />
+            </KitTooltip>
           </div>
         </div>
+      </div>
+
+      <div class="extra-filters" :class="{ 'is-open': isFiltersOpen }">
+        <KitInput
+          v-model="store.searchTerm"
+          :placeholder="t('dictionary.searchPlaceholder')"
+          class="filter-search-input"
+        />
+        <KitSelect
+          v-model="store.selectedLanguage"
+          :options="langOptions"
+          class="filter-select"
+        />
+        <KitSelect
+          v-model="store.selectedDeckId"
+          :options="deckOptions"
+          class="filter-select"
+          multiple
+        />
+        <KitSelect
+          v-model="store.selectedDifficulty"
+          :options="difficultyOptions"
+          class="filter-select"
+          multiple
+        />
+        <KitSelect
+          v-model="store.selectedStatus"
+          :options="statusOptions"
+          class="filter-select"
+          multiple
+        />
       </div>
     </div>
   </header>
@@ -197,26 +194,26 @@ function openTrainingSettings(mode: 'srs' | 'deep_dive' | 'cram' | 'match') {
     gap: 16px;
     flex-wrap: wrap;
 
-    .search-wrapper {
-      flex-grow: 1;
-      min-width: 250px;
-      display: flex;
-      gap: 8px;
-
-      .search-input {
-        width: 100%;
-      }
-
-      .mobile-controls {
-        display: none;
-      }
-    }
-
     .extra-filters {
-      display: flex;
+      display: none;
+      width: 100%;
+      background-color: var(--bg-secondary-color);
+      padding: 16px;
+      border-radius: 12px;
+      border: 1px solid var(--border-secondary-color);
       gap: 12px;
       flex-wrap: wrap;
       align-items: center;
+
+      &.is-open {
+        display: flex;
+        animation: slideDown 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+      }
+
+      .filter-search-input {
+        flex-grow: 1;
+        min-width: 250px;
+      }
 
       .filter-select {
         width: 170px;
@@ -296,28 +293,12 @@ function openTrainingSettings(mode: 'srs' | 'deep_dive' | 'cram' | 'match') {
       flex-direction: column;
       align-items: stretch;
 
-      .search-wrapper {
-        min-width: 100%;
-
-        .mobile-controls {
-          display: flex;
-          gap: 8px;
-          flex-shrink: 0;
-        }
-      }
-
       .extra-filters {
-        display: none;
         flex-direction: column;
-        background-color: var(--bg-secondary-color);
-        padding: 16px;
-        border-radius: 12px;
-        border: 1px solid var(--border-secondary-color);
-        gap: 12px;
+        align-items: stretch;
 
-        &.is-open {
-          display: flex;
-          animation: slideDown 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+        .filter-search-input {
+          width: 100%;
         }
 
         .filter-select {

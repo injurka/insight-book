@@ -21,6 +21,7 @@
     "dump:seed": "bun src/scripts/seed-from-dump.ts",
     "deck:generate": "bun src/scripts/generate-deck.ts",
     "deck:seed": "bun src/scripts/seed-catalog.ts",
+    "deck:inject": "bun src/scripts/inject-deck-cache.ts",
     "--------------------------------< LINT & FORMAT >---------------------------------": "",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
@@ -29,6 +30,7 @@
   "dependencies": {
     "@ai-sdk/openai": "^4.0.5",
     "@aws-sdk/client-s3": "^3.1078.0",
+    "@clack/prompts": "^1.7.0",
     "adm-zip": "^0.5.18",
     "ai": "^7.0.11",
     "az": "^0.2.3",

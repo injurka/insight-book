@@ -376,6 +376,7 @@
     "next": "下一个",
     "edit": "编辑",
     "stats": "统计",
+    "filters": "过滤器",
     "selectedCount": "已选: {count}",
     "selectAll": "全选",
     "resetSelection": "重置",

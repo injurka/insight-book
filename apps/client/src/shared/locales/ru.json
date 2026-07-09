@@ -376,6 +376,7 @@
     "next": "Далее",
     "edit": "Редактировать",
     "stats": "Статистика",
+    "filters": "Фильтры",
     "selectedCount": "Выбрано: {count}",
     "selectAll": "Выбрать все",
     "resetSelection": "Сбросить",

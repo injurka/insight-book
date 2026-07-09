@@ -703,7 +703,6 @@ watch(() => props.card, initCard, { immediate: true })
 }
 
 .animation-container {
-  margin-top: 8px;
   background-color: rgba(var(--bg-tertiary-color-rgb), 0.5);
   padding: 12px;
   border-radius: 8px;

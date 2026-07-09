@@ -318,7 +318,6 @@ onMounted(async () => {
   grid-template-columns: repeat(4, 1fr);
   gap: 16px;
   padding: 6px;
-  margin: -6px;
 
   @include media-down(md) {
     grid-template-columns: repeat(2, 1fr);
@@ -387,7 +386,6 @@ onMounted(async () => {
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
     gap: 16px;
     padding: 6px;
-    margin: -6px;
   }
 
   .level-card {

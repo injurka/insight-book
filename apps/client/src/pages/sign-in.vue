@@ -165,9 +165,28 @@ const bookTiles = [
   { top: '65%', left: '35%', delay: '0.7s', size: 42, hue: 290 },
 ]
 
+const showAuthControls = ref(false)
+let pressTimer: any = null
+
+function startPress() {
+  if (showAuthControls.value) return
+  pressTimer = setTimeout(() => {
+    showAuthControls.value = true
+  }, 1000)
+}
+
+function cancelPress() {
+  if (pressTimer) {
+    clearTimeout(pressTimer)
+    pressTimer = null
+  }
+}
+
 onUnmounted(() => {
   if (pollingInterval)
     clearInterval(pollingInterval)
+  if (pressTimer)
+    clearTimeout(pressTimer)
 })
 </script>
 
@@ -253,7 +272,15 @@ onUnmounted(() => {
 
       <div class="auth-card">
         <div class="auth-header">
-          <div class="auth-badge">
+          <div
+            class="auth-badge"
+            @mousedown="startPress"
+            @touchstart="startPress"
+            @mouseup="cancelPress"
+            @mouseleave="cancelPress"
+            @touchend="cancelPress"
+            @touchcancel="cancelPress"
+          >
             <Icon icon="mdi:lock-outline" />
             <span>{{ t('signIn.earlyAccess') }}</span>
           </div>
@@ -279,13 +306,13 @@ onUnmounted(() => {
           </span>
         </a>
 
-        <div class="divider">
+        <div v-if="showAuthControls" class="divider">
           <span class="divider-line" />
           <span class="divider-text">{{ t('signIn.or') }}</span>
           <span class="divider-line" />
         </div>
 
-        <div class="auth-tabs">
+        <div v-if="showAuthControls" class="auth-tabs">
           <button
             class="auth-tab-btn"
             :class="{ 'is-active': currentTab === 'login' }"
@@ -305,7 +332,7 @@ onUnmounted(() => {
         </div>
 
         <Transition name="fade" mode="out-in">
-          <form v-if="currentTab === 'login'" class="whitelist-form" @submit.prevent="handleSignIn">
+          <form v-if="showAuthControls && currentTab === 'login'" class="whitelist-form" @submit.prevent="handleSignIn">
             <KitInput
               v-model="username"
               :placeholder="t('signIn.loginOrEmail')"
@@ -328,7 +355,7 @@ onUnmounted(() => {
             </KitBtn>
           </form>
 
-          <form v-else class="whitelist-form" @submit.prevent="isCodeSent ? handleRegister() : handleSendCode()">
+          <form v-else-if="showAuthControls" class="whitelist-form" @submit.prevent="isCodeSent ? handleRegister() : handleSendCode()">
             <KitInput
               v-model="email"
               type="email"
@@ -774,6 +801,8 @@ onUnmounted(() => {
   font-weight: 600;
   width: fit-content;
   letter-spacing: 0.3px;
+  cursor: pointer;
+  user-select: none;
 
   svg,
   .iconify {

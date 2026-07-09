@@ -1,11 +1,17 @@
-import type { LlmConfig } from '../types'
-import { readFile, writeFile } from 'node:fs/promises'
+import type { LlmAnalysis, LlmConfig, ModelMessage } from '../types'
+import type { TokenUsage } from '../utils/llm-api'
+import { mkdir, readdir, readFile, stat, writeFile } from 'node:fs/promises'
 import path from 'node:path'
-import { sqlite } from '~/db'
+import { cancel, intro, isCancel, select } from '@clack/prompts'
+import { eq } from 'drizzle-orm'
+import { db, sqlite } from '~/db'
 import { catalogSqlite } from '~/db/catalog'
-import { generateWordAutoFill } from '../services/llm.service'
+import * as schema from '../db/schema'
+import { getSystemPrompt } from '../prompts'
+import { LlmAnalysisSchema } from '../types/schemas'
 import { getAiConfig } from '../utils/ai-config'
-import { normalizeLanguageCode } from '../utils/helpers'
+import { hashSentence, normalizeLanguageCode, parseLlmJson } from '../utils/helpers'
+import { callLlmJsonWithRetry } from '../utils/llm-api'
 
 const args = process.argv.slice(2)
 const inputArg = args[0]
@@ -60,23 +66,208 @@ function filterAllowedTags(rawTags: string | undefined | null): string {
   return validTags.join(', ')
 }
 
-async function main() {
-  if (!inputArg) {
-    console.error('❌ Использование: bun src/scripts/generate-deck.ts <имя_файла.json или путь>')
-    console.error('Пример: bun src/scripts/generate-deck.ts hsk1.json')
-    process.exit(1)
+async function exists(p: string): Promise<boolean> {
+  try {
+    await stat(p)
+    return true
+  }
+  catch {
+    return false
+  }
+}
+
+async function getLanguagePairs(decksDir: string): Promise<string[]> {
+  const entries = await readdir(decksDir, { withFileTypes: true })
+  const pairs: string[] = []
+
+  for (const entry of entries) {
+    if (entry.name === 'old') {
+      continue
+    }
+    if (entry.isDirectory()) {
+      pairs.push(entry.name)
+    }
   }
 
-  let inputFile = inputArg
-  if (!inputArg.includes('/') && !inputArg.includes('\\')) {
-    inputFile = path.resolve(process.cwd(), 'assets', 'decks', 'raw', inputArg)
+  return pairs
+}
+
+async function getJsonFiles(dir: string, baseDir: string = dir): Promise<string[]> {
+  const entries = await readdir(dir, { withFileTypes: true })
+  const files: string[] = []
+
+  for (const entry of entries) {
+    if (entry.name === 'old') {
+      continue
+    }
+
+    const fullPath = path.join(dir, entry.name)
+
+    if (entry.isDirectory()) {
+      const subFiles = await getJsonFiles(fullPath, baseDir)
+      files.push(...subFiles)
+    }
+    else if (entry.isFile() && entry.name.endsWith('.json')) {
+      const relativePath = path.relative(baseDir, fullPath)
+      files.push(relativePath)
+    }
+  }
+
+  return files
+}
+
+function isOldFormatAnalysis(parsed: any): boolean {
+  if (!parsed || typeof parsed !== 'object')
+    return true
+  if (Array.isArray(parsed.grammarRules)) {
+    if (parsed.grammarRules.some((r: any) => typeof r !== 'object' || r === null))
+      return true
+  }
+  if (Array.isArray(parsed.vocabulary)) {
+    if (parsed.vocabulary.some((v: any) => typeof v !== 'object' || v === null))
+      return true
+  }
+  return false
+}
+
+interface AnalysisResult {
+  analysis: LlmAnalysis
+  cached: boolean
+  usage?: TokenUsage
+}
+
+async function analyzeWordForDeck(
+  word: string,
+  language: string,
+  targetLang: string,
+  config: LlmConfig,
+): Promise<AnalysisResult> {
+  const hash = hashSentence(word, language, targetLang)
+
+  const cached = await db.query.llmCache.findFirst({
+    where: eq(schema.llmCache.sentenceHash, hash),
+  })
+
+  if (cached) {
+    try {
+      const parsed = JSON.parse(cached.analysis)
+      if (!isOldFormatAnalysis(parsed)) {
+        return { analysis: parsed as LlmAnalysis, cached: true }
+      }
+    }
+    catch { }
+  }
+
+  if (!config.url)
+    throw new Error('LLM API не настроен')
+
+  const messages: ModelMessage[] = [
+    { role: 'system', content: getSystemPrompt(language, targetLang) },
+    { role: 'user', content: `Текст: ${word}` },
+  ]
+
+  const modelsToTry = [config.model, config.fallbackModel].filter(Boolean) as string[]
+  let lastError: Error | null = null
+
+  for (const model of modelsToTry) {
+    try {
+      const { parsed: analysis, usage } = await callLlmJsonWithRetry<LlmAnalysis>(
+        model,
+        messages,
+        0.2,
+        AbortSignal.timeout(60000),
+        config,
+        raw => LlmAnalysisSchema.parse(parseLlmJson(raw)) as LlmAnalysis,
+        () => { },
+      )
+
+      return { analysis, cached: false, usage }
+    }
+    catch (e) {
+      lastError = e as Error
+      console.warn(`[LLM] Failed with model [${model}]:`, lastError.message)
+    }
+  }
+
+  throw new Error(`Не удалось получить валидный ответ от ИИ: ${lastError?.message || 'Unknown error'}`)
+}
+
+async function main() {
+  let langPair = ''
+  let relativeRawPath = ''
+  let inputFile = ''
+  let outputFile = ''
+
+  const decksDir = path.resolve(process.cwd(), 'assets', 'decks')
+
+  if (inputArg) {
+    const absolutePath = path.resolve(inputArg)
+    if (absolutePath.startsWith(decksDir)) {
+      const relativeToDecks = path.relative(decksDir, absolutePath)
+      const parts = relativeToDecks.split(path.sep)
+      if (parts.length >= 3 && parts[1] === 'raw') {
+        langPair = parts[0]
+        relativeRawPath = parts.slice(2).join(path.sep)
+        inputFile = absolutePath
+        outputFile = path.resolve(decksDir, langPair, 'result', relativeRawPath)
+      }
+    }
+
+    if (!inputFile) {
+      console.error(`❌ Ошибка: Указанный файл должен находиться внутри структуры assets/decks/<lang-pair>/raw/`)
+      console.error(`Пример корректного пути: assets/decks/zh-ru/raw/hsk1.json`)
+      console.error(`Или запустите скрипт без аргументов для интерактивного выбора.`)
+      process.exit(1)
+    }
   }
   else {
-    inputFile = path.resolve(inputArg)
+    const pairs = await getLanguagePairs(decksDir)
+    if (pairs.length === 0) {
+      console.error(`❌ Ошибка: В папке ${decksDir} не найдено языковых пар (поддиректорий).`)
+      process.exit(1)
+    }
+
+    intro('Deck Generator')
+
+    const selectedPair = await select({
+      message: '📂 Выберите языковую пару:',
+      options: pairs.map(p => ({ value: p, label: p })),
+    })
+
+    if (isCancel(selectedPair)) {
+      cancel('Отменено')
+      process.exit(0)
+    }
+    langPair = selectedPair as string
+
+    const rawDir = path.resolve(decksDir, langPair, 'raw')
+    if (!(await exists(rawDir))) {
+      console.error(`❌ Ошибка: Папка raw не найдена по пути ${rawDir}`)
+      process.exit(1)
+    }
+
+    const jsonFiles = await getJsonFiles(rawDir)
+    if (jsonFiles.length === 0) {
+      console.error(`❌ Ошибка: В папке ${rawDir} не найдено JSON файлов.`)
+      process.exit(1)
+    }
+
+    const selectedFile = await select({
+      message: '📄 Выберите JSON файл в папке raw:',
+      options: jsonFiles.map(f => ({ value: f, label: f })),
+    })
+
+    if (isCancel(selectedFile)) {
+      cancel('Отменено')
+      process.exit(0)
+    }
+    relativeRawPath = selectedFile as string
+
+    inputFile = path.resolve(rawDir, relativeRawPath)
+    outputFile = path.resolve(decksDir, langPair, 'result', relativeRawPath)
   }
 
-  const filename = path.basename(inputFile)
-  const outputFile = path.resolve(process.cwd(), 'assets', 'decks', filename)
+  await mkdir(path.dirname(outputFile), { recursive: true })
 
   console.log(`📖 Чтение файла: ${inputFile}`)
   const raw = await readFile(inputFile, 'utf-8')
@@ -118,6 +309,11 @@ async function main() {
 
   console.log(`🚀 Начинаем обогащение колоды: "${title}" (${words.length} слов)`)
 
+  let cachedCount = 0
+  let generatedCount = 0
+  let totalPromptTokens = 0
+  let totalCompletionTokens = 0
+
   for (let i = 0; i < words.length; i++) {
     const item = words[i]
 
@@ -133,18 +329,33 @@ async function main() {
       continue
     }
 
-    console.log(`⏳ [${i + 1}/${words.length}] Обработка слова: ${word}...`)
     try {
-      const res = await generateWordAutoFill(1, word, lang, targetLang, config)
+      const res = await analyzeWordForDeck(word, lang, targetLang, config)
+
+      if (res.cached) {
+        cachedCount++
+        console.log(`✅ [${i + 1}/${words.length}] [${word}] Взято из кэша.`)
+      }
+      else {
+        generatedCount++
+        if (res.usage) {
+          totalPromptTokens += res.usage.promptTokens
+          totalCompletionTokens += res.usage.completionTokens
+          console.log(`✅ [${i + 1}/${words.length}] [${word}] Сгенерировано (Токены: ${res.usage.promptTokens} in / ${res.usage.completionTokens} out).`)
+        }
+        else {
+          console.log(`✅ [${i + 1}/${words.length}] [${word}] Сгенерировано.`)
+        }
+      }
 
       enrichedWords.push({
         word,
-        tags: filterAllowedTags(res.tags),
-        transcription: res.transcription || '',
-        translation: res.translation || '',
-        grammarNote: res.grammarNote || '',
-        vocabularyNote: res.vocabularyNote || '',
-        difficulty: res.difficulty || difficulty,
+        tags: typeof item === 'string' ? '' : filterAllowedTags(item.tags),
+        difficulty: typeof item === 'string' ? difficulty : (item.difficulty || difficulty),
+        transcription: res.analysis.transcription || '',
+        translation: res.analysis.translation || '',
+        grammarRules: res.analysis.grammarRules || [],
+        vocabulary: res.analysis.vocabulary || [],
       })
 
       const finalDeck = {
@@ -166,6 +377,12 @@ async function main() {
   }
 
   console.log(`✅ Готово! Результат сохранен в ${outputFile}`)
+  console.log(`\n📊 Сводка:`)
+  console.log(`   Взято из кэша: ${cachedCount}`)
+  console.log(`   Сгенерировано: ${generatedCount}`)
+  if (totalPromptTokens > 0 || totalCompletionTokens > 0) {
+    console.log(`   Токены: ${totalPromptTokens} in / ${totalCompletionTokens} out (всего: ${totalPromptTokens + totalCompletionTokens})`)
+  }
 
   await new Promise(r => setTimeout(r, 1500))
 }
