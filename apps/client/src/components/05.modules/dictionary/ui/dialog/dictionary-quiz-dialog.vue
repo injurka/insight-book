@@ -632,29 +632,6 @@ function exitQuiz() {
           {{ currentQuestion.explanation }}
         </p>
       </div>
-
-      <!-- Action Panel -->
-      <div class="test-actions">
-        <KitBtn
-          v-if="!isChecked"
-          class="verify-btn"
-          color="accent"
-          variant="solid"
-          :disabled="currentQuestion.type === 'reorder' ? reorderSelected.length === 0 : !selectedOption"
-          @click="checkAnswer"
-        >
-          {{ t('dictionary.quiz.checkAnswer') }}
-        </KitBtn>
-        <KitBtn
-          v-else
-          class="verify-btn"
-          color="primary"
-          variant="solid"
-          @click="nextQuestion"
-        >
-          {{ t('dictionary.quiz.nextQuestion') }} <Icon icon="mdi:arrow-right" class="ml-1" />
-        </KitBtn>
-      </div>
     </div>
 
     <!-- 4. SUMMARY VIEW -->
@@ -727,8 +704,32 @@ function exitQuiz() {
           </div>
         </div>
       </div>
+    </div>
 
-      <div class="summary-actions">
+    <template #footer>
+      <template v-if="currentState === 'testing' && currentQuestion">
+        <KitBtn
+          v-if="!isChecked"
+          class="verify-btn"
+          color="accent"
+          variant="solid"
+          :disabled="currentQuestion.type === 'reorder' ? reorderSelected.length === 0 : !selectedOption"
+          @click="checkAnswer"
+        >
+          {{ t('dictionary.quiz.checkAnswer') }}
+        </KitBtn>
+        <KitBtn
+          v-else
+          class="verify-btn"
+          color="primary"
+          variant="solid"
+          @click="nextQuestion"
+        >
+          {{ t('dictionary.quiz.nextQuestion') }} <Icon icon="mdi:arrow-right" class="ml-1" />
+        </KitBtn>
+      </template>
+
+      <template v-else-if="currentState === 'summary' && testResult">
         <KitBtn color="secondary" variant="outlined" @click="currentState = 'select_level'; loadLevels()">
           {{ t('dictionary.quiz.toRoadmap') }}
         </KitBtn>
@@ -751,8 +752,8 @@ function exitQuiz() {
         <KitBtn v-else color="primary" variant="solid" @click="exitQuiz">
           {{ t('dictionary.quiz.doneBtn') }}
         </KitBtn>
-      </div>
-    </div>
+      </template>
+    </template>
   </KitDialog>
 </template>
 
@@ -892,6 +893,7 @@ function exitQuiz() {
   align-items: center;
   justify-content: center;
   min-height: 300px;
+  height: 100%;
 
   .ai-loader-box {
     display: flex;
@@ -1216,13 +1218,8 @@ function exitQuiz() {
   }
 }
 
-.test-actions {
-  display: flex;
-  justify-content: flex-end;
-
-  .verify-btn {
-    min-width: 140px;
-  }
+.verify-btn {
+  min-width: 140px;
 }
 
 .quiz-summary-view {

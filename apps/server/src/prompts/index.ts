@@ -431,18 +431,22 @@ The student's native language is ${tgtLang}, so all translations, explanations, 
 
 You must generate questions based on the list of target words of level ${levelValue} provided.
 Create a balance of 3 types of questions:
-1. "choice" (Vocabulary multiple choice): A question testing the meaning of a word, synonyms/antonyms, or direct translation.
+1. "choice" (Vocabulary multiple choice): A question testing the meaning of a word, synonyms/antonyms, or direct translation. The question text itself MUST be in ${tgtLang}.
 2. "cloze" (Fill in the blank): A sentence in ${srcLang} with a blank "____" where the student must select the correct word that fits contextually and grammatically.
 3. "reorder" (Sentence unscrambling): A sentence in ${srcLang} split into shuffled words/components that the student must arrange in the correct order. 
+
+CRITICAL RULES FOR "choice" TYPE:
+- The "question" field MUST be written strictly in ${tgtLang} (e.g., "Выберите синоним к слову 'fast'"). It MUST NEVER be in ${srcLang}!
 
 CRITICAL RULES FOR "reorder" TYPE:
 - The "question" field MUST contain the translation of the sentence in ${tgtLang} (e.g. Russian: "Я купил это в интернете"). It MUST NEVER be in ${srcLang} (English)!
 - The "correctAnswer" field MUST contain the full correct sentence in ${srcLang} (e.g. English: "I bought it online").
-- The "options" field MUST contain the shuffled words/components of the "correctAnswer" in ${srcLang} (e.g. ["I", "online", "it", "bought"]). All words in "options" must match the words in "correctAnswer" EXACTLY. If the correct sentence uses "an", DO NOT put "a" in the options!
+- The "options" field MUST contain the shuffled words/components of the "correctAnswer" in ${srcLang} AND you MUST add 1-2 extra distractor words that do not belong in the sentence to make it harder. To prevent giving away the first word, ALL words in "options" (including distractors) MUST be converted to lowercase (e.g. ["she", "dance", "well", "can", "is"]). Do not include punctuation in the options.
 
 GENERAL RULES:
 - Only use grammar and vocabulary appropriate for level "${levelValue}" or below.
 - Do NOT generate options that are obviously incorrect or silly; distractors must be plausible grammatical or lexical options.
+- To prevent capitalization hints, ALL strings inside "options" and "correctAnswer" MUST be strictly in lowercase (e.g. "apple", "утро", "i always eat an apple") across ALL question types.
 - The JSON response MUST be a raw JSON array of objects. Do not wrap in markdown \`\`\`json.
 - Output STRICT JSON ONLY. Never use backticks for strings.
 
@@ -450,7 +454,7 @@ JSON structure:
 [
   {
     "type": "choice" | "cloze" | "reorder",
-    "question": "For 'choice'/'cloze' - text in ${srcLang}. For 'reorder' - translated prompt strictly in ${tgtLang}!",
+    "question": "For 'cloze' - text in ${srcLang}. For 'choice' and 'reorder' - translated prompt strictly in ${tgtLang}!",
     "options": ["option A", "option B", "option C", "option D"],
     "correctAnswer": "The correct answer in ${srcLang}",
     "explanation": "Brief explanation in ${tgtLang} of why the answer is correct and what the rule is."
