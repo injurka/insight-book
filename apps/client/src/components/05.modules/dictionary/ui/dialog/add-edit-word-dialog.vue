@@ -275,7 +275,7 @@ const previewVocabulary = ref(true)
     <template #footer>
       <div class="footer-actions">
         <KitTooltip :text="t('dictionary.autoFillAi')" placement="top">
-          <KitBtn variant="tonal" color="accent" :icon="isAutoFilling ? 'mdi:loading' : 'mdi:robot-outline'" :class="{ 'spin-animation': isAutoFilling }" :disabled="isAutoFilling" @click="autoFillWithAI">
+          <KitBtn variant="tonal" color="accent" prepend-icon="mdi:robot-outline" :loading="isAutoFilling" @click="autoFillWithAI">
             <span class="hide-mobile">{{ t('dictionary.autoFill') }}</span>
           </KitBtn>
         </KitTooltip>

@@ -19,9 +19,12 @@ const { aiData, isAiLoading, generateExamples, clear } = useDictWordExamples()
 const analysisStore = useAnalysisStore()
 const authStore = useAuthStore()
 const { t } = useI18n()
+
 const LlmChatModal = lazyComponent(() => import('~/components/04.features/llm-chat/ui/llm-chat-modal.vue'))
+const AiExamplesModal = lazyComponent(() => import('~/components/03.domain/analysis/ui/modal/ai-examples-modal.vue'))
 
 const isChatModalOpen = ref(false)
+const isAiModalOpen = ref(false)
 const isTtsPopoverOpen = ref(false)
 const isAdmin = computed(() => authStore.user?.role === 'admin')
 
@@ -48,7 +51,10 @@ function playTTS(forceCacheBypass = false) {
 
 function handleGenerate() {
   if (props.word) {
-    generateExamples(props.word.word, props.word.language)
+    if (!aiData.value) {
+      generateExamples(props.word.word, props.word.language)
+    }
+    isAiModalOpen.value = true
   }
 }
 
@@ -230,6 +236,7 @@ const difficultyClass = computed(() => {
   </KitDialog>
 
   <LlmChatModal v-if="word" v-model:visible="isChatModalOpen" :word="word.word" :language="word.language || 'en'" />
+  <AiExamplesModal v-model:visible="isAiModalOpen" :loading="isAiLoading" :data="aiData" />
 </template>
 
 <style lang="scss" scoped>

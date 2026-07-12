@@ -54,7 +54,7 @@ watch(() => props.visible, (val) => {
       color: props.initialData.color || highlightColors[0],
     }
     analysisData.value = props.initialData.analysisData || null
-    showAdditionalFields.value = !!(
+    showAdditionalFields.value = props.mode === 'edit' && !!(
       props.initialData.note
       || props.initialData.analysisData?.grammarRules?.length
       || props.initialData.analysisData?.vocabulary?.length

@@ -376,8 +376,8 @@ export async function analyzeBatch(userId: number, bookId: number, items: BatchA
 
   const cachedDocs = hashesToFind.length > 0
     ? await db.query.llmCache.findMany({
-        where: inArray(schema.llmCache.sentenceHash, hashesToFind),
-      })
+      where: inArray(schema.llmCache.sentenceHash, hashesToFind),
+    })
     : []
 
   const cacheMap = new Map(cachedDocs.map(d => [d.sentenceHash, d.analysis]))
@@ -771,7 +771,6 @@ Output STRICT JSON ONLY. Never use backticks for strings.
         ]
         const llmModel = config.model!
 
-        // Оборачиваем вызов анализа произношения
         const { parsed } = await callLlmJsonWithRetry<{ score?: number, heard_phonetic?: string, mistake_analysis?: string }>(
           llmModel,
           messages,
@@ -822,21 +821,48 @@ Output STRICT JSON ONLY. Never use backticks for strings.
 function reconstructReorderOptions(questions: any[], language: string): any[] {
   const isCJK = ['zh', 'ja'].includes(language)
   return questions.map((q) => {
-    if (q.type === 'reorder' && !isCJK && q.correctAnswer) {
-      // Разбиваем правильный ответ по пробелам, предварительно удалив знаки препинания
-      const words = q.correctAnswer
-        .replace(/[.,!?;:()¿¡"']/g, '')
-        .split(/\s+/)
-        .filter(Boolean)
+    if (q.type === 'reorder') {
+      // Универсальная нормализация для предотвращения чувствительности к регистру
+      q.correctAnswer = q.correctAnswer?.toLowerCase().trim() || ''
 
-      if (words.length > 0) {
-        const answerWordsLower = words.map((w: string) => w.toLowerCase())
-        const originalOptionsLower = (q.options || []).map((o: string) => typeof o === 'string' ? o.toLowerCase() : String(o))
+      // Инициализация допустимых вариантов
+      q.acceptableAnswers = Array.isArray(q.acceptableAnswers)
+        ? q.acceptableAnswers.map((a: string) => a.toLowerCase().trim())
+        : []
 
-        const distractors = originalOptionsLower.filter((opt: string) => !answerWordsLower.includes(opt))
+      if (!q.acceptableAnswers.includes(q.correctAnswer)) {
+        q.acceptableAnswers.unshift(q.correctAnswer)
+      }
 
-        const allOptions = [...answerWordsLower, ...distractors]
-        q.options = allOptions.sort(() => Math.random() - 0.5)
+      if (!isCJK && q.correctAnswer) {
+        // Разбиваем правильный ответ по пробелам, предварительно удалив знаки препинания
+        const answerWords = q.correctAnswer
+          .replace(/[.,!?;:()¿¡"']/g, '')
+          .split(/\s+/)
+          .filter(Boolean)
+
+        if (answerWords.length > 0) {
+          const answerWordsLower = answerWords.map((w: string) => w.toLowerCase())
+          const originalOptionsLower = (q.options || []).map((o: string) => String(o).toLowerCase())
+
+          // Сохраняем дистракторы, аккуратно вычитая слова из правильного ответа
+          const distractors = originalOptionsLower.filter((opt: string) => {
+            const idx = answerWordsLower.indexOf(opt)
+            if (idx !== -1) {
+              answerWordsLower.splice(idx, 1) // Удаляем 1 совпадение, чтобы разрешить дубликаты
+              return false
+            }
+            return true
+          })
+
+          // Читаем заново чистые слова ответа, так как мы модифицировали массив
+          const cleanAnswerWords = q.correctAnswer.replace(/[.,!?;:()¿¡"']/g, '').split(/\s+/).filter(Boolean).map((w: string) => w.toLowerCase())
+          const allOptions = [...cleanAnswerWords, ...distractors]
+          q.options = allOptions.sort(() => Math.random() - 0.5)
+        }
+      } else {
+        // Для CJK просто рандомизируем и приводим к нижнему регистру
+        q.options = (q.options || []).map((o: string) => String(o).toLowerCase()).sort(() => Math.random() - 0.5)
       }
     }
     return q
@@ -870,6 +896,12 @@ function validateQuizQuestions(questions: any[]): string | null {
     if (q.type === 'reorder') {
       if (q.question.trim().toLowerCase() === q.correctAnswer.trim().toLowerCase()) {
         return `Question ${i + 1} of type 'reorder' must contain the TRANSLATION of the sentence, not the sentence itself.`
+      }
+      if (!Array.isArray(q.acceptableAnswers) || q.acceptableAnswers.length === 0) {
+        return `Question ${i + 1} of type 'reorder' is missing 'acceptableAnswers' array.`
+      }
+      if (!q.acceptableAnswers.includes(q.correctAnswer)) {
+        return `Question ${i + 1}: 'acceptableAnswers' must include the 'correctAnswer'.`
       }
     }
 
@@ -962,9 +994,13 @@ Your task is to review the provided JSON quiz.
 1. Fix any grammatical or logical errors in the questions, options, or explanations.
 2. Ensure that the vocabulary and grammar strictly adhere to the ${levelValue} level. Simplify overly complex sentences or words.
 3. Ensure the 'correctAnswer' perfectly solves the question and is mathematically/logically sound.
-4. For 'reorder' questions, DO NOT remove extra distractor words from the 'options' array. Distractors are intentional and MUST be kept!
-5. CRITICAL: The "question" field for "choice" and "reorder" types MUST remain strictly in the student's native language (${targetLangName}). Do NOT translate these question texts to ${srcLangName}.
-6. If the quiz is mostly good, just return the improved JSON array of questions with your fixes applied.
+4. For 'reorder' questions, YOU MUST ENSURE the translation perfectly matches the 'correctAnswer' and NO WORDS ARE DROPPED (e.g., if there's 'now' or 'initially', it must be translated).
+5. For 'reorder' questions, you MUST brainstorm and add ALL possible valid word orders to the 'acceptableAnswers' array to prevent failing students for alternative valid wordings.
+6. For 'reorder' questions, DO NOT remove extra distractor words from the 'options' array. Distractors are intentional and MUST be kept! Ensure all words in 'acceptableAnswers' can be built from 'options'.
+7. CRITICAL: The "question" field for "choice" and "reorder" types MUST remain strictly in the student's native language (${targetLangName}). Do NOT translate these question texts to ${srcLangName}.
+8. To prevent capitalization hints, make sure all 'options', 'correctAnswer', and 'acceptableAnswers' are entirely lowercase.
+9. For 'cloze' questions, verify that ONLY the 'correctAnswer' fits the blank. If any distractor in the 'options' can also grammatically and logically fit the blank (e.g., both "меня" and "её" for "___ зовут Анна"), REPLACE that distractor with an unequivocally incorrect word so there is NO ambiguity.
+10. If the quiz is mostly good, just return the improved JSON array of questions with your fixes applied.
 Output MUST be a valid JSON array of question objects, exactly matching the schema. No markdown formatting outside of JSON.`,
           },
           { role: 'user', content: JSON.stringify(validQuiz) },

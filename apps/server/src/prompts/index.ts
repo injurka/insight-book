@@ -438,15 +438,23 @@ Create a balance of 3 types of questions:
 CRITICAL RULES FOR "choice" TYPE:
 - The "question" field MUST be written strictly in ${tgtLang} (e.g., "Выберите синоним к слову 'fast'"). It MUST NEVER be in ${srcLang}!
 
+CRITICAL RULES FOR "cloze" TYPE:
+- The sentence must have exactly one "____" blank.
+- The "correctAnswer" must be the ONLY option that grammatically and logically fits the blank. 
+- The distractors in "options" MUST NOT be valid answers. For example, if the sentence is "____ is my name" (____ зовут Анна), do not provide both "My" (меня) and "Her" (её) as options, because both are perfectly valid without further context. Make sure distractors are grammatically wrong for the specific blank (e.g., wrong case, wrong gender, wrong part of speech).
+
 CRITICAL RULES FOR "reorder" TYPE:
-- The "question" field MUST contain ONLY the translation of the sentence in ${tgtLang} without any prefixes (e.g. "Я купил это в интернете"). It MUST NEVER be in ${srcLang} (English)!
-- The "correctAnswer" field MUST contain the full correct sentence in ${srcLang} (e.g. "I bought it online").
-- The "options" field MUST contain the shuffled words/components of the "correctAnswer" in ${srcLang} PLUS 2-3 extra distractor words. It is EXTREMELY IMPORTANT to add these distractors! These distractors MUST be incorrect but related words from the same semantic category as the correct words (e.g., if the sentence contains "friday", add "monday" or "sunday" as a distractor; if it contains "apple", add "orange" or "banana"). To prevent giving away the first word, ALL words in "options" (including distractors) MUST be converted to lowercase. Do not include punctuation in the options.
+- The "question" field MUST contain ONLY the translation of the sentence in ${tgtLang} without any prefixes. It MUST NEVER be in ${srcLang}!
+- The translation in the "question" MUST EXACTLY and FULLY match the "correctAnswer". NO DROPPED WORDS. If the sentence has words for 'now', 'initially', etc., the translation MUST have them.
+- The "correctAnswer" field MUST contain the full correct sentence in ${srcLang}.
+- The "acceptableAnswers" field MUST be an array containing ALL grammatically and semantically valid permutations of the sentence in ${srcLang} (e.g., "initially he agreed" and "he initially agreed"). Provide every valid word order to avoid failing the user for a valid natural variant.
+- The "options" field MUST contain the exact words/components of the "correctAnswer" in ${srcLang} PLUS 2-3 extra distractor words. All permutations in "acceptableAnswers" MUST be buildable using ONLY the provided "options". 
+- To prevent giving away the first word, ALL words in "options", "correctAnswer", and "acceptableAnswers" MUST be entirely lowercase. Do not include punctuation in the options.
 
 GENERAL RULES:
 - Only use grammar and vocabulary appropriate for level "${levelValue}" or below.
 - Do NOT generate options that are obviously incorrect or silly; distractors must be plausible grammatical or lexical options.
-- To prevent capitalization hints, ALL strings inside "options" and "correctAnswer" MUST be strictly in lowercase (e.g. "apple", "утро", "i always eat an apple") across ALL question types.
+- To prevent capitalization hints, ALL strings inside "options", "correctAnswer", and "acceptableAnswers" MUST be strictly in lowercase (e.g. "apple", "утро", "i always eat an apple").
 - The JSON response MUST be a raw JSON array of objects. Do not wrap in markdown \`\`\`json.
 - Output STRICT JSON ONLY. Never use backticks for strings.
 
@@ -455,8 +463,9 @@ JSON structure:
   {
     "type": "choice" | "cloze" | "reorder",
     "question": "For 'cloze' - text in ${srcLang}. For 'choice' and 'reorder' - translated prompt strictly in ${tgtLang}!",
-    "options": ["option A", "option B", "option C", "option D"],
-    "correctAnswer": "The correct answer in ${srcLang}",
+    "options": ["option a", "option b", "option c", "option d"],
+    "correctAnswer": "the correct answer in ${srcLang}",
+    "acceptableAnswers": ["the correct answer in ${srcLang}", "another valid order"],
     "explanation": "Brief explanation in ${tgtLang} of why the answer is correct and what the rule is."
   }
 ]`

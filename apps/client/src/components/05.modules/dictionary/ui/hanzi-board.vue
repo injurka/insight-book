@@ -85,7 +85,7 @@ async function initWriters() {
       delayBetweenStrokes: 50,
       strokeColor,
       radicalColor,
-      outlineColor,
+      outlineColor: props.mode === 'quiz' ? 'transparent' : outlineColor,
       highlightColor: hintColor,
       drawingWidth: 20,
     })
@@ -167,7 +167,7 @@ onMounted(initWriters)
 </script>
 
 <template>
-  <div class="hanzi-board" :class="{ 'has-multiple': validChars.length > 1 }" :style="{ height: `${size + 16}px` }">
+  <div class="hanzi-board" :class="{ 'has-multiple': validChars.length > 1, 'is-completed-board': isComplete }" :style="{ height: `${size + 16}px` }">
     <div class="board-track" :style="trackTransform">
       <div
         v-for="(char, i) in validChars"
@@ -198,6 +198,18 @@ onMounted(initWriters)
   margin: 16px 0;
   width: 100%;
   overflow: hidden;
+
+  &.is-completed-board.has-multiple {
+    overflow-x: auto;
+    justify-content: flex-start;
+    padding: 0 8px;
+
+    .board-track {
+      position: static;
+      transform: none !important;
+      margin: 0 auto;
+    }
+  }
 }
 
 .board-track {
