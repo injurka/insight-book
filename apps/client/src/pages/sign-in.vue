@@ -167,6 +167,8 @@ const bookTiles = [
 
 const showAuthControls = ref(false)
 let pressTimer: any = null
+let clickCount = 0
+let clickTimer: any = null
 
 function startPress() {
   if (showAuthControls.value)
@@ -184,11 +186,31 @@ function cancelPress() {
   }
 }
 
+function handleClick() {
+  if (showAuthControls.value)
+    return
+
+  clickCount++
+  if (clickCount >= 3) {
+    showAuthControls.value = true
+    clickCount = 0
+  }
+
+  if (clickTimer)
+    clearTimeout(clickTimer)
+
+  clickTimer = setTimeout(() => {
+    clickCount = 0
+  }, 400)
+}
+
 onUnmounted(() => {
   if (pollingInterval)
     clearInterval(pollingInterval)
   if (pressTimer)
     clearTimeout(pressTimer)
+  if (clickTimer)
+    clearTimeout(clickTimer)
 })
 </script>
 
@@ -282,6 +304,8 @@ onUnmounted(() => {
             @mouseleave="cancelPress"
             @touchend="cancelPress"
             @touchcancel="cancelPress"
+            @click="handleClick"
+            @contextmenu.prevent
           >
             <Icon icon="mdi:lock-outline" />
             <span>{{ t('signIn.earlyAccess') }}</span>
@@ -804,6 +828,8 @@ onUnmounted(() => {
   width: fit-content;
   letter-spacing: 0.3px;
   cursor: pointer;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
   user-select: none;
 
   svg,

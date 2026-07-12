@@ -26,7 +26,7 @@ export const autoImportOptionsCfg: AutoImportOptions = {
       enabledCollections: ['mdi'],
     }),
   ],
-  dts: './shared/types/dts/auto-imports.d.ts',
+  dts: './src/shared/types/dts/auto-imports.d.ts',
   vueTemplate: true,
   eslintrc: {
     enabled: true,
