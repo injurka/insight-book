@@ -79,13 +79,13 @@ async function initWriters() {
       width: props.size,
       height: props.size,
       padding: 5,
-      showOutline: true,
+      showOutline: props.mode !== 'quiz',
       showCharacter: false,
       strokeAnimationSpeed: 1.5,
       delayBetweenStrokes: 50,
       strokeColor,
       radicalColor,
-      outlineColor: props.mode === 'quiz' ? 'transparent' : outlineColor,
+      outlineColor,
       highlightColor: hintColor,
       drawingWidth: 20,
     })
@@ -167,7 +167,15 @@ onMounted(initWriters)
 </script>
 
 <template>
-  <div class="hanzi-board" :class="{ 'has-multiple': validChars.length > 1, 'is-completed-board': isComplete }" :style="{ height: `${size + 16}px` }">
+  <div
+    class="hanzi-board"
+    :class="{ 'has-multiple': validChars.length > 1, 'is-completed-board': isComplete }"
+    :style="{
+      'height': `${size + 16}px`,
+      '--char-count': validChars.length,
+      '--gap-total': `${(validChars.length - 1) * 16}px`,
+    }"
+  >
     <div class="board-track" :style="trackTransform">
       <div
         v-for="(char, i) in validChars"
@@ -199,15 +207,20 @@ onMounted(initWriters)
   width: 100%;
   overflow: hidden;
 
-  &.is-completed-board.has-multiple {
+  &.is-completed-board {
     overflow-x: auto;
-    justify-content: flex-start;
+    justify-content: center;
     padding: 0 8px;
 
     .board-track {
       position: static;
       transform: none !important;
       margin: 0 auto;
+      display: flex;
+      justify-content: center;
+      gap: 16px;
+      width: 100%;
+      max-width: 100%;
     }
   }
 }
@@ -252,6 +265,9 @@ onMounted(initWriters)
     opacity: 1;
     border-color: transparent;
     background-color: transparent;
+    max-width: calc((100% - var(--gap-total, 0px)) / var(--char-count, 1));
+    height: auto !important;
+    aspect-ratio: 1 / 1;
   }
 
   :deep(svg) {

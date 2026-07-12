@@ -376,8 +376,8 @@ export async function analyzeBatch(userId: number, bookId: number, items: BatchA
 
   const cachedDocs = hashesToFind.length > 0
     ? await db.query.llmCache.findMany({
-      where: inArray(schema.llmCache.sentenceHash, hashesToFind),
-    })
+        where: inArray(schema.llmCache.sentenceHash, hashesToFind),
+      })
     : []
 
   const cacheMap = new Map(cachedDocs.map(d => [d.sentenceHash, d.analysis]))
@@ -860,7 +860,8 @@ function reconstructReorderOptions(questions: any[], language: string): any[] {
           const allOptions = [...cleanAnswerWords, ...distractors]
           q.options = allOptions.sort(() => Math.random() - 0.5)
         }
-      } else {
+      }
+      else {
         // Для CJK просто рандомизируем и приводим к нижнему регистру
         q.options = (q.options || []).map((o: string) => String(o).toLowerCase()).sort(() => Math.random() - 0.5)
       }
