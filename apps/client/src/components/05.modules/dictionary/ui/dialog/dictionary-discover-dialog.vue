@@ -442,15 +442,10 @@ onMounted(() => {
   flex-direction: column;
   gap: 16px;
   cursor: pointer;
-  transition:
-    transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1),
-    box-shadow 0.25s ease,
-    border-color 0.25s ease;
+  transition: border-color 0.25s ease;
 
   &:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.08);
-    border-color: var(--border-primary-color);
+    border-color: var(--border-accent-color);
   }
 
   .card-header {

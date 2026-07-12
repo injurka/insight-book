@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Icon } from '@iconify/vue'
 import { useI18n } from 'vue-i18n'
-import { KitBtn, KitDialog, KitInput, KitPrompt, KitSelect } from '~/components/01.kit'
+import { KitBtn, KitCheckbox, KitDialog, KitInput, KitPrompt, KitSelect } from '~/components/01.kit'
 import { useDictFilterOptions } from '../../composables/use-dict-filter-options'
 import { useDictionaryStore } from '../../store/dictionary.store'
 
@@ -20,7 +20,7 @@ const renameDeckTarget = ref<{ id: number, name: string } | null>(null)
 const deleteDeckTarget = ref<{ id: number, name: string } | null>(null)
 const deleteMode = ref<'keep' | 'delete_all' | 'delete_exclusive'>('keep')
 
-const deleteModeOptions = computed(() => [
+const deleteModeOptions = computed<{ value: 'keep' | 'delete_all' | 'delete_exclusive', label: string }[]>(() => [
   { value: 'keep', label: t('dictionary.deleteModeKeep') },
   { value: 'delete_exclusive', label: t('dictionary.deleteModeExclusive') },
   { value: 'delete_all', label: t('dictionary.deleteModeAll') },
@@ -106,11 +106,17 @@ async function onDeleteDeckConfirm() {
       <p>{{ t('dictionary.deleteDeckDesc', { name: deleteDeckTarget?.name || '' }) }}</p>
 
       <div class="delete-options">
-        <div v-for="option in deleteModeOptions" :key="option.value" class="delete-option">
-          <label>
-            <input v-model="deleteMode" type="radio" :value="option.value">
-            <span>{{ option.label }}</span>
-          </label>
+        <div
+          v-for="option in deleteModeOptions"
+          :key="option.value"
+          class="delete-option"
+          @click="deleteMode = option.value"
+        >
+          <KitCheckbox
+            :model-value="deleteMode === option.value"
+            :label="option.label"
+            style="pointer-events: none;"
+          />
         </div>
       </div>
 
@@ -142,6 +148,7 @@ async function onDeleteDeckConfirm() {
   flex-direction: column;
   gap: 8px;
   overflow-y: auto;
+  padding: 0;
 }
 
 .deck-manage-item {
@@ -204,21 +211,19 @@ async function onDeleteDeckConfirm() {
     margin-top: 8px;
 
     .delete-option {
-      label {
-        display: flex;
-        align-items: flex-start;
-        gap: 8px;
-        cursor: pointer;
+      cursor: pointer;
 
-        input {
-          margin-top: 4px;
-        }
+      :deep(.kit-checkbox) {
+        align-items: center;
+      }
 
-        span {
-          font-size: 0.9rem;
-          color: var(--fg-secondary-color);
-          line-height: 1.4;
-        }
+      :deep(.checkbox-box) {
+        margin-top: 2px;
+      }
+
+      :deep(.checkbox-label) {
+        color: var(--fg-secondary-color);
+        line-height: 1.4;
       }
     }
   }

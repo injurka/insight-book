@@ -33,3 +33,4 @@ android
 dev-dist
 coverage
 google-services.json
+.eslintrc-auto-import.json

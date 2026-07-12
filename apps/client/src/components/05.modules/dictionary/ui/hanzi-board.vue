@@ -89,6 +89,12 @@ async function initWriters() {
       highlightColor: hintColor,
       drawingWidth: 20,
     })
+
+    const svg = el.querySelector('svg')
+    if (svg) {
+      svg.setAttribute('viewBox', `0 0 ${props.size} ${props.size}`)
+    }
+
     newWriters.push(writer)
   }
 
@@ -206,22 +212,34 @@ onMounted(initWriters)
   margin: 16px 0;
   width: 100%;
   overflow: hidden;
+  container-type: inline-size;
 
   &.is-completed-board {
     overflow-x: auto;
-    justify-content: center;
+    justify-content: flex-start;
     padding: 0 8px;
 
     .board-track {
       position: static;
       transform: none !important;
+      transition: none !important;
+      animation: boardFadeIn 0.5s cubic-bezier(0.4, 0, 0.2, 1);
       margin: 0 auto;
       display: flex;
       justify-content: center;
       gap: 16px;
-      width: 100%;
-      max-width: 100%;
+      width: auto;
+      min-width: 100%;
     }
+  }
+}
+
+@keyframes boardFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
   }
 }
 
@@ -265,7 +283,8 @@ onMounted(initWriters)
     opacity: 1;
     border-color: transparent;
     background-color: transparent;
-    max-width: calc((100% - var(--gap-total, 0px)) / var(--char-count, 1));
+    min-width: 48px;
+    max-width: calc((100cqw - 16px - var(--gap-total, 0px)) / var(--char-count, 1));
     height: auto !important;
     aspect-ratio: 1 / 1;
   }

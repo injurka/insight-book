@@ -51,9 +51,7 @@ function playTTS(forceCacheBypass = false) {
 
 function handleGenerate() {
   if (props.word) {
-    if (!aiData.value) {
-      generateExamples(props.word.word, props.word.language)
-    }
+    generateExamples(props.word.word, props.word.language)
     isAiModalOpen.value = true
   }
 }
