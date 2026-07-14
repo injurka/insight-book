@@ -83,13 +83,13 @@ export async function handleCheckPronunciation(req: Request, userId: number): Pr
 export async function handleGetUserDict(req: Request, userId: number): Promise<Response> {
   const targetLang = normalizeLanguageCode((new URL(req.url).searchParams.get('targetLang')) || 'ru')
 
-  return json(await getUserDictionary(userId, targetLang), 200, { 'Cache-Control': 'no-store, no-cache, must-revalidate' })
+  return json(await getUserDictionary(userId, targetLang), 200, { 'Cache-Control': 'no-cache, must-revalidate' })
 }
 
 export async function handleGetDecks(req: Request, userId: number): Promise<Response> {
   const targetLang = normalizeLanguageCode((new URL(req.url).searchParams.get('targetLang')) || 'ru')
 
-  return json(await getUserDecks(userId, targetLang), 200, { 'Cache-Control': 'no-store, no-cache, must-revalidate' })
+  return json(await getUserDecks(userId, targetLang), 200, { 'Cache-Control': 'no-cache, must-revalidate' })
 }
 
 export async function handleCreateDeck(req: Request, userId: number): Promise<Response> {
@@ -144,7 +144,7 @@ export async function handleGetWordFromUserDict(req: Request, userId: number): P
     throw new AppError(404, 'Слово не найдено в словаре пользователя')
   }
 
-  return json(entry, 200, { 'Cache-Control': 'no-store, no-cache, must-revalidate' })
+  return json(entry, 200, { 'Cache-Control': 'no-cache, must-revalidate' })
 }
 
 export async function handleGetReviewQueue(req: Request, userId: number): Promise<Response> {

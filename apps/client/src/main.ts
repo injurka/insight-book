@@ -6,7 +6,7 @@ import { vLongPress } from '~/shared/directives/long-press'
 import { vRipple } from '~/shared/directives/ripple'
 import router from '~/shared/lib/router'
 import App from './app.vue'
-import { i18n } from './shared/plugins/i18n.ts'
+import { i18n, localePromise } from './shared/plugins/i18n.ts'
 
 import '~/assets/scss/global.scss'
 import '~/assets/scss/normalize.scss'
@@ -26,6 +26,7 @@ async function bootstrap() {
   app.use(head)
   app.use(router)
 
+  await localePromise
   app.mount('#app')
 
   document.getElementById('app-preloader')?.remove()

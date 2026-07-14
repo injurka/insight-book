@@ -45,7 +45,7 @@ export function pwaCfg(revision: string) {
       }],
     },
     devOptions: {
-      enabled: true,
+      enabled: false,
       type: 'module',
     },
   } satisfies Parameters<typeof VitePWA>[0]

@@ -29,6 +29,22 @@
       <link rel="stylesheet" href="/fonts/split/medium/result.css" />
       <link rel="stylesheet" href="/fonts/split/semibold/result.css" />
     </noscript>
+
+    <script type="speculationrules">
+      {
+        "prerender": [
+          {
+            "source": "document",
+            "where": {
+              "and": [
+                { "href_matches": "/*" }
+              ]
+            },
+            "eagerness": "moderate"
+          }
+        ]
+      }
+    </script>
   </head>
 
   <body>

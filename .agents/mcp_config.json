@@ -18,6 +18,13 @@
       "headers": {
         "Accept": "application/json, text/event-stream"
       }
+    },
+    "puppeteer": {
+      "command": "bunx",
+      "args": [
+        "--yes",
+        "@modelcontextprotocol/server-puppeteer"
+      ]
     }
   }
 }

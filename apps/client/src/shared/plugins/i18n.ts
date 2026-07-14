@@ -58,4 +58,4 @@ export async function loadLanguageAsync(lang: string) {
   return nextTick()
 }
 
-loadLanguageAsync(locale)
+export const localePromise = loadLanguageAsync(locale)
