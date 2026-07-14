@@ -4,6 +4,16 @@ import { onUnmounted, watch } from 'vue'
 // Глобальный стейт для отслеживания порядка открытия модалок
 const openModalsStack: string[] = []
 let isProgrammaticBack = false
+let isUnloading = false
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('beforeunload', () => {
+    isUnloading = true
+  })
+  window.addEventListener('pagehide', () => {
+    isUnloading = true
+  })
+}
 
 export function useDialogHistory(dialogId: string, visible: Ref<boolean>) {
   function handlePopState() {
@@ -28,8 +38,8 @@ export function useDialogHistory(dialogId: string, visible: Ref<boolean>) {
 
     window.removeEventListener('popstate', handlePopState)
 
-    // Если закрытие вызвано не кнопкой "Назад"
-    if (window.history.state && window.history.state.dialogId === dialogId) {
+    // Если закрытие вызвано не кнопкой "Назад" и страница не выгружается
+    if (!isUnloading && window.history.state && window.history.state.dialogId === dialogId) {
       isProgrammaticBack = true
       window.history.back()
       setTimeout(() => {
