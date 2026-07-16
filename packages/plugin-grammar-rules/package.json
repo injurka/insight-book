@@ -1,0 +1,11 @@
+{
+  "name": "@injurka/insight-book-plugin-grammar-rules",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "src/index.ts",
+  "dependencies": {
+    "vue": "^3.0.0",
+    "@iconify/vue": "^5.0.1",
+    "@injurka/insight-book-plugin-api": "workspace:*"
+  }
+}

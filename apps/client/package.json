@@ -41,6 +41,9 @@
   "dependencies": {
     "@floating-ui/vue": "^2.0.0",
     "@iconify-icons/mdi": "^1.2.48",
+    "@injurka/insight-book-plugin-api": "workspace:*",
+    "@injurka/insight-book-plugin-grammar-rules": "workspace:*",
+    "@pinia/colada": "^1.4.2",
     "@tauri-apps/api": "^2.11.1",
     "@tauri-apps/plugin-deep-link": "~2",
     "@tauri-apps/plugin-dialog": "^2.7.1",

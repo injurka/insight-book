@@ -29,6 +29,8 @@ export default defineConfig({
   resolve: {
     alias: {
       '~': fileURLToPath(new URL('../src', import.meta.url)),
+      '@injurka/insight-book-plugin-api': fileURLToPath(new URL('../../../packages/plugin-api/src', import.meta.url)),
+      '@injurka/insight-book-plugin-grammar-rules': fileURLToPath(new URL('../../../packages/plugin-grammar-rules/src', import.meta.url)),
     },
   },
 

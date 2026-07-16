@@ -1,0 +1,10 @@
+{
+  "name": "@injurka/insight-book-plugin-api",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "src/index.ts",
+  "dependencies": {
+    "vue": "^3.0.0",
+    "vue-router": "^4.0.0"
+  }
+}

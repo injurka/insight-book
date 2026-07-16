@@ -1,4 +1,5 @@
 import { addCollection } from '@iconify/vue'
+import { PiniaColada } from '@pinia/colada'
 import { createHead } from '@vueuse/head'
 import { createPinia } from 'pinia'
 import { createApp } from 'vue'
@@ -22,9 +23,18 @@ async function bootstrap() {
   app.directive('longPress', vLongPress)
 
   app.use(pinia)
+  app.use(PiniaColada)
   app.use(i18n)
   app.use(head)
   app.use(router)
+
+  try {
+    const { setupPlugins } = await import('~/plugins/index')
+    await setupPlugins(app, router)
+  }
+  catch (err) {
+    console.error('Failed to setup plugins:', err)
+  }
 
   await localePromise
   app.mount('#app')

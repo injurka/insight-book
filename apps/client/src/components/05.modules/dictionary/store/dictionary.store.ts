@@ -1,7 +1,9 @@
 import type { DictDeck, UserDictItem } from '~/shared/types/models'
+import { useMutation, useQueryCache } from '@pinia/colada'
 import { defineStore } from 'pinia'
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useToast } from '~/shared/composables/use-toast'
+import { createOfflineQuery } from '~/shared/lib/query'
 import { api } from '~/shared/services/api.service'
 import { offlineService } from '~/shared/services/offline.service'
 import { useAnalysisStore } from '~/shared/store/analysis.store'
@@ -12,9 +14,34 @@ import { useTrainingStore } from './training.store'
 
 export const useDictionaryStore = defineStore('dictionary', () => {
   const toast = useToast()
+  const queryCache = useQueryCache()
 
   const words = ref<UserDictItem[]>([])
-  const isLoading = ref(false)
+  const isManualLoading = ref(false)
+
+  // Pinia Colada query for dictionary
+  const {
+    data: dictionaryData,
+    isLoading: isDictionaryLoading,
+    refetch: refetchDictionary,
+  } = createOfflineQuery<UserDictItem[]>({
+    key: ['dictionary'],
+    networkQuery: async () => {
+      return await api.dictionary.list()
+    },
+    saveOfflineData: async (list) => {
+      await offlineService.saveDictionary(list)
+    },
+    getOfflineData: async () => {
+      return await offlineService.getDictionary()
+    },
+  })
+
+  watch(dictionaryData, (newWords) => {
+    if (newWords) {
+      words.value = newWords
+    }
+  }, { immediate: true })
 
   // Proxied/aliased fields/computed for backward compatibility
   const decks = computed<DictDeck[]>({
@@ -62,43 +89,46 @@ export const useDictionaryStore = defineStore('dictionary', () => {
   const filteredWords = computed<UserDictItem[]>(() => useDictionaryFiltersStore().filteredWords)
 
   async function fetchDictionary() {
-    isLoading.value = true
+    isManualLoading.value = true
     try {
-      const [wordsData, decksData] = await Promise.all([
-        api.dictionary.list(),
-        api.dictionary.decks(),
+      await Promise.all([
+        refetchDictionary(),
+        useDecksStore().fetchDecks(),
       ])
-      words.value = wordsData
-      useDecksStore().decks = decksData
-      await offlineService.saveDictionary(words.value)
-      await offlineService.saveDecks(useDecksStore().decks)
 
       await useTrainingStore().fetchTrainingQueue({ mode: 'srs', deckId: 'all', difficulty: ['all'] })
     }
-    catch {
-      const cached = await offlineService.getDictionary()
-      const cachedDecks = await offlineService.getDecks()
-
-      if (cached)
-        words.value = cached
-
-      if (cachedDecks)
-        useDecksStore().decks = cachedDecks
+    catch (e) {
+      console.warn('Could not fetch dictionary:', e)
     }
     finally {
-      isLoading.value = false
+      isManualLoading.value = false
     }
   }
 
+  const { mutateAsync: deleteWordMutation, isLoading: isDeletingWord } = useMutation({
+    mutation: (word: string) => api.dictionary.remove(word),
+    async onSuccess(_, word) {
+      words.value = words.value.filter(w => w.word !== word)
+      await offlineService.saveDictionary(words.value)
+
+      useTrainingStore().reviewQueue = useTrainingStore().reviewQueue.filter(w => w.word !== word)
+
+      queryCache.invalidateQueries({ key: ['dictionary'] })
+      queryCache.invalidateQueries({ key: ['decks'] })
+      toast.success('Слово удалено')
+    },
+    onError(e) {
+      toast.error(e instanceof Error ? e.message : 'Не удалось удалить слово')
+    },
+  })
+
   async function deleteWord(word: string) {
     try {
-      await api.dictionary.remove(word)
-      words.value = words.value.filter(w => w.word !== word)
-      useTrainingStore().reviewQueue = useTrainingStore().reviewQueue.filter(w => w.word !== word)
-      toast.success('Слово удалено')
+      await deleteWordMutation(word)
     }
-    catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Не удалось удалить слово')
+    catch {
+      // caught
     }
   }
 
@@ -119,6 +149,13 @@ export const useDictionaryStore = defineStore('dictionary', () => {
   const selectAllFiltered = () => useDictionaryFiltersStore().selectAllFiltered()
   const bulkDelete = () => useDictionaryFiltersStore().bulkDelete()
   const bulkMoveToDecks = (deckIds: number[]) => useDictionaryFiltersStore().bulkMoveToDecks(deckIds)
+
+  const isLoading = computed(() => {
+    return isManualLoading.value
+      || isDictionaryLoading.value
+      || isDeletingWord.value
+      || useDecksStore().isLoading
+  })
 
   return {
     words,

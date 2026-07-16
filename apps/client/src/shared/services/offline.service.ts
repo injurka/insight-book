@@ -1,4 +1,4 @@
-import type { Book, DictDeck, LlmAnalysis, PageDictEntry, PagePayload, TocItem, UserDictItem } from '../types/models'
+import type { Book, DictDeck, Highlight, LlmAnalysis, PageDictEntry, PagePayload, TocItem, UserDictItem } from '../types/models'
 import localforage from 'localforage'
 import { AppRoutePaths } from '~/shared/constants/routes'
 import router from '~/shared/lib/router'
@@ -170,6 +170,14 @@ export const offlineService = {
     return await safeGetItem(`book_toc_${bookId}`)
   },
 
+  async saveHighlights(bookId: number, highlights: Highlight[]) {
+    await safeSetItem(`book_highlights_${bookId}`, JSON.parse(JSON.stringify(highlights)))
+  },
+
+  async getHighlights(bookId: number): Promise<Highlight[] | null> {
+    return await safeGetItem(`book_highlights_${bookId}`)
+  },
+
   async saveDictionary(words: UserDictItem[]) {
     const lang = getAppLanguage()
     await safeSetItem(`dictionary_words_${lang}`, JSON.parse(JSON.stringify(words)))
@@ -335,7 +343,7 @@ export const offlineService = {
           bookStats[bookId].ttsCount++
         }
       }
-      else if (key.startsWith('book_info_') || key.startsWith('book_toc_')) {
+      else if (key.startsWith('book_info_') || key.startsWith('book_toc_') || key.startsWith('book_highlights_')) {
         const bookId = Number(key.split('_')[2])
         if (bookStats[bookId]) {
           bookStats[bookId].sizeBytes += itemSize
@@ -392,7 +400,7 @@ export const offlineService = {
 
       const key = fullKey.replace(prefix, '')
 
-      return key.startsWith(`book_${bookId}_page_`) || key === `book_info_${bookId}` || key === `book_toc_${bookId}` || key.startsWith(`image_${bookId}_`) || key === `cover_${bookId}` || key.startsWith(`tts_${bookId}_`)
+      return key.startsWith(`book_${bookId}_page_`) || key === `book_info_${bookId}` || key === `book_toc_${bookId}` || key === `book_highlights_${bookId}` || key.startsWith(`image_${bookId}_`) || key === `cover_${bookId}` || key.startsWith(`tts_${bookId}_`)
     })
 
     for (const key of keysToRemove) {

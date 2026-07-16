@@ -4,6 +4,7 @@ import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { KitBtn, KitDropdown, KitSelect } from '~/components/01.kit'
+import { pluginManager } from '~/plugins/plugin-manager'
 import { ThemesVariant, useChangeTheme } from '~/shared/composables/use-change-theme'
 import { useUmami } from '~/shared/composables/use-umami'
 import { AppRoutePaths } from '~/shared/constants/routes'
@@ -90,6 +91,11 @@ function openSettings() {
   router.push(AppRoutePaths.Settings)
 }
 
+function openPlugin(routeName: string) {
+  mainDropdownRef.value?.close()
+  router.push({ name: routeName })
+}
+
 function handleSignIn() {
   router.push(AppRoutePaths.SignIn)
 }
@@ -172,6 +178,19 @@ async function handleLogout() {
 
           <!-- Меню действий -->
           <div class="menu-items">
+            <!-- Плагины -->
+            <template v-if="pluginManager.navItems.length > 0">
+              <button
+                v-for="item in pluginManager.navItems"
+                :key="item.routeName"
+                class="menu-btn"
+                @click="openPlugin(item.routeName)"
+              >
+                <Icon :icon="item.icon || 'mdi:puzzle-outline'" />
+                <span class="flex-grow">{{ item.title }}</span>
+              </button>
+              <div class="divider" />
+            </template>
             <button class="menu-btn" @click="openSettings">
               <Icon icon="mdi:cog-outline" /> <span class="flex-grow">{{ t('settings.title') }}</span>
             </button>

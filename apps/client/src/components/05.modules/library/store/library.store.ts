@@ -1,7 +1,9 @@
 import type { Book, BookStats } from '~/shared/types/models'
+import { useMutation, useQuery, useQueryCache } from '@pinia/colada'
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useUmami } from '~/shared/composables/use-umami'
+import { createOfflineQuery } from '~/shared/lib/query'
 import { api } from '~/shared/services/api.service'
 import { offlineService } from '~/shared/services/offline.service'
 import { useAuthStore } from '~/shared/store/auth.store'
@@ -16,6 +18,7 @@ import {
 
 export const useLibraryStore = defineStore('library', () => {
   const { trackEvent } = useUmami()
+  const queryCache = useQueryCache()
 
   const books = ref<Book[]>([])
   const publicBooks = ref<Book[]>([])
@@ -24,139 +27,220 @@ export const useLibraryStore = defineStore('library', () => {
   const publicLimit = ref(20)
 
   const currentBookInfo = ref<Book | null>(null)
+  const currentBookId = ref<number | null>(null)
 
-  const isLoading = ref(false)
   const isInitialized = ref(false)
   const isAnalyzingBook = ref(false)
   const isAnalyzingVocab = ref(false)
 
-  async function fetchBooks() {
-    const authStore = useAuthStore()
-    if (!authStore.user && !authStore.isSingleMode) {
-      return
-    }
+  // --- QUERY: Books List ---
+  const {
+    data: booksData,
+    isLoading: isBooksLoading,
+    refetch: refetchBooks,
+  } = createOfflineQuery<Book[]>({
+    key: ['books'],
+    networkQuery: async () => {
+      const authStore = useAuthStore()
+      if (!authStore.user && !authStore.isSingleMode) {
+        return []
+      }
+      return await api.books.list()
+    },
+    saveOfflineData: async (list) => {
+      await offlineService.saveBooksList(list)
+    },
+    getOfflineData: async () => {
+      return await offlineService.getBooksList()
+    },
+  })
 
-    isLoading.value = true
-    try {
-      books.value = await api.books.list()
-      await offlineService.saveBooksList(books.value)
-    }
-    catch {
-      const cached = await offlineService.getBooksList()
-      if (cached)
-        books.value = cached
-    }
-    finally {
+  watch(booksData, async (newBooks) => {
+    if (newBooks) {
+      books.value = [...newBooks]
       await attachCachedCovers(books.value)
-      isLoading.value = false
       isInitialized.value = true
     }
+  }, { immediate: true })
+
+  async function fetchBooks() {
+    await refetchBooks()
   }
 
-  async function fetchPublicBooks(page: number, tag?: string, search?: string, lang?: string) {
-    isLoading.value = true
-    try {
+  // --- QUERY: Public Books ---
+  const publicQueryPage = ref(1)
+  const publicQueryTag = ref<string | undefined>()
+  const publicQuerySearch = ref<string | undefined>()
+  const publicQueryLang = ref<string | undefined>()
+
+  const {
+    data: publicBooksQueryData,
+    isLoading: isPublicBooksLoading,
+    refetch: refetchPublicBooks,
+  } = useQuery({
+    key: () => ['books', 'public', {
+      page: publicQueryPage.value,
+      tag: publicQueryTag.value,
+      search: publicQuerySearch.value,
+      lang: publicQueryLang.value,
+    }],
+    query: async () => {
       const q = new URLSearchParams()
-
       q.set('tab', 'public')
-      q.set('page', String(page))
+      q.set('page', String(publicQueryPage.value))
 
-      if (tag)
-        q.set('tag', tag)
+      if (publicQueryTag.value)
+        q.set('tag', publicQueryTag.value)
 
-      if (search) {
-        q.set('search', search)
-        trackEvent('public_book_search', { query: search })
+      if (publicQuerySearch.value) {
+        q.set('search', publicQuerySearch.value)
+        trackEvent('public_book_search', { query: publicQuerySearch.value })
       }
-      if (lang)
-        q.set('lang', lang)
+      if (publicQueryLang.value)
+        q.set('lang', publicQueryLang.value)
 
       const res = await api.books.getPublic(q.toString())
+      return res
+    },
+    enabled: () => isInitialized.value,
+  })
+
+  watch(publicBooksQueryData, async (res) => {
+    if (res) {
       publicBooks.value = res.data
       publicTotal.value = res.total
       publicPage.value = res.page
       publicLimit.value = res.limit
-    }
-    finally {
       await attachCachedCovers(publicBooks.value)
-      isLoading.value = false
-      isInitialized.value = true
     }
+  })
+
+  async function fetchPublicBooks(page: number, tag?: string, search?: string, lang?: string) {
+    publicQueryPage.value = page
+    publicQueryTag.value = tag
+    publicQuerySearch.value = search
+    publicQueryLang.value = lang
+    await refetchPublicBooks()
   }
 
-  async function startReadingPublicBook(id: number) {
-    await api.books.startReading(id)
-    trackEvent('public_book_downloaded', { bookId: id })
+  // --- QUERY: Book Info ---
+  const {
+    data: bookInfoData,
+    isLoading: isBookInfoLoading,
+    refetch: refetchBookInfo,
+  } = createOfflineQuery<Book | null>({
+    key: () => ['books', currentBookId.value],
+    networkQuery: async () => {
+      const id = currentBookId.value
+      if (!id)
+        return null
+      return await api.books.getInfo(id)
+    },
+    saveOfflineData: async (info) => {
+      const id = currentBookId.value
+      if (id && info) {
+        await offlineService.saveBookInfo(id, info)
+      }
+    },
+    getOfflineData: async () => {
+      const id = currentBookId.value
+      if (!id)
+        return null
+      return await offlineService.getBookInfo(id)
+    },
+    enabled: () => currentBookId.value !== null,
+  })
 
-    if (currentBookInfo.value?.id === id) {
-      currentBookInfo.value.currentPage = 1
+  watch(bookInfoData, async (newInfo) => {
+    if (newInfo) {
+      currentBookInfo.value = newInfo
+      await attachCachedCovers([currentBookInfo.value])
     }
-    const authStore = useAuthStore()
-    if (authStore.user || authStore.isSingleMode) {
-      await fetchBooks()
-    }
-  }
+  })
 
   async function fetchBookInfo(id: number) {
-    if (currentBookInfo.value?.id !== id) {
+    if (currentBookId.value !== id) {
       currentBookInfo.value = null
+      currentBookId.value = id
     }
-    isLoading.value = true
-    try {
-      const info = await api.books.getInfo(id)
-      currentBookInfo.value = info
-      await offlineService.saveBookInfo(id, info)
-    }
-    catch (e) {
-      const cached = await offlineService.getBookInfo(id)
-      if (cached)
-        currentBookInfo.value = cached
-      else throw e
-    }
-    finally {
-      if (currentBookInfo.value) {
-        await attachCachedCovers([currentBookInfo.value])
-      }
-      isLoading.value = false
+    else {
+      await refetchBookInfo()
     }
   }
+
+  // --- MUTATION: Start Reading Public Book ---
+  const { mutateAsync: startReadingPublicBookMutation, isLoading: isStartingReading } = useMutation({
+    mutation: (id: number) => api.books.startReading(id),
+    async onSuccess(_, id) {
+      trackEvent('public_book_downloaded', { bookId: id })
+      if (currentBookInfo.value?.id === id) {
+        currentBookInfo.value.currentPage = 1
+      }
+      const authStore = useAuthStore()
+      if (authStore.user || authStore.isSingleMode) {
+        await refetchBooks()
+      }
+    },
+  })
+
+  async function startReadingPublicBook(id: number) {
+    await startReadingPublicBookMutation(id)
+  }
+
+  // --- MUTATION: Update Book Info ---
+  const { mutateAsync: updateBookInfoMutation, isLoading: isUpdatingInfo } = useMutation({
+    mutation: ({ id, data }: { id: number, data: Partial<Book> }) => api.books.updateInfo(id, data),
+    onMutate({ id, data }) {
+      const listBook = books.value.find(b => Number(b.id) === Number(id))
+      if (listBook)
+        Object.assign(listBook, data)
+
+      if (currentBookInfo.value?.id === id) {
+        Object.assign(currentBookInfo.value, data)
+      }
+    },
+    async onSuccess(_, { id }) {
+      queryCache.invalidateQueries({ key: ['books'] })
+      queryCache.invalidateQueries({ key: ['books', id] })
+
+      if (currentBookInfo.value?.id === id) {
+        await offlineService.saveBookInfo(id, currentBookInfo.value)
+      }
+    },
+  })
 
   async function updateBookInfo(id: number, data: Partial<Book>) {
-    const listBook = books.value.find(b => Number(b.id) === Number(id))
-    if (listBook)
-      Object.assign(listBook, data)
-
-    if (currentBookInfo.value?.id === id) {
-      Object.assign(currentBookInfo.value, data)
-      await offlineService.saveBookInfo(id, currentBookInfo.value)
-    }
-    try {
-      await api.books.updateInfo(id, data)
-    }
-    catch (e) {
-      console.warn('Failed to sync book info', e)
-      throw e
-    }
+    await updateBookInfoMutation({ id, data })
   }
+
+  // --- MUTATION: Full Book Analysis ---
+  const { mutateAsync: analyzeFullBookMutation } = useMutation({
+    mutation: (id: number) => api.books.analyzeBook(id),
+    async onSuccess(res, id) {
+      if (currentBookInfo.value && currentBookInfo.value.id === id) {
+        currentBookInfo.value.stats = res.stats
+        await offlineService.saveBookInfo(id, currentBookInfo.value)
+      }
+      queryCache.invalidateQueries({ key: ['books'] })
+      queryCache.invalidateQueries({ key: ['books', id] })
+    },
+  })
 
   async function analyzeFullBook(id: number) {
     isAnalyzingBook.value = true
     trackEvent('book_full_analysis_started', { bookId: id })
     try {
-      const res = await api.books.analyzeBook(id)
-      if (currentBookInfo.value && currentBookInfo.value.id === id) {
-        currentBookInfo.value.stats = res.stats
-        await offlineService.saveBookInfo(id, currentBookInfo.value)
-      }
+      await analyzeFullBookMutation(id)
     }
-    finally { isAnalyzingBook.value = false }
+    finally {
+      isAnalyzingBook.value = false
+    }
   }
 
-  async function analyzeVocabulary(id: number) {
-    isAnalyzingVocab.value = true
-    trackEvent('vocabulary_analysis_started', { bookId: id })
-    try {
-      const res = await api.books.analyzeVocabulary(id)
+  // --- MUTATION: Vocabulary Analysis ---
+  const { mutateAsync: analyzeVocabularyMutation } = useMutation({
+    mutation: (id: number) => api.books.analyzeVocabulary(id),
+    async onSuccess(res, id) {
       if (currentBookInfo.value?.id === id) {
         if (!currentBookInfo.value.stats)
           currentBookInfo.value.stats = {} as BookStats
@@ -165,90 +249,161 @@ export const useLibraryStore = defineStore('library', () => {
         currentBookInfo.value.stats.lexicalDiversity = res.lexicalStats.lexicalDiversity
         await offlineService.saveBookInfo(id, currentBookInfo.value)
       }
+      queryCache.invalidateQueries({ key: ['books'] })
+      queryCache.invalidateQueries({ key: ['books', id] })
+    },
+  })
+
+  async function analyzeVocabulary(id: number) {
+    isAnalyzingVocab.value = true
+    trackEvent('vocabulary_analysis_started', { bookId: id })
+    try {
+      await analyzeVocabularyMutation(id)
     }
-    finally { isAnalyzingVocab.value = false }
+    finally {
+      isAnalyzingVocab.value = false
+    }
   }
+
+  // --- MUTATION: Update Cover ---
+  const { mutateAsync: updateBookCoverMutation, isLoading: isUpdatingCover } = useMutation({
+    mutation: ({ id, file }: { id: number, file: File }) => api.books.updateCover(id, file),
+    async onSuccess(res, { id }) {
+      if (currentBookInfo.value && currentBookInfo.value.id === id) {
+        currentBookInfo.value.coverUrl = res.coverUrl
+        await offlineService.saveBookInfo(id, currentBookInfo.value)
+      }
+      const listBook = books.value.find(b => b.id === id)
+      if (listBook)
+        listBook.coverUrl = res.coverUrl
+
+      queryCache.invalidateQueries({ key: ['books'] })
+      queryCache.invalidateQueries({ key: ['books', id] })
+    },
+  })
 
   async function updateBookCover(id: number, file: File) {
-    const res = await api.books.updateCover(id, file)
-    if (currentBookInfo.value && currentBookInfo.value.id === id) {
-      currentBookInfo.value.coverUrl = res.coverUrl
-      await offlineService.saveBookInfo(id, currentBookInfo.value)
-    }
-    const listBook = books.value.find(b => b.id === id)
-    if (listBook)
-      listBook.coverUrl = res.coverUrl
+    await updateBookCoverMutation({ id, file })
   }
+
+  // --- MUTATION: Update Stats ---
+  const { mutateAsync: updateBookStatsMutation, isLoading: isUpdatingStats } = useMutation({
+    mutation: ({ id, data }: { id: number, data: Partial<BookStats> }) => api.books.updateStats(id, data),
+    async onSuccess(res, { id }) {
+      if (currentBookInfo.value && currentBookInfo.value.id === id) {
+        currentBookInfo.value.stats = res.stats
+        await offlineService.saveBookInfo(id, currentBookInfo.value)
+      }
+      queryCache.invalidateQueries({ key: ['books'] })
+      queryCache.invalidateQueries({ key: ['books', id] })
+    },
+  })
 
   async function updateBookStats(id: number, data: Partial<BookStats>) {
-    const res = await api.books.updateStats(id, data)
-    if (currentBookInfo.value && currentBookInfo.value.id === id) {
-      currentBookInfo.value.stats = res.stats
-      await offlineService.saveBookInfo(id, currentBookInfo.value)
-    }
+    await updateBookStatsMutation({ id, data })
   }
 
-  async function uploadBook(file: File) {
-    isLoading.value = true
-
-    try {
-      const res = await api.books.upload(file)
+  // --- MUTATION: Upload Book ---
+  const { mutateAsync: uploadBookMutation, isLoading: isUploadingBook } = useMutation({
+    mutation: (file: File) => api.books.upload(file),
+    onSuccess(res, file) {
       const book = 'book' in res ? res.book : (res as unknown as Book)
       const ext = file.name.split('.').pop()?.toLowerCase() || 'unknown'
 
-      if (book)
+      if (book) {
         books.value.unshift(book)
+        queryCache.invalidateQueries({ key: ['books'] })
+      }
 
       trackEvent('book_uploaded', { format: ext, size_mb: Math.round(file.size / 1048576) })
-
       return book
-    }
-    finally { isLoading.value = false }
+    },
+  })
+
+  async function uploadBook(file: File) {
+    const res = await uploadBookMutation(file)
+    return 'book' in res ? res.book : (res as unknown as Book)
   }
+
+  // --- MUTATION: Create Custom Manga ---
+  const { mutateAsync: createCustomMangaMutation, isLoading: isCreatingManga } = useMutation({
+    mutation: (params: { title: string, author: string, language: string }) =>
+      api.books.createCustomBook({ ...params, type: 'manga' }),
+    onSuccess(res, params) {
+      books.value.unshift(res.book)
+      queryCache.invalidateQueries({ key: ['books'] })
+      trackEvent('custom_manga_created', { language: params.language })
+      return res.book
+    },
+  })
 
   async function createCustomManga(title: string, author: string, language: string) {
-    isLoading.value = true
-    try {
-      const res = await api.books.createCustomBook({ title, author, language, type: 'manga' })
-      books.value.unshift(res.book)
-
-      trackEvent('custom_manga_created', { language })
-
-      return res.book
-    }
-    finally { isLoading.value = false }
+    const res = await createCustomMangaMutation({ title, author, language })
+    return res.book
   }
+
+  // --- MUTATION: Upload Manga Chapter ---
+  const { mutateAsync: uploadMangaChapterMutation, isLoading: isUploadingChapter } = useMutation({
+    mutation: ({ bookId, fd }: { bookId: number, fd: FormData }) => api.books.appendMangaChapter(bookId, fd),
+    onSuccess(res, { bookId }) {
+      const index = books.value.findIndex(b => b.id === bookId)
+      if (index !== -1)
+        Object.assign(books.value[index], res.book)
+
+      if (currentBookInfo.value?.id === bookId) {
+        Object.assign(currentBookInfo.value, res.book)
+        if (typeof res.book.toc === 'string') {
+          try {
+            currentBookInfo.value.toc = JSON.parse(res.book.toc)
+          }
+          catch { }
+        }
+      }
+      queryCache.invalidateQueries({ key: ['books'] })
+      queryCache.invalidateQueries({ key: ['books', bookId] })
+      return res.book
+    },
+  })
 
   async function uploadMangaChapter(bookId: number, chapterTitle: string, files: File[]) {
     const fd = new FormData()
     fd.append('chapterTitle', chapterTitle)
     files.forEach(f => fd.append('files', f))
-    const res = await api.books.appendMangaChapter(bookId, fd)
-
-    const index = books.value.findIndex(b => b.id === bookId)
-    if (index !== -1)
-      Object.assign(books.value[index], res.book)
-
-    if (currentBookInfo.value?.id === bookId) {
-      Object.assign(currentBookInfo.value, res.book)
-      if (typeof res.book.toc === 'string') {
-        try {
-          currentBookInfo.value.toc = JSON.parse(res.book.toc)
-        }
-        catch { }
-      }
-    }
-    return res.book
+    return await uploadMangaChapterMutation({ bookId, fd })
   }
+
+  // --- MUTATION: Delete Book ---
+  const { mutateAsync: deleteBookMutation, isLoading: isDeletingBook } = useMutation({
+    mutation: (id: number) => api.books.delete(id),
+    onSuccess(_, id) {
+      books.value = books.value.filter(b => b.id !== id)
+      if (currentBookInfo.value?.id === id) {
+        currentBookInfo.value = null
+        currentBookId.value = null
+      }
+      queryCache.invalidateQueries({ key: ['books'] })
+      trackEvent('book_deleted')
+    },
+  })
 
   async function deleteBook(id: number) {
-    await api.books.delete(id)
-    books.value = books.value.filter(b => b.id !== id)
-    if (currentBookInfo.value?.id === id)
-      currentBookInfo.value = null
-
-    trackEvent('book_deleted')
+    await deleteBookMutation(id)
   }
+
+  // --- Global Loading State ---
+  const isLoading = computed(() => {
+    return isBooksLoading.value
+      || isPublicBooksLoading.value
+      || isBookInfoLoading.value
+      || isStartingReading.value
+      || isUpdatingInfo.value
+      || isUpdatingCover.value
+      || isUpdatingStats.value
+      || isUploadingBook.value
+      || isCreatingManga.value
+      || isUploadingChapter.value
+      || isDeletingBook.value
+  })
 
   return {
     books,

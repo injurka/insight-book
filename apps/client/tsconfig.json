@@ -16,6 +16,12 @@
     "paths": {
       "~/*": [
         "./src/*"
+      ],
+      "@injurka/insight-book-plugin-api": [
+        "../../packages/plugin-api/src"
+      ],
+      "@injurka/insight-book-plugin-grammar-rules": [
+        "../../packages/plugin-grammar-rules/src"
       ]
     },
     "resolveJsonModule": true,
@@ -42,7 +48,10 @@
     "src/**/*.ts",
     "src/**/*.d.ts",
     "src/**/*.tsx",
-    "src/**/*.vue"
+    "src/**/*.vue",
+    "../../packages/plugin-api/src/**/*.ts",
+    "../../packages/plugin-grammar-rules/src/**/*.ts",
+    "../../packages/plugin-grammar-rules/src/**/*.vue"
   ],
   "exclude": [
     "src/**/*.spec.ts",
