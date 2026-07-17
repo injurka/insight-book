@@ -77,7 +77,6 @@ const PRESETS: Rule[] = [
 const loadPresets = async () => {
   loading.value = true
   try {
-    // Имитация загрузки с сервера
     await new Promise(resolve => setTimeout(resolve, 800))
     rules.value = [...PRESETS]
   } catch (e) {
