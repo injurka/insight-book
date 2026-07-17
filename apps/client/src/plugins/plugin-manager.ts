@@ -1,10 +1,16 @@
-import type { InsightBookPlugin, InsightBookPluginContext, InsightBookPluginEventBus } from '@injurka/insight-book-plugin-api'
+import type {
+  InsightBookPlugin,
+  InsightBookPluginContext,
+  InsightBookPluginEventBus,
+} from '@injurka/insight-book-plugin-api'
 import type { App } from 'vue'
 import type { Router } from 'vue-router'
 import { reactive } from 'vue'
+import { i18n } from '~/shared/plugins/i18n'
 
 export interface PluginNavItem {
   title: string
+  titleKey?: string
   icon?: string
   routeName: string
 }
@@ -77,6 +83,16 @@ export function usePluginManager() {
         notify,
         addNavigationItem,
         events: globalEventBus,
+        locale: i18n.global.locale.value,
+        registerTranslations: (messages) => {
+          for (const [lang, msgs] of Object.entries(messages)) {
+            i18n.global.mergeLocaleMessage(lang, {
+              plugins: {
+                [plugin.id]: msgs,
+              },
+            })
+          }
+        },
       }
 
       // Add pages to router
@@ -130,8 +146,10 @@ export function usePluginManager() {
       if (plugin.deactivate) {
         const ctx: InsightBookPluginContext = {
           notify: (message, type) => console.warn(`[Plugin Notify] ${type}: ${message}`),
-          addNavigationItem: () => {},
+          addNavigationItem: () => { },
           events: globalEventBus,
+          locale: i18n.global.locale.value,
+          registerTranslations: () => { },
         }
         await plugin.deactivate(ctx)
       }

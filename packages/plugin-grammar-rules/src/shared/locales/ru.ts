@@ -1,0 +1,27 @@
+const ru = {
+  navItemTitle: 'Правила грамматики',
+  notifyActivated: 'Плагин «Правила грамматики» активирован!',
+  notifyDeactivated: 'Плагин «Правила грамматики» деактивирован.',
+  pageTitle: 'Правила языка',
+  pageSubtitle: 'HSK 1: Изучайте лексику, грамматику и проходите тесты',
+  tabStudy: 'Изучение правил',
+  tabTest: 'Тестирование',
+  searchPlaceholder: 'Поиск по правилам...',
+  loadingRules: 'Загрузка набора правил...',
+  rulesNotFound: 'Правила не найдены. Попробуйте изменить фильтр.',
+  loadRulesFirst: 'Сначала загрузите правила, чтобы пройти тест.',
+  progressText: 'Вопрос {current} из {total}',
+  scoreText: 'Очки: {score}',
+  checkAnswer: 'Проверить ответ',
+  finishRound: 'Завершить круг / Далее',
+  nextQuestion: 'Следующий вопрос',
+  resetTest: 'Сбросить тест',
+  catAll: 'Все категории',
+  catGrammar: 'Грамматика',
+  catLexical: 'Лексика',
+  catCollocation: 'Словосочетания',
+  catMeasureWords: 'Счетные слова',
+  levelAll: 'Все уровни',
+}
+
+export default ru

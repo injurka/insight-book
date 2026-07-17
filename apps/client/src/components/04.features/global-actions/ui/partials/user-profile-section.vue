@@ -265,7 +265,7 @@ function openLimits() {
   background-color: var(--bg-tertiary-color);
   padding: 4px 6px;
   border-radius: 8px;
-  border: 1px solid var(--border-secondary-color);
+  border: 1px solid var(--border-primary-color);
   cursor: pointer;
   transition:
     border-color 0.2s,

@@ -26,7 +26,6 @@ async function bootstrap() {
   app.use(PiniaColada)
   app.use(i18n)
   app.use(head)
-  app.use(router)
 
   try {
     const { setupPlugins } = await import('~/plugins/index')
@@ -36,29 +35,38 @@ async function bootstrap() {
     console.error('Failed to setup plugins:', err)
   }
 
+  app.use(router)
+
   await localePromise
+  await router.isReady()
   app.mount('#app')
 
   document.getElementById('app-preloader')?.remove()
 
-  if (!isTauri && 'serviceWorker' in navigator) {
-    import('~/shared/services/pwa.service')
-      .then(({ initializePwaUpdater }) => {
-        initializePwaUpdater(pinia)
-      })
-      .catch((err) => {
-        console.warn('PWA plugin not found or failed to register:', err)
-      })
-  }
-
-  if (isTauri) {
-    import('~/shared/services/tauri-update.service')
-      .then(({ initializeTauriUpdater }) => {
+  const platformStrategies = [
+    {
+      shouldRun: isTauri,
+      run: async () => {
+        const { initializeTauriUpdater } = await import('~/shared/services/tauri-update.service')
         initializeTauriUpdater(pinia)
-      })
-      .catch((err) => {
-        console.warn('Tauri updater failed to initialize:', err)
-      })
+      },
+      name: 'Tauri updater',
+    },
+    {
+      shouldRun: !isTauri && 'serviceWorker' in navigator,
+      run: async () => {
+        const { initializePwaUpdater } = await import('~/shared/services/pwa.service')
+        initializePwaUpdater(pinia)
+      },
+      name: 'PWA plugin',
+    },
+  ]
+
+  const activeStrategy = platformStrategies.find(s => s.shouldRun)
+  if (activeStrategy) {
+    activeStrategy.run().catch((err: unknown) => {
+      console.warn(`Failed to initialize ${activeStrategy.name}:`, err)
+    })
   }
 
   if (import.meta.env.DEV) {

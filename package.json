@@ -26,7 +26,8 @@
     "postinstall": "simple-git-hooks"
   },
   "devDependencies": {
-    "simple-git-hooks": "^2.13.1"
+    "simple-git-hooks": "^2.13.1",
+    "vue-i18n": "^11.4.6"
   },
   "simple-git-hooks": {
     "pre-commit": "bun run lint && bun run typecheck",

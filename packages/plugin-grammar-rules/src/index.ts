@@ -1,5 +1,10 @@
 import type { InsightBookPlugin, InsightBookPluginContext } from '@injurka/insight-book-plugin-api'
-import RulesPage from './pages/rules-page.vue'
+import { defineAsyncComponent } from 'vue'
+import en from './shared/locales/en'
+import ru from './shared/locales/ru'
+import zh from './shared/locales/zh'
+
+const RulesPage = defineAsyncComponent(() => import('./pages/rules-page.vue'))
 
 const plugin: InsightBookPlugin = {
   id: 'grammar-rules',
@@ -13,16 +18,24 @@ const plugin: InsightBookPlugin = {
   },
 
   activate(ctx: InsightBookPluginContext) {
+    ctx.registerTranslations({ ru, en, zh })
+
+    const locales = { ru, en, zh } as const
+    const t = locales[ctx.locale as keyof typeof locales] ?? en
+
     ctx.addNavigationItem({
       title: 'Grammar Rules',
+      titleKey: 'plugins.grammar-rules.navItemTitle',
       icon: 'mdi:school-outline',
       routeName: 'plugin-grammar-rules-index'
     })
-    ctx.notify('Grammar Rules plugin activated!', 'success')
+    ctx.notify(t.notifyActivated, 'success')
   },
 
   deactivate(ctx: InsightBookPluginContext) {
-    ctx.notify('Grammar Rules plugin deactivated.', 'info')
+    const locales = { ru, en, zh } as const
+    const t = locales[ctx.locale as keyof typeof locales] ?? en
+    ctx.notify(t.notifyDeactivated, 'info')
   }
 }
 

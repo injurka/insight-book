@@ -1,0 +1,882 @@
+[
+  {
+    "id": "hsk1_gram_01",
+    "title": "Базовый порядок слов (SVO)",
+    "pattern": "Субъект + Глагол + Объект",
+    "hskLevel": "hsk1",
+    "category": "grammar",
+    "tags": [
+      "sentence_structure"
+    ],
+    "description": "Основной порядок слов в китайском языке совпадает с английским и русским.",
+    "examples": [
+      {
+        "sentence": "我喝茶。",
+        "pinyin": "Wǒ hē chá.",
+        "translation": "Я пью чай."
+      }
+    ]
+  },
+  {
+    "id": "hsk1_gram_02",
+    "title": "Вопросы с частицей 吗 (ma)",
+    "pattern": "Утверждение + 吗？",
+    "hskLevel": "hsk1",
+    "category": "grammar",
+    "tags": [
+      "sentence_structure",
+      "particles",
+      "questions"
+    ],
+    "description": "Частица 吗 ставится в конце повествовательного предложения, чтобы превратить его в общий вопрос (Да/Нет).",
+    "examples": [
+      {
+        "sentence": "你是学生吗？",
+        "pinyin": "Nǐ shì xuéshēng ma?",
+        "translation": "Ты студент?"
+      }
+    ]
+  },
+  {
+    "id": "hsk1_gram_03",
+    "title": "Отрицание с 不 (bù)",
+    "pattern": "Субъект + 不 + Глагол/Прилагательное",
+    "hskLevel": "hsk1",
+    "category": "grammar",
+    "tags": [
+      "negation"
+    ],
+    "description": "Отрицательная частица 不 используется для отрицания в настоящем и будущем времени, а также с прилагательными. Перед 4-м тоном 不 читается 2-м тоном (bú).",
+    "examples": [
+      {
+        "sentence": "我不去医院。",
+        "pinyin": "Wǒ bú qù yīyuàn.",
+        "translation": "Я не иду в больницу."
+      }
+    ]
+  },
+  {
+    "id": "hsk1_gram_04",
+    "title": "Отрицание с 没 (méi) для глагола 有 (yǒu)",
+    "pattern": "Субъект + 没 + 有 + Объект",
+    "hskLevel": "hsk1",
+    "category": "grammar",
+    "tags": [
+      "negation",
+      "special_verbs"
+    ],
+    "description": "Глагол 有 (иметь) НИКОГДА не отрицается частицей 不. Для него всегда используется 没 (или 没有).",
+    "examples": [
+      {
+        "sentence": "我没有钱。",
+        "pinyin": "Wǒ méiyǒu qián.",
+        "translation": "У меня нет денег."
+      }
+    ]
+  },
+  {
+    "id": "hsk1_mw_01",
+    "title": "Универсальное счетное слово 个 (gè)",
+    "pattern": "Число/Указатель + 个 + Существительное",
+    "hskLevel": "hsk1",
+    "category": "measure_words",
+    "tags": [
+      "measure_words",
+      "quantifiers"
+    ],
+    "description": "个 — самое распространенное счетное слово. Используется с людьми и многими предметами. Если не знаете нужное счетное слово — используйте 个.",
+    "examples": [
+      {
+        "sentence": "三个人",
+        "pinyin": "sān ge rén",
+        "translation": "Три человека"
+      },
+      {
+        "sentence": "一个苹果",
+        "pinyin": "yí ge píngguǒ",
+        "translation": "Одно яблоко"
+      }
+    ]
+  },
+  {
+    "id": "hsk1_gram_05",
+    "title": "Глагол 'быть' - 是 (shì)",
+    "pattern": "Сущ./Мест. (A) + 是 + Сущ. (B)",
+    "hskLevel": "hsk1",
+    "category": "grammar",
+    "tags": [
+      "verbs"
+    ],
+    "description": "Связывает два существительных или местоимения. Не используется с прилагательными для описания свойств (нельзя сказать 我是好).",
+    "examples": [
+      {
+        "sentence": "我是医生。",
+        "pinyin": "Wǒ shì yīshēng.",
+        "translation": "Я врач."
+      }
+    ]
+  },
+  {
+    "id": "hsk1_gram_06",
+    "title": "Прилагательные как сказуемое + 很 (hěn)",
+    "pattern": "Субъект + 很 + Прилагательное",
+    "hskLevel": "hsk1",
+    "category": "grammar",
+    "tags": [
+      "adjectives",
+      "adverbs"
+    ],
+    "description": "В утвердительных предложениях перед прилагательным-сказуемым обычно ставится 很 (очень), чтобы сбалансировать предложение, даже если мы не хотим сильно акцентировать 'очень'.",
+    "examples": [
+      {
+        "sentence": "汉语很难。",
+        "pinyin": "Hànyǔ hěn nán.",
+        "translation": "Китайский язык сложный."
+      }
+    ]
+  },
+  {
+    "id": "hsk1_gram_07",
+    "title": "Указательные местоимения 这 (zhè) и 那 (nà)",
+    "pattern": "这/那 + Счетное слово + Существительное",
+    "hskLevel": "hsk1",
+    "category": "grammar",
+    "tags": [
+      "pronouns",
+      "demonstratives"
+    ],
+    "description": "这 означает 'этот' (близко), 那 означает 'тот' (далеко). Требуют после себя счетное слово перед существительным.",
+    "examples": [
+      {
+        "sentence": "这个人是谁？",
+        "pinyin": "Zhè ge rén shì shéi?",
+        "translation": "Кто этот человек?"
+      }
+    ]
+  },
+  {
+    "id": "hsk1_gram_08",
+    "title": "Вопросительное слово 谁 (shéi / shuí)",
+    "pattern": "谁 + 是 + ... / ... + 是 + 谁",
+    "hskLevel": "hsk1",
+    "category": "grammar",
+    "tags": [
+      "questions",
+      "pronouns"
+    ],
+    "description": "Означает 'Кто'. В китайском вопросительное слово ставится на то же место в предложении, где будет ответ.",
+    "examples": [
+      {
+        "sentence": "谁是你的老师？",
+        "pinyin": "Shéi shì nǐ de lǎoshī?",
+        "translation": "Кто твой учитель?"
+      },
+      {
+        "sentence": "他是谁？",
+        "pinyin": "Tā shì shéi?",
+        "translation": "Кто он?"
+      }
+    ]
+  },
+  {
+    "id": "hsk1_gram_09",
+    "title": "Вопросительное слово 什么 (shénme)",
+    "pattern": "Глагол + 什么 (+ Существительное)?",
+    "hskLevel": "hsk1",
+    "category": "grammar",
+    "tags": [
+      "questions",
+      "pronouns"
+    ],
+    "description": "Означает 'Что' или 'Какой'.",
+    "examples": [
+      {
+        "sentence": "这是什么？",
+        "pinyin": "Zhè shì shénme?",
+        "translation": "Что это?"
+      },
+      {
+        "sentence": "你看什么书？",
+        "pinyin": "Nǐ kàn shénme shū?",
+        "translation": "Какую книгу ты читаешь?"
+      }
+    ]
+  },
+  {
+    "id": "hsk1_gram_10",
+    "title": "Вопросы о количестве с 几 (jǐ)",
+    "pattern": "几 + Счетное слово + Существительное",
+    "hskLevel": "hsk1",
+    "category": "grammar",
+    "tags": [
+      "questions",
+      "quantifiers"
+    ],
+    "description": "Используется для вопроса 'Сколько?', когда ожидаемый ответ меньше 10. Обязательно требует счетное слово.",
+    "examples": [
+      {
+        "sentence": "你有几个苹果？",
+        "pinyin": "Nǐ yǒu jǐ ge píngguǒ?",
+        "translation": "Сколько у тебя яблок?"
+      }
+    ]
+  },
+  {
+    "id": "hsk1_gram_11",
+    "title": "Вопросы о количестве с 多少 (duōshao)",
+    "pattern": "多少 + (Счетное слово) + Существительное",
+    "hskLevel": "hsk1",
+    "category": "grammar",
+    "tags": [
+      "questions",
+      "quantifiers"
+    ],
+    "description": "Используется для вопроса 'Сколько?', когда ожидаемый ответ больше 10. Счетное слово можно опустить.",
+    "examples": [
+      {
+        "sentence": "你们学校有多少学生？",
+        "pinyin": "Nǐmen xuéxiào yǒu duōshao xuéshēng?",
+        "translation": "Сколько студентов в вашей школе?"
+      }
+    ]
+  },
+  {
+    "id": "hsk1_lex_01",
+    "title": "Выражение даты: Месяцы и числа",
+    "pattern": "...月 + ...号/日",
+    "hskLevel": "hsk1",
+    "category": "lexical",
+    "tags": [
+      "time_words",
+      "numbers"
+    ],
+    "description": "Сначала называется месяц (число + 月), затем день (число + 号 (устно) или 日 (письменно)). От большего к меньшему.",
+    "examples": [
+      {
+        "sentence": "八月十五号",
+        "pinyin": "Bā yuè shíwǔ hào",
+        "translation": "15 августа"
+      }
+    ]
+  },
+  {
+    "id": "hsk1_gram_12",
+    "title": "Частица принадлежности 的 (de)",
+    "pattern": "Владелец + 的 + Предмет",
+    "hskLevel": "hsk1",
+    "category": "grammar",
+    "tags": [
+      "particles",
+      "possession"
+    ],
+    "description": "Указывает на принадлежность или свойство (родительный падеж). Часто опускается с близкими родственниками (我妈妈).",
+    "examples": [
+      {
+        "sentence": "我的书",
+        "pinyin": "wǒ de shū",
+        "translation": "Моя книга"
+      },
+      {
+        "sentence": "老师的电脑",
+        "pinyin": "lǎoshī de diànnǎo",
+        "translation": "Компьютер учителя"
+      }
+    ]
+  },
+  {
+    "id": "hsk1_gram_13",
+    "title": "Местоположение с глаголом 在 (zài)",
+    "pattern": "Субъект + 在 + Место",
+    "hskLevel": "hsk1",
+    "category": "grammar",
+    "tags": [
+      "verbs",
+      "location"
+    ],
+    "description": "В качестве глагола 在 означает 'находиться в'.",
+    "examples": [
+      {
+        "sentence": "我在家。",
+        "pinyin": "Wǒ zài jiā.",
+        "translation": "Я (нахожусь) дома."
+      },
+      {
+        "sentence": "他在中国。",
+        "pinyin": "Tā zài Zhōngguó.",
+        "translation": "Он в Китае."
+      }
+    ]
+  },
+  {
+    "id": "hsk1_gram_14",
+    "title": "Вопрос 'А как насчет?' с 呢 (ne)",
+    "pattern": "Тема (Сущ./Мест.) + 呢？",
+    "hskLevel": "hsk1",
+    "category": "grammar",
+    "tags": [
+      "particles",
+      "questions"
+    ],
+    "description": "Частица 呢 используется для переадресации вопроса или для вопроса 'Где? / А что насчет?'.",
+    "examples": [
+      {
+        "sentence": "我很好，你呢？",
+        "pinyin": "Wǒ hěn hǎo, nǐ ne?",
+        "translation": "У меня все хорошо, а у тебя?"
+      },
+      {
+        "sentence": "我的书呢？",
+        "pinyin": "Wǒ de shū ne?",
+        "translation": "Где моя книга? (А как же моя книга?)"
+      }
+    ]
+  },
+  {
+    "id": "hsk1_gram_15",
+    "title": "Модальный глагол 会 (huì) - уметь",
+    "pattern": "Субъект + 会 + Глагол",
+    "hskLevel": "hsk1",
+    "category": "grammar",
+    "tags": [
+      "modal_verbs"
+    ],
+    "description": "Означает 'уметь, мочь', когда навык приобретен через обучение (например, говорить на языке, водить машину, готовить).",
+    "examples": [
+      {
+        "sentence": "我会说汉语。",
+        "pinyin": "Wǒ huì shuō Hànyǔ.",
+        "translation": "Я умею говорить по-китайски."
+      }
+    ]
+  },
+  {
+    "id": "hsk1_mw_02",
+    "title": "Счетное слово 本 (běn)",
+    "pattern": "Число + 本 + Существительное",
+    "hskLevel": "hsk1",
+    "category": "measure_words",
+    "tags": [
+      "measure_words"
+    ],
+    "description": "Счетное слово для книг, журналов, словарей (для любых предметов в переплете).",
+    "examples": [
+      {
+        "sentence": "一本书",
+        "pinyin": "yì běn shū",
+        "translation": "Одна книга"
+      }
+    ]
+  },
+  {
+    "id": "hsk1_lex_02",
+    "title": "Выражение возраста с 岁 (suì)",
+    "pattern": "Субъект + Число + 岁",
+    "hskLevel": "hsk1",
+    "category": "lexical",
+    "tags": [
+      "time_words",
+      "numbers"
+    ],
+    "description": "岁 означает 'лет/год (о возрасте)'. Глагол 是 (быть) или 有 (иметь) НЕ ИСПОЛЬЗУЕТСЯ.",
+    "examples": [
+      {
+        "sentence": "我二十岁。",
+        "pinyin": "Wǒ èrshí suì.",
+        "translation": "Мне 20 лет."
+      }
+    ]
+  },
+  {
+    "id": "hsk1_gram_16",
+    "title": "Вопрос о месте с 哪儿 (nǎr)",
+    "pattern": "В начале или конце: 哪儿 + ... / ... + 哪儿",
+    "hskLevel": "hsk1",
+    "category": "grammar",
+    "tags": [
+      "questions",
+      "location"
+    ],
+    "description": "Означает 'Где / Куда'. Является вопросительным местоимением.",
+    "examples": [
+      {
+        "sentence": "你去哪儿？",
+        "pinyin": "Nǐ qù nǎr?",
+        "translation": "Куда ты идешь?"
+      },
+      {
+        "sentence": "他在哪儿？",
+        "pinyin": "Tā zài nǎr?",
+        "translation": "Где он находится?"
+      }
+    ]
+  },
+  {
+    "id": "hsk1_gram_17",
+    "title": "Вопросительное слово 哪 (nǎ) - Который?",
+    "pattern": "哪 + Счетное слово + Существительное",
+    "hskLevel": "hsk1",
+    "category": "grammar",
+    "tags": [
+      "questions",
+      "pronouns"
+    ],
+    "description": "Означает 'какой' или 'который' из нескольких. Обязательно требует счетное слово перед существительным.",
+    "examples": [
+      {
+        "sentence": "你是哪国人？",
+        "pinyin": "Nǐ shì nǎ guó rén?",
+        "translation": "Из какой ты страны? (Кто ты по национальности?)"
+      },
+      {
+        "sentence": "你喜欢哪本书？",
+        "pinyin": "Nǐ xǐhuan nǎ běn shū?",
+        "translation": "Какая (которая) книга тебе нравится?"
+      }
+    ]
+  },
+  {
+    "id": "hsk1_gram_18",
+    "title": "Множественное число с 们 (men)",
+    "pattern": "Местоимение/Сущ. + 们",
+    "hskLevel": "hsk1",
+    "category": "grammar",
+    "tags": [
+      "pronouns",
+      "plurals"
+    ],
+    "description": "Суффикс 们 используется с личными местоимениями и существительными, обозначающими людей, для создания множественного числа.",
+    "examples": [
+      {
+        "sentence": "我们是学生。",
+        "pinyin": "Wǒmen shì xuéshēng.",
+        "translation": "Мы студенты."
+      },
+      {
+        "sentence": "老师们好！",
+        "pinyin": "Lǎoshīmen hǎo!",
+        "translation": "Здравствуйте, учителя!"
+      }
+    ]
+  },
+  {
+    "id": "hsk1_gram_19",
+    "title": "Союз 和 (hé) - И",
+    "pattern": "Существительное 1 + 和 + Существительное 2",
+    "hskLevel": "hsk1",
+    "category": "grammar",
+    "tags": [
+      "conjunctions"
+    ],
+    "description": "Используется ТОЛЬКО для соединения существительных или местоимений. Им НЕЛЬЗЯ соединять глаголы, прилагательные или целые предложения.",
+    "examples": [
+      {
+        "sentence": "我和你。",
+        "pinyin": "Wǒ hé nǐ.",
+        "translation": "Я и ты."
+      },
+      {
+        "sentence": "苹果和香蕉",
+        "pinyin": "Píngguǒ hé xiāngjiāo",
+        "translation": "Яблоки и бананы."
+      }
+    ]
+  },
+  {
+    "id": "hsk1_gram_20",
+    "title": "Модальный глагол 想 (xiǎng) - Хотеть",
+    "pattern": "Субъект + 想 + Глагол",
+    "hskLevel": "hsk1",
+    "category": "grammar",
+    "tags": [
+      "modal_verbs"
+    ],
+    "description": "Выражает желание, намерение или планирование сделать что-то ('хочу', 'собираюсь'). Также переводится как 'скучать' (想你).",
+    "examples": [
+      {
+        "sentence": "我想喝茶。",
+        "pinyin": "Wǒ xiǎng hē chá.",
+        "translation": "Я хочу выпить чаю."
+      },
+      {
+        "sentence": "我想去中国。",
+        "pinyin": "Wǒ xiǎng qù Zhōngguó.",
+        "translation": "Я хочу (планирую) поехать в Китай."
+      }
+    ]
+  },
+  {
+    "id": "hsk1_gram_21",
+    "title": "Модальный глагол 能 (néng) - Мочь / Быть в состоянии",
+    "pattern": "Субъект + 能 + Глагол",
+    "hskLevel": "hsk1",
+    "category": "grammar",
+    "tags": [
+      "modal_verbs"
+    ],
+    "description": "Означает физическую способность, возможность или разрешение сделать что-либо ('могу', 'можно').",
+    "examples": [
+      {
+        "sentence": "你能来吗？",
+        "pinyin": "Nǐ néng lái ma?",
+        "translation": "Ты сможешь прийти?"
+      },
+      {
+        "sentence": "我能坐这儿吗？",
+        "pinyin": "Wǒ néng zuò zhèr ma?",
+        "translation": "Можно я сяду здесь?"
+      }
+    ]
+  },
+  {
+    "id": "hsk1_gram_22",
+    "title": "Наречие степени 太 (tài) - Слишком",
+    "pattern": "太 + Прилагательное + 了",
+    "hskLevel": "hsk1",
+    "category": "grammar",
+    "tags": [
+      "adverbs",
+      "degree"
+    ],
+    "description": "Используется для выражения чрезмерной степени. Почти всегда работает в паре с частицей 了 в конце.",
+    "examples": [
+      {
+        "sentence": "太贵了！",
+        "pinyin": "Tài guì le!",
+        "translation": "Слишком дорого!"
+      },
+      {
+        "sentence": "太好了！",
+        "pinyin": "Tài hǎo le!",
+        "translation": "Прекрасно! (Слишком хорошо)"
+      }
+    ]
+  },
+  {
+    "id": "hsk1_gram_23",
+    "title": "Наречие 都 (dōu) - Все / Обо",
+    "pattern": "Субъект (мн.ч.) + 都 + Глагол/Прилагательное",
+    "hskLevel": "hsk1",
+    "category": "grammar",
+    "tags": [
+      "adverbs"
+    ],
+    "description": "Переводится как 'все', 'оба'. В китайском 都 ставится ПЕРЕД глаголом или прилагательным, а не после.",
+    "examples": [
+      {
+        "sentence": "我们都喜欢吃苹果。",
+        "pinyin": "Wǒmen dōu xǐhuan chī píngguǒ.",
+        "translation": "Мы все любим есть яблоки."
+      },
+      {
+        "sentence": "他们都是学生。",
+        "pinyin": "Tāmen dōu shì xuéshēng.",
+        "translation": "Они оба/все - студенты."
+      }
+    ]
+  },
+  {
+    "id": "hsk1_gram_24",
+    "title": "Вопросительное слово 怎么 (zěnme) - Как?",
+    "pattern": "怎么 + Глагол",
+    "hskLevel": "hsk1",
+    "category": "grammar",
+    "tags": [
+      "questions",
+      "adverbs"
+    ],
+    "description": "Спрашивает о способе действия: 'как сделать что-либо?'.",
+    "examples": [
+      {
+        "sentence": "这个字怎么读？",
+        "pinyin": "Zhège zì zěnme dú?",
+        "translation": "Как читается этот иероглиф?"
+      },
+      {
+        "sentence": "去火车站怎么走？",
+        "pinyin": "Qù huǒchēzhàn zěnme zǒu?",
+        "translation": "Как дойти (доехать) до вокзала?"
+      }
+    ]
+  },
+  {
+    "id": "hsk1_gram_25",
+    "title": "Вопрос о состоянии 怎么样 (zěnmeyàng) - Как насчет? / Каков?",
+    "pattern": "Тема + 怎么样？",
+    "hskLevel": "hsk1",
+    "category": "grammar",
+    "tags": [
+      "questions",
+      "adjectives"
+    ],
+    "description": "Используется, чтобы узнать чье-то мнение, спросить о состоянии дел или о погоде.",
+    "examples": [
+      {
+        "sentence": "今天天气怎么样？",
+        "pinyin": "Jīntiān tiānqì zěnmeyàng?",
+        "translation": "Как сегодня погода?"
+      },
+      {
+        "sentence": "这本书怎么样？",
+        "pinyin": "Zhè běn shū zěnmeyàng?",
+        "translation": "Как тебе эта книга?"
+      }
+    ]
+  },
+  {
+    "id": "hsk1_mw_03",
+    "title": "Счетное слово 块 (kuài) - Кусок / Юань",
+    "pattern": "Число + 块 + (钱)",
+    "hskLevel": "hsk1",
+    "category": "measure_words",
+    "tags": [
+      "measure_words",
+      "money"
+    ],
+    "description": "Используется для кусковых предметов, но в HSK 1 чаще всего выступает как разговорное счетное слово для денег (юань).",
+    "examples": [
+      {
+        "sentence": "十块钱",
+        "pinyin": "shí kuài qián",
+        "translation": "Десять юаней"
+      },
+      {
+        "sentence": "一块手表",
+        "pinyin": "yí kuài shǒubiǎo",
+        "translation": "Одни наручные часы"
+      }
+    ]
+  },
+  {
+    "id": "hsk1_lex_03",
+    "title": "Выражение времени (Часы и минуты)",
+    "pattern": "Число + 点 (diǎn) + Число + 分 (fēn)",
+    "hskLevel": "hsk1",
+    "category": "lexical",
+    "tags": [
+      "time_words",
+      "numbers"
+    ],
+    "description": "点 означает 'час', 分 — 'минута'. Для половины часа используется 半 (bàn).",
+    "examples": [
+      {
+        "sentence": "八点四十分",
+        "pinyin": "bā diǎn sìshí fēn",
+        "translation": "8 часов 40 минут"
+      },
+      {
+        "sentence": "九点半",
+        "pinyin": "jiǔ diǎn bàn",
+        "translation": "Половина десятого (9:30)"
+      }
+    ]
+  },
+  {
+    "id": "hsk1_lex_04",
+    "title": "Дни недели (星期)",
+    "pattern": "星期 + Число (1-6) / 天/日",
+    "hskLevel": "hsk1",
+    "category": "lexical",
+    "tags": [
+      "time_words"
+    ],
+    "description": "Дни недели образуются от слова 星期 (xīngqī) + цифра от 1 (понедельник) до 6 (суббота). Воскресенье — это 星期天 или 星期日.",
+    "examples": [
+      {
+        "sentence": "星期三",
+        "pinyin": "xīngqī sān",
+        "translation": "Среда"
+      },
+      {
+        "sentence": "星期天",
+        "pinyin": "xīngqī tiān",
+        "translation": "Воскресенье"
+      }
+    ]
+  },
+  {
+    "id": "hsk1_lex_05",
+    "title": "Чтение годов",
+    "pattern": "Цифра + Цифра + Цифра + Цифра + 年 (nián)",
+    "hskLevel": "hsk1",
+    "category": "lexical",
+    "tags": [
+      "time_words",
+      "numbers"
+    ],
+    "description": "При чтении годов каждая цифра произносится отдельно. Ноль — 零 (líng).",
+    "examples": [
+      {
+        "sentence": "二零二二年",
+        "pinyin": "èr líng èr èr nián",
+        "translation": "2022 год"
+      }
+    ]
+  },
+  {
+    "id": "hsk1_gram_26",
+    "title": "Частица 了 (le) - Изменение состояния",
+    "pattern": "Утверждение + 了",
+    "hskLevel": "hsk1",
+    "category": "grammar",
+    "tags": [
+      "particles",
+      "aspects"
+    ],
+    "description": "В конце предложения 了 часто указывает на то, что ситуация изменилась (пошел дождь, кто-то заболел, наступила весна).",
+    "examples": [
+      {
+        "sentence": "下雨了。",
+        "pinyin": "Xià yǔ le.",
+        "translation": "Пошел дождь. (До этого не было)"
+      },
+      {
+        "sentence": "我不买了。",
+        "pinyin": "Wǒ bù mǎi le.",
+        "translation": "Я больше не покупаю. (Передумал)"
+      }
+    ]
+  },
+  {
+    "id": "hsk1_mw_04",
+    "title": "Указатель множественного числа 些 (xiē)",
+    "pattern": "这/那/哪 + 些 + Существительное",
+    "hskLevel": "hsk1",
+    "category": "measure_words",
+    "tags": [
+      "measure_words",
+      "plurals"
+    ],
+    "description": "Заменяет счетное слово, когда речь идет о неопределенном, но небольшом количестве предметов ('эти', 'те', 'какие').",
+    "examples": [
+      {
+        "sentence": "这些人",
+        "pinyin": "zhè xiē rén",
+        "translation": "Эти люди"
+      },
+      {
+        "sentence": "我买了些苹果。",
+        "pinyin": "Wǒ mǎi le xiē píngguǒ.",
+        "translation": "Я купил немного яблок."
+      }
+    ]
+  },
+  {
+    "id": "hsk1_gram_27",
+    "title": "Локализованные существительные (上, 下, 里)",
+    "pattern": "Существительное + 上 / 下 / 里",
+    "hskLevel": "hsk1",
+    "category": "grammar",
+    "tags": [
+      "location",
+      "nouns"
+    ],
+    "description": "Чтобы сказать 'на столе', 'в чашке' или 'под стулом', слова места ставятся ПОСЛЕ существительного.",
+    "examples": [
+      {
+        "sentence": "桌子上",
+        "pinyin": "zhuōzi shàng",
+        "translation": "На столе"
+      },
+      {
+        "sentence": "学校里",
+        "pinyin": "xuéxiào lǐ",
+        "translation": "В школе"
+      }
+    ]
+  },
+  {
+    "id": "hsk1_gram_28",
+    "title": "Последовательные действия с 去 (qù) / 来 (lái)",
+    "pattern": "Субъект + 去/来 + Место + Глагол",
+    "hskLevel": "hsk1",
+    "category": "grammar",
+    "tags": [
+      "sentence_structure",
+      "verbs"
+    ],
+    "description": "Когда мы идем/приходим куда-то, чтобы что-то сделать, цель пишется в конце: Пойти + Куда + Зачем.",
+    "examples": [
+      {
+        "sentence": "我去商店买苹果。",
+        "pinyin": "Wǒ qù shāngdiàn mǎi píngguǒ.",
+        "translation": "Я иду в магазин покупать яблоки."
+      },
+      {
+        "sentence": "他来我家吃饭。",
+        "pinyin": "Tā lái wǒ jiā chī fàn.",
+        "translation": "Он пришел ко мне домой поесть."
+      }
+    ]
+  },
+  {
+    "id": "hsk1_lex_06",
+    "title": "Чтение номеров телефонов",
+    "pattern": "Цифры читаются по одной, 1 = yāo",
+    "hskLevel": "hsk1",
+    "category": "lexical",
+    "tags": [
+      "numbers",
+      "special_structures"
+    ],
+    "description": "В номерах телефонов, комнат и автобусов цифра 1 всегда читается как 'yāo', чтобы не перепутать с 7 (qī).",
+    "examples": [
+      {
+        "sentence": "110 (полиция)",
+        "pinyin": "yāo yāo líng",
+        "translation": "1-1-0"
+      },
+      {
+        "sentence": "他的电话是 813",
+        "pinyin": "Tā de diànhuà shì bā yāo sān",
+        "translation": "Его телефон 8-1-3"
+      }
+    ]
+  },
+  {
+    "id": "hsk1_col_01",
+    "title": "Представление имени с 叫 (jiào)",
+    "pattern": "Субъект + 叫 + Имя",
+    "hskLevel": "hsk1",
+    "category": "collocation",
+    "tags": [
+      "verbs"
+    ],
+    "description": "Глагол 叫 (звать/называть) используется для представления себя или кого-то другого.",
+    "examples": [
+      {
+        "sentence": "我叫玛丽。",
+        "pinyin": "Wǒ jiào Mǎlì.",
+        "translation": "Меня зовут Мэри."
+      },
+      {
+        "sentence": "你叫什么名字？",
+        "pinyin": "Nǐ jiào shénme míngzi?",
+        "translation": "Как тебя зовут?"
+      }
+    ]
+  },
+  {
+    "id": "hsk1_col_02",
+    "title": "Конструкция 'Приятно познакомиться'",
+    "pattern": "认识 + Субъект + 很高兴",
+    "hskLevel": "hsk1",
+    "category": "collocation",
+    "tags": [
+      "special_structures",
+      "adjectives"
+    ],
+    "description": "Стандартная фраза при знакомстве. Буквально: 'Знать тебя — очень радостно'.",
+    "examples": [
+      {
+        "sentence": "认识你很高兴。",
+        "pinyin": "Rènshi nǐ hěn gāoxìng.",
+        "translation": "Приятно с тобой познакомиться."
+      },
+      {
+        "sentence": "认识你们，我也很高兴。",
+        "pinyin": "Rènshi nǐmen, wǒ yě hěn gāoxìng.",
+        "translation": "Мне тоже очень приятно с вами познакомиться."
+      }
+    ]
+  }
+]

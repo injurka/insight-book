@@ -1,0 +1,27 @@
+const en = {
+  navItemTitle: 'Grammar Rules',
+  notifyActivated: 'Grammar Rules plugin activated!',
+  notifyDeactivated: 'Grammar Rules plugin deactivated.',
+  pageTitle: 'Language Rules',
+  pageSubtitle: 'HSK 1: Learn vocabulary, grammar, and take tests',
+  tabStudy: 'Study Rules',
+  tabTest: 'Testing',
+  searchPlaceholder: 'Search rules...',
+  loadingRules: 'Loading rule set...',
+  rulesNotFound: 'No rules found. Try changing the filter.',
+  loadRulesFirst: 'Please load rules first to take the test.',
+  progressText: 'Question {current} of {total}',
+  scoreText: 'Score: {score}',
+  checkAnswer: 'Check Answer',
+  finishRound: 'Finish Round / Next',
+  nextQuestion: 'Next Question',
+  resetTest: 'Reset Test',
+  catAll: 'All Categories',
+  catGrammar: 'Grammar',
+  catLexical: 'Lexicon',
+  catCollocation: 'Collocations',
+  catMeasureWords: 'Measure Words',
+  levelAll: 'All Levels',
+}
+
+export default en

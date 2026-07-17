@@ -6,6 +6,7 @@
       "name": "@injurka/insight-book",
       "devDependencies": {
         "simple-git-hooks": "^2.13.1",
+        "vue-i18n": "^11.4.6",
       },
     },
     "apps/client": {
@@ -215,6 +216,8 @@
         "@iconify/vue": "^5.0.1",
         "@injurka/insight-book-plugin-api": "workspace:*",
         "vue": "^3.0.0",
+        "vue-i18n": "^11.4.6",
+        "vue-router": "^4.0.0",
       },
     },
   },

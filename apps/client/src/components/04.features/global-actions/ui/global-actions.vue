@@ -187,7 +187,7 @@ async function handleLogout() {
                 @click="openPlugin(item.routeName)"
               >
                 <Icon :icon="item.icon || 'mdi:puzzle-outline'" />
-                <span class="flex-grow">{{ item.title }}</span>
+                <span class="flex-grow">{{ item.titleKey ? t(item.titleKey) : item.title }}</span>
               </button>
               <div class="divider" />
             </template>
@@ -376,7 +376,7 @@ async function handleLogout() {
 
 .divider {
   height: 1px;
-  background-color: var(--border-secondary-color);
+  background-color: var(--border-primary-color);
   margin: 4px 0;
 }
 </style>

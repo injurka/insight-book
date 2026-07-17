@@ -10,9 +10,13 @@ export interface InsightBookPluginContext {
   /** Показать уведомление пользователю */
   notify: (message: string, type?: 'info' | 'success' | 'warning' | 'error') => void
   /** Добавляет элемент в главное навигационное меню приложения */
-  addNavigationItem: (item: { title: string, icon?: string, routeName: string }) => void
+  addNavigationItem: (item: { title: string, titleKey?: string, icon?: string, routeName: string }) => void
   /** Канал связи между плагинами и основной системой */
   events: InsightBookPluginEventBus
+  /** Текущая локаль приложения (например, 'ru', 'en') */
+  locale: string
+  /** Зарегистрировать локализацию для плагина */
+  registerTranslations: (messages: Record<string, any>) => void
 }
 
 export interface InsightBookPlugin {

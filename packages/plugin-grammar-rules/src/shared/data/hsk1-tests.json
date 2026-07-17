@@ -1,0 +1,482 @@
+[
+  {
+    "id": "test_hsk1_gram_01_a",
+    "ruleId": "hsk1_gram_01",
+    "question": "Выберите правильный порядок слов для 'Я ем яблоко':",
+    "options": [
+      "我吃苹果",
+      "我苹果吃",
+      "吃我苹果",
+      "苹果吃我"
+    ],
+    "correctAnswer": "我吃苹果"
+  },
+  {
+    "id": "test_hsk1_gram_02_a",
+    "ruleId": "hsk1_gram_02",
+    "question": "Как спросить 'Ты китаец?'",
+    "options": [
+      "你中国人吗？",
+      "你是中国人吗？",
+      "你是吗中国人？",
+      "吗你是中国人？"
+    ],
+    "correctAnswer": "你是中国人吗？"
+  },
+  {
+    "id": "test_hsk1_gram_03_a",
+    "ruleId": "hsk1_gram_03",
+    "question": "Вставьте пропущенное слово: '他___是老师。' (Он не учитель)",
+    "options": [
+      "没",
+      "不",
+      "无",
+      "很"
+    ],
+    "correctAnswer": "不"
+  },
+  {
+    "id": "test_hsk1_gram_04_a",
+    "ruleId": "hsk1_gram_04",
+    "question": "Как правильно сказать 'У меня нет кошки'?",
+    "options": [
+      "我不有猫",
+      "我没有猫",
+      "我不猫",
+      "没我有猫"
+    ],
+    "correctAnswer": "我没有猫"
+  },
+  {
+    "id": "test_hsk1_mw_01_a",
+    "ruleId": "hsk1_mw_01",
+    "question": "Выберите правильный вариант для 'пять студентов':",
+    "options": [
+      "五本学生",
+      "五个学生",
+      "五学生",
+      "五只学生"
+    ],
+    "correctAnswer": "五个学生"
+  },
+  {
+    "id": "test_hsk1_gram_05_a",
+    "ruleId": "hsk1_gram_05",
+    "question": "Какое предложение грамматически неверно?",
+    "options": [
+      "我是学生。",
+      "他是中国人。",
+      "我很好。",
+      "我是很好。"
+    ],
+    "correctAnswer": "我是很好。"
+  },
+  {
+    "id": "test_hsk1_gram_06_a",
+    "ruleId": "hsk1_gram_06",
+    "question": "Как сказать 'Она красивая'?",
+    "options": [
+      "她是漂亮",
+      "她很漂亮",
+      "她有漂亮",
+      "漂亮她"
+    ],
+    "correctAnswer": "她很漂亮"
+  },
+  {
+    "id": "test_hsk1_gram_07_a",
+    "ruleId": "hsk1_gram_07",
+    "question": "Как сказать 'Та книга'?",
+    "options": [
+      "那书",
+      "那本书",
+      "这书",
+      "这本书"
+    ],
+    "correctAnswer": "那本书"
+  },
+  {
+    "id": "test_hsk1_gram_08_a",
+    "ruleId": "hsk1_gram_08",
+    "question": "Как спросить 'Она кто?'",
+    "options": [
+      "谁是她？",
+      "她是谁？",
+      "谁她？",
+      "她谁是？"
+    ],
+    "correctAnswer": "她是谁？"
+  },
+  {
+    "id": "test_hsk1_gram_09_a",
+    "ruleId": "hsk1_gram_09",
+    "question": "Как сказать 'Что ты ешь?'",
+    "options": [
+      "你什么吃？",
+      "吃你什么？",
+      "你吃什么？",
+      "什么你吃？"
+    ],
+    "correctAnswer": "你吃什么？"
+  },
+  {
+    "id": "test_hsk1_gram_10_a",
+    "ruleId": "hsk1_gram_10",
+    "question": "Выберите правильный вопрос:",
+    "options": [
+      "几人？",
+      "几个人？",
+      "什么人？",
+      "谁个人？"
+    ],
+    "correctAnswer": "几个人？"
+  },
+  {
+    "id": "test_hsk1_gram_11_a",
+    "ruleId": "hsk1_gram_11",
+    "question": "Как спросить 'Сколько это стоит?' (Сколько денег?)",
+    "options": [
+      "几钱？",
+      "多少钱？",
+      "什么钱？",
+      "钱多少？"
+    ],
+    "correctAnswer": "多少钱？"
+  },
+  {
+    "id": "test_hsk1_lex_01_a",
+    "ruleId": "hsk1_lex_01",
+    "question": "Как правильно написать '1 января'?",
+    "options": [
+      "一号一月",
+      "一个月一个号",
+      "一月一号",
+      "月号一一"
+    ],
+    "correctAnswer": "一月一号"
+  },
+  {
+    "id": "test_hsk1_gram_12_a",
+    "ruleId": "hsk1_gram_12",
+    "question": "Как сказать 'Книга учителя'?",
+    "options": [
+      "书的老师",
+      "老师书",
+      "老师的书",
+      "书老师的"
+    ],
+    "correctAnswer": "老师的书"
+  },
+  {
+    "id": "test_hsk1_gram_13_a",
+    "ruleId": "hsk1_gram_13",
+    "question": "Переведите: 'Я в школе'.",
+    "options": [
+      "我去学校",
+      "我是学校",
+      "我在学校",
+      "学校有我"
+    ],
+    "correctAnswer": "我在学校"
+  },
+  {
+    "id": "test_hsk1_gram_14_a",
+    "ruleId": "hsk1_gram_14",
+    "question": "Вставьте пропущенное слово: '我是医生，你___？'",
+    "options": [
+      "吗",
+      "呢",
+      "的",
+      "个"
+    ],
+    "correctAnswer": "呢"
+  },
+  {
+    "id": "test_hsk1_gram_15_a",
+    "ruleId": "hsk1_gram_15",
+    "question": "Как сказать 'Я не умею готовить (делать еду)'?",
+    "options": [
+      "我不做饭",
+      "我没做饭",
+      "我不会做饭",
+      "我做饭不会"
+    ],
+    "correctAnswer": "我不会做饭"
+  },
+  {
+    "id": "test_hsk1_mw_02_a",
+    "ruleId": "hsk1_mw_02",
+    "question": "Заполните пропуск: '两___书' (Две книги).",
+    "options": [
+      "个",
+      "口",
+      "本",
+      "岁"
+    ],
+    "correctAnswer": "本"
+  },
+  {
+    "id": "test_hsk1_lex_02_a",
+    "ruleId": "hsk1_lex_02",
+    "question": "Какое предложение грамматически верное?",
+    "options": [
+      "我是三十岁。",
+      "我有三十岁。",
+      "我三十岁。",
+      "我三十的岁。"
+    ],
+    "correctAnswer": "我三十岁。"
+  },
+  {
+    "id": "test_hsk1_gram_16_a",
+    "ruleId": "hsk1_gram_16",
+    "question": "Как спросить 'Где школа?'",
+    "options": [
+      "学校在哪儿？",
+      "哪儿是学校？",
+      "去学校哪儿？",
+      "学校哪儿在？"
+    ],
+    "correctAnswer": "学校在哪儿？"
+  },
+  {
+    "id": "test_hsk1_gram_17_a",
+    "ruleId": "hsk1_gram_17",
+    "question": "Как спросить 'Какой это человек?'",
+    "options": [
+      "那个人？",
+      "哪个人？",
+      "什么人？",
+      "谁个人？"
+    ],
+    "correctAnswer": "哪个人？"
+  },
+  {
+    "id": "test_hsk1_gram_18_a",
+    "ruleId": "hsk1_gram_18",
+    "question": "Как перевести 'Они'?",
+    "options": [
+      "他",
+      "他们",
+      "我们",
+      "你们"
+    ],
+    "correctAnswer": "他们"
+  },
+  {
+    "id": "test_hsk1_gram_19_a",
+    "ruleId": "hsk1_gram_19",
+    "question": "Выберите неверное использование 和:",
+    "options": [
+      "爸爸和妈妈",
+      "我和他",
+      "我喝茶和吃苹果",
+      "猫和狗"
+    ],
+    "correctAnswer": "我喝茶和吃苹果"
+  },
+  {
+    "id": "test_hsk1_gram_20_a",
+    "ruleId": "hsk1_gram_20",
+    "question": "Как сказать 'Я хочу купить книгу'?",
+    "options": [
+      "我买书想。",
+      "你想买书。",
+      "我想买书。",
+      "书想买我。"
+    ],
+    "correctAnswer": "我想买书。"
+  },
+  {
+    "id": "test_hsk1_gram_21_a",
+    "ruleId": "hsk1_gram_21",
+    "question": "Вставьте пропущенное слово: '他生病了，不___去学校。' (Он заболел, не может пойти в школу)",
+    "options": [
+      "想",
+      "能",
+      "会",
+      "要"
+    ],
+    "correctAnswer": "能"
+  },
+  {
+    "id": "test_hsk1_gram_22_a",
+    "ruleId": "hsk1_gram_22",
+    "question": "Как сказать 'Слишком большое!'?",
+    "options": [
+      "太大！",
+      "太大了！",
+      "大太了！",
+      "很大了！"
+    ],
+    "correctAnswer": "太大了！"
+  },
+  {
+    "id": "test_hsk1_gram_23_a",
+    "ruleId": "hsk1_gram_23",
+    "question": "Где должно стоять 都 в предложении: 'Они все не идут'?",
+    "options": [
+      "都不他们去",
+      "他们不去都",
+      "他们都不去",
+      "不都他们去"
+    ],
+    "correctAnswer": "他们都不去"
+  },
+  {
+    "id": "test_hsk1_gram_24_a",
+    "ruleId": "hsk1_gram_24",
+    "question": "Как спросить 'Как это написать?'",
+    "options": [
+      "怎么写？",
+      "写怎么？",
+      "什么写？",
+      "怎么读？"
+    ],
+    "correctAnswer": "怎么写？"
+  },
+  {
+    "id": "test_hsk1_gram_25_a",
+    "ruleId": "hsk1_gram_25",
+    "question": "Как спросить 'А как этот (предмет)?'",
+    "options": [
+      "这个怎么样？",
+      "这个怎么？",
+      "怎么样这个？",
+      "这个什么？"
+    ],
+    "correctAnswer": "这个怎么样？"
+  },
+  {
+    "id": "test_hsk1_mw_03_a",
+    "ruleId": "hsk1_mw_03",
+    "question": "Как сказать 'Пять юаней'?",
+    "options": [
+      "五本钱",
+      "五个钱",
+      "五块钱",
+      "五十块"
+    ],
+    "correctAnswer": "五块钱"
+  },
+  {
+    "id": "test_hsk1_lex_03_a",
+    "ruleId": "hsk1_lex_03",
+    "question": "Как сказать '10:15'?",
+    "options": [
+      "十点十五分",
+      "十五分十点",
+      "十点十分",
+      "十分十点"
+    ],
+    "correctAnswer": "十点十五分"
+  },
+  {
+    "id": "test_hsk1_lex_04_a",
+    "ruleId": "hsk1_lex_04",
+    "question": "Какой день недели '星期五'?",
+    "options": [
+      "Среда",
+      "Четверг",
+      "Пятница",
+      "Суббота"
+    ],
+    "correctAnswer": "Пятница"
+  },
+  {
+    "id": "test_hsk1_lex_05_a",
+    "ruleId": "hsk1_lex_05",
+    "question": "Как прочитать 1998 год?",
+    "options": [
+      "一千九百九十八年",
+      "一九九八年",
+      "一九八九年",
+      "九九一八年"
+    ],
+    "correctAnswer": "一九九八年"
+  },
+  {
+    "id": "test_hsk1_gram_26_a",
+    "ruleId": "hsk1_gram_26",
+    "question": "Какая частица покажет, что начался дождь ('下雪___' - пошел снег)?",
+    "options": [
+      "吗",
+      "呢",
+      "了",
+      "的"
+    ],
+    "correctAnswer": "了"
+  },
+  {
+    "id": "test_hsk1_mw_04_a",
+    "ruleId": "hsk1_mw_04",
+    "question": "Как сказать 'Те книги'?",
+    "options": [
+      "那本书",
+      "那些书",
+      "那些书们",
+      "那本些书"
+    ],
+    "correctAnswer": "那些书"
+  },
+  {
+    "id": "test_hsk1_gram_27_a",
+    "ruleId": "hsk1_gram_27",
+    "question": "Как сказать 'Внутри чашки' (杯子 - чашка)?",
+    "options": [
+      "里杯子",
+      "杯子里",
+      "杯子上",
+      "在杯子"
+    ],
+    "correctAnswer": "杯子里"
+  },
+  {
+    "id": "test_hsk1_gram_28_a",
+    "ruleId": "hsk1_gram_28",
+    "question": "Выберите правильный порядок слов для 'Я иду в кинотеатр смотреть фильм':",
+    "options": [
+      "去看电影我电影院",
+      "我去电影院看电影",
+      "我在电影院去看电影",
+      "我看电影去电影院"
+    ],
+    "correctAnswer": "我去电影院看电影"
+  },
+  {
+    "id": "test_hsk1_lex_06_a",
+    "ruleId": "hsk1_lex_06",
+    "question": "Как прочесть номер комнаты '312'?",
+    "options": [
+      "三百一十二",
+      "三一二 (sān yī èr)",
+      "三幺二 (sān yāo èr)",
+      "三二一 (sān èr yī)"
+    ],
+    "correctAnswer": "三幺二 (sān yāo èr)"
+  },
+  {
+    "id": "test_hsk1_col_01_a",
+    "ruleId": "hsk1_col_01",
+    "question": "Как перевести 'Его зовут Дэвид'?",
+    "options": [
+      "他是大卫",
+      "他叫大卫",
+      "大卫叫他",
+      "他的名字叫"
+    ],
+    "correctAnswer": "他叫大卫"
+  },
+  {
+    "id": "test_hsk1_col_02_a",
+    "ruleId": "hsk1_col_02",
+    "question": "Как правильно сказать 'Приятно познакомиться'?",
+    "options": [
+      "很高兴认识你。",
+      "认识你很高兴。",
+      "Оба варианта верны",
+      "Ни один вариант"
+    ],
+    "correctAnswer": "Оба варианта верны"
+  }
+]

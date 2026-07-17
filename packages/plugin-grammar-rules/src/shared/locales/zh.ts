@@ -1,0 +1,27 @@
+const zh = {
+  navItemTitle: '语法规则',
+  notifyActivated: '「语法规则」插件已激活！',
+  notifyDeactivated: '「语法规则」插件已停用。',
+  pageTitle: '语言规则',
+  pageSubtitle: 'HSK 1：学习词汇、语法并参加测试',
+  tabStudy: '学习规则',
+  tabTest: '测验',
+  searchPlaceholder: '搜索规则…',
+  loadingRules: '正在加载规则集…',
+  rulesNotFound: '未找到规则，请尝试更改筛选条件。',
+  loadRulesFirst: '请先加载规则，然后再开始测验。',
+  progressText: '第 {current} 题，共 {total} 题',
+  scoreText: '得分：{score}',
+  checkAnswer: '检查答案',
+  finishRound: '完成本轮 / 继续',
+  nextQuestion: '下一题',
+  resetTest: '重置测验',
+  catAll: '所有分类',
+  catGrammar: '语法',
+  catLexical: '词汇',
+  catCollocation: '搭配',
+  catMeasureWords: '量词',
+  levelAll: '所有等级',
+}
+
+export default zh

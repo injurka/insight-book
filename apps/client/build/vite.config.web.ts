@@ -104,6 +104,9 @@ export default defineConfig({
 
           if (id.includes('/src/shared/locales/'))
             return 'app-locales'
+
+          if (id.includes('plugin-grammar-rules'))
+            return 'plugin-grammar-rules'
         },
       },
     },

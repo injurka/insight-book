@@ -17,11 +17,17 @@
       "~/*": [
         "./src/*"
       ],
+      "#/*": [
+        "./src/*"
+      ],
       "@injurka/insight-book-plugin-api": [
         "../../packages/plugin-api/src"
       ],
       "@injurka/insight-book-plugin-grammar-rules": [
         "../../packages/plugin-grammar-rules/src"
+      ],
+      "@injurka/insight-book-plugin-grammar-rules/*": [
+        "../../packages/plugin-grammar-rules/src/*"
       ]
     },
     "resolveJsonModule": true,

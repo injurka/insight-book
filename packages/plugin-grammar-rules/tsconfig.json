@@ -11,6 +11,9 @@
       ],
       "@injurka/insight-book-plugin-grammar-rules": [
         "./src"
+      ],
+      "@injurka/insight-book-plugin-grammar-rules/*": [
+        "./src/*"
       ]
     }
   },

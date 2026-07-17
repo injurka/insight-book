@@ -1,0 +1,925 @@
+[
+  {
+    "id": "hsk2_gram_01",
+    "title": "Частица прошедшего опыта 过 (guo)",
+    "pattern": "Глагол + 过",
+    "hskLevel": "hsk2",
+    "category": "grammar",
+    "tags": [
+      "aspects",
+      "particles"
+    ],
+    "description": "Указывает на то, что действие происходило в прошлом и стало опытом. Переводится как «когда-либо (делал)» или «доводилось». Отрицание строится через 没 (没有).",
+    "examples": [
+      {
+        "sentence": "我去过中国。",
+        "pinyin": "Wǒ qù guo Zhōngguó.",
+        "translation": "Я бывал в Китае."
+      },
+      {
+        "sentence": "我没吃过这个。",
+        "pinyin": "Wǒ méi chī guo zhège.",
+        "translation": "Я это никогда не ел (не пробовал)."
+      }
+    ]
+  },
+  {
+    "id": "hsk2_gram_02",
+    "title": "Продолженное состояние с частицей 着 (zhe)",
+    "pattern": "Глагол + 着",
+    "hskLevel": "hsk2",
+    "category": "grammar",
+    "tags": [
+      "aspects",
+      "particles"
+    ],
+    "description": "Обозначает длительное состояние, результат действия (например: дверь «открыта», он «сидит»). Часто используется для описания фона.",
+    "examples": [
+      {
+        "sentence": "门开着。",
+        "pinyin": "Mén kāi zhe.",
+        "translation": "Дверь открыта."
+      },
+      {
+        "sentence": "她穿着红色的衣服。",
+        "pinyin": "Tā chuān zhe hóngsè de yīfu.",
+        "translation": "Она одета в красную одежду."
+      }
+    ]
+  },
+  {
+    "id": "hsk2_gram_03",
+    "title": "Действие в процессе: 正在 (zhèngzài)",
+    "pattern": "正在 + Глагол (+ 呢)",
+    "hskLevel": "hsk2",
+    "category": "grammar",
+    "tags": [
+      "aspects",
+      "adverbs"
+    ],
+    "description": "Указывает на то, что действие происходит прямо сейчас (аналог Present Continuous). Можно использовать просто 正 или 在. В конце часто ставится 呢.",
+    "examples": [
+      {
+        "sentence": "他正在看书呢。",
+        "pinyin": "Tā zhèngzài kàn shū ne.",
+        "translation": "Он сейчас (в данный момент) читает книгу."
+      },
+      {
+        "sentence": "你在做什么？",
+        "pinyin": "Nǐ zài zuò shénme?",
+        "translation": "Что ты (сейчас) делаешь?"
+      }
+    ]
+  },
+  {
+    "id": "hsk2_gram_04",
+    "title": "Скорое будущее: 要 / 快要 ... 了",
+    "pattern": "要 / 快要 + Глагол/Событие + 了",
+    "hskLevel": "hsk2",
+    "category": "grammar",
+    "tags": [
+      "aspects",
+      "future"
+    ],
+    "description": "Означает «скоро что-то произойдет». Если указано конкретное время (например, 'завтра'), используется 就要...了, а не 快要.",
+    "examples": [
+      {
+        "sentence": "快要下雨了。",
+        "pinyin": "Kuàiyào xià yǔ le.",
+        "translation": "Скоро пойдет дождь."
+      },
+      {
+        "sentence": "八点了，我们要上课了。",
+        "pinyin": "Bā diǎn le, wǒmen yào shàngkè le.",
+        "translation": "Уже 8 часов, у нас скоро начнется урок."
+      }
+    ]
+  },
+  {
+    "id": "hsk2_gram_05",
+    "title": "Сравнение с 比 (bǐ)",
+    "pattern": "A + 比 + B + Прилагательное",
+    "hskLevel": "hsk2",
+    "category": "grammar",
+    "tags": [
+      "comparisons"
+    ],
+    "description": "Используется для сравнения двух объектов. A более (какое-то), чем B. В этой конструкции НЕЛЬЗЯ использовать 很 (нельзя сказать A比B很大).",
+    "examples": [
+      {
+        "sentence": "今天比昨天冷。",
+        "pinyin": "Jīntiān bǐ zuótiān lěng.",
+        "translation": "Сегодня холоднее, чем вчера."
+      },
+      {
+        "sentence": "西瓜比苹果大。",
+        "pinyin": "Xīguā bǐ píngguǒ dà.",
+        "translation": "Арбуз больше яблока."
+      }
+    ]
+  },
+  {
+    "id": "hsk2_gram_06",
+    "title": "Спец. конструкция акцента 是……的 (shì... de)",
+    "pattern": "Субъект + 是 + [Время/Место/Способ] + Глагол + 的",
+    "hskLevel": "hsk2",
+    "category": "grammar",
+    "tags": [
+      "special_structures",
+      "emphasis"
+    ],
+    "description": "Используется, когда факт совершения действия УЖЕ известен, и мы хотим уточнить детали: ГДЕ, КОГДА или КАК это произошло. Глагол 是 часто опускается.",
+    "examples": [
+      {
+        "sentence": "我是昨天来的。",
+        "pinyin": "Wǒ shì zuótiān lái de.",
+        "translation": "Я приехал ВЧЕРА (акцент на времени)."
+      },
+      {
+        "sentence": "你在哪儿买的？",
+        "pinyin": "Nǐ zài nǎr mǎi de?",
+        "translation": "ГДЕ ты это купил? (акцент на месте)."
+      }
+    ]
+  },
+  {
+    "id": "hsk2_gram_07",
+    "title": "Дополнение степени с 得 (de)",
+    "pattern": "Глагол + 得 + Прилагательное / Наречие",
+    "hskLevel": "hsk2",
+    "category": "grammar",
+    "tags": [
+      "complements",
+      "particles"
+    ],
+    "description": "Частица 得 (читается 'de') связывает глагол и его оценку (насколько хорошо/быстро/плохо выполняется действие).",
+    "examples": [
+      {
+        "sentence": "他跑得很快。",
+        "pinyin": "Tā pǎo de hěn kuài.",
+        "translation": "Он бегает очень быстро."
+      },
+      {
+        "sentence": "你汉语说得很好。",
+        "pinyin": "Nǐ Hànyǔ shuō de hěn hǎo.",
+        "translation": "Ты очень хорошо говоришь по-китайски."
+      }
+    ]
+  },
+  {
+    "id": "hsk2_gram_08",
+    "title": "Запрет: 别 (bié) / 不要 (búyào)",
+    "pattern": "别 / 不要 + Глагол (+ 了)",
+    "hskLevel": "hsk2",
+    "category": "grammar",
+    "tags": [
+      "imperatives",
+      "negation"
+    ],
+    "description": "Используется для повелительного наклонения со значением запрета: «Не делай этого!». В конце часто добавляют 了.",
+    "examples": [
+      {
+        "sentence": "别说话了！",
+        "pinyin": "Bié shuōhuà le!",
+        "translation": "Не разговаривай(те)!"
+      },
+      {
+        "sentence": "不要吃太多。",
+        "pinyin": "Búyào chī tài duō.",
+        "translation": "Не ешь слишком много."
+      }
+    ]
+  },
+  {
+    "id": "hsk2_gram_09",
+    "title": "Союз: 因为……所以 (yīnwèi... suǒyǐ)",
+    "pattern": "因为 + Причина，所以 + Следствие",
+    "hskLevel": "hsk2",
+    "category": "grammar",
+    "tags": [
+      "conjunctions"
+    ],
+    "description": "Классическая связка «Потому что ..., поэтому ...». В отличие от русского языка, в китайском часто ставятся обе части союза.",
+    "examples": [
+      {
+        "sentence": "因为下雨，所以我没去。",
+        "pinyin": "Yīnwèi xià yǔ, suǒyǐ wǒ méi qù.",
+        "translation": "Так как шел дождь, (поэтому) я не пошел."
+      }
+    ]
+  },
+  {
+    "id": "hsk2_gram_10",
+    "title": "Союз: 虽然……但是 (suīrán... dànshì)",
+    "pattern": "虽然 + Уступка，但是 + Контраст",
+    "hskLevel": "hsk2",
+    "category": "grammar",
+    "tags": [
+      "conjunctions"
+    ],
+    "description": "Связка «Хотя ..., но ...». Как и с 因为/所以, китайцы предпочитают использовать обе части союза.",
+    "examples": [
+      {
+        "sentence": "虽然很贵，但是我买了。",
+        "pinyin": "Suīrán hěn guì, dànshì wǒ mǎi le.",
+        "translation": "Хотя это очень дорого, но я купил."
+      }
+    ]
+  },
+  {
+    "id": "hsk2_gram_11",
+    "title": "Частица предложения 吧 (ba)",
+    "pattern": "Предложение + 吧",
+    "hskLevel": "hsk2",
+    "category": "grammar",
+    "tags": [
+      "particles"
+    ],
+    "description": "Используется в конце предложения для смягчения тона, выражения побуждения («давай...»), предположения или догадки («ведь так?»).",
+    "examples": [
+      {
+        "sentence": "我们走吧。",
+        "pinyin": "Wǒmen zǒu ba.",
+        "translation": "Пойдемте (Давайте пойдем)."
+      },
+      {
+        "sentence": "你是俄罗斯人吧？",
+        "pinyin": "Nǐ shì Éluósī rén ba?",
+        "translation": "Ты русский, верно? (Догадка)"
+      }
+    ]
+  },
+  {
+    "id": "hsk2_gram_12",
+    "title": "Предлоги направления и расстояния: 从...到... (cóng... dào...)",
+    "pattern": "从 + A + 到 + B",
+    "hskLevel": "hsk2",
+    "category": "grammar",
+    "tags": [
+      "prepositions",
+      "location",
+      "time_words"
+    ],
+    "description": "Означает «От ... до ...». Может использоваться как для пространства (места), так и для времени.",
+    "examples": [
+      {
+        "sentence": "从八点到九点。",
+        "pinyin": "Cóng bā diǎn dào jiǔ diǎn.",
+        "translation": "С 8 часов до 9 часов."
+      },
+      {
+        "sentence": "从家到学校很远。",
+        "pinyin": "Cóng jiā dào xuéxiào hěn yuǎn.",
+        "translation": "От дома до школы очень далеко."
+      }
+    ]
+  },
+  {
+    "id": "hsk2_gram_13",
+    "title": "Расстояние с 离 (lí)",
+    "pattern": "A + 离 + B + Очень/Не очень + Далеко/Близко",
+    "hskLevel": "hsk2",
+    "category": "grammar",
+    "tags": [
+      "prepositions",
+      "location"
+    ],
+    "description": "Используется для указания расстояния между точкой А и точкой Б.",
+    "examples": [
+      {
+        "sentence": "我家离公司很近。",
+        "pinyin": "Wǒ jiā lí gōngsī hěn jìn.",
+        "translation": "Мой дом находится очень близко к (от) компании."
+      }
+    ]
+  },
+  {
+    "id": "hsk2_gram_14",
+    "title": "Наречие 就 (jiù) - Рано / Быстро / Сразу",
+    "pattern": "Время + 就 + Глагол + 了",
+    "hskLevel": "hsk2",
+    "category": "grammar",
+    "tags": [
+      "adverbs",
+      "time_words"
+    ],
+    "description": "Указывает на то, что действие произошло рано, быстро или легко по мнению говорящего.",
+    "examples": [
+      {
+        "sentence": "他早上六点就起床了。",
+        "pinyin": "Tā zǎoshang liù diǎn jiù qǐchuáng le.",
+        "translation": "Он встал (аж) в 6 утра."
+      }
+    ]
+  },
+  {
+    "id": "hsk2_gram_15",
+    "title": "Наречие 才 (cái) - Только / Поздно",
+    "pattern": "Время + 才 + Глагол (без 了)",
+    "hskLevel": "hsk2",
+    "category": "grammar",
+    "tags": [
+      "adverbs",
+      "time_words"
+    ],
+    "description": "Полная противоположность 就. Указывает на то, что действие произошло поздно или с трудом. С 才 частица 了 не используется!",
+    "examples": [
+      {
+        "sentence": "他晚上十点才回家。",
+        "pinyin": "Tā wǎnshang shí diǎn cái huí jiā.",
+        "translation": "Он вернулся домой только (аж) в 10 вечера."
+      }
+    ]
+  },
+  {
+    "id": "hsk2_gram_16",
+    "title": "Наречие 还 (hái) - Всё ещё / К тому же",
+    "pattern": "Субъект + 还 + Глагол/Прилагательное",
+    "hskLevel": "hsk2",
+    "category": "grammar",
+    "tags": [
+      "adverbs"
+    ],
+    "description": "Обозначает продолжение действия/состояния («всё ещё») или добавление информации («а также», «ещё»).",
+    "examples": [
+      {
+        "sentence": "我还在睡觉。",
+        "pinyin": "Wǒ hái zài shuìjiào.",
+        "translation": "Я всё ещё сплю."
+      },
+      {
+        "sentence": "我买了一个苹果，还买了一个西瓜。",
+        "pinyin": "Wǒ mǎi le yí ge píngguǒ, hái mǎi le yí ge xīguā.",
+        "translation": "Я купил яблоко, а ещё купил арбуз."
+      }
+    ]
+  },
+  {
+    "id": "hsk2_gram_17",
+    "title": "Модальный глагол Можно / Разрешено - 可以 (kěyǐ)",
+    "pattern": "Субъект + 可以 + Глагол",
+    "hskLevel": "hsk2",
+    "category": "grammar",
+    "tags": [
+      "modal_verbs"
+    ],
+    "description": "Выражает разрешение или объективную возможность. «Можно мне...?»",
+    "examples": [
+      {
+        "sentence": "我可以进来吗？",
+        "pinyin": "Wǒ kěyǐ jìnlái ma?",
+        "translation": "Можно я войду?"
+      },
+      {
+        "sentence": "这儿可以抽烟吗？",
+        "pinyin": "Zhèr kěyǐ chōuyān ma?",
+        "translation": "Здесь можно курить?"
+      }
+    ]
+  },
+  {
+    "id": "hsk2_gram_18",
+    "title": "Разница: 怎么 (zěnme) и 为什么 (wèishénme)",
+    "pattern": "怎么 + Глагол (как?) / 为什么 + Глагол (почему?)",
+    "hskLevel": "hsk2",
+    "category": "grammar",
+    "tags": [
+      "questions"
+    ],
+    "description": "为什么 спрашивает о ПРИЧИНЕ (Почему?). 怎么 обычно спрашивает о СПОСОБЕ (Как?), но в HSK 2 怎么 также может выражать удивление («Как так вышло, что...? / Почему это...?»).",
+    "examples": [
+      {
+        "sentence": "你为什么不吃？",
+        "pinyin": "Nǐ wèishénme bù chī?",
+        "translation": "Почему (по какой причине) ты не ешь?"
+      },
+      {
+        "sentence": "你怎么不吃？",
+        "pinyin": "Nǐ zěnme bù chī?",
+        "translation": "Как так вышло, что ты не ешь? (С удивлением)"
+      }
+    ]
+  },
+  {
+    "id": "hsk2_lex_01",
+    "title": "Местоимение 每 (měi) - Каждый",
+    "pattern": "每 + Счетное слово + Существительное",
+    "hskLevel": "hsk2",
+    "category": "lexical",
+    "tags": [
+      "pronouns",
+      "quantifiers"
+    ],
+    "description": "Переводится как «каждый». Обязательно требует счетное слово после себя (кроме слов 年 и 天, которые сами являются счетными словами). Часто работает в паре с наречием 都.",
+    "examples": [
+      {
+        "sentence": "每个人都喜欢他。",
+        "pinyin": "Měi ge rén dōu xǐhuan tā.",
+        "translation": "Каждый человек (все) его любит."
+      },
+      {
+        "sentence": "我每天都学汉语。",
+        "pinyin": "Wǒ měitiān dōu xué Hànyǔ.",
+        "translation": "Я каждый день учу китайский."
+      }
+    ]
+  },
+  {
+    "id": "hsk2_gram_19",
+    "title": "Усиление с 更 (gèng) - Ещё более",
+    "pattern": "更 + Прилагательное",
+    "hskLevel": "hsk2",
+    "category": "grammar",
+    "tags": [
+      "adverbs",
+      "comparisons",
+      "degree"
+    ],
+    "description": "Используется для усиления качества (сравнительная степень). «Ещё красивее», «Ещё лучше».",
+    "examples": [
+      {
+        "sentence": "这个很好，那个更好。",
+        "pinyin": "Zhège hěn hǎo, nàge gèng hǎo.",
+        "translation": "Этот хорош, а тот — ещё лучше."
+      }
+    ]
+  },
+  {
+    "id": "hsk2_gram_20",
+    "title": "Превосходная степень с 最 (zuì) - Самый",
+    "pattern": "最 + Прилагательное / Псих. Глагол",
+    "hskLevel": "hsk2",
+    "category": "grammar",
+    "tags": [
+      "adverbs",
+      "degree"
+    ],
+    "description": "Образует превосходную степень («самый»). Также может использоваться с глаголами чувств (любить, нравиться).",
+    "examples": [
+      {
+        "sentence": "他是我最好的朋友。",
+        "pinyin": "Tā shì wǒ zuì hǎo de péngyou.",
+        "translation": "Он мой самый лучший друг."
+      },
+      {
+        "sentence": "我最喜欢吃苹果。",
+        "pinyin": "Wǒ zuì xǐhuan chī píngguǒ.",
+        "translation": "Больше всего я люблю есть яблоки."
+      }
+    ]
+  },
+  {
+    "id": "hsk2_gram_21",
+    "title": "Результативные дополнения: 完, 懂, 见",
+    "pattern": "Глагол + 完 / 懂 / 见",
+    "hskLevel": "hsk2",
+    "category": "grammar",
+    "tags": [
+      "complements",
+      "verbs"
+    ],
+    "description": "В китайском языке результат действия выражается прикреплением второго глагола. 完 (закончить/доделать), 懂 (понять), 见 (увидеть/воспринять).",
+    "examples": [
+      {
+        "sentence": "我看完了。",
+        "pinyin": "Wǒ kàn wán le.",
+        "translation": "Я дочитал (досмотрел)."
+      },
+      {
+        "sentence": "我听懂了。",
+        "pinyin": "Wǒ tīng dǒng le.",
+        "translation": "Я понял (на слух)."
+      }
+    ]
+  },
+  {
+    "id": "hsk2_gram_22",
+    "title": "Результативное дополнение 好 (hǎo)",
+    "pattern": "Глагол + 好 + 了",
+    "hskLevel": "hsk2",
+    "category": "grammar",
+    "tags": [
+      "complements",
+      "verbs"
+    ],
+    "description": "Когда 好 ставится после глагола, это означает, что действие не просто завершено, а завершено успешно или с хорошим результатом, всё готово.",
+    "examples": [
+      {
+        "sentence": "饭做好了。",
+        "pinyin": "Fàn zuò hǎo le.",
+        "translation": "Еда приготовлена (и готова к подаче)."
+      },
+      {
+        "sentence": "我想好了。",
+        "pinyin": "Wǒ xiǎng hǎo le.",
+        "translation": "Я всё обдумал (и принял решение)."
+      }
+    ]
+  },
+  {
+    "id": "hsk2_gram_23",
+    "title": "Результативное дополнение 错 (cuò)",
+    "pattern": "Глагол + 错 + 了",
+    "hskLevel": "hsk2",
+    "category": "grammar",
+    "tags": [
+      "complements",
+      "verbs"
+    ],
+    "description": "Указывает на то, что действие было совершено ошибочно или привело к неправильному результату.",
+    "examples": [
+      {
+        "sentence": "你打错电话了。",
+        "pinyin": "Nǐ dǎ cuò diànhuà le.",
+        "translation": "Вы ошиблись номером (дозвонились не туда)."
+      },
+      {
+        "sentence": "我写错了。",
+        "pinyin": "Wǒ xiě cuò le.",
+        "translation": "Я написал с ошибкой (неправильно)."
+      }
+    ]
+  },
+  {
+    "id": "hsk2_gram_24",
+    "title": "Модификаторы направления: 来 (lái) и 去 (qù)",
+    "pattern": "Глагол движения + 来 / 去",
+    "hskLevel": "hsk2",
+    "category": "grammar",
+    "tags": [
+      "complements",
+      "verbs"
+    ],
+    "description": "Указывают на направление действия относительно говорящего. 来 (к говорящему), 去 (от говорящего). Используются с 进 (входить), 出 (выходить), 回 (возвращаться) и др.",
+    "examples": [
+      {
+        "sentence": "请进门来。",
+        "pinyin": "Qǐng jìn mén lái.",
+        "translation": "Пожалуйста, заходи в дверь (говорящий внутри)."
+      },
+      {
+        "sentence": "他出去了。",
+        "pinyin": "Tā chū qù le.",
+        "translation": "Он вышел (говорящий остался внутри)."
+      }
+    ]
+  },
+  {
+    "id": "hsk2_lex_02",
+    "title": "Число 2: Разница между 二 (èr) и 两 (liǎng)",
+    "pattern": "二 для номеров / 两 для количества",
+    "hskLevel": "hsk2",
+    "category": "lexical",
+    "tags": [
+      "numbers",
+      "measure_words"
+    ],
+    "description": "二 используется при счете, в математике и номерах (телефона, комнаты). 两 используется перед счетными словами для указания количества (две штуки, два человека).",
+    "examples": [
+      {
+        "sentence": "两个人",
+        "pinyin": "liǎng ge rén",
+        "translation": "Два человека"
+      },
+      {
+        "sentence": "二零二年",
+        "pinyin": "èr líng èr nián",
+        "translation": "202 год"
+      }
+    ]
+  },
+  {
+    "id": "hsk2_gram_25",
+    "title": "Повторение (редупликация) глаголов",
+    "pattern": "V + V или V + 一 + V",
+    "hskLevel": "hsk2",
+    "category": "grammar",
+    "tags": [
+      "verbs"
+    ],
+    "description": "Глаголы повторяют, чтобы придать действию оттенок краткости, легкости или попытки («сделать что-то немножко, попробовать»).",
+    "examples": [
+      {
+        "sentence": "你看一看。",
+        "pinyin": "Nǐ kàn yi kàn.",
+        "translation": "Взгляни-ка / Посмотри."
+      },
+      {
+        "sentence": "我们休息休息吧。",
+        "pinyin": "Wǒmen xiūxi xiūxi ba.",
+        "translation": "Давайте немного отдохнем."
+      }
+    ]
+  },
+  {
+    "id": "hsk2_gram_26",
+    "title": "Разница: 一点儿 (yìdiǎnr) и 有点儿 (yǒudiǎnr)",
+    "pattern": "有点儿 + Прил. / Глагол + 一点儿 (+ Сущ.)",
+    "hskLevel": "hsk2",
+    "category": "grammar",
+    "tags": [
+      "adverbs",
+      "adjectives"
+    ],
+    "description": "有点儿 значит «слегка/немного» (часто с негативным оттенком) и ставится ПЕРЕД прилагательным. 一点儿 ставится ПОСЛЕ прилагательного (при сравнении) или глагола (немного чего-то).",
+    "examples": [
+      {
+        "sentence": "今天有点儿冷。",
+        "pinyin": "Jīntiān yǒudiǎnr lěng.",
+        "translation": "Сегодня холодновато (мне это не нравится)."
+      },
+      {
+        "sentence": "请说慢一点儿。",
+        "pinyin": "Qǐng shuō màn yìdiǎnr.",
+        "translation": "Пожалуйста, говорите немного медленнее."
+      }
+    ]
+  },
+  {
+    "id": "hsk2_gram_27",
+    "title": "Снова в прошлом и будущем: 又 (yòu) и 再 (zài)",
+    "pattern": "又 + Глагол (Прошлое) / 再 + Глагол (Будущее)",
+    "hskLevel": "hsk2",
+    "category": "grammar",
+    "tags": [
+      "adverbs",
+      "time_words"
+    ],
+    "description": "И 又, и 再 переводятся как «снова / опять». Но 又 используется для действий, которые уже повторились (в прошлом), а 再 — для действий, которые повторятся в будущем.",
+    "examples": [
+      {
+        "sentence": "他昨天没来，今天又没来。",
+        "pinyin": "Tā zuótiān méi lái, jīntiān yòu méi lái.",
+        "translation": "Вчера он не пришел, и сегодня ОПЯТЬ не пришел (факт)."
+      },
+      {
+        "sentence": "欢迎下次再来！",
+        "pinyin": "Huānyíng xià cì zài lái!",
+        "translation": "Приходите к нам ЕЩЁ! (в будущем)"
+      }
+    ]
+  },
+  {
+    "id": "hsk2_gram_28",
+    "title": "Предлог 对 (duì) - К, По отношению к",
+    "pattern": "A + 对 + B + Глагол/Прилагательное",
+    "hskLevel": "hsk2",
+    "category": "grammar",
+    "tags": [
+      "prepositions"
+    ],
+    "description": "Вводит объект, на который направлено действие, отношение или влияние.",
+    "examples": [
+      {
+        "sentence": "吃苹果对身体好。",
+        "pinyin": "Chī píngguǒ duì shēntǐ hǎo.",
+        "translation": "Есть яблоки полезно ДЛЯ здоровья."
+      },
+      {
+        "sentence": "他对我很热情。",
+        "pinyin": "Tā duì wǒ hěn rèqíng.",
+        "translation": "Он ко мне очень радушен."
+      }
+    ]
+  },
+  {
+    "id": "hsk2_col_01",
+    "title": "Делать что-то вместе - 一起 (yìqǐ)",
+    "pattern": "A 和 B + 一起 + Глагол",
+    "hskLevel": "hsk2",
+    "category": "collocation",
+    "tags": [
+      "adverbs",
+      "sentence_structure"
+    ],
+    "description": "Наречие 一起 всегда ставится ПЕРЕД глаголом. Часто употребляется вместе с предлогом 和 (с кем-то).",
+    "examples": [
+      {
+        "sentence": "我们一起去吃饭吧。",
+        "pinyin": "Wǒmen yìqǐ qù chī fàn ba.",
+        "translation": "Давайте вместе пойдем поедим."
+      },
+      {
+        "sentence": "我想和你一起去。",
+        "pinyin": "Wǒ xiǎng hé nǐ yìqǐ qù.",
+        "translation": "Я хочу пойти вместе с тобой."
+      }
+    ]
+  },
+  {
+    "id": "hsk2_gram_29",
+    "title": "Модальный глагол Надо/Хочу - 要 (yào)",
+    "pattern": "Субъект + 要 + Существительное / Глагол",
+    "hskLevel": "hsk2",
+    "category": "grammar",
+    "tags": [
+      "modal_verbs"
+    ],
+    "description": "1. Желание получить что-то («мне нужно / я хочу»). 2. Намерение или необходимость совершить действие («надо / собираюсь»).",
+    "examples": [
+      {
+        "sentence": "我要一杯水。",
+        "pinyin": "Wǒ yào yì bēi shuǐ.",
+        "translation": "Мне нужен (я хочу) стакан воды."
+      },
+      {
+        "sentence": "我要去学习。",
+        "pinyin": "Wǒ yào qù xuéxí.",
+        "translation": "Мне нужно / я собираюсь пойти учиться."
+      }
+    ]
+  },
+  {
+    "id": "hsk2_gram_30",
+    "title": "Отрицание 要 -> 不用 / 不想",
+    "pattern": "不想 (не хочу) / 不用 (нет нужды)",
+    "hskLevel": "hsk2",
+    "category": "grammar",
+    "tags": [
+      "negation",
+      "modal_verbs"
+    ],
+    "description": "Прямое отрицание '不要' переводится как 'Нельзя!/Запрещено!'. Если вы хотите сказать 'не нужно / не обязательно', используйте 不用 (búyòng). Если 'не хочу' - 不想 (bù xiǎng).",
+    "examples": [
+      {
+        "sentence": "你不用去。",
+        "pinyin": "Nǐ búyòng qù.",
+        "translation": "Тебе не нужно (нет необходимости) идти."
+      },
+      {
+        "sentence": "我不想吃。",
+        "pinyin": "Wǒ bù xiǎng chī.",
+        "translation": "Я не хочу есть."
+      }
+    ]
+  },
+  {
+    "id": "hsk2_gram_31",
+    "title": "Длительность времени (Duration)",
+    "pattern": "Глагол + (了) + Временной промежуток",
+    "hskLevel": "hsk2",
+    "category": "grammar",
+    "tags": [
+      "time_words",
+      "complements"
+    ],
+    "description": "В отличие от времени совершения действия (в 8 часов), длительность (3 часа) ставится ПОСЛЕ глагола.",
+    "examples": [
+      {
+        "sentence": "我学了一年汉语。",
+        "pinyin": "Wǒ xué le yì nián Hànyǔ.",
+        "translation": "Я изучал китайский один год."
+      },
+      {
+        "sentence": "他睡了八个小时。",
+        "pinyin": "Tā shuì le bā ge xiǎoshí.",
+        "translation": "Он проспал 8 часов."
+      }
+    ]
+  },
+  {
+    "id": "hsk2_lex_03",
+    "title": "Разница: Час (点) и Час как длительность (个小时)",
+    "pattern": "X 点 (время на часах) / X 个小时 (продолжительность)",
+    "hskLevel": "hsk2",
+    "category": "lexical",
+    "tags": [
+      "time_words",
+      "measure_words"
+    ],
+    "description": "点 указывает на точку во времени (2:00 = 两点). 个小时 указывает на длительность (прошло 2 часа = 两个小时).",
+    "examples": [
+      {
+        "sentence": "现在两点。",
+        "pinyin": "Xiànzài liǎng diǎn.",
+        "translation": "Сейчас 2 часа (на часах)."
+      },
+      {
+        "sentence": "我等了两个小时。",
+        "pinyin": "Wǒ děng le liǎng ge xiǎoshí.",
+        "translation": "Я прождал два часа."
+      }
+    ]
+  },
+  {
+    "id": "hsk2_mw_01",
+    "title": "Счетное слово для действий 次 (cì)",
+    "pattern": "Глагол + (了) + Число + 次",
+    "hskLevel": "hsk2",
+    "category": "measure_words",
+    "tags": [
+      "measure_words",
+      "verbs"
+    ],
+    "description": "Используется как глагольное счетное слово, чтобы сказать, сколько раз было совершено действие.",
+    "examples": [
+      {
+        "sentence": "我去过三次北京。",
+        "pinyin": "Wǒ qù guo sān cì Běijīng.",
+        "translation": "Я бывал в Пекине три раза."
+      },
+      {
+        "sentence": "请再说一次。",
+        "pinyin": "Qǐng zài shuō yí cì.",
+        "translation": "Пожалуйста, скажи еще один раз."
+      }
+    ]
+  },
+  {
+    "id": "hsk2_gram_32",
+    "title": "Наречия 真 (zhēn) и 非常 (fēicháng)",
+    "pattern": "真 / 非常 + Прилагательное",
+    "hskLevel": "hsk2",
+    "category": "grammar",
+    "tags": [
+      "adverbs",
+      "degree"
+    ],
+    "description": "真 означает «действительно/поистине» и часто выражает эмоции говорящего. 非常 означает «чрезвычайно/очень» и является более высокой степенью, чем 很.",
+    "examples": [
+      {
+        "sentence": "你真漂亮！",
+        "pinyin": "Nǐ zhēn piàoliang!",
+        "translation": "Ты правда красавица!"
+      },
+      {
+        "sentence": "今天非常冷。",
+        "pinyin": "Jīntiān fēicháng lěng.",
+        "translation": "Сегодня чрезвычайно (очень) холодно."
+      }
+    ]
+  },
+  {
+    "id": "hsk2_gram_33",
+    "title": "Делать больше / делать меньше: 多 (duō) и 少 (shǎo)",
+    "pattern": "多 / 少 + Глагол",
+    "hskLevel": "hsk2",
+    "category": "grammar",
+    "tags": [
+      "adverbs",
+      "imperatives"
+    ],
+    "description": "В повелительных предложениях (советах), чтобы сказать «делай чего-то больше или меньше», 多/少 ставятся ПЕРЕД глаголом, а не после.",
+    "examples": [
+      {
+        "sentence": "多喝水，少说话。",
+        "pinyin": "Duō hē shuǐ, shǎo shuōhuà.",
+        "translation": "Пей больше воды, меньше говори."
+      },
+      {
+        "sentence": "你得多穿衣服。",
+        "pinyin": "Nǐ děi duō chuān yīfu.",
+        "translation": "Тебе нужно побольше одеваться (надеть больше одежды)."
+      }
+    ]
+  },
+  {
+    "id": "hsk2_gram_34",
+    "title": "Приближение и вопросы о времени: 什么时候 (shénme shíhou)",
+    "pattern": "Субъект + 什么时候 + Глагол?",
+    "hskLevel": "hsk2",
+    "category": "grammar",
+    "tags": [
+      "questions",
+      "time_words"
+    ],
+    "description": "Фраза 什么时候 переводится как «когда?» (в какое время?). В предложении занимает место обстоятельства времени (до или после подлежащего).",
+    "examples": [
+      {
+        "sentence": "你什么时候睡觉？",
+        "pinyin": "Nǐ shénme shíhou shuìjiào?",
+        "translation": "Когда ты ложишься спать?"
+      },
+      {
+        "sentence": "爸爸什么时候回来？",
+        "pinyin": "Bàba shénme shíhou huílái?",
+        "translation": "Когда папа вернется?"
+      }
+    ]
+  },
+  {
+    "id": "hsk2_mw_02",
+    "title": "Счетное слово 件 (jiàn)",
+    "pattern": "Число + 件 + Существительное",
+    "hskLevel": "hsk2",
+    "category": "measure_words",
+    "tags": [
+      "measure_words",
+      "clothing",
+      "events"
+    ],
+    "description": "Счетное слово для предметов одежды (особенно верхней: рубашки, куртки, свитера), а также для дел и событий (事情).",
+    "examples": [
+      {
+        "sentence": "这件衣服很大。",
+        "pinyin": "Zhè jiàn yīfu hěn dà.",
+        "translation": "Эта одежда (куртка/рубашка) очень большая."
+      },
+      {
+        "sentence": "我有一件事。",
+        "pinyin": "Wǒ yǒu yí jiàn shì.",
+        "translation": "У меня есть одно дело (к тебе)."
+      }
+    ]
+  }
+]
