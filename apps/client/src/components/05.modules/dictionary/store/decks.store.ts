@@ -7,6 +7,7 @@ import { useUmami } from '~/shared/composables/use-umami'
 import { createOfflineQuery } from '~/shared/lib/query'
 import { api } from '~/shared/services/api.service'
 import { offlineService } from '~/shared/services/offline.service'
+import { useAuthStore } from '~/shared/store/auth.store'
 import { useDictionaryFiltersStore } from './dictionary-filters.store'
 import { useDictionaryStore } from './dictionary.store'
 
@@ -14,6 +15,7 @@ export const useDecksStore = defineStore('decks', () => {
   const toast = useToast()
   const { trackEvent } = useUmami()
   const queryCache = useQueryCache()
+  const authStore = useAuthStore()
 
   const decks = ref<DictDeck[]>([])
 
@@ -32,6 +34,7 @@ export const useDecksStore = defineStore('decks', () => {
     getOfflineData: async () => {
       return await offlineService.getDecks()
     },
+    enabled: () => !!authStore.user || authStore.isSingleMode,
   })
 
   watch(decksData, (newDecks) => {

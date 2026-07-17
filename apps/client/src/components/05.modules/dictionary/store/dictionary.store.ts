@@ -7,6 +7,7 @@ import { createOfflineQuery } from '~/shared/lib/query'
 import { api } from '~/shared/services/api.service'
 import { offlineService } from '~/shared/services/offline.service'
 import { useAnalysisStore } from '~/shared/store/analysis.store'
+import { useAuthStore } from '~/shared/store/auth.store'
 
 import { useDecksStore } from './decks.store'
 import { useDictionaryFiltersStore } from './dictionary-filters.store'
@@ -15,6 +16,7 @@ import { useTrainingStore } from './training.store'
 export const useDictionaryStore = defineStore('dictionary', () => {
   const toast = useToast()
   const queryCache = useQueryCache()
+  const authStore = useAuthStore()
 
   const words = ref<UserDictItem[]>([])
   const isManualLoading = ref(false)
@@ -35,6 +37,7 @@ export const useDictionaryStore = defineStore('dictionary', () => {
     getOfflineData: async () => {
       return await offlineService.getDictionary()
     },
+    enabled: () => !!authStore.user || authStore.isSingleMode,
   })
 
   watch(dictionaryData, (newWords) => {
