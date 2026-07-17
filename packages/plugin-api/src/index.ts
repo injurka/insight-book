@@ -7,36 +7,36 @@ export interface InsightBookPluginEventBus {
 }
 
 export interface InsightBookPluginContext {
-  /** Display a notification to the user */
+  /** Показать уведомление пользователю */
   notify: (message: string, type?: 'info' | 'success' | 'warning' | 'error') => void
-  /** Adds an item to the app's main navigation menu */
+  /** Добавляет элемент в главное навигационное меню приложения */
   addNavigationItem: (item: { title: string, icon?: string, routeName: string }) => void
-  /** Communication channel between plugins and core system */
+  /** Канал связи между плагинами и основной системой */
   events: InsightBookPluginEventBus
 }
 
 export interface InsightBookPlugin {
-  /** Unique plugin identifier (kebab-case) */
+  /** Уникальный идентификатор плагина (kebab-case) */
   id: string
-  /** Human-readable plugin name */
+  /** Отображаемое название плагина */
   name: string
-  /** Plugin version */
+  /** Версия плагина */
   version: string
-  /** Brief description of the plugin */
+  /** Краткое описание плагина */
   description?: string
-  /** Plugin icon (e.g. mdi:book) */
+  /** Иконка плагина (например, mdi:book) */
   icon?: string
 
   /**
-   * Pages exposed by the plugin.
-   * Key: route path relative to `/plugin/:pluginId/` (use 'index' for the root of the plugin)
-   * Value: Vue Component
+   * Страницы, предоставляемые плагином.
+   * Ключ: путь маршрута относительно `/plugin/:pluginId/` (используйте 'index' для корня плагина)
+   * Значение: Vue-компонент
    */
   pages?: Record<string, Component>
 
-  /** Lifecycle hook: called when plugin is activated */
+  /** Хук жизненного цикла: вызывается при активации плагина */
   activate?: (ctx: InsightBookPluginContext) => void | Promise<void>
 
-  /** Lifecycle hook: called when plugin is deactivated */
+  /** Хук жизненного цикла: вызывается при деактивации плагина */
   deactivate?: (ctx: InsightBookPluginContext) => void | Promise<void>
 }

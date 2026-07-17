@@ -1,0 +1,23 @@
+{
+  "extends": "../../apps/client/tsconfig.json",
+  "compilerOptions": {
+    "composite": false,
+    "paths": {
+      "~/*": [
+        "../../apps/client/src/*"
+      ],
+      "@injurka/insight-book-plugin-api": [
+        "../plugin-api/src"
+      ],
+      "@injurka/insight-book-plugin-grammar-rules": [
+        "./src"
+      ]
+    }
+  },
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.d.ts",
+    "src/**/*.tsx",
+    "src/**/*.vue"
+  ]
+}

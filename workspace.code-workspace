@@ -27,6 +27,14 @@
 		{
 			"name": "manhuagui-parser",
 			"path": "apps/manhuagui-parser"
+		},
+		{
+			"name": "plugin-api",
+			"path": "packages/plugin-api"
+		},
+		{
+			"name": "plugin-grammar-rules",
+			"path": "packages/plugin-grammar-rules"
 		}
 	],
 	"settings": {
