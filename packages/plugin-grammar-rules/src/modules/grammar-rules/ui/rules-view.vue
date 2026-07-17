@@ -75,14 +75,14 @@ const tabItems = computed(() => [
 .header-nav{
   display: flex;
   align-items: center;
-  gap: 24px;
+  gap: 12px;
 }
 
 .rules-page {
   max-width: 1000px;
   width: 100%;
   margin: 0 auto;
-  padding: 32px 24px;
+  padding: 32px 0px;
   display: flex;
   flex-direction: column;
   gap: 24px;
