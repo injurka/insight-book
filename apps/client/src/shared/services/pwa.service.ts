@@ -1,6 +1,7 @@
 /* eslint-disable no-console */
 import type { Pinia } from 'pinia'
 import { useRegisterSW } from 'virtual:pwa-register/vue'
+import { watch } from 'vue'
 import router from '~/shared/lib/router'
 import { usePwaStore } from '~/shared/store/pwa.store'
 
@@ -36,12 +37,12 @@ function initializePwaUpdater(pinia: Pinia): void {
     },
   })
 
-  watch(offlineReady, (value) => {
+  watch(() => offlineReady.value, (value) => {
     console.log(`App ready to work offline: ${value}`)
     pwaStore.setOfflineReady(value)
   }, { immediate: true })
 
-  watch(needRefresh, (value) => {
+  watch(() => needRefresh.value, (value) => {
     console.log(`New content available, show refresh prompt: ${value}`)
     pwaStore.setNeedRefresh(value)
   }, { immediate: true })

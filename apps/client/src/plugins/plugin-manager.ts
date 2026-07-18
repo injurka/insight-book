@@ -104,7 +104,7 @@ export function usePluginManager() {
           router.addRoute({
             path: routePath,
             name: routeName,
-            component,
+            component: component as any,
           })
         }
       }

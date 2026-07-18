@@ -186,11 +186,6 @@ onMounted(() => {
 
   &:not(.is-active):hover:not(:disabled) {
     color: var(--fg-primary-color);
-    transform: translateY(-1px);
-  }
-
-  &:active:not(:disabled) {
-    transform: translateY(0);
   }
 }
 

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useMouse } from '@vueuse/core'
-import { computed } from 'vue'
+import { computed, ref, watch } from 'vue'
 
 interface Props {
   text?: string
@@ -68,21 +68,31 @@ const props = withDefaults(defineProps<Props>(), {
   ].join(' ✨ '),
 })
 
+// 1. Создаем ссылку на корневой элемент
+const bgRef = ref<HTMLElement | null>(null)
+
 const { x: mouseX, y: mouseY } = useMouse({ type: 'client' })
 
-const bgStyle = computed(() => ({
-  '--mouse-x': `${mouseX.value}px`,
-  '--mouse-y': `${mouseY.value}px`,
+// 2. Обновляем CSS-переменные напрямую, МИНУЯ цикл рендера Vue
+watch([mouseX, mouseY], ([x, y]) => {
+  if (bgRef.value) {
+    bgRef.value.style.setProperty('--mouse-x', `${x}px`)
+    bgRef.value.style.setProperty('--mouse-y', `${y}px`)
+  }
+})
+
+// 3. Статичные стили оставляем в computed (они меняются редко)
+const staticBgStyle = computed(() => ({
   '--reveal-radius': `${props.radius}px`,
   '--reveal-opacity': props.opacity,
 }))
 
-// Повторяем текст, чтобы его хватило на весь экран
 const repeatedText = computed(() => Array.from({ length: 50 }).fill(props.text).join(' ✨ '))
 </script>
 
 <template>
-  <div class="hover-reveal-bg" :style="bgStyle">
+  <!-- 4. Вешаем ref и привязываем только статичные стили -->
+  <div ref="bgRef" class="hover-reveal-bg" :style="staticBgStyle">
     <div class="reveal-content">
       <slot>{{ repeatedText }}</slot>
     </div>
