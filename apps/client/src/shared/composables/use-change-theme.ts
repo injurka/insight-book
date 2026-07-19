@@ -1,8 +1,10 @@
-import { useStorage } from '@vueuse/core'
+import { usePreferredDark, useStorage } from '@vueuse/core'
 import { useHead } from '@vueuse/head'
+import { watchEffect } from 'vue'
 import { useUmami } from '~/shared/composables/use-umami'
 
 export enum ThemesVariant {
+  System = 'system',
   Light = 'light',
   Dark = 'dark',
   Sepia = 'sepia',
@@ -11,6 +13,7 @@ export enum ThemesVariant {
 }
 
 const themesColors: Record<ThemesVariant, string> = {
+  [ThemesVariant.System]: '', // Evaluated dynamically
   [ThemesVariant.Light]: '#faf4f2',
   [ThemesVariant.Dark]: '#0d1117',
   [ThemesVariant.Sepia]: '#f4ecd8',
@@ -18,22 +21,31 @@ const themesColors: Record<ThemesVariant, string> = {
   [ThemesVariant.Oled]: '#000000',
 }
 
-const themePreference = useStorage<ThemesVariant>('app-theme', ThemesVariant.Light)
+const themePreference = useStorage<ThemesVariant>('app-theme', ThemesVariant.System)
 
 export function useChangeTheme() {
   const { trackEvent } = useUmami()
+  const preferredDark = usePreferredDark()
+
+  function getActualTheme(value: ThemesVariant) {
+    if (value === ThemesVariant.System) {
+      return preferredDark.value ? ThemesVariant.Dark : ThemesVariant.Light
+    }
+    return value
+  }
 
   function applyTheme(value: ThemesVariant) {
-    document.documentElement.setAttribute('data-theme', value)
+    const actualTheme = getActualTheme(value)
+    document.documentElement.setAttribute('data-theme', actualTheme)
     useHead({
-      meta: [{ name: 'theme-color', content: themesColors[value] }],
+      meta: [{ name: 'theme-color', content: themesColors[actualTheme] }],
     })
   }
 
   watchEffect(() => applyTheme(themePreference.value))
 
   function getHeadThemeColor() {
-    return themesColors[themePreference.value]
+    return themesColors[getActualTheme(themePreference.value)]
   }
 
   const setTheme = (value: ThemesVariant) => {
@@ -42,6 +54,7 @@ export function useChangeTheme() {
 
   const toggleTheme = () => {
     const themeOrder = [
+      ThemesVariant.System,
       ThemesVariant.Light,
       ThemesVariant.Sepia,
       ThemesVariant.Green,

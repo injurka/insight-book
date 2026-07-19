@@ -2,13 +2,12 @@ import type { LlmAnalysis, UserDictItem } from '~/shared/types/models'
 import { defineStore } from 'pinia'
 import { v4 as uuidv4 } from 'uuid'
 import { computed, ref } from 'vue'
-import { useDictionaryStore } from '~/components/05.modules/dictionary/store/dictionary.store'
 import { useLibraryStore } from '~/components/05.modules/library/store/library.store'
 import { useReaderStore } from '~/components/05.modules/reader/store/reader.store'
 import { useUmami } from '~/shared/composables/use-umami'
+import { appEventBus } from '~/shared/events/app-event-bus'
+import { useRepos } from '~/shared/plugins/di'
 import { i18n } from '~/shared/plugins/i18n'
-import { api } from '~/shared/services/api.service'
-import { offlineService } from '~/shared/services/offline.service'
 import { useGlobalSettingsStore } from '~/shared/store/settings.store'
 import { useToastStore } from '~/shared/store/toast.store'
 
@@ -57,6 +56,7 @@ export interface AnalysisTask {
 }
 
 export const useAnalysisStore = defineStore('analysis', () => {
+  const repos = useRepos()
   const { trackEvent } = useUmami()
 
   // Popovers & Tooltips
@@ -225,7 +225,7 @@ export const useAnalysisStore = defineStore('analysis', () => {
         // 1.1 Параллельная проверка IndexedDB (без bookId)
         const cacheChecks = await Promise.all(
           currentChunk.map(async (task) => {
-            const cached = await offlineService.getAnalysis(task.text)
+            const cached = await repos.analysis.getLocalAnalysis(task.text)
             return { task, cached }
           }),
         )
@@ -250,13 +250,13 @@ export const useAnalysisStore = defineStore('analysis', () => {
             missingInLocalCache.forEach(t => uniqueMap.set(t.text, t.type === 'sentence' ? 'sentence' : 'word'))
             const itemsToCheck = Array.from(uniqueMap.entries()).map(([text, type]) => ({ text, type }))
 
-            const res = await api.books.checkCache(book.id, itemsToCheck, book.language, signal)
+            const res = await repos.analysis.checkCache(book.id, itemsToCheck, book.language, signal)
             const serverCacheMap = new Map(res.results.map((r: any) => [r.sentence, r.analysis]))
 
             for (const task of missingInLocalCache) {
-              const serverCached = serverCacheMap.get(task.text)
+              const serverCached = serverCacheMap.get(task.text) as unknown as LlmAnalysis
               if (serverCached) {
-                await offlineService.saveAnalysis(task.text, serverCached)
+                await repos.analysis.saveLocalAnalysis(task.text, serverCached)
                 handleTaskSuccess(task, serverCached)
                 queueDone.value++
                 taskQueue.value = taskQueue.value.filter(t => t.id !== task.id)
@@ -298,11 +298,11 @@ export const useAnalysisStore = defineStore('analysis', () => {
         await Promise.all(batches.map(async (batch) => {
           const itemsToAnalyze = batch.map(t => ({ id: t.id, sentence: t.text, context: t.context, type: t.type === 'sentence' ? 'sentence' : 'word' as 'sentence' | 'word' }))
           try {
-            const res = await api.books.analyzeBatch(book.id, itemsToAnalyze, book.language, signal)
+            const res = await repos.analysis.analyzeBatch(book.id, itemsToAnalyze, book.language, signal)
             for (const result of res.results) {
               const task = batch.find(it => it.id === result.id)
               if (task) {
-                await offlineService.saveAnalysis(task.text, result.analysis)
+                await repos.analysis.saveLocalAnalysis(task.text, result.analysis)
                 handleTaskSuccess(task, result.analysis)
                 queueDone.value++
                 taskQueue.value = taskQueue.value.filter(t => t.id !== task.id)
@@ -331,10 +331,10 @@ export const useAnalysisStore = defineStore('analysis', () => {
         try {
           const voice = settingsStore.ttsVoice || 'Kore'
           const cacheKey = `${book.id}_${voice}_${ttsTask.text.trim().toLowerCase()}`
-          const cached = await offlineService.getTtsBlob(cacheKey)
+          const cached = await repos.analysis.getLocalTts(cacheKey)
           if (!cached) {
-            const res = await api.books.generateTts(book.id, ttsTask.text, voice, signal)
-            await offlineService.saveTts(cacheKey, res.audioBase64)
+            const res = await repos.analysis.generateTts(book.id, ttsTask.text, voice, signal)
+            await repos.analysis.saveLocalTts(cacheKey, res.audioBase64)
           }
           if (ttsTask.type === 'tts_sentence')
             pageAnalysisTtsCurrent.value++
@@ -412,7 +412,7 @@ export const useAnalysisStore = defineStore('analysis', () => {
       return
     }
 
-    const cached = await offlineService.getAnalysis(sentence)
+    const cached = await repos.analysis.getLocalAnalysis(sentence)
     if (cached) {
       sidebarAnalysis.value = cached
       analysisHistory.value.unshift({ sentence, analysis: cached, timestamp: Date.now() })
@@ -424,11 +424,9 @@ export const useAnalysisStore = defineStore('analysis', () => {
     const signal = manualAnalysisAbortController.signal
 
     try {
-      const res = await api.books.analyze(currentBook.id, sentence, currentBook.language, context, signal, 'sentence')
+      const res = await repos.analysis.analyze(currentBook.id, sentence, currentBook.language, context, signal, 'sentence')
       if (signal.aborted)
         return
-
-      await offlineService.saveAnalysis(sentence, res)
 
       trackEvent('ai_analyze', {
         language: currentBook.language,
@@ -575,7 +573,7 @@ export const useAnalysisStore = defineStore('analysis', () => {
     if (!wordPopover.value || wordPopover.value.aiTranslation || !currentBook)
       return
 
-    const cached = await offlineService.getAnalysis(wordPopover.value.word)
+    const cached = await repos.analysis.getLocalAnalysis(wordPopover.value.word)
     if (cached && wordPopover.value) {
       wordPopover.value.aiData = cached
       wordPopover.value.aiTranslation = cached.translation
@@ -596,7 +594,7 @@ export const useAnalysisStore = defineStore('analysis', () => {
     trackEvent('ai_translation_requested', { word: wordPopover.value.word })
 
     try {
-      const res = await api.books.analyze(
+      const res = await repos.analysis.analyze(
         currentBook.id,
         wordPopover.value.word,
         currentBook.language,
@@ -607,8 +605,6 @@ export const useAnalysisStore = defineStore('analysis', () => {
 
       if (wordAbortController !== controller)
         return
-
-      await offlineService.saveAnalysis(wordPopover.value.word, res)
 
       if (wordPopover.value) {
         wordPopover.value.aiData = res
@@ -718,7 +714,7 @@ export const useAnalysisStore = defineStore('analysis', () => {
 
     try {
       trackEvent('ai_word_lookup', { word })
-      const result = await api.books.lookupWord(bookId, word, controller.signal)
+      const result = await repos.analysis.lookupWord(bookId, word, controller.signal)
       if (wordAbortController !== controller)
         return
 
@@ -781,7 +777,7 @@ export const useAnalysisStore = defineStore('analysis', () => {
     const currentBook = readerStore.currentBook || libraryStore.currentBookInfo
 
     try {
-      const existingWord = await api.dictionary.get(wordData.word)
+      const existingWord = await repos.dictionary.get(wordData.word)
       wordToEdit.value = {
         ...existingWord,
         contextSentence: wordData.contextSentence,
@@ -827,56 +823,27 @@ export const useAnalysisStore = defineStore('analysis', () => {
       return
     }
 
-    await api.dictionary.upsert(item)
     addEditWordModalOpen.value = false
 
     trackEvent('word_saved_to_dict', { language: item.language })
 
-    const dictStore = useDictionaryStore()
-    await dictStore.fetchDictionary()
-
-    const readerStore = useReaderStore()
-    if (item.word) {
-      readerStore.currentPageDictionary[item.word] = {
-        ...(readerStore.currentPageDictionary[item.word] || {}),
-        transcription: item.transcription || '',
-        translation: item.translation || '',
-        isUserDict: true,
-      }
-      if (readerStore.currentBook && readerStore.currentPage) {
-        await offlineService.savePageDictionary(readerStore.currentBook.id, readerStore.currentPage.pageNum, readerStore.currentPageDictionary)
-      }
-    }
+    appEventBus.emit('DICTIONARY:REQUEST_SAVE_WORD', item)
 
     if (wordPopover.value && wordPopover.value.word === item.word) {
       wordPopover.value.isSaved = true
     }
-
-    useToastStore().success(`Слово "${item.word}" сохранено`)
   }
 
   async function removeFromDict(word: string) {
-    await api.dictionary.remove(word)
     addEditWordModalOpen.value = false
 
     trackEvent('word_removed_from_dict', { word })
 
-    const dictStore = useDictionaryStore()
-    await dictStore.fetchDictionary()
-
-    const readerStore = useReaderStore()
-    if (readerStore.currentPageDictionary[word]) {
-      readerStore.currentPageDictionary[word].isUserDict = false
-      if (readerStore.currentBook && readerStore.currentPage) {
-        await offlineService.savePageDictionary(readerStore.currentBook.id, readerStore.currentPage.pageNum, readerStore.currentPageDictionary)
-      }
-    }
+    appEventBus.emit('DICTIONARY:REQUEST_REMOVE_WORD', word)
 
     if (wordPopover.value && wordPopover.value.word === word) {
       wordPopover.value.isSaved = false
     }
-
-    useToastStore().success(`Слово "${word}" удалено`)
   }
 
   return {

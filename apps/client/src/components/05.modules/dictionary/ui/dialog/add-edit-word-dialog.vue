@@ -6,9 +6,12 @@ import { KitBtn, KitDialog, KitInput, KitPrompt, KitSelect, KitToggle, KitToolti
 import { useToast } from '~/shared/composables/use-toast'
 import { useTts } from '~/shared/composables/use-tts'
 import { DIFFICULTY_SYSTEMS } from '~/shared/constants/difficulties'
-import { api } from '~/shared/services/api.service'
+import { useRepos } from '~/shared/plugins/di'
+
 import { useAnalysisStore } from '~/shared/store/analysis.store'
 import { useDictionaryStore } from '../../store/dictionary.store'
+
+const repos = useRepos()
 
 interface WordFormData extends Partial<UserDictItem> {
   contextSentence?: string
@@ -74,7 +77,7 @@ async function autoFillWithAI() {
   const lang = localWord.value.language || 'en'
 
   try {
-    const res = await api.dictionary.autoFillWord(localWord.value.word, lang)
+    const res = await repos.dictionary.autoFillWord(localWord.value.word, lang)
 
     if (res.transcription)
       localWord.value.transcription = res.transcription

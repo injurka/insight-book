@@ -1,10 +1,9 @@
+import type { defaultRepositories } from '~/shared/plugins/di'
 import type { LlmAnalysis } from '~/shared/types/models'
-import { useMutation, useQueryCache } from '@pinia/colada'
+import { useMutation, useQuery, useQueryCache } from '@pinia/colada'
 import { defineStore } from 'pinia'
 import { ref, watch } from 'vue'
-import { createOfflineQuery } from '~/shared/lib/query'
-import { api } from '~/shared/services/api.service'
-import { offlineService } from '~/shared/services/offline.service'
+import { useRepos } from '~/shared/plugins/di'
 
 export interface Highlight {
   id: number
@@ -20,6 +19,7 @@ export interface Highlight {
 }
 
 export const useHighlightsStore = defineStore('highlights', () => {
+  const repos = useRepos()
   const queryCache = useQueryCache()
   const currentBookId = ref<number | null>(null)
   const highlights = ref<Highlight[]>([])
@@ -29,26 +29,13 @@ export const useHighlightsStore = defineStore('highlights', () => {
     data: highlightsData,
     isLoading: isQueryLoading,
     refetch: refetchHighlightsQuery,
-  } = createOfflineQuery<Highlight[]>({
+  } = useQuery<Highlight[]>({
     key: () => ['highlights', currentBookId.value],
-    networkQuery: async () => {
+    query: async () => {
       const id = currentBookId.value
       if (id === null)
         return []
-      return await api.highlights.list(id) as Highlight[]
-    },
-    saveOfflineData: async (data) => {
-      const id = currentBookId.value
-      if (id !== null) {
-        await offlineService.saveHighlights(id, data as any)
-      }
-    },
-    getOfflineData: async () => {
-      const id = currentBookId.value
-      if (id === null)
-        return []
-      const cached = await offlineService.getHighlights(id)
-      return (cached || []) as Highlight[]
+      return await repos.highlights.list(id)
     },
     enabled: () => currentBookId.value !== null,
   })
@@ -79,16 +66,7 @@ export const useHighlightsStore = defineStore('highlights', () => {
   }
 
   const { mutateAsync: createHighlightMutation } = useMutation({
-    mutation: (data: {
-      bookId: number
-      text: string
-      color: string
-      pageNum: number
-      chapter?: string | null
-      translation?: string | null
-      note?: string | null
-      analysisData?: LlmAnalysis | null
-    }) => api.highlights.create(data),
+    mutation: (data: Parameters<typeof defaultRepositories.highlights.create>[0]) => repos.highlights.create(data),
     async onSuccess(newHighlight, variables) {
       const bookId = newHighlight.bookId || variables.bookId
 
@@ -97,7 +75,7 @@ export const useHighlightsStore = defineStore('highlights', () => {
       if (!exists) {
         highlights.value.push(newHighlight as any)
       }
-      await offlineService.saveHighlights(bookId, highlights.value as any)
+      await repos.highlights.saveLocalHighlights(bookId, highlights.value as any)
 
       // Invalidate queries
       queryCache.invalidateQueries({ key: ['highlights', bookId] })
@@ -105,7 +83,7 @@ export const useHighlightsStore = defineStore('highlights', () => {
   })
 
   const { mutateAsync: deleteHighlightMutation } = useMutation({
-    mutation: (id: number) => api.highlights.delete(id),
+    mutation: (id: number) => repos.highlights.delete(id),
     async onSuccess(_, id) {
       const bookId = highlights.value.find(h => h.id === id)?.bookId || currentBookId.value
 
@@ -114,7 +92,7 @@ export const useHighlightsStore = defineStore('highlights', () => {
 
       // Save offline
       if (bookId !== null) {
-        await offlineService.saveHighlights(bookId, highlights.value as any)
+        await repos.highlights.saveLocalHighlights(bookId, highlights.value as any)
 
         // Invalidate queries
         queryCache.invalidateQueries({ key: ['highlights', bookId] })

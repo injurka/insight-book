@@ -31,23 +31,25 @@ const { trackEvent } = useUmami()
 
 const currentThemeIcon = computed(() => {
   switch (theme.value) {
+    case ThemesVariant.System: return 'mdi:theme-light-dark'
     case ThemesVariant.Light: return 'mdi:weather-sunny'
     case ThemesVariant.Dark: return 'mdi:weather-night'
     case ThemesVariant.Sepia: return 'mdi:book-open-page-variant'
     case ThemesVariant.Green: return 'mdi:leaf'
     case ThemesVariant.Oled: return 'mdi:moon-waning-crescent'
-    default: return 'mdi:weather-sunny'
+    default: return 'mdi:theme-light-dark'
   }
 })
 
 const currentThemeName = computed(() => {
   switch (theme.value) {
+    case ThemesVariant.System: return t('reader.system')
     case ThemesVariant.Light: return t('reader.light')
     case ThemesVariant.Dark: return t('reader.dark')
     case ThemesVariant.Sepia: return t('reader.sepia')
     case ThemesVariant.Green: return t('reader.green')
     case ThemesVariant.Oled: return t('reader.oled')
-    default: return t('reader.light')
+    default: return t('reader.system')
   }
 })
 

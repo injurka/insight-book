@@ -1,18 +1,18 @@
 import type { Book, PageDictEntry, PagePayload, TocItem } from '~/shared/types/models'
+import { useQuery } from '@pinia/colada'
 import { defineStore } from 'pinia'
 import { computed, ref, watch } from 'vue'
 import { useLibraryStore } from '~/components/05.modules/library/store/library.store'
 import { useUmami } from '~/shared/composables/use-umami'
-import { createOfflineQuery } from '~/shared/lib/query'
+import { useRepos } from '~/shared/plugins/di'
 import { i18n } from '~/shared/plugins/i18n'
-import { api } from '~/shared/services/api.service'
-import { offlineService } from '~/shared/services/offline.service'
 import { useAnalysisStore } from '~/shared/store/analysis.store'
 import { useGlobalSettingsStore } from '~/shared/store/settings.store'
 import { useToastStore } from '~/shared/store/toast.store'
 import { useHighlightsStore } from './highlights.store'
 
 export const useReaderStore = defineStore('reader', () => {
+  const repos = useRepos()
   const libraryStore = useLibraryStore()
   const { trackEvent } = useUmami()
 
@@ -39,25 +39,13 @@ export const useReaderStore = defineStore('reader', () => {
   const {
     data: tocQueryData,
     refetch: refetchTocQuery,
-  } = createOfflineQuery<TocItem[]>({
+  } = useQuery<TocItem[]>({
     key: () => ['books', tocBookId.value, 'toc'],
-    networkQuery: async () => {
+    query: async () => {
       const id = tocBookId.value
       if (!id)
         return []
-      return await api.books.getToc(id)
-    },
-    saveOfflineData: async (data) => {
-      const id = tocBookId.value
-      if (id) {
-        await offlineService.saveToc(id, data)
-      }
-    },
-    getOfflineData: async () => {
-      const id = tocBookId.value
-      if (!id)
-        return null
-      return await offlineService.getToc(id)
+      return await repos.book.getToc(id)
     },
     enabled: () => tocBookId.value !== null,
   })
@@ -66,29 +54,14 @@ export const useReaderStore = defineStore('reader', () => {
   const {
     data: pageQueryData,
     refetch: refetchPageQuery,
-  } = createOfflineQuery<PagePayload | null>({
+  } = useQuery<PagePayload | null>({
     key: () => ['books', pageBookId.value, 'pages', pagePageNum.value],
-    strategy: 'offline-first',
-    networkQuery: async () => {
+    query: async () => {
       const id = pageBookId.value
       const num = pagePageNum.value
       if (id === null || num === null)
         return null
-      return await api.books.getPage(id, num)
-    },
-    saveOfflineData: async (data) => {
-      const id = pageBookId.value
-      const num = pagePageNum.value
-      if (id !== null && num !== null && data) {
-        await offlineService.savePage(id, num, data)
-      }
-    },
-    getOfflineData: async () => {
-      const id = pageBookId.value
-      const num = pagePageNum.value
-      if (id === null || num === null)
-        return null
-      return await offlineService.getPage(id, num)
+      return await repos.book.getPage(id, num)
     },
     enabled: () => pageBookId.value !== null && pagePageNum.value !== null,
   })
@@ -97,30 +70,14 @@ export const useReaderStore = defineStore('reader', () => {
   const {
     data: dictQueryData,
     refetch: refetchDictQuery,
-  } = createOfflineQuery<Record<string, PageDictEntry>>({
+  } = useQuery<Record<string, PageDictEntry>>({
     key: () => ['books', dictBookId.value, 'pages', dictPageNum.value, 'dict'],
-    strategy: 'offline-first',
-    networkQuery: async () => {
+    query: async () => {
       const id = dictBookId.value
       const num = dictPageNum.value
       if (id === null || num === null)
         return {}
-      const res = await api.books.getPageDict(id, num)
-      return res.pageDictionary || {}
-    },
-    saveOfflineData: async (data) => {
-      const id = dictBookId.value
-      const num = dictPageNum.value
-      if (id !== null && num !== null) {
-        await offlineService.savePageDictionary(id, num, data)
-      }
-    },
-    getOfflineData: async () => {
-      const id = dictBookId.value
-      const num = dictPageNum.value
-      if (id === null || num === null)
-        return null
-      return await offlineService.getPageDictionary(id, num)
+      return await repos.book.getPageDict(id, num)
     },
     enabled: () => dictBookId.value !== null && dictPageNum.value !== null,
   })
@@ -136,7 +93,7 @@ export const useReaderStore = defineStore('reader', () => {
       const pagePageNumVal = pagePageNum.value
       const page = { ...newPage }
       if (page.type === 'manga' && page.imageUrl) {
-        const cachedBlob = await offlineService.getImage(Number(page.bookId), Number(page.pageNum))
+        const cachedBlob = await repos.book.getLocalImage(Number(page.bookId), Number(page.pageNum))
         if (pageBookId.value === pageBookIdVal && pagePageNum.value === pagePageNumVal) {
           if (cachedBlob) {
             page.localImageUrl = URL.createObjectURL(cachedBlob)

@@ -1,3 +1,21 @@
+export interface AuthLoginDto {
+  login?: string
+  email?: string
+  password?: string
+  [key: string]: unknown
+}
+
+export interface AuthRegisterDto {
+  email: string
+  code: string
+  password?: string
+  [key: string]: unknown
+}
+
+export interface AuthSendCodeDto {
+  email: string
+}
+
 export interface LexicalWordData {
   word: string
   pos: string

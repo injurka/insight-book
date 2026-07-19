@@ -4,6 +4,7 @@ import { Icon } from '@iconify/vue'
 import { computed, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { KitBtn, KitDropdown, KitInput, KitSelect, KitTooltip } from '~/components/01.kit'
+import { BookEntity } from '~/components/03.domain/entities/book.entity'
 import { useLibraryStore } from '~/components/05.modules/library/store/library.store'
 import { BOOK_TAGS } from '~/shared/constants/tags'
 import { useAuthStore } from '~/shared/store/auth.store'
@@ -47,8 +48,18 @@ const bookDescription = computed(() => {
   return currentDescription.value
 })
 
+const progressPercent = computed(() => {
+  if (!libraryStore.currentBookInfo)
+    return 0
+
+  const entity = new BookEntity(libraryStore.currentBookInfo)
+
+  return entity.getProgressPercent()
+})
+
 const localizedTags = computed(() => {
   const tags = libraryStore.currentBookInfo?.stats?.tags || []
+
   return tags.map((tag: string) => {
     return BOOK_TAGS[tag as TagKey]?.[settingsStore.appLanguage as keyof (typeof BOOK_TAGS)[TagKey]] || tag
   })
@@ -103,7 +114,7 @@ onMounted(() => {
         </KitDropdown>
       </div>
       <div class="progress-bar">
-        <div class="progress-fill" :style="{ width: `${((libraryStore.currentBookInfo.currentPage || 1) / libraryStore.currentBookInfo.totalPages) * 100}%` }" />
+        <div class="progress-fill" :style="{ width: `${progressPercent}%` }" />
       </div>
     </div>
 

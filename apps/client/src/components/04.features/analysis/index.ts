@@ -5,6 +5,6 @@ import WordPopover from './ui/popover/word-popover.vue'
 import SelectionTooltip from './ui/selection-tooltip.vue'
 import SentenceAnalysis from './ui/sentence-analysis.vue'
 
-export * from './composables/use-text-selection'
+export * from './composables/use-text-selection.ts'
 
 export { AiExamplesModal, BubblePopover, PageAnalysisModal, SelectionTooltip, SentenceAnalysis, WordPopover }

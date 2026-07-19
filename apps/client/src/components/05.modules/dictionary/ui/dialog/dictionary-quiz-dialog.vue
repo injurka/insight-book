@@ -3,9 +3,7 @@ import { Icon } from '@iconify/vue'
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { KitBtn, KitDialog, KitTabs } from '~/components/01.kit'
-import { api } from '~/shared/services/api.service'
-
-type QuizState = 'select_level' | 'loading' | 'testing' | 'summary'
+import { useRepos } from '~/shared/plugins/di'
 
 const props = defineProps<{
   initialLang?: string
@@ -15,6 +13,10 @@ const props = defineProps<{
 const emit = defineEmits<{
   success: []
 }>()
+
+const repos = useRepos()
+
+type QuizState = 'select_level' | 'loading' | 'testing' | 'summary'
 
 const visible = defineModel<boolean>('visible', { required: true })
 const { t, locale } = useI18n()
@@ -116,9 +118,9 @@ async function loadLevels() {
 
   const lang = selectedLang.value
   try {
-    const res = await api.quiz.getLevels(lang)
+    const res = await repos.quiz.getLevels(lang)
     const order = LEVEL_ORDER[lang] || LEVEL_ORDER.default
-    levelsByLang.value[lang] = res.sort((a, b) => {
+    levelsByLang.value[lang] = res.sort((a: any, b: any) => {
       const idxA = order.indexOf(a.levelValue)
       const idxB = order.indexOf(b.levelValue)
       return idxA - idxB
@@ -169,8 +171,8 @@ async function startQuizFlow(levelVal: string) {
   errorMessage.value = ''
 
   try {
-    const res = await api.quiz.generate(selectedLang.value, levelVal)
-    questions.value = res.questions.map(q => ({ ...q }))
+    const res = await repos.quiz.generate(selectedLang.value, levelVal)
+    questions.value = res.questions.map((q: any) => ({ ...q }))
 
     // Reset test variables
     currentQuestionIndex.value = 0
@@ -304,7 +306,7 @@ async function finishQuiz() {
   const scorePct = Math.round((correctCount.value / totalQ) * 100)
 
   try {
-    const res = await api.quiz.submit(selectedLang.value, selectedLevel.value, scorePct)
+    const res = await repos.quiz.submit(selectedLang.value, selectedLevel.value, scorePct)
     testResult.value = res
     currentState.value = 'summary'
     emit('success')

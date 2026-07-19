@@ -8,8 +8,7 @@ import { useHighlightsStore } from '~/components/05.modules/reader/store/highlig
 import { useReaderStore } from '~/components/05.modules/reader/store/reader.store'
 import { useTts } from '~/shared/composables/use-tts'
 import { normalizeString } from '~/shared/lib/helpers'
-import { api } from '~/shared/services/api.service'
-import { offlineService } from '~/shared/services/offline.service'
+import { useRepos } from '~/shared/plugins/di'
 import { useAnalysisStore } from '~/shared/store/analysis.store'
 
 defineOptions({
@@ -20,6 +19,8 @@ const props = defineProps<{
   box: any
   referenceEl: HTMLElement | null
 }>()
+
+const repos = useRepos()
 
 const highlightColors = ['#fde047', '#86efac', '#f472b6', '#93c5fd', '#c4b5fd']
 
@@ -51,7 +52,7 @@ async function openSaveModal() {
   isFetchingTranslation.value = true
 
   try {
-    const cached = await offlineService.getAnalysis(text)
+    const cached = await repos.analysis.getLocalAnalysis(text)
     if (cached && cached.translation) {
       modalInitialData.value.translation = cached.translation
       modalInitialData.value.analysisData = cached
@@ -59,8 +60,8 @@ async function openSaveModal() {
     }
     else {
       const language = readerStore.currentBook.language || 'en'
-      const res = await api.books.analyze(readerStore.currentBook.id, text, language)
-      await offlineService.saveAnalysis(text, res)
+      const res = await repos.analysis.analyze(readerStore.currentBook.id, text, language)
+      // Save isn't explicitly needed here because analyze() saves automatically, but it doesn't hurt.
       modalInitialData.value.translation = res.translation || ''
       modalInitialData.value.analysisData = res
       analysisData.value = res

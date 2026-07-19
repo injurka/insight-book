@@ -2,12 +2,15 @@
 import { useI18n } from 'vue-i18n'
 import { KitDialog } from '~/components/01.kit'
 import KitSkeleton from '~/components/01.kit/kit-skeleton/ui/kit-skeleton.vue'
-import { api } from '~/shared/services/api.service'
+import { useRepos } from '~/shared/plugins/di'
+
 import { useAuthStore } from '~/shared/store/auth.store'
 
 const emit = defineEmits<{
   openQuiz: [data: { language: string, levelValue: string }]
 }>()
+
+const repos = useRepos()
 
 const ActivityHeatmap = lazyComponent(() => import('~/components/02.shared/activity-heatmap/ui/activity-heatmap.vue'))
 
@@ -32,7 +35,7 @@ async function fetchActivity() {
 
   isActivityLoading.value = true
   try {
-    const res = await api.activity.getStats()
+    const res = await repos.activity.getStats()
     activityData.value = res.heatmap
     activityStats.value = {
       learnedWords: res.learnedWords,

@@ -21,7 +21,7 @@ const authStore = useAuthStore()
 const { t } = useI18n()
 
 const LlmChatModal = lazyComponent(() => import('~/components/04.features/llm-chat/ui/llm-chat-modal.vue'))
-const AiExamplesModal = lazyComponent(() => import('~/components/03.domain/analysis/ui/modal/ai-examples-modal.vue'))
+const AiExamplesModal = lazyComponent(() => import('~/components/04.features/analysis/ui/modal/ai-examples-modal.vue'))
 
 const isChatModalOpen = ref(false)
 const isAiModalOpen = ref(false)

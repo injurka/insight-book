@@ -10,9 +10,12 @@ import { useReaderStore } from '~/components/05.modules/reader/store/reader.stor
 import { useToast } from '~/shared/composables/use-toast'
 import { useTts } from '~/shared/composables/use-tts'
 import { POS_TAGS_MAP } from '~/shared/constants/pos-tags'
-import { api } from '~/shared/services/api.service'
+import { useRepos } from '~/shared/plugins/di'
+
 import { useAnalysisStore } from '~/shared/store/analysis.store'
 import { useAuthStore } from '~/shared/store/auth.store'
+
+const repos = useRepos()
 
 const analysisStore = useAnalysisStore()
 const authStore = useAuthStore()
@@ -129,7 +132,7 @@ async function fetchAiExamples() {
   aiData.value = null
 
   try {
-    aiData.value = await api.dictionary.generateExamples(word, currentLanguage.value)
+    aiData.value = await repos.dictionary.generateExamples(word, currentLanguage.value)
   }
   catch (e) {
     toast.error(e instanceof Error ? e.message : t('dictionary.errorExamples'))

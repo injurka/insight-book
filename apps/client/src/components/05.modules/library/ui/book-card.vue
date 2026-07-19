@@ -4,6 +4,7 @@ import { Icon } from '@iconify/vue'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { KitImage, KitTooltip } from '~/components/01.kit'
+import { BookEntity } from '~/components/03.domain/entities/book.entity'
 import { useAuthStore } from '~/shared/store/auth.store'
 
 const props = defineProps<{ book: Book }>()
@@ -17,9 +18,9 @@ const authStore = useAuthStore()
 const { t } = useI18n()
 
 const progressPercent = computed(() => {
-  const current = props.book.currentPage || 1
-  const total = props.book.totalPages || 1
-  return (current / total) * 100
+  const entity = new BookEntity(props.book)
+
+  return entity.getProgressPercent()
 })
 </script>
 

@@ -1,8 +1,9 @@
 import type { UserData } from '../types/models'
 import { useUmami } from '~/shared/composables/use-umami'
-import { api } from '../services/api.service'
+import { useRepos } from '~/shared/plugins/di'
 
 export const useAuthStore = defineStore('auth', () => {
+  const repos = useRepos()
   const { identifyUser, trackEvent } = useUmami()
 
   const user = ref<UserData | null>(null)
@@ -22,7 +23,7 @@ export const useAuthStore = defineStore('auth', () => {
     }
 
     try {
-      const res = await api.auth.me()
+      const res = await repos.auth.me()
 
       user.value = res.user || null
       isSingleMode.value = res.mode === 'single'
@@ -86,13 +87,7 @@ export const useAuthStore = defineStore('auth', () => {
         const sub = await reg.pushManager.getSubscription()
         if (sub) {
           await sub.unsubscribe()
-          const token = localStorage.getItem('insight_token')
-          const BASE = import.meta.env.VITE_API_URL || 'https://api.insight-book.ru'
-          await fetch(`${BASE}/api/push/unsubscribe`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-            body: JSON.stringify({ endpoint: sub.endpoint }),
-          }).catch(() => { })
+          await repos.push.unsubscribeWeb(sub.endpoint).catch(() => {})
         }
       }
     }
@@ -108,7 +103,7 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   async function updateAvatar(file: File) {
-    const res = await api.auth.updateAvatar(file)
+    const res = await repos.auth.updateAvatar(file)
     if (user.value) {
       user.value.avatarUrl = res.avatarUrl
       localStorage.setItem('insight_user_data', JSON.stringify(user.value))
@@ -116,7 +111,7 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   async function updateUsername(username: string) {
-    const res = await api.auth.updateUsername(username)
+    const res = await repos.auth.updateUsername(username)
     if (user.value) {
       user.value.username = res.username
       localStorage.setItem('insight_user_data', JSON.stringify(user.value))

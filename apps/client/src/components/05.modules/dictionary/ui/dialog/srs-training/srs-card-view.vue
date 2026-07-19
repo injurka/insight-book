@@ -5,11 +5,12 @@ import { Rating } from 'ts-fsrs'
 import { computed, nextTick, reactive, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { KitBtn, KitDropdown, KitTooltip } from '~/components/01.kit'
+import { Flashcard } from '~/components/03.domain/entities/flashcard.entity'
 import { PronunciationCheck } from '~/components/04.features/pronunciation-check'
 import { useToast } from '~/shared/composables/use-toast'
 import { useTts } from '~/shared/composables/use-tts'
 import { vLongPress } from '~/shared/directives/long-press'
-import { api } from '~/shared/services/api.service'
+import { useRepos } from '~/shared/plugins/di'
 import { useAuthStore } from '~/shared/store/auth.store'
 import { useSrsQuiz } from '../../../composables/use-srs-quiz'
 import { useDictionaryStore } from '../../../store/dictionary.store'
@@ -30,7 +31,9 @@ const props = defineProps<{
   modes?: Record<string, boolean>
 }>()
 const emit = defineEmits(['grade'])
-const AiExamplesModal = lazyComponent(() => import('~/components/03.domain/analysis/ui/modal/ai-examples-modal.vue'))
+
+const repos = useRepos()
+const AiExamplesModal = lazyComponent(() => import('~/components/04.features/analysis/ui/modal/ai-examples-modal.vue'))
 const LlmChatModal = lazyComponent(() => import('~/components/04.features/llm-chat/ui/llm-chat-modal.vue'))
 const HanziBoard = lazyComponent(() => import('../../hanzi-board.vue'))
 
@@ -201,7 +204,7 @@ async function fetchAiExamples() {
   aiData.value = null
 
   try {
-    const res = await api.dictionary.generateExamples(props.card.word, props.card.language || 'en')
+    const res = await repos.dictionary.generateExamples(props.card.word, props.card.language || 'en')
     aiData.value = res
   }
   catch (e) {
@@ -261,7 +264,7 @@ async function initDeepDive(mode: 'collocations' | 'radicals') {
   isAiLoadingMode.value = true
   deepDiveData.value = null
   try {
-    const res = await api.dictionary.generateDeepDive(props.card!.word, props.card!.language, mode)
+    const res = await repos.dictionary.generateDeepDive(props.card!.word, props.card!.language, mode)
     deepDiveData.value = res
     if (mode === 'radicals') {
       selectedRadicals.value = []
@@ -347,10 +350,10 @@ function initCard() {
   if (availableModes.length === 0)
     availableModes.push('standard')
 
-  if (modesConfig.choice && availableModes.includes('choice') && props.card.state === 0 && Math.random() > 0.3) {
+  if (modesConfig.choice && availableModes.includes('choice') && new Flashcard(props.card).isNew() && Math.random() > 0.3) {
     currentMode.value = 'choice'
   }
-  else if (modesConfig['choice-reverse'] && availableModes.includes('choice-reverse') && props.card.state === 0 && Math.random() > 0.3) {
+  else if (modesConfig['choice-reverse'] && availableModes.includes('choice-reverse') && new Flashcard(props.card).isNew() && Math.random() > 0.3) {
     currentMode.value = 'choice-reverse'
   }
   else {

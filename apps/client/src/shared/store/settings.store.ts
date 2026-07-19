@@ -23,6 +23,8 @@ export const useGlobalSettingsStore = defineStore('globalSettings', () => {
   const customLlmKey = useLocalStorage<string>('global-custom-llm-key', 'ollama')
   const customLlmModel = useLocalStorage<string>('global-custom-llm-model', 'llama3')
 
+  const enableHoverRevealBg = useLocalStorage<boolean>('global-enable-hover-reveal-bg', true)
+
   const autoAnalyzePage = useLocalStorage<boolean>('global-auto-analyze-page', false)
   const autoAnalyzeSentences = useLocalStorage<boolean>('global-auto-analyze-sentences', true)
   const autoAnalyzeWords = useLocalStorage<boolean>('global-auto-analyze-words', true)
@@ -59,5 +61,6 @@ export const useGlobalSettingsStore = defineStore('globalSettings', () => {
     customLlmModel,
     highlightSavedQuotes,
     showSentenceTtsButton,
+    enableHoverRevealBg,
   }
 })

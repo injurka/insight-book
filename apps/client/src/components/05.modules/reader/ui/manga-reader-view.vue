@@ -2,7 +2,7 @@
 import { useI18n } from 'vue-i18n'
 import { KitDialog } from '~/components/01.kit'
 import { PageLoader } from '~/components/02.shared/page-loader'
-import { useTextSelection } from '~/components/03.domain/analysis'
+import { useTextSelection } from '~/components/04.features/analysis/index.ts'
 import { getMediaUrl } from '~/shared/lib/helpers'
 import { useAnalysisStore } from '~/shared/store/analysis.store'
 import { useGlobalSettingsStore } from '~/shared/store/settings.store'
@@ -18,11 +18,11 @@ import { useReaderStore } from '../store/reader.store'
 import ReaderFooter from './reader-footer.vue'
 import ReaderHeader from './reader-header.vue'
 
-const BubblePopover = lazyComponent(() => import('~/components/03.domain/analysis/ui/popover/bubble-popover.vue'))
-const PageAnalysisModal = lazyComponent(() => import('~/components/03.domain/analysis/ui/modal/page-analysis-modal.vue'))
-const SelectionTooltip = lazyComponent(() => import('~/components/03.domain/analysis/ui/selection-tooltip.vue'))
-const SentenceAnalysis = lazyComponent(() => import('~/components/03.domain/analysis/ui/sentence-analysis.vue'))
-const WordPopover = lazyComponent(() => import('~/components/03.domain/analysis/ui/popover/word-popover.vue'))
+const BubblePopover = lazyComponent(() => import('~/components/04.features/analysis/ui/popover/bubble-popover.vue'))
+const PageAnalysisModal = lazyComponent(() => import('~/components/04.features/analysis/ui/modal/page-analysis-modal.vue'))
+const SelectionTooltip = lazyComponent(() => import('~/components/04.features/analysis/ui/selection-tooltip.vue'))
+const SentenceAnalysis = lazyComponent(() => import('~/components/04.features/analysis/ui/sentence-analysis.vue'))
+const WordPopover = lazyComponent(() => import('~/components/04.features/analysis/ui/popover/word-popover.vue'))
 
 const readerStore = useReaderStore()
 const analysisStore = useAnalysisStore()

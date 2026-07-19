@@ -3,9 +3,7 @@ import { useMutation, useQuery, useQueryCache } from '@pinia/colada'
 import { defineStore } from 'pinia'
 import { computed, ref, watch } from 'vue'
 import { useUmami } from '~/shared/composables/use-umami'
-import { createOfflineQuery } from '~/shared/lib/query'
-import { api } from '~/shared/services/api.service'
-import { offlineService } from '~/shared/services/offline.service'
+import { useRepos } from '~/shared/plugins/di'
 import { useAuthStore } from '~/shared/store/auth.store'
 import { attachCachedCovers } from '../services/book-cover.service'
 import {
@@ -19,6 +17,7 @@ import {
 export const useLibraryStore = defineStore('library', () => {
   const { trackEvent } = useUmami()
   const queryCache = useQueryCache()
+  const repos = useRepos()
 
   const books = ref<Book[]>([])
   const publicBooks = ref<Book[]>([])
@@ -38,21 +37,9 @@ export const useLibraryStore = defineStore('library', () => {
     data: booksData,
     isLoading: isBooksLoading,
     refetch: refetchBooks,
-  } = createOfflineQuery<Book[]>({
+  } = useQuery<Book[]>({
     key: ['books'],
-    networkQuery: async () => {
-      const authStore = useAuthStore()
-      if (!authStore.user && !authStore.isSingleMode) {
-        return []
-      }
-      return await api.books.list()
-    },
-    saveOfflineData: async (list) => {
-      await offlineService.saveBooksList(list)
-    },
-    getOfflineData: async () => {
-      return await offlineService.getBooksList()
-    },
+    query: () => repos.book.list(),
   })
 
   watch(booksData, async (newBooks) => {
@@ -99,7 +86,7 @@ export const useLibraryStore = defineStore('library', () => {
       if (publicQueryLang.value)
         q.set('lang', publicQueryLang.value)
 
-      const res = await api.books.getPublic(q.toString())
+      const res = await repos.book.getPublic(q.toString())
       return res
     },
     enabled: () => isInitialized.value,
@@ -128,25 +115,13 @@ export const useLibraryStore = defineStore('library', () => {
     data: bookInfoData,
     isLoading: isBookInfoLoading,
     refetch: refetchBookInfo,
-  } = createOfflineQuery<Book | null>({
+  } = useQuery<Book | null>({
     key: () => ['books', currentBookId.value],
-    networkQuery: async () => {
+    query: async () => {
       const id = currentBookId.value
       if (!id)
         return null
-      return await api.books.getInfo(id)
-    },
-    saveOfflineData: async (info) => {
-      const id = currentBookId.value
-      if (id && info) {
-        await offlineService.saveBookInfo(id, info)
-      }
-    },
-    getOfflineData: async () => {
-      const id = currentBookId.value
-      if (!id)
-        return null
-      return await offlineService.getBookInfo(id)
+      return await repos.book.getInfo(id)
     },
     enabled: () => currentBookId.value !== null,
   })
@@ -170,7 +145,7 @@ export const useLibraryStore = defineStore('library', () => {
 
   // --- MUTATION: Start Reading Public Book ---
   const { mutateAsync: startReadingPublicBookMutation, isLoading: isStartingReading } = useMutation({
-    mutation: (id: number) => api.books.startReading(id),
+    mutation: (id: number) => repos.book.startReading(id),
     async onSuccess(_, id) {
       trackEvent('public_book_downloaded', { bookId: id })
       if (currentBookInfo.value?.id === id) {
@@ -189,7 +164,7 @@ export const useLibraryStore = defineStore('library', () => {
 
   // --- MUTATION: Update Book Info ---
   const { mutateAsync: updateBookInfoMutation, isLoading: isUpdatingInfo } = useMutation({
-    mutation: ({ id, data }: { id: number, data: Partial<Book> }) => api.books.updateInfo(id, data),
+    mutation: ({ id, data }: { id: number, data: Partial<Book> }) => repos.book.updateInfo(id, data),
     onMutate({ id, data }) {
       const listBook = books.value.find(b => Number(b.id) === Number(id))
       if (listBook)
@@ -204,7 +179,7 @@ export const useLibraryStore = defineStore('library', () => {
       queryCache.invalidateQueries({ key: ['books', id] })
 
       if (currentBookInfo.value?.id === id) {
-        await offlineService.saveBookInfo(id, currentBookInfo.value)
+        await repos.book.saveLocalBookInfo(id, currentBookInfo.value)
       }
     },
   })
@@ -215,11 +190,11 @@ export const useLibraryStore = defineStore('library', () => {
 
   // --- MUTATION: Full Book Analysis ---
   const { mutateAsync: analyzeFullBookMutation } = useMutation({
-    mutation: (id: number) => api.books.analyzeBook(id),
+    mutation: (id: number) => repos.book.analyzeBook(id),
     async onSuccess(res, id) {
       if (currentBookInfo.value && currentBookInfo.value.id === id) {
         currentBookInfo.value.stats = res.stats
-        await offlineService.saveBookInfo(id, currentBookInfo.value)
+        await repos.book.saveLocalBookInfo(id, currentBookInfo.value)
       }
       queryCache.invalidateQueries({ key: ['books'] })
       queryCache.invalidateQueries({ key: ['books', id] })
@@ -239,7 +214,7 @@ export const useLibraryStore = defineStore('library', () => {
 
   // --- MUTATION: Vocabulary Analysis ---
   const { mutateAsync: analyzeVocabularyMutation } = useMutation({
-    mutation: (id: number) => api.books.analyzeVocabulary(id),
+    mutation: (id: number) => repos.book.analyzeVocabulary(id),
     async onSuccess(res, id) {
       if (currentBookInfo.value?.id === id) {
         if (!currentBookInfo.value.stats)
@@ -247,7 +222,7 @@ export const useLibraryStore = defineStore('library', () => {
         currentBookInfo.value.stats.posDistribution = res.lexicalStats.posDistribution
         currentBookInfo.value.stats.topWords = res.lexicalStats.topWords
         currentBookInfo.value.stats.lexicalDiversity = res.lexicalStats.lexicalDiversity
-        await offlineService.saveBookInfo(id, currentBookInfo.value)
+        await repos.book.saveLocalBookInfo(id, currentBookInfo.value)
       }
       queryCache.invalidateQueries({ key: ['books'] })
       queryCache.invalidateQueries({ key: ['books', id] })
@@ -267,11 +242,11 @@ export const useLibraryStore = defineStore('library', () => {
 
   // --- MUTATION: Update Cover ---
   const { mutateAsync: updateBookCoverMutation, isLoading: isUpdatingCover } = useMutation({
-    mutation: ({ id, file }: { id: number, file: File }) => api.books.updateCover(id, file),
+    mutation: ({ id, file }: { id: number, file: File }) => repos.book.updateCover(id, file),
     async onSuccess(res, { id }) {
       if (currentBookInfo.value && currentBookInfo.value.id === id) {
         currentBookInfo.value.coverUrl = res.coverUrl
-        await offlineService.saveBookInfo(id, currentBookInfo.value)
+        await repos.book.saveLocalBookInfo(id, currentBookInfo.value)
       }
       const listBook = books.value.find(b => b.id === id)
       if (listBook)
@@ -288,11 +263,11 @@ export const useLibraryStore = defineStore('library', () => {
 
   // --- MUTATION: Update Stats ---
   const { mutateAsync: updateBookStatsMutation, isLoading: isUpdatingStats } = useMutation({
-    mutation: ({ id, data }: { id: number, data: Partial<BookStats> }) => api.books.updateStats(id, data),
+    mutation: ({ id, data }: { id: number, data: Partial<BookStats> }) => repos.book.updateStats(id, data),
     async onSuccess(res, { id }) {
       if (currentBookInfo.value && currentBookInfo.value.id === id) {
         currentBookInfo.value.stats = res.stats
-        await offlineService.saveBookInfo(id, currentBookInfo.value)
+        await repos.book.saveLocalBookInfo(id, currentBookInfo.value)
       }
       queryCache.invalidateQueries({ key: ['books'] })
       queryCache.invalidateQueries({ key: ['books', id] })
@@ -305,7 +280,7 @@ export const useLibraryStore = defineStore('library', () => {
 
   // --- MUTATION: Upload Book ---
   const { mutateAsync: uploadBookMutation, isLoading: isUploadingBook } = useMutation({
-    mutation: (file: File) => api.books.upload(file),
+    mutation: (file: File) => repos.book.upload(file),
     onSuccess(res, file) {
       const book = 'book' in res ? res.book : (res as unknown as Book)
       const ext = file.name.split('.').pop()?.toLowerCase() || 'unknown'
@@ -328,7 +303,7 @@ export const useLibraryStore = defineStore('library', () => {
   // --- MUTATION: Create Custom Manga ---
   const { mutateAsync: createCustomMangaMutation, isLoading: isCreatingManga } = useMutation({
     mutation: (params: { title: string, author: string, language: string }) =>
-      api.books.createCustomBook({ ...params, type: 'manga' }),
+      repos.book.createCustomManga({ ...params, type: 'manga' }),
     onSuccess(res, params) {
       books.value.unshift(res.book)
       queryCache.invalidateQueries({ key: ['books'] })
@@ -344,7 +319,7 @@ export const useLibraryStore = defineStore('library', () => {
 
   // --- MUTATION: Upload Manga Chapter ---
   const { mutateAsync: uploadMangaChapterMutation, isLoading: isUploadingChapter } = useMutation({
-    mutation: ({ bookId, fd }: { bookId: number, fd: FormData }) => api.books.appendMangaChapter(bookId, fd),
+    mutation: ({ bookId, fd }: { bookId: number, fd: FormData }) => repos.book.appendMangaChapter(bookId, fd),
     onSuccess(res, { bookId }) {
       const index = books.value.findIndex(b => b.id === bookId)
       if (index !== -1)
@@ -374,7 +349,7 @@ export const useLibraryStore = defineStore('library', () => {
 
   // --- MUTATION: Delete Book ---
   const { mutateAsync: deleteBookMutation, isLoading: isDeletingBook } = useMutation({
-    mutation: (id: number) => api.books.delete(id),
+    mutation: (id: number) => repos.book.delete(id),
     onSuccess(_, id) {
       books.value = books.value.filter(b => b.id !== id)
       if (currentBookInfo.value?.id === id) {

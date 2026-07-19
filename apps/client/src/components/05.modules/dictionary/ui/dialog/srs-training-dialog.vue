@@ -4,14 +4,18 @@ import { useFullscreen } from '@vueuse/core'
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { KitDialog } from '~/components/01.kit'
+import { Flashcard } from '~/components/03.domain/entities/flashcard.entity'
 import { useToast } from '~/shared/composables/use-toast'
-import { api } from '~/shared/services/api.service'
+
+import { useRepos } from '~/shared/plugins/di'
 import { useSrsSession } from '../../composables/use-srs-session'
 import { useDictionaryStore } from '../../store/dictionary.store'
 import SrsCardView from './srs-training/srs-card-view.vue'
 import SrsModeMatch from './srs-training/srs-mode-match.vue'
 import SrsSetupView from './srs-training/srs-setup-view.vue'
 import SrsSummaryView from './srs-training/srs-summary-view.vue'
+
+const repos = useRepos()
 
 const visible = defineModel<boolean>('visible', { required: true })
 const dictStore = useDictionaryStore()
@@ -69,8 +73,8 @@ const activeModes = ref<Record<string, boolean>>({
 })
 
 const remainingQueue = computed(() => dictStore.reviewQueue.slice(currentIndex.value))
-const newCount = computed(() => remainingQueue.value.filter(c => c.state === 0).length)
-const reviewCount = computed(() => remainingQueue.value.filter(c => c.state > 0).length)
+const newCount = computed(() => remainingQueue.value.filter(c => new Flashcard(c).isNew()).length)
+const reviewCount = computed(() => remainingQueue.value.filter(c => new Flashcard(c).isReview() || new Flashcard(c).isLearning()).length)
 const currentCard = computed(() => dictStore.reviewQueue[currentIndex.value])
 const isFinished = computed(() => currentIndex.value >= dictStore.reviewQueue.length)
 
@@ -113,7 +117,7 @@ async function handleGrade(grade: number) {
   if (isSubmittingGrade.value || !currentCard.value)
     return
 
-  const isNew = currentCard.value.state === 0
+  const isNew = new Flashcard(currentCard.value).isNew()
   recordAnswer(isNew, grade)
 
   if (dictStore.trainingMode === 'deep_dive' || dictStore.trainingMode === 'cram' || dictStore.trainingMode === 'match') {
@@ -127,7 +131,7 @@ async function handleGrade(grade: number) {
   isSubmittingGrade.value = true
   try {
     const cardRef = currentCard.value
-    await api.dictionary.submitReview(cardRef.id, grade)
+    await repos.dictionary.submitReview(cardRef.id, grade)
     if (grade === 1) { // 1 = Rating.Again in FSRS
       dictStore.reviewQueue.push(cardRef)
     }

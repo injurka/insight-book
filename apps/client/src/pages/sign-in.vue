@@ -9,10 +9,13 @@ import { KitBtn, KitDropdown, KitInput } from '~/components/01.kit'
 import { ThemesVariant, useChangeTheme } from '~/shared/composables/use-change-theme'
 import { useToast } from '~/shared/composables/use-toast'
 import { useUmami } from '~/shared/composables/use-umami'
+import { useRepos } from '~/shared/plugins/di'
 import { loadLanguageAsync } from '~/shared/plugins/i18n'
-import { api, BASE_API_URL } from '~/shared/services/api.service'
+import { BASE_API_URL } from '~/shared/services/api.service'
 import { useAuthStore } from '~/shared/store/auth.store'
 import { useGlobalSettingsStore } from '~/shared/store/settings.store'
+
+const repos = useRepos()
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -25,12 +28,13 @@ const { theme, toggleTheme } = useChangeTheme()
 
 const currentThemeIcon = computed(() => {
   switch (theme.value) {
+    case ThemesVariant.System: return 'mdi:theme-light-dark'
     case ThemesVariant.Light: return 'mdi:weather-sunny'
     case ThemesVariant.Dark: return 'mdi:weather-night'
     case ThemesVariant.Sepia: return 'mdi:book-open-page-variant'
     case ThemesVariant.Green: return 'mdi:leaf'
     case ThemesVariant.Oled: return 'mdi:moon-waning-crescent'
-    default: return 'mdi:weather-sunny'
+    default: return 'mdi:theme-light-dark'
   }
 })
 
@@ -60,7 +64,7 @@ async function handleSignIn() {
   isLoading.value = true
 
   try {
-    const res = await api.auth.login({ login: username.value, password: password.value })
+    const res = await repos.auth.login({ login: username.value, password: password.value })
     localStorage.setItem('insight_token', res.token)
     await authStore.checkAuth()
 
@@ -80,7 +84,7 @@ async function handleSendCode() {
     return
   isLoading.value = true
   try {
-    await api.auth.sendCode({ email: email.value })
+    await repos.auth.sendCode({ email: email.value })
     isCodeSent.value = true
     toast.success('Код отправлен на почту')
   }
@@ -97,7 +101,7 @@ async function handleRegister() {
     return
   isLoading.value = true
   try {
-    const res = await api.auth.register({ email: email.value, code: code.value, password: password.value })
+    const res = await repos.auth.register({ email: email.value, code: code.value, password: password.value })
     localStorage.setItem('insight_token', res.token)
     await authStore.checkAuth()
     trackEvent('register_success')

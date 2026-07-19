@@ -1,4 +1,4 @@
-import type { Book, BookStats, CatalogDeck, CatalogWord, DictDeck, GeneratedWordExamples, Highlight, LlmAnalysis, PageDictEntry, PagePayload, PromptItem, TocItem, UserData, UserDictItem, WordAutoFillResponse } from '../types/models'
+import type { AuthLoginDto, AuthRegisterDto, AuthSendCodeDto, Book, BookStats, CatalogDeck, CatalogWord, DictDeck, GeneratedWordExamples, Highlight, LlmAnalysis, PageDictEntry, PagePayload, PromptItem, TocItem, UserData, UserDictItem, WordAutoFillResponse } from '../types/models'
 import { ofetch } from 'ofetch'
 import { getActivePinia } from 'pinia'
 
@@ -94,9 +94,9 @@ export const request = ofetch.create({
 
 export const api = {
   auth: {
-    login: (data: unknown) => request<{ token: string, user: UserData }>('/api/auth/login', { method: 'POST', body: JSON.stringify(data) }),
-    sendCode: (data: { email: string }) => request<{ success: boolean, message: string }>('/api/auth/send-code', { method: 'POST', body: JSON.stringify(data) }),
-    register: (data: unknown) => request<{ token: string, user: UserData }>('/api/auth/register', { method: 'POST', body: JSON.stringify(data) }),
+    login: (data: AuthLoginDto) => request<{ token: string, user: UserData }>('/api/auth/login', { method: 'POST', body: JSON.stringify(data) }),
+    sendCode: (data: AuthSendCodeDto) => request<{ success: boolean, message: string }>('/api/auth/send-code', { method: 'POST', body: JSON.stringify(data) }),
+    register: (data: AuthRegisterDto) => request<{ token: string, user: UserData }>('/api/auth/register', { method: 'POST', body: JSON.stringify(data) }),
     me: () => request<{ user: UserData | null, mode: string }>('/api/auth/me'),
     updateAvatar: (file: File) => {
       const fd = new FormData()

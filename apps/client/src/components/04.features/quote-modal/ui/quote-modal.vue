@@ -5,7 +5,7 @@ import { ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { KitBtn, KitDialog, KitToggle } from '~/components/01.kit'
 import { useToast } from '~/shared/composables/use-toast'
-import { api } from '~/shared/services/api.service'
+import { useRepos } from '~/shared/plugins/di'
 
 const props = defineProps<{
   visible: boolean
@@ -29,6 +29,8 @@ const emit = defineEmits<{
   'update:visible': [value: boolean]
   'save': [data: { text: string, translation: string, note: string, color: string, analysisData: LlmAnalysis | null }]
 }>()
+
+const repos = useRepos()
 
 const { t } = useI18n()
 const toast = useToast()
@@ -77,7 +79,7 @@ async function translate() {
 
   isTranslating.value = true
   try {
-    const res = await api.books.analyze(props.bookContext.id, form.value.text, props.bookContext.language)
+    const res = await repos.analysis.analyze(props.bookContext.id, form.value.text, props.bookContext.language)
     if (res && res.translation) {
       form.value.translation = res.translation
       analysisData.value = res

@@ -5,8 +5,11 @@ import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { KitBtn, KitCheckbox, KitDialog, KitInput, KitSelect, KitTabs } from '~/components/01.kit'
 import { useToast } from '~/shared/composables/use-toast'
-import { api } from '~/shared/services/api.service'
+import { useRepos } from '~/shared/plugins/di'
+
 import { useDictionaryStore } from '../../store/dictionary.store'
+
+const repos = useRepos()
 
 const visible = defineModel<boolean>('visible', { required: true })
 const store = useDictionaryStore()
@@ -65,7 +68,7 @@ async function doImport() {
     const allLines = text.split('\n').filter(l => l.trim().length > 0)
     const rows = allLines.map(l => l.split('\t').length > 1 ? l.split('\t') : l.split(','))
 
-    await api.dictionary.importCsv({
+    await repos.dictionary.importCsv({
       rows,
       mapping: mapping.value,
       deckId: importDeckId.value === 'none' ? null : Number(importDeckId.value),
@@ -99,7 +102,7 @@ const isPreviewLoading = ref(false)
 async function loadCatalog() {
   isCatalogLoading.value = true
   try {
-    const res = await api.dictionary.catalog()
+    const res = await repos.dictionary.catalog()
     catalogDecks.value = Array.isArray(res) ? res : (res as unknown as { data: CatalogDeck[] }).data || []
   }
   catch (err: unknown) {
@@ -115,7 +118,7 @@ async function openPreview(deck: CatalogDeck) {
   previewWords.value = []
   isPreviewLoading.value = true
   try {
-    previewWords.value = await api.dictionary.catalogWords(deck.id)
+    previewWords.value = await repos.dictionary.catalogWords(deck.id)
   }
   catch (err: unknown) {
     toast.error(t('dictionary.discover.preview_failed', { error: (err as Error).message }))
@@ -136,7 +139,7 @@ async function cloneDeck(id: number) {
     return
   cloningDeckId.value = id
   try {
-    await api.dictionary.cloneCatalog(id)
+    await repos.dictionary.cloneCatalog(id)
     toast.success(t('dictionary.discover.clone_success'))
     await store.fetchDictionary()
     await store.fetchDecks()

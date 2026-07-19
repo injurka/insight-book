@@ -2,11 +2,11 @@ import { ref } from 'vue'
 import { useReaderStore } from '~/components/05.modules/reader/store/reader.store'
 import { useToast } from '~/shared/composables/use-toast'
 import { useUmami } from '~/shared/composables/use-umami'
-import { api } from '~/shared/services/api.service'
-import { offlineService } from '~/shared/services/offline.service'
+import { useRepos } from '~/shared/plugins/di'
 import { useGlobalSettingsStore } from '~/shared/store/settings.store'
 
 export function useTts() {
+  const repos = useRepos()
   const { trackEvent } = useUmami()
 
   const readerStore = useReaderStore()
@@ -54,21 +54,20 @@ export function useTts() {
       const normalizedText = text.trim().toLowerCase()
       const cacheKey = bookId ? `${bookId}_${voice}_${normalizedText}` : `dict_${lang}_${voice}_${normalizedText}`
 
-      let audioBlob = forceCacheBypass ? null : await offlineService.getTtsBlob(cacheKey)
+      let audioBlob = forceCacheBypass ? null : await repos.analysis.getLocalTts(cacheKey)
 
       if (!audioBlob) {
         let audioBase64 = ''
         if (bookId) {
-          const res = await api.books.generateTts(bookId, text, voice, abortController.signal, forceCacheBypass)
-
+          const res = await repos.analysis.generateTts(bookId, text, voice, abortController.signal)
           audioBase64 = res.audioBase64
         }
         else {
-          const res = await api.tts.generate(text, voice, abortController.signal, forceCacheBypass)
+          const res = await repos.analysis.generateGenericTts(text, voice, abortController.signal, forceCacheBypass)
           audioBase64 = res.audioBase64
         }
-        await offlineService.saveTts(cacheKey, audioBase64)
-        audioBlob = await offlineService.getTtsBlob(cacheKey)
+        await repos.analysis.saveLocalTts(cacheKey, audioBase64)
+        audioBlob = await repos.analysis.getLocalTts(cacheKey)
       }
 
       if (abortController.signal.aborted)

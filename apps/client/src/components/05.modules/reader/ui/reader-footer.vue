@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { KitBtn, KitPrompt } from '~/components/01.kit'
+import { BookEntity } from '~/components/03.domain/entities/book.entity'
 import { useReaderStore } from '../store/reader.store'
 
 const emit = defineEmits(['prev', 'next', 'goTo'])
@@ -9,6 +10,8 @@ const readerStore = useReaderStore()
 const { t } = useI18n()
 
 const isPromptOpen = ref(false)
+
+const bookEntity = computed(() => readerStore.currentBook ? new BookEntity(readerStore.currentBook) : null)
 
 function openPrompt() {
   if (!readerStore.currentBook)
@@ -32,7 +35,7 @@ function handlePageSubmit(value: string) {
     <KitBtn
       icon="mdi:chevron-left"
       variant="text"
-      :disabled="(readerStore.currentBook?.currentPage || 1) <= 1"
+      :disabled="!bookEntity || !bookEntity.hasPrevPage()"
       @click="emit('prev')"
     >
       {{ t('reader.back') }}
@@ -50,7 +53,7 @@ function handlePageSubmit(value: string) {
     <KitBtn
       append-icon="mdi:chevron-right"
       variant="text"
-      :disabled="(readerStore.currentBook?.currentPage || 1) >= (readerStore.currentBook?.totalPages || 1)"
+      :disabled="!bookEntity || !bookEntity.hasNextPage()"
       @click="emit('next')"
     >
       {{ t('reader.forward') }}

@@ -11,9 +11,9 @@ import BookLexicalPanel from './book-lexical-panel.vue'
 import BookStatsPanel from './book-stats-panel.vue'
 import BookTocPanel from './book-toc-panel.vue'
 
-const SelectionTooltip = lazyComponent(() => import('~/components/03.domain/analysis/ui/selection-tooltip.vue'))
-const SentenceAnalysis = lazyComponent(() => import('~/components/03.domain/analysis/ui/sentence-analysis.vue'))
-const WordPopover = lazyComponent(() => import('~/components/03.domain/analysis/ui/popover/word-popover.vue'))
+const SelectionTooltip = lazyComponent(() => import('~/components/04.features/analysis/ui/selection-tooltip.vue'))
+const SentenceAnalysis = lazyComponent(() => import('~/components/04.features/analysis/ui/sentence-analysis.vue'))
+const WordPopover = lazyComponent(() => import('~/components/04.features/analysis/ui/popover/word-popover.vue'))
 const AppendMangaModal = lazyComponent(() => import('./modal/append-manga-modal.vue'))
 const BookSyncModal = lazyComponent(() => import('./modal/book-sync-modal.vue'))
 

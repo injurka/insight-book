@@ -1,11 +1,9 @@
 import type { DictDeck, UserDictItem } from '~/shared/types/models'
-import { useMutation, useQueryCache } from '@pinia/colada'
+import { useMutation, useQuery, useQueryCache } from '@pinia/colada'
 import { defineStore } from 'pinia'
 import { computed, ref, watch } from 'vue'
 import { useToast } from '~/shared/composables/use-toast'
-import { createOfflineQuery } from '~/shared/lib/query'
-import { api } from '~/shared/services/api.service'
-import { offlineService } from '~/shared/services/offline.service'
+import { useRepos } from '~/shared/plugins/di'
 import { useAnalysisStore } from '~/shared/store/analysis.store'
 import { useAuthStore } from '~/shared/store/auth.store'
 
@@ -17,6 +15,7 @@ export const useDictionaryStore = defineStore('dictionary', () => {
   const toast = useToast()
   const queryCache = useQueryCache()
   const authStore = useAuthStore()
+  const repos = useRepos()
 
   const words = ref<UserDictItem[]>([])
   const isManualLoading = ref(false)
@@ -26,17 +25,9 @@ export const useDictionaryStore = defineStore('dictionary', () => {
     data: dictionaryData,
     isLoading: isDictionaryLoading,
     refetch: refetchDictionary,
-  } = createOfflineQuery<UserDictItem[]>({
+  } = useQuery<UserDictItem[]>({
     key: ['dictionary'],
-    networkQuery: async () => {
-      return await api.dictionary.list()
-    },
-    saveOfflineData: async (list) => {
-      await offlineService.saveDictionary(list)
-    },
-    getOfflineData: async () => {
-      return await offlineService.getDictionary()
-    },
+    query: () => repos.dictionary.list(),
     enabled: () => !!authStore.user || authStore.isSingleMode,
   })
 
@@ -110,10 +101,10 @@ export const useDictionaryStore = defineStore('dictionary', () => {
   }
 
   const { mutateAsync: deleteWordMutation, isLoading: isDeletingWord } = useMutation({
-    mutation: (word: string) => api.dictionary.remove(word),
+    mutation: (word: string) => repos.dictionary.remove(word),
     async onSuccess(_, word) {
       words.value = words.value.filter(w => w.word !== word)
-      await offlineService.saveDictionary(words.value)
+      await repos.dictionary.saveLocalDictionary(words.value)
 
       useTrainingStore().reviewQueue = useTrainingStore().reviewQueue.filter(w => w.word !== word)
 

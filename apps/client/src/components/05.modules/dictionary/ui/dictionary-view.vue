@@ -12,7 +12,7 @@ import SrsTrainingDialog from './dialog/srs-training-dialog.vue'
 import DictionaryHeader from './partials/dictionary-header.vue'
 import DictionaryList from './partials/dictionary-list.vue'
 
-const DictWordDetailsModal = lazyComponent(() => import('~/components/03.domain/dict-word/ui/dict-word-details-modal.vue'))
+const DictWordDetailsModal = lazyComponent(() => import('~/components/04.features/dict-word/ui/dict-word-details-modal.vue'))
 
 const store = useDictionaryStore()
 const router = useRouter()

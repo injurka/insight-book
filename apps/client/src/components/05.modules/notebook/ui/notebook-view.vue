@@ -13,7 +13,8 @@ import { QuotePractice } from '~/components/04.features/quote-practice'
 import { useLibraryStore } from '~/components/05.modules/library/store/library.store'
 import { useToast } from '~/shared/composables/use-toast'
 import { useTts } from '~/shared/composables/use-tts'
-import { api } from '~/shared/services/api.service'
+import { useRepos } from '~/shared/plugins/di'
+
 import QuoteAnalysisModal from './modal/quote-analysis-modal.vue'
 
 interface BookGroup {
@@ -23,6 +24,7 @@ interface BookGroup {
 }
 
 const router = useRouter()
+const repos = useRepos()
 const { t } = useI18n()
 const toast = useToast()
 const libraryStore = useLibraryStore()
@@ -195,7 +197,7 @@ async function saveEdit(data: { text: string, translation: string, note: string,
     return
 
   try {
-    const updated = await api.highlights.update(id, {
+    const updated = await repos.highlights.update(id, {
       translation: data.translation || null,
       note: data.note || null,
       color: data.color,
@@ -228,7 +230,7 @@ async function onDeleteConfirmSubmit() {
     return
 
   try {
-    await api.highlights.delete(id)
+    await repos.highlights.delete(id)
     highlights.value = highlights.value.filter(h => h.id !== id)
     toast.success(t('notebook.quoteDeleted') || 'Цитата удалена')
   }
@@ -339,9 +341,9 @@ const translatingId = ref<number | null>(null)
 async function translateQuote(h: Highlight, book: Book) {
   translatingId.value = h.id
   try {
-    const res = await api.books.analyze(book.id, h.text, book.language)
+    const res = await repos.analysis.analyze(book.id, h.text, book.language)
     if (res && res.translation) {
-      await api.highlights.update(h.id, {
+      await repos.highlights.update(h.id, {
         translation: res.translation,
       })
 
@@ -373,7 +375,7 @@ onMounted(async () => {
     if (libraryStore.books.length === 0) {
       await libraryStore.fetchBooks()
     }
-    highlights.value = await api.highlights.list()
+    highlights.value = await repos.highlights.list() as any
   }
   catch (err) {
     toast.error(err instanceof Error ? err.message : (t('notebook.loadQuotesError') || 'Ошибка загрузки цитат'))

@@ -1,8 +1,10 @@
-import { offlineService } from '~/shared/services/offline.service'
+import type { defaultRepositories } from '~/shared/plugins/di'
+import { useRepos } from '~/shared/plugins/di'
 import { useToastStore } from './toast.store'
 
 export const useCacheStore = defineStore('cache', () => {
-  const stats = ref<Awaited<ReturnType<typeof offlineService.getCacheStats>> | null>(null)
+  const repos = useRepos()
+  const stats = ref<Awaited<ReturnType<typeof defaultRepositories.storage.getCacheStats>> | null>(null)
 
   const deviceStorage = ref<{ usage: number, quota: number } | null>(null)
   const isPersisted = ref(false)
@@ -12,11 +14,11 @@ export const useCacheStore = defineStore('cache', () => {
   async function loadStats() {
     isLoading.value = true
     try {
-      isPersisted.value = await offlineService.requestPersistentStorage()
+      isPersisted.value = await repos.storage.requestPersistentStorage()
 
-      deviceStorage.value = await offlineService.getStorageEstimate()
+      deviceStorage.value = await repos.storage.getStorageEstimate()
 
-      stats.value = await offlineService.getCacheStats()
+      stats.value = await repos.storage.getCacheStats()
     }
     catch {
       useToastStore().error('Ошибка загрузки статистики кэша')
@@ -27,7 +29,7 @@ export const useCacheStore = defineStore('cache', () => {
   }
 
   async function clearBookCache(bookId: number) {
-    await offlineService.clearBookCache(bookId)
+    await repos.storage.clearBookCache(bookId)
     useToastStore().success('Кэш книги очищен')
     await loadStats()
   }

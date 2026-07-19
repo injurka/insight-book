@@ -6,6 +6,7 @@ import { createApp, vaporInteropPlugin } from 'vue'
 import { vLongPress } from '~/shared/directives/long-press'
 import { vRipple } from '~/shared/directives/ripple'
 import router from '~/shared/lib/router'
+import { defaultRepositories, REPOS_INJECTION_KEY } from '~/shared/plugins/di'
 import App from './app.vue'
 import { i18n, localePromise } from './shared/plugins/i18n.ts'
 
@@ -27,10 +28,16 @@ async function bootstrap() {
   app.use(i18n)
   app.use(head)
   app.use(vaporInteropPlugin)
+  app.provide(REPOS_INJECTION_KEY, defaultRepositories)
 
   try {
     const { setupPlugins } = await import('~/plugins/index')
     await setupPlugins(app, router)
+
+    const { setupDictionaryEvents } = await import('~/shared/events/dictionary-events')
+    const { setupReaderEvents } = await import('~/shared/events/reader-events')
+    setupDictionaryEvents()
+    setupReaderEvents()
   }
   catch (err) {
     console.error('Failed to setup plugins:', err)

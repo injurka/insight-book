@@ -1,9 +1,12 @@
-import { invoke, isTauri } from '@tauri-apps/api/core'
-
+import { isTauri } from '@tauri-apps/api/core'
 import { defineStore } from 'pinia'
+
+import { useRepos } from '~/shared/plugins/di'
 import { i18n } from '~/shared/plugins/i18n'
 import { useAuthStore } from './auth.store'
 import { useToastStore } from './toast.store'
+
+const repos = useRepos()
 
 type UpdateServiceWorkerFunction = (reloadPage?: boolean) => Promise<void>
 
@@ -68,25 +71,15 @@ export const usePwaStore = defineStore('pwa', {
     },
 
     async checkPushStatus() {
-      const BASE = import.meta.env.VITE_API_URL || 'https://api.insight-book.ru'
       const token = localStorage.getItem('insight_token')
-      const headers = {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
-      }
 
       if (isTauri()) {
         try {
-          // Вызываем нативную Rust-функцию, которая вернет сохраненный токен
-          const fcmToken = await invoke<string | null>('get_fcm_token').catch(() => null)
+          const fcmToken = await repos.push.getNativeFcmToken()
           this.isPushSubscribed = !!fcmToken
 
           if (this.isPushSubscribed && fcmToken && token) {
-            fetch(`${BASE}/api/push/fcm-subscribe`, {
-              method: 'POST',
-              headers,
-              body: JSON.stringify({ token: fcmToken }),
-            }).catch(() => { })
+            repos.push.subscribeFcm(fcmToken).catch(() => { })
           }
         }
         catch (e) {
@@ -117,11 +110,7 @@ export const usePwaStore = defineStore('pwa', {
 
             // Синхронизируем свежие ключи с бэкендом, если подписка активна
             if (this.isPushSubscribed && sub && token) {
-              fetch(`${BASE}/api/push/subscribe`, {
-                method: 'POST',
-                headers,
-                body: JSON.stringify(sub),
-              }).catch(() => { })
+              repos.push.subscribeWeb(sub).catch(() => { })
             }
           }
           catch (e) {
@@ -146,41 +135,24 @@ export const usePwaStore = defineStore('pwa', {
     async togglePushSubscription() {
       const toast = useToastStore()
       const t = i18n.global.t
-      const BASE = import.meta.env.VITE_API_URL || 'https://api.insight-book.ru'
-      const headers = {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('insight_token')}`,
-      }
 
       if (isTauri()) {
         if (this.isPushSubscribed) {
-          const fcmToken = await invoke<string | null>('get_fcm_token').catch(() => null)
+          const fcmToken = await repos.push.getNativeFcmToken()
           if (fcmToken) {
-            await fetch(`${BASE}/api/push/fcm-unsubscribe`, {
-              method: 'POST',
-              headers,
-              body: JSON.stringify({ token: fcmToken }),
-            })
-            await invoke('unsubscribe_fcm').catch(() => null)
+            await repos.push.unsubscribeFcm(fcmToken)
+            await repos.push.unsubscribeNativeFcm()
           }
           this.isPushSubscribed = false
           toast.info(t('settings.pushDisabled'))
         }
         else {
           try {
-            const fcmToken = await invoke<string>('request_fcm_token')
+            const fcmToken = await repos.push.requestNativeFcmToken()
             if (!fcmToken)
               throw new Error('No FCM token returned')
 
-            const subRes = await fetch(`${BASE}/api/push/fcm-subscribe`, {
-              method: 'POST',
-              headers,
-              body: JSON.stringify({ token: fcmToken }),
-            })
-
-            if (!subRes.ok) {
-              throw new Error('Subscription API request failed')
-            }
+            await repos.push.subscribeFcm(fcmToken)
 
             this.isPushSubscribed = true
             toast.success(t('settings.pushEnabled'))
@@ -211,11 +183,7 @@ export const usePwaStore = defineStore('pwa', {
 
       if (sub) {
         await sub.unsubscribe()
-        await fetch(`${BASE}/api/push/unsubscribe`, {
-          method: 'POST',
-          headers,
-          body: JSON.stringify({ endpoint: sub.endpoint }),
-        })
+        await repos.push.unsubscribeWeb(sub.endpoint)
         this.isPushSubscribed = false
         toast.info(t('settings.pushDisabled'))
       }
@@ -226,13 +194,15 @@ export const usePwaStore = defineStore('pwa', {
           throw new Error('Permission denied')
         }
 
-        const res = await fetch(`${BASE}/api/push/vapid-public-key`, { headers })
-        if (!res.ok) {
+        let publicKey: string
+        try {
+          publicKey = await repos.push.getVapidPublicKey()
+        }
+        catch (e) {
           toast.error(t('settings.pushKeyError'))
-          throw new Error('VAPID key fetch failed')
+          throw e
         }
 
-        const { publicKey } = await res.json()
         if (!publicKey) {
           toast.error(t('settings.pushKeyError') || 'VAPID key missing')
           throw new Error('No public key')
@@ -249,15 +219,12 @@ export const usePwaStore = defineStore('pwa', {
           throw e
         }
 
-        const subRes = await fetch(`${BASE}/api/push/subscribe`, {
-          method: 'POST',
-          headers,
-          body: JSON.stringify(sub),
-        })
-
-        if (!subRes.ok) {
+        try {
+          await repos.push.subscribeWeb(sub)
+        }
+        catch (e) {
           toast.error(t('settings.pushSubError'))
-          throw new Error('Subscription API request failed')
+          throw e
         }
 
         this.isPushSubscribed = true
@@ -274,27 +241,19 @@ export const usePwaStore = defineStore('pwa', {
     },
 
     async updatePushSettings(settings: { deckId: number | 'all', timeStart: string, timeEnd: string, pushCount: number }) {
-      const BASE = import.meta.env.VITE_API_URL || 'https://api.insight-book.ru'
       const timezone = new Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'
 
       const { useGlobalSettingsStore } = await import('./settings.store')
       const settingsStore = useGlobalSettingsStore()
       const uiLanguage = settingsStore.appLanguage || 'ru'
 
-      await fetch(`${BASE}/api/push/settings`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('insight_token')}`,
-        },
-        body: JSON.stringify({
-          targetDeckId: settings.deckId,
-          timeStart: settings.timeStart,
-          timeEnd: settings.timeEnd,
-          timezone,
-          uiLanguage,
-          pushCount: settings.pushCount ?? 1,
-        }),
+      await repos.push.updateSettings({
+        targetDeckId: settings.deckId,
+        timeStart: settings.timeStart,
+        timeEnd: settings.timeEnd,
+        timezone,
+        uiLanguage,
+        pushCount: settings.pushCount ?? 1,
       })
 
       const authStore = useAuthStore()

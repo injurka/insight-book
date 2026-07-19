@@ -1,16 +1,20 @@
+import type { UserDictItem } from '~/shared/types/models'
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
+import { Flashcard } from '~/components/03.domain/entities/flashcard.entity'
 import { DIFFICULTY_SYSTEMS } from '~/shared/constants/difficulties'
-import { api } from '~/shared/services/api.service'
+import { useRepos } from '~/shared/plugins/di'
 import { useDecksStore } from './decks.store'
 import { useDictionaryFiltersStore } from './dictionary-filters.store'
 
 export const useTrainingStore = defineStore('training', () => {
-  const reviewQueue = ref<any[]>([])
+  const repos = useRepos()
+  const reviewQueue = ref<UserDictItem[]>([])
   const trainingMode = ref<'srs' | 'deep_dive' | 'cram' | 'match'>('srs')
 
-  const newWordsQueueCount = computed(() => reviewQueue.value.filter(w => w.state === 0).length)
-  const reviewWordsQueueCount = computed(() => reviewQueue.value.filter(w => w.state > 0).length)
+  const newWordsQueueCount = computed(() => reviewQueue.value.filter(w => new Flashcard(w).isNew()).length)
+  const learningWordsQueueCount = computed(() => reviewQueue.value.filter(w => new Flashcard(w).isLearning()).length)
+  const reviewWordsQueueCount = computed(() => reviewQueue.value.filter(w => new Flashcard(w).isReview()).length)
   const totalReviewCount = computed(() => reviewQueue.value.length)
 
   async function fetchTrainingQueue(opts: {
@@ -29,7 +33,7 @@ export const useTrainingStore = defineStore('training', () => {
           langToFetch = deck.language
       }
 
-      let queue = await api.dictionary.getReviewQueue({
+      let queue = await repos.dictionary.getReviewQueue({
         lang: langToFetch,
         mode: opts.mode,
         deckId: opts.deckId,
@@ -72,6 +76,7 @@ export const useTrainingStore = defineStore('training', () => {
     reviewQueue,
     trainingMode,
     newWordsQueueCount,
+    learningWordsQueueCount,
     reviewWordsQueueCount,
     totalReviewCount,
     fetchTrainingQueue,

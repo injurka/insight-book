@@ -1,5 +1,7 @@
 import type { Book } from '~/shared/types/models'
-import { offlineService } from '~/shared/services/offline.service'
+import { useRepos } from '~/shared/plugins/di'
+
+const repos = useRepos()
 
 export async function attachCachedCovers(booksArr: Book[]): Promise<void> {
   for (const b of booksArr) {
@@ -7,7 +9,7 @@ export async function attachCachedCovers(booksArr: Book[]): Promise<void> {
       continue
     if (b.coverUrl && !b.localCoverUrl) {
       try {
-        const cached = await offlineService.getCover(b.id)
+        const cached = await repos.book.getLocalCover(b.id)
         if (cached)
           b.localCoverUrl = URL.createObjectURL(cached)
       }

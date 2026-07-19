@@ -4,10 +4,11 @@ import { computed, ref } from 'vue'
 import { useToast } from '~/shared/composables/use-toast'
 import { useUmami } from '~/shared/composables/use-umami'
 import { DIFFICULTY_SYSTEMS } from '~/shared/constants/difficulties'
-import { api } from '~/shared/services/api.service'
+import { useRepos } from '~/shared/plugins/di'
 import { useDictionaryStore } from './dictionary.store'
 
 export const useDictionaryFiltersStore = defineStore('dictionary-filters', () => {
+  const repos = useRepos()
   const toast = useToast()
   const { trackEvent } = useUmami()
 
@@ -94,7 +95,7 @@ export const useDictionaryFiltersStore = defineStore('dictionary-filters', () =>
       return
 
     try {
-      await api.dictionary.bulkDelete(ids)
+      await repos.dictionary.bulkDelete(ids)
       const dictStore = useDictionaryStore() as any
       dictStore.words = (dictStore.words || []).filter((w: any) => !ids.includes(w.id))
       clearSelection()
@@ -113,7 +114,7 @@ export const useDictionaryFiltersStore = defineStore('dictionary-filters', () =>
       return
 
     try {
-      await api.dictionary.bulkMove(ids, deckIds)
+      await repos.dictionary.bulkMove(ids, deckIds)
       const dictStore = useDictionaryStore() as any
       if (dictStore.words) {
         dictStore.words.forEach((w: any) => {

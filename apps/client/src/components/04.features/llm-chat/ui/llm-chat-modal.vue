@@ -6,12 +6,15 @@ import { useI18n } from 'vue-i18n'
 import { KitBtn, KitDialog, KitDropdown, KitInput, KitPrompt } from '~/components/01.kit'
 import { useToast } from '~/shared/composables/use-toast'
 import { formatMarkdown } from '~/shared/lib/markdown'
-import { api } from '~/shared/services/api.service'
+import { useRepos } from '~/shared/plugins/di'
 
 const props = defineProps<{
   word: string
   language: string
 }>()
+
+const repos = useRepos()
+
 const visible = defineModel<boolean>('visible', { required: true })
 const { t, locale } = useI18n()
 const toast = useToast()
@@ -43,7 +46,7 @@ function scrollToBottom() {
 
 async function fetchPrompts() {
   try {
-    prompts.value = await api.dictionary.promptsList()
+    prompts.value = await repos.dictionary.promptsList()
   }
   catch {
     toast.error('Failed to load custom prompts')
@@ -95,7 +98,7 @@ async function sendMessage() {
       payload.userPromptText = userText
     }
 
-    const res = await api.dictionary.chat(payload)
+    const res = await repos.dictionary.chat(payload)
     messages.value.push({
       id: String(Date.now() + 1),
       sender: 'ai',
@@ -145,14 +148,14 @@ function cancelPromptForm() {
 async function savePrompt() {
   try {
     if (editingPromptId.value !== null) {
-      await api.dictionary.promptsUpdate(editingPromptId.value, {
+      await repos.dictionary.promptsUpdate(editingPromptId.value, {
         name: editName.value.trim(),
         prompt: editPromptText.value.trim(),
       })
       toast.success('Prompt updated')
     }
     else {
-      const newPrompt = await api.dictionary.promptsCreate({
+      const newPrompt = await repos.dictionary.promptsCreate({
         name: editName.value.trim(),
         prompt: editPromptText.value.trim(),
       })
@@ -180,7 +183,7 @@ async function onDeletePromptConfirm() {
   isDeleteConfirmOpen.value = false
 
   try {
-    await api.dictionary.promptsDelete(id)
+    await repos.dictionary.promptsDelete(id)
     toast.success('Prompt deleted')
     if (selectedPromptId.value === id) {
       selectedPromptId.value = ''

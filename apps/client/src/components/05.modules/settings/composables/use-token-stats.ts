@@ -1,5 +1,5 @@
 import { computed, onMounted, ref, watch } from 'vue'
-import { api } from '~/shared/services/api.service'
+import { useRepos } from '~/shared/plugins/di'
 
 export interface ActionStats {
   action: string
@@ -9,6 +9,7 @@ export interface ActionStats {
 }
 
 export function useTokenStats() {
+  const repos = useRepos()
   const tokensData = ref<{ stats: any[], daily: any[], totalCost: number } | null>(null)
   const isTokensLoading = ref(true)
   const selectedPeriod = ref<'today' | 'week' | 'all'>('all')
@@ -16,7 +17,7 @@ export function useTokenStats() {
   async function fetchTokensInfo() {
     try {
       isTokensLoading.value = true
-      tokensData.value = await api.activity.getTokens(selectedPeriod.value)
+      tokensData.value = await repos.activity.getTokens(selectedPeriod.value)
     }
     catch (e) {
       console.error('Failed to load token usage:', e)

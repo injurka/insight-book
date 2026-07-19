@@ -91,6 +91,13 @@ function previewVoice() {
       </div>
     </div>
 
+    <div class="form-row" style="margin-top: 16px;">
+      <div class="setting-item">
+        <label>{{ t('settings.enableHoverRevealBg') }}</label>
+        <input v-model="settingsStore.enableHoverRevealBg" type="checkbox">
+      </div>
+    </div>
+
     <div class="divider" style="margin: 24px 0;" />
 
     <h3 style="margin-top: 0; font-size: 1.1rem; color: var(--fg-primary-color); margin-bottom: 16px;">

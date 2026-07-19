@@ -1,12 +1,7 @@
 <script setup lang="ts">
 import { useMouse } from '@vueuse/core'
 import { computed, ref, watch } from 'vue'
-
-interface Props {
-  text?: string
-  radius?: number
-  opacity?: number
-}
+import { useGlobalSettingsStore } from '~/shared/store/settings.store'
 
 const props = withDefaults(defineProps<Props>(), {
   radius: 200,
@@ -68,6 +63,14 @@ const props = withDefaults(defineProps<Props>(), {
   ].join(' ✨ '),
 })
 
+const settingsStore = useGlobalSettingsStore()
+
+interface Props {
+  text?: string
+  radius?: number
+  opacity?: number
+}
+
 // 1. Создаем ссылку на корневой элемент
 const bgRef = ref<HTMLElement | null>(null)
 
@@ -92,7 +95,7 @@ const repeatedText = computed(() => Array.from({ length: 50 }).fill(props.text).
 
 <template>
   <!-- 4. Вешаем ref и привязываем только статичные стили -->
-  <div ref="bgRef" class="hover-reveal-bg" :style="staticBgStyle">
+  <div v-if="!settingsStore.enableHoverRevealBg" ref="bgRef" class="hover-reveal-bg" :style="staticBgStyle">
     <div class="reveal-content">
       <slot>{{ repeatedText }}</slot>
     </div>

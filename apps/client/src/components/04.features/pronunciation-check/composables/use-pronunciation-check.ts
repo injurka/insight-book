@@ -2,7 +2,9 @@ import type { MaybeRef } from 'vue'
 import { ref, unref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useToast } from '~/shared/composables/use-toast'
-import { api } from '~/shared/services/api.service'
+import { useRepos } from '~/shared/plugins/di'
+
+const repos = useRepos()
 
 export function usePronunciationCheck(
   word?: MaybeRef<string> | (() => string),
@@ -110,7 +112,7 @@ export function usePronunciationCheck(
         pronScore.value = null
 
         try {
-          const res = await api.dictionary.checkPronunciation(activeWord, activeLang, audioBlob)
+          const res = await repos.dictionary.checkPronunciation(activeWord, activeLang, audioBlob)
           pronScore.value = res.score
           pronHeardText.value = res.heardText
           pronHeardPhonetic.value = res.heardPhonetic || ''

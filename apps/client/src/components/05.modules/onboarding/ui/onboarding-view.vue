@@ -29,12 +29,13 @@ const { theme, toggleTheme } = useChangeTheme()
 
 const currentThemeIcon = computed(() => {
   switch (theme.value) {
+    case ThemesVariant.System: return 'mdi:theme-light-dark'
     case ThemesVariant.Light: return 'mdi:weather-sunny'
     case ThemesVariant.Dark: return 'mdi:weather-night'
     case ThemesVariant.Sepia: return 'mdi:book-open-page-variant'
     case ThemesVariant.Green: return 'mdi:leaf'
     case ThemesVariant.Oled: return 'mdi:moon-waning-crescent'
-    default: return 'mdi:weather-sunny'
+    default: return 'mdi:theme-light-dark'
   }
 })
 

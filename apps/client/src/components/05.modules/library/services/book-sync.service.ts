@@ -1,9 +1,11 @@
+import type { LlmAnalysis } from '~/shared/types/models'
 import { v4 as uuidv4 } from 'uuid'
 import { ref } from 'vue'
 import { useUmami } from '~/shared/composables/use-umami'
-import { api } from '~/shared/services/api.service'
-import { offlineService } from '~/shared/services/offline.service'
+import { useRepos } from '~/shared/plugins/di'
 import { useGlobalSettingsStore } from '~/shared/store/settings.store'
+
+const repos = useRepos()
 
 export const syncState = ref<'idle' | 'running' | 'finished' | 'error'>('idle')
 
@@ -94,8 +96,8 @@ export async function startWholeBookSync(
 
   try {
     try {
-      const toc = await api.books.getToc(bookId)
-      await offlineService.saveToc(bookId, toc)
+      const toc = await repos.book.getToc(bookId)
+      await repos.book.saveLocalToc(bookId, toc)
     }
     catch { }
 
@@ -103,11 +105,11 @@ export async function startWholeBookSync(
 
     if (options.cachePages && book.coverUrl && !book.localCoverUrl) {
       syncProgress.value.currentTask = 'Кэширование обложки...'
-      const cachedCover = await offlineService.getCover(book.id)
+      const cachedCover = await repos.book.getLocalCover(book.id)
       if (!cachedCover) {
         try {
-          const blob = await api.books.fetchImageBlob(book.coverUrl)
-          await offlineService.saveCover(book.id, blob)
+          const blob = await repos.book.fetchImageBlob(book.coverUrl)
+          await repos.book.saveLocalCover(book.id, blob)
           book.localCoverUrl = URL.createObjectURL(blob)
         }
         catch (e) {
@@ -122,20 +124,14 @@ export async function startWholeBookSync(
           throw new Error('Aborted')
         syncProgress.value.currentTask = `Загрузка страницы ${i} из ${book.totalPages}`
 
-        let page = await offlineService.getPage(bookId, i)
-        if (!page) {
-          page = await api.books.getPage(bookId, i, true)
-          if (options.cachePages) {
-            await offlineService.savePage(bookId, i, page)
-          }
-        }
+        const page = await repos.book.getPage(bookId, i)
 
-        if (options.cachePages && page.type === 'manga' && page.imageUrl) {
-          const cachedImage = await offlineService.getImage(bookId, i)
+        if (options.cachePages && page?.type === 'manga' && page.imageUrl) {
+          const cachedImage = await repos.book.getLocalImage(bookId, i)
           if (!cachedImage) {
             try {
-              const blob = await api.books.fetchImageBlob(page.imageUrl)
-              await offlineService.saveImage(bookId, i, blob)
+              const blob = await repos.book.fetchImageBlob(page.imageUrl)
+              await repos.book.saveLocalImage(bookId, i, blob)
             }
             catch (e) {
               console.warn(`Failed to cache image for page ${i}`, e)
@@ -144,15 +140,11 @@ export async function startWholeBookSync(
         }
 
         if (options.cachePages) {
-          const dict = await offlineService.getPageDictionary(bookId, i)
-          if (!dict) {
-            try {
-              const dictRes = await api.books.getPageDict(bookId, i)
-              await offlineService.savePageDictionary(bookId, i, dictRes.pageDictionary)
-            }
-            catch (e) {
-              console.warn(`Failed to fetch dictionary for page ${i}`, e)
-            }
+          try {
+            await repos.book.getPageDict(bookId, i)
+          }
+          catch (e) {
+            console.warn(`Failed to fetch dictionary for page ${i}`, e)
           }
         }
 
@@ -202,7 +194,7 @@ export async function startWholeBookSync(
           const missingSentences: string[] = []
 
           for (const sentence of sentences) {
-            const cached = await offlineService.getAnalysis(sentence)
+            const cached = await repos.analysis.getLocalAnalysis(sentence)
             if (cached) {
               syncProgress.value.sentencesDone++
             }
@@ -215,14 +207,14 @@ export async function startWholeBookSync(
           if (missingSentences.length > 0) {
             try {
               const checkItems = missingSentences.map(s => ({ text: s, type: 'sentence' as const }))
-              const res = await api.books.checkCache(bookId, checkItems, book.language, signal)
+              const res = await repos.analysis.checkCache(bookId, checkItems, book.language, signal)
               const cacheMap = new Map(res.results.map((r: any) => [r.sentence, r.analysis]))
 
               for (let j = missingSentences.length - 1; j >= 0; j--) {
                 const s = missingSentences[j]
-                const serverCached = cacheMap.get(s)
+                const serverCached = cacheMap.get(s) as unknown as LlmAnalysis
                 if (serverCached) {
-                  await offlineService.saveAnalysis(s, serverCached)
+                  await repos.analysis.saveLocalAnalysis(s, serverCached)
                   syncProgress.value.sentencesDone++
                   missingSentences.splice(j, 1)
                 }
@@ -249,11 +241,11 @@ export async function startWholeBookSync(
               const itemsToAnalyze = batch.map(s => ({ id: uuidv4(), sentence: s, type: 'sentence' as const }))
 
               try {
-                const res = await api.books.analyzeBatch(bookId, itemsToAnalyze, book.language, signal)
+                const res = await repos.analysis.analyzeBatch(bookId, itemsToAnalyze, book.language, signal)
                 for (const result of res.results) {
                   const item = itemsToAnalyze.find(it => it.id === result.id)
                   if (item) {
-                    await offlineService.saveAnalysis(item.sentence, result.analysis)
+                    await repos.analysis.saveLocalAnalysis(item.sentence, result.analysis)
                     syncProgress.value.sentencesDone++
                   }
                 }
@@ -273,7 +265,7 @@ export async function startWholeBookSync(
           const missingWords: string[] = []
 
           for (const word of words) {
-            const cached = await offlineService.getAnalysis(word)
+            const cached = await repos.analysis.getLocalAnalysis(word)
             if (cached) {
               syncProgress.value.wordsDone++
             }
@@ -285,14 +277,14 @@ export async function startWholeBookSync(
           if (missingWords.length > 0) {
             try {
               const checkItems = missingWords.map(w => ({ text: w, type: 'word' as const }))
-              const res = await api.books.checkCache(bookId, checkItems, book.language, signal)
+              const res = await repos.analysis.checkCache(bookId, checkItems, book.language, signal)
               const cacheMap = new Map(res.results.map((r: any) => [r.sentence, r.analysis]))
 
               for (let j = missingWords.length - 1; j >= 0; j--) {
                 const w = missingWords[j]
-                const serverCached = cacheMap.get(w)
+                const serverCached = cacheMap.get(w) as unknown as LlmAnalysis
                 if (serverCached) {
-                  await offlineService.saveAnalysis(w, serverCached)
+                  await repos.analysis.saveLocalAnalysis(w, serverCached)
                   syncProgress.value.wordsDone++
                   missingWords.splice(j, 1)
                 }
@@ -319,13 +311,13 @@ export async function startWholeBookSync(
               const itemsToAnalyze = batch.map(w => ({ id: uuidv4(), sentence: w, type: 'word' as const }))
 
               try {
-                const res = await api.books.analyzeBatch(bookId, itemsToAnalyze, book.language, signal)
+                const res = await repos.analysis.analyzeBatch(bookId, itemsToAnalyze, book.language, signal)
 
                 for (const result of res.results) {
                   const item = itemsToAnalyze.find(it => it.id === result.id)
 
                   if (item) {
-                    await offlineService.saveAnalysis(item.sentence, result.analysis)
+                    await repos.analysis.saveLocalAnalysis(item.sentence, result.analysis)
                     syncProgress.value.wordsDone++
                   }
                 }
@@ -363,10 +355,10 @@ export async function startWholeBookSync(
               const cacheKey = `${bookId}_${voice}_${normalizedText}`
 
               try {
-                const cached = await offlineService.getTtsBlob(cacheKey)
+                const cached = await repos.analysis.getLocalTts(cacheKey)
                 if (!cached) {
-                  const res = await api.books.generateTts(bookId, text, voice, signal)
-                  await offlineService.saveTts(cacheKey, res.audioBase64)
+                  const res = await repos.analysis.generateTts(bookId, text, voice, signal)
+                  await repos.analysis.saveLocalTts(cacheKey, res.audioBase64)
                 }
               }
               catch (e: unknown) {

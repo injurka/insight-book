@@ -8,7 +8,8 @@ import { PronunciationCheck } from '~/components/04.features/pronunciation-check
 import { useToast } from '~/shared/composables/use-toast'
 import { useTts } from '~/shared/composables/use-tts'
 import { vLongPress } from '~/shared/directives/long-press'
-import { api } from '~/shared/services/api.service'
+import { useRepos } from '~/shared/plugins/di'
+
 import { useAuthStore } from '~/shared/store/auth.store'
 import { useDictionaryStore } from '../../../store/dictionary.store'
 
@@ -23,7 +24,9 @@ const props = defineProps<{
 
 const emit = defineEmits(['grade'])
 
-const AiExamplesModal = lazyComponent(() => import('~/components/03.domain/analysis/ui/modal/ai-examples-modal.vue'))
+const repos = useRepos()
+
+const AiExamplesModal = lazyComponent(() => import('~/components/04.features/analysis/ui/modal/ai-examples-modal.vue'))
 const LlmChatModal = lazyComponent(() => import('~/components/04.features/llm-chat/ui/llm-chat-modal.vue'))
 const HanziBoard = lazyComponent(() => import('../../hanzi-board.vue'))
 
@@ -168,7 +171,7 @@ async function fetchAiExamples() {
   aiData.value = null
 
   try {
-    const res = await api.dictionary.generateExamples(matchedCard.value.word, matchedCard.value.language || 'en')
+    const res = await repos.dictionary.generateExamples(matchedCard.value.word, matchedCard.value.language || 'en')
     aiData.value = res
   }
   catch (e) {
