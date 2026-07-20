@@ -8,17 +8,16 @@ interface ToggleOption {
   tooltip?: string
 }
 
+withDefaults(defineProps<Props>(), {
+  size: 'sm',
+})
+
 const modelValue = defineModel<any>()
 
 interface Props {
   options: ToggleOption[]
   size?: 'xs' | 'sm' | 'md' | 'lg'
 }
-
-withDefaults(defineProps<Props>(), {
-  size: 'sm',
-})
-
 
 function select(value: any) {
   modelValue.value = value

@@ -3,26 +3,27 @@
 import { eq } from 'drizzle-orm'
 import { db, sqlite } from './db'
 import * as schema from './db/schema'
+import { logger } from './utils/logger'
 
 const [, , command, username, arg3, arg4] = process.argv
 
 async function main() {
   if (command === 'list') {
     const users = await db.query.users.findMany()
-    console.log('--- Список пользователей ---')
-    users.forEach(u => console.log(`ID: ${u.id} | Логин: ${u.username} | Роль: ${u.role} | Токены: ${u.usedTokens}/${u.tokenLimit ?? '∞'} | Книги: ${u.bookLimit ?? '∞'} | Создан: ${u.createdAt}`))
+    logger.info('--- Список пользователей ---')
+    users.forEach(u => logger.info(`ID: ${u.id} | Логин: ${u.username} | Роль: ${u.role} | Токены: ${u.usedTokens}/${u.tokenLimit ?? '∞'} | Книги: ${u.bookLimit ?? '∞'} | Создан: ${u.createdAt}`))
     return
   }
 
   if (command === 'add') {
     const password = arg3
     if (!username || !password) {
-      console.error('❌ Использование: bun cli.ts add <username> <password>')
+      logger.error('❌ Использование: bun cli.ts add <username> <password>')
       return
     }
     const existing = await db.query.users.findFirst({ where: eq(schema.users.username, username) })
     if (existing) {
-      console.error(`❌ Пользователь ${username} уже существует!`)
+      logger.error(`❌ Пользователь ${username} уже существует!`)
       return
     }
 
@@ -31,39 +32,39 @@ async function main() {
       username,
       passwordHash,
     })
-    console.log(`✅ Пользователь ${username} успешно добавлен!`)
+    logger.info(`✅ Пользователь ${username} успешно добавлен!`)
     return
   }
 
   if (command === 'passwd') {
     const password = arg3
     if (!username || !password) {
-      console.error('❌ Использование: bun cli.ts passwd <username> <new_password>')
+      logger.error('❌ Использование: bun cli.ts passwd <username> <new_password>')
       return
     }
     const existing = await db.query.users.findFirst({ where: eq(schema.users.username, username) })
     if (!existing) {
-      console.error(`❌ Пользователь ${username} не найден!`)
+      logger.error(`❌ Пользователь ${username} не найден!`)
       return
     }
 
     const passwordHash = await Bun.password.hash(password)
     await db.update(schema.users).set({ passwordHash }).where(eq(schema.users.id, existing.id))
-    console.log(`✅ Пароль для пользователя ${username} успешно изменен!`)
+    logger.info(`✅ Пароль для пользователя ${username} успешно изменен!`)
     return
   }
 
   if (command === 'limit') {
     if (!username || !arg3) {
-      console.error('❌ Использование: bun cli.ts limit <username> <token_limit> [book_limit]')
-      console.error('   Пример: bun cli.ts limit admin 10_000_000 50')
-      console.error('   Для отключения лимита укажите "null" или "none": bun cli.ts limit admin null null')
+      logger.error('❌ Использование: bun cli.ts limit <username> <token_limit> [book_limit]')
+      logger.error('   Пример: bun cli.ts limit admin 10_000_000 50')
+      logger.error('   Для отключения лимита укажите "null" или "none": bun cli.ts limit admin null null')
       return
     }
 
     const existing = await db.query.users.findFirst({ where: eq(schema.users.username, username) })
     if (!existing) {
-      console.error(`❌ Пользователь ${username} не найден!`)
+      logger.error(`❌ Пользователь ${username} не найден!`)
       return
     }
 
@@ -73,12 +74,12 @@ async function main() {
       : ((arg4 === 'null' || arg4 === 'none') ? null : Number.parseInt(arg4, 10))
 
     if (tokenLimit !== null && Number.isNaN(tokenLimit)) {
-      console.error('❌ Лимит токенов должен быть числом или "null"/"none"')
+      logger.error('❌ Лимит токенов должен быть числом или "null"/"none"')
       return
     }
 
     if (bookLimit !== undefined && bookLimit !== null && Number.isNaN(bookLimit)) {
-      console.error('❌ Лимит книг должен быть числом или "null"/"none"')
+      logger.error('❌ Лимит книг должен быть числом или "null"/"none"')
       return
     }
 
@@ -90,10 +91,10 @@ async function main() {
 
     await db.update(schema.users).set(updatePayload).where(eq(schema.users.id, existing.id))
 
-    console.log(`✅ Лимиты для пользователя ${username} успешно обновлены!`)
-    console.log(`   Новый лимит токенов: ${tokenLimit === null ? 'Безлимитно (null)' : tokenLimit.toLocaleString()}`)
+    logger.info(`✅ Лимиты для пользователя ${username} успешно обновлены!`)
+    logger.info(`   Новый лимит токенов: ${tokenLimit === null ? 'Безлимитно (null)' : tokenLimit.toLocaleString()}`)
     if (bookLimit !== undefined) {
-      console.log(`   Новый лимит книг: ${bookLimit === null ? 'Безлимитно (null)' : bookLimit}`)
+      logger.info(`   Новый лимит книг: ${bookLimit === null ? 'Безлимитно (null)' : bookLimit}`)
     }
     return
   }
@@ -101,39 +102,39 @@ async function main() {
   if (command === 'role') {
     const role = arg3
     if (!username || !role) {
-      console.error('❌ Использование: bun cli.ts role <username> <role>')
+      logger.error('❌ Использование: bun cli.ts role <username> <role>')
       return
     }
 
     const existing = await db.query.users.findFirst({ where: eq(schema.users.username, username) })
     if (!existing) {
-      console.error(`❌ Пользователь ${username} не найден!`)
+      logger.error(`❌ Пользователь ${username} не найден!`)
       return
     }
 
     await db.update(schema.users).set({ role }).where(eq(schema.users.id, existing.id))
-    console.log(`✅ Роль для пользователя ${username} успешно изменена на ${role}!`)
+    logger.info(`✅ Роль для пользователя ${username} успешно изменена на ${role}!`)
     return
   }
 
   if (command === 'del' || command === 'delete' || command === 'rm') {
     if (!username) {
-      console.error('❌ Использование: bun cli.ts delete <username>')
+      logger.error('❌ Использование: bun cli.ts delete <username>')
       return
     }
 
     const existing = await db.query.users.findFirst({ where: eq(schema.users.username, username) })
     if (!existing) {
-      console.error(`❌ Пользователь ${username} не найден!`)
+      logger.error(`❌ Пользователь ${username} не найден!`)
       return
     }
 
     await db.delete(schema.users).where(eq(schema.users.id, existing.id))
-    console.log(`✅ Пользователь ${username} успешно удален!`)
+    logger.info(`✅ Пользователь ${username} успешно удален!`)
     return
   }
 
-  console.log(`
+  logger.info(`
 Использование CLI:
   bun cli.ts list                              - Показать всех пользователей
   bun cli.ts add <username> <password>         - Добавить нового пользователя
@@ -148,7 +149,7 @@ main().then(() => {
   sqlite.close()
   process.exit(0)
 }).catch((err) => {
-  console.error('Ошибка:', err)
+  logger.error(err, 'Ошибка:')
   sqlite.close()
   process.exit(1)
 })

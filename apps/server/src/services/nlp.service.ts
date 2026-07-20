@@ -9,6 +9,7 @@ import { parse as parseHtml } from 'node-html-parser'
 import nodejieba from 'nodejieba'
 import { db } from '../db'
 import * as schema from '../db/schema'
+import { logger } from '../utils/logger'
 
 // Умное разбиение на предложения через встроенный Intl.Segmenter
 function splitIntoSentences(text: string, language: string): string[] {
@@ -154,7 +155,7 @@ class RussianTokenizer implements LanguageTokenizer {
           resolve()
         })
       }).catch((err) => {
-        console.error('[NLP] Az.js load failed:', err)
+        logger.error(err, '[NLP] Az.js load failed:')
         reject(err)
       })
     })
@@ -230,14 +231,13 @@ const enTokenizer = new EnglishTokenizer()
 const ruTokenizer = new RussianTokenizer()
 
 export async function initNLP() {
-  // eslint-disable-next-line no-console
-  console.log('🤖 Initializing NLP tokenizers...')
+  logger.info('🤖 Initializing NLP tokenizers...')
   await Promise.all([
     jaTokenizer.init(),
     ruTokenizer.init().catch(() => { }),
   ])
-  // eslint-disable-next-line no-console
-  console.log('✅ NLP tokenizers ready')
+
+  logger.info('✅ NLP tokenizers ready')
 }
 
 function getTokenizer(language: string): LanguageTokenizer {

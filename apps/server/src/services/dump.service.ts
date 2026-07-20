@@ -3,11 +3,11 @@ import { eq } from 'drizzle-orm'
 import { DB_PATH } from '../config'
 import { db } from '../db'
 import * as schema from '../db/schema'
+import { logger } from '../utils/logger'
 import { storageService } from './storage.service'
 
 export async function executeDump(logCallback?: (msg: string) => void): Promise<void> {
-  // eslint-disable-next-line no-console
-  const log = logCallback || ((msg: string) => console.log(`[Dump Service] ${msg}`))
+  const log = logCallback || ((msg: string) => logger.info(`[Dump Service] ${msg}`))
 
   const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
   const dumpPrefix = `dumps/${timestamp}`

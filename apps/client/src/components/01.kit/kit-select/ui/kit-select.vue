@@ -9,6 +9,11 @@ interface Option {
   value: string | number
 }
 
+const props = withDefaults(defineProps<Props>(), {
+  size: 'md',
+  multiple: false,
+})
+
 const modelValue = defineModel<string | number | (string | number)[]>()
 
 interface Props {
@@ -16,12 +21,6 @@ interface Props {
   size?: 'xs' | 'sm' | 'md' | 'lg'
   multiple?: boolean
 }
-
-const props = withDefaults(defineProps<Props>(), {
-  size: 'md',
-  multiple: false,
-})
-
 
 const isOpen = ref(false)
 const referenceRef = ref<HTMLElement | null>(null)

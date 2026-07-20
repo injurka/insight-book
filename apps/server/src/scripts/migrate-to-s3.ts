@@ -6,6 +6,7 @@ import { UPLOADS_PATH } from '~/config'
 import { db } from '~/db'
 import * as schema from '~/db/schema'
 import { s3Service } from '~/services/s3.service'
+import { logger } from '../utils/logger'
 
 // ──────────────────────── helpers ────────────────────────
 
@@ -79,7 +80,7 @@ async function main() {
   }
   catch (err) {
     s.stop('❌ S3 connection failed!')
-    console.error(err)
+    logger.error(err)
     process.exit(1)
   }
 
@@ -111,7 +112,7 @@ async function main() {
       }
       catch (err) {
         fail++
-        console.error(`  ❌ ${key}:`, (err as Error).message)
+        logger.error(err as Error, `  ❌ ${key}:`)
       }
     }
     s.stop(`✅ Avatars: ${ok} uploaded${fail ? `, ${fail} failed` : ''}.`)
@@ -133,7 +134,7 @@ async function main() {
       }
       catch (err) {
         fail++
-        console.error(`  ❌ ${key}:`, (err as Error).message)
+        logger.error(err as Error, `  ❌ ${key}:`)
       }
     }
     s.stop(`✅ Covers: ${ok} uploaded${fail ? `, ${fail} failed` : ''}.`)
@@ -159,7 +160,7 @@ async function main() {
       }
       catch (err) {
         fail++
-        console.error(`  ❌ ${key}:`, (err as Error).message)
+        logger.error(err as Error, `  ❌ ${key}:`)
       }
     }
     s.stop(`✅ Manga images: ${ok} uploaded${fail ? `, ${fail} failed` : ''}.`)
@@ -200,11 +201,11 @@ async function main() {
     s.stop(`✅ DB: ${updated} manga_pages rows updated.`)
   }
 
-  console.log('\n🎉 Migration complete!')
+  logger.info('\n🎉 Migration complete!')
   process.exit(0)
 }
 
 main().catch((err) => {
-  console.error('\n❌ Fatal error:', err)
+  logger.error(err, '\n❌ Fatal error:')
   process.exit(1)
 })

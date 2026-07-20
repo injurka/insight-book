@@ -1,5 +1,6 @@
 import { existsSync, readFileSync } from 'node:fs'
 import path from 'node:path'
+import { logger } from '../utils/logger'
 
 // Ищем конфиг в примонтированной папке Docker (если это деплой)
 let defaultPath = path.resolve(process.cwd(), 'configs/ai-config.json')
@@ -13,12 +14,10 @@ export const CONFIG_PATH = process.env.AI_CONFIG_PATH || defaultPath
 
 // Логируем один раз при старте сервера
 if (existsSync(CONFIG_PATH)) {
-  // eslint-disable-next-line no-console
-  console.log(`🤖 AI Config loaded from: ${CONFIG_PATH}`)
+  logger.info(`🤖 AI Config loaded from: ${CONFIG_PATH}`)
 }
 else {
-  // eslint-disable-next-line no-console
-  console.log(`⚠️ AI Config file not found at ${CONFIG_PATH}, using defaults/env.`)
+  logger.info(`⚠️ AI Config file not found at ${CONFIG_PATH}, using defaults/env.`)
 }
 
 export interface ModelPrice {
@@ -42,7 +41,7 @@ export function getAiConfig() {
     }
   }
   catch (e) {
-    console.error('[AI Config] Failed to read config file:', e)
+    logger.error(e, '[AI Config] Failed to read config file:')
   }
 
   const llmUrl = fileConfig.llm?.url || process.env.LLM_API_URL || 'https://aihubmix.com/v1'

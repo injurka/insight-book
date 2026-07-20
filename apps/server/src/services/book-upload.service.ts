@@ -18,16 +18,23 @@ export class BookUploadService {
     const filename = file.name.toLowerCase()
     let bookId: number
 
-    const arrayBuffer = await file.arrayBuffer()
+    if (filename.endsWith('.epub') || filename.endsWith('.fb2') || filename.endsWith('.fb2.zip') || filename.endsWith('.cbz') || filename.endsWith('.zip')) {
+      const safeName = `${Date.now()}_${file.name.replace(/[^\w.-]/g, '_')}`
+      const filePath = path.join(BOOKS_PATH, safeName)
+      await Bun.write(filePath, file)
 
-    if (filename.endsWith('.epub')) {
-      bookId = await runWorkerTask('processEpub', { buffer: arrayBuffer, filename: file.name, userId })
-    }
-    else if (filename.endsWith('.fb2') || filename.endsWith('.fb2.zip')) {
-      bookId = await runWorkerTask('processFb2', { buffer: arrayBuffer, filename: file.name, userId })
-    }
-    else if (filename.endsWith('.cbz') || filename.endsWith('.zip')) {
-      bookId = await runWorkerTask('processCbz', { buffer: arrayBuffer, filename: file.name, userId })
+      if (filename.endsWith('.epub')) {
+        bookId = await runWorkerTask('processEpub', { filePath, filename: file.name, userId })
+      }
+      else if (filename.endsWith('.fb2') || filename.endsWith('.fb2.zip')) {
+        bookId = await runWorkerTask('processFb2', { filePath, filename: file.name, userId })
+      }
+      else if (filename.endsWith('.cbz') || filename.endsWith('.zip')) {
+        bookId = await runWorkerTask('processCbz', { filePath, filename: file.name, userId })
+      }
+      else {
+        throw new AppError(400, 'Поддерживаются только .epub, .cbz, .zip и .fb2 файлы')
+      }
     }
     else {
       throw new AppError(400, 'Поддерживаются только .epub, .cbz, .zip и .fb2 файлы')

@@ -3,6 +3,7 @@ import jwt from 'jsonwebtoken'
 import { AUTH_MODE, CORS_HEADERS, FRONTEND_URL, JWT_SECRET } from '../config'
 import { authService } from '../services/auth.service'
 import { AppError } from '../utils/errors'
+import { createRateLimiter, getClientIp } from '../utils/rate-limit'
 
 const authPlugin = new Elysia({ name: 'auth-plugin' })
   .derive(({ request }) => {
@@ -36,6 +37,8 @@ const authPlugin = new Elysia({ name: 'auth-plugin' })
 
 const authSessions = new Map<string, string>()
 
+const authLimiter = createRateLimiter(5, 60 * 1000)
+
 export const authRouter = new Elysia({ prefix: '/api/auth' })
   .use(authPlugin)
   .onError(({ error, set }) => {
@@ -46,7 +49,8 @@ export const authRouter = new Elysia({ prefix: '/api/auth' })
     set.status = 500
     return { error: 'Internal Server Error' }
   })
-  .post('/login', async ({ body }) => {
+  .post('/login', async ({ body, request }) => {
+    authLimiter(getClientIp(request))
     return authService.login(body.login, body.password)
   }, {
     body: t.Object({
@@ -54,14 +58,16 @@ export const authRouter = new Elysia({ prefix: '/api/auth' })
       password: t.String({ minLength: 1, error: 'Пароль обязателен' }),
     }),
   })
-  .post('/send-code', async ({ body }) => {
+  .post('/send-code', async ({ body, request }) => {
+    authLimiter(getClientIp(request))
     return authService.sendCode(body.email)
   }, {
     body: t.Object({
       email: t.String({ format: 'email', error: 'Некорректный email' }),
     }),
   })
-  .post('/register', async ({ body }) => {
+  .post('/register', async ({ body, request }) => {
+    authLimiter(getClientIp(request))
     return authService.register(body.email, body.code, body.password)
   }, {
     body: t.Object({

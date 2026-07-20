@@ -1,4 +1,3 @@
-/* eslint-disable no-console */
 import * as admin from 'firebase-admin'
 import { getMessaging } from 'firebase-admin/messaging'
 import webpush from 'web-push'
@@ -9,6 +8,7 @@ import { pushRepository } from '../repositories/push.repository'
 
 import { parseLlmJson } from '../utils/helpers'
 import { callLlmJsonWithRetry } from '../utils/llm-api'
+import { logger } from '../utils/logger'
 import { checkTokenLimit } from './limits.service'
 
 if (VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY) {
@@ -133,18 +133,18 @@ function shouldSendPush(user: { id: number, pushCount?: number | null, lastPushS
 
 export async function sendDailyMotivations(customMessage?: string) {
   if (!VAPID_PUBLIC_KEY || !VAPID_PRIVATE_KEY) {
-    console.log('[Push] VAPID keys not set. Skipping push dispatch.')
+    logger.info('[Push] VAPID keys not set. Skipping push dispatch.')
     return
   }
 
-  console.log('🚀 Starting push notifications dispatch...')
+  logger.info('🚀 Starting push notifications dispatch...')
   const [webSubscriptions, fcmSubscriptions] = await Promise.all([
     pushRepository.getAllWebSubscriptionsWithUsers(),
     pushRepository.getAllFcmSubscriptionsWithUsers(),
   ])
 
   if (!webSubscriptions.length && !fcmSubscriptions.length) {
-    console.log('[Push] No active subscriptions found.')
+    logger.info('[Push] No active subscriptions found.')
     return
   }
 
@@ -218,7 +218,7 @@ export async function sendDailyMotivations(customMessage?: string) {
             }
           }
           catch {
-            console.warn(`[Push] LLM failed/limit reached for user ${userId}, using fallback.`)
+            logger.warn(`[Push] LLM failed/limit reached for user ${userId}, using fallback.`)
             messageBody = uiLanguage === 'ru'
               ? `Пора повторить слово:\n\n${wordStr}${transcriptionStr} — ${transStr}`
               : `Time to review this word:\n\n${wordStr}${transcriptionStr} — ${transStr}`
@@ -267,11 +267,11 @@ export async function sendDailyMotivations(customMessage?: string) {
         }
         catch (error: unknown) {
           if ((error as { statusCode?: number }).statusCode === 410 || (error as { statusCode?: number }).statusCode === 404) {
-            console.log(`[Push] Subscription expired for user ${userId}, deleting...`)
+            logger.info(`[Push] Subscription expired for user ${userId}, deleting...`)
             await pushRepository.deleteWebSubscriptionById(sub.id)
           }
           else {
-            console.error(`[Push] Error sending to user ${userId}:`, (error as Error).message)
+            logger.error(error as Error, `[Push] Error sending to user ${userId}:`)
           }
         }
       }
@@ -300,11 +300,11 @@ export async function sendDailyMotivations(customMessage?: string) {
         catch (error: unknown) {
           const fcmError = error as { code?: string, message?: string }
           if (fcmError.code === 'messaging/registration-token-not-registered' || fcmError.code === 'messaging/invalid-registration-token') {
-            console.log(`[FCM] Token expired for user ${userId}, deleting...`)
+            logger.info(`[FCM] Token expired for user ${userId}, deleting...`)
             await pushRepository.deleteFcmSubscriptionById(sub.id)
           }
           else {
-            console.error(`[FCM] Error sending to user ${userId}:`, fcmError.message)
+            logger.error(fcmError.message, `[FCM] Error sending to user ${userId}:`)
           }
         }
       }
@@ -314,7 +314,7 @@ export async function sendDailyMotivations(customMessage?: string) {
       }
     }))
   }
-  console.log('✅ Push dispatch finished.')
+  logger.info('✅ Push dispatch finished.')
 }
 
 export const pushService = {

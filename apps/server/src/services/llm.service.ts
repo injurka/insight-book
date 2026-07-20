@@ -18,6 +18,7 @@ import {
   getWordExamplesPrompt,
 } from '../prompts'
 import { AppError } from '../utils/errors'
+import { logger } from '../utils/logger'
 import { checkTokenLimit } from './limits.service'
 import { trackTokenUsage } from './token.service'
 
@@ -118,7 +119,7 @@ export async function analyzeSentence(
     }
     catch (e) {
       lastError = e as Error
-      console.warn(`[LLM] Failed with model [${model}]:`, lastError.message)
+      logger.warn({ err: lastError }, `[LLM] Failed with model [${model}]:`)
     }
   }
 
@@ -194,7 +195,7 @@ export async function generateWordExamples(userId: number, word: string, languag
     }
     catch (e) {
       lastError = e as Error
-      console.warn(`[LLM] Failed with model [${model}]:`, lastError.message)
+      logger.warn({ err: lastError }, `[LLM] Failed with model [${model}]:`)
     }
   }
 
@@ -232,7 +233,7 @@ export async function generateWordAutoFill(userId: number, word: string, languag
     }
     catch (e) {
       lastError = e as Error
-      console.warn(`[LLM] Failed with model [${model}]:`, lastError.message)
+      logger.warn({ err: lastError }, `[LLM] Failed with model [${model}]:`)
     }
   }
 
@@ -269,7 +270,7 @@ export async function generateDeepDiveQuiz(userId: number, word: string, languag
     }
     catch (e) {
       lastError = e as Error
-      console.warn(`[LLM] Failed with model [${model}]:`, lastError.message)
+      logger.warn({ err: lastError }, `[LLM] Failed with model [${model}]:`)
     }
   }
 
@@ -307,12 +308,12 @@ export async function analyzeBookExcerpt(userId: number, excerpt: string, config
     }
     catch (e) {
       lastError = e as Error
-      console.warn(`[LLM] Failed with model [${model}]:`, lastError.message)
+      logger.warn({ err: lastError }, `[LLM] Failed with model [${model}]:`)
     }
   }
 
   if (lastError?.message.includes('No candidates returned') || lastError?.message.includes('safety')) {
-    console.warn('[LLM] Текст заблокирован фильтрами безопасности ИИ на всех моделях. Возвращаем заглушку.')
+    logger.warn('[LLM] Текст заблокирован фильтрами безопасности ИИ на всех моделях. Возвращаем заглушку.')
     return {
       description: 'Краткое описание недоступно. Текст книги был заблокирован внутренними фильтрами безопасности ИИ (вероятно, из-за описания драматических или трагических событий).',
       difficulty: 'Неизвестно',
@@ -357,7 +358,7 @@ export async function analyzeMangaInfo(userId: number, title: string, author: st
     }
     catch (e) {
       lastError = e as Error
-      console.warn(`[LLM] Failed with model [${model}]:`, lastError.message)
+      logger.warn({ err: lastError }, `[LLM] Failed with model [${model}]:`)
     }
   }
 
@@ -470,7 +471,7 @@ export async function analyzeBatch(userId: number, bookId: number, items: BatchA
       return results
     }
     catch (e) {
-      console.warn(`[LLM Batch] Failed with model [${model}]:`, e)
+      logger.warn(e, `[LLM Batch] Failed with model [${model}]:`)
     }
   }
 
@@ -573,11 +574,10 @@ export async function generateTts(
     if ((error as Error).name === 'AbortError')
       throw error
 
-    console.warn(`[TTS] Primary model (${primaryModel}) failed for text: "${normalizedText.substring(0, 20)}". Error: ${(error as Error).message}`)
+    logger.warn(`[TTS] Primary model (${primaryModel}) failed for text: "${normalizedText.substring(0, 20)}". Error: ${(error as Error).message}`)
 
     if (fallbackModel && fallbackModel !== primaryModel) {
-      // eslint-disable-next-line no-console
-      console.log(`[TTS] Trying fallback model (${fallbackModel})...`)
+      logger.info(`[TTS] Trying fallback model (${fallbackModel})...`)
       const isFallbackGemini = fallbackModel.toLowerCase().includes('gemini')
       const fallbackVoice = isFallbackGemini ? voice : mapVoiceToOpenAi(voice)
 
@@ -588,7 +588,7 @@ export async function generateTts(
       catch (fallbackError: unknown) {
         if ((fallbackError as Error).name === 'AbortError')
           throw fallbackError
-        console.error(`[TTS] Fallback model (${fallbackModel}) also failed.`)
+        logger.error(`[TTS] Fallback model (${fallbackModel}) also failed.`)
         throw fallbackError
       }
     }
@@ -732,7 +732,7 @@ export async function checkPronunciationAudio(userId: number, word: string, lang
     }
     catch (primaryErr: unknown) {
       if (fallbackSttModel && fallbackSttModel !== sttModel) {
-        console.warn(`[STT] Primary model (${sttModel}) failed, trying fallback (${fallbackSttModel})...`)
+        logger.warn(`[STT] Primary model (${sttModel}) failed, trying fallback (${fallbackSttModel})...`)
         data = await doSttRequest(fallbackSttModel)
         usedSttModel = fallbackSttModel
       }
@@ -790,7 +790,7 @@ Output STRICT JSON ONLY. Never use backticks for strings.
         mistakeAnalysis = parsed.mistake_analysis || ''
       }
       catch (e) {
-        console.warn('[Audio Service] Failed to analyze heard text via LLM:', e)
+        logger.warn(e, '[Audio Service] Failed to analyze heard text via LLM:')
       }
     }
     else if (textSimilarity === 100) {
@@ -810,7 +810,7 @@ Output STRICT JSON ONLY. Never use backticks for strings.
     if (err.name === 'AbortError')
       return
 
-    console.error('[Audio Service] Pronunciation Check Failed:', err.message)
+    logger.error(err, '[Audio Service] Pronunciation Check Failed:')
     throw new AppError(500, getErrorMsg('recognition_failed', err.message))
   }
 }
@@ -956,7 +956,7 @@ export async function generateLevelQuiz(
         let validQuiz = parsed
         const validationError = validateQuizQuestions(parsed)
         if (validationError) {
-          console.warn(`[Quiz critic] Validation failed: ${validationError}. Requesting correction...`)
+          logger.warn(`[Quiz critic] Validation failed: ${validationError}. Requesting correction...`)
 
           const correctionMessages: ModelMessage[] = [
             ...messages,
@@ -981,7 +981,7 @@ export async function generateLevelQuiz(
             validQuiz = corrected.parsed
           }
           else {
-            console.warn(`[Quiz critic] Correction also failed: ${finalError}. Proceeding with original.`)
+            logger.warn(`[Quiz critic] Correction also failed: ${finalError}. Proceeding with original.`)
           }
         }
 
@@ -1025,11 +1025,11 @@ Output MUST be a valid JSON array of question objects, exactly matching the sche
           if (!reviewError && Array.isArray(reviewed.parsed) && reviewed.parsed.length > 0) {
             return reconstructReorderOptions(reviewed.parsed, language)
           }
-          console.warn(`[Quiz Reviewer] Semantic correction broke schema: ${reviewError}. Returning original technically valid quiz.`)
+          logger.warn(`[Quiz Reviewer] Semantic correction broke schema: ${reviewError}. Returning original technically valid quiz.`)
           return reconstructReorderOptions(validQuiz, language)
         }
         catch (revError) {
-          console.warn(`[Quiz Reviewer] LLM reviewer failed. Returning original technically valid quiz.`, revError)
+          logger.warn(revError, `[Quiz Reviewer] LLM reviewer failed. Returning original technically valid quiz.`)
           return reconstructReorderOptions(validQuiz, language)
         }
       }
@@ -1037,7 +1037,7 @@ Output MUST be a valid JSON array of question objects, exactly matching the sche
     }
     catch (e) {
       lastError = e as Error
-      console.warn(`[LLM Quiz Generation] Failed with model [${model}]:`, lastError.message)
+      logger.warn({ err: lastError }, `[LLM Quiz Generation] Failed with model [${model}]:`)
     }
   }
 

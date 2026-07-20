@@ -1,6 +1,7 @@
 import { eq, sql } from 'drizzle-orm'
 import { db } from '../db'
 import * as schema from '../db/schema'
+import { logger } from '../utils/logger'
 
 export function trackTokenUsage(
   userId: number,
@@ -51,7 +52,7 @@ export function trackTokenUsage(
       })
     }
     catch (e) {
-      console.error('[Token Tracker Error]', e)
+      logger.error(e, '[Token Tracker Error]')
     }
   })
 }

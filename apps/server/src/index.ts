@@ -1,4 +1,3 @@
-/* eslint-disable no-console */
 import { Elysia } from 'elysia'
 import { PORT } from './config'
 
@@ -13,6 +12,7 @@ import { quizRouter } from './controllers/quiz.controller'
 import { initScheduler } from './services/scheduler.service'
 import { withCors } from './utils/cors'
 import { corsOk } from './utils/helpers'
+import { logger } from './utils/logger'
 
 import './db'
 
@@ -39,11 +39,11 @@ Bun.serve({
     return app.handle(req).then(withCors)
   },
   error(err: unknown) {
-    console.error('[Server Error]', err)
+    logger.error(err, '[Server Error]')
     return withCors(new Response('Internal Server Error', { status: 500 }))
   },
 })
 
-console.log(`✅ Server running on port ${PORT}`)
+logger.info(`✅ Server running on port ${PORT}`)
 
 initScheduler()

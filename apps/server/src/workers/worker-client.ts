@@ -1,4 +1,5 @@
 import os from 'node:os'
+import { logger } from '../utils/logger'
 
 interface Task {
   id: number
@@ -17,8 +18,7 @@ const cpuCores = os.cpus().length
 const MAX_WORKERS = Number.parseInt(process.env.WORKER_COUNT || '0')
   || Math.min(Math.max(1, cpuCores - 1), 4)
 
-// eslint-disable-next-line no-console
-console.log(`🚀 Worker Pool initialized with ${MAX_WORKERS} threads (CPU cores: ${cpuCores})`)
+logger.info(`🚀 Worker Pool initialized with ${MAX_WORKERS} threads (CPU cores: ${cpuCores})`)
 
 const pool: Worker[] = []
 const taskQueue: Task[] = []
@@ -47,7 +47,7 @@ function initPool() {
     }
 
     worker.onerror = (err) => {
-      console.error('[Worker Pool Error]', err)
+      logger.error(err, '[Worker Pool Error]')
       workerActive.set(worker, false)
       processNextTask()
     }

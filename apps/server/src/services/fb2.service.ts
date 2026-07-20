@@ -1,20 +1,16 @@
 import type { TocItem } from '../types'
-import path from 'node:path'
 import AdmZip from 'adm-zip'
 import * as cheerio from 'cheerio'
-import { BOOKS_PATH, PAGE_SIZE_CHARS } from '../config'
+import { PAGE_SIZE_CHARS } from '../config'
 import { db } from '../db'
 import * as schema from '../db/schema'
 import { storageService } from './storage.service'
 
-export async function processFb2(fileBuffer: ArrayBuffer, filename: string, userId: number): Promise<number> {
-  const safeName = `${Date.now()}_${filename.replace(/[^\w.-]/g, '_')}`
-  const filePath = path.join(BOOKS_PATH, safeName)
-
+export async function processFb2(filePath: string, filename: string, userId: number): Promise<number> {
   let fileContent = ''
 
   try {
-    const zip = new AdmZip(Buffer.from(fileBuffer))
+    const zip = new AdmZip(filePath)
     const entries = zip.getEntries()
     const fb2Entry = entries.find(e => e.entryName.toLowerCase().endsWith('.fb2') || e.entryName.toLowerCase().endsWith('.xml'))
     if (fb2Entry) {
@@ -26,7 +22,7 @@ export async function processFb2(fileBuffer: ArrayBuffer, filename: string, user
   }
 
   if (!fileContent) {
-    fileContent = Buffer.from(fileBuffer).toString('utf-8')
+    fileContent = await Bun.file(filePath).text()
   }
 
   const $ = cheerio.load(fileContent, { xmlMode: true })

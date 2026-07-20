@@ -1,6 +1,7 @@
 import { desc, eq, sql } from 'drizzle-orm'
 import { db } from '../db'
 import * as schema from '../db/schema'
+import { logger } from '../utils/logger'
 import { executeDump } from './dump.service'
 import { sendDailyMotivations } from './push.service'
 
@@ -28,7 +29,7 @@ async function checkAndRunDump() {
     }
   }
   catch (error) {
-    console.error('❌ Error during scheduled dump:', error)
+    logger.error(error, '❌ Error during scheduled dump:')
   }
   finally {
     isDumping = false
@@ -70,11 +71,11 @@ async function checkAndResetLimits() {
         usedTokens: 0,
       }).where(eq(schema.users.id, user.id))
 
-      console.warn(`✅ Reset limits for user ${user.username}`)
+      logger.warn(`✅ Reset limits for user ${user.username}`)
     }
   }
   catch (error) {
-    console.error('❌ Error during limits reset:', error)
+    logger.error(error, '❌ Error during limits reset:')
   }
   finally {
     isResettingLimits = false
@@ -82,8 +83,7 @@ async function checkAndResetLimits() {
 }
 
 export function initScheduler() {
-  // eslint-disable-next-line no-console
-  console.log('🕒 Initializing background scheduler...')
+  logger.info('🕒 Initializing background scheduler...')
 
   if (process.env.ENABLE_AUTO_DUMP === 'true') {
     setTimeout(checkAndRunDump, 5000)
@@ -100,7 +100,7 @@ export function initScheduler() {
       await sendDailyMotivations()
     }
     catch (err) {
-      console.error(err)
+      logger.error(err)
     }
     finally {
       isPushing = false

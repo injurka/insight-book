@@ -8,6 +8,8 @@ import {
   unique,
 } from 'drizzle-orm/sqlite-core'
 
+import { ROLES } from '../constants/roles'
+
 export const dumpLogs = sqliteTable('dump_logs', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   prefix: text('prefix').notNull(),
@@ -21,7 +23,7 @@ export const users = sqliteTable('users', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   username: text('username').notNull().unique(),
   passwordHash: text('passwordHash').notNull(),
-  role: text('role').notNull().default('user'),
+  role: text('role').notNull().default(ROLES.USER),
 
   // Лимиты
   tokenLimit: integer('tokenLimit').default(100000),

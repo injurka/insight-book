@@ -5,6 +5,7 @@ import { dictionaryService } from '../services/dictionary.service'
 import { checkPronunciationAudio, generateDeepDiveQuiz, generateWordExamples } from '../services/llm.service'
 import { AppError } from '../utils/errors'
 import { extractLlmConfig, normalizeLanguageCode } from '../utils/helpers'
+import { logger } from '../utils/logger'
 
 const authPlugin = new Elysia().derive({ as: 'global' }, ({ headers }) => {
   if (AUTH_MODE === 'single')
@@ -29,7 +30,7 @@ export const dictionaryController = new Elysia({ prefix: '/api/dictionary' })
       set.status = error.statusCode
       return { error: error.message }
     }
-    console.error(error)
+    logger.error(error)
     set.status = 500
     return { error: 'Internal Server Error' }
   })

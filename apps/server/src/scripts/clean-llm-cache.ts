@@ -1,12 +1,13 @@
 import { eq } from 'drizzle-orm'
 import { db } from '~/db'
 import { llmCache } from '~/db/schema'
+import { logger } from '../utils/logger'
 
 async function main() {
-  console.log('Starting cleanup of llm_cache...')
+  logger.info('Starting cleanup of llm_cache...')
 
   const allCache = await db.select().from(llmCache)
-  console.log(`Found ${allCache.length} rows in llm_cache.`)
+  logger.info(`Found ${allCache.length} rows in llm_cache.`)
 
   let deletedCount = 0
 
@@ -35,8 +36,8 @@ async function main() {
     }
   }
 
-  console.log(`Cleanup finished. Deleted ${deletedCount} rows.`)
+  logger.info(`Cleanup finished. Deleted ${deletedCount} rows.`)
   process.exit(0)
 }
 
-main().catch(console.error)
+main().catch(logger.error)

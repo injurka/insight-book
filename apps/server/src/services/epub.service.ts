@@ -1,8 +1,7 @@
 import type { EpubInstance, EpubManifestItem, TocItem } from '../types'
 import { unlink } from 'node:fs/promises'
-import path from 'node:path'
 import { parse as parseHtml } from 'node-html-parser'
-import { BOOKS_PATH, PAGE_SIZE_CHARS } from '../config'
+import { PAGE_SIZE_CHARS } from '../config'
 import { db } from '../db'
 import * as schema from '../db/schema'
 import { storageService } from './storage.service'
@@ -99,11 +98,7 @@ async function getEpubImageBase64(epub: EpubInstance, imageId: string): Promise<
   })
 }
 
-export async function processEpub(fileBuffer: ArrayBuffer, filename: string, userId: number): Promise<number> {
-  const safeName = `${Date.now()}_${filename.replace(/[^\w.-]/g, '_')}`
-  const filePath = path.join(BOOKS_PATH, safeName)
-  await Bun.write(filePath, fileBuffer)
-
+export async function processEpub(filePath: string, filename: string, userId: number): Promise<number> {
   const { EPub } = await import('epub2')
 
   return new Promise<number>((resolve, reject) => {

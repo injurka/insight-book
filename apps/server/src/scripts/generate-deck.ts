@@ -12,6 +12,7 @@ import { LlmAnalysisSchema } from '../types/schemas'
 import { getAiConfig } from '../utils/ai-config'
 import { hashSentence, normalizeLanguageCode, parseLlmJson } from '../utils/helpers'
 import { callLlmJsonWithRetry } from '../utils/llm-api'
+import { logger } from '../utils/logger'
 
 const args = process.argv.slice(2)
 const inputArg = args[0]
@@ -186,7 +187,7 @@ async function analyzeWordForDeck(
     }
     catch (e) {
       lastError = e as Error
-      console.warn(`[LLM] Failed with model [${model}]:`, lastError.message)
+      logger.warn({ err: lastError }, `[LLM] Failed with model [${model}]:`)
     }
   }
 
@@ -215,16 +216,16 @@ async function main() {
     }
 
     if (!inputFile) {
-      console.error(`❌ Ошибка: Указанный файл должен находиться внутри структуры assets/decks/<lang-pair>/raw/`)
-      console.error(`Пример корректного пути: assets/decks/zh-ru/raw/hsk1.json`)
-      console.error(`Или запустите скрипт без аргументов для интерактивного выбора.`)
+      logger.error(`❌ Ошибка: Указанный файл должен находиться внутри структуры assets/decks/<lang-pair>/raw/`)
+      logger.error(`Пример корректного пути: assets/decks/zh-ru/raw/hsk1.json`)
+      logger.error(`Или запустите скрипт без аргументов для интерактивного выбора.`)
       process.exit(1)
     }
   }
   else {
     const pairs = await getLanguagePairs(decksDir)
     if (pairs.length === 0) {
-      console.error(`❌ Ошибка: В папке ${decksDir} не найдено языковых пар (поддиректорий).`)
+      logger.error(`❌ Ошибка: В папке ${decksDir} не найдено языковых пар (поддиректорий).`)
       process.exit(1)
     }
 
@@ -243,13 +244,13 @@ async function main() {
 
     const rawDir = path.resolve(decksDir, langPair, 'raw')
     if (!(await exists(rawDir))) {
-      console.error(`❌ Ошибка: Папка raw не найдена по пути ${rawDir}`)
+      logger.error(`❌ Ошибка: Папка raw не найдена по пути ${rawDir}`)
       process.exit(1)
     }
 
     const jsonFiles = await getJsonFiles(rawDir)
     if (jsonFiles.length === 0) {
-      console.error(`❌ Ошибка: В папке ${rawDir} не найдено JSON файлов.`)
+      logger.error(`❌ Ошибка: В папке ${rawDir} не найдено JSON файлов.`)
       process.exit(1)
     }
 
@@ -270,7 +271,7 @@ async function main() {
 
   await mkdir(path.dirname(outputFile), { recursive: true })
 
-  console.log(`📖 Чтение файла: ${inputFile}`)
+  logger.info(`📖 Чтение файла: ${inputFile}`)
   const raw = await readFile(inputFile, 'utf-8')
   const data = JSON.parse(raw)
 
@@ -282,7 +283,7 @@ async function main() {
   const words = data.words as Array<string | Record<string, unknown>>
 
   if (!title || !words || !Array.isArray(words)) {
-    console.error('❌ Неверный формат JSON. Ожидается: { "title": "...", "words": ["..."] }')
+    logger.error('❌ Неверный формат JSON. Ожидается: { "title": "...", "words": ["..."] }')
     process.exit(1)
   }
 
@@ -301,14 +302,14 @@ async function main() {
     const existingData = JSON.parse(existingRaw)
     if (existingData && Array.isArray(existingData.words)) {
       enrichedWords.push(...existingData.words)
-      console.log(`ℹ️ Найдено ${enrichedWords.length} уже обработанных слов. Возобновляем прогресс...`)
+      logger.info(`ℹ️ Найдено ${enrichedWords.length} уже обработанных слов. Возобновляем прогресс...`)
     }
   }
   catch {
     // Файл не существует или поврежден, начнем заново
   }
 
-  console.log(`🚀 Начинаем обогащение колоды: "${title}" (${words.length} слов)`)
+  logger.info(`🚀 Начинаем обогащение колоды: "${title}" (${words.length} слов)`)
 
   let cachedCount = 0
   let generatedCount = 0
@@ -322,7 +323,7 @@ async function main() {
     const word = typeof item === 'string' ? item : (wordObj?.word || wordObj?.text)
 
     if (!word || typeof word !== 'string') {
-      console.warn(`⚠️ [${i + 1}/${words.length}] Пропуск: не удалось извлечь слово из`, item)
+      logger.warn(item, `⚠️ [${i + 1}/${words.length}] Пропуск: не удалось извлечь слово из`)
       continue
     }
 
@@ -336,17 +337,17 @@ async function main() {
 
       if (res.cached) {
         cachedCount++
-        console.log(`✅ [${i + 1}/${words.length}] [${word}] Взято из кэша.`)
+        logger.info(`✅ [${i + 1}/${words.length}] [${word}] Взято из кэша.`)
       }
       else {
         generatedCount++
         if (res.usage) {
           totalPromptTokens += res.usage.promptTokens
           totalCompletionTokens += res.usage.completionTokens
-          console.log(`✅ [${i + 1}/${words.length}] [${word}] Сгенерировано (Токены: ${res.usage.promptTokens} in / ${res.usage.completionTokens} out).`)
+          logger.info(`✅ [${i + 1}/${words.length}] [${word}] Сгенерировано (Токены: ${res.usage.promptTokens} in / ${res.usage.completionTokens} out).`)
         }
         else {
-          console.log(`✅ [${i + 1}/${words.length}] [${word}] Сгенерировано.`)
+          logger.info(`✅ [${i + 1}/${words.length}] [${word}] Сгенерировано.`)
         }
       }
 
@@ -374,23 +375,23 @@ async function main() {
       await new Promise(r => setTimeout(r, 600))
     }
     catch (e: unknown) {
-      console.error(`❌ Ошибка при обработке слова "${word}":`, (e as Error).message)
+      logger.error(e as Error, `❌ Ошибка при обработке слова "${word}":`)
     }
   }
 
-  console.log(`✅ Готово! Результат сохранен в ${outputFile}`)
-  console.log(`\n📊 Сводка:`)
-  console.log(`   Взято из кэша: ${cachedCount}`)
-  console.log(`   Сгенерировано: ${generatedCount}`)
+  logger.info(`✅ Готово! Результат сохранен в ${outputFile}`)
+  logger.info(`\n📊 Сводка:`)
+  logger.info(`   Взято из кэша: ${cachedCount}`)
+  logger.info(`   Сгенерировано: ${generatedCount}`)
   if (totalPromptTokens > 0 || totalCompletionTokens > 0) {
-    console.log(`   Токены: ${totalPromptTokens} in / ${totalCompletionTokens} out (всего: ${totalPromptTokens + totalCompletionTokens})`)
+    logger.info(`   Токены: ${totalPromptTokens} in / ${totalCompletionTokens} out (всего: ${totalPromptTokens + totalCompletionTokens})`)
   }
 
   await new Promise(r => setTimeout(r, 1500))
 }
 
 main()
-  .catch(e => console.error('Критическая ошибка:', e))
+  .catch(e => logger.error(e, 'Критическая ошибка:'))
   .finally(() => {
     try {
       sqlite.close()

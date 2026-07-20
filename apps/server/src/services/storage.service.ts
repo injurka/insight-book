@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync } from 'node:fs'
+import fs from 'node:fs/promises'
 import path from 'node:path'
 import { UPLOAD_STORAGE, UPLOADS_PATH } from '../config'
 import { s3Service } from './s3.service'
@@ -16,8 +16,11 @@ class LocalStorageService implements IStorageService {
   async uploadFile(key: string, buffer: Uint8Array | Buffer | ArrayBuffer, _contentType?: string): Promise<string> {
     const fullPath = path.join(UPLOADS_PATH, key)
     const dir = path.dirname(fullPath)
-    if (!existsSync(dir)) {
-      mkdirSync(dir, { recursive: true })
+    try {
+      await fs.access(dir)
+    }
+    catch {
+      await fs.mkdir(dir, { recursive: true })
     }
     await Bun.write(fullPath, buffer)
     return key
@@ -25,24 +28,30 @@ class LocalStorageService implements IStorageService {
 
   async deleteFile(key: string): Promise<void> {
     const fullPath = path.join(UPLOADS_PATH, key)
-    if (existsSync(fullPath)) {
-      rmSync(fullPath)
+    try {
+      await fs.rm(fullPath)
     }
+    catch {}
   }
 
   async deleteFolder(prefix: string): Promise<void> {
     const fullPath = path.join(UPLOADS_PATH, prefix)
-    if (existsSync(fullPath)) {
-      rmSync(fullPath, { recursive: true, force: true })
+    try {
+      await fs.rm(fullPath, { recursive: true, force: true })
     }
+    catch {}
   }
 
   async getFile(key: string): Promise<{ buffer: Uint8Array, contentType: string } | null> {
     const fullPath = path.join(UPLOADS_PATH, key)
-    if (!existsSync(fullPath)) {
+    let buffer: Uint8Array
+    try {
+      const fileBuffer = await fs.readFile(fullPath)
+      buffer = new Uint8Array(fileBuffer)
+    }
+    catch {
       return null
     }
-    const buffer = readFileSync(fullPath)
 
     // Attempt basic content type inference
     let contentType = 'application/octet-stream'
@@ -63,29 +72,43 @@ class LocalStorageService implements IStorageService {
     else if (key.endsWith('.fb2'))
       contentType = 'text/xml'
 
-    return { buffer: new Uint8Array(buffer), contentType }
+    return { buffer, contentType }
   }
 
   async listDumpFolders(prefix: string): Promise<string[]> {
     const fullPath = path.join(UPLOADS_PATH, prefix)
-    if (!existsSync(fullPath))
+    try {
+      const entries = await fs.readdir(fullPath)
+      const results = []
+      for (const entry of entries) {
+        const stat = await fs.stat(path.join(fullPath, entry))
+        if (stat.isDirectory()) {
+          results.push(`${prefix}/${entry}/`)
+        }
+      }
+      return results
+    }
+    catch {
       return []
-
-    const entries = readdirSync(fullPath)
-    return entries
-      .filter(entry => statSync(path.join(fullPath, entry)).isDirectory())
-      .map(entry => `${prefix}/${entry}/`)
+    }
   }
 
   async listFilesInFolder(prefix: string): Promise<string[]> {
     const fullPath = path.join(UPLOADS_PATH, prefix)
-    if (!existsSync(fullPath))
+    try {
+      const entries = await fs.readdir(fullPath)
+      const results = []
+      for (const entry of entries) {
+        const stat = await fs.stat(path.join(fullPath, entry))
+        if (stat.isFile()) {
+          results.push(`${prefix}/${entry}`)
+        }
+      }
+      return results
+    }
+    catch {
       return []
-
-    const entries = readdirSync(fullPath)
-    return entries
-      .filter(entry => statSync(path.join(fullPath, entry)).isFile())
-      .map(entry => `${prefix}/${entry}`)
+    }
   }
 }
 

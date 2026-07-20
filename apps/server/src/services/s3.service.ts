@@ -7,6 +7,7 @@ import {
   PutObjectCommand,
   S3Client,
 } from '@aws-sdk/client-s3'
+import { logger } from '../utils/logger'
 
 class S3Service {
   private client: S3Client
@@ -48,7 +49,7 @@ class S3Service {
       )
     }
     catch (error) {
-      console.error(`S3 Delete Error for key ${key}:`, error)
+      logger.error(error, `S3 Delete Error for key ${key}:`)
     }
   }
 
@@ -60,7 +61,7 @@ class S3Service {
       }
     }
     catch (error) {
-      console.error(`S3 DeleteFolder Error for prefix ${prefix}:`, error)
+      logger.error(error, `S3 DeleteFolder Error for prefix ${prefix}:`)
     }
   }
 
@@ -102,16 +103,15 @@ class S3Service {
     catch (error: unknown) {
       const err = error as Error & { name?: string, $metadata?: { httpStatusCode?: number } }
       if (err.name === 'NotFound' || err.$metadata?.httpStatusCode === 404) {
-        /* eslint-disable no-console */
-        console.log(`⚠️ Bucket '${this.bucket}' not found. Attempting to create it...`)
+        logger.info(`⚠️ Bucket '${this.bucket}' not found. Attempting to create it...`)
 
         try {
           await this.client.send(new CreateBucketCommand({ Bucket: this.bucket }))
           // Если бакет не найден (HTTP 404), пробуем его создать
-          console.log(`✅ Bucket '${this.bucket}' created successfully.`)
+          logger.info(`✅ Bucket '${this.bucket}' created successfully.`)
         }
         catch (createError) {
-          console.error(`❌ Failed to create bucket '${this.bucket}'. Check your credentials and permissions.`)
+          logger.error(`❌ Failed to create bucket '${this.bucket}'. Check your credentials and permissions.`)
           throw createError
         }
       }
@@ -133,7 +133,7 @@ class S3Service {
       return response.CommonPrefixes?.map(p => p.Prefix as string).filter(Boolean) || []
     }
     catch (error) {
-      console.error(`S3 ListDumpFolders Error for prefix ${prefix}:`, error)
+      logger.error(error, `S3 ListDumpFolders Error for prefix ${prefix}:`)
       return []
     }
   }
@@ -163,7 +163,7 @@ class S3Service {
       return allKeys
     }
     catch (error) {
-      console.error(`S3 ListFilesInFolder Error for prefix ${prefix}:`, error)
+      logger.error(error, `S3 ListFilesInFolder Error for prefix ${prefix}:`)
       return []
     }
   }

@@ -2,6 +2,7 @@ import { readdir, readFile, stat } from 'node:fs/promises'
 import path from 'node:path'
 import { catalogDb, catalogSqlite, initCatalogDb } from '../db/catalog'
 import { officialDecks, officialDeckWords } from '../db/catalog-schema'
+import { logger } from '../utils/logger'
 
 const DECKS_DIR = path.resolve(process.cwd(), 'assets', 'decks')
 
@@ -16,10 +17,10 @@ async function exists(p: string) {
 }
 
 async function seed() {
-  console.log('🌱 Начинаем импорт каталога из папки assets/decks...')
+  logger.info('🌱 Начинаем импорт каталога из папки assets/decks...')
 
   try {
-    console.log('🗑️ Очистка старых данных каталога...')
+    logger.info('🗑️ Очистка старых данных каталога...')
 
     catalogSqlite.run(`DROP TABLE IF EXISTS official_deck_words;`)
     catalogSqlite.run(`DROP TABLE IF EXISTS official_decks;`)
@@ -32,10 +33,10 @@ async function seed() {
       subdirs = items.filter(item => item.isDirectory()).map(item => item.name)
     }
     catch {
-      console.warn(`⚠️ Папка ${DECKS_DIR} не найдена. Создаем пустую папку...`)
+      logger.warn(`⚠️ Папка ${DECKS_DIR} не найдена. Создаем пустую папку...`)
       const { mkdirSync } = await import('node:fs')
       mkdirSync(DECKS_DIR, { recursive: true })
-      console.log(`✅ Создана пустая папка: ${DECKS_DIR}. Положите туда ваши JSON-колоды и запустите импорт снова.`)
+      logger.info(`✅ Создана пустая папка: ${DECKS_DIR}. Положите туда ваши JSON-колоды и запустите импорт снова.`)
       process.exit(0)
     }
 
@@ -56,21 +57,21 @@ async function seed() {
     }
 
     if (jsonFiles.length === 0) {
-      console.log('ℹ️ В папке assets/decks не найдено JSON-файлов для импорта.')
+      logger.info('ℹ️ В папке assets/decks не найдено JSON-файлов для импорта.')
       process.exit(0)
     }
 
-    console.log(`📂 Найдено файлов для импорта: ${jsonFiles.length}`)
+    logger.info(`📂 Найдено файлов для импорта: ${jsonFiles.length}`)
 
     for (const filePath of jsonFiles) {
       const file = path.basename(filePath)
-      console.log(`📖 Импорт файла: ${file}`)
+      logger.info(`📖 Импорт файла: ${file}`)
 
       const raw = await readFile(filePath, 'utf-8')
       const data = JSON.parse(raw)
 
       if (!data.title || !data.words || !Array.isArray(data.words)) {
-        console.warn(`⚠️ Пропуск файла ${file}: отсутствует title или массив слов words.`)
+        logger.warn(`⚠️ Пропуск файла ${file}: отсутствует title или массив слов words.`)
         continue
       }
 
@@ -145,14 +146,14 @@ async function seed() {
         for (let i = 0; i < wordsToInsert.length; i += chunkSize) {
           await catalogDb.insert(officialDeckWords).values(wordsToInsert.slice(i, i + chunkSize))
         }
-        console.log(`   └─ ✅ Колода "${data.title}" импортирована успешно (${data.words.length} слов).`)
+        logger.info(`   └─ ✅ Колода "${data.title}" импортирована успешно (${data.words.length} слов).`)
       }
     }
 
-    console.log('🎉 Импорт всех файлов каталога успешно завершен!')
+    logger.info('🎉 Импорт всех файлов каталога успешно завершен!')
   }
   catch (error) {
-    console.error('❌ Ошибка при импорте каталога:', error)
+    logger.error(error, '❌ Ошибка при импорте каталога:')
   }
   finally {
     try {

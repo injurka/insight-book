@@ -4,6 +4,7 @@ import { cancel, intro, isCancel, select } from '@clack/prompts'
 import { db, sqlite } from '~/db'
 import * as schema from '../db/schema'
 import { hashSentence, normalizeLanguageCode } from '../utils/helpers'
+import { logger } from '../utils/logger'
 
 const args = process.argv.slice(2)
 const inputArg = args[0]
@@ -59,7 +60,7 @@ async function getJsonFiles(dir: string, baseDir: string = dir): Promise<string[
 }
 
 async function injectFile(inputFile: string): Promise<{ injected: number, skipped: number }> {
-  console.log(`📖 Чтение файла: ${inputFile}`)
+  logger.info(`📖 Чтение файла: ${inputFile}`)
   const raw = await readFile(inputFile, 'utf-8')
   const data = JSON.parse(raw)
 
@@ -68,14 +69,14 @@ async function injectFile(inputFile: string): Promise<{ injected: number, skippe
   const words = data.words as Array<{ word?: string, transcription?: string, translation?: string, grammarRules?: unknown[], vocabulary?: unknown[] }>
 
   if (!words || !Array.isArray(words)) {
-    console.error(`❌ Неверный формат JSON в ${inputFile}. Ожидается: { "words": [{ "word": "...", ... }] }`)
+    logger.error(`❌ Неверный формат JSON в ${inputFile}. Ожидается: { "words": [{ "word": "...", ... }] }`)
     return { injected: 0, skipped: 0 }
   }
 
   let injectedCount = 0
   let skippedCount = 0
 
-  console.log(`🚀 Начинаем инжект ${words.length} слов в таблицу llm_cache...`)
+  logger.info(`🚀 Начинаем инжект ${words.length} слов в таблицу llm_cache...`)
 
   for (const item of words) {
     if (!item.word || typeof item.word !== 'string') {
@@ -103,15 +104,15 @@ async function injectFile(inputFile: string): Promise<{ injected: number, skippe
 
       if (result.length > 0) {
         injectedCount++
-        console.log(`✅ [${sentence}] Добавлено в кэш.`)
+        logger.info(`✅ [${sentence}] Добавлено в кэш.`)
       }
       else {
         skippedCount++
-        console.log(`⏭️ [${sentence}] Уже существует в кэше, пропущено.`)
+        logger.info(`⏭️ [${sentence}] Уже существует в кэше, пропущено.`)
       }
     }
     catch (e: unknown) {
-      console.error(`❌ Ошибка при инжекте слова [${sentence}]:`, (e as Error).message)
+      logger.error(e as Error, `❌ Ошибка при инжекте слова [${sentence}]:`)
     }
   }
 
@@ -124,19 +125,19 @@ async function main() {
   if (inputArg) {
     const inputFile = path.resolve(inputArg)
     if (!(await exists(inputFile))) {
-      console.error(`❌ Ошибка: Файл не найден по пути ${inputFile}`)
+      logger.error(`❌ Ошибка: Файл не найден по пути ${inputFile}`)
       process.exit(1)
     }
     const { injected, skipped } = await injectFile(inputFile)
-    console.log(`\n🎉 Инжект завершен!`)
-    console.log(`Добавлено: ${injected}`)
-    console.log(`Пропущено (уже были): ${skipped}`)
+    logger.info(`\n🎉 Инжект завершен!`)
+    logger.info(`Добавлено: ${injected}`)
+    logger.info(`Пропущено (уже были): ${skipped}`)
     return
   }
 
   const pairs = await getLanguagePairs(decksDir)
   if (pairs.length === 0) {
-    console.error(`❌ Ошибка: В папке ${decksDir} не найдено языковых пар (поддиректорий).`)
+    logger.error(`❌ Ошибка: В папке ${decksDir} не найдено языковых пар (поддиректорий).`)
     process.exit(1)
   }
 
@@ -172,13 +173,13 @@ async function main() {
     const resultDir = path.resolve(decksDir, langPair, 'result')
 
     if (!(await exists(resultDir))) {
-      console.error(`❌ Ошибка: Папка result не найдена по пути ${resultDir}. Сначала сгенерируйте колоду.`)
+      logger.error(`❌ Ошибка: Папка result не найдена по пути ${resultDir}. Сначала сгенерируйте колоду.`)
       process.exit(1)
     }
 
     const jsonFiles = await getJsonFiles(resultDir)
     if (jsonFiles.length === 0) {
-      console.error(`❌ Ошибка: В папке ${resultDir} не найдено JSON файлов.`)
+      logger.error(`❌ Ошибка: В папке ${resultDir} не найдено JSON файлов.`)
       process.exit(1)
     }
 
@@ -208,13 +209,13 @@ async function main() {
     const resultDir = path.resolve(decksDir, langPair, 'result')
 
     if (!(await exists(resultDir))) {
-      console.error(`❌ Ошибка: Папка result не найдена по пути ${resultDir}. Сначала сгенерируйте колоду.`)
+      logger.error(`❌ Ошибка: Папка result не найдена по пути ${resultDir}. Сначала сгенерируйте колоду.`)
       process.exit(1)
     }
 
     const jsonFiles = await getJsonFiles(resultDir)
     if (jsonFiles.length === 0) {
-      console.error(`❌ Ошибка: В папке ${resultDir} не найдено JSON файлов.`)
+      logger.error(`❌ Ошибка: В папке ${resultDir} не найдено JSON файлов.`)
       process.exit(1)
     }
 
@@ -234,7 +235,7 @@ async function main() {
     }
 
     if (filesToInject.length === 0) {
-      console.error(`❌ Ошибка: Не найдено ни одного JSON файла в папках result всех языковых пар.`)
+      logger.error(`❌ Ошибка: Не найдено ни одного JSON файла в папках result всех языковых пар.`)
       process.exit(1)
     }
   }
@@ -242,23 +243,23 @@ async function main() {
   let totalInjected = 0
   let totalSkipped = 0
 
-  console.log(`\n📚 Найдено файлов для импорта: ${filesToInject.length}`)
+  logger.info(`\n📚 Найдено файлов для импорта: ${filesToInject.length}`)
   for (const file of filesToInject) {
-    console.log(`\n----------------------------------------`)
+    logger.info(`\n----------------------------------------`)
     const { injected, skipped } = await injectFile(file)
     totalInjected += injected
     totalSkipped += skipped
   }
 
-  console.log(`\n========================================`)
-  console.log(`🎉 Весь инжект завершен!`)
-  console.log(`Всего файлов обработано: ${filesToInject.length}`)
-  console.log(`Всего добавлено слов: ${totalInjected}`)
-  console.log(`Всего пропущено слов: ${totalSkipped}`)
+  logger.info(`\n========================================`)
+  logger.info(`🎉 Весь инжект завершен!`)
+  logger.info(`Всего файлов обработано: ${filesToInject.length}`)
+  logger.info(`Всего добавлено слов: ${totalInjected}`)
+  logger.info(`Всего пропущено слов: ${totalSkipped}`)
 }
 
 main()
-  .catch(e => console.error('Критическая ошибка:', e))
+  .catch(e => logger.error(e, 'Критическая ошибка:'))
   .finally(() => {
     try {
       sqlite.close()

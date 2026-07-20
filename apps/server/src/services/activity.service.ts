@@ -1,5 +1,7 @@
 import { getAiConfig } from '~/utils/ai-config'
+import { ROLES } from '../constants/roles'
 import { activityRepository } from '../repositories/activity.repository'
+import { userRepository } from '../repositories/user.repository'
 
 export class ActivityService {
   async getActivityStats(userId: number) {
@@ -31,10 +33,10 @@ export class ActivityService {
     const [statsRaw, dailyRaw, user] = await Promise.all([
       activityRepository.getTokenUsageStats(userId, period),
       activityRepository.getDailyTokenUsage(userId, period),
-      activityRepository.getUser(userId),
+      userRepository.findById(userId),
     ])
 
-    const isAdmin = user?.role === 'admin'
+    const isAdmin = user?.role === ROLES.ADMIN
 
     const actionMap = new Map<string, { action: string, inputTokens: number, outputTokens: number, cost: number | null }>()
     for (const row of statsRaw) {

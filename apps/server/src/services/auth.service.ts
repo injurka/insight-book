@@ -1,8 +1,10 @@
 import path from 'node:path'
 import jwt from 'jsonwebtoken'
 import { AUTH_MODE, FRONTEND_URL, JWT_SECRET, UNISENDER_API_KEY, YANDEX_CLIENT_ID, YANDEX_CLIENT_SECRET } from '../config'
+import { ROLES } from '../constants/roles'
 import { userRepository } from '../repositories/user.repository'
 import { AppError } from '../utils/errors'
+import { logger } from '../utils/logger'
 import { storageService } from './storage.service'
 
 type DbUser = NonNullable<Awaited<ReturnType<typeof userRepository.findById>>>
@@ -13,7 +15,7 @@ export class AuthService {
     const totalTokens = await userRepository.getTotalTokens(user.id, user.periodStart)
 
     if (user.usedTokens !== totalTokens) {
-      await userRepository.updateUser(user.id, { usedTokens: totalTokens }).catch(console.error)
+      await userRepository.updateUser(user.id, { usedTokens: totalTokens }).catch(logger.error)
     }
 
     return {
@@ -41,7 +43,7 @@ export class AuthService {
         const userPayload = await this.getUserPayload(user)
         return { token: 'dummy-token', user: userPayload }
       }
-      return { token: 'dummy-token', user: { id: 1, username: 'admin', role: 'admin' } }
+      return { token: 'dummy-token', user: { id: 1, username: 'admin', role: ROLES.ADMIN } }
     }
 
     const user = await userRepository.findByLogin(login)
@@ -106,13 +108,13 @@ export class AuthService {
 
       const jsonRes = await res.json()
       if (jsonRes.status !== 'success') {
-        console.error('Unisender Go error:', jsonRes)
+        logger.error(jsonRes, 'Unisender Go error:')
         const errorMessage = jsonRes.message || (jsonRes.errors && jsonRes.errors[0]?.message) || 'Неизвестная ошибка'
         throw new AppError(500, `Ошибка при отправке письма: ${errorMessage}`)
       }
     }
     else {
-      console.warn(`[DEV] Registration code for ${email}: ${code}`)
+      logger.warn(`[DEV] Registration code for ${email}: ${code}`)
     }
 
     return { success: true, message: 'Код отправлен на почту' }

@@ -8,6 +8,7 @@ import { dictionaryRepository } from '../repositories/dictionary.repository'
 import { AppError } from '../utils/errors'
 import { normalizeLanguageCode } from '../utils/helpers'
 import { callLlmApi } from '../utils/llm-api'
+import { logger } from '../utils/logger'
 import { activityService } from './activity.service'
 import { generateWordAutoFill } from './llm.service'
 import { trackTokenUsage } from './token.service'
@@ -78,7 +79,7 @@ export class DictionaryService {
           }
         }
         catch (e) {
-          console.error(`[Dictionary Error] Failed to query ${conn.tableName}:`, e)
+          logger.error(e, `[Dictionary Error] Failed to query ${conn.tableName}:`)
         }
       }
     }
@@ -119,7 +120,7 @@ export class DictionaryService {
       }
     }
     catch (e) {
-      console.error(`[Dictionary Error] Failed to lookup single word:`, e)
+      logger.error(e, `[Dictionary Error] Failed to lookup single word:`)
     }
     return null
   }
@@ -363,7 +364,7 @@ export class DictionaryService {
         }
       }
       catch (e) {
-        console.error('Failed to background autofill word:', word, e)
+        logger.error({ word, err: e }, 'Failed to background autofill word:')
       }
     }
   }
@@ -401,7 +402,7 @@ export class DictionaryService {
 
     if (wordsToFill.length > 0) {
       this.processAutofillInBackground(userId, targetDeckId, targetLang, wordsToFill, language, config || {} as LlmConfig).catch((e) => {
-        console.error('Background autofill loop crashed:', e)
+        logger.error(e, 'Background autofill loop crashed:')
       })
     }
   }

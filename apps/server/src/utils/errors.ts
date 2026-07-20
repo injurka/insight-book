@@ -1,4 +1,5 @@
 import { CORS_HEADERS } from '../config'
+import { logger } from '../utils/logger'
 
 export class AppError extends Error {
   constructor(public statusCode: number, message: string) {
@@ -33,7 +34,7 @@ export function apiWrapper(handler: (req: Request) => Promise<Response> | Respon
       }
 
       if (status >= 500) {
-        console.error(`[API Error] ${req.method} ${req.url}:`, error instanceof Error ? error.message : String(error))
+        logger.error({ err: error }, `[API Error] ${req.method} ${req.url}:`)
       }
 
       return new Response(JSON.stringify({ error: message }), {

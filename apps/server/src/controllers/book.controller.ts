@@ -1,6 +1,6 @@
 import type { BatchAnalysisRequest } from '../types'
 import path from 'node:path'
-import { Elysia } from 'elysia'
+import { Elysia, t } from 'elysia'
 import jwt from 'jsonwebtoken'
 import { extractLlmConfig } from '~/utils/helpers'
 import { AUTH_MODE, CORS_HEADERS, JWT_SECRET } from '../config'
@@ -10,6 +10,7 @@ import { bookUploadService } from '../services/book-upload.service'
 import { bookService } from '../services/book.service'
 import { storageService } from '../services/storage.service'
 import { AppError } from '../utils/errors'
+import { logger } from '../utils/logger'
 
 // A small auth plugin to extract user info from headers
 const authPlugin = new Elysia({ name: 'books-auth' })
@@ -50,6 +51,7 @@ export const bookController = new Elysia({ prefix: '/api/books' })
       set.status = error.statusCode
       return { error: error.message }
     }
+    logger.error({ err: error })
     set.status = 500
     return { error: 'Internal Server Error' }
   })
@@ -86,37 +88,73 @@ export const bookController = new Elysia({ prefix: '/api/books' })
   }, { requireAuth: true })
   .patch('/:id', async ({ params: { id }, userId, body }) => {
     return bookService.updateBook(Number(id), userId!, body as Record<string, unknown>)
-  }, { requireAuth: true })
+  }, {
+    requireAuth: true,
+    body: t.Record(t.String(), t.Any()),
+  })
   .post('/:id/analyze-book', async ({ params: { id }, userId, request }) => {
     const config = extractLlmConfig(request)
     return bookAnalysisService.analyzeBookStats(Number(id), userId!, config)
   }, { requireAuth: true })
   .patch('/:id/cover', async ({ params: { id }, userId, body }) => {
-    const file = (body as { file: File }).file as File
+    const file = body.file as File
     return bookService.updateCover(Number(id), userId!, file)
-  }, { requireAuth: true })
+  }, {
+    requireAuth: true,
+    body: t.Object({ file: t.File() }),
+  })
   .patch('/:id/stats', async ({ params: { id }, userId, body }) => {
-    return bookService.updateStats(Number(id), userId!, body as { difficulty?: string | undefined, description?: string | undefined, tags?: string[] | undefined })
-  }, { requireAuth: true })
+    return bookService.updateStats(Number(id), userId!, body as { difficulty?: string, description?: string, tags?: string[] })
+  }, {
+    requireAuth: true,
+    body: t.Object({
+      difficulty: t.Optional(t.String()),
+      description: t.Optional(t.String()),
+      tags: t.Optional(t.Array(t.String())),
+    }),
+  })
   .post('/', async ({ userId, body }) => {
-    const file = (body as { file: File }).file as File
+    const file = body.file as File
     return bookUploadService.uploadBook(userId!, file)
-  }, { requireAuth: true })
+  }, {
+    requireAuth: true,
+    body: t.Object({ file: t.File() }),
+  })
   .post('/upload', async ({ userId, body }) => {
-    const file = (body as { file: File }).file as File
+    const file = body.file as File
     return bookUploadService.uploadBook(userId!, file)
-  }, { requireAuth: true })
+  }, {
+    requireAuth: true,
+    body: t.Object({ file: t.File() }),
+  })
   .post('/custom', async ({ userId, body }) => {
-    return bookUploadService.createCustomBook(userId!, body as { title: string, text: string, targetLang: string, author?: string | null, collection?: string | null, coverBase64?: string, type?: string, language?: string })
-  }, { requireAuth: true })
+    return bookUploadService.createCustomBook(userId!, body as any)
+  }, {
+    requireAuth: true,
+    body: t.Object({
+      title: t.String(),
+      text: t.String(),
+      targetLang: t.String(),
+      author: t.Optional(t.Union([t.String(), t.Null()])),
+      collection: t.Optional(t.Union([t.String(), t.Null()])),
+      coverBase64: t.Optional(t.String()),
+      type: t.Optional(t.String()),
+      language: t.Optional(t.String()),
+    }),
+  })
   .post('/:id/manga-chapter', async ({ params: { id }, userId, body }) => {
-    const chapterTitle = (body as { chapterTitle?: string }).chapterTitle || ''
-    // File array handling for Elysia body
-    let files = (body as { files: File | File[] }).files
+    const chapterTitle = body.chapterTitle || ''
+    let files = body.files
     if (!Array.isArray(files))
       files = [files]
-    return bookUploadService.appendMangaChapter(Number(id), userId!, chapterTitle, files.filter(Boolean))
-  }, { requireAuth: true })
+    return bookUploadService.appendMangaChapter(Number(id), userId!, chapterTitle, files.filter(Boolean) as File[])
+  }, {
+    requireAuth: true,
+    body: t.Object({
+      chapterTitle: t.Optional(t.String()),
+      files: t.Union([t.File(), t.Array(t.File())]),
+    }),
+  })
   .delete('/:id', async ({ params: { id }, userId }) => {
     return bookService.deleteBook(Number(id), userId!)
   }, { requireAuth: true })
@@ -169,26 +207,59 @@ export const bookController = new Elysia({ prefix: '/api/books' })
     const { items, language } = body as { items: unknown[], language: string }
     const results = await bookAnalysisService.checkCache(Number(id), userId!, items as { text: string, type: 'sentence' | 'word' }[], language, targetLang)
     return { results }
-  }, { requireAuth: true })
+  }, {
+    requireAuth: true,
+    body: t.Object({
+      items: t.Array(t.Object({
+        text: t.String(),
+        type: t.Union([t.Literal('sentence'), t.Literal('word')]),
+      })),
+      language: t.String(),
+      targetLanguage: t.Optional(t.String()),
+    }),
+  })
   .post('/:id/analyze', async ({ params: { id }, userId, body, query, request }) => {
-    const targetLang = (query.targetLang as string) || (body as { targetLanguage?: string }).targetLanguage || 'ru'
-    const { sentence, language, context, type } = body as { sentence: string, language: string, context: string, type: 'sentence' | 'word' }
+    const targetLang = (query.targetLang as string) || body.targetLanguage || 'ru'
+    const { sentence, language, context, type } = body as { sentence: string, language: string, context?: string, type: 'sentence' | 'word' }
     const config = extractLlmConfig(request)
-    return bookAnalysisService.analyzeSentence(Number(id), userId!, sentence, language, context, targetLang, type, config)
-  }, { requireAuth: true })
+    return bookAnalysisService.analyzeSentence(Number(id), userId!, sentence, language, context || '', targetLang, type, config)
+  }, {
+    requireAuth: true,
+    body: t.Object({
+      sentence: t.String(),
+      language: t.String(),
+      context: t.Optional(t.String()),
+      type: t.Union([t.Literal('sentence'), t.Literal('word')]),
+      targetLanguage: t.Optional(t.String()),
+    }),
+  })
   .post('/:id/tts', async ({ params: { id }, userId, body, request }) => {
     const { text, voice, forceCacheBypass } = body as { text: string, voice: string, forceCacheBypass?: boolean }
     const config = extractLlmConfig(request)
     const audioBase64 = await bookService.generateTts(Number(id), userId!, text as string, voice, forceCacheBypass || false, config)
     return { audioBase64 }
-  }, { requireAuth: true })
+  }, {
+    requireAuth: true,
+    body: t.Object({
+      text: t.String(),
+      voice: t.String(),
+      forceCacheBypass: t.Optional(t.Boolean()),
+    }),
+  })
   .post('/:id/analyze-batch', async ({ params: { id }, userId, body, query, request }) => {
-    const targetLang = (query.targetLang as string) || (body as { targetLanguage?: string }).targetLanguage || 'ru'
+    const targetLang = (query.targetLang as string) || body.targetLanguage || 'ru'
     const { items, language } = body as { items: unknown[], language: string }
     const config = extractLlmConfig(request)
     const results = await bookAnalysisService.analyzeBatch(Number(id), userId!, items as BatchAnalysisRequest[], language, targetLang, config)
     return { results }
-  }, { requireAuth: true })
+  }, {
+    requireAuth: true,
+    body: t.Object({
+      items: t.Array(t.Any()),
+      language: t.String(),
+      targetLanguage: t.Optional(t.String()),
+    }),
+  })
 
 export const ttsController = new Elysia()
   .use(authPlugin)
@@ -197,7 +268,14 @@ export const ttsController = new Elysia()
     const config = extractLlmConfig(request)
     const audioBase64 = await bookService.standaloneTts(userId!, text as string, voice, forceCacheBypass || false, config)
     return { audioBase64 }
-  }, { requireAuth: true })
+  }, {
+    requireAuth: true,
+    body: t.Object({
+      text: t.String(),
+      voice: t.String(),
+      forceCacheBypass: t.Optional(t.Boolean()),
+    }),
+  })
 
 export const uploadsController = new Elysia()
   .get('/api/uploads/covers/:filename', async ({ params: { filename }, set }) => {

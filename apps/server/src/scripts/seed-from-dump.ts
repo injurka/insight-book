@@ -2,20 +2,21 @@ import { mkdir, rm } from 'node:fs/promises'
 import path from 'node:path'
 import { DB_PATH } from '../config'
 import { storageService } from '../services/storage.service'
+import { logger } from '../utils/logger'
 
 const args = process.argv.slice(2)
 const specificDump = args[0] // Например: dumps/2026-06-02T12-00-00/
 
 async function main() {
-  console.log('⚠️  WARNING: Restoring from a dump will overwrite current database and uploads.')
+  logger.info('⚠️  WARNING: Restoring from a dump will overwrite current database and uploads.')
 
   let dumpPrefixToUse = specificDump
 
   if (!dumpPrefixToUse) {
-    console.log('🔍 No specific dump provided. Finding the latest one...')
+    logger.info('🔍 No specific dump provided. Finding the latest one...')
     const dumps = await storageService.listDumpFolders('dumps')
     if (dumps.length === 0) {
-      console.error('❌ No dumps found in S3.')
+      logger.error('❌ No dumps found in S3.')
       process.exit(1)
     }
     // Сортируем по имени (т.к. у нас формат ISO 8601, сортировка по алфавиту работает идеально)
@@ -28,15 +29,15 @@ async function main() {
     dumpPrefixToUse += '/'
   }
 
-  console.log(`📦 Using dump: ${dumpPrefixToUse}`)
+  logger.info(`📦 Using dump: ${dumpPrefixToUse}`)
 
   const s3Keys = await storageService.listFilesInFolder(dumpPrefixToUse)
   if (s3Keys.length === 0) {
-    console.error('❌ No files found in this dump.')
+    logger.error('❌ No files found in this dump.')
     process.exit(1)
   }
 
-  console.log(`📥 Restoring ${s3Keys.length} files...`)
+  logger.info(`📥 Restoring ${s3Keys.length} files...`)
 
   // Удаляем старые WAL файлы БД, чтобы не было конфликта при подмене основной БД
   try {
@@ -61,7 +62,7 @@ async function main() {
         process.stdout.write(`\r✅ Progress: ${restored}/${s3Keys.length}`)
       }
       else {
-        console.error(`\n❌ Failed to download DB: ${s3Key}`)
+        logger.error(`\n❌ Failed to download DB: ${s3Key}`)
       }
     }
     else if (relativeKey.startsWith('uploads/')) {
@@ -73,18 +74,18 @@ async function main() {
         process.stdout.write(`\r✅ Progress: ${restored}/${s3Keys.length}`)
       }
       else {
-        console.error(`\n❌ Failed to download: ${s3Key}`)
+        logger.error(`\n❌ Failed to download: ${s3Key}`)
       }
     }
     else {
-      console.warn(`\n⚠️  Skipping unknown file mapping: ${s3Key}`)
+      logger.warn(`\n⚠️  Skipping unknown file mapping: ${s3Key}`)
     }
   }
 
-  console.log('\n🎉 Seed completed successfully! Please restart the server if it is currently running.')
+  logger.info('\n🎉 Seed completed successfully! Please restart the server if it is currently running.')
 }
 
 main().catch((err) => {
-  console.error('\n❌ Seed failed:', err)
+  logger.error(err, '\n❌ Seed failed:')
   process.exit(1)
 })

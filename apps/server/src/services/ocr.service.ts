@@ -2,6 +2,7 @@ import type { GlmOcrLayoutDetail, LlmConfig, OpenAiMessageContent, OpenAiRespons
 import sharp from 'sharp'
 import { getOcrPrompt, getOcrRefinementPrompt } from '../prompts'
 import { AppError } from '../utils/errors'
+import { logger } from '../utils/logger'
 import { checkTokenLimit } from './limits.service'
 import { trackTokenUsage } from './token.service'
 
@@ -249,7 +250,7 @@ async function refineOcrText(userId: number, base64Image: string, blocks: OcrBlo
       }
       catch (parseError: unknown) {
         const err = parseError as Error
-        console.warn(`[OCR Refinement] First attempt failed to parse JSON. Error: ${err.message || err}. Retrying...`)
+        logger.warn(`[OCR Refinement] First attempt failed to parse JSON. Error: ${err.message || err}. Retrying...`)
 
         // Выполняем ровно 1 повторный запрос с инструкцией об ошибке
         const retryMessages = [
@@ -292,18 +293,18 @@ async function refineOcrText(userId: number, base64Image: string, blocks: OcrBlo
               }
             }
             else {
-              console.error('[OCR Refinement] Second attempt failed validation. Length:', refinedTexts?.length)
+              logger.error(refinedTexts?.length, '[OCR Refinement] Second attempt failed validation. Length:')
             }
           }
           catch (retryParseError) {
-            console.error('[OCR Refinement] Second attempt failed to parse JSON response:', cleanJson, retryParseError)
+            logger.error({ cleanJson, err: retryParseError }, '[OCR Refinement] Second attempt failed to parse JSON response:')
           }
         }
       }
     }
   }
   catch (error) {
-    console.error('[OCR Refinement] Failed to refine OCR text:', error)
+    logger.error(error, '[OCR Refinement] Failed to refine OCR text:')
   }
 
   return blocks

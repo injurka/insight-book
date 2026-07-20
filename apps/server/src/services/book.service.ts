@@ -5,6 +5,7 @@ import sharp from 'sharp'
 import { extractUniqueWordsFromHtml, normalizeLanguageCode } from '~/utils/helpers'
 import { bookRepository } from '../repositories/book.repository'
 import { AppError } from '../utils/errors'
+import { logger } from '../utils/logger'
 import { runWorkerTask } from '../workers/worker-client'
 import { activityService } from './activity.service'
 import { dictionaryService } from './dictionary.service'
@@ -228,7 +229,7 @@ export class BookService {
       }
     }
     catch (err: unknown) {
-      console.warn(`[File Delete Warning] Не удалось удалить файлы книги:`, (err as Error).message)
+      logger.warn(err as Error, `[File Delete Warning] Не удалось удалить файлы книги:`)
     }
 
     return { success: true }
@@ -289,7 +290,7 @@ export class BookService {
           await bookRepository.updateMangaPageOcr(pageRow.id, JSON.stringify(ocrBlocks))
         }
         catch (e: unknown) {
-          console.error('OCR Error:', (e as Error).message)
+          logger.error(e as Error, 'OCR Error:')
           ocrBlocks = []
         }
       }

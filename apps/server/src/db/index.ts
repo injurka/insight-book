@@ -1,8 +1,10 @@
 /// <reference types="bun-types" />
 
-/* eslint-disable no-console */
+/* eslint-disable antfu/no-top-level-await */
+
 import type { BunSQLiteDatabase } from 'drizzle-orm/bun-sqlite'
-import { existsSync, mkdirSync } from 'node:fs'
+import { existsSync } from 'node:fs'
+import fs from 'node:fs/promises'
 import path from 'node:path'
 import { isMainThread } from 'node:worker_threads'
 import { Database } from 'bun:sqlite'
@@ -19,16 +21,18 @@ import {
   DICTS_PATH,
   UPLOADS_PATH,
 } from '../config'
+import { ROLES } from '../constants/roles'
+import { logger } from '../utils/logger'
 import * as schema from './schema'
 
 const dbDir = path.dirname(DB_PATH)
 
-mkdirSync(dbDir, { recursive: true })
-mkdirSync(DICTS_PATH, { recursive: true })
-mkdirSync(UPLOADS_PATH, { recursive: true })
-mkdirSync(BOOKS_PATH, { recursive: true })
-mkdirSync(COVERS_PATH, { recursive: true })
-mkdirSync(path.join(UPLOADS_PATH, 'avatars'), { recursive: true })
+await fs.mkdir(dbDir, { recursive: true })
+await fs.mkdir(DICTS_PATH, { recursive: true })
+await fs.mkdir(UPLOADS_PATH, { recursive: true })
+await fs.mkdir(BOOKS_PATH, { recursive: true })
+await fs.mkdir(COVERS_PATH, { recursive: true })
+await fs.mkdir(path.join(UPLOADS_PATH, 'avatars'), { recursive: true })
 
 // ============================================================================
 // 1. ИНИЦИАЛИЗАЦИЯ ПОДКЛЮЧЕНИЯ
@@ -47,7 +51,7 @@ void (async () => {
   const isMainServer = Bun.main && path.basename(Bun.main) === 'index.ts'
 
   if (isMainThread && isMainServer) {
-    console.log('🔄 Checking and applying database migrations...')
+    logger.info('🔄 Checking and applying database migrations...')
 
     try {
       initCatalogDb()
@@ -59,51 +63,51 @@ void (async () => {
       const wordsCount = wordRes?.count || 0
 
       if (decksCount > 0) {
-        console.log(`✅ Catalog database verified: found ${decksCount} decks and ${wordsCount} words.`)
+        logger.info(`✅ Catalog database verified: found ${decksCount} decks and ${wordsCount} words.`)
       }
       else {
-        console.log(`✅ Catalog database verified (Empty).`)
-        console.log(`💡 Tip: Run 'bun run deck:seed' to populate the catalog with standard decks.`)
+        logger.info(`✅ Catalog database verified (Empty).`)
+        logger.info(`💡 Tip: Run 'bun run deck:seed' to populate the catalog with standard decks.`)
       }
     }
     catch (e) {
-      console.error('❌ Failed to setup catalog database tables:', e)
+      logger.error(e, '❌ Failed to setup catalog database tables:')
     }
 
     try {
       migrate(db, { migrationsFolder: path.resolve(import.meta.dir, 'migrations') })
-      console.log('✅ Database migrations applied successfully!')
+      logger.info('✅ Database migrations applied successfully!')
     }
     catch (e) {
-      console.error('❌ Failed to run migrations. Check if you generated them using `bunx drizzle-kit generate`. Error:', e)
+      logger.error(e, '❌ Failed to run migrations. Check if you generated them using `bunx drizzle-kit generate`. Error:')
     }
 
     try {
       const adminExists = await db.query.users.findFirst({ where: eq(schema.users.id, 1) })
 
       if (!adminExists) {
-        console.log('👤 Default admin user not found. Creating one...')
+        logger.info('👤 Default admin user not found. Creating one...')
         const passwordHash = await Bun.password.hash(ADMIN_PASSWORD)
 
         await db.insert(schema.users).values({
           id: 1,
           username: ADMIN_USERNAME,
           passwordHash,
-          role: 'admin',
+          role: ROLES.ADMIN,
           tokenLimit: null,
           bookLimit: null,
         })
-        console.log(`👤 Default Admin user created (Username: ${ADMIN_USERNAME}).`)
+        logger.info(`👤 Default Admin user created (Username: ${ADMIN_USERNAME}).`)
       }
     }
     catch (e) {
-      console.error('⚠️ Could not check/create admin user:', e)
+      logger.error(e, '⚠️ Could not check/create admin user:')
     }
 
-    console.log(`🗄️ Main SQLite Database initialized at ${DB_PATH}`)
+    logger.info(`🗄️ Main SQLite Database initialized at ${DB_PATH}`)
   }
 })().catch((err) => {
-  console.error('❌ Critical error during database initialization:', err)
+  logger.error(err, '❌ Critical error during database initialization:')
   process.exit(1)
 })
 
@@ -189,7 +193,7 @@ export function getDictConnection(language: string, targetLanguage: string): Dic
       dictDb.run(`CREATE INDEX IF NOT EXISTS "idx_${tableName}_${wordCol}" ON "${tableName}" ("${wordCol}")`)
     }
     catch (e: unknown) {
-      console.warn(`[DB Warning] Could not create index on dict_${lang}.sqlite (maybe read-only volume?):`, (e as Error).message)
+      logger.warn(e as Error, `[DB Warning] Could not create index on dict_${lang}.sqlite (maybe read-only volume?):`)
     }
 
     const dDb = drizzle(dictDb, { logger: false })
@@ -198,7 +202,7 @@ export function getDictConnection(language: string, targetLanguage: string): Dic
     dictConnections.set(cacheKey, conn)
 
     if (isMainThread)
-      console.log(`📖 Loaded dictionary for [${lang}] at ${specificPath} (Table: ${tableName})`)
+      logger.info(`📖 Loaded dictionary for [${lang}] at ${specificPath} (Table: ${tableName})`)
     return conn
   }
 
@@ -210,7 +214,7 @@ export function getDictConnection(language: string, targetLanguage: string): Dic
 // ============================================================================
 function shutdown() {
   if (isMainThread)
-    console.log('\n🛑 Shutting down server... Closing databases...')
+    logger.info('\n🛑 Shutting down server... Closing databases...')
   try {
     sqlite.close()
     catalogSqlite.close()

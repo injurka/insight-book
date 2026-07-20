@@ -1,15 +1,16 @@
 import { executeDump } from '../services/dump.service'
+import { logger } from '../utils/logger'
 
 async function main() {
-  console.log('🛠️ Manually starting database and files dump...')
+  logger.info('🛠️ Manually starting database and files dump...')
 
-  await executeDump(msg => console.log(msg))
+  await executeDump(msg => logger.info(msg))
 
-  console.log('✅ Manual dump script finished.')
+  logger.info('✅ Manual dump script finished.')
   process.exit(0)
 }
 
 main().catch((err) => {
-  console.error('\n❌ Fatal Dump script error:', err)
+  logger.error(err, '\n❌ Fatal Dump script error:')
   process.exit(1)
 })

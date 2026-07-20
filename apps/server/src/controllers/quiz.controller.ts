@@ -4,6 +4,7 @@ import { AUTH_MODE, JWT_SECRET } from '../config'
 import { quizService } from '../services/quiz.service'
 import { AppError } from '../utils/errors'
 import { extractLlmConfig, normalizeLanguageCode } from '../utils/helpers'
+import { logger } from '../utils/logger'
 
 const authPlugin = new Elysia().derive({ as: 'scoped' }, ({ headers }) => {
   if (AUTH_MODE === 'single')
@@ -28,7 +29,7 @@ export const quizRouter = new Elysia({ prefix: '/api/quiz' })
       set.status = error.statusCode
       return { error: error.message }
     }
-    console.error(error)
+    logger.error(error)
     set.status = 500
     return { error: 'Internal Server Error' }
   })

@@ -4,16 +4,16 @@ import AdmZip from 'adm-zip'
 import * as cheerio from 'cheerio'
 import { eq } from 'drizzle-orm'
 import sizeOf from 'image-size'
-import { BOOKS_PATH } from '../config'
+import { BOOKS_PATH, UPLOADS_PATH } from '../config'
 import { db } from '../db'
 import * as schema from '../db/schema'
+import { logger } from '../utils/logger'
 import { storageService } from './storage.service'
 
-export async function processCbz(fileBuffer: ArrayBuffer, filename: string, userId: number): Promise<number> {
-  const safeName = `${Date.now()}_${filename.replace(/[^\w.-]/g, '_')}`
-  const mangaDir = path.join(BOOKS_PATH, safeName.replace(/\.(cbz|zip)$/i, ''))
+export async function processCbz(filePath: string, filename: string, userId: number): Promise<number> {
+  const mangaDir = filePath.replace(/\.(cbz|zip)$/i, '')
 
-  const zip = new AdmZip(Buffer.from(fileBuffer))
+  const zip = new AdmZip(filePath)
   const zipEntries = zip.getEntries()
 
   const imageEntries = zipEntries
@@ -58,7 +58,7 @@ export async function processCbz(fileBuffer: ArrayBuffer, filename: string, user
       }
     }
     catch (e) {
-      console.warn('[Manga Service] Failed to parse ComicInfo.xml:', e)
+      logger.warn(e, '[Manga Service] Failed to parse ComicInfo.xml:')
     }
   }
 
@@ -95,7 +95,7 @@ export async function processCbz(fileBuffer: ArrayBuffer, filename: string, user
       const buffer = entry.getData()
       const dimensions = sizeOf(buffer)
 
-      const folderName = safeName.replace(/\.(cbz|zip)$/i, '')
+      const folderName = path.basename(filePath).replace(/\.(cbz|zip)$/i, '')
       const key = `books/${folderName}/page_${pageNum}${ext}`
       const imageUrl = await storageService.uploadFile(key, buffer, `image/${ext.slice(1)}`)
 
@@ -137,14 +137,30 @@ export async function appendMangaChapter(book: { id: number, totalPages: number,
   let coverUrl = book.coverUrl
 
   for (const file of files) {
-    const buffer = await file.arrayBuffer()
     const ext = path.extname(file.name).toLowerCase() || '.jpg'
     const filename = `page_${currentPageNum}${ext}`
-
-    const dimensions = sizeOf(Buffer.from(buffer))
     const folderName = path.basename(book.filePath)
+
+    // Пишем временно на диск в папку книги напрямую
+    const fullPath = path.join(BOOKS_PATH, folderName, filename)
+    await Bun.write(fullPath, file)
+
+    const dimensions = sizeOf(Buffer.from(await Bun.file(fullPath).arrayBuffer()))
+
+    // Если нужно, заливаем в S3 через storageService
+    // Но так как mangaFiles обычно живут в BOOKS_PATH локально (либо монтируются),
+    // мы можем прочитать файл и отправить, либо, если local, просто оставить.
+    // Оставим логику storageService как было, но передадим путь/файл.
+    // Чтобы не дублировать, передадим buffer из локального файла, если это S3,
+    // либо можно сразу заюзать file в storageService.
     const key = `books/${folderName}/${filename}`
-    const imageUrl = await storageService.uploadFile(key, buffer, `image/${ext.slice(1)}`)
+    let imageUrl = key
+
+    // Если используется S3, зальем напрямую из файла
+    if (storageService.constructor.name !== 'LocalStorageService') {
+      const buffer = await Bun.file(fullPath).arrayBuffer()
+      imageUrl = await storageService.uploadFile(key, buffer, `image/${ext.slice(1)}`)
+    }
 
     pagesToInsert.push({
       bookId: book.id,
@@ -156,7 +172,14 @@ export async function appendMangaChapter(book: { id: number, totalPages: number,
 
     if (currentPageNum === 1 && !coverUrl) {
       const coverFilename = `${Date.now()}_cover${ext}`
-      await storageService.uploadFile(`covers/${coverFilename}`, buffer, `image/${ext.slice(1)}`)
+      if (storageService.constructor.name === 'LocalStorageService') {
+        const coverPath = path.join(UPLOADS_PATH, `covers/${coverFilename}`)
+        await Bun.write(coverPath, file)
+      }
+      else {
+        const coverBuffer = await Bun.file(fullPath).arrayBuffer()
+        await storageService.uploadFile(`covers/${coverFilename}`, coverBuffer, `image/${ext.slice(1)}`)
+      }
       coverUrl = `/api/uploads/covers/${coverFilename}`
     }
 

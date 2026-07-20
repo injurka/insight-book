@@ -1,5 +1,6 @@
 import type { ModelMessage } from 'ai'
 import type { LlmConfig } from '~/types'
+import { logger } from '../utils/logger'
 import { parseLlmJson } from './helpers'
 
 const MAX_OUTPUT_TOKENS = 8192
@@ -106,7 +107,7 @@ async function callLlmJsonWithRetry<T = unknown>(
   }
   catch (parseError: unknown) {
     const err = parseError as Error
-    console.warn(`[LLM JSON Parse Retry] First attempt failed to parse JSON. Error: ${err.message || err}. Retrying...`)
+    logger.warn(`[LLM JSON Parse Retry] First attempt failed to parse JSON. Error: ${err.message || err}. Retrying...`)
 
     // Отправляем модели её же ответ и текст ошибки парсинга, требуя строгий JSON
     const retryMessages: ModelMessage[] = [
@@ -136,7 +137,7 @@ async function callLlmJsonWithRetry<T = unknown>(
     }
     catch (retryParseError: unknown) {
       const err = retryParseError as { message?: string }
-      console.error(`[LLM JSON Parse Retry] Second attempt also failed to parse JSON. Error: ${err.message || err}`)
+      logger.error(`[LLM JSON Parse Retry] Second attempt also failed to parse JSON. Error: ${err.message || err}`)
       throw retryParseError
     }
   }
