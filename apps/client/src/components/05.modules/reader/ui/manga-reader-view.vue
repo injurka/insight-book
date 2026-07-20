@@ -119,9 +119,14 @@ onUnmounted(() => {
     <div class="reader-content-wrapper">
       <Transition name="fade" mode="out-in" @enter="onContentEnter">
         <div v-if="readerStore.isPageLoading" class="reader-loading-wrapper">
-          <PageLoader />
-          <p class="loading-text">
-            {{ t('reader.preparingPage') }}
+          <div class="spinner-box">
+            <PageLoader />
+          </div>
+          <h3 class="loading-text">
+            {{ t('reader.preparingPageTitle') }}
+          </h3>
+          <p class="loading-subtext">
+            {{ t('reader.preparingPageDesc') }}
           </p>
         </div>
 
@@ -566,10 +571,33 @@ onUnmounted(() => {
 }
 
 .reader-loading-wrapper {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 32px;
   text-align: center;
+  .spinner-box {
+    height: 80px;
+    margin-bottom: 24px;
+    :deep(.page-loader) {
+      min-height: unset;
+    }
+  }
   .loading-text {
-    margin-top: 16px;
+    font-size: 1.3rem;
+    font-weight: 600;
+    color: var(--fg-primary-color);
+    margin: 0 0 8px 0;
+  }
+  .loading-subtext {
+    font-size: 1rem;
     color: var(--fg-secondary-color);
+    margin: 0;
+    max-width: 320px;
+    line-height: 1.5;
   }
 }
 

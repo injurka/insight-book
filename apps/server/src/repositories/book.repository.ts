@@ -1,9 +1,23 @@
 import type { SQL } from 'drizzle-orm'
-import { and, desc, eq, inArray, isNotNull, or, sql } from 'drizzle-orm'
+import { and, desc, eq, inArray, isNotNull, like, or, sql } from 'drizzle-orm'
 import { db } from '../db'
 import * as schema from '../db/schema'
 
 export class BookRepository {
+  buildPublicConditions(tag: string | null, search: string | null, language: string | null): (SQL | undefined)[] {
+    const conditions: (SQL | undefined)[] = [eq(schema.books.isPublic, true)]
+    if (tag) {
+      conditions.push(like(schema.bookStats.tags, `%${tag}%`))
+    }
+    if (search) {
+      conditions.push(like(schema.books.title, `%${search}%`))
+    }
+    if (language) {
+      conditions.push(eq(schema.books.language, language))
+    }
+    return conditions
+  }
+
   async getPublicBooksBaseQuery(page: number, limit: number, conditions: (SQL | undefined)[]) {
     return db.select({
       book: schema.books,

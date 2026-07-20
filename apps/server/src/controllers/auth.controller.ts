@@ -76,10 +76,10 @@ export const authRouter = new Elysia({ prefix: '/api/auth' })
       password: t.String({ minLength: 6, error: 'Пароль должен быть не менее 6 символов' }),
     }),
   })
-  .get('/yandex', async ({ query, set }) => {
+  .get('/yandex', async ({ query }) => {
     const sessionId = query.session_id as string | undefined
     const res = await authService.handleYandexAuth(sessionId)
-    set.redirect = res.redirectUrl
+    return Response.redirect(res.redirectUrl, 302)
   })
   .get('/yandex/callback', async ({ query, set }) => {
     const code = query.code as string | undefined
@@ -117,7 +117,7 @@ export const authRouter = new Elysia({ prefix: '/api/auth' })
     const frontendUrl = new URL(FRONTEND_URL)
     frontendUrl.pathname = '/auth/yandex/callback'
     frontendUrl.searchParams.set('token', token)
-    set.redirect = frontendUrl.toString()
+    return Response.redirect(frontendUrl.toString(), 302)
   })
   .post('/yandex/mobile-exchange', async () => {
     throw new AppError(400, 'Not implemented')
