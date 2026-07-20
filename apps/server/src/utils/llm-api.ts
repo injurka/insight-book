@@ -72,7 +72,7 @@ async function callLlmApi(
     })
   }
   catch (error: unknown) {
-    const errObj = error as any
+    const errObj = error as { message?: string }
     throw new Error(
       `AI SDK Error[${modelName}]: ${errObj?.message || JSON.stringify(error)} `,
     )
@@ -82,7 +82,7 @@ async function callLlmApi(
 /**
  * Универсальная обертка для запросов с автоматическим Retry в случае невалидного JSON
  */
-async function callLlmJsonWithRetry<T = any>(
+async function callLlmJsonWithRetry<T = unknown>(
   modelName: string,
   messages: ModelMessage[],
   temperature: number,
@@ -134,8 +134,9 @@ async function callLlmJsonWithRetry<T = any>(
       }
       return { parsed, text: retryRawResponse, usage: combinedUsage }
     }
-    catch (retryParseError: any) {
-      console.error(`[LLM JSON Parse Retry] Second attempt also failed to parse JSON. Error: ${retryParseError.message || retryParseError}`)
+    catch (retryParseError: unknown) {
+      const err = retryParseError as { message?: string }
+      console.error(`[LLM JSON Parse Retry] Second attempt also failed to parse JSON. Error: ${err.message || err}`)
       throw retryParseError
     }
   }
@@ -162,7 +163,7 @@ async function callOpenAiCompatible(params: {
 
   const url = buildOpenAiChatCompletionsUrl(config.url)
 
-  const baseBody: Record<string, any> = {
+  const baseBody: Record<string, unknown> = {
     model: modelName,
     messages: toOpenAiMessages(messages),
     temperature,
@@ -183,7 +184,7 @@ async function callOpenAiCompatible(params: {
     headers.Authorization = `Bearer ${config.key}`
   }
 
-  const bodyVariants: Record<string, any>[] = [
+  const bodyVariants: Record<string, unknown>[] = [
     baseBody,
   ]
 
@@ -211,7 +212,7 @@ async function callOpenAiCompatible(params: {
 
   for (const body of bodyVariants) {
     try {
-      const data = await postJson<any>({
+      const data = await postJson<{ choices?: { message?: { content?: string | Array<{ type?: string, text?: string }> } }[], usage?: { prompt_tokens?: number, completion_tokens?: number } }>({
         url,
         body,
         signal,
@@ -229,7 +230,7 @@ async function callOpenAiCompatible(params: {
 
       if (Array.isArray(content)) {
         const text = content
-          .map((part: any) => {
+          .map((part: { type?: string, text?: string } | string) => {
             if (typeof part === 'string')
               return part
             if (part?.type === 'text')
@@ -280,12 +281,12 @@ async function callGeminiNative(params: {
 
   const { systemText, contents } = toGeminiMessages(messages)
 
-  const baseBody: Record<string, any> = {
+  const baseBody: Record<string, unknown> = {
     contents,
     generationConfig: {
       temperature,
       maxOutputTokens: MAX_OUTPUT_TOKENS,
-    },
+    } as Record<string, unknown>,
   }
 
   if (systemText) {
@@ -294,10 +295,10 @@ async function callGeminiNative(params: {
     }
   }
 
-  const bodyVariants: Record<string, any>[] = []
+  const bodyVariants: Record<string, unknown>[] = []
 
   {
-    const body = structuredCloneJson(baseBody)
+    const body = structuredCloneJson(baseBody) as { generationConfig: Record<string, unknown>, systemInstruction?: unknown, contents: GeminiContent[] }
     if (forceJson) {
       body.generationConfig.responseMimeType = 'application/json'
       body.generationConfig.response_mime_type = 'application/json'
@@ -307,7 +308,7 @@ async function callGeminiNative(params: {
   }
 
   {
-    const body = structuredCloneJson(baseBody)
+    const body = structuredCloneJson(baseBody) as { generationConfig: Record<string, unknown>, systemInstruction?: unknown, contents: GeminiContent[] }
     if (forceJson) {
       body.generationConfig.responseMimeType = 'application/json'
       body.generationConfig.response_mime_type = 'application/json'
@@ -321,7 +322,7 @@ async function callGeminiNative(params: {
 
   for (const body of bodyVariants) {
     try {
-      const data = await postJson<any>({
+      const data = await postJson<{ candidates?: { content?: { parts?: { text?: string }[] } }[], usageMetadata?: { promptTokenCount?: number, candidatesTokenCount?: number } }>({
         url,
         body,
         signal,
@@ -337,7 +338,7 @@ async function callGeminiNative(params: {
 
       if (Array.isArray(parts)) {
         const text = parts
-          .map((part: any) => part?.text ?? '')
+          .map((part: { text?: string }) => part?.text ?? '')
           .join('')
 
         if (text) {
@@ -378,7 +379,7 @@ async function callOllamaNative(params: {
 
   const url = buildOllamaChatUrl(config.url)
 
-  const body: Record<string, any> = {
+  const body: Record<string, unknown> = {
     model: modelName,
     messages: toOllamaMessages(messages),
     stream: false,
@@ -394,7 +395,7 @@ async function callOllamaNative(params: {
     body.format = 'json'
   }
 
-  const data = await postJson<any>({
+  const data = await postJson<{ message?: { content?: string }, prompt_eval_count?: number, eval_count?: number }>({
     url,
     body,
     signal,
@@ -458,7 +459,7 @@ async function postJson<T>(params: {
 }
 
 function toOpenAiMessages(messages: ModelMessage[]): OpenAiChatMessage[] {
-  return messages.map((message: any) => {
+  return messages.map((message: ModelMessage) => {
     const role = normalizeOpenAiRole(message.role)
 
     return {
@@ -469,7 +470,7 @@ function toOpenAiMessages(messages: ModelMessage[]): OpenAiChatMessage[] {
 }
 
 function toOllamaMessages(messages: ModelMessage[]) {
-  return messages.map((message: any) => {
+  return messages.map((message: ModelMessage) => {
     const role = normalizeOllamaRole(message.role)
 
     return {
@@ -486,7 +487,7 @@ function toGeminiMessages(messages: ModelMessage[]): {
   const systemParts: string[] = []
   const contents: GeminiContent[] = []
 
-  for (const message of messages as any[]) {
+  for (const message of messages) {
     const text = contentToText(message.content)
 
     if (!text) {
@@ -510,7 +511,7 @@ function toGeminiMessages(messages: ModelMessage[]): {
   }
 }
 
-function contentToText(content: any): string {
+function contentToText(content: unknown): string {
   if (content == null) {
     return ''
   }
@@ -526,13 +527,14 @@ function contentToText(content: any): string {
           return ''
         if (typeof part === 'string')
           return part
-        if (part.type === 'text')
-          return part.text ?? ''
-        if ('text' in part)
-          return part.text ?? ''
-        if (part.type === 'image')
+        const obj = part as Record<string, unknown>
+        if (obj.type === 'text')
+          return obj.text ?? ''
+        if ('text' in obj)
+          return obj.text ?? ''
+        if (obj.type === 'image')
           return '[image omitted]'
-        if (part.type === 'file')
+        if (obj.type === 'file')
           return '[file omitted]'
         return ''
       })
@@ -540,8 +542,9 @@ function contentToText(content: any): string {
   }
 
   if (typeof content === 'object') {
-    if ('text' in content) {
-      return String(content.text ?? '')
+    const obj = content as Record<string, unknown>
+    if ('text' in obj) {
+      return String(obj.text ?? '')
     }
 
     return JSON.stringify(content)
@@ -660,10 +663,11 @@ function structuredCloneJson<T>(value: T): T {
   return JSON.parse(JSON.stringify(value))
 }
 
-function isProbablyUnsupportedParameterError(error: any): boolean {
+function isProbablyUnsupportedParameterError(error: unknown): boolean {
+  const err = error as { message?: string, body?: string }
   const message = [
-    error?.message,
-    error?.body,
+    err?.message,
+    err?.body,
   ]
     .filter(Boolean)
     .join('\n')

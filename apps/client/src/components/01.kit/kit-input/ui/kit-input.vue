@@ -1,6 +1,18 @@
 <script setup lang="ts">
+defineOptions({
+  inheritAttrs: false,
+})
+
+const props = withDefaults(defineProps<Props>(), {
+  placeholder: '',
+  variant: 'default',
+  size: 'md',
+  type: 'text',
+})
+
+const modelValue = defineModel<string | number | null>({ default: '' })
+
 interface Props {
-  modelValue?: string | number | null
   placeholder?: string
   rounded?: boolean
   variant?: 'default' | 'solo'
@@ -8,28 +20,14 @@ interface Props {
   type?: string
 }
 
-defineOptions({
-  inheritAttrs: false,
-})
-
-const props = withDefaults(defineProps<Props>(), {
-  modelValue: '',
-  placeholder: '',
-  variant: 'default',
-  size: 'md',
-  type: 'text',
-})
-
-const emit = defineEmits(['update:modelValue'])
-
 function onInput(e: Event) {
   const val = (e.target as HTMLInputElement).value
 
   if (props.type === 'number') {
-    emit('update:modelValue', val === '' ? null : Number(val))
+    modelValue.value = val === '' ? null : Number(val)
   }
   else {
-    emit('update:modelValue', val)
+    modelValue.value = val
   }
 }
 </script>

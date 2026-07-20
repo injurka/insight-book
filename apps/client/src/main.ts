@@ -31,7 +31,7 @@ async function bootstrap() {
   app.provide(REPOS_INJECTION_KEY, defaultRepositories)
 
   try {
-    const { setupPlugins } = await import('~/plugins/index')
+    const { setupPlugins } = await import('~/shared/plugins/index')
     await setupPlugins(app, router)
 
     const { setupDictionaryEvents } = await import('~/shared/events/dictionary-events')

@@ -46,8 +46,8 @@ const emit = defineEmits<{
 
     <KitBtn
       color="primary"
+      class="check-btn"
       :disabled="props.selectedRadicals.length === 0 || props.isAnswerChecked"
-      style="margin-top: 16px;"
       @click="emit('check')"
     >
       {{ $t('dictionary.check') }}
@@ -114,5 +114,9 @@ const emit = defineEmits<{
   font-size: 3rem;
   font-weight: bold;
   color: var(--fg-primary-color);
+}
+
+.check-btn {
+  margin-top: 16px;
 }
 </style>

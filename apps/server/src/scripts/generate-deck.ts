@@ -116,15 +116,16 @@ async function getJsonFiles(dir: string, baseDir: string = dir): Promise<string[
   return files
 }
 
-function isOldFormatAnalysis(parsed: any): boolean {
+function isOldFormatAnalysis(parsed: unknown): boolean {
   if (!parsed || typeof parsed !== 'object')
     return true
-  if (Array.isArray(parsed.grammarRules)) {
-    if (parsed.grammarRules.some((r: any) => typeof r !== 'object' || r === null))
+  const obj = parsed as Record<string, unknown>
+  if (Array.isArray(obj.grammarRules)) {
+    if (obj.grammarRules.some((r: unknown) => typeof r !== 'object' || r === null))
       return true
   }
-  if (Array.isArray(parsed.vocabulary)) {
-    if (parsed.vocabulary.some((v: any) => typeof v !== 'object' || v === null))
+  if (Array.isArray(obj.vocabulary)) {
+    if (obj.vocabulary.some((v: unknown) => typeof v !== 'object' || v === null))
       return true
   }
   return false
@@ -278,7 +279,7 @@ async function main() {
   const difficulty = data.difficulty || ''
   const lang = normalizeLanguageCode(data.lang || data.language || 'zh')
   const targetLang = data.targetLanguage || data.targetLang || 'ru'
-  const words = data.words as any[]
+  const words = data.words as Array<string | Record<string, unknown>>
 
   if (!title || !words || !Array.isArray(words)) {
     console.error('❌ Неверный формат JSON. Ожидается: { "title": "...", "words": ["..."] }')
@@ -293,7 +294,7 @@ async function main() {
     fallbackModel: aiConfigObj.llm.fallbackModel,
   }
 
-  const enrichedWords: any[] = []
+  const enrichedWords: Record<string, unknown>[] = []
 
   try {
     const existingRaw = await readFile(outputFile, 'utf-8')
@@ -317,14 +318,15 @@ async function main() {
   for (let i = 0; i < words.length; i++) {
     const item = words[i]
 
-    const word = typeof item === 'string' ? item : (item.word || item.text)
+    const wordObj = typeof item === 'string' ? null : (item as Record<string, unknown>)
+    const word = typeof item === 'string' ? item : (wordObj?.word || wordObj?.text)
 
     if (!word || typeof word !== 'string') {
       console.warn(`⚠️ [${i + 1}/${words.length}] Пропуск: не удалось извлечь слово из`, item)
       continue
     }
 
-    const alreadyProcessed = enrichedWords.find((w: any) => w.word === word)
+    const alreadyProcessed = enrichedWords.find(w => w.word === word)
     if (alreadyProcessed) {
       continue
     }
@@ -350,8 +352,8 @@ async function main() {
 
       enrichedWords.push({
         word,
-        tags: typeof item === 'string' ? '' : filterAllowedTags(item.tags),
-        difficulty: typeof item === 'string' ? difficulty : (item.difficulty || difficulty),
+        tags: typeof item === 'string' ? '' : filterAllowedTags(wordObj?.tags as string),
+        difficulty: typeof item === 'string' ? difficulty : ((wordObj?.difficulty as string) || difficulty),
         transcription: res.analysis.transcription || '',
         translation: res.analysis.translation || '',
         grammarRules: res.analysis.grammarRules || [],

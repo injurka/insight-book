@@ -65,7 +65,7 @@ async function injectFile(inputFile: string): Promise<{ injected: number, skippe
 
   const lang = normalizeLanguageCode(data.lang || data.language || 'zh')
   const targetLang = data.targetLanguage || data.targetLang || 'ru'
-  const words = data.words as any[]
+  const words = data.words as Array<{ word?: string, transcription?: string, translation?: string, grammarRules?: unknown[], vocabulary?: unknown[] }>
 
   if (!words || !Array.isArray(words)) {
     console.error(`❌ Неверный формат JSON в ${inputFile}. Ожидается: { "words": [{ "word": "...", ... }] }`)
@@ -110,8 +110,8 @@ async function injectFile(inputFile: string): Promise<{ injected: number, skippe
         console.log(`⏭️ [${sentence}] Уже существует в кэше, пропущено.`)
       }
     }
-    catch (e: any) {
-      console.error(`❌ Ошибка при инжекте слова [${sentence}]:`, e.message)
+    catch (e: unknown) {
+      console.error(`❌ Ошибка при инжекте слова [${sentence}]:`, (e as Error).message)
     }
   }
 

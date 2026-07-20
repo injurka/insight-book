@@ -1,15 +1,13 @@
 /* eslint-disable no-console */
-import { and, eq, inArray, lte, sql } from 'drizzle-orm'
 import * as admin from 'firebase-admin'
 import { getMessaging } from 'firebase-admin/messaging'
 import webpush from 'web-push'
 import { getAiConfig } from '~/utils/ai-config'
 import { VAPID_PRIVATE_KEY, VAPID_PUBLIC_KEY, VAPID_SUBJECT } from '../config'
-import { db } from '../db'
-import * as schema from '../db/schema'
 import { getGeneralPushPrompt, getWordPushPrompt } from '../prompts'
-import { parseLlmJson } from '../utils/helpers'
+import { pushRepository } from '../repositories/push.repository'
 
+import { parseLlmJson } from '../utils/helpers'
 import { callLlmJsonWithRetry } from '../utils/llm-api'
 import { checkTokenLimit } from './limits.service'
 
@@ -39,7 +37,7 @@ function getSeededRandom(seedStr: string) {
   return x - Math.floor(x)
 }
 
-function getTargetUtcTimesForDate(dateObj: Date, user: any): number[] {
+function getTargetUtcTimesForDate(dateObj: Date, user: { id: number, timezone?: string | null, pushTimeStart?: string | null, pushTimeEnd?: string | null, pushCount?: number | null }): number[] {
   let timezone = user.timezone || 'UTC'
   let formatter: Intl.DateTimeFormat
 
@@ -108,7 +106,7 @@ function getTargetUtcTimesForDate(dateObj: Date, user: any): number[] {
   return targets
 }
 
-function shouldSendPush(user: any, now: Date): boolean {
+function shouldSendPush(user: { id: number, pushCount?: number | null, lastPushSentAt?: string | null, timezone?: string | null, pushTimeStart?: string | null, pushTimeEnd?: string | null }, now: Date): boolean {
   if (!user.pushCount || user.pushCount <= 0)
     return false
 
@@ -141,8 +139,8 @@ export async function sendDailyMotivations(customMessage?: string) {
 
   console.log('🚀 Starting push notifications dispatch...')
   const [webSubscriptions, fcmSubscriptions] = await Promise.all([
-    db.query.webPushSubscriptions.findMany({ with: { user: true } }),
-    db.query.fcmSubscriptions.findMany({ with: { user: true } }),
+    pushRepository.getAllWebSubscriptionsWithUsers(),
+    pushRepository.getAllFcmSubscriptionsWithUsers(),
   ])
 
   if (!webSubscriptions.length && !fcmSubscriptions.length) {
@@ -150,7 +148,7 @@ export async function sendDailyMotivations(customMessage?: string) {
     return
   }
 
-  const userSubsMap = new Map<number, { user: any, web: typeof webSubscriptions, fcm: typeof fcmSubscriptions }>()
+  const userSubsMap = new Map<number, { user: { id: number, pushCount?: number | null, lastPushSentAt?: string | null, timezone?: string | null, pushTimeStart?: string | null, pushTimeEnd?: string | null, uiLanguage?: string | null, pushTargetDeckId?: number | null }, web: typeof webSubscriptions, fcm: typeof fcmSubscriptions }>()
 
   webSubscriptions.forEach((sub) => {
     if (!userSubsMap.has(sub.userId)) {
@@ -193,24 +191,7 @@ export async function sendDailyMotivations(customMessage?: string) {
       let wordStrForTag = ''
 
       if (!customMessage) {
-        const filters: any[] = [
-          eq(schema.userDictionary.userId, userId),
-          lte(schema.userDictionary.due, nowIso),
-        ]
-
-        if (user.pushTargetDeckId) {
-          filters.push(inArray(
-            schema.userDictionary.id,
-            db.select({ id: schema.wordToDeck.wordId })
-              .from(schema.wordToDeck)
-              .where(eq(schema.wordToDeck.deckId, user.pushTargetDeckId)),
-          ))
-        }
-
-        const randomWord = await db.query.userDictionary.findFirst({
-          where: and(...filters),
-          orderBy: [sql`RANDOM()`],
-        })
+        const randomWord = await pushRepository.getRandomWordForPush(userId, nowIso, user.pushTargetDeckId)
 
         if (randomWord) {
           targetUrl = `/dictionary?word=${encodeURIComponent(randomWord.word)}`
@@ -285,9 +266,9 @@ export async function sendDailyMotivations(customMessage?: string) {
           sentCount++
         }
         catch (error: unknown) {
-          if ((error as any).statusCode === 410 || (error as any).statusCode === 404) {
+          if ((error as { statusCode?: number }).statusCode === 410 || (error as { statusCode?: number }).statusCode === 404) {
             console.log(`[Push] Subscription expired for user ${userId}, deleting...`)
-            await db.delete(schema.webPushSubscriptions).where(eq(schema.webPushSubscriptions.id, sub.id))
+            await pushRepository.deleteWebSubscriptionById(sub.id)
           }
           else {
             console.error(`[Push] Error sending to user ${userId}:`, (error as Error).message)
@@ -316,21 +297,70 @@ export async function sendDailyMotivations(customMessage?: string) {
           })
           sentCount++
         }
-        catch (error: any) {
-          if (error.code === 'messaging/registration-token-not-registered' || error.code === 'messaging/invalid-registration-token') {
+        catch (error: unknown) {
+          const fcmError = error as { code?: string, message?: string }
+          if (fcmError.code === 'messaging/registration-token-not-registered' || fcmError.code === 'messaging/invalid-registration-token') {
             console.log(`[FCM] Token expired for user ${userId}, deleting...`)
-            await db.delete(schema.fcmSubscriptions).where(eq(schema.fcmSubscriptions.id, sub.id))
+            await pushRepository.deleteFcmSubscriptionById(sub.id)
           }
           else {
-            console.error(`[FCM] Error sending to user ${userId}:`, error.message)
+            console.error(`[FCM] Error sending to user ${userId}:`, fcmError.message)
           }
         }
       }
 
       if (sentCount > 0) {
-        await db.update(schema.users).set({ lastPushSentAt: now.toISOString() }).where(eq(schema.users.id, userId))
+        await pushRepository.updateLastPushSentAt(userId, now.toISOString())
       }
     }))
   }
   console.log('✅ Push dispatch finished.')
+}
+
+export const pushService = {
+  async getVapidKey() {
+    return { publicKey: VAPID_PUBLIC_KEY }
+  },
+
+  async subscribeWebPush(userId: number, endpoint: string, keys: Record<string, string>) {
+    if (!endpoint || !keys)
+      throw new Error('Invalid subscription object')
+    await pushRepository.upsertWebSubscription(userId, endpoint, keys)
+    return { success: true }
+  },
+
+  async unsubscribeWebPush(userId: number, endpoint: string) {
+    if (endpoint) {
+      await pushRepository.deleteWebSubscription(userId, endpoint)
+    }
+    return { success: true }
+  },
+
+  async subscribeFcm(userId: number, token: string) {
+    if (!token)
+      throw new Error('Invalid FCM token')
+    await pushRepository.upsertFcmSubscription(userId, token)
+    return { success: true }
+  },
+
+  async unsubscribeFcm(userId: number, token: string) {
+    if (token) {
+      await pushRepository.deleteFcmSubscription(userId, token)
+    }
+    return { success: true }
+  },
+
+  async updatePushSettings(userId: number, settings: { targetDeckId?: number | 'all' | null, timeStart?: string, timeEnd?: string, timezone?: string, uiLanguage?: string, pushCount?: number }) {
+    const { targetDeckId, timeStart, timeEnd, timezone, uiLanguage, pushCount } = settings
+
+    await pushRepository.updatePushSettings(userId, {
+      pushTargetDeckId: targetDeckId === 'all' || !targetDeckId ? null : targetDeckId,
+      pushTimeStart: timeStart || '10:00',
+      pushTimeEnd: timeEnd || '21:00',
+      pushCount: typeof pushCount === 'number' ? pushCount : 1,
+      timezone: timezone || 'UTC',
+      uiLanguage: uiLanguage || 'ru',
+    })
+    return { success: true }
+  },
 }

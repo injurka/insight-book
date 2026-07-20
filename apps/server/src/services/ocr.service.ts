@@ -1,4 +1,4 @@
-import type { LlmConfig } from '../types'
+import type { GlmOcrLayoutDetail, LlmConfig, OpenAiMessageContent, OpenAiResponse } from '../types'
 import sharp from 'sharp'
 import { getOcrPrompt, getOcrRefinementPrompt } from '../prompts'
 import { AppError } from '../utils/errors'
@@ -86,7 +86,7 @@ async function getOcrLayout(userId: number, imageUrl: string, language: string, 
     throw new Error(`OCR API Error: ${await response.text()}`)
   }
 
-  const data = await response.json() as any
+  const data = await response.json() as OpenAiResponse
   const promptTokens = data.usage?.prompt_tokens || 0
   const completionTokens = data.usage?.completion_tokens || 0
 
@@ -100,7 +100,7 @@ async function getOcrLayout(userId: number, imageUrl: string, language: string, 
   if (glmDetail && glmDetail.layout_details && glmDetail.layout_details[0]) {
     const layoutDetails = glmDetail.layout_details[0]
 
-    layoutDetails.forEach((item: any, index: number) => {
+    layoutDetails.forEach((item: GlmOcrLayoutDetail, index: number) => {
       const text = cleanOcrText(item.content)
       if (!text)
         return
@@ -154,7 +154,7 @@ async function refineOcrText(userId: number, base64Image: string, blocks: OcrBlo
     if (!metadata.width || !metadata.height)
       return blocks
 
-    const contentArray: any[] = [
+    const contentArray: OpenAiMessageContent[] = [
       {
         type: 'text',
         text: getOcrRefinementPrompt(language, validBlocks.length, textDirection),
@@ -219,14 +219,14 @@ async function refineOcrText(userId: number, base64Image: string, blocks: OcrBlo
     })
 
     if (response.ok) {
-      let data = await response.json() as any
+      let data = await response.json() as OpenAiResponse
       const content = data.choices?.[0]?.message?.content || ''
 
       const promptTokens = data.usage?.prompt_tokens || 0
       const completionTokens = data.usage?.completion_tokens || 0
 
-      const safeInput = contentArray.map((c: any) => {
-        if (c.type === 'image_url')
+      const safeInput = contentArray.map((c: OpenAiMessageContent) => {
+        if (c.type === 'image_url' && c.image_url)
           return { type: 'image_url', image_url: { url: `${c.image_url.url.substring(0, 100)}...[TRUNCATED]` } }
         return c
       })
@@ -270,7 +270,7 @@ async function refineOcrText(userId: number, base64Image: string, blocks: OcrBlo
         })
 
         if (response.ok) {
-          data = await response.json() as any
+          data = await response.json() as OpenAiResponse
           const retryContent = data.choices?.[0]?.message?.content || ''
           const retryPromptTokens = data.usage?.prompt_tokens || 0
           const retryCompletionTokens = data.usage?.completion_tokens || 0

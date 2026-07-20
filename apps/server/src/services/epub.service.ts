@@ -1,17 +1,17 @@
-import type { TocItem } from '../types'
+import type { EpubInstance, EpubManifestItem, TocItem } from '../types'
 import { unlink } from 'node:fs/promises'
 import path from 'node:path'
 import { parse as parseHtml } from 'node-html-parser'
-import { BOOKS_PATH, COVERS_PATH, PAGE_SIZE_CHARS, UPLOAD_STORAGE } from '../config'
+import { BOOKS_PATH, PAGE_SIZE_CHARS } from '../config'
 import { db } from '../db'
 import * as schema from '../db/schema'
-import { s3Service } from './s3.service'
+import { storageService } from './storage.service'
 
-async function extractCover(epub: any): Promise<{ buffer: Buffer, ext: string } | null> {
+async function extractCover(epub: EpubInstance): Promise<{ buffer: Buffer, ext: string } | null> {
   try {
     const getImageData = (id: string): Promise<{ buffer: Buffer, ext: string } | null> => {
       return new Promise((resolve) => {
-        epub.getImage(id, (err: any, data: Buffer, mimeType: string) => {
+        epub.getImage(id, (err: Error | null, data: Buffer, mimeType: string) => {
           if (err || !data)
             return resolve(null)
           let ext = '.jpg'
@@ -34,24 +34,24 @@ async function extractCover(epub: any): Promise<{ buffer: Buffer, ext: string } 
     }
 
     const manifest = epub.manifest || {}
-    const coverItem = Object.values(manifest).find((item: any) => {
+    const coverItem = Object.values(manifest).find((item: EpubManifestItem) => {
       const id = item.id?.toLowerCase() ?? ''
       const href = item.href?.toLowerCase() ?? ''
       const mime = item.mediaType?.toLowerCase() ?? ''
       return mime.startsWith('image/') && (id.includes('cover') || href.includes('cover'))
     })
 
-    if (coverItem) {
-      const res = await getImageData((coverItem as any).id)
+    if (coverItem && coverItem.id) {
+      const res = await getImageData(coverItem.id)
       if (res)
         return res
     }
 
-    const firstImage = Object.values(manifest).find((item: any) =>
+    const firstImage = Object.values(manifest).find((item: EpubManifestItem) =>
       item.mediaType?.toLowerCase().startsWith('image/'),
     )
-    if (firstImage) {
-      const res = await getImageData((firstImage as any).id)
+    if (firstImage && firstImage.id) {
+      const res = await getImageData(firstImage.id)
       if (res)
         return res
     }
@@ -61,7 +61,7 @@ async function extractCover(epub: any): Promise<{ buffer: Buffer, ext: string } 
   return null
 }
 
-function extractLanguage(epub: any): string {
+function extractLanguage(epub: EpubInstance): string {
   try {
     const lang = epub.metadata?.language
     if (Array.isArray(lang))
@@ -73,9 +73,9 @@ function extractLanguage(epub: any): string {
   return 'en'
 }
 
-function extractToc(epub: any): TocItem[] {
+function extractToc(epub: EpubInstance): TocItem[] {
   try {
-    const raw = epub.toc as Array<any>
+    const raw = epub.toc || []
     if (!Array.isArray(raw))
       return []
     return raw.map(item => ({
@@ -89,9 +89,9 @@ function extractToc(epub: any): TocItem[] {
   catch { return [] }
 }
 
-async function getEpubImageBase64(epub: any, imageId: string): Promise<string | null> {
+async function getEpubImageBase64(epub: EpubInstance, imageId: string): Promise<string | null> {
   return new Promise((resolve) => {
-    epub.getImage(imageId, (err: any, data: Buffer, mimeType: string) => {
+    epub.getImage(imageId, (err: Error | null, data: Buffer, mimeType: string) => {
       if (err || !data)
         return resolve(null)
       resolve(`data:${mimeType || 'image/jpeg'};base64,${data.toString('base64')}`)
@@ -104,12 +104,12 @@ export async function processEpub(fileBuffer: ArrayBuffer, filename: string, use
   const filePath = path.join(BOOKS_PATH, safeName)
   await Bun.write(filePath, fileBuffer)
 
-  const { EPub } = await import('epub2') as any
+  const { EPub } = await import('epub2')
 
   return new Promise<number>((resolve, reject) => {
-    const epub = new EPub(filePath)
+    const epub = new EPub(filePath) as unknown as EpubInstance
 
-    epub.on('error', async (err: any) => {
+    epub.on('error', async (err: unknown) => {
       await unlink(filePath).catch(() => {})
       reject(err)
     })
@@ -122,12 +122,7 @@ export async function processEpub(fileBuffer: ArrayBuffer, filename: string, use
         let coverUrl = null
         if (coverData) {
           const coverFilename = `${Date.now()}_cover${coverData.ext}`
-          if (UPLOAD_STORAGE === 's3') {
-            await s3Service.uploadFile(`covers/${coverFilename}`, coverData.buffer, `image/${coverData.ext.slice(1)}`)
-          }
-          else {
-            await Bun.write(path.join(COVERS_PATH, coverFilename), coverData.buffer)
-          }
+          await storageService.uploadFile(`covers/${coverFilename}`, coverData.buffer, `image/${coverData.ext.slice(1)}`)
           coverUrl = `/api/uploads/covers/${coverFilename}`
         }
 
@@ -152,7 +147,7 @@ export async function processEpub(fileBuffer: ArrayBuffer, filename: string, use
           }
 
           await new Promise<void>((res) => {
-            epub.getChapter(item.id, async (err: any, html: string) => {
+            epub.getChapter(item.id, async (err: Error | null, html: string) => {
               if (!err && html) {
                 const root = parseHtml(html)
 
@@ -165,9 +160,9 @@ export async function processEpub(fileBuffer: ArrayBuffer, filename: string, use
                   if (src) {
                     const fileName = src.split('/').pop()
                     if (fileName) {
-                      const manifestItem = Object.values(epub.manifest || {}).find((m: any) => m.href && m.href.includes(fileName))
-                      if (manifestItem) {
-                        const base64 = await getEpubImageBase64(epub, (manifestItem as any).id)
+                      const manifestItem = Object.values(epub.manifest || {}).find((m: EpubManifestItem) => m.href && m.href.includes(fileName))
+                      if (manifestItem && manifestItem.id) {
+                        const base64 = await getEpubImageBase64(epub, manifestItem.id)
                         if (base64) {
                           if (img.tagName.toLowerCase() === 'image')
                             img.setAttribute('xlink:href', base64)
@@ -186,7 +181,8 @@ export async function processEpub(fileBuffer: ArrayBuffer, filename: string, use
 
                 const leaves: { html: string, textLength: number }[] = []
 
-                function extractLeaves(node: any) {
+                function extractLeaves(node: import('node-html-parser').Node) {
+                  const el = node as unknown as import('node-html-parser').HTMLElement
                   // Если это текстовая нода (напрямую текст без обертки)
                   if (node.nodeType === 3) {
                     const text = node.textContent?.trim()
@@ -201,14 +197,14 @@ export async function processEpub(fileBuffer: ArrayBuffer, filename: string, use
 
                   // Если это HTML элемент
                   if (node.nodeType === 1) {
-                    const tag = node.tagName?.toLowerCase()
+                    const tag = el.tagName?.toLowerCase()
                     if (tag === 'script' || tag === 'style')
                       return
 
                     // Если это известный листовой блочный тег (абзац, заголовок, картинка)
                     if (leafTags.has(tag)) {
                       leaves.push({
-                        html: node.outerHTML,
+                        html: el.outerHTML,
                         textLength: node.textContent?.trim().length || 0,
                       })
                       return
@@ -218,7 +214,8 @@ export async function processEpub(fileBuffer: ArrayBuffer, filename: string, use
                     let hasBlockChildren = false
                     for (const child of node.childNodes) {
                       if (child.nodeType === 1) {
-                        const cTag = child.tagName?.toLowerCase()
+                        const childEl = child as unknown as import('node-html-parser').HTMLElement
+                        const cTag = childEl.tagName?.toLowerCase()
                         if (leafTags.has(cTag) || containerTags.has(cTag)) {
                           hasBlockChildren = true
                           break
@@ -228,14 +225,14 @@ export async function processEpub(fileBuffer: ArrayBuffer, filename: string, use
 
                     // Если внутри есть блоки или это структурный контейнер — рекурсивно ныряем глубже
                     if (hasBlockChildren) {
-                      node.childNodes.forEach((child: any) => extractLeaves(child))
+                      node.childNodes.forEach((child: import('node-html-parser').Node) => extractLeaves(child))
                     }
                     else {
                       // Это контейнер, содержащий только текст или inline элементы (span, b, i). Берем его целиком.
                       const textLen = node.textContent?.trim().length || 0
                       if (textLen > 0 || tag === 'img' || tag === 'image') {
                         leaves.push({
-                          html: node.outerHTML,
+                          html: el.outerHTML,
                           textLength: textLen,
                         })
                       }
@@ -279,37 +276,41 @@ export async function processEpub(fileBuffer: ArrayBuffer, filename: string, use
 
         const tocJson = JSON.stringify(toc)
 
-        const [insertedBook] = await db.insert(schema.books).values({
-          userId,
-          type: 'epub',
-          title,
-          author,
-          coverUrl,
-          filePath,
-          language,
-          totalPages: allHtmlPages.length,
-          toc: tocJson,
-        }).returning({ id: schema.books.id })
+        const bookId = await db.transaction(async (tx) => {
+          const [insertedBook] = await tx.insert(schema.books).values({
+            userId,
+            type: 'epub',
+            title,
+            author,
+            coverUrl,
+            filePath,
+            language,
+            totalPages: allHtmlPages.length,
+            toc: tocJson,
+          }).returning({ id: schema.books.id })
 
-        const bookId = insertedBook.id
+          const bId = insertedBook.id
 
-        const pagesToInsert = allHtmlPages.map((chunk, idx) => ({
-          bookId,
-          pageNum: idx + 1,
-          content: chunk,
-        }))
+          const pagesToInsert = allHtmlPages.map((chunk, idx) => ({
+            bookId: bId,
+            pageNum: idx + 1,
+            content: chunk,
+          }))
 
-        const chunkSize = 1000
-        for (let i = 0; i < pagesToInsert.length; i += chunkSize) {
-          const chunk = pagesToInsert.slice(i, i + chunkSize)
-          await db.insert(schema.bookPages).values(chunk).onConflictDoNothing()
-        }
+          const chunkSize = 1000
+          for (let i = 0; i < pagesToInsert.length; i += chunkSize) {
+            const chunk = pagesToInsert.slice(i, i + chunkSize)
+            await tx.insert(schema.bookPages).values(chunk).onConflictDoNothing()
+          }
 
-        await db.insert(schema.readingProgress).values({
-          bookId,
-          userId,
-          currentPage: 1,
-        }).onConflictDoNothing()
+          await tx.insert(schema.readingProgress).values({
+            bookId: bId,
+            userId,
+            currentPage: 1,
+          }).onConflictDoNothing()
+
+          return bId
+        })
 
         await unlink(filePath).catch(() => {})
         resolve(bookId)

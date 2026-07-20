@@ -1,6 +1,6 @@
 import { z } from 'zod'
 
-export const GrammarRuleSchema = z.preprocess((val: any) => {
+export const GrammarRuleSchema = z.preprocess((val: unknown) => {
   if (typeof val === 'string') {
     return {
       pattern: val,
@@ -15,18 +15,19 @@ export const GrammarRuleSchema = z.preprocess((val: any) => {
   example: z.string().catch(''),
 }))
 
-export const VocabItemSchema = z.preprocess((val: any) => {
+export const VocabItemSchema = z.preprocess((val: unknown) => {
   if (typeof val === 'string') {
     return { word: val, transcription: '', meaning: '', usageInContext: '' }
   }
   // Deprecated
   // Поддержка старых ключей (pinyin -> transcription, translation -> meaning)
   if (val && typeof val === 'object') {
+    const obj = val as Record<string, unknown>
     return {
-      word: val.word || '',
-      transcription: val.transcription || val.pinyin || '',
-      meaning: val.meaning || val.translation || '',
-      usageInContext: val.usageInContext || '',
+      word: obj.word || '',
+      transcription: obj.transcription || obj.pinyin || '',
+      meaning: obj.meaning || obj.translation || '',
+      usageInContext: obj.usageInContext || '',
     }
   }
   return val

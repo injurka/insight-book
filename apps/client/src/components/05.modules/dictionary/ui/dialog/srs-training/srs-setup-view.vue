@@ -174,7 +174,7 @@ function start() {
             <span class="mode-desc">{{ t('dictionary.multipleChoice') }}</span>
           </div>
           <div class="mode-card" :class="{ 'is-active': modes['choice-reverse'] }" @click="modes['choice-reverse'] = !modes['choice-reverse']">
-            <Icon icon="mdi:format-list-checks" class="mode-icon" style="transform: scaleX(-1);" />
+            <Icon icon="mdi:format-list-checks" class="mode-icon flipped" />
             <span class="mode-title">Обратный тест</span>
             <span class="mode-desc">Вспомнить слово по переводу</span>
           </div>
@@ -300,6 +300,10 @@ function start() {
           font-size: 2rem;
           color: var(--fg-secondary-color);
           transition: color 0.2s;
+
+          &.flipped {
+            transform: scaleX(-1);
+          }
         }
 
         .mode-title {

@@ -66,30 +66,30 @@ function startParallelAnalysis() {
           <Icon icon="mdi:blur" class="item-icon" />
           <span>{{ t('reader.parallelReadingBlur') }}</span>
         </div>
-        <KitCheckbox :model-value="settingsStore.parallelBlurTranslation" style="pointer-events: none;" />
+        <KitCheckbox :model-value="settingsStore.parallelBlurTranslation" class="readonly-checkbox" />
       </div>
       <div class="menu-item" @click="settingsStore.parallelShowGrammar = !settingsStore.parallelShowGrammar">
         <div class="item-label">
           <Icon icon="mdi:book-open-page-variant-outline" class="item-icon" />
           <span>{{ t('reader.parallelReadingShowGrammar') }}</span>
         </div>
-        <KitCheckbox :model-value="settingsStore.parallelShowGrammar" style="pointer-events: none;" />
+        <KitCheckbox :model-value="settingsStore.parallelShowGrammar" class="readonly-checkbox" />
       </div>
     </div>
 
     <div v-if="settingsStore.parallelViewMode !== 'none'" class="divider" />
 
     <div v-if="settingsStore.parallelViewMode !== 'none'" class="menu-section">
-      <div style="font-size: 0.8rem; color: var(--fg-secondary-color); padding: 4px 8px; line-height: 1.3;">
+      <div class="hint-text">
         {{ t('reader.parallelReadingHint') }}
       </div>
       <KitBtn
         color="primary"
-        style="margin: 4px 8px 8px 8px;"
+        class="action-btn"
         :disabled="analysisStore.isManualPageAnalysisActive"
         @click="startParallelAnalysis"
       >
-        <Icon icon="mdi:translate" style="margin-right: 6px;" />
+        <Icon icon="mdi:translate" class="btn-icon" />
         {{ analysisStore.isManualPageAnalysisActive ? t('reader.translatingPage') : t('reader.translateWholePage') }}
       </KitBtn>
     </div>
@@ -162,6 +162,25 @@ function startParallelAnalysis() {
   height: 1px;
   background-color: var(--border-secondary-color);
   margin: 0 4px;
+}
+
+.readonly-checkbox {
+  pointer-events: none;
+}
+
+.hint-text {
+  font-size: 0.8rem;
+  color: var(--fg-secondary-color);
+  padding: 4px 8px;
+  line-height: 1.3;
+}
+
+.action-btn {
+  margin: 4px 8px 8px 8px;
+
+  .btn-icon {
+    margin-right: 6px;
+  }
 }
 
 .desktop-only {

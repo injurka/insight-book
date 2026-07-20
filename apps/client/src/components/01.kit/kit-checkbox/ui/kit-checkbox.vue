@@ -29,6 +29,7 @@ function toggle() {
   cursor: pointer;
   user-select: none;
   padding: 4px 0;
+  gap: 8px;
 
   &:hover .checkbox-box {
     border-color: var(--fg-accent-color);
@@ -43,7 +44,6 @@ function toggle() {
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-right: 8px;
   transition: all 0.2s;
   flex-shrink: 0;
 
@@ -54,7 +54,7 @@ function toggle() {
 }
 
 .checkbox-label {
-  font-size: 0.9rem;
+  font-size: 0.95rem;
   color: var(--fg-primary-color);
 }
 </style>

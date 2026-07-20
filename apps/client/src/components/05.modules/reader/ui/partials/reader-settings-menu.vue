@@ -122,7 +122,7 @@ const currentThemeName = computed(() => {
           <Icon :icon="isFullscreen ? 'mdi:fullscreen-exit' : 'mdi:fullscreen'" class="item-icon" />
           <span>{{ t('reader.fullscreen') }}</span>
         </div>
-        <KitCheckbox :model-value="isFullscreen" style="pointer-events: none;" />
+        <KitCheckbox :model-value="isFullscreen" class="readonly-checkbox" />
       </div>
       <div class="menu-item" @click="toggleTheme">
         <div class="item-label">
@@ -152,7 +152,7 @@ const currentThemeName = computed(() => {
           <Icon icon="mdi:account" class="item-icon" />
           <span>{{ t('reader.voice') }}</span>
         </div>
-        <div style="display: flex; gap: 4px; align-items: center;">
+        <div class="voice-select-wrapper">
           <KitSelect v-model="settingsStore.ttsVoice" :options="voiceOptions" size="xs" class="font-select" />
           <KitBtn
             :icon="isLoading ? 'mdi:loading' : (isPlaying ? 'mdi:stop' : 'mdi:play')"
@@ -160,7 +160,7 @@ const currentThemeName = computed(() => {
             variant="tonal"
             color="secondary"
             size="xs"
-            style="min-height: 30px; width: 30px; padding: 0;"
+            class="preview-btn"
             @click="previewVoice"
           />
         </div>
@@ -179,7 +179,7 @@ const currentThemeName = computed(() => {
           <Icon icon="mdi:robot-outline" class="item-icon" />
           <span>{{ t('settings.autoAnalyzePage') }}</span>
         </div>
-        <KitCheckbox v-model="settingsStore.autoAnalyzePage" style="pointer-events: none;" />
+        <KitCheckbox v-model="settingsStore.autoAnalyzePage" class="readonly-checkbox" />
       </div>
 
       <div class="menu-item" @click="settingsStore.highlightSavedQuotes = !settingsStore.highlightSavedQuotes">
@@ -187,7 +187,7 @@ const currentThemeName = computed(() => {
           <Icon icon="mdi:format-color-highlight" class="item-icon" />
           <span>{{ t('settings.highlightSavedQuotes') }}</span>
         </div>
-        <KitCheckbox v-model="settingsStore.highlightSavedQuotes" style="pointer-events: none;" />
+        <KitCheckbox v-model="settingsStore.highlightSavedQuotes" class="readonly-checkbox" />
       </div>
 
       <div class="menu-item" @click="settingsStore.showSentenceTtsButton = !settingsStore.showSentenceTtsButton">
@@ -195,7 +195,7 @@ const currentThemeName = computed(() => {
           <Icon icon="mdi:headphones" class="item-icon" />
           <span>{{ t('settings.showSentenceTtsButton') }}</span>
         </div>
-        <KitCheckbox v-model="settingsStore.showSentenceTtsButton" style="pointer-events: none;" />
+        <KitCheckbox v-model="settingsStore.showSentenceTtsButton" class="readonly-checkbox" />
       </div>
     </div>
 
@@ -268,7 +268,7 @@ const currentThemeName = computed(() => {
           <Icon :icon="analysisStore.isManualPageAnalysisActive ? 'mdi:loading' : 'mdi:text-box-search-outline'" class="item-icon" :class="[analysisStore.isManualPageAnalysisActive ? 'spin-animation' : '']" />
           <span>{{ analysisStore.isManualPageAnalysisActive ? t('reader.translatingPage') : t('reader.analyzePage') }}</span>
         </div>
-        <Icon icon="mdi:chevron-right" class="item-icon" style="margin-right: -4px;" />
+        <Icon icon="mdi:chevron-right" class="item-icon chevron-icon" />
       </div>
     </div>
   </div>
@@ -451,6 +451,26 @@ const currentThemeName = computed(() => {
   height: 1px;
   background-color: var(--border-secondary-color);
   margin: 0 4px;
+}
+
+.readonly-checkbox {
+  pointer-events: none;
+}
+
+.voice-select-wrapper {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.preview-btn {
+  min-height: 30px;
+  width: 30px;
+  padding: 0;
+}
+
+.item-icon.chevron-icon {
+  margin-right: -4px;
 }
 
 .settings-group {

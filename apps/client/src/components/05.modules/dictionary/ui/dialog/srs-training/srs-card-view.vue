@@ -464,7 +464,7 @@ watch(() => props.card, initCard, { immediate: true })
   <div v-if="card" class="flashcard">
     <div class="card-front">
       <div v-if="isAiLoadingMode" class="audio-mode">
-        <Icon icon="mdi:loading" class="spin-animation" style="font-size: 3rem; color: var(--fg-accent-color);" />
+        <Icon icon="mdi:loading" class="spin-animation loading-icon" />
         <p>{{ t('analysis.generatingContext') }}</p>
       </div>
 
@@ -702,6 +702,11 @@ watch(() => props.card, initCard, { immediate: true })
   p {
     color: var(--fg-secondary-color);
     margin: 0;
+  }
+
+  .loading-icon {
+    font-size: 3rem;
+    color: var(--fg-accent-color);
   }
 }
 

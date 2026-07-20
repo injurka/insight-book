@@ -115,7 +115,7 @@ async function onDeleteDeckConfirm() {
           <KitCheckbox
             :model-value="deleteMode === option.value"
             :label="option.label"
-            style="pointer-events: none;"
+            class="readonly-checkbox"
           />
         </div>
       </div>
@@ -234,5 +234,9 @@ async function onDeleteDeckConfirm() {
     gap: 8px;
     margin-top: 16px;
   }
+}
+
+.readonly-checkbox {
+  pointer-events: none;
 }
 </style>

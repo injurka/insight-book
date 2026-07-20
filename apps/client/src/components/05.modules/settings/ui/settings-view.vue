@@ -13,6 +13,7 @@ import SettingsAiPanel from './panels/settings-ai-panel.vue'
 import SettingsBooksCachePanel from './panels/settings-books-cache-panel.vue'
 import SettingsInfoPanel from './panels/settings-info-panel.vue'
 import SettingsInterfacePanel from './panels/settings-interface-panel.vue'
+import SettingsPluginsPanel from './panels/settings-plugins-panel.vue'
 import SettingsStoragePanel from './panels/settings-storage-panel.vue'
 
 const cacheStore = useCacheStore()
@@ -24,8 +25,8 @@ const currentTab = ref('interface')
 const tabs = computed<TabItem<string>[]>(() => [
   { id: 'interface', label: t('settings.interfaceTitle'), icon: 'mdi:palette-outline' },
   { id: 'ai', label: t('settings.aiTitle'), icon: 'mdi:robot-outline' },
-  { id: 'storage', label: t('settings.storageTitle'), icon: 'mdi:database-outline' },
-  { id: 'info', label: 'Информация', icon: 'mdi:information-outline' },
+  { id: 'plugins', label: t('settings.pluginsTitle'), icon: 'mdi:puzzle-outline' },
+  { id: 'system', label: t('settings.systemTitle'), icon: 'mdi:cog-outline' },
 ])
 onMounted(() => {
   cacheStore.loadStats()
@@ -56,14 +57,16 @@ onMounted(() => {
             <SettingsAiPanel />
           </div>
         </template>
-        <template #storage>
+        <template #plugins>
+          <div class="tab-pane-content">
+            <SettingsPluginsPanel />
+          </div>
+        </template>
+        <template #system>
           <div class="tab-pane-content storage-tab-content">
             <SettingsStoragePanel />
             <SettingsBooksCachePanel />
-          </div>
-        </template>
-        <template #info>
-          <div class="tab-pane-content">
+            <div style="height: 32px" />
             <SettingsInfoPanel />
           </div>
         </template>

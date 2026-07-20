@@ -243,7 +243,7 @@ onMounted(() => {
                 <div class="preview-header">
                   <KitBtn icon="mdi:arrow-left" variant="text" @click="closePreview" />
                   <h3>{{ previewDeck.name }}</h3>
-                  <div class="spacer" style="flex-grow: 1" />
+                  <div class="spacer" />
                   <KitBtn color="primary" size="sm" icon="mdi:plus" :loading="cloningDeckId === previewDeck.id" @click="cloneDeck(previewDeck.id)">
                     {{ t('dictionary.discover.add_to_library') }}
                   </KitBtn>
@@ -535,6 +535,10 @@ onMounted(() => {
     margin: 0;
     font-size: 1.2rem;
     color: var(--fg-primary-color);
+  }
+
+  .spacer {
+    flex-grow: 1;
   }
 }
 

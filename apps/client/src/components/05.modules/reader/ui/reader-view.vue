@@ -179,29 +179,29 @@ watch(() => readerStore.isPageLoading, async (isLoading) => {
     </KitDialog>
 
     <KitDialog v-model:visible="analysisStore.isPageAnalysisSetupModalOpen" :title="t('reader.analyzePage')" :max-width="400" icon="mdi:robot-outline">
-      <div style="padding: 16px 0;">
-        <div class="settings-group" style="padding: 0 0 16px 0; border-bottom: 1px solid var(--border-secondary-color); margin-bottom: 16px;">
-          <div style="font-weight: 500; font-size: 0.95rem; display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
-            <Icon icon="mdi:text-search" class="item-icon" style="font-size: 1.2rem; color: var(--fg-secondary-color);" /> {{ t('reader.textAnalysis') }}
+      <div class="analysis-setup-content">
+        <div class="settings-group has-divider">
+          <div class="group-header">
+            <Icon icon="mdi:text-search" class="item-icon" /> {{ t('reader.textAnalysis') }}
           </div>
           <KitCheckbox v-model="analysisStore.pageActionOpts.sentences" :label="t('bookInfo.sentences')" />
           <KitCheckbox v-model="analysisStore.pageActionOpts.words" :label="t('analysis.words')" />
         </div>
 
-        <div class="settings-group" style="padding: 0 0 16px 0;">
-          <div style="font-weight: 500; font-size: 0.95rem; display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
-            <Icon icon="mdi:headphones" class="item-icon" style="font-size: 1.2rem; color: var(--fg-secondary-color);" /> {{ t('reader.voiceTts') }}
+        <div class="settings-group">
+          <div class="group-header">
+            <Icon icon="mdi:headphones" class="item-icon" /> {{ t('reader.voiceTts') }}
           </div>
           <KitCheckbox v-model="analysisStore.pageActionOpts.ttsSentences" :label="t('bookInfo.sentences')" />
           <KitCheckbox v-model="analysisStore.pageActionOpts.ttsWords" :label="t('analysis.words')" />
         </div>
 
         <KitBtn
-          style="width: 100%; margin-top: 8px;"
+          class="start-btn"
           color="primary"
           @click="startPageAnalysis"
         >
-          <Icon icon="mdi:play" style="margin-right: 6px;" />
+          <Icon icon="mdi:play" class="btn-icon" />
           {{ t('reader.startAnalysis') }}
         </KitBtn>
       </div>
@@ -213,6 +213,41 @@ watch(() => readerStore.isPageLoading, async (isLoading) => {
 </template>
 
 <style lang="scss" scoped>
+.analysis-setup-content {
+  padding-top: 16px;
+
+  .settings-group {
+    padding: 0 0 16px 0;
+
+    &.has-divider {
+      border-bottom: 1px solid var(--border-secondary-color);
+      margin-bottom: 16px;
+    }
+  }
+
+  .group-header {
+    font-weight: 500;
+    font-size: 0.95rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+
+    .item-icon {
+      font-size: 1.2rem;
+      color: var(--fg-secondary-color);
+    }
+  }
+
+  .start-btn {
+    width: 100%;
+    margin-top: 8px;
+
+    .btn-icon {
+      margin-right: 6px;
+    }
+  }
+}
 .settings-group {
   display: flex;
   flex-direction: column;

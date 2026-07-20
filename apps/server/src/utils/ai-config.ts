@@ -26,8 +26,16 @@ export interface ModelPrice {
   output: number
 }
 
+interface AiConfigFile {
+  llm?: { url?: string, key?: string, model?: string, fallbackModel?: string }
+  tts?: { url?: string, model?: string, fallbackModel?: string, key?: string }
+  stt?: { url?: string, model?: string, fallbackModel?: string, key?: string }
+  ocr?: { url?: string, key?: string, model?: string, refinementModel?: string }
+  pricing?: Record<string, ModelPrice>
+}
+
 export function getAiConfig() {
-  let fileConfig: any = {}
+  let fileConfig: AiConfigFile = {}
   try {
     if (existsSync(CONFIG_PATH)) {
       fileConfig = JSON.parse(readFileSync(CONFIG_PATH, 'utf-8'))

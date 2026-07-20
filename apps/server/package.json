@@ -38,6 +38,7 @@
     "cheerio": "^1.2.0",
     "compromise": "^14.15.1",
     "drizzle-orm": "^0.45.2",
+    "elysia": "^1.4.29",
     "epub2": "^3.0.2",
     "firebase-admin": "^14.1.0",
     "image-size": "^2.0.2",

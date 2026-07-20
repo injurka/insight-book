@@ -86,7 +86,7 @@ async function seed() {
       const deckId = insertedDeck.id
 
       if (data.words.length > 0) {
-        const wordsToInsert = data.words.map((w: any) => {
+        const wordsToInsert = data.words.map((w: { word?: string, transcription?: string, translation?: string, grammarNote?: string, grammarRules?: { pattern?: string, explanation?: string, example?: string }[], vocabularyNote?: string, vocabulary?: { word?: string, transcription?: string, meaning?: string, translation?: string, usageInContext?: string }[], tags?: string, difficulty?: string } | string) => {
           if (typeof w === 'string') {
             return {
               deckId,
@@ -102,7 +102,7 @@ async function seed() {
 
           let grammarNote = w.grammarNote || ''
           if (!grammarNote && Array.isArray(w.grammarRules) && w.grammarRules.length > 0) {
-            grammarNote = w.grammarRules.map((r: any) => {
+            grammarNote = w.grammarRules.map((r) => {
               let note = `<b>${r.pattern}</b> — ${r.explanation}`
               if (r.example) {
                 note += `<br><i>Пример: ${r.example}</i>`
@@ -114,8 +114,8 @@ async function seed() {
           let vocabularyNote = w.vocabularyNote || ''
           if (!vocabularyNote && Array.isArray(w.vocabulary) && w.vocabulary.length > 0) {
             vocabularyNote = w.vocabulary
-              .filter((v: any) => v && v.word)
-              .map((v: any) => {
+              .filter(v => v && v.word)
+              .map((v) => {
                 let note = `<b>${v.word}</b>`
                 if (v.transcription) {
                   note += ` (${v.transcription})`

@@ -4,18 +4,7 @@ import type { Ref } from 'vue'
 import { autoUpdate, flip, offset, shift, useFloating } from '@floating-ui/vue'
 import { onClickOutside, onKeyStroke } from '@vueuse/core'
 
-interface Props {
-  modelValue?: boolean
-  placement?: Placement
-  width?: string | number
-  closeOnContentClick?: boolean
-  disabled?: boolean
-  closeOnOutsideClick?: boolean
-  zIndex?: number | string
-}
-
 const props = withDefaults(defineProps<Props>(), {
-  modelValue: undefined,
   placement: 'bottom-start',
   width: '220px',
   closeOnContentClick: true,
@@ -24,15 +13,24 @@ const props = withDefaults(defineProps<Props>(), {
   zIndex: undefined,
 })
 
-const emit = defineEmits(['update:modelValue'])
+const modelValue = defineModel<boolean>()
+
+interface Props {
+  placement?: Placement
+  width?: string | number
+  closeOnContentClick?: boolean
+  disabled?: boolean
+  closeOnOutsideClick?: boolean
+  zIndex?: number | string
+}
 
 const internalOpen = ref(false)
 
 const isOpen = computed({
-  get: () => props.modelValue !== undefined ? props.modelValue : internalOpen.value,
+  get: () => modelValue.value !== undefined ? modelValue.value : internalOpen.value,
   set: (val) => {
     internalOpen.value = val
-    emit('update:modelValue', val)
+    modelValue.value = val
   },
 })
 

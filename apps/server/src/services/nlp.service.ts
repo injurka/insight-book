@@ -1,4 +1,4 @@
-import type { TokenizedWord } from '../types'
+import type { LanguageTokenizer, TokenizedWord } from '../types'
 import { createRequire } from 'node:module'
 import path from 'node:path'
 import * as cheerio from 'cheerio'
@@ -24,8 +24,6 @@ function splitIntoSentences(text: string, language: string): string[] {
     return text.split(/([.。！？…!?]+|\n{2,})/g).filter(Boolean)
   }
 }
-
-interface LanguageTokenizer { tokenize: (text: string) => Promise<TokenizedWord[]> | TokenizedWord[] }
 
 class ChineseTokenizer implements LanguageTokenizer {
   tokenize(text: string): TokenizedWord[] {

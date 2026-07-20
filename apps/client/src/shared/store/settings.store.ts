@@ -31,6 +31,8 @@ export const useGlobalSettingsStore = defineStore('globalSettings', () => {
   const autoAnalyzeTtsSentences = useLocalStorage<boolean>('global-auto-analyze-tts-sentences', false)
   const autoAnalyzeTtsWords = useLocalStorage<boolean>('global-auto-analyze-tts-words', false)
 
+  const enabledPlugins = useLocalStorage<string[]>('global-enabled-plugins', [])
+
   const parallelViewMode = useLocalStorage<'none' | 'split' | 'interleaved'>('global-parallel-view-mode', 'none')
   const parallelBlurTranslation = useLocalStorage<boolean>('global-parallel-blur-translation', false)
   const parallelShowGrammar = useLocalStorage<boolean>('global-parallel-show-grammar', false)
@@ -62,5 +64,6 @@ export const useGlobalSettingsStore = defineStore('globalSettings', () => {
     highlightSavedQuotes,
     showSentenceTtsButton,
     enableHoverRevealBg,
+    enabledPlugins,
   }
 })

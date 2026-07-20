@@ -1,0 +1,68 @@
+import { Elysia, t } from 'elysia'
+import jwt from 'jsonwebtoken'
+import { AUTH_MODE, JWT_SECRET } from '../config'
+import { pushService } from '../services/push.service'
+import { AppError } from '../utils/errors'
+
+export const authPlugin = new Elysia().derive({ as: 'scoped' }, ({ headers }) => {
+  if (AUTH_MODE === 'single')
+    return { userId: 1 }
+  const authHeader = headers.authorization
+  if (!authHeader || !authHeader.startsWith('Bearer '))
+    throw new AppError(401, 'Необходима авторизация')
+  const token = authHeader.split(' ')[1]
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET) as { userId: number }
+    return { userId: decoded.userId }
+  }
+  catch {
+    throw new AppError(401, 'Недействительный токен')
+  }
+})
+
+export const pushRouter = new Elysia({ prefix: '/api/push' })
+  .use(authPlugin)
+  .get('/vapid-public-key', async () => {
+    return pushService.getVapidKey()
+  })
+  .post('/subscribe', async ({ body, userId }) => {
+    return pushService.subscribeWebPush(userId, body.endpoint, body.keys)
+  }, {
+    body: t.Object({
+      endpoint: t.String(),
+      keys: t.Any(),
+    }),
+  })
+  .post('/unsubscribe', async ({ body, userId }) => {
+    return pushService.unsubscribeWebPush(userId, body.endpoint || '')
+  }, {
+    body: t.Object({
+      endpoint: t.Optional(t.String()),
+    }),
+  })
+  .post('/fcm-subscribe', async ({ body, userId }) => {
+    return pushService.subscribeFcm(userId, body.token)
+  }, {
+    body: t.Object({
+      token: t.String(),
+    }),
+  })
+  .post('/fcm-unsubscribe', async ({ body, userId }) => {
+    return pushService.unsubscribeFcm(userId, body.token || '')
+  }, {
+    body: t.Object({
+      token: t.Optional(t.String()),
+    }),
+  })
+  .put('/settings', async ({ userId, body }: any) => {
+    return pushService.updatePushSettings(userId, body as any)
+  }, {
+    body: t.Object({
+      targetDeckId: t.Optional(t.Union([t.String(), t.Number()])),
+      timeStart: t.Optional(t.String()),
+      timeEnd: t.Optional(t.String()),
+      timezone: t.Optional(t.String()),
+      uiLanguage: t.Optional(t.String()),
+      pushCount: t.Optional(t.Number()),
+    }),
+  })

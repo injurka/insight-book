@@ -290,7 +290,7 @@ onMounted(async () => {
           <div class="level-header">
             <div class="level-main-info">
               <span class="lang-badge">{{ lvl.lang.toUpperCase() }}</span>
-              <div style="display: flex; flex-direction: column; gap: 2px;">
+              <div class="level-info">
                 <span class="current-level">{{ lvl.current }}</span>
                 <span class="label-type">{{ lvl.labelType }}</span>
               </div>
@@ -496,6 +496,12 @@ onMounted(async () => {
         border-radius: 6px;
         font-size: 0.8rem;
         font-weight: 800;
+      }
+
+      .level-info {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
       }
 
       .current-level {

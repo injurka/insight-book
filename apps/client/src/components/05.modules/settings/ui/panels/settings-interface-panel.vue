@@ -2,7 +2,7 @@
 import { Icon } from '@iconify/vue'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { KitBtn, KitSelect, KitTooltip } from '~/components/01.kit'
+import { KitBtn, KitCheckbox, KitSelect, KitTooltip } from '~/components/01.kit'
 import { ThemesVariant, useChangeTheme } from '~/shared/composables/use-change-theme'
 import { useTts } from '~/shared/composables/use-tts'
 import { useGlobalSettingsStore } from '~/shared/store/settings.store'
@@ -91,16 +91,15 @@ function previewVoice() {
       </div>
     </div>
 
-    <div class="form-row" style="margin-top: 16px;">
-      <div class="setting-item">
-        <label>{{ t('settings.enableHoverRevealBg') }}</label>
-        <input v-model="settingsStore.enableHoverRevealBg" type="checkbox">
+    <div class="form-row mt-16">
+      <div class="form-group">
+        <KitCheckbox v-model="settingsStore.enableHoverRevealBg" :label="t('settings.hoverRevealBg')" />
       </div>
     </div>
 
-    <div class="divider" style="margin: 24px 0;" />
+    <div class="divider" />
 
-    <h3 style="margin-top: 0; font-size: 1.1rem; color: var(--fg-primary-color); margin-bottom: 16px;">
+    <h3 class="subsection-title">
       {{ t('reader.translationAndVoice') }}
     </h3>
 
@@ -115,24 +114,24 @@ function previewVoice() {
       </div>
     </div>
 
-    <div class="form-group" style="margin-top: 16px;">
+    <div class="form-group mt-16">
       <label>{{ t('reader.voice') }}</label>
-      <div style="display: flex; gap: 8px; align-items: center;">
-        <KitSelect v-model="settingsStore.ttsVoice" :options="voiceOptions" style="flex: 1; min-width: 0;" />
+      <div class="voice-select-row">
+        <KitSelect v-model="settingsStore.ttsVoice" :options="voiceOptions" class="voice-select" />
         <KitTooltip :text="t('settings.previewVoice')" placement="top">
           <KitBtn
             :icon="isLoading ? 'mdi:loading' : (isPlaying ? 'mdi:stop' : 'mdi:play')"
+            class="preview-btn"
             :class="{ 'spin-animation': isLoading, 'pulse-animation': isPlaying }"
             variant="outlined"
             color="secondary"
-            style="padding: 0; width: 38px; height: 38px; flex-shrink: 0;"
             @click="previewVoice"
           />
         </KitTooltip>
       </div>
     </div>
 
-    <div class="divider" style="margin: 24px 0;" />
+    <div class="divider" />
 
     <div class="push-setting-row">
       <div class="push-info">
@@ -265,9 +264,34 @@ function previewVoice() {
   opacity: 0;
   transform: translateY(-5px);
 }
+.subsection-title {
+  margin-top: 0;
+  font-size: 1.1rem;
+  color: var(--fg-primary-color);
+  margin-bottom: 16px;
+}
+.voice-select-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.voice-select {
+  flex: 1;
+  min-width: 0;
+}
+.preview-btn {
+  padding: 0;
+  width: 38px;
+  height: 38px;
+  flex-shrink: 0;
+}
+.mt-16 {
+  margin-top: 16px;
+}
 .divider {
   height: 1px;
   background-color: var(--border-secondary-color);
+  margin: 24px 0;
 }
 .spin-animation {
   :deep(svg) {

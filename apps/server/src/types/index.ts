@@ -320,3 +320,87 @@ export interface UserData {
   uiLanguage?: string
   avatarUrl?: string
 }
+
+export interface QuizQuestion {
+  type: 'choice' | 'cloze' | 'reorder'
+  question: string
+  options: string[]
+  correctAnswer: string
+  explanation: string
+  acceptableAnswers?: string[]
+}
+
+export type DeepDiveQuizResponse = Record<string, unknown>
+
+// --- Service-specific internal interfaces ---
+
+export interface OcrBlock {
+  id: number
+  text: string
+  x: number
+  y: number
+  w: number
+  h: number
+}
+
+export interface OpenAiMessageContent {
+  type: string
+  text?: string
+  image_url?: { url: string }
+}
+
+export interface GlmOcrLayoutDetail {
+  content: string
+  bbox_2d: [number, number, number, number]
+}
+
+export interface OpenAiResponse {
+  usage?: {
+    prompt_tokens?: number
+    completion_tokens?: number
+  }
+  choices?: {
+    message?: {
+      content?: string
+    }
+    glm_ocr_detail?: {
+      layout_details?: GlmOcrLayoutDetail[][]
+    }
+  }[]
+}
+
+export interface LanguageTokenizer {
+  tokenize: (text: string) => Promise<TokenizedWord[]> | TokenizedWord[]
+}
+
+export interface EpubManifestItem {
+  id?: string
+  href?: string
+  mediaType?: string
+}
+
+export interface EpubTocItemRaw {
+  id?: string
+  href?: string
+  title?: string
+  order?: number
+  level?: number
+}
+
+export interface EpubInstance {
+  metadata?: {
+    cover?: string
+    language?: string | string[]
+    title?: string
+    creator?: string
+  }
+  manifest?: Record<string, EpubManifestItem>
+  toc?: EpubTocItemRaw[]
+  spine?: {
+    contents: { id: string, href: string }[]
+  }
+  getImage: (id: string, callback: (err: Error | null, data: Buffer, mimeType: string) => void) => void
+  getChapter: (id: string, callback: (err: Error | null, html: string) => void) => void
+  on: (event: string, callback: (...args: unknown[]) => void) => void
+  parse: () => void
+}

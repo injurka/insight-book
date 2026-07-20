@@ -8,8 +8,9 @@ interface ToggleOption {
   tooltip?: string
 }
 
+const modelValue = defineModel<any>()
+
 interface Props {
-  modelValue: any
   options: ToggleOption[]
   size?: 'xs' | 'sm' | 'md' | 'lg'
 }
@@ -18,12 +19,9 @@ withDefaults(defineProps<Props>(), {
   size: 'sm',
 })
 
-const emit = defineEmits<{
-  'update:modelValue': [value: any]
-}>()
 
 function select(value: any) {
-  emit('update:modelValue', value)
+  modelValue.value = value
 }
 </script>
 

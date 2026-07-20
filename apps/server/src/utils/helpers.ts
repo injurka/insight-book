@@ -115,7 +115,7 @@ export function corsOk() {
   return new Response(null, { status: 204, headers: CORS_HEADERS })
 }
 
-export function parseLlmJson<T = any>(raw: string): T {
+export function parseLlmJson<T = unknown>(raw: string): T {
   let text = raw.trim()
 
   // eslint-disable-next-line regexp/no-super-linear-backtracking

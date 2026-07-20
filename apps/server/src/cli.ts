@@ -82,7 +82,7 @@ async function main() {
       return
     }
 
-    const updatePayload: any = {}
+    const updatePayload: Partial<typeof schema.users.$inferInsert> = {}
     if (tokenLimit !== undefined)
       updatePayload.tokenLimit = tokenLimit
     if (bookLimit !== undefined)

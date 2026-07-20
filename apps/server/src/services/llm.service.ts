@@ -1,4 +1,4 @@
-import type { BatchAnalysisRequest, BatchAnalysisResponse, GeneratedWordExamples, LlmAnalysis, LlmConfig, ModelMessage, WordAutoFillResponse } from '../types'
+import type { BatchAnalysisRequest, BatchAnalysisResponse, DeepDiveQuizResponse, GeneratedWordExamples, LlmAnalysis, LlmConfig, ModelMessage, QuizQuestion, WordAutoFillResponse } from '../types'
 import { eq, inArray, sql } from 'drizzle-orm'
 import { pinyin } from 'pinyin-pro'
 import { LlmAnalysisSchema } from '~/types/schemas'
@@ -21,15 +21,16 @@ import { AppError } from '../utils/errors'
 import { checkTokenLimit } from './limits.service'
 import { trackTokenUsage } from './token.service'
 
-function isOldFormatAnalysis(parsed: any): boolean {
+function isOldFormatAnalysis(parsed: unknown): boolean {
   if (!parsed || typeof parsed !== 'object')
     return true
-  if (Array.isArray(parsed.grammarRules)) {
-    if (parsed.grammarRules.some((r: any) => typeof r !== 'object' || r === null))
+  const p = parsed as Record<string, unknown>
+  if (Array.isArray(p.grammarRules)) {
+    if (p.grammarRules.some((r: unknown) => typeof r !== 'object' || r === null))
       return true
   }
-  if (Array.isArray(parsed.vocabulary)) {
-    if (parsed.vocabulary.some((v: any) => typeof v !== 'object' || v === null))
+  if (Array.isArray(p.vocabulary)) {
+    if (p.vocabulary.some((v: unknown) => typeof v !== 'object' || v === null))
       return true
   }
   return false
@@ -135,7 +136,7 @@ export async function checkCacheBatch(bookId: number, items: { text: string, typ
     where: inArray(schema.llmCache.sentenceHash, hashes),
   })
 
-  const results: { sentence: string, analysis: any }[] = []
+  const results: { sentence: string, analysis: LlmAnalysis }[] = []
   const bookCacheInserts: { bookId: number, sentenceHash: string, type: 'sentence' | 'word' }[] = []
 
   const cacheMap = new Map(cachedDocs.map(d => [d.sentenceHash, d.analysis]))
@@ -238,7 +239,7 @@ export async function generateWordAutoFill(userId: number, word: string, languag
   throw new AppError(500, `Не удалось получить валидный ответ от ИИ: ${lastError?.message || 'Unknown error'}`)
 }
 
-export async function generateDeepDiveQuiz(userId: number, word: string, language: string, targetLang: string, mode: 'collocations' | 'radicals', config: LlmConfig): Promise<any> {
+export async function generateDeepDiveQuiz(userId: number, word: string, language: string, targetLang: string, mode: 'collocations' | 'radicals', config: LlmConfig): Promise<DeepDiveQuizResponse> {
   await checkTokenLimit(userId)
   if (!config.url)
     throw new AppError(500, 'LLM API не настроен')
@@ -253,13 +254,13 @@ export async function generateDeepDiveQuiz(userId: number, word: string, languag
 
   for (const model of modelsToTry) {
     try {
-      const { parsed } = await callLlmJsonWithRetry<any>(
+      const { parsed } = await callLlmJsonWithRetry<DeepDiveQuizResponse>(
         model,
         messages,
         0.4,
         AbortSignal.timeout(60000),
         config,
-        raw => parseLlmJson<any>(raw),
+        raw => parseLlmJson<DeepDiveQuizResponse>(raw),
         (usage, rawText, messagesUsed) => {
           trackTokenUsage(userId, `deep_dive_${mode}`, model, usage.promptTokens, usage.completionTokens, JSON.stringify(messagesUsed, null, 2), rawText)
         },
@@ -275,7 +276,7 @@ export async function generateDeepDiveQuiz(userId: number, word: string, languag
   throw new AppError(500, `Не удалось получить ответ от ИИ: ${lastError?.message || 'Unknown error'}`)
 }
 
-export async function analyzeBookExcerpt(userId: number, excerpt: string, config: LlmConfig): Promise<{ description: any, difficulty: string, tags: string[] }> {
+export async function analyzeBookExcerpt(userId: number, excerpt: string, config: LlmConfig): Promise<{ description: string, difficulty: string, tags: string[] }> {
   await checkTokenLimit(userId)
 
   if (!config.url)
@@ -291,7 +292,7 @@ export async function analyzeBookExcerpt(userId: number, excerpt: string, config
 
   for (const model of modelsToTry) {
     try {
-      const { parsed } = await callLlmJsonWithRetry<{ description: any, difficulty: string, tags: string[] }>(
+      const { parsed } = await callLlmJsonWithRetry<{ description: string, difficulty: string, tags: string[] }>(
         model,
         messages,
         0.3,
@@ -424,7 +425,7 @@ export async function analyzeBatch(userId: number, bookId: number, items: BatchA
         AbortSignal.timeout(90000),
         config,
         (raw) => {
-          const parsedData = parseLlmJson<any>(raw)
+          const parsedData = parseLlmJson<Record<string, unknown>>(raw)
           const arr = Array.isArray(parsedData)
             ? parsedData
             : (parsedData.results || parsedData.items || parsedData.analysis || [])
@@ -438,8 +439,8 @@ export async function analyzeBatch(userId: number, bookId: number, items: BatchA
         },
       )
 
-      const llmCacheInserts: any[] = []
-      const newBookCacheInserts: any[] = []
+      const llmCacheInserts: { sentenceHash: string, language: string, targetLanguage: string, sentence: string, analysis: string }[] = []
+      const newBookCacheInserts: { bookId: number, sentenceHash: string, type: 'sentence' | 'word' }[] = []
 
       for (const res of parsedArray) {
         const originalItem = missingItems.find(m => m.id === res.id)
@@ -719,11 +720,11 @@ export async function checkPronunciationAudio(userId: number, word: string, lang
       throw new Error(`STT API Error: ${response.status} ${errorText}`)
     }
 
-    return response.json() as Promise<any>
+    return response.json() as Promise<{ text?: string, usage?: { prompt_tokens?: number, completion_tokens?: number } }>
   }
 
   try {
-    let data: any
+    let data: { text?: string, usage?: { prompt_tokens?: number, completion_tokens?: number } }
     let usedSttModel = sttModel
 
     try {
@@ -818,7 +819,7 @@ Output STRICT JSON ONLY. Never use backticks for strings.
  * Вспомогательная функция для пересборки кнопок (слов) из правильного ответа.
  * Автоматически исключает несовпадения в артиклях/словах и случайные опечатки ИИ.
  */
-function reconstructReorderOptions(questions: any[], language: string): any[] {
+function reconstructReorderOptions(questions: QuizQuestion[], language: string): QuizQuestion[] {
   const isCJK = ['zh', 'ja'].includes(language)
   return questions.map((q) => {
     if (q.type === 'reorder') {
@@ -870,7 +871,7 @@ function reconstructReorderOptions(questions: any[], language: string): any[] {
   })
 }
 
-function validateQuizQuestions(questions: any[]): string | null {
+function validateQuizQuestions(questions: QuizQuestion[]): string | null {
   if (!Array.isArray(questions))
     return 'Quiz is not a valid JSON array'
   if (questions.length < 10)
@@ -922,7 +923,7 @@ export async function generateLevelQuiz(
   levelValue: string,
   words: string[],
   config: LlmConfig,
-): Promise<any[]> {
+): Promise<QuizQuestion[]> {
   await checkTokenLimit(userId)
   if (!config.url)
     throw new AppError(500, 'LLM API не настроен')
@@ -939,13 +940,13 @@ export async function generateLevelQuiz(
 
   for (const model of modelsToTry) {
     try {
-      const { parsed } = await callLlmJsonWithRetry<any[]>(
+      const { parsed } = await callLlmJsonWithRetry<QuizQuestion[]>(
         model,
         messages,
         0.5,
         AbortSignal.timeout(90000),
         config,
-        raw => parseLlmJson<any[]>(raw),
+        raw => parseLlmJson<QuizQuestion[]>(raw),
         (usage, rawText, messagesUsed) => {
           trackTokenUsage(userId, `generate_quiz`, model, usage.promptTokens, usage.completionTokens, JSON.stringify(messagesUsed, null, 2), rawText)
         },
@@ -963,13 +964,13 @@ export async function generateLevelQuiz(
             { role: 'user', content: `CRITICAL ERROR in your generated quiz: ${validationError}. Please fix the errors and output the corrected full JSON array of questions.` },
           ]
 
-          const corrected = await callLlmJsonWithRetry<any[]>(
+          const corrected = await callLlmJsonWithRetry<QuizQuestion[]>(
             model,
             correctionMessages,
             0.2,
             AbortSignal.timeout(90000),
             config,
-            raw => parseLlmJson<any[]>(raw),
+            raw => parseLlmJson<QuizQuestion[]>(raw),
             (usage, rawText, messagesUsed) => {
               trackTokenUsage(userId, `generate_quiz`, model, usage.promptTokens, usage.completionTokens, JSON.stringify(messagesUsed, null, 2), rawText)
             },
@@ -1008,13 +1009,13 @@ Output MUST be a valid JSON array of question objects, exactly matching the sche
         ]
 
         try {
-          const reviewed = await callLlmJsonWithRetry<any[]>(
+          const reviewed = await callLlmJsonWithRetry<QuizQuestion[]>(
             model,
             reviewerMessages,
             0.3,
             AbortSignal.timeout(90000),
             config,
-            raw => parseLlmJson<any[]>(raw),
+            raw => parseLlmJson<QuizQuestion[]>(raw),
             (usage, rawText, messagesUsed) => {
               trackTokenUsage(userId, `generate_quiz`, model, usage.promptTokens, usage.completionTokens, JSON.stringify(messagesUsed, null, 2), rawText)
             },

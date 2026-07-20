@@ -3,8 +3,8 @@ import os from 'node:os'
 interface Task {
   id: number
   type: string
-  payload: any
-  resolve: (value: any) => void
+  payload: unknown
+  resolve: (value: unknown) => void
   reject: (error: Error) => void
 }
 
@@ -69,10 +69,10 @@ function processNextTask() {
 
 initPool()
 
-export function runWorkerTask<T = any>(type: string, payload: any): Promise<T> {
+export function runWorkerTask<T = unknown>(type: string, payload: unknown): Promise<T> {
   return new Promise((resolve, reject) => {
     const id = ++taskIdSeq
-    taskQueue.push({ id, type, payload, resolve, reject })
+    taskQueue.push({ id, type, payload, resolve: resolve as (value: unknown) => void, reject })
     processNextTask()
   })
 }

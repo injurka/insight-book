@@ -22,10 +22,10 @@ export function apiWrapper(handler: (req: Request) => Promise<Response> | Respon
       }
       else if (error && typeof error === 'object' && 'name' in error && error.name === 'ZodError') {
         status = 400
-        const zodError = error as any
+        const zodError = error as { issues?: { path: string[], message: string }[], errors?: { path: string[], message: string }[] }
         const issues = zodError.issues || zodError.errors || []
         if (issues.length > 0) {
-          message = issues.map((e: any) => `${e.path.join('.')}: ${e.message}`).join('; ')
+          message = issues.map((e: { path: string[], message: string }) => `${e.path.join('.')}: ${e.message}`).join('; ')
         }
         else {
           message = 'Ошибка валидации данных.'

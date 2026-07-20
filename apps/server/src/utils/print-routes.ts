@@ -1,5 +1,5 @@
 /* eslint-disable no-console */
-function logRoutes(routes: Record<string, any>, port: number) {
+function logRoutes(routes: Record<string, Record<string, unknown>>, port: number) {
   console.log(`🚀 Available routes on http://localhost:${port}:`)
   for (const path in routes) {
     const methods = Object.keys(routes[path])

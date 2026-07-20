@@ -9,8 +9,9 @@ interface Option {
   value: string | number
 }
 
+const modelValue = defineModel<string | number | (string | number)[]>()
+
 interface Props {
-  modelValue: string | number | (string | number)[]
   options: Option[]
   size?: 'xs' | 'sm' | 'md' | 'lg'
   multiple?: boolean
@@ -21,7 +22,6 @@ const props = withDefaults(defineProps<Props>(), {
   multiple: false,
 })
 
-const emit = defineEmits(['update:modelValue'])
 
 const isOpen = ref(false)
 const referenceRef = ref<HTMLElement | null>(null)
@@ -31,15 +31,15 @@ const dialogZIndex = inject<Ref<number> | undefined>('kit-dialog-z-index', undef
 const dropdownZIndex = computed(() => dialogZIndex ? dialogZIndex.value + 10 : undefined)
 
 const selectedLabel = computed(() => {
-  if (props.multiple && Array.isArray(props.modelValue)) {
-    if (props.modelValue.length === 0)
+  if (props.multiple && Array.isArray(modelValue.value)) {
+    if (modelValue.value.length === 0)
       return ''
-    return props.modelValue.map((v) => {
+    return modelValue.value.map((v) => {
       const opt = props.options.find(o => o.value === v)
       return opt ? opt.label : ''
     }).filter(Boolean).join(', ')
   }
-  const opt = props.options.find(o => o.value === props.modelValue)
+  const opt = props.options.find(o => o.value === modelValue.value)
   return opt ? opt.label : ''
 })
 
@@ -70,9 +70,9 @@ function toggle() {
 
 function selectOption(val: string | number) {
   if (props.multiple) {
-    const current = Array.isArray(props.modelValue) ? props.modelValue : []
+    const current = Array.isArray(modelValue.value) ? modelValue.value : []
     if (val === 'all') {
-      emit('update:modelValue', ['all'])
+      modelValue.value = ['all']
       return
     }
     const isSelected = current.includes(val)
@@ -81,10 +81,10 @@ function selectOption(val: string | number) {
     if (next.length === 0) {
       next = ['all']
     }
-    emit('update:modelValue', next)
+    modelValue.value = next
   }
   else {
-    emit('update:modelValue', val)
+    modelValue.value = val
     isOpen.value = false
   }
 }

@@ -103,11 +103,11 @@ const isReadOnly = computed(() => editingBook.value.publicStatus === 'public' ||
       </div>
 
       <div class="form-group row-group">
-        <div class="form-group" style="flex: 1">
+        <div class="form-group">
           <label>{{ t('settings.appLanguage') }}</label>
           <KitSelect v-if="editingBook.language !== undefined" v-model="editingBook.language" :options="bookLanguageOptions" />
         </div>
-        <div class="form-group" style="flex: 1">
+        <div class="form-group">
           <label>{{ t('dictionary.status') }}</label>
           <KitSelect v-if="editingBook.status !== undefined" v-model="editingBook.status" :options="statusOptions" />
         </div>
@@ -170,11 +170,11 @@ const isReadOnly = computed(() => editingBook.value.publicStatus === 'public' ||
       </div>
 
       <div class="form-group row-group">
-        <div class="form-group" style="flex: 2">
+        <div class="form-group flex-2">
           <label>{{ t('library.series') }}</label>
           <KitInput v-model="editingBook.series" :placeholder="t('library.seriesPlaceholder')" />
         </div>
-        <div class="form-group" style="flex: 1">
+        <div class="form-group">
           <label>{{ t('library.volumeNumber') }}</label>
           <KitInput v-model="editingBook.seriesNumber" type="number" placeholder="1" />
         </div>
@@ -189,7 +189,7 @@ const isReadOnly = computed(() => editingBook.value.publicStatus === 'public' ||
       <KitBtn variant="text" class="mr-auto" color="error" @click="confirmDeleteVisible = true">
         {{ t('dictionary.deleteItem') }}
       </KitBtn>
-      <div style="flex-grow:1" />
+      <div class="spacer" />
       <KitBtn variant="tonal" @click="visible = false">
         {{ t('dictionary.cancel') }}
       </KitBtn>
@@ -236,6 +236,10 @@ const isReadOnly = computed(() => editingBook.value.publicStatus === 'public' ||
     gap: 12px;
     .form-group {
       flex: 1;
+
+      &.flex-2 {
+        flex: 2;
+      }
     }
   }
   .native-date-input {
@@ -310,6 +314,9 @@ const isReadOnly = computed(() => editingBook.value.publicStatus === 'public' ||
 }
 .mr-auto {
   margin-right: auto;
+}
+.spacer {
+  flex-grow: 1;
 }
 .publish-request-block {
   display: flex;
