@@ -45,6 +45,63 @@ export const LlmAnalysisSchema = z.object({
   vocabulary: z.array(VocabItemSchema).default([]),
 })
 
+export const WordAutoFillResponseSchema = z.object({
+  transcription: z.string(),
+  translation: z.string(),
+  difficulty: z.string(),
+  tags: z.string(),
+  grammarNote: z.string(),
+  vocabularyNote: z.string(),
+})
+
+export const WordExampleSchema = z.object({
+  type: z.string(),
+  original: z.string(),
+  transcription: z.string(),
+  translation: z.string(),
+  literal_translation: z.string(),
+})
+
+export const WordCollocationSchema = z.object({
+  original: z.string(),
+  transcription: z.string(),
+  translation: z.string(),
+})
+
+export const WordRelationItemSchema = z.object({
+  word: z.string(),
+  transcription: z.string(),
+  translation: z.string(),
+})
+
+export const WordRelationsSchema = z.object({
+  synonyms: z.array(WordRelationItemSchema).optional(),
+  antonyms: z.array(WordRelationItemSchema).optional(),
+})
+
+export const GeneratedWordExamplesSchema = z.object({
+  word: z.string(),
+  transcription: z.string(),
+  main_translations: z.array(z.string()),
+  vocabulary: z.array(VocabItemSchema).optional(),
+  mnemonics: z.string().optional(),
+  grammar_note: z.string().optional(),
+  examples: z.array(WordExampleSchema).optional(),
+  collocations: z.array(WordCollocationSchema).optional(),
+  relations: WordRelationsSchema.optional(),
+})
+
+export const BookAnalysisResponseSchema = z.object({
+  description: z.string(),
+  difficulty: z.string(),
+  tags: z.array(z.string()),
+})
+
+export const BatchAnalysisResponseSchema = z.array(z.object({
+  id: z.string(),
+  analysis: LlmAnalysisSchema,
+}))
+
 export const AnalyzeBatchSchema = z.object({
   items: z.array(z.object({
     id: z.string(),

@@ -10,8 +10,8 @@ import * as schema from '../db/schema'
 import { getSystemPrompt } from '../prompts'
 import { LlmAnalysisSchema } from '../types/schemas'
 import { getAiConfig } from '../utils/ai-config'
-import { hashSentence, normalizeLanguageCode, parseLlmJson } from '../utils/helpers'
-import { callLlmJsonWithRetry } from '../utils/llm-api'
+import { hashSentence, normalizeLanguageCode } from '../utils/helpers'
+import { callLlmStructured } from '../utils/llm-api'
 import { logger } from '../utils/logger'
 
 const args = process.argv.slice(2)
@@ -173,13 +173,13 @@ async function analyzeWordForDeck(
 
   for (const model of modelsToTry) {
     try {
-      const { parsed: analysis, usage } = await callLlmJsonWithRetry<LlmAnalysis>(
+      const { parsed: analysis, usage } = await callLlmStructured<LlmAnalysis>(
         model,
         messages,
         0.2,
         AbortSignal.timeout(60000),
         config,
-        raw => LlmAnalysisSchema.parse(parseLlmJson(raw)) as LlmAnalysis,
+        LlmAnalysisSchema,
         () => { },
       )
 

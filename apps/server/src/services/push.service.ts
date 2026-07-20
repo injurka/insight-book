@@ -1,13 +1,13 @@
 import * as admin from 'firebase-admin'
 import { getMessaging } from 'firebase-admin/messaging'
 import webpush from 'web-push'
+import { z } from 'zod'
 import { getAiConfig } from '~/utils/ai-config'
 import { VAPID_PRIVATE_KEY, VAPID_PUBLIC_KEY, VAPID_SUBJECT } from '../config'
 import { getGeneralPushPrompt, getWordPushPrompt } from '../prompts'
-import { pushRepository } from '../repositories/push.repository'
 
-import { parseLlmJson } from '../utils/helpers'
-import { callLlmJsonWithRetry } from '../utils/llm-api'
+import { pushRepository } from '../repositories/push.repository'
+import { callLlmStructured } from '../utils/llm-api'
 import { logger } from '../utils/logger'
 import { checkTokenLimit } from './limits.service'
 
@@ -204,13 +204,13 @@ export async function sendDailyMotivations(customMessage?: string) {
             await checkTokenLimit(userId) // Критично: проверяем лимиты перед LLM
             const prompt = getWordPushPrompt(wordStr, transStr, uiLanguage)
 
-            const { parsed } = await callLlmJsonWithRetry<{ message: string }>(
+            const { parsed } = await callLlmStructured<{ message: string }>(
               config.model,
               [{ role: 'user', content: prompt }],
               0.8,
               AbortSignal.timeout(15000),
               config,
-              raw => parseLlmJson<{ message: string }>(raw),
+              z.object({ message: z.string() }),
             )
 
             if (parsed && parsed.message) {
@@ -228,13 +228,13 @@ export async function sendDailyMotivations(customMessage?: string) {
           try {
             await checkTokenLimit(userId)
             const prompt = getGeneralPushPrompt(uiLanguage)
-            const { parsed } = await callLlmJsonWithRetry<{ message: string }>(
+            const { parsed } = await callLlmStructured<{ message: string }>(
               config.model,
               [{ role: 'user', content: prompt }],
               0.8,
               AbortSignal.timeout(10000),
               config,
-              raw => parseLlmJson<{ message: string }>(raw),
+              z.object({ message: z.string() }),
             )
             if (parsed && parsed.message) {
               messageBody = parsed.message
