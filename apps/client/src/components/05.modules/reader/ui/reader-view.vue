@@ -362,7 +362,7 @@ watch(() => readerStore.isPageLoading, async (isLoading) => {
   :deep(img),
   :deep(image) {
     max-width: 100%;
-    height: auto;
+    height: auto !important;
     display: block;
     margin: 1.5em auto;
     border-radius: 8px;

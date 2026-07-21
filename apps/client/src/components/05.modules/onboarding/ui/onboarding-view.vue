@@ -312,7 +312,9 @@ function finishOnboarding() {
   justify-content: center;
   // Скрываем скроллбар визуально, но оставляем функциональность
   scrollbar-width: none;
-  &::-webkit-scrollbar { display: none; }
+  &::-webkit-scrollbar {
+    display: none;
+  }
 
   @include media-down(sm) {
     padding: 16px;

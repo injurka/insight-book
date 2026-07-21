@@ -1,5 +1,6 @@
 import type { Book, PageDictEntry, PagePayload, TocItem } from '~/shared/types/models'
 import { useQuery } from '@pinia/colada'
+import { useDebounceFn } from '@vueuse/core'
 import { defineStore } from 'pinia'
 import { computed, ref, watch } from 'vue'
 import { useLibraryStore } from '~/components/05.modules/library/store/library.store'
@@ -10,7 +11,6 @@ import { useAnalysisStore } from '~/shared/store/analysis.store'
 import { useGlobalSettingsStore } from '~/shared/store/settings.store'
 import { useToastStore } from '~/shared/store/toast.store'
 import { useHighlightsStore } from './highlights.store'
-import { useDebounceFn } from '@vueuse/core'
 
 export const useReaderStore = defineStore('reader', () => {
   const repos = useRepos()
@@ -137,10 +137,11 @@ export const useReaderStore = defineStore('reader', () => {
       // Исполняем прямые запросы для избежания дубликатов из useQuery()
       const [newPage, newDict] = await Promise.all([
         repos.book.getPage(bookId, pageNum),
-        repos.book.getPageDict(bookId, pageNum).catch(() => ({} as Record<string, PageDictEntry>))
+        repos.book.getPageDict(bookId, pageNum).catch(() => ({} as Record<string, PageDictEntry>)),
       ])
 
-      if (!newPage) throw new Error('Page not found')
+      if (!newPage)
+        throw new Error('Page not found')
 
       const page = { ...newPage }
       if (page.type === 'manga' && page.imageUrl) {
