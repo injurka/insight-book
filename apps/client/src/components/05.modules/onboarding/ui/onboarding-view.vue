@@ -72,6 +72,12 @@ function nextStep() {
   }
 }
 
+function prevStep() {
+  if (currentStep.value > 0) {
+    currentStep.value--
+  }
+}
+
 function finishOnboarding() {
   localStorage.setItem('insight_onboarding_completed', 'true')
   router.push(AppRoutePaths.Home)
@@ -122,13 +128,33 @@ function finishOnboarding() {
       </Transition>
 
       <div class="progress-indicator">
-        <div
-          v-for="(_, index) in steps"
-          :key="index"
-          class="dot"
-          :class="{ active: currentStep === index, passed: index < currentStep }"
-          @click="currentStep = index"
-        />
+        <button
+          class="nav-btn"
+          :class="{ 'is-hidden': currentStep === 0 }"
+          aria-label="Назад"
+          @click="prevStep"
+        >
+          <Icon icon="mdi:chevron-left" />
+        </button>
+
+        <div class="dots">
+          <div
+            v-for="(_, index) in steps"
+            :key="index"
+            class="dot"
+            :class="{ active: currentStep === index, passed: index < currentStep }"
+            @click="currentStep = index"
+          />
+        </div>
+
+        <button
+          class="nav-btn"
+          :class="{ 'is-hidden': currentStep === steps.length - 1 }"
+          aria-label="Вперёд"
+          @click="nextStep"
+        >
+          <Icon icon="mdi:chevron-right" />
+        </button>
       </div>
     </div>
   </div>
@@ -145,6 +171,9 @@ function finishOnboarding() {
   background: var(--bg-primary-color);
   overflow: hidden;
   z-index: 10000;
+
+  // Резервируем место под settings-bar и skip-btn (≈60px сверху)
+  padding-top: max(60px, env(safe-area-inset-top, 60px));
 }
 
 .settings-bar {
@@ -271,15 +300,25 @@ function finishOnboarding() {
   width: 100%;
   max-width: 600px;
   min-height: 650px;
+  // Ограничиваем высоту оставшимся пространством и включаем скролл
+  max-height: calc(100dvh - max(60px, env(safe-area-inset-top, 60px)));
+  overflow-y: auto;
+  overflow-x: hidden;
   padding: 24px;
+  padding-bottom: 60px; // место под progress-indicator
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  // Скрываем скроллбар визуально, но оставляем функциональность
+  scrollbar-width: none;
+  &::-webkit-scrollbar { display: none; }
 
   @include media-down(sm) {
     padding: 16px;
-    min-height: 100dvh;
+    padding-bottom: 60px;
+    min-height: unset;
+    max-height: calc(100dvh - max(60px, env(safe-area-inset-top, 60px)));
   }
 }
 
@@ -287,11 +326,51 @@ function finishOnboarding() {
   position: absolute;
   bottom: 32px;
   display: flex;
-  gap: 8px;
+  align-items: center;
+  gap: 12px;
 
   @include media-down(sm) {
     bottom: max(24px, env(safe-area-inset-bottom, 24px));
   }
+}
+
+.nav-btn {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 1px solid rgba(var(--border-primary-color-rgb), 0.4);
+  background: rgba(var(--bg-secondary-color-rgb), 0.6);
+  color: var(--fg-secondary-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 1.1rem;
+  transition: all 0.2s ease;
+  backdrop-filter: blur(8px);
+  flex-shrink: 0;
+
+  &:hover {
+    background: var(--bg-accent-overlay-color);
+    color: var(--fg-accent-color);
+    border-color: var(--fg-accent-color);
+    transform: scale(1.1);
+  }
+
+  &:active {
+    transform: scale(0.92);
+  }
+
+  &.is-hidden {
+    opacity: 0;
+    pointer-events: none;
+  }
+}
+
+.dots {
+  display: flex;
+  gap: 8px;
+  align-items: center;
 
   .dot {
     width: 8px;

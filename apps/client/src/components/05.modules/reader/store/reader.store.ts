@@ -10,6 +10,7 @@ import { useAnalysisStore } from '~/shared/store/analysis.store'
 import { useGlobalSettingsStore } from '~/shared/store/settings.store'
 import { useToastStore } from '~/shared/store/toast.store'
 import { useHighlightsStore } from './highlights.store'
+import { useDebounceFn } from '@vueuse/core'
 
 export const useReaderStore = defineStore('reader', () => {
   const repos = useRepos()
@@ -30,10 +31,6 @@ export const useReaderStore = defineStore('reader', () => {
 
   // Query state refs
   const tocBookId = ref<number | null>(null)
-  const pageBookId = ref<number | null>(null)
-  const pagePageNum = ref<number | null>(null)
-  const dictBookId = ref<number | null>(null)
-  const dictPageNum = ref<number | null>(null)
 
   // 1. TOC Query
   const {
@@ -50,70 +47,9 @@ export const useReaderStore = defineStore('reader', () => {
     enabled: () => tocBookId.value !== null,
   })
 
-  // 2. Page Query
-  const {
-    data: pageQueryData,
-    refetch: refetchPageQuery,
-  } = useQuery<PagePayload | null>({
-    key: () => ['books', pageBookId.value, 'pages', pagePageNum.value],
-    query: async () => {
-      const id = pageBookId.value
-      const num = pagePageNum.value
-      if (id === null || num === null)
-        return null
-      return await repos.book.getPage(id, num)
-    },
-    enabled: () => pageBookId.value !== null && pagePageNum.value !== null,
-  })
-
-  // 3. Page Dictionary Query
-  const {
-    data: dictQueryData,
-    refetch: refetchDictQuery,
-  } = useQuery<Record<string, PageDictEntry>>({
-    key: () => ['books', dictBookId.value, 'pages', dictPageNum.value, 'dict'],
-    query: async () => {
-      const id = dictBookId.value
-      const num = dictPageNum.value
-      if (id === null || num === null)
-        return {}
-      return await repos.book.getPageDict(id, num)
-    },
-    enabled: () => dictBookId.value !== null && dictPageNum.value !== null,
-  })
-
   // Watchers to map query results
   watch(tocQueryData, (newData) => {
     currentToc.value = newData || []
-  }, { immediate: true })
-
-  watch(pageQueryData, async (newPage) => {
-    if (newPage) {
-      const pageBookIdVal = pageBookId.value
-      const pagePageNumVal = pagePageNum.value
-      const page = { ...newPage }
-      if (page.type === 'manga' && page.imageUrl) {
-        const cachedBlob = await repos.book.getLocalImage(Number(page.bookId), Number(page.pageNum))
-        if (pageBookId.value === pageBookIdVal && pagePageNum.value === pagePageNumVal) {
-          if (cachedBlob) {
-            page.localImageUrl = URL.createObjectURL(cachedBlob)
-          }
-          currentPage.value = page
-        }
-      }
-      else {
-        if (pageBookId.value === pageBookIdVal && pagePageNum.value === pagePageNumVal) {
-          currentPage.value = page
-        }
-      }
-    }
-    else {
-      currentPage.value = null
-    }
-  }, { immediate: true })
-
-  watch(dictQueryData, (newData) => {
-    currentPageDictionary.value = newData || {}
   }, { immediate: true })
 
   watch(() => libraryStore.currentBookInfo, (newBook) => {
@@ -123,10 +59,6 @@ export const useReaderStore = defineStore('reader', () => {
       const highlightsStore = useHighlightsStore()
       highlightsStore.clear()
       tocBookId.value = null
-      pageBookId.value = null
-      pagePageNum.value = null
-      dictBookId.value = null
-      dictPageNum.value = null
     }
   })
 
@@ -171,15 +103,16 @@ export const useReaderStore = defineStore('reader', () => {
     }
   }
 
-  async function fetchPageDictionary(bookId: number, pageNum: number) {
-    dictBookId.value = bookId
-    dictPageNum.value = pageNum
-    try {
-      await refetchDictQuery()
+  // Дебаунс для избежания перезатирания стейта при быстрых перелистываниях
+  const debouncedUpdateProgress = useDebounceFn((bookId: number, pageNum: number) => {
+    libraryStore.updateBookInfo(bookId, { currentPage: pageNum })
+  }, 1500)
+
+  function updateReadingProgress(bookId: number, pageNum: number) {
+    if (libraryStore.currentBookInfo && libraryStore.currentBookInfo.id === bookId) {
+      libraryStore.currentBookInfo.currentPage = pageNum
     }
-    catch (e) {
-      console.warn('Failed to load page dictionary', e)
-    }
+    debouncedUpdateProgress(bookId, pageNum)
   }
 
   async function loadPage(bookId: number, pageNum: number) {
@@ -194,22 +127,33 @@ export const useReaderStore = defineStore('reader', () => {
     analysisStore.sidebarOpen = false
 
     if (currentToc.value.length === 0 || lastTocBookId !== bookId) {
-      await fetchToc(bookId).catch(() => { })
+      fetchToc(bookId).catch(() => { })
     }
 
     currentPageDictionary.value = {}
     isPageLoading.value = true
 
     try {
-      pageBookId.value = bookId
-      pagePageNum.value = pageNum
+      // Исполняем прямые запросы для избежания дубликатов из useQuery()
+      const [newPage, newDict] = await Promise.all([
+        repos.book.getPage(bookId, pageNum),
+        repos.book.getPageDict(bookId, pageNum).catch(() => ({} as Record<string, PageDictEntry>))
+      ])
 
-      await refetchPageQuery()
+      if (!newPage) throw new Error('Page not found')
 
-      const page = pageQueryData.value
+      const page = { ...newPage }
+      if (page.type === 'manga' && page.imageUrl) {
+        const cachedBlob = await repos.book.getLocalImage(Number(page.bookId), Number(page.pageNum))
+        if (cachedBlob) {
+          page.localImageUrl = URL.createObjectURL(cachedBlob)
+        }
+      }
 
-      fetchPageDictionary(bookId, pageNum).catch(console.error)
-      libraryStore.updateBookInfo(bookId, { currentPage: pageNum })
+      currentPage.value = page
+      currentPageDictionary.value = newDict || {}
+
+      updateReadingProgress(bookId, pageNum)
 
       trackEvent('page_loaded', { bookId, pageNum, type: page?.type })
 
@@ -226,7 +170,7 @@ export const useReaderStore = defineStore('reader', () => {
       }
     }
     catch (e) {
-      libraryStore.updateBookInfo(bookId, { currentPage: prevPageNum })
+      updateReadingProgress(bookId, prevPageNum)
       toastStore.error(i18n.global.t('dictionary.pageOfflineError'))
       throw e
     }

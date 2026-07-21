@@ -558,6 +558,7 @@ watch(() => readerStore.isPageLoading, async (isLoading) => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  width: 100%;
   padding: 32px;
   text-align: center;
   .spinner-box {
@@ -626,5 +627,17 @@ watch(() => readerStore.isPageLoading, async (isLoading) => {
   text-align: center;
   color: var(--fg-secondary-color);
   padding: 16px 0;
+}
+
+.fade-enter-active,
+.fade-leave-active {
+  transition:
+    opacity 0.2s,
+    transform 0.2s;
+}
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+  transform: translateY(-5px);
 }
 </style>

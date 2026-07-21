@@ -15,8 +15,9 @@ import { storageService } from './storage.service'
 
 export class BookService {
   async getPublicBooks(page: number, limit: number, tag: string | null, search: string | null, language: string | null, targetLang: string, _userId: number | null) {
-    const total = await bookRepository.countPublicBooks([]) // simplified for refactor
-    const rows = await bookRepository.getPublicBooksBaseQuery(page, limit, [])
+    const conditions = bookRepository.buildPublicConditions(tag, search, language)
+    const total = await bookRepository.countPublicBooks(conditions)
+    const rows = await bookRepository.getPublicBooksBaseQuery(page, limit, conditions)
 
     const bookIds = rows.map((r: { book: { id: number } }) => r.book.id)
     const llmCounts = await bookRepository.getLlmCounts(bookIds, targetLang)
@@ -80,11 +81,11 @@ export class BookService {
     const { progresses, stats, ...bookData } = book
     const statsResult = stats
       ? {
-          ...stats,
-          tags: stats.tags ? JSON.parse(stats.tags) : [],
-          posDistribution: stats.posDistribution ? JSON.parse(stats.posDistribution) : null,
-          topWords: stats.topWords ? JSON.parse(stats.topWords) : null,
-        }
+        ...stats,
+        tags: stats.tags ? JSON.parse(stats.tags) : [],
+        posDistribution: stats.posDistribution ? JSON.parse(stats.posDistribution) : null,
+        topWords: stats.topWords ? JSON.parse(stats.topWords) : null,
+      }
       : null
 
     const counts = await bookRepository.getBookAnalysesCounts(id, targetLang)
