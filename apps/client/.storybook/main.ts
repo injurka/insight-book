@@ -1,16 +1,16 @@
 import type { StorybookConfig } from '@storybook/vue3-vite'
 
-import { dirname } from 'node:path'
-
-import { fileURLToPath } from 'node:url'
-
 /**
- * This function is used to resolve the absolute path of a package.
- * It is needed in projects that use Yarn PnP or are set up within a monorepo.
+ * Функция для получения абсолютного пути к пакету.
+ * Использует нативный `import.meta.resolve` и регулярные выражения вместо node:path и node:url.
  */
-function getAbsolutePath(value: string) {
-  return dirname(fileURLToPath(import.meta.resolve(`${value}/package.json`)))
+function getAbsolutePath(value: string): string {
+  const resolved = import.meta.resolve(`${value}/package.json`)
+  return resolved
+    .replace(/^file:\/\//, '') // Удаляем протокол file:// если он есть
+    .replace(/[/\\]package\.json$/, '') // Удаляем /package.json с конца пути
 }
+
 const config: StorybookConfig = {
   stories: [
     '../src/**/*.mdx',
@@ -33,4 +33,5 @@ const config: StorybookConfig = {
     },
   },
 }
+
 export default config

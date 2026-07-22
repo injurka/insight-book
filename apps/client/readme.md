@@ -98,3 +98,91 @@
 - **Высокая связность (High Cohesion)**: Весь код, относящийся к одной фиче, сгруппирован в одном месте, что упрощает его понимание и доработку.
 - **Адаптивность**: Абстракция API через клиенты (`trpc`, `sql`, `mock`) позволяет легко переключать источники данных и запускать приложение в разных окружениях.
 - **Параллельная разработка**: Разные разработчики могут эффективно работать над разными срезами одновременно, не создавая конфликтов.
+
+Проанализировав структуру и исходный код вашего проекта, можно с уверенностью сказать, что это зрелое, хорошо спроектированное Frontend-приложение (Vue 3 + Vite + Tauri + PWA). Вы используете множество передовых архитектурных подходов, которые идеально ложатся на предоставленную вами Карту знаний (MOC).
+
+Ниже представлен подробный разбор вашей архитектуры через призму методологий, принципов и паттернов из ваших заметок.
+
+---
+
+### 1. Архитектурный стиль и Методология организации кода
+Основой вашего проекта является кастомизированная версия **Feature-Sliced Design (FSD)** в комбинации с элементами **Domain Driven Design (DDD)**. 
+
+Вы используете нумерованные директории для явного указания иерархии слоев и направления зависимостей (снизу вверх, от 01 к 06):
+*   **01.kit (Shared / Design System):** Глупые (Dumb/Presentational) UI-компоненты (кнопки, диалоги, инпуты). Это ваша собственная Design System.
+*   **02.shared (Shared):** Общие UI-компоненты, не привязанные к бизнес-логике (Toasts, Loaders).
+*   **03.domain (Entities / Domain Model):** Сущности предметной области (DDD). Вы вынесли классы `BookEntity` и `Flashcard`, которые инкапсулируют бизнес-правила (например, `getProgressPercent()` или вычисления FSRS `calculateNextReviewIntervals()`). Это классический **Domain Model**.
+*   **04.features (Features):** Интерактивные фичи приложения (Анализ текста, Чат с LLM, Проверка произношения).
+*   **05.modules (Widgets / Pages):** Умные компоненты (Smart Components), объединяющие фичи и сущности (Информация о книге, Читалка, Словарь). По смыслу в FSD это слой *Widgets*.
+*   **06.layouts:** Лейауты приложения.
+
+**Используемые паттерны и принципы:**
+*   **Public API модуля (Barrel Exports):** В каждой папке есть `index.ts`, который экспортирует только то, что доступно наружу.
+*   **Separation of Concerns (SoC):** Строгое разделение UI, бизнес-логики и работы с сетью.
+
+---
+
+### 2. Управление данными и состоянием (State Management)
+Вы разделяете состояние на локальное, глобальное клиентское и серверное, что является лучшей практикой.
+
+*   **Server State (Серверное состояние):** Используется библиотека `@pinia/colada` (`useQuery`, `useMutation`). Данные из API (списки книг, словари) кэшируются, инвалидируются (`queryCache.invalidateQueries`) и синхронизируются автоматически.
+*   **Global Client State (Глобальное состояние):** Используется классический Pinia (например, `settings.store.ts`, `auth.store.ts`).
+*   **Persisted State (Хранение на клиенте):** Настройки сохраняются через `useLocalStorage` из `@vueuse/core`.
+*   **Event-Driven State / Event Bus:** Используется кастомный `AppEventBus` (`shared/events/app-event-bus.ts`) для слабой связности (Decoupling) между модулями. Например, событие `DICTIONARY:WORD_SAVED` прослушивается ридером для обновления подсветки слов без прямой зависимости ридера от словаря.
+
+---
+
+### 3. API, Сетевой слой и Интеграции
+Сеть выстроена строго по принципам **SOLID (Dependency Inversion)** и слоистой архитектуре.
+
+*   **Repository Pattern:** Вся работа с сетью абстрагирована в директории `shared/repositories`. Компоненты не делают `fetch` напрямую, они вызывают методы репозиториев (`repos.book.list()`).
+*   **Dependency Injection (DI) / Service Locator:** Вы используете `provide/inject` (ключ `REPOS_INJECTION_KEY`) и хук `useRepos()`. Это позволяет легко мокать API в тестах и не хардкодить зависимости.
+*   **HTTP Client Abstraction & Interceptors:** Инстанс `ofetch` (`api.service.ts`) настроен с интерцепторами для прокидывания JWT-токенов (`Authorization: Bearer`), настроек LLM и централизованной обработки ошибок (в том числе 401 и 500).
+*   **Контракты (DTO / Models):** Все типы API описаны в `shared/types/models/index.ts`.
+
+---
+
+### 4. Кэширование и Офлайн-архитектура (Offline First)
+Это одна из самых сильных сторон вашего приложения. Оно спроектировано как **Offline First Architecture** и **Progressive Web App (PWA)**.
+
+*   **Service Workers & PWA:** Кастомный Service Worker (`workers/service/sw.ts`), написанный с использованием Workbox.
+*   **Уровни кэширования (Cache Hierarchy):**
+    *   *CacheFirst / StaleWhileRevalidate / NetworkFirst:* Стратегии кэширования статики, иконок и шрифтов в Service Worker.
+    *   *IndexedDB / LocalForage:* Мощный слой `offline.service.ts`. Вы кэшируете книги, страницы, словари (`getPageDictionary`), TTS-аудио и даже ответы LLM для работы без интернета.
+*   **Background Sync / Sync Queue:** Реализован сложный сервис `book-sync.service.ts`, который батчами загружает страницы, анализирует их через LLM и генерирует TTS, сохраняя всё в локальную базу.
+
+---
+
+### 5. Компонентная архитектура и UI
+*   **Custom Hooks (Composables):** Логика активно выносится из компонентов в composables. Например, `use-manga-bubbles.ts`, `use-pan-zoom.ts`, `use-srs-quiz.ts`. Это делает `.vue` файлы тонкими (читаемыми) и декларативными.
+*   **Smart и Dumb Components:** Разделение на `KitBtn` (Dumb) и `GlobalActions` (Smart).
+*   **Portals:** Всплывающие окна, модалки и поповеры (`KitDialog`, `KitDropdown`, `KitTooltip`) используют `<Teleport to="body">`, что предотвращает проблемы с `z-index` и `overflow`.
+*   **Runtime Theming:** Продвинутая система тем (Светлая, Темная, Сепия, Зеленая, OLED), управляемая через CSS-переменные (`document.documentElement.setAttribute('data-theme', ...)`).
+*   **CSS Scope:** Вы используете Scoped SCSS (`<style lang="scss" scoped>`), что обеспечивает изоляцию стилей, а глобальные токены хранятся в `global.scss`.
+
+---
+
+### 6. Взаимодействие с платформой и Устройствами
+Ваше приложение работает как в вебе, так и как десктопное/мобильное приложение.
+
+*   **Разделение Web и WebView (Tauri):** Код проверяет окружение `isTauri()`, динамически инициализируя плагины (например, `tauri-update.service.ts` или получение нативного FCM токена).
+*   **Web Vitals & Платформенные API:** Вы используете `MediaRecorder` для записи голоса, `window.speechSynthesis` (или внешние TTS), `navigator.storage` для оценки квоты памяти устройства.
+*   **Resilience (Устойчивость):** Обработка блокировок экрана (`useAppWakeLock`), управление кнопкой "Назад" на Android (`useBackHandler`), прогрессивная деградация (если нет сети — читаем из IndexedDB).
+
+---
+
+### 7. Observability, Аналитика и i18n
+*   **Product Analytics (Аналитика продукта):** Подключен Umami (`useUmami.ts`). Реализована четкая таксономия событий (Event Taxonomy): `book_opened`, `theme_changed`, `ai_translation_requested`.
+*   **Internationalization (i18n):** Настроена локализация (ru, en, zh) с ленивой загрузкой чанков перевода (`loadLanguageAsync`), чтобы не раздувать начальный бандл.
+
+---
+
+## Резюме по Карте Знаний (MOC)
+
+1.  **Принципы:** *SoC, DRY, DIP, KISS* — соблюдены.
+2.  **Стили:** *Layered Architecture, FSD, DDD, Event-Driven*.
+3.  **Модульность:** Жесткие границы через `index.ts` и `DI`.
+4.  **Состояние:** *Server State* (Colada), *Persisted State* (LocalForage).
+5.  **API:** *Repository Pattern, Adapter*.
+6.  **Offline-First:** Образцовая реализация (SW + IndexedDB + Background sync).
+7.  **UX/UI:** Собственная *Design System (01.kit)*, *Runtime Theming*.

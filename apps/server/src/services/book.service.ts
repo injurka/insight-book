@@ -81,11 +81,11 @@ export class BookService {
     const { progresses, stats, ...bookData } = book
     const statsResult = stats
       ? {
-        ...stats,
-        tags: stats.tags ? JSON.parse(stats.tags) : [],
-        posDistribution: stats.posDistribution ? JSON.parse(stats.posDistribution) : null,
-        topWords: stats.topWords ? JSON.parse(stats.topWords) : null,
-      }
+          ...stats,
+          tags: stats.tags ? JSON.parse(stats.tags) : [],
+          posDistribution: stats.posDistribution ? JSON.parse(stats.posDistribution) : null,
+          topWords: stats.topWords ? JSON.parse(stats.topWords) : null,
+        }
       : null
 
     const counts = await bookRepository.getBookAnalysesCounts(id, targetLang)

@@ -1,5 +1,3 @@
-import { resolve } from 'node:path'
-import process from 'node:process'
 import { fileURLToPath, URL } from 'node:url'
 import Vue from '@vitejs/plugin-vue'
 import AutoImport from 'unplugin-auto-import/vite'
@@ -14,9 +12,9 @@ const host = process.env.TAURI_DEV_HOST
 
 export default defineConfig({
   base: './',
-  root: resolve(__dirname, '../src'),
-  publicDir: resolve(__dirname, '../public'),
-  envDir: resolve(__dirname, '../'),
+  root: fileURLToPath(new URL('../src', import.meta.url)),
+  publicDir: fileURLToPath(new URL('../public', import.meta.url)),
+  envDir: fileURLToPath(new URL('../', import.meta.url)),
 
   resolve: {
     alias: {
@@ -67,11 +65,11 @@ export default defineConfig({
   },
 
   build: {
-    outDir: resolve(__dirname, '../dist'),
+    outDir: fileURLToPath(new URL('../dist', import.meta.url)),
     emptyOutDir: true,
     rollupOptions: {
       input: {
-        main: resolve(__dirname, '../src/index.html'),
+        main: fileURLToPath(new URL('../src/index.html', import.meta.url)),
       },
     },
   },

@@ -21,17 +21,10 @@
     "build:server": "bun --parallel run --filter='./apps/server' build",
     "--------------------------------< LINT & FORMAT >---------------------------------": "",
     "lint": "bun run --filter='./apps/*' lint --fix",
-    "typecheck": "bun --filter='./apps/*' typecheck",
-    "--------------------------------<     HELPERS   >---------------------------------": "",
-    "postinstall": "simple-git-hooks"
+    "typecheck": "bun --filter='./apps/*' typecheck"
   },
   "devDependencies": {
-    "simple-git-hooks": "^2.13.1",
-    "vue-i18n": "^11.4.6"
-  },
-  "simple-git-hooks": {
-    "pre-commit": "bun run lint && bun run typecheck",
-    "post-commit": "git status",
-    "post-merge": "bun i"
+    "lefthook": "^2.1.10",
+    "@types/bun": "^1.3.14"
   }
 }

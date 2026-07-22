@@ -1,5 +1,3 @@
-import { resolve } from 'node:path'
-import process from 'node:process'
 import { fileURLToPath, URL } from 'node:url'
 import Vue from '@vitejs/plugin-vue'
 import AutoImport from 'unplugin-auto-import/vite'
@@ -14,13 +12,15 @@ import { visualizerPlugin } from './lib/helpers'
 
 const buildDate = new Date()
 const buildRevision = buildDate.toISOString()
+
 const appVersion = process.env.VITE_APP_VERSION || '1.0.0'
+const isStorybook = !!process.env.STORYBOOK_ENV
 
 export default defineConfig({
-  base: process.env.STORYBOOK_ENV ? '/docs/' : '/',
-  root: resolve(__dirname, '../src'),
-  publicDir: resolve(__dirname, '../public'),
-  envDir: resolve(__dirname, '../'),
+  base: isStorybook ? '/docs/' : '/',
+  root: fileURLToPath(new URL('../src', import.meta.url)),
+  publicDir: fileURLToPath(new URL('../public', import.meta.url)),
+  envDir: fileURLToPath(new URL('../', import.meta.url)),
   define: {
     __APP_VERSION__: JSON.stringify(appVersion),
     __BUILD_DATE__: JSON.stringify(new Date().toISOString()),
@@ -45,7 +45,7 @@ export default defineConfig({
       algorithms: ['brotliCompress'],
       exclude: [/\.(br)$/, /\.(gz)$/],
     }),
-    process.env.STORYBOOK_ENV ? null : VitePWA(pwaCfg(buildRevision)),
+    isStorybook ? null : VitePWA(pwaCfg(buildRevision)),
     Icons(iconsCfg),
     ...visualizerPlugin('renderer'),
   ],
@@ -71,13 +71,12 @@ export default defineConfig({
 
   build: {
     cssCodeSplit: true,
-    outDir: resolve(__dirname, '../dist'),
+    outDir: fileURLToPath(new URL('../dist', import.meta.url)),
     emptyOutDir: true,
     chunkSizeWarningLimit: 800,
     rollupOptions: {
       output: {
         manualChunks(id) {
-          // node_modules логика остается как у вас...
           if (id.includes('node_modules')) {
             if (/[\\/]node_modules[\\/](?:vue|vue-router|pinia|@vueuse)[\\/]/.test(id))
               return 'vendor-core'

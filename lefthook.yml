@@ -1,0 +1,29 @@
+colors: true
+
+pre-commit:
+  # Запускаем команды параллельно, чтобы не ждать по очереди
+  parallel: true
+  commands:
+    lint:
+      # Запустится, только если в коммите есть измененные JS/TS файлы
+      glob: "**/*.{js,ts,tsx}"
+      run: bun run lint
+      
+    typecheck:
+      # Тайпчек нужен только при изменении исходного кода
+      glob: "**/*.{ts,tsx}"
+      run: bun run typecheck
+
+post-commit:
+  commands:
+    # Показывает статус после успешного коммита
+    status:
+      run: git status
+
+post-merge:
+  commands:
+    # Делаем `bun i` автоматически после `git pull`, 
+    # НО только если обновились зависимости (package.json или bun.lock)
+    install:
+      glob: "**/package.json|bun.lock"
+      run: bun i
