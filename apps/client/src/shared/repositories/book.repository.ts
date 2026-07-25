@@ -22,7 +22,7 @@ export interface IBookRepository {
   saveLocalBookInfo: (id: number, info: Book) => Promise<void>
 
   getToc: (id: number) => Promise<TocItem[]>
-  getPage: (id: number, num: number) => Promise<PagePayload | null>
+  getPage: (id: number, num: number, isSync?: boolean) => Promise<PagePayload | null>
   getPageDict: (id: number, num: number) => Promise<Record<string, PageDictEntry>>
   saveLocalPageDictionary: (id: number, num: number, data: Record<string, PageDictEntry>) => Promise<void>
   getLocalImage: (bookId: number, pageNum: number) => Promise<Blob | null | undefined>
@@ -130,7 +130,7 @@ export class DefaultBookRepository implements IBookRepository {
     }
   }
 
-  async getPage(id: number, num: number): Promise<PagePayload | null> {
+  async getPage(id: number, num: number, isSync?: boolean): Promise<PagePayload | null> {
     try {
       const cached = await offlineService.getPage(id, num)
       if (cached)
@@ -140,7 +140,7 @@ export class DefaultBookRepository implements IBookRepository {
       console.warn('[Repository] Failed to retrieve from offline cache:', err)
     }
 
-    const data = await api.books.getPage(id, num)
+    const data = await api.books.getPage(id, num, isSync)
     if (data) {
       await offlineService.savePage(id, num, data).catch(() => {})
     }

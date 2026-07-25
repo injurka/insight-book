@@ -124,7 +124,7 @@ export async function startWholeBookSync(
           throw new Error('Aborted')
         syncProgress.value.currentTask = `Загрузка страницы ${i} из ${book.totalPages}`
 
-        const page = await repos.book.getPage(bookId, i)
+        const page = await repos.book.getPage(bookId, i, true)
 
         if (options.cachePages && page?.type === 'manga' && page.imageUrl) {
           const cachedImage = await repos.book.getLocalImage(bookId, i)
