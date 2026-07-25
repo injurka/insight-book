@@ -26,15 +26,12 @@ const showCrowdsource = ref(false)
 const {
   editForm,
   editDescLang,
-  descriptionLang,
-  availableDescLangs,
   currentDescription,
   currentDifficultyOptions,
   difficultyLevelClass,
   saveStats,
   triggerAiAnalysis,
   triggerVocabularyAnalysis,
-  DESCRIPTION_LANGS,
 } = useBookStatsEdit(isEditingStats)
 
 const bookCacheStats = computed(() => {
@@ -153,20 +150,7 @@ onMounted(() => {
             <KitInput v-model="editForm.tags" :placeholder="t('dictionary.tagsComma')" />
           </div>
           <div class="form-group">
-            <div class="desc-lang-header">
-              <label>{{ t('bookStats.annotation') }}</label>
-              <div class="desc-lang-tabs">
-                <button
-                  v-for="lang in DESCRIPTION_LANGS"
-                  :key="lang"
-                  class="desc-lang-btn"
-                  :class="{ active: editDescLang === lang }"
-                  @click="editDescLang = lang"
-                >
-                  {{ lang.toUpperCase() }}
-                </button>
-              </div>
-            </div>
+            <label>{{ t('bookStats.annotation') }}</label>
             <textarea v-model="editForm.descriptionByLang[editDescLang]" class="custom-textarea" rows="4" :placeholder="t('bookStats.annotation')" />
           </div>
           <div class="form-actions">
@@ -203,17 +187,6 @@ onMounted(() => {
           <span v-for="tag in localizedTags" :key="tag" class="tag-badge">{{ tag }}</span>
         </div>
         <div class="book-description">
-          <div v-if="availableDescLangs.length > 1" class="desc-lang-tabs">
-            <button
-              v-for="lang in availableDescLangs"
-              :key="lang"
-              class="desc-lang-btn"
-              :class="{ active: descriptionLang === lang }"
-              @click="descriptionLang = lang"
-            >
-              {{ lang.toUpperCase() }}
-            </button>
-          </div>
           <p>{{ bookDescription }}</p>
         </div>
 
@@ -673,36 +646,6 @@ onMounted(() => {
   100% {
     transform: scale(1);
     opacity: 1;
-  }
-}
-
-.desc-lang-tabs {
-  display: flex;
-  gap: 4px;
-  margin-bottom: 8px;
-}
-
-.desc-lang-btn {
-  background: transparent;
-  border: 1px solid var(--border-primary-color);
-  border-radius: 6px;
-  color: var(--fg-secondary-color);
-  cursor: pointer;
-  font-size: 0.75rem;
-  font-weight: 600;
-  letter-spacing: 0.5px;
-  padding: 2px 8px;
-  transition: all 0.15s ease;
-
-  &:hover {
-    border-color: var(--fg-accent-color);
-    color: var(--fg-accent-color);
-  }
-
-  &.active {
-    background-color: var(--fg-accent-color);
-    border-color: var(--fg-accent-color);
-    color: var(--bg-primary-color);
   }
 }
 </style>

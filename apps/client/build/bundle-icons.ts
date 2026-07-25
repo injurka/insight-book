@@ -35,8 +35,9 @@ async function bundle() {
   console.log(`✨ Найдено ${usedIcons.length} уникальных иконок.`)
 
   try {
-    // Нативное разрешение пути к модулю через import.meta.resolve
-    const mdiJsonPath = import.meta.resolve('@iconify-json/mdi/icons.json')
+    // Нативное разрешение пути в Bun без использования Node.js модулей
+    const mdiJsonUrl = import.meta.resolve('@iconify-json/mdi/icons.json')
+    const mdiJsonPath = mdiJsonUrl.startsWith('file://') ? mdiJsonUrl.slice(7) : mdiJsonUrl
 
     // Bun.file() автоматически может распарсить JSON через .json()
     const fullCollection = await Bun.file(mdiJsonPath).json()
