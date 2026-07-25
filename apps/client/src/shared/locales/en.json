@@ -182,6 +182,7 @@
     "tb": "TB",
     "confirmClearCache": "Are you sure you want to delete all saved data for this book?",
     "showMore": "Show more",
+    "collapse": "Collapse",
     "actions": {
       "analyze_sentence": "Sentence Translation (Manual)",
       "analyze_batch": "Batch Analysis (Offline sync)",

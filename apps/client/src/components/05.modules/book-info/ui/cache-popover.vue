@@ -1,15 +1,17 @@
 <script setup lang="ts">
 import { Icon } from '@iconify/vue'
-import { computed } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useLibraryStore } from '~/components/05.modules/library/store/library.store'
-import { formatBytes, formatPagesList } from '~/components/05.modules/settings/lib/formatters'
+import { collapsePageRanges, formatBytes, formatPageRange } from '~/components/05.modules/settings/lib/formatters'
 import { useCacheStore } from '~/shared/store/cache.store'
 import { formatNumber } from '../lib/formatters'
 
 const libraryStore = useLibraryStore()
 const cacheStore = useCacheStore()
 const { t } = useI18n()
+
+const MAX_VISIBLE_RANGES = 8
 
 const bookCacheStats = computed(() => {
   if (!cacheStore.stats || !libraryStore.currentBookInfo)
@@ -34,6 +36,20 @@ const isCacheFull = computed(() => cachedCount.value >= totalPages.value)
 
 const aiCount = computed(() => libraryStore.currentBookInfo?.analysesCount ?? 0)
 const hasAi = computed(() => aiCount.value > 0)
+
+const isPagesExpanded = ref(false)
+const pageRanges = computed(() => collapsePageRanges(bookCacheStats.value?.cachedPages ?? []))
+const hasHiddenRanges = computed(() => pageRanges.value.length > MAX_VISIBLE_RANGES)
+const hiddenRangesCount = computed(() => Math.max(0, pageRanges.value.length - MAX_VISIBLE_RANGES))
+const visibleRanges = computed(() =>
+  isPagesExpanded.value
+    ? pageRanges.value
+    : pageRanges.value.slice(0, MAX_VISIBLE_RANGES),
+)
+
+watch(() => libraryStore.currentBookInfo?.id, () => {
+  isPagesExpanded.value = false
+})
 </script>
 
 <template>
@@ -75,7 +91,29 @@ const hasAi = computed(() => aiCount.value > 0)
         <div v-if="cachedCount > 0" class="cp-detail cp-detail--pages">
           <Icon icon="mdi:file-multiple-outline" class="cp-detail-icon" />
           <span class="cp-detail-label">{{ t('bookStats.cachedPagesList') }}</span>
-          <span class="cp-detail-pages">{{ formatPagesList(bookCacheStats?.cachedPages ?? []) }}</span>
+          <div class="cp-pages" :class="{ 'is-expanded': isPagesExpanded }">
+            <TransitionGroup name="cp-chip">
+              <span
+                v-for="range in visibleRanges"
+                :key="`${range.start}:${range.end}`"
+                class="cp-page-chip"
+                :class="{ 'cp-page-chip--range': range.start !== range.end }"
+                :title="range.start !== range.end ? `${range.start}–${range.end}` : undefined"
+              >
+                {{ formatPageRange(range) }}
+              </span>
+            </TransitionGroup>
+            <button
+              v-if="hasHiddenRanges"
+              type="button"
+              class="cp-page-chip cp-page-chip--toggle"
+              :aria-expanded="isPagesExpanded"
+              @click="isPagesExpanded = !isPagesExpanded"
+            >
+              <Icon :icon="isPagesExpanded ? 'mdi:chevron-up' : 'mdi:chevron-down'" class="cp-page-chip-chevron" />
+              {{ isPagesExpanded ? t('settings.collapse', 'Свернуть') : `+${hiddenRangesCount}` }}
+            </button>
+          </div>
         </div>
         <div v-else class="cp-detail cp-detail--empty">
           <Icon icon="mdi:cloud-off-outline" class="cp-detail-icon" />
@@ -324,13 +362,22 @@ const hasAi = computed(() => aiCount.value > 0)
   font-size: 0.85rem;
 }
 
-.cp-detail-pages {
-  color: var(--fg-primary-color);
-  font-size: 0.82rem;
-  word-break: break-all;
-  max-height: 60px;
-  overflow-y: auto;
-  line-height: 1.4;
+.cp-pages {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  transition: max-height 0.3s ease;
+
+  &.is-expanded {
+    max-height: 88px;
+    overflow-y: auto;
+    align-content: flex-start;
+    padding-right: 4px;
+  }
 
   &::-webkit-scrollbar {
     width: 3px;
@@ -339,6 +386,77 @@ const hasAi = computed(() => aiCount.value > 0)
     background-color: var(--border-secondary-color);
     border-radius: 99px;
   }
+}
+
+.cp-page-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px 8px;
+  border: none;
+  border-radius: 99px;
+  background-color: var(--bg-tertiary-color);
+  color: var(--fg-secondary-color);
+  font-family: inherit;
+  font-size: 0.72rem;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.5;
+  white-space: nowrap;
+  transition:
+    background-color 0.2s,
+    color 0.2s,
+    transform 0.2s;
+
+  &:hover {
+    background-color: var(--border-secondary-color);
+    color: var(--fg-primary-color);
+  }
+
+  &--range {
+    background-color: color-mix(in srgb, var(--fg-success-color) 12%, transparent);
+    color: var(--fg-success-color);
+    font-weight: 600;
+
+    &:hover {
+      background-color: color-mix(in srgb, var(--fg-success-color) 20%, transparent);
+      color: var(--fg-success-color);
+    }
+  }
+
+  &--toggle {
+    cursor: pointer;
+    background-color: transparent;
+    border: 1px dashed var(--border-secondary-color);
+    color: var(--fg-accent-color);
+    font-weight: 600;
+
+    &:hover {
+      background-color: color-mix(in srgb, var(--fg-accent-color) 10%, transparent);
+      border-color: var(--fg-accent-color);
+      color: var(--fg-accent-color);
+      transform: translateY(-1px);
+    }
+
+    &:active {
+      transform: translateY(0);
+    }
+  }
+}
+
+.cp-page-chip-chevron {
+  font-size: 0.85rem;
+}
+
+.cp-chip-enter-active {
+  transition:
+    opacity 0.25s ease,
+    transform 0.25s ease;
+}
+
+.cp-chip-enter-from {
+  opacity: 0;
+  transform: scale(0.8);
 }
 
 .cp-card-hint {

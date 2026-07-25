@@ -182,6 +182,7 @@
     "tb": "TB",
     "confirmClearCache": "您确定要删除此书的所有已保存数据吗？",
     "showMore": "显示更多",
+    "collapse": "收起",
     "actions": {
       "analyze_sentence": "句子翻译（手动）",
       "analyze_batch": "批量分析（离线同步）",

@@ -12,7 +12,7 @@ import { useCacheStore } from '~/shared/store/cache.store'
 import { useGlobalSettingsStore } from '~/shared/store/settings.store'
 import { useBookStatsEdit } from '../composables/use-book-stats-edit'
 import { formatNumber } from '../lib/formatters'
-import CachePopover from './CachePopover.vue'
+import CachePopover from './cache-popover.vue'
 
 const libraryStore = useLibraryStore()
 const cacheStore = useCacheStore()
