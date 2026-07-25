@@ -1,0 +1,1 @@
+ALTER TABLE `users` ADD `subscriptionTier` text DEFAULT 'free' NOT NULL;

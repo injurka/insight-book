@@ -22,6 +22,7 @@ export class AuthService {
       id: user.id,
       username: user.username,
       role: user.role,
+      subscriptionTier: user.subscriptionTier || 'free',
       usedTokens: totalTokens,
       tokenLimit: user.tokenLimit,
       usedBooks,

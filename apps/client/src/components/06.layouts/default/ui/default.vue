@@ -29,5 +29,10 @@ import { AppTitlebar } from '~/components/02.shared/app-titlebar'
   min-height: 0;
   height: 100%;
   position: relative;
+  overflow-y: auto;
+
+  > * {
+    min-height: min-content;
+  }
 }
 </style>

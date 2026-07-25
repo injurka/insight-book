@@ -6,9 +6,9 @@ import { useRouter } from 'vue-router'
 import { KitBtn } from '~/components/01.kit'
 import { HoverRevealBg } from '~/components/02.shared/hover-reveal-bg'
 import SettingsTokensPanel from '~/components/05.modules/settings/ui/panels/settings-tokens-panel.vue'
+import SubscriptionTiersGrid from '~/components/05.modules/settings/ui/panels/subscription-tiers-grid.vue'
 import { AppRoutePaths } from '~/shared/constants/routes'
 import { useAuthStore } from '~/shared/store/auth.store'
-
 import { useGlobalSettingsStore } from '~/shared/store/settings.store'
 
 const router = useRouter()
@@ -52,6 +52,7 @@ function formatNumber(num: number | undefined | null) {
     maximumFractionDigits: 1,
   }).format(num)
 }
+const showSubscriptionTiers = ref(false)
 </script>
 
 <template>
@@ -137,6 +138,25 @@ function formatNumber(num: number | undefined | null) {
         </div>
       </div>
 
+      <!-- Кнопка раскрытия тарифов -->
+      <div class="tiers-toggle-bar">
+        <KitBtn
+          :icon="showSubscriptionTiers ? 'mdi:chevron-up' : 'mdi:view-grid-plus-outline'"
+          variant="outline"
+          class="toggle-tiers-btn"
+          @click="showSubscriptionTiers = !showSubscriptionTiers"
+        >
+          {{ showSubscriptionTiers ? 'Скрыть тарифные планы' : 'Сравнить и выбрать тарифный план' }}
+        </KitBtn>
+      </div>
+
+      <!-- Тарифные планы подписки -->
+      <Transition name="fade-slide">
+        <div v-if="showSubscriptionTiers" class="tiers-wrapper">
+          <SubscriptionTiersGrid />
+        </div>
+      </Transition>
+
       <SettingsTokensPanel />
     </div>
   </div>
@@ -146,14 +166,12 @@ function formatNumber(num: number | undefined | null) {
 .limits-page {
   position: relative;
   z-index: 1;
-  max-width: 900px;
+  max-width: 1200px;
   margin: 0 auto;
   padding: 32px;
   padding-top: calc(32px + var(--safe-area-top));
   width: 100%;
-  height: 100%;
-  padding-bottom: env(safe-area-inset-bottom, 0px);
-  overflow-y: auto;
+  padding-bottom: calc(32px + env(safe-area-inset-bottom, 0px));
 
   @include media-down(md) {
     padding: 16px;
@@ -326,5 +344,33 @@ function formatNumber(num: number | undefined | null) {
       }
     }
   }
+}
+
+.tiers-toggle-bar {
+  display: flex;
+  justify-content: center;
+  margin: 16px 0 24px;
+
+  .toggle-tiers-btn {
+    padding: 10px 20px;
+    border-radius: 12px;
+    font-weight: 600;
+    transition: all 0.2s ease;
+  }
+}
+
+.tiers-wrapper {
+  margin-bottom: 24px;
+}
+
+.fade-slide-enter-active,
+.fade-slide-leave-active {
+  transition: all 0.3s ease;
+}
+
+.fade-slide-enter-from,
+.fade-slide-leave-to {
+  opacity: 0;
+  transform: translateY(-10px);
 }
 </style>

@@ -183,6 +183,13 @@
       "when": 1783607718573,
       "tag": "0025_green_taskmaster",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "6",
+      "when": 1784986385310,
+      "tag": "0026_lean_professor_monster",
+      "breakpoints": true
     }
   ]
 }

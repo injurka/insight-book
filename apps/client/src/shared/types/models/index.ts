@@ -302,6 +302,7 @@ export interface UserData {
   id: number
   username: string
   role?: string
+  subscriptionTier?: 'free' | 'base' | 'advanced' | 'premium'
   usedTokens?: number
   tokenLimit?: number | null
   usedBooks?: number

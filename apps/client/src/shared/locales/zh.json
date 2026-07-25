@@ -778,15 +778,72 @@
     "eng": "外语 (拉丁字母)"
   },
   "limits": {
-    "title": "账户额度",
-    "subtitle": "可用额度及使用情况的详细信息",
-    "generalTitle": "常规额度",
+    "title": "额度与订阅",
+    "subtitle": "关于您的订阅套餐和当前资源消耗的详细信息",
+    "generalTitle": "当前账户额度",
     "aiTokensTitle": "Token",
     "aiTokensDesc": "用于 AI 操作 (翻译、分析、TTS)",
     "booksTitle": "图书",
     "booksDesc": "图书馆中已上传和保存的图书数量",
     "used": "已使用",
     "infinite": "∞"
+  },
+  "subscriptions": {
+    "title": "订阅套餐",
+    "subtitleTag": "选择最适合您的套餐",
+    "description": "根据您的阅读目标选择套餐。Token 和图书额度每天重置。",
+    "popular": "最受欢迎",
+    "activeTier": "当前套餐",
+    "free": "免费",
+    "monthShort": "月",
+    "perMonth": "每月",
+    "freeForever": "永久",
+    "selectPlanBtn": "详情",
+    "currentPlanBtn": "当前套餐",
+    "limitsBreakdownTitle": "账户每日额度",
+    "tokensLimit": "AI Token",
+    "booksLimit": "图书额度",
+    "whatIsIncluded": "包含功能:",
+    "contactAdminNote": "支付与套餐变更需向系统管理员提出申请。",
+    "requestSubscription": "申请套餐",
+    "tiers": {
+      "free": {
+        "name": "新手体验 (Free)",
+        "description": "体验阅读器基础功能",
+        "f1": "每日 100,000 Token",
+        "f2": "每日 1 本书额度",
+        "f3": "基础 AI 词典与上下文翻译",
+        "f4": "标准单词发音"
+      },
+      "base": {
+        "name": "基础订阅",
+        "description": "覆盖服务器成本，满足每日舒适阅读与 AI 词典",
+        "f1": "每日 250,000 Token",
+        "f2": "每日 2 本书额度",
+        "f3": "每月约 1000–1500 次句子解析",
+        "f4": "生成例句与基础卡片",
+        "f5": "漫画阅读 (OCR) 最多 1-2 卷"
+      },
+      "advanced": {
+        "name": "进阶订阅",
+        "description": "积极学习者的主推套餐: 舒适阅读、TTS 朗读与漫画 OCR",
+        "f1": "每日 700,000 Token",
+        "f2": "每日 4 本书额度",
+        "f3": "每月约 4000–5000 次深度短语解析",
+        "f4": "每月轻松阅读 3–5 卷漫画",
+        "f5": "活跃 AI 对话与测试生成",
+        "f6": "完整 TTS 语音朗读支持"
+      },
+      "premium": {
+        "name": "尊享 Premium",
+        "description": "面向硬核读者: 大量音频、书籍与漫画",
+        "f1": "每日 2,000,000 Token",
+        "f2": "每日 10 本书额度",
+        "f3": "近乎无限制的文本 AI",
+        "f4": "加载大部头教材与数百页漫画",
+        "f5": "最高优先级与额度"
+      }
+    }
   },
   "notebook": {
     "title": "摘录与笔记",

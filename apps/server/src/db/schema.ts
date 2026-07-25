@@ -25,7 +25,8 @@ export const users = sqliteTable('users', {
   passwordHash: text('passwordHash').notNull(),
   role: text('role').notNull().default(ROLES.USER),
 
-  // Лимиты
+  // Лимиты и подписка
+  subscriptionTier: text('subscriptionTier').notNull().default('free'),
   tokenLimit: integer('tokenLimit').default(100000),
   bookLimit: integer('bookLimit').default(3),
   usedTokens: integer('usedTokens').notNull().default(0),

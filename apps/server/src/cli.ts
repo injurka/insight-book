@@ -11,7 +11,45 @@ async function main() {
   if (command === 'list') {
     const users = await db.query.users.findMany()
     logger.info('--- Список пользователей ---')
-    users.forEach(u => logger.info(`ID: ${u.id} | Логин: ${u.username} | Роль: ${u.role} | Токены: ${u.usedTokens}/${u.tokenLimit ?? '∞'} | Книги: ${u.bookLimit ?? '∞'} | Создан: ${u.createdAt}`))
+    users.forEach(u => logger.info(`ID: ${u.id} | Логин: ${u.username} | Роль: ${u.role} | Тариф: ${u.subscriptionTier || 'free'} | Токены: ${u.usedTokens}/${u.tokenLimit ?? '∞'} | Книги: ${u.bookLimit ?? '∞'} | Создан: ${u.createdAt}`))
+    return
+  }
+
+  if (command === 'tier') {
+    const tier = arg3 as 'free' | 'base' | 'advanced' | 'premium'
+    if (!username || !tier) {
+      logger.error('❌ Использование: bun cli.ts tier <username> <free|base|advanced|premium>')
+      return
+    }
+
+    const validTiers = ['free', 'base', 'advanced', 'premium']
+    if (!validTiers.includes(tier)) {
+      logger.error(`❌ Варианты тарифа: ${validTiers.join(', ')}`)
+      return
+    }
+
+    const existing = await db.query.users.findFirst({ where: eq(schema.users.username, username) })
+    if (!existing) {
+      logger.error(`❌ Пользователь ${username} не найден!`)
+      return
+    }
+
+    const tierLimits: Record<string, { tokenLimit: number | null, bookLimit: number | null }> = {
+      free: { tokenLimit: 100_000, bookLimit: 1 },
+      base: { tokenLimit: 250_000, bookLimit: 2 },
+      advanced: { tokenLimit: 700_000, bookLimit: 4 },
+      premium: { tokenLimit: 2_000_000, bookLimit: 10 },
+    }
+
+    const limits = tierLimits[tier]
+    await db.update(schema.users).set({
+      subscriptionTier: tier,
+      tokenLimit: limits.tokenLimit,
+      bookLimit: limits.bookLimit,
+    }).where(eq(schema.users.id, existing.id))
+
+    logger.info(`✅ Подписка для пользователя ${username} изменена на "${tier}"!`)
+    logger.info(`   Обновлены лимиты: токены = ${limits.tokenLimit?.toLocaleString()}, книги = ${limits.bookLimit}`)
     return
   }
 

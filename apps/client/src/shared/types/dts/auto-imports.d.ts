@@ -13,6 +13,7 @@ declare global {
   const DIFFICULTY_SYSTEMS: typeof import('../../constants/difficulties').DIFFICULTY_SYSTEMS
   const EffectScope: typeof import('vue').EffectScope
   const POS_TAGS_MAP: typeof import('../../constants/pos-tags').POS_TAGS_MAP
+  const SUBSCRIPTION_TIERS_CONFIG: typeof import('../../constants/subscriptions').SUBSCRIPTION_TIERS_CONFIG
   const ThemesVariant: typeof import('../../composables/use-change-theme').ThemesVariant
   const acceptHMRUpdate: typeof import('pinia').acceptHMRUpdate
   const asyncComputed: typeof import('@vueuse/core').asyncComputed
@@ -348,6 +349,9 @@ declare global {
   export type { AppRouteNames } from '../../constants/routes'
   import('../../constants/routes')
   // @ts-ignore
+  export type { SubscriptionTierId, SubscriptionTierConfig } from '../../constants/subscriptions'
+  import('../../constants/subscriptions')
+  // @ts-ignore
   export type { TagKey } from '../../constants/tags'
   import('../../constants/tags')
 }
@@ -364,6 +368,7 @@ declare module 'vue' {
     readonly DIFFICULTY_SYSTEMS: UnwrapRef<typeof import('../../constants/difficulties')['DIFFICULTY_SYSTEMS']>
     readonly EffectScope: UnwrapRef<typeof import('vue')['EffectScope']>
     readonly POS_TAGS_MAP: UnwrapRef<typeof import('../../constants/pos-tags')['POS_TAGS_MAP']>
+    readonly SUBSCRIPTION_TIERS_CONFIG: UnwrapRef<typeof import('../../constants/subscriptions')['SUBSCRIPTION_TIERS_CONFIG']>
     readonly ThemesVariant: UnwrapRef<typeof import('../../composables/use-change-theme')['ThemesVariant']>
     readonly acceptHMRUpdate: UnwrapRef<typeof import('pinia')['acceptHMRUpdate']>
     readonly asyncComputed: UnwrapRef<typeof import('@vueuse/core')['asyncComputed']>

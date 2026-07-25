@@ -778,15 +778,72 @@
     "eng": "Foreign word (Latin)"
   },
   "limits": {
-    "title": "Account Limits",
-    "subtitle": "Detailed information about available limits and their usage",
-    "generalTitle": "General Limits",
+    "title": "Limits & Subscriptions",
+    "subtitle": "Detailed information about your subscription tier and current resource usage",
+    "generalTitle": "Current Account Limits",
     "aiTokensTitle": "Tokens",
     "aiTokensDesc": "Used for AI operations (translation, analysis, TTS)",
     "booksTitle": "Books",
     "booksDesc": "Number of uploaded and saved books in the library",
     "used": "Used",
     "infinite": "∞"
+  },
+  "subscriptions": {
+    "title": "Subscription Plans",
+    "subtitleTag": "Choose your plan",
+    "description": "Select a plan tailored to your reading goals. Token and book limits reset daily.",
+    "popular": "Popular",
+    "activeTier": "Active Plan",
+    "free": "Free",
+    "monthShort": "mo",
+    "perMonth": "per month",
+    "freeForever": "forever",
+    "selectPlanBtn": "Details",
+    "currentPlanBtn": "Current Plan",
+    "limitsBreakdownTitle": "Account Daily Limits",
+    "tokensLimit": "AI Tokens",
+    "booksLimit": "Book Limit",
+    "whatIsIncluded": "What's included:",
+    "contactAdminNote": "Payment and subscription plan modifications are handled upon request to system admin.",
+    "requestSubscription": "Request Plan",
+    "tiers": {
+      "free": {
+        "name": "Starter (Free)",
+        "description": "Basic access to try out reader features",
+        "f1": "100,000 tokens per day",
+        "f2": "1 book in daily limit",
+        "f3": "Basic AI dictionary and context translation",
+        "f4": "Standard word pronunciation"
+      },
+      "base": {
+        "name": "Basic Subscription",
+        "description": "Covers server expenses for daily reading with AI dictionary",
+        "f1": "250,000 tokens per day",
+        "f2": "2 books in daily limit",
+        "f3": "~1000–1500 sentence analyses per month",
+        "f4": "Example generation and flashcard creation",
+        "f5": "Manga reading (OCR) up to 1-2 volumes"
+      },
+      "advanced": {
+        "name": "Advanced Subscription",
+        "description": "Main plan for active learners: comfortable reading, TTS, and Manga OCR",
+        "f1": "700,000 tokens per day",
+        "f2": "4 books in daily limit",
+        "f3": "~4000–5000 deep phrase analyses",
+        "f4": "Comfortable reading of 3–5 manga volumes/mo",
+        "f5": "Active AI chat and quiz generation",
+        "f6": "Full TTS voice generation"
+      },
+      "premium": {
+        "name": "Premium Subscription",
+        "description": "For hardcore users: heavy reading, TTS, and manga",
+        "f1": "2,000,000 tokens per day",
+        "f2": "10 books in daily limit",
+        "f3": "Practically unlimited text AI",
+        "f4": "Heavy textbooks and hundreds of manga pages",
+        "f5": "Highest priority and limits"
+      }
+    }
   },
   "notebook": {
     "title": "Quotes & Notes",
