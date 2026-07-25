@@ -90,6 +90,11 @@ export const router = createRouter({
       name: AppRouteNames.Privacy,
       component: () => import('~/pages/privacy.vue'),
     },
+    {
+      path: '/offer',
+      name: AppRouteNames.Offer,
+      component: () => import('~/pages/offer.vue'),
+    },
   ],
 })
 

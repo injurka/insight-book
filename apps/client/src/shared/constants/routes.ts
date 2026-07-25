@@ -11,6 +11,7 @@ export enum AppRouteNames {
   About = 'about',
   Copyright = 'copyright',
   Privacy = 'privacy',
+  Offer = 'offer',
   //
   YandexCallback = 'yandex-callback',
 }
@@ -26,6 +27,7 @@ export const AppRoutePaths = {
   About: '/about',
   Copyright: '/copyright',
   Privacy: '/privacy',
+  Offer: '/offer',
   Book: {
     Info: (id: string | number) => `/book/${id}`,
   },
