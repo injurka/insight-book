@@ -131,10 +131,24 @@ onMounted(() => {
       <template v-if="isEditingStats && libraryStore.currentBookInfo.userId === authStore.user?.id">
         <div class="edit-form">
           <div class="ai-generate-actions">
-            <KitBtn variant="outlined" color="accent" icon="mdi:robot-outline" class="flex-1" :disabled="libraryStore.isAnalyzingBook" @click="triggerAiAnalysis">
+            <KitBtn
+              variant="outlined"
+              color="accent"
+              icon="mdi:robot-outline"
+              class="flex-1"
+              :disabled="libraryStore.isAnalyzingBook"
+              @click="triggerAiAnalysis"
+            >
               {{ t('bookStats.generateAiInfo') }}
             </KitBtn>
-            <KitBtn variant="outlined" color="secondary" icon="mdi:chart-pie" class="flex-1" :disabled="libraryStore.isAnalyzingVocab" @click="triggerVocabularyAnalysis">
+            <KitBtn
+              variant="outlined"
+              color="secondary"
+              icon="mdi:chart-pie"
+              class="flex-1"
+              :disabled="libraryStore.isAnalyzingVocab"
+              @click="triggerVocabularyAnalysis"
+            >
               {{ t('bookStats.collectVocab') }}
             </KitBtn>
           </div>
@@ -151,7 +165,12 @@ onMounted(() => {
           </div>
           <div class="form-group">
             <label>{{ t('bookStats.annotation') }}</label>
-            <textarea v-model="editForm.descriptionByLang[editDescLang]" class="custom-textarea" rows="4" :placeholder="t('bookStats.annotation')" />
+            <textarea
+              v-model="editForm.descriptionByLang[editDescLang]"
+              class="custom-textarea"
+              rows="4"
+              :placeholder="t('bookStats.annotation')"
+            />
           </div>
           <div class="form-actions">
             <KitBtn variant="tonal" @click="isEditingStats = false">
@@ -541,7 +560,6 @@ onMounted(() => {
     cursor: pointer;
     user-select: none;
     padding: 10px 12px;
-    margin: 0 -12px;
     border-radius: 8px;
     transition: background-color 0.2s ease;
 

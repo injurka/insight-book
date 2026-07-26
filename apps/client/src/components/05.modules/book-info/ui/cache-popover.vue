@@ -268,7 +268,7 @@ watch(() => libraryStore.currentBookInfo?.id, () => {
   font-weight: 400;
   font-size: 0.85rem;
   color: var(--fg-secondary-color);
-  margin-left: 8px;
+  margin-left: 4px;
 }
 
 .cp-card-badge {
@@ -330,7 +330,7 @@ watch(() => libraryStore.currentBookInfo?.id, () => {
 
 .cp-detail {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: 6px;
   font-size: 0.82rem;
   color: var(--fg-secondary-color);

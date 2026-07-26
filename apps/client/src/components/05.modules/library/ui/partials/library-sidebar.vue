@@ -46,7 +46,12 @@ function onMenuClick(id: string) {
   </aside>
 
   <!-- Mobile Menu -->
-  <KitDialog v-model:visible="isMobileMenuOpen" :title="t('library.menuTitle')" :max-width="400" :floating="false">
+  <KitDialog
+    v-model:visible="isMobileMenuOpen"
+    :title="t('library.menuTitle')"
+    :max-width="400"
+    :floating="false"
+  >
     <ul class="nav-menu mobile-menu">
       <li
         v-for="item in items"

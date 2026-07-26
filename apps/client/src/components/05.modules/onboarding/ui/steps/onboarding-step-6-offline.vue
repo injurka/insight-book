@@ -77,7 +77,12 @@ function toggleOffline() {
     <!-- Фиксированная зона действий -->
     <div class="step-actions">
       <Transition name="fade" mode="out-in">
-        <KitBtn v-if="isOffline" color="primary" class="next-btn" @click="emit('next')">
+        <KitBtn
+          v-if="isOffline"
+          color="primary"
+          class="next-btn"
+          @click="emit('next')"
+        >
           {{ t('onboarding.next') }} <Icon icon="mdi:arrow-right" />
         </KitBtn>
         <div v-else class="hint-action blink" @click="toggleOffline">

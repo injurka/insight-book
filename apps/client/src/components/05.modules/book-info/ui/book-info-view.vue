@@ -58,16 +58,36 @@ function goBack() {
       <div v-if="libraryStore.isLoading && !libraryStore.currentBookInfo" class="loading-state book-container">
         <div class="layout-top">
           <div class="cover-col">
-            <KitSkeleton width="100%" height="auto" class="cover-skeleton" border-radius="12px" />
+            <KitSkeleton
+              width="100%"
+              height="auto"
+              class="cover-skeleton"
+              border-radius="12px"
+            />
             <div class="action-buttons">
               <KitSkeleton width="100%" height="38px" border-radius="6px" />
               <KitSkeleton width="100%" height="38px" border-radius="6px" />
             </div>
           </div>
           <div class="content-col">
-            <KitSkeleton width="80%" height="40px" class="title-skeleton" border-radius="8px" />
-            <KitSkeleton width="40%" height="24px" class="author-skeleton" border-radius="6px" />
-            <KitSkeleton width="100%" height="100px" border-radius="12px" class="progress-skeleton" />
+            <KitSkeleton
+              width="80%"
+              height="40px"
+              class="title-skeleton"
+              border-radius="8px"
+            />
+            <KitSkeleton
+              width="40%"
+              height="24px"
+              class="author-skeleton"
+              border-radius="6px"
+            />
+            <KitSkeleton
+              width="100%"
+              height="100px"
+              border-radius="12px"
+              class="progress-skeleton"
+            />
             <KitSkeleton width="100%" height="250px" border-radius="12px" />
           </div>
         </div>

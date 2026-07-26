@@ -144,7 +144,12 @@ function cancelPress() {
 
     <!-- Фиксированная зона действий -->
     <div class="step-actions">
-      <KitBtn v-if="isTranslated" color="primary" class="next-btn" @click="emit('next')">
+      <KitBtn
+        v-if="isTranslated"
+        color="primary"
+        class="next-btn"
+        @click="emit('next')"
+      >
         {{ t('onboarding.next') }} <Icon icon="mdi:arrow-right" />
       </KitBtn>
       <div v-else class="hint-action blink">

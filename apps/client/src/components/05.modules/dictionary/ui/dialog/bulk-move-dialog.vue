@@ -35,7 +35,12 @@ function save() {
 <template>
   <KitDialog v-model:visible="visible" :title="t('dictionary.moveToDeck')" :max-width="400">
     <div class="bulk-move-content">
-      <div v-for="deck in store.decks" :key="deck.id" class="deck-row" @click="toggleDeck(deck.id)">
+      <div
+        v-for="deck in store.decks"
+        :key="deck.id"
+        class="deck-row"
+        @click="toggleDeck(deck.id)"
+      >
         <KitCheckbox :model-value="selectedDecks.has(deck.id)" />
         <span class="deck-name">{{ deck.name }}</span>
       </div>

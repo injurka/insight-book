@@ -247,7 +247,12 @@ onMounted(() => {
               </button>
             </div>
           </div>
-          <div v-for="msg in messages" :key="msg.id" class="chat-message" :class="msg.sender">
+          <div
+            v-for="msg in messages"
+            :key="msg.id"
+            class="chat-message"
+            :class="msg.sender"
+          >
             <div class="message-bubble">
               <div class="message-sender-label">
                 <Icon v-if="msg.sender === 'ai'" icon="mdi:robot" class="ai-label-icon mr-1" />
@@ -283,7 +288,13 @@ onMounted(() => {
               >
                 {{ t('dictionary.selectPrompt') }} ({{ t('dictionary.noPrompt') || 'None' }})
               </div>
-              <div v-for="p in prompts" :key="p.id" class="dropdown-item" :class="{ active: selectedPromptId === p.id }" @click="selectedPromptId = p.id">
+              <div
+                v-for="p in prompts"
+                :key="p.id"
+                class="dropdown-item"
+                :class="{ active: selectedPromptId === p.id }"
+                @click="selectedPromptId = p.id"
+              >
                 {{ p.name }}
               </div>
               <div class="dropdown-divider" />
@@ -297,7 +308,13 @@ onMounted(() => {
           <div class="input-wrapper">
             <div v-if="selectedPromptId" class="selected-prompt-badge">
               <span class="badge-text">{{ prompts.find(p => p.id === selectedPromptId)?.name }}</span>
-              <KitBtn icon="mdi:close" variant="text" size="xs" color="secondary" @click="selectedPromptId = ''" />
+              <KitBtn
+                icon="mdi:close"
+                variant="text"
+                size="xs"
+                color="secondary"
+                @click="selectedPromptId = ''"
+              />
             </div>
             <textarea
               v-model="messageText"
@@ -322,18 +339,42 @@ onMounted(() => {
       <div v-if="isManagingPrompts" class="chat-sidebar-panel">
         <div class="sidebar-header">
           <h3>{{ t('dictionary.customPrompts') }}</h3>
-          <KitBtn icon="mdi:close" variant="text" size="xs" color="secondary" @click="isManagingPrompts = false" />
+          <KitBtn
+            icon="mdi:close"
+            variant="text"
+            size="xs"
+            color="secondary"
+            @click="isManagingPrompts = false"
+          />
         </div>
 
         <div v-if="!isEditingPrompt" class="prompt-manager-list">
           <div v-for="prompt in prompts" :key="prompt.id" class="prompt-manager-item">
             <span class="prompt-name" :title="prompt.prompt">{{ prompt.name }}</span>
             <div class="prompt-actions">
-              <KitBtn icon="mdi:pencil" variant="text" size="xs" color="secondary" @click="startEditPrompt(prompt)" />
-              <KitBtn icon="mdi:delete" variant="text" size="xs" color="error" @click="deletePrompt(prompt.id)" />
+              <KitBtn
+                icon="mdi:pencil"
+                variant="text"
+                size="xs"
+                color="secondary"
+                @click="startEditPrompt(prompt)"
+              />
+              <KitBtn
+                icon="mdi:delete"
+                variant="text"
+                size="xs"
+                color="error"
+                @click="deletePrompt(prompt.id)"
+              />
             </div>
           </div>
-          <KitBtn icon="mdi:plus" variant="tonal" color="primary" class="add-prompt-btn" @click="startCreatePrompt">
+          <KitBtn
+            icon="mdi:plus"
+            variant="tonal"
+            color="primary"
+            class="add-prompt-btn"
+            @click="startCreatePrompt"
+          >
             {{ t('dictionary.creatingPrompt') }}
           </KitBtn>
         </div>
@@ -354,10 +395,20 @@ onMounted(() => {
             />
           </div>
           <div class="form-actions">
-            <KitBtn variant="tonal" color="secondary" size="sm" @click="cancelPromptForm">
+            <KitBtn
+              variant="tonal"
+              color="secondary"
+              size="sm"
+              @click="cancelPromptForm"
+            >
               {{ t('dictionary.cancel') }}
             </KitBtn>
-            <KitBtn color="primary" size="sm" :disabled="!editName.trim() || !editPromptText.trim()" @click="savePrompt">
+            <KitBtn
+              color="primary"
+              size="sm"
+              :disabled="!editName.trim() || !editPromptText.trim()"
+              @click="savePrompt"
+            >
               {{ t('dictionary.savePrompt') }}
             </KitBtn>
           </div>

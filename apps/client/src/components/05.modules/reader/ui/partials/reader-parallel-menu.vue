@@ -77,22 +77,24 @@ function startParallelAnalysis() {
       </div>
     </div>
 
-    <div v-if="settingsStore.parallelViewMode !== 'none'" class="divider" />
+    <template v-if="settingsStore.parallelViewMode === 'interleaved'">
+      <div class="divider" />
 
-    <div v-if="settingsStore.parallelViewMode !== 'none'" class="menu-section">
-      <div class="hint-text">
-        {{ t('reader.parallelReadingHint') }}
+      <div class="menu-section">
+        <div class="hint-text">
+          {{ t('reader.parallelReadingHint', 'Для отображения текста необходимо перевести все предложения на странице.') }}
+        </div>
+        <KitBtn
+          color="primary"
+          class="action-btn"
+          :disabled="analysisStore.isManualPageAnalysisActive"
+          @click="startParallelAnalysis"
+        >
+          <Icon icon="mdi:translate" class="btn-icon" />
+          {{ analysisStore.isManualPageAnalysisActive ? t('reader.translatingPage', 'Перевод...') : t('reader.translatePage', 'Перевести страницу') }}
+        </KitBtn>
       </div>
-      <KitBtn
-        color="primary"
-        class="action-btn"
-        :disabled="analysisStore.isManualPageAnalysisActive"
-        @click="startParallelAnalysis"
-      >
-        <Icon icon="mdi:translate" class="btn-icon" />
-        {{ analysisStore.isManualPageAnalysisActive ? t('reader.translatingPage') : t('reader.translateWholePage') }}
-      </KitBtn>
-    </div>
+    </template>
   </div>
 </template>
 
@@ -160,7 +162,7 @@ function startParallelAnalysis() {
 
 .divider {
   height: 1px;
-  background-color: var(--border-secondary-color);
+  background-color: var(--border-primary-color);
   margin: 0 4px;
 }
 
@@ -178,7 +180,7 @@ function startParallelAnalysis() {
 .action-btn {
   margin: 4px 8px 8px 8px;
 
-  .btn-icon {
+  :deep(.btn-icon) {
     margin-right: 6px;
   }
 }

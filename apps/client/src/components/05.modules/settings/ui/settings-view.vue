@@ -38,7 +38,12 @@ onMounted(() => {
     <HoverRevealBg />
 
     <header class="page-header">
-      <KitBtn icon="mdi:arrow-left" variant="text" size="md" @click="router.push(AppRoutePaths.Home)" />
+      <KitBtn
+        icon="mdi:arrow-left"
+        variant="text"
+        size="md"
+        @click="router.push(AppRoutePaths.Home)"
+      />
       <div class="header-title">
         <h1>{{ t('settings.title') }}</h1>
         <p>{{ t('settings.subtitle') }}</p>

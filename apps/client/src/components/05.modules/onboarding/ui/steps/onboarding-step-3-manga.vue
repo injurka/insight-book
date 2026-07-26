@@ -218,7 +218,12 @@ function closeWordPopover() {
         {{ t('onboarding.step3_success') }}
       </div>
 
-      <KitBtn v-if="wordClicked" color="primary" class="next-btn" @click="emit('next')">
+      <KitBtn
+        v-if="wordClicked"
+        color="primary"
+        class="next-btn"
+        @click="emit('next')"
+      >
         Далее <Icon icon="mdi:arrow-right" class="ml-2" />
       </KitBtn>
       <div v-else-if="currentStep === 0" class="hint-action blink" @click="handleBubbleClick">

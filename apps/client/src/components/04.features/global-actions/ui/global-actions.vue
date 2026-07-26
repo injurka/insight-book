@@ -162,7 +162,12 @@ async function handleLogout() {
         :aria-label="t('globalActions.myNotebook')"
         @click="openNotebook"
       />
-      <KitDropdown ref="mainDropdownRef" placement="bottom-end" width="280px" :close-on-content-click="false">
+      <KitDropdown
+        ref="mainDropdownRef"
+        placement="bottom-end"
+        width="280px"
+        :close-on-content-click="false"
+      >
         <template #activator="{ props: dropdownProps }">
           <KitBtn
             :icon="authStore.isSingleMode ? 'mdi:cog-outline' : 'mdi:account-circle-outline'"

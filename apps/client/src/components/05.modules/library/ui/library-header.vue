@@ -53,7 +53,12 @@ const isMobileFiltersOpen = ref(false)
 
     <div class="header-bottom">
       <div class="search-wrapper">
-        <KitInput v-model="search" :placeholder="t('library.searchPlaceholder')" size="md" class="search-input" />
+        <KitInput
+          v-model="search"
+          :placeholder="t('library.searchPlaceholder')"
+          size="md"
+          class="search-input"
+        />
 
         <KitBtn
           class="mobile-filter-btn"
@@ -84,7 +89,12 @@ const isMobileFiltersOpen = ref(false)
         <div class="spacer" />
 
         <div class="header-actions">
-          <KitBtn v-if="authStore.user" icon="mdi:upload" color="primary" @click="emit('openUploadModal')">
+          <KitBtn
+            v-if="authStore.user"
+            icon="mdi:upload"
+            color="primary"
+            @click="emit('openUploadModal')"
+          >
             {{ t('library.addBook') }}
           </KitBtn>
         </div>

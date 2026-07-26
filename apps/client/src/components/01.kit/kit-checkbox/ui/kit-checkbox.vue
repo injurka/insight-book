@@ -16,7 +16,12 @@ function toggle() {
 <template>
   <div class="kit-checkbox" @click="toggle">
     <div class="checkbox-box" :class="{ checked: modelValue }">
-      <Icon v-if="modelValue" icon="mdi:check" size="14" style="color: white;" />
+      <Icon
+        v-if="modelValue"
+        icon="mdi:check"
+        size="14"
+        style="color: white;"
+      />
     </div>
     <span v-if="label" class="checkbox-label">{{ label }}</span>
   </div>

@@ -161,7 +161,12 @@ onMounted(() => {
 </script>
 
 <template>
-  <KitDialog v-model:visible="visible" :title="t('dictionary.discover.title')" icon="mdi:bookshelf" :max-width="800">
+  <KitDialog
+    v-model:visible="visible"
+    :title="t('dictionary.discover.title')"
+    icon="mdi:bookshelf"
+    :max-width="800"
+  >
     <div class="discover-modal-content">
       <KitTabs v-model="activeTab" :items="tabItems" :cache="false">
         <template #import>
@@ -170,13 +175,24 @@ onMounted(() => {
               <Icon icon="mdi:file-upload-outline" class="upload-icon" />
               <h3>{{ t('dictionary.discover.upload_title') }}</h3>
               <p>{{ t('dictionary.discover.upload_desc') }}</p>
-              <input ref="fileInputRef" type="file" accept=".csv,.txt" hidden @change="onFileSelected">
+              <input
+                ref="fileInputRef"
+                type="file"
+                accept=".csv,.txt"
+                hidden
+                @change="onFileSelected"
+              >
             </div>
 
             <div v-else class="mapping-area">
               <div class="selected-file-info">
                 <span><b>{{ t('dictionary.discover.file') }}</b> {{ selectedFile.name }}</span>
-                <KitBtn size="xs" variant="text" color="error" @click="selectedFile = null; previewRows = []">
+                <KitBtn
+                  size="xs"
+                  variant="text"
+                  color="error"
+                  @click="selectedFile = null; previewRows = []"
+                >
                   {{ t('dictionary.discover.change') }}
                 </KitBtn>
               </div>
@@ -229,7 +245,12 @@ onMounted(() => {
                 <KitCheckbox v-model="importAutoFill" :label="t('dictionary.discover.auto_fill_label')" />
               </div>
 
-              <KitBtn color="primary" class="submit-btn" :disabled="isImporting" @click="doImport">
+              <KitBtn
+                color="primary"
+                class="submit-btn"
+                :disabled="isImporting"
+                @click="doImport"
+              >
                 {{ isImporting ? t('dictionary.discover.importing') : t('dictionary.discover.import_btn') }}
               </KitBtn>
             </div>
@@ -244,7 +265,13 @@ onMounted(() => {
                   <KitBtn icon="mdi:arrow-left" variant="text" @click="closePreview" />
                   <h3>{{ previewDeck.name }}</h3>
                   <div class="spacer" />
-                  <KitBtn color="primary" size="sm" icon="mdi:plus" :loading="cloningDeckId === previewDeck.id" @click="cloneDeck(previewDeck.id)">
+                  <KitBtn
+                    color="primary"
+                    size="sm"
+                    icon="mdi:plus"
+                    :loading="cloningDeckId === previewDeck.id"
+                    @click="cloneDeck(previewDeck.id)"
+                  >
                     {{ t('dictionary.discover.add_to_library') }}
                   </KitBtn>
                 </div>
@@ -270,7 +297,12 @@ onMounted(() => {
                   {{ t('dictionary.discover.no_decks') }}
                 </div>
                 <div v-else class="catalog-grid">
-                  <div v-for="deck in catalogDecks" :key="deck.id" class="catalog-card" @click="openPreview(deck)">
+                  <div
+                    v-for="deck in catalogDecks"
+                    :key="deck.id"
+                    class="catalog-card"
+                    @click="openPreview(deck)"
+                  >
                     <div class="card-header">
                       <h4>{{ deck.name }}</h4>
                       <span class="deck-lang">{{ deck.language }}</span>
@@ -283,7 +315,16 @@ onMounted(() => {
                         <span>{{ deck.difficulty || t('dictionary.discover.all_levels') }}</span>
                         <span>{{ t('dictionary.discover.words_count', { count: deck.wordCount }) }}</span>
                       </div>
-                      <KitBtn variant="tonal" color="primary" size="sm" icon="mdi:plus" class="card-btn" :title="t('dictionary.discover.add_to_library')" :loading="cloningDeckId === deck.id" @click.stop="cloneDeck(deck.id)" />
+                      <KitBtn
+                        variant="tonal"
+                        color="primary"
+                        size="sm"
+                        icon="mdi:plus"
+                        class="card-btn"
+                        :title="t('dictionary.discover.add_to_library')"
+                        :loading="cloningDeckId === deck.id"
+                        @click.stop="cloneDeck(deck.id)"
+                      />
                     </div>
                   </div>
                 </div>

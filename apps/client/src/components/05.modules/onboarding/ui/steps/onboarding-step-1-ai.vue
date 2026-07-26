@@ -117,7 +117,12 @@ function translateWord(id: string) {
     <!-- Фиксированная зона для кнопок внизу -->
     <div class="step-actions">
       <Transition name="fade" mode="out-in">
-        <KitBtn v-if="isWordTranslated" color="primary" class="next-btn" @click="emit('next')">
+        <KitBtn
+          v-if="isWordTranslated"
+          color="primary"
+          class="next-btn"
+          @click="emit('next')"
+        >
           {{ t('onboarding.next') }} <Icon icon="mdi:arrow-right" />
         </KitBtn>
       </Transition>

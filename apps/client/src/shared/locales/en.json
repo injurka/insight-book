@@ -108,8 +108,6 @@
     "cacheTtsSentencesDesc": "Generate audio for all phrases",
     "cacheTtsWords": "Voice words",
     "cacheTtsWordsDesc": "Generate audio for each word",
-    "warning": "Warning!",
-    "warningDesc": "The process can take a long time and actively consume API limits. Recommended for local models (Ollama).",
     "pages": "Pages",
     "sentences": "Sentences",
     "stop": "Stop"

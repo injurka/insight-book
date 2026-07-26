@@ -137,14 +137,32 @@ function handleConfirmDelete() {
           </KitBtn>
           <div class="divider" />
           <KitTooltip :text="t('dictionary.exportAnkiHint')" placement="top">
-            <KitBtn size="sm" color="primary" variant="tonal" icon="mdi:export-variant" @click="exportToAnki">
+            <KitBtn
+              size="sm"
+              color="primary"
+              variant="tonal"
+              icon="mdi:export-variant"
+              @click="exportToAnki"
+            >
               {{ t('dictionary.exportAnki') }}
             </KitBtn>
           </KitTooltip>
-          <KitBtn size="sm" color="primary" variant="tonal" icon="mdi:folder-move-outline" @click="emit('openBulkMove')">
+          <KitBtn
+            size="sm"
+            color="primary"
+            variant="tonal"
+            icon="mdi:folder-move-outline"
+            @click="emit('openBulkMove')"
+          >
             {{ t('dictionary.move') }}
           </KitBtn>
-          <KitBtn size="sm" color="error" variant="tonal" icon="mdi:delete-outline" @click="store.bulkDelete()">
+          <KitBtn
+            size="sm"
+            color="error"
+            variant="tonal"
+            icon="mdi:delete-outline"
+            @click="store.bulkDelete()"
+          >
             {{ t('dictionary.delete') }}
           </KitBtn>
         </div>
@@ -218,7 +236,13 @@ function handleConfirmDelete() {
                 />
               </KitTooltip>
               <KitTooltip :text="t('dictionary.deleteItem')" placement="top-end">
-                <KitBtn icon="mdi:delete-outline" variant="text" size="xs" color="error" @click="openDeleteWord(item.word)" />
+                <KitBtn
+                  icon="mdi:delete-outline"
+                  variant="text"
+                  size="xs"
+                  color="error"
+                  @click="openDeleteWord(item.word)"
+                />
               </KitTooltip>
             </div>
           </div>
@@ -277,7 +301,13 @@ function handleConfirmDelete() {
               />
             </KitTooltip>
             <KitTooltip :text="t('dictionary.deleteItem')" placement="top-end">
-              <KitBtn icon="mdi:delete-outline" variant="text" size="xs" color="error" @click="openDeleteWord(item.data.word)" />
+              <KitBtn
+                icon="mdi:delete-outline"
+                variant="text"
+                size="xs"
+                color="error"
+                @click="openDeleteWord(item.data.word)"
+              />
             </KitTooltip>
           </div>
         </div>

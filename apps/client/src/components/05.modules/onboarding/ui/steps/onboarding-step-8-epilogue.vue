@@ -35,7 +35,12 @@ const { t } = useI18n()
       </div>
     </div>
 
-    <KitBtn color="primary" size="lg" class="finish-btn pulse-btn" @click="emit('finish')">
+    <KitBtn
+      color="primary"
+      size="lg"
+      class="finish-btn pulse-btn"
+      @click="emit('finish')"
+    >
       {{ t('onboarding.step8_action') }} <Icon icon="mdi:arrow-right" />
     </KitBtn>
   </OnboardingStepLayout>

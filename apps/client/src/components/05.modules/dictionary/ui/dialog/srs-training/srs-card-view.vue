@@ -495,7 +495,12 @@ watch(() => props.card, initCard, { immediate: true })
 
       <div class="card-toolbar fade-in">
         <div class="toolbar-group">
-          <KitDropdown v-model="isTtsPopoverOpen" placement="bottom-start" width="220px" :disabled="true">
+          <KitDropdown
+            v-model="isTtsPopoverOpen"
+            placement="bottom-start"
+            width="220px"
+            :disabled="true"
+          >
             <template #activator>
               <KitTooltip :text="t('dictionary.listenVoice')" placement="bottom">
                 <KitBtn
@@ -554,20 +559,45 @@ watch(() => props.card, initCard, { immediate: true })
             </div>
           </KitDropdown>
           <KitTooltip v-if="card.language === 'zh' && /[\u4E00-\u9FA5]/.test(card.word)" :text="t('dictionary.writingPractice')" placement="bottom">
-            <KitBtn icon="mdi:draw" variant="tonal" color="secondary" size="sm" :class="{ 'is-active-btn': showAnimation }" @click="toggleAnimation" />
+            <KitBtn
+              icon="mdi:draw"
+              variant="tonal"
+              color="secondary"
+              size="sm"
+              :class="{ 'is-active-btn': showAnimation }"
+              @click="toggleAnimation"
+            />
           </KitTooltip>
         </div>
 
         <div v-if="card.grammarNote || card.vocabularyNote || card.notes" class="toolbar-divider" />
         <div v-if="card.grammarNote || card.vocabularyNote || card.notes" class="toolbar-group">
           <KitTooltip v-if="card.grammarNote" :text="t('dictionary.grammar')" placement="bottom">
-            <KitBtn size="sm" :variant="expandedSections.grammar ? 'solid' : 'tonal'" :color="expandedSections.grammar ? 'primary' : 'secondary'" icon="mdi:puzzle-outline" @click="toggleSection('grammar')" />
+            <KitBtn
+              size="sm"
+              :variant="expandedSections.grammar ? 'solid' : 'tonal'"
+              :color="expandedSections.grammar ? 'primary' : 'secondary'"
+              icon="mdi:puzzle-outline"
+              @click="toggleSection('grammar')"
+            />
           </KitTooltip>
           <KitTooltip v-if="card.vocabularyNote" :text="t('dictionary.vocabulary')" placement="bottom">
-            <KitBtn size="sm" :variant="expandedSections.vocab ? 'solid' : 'tonal'" :color="expandedSections.vocab ? 'primary' : 'secondary'" icon="mdi:book-open-page-variant-outline" @click="toggleSection('vocab')" />
+            <KitBtn
+              size="sm"
+              :variant="expandedSections.vocab ? 'solid' : 'tonal'"
+              :color="expandedSections.vocab ? 'primary' : 'secondary'"
+              icon="mdi:book-open-page-variant-outline"
+              @click="toggleSection('vocab')"
+            />
           </KitTooltip>
           <KitTooltip v-if="card.notes" :text="t('dictionary.notesMnemonic')" placement="bottom">
-            <KitBtn size="sm" :variant="expandedSections.notes ? 'solid' : 'tonal'" :color="expandedSections.notes ? 'primary' : 'secondary'" icon="mdi:note-text-outline" @click="toggleSection('notes')" />
+            <KitBtn
+              size="sm"
+              :variant="expandedSections.notes ? 'solid' : 'tonal'"
+              :color="expandedSections.notes ? 'primary' : 'secondary'"
+              icon="mdi:note-text-outline"
+              @click="toggleSection('notes')"
+            />
           </KitTooltip>
         </div>
       </div>
@@ -601,8 +631,19 @@ watch(() => props.card, initCard, { immediate: true })
 
     <div v-if="showAnimation" class="animation-container fade-in">
       <h4>{{ t('dictionary.strokeOrder') }}</h4>
-      <HanziBoard ref="hanziBoardRef" :text="card.word" mode="animation" :size="80" />
-      <KitBtn icon="mdi:replay" variant="text" size="xs" color="secondary" @click="hanziBoardRef?.replay()">
+      <HanziBoard
+        ref="hanziBoardRef"
+        :text="card.word"
+        mode="animation"
+        :size="80"
+      />
+      <KitBtn
+        icon="mdi:replay"
+        variant="text"
+        size="xs"
+        color="secondary"
+        @click="hanziBoardRef?.replay()"
+      >
         {{ t('dictionary.repeat') }}
       </KitBtn>
     </div>
@@ -611,10 +652,20 @@ watch(() => props.card, initCard, { immediate: true })
   <div class="actions">
     <template v-if="!isFlipped">
       <div class="front-actions">
-        <KitBtn v-if="['standard', 'audio', 'writing'].includes(currentMode)" color="primary" size="lg" @click="flip">
+        <KitBtn
+          v-if="['standard', 'audio', 'writing'].includes(currentMode)"
+          color="primary"
+          size="lg"
+          @click="flip"
+        >
           {{ currentMode === 'writing' ? t('dictionary.dontRememberShow') : t('dictionary.showAnswer') }}
         </KitBtn>
-        <KitBtn v-else variant="tonal" size="md" @click="skipObjectiveTest">
+        <KitBtn
+          v-else
+          variant="tonal"
+          size="md"
+          @click="skipObjectiveTest"
+        >
           {{ t('dictionary.dontRememberSkip') }}
         </KitBtn>
       </div>
@@ -622,20 +673,40 @@ watch(() => props.card, initCard, { immediate: true })
 
     <div v-else-if="intervals" class="grade-buttons fade-in">
       <template v-if="dictStore.trainingMode === 'deep_dive'">
-        <button class="grade-btn primary" :class="{ 'is-suggested': isAnswerChecked && isAnswerCorrect }" :disabled="isSubmittingGrade" @click="gradeCard(Rating.Good)">
+        <button
+          class="grade-btn primary"
+          :class="{ 'is-suggested': isAnswerChecked && isAnswerCorrect }"
+          :disabled="isSubmittingGrade"
+          @click="gradeCard(Rating.Good)"
+        >
           <span class="g-label">{{ t('dictionary.next') }}</span>
         </button>
       </template>
       <template v-else-if="dictStore.trainingMode === 'cram'">
-        <button class="grade-btn error" :class="{ 'is-suggested': isAnswerChecked && !isAnswerCorrect }" :disabled="isSubmittingGrade" @click="gradeCard(Rating.Again)">
+        <button
+          class="grade-btn error"
+          :class="{ 'is-suggested': isAnswerChecked && !isAnswerCorrect }"
+          :disabled="isSubmittingGrade"
+          @click="gradeCard(Rating.Again)"
+        >
           <span class="g-label">{{ t('dictionary.again') }}</span>
         </button>
-        <button class="grade-btn primary" :class="{ 'is-suggested': isAnswerChecked && isAnswerCorrect }" :disabled="isSubmittingGrade" @click="gradeCard(Rating.Good)">
+        <button
+          class="grade-btn primary"
+          :class="{ 'is-suggested': isAnswerChecked && isAnswerCorrect }"
+          :disabled="isSubmittingGrade"
+          @click="gradeCard(Rating.Good)"
+        >
           <span class="g-label">{{ t('dictionary.good') }}</span>
         </button>
       </template>
       <template v-else>
-        <button class="grade-btn error" :class="{ 'is-suggested': isAnswerChecked && !isAnswerCorrect }" :disabled="isSubmittingGrade" @click="gradeCard(Rating.Again)">
+        <button
+          class="grade-btn error"
+          :class="{ 'is-suggested': isAnswerChecked && !isAnswerCorrect }"
+          :disabled="isSubmittingGrade"
+          @click="gradeCard(Rating.Again)"
+        >
           <span class="g-label">{{ t('dictionary.again') }}</span>
           <span class="g-time">{{ intervals.again }}</span>
         </button>
@@ -643,7 +714,12 @@ watch(() => props.card, initCard, { immediate: true })
           <span class="g-label">{{ t('dictionary.hard') }}</span>
           <span class="g-time">{{ intervals.hard }}</span>
         </button>
-        <button class="grade-btn primary" :class="{ 'is-suggested': isAnswerChecked && isAnswerCorrect }" :disabled="isSubmittingGrade" @click="gradeCard(Rating.Good)">
+        <button
+          class="grade-btn primary"
+          :class="{ 'is-suggested': isAnswerChecked && isAnswerCorrect }"
+          :disabled="isSubmittingGrade"
+          @click="gradeCard(Rating.Good)"
+        >
           <span class="g-label">{{ t('dictionary.good') }}</span>
           <span class="g-time">{{ intervals.good }}</span>
         </button>
@@ -656,7 +732,12 @@ watch(() => props.card, initCard, { immediate: true })
   </div>
 
   <AiExamplesModal v-model:visible="isAiModalOpen" :loading="isAiLoading" :data="aiData" />
-  <LlmChatModal v-if="card" v-model:visible="isChatModalOpen" :word="card.word" :language="card.language || 'en'" />
+  <LlmChatModal
+    v-if="card"
+    v-model:visible="isChatModalOpen"
+    :word="card.word"
+    :language="card.language || 'en'"
+  />
 </template>
 
 <style lang="scss" scoped>

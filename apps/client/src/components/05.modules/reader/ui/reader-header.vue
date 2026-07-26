@@ -46,13 +46,24 @@ watch(() => props.isVisible, (visible) => {
 <template>
   <header class="reader-header" :class="{ 'is-hidden': !isVisible }">
     <KitTooltip :text="t('reader.goBack')" placement="bottom">
-      <KitBtn icon="mdi:arrow-left" variant="text" size="sm" @click="goBack" />
+      <KitBtn
+        icon="mdi:arrow-left"
+        variant="text"
+        size="sm"
+        @click="goBack"
+      />
     </KitTooltip>
 
     <span class="book-title">{{ readerStore.currentBook?.title }}</span>
     <div class="spacer" />
 
-    <KitDropdown v-if="readerStore.currentBook?.language !== settingsStore.appLanguage" ref="parallelDropdownRef" placement="bottom-end" width="300px" :close-on-content-click="false">
+    <KitDropdown
+      v-if="readerStore.currentBook?.language !== settingsStore.appLanguage"
+      ref="parallelDropdownRef"
+      placement="bottom-end"
+      width="300px"
+      :close-on-content-click="false"
+    >
       <template #activator="{ props: dropdownProps }">
         <KitTooltip :text="t('reader.parallelReading')" placement="bottom">
           <KitBtn
@@ -67,10 +78,20 @@ watch(() => props.isVisible, (visible) => {
     </KitDropdown>
 
     <KitTooltip :text="t('bookInfo.tableOfContents')" placement="bottom-end">
-      <KitBtn icon="mdi:format-list-bulleted" variant="text" size="sm" @click="readerStore.tocOpen = true" />
+      <KitBtn
+        icon="mdi:format-list-bulleted"
+        variant="text"
+        size="sm"
+        @click="readerStore.tocOpen = true"
+      />
     </KitTooltip>
 
-    <KitDropdown ref="settingsDropdownRef" placement="bottom-end" :width="330" :close-on-content-click="false">
+    <KitDropdown
+      ref="settingsDropdownRef"
+      placement="bottom-end"
+      :width="330"
+      :close-on-content-click="false"
+    >
       <template #activator="{ props: dropdownProps }">
         <KitTooltip :text="t('settings.title')" placement="bottom">
           <div class="settings-btn-wrapper" @click.stop="dropdownProps.toggle()">

@@ -37,7 +37,12 @@ const storagePercent = computed(() => {
         </KitTooltip>
       </div>
       <span class="quota-text">
-        <KitSkeleton v-if="cacheStore.isLoading && !cacheStore.deviceStorage" width="120px" height="20px" color="var(--bg-tertiary-color)" />
+        <KitSkeleton
+          v-if="cacheStore.isLoading && !cacheStore.deviceStorage"
+          width="120px"
+          height="20px"
+          color="var(--bg-tertiary-color)"
+        />
         <template v-else>
           <b>{{ formatBytes(cacheStore.deviceStorage?.usage || 0) }}</b> / {{ formatBytes(cacheStore.deviceStorage?.quota || 0) }}
         </template>
@@ -45,7 +50,12 @@ const storagePercent = computed(() => {
     </div>
 
     <div class="progress-bar-wrap">
-      <KitSkeleton v-if="cacheStore.isLoading && !cacheStore.deviceStorage" width="100%" height="100%" color="var(--bg-tertiary-color)" />
+      <KitSkeleton
+        v-if="cacheStore.isLoading && !cacheStore.deviceStorage"
+        width="100%"
+        height="100%"
+        color="var(--bg-tertiary-color)"
+      />
       <div
         v-else
         class="progress-fill"
@@ -61,12 +71,22 @@ const storagePercent = computed(() => {
   <div class="settings-card total-card">
     <div class="stat-item">
       <span class="label">{{ t('settings.dbUsage') }}</span>
-      <KitSkeleton v-if="cacheStore.isLoading && !cacheStore.stats" width="120px" height="32px" color="var(--bg-tertiary-color)" />
+      <KitSkeleton
+        v-if="cacheStore.isLoading && !cacheStore.stats"
+        width="120px"
+        height="32px"
+        color="var(--bg-tertiary-color)"
+      />
       <span v-else class="value text-accent">{{ formatBytes(cacheStore.stats?.totalSizeBytes || 0) }}</span>
     </div>
     <div class="stat-item">
       <span class="label">{{ t('settings.dictWords') }}</span>
-      <KitSkeleton v-if="cacheStore.isLoading && !cacheStore.stats" width="80px" height="32px" color="var(--bg-tertiary-color)" />
+      <KitSkeleton
+        v-if="cacheStore.isLoading && !cacheStore.stats"
+        width="80px"
+        height="32px"
+        color="var(--bg-tertiary-color)"
+      />
       <span v-else class="value">{{ cacheStore.stats?.totalDictionaryWords || 0 }}</span>
     </div>
   </div>

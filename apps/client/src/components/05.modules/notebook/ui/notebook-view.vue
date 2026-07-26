@@ -316,7 +316,13 @@ onMounted(async () => {
 
     <div class="notebook-content">
       <div v-if="isLoading" class="loading-state">
-        <KitSkeleton v-for="n in 3" :key="n" width="100%" height="160px" class="mb-4" />
+        <KitSkeleton
+          v-for="n in 3"
+          :key="n"
+          width="100%"
+          height="160px"
+          class="mb-4"
+        />
       </div>
 
       <div v-else-if="filteredBookGroups.length === 0" class="empty-state">

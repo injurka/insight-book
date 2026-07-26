@@ -99,16 +99,19 @@ export function useTextSelection() {
 
     const grammarBadge = targetEl.closest('.grammar-rule-badge') as HTMLElement | null
     if (grammarBadge) {
-      const translationSpan = grammarBadge.closest('.interleaved-translation') as HTMLElement | null
+      const translationSpan = grammarBadge.closest('.interleaved-translation, .split-translation') as HTMLElement | null
+
       if (translationSpan && translationSpan.classList.contains('is-blurred')) {
         event.stopPropagation()
         return
       }
+
       event.stopPropagation()
       const pattern = decodeURIComponent(grammarBadge.dataset.pattern || '')
       const explanation = decodeURIComponent(grammarBadge.dataset.explanation || '')
       const example = decodeURIComponent(grammarBadge.dataset.example || '')
       analysisStore.openGrammarPopover(pattern, explanation, example, grammarBadge)
+
       return
     }
 

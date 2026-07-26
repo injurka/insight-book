@@ -76,7 +76,12 @@ const isReadOnly = computed(() => editingBook.value.publicStatus === 'public' ||
 </script>
 
 <template>
-  <KitDialog v-model:visible="visible" :title="t('library.editBook')" icon="mdi:file-document-edit-outline" :max-width="500">
+  <KitDialog
+    v-model:visible="visible"
+    :title="t('library.editBook')"
+    icon="mdi:file-document-edit-outline"
+    :max-width="500"
+  >
     <div class="edit-form-grid">
       <div class="form-group">
         <label>{{ t('library.cover') }}</label>
@@ -89,7 +94,13 @@ const isReadOnly = computed(() => editingBook.value.publicStatus === 'public' ||
             {{ t('bookInfo.changeCover') }}
           </div>
         </div>
-        <input ref="editCoverInput" type="file" accept="image/*" hidden @change="onEditCoverChange">
+        <input
+          ref="editCoverInput"
+          type="file"
+          accept="image/*"
+          hidden
+          @change="onEditCoverChange"
+        >
       </div>
 
       <div class="form-group">
@@ -129,7 +140,12 @@ const isReadOnly = computed(() => editingBook.value.publicStatus === 'public' ||
         <div v-if="!authStore.isSingleMode" class="public-wrapper">
           <KitCheckbox v-model="editingBook.isUnlisted" :label="t('library.availableByLink')" :disabled="isReadOnly" />
           <KitTooltip v-if="editingBook.isUnlisted || editingBook.isPublic" :text="t('library.copyLink')" placement="top">
-            <KitBtn size="xs" variant="outlined" icon="mdi:link-variant" @click="copyLink" />
+            <KitBtn
+              size="xs"
+              variant="outlined"
+              icon="mdi:link-variant"
+              @click="copyLink"
+            />
           </KitTooltip>
         </div>
       </div>
@@ -153,7 +169,12 @@ const isReadOnly = computed(() => editingBook.value.publicStatus === 'public' ||
               {{ t('library.publicStatusPending') }}
             </div>
           </div>
-          <KitBtn variant="outlined" color="error" size="sm" @click="editingBook.publicStatus = 'private'">
+          <KitBtn
+            variant="outlined"
+            color="error"
+            size="sm"
+            @click="editingBook.publicStatus = 'private'"
+          >
             {{ t('library.cancelPublishRequest') }}
           </KitBtn>
         </template>
@@ -163,7 +184,13 @@ const isReadOnly = computed(() => editingBook.value.publicStatus === 'public' ||
               {{ t('library.notPublished') || 'Не опубликовано' }}
             </div>
           </div>
-          <KitBtn variant="outlined" color="primary" size="sm" icon="mdi:earth" @click="editingBook.publicStatus = 'pending'">
+          <KitBtn
+            variant="outlined"
+            color="primary"
+            size="sm"
+            icon="mdi:earth"
+            @click="editingBook.publicStatus = 'pending'"
+          >
             {{ t('library.sendPublishRequest') }}
           </KitBtn>
         </template>
@@ -186,7 +213,12 @@ const isReadOnly = computed(() => editingBook.value.publicStatus === 'public' ||
       </div>
     </div>
     <template #footer>
-      <KitBtn variant="text" class="mr-auto" color="error" @click="confirmDeleteVisible = true">
+      <KitBtn
+        variant="text"
+        class="mr-auto"
+        color="error"
+        @click="confirmDeleteVisible = true"
+      >
         {{ t('dictionary.deleteItem') }}
       </KitBtn>
       <div class="spacer" />

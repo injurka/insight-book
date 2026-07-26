@@ -168,7 +168,13 @@ onUnmounted(() => {
 <template>
   <Teleport to="body">
     <Transition name="fade">
-      <div v-if="analysisStore.wordPopover" ref="popoverRef" class="word-popover" :style="popoverPos" @click.stop>
+      <div
+        v-if="analysisStore.wordPopover"
+        ref="popoverRef"
+        class="word-popover"
+        :style="popoverPos"
+        @click.stop
+      >
         <div class="transcription-header">
           <span class="header-text">{{ headerText }}</span>
           <button class="close-btn" @click.stop="analysisStore.closePopover()">
@@ -257,7 +263,13 @@ onUnmounted(() => {
             </KitDropdown>
 
             <KitTooltip :text="t('analysis.translateWithAi')" placement="bottom">
-              <KitBtn icon="mdi:robot-outline" size="xs" variant="text" :class="{ 'is-active-ai': analysisStore.wordPopover.showAi }" @click.stop="analysisStore.toggleAiTranslation" />
+              <KitBtn
+                icon="mdi:robot-outline"
+                size="xs"
+                variant="text"
+                :class="{ 'is-active-ai': analysisStore.wordPopover.showAi }"
+                @click.stop="analysisStore.toggleAiTranslation"
+              />
             </KitTooltip>
 
             <KitTooltip v-if="authStore.user" :text="analysisStore.wordPopover.isSaved ? t('analysis.editCard') : t('analysis.saveToDict')" placement="bottom-end">

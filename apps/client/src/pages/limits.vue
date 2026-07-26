@@ -1,57 +1,18 @@
 <script setup lang="ts">
-import { Icon } from '@iconify/vue'
-import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { KitBtn } from '~/components/01.kit'
 import { HoverRevealBg } from '~/components/02.shared/hover-reveal-bg'
+import { LimitProgressCard } from '~/components/04.features/limits'
 import SettingsTokensPanel from '~/components/05.modules/settings/ui/panels/settings-tokens-panel.vue'
 import SubscriptionTiersGrid from '~/components/05.modules/settings/ui/panels/subscription-tiers-grid.vue'
 import { AppRoutePaths } from '~/shared/constants/routes'
 import { useAuthStore } from '~/shared/store/auth.store'
-import { useGlobalSettingsStore } from '~/shared/store/settings.store'
 
 const router = useRouter()
 const { t } = useI18n()
 const authStore = useAuthStore()
-const settingsStore = useGlobalSettingsStore()
 
-const tokenPercent = computed(() => {
-  const used = authStore.user?.usedTokens ?? 0
-  const limit = authStore.user?.tokenLimit
-  if (limit === null || limit === undefined)
-    return 0
-  if (limit === 0)
-    return 100
-  return Math.min(100, Math.round((used / limit) * 100))
-})
-
-const bookPercent = computed(() => {
-  const used = authStore.user?.usedBooks ?? 0
-  const limit = authStore.user?.bookLimit
-  if (limit === null || limit === undefined)
-    return 0
-  if (limit === 0)
-    return 100
-  return Math.min(100, Math.round((used / limit) * 100))
-})
-
-function getPercentClass(percentage: number) {
-  if (percentage < 70)
-    return 'is-success'
-  if (percentage <= 90)
-    return 'is-warning'
-  return 'is-error'
-}
-
-function formatNumber(num: number | undefined | null) {
-  if (num == null)
-    return '0'
-  return new Intl.NumberFormat(settingsStore.appLanguage || 'ru-RU', {
-    notation: 'compact',
-    maximumFractionDigits: 1,
-  }).format(num)
-}
 const showSubscriptionTiers = ref(false)
 </script>
 
@@ -73,69 +34,23 @@ const showSubscriptionTiers = ref(false)
       </h2>
 
       <div class="limits-grid">
-        <!-- ИИ Токены -->
-        <div class="limit-card">
-          <div class="card-header">
-            <div class="icon-container ai-icon">
-              <Icon icon="mdi:robot-outline" />
-            </div>
-            <div class="title-container">
-              <h3 class="limit-name">
-                {{ t('limits.aiTokensTitle') }}
-              </h3>
-              <p class="limit-desc">
-                {{ t('limits.aiTokensDesc') }}
-              </p>
-            </div>
-          </div>
+        <LimitProgressCard
+          icon="mdi:robot-outline"
+          icon-class="ai-icon"
+          :title="t('limits.aiTokensTitle')"
+          :description="t('limits.aiTokensDesc')"
+          :used="authStore.user?.usedTokens"
+          :limit="authStore.user?.tokenLimit"
+        />
 
-          <div class="card-body">
-            <div v-if="authStore.user?.tokenLimit !== null && authStore.user?.tokenLimit !== undefined" class="progress-container">
-              <div class="progress-track">
-                <div class="progress-bar" :style="{ width: `${tokenPercent}%` }" :class="getPercentClass(tokenPercent)" />
-              </div>
-            </div>
-
-            <div class="usage-details">
-              <span class="detail-label">{{ t('limits.used') }}:</span>
-              <span class="detail-value">
-                {{ formatNumber(authStore.user?.usedTokens) }} / {{ authStore.user?.tokenLimit !== null && authStore.user?.tokenLimit !== undefined ? formatNumber(authStore.user?.tokenLimit) : t('limits.infinite') }}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Книги -->
-        <div class="limit-card">
-          <div class="card-header">
-            <div class="icon-container book-icon">
-              <Icon icon="mdi:book-open-page-variant-outline" />
-            </div>
-            <div class="title-container">
-              <h3 class="limit-name">
-                {{ t('limits.booksTitle') }}
-              </h3>
-              <p class="limit-desc">
-                {{ t('limits.booksDesc') }}
-              </p>
-            </div>
-          </div>
-
-          <div class="card-body">
-            <div v-if="authStore.user?.bookLimit !== null && authStore.user?.bookLimit !== undefined" class="progress-container">
-              <div class="progress-track">
-                <div class="progress-bar" :style="{ width: `${bookPercent}%` }" :class="getPercentClass(bookPercent)" />
-              </div>
-            </div>
-
-            <div class="usage-details">
-              <span class="detail-label">{{ t('limits.used') }}:</span>
-              <span class="detail-value">
-                {{ formatNumber(authStore.user?.usedBooks) }} / {{ authStore.user?.bookLimit !== null && authStore.user?.bookLimit !== undefined ? formatNumber(authStore.user?.bookLimit) : t('limits.infinite') }}
-              </span>
-            </div>
-          </div>
-        </div>
+        <LimitProgressCard
+          icon="mdi:book-open-page-variant-outline"
+          icon-class="book-icon"
+          :title="t('limits.booksTitle')"
+          :description="t('limits.booksDesc')"
+          :used="authStore.user?.usedBooks"
+          :limit="authStore.user?.bookLimit"
+        />
       </div>
 
       <!-- Кнопка раскрытия тарифов -->

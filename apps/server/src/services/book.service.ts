@@ -1,3 +1,4 @@
+import type { IBookRepository } from '../repositories/interfaces'
 import type { LlmConfig, PagePayload } from '../types'
 import path from 'node:path'
 
@@ -14,13 +15,14 @@ import { recognizeMangaPage } from './ocr.service'
 import { storageService } from './storage.service'
 
 export class BookService {
+  constructor(private bookRepo: IBookRepository = bookRepository) {}
   async getPublicBooks(page: number, limit: number, tag: string | null, search: string | null, language: string | null, targetLang: string, _userId: number | null) {
-    const conditions = bookRepository.buildPublicConditions(tag, search, language)
-    const total = await bookRepository.countPublicBooks(conditions)
-    const rows = await bookRepository.getPublicBooksBaseQuery(page, limit, conditions)
+    const conditions = this.bookRepo.buildPublicConditions(tag, search, language)
+    const total = await this.bookRepo.countPublicBooks(conditions)
+    const rows = await this.bookRepo.getPublicBooksBaseQuery(page, limit, conditions)
 
     const bookIds = rows.map((r: { book: { id: number } }) => r.book.id)
-    const llmCounts = await bookRepository.getLlmCounts(bookIds, targetLang)
+    const llmCounts = await this.bookRepo.getLlmCounts(bookIds, targetLang)
     const countMap = new Map(llmCounts.map((r: { bookId: number, count: number }) => [r.bookId, r.count]))
 
     const data = rows.map((r: { book: { id: number, [key: string]: unknown }, stats?: { tags?: string | null, [key: string]: unknown } | null, progress?: { currentPage?: number | null, status?: string | null, isFavorite?: boolean | null, collection?: string | null, updatedAt?: string | null } | null }) => ({
@@ -38,7 +40,7 @@ export class BookService {
   }
 
   async getUserBooks(userId: number, targetLang: string) {
-    const allBooks = await bookRepository.getUserBooks(userId)
+    const allBooks = await this.bookRepo.getUserBooks(userId)
     const result = allBooks
       .filter((b: { userId: number | null, progresses: { currentPage?: number, status?: string, isFavorite?: boolean, collection?: string | null, updatedAt?: string }[] }) => b.userId === userId || b.progresses.length > 0)
       .map((book: { id: number, updatedAt: string, progresses: { currentPage?: number, status?: string, isFavorite?: boolean, collection?: string | null, updatedAt?: string }[], [key: string]: unknown }) => {
@@ -55,7 +57,7 @@ export class BookService {
       })
 
     const bookIds = result.map(b => b.id)
-    const llmCounts = await bookRepository.getLlmCounts(bookIds, targetLang)
+    const llmCounts = await this.bookRepo.getLlmCounts(bookIds, targetLang)
     const countMap = new Map(llmCounts.map(r => [r.bookId, r.count]))
 
     const finalResult = result.map(b => ({
@@ -73,7 +75,7 @@ export class BookService {
   }
 
   async getBookInfo(id: number, userId: number | null, targetLang: string) {
-    const book = await bookRepository.getBookById(id, userId)
+    const book = await this.bookRepo.getBookById(id, userId)
     if (!book)
       throw new AppError(404, 'Книга не найдена или доступ закрыт')
 
@@ -88,11 +90,11 @@ export class BookService {
         }
       : null
 
-    const counts = await bookRepository.getBookAnalysesCounts(id, targetLang)
+    const counts = await this.bookRepo.getBookAnalysesCounts(id, targetLang)
     let analysesCount = (counts.sentencesCountRes?.count || 0) + (counts.wordsCountRes?.count || 0)
 
     if (book.type === 'manga') {
-      const analyzedPagesRes = await bookRepository.getMangaPagesCount(id)
+      const analyzedPagesRes = await this.bookRepo.getMangaPagesCount(id)
       analysesCount = analyzedPagesRes?.count || 0
     }
 
@@ -112,18 +114,18 @@ export class BookService {
   }
 
   async startReading(id: number, userId: number) {
-    const book = await bookRepository.findFirstBook(id)
+    const book = await this.bookRepo.findFirstBook(id)
     if (!book)
       throw new AppError(404, 'Книга не найдена')
     if (!book.isPublic && book.userId !== userId)
       throw new AppError(403, 'Нет доступа')
 
-    await bookRepository.startReadingProgress(id, userId)
+    await this.bookRepo.startReadingProgress(id, userId)
     return { success: true }
   }
 
   async updateBook(id: number, userId: number, body: Record<string, unknown>) {
-    const book = await bookRepository.findFirstBook(id)
+    const book = await this.bookRepo.findFirstBook(id)
     if (!book)
       throw new AppError(404, 'Книга не найдена')
     if (book.userId !== userId && !book.isPublic)
@@ -143,7 +145,7 @@ export class BookService {
       throw new AppError(403, 'Публичные книги нельзя редактировать')
 
     if (hasMetadataChanges && book.userId === userId) {
-      await bookRepository.updateBook(id, {
+      await this.bookRepo.updateBook(id, {
         title: body.title as string | undefined,
         author: body.author as string | null | undefined,
         coverUrl: body.coverUrl as string | null | undefined,
@@ -163,14 +165,14 @@ export class BookService {
     const hasProgressChanges = progressKeys.some(key => body[key] !== undefined)
 
     if (hasProgressChanges) {
-      await bookRepository.upsertReadingProgress(id, userId, body)
+      await this.bookRepo.upsertReadingProgress(id, userId, body)
     }
 
     return { success: true }
   }
 
   async updateCover(id: number, userId: number, file: File) {
-    const oldBook = await bookRepository.getOldBookForCover(id)
+    const oldBook = await this.bookRepo.getOldBookForCover(id)
     if (!oldBook || oldBook.userId !== userId)
       throw new AppError(403, 'Нет доступа')
 
@@ -181,7 +183,7 @@ export class BookService {
     await storageService.uploadFile(`covers/${filename}`, buffer, `image/${ext.slice(1)}`)
     const coverUrl = `/api/uploads/covers/${filename}`
 
-    await bookRepository.updateCoverUrl(id, coverUrl)
+    await this.bookRepo.updateCoverUrl(id, coverUrl)
 
     if (oldBook.coverUrl && oldBook.coverUrl.startsWith('/api/uploads/covers/')) {
       const oldFile = oldBook.coverUrl.split('/').pop()!
@@ -192,24 +194,24 @@ export class BookService {
   }
 
   async updateStats(id: number, userId: number, body: { difficulty?: string, description?: string, tags?: string[] }) {
-    const book = await bookRepository.findFirstBook(id)
+    const book = await this.bookRepo.findFirstBook(id)
     if (!book || book.userId !== userId)
       throw new AppError(403, 'Нет доступа')
 
     const tagsJson = JSON.stringify(body.tags || [])
-    await bookRepository.upsertBookStats(id, { description: body.description || '', difficulty: body.difficulty || '', tags: tagsJson })
+    await this.bookRepo.upsertBookStats(id, { description: body.description || '', difficulty: body.difficulty || '', tags: tagsJson })
 
-    const stats = await bookRepository.getBookStats(id)
+    const stats = await this.bookRepo.getBookStats(id)
     return { success: true, stats: stats ? { ...stats, tags: stats.tags ? JSON.parse(stats.tags) : [], posDistribution: stats.posDistribution ? JSON.parse(stats.posDistribution) : null, topWords: stats.topWords ? JSON.parse(stats.topWords) : null } : null }
   }
 
   async deleteBook(id: number, userId: number) {
-    const book = await bookRepository.getBookForDeletion(id)
+    const book = await this.bookRepo.getBookForDeletion(id)
     if (!book)
       throw new AppError(404, 'Книга не найдена')
 
     if (book.userId !== userId) {
-      await bookRepository.deleteReadingProgress(id, userId)
+      await this.bookRepo.deleteReadingProgress(id, userId)
       return { success: true }
     }
 
@@ -217,7 +219,7 @@ export class BookService {
       throw new AppError(403, 'Публичные книги нельзя удалить')
     }
 
-    await bookRepository.deleteBook(id)
+    await this.bookRepo.deleteBook(id)
 
     try {
       if (book.filePath) {
@@ -237,14 +239,14 @@ export class BookService {
   }
 
   async getToc(id: number, userId: number) {
-    const book = await bookRepository.getBookToc(id)
+    const book = await this.bookRepo.getBookToc(id)
     if (!book || (book.userId !== userId && !book.isPublic))
       throw new AppError(403, 'Нет доступа к книге')
     return book.toc ? JSON.parse(book.toc) : []
   }
 
   async getPage(bookId: number, pageNum: number, userId: number, isSync: boolean, config: LlmConfig) {
-    const book = await bookRepository.getBookForPage(bookId)
+    const book = await this.bookRepo.getBookForPage(bookId)
     if (!book)
       throw new AppError(404, 'Книга не найдена')
 
@@ -253,12 +255,12 @@ export class BookService {
       throw new AppError(403, 'Нет доступа к книге')
 
     if (!isSync) {
-      await bookRepository.upsertReadingProgress(bookId, userId, { currentPage: pageNum })
+      await this.bookRepo.upsertReadingProgress(bookId, userId, { currentPage: pageNum })
       await activityService.trackActivity(userId, 'wordsAdded', 1)
     }
 
     if (book.type === 'manga') {
-      const pageRow = await bookRepository.getMangaPage(bookId, pageNum)
+      const pageRow = await this.bookRepo.getMangaPage(bookId, pageNum)
       if (!pageRow)
         throw new AppError(404, 'Страница манги не найдена')
 
@@ -288,7 +290,7 @@ export class BookService {
           }
 
           ocrBlocks = await recognizeMangaPage(userId, base64, bookLang, book.textDirection || undefined, config)
-          await bookRepository.updateMangaPageOcr(pageRow.id, JSON.stringify(ocrBlocks))
+          await this.bookRepo.updateMangaPageOcr(pageRow.id, JSON.stringify(ocrBlocks))
         }
         catch (e: unknown) {
           logger.error(e as Error, 'OCR Error:')
@@ -314,7 +316,7 @@ export class BookService {
       }
     }
 
-    const cached = await bookRepository.getNlpCache(bookId, pageNum)
+    const cached = await this.bookRepo.getNlpCache(bookId, pageNum)
     if (cached) {
       try {
         const parsed = JSON.parse(cached.data) as PagePayload
@@ -324,19 +326,19 @@ export class BookService {
       catch { }
     }
 
-    const pageRow = await bookRepository.getBookPageContent(bookId, pageNum)
+    const pageRow = await this.bookRepo.getBookPageContent(bookId, pageNum)
     if (!pageRow)
       throw new AppError(404, 'Страница не найдена')
 
     const { processedHtml } = await runWorkerTask<any>('tokenizeHtmlPage', { html: pageRow.content, language: bookLang })
     const payload: PagePayload = { bookId, pageNum, totalPages: book.totalPages, content: processedHtml, type: 'epub' }
 
-    await bookRepository.upsertNlpCache(bookId, pageNum, JSON.stringify(payload))
+    await this.bookRepo.upsertNlpCache(bookId, pageNum, JSON.stringify(payload))
     return payload
   }
 
   async getPageDictionary(bookId: number, pageNum: number, userId: number, targetLang: string) {
-    const book = await bookRepository.getBookLangAndType(bookId)
+    const book = await this.bookRepo.getBookLangAndType(bookId)
     if (!book)
       throw new AppError(404, 'Книга не найдена')
     if (book.userId !== userId && !book.isPublic)
@@ -346,7 +348,7 @@ export class BookService {
     const bookLang = normalizeLanguageCode(book.language)
 
     if (book.type === 'manga') {
-      const pageRow = await bookRepository.getMangaPageInfo(bookId, pageNum)
+      const pageRow = await this.bookRepo.getMangaPageInfo(bookId, pageNum)
       const ocrBlocks = pageRow?.ocrData ? JSON.parse(pageRow.ocrData) : []
       if (ocrBlocks && ocrBlocks.length > 0) {
         const { uniqueWords: ocrWords } = await runWorkerTask<any>('tokenizeOcrBlocks', { blocks: ocrBlocks, language: bookLang })
@@ -354,13 +356,13 @@ export class BookService {
       }
     }
     else {
-      const cached = await bookRepository.getNlpCache(bookId, pageNum)
+      const cached = await this.bookRepo.getNlpCache(bookId, pageNum)
       if (cached) {
         const parsed = JSON.parse(cached.data) as PagePayload
         uniqueWords = extractUniqueWordsFromHtml(parsed.content)
       }
       else {
-        const pageRow = await bookRepository.getBookPageInfo(bookId, pageNum)
+        const pageRow = await this.bookRepo.getBookPageInfo(bookId, pageNum)
         if (pageRow) {
           const { uniqueWords: epWords } = await runWorkerTask<any>('tokenizeHtmlPage', { html: pageRow.content, language: bookLang })
           uniqueWords = epWords
@@ -372,7 +374,7 @@ export class BookService {
   }
 
   async lookupWord(bookId: number, word: string, userId: number, targetLang: string) {
-    const book = await bookRepository.getBookLanguage(bookId)
+    const book = await this.bookRepo.getBookLanguage(bookId)
     if (!book || (book.userId !== userId && !book.isPublic))
       throw new AppError(403, 'Нет доступа')
 
@@ -384,12 +386,12 @@ export class BookService {
   }
 
   async generateTts(bookId: number, userId: number, text: string, voice: string, forceCacheBypass: boolean, config: LlmConfig) {
-    const book = await bookRepository.getBookUserIdAndPublic(bookId)
+    const book = await this.bookRepo.getBookUserIdAndPublic(bookId)
     if (!book || (book.userId !== userId && !book.isPublic))
       throw new AppError(403, 'Нет доступа')
 
     if (forceCacheBypass) {
-      const user = await bookRepository.getUserRole(userId)
+      const user = await this.bookRepo.getUserRole(userId)
       if (user?.role !== 'admin')
         throw new AppError(403, 'Только администратор может игнорировать кэш')
     }
@@ -399,7 +401,7 @@ export class BookService {
 
   async standaloneTts(userId: number, text: string, voice: string, forceCacheBypass: boolean, config: LlmConfig) {
     if (forceCacheBypass) {
-      const user = await bookRepository.getUserRole(userId)
+      const user = await this.bookRepo.getUserRole(userId)
       if (user?.role !== 'admin')
         throw new AppError(403, 'Только администратор может игнорировать кэш')
     }

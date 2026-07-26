@@ -79,7 +79,12 @@ function playAudio() {
     <!-- Фиксированная зона действий -->
     <div class="step-actions">
       <Transition name="fade" mode="out-in">
-        <KitBtn v-if="isSuccess" color="primary" class="next-btn" @click="emit('next')">
+        <KitBtn
+          v-if="isSuccess"
+          color="primary"
+          class="next-btn"
+          @click="emit('next')"
+        >
           {{ t('onboarding.next') }} <Icon icon="mdi:arrow-right" />
         </KitBtn>
       </Transition>

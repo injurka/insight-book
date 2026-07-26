@@ -80,13 +80,33 @@ function handleConfirmClear() {
               </div>
               <KitSkeleton width="200px" height="24px" color="var(--bg-tertiary-color)" />
             </div>
-            <KitBtn icon="mdi:delete-outline" variant="outlined" class="delete-btn" :disabled="true" />
+            <KitBtn
+              icon="mdi:delete-outline"
+              variant="outlined"
+              class="delete-btn"
+              :disabled="true"
+            />
           </div>
           <div class="book-card-body">
             <div class="stats-badges">
-              <KitSkeleton width="100px" height="32px" border-radius="8px" color="var(--bg-tertiary-color)" />
-              <KitSkeleton width="140px" height="32px" border-radius="8px" color="var(--bg-tertiary-color)" />
-              <KitSkeleton width="160px" height="32px" border-radius="8px" color="var(--bg-tertiary-color)" />
+              <KitSkeleton
+                width="100px"
+                height="32px"
+                border-radius="8px"
+                color="var(--bg-tertiary-color)"
+              />
+              <KitSkeleton
+                width="140px"
+                height="32px"
+                border-radius="8px"
+                color="var(--bg-tertiary-color)"
+              />
+              <KitSkeleton
+                width="160px"
+                height="32px"
+                border-radius="8px"
+                color="var(--bg-tertiary-color)"
+              />
             </div>
             <div class="cache-progress-section">
               <div class="progress-bar-wrap">

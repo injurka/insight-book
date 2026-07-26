@@ -1,8 +1,9 @@
+import type { IHighlightRepository } from './interfaces'
 import { and, desc, eq } from 'drizzle-orm'
 import { db } from '../db'
 import * as schema from '../db/schema'
 
-export class HighlightRepository {
+export class HighlightRepository implements IHighlightRepository {
   async findMany(userId: number, bookId?: number) {
     const conditions = [eq(schema.highlights.userId, userId)]
     if (bookId) {

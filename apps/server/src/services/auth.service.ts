@@ -1,3 +1,4 @@
+import type { IUserRepository } from '../repositories/interfaces'
 import path from 'node:path'
 import jwt from 'jsonwebtoken'
 import { AUTH_MODE, FRONTEND_URL, JWT_SECRET, UNISENDER_API_KEY, YANDEX_CLIENT_ID, YANDEX_CLIENT_SECRET } from '../config'
@@ -7,15 +8,16 @@ import { AppError } from '../utils/errors'
 import { logger } from '../utils/logger'
 import { storageService } from './storage.service'
 
-type DbUser = NonNullable<Awaited<ReturnType<typeof userRepository.findById>>>
+type DbUser = NonNullable<Awaited<ReturnType<IUserRepository['findById']>>>
 
 export class AuthService {
+  constructor(private userRepo: IUserRepository = userRepository) {}
   async getUserPayload(user: DbUser) {
-    const usedBooks = await userRepository.getUsedBooksCount(user.id, user.periodStart)
-    const totalTokens = await userRepository.getTotalTokens(user.id, user.periodStart)
+    const usedBooks = await this.userRepo.getUsedBooksCount(user.id, user.periodStart)
+    const totalTokens = await this.userRepo.getTotalTokens(user.id, user.periodStart)
 
     if (user.usedTokens !== totalTokens) {
-      await userRepository.updateUser(user.id, { usedTokens: totalTokens }).catch(logger.error)
+      await this.userRepo.updateUser(user.id, { usedTokens: totalTokens }).catch(logger.error)
     }
 
     return {
@@ -39,7 +41,7 @@ export class AuthService {
 
   async login(login: string, passwordString: string) {
     if (AUTH_MODE === 'single') {
-      const user = await userRepository.findById(1)
+      const user = await this.userRepo.findById(1)
       if (user) {
         const userPayload = await this.getUserPayload(user)
         return { token: 'dummy-token', user: userPayload }
@@ -47,7 +49,7 @@ export class AuthService {
       return { token: 'dummy-token', user: { id: 1, username: 'admin', role: ROLES.ADMIN } }
     }
 
-    const user = await userRepository.findByLogin(login)
+    const user = await this.userRepo.findByLogin(login)
     if (!user)
       throw new AppError(401, 'Неверный логин или пароль')
 
@@ -62,12 +64,12 @@ export class AuthService {
   }
 
   async sendCode(email: string) {
-    const existingUser = await userRepository.findByEmail(email)
+    const existingUser = await this.userRepo.findByEmail(email)
     if (existingUser)
       throw new AppError(400, 'Пользователь с таким email уже существует')
 
     const code = Math.floor(100000 + Math.random() * 900000).toString()
-    await userRepository.createEmailConfirmation(email, code)
+    await this.userRepo.createEmailConfirmation(email, code)
 
     if (UNISENDER_API_KEY) {
       const htmlBody = `
@@ -122,7 +124,7 @@ export class AuthService {
   }
 
   async register(email: string, code: string, passwordString: string) {
-    const confirmation = await userRepository.findEmailConfirmation(email, code)
+    const confirmation = await this.userRepo.findEmailConfirmation(email, code)
     if (!confirmation)
       throw new AppError(400, 'Неверный код подтверждения')
 
@@ -131,16 +133,16 @@ export class AuthService {
       throw new AppError(400, 'Код подтверждения истек')
 
     let randomUsername = `user_${Math.random().toString(36).substring(2, 8)}`
-    let existingUser = await userRepository.findByUsername(randomUsername)
+    let existingUser = await this.userRepo.findByUsername(randomUsername)
     while (existingUser) {
       randomUsername = `user_${Math.random().toString(36).substring(2, 8)}`
-      existingUser = await userRepository.findByUsername(randomUsername)
+      existingUser = await this.userRepo.findByUsername(randomUsername)
     }
 
     const passwordHash = await Bun.password.hash(passwordString)
-    const newUser = await userRepository.createUser({ email, username: randomUsername, passwordHash })
+    const newUser = await this.userRepo.createUser({ email, username: randomUsername, passwordHash })
 
-    await userRepository.deleteEmailConfirmations(email)
+    await this.userRepo.deleteEmailConfirmations(email)
 
     const token = jwt.sign({ userId: newUser.id }, JWT_SECRET, { expiresIn: '30d' })
     const userPayload = await this.getUserPayload(newUser)
@@ -151,14 +153,14 @@ export class AuthService {
   async getMe(userId: number | null) {
     if (userId === null)
       return { user: null, mode: AUTH_MODE }
-    const user = await userRepository.findById(userId)
+    const user = await this.userRepo.findById(userId)
     if (!user)
       throw new AppError(404, 'Пользователь не найден')
     return { user: await this.getUserPayload(user), mode: AUTH_MODE }
   }
 
   async updateAvatar(userId: number, file: File) {
-    const user = await userRepository.findById(userId)
+    const user = await this.userRepo.findById(userId)
     const buffer = await file.arrayBuffer()
     const ext = path.extname(file.name).toLowerCase() || '.jpg'
     const filename = `${Date.now()}_avatar_${userId}${ext}`
@@ -171,7 +173,7 @@ export class AuthService {
     await storageService.uploadFile(`avatars/${filename}`, buffer, `image/${ext.slice(1)}`)
 
     const avatarUrl = `/api/uploads/avatars/${filename}`
-    await userRepository.updateUser(userId, { avatarUrl })
+    await this.userRepo.updateUser(userId, { avatarUrl })
     return { success: true, avatarUrl }
   }
 
@@ -185,11 +187,11 @@ export class AuthService {
       throw new AppError(400, 'Некорректное имя пользователя')
     const newUsername = username.trim()
 
-    const existing = await userRepository.findByUsername(newUsername)
+    const existing = await this.userRepo.findByUsername(newUsername)
     if (existing && existing.id !== userId)
       throw new AppError(400, 'Имя пользователя уже занято')
 
-    await userRepository.updateUser(userId, { username: newUsername })
+    await this.userRepo.updateUser(userId, { username: newUsername })
     return { success: true, username: newUsername }
   }
 
@@ -228,16 +230,16 @@ export class AuthService {
     const userData = (await userRes.json()) as { id: string | number, login?: string, default_avatar_id?: string }
 
     const yandexId = String(userData.id)
-    let user = await userRepository.findByYandexId(yandexId)
+    let user = await this.userRepo.findByYandexId(yandexId)
 
     if (!user) {
       let proposedUsername = userData.login || `yandex_${yandexId}`
-      const existing = await userRepository.findByUsername(proposedUsername)
+      const existing = await this.userRepo.findByUsername(proposedUsername)
       if (existing)
         proposedUsername = `yandex_${yandexId}_${Date.now()}`
 
       const dummyPassword = await Bun.password.hash(crypto.randomUUID())
-      user = await userRepository.createUser({
+      user = await this.userRepo.createUser({
         yandexId,
         username: proposedUsername,
         passwordHash: dummyPassword,

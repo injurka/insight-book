@@ -203,8 +203,18 @@ const previewVocabulary = ref(true)
         <div class="form-group">
           <label>{{ t('dictionary.deck') }}</label>
           <div class="deck-selector-row">
-            <KitSelect v-model="deckIdsModel" :options="deckOptions" :placeholder="t('dictionary.selectDeck')" multiple />
-            <KitBtn icon="mdi:plus" variant="outlined" color="secondary" @click="openCreateDeckPrompt">
+            <KitSelect
+              v-model="deckIdsModel"
+              :options="deckOptions"
+              :placeholder="t('dictionary.selectDeck')"
+              multiple
+            />
+            <KitBtn
+              icon="mdi:plus"
+              variant="outlined"
+              color="secondary"
+              @click="openCreateDeckPrompt"
+            >
               {{ t('dictionary.new') }}
             </KitBtn>
           </div>
@@ -234,7 +244,12 @@ const previewVocabulary = ref(true)
             />
           </div>
           <div v-if="previewTranslation" class="markdown-preview preview-box" v-html="localWord.translation || ''" />
-          <textarea v-else v-model="localWord.translation" class="custom-textarea" rows="4" />
+          <textarea
+            v-else
+            v-model="localWord.translation"
+            class="custom-textarea"
+            rows="4"
+          />
         </div>
 
         <div class="form-group">
@@ -250,7 +265,13 @@ const previewVocabulary = ref(true)
             />
           </div>
           <div v-if="previewGrammar" class="markdown-preview preview-box" v-html="localWord.grammarNote || ''" />
-          <textarea v-else v-model="localWord.grammarNote" class="custom-textarea" rows="2" :placeholder="t('dictionary.grammarRulesExtra')" />
+          <textarea
+            v-else
+            v-model="localWord.grammarNote"
+            class="custom-textarea"
+            rows="2"
+            :placeholder="t('dictionary.grammarRulesExtra')"
+          />
         </div>
 
         <div class="form-group">
@@ -266,7 +287,13 @@ const previewVocabulary = ref(true)
             />
           </div>
           <div v-if="previewVocabulary" class="markdown-preview preview-box" v-html="localWord.vocabularyNote || ''" />
-          <textarea v-else v-model="localWord.vocabularyNote" class="custom-textarea" rows="2" :placeholder="t('dictionary.relatedVocab')" />
+          <textarea
+            v-else
+            v-model="localWord.vocabularyNote"
+            class="custom-textarea"
+            rows="2"
+            :placeholder="t('dictionary.relatedVocab')"
+          />
         </div>
 
         <div class="form-group">
@@ -278,12 +305,23 @@ const previewVocabulary = ref(true)
     <template #footer>
       <div class="footer-actions">
         <KitTooltip :text="t('dictionary.autoFillAi')" placement="top">
-          <KitBtn variant="tonal" color="accent" prepend-icon="mdi:robot-outline" :loading="isAutoFilling" @click="autoFillWithAI">
+          <KitBtn
+            variant="tonal"
+            color="accent"
+            prepend-icon="mdi:robot-outline"
+            :loading="isAutoFilling"
+            @click="autoFillWithAI"
+          >
             <span class="hide-mobile">{{ t('dictionary.autoFill') }}</span>
           </KitBtn>
         </KitTooltip>
 
-        <KitBtn v-if="isEditing" variant="outlined" color="secondary" @click="handleDelete">
+        <KitBtn
+          v-if="isEditing"
+          variant="outlined"
+          color="secondary"
+          @click="handleDelete"
+        >
           {{ t('dictionary.deleteItem') }}
         </KitBtn>
         <div class="spacer" />

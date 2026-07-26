@@ -153,7 +153,12 @@ const currentThemeName = computed(() => {
           <span>{{ t('reader.voice') }}</span>
         </div>
         <div class="voice-select-wrapper">
-          <KitSelect v-model="settingsStore.ttsVoice" :options="voiceOptions" size="xs" class="font-select" />
+          <KitSelect
+            v-model="settingsStore.ttsVoice"
+            :options="voiceOptions"
+            size="xs"
+            class="font-select"
+          />
           <KitBtn
             :icon="isLoading ? 'mdi:loading' : (isPlaying ? 'mdi:stop' : 'mdi:play')"
             :class="{ 'spin-animation': isLoading, 'pulse-animation': isPlaying }"
@@ -256,7 +261,12 @@ const currentThemeName = computed(() => {
           <Icon icon="mdi:format-font" class="item-icon" />
           <span>{{ t('reader.font') }}</span>
         </div>
-        <KitSelect v-model="settingsStore.readerFontFamily" :options="fontOptions" size="xs" class="font-select" />
+        <KitSelect
+          v-model="settingsStore.readerFontFamily"
+          :options="fontOptions"
+          size="xs"
+          class="font-select"
+        />
       </div>
     </div>
 

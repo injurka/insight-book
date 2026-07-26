@@ -122,7 +122,12 @@ const difficultyClass = computed(() => {
 
         <div class="card-toolbar">
           <div class="toolbar-group">
-            <KitDropdown v-model="isTtsPopoverOpen" placement="bottom-start" width="260px" :disabled="true">
+            <KitDropdown
+              v-model="isTtsPopoverOpen"
+              placement="bottom-start"
+              width="260px"
+              :disabled="true"
+            >
               <template #activator>
                 <KitTooltip :text="t('analysis.voice')" placement="bottom">
                   <KitBtn
@@ -233,7 +238,12 @@ const difficultyClass = computed(() => {
     </template>
   </KitDialog>
 
-  <LlmChatModal v-if="word" v-model:visible="isChatModalOpen" :word="word.word" :language="word.language || 'en'" />
+  <LlmChatModal
+    v-if="word"
+    v-model:visible="isChatModalOpen"
+    :word="word.word"
+    :language="word.language || 'en'"
+  />
   <AiExamplesModal v-model:visible="isAiModalOpen" :loading="isAiLoading" :data="aiData" />
 </template>
 

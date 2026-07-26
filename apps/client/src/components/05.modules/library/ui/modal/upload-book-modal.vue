@@ -147,7 +147,13 @@ async function submitCustomManga() {
 </script>
 
 <template>
-  <KitDialog v-model:visible="visible" :title="t('library.addBookTitle')" icon="mdi:book-plus-outline" :max-width="600" :persistent="isUploading">
+  <KitDialog
+    v-model:visible="visible"
+    :title="t('library.addBookTitle')"
+    icon="mdi:book-plus-outline"
+    :max-width="600"
+    :persistent="isUploading"
+  >
     <div v-if="isUploading" class="uploading-state">
       <Icon icon="mdi:cloud-upload-outline" class="spin-icon pulse" />
       <h3>{{ t('library.uploadingWait') }}</h3>
@@ -161,10 +167,21 @@ async function submitCustomManga() {
             <Icon icon="mdi:file-document-multiple-outline" class="pane-icon" />
             <h4>EPUB, FB2, CBZ, ZIP</h4>
             <p>{{ t('library.uploadReadyBook') }}</p>
-            <KitBtn size="lg" color="primary" icon="mdi:upload" @click="triggerArchiveUpload">
+            <KitBtn
+              size="lg"
+              color="primary"
+              icon="mdi:upload"
+              @click="triggerArchiveUpload"
+            >
               {{ t('library.selectFile') }}
             </KitBtn>
-            <input ref="archiveInputRef" type="file" accept=".epub,.cbz,.zip,.fb2" hidden @change="onArchiveSelected">
+            <input
+              ref="archiveInputRef"
+              type="file"
+              accept=".epub,.cbz,.zip,.fb2"
+              hidden
+              @change="onArchiveSelected"
+            >
           </div>
         </template>
 
@@ -191,7 +208,13 @@ async function submitCustomManga() {
             <div class="chapters-section">
               <div class="chapters-header">
                 <label>{{ t('library.chaptersAndPages') }}</label>
-                <KitBtn size="xs" variant="text" color="primary" icon="mdi:plus" @click="addChapter">
+                <KitBtn
+                  size="xs"
+                  variant="text"
+                  color="primary"
+                  icon="mdi:plus"
+                  @click="addChapter"
+                >
                   {{ t('library.addChapter') }}
                 </KitBtn>
               </div>
@@ -200,11 +223,25 @@ async function submitCustomManga() {
                 <div v-for="(chapter, idx) in customManga.chapters" :key="chapter.id" class="chapter-card">
                   <div class="chapter-header">
                     <KitInput v-model="chapter.title" :placeholder="t('library.chapterTitlePlaceholder')" class="chapter-input" />
-                    <KitBtn v-if="customManga.chapters.length > 1" size="sm" variant="text" color="error" icon="mdi:delete-outline" @click="removeChapter(idx)" />
+                    <KitBtn
+                      v-if="customManga.chapters.length > 1"
+                      size="sm"
+                      variant="text"
+                      color="error"
+                      icon="mdi:delete-outline"
+                      @click="removeChapter(idx)"
+                    />
                   </div>
 
                   <div class="chapter-files">
-                    <input :id="`file-${chapter.id}`" type="file" multiple accept="image/jpeg, image/png, image/webp" class="hidden-file-input" @change="handleChapterFiles(idx, $event)">
+                    <input
+                      :id="`file-${chapter.id}`"
+                      type="file"
+                      multiple
+                      accept="image/jpeg, image/png, image/webp"
+                      class="hidden-file-input"
+                      @change="handleChapterFiles(idx, $event)"
+                    >
 
                     <label :for="`file-${chapter.id}`" class="file-drop-area" :class="{ 'has-files': chapter.files.length > 0 }">
                       <Icon :icon="chapter.files.length > 0 ? 'mdi:check-circle' : 'mdi:image-multiple-outline'" />

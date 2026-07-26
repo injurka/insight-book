@@ -241,7 +241,12 @@ function toggleSection(sec: 'grammar' | 'vocab' | 'notes') {
 
           <div class="card-toolbar fade-in" @click.stop>
             <div class="toolbar-group">
-              <KitDropdown v-model="isTtsPopoverOpen" placement="bottom-start" width="220px" :disabled="true">
+              <KitDropdown
+                v-model="isTtsPopoverOpen"
+                placement="bottom-start"
+                width="220px"
+                :disabled="true"
+              >
                 <template #activator>
                   <KitTooltip :text="t('dictionary.listenVoice')" placement="bottom">
                     <KitBtn
@@ -300,20 +305,45 @@ function toggleSection(sec: 'grammar' | 'vocab' | 'notes') {
                 </div>
               </KitDropdown>
               <KitTooltip v-if="matchedCard.language === 'zh' && /[\u4E00-\u9FA5]/.test(matchedCard.word)" :text="t('dictionary.writingPractice')" placement="bottom">
-                <KitBtn icon="mdi:draw" variant="tonal" color="secondary" size="sm" :class="{ 'is-active-btn': showAnimation }" @click="toggleAnimation" />
+                <KitBtn
+                  icon="mdi:draw"
+                  variant="tonal"
+                  color="secondary"
+                  size="sm"
+                  :class="{ 'is-active-btn': showAnimation }"
+                  @click="toggleAnimation"
+                />
               </KitTooltip>
             </div>
 
             <div v-if="matchedCard.grammarNote || matchedCard.vocabularyNote || matchedCard.notes" class="toolbar-divider" />
             <div v-if="matchedCard.grammarNote || matchedCard.vocabularyNote || matchedCard.notes" class="toolbar-group">
               <KitTooltip v-if="matchedCard.grammarNote" :text="t('dictionary.grammar')" placement="bottom">
-                <KitBtn size="sm" :variant="expandedSections.grammar ? 'solid' : 'tonal'" :color="expandedSections.grammar ? 'primary' : 'secondary'" icon="mdi:puzzle-outline" @click="toggleSection('grammar')" />
+                <KitBtn
+                  size="sm"
+                  :variant="expandedSections.grammar ? 'solid' : 'tonal'"
+                  :color="expandedSections.grammar ? 'primary' : 'secondary'"
+                  icon="mdi:puzzle-outline"
+                  @click="toggleSection('grammar')"
+                />
               </KitTooltip>
               <KitTooltip v-if="matchedCard.vocabularyNote" :text="t('dictionary.vocabulary')" placement="bottom">
-                <KitBtn size="sm" :variant="expandedSections.vocab ? 'solid' : 'tonal'" :color="expandedSections.vocab ? 'primary' : 'secondary'" icon="mdi:book-open-page-variant-outline" @click="toggleSection('vocab')" />
+                <KitBtn
+                  size="sm"
+                  :variant="expandedSections.vocab ? 'solid' : 'tonal'"
+                  :color="expandedSections.vocab ? 'primary' : 'secondary'"
+                  icon="mdi:book-open-page-variant-outline"
+                  @click="toggleSection('vocab')"
+                />
               </KitTooltip>
               <KitTooltip v-if="matchedCard.notes" :text="t('dictionary.notesMnemonic')" placement="bottom">
-                <KitBtn size="sm" :variant="expandedSections.notes ? 'solid' : 'tonal'" :color="expandedSections.notes ? 'primary' : 'secondary'" icon="mdi:note-text-outline" @click="toggleSection('notes')" />
+                <KitBtn
+                  size="sm"
+                  :variant="expandedSections.notes ? 'solid' : 'tonal'"
+                  :color="expandedSections.notes ? 'primary' : 'secondary'"
+                  icon="mdi:note-text-outline"
+                  @click="toggleSection('notes')"
+                />
               </KitTooltip>
             </div>
           </div>
@@ -339,8 +369,19 @@ function toggleSection(sec: 'grammar' | 'vocab' | 'notes') {
 
           <div v-if="showAnimation" class="animation-container fade-in">
             <h4>{{ t('dictionary.strokeOrder') }}</h4>
-            <HanziBoard ref="hanziBoardRef" :text="matchedCard.word" mode="animation" :size="80" />
-            <KitBtn icon="mdi:replay" variant="text" size="xs" color="secondary" @click="hanziBoardRef?.replay()">
+            <HanziBoard
+              ref="hanziBoardRef"
+              :text="matchedCard.word"
+              mode="animation"
+              :size="80"
+            />
+            <KitBtn
+              icon="mdi:replay"
+              variant="text"
+              size="xs"
+              color="secondary"
+              @click="hanziBoardRef?.replay()"
+            >
               {{ t('dictionary.repeat') }}
             </KitBtn>
           </div>
@@ -349,7 +390,12 @@ function toggleSection(sec: 'grammar' | 'vocab' | 'notes') {
     </Transition>
 
     <AiExamplesModal v-model:visible="isAiModalOpen" :loading="isAiLoading" :data="aiData" />
-    <LlmChatModal v-if="matchedCard" v-model:visible="isChatModalOpen" :word="matchedCard.word" :language="matchedCard.language || 'en'" />
+    <LlmChatModal
+      v-if="matchedCard"
+      v-model:visible="isChatModalOpen"
+      :word="matchedCard.word"
+      :language="matchedCard.language || 'en'"
+    />
   </div>
 </template>
 

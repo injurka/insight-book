@@ -5,7 +5,8 @@ import { openUrl } from '@tauri-apps/plugin-opener'
 import { v4 as uuidv4 } from 'uuid'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
-import { KitBtn, KitDropdown, KitInput } from '~/components/01.kit'
+import { KitDropdown } from '~/components/01.kit'
+import { AuthOAuthProviders, AuthSignInForm, AuthSignUpForm } from '~/components/04.features/auth'
 import { ThemesVariant, useChangeTheme } from '~/shared/composables/use-change-theme'
 import { useToast } from '~/shared/composables/use-toast'
 import { useUmami } from '~/shared/composables/use-umami'
@@ -50,21 +51,15 @@ async function setLanguage(lang: string) {
   trackEvent('app_language_changed', { language: lang })
 }
 
-const username = ref('')
-const email = ref('')
-const password = ref('')
-const code = ref('')
 const isLoading = ref(false)
 const isCodeSent = ref(false)
 const currentTab = ref<'login' | 'register'>('login')
 
-async function handleSignIn() {
-  if (!username.value || !password.value)
-    return
+async function handleSignIn(payload: { username: string, password: string }) {
   isLoading.value = true
 
   try {
-    const res = await repos.auth.login({ login: username.value, password: password.value })
+    const res = await repos.auth.login({ login: payload.username, password: payload.password })
     localStorage.setItem('insight_token', res.token)
     await authStore.checkAuth()
 
@@ -79,12 +74,10 @@ async function handleSignIn() {
   }
 }
 
-async function handleSendCode() {
-  if (!email.value)
-    return
+async function handleSendCode(emailVal: string) {
   isLoading.value = true
   try {
-    await repos.auth.sendCode({ email: email.value })
+    await repos.auth.sendCode({ email: emailVal })
     isCodeSent.value = true
     toast.success('Код отправлен на почту')
   }
@@ -96,12 +89,10 @@ async function handleSendCode() {
   }
 }
 
-async function handleRegister() {
-  if (!email.value || !code.value || !password.value)
-    return
+async function handleRegister(payload: { email: string, code: string, password: string }) {
   isLoading.value = true
   try {
-    const res = await repos.auth.register({ email: email.value, code: code.value, password: password.value })
+    const res = await repos.auth.register({ email: payload.email, code: payload.code, password: payload.password })
     localStorage.setItem('insight_token', res.token)
     await authStore.checkAuth()
     trackEvent('register_success')
@@ -322,19 +313,7 @@ onUnmounted(() => {
           </p>
         </div>
 
-        <a
-          href="#"
-          class="yandex-btn yandex-btn-link"
-          :class="{ 'is-disabled': isLoading }"
-          @click.prevent="loginYandex"
-        >
-          <span class="yandex-btn-inner">
-            <span class="yandex-icon-wrap">
-              <span style="font-family: Arial, sans-serif; font-weight: bold; font-size: 1.3rem;">Я</span>
-            </span>
-            <span class="yandex-btn-label">{{ t('signIn.yandexLogin') }}</span>
-          </span>
-        </a>
+        <AuthOAuthProviders :is-loading="isLoading" @login-yandex="loginYandex" />
 
         <div v-if="showAuthControls" class="divider">
           <span class="divider-line" />
@@ -362,62 +341,19 @@ onUnmounted(() => {
         </div>
 
         <Transition name="fade" mode="out-in">
-          <form v-if="showAuthControls && currentTab === 'login'" class="whitelist-form" @submit.prevent="handleSignIn">
-            <KitInput
-              v-model="username"
-              :placeholder="t('signIn.loginOrEmail')"
-              autocomplete="username"
+          <AuthSignInForm
+            v-if="showAuthControls && currentTab === 'login'"
+            :is-loading="isLoading"
+            @submit="handleSignIn"
+          />
+
+          <div v-else-if="showAuthControls">
+            <AuthSignUpForm
+              :is-loading="isLoading"
+              :is-code-sent="isCodeSent"
+              @send-code="handleSendCode"
+              @register="handleRegister"
             />
-            <KitInput
-              v-model="password"
-              type="password"
-              :placeholder="t('signIn.password')"
-              autocomplete="current-password"
-            />
-            <KitBtn
-              type="submit"
-              color="primary"
-              class="submit-btn"
-              :disabled="isLoading"
-            >
-              <Icon v-if="isLoading" icon="mdi:loading" class="spin" />
-              <span>{{ t('signIn.loginBtn') }}</span>
-            </KitBtn>
-          </form>
-
-          <form v-else-if="showAuthControls" class="whitelist-form" @submit.prevent="isCodeSent ? handleRegister() : handleSendCode()">
-            <KitInput
-              v-model="email"
-              type="email"
-              placeholder="Email"
-              autocomplete="email"
-              :disabled="isCodeSent"
-            />
-
-            <template v-if="isCodeSent">
-              <KitInput
-                v-model="code"
-                :placeholder="t('signIn.verificationCode')"
-                autocomplete="one-time-code"
-              />
-              <KitInput
-                v-model="password"
-                type="password"
-                :placeholder="t('signIn.createPassword')"
-                autocomplete="new-password"
-              />
-            </template>
-
-            <KitBtn
-              type="submit"
-              color="primary"
-              class="submit-btn"
-              :disabled="isLoading"
-            >
-              <Icon v-if="isLoading" icon="mdi:loading" class="spin" />
-              <span>{{ isCodeSent ? t('signIn.registerBtn') : t('signIn.getCode') }}</span>
-            </KitBtn>
-
             <button
               v-if="isCodeSent"
               type="button"
@@ -427,7 +363,7 @@ onUnmounted(() => {
             >
               {{ t('signIn.changeEmail') }}
             </button>
-          </form>
+          </div>
         </Transition>
       </div>
     </main>
@@ -858,64 +794,6 @@ onUnmounted(() => {
   line-height: 1.5;
 }
 
-.yandex-btn {
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  text-decoration: none !important;
-  cursor: pointer !important;
-  width: 100% !important;
-  height: 52px !important;
-  border-radius: 14px !important;
-  padding: 0 !important;
-  background: linear-gradient(135deg, #fc3f1d 0%, #d4320f 100%) !important;
-  border: none !important;
-  box-shadow: 0 4px 20px rgba(252, 63, 29, 0.3) !important;
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
-
-  &:hover:not(.is-disabled) {
-    transform: translateY(-2px) !important;
-    box-shadow: 0 8px 28px rgba(252, 63, 29, 0.45) !important;
-    background: linear-gradient(135deg, #ff4d27 0%, #e0381a 100%) !important;
-  }
-
-  &:active:not(.is-disabled) {
-    transform: translateY(0) !important;
-  }
-
-  &.is-disabled {
-    opacity: 0.7 !important;
-    pointer-events: none !important;
-  }
-}
-
-.yandex-btn-inner {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  justify-content: center;
-}
-
-.yandex-icon-wrap {
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.15);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.2rem;
-  color: white;
-  flex-shrink: 0;
-}
-
-.yandex-btn-label {
-  font-size: 1rem;
-  font-weight: 600;
-  color: white;
-  letter-spacing: 0.1px;
-}
-
 .divider {
   display: flex;
   align-items: center;
@@ -934,91 +812,6 @@ onUnmounted(() => {
   color: var(--border-primary-color);
   font-weight: 500;
   white-space: nowrap;
-}
-
-.whitelist-toggle {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  width: 100%;
-  padding: 14px 16px;
-  border-radius: 12px;
-  border: 1px solid var(--border-primary-color);
-  background: var(--bg-secondary-color);
-  color: var(--fg-secondary-color);
-  cursor: pointer;
-  transition: all 0.2s ease;
-  text-align: left;
-
-  &:hover {
-    border-color: var(--border-focus-color);
-    background: var(--bg-focus-color);
-    color: var(--fg-primary-color);
-  }
-
-  &.is-open {
-    border-color: var(--border-focus-color);
-    background: var(--bg-focus-color);
-    color: var(--fg-accent-color);
-  }
-}
-
-.whitelist-toggle-text {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 0.9rem;
-  font-weight: 500;
-
-  svg,
-  .iconify {
-    font-size: 1.05rem;
-  }
-}
-
-.whitelist-toggle-chevron {
-  font-size: 1.1rem;
-  transition: transform 0.2s ease;
-  color: inherit;
-
-  .is-open & {
-    transform: rotate(180deg);
-  }
-}
-
-.whitelist-form {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  padding: 16px;
-  border-radius: 12px;
-  background: var(--bg-secondary-color);
-  border: 1px solid var(--border-primary-color);
-}
-
-.submit-btn {
-  width: 100% !important;
-  height: 44px !important;
-  border-radius: 10px !important;
-  font-weight: 600 !important;
-  margin-top: 4px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-}
-
-.spin {
-  animation: spin 0.8s linear infinite;
-}
-
-@keyframes spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
 }
 
 .expand-enter-active,

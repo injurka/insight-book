@@ -80,8 +80,19 @@ async function onDeleteDeckConfirm() {
             <span class="deck-lang">{{ deck.language.toUpperCase() }}</span>
           </div>
           <div class="deck-actions">
-            <KitBtn icon="mdi:pencil" size="xs" variant="text" @click="openRenameDeck(deck.id, deck.name)" />
-            <KitBtn icon="mdi:delete-outline" size="xs" variant="text" color="error" @click="openDeleteDeck(deck.id, deck.name)" />
+            <KitBtn
+              icon="mdi:pencil"
+              size="xs"
+              variant="text"
+              @click="openRenameDeck(deck.id, deck.name)"
+            />
+            <KitBtn
+              icon="mdi:delete-outline"
+              size="xs"
+              variant="text"
+              color="error"
+              @click="openDeleteDeck(deck.id, deck.name)"
+            />
           </div>
         </li>
       </ul>

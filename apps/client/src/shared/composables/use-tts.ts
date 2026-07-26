@@ -106,7 +106,6 @@ export function useTts() {
       }
 
       console.error('TTS Error:', err)
-      toast.error('Озвучка недоступна без интернета или произошла ошибка сервера')
     }
     finally {
       if (abortController?.signal.aborted === false) {

@@ -117,7 +117,12 @@ function onTouchEnd(e: TouchEvent) {
     <!-- Фиксированная зона действий -->
     <div class="step-actions">
       <Transition name="fade" mode="out-in">
-        <KitBtn v-if="showNextBtn" color="primary" class="next-btn" @click="emit('next')">
+        <KitBtn
+          v-if="showNextBtn"
+          color="primary"
+          class="next-btn"
+          @click="emit('next')"
+        >
           {{ t('onboarding.next') }} <Icon icon="mdi:arrow-right" />
         </KitBtn>
       </Transition>

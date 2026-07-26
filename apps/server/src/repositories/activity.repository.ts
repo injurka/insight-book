@@ -1,9 +1,10 @@
 import type { SQL } from 'drizzle-orm'
+import type { IActivityRepository } from './interfaces'
 import { and, desc, eq, sql } from 'drizzle-orm'
 import { db } from '../db'
 import * as schema from '../db/schema'
 
-export class ActivityRepository {
+export class ActivityRepository implements IActivityRepository {
   async getDailyActivityHeatmap(userId: number, sinceDateStr: string) {
     return await db
       .select({

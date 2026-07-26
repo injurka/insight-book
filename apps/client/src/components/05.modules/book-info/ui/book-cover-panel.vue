@@ -66,7 +66,13 @@ async function startReading() {
       <div v-if="authStore.user && libraryStore.currentBookInfo?.userId === authStore.user?.id" class="cover-overlay">
         <Icon icon="mdi:image-edit" /> {{ t('bookInfo.changeCover') }}
       </div>
-      <input ref="coverInputRef" type="file" accept="image/*" hidden @change="onCoverChange">
+      <input
+        ref="coverInputRef"
+        type="file"
+        accept="image/*"
+        hidden
+        @change="onCoverChange"
+      >
     </div>
 
     <div class="action-buttons">
@@ -74,19 +80,34 @@ async function startReading() {
         {{ (libraryStore.currentBookInfo?.currentPage || 1) > 1 ? t('bookInfo.continueReading') : t('bookInfo.startReading') }}
       </KitBtn>
 
-      <KitBtn variant="tonal" color="secondary" class="full-width" icon="mdi:cloud-download-outline" @click="emit('openSync')">
+      <KitBtn
+        variant="tonal"
+        color="secondary"
+        class="full-width"
+        icon="mdi:cloud-download-outline"
+        @click="emit('openSync')"
+      >
         {{ t('bookInfo.cacheAnalysis') }}
       </KitBtn>
 
       <KitBtn
         v-if="authStore.user && libraryStore.currentBookInfo?.userId === authStore.user?.id && libraryStore.currentBookInfo?.type === 'manga'"
-        variant="tonal" color="accent" class="full-width" icon="mdi:image-plus"
+        variant="tonal"
+        color="accent"
+        class="full-width"
+        icon="mdi:image-plus"
         @click="emit('openAppendChapter')"
       >
         {{ t('bookInfo.addPages') }}
       </KitBtn>
 
-      <KitBtn v-if="authStore.user && libraryStore.currentBookInfo?.userId === authStore.user?.id" variant="text" size="sm" class="edit-btn" @click="emit('editStats')">
+      <KitBtn
+        v-if="authStore.user && libraryStore.currentBookInfo?.userId === authStore.user?.id"
+        variant="text"
+        size="sm"
+        class="edit-btn"
+        @click="emit('editStats')"
+      >
         {{ t('bookInfo.edit') }}
       </KitBtn>
     </div>

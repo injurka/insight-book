@@ -27,7 +27,12 @@ onMounted(() => {
   >
     <div class="interactive-zone">
       <div class="fake-heatmap">
-        <div v-for="i in 14" :key="i" class="fake-cell" :class="{ active: i === 14 && isLit }" />
+        <div
+          v-for="i in 14"
+          :key="i"
+          class="fake-cell"
+          :class="{ active: i === 14 && isLit }"
+        />
       </div>
 
       <Transition name="fade-slide-up">
@@ -41,7 +46,12 @@ onMounted(() => {
     <!-- Фиксированная зона действий -->
     <div class="step-actions">
       <Transition name="fade" mode="out-in">
-        <KitBtn v-if="isLit" color="primary" class="next-btn" @click="emit('next')">
+        <KitBtn
+          v-if="isLit"
+          color="primary"
+          class="next-btn"
+          @click="emit('next')"
+        >
           {{ t('onboarding.next') }} <Icon icon="mdi:arrow-right" />
         </KitBtn>
       </Transition>

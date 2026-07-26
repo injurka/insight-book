@@ -18,7 +18,12 @@ const HanziBoard = lazyComponent(() => import('../../../hanzi-board.vue'))
       {{ $t('dictionary.writeHanzi') }}
     </p>
     <div class="translation-hint" v-html="props.card.translation" />
-    <HanziBoard :text="props.card.word" mode="quiz" :size="280" @complete="emit('flip')" />
+    <HanziBoard
+      :text="props.card.word"
+      mode="quiz"
+      :size="280"
+      @complete="emit('flip')"
+    />
   </div>
 </template>
 

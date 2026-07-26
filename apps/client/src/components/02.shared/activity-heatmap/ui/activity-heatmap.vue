@@ -299,7 +299,12 @@ onMounted(async () => {
             <div v-if="lvl.testPassed" class="test-verified-badge" :title="`Уровень подтвержден тестом на ${lvl.testScore}%`">
               <Icon icon="mdi:check-decagram" class="verified-icon" />
               <span class="stars-indicator">
-                <Icon v-for="n in lvl.testStars" :key="n" icon="mdi:star" class="star-icon" />
+                <Icon
+                  v-for="n in lvl.testStars"
+                  :key="n"
+                  icon="mdi:star"
+                  class="star-icon"
+                />
               </span>
             </div>
           </div>

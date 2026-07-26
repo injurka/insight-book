@@ -1,8 +1,9 @@
+import type { IUserRepository } from './interfaces'
 import { eq, sql } from 'drizzle-orm'
 import { db } from '../db'
 import * as schema from '../db/schema'
 
-export class UserRepository {
+export class UserRepository implements IUserRepository {
   async findById(id: number) {
     return db.query.users.findFirst({ where: eq(schema.users.id, id) })
   }

@@ -61,14 +61,23 @@ export function useScrollRestoration(
       el.removeEventListener('mousedown', stopRestoration)
     }
 
-    el.addEventListener('wheel', stopRestoration, { passive: true, once: true })
-    el.addEventListener('touchstart', stopRestoration, { passive: true, once: true })
-    el.addEventListener('mousedown', stopRestoration, { passive: true, once: true })
+    setTimeout(() => {
+      if (isRestoringScroll.value) {
+        el.addEventListener('wheel', stopRestoration, { passive: true, once: true })
+        el.addEventListener('touchstart', stopRestoration, { passive: true, once: true })
+        el.addEventListener('mousedown', stopRestoration, { passive: true, once: true })
+      }
+    }, 200)
 
     const apply = () => {
       const maxScroll = Math.max(1, el.scrollHeight - el.clientHeight)
       const target = (Number.isNaN(percent) ? 0 : percent) * maxScroll
       el.scrollTop = target
+
+      const mainContent = document.querySelector('.main-content')
+      if (mainContent) {
+        mainContent.scrollTop = 0
+      }
 
       if (el.scrollHeight === lastHeight && el.scrollHeight > el.clientHeight) {
         stableCount++

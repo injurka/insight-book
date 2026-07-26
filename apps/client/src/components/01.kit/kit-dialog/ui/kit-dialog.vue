@@ -146,7 +146,12 @@ onUnmounted(() => {
 <template>
   <Teleport to="body">
     <Transition name="dialog" :duration="300" appear>
-      <div v-if="visible" v-show="!isMinimized" class="dialog-root" :style="zIndex ? { '--z-modal': zIndex } : undefined">
+      <div
+        v-if="visible"
+        v-show="!isMinimized"
+        class="dialog-root"
+        :style="zIndex ? { '--z-modal': zIndex } : undefined"
+      >
         <div v-if="!floating" class="dialog-overlay" @mousedown="handleOverlayClick" />
 
         <div

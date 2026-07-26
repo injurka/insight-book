@@ -57,7 +57,12 @@ function openTrainingSettings(mode: 'srs' | 'deep_dive' | 'cram' | 'match') {
     <div class="header-bottom">
       <div class="actions-and-stats">
         <div class="main-actions">
-          <KitDropdown ref="dropdownRef" placement="bottom-end" width="260px" class="training-dropdown">
+          <KitDropdown
+            ref="dropdownRef"
+            placement="bottom-end"
+            width="260px"
+            class="training-dropdown"
+          >
             <template #activator="{ props }">
               <KitBtn
                 icon="mdi:brain"
@@ -90,15 +95,30 @@ function openTrainingSettings(mode: 'srs' | 'deep_dive' | 'cram' | 'match') {
           </KitDropdown>
 
           <KitTooltip :text="t('dictionary.discover.title')" placement="bottom">
-            <KitBtn icon="mdi:bookshelf" variant="tonal" color="primary" @click="emit('openDiscover')" />
+            <KitBtn
+              icon="mdi:bookshelf"
+              variant="tonal"
+              color="primary"
+              @click="emit('openDiscover')"
+            />
           </KitTooltip>
 
           <KitTooltip :text="t('dictionary.manageDecks')" placement="bottom">
-            <KitBtn icon="mdi:folder-cog-outline" variant="tonal" color="secondary" @click="emit('openManageDecks')" />
+            <KitBtn
+              icon="mdi:folder-cog-outline"
+              variant="tonal"
+              color="secondary"
+              @click="emit('openManageDecks')"
+            />
           </KitTooltip>
 
           <KitTooltip text="Пройти квиз по уровням" placement="bottom">
-            <KitBtn icon="mdi:trophy-outline" variant="tonal" color="accent" @click="emit('openQuiz')" />
+            <KitBtn
+              icon="mdi:trophy-outline"
+              variant="tonal"
+              color="accent"
+              @click="emit('openQuiz')"
+            />
           </KitTooltip>
         </div>
 

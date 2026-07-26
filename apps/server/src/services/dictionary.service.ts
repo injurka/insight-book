@@ -1,3 +1,4 @@
+import type { IDictionaryRepository } from '../repositories/interfaces'
 import type { LlmConfig, PageDictEntry, UserDictItem } from '../types'
 import { inArray } from 'drizzle-orm'
 import { sqliteTable, text } from 'drizzle-orm/sqlite-core'
@@ -14,6 +15,7 @@ import { generateWordAutoFill } from './llm.service'
 import { trackTokenUsage } from './token.service'
 
 export class DictionaryService {
+  constructor(private dictRepo: IDictionaryRepository = dictionaryRepository) {}
   async lookupWords(words: string[], language: string, targetLang: string, userId: number): Promise<Record<string, PageDictEntry>> {
     if (!words.length)
       return {}
@@ -87,7 +89,7 @@ export class DictionaryService {
   }
 
   async lookupSingleWord(word: string, language: string, targetLang: string, userId: number): Promise<PageDictEntry | null> {
-    const userWord = await dictionaryRepository.getWordFromUserDictionary(word, userId, targetLang)
+    const userWord = await this.dictRepo.getWordFromUserDictionary(word, userId, targetLang)
     if (userWord) {
       return { transcription: userWord.transcription || '', translation: userWord.translation || '', isUserDict: true }
     }
@@ -126,48 +128,48 @@ export class DictionaryService {
   }
 
   async getUserDecks(userId: number, targetLang: string) {
-    return await dictionaryRepository.getUserDecks(userId, targetLang)
+    return await this.dictRepo.getUserDecks(userId, targetLang)
   }
 
   async createDeck(userId: number, name: string, language: string, targetLang: string) {
-    return await dictionaryRepository.createDeck(userId, name, language, targetLang)
+    return await this.dictRepo.createDeck(userId, name, language, targetLang)
   }
 
   async updateDeck(deckId: number, userId: number, name: string) {
-    const res = await dictionaryRepository.updateDeck(deckId, userId, name)
+    const res = await this.dictRepo.updateDeck(deckId, userId, name)
     if (res.length === 0)
       throw new AppError(404, 'Колода не найдена')
   }
 
   async deleteDeck(deckId: number, userId: number, mode: 'keep' | 'delete_all' | 'delete_exclusive' = 'keep') {
-    const deck = await dictionaryRepository.getDeck(deckId, userId)
+    const deck = await this.dictRepo.getDeck(deckId, userId)
     if (!deck)
       throw new AppError(404, 'Колода не найдена')
 
     if (mode === 'delete_all') {
-      const wordsInDeck = await dictionaryRepository.getWordsInDeck(deckId)
-      await dictionaryRepository.deleteWords(wordsInDeck.map(w => w.id))
+      const wordsInDeck = await this.dictRepo.getWordsInDeck(deckId)
+      await this.dictRepo.deleteWords(wordsInDeck.map(w => w.id))
     }
     else if (mode === 'delete_exclusive') {
-      const wordsInDeck = await dictionaryRepository.getWordsInDeck(deckId)
+      const wordsInDeck = await this.dictRepo.getWordsInDeck(deckId)
       const wordIds = wordsInDeck.map(w => w.id)
-      const wordsWithOtherLinks = await dictionaryRepository.getWordsWithOtherLinks(wordIds, deckId)
+      const wordsWithOtherLinks = await this.dictRepo.getWordsWithOtherLinks(wordIds, deckId)
       const otherLinksSet = new Set(wordsWithOtherLinks.map(w => w.id))
       const wordsToDelete = wordIds.filter(id => !otherLinksSet.has(id))
-      await dictionaryRepository.deleteWords(wordsToDelete)
+      await this.dictRepo.deleteWords(wordsToDelete)
     }
 
-    const res = await dictionaryRepository.deleteDeck(deckId, userId)
+    const res = await this.dictRepo.deleteDeck(deckId, userId)
     if (res.length === 0)
       throw new AppError(404, 'Колода не найдена')
   }
 
   async getUserDictionary(userId: number, targetLang: string) {
-    return await dictionaryRepository.getUserDictionary(userId, targetLang)
+    return await this.dictRepo.getUserDictionary(userId, targetLang)
   }
 
   async getWordFromUserDictionary(word: string, userId: number, targetLang: string) {
-    const entry = await dictionaryRepository.getWordFromUserDictionary(word, userId, targetLang)
+    const entry = await this.dictRepo.getWordFromUserDictionary(word, userId, targetLang)
     if (!entry)
       throw new AppError(404, 'Слово не найдено в словаре пользователя')
     return entry
@@ -179,15 +181,15 @@ export class DictionaryService {
 
     let deckIds = item.deckIds || []
     if (deckIds.length === 0) {
-      let defaultDeck = await dictionaryRepository.getDefaultDeck(userId, item.language || 'en', targetLang)
+      let defaultDeck = await this.dictRepo.getDefaultDeck(userId, item.language || 'en', targetLang)
       if (!defaultDeck) {
         const deckName = targetLang === 'ru' ? 'Основная колода' : (targetLang === 'zh' ? '默认词库' : 'Main deck')
-        defaultDeck = await dictionaryRepository.createDeck(userId, deckName, item.language || 'en', targetLang)
+        defaultDeck = await this.dictRepo.createDeck(userId, deckName, item.language || 'en', targetLang)
       }
       deckIds = [defaultDeck.id]
     }
 
-    const upserted = await dictionaryRepository.upsertWordToDictionary({
+    const upserted = await this.dictRepo.upsertWordToDictionary({
       userId,
       word: item.word!,
       transcription: item.transcription,
@@ -203,22 +205,22 @@ export class DictionaryService {
     })
 
     if (item.contextSentence) {
-      await dictionaryRepository.upsertWordEncounter(userId, upserted.id, item.contextSentence, item.contextBookId)
+      await this.dictRepo.upsertWordEncounter(userId, upserted.id, item.contextSentence, item.contextBookId)
     }
 
     await activityService.trackActivity(userId, 'wordsAdded', 1)
   }
 
   async removeFromUserDictionary(word: string, userId: number, targetLang: string) {
-    await dictionaryRepository.removeFromUserDictionary(word, userId, targetLang)
+    await this.dictRepo.removeFromUserDictionary(word, userId, targetLang)
   }
 
   async getReviewQueue(userId: number, language: string | undefined, targetLang: string, mode: 'srs' | 'random' | 'deep_dive' | 'cram' = 'srs', deckId?: number | 'none', difficulty?: string) {
-    return await dictionaryRepository.getReviewQueue(userId, language, targetLang, mode, deckId, difficulty)
+    return await this.dictRepo.getReviewQueue(userId, language, targetLang, mode, deckId, difficulty)
   }
 
   async processSrsReview(wordId: number, userId: number, grade: number) {
-    const word = await dictionaryRepository.getWordById(wordId, userId)
+    const word = await this.dictRepo.getWordById(wordId, userId)
     if (!word)
       throw new Error('Word not found')
 
@@ -253,7 +255,7 @@ export class DictionaryService {
       default: throw new Error('Invalid grade rating')
     }
 
-    await dictionaryRepository.updateWordSrs(wordId, {
+    await this.dictRepo.updateWordSrs(wordId, {
       due: recordLog.card.due.toISOString(),
       stability: recordLog.card.stability,
       difficultyFsrs: recordLog.card.difficulty,
@@ -270,29 +272,29 @@ export class DictionaryService {
   }
 
   async bulkDeleteDict(userId: number, wordIds: number[]) {
-    await dictionaryRepository.bulkDeleteWords(userId, wordIds)
+    await this.dictRepo.bulkDeleteWords(userId, wordIds)
   }
 
   async bulkMoveDict(wordIds: number[], deckIds?: number[]) {
-    await dictionaryRepository.bulkMoveWords(wordIds, deckIds)
+    await this.dictRepo.bulkMoveWords(wordIds, deckIds)
   }
 
   async getCatalogDecks() {
-    const decks = await dictionaryRepository.getCatalogDecks()
+    const decks = await this.dictRepo.getCatalogDecks()
     return decks.map(d => ({ ...d, name: d.title }))
   }
 
   async getCatalogWords(deckId: number) {
-    return await dictionaryRepository.getCatalogWords(deckId)
+    return await this.dictRepo.getCatalogWords(deckId)
   }
 
   async cloneCatalogDeck(userId: number, deckId: number, targetLang: string) {
-    const deckToClone = await dictionaryRepository.getCatalogDeckById(deckId)
+    const deckToClone = await this.dictRepo.getCatalogDeckById(deckId)
     if (!deckToClone)
       throw new AppError(404, 'Deck not found')
 
-    const wordsToClone = await dictionaryRepository.getCatalogWords(deckId)
-    const newDeck = await dictionaryRepository.createDeck(userId, deckToClone.title, deckToClone.language, targetLang)
+    const wordsToClone = await this.dictRepo.getCatalogWords(deckId)
+    const newDeck = await this.dictRepo.createDeck(userId, deckToClone.title, deckToClone.language, targetLang)
 
     if (wordsToClone.length > 0) {
       const emptyCard = createEmptyCard()
@@ -318,10 +320,10 @@ export class DictionaryService {
         updatedAt: new Date().toISOString(),
       }))
 
-      const upserted = await dictionaryRepository.upsertClonedWords(userWords)
+      const upserted = await this.dictRepo.upsertClonedWords(userWords)
       if (upserted.length > 0) {
         const links = upserted.map(u => ({ wordId: u.id, deckId: newDeck.id }))
-        await dictionaryRepository.linkWordsToDeck(links)
+        await this.dictRepo.linkWordsToDeck(links)
       }
       await activityService.trackActivity(userId, 'wordsReviewed', userWords.length)
     }
@@ -331,7 +333,7 @@ export class DictionaryService {
   async dictionaryChat(userId: number, word: string, language: string, uiLanguage: string, customPromptId?: number, userPromptText?: string, config?: LlmConfig) {
     let systemPrompt = getDictionaryChatPrompt(uiLanguage)
     if (customPromptId) {
-      const dbPrompt = await dictionaryRepository.getCustomPromptById(customPromptId, userId)
+      const dbPrompt = await this.dictRepo.getCustomPromptById(customPromptId, userId)
       if (!dbPrompt)
         throw new AppError(404, 'Custom prompt not found')
       systemPrompt += `\n\nAdditional Instructions:\n${dbPrompt.prompt}`
@@ -408,22 +410,22 @@ export class DictionaryService {
   }
 
   async getCustomPrompts(userId: number) {
-    return await dictionaryRepository.getCustomPrompts(userId)
+    return await this.dictRepo.getCustomPrompts(userId)
   }
 
   async createCustomPrompt(userId: number, name: string, prompt: string) {
-    return await dictionaryRepository.createCustomPrompt(userId, name, prompt)
+    return await this.dictRepo.createCustomPrompt(userId, name, prompt)
   }
 
   async updateCustomPrompt(id: number, userId: number, updateData: { name?: string, prompt?: string }) {
-    const prompt = await dictionaryRepository.updateCustomPrompt(id, userId, updateData)
+    const prompt = await this.dictRepo.updateCustomPrompt(id, userId, updateData)
     if (!prompt)
       throw new AppError(404, 'Custom prompt not found')
     return prompt
   }
 
   async deleteCustomPrompt(id: number, userId: number) {
-    const prompt = await dictionaryRepository.deleteCustomPrompt(id, userId)
+    const prompt = await this.dictRepo.deleteCustomPrompt(id, userId)
     if (!prompt)
       throw new AppError(404, 'Custom prompt not found')
   }

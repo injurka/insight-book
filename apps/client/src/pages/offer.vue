@@ -99,13 +99,31 @@ const router = useRouter()
 }
 
 .card {
-  background: var(--bg-secondary-color);
+  background-color: var(--bg-secondary-color);
+  background-image:
+    linear-gradient(color-mix(in srgb, var(--fg-primary-color) 3%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in srgb, var(--fg-primary-color) 3%, transparent) 1px, transparent 1px);
+  background-size: 32px 32px;
+  background-position: center top;
   border: 1px solid var(--border-secondary-color);
   border-radius: 12px;
   padding: 32px;
   box-shadow: var(--shadow-sm, 0 2px 8px rgba(0, 0, 0, 0.05));
   color: var(--fg-primary-color);
   line-height: 1.6;
+
+  a {
+    color: var(--fg-accent-color);
+    text-decoration: none;
+    transition:
+      color 0.2s,
+      opacity 0.2s;
+
+    &:hover {
+      opacity: 0.8;
+      text-decoration: underline;
+    }
+  }
 
   h2 {
     font-size: 1.4rem;

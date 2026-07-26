@@ -1,9 +1,11 @@
+import type { IHighlightRepository } from '../repositories/interfaces'
 import { highlightRepository } from '../repositories/highlight.repository'
 import { AppError } from '../utils/errors'
 
 export class HighlightService {
+  constructor(private highlightRepo: IHighlightRepository = highlightRepository) {}
   async getHighlights(userId: number, bookId?: number) {
-    return highlightRepository.findMany(userId, bookId)
+    return this.highlightRepo.findMany(userId, bookId)
   }
 
   async createHighlight(
@@ -19,7 +21,7 @@ export class HighlightService {
       analysisData?: string | null
     },
   ) {
-    return highlightRepository.create({
+    return this.highlightRepo.create({
       userId,
       bookId: body.bookId,
       text: body.text,
@@ -45,7 +47,7 @@ export class HighlightService {
       analysisData?: string | null
     },
   ) {
-    const updated = await highlightRepository.update(id, userId, body)
+    const updated = await this.highlightRepo.update(id, userId, body)
     if (!updated) {
       throw new AppError(404, 'Выделение не найдено или доступ закрыт')
     }
@@ -53,7 +55,7 @@ export class HighlightService {
   }
 
   async deleteHighlight(id: number, userId: number) {
-    const isDeleted = await highlightRepository.delete(id, userId)
+    const isDeleted = await this.highlightRepo.delete(id, userId)
     if (!isDeleted) {
       throw new AppError(404, 'Выделение не найдено или доступ закрыт')
     }

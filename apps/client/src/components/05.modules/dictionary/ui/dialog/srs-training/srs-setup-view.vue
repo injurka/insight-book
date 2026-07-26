@@ -183,7 +183,12 @@ function start() {
             <span class="mode-title">{{ t('dictionary.listening') }}</span>
             <span class="mode-desc">{{ t('dictionary.aiSpeech') }}</span>
           </div>
-          <div v-if="showWritingMode" class="mode-card" :class="{ 'is-active': modes.writing }" @click="modes.writing = !modes.writing">
+          <div
+            v-if="showWritingMode"
+            class="mode-card"
+            :class="{ 'is-active': modes.writing }"
+            @click="modes.writing = !modes.writing"
+          >
             <Icon icon="mdi:draw" class="mode-icon" />
             <span class="mode-title">{{ t('dictionary.writing') }}</span>
             <span class="mode-desc">{{ t('dictionary.hanziByMemory') }}</span>
@@ -200,7 +205,12 @@ function start() {
             <span class="mode-title">{{ t('dictionary.collocations') }}</span>
             <span class="mode-desc">{{ t('dictionary.collocationsDesc') }}</span>
           </div>
-          <div v-if="showWritingMode" class="mode-card" :class="{ 'is-active': modes.radicals }" @click="modes.radicals = !modes.radicals">
+          <div
+            v-if="showWritingMode"
+            class="mode-card"
+            :class="{ 'is-active': modes.radicals }"
+            @click="modes.radicals = !modes.radicals"
+          >
             <Icon icon="mdi:format-annotation-plus" class="mode-icon" />
             <span class="mode-title">{{ t('dictionary.radicals') }}</span>
             <span class="mode-desc">{{ t('dictionary.radicalsDesc') }}</span>

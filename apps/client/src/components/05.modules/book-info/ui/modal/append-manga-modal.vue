@@ -47,7 +47,13 @@ async function submit() {
 </script>
 
 <template>
-  <KitDialog v-model:visible="visible" :title="t('bookInfo.addPages')" icon="mdi:image-plus" :max-width="500" :persistent="isUploading">
+  <KitDialog
+    v-model:visible="visible"
+    :title="t('bookInfo.addPages')"
+    icon="mdi:image-plus"
+    :max-width="500"
+    :persistent="isUploading"
+  >
     <div v-if="isUploading" class="uploading-state">
       <Icon icon="mdi:cloud-upload-outline" class="spin-icon pulse" />
       <h3>{{ t('library.downloadingBook') }}</h3>
@@ -63,7 +69,14 @@ async function submit() {
 
       <div class="form-group">
         <label>{{ t('bookInfo.pagesImages') }}</label>
-        <input id="append-files-input" type="file" multiple accept="image/jpeg, image/png, image/webp" class="hidden-file-input" @change="onFilesChange">
+        <input
+          id="append-files-input"
+          type="file"
+          multiple
+          accept="image/jpeg, image/png, image/webp"
+          class="hidden-file-input"
+          @change="onFilesChange"
+        >
 
         <label for="append-files-input" class="file-drop-area" :class="{ 'has-files': selectedFiles.length > 0 }">
           <Icon :icon="selectedFiles.length > 0 ? 'mdi:check-circle' : 'mdi:image-multiple-outline'" />

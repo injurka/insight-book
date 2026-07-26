@@ -44,7 +44,16 @@ const { onPointerDown, onPointerUp, onWordClick } = useTextSelection()
 
 const { isHeaderVisible, onScroll } = useReaderScroll(saveScrollPosition)
 const { performLayoutSync } = useParallelSync(readerViewRef, restoreScrollPosition)
-const { leftPaneContent, translatedPageContent } = useReaderContent()
+const { leftPaneContent, translatedPageContent, pageTranslationProgress } = useReaderContent()
+
+function startPageTranslationOnly() {
+  analysisStore.analyzeWholePage({
+    sentences: true,
+    words: false,
+    ttsSentences: false,
+    ttsWords: false,
+  }, true)
+}
 
 function startPageAnalysis() {
   analysisStore.isPageAnalysisSetupModalOpen = false
@@ -62,16 +71,14 @@ function startPageAnalysis() {
   }
 }
 
-function onContentEnter(el: Element) {
-  if (el.classList.contains('reader-layout-wrapper')) {
-    performLayoutSync()
-  }
-}
+const rightPaneContentForSync = computed(() => {
+  return pageTranslationProgress.value.isFullyTranslated ? translatedPageContent.value : leftPaneContent.value
+})
 
 watch(
   [
     () => readerStore.isParallelView,
-    translatedPageContent,
+    rightPaneContentForSync,
     () => settingsStore.readerFontSize,
     () => settingsStore.readerLineHeight,
   ],
@@ -96,48 +103,57 @@ watch(() => readerStore.isPageLoading, async (isLoading) => {
     <ReaderHeader :is-visible="isHeaderVisible" />
 
     <div class="reader-content-wrapper">
-      <Transition name="fade" mode="out-in" @enter="onContentEnter">
-        <div v-if="readerStore.isPageLoading" class="reader-loading-wrapper">
-          <div class="spinner-box">
-            <PageLoader />
-          </div>
-          <h3 class="loading-text">
-            {{ t('reader.preparingPageTitle') }}
-          </h3>
-          <p class="loading-subtext">
-            {{ t('reader.preparingPageDesc') }}
-          </p>
+      <div v-if="readerStore.isPageLoading && !readerStore.currentPage" class="reader-loading-wrapper">
+        <div class="spinner-box">
+          <PageLoader />
         </div>
+        <h3 class="loading-text">
+          {{ t('reader.preparingPageTitle') }}
+        </h3>
+        <p class="loading-subtext">
+          {{ t('reader.preparingPageDesc') }}
+        </p>
+      </div>
 
-        <div v-else-if="readerStore.currentPage" class="reader-layout-wrapper">
-          <div class="reader-content-layout" :class="{ 'is-parallel': readerStore.isParallelView }">
+      <div
+        v-else-if="readerStore.currentPage"
+        :key="readerStore.currentPage.pageNum"
+        class="reader-layout-wrapper page-enter-anim"
+        :class="{ 'is-loading': readerStore.isPageLoading }"
+      >
+        <div class="reader-content-layout" :class="{ 'is-parallel': readerStore.isParallelView }">
+          <div
+            class="reader-content left-pane js-tooltip-selectable"
+            :style="{
+              fontSize: `${settingsStore.readerFontSize}rem`,
+              lineHeight: settingsStore.readerLineHeight,
+              fontFamily: settingsStore.readerFontFamily,
+            }"
+            @click="onWordClick"
+            @mousedown="onPointerDown"
+            @touchstart="onPointerDown"
+            @mouseup="onPointerUp"
+            @touchend="onPointerUp"
+            @touchcancel="onPointerUp"
+            @mouseleave="onPointerUp"
+            @mouseover="onSentenceHover"
+            @mouseout="onSentenceOut"
+            v-html="leftPaneContent"
+          />
+
+          <div
+            v-if="readerStore.isParallelView"
+            class="reader-content right-pane"
+            :style="{
+              fontSize: `${settingsStore.readerFontSize}rem`,
+              lineHeight: settingsStore.readerLineHeight,
+              fontFamily: settingsStore.readerFontFamily,
+            }"
+          >
             <div
-              class="reader-content left-pane js-tooltip-selectable"
-              :style="{
-                fontSize: `${settingsStore.readerFontSize}rem`,
-                lineHeight: settingsStore.readerLineHeight,
-                fontFamily: settingsStore.readerFontFamily,
-              }"
+              v-if="pageTranslationProgress.isFullyTranslated"
+              class="translated-content-wrapper"
               @click="onWordClick"
-              @mousedown="onPointerDown"
-              @touchstart="onPointerDown"
-              @mouseup="onPointerUp"
-              @touchend="onPointerUp"
-              @touchcancel="onPointerUp"
-              @mouseleave="onPointerUp"
-              @mouseover="onSentenceHover"
-              @mouseout="onSentenceOut"
-              v-html="leftPaneContent"
-            />
-
-            <div
-              v-if="readerStore.isParallelView"
-              class="reader-content right-pane"
-              :style="{
-                fontSize: `${settingsStore.readerFontSize}rem`,
-                lineHeight: settingsStore.readerLineHeight,
-                fontFamily: settingsStore.readerFontFamily,
-              }"
               @mousedown="onPointerDown"
               @touchstart="onPointerDown"
               @mouseup="onPointerUp"
@@ -148,9 +164,39 @@ watch(() => readerStore.isPageLoading, async (isLoading) => {
               @mouseout="onSentenceOut"
               v-html="translatedPageContent"
             />
+            <div v-else class="untranslated-overlay-container">
+              <div
+                class="untranslated-content is-blurred"
+                v-html="leftPaneContent"
+              />
+              <div class="untranslated-overlay-action">
+                <div class="hint-text">
+                  {{ t('reader.parallelViewRequiresFullTranslation', 'Для отображения текста необходимо перевести все предложения на странице.') }}
+                </div>
+
+                <div v-if="analysisStore.isAutoPageAnalysisActive || analysisStore.isManualPageAnalysisActive" class="translation-progress">
+                  <div class="progress-info">
+                    <span>{{ t('reader.translatingSentences', 'Перевод предложений...') }}</span>
+                    <span>{{ pageTranslationProgress.translated }} / {{ pageTranslationProgress.total }}</span>
+                  </div>
+                  <div class="progress-bar-bg">
+                    <div class="progress-bar-fill" :style="{ width: `${pageTranslationProgress.percentage}%` }" />
+                  </div>
+                </div>
+
+                <KitBtn
+                  v-else
+                  color="primary"
+                  class="action-btn"
+                  @click="startPageTranslationOnly"
+                >
+                  <Icon icon="mdi:translate" class="btn-icon" /> {{ t('reader.translatePage', 'Перевести страницу') }}
+                </KitBtn>
+              </div>
+            </div>
           </div>
         </div>
-      </Transition>
+      </div>
     </div>
 
     <ReaderFooter @prev="prevPage" @next="nextPage" @go-to="goToPage" />
@@ -159,7 +205,13 @@ watch(() => readerStore.isPageLoading, async (isLoading) => {
     <GrammarPopover />
     <SelectionTooltip />
 
-    <KitDialog v-model:visible="readerStore.tocOpen" :title="t('bookInfo.tableOfContents')" :max-width="500" icon="mdi:format-list-bulleted">
+    <KitDialog
+      v-model:visible="readerStore.tocOpen"
+      :title="t('bookInfo.tableOfContents')"
+      :max-width="500"
+      icon="mdi:format-list-bulleted"
+      :minimizable="false"
+    >
       <div v-if="readerStore.currentToc.length === 0" class="empty-state">
         <p>{{ t('reader.tocEmpty') }}</p>
       </div>
@@ -178,7 +230,12 @@ watch(() => readerStore.isPageLoading, async (isLoading) => {
       </div>
     </KitDialog>
 
-    <KitDialog v-model:visible="analysisStore.isPageAnalysisSetupModalOpen" :title="t('reader.analyzePage')" :max-width="400" icon="mdi:robot-outline">
+    <KitDialog
+      v-model:visible="analysisStore.isPageAnalysisSetupModalOpen"
+      :title="t('reader.analyzePage')"
+      :max-width="400"
+      icon="mdi:robot-outline"
+    >
       <div class="analysis-setup-content">
         <div class="settings-group has-divider">
           <div class="group-header">
@@ -286,6 +343,13 @@ watch(() => readerStore.isPageLoading, async (isLoading) => {
   display: flex;
   justify-content: center;
   padding: 24px;
+  transition: opacity 0.2s ease;
+
+  &.is-loading {
+    opacity: 0.6;
+    pointer-events: none;
+  }
+
   @include media-down(sm) {
     padding: 16px;
   }
@@ -485,11 +549,44 @@ watch(() => readerStore.isPageLoading, async (isLoading) => {
     padding-left: 8px;
     border-left: 2px solid var(--border-secondary-color);
 
-    .interleaved-grammar-rules {
+    &.is-blurred {
+      filter: blur(5px);
+      cursor: pointer;
+      opacity: 0.7;
+      transition:
+        filter 0.2s,
+        opacity 0.2s;
+
+      &:hover {
+        opacity: 1;
+      }
+    }
+  }
+  :deep(.split-translation) {
+    display: block;
+    text-indent: 0;
+
+    &.is-blurred {
+      filter: blur(5px);
+      cursor: pointer;
+      opacity: 0.7;
+      transition:
+        filter 0.2s,
+        opacity 0.2s;
+
+      &:hover {
+        opacity: 1;
+      }
+    }
+  }
+
+  :deep(.interleaved-translation),
+  :deep(.split-translation) {
+    .grammar-rules-container {
       display: flex;
       flex-wrap: wrap;
       gap: 6px;
-      margin-top: 8px;
+      margin-top: 4px;
     }
 
     .grammar-rule-badge {
@@ -500,7 +597,7 @@ watch(() => readerStore.isPageLoading, async (isLoading) => {
       border: 1px solid var(--border-primary-color);
       padding: 2px 8px;
       border-radius: 6px;
-      font-size: 0.75em;
+      font-size: 0.56em;
       font-weight: 500;
       cursor: pointer;
       transition: all 0.2s ease;
@@ -517,37 +614,12 @@ watch(() => readerStore.isPageLoading, async (isLoading) => {
     }
 
     &.is-blurred {
-      filter: blur(5px);
-      cursor: pointer;
-      opacity: 0.7;
-      transition:
-        filter 0.2s,
-        opacity 0.2s;
-
-      &:hover {
-        opacity: 1;
-      }
-
       .grammar-rule-badge {
         color: var(--fg-secondary-color);
         background-color: var(--bg-hover-color, rgba(0, 0, 0, 0.02));
         border-color: transparent;
         box-shadow: none;
         pointer-events: none;
-      }
-    }
-  }
-  :deep(.split-translation) {
-    &.is-blurred {
-      filter: blur(5px);
-      cursor: pointer;
-      opacity: 0.7;
-      transition:
-        filter 0.2s,
-        opacity 0.2s;
-
-      &:hover {
-        opacity: 1;
       }
     }
   }
@@ -629,15 +701,97 @@ watch(() => readerStore.isPageLoading, async (isLoading) => {
   padding: 16px 0;
 }
 
-.fade-enter-active,
-.fade-leave-active {
-  transition:
-    opacity 0.2s,
-    transform 0.2s;
+@keyframes pageEnter {
+  from {
+    opacity: 0;
+    transform: translateY(-5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
-.fade-enter-from,
-.fade-leave-to {
-  opacity: 0;
-  transform: translateY(-5px);
+
+.page-enter-anim {
+  animation: pageEnter 0.2s ease-out 0.1s both;
+}
+
+.untranslated-overlay-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.untranslated-content {
+  opacity: 0.25;
+  filter: blur(4px);
+  pointer-events: none;
+  user-select: none;
+  transition: all 0.3s ease;
+}
+
+.untranslated-overlay-action {
+  position: absolute;
+  top: 10%;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--bg-primary-color);
+  padding: 24px 32px;
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+  border: 1px solid var(--border-secondary-color);
+  width: 90%;
+  max-width: 400px;
+  text-align: center;
+  z-index: 10;
+
+  .hint-text {
+    font-size: 1rem;
+    color: var(--fg-secondary-color);
+    margin-bottom: 20px;
+    line-height: 1.5;
+  }
+
+  .action-btn {
+    width: 100%;
+    .btn-icon {
+      margin-right: 8px;
+      font-size: 1.2rem;
+    }
+  }
+}
+
+.translation-progress {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+
+  .progress-info {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.9rem;
+    color: var(--fg-secondary-color);
+    font-weight: 500;
+  }
+
+  .progress-bar-bg {
+    width: 100%;
+    height: 8px;
+    background-color: var(--bg-secondary-color);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+
+  .progress-bar-fill {
+    height: 100%;
+    background-color: var(--fg-accent-color);
+    border-radius: 4px;
+    transition: width 0.3s ease;
+  }
 }
 </style>

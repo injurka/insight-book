@@ -1,20 +1,26 @@
+import type { IActivityRepository, IUserRepository } from '../repositories/interfaces'
 import { getAiConfig } from '~/utils/ai-config'
 import { ROLES } from '../constants/roles'
 import { activityRepository } from '../repositories/activity.repository'
 import { userRepository } from '../repositories/user.repository'
 
 export class ActivityService {
+  constructor(
+    private activityRepo: IActivityRepository = activityRepository,
+    private userRepo: IUserRepository = userRepository,
+  ) {}
+
   async getActivityStats(userId: number) {
     const sinceDate = new Date()
     sinceDate.setDate(sinceDate.getDate() - 182)
     const sinceDateStr = sinceDate.toISOString().split('T')[0]
 
     const [heatmap, learnedWords, readPages, difficulties, quizProgress] = await Promise.all([
-      activityRepository.getDailyActivityHeatmap(userId, sinceDateStr),
-      activityRepository.getLearnedWordsCount(userId),
-      activityRepository.getReadPagesCount(userId),
-      activityRepository.getDifficulties(userId),
-      activityRepository.getQuizProgress(userId),
+      this.activityRepo.getDailyActivityHeatmap(userId, sinceDateStr),
+      this.activityRepo.getLearnedWordsCount(userId),
+      this.activityRepo.getReadPagesCount(userId),
+      this.activityRepo.getDifficulties(userId),
+      this.activityRepo.getQuizProgress(userId),
     ])
 
     return {
@@ -31,9 +37,9 @@ export class ActivityService {
     const pricing = aiConfig.pricing
 
     const [statsRaw, dailyRaw, user] = await Promise.all([
-      activityRepository.getTokenUsageStats(userId, period),
-      activityRepository.getDailyTokenUsage(userId, period),
-      userRepository.findById(userId),
+      this.activityRepo.getTokenUsageStats(userId, period),
+      this.activityRepo.getDailyTokenUsage(userId, period),
+      this.userRepo.findById(userId),
     ])
 
     const isAdmin = user?.role === ROLES.ADMIN
@@ -81,7 +87,7 @@ export class ActivityService {
   }
 
   async trackActivity(userId: number, field: 'wordsAdded' | 'wordsReviewed' | 'pagesRead', increment: number = 1) {
-    await activityRepository.incrementActivity(userId, field, increment)
+    await this.activityRepo.incrementActivity(userId, field, increment)
   }
 }
 

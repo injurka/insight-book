@@ -23,7 +23,7 @@ export const useLibraryStore = defineStore('library', () => {
   const publicPage = ref(1)
   const publicLimit = ref(20)
 
-  const currentBookInfo = shallowRef<Book | null>(null)
+  const currentBookInfo = ref<Book | null>(null)
   const currentBookId = ref<number | null>(null)
 
   const isInitialized = ref(false)

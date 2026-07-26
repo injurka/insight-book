@@ -3,11 +3,9 @@ import { autoUpdate, flip, offset, shift, useFloating } from '@floating-ui/vue'
 import { Icon } from '@iconify/vue'
 import { useResizeObserver } from '@vueuse/core'
 import { computed, onMounted, onUnmounted, ref } from 'vue'
-import { useI18n } from 'vue-i18n'
 import { useAnalysisStore } from '~/shared/store/analysis/analysis.store'
 
 const analysisStore = useAnalysisStore()
-const { t } = useI18n()
 
 const popoverRef = ref<HTMLElement | null>(null)
 const referenceEl = computed(() => analysisStore.grammarPopover?.target || null)
@@ -58,7 +56,13 @@ onUnmounted(() => document.removeEventListener('click', closePopover))
 <template>
   <Teleport to="body">
     <Transition name="fade">
-      <div v-if="analysisStore.grammarPopover" ref="popoverRef" class="grammar-popover" :style="popoverPos" @click.stop>
+      <div
+        v-if="analysisStore.grammarPopover"
+        ref="popoverRef"
+        class="grammar-popover"
+        :style="popoverPos"
+        @click.stop
+      >
         <div class="grammar-header">
           <div class="header-pattern-badge">
             <Icon icon="mdi:puzzle-outline" class="pattern-icon" />
@@ -73,25 +77,13 @@ onUnmounted(() => document.removeEventListener('click', closePopover))
           <div class="height-animator" :style="{ height: contentHeight, transition: 'height 0.25s ease', overflow: 'hidden' }">
             <div ref="innerRef" class="popover-inner-grid">
               <div class="popover-body">
-                <div class="grammar-section">
-                  <div class="section-title">
-                    <Icon icon="mdi:information-outline" class="section-icon" />
-                    <span>{{ t('analysis.explanation') }}</span>
-                  </div>
-                  <p class="section-content explanation-text">
-                    {{ analysisStore.grammarPopover.explanation }}
-                  </p>
-                </div>
+                <p class="section-content explanation-text">
+                  {{ analysisStore.grammarPopover.explanation }}
+                </p>
 
-                <div v-if="analysisStore.grammarPopover.example" class="grammar-section">
-                  <div class="section-title">
-                    <Icon icon="mdi:comment-quote-outline" class="section-icon" />
-                    <span>{{ t('analysis.example') }}</span>
-                  </div>
-                  <p class="section-content example-text">
-                    {{ analysisStore.grammarPopover.example }}
-                  </p>
-                </div>
+                <p v-if="analysisStore.grammarPopover.example" class="section-content example-text">
+                  {{ analysisStore.grammarPopover.example }}
+                </p>
               </div>
             </div>
           </div>
@@ -211,28 +203,7 @@ onUnmounted(() => document.removeEventListener('click', closePopover))
   padding: 12px 16px 16px 16px;
   display: flex;
   flex-direction: column;
-  gap: 14px;
-}
-
-.grammar-section {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.section-title {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 0.75rem;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: var(--fg-secondary-color);
-  font-weight: 600;
-
-  .section-icon {
-    font-size: 0.9rem;
-  }
+  gap: 12px;
 }
 
 .section-content {

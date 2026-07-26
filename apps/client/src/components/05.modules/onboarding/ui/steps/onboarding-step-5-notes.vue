@@ -55,7 +55,12 @@ function onSave() {
   >
     <div class="interactive-zone">
       <div class="notebook-container">
-        <div class="quote-text" :class="[{ 'is-selected': isSelected, 'is-saved': isSaved }, hlClass]" @mousedown="onSelect" @touchstart.prevent="onSelect">
+        <div
+          class="quote-text"
+          :class="[{ 'is-selected': isSelected, 'is-saved': isSaved }, hlClass]"
+          @mousedown="onSelect"
+          @touchstart.prevent="onSelect"
+        >
           "{{ t('onboarding.step5_quote') }}"
         </div>
 
@@ -85,7 +90,12 @@ function onSave() {
 
     <!-- Фиксированная зона действий -->
     <div class="step-actions">
-      <KitBtn v-if="isSaved" color="primary" class="next-btn" @click="emit('next')">
+      <KitBtn
+        v-if="isSaved"
+        color="primary"
+        class="next-btn"
+        @click="emit('next')"
+      >
         {{ t('onboarding.next') }} <Icon icon="mdi:arrow-right" />
       </KitBtn>
       <div v-else-if="!isSelected" class="hint-action blink" @click="onSelect">

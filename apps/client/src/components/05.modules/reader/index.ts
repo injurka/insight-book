@@ -1,3 +1,3 @@
-import ReaderView from './reader-view.vue'
+import ReaderView from './ui/reader-view.vue'
 
 export { ReaderView }

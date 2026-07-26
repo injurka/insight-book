@@ -124,7 +124,12 @@ function finishOnboarding() {
 
     <div class="onboarding-container">
       <Transition name="fade-slide" mode="out-in">
-        <component :is="CurrentComponent" :key="currentStep" @next="nextStep" @finish="finishOnboarding" />
+        <component
+          :is="CurrentComponent"
+          :key="currentStep"
+          @next="nextStep"
+          @finish="finishOnboarding"
+        />
       </Transition>
 
       <div class="progress-indicator">

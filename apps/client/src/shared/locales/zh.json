@@ -108,8 +108,7 @@
     "cacheTtsSentencesDesc": "为所有短语生成音频",
     "cacheTtsWords": "单词语音",
     "cacheTtsWordsDesc": "为每个单词生成音频",
-    "warning": "警告！",
-    "warningDesc": "该过程可能需要很长时间并大量消耗 API 限制。建议使用本地模型 (Ollama)。",
+
     "pages": "页面",
     "sentences": "句子",
     "stop": "停止"

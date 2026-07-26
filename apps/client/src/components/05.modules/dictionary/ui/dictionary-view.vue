@@ -113,7 +113,12 @@ watch(isDetailsModalOpen, (isOpen) => {
     <ManageDecksDialog v-model:visible="isManageDecksOpen" />
     <BulkMoveDialog v-model:visible="isBulkMoveOpen" />
     <DictionaryStatsDialog ref="statsDialog" v-model:visible="isStatsModalOpen" @open-quiz="handleOpenQuiz" />
-    <DictionaryQuizDialog v-model:visible="isQuizOpen" :initial-lang="quizLang" :initial-level="quizLevel" @success="store.fetchDictionary(); statsDialog?.fetchActivity()" />
+    <DictionaryQuizDialog
+      v-model:visible="isQuizOpen"
+      :initial-lang="quizLang"
+      :initial-level="quizLevel"
+      @success="store.fetchDictionary(); statsDialog?.fetchActivity()"
+    />
     <SrsTrainingDialog v-model:visible="isTrainingOpen" />
     <DictionaryDiscoverDialog v-model:visible="isDiscoverOpen" />
     <DictWordDetailsModal v-model:visible="isDetailsModalOpen" :word="selectedWordDetails" />

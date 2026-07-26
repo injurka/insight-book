@@ -171,7 +171,13 @@ function openLimits() {
       :default-value="authStore.user?.username"
       @submit="handleUsernameSubmit"
     />
-    <input ref="avatarInputRef" type="file" accept="image/*" hidden @change="onAvatarChange">
+    <input
+      ref="avatarInputRef"
+      type="file"
+      accept="image/*"
+      hidden
+      @change="onAvatarChange"
+    >
   </div>
 </template>
 

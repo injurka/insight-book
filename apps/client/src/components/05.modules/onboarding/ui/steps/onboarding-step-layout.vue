@@ -14,7 +14,12 @@ defineProps<{
 <template>
   <div class="step-card">
     <div v-if="!noIcon" class="step-icon-wrapper" :class="wrapperClass">
-      <Icon v-if="icon" :icon="icon" class="huge-icon" :class="iconClass" />
+      <Icon
+        v-if="icon"
+        :icon="icon"
+        class="huge-icon"
+        :class="iconClass"
+      />
       <slot v-else name="icon" />
     </div>
 

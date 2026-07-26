@@ -1,9 +1,10 @@
 import type { SQL } from 'drizzle-orm'
+import type { IBookRepository } from './interfaces'
 import { and, desc, eq, inArray, isNotNull, like, or, sql } from 'drizzle-orm'
 import { db } from '../db'
 import * as schema from '../db/schema'
 
-export class BookRepository {
+export class BookRepository implements IBookRepository {
   buildPublicConditions(tag: string | null, search: string | null, language: string | null): (SQL | undefined)[] {
     const conditions: (SQL | undefined)[] = [eq(schema.books.isPublic, true)]
     if (tag) {

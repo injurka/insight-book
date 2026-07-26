@@ -1,4 +1,5 @@
 import type { UserDictItem } from '../types'
+import type { IDictionaryRepository } from './interfaces'
 import { and, desc, eq, inArray, lte, notInArray, sql } from 'drizzle-orm'
 import { createEmptyCard } from 'ts-fsrs'
 import { db } from '../db'
@@ -6,7 +7,7 @@ import { catalogDb } from '../db/catalog'
 import { officialDecks, officialDeckWords } from '../db/catalog-schema'
 import * as schema from '../db/schema'
 
-export class DictionaryRepository {
+export class DictionaryRepository implements IDictionaryRepository {
   async getUserDecks(userId: number, targetLang: string) {
     return await db.query.dictDecks.findMany({
       where: and(eq(schema.dictDecks.userId, userId), eq(schema.dictDecks.targetLanguage, targetLang)),

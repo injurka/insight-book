@@ -7,10 +7,28 @@ export default antfu({
   ignores: [
     '**/assets/**',
     '**/public/**',
-    'auto-imports.d.ts',
     '**/vite-env.d.ts',
-    'bun.lock',
     '**/src-tauri/**',
     '**/*.md',
+    'auto-imports.d.ts',
+    'bun.lock',
   ],
+  rules: {
+    'vue/max-attributes-per-line': ['error', {
+      singleline: {
+        max: 3,
+      },
+      multiline: {
+        max: 1,
+      },
+    }],
+    'vue/first-attribute-linebreak': ['error', {
+      singleline: 'ignore',
+      multiline: 'below',
+    }],
+    'vue/html-closing-bracket-newline': ['error', {
+      singleline: 'never',
+      multiline: 'always',
+    }],
+  },
 })

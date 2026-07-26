@@ -70,7 +70,12 @@ defineExpose({ fetchActivity })
   >
     <div class="stats-modal-content">
       <KitSkeleton v-if="isActivityLoading" width="100%" height="250px" />
-      <ActivityHeatmap v-else :activity-data="activityData" :stats="activityStats" @click-level="onLevelClick" />
+      <ActivityHeatmap
+        v-else
+        :activity-data="activityData"
+        :stats="activityStats"
+        @click-level="onLevelClick"
+      />
     </div>
   </KitDialog>
 </template>

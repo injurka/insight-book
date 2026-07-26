@@ -27,7 +27,12 @@ const periodOptions = [
   </div>
 
   <div class="settings-card tokens-card" :class="{ 'is-loading': isTokensLoading }">
-    <KitSkeleton v-if="isTokensLoading && totalTokens.input === 0 && totalTokens.output === 0" width="100%" height="150px" color="var(--bg-tertiary-color)" />
+    <KitSkeleton
+      v-if="isTokensLoading && totalTokens.input === 0 && totalTokens.output === 0"
+      width="100%"
+      height="150px"
+      color="var(--bg-tertiary-color)"
+    />
 
     <template v-else-if="totalTokens.input > 0 || totalTokens.output > 0">
       <div class="total-tokens">

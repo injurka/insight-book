@@ -77,7 +77,7 @@ export function useReaderContent() {
               const exampleEscaped = encodeURIComponent(rule.example || '')
               return `<span class="grammar-rule-badge" data-pattern="${patternEscaped}" data-explanation="${explanationEscaped}" data-example="${exampleEscaped}">${escapeHtml(rule.pattern)}</span>`
             }).join('')
-            grammarHtml = `<span class="interleaved-grammar-rules">${badges}</span>`
+            grammarHtml = `<span class="grammar-rules-container">${badges}</span>`
           }
 
           const translationHtml = `<span class="interleaved-translation ${blurClass}" onclick="this.classList.remove('is-blurred')"><span class="translation-text">${translationText}</span>${grammarHtml}</span>`
@@ -95,7 +95,19 @@ export function useReaderContent() {
           }
           else {
             const blurClass = settingsStore.parallelBlurTranslation ? 'is-blurred' : ''
-            span.innerHTML = `<span class="split-translation ${blurClass}" onclick="this.classList.remove('is-blurred')">${translationText}</span>`
+
+            let grammarHtml = ''
+            if (settingsStore.parallelShowGrammar && analysisObj.grammarRules && analysisObj.grammarRules.length > 0) {
+              const badges = analysisObj.grammarRules.map((rule: any) => {
+                const patternEscaped = encodeURIComponent(rule.pattern || '')
+                const explanationEscaped = encodeURIComponent(rule.explanation || '')
+                const exampleEscaped = encodeURIComponent(rule.example || '')
+                return `<span class="grammar-rule-badge" data-pattern="${patternEscaped}" data-explanation="${explanationEscaped}" data-example="${exampleEscaped}">${escapeHtml(rule.pattern)}</span>`
+              }).join('')
+              grammarHtml = `<span class="grammar-rules-container">${badges}</span>`
+            }
+
+            span.innerHTML = `<span class="split-translation ${blurClass}" onclick="this.classList.remove('is-blurred')"><span class="translation-text">${translationText}</span>${grammarHtml}</span>`
             span.classList.add('has-translation')
             translatedSentIds.add(sentId)
           }
@@ -152,9 +164,39 @@ export function useReaderContent() {
     })
   })
 
+  const pageTranslationProgress = computed(() => {
+    if (!safePageContent.value)
+      return { total: 0, translated: 0, percentage: 0, isFullyTranslated: false }
+
+    const sentRegex = /data-raw-sent="([^"]+)"/g
+    let match
+    let total = 0
+    let translated = 0
+    const map = translationMap.value
+
+    // eslint-disable-next-line no-cond-assign
+    while ((match = sentRegex.exec(safePageContent.value)) !== null) {
+      total++
+      const rawSent = decodeURIComponent(match[1])
+      if (map[rawSent]) {
+        translated++
+      }
+    }
+
+    if (total === 0)
+      return { total: 0, translated: 0, percentage: 100, isFullyTranslated: true }
+    return {
+      total,
+      translated,
+      percentage: Math.round((translated / total) * 100),
+      isFullyTranslated: translated === total,
+    }
+  })
+
   return {
     leftPaneContent,
     translatedPageContent,
     parallelTranslations,
+    pageTranslationProgress,
   }
 }

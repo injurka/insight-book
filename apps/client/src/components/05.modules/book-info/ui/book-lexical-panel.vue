@@ -449,6 +449,11 @@ function handleWordClick(word: string, pos: string, event: MouseEvent) {
 }
 .word-group {
   margin-bottom: 20px;
+
+  &:last-child {
+    margin-bottom: 0px;
+  }
+
   h5 {
     display: flex;
     align-items: center;
@@ -456,6 +461,7 @@ function handleWordClick(word: string, pos: string, event: MouseEvent) {
     font-size: 1rem;
     margin: 0 0 12px 0;
     color: var(--fg-primary-color);
+
     span {
       font-weight: normal;
       font-size: 0.85rem;

@@ -64,7 +64,13 @@ watch(visible, (val) => {
 </script>
 
 <template>
-  <KitDialog v-model:visible="visible" :title="t('bookInfo.cacheAnalysis')" icon="mdi:cloud-download-outline" :persistent="isRunning" :max-width="500">
+  <KitDialog
+    v-model:visible="visible"
+    :title="t('bookInfo.cacheAnalysis')"
+    icon="mdi:cloud-download-outline"
+    :persistent="isRunning"
+    :max-width="500"
+  >
     <div v-if="!isRunning && !isFinished" class="sync-setup">
       <div class="setup-header">
         <Icon icon="mdi:wifi-off" class="setup-icon" />
@@ -129,16 +135,6 @@ watch(visible, (val) => {
           </div>
         </div>
       </div>
-
-      <Transition name="fade">
-        <div v-if="options.analyzeSentences || options.analyzeWords || options.ttsSentences || options.ttsWords" class="warning-box">
-          <Icon icon="mdi:alert-outline" class="warning-icon" />
-          <div class="warning-content">
-            <strong>{{ t('bookInfo.warning') }}</strong>
-            <p>{{ t('bookInfo.warningDesc') }}</p>
-          </div>
-        </div>
-      </Transition>
     </div>
 
     <div v-if="isRunning || isFinished || hasError" class="sync-progress-view">
@@ -213,7 +209,12 @@ watch(visible, (val) => {
         {{ t('dictionary.start') }}
       </KitBtn>
 
-      <KitBtn v-if="isRunning" color="error" variant="outlined" @click="cancel">
+      <KitBtn
+        v-if="isRunning"
+        color="error"
+        variant="outlined"
+        @click="cancel"
+      >
         {{ t('bookInfo.stop') }}
       </KitBtn>
       <KitBtn v-if="isFinished || hasError" color="primary" @click="close">
@@ -363,41 +364,6 @@ watch(visible, (val) => {
       .option-desc {
         font-size: 0.85rem;
         color: var(--fg-secondary-color);
-      }
-    }
-  }
-
-  .warning-box {
-    display: flex;
-    align-items: flex-start;
-    gap: 12px;
-    background: rgba(var(--bg-warning-color-rgb, 227, 179, 65), 0.15);
-    border: 1px solid rgba(var(--border-warning-color-rgb, 227, 179, 65), 0.3);
-    padding: 16px;
-    border-radius: 12px;
-
-    .warning-icon {
-      font-size: 1.5rem;
-      color: var(--fg-warning-color);
-      flex-shrink: 0;
-      margin-top: 2px;
-    }
-
-    .warning-content {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-
-      strong {
-        color: var(--fg-warning-color);
-        font-size: 0.95rem;
-      }
-
-      p {
-        margin: 0;
-        font-size: 0.85rem;
-        color: var(--fg-secondary-color);
-        line-height: 1.4;
       }
     }
   }

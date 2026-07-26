@@ -657,7 +657,12 @@ function exitQuiz() {
         >
           {{ t('dictionary.quiz.nextLevelBtn', { level: testResult.nextLevelValue }) }}
         </KitBtn>
-        <KitBtn v-else color="primary" variant="solid" @click="exitQuiz">
+        <KitBtn
+          v-else
+          color="primary"
+          variant="solid"
+          @click="exitQuiz"
+        >
           {{ t('dictionary.quiz.doneBtn') }}
         </KitBtn>
       </template>
