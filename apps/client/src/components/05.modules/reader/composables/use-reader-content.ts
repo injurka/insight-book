@@ -1,7 +1,7 @@
 import DOMPurify from 'dompurify'
 import { computed } from 'vue'
 import { normalizeString } from '~/shared/lib/helpers'
-import { useAnalysisStore } from '~/shared/store/analysis.store'
+import { useAnalysisStore } from '~/shared/store/analysis/analysis.store'
 import { useGlobalSettingsStore } from '~/shared/store/settings.store'
 import { highlightExactText } from '../lib/dom-highlighter'
 import { useHighlightsStore } from '../store/highlights.store'

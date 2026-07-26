@@ -54,7 +54,7 @@ function initializePwaUpdater(pinia: Pinia): void {
     navigator.serviceWorker.addEventListener('message', async (event) => {
       if (event.data && event.data.type === 'NAVIGATE' && event.data.url) {
         try {
-          const { useAnalysisStore } = await import('~/shared/store/analysis.store')
+          const { useAnalysisStore } = await import('~/shared/store/analysis/analysis.store')
           const analysisStore = useAnalysisStore(pinia)
           analysisStore.isPageAnalysisModalOpen = false
           analysisStore.addEditWordModalOpen = false

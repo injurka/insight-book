@@ -71,9 +71,9 @@ const router = useRouter()
   margin: 0 auto;
   padding: 32px;
   padding-top: calc(32px + var(--safe-area-top));
+  padding-bottom: calc(32px + env(safe-area-inset-bottom, 0px));
   width: 100%;
   height: 100%;
-  padding-bottom: env(safe-area-inset-bottom, 0px);
   overflow-y: auto;
 
   @include media-down(md) {

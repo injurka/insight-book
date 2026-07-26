@@ -8,7 +8,7 @@ import { useTts } from '~/shared/composables/use-tts'
 import { DIFFICULTY_SYSTEMS } from '~/shared/constants/difficulties'
 import { useRepos } from '~/shared/plugins/di'
 
-import { useAnalysisStore } from '~/shared/store/analysis.store'
+import { useAnalysisStore } from '~/shared/store/analysis/analysis.store'
 import { useDictionaryStore } from '../../store/dictionary.store'
 
 const repos = useRepos()

@@ -8,7 +8,7 @@ import { PronunciationCheck } from '~/components/04.features/pronunciation-check
 import { useTts } from '~/shared/composables/use-tts'
 import { DIFFICULTY_SYSTEMS } from '~/shared/constants/difficulties'
 import { vLongPress } from '~/shared/directives/long-press'
-import { useAnalysisStore } from '~/shared/store/analysis.store'
+import { useAnalysisStore } from '~/shared/store/analysis/analysis.store'
 import { useAuthStore } from '~/shared/store/auth.store'
 import { useDictWordExamples } from '../composables/use-dict-word-examples'
 

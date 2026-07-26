@@ -427,11 +427,12 @@ function formatTokens(num: number) {
     align-items: center;
     gap: 6px;
     padding: 6px 10px;
-    background: var(--bg-tertiary-color);
+    background: rgba(var(--bg-tertiary-color-rgb), 0.5);
+    backdrop-filter: blur(4px);
     border-radius: 8px;
     font-size: 0.8rem;
     color: var(--fg-primary-color);
-    border: 1px solid var(--border-secondary-color);
+    border: 1px solid rgba(var(--border-secondary-color-rgb, 255, 255, 255), 0.1);
 
     .chip-icon {
       font-size: 1rem;

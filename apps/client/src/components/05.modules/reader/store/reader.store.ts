@@ -2,12 +2,12 @@ import type { Book, PageDictEntry, PagePayload, TocItem } from '~/shared/types/m
 import { useQuery } from '@pinia/colada'
 import { useDebounceFn } from '@vueuse/core'
 import { defineStore } from 'pinia'
-import { computed, ref, watch } from 'vue'
+import { computed, ref, shallowRef, watch } from 'vue'
 import { useLibraryStore } from '~/components/05.modules/library/store/library.store'
 import { useUmami } from '~/shared/composables/use-umami'
 import { useRepos } from '~/shared/plugins/di'
 import { i18n } from '~/shared/plugins/i18n'
-import { useAnalysisStore } from '~/shared/store/analysis.store'
+import { useAnalysisStore } from '~/shared/store/analysis/analysis.store'
 import { useGlobalSettingsStore } from '~/shared/store/settings.store'
 import { useToastStore } from '~/shared/store/toast.store'
 import { useHighlightsStore } from './highlights.store'
@@ -18,10 +18,10 @@ export const useReaderStore = defineStore('reader', () => {
   const { trackEvent } = useUmami()
 
   const currentBook = computed(() => libraryStore.currentBookInfo)
-  const currentPage = ref<PagePayload | null>(null)
+  const currentPage = shallowRef<PagePayload | null>(null)
 
-  const currentPageDictionary = ref<Record<string, PageDictEntry>>({})
-  const currentToc = ref<TocItem[]>([])
+  const currentPageDictionary = shallowRef<Record<string, PageDictEntry>>({})
+  const currentToc = shallowRef<TocItem[]>([])
 
   const isPageLoading = ref(false)
   const isParallelView = computed(() => useGlobalSettingsStore().parallelViewMode === 'split')
@@ -155,6 +155,7 @@ export const useReaderStore = defineStore('reader', () => {
       currentPageDictionary.value = newDict || {}
 
       updateReadingProgress(bookId, pageNum)
+      prefetchNeighborPages(bookId, pageNum)
 
       trackEvent('page_loaded', { bookId, pageNum, type: page?.type })
 
@@ -178,6 +179,20 @@ export const useReaderStore = defineStore('reader', () => {
     finally {
       isPageLoading.value = false
     }
+  }
+
+  function prefetchNeighborPages(bookId: number, currentNum: number) {
+    const totalPages = currentBook.value?.pagesCount || 0
+    const pagesToPrefetch = [currentNum + 1, currentNum + 2, currentNum - 1].filter(
+      num => num >= 1 && (totalPages === 0 || num <= totalPages),
+    )
+
+    pagesToPrefetch.forEach((pNum) => {
+      Promise.all([
+        repos.book.getPage(bookId, pNum).catch(() => null),
+        repos.book.getPageDict(bookId, pNum).catch(() => ({})),
+      ]).catch(() => { })
+    })
   }
 
   async function openBook(book: Book) {

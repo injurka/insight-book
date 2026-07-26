@@ -6,7 +6,7 @@ import { useI18n } from 'vue-i18n'
 import { KitBtn, KitCheckbox, KitSelect } from '~/components/01.kit'
 import { ThemesVariant, useChangeTheme } from '~/shared/composables/use-change-theme'
 import { useTts } from '~/shared/composables/use-tts'
-import { useAnalysisStore } from '~/shared/store/analysis.store'
+import { useAnalysisStore } from '~/shared/store/analysis/analysis.store'
 import { useGlobalSettingsStore } from '~/shared/store/settings.store'
 import { useReaderStore } from '../../store/reader.store'
 

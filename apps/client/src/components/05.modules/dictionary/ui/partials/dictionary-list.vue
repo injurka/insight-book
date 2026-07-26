@@ -7,7 +7,7 @@ import { KitBtn, KitCheckbox, KitPrompt, KitTooltip } from '~/components/01.kit'
 import { useToast } from '~/shared/composables/use-toast'
 import { useUmami } from '~/shared/composables/use-umami'
 import { DIFFICULTY_SYSTEMS } from '~/shared/constants/difficulties'
-import { useAnalysisStore } from '~/shared/store/analysis.store'
+import { useAnalysisStore } from '~/shared/store/analysis/analysis.store'
 import { useDictionaryStore } from '../../store/dictionary.store'
 
 const props = defineProps<{
@@ -30,6 +30,26 @@ const { list, containerProps, wrapperProps } = useVirtualList(
   computed(() => store.filteredWords),
   { itemHeight: 110 },
 )
+
+const gridColumns = ref(3)
+
+const gridRows = computed(() => {
+  const wordsList = store.filteredWords
+  const cols = gridColumns.value
+  const rows: UserDictItem[][] = []
+
+  for (let i = 0; i < wordsList.length; i += cols) {
+    rows.push(wordsList.slice(i, i + cols))
+  }
+
+  return rows
+})
+
+const {
+  list: gridList,
+  containerProps: gridContainerProps,
+  wrapperProps: gridWrapperProps,
+} = useVirtualList(gridRows, { itemHeight: 140 })
 
 function getStatusLabel(state: number) {
   switch (state) {
@@ -142,58 +162,66 @@ function handleConfirmDelete() {
       </p>
     </div>
 
-    <div v-else-if="viewMode === 'grid'" class="dict-grid-container">
-      <div
-        v-for="item in store.filteredWords"
-        :key="item.id"
-        class="dict-item is-grid-mode"
-        :class="{ 'is-selected': store.selectedWordIds.has(item.id) }"
-        @click="handleItemClick(item)"
-      >
-        <div v-if="isEditMode" class="checkbox-col" @click.stop>
-          <KitCheckbox
-            :model-value="store.selectedWordIds.has(item.id)"
-            @update:model-value="store.toggleWordSelection(item.id)"
-          />
-        </div>
-        <div class="dict-item-content">
-          <div class="dict-word-container">
-            <div class="word-group">
-              <span class="dict-word">{{ item.word }}</span>
-              <span class="dict-transcription">{{ item.transcription }}</span>
+    <div v-else-if="viewMode === 'grid'" class="virtual-list-container" v-bind="gridContainerProps">
+      <div v-bind="gridWrapperProps" class="virtual-list-wrapper">
+        <div
+          v-for="row in gridList"
+          :key="row.index"
+          class="dict-grid-row"
+        >
+          <div
+            v-for="item in row.data"
+            :key="item.id"
+            class="dict-item is-grid-mode"
+            :class="{ 'is-selected': store.selectedWordIds.has(item.id) }"
+            @click="handleItemClick(item)"
+          >
+            <div v-if="isEditMode" class="checkbox-col" @click.stop>
+              <KitCheckbox
+                :model-value="store.selectedWordIds.has(item.id)"
+                @update:model-value="store.toggleWordSelection(item.id)"
+              />
             </div>
-            <div class="badges-group">
-              <span
-                v-if="item.difficulty"
-                class="diff-badge"
-                :class="getDifficultyClass(item.language, item.difficulty)"
-              >
-                {{ item.difficulty }}
-              </span>
-              <KitTooltip v-if="item.deckIds && item.deckIds.length > 1" :text="t('dictionary.inMultipleDecks') || 'Слово в нескольких колодах'">
-                <span class="multi-deck-badge">
-                  <Icon icon="mdi:folder-multiple-outline" />
-                </span>
+            <div class="dict-item-content">
+              <div class="dict-word-container">
+                <div class="word-group">
+                  <span class="dict-word">{{ item.word }}</span>
+                  <span class="dict-transcription">{{ item.transcription }}</span>
+                </div>
+                <div class="badges-group">
+                  <span
+                    v-if="item.difficulty"
+                    class="diff-badge"
+                    :class="getDifficultyClass(item.language, item.difficulty)"
+                  >
+                    {{ item.difficulty }}
+                  </span>
+                  <KitTooltip v-if="item.deckIds && item.deckIds.length > 1" :text="t('dictionary.inMultipleDecks') || 'Слово в нескольких колодах'">
+                    <span class="multi-deck-badge">
+                      <Icon icon="mdi:folder-multiple-outline" />
+                    </span>
+                  </KitTooltip>
+                  <span class="srs-badge" :style="{ color: getStatusLabel(item.state).color }">
+                    {{ getStatusLabel(item.state).label }}
+                  </span>
+                </div>
+              </div>
+              <div class="dict-translation" v-html="item.translation" />
+            </div>
+            <div v-if="isEditMode" class="dict-actions" @click.stop>
+              <KitTooltip :text="t('dictionary.editItem')" placement="top">
+                <KitBtn
+                  icon="mdi:pencil"
+                  variant="text"
+                  size="xs"
+                  @click="analysisStore.wordToEdit = item; analysisStore.addEditWordModalOpen = true"
+                />
               </KitTooltip>
-              <span class="srs-badge" :style="{ color: getStatusLabel(item.state).color }">
-                {{ getStatusLabel(item.state).label }}
-              </span>
+              <KitTooltip :text="t('dictionary.deleteItem')" placement="top-end">
+                <KitBtn icon="mdi:delete-outline" variant="text" size="xs" color="error" @click="openDeleteWord(item.word)" />
+              </KitTooltip>
             </div>
           </div>
-          <div class="dict-translation" v-html="item.translation" />
-        </div>
-        <div v-if="isEditMode" class="dict-actions" @click.stop>
-          <KitTooltip :text="t('dictionary.editItem')" placement="top">
-            <KitBtn
-              icon="mdi:pencil"
-              variant="text"
-              size="xs"
-              @click="analysisStore.wordToEdit = item; analysisStore.addEditWordModalOpen = true"
-            />
-          </KitTooltip>
-          <KitTooltip :text="t('dictionary.deleteItem')" placement="top-end">
-            <KitBtn icon="mdi:delete-outline" variant="text" size="xs" color="error" @click="openDeleteWord(item.word)" />
-          </KitTooltip>
         </div>
       </div>
     </div>
@@ -329,6 +357,14 @@ function handleConfirmDelete() {
 .virtual-list-wrapper {
   display: flex;
   flex-direction: column;
+}
+
+.dict-grid-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+  width: 100%;
+  margin-bottom: 16px;
 }
 
 .dict-grid-container {

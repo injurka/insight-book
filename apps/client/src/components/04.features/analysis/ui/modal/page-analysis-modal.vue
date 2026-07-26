@@ -2,7 +2,7 @@
 import { Icon } from '@iconify/vue'
 import { useI18n } from 'vue-i18n'
 import { KitBtn, KitDialog } from '~/components/01.kit'
-import { useAnalysisStore } from '~/shared/store/analysis.store'
+import { useAnalysisStore } from '~/shared/store/analysis/analysis.store'
 
 const analysisStore = useAnalysisStore()
 const { t } = useI18n()

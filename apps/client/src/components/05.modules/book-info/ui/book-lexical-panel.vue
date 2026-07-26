@@ -2,7 +2,7 @@
 import { Icon } from '@iconify/vue'
 import { useI18n } from 'vue-i18n'
 import { useLibraryStore } from '~/components/05.modules/library/store/library.store'
-import { useAnalysisStore } from '~/shared/store/analysis.store'
+import { useAnalysisStore } from '~/shared/store/analysis/analysis.store'
 import { useBookLexicalStats } from '../composables/use-book-lexical-stats'
 
 const { t } = useI18n()

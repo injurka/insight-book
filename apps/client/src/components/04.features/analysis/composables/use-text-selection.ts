@@ -1,6 +1,6 @@
 import { watch } from 'vue'
 import { useTts } from '~/shared/composables/use-tts'
-import { useAnalysisStore } from '~/shared/store/analysis.store'
+import { useAnalysisStore } from '~/shared/store/analysis/analysis.store'
 
 export function useTextSelection() {
   const analysisStore = useAnalysisStore()

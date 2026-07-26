@@ -38,14 +38,6 @@ const bookPercent = computed(() => {
   return Math.min(100, Math.round((used / limit) * 100))
 })
 
-function getPercentClass(percentage: number) {
-  if (percentage < 70)
-    return 'is-success'
-  if (percentage <= 90)
-    return 'is-warning'
-  return 'is-error'
-}
-
 function formatNumber(num: number | undefined | null) {
   if (num == null)
     return '0'
@@ -128,30 +120,44 @@ function openLimits() {
     <div class="limits-section" @click="openLimits">
       <div class="limits-content">
         <!-- ИИ Токены -->
-        <div class="limit-item">
-          <div class="limit-row">
-            <span class="limit-title">{{ t('globalActions.aiTokens') }}</span>
-            <span class="limit-value">
-              {{ formatNumber(authStore.user?.usedTokens) }} /
+        <div class="limit-widget-item">
+          <div class="widget-header">
+            <div class="widget-title">
+              <Icon icon="mdi:brain" />
+              <span>{{ t('globalActions.aiTokens') }}</span>
+            </div>
+            <div class="widget-usage">
+              <strong>{{ formatNumber(authStore.user?.usedTokens) }}</strong> /
               {{ authStore.user?.tokenLimit !== null && authStore.user?.tokenLimit !== undefined ? formatNumber(authStore.user?.tokenLimit) : '∞' }}
-            </span>
+            </div>
           </div>
-          <div v-if="authStore.user?.tokenLimit !== null && authStore.user?.tokenLimit !== undefined" class="limit-progress-track">
-            <div class="limit-progress-bar" :style="{ width: `${tokenPercent}%` }" :class="getPercentClass(tokenPercent)" />
+          <div v-if="authStore.user?.tokenLimit !== null && authStore.user?.tokenLimit !== undefined" class="progress-bar-container">
+            <div
+              class="progress-bar"
+              :style="{ width: `${tokenPercent}%` }"
+              :class="{ 'is-full': tokenPercent >= 100, 'is-high': tokenPercent > 80 && tokenPercent < 100 }"
+            />
           </div>
         </div>
 
         <!-- Лимит книг -->
-        <div class="limit-item">
-          <div class="limit-row">
-            <span class="limit-title">{{ t('globalActions.booksLimit') }}</span>
-            <span class="limit-value">
-              {{ authStore.user?.usedBooks || 0 }} /
+        <div class="limit-widget-item">
+          <div class="widget-header">
+            <div class="widget-title">
+              <Icon icon="mdi:book-multiple-outline" />
+              <span>{{ t('globalActions.booksLimit') }}</span>
+            </div>
+            <div class="widget-usage">
+              <strong>{{ authStore.user?.usedBooks || 0 }}</strong> /
               {{ authStore.user?.bookLimit !== null && authStore.user?.bookLimit !== undefined ? authStore.user?.bookLimit : '∞' }}
-            </span>
+            </div>
           </div>
-          <div v-if="authStore.user?.bookLimit !== null && authStore.user?.bookLimit !== undefined" class="limit-progress-track">
-            <div class="limit-progress-bar" :style="{ width: `${bookPercent}%` }" :class="getPercentClass(bookPercent)" />
+          <div v-if="authStore.user?.bookLimit !== null && authStore.user?.bookLimit !== undefined" class="progress-bar-container">
+            <div
+              class="progress-bar"
+              :style="{ width: `${bookPercent}%` }"
+              :class="{ 'is-full': bookPercent >= 100, 'is-high': bookPercent > 80 && bookPercent < 100 }"
+            />
           </div>
         </div>
       </div>
@@ -171,7 +177,7 @@ function openLimits() {
 
 <style lang="scss" scoped>
 .user-profile {
-  padding: 12px 16px 8px;
+  padding: 12px 8px 8px;
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -181,6 +187,7 @@ function openLimits() {
   display: flex;
   align-items: center;
   gap: 12px;
+  padding: 0 8px;
 
   .user-avatar {
     position: relative;
@@ -261,19 +268,18 @@ function openLimits() {
 .limits-section {
   display: flex;
   align-items: center;
-  gap: 12px;
-  background-color: var(--bg-tertiary-color);
-  padding: 4px 6px;
-  border-radius: 8px;
-  border: 1px solid var(--border-primary-color);
+  gap: 8px;
+  background-color: var(--bg-secondary-color);
+  padding: 12px;
+  border-radius: var(--r-m, 12px);
   cursor: pointer;
   transition:
-    border-color 0.2s,
-    background-color 0.2s;
+    background-color 0.2s ease,
+    transform 0.2s ease;
 
   &:hover {
-    border-color: var(--border-primary-color);
     background-color: var(--bg-hover-color);
+    transform: translateY(-2px);
 
     .limits-chevron {
       color: var(--fg-accent-color);
@@ -283,7 +289,7 @@ function openLimits() {
   .limits-content {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 12px;
     flex-grow: 1;
     min-width: 0;
   }
@@ -295,56 +301,61 @@ function openLimits() {
     flex-shrink: 0;
   }
 
-  .limit-item {
+  .limit-widget-item {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 8px;
+  }
+
+  .widget-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
     font-size: 0.85rem;
+  }
 
-    .limit-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 8px;
+  .widget-title {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--fg-secondary-color);
+    font-weight: 500;
+
+    svg {
+      font-size: 1rem;
+      flex-shrink: 0;
     }
+  }
 
-    .limit-title {
-      font-weight: 500;
-      color: var(--fg-secondary-color);
-      white-space: nowrap;
-    }
+  .widget-usage {
+    color: var(--fg-primary-color);
+    font-size: 0.85rem;
+    font-variant-numeric: tabular-nums;
 
-    .limit-value {
+    strong {
       font-weight: 600;
-      color: var(--fg-primary-color);
-      font-variant-numeric: tabular-nums;
-      font-size: 0.8rem;
     }
+  }
 
-    .limit-progress-track {
-      height: 4px;
-      background-color: var(--border-secondary-color);
-      border-radius: 2px;
-      overflow: hidden;
-      width: 100%;
+  .progress-bar-container {
+    width: 100%;
+    height: 6px;
+    background-color: var(--bg-tertiary-color);
+    border-radius: var(--r-full, 9999px);
+    overflow: hidden;
+  }
+
+  .progress-bar {
+    height: 100%;
+    background-color: var(--fg-accent-color);
+    border-radius: var(--r-full, 9999px);
+    transition: width 0.4s ease-in-out;
+
+    &.is-high {
+      background-color: var(--fg-warning-color);
     }
-
-    .limit-progress-bar {
-      height: 100%;
-      border-radius: 2px;
-      transition:
-        width 0.3s ease,
-        background-color 0.3s ease;
-
-      &.is-success {
-        background-color: var(--fg-success-color);
-      }
-      &.is-warning {
-        background-color: var(--fg-warning-color);
-      }
-      &.is-error {
-        background-color: var(--fg-error-color);
-      }
+    &.is-full {
+      background-color: var(--fg-error-color);
     }
   }
 }

@@ -2,7 +2,7 @@
 import { Icon } from '@iconify/vue'
 import { useI18n } from 'vue-i18n'
 import { KitBtn, KitCheckbox } from '~/components/01.kit'
-import { useAnalysisStore } from '~/shared/store/analysis.store'
+import { useAnalysisStore } from '~/shared/store/analysis/analysis.store'
 import { useGlobalSettingsStore } from '~/shared/store/settings.store'
 import { useReaderStore } from '../../store/reader.store'
 

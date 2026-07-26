@@ -7,7 +7,7 @@ import { QuoteModal } from '~/components/04.features/quote-modal'
 import { useHighlightsStore } from '~/components/05.modules/reader/store/highlights.store'
 import { useReaderStore } from '~/components/05.modules/reader/store/reader.store'
 import { useTts } from '~/shared/composables/use-tts'
-import { useAnalysisStore } from '~/shared/store/analysis.store'
+import { useAnalysisStore } from '~/shared/store/analysis/analysis.store'
 import { useGlobalSettingsStore } from '~/shared/store/settings.store'
 
 const highlightsStore = useHighlightsStore()

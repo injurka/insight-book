@@ -1,5 +1,5 @@
 import type { Ref } from 'vue'
-import { useAnalysisStore } from '~/shared/store/analysis.store'
+import { useAnalysisStore } from '~/shared/store/analysis/analysis.store'
 
 export function useReaderDomHighlights(containerRef: Ref<HTMLElement | null>) {
   const analysisStore = useAnalysisStore()

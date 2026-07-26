@@ -1,7 +1,7 @@
 import type { OcrBlock } from '~/shared/types/models'
 import { ref } from 'vue'
 import { hexToRgba, normalizeString } from '~/shared/lib/helpers'
-import { useAnalysisStore } from '~/shared/store/analysis.store'
+import { useAnalysisStore } from '~/shared/store/analysis/analysis.store'
 import { useGlobalSettingsStore } from '~/shared/store/settings.store'
 import { useHighlightsStore } from '../store/highlights.store'
 import { useReaderStore } from '../store/reader.store'

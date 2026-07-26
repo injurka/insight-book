@@ -336,7 +336,7 @@ watch(() => libraryStore.currentBookInfo?.id, () => {
   color: var(--fg-secondary-color);
 
   &--pages {
-    align-items: flex-start;
+    align-items: center;
   }
 
   &--empty {

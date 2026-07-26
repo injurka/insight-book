@@ -1,7 +1,5 @@
 import type { Book, BookStats } from '~/shared/types/models'
 import { useMutation, useQuery, useQueryCache } from '@pinia/colada'
-import { defineStore } from 'pinia'
-import { computed, ref, watch } from 'vue'
 import { useUmami } from '~/shared/composables/use-umami'
 import { useRepos } from '~/shared/plugins/di'
 import { useAuthStore } from '~/shared/store/auth.store'
@@ -19,13 +17,13 @@ export const useLibraryStore = defineStore('library', () => {
   const queryCache = useQueryCache()
   const repos = useRepos()
 
-  const books = ref<Book[]>([])
-  const publicBooks = ref<Book[]>([])
+  const books = shallowRef<Book[]>([])
+  const publicBooks = shallowRef<Book[]>([])
   const publicTotal = ref(0)
   const publicPage = ref(1)
   const publicLimit = ref(20)
 
-  const currentBookInfo = ref<Book | null>(null)
+  const currentBookInfo = shallowRef<Book | null>(null)
   const currentBookId = ref<number | null>(null)
 
   const isInitialized = ref(false)

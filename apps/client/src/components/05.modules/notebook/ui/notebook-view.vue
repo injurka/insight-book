@@ -3,11 +3,8 @@ import type { Book, Highlight, LlmAnalysis } from '~/shared/types/models'
 import { Icon } from '@iconify/vue'
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useRouter } from 'vue-router'
-import { KitBtn, KitDropdown, KitImage, KitInput, KitPrompt, KitSkeleton, KitTooltip } from '~/components/01.kit'
+import { KitBtn, KitDropdown, KitImage, KitPrompt, KitSkeleton } from '~/components/01.kit'
 import { HoverRevealBg } from '~/components/02.shared/hover-reveal-bg'
-import { GlobalActions } from '~/components/04.features/global-actions'
-import { PronunciationCheck } from '~/components/04.features/pronunciation-check'
 import { QuoteModal } from '~/components/04.features/quote-modal'
 import { QuotePractice } from '~/components/04.features/quote-practice'
 import { useLibraryStore } from '~/components/05.modules/library/store/library.store'
@@ -15,7 +12,10 @@ import { useToast } from '~/shared/composables/use-toast'
 import { useTts } from '~/shared/composables/use-tts'
 import { useRepos } from '~/shared/plugins/di'
 
+import { useNotebookExport } from '../composables/use-notebook-export'
 import QuoteAnalysisModal from './modal/quote-analysis-modal.vue'
+import NotebookHeader from './partials/notebook-header.vue'
+import NotebookQuoteItem from './partials/notebook-quote-item.vue'
 
 interface BookGroup {
   book: Book
@@ -23,60 +23,26 @@ interface BookGroup {
   lastActivityDate: string
 }
 
-const router = useRouter()
+interface NotebookHeaderItem {
+  id: string
+  kind: 'header'
+  group: BookGroup
+}
+
+interface NotebookHighlightItem {
+  id: string
+  kind: 'highlight'
+  highlight: Highlight
+  group: BookGroup
+}
+
+type NotebookFlatItem = NotebookHeaderItem | NotebookHighlightItem
+
 const repos = useRepos()
 const { t } = useI18n()
 const toast = useToast()
 const libraryStore = useLibraryStore()
 const tts = useTts()
-
-const activeTtsId = ref<number | null>(null)
-const isAnalysisModalOpen = ref(false)
-const activeAnalysisHighlight = ref<Highlight | null>(null)
-
-function openAnalysisModal(h: Highlight) {
-  activeAnalysisHighlight.value = h
-  isAnalysisModalOpen.value = true
-}
-
-const highlights = ref<Highlight[]>([])
-const isLoading = ref(false)
-const searchQuery = ref('')
-
-function escapeHtml(str: string): string {
-  return str
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;')
-}
-
-function escapeRegExp(str: string): string {
-  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-}
-
-function highlightText(text: string | null | undefined, query: string): string {
-  if (!text)
-    return ''
-  const trimmedQuery = query.trim()
-  if (!trimmedQuery)
-    return escapeHtml(text)
-
-  const re = new RegExp(escapeRegExp(trimmedQuery), 'gi')
-  let result = ''
-  let lastIndex = 0
-
-  text.replace(re, (match, offset) => {
-    result += escapeHtml(text.slice(lastIndex, offset))
-    result += `<mark class="text-match">${escapeHtml(match)}</mark>`
-    lastIndex = offset + match.length
-    return match
-  })
-  result += escapeHtml(text.slice(lastIndex))
-
-  return result
-}
 
 // Edit state
 const isEditModalOpen = ref(false)
@@ -176,6 +142,32 @@ const filteredBookGroups = computed(() => {
   )
 })
 
+const notebookFlatItems = computed<NotebookFlatItem[]>(() => {
+  const result: NotebookFlatItem[] = []
+  filteredBookGroups.value.forEach((group) => {
+    result.push({
+      id: `header-${group.book.id}`,
+      kind: 'header',
+      group,
+    })
+    group.highlights.forEach((h) => {
+      result.push({
+        id: `h-${h.id}`,
+        kind: 'highlight',
+        highlight: h,
+        group,
+      })
+    })
+  })
+  return result
+})
+
+const {
+  list: virtualHighlightsList,
+  containerProps: notebookContainerProps,
+  wrapperProps: notebookWrapperProps,
+} = useVirtualList(notebookFlatItems, { itemHeight: 160 })
+
 const isTtsActive = computed(() => tts.isPlaying.value || tts.isLoading.value)
 
 // Edit Actions
@@ -242,80 +234,7 @@ async function onDeleteConfirmSubmit() {
   }
 }
 
-// Exports Features
-function exportToMarkdown(group: BookGroup) {
-  const { book, highlights } = group
-  let content = `${t('notebook.exportMd.title') || '# Цитаты из книги:'} ${book.title}\n`
-  if (book.author) {
-    content += `${t('notebook.exportMd.author') || '**Автор**:'} ${book.author}\n`
-  }
-  content += `${t('notebook.exportMd.totalQuotes') || '**Всего цитат**:'} ${highlights.length}\n\n---\n\n`
-
-  // Sort highlights by page number ascending for export
-  const sortedHighlights = [...highlights].sort((a, b) => a.pageNum - b.pageNum)
-
-  sortedHighlights.forEach((h, index) => {
-    content += `${t('notebook.exportMd.quotePrefix') || '### Цитата №'}${index + 1} (${t('notebook.exportMd.page') || 'Стр.'} ${h.pageNum})\n`
-    if (h.chapter) {
-      content += `*${t('notebook.exportMd.chapter') || 'Глава:'} ${h.chapter}*\n\n`
-    }
-    content += `> ${h.text}\n\n`
-    if (h.translation) {
-      content += `${t('notebook.exportMd.translation') || '**Перевод**:'}\n> ${h.translation}\n\n`
-    }
-    if (h.note) {
-      content += `${t('notebook.exportMd.note') || '**Заметка**:'}\n${h.note}\n\n`
-    }
-    content += `*${t('notebook.exportMd.added') || 'Добавлено:'} ${new Date(h.createdAt).toLocaleDateString()}*\n\n---\n\n`
-  })
-
-  const blob = new Blob([content], { type: 'text/markdown;charset=utf-8' })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = `${book.title.replace(/[/\\?%*:|"<>\s]/g, '_')}_quotes.md`
-  a.click()
-  URL.revokeObjectURL(url)
-  toast.success(t('notebook.exportMd.done') || 'Экспорт в Markdown завершен')
-}
-
-function exportToPlainText(group: BookGroup) {
-  const { book, highlights } = group
-  let content = `${t('notebook.exportTxt.title') || 'Цитаты из книги:'} ${book.title}\n`
-  if (book.author) {
-    content += `${t('notebook.exportTxt.author') || 'Автор:'} ${book.author}\n`
-  }
-  content += `${t('notebook.exportTxt.totalQuotes') || 'Всего цитат:'} ${highlights.length}\n\n`
-  content += `=========================================\n\n`
-
-  const sortedHighlights = [...highlights].sort((a, b) => a.pageNum - b.pageNum)
-
-  sortedHighlights.forEach((h, index) => {
-    content += `${t('notebook.exportTxt.quotePrefix') || 'Цитата №'}${index + 1} (${t('notebook.exportTxt.page') || 'Стр.'} ${h.pageNum})\n`
-    if (h.chapter) {
-      content += `${t('notebook.exportTxt.chapter') || 'Глава:'} ${h.chapter}\n`
-    }
-    content += `-----------------------------------------\n`
-    content += `"${h.text}"\n`
-    if (h.translation) {
-      content += `${t('notebook.exportTxt.translation') || 'Перевод:'} ${h.translation}\n`
-    }
-    if (h.note) {
-      content += `${t('notebook.exportTxt.note') || 'Заметка:'} ${h.note}\n`
-    }
-    content += `${t('notebook.exportTxt.added') || 'Добавлено:'} ${new Date(h.createdAt).toLocaleDateString()}\n`
-    content += `=========================================\n\n`
-  })
-
-  const blob = new Blob([content], { type: 'text/plain;charset=utf-8' })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = `${book.title.replace(/[/\\?%*:|"<>\s]/g, '_')}_quotes.txt`
-  a.click()
-  URL.revokeObjectURL(url)
-  toast.success(t('notebook.exportTxt.done') || 'Экспорт в текст завершен')
-}
+const { exportToMarkdown, exportToPlainText } = useNotebookExport()
 
 async function playTts(h: Highlight, book: Book) {
   if (activeTtsId.value === h.id && tts.isPlaying.value) {
@@ -390,34 +309,10 @@ onMounted(async () => {
   <div class="notebook-page">
     <HoverRevealBg />
 
-    <header class="notebook-header">
-      <div class="header-top">
-        <div class="title-group">
-          <KitBtn icon="mdi:arrow-left" variant="text" @click="router.back()" />
-          <h1>{{ t('notebook.title') }}</h1>
-        </div>
-        <GlobalActions hide-notebook />
-      </div>
-
-      <div class="header-bottom">
-        <div class="search-wrapper">
-          <KitInput
-            v-model="searchQuery"
-            :placeholder="t('notebook.searchPlaceholder')"
-            class="search-input"
-            clearable
-          />
-        </div>
-        <KitBtn
-          icon="mdi:gamepad-variant"
-          variant="tonal"
-          color="success"
-          @click="startRandomPractice"
-        >
-          {{ t('notebook.practiceRandom') }}
-        </KitBtn>
-      </div>
-    </header>
+    <NotebookHeader
+      v-model:search-query="searchQuery"
+      @start-random-practice="startRandomPractice"
+    />
 
     <div class="notebook-content">
       <div v-if="isLoading" class="loading-state">
@@ -432,145 +327,78 @@ onMounted(async () => {
         </p>
       </div>
 
-      <div v-else class="book-groups-list">
-        <div v-for="group in filteredBookGroups" :key="group.book.id" class="book-group-card">
-          <!-- Book Header Block -->
-          <div class="book-group-header">
-            <div class="book-cover-container">
-              <KitImage
-                :src="group.book.localCoverUrl || group.book.coverUrl"
-                :alt="group.book.title"
-                fallback-icon="mdi:book-open-blank-variant"
-              />
-            </div>
-            <div class="book-metadata">
-              <h2 class="book-title">
-                {{ group.book.title }}
-              </h2>
-              <p class="book-author">
-                {{ group.book.author || t('notebook.authorUnknown') }}
-              </p>
-              <div class="book-stats">
-                <span class="badge">{{ t('notebook.quotesCount', { count: group.highlights.length }) }}</span>
+      <div v-else class="virtual-list-container" v-bind="notebookContainerProps">
+        <div v-bind="notebookWrapperProps" class="virtual-list-wrapper">
+          <div
+            v-for="item in virtualHighlightsList"
+            :key="item.data.id"
+            class="virtual-notebook-item"
+          >
+            <!-- Book Header Block -->
+            <div v-if="item.data.kind === 'header'" class="book-group-header">
+              <div class="book-cover-container">
+                <KitImage
+                  :src="item.data.group.book.localCoverUrl || item.data.group.book.coverUrl"
+                  :alt="item.data.group.book.title"
+                  fallback-icon="mdi:book-open-blank-variant"
+                />
               </div>
-            </div>
-            <div class="book-actions">
-              <KitDropdown placement="bottom-end" width="180px">
-                <template #activator="{ props: dropdownProps }">
-                  <KitBtn
-                    icon="mdi:download"
-                    variant="tonal"
-                    color="secondary"
-                    size="sm"
-                    class="export-btn"
-                    :class="{ 'is-active-btn': dropdownProps.isOpen }"
-                  >
-                    <span class="btn-text">{{ t('notebook.export') }}</span>
-                  </KitBtn>
-                </template>
-                <div class="dropdown-menu-list">
-                  <button class="dropdown-item" @click="exportToMarkdown(group)">
-                    <Icon icon="mdi:markdown" />
-                    {{ t('notebook.exportMarkdown') }}
-                  </button>
-                  <button class="dropdown-item" @click="exportToPlainText(group)">
-                    <Icon icon="mdi:file-document-outline" />
-                    {{ t('notebook.exportText') }}
-                  </button>
-                </div>
-              </KitDropdown>
-            </div>
-          </div>
-
-          <!-- Book Highlights List -->
-          <div class="highlights-list">
-            <div
-              v-for="h in group.highlights"
-              :key="h.id"
-              class="highlight-item"
-              :style="{ '--highlight-color': h.color || '#fde047', 'cursor': h.analysisData ? 'pointer' : 'default' }"
-              @click="h.analysisData ? openAnalysisModal(h) : null"
-            >
-              <div class="highlight-body">
-                <div class="quote-content">
-                  <p class="highlight-text">
-                    “<span v-html="highlightText(h.text, searchQuery)" />”
-                  </p>
-                  <p v-if="h.translation" class="highlight-translation" v-html="highlightText(h.translation, searchQuery)" />
-                </div>
-
-                <div v-if="h.note" class="highlight-note">
-                  <Icon icon="mdi:pencil-outline" class="note-icon" />
-                  <p class="text">
-                    {{ h.note }}
-                  </p>
+              <div class="book-metadata">
+                <h2 class="book-title">
+                  {{ item.data.group.book.title }}
+                </h2>
+                <p class="book-author">
+                  {{ item.data.group.book.author || t('notebook.authorUnknown') }}
+                </p>
+                <div class="book-stats">
+                  <span class="badge">{{ t('notebook.quotesCount', { count: item.data.group.highlights.length }) }}</span>
                 </div>
               </div>
-
-              <div class="highlight-footer">
-                <div class="highlight-info">
-                  <span v-if="h.chapter" class="chapter-badge">
-                    {{ t('notebook.chapter', { chapter: h.chapter }) }}
-                  </span>
-                  <span class="page-badge">
-                    {{ t('notebook.page', { page: h.pageNum }) }}
-                  </span>
-                  <span class="date-badge">
-                    {{ new Date(h.createdAt).toLocaleDateString() }}
-                  </span>
-                </div>
-                <div class="highlight-actions" @click.stop>
-                  <PronunciationCheck :word="h.text" :language="group.book.language" variant="button" />
-                  <!-- TTS Audio Playback Button -->
-                  <KitTooltip :text="activeTtsId === h.id && tts.isPlaying.value ? t('bookInfo.stop') : t('notebook.speak')" placement="top">
+              <div class="book-actions">
+                <KitDropdown placement="bottom-end" width="180px">
+                  <template #activator="{ props: dropdownProps }">
                     <KitBtn
-                      class="tts-speak-btn"
-                      :icon="activeTtsId === h.id && tts.isPlaying.value ? 'mdi:stop' : 'mdi:volume-high'"
-                      :class="{ 'pulse-animation': activeTtsId === h.id && tts.isPlaying.value }"
-                      :loading="activeTtsId === h.id && tts.isLoading.value"
-                      variant="text"
-                      size="xs"
-                      color="primary"
-                      :disabled="activeTtsId !== null && activeTtsId !== h.id && isTtsActive"
-                      @click.stop="playTts(h, group.book)"
-                    />
-                  </KitTooltip>
-
-                  <!-- AI Translate Button -->
-                  <KitTooltip v-if="!h.translation" :text="translatingId === h.id ? t('notebook.translating') : t('notebook.aiTranslate')" placement="top">
-                    <KitBtn
-                      class="ai-translate-btn"
-                      icon="mdi:translate"
-                      :loading="translatingId === h.id"
-                      variant="text"
-                      size="xs"
-                      color="primary"
-                      :disabled="translatingId !== null"
-                      @click.stop="translateQuote(h, group.book)"
-                    />
-                  </KitTooltip>
-
-                  <KitTooltip :text="t('notebook.editQuote')" placement="top">
-                    <KitBtn
-                      icon="mdi:pencil"
-                      variant="text"
-                      size="xs"
+                      icon="mdi:download"
+                      variant="tonal"
                       color="secondary"
-                      @click.stop="openEditModal(h)"
-                    />
-                  </KitTooltip>
-                  <KitTooltip :text="t('notebook.deleteQuote')" placement="top-end">
-                    <KitBtn
-                      icon="mdi:delete-outline"
-                      variant="text"
-                      size="xs"
-                      color="error"
-                      @click.stop="confirmDelete(h)"
-                    />
-                  </KitTooltip>
-                </div>
+                      size="sm"
+                      class="export-btn"
+                      :class="{ 'is-active-btn': dropdownProps.isOpen }"
+                    >
+                      <span class="btn-text">{{ t('notebook.export') }}</span>
+                    </KitBtn>
+                  </template>
+                  <div class="dropdown-menu-list">
+                    <button class="dropdown-item" @click="exportToMarkdown(item.data.group)">
+                      <Icon icon="mdi:markdown" />
+                      {{ t('notebook.exportMarkdown') }}
+                    </button>
+                    <button class="dropdown-item" @click="exportToPlainText(item.data.group)">
+                      <Icon icon="mdi:file-document-outline" />
+                      {{ t('notebook.exportText') }}
+                    </button>
+                  </div>
+                </KitDropdown>
               </div>
             </div>
+
+            <!-- Book Highlight Block -->
+            <NotebookQuoteItem
+              v-else
+              :highlight="item.data.highlight"
+              :book="item.data.group.book"
+              :search-query="searchQuery"
+              :active-tts-id="activeTtsId"
+              :translating-id="translatingId"
+              :is-playing-tts="tts.isPlaying.value"
+              :is-loading-tts="tts.isLoading.value"
+              :is-tts-active="isTtsActive"
+              @open-analysis="openAnalysisModal"
+              @play-tts="playTts"
+              @translate-quote="translateQuote"
+              @open-edit-modal="openEditModal"
+              @confirm-delete="confirmDelete"
+            />
           </div>
         </div>
       </div>
@@ -1126,5 +954,28 @@ onMounted(async () => {
   100% {
     transform: scale(1);
   }
+}
+
+.virtual-list-container {
+  flex-grow: 1;
+  overflow-y: auto;
+  min-height: 0;
+
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+  &::-webkit-scrollbar-thumb {
+    background-color: var(--border-secondary-color);
+    border-radius: 4px;
+  }
+}
+
+.virtual-list-wrapper {
+  display: flex;
+  flex-direction: column;
+}
+
+.virtual-notebook-item {
+  margin-bottom: 12px;
 }
 </style>

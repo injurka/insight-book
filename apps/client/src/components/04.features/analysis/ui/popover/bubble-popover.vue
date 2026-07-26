@@ -9,7 +9,7 @@ import { useReaderStore } from '~/components/05.modules/reader/store/reader.stor
 import { useTts } from '~/shared/composables/use-tts'
 import { normalizeString } from '~/shared/lib/helpers'
 import { useRepos } from '~/shared/plugins/di'
-import { useAnalysisStore } from '~/shared/store/analysis.store'
+import { useAnalysisStore } from '~/shared/store/analysis/analysis.store'
 
 defineOptions({
   inheritAttrs: false,

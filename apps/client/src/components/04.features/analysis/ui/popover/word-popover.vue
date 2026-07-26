@@ -12,7 +12,7 @@ import { useTts } from '~/shared/composables/use-tts'
 import { POS_TAGS_MAP } from '~/shared/constants/pos-tags'
 import { useRepos } from '~/shared/plugins/di'
 
-import { useAnalysisStore } from '~/shared/store/analysis.store'
+import { useAnalysisStore } from '~/shared/store/analysis/analysis.store.ts'
 import { useAuthStore } from '~/shared/store/auth.store'
 
 const repos = useRepos()

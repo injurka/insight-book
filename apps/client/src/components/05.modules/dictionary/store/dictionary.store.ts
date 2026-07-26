@@ -1,10 +1,8 @@
 import type { DictDeck, UserDictItem } from '~/shared/types/models'
 import { useMutation, useQuery, useQueryCache } from '@pinia/colada'
-import { defineStore } from 'pinia'
-import { computed, ref, watch } from 'vue'
 import { useToast } from '~/shared/composables/use-toast'
 import { useRepos } from '~/shared/plugins/di'
-import { useAnalysisStore } from '~/shared/store/analysis.store'
+import { useAnalysisStore } from '~/shared/store/analysis/analysis.store'
 import { useAuthStore } from '~/shared/store/auth.store'
 
 import { useDecksStore } from './decks.store'
@@ -17,7 +15,7 @@ export const useDictionaryStore = defineStore('dictionary', () => {
   const authStore = useAuthStore()
   const repos = useRepos()
 
-  const words = ref<UserDictItem[]>([])
+  const words = shallowRef<UserDictItem[]>([])
   const isManualLoading = ref(false)
 
   // Pinia Colada query for dictionary

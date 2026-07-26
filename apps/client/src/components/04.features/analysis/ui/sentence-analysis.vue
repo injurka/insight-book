@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { AnalysisHistoryItem } from '~/shared/store/analysis.store'
+import type { AnalysisHistoryItem } from '~/shared/store/analysis/analysis.store'
 import type { LlmAnalysis } from '~/shared/types/models'
 import { Icon } from '@iconify/vue'
 import { computed, onUnmounted, ref, watch } from 'vue'
@@ -11,7 +11,7 @@ import { useHighlightsStore } from '~/components/05.modules/reader/store/highlig
 import { useReaderStore } from '~/components/05.modules/reader/store/reader.store'
 import { useTts } from '~/shared/composables/use-tts'
 import { normalizeString } from '~/shared/lib/helpers'
-import { useAnalysisStore } from '~/shared/store/analysis.store'
+import { useAnalysisStore } from '~/shared/store/analysis/analysis.store'
 
 const { t } = useI18n()
 const analysisStore = useAnalysisStore()
