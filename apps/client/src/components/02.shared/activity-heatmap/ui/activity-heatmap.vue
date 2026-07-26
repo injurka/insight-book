@@ -583,6 +583,7 @@ onMounted(async () => {
           padding: 2px 8px;
           border-radius: 99px;
           font-variant-numeric: tabular-nums;
+          white-space: nowrap;
         }
       }
 

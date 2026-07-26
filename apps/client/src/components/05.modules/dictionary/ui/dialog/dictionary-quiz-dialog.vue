@@ -861,6 +861,7 @@ function exitQuiz() {
       font-size: 0.8rem;
       font-weight: 600;
       color: var(--fg-secondary-color);
+      white-space: nowrap;
     }
 
     .bar-bg {

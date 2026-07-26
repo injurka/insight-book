@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { UserDictItem } from '~/shared/types/models'
 import { Icon } from '@iconify/vue'
-import { useVirtualList } from '@vueuse/core'
+import { useElementSize, useVirtualList } from '@vueuse/core'
 import { useI18n } from 'vue-i18n'
 import { KitBtn, KitCheckbox, KitPrompt, KitTooltip } from '~/components/01.kit'
 import { useToast } from '~/shared/composables/use-toast'
@@ -31,7 +31,17 @@ const { list, containerProps, wrapperProps } = useVirtualList(
   { itemHeight: 110 },
 )
 
-const gridColumns = ref(3)
+const gridContainerRef = shallowRef<HTMLElement | null>(null)
+const { width: gridContainerWidth } = useElementSize(gridContainerRef)
+
+const gridColumns = computed(() => {
+  const w = gridContainerWidth.value
+  if (!w || w <= 0)
+    return 3
+  const minWidth = 280
+  const gap = 16
+  return Math.max(1, Math.floor((w + gap) / (minWidth + gap)))
+})
 
 const gridRows = computed(() => {
   const wordsList = store.filteredWords
@@ -50,6 +60,11 @@ const {
   containerProps: gridContainerProps,
   wrapperProps: gridWrapperProps,
 } = useVirtualList(gridRows, { itemHeight: 140 })
+
+watch(() => gridContainerProps.ref.value, (el) => {
+  if (el)
+    gridContainerRef.value = el
+}, { immediate: true })
 
 function getStatusLabel(state: number) {
   switch (state) {
@@ -186,6 +201,7 @@ function handleConfirmDelete() {
           v-for="row in gridList"
           :key="row.index"
           class="dict-grid-row"
+          :style="{ gridTemplateColumns: `repeat(${gridColumns}, minmax(0, 1fr))` }"
         >
           <div
             v-for="item in row.data"
@@ -372,6 +388,7 @@ function handleConfirmDelete() {
 
 .virtual-list-container {
   flex-grow: 1;
+  min-height: 0;
   overflow-y: auto;
 
   &::-webkit-scrollbar {
@@ -391,7 +408,6 @@ function handleConfirmDelete() {
 
 .dict-grid-row {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 16px;
   width: 100%;
   margin-bottom: 16px;
