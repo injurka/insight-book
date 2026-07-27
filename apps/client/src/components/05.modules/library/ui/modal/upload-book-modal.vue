@@ -146,9 +146,10 @@ async function submitCustomManga() {
   <KitDialog
     v-model:visible="visible"
     :title="t('library.addBookTitle')"
-    icon="mdi:book-plus-outline"
+    :minimizable="false"
     :max-width="600"
     :persistent="isUploading"
+    icon="mdi:book-plus-outline"
   >
     <div v-if="isUploading" class="uploading-state">
       <Icon icon="mdi:cloud-upload-outline" class="spin-icon pulse" />
