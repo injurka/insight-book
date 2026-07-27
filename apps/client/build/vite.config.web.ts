@@ -74,40 +74,6 @@ export default defineConfig({
     outDir: fileURLToPath(new URL('../dist', import.meta.url)),
     emptyOutDir: true,
     chunkSizeWarningLimit: 800,
-    rollupOptions: {
-      output: {
-        manualChunks(id) {
-          if (id.includes('node_modules')) {
-            if (/[\\/]node_modules[\\/](?:vue|vue-router|pinia|@vueuse)[\\/]/.test(id))
-              return 'vendor-core'
-            if (id.includes('hanzi-writer'))
-              return 'vendor-hanzi'
-            if (id.includes('dompurify'))
-              return 'vendor-dompurify'
-            if (id.includes('@floating-ui') || id.includes('@iconify'))
-              return 'vendor-ui'
-            if (id.includes('localforage') || id.includes('workbox'))
-              return 'vendor-storage'
-
-            return 'vendor-others'
-          }
-
-          if (id.includes('/src/components/05.modules/reader/'))
-            return 'app-reader'
-
-          if (id.includes('/src/components/05.modules/dictionary/'))
-            return 'app-dictionary'
-
-          if (id.includes('/src/components/03.domain/analysis/'))
-            return 'app-analysis'
-
-          if (id.includes('/src/shared/locales/'))
-            return 'app-locales'
-
-          if (id.includes('plugin-grammar-rules'))
-            return 'plugin-grammar-rules'
-        },
-      },
-    },
+    rollupOptions: {},
   },
 })
