@@ -1,12 +1,6 @@
+import type { ActionStats } from '../model'
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRepos } from '~/shared/plugins/di'
-
-export interface ActionStats {
-  action: string
-  input: number
-  output: number
-  cost: number
-}
 
 export function useTokenStats() {
   const repos = useRepos()

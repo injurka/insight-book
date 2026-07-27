@@ -18,8 +18,12 @@ export function useReaderNavigation(setScrollIntent: (bookId: number, pageNum: n
   }
 
   async function nextPage() {
-    if (readerStore.currentBook && (readerStore.currentBook.currentPage || 1) < readerStore.currentBook.totalPages) {
+    if (
+      readerStore.currentBook
+      && (readerStore.currentBook.currentPage || 1) < readerStore.currentBook.totalPages
+    ) {
       const newPage = (readerStore.currentBook.currentPage || 1) + 1
+
       try {
         setScrollIntent(readerStore.currentBook.id, newPage, 'top')
         await readerStore.loadPage(readerStore.currentBook.id, newPage)

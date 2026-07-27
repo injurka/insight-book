@@ -1,4 +1,7 @@
+import type { PageRange } from '../model'
 import { i18n } from '~/shared/plugins/i18n'
+
+export type { PageRange }
 
 export function formatBytes(bytes: number, decimals = 2): string {
   const t = i18n.global.t
@@ -17,10 +20,7 @@ export function formatBytes(bytes: number, decimals = 2): string {
   return `${Number.parseFloat((bytes / k ** i).toFixed(dm))} ${sizes[i]}`
 }
 
-export interface PageRange {
-  start: number
-  end: number
-}
+export type { PageRange }
 
 /**
  * Схлопывает список страниц в непрерывные диапазоны:

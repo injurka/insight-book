@@ -1,22 +1,11 @@
-import type { defaultRepositories } from '~/shared/plugins/di'
-import type { LlmAnalysis } from '~/shared/types/models'
+import type { Highlight, LlmAnalysis } from '~/shared/types/models'
 import { useMutation, useQuery, useQueryCache } from '@pinia/colada'
 import { defineStore } from 'pinia'
 import { ref, watch } from 'vue'
+import { queryKeys } from '~/shared/lib/query-keys'
 import { useRepos } from '~/shared/plugins/di'
 
-export interface Highlight {
-  id: number
-  userId: number
-  bookId: number
-  text: string
-  translation?: string | null
-  note?: string | null
-  color: string
-  chapter?: string | null
-  pageNum: number
-  createdAt: string
-}
+export type { Highlight }
 
 export const useHighlightsStore = defineStore('highlights', () => {
   const repos = useRepos()
@@ -30,7 +19,7 @@ export const useHighlightsStore = defineStore('highlights', () => {
     isLoading: isQueryLoading,
     refetch: refetchHighlightsQuery,
   } = useQuery<Highlight[]>({
-    key: () => ['highlights', currentBookId.value],
+    key: () => queryKeys.highlights(currentBookId.value),
     query: async () => {
       const id = currentBookId.value
       if (id === null)
@@ -78,7 +67,7 @@ export const useHighlightsStore = defineStore('highlights', () => {
       await repos.highlights.saveLocalHighlights(bookId, highlights.value as any)
 
       // Invalidate queries
-      queryCache.invalidateQueries({ key: ['highlights', bookId] })
+      queryCache.invalidateQueries({ key: queryKeys.highlights(bookId) })
     },
   })
 
@@ -95,7 +84,7 @@ export const useHighlightsStore = defineStore('highlights', () => {
         await repos.highlights.saveLocalHighlights(bookId, highlights.value as any)
 
         // Invalidate queries
-        queryCache.invalidateQueries({ key: ['highlights', bookId] })
+        queryCache.invalidateQueries({ key: queryKeys.highlights(bookId) })
       }
     },
   })

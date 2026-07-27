@@ -1,8 +1,10 @@
 <script setup lang="ts">
+import type { WordToken } from '../model'
 import { Icon } from '@iconify/vue'
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { KitBtn, KitDialog } from '~/components/01.kit'
+
 import { useTts } from '~/shared/composables/use-tts'
 
 const props = defineProps<{
@@ -19,11 +21,6 @@ const emit = defineEmits<{
 
 const { t } = useI18n()
 const tts = useTts()
-
-interface WordToken {
-  id: number
-  text: string
-}
 
 const allWords = ref<WordToken[]>([])
 const selectedWords = ref<WordToken[]>([])

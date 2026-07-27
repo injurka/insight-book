@@ -13,6 +13,7 @@ declare global {
   const DIFFICULTY_SYSTEMS: typeof import('../../constants/difficulties').DIFFICULTY_SYSTEMS
   const EffectScope: typeof import('vue').EffectScope
   const POS_TAGS_MAP: typeof import('../../constants/pos-tags').POS_TAGS_MAP
+  const QUERY_KEYS: typeof import('../../lib/query-keys').QUERY_KEYS
   const SUBSCRIPTION_TIERS_CONFIG: typeof import('../../constants/subscriptions').SUBSCRIPTION_TIERS_CONFIG
   const ThemesVariant: typeof import('../../composables/use-change-theme').ThemesVariant
   const acceptHMRUpdate: typeof import('pinia').acceptHMRUpdate
@@ -51,9 +52,11 @@ declare global {
   const getCurrentInstance: typeof import('vue').getCurrentInstance
   const getCurrentScope: typeof import('vue').getCurrentScope
   const getCurrentWatcher: typeof import('vue').getCurrentWatcher
+  const getLazyHighlighter: typeof import('../../lib/shiki-highlighter').getLazyHighlighter
   const getMediaUrl: typeof import('../../lib/helpers').getMediaUrl
   const h: typeof import('vue').h
   const hexToRgba: typeof import('../../lib/helpers').hexToRgba
+  const highlightCodeBlocks: typeof import('../../lib/shiki-highlighter').highlightCodeBlocks
   const ignorableWatch: typeof import('@vueuse/core').ignorableWatch
   const inject: typeof import('vue').inject
   const injectLocal: typeof import('@vueuse/core').injectLocal
@@ -97,6 +100,7 @@ declare global {
   const pausableWatch: typeof import('@vueuse/core').pausableWatch
   const provide: typeof import('vue').provide
   const provideLocal: typeof import('@vueuse/core').provideLocal
+  const queryKeys: typeof import('../../lib/query-keys').queryKeys
   const reactify: typeof import('@vueuse/core').reactify
   const reactifyObject: typeof import('@vueuse/core').reactifyObject
   const reactive: typeof import('vue').reactive
@@ -340,6 +344,9 @@ declare global {
   export type { Component, Slot, Slots, ComponentPublicInstance, ComputedRef, DirectiveBinding, ExtractDefaultPropTypes, ExtractPropTypes, ExtractPublicPropTypes, InjectionKey, PropType, Ref, ShallowRef, MaybeRef, MaybeRefOrGetter, VNode, WritableComputedRef } from 'vue'
   import('vue')
   // @ts-ignore
+  export type { PublicBooksQueryParams } from '../../lib/query-keys'
+  import('../../lib/query-keys')
+  // @ts-ignore
   export type { ThemesVariant } from '../../composables/use-change-theme'
   import('../../composables/use-change-theme')
   // @ts-ignore
@@ -368,6 +375,7 @@ declare module 'vue' {
     readonly DIFFICULTY_SYSTEMS: UnwrapRef<typeof import('../../constants/difficulties')['DIFFICULTY_SYSTEMS']>
     readonly EffectScope: UnwrapRef<typeof import('vue')['EffectScope']>
     readonly POS_TAGS_MAP: UnwrapRef<typeof import('../../constants/pos-tags')['POS_TAGS_MAP']>
+    readonly QUERY_KEYS: UnwrapRef<typeof import('../../lib/query-keys')['QUERY_KEYS']>
     readonly SUBSCRIPTION_TIERS_CONFIG: UnwrapRef<typeof import('../../constants/subscriptions')['SUBSCRIPTION_TIERS_CONFIG']>
     readonly ThemesVariant: UnwrapRef<typeof import('../../composables/use-change-theme')['ThemesVariant']>
     readonly acceptHMRUpdate: UnwrapRef<typeof import('pinia')['acceptHMRUpdate']>
@@ -406,9 +414,11 @@ declare module 'vue' {
     readonly getCurrentInstance: UnwrapRef<typeof import('vue')['getCurrentInstance']>
     readonly getCurrentScope: UnwrapRef<typeof import('vue')['getCurrentScope']>
     readonly getCurrentWatcher: UnwrapRef<typeof import('vue')['getCurrentWatcher']>
+    readonly getLazyHighlighter: UnwrapRef<typeof import('../../lib/shiki-highlighter')['getLazyHighlighter']>
     readonly getMediaUrl: UnwrapRef<typeof import('../../lib/helpers')['getMediaUrl']>
     readonly h: UnwrapRef<typeof import('vue')['h']>
     readonly hexToRgba: UnwrapRef<typeof import('../../lib/helpers')['hexToRgba']>
+    readonly highlightCodeBlocks: UnwrapRef<typeof import('../../lib/shiki-highlighter')['highlightCodeBlocks']>
     readonly ignorableWatch: UnwrapRef<typeof import('@vueuse/core')['ignorableWatch']>
     readonly inject: UnwrapRef<typeof import('vue')['inject']>
     readonly injectLocal: UnwrapRef<typeof import('@vueuse/core')['injectLocal']>
@@ -452,6 +462,7 @@ declare module 'vue' {
     readonly pausableWatch: UnwrapRef<typeof import('@vueuse/core')['pausableWatch']>
     readonly provide: UnwrapRef<typeof import('vue')['provide']>
     readonly provideLocal: UnwrapRef<typeof import('@vueuse/core')['provideLocal']>
+    readonly queryKeys: UnwrapRef<typeof import('../../lib/query-keys')['queryKeys']>
     readonly reactify: UnwrapRef<typeof import('@vueuse/core')['reactify']>
     readonly reactifyObject: UnwrapRef<typeof import('@vueuse/core')['reactifyObject']>
     readonly reactive: UnwrapRef<typeof import('vue')['reactive']>

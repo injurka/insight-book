@@ -5,6 +5,7 @@ import { defineStore } from 'pinia'
 import { computed, ref, shallowRef, watch } from 'vue'
 import { useLibraryStore } from '~/components/05.modules/library/store/library.store'
 import { useUmami } from '~/shared/composables/use-umami'
+import { queryKeys } from '~/shared/lib/query-keys'
 import { useRepos } from '~/shared/plugins/di'
 import { i18n } from '~/shared/plugins/i18n'
 import { useAnalysisStore } from '~/shared/store/analysis/analysis.store'
@@ -37,11 +38,12 @@ export const useReaderStore = defineStore('reader', () => {
     data: tocQueryData,
     refetch: refetchTocQuery,
   } = useQuery<TocItem[]>({
-    key: () => ['books', tocBookId.value, 'toc'],
+    key: () => queryKeys.toc(tocBookId.value),
     query: async () => {
       const id = tocBookId.value
       if (!id)
         return []
+
       return await repos.book.getToc(id)
     },
     enabled: () => tocBookId.value !== null,
@@ -118,6 +120,7 @@ export const useReaderStore = defineStore('reader', () => {
   async function loadPage(bookId: number, pageNum: number) {
     const analysisStore = useAnalysisStore()
     const toastStore = useToastStore()
+    const settingsStore = useGlobalSettingsStore()
 
     const prevPageNum = currentBook.value?.currentPage || 1
 
@@ -134,7 +137,6 @@ export const useReaderStore = defineStore('reader', () => {
     isPageLoading.value = true
 
     try {
-      // Исполняем прямые запросы для избежания дубликатов из useQuery()
       const [newPage, newDict] = await Promise.all([
         repos.book.getPage(bookId, pageNum),
         repos.book.getPageDict(bookId, pageNum).catch(() => ({} as Record<string, PageDictEntry>)),
@@ -155,11 +157,9 @@ export const useReaderStore = defineStore('reader', () => {
       currentPageDictionary.value = newDict || {}
 
       updateReadingProgress(bookId, pageNum)
-      prefetchNeighborPages(bookId, pageNum)
 
       trackEvent('page_loaded', { bookId, pageNum, type: page?.type })
 
-      const settingsStore = useGlobalSettingsStore()
       if (settingsStore.autoAnalyzePage && !analysisStore.isManualPageAnalysisActive) {
         setTimeout(() => {
           analysisStore.analyzeWholePage({
@@ -179,18 +179,6 @@ export const useReaderStore = defineStore('reader', () => {
     finally {
       isPageLoading.value = false
     }
-  }
-
-  function prefetchNeighborPages(bookId: number, currentNum: number) {
-    const totalPages = currentBook.value?.totalPages || 0
-    const pagesToPrefetch = [currentNum + 1, currentNum + 2, currentNum - 1].filter(num => num >= 1 && (totalPages === 0 || num <= totalPages))
-
-    pagesToPrefetch.forEach((pNum) => {
-      Promise.all([
-        repos.book.getPage(bookId, pNum).catch(() => null),
-        repos.book.getPageDict(bookId, pNum).catch(() => ({})),
-      ]).catch(() => { })
-    })
   }
 
   async function openBook(book: Book) {

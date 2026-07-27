@@ -39,10 +39,7 @@ export const REPOS_INJECTION_KEY = Symbol('Repositories') as InjectionKey<Reposi
 // A helper that uses inject if in Vue setup context, otherwise falls back to defaults.
 export function useRepos(): Repositories {
   if (hasInjectionContext()) {
-    const repos = inject(REPOS_INJECTION_KEY)
-
-    if (repos)
-      return repos
+    return inject(REPOS_INJECTION_KEY, defaultRepositories)
   }
 
   return defaultRepositories

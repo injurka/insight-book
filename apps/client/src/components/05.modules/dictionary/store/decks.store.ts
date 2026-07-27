@@ -4,6 +4,7 @@ import { defineStore } from 'pinia'
 import { computed, ref, watch } from 'vue'
 import { useToast } from '~/shared/composables/use-toast'
 import { useUmami } from '~/shared/composables/use-umami'
+import { queryKeys } from '~/shared/lib/query-keys'
 import { useRepos } from '~/shared/plugins/di'
 import { useAuthStore } from '~/shared/store/auth.store'
 import { useDictionaryFiltersStore } from './dictionary-filters.store'
@@ -23,7 +24,7 @@ export const useDecksStore = defineStore('decks', () => {
     isLoading: isDecksLoading,
     refetch: refetchDecks,
   } = useQuery<DictDeck[]>({
-    key: ['decks'],
+    key: queryKeys.decks.all,
     query: async () => {
       return await repos.dictionary.getDecks()
     },
@@ -50,8 +51,8 @@ export const useDecksStore = defineStore('decks', () => {
     async onSuccess(newDeck, { language }) {
       decks.value.push(newDeck)
       await repos.dictionary.saveLocalDecks(decks.value)
-      queryCache.invalidateQueries({ key: ['decks'] })
-      queryCache.invalidateQueries({ key: ['dictionary'] })
+      queryCache.invalidateQueries({ key: queryKeys.decks.all })
+      queryCache.invalidateQueries({ key: queryKeys.dictionary.all })
       toast.success('Колода создана')
       trackEvent('deck_created', { language })
     },
@@ -71,8 +72,8 @@ export const useDecksStore = defineStore('decks', () => {
       if (deck)
         deck.name = name
       await repos.dictionary.saveLocalDecks(decks.value)
-      queryCache.invalidateQueries({ key: ['decks'] })
-      queryCache.invalidateQueries({ key: ['dictionary'] })
+      queryCache.invalidateQueries({ key: queryKeys.decks.all })
+      queryCache.invalidateQueries({ key: queryKeys.dictionary.all })
       trackEvent('deck_updated', { deckId: id })
       toast.success('Название колоды обновлено')
     },
@@ -112,8 +113,8 @@ export const useDecksStore = defineStore('decks', () => {
         await repos.dictionary.saveLocalDictionary(dictStore.words)
       }
 
-      queryCache.invalidateQueries({ key: ['decks'] })
-      queryCache.invalidateQueries({ key: ['dictionary'] })
+      queryCache.invalidateQueries({ key: queryKeys.decks.all })
+      queryCache.invalidateQueries({ key: queryKeys.dictionary.all })
       toast.success('Колода удалена')
       trackEvent('deck_deleted', { deckId: id })
     },

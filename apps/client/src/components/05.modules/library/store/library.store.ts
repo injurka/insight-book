@@ -1,6 +1,7 @@
 import type { Book, BookStats } from '~/shared/types/models'
 import { useMutation, useQuery, useQueryCache } from '@pinia/colada'
 import { useUmami } from '~/shared/composables/use-umami'
+import { queryKeys } from '~/shared/lib/query-keys'
 import { useRepos } from '~/shared/plugins/di'
 import { useAuthStore } from '~/shared/store/auth.store'
 import { attachCachedCovers } from '../services/book-cover.service'
@@ -36,7 +37,7 @@ export const useLibraryStore = defineStore('library', () => {
     isLoading: isBooksLoading,
     refetch: refetchBooks,
   } = useQuery<Book[]>({
-    key: ['books'],
+    key: queryKeys.books.all,
     query: () => repos.book.list(),
   })
 
@@ -63,12 +64,12 @@ export const useLibraryStore = defineStore('library', () => {
     isLoading: isPublicBooksLoading,
     refetch: refetchPublicBooks,
   } = useQuery({
-    key: () => ['books', 'public', {
+    key: () => queryKeys.books.public({
       page: publicQueryPage.value,
       tag: publicQueryTag.value,
       search: publicQuerySearch.value,
       lang: publicQueryLang.value,
-    }],
+    }),
     query: async () => {
       const q = new URLSearchParams()
       q.set('tab', 'public')
@@ -119,7 +120,7 @@ export const useLibraryStore = defineStore('library', () => {
     isLoading: isBookInfoLoading,
     refetch: refetchBookInfo,
   } = useQuery<Book | null>({
-    key: () => ['books', currentBookId.value],
+    key: () => queryKeys.books(currentBookId.value),
     query: async () => {
       const id = currentBookId.value
       if (!id)
@@ -177,9 +178,14 @@ export const useLibraryStore = defineStore('library', () => {
         Object.assign(currentBookInfo.value, data)
       }
     },
-    async onSuccess(_, { id }) {
-      queryCache.invalidateQueries({ key: ['books'] })
-      queryCache.invalidateQueries({ key: ['books', id] })
+    async onSuccess(_, { id, data }) {
+      queryCache.invalidateQueries({ key: queryKeys.books(id) })
+
+      const keys = Object.keys(data)
+      const isOnlyProgressUpdate = keys.length > 0 && keys.every(k => k === 'currentPage' || k === 'lastReadPosition' || k === 'updatedAt')
+      if (!isOnlyProgressUpdate) {
+        queryCache.invalidateQueries({ key: queryKeys.books.all })
+      }
 
       if (currentBookInfo.value?.id === id) {
         await repos.book.saveLocalBookInfo(id, currentBookInfo.value)
@@ -199,8 +205,8 @@ export const useLibraryStore = defineStore('library', () => {
         currentBookInfo.value.stats = res.stats
         await repos.book.saveLocalBookInfo(id, currentBookInfo.value)
       }
-      queryCache.invalidateQueries({ key: ['books'] })
-      queryCache.invalidateQueries({ key: ['books', id] })
+      queryCache.invalidateQueries({ key: queryKeys.books.all })
+      queryCache.invalidateQueries({ key: queryKeys.books(id) })
     },
   })
 
@@ -227,8 +233,8 @@ export const useLibraryStore = defineStore('library', () => {
         currentBookInfo.value.stats.lexicalDiversity = res.lexicalStats.lexicalDiversity
         await repos.book.saveLocalBookInfo(id, currentBookInfo.value)
       }
-      queryCache.invalidateQueries({ key: ['books'] })
-      queryCache.invalidateQueries({ key: ['books', id] })
+      queryCache.invalidateQueries({ key: queryKeys.books.all })
+      queryCache.invalidateQueries({ key: queryKeys.books(id) })
     },
   })
 
@@ -255,8 +261,8 @@ export const useLibraryStore = defineStore('library', () => {
       if (listBook)
         listBook.coverUrl = res.coverUrl
 
-      queryCache.invalidateQueries({ key: ['books'] })
-      queryCache.invalidateQueries({ key: ['books', id] })
+      queryCache.invalidateQueries({ key: queryKeys.books.all })
+      queryCache.invalidateQueries({ key: queryKeys.books(id) })
     },
   })
 
@@ -272,8 +278,8 @@ export const useLibraryStore = defineStore('library', () => {
         currentBookInfo.value.stats = res.stats
         await repos.book.saveLocalBookInfo(id, currentBookInfo.value)
       }
-      queryCache.invalidateQueries({ key: ['books'] })
-      queryCache.invalidateQueries({ key: ['books', id] })
+      queryCache.invalidateQueries({ key: queryKeys.books.all })
+      queryCache.invalidateQueries({ key: queryKeys.books(id) })
     },
   })
 
@@ -290,7 +296,7 @@ export const useLibraryStore = defineStore('library', () => {
 
       if (book) {
         books.value.unshift(book)
-        queryCache.invalidateQueries({ key: ['books'] })
+        queryCache.invalidateQueries({ key: queryKeys.books.all })
       }
 
       trackEvent('book_uploaded', { format: ext, size_mb: Math.round(file.size / 1048576) })
@@ -309,7 +315,7 @@ export const useLibraryStore = defineStore('library', () => {
       repos.book.createCustomManga({ ...params, type: 'manga' }),
     onSuccess(res, params) {
       books.value.unshift(res.book)
-      queryCache.invalidateQueries({ key: ['books'] })
+      queryCache.invalidateQueries({ key: queryKeys.books.all })
       trackEvent('custom_manga_created', { language: params.language })
       return res.book
     },
@@ -337,8 +343,8 @@ export const useLibraryStore = defineStore('library', () => {
           catch { }
         }
       }
-      queryCache.invalidateQueries({ key: ['books'] })
-      queryCache.invalidateQueries({ key: ['books', bookId] })
+      queryCache.invalidateQueries({ key: queryKeys.books.all })
+      queryCache.invalidateQueries({ key: queryKeys.books(bookId) })
       return res.book
     },
   })
@@ -359,7 +365,7 @@ export const useLibraryStore = defineStore('library', () => {
         currentBookInfo.value = null
         currentBookId.value = null
       }
-      queryCache.invalidateQueries({ key: ['books'] })
+      queryCache.invalidateQueries({ key: queryKeys.books.all })
       trackEvent('book_deleted')
     },
   })

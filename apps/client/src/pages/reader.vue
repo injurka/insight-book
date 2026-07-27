@@ -3,8 +3,8 @@ import { useHead } from '@vueuse/head'
 import { useI18n } from 'vue-i18n'
 import { useHighlightsStore } from '~/components/05.modules/reader/store/highlights.store'
 import { useReaderStore } from '~/components/05.modules/reader/store/reader.store'
+import BookReaderView from '~/components/05.modules/reader/ui/book-reader-view.vue'
 import MangaReaderView from '~/components/05.modules/reader/ui/manga-reader-view.vue'
-import ReaderView from '~/components/05.modules/reader/ui/reader-view.vue'
 import { AppRoutePaths } from '~/shared/constants/routes'
 
 const store = useReaderStore()
@@ -49,7 +49,7 @@ onMounted(async () => {
   <div class="reader-page-wrapper">
     <template v-if="store.currentBook">
       <MangaReaderView v-if="store.currentBook.type === 'manga'" />
-      <ReaderView v-else />
+      <BookReaderView v-else />
     </template>
   </div>
 </template>

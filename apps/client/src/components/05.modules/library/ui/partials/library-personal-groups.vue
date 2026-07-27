@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { DisplayGroup } from '../../composables/use-library-display'
+import type { DisplayGroup } from '../../model'
 import type { Book } from '~/shared/types/models'
 import { Icon } from '@iconify/vue'
 import { useI18n } from 'vue-i18n'

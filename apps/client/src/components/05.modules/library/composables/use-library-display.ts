@@ -1,14 +1,6 @@
-import type { Book } from '~/shared/types/models'
+import type { DisplayGroup } from '../model'
 import { i18n } from '~/shared/plugins/i18n'
 import { useLibraryStore } from '../store/library.store'
-
-export interface DisplayGroup {
-  seriesName: string
-  isFolderContent?: boolean
-  icon?: string
-  books?: Book[]
-  folders?: { name: string, count: number }[]
-}
 
 export function useLibraryDisplay() {
   const store = useLibraryStore()

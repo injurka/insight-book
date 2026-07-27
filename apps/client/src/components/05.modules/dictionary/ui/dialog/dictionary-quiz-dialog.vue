@@ -1,8 +1,10 @@
 <script setup lang="ts">
+import type { LevelNode, Question, QuizState } from '../../model'
 import { Icon } from '@iconify/vue'
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { KitBtn, KitDialog, KitTabs } from '~/components/01.kit'
+
 import { useRepos } from '~/shared/plugins/di'
 
 const props = defineProps<{
@@ -15,8 +17,6 @@ const emit = defineEmits<{
 }>()
 
 const repos = useRepos()
-
-type QuizState = 'select_level' | 'loading' | 'testing' | 'summary'
 
 const visible = defineModel<boolean>('visible', { required: true })
 const { t, locale } = useI18n()
@@ -40,25 +40,6 @@ const tabItems = computed(() => {
 })
 
 // Game state
-interface Question {
-  type: 'choice' | 'cloze' | 'reorder'
-  question: string
-  options: string[]
-  correctAnswer: string
-  explanation: string
-  // user state
-  userAnswer?: string
-  isCorrect?: boolean
-}
-
-interface LevelNode {
-  id: number
-  language: string
-  levelValue: string
-  bestScore: number
-  stars: number
-  unlocked: boolean
-}
 
 const levelsByLang = ref<Record<string, LevelNode[]>>({
   zh: [],

@@ -3,7 +3,7 @@ import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { KitBtn, KitPrompt } from '~/components/01.kit'
 import { BookEntity } from '~/components/03.domain/entities/book.entity'
-import { useReaderStore } from '../store/reader.store'
+import { useReaderStore } from '../../store/reader.store'
 
 const emit = defineEmits(['prev', 'next', 'goTo'])
 const readerStore = useReaderStore()
@@ -16,6 +16,7 @@ const bookEntity = computed(() => readerStore.currentBook ? new BookEntity(reade
 function openPrompt() {
   if (!readerStore.currentBook)
     return
+
   isPromptOpen.value = true
 }
 

@@ -15,8 +15,8 @@ import { useReadingSession } from '../composables/use-reading-session'
 import { useScrollRestoration } from '../composables/use-scroll-restoration'
 import { useReaderStore } from '../store/reader.store'
 import ReaderTocDialog from './dialog/reader-toc-dialog.vue'
-import ReaderFooter from './reader-footer.vue'
-import ReaderHeader from './reader-header.vue'
+import ReaderFooter from './partials/reader-footer.vue'
+import ReaderHeader from './partials/reader-header.vue'
 
 const BubblePopover = lazyComponent(() => import('~/components/04.features/analysis/ui/popover/bubble-popover.vue'))
 const PageAnalysisModal = lazyComponent(() => import('~/components/04.features/analysis/ui/modal/page-analysis-modal.vue'))

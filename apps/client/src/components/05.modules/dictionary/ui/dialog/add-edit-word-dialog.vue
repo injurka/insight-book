@@ -1,23 +1,19 @@
 <script setup lang="ts">
-import type { SelectOption, UserDictItem, WordEncounter } from '~/shared/types/models'
+import type { WordFormData } from '../../model'
+import type { SelectOption } from '~/shared/types/models'
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { KitBtn, KitDialog, KitInput, KitPrompt, KitSelect, KitToggle, KitTooltip } from '~/components/01.kit'
 import { useToast } from '~/shared/composables/use-toast'
 import { useTts } from '~/shared/composables/use-tts'
 import { DIFFICULTY_SYSTEMS } from '~/shared/constants/difficulties'
-import { useRepos } from '~/shared/plugins/di'
 
+import { useRepos } from '~/shared/plugins/di'
 import { useAnalysisStore } from '~/shared/store/analysis/analysis.store'
+
 import { useDictionaryStore } from '../../store/dictionary.store'
 
 const repos = useRepos()
-
-interface WordFormData extends Partial<UserDictItem> {
-  contextSentence?: string
-  contextBookId?: number
-  encounters?: (WordEncounter & { book?: { title: string } })[]
-}
 
 const analysisStore = useAnalysisStore()
 const dictStore = useDictionaryStore()

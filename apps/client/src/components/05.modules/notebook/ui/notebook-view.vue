@@ -1,6 +1,8 @@
 <script setup lang="ts">
+import type { BookGroup, NotebookFlatItem } from '../model'
 import type { Book, Highlight, LlmAnalysis } from '~/shared/types/models'
 import { Icon } from '@iconify/vue'
+import { useVirtualList } from '@vueuse/core'
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { KitBtn, KitDropdown, KitImage, KitPrompt, KitSkeleton } from '~/components/01.kit'
@@ -10,39 +12,33 @@ import { QuotePractice } from '~/components/04.features/quote-practice'
 import { useLibraryStore } from '~/components/05.modules/library/store/library.store'
 import { useToast } from '~/shared/composables/use-toast'
 import { useTts } from '~/shared/composables/use-tts'
-import { useRepos } from '~/shared/plugins/di'
 
+import { useRepos } from '~/shared/plugins/di'
 import { useNotebookExport } from '../composables/use-notebook-export'
 import QuoteAnalysisModal from './modal/quote-analysis-modal.vue'
 import NotebookHeader from './partials/notebook-header.vue'
+
 import NotebookQuoteItem from './partials/notebook-quote-item.vue'
-
-interface BookGroup {
-  book: Book
-  highlights: Highlight[]
-  lastActivityDate: string
-}
-
-interface NotebookHeaderItem {
-  id: string
-  kind: 'header'
-  group: BookGroup
-}
-
-interface NotebookHighlightItem {
-  id: string
-  kind: 'highlight'
-  highlight: Highlight
-  group: BookGroup
-}
-
-type NotebookFlatItem = NotebookHeaderItem | NotebookHighlightItem
 
 const repos = useRepos()
 const { t } = useI18n()
 const toast = useToast()
 const libraryStore = useLibraryStore()
 const tts = useTts()
+
+const searchQuery = ref('')
+const highlights = ref<Highlight[]>([])
+const isLoading = ref(true)
+const activeTtsId = ref<number | null>(null)
+
+// Analysis modal state
+const isAnalysisModalOpen = ref(false)
+const activeAnalysisHighlight = ref<Highlight | null>(null)
+
+function openAnalysisModal(h: Highlight) {
+  activeAnalysisHighlight.value = h
+  isAnalysisModalOpen.value = true
+}
 
 // Edit state
 const isEditModalOpen = ref(false)

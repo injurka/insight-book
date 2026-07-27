@@ -16,8 +16,8 @@ import { useScrollRestoration } from '../composables/use-scroll-restoration.ts'
 import { useReaderStore } from '../store/reader.store.ts'
 
 import ReaderTocDialog from './dialog/reader-toc-dialog.vue'
-import ReaderFooter from './reader-footer.vue'
-import ReaderHeader from './reader-header.vue'
+import ReaderFooter from './partials/reader-footer.vue'
+import ReaderHeader from './partials/reader-header.vue'
 
 const PageAnalysisModal = lazyComponent(() => import('~/components/04.features/analysis/ui/modal/page-analysis-modal.vue'))
 const SelectionTooltip = lazyComponent(() => import('~/components/04.features/analysis/ui/selection-tooltip.vue'))
@@ -77,16 +77,28 @@ const rightPaneContentForSync = computed(() => {
   return pageTranslationProgress.value.isFullyTranslated ? translatedPageContent.value : leftPaneContent.value
 })
 
+async function applyCodeHighlighting() {
+  if (!readerViewRef.value || !readerViewRef.value.querySelector('pre, code'))
+    return
+
+  const { highlightCodeBlocks } = await import('~/shared/lib/shiki-highlighter')
+  const themeAttr = document.documentElement.getAttribute('data-theme')
+  const isDark = themeAttr === 'dark' || themeAttr === 'oled'
+
+  await highlightCodeBlocks(readerViewRef.value, isDark)
+}
+
 watch([
   () => readerStore.isParallelView,
-  rightPaneContentForSync,
   () => settingsStore.readerFontSize,
   () => settingsStore.readerLineHeight,
+  rightPaneContentForSync,
 ], async () => {
   if (readerStore.isPageLoading)
     return
 
   await nextTick()
+  await applyCodeHighlighting()
 
   setTimeout(performLayoutSync, 50)
 })
@@ -94,6 +106,7 @@ watch([
 watch(() => readerStore.isPageLoading, async (isLoading) => {
   if (!isLoading && readerStore.currentPage) {
     await nextTick()
+    await applyCodeHighlighting()
     setTimeout(performLayoutSync, 50)
   }
 }, { immediate: true })
@@ -415,6 +428,21 @@ watch(() => readerStore.isPageLoading, async (isLoading) => {
     padding-left: 1em;
     font-style: italic;
     color: var(--fg-secondary-color);
+  }
+  :deep(pre),
+  :deep(.shiki) {
+    font-size: 0.75em;
+    max-width: 100%;
+    overflow-x: auto;
+    white-space: pre;
+    padding: 12px 16px;
+    margin: 1.2em 0;
+    border-radius: 8px;
+    box-sizing: border-box;
+
+    code {
+      font-size: inherit;
+    }
   }
   :deep(b),
   :deep(strong) {

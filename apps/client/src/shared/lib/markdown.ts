@@ -9,14 +9,17 @@ export function formatMarkdown(text: string): string {
   const blocks: string[] = []
 
   // 1. Извлекаем и форматируем многострочные блоки кода
-  processed = processed.replace(/```([a-z]*)\s*([\s\S]*?)```/gi, (_, _lang, codeContent) => {
+  processed = processed.replace(/```([a-z]*)\s*([\s\S]*?)```/gi, (_, lang, codeContent) => {
     const escaped = codeContent
       .replace(/&/g, '&amp;')
       .replace(/</g, '&lt;')
       .replace(/>/g, '&gt;')
-    const formattedCode = `<pre class="chat-code-block"><code class="chat-code">${escaped}</code></pre>`
+
+    const langClass = lang ? `language-${lang.toLowerCase()}` : 'language-javascript'
+    const formattedCode = `<pre class="chat-code-block ${langClass}"><code class="chat-code ${langClass}">${escaped}</code></pre>`
     const placeholder = `__BLOCK_PLACEHOLDER_${blocks.length}__`
     blocks.push(formattedCode)
+
     return placeholder
   })
 

@@ -11,6 +11,7 @@ import DictionaryList from './ui/partials/dictionary-list.vue'
 export * from './composables/use-dict-filter-options'
 export * from './composables/use-srs-quiz'
 export * from './composables/use-srs-session'
+export * from './model'
 
 export {
   AddEditWordDialog,

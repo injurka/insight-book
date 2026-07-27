@@ -1,9 +1,11 @@
 <script setup lang="ts">
+import type { BookCacheStat } from '../../model'
 import { Icon } from '@iconify/vue'
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { KitBtn, KitSkeleton, KitTooltip } from '~/components/01.kit'
 import { useCacheStore } from '~/shared/store/cache.store'
+
 import { formatBytes, formatPagesList } from '../../lib/formatters'
 
 const { t } = useI18n()
@@ -11,18 +13,6 @@ const cacheStore = useCacheStore()
 
 const pageSize = 5
 const currentPage = ref(1)
-
-interface BookCacheStat {
-  id: string
-  title: string
-  totalPages: number
-  cachedPages: number[]
-  analysesCount: number
-  sizeBytes: number
-  imagesCount: number
-  ttsCount: number
-  dictPagesCount: number
-}
 
 const activeBookStats = computed(() => {
   if (!cacheStore.stats?.bookStats)

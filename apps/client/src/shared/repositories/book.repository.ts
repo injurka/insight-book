@@ -44,12 +44,14 @@ export class DefaultBookRepository implements IBookRepository {
     try {
       const data = await api.books.list()
       await offlineService.saveBooksList(data).catch(() => {})
+
       return data
     }
     catch (error) {
       const offlineData = await offlineService.getBooksList()
       if (offlineData)
         return offlineData
+
       throw error
     }
   }

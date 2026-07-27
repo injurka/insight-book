@@ -1,11 +1,5 @@
-import type { Book, Highlight } from '~/shared/types/models'
+import type { BookGroup } from '../model'
 import { useI18n } from 'vue-i18n'
-
-export interface BookGroup {
-  book: Book
-  highlights: Highlight[]
-  lastActivityDate: string
-}
 
 export function useNotebookExport() {
   const { t } = useI18n()

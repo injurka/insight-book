@@ -6,9 +6,9 @@ import { KitBtn, KitDropdown, KitTooltip } from '~/components/01.kit'
 import { AppRoutePaths } from '~/shared/constants/routes'
 import { useAnalysisStore } from '~/shared/store/analysis/analysis.store.ts'
 import { useGlobalSettingsStore } from '~/shared/store/settings.store'
-import { useReaderStore } from '../store/reader.store'
-import ReaderParallelMenu from './partials/reader-parallel-menu.vue'
-import ReaderSettingsMenu from './partials/reader-settings-menu.vue'
+import { useReaderStore } from '../../store/reader.store'
+import ReaderParallelMenu from './reader-parallel-menu.vue'
+import ReaderSettingsMenu from './reader-settings-menu.vue'
 
 const props = withDefaults(defineProps<{
   isVisible?: boolean
