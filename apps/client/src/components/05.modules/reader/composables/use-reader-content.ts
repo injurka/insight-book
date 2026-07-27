@@ -38,7 +38,12 @@ export function useReaderContent() {
     })
   })
 
-  function applyHighlightsAndTranslations(doc: Document, map: Record<string, any>, pageNum: number, mode: 'left' | 'right') {
+  function applyHighlightsAndTranslations(
+    doc: Document,
+    map: Record<string, any>,
+    pageNum: number,
+    mode: 'left' | 'right',
+  ) {
     const pageHighlights = highlightsStore.highlights.filter(h => Number(h.pageNum) === pageNum)
     const translatedSentIds = new Set<string>()
 
@@ -124,7 +129,12 @@ export function useReaderContent() {
       return ''
     const parser = new DOMParser()
     const doc = parser.parseFromString(safePageContent.value, 'text/html')
-    applyHighlightsAndTranslations(doc, translationMap.value, Number(readerStore.currentPage?.pageNum), 'left')
+    applyHighlightsAndTranslations(
+      doc,
+      translationMap.value,
+      Number(readerStore.currentPage?.pageNum),
+      'left',
+    )
     return doc.body.innerHTML
   })
 
@@ -133,7 +143,12 @@ export function useReaderContent() {
       return ''
     const parser = new DOMParser()
     const doc = parser.parseFromString(safePageContent.value, 'text/html')
-    applyHighlightsAndTranslations(doc, translationMap.value, Number(readerStore.currentPage?.pageNum), 'right')
+    applyHighlightsAndTranslations(
+      doc,
+      translationMap.value,
+      Number(readerStore.currentPage?.pageNum),
+      'right',
+    )
     return doc.body.innerHTML
   })
 
@@ -149,7 +164,12 @@ export function useReaderContent() {
       let resultHtml = ''
       if (box.html) {
         const doc = parser.parseFromString(box.html, 'text/html')
-        applyHighlightsAndTranslations(doc, map, pageNum, 'right')
+        applyHighlightsAndTranslations(
+          doc,
+          map,
+          pageNum,
+          'right',
+        )
         resultHtml = doc.body.innerHTML
       }
       else {

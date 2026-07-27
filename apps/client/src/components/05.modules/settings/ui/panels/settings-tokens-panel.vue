@@ -9,7 +9,13 @@ import { formatCurrency, formatNumber } from '../../lib/formatters'
 
 const { t } = useI18n()
 const settingsStore = useGlobalSettingsStore()
-const { isTokensLoading, totalTokens, totalCost, tokensByAction, selectedPeriod } = useTokenStats()
+const {
+  isTokensLoading,
+  totalTokens,
+  totalCost,
+  tokensByAction,
+  selectedPeriod,
+} = useTokenStats()
 
 const periodOptions = [
   { id: 'today', label: 'Сегодня', icon: 'mdi:calendar-today' },

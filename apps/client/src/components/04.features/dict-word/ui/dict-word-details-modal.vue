@@ -45,7 +45,12 @@ function openTtsPopover() {
 
 function playTTS(forceCacheBypass = false) {
   if (props.word?.word) {
-    speak(props.word.word, props.word.language, undefined, forceCacheBypass)
+    speak(
+      props.word.word,
+      props.word.language,
+      undefined,
+      forceCacheBypass,
+    )
   }
 }
 

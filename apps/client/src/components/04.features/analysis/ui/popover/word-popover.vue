@@ -96,14 +96,11 @@ function getPosClass(pos: string) {
   return 'pos-default'
 }
 
-watch(
-  () => analysisStore.wordPopover,
-  (val) => {
-    if (!val) {
-      stop()
-    }
-  },
-)
+watch(() => analysisStore.wordPopover, (val) => {
+  if (!val) {
+    stop()
+  }
+})
 
 function openSaveDialog() {
   if (!analysisStore.wordPopover)

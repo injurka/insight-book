@@ -137,9 +137,7 @@ const filteredBookGroups = computed(() => {
   }
 
   // Sort groups: most recent activity first
-  return groups.sort(
-    (a, b) => new Date(b.lastActivityDate).getTime() - new Date(a.lastActivityDate).getTime(),
-  )
+  return groups.sort((a, b) => new Date(b.lastActivityDate).getTime() - new Date(a.lastActivityDate).getTime())
 })
 
 const notebookFlatItems = computed<NotebookFlatItem[]>(() => {

@@ -31,14 +31,10 @@ const isEditingStats = ref(false)
 const isSyncModalOpen = ref(false)
 const isAppendChapterOpen = ref(false)
 
-watch(
-  bookId,
-  (newId) => {
-    if (newId)
-      libraryStore.fetchBookInfo(newId)
-  },
-  { immediate: true },
-)
+watch(bookId, (newId) => {
+  if (newId)
+    libraryStore.fetchBookInfo(newId)
+}, { immediate: true })
 
 function goBack() {
   router.push(AppRoutePaths.Home)

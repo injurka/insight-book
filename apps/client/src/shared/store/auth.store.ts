@@ -118,5 +118,13 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  return { user, isSingleMode, isAuthReady, checkAuth, logout, updateAvatar, updateUsername }
+  return {
+    user,
+    isSingleMode,
+    isAuthReady,
+    checkAuth,
+    logout,
+    updateAvatar,
+    updateUsername,
+  }
 })

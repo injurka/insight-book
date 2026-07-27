@@ -22,7 +22,13 @@ const isVisible = ref(false)
 
 const isHoverable = useMediaQuery('(hover: hover)')
 
-const { x, y, strategy, middlewareData, placement: finalPlacement } = useFloating(referenceRef, floatingRef, {
+const {
+  x,
+  y,
+  strategy,
+  middlewareData,
+  placement: finalPlacement,
+} = useFloating(referenceRef, floatingRef, {
   placement: props.placement,
   whileElementsMounted: autoUpdate,
   middleware: [

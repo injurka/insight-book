@@ -1,10 +1,7 @@
 import { ref } from 'vue'
 import { useAnalysisStore } from '~/shared/store/analysis/analysis.store'
 
-export function useReaderScroll(
-  saveScrollPosition: () => void,
-  closeBubblePopover?: () => void,
-) {
+export function useReaderScroll(saveScrollPosition: () => void, closeBubblePopover?: () => void) {
   const analysisStore = useAnalysisStore()
   const isHeaderVisible = ref(true)
 

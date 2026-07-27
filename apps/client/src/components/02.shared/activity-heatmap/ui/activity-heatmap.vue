@@ -26,7 +26,12 @@ function formatNum(num: number) {
 
 const heatmapData = computed(() => {
   const today = new Date()
-  today.setHours(0, 0, 0, 0)
+  today.setHours(
+    0,
+    0,
+    0,
+    0,
+  )
 
   let dayOfWeek = today.getDay()
   if (dayOfWeek === 0)

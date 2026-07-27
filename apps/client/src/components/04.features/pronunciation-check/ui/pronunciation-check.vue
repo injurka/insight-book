@@ -4,24 +4,21 @@ import { useI18n } from 'vue-i18n'
 import { KitBtn, KitDropdown, KitTooltip } from '~/components/01.kit'
 import { usePronunciationCheck } from '../composables/use-pronunciation-check'
 
-const props = withDefaults(
-  defineProps<{
-    word: string
-    language: string
-    variant?: 'button' | 'inline'
-    btnColor?: 'primary' | 'secondary' | 'accent' | 'error' | 'success' | 'warning' | 'info'
-    btnVariant?: 'solid' | 'outlined' | 'text' | 'subtle' | 'tonal'
-    btnSize?: 'xs' | 'sm' | 'md' | 'lg'
-    tooltipPlacement?: 'top' | 'bottom' | 'left' | 'right' | 'top-start' | 'top-end' | 'bottom-start' | 'bottom-end'
-  }>(),
-  {
-    variant: 'button',
-    btnColor: 'secondary',
-    btnVariant: 'tonal',
-    btnSize: 'sm',
-    tooltipPlacement: 'top',
-  },
-)
+const props = withDefaults(defineProps<{
+  word: string
+  language: string
+  variant?: 'button' | 'inline'
+  btnColor?: 'primary' | 'secondary' | 'accent' | 'error' | 'success' | 'warning' | 'info'
+  btnVariant?: 'solid' | 'outlined' | 'text' | 'subtle' | 'tonal'
+  btnSize?: 'xs' | 'sm' | 'md' | 'lg'
+  tooltipPlacement?: 'top' | 'bottom' | 'left' | 'right' | 'top-start' | 'top-end' | 'bottom-start' | 'bottom-end'
+}>(), {
+  variant: 'button',
+  btnColor: 'secondary',
+  btnVariant: 'tonal',
+  btnSize: 'sm',
+  tooltipPlacement: 'top',
+})
 
 const check = usePronunciationCheck(() => props.word, () => props.language)
 const {

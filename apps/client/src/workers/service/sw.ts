@@ -17,70 +17,46 @@ precacheAndRoute(self.__WB_MANIFEST || [])
 
 if (import.meta.env.PROD) {
   // WEB APP MANIFEST
-  registerRoute(
-    ({ request, sameOrigin, url }) => {
-      if (!url.protocol.startsWith('http'))
-        return false
-      return sameOrigin && request.destination === 'manifest'
-    },
-    CacheStrategyFactory.createNetworkFirst(
-      CACHE_CONFIG.names.webmanifest,
-      {
-        maxEntries: CACHE_CONFIG.limits.manifests,
-        maxAgeSeconds: CACHE_CONFIG.durations.manifests,
-      },
-    ),
-  )
+  registerRoute(({ request, sameOrigin, url }) => {
+    if (!url.protocol.startsWith('http'))
+      return false
+    return sameOrigin && request.destination === 'manifest'
+  }, CacheStrategyFactory.createNetworkFirst(CACHE_CONFIG.names.webmanifest, {
+    maxEntries: CACHE_CONFIG.limits.manifests,
+    maxAgeSeconds: CACHE_CONFIG.durations.manifests,
+  }))
 
   // FONTS
-  registerRoute(
-    ({ request, url }) => {
-      if (!url.protocol.startsWith('http'))
-        return false
-      return request.destination === 'font'
-    },
-    CacheStrategyFactory.createCacheFirst(
-      CACHE_CONFIG.names.fonts,
-      {
-        maxEntries: CACHE_CONFIG.limits.fonts,
-        maxAgeSeconds: CACHE_CONFIG.durations.fonts,
-        statuses: [0, 200],
-      },
-    ),
-  )
+  registerRoute(({ request, url }) => {
+    if (!url.protocol.startsWith('http'))
+      return false
+    return request.destination === 'font'
+  }, CacheStrategyFactory.createCacheFirst(CACHE_CONFIG.names.fonts, {
+    maxEntries: CACHE_CONFIG.limits.fonts,
+    maxAgeSeconds: CACHE_CONFIG.durations.fonts,
+    statuses: [0, 200],
+  }))
 }
 
 // ICONS (Iconify)
-registerRoute(
-  ({ url }) => url.protocol.startsWith('http') && url.hostname === 'api.iconify.design',
-  CacheStrategyFactory.createStaleWhileRevalidate(
-    CACHE_CONFIG.names.icons,
-    {
-      maxEntries: CACHE_CONFIG.limits.icons,
-      maxAgeSeconds: CACHE_CONFIG.durations.icons,
-    },
-  ),
-)
+registerRoute(({ url }) => url.protocol.startsWith('http') && url.hostname === 'api.iconify.design', CacheStrategyFactory.createStaleWhileRevalidate(CACHE_CONFIG.names.icons, {
+  maxEntries: CACHE_CONFIG.limits.icons,
+  maxAgeSeconds: CACHE_CONFIG.durations.icons,
+}))
 
 // IMAGES
-registerRoute(
-  ({ request, url }) => {
-    if (!url.protocol.startsWith('http'))
-      return false
+registerRoute(({ request, url }) => {
+  if (!url.protocol.startsWith('http'))
+    return false
 
-    if (request.destination === 'video' || request.destination === 'audio')
-      return false
+  if (request.destination === 'video' || request.destination === 'audio')
+    return false
 
-    return request.destination === 'image' || url.pathname.match(/\.(png|jpg|jpeg|svg|gif|webp)$/i)
-  },
-  CacheStrategyFactory.createStaleWhileRevalidate(
-    CACHE_CONFIG.names.images,
-    {
-      maxEntries: CACHE_CONFIG.limits.images,
-      maxAgeSeconds: CACHE_CONFIG.durations.images,
-    },
-  ),
-)
+  return request.destination === 'image' || url.pathname.match(/\.(png|jpg|jpeg|svg|gif|webp)$/i)
+}, CacheStrategyFactory.createStaleWhileRevalidate(CACHE_CONFIG.names.images, {
+  maxEntries: CACHE_CONFIG.limits.images,
+  maxAgeSeconds: CACHE_CONFIG.durations.images,
+}))
 
 // --- СТАТИЧЕСКИЕ АССЕТЫ (JS, CSS) ---
 
@@ -91,45 +67,27 @@ function isScriptOrStyle({ request, url }: { request: Request, url: URL }) {
     || url.pathname.endsWith('.js') || url.pathname.endsWith('.css')
 }
 
-const hashedAssetsStrategy = CacheStrategyFactory.createCacheFirst(
-  CACHE_CONFIG.names.hashedAssets,
-  {
-    maxEntries: CACHE_CONFIG.limits.hashedAssets,
-    maxAgeSeconds: CACHE_CONFIG.durations.static.hashed,
-  },
-)
+const hashedAssetsStrategy = CacheStrategyFactory.createCacheFirst(CACHE_CONFIG.names.hashedAssets, {
+  maxEntries: CACHE_CONFIG.limits.hashedAssets,
+  maxAgeSeconds: CACHE_CONFIG.durations.static.hashed,
+})
 
-const vendorAssetsStrategy = CacheStrategyFactory.createCacheFirst(
-  CACHE_CONFIG.names.vendorAssets,
-  {
-    maxEntries: CACHE_CONFIG.limits.vendorAssets,
-    maxAgeSeconds: CACHE_CONFIG.durations.static.vendor,
-    statuses: [0, 200],
-  },
-)
+const vendorAssetsStrategy = CacheStrategyFactory.createCacheFirst(CACHE_CONFIG.names.vendorAssets, {
+  maxEntries: CACHE_CONFIG.limits.vendorAssets,
+  maxAgeSeconds: CACHE_CONFIG.durations.static.vendor,
+  statuses: [0, 200],
+})
 
-const regularAssetsStrategy = CacheStrategyFactory.createStaleWhileRevalidate(
-  CACHE_CONFIG.names.regularAssets,
-  {
-    maxEntries: CACHE_CONFIG.limits.regularAssets,
-    maxAgeSeconds: CACHE_CONFIG.durations.static.regular,
-  },
-)
+const regularAssetsStrategy = CacheStrategyFactory.createStaleWhileRevalidate(CACHE_CONFIG.names.regularAssets, {
+  maxEntries: CACHE_CONFIG.limits.regularAssets,
+  maxAgeSeconds: CACHE_CONFIG.durations.static.regular,
+})
 
-registerRoute(
-  options => isScriptOrStyle(options) && AssetAnalyzer.getAssetType(options.url.href) === 'hashed',
-  hashedAssetsStrategy,
-)
+registerRoute(options => isScriptOrStyle(options) && AssetAnalyzer.getAssetType(options.url.href) === 'hashed', hashedAssetsStrategy)
 
-registerRoute(
-  options => isScriptOrStyle(options) && AssetAnalyzer.getAssetType(options.url.href) === 'vendor',
-  vendorAssetsStrategy,
-)
+registerRoute(options => isScriptOrStyle(options) && AssetAnalyzer.getAssetType(options.url.href) === 'vendor', vendorAssetsStrategy)
 
-registerRoute(
-  options => isScriptOrStyle(options) && AssetAnalyzer.getAssetType(options.url.href) === 'regular',
-  regularAssetsStrategy,
-)
+registerRoute(options => isScriptOrStyle(options) && AssetAnalyzer.getAssetType(options.url.href) === 'regular', regularAssetsStrategy)
 
 // --- SPA НАВИГАЦИЯ ---
 
@@ -148,13 +106,10 @@ if (import.meta.env.PROD) {
   ]
 }
 
-registerRoute(new NavigationRoute(
-  createHandlerBoundToURL('/'),
-  {
-    allowlist,
-    denylist,
-  },
-))
+registerRoute(new NavigationRoute(createHandlerBoundToURL('/'), {
+  allowlist,
+  denylist,
+}))
 
 // --- ОБРАБОТКА СООБЩЕНИЙ ---
 
@@ -235,19 +190,17 @@ self.addEventListener('notificationclick', (event: NotificationEvent) => {
   event.notification.close()
   const urlToOpen = event.notification.data?.url || '/'
 
-  event.waitUntil(
-    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
-      for (let i = 0; i < windowClients.length; i++) {
-        const client = windowClients[i]
-        if (client.url.includes(self.location.origin) && 'focus' in client) {
-          // Вместо перезагрузки SPA используем обмен сообщениями для навигации
-          client.postMessage({ type: 'NAVIGATE', url: urlToOpen })
-          return client.focus()
-        }
+  event.waitUntil(self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
+    for (let i = 0; i < windowClients.length; i++) {
+      const client = windowClients[i]
+      if (client.url.includes(self.location.origin) && 'focus' in client) {
+        // Вместо перезагрузки SPA используем обмен сообщениями для навигации
+        client.postMessage({ type: 'NAVIGATE', url: urlToOpen })
+        return client.focus()
       }
-      if (self.clients.openWindow) {
-        return self.clients.openWindow(urlToOpen)
-      }
-    }),
-  )
+    }
+    if (self.clients.openWindow) {
+      return self.clients.openWindow(urlToOpen)
+    }
+  }))
 })

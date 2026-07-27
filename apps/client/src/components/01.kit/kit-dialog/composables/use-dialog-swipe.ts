@@ -10,7 +10,13 @@ interface UseDialogSwipeOptions {
   isMinimizable: Ref<boolean>
 }
 
-export function useDialogSwipe({ headerRef, visible, isMinimized, isFloating, isMinimizable }: UseDialogSwipeOptions) {
+export function useDialogSwipe({
+  headerRef,
+  visible,
+  isMinimized,
+  isFloating,
+  isMinimizable,
+}: UseDialogSwipeOptions) {
   const isMobile = useMediaQuery('(max-width: 599px)')
   const swipeOffset = ref(0)
   const isSnappingBack = ref(false)

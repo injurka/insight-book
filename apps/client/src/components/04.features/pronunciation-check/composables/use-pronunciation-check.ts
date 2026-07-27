@@ -6,10 +6,7 @@ import { useRepos } from '~/shared/plugins/di'
 
 const repos = useRepos()
 
-export function usePronunciationCheck(
-  word?: MaybeRef<string> | (() => string),
-  language?: MaybeRef<string> | (() => string),
-) {
+export function usePronunciationCheck(word?: MaybeRef<string> | (() => string), language?: MaybeRef<string> | (() => string)) {
   const isRecording = ref(false)
   const isAnalyzingAudio = ref(false)
   const pronScore = ref<number | null>(null)
@@ -42,38 +39,35 @@ export function usePronunciationCheck(
     return unref(language)
   }
 
-  watch(
-    () => getWord(),
-    () => {
-      pronScore.value = null
-      pronHeardText.value = ''
-      pronHeardPhonetic.value = ''
-      pronMistakeAnalysis.value = ''
-      isRecording.value = false
-      isAnalyzingAudio.value = false
-      isUserAudioPlaying.value = false
-      if (userAudio) {
-        try {
-          userAudio.pause()
-        }
-        catch { }
-        userAudio = null
+  watch(() => getWord(), () => {
+    pronScore.value = null
+    pronHeardText.value = ''
+    pronHeardPhonetic.value = ''
+    pronMistakeAnalysis.value = ''
+    isRecording.value = false
+    isAnalyzingAudio.value = false
+    isUserAudioPlaying.value = false
+    if (userAudio) {
+      try {
+        userAudio.pause()
       }
-      if (userAudioUrl.value) {
-        try {
-          URL.revokeObjectURL(userAudioUrl.value)
-        }
-        catch { }
-        userAudioUrl.value = ''
+      catch { }
+      userAudio = null
+    }
+    if (userAudioUrl.value) {
+      try {
+        URL.revokeObjectURL(userAudioUrl.value)
       }
-      if (mediaRecorder && mediaRecorder.state !== 'inactive') {
-        try {
-          mediaRecorder.stop()
-        }
-        catch { }
+      catch { }
+      userAudioUrl.value = ''
+    }
+    if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+      try {
+        mediaRecorder.stop()
       }
-    },
-  )
+      catch { }
+    }
+  })
 
   async function toggleRecording(w?: string, lang?: string) {
     const activeWord = w || getWord() || ''

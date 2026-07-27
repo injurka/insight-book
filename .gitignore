@@ -27,5 +27,5 @@ dist-ssr
 src_prompt.md
 ./db/*
 ORIGINAL_REQUEST.md
-index.js
-apps/client/shared/types/dts/auto-imports.d.ts
+auto-imports.d.ts
+.turbo

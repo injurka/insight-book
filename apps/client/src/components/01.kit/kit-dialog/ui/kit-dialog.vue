@@ -69,7 +69,13 @@ const { isMobile, isSwiping, direction, swipeOffset } = useDialogSwipe({
   isMinimizable: isMinimizableRef,
 })
 
-const { dialogWidth, dialogHeight, hasResized, startResize, resetResize } = useDialogResize({
+const {
+  dialogWidth,
+  dialogHeight,
+  hasResized,
+  startResize,
+  resetResize,
+} = useDialogResize({
   dialogContentRef,
   x,
   y,

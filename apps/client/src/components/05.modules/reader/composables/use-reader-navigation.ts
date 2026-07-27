@@ -1,8 +1,6 @@
 import { useReaderStore } from '../store/reader.store'
 
-export function useReaderNavigation(
-  setScrollIntent: (bookId: number, pageNum: number, position: 'top' | 'bottom') => void,
-) {
+export function useReaderNavigation(setScrollIntent: (bookId: number, pageNum: number, position: 'top' | 'bottom') => void) {
   const readerStore = useReaderStore()
   const router = useRouter()
   const route = useRoute()

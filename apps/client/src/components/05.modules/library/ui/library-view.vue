@@ -32,7 +32,14 @@ const router = useRouter()
 const toast = useToast()
 const { t } = useI18n()
 
-const { searchQuery, selectedLang, currentView, activeFolder, langOptions, displayGroups } = useLibraryDisplay()
+const {
+  searchQuery,
+  selectedLang,
+  currentView,
+  activeFolder,
+  langOptions,
+  displayGroups,
+} = useLibraryDisplay()
 
 const editModalOpen = ref(false)
 const selectedBookToEdit = ref<Book | null>(null)
@@ -52,7 +59,12 @@ const tagOptions = computed(() => {
 })
 
 function loadPublic(page: number) {
-  store.fetchPublicBooks(page, publicTagFilter.value === 'all' ? undefined : publicTagFilter.value, searchQuery.value, selectedLang.value === 'all' ? undefined : selectedLang.value)
+  store.fetchPublicBooks(
+    page,
+    publicTagFilter.value === 'all' ? undefined : publicTagFilter.value,
+    searchQuery.value,
+    selectedLang.value === 'all' ? undefined : selectedLang.value,
+  )
 }
 
 watch([searchQuery, selectedLang, publicTagFilter], () => {

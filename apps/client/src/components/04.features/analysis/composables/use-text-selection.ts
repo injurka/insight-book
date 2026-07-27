@@ -110,7 +110,12 @@ export function useTextSelection() {
       const pattern = decodeURIComponent(grammarBadge.dataset.pattern || '')
       const explanation = decodeURIComponent(grammarBadge.dataset.explanation || '')
       const example = decodeURIComponent(grammarBadge.dataset.example || '')
-      analysisStore.openGrammarPopover(pattern, explanation, example, grammarBadge)
+      analysisStore.openGrammarPopover(
+        pattern,
+        explanation,
+        example,
+        grammarBadge,
+      )
 
       return
     }
@@ -137,7 +142,14 @@ export function useTextSelection() {
     window.getSelection()?.empty()
     event.stopPropagation()
 
-    analysisStore.handleWordClick(word, pos, sentenceId, tokenIndex, target, contextSentence)
+    analysisStore.handleWordClick(
+      word,
+      pos,
+      sentenceId,
+      tokenIndex,
+      target,
+      contextSentence,
+    )
   }
 
   return {

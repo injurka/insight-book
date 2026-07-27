@@ -24,7 +24,13 @@ const modalInitialData = ref<{
   color: string
   note: string
   analysisData?: LlmAnalysis | null
-}>({ text: '', translation: '', color: highlightColors[0], note: '', analysisData: null })
+}>({
+  text: '',
+  translation: '',
+  color: highlightColors[0],
+  note: '',
+  analysisData: null,
+})
 const isFetchingTranslation = ref(false)
 
 async function handleSaveQuote(data: { text: string, translation: string, note: string, color: string, analysisData?: LlmAnalysis | null }) {
@@ -166,57 +172,53 @@ function playTTS() {
   }
 }
 
-watch(
-  () => analysisStore.selectionTooltip,
-  async (val) => {
-    if (!val) {
-      popoverPos.value = { top: '-9999px', left: '-9999px', transform: 'none' }
-      if (isPlaying.value || isLoading.value) {
-        stop()
-      }
-      return
+watch(() => analysisStore.selectionTooltip, async (val) => {
+  if (!val) {
+    popoverPos.value = { top: '-9999px', left: '-9999px', transform: 'none' }
+    if (isPlaying.value || isLoading.value) {
+      stop()
     }
+    return
+  }
 
-    await nextTick()
-    if (!popoverRef.value || !val.targetRect)
-      return
+  await nextTick()
+  if (!popoverRef.value || !val.targetRect)
+    return
 
-    const rect = val.targetRect
-    const popRect = popoverRef.value.getBoundingClientRect()
-    const ww = window.innerWidth
-    const wh = window.innerHeight
+  const rect = val.targetRect
+  const popRect = popoverRef.value.getBoundingClientRect()
+  const ww = window.innerWidth
+  const wh = window.innerHeight
 
-    let left = rect.left + rect.width / 2
+  let left = rect.left + rect.width / 2
 
-    const isMobile = ww < 600
-    let top = isMobile ? rect.bottom + 8 : rect.top - popRect.height - offset
+  const isMobile = ww < 600
+  let top = isMobile ? rect.bottom + 8 : rect.top - popRect.height - offset
 
-    if (isMobile) {
-      if (top + popRect.height > wh - 10) {
-        top = rect.top - popRect.height - offset
-      }
+  if (isMobile) {
+    if (top + popRect.height > wh - 10) {
+      top = rect.top - popRect.height - offset
     }
-    else {
-      if (top < 10) {
-        top = rect.bottom + offset
-      }
+  }
+  else {
+    if (top < 10) {
+      top = rect.bottom + offset
     }
+  }
 
-    if (left - popRect.width / 2 < 10) {
-      left = popRect.width / 2 + 10
-    }
-    else if (left + popRect.width / 2 > ww - 10) {
-      left = ww - popRect.width / 2 - 10
-    }
+  if (left - popRect.width / 2 < 10) {
+    left = popRect.width / 2 + 10
+  }
+  else if (left + popRect.width / 2 > ww - 10) {
+    left = ww - popRect.width / 2 - 10
+  }
 
-    popoverPos.value = {
-      top: `${top}px`,
-      left: `${left}px`,
-      transform: 'translateX(-50%)',
-    }
-  },
-  { deep: true },
-)
+  popoverPos.value = {
+    top: `${top}px`,
+    left: `${left}px`,
+    transform: 'translateX(-50%)',
+  }
+}, { deep: true })
 
 onMounted(() => {
   document.addEventListener('selectionchange', checkTextSelection)

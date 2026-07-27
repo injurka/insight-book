@@ -44,8 +44,7 @@ const hiddenRangesCount = computed(() => Math.max(0, pageRanges.value.length - M
 const visibleRanges = computed(() =>
   isPagesExpanded.value
     ? pageRanges.value
-    : pageRanges.value.slice(0, MAX_VISIBLE_RANGES),
-)
+    : pageRanges.value.slice(0, MAX_VISIBLE_RANGES))
 
 watch(() => libraryStore.currentBookInfo?.id, () => {
   isPagesExpanded.value = false

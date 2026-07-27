@@ -100,7 +100,12 @@ export const useLibraryStore = defineStore('library', () => {
     }
   })
 
-  async function fetchPublicBooks(page: number, tag?: string, search?: string, lang?: string) {
+  async function fetchPublicBooks(
+    page: number,
+    tag?: string,
+    search?: string,
+    lang?: string,
+  ) {
     publicQueryPage.value = page
     publicQueryTag.value = tag
     publicQuerySearch.value = search

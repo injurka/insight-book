@@ -75,7 +75,13 @@ const modalInitialData = ref<{
   color: string
   note: string
   analysisData?: LlmAnalysis | null
-}>({ text: '', translation: '', color: '#fde047', note: '', analysisData: null })
+}>({
+  text: '',
+  translation: '',
+  color: '#fde047',
+  note: '',
+  analysisData: null,
+})
 
 async function toggleHighlight() {
   const book = readerStore.currentBook || libraryStore.currentBookInfo

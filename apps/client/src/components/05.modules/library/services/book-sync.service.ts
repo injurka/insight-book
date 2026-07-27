@@ -39,16 +39,13 @@ export function cancelSync(): void {
   syncState.value = 'idle'
 }
 
-export async function startWholeBookSync(
-  bookId: number,
-  options: {
-    cachePages: boolean
-    analyzeSentences: boolean
-    analyzeWords?: boolean
-    ttsSentences?: boolean
-    ttsWords?: boolean
-  },
-): Promise<void> {
+export async function startWholeBookSync(bookId: number, options: {
+  cachePages: boolean
+  analyzeSentences: boolean
+  analyzeWords?: boolean
+  ttsSentences?: boolean
+  ttsWords?: boolean
+}): Promise<void> {
   // Lazy import to avoid circular dependencies
   const { useLibraryStore } = await import('../store/library.store')
   const libraryStore = useLibraryStore()
@@ -207,7 +204,12 @@ export async function startWholeBookSync(
           if (missingSentences.length > 0) {
             try {
               const checkItems = missingSentences.map(s => ({ text: s, type: 'sentence' as const }))
-              const res = await repos.analysis.checkCache(bookId, checkItems, book.language, signal)
+              const res = await repos.analysis.checkCache(
+                bookId,
+                checkItems,
+                book.language,
+                signal,
+              )
               const cacheMap = new Map(res.results.map((r: any) => [r.sentence, r.analysis]))
 
               for (let j = missingSentences.length - 1; j >= 0; j--) {
@@ -241,7 +243,12 @@ export async function startWholeBookSync(
               const itemsToAnalyze = batch.map(s => ({ id: uuidv4(), sentence: s, type: 'sentence' as const }))
 
               try {
-                const res = await repos.analysis.analyzeBatch(bookId, itemsToAnalyze, book.language, signal)
+                const res = await repos.analysis.analyzeBatch(
+                  bookId,
+                  itemsToAnalyze,
+                  book.language,
+                  signal,
+                )
                 for (const result of res.results) {
                   const item = itemsToAnalyze.find(it => it.id === result.id)
                   if (item) {
@@ -277,7 +284,12 @@ export async function startWholeBookSync(
           if (missingWords.length > 0) {
             try {
               const checkItems = missingWords.map(w => ({ text: w, type: 'word' as const }))
-              const res = await repos.analysis.checkCache(bookId, checkItems, book.language, signal)
+              const res = await repos.analysis.checkCache(
+                bookId,
+                checkItems,
+                book.language,
+                signal,
+              )
               const cacheMap = new Map(res.results.map((r: any) => [r.sentence, r.analysis]))
 
               for (let j = missingWords.length - 1; j >= 0; j--) {
@@ -311,7 +323,12 @@ export async function startWholeBookSync(
               const itemsToAnalyze = batch.map(w => ({ id: uuidv4(), sentence: w, type: 'word' as const }))
 
               try {
-                const res = await repos.analysis.analyzeBatch(bookId, itemsToAnalyze, book.language, signal)
+                const res = await repos.analysis.analyzeBatch(
+                  bookId,
+                  itemsToAnalyze,
+                  book.language,
+                  signal,
+                )
 
                 for (const result of res.results) {
                   const item = itemsToAnalyze.find(it => it.id === result.id)
@@ -357,7 +374,12 @@ export async function startWholeBookSync(
               try {
                 const cached = await repos.analysis.getLocalTts(cacheKey)
                 if (!cached) {
-                  const res = await repos.analysis.generateTts(bookId, text, voice, signal)
+                  const res = await repos.analysis.generateTts(
+                    bookId,
+                    text,
+                    voice,
+                    signal,
+                  )
                   await repos.analysis.saveLocalTts(cacheKey, res.audioBase64)
                 }
               }

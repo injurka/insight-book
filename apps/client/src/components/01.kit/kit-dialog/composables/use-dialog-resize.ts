@@ -9,7 +9,13 @@ interface UseDialogResizeOptions {
   isResizable: Ref<boolean>
 }
 
-export function useDialogResize({ dialogContentRef, x, y, isFloating, isResizable }: UseDialogResizeOptions) {
+export function useDialogResize({
+  dialogContentRef,
+  x,
+  y,
+  isFloating,
+  isResizable,
+}: UseDialogResizeOptions) {
   const dialogWidth = ref<number | '100%'>('100%')
   const dialogHeight = ref<number | 'auto'>('auto')
   const hasResized = ref(false)

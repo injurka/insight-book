@@ -17,11 +17,7 @@ export function setupReaderEvents() {
         isUserDict: true,
       }
       if (readerStore.currentBook && readerStore.currentPage) {
-        await repos.book.saveLocalPageDictionary(
-          readerStore.currentBook.id,
-          readerStore.currentPage.pageNum,
-          readerStore.currentPageDictionary,
-        )
+        await repos.book.saveLocalPageDictionary(readerStore.currentBook.id, readerStore.currentPage.pageNum, readerStore.currentPageDictionary)
       }
     }
   })
@@ -31,11 +27,7 @@ export function setupReaderEvents() {
     if (readerStore.currentPageDictionary[word]) {
       readerStore.currentPageDictionary[word].isUserDict = false
       if (readerStore.currentBook && readerStore.currentPage) {
-        await repos.book.saveLocalPageDictionary(
-          readerStore.currentBook.id,
-          readerStore.currentPage.pageNum,
-          readerStore.currentPageDictionary,
-        )
+        await repos.book.saveLocalPageDictionary(readerStore.currentBook.id, readerStore.currentPage.pageNum, readerStore.currentPageDictionary)
       }
     }
   })

@@ -1,6 +1,11 @@
 import { hexToRgba } from '~/shared/lib/helpers'
 
-function applyHighlight(textNodes: Text[], startIndex: number, endIndex: number, color: string) {
+function applyHighlight(
+  textNodes: Text[],
+  startIndex: number,
+  endIndex: number,
+  color: string,
+) {
   let currentIndex = 0
   const marks: { mark: HTMLElement, parent: ParentNode | null }[] = []
   for (const textNode of textNodes) {
@@ -91,9 +96,19 @@ export function highlightExactText(root: HTMLElement, textToHighlight: string, c
     const lowerStart = lowerFull.indexOf(lowerSearch)
     if (lowerStart === -1)
       return
-    applyHighlight(textNodes, lowerStart, lowerStart + lowerSearch.length, color)
+    applyHighlight(
+      textNodes,
+      lowerStart,
+      lowerStart + lowerSearch.length,
+      color,
+    )
     return
   }
 
-  applyHighlight(textNodes, startIndex, startIndex + textToHighlight.length, color)
+  applyHighlight(
+    textNodes,
+    startIndex,
+    startIndex + textToHighlight.length,
+    color,
+  )
 }

@@ -44,11 +44,9 @@ export function useBookStatsEdit(isEditingStats: Ref<boolean>) {
   const toast = useToast()
 
   // Language selector for viewing description (defaults to app UI language)
-  const descriptionLang = ref<DescLang>(
-    (DESCRIPTION_LANGS as readonly string[]).includes(settingsStore.appLanguage)
-      ? settingsStore.appLanguage as DescLang
-      : 'ru',
-  )
+  const descriptionLang = ref<DescLang>((DESCRIPTION_LANGS as readonly string[]).includes(settingsStore.appLanguage)
+    ? settingsStore.appLanguage as DescLang
+    : 'ru')
 
   // Language selector for editing description (same default)
   const editDescLang = ref<DescLang>(descriptionLang.value)

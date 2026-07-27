@@ -122,7 +122,12 @@ export const useAnalysisStore = defineStore('analysis', () => {
     selectionTooltip.value = null
   }
 
-  function openGrammarPopover(pattern: string, explanation: string, example: string, target: HTMLElement) {
+  function openGrammarPopover(
+    pattern: string,
+    explanation: string,
+    example: string,
+    target: HTMLElement,
+  ) {
     closePopover()
     closeSelectionTooltip()
     grammarPopover.value = {
@@ -223,12 +228,10 @@ export const useAnalysisStore = defineStore('analysis', () => {
         currentChunk.forEach(t => t.status = 'checking_cache')
 
         // 1.1 Параллельная проверка IndexedDB (без bookId)
-        const cacheChecks = await Promise.all(
-          currentChunk.map(async (task) => {
-            const cached = await repos.analysis.getLocalAnalysis(task.text)
-            return { task, cached }
-          }),
-        )
+        const cacheChecks = await Promise.all(currentChunk.map(async (task) => {
+          const cached = await repos.analysis.getLocalAnalysis(task.text)
+          return { task, cached }
+        }))
 
         const missingInLocalCache: AnalysisTask[] = []
 
@@ -250,7 +253,12 @@ export const useAnalysisStore = defineStore('analysis', () => {
             missingInLocalCache.forEach(t => uniqueMap.set(t.text, t.type === 'sentence' ? 'sentence' : 'word'))
             const itemsToCheck = Array.from(uniqueMap.entries()).map(([text, type]) => ({ text, type }))
 
-            const res = await repos.analysis.checkCache(book.id, itemsToCheck, book.language, signal)
+            const res = await repos.analysis.checkCache(
+              book.id,
+              itemsToCheck,
+              book.language,
+              signal,
+            )
             const serverCacheMap = new Map(res.results.map((r: any) => [r.sentence, r.analysis]))
 
             for (const task of missingInLocalCache) {
@@ -298,7 +306,12 @@ export const useAnalysisStore = defineStore('analysis', () => {
         await Promise.all(batches.map(async (batch) => {
           const itemsToAnalyze = batch.map(t => ({ id: t.id, sentence: t.text, context: t.context, type: t.type === 'sentence' ? 'sentence' : 'word' as 'sentence' | 'word' }))
           try {
-            const res = await repos.analysis.analyzeBatch(book.id, itemsToAnalyze, book.language, signal)
+            const res = await repos.analysis.analyzeBatch(
+              book.id,
+              itemsToAnalyze,
+              book.language,
+              signal,
+            )
             for (const result of res.results) {
               const task = batch.find(it => it.id === result.id)
               if (task) {
@@ -333,7 +346,12 @@ export const useAnalysisStore = defineStore('analysis', () => {
           const cacheKey = `${book.id}_${voice}_${ttsTask.text.trim().toLowerCase()}`
           const cached = await repos.analysis.getLocalTts(cacheKey)
           if (!cached) {
-            const res = await repos.analysis.generateTts(book.id, ttsTask.text, voice, signal)
+            const res = await repos.analysis.generateTts(
+              book.id,
+              ttsTask.text,
+              voice,
+              signal,
+            )
             await repos.analysis.saveLocalTts(cacheKey, res.audioBase64)
           }
           if (ttsTask.type === 'tts_sentence')
@@ -424,7 +442,14 @@ export const useAnalysisStore = defineStore('analysis', () => {
     const signal = manualAnalysisAbortController.signal
 
     try {
-      const res = await repos.analysis.analyze(currentBook.id, sentence, currentBook.language, context, signal, 'sentence')
+      const res = await repos.analysis.analyze(
+        currentBook.id,
+        sentence,
+        currentBook.language,
+        context,
+        signal,
+        'sentence',
+      )
       if (signal.aborted)
         return
 
@@ -549,14 +574,42 @@ export const useAnalysisStore = defineStore('analysis', () => {
 
     const newTasks: AnalysisTask[] = []
 
-    if (doSent)
-      sentences.forEach(s => newTasks.push({ id: uuidv4(), type: 'sentence', text: s, priority: 0, status: 'pending' }))
-    if (doWords)
-      words.forEach(w => newTasks.push({ id: uuidv4(), type: 'word', text: w, priority: 0, status: 'pending' }))
-    if (doTtsSent)
-      sentences.forEach(s => newTasks.push({ id: uuidv4(), type: 'tts_sentence', text: s, priority: 0, status: 'pending' }))
-    if (doTtsWords)
-      words.forEach(w => newTasks.push({ id: uuidv4(), type: 'tts_word', text: w, priority: 0, status: 'pending' }))
+    if (doSent) {
+      sentences.forEach(s => newTasks.push({
+        id: uuidv4(),
+        type: 'sentence',
+        text: s,
+        priority: 0,
+        status: 'pending',
+      }))
+    }
+    if (doWords) {
+      words.forEach(w => newTasks.push({
+        id: uuidv4(),
+        type: 'word',
+        text: w,
+        priority: 0,
+        status: 'pending',
+      }))
+    }
+    if (doTtsSent) {
+      sentences.forEach(s => newTasks.push({
+        id: uuidv4(),
+        type: 'tts_sentence',
+        text: s,
+        priority: 0,
+        status: 'pending',
+      }))
+    }
+    if (doTtsWords) {
+      words.forEach(w => newTasks.push({
+        id: uuidv4(),
+        type: 'tts_word',
+        text: w,
+        priority: 0,
+        status: 'pending',
+      }))
+    }
 
     taskQueue.value.push(...newTasks)
     queueTotal.value += newTasks.length
@@ -641,7 +694,14 @@ export const useAnalysisStore = defineStore('analysis', () => {
     }
   }
 
-  async function handleWordClick(word: string, pos: string, sentenceId: number, tokenIndex: number, target: HTMLElement, contextSentence?: string) {
+  async function handleWordClick(
+    word: string,
+    pos: string,
+    sentenceId: number,
+    tokenIndex: number,
+    target: HTMLElement,
+    contextSentence?: string,
+  ) {
     const readerStore = useReaderStore()
     const settingsStore = useGlobalSettingsStore()
 
@@ -671,7 +731,13 @@ export const useAnalysisStore = defineStore('analysis', () => {
       if (wordAbortController)
         wordAbortController.abort()
 
-      wordPopover.value = { ...basePopoverData, transcription: entry.transcription, translation: entry.translation, showAi: false, isAiLoading: false }
+      wordPopover.value = {
+        ...basePopoverData,
+        transcription: entry.transcription,
+        translation: entry.translation,
+        showAi: false,
+        isAiLoading: false,
+      }
       return
     }
 

@@ -148,16 +148,76 @@ async function loginYandex() {
 }
 
 const bookTiles = [
-  { top: '8%', left: '10%', delay: '0s', size: 52, hue: 260 },
-  { top: '12%', left: '55%', delay: '0.6s', size: 40, hue: 300 },
-  { top: '28%', left: '28%', delay: '1.2s', size: 64, hue: 220 },
-  { top: '45%', left: '68%', delay: '0.3s', size: 44, hue: 280 },
-  { top: '60%', left: '15%', delay: '0.9s', size: 56, hue: 240 },
-  { top: '72%', left: '45%', delay: '1.5s', size: 36, hue: 320 },
-  { top: '82%', left: '72%', delay: '0.4s', size: 48, hue: 200 },
-  { top: '38%', left: '5%', delay: '1.8s', size: 32, hue: 270 },
-  { top: '20%', left: '80%', delay: '2.1s', size: 58, hue: 250 },
-  { top: '65%', left: '35%', delay: '0.7s', size: 42, hue: 290 },
+  {
+    top: '8%',
+    left: '10%',
+    delay: '0s',
+    size: 52,
+    hue: 260,
+  },
+  {
+    top: '12%',
+    left: '55%',
+    delay: '0.6s',
+    size: 40,
+    hue: 300,
+  },
+  {
+    top: '28%',
+    left: '28%',
+    delay: '1.2s',
+    size: 64,
+    hue: 220,
+  },
+  {
+    top: '45%',
+    left: '68%',
+    delay: '0.3s',
+    size: 44,
+    hue: 280,
+  },
+  {
+    top: '60%',
+    left: '15%',
+    delay: '0.9s',
+    size: 56,
+    hue: 240,
+  },
+  {
+    top: '72%',
+    left: '45%',
+    delay: '1.5s',
+    size: 36,
+    hue: 320,
+  },
+  {
+    top: '82%',
+    left: '72%',
+    delay: '0.4s',
+    size: 48,
+    hue: 200,
+  },
+  {
+    top: '38%',
+    left: '5%',
+    delay: '1.8s',
+    size: 32,
+    hue: 270,
+  },
+  {
+    top: '20%',
+    left: '80%',
+    delay: '2.1s',
+    size: 58,
+    hue: 250,
+  },
+  {
+    top: '65%',
+    left: '35%',
+    delay: '0.7s',
+    size: 42,
+    hue: 290,
+  },
 ]
 
 const showAuthControls = ref(false)

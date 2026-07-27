@@ -6,14 +6,16 @@ import { PageLoader } from '~/components/02.shared/page-loader'
 import { useTextSelection } from '~/components/04.features/analysis/index.ts'
 import { useAnalysisStore } from '~/shared/store/analysis/analysis.store.ts'
 import { useGlobalSettingsStore } from '~/shared/store/settings.store'
-import { useParallelSync } from '../composables/use-parallel-sync'
-import { useReaderContent } from '../composables/use-reader-content'
-import { useReaderDomHighlights } from '../composables/use-reader-dom-highlights'
-import { useReaderNavigation } from '../composables/use-reader-navigation'
-import { useReaderScroll } from '../composables/use-reader-scroll'
-import { useReadingSession } from '../composables/use-reading-session'
-import { useScrollRestoration } from '../composables/use-scroll-restoration'
-import { useReaderStore } from '../store/reader.store'
+import { useParallelSync } from '../composables/use-parallel-sync.ts'
+import { useReaderContent } from '../composables/use-reader-content.ts'
+import { useReaderDomHighlights } from '../composables/use-reader-dom-highlights.ts'
+import { useReaderNavigation } from '../composables/use-reader-navigation.ts'
+import { useReaderScroll } from '../composables/use-reader-scroll.ts'
+import { useReadingSession } from '../composables/use-reading-session.ts'
+import { useScrollRestoration } from '../composables/use-scroll-restoration.ts'
+import { useReaderStore } from '../store/reader.store.ts'
+
+import ReaderTocDialog from './dialog/reader-toc-dialog.vue'
 import ReaderFooter from './reader-footer.vue'
 import ReaderHeader from './reader-header.vue'
 
@@ -75,20 +77,19 @@ const rightPaneContentForSync = computed(() => {
   return pageTranslationProgress.value.isFullyTranslated ? translatedPageContent.value : leftPaneContent.value
 })
 
-watch(
-  [
-    () => readerStore.isParallelView,
-    rightPaneContentForSync,
-    () => settingsStore.readerFontSize,
-    () => settingsStore.readerLineHeight,
-  ],
-  async () => {
-    if (readerStore.isPageLoading)
-      return
-    await nextTick()
-    setTimeout(performLayoutSync, 50)
-  },
-)
+watch([
+  () => readerStore.isParallelView,
+  rightPaneContentForSync,
+  () => settingsStore.readerFontSize,
+  () => settingsStore.readerLineHeight,
+], async () => {
+  if (readerStore.isPageLoading)
+    return
+
+  await nextTick()
+
+  setTimeout(performLayoutSync, 50)
+})
 
 watch(() => readerStore.isPageLoading, async (isLoading) => {
   if (!isLoading && readerStore.currentPage) {
@@ -199,36 +200,7 @@ watch(() => readerStore.isPageLoading, async (isLoading) => {
       </div>
     </div>
 
-    <ReaderFooter @prev="prevPage" @next="nextPage" @go-to="goToPage" />
-
-    <WordPopover />
     <GrammarPopover />
-    <SelectionTooltip />
-
-    <KitDialog
-      v-model:visible="readerStore.tocOpen"
-      :title="t('bookInfo.tableOfContents')"
-      :max-width="500"
-      icon="mdi:format-list-bulleted"
-      :minimizable="false"
-    >
-      <div v-if="readerStore.currentToc.length === 0" class="empty-state">
-        <p>{{ t('reader.tocEmpty') }}</p>
-      </div>
-      <div v-else class="toc-list">
-        <div
-          v-for="item in readerStore.currentToc"
-          :key="item.id"
-          class="toc-item"
-          :style="{ paddingLeft: `${(item.level - 1) * 16}px` }"
-          @click="goToPage(item.pageNum)"
-        >
-          <span class="toc-title">{{ item.title }}</span>
-          <span class="toc-dots" />
-          <span class="toc-page">{{ item.pageNum || '-' }}</span>
-        </div>
-      </div>
-    </KitDialog>
 
     <KitDialog
       v-model:visible="analysisStore.isPageAnalysisSetupModalOpen"
@@ -264,8 +236,13 @@ watch(() => readerStore.isPageLoading, async (isLoading) => {
       </div>
     </KitDialog>
 
+    <ReaderTocDialog @go-to="goToPage" />
+    <WordPopover />
+    <SelectionTooltip />
     <SentenceAnalysis />
     <PageAnalysisModal />
+
+    <ReaderFooter @prev="prevPage" @next="nextPage" @go-to="goToPage" />
   </div>
 </template>
 
@@ -653,52 +630,6 @@ watch(() => readerStore.isPageLoading, async (isLoading) => {
     max-width: 320px;
     line-height: 1.5;
   }
-}
-.toc-list {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding: 8px 0;
-}
-.toc-item {
-  display: flex;
-  align-items: flex-end;
-  padding: 6px 8px;
-  border-radius: 6px;
-  cursor: pointer;
-  transition:
-    background-color 0.2s,
-    color 0.2s;
-  color: var(--fg-secondary-color);
-
-  &:hover {
-    background-color: var(--bg-secondary-color);
-    color: var(--fg-primary-color);
-    .toc-page {
-      color: var(--fg-accent-color);
-      font-weight: 600;
-    }
-  }
-  .toc-title {
-    flex-shrink: 0;
-    font-size: 0.95rem;
-  }
-  .toc-dots {
-    flex-grow: 1;
-    border-bottom: 1px dotted var(--border-secondary-color);
-    margin: 0 12px 5px 12px;
-    opacity: 0.5;
-  }
-  .toc-page {
-    flex-shrink: 0;
-    font-size: 0.9rem;
-    transition: color 0.2s;
-  }
-}
-.empty-state {
-  text-align: center;
-  color: var(--fg-secondary-color);
-  padding: 16px 0;
 }
 
 @keyframes pageEnter {

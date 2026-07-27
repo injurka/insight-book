@@ -121,7 +121,12 @@ function startQuizSequence(index: number, seqId: number) {
     onComplete: () => {
       if (seqId !== currentSequenceId)
         return
-      setTimeout(startQuizSequence, 300, index + 1, seqId)
+      setTimeout(
+        startQuizSequence,
+        300,
+        index + 1,
+        seqId,
+      )
     },
   })
 }
@@ -139,7 +144,12 @@ function startAnimationSequence(index: number, seqId: number) {
     onComplete: () => {
       if (seqId !== currentSequenceId)
         return
-      setTimeout(startAnimationSequence, 300, index + 1, seqId)
+      setTimeout(
+        startAnimationSequence,
+        300,
+        index + 1,
+        seqId,
+      )
     },
   })
 }

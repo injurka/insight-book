@@ -26,10 +26,7 @@ const toast = useToast()
 const { trackEvent } = useUmami()
 const { t } = useI18n()
 
-const { list, containerProps, wrapperProps } = useVirtualList(
-  computed(() => store.filteredWords),
-  { itemHeight: 110 },
-)
+const { list, containerProps, wrapperProps } = useVirtualList(computed(() => store.filteredWords), { itemHeight: 110 })
 
 const gridContainerRef = shallowRef<HTMLElement | null>(null)
 const { width: gridContainerWidth } = useElementSize(gridContainerRef)

@@ -6,10 +6,7 @@ import { useGlobalSettingsStore } from '~/shared/store/settings.store'
 import { useHighlightsStore } from '../store/highlights.store'
 import { useReaderStore } from '../store/reader.store'
 
-export function useMangaBubbles(
-  onPointerDown: (e: MouseEvent | TouchEvent, t: string) => void,
-  onWordClick: (e: MouseEvent) => void,
-) {
+export function useMangaBubbles(onPointerDown: (e: MouseEvent | TouchEvent, t: string) => void, onWordClick: (e: MouseEvent) => void) {
   const settingsStore = useGlobalSettingsStore()
   const analysisStore = useAnalysisStore()
   const readerStore = useReaderStore()
@@ -18,7 +15,12 @@ export function useMangaBubbles(
   const activeBubble = ref<OcrBlock | null>(null)
   const bubbleReference = ref<HTMLElement | null>(null)
 
-  function handleBubbleClick(event: MouseEvent, box: OcrBlock, dragDist: number, scale: number) {
+  function handleBubbleClick(
+    event: MouseEvent,
+    box: OcrBlock,
+    dragDist: number,
+    scale: number,
+  ) {
     if (dragDist > 10 && scale > 1)
       return
 

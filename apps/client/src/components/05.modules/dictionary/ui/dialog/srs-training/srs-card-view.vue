@@ -75,7 +75,12 @@ function openTtsPopover() {
 
 function playTTS(forceCacheBypass = false) {
   if (props.card?.word) {
-    speak(props.card.word, props.card.language, undefined, forceCacheBypass)
+    speak(
+      props.card.word,
+      props.card.language,
+      undefined,
+      forceCacheBypass,
+    )
   }
 }
 
@@ -324,7 +329,17 @@ function initCard() {
   if (!props.card)
     return
 
-  const modesConfig = props.modes || { 'standard': true, 'audio': true, 'writing': false, 'typing': true, 'choice': true, 'choice-reverse': false, 'scramble': false, 'collocations': false, 'radicals': false }
+  const modesConfig = props.modes || {
+    'standard': true,
+    'audio': true,
+    'writing': false,
+    'typing': true,
+    'choice': true,
+    'choice-reverse': false,
+    'scramble': false,
+    'collocations': false,
+    'radicals': false,
+  }
   const availableModes: ('standard' | 'audio' | 'writing' | 'typing' | 'choice' | 'choice-reverse' | 'scramble' | 'collocations' | 'radicals')[] = []
 
   if (modesConfig.standard)
@@ -1056,6 +1071,7 @@ watch(() => props.card, initCard, { immediate: true })
   display: flex;
   gap: 12px;
   justify-content: space-between;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
 
   .grade-btn {
     flex: 1;

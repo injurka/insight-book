@@ -158,7 +158,12 @@ function openTtsPopover() {
 
 function playTTS(forceCacheBypass = false) {
   if (matchedCard.value?.word) {
-    speak(matchedCard.value.word, matchedCard.value.language, undefined, forceCacheBypass)
+    speak(
+      matchedCard.value.word,
+      matchedCard.value.language,
+      undefined,
+      forceCacheBypass,
+    )
   }
 }
 

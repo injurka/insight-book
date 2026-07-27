@@ -18,15 +18,42 @@ export interface IAnalysisRepository {
 }
 
 export class DefaultAnalysisRepository implements IAnalysisRepository {
-  async checkCache(bookId: number, items: { text: string, type: 'sentence' | 'word' }[], language: string, signal?: AbortSignal) {
-    return await api.books.checkCache(bookId, items, language, signal)
+  async checkCache(
+    bookId: number,
+    items: { text: string, type: 'sentence' | 'word' }[],
+    language: string,
+    signal?: AbortSignal,
+  ) {
+    return await api.books.checkCache(
+      bookId,
+      items,
+      language,
+      signal,
+    )
   }
 
-  async analyzeBatch(bookId: number, items: { id: string, sentence: string, context?: string, type: 'sentence' | 'word' }[], language: string, signal?: AbortSignal) {
-    return await api.books.analyzeBatch(bookId, items, language, signal)
+  async analyzeBatch(
+    bookId: number,
+    items: { id: string, sentence: string, context?: string, type: 'sentence' | 'word' }[],
+    language: string,
+    signal?: AbortSignal,
+  ) {
+    return await api.books.analyzeBatch(
+      bookId,
+      items,
+      language,
+      signal,
+    )
   }
 
-  async analyze(bookId: number, text: string, language: string, context?: string, signal?: AbortSignal, type: 'sentence' | 'word' = 'sentence'): Promise<LlmAnalysis> {
+  async analyze(
+    bookId: number,
+    text: string,
+    language: string,
+    context?: string,
+    signal?: AbortSignal,
+    type: 'sentence' | 'word' = 'sentence',
+  ): Promise<LlmAnalysis> {
     try {
       const cached = await offlineService.getAnalysis(text)
       if (cached)
@@ -36,7 +63,14 @@ export class DefaultAnalysisRepository implements IAnalysisRepository {
       console.warn('Failed to retrieve from local cache:', e)
     }
 
-    const res = await api.books.analyze(bookId, text, language, context, signal, type)
+    const res = await api.books.analyze(
+      bookId,
+      text,
+      language,
+      context,
+      signal,
+      type,
+    )
     if (res) {
       await offlineService.saveAnalysis(text, res).catch(() => {})
     }
@@ -47,12 +81,32 @@ export class DefaultAnalysisRepository implements IAnalysisRepository {
     return await api.books.lookupWord(bookId, word, signal)
   }
 
-  async generateTts(bookId: number, text: string, voice: string, signal?: AbortSignal) {
-    return await api.books.generateTts(bookId, text, voice, signal)
+  async generateTts(
+    bookId: number,
+    text: string,
+    voice: string,
+    signal?: AbortSignal,
+  ) {
+    return await api.books.generateTts(
+      bookId,
+      text,
+      voice,
+      signal,
+    )
   }
 
-  async generateGenericTts(text: string, voice: string, signal?: AbortSignal, forceCacheBypass?: boolean) {
-    return await api.tts.generate(text, voice, signal, forceCacheBypass)
+  async generateGenericTts(
+    text: string,
+    voice: string,
+    signal?: AbortSignal,
+    forceCacheBypass?: boolean,
+  ) {
+    return await api.tts.generate(
+      text,
+      voice,
+      signal,
+      forceCacheBypass,
+    )
   }
 
   async getLocalAnalysis(text: string) {

@@ -1,9 +1,6 @@
 import type { Ref } from 'vue'
 
-export function usePanZoom(
-  containerRef: Ref<HTMLElement | null>,
-  wrapperRef: Ref<HTMLElement | null>,
-) {
+export function usePanZoom(containerRef: Ref<HTMLElement | null>, wrapperRef: Ref<HTMLElement | null>) {
   const scale = ref(1)
   const panX = ref(0)
   const panY = ref(0)

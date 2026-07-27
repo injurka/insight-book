@@ -21,7 +21,12 @@ export function lazyComponent(loader: () => Promise<any>) {
     timeout: 10000,
 
     // Обработка ошибок (очень важно для Vite)
-    onError(error, retry, fail, attempts) {
+    onError(
+      error,
+      retry,
+      fail,
+      attempts,
+    ) {
       const errorMessage = error.message.toLowerCase()
       const isChunkLoadError = errorMessage.includes('fetch dynamically imported module')
         || errorMessage.includes('importing a module script failed')

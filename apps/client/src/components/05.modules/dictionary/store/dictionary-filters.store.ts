@@ -69,8 +69,7 @@ export const useDictionaryFiltersStore = defineStore('dictionary-filters', () =>
         || item.translation?.toLowerCase().includes(lowerTerm)
         || item.notes?.toLowerCase().includes(lowerTerm)
         || item.tags?.toLowerCase().includes(lowerTerm)
-        || item.difficulty?.toLowerCase().includes(lowerTerm),
-      )
+        || item.difficulty?.toLowerCase().includes(lowerTerm))
     }
     return result
   })

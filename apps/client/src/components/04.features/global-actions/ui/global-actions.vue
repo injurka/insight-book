@@ -181,7 +181,7 @@ async function handleLogout() {
           <!-- Профиль и Лимиты -->
           <UserProfileSection @close-dropdown="mainDropdownRef?.close()" />
 
-          <div v-if="!authStore.isSingleMode" class="divider" />
+          <div v-if="!authStore.isSingleMode" class="divider" style="margin: 0 4px" />
 
           <!-- Меню действий -->
           <div class="menu-items">

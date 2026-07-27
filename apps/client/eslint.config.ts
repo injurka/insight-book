@@ -14,13 +14,20 @@ export default antfu({
     'bun.lock',
   ],
   rules: {
+    // Гарантирует порядок макросов вверху script setup
+    'vue/define-macros-order': ['error', {
+      order: ['defineOptions', 'defineProps', 'defineEmits', 'defineSlots'],
+    }],
+
+    // Порядок тегов самого файла .vue
+    'vue/block-order': ['error', {
+      order: ['script', 'template', 'style'],
+    }],
+
+    // Форматирование HTML
     'vue/max-attributes-per-line': ['error', {
-      singleline: {
-        max: 3,
-      },
-      multiline: {
-        max: 1,
-      },
+      singleline: { max: 3 },
+      multiline: { max: 1 },
     }],
     'vue/first-attribute-linebreak': ['error', {
       singleline: 'ignore',
@@ -29,6 +36,17 @@ export default antfu({
     'vue/html-closing-bracket-newline': ['error', {
       singleline: 'never',
       multiline: 'always',
+    }],
+
+    // Стилистика
+    'style/function-paren-newline': ['error', { minItems: 4 }],
+    'style/object-curly-newline': ['error', {
+      ObjectExpression: { multiline: true, minProperties: 5, consistent: true },
+      ObjectPattern: { multiline: true, minProperties: 5, consistent: true },
+      ExportDeclaration: { multiline: true, minProperties: 5, consistent: true },
+    }],
+    'style/object-property-newline': ['error', {
+      allowAllPropertiesOnSameLine: true,
     }],
   },
 })

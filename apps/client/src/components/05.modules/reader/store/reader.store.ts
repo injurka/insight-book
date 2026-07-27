@@ -182,10 +182,8 @@ export const useReaderStore = defineStore('reader', () => {
   }
 
   function prefetchNeighborPages(bookId: number, currentNum: number) {
-    const totalPages = currentBook.value?.pagesCount || 0
-    const pagesToPrefetch = [currentNum + 1, currentNum + 2, currentNum - 1].filter(
-      num => num >= 1 && (totalPages === 0 || num <= totalPages),
-    )
+    const totalPages = currentBook.value?.totalPages || 0
+    const pagesToPrefetch = [currentNum + 1, currentNum + 2, currentNum - 1].filter(num => num >= 1 && (totalPages === 0 || num <= totalPages))
 
     pagesToPrefetch.forEach((pNum) => {
       Promise.all([
@@ -199,22 +197,27 @@ export const useReaderStore = defineStore('reader', () => {
     trackEvent('book_opened', { bookId: book.id, type: book.type, language: book.language })
 
     const highlightsStore = useHighlightsStore()
+    const analysisStore = useAnalysisStore()
+
     highlightsStore.clear()
     highlightsStore.fetchHighlights(book.id).catch(console.error)
 
     libraryStore.currentBookInfo = book
     currentPage.value = null
     currentPageDictionary.value = {}
-    const analysisStore = useAnalysisStore()
     analysisStore.analysisHistory = []
+
     const startPage = book.currentPage || 1
+
     await loadPage(book.id, startPage)
   }
 
   async function openBookById(id: number, startPage?: number) {
     const analysisStore = useAnalysisStore()
+    const highlightsStore = useHighlightsStore()
 
     isPageLoading.value = true
+
     try {
       if (libraryStore.books.length === 0) {
         await libraryStore.fetchBooks()
@@ -225,7 +228,6 @@ export const useReaderStore = defineStore('reader', () => {
 
       trackEvent('book_opened', { bookId: book.id, type: book.type, language: book.language })
 
-      const highlightsStore = useHighlightsStore()
       highlightsStore.clear()
       highlightsStore.fetchHighlights(book.id).catch(console.error)
 

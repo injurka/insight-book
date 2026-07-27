@@ -182,7 +182,12 @@ export const api = {
     lookupWord: (bookId: number, word: string, signal?: AbortSignal) =>
       request<{ transcription: string, translation: string, isUserDict?: boolean }>(`/api/books/${bookId}/word/${encodeURIComponent(word)}`, { signal, silentErrors: true }),
 
-    checkCache: (bookId: number, items: { text: string, type: 'sentence' | 'word' }[], language: string, signal?: AbortSignal) =>
+    checkCache: (
+      bookId: number,
+      items: { text: string, type: 'sentence' | 'word' }[],
+      language: string,
+      signal?: AbortSignal,
+    ) =>
       request<{ results: { sentence: string, analysis: LlmAnalysis }[] }>(`/api/books/${bookId}/cache-check`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -190,7 +195,12 @@ export const api = {
         signal,
       }),
 
-    analyzeBatch: (bookId: number, items: { id: string, sentence: string, context?: string, type?: 'sentence' | 'word' }[], language: string, signal?: AbortSignal) => {
+    analyzeBatch: (
+      bookId: number,
+      items: { id: string, sentence: string, context?: string, type?: 'sentence' | 'word' }[],
+      language: string,
+      signal?: AbortSignal,
+    ) => {
       let targetLanguage = 'ru'
 
       if (getActivePinia()) {
@@ -215,7 +225,14 @@ export const api = {
       })
     },
 
-    analyze: (bookId: number, sentence: string, language: string, context?: string, signal?: AbortSignal, type: 'sentence' | 'word' = 'sentence') => {
+    analyze: (
+      bookId: number,
+      sentence: string,
+      language: string,
+      context?: string,
+      signal?: AbortSignal,
+      type: 'sentence' | 'word' = 'sentence',
+    ) => {
       let targetLanguage = 'ru'
       if (getActivePinia()) {
         const settings = useGlobalSettingsStore()
@@ -232,7 +249,13 @@ export const api = {
       return request<LlmAnalysis>(`/api/books/${bookId}/analyze`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sentence, language, context, targetLanguage, type }),
+        body: JSON.stringify({
+          sentence,
+          language,
+          context,
+          targetLanguage,
+          type,
+        }),
         signal,
         withLlm: true,
       })
@@ -267,7 +290,12 @@ export const api = {
   },
 
   tts: {
-    generate: (text: string, voice?: string, signal?: AbortSignal, forceCacheBypass?: boolean) =>
+    generate: (
+      text: string,
+      voice?: string,
+      signal?: AbortSignal,
+      forceCacheBypass?: boolean,
+    ) =>
       request<{ audioBase64: string }>(`/api/tts`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -292,10 +320,7 @@ export const api = {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
       }),
-    deleteDeck: (
-      id: number,
-      mode: 'keep' | 'delete_all' | 'delete_exclusive' = 'keep',
-    ) =>
+    deleteDeck: (id: number, mode: 'keep' | 'delete_all' | 'delete_exclusive' = 'keep') =>
       request<{ success: boolean }>(`/api/dictionary/decks/${id}?mode=${mode}`, { method: 'DELETE' }),
 
     get: (word: string) => request<UserDictItem>(`/api/dictionary/${encodeURIComponent(word)}`, { silentErrors: true }),

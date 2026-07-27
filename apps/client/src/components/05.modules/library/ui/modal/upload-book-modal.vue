@@ -103,11 +103,7 @@ async function submitCustomManga() {
   isUploading.value = true
   try {
     uploadProgressText.value = t('library.creatingBook')
-    const newBook = await store.createCustomManga(
-      customManga.value.title,
-      customManga.value.author,
-      customManga.value.language,
-    )
+    const newBook = await store.createCustomManga(customManga.value.title, customManga.value.author, customManga.value.language)
 
     const totalChapters = customManga.value.chapters.length
 

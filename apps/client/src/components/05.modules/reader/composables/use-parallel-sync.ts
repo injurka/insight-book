@@ -2,10 +2,7 @@ import type { Ref } from 'vue'
 import { useResizeObserver } from '@vueuse/core'
 import { useReaderStore } from '../store/reader.store'
 
-export function useParallelSync(
-  readerViewRef: Ref<HTMLElement | null>,
-  restoreScrollPosition: () => void,
-) {
+export function useParallelSync(readerViewRef: Ref<HTMLElement | null>, restoreScrollPosition: () => void) {
   const readerStore = useReaderStore()
   let rafId: number | null = null
 

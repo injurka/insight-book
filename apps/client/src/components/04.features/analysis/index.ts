@@ -7,4 +7,11 @@ import SentenceAnalysis from './ui/sentence-analysis.vue'
 
 export * from './composables/use-text-selection.ts'
 
-export { AiExamplesModal, BubblePopover, PageAnalysisModal, SelectionTooltip, SentenceAnalysis, WordPopover }
+export {
+  AiExamplesModal,
+  BubblePopover,
+  PageAnalysisModal,
+  SelectionTooltip,
+  SentenceAnalysis,
+  WordPopover,
+}

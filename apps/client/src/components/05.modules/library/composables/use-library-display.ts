@@ -23,22 +23,18 @@ export function useLibraryDisplay() {
   const isSyncing = ref(false)
 
   // 1. Синхронизируем состояние приложения с URL при навигации "вперед/назад"
-  watch(
-    () => route.query,
-    (query) => {
-      isSyncing.value = true
-      currentView.value = (query.view as string) || 'reading-now'
-      activeFolder.value = (query.folder as string) || null
-      searchQuery.value = (query.q as string) || ''
-      selectedLang.value = (query.lang as string) || 'all'
+  watch(() => route.query, (query) => {
+    isSyncing.value = true
+    currentView.value = (query.view as string) || 'reading-now'
+    activeFolder.value = (query.folder as string) || null
+    searchQuery.value = (query.q as string) || ''
+    selectedLang.value = (query.lang as string) || 'all'
 
-      // Снимаем блокировку после того как все локальные вотчеры отработают
-      nextTick(() => {
-        isSyncing.value = false
-      })
-    },
-    { immediate: true },
-  )
+    // Снимаем блокировку после того как все локальные вотчеры отработают
+    nextTick(() => {
+      isSyncing.value = false
+    })
+  }, { immediate: true })
 
   // 2. Сбрасываем папку, если пользователь вручную кликает на другой раздел
   watch(currentView, (newView, oldView) => {
@@ -48,38 +44,34 @@ export function useLibraryDisplay() {
   })
 
   // 3. Обновляем URL, если пользователь производит изменения в UI
-  watch(
-    [currentView, activeFolder, searchQuery, selectedLang],
-    ([view, folder, q, lang]) => {
-      if (isSyncing.value)
-        return
+  watch([currentView, activeFolder, searchQuery, selectedLang], ([view, folder, q, lang]) => {
+    if (isSyncing.value)
+      return
 
-      const query: Record<string, any> = { ...route.query }
+    const query: Record<string, any> = { ...route.query }
 
-      if (view === 'reading-now')
-        delete query.view
-      else
-        query.view = view
+    if (view === 'reading-now')
+      delete query.view
+    else
+      query.view = view
 
-      if (!folder)
-        delete query.folder
-      else
-        query.folder = folder
+    if (!folder)
+      delete query.folder
+    else
+      query.folder = folder
 
-      if (!q)
-        delete query.q
-      else
-        query.q = q
+    if (!q)
+      delete query.q
+    else
+      query.q = q
 
-      if (lang === 'all')
-        delete query.lang
-      else
-        query.lang = lang
+    if (lang === 'all')
+      delete query.lang
+    else
+      query.lang = lang
 
-      router.push({ query }).catch(() => { })
-    },
-    { deep: true },
-  )
+    router.push({ query }).catch(() => { })
+  }, { deep: true })
 
   const langOptions = computed(() => {
     const langs = new Set(store.books.map(b => b.language))

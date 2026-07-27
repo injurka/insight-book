@@ -37,7 +37,13 @@ const modalInitialData = ref<{
   color: string
   note: string
   analysisData?: LlmAnalysis | null
-}>({ text: '', translation: '', color: highlightColors[0], note: '', analysisData: null })
+}>({
+  text: '',
+  translation: '',
+  color: highlightColors[0],
+  note: '',
+  analysisData: null,
+})
 const isFetchingTranslation = ref(false)
 const isSavingHighlight = ref(false)
 const analysisData = ref<LlmAnalysis | null>(null)
@@ -47,7 +53,13 @@ async function openSaveModal() {
     return
 
   const text = props.box.text.replace(/\n+/g, '')
-  modalInitialData.value = { text, translation: '', color: highlightColors[0], note: '', analysisData: null }
+  modalInitialData.value = {
+    text,
+    translation: '',
+    color: highlightColors[0],
+    note: '',
+    analysisData: null,
+  }
   isSaveModalOpen.value = true
   isFetchingTranslation.value = true
 
