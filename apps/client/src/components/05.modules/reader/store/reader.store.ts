@@ -135,6 +135,9 @@ export const useReaderStore = defineStore('reader', () => {
       fetchToc(bookId).catch(() => { })
     }
 
+    // Оптимистичное обновление прогресса - обновляем UI номер страницы моментально
+    updateReadingProgress(bookId, pageNum)
+
     currentPageDictionary.value = {}
     isPageLoading.value = true
 
@@ -161,8 +164,6 @@ export const useReaderStore = defineStore('reader', () => {
       currentPage.value = page
       currentPageDictionary.value = newDict || {}
 
-      updateReadingProgress(bookId, pageNum)
-
       trackEvent('page_loaded', { bookId, pageNum, type: page?.type })
 
       if (settingsStore.autoAnalyzePage && !analysisStore.isManualPageAnalysisActive) {
@@ -178,7 +179,7 @@ export const useReaderStore = defineStore('reader', () => {
     }
     catch (e) {
       if (seq === loadPageSeq) {
-        updateReadingProgress(bookId, prevPageNum)
+        updateReadingProgress(bookId, prevPageNum) // Откатываем если загрузка оборвалась с ошибкой
         toastStore.error(i18n.global.t('dictionary.pageOfflineError'))
       }
       throw e

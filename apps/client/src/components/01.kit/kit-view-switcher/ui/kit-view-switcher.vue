@@ -2,6 +2,9 @@
 import type { ViewSwitcherItem } from '../models/types'
 import { Icon } from '@iconify/vue'
 import { useResizeObserver } from '@vueuse/core'
+import { nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
+import { useCompactMode } from '../composables/use-compact-mode'
+import { useGlider } from '../composables/use-glider'
 
 export interface Props<T extends string | number = string | number> {
   items: ViewSwitcherItem<T>[]
@@ -9,7 +12,7 @@ export interface Props<T extends string | number = string | number> {
   fullWidth?: boolean
 }
 
-const props = withDefaults(defineProps<Props>(), {
+const props = withDefaults(defineProps<Props<T>>(), {
   disabled: false,
   fullWidth: false,
 })
@@ -20,75 +23,66 @@ const emit = defineEmits<{
 
 const model = defineModel<T>({ required: true })
 
+// --- 1. DOM Ссылки ---
 const switcherRef = ref<HTMLElement | null>(null)
 const buttonRefs = ref<Record<string | number, HTMLElement>>({})
 
-const gliderStyle = ref({
-  opacity: 0,
-  width: '0px',
-  transform: 'translateX(0px)',
-  transition: 'none',
-})
+// --- 2. Логика позиционирования (Glider) ---
+const {
+  gliderStyle,
+  updatePosition,
+  enableTransition,
+  disableTransition,
+} = useGlider(switcherRef, buttonRefs, model)
 
+// --- 3. Логика компактного режима (Overflow) ---
+const {
+  isCompact,
+  recalculate: recalculateCompactMode,
+  observeParent,
+  unobserveParent,
+} = useCompactMode(switcherRef)
+
+// --- 4. Обработчики ---
 function handleItemClick(itemId: T) {
   if (props.disabled)
     return
-
   model.value = itemId
   emit('change', itemId)
 }
 
-function updateGliderPosition() {
-  const switcherEl = switcherRef.value
-  if (!switcherEl)
-    return
-
-  const activeButton = buttonRefs.value[model.value]
-  if (!activeButton) {
-    gliderStyle.value.opacity = 0
-    return
-  }
-
-  const switcherRect = switcherEl.getBoundingClientRect()
-  const buttonRect = activeButton.getBoundingClientRect()
-
-  const offsetLeft = buttonRect.left - switcherRect.left - switcherEl.clientLeft - 4
-  const width = buttonRect.width
-
-  gliderStyle.value = {
-    ...gliderStyle.value,
-    opacity: 1,
-    width: `${width}px`,
-    transform: `translateX(${offsetLeft}px)`,
-  }
-}
-
-watch(model, () => {
-  gliderStyle.value.transition = 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
-  updateGliderPosition()
+// --- 5. Связывание реактивности (Оркестрация) ---
+watch(isCompact, () => {
+  disableTransition()
+  updatePosition()
 }, { flush: 'post' })
 
 useResizeObserver(switcherRef, () => {
-  gliderStyle.value.transition = 'none'
-  updateGliderPosition()
+  disableTransition()
+  updatePosition()
 })
 
 watch(() => props.items, () => {
   nextTick(() => {
-    updateGliderPosition()
+    recalculateCompactMode()
+    updatePosition()
   })
 }, { deep: true })
 
+// --- 6. Жизненный цикл ---
 onMounted(() => {
-  updateGliderPosition()
+  recalculateCompactMode()
+  updatePosition()
+  observeParent()
 
   nextTick(() => {
-    setTimeout(() => {
-      if (gliderStyle.value) {
-        gliderStyle.value.transition = 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
-      }
-    }, 50)
+    // Включаем анимации с задержкой, чтобы при первичной отрисовке ползунок "не выезжал"
+    setTimeout(enableTransition, 50)
   })
+})
+
+onUnmounted(() => {
+  unobserveParent()
 })
 </script>
 
@@ -99,6 +93,7 @@ onMounted(() => {
     :class="{
       'is-disabled': disabled,
       'is-full-width': fullWidth,
+      'is-compact': isCompact,
     }"
   >
     <div class="kit-view-switcher-glider" :style="gliderStyle" />
@@ -127,7 +122,7 @@ onMounted(() => {
   </div>
 </template>
 
-<style lang="scss">
+<style lang="scss" scoped>
 .kit-view-switcher {
   position: relative;
   display: inline-flex;
@@ -149,6 +144,32 @@ onMounted(() => {
   &.is-full-width {
     display: flex;
     width: 100%;
+  }
+
+  &.is-compact {
+    .kit-view-switcher-button.has-icon {
+      .kit-view-switcher-label {
+        display: none !important;
+      }
+    }
+  }
+
+  &.is-measuring {
+    position: absolute !important;
+    visibility: hidden !important;
+    display: inline-flex !important;
+    width: max-content !important;
+    max-width: none !important;
+
+    .kit-view-switcher-button {
+      flex: none !important;
+
+      &.has-icon {
+        .kit-view-switcher-label {
+          display: inline !important;
+        }
+      }
+    }
   }
 }
 
@@ -236,7 +257,7 @@ onMounted(() => {
 
     &.has-icon {
       .kit-view-switcher-label {
-        display: none;
+        display: none !important;
       }
     }
   }

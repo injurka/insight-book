@@ -23,14 +23,12 @@ const isInstallModalOpen = ref(false)
 const inputManifestUrl = ref('')
 const isInstalling = ref(false)
 
-const availableStaticPlugins = computed(() => [
-  {
-    id: 'grammar-rules',
-    name: t('plugins.grammar-rules.name', 'Grammar Rules'),
-    description: t('plugins.grammar-rules.description', 'Learn and test language grammar rules.'),
-    icon: 'mdi:school-outline',
-  },
-])
+const availableStaticPlugins = computed(() => [{
+  id: 'grammar-rules',
+  name: t('plugins.grammar-rules.name'),
+  description: t('plugins.grammar-rules.description'),
+  icon: 'mdi:school-outline',
+}])
 
 async function fetchRemotePlugins() {
   isLoading.value = true
@@ -44,10 +42,6 @@ async function fetchRemotePlugins() {
     isLoading.value = false
   }
 }
-
-onMounted(() => {
-  fetchRemotePlugins()
-})
 
 async function toggleStaticPlugin(pluginId: string, enabled: boolean) {
   if (enabled) {
@@ -144,6 +138,10 @@ async function uninstallRemotePlugin(pluginId: string) {
     toast.error('Не удалось удалить плагин')
   }
 }
+
+onMounted(() => {
+  fetchRemotePlugins()
+})
 </script>
 
 <template>
@@ -220,7 +218,7 @@ async function uninstallRemotePlugin(pluginId: string) {
             />
             <KitBtn
               variant="text"
-              color="danger"
+              color="error"
               icon="mdi:delete-outline"
               size="sm"
               @click="uninstallRemotePlugin(record.pluginId)"
