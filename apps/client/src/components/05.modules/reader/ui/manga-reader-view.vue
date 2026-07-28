@@ -15,6 +15,7 @@ import { useReadingSession } from '../composables/use-reading-session'
 import { useScrollRestoration } from '../composables/use-scroll-restoration'
 import { useReaderStore } from '../store/reader.store'
 import ReaderTocDialog from './dialog/reader-toc-dialog.vue'
+import ReaderBrightness from './partials/reader-brightness.vue'
 import ReaderFooter from './partials/reader-footer.vue'
 import ReaderHeader from './partials/reader-header.vue'
 
@@ -231,6 +232,7 @@ onUnmounted(() => {
     <SelectionTooltip />
     <SentenceAnalysis />
     <PageAnalysisModal />
+    <ReaderBrightness />
 
     <ReaderFooter @prev="prevPage" @next="nextPage" @go-to="goToPage" />
   </div>

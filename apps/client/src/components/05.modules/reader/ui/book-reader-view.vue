@@ -16,6 +16,7 @@ import { useScrollRestoration } from '../composables/use-scroll-restoration.ts'
 import { useReaderStore } from '../store/reader.store.ts'
 
 import ReaderTocDialog from './dialog/reader-toc-dialog.vue'
+import ReaderBrightness from './partials/reader-brightness.vue'
 import ReaderFooter from './partials/reader-footer.vue'
 import ReaderHeader from './partials/reader-header.vue'
 
@@ -254,6 +255,7 @@ watch(() => readerStore.isPageLoading, async (isLoading) => {
     <SelectionTooltip />
     <SentenceAnalysis />
     <PageAnalysisModal />
+    <ReaderBrightness />
 
     <ReaderFooter @prev="prevPage" @next="nextPage" @go-to="goToPage" />
   </div>

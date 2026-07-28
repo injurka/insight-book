@@ -4,7 +4,7 @@ import { Icon } from '@iconify/vue'
 import { useI18n } from 'vue-i18n'
 import { KitBtn, KitTooltip } from '~/components/01.kit'
 import { PronunciationCheck } from '~/components/04.features/pronunciation-check'
-import { highlightTextQuery } from '~/domain/text/text-tokenizer'
+import { highlightTextQuery } from '~/components/05.modules/notebook/lib/text-tokenizer'
 
 defineProps<{
   highlight: Highlight

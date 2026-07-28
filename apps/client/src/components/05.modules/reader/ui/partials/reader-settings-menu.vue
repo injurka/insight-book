@@ -69,6 +69,12 @@ function adjustLineHeight(delta: number) {
   }
 }
 
+function adjustBrightness(delta: number) {
+  const current = settingsStore.readerBrightness ?? 1.0
+  const nextVal = Math.min(1.0, Math.max(0.02, current + delta))
+  settingsStore.readerBrightness = Number(nextVal.toFixed(2))
+}
+
 const fontOptions = computed(() => [
   { label: t('reader.fontDefault'), value: '\'Maple Mono CN\', \'Microsoft YaHei\', sans-serif' },
   { label: t('reader.fontSans'), value: 'system-ui, -apple-system, sans-serif' },
@@ -130,6 +136,21 @@ const currentThemeName = computed(() => {
           <span>{{ t('reader.appearance') }}</span>
         </div>
         <span class="value-badge">{{ currentThemeName }}</span>
+      </div>
+      <div class="settings-row">
+        <div class="item-label">
+          <Icon icon="mdi:brightness-6" class="item-icon" />
+          <span>{{ t('reader.brightness') }}</span>
+        </div>
+        <div class="control-pill stepper-pill">
+          <button class="stepper-btn" @click="adjustBrightness(-0.05)">
+            <Icon icon="mdi:minus" />
+          </button>
+          <span class="stepper-value">{{ Math.round((settingsStore.readerBrightness ?? 1) * 100) }}%</span>
+          <button class="stepper-btn" @click="adjustBrightness(0.05)">
+            <Icon icon="mdi:plus" />
+          </button>
+        </div>
       </div>
     </div>
 
