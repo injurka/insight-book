@@ -2,7 +2,7 @@ import { mkdirSync } from 'node:fs'
 import path from 'node:path'
 import { Database } from 'bun:sqlite'
 
-const DB_PATH = path.resolve(process.cwd(), '../server/db/dicts/dict_zh.sqlite')
+const DB_PATH = path.resolve(process.cwd(), '../../apps/server/db/dicts/dict_ja.sqlite')
 
 // Убедимся, что директория для БД существует
 const dbDir = path.dirname(DB_PATH)

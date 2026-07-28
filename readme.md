@@ -163,9 +163,9 @@ docker exec -it docker-insight-book-server-1 bun run dump:seed
 > **Требования:** файлы должны иметь расширение `.sqlite` (например, `dict_en_ru.sqlite`, `dict_zh_ru.sqlite`) и содержать таблицу `words` (поля `word`, `transcription`, `translation`).
 
 Примеры скриптов для парсинга форматов словарей находятся в папках рабочих пространств:
-- `apps/zh-dict-parser` — 🇨🇳 Китайский (Большой китайско-русский словарь)
-- `apps/en-dict-parser` — 🇬🇧 Английский (Мюллер)
-- `apps/jp-dict-parser` — 🇯🇵 Японский (Warodai)
+- `tools/zh-dict-parser` — 🇨🇳 Китайский (Большой китайско-русский словарь)
+- `tools/en-dict-parser` — 🇬🇧 Английский (Мюллер)
+- `tools/jp-dict-parser` — 🇯🇵 Японский (Warodai)
 
 ---
 
@@ -175,9 +175,9 @@ docker exec -it docker-insight-book-server-1 bun run dump:seed
 Парсер использует `Puppeteer`, обходит защиту и автоматически конвертирует скачанное в `.cbz` архив (с метаданными для ридера), который можно сразу загружать в Insight Book.
 
 ```bash
-bun --cwd ./apps/manhuagui-parser run start
+bun --cwd ./tools/manhuagui-parser run start
 # Или сразу передать ссылку:
-bun --cwd ./apps/manhuagui-parser run start https://www.manhuagui.com/comic/12345/
+bun --cwd ./tools/manhuagui-parser run start https://www.manhuagui.com/comic/12345/
 ```
 
 ---

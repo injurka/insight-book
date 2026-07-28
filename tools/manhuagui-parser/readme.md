@@ -11,7 +11,7 @@
 ### Использование
 
 ```bash
-bun --cwd ./apps/manhuagui-parser run start
+bun --cwd ./tools/manhuagui-parser run start
 # или сразу с указанием URL
-bun --cwd ./apps/manhuagui-parser run start https://www.manhuagui.com/comic/19430/
+bun --cwd ./tools/manhuagui-parser run start https://www.manhuagui.com/comic/19430/
 ```

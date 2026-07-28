@@ -94,60 +94,6 @@
         "workbox-window": "^7.4.1",
       },
     },
-    "apps/en-dict-parser": {
-      "name": "@injurka/insight-book-en-dict-parser",
-      "version": "1.0.0",
-      "dependencies": {
-        "epub2": "^3.0.2",
-        "node-html-parser": "^9.0.0",
-      },
-      "devDependencies": {
-        "@antfu/eslint-config": "9.2.0",
-        "@types/bun": "^1.3.14",
-        "@types/node": "^26.1.2",
-        "bun": "^1.3.14",
-        "bun-types": "^1.3.14",
-        "eslint": "^10.8.0",
-        "eslint-plugin-format": "2.0.1",
-        "typescript": "6.0.3",
-      },
-    },
-    "apps/jp-dict-parser": {
-      "name": "@injurka/insight-book-jp-dict-parser",
-      "version": "1.0.0",
-      "dependencies": {
-        "epub2": "^3.0.2",
-        "node-html-parser": "^9.0.0",
-      },
-      "devDependencies": {
-        "@antfu/eslint-config": "9.2.0",
-        "@types/bun": "^1.3.14",
-        "@types/node": "^26.1.2",
-        "bun": "^1.3.14",
-        "bun-types": "^1.3.14",
-        "eslint": "^10.8.0",
-        "eslint-plugin-format": "2.0.1",
-        "typescript": "6.0.3",
-      },
-    },
-    "apps/manhuagui-parser": {
-      "name": "@injurka/insight-book-manhuagui-parser",
-      "version": "1.0.0",
-      "dependencies": {
-        "@clack/prompts": "^1.7.0",
-        "adm-zip": "^0.6.0",
-        "picocolors": "^1.1.1",
-        "puppeteer": "^25.4.0",
-        "sharp": "^0.35.3",
-      },
-      "devDependencies": {
-        "@antfu/eslint-config": "9.2.0",
-        "@types/adm-zip": "^0.5.8",
-        "@types/bun": "^1.3.14",
-        "eslint": "^10.8.0",
-        "eslint-plugin-format": "2.0.1",
-      },
-    },
     "apps/server": {
       "name": "@injurka/insight-book-server",
       "version": "1.0.0",
@@ -192,24 +138,6 @@
         "typescript": "6.0.3",
       },
     },
-    "apps/zh-dict-parser": {
-      "name": "@injurka/insight-book-zh-dict-parser",
-      "version": "1.0.0",
-      "dependencies": {
-        "epub2": "^3.0.2",
-        "node-html-parser": "^9.0.0",
-      },
-      "devDependencies": {
-        "@antfu/eslint-config": "9.2.0",
-        "@types/bun": "^1.3.14",
-        "@types/node": "^26.1.2",
-        "bun": "^1.3.14",
-        "bun-types": "^1.3.14",
-        "eslint": "^10.8.0",
-        "eslint-plugin-format": "2.0.1",
-        "typescript": "6.0.3",
-      },
-    },
     "packages/plugin-api": {
       "name": "@injurka/insight-book-plugin-api",
       "version": "1.0.0",
@@ -234,6 +162,78 @@
         "@vitejs/plugin-vue": "^6.0.8",
         "sass": "1.102.0",
         "vite": "^8.1.5",
+      },
+    },
+    "tools/en-dict-parser": {
+      "name": "@injurka/insight-book-en-dict-parser",
+      "version": "1.0.0",
+      "dependencies": {
+        "epub2": "^3.0.2",
+        "node-html-parser": "^9.0.0",
+      },
+      "devDependencies": {
+        "@antfu/eslint-config": "9.2.0",
+        "@types/bun": "^1.3.14",
+        "@types/node": "^26.1.2",
+        "bun": "^1.3.14",
+        "bun-types": "^1.3.14",
+        "eslint": "^10.8.0",
+        "eslint-plugin-format": "2.0.1",
+        "typescript": "6.0.3",
+      },
+    },
+    "tools/jp-dict-parser": {
+      "name": "@injurka/insight-book-jp-dict-parser",
+      "version": "1.0.0",
+      "dependencies": {
+        "epub2": "^3.0.2",
+        "node-html-parser": "^9.0.0",
+      },
+      "devDependencies": {
+        "@antfu/eslint-config": "9.2.0",
+        "@types/bun": "^1.3.14",
+        "@types/node": "^26.1.2",
+        "bun": "^1.3.14",
+        "bun-types": "^1.3.14",
+        "eslint": "^10.8.0",
+        "eslint-plugin-format": "2.0.1",
+        "typescript": "6.0.3",
+      },
+    },
+    "tools/manhuagui-parser": {
+      "name": "@injurka/insight-book-manhuagui-parser",
+      "version": "1.0.0",
+      "dependencies": {
+        "@clack/prompts": "^1.7.0",
+        "adm-zip": "^0.6.0",
+        "picocolors": "^1.1.1",
+        "puppeteer": "^25.4.0",
+        "sharp": "^0.35.3",
+      },
+      "devDependencies": {
+        "@antfu/eslint-config": "9.2.0",
+        "@types/adm-zip": "^0.5.8",
+        "@types/bun": "^1.3.14",
+        "eslint": "^10.8.0",
+        "eslint-plugin-format": "2.0.1",
+      },
+    },
+    "tools/zh-dict-parser": {
+      "name": "@injurka/insight-book-zh-dict-parser",
+      "version": "1.0.0",
+      "dependencies": {
+        "epub2": "^3.0.2",
+        "node-html-parser": "^9.0.0",
+      },
+      "devDependencies": {
+        "@antfu/eslint-config": "9.2.0",
+        "@types/bun": "^1.3.14",
+        "@types/node": "^26.1.2",
+        "bun": "^1.3.14",
+        "bun-types": "^1.3.14",
+        "eslint": "^10.8.0",
+        "eslint-plugin-format": "2.0.1",
+        "typescript": "6.0.3",
       },
     },
   },
@@ -704,11 +704,11 @@
 
     "@img/sharp-win32-x64": ["@img/sharp-win32-x64@0.35.3", "", { "os": "win32", "cpu": "x64" }, "sha512-D4y1vNeZrIIJCN+uHaWVtH86B+aCrdMYYjicy9pXHvbGZeGYLLSd3wdVuC37FxVXlU1ARsk84eKWfWMXGYEqvA=="],
 
-    "@injurka/insight-book-en-dict-parser": ["@injurka/insight-book-en-dict-parser@workspace:apps/en-dict-parser"],
+    "@injurka/insight-book-en-dict-parser": ["@injurka/insight-book-en-dict-parser@workspace:tools/en-dict-parser"],
 
-    "@injurka/insight-book-jp-dict-parser": ["@injurka/insight-book-jp-dict-parser@workspace:apps/jp-dict-parser"],
+    "@injurka/insight-book-jp-dict-parser": ["@injurka/insight-book-jp-dict-parser@workspace:tools/jp-dict-parser"],
 
-    "@injurka/insight-book-manhuagui-parser": ["@injurka/insight-book-manhuagui-parser@workspace:apps/manhuagui-parser"],
+    "@injurka/insight-book-manhuagui-parser": ["@injurka/insight-book-manhuagui-parser@workspace:tools/manhuagui-parser"],
 
     "@injurka/insight-book-plugin-api": ["@injurka/insight-book-plugin-api@workspace:packages/plugin-api"],
 
@@ -716,7 +716,7 @@
 
     "@injurka/insight-book-server": ["@injurka/insight-book-server@workspace:apps/server"],
 
-    "@injurka/insight-book-zh-dict-parser": ["@injurka/insight-book-zh-dict-parser@workspace:apps/zh-dict-parser"],
+    "@injurka/insight-book-zh-dict-parser": ["@injurka/insight-book-zh-dict-parser@workspace:tools/zh-dict-parser"],
 
     "@injurkx/insight-book-client": ["@injurkx/insight-book-client@workspace:apps/client"],
 
