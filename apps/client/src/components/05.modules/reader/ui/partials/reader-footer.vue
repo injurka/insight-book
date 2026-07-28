@@ -36,7 +36,7 @@ function handlePageSubmit(value: string) {
     <KitBtn
       icon="mdi:chevron-left"
       variant="text"
-      :disabled="!bookEntity || !bookEntity.hasPrevPage()"
+      :disabled="!bookEntity || !bookEntity.hasPrevPage() || readerStore.isPageLoading"
       @click="emit('prev')"
     >
       {{ t('reader.back') }}
@@ -54,7 +54,7 @@ function handlePageSubmit(value: string) {
     <KitBtn
       append-icon="mdi:chevron-right"
       variant="text"
-      :disabled="!bookEntity || !bookEntity.hasNextPage()"
+      :disabled="!bookEntity || !bookEntity.hasNextPage() || readerStore.isPageLoading"
       @click="emit('next')"
     >
       {{ t('reader.forward') }}

@@ -283,7 +283,7 @@ async function uninstallRemotePlugin(pluginId: string) {
 .panel-header {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
+  align-items: center;
   gap: 16px;
 
   .section-title {

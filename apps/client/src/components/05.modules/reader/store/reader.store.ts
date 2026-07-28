@@ -29,6 +29,7 @@ export const useReaderStore = defineStore('reader', () => {
   const tocOpen = ref(false)
 
   let lastTocBookId = 0
+  let loadPageSeq = 0
 
   // Query state refs
   const tocBookId = ref<number | null>(null)
@@ -122,6 +123,7 @@ export const useReaderStore = defineStore('reader', () => {
     const toastStore = useToastStore()
     const settingsStore = useGlobalSettingsStore()
 
+    const seq = ++loadPageSeq
     const prevPageNum = currentBook.value?.currentPage || 1
 
     analysisStore.cancelPageAnalysis()
@@ -153,6 +155,9 @@ export const useReaderStore = defineStore('reader', () => {
         }
       }
 
+      if (seq !== loadPageSeq)
+        return
+
       currentPage.value = page
       currentPageDictionary.value = newDict || {}
 
@@ -172,12 +177,15 @@ export const useReaderStore = defineStore('reader', () => {
       }
     }
     catch (e) {
-      updateReadingProgress(bookId, prevPageNum)
-      toastStore.error(i18n.global.t('dictionary.pageOfflineError'))
+      if (seq === loadPageSeq) {
+        updateReadingProgress(bookId, prevPageNum)
+        toastStore.error(i18n.global.t('dictionary.pageOfflineError'))
+      }
       throw e
     }
     finally {
-      isPageLoading.value = false
+      if (seq === loadPageSeq)
+        isPageLoading.value = false
     }
   }
 

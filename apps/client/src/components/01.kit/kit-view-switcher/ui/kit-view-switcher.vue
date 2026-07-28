@@ -32,22 +32,21 @@ const gliderStyle = ref({
 
 const isCompact = ref(false)
 let fullContentWidth = 0
+let isMeasuring = false
 
 function checkOverflow() {
   const switcherEl = switcherRef.value
-  if (!switcherEl)
+  if (!switcherEl || isMeasuring)
     return
 
-  if (!isCompact.value) {
-    // В full-width режиме кнопки растягиваются flex'ом, поэтому scrollWidth
-    // контейнера не показывает реальную ширину контента — считаем её сами
-    const buttonsWidth = Object.values(buttonRefs.value)
-      .reduce((sum, el) => sum + (el?.scrollWidth ?? 0), 0)
-    const styles = getComputedStyle(switcherEl)
-    const padding = parseFloat(styles.paddingLeft) + parseFloat(styles.paddingRight)
-
-    fullContentWidth = buttonsWidth + padding
-  }
+  // В full-width режиме кнопки сжимаются flex'ом, поэтому реальную ширину
+  // контента замеряем, временно переводя свитчер в «естественный» размер
+  // с видимыми подписями
+  isMeasuring = true
+  switcherEl.classList.add('is-measuring')
+  fullContentWidth = switcherEl.scrollWidth
+  switcherEl.classList.remove('is-measuring')
+  isMeasuring = false
 
   isCompact.value = fullContentWidth > switcherEl.clientWidth
 }
@@ -187,6 +186,20 @@ onMounted(() => {
       display: none;
     }
   }
+
+  &.is-measuring {
+    display: inline-flex !important;
+    width: max-content !important;
+    max-width: none !important;
+
+    .kit-view-switcher-button {
+      flex: none !important;
+    }
+
+    .kit-view-switcher-label {
+      display: inline !important;
+    }
+  }
 }
 
 .kit-view-switcher-glider {
@@ -217,6 +230,7 @@ onMounted(() => {
   transition: all 0.3s ease;
   white-space: nowrap;
   min-height: 36px;
+  overflow: hidden;
 
   .is-full-width & {
     flex: 1;

@@ -29,3 +29,8 @@ src_prompt.md
 ORIGINAL_REQUEST.md
 auto-imports.d.ts
 .turbo
+
+# Playwright e2e
+playwright-report/
+test-results/
+blob-report/
