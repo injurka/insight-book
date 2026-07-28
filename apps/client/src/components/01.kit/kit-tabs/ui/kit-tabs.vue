@@ -36,6 +36,10 @@ const {
   <div class="kit-tabs" :class="{ single: items.length === 1 }">
     <KitViewSwitcher v-model="model" :items="items" full-width />
 
+    <div v-if="currentTab" class="mobile-tab-info">
+      <span class="mobile-tab-label">{{ currentTab.label }}</span>
+    </div>
+
     <div ref="contentWrapperRef" class="kit-tabs-content-wrapper">
       <Transition
         v-if="!cache"
@@ -81,11 +85,41 @@ const {
       opacity: 0 !important;
     }
   }
+}
 
-  :deep(.kit-view-switcher-button) {
-    .kit-view-switcher-label {
-      display: block !important;
-    }
+.mobile-tab-info {
+  display: none;
+  text-align: center;
+  animation: fade-in 0.3s ease;
+  margin-top: -10px;
+
+  .mobile-tab-label {
+    display: inline-block;
+    padding: 4px 12px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--fg-accent-color);
+    border-radius: 20px;
+    background-color: var(--bg-secondary-color);
+    border: 1px solid var(--border-secondary-color);
+    letter-spacing: 1px;
+  }
+}
+
+@include media-down(sm) {
+  .mobile-tab-info {
+    display: block;
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(-5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 

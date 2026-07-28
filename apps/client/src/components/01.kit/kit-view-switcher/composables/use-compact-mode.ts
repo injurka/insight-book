@@ -11,26 +11,33 @@ export function useCompactMode(switcherRef: Ref<HTMLElement | null>) {
     if (!el)
       return
 
-    el.classList.add('is-measuring')
-    naturalWidth = el.offsetWidth
-    el.classList.remove('is-measuring')
+    const clone = el.cloneNode(true) as HTMLElement
+    clone.style.cssText = 'position: absolute !important; visibility: hidden !important; display: inline-flex !important; width: max-content !important; max-width: none !important; left: -9999px !important; top: -9999px !important; pointer-events: none !important;'
+
+    const labels = clone.querySelectorAll('.kit-view-switcher-button.has-icon .kit-view-switcher-label')
+    labels.forEach((label) => {
+      (label as HTMLElement).style.display = 'inline'
+    })
+
+    document.body.appendChild(clone)
+    naturalWidth = clone.offsetWidth
+    document.body.removeChild(clone)
   }
 
   function checkOverflow() {
     const el = switcherRef.value
-    if (!el)
+    if (!el || !el.parentElement)
       return
 
     const parent = el.parentElement
-    if (!parent)
-      return
-
     const parentStyle = window.getComputedStyle(parent)
     const availableWidth = parent.clientWidth
       - Number.parseFloat(parentStyle.paddingLeft || '0')
       - Number.parseFloat(parentStyle.paddingRight || '0')
 
-    isCompact.value = naturalWidth > availableWidth
+    if (naturalWidth > 0 && availableWidth > 0) {
+      isCompact.value = naturalWidth > availableWidth
+    }
   }
 
   function recalculate() {

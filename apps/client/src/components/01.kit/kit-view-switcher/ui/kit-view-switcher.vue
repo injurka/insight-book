@@ -23,19 +23,10 @@ const emit = defineEmits<{
 
 const model = defineModel<T>({ required: true })
 
-// --- 1. DOM Ссылки ---
 const switcherRef = ref<HTMLElement | null>(null)
-const buttonRefs = ref<Record<string | number, HTMLElement>>({})
+const isAnimating = ref(false)
 
-// --- 2. Логика позиционирования (Glider) ---
-const {
-  gliderStyle,
-  updatePosition,
-  enableTransition,
-  disableTransition,
-} = useGlider(switcherRef, buttonRefs, model)
-
-// --- 3. Логика компактного режима (Overflow) ---
+const { gliderStyle, updatePosition } = useGlider(switcherRef)
 const {
   isCompact,
   recalculate: recalculateCompactMode,
@@ -43,7 +34,6 @@ const {
   unobserveParent,
 } = useCompactMode(switcherRef)
 
-// --- 4. Обработчики ---
 function handleItemClick(itemId: T) {
   if (props.disabled)
     return
@@ -51,34 +41,45 @@ function handleItemClick(itemId: T) {
   emit('change', itemId)
 }
 
-// --- 5. Связывание реактивности (Оркестрация) ---
-watch(isCompact, () => {
-  disableTransition()
-  updatePosition()
-}, { flush: 'post' })
-
-useResizeObserver(switcherRef, () => {
-  disableTransition()
+watch(model, async () => {
+  isAnimating.value = true
+  await nextTick()
   updatePosition()
 })
 
-watch(() => props.items, () => {
-  nextTick(() => {
-    recalculateCompactMode()
-    updatePosition()
-  })
+useResizeObserver(switcherRef, () => {
+  isAnimating.value = false
+  updatePosition()
+})
+
+watch(() => props.items, async () => {
+  recalculateCompactMode()
+  await nextTick()
+  updatePosition()
 }, { deep: true })
 
-// --- 6. Жизненный цикл ---
-onMounted(() => {
+onMounted(async () => {
   recalculateCompactMode()
-  updatePosition()
   observeParent()
 
-  nextTick(() => {
-    // Включаем анимации с задержкой, чтобы при первичной отрисовке ползунок "не выезжал"
-    setTimeout(enableTransition, 50)
+  await nextTick()
+
+  updatePosition()
+
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      isAnimating.value = true
+    })
   })
+
+  if (typeof document !== 'undefined' && document.fonts) {
+    document.fonts.ready.then(async () => {
+      recalculateCompactMode()
+      await nextTick()
+      isAnimating.value = false
+      updatePosition()
+    })
+  }
 })
 
 onUnmounted(() => {
@@ -91,6 +92,7 @@ onUnmounted(() => {
     ref="switcherRef"
     class="kit-view-switcher"
     :class="{
+      'is-animating': isAnimating,
       'is-disabled': disabled,
       'is-full-width': fullWidth,
       'is-compact': isCompact,
@@ -101,7 +103,6 @@ onUnmounted(() => {
     <button
       v-for="item in items"
       :key="item.id"
-      :ref="el => (buttonRefs[item.id] = el as HTMLElement)"
       class="kit-view-switcher-button"
       :class="{
         'is-active': model === item.id,
@@ -132,7 +133,6 @@ onUnmounted(() => {
   padding: 4px;
   border: 1px solid var(--border-secondary-color);
   user-select: none;
-  transition: opacity 0.2s ease-out;
   height: 46px;
   max-width: 100%;
 
@@ -153,24 +153,6 @@ onUnmounted(() => {
       }
     }
   }
-
-  &.is-measuring {
-    position: absolute !important;
-    visibility: hidden !important;
-    display: inline-flex !important;
-    width: max-content !important;
-    max-width: none !important;
-
-    .kit-view-switcher-button {
-      flex: none !important;
-
-      &.has-icon {
-        .kit-view-switcher-label {
-          display: inline !important;
-        }
-      }
-    }
-  }
 }
 
 .kit-view-switcher-glider {
@@ -182,6 +164,13 @@ onUnmounted(() => {
   border-radius: 8px;
   z-index: 1;
   opacity: 0;
+  transition: none;
+
+  .kit-view-switcher.is-animating & {
+    transition:
+      width 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+      transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
 }
 
 .kit-view-switcher-button {
@@ -246,19 +235,15 @@ onUnmounted(() => {
       width: 100%;
     }
   }
-
   .kit-view-switcher-button {
     &:not(.is-full-width .kit-view-switcher-button) {
       flex: 1;
       justify-content: center;
     }
-
     padding: 8px 12px;
 
-    &.has-icon {
-      .kit-view-switcher-label {
-        display: none !important;
-      }
+    &.has-icon .kit-view-switcher-label {
+      display: none !important;
     }
   }
 }

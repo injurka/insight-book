@@ -7,7 +7,7 @@ export function useReaderNavigation(setScrollIntent: (bookId: number, pageNum: n
   const route = useRoute()
 
   async function prevPage() {
-    if (!readerStore.currentBook)
+    if (!readerStore.currentBook || readerStore.isPageLoading)
       return
 
     const current = readerStore.currentBook.currentPage || 1
@@ -23,7 +23,7 @@ export function useReaderNavigation(setScrollIntent: (bookId: number, pageNum: n
   }
 
   async function nextPage() {
-    if (!readerStore.currentBook)
+    if (!readerStore.currentBook || readerStore.isPageLoading)
       return
 
     const current = readerStore.currentBook.currentPage || 1
@@ -39,7 +39,7 @@ export function useReaderNavigation(setScrollIntent: (bookId: number, pageNum: n
   }
 
   async function goToPage(pageNum?: number) {
-    if (!pageNum || !readerStore.currentBook)
+    if (!pageNum || !readerStore.currentBook || readerStore.isPageLoading)
       return
 
     readerStore.tocOpen = false

@@ -335,10 +335,13 @@ watch(() => readerStore.isPageLoading, async (isLoading) => {
   display: flex;
   justify-content: center;
   padding: 24px;
-  transition: opacity 0.2s ease;
+  transition:
+    opacity 0.2s ease,
+    filter 0.2s ease;
 
   &.is-loading {
-    opacity: 0.6;
+    opacity: 0.4;
+    filter: blur(2px);
     pointer-events: none;
   }
 

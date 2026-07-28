@@ -14,7 +14,7 @@ const isPromptOpen = ref(false)
 const bookEntity = computed(() => readerStore.currentBook ? new BookEntity(readerStore.currentBook) : null)
 
 function openPrompt() {
-  if (!readerStore.currentBook)
+  if (!readerStore.currentBook || readerStore.isPageLoading)
     return
 
   isPromptOpen.value = true
@@ -36,7 +36,7 @@ function handlePageSubmit(value: string) {
     <KitBtn
       icon="mdi:chevron-left"
       variant="text"
-      :disabled="!bookEntity || !bookEntity.hasPrevPage()"
+      :disabled="!bookEntity || !bookEntity.hasPrevPage() || readerStore.isPageLoading"
       @click="emit('prev')"
     >
       {{ t('reader.back') }}
@@ -46,6 +46,7 @@ function handlePageSubmit(value: string) {
       v-if="readerStore.currentBook"
       class="page-info"
       :title="t('reader.goToPage')"
+      :class="{ 'is-disabled': readerStore.isPageLoading }"
       @click="openPrompt"
     >
       {{ readerStore.currentBook.currentPage }} / {{ readerStore.currentBook.totalPages }}
@@ -54,7 +55,7 @@ function handlePageSubmit(value: string) {
     <KitBtn
       append-icon="mdi:chevron-right"
       variant="text"
-      :disabled="!bookEntity || !bookEntity.hasNextPage()"
+      :disabled="!bookEntity || !bookEntity.hasNextPage() || readerStore.isPageLoading"
       @click="emit('next')"
     >
       {{ t('reader.forward') }}
@@ -93,10 +94,17 @@ function handlePageSubmit(value: string) {
     text-decoration: underline;
     text-decoration-style: dotted;
     text-underline-offset: 4px;
-    transition: color 0.2s;
+    transition:
+      color 0.2s,
+      opacity 0.2s;
 
     &:hover {
       color: var(--fg-accent-color);
+    }
+
+    &.is-disabled {
+      opacity: 0.5;
+      pointer-events: none;
     }
   }
 }

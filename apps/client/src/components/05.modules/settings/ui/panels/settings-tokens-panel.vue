@@ -109,7 +109,7 @@ const periodOptions = [
 
 .settings-card {
   background: var(--bg-secondary-color);
-  padding: 24px;
+  padding: 12px;
   border-radius: 12px;
   border: 1px solid var(--border-secondary-color);
   margin-bottom: 16px;
@@ -125,10 +125,13 @@ const periodOptions = [
   display: flex;
   flex-direction: column;
   gap: 24px;
+
   .total-tokens {
     display: flex;
     flex-wrap: wrap;
     gap: 48px;
+    padding: 12px 12px 0 12px;
+
     @include media-down(sm) {
       gap: 24px;
     }

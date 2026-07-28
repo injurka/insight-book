@@ -11,6 +11,18 @@ const isMaximized = ref(false)
 let appWindow: any = null
 let unlistenResize: (() => void) | null = null
 
+function minimize() {
+  appWindow?.minimize()
+}
+
+function toggleMaximize() {
+  appWindow?.toggleMaximize()
+}
+
+function close() {
+  appWindow?.close()
+}
+
 onMounted(async () => {
   if (isTauri) {
     try {
@@ -39,18 +51,6 @@ onUnmounted(() => {
     unlistenResize()
   }
 })
-
-function minimize() {
-  appWindow?.minimize()
-}
-
-function toggleMaximize() {
-  appWindow?.toggleMaximize()
-}
-
-function close() {
-  appWindow?.close()
-}
 </script>
 
 <template>
