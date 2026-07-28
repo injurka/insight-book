@@ -30,27 +30,6 @@ const gliderStyle = ref({
   transition: 'none',
 })
 
-const isCompact = ref(false)
-let fullContentWidth = 0
-let isMeasuring = false
-
-function checkOverflow() {
-  const switcherEl = switcherRef.value
-  if (!switcherEl || isMeasuring)
-    return
-
-  // В full-width режиме кнопки сжимаются flex'ом, поэтому реальную ширину
-  // контента замеряем, временно переводя свитчер в «естественный» размер
-  // с видимыми подписями
-  isMeasuring = true
-  switcherEl.classList.add('is-measuring')
-  fullContentWidth = switcherEl.scrollWidth
-  switcherEl.classList.remove('is-measuring')
-  isMeasuring = false
-
-  isCompact.value = fullContentWidth > switcherEl.clientWidth
-}
-
 function handleItemClick(itemId: T) {
   if (props.disabled)
     return
@@ -74,7 +53,6 @@ function updateGliderPosition() {
   const buttonRect = activeButton.getBoundingClientRect()
 
   const offsetLeft = buttonRect.left - switcherRect.left - switcherEl.clientLeft - 4
-
   const width = buttonRect.width
 
   gliderStyle.value = {
@@ -90,27 +68,18 @@ watch(model, () => {
   updateGliderPosition()
 }, { flush: 'post' })
 
-watch(isCompact, () => {
-  gliderStyle.value.transition = 'none'
-  updateGliderPosition()
-}, { flush: 'post' })
-
 useResizeObserver(switcherRef, () => {
-  checkOverflow()
   gliderStyle.value.transition = 'none'
   updateGliderPosition()
 })
 
 watch(() => props.items, () => {
-  isCompact.value = false
   nextTick(() => {
-    checkOverflow()
     updateGliderPosition()
   })
 }, { deep: true })
 
 onMounted(() => {
-  checkOverflow()
   updateGliderPosition()
 
   nextTick(() => {
@@ -130,7 +99,6 @@ onMounted(() => {
     :class="{
       'is-disabled': disabled,
       'is-full-width': fullWidth,
-      'is-compact': isCompact,
     }"
   >
     <div class="kit-view-switcher-glider" :style="gliderStyle" />
@@ -140,7 +108,10 @@ onMounted(() => {
       :key="item.id"
       :ref="el => (buttonRefs[item.id] = el as HTMLElement)"
       class="kit-view-switcher-button"
-      :class="{ 'is-active': model === item.id }"
+      :class="{
+        'is-active': model === item.id,
+        'has-icon': !!item.icon,
+      }"
       :disabled="disabled"
       @click="handleItemClick(item.id)"
     >
@@ -178,27 +149,6 @@ onMounted(() => {
   &.is-full-width {
     display: flex;
     width: 100%;
-    overflow: hidden;
-  }
-
-  &.is-compact {
-    .kit-view-switcher-label {
-      display: none;
-    }
-  }
-
-  &.is-measuring {
-    display: inline-flex !important;
-    width: max-content !important;
-    max-width: none !important;
-
-    .kit-view-switcher-button {
-      flex: none !important;
-    }
-
-    .kit-view-switcher-label {
-      display: inline !important;
-    }
   }
 }
 
@@ -249,6 +199,11 @@ onMounted(() => {
 
   &:not(.is-active):hover:not(:disabled) {
     color: var(--fg-primary-color);
+    transform: translateY(-1px);
+  }
+
+  &:active:not(:disabled) {
+    transform: translateY(0);
   }
 }
 
@@ -259,6 +214,8 @@ onMounted(() => {
 
 .kit-view-switcher-label {
   transition: color 0.3s ease;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 @include media-down(sm) {
@@ -277,8 +234,10 @@ onMounted(() => {
 
     padding: 8px 12px;
 
-    .kit-view-switcher-label {
-      display: none;
+    &.has-icon {
+      .kit-view-switcher-label {
+        display: none;
+      }
     }
   }
 }
