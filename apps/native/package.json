@@ -1,0 +1,25 @@
+{
+  "name": "@injurka/insight-book-native",
+  "type": "module",
+  "version": "1.0.0",
+  "private": true,
+  "description": "InsightBook Native Shell (Tauri)",
+  "author": {
+    "name": "Ivan Kornilov",
+    "email": "injurka@gmail.com"
+  },
+  "engines": {
+    "bun": ">=1.2.0"
+  },
+  "scripts": {
+    "tauri:dev": "tauri dev",
+    "tauri:build": "tauri build",
+    "tauri:build:linux:x64": "tauri build --target x86_64-unknown-linux-gnu",
+    "tauri:build:win:x64": "tauri build --target x86_64-pc-windows-msvc",
+    "tauri:android:init": "tauri android init",
+    "tauri:android:build": "tauri android build --apk"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.11.4"
+  }
+}

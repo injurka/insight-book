@@ -2,7 +2,7 @@ import { addCollection } from '@iconify/vue'
 import { PiniaColada } from '@pinia/colada'
 import { createHead } from '@vueuse/head'
 import { createPinia } from 'pinia'
-import { createApp, vaporInteropPlugin } from 'vue'
+import { createApp } from 'vue'
 import { vLongPress } from '~/shared/directives/long-press'
 import { vRipple } from '~/shared/directives/ripple'
 import router from '~/shared/lib/router'
@@ -27,7 +27,6 @@ async function bootstrap() {
   app.use(PiniaColada)
   app.use(i18n)
   app.use(head)
-  app.use(vaporInteropPlugin)
   app.provide(REPOS_INJECTION_KEY, defaultRepositories)
 
   try {

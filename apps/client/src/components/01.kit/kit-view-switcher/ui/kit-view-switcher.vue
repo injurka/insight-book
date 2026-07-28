@@ -30,6 +30,21 @@ const gliderStyle = ref({
   transition: 'none',
 })
 
+const isCompact = ref(false)
+let fullContentWidth = 0
+
+function checkOverflow() {
+  const switcherEl = switcherRef.value
+  if (!switcherEl)
+    return
+
+  if (!isCompact.value) {
+    fullContentWidth = switcherEl.scrollWidth
+  }
+
+  isCompact.value = fullContentWidth > switcherEl.clientWidth
+}
+
 function handleItemClick(itemId: T) {
   if (props.disabled)
     return
@@ -69,12 +84,27 @@ watch(model, () => {
   updateGliderPosition()
 }, { flush: 'post' })
 
+watch(isCompact, () => {
+  gliderStyle.value.transition = 'none'
+  updateGliderPosition()
+}, { flush: 'post' })
+
 useResizeObserver(switcherRef, () => {
+  checkOverflow()
   gliderStyle.value.transition = 'none'
   updateGliderPosition()
 })
 
+watch(() => props.items, () => {
+  isCompact.value = false
+  nextTick(() => {
+    checkOverflow()
+    updateGliderPosition()
+  })
+}, { deep: true })
+
 onMounted(() => {
+  checkOverflow()
   updateGliderPosition()
 
   nextTick(() => {
@@ -94,6 +124,7 @@ onMounted(() => {
     :class="{
       'is-disabled': disabled,
       'is-full-width': fullWidth,
+      'is-compact': isCompact,
     }"
   >
     <div class="kit-view-switcher-glider" :style="gliderStyle" />
@@ -131,6 +162,7 @@ onMounted(() => {
   user-select: none;
   transition: opacity 0.2s ease-out;
   height: 46px;
+  max-width: 100%;
 
   &.is-disabled {
     opacity: 0.6;
@@ -140,6 +172,12 @@ onMounted(() => {
   &.is-full-width {
     display: flex;
     width: 100%;
+  }
+
+  &.is-compact {
+    .kit-view-switcher-label {
+      display: none;
+    }
   }
 }
 

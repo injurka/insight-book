@@ -4,6 +4,11 @@
   "private": true,
   "type": "module",
   "packageManager": "bun@1.3.14",
+  "overrides": {
+    "vue": "3.5.40",
+    "vue-router": "^5.2.0",
+    "pinia": "4.0.2"
+  },
   "engines": {
     "bun": ">=1.1.30"
   },
@@ -17,10 +22,12 @@
     "dev": "turbo dev",
     "dev:client": "turbo dev --filter=@injurkx/insight-book-client",
     "dev:server": "turbo dev --filter=@injurka/insight-book-server",
+    "dev:native": "turbo tauri:dev --filter=@injurka/insight-book-native",
     "--------------------------------<      BUILD     >--------------------------------": "",
     "build": "turbo build",
     "build:client": "turbo build --filter=@injurkx/insight-book-client",
     "build:server": "turbo build --filter=@injurka/insight-book-server",
+    "build:native": "turbo tauri:build --filter=@injurka/insight-book-native",
     "--------------------------------< LINT & FORMAT >---------------------------------": "",
     "lint": "turbo lint",
     "lint:fix": "turbo lint:fix",
@@ -34,5 +41,8 @@
     "turbo": "^2.10.7",
     "lefthook": "^2.1.10",
     "skott": "^0.35.11"
+  },
+  "patchedDependencies": {
+    "vue-i18n@11.4.8": "patches/vue-i18n@11.4.8.patch"
   }
 }

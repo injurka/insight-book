@@ -1,13 +1,13 @@
 {
-  "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
+  "$schema": "../../../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "insight-book",
   "version": "0.1.0",
   "identifier": "ru.insightbook.insightbook",
   "build": {
-    "frontendDist": "../dist",
+    "frontendDist": "../../client/dist",
     "devUrl": "http://localhost:5173",
-    "beforeDevCommand": "bun run dev",
-    "beforeBuildCommand": "bun run build"
+    "beforeDevCommand": "bun --cwd ../../.. run dev:client",
+    "beforeBuildCommand": "bun --cwd ../../.. run build:client"
   },
   "app": {
     "windows": [

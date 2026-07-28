@@ -13,6 +13,10 @@
 			"path": "apps/server"
 		},
 		{
+			"name": "native",
+			"path": "apps/native"
+		},
+		{
 			"name": "zh-dict-parser",
 			"path": "tools/zh-dict-parser"
 		},

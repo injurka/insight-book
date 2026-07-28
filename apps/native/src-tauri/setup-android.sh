@@ -5,7 +5,7 @@ set -e
 echo "Configuring Android project for Firebase and Permissions..."
 
 # Paths
-ANDROID_DIR="apps/client/src-tauri/gen/android"
+ANDROID_DIR="apps/native/src-tauri/gen/android"
 MANIFEST_PATH="$ANDROID_DIR/app/src/main/AndroidManifest.xml"
 PROJECT_GRADLE="$ANDROID_DIR/build.gradle"
 PROJECT_GRADLE_KTS="$ANDROID_DIR/build.gradle.kts"

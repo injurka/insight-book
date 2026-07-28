@@ -28,17 +28,22 @@ export default defineConfig({
   },
 
   resolve: {
+    dedupe: ['vue', 'vue-i18n', 'vue-router', 'pinia', '@injurka/insight-book-plugin-api'],
     alias: {
       '~': fileURLToPath(new URL('../src', import.meta.url)),
-      '@injurka/insight-book-plugin-api': fileURLToPath(new URL('../../../packages/plugin-api/src', import.meta.url)),
       '@injurka/insight-book-plugin-grammar-rules': fileURLToPath(new URL('../../../packages/plugin-grammar-rules/src', import.meta.url)),
     },
+  },
+
+  optimizeDeps: {
+    include: ['vue', 'vue-i18n', 'vue-router', 'pinia'],
   },
 
   plugins: [
     Vue(),
     federation({
       name: 'insight_book_host',
+      dts: false,
       shared: {
         'vue': { singleton: true },
         'vue-router': { singleton: true },

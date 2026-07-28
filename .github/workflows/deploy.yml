@@ -168,7 +168,7 @@ jobs:
         run: |
           VERSION=${GITHUB_REF_NAME#v}
           echo "Syncing version to $VERSION"
-          for file in apps/client/src-tauri/tauri.conf.json apps/client/package.json package.json; do
+          for file in apps/native/src-tauri/tauri.conf.json apps/client/package.json package.json; do
             if [ -f "$file" ]; then
               jq ".version = \"$VERSION\"" "$file" > tmp.json && mv tmp.json "$file"
               echo "Updated $file"
@@ -199,7 +199,7 @@ jobs:
       - name: Cache Rust
         uses: Swatinem/rust-cache@v2
         with:
-          workspaces: 'apps/client/src-tauri -> apps/client/src-tauri/target'
+          workspaces: 'apps/native/src-tauri -> apps/native/src-tauri/target'
 
       - name: Install frontend dependencies
         run: bun install
@@ -213,6 +213,7 @@ jobs:
           VITE_APP_VERSION: ${{ github.ref_name }}
         with:
           releaseId: ${{ needs.create-release.outputs.release_id }}
+          projectPath: apps/native
           args: ${{ matrix.args }}
 
   # ─── JOB 6: Сборка Android APK ─────────────────────────
@@ -231,7 +232,7 @@ jobs:
         run: |
           VERSION=${GITHUB_REF_NAME#v}
           echo "Syncing version to $VERSION"
-          for file in apps/client/src-tauri/tauri.conf.json apps/client/package.json package.json; do
+          for file in apps/native/src-tauri/tauri.conf.json apps/client/package.json package.json; do
             if [ -f "$file" ]; then
               jq ".version = \"$VERSION\"" "$file" > tmp.json && mv tmp.json "$file"
               echo "Updated $file"
@@ -264,7 +265,7 @@ jobs:
       - name: Cache Rust
         uses: Swatinem/rust-cache@v2
         with:
-          workspaces: 'apps/client/src-tauri -> apps/client/src-tauri/target'
+          workspaces: 'apps/native/src-tauri -> apps/native/src-tauri/target'
 
       - name: Install frontend dependencies
         run: bun install
@@ -272,27 +273,27 @@ jobs:
           SKIP_INSTALL_SIMPLE_GIT_HOOKS: 1
 
       - name: Initialize Android project
-        run: bun run --cwd apps/client tauri:android:init
+        run: bun run --cwd apps/native tauri:android:init
         env:
           NDK_HOME: ${{ env.ANDROID_HOME }}/ndk/26.3.11579264
 
       - name: Configure Android Project (Firebase & Permissions)
-        run: ./apps/client/src-tauri/setup-android.sh
+        run: ./apps/native/src-tauri/setup-android.sh
 
       - name: Inject google-services.json
         env:
           GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
         run: |
-          mkdir -p apps/client/src-tauri/gen/android/app
-          echo "$GOOGLE_SERVICES_JSON" > apps/client/src-tauri/gen/android/app/google-services.json
+          mkdir -p apps/native/src-tauri/gen/android/app
+          echo "$GOOGLE_SERVICES_JSON" > apps/native/src-tauri/gen/android/app/google-services.json
 
       - name: Generate Android Icons
         run: |
-          cd apps/client
-          bunx tauri icon public/logo.png
+          cd apps/native
+          bunx tauri icon ../client/public/logo.png
 
       - name: Build Android APK
-        run: bun run --cwd apps/client tauri:android:build
+        run: bun run --cwd apps/native tauri:android:build
         env:
           NDK_HOME: ${{ env.ANDROID_HOME }}/ndk/26.3.11579264
           VITE_APP_VERSION: ${{ github.ref_name }}
@@ -301,7 +302,7 @@ jobs:
         uses: r0adkll/sign-android-release@v1
         id: sign_app
         with:
-          releaseDirectory: apps/client/src-tauri/gen/android/app/build/outputs/apk/universal/release
+          releaseDirectory: apps/native/src-tauri/gen/android/app/build/outputs/apk/universal/release
           signingKeyBase64: ${{ secrets.ANDROID_KEY_BASE64 }}
           alias: ${{ secrets.ANDROID_KEY_ALIAS }}
           keyStorePassword: ${{ secrets.ANDROID_KEY_PASSWORD }}
