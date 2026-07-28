@@ -242,9 +242,6 @@
       },
     },
   },
-  "patchedDependencies": {
-    "vue-i18n@11.4.8": "patches/vue-i18n@11.4.8.patch",
-  },
   "overrides": {
     "pinia": "4.0.2",
     "vue": "3.5.40",

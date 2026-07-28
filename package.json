@@ -41,8 +41,5 @@
     "turbo": "^2.10.7",
     "lefthook": "^2.1.10",
     "skott": "^0.35.11"
-  },
-  "patchedDependencies": {
-    "vue-i18n@11.4.8": "patches/vue-i18n@11.4.8.patch"
   }
 }
