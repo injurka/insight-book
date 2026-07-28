@@ -45,10 +45,10 @@ export const activityRouter = new Elysia({ prefix: '/api/activity' })
     set.status = 500
     return { error: 'Internal Server Error' }
   })
-  .get('/stats', async ({ userId }: any) => {
+  .get('/stats', async ({ userId }) => {
     return await activityService.getActivityStats(userId!)
   }, { requireAuth: true })
-  .get('/tokens', async ({ userId, query }: any) => {
+  .get('/tokens', async ({ userId, query }) => {
     return await activityService.getTokenUsage(userId!, query.period)
   }, {
     requireAuth: true,

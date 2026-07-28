@@ -5,6 +5,7 @@ import { computed, reactive, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { KitBtn, KitSelect } from '~/components/01.kit'
 import { DIFFICULTY_SYSTEMS } from '~/shared/constants/difficulties'
+import { pluginManager } from '~/shared/plugins/plugin-manager'
 import { useDictionaryStore } from '../../../store/dictionary.store'
 
 defineOptions({
@@ -12,6 +13,8 @@ defineOptions({
 })
 
 const emit = defineEmits(['start', 'close'])
+
+const customTrainingModes = computed(() => pluginManager.getWidgets('dictionary:training-modes'))
 
 const dictStore = useDictionaryStore()
 const { t } = useI18n()
@@ -216,6 +219,14 @@ function start() {
             <span class="mode-desc">{{ t('dictionary.radicalsDesc') }}</span>
           </div>
         </template>
+
+        <!-- Dynamic plugin training mode widgets -->
+        <component
+          :is="widget.component"
+          v-for="widget in customTrainingModes"
+          :key="widget.id"
+          v-bind="widget.props"
+        />
       </div>
     </div>
 

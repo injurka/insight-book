@@ -17,6 +17,18 @@ description: Автоматически применяется для работ
      - `.../<module-or-feature>/model/index.ts` — реэкспорт типов (`export * from './types'`).
      - `.../<module-or-feature>/index.ts` — при необходимости реэкспорт модели наружу (`export * from './model'`).
 
+6. **Объявление Props:**
+   - Запрещено объявлять пропсы инлайн прямо внутри `defineProps<{ ... }>()`.
+   - Всегда выделяй пропсы в отдельный интерфейс `interface Props` над вызовом `defineProps`:
+     ```ts
+     interface Props {
+       title: string
+       count?: number
+     }
+
+     const props = defineProps<Props>()
+     ```
+
 ## Работа с документацией (MCP)
 - Если ты сомневаешься в синтаксисе Vue 3, Pinia или Vue Router, **не выдумывай код!** Сначала вызови инструменты из MCP-сервера `vue-docs` (например, `vue_api_lookup` или `pinia_docs_search`), прочитай официальный ответ, и только потом пиши реализацию.
 - Для поиска готовых композитных функций (composables) всегда сначала ищи их в документации VueUse через этот же MCP-сервер.

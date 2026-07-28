@@ -140,6 +140,24 @@
     "subtitle": "Память, оффлайн режим и ИИ",
     "interfaceTitle": "Интерфейс",
     "pluginsTitle": "Плагины",
+    "pluginsSubtitle": "Управление дополнительными модулями и динамическими плагинами по URL",
+    "addRemotePlugin": "Добавить по URL",
+    "staticPlugins": "Встроенные модули",
+    "dynamicPlugins": "Установленные динамические плагины",
+    "noDynamicPlugins": "У вас пока нет установленных динамических плагинов",
+    "installPluginModalTitle": "Установка динамического плагина",
+    "securityWarningTitle": "Предупреждение по безопасности",
+    "securityWarningText": "Плагины сторонних разработчиков выполняют JavaScript-код в контексте вашей сессии. Устанавливайте плагины только из проверенных и надежных источников.",
+    "manifestUrlLabel": "URL манифеста плагина (JSON):",
+    "installConfirm": "Подтвердить и установить",
+    "plugins": {
+      "emptyUrl": "Укажите URL манифеста плагина",
+      "installFailed": "Не удалось загрузить плагин по указанному URL",
+      "installSuccess": "Плагин \"{name}\" успешно установлен!",
+      "enabled": "Плагин включен",
+      "disabled": "Плагин отключен",
+      "uninstalled": "Плагин удален"
+    },
     "systemTitle": "Система",
     "hoverRevealBg": "Эффект подсветки фона",
     "appLanguage": "Язык приложения",
@@ -198,6 +216,12 @@
       "check_pronunciation_llm": "Анализ произношения (LLM)",
       "chat_ai": "Свободный вопрос (ИИ Чат)",
       "generate_quiz": "Генерация квиза"
+    }
+  },
+  "plugins": {
+    "grammar-rules": {
+      "name": "Правила грамматики",
+      "description": "Изучайте и проверяйте знание грамматических правил языка."
     }
   },
   "library": {

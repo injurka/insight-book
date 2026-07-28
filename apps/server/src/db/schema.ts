@@ -440,3 +440,36 @@ export const pregeneratedQuestions = sqliteTable('pregenerated_questions', {
 export const userQuizProgressRelations = relations(userQuizProgress, ({ one }) => ({
   user: one(users, { fields: [userQuizProgress.userId], references: [users.id] }),
 }))
+
+export const userPlugins = sqliteTable('user_plugins', {
+  userId: integer('userId').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  pluginId: text('pluginId').notNull(),
+  manifestUrl: text('manifestUrl').notNull(),
+  settings: text('settings'),
+  isEnabled: integer('isEnabled', { mode: 'boolean' }).notNull().default(true),
+  createdAt: text('createdAt').notNull().default(sql`(datetime('now'))`),
+}, t => [
+  primaryKey({ columns: [t.userId, t.pluginId] }),
+])
+
+export const userPluginsRelations = relations(userPlugins, ({ one }) => ({
+  user: one(users, { fields: [userPlugins.userId], references: [users.id] }),
+}))
+
+export const catalogPlugins = sqliteTable('catalog_plugins', {
+  id: text('id').primaryKey(),
+  name: text('name').notNull(),
+  version: text('version').notNull(),
+  description: text('description'),
+  icon: text('icon'),
+  author: text('author'),
+  /** URL, по которому клиент запрашивает manifest.json (и remoteEntry.js относительно него) */
+  manifestUrl: text('manifestUrl').notNull(),
+  uploadedBy: integer('uploadedBy').references(() => users.id, { onDelete: 'set null' }),
+  createdAt: text('createdAt').notNull().default(sql`(datetime('now'))`),
+  updatedAt: text('updatedAt').notNull().default(sql`(datetime('now'))`),
+})
+
+export const catalogPluginsRelations = relations(catalogPlugins, ({ one }) => ({
+  uploader: one(users, { fields: [catalogPlugins.uploadedBy], references: [users.id] }),
+}))

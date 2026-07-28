@@ -4,10 +4,12 @@ import { PORT } from './config'
 import { activityRouter } from './controllers/activity.controller'
 import { authRouter, authUploadsRouter } from './controllers/auth.controller'
 import { bookController, ttsController, uploadsController } from './controllers/book.controller'
+import { catalogRouter } from './controllers/catalog.controller'
 import { dictionaryController } from './controllers/dictionary.controller'
 import { highlightRouter } from './controllers/highlight.controller'
 import { pushRouter } from './controllers/push.controller'
 import { quizRouter } from './controllers/quiz.controller'
+import { pluginRouter } from './controllers/user-plugin.controller'
 
 import { initScheduler } from './services/scheduler.service'
 import { withCors } from './utils/cors'
@@ -27,6 +29,8 @@ const app = new Elysia()
   .use(pushRouter)
   .use(highlightRouter)
   .use(dictionaryController)
+  .use(pluginRouter)
+  .use(catalogRouter)
   .get('/health', () => ({ status: 'ok' }))
 
 Bun.serve({

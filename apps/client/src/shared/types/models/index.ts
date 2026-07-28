@@ -336,3 +336,12 @@ export interface PromptItem {
   prompt: string
   userId?: number
 }
+
+export interface UserPluginRecord {
+  userId: number
+  pluginId: string
+  manifestUrl: string
+  settings?: string | null
+  isEnabled: boolean
+  createdAt?: string
+}

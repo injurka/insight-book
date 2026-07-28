@@ -1,4 +1,4 @@
-import type { AuthLoginDto, AuthRegisterDto, AuthSendCodeDto, Book, BookStats, CatalogDeck, CatalogWord, DictDeck, GeneratedWordExamples, Highlight, LlmAnalysis, PageDictEntry, PagePayload, PromptItem, TocItem, UserData, UserDictItem, WordAutoFillResponse } from '../types/models'
+import type { AuthLoginDto, AuthRegisterDto, AuthSendCodeDto, Book, BookStats, CatalogDeck, CatalogWord, DictDeck, GeneratedWordExamples, Highlight, LlmAnalysis, PageDictEntry, PagePayload, PromptItem, TocItem, UserData, UserDictItem, UserPluginRecord, WordAutoFillResponse } from '../types/models'
 import { ofetch } from 'ofetch'
 import { getActivePinia } from 'pinia'
 
@@ -447,5 +447,23 @@ export const api = {
       }),
     delete: (id: number) =>
       request<{ success: boolean }>(`/api/highlights/${id}`, { method: 'DELETE' }),
+  },
+
+  plugins: {
+    getMyPlugins: () => request<UserPluginRecord[]>('/api/plugins/my'),
+    installPlugin: (data: { pluginId: string, manifestUrl: string, settings?: string | null, isEnabled?: boolean }) =>
+      request<UserPluginRecord>('/api/plugins', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      }),
+    updatePlugin: (pluginId: string, data: { isEnabled?: boolean, settings?: string | null }) =>
+      request<UserPluginRecord>(`/api/plugins/${pluginId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      }),
+    uninstallPlugin: (pluginId: string) =>
+      request<{ success: boolean }>(`/api/plugins/${pluginId}`, { method: 'DELETE' }),
   },
 }

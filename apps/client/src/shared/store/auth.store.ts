@@ -72,6 +72,29 @@ export const useAuthStore = defineStore('auth', () => {
     }
     finally {
       isAuthReady.value = true
+      if (user.value) {
+        loadUserPlugins().catch(err => console.warn('[Auth Store] Error loading plugins:', err))
+      }
+    }
+  }
+
+  async function loadUserPlugins() {
+    if (!user.value)
+      return
+
+    try {
+      const userPlugins = await repos.plugin.getMyPlugins()
+      const router = (await import('~/shared/lib/router')).default
+      const { pluginManager } = await import('~/shared/plugins/plugin-manager')
+
+      for (const pluginRecord of userPlugins) {
+        if (pluginRecord.isEnabled && pluginRecord.manifestUrl) {
+          await pluginManager.loadRemotePlugin(pluginRecord.manifestUrl, router)
+        }
+      }
+    }
+    catch (e) {
+      console.warn('[Auth Store] Failed to load user plugins:', e)
     }
   }
 
@@ -87,7 +110,7 @@ export const useAuthStore = defineStore('auth', () => {
         const sub = await reg.pushManager.getSubscription()
         if (sub) {
           await sub.unsubscribe()
-          await repos.push.unsubscribeWeb(sub.endpoint).catch(() => {})
+          await repos.push.unsubscribeWeb(sub.endpoint).catch(() => { })
         }
       }
     }
@@ -99,6 +122,7 @@ export const useAuthStore = defineStore('auth', () => {
     localStorage.removeItem('insight_uid')
     localStorage.removeItem('insight_user_data')
     localStorage.removeItem('insight_auth_mode')
+
     user.value = null
   }
 

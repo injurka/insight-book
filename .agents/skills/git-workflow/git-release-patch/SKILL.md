@@ -12,6 +12,6 @@ description: Применяется, когда пользователь про�
 1. Убедись, что находишься в корне проекта.
 2. Запусти скрипт для выпуска патч-релиза:
    ```bash
-   bash .agents/skills/git-release-patch/scripts/release-patch.sh
+   bash .agents/skills/git-workflow/git-release-patch/scripts/release-patch.sh
    ```
 3. Сообщи пользователю об успешном создании нового тега и его отправке в репозиторий.

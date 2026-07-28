@@ -139,6 +139,24 @@
     "subtitle": "Storage, Offline Mode, and AI",
     "interfaceTitle": "Interface",
     "pluginsTitle": "Plugins",
+    "pluginsSubtitle": "Manage additional modules and dynamic plugins via URL",
+    "addRemotePlugin": "Add via URL",
+    "staticPlugins": "Built-in modules",
+    "dynamicPlugins": "Installed dynamic plugins",
+    "noDynamicPlugins": "You don't have any dynamic plugins installed yet",
+    "installPluginModalTitle": "Install dynamic plugin",
+    "securityWarningTitle": "Security warning",
+    "securityWarningText": "Third-party plugins execute JavaScript code in the context of your session. Only install plugins from trusted and reliable sources.",
+    "manifestUrlLabel": "Plugin manifest URL (JSON):",
+    "installConfirm": "Confirm and install",
+    "plugins": {
+      "emptyUrl": "Enter the plugin manifest URL",
+      "installFailed": "Failed to load the plugin from the specified URL",
+      "installSuccess": "Plugin \"{name}\" installed successfully!",
+      "enabled": "Plugin enabled",
+      "disabled": "Plugin disabled",
+      "uninstalled": "Plugin removed"
+    },
     "systemTitle": "System",
     "hoverRevealBg": "Hover reveal background effect",
     "appLanguage": "App Language",
@@ -197,6 +215,12 @@
       "check_pronunciation_llm": "Pronunciation Analysis (LLM)",
       "chat_ai": "Free Question (AI Chat)",
       "generate_quiz": "Quiz Generation"
+    }
+  },
+  "plugins": {
+    "grammar-rules": {
+      "name": "Grammar Rules",
+      "description": "Learn and test language grammar rules."
     }
   },
   "library": {

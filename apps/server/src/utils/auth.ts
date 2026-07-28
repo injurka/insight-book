@@ -3,7 +3,7 @@ import jwt from 'jsonwebtoken'
 import { AUTH_MODE, JWT_SECRET } from '../config'
 import { AppError } from './errors'
 
-export const authPlugin = new Elysia({ name: 'auth' }).derive(({ headers }) => {
+export const authPlugin = new Elysia({ name: 'auth' }).derive({ as: 'scoped' }, ({ headers }) => {
   if (AUTH_MODE === 'single') {
     return { userId: 1 }
   }

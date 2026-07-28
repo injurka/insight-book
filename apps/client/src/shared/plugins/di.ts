@@ -6,6 +6,7 @@ import { authRepository } from '~/shared/repositories/auth.repository'
 import { bookRepository } from '~/shared/repositories/book.repository'
 import { dictionaryRepository } from '~/shared/repositories/dictionary.repository'
 import { highlightsRepository } from '~/shared/repositories/highlights.repository'
+import { pluginRepository } from '~/shared/repositories/plugin.repository'
 import { pushRepository } from '~/shared/repositories/push.repository'
 import { quizRepository } from '~/shared/repositories/quiz.repository'
 import { storageRepository } from '~/shared/repositories/storage.repository'
@@ -17,6 +18,7 @@ export interface Repositories {
   book: typeof bookRepository
   dictionary: typeof dictionaryRepository
   highlights: typeof highlightsRepository
+  plugin: typeof pluginRepository
   push: typeof pushRepository
   quiz: typeof quizRepository
   storage: typeof storageRepository
@@ -29,6 +31,7 @@ export const defaultRepositories: Repositories = {
   book: bookRepository,
   dictionary: dictionaryRepository,
   highlights: highlightsRepository,
+  plugin: pluginRepository,
   push: pushRepository,
   quiz: quizRepository,
   storage: storageRepository,

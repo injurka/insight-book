@@ -1,0 +1,8 @@
+{
+  "id": "grammar-rules",
+  "name": "Grammar Rules",
+  "version": "1.0.0",
+  "description": "A plugin to learn and test language grammar rules.",
+  "icon": "mdi:school-outline",
+  "entryUrl": "./remoteEntry.js"
+}

@@ -4,7 +4,7 @@ import { authPlugin } from '../utils/auth'
 
 export const highlightRouter = new Elysia({ prefix: '/api/highlights' })
   .use(authPlugin)
-  .get('/', async ({ query, userId }: any) => {
+  .get('/', async ({ query, userId }) => {
     const bookId = query.bookId ? Number(query.bookId) : undefined
     return highlightService.getHighlights(userId, bookId)
   }, {
@@ -12,7 +12,7 @@ export const highlightRouter = new Elysia({ prefix: '/api/highlights' })
       bookId: t.Optional(t.String()),
     })),
   })
-  .post('/', async ({ body, userId }: any) => {
+  .post('/', async ({ body, userId }) => {
     return highlightService.createHighlight(userId, body)
   }, {
     body: t.Object({
@@ -22,11 +22,11 @@ export const highlightRouter = new Elysia({ prefix: '/api/highlights' })
       note: t.Optional(t.String()),
       color: t.Optional(t.String()),
       chapter: t.Optional(t.String()),
-      pageNum: t.Optional(t.Number()),
+      pageNum: t.Number(),
       analysisData: t.Optional(t.Any()),
     }),
   })
-  .put('/:id', async ({ params, body, userId }: any) => {
+  .put('/:id', async ({ params, body, userId }) => {
     return highlightService.updateHighlight(Number(params.id), userId, body)
   }, {
     params: t.Object({ id: t.String() }),
@@ -40,7 +40,7 @@ export const highlightRouter = new Elysia({ prefix: '/api/highlights' })
       analysisData: t.Optional(t.Any()),
     }),
   })
-  .delete('/:id', async ({ params, userId }: any) => {
+  .delete('/:id', async ({ params, userId }) => {
     return highlightService.deleteHighlight(Number(params.id), userId)
   }, {
     params: t.Object({ id: t.String() }),

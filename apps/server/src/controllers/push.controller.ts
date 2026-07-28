@@ -54,8 +54,17 @@ export const pushRouter = new Elysia({ prefix: '/api/push' })
       token: t.Optional(t.String()),
     }),
   })
-  .put('/settings', async ({ userId, body }: any) => {
-    return pushService.updatePushSettings(userId, body as any)
+  .put('/settings', async ({ userId, body }) => {
+    const targetDeckId = body.targetDeckId === 'all'
+      ? 'all'
+      : (typeof body.targetDeckId === 'number'
+          ? body.targetDeckId
+          : (body.targetDeckId ? Number(body.targetDeckId) : undefined))
+
+    return pushService.updatePushSettings(userId, {
+      ...body,
+      targetDeckId,
+    })
   }, {
     body: t.Object({
       targetDeckId: t.Optional(t.Union([t.String(), t.Number()])),

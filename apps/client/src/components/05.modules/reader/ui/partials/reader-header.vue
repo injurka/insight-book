@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { KitBtn, KitDropdown, KitTooltip } from '~/components/01.kit'
 import { AppRoutePaths } from '~/shared/constants/routes'
+import { pluginManager } from '~/shared/plugins/plugin-manager'
 import { useAnalysisStore } from '~/shared/store/analysis/analysis.store.ts'
 import { useGlobalSettingsStore } from '~/shared/store/settings.store'
 import { useReaderStore } from '../../store/reader.store'
@@ -22,6 +23,8 @@ const readerStore = useReaderStore()
 const analysisStore = useAnalysisStore()
 const settingsStore = useGlobalSettingsStore()
 const { t } = useI18n()
+
+const readerHeaderWidgets = computed(() => pluginManager.getWidgets('reader:header-actions'))
 
 const router = useRouter()
 
@@ -87,6 +90,13 @@ watch(() => props.isVisible, (visible) => {
         @click="readerStore.tocOpen = true"
       />
     </KitTooltip>
+
+    <component
+      :is="widget.component"
+      v-for="widget in readerHeaderWidgets"
+      :key="widget.id"
+      v-bind="widget.props"
+    />
 
     <KitDropdown
       ref="settingsDropdownRef"

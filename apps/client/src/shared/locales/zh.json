@@ -140,6 +140,24 @@
     "subtitle": "存储、离线模式和 AI",
     "interfaceTitle": "界面",
     "pluginsTitle": "插件",
+    "pluginsSubtitle": "管理附加模块和通过 URL 安装的动态插件",
+    "addRemotePlugin": "通过 URL 添加",
+    "staticPlugins": "内置模块",
+    "dynamicPlugins": "已安装的动态插件",
+    "noDynamicPlugins": "您还没有安装任何动态插件",
+    "installPluginModalTitle": "安装动态插件",
+    "securityWarningTitle": "安全警告",
+    "securityWarningText": "第三方插件会在您的会话上下文中执行 JavaScript 代码。请仅从可信来源安装插件。",
+    "manifestUrlLabel": "插件清单 URL (JSON)：",
+    "installConfirm": "确认并安装",
+    "plugins": {
+      "emptyUrl": "请输入插件清单 URL",
+      "installFailed": "无法从指定 URL 加载插件",
+      "installSuccess": "插件 \"{name}\" 安装成功！",
+      "enabled": "插件已启用",
+      "disabled": "插件已禁用",
+      "uninstalled": "插件已删除"
+    },
     "systemTitle": "系统",
     "hoverRevealBg": "悬停显示背景效果",
     "appLanguage": "应用语言",
@@ -198,6 +216,12 @@
       "check_pronunciation_llm": "发音分析 (LLM)",
       "chat_ai": "自由提问 (AI聊天)",
       "generate_quiz": "测验生成"
+    }
+  },
+  "plugins": {
+    "grammar-rules": {
+      "name": "语法规则",
+      "description": "学习并测试语言语法规则。"
     }
   },
   "library": {

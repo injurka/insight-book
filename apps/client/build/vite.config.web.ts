@@ -1,4 +1,5 @@
 import { fileURLToPath, URL } from 'node:url'
+import { federation } from '@module-federation/vite'
 import Vue from '@vitejs/plugin-vue'
 import AutoImport from 'unplugin-auto-import/vite'
 import Icons from 'unplugin-icons/vite'
@@ -36,6 +37,15 @@ export default defineConfig({
 
   plugins: [
     Vue(),
+    federation({
+      name: 'insight_book_host',
+      shared: {
+        'vue': { singleton: true },
+        'vue-router': { singleton: true },
+        'pinia': { singleton: true },
+        '@injurka/insight-book-plugin-api': { singleton: true },
+      },
+    }),
     AutoImport(autoImportOptionsCfg),
     Compression({
       algorithms: ['gzip'],
