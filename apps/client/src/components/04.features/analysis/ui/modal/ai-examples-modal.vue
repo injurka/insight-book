@@ -4,10 +4,12 @@ import { Icon } from '@iconify/vue'
 import { useI18n } from 'vue-i18n'
 import { KitDialog, KitSkeleton } from '~/components/01.kit'
 
-defineProps<{
+interface Props {
   loading?: boolean
   data?: GeneratedWordExamples | null
-}>()
+}
+
+defineProps<Props>()
 
 const visible = defineModel<boolean>('visible', { required: true })
 const { t } = useI18n()

@@ -10,9 +10,11 @@ import { useReaderStore } from '../../store/reader.store'
 import ReaderParallelMenu from './reader-parallel-menu.vue'
 import ReaderSettingsMenu from './reader-settings-menu.vue'
 
-const props = withDefaults(defineProps<{
+interface Props {
   isVisible?: boolean
-}>(), {
+}
+
+const props = withDefaults(defineProps<Props>(), {
   isVisible: true,
 })
 

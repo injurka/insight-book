@@ -2,11 +2,13 @@
 import type { UserDictItem } from '~/shared/types/models'
 import { KitBtn } from '~/components/01.kit'
 
-const props = defineProps<{
+interface Props {
   card: UserDictItem
   isLoading: boolean
   isPlaying: boolean
-}>()
+}
+
+const props = defineProps<Props>()
 
 const emit = defineEmits<{
   speak: []

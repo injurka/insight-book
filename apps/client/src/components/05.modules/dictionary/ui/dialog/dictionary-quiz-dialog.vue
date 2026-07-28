@@ -7,10 +7,12 @@ import { KitBtn, KitDialog, KitTabs } from '~/components/01.kit'
 
 import { useRepos } from '~/shared/plugins/di'
 
-const props = defineProps<{
+interface Props {
   initialLang?: string
   initialLevel?: string
-}>()
+}
+
+const props = defineProps<Props>()
 
 const emit = defineEmits<{
   success: []

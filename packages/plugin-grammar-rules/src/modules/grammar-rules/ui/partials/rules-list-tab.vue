@@ -6,10 +6,12 @@ import { Icon } from '@iconify/vue'
 import type { Rule } from '@injurka/insight-book-plugin-grammar-rules/shared/types'
 import RuleCard from './rule-card.vue'
 
-defineProps<{
+interface Props {
   filteredRules: Rule[]
   loading?: boolean
-}>()
+}
+
+defineProps<Props>()
 
 const searchQuery = defineModel<string>('searchQuery', { required: true })
 const selectedCategory = defineModel<string>('selectedCategory', { required: true })

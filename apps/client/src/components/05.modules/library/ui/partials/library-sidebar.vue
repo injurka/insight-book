@@ -9,10 +9,12 @@ interface MenuItem {
   icon: string
 }
 
-defineProps<{
+interface Props {
   items: MenuItem[]
   currentView: string
-}>()
+}
+
+defineProps<Props>()
 
 const emit = defineEmits<{
   (e: 'select', id: string): void

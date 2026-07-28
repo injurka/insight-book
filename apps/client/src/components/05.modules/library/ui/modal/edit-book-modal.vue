@@ -9,9 +9,11 @@ import { useToast } from '~/shared/composables/use-toast'
 import { useAuthStore } from '~/shared/store/auth.store'
 import { useEditBookForm } from '../../composables/use-edit-book-form'
 
-const props = defineProps<{
+interface Props {
   book: Book | null
-}>()
+}
+
+const props = defineProps<Props>()
 
 const emit = defineEmits<{
   (e: 'save', payload: { bookData: Partial<Book>, coverFile: File | null }): void

@@ -1,14 +1,16 @@
 <script setup lang="ts">
 import { Icon } from '@iconify/vue'
 
-defineProps<{
+interface Props {
   title: string
   description?: string
   icon?: string
   iconClass?: string
   wrapperClass?: string
   noIcon?: boolean
-}>()
+}
+
+defineProps<Props>()
 </script>
 
 <template>

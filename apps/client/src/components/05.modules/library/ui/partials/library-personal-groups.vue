@@ -6,10 +6,12 @@ import { useI18n } from 'vue-i18n'
 import { KitBtn } from '~/components/01.kit'
 import BookCard from '../book-card.vue'
 
-defineProps<{
+interface Props {
   groups: DisplayGroup[]
   currentView: string
-}>()
+}
+
+defineProps<Props>()
 
 const emit = defineEmits<{
   (e: 'openBook', book: Book): void

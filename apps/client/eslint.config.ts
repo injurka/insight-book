@@ -48,5 +48,12 @@ export default antfu({
     'style/object-property-newline': ['error', {
       allowAllPropertiesOnSameLine: true,
     }],
+    'no-restricted-syntax': [
+      'error',
+      {
+        selector: 'CallExpression[callee.name="defineProps"] > TSTypeParameterInstantiation > TSTypeLiteral',
+        message: 'Не пишите пропсы инлайн в defineProps<{ ... }>(). Выделяйте отдельный interface Props.',
+      },
+    ],
   },
 })

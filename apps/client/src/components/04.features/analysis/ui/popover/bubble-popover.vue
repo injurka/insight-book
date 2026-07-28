@@ -15,10 +15,12 @@ defineOptions({
   inheritAttrs: false,
 })
 
-const props = defineProps<{
+const props = defineProps<Props>()
+
+interface Props {
   box: any
   referenceEl: HTMLElement | null
-}>()
+}
 
 const repos = useRepos()
 

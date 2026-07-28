@@ -7,7 +7,11 @@ import { KitImage, KitTooltip } from '~/components/01.kit'
 import { BookEntity } from '~/components/03.domain/entities/book.entity'
 import { useAuthStore } from '~/shared/store/auth.store'
 
-const props = defineProps<{ book: Book }>()
+interface Props {
+  book: Book
+}
+
+const props = defineProps<Props>()
 
 const emit = defineEmits<{
   (e: 'edit'): void

@@ -3,10 +3,12 @@ import { Icon } from '@iconify/vue'
 import { useI18n } from 'vue-i18n'
 import { KitBtn, KitInput } from '~/components/01.kit'
 
-const props = defineProps<{
+interface Props {
   isLoading?: boolean
   isCodeSent?: boolean
-}>()
+}
+
+const props = defineProps<Props>()
 
 const emit = defineEmits<{
   (e: 'sendCode', email: string): void

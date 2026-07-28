@@ -2,12 +2,14 @@
 import type { UserDictItem } from '~/shared/types/models'
 import { computed } from 'vue'
 
-const props = defineProps<{
+interface Props {
   card: UserDictItem
   choiceOptions: { text: string, isCorrect: boolean }[]
   isAnswerChecked: boolean
   selectedChoice: string | null
-}>()
+}
+
+const props = defineProps<Props>()
 
 const emit = defineEmits<{
   select: [option: { text: string, isCorrect: boolean }]

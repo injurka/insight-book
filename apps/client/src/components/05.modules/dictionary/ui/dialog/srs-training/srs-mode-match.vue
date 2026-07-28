@@ -17,12 +17,14 @@ defineOptions({
   inheritAttrs: false,
 })
 
-const props = defineProps<{
-  card: UserDictItem
-  currentIndex: number
-}>()
+const props = defineProps<Props>()
 
 const emit = defineEmits(['grade'])
+
+interface Props {
+  card: UserDictItem
+  currentIndex: number
+}
 
 const repos = useRepos()
 

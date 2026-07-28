@@ -3,14 +3,16 @@ import { Icon } from '@iconify/vue'
 import { useI18n } from 'vue-i18n'
 import { useGlobalSettingsStore } from '~/shared/store/settings.store'
 
-const props = defineProps<{
+interface Props {
   icon: string
   iconClass?: string
   title: string
   description: string
   used?: number | null
   limit?: number | null
-}>()
+}
+
+const props = defineProps<Props>()
 
 const { t } = useI18n()
 const settingsStore = useGlobalSettingsStore()

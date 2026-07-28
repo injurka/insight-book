@@ -2,7 +2,7 @@
 import type { UserDictItem } from '~/shared/types/models'
 import { KitBtn } from '~/components/01.kit'
 
-const props = defineProps<{
+interface Props {
   card: UserDictItem
   deepDiveData: {
     options: string[]
@@ -10,7 +10,9 @@ const props = defineProps<{
   }
   selectedRadicals: string[]
   isAnswerChecked: boolean
-}>()
+}
+
+const props = defineProps<Props>()
 
 const emit = defineEmits<{
   toggleRadical: [radical: string]

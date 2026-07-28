@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import type { Rule } from '@injurka/insight-book-plugin-grammar-rules/shared/types'
 
-defineProps<{
+interface Props {
   rule: Rule
-}>()
+}
+
+defineProps<Props>()
 
 const categoryLabel = (cat: string) => {
   switch (cat) {

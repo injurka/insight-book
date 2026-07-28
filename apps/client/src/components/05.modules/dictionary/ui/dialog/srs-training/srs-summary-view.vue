@@ -9,13 +9,15 @@ defineOptions({
   inheritAttrs: false,
 })
 
-defineProps<{
+defineProps<Props>()
+
+const emit = defineEmits(['close'])
+
+interface Props {
   stats: { newStudied: number, reviewed: number }
   accuracy: number
   timeSpentMs: number
-}>()
-
-const emit = defineEmits(['close'])
+}
 
 const dictStore = useDictionaryStore()
 const { formatTime } = useSrsQuiz()

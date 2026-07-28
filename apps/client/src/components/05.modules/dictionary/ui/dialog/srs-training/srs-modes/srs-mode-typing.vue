@@ -2,13 +2,15 @@
 import type { UserDictItem } from '~/shared/types/models'
 import { KitBtn, KitInput } from '~/components/01.kit'
 
-const props = defineProps<{
+interface Props {
   card: UserDictItem
   typedAnswer: string
   isAnswerChecked: boolean
   typoFeedback: string
   isAnswerCorrect: boolean
-}>()
+}
+
+const props = defineProps<Props>()
 
 const emit = defineEmits<{
   'update:typedAnswer': [value: string]

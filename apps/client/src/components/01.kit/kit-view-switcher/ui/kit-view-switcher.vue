@@ -3,11 +3,13 @@ import type { ViewSwitcherItem } from '../models/types'
 import { Icon } from '@iconify/vue'
 import { useResizeObserver } from '@vueuse/core'
 
-const props = withDefaults(defineProps<{
+interface Props {
   items: ViewSwitcherItem<T>[]
   disabled?: boolean
   fullWidth?: boolean
-}>(), {
+}
+
+const props = withDefaults(defineProps<Props>(), {
   disabled: false,
   fullWidth: false,
 })

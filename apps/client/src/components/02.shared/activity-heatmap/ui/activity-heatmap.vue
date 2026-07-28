@@ -3,7 +3,7 @@ import { Icon } from '@iconify/vue'
 import { useI18n } from 'vue-i18n'
 import { DIFFICULTY_SYSTEMS } from '~/shared/constants/difficulties'
 
-const props = defineProps<{
+interface Props {
   activityData: { date: string, count: number }[]
   stats?: {
     learnedWords: number
@@ -11,7 +11,9 @@ const props = defineProps<{
     difficulties: { language: string, difficulty: string, count: number }[]
     quizProgress?: { language: string, levelValue: string, bestScore: number, stars: number, unlocked: boolean }[]
   }
-}>()
+}
+
+const props = defineProps<Props>()
 const emit = defineEmits<{
   clickLevel: [data: { language: string, levelValue: string }]
 }>()

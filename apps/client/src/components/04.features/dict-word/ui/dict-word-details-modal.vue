@@ -12,7 +12,11 @@ import { useAnalysisStore } from '~/shared/store/analysis/analysis.store'
 import { useAuthStore } from '~/shared/store/auth.store'
 import { useDictWordExamples } from '../composables/use-dict-word-examples'
 
-const props = defineProps<{ word: UserDictItem | null }>()
+interface Props {
+  word: UserDictItem | null
+}
+
+const props = defineProps<Props>()
 const visible = defineModel<boolean>('visible', { required: true })
 const { speak, isPlaying, isLoading: isTtsLoading, stop } = useTts()
 const { aiData, isAiLoading, generateExamples, clear } = useDictWordExamples()

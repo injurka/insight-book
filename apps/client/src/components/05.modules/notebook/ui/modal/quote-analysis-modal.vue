@@ -5,10 +5,12 @@ import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { KitDialog } from '~/components/01.kit'
 
-const props = defineProps<{
+interface Props {
   visible: boolean
   highlight: Highlight | null
-}>()
+}
+
+const props = defineProps<Props>()
 
 const emit = defineEmits<{
   'update:visible': [value: boolean]

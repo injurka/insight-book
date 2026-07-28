@@ -6,13 +6,15 @@ import { KitBtn } from '~/components/01.kit'
 import BookCard from '../book-card.vue'
 import LibrarySkeletonGrid from './library-skeleton-grid.vue'
 
-const props = defineProps<{
+interface Props {
   books: Book[]
   isLoading: boolean
   page: number
   total: number
   limit: number
-}>()
+}
+
+const props = defineProps<Props>()
 
 const emit = defineEmits<{
   (e: 'loadPage', page: number): void

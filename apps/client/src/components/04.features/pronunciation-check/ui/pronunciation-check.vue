@@ -4,7 +4,7 @@ import { useI18n } from 'vue-i18n'
 import { KitBtn, KitDropdown, KitTooltip } from '~/components/01.kit'
 import { usePronunciationCheck } from '../composables/use-pronunciation-check'
 
-const props = withDefaults(defineProps<{
+interface Props {
   word: string
   language: string
   variant?: 'button' | 'inline'
@@ -12,7 +12,9 @@ const props = withDefaults(defineProps<{
   btnVariant?: 'solid' | 'outlined' | 'text' | 'subtle' | 'tonal'
   btnSize?: 'xs' | 'sm' | 'md' | 'lg'
   tooltipPlacement?: 'top' | 'bottom' | 'left' | 'right' | 'top-start' | 'top-end' | 'bottom-start' | 'bottom-end'
-}>(), {
+}
+
+const props = withDefaults(defineProps<Props>(), {
   variant: 'button',
   btnColor: 'secondary',
   btnVariant: 'tonal',

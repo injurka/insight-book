@@ -10,10 +10,12 @@ import { DIFFICULTY_SYSTEMS } from '~/shared/constants/difficulties'
 import { useAnalysisStore } from '~/shared/store/analysis/analysis.store'
 import { useDictionaryStore } from '../../store/dictionary.store'
 
-const props = defineProps<{
+interface Props {
   isEditMode: boolean
   viewMode: 'list' | 'grid'
-}>()
+}
+
+const props = defineProps<Props>()
 
 const emit = defineEmits<{
   openDetails: [item: UserDictItem]

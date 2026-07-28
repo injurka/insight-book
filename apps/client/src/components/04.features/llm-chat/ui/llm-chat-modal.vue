@@ -8,10 +8,12 @@ import { useToast } from '~/shared/composables/use-toast'
 import { formatMarkdown } from '~/shared/lib/markdown'
 import { useRepos } from '~/shared/plugins/di'
 
-const props = defineProps<{
+interface Props {
   word: string
   language: string
-}>()
+}
+
+const props = defineProps<Props>()
 
 const repos = useRepos()
 

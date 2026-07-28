@@ -8,10 +8,12 @@ export interface TabItem<T extends string | number = string | number> extends Vi
   props?: Record<string, any>
 }
 
-const props = defineProps<{
+interface Props {
   items: TabItem<T>[]
   cache?: boolean
-}>()
+}
+
+const props = defineProps<Props>()
 
 const model = defineModel<T>({ required: true })
 

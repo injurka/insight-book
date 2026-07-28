@@ -4,9 +4,11 @@ import { useRouter } from 'vue-router'
 import { KitBtn, KitInput } from '~/components/01.kit'
 import { GlobalActions } from '~/components/04.features/global-actions'
 
-const props = defineProps<{
+interface Props {
   searchQuery: string
-}>()
+}
+
+const props = defineProps<Props>()
 
 const emit = defineEmits<{
   'update:searchQuery': [value: string]

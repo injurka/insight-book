@@ -6,7 +6,7 @@ import { KitBtn, KitTooltip } from '~/components/01.kit'
 import { PronunciationCheck } from '~/components/04.features/pronunciation-check'
 import { highlightTextQuery } from '~/components/05.modules/notebook/lib/text-tokenizer'
 
-defineProps<{
+interface Props {
   highlight: Highlight
   book: Book
   searchQuery: string
@@ -15,7 +15,9 @@ defineProps<{
   isPlayingTts: boolean
   isLoadingTts: boolean
   isTtsActive: boolean
-}>()
+}
+
+defineProps<Props>()
 
 const emit = defineEmits<{
   openAnalysis: [h: Highlight]

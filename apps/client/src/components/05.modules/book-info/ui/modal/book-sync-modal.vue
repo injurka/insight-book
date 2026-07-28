@@ -6,7 +6,11 @@ import { KitBtn, KitCheckbox, KitDialog } from '~/components/01.kit'
 import { useLibraryStore } from '~/components/05.modules/library/store/library.store'
 import { useAppWakeLock } from '~/shared/composables/use-app-wake-lock'
 
-const props = defineProps<{ bookId: number }>()
+interface Props {
+  bookId: number
+}
+
+const props = defineProps<Props>()
 const visible = defineModel<boolean>('visible', { required: true })
 const libraryStore = useLibraryStore()
 const { t } = useI18n()

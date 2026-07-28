@@ -25,11 +25,13 @@ import SrsModeStandard from './srs-modes/srs-mode-standard.vue'
 import SrsModeTyping from './srs-modes/srs-mode-typing.vue'
 import SrsModeWriting from './srs-modes/srs-mode-writing.vue'
 
-const props = defineProps<{
+interface Props {
   card: UserDictItem | null
   isSubmittingGrade: boolean
   modes?: Record<string, boolean>
-}>()
+}
+
+const props = defineProps<Props>()
 const emit = defineEmits(['grade'])
 
 const repos = useRepos()

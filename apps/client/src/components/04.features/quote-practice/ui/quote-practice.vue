@@ -7,12 +7,14 @@ import { KitBtn, KitDialog } from '~/components/01.kit'
 
 import { useTts } from '~/shared/composables/use-tts'
 
-const props = defineProps<{
+interface Props {
   visible: boolean
   quoteText: string
   quoteTranslation: string
   bookLanguage?: string
-}>()
+}
+
+const props = defineProps<Props>()
 
 const emit = defineEmits<{
   'update:visible': [value: boolean]

@@ -1,14 +1,16 @@
 <script setup lang="ts">
 import type { UserDictItem } from '~/shared/types/models'
 
-const props = defineProps<{
+interface Props {
   card: UserDictItem
   scrambleChunks: { id: number, text: string }[]
   scrambleAnswer: { id: number, text: string }[]
   isAnswerChecked: boolean
   typoFeedback: string
   isAnswerCorrect: boolean
-}>()
+}
+
+const props = defineProps<Props>()
 
 const emit = defineEmits<{
   chunkClick: [chunk: { id: number, text: string }, from: 'source' | 'answer']

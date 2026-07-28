@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import HanziWriter from 'hanzi-writer'
 
-const props = withDefaults(defineProps<{
+interface Props {
   text: string
   mode: 'animation' | 'quiz'
   size?: number
-}>(), {
+}
+
+const props = withDefaults(defineProps<Props>(), {
   size: 100,
 })
 

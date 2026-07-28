@@ -7,7 +7,7 @@ import { KitBtn, KitDialog, KitToggle } from '~/components/01.kit'
 import { useToast } from '~/shared/composables/use-toast'
 import { useRepos } from '~/shared/plugins/di'
 
-const props = defineProps<{
+interface Props {
   visible: boolean
   mode: 'create' | 'edit'
   initialData: {
@@ -23,7 +23,9 @@ const props = defineProps<{
     language: string
   }
   isFetchingTranslation?: boolean
-}>()
+}
+
+const props = defineProps<Props>()
 
 const emit = defineEmits<{
   'update:visible': [value: boolean]

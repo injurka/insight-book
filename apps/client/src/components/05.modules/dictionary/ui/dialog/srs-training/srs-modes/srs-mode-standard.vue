@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import type { UserDictItem } from '~/shared/types/models'
 
-const props = defineProps<{
+interface Props {
   card: UserDictItem
-}>()
+}
+
+const props = defineProps<Props>()
 </script>
 
 <template>

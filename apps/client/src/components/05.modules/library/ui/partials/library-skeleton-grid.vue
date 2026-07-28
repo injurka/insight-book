@@ -1,7 +1,12 @@
 <script setup lang="ts">
 import { KitSkeleton } from '~/components/01.kit'
 
-withDefaults(defineProps<{ count?: number, showTitle?: boolean }>(), {
+interface Props {
+  count?: number
+  showTitle?: boolean
+}
+
+withDefaults(defineProps<Props>(), {
   count: 14,
   showTitle: false,
 })

@@ -6,10 +6,12 @@ import { Icon } from '@iconify/vue'
 import type { Rule, RuleTest } from '@injurka/insight-book-plugin-grammar-rules/shared/types'
 import { useRulesTest } from '../../composables/use-rules-test'
 
-const props = defineProps<{
+interface Props {
   filteredRules: Rule[]
   tests: RuleTest[]
-}>()
+}
+
+const props = defineProps<Props>()
 
 const { t } = useI18n()
 
