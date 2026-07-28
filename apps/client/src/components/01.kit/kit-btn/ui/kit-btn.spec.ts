@@ -3,7 +3,7 @@ import { mount } from '@vue/test-utils'
 import { describe, expect, it } from 'vitest'
 import KitBtn from './kit-btn.vue'
 
-// Mock v-ripple directive
+// Mock v-ripple directivecle
 const vRipple = {
   mounted: () => {},
   unmounted: () => {},

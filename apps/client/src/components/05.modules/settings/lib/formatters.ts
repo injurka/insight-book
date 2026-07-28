@@ -5,8 +5,9 @@ export type { PageRange }
 
 export function formatBytes(bytes: number, decimals = 2): string {
   const t = i18n.global.t
-  if (bytes === 0 || !bytes)
+  if (!bytes || bytes <= 0)
     return `0 ${t('settings.bytes', 'Байт')}`
+
   const k = 1024
   const dm = decimals < 0 ? 0 : decimals
   const sizes = [
@@ -16,11 +17,10 @@ export function formatBytes(bytes: number, decimals = 2): string {
     t('settings.gb', 'ГБ'),
     t('settings.tb', 'ТБ'),
   ]
-  const i = Math.floor(Math.log(bytes) / Math.log(k))
+  const i = Math.min(Math.floor(Math.log(bytes) / Math.log(k)), sizes.length - 1)
+
   return `${Number.parseFloat((bytes / k ** i).toFixed(dm))} ${sizes[i]}`
 }
-
-export type { PageRange }
 
 /**
  * Схлопывает список страниц в непрерывные диапазоны:
@@ -79,7 +79,7 @@ export function formatCurrency(num: number | undefined | null): string {
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency: 'USD',
-    minimumFractionDigits: 2,
+    minimumFractionDigits: num < 0.01 ? 4 : 2,
     maximumFractionDigits: num < 0.01 ? 4 : 2,
   }).format(num)
 }

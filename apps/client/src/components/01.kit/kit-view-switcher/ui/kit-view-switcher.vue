@@ -3,7 +3,7 @@ import type { ViewSwitcherItem } from '../models/types'
 import { Icon } from '@iconify/vue'
 import { useResizeObserver } from '@vueuse/core'
 
-interface Props {
+export interface Props<T extends string | number = string | number> {
   items: ViewSwitcherItem<T>[]
   disabled?: boolean
   fullWidth?: boolean
@@ -39,7 +39,14 @@ function checkOverflow() {
     return
 
   if (!isCompact.value) {
-    fullContentWidth = switcherEl.scrollWidth
+    // В full-width режиме кнопки растягиваются flex'ом, поэтому scrollWidth
+    // контейнера не показывает реальную ширину контента — считаем её сами
+    const buttonsWidth = Object.values(buttonRefs.value)
+      .reduce((sum, el) => sum + (el?.scrollWidth ?? 0), 0)
+    const styles = getComputedStyle(switcherEl)
+    const padding = parseFloat(styles.paddingLeft) + parseFloat(styles.paddingRight)
+
+    fullContentWidth = buttonsWidth + padding
   }
 
   isCompact.value = fullContentWidth > switcherEl.clientWidth
@@ -172,6 +179,7 @@ onMounted(() => {
   &.is-full-width {
     display: flex;
     width: 100%;
+    overflow: hidden;
   }
 
   &.is-compact {
@@ -212,6 +220,7 @@ onMounted(() => {
 
   .is-full-width & {
     flex: 1;
+    min-width: 0;
     justify-content: center;
   }
 

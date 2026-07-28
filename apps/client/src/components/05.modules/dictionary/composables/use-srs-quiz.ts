@@ -35,13 +35,14 @@ export function useSrsQuiz() {
     // Перемешиваем пул, чтобы варианты каждый раз были уникальными
     const shuffled = [...pool].sort(() => 0.5 - Math.random())
 
+    const correctClean = correctItem.translation?.split(',')[0].split(';')[0].replace(/<[^>]+(>|$)/g, '').trim()
+
     for (const w of shuffled) {
       if (distractors.size >= count)
         break
       if (w.translation) {
         // Очищаем HTML и берем только первое значение (чтобы варианты не были слишком длинными)
         const cleanTrans = w.translation.split(',')[0].split(';')[0].replace(/<[^>]+(>|$)/g, '').trim()
-        const correctClean = correctItem.translation?.split(',')[0].split(';')[0].replace(/<[^>]+(>|$)/g, '').trim()
 
         if (cleanTrans && cleanTrans !== correctClean) {
           distractors.add(cleanTrans)
@@ -53,7 +54,10 @@ export function useSrsQuiz() {
     const fallbacks = (i18n.global.t('srs.fallbackWords') as string).split(',')
     let i = 0
     while (distractors.size < count && i < fallbacks.length) {
-      distractors.add(fallbacks[i])
+      const fallback = fallbacks[i].trim()
+      if (fallback && fallback !== correctClean) {
+        distractors.add(fallback)
+      }
       i++
     }
 

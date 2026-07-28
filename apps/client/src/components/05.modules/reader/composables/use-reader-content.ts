@@ -85,7 +85,7 @@ export function useReaderContent() {
             grammarHtml = `<span class="grammar-rules-container">${badges}</span>`
           }
 
-          const translationHtml = `<span class="interleaved-translation ${blurClass}" onclick="this.classList.remove('is-blurred')"><span class="translation-text">${translationText}</span>${grammarHtml}</span>`
+          const translationHtml = `<span class="interleaved-translation ${blurClass}" onclick="this.classList.remove('is-blurred')"><span class="translation-text">${escapeHtml(translationText)}</span>${grammarHtml}</span>`
           span.insertAdjacentHTML('afterend', translationHtml)
           translatedSentIds.add(sentId)
         }
@@ -112,7 +112,7 @@ export function useReaderContent() {
               grammarHtml = `<span class="grammar-rules-container">${badges}</span>`
             }
 
-            span.innerHTML = `<span class="split-translation ${blurClass}" onclick="this.classList.remove('is-blurred')"><span class="translation-text">${translationText}</span>${grammarHtml}</span>`
+            span.innerHTML = `<span class="split-translation ${blurClass}" onclick="this.classList.remove('is-blurred')"><span class="translation-text">${escapeHtml(translationText)}</span>${grammarHtml}</span>`
             span.classList.add('has-translation')
             translatedSentIds.add(sentId)
           }

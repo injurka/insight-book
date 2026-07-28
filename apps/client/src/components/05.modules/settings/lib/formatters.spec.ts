@@ -1,6 +1,6 @@
 import { beforeAll, describe, expect, it } from 'vitest'
 import { localePromise } from '~/shared/plugins/i18n'
-import { collapsePageRanges, formatPageRange, formatPagesList } from './formatters'
+import { collapsePageRanges, formatBytes, formatCurrency, formatNumber, formatPageRange, formatPagesList } from './formatters'
 
 describe('collapsePageRanges', () => {
   it('возвращает пустой массив для пустого списка', () => {
@@ -67,5 +67,75 @@ describe('formatPagesList', () => {
     const result = formatPagesList(pages)
     expect(result).toContain('1, 3, 5')
     expect(result).toContain('... и ещё 5')
+  })
+})
+
+describe('formatBytes', () => {
+  beforeAll(async () => {
+    await localePromise
+  })
+
+  it('0 байт — заглушка', () => {
+    expect(formatBytes(0)).toBe('0 Байт')
+  })
+
+  it('байты без перевода в КБ', () => {
+    expect(formatBytes(500)).toBe('500 Байт')
+  })
+
+  it('килобайты', () => {
+    expect(formatBytes(2048)).toBe('2 КБ')
+  })
+
+  it('мегабайты', () => {
+    expect(formatBytes(5 * 1024 * 1024)).toBe('5 МБ')
+  })
+
+  it('гигабайты', () => {
+    expect(formatBytes(3 * 1024 ** 3)).toBe('3 ГБ')
+  })
+
+  it('дробные значения округляются по decimals', () => {
+    expect(formatBytes(1500)).toBe('1.46 КБ')
+    expect(formatBytes(1500, 3)).toBe('1.465 КБ')
+    expect(formatBytes(1500, 0)).toBe('1 КБ')
+  })
+
+  it('отрицательные значения трактуются как 0 Байт', () => {
+    expect(formatBytes(-1024)).toBe('0 Байт')
+  })
+})
+
+describe('formatNumber', () => {
+  it('undefined и null — ноль', () => {
+    expect(formatNumber(undefined)).toBe('0')
+    expect(formatNumber(null)).toBe('0')
+  })
+
+  it('обычные числа форматируются в локали ru-RU', () => {
+    expect(formatNumber(0)).toBe('0')
+    expect(formatNumber(42)).toBe('42')
+    expect(formatNumber(1234567)).toBe('1 234 567')
+  })
+
+  it('поддерживает кастомную локаль', () => {
+    expect(formatNumber(1234567, 'en-US')).toBe('1,234,567')
+  })
+})
+
+describe('formatCurrency', () => {
+  it('undefined, null и 0 — заглушка', () => {
+    expect(formatCurrency(undefined)).toBe('$0.00')
+    expect(formatCurrency(null)).toBe('$0.00')
+    expect(formatCurrency(0)).toBe('$0.00')
+  })
+
+  it('обычные числа — в USD с двумя знаками', () => {
+    expect(formatCurrency(1234.5)).toBe('$1,234.50')
+    expect(formatCurrency(1)).toBe('$1.00')
+  })
+
+  it('значения меньше цента — четыре знака', () => {
+    expect(formatCurrency(0.001)).toBe('$0.0010')
   })
 })

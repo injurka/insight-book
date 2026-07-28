@@ -12,13 +12,24 @@ export const useAuthStore = defineStore('auth', () => {
   const isAuthReady = ref(false)
 
   async function checkAuth() {
+    try {
+      await syncUser()
+    }
+    finally {
+      isAuthReady.value = true
+      if (user.value) {
+        loadUserPlugins().catch(err => console.warn('[Auth Store] Error loading plugins:', err))
+      }
+    }
+  }
+
+  async function syncUser() {
     const token = localStorage.getItem('insight_token')
     const cachedMode = localStorage.getItem('insight_auth_mode')
 
     if (!token && cachedMode === 'multi') {
       isSingleMode.value = false
       user.value = null
-      isAuthReady.value = true
       return
     }
 
@@ -47,7 +58,19 @@ export const useAuthStore = defineStore('auth', () => {
         localStorage.removeItem('insight_user_data')
       }
     }
-    catch {
+    catch (e: any) {
+      // 401 означает протухший/невалидный токен — разлогиниваем, а не живём на кэше
+      const status = e?.status ?? e?.statusCode ?? e?.response?.status
+
+      if (status === 401) {
+        localStorage.removeItem('insight_token')
+        localStorage.removeItem('insight_uid')
+        localStorage.removeItem('insight_user_data')
+        user.value = null
+
+        return
+      }
+
       const token = localStorage.getItem('insight_token')
       const cachedUser = localStorage.getItem('insight_user_data')
       const cachedMode = localStorage.getItem('insight_auth_mode')
@@ -68,12 +91,6 @@ export const useAuthStore = defineStore('auth', () => {
       }
       else {
         user.value = null
-      }
-    }
-    finally {
-      isAuthReady.value = true
-      if (user.value) {
-        loadUserPlugins().catch(err => console.warn('[Auth Store] Error loading plugins:', err))
       }
     }
   }

@@ -210,16 +210,20 @@ export function usePanZoom(containerRef: Ref<HTMLElement | null>, wrapperRef: Re
     window.removeEventListener('mouseup', handleMouseUp)
   }
 
+  let attachedEl: HTMLElement | null = null
+
   watch(containerRef, (el, oldEl) => {
     if (oldEl)
       detachListeners(oldEl)
     if (el)
       attachListeners(el)
+    attachedEl = el ?? null
   })
 
   onUnmounted(() => {
-    if (containerRef.value)
-      detachListeners(containerRef.value)
+    if (attachedEl)
+      detachListeners(attachedEl)
+
     window.removeEventListener('mousemove', handleMouseMove)
     window.removeEventListener('mouseup', handleMouseUp)
   })

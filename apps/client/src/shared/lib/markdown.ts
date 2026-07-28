@@ -35,7 +35,14 @@ export function formatMarkdown(text: string): string {
     return placeholder
   })
 
-  // 3. Базовый Markdown (жирный, курсив, заголовки)
+  // 3. Экранируем сырой HTML во входном тексте (данные приходят от LLM) —
+  // дальше теги добавляет только сам парсер
+  processed = processed
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+
+  // 4. Базовый Markdown (жирный, курсив, заголовки)
   processed = processed
     .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
     .replace(/\*(.*?)\*/g, '<em>$1</em>')
@@ -62,6 +69,9 @@ export function formatMarkdown(text: string): string {
     processed = processed.replace(`__BLOCK_PLACEHOLDER_${i}__`, blocks[i])
   }
 
-  // Очищаем итоговый HTML для безопасности (DOMPurify сохраняет нужные нам теги)
-  return DOMPurify.sanitize(processed)
+  // Очищаем итоговый HTML для безопасности (разрешены только теги, которые генерирует парсер)
+  return DOMPurify.sanitize(processed, {
+    ALLOWED_TAGS: ['strong', 'em', 'h1', 'h2', 'h3', 'ul', 'li', 'br', 'pre', 'code'],
+    ALLOWED_ATTR: ['class'],
+  })
 }

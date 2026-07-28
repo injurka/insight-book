@@ -103,6 +103,7 @@ function toMfRemoteName(pluginId: string) {
 export function usePluginManager(): PluginManager {
   const plugins = reactive<InsightBookPlugin[]>([])
   const navItems = reactive<PluginNavItem[]>([])
+  const navItemsByPlugin = new Map<string, PluginNavItem[]>()
   const uiWidgets = reactive<ManagedUIWidget[]>([])
 
   const createApiFacade = (): InsightBookPluginApiFacade => ({
@@ -199,6 +200,9 @@ export function usePluginManager(): PluginManager {
         notify,
         addNavigationItem: (item: PluginNavItem) => {
           navItems.push(item)
+          const items = navItemsByPlugin.get(plugin.id) ?? []
+          items.push(item)
+          navItemsByPlugin.set(plugin.id, items)
         },
         registerUIWidget: (
           position: UIPosition,
@@ -313,12 +317,12 @@ export function usePluginManager(): PluginManager {
     }
 
     // Remove navigation items
-    const routePrefix = `plugin-${plugin.id}-`
-    for (let i = navItems.length - 1; i >= 0; i--) {
-      if (navItems[i].routeName.startsWith(routePrefix)) {
-        navItems.splice(i, 1)
-      }
+    for (const item of navItemsByPlugin.get(plugin.id) ?? []) {
+      const idx = navItems.indexOf(item)
+      if (idx !== -1)
+        navItems.splice(idx, 1)
     }
+    navItemsByPlugin.delete(plugin.id)
 
     plugins.splice(index, 1)
     console.warn(`[Plugin Manager] Plugin "${pluginId}" uninstalled.`)
