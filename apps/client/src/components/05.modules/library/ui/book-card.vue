@@ -5,6 +5,7 @@ import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { KitImage, KitTooltip } from '~/components/01.kit'
 import { BookEntity } from '~/components/03.domain/entities/book.entity'
+import { BOOK_COVER_TRANSITION_NAME, coverTransitionBookId } from '~/shared/lib/view-transitions'
 import { useAuthStore } from '~/shared/store/auth.store'
 
 interface Props {
@@ -26,11 +27,18 @@ const progressPercent = computed(() => {
 
   return entity.getProgressPercent()
 })
+
+// Обложка «перелетает» на страницу книги через View Transitions API —
+// имя вешается только на карточку, по которой кликнули (см. shared/lib/view-transitions.ts).
+const coverTransitionStyle = computed(() =>
+  coverTransitionBookId.value === props.book.id
+    ? { viewTransitionName: BOOK_COVER_TRANSITION_NAME }
+    : undefined)
 </script>
 
 <template>
   <div class="book-card" @click="(!book.processStatus || book.processStatus === 'ready') ? emit('click') : null">
-    <div class="cover-wrapper">
+    <div class="cover-wrapper" :style="coverTransitionStyle">
       <KitImage
         :src="book.localCoverUrl || book.coverUrl"
         :alt="t('library.cover')"
@@ -120,6 +128,7 @@ const progressPercent = computed(() => {
     aspect-ratio: 2 / 3;
     border-bottom: 1px solid var(--border-secondary-color);
     overflow: hidden;
+    border-radius: 12px;
 
     .lang-badge {
       position: absolute;

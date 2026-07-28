@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { Icon } from '@iconify/vue'
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { KitBtn, KitImage } from '~/components/01.kit'
 import { useLibraryStore } from '~/components/05.modules/library/store/library.store'
 import { AppRoutePaths } from '~/shared/constants/routes'
+import { BOOK_COVER_TRANSITION_NAME, coverTransitionBookId } from '~/shared/lib/view-transitions'
 import { useAuthStore } from '~/shared/store/auth.store'
 
 const emit = defineEmits<{
@@ -20,6 +21,12 @@ const router = useRouter()
 const { t } = useI18n()
 
 const coverInputRef = ref<HTMLInputElement | null>(null)
+
+// Цель shared-element перехода обложки из библиотеки (View Transitions API)
+const coverTransitionStyle = computed(() =>
+  libraryStore.currentBookInfo && coverTransitionBookId.value === libraryStore.currentBookInfo.id
+    ? { viewTransitionName: BOOK_COVER_TRANSITION_NAME }
+    : undefined)
 
 function triggerCoverInput() {
   if (!authStore.user)
@@ -57,7 +64,12 @@ async function startReading() {
 
 <template>
   <div class="cover-col">
-    <div class="cover-wrapper group" :class="{ 'is-editable': authStore.user && libraryStore.currentBookInfo?.userId === authStore.user?.id }" @click="triggerCoverInput">
+    <div
+      class="cover-wrapper group"
+      :class="{ 'is-editable': authStore.user && libraryStore.currentBookInfo?.userId === authStore.user?.id }"
+      :style="coverTransitionStyle"
+      @click="triggerCoverInput"
+    >
       <KitImage
         :src="libraryStore.currentBookInfo?.localCoverUrl || libraryStore.currentBookInfo?.coverUrl"
         fallback-icon="mdi:book-open-blank-variant"

@@ -8,6 +8,7 @@ import { HoverRevealBg } from '~/components/02.shared/hover-reveal-bg'
 import { useToast } from '~/shared/composables/use-toast'
 import { AppRoutePaths } from '~/shared/constants/routes'
 import { BOOK_TAGS } from '~/shared/constants/tags'
+import { coverTransitionBookId } from '~/shared/lib/view-transitions'
 import { useAuthStore } from '~/shared/store/auth.store'
 import { useGlobalSettingsStore } from '~/shared/store/settings.store'
 import { useLibraryDisplay } from '../composables/use-library-display'
@@ -99,6 +100,8 @@ const menuItems = computed(() => {
 })
 
 function openBookInfo(book: Book) {
+  // Помечаем обложку для shared-element перехода (View Transitions API)
+  coverTransitionBookId.value = book.id
   router.push(AppRoutePaths.Book.Info(book.id))
 }
 

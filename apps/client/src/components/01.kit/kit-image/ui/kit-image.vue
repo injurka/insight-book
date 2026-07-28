@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Icon } from '@iconify/vue'
-import { computed, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { KitSkeleton } from '~/components/01.kit'
 
 interface Props {
@@ -19,6 +19,16 @@ const props = withDefaults(defineProps<Props>(), {
 
 const isLoaded = ref(false)
 const hasError = ref(false)
+const imgRef = ref<HTMLImageElement | null>(null)
+
+onMounted(() => {
+  // Картинка уже в кэше браузера — показываем сразу, без fade-in.
+  // Важно для View Transitions: новый снапшот снимается в первый кадр после монтирования.
+  const img = imgRef.value
+  if (img?.complete && img.naturalWidth > 0) {
+    isLoaded.value = true
+  }
+})
 
 const resolvedSrc = computed(() => {
   if (!props.src)
@@ -65,6 +75,7 @@ function handleError() {
 
     <img
       v-if="resolvedSrc"
+      ref="imgRef"
       :src="resolvedSrc"
       :alt="alt"
       :loading="lazy ? 'lazy' : 'eager'"

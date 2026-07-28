@@ -9,6 +9,7 @@ declare global {
   const ALLOWED_TAG_KEYS: typeof import('../../constants/tags').ALLOWED_TAG_KEYS
   const AppRouteNames: typeof import('../../constants/routes').AppRouteNames
   const AppRoutePaths: typeof import('../../constants/routes').AppRoutePaths
+  const BOOK_COVER_TRANSITION_NAME: typeof import('../../lib/view-transitions').BOOK_COVER_TRANSITION_NAME
   const BOOK_TAGS: typeof import('../../constants/tags').BOOK_TAGS
   const DIFFICULTY_SYSTEMS: typeof import('../../constants/difficulties').DIFFICULTY_SYSTEMS
   const EffectScope: typeof import('vue').EffectScope
@@ -26,6 +27,7 @@ declare global {
   const computedWithControl: typeof import('@vueuse/core').computedWithControl
   const controlledComputed: typeof import('@vueuse/core').controlledComputed
   const controlledRef: typeof import('@vueuse/core').controlledRef
+  const coverTransitionBookId: typeof import('../../lib/view-transitions').coverTransitionBookId
   const createApp: typeof import('vue').createApp
   const createDisposableDirective: typeof import('@vueuse/core').createDisposableDirective
   const createEventHook: typeof import('@vueuse/core').createEventHook
@@ -66,6 +68,7 @@ declare global {
   const isReadonly: typeof import('vue').isReadonly
   const isRef: typeof import('vue').isRef
   const isShallow: typeof import('vue').isShallow
+  const isViewTransitionSupported: typeof import('../../lib/view-transitions').isViewTransitionSupported
   const lazyComponent: typeof import('../../lib/lazy-component').lazyComponent
   const makeDestructurable: typeof import('@vueuse/core').makeDestructurable
   const mapActions: typeof import('pinia').mapActions
@@ -119,6 +122,7 @@ declare global {
   const router: typeof import('../../lib/router').default
   const setActivePinia: typeof import('pinia').setActivePinia
   const setMapStoreSuffix: typeof import('pinia').setMapStoreSuffix
+  const setupViewTransitions: typeof import('../../lib/view-transitions').setupViewTransitions
   const shallowReactive: typeof import('vue').shallowReactive
   const shallowReadonly: typeof import('vue').shallowReadonly
   const shallowRef: typeof import('vue').shallowRef
@@ -371,6 +375,7 @@ declare module 'vue' {
     readonly ALLOWED_TAG_KEYS: UnwrapRef<typeof import('../../constants/tags')['ALLOWED_TAG_KEYS']>
     readonly AppRouteNames: UnwrapRef<typeof import('../../constants/routes')['AppRouteNames']>
     readonly AppRoutePaths: UnwrapRef<typeof import('../../constants/routes')['AppRoutePaths']>
+    readonly BOOK_COVER_TRANSITION_NAME: UnwrapRef<typeof import('../../lib/view-transitions')['BOOK_COVER_TRANSITION_NAME']>
     readonly BOOK_TAGS: UnwrapRef<typeof import('../../constants/tags')['BOOK_TAGS']>
     readonly DIFFICULTY_SYSTEMS: UnwrapRef<typeof import('../../constants/difficulties')['DIFFICULTY_SYSTEMS']>
     readonly EffectScope: UnwrapRef<typeof import('vue')['EffectScope']>
@@ -388,6 +393,7 @@ declare module 'vue' {
     readonly computedWithControl: UnwrapRef<typeof import('@vueuse/core')['computedWithControl']>
     readonly controlledComputed: UnwrapRef<typeof import('@vueuse/core')['controlledComputed']>
     readonly controlledRef: UnwrapRef<typeof import('@vueuse/core')['controlledRef']>
+    readonly coverTransitionBookId: UnwrapRef<typeof import('../../lib/view-transitions')['coverTransitionBookId']>
     readonly createApp: UnwrapRef<typeof import('vue')['createApp']>
     readonly createDisposableDirective: UnwrapRef<typeof import('@vueuse/core')['createDisposableDirective']>
     readonly createEventHook: UnwrapRef<typeof import('@vueuse/core')['createEventHook']>
@@ -427,6 +433,7 @@ declare module 'vue' {
     readonly isReadonly: UnwrapRef<typeof import('vue')['isReadonly']>
     readonly isRef: UnwrapRef<typeof import('vue')['isRef']>
     readonly isShallow: UnwrapRef<typeof import('vue')['isShallow']>
+    readonly isViewTransitionSupported: UnwrapRef<typeof import('../../lib/view-transitions')['isViewTransitionSupported']>
     readonly lazyComponent: UnwrapRef<typeof import('../../lib/lazy-component')['lazyComponent']>
     readonly makeDestructurable: UnwrapRef<typeof import('@vueuse/core')['makeDestructurable']>
     readonly mapActions: UnwrapRef<typeof import('pinia')['mapActions']>
@@ -480,6 +487,7 @@ declare module 'vue' {
     readonly router: UnwrapRef<typeof import('../../lib/router')['default']>
     readonly setActivePinia: UnwrapRef<typeof import('pinia')['setActivePinia']>
     readonly setMapStoreSuffix: UnwrapRef<typeof import('pinia')['setMapStoreSuffix']>
+    readonly setupViewTransitions: UnwrapRef<typeof import('../../lib/view-transitions')['setupViewTransitions']>
     readonly shallowReactive: UnwrapRef<typeof import('vue')['shallowReactive']>
     readonly shallowReadonly: UnwrapRef<typeof import('vue')['shallowReadonly']>
     readonly shallowRef: UnwrapRef<typeof import('vue')['shallowRef']>

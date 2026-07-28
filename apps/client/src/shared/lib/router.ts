@@ -1,5 +1,6 @@
 import { createRouter, createWebHashHistory, createWebHistory } from 'vue-router'
 import { AppRouteNames } from '~/shared/constants/routes'
+import { setupViewTransitions } from '~/shared/lib/view-transitions'
 import { useAuthStore } from '~/shared/store/auth.store'
 
 function isTauriEnv() {
@@ -99,6 +100,8 @@ export const router = createRouter({
 })
 
 const LAST_VIEW_QUERY_KEY = 'library_last_view_query'
+
+setupViewTransitions(router)
 
 router.beforeEach(async (to, from) => {
   const authStore = useAuthStore()

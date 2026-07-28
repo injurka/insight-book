@@ -7,6 +7,7 @@ import { DefaultLayout } from '~/components/06.layouts/default'
 import { useBackHandler } from '~/shared/composables/use-back-handler'
 import { useChangeTheme } from '~/shared/composables/use-change-theme'
 import { useGlobalTracking } from '~/shared/composables/use-global-tracking'
+import { isViewTransitionSupported } from '~/shared/lib/view-transitions'
 import { loadLanguageAsync } from '~/shared/plugins/i18n'
 import { useAnalysisStore } from '~/shared/store/analysis/analysis.store'
 import { usePwaStore } from '~/shared/store/pwa.store'
@@ -80,6 +81,7 @@ watch(() => settingsStore.appLanguage, (newLang) => {
 }, { immediate: true })
 
 const layoutName = computed(() => (route.meta.layout as string) || 'default')
+const useViewTransitions = isViewTransitionSupported()
 
 const layouts: Record<string, Component> = {
   default: DefaultLayout,
@@ -179,14 +181,16 @@ watch(() => route.path, () => {
 <template>
   <component :is="layouts[layoutName]" v-if="layouts[layoutName]">
     <router-view v-slot="{ Component, route: currentRoute }">
-      <transition name="fade" mode="out-in">
+      <component :is="Component" v-if="useViewTransitions" :key="currentRoute.path" />
+      <transition v-else name="fade" mode="out-in">
         <component :is="Component" :key="currentRoute.path" />
       </transition>
     </router-view>
   </component>
 
   <router-view v-else v-slot="{ Component, route: currentRoute }">
-    <transition name="fade" mode="out-in">
+    <component :is="Component" v-if="useViewTransitions" :key="currentRoute.path" />
+    <transition v-else name="fade" mode="out-in">
       <component :is="Component" :key="currentRoute.path" />
     </transition>
   </router-view>

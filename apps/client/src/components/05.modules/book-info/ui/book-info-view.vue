@@ -2,10 +2,11 @@
 import { useHead } from '@vueuse/head'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
-import { KitBtn, KitSkeleton } from '~/components/01.kit'
+import { KitBtn, KitImage, KitSkeleton } from '~/components/01.kit'
 import { HoverRevealBg } from '~/components/02.shared/hover-reveal-bg'
 import { useLibraryStore } from '~/components/05.modules/library/store/library.store'
 import { AppRoutePaths } from '~/shared/constants/routes'
+import { BOOK_COVER_TRANSITION_NAME, coverTransitionBookId } from '~/shared/lib/view-transitions'
 import BookCoverPanel from './book-cover-panel.vue'
 import BookLexicalPanel from './book-lexical-panel.vue'
 import BookStatsPanel from './book-stats-panel.vue'
@@ -31,6 +32,22 @@ const isEditingStats = ref(false)
 const isSyncModalOpen = ref(false)
 const isAppendChapterOpen = ref(false)
 
+// Пока данные книги грузятся, целью shared-element перехода обложки
+// служит скелетон обложки (View Transitions API)
+const skeletonCoverTransitionStyle = computed(() =>
+  coverTransitionBookId.value === bookId.value
+    ? { viewTransitionName: BOOK_COVER_TRANSITION_NAME }
+    : undefined)
+
+// Обложка книги уже известна из списка библиотеки — показываем её сразу,
+// чтобы переход обложки был бесшовным при первом открытии страницы
+const optimisticCoverUrl = computed(() => {
+  const knownBook = libraryStore.books.find(b => b.id === bookId.value)
+    || libraryStore.publicBooks.find(b => b.id === bookId.value)
+
+  return knownBook?.localCoverUrl || knownBook?.coverUrl || null
+})
+
 watch(bookId, (newId) => {
   if (newId)
     libraryStore.fetchBookInfo(newId)
@@ -54,12 +71,20 @@ function goBack() {
       <div v-if="libraryStore.isLoading && !libraryStore.currentBookInfo" class="loading-state book-container">
         <div class="layout-top">
           <div class="cover-col">
-            <KitSkeleton
-              width="100%"
-              height="auto"
-              class="cover-skeleton"
-              border-radius="12px"
-            />
+            <div class="cover-skeleton" :style="skeletonCoverTransitionStyle">
+              <KitImage
+                v-if="optimisticCoverUrl"
+                :src="optimisticCoverUrl"
+                :alt="t('library.cover')"
+                :lazy="false"
+              />
+              <KitSkeleton
+                v-else
+                width="100%"
+                height="100%"
+                border-radius="12px"
+              />
+            </div>
             <div class="action-buttons">
               <KitSkeleton width="100%" height="38px" border-radius="6px" />
               <KitSkeleton width="100%" height="38px" border-radius="6px" />
@@ -187,6 +212,8 @@ function goBack() {
   .cover-skeleton {
     aspect-ratio: 2 / 3;
     margin-bottom: 24px;
+    border-radius: 12px;
+    overflow: hidden;
   }
   .action-buttons {
     display: flex;
