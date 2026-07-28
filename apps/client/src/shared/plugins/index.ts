@@ -10,6 +10,7 @@ export async function setupPlugins(app: App, router: Router) {
 
   if (enabledPlugins.includes('grammar-rules')) {
     const { default: grammarRulesPlugin } = await import('@injurka/insight-book-plugin-grammar-rules')
+
     pluginsToInstall.push(grammarRulesPlugin)
   }
 

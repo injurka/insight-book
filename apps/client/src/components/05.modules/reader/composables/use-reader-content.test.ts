@@ -54,13 +54,12 @@ function setPage(inner: string, pageNum = 1) {
   } as any
 }
 
-describe('useReaderContent - applyHighlightsAndTranslations (left pane)', () => {
+describe('useReaderContent - applyTranslations (left pane)', () => {
   beforeEach(() => {
     localStorage.clear()
     setActivePinia(createPinia())
     const settingsStore = useGlobalSettingsStore()
     settingsStore.parallelViewMode = 'interleaved'
-    settingsStore.highlightSavedQuotes = true
     settingsStore.showSentenceTtsButton = false
     settingsStore.parallelBlurTranslation = false
     settingsStore.parallelShowGrammar = false
@@ -107,7 +106,7 @@ describe('useReaderContent - applyHighlightsAndTranslations (left pane)', () => 
     expect(html).toContain('&lt;img')
   })
 
-  it('marks highlighted words with exact-highlight class on the current page', () => {
+  it('does not bake highlights into the HTML (they are applied via CSS Custom Highlight API)', () => {
     setPage(sentenceSpan('s1', ['hello', 'brave', 'world']))
     const highlightsStore = useHighlightsStore()
     highlightsStore.highlights = [
@@ -123,104 +122,8 @@ describe('useReaderContent - applyHighlightsAndTranslations (left pane)', () => 
     const { leftPaneContent } = useReaderContent()
     const html = leftPaneContent.value
 
-    // whole-word match: the .word span itself receives the class (see dom-highlighter)
-    expect(html).toContain('exact-highlight')
-    expect(html).toMatch(/class="word exact-highlight"[^>]*>brave<\/span>/)
-    expect(html).not.toMatch(/exact-highlight"[^>]*>hello</)
-  })
-
-  it('skips highlights that belong to a different page', () => {
-    setPage(sentenceSpan('s1', ['hello', 'world']), 1)
-    const highlightsStore = useHighlightsStore()
-    highlightsStore.highlights = [
-      {
-        id: 1,
-        bookId: 1,
-        text: 'hello',
-        color: '#fde047',
-        pageNum: 2,
-      } as any,
-    ]
-
-    const { leftPaneContent } = useReaderContent()
-    expect(leftPaneContent.value).not.toContain('exact-highlight')
-  })
-
-  it('does not highlight when highlightSavedQuotes setting is off', () => {
-    const settingsStore = useGlobalSettingsStore()
-    settingsStore.highlightSavedQuotes = false
-    setPage(sentenceSpan('s1', ['hello', 'world']))
-    const highlightsStore = useHighlightsStore()
-    highlightsStore.highlights = [
-      {
-        id: 1,
-        bookId: 1,
-        text: 'hello',
-        color: '#fde047',
-        pageNum: 1,
-      } as any,
-    ]
-
-    const { leftPaneContent } = useReaderContent()
-    expect(leftPaneContent.value).not.toContain('exact-highlight')
-  })
-
-  it('applies multiple non-overlapping highlights in one sentence', () => {
-    setPage(sentenceSpan('s1', ['hello', 'brave', 'new', 'world']))
-    const highlightsStore = useHighlightsStore()
-    highlightsStore.highlights = [
-      {
-        id: 1,
-        bookId: 1,
-        text: 'hello',
-        color: '#fde047',
-        pageNum: 1,
-      } as any,
-      {
-        id: 2,
-        bookId: 1,
-        text: 'world',
-        color: '#fde047',
-        pageNum: 1,
-      } as any,
-    ]
-
-    const { leftPaneContent } = useReaderContent()
-    const matches = leftPaneContent.value.match(/exact-highlight/g) || []
-    expect(matches.length).toBe(2)
-  })
-
-  it('applies both overlapping highlights, keeping the shared word highlighted', () => {
-    setPage(sentenceSpan('s1', ['hello', 'brave', 'new', 'world']))
-    const highlightsStore = useHighlightsStore()
-    highlightsStore.highlights = [
-      {
-        id: 1,
-        bookId: 1,
-        text: 'hello brave',
-        color: '#fde047',
-        pageNum: 1,
-      } as any,
-      {
-        id: 2,
-        bookId: 1,
-        text: 'brave new',
-        color: '#fde047',
-        pageNum: 1,
-      } as any,
-    ]
-
-    const { leftPaneContent } = useReaderContent()
-    const html = leftPaneContent.value
-
-    // Actual behavior: highlighting does not destroy the text nodes, so the
-    // second (overlapping) phrase is still found and applied on top of the
-    // first one. All three words end up highlighted; the untouched word
-    // "world" keeps the plain .word class.
-    for (const word of ['hello', 'brave', 'new']) {
-      expect(html).toMatch(new RegExp(`class="word exact-highlight"[^>]*>${word}</span>`))
-    }
-    expect(html).toMatch(/class="word"[^>]*>world<\/span>/)
+    expect(html).not.toContain('exact-highlight')
+    expect(html).toMatch(/class="word"[^>]*>brave<\/span>/)
   })
 
   it('produces identical output on repeated reads (no duplicated insertions)', () => {
@@ -228,16 +131,6 @@ describe('useReaderContent - applyHighlightsAndTranslations (left pane)', () => 
     const analysisStore = useAnalysisStore()
     analysisStore.analysisHistory = [
       { sentence: 'hello world', analysis: { translation: 'привет мир' } as any, timestamp: 1 },
-    ]
-    const highlightsStore = useHighlightsStore()
-    highlightsStore.highlights = [
-      {
-        id: 1,
-        bookId: 1,
-        text: 'hello',
-        color: '#fde047',
-        pageNum: 1,
-      } as any,
     ]
 
     const { leftPaneContent } = useReaderContent()
@@ -298,13 +191,12 @@ describe('useReaderContent - applyHighlightsAndTranslations (left pane)', () => 
   })
 })
 
-describe('useReaderContent - applyHighlightsAndTranslations (right pane, split mode)', () => {
+describe('useReaderContent - applyTranslations (right pane, split mode)', () => {
   beforeEach(() => {
     localStorage.clear()
     setActivePinia(createPinia())
     const settingsStore = useGlobalSettingsStore()
     settingsStore.parallelViewMode = 'split'
-    settingsStore.highlightSavedQuotes = true
     settingsStore.parallelBlurTranslation = false
     settingsStore.parallelShowGrammar = false
   })

@@ -1,114 +1,178 @@
-import { hexToRgba } from '~/shared/lib/helpers'
+import { hexToRgba, normalizeString } from '~/shared/lib/helpers'
 
-function applyHighlight(
-  textNodes: Text[],
-  startIndex: number,
-  endIndex: number,
-  color: string,
-) {
-  let currentIndex = 0
-  const marks: { mark: HTMLElement, parent: ParentNode | null }[] = []
-  for (const textNode of textNodes) {
-    const nodeStart = currentIndex
-    const nodeEnd = currentIndex + (textNode.nodeValue?.length || 0)
-
-    if (nodeEnd > startIndex && nodeStart < endIndex) {
-      const overlapStart = Math.max(0, startIndex - nodeStart)
-      const overlapEnd = Math.min(textNode.nodeValue!.length, endIndex - nodeStart)
-
-      const originalText = textNode.nodeValue!
-      const before = originalText.substring(0, overlapStart)
-      const match = originalText.substring(overlapStart, overlapEnd)
-      const after = originalText.substring(overlapEnd)
-
-      const parent = textNode.parentNode as HTMLElement
-      if (
-        parent
-        && parent.classList?.contains('word')
-        && overlapStart === 0
-        && overlapEnd === originalText.length
-        && parent.childNodes.length === 1
-      ) {
-        parent.style.backgroundColor = hexToRgba(color, 0.35)
-        parent.classList.add('exact-highlight')
-        marks.push({ mark: parent, parent: null })
-      }
-      else {
-        const fragment = document.createDocumentFragment()
-        if (before)
-          fragment.appendChild(document.createTextNode(before))
-        if (match) {
-          const mark = document.createElement('mark')
-          mark.style.backgroundColor = hexToRgba(color, 0.35)
-          mark.style.color = 'inherit'
-          mark.className = 'exact-highlight'
-          mark.textContent = match
-          fragment.appendChild(mark)
-          marks.push({ mark, parent: textNode.parentNode })
-        }
-        if (after)
-          fragment.appendChild(document.createTextNode(after))
-
-        parent?.replaceChild(fragment, textNode)
-      }
-    }
-    currentIndex = nodeEnd
-  }
-
-  if (marks.length > 0) {
-    const first = marks[0].mark
-    const last = marks[marks.length - 1].mark
-
-    first.style.borderTopLeftRadius = '4px'
-    first.style.borderBottomLeftRadius = '4px'
-
-    last.style.borderTopRightRadius = '4px'
-    last.style.borderBottomRightRadius = '4px'
-
-    for (let i = 0; i < marks.length; i++) {
-      const { mark } = marks[i]
-      if (mark.tagName.toLowerCase() === 'mark') {
-        mark.style.paddingTop = '2px'
-        mark.style.paddingBottom = '2px'
-      }
-    }
-  }
+export interface QuoteHighlightSource {
+  text: string
+  color?: string | null
 }
 
-export function highlightExactText(root: HTMLElement, textToHighlight: string, color: string) {
-  if (!textToHighlight)
-    return
+const DEFAULT_COLOR = '#fde047'
+const HIGHLIGHT_NAME_PREFIX = 'saved-quote'
+const STYLE_ELEMENT_ID = 'saved-quote-highlight-styles'
 
+function isHighlightApiSupported(): boolean {
+  return typeof Highlight !== 'undefined' && typeof CSS !== 'undefined' && !!CSS.highlights
+}
+
+function collectTextNodes(root: HTMLElement): Text[] {
   const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null)
-  let node: Text | null
   const textNodes: Text[] = []
+  let node: Text | null
   // eslint-disable-next-line no-cond-assign, no-unmodified-loop-condition
   while ((node = walker.nextNode() as Text | null)) {
     textNodes.push(node)
   }
+  return textNodes
+}
 
-  const fullText = textNodes.map(n => n.nodeValue || '').join('')
-  const startIndex = fullText.indexOf(textToHighlight)
+function buildRange(textNodes: Text[], startIndex: number, endIndex: number): Range | null {
+  const range = new Range()
+  let currentIndex = 0
+  let started = false
 
-  if (startIndex === -1) {
-    const lowerFull = fullText.toLowerCase()
-    const lowerSearch = textToHighlight.toLowerCase()
-    const lowerStart = lowerFull.indexOf(lowerSearch)
-    if (lowerStart === -1)
-      return
-    applyHighlight(
-      textNodes,
-      lowerStart,
-      lowerStart + lowerSearch.length,
-      color,
-    )
-    return
+  for (const textNode of textNodes) {
+    const nodeLength = textNode.nodeValue?.length || 0
+    const nodeStart = currentIndex
+    const nodeEnd = currentIndex + nodeLength
+
+    if (!started && nodeEnd > startIndex) {
+      range.setStart(textNode, Math.max(0, startIndex - nodeStart))
+      started = true
+    }
+    if (started && nodeEnd >= endIndex) {
+      range.setEnd(textNode, Math.min(nodeLength, endIndex - nodeStart))
+      return range
+    }
+    currentIndex = nodeEnd
   }
 
-  applyHighlight(
-    textNodes,
-    startIndex,
-    startIndex + textToHighlight.length,
-    color,
-  )
+  return null
+}
+
+/**
+ * Ищет первое вхождение текста внутри живого DOM-поддерева и возвращает
+ * Range, ничего не меняя в дереве. Сначала точное совпадение,
+ * затем — без учета регистра (как в прежней DOM-реализации).
+ */
+export function findQuoteRange(root: HTMLElement, textToHighlight: string): Range | null {
+  if (!textToHighlight)
+    return null
+
+  const textNodes = collectTextNodes(root)
+  const fullText = textNodes.map(n => n.nodeValue || '').join('')
+
+  const startIndex = fullText.indexOf(textToHighlight)
+  if (startIndex !== -1)
+    return buildRange(textNodes, startIndex, startIndex + textToHighlight.length)
+
+  const lowerFull = fullText.toLowerCase()
+  const lowerSearch = textToHighlight.toLowerCase()
+  const lowerStart = lowerFull.indexOf(lowerSearch)
+  if (lowerStart === -1)
+    return null
+
+  return buildRange(textNodes, lowerStart, lowerStart + lowerSearch.length)
+}
+
+/**
+ * Собирает Range-ы сохраненных цитат по всем предложениям (.sentence) внутри
+ * root и группирует их по цвету. Сопоставление цитат с предложениями — по
+ * нормализованному data-raw-sent, как в прежней реализации.
+ */
+export function collectQuoteRanges(root: HTMLElement, quotes: QuoteHighlightSource[]): Map<string, Range[]> {
+  const rangesByColor = new Map<string, Range[]>()
+  const validQuotes = quotes.filter(q => q.text)
+  if (validQuotes.length === 0)
+    return rangesByColor
+
+  root.querySelectorAll('.sentence').forEach((span) => {
+    const rawSent = decodeURIComponent(span.getAttribute('data-raw-sent') || '')
+    const rawNorm = normalizeString(rawSent)
+
+    const matchingQuotes = validQuotes.filter((q) => {
+      const qNorm = normalizeString(q.text)
+      return rawNorm === qNorm || (qNorm.length >= 2 && (rawNorm.includes(qNorm) || qNorm.includes(rawNorm)))
+    })
+
+    for (const quote of matchingQuotes) {
+      const range = findQuoteRange(span as HTMLElement, quote.text)
+      if (range) {
+        const color = quote.color || DEFAULT_COLOR
+        const list = rangesByColor.get(color)
+        if (list)
+          list.push(range)
+        else
+          rangesByColor.set(color, [range])
+      }
+    }
+  })
+
+  return rangesByColor
+}
+
+// Реестр Range-ей по "владельцам" (экземплярам представлений). Итоговые
+// Highlight-объекты пересобираются из всех владельцев, чтобы несколько
+// представлений могли подсвечивать одновременно, не затирая друг друга.
+const ownerRanges = new Map<string, Map<string, Range[]>>()
+let registeredNames = new Set<string>()
+
+function colorToHighlightName(color: string): string {
+  const rgba = hexToRgba(color, 0.35)
+  return `${HIGHLIGHT_NAME_PREFIX}-${rgba.replace(/[^a-z0-9]/gi, '')}`
+}
+
+function getStyleElement(): HTMLStyleElement {
+  let styleEl = document.getElementById(STYLE_ELEMENT_ID) as HTMLStyleElement | null
+  if (!styleEl) {
+    styleEl = document.createElement('style')
+    styleEl.id = STYLE_ELEMENT_ID
+    document.head.appendChild(styleEl)
+  }
+  return styleEl
+}
+
+function rebuildRegistry(): void {
+  if (!isHighlightApiSupported())
+    return
+
+  const rangesByColor = new Map<string, Range[]>()
+  for (const ownerMap of ownerRanges.values()) {
+    for (const [color, ranges] of ownerMap) {
+      const list = rangesByColor.get(color)
+      if (list)
+        list.push(...ranges)
+      else
+        rangesByColor.set(color, [...ranges])
+    }
+  }
+
+  const nextNames = new Set<string>()
+  const cssRules: string[] = []
+
+  for (const [color, ranges] of rangesByColor) {
+    const name = colorToHighlightName(color)
+    nextNames.add(name)
+    CSS.highlights.set(name, new Highlight(...ranges))
+    cssRules.push(`::highlight(${name}) { background-color: ${hexToRgba(color, 0.35)}; color: inherit; }`)
+  }
+
+  for (const name of registeredNames) {
+    if (!nextNames.has(name))
+      CSS.highlights.delete(name)
+  }
+  registeredNames = nextNames
+
+  getStyleElement().textContent = cssRules.join('\n')
+}
+
+export function setQuoteHighlights(owner: string, rangesByColor: Map<string, Range[]>): void {
+  if (rangesByColor.size === 0)
+    ownerRanges.delete(owner)
+  else
+    ownerRanges.set(owner, rangesByColor)
+  rebuildRegistry()
+}
+
+export function clearQuoteHighlights(owner: string): void {
+  if (ownerRanges.delete(owner))
+    rebuildRegistry()
 }

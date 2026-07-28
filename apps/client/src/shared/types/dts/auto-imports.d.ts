@@ -414,7 +414,6 @@ declare module 'vue' {
     readonly getCurrentInstance: UnwrapRef<typeof import('vue')['getCurrentInstance']>
     readonly getCurrentScope: UnwrapRef<typeof import('vue')['getCurrentScope']>
     readonly getCurrentWatcher: UnwrapRef<typeof import('vue')['getCurrentWatcher']>
-    readonly getLazyHighlighter: UnwrapRef<typeof import('../../lib/shiki-highlighter')['getLazyHighlighter']>
     readonly getMediaUrl: UnwrapRef<typeof import('../../lib/helpers')['getMediaUrl']>
     readonly h: UnwrapRef<typeof import('vue')['h']>
     readonly hexToRgba: UnwrapRef<typeof import('../../lib/helpers')['hexToRgba']>

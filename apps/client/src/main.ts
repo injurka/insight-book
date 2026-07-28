@@ -31,12 +31,12 @@ async function bootstrap() {
 
   try {
     const { setupPlugins } = await import('~/shared/plugins/index')
-    await setupPlugins(app, router)
-
     const { setupDictionaryEvents } = await import('~/shared/events/dictionary-events')
     const { setupReaderEvents } = await import('~/shared/events/reader-events')
-    setupDictionaryEvents()
-    setupReaderEvents()
+
+    await setupPlugins(app, router)
+    void setupDictionaryEvents()
+    void setupReaderEvents()
   }
   catch (err) {
     console.error('Failed to setup plugins:', err)

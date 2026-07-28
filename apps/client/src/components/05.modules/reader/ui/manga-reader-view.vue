@@ -7,6 +7,7 @@ import { useAnalysisStore } from '~/shared/store/analysis/analysis.store.ts'
 import { useGlobalSettingsStore } from '~/shared/store/settings.store'
 import { useMangaBubbles } from '../composables/use-manga-bubbles'
 import { usePanZoom } from '../composables/use-pan-zoom'
+import { useQuoteHighlights } from '../composables/use-quote-highlights'
 import { useReaderContent } from '../composables/use-reader-content'
 import { useReaderDomHighlights } from '../composables/use-reader-dom-highlights'
 import { useReaderNavigation } from '../composables/use-reader-navigation'
@@ -73,6 +74,7 @@ const {
 const { isHeaderVisible, onScroll } = useReaderScroll(saveScrollPosition, closeBubblePopover)
 
 const { parallelTranslations } = useReaderContent()
+useQuoteHighlights(readerViewRef, [parallelTranslations])
 
 function handleWrapperClick(e: MouseEvent) {
   if (dragDist.value > 10 && scale.value > 1) {
@@ -496,9 +498,6 @@ onUnmounted(() => {
       :deep(.word) {
         padding: 0;
         border-radius: 4px;
-        &.exact-highlight {
-          border-radius: 0;
-        }
         transition:
           background-color 0.1s,
           color 0.1s;

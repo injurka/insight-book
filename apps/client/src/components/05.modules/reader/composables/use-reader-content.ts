@@ -1,10 +1,7 @@
 import DOMPurify from 'dompurify'
 import { computed } from 'vue'
-import { normalizeString } from '~/shared/lib/helpers'
 import { useAnalysisStore } from '~/shared/store/analysis/analysis.store'
 import { useGlobalSettingsStore } from '~/shared/store/settings.store'
-import { highlightExactText } from '../lib/dom-highlighter'
-import { useHighlightsStore } from '../store/highlights.store'
 import { useReaderStore } from '../store/reader.store'
 
 function escapeHtml(text: string): string {
@@ -19,7 +16,6 @@ function escapeHtml(text: string): string {
 export function useReaderContent() {
   const readerStore = useReaderStore()
   const analysisStore = useAnalysisStore()
-  const highlightsStore = useHighlightsStore()
   const settingsStore = useGlobalSettingsStore()
 
   const translationMap = computed(() => {
@@ -38,30 +34,12 @@ export function useReaderContent() {
     })
   })
 
-  function applyHighlightsAndTranslations(
-    doc: Document,
-    map: Record<string, any>,
-    pageNum: number,
-    mode: 'left' | 'right',
-  ) {
-    const pageHighlights = highlightsStore.highlights.filter(h => Number(h.pageNum) === pageNum)
+  function applyTranslations(doc: Document, map: Record<string, any>, mode: 'left' | 'right') {
     const translatedSentIds = new Set<string>()
 
     doc.querySelectorAll('.sentence').forEach((span) => {
       const rawSent = decodeURIComponent(span.getAttribute('data-raw-sent') || '')
       const sentId = span.getAttribute('data-sent-id') || ''
-      const rawNorm = normalizeString(rawSent)
-
-      const matchingHighlights = pageHighlights.filter((h) => {
-        const hNorm = normalizeString(h.text)
-        return rawNorm === hNorm || (hNorm.length >= 2 && (rawNorm.includes(hNorm) || hNorm.includes(rawNorm)))
-      })
-
-      if (settingsStore.highlightSavedQuotes) {
-        matchingHighlights.forEach((matching) => {
-          highlightExactText(span as HTMLElement, matching.text, matching.color || '#fde047')
-        })
-      }
 
       if (mode === 'left') {
         if (settingsStore.showSentenceTtsButton && rawSent) {
@@ -129,12 +107,7 @@ export function useReaderContent() {
       return ''
     const parser = new DOMParser()
     const doc = parser.parseFromString(safePageContent.value, 'text/html')
-    applyHighlightsAndTranslations(
-      doc,
-      translationMap.value,
-      Number(readerStore.currentPage?.pageNum),
-      'left',
-    )
+    applyTranslations(doc, translationMap.value, 'left')
     return doc.body.innerHTML
   })
 
@@ -143,12 +116,7 @@ export function useReaderContent() {
       return ''
     const parser = new DOMParser()
     const doc = parser.parseFromString(safePageContent.value, 'text/html')
-    applyHighlightsAndTranslations(
-      doc,
-      translationMap.value,
-      Number(readerStore.currentPage?.pageNum),
-      'right',
-    )
+    applyTranslations(doc, translationMap.value, 'right')
     return doc.body.innerHTML
   })
 
@@ -158,18 +126,12 @@ export function useReaderContent() {
     }
     const map = translationMap.value
     const parser = new DOMParser()
-    const pageNum = Number(readerStore.currentPage?.pageNum)
 
     return readerStore.currentPage.ocrBlocks.map((box) => {
       let resultHtml = ''
       if (box.html) {
         const doc = parser.parseFromString(box.html, 'text/html')
-        applyHighlightsAndTranslations(
-          doc,
-          map,
-          pageNum,
-          'right',
-        )
+        applyTranslations(doc, map, 'right')
         resultHtml = doc.body.innerHTML
       }
       else {

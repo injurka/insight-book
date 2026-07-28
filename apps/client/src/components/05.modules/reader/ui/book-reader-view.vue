@@ -7,6 +7,7 @@ import { useTextSelection } from '~/components/04.features/analysis/index.ts'
 import { useAnalysisStore } from '~/shared/store/analysis/analysis.store.ts'
 import { useGlobalSettingsStore } from '~/shared/store/settings.store'
 import { useParallelSync } from '../composables/use-parallel-sync.ts'
+import { useQuoteHighlights } from '../composables/use-quote-highlights.ts'
 import { useReaderContent } from '../composables/use-reader-content.ts'
 import { useReaderDomHighlights } from '../composables/use-reader-dom-highlights.ts'
 import { useReaderNavigation } from '../composables/use-reader-navigation.ts'
@@ -48,6 +49,7 @@ const { onPointerDown, onPointerUp, onWordClick } = useTextSelection()
 const { isHeaderVisible, onScroll } = useReaderScroll(saveScrollPosition)
 const { performLayoutSync } = useParallelSync(readerViewRef, restoreScrollPosition)
 const { leftPaneContent, translatedPageContent, pageTranslationProgress } = useReaderContent()
+useQuoteHighlights(readerViewRef, [leftPaneContent, translatedPageContent])
 
 function startPageTranslationOnly() {
   analysisStore.analyzeWholePage({
@@ -526,9 +528,6 @@ watch(() => readerStore.isPageLoading, async (isLoading) => {
   :deep(.word) {
     padding: 0;
     border-radius: 4px;
-    &.exact-highlight {
-      border-radius: 0;
-    }
     transition:
       background-color 0.1s,
       color 0.1s;
