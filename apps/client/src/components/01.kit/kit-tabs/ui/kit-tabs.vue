@@ -1,62 +1,35 @@
 <script setup lang="ts" generic="T extends string | number">
 import type { Component } from 'vue'
 import type { ViewSwitcherItem } from '~/components/01.kit/kit-view-switcher'
+import { computed, ref } from 'vue'
 import { KitViewSwitcher } from '~/components/01.kit/kit-view-switcher'
+import { useTabsTransition } from '../composables/use-tabs-transition'
 
 export interface TabItem<T extends string | number = string | number> extends ViewSwitcherItem<T> {
   component?: Component
   props?: Record<string, any>
 }
 
-interface Props {
+export interface Props<T extends string | number = string | number> {
   items: TabItem<T>[]
   cache?: boolean
 }
 
-const props = defineProps<Props>()
+const props = defineProps<Props<T>>()
 
 const model = defineModel<T>({ required: true })
 
-const transitionName = ref('slide-left')
+const currentTab = computed(() => props.items.find(item => item.id === model.value))
+const currentProps = computed(() => currentTab.value?.props || {})
+
 const contentWrapperRef = ref<HTMLElement | null>(null)
 
-const currentTab = computed(() => {
-  return props.items.find(item => item.id === model.value)
-})
-
-const currentProps = computed(() => {
-  return currentTab.value?.props || {}
-})
-
-function onBeforeLeave(el: Element) {
-  if (contentWrapperRef.value) {
-    const htmlEl = el as HTMLElement
-    contentWrapperRef.value.style.height = `${htmlEl.offsetHeight}px`
-  }
-}
-
-function onEnter(el: Element) {
-  if (contentWrapperRef.value) {
-    const htmlEl = el as HTMLElement
-    requestAnimationFrame(() => {
-      if (contentWrapperRef.value) {
-        contentWrapperRef.value.style.height = `${htmlEl.offsetHeight}px`
-      }
-    })
-  }
-}
-
-function onAfterEnter() {
-  if (contentWrapperRef.value) {
-    contentWrapperRef.value.style.height = 'auto'
-  }
-}
-
-watch(model, (newVal, oldVal) => {
-  const newIndex = props.items.findIndex(item => item.id === newVal)
-  const oldIndex = props.items.findIndex(item => item.id === oldVal)
-  transitionName.value = newIndex > oldIndex ? 'slide-left' : 'slide-right'
-})
+const {
+  transitionName,
+  onBeforeLeave,
+  onEnter,
+  onAfterEnter,
+} = useTabsTransition(model, computed(() => props.items), contentWrapperRef)
 </script>
 
 <template>
@@ -113,17 +86,6 @@ watch(model, (newVal, oldVal) => {
     .kit-view-switcher-label {
       display: block !important;
     }
-  }
-}
-
-@keyframes fade-in {
-  from {
-    opacity: 0;
-    transform: translateY(-5px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
   }
 }
 
