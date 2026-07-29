@@ -466,6 +466,8 @@ export const catalogPlugins = sqliteTable('catalog_plugins', {
   /** URL, по которому клиент запрашивает manifest.json (и remoteEntry.js относительно него) */
   manifestUrl: text('manifestUrl').notNull(),
   uploadedBy: integer('uploadedBy').references(() => users.id, { onDelete: 'set null' }),
+  /** Статус модерации: pending | approved | rejected */
+  status: text('status').notNull().default('pending'),
   createdAt: text('createdAt').notNull().default(sql`(datetime('now'))`),
   updatedAt: text('updatedAt').notNull().default(sql`(datetime('now'))`),
 })

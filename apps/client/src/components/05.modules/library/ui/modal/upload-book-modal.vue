@@ -305,6 +305,7 @@ async function submitCustomManga() {
   .form-row {
     display: flex;
     gap: 12px;
+
     @include media-down(sm) {
       flex-direction: column;
     }

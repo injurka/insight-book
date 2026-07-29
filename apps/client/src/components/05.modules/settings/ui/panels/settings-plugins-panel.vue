@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { UserPluginRecord } from '~/shared/types/models'
+import type { CatalogPluginRecord, UserPluginRecord } from '~/shared/types/models'
 import { Icon } from '@iconify/vue'
 import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -7,11 +7,13 @@ import { useRouter } from 'vue-router'
 import { KitBtn, KitCheckbox, KitDialog, KitInput } from '~/components/01.kit'
 import { useRepos } from '~/shared/plugins/di'
 import { pluginManager } from '~/shared/plugins/plugin-manager'
+import { useAuthStore } from '~/shared/store/auth.store'
 import { useGlobalSettingsStore } from '~/shared/store/settings.store'
 import { useToastStore } from '~/shared/store/toast.store'
 
 const { t } = useI18n()
 const settingsStore = useGlobalSettingsStore()
+const authStore = useAuthStore()
 const router = useRouter()
 const repos = useRepos()
 const toast = useToastStore()
@@ -22,6 +24,23 @@ const isLoading = ref(false)
 const isInstallModalOpen = ref(false)
 const inputManifestUrl = ref('')
 const isInstalling = ref(false)
+
+const isAdmin = computed(() => authStore.user?.role === 'admin')
+
+// Каталог плагинов сообщества
+const isCatalogModalOpen = ref(false)
+const catalogPlugins = ref<CatalogPluginRecord[]>([])
+const isCatalogLoading = ref(false)
+const installingCatalogId = ref<number | null>(null)
+
+// Загрузка своего плагина
+const isUploadModalOpen = ref(false)
+const uploadFile = ref<File | null>(null)
+const isUploading = ref(false)
+const myUploadedPlugins = ref<CatalogPluginRecord[]>([])
+
+// Модерация (админ)
+const pendingPlugins = ref<CatalogPluginRecord[]>([])
 
 const availableStaticPlugins = computed(() => [{
   id: 'grammar-rules',
@@ -141,7 +160,145 @@ async function uninstallRemotePlugin(pluginId: string) {
 
 onMounted(() => {
   fetchRemotePlugins()
+  fetchMyUploadedPlugins()
+  if (isAdmin.value) {
+    fetchPendingPlugins()
+  }
 })
+
+async function openCatalogModal() {
+  isCatalogModalOpen.value = true
+  isCatalogLoading.value = true
+  try {
+    catalogPlugins.value = await repos.catalogPlugin.getApproved()
+  }
+  catch (err) {
+    console.error('Failed to fetch catalog plugins', err)
+  }
+  finally {
+    isCatalogLoading.value = false
+  }
+}
+
+function isCatalogPluginInstalled(record: CatalogPluginRecord) {
+  return remotePlugins.value.some(p => p.manifestUrl === record.manifestUrl)
+}
+
+async function installCatalogPlugin(record: CatalogPluginRecord) {
+  installingCatalogId.value = record.id
+  try {
+    const loadedPlugin = await pluginManager.loadRemotePlugin(record.manifestUrl, router)
+    if (!loadedPlugin) {
+      toast.error(t('settings.plugins.installFailed', 'Не удалось загрузить плагин по указанному URL'))
+      return
+    }
+
+    await repos.plugin.installPlugin({
+      pluginId: loadedPlugin.id,
+      manifestUrl: record.manifestUrl,
+      isEnabled: true,
+    })
+
+    toast.success(t('settings.plugins.installSuccess', { name: loadedPlugin.name }))
+    await fetchRemotePlugins()
+  }
+  catch (err: unknown) {
+    console.error('Failed to install catalog plugin:', err)
+    const msg = err instanceof Error ? err.message : 'Ошибка при установке плагина'
+    toast.error(msg)
+  }
+  finally {
+    installingCatalogId.value = null
+  }
+}
+
+function openUploadModal() {
+  uploadFile.value = null
+  isUploadModalOpen.value = true
+}
+
+function onUploadFileChange(event: Event) {
+  const input = event.target as HTMLInputElement
+  uploadFile.value = input.files?.[0] ?? null
+}
+
+async function confirmUploadPlugin() {
+  if (!uploadFile.value) {
+    toast.error(t('settings.uploadPluginNoFile', 'Выберите zip-файл плагина'))
+    return
+  }
+
+  isUploading.value = true
+  try {
+    await repos.catalogPlugin.upload(uploadFile.value)
+    toast.success(t('settings.uploadPluginSuccess', 'Плагин отправлен на рассмотрение'))
+    isUploadModalOpen.value = false
+    uploadFile.value = null
+    await fetchMyUploadedPlugins()
+  }
+  catch (err: unknown) {
+    console.error('Failed to upload plugin:', err)
+    const msg = err instanceof Error ? err.message : t('settings.uploadPluginFailed', 'Не удалось загрузить плагин')
+    toast.error(msg)
+  }
+  finally {
+    isUploading.value = false
+  }
+}
+
+async function fetchMyUploadedPlugins() {
+  try {
+    myUploadedPlugins.value = await repos.catalogPlugin.getMy()
+  }
+  catch (err) {
+    console.error('Failed to fetch my uploaded plugins', err)
+  }
+}
+
+async function fetchPendingPlugins() {
+  try {
+    pendingPlugins.value = await repos.catalogPlugin.getPending()
+  }
+  catch (err) {
+    console.error('Failed to fetch pending plugins', err)
+  }
+}
+
+function statusLabel(status: CatalogPluginRecord['status']) {
+  const labels: Record<CatalogPluginRecord['status'], string> = {
+    pending: t('settings.pluginStatusPending', 'На рассмотрении'),
+    approved: t('settings.pluginStatusApproved', 'Одобрен'),
+    rejected: t('settings.pluginStatusRejected', 'Отклонён'),
+  }
+  return labels[status]
+}
+
+async function deleteCatalogPlugin(id: number) {
+  try {
+    await repos.catalogPlugin.delete(id)
+    toast.success(t('settings.catalogPluginDeleted', 'Плагин удалён из каталога'))
+    await Promise.all([
+      fetchMyUploadedPlugins(),
+      ...(isAdmin.value ? [fetchPendingPlugins()] : []),
+    ])
+  }
+  catch (err) {
+    console.error('Failed to delete catalog plugin:', err)
+    toast.error(t('settings.catalogActionFailed', 'Не удалось выполнить действие'))
+  }
+}
+
+async function moderatePlugin(record: CatalogPluginRecord, status: 'approved' | 'rejected') {
+  try {
+    await repos.catalogPlugin.updateStatus(record.id, status)
+    toast.success(t('settings.catalogPluginStatusUpdated', 'Статус плагина обновлён'))
+    await fetchPendingPlugins()
+  }
+  catch (err) {
+    console.error('Failed to moderate plugin:', err)
+    toast.error(t('settings.catalogActionFailed', 'Не удалось выполнить действие'))
+  }
+}
 </script>
 
 <template>
@@ -155,14 +312,33 @@ onMounted(() => {
           {{ t('settings.pluginsSubtitle', 'Управление дополнительными модулями и динамическими плагинами по URL') }}
         </p>
       </div>
-      <KitBtn
-        color="primary"
-        icon="mdi:plus"
-        size="sm"
-        :title="t('settings.addRemotePlugin')"
-        :aria-label="t('settings.addRemotePlugin')"
-        @click="openInstallModal"
-      />
+      <div class="panel-actions">
+        <KitBtn
+          variant="tonal"
+          icon="mdi:account-group-outline"
+          size="sm"
+          @click="openCatalogModal"
+        >
+          {{ t('settings.communityPlugins', 'Плагины сообщества') }}
+        </KitBtn>
+        <KitBtn
+          variant="tonal"
+          icon="mdi:upload-outline"
+          size="sm"
+          @click="openUploadModal"
+        >
+          {{ t('settings.uploadPlugin', 'Загрузить плагин') }}
+        </KitBtn>
+        <KitBtn
+          color="primary"
+          class="add-remote-plugin-btn"
+          icon="mdi:plus"
+          size="sm"
+          :title="t('settings.addRemotePlugin')"
+          :aria-label="t('settings.addRemotePlugin')"
+          @click="openInstallModal"
+        />
+      </div>
     </div>
 
     <!-- Встроенные статические плагины -->
@@ -228,6 +404,97 @@ onMounted(() => {
       </div>
     </div>
 
+    <!-- Мои загруженные в каталог плагины -->
+    <div v-if="myUploadedPlugins.length > 0" class="section-group">
+      <h3 class="group-title">
+        {{ t('settings.myUploadedPlugins', 'Мои загруженные плагины') }}
+      </h3>
+      <div class="plugins-list">
+        <div v-for="record in myUploadedPlugins" :key="record.id" class="plugin-card">
+          <div class="plugin-icon">
+            <Icon :icon="record.icon || 'mdi:puzzle-outline'" />
+          </div>
+          <div class="plugin-info">
+            <h3>
+              {{ record.name }}
+              <span class="version-badge">v{{ record.version }}</span>
+              <span class="status-badge" :class="`status-${record.status}`">{{ statusLabel(record.status) }}</span>
+            </h3>
+            <p v-if="record.description">
+              {{ record.description }}
+            </p>
+          </div>
+          <div class="plugin-action">
+            <KitBtn
+              variant="text"
+              color="error"
+              icon="mdi:delete-outline"
+              size="sm"
+              :title="t('settings.deleteCatalogPlugin', 'Удалить')"
+              @click="deleteCatalogPlugin(record.id)"
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Модерация (только для администратора) -->
+    <div v-if="isAdmin" class="section-group">
+      <h3 class="group-title">
+        {{ t('settings.moderationTitle', 'Модерация') }}
+      </h3>
+
+      <div v-if="pendingPlugins.length === 0" class="empty-state">
+        <Icon icon="mdi:shield-check-outline" class="empty-icon" />
+        <p>{{ t('settings.noPendingPlugins', 'Нет плагинов на модерации') }}</p>
+      </div>
+
+      <div v-else class="plugins-list">
+        <div v-for="record in pendingPlugins" :key="record.id" class="plugin-card">
+          <div class="plugin-icon">
+            <Icon :icon="record.icon || 'mdi:puzzle-outline'" />
+          </div>
+          <div class="plugin-info">
+            <h3>
+              {{ record.name }}
+              <span class="version-badge">v{{ record.version }}</span>
+            </h3>
+            <p v-if="record.description">
+              {{ record.description }}
+            </p>
+            <p v-if="record.author" class="plugin-author">
+              {{ record.author }}
+            </p>
+          </div>
+          <div class="plugin-action gap-12">
+            <KitBtn
+              color="primary"
+              icon="mdi:check"
+              size="sm"
+              :title="t('settings.approvePlugin', 'Одобрить')"
+              @click="moderatePlugin(record, 'approved')"
+            />
+            <KitBtn
+              variant="tonal"
+              color="error"
+              icon="mdi:close"
+              size="sm"
+              :title="t('settings.rejectPlugin', 'Отклонить')"
+              @click="moderatePlugin(record, 'rejected')"
+            />
+            <KitBtn
+              variant="text"
+              color="error"
+              icon="mdi:delete-outline"
+              size="sm"
+              :title="t('settings.deleteCatalogPlugin', 'Удалить')"
+              @click="deleteCatalogPlugin(record.id)"
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Модальное окно установки динамического плагина по URL -->
     <KitDialog
       v-model:visible="isInstallModalOpen"
@@ -268,6 +535,99 @@ onMounted(() => {
         </div>
       </div>
     </KitDialog>
+    <!-- Модальное окно каталога плагинов сообщества -->
+    <KitDialog
+      v-model:visible="isCatalogModalOpen"
+      :title="t('settings.communityPluginsTitle', 'Каталог плагинов сообщества')"
+      :max-width="640"
+    >
+      <div class="install-dialog-content">
+        <div v-if="isCatalogLoading" class="empty-state">
+          <Icon icon="mdi:loading" class="empty-icon rotating" />
+        </div>
+
+        <div v-else-if="catalogPlugins.length === 0" class="empty-state">
+          <Icon icon="mdi:puzzle-remove-outline" class="empty-icon" />
+          <p>{{ t('settings.noCommunityPlugins', 'В каталоге пока нет одобренных плагинов') }}</p>
+        </div>
+
+        <div v-else class="plugins-list">
+          <div v-for="record in catalogPlugins" :key="record.id" class="plugin-card">
+            <div class="plugin-icon">
+              <Icon :icon="record.icon || 'mdi:puzzle-outline'" />
+            </div>
+            <div class="plugin-info">
+              <h3>
+                {{ record.name }}
+                <span class="version-badge">v{{ record.version }}</span>
+              </h3>
+              <p v-if="record.description">
+                {{ record.description }}
+              </p>
+              <p v-if="record.author" class="plugin-author">
+                {{ record.author }}
+              </p>
+            </div>
+            <div class="plugin-action">
+              <KitBtn
+                v-if="isCatalogPluginInstalled(record)"
+                variant="tonal"
+                size="sm"
+                disabled
+              >
+                {{ t('settings.installedFromCatalog', 'Установлен') }}
+              </KitBtn>
+              <KitBtn
+                v-else
+                color="primary"
+                size="sm"
+                :loading="installingCatalogId === record.id"
+                @click="installCatalogPlugin(record)"
+              >
+                {{ t('settings.installFromCatalog', 'Установить') }}
+              </KitBtn>
+            </div>
+          </div>
+        </div>
+      </div>
+    </KitDialog>
+
+    <!-- Модальное окно загрузки своего плагина -->
+    <KitDialog
+      v-model:visible="isUploadModalOpen"
+      :title="t('settings.uploadPluginTitle', 'Загрузка своего плагина')"
+      :max-width="540"
+    >
+      <div class="install-dialog-content">
+        <p class="upload-hint">
+          {{ t('settings.uploadPluginHint', 'Выберите zip-архив с плагином. После загрузки он будет отправлен на рассмотрение модератором.') }}
+        </p>
+
+        <div class="field-group">
+          <label>{{ t('settings.uploadPluginFileLabel', 'Zip-архив плагина:') }}</label>
+          <input
+            type="file"
+            accept=".zip"
+            class="file-input"
+            @change="onUploadFileChange"
+          >
+        </div>
+
+        <div class="dialog-actions">
+          <KitBtn variant="tonal" size="sm" @click="isUploadModalOpen = false">
+            {{ t('common.cancel', 'Отмена') }}
+          </KitBtn>
+          <KitBtn
+            color="primary"
+            size="sm"
+            :loading="isUploading"
+            @click="confirmUploadPlugin"
+          >
+            {{ t('settings.uploadConfirm', 'Отправить на рассмотрение') }}
+          </KitBtn>
+        </div>
+      </div>
+    </KitDialog>
   </div>
 </template>
 
@@ -283,6 +643,7 @@ onMounted(() => {
   justify-content: space-between;
   align-items: center;
   gap: 16px;
+  flex-wrap: wrap;
 
   .section-title {
     font-size: 1.4rem;
@@ -408,7 +769,6 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   gap: 20px;
-  padding-top: 12px;
 }
 
 .warning-banner {
@@ -456,5 +816,107 @@ onMounted(() => {
   justify-content: flex-end;
   gap: 12px;
   margin-top: 8px;
+}
+
+.panel-actions {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  gap: 12px;
+  flex-wrap: wrap;
+
+  .add-remote-plugin-btn {
+    margin-left: auto;
+  }
+}
+
+@include media-down(sm) {
+  .panel-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .panel-actions {
+    width: 100%;
+
+    :deep(.kit-btn) {
+      flex: 1 1 auto;
+      justify-content: center;
+    }
+  }
+}
+
+.version-badge {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 2px 8px;
+  border-radius: 8px;
+  background: var(--bg-tertiary-color);
+  color: var(--fg-secondary-color);
+  font-size: 0.75rem;
+  font-weight: 500;
+  vertical-align: middle;
+}
+
+.status-badge {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 2px 8px;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  vertical-align: middle;
+
+  &.status-pending {
+    background: rgba(234, 179, 8, 0.15);
+    color: #eab308;
+  }
+
+  &.status-approved {
+    background: rgba(34, 197, 94, 0.15);
+    color: #22c55e;
+  }
+
+  &.status-rejected {
+    background: rgba(239, 68, 68, 0.15);
+    color: #ef4444;
+  }
+}
+
+.plugin-author {
+  font-size: 0.8rem;
+  color: var(--fg-muted-color);
+}
+
+.upload-hint {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--fg-secondary-color);
+  line-height: 1.4;
+}
+
+.file-input {
+  font-size: 0.9rem;
+  color: var(--fg-primary-color);
+
+  &::file-selector-button {
+    margin-right: 12px;
+    padding: 6px 14px;
+    border: none;
+    border-radius: 8px;
+    background: var(--bg-tertiary-color);
+    color: var(--fg-primary-color);
+    cursor: pointer;
+  }
+}
+
+.rotating {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 </style>

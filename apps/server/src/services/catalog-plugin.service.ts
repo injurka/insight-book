@@ -1,5 +1,7 @@
+import type { CatalogPluginStatus } from '../constants/catalog-plugin'
 import path from 'node:path'
 import AdmZip from 'adm-zip'
+import { CATALOG_PLUGIN_STATUS } from '../constants/catalog-plugin'
 import { ROLES } from '../constants/roles'
 import { catalogPluginRepository } from '../repositories/catalog-plugin.repository'
 import { userRepository } from '../repositories/user.repository'
@@ -42,7 +44,28 @@ export class CatalogPluginService {
   constructor(private catalogRepo = catalogPluginRepository) {}
 
   async getPlugins() {
-    return this.catalogRepo.findMany()
+    return this.catalogRepo.findMany(CATALOG_PLUGIN_STATUS.APPROVED)
+  }
+
+  async getMyPlugins(userId: number) {
+    return this.catalogRepo.findByUploader(userId)
+  }
+
+  async getPendingPlugins(userId: number) {
+    await this.assertAdmin(userId)
+    return this.catalogRepo.findMany(CATALOG_PLUGIN_STATUS.PENDING)
+  }
+
+  async setPluginStatus(userId: number, pluginId: string, status: CatalogPluginStatus) {
+    await this.assertAdmin(userId)
+
+    const updated = await this.catalogRepo.updateStatus(pluginId, status)
+    if (!updated) {
+      throw new AppError(404, 'Плагин не найден в каталоге')
+    }
+
+    logger.info(`[Catalog] Plugin "${pluginId}" status changed to "${status}" by user ${userId}`)
+    return updated
   }
 
   async getPlugin(pluginId: string) {
@@ -55,11 +78,11 @@ export class CatalogPluginService {
 
   /**
    * Загрузка плагина в каталог из zip-архива со сборкой Module Federation
-   * (manifest.json + remoteEntry.js + ассеты). Только для администраторов.
+   * (manifest.json + remoteEntry.js + ассеты). Доступна любому авторизованному
+   * пользователю; плагин попадает в каталог со статусом "pending" и публикуется
+   * после модерации.
    */
   async uploadPlugin(userId: number, file: File) {
-    await this.assertAdmin(userId)
-
     if (!file.name.toLowerCase().endsWith('.zip')) {
       throw new AppError(400, 'Ожидается zip-архив со сборкой плагина')
     }
@@ -136,6 +159,7 @@ export class CatalogPluginService {
       author: manifest.author ?? null,
       manifestUrl,
       uploadedBy: userId,
+      status: CATALOG_PLUGIN_STATUS.PENDING,
     })
 
     logger.info(`[Catalog] Plugin "${manifest.id}" v${manifest.version} uploaded by user ${userId} (${uploadedCount} files)`)
@@ -144,12 +168,17 @@ export class CatalogPluginService {
   }
 
   async deletePlugin(userId: number, pluginId: string) {
-    await this.assertAdmin(userId)
-
-    const deleted = await this.catalogRepo.delete(pluginId)
-    if (!deleted) {
+    const plugin = await this.catalogRepo.findOne(pluginId)
+    if (!plugin) {
       throw new AppError(404, 'Плагин не найден в каталоге')
     }
+
+    const user = await userRepository.findById(userId)
+    if (user?.role !== ROLES.ADMIN && plugin.uploadedBy !== userId) {
+      throw new AppError(403, 'Удалить плагин может только администратор или его загрузивший')
+    }
+
+    await this.catalogRepo.delete(pluginId)
 
     await storageService.deleteFolder(`plugins/${pluginId}`)
     return { success: true }

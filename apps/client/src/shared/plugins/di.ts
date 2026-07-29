@@ -4,6 +4,7 @@ import { activityRepository } from '~/shared/repositories/activity.repository'
 import { analysisRepository } from '~/shared/repositories/analysis.repository'
 import { authRepository } from '~/shared/repositories/auth.repository'
 import { bookRepository } from '~/shared/repositories/book.repository'
+import { catalogPluginRepository } from '~/shared/repositories/catalog-plugin.repository'
 import { dictionaryRepository } from '~/shared/repositories/dictionary.repository'
 import { highlightsRepository } from '~/shared/repositories/highlights.repository'
 import { pluginRepository } from '~/shared/repositories/plugin.repository'
@@ -16,6 +17,7 @@ export interface Repositories {
   analysis: typeof analysisRepository
   auth: typeof authRepository
   book: typeof bookRepository
+  catalogPlugin: typeof catalogPluginRepository
   dictionary: typeof dictionaryRepository
   highlights: typeof highlightsRepository
   plugin: typeof pluginRepository
@@ -29,6 +31,7 @@ export const defaultRepositories: Repositories = {
   analysis: analysisRepository,
   auth: authRepository,
   book: bookRepository,
+  catalogPlugin: catalogPluginRepository,
   dictionary: dictionaryRepository,
   highlights: highlightsRepository,
   plugin: pluginRepository,

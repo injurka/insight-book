@@ -1,0 +1,1 @@
+ALTER TABLE `catalog_plugins` ADD `status` text DEFAULT 'pending' NOT NULL;

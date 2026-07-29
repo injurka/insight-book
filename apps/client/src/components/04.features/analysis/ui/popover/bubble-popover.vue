@@ -409,7 +409,7 @@ onUnmounted(() => stop())
   }
 }
 
-@media (max-width: 600px) {
+@include media-down(sm) {
   .bubble-popover-container {
     flex-direction: column-reverse;
     align-items: flex-end;

@@ -345,3 +345,17 @@ export interface UserPluginRecord {
   isEnabled: boolean
   createdAt?: string
 }
+
+export interface CatalogPluginRecord {
+  id: number
+  name: string
+  version: string
+  description?: string | null
+  icon?: string | null
+  author?: string | null
+  manifestUrl: string
+  status: 'pending' | 'approved' | 'rejected'
+  uploadedBy: number
+  createdAt: string
+  updatedAt: string
+}

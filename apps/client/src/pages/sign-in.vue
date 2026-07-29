@@ -441,7 +441,7 @@ onUnmounted(() => {
   overflow: hidden;
   background: var(--bg-primary-color);
 
-  @media (max-width: 768px) {
+  @include media-down(sm) {
     display: flex;
     flex-direction: column;
     overflow-y: auto;
@@ -470,7 +470,7 @@ onUnmounted(() => {
     transform: translateY(-1px);
   }
 
-  @media (max-width: 480px) {
+  @include media-down(sm) {
     top: 12px;
     right: 12px;
   }
@@ -555,7 +555,7 @@ onUnmounted(() => {
   align-items: center;
   justify-content: center;
 
-  @media (max-width: 768px) {
+  @include media-down(sm) {
     flex: 0 0 320px;
     padding-bottom: 24px;
   }
@@ -729,7 +729,7 @@ onUnmounted(() => {
   backdrop-filter: blur(12px);
   white-space: nowrap;
 
-  @media (max-width: 768px) {
+  @include media-down(sm) {
     display: none;
   }
 }
@@ -785,12 +785,12 @@ onUnmounted(() => {
       transparent
     );
 
-    @media (max-width: 768px) {
+    @include media-down(sm) {
       display: none;
     }
   }
 
-  @media (max-width: 768px) {
+  @include media-down(sm) {
     flex: 1 1 auto;
     padding: 32px 24px 60px;
     border-radius: 28px 28px 0 0;
@@ -894,7 +894,7 @@ onUnmounted(() => {
   max-height: 280px;
 }
 
-@media (max-width: 480px) {
+@include media-down(sm) {
   .auth-card {
     gap: 16px;
   }

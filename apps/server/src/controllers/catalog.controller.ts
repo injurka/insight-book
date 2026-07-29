@@ -1,5 +1,6 @@
 import { Elysia, t } from 'elysia'
 import { CORS_HEADERS } from '../config'
+import { CATALOG_PLUGIN_STATUS } from '../constants/catalog-plugin'
 import { catalogPluginService, getPluginContentType } from '../services/catalog-plugin.service'
 import { authPlugin } from '../utils/auth'
 
@@ -7,6 +8,12 @@ export const catalogRouter = new Elysia({ prefix: '/api/catalog/plugins' })
   .use(authPlugin)
   .get('/', async () => {
     return catalogPluginService.getPlugins()
+  })
+  .get('/my', async ({ userId }) => {
+    return catalogPluginService.getMyPlugins(userId)
+  })
+  .get('/pending', async ({ userId }) => {
+    return catalogPluginService.getPendingPlugins(userId)
   })
   .get('/files/*', async ({ params, set }) => {
     const storageKey = `plugins/${params['*']}`
@@ -32,6 +39,14 @@ export const catalogRouter = new Elysia({ prefix: '/api/catalog/plugins' })
   }, {
     body: t.Object({
       file: t.File(),
+    }),
+  })
+  .patch('/:id/status', async ({ params, body, userId }) => {
+    return catalogPluginService.setPluginStatus(userId, params.id, body.status)
+  }, {
+    params: t.Object({ id: t.String() }),
+    body: t.Object({
+      status: t.Enum({ approved: CATALOG_PLUGIN_STATUS.APPROVED, rejected: CATALOG_PLUGIN_STATUS.REJECTED }),
     }),
   })
   .delete('/:id', async ({ params, userId }) => {

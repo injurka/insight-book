@@ -1,4 +1,4 @@
-import type { AuthLoginDto, AuthRegisterDto, AuthSendCodeDto, Book, BookStats, CatalogDeck, CatalogWord, DictDeck, GeneratedWordExamples, Highlight, LlmAnalysis, PageDictEntry, PagePayload, PromptItem, TocItem, UserData, UserDictItem, UserPluginRecord, WordAutoFillResponse } from '../types/models'
+import type { AuthLoginDto, AuthRegisterDto, AuthSendCodeDto, Book, BookStats, CatalogDeck, CatalogPluginRecord, CatalogWord, DictDeck, GeneratedWordExamples, Highlight, LlmAnalysis, PageDictEntry, PagePayload, PromptItem, TocItem, UserData, UserDictItem, UserPluginRecord, WordAutoFillResponse } from '../types/models'
 import { ofetch } from 'ofetch'
 import { getActivePinia } from 'pinia'
 
@@ -465,5 +465,27 @@ export const api = {
       }),
     uninstallPlugin: (pluginId: string) =>
       request<{ success: boolean }>(`/api/plugins/${pluginId}`, { method: 'DELETE' }),
+  },
+
+  catalogPlugins: {
+    getApproved: () => request<CatalogPluginRecord[]>('/api/catalog/plugins'),
+    getMy: () => request<CatalogPluginRecord[]>('/api/catalog/plugins/my'),
+    getPending: () => request<CatalogPluginRecord[]>('/api/catalog/plugins/pending'),
+    upload: (file: File) => {
+      const fd = new FormData()
+      fd.append('file', file)
+      return request<CatalogPluginRecord>('/api/catalog/plugins/upload', {
+        method: 'POST',
+        body: fd,
+      })
+    },
+    updateStatus: (id: number, status: 'approved' | 'rejected') =>
+      request<CatalogPluginRecord>(`/api/catalog/plugins/${id}/status`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status }),
+      }),
+    delete: (id: number) =>
+      request<{ success: boolean }>(`/api/catalog/plugins/${id}`, { method: 'DELETE' }),
   },
 }

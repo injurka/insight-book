@@ -8,7 +8,6 @@ import { useToast } from '~/shared/composables/use-toast'
 import { AppRoutePaths } from '~/shared/constants/routes'
 import { getMediaUrl } from '~/shared/lib/helpers'
 import { useAuthStore } from '~/shared/store/auth.store'
-import { useGlobalSettingsStore } from '~/shared/store/settings.store'
 
 const emit = defineEmits(['closeDropdown'])
 
@@ -16,7 +15,6 @@ const router = useRouter()
 const authStore = useAuthStore()
 const toast = useToast()
 const { t } = useI18n()
-const settingsStore = useGlobalSettingsStore()
 
 const tokenPercent = computed(() => {
   const used = authStore.user?.usedTokens ?? 0
@@ -37,16 +35,6 @@ const bookPercent = computed(() => {
     return 100
   return Math.min(100, Math.round((used / limit) * 100))
 })
-
-function formatNumber(num: number | undefined | null) {
-  if (num == null)
-    return '0'
-
-  return new Intl.NumberFormat(settingsStore.appLanguage || 'ru-RU', {
-    notation: 'compact',
-    maximumFractionDigits: 1,
-  }).format(num)
-}
 
 const userRoleName = computed(() => {
   const role = authStore.user?.role
@@ -127,8 +115,7 @@ function openLimits() {
               <span>{{ t('globalActions.aiTokens') }}</span>
             </div>
             <div class="widget-usage">
-              <strong>{{ formatNumber(authStore.user?.usedTokens) }}</strong> /
-              {{ authStore.user?.tokenLimit !== null && authStore.user?.tokenLimit !== undefined ? formatNumber(authStore.user?.tokenLimit) : '∞' }}
+              <strong>{{ authStore.user?.tokenLimit !== null && authStore.user?.tokenLimit !== undefined ? `${tokenPercent}%` : '∞' }}</strong>
             </div>
           </div>
           <div v-if="authStore.user?.tokenLimit !== null && authStore.user?.tokenLimit !== undefined" class="progress-bar-container">
@@ -148,8 +135,7 @@ function openLimits() {
               <span>{{ t('globalActions.booksLimit') }}</span>
             </div>
             <div class="widget-usage">
-              <strong>{{ authStore.user?.usedBooks || 0 }}</strong> /
-              {{ authStore.user?.bookLimit !== null && authStore.user?.bookLimit !== undefined ? authStore.user?.bookLimit : '∞' }}
+              <strong>{{ authStore.user?.bookLimit !== null && authStore.user?.bookLimit !== undefined ? `${bookPercent}%` : '∞' }}</strong>
             </div>
           </div>
           <div v-if="authStore.user?.bookLimit !== null && authStore.user?.bookLimit !== undefined" class="progress-bar-container">
