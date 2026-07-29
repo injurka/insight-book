@@ -103,6 +103,7 @@ const difficultyClass = computed(() => {
   <KitDialog
     v-model:visible="visible"
     :title="t('dictWord.cardDetails')"
+    :minimizable="false"
     :max-width="650"
     z-index="1350"
   >

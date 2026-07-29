@@ -34,6 +34,7 @@ const appLangOptions = [
 ]
 
 const themeOptions = computed(() => [
+  { label: t('reader.system'), value: ThemesVariant.System },
   { label: t('reader.light'), value: ThemesVariant.Light },
   { label: t('reader.dark'), value: ThemesVariant.Dark },
   { label: t('reader.sepia'), value: ThemesVariant.Sepia },

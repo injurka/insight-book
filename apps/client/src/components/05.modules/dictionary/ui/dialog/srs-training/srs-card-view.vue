@@ -920,7 +920,8 @@ watch(() => props.card, initCard, { immediate: true })
   padding: 16px;
   text-align: left;
 
-  &:not(:first-of-type) {
+  & ~ .word-notes,
+  & ~ .animation-container {
     margin-top: 8px;
   }
 

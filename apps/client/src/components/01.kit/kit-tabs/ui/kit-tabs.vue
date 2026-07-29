@@ -77,7 +77,7 @@ const {
 .kit-tabs {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 16px;
   width: 100%;
 
   &.single {
@@ -91,7 +91,7 @@ const {
   display: none;
   text-align: center;
   animation: fade-in 0.3s ease;
-  margin-top: -10px;
+  margin-top: 0px;
 
   .mobile-tab-label {
     display: inline-block;
