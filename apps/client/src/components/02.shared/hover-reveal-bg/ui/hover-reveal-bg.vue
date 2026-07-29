@@ -96,7 +96,7 @@ const repeatedText = computed(() => Array.from({ length: 50 }).fill(props.text).
 <template>
   <!-- 4. Вешаем ref и привязываем только статичные стили -->
   <div
-    v-if="!settingsStore.enableHoverRevealBg"
+    v-if="settingsStore.enableHoverRevealBg"
     ref="bgRef"
     class="hover-reveal-bg"
     :style="staticBgStyle"
