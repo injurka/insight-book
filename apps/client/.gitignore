@@ -23,7 +23,7 @@ dist-ssr
 *.sln
 *.sw?
 .env
-tsconfig.tsbuildinfo
+*.tsbuildinfo
 
 *storybook.log
 storybook-static
