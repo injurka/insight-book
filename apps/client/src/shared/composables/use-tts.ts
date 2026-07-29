@@ -5,6 +5,13 @@ import { useUmami } from '~/shared/composables/use-umami'
 import { useRepos } from '~/shared/plugins/di'
 import { useGlobalSettingsStore } from '~/shared/store/settings.store'
 
+const isPlaying = ref(false)
+const isLoading = ref(false)
+
+let currentAudio: HTMLAudioElement | null = null
+let currentAudioUrl: string | null = null
+let abortController: AbortController | null = null
+
 export function useTts() {
   const repos = useRepos()
   const { trackEvent } = useUmami()
@@ -12,13 +19,6 @@ export function useTts() {
   const readerStore = useReaderStore()
   const settingsStore = useGlobalSettingsStore()
   const toast = useToast()
-
-  const isPlaying = ref(false)
-  const isLoading = ref(false)
-
-  let currentAudio: HTMLAudioElement | null = null
-  let currentAudioUrl: string | null = null
-  let abortController: AbortController | null = null
 
   async function speak(
     text: string | null | undefined,

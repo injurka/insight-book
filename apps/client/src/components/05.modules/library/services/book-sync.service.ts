@@ -1,9 +1,10 @@
-import type { LlmAnalysis } from '~/shared/types/models'
+import type { LlmAnalysis, PagePayload } from '~/shared/types/models'
 import { v4 as uuidv4 } from 'uuid'
 import { ref } from 'vue'
 import { useUmami } from '~/shared/composables/use-umami'
 import { useRepos } from '~/shared/plugins/di'
 import { useGlobalSettingsStore } from '~/shared/store/settings.store'
+import { extractPageData } from './book-sync-parser'
 
 const repos = useRepos()
 
@@ -29,6 +30,22 @@ export const syncOptions = ref({
   ttsWords: false,
 })
 
+interface SyncBook {
+  id: number
+  language: string
+  totalPages: number
+  coverUrl: string | null
+  localCoverUrl?: string | null
+}
+
+interface AnalysisContext {
+  bookId: number
+  language: string
+  signal: AbortSignal
+  batchSize: number
+  concurrencyLimit: number
+}
+
 let syncAbortController: AbortController | null = null
 
 export function cancelSync(): void {
@@ -37,6 +54,270 @@ export function cancelSync(): void {
     syncAbortController = null
   }
   syncState.value = 'idle'
+}
+
+/** Синхронизирует оглавление книги (ошибки не прерывают синк). */
+async function syncBookToc(bookId: number): Promise<void> {
+  try {
+    const toc = await repos.book.getToc(bookId)
+    await repos.book.saveLocalToc(bookId, toc)
+  }
+  catch { }
+}
+
+/** Кэширует обложку книги локально, если её ещё нет. */
+async function cacheBookCover(book: SyncBook, cachePages: boolean): Promise<void> {
+  if (!cachePages || !book.coverUrl || book.localCoverUrl)
+    return
+
+  syncProgress.value.currentTask = 'Кэширование обложки...'
+  const cachedCover = await repos.book.getLocalCover(book.id)
+  if (cachedCover)
+    return
+
+  try {
+    const blob = await repos.book.fetchImageBlob(book.coverUrl)
+    await repos.book.saveLocalCover(book.id, blob)
+    book.localCoverUrl = URL.createObjectURL(blob)
+  }
+  catch (e) {
+    console.warn('Failed to cache cover', e)
+  }
+}
+
+/** Кэширует изображение manga-страницы и словарь страницы. */
+async function cachePageAssets(
+  bookId: number,
+  page: PagePayload | undefined,
+  pageNum: number,
+  cachePages: boolean,
+): Promise<void> {
+  if (!cachePages)
+    return
+
+  if (page?.type === 'manga' && page.imageUrl) {
+    const cachedImage = await repos.book.getLocalImage(bookId, pageNum)
+    if (!cachedImage) {
+      try {
+        const blob = await repos.book.fetchImageBlob(page.imageUrl)
+        await repos.book.saveLocalImage(bookId, pageNum, blob)
+      }
+      catch (e) {
+        console.warn(`Failed to cache image for page ${pageNum}`, e)
+      }
+    }
+  }
+
+  try {
+    await repos.book.getPageDict(bookId, pageNum)
+  }
+  catch (e) {
+    console.warn(`Failed to fetch dictionary for page ${pageNum}`, e)
+  }
+}
+
+/**
+ * Общий шаг анализа текстов (предложений или слов):
+ * локальный кэш → серверный кэш → пакетный LLM-анализ.
+ */
+async function analyzeMissingTexts(
+  texts: string[],
+  type: 'sentence' | 'word',
+  ctx: AnalysisContext,
+  totalKey: 'sentencesTotal' | 'wordsTotal',
+  doneKey: 'sentencesDone' | 'wordsDone',
+  label: string,
+  pageNum: number,
+): Promise<void> {
+  syncProgress.value[totalKey] += texts.length
+  const missingTexts: string[] = []
+
+  for (const text of texts) {
+    const cached = await repos.analysis.getLocalAnalysis(text)
+    if (cached) {
+      syncProgress.value[doneKey]++
+    }
+    else {
+      missingTexts.push(text)
+    }
+  }
+
+  // Массовая проверка через бэкенд без LLM (только SQLite)
+  if (missingTexts.length > 0) {
+    try {
+      const checkItems = missingTexts.map(t => ({ text: t, type }))
+      const res = await repos.analysis.checkCache(
+        ctx.bookId,
+        checkItems,
+        ctx.language,
+        ctx.signal,
+      )
+      const cacheMap = new Map(res.results.map((r: any) => [r.sentence, r.analysis]))
+
+      for (let j = missingTexts.length - 1; j >= 0; j--) {
+        const text = missingTexts[j]
+        const serverCached = cacheMap.get(text) as unknown as LlmAnalysis
+        if (serverCached) {
+          await repos.analysis.saveLocalAnalysis(text, serverCached)
+          syncProgress.value[doneKey]++
+          missingTexts.splice(j, 1)
+        }
+      }
+    }
+    catch (e) {
+      const err = e as Error
+      if (err.name === 'AbortError')
+        throw err
+    }
+  }
+
+  const batches: string[][] = []
+  for (let j = 0; j < missingTexts.length; j += ctx.batchSize) {
+    batches.push(missingTexts.slice(j, j + ctx.batchSize))
+  }
+
+  for (let j = 0; j < batches.length; j += ctx.concurrencyLimit) {
+    if (ctx.signal.aborted)
+      throw new Error('Aborted')
+    const currentBatches = batches.slice(j, j + ctx.concurrencyLimit)
+
+    await Promise.all(currentBatches.map(async (batch) => {
+      const itemsToAnalyze = batch.map(t => ({ id: uuidv4(), sentence: t, type }))
+
+      try {
+        const res = await repos.analysis.analyzeBatch(
+          ctx.bookId,
+          itemsToAnalyze,
+          ctx.language,
+          ctx.signal,
+        )
+        for (const result of res.results) {
+          const item = itemsToAnalyze.find(it => it.id === result.id)
+          if (item) {
+            await repos.analysis.saveLocalAnalysis(item.sentence, result.analysis)
+            syncProgress.value[doneKey]++
+          }
+        }
+      }
+      catch (e) {
+        const err = e as Error
+        if (err.name !== 'AbortError')
+          console.error(`Analyze ${type} error:`, err)
+      }
+    }))
+    syncProgress.value.currentTask = `Анализ ${label}: стр. ${pageNum}, ${syncProgress.value[doneKey]} / ${syncProgress.value[totalKey]}`
+  }
+}
+
+/** Генерирует TTS-аудио для предложений и слов страницы. */
+async function generateTtsForTexts(texts: string[], ctx: AnalysisContext, pageNum: number): Promise<void> {
+  syncProgress.value.ttsTotal += texts.length
+  const ttsConcurrency = 3
+  const settingsStore = useGlobalSettingsStore()
+  const voice = settingsStore.ttsVoice || 'Kore'
+
+  for (let j = 0; j < texts.length; j += ttsConcurrency) {
+    if (ctx.signal.aborted)
+      throw new Error('Aborted')
+    const batch = texts.slice(j, j + ttsConcurrency)
+
+    await Promise.all(batch.map(async (text) => {
+      if (ctx.signal.aborted)
+        return
+      const normalizedText = text.trim().toLowerCase()
+      const cacheKey = `${ctx.bookId}_${voice}_${normalizedText}`
+
+      try {
+        const cached = await repos.analysis.getLocalTts(cacheKey)
+        if (!cached) {
+          const res = await repos.analysis.generateTts(
+            ctx.bookId,
+            text,
+            voice,
+            ctx.signal,
+          )
+          await repos.analysis.saveLocalTts(cacheKey, res.audioBase64)
+        }
+      }
+      catch (e: unknown) {
+        if ((e as Error).name !== 'AbortError')
+          console.error('TTS Sync error:', e)
+      }
+      syncProgress.value.ttsDone++
+    }))
+    syncProgress.value.currentTask = `Генерация аудио: стр. ${pageNum}, ${syncProgress.value.ttsDone} / ${syncProgress.value.ttsTotal}`
+  }
+}
+
+/** Обрабатывает одну страницу: кэширование, парсинг, анализ и TTS. */
+async function processPage(
+  book: SyncBook,
+  pageNum: number,
+  options: typeof syncOptions.value,
+  ctx: AnalysisContext,
+): Promise<void> {
+  if (ctx.signal.aborted)
+    throw new Error('Aborted')
+  syncProgress.value.currentTask = `Загрузка страницы ${pageNum} из ${book.totalPages}`
+
+  let page: PagePayload | undefined
+  try {
+    page = await repos.book.getPage(ctx.bookId, pageNum, true)
+  }
+  catch (e) {
+    console.warn(`Failed to fetch page ${pageNum}`, e)
+    return
+  }
+
+  await cachePageAssets(
+    ctx.bookId,
+    page,
+    pageNum,
+    options.cachePages,
+  )
+
+  syncProgress.value.pagesDone = pageNum
+
+  if (!page)
+    return
+
+  const { sentences, words } = extractPageData(page, {
+    extractSentences: options.analyzeSentences || options.ttsSentences,
+    extractWords: options.analyzeWords || options.ttsWords,
+  })
+
+  if (options.analyzeSentences) {
+    await analyzeMissingTexts(
+      sentences,
+      'sentence',
+      ctx,
+      'sentencesTotal',
+      'sentencesDone',
+      'предложений',
+      pageNum,
+    )
+  }
+
+  if (options.analyzeWords) {
+    await analyzeMissingTexts(
+      words,
+      'word',
+      ctx,
+      'wordsTotal',
+      'wordsDone',
+      'слов',
+      pageNum,
+    )
+  }
+
+  if (options.ttsSentences || options.ttsWords) {
+    const ttsItems: string[] = []
+    if (options.ttsSentences)
+      ttsItems.push(...sentences)
+    if (options.ttsWords)
+      ttsItems.push(...words)
+    await generateTtsForTexts(ttsItems, ctx, pageNum)
+  }
 }
 
 export async function startWholeBookSync(bookId: number, options: {
@@ -91,314 +372,28 @@ export async function startWholeBookSync(bookId: number, options: {
     currentTask: 'Подготовка...',
   }
 
+  const ctx: AnalysisContext = {
+    bookId,
+    language: book.language,
+    signal,
+    batchSize,
+    concurrencyLimit,
+  }
+
   try {
-    try {
-      const toc = await repos.book.getToc(bookId)
-      await repos.book.saveLocalToc(bookId, toc)
-    }
-    catch { }
+    await syncBookToc(bookId)
+    await cacheBookCover(book, options.cachePages)
 
     const needPageContent = options.cachePages || options.analyzeSentences || options.analyzeWords || options.ttsSentences || options.ttsWords
 
-    if (options.cachePages && book.coverUrl && !book.localCoverUrl) {
-      syncProgress.value.currentTask = 'Кэширование обложки...'
-      const cachedCover = await repos.book.getLocalCover(book.id)
-      if (!cachedCover) {
-        try {
-          const blob = await repos.book.fetchImageBlob(book.coverUrl)
-          await repos.book.saveLocalCover(book.id, blob)
-          book.localCoverUrl = URL.createObjectURL(blob)
-        }
-        catch (e) {
-          console.warn('Failed to cache cover', e)
-        }
-      }
-    }
-
     if (needPageContent) {
       for (let i = 1; i <= book.totalPages; i++) {
-        if (signal.aborted)
-          throw new Error('Aborted')
-        syncProgress.value.currentTask = `Загрузка страницы ${i} из ${book.totalPages}`
-
-        let page
-        try {
-          page = await repos.book.getPage(bookId, i, true)
-        }
-        catch (e) {
-          console.warn(`Failed to fetch page ${i}`, e)
-          continue
-        }
-
-        if (options.cachePages && page?.type === 'manga' && page.imageUrl) {
-          const cachedImage = await repos.book.getLocalImage(bookId, i)
-          if (!cachedImage) {
-            try {
-              const blob = await repos.book.fetchImageBlob(page.imageUrl)
-              await repos.book.saveLocalImage(bookId, i, blob)
-            }
-            catch (e) {
-              console.warn(`Failed to cache image for page ${i}`, e)
-            }
-          }
-        }
-
-        if (options.cachePages) {
-          try {
-            await repos.book.getPageDict(bookId, i)
-          }
-          catch (e) {
-            console.warn(`Failed to fetch dictionary for page ${i}`, e)
-          }
-        }
-
-        syncProgress.value.pagesDone = i
-
-        const pageSentences = new Set<string>()
-        const pageWords = new Set<string>()
-
-        if (page) {
-          const extractData = (html: string) => {
-            if (options.analyzeSentences || options.ttsSentences) {
-              const sentRegex = /data-raw-sent="([^"]+)"/g
-              let match
-              // eslint-disable-next-line no-cond-assign
-              while ((match = sentRegex.exec(html)) !== null) {
-                pageSentences.add(decodeURIComponent(match[1]))
-              }
-            }
-            if (options.analyzeWords || options.ttsWords) {
-              const wordRegex = /data-word="([^"]+)"[^>]*?data-pos="([^"]+)"/g
-              let match
-              // eslint-disable-next-line no-cond-assign
-              while ((match = wordRegex.exec(html)) !== null) {
-                if (match[2] !== 'x') {
-                  pageWords.add(decodeURIComponent(match[1]))
-                }
-              }
-            }
-          }
-
-          if (page.type === 'manga' && page.ocrBlocks) {
-            page.ocrBlocks.forEach((b) => {
-              if (b.html)
-                extractData(b.html)
-            })
-          }
-          else if (page.content) {
-            extractData(page.content)
-          }
-        }
-
-        const sentences = Array.from(pageSentences).filter(s => /[\p{L}\p{N}]/u.test(s))
-        const words = Array.from(pageWords).filter(w => /[\p{L}\p{N}]/u.test(w))
-
-        if (options.analyzeSentences) {
-          syncProgress.value.sentencesTotal += sentences.length
-          const missingSentences: string[] = []
-
-          for (const sentence of sentences) {
-            const cached = await repos.analysis.getLocalAnalysis(sentence)
-            if (cached) {
-              syncProgress.value.sentencesDone++
-            }
-            else {
-              missingSentences.push(sentence)
-            }
-          }
-
-          // Массовая проверка через бэкенд без LLM (только SQLite)
-          if (missingSentences.length > 0) {
-            try {
-              const checkItems = missingSentences.map(s => ({ text: s, type: 'sentence' as const }))
-              const res = await repos.analysis.checkCache(
-                bookId,
-                checkItems,
-                book.language,
-                signal,
-              )
-              const cacheMap = new Map(res.results.map((r: any) => [r.sentence, r.analysis]))
-
-              for (let j = missingSentences.length - 1; j >= 0; j--) {
-                const s = missingSentences[j]
-                const serverCached = cacheMap.get(s) as unknown as LlmAnalysis
-                if (serverCached) {
-                  await repos.analysis.saveLocalAnalysis(s, serverCached)
-                  syncProgress.value.sentencesDone++
-                  missingSentences.splice(j, 1)
-                }
-              }
-            }
-            catch (e) {
-              const err = e as Error
-              if (err.name === 'AbortError')
-                throw err
-            }
-          }
-
-          const batches: string[][] = []
-          for (let j = 0; j < missingSentences.length; j += batchSize) {
-            batches.push(missingSentences.slice(j, j + batchSize))
-          }
-
-          for (let j = 0; j < batches.length; j += concurrencyLimit) {
-            if (signal.aborted)
-              throw new Error('Aborted')
-            const currentBatches = batches.slice(j, j + concurrencyLimit)
-
-            await Promise.all(currentBatches.map(async (batch) => {
-              const itemsToAnalyze = batch.map(s => ({ id: uuidv4(), sentence: s, type: 'sentence' as const }))
-
-              try {
-                const res = await repos.analysis.analyzeBatch(
-                  bookId,
-                  itemsToAnalyze,
-                  book.language,
-                  signal,
-                )
-                for (const result of res.results) {
-                  const item = itemsToAnalyze.find(it => it.id === result.id)
-                  if (item) {
-                    await repos.analysis.saveLocalAnalysis(item.sentence, result.analysis)
-                    syncProgress.value.sentencesDone++
-                  }
-                }
-              }
-              catch (e) {
-                const err = e as Error
-                if (err.name !== 'AbortError')
-                  console.error('Analyze sentence error:', err)
-              }
-            }))
-            syncProgress.value.currentTask = `Анализ предложений: стр. ${i}, ${syncProgress.value.sentencesDone} / ${syncProgress.value.sentencesTotal}`
-          }
-        }
-
-        if (options.analyzeWords) {
-          syncProgress.value.wordsTotal += words.length
-          const missingWords: string[] = []
-
-          for (const word of words) {
-            const cached = await repos.analysis.getLocalAnalysis(word)
-            if (cached) {
-              syncProgress.value.wordsDone++
-            }
-            else {
-              missingWords.push(word)
-            }
-          }
-
-          if (missingWords.length > 0) {
-            try {
-              const checkItems = missingWords.map(w => ({ text: w, type: 'word' as const }))
-              const res = await repos.analysis.checkCache(
-                bookId,
-                checkItems,
-                book.language,
-                signal,
-              )
-              const cacheMap = new Map(res.results.map((r: any) => [r.sentence, r.analysis]))
-
-              for (let j = missingWords.length - 1; j >= 0; j--) {
-                const w = missingWords[j]
-                const serverCached = cacheMap.get(w) as unknown as LlmAnalysis
-                if (serverCached) {
-                  await repos.analysis.saveLocalAnalysis(w, serverCached)
-                  syncProgress.value.wordsDone++
-                  missingWords.splice(j, 1)
-                }
-              }
-            }
-            catch (e) {
-              const err = e as Error
-              if (err.name === 'AbortError')
-                throw err
-            }
-          }
-
-          const batches: string[][] = []
-          for (let j = 0; j < missingWords.length; j += batchSize) {
-            batches.push(missingWords.slice(j, j + batchSize))
-          }
-
-          for (let j = 0; j < batches.length; j += concurrencyLimit) {
-            if (signal.aborted)
-              throw new Error('Aborted')
-            const currentBatches = batches.slice(j, j + concurrencyLimit)
-
-            await Promise.all(currentBatches.map(async (batch) => {
-              const itemsToAnalyze = batch.map(w => ({ id: uuidv4(), sentence: w, type: 'word' as const }))
-
-              try {
-                const res = await repos.analysis.analyzeBatch(
-                  bookId,
-                  itemsToAnalyze,
-                  book.language,
-                  signal,
-                )
-
-                for (const result of res.results) {
-                  const item = itemsToAnalyze.find(it => it.id === result.id)
-
-                  if (item) {
-                    await repos.analysis.saveLocalAnalysis(item.sentence, result.analysis)
-                    syncProgress.value.wordsDone++
-                  }
-                }
-              }
-              catch (e) {
-                const err = e as Error
-                if (err.name !== 'AbortError')
-                  console.error('Analyze word error:', err)
-              }
-            }))
-            syncProgress.value.currentTask = `Анализ слов: стр. ${i}, ${syncProgress.value.wordsDone} / ${syncProgress.value.wordsTotal}`
-          }
-        }
-
-        if (options.ttsSentences || options.ttsWords) {
-          const ttsItems: string[] = []
-          if (options.ttsSentences)
-            ttsItems.push(...sentences)
-          if (options.ttsWords)
-            ttsItems.push(...words)
-
-          syncProgress.value.ttsTotal += ttsItems.length
-          const ttsConcurrency = 3
-          const voice = settingsStore.ttsVoice || 'Kore'
-
-          for (let j = 0; j < ttsItems.length; j += ttsConcurrency) {
-            if (signal.aborted)
-              throw new Error('Aborted')
-            const batch = ttsItems.slice(j, j + ttsConcurrency)
-
-            await Promise.all(batch.map(async (text) => {
-              if (signal.aborted)
-                return
-              const normalizedText = text.trim().toLowerCase()
-              const cacheKey = `${bookId}_${voice}_${normalizedText}`
-
-              try {
-                const cached = await repos.analysis.getLocalTts(cacheKey)
-                if (!cached) {
-                  const res = await repos.analysis.generateTts(
-                    bookId,
-                    text,
-                    voice,
-                    signal,
-                  )
-                  await repos.analysis.saveLocalTts(cacheKey, res.audioBase64)
-                }
-              }
-              catch (e: unknown) {
-                if ((e as Error).name !== 'AbortError')
-                  console.error('TTS Sync error:', e)
-              }
-              syncProgress.value.ttsDone++
-            }))
-            syncProgress.value.currentTask = `Генерация аудио: стр. ${i}, ${syncProgress.value.ttsDone} / ${syncProgress.value.ttsTotal}`
-          }
-        }
+        await processPage(
+          book,
+          i,
+          syncOptions.value,
+          ctx,
+        )
       }
     }
 

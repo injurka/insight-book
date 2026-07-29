@@ -5,7 +5,7 @@ import { useToast } from '~/shared/composables/use-toast'
 import { useUmami } from '~/shared/composables/use-umami'
 import { DIFFICULTY_SYSTEMS } from '~/shared/constants/difficulties'
 import { useRepos } from '~/shared/plugins/di'
-import { useDictionaryStore } from './dictionary.store'
+import { dictionaryWords } from './dictionary-words.state'
 
 export const useDictionaryFiltersStore = defineStore('dictionary-filters', () => {
   const repos = useRepos()
@@ -20,14 +20,12 @@ export const useDictionaryFiltersStore = defineStore('dictionary-filters', () =>
   const selectedWordIds = ref<Set<number>>(new Set())
 
   const availableLanguages = computed<string[]>(() => {
-    const dictStore = useDictionaryStore() as any
-    const langs = new Set<string>((dictStore.words || []).map((w: any) => w.language))
+    const langs = new Set<string>(dictionaryWords.value.map(w => w.language))
     return Array.from(langs)
   })
 
   const filteredWords = computed<UserDictItem[]>(() => {
-    const dictStore = useDictionaryStore() as any
-    let result = (dictStore.words || []) as UserDictItem[]
+    let result = dictionaryWords.value
 
     if (selectedLanguage.value !== 'all') {
       result = result.filter(w => w.language === selectedLanguage.value)
@@ -95,8 +93,7 @@ export const useDictionaryFiltersStore = defineStore('dictionary-filters', () =>
 
     try {
       await repos.dictionary.bulkDelete(ids)
-      const dictStore = useDictionaryStore() as any
-      dictStore.words = (dictStore.words || []).filter((w: any) => !ids.includes(w.id))
+      dictionaryWords.value = dictionaryWords.value.filter(w => !ids.includes(w.id))
       clearSelection()
       toast.success(`Удалено ${ids.length} слов`)
 
@@ -114,13 +111,10 @@ export const useDictionaryFiltersStore = defineStore('dictionary-filters', () =>
 
     try {
       await repos.dictionary.bulkMove(ids, deckIds)
-      const dictStore = useDictionaryStore() as any
-      if (dictStore.words) {
-        dictStore.words.forEach((w: any) => {
-          if (ids.includes(w.id))
-            w.deckIds = [...deckIds]
-        })
-      }
+      dictionaryWords.value.forEach((w) => {
+        if (ids.includes(w.id))
+          w.deckIds = [...deckIds]
+      })
       clearSelection()
       toast.success(`Перемещено ${ids.length} слов`)
 

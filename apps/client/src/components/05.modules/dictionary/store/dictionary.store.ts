@@ -8,6 +8,7 @@ import { useAuthStore } from '~/shared/store/auth.store'
 
 import { useDecksStore } from './decks.store'
 import { useDictionaryFiltersStore } from './dictionary-filters.store'
+import { dictionaryWords } from './dictionary-words.state'
 import { useTrainingStore } from './training.store'
 
 export const useDictionaryStore = defineStore('dictionary', () => {
@@ -20,7 +21,7 @@ export const useDictionaryStore = defineStore('dictionary', () => {
   const trainingStore = useTrainingStore()
   const filtersStore = useDictionaryFiltersStore()
 
-  const words = shallowRef<UserDictItem[]>([])
+  const words = dictionaryWords
   const isManualLoading = ref(false)
 
   // Pinia Colada query for dictionary

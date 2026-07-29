@@ -25,6 +25,12 @@ export const queryKeys = {
     all: ['toc'] as const,
     byBookId: (bookId: number | null) => ['toc', bookId] as const,
   }),
+  plugins: {
+    my: ['plugins', 'my'] as const,
+    catalogApproved: ['plugins', 'catalog', 'approved'] as const,
+    catalogMine: ['plugins', 'catalog', 'mine'] as const,
+    catalogPending: ['plugins', 'catalog', 'pending'] as const,
+  },
 }
 
 export const QUERY_KEYS = queryKeys

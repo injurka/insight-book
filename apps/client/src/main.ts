@@ -29,6 +29,25 @@ async function bootstrap() {
   app.use(head)
   app.provide(REPOS_INJECTION_KEY, defaultRepositories)
 
+  const { configureApi } = await import('~/shared/services/api.service')
+  const { useGlobalSettingsStore } = await import('~/shared/store/settings.store')
+  const { useAuthStore } = await import('~/shared/store/auth.store')
+  const { useToastStore } = await import('~/shared/store/toast.store')
+
+  const settingsStore = useGlobalSettingsStore()
+  const authStore = useAuthStore()
+  const toastStore = useToastStore()
+
+  configureApi({
+    getToken: () => localStorage.getItem('insight_token'),
+    getAppLanguage: () => settingsStore.appLanguage || null,
+    getCustomLlm: () => settingsStore.useCustomLlm && settingsStore.customLlmUrl && settingsStore.customLlmModel
+      ? { url: settingsStore.customLlmUrl, key: settingsStore.customLlmKey || '', model: settingsStore.customLlmModel }
+      : null,
+    onUnauthorized: () => authStore.logout(),
+    onError: message => toastStore.error(message),
+  })
+
   try {
     const { setupPlugins } = await import('~/shared/plugins/index')
     const { setupDictionaryEvents } = await import('~/shared/events/dictionary-events')

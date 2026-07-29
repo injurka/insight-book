@@ -312,14 +312,16 @@ const previewVocabulary = ref(true)
           </KitBtn>
         </KitTooltip>
 
-        <KitBtn
-          v-if="isEditing"
-          variant="outlined"
-          color="secondary"
-          @click="handleDelete"
-        >
-          {{ t('dictionary.deleteItem') }}
-        </KitBtn>
+        <KitTooltip v-if="isEditing" :text="t('dictionary.deleteItem')" placement="top">
+          <KitBtn
+            variant="outlined"
+            color="secondary"
+            prepend-icon="mdi:delete-outline"
+            @click="handleDelete"
+          >
+            <span class="hide-mobile">{{ t('dictionary.deleteItem') }}</span>
+          </KitBtn>
+        </KitTooltip>
         <div class="spacer" />
         <KitBtn variant="tonal" @click="analysisStore.addEditWordModalOpen = false">
           {{ t('dictionary.cancel') }}

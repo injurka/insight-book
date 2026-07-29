@@ -1,11 +1,7 @@
 import type { AuthLoginDto, AuthRegisterDto, AuthSendCodeDto, Book, BookStats, CatalogDeck, CatalogPluginRecord, CatalogWord, DictDeck, GeneratedWordExamples, Highlight, LlmAnalysis, PageDictEntry, PagePayload, PromptItem, TocItem, UserData, UserDictItem, UserPluginRecord, WordAutoFillResponse } from '../types/models'
 import { ofetch } from 'ofetch'
-import { getActivePinia } from 'pinia'
 
 import { i18n } from '../plugins/i18n'
-import { useAuthStore } from '../store/auth.store'
-import { useGlobalSettingsStore } from '../store/settings.store'
-import { useToastStore } from '../store/toast.store'
 
 declare module 'ofetch' {
   interface FetchOptions {
@@ -16,37 +12,62 @@ declare module 'ofetch' {
 
 export const BASE_API_URL = import.meta.env.VITE_API_URL || 'https://api.insight-book.ru'
 
+export interface CustomLlmConfig {
+  url: string
+  key: string
+  model: string
+}
+
+export interface ApiProviders {
+  getToken?: () => string | null
+  getAppLanguage?: () => string | null
+  getCustomLlm?: () => CustomLlmConfig | null
+  onUnauthorized?: () => void
+  onError?: (message: string) => void
+}
+
+function readStoredLanguage(): string | null {
+  try {
+    const savedLang = localStorage.getItem('global-app-language')
+    return savedLang ? savedLang.replace(/^"|"$/g, '') : null
+  }
+  catch {
+    return null
+  }
+}
+
+const providers: Required<ApiProviders> = {
+  getToken: () => localStorage.getItem('insight_token'),
+  getAppLanguage: readStoredLanguage,
+  getCustomLlm: () => null,
+  onUnauthorized: () => {},
+  onError: () => {},
+}
+
+export function configureApi(overrides: ApiProviders) {
+  Object.assign(providers, overrides)
+}
+
 export const request = ofetch.create({
   baseURL: BASE_API_URL,
   async onRequest({ options }) {
     options.headers = new Headers(options.headers || {})
 
-    const token = localStorage.getItem('insight_token')
+    const token = providers.getToken()
     if (token) {
       options.headers.set('Authorization', `Bearer ${token}`)
     }
 
-    if (getActivePinia()) {
-      const settings = useGlobalSettingsStore()
-
-      if (settings.appLanguage) {
-        options.query = { ...options.query, targetLang: settings.appLanguage }
-      }
-
-      if (options.withLlm && settings.useCustomLlm && settings.customLlmUrl && settings.customLlmModel) {
-        options.headers.set('X-Custom-Llm-Url', settings.customLlmUrl)
-        options.headers.set('X-Custom-Llm-Key', settings.customLlmKey || '')
-        options.headers.set('X-Custom-Llm-Model', settings.customLlmModel)
-      }
+    const appLanguage = providers.getAppLanguage()
+    if (appLanguage) {
+      options.query = { ...options.query, targetLang: appLanguage }
     }
-    else {
-      try {
-        const savedLang = localStorage.getItem('global-app-language')
-        if (savedLang) {
-          options.query = { ...options.query, targetLang: savedLang.replace(/^"|"$/g, '') }
-        }
-      }
-      catch { }
+
+    const customLlm = options.withLlm ? providers.getCustomLlm() : null
+    if (customLlm) {
+      options.headers.set('X-Custom-Llm-Url', customLlm.url)
+      options.headers.set('X-Custom-Llm-Key', customLlm.key)
+      options.headers.set('X-Custom-Llm-Model', customLlm.model)
     }
   },
   async onResponseError({ response, options }) {
@@ -61,12 +82,11 @@ export const request = ofetch.create({
       }
     }
 
-    if (getActivePinia() && !options.silentErrors) {
-      useToastStore().error(errMessage)
+    if (!options.silentErrors) {
+      providers.onError(errMessage)
 
       if (response.status === 401) {
-        const authStore = useAuthStore()
-        authStore.logout()
+        providers.onUnauthorized()
       }
     }
 
@@ -80,8 +100,8 @@ export const request = ofetch.create({
 
     const isAbort = error.name === 'AbortError' || errMessage.toLowerCase().includes('abort') || errMessage.toLowerCase().includes('cancel')
 
-    if (getActivePinia() && !options?.silentErrors && !isAbort) {
-      useToastStore().error(errMessage)
+    if (!options?.silentErrors && !isAbort) {
+      providers.onError(errMessage)
     }
 
     const finalError = new Error(errMessage)
@@ -201,20 +221,7 @@ export const api = {
       language: string,
       signal?: AbortSignal,
     ) => {
-      let targetLanguage = 'ru'
-
-      if (getActivePinia()) {
-        const settings = useGlobalSettingsStore()
-        targetLanguage = settings.appLanguage || 'ru'
-      }
-      else {
-        try {
-          const savedLang = localStorage.getItem('global-app-language')
-          if (savedLang)
-            targetLanguage = savedLang.replace(/^"|"$/g, '')
-        }
-        catch { }
-      }
+      const targetLanguage = providers.getAppLanguage() || 'ru'
 
       return request<{ results: { id: string, analysis: LlmAnalysis }[] }>(`/api/books/${bookId}/analyze-batch`, {
         method: 'POST',
@@ -233,19 +240,7 @@ export const api = {
       signal?: AbortSignal,
       type: 'sentence' | 'word' = 'sentence',
     ) => {
-      let targetLanguage = 'ru'
-      if (getActivePinia()) {
-        const settings = useGlobalSettingsStore()
-        targetLanguage = settings.appLanguage || 'ru'
-      }
-      else {
-        try {
-          const savedLang = localStorage.getItem('global-app-language')
-          if (savedLang)
-            targetLanguage = savedLang.replace(/^"|"$/g, '')
-        }
-        catch { }
-      }
+      const targetLanguage = providers.getAppLanguage() || 'ru'
       return request<LlmAnalysis>(`/api/books/${bookId}/analyze`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -278,7 +273,7 @@ export const api = {
     fetchImageBlob: async (path: string) => {
       const url = path.startsWith('http') ? path : `${BASE_API_URL}${path}`
       const headers = new Headers()
-      const token = localStorage.getItem('insight_token')
+      const token = providers.getToken()
       if (token)
         headers.set('Authorization', `Bearer ${token}`)
 

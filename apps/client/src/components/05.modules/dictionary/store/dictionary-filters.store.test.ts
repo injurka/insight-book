@@ -3,16 +3,13 @@ import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 // Mock dependencies of the dictionary-filters store.
-// The real dictionary store pulls in @pinia/colada queries, auth and other
-// stores, so we replace it with a simple mutable holder of `words`.
+// The shared `dictionaryWords` state is populated directly in tests.
 
 const toastSuccess = vi.fn()
 const toastError = vi.fn()
 const trackEvent = vi.fn()
 const bulkDeleteRepo = vi.fn().mockResolvedValue(undefined)
 const bulkMoveRepo = vi.fn().mockResolvedValue(undefined)
-
-const dictStoreMock: { words: UserDictItem[] } = { words: [] }
 
 vi.mock('~/shared/composables/use-toast', () => ({
   useToast: () => ({ success: toastSuccess, error: toastError }),
@@ -31,11 +28,8 @@ vi.mock('~/shared/plugins/di', () => ({
   }),
 }))
 
-vi.mock('./dictionary.store', () => ({
-  useDictionaryStore: () => dictStoreMock,
-}))
-
 const { useDictionaryFiltersStore } = await import('./dictionary-filters.store')
+const { dictionaryWords } = await import('./dictionary-words.state')
 
 function makeWord(partial: Partial<UserDictItem> & { id: number, word: string }): UserDictItem {
   return {
@@ -136,7 +130,7 @@ describe('dictionary-filters store', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
     // Clone words so store mutations (bulkMoveToDecks) do not leak between tests
-    dictStoreMock.words = testWords.map(w => ({ ...w, deckIds: [...w.deckIds] }))
+    dictionaryWords.value = testWords.map(w => ({ ...w, deckIds: [...w.deckIds] }))
     vi.clearAllMocks()
     store = useDictionaryFiltersStore()
   })
@@ -148,7 +142,7 @@ describe('dictionary-filters store', () => {
     })
 
     it('returns an empty array when the dictionary is empty', () => {
-      dictStoreMock.words = []
+      dictionaryWords.value = []
       expect(store.filteredWords).toEqual([])
     })
   })
@@ -371,7 +365,7 @@ describe('dictionary-filters store', () => {
       await store.bulkDelete()
 
       expect(bulkDeleteRepo).toHaveBeenCalledWith([1, 7])
-      expect(dictStoreMock.words.map(w => w.id)).toEqual([2, 3, 4, 5, 6])
+      expect(dictionaryWords.value.map(w => w.id)).toEqual([2, 3, 4, 5, 6])
       expect(store.selectedWordIds.size).toBe(0)
       expect(toastSuccess).toHaveBeenCalledWith('Удалено 2 слов')
       expect(trackEvent).toHaveBeenCalledWith('bulk_words_deleted', { count: 2 })
@@ -384,7 +378,7 @@ describe('dictionary-filters store', () => {
 
       expect(toastError).toHaveBeenCalledWith('Ошибка удаления')
       expect(toastSuccess).not.toHaveBeenCalled()
-      expect(dictStoreMock.words).toHaveLength(7)
+      expect(dictionaryWords.value).toHaveLength(7)
     })
   })
 
@@ -400,8 +394,8 @@ describe('dictionary-filters store', () => {
       await store.bulkMoveToDecks([9])
 
       expect(bulkMoveRepo).toHaveBeenCalledWith([1, 3], [9])
-      expect(dictStoreMock.words.find(w => w.id === 1)?.deckIds).toEqual([9])
-      expect(dictStoreMock.words.find(w => w.id === 3)?.deckIds).toEqual([9])
+      expect(dictionaryWords.value.find(w => w.id === 1)?.deckIds).toEqual([9])
+      expect(dictionaryWords.value.find(w => w.id === 3)?.deckIds).toEqual([9])
       expect(store.selectedWordIds.size).toBe(0)
       expect(toastSuccess).toHaveBeenCalledWith('Перемещено 2 слов')
       expect(trackEvent).toHaveBeenCalledWith('bulk_words_moved', { count: 2 })
@@ -413,7 +407,7 @@ describe('dictionary-filters store', () => {
       await store.bulkMoveToDecks([9])
 
       expect(toastError).toHaveBeenCalledWith('Ошибка перемещения')
-      expect(dictStoreMock.words.find(w => w.id === 1)?.deckIds).toEqual([1])
+      expect(dictionaryWords.value.find(w => w.id === 1)?.deckIds).toEqual([1])
     })
   })
 })

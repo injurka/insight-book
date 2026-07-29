@@ -8,7 +8,7 @@ import { queryKeys } from '~/shared/lib/query-keys'
 import { useRepos } from '~/shared/plugins/di'
 import { useAuthStore } from '~/shared/store/auth.store'
 import { useDictionaryFiltersStore } from './dictionary-filters.store'
-import { useDictionaryStore } from './dictionary.store'
+import { dictionaryWords } from './dictionary-words.state'
 
 export const useDecksStore = defineStore('decks', () => {
   const repos = useRepos()
@@ -104,14 +104,11 @@ export const useDecksStore = defineStore('decks', () => {
           filtersStore.selectedDeckId = ['all']
       }
 
-      const dictStore = useDictionaryStore() as any
-      if (dictStore.words) {
-        dictStore.words.forEach((w: any) => {
-          if (w.deckId === id)
-            w.deckId = null
-        })
-        await repos.dictionary.saveLocalDictionary(dictStore.words)
-      }
+      dictionaryWords.value.forEach((w) => {
+        if (w.deckId === id)
+          w.deckId = null
+      })
+      await repos.dictionary.saveLocalDictionary(dictionaryWords.value)
 
       queryCache.invalidateQueries({ key: queryKeys.decks.all })
       queryCache.invalidateQueries({ key: queryKeys.dictionary.all })
