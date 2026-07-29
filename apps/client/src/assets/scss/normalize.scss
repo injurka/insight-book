@@ -78,9 +78,11 @@ p {
 
 ::view-transition-old(active-book-cover),
 ::view-transition-new(active-book-cover) {
-  animation: none; // убираем кросс-фейд контента, оставляя только морф геометрии
-  mix-blend-mode: normal;
   height: 100%;
+  // Единое скругление и клип на время морфа — иначе встроенные в снапшот
+  // border-radius (у карточки и у панели они разные) «мигают» во время анимации
+  overflow: hidden;
+  border-radius: 12px;
 }
 hr {
   margin: 16px 0;

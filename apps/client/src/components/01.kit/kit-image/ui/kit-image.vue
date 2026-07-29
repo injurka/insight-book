@@ -19,14 +19,21 @@ const props = withDefaults(defineProps<Props>(), {
 
 const isLoaded = ref(false)
 const hasError = ref(false)
+const isInstant = ref(false)
 const imgRef = ref<HTMLImageElement | null>(null)
 
+// Сколько мс после монтирования считаем загрузку «мгновенной» (картинка из кэша)
+const INSTANT_LOAD_THRESHOLD = 150
+let mountedAt = 0
+
 onMounted(() => {
+  mountedAt = performance.now()
   // Картинка уже в кэше браузера — показываем сразу, без fade-in.
   // Важно для View Transitions: новый снапшот снимается в первый кадр после монтирования.
   const img = imgRef.value
   if (img?.complete && img.naturalWidth > 0) {
     isLoaded.value = true
+    isInstant.value = true
   }
 })
 
@@ -43,9 +50,14 @@ const resolvedSrc = computed(() => {
 watch(() => props.src, () => {
   isLoaded.value = false
   hasError.value = false
+  isInstant.value = false
+  mountedAt = performance.now()
 })
 
 function handleLoad() {
+  if (performance.now() - mountedAt < INSTANT_LOAD_THRESHOLD) {
+    isInstant.value = true
+  }
   isLoaded.value = true
 }
 
@@ -80,7 +92,7 @@ function handleError() {
       :alt="alt"
       :loading="lazy ? 'lazy' : 'eager'"
       class="kit-image-layer real-image"
-      :class="{ 'is-loaded': isLoaded }"
+      :class="{ 'is-loaded': isLoaded, 'is-instant': isInstant }"
       :style="{ objectFit }"
       @load="handleLoad"
       @error="handleError"
@@ -116,6 +128,10 @@ function handleError() {
 
   &.is-loaded {
     opacity: 1;
+  }
+
+  &.is-instant {
+    transition: none;
   }
 }
 

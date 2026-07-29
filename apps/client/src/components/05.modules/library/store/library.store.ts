@@ -132,8 +132,11 @@ export const useLibraryStore = defineStore('library', () => {
 
   watch(bookInfoData, async (newInfo) => {
     if (newInfo) {
+      // Сначала прикрепляем локальную обложку, потом атомарно обновляем стейт —
+      // чтобы src обложки не менялся после рендера (важно для View Transitions:
+      // снапшот страницы должен содержать финальную картинку)
+      await attachCachedCovers([newInfo])
       currentBookInfo.value = newInfo
-      await attachCachedCovers([currentBookInfo.value])
     }
   })
 

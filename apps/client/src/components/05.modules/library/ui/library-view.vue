@@ -165,6 +165,10 @@ watch(() => store.books, () => {
 }, { deep: true })
 
 onMounted(() => {
+  // Прогреваем чанк страницы книги, чтобы первый переход на неё
+  // (View Transitions API) начинался мгновенно, без загрузки модуля
+  void import('~/pages/book.vue')
+
   if (!authStore.user && !authStore.isSingleMode) {
     currentView.value = 'public-catalog'
     loadPublic(1)

@@ -9,10 +9,29 @@ function isTauriEnv() {
     || !!(window as any).__TAURI_IPC__
 }
 
+const mainScrollPositions = new Map<string, number>()
+
 export const router = createRouter({
   history: isTauriEnv()
     ? createWebHashHistory(import.meta.env.BASE_URL)
     : createWebHistory(import.meta.env.BASE_URL),
+
+  scrollBehavior(to, _from, savedPosition) {
+    // popstate (кнопка «назад»/«вперёд») — восстанавливаем позицию общего
+    // скролл-контейнера лейаута, которую запомнили при уходе со страницы
+    if (savedPosition) {
+      const top = mainScrollPositions.get(to.fullPath)
+      if (top != null) {
+        return { el: '.main-content', top }
+      }
+      return
+    }
+
+    // Обычная навигация — всегда в начало страницы.
+    // Скроллится .main-content (DefaultLayout): это общий overflow-контейнер,
+    // который переживает смену страниц (window не скроллится).
+    return { el: '.main-content', top: 0 }
+  },
 
   routes: [
     {
@@ -100,6 +119,15 @@ export const router = createRouter({
 })
 
 const LAST_VIEW_QUERY_KEY = 'library_last_view_query'
+
+router.beforeEach((to, from) => {
+  if (from.name) {
+    const scroller = document.querySelector('.main-content')
+    if (scroller) {
+      mainScrollPositions.set(from.fullPath, scroller.scrollTop)
+    }
+  }
+})
 
 setupViewTransitions(router)
 

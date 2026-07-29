@@ -39,14 +39,15 @@ const skeletonCoverTransitionStyle = computed(() =>
     ? { viewTransitionName: BOOK_COVER_TRANSITION_NAME }
     : undefined)
 
-// Обложка книги уже известна из списка библиотеки — показываем её сразу,
-// чтобы переход обложки был бесшовным при первом открытии страницы
-const optimisticCoverUrl = computed(() => {
-  const knownBook = libraryStore.books.find(b => b.id === bookId.value)
-    || libraryStore.publicBooks.find(b => b.id === bookId.value)
+// Данные книги уже известны из списка библиотеки — используем их в состоянии
+// загрузки, чтобы первый переход на страницу был бесшовным (View Transitions API)
+const knownBook = computed(() =>
+  libraryStore.books.find(b => b.id === bookId.value)
+  || libraryStore.publicBooks.find(b => b.id === bookId.value)
+  || null)
 
-  return knownBook?.localCoverUrl || knownBook?.coverUrl || null
-})
+const optimisticCoverUrl = computed(() =>
+  knownBook.value?.localCoverUrl || knownBook.value?.coverUrl || null)
 
 watch(bookId, (newId) => {
   if (newId)
@@ -91,13 +92,21 @@ function goBack() {
             </div>
           </div>
           <div class="content-col">
+            <h1 v-if="knownBook" class="opt-book-title">
+              {{ knownBook.title }}
+            </h1>
             <KitSkeleton
+              v-else
               width="80%"
               height="40px"
               class="title-skeleton"
               border-radius="8px"
             />
+            <p v-if="knownBook" class="opt-book-author">
+              {{ knownBook.author || t('bookStats.authorNotSpecified') }}
+            </p>
             <KitSkeleton
+              v-else
               width="40%"
               height="24px"
               class="author-skeleton"
@@ -105,11 +114,11 @@ function goBack() {
             />
             <KitSkeleton
               width="100%"
-              height="100px"
+              height="72px"
               border-radius="12px"
               class="progress-skeleton"
             />
-            <KitSkeleton width="100%" height="250px" border-radius="12px" />
+            <KitSkeleton width="100%" height="240px" border-radius="12px" />
           </div>
         </div>
         <div class="layout-bottom">
@@ -219,6 +228,17 @@ function goBack() {
     display: flex;
     flex-direction: column;
     gap: 10px;
+  }
+  .opt-book-title {
+    font-size: 2.2rem;
+    line-height: 1.2;
+    margin: 0 0 8px 0;
+    color: var(--fg-primary-color);
+  }
+  .opt-book-author {
+    font-size: 1.1rem;
+    color: var(--fg-secondary-color);
+    margin: 0 0 24px 0;
   }
   .title-skeleton {
     margin-bottom: 8px;
