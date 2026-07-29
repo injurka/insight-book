@@ -46,3 +46,23 @@ export const CORS_HEADERS = {
   'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, HEAD, OPTIONS, DELETE',
   'Access-Control-Allow-Headers': 'Content-Type, Authorization, Accept, X-Custom-Llm-Url, X-Custom-Llm-Key, X-Custom-Llm-Model',
 }
+
+// Origins allowed in addition to FRONTEND_URL (Tauri webviews, extra env origins).
+const EXTRA_CORS_ORIGINS = (process.env.CORS_EXTRA_ORIGINS || '')
+  .split(',')
+  .map(o => o.trim())
+  .filter(Boolean)
+
+export const ALLOWED_ORIGINS = new Set([
+  FRONTEND_URL,
+  'http://tauri.localhost', // Tauri Android
+  'https://tauri.localhost', // Tauri iOS/macOS
+  'tauri://localhost', // Tauri Windows/Linux
+  ...EXTRA_CORS_ORIGINS,
+])
+
+// CORS headers with Allow-Origin resolved against the request origin.
+export function corsHeadersFor(origin: string | null): Record<string, string> {
+  const allowOrigin = origin && ALLOWED_ORIGINS.has(origin) ? origin : FRONTEND_URL
+  return { ...CORS_HEADERS, 'Access-Control-Allow-Origin': allowOrigin, 'Vary': 'Origin' }
+}

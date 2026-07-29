@@ -1,9 +1,9 @@
-import { CORS_HEADERS } from '../config'
+import { corsHeadersFor } from '../config'
 
-export function withCors(response: Response): Response {
+export function withCors(response: Response, origin: string | null = null): Response {
   const headers = new Headers(response.headers)
 
-  for (const [key, value] of Object.entries(CORS_HEADERS)) {
+  for (const [key, value] of Object.entries(corsHeadersFor(origin))) {
     headers.set(key, value)
   }
 
