@@ -12,6 +12,7 @@
     "bun": ">=1.2.0"
   },
   "scripts": {
+    "tauri": "tauri",
     "tauri:dev": "tauri dev",
     "tauri:build": "tauri build",
     "tauri:build:linux:x64": "tauri build --target x86_64-unknown-linux-gnu",
