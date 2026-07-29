@@ -9,7 +9,38 @@ function isTauriEnv() {
     || !!(window as any).__TAURI_IPC__
 }
 
+const MAIN_SCROLLER_SELECTOR = '.main-content'
+
 const mainScrollPositions = new Map<string, number>()
+
+/** Скролл-контейнер приложения (.main-content из DefaultLayout, общий для всех страниц) */
+function findScroller(): HTMLElement | null {
+  return document.querySelector<HTMLElement>(MAIN_SCROLLER_SELECTOR)
+}
+
+/**
+ * Восстанавливает scrollTop контейнера. Контент страницы может дорисоваться
+ * позже (асинхронные данные, обложки) — тогда scrollTop клампится высотой
+ * неполного контента. Поэтому повторяем попытку несколько кадров, пока
+ * позиция не «приклеится». rAF-колбэки не выполняются, пока идёт
+ * View Transition (рендеринг заморожен), так что повторы случаются
+ * уже после него, на финальной раскладке.
+ */
+function restoreScrollTop(top: number): void {
+  let attempts = 0
+  const tick = () => {
+    const scroller = findScroller()
+    if (!scroller) {
+      return
+    }
+    if (scroller.scrollTop !== top && attempts < 20) {
+      scroller.scrollTop = top
+      attempts++
+      requestAnimationFrame(tick)
+    }
+  }
+  tick()
+}
 
 export const router = createRouter({
   history: isTauriEnv()
@@ -17,20 +48,28 @@ export const router = createRouter({
     : createWebHistory(import.meta.env.BASE_URL),
 
   scrollBehavior(to, _from, savedPosition) {
-    // popstate (кнопка «назад»/«вперёд») — восстанавливаем позицию общего
-    // скролл-контейнера лейаута, которую запомнили при уходе со страницы
+    // vue-router умеет скроллить только window: даже при возврате { el, top }
+    // он делает window.scrollTo до позиции элемента, а не el.scrollTop.
+    // В нашем лейауте window не скроллится (100dvh + overflow: hidden),
+    // скроллится контейнер — поэтому крутим его вручную. scrollBehavior
+    // вызывается после рендера новой страницы, её DOM уже на месте.
     if (savedPosition) {
+      // popstate (кнопка «назад»/«вперёд») — восстанавливаем позицию скролла,
+      // которую запомнили при уходе со страницы
       const top = mainScrollPositions.get(to.fullPath)
       if (top != null) {
-        return { el: '.main-content', top }
+        restoreScrollTop(top)
       }
       return
     }
 
-    // Обычная навигация — всегда в начало страницы.
-    // Скроллится .main-content (DefaultLayout): это общий overflow-контейнер,
-    // который переживает смену страниц (window не скроллится).
-    return { el: '.main-content', top: 0 }
+    // Обычная навигация — всегда в начало страницы. .main-content — общий
+    // overflow-контейнер, который переживает смену страниц (window не
+    // скроллится), поэтому сбрасываем его вручную.
+    const main = findScroller()
+    if (main) {
+      main.scrollTop = 0
+    }
   },
 
   routes: [
@@ -120,9 +159,9 @@ export const router = createRouter({
 
 const LAST_VIEW_QUERY_KEY = 'library_last_view_query'
 
-router.beforeEach((to, from) => {
+router.beforeEach((_to, from) => {
   if (from.name) {
-    const scroller = document.querySelector('.main-content')
+    const scroller = findScroller()
     if (scroller) {
       mainScrollPositions.set(from.fullPath, scroller.scrollTop)
     }
