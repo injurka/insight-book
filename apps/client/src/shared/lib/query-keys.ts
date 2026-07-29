@@ -9,7 +9,7 @@ export const queryKeys = {
   books: Object.assign((id?: number | null) => (id !== null && id !== undefined ? (['books', id] as const) : (['books'] as const)), {
     all: ['books'] as const,
     byId: (id: number | null) => ['books', id] as const,
-    public: (params?: PublicBooksQueryParams) => ['books', 'public', params] as const,
+    public: (params?: PublicBooksQueryParams) => ['books', 'public', params ?? null] as const,
   }),
   decks: Object.assign(() => ['decks'] as const, {
     all: ['decks'] as const,

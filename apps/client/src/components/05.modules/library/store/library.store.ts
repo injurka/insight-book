@@ -293,13 +293,13 @@ export const useLibraryStore = defineStore('library', () => {
   // --- MUTATION: Upload Book ---
   const { mutateAsync: uploadBookMutation, isLoading: isUploadingBook } = useMutation({
     mutation: (file: File) => repos.book.upload(file),
-    onSuccess(res, file) {
+    async onSuccess(res, file) {
       const book = 'book' in res ? res.book : (res as unknown as Book)
       const ext = file.name.split('.').pop()?.toLowerCase() || 'unknown'
 
       if (book) {
-        books.value.unshift(book)
-        queryCache.invalidateQueries({ key: queryKeys.books.all })
+        books.value = [book, ...books.value]
+        await refetchBooks()
       }
 
       trackEvent('book_uploaded', { format: ext, size_mb: Math.round(file.size / 1048576) })
@@ -316,9 +316,9 @@ export const useLibraryStore = defineStore('library', () => {
   const { mutateAsync: createCustomMangaMutation, isLoading: isCreatingManga } = useMutation({
     mutation: (params: { title: string, author: string, language: string }) =>
       repos.book.createCustomManga({ ...params, type: 'manga' }),
-    onSuccess(res, params) {
-      books.value.unshift(res.book)
-      queryCache.invalidateQueries({ key: queryKeys.books.all })
+    async onSuccess(res, params) {
+      books.value = [res.book, ...books.value]
+      await refetchBooks()
       trackEvent('custom_manga_created', { language: params.language })
       return res.book
     },
