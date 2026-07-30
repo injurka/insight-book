@@ -104,7 +104,6 @@ export const books = sqliteTable('books', {
   seriesNumber: integer('seriesNumber'),
 
   isPublic: integer('isPublic', { mode: 'boolean' }).notNull().default(sql`0`),
-  isUnlisted: integer('isUnlisted', { mode: 'boolean' }).notNull().default(sql`0`),
   publicStatus: text('publicStatus').notNull().default('private'),
   textDirection: text('textDirection'),
 

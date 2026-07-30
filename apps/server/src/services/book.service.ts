@@ -131,7 +131,7 @@ export class BookService {
     if (book.userId !== userId && !book.isPublic)
       throw new AppError(404, 'Книга не найдена или доступ закрыт')
 
-    const metadataKeys = ['title', 'author', 'coverUrl', 'language', 'series', 'seriesNumber', 'createdAt', 'isPublic', 'isUnlisted', 'publicStatus', 'textDirection'] as const
+    const metadataKeys = ['title', 'author', 'coverUrl', 'language', 'series', 'seriesNumber', 'createdAt', 'isPublic', 'publicStatus', 'textDirection'] as const
     const hasMetadataChanges = metadataKeys.some((key) => {
       if (body[key] === undefined)
         return false
@@ -154,7 +154,6 @@ export class BookService {
         seriesNumber: body.seriesNumber as number | null | undefined,
         createdAt: body.createdAt as string | undefined,
         isPublic: body.isPublic as boolean | undefined,
-        isUnlisted: body.isUnlisted as boolean | undefined,
         publicStatus: body.publicStatus as string | undefined,
         textDirection: body.textDirection as string | null | undefined,
         updatedAt: new Date().toISOString(),

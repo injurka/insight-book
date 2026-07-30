@@ -1,4 +1,5 @@
 import { invoke, isTauri } from '@tauri-apps/api/core'
+import { API_URL } from '~/shared/lib/env'
 
 export interface IPushRepository {
   subscribeFcm: (token: string) => Promise<void>
@@ -23,7 +24,7 @@ export class DefaultPushRepository implements IPushRepository {
   }
 
   private getBaseUrl() {
-    return import.meta.env.VITE_API_URL || 'https://api.insight-book.ru'
+    return API_URL
   }
 
   async subscribeFcm(token: string) {

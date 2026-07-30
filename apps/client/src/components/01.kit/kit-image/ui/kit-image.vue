@@ -2,6 +2,7 @@
 import { Icon } from '@iconify/vue'
 import { computed, onMounted, ref, watch } from 'vue'
 import { KitSkeleton } from '~/components/01.kit'
+import { API_URL } from '~/shared/lib/env'
 
 interface Props {
   src?: string | null
@@ -43,7 +44,7 @@ const resolvedSrc = computed(() => {
   if (props.src.startsWith('data:') || props.src.startsWith('http') || props.src.startsWith('blob:')) {
     return props.src
   }
-  const BASE = import.meta.env.VITE_API_URL || 'https://api.insight-book.ru'
+  const BASE = API_URL
   return `${BASE}${props.src}`
 })
 

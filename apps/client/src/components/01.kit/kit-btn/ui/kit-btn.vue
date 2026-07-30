@@ -14,6 +14,7 @@ interface Props {
   size?: 'xs' | 'sm' | 'md' | 'lg'
   density?: 'default' | 'compact'
   type?: 'button' | 'submit' | 'reset'
+  ripple?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -24,6 +25,7 @@ const props = withDefaults(defineProps<Props>(), {
   size: 'md',
   density: 'default',
   type: 'button',
+  ripple: true,
 })
 
 const emit = defineEmits<{
@@ -56,7 +58,7 @@ function handleClick(event: MouseEvent) {
 
 <template>
   <button
-    v-ripple
+    v-ripple="props.ripple"
     :class="componentClasses"
     :disabled="props.disabled || props.loading"
     :type="props.type"

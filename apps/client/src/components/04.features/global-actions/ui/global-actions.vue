@@ -118,6 +118,7 @@ async function handleLogout() {
           <KitBtn
             icon="mdi:translate"
             variant="text"
+            :ripple="false"
             :aria-label="t('globalActions.switchLanguage')"
             :class="{ 'is-active-btn': dropdownProps.isOpen }"
           />
@@ -137,6 +138,7 @@ async function handleLogout() {
       <KitBtn
         :icon="currentThemeIcon"
         variant="text"
+        :ripple="false"
         :aria-label="t('globalActions.switchTheme')"
         @click="toggleTheme"
       />
@@ -152,6 +154,7 @@ async function handleLogout() {
         v-if="!hideDictionary"
         icon="mdi:book-open-page-variant-outline"
         variant="text"
+        :ripple="false"
         :aria-label="t('globalActions.myDictionary')"
         @click="openDictionary"
       />
@@ -159,6 +162,7 @@ async function handleLogout() {
         v-if="!hideNotebook"
         icon="mdi:bookmark-outline"
         variant="text"
+        :ripple="false"
         :aria-label="t('globalActions.myNotebook')"
         @click="openNotebook"
       />
@@ -172,6 +176,7 @@ async function handleLogout() {
           <KitBtn
             :icon="authStore.isSingleMode ? 'mdi:cog-outline' : 'mdi:account-circle-outline'"
             variant="text"
+            :ripple="false"
             :class="{ 'is-active-btn': dropdownProps.isOpen }"
             @click="!dropdownProps.isOpen && authStore.checkAuth()"
           />

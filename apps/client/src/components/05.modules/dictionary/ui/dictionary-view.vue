@@ -128,8 +128,7 @@ watch(isDetailsModalOpen, (isOpen) => {
 <style lang="scss" scoped>
 .dictionary-page {
   padding-top: calc(16px + var(--safe-area-top));
-  padding: 16px;
-
+  padding: 12px;
   position: relative;
   z-index: 1;
   max-width: 1200px;

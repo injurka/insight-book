@@ -66,7 +66,6 @@ export interface Book {
   isFavorite?: boolean
   collection?: string | null
   isPublic?: boolean
-  isUnlisted?: boolean
   publicStatus?: 'private' | 'pending' | 'public' | 'rejected'
   textDirection?: string | null
   progressUpdatedAt?: string | null

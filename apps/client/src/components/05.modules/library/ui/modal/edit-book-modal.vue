@@ -1,11 +1,9 @@
 <script setup lang="ts">
 import type { Book } from '~/shared/types/models'
 import { Icon } from '@iconify/vue'
-import { useClipboard } from '@vueuse/core'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { KitBtn, KitCheckbox, KitDialog, KitImage, KitInput, KitPrompt, KitSelect, KitTooltip } from '~/components/01.kit'
-import { useToast } from '~/shared/composables/use-toast'
+import { KitBtn, KitCheckbox, KitDialog, KitImage, KitInput, KitPrompt, KitSelect } from '~/components/01.kit'
 import { useAuthStore } from '~/shared/store/auth.store'
 import { useEditBookForm } from '../../composables/use-edit-book-form'
 
@@ -20,8 +18,6 @@ const emit = defineEmits<{
   (e: 'delete', bookId: number): void
 }>()
 
-const { copy } = useClipboard()
-const toast = useToast()
 const authStore = useAuthStore()
 const { t } = useI18n()
 
@@ -65,14 +61,6 @@ const textDirectionModel = computed({
   get: () => editingBook.value.textDirection || 'auto',
   set: (val) => { editingBook.value.textDirection = val === 'auto' ? null : String(val) },
 })
-
-function copyLink() {
-  if (editingBook.value.id) {
-    const link = `${window.location.origin}/book/${editingBook.value.id}`
-    copy(link)
-    toast.success(t('library.bookLinkCopied'))
-  }
-}
 
 const isReadOnly = computed(() => editingBook.value.publicStatus === 'public' || editingBook.value.isPublic)
 </script>
@@ -138,18 +126,6 @@ const isReadOnly = computed(() => editingBook.value.publicStatus === 'public' ||
 
       <div class="checkbox-row">
         <KitCheckbox v-model="editingBook.isFavorite" :label="t('library.addToFavorites')" :disabled="isReadOnly" />
-
-        <div v-if="!authStore.isSingleMode" class="public-wrapper">
-          <KitCheckbox v-model="editingBook.isUnlisted" :label="t('library.availableByLink')" :disabled="isReadOnly" />
-          <KitTooltip v-if="editingBook.isUnlisted || editingBook.isPublic" :text="t('library.copyLink')" placement="top">
-            <KitBtn
-              size="xs"
-              variant="outlined"
-              icon="mdi:link-variant"
-              @click="copyLink"
-            />
-          </KitTooltip>
-        </div>
       </div>
 
       <div v-if="!authStore.isSingleMode" class="publish-request-block">
@@ -305,12 +281,6 @@ const isReadOnly = computed(() => editingBook.value.publicStatus === 'public' ||
     :deep(.kit-checkbox) {
       margin-top: 0 !important;
       margin-right: 24px;
-    }
-
-    .public-wrapper {
-      display: flex;
-      align-items: center;
-      gap: 8px;
     }
   }
 }

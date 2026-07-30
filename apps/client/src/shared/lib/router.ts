@@ -1,5 +1,6 @@
 import { createRouter, createWebHashHistory, createWebHistory } from 'vue-router'
 import { AppRouteNames } from '~/shared/constants/routes'
+import { API_URL } from '~/shared/lib/env'
 import { setupViewTransitions } from '~/shared/lib/view-transitions'
 import { useAuthStore } from '~/shared/store/auth.store'
 
@@ -83,8 +84,7 @@ export const router = createRouter({
       name: 'YandexApiCallbackProxy',
       component: () => import('~/pages/auth/yandex/callback.vue'),
       beforeEnter: (to) => {
-        const BASE_API_URL = import.meta.env.VITE_API_URL || 'https://api.insight-book.ru'
-        window.location.href = `${BASE_API_URL}${to.fullPath}`
+        window.location.href = `${API_URL}${to.fullPath}`
 
         return false
       },

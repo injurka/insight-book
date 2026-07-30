@@ -6,6 +6,7 @@ import { useI18n } from 'vue-i18n'
 import { KitBtn, KitCheckbox, KitSelect } from '~/components/01.kit'
 import { ThemesVariant, useChangeTheme } from '~/shared/composables/use-change-theme'
 import { useTts } from '~/shared/composables/use-tts'
+import { isMobileApp as isApk } from '~/shared/lib/env'
 import { useAnalysisStore } from '~/shared/store/analysis/analysis.store'
 import { useGlobalSettingsStore } from '~/shared/store/settings.store'
 import { useReaderStore } from '../../store/reader.store'
@@ -23,8 +24,6 @@ const { speak, stop, isPlaying, isLoading } = useTts()
 
 const { theme, toggleTheme } = useChangeTheme()
 const { isFullscreen, toggle: toggleFullscreen } = useFullscreen()
-
-const isApk = '__TAURI_INTERNALS__' in window && /android|iphone|ipad|ipod/i.test(navigator.userAgent)
 
 function openPageAnalysisModal() {
   emit('closeDropdown')

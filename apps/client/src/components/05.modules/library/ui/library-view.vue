@@ -59,13 +59,19 @@ const tagOptions = computed(() => {
   return opts
 })
 
-function loadPublic(page: number) {
+function loadPublic(page: number, append = false) {
   store.fetchPublicBooks(
     page,
     publicTagFilter.value === 'all' ? undefined : publicTagFilter.value,
     searchQuery.value,
     selectedLang.value === 'all' ? undefined : selectedLang.value,
+    append,
   )
+}
+
+function loadMorePublic() {
+  if (store.publicHasMore)
+    loadPublic(store.publicPage + 1, true)
 }
 
 watch([searchQuery, selectedLang, publicTagFilter], () => {
@@ -215,11 +221,9 @@ onUnmounted(() => {
           <LibraryPublicCatalog
             v-else-if="currentView === 'public-catalog'"
             :books="store.publicBooks"
-            :is-loading="store.isLoading"
-            :page="store.publicPage"
-            :total="store.publicTotal"
-            :limit="store.publicLimit"
-            @load-page="loadPublic"
+            :is-loading="store.isPublicLoading"
+            :has-more="store.publicHasMore"
+            @load-more="loadMorePublic"
             @open-book="openBookInfo"
             @edit-book="openEditModal"
           />
@@ -333,6 +337,7 @@ onUnmounted(() => {
 .library-main {
   flex-grow: 1;
   min-width: 0;
+  min-height: 0;
   display: flex;
   flex-direction: column;
 }

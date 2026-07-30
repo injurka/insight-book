@@ -7,7 +7,8 @@ import { DefaultLayout } from '~/components/06.layouts/default'
 import { useBackHandler } from '~/shared/composables/use-back-handler'
 import { useChangeTheme } from '~/shared/composables/use-change-theme'
 import { useGlobalTracking } from '~/shared/composables/use-global-tracking'
-import { isViewTransitionSupported } from '~/shared/lib/view-transitions'
+import { isTauri } from '~/shared/lib/env'
+import { isNativeTransitionRoute, isViewTransitionSupported } from '~/shared/lib/view-transitions'
 import { loadLanguageAsync } from '~/shared/plugins/i18n'
 import { useAnalysisStore } from '~/shared/store/analysis/analysis.store'
 import { usePwaStore } from '~/shared/store/pwa.store'
@@ -30,7 +31,7 @@ onMounted(async () => {
   const pwaStore = usePwaStore()
   pwaStore.checkPushStatus()
 
-  if ('__TAURI_INTERNALS__' in window) {
+  if (isTauri) {
     try {
       const { onOpenUrl } = await import('@tauri-apps/plugin-deep-link')
       await onOpenUrl((urls) => {
@@ -81,7 +82,18 @@ watch(() => settingsStore.appLanguage, (newLang) => {
 }, { immediate: true })
 
 const layoutName = computed(() => (route.meta.layout as string) || 'default')
-const useViewTransitions = isViewTransitionSupported()
+// Native View Transition (морф обложки) — только между библиотекой и страницей
+// книги (оба маршрута из TRANSITION_ROUTES); для остальной навигации —
+// CSS-переход fade (см. template). Имя предыдущего маршрута нужно, чтобы
+// переходы вида «dictionary → home» тоже получили fade, а не мгновенный swap.
+const viewTransitionsSupported = isViewTransitionSupported()
+const prevRouteName = ref<unknown>(null)
+
+function useNativeTransition(routeName: unknown) {
+  return viewTransitionsSupported
+    && isNativeTransitionRoute(routeName)
+    && isNativeTransitionRoute(prevRouteName.value)
+}
 
 const layouts: Record<string, Component> = {
   default: DefaultLayout,
@@ -169,6 +181,10 @@ useHead({
   script: headScripts,
 })
 
+watch(() => route.name, (_name, oldName) => {
+  prevRouteName.value = oldName
+})
+
 watch(() => route.path, () => {
   analysisStore.closePopover()
   analysisStore.closeSelectionTooltip()
@@ -181,16 +197,31 @@ watch(() => route.path, () => {
 <template>
   <component :is="layouts[layoutName]" v-if="layouts[layoutName]">
     <router-view v-slot="{ Component, route: currentRoute }">
-      <component :is="Component" v-if="useViewTransitions" :key="currentRoute.path" />
-      <transition v-else name="fade" mode="out-in">
+      <!-- Native-маршруты рендерим без <transition>: старая и новая страницы
+           не должны перекрываться в DOM, иначе view-transition-name обложки
+           дублируется, и браузер абортит переход (InvalidStateError) -->
+      <component :is="Component" v-if="useNativeTransition(currentRoute.name)" :key="currentRoute.path" />
+      <!-- appear — чтобы fade срабатывал и при первом монтировании этой ветки
+           (переход с native-маршрута на обычный) -->
+      <transition
+        v-else
+        name="fade"
+        mode="out-in"
+        appear
+      >
         <component :is="Component" :key="currentRoute.path" />
       </transition>
     </router-view>
   </component>
 
   <router-view v-else v-slot="{ Component, route: currentRoute }">
-    <component :is="Component" v-if="useViewTransitions" :key="currentRoute.path" />
-    <transition v-else name="fade" mode="out-in">
+    <component :is="Component" v-if="useNativeTransition(currentRoute.name)" :key="currentRoute.path" />
+    <transition
+      v-else
+      name="fade"
+      mode="out-in"
+      appear
+    >
       <component :is="Component" :key="currentRoute.path" />
     </transition>
   </router-view>

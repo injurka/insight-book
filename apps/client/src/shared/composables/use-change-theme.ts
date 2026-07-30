@@ -34,12 +34,18 @@ export function useChangeTheme() {
     return value
   }
 
+  useHead({
+    meta: [
+      {
+        name: 'theme-color',
+        content: () => themesColors[getActualTheme(themePreference.value)],
+      },
+    ],
+  })
+
   function applyTheme(value: ThemesVariant) {
     const actualTheme = getActualTheme(value)
     document.documentElement.setAttribute('data-theme', actualTheme)
-    useHead({
-      meta: [{ name: 'theme-color', content: themesColors[actualTheme] }],
-    })
   }
 
   watchEffect(() => applyTheme(themePreference.value))

@@ -23,6 +23,9 @@ export const useLibraryStore = defineStore('library', () => {
   const publicTotal = ref(0)
   const publicPage = ref(1)
   const publicLimit = ref(20)
+  const publicAppend = ref(false)
+
+  const publicHasMore = computed(() => publicBooks.value.length < publicTotal.value)
 
   const currentBookInfo = ref<Book | null>(null)
   const currentBookId = ref<number | null>(null)
@@ -93,7 +96,14 @@ export const useLibraryStore = defineStore('library', () => {
 
   watch(publicBooksQueryData, async (res) => {
     if (res) {
-      publicBooks.value = res.data
+      if (publicAppend.value && res.page > 1) {
+        const existingIds = new Set(publicBooks.value.map(b => b.id))
+        publicBooks.value = [...publicBooks.value, ...res.data.filter(b => !existingIds.has(b.id))]
+      }
+      else {
+        publicBooks.value = res.data
+      }
+      publicAppend.value = false
       publicTotal.value = res.total
       publicPage.value = res.page
       publicLimit.value = res.limit
@@ -106,7 +116,9 @@ export const useLibraryStore = defineStore('library', () => {
     tag?: string,
     search?: string,
     lang?: string,
+    append = false,
   ) {
+    publicAppend.value = append
     publicQueryPage.value = page
     publicQueryTag.value = tag
     publicQuerySearch.value = search
@@ -398,6 +410,8 @@ export const useLibraryStore = defineStore('library', () => {
     publicTotal,
     publicPage,
     publicLimit,
+    publicHasMore,
+    isPublicLoading: isPublicBooksLoading,
     currentBookInfo,
     isLoading,
     isInitialized,

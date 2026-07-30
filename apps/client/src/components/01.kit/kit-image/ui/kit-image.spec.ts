@@ -1,17 +1,11 @@
 import { enableAutoUnmount, mount } from '@vue/test-utils'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import KitImage from './kit-image.vue'
+
+vi.mock('~/shared/lib/env', () => ({ API_URL: 'https://mock-api.com' }))
 
 describe('kit-image', () => {
   enableAutoUnmount(afterEach)
-
-  beforeEach(() => {
-    vi.stubEnv('VITE_API_URL', 'https://mock-api.com')
-  })
-
-  afterEach(() => {
-    vi.unstubAllEnvs()
-  })
 
   it('renders fallback icon when src is not provided', () => {
     const wrapper = mount(KitImage)
@@ -46,15 +40,6 @@ describe('kit-image', () => {
     })
 
     expect(wrapper.find('img').attributes('src')).toBe('https://mock-api.com/images/test.jpg')
-  })
-
-  it('uses default API URL when VITE_API_URL is not set', () => {
-    vi.stubEnv('VITE_API_URL', '')
-    const wrapper = mount(KitImage, {
-      props: { src: '/images/test.jpg' },
-    })
-
-    expect(wrapper.find('img').attributes('src')).toBe('https://api.insight-book.ru/images/test.jpg')
   })
 
   it('handles base64 data urls correctly', () => {

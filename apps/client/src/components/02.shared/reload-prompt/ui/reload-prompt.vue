@@ -2,13 +2,13 @@
 import { Icon } from '@iconify/vue'
 import { useI18n } from 'vue-i18n'
 import { KitBtn } from '~/components/01.kit'
+import { isTauri as isTauriApp } from '~/shared/lib/env'
 import { usePwaStore } from '~/shared/store/pwa.store'
 
 const pwaStore = usePwaStore()
 const { t } = useI18n()
 
 const { offlineReady, needRefresh } = storeToRefs(pwaStore)
-const isTauriApp = '__TAURI_INTERNALS__' in window
 </script>
 
 <template>

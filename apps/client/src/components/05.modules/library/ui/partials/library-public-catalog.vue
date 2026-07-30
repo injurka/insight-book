@@ -2,29 +2,24 @@
 import type { Book } from '~/shared/types/models'
 import { Icon } from '@iconify/vue'
 import { useI18n } from 'vue-i18n'
-import { KitBtn } from '~/components/01.kit'
-import BookCard from '../book-card.vue'
+import BooksVirtualGrid from './books-virtual-grid.vue'
 import LibrarySkeletonGrid from './library-skeleton-grid.vue'
 
 interface Props {
   books: Book[]
   isLoading: boolean
-  page: number
-  total: number
-  limit: number
+  hasMore: boolean
 }
 
 const props = defineProps<Props>()
 
 const emit = defineEmits<{
-  (e: 'loadPage', page: number): void
+  (e: 'loadMore'): void
   (e: 'openBook', book: Book): void
   (e: 'editBook', book: Book): void
 }>()
 
 const { t } = useI18n()
-
-const totalPages = computed(() => Math.ceil(props.total / props.limit))
 </script>
 
 <template>
@@ -34,32 +29,21 @@ const totalPages = computed(() => Math.ceil(props.total / props.limit))
       <span class="text">{{ t('library.menuPublicCatalog') }}</span>
     </h3>
 
-    <LibrarySkeletonGrid v-if="isLoading" :count="10" />
+    <LibrarySkeletonGrid v-if="isLoading && books.length === 0" :count="10" />
 
     <div v-else-if="books.length === 0" class="empty-state">
       <h2>{{ t('library.emptySection') }}</h2>
     </div>
 
-    <div v-else>
-      <div class="books-grid">
-        <BookCard
-          v-for="book in books"
-          :key="book.id"
-          :book="book"
-          @click="emit('openBook', book)"
-          @edit="emit('editBook', book)"
-        />
-      </div>
-      <div v-if="total > limit" class="pagination">
-        <KitBtn variant="tonal" :disabled="page <= 1" @click="emit('loadPage', page - 1)">
-          {{ t('library.prevPage') }}
-        </KitBtn>
-        <span>{{ page }} / {{ totalPages }}</span>
-        <KitBtn variant="tonal" :disabled="page >= totalPages" @click="emit('loadPage', page + 1)">
-          {{ t('library.nextPage') }}
-        </KitBtn>
-      </div>
-    </div>
+    <BooksVirtualGrid
+      v-else
+      :books="props.books"
+      :has-more="props.hasMore"
+      :is-loading="props.isLoading"
+      @load-more="emit('loadMore')"
+      @open-book="(book) => emit('openBook', book)"
+      @edit-book="(book) => emit('editBook', book)"
+    />
   </div>
 </template>
 
@@ -67,19 +51,9 @@ const totalPages = computed(() => Math.ceil(props.total / props.limit))
 .public-catalog-view {
   display: flex;
   flex-direction: column;
+  flex-grow: 1;
+  min-height: 0;
   padding-bottom: 24px;
-
-  .pagination {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 16px;
-    margin-top: 32px;
-    padding-top: 24px;
-    border-top: 1px solid var(--border-secondary-color);
-    color: var(--fg-secondary-color);
-    font-weight: 500;
-  }
 }
 
 .series-title {
@@ -92,6 +66,7 @@ const totalPages = computed(() => Math.ceil(props.total / props.limit))
   border-bottom: 2px solid var(--border-secondary-color);
   padding-bottom: 8px;
   height: 28px;
+  flex-shrink: 0;
 
   .text {
     flex-grow: 1;
@@ -107,17 +82,6 @@ const totalPages = computed(() => Math.ceil(props.total / props.limit))
   h2 {
     margin-bottom: 12px;
     color: var(--fg-primary-color);
-  }
-}
-
-.books-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 24px;
-
-  @include media-down(sm) {
-    grid-template-columns: 1fr;
-    gap: 12px;
   }
 }
 </style>

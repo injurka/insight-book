@@ -5,6 +5,7 @@ import { createPinia } from 'pinia'
 import { createApp } from 'vue'
 import { vLongPress } from '~/shared/directives/long-press'
 import { vRipple } from '~/shared/directives/ripple'
+import { isTauri } from '~/shared/lib/env'
 import router from '~/shared/lib/router'
 import { defaultRepositories, REPOS_INJECTION_KEY } from '~/shared/plugins/di'
 import App from './app.vue'
@@ -12,8 +13,6 @@ import { i18n, localePromise } from './shared/plugins/i18n.ts'
 
 import '~/assets/scss/global.scss'
 import '~/assets/scss/normalize.scss'
-
-const isTauri = '__TAURI_INTERNALS__' in window
 
 async function bootstrap() {
   const app = createApp(App)

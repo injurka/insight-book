@@ -7,6 +7,7 @@
 export {}
 declare global {
   const ALLOWED_TAG_KEYS: typeof import('../../constants/tags').ALLOWED_TAG_KEYS
+  const API_URL: typeof import('../../lib/env').API_URL
   const AppRouteNames: typeof import('../../constants/routes').AppRouteNames
   const AppRoutePaths: typeof import('../../constants/routes').AppRoutePaths
   const BOOK_COVER_TRANSITION_NAME: typeof import('../../lib/view-transitions').BOOK_COVER_TRANSITION_NAME
@@ -63,11 +64,15 @@ declare global {
   const inject: typeof import('vue').inject
   const injectLocal: typeof import('@vueuse/core').injectLocal
   const isDefined: typeof import('@vueuse/core').isDefined
+  const isMobile: typeof import('../../lib/env').isMobile
+  const isMobileApp: typeof import('../../lib/env').isMobileApp
+  const isNativeTransitionRoute: typeof import('../../lib/view-transitions').isNativeTransitionRoute
   const isProxy: typeof import('vue').isProxy
   const isReactive: typeof import('vue').isReactive
   const isReadonly: typeof import('vue').isReadonly
   const isRef: typeof import('vue').isRef
   const isShallow: typeof import('vue').isShallow
+  const isTauri: typeof import('../../lib/env').isTauri
   const isViewTransitionSupported: typeof import('../../lib/view-transitions').isViewTransitionSupported
   const lazyComponent: typeof import('../../lib/lazy-component').lazyComponent
   const makeDestructurable: typeof import('@vueuse/core').makeDestructurable
@@ -373,6 +378,7 @@ declare module 'vue' {
   interface GlobalComponents {}
   interface ComponentCustomProperties {
     readonly ALLOWED_TAG_KEYS: UnwrapRef<typeof import('../../constants/tags')['ALLOWED_TAG_KEYS']>
+    readonly API_URL: UnwrapRef<typeof import('../../lib/env')['API_URL']>
     readonly AppRouteNames: UnwrapRef<typeof import('../../constants/routes')['AppRouteNames']>
     readonly AppRoutePaths: UnwrapRef<typeof import('../../constants/routes')['AppRoutePaths']>
     readonly BOOK_COVER_TRANSITION_NAME: UnwrapRef<typeof import('../../lib/view-transitions')['BOOK_COVER_TRANSITION_NAME']>
@@ -428,11 +434,15 @@ declare module 'vue' {
     readonly inject: UnwrapRef<typeof import('vue')['inject']>
     readonly injectLocal: UnwrapRef<typeof import('@vueuse/core')['injectLocal']>
     readonly isDefined: UnwrapRef<typeof import('@vueuse/core')['isDefined']>
+    readonly isMobile: UnwrapRef<typeof import('../../lib/env')['isMobile']>
+    readonly isMobileApp: UnwrapRef<typeof import('../../lib/env')['isMobileApp']>
+    readonly isNativeTransitionRoute: UnwrapRef<typeof import('../../lib/view-transitions')['isNativeTransitionRoute']>
     readonly isProxy: UnwrapRef<typeof import('vue')['isProxy']>
     readonly isReactive: UnwrapRef<typeof import('vue')['isReactive']>
     readonly isReadonly: UnwrapRef<typeof import('vue')['isReadonly']>
     readonly isRef: UnwrapRef<typeof import('vue')['isRef']>
     readonly isShallow: UnwrapRef<typeof import('vue')['isShallow']>
+    readonly isTauri: UnwrapRef<typeof import('../../lib/env')['isTauri']>
     readonly isViewTransitionSupported: UnwrapRef<typeof import('../../lib/view-transitions')['isViewTransitionSupported']>
     readonly lazyComponent: UnwrapRef<typeof import('../../lib/lazy-component')['lazyComponent']>
     readonly makeDestructurable: UnwrapRef<typeof import('@vueuse/core')['makeDestructurable']>

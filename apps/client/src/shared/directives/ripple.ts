@@ -1,5 +1,8 @@
 const ripple = {
-  mounted(el: HTMLElement) {
+  mounted(el: HTMLElement, binding: { value?: boolean }) {
+    if (binding.value === false)
+      return
+
     el.style.position = 'relative'
     el.style.overflow = 'hidden'
 

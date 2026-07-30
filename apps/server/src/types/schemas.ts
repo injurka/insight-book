@@ -134,7 +134,6 @@ export const UpdateBookSchema = z.object({
   isFavorite: z.boolean().optional(),
   collection: z.string().nullable().optional(),
   isPublic: z.boolean().optional(),
-  isUnlisted: z.boolean().optional(),
   publicStatus: z.enum(['private', 'pending', 'public', 'rejected']).optional(),
   textDirection: z.string().nullable().optional(),
 })

@@ -2,9 +2,8 @@
 import { Icon } from '@iconify/vue'
 import { invoke } from '@tauri-apps/api/core'
 import { onMounted, onUnmounted, ref } from 'vue'
+import { isMobile, isTauri } from '~/shared/lib/env'
 
-const isTauri = '__TAURI_INTERNALS__' in window
-const isMobile = /android|iphone|ipad|ipod/i.test(navigator.userAgent)
 const showTitlebar = ref(isTauri && !isMobile)
 const isMaximized = ref(false)
 

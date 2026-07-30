@@ -1,5 +1,6 @@
 import type { AuthLoginDto, AuthRegisterDto, AuthSendCodeDto, Book, BookStats, CatalogDeck, CatalogPluginRecord, CatalogWord, DictDeck, GeneratedWordExamples, Highlight, LlmAnalysis, PageDictEntry, PagePayload, PromptItem, TocItem, UserData, UserDictItem, UserPluginRecord, WordAutoFillResponse } from '../types/models'
 import { ofetch } from 'ofetch'
+import { API_URL } from '~/shared/lib/env'
 
 import { i18n } from '../plugins/i18n'
 
@@ -10,7 +11,7 @@ declare module 'ofetch' {
   }
 }
 
-export const BASE_API_URL = import.meta.env.VITE_API_URL || 'https://api.insight-book.ru'
+export const BASE_API_URL = API_URL
 
 export interface CustomLlmConfig {
   url: string
@@ -40,8 +41,8 @@ const providers: Required<ApiProviders> = {
   getToken: () => localStorage.getItem('insight_token'),
   getAppLanguage: readStoredLanguage,
   getCustomLlm: () => null,
-  onUnauthorized: () => {},
-  onError: () => {},
+  onUnauthorized: () => { },
+  onError: () => { },
 }
 
 export function configureApi(overrides: ApiProviders) {

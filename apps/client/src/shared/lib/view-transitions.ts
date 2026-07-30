@@ -19,8 +19,14 @@ export const coverTransitionBookId = ref<number | null>(null)
 
 const reduceMotionQuery = window.matchMedia('(prefers-reduced-motion: reduce)')
 
-/** Сколько максимум ждём данные книги перед снятием «нового» снапшота */
-const BOOK_INFO_WAIT_TIMEOUT = 400
+/**
+ * Сколько максимум ждём данные книги перед снятием «нового» снапшота.
+ * ВАЖНО: всё это время страница заморожена (рендеринг приостановлен
+ * View Transition), поэтому значение держим маленьким — оно нужно лишь
+ * чтобы поймать быстрый ответ из кэша. Если данные не успели — целью
+ * морфа обложки служит скелетон с оптимистичной обложкой.
+ */
+const BOOK_INFO_WAIT_TIMEOUT = 150
 
 export function isViewTransitionSupported(): boolean {
   return typeof document !== 'undefined' && 'startViewTransition' in document
@@ -62,6 +68,24 @@ async function waitForBookInfoReady(bookId: number): Promise<void> {
 }
 
 /**
+ * Маршруты, между которыми работает View Transition (shared-element морф
+ * обложки книги библиотека ↔ страница книги). На остальную навигацию
+ * переход не вешаем намеренно: пока браузер снимает оба снапшота, страница
+ * заморожена (сотни мс «зависания» после клика), а визуальной ценности
+ * кросс-фейд корня на обычных страницах не несёт.
+ */
+const TRANSITION_ROUTES: AppRouteNames[] = [AppRouteNames.Home, AppRouteNames.BookInfo]
+
+/**
+ * Участвует ли маршрут в нативном View Transition (морф обложки).
+ * Используется в app.vue, чтобы для остальных маршрутов оставить
+ * CSS-переход fade — native и CSS анимации не должны дублироваться.
+ */
+export function isNativeTransitionRoute(name: unknown): boolean {
+  return TRANSITION_ROUTES.includes(name as AppRouteNames)
+}
+
+/**
  * Оборачивает навигацию vue-router в нативный View Transitions API:
  * DOM обновляется внутри `document.startViewTransition`, поэтому браузер
  * сам анимирует старый и новый снапшоты страниц (кросс-фейд root-снапшотов
@@ -70,17 +94,18 @@ async function waitForBookInfoReady(bookId: number): Promise<void> {
 export function setupViewTransitions(router: Router): void {
   router.beforeResolve((to, from) => {
     const isSamePage = to.path === from.path // смена query/hash на той же странице — без анимации
-
-    if (!isViewTransitionSupported() || reduceMotionQuery.matches || !from.name || isSamePage) {
-      return true
-    }
+    const isTransitionRoute = TRANSITION_ROUTES.includes(to.name as AppRouteNames)
+      && TRANSITION_ROUTES.includes(from.name as AppRouteNames)
 
     // Обложка «перелетает» только между библиотекой и страницей книги.
-    // На остальных маршрутах флаг сбрасываем до снапшота, чтобы обложка
-    // не анимируется отдельно от страницы.
-    const keepsCoverTransition = to.name === AppRouteNames.Home || to.name === AppRouteNames.BookInfo
-    if (!keepsCoverTransition) {
+    // При уходе на другие маршруты флаг сбрасываем, чтобы карточка
+    // не сохраняла `view-transition-name` без надобности.
+    if (!isTransitionRoute) {
       coverTransitionBookId.value = null
+    }
+
+    if (!isViewTransitionSupported() || reduceMotionQuery.matches || !from.name || isSamePage || !isTransitionRoute) {
+      return true
     }
 
     return new Promise<boolean>((resolve) => {
@@ -99,9 +124,9 @@ export function setupViewTransitions(router: Router): void {
           confirmNavigation()
           await nextTick()
 
-          // Страница книги: ждём данные (с таймаутом), чтобы снапшот содержал
-          // финальную раскладку, а не скелетон. Пока ждём, пользователь видит
-          // прежнюю страницу — переход просто стартует чуть позже.
+          // Страница книги: ждём данные (с коротким таймаутом), чтобы снапшот
+          // содержал финальную раскладку, а не скелетон. Пока ждём, страница
+          // заморожена — поэтому таймаут маленький (см. BOOK_INFO_WAIT_TIMEOUT).
           if (to.name === AppRouteNames.BookInfo) {
             await waitForBookInfoReady(Number(to.params.id))
           }
@@ -111,7 +136,10 @@ export function setupViewTransitions(router: Router): void {
         // заморожен. Если что-то пойдёт не так — принудительно пропускаем
         // переход, чтобы приложение не осталось висеть на старом снапшоте.
         // После нормального завершения перехода skipTransition — безопасный no-op.
-        setTimeout(() => transition.skipTransition(), 2000)
+        const safetyTimer = setTimeout(() => transition.skipTransition(), 2000)
+        transition.finished
+          .catch(() => {}) // переход пропущен — finished отклоняется, это нормально
+          .finally(() => clearTimeout(safetyTimer))
       }
       catch {
         confirmNavigation()
