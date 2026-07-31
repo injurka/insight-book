@@ -1,7 +1,10 @@
 import type { Book, BookStats, PageDictEntry, PagePayload, TocItem } from '~/01.shared/types/models'
+import { z } from 'zod'
+import { applyAcl } from '~/01.shared/lib/acl'
 import { api } from '~/01.shared/services/api.service'
 import { offlineService } from '~/01.shared/services/offline.service'
 import { useAuthStore } from '~/01.shared/store/auth.store'
+import { BookSchema, TocItemSchema } from '~/01.shared/types/schemas/book.schema'
 
 export interface IBookRepository {
   list: () => Promise<Book[]>
@@ -42,7 +45,8 @@ export class DefaultBookRepository implements IBookRepository {
     }
 
     try {
-      const data = await api.books.list()
+      const raw = await api.books.list()
+      const data = applyAcl(z.array(BookSchema), raw, 'book.list()')
       await offlineService.saveBooksList(data).catch(() => {})
 
       return data
@@ -50,7 +54,7 @@ export class DefaultBookRepository implements IBookRepository {
     catch (error) {
       const offlineData = await offlineService.getBooksList()
       if (offlineData)
-        return offlineData
+        return applyAcl(z.array(BookSchema), offlineData, 'book.list() [offline]')
 
       throw error
     }
@@ -62,14 +66,15 @@ export class DefaultBookRepository implements IBookRepository {
 
   async getInfo(id: number): Promise<Book | null> {
     try {
-      const data = await api.books.getInfo(id)
+      const raw = await api.books.getInfo(id)
+      const data = applyAcl(BookSchema, raw, `book.getInfo(${id})`)
       await offlineService.saveBookInfo(id, data).catch(() => {})
       return data
     }
     catch (error) {
       const offlineData = await offlineService.getBookInfo(id)
       if (offlineData)
-        return offlineData
+        return applyAcl(BookSchema, offlineData, `book.getInfo(${id}) [offline]`)
       throw error
     }
   }
@@ -120,14 +125,15 @@ export class DefaultBookRepository implements IBookRepository {
 
   async getToc(id: number): Promise<TocItem[]> {
     try {
-      const data = await api.books.getToc(id)
+      const raw = await api.books.getToc(id)
+      const data = applyAcl(z.array(TocItemSchema), raw, `book.getToc(${id})`)
       await offlineService.saveToc(id, data).catch(() => {})
       return data
     }
     catch (error) {
       const offlineData = await offlineService.getToc(id)
       if (offlineData)
-        return offlineData
+        return applyAcl(z.array(TocItemSchema), offlineData, `book.getToc(${id}) [offline]`)
       throw error
     }
   }

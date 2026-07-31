@@ -1,5 +1,8 @@
 import type { UserPluginRecord } from '~/01.shared/types/models'
+import { z } from 'zod'
+import { applyAcl } from '~/01.shared/lib/acl'
 import { api } from '~/01.shared/services/api.service'
+import { UserPluginRecordSchema } from '~/01.shared/types/schemas/plugin.schema'
 
 export interface IPluginRepository {
   getMyPlugins: () => Promise<UserPluginRecord[]>
@@ -10,7 +13,8 @@ export interface IPluginRepository {
 
 export class DefaultPluginRepository implements IPluginRepository {
   async getMyPlugins() {
-    return await api.plugins.getMyPlugins()
+    const raw = await api.plugins.getMyPlugins()
+    return applyAcl(z.array(UserPluginRecordSchema), raw, 'plugin.getMyPlugins()')
   }
 
   async installPlugin(data: { pluginId: string, manifestUrl: string, settings?: string | null, isEnabled?: boolean }) {

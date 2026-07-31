@@ -1,6 +1,8 @@
 import type { LlmAnalysis } from '~/01.shared/types/models'
+import { applyAcl } from '~/01.shared/lib/acl'
 import { api } from '~/01.shared/services/api.service'
 import { offlineService } from '~/01.shared/services/offline.service'
+import { LlmAnalysisSchema } from '~/01.shared/types/schemas/analysis.schema'
 
 export interface IAnalysisRepository {
   checkCache: (bookId: number, items: { text: string, type: 'sentence' | 'word' }[], language: string, signal?: AbortSignal) => Promise<any>
@@ -57,7 +59,7 @@ export class DefaultAnalysisRepository implements IAnalysisRepository {
     try {
       const cached = await offlineService.getAnalysis(text)
       if (cached)
-        return cached
+        return applyAcl(LlmAnalysisSchema, cached, 'analysis.analyze() [offline]')
     }
     catch (e) {
       console.warn('Failed to retrieve from local cache:', e)
@@ -71,10 +73,9 @@ export class DefaultAnalysisRepository implements IAnalysisRepository {
       signal,
       type,
     )
-    if (res) {
-      await offlineService.saveAnalysis(text, res).catch(() => {})
-    }
-    return res
+    const data = applyAcl(LlmAnalysisSchema, res, 'analysis.analyze()')
+    await offlineService.saveAnalysis(text, data).catch(() => {})
+    return data
   }
 
   async lookupWord(bookId: number, word: string, signal?: AbortSignal) {
@@ -110,7 +111,10 @@ export class DefaultAnalysisRepository implements IAnalysisRepository {
   }
 
   async getLocalAnalysis(text: string) {
-    return await offlineService.getAnalysis(text)
+    const cached = await offlineService.getAnalysis(text)
+    if (!cached)
+      return cached
+    return applyAcl(LlmAnalysisSchema, cached, 'analysis.getLocalAnalysis()')
   }
 
   async saveLocalAnalysis(text: string, analysis: LlmAnalysis) {

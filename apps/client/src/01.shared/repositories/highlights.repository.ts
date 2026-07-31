@@ -1,7 +1,10 @@
 import type { LlmAnalysis } from '~/01.shared/types/models'
 import type { Highlight } from '~/05.modules/reader/store/highlights.store'
+import { z } from 'zod'
+import { applyAcl } from '~/01.shared/lib/acl'
 import { api } from '~/01.shared/services/api.service'
 import { offlineService } from '~/01.shared/services/offline.service'
+import { HighlightSchema } from '~/01.shared/types/schemas/highlight.schema'
 
 export interface IHighlightsRepository {
   list: (bookId?: number) => Promise<Highlight[]>
@@ -23,7 +26,8 @@ export interface IHighlightsRepository {
 export class DefaultHighlightsRepository implements IHighlightsRepository {
   async list(bookId?: number): Promise<Highlight[]> {
     try {
-      const data = await api.highlights.list(bookId) as Highlight[]
+      const raw = await api.highlights.list(bookId)
+      const data = applyAcl(z.array(HighlightSchema), raw, 'highlights.list()')
       if (bookId) {
         await offlineService.saveHighlights(bookId, data as any).catch(() => {})
       }
@@ -33,7 +37,7 @@ export class DefaultHighlightsRepository implements IHighlightsRepository {
       if (bookId) {
         const offlineData = await offlineService.getHighlights(bookId)
         if (offlineData) {
-          return (offlineData || []) as Highlight[]
+          return applyAcl(z.array(HighlightSchema), offlineData, 'highlights.list() [offline]')
         }
       }
       throw error

@@ -1,5 +1,7 @@
 import { invoke, isTauri } from '@tauri-apps/api/core'
+import { applyAcl } from '~/01.shared/lib/acl'
 import { API_URL } from '~/01.shared/lib/env'
+import { VapidPublicKeyResponseSchema } from '~/01.shared/types/schemas/push.schema'
 
 export interface IPushRepository {
   subscribeFcm: (token: string) => Promise<void>
@@ -65,7 +67,8 @@ export class DefaultPushRepository implements IPushRepository {
     })
     if (!res.ok)
       throw new Error('VAPID key fetch failed')
-    const data = await res.json()
+    const raw = await res.json()
+    const data = applyAcl(VapidPublicKeyResponseSchema, raw, 'push.getVapidPublicKey()')
     return data.publicKey
   }
 

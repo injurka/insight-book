@@ -1,4 +1,6 @@
+import { applyAcl } from '~/01.shared/lib/acl'
 import { offlineService } from '~/01.shared/services/offline.service'
+import { StorageEstimateSchema } from '~/01.shared/types/schemas/storage.schema'
 
 export interface IStorageRepository {
   getStorageEstimate: () => Promise<{ usage: number, quota: number } | null>
@@ -9,7 +11,10 @@ export interface IStorageRepository {
 
 export class DefaultStorageRepository implements IStorageRepository {
   async getStorageEstimate() {
-    return await offlineService.getStorageEstimate()
+    const raw = await offlineService.getStorageEstimate()
+    if (!raw)
+      return raw
+    return applyAcl(StorageEstimateSchema, raw, 'storage.getStorageEstimate()')
   }
 
   async requestPersistentStorage() {

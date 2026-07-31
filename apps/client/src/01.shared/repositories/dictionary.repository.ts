@@ -7,9 +7,12 @@ import type {
   UserDictItem,
   WordAutoFillResponse,
 } from '~/01.shared/types/models'
+import { z } from 'zod'
+import { applyAcl } from '~/01.shared/lib/acl'
 import { api } from '~/01.shared/services/api.service'
 import { offlineService } from '~/01.shared/services/offline.service'
 import { useAuthStore } from '~/01.shared/store/auth.store'
+import { CatalogDeckSchema, CatalogWordSchema, DictDeckSchema, PromptItemSchema, UserDictItemSchema } from '~/01.shared/types/schemas/dictionary.schema'
 
 export interface IDictionaryRepository {
   list: () => Promise<UserDictItem[]>
@@ -51,14 +54,15 @@ export class DefaultDictionaryRepository implements IDictionaryRepository {
     }
 
     try {
-      const data = await api.dictionary.list()
+      const raw = await api.dictionary.list()
+      const data = applyAcl(z.array(UserDictItemSchema), raw, 'dictionary.list()')
       await offlineService.saveDictionary(data).catch(() => {})
       return data
     }
     catch (error) {
       const offlineData = await offlineService.getDictionary()
       if (offlineData)
-        return offlineData
+        return applyAcl(z.array(UserDictItemSchema), offlineData, 'dictionary.list() [offline]')
       throw error
     }
   }
@@ -78,14 +82,15 @@ export class DefaultDictionaryRepository implements IDictionaryRepository {
     }
 
     try {
-      const data = await api.dictionary.decks()
+      const raw = await api.dictionary.decks()
+      const data = applyAcl(z.array(DictDeckSchema), raw, 'dictionary.getDecks()')
       await offlineService.saveDecks(data).catch(() => {})
       return data
     }
     catch (error) {
       const offlineData = await offlineService.getDecks()
       if (offlineData)
-        return offlineData
+        return applyAcl(z.array(DictDeckSchema), offlineData, 'dictionary.getDecks() [offline]')
       throw error
     }
   }
@@ -115,11 +120,13 @@ export class DefaultDictionaryRepository implements IDictionaryRepository {
   }
 
   async getReviewQueue(opts: { lang: string, mode: 'srs' | 'random' | 'deep_dive' | 'cram' | 'match', deckId?: number | 'all' | 'none', difficulty?: string }) {
-    return await api.dictionary.getReviewQueue(opts)
+    const raw = await api.dictionary.getReviewQueue(opts)
+    return applyAcl(z.array(UserDictItemSchema), raw, 'dictionary.getReviewQueue()')
   }
 
   async get(word: string) {
-    return await api.dictionary.get(word)
+    const raw = await api.dictionary.get(word)
+    return applyAcl(UserDictItemSchema, raw, `dictionary.get(${word})`)
   }
 
   async upsert(item: Partial<UserDictItem>) {
@@ -131,11 +138,23 @@ export class DefaultDictionaryRepository implements IDictionaryRepository {
   async generateDeepDive(word: string, lang: string, mode: 'collocations' | 'radicals') { return await api.dictionary.generateDeepDive(word, lang, mode) }
   async submitReview(id: number, grade: number) { return await api.dictionary.submitReview(id, grade) }
   async importCsv(data: unknown) { return await api.dictionary.importCsv(data) }
-  async catalog() { return await api.dictionary.catalog() }
-  async catalogWords(deckId: number) { return await api.dictionary.catalogWords(deckId) }
+  async catalog() {
+    const raw = await api.dictionary.catalog()
+    return applyAcl(z.array(CatalogDeckSchema), raw, 'dictionary.catalog()')
+  }
+
+  async catalogWords(deckId: number) {
+    const raw = await api.dictionary.catalogWords(deckId)
+    return applyAcl(z.array(CatalogWordSchema), raw, `dictionary.catalogWords(${deckId})`)
+  }
+
   async cloneCatalog(id: number) { return await api.dictionary.cloneCatalog(id) }
   async chat(payload: { word: string, language: string, customPromptId?: number, userPromptText?: string }) { return await api.dictionary.chat(payload) }
-  async promptsList() { return await api.dictionary.promptsList() }
+  async promptsList() {
+    const raw = await api.dictionary.promptsList()
+    return applyAcl(z.array(PromptItemSchema), raw, 'dictionary.promptsList()')
+  }
+
   async promptsCreate(payload: { name: string, prompt: string }) { return await api.dictionary.promptsCreate(payload) }
   async promptsUpdate(id: number, payload: { name?: string, prompt?: string }) { return await api.dictionary.promptsUpdate(id, payload) }
   async promptsDelete(id: number) { return await api.dictionary.promptsDelete(id) }

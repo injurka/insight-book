@@ -1,5 +1,7 @@
 import type { AuthLoginDto, AuthRegisterDto, AuthSendCodeDto, UserData } from '~/01.shared/types/models'
+import { applyAcl } from '~/01.shared/lib/acl'
 import { api } from '~/01.shared/services/api.service'
+import { AuthMeResponseSchema } from '~/01.shared/types/schemas/auth.schema'
 
 export interface IAuthRepository {
   me: () => Promise<{ user: UserData | null, mode: string }>
@@ -12,7 +14,8 @@ export interface IAuthRepository {
 
 export class DefaultAuthRepository implements IAuthRepository {
   async me() {
-    return await api.auth.me()
+    const raw = await api.auth.me()
+    return applyAcl(AuthMeResponseSchema, raw, 'auth.me()')
   }
 
   async login(credentials: AuthLoginDto) {

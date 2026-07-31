@@ -1,5 +1,8 @@
 import type { CatalogPluginRecord } from '~/01.shared/types/models'
+import { z } from 'zod'
+import { applyAcl } from '~/01.shared/lib/acl'
 import { api } from '~/01.shared/services/api.service'
+import { CatalogPluginRecordSchema } from '~/01.shared/types/schemas/catalog-plugin.schema'
 
 export interface ICatalogPluginRepository {
   getApproved: () => Promise<CatalogPluginRecord[]>
@@ -12,15 +15,18 @@ export interface ICatalogPluginRepository {
 
 export class DefaultCatalogPluginRepository implements ICatalogPluginRepository {
   async getApproved() {
-    return await api.catalogPlugins.getApproved()
+    const raw = await api.catalogPlugins.getApproved()
+    return applyAcl(z.array(CatalogPluginRecordSchema), raw, 'catalogPlugin.getApproved()')
   }
 
   async getMy() {
-    return await api.catalogPlugins.getMy()
+    const raw = await api.catalogPlugins.getMy()
+    return applyAcl(z.array(CatalogPluginRecordSchema), raw, 'catalogPlugin.getMy()')
   }
 
   async getPending() {
-    return await api.catalogPlugins.getPending()
+    const raw = await api.catalogPlugins.getPending()
+    return applyAcl(z.array(CatalogPluginRecordSchema), raw, 'catalogPlugin.getPending()')
   }
 
   async upload(file: File) {

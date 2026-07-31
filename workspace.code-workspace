@@ -1,7 +1,7 @@
 {
 	"folders": [
 		{
-			"name": "insight-book",
+			"name": "📚",
 			"path": "."
 		},
 		{
@@ -17,28 +17,12 @@
 			"path": "apps/native"
 		},
 		{
-			"name": "zh-dict-parser",
-			"path": "tools/zh-dict-parser"
+			"name": "⚙️ tools",
+			"path": "tools"
 		},
 		{
-			"name": "jp-dict-parser",
-			"path": "tools/jp-dict-parser",
-		},
-		{
-			"name": "en-dict-parser",
-			"path": "tools/en-dict-parser"
-		},
-		{
-			"name": "manhuagui-parser",
-			"path": "tools/manhuagui-parser"
-		},
-		{
-			"name": "plugin-api",
-			"path": "packages/plugin-api"
-		},
-		{
-			"name": "plugin-grammar-rules",
-			"path": "packages/plugin-grammar-rules"
+			"name": "📦 packages",
+			"path": "packages"
 		}
 	],
 	"settings": {
