@@ -376,7 +376,7 @@ export function usePluginManager(): PluginManager {
       ensureMfRuntime()
 
       const remoteName = toMfRemoteName(manifest.id)
-      registerRemotes([{ name: remoteName, entry: remoteEntryUrl }])
+      registerRemotes([{ name: remoteName, entry: remoteEntryUrl, type: 'module' }])
 
       // loadRemote сам скачает remoteEntry.js, подтянет стили
       // и свяжет shared-зависимости (vue, vue-router, pinia, plugin-api) с ядром

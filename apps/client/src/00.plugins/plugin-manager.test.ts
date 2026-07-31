@@ -407,6 +407,7 @@ describe('usePluginManager - loadRemotePlugin', () => {
     expect(mockRegisterRemotes).toHaveBeenCalledWith([{
       name: 'plugin_test_plugin',
       entry: 'https://plugins.example.com/test/remoteEntry.js',
+      type: 'module',
     }])
     expect(mockLoadRemote).toHaveBeenCalledWith('plugin_test_plugin/Plugin')
     expect(manager.plugins).toHaveLength(1)
