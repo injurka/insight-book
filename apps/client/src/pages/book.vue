@@ -1,7 +1,0 @@
-<script setup lang="ts">
-import { BookInfoView } from '~/components/05.modules/book-info'
-</script>
-
-<template>
-  <BookInfoView />
-</template>

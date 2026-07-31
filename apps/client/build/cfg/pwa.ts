@@ -3,7 +3,7 @@ import type { VitePWA } from 'vite-plugin-pwa'
 export function pwaCfg(revision: string) {
   return {
     strategies: 'injectManifest',
-    srcDir: 'workers/service',
+    srcDir: '01.shared/workers/service',
     filename: 'sw.ts',
     registerType: 'prompt',
     base: '/',

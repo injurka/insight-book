@@ -1,5 +1,11 @@
 import type { Options as AutoImportOptions } from 'unplugin-auto-import/types'
+import { resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import IconsResolver from 'unplugin-icons/resolver'
+
+const currentDir = fileURLToPath(new URL('.', import.meta.url))
+
+const root = (...paths: string[]) => resolve(currentDir, '../../', ...paths)
 
 export const autoImportOptionsCfg: AutoImportOptions = {
   imports: [
@@ -9,11 +15,11 @@ export const autoImportOptionsCfg: AutoImportOptions = {
     '@vueuse/core',
   ],
   dirs: [
-    './shared/lib/',
-    './shared/types/',
-    './shared/composables/',
-    './shared/directives/',
-    './shared/constants/',
+    root('src/01.shared/lib'),
+    root('src/01.shared/types'),
+    root('src/01.shared/composables'),
+    root('src/01.shared/directives'),
+    root('src/01.shared/constants'),
   ],
   exclude: [
     '**/node_modules/**',
@@ -26,10 +32,10 @@ export const autoImportOptionsCfg: AutoImportOptions = {
       enabledCollections: ['mdi'],
     }),
   ],
-  dts: './shared/types/dts/auto-imports.d.ts',
+  dts: root('src/01.shared/types/dts/auto-imports.d.ts'),
   vueTemplate: true,
   eslintrc: {
     enabled: true,
-    filepath: './.eslintrc-auto-import.json',
+    filepath: root('.eslintrc-auto-import.json'),
   },
 }

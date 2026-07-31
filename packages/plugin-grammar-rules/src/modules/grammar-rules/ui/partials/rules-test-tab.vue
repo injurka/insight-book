@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { toRef } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { KitBtn } from '~/components/01.kit'
+import { KitBtn } from '~/02.kit'
 import { Icon } from '@iconify/vue'
 import type { Rule, RuleTest } from '@injurka/insight-book-plugin-grammar-rules/shared/types'
 import { useRulesTest } from '../../composables/use-rules-test'

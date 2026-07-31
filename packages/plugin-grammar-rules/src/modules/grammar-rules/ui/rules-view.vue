@@ -2,7 +2,7 @@
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
-import { KitBtn, KitTabs } from '~/components/01.kit'
+import { KitBtn, KitTabs } from '~/02.kit/index.ts'
 import hsk1Rules from '@injurka/insight-book-plugin-grammar-rules/shared/data/hsk1-rules.json'
 import hsk2Rules from '@injurka/insight-book-plugin-grammar-rules/shared/data/hsk2-rules.json'
 import hsk1Tests from '@injurka/insight-book-plugin-grammar-rules/shared/data/hsk1-tests.json'

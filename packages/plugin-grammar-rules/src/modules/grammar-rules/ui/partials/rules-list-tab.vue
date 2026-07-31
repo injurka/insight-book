@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { KitInput, KitSelect } from '~/components/01.kit'
+import { KitInput, KitSelect } from '~/02.kit/index.ts'
 import { Icon } from '@iconify/vue'
 import type { Rule } from '@injurka/insight-book-plugin-grammar-rules/shared/types'
 import RuleCard from './rule-card.vue'

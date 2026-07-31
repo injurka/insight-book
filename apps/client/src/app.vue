@@ -1,20 +1,20 @@
 <script setup lang="ts">
 import { useHead } from '@vueuse/head'
 import { useI18n } from 'vue-i18n'
-import { ReloadPrompt } from '~/components/02.shared/reload-prompt'
-import { ToastManager } from '~/components/02.shared/toast-manager'
-import { DefaultLayout } from '~/components/06.layouts/default'
-import { useBackHandler } from '~/shared/composables/use-back-handler'
-import { useChangeTheme } from '~/shared/composables/use-change-theme'
-import { useGlobalTracking } from '~/shared/composables/use-global-tracking'
-import { isTauri } from '~/shared/lib/env'
-import { isNativeTransitionRoute, isViewTransitionSupported } from '~/shared/lib/view-transitions'
-import { loadLanguageAsync } from '~/shared/plugins/i18n'
-import { useAnalysisStore } from '~/shared/store/analysis/analysis.store'
-import { usePwaStore } from '~/shared/store/pwa.store'
-import { useGlobalSettingsStore } from '~/shared/store/settings.store'
+import { loadLanguageAsync } from '~/00.plugins/i18n'
+import { useBackHandler } from '~/01.shared/composables/use-back-handler'
+import { useChangeTheme } from '~/01.shared/composables/use-change-theme'
+import { useGlobalTracking } from '~/01.shared/composables/use-global-tracking'
+import { isTauri } from '~/01.shared/lib/env'
+import { isNativeTransitionRoute, isViewTransitionSupported } from '~/01.shared/lib/view-transitions'
+import { useAnalysisStore } from '~/01.shared/store/analysis/analysis.store'
+import { usePwaStore } from '~/01.shared/store/pwa.store'
+import { useGlobalSettingsStore } from '~/01.shared/store/settings.store'
+import { KitReloadPrompt } from '~/02.kit/organisms/kit-reload-prompt'
+import { KitToastManager } from '~/02.kit/organisms/kit-toast-manager'
+import { DefaultLayout } from '~/06.layouts/default'
 
-const AddEditWordDialog = lazyComponent(() => import('~/components/05.modules/dictionary/ui/dialog/add-edit-word-dialog.vue'))
+const AddEditWordDialog = lazyComponent(() => import('~/05.modules/dictionary/ui/dialog/add-edit-word-dialog.vue'))
 
 useChangeTheme()
 useGlobalTracking()
@@ -226,7 +226,7 @@ watch(() => route.path, () => {
     </transition>
   </router-view>
 
-  <ReloadPrompt />
+  <KitReloadPrompt />
   <AddEditWordDialog />
-  <ToastManager />
+  <KitToastManager />
 </template>

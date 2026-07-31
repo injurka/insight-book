@@ -28,6 +28,11 @@ description: Автоматически применяется для работ
 
      const props = defineProps<Props>()
      ```
+7. **Ссылки на элементы/компоненты (Template Refs):**
+   - Для обращения к HTML-элементам или дочерним компонентам в шаблоне используй функцию `useTemplateRef` вместо обычного `ref`.
+   ```ts
+   // В шаблоне: <input ref="inputRef" />
+   const inputEl = useTemplateRef<HTMLInputElement>('inputRef')
 
 ## Работа с документацией (MCP)
 - Если ты сомневаешься в синтаксисе Vue 3, Pinia или Vue Router, **не выдумывай код!** Сначала вызови инструменты из MCP-сервера `vue-docs` (например, `vue_api_lookup` или `pinia_docs_search`), прочитай официальный ответ, и только потом пиши реализацию.

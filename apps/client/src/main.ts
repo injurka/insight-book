@@ -3,13 +3,13 @@ import { PiniaColada } from '@pinia/colada'
 import { createHead } from '@vueuse/head'
 import { createPinia } from 'pinia'
 import { createApp } from 'vue'
-import { vLongPress } from '~/shared/directives/long-press'
-import { vRipple } from '~/shared/directives/ripple'
-import { isTauri } from '~/shared/lib/env'
-import router from '~/shared/lib/router'
-import { defaultRepositories, REPOS_INJECTION_KEY } from '~/shared/plugins/di'
+import { defaultRepositories, REPOS_INJECTION_KEY } from '~/00.plugins/di'
+import { i18n, localePromise } from '~/00.plugins/i18n.ts'
+import { vLongPress } from '~/01.shared/directives/long-press'
+import { vRipple } from '~/01.shared/directives/ripple'
+import { isTauri } from '~/01.shared/lib/env'
+import router from '~/01.shared/lib/router'
 import App from './app.vue'
-import { i18n, localePromise } from './shared/plugins/i18n.ts'
 
 import '~/assets/scss/global.scss'
 import '~/assets/scss/normalize.scss'
@@ -28,10 +28,10 @@ async function bootstrap() {
   app.use(head)
   app.provide(REPOS_INJECTION_KEY, defaultRepositories)
 
-  const { configureApi } = await import('~/shared/services/api.service')
-  const { useGlobalSettingsStore } = await import('~/shared/store/settings.store')
-  const { useAuthStore } = await import('~/shared/store/auth.store')
-  const { useToastStore } = await import('~/shared/store/toast.store')
+  const { configureApi } = await import('~/01.shared/services/api.service')
+  const { useGlobalSettingsStore } = await import('~/01.shared/store/settings.store')
+  const { useAuthStore } = await import('~/01.shared/store/auth.store')
+  const { useToastStore } = await import('~/01.shared/store/toast.store')
 
   const settingsStore = useGlobalSettingsStore()
   const authStore = useAuthStore()
@@ -48,9 +48,9 @@ async function bootstrap() {
   })
 
   try {
-    const { setupPlugins } = await import('~/shared/plugins/index')
-    const { setupDictionaryEvents } = await import('~/shared/events/dictionary-events')
-    const { setupReaderEvents } = await import('~/shared/events/reader-events')
+    const { setupPlugins } = await import('~/00.plugins/index')
+    const { setupDictionaryEvents } = await import('~/01.shared/events/dictionary-events')
+    const { setupReaderEvents } = await import('~/01.shared/events/reader-events')
 
     await setupPlugins(app, router)
     void setupDictionaryEvents()
@@ -72,7 +72,7 @@ async function bootstrap() {
     {
       shouldRun: isTauri,
       run: async () => {
-        const { initializeTauriUpdater } = await import('~/shared/services/tauri-update.service')
+        const { initializeTauriUpdater } = await import('~/01.shared/services/tauri-update.service')
         initializeTauriUpdater(pinia)
       },
       name: 'Tauri updater',
@@ -80,7 +80,7 @@ async function bootstrap() {
     {
       shouldRun: !isTauri && 'serviceWorker' in navigator,
       run: async () => {
-        const { initializePwaUpdater } = await import('~/shared/services/pwa.service')
+        const { initializePwaUpdater } = await import('~/01.shared/services/pwa.service')
         initializePwaUpdater(pinia)
       },
       name: 'PWA plugin',
