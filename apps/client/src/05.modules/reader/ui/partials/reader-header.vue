@@ -32,12 +32,11 @@ const parallelDropdownRef = ref<InstanceType<typeof KitDropdown> | null>(null)
 const settingsDropdownRef = ref<InstanceType<typeof KitDropdown> | null>(null)
 
 function goBack() {
-  if (readerStore.currentBook?.id) {
+  if (readerStore.currentBook?.id)
     router.push(AppRoutePaths.Book.Info(readerStore.currentBook.id))
-  }
-  else {
+
+  else
     router.push(AppRoutePaths.Home)
-  }
 }
 
 watch(() => props.isVisible, (visible) => {

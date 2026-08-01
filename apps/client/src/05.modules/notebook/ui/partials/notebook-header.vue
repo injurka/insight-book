@@ -36,7 +36,7 @@ const { t } = useI18n()
           :placeholder="t('notebook.searchPlaceholder')"
           class="search-input"
           clearable
-          @update:model-value="emit('update:searchQuery', $event)"
+          @update:model-value="emit('update:searchQuery', String($event ?? ''))"
         />
       </div>
       <KitBtn

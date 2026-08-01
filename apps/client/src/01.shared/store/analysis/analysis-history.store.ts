@@ -17,9 +17,8 @@ export const useAnalysisHistoryStore = defineStore('analysisHistory', () => {
       analysis,
       timestamp: Date.now(),
     })
-    if (analysisHistory.value.length > 50) {
+    if (analysisHistory.value.length > 50)
       analysisHistory.value.pop()
-    }
   }
 
   function clearHistory() {

@@ -45,7 +45,7 @@ export const useReaderStore = defineStore('reader', () => {
       if (!id)
         return []
 
-      return await repos.book.getToc(id)
+      return repos.book.getToc(id)
     },
     enabled: () => tocBookId.value !== null,
   })
@@ -82,17 +82,14 @@ export const useReaderStore = defineStore('reader', () => {
         }, true)
       }
     }
-    else {
-      if (analysisStore.isAutoPageAnalysisActive) {
-        analysisStore.cancelPageAnalysis()
-      }
+    else if (analysisStore.isAutoPageAnalysisActive) {
+      analysisStore.cancelPageAnalysis()
     }
   })
 
   watch(tocOpen, (isOpen) => {
-    if (isOpen) {
+    if (isOpen)
       trackEvent('toc_opened', { bookId: currentBook.value?.id })
-    }
   })
 
   async function fetchToc(bookId: number) {
@@ -112,74 +109,88 @@ export const useReaderStore = defineStore('reader', () => {
   }, 1500)
 
   function updateReadingProgress(bookId: number, pageNum: number) {
-    if (libraryStore.currentBookInfo && libraryStore.currentBookInfo.id === bookId) {
+    if (libraryStore.currentBookInfo && libraryStore.currentBookInfo.id === bookId)
       libraryStore.currentBookInfo.currentPage = pageNum
-    }
+
     debouncedUpdateProgress(bookId, pageNum)
+  }
+
+  function triggerAutoAnalysis(settingsStore: any, analysisStore: any) {
+    if (settingsStore.autoAnalyzePage && !analysisStore.isManualPageAnalysisActive) {
+      setTimeout(() => {
+        analysisStore.analyzeWholePage({
+          sentences: settingsStore.autoAnalyzeSentences,
+          words: settingsStore.autoAnalyzeWords,
+          ttsSentences: settingsStore.autoAnalyzeTtsSentences,
+          ttsWords: settingsStore.autoAnalyzeTtsWords,
+        }, true)
+      }, 1000)
+    }
+  }
+
+  async function resolveMangaImage(page: PagePayload) {
+    if (page.type === 'manga' && page.imageUrl) {
+      const cachedBlob = await repos.book.getLocalImage(Number(page.bookId), Number(page.pageNum))
+      if (cachedBlob)
+        page.localImageUrl = URL.createObjectURL(cachedBlob)
+    }
+  }
+
+  function resetAnalysisState(analysisStore: any) {
+    analysisStore.cancelPageAnalysis()
+    analysisStore.closePopover()
+    analysisStore.closeSelectionTooltip()
+    analysisStore.sidebarOpen = false
+  }
+
+  async function fetchAndApplyPageData(bookId: number, pageNum: number, seq: number) {
+    const analysisStore = useAnalysisStore()
+    const settingsStore = useGlobalSettingsStore()
+
+    const [newPage, newDict] = await Promise.all([
+      repos.book.getPage(bookId, pageNum),
+      repos.book.getPageDict(bookId, pageNum).catch(() => ({})),
+    ])
+
+    if (!newPage)
+      throw new Error('Page not found')
+
+    const page = { ...newPage }
+    await resolveMangaImage(page)
+
+    if (seq !== loadPageSeq)
+      return
+
+    currentPage.value = page
+    currentPageDictionary.value = newDict || {}
+
+    trackEvent('page_loaded', { bookId, pageNum, type: page?.type })
+    triggerAutoAnalysis(settingsStore, analysisStore)
   }
 
   async function loadPage(bookId: number, pageNum: number) {
     const analysisStore = useAnalysisStore()
     const toastStore = useToastStore()
-    const settingsStore = useGlobalSettingsStore()
 
     const seq = ++loadPageSeq
     const prevPageNum = currentBook.value?.currentPage || 1
 
-    analysisStore.cancelPageAnalysis()
-    analysisStore.closePopover()
-    analysisStore.closeSelectionTooltip()
-    analysisStore.sidebarOpen = false
+    resetAnalysisState(analysisStore)
 
-    if (currentToc.value.length === 0 || lastTocBookId !== bookId) {
+    if (currentToc.value.length === 0 || lastTocBookId !== bookId)
       fetchToc(bookId).catch(() => { })
-    }
 
-    // Оптимистичное обновление прогресса - обновляем UI номер страницы моментально
     updateReadingProgress(bookId, pageNum)
 
     currentPageDictionary.value = {}
     isPageLoading.value = true
 
     try {
-      const [newPage, newDict] = await Promise.all([
-        repos.book.getPage(bookId, pageNum),
-        repos.book.getPageDict(bookId, pageNum).catch(() => ({} as Record<string, PageDictEntry>)),
-      ])
-
-      if (!newPage)
-        throw new Error('Page not found')
-
-      const page = { ...newPage }
-      if (page.type === 'manga' && page.imageUrl) {
-        const cachedBlob = await repos.book.getLocalImage(Number(page.bookId), Number(page.pageNum))
-        if (cachedBlob) {
-          page.localImageUrl = URL.createObjectURL(cachedBlob)
-        }
-      }
-
-      if (seq !== loadPageSeq)
-        return
-
-      currentPage.value = page
-      currentPageDictionary.value = newDict || {}
-
-      trackEvent('page_loaded', { bookId, pageNum, type: page?.type })
-
-      if (settingsStore.autoAnalyzePage && !analysisStore.isManualPageAnalysisActive) {
-        setTimeout(() => {
-          analysisStore.analyzeWholePage({
-            sentences: settingsStore.autoAnalyzeSentences,
-            words: settingsStore.autoAnalyzeWords,
-            ttsSentences: settingsStore.autoAnalyzeTtsSentences,
-            ttsWords: settingsStore.autoAnalyzeTtsWords,
-          }, true)
-        }, 1000)
-      }
+      await fetchAndApplyPageData(bookId, pageNum, seq)
     }
     catch (e) {
       if (seq === loadPageSeq) {
-        updateReadingProgress(bookId, prevPageNum) // Откатываем если загрузка оборвалась с ошибкой
+        updateReadingProgress(bookId, prevPageNum)
         toastStore.error(i18n.global.t('dictionary.pageOfflineError'))
       }
       throw e
@@ -216,9 +227,9 @@ export const useReaderStore = defineStore('reader', () => {
     isPageLoading.value = true
 
     try {
-      if (libraryStore.books.length === 0) {
+      if (libraryStore.books.length === 0)
         await libraryStore.fetchBooks()
-      }
+
       const book = libraryStore.books.find(b => b.id === id)
       if (!book)
         throw new Error(i18n.global.t('dictionary.bookNotFoundError'))

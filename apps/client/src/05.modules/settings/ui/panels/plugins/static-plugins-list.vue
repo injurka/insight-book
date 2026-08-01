@@ -11,12 +11,20 @@ const { t } = useI18n()
 const settingsStore = useGlobalSettingsStore()
 const router = useRouter()
 
-const availableStaticPlugins = computed(() => [{
-  id: 'grammar-rules',
-  name: t('plugins.grammar-rules.name'),
-  description: t('plugins.grammar-rules.description'),
-  icon: 'mdi:school-outline',
-}])
+const availableStaticPlugins = computed(() => [
+  {
+    id: 'grammar-rules',
+    name: t('plugins.grammar-rules.name', 'Грамматические правила'),
+    description: t('plugins.grammar-rules.description', 'Изучение и проверка правил грамматики'),
+    icon: 'mdi:school-outline',
+  },
+  {
+    id: 'scroll-study',
+    name: t('plugins.scroll-study.name', 'Изучение свитков'),
+    description: t('plugins.scroll-study.description', 'Магическое исследование свитков и иероглифов на шестиугольной доске'),
+    icon: 'mdi:scroll-text-outline',
+  },
+])
 
 async function toggleStaticPlugin(pluginId: string, enabled: boolean) {
   if (enabled) {
@@ -27,6 +35,15 @@ async function toggleStaticPlugin(pluginId: string, enabled: boolean) {
         try {
           const { default: grammarRulesPlugin } = await import('@injurka/insight-book-plugin-grammar-rules')
           await pluginManager.install(null, router, [grammarRulesPlugin])
+        }
+        catch (e) {
+          console.error('Failed to load plugin', e)
+        }
+      }
+      else if (pluginId === 'scroll-study') {
+        try {
+          const { default: scrollStudyPlugin } = await import('@injurka/insight-book-plugin-scroll-study')
+          await pluginManager.install(null, router, [scrollStudyPlugin])
         }
         catch (e) {
           console.error('Failed to load plugin', e)

@@ -29,7 +29,7 @@ export const usePluginsStore = defineStore('settings-plugins', () => {
     refetch: refetchRemotePlugins,
   } = useQuery<UserPluginRecord[]>({
     key: queryKeys.plugins.my,
-    query: () => repos.plugin.getMyPlugins(),
+    query: async () => repos.plugin.getMyPlugins(),
   })
   const remotePlugins = computed(() => remotePluginsData.value ?? [])
 
@@ -39,7 +39,7 @@ export const usePluginsStore = defineStore('settings-plugins', () => {
     refetch: refetchMyUploadedPlugins,
   } = useQuery<CatalogPluginRecord[]>({
     key: queryKeys.plugins.catalogMine,
-    query: () => repos.catalogPlugin.getMy(),
+    query: async () => repos.catalogPlugin.getMy(),
   })
   const myUploadedPlugins = computed(() => myUploadedPluginsData.value ?? [])
 
@@ -49,7 +49,7 @@ export const usePluginsStore = defineStore('settings-plugins', () => {
     refetch: refetchPendingPlugins,
   } = useQuery<CatalogPluginRecord[]>({
     key: queryKeys.plugins.catalogPending,
-    query: () => repos.catalogPlugin.getPending(),
+    query: async () => repos.catalogPlugin.getPending(),
     enabled: () => isAdmin.value,
   })
   const pendingPlugins = computed(() => pendingPluginsData.value ?? [])
@@ -61,7 +61,7 @@ export const usePluginsStore = defineStore('settings-plugins', () => {
     refetch: refetchCatalogPlugins,
   } = useQuery<CatalogPluginRecord[]>({
     key: queryKeys.plugins.catalogApproved,
-    query: () => repos.catalogPlugin.getApproved(),
+    query: async () => repos.catalogPlugin.getApproved(),
     enabled: () => isCatalogRequested.value,
   })
   const catalogPlugins = computed(() => catalogPluginsData.value ?? [])
@@ -177,7 +177,7 @@ export const usePluginsStore = defineStore('settings-plugins', () => {
     mutateAsync: uploadPluginMutation,
     isLoading: isUploadingPlugin,
   } = useMutation({
-    mutation: (file: File) => repos.catalogPlugin.upload(file),
+    mutation: async (file: File) => repos.catalogPlugin.upload(file),
     onSuccess() {
       toast.success(t('settings.uploadPluginSuccess', 'Плагин отправлен на рассмотрение'))
       refetchMyUploadedPlugins()
@@ -201,7 +201,7 @@ export const usePluginsStore = defineStore('settings-plugins', () => {
 
   // --- MUTATION: Удаление плагина из каталога ---
   const { mutateAsync: deleteCatalogPluginMutation } = useMutation({
-    mutation: (id: number) => repos.catalogPlugin.delete(id),
+    mutation: async (id: number) => repos.catalogPlugin.delete(id),
     onSuccess() {
       toast.success(t('settings.catalogPluginDeleted', 'Плагин удалён из каталога'))
       refetchMyUploadedPlugins()
@@ -223,7 +223,7 @@ export const usePluginsStore = defineStore('settings-plugins', () => {
 
   // --- MUTATION: Модерация плагина каталога ---
   const { mutateAsync: moderatePluginMutation } = useMutation({
-    mutation: ({ id, status }: { id: number, status: 'approved' | 'rejected' }) =>
+    mutation: async ({ id, status }: { id: number, status: 'approved' | 'rejected' }) =>
       repos.catalogPlugin.updateStatus(id, status),
     onSuccess() {
       toast.success(t('settings.catalogPluginStatusUpdated', 'Статус плагина обновлён'))

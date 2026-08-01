@@ -4,8 +4,12 @@ import { computed, ref } from 'vue'
 import { useRepos } from '~/00.plugins/di'
 import { DIFFICULTY_SYSTEMS } from '~/01.shared/constants/difficulties'
 import { Flashcard } from '~/03.domain/entities/flashcard.entity'
-import { useDecksStore } from './decks.store'
-import { useDictionaryFiltersStore } from './dictionary-filters.store'
+
+// Импортируем decks-store из модуля dictionary — однонаправленная зависимость допустима
+// (srs-training -> dictionary DAL, но не наоборот).
+// Доступ к decks нужен только для resolving language по deckId.
+import { useDecksStore } from '~/05.modules/dictionary/store/decks.store'
+import { useDictionaryFiltersStore } from '~/05.modules/dictionary/store/dictionary-filters.store'
 
 export const useTrainingStore = defineStore('training', () => {
   const repos = useRepos()

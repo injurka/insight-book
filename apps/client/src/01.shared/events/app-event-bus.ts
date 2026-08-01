@@ -11,9 +11,9 @@ export class AppEventBus {
   private listeners = new Map<keyof AppEvents, Set<(data: any) => void>>()
 
   on<K extends keyof AppEvents>(event: K, callback: (data: AppEvents[K]) => void) {
-    if (!this.listeners.has(event)) {
+    if (!this.listeners.has(event))
       this.listeners.set(event, new Set())
-    }
+
     this.listeners.get(event)!.add(callback)
   }
 
@@ -21,9 +21,8 @@ export class AppEventBus {
     const set = this.listeners.get(event)
     if (set) {
       set.delete(callback as any)
-      if (set.size === 0) {
+      if (set.size === 0)
         this.listeners.delete(event)
-      }
     }
   }
 

@@ -31,9 +31,9 @@ function restoreScrollTop(top: number): void {
   let attempts = 0
   const tick = () => {
     const scroller = findScroller()
-    if (!scroller) {
+    if (!scroller)
       return
-    }
+
     if (scroller.scrollTop !== top && attempts < 20) {
       scroller.scrollTop = top
       attempts++
@@ -58,9 +58,9 @@ export const router = createRouter({
       // popstate (кнопка «назад»/«вперёд») — восстанавливаем позицию скролла,
       // которую запомнили при уходе со страницы
       const top = mainScrollPositions.get(to.fullPath)
-      if (top != null) {
+      if (top != null)
         restoreScrollTop(top)
-      }
+
       return
     }
 
@@ -68,21 +68,20 @@ export const router = createRouter({
     // overflow-контейнер, который переживает смену страниц (window не
     // скроллится), поэтому сбрасываем его вручную.
     const main = findScroller()
-    if (main) {
+    if (main)
       main.scrollTop = 0
-    }
   },
 
   routes: [
     {
       path: '/sign-in',
       name: AppRouteNames.SignIn,
-      component: () => import('~/07.views/sign-in.vue'),
+      component: async () => import('~/07.views/sign-in.vue'),
     },
     {
       path: '/api/auth/yandex/callback',
       name: 'YandexApiCallbackProxy',
-      component: () => import('~/07.views/auth/yandex/callback.vue'),
+      component: async () => import('~/07.views/auth/yandex/callback.vue'),
       beforeEnter: (to) => {
         window.location.href = `${API_URL}${to.fullPath}`
 
@@ -92,67 +91,67 @@ export const router = createRouter({
     {
       path: '/auth/yandex/callback',
       name: AppRouteNames.YandexCallback,
-      component: () => import('~/07.views/auth/yandex/callback.vue'),
+      component: async () => import('~/07.views/auth/yandex/callback.vue'),
     },
     {
       path: '/',
       name: AppRouteNames.Home,
-      component: () => import('~/07.views/index.vue'),
+      component: async () => import('~/07.views/index.vue'),
     },
     {
       path: '/book/:id',
       name: AppRouteNames.BookInfo,
-      component: () => import('~/07.views/book.vue'),
+      component: async () => import('~/07.views/book.vue'),
     },
     {
       path: '/reader',
       name: AppRouteNames.Reader,
-      component: () => import('~/07.views/reader.vue'),
+      component: async () => import('~/07.views/reader.vue'),
     },
     {
       path: '/dictionary',
       name: AppRouteNames.Dictionary,
-      component: () => import('~/07.views/dictionary.vue'),
+      component: async () => import('~/07.views/dictionary.vue'),
     },
     {
       path: '/settings',
       name: AppRouteNames.Settings,
-      component: () => import('~/07.views/settings.vue'),
+      component: async () => import('~/07.views/settings.vue'),
     },
     {
       path: '/limits',
       name: AppRouteNames.Limits,
-      component: () => import('~/07.views/limits.vue'),
+      component: async () => import('~/07.views/limits.vue'),
     },
     {
       path: '/notebook',
       name: AppRouteNames.Notebook,
-      component: () => import('~/07.views/notebook.vue'),
+      component: async () => import('~/07.views/notebook.vue'),
     },
     {
       path: '/onboarding',
       name: AppRouteNames.Onboarding,
-      component: () => import('~/07.views/onboarding.vue'),
+      component: async () => import('~/07.views/onboarding.vue'),
     },
     {
       path: '/about',
       name: AppRouteNames.About,
-      component: () => import('~/07.views/about.vue'),
+      component: async () => import('~/07.views/about.vue'),
     },
     {
       path: '/copyright',
       name: AppRouteNames.Copyright,
-      component: () => import('~/07.views/copyright.vue'),
+      component: async () => import('~/07.views/copyright.vue'),
     },
     {
       path: '/privacy',
       name: AppRouteNames.Privacy,
-      component: () => import('~/07.views/privacy.vue'),
+      component: async () => import('~/07.views/privacy.vue'),
     },
     {
       path: '/offer',
       name: AppRouteNames.Offer,
-      component: () => import('~/07.views/offer.vue'),
+      component: async () => import('~/07.views/offer.vue'),
     },
   ],
 })
@@ -162,51 +161,47 @@ const LAST_VIEW_QUERY_KEY = 'library_last_view_query'
 router.beforeEach((_to, from) => {
   if (from.name) {
     const scroller = findScroller()
-    if (scroller) {
+    if (scroller)
       mainScrollPositions.set(from.fullPath, scroller.scrollTop)
-    }
   }
 })
 
 setupViewTransitions(router)
 
-router.beforeEach(async (to, from) => {
-  const authStore = useAuthStore()
-
-  if (!authStore.isAuthReady) {
-    await authStore.checkAuth()
-  }
-
-  const hasSeenOnboarding = localStorage.getItem('insight_onboarding_completed') === 'true'
-
+function getOnboardingRedirect(toName: string | symbol | null | undefined, hasSeenOnboarding: boolean) {
   if (
-    !hasSeenOnboarding && to.name !== AppRouteNames.Onboarding
-    && to.name !== AppRouteNames.SignIn
-    && to.name !== AppRouteNames.YandexCallback
+    !hasSeenOnboarding
+    && toName !== AppRouteNames.Onboarding
+    && toName !== AppRouteNames.SignIn
+    && toName !== AppRouteNames.YandexCallback
   ) {
     return { name: AppRouteNames.Onboarding }
   }
+  return null
+}
 
-  if (to.name === AppRouteNames.Home && Object.keys(to.query).length === 0 && !from.name) {
+function getSavedHomeQueryRedirect(toName: string | symbol | null | undefined, toQuery: Record<string, any>, fromName: string | symbol | null | undefined) {
+  if (toName === AppRouteNames.Home && Object.keys(toQuery).length === 0 && !fromName) {
     try {
       const savedQueryStr = localStorage.getItem(LAST_VIEW_QUERY_KEY)
       if (savedQueryStr) {
         const savedQuery = JSON.parse(savedQueryStr)
-        if (Object.keys(savedQuery).length > 0) {
+        if (Object.keys(savedQuery).length > 0)
           return { name: AppRouteNames.Home, query: savedQuery, replace: true }
-        }
       }
     }
     catch (e) {
       console.warn('Failed to parse saved query', e)
     }
   }
+  return null
+}
 
-  const isAuthRoute = to.name === AppRouteNames.SignIn || to.name === AppRouteNames.YandexCallback
+function getAuthRedirect(toName: string | symbol | null | undefined, isAuth: boolean, isSingleMode: boolean) {
+  const isAuthRoute = toName === AppRouteNames.SignIn || toName === AppRouteNames.YandexCallback
 
-  if (authStore.user && isAuthRoute) {
+  if (isAuth && isAuthRoute)
     return { name: AppRouteNames.Home }
-  }
 
   const protectedRoutes = [
     AppRouteNames.Dictionary,
@@ -215,18 +210,39 @@ router.beforeEach(async (to, from) => {
     AppRouteNames.Limits,
     AppRouteNames.Notebook,
   ]
-  if (!authStore.user && !authStore.isSingleMode && protectedRoutes.includes(to.name as AppRouteNames)) {
+  if (!isAuth && !isSingleMode && protectedRoutes.includes(toName as AppRouteNames))
     return { name: AppRouteNames.SignIn }
-  }
+
+  return null
+}
+
+router.beforeEach(async (to, from) => {
+  const authStore = useAuthStore()
+
+  if (!authStore.isAuthReady)
+    await authStore.checkAuth()
+
+  const hasSeenOnboarding = localStorage.getItem('insight_onboarding_completed') === 'true'
+
+  const onboardingRedirect = getOnboardingRedirect(to.name, hasSeenOnboarding)
+  if (onboardingRedirect)
+    return onboardingRedirect
+
+  const savedQueryRedirect = getSavedHomeQueryRedirect(to.name, to.query, from.name)
+  if (savedQueryRedirect)
+    return savedQueryRedirect
+
+  const authRedirect = getAuthRedirect(to.name, !!authStore.user, !!authStore.isSingleMode)
+  if (authRedirect)
+    return authRedirect
 })
 
 router.afterEach((to) => {
   const { trackPageview } = useUmami()
   trackPageview(to.fullPath, String(to.name || ''))
 
-  if (to.name === AppRouteNames.Home) {
+  if (to.name === AppRouteNames.Home)
     localStorage.setItem(LAST_VIEW_QUERY_KEY, JSON.stringify(to.query))
-  }
 })
 
 export default router

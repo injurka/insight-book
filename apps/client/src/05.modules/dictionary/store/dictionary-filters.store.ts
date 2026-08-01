@@ -20,57 +20,54 @@ export const useDictionaryFiltersStore = defineStore('dictionary-filters', () =>
   const selectedWordIds = ref<Set<number>>(new Set())
 
   const availableLanguages = computed<string[]>(() => {
-    const langs = new Set<string>(dictionaryWords.value.map(w => w.language))
+    const langs = new Set<string>(dictionaryWords.value.map(wordItem => wordItem.language))
     return Array.from(langs)
   })
 
   const filteredWords = computed<UserDictItem[]>(() => {
     let result = dictionaryWords.value
 
-    if (selectedLanguage.value !== 'all') {
-      result = result.filter(w => w.language === selectedLanguage.value)
-    }
+    if (selectedLanguage.value !== 'all')
+      result = result.filter(wordItem => wordItem.language === selectedLanguage.value)
 
     if (!selectedDeckId.value.includes('all') && selectedDeckId.value.length > 0) {
-      result = result.filter((w) => {
-        if (!w.deckIds || w.deckIds.length === 0)
+      result = result.filter((wordItem) => {
+        if (!wordItem.deckIds || wordItem.deckIds.length === 0)
           return selectedDeckId.value.includes('none')
-        return w.deckIds.some((id: number) => selectedDeckId.value.includes(id))
+        return wordItem.deckIds.some((id: number) => selectedDeckId.value.includes(id))
       })
     }
 
     if (!selectedDifficulty.value.includes('all') && selectedDifficulty.value.length > 0) {
-      result = result.filter((w) => {
-        return selectedDifficulty.value.some((d) => {
-          if (d === 'none')
-            return !w.difficulty
-          if (d.startsWith('level_')) {
-            const targetLevel = Number.parseInt(d.split('_')[1], 10)
-            const sys = DIFFICULTY_SYSTEMS[w.language] || DIFFICULTY_SYSTEMS.default
-            const diffDef = sys.find(s => s.value === w.difficulty)
+      result = result.filter((wordItem) => {
+        return selectedDifficulty.value.some((diffVal) => {
+          if (diffVal === 'none')
+            return !wordItem.difficulty
+          if (diffVal.startsWith('level_')) {
+            const targetLevel = Number.parseInt(diffVal.split('_')[1], 10)
+            const sys = DIFFICULTY_SYSTEMS[wordItem.language] || DIFFICULTY_SYSTEMS.default
+            const diffDef = sys.find(sysItem => sysItem.value === wordItem.difficulty)
             return diffDef && diffDef.level === targetLevel
           }
-          return w.difficulty === d
+          return wordItem.difficulty === diffVal
         })
       })
     }
 
-    if (!selectedStatus.value.includes('all') && selectedStatus.value.length > 0) {
-      result = result.filter(w => selectedStatus.value.includes(String(w.state) as '0' | '1' | '2' | '3'))
-    }
+    if (!selectedStatus.value.includes('all') && selectedStatus.value.length > 0)
+      result = result.filter(wordItem => selectedStatus.value.includes(String(wordItem.state) as '0' | '1' | '2' | '3'))
 
     if (searchTerm.value) {
       const lowerTerm = searchTerm.value.toLowerCase()
-      result = result.filter(item =>
-        item.word.toLowerCase().includes(lowerTerm)
-        || item.transcription?.toLowerCase().includes(lowerTerm)
-        || item.translation?.toLowerCase().includes(lowerTerm)
-        || item.notes?.toLowerCase().includes(lowerTerm)
-        || item.tags?.toLowerCase().includes(lowerTerm)
-        || item.difficulty?.toLowerCase().includes(lowerTerm))
+      result = result.filter(item => matchesSearchTerm(item, lowerTerm))
     }
     return result
   })
+
+  function matchesSearchTerm(item: UserDictItem, lowerTerm: string): boolean {
+    const fields = [item.word, item.transcription, item.translation, item.notes, item.tags, item.difficulty]
+    return fields.some(field => field && field.toLowerCase().includes(lowerTerm))
+  }
 
   function toggleWordSelection(id: number) {
     if (selectedWordIds.value.has(id))
@@ -83,7 +80,7 @@ export const useDictionaryFiltersStore = defineStore('dictionary-filters', () =>
   }
 
   function selectAllFiltered() {
-    filteredWords.value.forEach(w => selectedWordIds.value.add(w.id))
+    filteredWords.value.forEach(wordItem => selectedWordIds.value.add(wordItem.id))
   }
 
   async function bulkDelete() {
@@ -93,7 +90,7 @@ export const useDictionaryFiltersStore = defineStore('dictionary-filters', () =>
 
     try {
       await repos.dictionary.bulkDelete(ids)
-      dictionaryWords.value = dictionaryWords.value.filter(w => !ids.includes(w.id))
+      dictionaryWords.value = dictionaryWords.value.filter(wordItem => !ids.includes(wordItem.id))
       clearSelection()
       toast.success(`Удалено ${ids.length} слов`)
 
@@ -111,9 +108,9 @@ export const useDictionaryFiltersStore = defineStore('dictionary-filters', () =>
 
     try {
       await repos.dictionary.bulkMove(ids, deckIds)
-      dictionaryWords.value.forEach((w) => {
-        if (ids.includes(w.id))
-          w.deckIds = [...deckIds]
+      dictionaryWords.value.forEach((wordItem) => {
+        if (ids.includes(wordItem.id))
+          wordItem.deckIds = [...deckIds]
       })
       clearSelection()
       toast.success(`Перемещено ${ids.length} слов`)

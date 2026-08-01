@@ -17,9 +17,9 @@ export function useReaderBrightnessGesture() {
 
   function triggerHud() {
     showHud.value = true
-    if (hideHudTimer) {
+    if (hideHudTimer)
       clearTimeout(hideHudTimer)
-    }
+
     hideHudTimer = setTimeout(() => {
       showHud.value = false
     }, 1200)
@@ -44,6 +44,20 @@ export function useReaderBrightnessGesture() {
     }
   }
 
+  function updateBrightness(deltaY: number) {
+    const sensitivity = Math.min(window.innerHeight * 0.45, 350)
+    const change = deltaY / sensitivity
+    const nextBrightness = Math.min(1.0, Math.max(0.02, initialBrightness + change))
+
+    const roundedBrightness = Number(nextBrightness.toFixed(2))
+    if (settingsStore.readerBrightness !== roundedBrightness) {
+      settingsStore.readerBrightness = roundedBrightness
+      hapticLight()
+    }
+
+    triggerHud()
+  }
+
   function handleTouchMove(e: TouchEvent) {
     if (startX === 0 && startY === 0)
       return
@@ -53,7 +67,7 @@ export function useReaderBrightnessGesture() {
       return
 
     const deltaX = Math.abs(touch.clientX - startX)
-    const deltaY = startY - touch.clientY // UP is positive (increases brightness), DOWN is negative (decreases brightness)
+    const deltaY = startY - touch.clientY
 
     if (!isGestureLocked) {
       if (Math.abs(deltaY) > 6 && Math.abs(deltaY) > deltaX * 1.1) {
@@ -68,28 +82,16 @@ export function useReaderBrightnessGesture() {
     }
 
     if (isGestureLocked) {
-      if (e.cancelable) {
+      if (e.cancelable)
         e.preventDefault()
-      }
-
-      const sensitivity = Math.min(window.innerHeight * 0.45, 350)
-      const change = deltaY / sensitivity
-      const nextBrightness = Math.min(1.0, Math.max(0.02, initialBrightness + change))
-
-      const roundedBrightness = Number(nextBrightness.toFixed(2))
-      if (settingsStore.readerBrightness !== roundedBrightness) {
-        settingsStore.readerBrightness = roundedBrightness
-        hapticLight()
-      }
-
-      triggerHud()
+      updateBrightness(deltaY)
     }
   }
 
   function handleTouchEnd() {
-    if (isGestureLocked) {
+    if (isGestureLocked)
       triggerHud()
-    }
+
     startX = 0
     startY = 0
     isGestureLocked = false
@@ -108,9 +110,8 @@ export function useReaderBrightnessGesture() {
     window.removeEventListener('touchmove', handleTouchMove as EventListener)
     window.removeEventListener('touchend', handleTouchEnd as EventListener)
     window.removeEventListener('touchcancel', handleTouchEnd as EventListener)
-    if (hideHudTimer) {
+    if (hideHudTimer)
       clearTimeout(hideHudTimer)
-    }
   })
 
   return {

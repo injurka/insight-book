@@ -7,9 +7,8 @@ export function useParallelSync(readerViewRef: Ref<HTMLElement | null>, restoreS
   let rafId: number | null = null
 
   function syncHeights() {
-    if (rafId !== null) {
+    if (rafId !== null)
       cancelAnimationFrame(rafId)
-    }
 
     rafId = requestAnimationFrame(() => {
       rafId = null
@@ -22,7 +21,7 @@ export function useParallelSync(readerViewRef: Ref<HTMLElement | null>, restoreS
 
       const selectors = 'p, h1, h2, h3, h4, h5, h6, blockquote, li, img'
 
-      const getNodes = (pane: Element) => {
+      const getNodes = (pane: Element): HTMLElement[] => {
         const all = Array.from(pane.querySelectorAll(selectors)) as HTMLElement[]
         return all.filter(el => el.querySelectorAll(selectors).length === 0)
       }
@@ -31,12 +30,11 @@ export function useParallelSync(readerViewRef: Ref<HTMLElement | null>, restoreS
       const rightNodes = getNodes(rightPane)
 
       // Phase 1: Reset styles in batch
-      for (let i = 0; i < leftNodes.length; i++) {
+      for (let i = 0; i < leftNodes.length; i++)
         leftNodes[i].style.minHeight = ''
-      }
-      for (let i = 0; i < rightNodes.length; i++) {
+
+      for (let i = 0; i < rightNodes.length; i++)
         rightNodes[i].style.minHeight = ''
-      }
 
       if (!readerStore.isParallelView)
         return
@@ -71,16 +69,15 @@ export function useParallelSync(readerViewRef: Ref<HTMLElement | null>, restoreS
   }
 
   function performLayoutSync() {
-    if (readerStore.isParallelView) {
+    if (readerStore.isParallelView)
       syncHeights()
-    }
+
     restoreScrollPosition()
   }
 
   useResizeObserver(readerViewRef, () => {
-    if (readerStore.isParallelView && !readerStore.isPageLoading) {
+    if (readerStore.isParallelView && !readerStore.isPageLoading)
       syncHeights()
-    }
   })
 
   return {

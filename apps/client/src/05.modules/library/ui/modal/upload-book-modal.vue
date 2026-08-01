@@ -59,9 +59,8 @@ async function onArchiveSelected(e: Event) {
       toast.success(t('library.uploadSuccess'))
       visible.value = false
 
-      if (book && book.id) {
+      if (book && book.id)
         store.analyzeVocabulary(book.id).catch(e => console.error('Auto vocab analysis failed', e))
-      }
     }
     catch (err) {
       toast.error(err instanceof Error ? err.message : t('library.uploadError'))
@@ -86,9 +85,8 @@ function removeChapter(idx: number) {
 
 function handleChapterFiles(idx: number, e: Event) {
   const target = e.target as HTMLInputElement
-  if (target.files && target.files.length > 0) {
+  if (target.files && target.files.length > 0)
     customManga.value.chapters[idx].files = Array.from(target.files)
-  }
 }
 
 const canSubmitManga = computed(() => {
@@ -118,9 +116,8 @@ async function submitCustomManga() {
 
     await authStore.checkAuth()
 
-    if (newBook && newBook.id) {
+    if (newBook && newBook.id)
       store.analyzeVocabulary(newBook.id).catch(e => console.error('Auto vocab analysis failed', e))
-    }
 
     uploadProgressText.value = t('analysis.done')
     setTimeout(() => {

@@ -26,15 +26,14 @@ export const useDecksStore = defineStore('decks', () => {
   } = useQuery<DictDeck[]>({
     key: queryKeys.decks.all,
     query: async () => {
-      return await repos.dictionary.getDecks()
+      return repos.dictionary.getDecks()
     },
     enabled: () => !!authStore.user || authStore.isSingleMode,
   })
 
   watch(decksData, (newDecks) => {
-    if (newDecks) {
+    if (newDecks)
       decks.value = [...newDecks]
-    }
   }, { immediate: true })
 
   async function fetchDecks() {
@@ -47,7 +46,7 @@ export const useDecksStore = defineStore('decks', () => {
   }
 
   const { mutateAsync: createDeckMutation, isLoading: isCreatingDeck } = useMutation({
-    mutation: ({ name, language }: { name: string, language: string }) => repos.dictionary.createDeck({ name, language }),
+    mutation: async ({ name, language }: { name: string, language: string }) => repos.dictionary.createDeck({ name, language }),
     async onSuccess(newDeck, { language }) {
       decks.value.push(newDeck)
       await repos.dictionary.saveLocalDecks(decks.value)
@@ -62,11 +61,11 @@ export const useDecksStore = defineStore('decks', () => {
   })
 
   async function createDeck(name: string, language: string) {
-    return await createDeckMutation({ name, language })
+    return createDeckMutation({ name, language })
   }
 
   const { mutateAsync: updateDeckMutation, isLoading: isUpdatingDeck } = useMutation({
-    mutation: ({ id, name }: { id: number, name: string }) => repos.dictionary.updateDeck(id, { name }),
+    mutation: async ({ id, name }: { id: number, name: string }) => repos.dictionary.updateDeck(id, { name }),
     async onSuccess(_, { id, name }) {
       const deck = decks.value.find(d => d.id === id)
       if (deck)
@@ -92,7 +91,7 @@ export const useDecksStore = defineStore('decks', () => {
   }
 
   const { mutateAsync: deleteDeckMutation, isLoading: isDeletingDeck } = useMutation({
-    mutation: ({ id, mode }: { id: number, mode: 'keep' | 'delete_all' | 'delete_exclusive' }) => repos.dictionary.deleteDeck(id, mode),
+    mutation: async ({ id, mode }: { id: number, mode: 'keep' | 'delete_all' | 'delete_exclusive' }) => repos.dictionary.deleteDeck(id, mode),
     async onSuccess(_, { id }) {
       decks.value = decks.value.filter(d => d.id !== id)
       await repos.dictionary.saveLocalDecks(decks.value)
@@ -105,8 +104,9 @@ export const useDecksStore = defineStore('decks', () => {
       }
 
       dictionaryWords.value.forEach((w) => {
-        if (w.deckId === id)
-          w.deckId = null
+        if (w.deckIds && w.deckIds.includes(id)) {
+          w.deckIds = w.deckIds.filter(deckId => deckId !== id)
+        }
       })
       await repos.dictionary.saveLocalDictionary(dictionaryWords.value)
 

@@ -24,9 +24,8 @@ export function useMangaBubbles(onPointerDown: (e: MouseEvent | TouchEvent, t: s
     if (dragDist > 10 && scale > 1)
       return
 
-    if (analysisStore.wordPopover) {
+    if (analysisStore.wordPopover)
       analysisStore.closePopover()
-    }
 
     if (settingsStore.mangaOcrDisplayMode === 'popover') {
       event.stopPropagation()
@@ -36,16 +35,15 @@ export function useMangaBubbles(onPointerDown: (e: MouseEvent | TouchEvent, t: s
   }
 
   function handleBubblePointerDown(event: MouseEvent | TouchEvent, box: OcrBlock) {
-    if (settingsStore.mangaOcrDisplayMode === 'hover') {
+    if (settingsStore.mangaOcrDisplayMode === 'hover')
       onPointerDown(event, box.text)
-    }
   }
 
   function closeBubblePopover(event?: Event) {
     const target = event?.target as HTMLElement | null
-    if (target?.closest && (target.closest('.word-popover') || target.closest('.kit-dialog') || target.closest('.selection-tooltip'))) {
+    if (target?.closest && (target.closest('.word-popover') || target.closest('.kit-dialog') || target.closest('.selection-tooltip')))
       return
-    }
+
     activeBubble.value = null
     bubbleReference.value = null
   }
@@ -54,12 +52,11 @@ export function useMangaBubbles(onPointerDown: (e: MouseEvent | TouchEvent, t: s
     const target = (event.target as HTMLElement).closest('.word') as HTMLElement | null
     const pos = target?.dataset.pos
 
-    if (!target || pos === 'x') {
+    if (!target || pos === 'x')
       analysisStore.closePopover()
-    }
-    else {
+
+    else
       onWordClick(event)
-    }
   }
 
   function getBoxStyle(box: OcrBlock) {

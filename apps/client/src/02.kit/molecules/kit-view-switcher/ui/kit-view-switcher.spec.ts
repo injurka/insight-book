@@ -38,7 +38,7 @@ describe('kit-view-switcher', () => {
     const wrapper = mount(KitViewSwitcher, {
       props: {
         'modelValue': 'view1',
-        'onUpdate:modelValue': (e: string) => wrapper.setProps({ modelValue: e }),
+        'onUpdate:modelValue': async (e: string) => wrapper.setProps({ modelValue: e }),
         'items': defaultItems,
       },
     })
@@ -108,9 +108,8 @@ describe('kit-view-switcher', () => {
       },
     })
 
-    if (resizeCallback) {
+    if (resizeCallback)
       resizeCallback()
-    }
   })
 
   it('handles updateGliderPosition when switcherEl is null', () => {
@@ -122,9 +121,8 @@ describe('kit-view-switcher', () => {
     })
 
     wrapper.unmount()
-    if (resizeCallback) {
+    if (resizeCallback)
       resizeCallback()
-    }
   })
 
   it('sets transition after mount via setTimeout', async () => {

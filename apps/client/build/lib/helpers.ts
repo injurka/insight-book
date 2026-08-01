@@ -17,7 +17,7 @@ export function visualizerPlugin(title: string): PluginOption[] {
         filename: `dist/stats-${title}.html`,
         gzipSize: true,
         brotliSize: true,
-      }) as unknown as PluginOption,
+      }),
     ]
   }
 

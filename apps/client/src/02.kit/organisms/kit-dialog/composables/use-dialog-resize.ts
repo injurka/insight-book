@@ -58,6 +58,40 @@ export function useDialogResize({
     document.body.style.userSelect = 'none'
   }
 
+  function calculateResizedBounds(dx: number, dy: number) {
+    let newWidth = startWidth
+    let newHeight = startHeight
+    let newX = startPosX
+    let newY = startPosY
+
+    if (isFloating.value) {
+      if (currentHandle.includes('right'))
+        newWidth = startWidth + dx
+      if (currentHandle.includes('left')) {
+        newWidth = startWidth - dx
+        newX = startPosX + dx
+      }
+      if (currentHandle.includes('bottom'))
+        newHeight = startHeight + dy
+      if (currentHandle.includes('top')) {
+        newHeight = startHeight - dy
+        newY = startPosY + dy
+      }
+    }
+    else {
+      if (currentHandle.includes('right'))
+        newWidth = startWidth + dx * 2
+      if (currentHandle.includes('left'))
+        newWidth = startWidth - dx * 2
+      if (currentHandle.includes('bottom'))
+        newHeight = startHeight + dy * 2
+      if (currentHandle.includes('top'))
+        newHeight = startHeight - dy * 2
+    }
+
+    return { newWidth, newHeight, newX, newY }
+  }
+
   function onResize(e: MouseEvent) {
     if (!isResizing || !isResizable.value)
       return
@@ -69,35 +103,7 @@ export function useDialogResize({
       const dx = e.clientX - startX
       const dy = e.clientY - startY
 
-      let newWidth = startWidth
-      let newHeight = startHeight
-      let newX = startPosX
-      let newY = startPosY
-
-      if (isFloating.value) {
-        if (currentHandle.includes('right'))
-          newWidth = startWidth + dx
-        if (currentHandle.includes('left')) {
-          newWidth = startWidth - dx
-          newX = startPosX + dx
-        }
-        if (currentHandle.includes('bottom'))
-          newHeight = startHeight + dy
-        if (currentHandle.includes('top')) {
-          newHeight = startHeight - dy
-          newY = startPosY + dy
-        }
-      }
-      else {
-        if (currentHandle.includes('right'))
-          newWidth = startWidth + dx * 2
-        if (currentHandle.includes('left'))
-          newWidth = startWidth - dx * 2
-        if (currentHandle.includes('bottom'))
-          newHeight = startHeight + dy * 2
-        if (currentHandle.includes('top'))
-          newHeight = startHeight - dy * 2
-      }
+      let { newWidth, newHeight, newX, newY } = calculateResizedBounds(dx, dy)
 
       const MIN_W = 300
       const MIN_H = 200

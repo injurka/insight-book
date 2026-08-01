@@ -45,9 +45,9 @@ class SimpleEventBus implements InsightBookPluginEventBus {
   private listeners = new Map<string, Set<(data: unknown) => void>>()
 
   on(event: string, callback: (data: unknown) => void) {
-    if (!this.listeners.has(event)) {
+    if (!this.listeners.has(event))
       this.listeners.set(event, new Set())
-    }
+
     this.listeners.get(event)!.add(callback)
   }
 
@@ -55,9 +55,8 @@ class SimpleEventBus implements InsightBookPluginEventBus {
     const set = this.listeners.get(event)
     if (set) {
       set.delete(callback)
-      if (set.size === 0) {
+      if (set.size === 0)
         this.listeners.delete(event)
-      }
     }
   }
 
@@ -85,9 +84,9 @@ const globalEventBus = new SimpleEventBus()
 let mfRuntimeInitialized = false
 
 function ensureMfRuntime() {
-  if (mfRuntimeInitialized) {
+  if (mfRuntimeInitialized)
     return
-  }
+
   init({
     name: 'insight_book_host',
     remotes: [],
@@ -156,7 +155,7 @@ export function usePluginManager(): PluginManager {
     component: any,
     props?: Record<string, unknown>,
   ) => {
-    const existingIndex = uiWidgets.findIndex(w => w.id === id)
+    const existingIndex = uiWidgets.findIndex(widget => widget.id === id)
     const widget: ManagedUIWidget = {
       id,
       position,
@@ -164,23 +163,46 @@ export function usePluginManager(): PluginManager {
       props,
       pluginId,
     }
-    if (existingIndex !== -1) {
+    if (existingIndex !== -1)
       uiWidgets[existingIndex] = widget
-    }
-    else {
+
+    else
       uiWidgets.push(widget)
-    }
   }
 
   const unregisterUIWidget = (id: string) => {
-    const index = uiWidgets.findIndex(w => w.id === id)
-    if (index !== -1) {
+    const index = uiWidgets.findIndex(widget => widget.id === id)
+    if (index !== -1)
       uiWidgets.splice(index, 1)
-    }
   }
 
   const getWidgets = (position: UIPosition) => {
-    return uiWidgets.filter(w => w.position === position)
+    return uiWidgets.filter(widget => widget.position === position)
+  }
+
+  const addPluginRoutes = (plugin: InsightBookPlugin, router: Router) => {
+    if (plugin.pages) {
+      for (const [pathKey, component] of Object.entries(plugin.pages)) {
+        const routePath = pathKey === 'index' ? `/plugin/${plugin.id}` : `/plugin/${plugin.id}/${pathKey}`
+        const routeName = pathKey === 'index' ? `plugin-${plugin.id}-index` : `plugin-${plugin.id}-${pathKey}`
+
+        router.addRoute({
+          path: routePath,
+          name: routeName,
+          component: component as RouteComponent,
+        })
+      }
+    }
+  }
+
+  const removePluginRoutes = (plugin: InsightBookPlugin, router: Router) => {
+    if (plugin.pages) {
+      for (const pathKey of Object.keys(plugin.pages)) {
+        const routeName = pathKey === 'index' ? `plugin-${plugin.id}-index` : `plugin-${plugin.id}-${pathKey}`
+        if (router.hasRoute(routeName))
+          router.removeRoute(routeName)
+      }
+    }
   }
 
   const install = async (_app: App | null, router: Router, pluginInstances: InsightBookPlugin[]) => {
@@ -189,7 +211,7 @@ export function usePluginManager(): PluginManager {
     }
 
     for (const plugin of pluginInstances) {
-      if (plugins.some(p => p.id === plugin.id)) {
+      if (plugins.some(item => item.id === plugin.id)) {
         console.warn(`[Plugin Manager] Plugin with ID "${plugin.id}" is already installed.`)
         continue
       }
@@ -234,44 +256,24 @@ export function usePluginManager(): PluginManager {
       }
 
       // Add pages to router
-      if (plugin.pages) {
-        for (const [pathKey, component] of Object.entries(plugin.pages)) {
-          const routePath = pathKey === 'index' ? `/plugin/${plugin.id}` : `/plugin/${plugin.id}/${pathKey}`
-          const routeName = pathKey === 'index' ? `plugin-${plugin.id}-index` : `plugin-${plugin.id}-${pathKey}`
-
-          router.addRoute({
-            path: routePath,
-            name: routeName,
-            component: component as RouteComponent,
-          })
-        }
-      }
+      addPluginRoutes(plugin, router)
 
       // Activate plugin safely
       try {
-        if (plugin.activate) {
+        if (plugin.activate)
           await plugin.activate(ctx)
-        }
+
         plugins.push(plugin)
       }
       catch (err) {
         console.error(`[Plugin Manager] Failed to activate plugin "${plugin.id}":`, err)
-
-        // Rollback router changes if activation fails
-        if (plugin.pages) {
-          for (const pathKey of Object.keys(plugin.pages)) {
-            const routeName = pathKey === 'index' ? `plugin-${plugin.id}-index` : `plugin-${plugin.id}-${pathKey}`
-            if (router.hasRoute(routeName)) {
-              router.removeRoute(routeName)
-            }
-          }
-        }
+        removePluginRoutes(plugin, router)
       }
     }
   }
 
   const uninstall = async (pluginId: string, router: Router) => {
-    const index = plugins.findIndex(p => p.id === pluginId)
+    const index = plugins.findIndex(item => item.id === pluginId)
     if (index === -1) {
       console.warn(`[Plugin Manager] Plugin "${pluginId}" is not installed.`)
       return
@@ -301,20 +303,12 @@ export function usePluginManager(): PluginManager {
 
     // Unregister widgets for this plugin
     for (let i = uiWidgets.length - 1; i >= 0; i--) {
-      if (uiWidgets[i].pluginId === pluginId) {
+      if (uiWidgets[i].pluginId === pluginId)
         uiWidgets.splice(i, 1)
-      }
     }
 
     // Remove pages from router
-    if (plugin.pages) {
-      for (const pathKey of Object.keys(plugin.pages)) {
-        const routeName = pathKey === 'index' ? `plugin-${plugin.id}-index` : `plugin-${plugin.id}-${pathKey}`
-        if (router.hasRoute(routeName)) {
-          router.removeRoute(routeName)
-        }
-      }
-    }
+    removePluginRoutes(plugin, router)
 
     // Remove navigation items
     for (const item of navItemsByPlugin.get(plugin.id) ?? []) {
@@ -328,49 +322,42 @@ export function usePluginManager(): PluginManager {
     console.warn(`[Plugin Manager] Plugin "${pluginId}" uninstalled.`)
   }
 
-  const loadRemotePlugin = async (manifestUrl: string, router: Router): Promise<InsightBookPlugin | null> => {
-    let manifest: InsightBookPluginManifest | null = null
-    let remoteEntryUrl = ''
-
+  const fetchRemoteManifest = async (manifestUrl: string): Promise<{ manifest: InsightBookPluginManifest, remoteEntryUrl: string } | null> => {
     try {
       const manifestRes = await fetch(manifestUrl)
-      if (!manifestRes.ok) {
+      if (!manifestRes.ok)
         throw new Error(`Failed to fetch manifest from ${manifestUrl}: status ${manifestRes.status}`)
-      }
-      manifest = await manifestRes.json()
 
-      if (!manifest || !manifest.id || !manifest.entryUrl) {
+      const manifest: InsightBookPluginManifest = await manifestRes.json()
+      if (!manifest || !manifest.id || !manifest.entryUrl)
         throw new Error('Invalid manifest format: id and entryUrl are required.')
-      }
 
-      // entryUrl указывает на Module Federation remoteEntry.js плагина
-      remoteEntryUrl = new URL(manifest.entryUrl, manifestUrl).toString()
-
-      // Сохраняем метаданные в IndexedDB для оффлайн-режима
+      const remoteEntryUrl = new URL(manifest.entryUrl, manifestUrl).toString()
       await saveCachedPlugin(
         manifest.id,
         manifestUrl,
         manifest,
         remoteEntryUrl,
       )
+      return { manifest, remoteEntryUrl }
     }
     catch (netError) {
       console.warn(`[Plugin Manager] Network fetch failed for ${manifestUrl}. Trying offline cache...`, netError)
-      // Extract pluginId heuristic if possible or read from cache if URL was loaded before
       const cached = await getCachedPlugin(manifestUrl) || await getCachedPlugin(manifestUrl.split('/').pop()?.replace('.json', '') || '')
-      if (cached) {
-        manifest = cached.manifest
-        remoteEntryUrl = cached.remoteEntryUrl
-      }
-      else {
-        console.error(`[Plugin Manager] Plugin at ${manifestUrl} could not be loaded from network or offline cache.`)
-        return null
-      }
-    }
+      if (cached)
+        return { manifest: cached.manifest, remoteEntryUrl: cached.remoteEntryUrl }
 
-    if (!manifest) {
+      console.error(`[Plugin Manager] Plugin at ${manifestUrl} could not be loaded from network or offline cache.`)
       return null
     }
+  }
+
+  const loadRemotePlugin = async (manifestUrl: string, router: Router): Promise<InsightBookPlugin | null> => {
+    const fetchedData = await fetchRemoteManifest(manifestUrl)
+    if (!fetchedData)
+      return null
+
+    const { manifest, remoteEntryUrl } = fetchedData
 
     try {
       ensureMfRuntime()
@@ -378,13 +365,10 @@ export function usePluginManager(): PluginManager {
       const remoteName = toMfRemoteName(manifest.id)
       registerRemotes([{ name: remoteName, entry: remoteEntryUrl, type: 'module' }])
 
-      // loadRemote сам скачает remoteEntry.js, подтянет стили
-      // и свяжет shared-зависимости (vue, vue-router, pinia, plugin-api) с ядром
       const module = await loadRemote<{ default: InsightBookPlugin }>(`${remoteName}/Plugin`)
 
-      if (!module || !module.default) {
+      if (!module || !module.default)
         throw new Error('Плагин не экспортирует default (InsightBookPlugin) из expose "./Plugin"')
-      }
 
       const plugin = module.default
       await install(null, router, [plugin])

@@ -240,9 +240,8 @@ describe('useSrsQuiz', () => {
 
       const result = generateWordDistractors(correct, [], 3)
       expect(result).toHaveLength(3)
-      for (const d of result) {
+      for (const d of result)
         expect(['的', '一', '是', '不', '了', '人', '我', '在', '有', '他']).toContain(d)
-      }
     })
 
     it('skips fallback hieroglyphs equal to the correct word', () => {

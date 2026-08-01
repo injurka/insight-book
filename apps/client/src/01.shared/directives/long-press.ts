@@ -55,13 +55,12 @@ const longPress = {
 
         if (!el._lpMoved) {
           const selection = window.getSelection()
-          if (selection && selection.toString().trim().length > 0) {
+          if (selection && selection.toString().trim().length > 0)
             return
-          }
 
-          if (typeof navigator !== 'undefined' && navigator.vibrate) {
+          if (typeof navigator !== 'undefined' && navigator.vibrate)
             navigator.vibrate(50)
-          }
+
           binding.value(e)
         }
       }, duration)

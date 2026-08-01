@@ -9,16 +9,16 @@ import { KitDialog } from '~/02.kit/index.ts'
 
 import { Flashcard } from '~/03.domain/entities/flashcard.entity.ts'
 import { useSrsSession } from '../../composables/use-srs-session'
-import { useDictionaryStore } from '../../store/dictionary.store'
-import SrsCardView from './srs-training/srs-card-view.vue'
-import SrsModeMatch from './srs-training/srs-mode-match.vue'
-import SrsSetupView from './srs-training/srs-setup-view.vue'
-import SrsSummaryView from './srs-training/srs-summary-view.vue'
+import { useTrainingStore } from '../../store/training.store'
+import SrsCardView from './srs-training-views/srs-card-view.vue'
+import SrsModeMatch from './srs-training-views/srs-mode-match.vue'
+import SrsSetupView from './srs-training-views/srs-setup-view.vue'
+import SrsSummaryView from './srs-training-views/srs-summary-view.vue'
 
 const repos = useRepos()
 
 const visible = defineModel<boolean>('visible', { required: true })
-const dictStore = useDictionaryStore()
+const trainingStore = useTrainingStore()
 const toast = useToast()
 const { t } = useI18n()
 const {
@@ -34,12 +34,11 @@ async function toggleFullscreen() {
   isLocalFullscreen.value = !isLocalFullscreen.value
   if (isNativeFullscreenSupported.value) {
     try {
-      if (isLocalFullscreen.value && !isNativeFullscreen.value) {
+      if (isLocalFullscreen.value && !isNativeFullscreen.value)
         await toggleNativeFullscreen()
-      }
-      else if (!isLocalFullscreen.value && isNativeFullscreen.value) {
+
+      else if (!isLocalFullscreen.value && isNativeFullscreen.value)
         await toggleNativeFullscreen()
-      }
     }
     catch (e) {
       console.warn('Native fullscreen failed', e)
@@ -72,18 +71,18 @@ const activeModes = ref<Record<string, boolean>>({
   'radicals': false,
 })
 
-const remainingQueue = computed(() => dictStore.reviewQueue.slice(currentIndex.value))
+const remainingQueue = computed(() => trainingStore.reviewQueue.slice(currentIndex.value))
 const newCount = computed(() => remainingQueue.value.filter(c => new Flashcard(c).isNew()).length)
 const reviewCount = computed(() => remainingQueue.value.filter(c => new Flashcard(c).isReview() || new Flashcard(c).isLearning()).length)
-const currentCard = computed(() => dictStore.reviewQueue[currentIndex.value])
-const isFinished = computed(() => currentIndex.value >= dictStore.reviewQueue.length)
+const currentCard = computed(() => trainingStore.reviewQueue[currentIndex.value])
+const isFinished = computed(() => currentIndex.value >= trainingStore.reviewQueue.length)
 
 const activeView = computed(() => {
   if (sessionState.value === 'setup')
     return SrsSetupView
   if (sessionState.value === 'finished')
     return SrsSummaryView
-  if (dictStore.trainingMode === 'match')
+  if (trainingStore.trainingMode === 'match')
     return SrsModeMatch
   return SrsCardView
 })
@@ -95,13 +94,13 @@ async function startSession(options: {
 }) {
   try {
     activeModes.value = options.modes
-    await dictStore.fetchTrainingQueue({
-      mode: dictStore.trainingMode,
+    await trainingStore.fetchTrainingQueue({
+      mode: trainingStore.trainingMode,
       deckId: options.deckId,
       difficulty: options.difficulty,
     })
 
-    if (dictStore.reviewQueue.length === 0) {
+    if (trainingStore.reviewQueue.length === 0) {
       toast.info(t('dictionary.emptySearch'))
       return
     }
@@ -120,10 +119,10 @@ async function handleGrade(grade: number) {
   const isNew = new Flashcard(currentCard.value).isNew()
   recordAnswer(isNew, grade)
 
-  if (dictStore.trainingMode === 'deep_dive' || dictStore.trainingMode === 'cram' || dictStore.trainingMode === 'match') {
-    if (grade === 1 && dictStore.trainingMode === 'cram') {
-      dictStore.reviewQueue.push(currentCard.value)
-    }
+  if (trainingStore.trainingMode === 'deep_dive' || trainingStore.trainingMode === 'cram' || trainingStore.trainingMode === 'match') {
+    if (grade === 1 && trainingStore.trainingMode === 'cram')
+      trainingStore.reviewQueue.push(currentCard.value)
+
     currentIndex.value++
     return
   }
@@ -133,7 +132,7 @@ async function handleGrade(grade: number) {
     const cardRef = currentCard.value
     await repos.dictionary.submitReview(cardRef.id, grade)
     if (grade === 1) { // 1 = Rating.Again in FSRS
-      dictStore.reviewQueue.push(cardRef)
+      trainingStore.reviewQueue.push(cardRef)
     }
     currentIndex.value++
   }
@@ -147,18 +146,16 @@ function handleClose() {
 }
 
 watch(visible, (val) => {
-  if (val) {
+  if (val)
     resetSession()
-  }
-  else {
-    dictStore.fetchTrainingQueue({ mode: 'srs', deckId: 'all', difficulty: ['all'] })
-  }
+
+  else
+    trainingStore.fetchTrainingQueue({ mode: 'srs', deckId: 'all', difficulty: ['all'] })
 })
 
 watch(currentIndex, () => {
-  if (isFinished.value && sessionState.value === 'active') {
+  if (isFinished.value && sessionState.value === 'active')
     finishSession()
-  }
 })
 </script>
 
@@ -186,17 +183,17 @@ watch(currentIndex, () => {
       <div class="srs-header">
         <h2 class="dialog-title">
           <template v-if="sessionState === 'setup'">
-            {{ dictStore.trainingMode === 'srs' ? t('dictionary.setupSrs') : dictStore.trainingMode === 'cram' ? 'Зубрёжка' : dictStore.trainingMode === 'match' ? 'Матчинг' : t('dictionary.deepDiveTraining') }}
+            {{ trainingStore.trainingMode === 'srs' ? t('dictionary.setupSrs') : trainingStore.trainingMode === 'cram' ? 'Зубрёжка' : trainingStore.trainingMode === 'match' ? 'Матчинг' : t('dictionary.deepDiveTraining') }}
           </template>
           <template v-else-if="sessionState === 'finished'">
             {{ t('dictionary.sessionSummary') }}
           </template>
           <template v-else>
-            {{ dictStore.trainingMode === 'srs' ? t('dictionary.reviewSrs') : dictStore.trainingMode === 'cram' ? 'Зубрёжка' : dictStore.trainingMode === 'match' ? 'Матчинг' : t('dictionary.deepDiveTraining') }}
+            {{ trainingStore.trainingMode === 'srs' ? t('dictionary.reviewSrs') : trainingStore.trainingMode === 'cram' ? 'Зубрёжка' : trainingStore.trainingMode === 'match' ? 'Матчинг' : t('dictionary.deepDiveTraining') }}
           </template>
         </h2>
 
-        <div v-if="sessionState === 'active' && !isFinished && dictStore.trainingMode === 'srs'" class="srs-stats">
+        <div v-if="sessionState === 'active' && !isFinished && trainingStore.trainingMode === 'srs'" class="srs-stats">
           <span class="stat-new" :title="t('dictionary.newCards')">{{ newCount }}</span>
           <span class="stat-review" :title="t('dictionary.onReview')">{{ reviewCount }}</span>
         </div>

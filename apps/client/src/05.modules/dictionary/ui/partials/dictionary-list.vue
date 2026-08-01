@@ -41,9 +41,9 @@ const gridRows = computed(() => {
   const wordsList = store.filteredWords
   const cols = gridColumns.value
   const rows: UserDictItem[][] = []
-  for (let i = 0; i < wordsList.length; i += cols) {
+  for (let i = 0; i < wordsList.length; i += cols)
     rows.push(wordsList.slice(i, i + cols))
-  }
+
   return rows
 })
 

@@ -140,10 +140,10 @@ describe('kit-tabs', () => {
     })
 
     await wrapper.setProps({ modelValue: 'tab3' })
-    expect((wrapper.vm as any).transitionName).toBe('slide-left')
+    expect((wrapper.vm).transitionName).toBe('slide-left')
 
     await wrapper.setProps({ modelValue: 'tab2' })
-    expect((wrapper.vm as any).transitionName).toBe('slide-right')
+    expect((wrapper.vm).transitionName).toBe('slide-right')
   })
 
   it('updates model when KitViewSwitcher emits update:modelValue', async () => {

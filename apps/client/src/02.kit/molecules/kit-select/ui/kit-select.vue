@@ -77,9 +77,9 @@ function selectOption(val: string | number) {
     const isSelected = current.includes(val)
     let next = isSelected ? current.filter(v => v !== val) : [...current, val]
     next = next.filter(v => v !== 'all')
-    if (next.length === 0) {
+    if (next.length === 0)
       next = ['all']
-    }
+
     modelValue.value = next
   }
   else {

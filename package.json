@@ -23,6 +23,7 @@
     "dev:client": "turbo dev --filter=@injurkx/insight-book-client",
     "dev:server": "turbo dev --filter=@injurka/insight-book-server",
     "dev:native": "turbo tauri:dev --filter=@injurka/insight-book-native",
+    "dev:scroll-study": "turbo dev --filter=@injurka/insight-book-plugin-scroll-study",
     "--------------------------------<      BUILD     >--------------------------------": "",
     "build": "turbo build",
     "build:client": "turbo build --filter=@injurkx/insight-book-client",

@@ -80,8 +80,8 @@ describe('usePluginManager - install', () => {
     expect(router.hasRoute('plugin-test-plugin-index')).toBe(true)
     expect(router.hasRoute('plugin-test-plugin-settings')).toBe(true)
 
-    const indexRoute = router.getRoutes().find(r => r.name === 'plugin-test-plugin-index')
-    const settingsRoute = router.getRoutes().find(r => r.name === 'plugin-test-plugin-settings')
+    const indexRoute = router.getRoutes().find(route => route.name === 'plugin-test-plugin-index')
+    const settingsRoute = router.getRoutes().find(route => route.name === 'plugin-test-plugin-settings')
     expect(indexRoute?.path).toBe('/plugin/test-plugin')
     expect(settingsRoute?.path).toBe('/plugin/test-plugin/settings')
   })

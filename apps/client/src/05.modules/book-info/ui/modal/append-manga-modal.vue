@@ -17,9 +17,8 @@ const selectedFiles = ref<File[]>([])
 
 function onFilesChange(e: Event) {
   const target = e.target as HTMLInputElement
-  if (target.files && target.files.length > 0) {
+  if (target.files && target.files.length > 0)
     selectedFiles.value = Array.from(target.files).sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }))
-  }
 }
 
 const canSubmit = computed(() => selectedFiles.value.length > 0)

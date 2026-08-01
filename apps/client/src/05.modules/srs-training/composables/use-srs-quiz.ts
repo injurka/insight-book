@@ -15,12 +15,11 @@ function getLevenshteinDistance(a: string, b: string): number {
 
   for (let i = 1; i <= a.length; i++) {
     for (let j = 1; j <= b.length; j++) {
-      if (a[i - 1] === b[j - 1]) {
+      if (a[i - 1] === b[j - 1])
         matrix[i][j] = matrix[i - 1][j - 1]
-      }
-      else {
+
+      else
         matrix[i][j] = Math.min(matrix[i - 1][j - 1] + 1, matrix[i][j - 1] + 1, matrix[i - 1][j] + 1)
-      }
     }
   }
 
@@ -28,64 +27,57 @@ function getLevenshteinDistance(a: string, b: string): number {
 }
 
 export function useSrsQuiz() {
-  function generateDistractors(correctItem: UserDictItem, allWords: UserDictItem[], count = 3): string[] {
-    const distractors = new Set<string>()
-    const pool = allWords.filter(w => w.id !== correctItem.id && w.language === correctItem.language && w.translation)
-
-    // Перемешиваем пул, чтобы варианты каждый раз были уникальными
-    const shuffled = [...pool].sort(() => 0.5 - Math.random())
-
-    const correctClean = correctItem.translation?.split(',')[0].split(';')[0].replace(/<[^>]+(>|$)/g, '').trim()
-
-    for (const w of shuffled) {
+  function fillFallbackDistractors(distractors: Set<string>, correctClean: string | undefined, count: number) {
+    const fallbacks = (i18n.global.t('srs.fallbackWords')).split(',')
+    for (const fallbackRaw of fallbacks) {
       if (distractors.size >= count)
         break
-      if (w.translation) {
-        // Очищаем HTML и берем только первое значение (чтобы варианты не были слишком длинными)
-        const cleanTrans = w.translation.split(',')[0].split(';')[0].replace(/<[^>]+(>|$)/g, '').trim()
-
-        if (cleanTrans && cleanTrans !== correctClean) {
-          distractors.add(cleanTrans)
-        }
-      }
-    }
-
-    // Фолбеки на случай, если в словаре пользователя мало слов
-    const fallbacks = (i18n.global.t('srs.fallbackWords') as string).split(',')
-    let i = 0
-    while (distractors.size < count && i < fallbacks.length) {
-      const fallback = fallbacks[i].trim()
-      if (fallback && fallback !== correctClean) {
+      const fallback = fallbackRaw.trim()
+      if (fallback && fallback !== correctClean)
         distractors.add(fallback)
+    }
+  }
+
+  function generateDistractors(correctItem: UserDictItem, allWords: UserDictItem[], count = 3): string[] {
+    const distractors = new Set<string>()
+    const pool = allWords.filter(wordItem => wordItem.id !== correctItem.id && wordItem.language === correctItem.language && wordItem.translation)
+
+    const shuffled = [...pool].sort(() => 0.5 - Math.random())
+    const correctClean = correctItem.translation?.split(',')[0].split(';')[0].replace(/<[^>]+(>|$)/g, '').trim()
+
+    for (const wordItem of shuffled) {
+      if (distractors.size >= count)
+        break
+      if (wordItem.translation) {
+        const cleanTrans = wordItem.translation.split(',')[0].split(';')[0].replace(/<[^>]+(>|$)/g, '').trim()
+        if (cleanTrans && cleanTrans !== correctClean)
+          distractors.add(cleanTrans)
       }
-      i++
     }
 
+    fillFallbackDistractors(distractors, correctClean, count)
     return Array.from(distractors)
   }
 
   function generateWordDistractors(correctItem: UserDictItem, allWords: UserDictItem[], count = 3): string[] {
     const distractors = new Set<string>()
-    const pool = allWords.filter(w => w.id !== correctItem.id && w.language === correctItem.language && w.word)
+    const pool = allWords.filter(wordItem => wordItem.id !== correctItem.id && wordItem.language === correctItem.language && wordItem.word)
 
     const shuffled = [...pool].sort(() => 0.5 - Math.random())
 
-    for (const w of shuffled) {
+    for (const wordItem of shuffled) {
       if (distractors.size >= count)
         break
-      if (w.word && w.word !== correctItem.word) {
-        distractors.add(w.word)
-      }
+      if (wordItem.word && wordItem.word !== correctItem.word)
+        distractors.add(wordItem.word)
     }
 
-    // В качестве фолбека можно использовать случайные слоги или похожие иероглифы
     const fallbacks = ['的', '一', '是', '不', '了', '人', '我', '在', '有', '他']
-    let i = 0
-    while (distractors.size < count && i < fallbacks.length) {
-      if (fallbacks[i] !== correctItem.word) {
-        distractors.add(fallbacks[i])
-      }
-      i++
+    for (const fallback of fallbacks) {
+      if (distractors.size >= count)
+        break
+      if (fallback !== correctItem.word)
+        distractors.add(fallback)
     }
 
     return Array.from(distractors)
@@ -102,9 +94,8 @@ export function useSrsQuiz() {
     // Допускаем 1 опечатку для слов до 5 символов, 2 опечатки для более длинных слов
     const tolerance = cleanCorrect.length <= 5 ? 1 : 2
 
-    if (distance <= tolerance) {
+    if (distance <= tolerance)
       return { isCorrect: false, isTypo: true }
-    }
 
     return { isCorrect: false, isTypo: false }
   }

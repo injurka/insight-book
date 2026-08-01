@@ -30,15 +30,15 @@ export class DefaultCatalogPluginRepository implements ICatalogPluginRepository 
   }
 
   async upload(file: File) {
-    return await api.catalogPlugins.upload(file)
+    return api.catalogPlugins.upload(file)
   }
 
   async updateStatus(id: number, status: 'approved' | 'rejected') {
-    return await api.catalogPlugins.updateStatus(id, status)
+    return api.catalogPlugins.updateStatus(id, status)
   }
 
   async delete(id: number) {
-    return await api.catalogPlugins.delete(id)
+    return api.catalogPlugins.delete(id)
   }
 }
 

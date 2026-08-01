@@ -55,14 +55,12 @@ export const request = ofetch.create({
     options.headers = new Headers(options.headers || {})
 
     const token = providers.getToken()
-    if (token) {
+    if (token)
       options.headers.set('Authorization', `Bearer ${token}`)
-    }
 
     const appLanguage = providers.getAppLanguage()
-    if (appLanguage) {
+    if (appLanguage)
       options.query = { ...options.query, targetLang: appLanguage }
-    }
 
     const customLlm = options.withLlm ? providers.getCustomLlm() : null
     if (customLlm) {
@@ -75,51 +73,45 @@ export const request = ofetch.create({
     let errMessage = response._data?.error || `HTTP ${response.status} ${response.statusText}`
 
     if (response.status === 500) {
-      if (options.withLlm || errMessage.includes('LLM') || errMessage.includes('AI')) {
-        errMessage = i18n.global.t('errors.aiServer') || 'Сервер ИИ временно недоступен'
-      }
-      else {
-        errMessage = i18n.global.t('errors.server500') || 'Внутренняя ошибка сервера'
-      }
+      const isLlmError = options.withLlm || errMessage.includes('LLM') || errMessage.includes('AI')
+      errMessage = isLlmError
+        ? (i18n.global.t('errors.aiServer'))
+        : (i18n.global.t('errors.server500'))
     }
 
     if (!options.silentErrors) {
       providers.onError(errMessage)
-
-      if (response.status === 401) {
+      if (response.status === 401)
         providers.onUnauthorized()
-      }
     }
 
     throw new Error(errMessage)
   },
   async onRequestError({ error, options }) {
     let errMessage = error.message
-    if (errMessage.includes('Failed to fetch') || errMessage.includes('Network Error')) {
-      errMessage = i18n.global.t('errors.network') || 'Проверьте подключение к интернету'
-    }
+    if (errMessage.includes('Failed to fetch') || errMessage.includes('Network Error'))
+      errMessage = i18n.global.t('errors.network')
 
     const isAbort = error.name === 'AbortError' || errMessage.toLowerCase().includes('abort') || errMessage.toLowerCase().includes('cancel')
 
-    if (!options?.silentErrors && !isAbort) {
+    if (!options?.silentErrors && !isAbort)
       providers.onError(errMessage)
-    }
 
     const finalError = new Error(errMessage)
-    if (isAbort) {
+    if (isAbort)
       finalError.name = 'AbortError'
-    }
+
     throw finalError
   },
 })
 
 export const api = {
   auth: {
-    login: (data: AuthLoginDto) => request<{ token: string, user: UserData }>('/api/auth/login', { method: 'POST', body: JSON.stringify(data) }),
-    sendCode: (data: AuthSendCodeDto) => request<{ success: boolean, message: string }>('/api/auth/send-code', { method: 'POST', body: JSON.stringify(data) }),
-    register: (data: AuthRegisterDto) => request<{ token: string, user: UserData }>('/api/auth/register', { method: 'POST', body: JSON.stringify(data) }),
-    me: () => request<{ user: UserData | null, mode: string }>('/api/auth/me'),
-    updateAvatar: (file: File) => {
+    login: async (data: AuthLoginDto) => request<{ token: string, user: UserData }>('/api/auth/login', { method: 'POST', body: JSON.stringify(data) }),
+    sendCode: async (data: AuthSendCodeDto) => request<{ success: boolean, message: string }>('/api/auth/send-code', { method: 'POST', body: JSON.stringify(data) }),
+    register: async (data: AuthRegisterDto) => request<{ token: string, user: UserData }>('/api/auth/register', { method: 'POST', body: JSON.stringify(data) }),
+    me: async () => request<{ user: UserData | null, mode: string }>('/api/auth/me'),
+    updateAvatar: async (file: File) => {
       const fd = new FormData()
       fd.append('file', file)
       return request<{ success: boolean, avatarUrl: string }>('/api/auth/me/avatar', {
@@ -127,32 +119,32 @@ export const api = {
         body: fd,
       })
     },
-    updateUsername: (username: string) => request<{ success: boolean, username: string }>('/api/auth/me/username', {
+    updateUsername: async (username: string) => request<{ success: boolean, username: string }>('/api/auth/me/username', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username }),
     }),
   },
   books: {
-    list: () => request<Book[]>('/api/books'),
-    getPublic: (query: string) => request<{ data: Book[], total: number, page: number, limit: number }>(`/api/books?${query}`),
+    list: async () => request<Book[]>('/api/books'),
+    getPublic: async (query: string) => request<{ data: Book[], total: number, page: number, limit: number }>(`/api/books?${query}`),
 
-    getInfo: (id: number) => request<Book>(`/api/books/${id}/info`),
+    getInfo: async (id: number) => request<Book>(`/api/books/${id}/info`),
 
-    startReading: (id: number) => request<{ success: boolean }>(`/api/books/${id}/start`, { method: 'POST' }),
+    startReading: async (id: number) => request<{ success: boolean }>(`/api/books/${id}/start`, { method: 'POST' }),
 
-    updateInfo: (id: number, data: Partial<Book>) =>
+    updateInfo: async (id: number, data: Partial<Book>) =>
       request<{ success: boolean }>(`/api/books/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
       }),
 
-    analyzeBook: (id: number) => request<{ success: boolean, stats: Book['stats'] }>(`/api/books/${id}/analyze-book`, { method: 'POST', withLlm: true }),
+    analyzeBook: async (id: number) => request<{ success: boolean, stats: Book['stats'] }>(`/api/books/${id}/analyze-book`, { method: 'POST', withLlm: true }),
 
-    analyzeVocabulary: (id: number) => request<{ success: boolean, lexicalStats: Pick<BookStats, 'posDistribution' | 'topWords' | 'lexicalDiversity'> }>(`/api/books/${id}/analyze-vocabulary`, { method: 'POST', withLlm: true }),
+    analyzeVocabulary: async (id: number) => request<{ success: boolean, lexicalStats: Pick<BookStats, 'posDistribution' | 'topWords' | 'lexicalDiversity'> }>(`/api/books/${id}/analyze-vocabulary`, { method: 'POST', withLlm: true }),
 
-    updateCover: (id: number, file: File) => {
+    updateCover: async (id: number, file: File) => {
       const fd = new FormData()
       fd.append('file', file)
       return request<{ success: boolean, coverUrl: string }>(`/api/books/${id}/cover`, {
@@ -161,14 +153,14 @@ export const api = {
       })
     },
 
-    updateStats: (id: number, data: Partial<BookStats>) =>
+    updateStats: async (id: number, data: Partial<BookStats>) =>
       request<{ success: boolean, stats: BookStats }>(`/api/books/${id}/stats`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
       }),
 
-    upload: (file: File) => {
+    upload: async (file: File) => {
       const fd = new FormData()
       fd.append('file', file)
       return request<{ success: boolean, book: Book }>('/api/books/upload', {
@@ -177,33 +169,33 @@ export const api = {
       })
     },
 
-    createCustomBook: (data: { title: string, author?: string | null, language: string, type: string }) =>
+    createCustomBook: async (data: { title: string, author?: string | null, language: string, type: string }) =>
       request<{ success: boolean, book: Book }>('/api/books/custom', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
       }),
 
-    appendMangaChapter: (id: number, fd: FormData) =>
+    appendMangaChapter: async (id: number, fd: FormData) =>
       request<{ success: boolean, book: Book }>(`/api/books/${id}/manga-chapter`, {
         method: 'POST',
         body: fd,
       }),
 
-    delete: (id: number) => request<{ success: boolean }>(`/api/books/${id}`, { method: 'DELETE' }),
+    delete: async (id: number) => request<{ success: boolean }>(`/api/books/${id}`, { method: 'DELETE' }),
 
-    getToc: (bookId: number) => request<TocItem[]>(`/api/books/${bookId}/toc`),
+    getToc: async (bookId: number) => request<TocItem[]>(`/api/books/${bookId}/toc`),
 
-    getPage: (bookId: number, page: number, isSync?: boolean) =>
+    getPage: async (bookId: number, page: number, isSync?: boolean) =>
       request<PagePayload>(`/api/books/${bookId}/page/${page}${isSync ? '?sync=true' : ''}`),
 
-    getPageDict: (bookId: number, page: number) =>
+    getPageDict: async (bookId: number, page: number) =>
       request<{ pageDictionary: Record<string, PageDictEntry> }>(`/api/books/${bookId}/page/${page}/dict`),
 
-    lookupWord: (bookId: number, word: string, signal?: AbortSignal) =>
+    lookupWord: async (bookId: number, word: string, signal?: AbortSignal) =>
       request<{ transcription: string, translation: string, isUserDict?: boolean }>(`/api/books/${bookId}/word/${encodeURIComponent(word)}`, { signal, silentErrors: true }),
 
-    checkCache: (
+    checkCache: async (
       bookId: number,
       items: { text: string, type: 'sentence' | 'word' }[],
       language: string,
@@ -216,7 +208,7 @@ export const api = {
         signal,
       }),
 
-    analyzeBatch: (
+    analyzeBatch: async (
       bookId: number,
       items: { id: string, sentence: string, context?: string, type?: 'sentence' | 'word' }[],
       language: string,
@@ -233,7 +225,7 @@ export const api = {
       })
     },
 
-    analyze: (
+    analyze: async (
       bookId: number,
       sentence: string,
       language: string,
@@ -257,7 +249,7 @@ export const api = {
       })
     },
 
-    generateTts: (
+    generateTts: async (
       bookId: number,
       text: string,
       voice?: string,
@@ -286,7 +278,7 @@ export const api = {
   },
 
   tts: {
-    generate: (
+    generate: async (
       text: string,
       voice?: string,
       signal?: AbortSignal,
@@ -301,56 +293,56 @@ export const api = {
   },
 
   dictionary: {
-    list: () => request<UserDictItem[]>('/api/dictionary'),
+    list: async () => request<UserDictItem[]>('/api/dictionary'),
 
-    decks: () => request<DictDeck[]>('/api/dictionary/decks'),
-    createDeck: (data: { name: string, language: string }) =>
+    decks: async () => request<DictDeck[]>('/api/dictionary/decks'),
+    createDeck: async (data: { name: string, language: string }) =>
       request<DictDeck>('/api/dictionary/decks', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
       }),
-    updateDeck: (id: number, data: { name: string }) =>
+    updateDeck: async (id: number, data: { name: string }) =>
       request<{ success: boolean }>(`/api/dictionary/decks/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
       }),
-    deleteDeck: (id: number, mode: 'keep' | 'delete_all' | 'delete_exclusive' = 'keep') =>
+    deleteDeck: async (id: number, mode: 'keep' | 'delete_all' | 'delete_exclusive' = 'keep') =>
       request<{ success: boolean }>(`/api/dictionary/decks/${id}?mode=${mode}`, { method: 'DELETE' }),
 
-    get: (word: string) => request<UserDictItem>(`/api/dictionary/${encodeURIComponent(word)}`, { silentErrors: true }),
-    upsert: (item: Partial<UserDictItem> & { contextSentence?: string, contextBookId?: number }) =>
+    get: async (word: string) => request<UserDictItem>(`/api/dictionary/${encodeURIComponent(word)}`, { silentErrors: true }),
+    upsert: async (item: Partial<UserDictItem> & { contextSentence?: string, contextBookId?: number }) =>
       request<{ success: boolean }>('/api/dictionary', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(item),
       }),
-    remove: (word: string) =>
+    remove: async (word: string) =>
       request<{ success: boolean }>(`/api/dictionary/${encodeURIComponent(word)}`, { method: 'DELETE' }),
 
-    getReviewQueue: (opts: { lang: string, mode: 'srs' | 'random' | 'deep_dive' | 'cram' | 'match', deckId?: number | 'none' | 'all', difficulty?: string }) => {
-      const q = new URLSearchParams()
-      q.set('lang', opts.lang)
-      q.set('mode', opts.mode)
+    getReviewQueue: async (opts: { lang: string, mode: 'srs' | 'random' | 'deep_dive' | 'cram' | 'match', deckId?: number | 'none' | 'all', difficulty?: string }) => {
+      const queryParams = new URLSearchParams()
+      queryParams.set('lang', opts.lang)
+      queryParams.set('mode', opts.mode)
       if (opts.deckId !== undefined && opts.deckId !== 'all')
-        q.set('deckId', String(opts.deckId))
+        queryParams.set('deckId', String(opts.deckId))
       if (opts.difficulty && opts.difficulty !== 'all')
-        q.set('difficulty', opts.difficulty)
-      return request<UserDictItem[]>(`/api/dictionary/review?${q.toString()}`)
+        queryParams.set('difficulty', opts.difficulty)
+      return request<UserDictItem[]>(`/api/dictionary/review?${queryParams.toString()}`)
     },
 
-    submitReview: (wordId: number, grade: number) =>
+    submitReview: async (wordId: number, grade: number) =>
       request<{ success: boolean }>('/api/dictionary/review', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ wordId, grade }),
       }),
 
-    bulkDelete: (wordIds: number[]) => request<{ success: boolean }>('/api/dictionary/bulk/delete', { method: 'POST', body: JSON.stringify({ wordIds }) }),
-    bulkMove: (wordIds: number[], deckIds: number[]) => request<{ success: boolean }>('/api/dictionary/bulk/move', { method: 'POST', body: JSON.stringify({ wordIds, deckIds }) }),
+    bulkDelete: async (wordIds: number[]) => request<{ success: boolean }>('/api/dictionary/bulk/delete', { method: 'POST', body: JSON.stringify({ wordIds }) }),
+    bulkMove: async (wordIds: number[], deckIds: number[]) => request<{ success: boolean }>('/api/dictionary/bulk/move', { method: 'POST', body: JSON.stringify({ wordIds, deckIds }) }),
 
-    generateExamples: (word: string, language: string) =>
+    generateExamples: async (word: string, language: string) =>
       request<GeneratedWordExamples>('/api/dictionary/generate-examples', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -358,7 +350,7 @@ export const api = {
         withLlm: true,
       }),
 
-    autoFillWord: (word: string, language: string) =>
+    autoFillWord: async (word: string, language: string) =>
       request<WordAutoFillResponse>('/api/dictionary/auto-fill', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -366,7 +358,7 @@ export const api = {
         withLlm: true,
       }),
 
-    generateDeepDive: (word: string, language: string, mode: 'collocations' | 'radicals') =>
+    generateDeepDive: async (word: string, language: string, mode: 'collocations' | 'radicals') =>
       request<unknown>('/api/dictionary/deep-dive', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -374,7 +366,7 @@ export const api = {
         withLlm: true,
       }),
 
-    checkPronunciation: (word: string, language: string, audioBlob: Blob) => {
+    checkPronunciation: async (word: string, language: string, audioBlob: Blob) => {
       const fd = new FormData()
       fd.append('audio', audioBlob, 'speech.webm')
       fd.append('word', word)
@@ -386,34 +378,34 @@ export const api = {
       })
     },
 
-    importCsv: (data: unknown) => request<{ success: boolean }>('/api/dictionary/import', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
-    catalog: () => request<CatalogDeck[]>('/api/dictionary/catalog'),
-    catalogWords: (id: number) => request<CatalogWord[]>(`/api/dictionary/catalog/${id}/words`),
-    cloneCatalog: (id: number) => request<{ success: boolean, deckId: number }>(`/api/dictionary/catalog/${id}/clone`, { method: 'POST' }),
-    promptsList: () => request<PromptItem[]>('/api/dictionary/prompts'),
-    promptsCreate: (data: { name: string, prompt: string }) => request<PromptItem>('/api/dictionary/prompts', { method: 'POST', body: JSON.stringify(data), headers: { 'Content-Type': 'application/json' } }),
-    promptsUpdate: (id: number, data: { name?: string, prompt?: string }) => request<PromptItem>(`/api/dictionary/prompts/${id}`, { method: 'PATCH', body: JSON.stringify(data), headers: { 'Content-Type': 'application/json' } }),
-    promptsDelete: (id: number) => request<{ success: boolean }>(`/api/dictionary/prompts/${id}`, { method: 'DELETE' }),
-    chat: (data: { word: string, language: string, customPromptId?: number, userPromptText?: string }) => request<{ response: string }>('/api/dictionary/chat', { method: 'POST', body: JSON.stringify(data), headers: { 'Content-Type': 'application/json' }, withLlm: true }),
+    importCsv: async (data: unknown) => request<{ success: boolean }>('/api/dictionary/import', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+    catalog: async () => request<CatalogDeck[]>('/api/dictionary/catalog'),
+    catalogWords: async (id: number) => request<CatalogWord[]>(`/api/dictionary/catalog/${id}/words`),
+    cloneCatalog: async (id: number) => request<{ success: boolean, deckId: number }>(`/api/dictionary/catalog/${id}/clone`, { method: 'POST' }),
+    promptsList: async () => request<PromptItem[]>('/api/dictionary/prompts'),
+    promptsCreate: async (data: { name: string, prompt: string }) => request<PromptItem>('/api/dictionary/prompts', { method: 'POST', body: JSON.stringify(data), headers: { 'Content-Type': 'application/json' } }),
+    promptsUpdate: async (id: number, data: { name?: string, prompt?: string }) => request<PromptItem>(`/api/dictionary/prompts/${id}`, { method: 'PATCH', body: JSON.stringify(data), headers: { 'Content-Type': 'application/json' } }),
+    promptsDelete: async (id: number) => request<{ success: boolean }>(`/api/dictionary/prompts/${id}`, { method: 'DELETE' }),
+    chat: async (data: { word: string, language: string, customPromptId?: number, userPromptText?: string }) => request<{ response: string }>('/api/dictionary/chat', { method: 'POST', body: JSON.stringify(data), headers: { 'Content-Type': 'application/json' }, withLlm: true }),
   },
 
   activity: {
-    getStats: () => request<{ heatmap: { date: string, count: number }[], learnedWords: number, readPages: number, difficulties: { language: string, difficulty: string, count: number }[], quizProgress?: { language: string, levelValue: string, bestScore: number, stars: number, unlocked: boolean }[] }>('/api/activity/stats'),
-    getTokens: (period?: string) => request<{ stats: { action: string, inputTokens: number, outputTokens: number, cost: number }[], daily: { date: string, inputTokens: number, outputTokens: number, cost?: number }[], totalCost: number }>(`/api/activity/tokens${period ? `?period=${period}` : ''}`),
+    getStats: async () => request<{ heatmap: { date: string, count: number }[], learnedWords: number, readPages: number, difficulties: { language: string, difficulty: string, count: number }[], quizProgress?: { language: string, levelValue: string, bestScore: number, stars: number, unlocked: boolean }[] }>('/api/activity/stats'),
+    getTokens: async (period?: string) => request<{ stats: { action: string, inputTokens: number, outputTokens: number, cost: number }[], daily: { date: string, inputTokens: number, outputTokens: number, cost?: number }[], totalCost: number }>(`/api/activity/tokens${period ? `?period=${period}` : ''}`),
   },
 
   quiz: {
-    getLevels: (language: string) => request<{ id: number, language: string, levelValue: string, bestScore: number, stars: number, unlocked: boolean }[]>(`/api/quiz/levels?language=${language}`),
-    generate: (language: string, levelValue: string) => request<{ questions: { type: 'choice' | 'cloze' | 'reorder', question: string, options: string[], correctAnswer: string, explanation: string }[], cached: boolean }>('/api/quiz/generate', { method: 'POST', body: JSON.stringify({ language, levelValue }), headers: { 'Content-Type': 'application/json' }, withLlm: true }),
-    submit: (language: string, levelValue: string, score: number) => request<{ success: boolean, score: number, starsEarned: number, isPassed: boolean, nextLevelUnlocked: boolean, nextLevelValue: string | null }>('/api/quiz/submit', { method: 'POST', body: JSON.stringify({ language, levelValue, score }), headers: { 'Content-Type': 'application/json' } }),
+    getLevels: async (language: string) => request<{ id: number, language: string, levelValue: string, bestScore: number, stars: number, unlocked: boolean }[]>(`/api/quiz/levels?language=${language}`),
+    generate: async (language: string, levelValue: string) => request<{ questions: { type: 'choice' | 'cloze' | 'reorder', question: string, options: string[], correctAnswer: string, explanation: string }[], cached: boolean }>('/api/quiz/generate', { method: 'POST', body: JSON.stringify({ language, levelValue }), headers: { 'Content-Type': 'application/json' }, withLlm: true }),
+    submit: async (language: string, levelValue: string, score: number) => request<{ success: boolean, score: number, starsEarned: number, isPassed: boolean, nextLevelUnlocked: boolean, nextLevelValue: string | null }>('/api/quiz/submit', { method: 'POST', body: JSON.stringify({ language, levelValue, score }), headers: { 'Content-Type': 'application/json' } }),
   },
 
   highlights: {
-    list: (bookId?: number) => {
-      const q = bookId ? `?bookId=${bookId}` : ''
-      return request<Highlight[]>(`/api/highlights${q}`)
+    list: async (bookId?: number) => {
+      const queryStr = bookId ? `?bookId=${bookId}` : ''
+      return request<Highlight[]>(`/api/highlights${queryStr}`)
     },
-    create: (data: {
+    create: async (data: {
       bookId: number
       text: string
       translation?: string | null
@@ -428,7 +420,7 @@ export const api = {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
       }),
-    update: (id: number, data: {
+    update: async (id: number, data: {
       translation?: string | null
       note?: string | null
       color?: string
@@ -441,33 +433,33 @@ export const api = {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
       }),
-    delete: (id: number) =>
+    delete: async (id: number) =>
       request<{ success: boolean }>(`/api/highlights/${id}`, { method: 'DELETE' }),
   },
 
   plugins: {
-    getMyPlugins: () => request<UserPluginRecord[]>('/api/plugins/my'),
-    installPlugin: (data: { pluginId: string, manifestUrl: string, settings?: string | null, isEnabled?: boolean }) =>
+    getMyPlugins: async () => request<UserPluginRecord[]>('/api/plugins/my'),
+    installPlugin: async (data: { pluginId: string, manifestUrl: string, settings?: string | null, isEnabled?: boolean }) =>
       request<UserPluginRecord>('/api/plugins', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
       }),
-    updatePlugin: (pluginId: string, data: { isEnabled?: boolean, settings?: string | null }) =>
+    updatePlugin: async (pluginId: string, data: { isEnabled?: boolean, settings?: string | null }) =>
       request<UserPluginRecord>(`/api/plugins/${pluginId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
       }),
-    uninstallPlugin: (pluginId: string) =>
+    uninstallPlugin: async (pluginId: string) =>
       request<{ success: boolean }>(`/api/plugins/${pluginId}`, { method: 'DELETE' }),
   },
 
   catalogPlugins: {
-    getApproved: () => request<CatalogPluginRecord[]>('/api/catalog/plugins'),
-    getMy: () => request<CatalogPluginRecord[]>('/api/catalog/plugins/my'),
-    getPending: () => request<CatalogPluginRecord[]>('/api/catalog/plugins/pending'),
-    upload: (file: File) => {
+    getApproved: async () => request<CatalogPluginRecord[]>('/api/catalog/plugins'),
+    getMy: async () => request<CatalogPluginRecord[]>('/api/catalog/plugins/my'),
+    getPending: async () => request<CatalogPluginRecord[]>('/api/catalog/plugins/pending'),
+    upload: async (file: File) => {
       const fd = new FormData()
       fd.append('file', file)
       return request<CatalogPluginRecord>('/api/catalog/plugins/upload', {
@@ -475,13 +467,13 @@ export const api = {
         body: fd,
       })
     },
-    updateStatus: (id: number, status: 'approved' | 'rejected') =>
+    updateStatus: async (id: number, status: 'approved' | 'rejected') =>
       request<CatalogPluginRecord>(`/api/catalog/plugins/${id}/status`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status }),
       }),
-    delete: (id: number) =>
+    delete: async (id: number) =>
       request<{ success: boolean }>(`/api/catalog/plugins/${id}`, { method: 'DELETE' }),
   },
 }

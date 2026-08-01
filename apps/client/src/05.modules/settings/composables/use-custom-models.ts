@@ -29,17 +29,16 @@ export function useCustomModels() {
 
       const data = await res.json()
 
-      if (data && data.data && Array.isArray(data.data)) {
-        availableModels.value = data.data.map((m: any) => ({
-          label: m.id,
-          value: m.id,
+      if (data && Array.isArray(data.data)) {
+        availableModels.value = data.data.map((modelItem: any) => ({
+          label: modelItem.id,
+          value: modelItem.id,
         }))
 
         if (availableModels.value.length > 0) {
           toast.success('Список моделей успешно загружен')
-          if (!availableModels.value.some(m => m.value === settingsStore.customLlmModel)) {
+          if (!availableModels.value.some(modelItem => modelItem.value === settingsStore.customLlmModel))
             settingsStore.customLlmModel = availableModels.value[0].value
-          }
         }
         else {
           toast.info('Сервер вернул пустой список')

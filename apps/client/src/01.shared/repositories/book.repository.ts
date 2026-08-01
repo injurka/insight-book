@@ -40,9 +40,8 @@ export interface IBookRepository {
 export class DefaultBookRepository implements IBookRepository {
   async list(): Promise<Book[]> {
     const authStore = useAuthStore()
-    if (!authStore.user && !authStore.isSingleMode) {
+    if (!authStore.user && !authStore.isSingleMode)
       return []
-    }
 
     try {
       const raw = await api.books.list()
@@ -61,7 +60,7 @@ export class DefaultBookRepository implements IBookRepository {
   }
 
   async getPublic(query: string) {
-    return await api.books.getPublic(query)
+    return api.books.getPublic(query)
   }
 
   async getInfo(id: number): Promise<Book | null> {
@@ -80,43 +79,43 @@ export class DefaultBookRepository implements IBookRepository {
   }
 
   async startReading(id: number) {
-    return await api.books.startReading(id)
+    return api.books.startReading(id)
   }
 
   async updateInfo(id: number, data: Partial<Book>) {
-    return await api.books.updateInfo(id, data)
+    return api.books.updateInfo(id, data)
   }
 
   async analyzeBook(id: number) {
-    return await api.books.analyzeBook(id)
+    return api.books.analyzeBook(id)
   }
 
   async analyzeVocabulary(id: number) {
-    return await api.books.analyzeVocabulary(id)
+    return api.books.analyzeVocabulary(id)
   }
 
   async updateCover(id: number, file: File) {
-    return await api.books.updateCover(id, file)
+    return api.books.updateCover(id, file)
   }
 
   async updateStats(id: number, data: Partial<BookStats>) {
-    return await api.books.updateStats(id, data)
+    return api.books.updateStats(id, data)
   }
 
   async upload(file: File) {
-    return await api.books.upload(file)
+    return api.books.upload(file)
   }
 
   async createCustomManga(params: { title: string, author?: string | null, language: string, type: string }) {
-    return await api.books.createCustomBook(params)
+    return api.books.createCustomBook(params)
   }
 
   async appendMangaChapter(bookId: number, fd: FormData) {
-    return await api.books.appendMangaChapter(bookId, fd)
+    return api.books.appendMangaChapter(bookId, fd)
   }
 
   async delete(id: number) {
-    return await api.books.delete(id)
+    return api.books.delete(id)
   }
 
   async saveLocalBookInfo(id: number, info: Book) {
@@ -149,9 +148,9 @@ export class DefaultBookRepository implements IBookRepository {
     }
 
     const data = await api.books.getPage(id, num, isSync)
-    if (data) {
+    if (data)
       await offlineService.savePage(id, num, data).catch(() => {})
-    }
+
     return data
   }
 
@@ -176,7 +175,7 @@ export class DefaultBookRepository implements IBookRepository {
   }
 
   async getLocalImage(bookId: number, pageNum: number) {
-    return await offlineService.getImage(bookId, pageNum)
+    return offlineService.getImage(bookId, pageNum)
   }
 
   async saveLocalPage(id: number, num: number, data: PagePayload) {
@@ -184,7 +183,7 @@ export class DefaultBookRepository implements IBookRepository {
   }
 
   async fetchImageBlob(url: string) {
-    return await api.books.fetchImageBlob(url)
+    return api.books.fetchImageBlob(url)
   }
 
   async saveLocalImage(bookId: number, pageNum: number, blob: Blob) {
@@ -192,7 +191,7 @@ export class DefaultBookRepository implements IBookRepository {
   }
 
   async getLocalCover(bookId: number) {
-    return await offlineService.getCover(bookId)
+    return offlineService.getCover(bookId)
   }
 
   async saveLocalCover(bookId: number, blob: Blob) {

@@ -89,23 +89,21 @@ watch(() => readerStore.currentPage, () => {
 })
 
 watch(() => readerStore.isPageLoading, async (isLoading) => {
-  if (isLoading) {
+  if (isLoading)
     closeBubblePopover()
-  }
+
   if (!isLoading && readerStore.currentPage) {
     await nextTick()
     setTimeout(restoreScrollPosition, 50)
 
-    if (settingsStore.parallelViewMode !== 'none') {
+    if (settingsStore.parallelViewMode !== 'none')
       analysisStore.analyzeWholePage({ sentences: true, words: false, ttsSentences: false, ttsWords: false }, true)
-    }
   }
 }, { immediate: true })
 
 watch(() => settingsStore.parallelViewMode, (mode) => {
-  if (mode !== 'none' && !readerStore.isPageLoading && readerStore.currentPage) {
+  if (mode !== 'none' && !readerStore.isPageLoading && readerStore.currentPage)
     analysisStore.analyzeWholePage({ sentences: true, words: false, ttsSentences: false, ttsWords: false }, true)
-  }
 })
 
 onMounted(() => {

@@ -8,9 +8,8 @@ import { z } from 'zod'
 export function applyAcl<T>(schema: z.ZodType<T>, data: unknown, context: string): T {
   const result = schema.safeParse(data)
 
-  if (result.success) {
+  if (result.success)
     return result.data
-  }
 
   // Здесь можно отправлять логи в Sentry / Umami о том, что контракт нарушен
   console.error(`[ACL Error] Contract mismatch in ${context}:`, z.treeifyError(result.error))

@@ -41,9 +41,9 @@ onMounted(() => {
 const resolvedSrc = computed(() => {
   if (!props.src)
     return ''
-  if (props.src.startsWith('data:') || props.src.startsWith('http') || props.src.startsWith('blob:')) {
+  if (props.src.startsWith('data:') || props.src.startsWith('http') || props.src.startsWith('blob:'))
     return props.src
-  }
+
   const BASE = API_URL
   return `${BASE}${props.src}`
 })
@@ -56,9 +56,9 @@ watch(() => props.src, () => {
 })
 
 function handleLoad() {
-  if (performance.now() - mountedAt < INSTANT_LOAD_THRESHOLD) {
+  if (performance.now() - mountedAt < INSTANT_LOAD_THRESHOLD)
     isInstant.value = true
-  }
+
   isLoaded.value = true
 }
 

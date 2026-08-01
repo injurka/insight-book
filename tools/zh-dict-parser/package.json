@@ -12,7 +12,7 @@
     "dev": "bun --watch src/index.ts",
     "--------------------------------<      BUILD     >--------------------------------": "",
     "build": "bun build ./src/index.ts --outdir ./dist --target bun --no-minify",
-    "--------------------------------<   TAURI   >---------------------------------": "",
+    "--------------------------------<      LINT      >---------------------------------": "",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "typecheck": "bunx tsc --noEmit"

@@ -14,9 +14,8 @@ async function scanFiles(dir: string): Promise<string[]> {
   for await (const file of glob.scan({ cwd: dir, absolute: true })) {
     const content = await Bun.file(file).text()
     const matches = content.match(ICON_REGEX)
-    if (matches) {
+    if (matches)
       matches.forEach(match => icons.add(match.replace('mdi:', '')))
-    }
   }
 
   return Array.from(icons)
@@ -43,21 +42,20 @@ async function bundle() {
     const fullCollection = await Bun.file(mdiJsonPath).json()
     const filteredCollection = getIcons(fullCollection, usedIcons)
 
-    if (!filteredCollection) {
+    if (!filteredCollection)
       throw new Error('Не удалось создать подборку иконок.')
-    }
 
     await Bun.write(OUTPUT_FILE, JSON.stringify(filteredCollection))
     console.log(`✅ Бандл иконок успешно создан: ${OUTPUT_FILE}`)
   }
   catch (error) {
     console.error('❌ Ошибка при сборке иконок:')
-    if (error instanceof Error && error.message.includes('Cannot find package')) {
+    if (error instanceof Error && error.message.includes('Cannot find package'))
       console.error('   Пакет @iconify-json/mdi не найден. Установите его: bun add -D @iconify-json/mdi')
-    }
-    else {
+
+    else
       console.error(error)
-    }
+
     process.exit(1)
   }
 }

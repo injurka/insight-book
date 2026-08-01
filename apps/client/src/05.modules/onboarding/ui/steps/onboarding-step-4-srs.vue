@@ -46,9 +46,8 @@ function onTouchEnd(e: TouchEvent) {
   const touch = e.changedTouches[0]
   if (touch) {
     const target = document.elementFromPoint(touch.clientX, touch.clientY)
-    if (target && target.closest('.chest-dropzone')) {
+    if (target && target.closest('.chest-dropzone'))
       onDrop()
-    }
   }
 }
 </script>

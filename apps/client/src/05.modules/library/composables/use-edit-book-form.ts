@@ -46,23 +46,20 @@ export function useEditBookForm(bookProp: Ref<Book | null>, emit: any) {
 
     const payload = { ...editingBook.value }
 
-    if (payload.createdAt) {
+    if (payload.createdAt)
       payload.createdAt = parseFromDateTimeLocal(payload.createdAt)
-    }
 
     // Если направление стоит Авто, передаем null, чтобы сработал дефолтный обработчик LLM
-    if (payload.textDirection === 'auto') {
+    if (payload.textDirection === 'auto')
       payload.textDirection = null
-    }
 
     payload.currentPage = Number(payload.currentPage) || 1
     emit('save', { bookData: payload, coverFile: editingCoverFile.value })
   }
 
   function handleDelete() {
-    if (editingBook.value.id !== undefined) {
+    if (editingBook.value.id !== undefined)
       emit('delete', editingBook.value.id)
-    }
   }
 
   return {

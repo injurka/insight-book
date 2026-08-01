@@ -123,14 +123,12 @@ watch(visible, (isOpen) => {
   if (isOpen) {
     currentState.value = 'select_level'
     levelsByLang.value = { zh: [], ja: [], en: [], ru: [] }
-    if (props.initialLang) {
+    if (props.initialLang)
       selectedLang.value = props.initialLang
-    }
-    else {
-      if (!tabItems.value.some(t => t.id === selectedLang.value)) {
-        selectedLang.value = tabItems.value[0]?.id || 'en'
-      }
-    }
+
+    else if (!tabItems.value.some(t => t.id === selectedLang.value))
+      selectedLang.value = tabItems.value[0]?.id || 'en'
+
     if (props.initialLevel) {
       selectedLevel.value = props.initialLevel
       startQuizFlow(props.initialLevel)
@@ -142,9 +140,8 @@ watch(visible, (isOpen) => {
 })
 
 watch(selectedLang, () => {
-  if (visible.value && !props.initialLevel) {
+  if (visible.value && !props.initialLevel)
     loadLevels()
-  }
 })
 
 // Start Quiz Flow
@@ -171,6 +168,7 @@ async function startQuizFlow(levelVal: string) {
     if (msg === 'quiz_level_locked') {
       errorMessage.value = t('dictionary.quiz.errors.levelLocked')
     }
+
     else if (msg.startsWith('quiz_deck_not_found:')) {
       const parts = msg.split(':')
       errorMessage.value = t('dictionary.quiz.errors.deckNotFound', { level: parts[1], lang: parts[2] })
@@ -178,9 +176,11 @@ async function startQuizFlow(levelVal: string) {
     else if (msg === 'quiz_no_words') {
       errorMessage.value = t('dictionary.quiz.errors.noWords')
     }
+
     else {
       errorMessage.value = msg || 'Ошибка генерации вопросов. Пожалуйста, попробуйте еще раз.'
     }
+
     loadLevels()
   }
 }

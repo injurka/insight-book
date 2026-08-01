@@ -22,9 +22,9 @@ const { x, y, strategy } = useFloating(referenceEl, popoverRef, {
 })
 
 const popoverPos = computed(() => {
-  if (!analysisStore.grammarPopover || x.value == null || y.value == null) {
+  if (!analysisStore.grammarPopover || x.value == null || y.value == null)
     return { top: '-9999px', left: '-9999px', visibility: 'hidden' as const }
-  }
+
   return {
     position: strategy.value,
     top: `${y.value}px`,

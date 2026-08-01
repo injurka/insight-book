@@ -22,9 +22,8 @@ function extractFromHtml(
     const sentRegex = /data-raw-sent="([^"]+)"/g
     let match
     // eslint-disable-next-line no-cond-assign
-    while ((match = sentRegex.exec(html)) !== null) {
+    while ((match = sentRegex.exec(html)) !== null)
       sentences.add(decodeURIComponent(match[1]))
-    }
   }
 
   if (options.extractWords) {
@@ -33,9 +32,8 @@ function extractFromHtml(
     // eslint-disable-next-line no-cond-assign
     while ((match = wordRegex.exec(html)) !== null) {
       // Пропускаем служебные части речи (частицы и т.п.)
-      if (match[2] !== 'x') {
+      if (match[2] !== 'x')
         words.add(decodeURIComponent(match[1]))
-      }
     }
   }
 }

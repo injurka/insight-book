@@ -19,9 +19,8 @@ function getKey(key: string) {
 }
 
 function getAppLanguage() {
-  if (getActivePinia()) {
+  if (getActivePinia())
     return useGlobalSettingsStore().appLanguage
-  }
 
   try {
     const saved = localStorage.getItem('global-app-language')
@@ -34,10 +33,130 @@ function getAppLanguage() {
 }
 
 async function getMediaCache(): Promise<Cache | null> {
-  if (typeof window !== 'undefined' && 'caches' in window) {
-    return await caches.open(MEDIA_CACHE_NAME)
-  }
+  if (typeof window !== 'undefined' && 'caches' in window)
+    return caches.open(MEDIA_CACHE_NAME)
+
   return null
+}
+
+function handleBookPageOrDictKey(key: string, itemSize: number, bookStats: Record<number, any>) {
+  if (key.includes('_page_') && !key.endsWith('_dict')) {
+    const bookId = Number(key.split('_')[1])
+    const pageNum = Number(key.split('_')[3])
+    if (bookStats[bookId]) {
+      if (!bookStats[bookId].cachedPages.includes(pageNum))
+        bookStats[bookId].cachedPages.push(pageNum)
+      bookStats[bookId].sizeBytes += itemSize
+    }
+    return true
+  }
+  if (key.endsWith('_dict')) {
+    const bookId = Number(key.split('_')[1])
+    if (bookStats[bookId]) {
+      bookStats[bookId].sizeBytes += itemSize
+      bookStats[bookId].dictPagesCount++
+    }
+    return true
+  }
+  return false
+}
+
+function handleImageKey(key: string, itemSize: number, bookStats: Record<number, any>) {
+  const bookId = Number(key.split('_')[1])
+  if (bookStats[bookId]) {
+    bookStats[bookId].sizeBytes += itemSize
+    bookStats[bookId].imagesCount++
+  }
+}
+
+function handleCoverKey(key: string, itemSize: number, bookStats: Record<number, any>) {
+  const bookId = Number(key.replace('cover_', ''))
+  if (bookStats[bookId])
+    bookStats[bookId].sizeBytes += itemSize
+}
+
+function handleTtsKey(key: string, itemSize: number, bookStats: Record<number, any>) {
+  const hashParts = key.replace('tts_', '').split('_')
+  const bookId = Number(hashParts[0])
+  if (!Number.isNaN(bookId) && bookStats[bookId]) {
+    bookStats[bookId].sizeBytes += itemSize
+    bookStats[bookId].ttsCount++
+  }
+}
+
+function handleBookMetaKey(key: string, itemSize: number, bookStats: Record<number, any>) {
+  const bookId = Number(key.split('_')[2])
+  if (bookStats[bookId])
+    bookStats[bookId].sizeBytes += itemSize
+}
+
+function handleOtherLocalForageKeys(key: string, itemSize: number, bookStats: Record<number, any>) {
+  if (key.startsWith('image_')) {
+    handleImageKey(key, itemSize, bookStats)
+  }
+  else if (key.startsWith('cover_')) {
+    handleCoverKey(key, itemSize, bookStats)
+  }
+  else if (key.startsWith('tts_')) {
+    handleTtsKey(key, itemSize, bookStats)
+  }
+  else if (key.startsWith('book_info_') || key.startsWith('book_toc_') || key.startsWith('book_highlights_')) {
+    handleBookMetaKey(key, itemSize, bookStats)
+  }
+}
+
+function processLocalForageKey(key: string, itemSize: number, bookStats: Record<number, any>) {
+  if (key.startsWith('book_')) {
+    if (handleBookPageOrDictKey(key, itemSize, bookStats))
+      return
+  }
+  handleOtherLocalForageKeys(key, itemSize, bookStats)
+}
+
+function handleMediaCacheImageOrCover(
+  type: string,
+  pathParts: string[],
+  size: number,
+  bookStats: Record<number, any>,
+) {
+  const bookId = Number(pathParts[3])
+  if (bookStats[bookId]) {
+    bookStats[bookId].sizeBytes += size
+    if (type === 'image')
+      bookStats[bookId].imagesCount++
+  }
+}
+
+function handleMediaCacheTts(pathParts: string[], size: number, bookStats: Record<number, any>) {
+  if (pathParts[3]?.includes('_')) {
+    const bookId = Number(pathParts[3].split('_')[0])
+    if (!Number.isNaN(bookId) && bookStats[bookId]) {
+      bookStats[bookId].sizeBytes += size
+      bookStats[bookId].ttsCount++
+    }
+  }
+}
+
+async function processMediaCacheReq(cache: Cache, req: Request, bookStats: Record<number, any>): Promise<number> {
+  const url = new URL(req.url)
+  const pathParts = url.pathname.split('/')
+  const type = pathParts[2]
+
+  const res = await cache.match(req)
+  const size = res ? Number(res.headers.get('content-length') || 0) : 0
+
+  if (type === 'image' || type === 'cover') {
+    handleMediaCacheImageOrCover(
+      type,
+      pathParts,
+      size,
+      bookStats,
+    )
+  }
+  else if (type === 'tts') {
+    handleMediaCacheTts(pathParts, size, bookStats)
+  }
+  return size
 }
 
 async function safeSetItem<T>(key: string, value: T): Promise<void> {
@@ -84,7 +203,7 @@ export const offlineService = {
   },
 
   async getPage(bookId: number, pageNum: number): Promise<PagePayload | null> {
-    return await safeGetItem(`book_${bookId}_page_${pageNum}`)
+    return safeGetItem(`book_${bookId}_page_${pageNum}`)
   },
 
   async saveImage(bookId: number, pageNum: number, blob: Blob) {
@@ -108,9 +227,9 @@ export const offlineService = {
     if (cache) {
       const res = await cache.match(`/offline/image/${bookId}/${pageNum}`)
       if (res)
-        return await res.blob()
+        return res.blob()
     }
-    return await safeGetItem<Blob>(`image_${bookId}_${pageNum}`)
+    return safeGetItem<Blob>(`image_${bookId}_${pageNum}`)
   },
 
   async saveCover(bookId: number, blob: Blob) {
@@ -133,9 +252,9 @@ export const offlineService = {
     if (cache) {
       const res = await cache.match(`/offline/cover/${bookId}`)
       if (res)
-        return await res.blob()
+        return res.blob()
     }
-    return await safeGetItem<Blob>(`cover_${bookId}`)
+    return safeGetItem<Blob>(`cover_${bookId}`)
   },
 
   async savePageDictionary(bookId: number, pageNum: number, dict: Record<string, PageDictEntry>) {
@@ -143,7 +262,7 @@ export const offlineService = {
   },
 
   async getPageDictionary(bookId: number, pageNum: number): Promise<Record<string, PageDictEntry> | null> {
-    return await safeGetItem(`book_${bookId}_page_${pageNum}_dict`)
+    return safeGetItem(`book_${bookId}_page_${pageNum}_dict`)
   },
 
   async saveBookInfo(bookId: number, info: Book) {
@@ -151,7 +270,7 @@ export const offlineService = {
   },
 
   async getBookInfo(bookId: number): Promise<Book | null> {
-    return await safeGetItem(`book_info_${bookId}`)
+    return safeGetItem(`book_info_${bookId}`)
   },
 
   async saveBooksList(books: Book[]) {
@@ -159,7 +278,7 @@ export const offlineService = {
   },
 
   async getBooksList(): Promise<Book[] | null> {
-    return await safeGetItem('library_books_list')
+    return safeGetItem('library_books_list')
   },
 
   async saveToc(bookId: number, toc: TocItem[]) {
@@ -167,7 +286,7 @@ export const offlineService = {
   },
 
   async getToc(bookId: number): Promise<TocItem[] | null> {
-    return await safeGetItem(`book_toc_${bookId}`)
+    return safeGetItem(`book_toc_${bookId}`)
   },
 
   async saveHighlights(bookId: number, highlights: Highlight[]) {
@@ -175,7 +294,7 @@ export const offlineService = {
   },
 
   async getHighlights(bookId: number): Promise<Highlight[] | null> {
-    return await safeGetItem(`book_highlights_${bookId}`)
+    return safeGetItem(`book_highlights_${bookId}`)
   },
 
   async saveDictionary(words: UserDictItem[]) {
@@ -185,7 +304,7 @@ export const offlineService = {
 
   async getDictionary(): Promise<UserDictItem[] | null> {
     const lang = getAppLanguage()
-    return await safeGetItem(`dictionary_words_${lang}`)
+    return safeGetItem(`dictionary_words_${lang}`)
   },
 
   async saveDecks(decks: DictDeck[]) {
@@ -195,7 +314,7 @@ export const offlineService = {
 
   async getDecks(): Promise<DictDeck[] | null> {
     const lang = getAppLanguage()
-    return await safeGetItem(`dictionary_decks_${lang}`)
+    return safeGetItem(`dictionary_decks_${lang}`)
   },
 
   async saveAnalysis(text: string, analysis: LlmAnalysis) {
@@ -205,16 +324,16 @@ export const offlineService = {
 
   async getAnalysis(text: string): Promise<LlmAnalysis | null> {
     const lang = getAppLanguage()
-    return await safeGetItem(`analysis_${lang}_${text.trim().toLowerCase()}`)
+    return safeGetItem(`analysis_${lang}_${text.trim().toLowerCase()}`)
   },
 
   async saveTts(hashKey: string, audioBase64: string) {
     const mimeType = audioBase64.startsWith('UklGR') ? 'audio/wav' : 'audio/mp3'
     const binaryString = window.atob(audioBase64)
     const bytes = new Uint8Array(binaryString.length)
-    for (let i = 0; i < binaryString.length; i++) {
+    for (let i = 0; i < binaryString.length; i++)
       bytes[i] = binaryString.charCodeAt(i)
-    }
+
     const blob = new Blob([bytes], { type: mimeType })
 
     const cache = await getMediaCache()
@@ -236,7 +355,7 @@ export const offlineService = {
     if (cache) {
       const res = await cache.match(`/offline/tts/${hashKey}`)
       if (res)
-        return await res.blob()
+        return res.blob()
     }
 
     // Legacy fallback (Base64)
@@ -245,9 +364,9 @@ export const offlineService = {
       const mimeType = base64.startsWith('UklGR') ? 'audio/wav' : 'audio/mp3'
       const binaryString = window.atob(base64)
       const bytes = new Uint8Array(binaryString.length)
-      for (let i = 0; i < binaryString.length; i++) {
+      for (let i = 0; i < binaryString.length; i++)
         bytes[i] = binaryString.charCodeAt(i)
-      }
+
       return new Blob([bytes], { type: mimeType })
     }
 
@@ -280,19 +399,18 @@ export const offlineService = {
 
   async getCacheStats() {
     const keys = await localforage.keys()
-    const prefix = getKey('') // "u1_"
+    const prefix = getKey('')
 
-    const userKeys = keys.filter(k => k.startsWith(prefix))
-
+    const userKeys = keys.filter(keyItem => keyItem.startsWith(prefix))
     const booksList = await this.getBooksList() || []
     const bookStats: Record<number, any> = {}
 
-    booksList.forEach((b) => {
-      bookStats[b.id] = {
-        title: b.title,
-        totalPages: b.totalPages || 0,
+    booksList.forEach((bookItem) => {
+      bookStats[bookItem.id] = {
+        title: bookItem.title,
+        totalPages: bookItem.totalPages || 0,
         cachedPages: [],
-        analysesCount: b.analysesCount || 0,
+        analysesCount: bookItem.analysesCount || 0,
         sizeBytes: 0,
         imagesCount: 0,
         ttsCount: 0,
@@ -303,95 +421,26 @@ export const offlineService = {
     let totalDictionaryWords = 0
     let totalSize = 0
 
-    // 1. Подсчет LocalForage (Текст и старые медиа-файлы)
     for (const fullKey of userKeys) {
       const key = fullKey.replace(prefix, '')
       const item = await localforage.getItem(fullKey)
-
       const itemSize = item instanceof Blob ? item.size : (item ? JSON.stringify(item).length : 0)
       totalSize += itemSize
 
       if (key.startsWith('dictionary_words_')) {
         totalDictionaryWords += Array.isArray(item) ? item.length : 0
       }
-      else if (key.startsWith('book_') && key.includes('_page_') && !key.endsWith('_dict')) {
-        const bookId = Number(key.split('_')[1])
-        const pageNum = Number(key.split('_')[3])
-        if (bookStats[bookId]) {
-          if (!bookStats[bookId].cachedPages.includes(pageNum)) {
-            bookStats[bookId].cachedPages.push(pageNum)
-          }
-          bookStats[bookId].sizeBytes += itemSize
-        }
-      }
-      else if (key.startsWith('book_') && key.endsWith('_dict')) {
-        const bookId = Number(key.split('_')[1])
-        if (bookStats[bookId]) {
-          bookStats[bookId].sizeBytes += itemSize
-          bookStats[bookId].dictPagesCount++
-        }
-      }
-      else if (key.startsWith('image_')) {
-        const bookId = Number(key.split('_')[1])
-        if (bookStats[bookId]) {
-          bookStats[bookId].sizeBytes += itemSize
-          bookStats[bookId].imagesCount++
-        }
-      }
-      else if (key.startsWith('cover_')) {
-        const bookId = Number(key.replace('cover_', ''))
-        if (bookStats[bookId])
-          bookStats[bookId].sizeBytes += itemSize
-      }
-      else if (key.startsWith('tts_')) {
-        const hashParts = key.replace('tts_', '').split('_')
-        const bookIdStr = hashParts[0]
-        const bookId = Number(bookIdStr)
-        if (!Number.isNaN(bookId) && bookStats[bookId]) {
-          bookStats[bookId].sizeBytes += itemSize
-          bookStats[bookId].ttsCount++
-        }
-      }
-      else if (key.startsWith('book_info_') || key.startsWith('book_toc_') || key.startsWith('book_highlights_')) {
-        const bookId = Number(key.split('_')[2])
-        if (bookStats[bookId]) {
-          bookStats[bookId].sizeBytes += itemSize
-        }
+      else {
+        processLocalForageKey(key, itemSize, bookStats)
       }
     }
 
-    // 2. Подсчет Cache API (Новые медиа-файлы)
     const cache = await getMediaCache()
     if (cache) {
       const cacheKeys = await cache.keys()
       for (const req of cacheKeys) {
-        const url = new URL(req.url)
-        const pathParts = url.pathname.split('/')
-        const type = pathParts[2] // image | cover | tts
-
-        const res = await cache.match(req)
-        const size = res ? Number(res.headers.get('content-length') || 0) : 0
+        const size = await processMediaCacheReq(cache, req, bookStats)
         totalSize += size
-
-        if (type === 'image' || type === 'cover') {
-          const bookId = Number(pathParts[3])
-          if (bookStats[bookId]) {
-            bookStats[bookId].sizeBytes += size
-            if (type === 'image')
-              bookStats[bookId].imagesCount++
-          }
-        }
-        else if (type === 'tts') {
-          const hashKey = pathParts[3]
-          if (hashKey && hashKey.includes('_')) {
-            const bookIdStr = hashKey.split('_')[0]
-            const bookId = Number(bookIdStr)
-            if (!Number.isNaN(bookId) && bookStats[bookId]) {
-              bookStats[bookId].sizeBytes += size
-              bookStats[bookId].ttsCount++
-            }
-          }
-        }
       }
     }
 
@@ -412,9 +461,8 @@ export const offlineService = {
       return key.startsWith(`book_${bookId}_page_`) || key === `book_info_${bookId}` || key === `book_toc_${bookId}` || key === `book_highlights_${bookId}` || key.startsWith(`image_${bookId}_`) || key === `cover_${bookId}` || key.startsWith(`tts_${bookId}_`)
     })
 
-    for (const key of keysToRemove) {
+    for (const key of keysToRemove)
       await localforage.removeItem(key)
-    }
 
     // 2. Очистка Cache API
     const cache = await getMediaCache()
@@ -426,15 +474,13 @@ export const offlineService = {
         const type = pathParts[2]
 
         if (type === 'image' || type === 'cover') {
-          if (Number(pathParts[3]) === bookId) {
+          if (Number(pathParts[3]) === bookId)
             await cache.delete(req)
-          }
         }
         else if (type === 'tts') {
           const hashKey = pathParts[3]
-          if (hashKey && hashKey.startsWith(`${bookId}_`)) {
+          if (hashKey && hashKey.startsWith(`${bookId}_`))
             await cache.delete(req)
-          }
         }
       }
     }

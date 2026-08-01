@@ -4,6 +4,7 @@ import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { KitBtn, KitDropdown, KitInput, KitSelect, KitTooltip, KitViewSwitcher } from '~/02.kit'
 import { GlobalActions } from '~/04.features/global-actions'
+import { useTrainingStore } from '~/05.modules/srs-training/store/training.store'
 import { useDictFilterOptions } from '../../composables/use-dict-filter-options'
 import { useDictionaryStore } from '../../store/dictionary.store'
 
@@ -26,6 +27,7 @@ const viewOptions = computed(() => [
 ])
 
 const store = useDictionaryStore()
+const trainingStore = useTrainingStore()
 const { langOptions, deckOptions, difficultyOptions, statusOptions } = useDictFilterOptions()
 
 const router = useRouter()
@@ -38,7 +40,7 @@ watch(() => store.selectedLanguage, () => {
 })
 
 function openTrainingSettings(mode: 'srs' | 'deep_dive' | 'cram' | 'match') {
-  store.trainingMode = mode
+  trainingStore.trainingMode = mode
   emit('openTraining', mode)
   dropdownRef.value?.close()
 }
@@ -66,8 +68,8 @@ function openTrainingSettings(mode: 'srs' | 'deep_dive' | 'cram' | 'match') {
             <template #activator="{ props }">
               <KitBtn
                 icon="mdi:brain"
-                :color="store.totalReviewCount > 0 ? 'primary' : 'accent'"
-                :variant="store.totalReviewCount > 0 ? 'solid' : 'outlined'"
+                :color="trainingStore.totalReviewCount > 0 ? 'primary' : 'accent'"
+                :variant="trainingStore.totalReviewCount > 0 ? 'solid' : 'outlined'"
                 :class="{ 'is-active-btn': props.isOpen }"
                 class="full-width-btn"
               >

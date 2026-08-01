@@ -21,17 +21,15 @@ export function useTabsTransition(modelValue: Ref<string | number>, items: Ref<A
     if (contentWrapperRef.value) {
       const htmlEl = el as HTMLElement
       requestAnimationFrame(() => {
-        if (contentWrapperRef.value) {
+        if (contentWrapperRef.value)
           contentWrapperRef.value.style.height = `${htmlEl.offsetHeight}px`
-        }
       })
     }
   }
 
   function onAfterEnter() {
-    if (contentWrapperRef.value) {
+    if (contentWrapperRef.value)
       contentWrapperRef.value.style.height = 'auto'
-    }
   }
 
   return {

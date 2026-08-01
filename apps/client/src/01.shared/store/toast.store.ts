@@ -19,9 +19,8 @@ export const useToastStore = defineStore('toast', {
 
   actions: {
     add(message: Omit<Partial<ToastMessage>, 'id'>) {
-      if (this.messages.some(m => m.detail === message.detail && m.type === message.type)) {
+      if (this.messages.some(m => m.detail === message.detail && m.type === message.type))
         return
-      }
 
       const id = uuidv4()
       const defaults: ToastMessage = {
@@ -35,16 +34,14 @@ export const useToastStore = defineStore('toast', {
       const finalMessage = { ...defaults, ...message }
       this.messages.push(finalMessage)
 
-      if (finalMessage.expire > 0) {
+      if (finalMessage.expire > 0)
         setTimeout(() => this.remove(id), finalMessage.expire)
-      }
     },
 
     remove(id: string) {
       const index = this.messages.findIndex((m: { id: string }) => m.id === id)
-      if (index !== -1) {
+      if (index !== -1)
         this.messages.splice(index, 1)
-      }
     },
 
     success(detail: string, options: ToastOptions = {}) {

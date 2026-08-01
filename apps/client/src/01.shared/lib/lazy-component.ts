@@ -43,8 +43,11 @@ export function lazyComponent(loader: () => Promise<any>) {
 
       // Для других сетевых ошибок — делаем до 3 попыток перезапроса
       if (attempts <= 3) {
-        setTimeout(retry, 1000) // Ждем 1 секунду перед новой попыткой
+        setTimeout(retry, 1000)
       }
+
+      // Ждем 1 секунду перед новой попыткой
+
       else {
         const toast = useToastStore()
         toast.error('Ошибка загрузки компонента. Проверьте интернет-соединение.')

@@ -18,15 +18,15 @@ export class DefaultPluginRepository implements IPluginRepository {
   }
 
   async installPlugin(data: { pluginId: string, manifestUrl: string, settings?: string | null, isEnabled?: boolean }) {
-    return await api.plugins.installPlugin(data)
+    return api.plugins.installPlugin(data)
   }
 
   async updatePlugin(pluginId: string, data: { isEnabled?: boolean, settings?: string | null }) {
-    return await api.plugins.updatePlugin(pluginId, data)
+    return api.plugins.updatePlugin(pluginId, data)
   }
 
   async uninstallPlugin(pluginId: string) {
-    return await api.plugins.uninstallPlugin(pluginId)
+    return api.plugins.uninstallPlugin(pluginId)
   }
 }
 

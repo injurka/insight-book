@@ -27,6 +27,7 @@ function enqueue(fn: () => void) {
   if (window.umami) {
     fn()
   }
+
   else {
     queue.push(fn)
 

@@ -65,12 +65,11 @@ const speedOptions = [
 ]
 
 function previewVoice() {
-  if (isPlaying.value || isLoading.value) {
+  if (isPlaying.value || isLoading.value)
     stop()
-  }
-  else {
+
+  else
     speak(t('settings.previewVoiceText'), settingsStore.appLanguage || 'en')
-  }
 }
 </script>
 

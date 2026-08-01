@@ -10,10 +10,11 @@ import { useTts } from '~/01.shared/composables/use-tts'
 import { KitBtn } from '~/02.kit/index.ts'
 import { Flashcard } from '~/03.domain/entities/flashcard.entity.ts'
 import { PronunciationCheck } from '~/04.features/pronunciation-check'
+import { useDictionaryWords } from '../../../composables/use-dictionary-words'
 import { useFsrsScheduling } from '../../../composables/use-fsrs-scheduling.ts'
-import { useSrsQuiz } from '../../../composables/use-srs-quiz'
 
-import { useDictionaryStore } from '../../../store/dictionary.store'
+import { useSrsQuiz } from '../../../composables/use-srs-quiz'
+import { useTrainingStore } from '../../../store/training.store'
 
 import SrsCardToolbar from '../../partials/srs-card-toolbar.vue'
 import SrsModeAudio from './srs-modes/srs-mode-audio.vue'
@@ -36,7 +37,8 @@ const props = defineProps<Props>()
 const emit = defineEmits(['grade'])
 
 const repos = useRepos()
-const dictStore = useDictionaryStore()
+const trainingStore = useTrainingStore()
+const dictionaryWords = useDictionaryWords()
 const { speak, stop, isPlaying, isLoading } = useTts()
 const toast = useToast()
 const { t } = useI18n()
@@ -169,10 +171,10 @@ function initScramble() {
   if (/[\u4E00-\u9FA5]/.test(word) || word.length <= 6) {
     chunks = word.split('')
   }
+
   else {
-    for (let i = 0; i < word.length; i += 2) {
+    for (let i = 0; i < word.length; i += 2)
       chunks.push(word.substring(i, i + 2))
-    }
   }
   scrambleChunks.value = chunks.map((text, i) => ({ id: i, text })).sort(() => Math.random() - 0.5)
   scrambleAnswer.value = []
@@ -190,9 +192,8 @@ function handleScrambleChunkClick(chunk: { id: number, text: string }, from: 'so
     scrambleChunks.value.push(chunk)
   }
 
-  if (scrambleChunks.value.length === 0) {
+  if (scrambleChunks.value.length === 0)
     checkScramble()
-  }
 }
 
 function checkScramble() {
@@ -200,9 +201,8 @@ function checkScramble() {
   isAnswerChecked.value = true
   isAnswerCorrect.value = answerStr === props.card!.word
 
-  if (!isAnswerCorrect.value) {
+  if (!isAnswerCorrect.value)
     typoFeedback.value = t('dictionary.incorrectAnswer', { expected: props.card!.word })
-  }
 
   setTimeout(flip, 1200)
 }
@@ -213,12 +213,11 @@ async function initDeepDive(mode: 'collocations' | 'radicals') {
   try {
     const res = await repos.dictionary.generateDeepDive(props.card!.word, props.card!.language, mode)
     deepDiveData.value = res
-    if (mode === 'radicals') {
+    if (mode === 'radicals')
       selectedRadicals.value = []
-    }
-    else if (mode === 'collocations') {
+
+    else if (mode === 'collocations')
       choiceOptions.value = (res as any).options.map((text: string) => ({ text, isCorrect: text === (res as any).answer })).sort(() => Math.random() - 0.5)
-    }
   }
   catch {
     toast.error('Failed to load deep dive data')
@@ -233,12 +232,11 @@ function toggleRadical(rad: string) {
   if (isAnswerChecked.value)
     return
   const idx = selectedRadicals.value.indexOf(rad)
-  if (idx > -1) {
+  if (idx > -1)
     selectedRadicals.value.splice(idx, 1)
-  }
-  else {
+
+  else
     selectedRadicals.value.push(rad)
-  }
 }
 
 function checkRadicals() {
@@ -251,6 +249,98 @@ function checkRadicals() {
   isAnswerChecked.value = true
   isAnswerCorrect.value = isCorrect
   setTimeout(flip, 1500)
+}
+
+type SrsMode = 'standard' | 'audio' | 'writing' | 'typing' | 'choice' | 'choice-reverse' | 'scramble' | 'collocations' | 'radicals'
+
+function isZhCard(card: any): boolean {
+  if (!card)
+    return false
+  return card.language === 'zh' && !!card.word && /[\u4E00-\u9FA5]/.test(card.word)
+}
+
+function determineAvailableModes(): SrsMode[] {
+  const modesConfig = props.modes || {
+    'standard': true,
+    'audio': true,
+    'writing': false,
+    'typing': true,
+    'choice': true,
+    'choice-reverse': false,
+    'scramble': false,
+    'collocations': false,
+    'radicals': false,
+  }
+
+  const isZh = isZhCard(props.card)
+  const cardWord = props.card ? props.card.word : ''
+
+  const modeChecks: [SrsMode, boolean][] = [
+    ['standard', !!modesConfig.standard],
+    ['audio', !!modesConfig.audio && !!cardWord],
+    ['writing', !!modesConfig.writing && isZh],
+    ['typing', !!modesConfig.typing],
+    ['choice', !!modesConfig.choice],
+    ['choice-reverse', !!modesConfig['choice-reverse']],
+    ['scramble', !!modesConfig.scramble],
+    ['collocations', !!modesConfig.collocations],
+    ['radicals', !!modesConfig.radicals && isZh],
+  ]
+
+  const availableModes = modeChecks.filter(([_, isEnabled]) => isEnabled).map(([mode]) => mode)
+  return availableModes.length > 0 ? availableModes : ['standard']
+}
+
+function setupChoiceOptions(mode: 'choice' | 'choice-reverse') {
+  if (mode === 'choice') {
+    const correctTrans = props.card!.translation?.split(',')[0].split(';')[0].replace(/<[^>]+(>|$)/g, '').trim() || t('analysis.translation')
+    const distractors = generateDistractors(props.card!, dictionaryWords.value, 3)
+    const options = distractors.map(distractor => ({ text: distractor, isCorrect: false }))
+    options.push({ text: correctTrans, isCorrect: true })
+    choiceOptions.value = options.sort(() => 0.5 - Math.random())
+  }
+  else {
+    const correctWord = props.card!.word
+    const distractors = generateWordDistractors(props.card!, dictionaryWords.value, 3)
+    const options = distractors.map(distractor => ({ text: distractor, isCorrect: false }))
+    options.push({ text: correctWord, isCorrect: true })
+    choiceOptions.value = options.sort(() => 0.5 - Math.random())
+  }
+}
+
+function shouldUseChoiceMode(
+  mode: 'choice' | 'choice-reverse',
+  config: any,
+  available: SrsMode[],
+  isNew: boolean,
+): boolean {
+  if (!config[mode] || !available.includes(mode) || !isNew)
+    return false
+  return Math.random() > 0.3
+}
+
+function selectInitialMode(availableModes: SrsMode[]): SrsMode {
+  const modesConfig = props.modes || {}
+  const isNewCard = props.card ? new Flashcard(props.card).isNew() : false
+
+  if (shouldUseChoiceMode(
+    'choice',
+    modesConfig,
+    availableModes,
+    isNewCard,
+  )) {
+    return 'choice'
+  }
+  if (shouldUseChoiceMode(
+    'choice-reverse',
+    modesConfig,
+    availableModes,
+    isNewCard,
+  )) {
+    return 'choice-reverse'
+  }
+
+  return availableModes[Math.floor(Math.random() * availableModes.length)]
 }
 
 function initCard() {
@@ -267,86 +357,28 @@ function initCard() {
   if (!props.card)
     return
 
-  const modesConfig = props.modes || {
-    'standard': true,
-    'audio': true,
-    'writing': false,
-    'typing': true,
-    'choice': true,
-    'choice-reverse': false,
-    'scramble': false,
-    'collocations': false,
-    'radicals': false,
-  }
-  const availableModes: ('standard' | 'audio' | 'writing' | 'typing' | 'choice' | 'choice-reverse' | 'scramble' | 'collocations' | 'radicals')[] = []
+  const availableModes = determineAvailableModes()
+  currentMode.value = selectInitialMode(availableModes)
 
-  if (modesConfig.standard)
-    availableModes.push('standard')
-  if (modesConfig.audio && props.card.word)
-    availableModes.push('audio')
-  if (modesConfig.writing && props.card.language === 'zh' && props.card.word && /[\u4E00-\u9FA5]/.test(props.card.word))
-    availableModes.push('writing')
-  if (modesConfig.typing)
-    availableModes.push('typing')
-  if (modesConfig.choice)
-    availableModes.push('choice')
-  if (modesConfig['choice-reverse'])
-    availableModes.push('choice-reverse')
-  if (modesConfig.scramble)
-    availableModes.push('scramble')
-  if (modesConfig.collocations)
-    availableModes.push('collocations')
-  if (modesConfig.radicals && props.card.language === 'zh' && /[\u4E00-\u9FA5]/.test(props.card.word))
-    availableModes.push('radicals')
-
-  if (availableModes.length === 0)
-    availableModes.push('standard')
-
-  if (modesConfig.choice && availableModes.includes('choice') && new Flashcard(props.card).isNew() && Math.random() > 0.3) {
-    currentMode.value = 'choice'
-  }
-  else if (modesConfig['choice-reverse'] && availableModes.includes('choice-reverse') && new Flashcard(props.card).isNew() && Math.random() > 0.3) {
-    currentMode.value = 'choice-reverse'
-  }
-  else {
-    currentMode.value = availableModes[Math.floor(Math.random() * availableModes.length)]
-  }
-
-  if (currentMode.value === 'choice') {
-    const correctTrans = props.card.translation?.split(',')[0].split(';')[0].replace(/<[^>]+(>|$)/g, '').trim() || t('analysis.translation')
-    const distractors = generateDistractors(props.card, dictStore.words, 3)
-    const options = distractors.map(d => ({ text: d, isCorrect: false }))
-    options.push({ text: correctTrans, isCorrect: true })
-    choiceOptions.value = options.sort(() => 0.5 - Math.random())
-  }
-  else if (currentMode.value === 'choice-reverse') {
-    const correctWord = props.card.word
-    const distractors = generateWordDistractors(props.card, dictStore.words, 3)
-    const options = distractors.map(d => ({ text: d, isCorrect: false }))
-    options.push({ text: correctWord, isCorrect: true })
-    choiceOptions.value = options.sort(() => 0.5 - Math.random())
-  }
-  else if (currentMode.value === 'scramble') {
+  if (currentMode.value === 'choice' || currentMode.value === 'choice-reverse')
+    setupChoiceOptions(currentMode.value)
+  else if (currentMode.value === 'scramble')
     initScramble()
-  }
-  else if (currentMode.value === 'collocations' || currentMode.value === 'radicals') {
+  else if (currentMode.value === 'collocations' || currentMode.value === 'radicals')
     initDeepDive(currentMode.value)
-  }
 
   if (currentMode.value === 'audio') {
     setTimeout(() => {
-      if (props.card?.word) {
+      if (props.card?.word)
         speak(props.card.word, props.card.language)
-      }
     }, 300)
   }
 }
 
 function flip() {
   isFlipped.value = true
-  if (currentMode.value !== 'audio' && props.card?.word) {
+  if (currentMode.value !== 'audio' && props.card?.word)
     speak(props.card.word, props.card.language)
-  }
 }
 
 function submitTyping() {
@@ -363,6 +395,7 @@ function submitTyping() {
   else if (isTypo) {
     typoFeedback.value = t('dictionary.almostCorrectTypo', { expected: props.card.word })
   }
+
   else {
     isAnswerCorrect.value = false
     isAnswerChecked.value = true
@@ -471,7 +504,7 @@ watch(() => props.card, initCard, { immediate: true })
     </template>
 
     <div v-else-if="intervals" class="grade-buttons fade-in">
-      <template v-if="dictStore.trainingMode === 'deep_dive'">
+      <template v-if="trainingStore.trainingMode === 'deep_dive'">
         <button
           class="grade-btn primary"
           :class="{ 'is-suggested': isAnswerChecked && isAnswerCorrect }"
@@ -481,7 +514,7 @@ watch(() => props.card, initCard, { immediate: true })
           <span class="g-label">{{ t('dictionary.next') }}</span>
         </button>
       </template>
-      <template v-else-if="dictStore.trainingMode === 'cram'">
+      <template v-else-if="trainingStore.trainingMode === 'cram'">
         <button
           class="grade-btn error"
           :class="{ 'is-suggested': isAnswerChecked && !isAnswerCorrect }"

@@ -26,7 +26,7 @@ export class DefaultAnalysisRepository implements IAnalysisRepository {
     language: string,
     signal?: AbortSignal,
   ) {
-    return await api.books.checkCache(
+    return api.books.checkCache(
       bookId,
       items,
       language,
@@ -40,7 +40,7 @@ export class DefaultAnalysisRepository implements IAnalysisRepository {
     language: string,
     signal?: AbortSignal,
   ) {
-    return await api.books.analyzeBatch(
+    return api.books.analyzeBatch(
       bookId,
       items,
       language,
@@ -79,7 +79,7 @@ export class DefaultAnalysisRepository implements IAnalysisRepository {
   }
 
   async lookupWord(bookId: number, word: string, signal?: AbortSignal) {
-    return await api.books.lookupWord(bookId, word, signal)
+    return api.books.lookupWord(bookId, word, signal)
   }
 
   async generateTts(
@@ -88,7 +88,7 @@ export class DefaultAnalysisRepository implements IAnalysisRepository {
     voice: string,
     signal?: AbortSignal,
   ) {
-    return await api.books.generateTts(
+    return api.books.generateTts(
       bookId,
       text,
       voice,
@@ -102,7 +102,7 @@ export class DefaultAnalysisRepository implements IAnalysisRepository {
     signal?: AbortSignal,
     forceCacheBypass?: boolean,
   ) {
-    return await api.tts.generate(
+    return api.tts.generate(
       text,
       voice,
       signal,
@@ -122,7 +122,7 @@ export class DefaultAnalysisRepository implements IAnalysisRepository {
   }
 
   async getLocalTts(cacheKey: string) {
-    return await offlineService.getTtsBlob(cacheKey)
+    return offlineService.getTtsBlob(cacheKey)
   }
 
   async saveLocalTts(cacheKey: string, audioBase64: string) {

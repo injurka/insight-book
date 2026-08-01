@@ -83,13 +83,13 @@ export class DefaultPushRepository implements IPushRepository {
   async getNativeFcmToken() {
     if (!isTauri())
       return null
-    return await invoke<string | null>('get_fcm_token').catch(() => null)
+    return invoke<string | null>('get_fcm_token').catch(() => null)
   }
 
   async requestNativeFcmToken() {
     if (!isTauri())
       throw new Error('Not running in Tauri')
-    return await invoke<string>('request_fcm_token')
+    return invoke<string>('request_fcm_token')
   }
 
   async unsubscribeNativeFcm() {

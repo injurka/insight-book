@@ -26,12 +26,11 @@ export function useDialogSwipe({
     onSwipeEnd: () => {
       if (isMobile.value && !isFloating.value && direction.value === 'down') {
         if (swipeOffset.value > 100) {
-          if (isMinimizable.value) {
+          if (isMinimizable.value)
             isMinimized.value = true
-          }
-          else {
+
+          else
             visible.value = false
-          }
         }
         else {
           isSnappingBack.value = true

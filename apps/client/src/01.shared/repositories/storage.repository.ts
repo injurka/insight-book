@@ -18,11 +18,11 @@ export class DefaultStorageRepository implements IStorageRepository {
   }
 
   async requestPersistentStorage() {
-    return await offlineService.requestPersistentStorage()
+    return offlineService.requestPersistentStorage()
   }
 
   async getCacheStats() {
-    return await offlineService.getCacheStats()
+    return offlineService.getCacheStats()
   }
 
   async clearBookCache(bookId: number) {

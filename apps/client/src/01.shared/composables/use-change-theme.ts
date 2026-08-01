@@ -28,9 +28,9 @@ export function useChangeTheme() {
   const preferredDark = usePreferredDark()
 
   function getActualTheme(value: ThemesVariant) {
-    if (value === ThemesVariant.System) {
+    if (value === ThemesVariant.System)
       return preferredDark.value ? ThemesVariant.Dark : ThemesVariant.Light
-    }
+
     return value
   }
 

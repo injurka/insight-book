@@ -39,9 +39,9 @@ function openRenameDeck(id: number, currentName: string) {
 }
 
 async function onRenameDeckSubmit(newName: string) {
-  if (renameDeckTarget.value && newName.trim() && newName !== renameDeckTarget.value.name) {
+  if (renameDeckTarget.value && newName.trim() && newName !== renameDeckTarget.value.name)
     await store.updateDeck(renameDeckTarget.value.id, newName.trim())
-  }
+
   renameDeckTarget.value = null
 }
 
@@ -51,9 +51,9 @@ function openDeleteDeck(id: number, name: string) {
 }
 
 async function onDeleteDeckConfirm() {
-  if (deleteDeckTarget.value) {
+  if (deleteDeckTarget.value)
     await store.deleteDeck(deleteDeckTarget.value.id, deleteMode.value)
-  }
+
   isDeleteConfirmOpen.value = false
   deleteDeckTarget.value = null
   deleteMode.value = 'keep'

@@ -32,23 +32,21 @@ const matchingHighlight = computed(() => {
   if (!book)
     return null
 
-  return highlightsStore.highlights.find((h) => {
-    const hNorm = normalizeString(h.text)
-    return Number(h.bookId) === Number(book.id) && (rawNorm === hNorm || (hNorm.length >= 2 && (rawNorm.includes(hNorm) || hNorm.includes(rawNorm))))
+  return highlightsStore.highlights.find((item) => {
+    const hNorm = normalizeString(item.text)
+    return Number(item.bookId) === Number(book.id) && (rawNorm === hNorm || (hNorm.length >= 2 && (rawNorm.includes(hNorm) || hNorm.includes(rawNorm))))
   })
 })
 
 watch(() => analysisStore.sidebarSentence, () => {
   showHistory.value = false
-  if (isPlaying.value || isLoading.value) {
+  if (isPlaying.value || isLoading.value)
     stop()
-  }
 })
 
 watch(() => analysisStore.sidebarOpen, (isOpen) => {
-  if (!isOpen && (isPlaying.value || isLoading.value)) {
+  if (!isOpen && (isPlaying.value || isLoading.value))
     stop()
-  }
 })
 
 function loadHistoryItem(item: AnalysisHistoryItem) {
@@ -60,12 +58,11 @@ function playTTS() {
   if (!analysisStore.sidebarSentence)
     return
 
-  if (isPlaying.value || isLoading.value) {
+  if (isPlaying.value || isLoading.value)
     stop()
-  }
-  else {
+
+  else
     speak(analysisStore.sidebarSentence)
-  }
 }
 
 const isSaveModalOpen = ref(false)
@@ -103,30 +100,29 @@ async function toggleHighlight() {
   isSaveModalOpen.value = true
 }
 
+function getChapterTitle(pageNum: number): string | null {
+  if (!readerStore.currentToc || !readerStore.currentToc.length)
+    return null
+  let currentItem = null
+  for (const item of readerStore.currentToc) {
+    if (item.pageNum !== undefined && item.pageNum <= pageNum) {
+      if (!currentItem || item.pageNum > (currentItem.pageNum || 0))
+        currentItem = item
+    }
+  }
+  return currentItem ? currentItem.title : null
+}
+
 async function handleSaveQuote(data: { text: string, translation: string, note: string, color: string, analysisData?: LlmAnalysis | null }) {
   const book = readerStore.currentBook || libraryStore.currentBookInfo
-  if (!book)
+  if (!book || isSavingHighlight.value)
     return
 
-  if (isSavingHighlight.value)
-    return
   isSavingHighlight.value = true
 
   try {
     const pageNum = readerStore.currentPage?.pageNum || 1
-
-    let chapter: string | null = null
-    if (readerStore.currentToc && readerStore.currentToc.length) {
-      let currentItem = null
-      for (const item of readerStore.currentToc) {
-        if (item.pageNum !== undefined && item.pageNum <= pageNum) {
-          if (!currentItem || item.pageNum > (currentItem.pageNum || 0)) {
-            currentItem = item
-          }
-        }
-      }
-      chapter = currentItem ? currentItem.title : null
-    }
+    const chapter = getChapterTitle(pageNum)
 
     await highlightsStore.createHighlight({
       bookId: book.id,

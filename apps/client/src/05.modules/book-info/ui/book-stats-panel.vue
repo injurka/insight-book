@@ -66,9 +66,8 @@ watch(() => libraryStore.syncState, (val) => {
   if (val === 'finished') {
     cacheStore.loadStats()
     // После успешной синхронизации (которая могла перевести фразы) обновляем текущую инфу о книге
-    if (libraryStore.currentBookInfo) {
+    if (libraryStore.currentBookInfo)
       libraryStore.fetchBookInfo(libraryStore.currentBookInfo.id)
-    }
   }
 })
 

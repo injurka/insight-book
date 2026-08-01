@@ -3,7 +3,7 @@ import { Icon } from '@iconify/vue'
 import { useI18n } from 'vue-i18n'
 import { KitBtn } from '~/02.kit'
 import { useSrsQuiz } from '../../../composables/use-srs-quiz'
-import { useDictionaryStore } from '../../../store/dictionary.store'
+import { useTrainingStore } from '../../../store/training.store'
 
 defineOptions({
   inheritAttrs: false,
@@ -19,7 +19,7 @@ interface Props {
   timeSpentMs: number
 }
 
-const dictStore = useDictionaryStore()
+const trainingStore = useTrainingStore()
 const { formatTime } = useSrsQuiz()
 const { t } = useI18n()
 </script>
@@ -27,7 +27,7 @@ const { t } = useI18n()
 <template>
   <div class="finished-state">
     <h2>{{ t('dictionary.greatJob') }}</h2>
-    <p v-if="dictStore.trainingMode === 'srs'">
+    <p v-if="trainingStore.trainingMode === 'srs'">
       {{ t('dictionary.reviewedAll') }}
     </p>
     <p v-else>

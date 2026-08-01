@@ -115,9 +115,8 @@ describe('kit-toast-item.vue', () => {
     expect(el.getAttribute('style')).toContain('transform: translateX(-100px)')
 
     // End swipe
-    if (mockSwipeState.onSwipeEnd) {
+    if (mockSwipeState.onSwipeEnd)
       mockSwipeState.onSwipeEnd()
-    }
 
     expect(wrapper.emitted('remove')).toBeTruthy()
   })
@@ -133,9 +132,8 @@ describe('kit-toast-item.vue', () => {
     mockSwipeState.direction.value = 'left'
     await nextTick()
 
-    if (mockSwipeState.onSwipeEnd) {
+    if (mockSwipeState.onSwipeEnd)
       mockSwipeState.onSwipeEnd()
-    }
 
     expect(wrapper.emitted('remove')).toBeFalsy()
   })
@@ -151,9 +149,8 @@ describe('kit-toast-item.vue', () => {
     mockSwipeState.direction.value = 'up'
     await nextTick()
 
-    if (mockSwipeState.onSwipeEnd) {
+    if (mockSwipeState.onSwipeEnd)
       mockSwipeState.onSwipeEnd()
-    }
 
     expect(wrapper.emitted('remove')).toBeFalsy()
   })
@@ -165,7 +162,7 @@ describe('kit-toast-item.vue', () => {
 
     // We try to call handleAction directly if exposed, to cover the branch
     if ('handleAction' in wrapper.vm) {
-      ;(wrapper.vm as any).handleAction()
+      ;(wrapper.vm).handleAction()
       expect(wrapper.emitted('remove')).toBeFalsy()
     }
   })

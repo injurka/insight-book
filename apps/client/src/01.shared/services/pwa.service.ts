@@ -17,14 +17,14 @@ function initializePwaUpdater(pinia: Pinia): void {
     needRefresh,
     updateServiceWorker,
   } = useRegisterSW({
-    onRegistered(r) {
-      if (r) {
+    onRegistered(registration) {
+      if (registration) {
         setInterval(async () => {
           try {
-            if (r.installing || !navigator.onLine)
+            if (registration.installing || !navigator.onLine)
               return
 
-            await r.update()
+            await registration.update()
           }
           catch (error) {
             console.warn('SW update check failed:', error)

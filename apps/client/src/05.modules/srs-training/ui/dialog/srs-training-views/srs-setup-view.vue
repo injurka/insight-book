@@ -6,7 +6,10 @@ import { useI18n } from 'vue-i18n'
 import { pluginManager } from '~/00.plugins/plugin-manager'
 import { DIFFICULTY_SYSTEMS } from '~/01.shared/constants/difficulties'
 import { KitBtn, KitSelect } from '~/02.kit'
-import { useDictionaryStore } from '../../../store/dictionary.store'
+import { useDecksStore } from '~/05.modules/dictionary/store/decks.store'
+import { useDictionaryFiltersStore } from '~/05.modules/dictionary/store/dictionary-filters.store'
+import { useDictionaryWords } from '../../../composables/use-dictionary-words'
+import { useTrainingStore } from '../../../store/training.store'
 
 defineOptions({
   inheritAttrs: false,
@@ -16,12 +19,15 @@ const emit = defineEmits(['start', 'close'])
 
 const customTrainingModes = computed(() => pluginManager.getWidgets('dictionary:training-modes'))
 
-const dictStore = useDictionaryStore()
+const trainingStore = useTrainingStore()
+const decksStore = useDecksStore()
+const filtersStore = useDictionaryFiltersStore()
+const dictionaryWords = useDictionaryWords()
 const { t } = useI18n()
 
 const setupOptions = reactive({
-  deckId: (Array.isArray(dictStore.selectedDeckId) ? (dictStore.selectedDeckId.length === 1 ? dictStore.selectedDeckId[0] : 'all') : dictStore.selectedDeckId) as number | 'all' | 'none',
-  difficulty: (Array.isArray(dictStore.selectedDifficulty) ? [...dictStore.selectedDifficulty] : [dictStore.selectedDifficulty]) as string[],
+  deckId: (Array.isArray(filtersStore.selectedDeckId) ? (filtersStore.selectedDeckId.length === 1 ? filtersStore.selectedDeckId[0] : 'all') : filtersStore.selectedDeckId) as number | 'all' | 'none',
+  difficulty: (Array.isArray(filtersStore.selectedDifficulty) ? [...filtersStore.selectedDifficulty] : [filtersStore.selectedDifficulty]) as string[],
 })
 
 const modes = reactive({
@@ -38,19 +44,19 @@ const modes = reactive({
 
 const currentLang = computed(() => {
   if (setupOptions.deckId !== 'all' && setupOptions.deckId !== 'none') {
-    const deck = dictStore.decks.find(d => d.id === setupOptions.deckId)
+    const deck = decksStore.decks.find(d => d.id === setupOptions.deckId)
     if (deck)
       return deck.language
   }
-  return dictStore.selectedLanguage !== 'all' ? dictStore.selectedLanguage : 'all'
+  return filtersStore.selectedLanguage !== 'all' ? filtersStore.selectedLanguage : 'all'
 })
 
 const showWritingMode = computed(() => {
-  const hasChinese = dictStore.words.some(c => c.language === 'zh' && /[\u4E00-\u9FA5]/.test(c.word || ''))
+  const hasChinese = dictionaryWords.value.some(c => c.language === 'zh' && /[\u4E00-\u9FA5]/.test(c.word || ''))
   return currentLang.value === 'zh' && hasChinese
 })
 
-watch(() => dictStore.trainingMode, () => {
+watch(() => trainingStore.trainingMode, () => {
   (Object.keys(modes) as Array<keyof typeof modes>).forEach((key) => {
     modes[key] = false
   })
@@ -68,10 +74,9 @@ const deckOptions = computed(() => {
     { label: t('dictionary.allDecks'), value: 'all' },
     { label: t('dictionary.noDeck'), value: 'none' },
   ]
-  dictStore.decks.forEach((d) => {
-    if (dictStore.selectedLanguage === 'all' || d.language === dictStore.selectedLanguage) {
+  decksStore.decks.forEach((d) => {
+    if (filtersStore.selectedLanguage === 'all' || d.language === filtersStore.selectedLanguage)
       opts.push({ label: d.name, value: d.id })
-    }
   })
   return opts
 })
@@ -85,22 +90,20 @@ const difficultyOptions = computed(() => {
 })
 
 watch(deckOptions, (newOpts) => {
-  if (!newOpts.some(o => o.value === setupOptions.deckId)) {
+  if (!newOpts.some(o => o.value === setupOptions.deckId))
     setupOptions.deckId = 'all'
-  }
 })
 
 watch(difficultyOptions, (newOpts) => {
   setupOptions.difficulty = setupOptions.difficulty.filter(d => newOpts.some(o => o.value === d))
-  if (setupOptions.difficulty.length === 0) {
+  if (setupOptions.difficulty.length === 0)
     setupOptions.difficulty = ['all']
-  }
 })
 
 function start() {
   const selectedModes = { ...modes }
 
-  if (dictStore.trainingMode === 'match') {
+  if (trainingStore.trainingMode === 'match') {
     emit('start', { ...setupOptions, modes: selectedModes })
     return
   }
@@ -108,12 +111,11 @@ function start() {
   const hasAnyMode = Object.values(selectedModes).some(Boolean)
 
   if (!hasAnyMode) {
-    if (dictStore.trainingMode === 'deep_dive') {
+    if (trainingStore.trainingMode === 'deep_dive')
       selectedModes.scramble = true
-    }
-    else {
+
+    else
       selectedModes.standard = true
-    }
   }
 
   emit('start', { ...setupOptions, modes: selectedModes })
@@ -142,11 +144,11 @@ function start() {
     <div class="settings-group">
       <label class="group-label">{{ t('dictionary.trainingModes') }}</label>
 
-      <div v-if="dictStore.trainingMode === 'match'" class="empty-modes-message">
+      <div v-if="trainingStore.trainingMode === 'match'" class="empty-modes-message">
         {{ t('dictionary.noExtraModesForMatch') }}
       </div>
       <div v-else class="modes-grid">
-        <template v-if="dictStore.trainingMode !== 'deep_dive'">
+        <template v-if="trainingStore.trainingMode !== 'deep_dive'">
           <div class="mode-card" :class="{ 'is-active': modes.standard }" @click="modes.standard = !modes.standard">
             <Icon icon="mdi:card-text-outline" class="mode-icon" />
             <span class="mode-title">{{ t('dictionary.reading') }}</span>

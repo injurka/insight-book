@@ -5,9 +5,8 @@ let locale = 'ru'
 
 try {
   const saved = localStorage.getItem('global-app-language')
-  if (saved) {
+  if (saved)
     locale = saved.replace(/^"|"$/g, '')
-  }
 }
 catch {
   // Игнорируем ошибки парсинга
@@ -26,9 +25,8 @@ const localeLoaders = import.meta.glob<{ default: Record<string, unknown> }>('..
 
 export async function loadLanguageAsync(lang: string) {
   // 1. Если язык уже установлен, ничего не делаем
-  if (i18n.global.locale.value === lang && loadedLocales.has(lang)) {
+  if (i18n.global.locale.value === lang && loadedLocales.has(lang))
     return nextTick()
-  }
 
   // 2. Если язык уже загружался ранее, просто переключаем локаль
   if (loadedLocales.has(lang)) {
@@ -41,9 +39,8 @@ export async function loadLanguageAsync(lang: string) {
   try {
     const loader = localeLoaders[`../01.shared/locales/${lang}.json`]
 
-    if (!loader) {
+    if (!loader)
       throw new Error(`Неизвестная локаль: ${lang}`)
-    }
 
     const messages = await loader()
 

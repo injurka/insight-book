@@ -22,9 +22,8 @@ export function useDialogHistory(dialogId: string, visible: Ref<boolean>) {
 
     // Закрываем только ту модалку, которая находится на самом верху стека
     if (openModalsStack[openModalsStack.length - 1] === dialogId) {
-      if (visible.value) {
+      if (visible.value)
         visible.value = false
-      }
     }
   }
 

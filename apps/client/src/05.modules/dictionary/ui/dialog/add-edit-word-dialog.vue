@@ -28,9 +28,8 @@ const isDeckPromptOpen = ref(false)
 const isAutoFilling = ref(false)
 
 watch(() => analysisStore.addEditWordModalOpen, async (isOpen) => {
-  if (isOpen) {
+  if (isOpen)
     await dictStore.fetchDecks()
-  }
 })
 
 function handleSave() {
@@ -38,15 +37,13 @@ function handleSave() {
 }
 
 function handleDelete() {
-  if (localWord.value.word) {
+  if (localWord.value.word)
     analysisStore.removeFromDict(localWord.value.word)
-  }
 }
 
 function playTTS() {
-  if (localWord.value.word) {
+  if (localWord.value.word)
     speak(localWord.value.word, localWord.value.language)
-  }
 }
 
 function openCreateDeckPrompt() {
@@ -74,19 +71,11 @@ async function autoFillWithAI() {
 
   try {
     const res = await repos.dictionary.autoFillWord(localWord.value.word, lang)
-
-    if (res.transcription)
-      localWord.value.transcription = res.transcription
-    if (res.translation)
-      localWord.value.translation = res.translation
-    if (res.difficulty)
-      localWord.value.difficulty = res.difficulty
-    if (res.tags)
-      localWord.value.tags = res.tags
-    if (res.grammarNote)
-      localWord.value.grammarNote = res.grammarNote
-    if (res.vocabularyNote)
-      localWord.value.vocabularyNote = res.vocabularyNote
+    const fields = ['transcription', 'translation', 'difficulty', 'tags', 'grammarNote', 'vocabularyNote'] as const
+    for (const field of fields) {
+      if (res[field])
+        (localWord.value as any)[field] = res[field]
+    }
 
     toast.success(t('dictionary.fieldsAutoFilled'))
   }
@@ -99,12 +88,11 @@ async function autoFillWithAI() {
 }
 
 watch(() => analysisStore.wordToEdit, (newWord) => {
-  if (newWord) {
+  if (newWord)
     localWord.value = { ...newWord }
-  }
-  else {
+
+  else
     localWord.value = {}
-  }
 }, { deep: true })
 
 const deckIdsModel = computed<(string | number)[]>({
@@ -114,12 +102,11 @@ const deckIdsModel = computed<(string | number)[]>({
     return localWord.value.deckIds
   },
   set: (val) => {
-    if (val.includes('none')) {
+    if (val.includes('none'))
       localWord.value.deckIds = []
-    }
-    else {
+
+    else
       localWord.value.deckIds = val.map(Number)
-    }
   },
 })
 
@@ -127,8 +114,8 @@ const deckOptions = computed(() => {
   if (!localWord.value.language)
     return [{ label: t('dictionary.noDeckGeneral'), value: 'none' }]
   const opts: SelectOption[] = [{ label: t('dictionary.noDeckGeneral'), value: 'none' }]
-  const langDecks = dictStore.decks.filter(d => d.language === localWord.value.language)
-  langDecks.forEach(d => opts.push({ label: d.name, value: d.id }))
+  const langDecks = dictStore.decks.filter(deckItem => deckItem.language === localWord.value.language)
+  langDecks.forEach(deckItem => opts.push({ label: deckItem.name, value: deckItem.id }))
   return opts
 })
 

@@ -23,12 +23,11 @@ interface Props {
 function onInput(e: Event) {
   const val = (e.target as HTMLInputElement).value
 
-  if (props.type === 'number') {
+  if (props.type === 'number')
     modelValue.value = val === '' ? null : Number(val)
-  }
-  else {
+
+  else
     modelValue.value = val
-  }
 }
 </script>
 

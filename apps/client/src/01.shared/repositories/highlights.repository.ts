@@ -28,36 +28,35 @@ export class DefaultHighlightsRepository implements IHighlightsRepository {
     try {
       const raw = await api.highlights.list(bookId)
       const data = applyAcl(z.array(HighlightSchema), raw, 'highlights.list()')
-      if (bookId) {
+      if (bookId)
         await offlineService.saveHighlights(bookId, data as any).catch(() => {})
-      }
+
       return data
     }
     catch (error) {
       if (bookId) {
         const offlineData = await offlineService.getHighlights(bookId)
-        if (offlineData) {
+        if (offlineData)
           return applyAcl(z.array(HighlightSchema), offlineData, 'highlights.list() [offline]')
-        }
       }
       throw error
     }
   }
 
   async create(data: Parameters<IHighlightsRepository['create']>[0]): Promise<Highlight> {
-    return await api.highlights.create(data) as any
+    return api.highlights.create(data)
   }
 
   async update(id: number, data: any): Promise<Highlight> {
-    return await api.highlights.update(id, data) as any
+    return api.highlights.update(id, data)
   }
 
   async delete(id: number): Promise<{ success: boolean }> {
-    return await api.highlights.delete(id)
+    return api.highlights.delete(id)
   }
 
   async saveLocalHighlights(bookId: number, highlights: Highlight[]) {
-    await offlineService.saveHighlights(bookId, highlights as any)
+    await offlineService.saveHighlights(bookId, highlights)
   }
 }
 

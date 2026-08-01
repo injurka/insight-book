@@ -95,24 +95,21 @@ function handleOverlayClick(event: MouseEvent) {
 }
 
 function handleKeydown(event: KeyboardEvent) {
-  if (event.key === 'Escape' && visible.value && !props.persistent) {
+  if (event.key === 'Escape' && visible.value && !props.persistent)
     visible.value = false
-  }
 }
 
 watch([visible, isMinimized, () => props.floating], ([isOpen, isMin, isFloating]) => {
   if (typeof window === 'undefined')
     return
-  if (isOpen && !isMin && !isFloating) {
+  if (isOpen && !isMin && !isFloating)
     document.body.style.setProperty('overflow', 'hidden')
-  }
-  else {
-    document.body.style.removeProperty('overflow')
-  }
 
-  if (isOpen && !hasResized.value) {
+  else
+    document.body.style.removeProperty('overflow')
+
+  if (isOpen && !hasResized.value)
     resetResize()
-  }
 }, { immediate: true })
 
 const { registerBackHandler } = useBackHandler()

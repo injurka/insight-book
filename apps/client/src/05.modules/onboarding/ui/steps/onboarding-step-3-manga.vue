@@ -23,9 +23,8 @@ let wordTimer: ReturnType<typeof setTimeout> | null = null
 
 onMounted(() => {
   bubbleTimer = setTimeout(() => {
-    if (currentStep.value === 0) {
+    if (currentStep.value === 0)
       showBubbleHint.value = true
-    }
   }, 3000)
 })
 

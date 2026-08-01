@@ -64,9 +64,8 @@ export function useGlider(switcherRef: Ref<HTMLElement | null>) {
   }
 
   onUnmounted(() => {
-    if (observer) {
+    if (observer)
       observer.disconnect()
-    }
   })
 
   return {

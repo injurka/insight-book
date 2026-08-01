@@ -49,9 +49,8 @@ export interface IDictionaryRepository {
 export class DefaultDictionaryRepository implements IDictionaryRepository {
   async list(): Promise<UserDictItem[]> {
     const authStore = useAuthStore()
-    if (!authStore.user && !authStore.isSingleMode) {
+    if (!authStore.user && !authStore.isSingleMode)
       return []
-    }
 
     try {
       const raw = await api.dictionary.list()
@@ -68,7 +67,7 @@ export class DefaultDictionaryRepository implements IDictionaryRepository {
   }
 
   async remove(word: string) {
-    return await api.dictionary.remove(word)
+    return api.dictionary.remove(word)
   }
 
   async saveLocalDictionary(words: UserDictItem[]) {
@@ -77,9 +76,8 @@ export class DefaultDictionaryRepository implements IDictionaryRepository {
 
   async getDecks(): Promise<DictDeck[]> {
     const authStore = useAuthStore()
-    if (!authStore.user && !authStore.isSingleMode) {
+    if (!authStore.user && !authStore.isSingleMode)
       return []
-    }
 
     try {
       const raw = await api.dictionary.decks()
@@ -96,15 +94,15 @@ export class DefaultDictionaryRepository implements IDictionaryRepository {
   }
 
   async createDeck(data: { name: string, language: string }) {
-    return await api.dictionary.createDeck(data)
+    return api.dictionary.createDeck(data)
   }
 
   async updateDeck(id: number, data: { name: string }) {
-    return await api.dictionary.updateDeck(id, data)
+    return api.dictionary.updateDeck(id, data)
   }
 
   async deleteDeck(id: number, mode: 'keep' | 'delete_all' | 'delete_exclusive') {
-    return await api.dictionary.deleteDeck(id, mode)
+    return api.dictionary.deleteDeck(id, mode)
   }
 
   async saveLocalDecks(decks: DictDeck[]) {
@@ -112,11 +110,11 @@ export class DefaultDictionaryRepository implements IDictionaryRepository {
   }
 
   async bulkDelete(ids: number[]) {
-    return await api.dictionary.bulkDelete(ids)
+    return api.dictionary.bulkDelete(ids)
   }
 
   async bulkMove(ids: number[], deckIds: number[]) {
-    return await api.dictionary.bulkMove(ids, deckIds)
+    return api.dictionary.bulkMove(ids, deckIds)
   }
 
   async getReviewQueue(opts: { lang: string, mode: 'srs' | 'random' | 'deep_dive' | 'cram' | 'match', deckId?: number | 'all' | 'none', difficulty?: string }) {
@@ -130,14 +128,14 @@ export class DefaultDictionaryRepository implements IDictionaryRepository {
   }
 
   async upsert(item: Partial<UserDictItem>) {
-    return await api.dictionary.upsert(item)
+    return api.dictionary.upsert(item)
   }
 
-  async autoFillWord(word: string, lang: string) { return await api.dictionary.autoFillWord(word, lang) }
-  async generateExamples(word: string, lang: string) { return await api.dictionary.generateExamples(word, lang) }
-  async generateDeepDive(word: string, lang: string, mode: 'collocations' | 'radicals') { return await api.dictionary.generateDeepDive(word, lang, mode) }
-  async submitReview(id: number, grade: number) { return await api.dictionary.submitReview(id, grade) }
-  async importCsv(data: unknown) { return await api.dictionary.importCsv(data) }
+  async autoFillWord(word: string, lang: string) { return api.dictionary.autoFillWord(word, lang) }
+  async generateExamples(word: string, lang: string) { return api.dictionary.generateExamples(word, lang) }
+  async generateDeepDive(word: string, lang: string, mode: 'collocations' | 'radicals') { return api.dictionary.generateDeepDive(word, lang, mode) }
+  async submitReview(id: number, grade: number) { return api.dictionary.submitReview(id, grade) }
+  async importCsv(data: unknown) { return api.dictionary.importCsv(data) }
   async catalog() {
     const raw = await api.dictionary.catalog()
     return applyAcl(z.array(CatalogDeckSchema), raw, 'dictionary.catalog()')
@@ -148,17 +146,17 @@ export class DefaultDictionaryRepository implements IDictionaryRepository {
     return applyAcl(z.array(CatalogWordSchema), raw, `dictionary.catalogWords(${deckId})`)
   }
 
-  async cloneCatalog(id: number) { return await api.dictionary.cloneCatalog(id) }
-  async chat(payload: { word: string, language: string, customPromptId?: number, userPromptText?: string }) { return await api.dictionary.chat(payload) }
+  async cloneCatalog(id: number) { return api.dictionary.cloneCatalog(id) }
+  async chat(payload: { word: string, language: string, customPromptId?: number, userPromptText?: string }) { return api.dictionary.chat(payload) }
   async promptsList() {
     const raw = await api.dictionary.promptsList()
     return applyAcl(z.array(PromptItemSchema), raw, 'dictionary.promptsList()')
   }
 
-  async promptsCreate(payload: { name: string, prompt: string }) { return await api.dictionary.promptsCreate(payload) }
-  async promptsUpdate(id: number, payload: { name?: string, prompt?: string }) { return await api.dictionary.promptsUpdate(id, payload) }
-  async promptsDelete(id: number) { return await api.dictionary.promptsDelete(id) }
-  async checkPronunciation(word: string, lang: string, audioBlob: Blob) { return await api.dictionary.checkPronunciation(word, lang, audioBlob) }
+  async promptsCreate(payload: { name: string, prompt: string }) { return api.dictionary.promptsCreate(payload) }
+  async promptsUpdate(id: number, payload: { name?: string, prompt?: string }) { return api.dictionary.promptsUpdate(id, payload) }
+  async promptsDelete(id: number) { return api.dictionary.promptsDelete(id) }
+  async checkPronunciation(word: string, lang: string, audioBlob: Blob) { return api.dictionary.checkPronunciation(word, lang, audioBlob) }
 }
 
 export const dictionaryRepository: IDictionaryRepository = new DefaultDictionaryRepository()

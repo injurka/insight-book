@@ -5,9 +5,8 @@ import { ref } from 'vue'
 export const useGlobalSettingsStore = defineStore('globalSettings', () => {
   const appLanguage = useLocalStorage<string>('global-app-language', 'ru')
 
-  if (appLanguage.value.startsWith('"') && appLanguage.value.endsWith('"')) {
+  if (appLanguage.value.startsWith('"') && appLanguage.value.endsWith('"'))
     appLanguage.value = appLanguage.value.replace(/^"|"$/g, '')
-  }
 
   const translationPriority = useLocalStorage<'dict' | 'llm'>('global-translation-priority', 'llm')
   const ttsSpeed = useLocalStorage<number>('global-tts-speed', 1)

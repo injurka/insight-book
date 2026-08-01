@@ -22,9 +22,9 @@ function urlBase64ToUint8Array(base64String: string) {
   const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/')
   const rawData = window.atob(base64)
   const outputArray = new Uint8Array(rawData.length)
-  for (let i = 0; i < rawData.length; ++i) {
+  for (let i = 0; i < rawData.length; ++i)
     outputArray[i] = rawData.charCodeAt(i)
-  }
+
   return outputArray
 }
 
@@ -51,9 +51,8 @@ export const usePwaStore = defineStore('pwa', {
 
     async triggerUpdate() {
       try {
-        if (this.updateServiceWorker) {
+        if (this.updateServiceWorker)
           await this.updateServiceWorker(true)
-        }
       }
       catch (error) {
         console.error('Failed to trigger update:', error)
@@ -74,49 +73,10 @@ export const usePwaStore = defineStore('pwa', {
       const token = localStorage.getItem('insight_token')
 
       if (isTauri()) {
-        try {
-          const fcmToken = await repos.push.getNativeFcmToken()
-          this.isPushSubscribed = !!fcmToken
-
-          if (this.isPushSubscribed && fcmToken && token) {
-            repos.push.subscribeFcm(fcmToken).catch(() => { })
-          }
-        }
-        catch (e) {
-          console.warn('FCM plugin error', e)
-        }
+        await this.checkNativePushStatus(token)
       }
       else {
-        if ('permissions' in navigator) {
-          navigator.permissions.query({ name: 'notifications' as PermissionName }).then((status) => {
-            status.onchange = () => {
-              if (status.state === 'denied' || status.state === 'prompt') {
-                this.isPushSubscribed = false
-              }
-              else if (status.state === 'granted') {
-                this.checkPushStatus()
-              }
-            }
-          }).catch(() => {})
-        }
-
-        if ('serviceWorker' in navigator && 'PushManager' in window) {
-          try {
-            const reg = await navigator.serviceWorker.ready
-            const sub = await reg.pushManager.getSubscription()
-            const hasPermission = Notification.permission === 'granted'
-
-            this.isPushSubscribed = !!sub && hasPermission
-
-            // Синхронизируем свежие ключи с бэкендом, если подписка активна
-            if (this.isPushSubscribed && sub && token) {
-              repos.push.subscribeWeb(sub).catch(() => { })
-            }
-          }
-          catch (e) {
-            console.warn('Web Push status check failed', e)
-          }
-        }
+        await this.checkWebPushStatus(token)
       }
 
       // Sync timezone if changed
@@ -132,112 +92,171 @@ export const usePwaStore = defineStore('pwa', {
       }
     },
 
+    async checkNativePushStatus(token: string | null) {
+      try {
+        const fcmToken = await repos.push.getNativeFcmToken()
+        this.isPushSubscribed = !!fcmToken
+        if (this.isPushSubscribed && fcmToken && token)
+          repos.push.subscribeFcm(fcmToken).catch(() => { })
+      }
+      catch (e) {
+        console.warn('FCM plugin error', e)
+      }
+    },
+
+    async checkWebPushStatus(token: string | null) {
+      if ('permissions' in navigator) {
+        navigator.permissions.query({ name: 'notifications' }).then((status) => {
+          status.onchange = () => {
+            if (status.state === 'denied' || status.state === 'prompt')
+              this.isPushSubscribed = false
+            else if (status.state === 'granted')
+              this.checkPushStatus()
+          }
+        }).catch(() => { })
+      }
+
+      if ('serviceWorker' in navigator && 'PushManager' in window) {
+        try {
+          const reg = await navigator.serviceWorker.ready
+          const sub = await reg.pushManager.getSubscription()
+          const hasPermission = Notification.permission === 'granted'
+          this.isPushSubscribed = !!sub && hasPermission
+          if (this.isPushSubscribed && sub && token)
+            repos.push.subscribeWeb(sub).catch(() => { })
+        }
+        catch (e) {
+          console.warn('Web Push status check failed', e)
+        }
+      }
+    },
+
     async togglePushSubscription() {
       const toast = useToastStore()
       const t = i18n.global.t
 
       if (isTauri()) {
-        if (this.isPushSubscribed) {
-          const fcmToken = await repos.push.getNativeFcmToken()
-          if (fcmToken) {
-            await repos.push.unsubscribeFcm(fcmToken)
-            await repos.push.unsubscribeNativeFcm()
-          }
-          this.isPushSubscribed = false
-          toast.info(t('settings.pushDisabled'))
-        }
-        else {
-          try {
-            const fcmToken = await repos.push.requestNativeFcmToken()
-            if (!fcmToken)
-              throw new Error('No FCM token returned')
-
-            await repos.push.subscribeFcm(fcmToken)
-
-            this.isPushSubscribed = true
-            toast.success(t('settings.pushEnabled'))
-
-            const authStore = useAuthStore()
-            this.updatePushSettings({
-              deckId: authStore.user?.pushTargetDeckId ?? 'all',
-              timeStart: authStore.user?.pushTimeStart ?? '10:00',
-              timeEnd: authStore.user?.pushTimeEnd ?? '21:00',
-              pushCount: authStore.user?.pushCount ?? 1,
-            }).catch(console.error)
-          }
-          catch (e: any) {
-            toast.error(`${t('settings.pushSubError')}: ${e.message || e}`)
-            throw e
-          }
-        }
+        await this.toggleNativePush(toast, t)
         return
       }
 
+      await this.toggleWebPush(toast, t)
+    },
+
+    initSubscribedSettings() {
+      const authStore = useAuthStore()
+      this.updatePushSettings({
+        deckId: authStore.user?.pushTargetDeckId ?? 'all',
+        timeStart: authStore.user?.pushTimeStart ?? '10:00',
+        timeEnd: authStore.user?.pushTimeEnd ?? '21:00',
+        pushCount: authStore.user?.pushCount ?? 1,
+      }).catch(console.error)
+    },
+
+    async subscribeNativePush(toast: any, t: any) {
+      try {
+        const fcmToken = await repos.push.requestNativeFcmToken()
+        if (!fcmToken)
+          throw new Error('No FCM token returned')
+
+        await repos.push.subscribeFcm(fcmToken)
+
+        this.isPushSubscribed = true
+        toast.success(t('settings.pushEnabled'))
+
+        this.initSubscribedSettings()
+      }
+      catch (e: any) {
+        toast.error(`${t('settings.pushSubError')}: ${e.message || e}`)
+        throw e
+      }
+    },
+
+    async toggleNativePush(toast: any, t: any) {
+      if (this.isPushSubscribed) {
+        const fcmToken = await repos.push.getNativeFcmToken()
+        if (fcmToken) {
+          await repos.push.unsubscribeFcm(fcmToken)
+          await repos.push.unsubscribeNativeFcm()
+        }
+        this.isPushSubscribed = false
+        toast.info(t('settings.pushDisabled'))
+        return
+      }
+
+      await this.subscribeNativePush(toast, t)
+    },
+
+    async fetchVapidKey(toast: any, t: any): Promise<string> {
+      let publicKey: string
+      try {
+        publicKey = await repos.push.getVapidPublicKey()
+      }
+      catch (e) {
+        toast.error(t('settings.pushKeyError'))
+        throw e
+      }
+
+      if (!publicKey) {
+        toast.error(t('settings.pushKeyError') || 'VAPID key missing')
+        throw new Error('No public key')
+      }
+      return publicKey
+    },
+
+    async subscribeWebPush(toast: any, t: any, reg: ServiceWorkerRegistration) {
+      const permission = await Notification.requestPermission()
+      if (permission === 'denied') {
+        toast.error(t('settings.pushDenied'))
+        throw new Error('Permission denied')
+      }
+
+      const publicKey = await this.fetchVapidKey(toast, t)
+
+      let sub: PushSubscription
+      try {
+        sub = await reg.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(publicKey),
+        })
+      }
+      catch (e: unknown) {
+        toast.error(`${t('settings.pushSubError')}: ${(e as Error).message}`)
+        throw e
+      }
+
+      try {
+        await repos.push.subscribeWeb(sub)
+      }
+      catch (e) {
+        toast.error(t('settings.pushSubError'))
+        throw e
+      }
+
+      this.isPushSubscribed = true
+      toast.success(t('settings.pushEnabled'))
+
+      this.initSubscribedSettings()
+    },
+
+    async toggleWebPush(toast: any, t: any) {
       if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
         toast.error(t('settings.pushNotSupported'))
         throw new Error('Push not supported')
       }
 
       const reg = await navigator.serviceWorker.ready
-      let sub = await reg.pushManager.getSubscription()
+      const sub = await reg.pushManager.getSubscription()
 
       if (sub) {
         await sub.unsubscribe()
         await repos.push.unsubscribeWeb(sub.endpoint)
         this.isPushSubscribed = false
         toast.info(t('settings.pushDisabled'))
+        return
       }
-      else {
-        const permission = await Notification.requestPermission()
-        if (permission === 'denied') {
-          toast.error(t('settings.pushDenied'))
-          throw new Error('Permission denied')
-        }
 
-        let publicKey: string
-        try {
-          publicKey = await repos.push.getVapidPublicKey()
-        }
-        catch (e) {
-          toast.error(t('settings.pushKeyError'))
-          throw e
-        }
-
-        if (!publicKey) {
-          toast.error(t('settings.pushKeyError') || 'VAPID key missing')
-          throw new Error('No public key')
-        }
-
-        try {
-          sub = await reg.pushManager.subscribe({
-            userVisibleOnly: true,
-            applicationServerKey: urlBase64ToUint8Array(publicKey),
-          })
-        }
-        catch (e: unknown) {
-          toast.error(`${t('settings.pushSubError')}: ${(e as Error).message}`)
-          throw e
-        }
-
-        try {
-          await repos.push.subscribeWeb(sub)
-        }
-        catch (e) {
-          toast.error(t('settings.pushSubError'))
-          throw e
-        }
-
-        this.isPushSubscribed = true
-        toast.success(t('settings.pushEnabled'))
-
-        const authStore = useAuthStore()
-        this.updatePushSettings({
-          deckId: authStore.user?.pushTargetDeckId ?? 'all',
-          timeStart: authStore.user?.pushTimeStart ?? '10:00',
-          timeEnd: authStore.user?.pushTimeEnd ?? '21:00',
-          pushCount: authStore.user?.pushCount ?? 1,
-        }).catch(console.error)
-      }
+      await this.subscribeWebPush(toast, t, reg)
     },
 
     async updatePushSettings(settings: { deckId: number | 'all', timeStart: string, timeEnd: string, pushCount: number }) {

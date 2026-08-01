@@ -57,7 +57,7 @@ const showSubscriptionTiers = ref(false)
       <div class="tiers-toggle-bar">
         <KitBtn
           :icon="showSubscriptionTiers ? 'mdi:chevron-up' : 'mdi:view-grid-plus-outline'"
-          variant="outline"
+          variant="outlined"
           class="toggle-tiers-btn"
           @click="showSubscriptionTiers = !showSubscriptionTiers"
         >

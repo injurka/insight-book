@@ -24,19 +24,18 @@ export const useHighlightsStore = defineStore('highlights', () => {
       const id = currentBookId.value
       if (id === null)
         return []
-      return await repos.highlights.list(id)
+      return repos.highlights.list(id)
     },
     enabled: () => currentBookId.value !== null,
   })
 
   // Map highlights.value to the query result using a watch watcher
   watch(highlightsData, (newData) => {
-    if (newData) {
+    if (newData)
       highlights.value = [...newData]
-    }
-    else {
+
+    else
       highlights.value = []
-    }
   }, { immediate: true })
 
   // Map isLoading to isQueryLoading
@@ -55,16 +54,16 @@ export const useHighlightsStore = defineStore('highlights', () => {
   }
 
   const { mutateAsync: createHighlightMutation } = useMutation({
-    mutation: (data: Parameters<typeof repos.highlights.create>[0]) => repos.highlights.create(data),
+    mutation: async (data: Parameters<typeof repos.highlights.create>[0]) => repos.highlights.create(data),
     async onSuccess(newHighlight, variables) {
       const bookId = newHighlight.bookId || variables.bookId
 
       // Update local state and save offline
-      const exists = highlights.value.some(h => h.id === newHighlight.id)
-      if (!exists) {
-        highlights.value.push(newHighlight as any)
-      }
-      await repos.highlights.saveLocalHighlights(bookId, highlights.value as any)
+      const exists = highlights.value.some(item => item.id === newHighlight.id)
+      if (!exists)
+        highlights.value.push(newHighlight)
+
+      await repos.highlights.saveLocalHighlights(bookId, highlights.value)
 
       // Invalidate queries
       queryCache.invalidateQueries({ key: queryKeys.highlights(bookId) })
@@ -72,16 +71,16 @@ export const useHighlightsStore = defineStore('highlights', () => {
   })
 
   const { mutateAsync: deleteHighlightMutation } = useMutation({
-    mutation: (id: number) => repos.highlights.delete(id),
+    mutation: async (id: number) => repos.highlights.delete(id),
     async onSuccess(_, id) {
-      const bookId = highlights.value.find(h => h.id === id)?.bookId || currentBookId.value
+      const bookId = highlights.value.find(item => item.id === id)?.bookId || currentBookId.value
 
       // Update local state
-      highlights.value = highlights.value.filter(h => h.id !== id)
+      highlights.value = highlights.value.filter(item => item.id !== id)
 
       // Save offline
       if (bookId !== null) {
-        await repos.highlights.saveLocalHighlights(bookId, highlights.value as any)
+        await repos.highlights.saveLocalHighlights(bookId, highlights.value)
 
         // Invalidate queries
         queryCache.invalidateQueries({ key: queryKeys.highlights(bookId) })

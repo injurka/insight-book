@@ -52,9 +52,8 @@ async function fetchActivity() {
 }
 
 watch(visible, (isOpen) => {
-  if (isOpen) {
+  if (isOpen)
     fetchActivity()
-  }
 })
 
 defineExpose({ fetchActivity })

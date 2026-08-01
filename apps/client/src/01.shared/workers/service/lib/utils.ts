@@ -49,9 +49,8 @@ class AssetAnalyzer {
 
     if (this.cache.size >= 1000) {
       const oldestKey = this.cache.keys().next().value
-      if (oldestKey) {
+      if (oldestKey)
         this.cache.delete(oldestKey)
-      }
     }
 
     this.cache.set(url, type)
@@ -67,9 +66,9 @@ const safeCachePlugin: WorkboxPlugin = {
       return null
     if (response.type === 'error')
       return null
-    if (response.type !== 'opaque' && response.headers.has('vary') && response.headers.get('vary')?.includes('*')) {
+    if (response.type !== 'opaque' && response.headers.has('vary') && response.headers.get('vary')?.includes('*'))
       return null
-    }
+
     return response
   },
 }
@@ -138,24 +137,22 @@ class CacheStrategyFactory {
 
 class ServiceWorkerMonitor {
   static trackCacheHit(cacheName: string, url: string) {
-    if (import.meta.env.DEV) {
+    if (import.meta.env.DEV)
       console.log(`🎯 Cache HIT: ${cacheName} - ${url}`)
-    }
   }
 
   static trackCacheMiss(cacheName: string, url: string) {
-    if (import.meta.env.DEV) {
+    if (import.meta.env.DEV)
       console.log(`❌ Cache MISS: ${cacheName} - ${url}`)
-    }
   }
 }
 
 function createMonitoringPlugin(cacheName: string): WorkboxPlugin {
   return {
     cachedResponseWillBeUsed: async ({ request, cachedResponse }) => {
-      if (cachedResponse) {
+      if (cachedResponse)
         ServiceWorkerMonitor.trackCacheHit(cacheName, request.url)
-      }
+
       return cachedResponse
     },
     fetchDidSucceed: async ({ request, response }) => {
@@ -177,7 +174,7 @@ async function getCacheInfo(): Promise<CacheInfo[]> {
 
         let totalSize = 0
         if (import.meta.env.DEV) {
-          const responses = await Promise.all(keys.slice(0, 10).map(req => cache.match(req)))
+          const responses = await Promise.all(keys.slice(0, 10).map(async req => cache.match(req)))
           totalSize = responses.reduce((sum, response) => {
             return sum + (response?.headers.get('content-length')
               ? Number.parseInt(response.headers.get('content-length')!)

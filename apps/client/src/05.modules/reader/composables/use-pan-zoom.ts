@@ -124,9 +124,8 @@ export function usePanZoom(containerRef: Ref<HTMLElement | null>, wrapperRef: Re
   }
 
   function handleTouchEnd(e: TouchEvent) {
-    if (e.touches.length < 2) {
+    if (e.touches.length < 2)
       isPinching.value = false
-    }
 
     if (e.touches.length >= 2) {
       isPinching.value = true
@@ -181,9 +180,8 @@ export function usePanZoom(containerRef: Ref<HTMLElement | null>, wrapperRef: Re
   }
 
   function handleMouseUp() {
-    if (isPanning.value) {
+    if (isPanning.value)
       isPanning.value = false
-    }
   }
 
   function attachListeners(el: HTMLElement) {

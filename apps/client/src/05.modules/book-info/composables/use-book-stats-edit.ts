@@ -16,9 +16,8 @@ function parseDescriptionJson(raw: string | undefined): Record<DescLang, string>
   try {
     const parsed = JSON.parse(raw)
     if (typeof parsed === 'object' && parsed !== null) {
-      for (const lang of DESCRIPTION_LANGS) {
+      for (const lang of DESCRIPTION_LANGS)
         result[lang] = parsed[lang] || ''
-      }
     }
     else {
       // Plain string — put into all langs
@@ -54,7 +53,7 @@ export function useBookStatsEdit(isEditingStats: Ref<boolean>) {
   const editForm = reactive({
     difficulty: '',
     tags: '',
-    descriptionByLang: { ru: '', en: '', zh: '' } as Record<DescLang, string>,
+    descriptionByLang: { ru: '', en: '', zh: '' },
   })
 
   const currentDifficultyOptions = computed(() => {
@@ -93,9 +92,8 @@ export function useBookStatsEdit(isEditingStats: Ref<boolean>) {
       return []
     try {
       const parsed = JSON.parse(raw)
-      if (typeof parsed === 'object' && parsed !== null) {
+      if (typeof parsed === 'object' && parsed !== null)
         return DESCRIPTION_LANGS.filter(l => parsed[l]?.trim())
-      }
     }
     catch { /* plain string */ }
     return raw.trim() ? ['ru'] : []

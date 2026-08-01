@@ -19,23 +19,23 @@ export class DefaultAuthRepository implements IAuthRepository {
   }
 
   async login(credentials: AuthLoginDto) {
-    return await api.auth.login(credentials)
+    return api.auth.login(credentials)
   }
 
   async sendCode(data: AuthSendCodeDto) {
-    return await api.auth.sendCode(data)
+    return api.auth.sendCode(data)
   }
 
   async register(data: AuthRegisterDto) {
-    return await api.auth.register(data)
+    return api.auth.register(data)
   }
 
   async updateAvatar(file: File) {
-    return await api.auth.updateAvatar(file)
+    return api.auth.updateAvatar(file)
   }
 
   async updateUsername(username: string) {
-    return await api.auth.updateUsername(username)
+    return api.auth.updateUsername(username)
   }
 }
 

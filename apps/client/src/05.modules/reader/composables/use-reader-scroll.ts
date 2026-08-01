@@ -8,17 +8,35 @@ export function useReaderScroll(saveScrollPosition: () => void, closeBubblePopov
   let lastScrollY = 0
   let scrollAccumulator = 0
 
-  function onScroll(e: Event) {
-    if (analysisStore.wordPopover) {
-      analysisStore.closePopover()
-    }
-    if (analysisStore.selectionTooltip) {
-      analysisStore.closeSelectionTooltip()
+  function updateHeaderVisibility(currentY: number, delta: number) {
+    if (currentY < 80) {
+      isHeaderVisible.value = true
+      scrollAccumulator = 0
+      return
     }
 
-    if (closeBubblePopover) {
-      closeBubblePopover()
+    if ((delta > 0 && scrollAccumulator < 0) || (delta < 0 && scrollAccumulator > 0))
+      scrollAccumulator = 0
+
+    scrollAccumulator += delta
+
+    if (scrollAccumulator > 50) {
+      isHeaderVisible.value = false
+      scrollAccumulator = 50
     }
+    else if (scrollAccumulator < -50) {
+      isHeaderVisible.value = true
+      scrollAccumulator = -50
+    }
+  }
+
+  function onScroll(e: Event) {
+    if (analysisStore.wordPopover)
+      analysisStore.closePopover()
+    if (analysisStore.selectionTooltip)
+      analysisStore.closeSelectionTooltip()
+    if (closeBubblePopover)
+      closeBubblePopover()
 
     saveScrollPosition()
 
@@ -27,25 +45,7 @@ export function useReaderScroll(saveScrollPosition: () => void, closeBubblePopov
     const delta = currentY - lastScrollY
     lastScrollY = currentY
 
-    if (currentY < 80) {
-      isHeaderVisible.value = true
-      scrollAccumulator = 0
-    }
-    else {
-      if ((delta > 0 && scrollAccumulator < 0) || (delta < 0 && scrollAccumulator > 0)) {
-        scrollAccumulator = 0
-      }
-      scrollAccumulator += delta
-
-      if (scrollAccumulator > 50) {
-        isHeaderVisible.value = false
-        scrollAccumulator = 50
-      }
-      else if (scrollAccumulator < -50) {
-        isHeaderVisible.value = true
-        scrollAccumulator = -50
-      }
-    }
+    updateHeaderVisibility(currentY, delta)
   }
 
   return {

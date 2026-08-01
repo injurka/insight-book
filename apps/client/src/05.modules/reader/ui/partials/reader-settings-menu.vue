@@ -27,12 +27,11 @@ const { isFullscreen, toggle: toggleFullscreen } = useFullscreen()
 
 function openPageAnalysisModal() {
   emit('closeDropdown')
-  if (analysisStore.isManualPageAnalysisActive) {
+  if (analysisStore.isManualPageAnalysisActive)
     analysisStore.isPageAnalysisModalOpen = true
-  }
-  else {
+
+  else
     analysisStore.isPageAnalysisSetupModalOpen = true
-  }
 }
 
 function togglePriority() {
@@ -46,26 +45,23 @@ function cycleTtsSpeed() {
 }
 
 function previewVoice() {
-  if (isPlaying.value || isLoading.value) {
+  if (isPlaying.value || isLoading.value)
     stop()
-  }
-  else {
+
+  else
     speak(t('settings.previewVoiceText'), settingsStore.appLanguage || 'en')
-  }
 }
 
 function adjustFontSize(delta: number) {
   const newSize = settingsStore.readerFontSize + delta
-  if (newSize >= 0.8 && newSize <= 3.0) {
+  if (newSize >= 0.8 && newSize <= 3.0)
     settingsStore.readerFontSize = Number(newSize.toFixed(1))
-  }
 }
 
 function adjustLineHeight(delta: number) {
   const newHeight = settingsStore.readerLineHeight + delta
-  if (newHeight >= 1.0 && newHeight <= 3.0) {
+  if (newHeight >= 1.0 && newHeight <= 3.0)
     settingsStore.readerLineHeight = Number(newHeight.toFixed(1))
-  }
 }
 
 function adjustBrightness(delta: number) {

@@ -20,9 +20,9 @@ export function useReaderContent() {
 
   const translationMap = computed(() => {
     const map: Record<string, any> = {}
-    for (const item of analysisStore.analysisHistory) {
+    for (const item of analysisStore.analysisHistory)
       map[item.sentence] = item.analysis
-    }
+
     return map
   })
 
@@ -34,6 +34,66 @@ export function useReaderContent() {
     })
   })
 
+  function buildGrammarHtml(rules?: any[]): string {
+    if (!settingsStore.parallelShowGrammar || !rules || rules.length === 0)
+      return ''
+    const badges = rules.map((rule: any) => {
+      const patternEscaped = encodeURIComponent(rule.pattern || '')
+      const explanationEscaped = encodeURIComponent(rule.explanation || '')
+      const exampleEscaped = encodeURIComponent(rule.example || '')
+      return `<span class="grammar-rule-badge" data-pattern="${patternEscaped}" data-explanation="${explanationEscaped}" data-example="${exampleEscaped}">${escapeHtml(rule.pattern)}</span>`
+    }).join('')
+    return `<span class="grammar-rules-container">${badges}</span>`
+  }
+
+  function processLeftSpan(
+    span: Element,
+    rawSent: string,
+    sentId: string,
+    map: Record<string, any>,
+    translatedSentIds: Set<string>,
+  ) {
+    if (settingsStore.showSentenceTtsButton && rawSent) {
+      const ttsBtnHtml = `<button class="sentence-tts-btn" data-tts-text="${encodeURIComponent(rawSent)}" type="button"><svg class="icon-play" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="1em" height="1em" fill="currentColor"><path d="M14,3.23V5.29C16.89,6.15 19,8.83 19,12C19,15.17 16.89,17.85 14,18.71V20.77C18.03,19.86 21,16.28 21,12C21,7.72 18.03,4.14 14,3.23M16.5,12C16.5,10.23 15.5,8.71 14,7.97V16C15.5,15.29 16.5,13.77 16.5,12M3,9V15H7L12,20V4L7,9H3Z"/></svg><svg class="icon-playing" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="1em" height="1em" fill="currentColor"><path d="M18,18H6V6H18V18Z"/></svg></button>`
+      span.insertAdjacentHTML('beforeend', ttsBtnHtml)
+    }
+
+    if (settingsStore.parallelViewMode === 'interleaved' && map[rawSent] && !translatedSentIds.has(sentId)) {
+      const blurClass = settingsStore.parallelBlurTranslation ? 'is-blurred' : ''
+      const analysisObj = map[rawSent]
+      const grammarHtml = buildGrammarHtml(analysisObj.grammarRules)
+      const translationHtml = `<span class="interleaved-translation ${blurClass}" onclick="this.classList.remove('is-blurred')"><span class="translation-text">${escapeHtml(analysisObj.translation || '')}</span>${grammarHtml}</span>`
+      span.insertAdjacentHTML('afterend', translationHtml)
+      translatedSentIds.add(sentId)
+    }
+  }
+
+  function processRightSpan(
+    span: Element,
+    rawSent: string,
+    sentId: string,
+    map: Record<string, any>,
+    translatedSentIds: Set<string>,
+  ) {
+    if (map[rawSent]) {
+      const analysisObj = map[rawSent]
+      if (translatedSentIds.has(sentId)) {
+        span.innerHTML = '';
+        (span as any).style.display = 'none'
+      }
+      else {
+        const blurClass = settingsStore.parallelBlurTranslation ? 'is-blurred' : ''
+        const grammarHtml = buildGrammarHtml(analysisObj.grammarRules)
+        span.innerHTML = `<span class="split-translation ${blurClass}" onclick="this.classList.remove('is-blurred')"><span class="translation-text">${escapeHtml(analysisObj.translation || '')}</span>${grammarHtml}</span>`
+        span.classList.add('has-translation')
+        translatedSentIds.add(sentId)
+      }
+    }
+    else {
+      span.innerHTML = `<span class="untranslated-text">${span.innerHTML}</span>`
+    }
+  }
+
   function applyTranslations(doc: Document, map: Record<string, any>, mode: 'left' | 'right') {
     const translatedSentIds = new Set<string>()
 
@@ -42,62 +102,22 @@ export function useReaderContent() {
       const sentId = span.getAttribute('data-sent-id') || ''
 
       if (mode === 'left') {
-        if (settingsStore.showSentenceTtsButton && rawSent) {
-          const ttsBtnHtml = `<button class="sentence-tts-btn" data-tts-text="${encodeURIComponent(rawSent)}" type="button"><svg class="icon-play" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="1em" height="1em" fill="currentColor"><path d="M14,3.23V5.29C16.89,6.15 19,8.83 19,12C19,15.17 16.89,17.85 14,18.71V20.77C18.03,19.86 21,16.28 21,12C21,7.72 18.03,4.14 14,3.23M16.5,12C16.5,10.23 15.5,8.71 14,7.97V16C15.5,15.29 16.5,13.77 16.5,12M3,9V15H7L12,20V4L7,9H3Z"/></svg><svg class="icon-playing" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="1em" height="1em" fill="currentColor"><path d="M18,18H6V6H18V18Z"/></svg></button>`
-          span.insertAdjacentHTML('beforeend', ttsBtnHtml)
-        }
-
-        if (settingsStore.parallelViewMode === 'interleaved' && map[rawSent] && !translatedSentIds.has(sentId)) {
-          const blurClass = settingsStore.parallelBlurTranslation ? 'is-blurred' : ''
-          const analysisObj = map[rawSent]
-          const translationText = analysisObj.translation || ''
-
-          let grammarHtml = ''
-          if (settingsStore.parallelShowGrammar && analysisObj.grammarRules && analysisObj.grammarRules.length > 0) {
-            const badges = analysisObj.grammarRules.map((rule: any) => {
-              const patternEscaped = encodeURIComponent(rule.pattern || '')
-              const explanationEscaped = encodeURIComponent(rule.explanation || '')
-              const exampleEscaped = encodeURIComponent(rule.example || '')
-              return `<span class="grammar-rule-badge" data-pattern="${patternEscaped}" data-explanation="${explanationEscaped}" data-example="${exampleEscaped}">${escapeHtml(rule.pattern)}</span>`
-            }).join('')
-            grammarHtml = `<span class="grammar-rules-container">${badges}</span>`
-          }
-
-          const translationHtml = `<span class="interleaved-translation ${blurClass}" onclick="this.classList.remove('is-blurred')"><span class="translation-text">${escapeHtml(translationText)}</span>${grammarHtml}</span>`
-          span.insertAdjacentHTML('afterend', translationHtml)
-          translatedSentIds.add(sentId)
-        }
+        processLeftSpan(
+          span,
+          rawSent,
+          sentId,
+          map,
+          translatedSentIds,
+        )
       }
       else if (mode === 'right') {
-        if (map[rawSent]) {
-          const analysisObj = map[rawSent]
-          const translationText = analysisObj.translation || ''
-          if (translatedSentIds.has(sentId)) {
-            span.innerHTML = '';
-            (span as any).style.display = 'none'
-          }
-          else {
-            const blurClass = settingsStore.parallelBlurTranslation ? 'is-blurred' : ''
-
-            let grammarHtml = ''
-            if (settingsStore.parallelShowGrammar && analysisObj.grammarRules && analysisObj.grammarRules.length > 0) {
-              const badges = analysisObj.grammarRules.map((rule: any) => {
-                const patternEscaped = encodeURIComponent(rule.pattern || '')
-                const explanationEscaped = encodeURIComponent(rule.explanation || '')
-                const exampleEscaped = encodeURIComponent(rule.example || '')
-                return `<span class="grammar-rule-badge" data-pattern="${patternEscaped}" data-explanation="${explanationEscaped}" data-example="${exampleEscaped}">${escapeHtml(rule.pattern)}</span>`
-              }).join('')
-              grammarHtml = `<span class="grammar-rules-container">${badges}</span>`
-            }
-
-            span.innerHTML = `<span class="split-translation ${blurClass}" onclick="this.classList.remove('is-blurred')"><span class="translation-text">${escapeHtml(translationText)}</span>${grammarHtml}</span>`
-            span.classList.add('has-translation')
-            translatedSentIds.add(sentId)
-          }
-        }
-        else {
-          span.innerHTML = `<span class="untranslated-text">${span.innerHTML}</span>`
-        }
+        processRightSpan(
+          span,
+          rawSent,
+          sentId,
+          map,
+          translatedSentIds,
+        )
       }
     })
   }
@@ -121,9 +141,9 @@ export function useReaderContent() {
   })
 
   const parallelTranslations = computed(() => {
-    if (settingsStore.parallelViewMode === 'none' || !readerStore.currentPage?.ocrBlocks) {
+    if (settingsStore.parallelViewMode === 'none' || !readerStore.currentPage?.ocrBlocks)
       return []
-    }
+
     const map = translationMap.value
     const parser = new DOMParser()
 

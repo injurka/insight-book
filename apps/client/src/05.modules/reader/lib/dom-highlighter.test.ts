@@ -74,8 +74,8 @@ describe('collectQuoteRanges', () => {
     ])
 
     expect(rangesByColor.size).toBe(2)
-    expect(rangesByColor.get('#fde047')!.map(r => r.toString())).toEqual(['hello'])
-    expect(rangesByColor.get('#86efac')!.map(r => r.toString())).toEqual(['world'])
+    expect(rangesByColor.get('#fde047')!.map(rangeItem => rangeItem.toString())).toEqual(['hello'])
+    expect(rangesByColor.get('#86efac')!.map(rangeItem => rangeItem.toString())).toEqual(['world'])
   })
 
   it('applies the default color when the quote has none', () => {
@@ -96,7 +96,7 @@ describe('collectQuoteRanges', () => {
 
     // normalized quote is a substring of sentence s1 -> range is found
     const ranges = collectQuoteRanges(root, [{ text: 'hello' }])
-    expect(ranges.get('#fde047')!.map(r => r.toString())).toEqual(['hello'])
+    expect(ranges.get('#fde047')!.map(rangeItem => rangeItem.toString())).toEqual(['hello'])
   })
 
   it('returns an empty map for empty input', () => {

@@ -92,7 +92,7 @@ export function isNativeTransitionRoute(name: unknown): boolean {
  * и морф элементов с совпадающим `view-transition-name`).
  */
 export function setupViewTransitions(router: Router): void {
-  router.beforeResolve((to, from) => {
+  router.beforeResolve(async (to, from) => {
     const isSamePage = to.path === from.path // смена query/hash на той же странице — без анимации
     const isTransitionRoute = TRANSITION_ROUTES.includes(to.name as AppRouteNames)
       && TRANSITION_ROUTES.includes(from.name as AppRouteNames)
@@ -100,13 +100,11 @@ export function setupViewTransitions(router: Router): void {
     // Обложка «перелетает» только между библиотекой и страницей книги.
     // При уходе на другие маршруты флаг сбрасываем, чтобы карточка
     // не сохраняла `view-transition-name` без надобности.
-    if (!isTransitionRoute) {
+    if (!isTransitionRoute)
       coverTransitionBookId.value = null
-    }
 
-    if (!isViewTransitionSupported() || reduceMotionQuery.matches || !from.name || isSamePage || !isTransitionRoute) {
+    if (!isViewTransitionSupported() || reduceMotionQuery.matches || !from.name || isSamePage || !isTransitionRoute)
       return true
-    }
 
     return new Promise<boolean>((resolve) => {
       let resolved = false
@@ -127,9 +125,8 @@ export function setupViewTransitions(router: Router): void {
           // Страница книги: ждём данные (с коротким таймаутом), чтобы снапшот
           // содержал финальную раскладку, а не скелетон. Пока ждём, страница
           // заморожена — поэтому таймаут маленький (см. BOOK_INFO_WAIT_TIMEOUT).
-          if (to.name === AppRouteNames.BookInfo) {
+          if (to.name === AppRouteNames.BookInfo)
             await waitForBookInfoReady(Number(to.params.id))
-          }
         })
 
         // Страховка: пока колбэк перехода не завершится, рендеринг страницы

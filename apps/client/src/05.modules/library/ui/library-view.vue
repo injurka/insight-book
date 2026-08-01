@@ -53,9 +53,9 @@ const isUploadModalOpen = ref(false)
 const publicTagFilter = ref('all')
 const tagOptions = computed(() => {
   const opts = [{ label: t('library.allTags'), value: 'all' }]
-  for (const [key, val] of Object.entries(BOOK_TAGS)) {
+  for (const [key, val] of Object.entries(BOOK_TAGS))
     opts.push({ label: val[settingsStore.appLanguage as keyof typeof val] || val.en, value: key })
-  }
+
   return opts
 })
 
@@ -75,16 +75,14 @@ function loadMorePublic() {
 }
 
 watch([searchQuery, selectedLang, publicTagFilter], () => {
-  if (currentView.value === 'public-catalog') {
+  if (currentView.value === 'public-catalog')
     loadPublic(1)
-  }
 })
 
 watch(currentView, (val) => {
   activeFolder.value = null
-  if (val === 'public-catalog' && store.publicBooks.length === 0) {
+  if (val === 'public-catalog' && store.publicBooks.length === 0)
     loadPublic(1)
-  }
 })
 
 const menuItems = computed(() => {
@@ -99,9 +97,9 @@ const menuItems = computed(() => {
     items.push({ id: 'series', label: t('library.menuSeries'), icon: 'mdi:folder-outline' })
     items.push({ id: 'collections', label: t('library.menuCollections'), icon: 'mdi:bookshelf' })
   }
-  if (!authStore.isSingleMode) {
+  if (!authStore.isSingleMode)
     items.push({ id: 'public-catalog', label: t('library.menuPublicCatalog'), icon: 'mdi:earth' })
-  }
+
   return items
 })
 

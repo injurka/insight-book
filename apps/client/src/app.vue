@@ -65,9 +65,8 @@ onMounted(async () => {
         const { listen } = await import('@tauri-apps/api/event')
         await listen('tauri://go-back', () => {
           const wasHandled = triggerBack()
-          if (!wasHandled) {
+          if (!wasHandled)
             router.back()
-          }
         })
       }
       catch (e) {
@@ -142,9 +141,8 @@ const titleChunk = computed(() => {
   if (route.name) {
     const key = `routes.${String(route.name)}`
     const val = t(key)
-    if (val && val !== key) {
+    if (val && val !== key)
       return val
-    }
   }
   return ''
 })

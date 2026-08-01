@@ -33,18 +33,16 @@ const isTtsPopoverOpen = ref(false)
 const isAdmin = computed(() => authStore.user?.role === 'admin')
 
 watch(visible, (isOpen) => {
-  if (isOpen) {
+  if (isOpen)
     clear()
-  }
-  else {
+
+  else
     stop()
-  }
 })
 
 function openTtsPopover() {
-  if (isAdmin.value) {
+  if (isAdmin.value)
     isTtsPopoverOpen.value = true
-  }
 }
 
 function playTTS(forceCacheBypass = false) {

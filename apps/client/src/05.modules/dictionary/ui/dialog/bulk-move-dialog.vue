@@ -12,18 +12,16 @@ const { t } = useI18n()
 const selectedDecks = ref<Set<number>>(new Set())
 
 watch(visible, (val) => {
-  if (val) {
+  if (val)
     selectedDecks.value.clear()
-  }
 })
 
 function toggleDeck(id: number) {
-  if (selectedDecks.value.has(id)) {
+  if (selectedDecks.value.has(id))
     selectedDecks.value.delete(id)
-  }
-  else {
+
+  else
     selectedDecks.value.add(id)
-  }
 }
 
 function save() {

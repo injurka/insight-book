@@ -1,5 +1,5 @@
 import { ref, computed, type Ref } from 'vue'
-import type { Rule } from '../../../shared/types'
+import type { Rule } from '~plugin/shared/types'
 
 export function useRulesFilter(rules: Ref<Rule[]>) {
   const searchQuery = ref('')

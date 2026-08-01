@@ -35,9 +35,8 @@ export function useCompactMode(switcherRef: Ref<HTMLElement | null>) {
       - Number.parseFloat(parentStyle.paddingLeft || '0')
       - Number.parseFloat(parentStyle.paddingRight || '0')
 
-    if (naturalWidth > 0 && availableWidth > 0) {
+    if (naturalWidth > 0 && availableWidth > 0)
       isCompact.value = naturalWidth > availableWidth
-    }
   }
 
   function recalculate() {
@@ -54,9 +53,8 @@ export function useCompactMode(switcherRef: Ref<HTMLElement | null>) {
   }
 
   function unobserveParent() {
-    if (parentObserver) {
+    if (parentObserver)
       parentObserver.disconnect()
-    }
   }
 
   return {

@@ -42,9 +42,8 @@ export async function highlightCodeBlocks(container: HTMLElement, isDarkTheme = 
     const langMatch = classNames.match(/language-([\w-]+)/) || classNames.match(/lang-([\w-]+)/)
 
     let lang = 'javascript'
-    if (langMatch && langMatch[1] && langMatch[1] !== 'undefined') {
+    if (langMatch && langMatch[1] && langMatch[1] !== 'undefined')
       lang = langMatch[1]
-    }
 
     const codeText = codeEl.textContent || ''
     if (!codeText.trim())
@@ -58,9 +57,8 @@ export async function highlightCodeBlocks(container: HTMLElement, isDarkTheme = 
 
         if (newPre) {
           Array.from(parentPre.attributes).forEach((attr) => {
-            if (attr.name.startsWith('data-') && !newPre.hasAttribute(attr.name)) {
+            if (attr.name.startsWith('data-') && !newPre.hasAttribute(attr.name))
               newPre.setAttribute(attr.name, attr.value)
-            }
           })
           parentPre.replaceWith(newPre)
         }

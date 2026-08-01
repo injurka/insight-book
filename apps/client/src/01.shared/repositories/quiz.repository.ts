@@ -20,7 +20,7 @@ export class DefaultQuizRepository implements IQuizRepository {
     return applyAcl(QuizQuestionsResponseSchema, raw, 'quiz.generate()')
   }
 
-  async submit(lang: string, level: string, scorePct: number) { return await api.quiz.submit(lang, level, scorePct) }
+  async submit(lang: string, level: string, scorePct: number) { return api.quiz.submit(lang, level, scorePct) }
 }
 
 export const quizRepository: IQuizRepository = new DefaultQuizRepository()

@@ -16,9 +16,8 @@ export function useBookCover() {
 
   function onCoverChange(e: Event) {
     const target = e.target as HTMLInputElement
-    if (target.files && target.files.length > 0 && libraryStore.currentBookInfo) {
+    if (target.files && target.files.length > 0 && libraryStore.currentBookInfo)
       libraryStore.updateBookCover(libraryStore.currentBookInfo.id, target.files[0])
-    }
   }
 
   return {

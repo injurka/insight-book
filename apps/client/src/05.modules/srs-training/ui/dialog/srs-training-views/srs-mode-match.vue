@@ -2,7 +2,7 @@
 import type { UserDictItem } from '~/01.shared/types/models'
 import { Icon } from '@iconify/vue'
 import { useTts } from '~/01.shared/composables/use-tts'
-import { useDictionaryStore } from '../../../store/dictionary.store'
+import { useTrainingStore } from '../../../store/training.store'
 import SrsCardToolbar from '../../partials/srs-card-toolbar.vue'
 
 defineOptions({
@@ -17,7 +17,7 @@ interface Props {
   currentIndex: number
 }
 
-const dictStore = useDictionaryStore()
+const trainingStore = useTrainingStore()
 const { speak } = useTts()
 
 const leftItems = ref<UserDictItem[]>([])
@@ -40,7 +40,7 @@ function shuffle<T>(array: T[]): T[] {
 }
 
 function loadChunk(startIndex: number) {
-  const chunk = dictStore.reviewQueue.slice(startIndex, startIndex + 5)
+  const chunk = trainingStore.reviewQueue.slice(startIndex, startIndex + 5)
   if (chunk.length === 0)
     return
 
@@ -52,9 +52,8 @@ function loadChunk(startIndex: number) {
 }
 
 watch(() => props.currentIndex, (idx) => {
-  if (idx >= currentChunkEndIndex.value) {
+  if (idx >= currentChunkEndIndex.value)
     loadChunk(idx)
-  }
 }, { immediate: true })
 
 function selectLeft(item: UserDictItem) {
@@ -82,9 +81,8 @@ function checkMatch() {
       selectedRight.value = null
 
       matchedCard.value = mCard
-      if (mCard.word) {
+      if (mCard.word)
         speak(mCard.word, mCard.language)
-      }
     }
     else {
       wrongPair.value = { leftId: selectedLeft.value.id, rightId: selectedRight.value.id }

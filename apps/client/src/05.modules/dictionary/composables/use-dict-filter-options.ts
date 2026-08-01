@@ -24,9 +24,8 @@ export function useDictFilterOptions() {
       { label: t('dictionary.noDeck'), value: 'none' },
     ]
     store.decks.forEach((d) => {
-      if (store.selectedLanguage === 'all' || d.language === store.selectedLanguage) {
+      if (store.selectedLanguage === 'all' || d.language === store.selectedLanguage)
         opts.push({ label: d.name, value: d.id })
-      }
     })
     return opts
   })

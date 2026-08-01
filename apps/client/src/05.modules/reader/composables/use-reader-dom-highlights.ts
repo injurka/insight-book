@@ -20,7 +20,7 @@ export function useReaderDomHighlights(containerRef: Ref<HTMLElement | null>) {
   })
 
   function onSentenceHover(event: MouseEvent) {
-    const target = (event.target as HTMLElement).closest('.sentence') as HTMLElement | null
+    const target = (event.target as HTMLElement).closest('.sentence')
     if (!target)
       return
 
@@ -33,7 +33,7 @@ export function useReaderDomHighlights(containerRef: Ref<HTMLElement | null>) {
   }
 
   function onSentenceOut(event: MouseEvent) {
-    const target = (event.target as HTMLElement).closest('.sentence') as HTMLElement | null
+    const target = (event.target as HTMLElement).closest('.sentence')
     if (!target)
       return
 

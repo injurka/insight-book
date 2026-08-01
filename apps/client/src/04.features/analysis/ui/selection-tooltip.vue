@@ -33,27 +33,26 @@ const modalInitialData = ref<{
 })
 const isFetchingTranslation = ref(false)
 
+function getChapterTitle(pageNum: number): string | null {
+  if (!readerStore.currentToc || !readerStore.currentToc.length)
+    return null
+  let currentItem = null
+  for (const item of readerStore.currentToc) {
+    if (item.pageNum !== undefined && item.pageNum <= pageNum) {
+      if (!currentItem || item.pageNum > (currentItem.pageNum || 0))
+        currentItem = item
+    }
+  }
+  return currentItem ? currentItem.title : null
+}
+
 async function handleSaveQuote(data: { text: string, translation: string, note: string, color: string, analysisData?: LlmAnalysis | null }) {
-  if (!readerStore.currentBook || !readerStore.currentPage)
-    return
-  if (isSavingHighlight.value)
+  if (!readerStore.currentBook || !readerStore.currentPage || isSavingHighlight.value)
     return
 
   const bookId = readerStore.currentBook.id
   const pageNum = readerStore.currentPage.pageNum
-
-  let chapter: string | null = null
-  if (readerStore.currentToc && readerStore.currentToc.length) {
-    let currentItem = null
-    for (const item of readerStore.currentToc) {
-      if (item.pageNum !== undefined && item.pageNum <= pageNum) {
-        if (!currentItem || item.pageNum > (currentItem.pageNum || 0)) {
-          currentItem = item
-        }
-      }
-    }
-    chapter = currentItem ? currentItem.title : null
-  }
+  const chapter = getChapterTitle(pageNum)
 
   isSavingHighlight.value = true
 
@@ -87,74 +86,84 @@ const popoverPos = ref({ top: '-9999px', left: '-9999px', transform: 'none' })
 
 const offset = 24
 
+function isElementSelectable(node: Node | null): boolean {
+  let curr = node
+  while (curr && curr !== document.body) {
+    if (curr.nodeType === Node.ELEMENT_NODE && (curr as HTMLElement).classList.contains('js-tooltip-selectable'))
+      return true
+    curr = curr.parentNode
+  }
+  return false
+}
+
+function getValidSelection(settingsStore: any, readerStore: any): Selection | null {
+  if (readerStore.currentBook?.language === settingsStore.appLanguage)
+    return null
+  const selection = window.getSelection()
+  if (!selection || selection.isCollapsed)
+    return null
+  return selection
+}
+
+function isValidSelection(text: string, anchorNode: Node | null): boolean {
+  if (!text || text.length > 250)
+    return false
+  if (!/[\p{L}\p{N}]/u.test(text))
+    return false
+  return isElementSelectable(anchorNode)
+}
+
 const checkTextSelection = useDebounceFn(() => {
   const settingsStore = useGlobalSettingsStore()
-  if (readerStore.currentBook?.language === settingsStore.appLanguage) {
-    analysisStore.closeSelectionTooltip()
-    return
-  }
-
-  const selection = window.getSelection()
-
-  if (!selection || selection.isCollapsed) {
+  const selection = getValidSelection(settingsStore, readerStore)
+  if (!selection) {
     analysisStore.closeSelectionTooltip()
     return
   }
 
   const text = selection.toString().trim()
-  if (!text || text.length > 250 || !/[\p{L}\p{N}]/u.test(text)) {
+  if (!isValidSelection(text, selection.anchorNode)) {
     analysisStore.closeSelectionTooltip()
     return
   }
 
-  let node = selection.anchorNode
-  let isSelectable = false
-
-  while (node && node !== document.body) {
-    if (node.nodeType === Node.ELEMENT_NODE && (node as HTMLElement).classList.contains('js-tooltip-selectable')) {
-      isSelectable = true
-      break
-    }
-    node = node.parentNode
-  }
-
-  if (!isSelectable) {
-    return
-  }
-
-  const range = selection.getRangeAt(0)
-  const rect = range.getBoundingClientRect()
-
+  const rect = selection.getRangeAt(0).getBoundingClientRect()
   if (rect.width === 0 || rect.height === 0) {
     analysisStore.closeSelectionTooltip()
     return
   }
 
-  if (analysisStore.wordPopover) {
+  if (analysisStore.wordPopover)
     analysisStore.closePopover()
-  }
 
   analysisStore.selectionTooltip = { text, targetRect: rect }
 }, 250)
+
+function getSelectionContext(text: string): string {
+  const selection = window.getSelection()
+  if (!selection || !selection.anchorNode)
+    return ''
+  const parent = selection.anchorNode.parentElement
+  if (!parent)
+    return ''
+  const span = parent.closest('.sentence')
+  if (!span)
+    return ''
+
+  const prev = span.previousElementSibling?.textContent || ''
+  const next = span.nextElementSibling?.textContent || ''
+  return `${prev} [${text}] ${next}`.trim()
+}
 
 function analyzeFragment() {
   if (!analysisStore.selectionTooltip)
     return
   const text = analysisStore.selectionTooltip.text
-  let context = ''
+  const context = getSelectionContext(text)
 
-  const selection = window.getSelection()
-  if (selection && selection.anchorNode) {
-    const span = selection.anchorNode.parentElement?.closest('.sentence')
-
-    if (span) {
-      const prev = span.previousElementSibling?.textContent || ''
-      const next = span.nextElementSibling?.textContent || ''
-      context = `${prev} [${text}] ${next}`.trim()
-    }
-  }
-
-  window.getSelection()?.removeAllRanges()
+  const sel = window.getSelection()
+  if (sel)
+    sel.removeAllRanges()
 
   analysisStore.closeSelectionTooltip()
   analysisStore.handleSentenceAnalysis(text, context)
@@ -164,20 +173,38 @@ function playTTS() {
   if (!analysisStore.selectionTooltip)
     return
 
-  if (isPlaying.value || isLoading.value) {
+  if (isPlaying.value || isLoading.value)
     stop()
-  }
-  else {
+  else
     speak(analysisStore.selectionTooltip.text)
-  }
+}
+
+function calculatePopoverCoords(rect: DOMRect, popRect: DOMRect) {
+  const ww = window.innerWidth
+  const wh = window.innerHeight
+
+  let left = rect.left + rect.width / 2
+  const isMobile = ww < 600
+  let top = isMobile ? rect.bottom + 8 : rect.top - popRect.height - offset
+
+  if (isMobile && top + popRect.height > wh - 10)
+    top = rect.top - popRect.height - offset
+  else if (!isMobile && top < 10)
+    top = rect.bottom + offset
+
+  if (left - popRect.width / 2 < 10)
+    left = popRect.width / 2 + 10
+  else if (left + popRect.width / 2 > ww - 10)
+    left = ww - popRect.width / 2 - 10
+
+  return { top, left }
 }
 
 watch(() => analysisStore.selectionTooltip, async (val) => {
   if (!val) {
     popoverPos.value = { top: '-9999px', left: '-9999px', transform: 'none' }
-    if (isPlaying.value || isLoading.value) {
+    if (isPlaying.value || isLoading.value)
       stop()
-    }
     return
   }
 
@@ -185,34 +212,7 @@ watch(() => analysisStore.selectionTooltip, async (val) => {
   if (!popoverRef.value || !val.targetRect)
     return
 
-  const rect = val.targetRect
-  const popRect = popoverRef.value.getBoundingClientRect()
-  const ww = window.innerWidth
-  const wh = window.innerHeight
-
-  let left = rect.left + rect.width / 2
-
-  const isMobile = ww < 600
-  let top = isMobile ? rect.bottom + 8 : rect.top - popRect.height - offset
-
-  if (isMobile) {
-    if (top + popRect.height > wh - 10) {
-      top = rect.top - popRect.height - offset
-    }
-  }
-  else {
-    if (top < 10) {
-      top = rect.bottom + offset
-    }
-  }
-
-  if (left - popRect.width / 2 < 10) {
-    left = popRect.width / 2 + 10
-  }
-  else if (left + popRect.width / 2 > ww - 10) {
-    left = ww - popRect.width / 2 - 10
-  }
-
+  const { top, left } = calculatePopoverCoords(val.targetRect, popoverRef.value.getBoundingClientRect())
   popoverPos.value = {
     top: `${top}px`,
     left: `${left}px`,

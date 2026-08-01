@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { Rule } from '@injurka/insight-book-plugin-grammar-rules/shared/types'
+import type { Rule } from '~plugin/shared/types'
 
 interface Props {
   rule: Rule

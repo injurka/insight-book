@@ -132,13 +132,11 @@ self.addEventListener('message', async (event) => {
       }
     }
   }
-  else {
-    if (port) {
-      port.postMessage({
-        type: 'ERROR',
-        payload: { message: `Неизвестный тип сообщения: ${type}` },
-      })
-    }
+  else if (port) {
+    port.postMessage({
+      type: 'ERROR',
+      payload: { message: `Неизвестный тип сообщения: ${type}` },
+    })
   }
 })
 
@@ -148,9 +146,8 @@ if (import.meta.env.DEV) {
   self.addEventListener('fetch', (event) => {
     if (event.request.method === 'GET') {
       const assetType = AssetAnalyzer.getAssetType(event.request.url)
-      if (!event.request.url.includes('/api/')) {
+      if (!event.request.url.includes('/api/'))
         console.log(`📥 ${assetType}: ${event.request.url}`)
-      }
     }
   })
 }
@@ -190,7 +187,7 @@ self.addEventListener('notificationclick', (event: NotificationEvent) => {
   event.notification.close()
   const urlToOpen = event.notification.data?.url || '/'
 
-  event.waitUntil(self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
+  event.waitUntil(self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(async (windowClients) => {
     for (let i = 0; i < windowClients.length; i++) {
       const client = windowClients[i]
       if (client.url.includes(self.location.origin) && 'focus' in client) {
@@ -199,8 +196,7 @@ self.addEventListener('notificationclick', (event: NotificationEvent) => {
         return client.focus()
       }
     }
-    if (self.clients.openWindow) {
+    if (self.clients.openWindow)
       return self.clients.openWindow(urlToOpen)
-    }
   }))
 })

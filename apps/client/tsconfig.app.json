@@ -25,6 +25,15 @@
       ],
       "@injurka/insight-book-plugin-grammar-rules/*": [
         "../../packages/plugin-grammar-rules/src/*"
+      ],
+      "@injurka/insight-book-plugin-scroll-study": [
+        "../../packages/plugin-scroll-study/src"
+      ],
+      "@injurka/insight-book-plugin-scroll-study/*": [
+        "../../packages/plugin-scroll-study/src/*"
+      ],
+      "~plugin/*": [
+        "../../packages/plugin-grammar-rules/src/*"
       ]
     },
     "resolveJsonModule": true,
@@ -49,8 +58,11 @@
     "src/**/*.tsx",
     "src/**/*.vue",
     "../../packages/plugin-api/src/**/*.ts",
+    "../../packages/plugin-api/src/**/*.vue",
     "../../packages/plugin-grammar-rules/src/**/*.ts",
-    "../../packages/plugin-grammar-rules/src/**/*.vue"
+    "../../packages/plugin-grammar-rules/src/**/*.vue",
+    "../../packages/plugin-scroll-study/src/**/*.ts",
+    "../../packages/plugin-scroll-study/src/**/*.vue"
   ],
   "exclude": [
     "src/**/*.spec.ts",

@@ -41,7 +41,7 @@ export const useLibraryStore = defineStore('library', () => {
     refetch: refetchBooks,
   } = useQuery<Book[]>({
     key: queryKeys.books.all,
-    query: () => repos.book.list(),
+    query: async () => repos.book.list(),
   })
 
   watch(booksData, async (newBooks) => {
@@ -103,6 +103,7 @@ export const useLibraryStore = defineStore('library', () => {
       else {
         publicBooks.value = res.data
       }
+
       publicAppend.value = false
       publicTotal.value = res.total
       publicPage.value = res.page
@@ -137,7 +138,7 @@ export const useLibraryStore = defineStore('library', () => {
       const id = currentBookId.value
       if (!id)
         return null
-      return await repos.book.getInfo(id)
+      return repos.book.getInfo(id)
     },
     enabled: () => currentBookId.value !== null,
   })
@@ -164,16 +165,15 @@ export const useLibraryStore = defineStore('library', () => {
 
   // --- MUTATION: Start Reading Public Book ---
   const { mutateAsync: startReadingPublicBookMutation, isLoading: isStartingReading } = useMutation({
-    mutation: (id: number) => repos.book.startReading(id),
+    mutation: async (id: number) => repos.book.startReading(id),
     async onSuccess(_, id) {
       trackEvent('public_book_downloaded', { bookId: id })
-      if (currentBookInfo.value?.id === id) {
+      if (currentBookInfo.value?.id === id)
         currentBookInfo.value.currentPage = 1
-      }
+
       const authStore = useAuthStore()
-      if (authStore.user || authStore.isSingleMode) {
+      if (authStore.user || authStore.isSingleMode)
         await refetchBooks()
-      }
     },
   })
 
@@ -183,28 +183,25 @@ export const useLibraryStore = defineStore('library', () => {
 
   // --- MUTATION: Update Book Info ---
   const { mutateAsync: updateBookInfoMutation, isLoading: isUpdatingInfo } = useMutation({
-    mutation: ({ id, data }: { id: number, data: Partial<Book> }) => repos.book.updateInfo(id, data),
+    mutation: async ({ id, data }: { id: number, data: Partial<Book> }) => repos.book.updateInfo(id, data),
     onMutate({ id, data }) {
       const listBook = books.value.find(b => Number(b.id) === Number(id))
       if (listBook)
         Object.assign(listBook, data)
 
-      if (currentBookInfo.value?.id === id) {
+      if (currentBookInfo.value?.id === id)
         Object.assign(currentBookInfo.value, data)
-      }
     },
     async onSuccess(_, { id, data }) {
       queryCache.invalidateQueries({ key: queryKeys.books(id) })
 
       const keys = Object.keys(data)
       const isOnlyProgressUpdate = keys.length > 0 && keys.every(k => k === 'currentPage' || k === 'lastReadPosition' || k === 'updatedAt')
-      if (!isOnlyProgressUpdate) {
+      if (!isOnlyProgressUpdate)
         queryCache.invalidateQueries({ key: queryKeys.books.all })
-      }
 
-      if (currentBookInfo.value?.id === id) {
+      if (currentBookInfo.value?.id === id)
         await repos.book.saveLocalBookInfo(id, currentBookInfo.value)
-      }
     },
   })
 
@@ -214,7 +211,7 @@ export const useLibraryStore = defineStore('library', () => {
 
   // --- MUTATION: Full Book Analysis ---
   const { mutateAsync: analyzeFullBookMutation } = useMutation({
-    mutation: (id: number) => repos.book.analyzeBook(id),
+    mutation: async (id: number) => repos.book.analyzeBook(id),
     async onSuccess(res, id) {
       if (currentBookInfo.value && currentBookInfo.value.id === id) {
         currentBookInfo.value.stats = res.stats
@@ -238,7 +235,7 @@ export const useLibraryStore = defineStore('library', () => {
 
   // --- MUTATION: Vocabulary Analysis ---
   const { mutateAsync: analyzeVocabularyMutation } = useMutation({
-    mutation: (id: number) => repos.book.analyzeVocabulary(id),
+    mutation: async (id: number) => repos.book.analyzeVocabulary(id),
     async onSuccess(res, id) {
       if (currentBookInfo.value?.id === id) {
         if (!currentBookInfo.value.stats)
@@ -266,7 +263,7 @@ export const useLibraryStore = defineStore('library', () => {
 
   // --- MUTATION: Update Cover ---
   const { mutateAsync: updateBookCoverMutation, isLoading: isUpdatingCover } = useMutation({
-    mutation: ({ id, file }: { id: number, file: File }) => repos.book.updateCover(id, file),
+    mutation: async ({ id, file }: { id: number, file: File }) => repos.book.updateCover(id, file),
     async onSuccess(res, { id }) {
       if (currentBookInfo.value && currentBookInfo.value.id === id) {
         currentBookInfo.value.coverUrl = res.coverUrl
@@ -287,7 +284,7 @@ export const useLibraryStore = defineStore('library', () => {
 
   // --- MUTATION: Update Stats ---
   const { mutateAsync: updateBookStatsMutation, isLoading: isUpdatingStats } = useMutation({
-    mutation: ({ id, data }: { id: number, data: Partial<BookStats> }) => repos.book.updateStats(id, data),
+    mutation: async ({ id, data }: { id: number, data: Partial<BookStats> }) => repos.book.updateStats(id, data),
     async onSuccess(res, { id }) {
       if (currentBookInfo.value && currentBookInfo.value.id === id) {
         currentBookInfo.value.stats = res.stats
@@ -304,7 +301,7 @@ export const useLibraryStore = defineStore('library', () => {
 
   // --- MUTATION: Upload Book ---
   const { mutateAsync: uploadBookMutation, isLoading: isUploadingBook } = useMutation({
-    mutation: (file: File) => repos.book.upload(file),
+    mutation: async (file: File) => repos.book.upload(file),
     async onSuccess(res, file) {
       const book = 'book' in res ? res.book : (res as unknown as Book)
       const ext = file.name.split('.').pop()?.toLowerCase() || 'unknown'
@@ -326,7 +323,7 @@ export const useLibraryStore = defineStore('library', () => {
 
   // --- MUTATION: Create Custom Manga ---
   const { mutateAsync: createCustomMangaMutation, isLoading: isCreatingManga } = useMutation({
-    mutation: (params: { title: string, author: string, language: string }) =>
+    mutation: async (params: { title: string, author: string, language: string }) =>
       repos.book.createCustomManga({ ...params, type: 'manga' }),
     async onSuccess(res, params) {
       books.value = [res.book, ...books.value]
@@ -343,7 +340,7 @@ export const useLibraryStore = defineStore('library', () => {
 
   // --- MUTATION: Upload Manga Chapter ---
   const { mutateAsync: uploadMangaChapterMutation, isLoading: isUploadingChapter } = useMutation({
-    mutation: ({ bookId, fd }: { bookId: number, fd: FormData }) => repos.book.appendMangaChapter(bookId, fd),
+    mutation: async ({ bookId, fd }: { bookId: number, fd: FormData }) => repos.book.appendMangaChapter(bookId, fd),
     onSuccess(res, { bookId }) {
       const index = books.value.findIndex(b => b.id === bookId)
       if (index !== -1)
@@ -368,12 +365,12 @@ export const useLibraryStore = defineStore('library', () => {
     const fd = new FormData()
     fd.append('chapterTitle', chapterTitle)
     files.forEach(f => fd.append('files', f))
-    return await uploadMangaChapterMutation({ bookId, fd })
+    return uploadMangaChapterMutation({ bookId, fd })
   }
 
   // --- MUTATION: Delete Book ---
   const { mutateAsync: deleteBookMutation, isLoading: isDeletingBook } = useMutation({
-    mutation: (id: number) => repos.book.delete(id),
+    mutation: async (id: number) => repos.book.delete(id),
     onSuccess(_, id) {
       books.value = books.value.filter(b => b.id !== id)
       if (currentBookInfo.value?.id === id) {
@@ -391,17 +388,20 @@ export const useLibraryStore = defineStore('library', () => {
 
   // --- Global Loading State ---
   const isLoading = computed(() => {
-    return isBooksLoading.value
-      || isPublicBooksLoading.value
-      || isBookInfoLoading.value
-      || isStartingReading.value
-      || isUpdatingInfo.value
-      || isUpdatingCover.value
-      || isUpdatingStats.value
-      || isUploadingBook.value
-      || isCreatingManga.value
-      || isUploadingChapter.value
-      || isDeletingBook.value
+    const loadingStates = [
+      isBooksLoading,
+      isPublicBooksLoading,
+      isBookInfoLoading,
+      isStartingReading,
+      isUpdatingInfo,
+      isUpdatingCover,
+      isUpdatingStats,
+      isUploadingBook,
+      isCreatingManga,
+      isUploadingChapter,
+      isDeletingBook,
+    ]
+    return loadingStates.some(state => state.value)
   })
 
   return {

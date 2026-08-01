@@ -19,7 +19,7 @@ const props = defineProps<Props>()
 
 const AiExamplesModal = lazyComponent(() => import('~/04.features/analysis/ui/modal/ai-examples-modal.vue'))
 const LlmChatModal = lazyComponent(() => import('~/04.features/llm-chat/ui/llm-chat-modal.vue'))
-const HanziBoard = lazyComponent(() => import('../hanzi-board.vue'))
+const HanziBoard = lazyComponent(() => import('~/05.modules/dictionary/ui/hanzi-board.vue'))
 
 const repos = useRepos()
 const { speak, isPlaying, isLoading } = useTts()
@@ -86,9 +86,8 @@ function toggleSection(sec: 'grammar' | 'vocab' | 'notes') {
 
 function toggleAnimation() {
   showAnimation.value = !showAnimation.value
-  if (showAnimation.value) {
+  if (showAnimation.value)
     nextTick(() => hanziBoardRef.value?.replay())
-  }
 }
 </script>
 

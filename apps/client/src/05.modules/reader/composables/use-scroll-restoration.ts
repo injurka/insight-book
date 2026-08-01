@@ -12,9 +12,9 @@ export function useScrollRestoration(
   let restoreInterval: ReturnType<typeof setInterval> | null = null
 
   const saveScrollPosition = useDebounceFn(() => {
-    if (isRestoringScroll.value || !scrollContainerRef.value || getIsLoading()) {
+    if (isRestoringScroll.value || !scrollContainerRef.value || getIsLoading())
       return
-    }
+
     const bookId = getBookId()
     const pageNum = getPageNum()
     if (!bookId || !pageNum)
@@ -33,9 +33,8 @@ export function useScrollRestoration(
   function restoreScrollPosition() {
     const bookId = getBookId()
     const pageNum = getPageNum()
-    if (!scrollContainerRef.value || !bookId || !pageNum) {
+    if (!scrollContainerRef.value || !bookId || !pageNum)
       return
-    }
 
     const saved = localStorage.getItem(`insight_scroll_${bookId}_${pageNum}`)
     const percent = saved !== null ? Number.parseFloat(saved) : 0
@@ -75,9 +74,8 @@ export function useScrollRestoration(
       el.scrollTop = target
 
       const mainContent = document.querySelector('.main-content')
-      if (mainContent) {
+      if (mainContent)
         mainContent.scrollTop = 0
-      }
 
       if (el.scrollHeight === lastHeight && el.scrollHeight > el.clientHeight) {
         stableCount++
@@ -87,9 +85,8 @@ export function useScrollRestoration(
         lastHeight = el.scrollHeight
       }
 
-      if (stableCount >= 3 || attempts >= 25) {
+      if (stableCount >= 3 || attempts >= 25)
         stopRestoration()
-      }
     }
 
     apply()

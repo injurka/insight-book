@@ -17,10 +17,50 @@ export const useAuthStore = defineStore('auth', () => {
     }
     finally {
       isAuthReady.value = true
-      if (user.value) {
+      if (user.value)
         loadUserPlugins().catch(err => console.warn('[Auth Store] Error loading plugins:', err))
-      }
     }
+  }
+
+  function clearCachedUserSession() {
+    localStorage.removeItem('insight_token')
+    localStorage.removeItem('insight_uid')
+    localStorage.removeItem('insight_user_data')
+    user.value = null
+  }
+
+  function loadCachedUserSession() {
+    const cachedToken = localStorage.getItem('insight_token')
+    const cachedUser = localStorage.getItem('insight_user_data')
+    const cachedMode = localStorage.getItem('insight_auth_mode')
+
+    if (cachedMode)
+      isSingleMode.value = cachedMode === 'single'
+
+    if ((cachedToken || isSingleMode.value) && cachedUser) {
+      user.value = JSON.parse(cachedUser)
+
+      identifyUser({
+        id: String(user.value!.id),
+        username: user.value!.username,
+        role: user.value!.role || 'user',
+        auth_mode: isSingleMode.value ? 'single' : 'multi',
+      })
+    }
+    else {
+      user.value = null
+    }
+  }
+
+  function handleSyncError(error: any) {
+    const status = error?.status ?? error?.statusCode ?? error?.response?.status
+
+    if (status === 401) {
+      clearCachedUserSession()
+      return
+    }
+
+    loadCachedUserSession()
   }
 
   async function syncUser() {
@@ -59,39 +99,7 @@ export const useAuthStore = defineStore('auth', () => {
       }
     }
     catch (e: any) {
-      // 401 означает протухший/невалидный токен — разлогиниваем, а не живём на кэше
-      const status = e?.status ?? e?.statusCode ?? e?.response?.status
-
-      if (status === 401) {
-        localStorage.removeItem('insight_token')
-        localStorage.removeItem('insight_uid')
-        localStorage.removeItem('insight_user_data')
-        user.value = null
-
-        return
-      }
-
-      const token = localStorage.getItem('insight_token')
-      const cachedUser = localStorage.getItem('insight_user_data')
-      const cachedMode = localStorage.getItem('insight_auth_mode')
-
-      if (cachedMode) {
-        isSingleMode.value = cachedMode === 'single'
-      }
-
-      if ((token || isSingleMode.value) && cachedUser) {
-        user.value = JSON.parse(cachedUser)
-
-        identifyUser({
-          id: String(user.value!.id),
-          username: user.value!.username,
-          role: user.value!.role || 'user',
-          auth_mode: isSingleMode.value ? 'single' : 'multi',
-        })
-      }
-      else {
-        user.value = null
-      }
+      handleSyncError(e)
     }
   }
 
@@ -105,9 +113,8 @@ export const useAuthStore = defineStore('auth', () => {
       const { pluginManager } = await import('~/00.plugins/plugin-manager')
 
       for (const pluginRecord of userPlugins) {
-        if (pluginRecord.isEnabled && pluginRecord.manifestUrl) {
+        if (pluginRecord.isEnabled && pluginRecord.manifestUrl)
           await pluginManager.loadRemotePlugin(pluginRecord.manifestUrl, router)
-        }
       }
     }
     catch (e) {

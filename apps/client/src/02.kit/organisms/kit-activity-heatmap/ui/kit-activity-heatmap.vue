@@ -26,6 +26,52 @@ function formatNum(num: number) {
   return new Intl.NumberFormat(locale.value).format(num || 0)
 }
 
+function calculateActivityLevel(count: number): number {
+  if (count >= 40)
+    return 4
+  if (count >= 20)
+    return 3
+  if (count >= 10)
+    return 2
+  if (count > 0)
+    return 1
+  return 0
+}
+
+function checkAndPushMonth(
+  currentDate: Date,
+  i: number,
+  yyyy: number,
+  months: Array<{ id: string, name: string, col: number }>,
+  currentMonth: number,
+): number {
+  const monthIdx = currentDate.getMonth()
+  if (monthIdx !== currentMonth) {
+    const col = Math.floor(i / 7) + 1
+
+    if (months.length > 0 && col - months[months.length - 1].col < 3) {
+      months.pop()
+    }
+
+    if (col <= WEEKS_TO_SHOW - 1) {
+      months.push({
+        id: `${yyyy}-${monthIdx}`,
+        name: currentDate.toLocaleString('default', { month: 'short' }).replace('.', ''),
+        col,
+      })
+    }
+    return monthIdx
+  }
+  return currentMonth
+}
+
+function getActivityCount(isFuture: boolean, dateStr: string, activityData: Array<{ date: string, count: number }>): number {
+  if (isFuture)
+    return 0
+  const active = activityData.find(item => item.date === dateStr)
+  return active?.count || 0
+}
+
 const heatmapData = computed(() => {
   const today = new Date()
   today.setHours(
@@ -35,12 +81,9 @@ const heatmapData = computed(() => {
     0,
   )
 
-  let dayOfWeek = today.getDay()
-  if (dayOfWeek === 0)
-    dayOfWeek = 7
+  const dayOfWeek = today.getDay() || 7
 
   const daysToSunday = 7 - dayOfWeek
-
   const endDate = new Date(today)
   endDate.setDate(today.getDate() + daysToSunday)
 
@@ -50,67 +93,67 @@ const heatmapData = computed(() => {
 
   const days = []
   const months: Array<{ id: string, name: string, col: number }> = []
-
   let currentMonth = -1
 
   for (let i = 0; i < totalDays; i++) {
-    const d = new Date(startDate)
-    d.setDate(startDate.getDate() + i)
+    const currentDate = new Date(startDate)
+    currentDate.setDate(startDate.getDate() + i)
 
-    const isFuture = d > today
-    const yyyy = d.getFullYear()
-    const mm = String(d.getMonth() + 1).padStart(2, '0')
-    const dd = String(d.getDate()).padStart(2, '0')
+    const isFuture = currentDate > today
+    const yyyy = currentDate.getFullYear()
+    const mm = String(currentDate.getMonth() + 1).padStart(2, '0')
+    const dd = String(currentDate.getDate()).padStart(2, '0')
     const dateStr = `${yyyy}-${mm}-${dd}`
 
-    if (d.getDate() === 1 || i === 0) {
-      const m = d.getMonth()
-      if (m !== currentMonth) {
-        currentMonth = m
-        const col = Math.floor(i / 7) + 1
-
-        if (months.length > 0) {
-          const lastMonth = months[months.length - 1]
-          if (col - lastMonth.col < 3) {
-            months.pop()
-          }
-        }
-
-        if (col <= WEEKS_TO_SHOW - 1) {
-          months.push({
-            id: `${yyyy}-${m}`,
-            name: d.toLocaleString('default', { month: 'short' }).replace('.', ''),
-            col,
-          })
-        }
-      }
+    if (currentDate.getDate() === 1 || i === 0) {
+      currentMonth = checkAndPushMonth(
+        currentDate,
+        i,
+        yyyy,
+        months,
+        currentMonth,
+      )
     }
 
-    let level = 0
-    let count = 0
-    if (!isFuture) {
-      const active = props.activityData.find(x => x.date === dateStr)
-      count = active?.count || 0
-      if (count > 0)
-        level = 1
-      if (count >= 10)
-        level = 2
-      if (count >= 20)
-        level = 3
-      if (count >= 40)
-        level = 4
-    }
+    const count = getActivityCount(isFuture, dateStr, props.activityData)
 
     days.push({
       date: dateStr,
-      dateFormatted: d.toLocaleDateString('default', { day: 'numeric', month: 'long', year: 'numeric' }),
-      level,
+      dateFormatted: currentDate.toLocaleDateString('default', { day: 'numeric', month: 'long', year: 'numeric' }),
+      level: isFuture ? 0 : calculateActivityLevel(count),
       count,
       future: isFuture,
     })
   }
 
-  return { days, months }
+  const weekdays = [
+    t('activityHeatmap.weekdays.mon', 'Пн'),
+    '',
+    t('activityHeatmap.weekdays.wed', 'Ср'),
+    '',
+    t('activityHeatmap.weekdays.fri', 'Пт'),
+    '',
+    '',
+  ]
+
+  const gridData = []
+  for (let r = 0; r < 7; r++) {
+    const rowDays = []
+    for (let c = 0; c < WEEKS_TO_SHOW; c++) {
+      const idx = c * 7 + r
+      rowDays.push(days[idx])
+    }
+    gridData.push({
+      label: weekdays[r],
+      days: rowDays,
+    })
+  }
+
+  return {
+    gridData,
+    months,
+    days,
+  }
 })
 
 const totalActivity = computed(() => {
@@ -118,13 +161,12 @@ const totalActivity = computed(() => {
 })
 
 const maxStreak = computed(() => {
+  const sorted = [...props.activityData]
+    .filter(item => item.count > 0)
+    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+
   let max = 0
   let current = 0
-
-  const sorted = [...props.activityData].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-  if (sorted.length === 0)
-    return 0
-
   let prevDate: Date | null = null
 
   for (const item of sorted) {
@@ -151,113 +193,103 @@ const maxStreak = computed(() => {
   return max
 })
 
-const userAchievements = computed(() => {
-  const achs: Array<{
-    type: 'vocab' | 'quiz'
-    lang: string
-    current: string
-    next?: string | null
-    progress?: number
-    count?: number
-    target?: number
-    testPassed?: boolean
-    testStars?: number
-    testScore?: number
-    labelType: string
-  }> = []
-
-  if (!props.stats)
-    return achs
-
-  // 1. Vocabulary achievements
-  if (props.stats.difficulties) {
-    const langGroups: Record<string, number> = {}
-    for (const d of props.stats.difficulties) {
-      langGroups[d.language] = (langGroups[d.language] || 0) + d.count
-    }
-
-    const VOCAB_RANKS = [
-      { label: t('activityHeatmap.ranks.beginner', 'Новичок'), target: 50 },
-      { label: t('activityHeatmap.ranks.seeker', 'Искатель'), target: 150 },
-      { label: t('activityHeatmap.ranks.apprentice', 'Ученик'), target: 300 },
-      { label: t('activityHeatmap.ranks.knower', 'Знаток'), target: 500 },
-      { label: t('activityHeatmap.ranks.experienced', 'Опытный'), target: 1000 },
-      { label: t('activityHeatmap.ranks.expert', 'Эксперт'), target: 3000 },
-      { label: t('activityHeatmap.ranks.master', 'Мастер'), target: 5000 },
-      { label: t('activityHeatmap.ranks.polyglot', 'Полиглот'), target: 10000 },
-    ]
-
-    for (const [lang, totalWords] of Object.entries(langGroups)) {
-      let currentRankIdx = 0
-      for (let i = 0; i < VOCAB_RANKS.length; i++) {
-        if (totalWords >= (i === 0 ? 0 : VOCAB_RANKS[i - 1].target)) {
-          currentRankIdx = i
-        }
-      }
-
-      const current = VOCAB_RANKS[currentRankIdx].label
-      const nextObj = currentRankIdx + 1 < VOCAB_RANKS.length ? VOCAB_RANKS[currentRankIdx + 1] : null
-      const next = nextObj ? nextObj.label : null
-
-      const target = nextObj ? nextObj.target : VOCAB_RANKS[currentRankIdx].target
-      const progress = nextObj
-        ? Math.min(100, Math.round((totalWords / target) * 100))
-        : 100
-
-      achs.push({
-        type: 'vocab',
-        lang,
-        current,
-        next,
-        count: totalWords,
-        target,
-        progress,
-        labelType: t('activityHeatmap.vocabLevel', 'Словарный запас'),
-      })
-    }
+function getRankIdx(totalWords: number, ranks: Array<{ target: number }>): number {
+  let rankIdx = 0
+  for (let i = 0; i < ranks.length; i++) {
+    const prevTarget = i === 0 ? 0 : ranks[i - 1].target
+    if (totalWords >= prevTarget)
+      rankIdx = i
   }
+  return rankIdx
+}
 
-  // 2. Quiz Level achievements
-  if (props.stats.quizProgress) {
-    const passedQuizzes = props.stats.quizProgress.filter(q => q.bestScore >= 80)
-    const highestQuizPerLang: Record<string, any> = {}
+function buildVocabAchievements(difficulties: Array<{ language: string, count: number }>): Array<any> {
+  const langGroups: Record<string, number> = {}
+  for (const diffItem of difficulties)
+    langGroups[diffItem.language] = (langGroups[diffItem.language] || 0) + diffItem.count
 
-    for (const q of passedQuizzes) {
-      const sys = DIFFICULTY_SYSTEMS[q.language] || DIFFICULTY_SYSTEMS.default
-      const sysLevels = [...sys].sort((a, b) => a.level - b.level)
+  const VOCAB_RANKS = [
+    { label: t('activityHeatmap.ranks.beginner', 'Новичок'), target: 50 },
+    { label: t('activityHeatmap.ranks.seeker', 'Искатель'), target: 150 },
+    { label: t('activityHeatmap.ranks.apprentice', 'Ученик'), target: 300 },
+    { label: t('activityHeatmap.ranks.knower', 'Знаток'), target: 500 },
+    { label: t('activityHeatmap.ranks.experienced', 'Опытный'), target: 1000 },
+    { label: t('activityHeatmap.ranks.expert', 'Эксперт'), target: 3000 },
+    { label: t('activityHeatmap.ranks.master', 'Мастер'), target: 5000 },
+    { label: t('activityHeatmap.ranks.polyglot', 'Полиглот'), target: 10000 },
+  ]
 
-      const qLevelIdx = sysLevels.findIndex(l => l.value === q.levelValue || l.label === q.levelValue)
+  const achs: Array<any> = []
+  for (const [lang, totalWords] of Object.entries(langGroups)) {
+    const currentRankIdx = getRankIdx(totalWords, VOCAB_RANKS)
 
-      if (!highestQuizPerLang[q.language] || highestQuizPerLang[q.language].levelIdx < qLevelIdx) {
-        highestQuizPerLang[q.language] = {
-          ...q,
-          levelIdx: qLevelIdx,
-          current: q.levelValue,
-        }
-      }
-    }
+    const current = VOCAB_RANKS[currentRankIdx].label
+    const nextObj = currentRankIdx + 1 < VOCAB_RANKS.length ? VOCAB_RANKS[currentRankIdx + 1] : null
+    const next = nextObj ? nextObj.label : null
+    const target = nextObj ? nextObj.target : VOCAB_RANKS[currentRankIdx].target
+    const progress = nextObj ? Math.min(100, Math.round((totalWords / target) * 100)) : 100
 
-    for (const [lang, q] of Object.entries(highestQuizPerLang)) {
-      achs.push({
-        type: 'quiz',
-        lang,
-        current: q.current,
-        testPassed: true,
-        testScore: q.bestScore,
-        testStars: q.stars,
-        labelType: t('activityHeatmap.langLevel', 'Уровень языка'),
-      })
-    }
+    achs.push({
+      type: 'vocab',
+      lang,
+      current,
+      next,
+      count: totalWords,
+      target,
+      progress,
+      labelType: t('activityHeatmap.vocabLevel', 'Словарный запас'),
+    })
   }
-
   return achs
+}
+
+function buildQuizAchievements(quizProgress: Array<any>): Array<any> {
+  const passedQuizzes = quizProgress.filter(quizItem => quizItem.bestScore >= 80)
+  const highestQuizPerLang: Record<string, any> = {}
+
+  for (const quizItem of passedQuizzes) {
+    const sys = DIFFICULTY_SYSTEMS[quizItem.language] || DIFFICULTY_SYSTEMS.default
+    const sysLevels = [...sys].sort((a, b) => a.level - b.level)
+    const qLevelIdx = sysLevels.findIndex(levelItem => levelItem.value === quizItem.levelValue || levelItem.label === quizItem.levelValue)
+
+    if (!highestQuizPerLang[quizItem.language] || highestQuizPerLang[quizItem.language].levelIdx < qLevelIdx) {
+      highestQuizPerLang[quizItem.language] = {
+        ...quizItem,
+        levelIdx: qLevelIdx,
+        current: quizItem.levelValue,
+      }
+    }
+  }
+
+  const achs: Array<any> = []
+  for (const [lang, quizItem] of Object.entries(highestQuizPerLang)) {
+    achs.push({
+      type: 'quiz',
+      lang,
+      current: quizItem.current,
+      testPassed: true,
+      testScore: quizItem.bestScore,
+      testStars: quizItem.stars,
+      labelType: t('activityHeatmap.langLevel', 'Уровень языка'),
+    })
+  }
+  return achs
+}
+
+const userAchievements = computed(() => {
+  if (!props.stats)
+    return []
+
+  const vocabAchs = props.stats.difficulties ? buildVocabAchievements(props.stats.difficulties) : []
+  const quizAchs = props.stats.quizProgress ? buildQuizAchievements(props.stats.quizProgress) : []
+
+  return [...vocabAchs, ...quizAchs]
 })
 
 onMounted(async () => {
   await nextTick()
-  if (scrollAreaRef.value) {
+  if (scrollAreaRef.value)
     scrollAreaRef.value.scrollLeft = scrollAreaRef.value.scrollWidth
-  }
 })
 </script>
 

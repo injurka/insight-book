@@ -27,13 +27,13 @@ export function hexToRgba(hex: string, alpha: number): string {
   const resolvedHex = colorMap[hex.toLowerCase()] || hex
 
   let cleanHex = resolvedHex.replace('#', '')
-  if (cleanHex.length === 3) {
-    cleanHex = cleanHex.split('').map(c => c + c).join('')
-  }
-  const r = Number.parseInt(cleanHex.slice(0, 2), 16) || 0
-  const g = Number.parseInt(cleanHex.slice(2, 4), 16) || 0
+  if (cleanHex.length === 3)
+    cleanHex = cleanHex.split('').map(char => char + char).join('')
+
+  const red = Number.parseInt(cleanHex.slice(0, 2), 16) || 0
+  const green = Number.parseInt(cleanHex.slice(2, 4), 16) || 0
   const b = Number.parseInt(cleanHex.slice(4, 6), 16) || 0
-  return `rgba(${r}, ${g}, ${b}, ${alpha})`
+  return `rgba(${red}, ${green}, ${b}, ${alpha})`
 }
 
 export { getMediaUrl }

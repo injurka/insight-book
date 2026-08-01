@@ -6,9 +6,8 @@ export function useBackHandler() {
 
     return () => {
       const idx = handlers.value.indexOf(handler)
-      if (idx !== -1) {
+      if (idx !== -1)
         handlers.value.splice(idx, 1)
-      }
     }
   }
 

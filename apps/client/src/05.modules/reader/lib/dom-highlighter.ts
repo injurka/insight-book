@@ -18,9 +18,9 @@ function collectTextNodes(root: HTMLElement): Text[] {
   const textNodes: Text[] = []
   let node: Text | null
   // eslint-disable-next-line no-cond-assign, no-unmodified-loop-condition
-  while ((node = walker.nextNode() as Text | null)) {
+  while ((node = walker.nextNode() as Text | null))
     textNodes.push(node)
-  }
+
   return textNodes
 }
 
@@ -58,7 +58,7 @@ export function findQuoteRange(root: HTMLElement, textToHighlight: string): Rang
     return null
 
   const textNodes = collectTextNodes(root)
-  const fullText = textNodes.map(n => n.nodeValue || '').join('')
+  const fullText = textNodes.map(node => node.nodeValue || '').join('')
 
   const startIndex = fullText.indexOf(textToHighlight)
   if (startIndex !== -1)
@@ -80,7 +80,7 @@ export function findQuoteRange(root: HTMLElement, textToHighlight: string): Rang
  */
 export function collectQuoteRanges(root: HTMLElement, quotes: QuoteHighlightSource[]): Map<string, Range[]> {
   const rangesByColor = new Map<string, Range[]>()
-  const validQuotes = quotes.filter(q => q.text)
+  const validQuotes = quotes.filter(quoteItem => quoteItem.text)
   if (validQuotes.length === 0)
     return rangesByColor
 
@@ -88,8 +88,8 @@ export function collectQuoteRanges(root: HTMLElement, quotes: QuoteHighlightSour
     const rawSent = decodeURIComponent(span.getAttribute('data-raw-sent') || '')
     const rawNorm = normalizeString(rawSent)
 
-    const matchingQuotes = validQuotes.filter((q) => {
-      const qNorm = normalizeString(q.text)
+    const matchingQuotes = validQuotes.filter((quoteItem) => {
+      const qNorm = normalizeString(quoteItem.text)
       return rawNorm === qNorm || (qNorm.length >= 2 && (rawNorm.includes(qNorm) || qNorm.includes(rawNorm)))
     })
 

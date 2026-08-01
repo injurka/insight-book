@@ -32,6 +32,7 @@ export default defineConfig({
     alias: {
       '~': fileURLToPath(new URL('../src', import.meta.url)),
       '@injurka/insight-book-plugin-grammar-rules': fileURLToPath(new URL('../../../packages/plugin-grammar-rules/src', import.meta.url)),
+      '@injurka/insight-book-plugin-scroll-study': fileURLToPath(new URL('../../../packages/plugin-scroll-study/src', import.meta.url)),
     },
   },
 
@@ -92,38 +93,38 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks(id) {
-          if (id.includes('node_modules')) {
-            if (id.includes('shiki') || id.includes('@shikijs'))
+          const getVendorChunk = (pathId: string) => {
+            if (pathId.includes('shiki') || pathId.includes('@shikijs'))
               return undefined
-
-            if (/[\\/]node_modules[\\/](?:vue|vue-router|pinia|@vueuse)[\\/]/.test(id))
+            if (/[\\/]node_modules[\\/](?:vue|vue-router|pinia|@vueuse)[\\/]/.test(pathId))
               return 'vendor-core'
-            if (id.includes('hanzi-writer'))
+            if (pathId.includes('hanzi-writer'))
               return 'vendor-hanzi'
-            if (id.includes('dompurify'))
+            if (pathId.includes('dompurify'))
               return 'vendor-dompurify'
-            if (id.includes('@floating-ui') || id.includes('@iconify'))
+            if (pathId.includes('@floating-ui') || pathId.includes('@iconify'))
               return 'vendor-ui'
-            if (id.includes('localforage') || id.includes('workbox'))
+            if (pathId.includes('localforage') || pathId.includes('workbox'))
               return 'vendor-storage'
 
             return 'vendor-others'
           }
 
+          if (id.includes('node_modules'))
+            return getVendorChunk(id)
+
           if (id.includes('/src/components/05.modules/reader/'))
             return 'app-reader'
-
           if (id.includes('/src/components/05.modules/dictionary/'))
             return 'app-dictionary'
-
           if (id.includes('/src/components/03.domain/analysis/'))
             return 'app-analysis'
-
           if (id.includes('/src/shared/locales/'))
             return 'app-locales'
-
           if (id.includes('plugin-grammar-rules'))
             return 'plugin-grammar-rules'
+          if (id.includes('plugin-scroll-study'))
+            return 'plugin-scroll-study'
         },
       },
     },

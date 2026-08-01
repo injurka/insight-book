@@ -54,9 +54,9 @@ const { x, y, strategy, placement: finalPlacement } = useFloating(referenceRef, 
 onClickOutside(floatingRef, (e) => {
   if (!props.closeOnOutsideClick)
     return
-  if (referenceRef.value && referenceRef.value.contains(e.target as Node)) {
+  if (referenceRef.value && referenceRef.value.contains(e.target as Node))
     return
-  }
+
   isOpen.value = false
 }, { ignore: [referenceRef, '.kit-select-dropdown'] })
 
@@ -76,13 +76,11 @@ function toggle() {
 }
 
 function handleContentClick(e: MouseEvent) {
-  if ((e.target as HTMLElement).closest('.kit-select-wrapper')) {
+  if ((e.target as HTMLElement).closest('.kit-select-wrapper'))
     return
-  }
 
-  if (props.closeOnContentClick) {
+  if (props.closeOnContentClick)
     isOpen.value = false
-  }
 }
 
 const contentStyle = computed(() => {

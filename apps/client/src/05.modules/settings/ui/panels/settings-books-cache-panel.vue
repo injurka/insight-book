@@ -20,9 +20,8 @@ const activeBookStats = computed(() => {
 
   const res: BookCacheStat[] = []
   for (const [id, book] of Object.entries(cacheStore.stats.bookStats)) {
-    if (book.sizeBytes > 0 || book.cachedPages.length > 0 || book.analysesCount > 0 || book.imagesCount > 0 || book.ttsCount > 0 || book.dictPagesCount > 0) {
+    if (book.sizeBytes > 0 || book.cachedPages.length > 0 || book.analysesCount > 0 || book.imagesCount > 0 || book.ttsCount > 0 || book.dictPagesCount > 0)
       res.push({ id, ...book })
-    }
   }
   return res
 })

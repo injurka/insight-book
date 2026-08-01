@@ -7,20 +7,20 @@ export function useNotebookExport() {
   function exportToMarkdown(group: BookGroup) {
     const { book, highlights } = group
     let content = `${t('notebook.exportMd.title') || '# Цитаты из книги:'} ${book.title}\n`
-    if (book.author) {
+    if (book.author)
       content += `${t('notebook.exportMd.author') || '**Автор**:'} ${book.author}\n`
-    }
+
     content += `${t('notebook.exportMd.totalQuotes') || '**Всего цитат**:'} ${highlights.length}\n\n---\n\n`
 
     highlights.forEach((h, index) => {
       content += `### ${index + 1}. ${t('notebook.exportMd.quoteHeader') || 'Цитата'}\n`
       content += `> "${h.text}"\n\n`
-      if (h.translation) {
+      if (h.translation)
         content += `*${t('notebook.exportMd.translationHeader') || 'Перевод'}*: ${h.translation}\n\n`
-      }
-      if (h.note) {
+
+      if (h.note)
         content += `*${t('notebook.exportMd.noteHeader') || 'Заметка'}*: ${h.note}\n\n`
-      }
+
       if (h.chapter || h.pageNum) {
         const meta = []
         if (h.chapter)
@@ -38,19 +38,19 @@ export function useNotebookExport() {
   function exportToPlainText(group: BookGroup) {
     const { book, highlights } = group
     let content = `${book.title}\n`
-    if (book.author) {
+    if (book.author)
       content += `${t('notebook.exportMd.author') || 'Автор'}: ${book.author}\n`
-    }
+
     content += `${t('notebook.exportMd.totalQuotes') || 'Всего цитат'}: ${highlights.length}\n\n`
 
     highlights.forEach((h, index) => {
       content += `${index + 1}. "${h.text}"\n`
-      if (h.translation) {
+      if (h.translation)
         content += `   Перевод: ${h.translation}\n`
-      }
-      if (h.note) {
+
+      if (h.note)
         content += `   Заметка: ${h.note}\n`
-      }
+
       content += `\n`
     })
 

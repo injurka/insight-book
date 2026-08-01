@@ -48,7 +48,7 @@ describe('kitDropdown', () => {
     const wrapper = mount(KitDropdown, {
       props: {
         'modelValue': true,
-        'onUpdate:modelValue': (e: boolean) => wrapper.setProps({ modelValue: e }),
+        'onUpdate:modelValue': async (e: boolean) => wrapper.setProps({ modelValue: e }),
       },
       slots: {
         default: '<div class="content">Content</div>',

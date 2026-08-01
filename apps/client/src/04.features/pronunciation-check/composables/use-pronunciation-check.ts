@@ -74,9 +74,9 @@ export function usePronunciationCheck(word?: MaybeRef<string> | (() => string), 
     const activeLang = lang || getLang() || ''
 
     if (isRecording.value) {
-      if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+      if (mediaRecorder && mediaRecorder.state !== 'inactive')
         mediaRecorder.stop()
-      }
+
       isRecording.value = false
       return
     }

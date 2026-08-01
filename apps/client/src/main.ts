@@ -43,7 +43,7 @@ async function bootstrap() {
     getCustomLlm: () => settingsStore.useCustomLlm && settingsStore.customLlmUrl && settingsStore.customLlmModel
       ? { url: settingsStore.customLlmUrl, key: settingsStore.customLlmKey || '', model: settingsStore.customLlmModel }
       : null,
-    onUnauthorized: () => authStore.logout(),
+    onUnauthorized: async () => authStore.logout(),
     onError: message => toastStore.error(message),
   })
 
@@ -94,9 +94,8 @@ async function bootstrap() {
     })
   }
 
-  if (import.meta.env.DEV) {
+  if (import.meta.env.DEV)
     app.config.performance = true
-  }
 }
 
 import('~/assets/icons-bundle.json').then((module) => {

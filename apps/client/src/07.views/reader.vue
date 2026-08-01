@@ -17,31 +17,33 @@ useHead({
   title: computed(() => store.currentBook ? `${store.currentBook.title} — ${t('routes.reader')}` : t('routes.reader')),
 })
 
+async function initBookSession(bookId: number, page?: number) {
+  if (!store.currentBook || store.currentBook.id !== bookId) {
+    try {
+      await store.openBookById(bookId, page)
+    }
+    catch {
+      router.replace(AppRoutePaths.Home)
+    }
+    return
+  }
+
+  highlightsStore.clear()
+  highlightsStore.fetchHighlights(bookId).catch(console.error)
+
+  const targetPage = page || store.currentBook.currentPage || 1
+  if (!store.currentPage || store.currentPage.pageNum !== targetPage)
+    store.loadPage(bookId, targetPage)
+}
+
 onMounted(async () => {
   const bookId = Number(route.query.bookId)
   const queryPage = route.query.page
   const parsedPage = queryPage ? Number(queryPage) : undefined
   const page = (parsedPage && !Number.isNaN(parsedPage)) ? parsedPage : undefined
 
-  if (bookId) {
-    if (!store.currentBook || store.currentBook.id !== bookId) {
-      try {
-        await store.openBookById(bookId, page)
-      }
-      catch {
-        router.replace(AppRoutePaths.Home)
-      }
-    }
-    else {
-      highlightsStore.clear()
-      highlightsStore.fetchHighlights(bookId).catch(console.error)
-
-      const targetPage = page || store.currentBook.currentPage || 1
-      if (!store.currentPage || store.currentPage.pageNum !== targetPage) {
-        store.loadPage(bookId, targetPage)
-      }
-    }
-  }
+  if (bookId)
+    await initBookSession(bookId, page)
 })
 </script>
 

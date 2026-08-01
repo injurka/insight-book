@@ -46,9 +46,8 @@ onMounted(async () => {
 })
 
 onUnmounted(() => {
-  if (unlistenResize) {
+  if (unlistenResize)
     unlistenResize()
-  }
 })
 </script>
 

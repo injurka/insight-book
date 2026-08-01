@@ -8,9 +8,10 @@ import DictionaryDiscoverDialog from './dialog/dictionary-discover-dialog.vue'
 import DictionaryQuizDialog from './dialog/dictionary-quiz-dialog.vue'
 import DictionaryStatsDialog from './dialog/dictionary-stats-dialog.vue'
 import ManageDecksDialog from './dialog/manage-decks-dialog.vue'
-import SrsTrainingDialog from './dialog/srs-training-dialog.vue'
 import DictionaryHeader from './partials/dictionary-header.vue'
 import DictionaryList from './partials/dictionary-list.vue'
+
+const SrsTrainingDialog = lazyComponent(() => import('~/05.modules/srs-training/ui/dialog/srs-training-dialog.vue'))
 
 const DictWordDetailsModal = lazyComponent(() => import('~/04.features/dict-word/ui/dict-word-details-modal.vue'))
 
@@ -56,16 +57,13 @@ function openDetails(item: UserDictItem) {
   isDetailsModalOpen.value = true
 }
 
-function openTrainingSettings(mode: 'srs' | 'deep_dive' | 'cram' | 'match') {
-  store.trainingMode = mode
+function openTrainingSettings(_mode: 'srs' | 'deep_dive' | 'cram' | 'match') {
   isTrainingOpen.value = true
 }
 
 watch(isTrainingOpen, (newVal, oldVal) => {
-  if (oldVal === true && newVal === false) {
-    store.fetchTrainingQueue({ mode: 'srs', deckId: 'all', difficulty: ['all'] })
+  if (oldVal === true && newVal === false)
     statsDialog.value?.fetchActivity()
-  }
 })
 
 watch(isEditMode, (val) => {

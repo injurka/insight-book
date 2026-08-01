@@ -47,24 +47,7 @@ const trackTransform = computed(() => {
   }
 })
 
-async function initWriters() {
-  currentSequenceId++
-  const seqId = currentSequenceId
-  currentIndex.value = 0
-  isComplete.value = false
-
-  containerRefs.value.forEach((el) => {
-    if (el)
-      el.innerHTML = ''
-  })
-  writers.value = []
-
-  if (validChars.value.length === 0) {
-    emit('complete')
-    return
-  }
-
-  const docStyle = getComputedStyle(document.documentElement)
+function createCharacterWriters(docStyle: CSSStyleDeclaration): HanziWriter[] {
   const strokeColor = docStyle.getPropertyValue('--fg-primary-color').trim() || '#2c3e50'
   const radicalColor = docStyle.getPropertyValue('--fg-accent-color').trim() || '#c975de'
   const outlineColor = docStyle.getPropertyValue('--border-secondary-color').trim() || '#e2e8f0'
@@ -93,21 +76,37 @@ async function initWriters() {
     })
 
     const svg = el.querySelector('svg')
-    if (svg) {
+    if (svg)
       svg.setAttribute('viewBox', `0 0 ${props.size} ${props.size}`)
-    }
 
     newWriters.push(writer)
   }
+  return newWriters
+}
 
-  writers.value = newWriters
+async function initWriters() {
+  currentSequenceId++
+  const seqId = currentSequenceId
+  currentIndex.value = 0
+  isComplete.value = false
 
-  if (props.mode === 'quiz') {
+  containerRefs.value.forEach((el) => {
+    if (el)
+      el.innerHTML = ''
+  })
+  writers.value = []
+
+  if (validChars.value.length === 0) {
+    emit('complete')
+    return
+  }
+
+  writers.value = createCharacterWriters(getComputedStyle(document.documentElement))
+
+  if (props.mode === 'quiz')
     startQuizSequence(0, seqId)
-  }
-  else if (props.mode === 'animation') {
+  else if (props.mode === 'animation')
     startAnimationSequence(0, seqId)
-  }
 }
 
 function startQuizSequence(index: number, seqId: number) {
@@ -166,12 +165,11 @@ function replay() {
     w.hideCharacter()
   })
 
-  if (props.mode === 'animation') {
+  if (props.mode === 'animation')
     startAnimationSequence(0, seqId)
-  }
-  else if (props.mode === 'quiz') {
+
+  else if (props.mode === 'quiz')
     startQuizSequence(0, seqId)
-  }
 }
 
 defineExpose({ replay })

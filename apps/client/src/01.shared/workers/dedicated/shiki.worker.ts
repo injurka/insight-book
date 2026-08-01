@@ -43,18 +43,17 @@ const rpcFunctions = {
     let finalLang = 'javascript'
     if (lang) {
       const rawLang = lang.toLowerCase()
-      if (loadedLangs.includes(rawLang as BundledLanguage)) {
+      if (loadedLangs.includes(rawLang))
         finalLang = rawLang
-      }
-      else if (rawLang === 'js') {
+
+      else if (rawLang === 'js')
         finalLang = 'javascript'
-      }
-      else if (rawLang === 'ts') {
+
+      else if (rawLang === 'ts')
         finalLang = 'typescript'
-      }
-      else if (rawLang === 'py') {
+
+      else if (rawLang === 'py')
         finalLang = 'python'
-      }
     }
 
     return highlighter.codeToHtml(code, {

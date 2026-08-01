@@ -44,9 +44,9 @@ const { x, y, strategy } = useFloating(referenceEl, popoverRef, {
 })
 
 const popoverPos = computed(() => {
-  if (!analysisStore.wordPopover || x.value == null || y.value == null) {
+  if (!analysisStore.wordPopover || x.value == null || y.value == null)
     return { top: '-9999px', left: '-9999px', visibility: 'hidden' as const }
-  }
+
   return {
     position: strategy.value,
     top: `${y.value}px`,
@@ -84,22 +84,21 @@ useResizeObserver(innerRef, (entries) => {
 function getPosClass(pos: string) {
   if (!pos)
     return 'pos-default'
-  const p = pos.toLowerCase()
-  if (p.startsWith('n'))
+  const posLower = pos.toLowerCase()
+  if (posLower.startsWith('n'))
     return 'pos-noun'
-  if (p.startsWith('v'))
+  if (posLower.startsWith('v'))
     return 'pos-verb'
-  if (p.startsWith('a') || p.startsWith('d'))
+  if (posLower.startsWith('a') || posLower.startsWith('d'))
     return 'pos-adj'
-  if (p.startsWith('r'))
+  if (posLower.startsWith('r'))
     return 'pos-pronoun'
   return 'pos-default'
 }
 
 watch(() => analysisStore.wordPopover, (val) => {
-  if (!val) {
+  if (!val)
     stop()
-  }
 })
 
 function openSaveDialog() {

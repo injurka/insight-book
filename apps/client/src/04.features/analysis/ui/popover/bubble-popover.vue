@@ -93,33 +93,32 @@ const matchingHighlight = computed(() => {
   if (!props.box?.text || !readerStore.currentBook)
     return null
   const rawNorm = normalizeString(props.box.text)
-  return highlightsStore.highlights.find((h) => {
-    const hNorm = normalizeString(h.text)
-    return Number(h.bookId) === Number(readerStore.currentBook?.id) && (rawNorm === hNorm || (hNorm.length >= 2 && (rawNorm.includes(hNorm) || hNorm.includes(rawNorm))))
+  return highlightsStore.highlights.find((item) => {
+    const hNorm = normalizeString(item.text)
+    return Number(item.bookId) === Number(readerStore.currentBook?.id) && (rawNorm === hNorm || (hNorm.length >= 2 && (rawNorm.includes(hNorm) || hNorm.includes(rawNorm))))
   })
 })
 
+function getChapterTitle(pageNum: number): string | null {
+  if (!readerStore.currentToc || !readerStore.currentToc.length)
+    return null
+  let currentItem = null
+  for (const item of readerStore.currentToc) {
+    if (item.pageNum !== undefined && item.pageNum <= pageNum) {
+      if (!currentItem || item.pageNum > (currentItem.pageNum || 0))
+        currentItem = item
+    }
+  }
+  return currentItem ? currentItem.title : null
+}
+
 async function handleSaveQuote(data: { text: string, translation: string, note: string, color: string, analysisData?: LlmAnalysis | null }) {
-  if (!readerStore.currentBook || !readerStore.currentPage)
-    return
-  if (isSavingHighlight.value)
+  if (!readerStore.currentBook || !readerStore.currentPage || isSavingHighlight.value)
     return
 
   const bookId = readerStore.currentBook.id
   const pageNum = readerStore.currentPage.pageNum
-
-  let chapter: string | null = null
-  if (readerStore.currentToc && readerStore.currentToc.length) {
-    let currentItem = null
-    for (const item of readerStore.currentToc) {
-      if (item.pageNum !== undefined && item.pageNum <= pageNum) {
-        if (!currentItem || item.pageNum > (currentItem.pageNum || 0)) {
-          currentItem = item
-        }
-      }
-    }
-    chapter = currentItem ? currentItem.title : null
-  }
+  const chapter = getChapterTitle(pageNum)
 
   isSavingHighlight.value = true
 
@@ -195,12 +194,11 @@ function analyzeSentence() {
 
 function playTTS() {
   if (props.box?.text) {
-    if (isPlaying.value || isLoading.value) {
+    if (isPlaying.value || isLoading.value)
       stop()
-    }
-    else {
+
+    else
       speak(props.box.text.replace(/\n+/g, ''))
-    }
   }
 }
 

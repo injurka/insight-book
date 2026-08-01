@@ -35,12 +35,11 @@ export function collapsePageRanges(pages: number[]): PageRange[] {
 
   for (const page of sorted) {
     const last = ranges[ranges.length - 1]
-    if (last && page === last.end + 1) {
+    if (last && page === last.end + 1)
       last.end = page
-    }
-    else {
+
+    else
       ranges.push({ start: page, end: page })
-    }
   }
 
   return ranges

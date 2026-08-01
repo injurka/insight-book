@@ -170,9 +170,8 @@ export const useAnalysisStore = defineStore('analysis', () => {
     pageAnalysisTtsCurrent.value = 0
     pageAnalysisTtsTotal.value = 0
 
-    if (taskQueue.value.length === 0) {
+    if (taskQueue.value.length === 0)
       clearQueue()
-    }
   }
 
   function closePageAnalysisModal() {
@@ -190,13 +189,180 @@ export const useAnalysisStore = defineStore('analysis', () => {
     ) {
       isPageAnalysisFinished.value = true
 
-      if (isManualPageAnalysisActive.value) {
+      if (isManualPageAnalysisActive.value)
         useToastStore().success(i18n.global.t('analysis.allElementsAnalyzed'))
-      }
 
       isManualPageAnalysisActive.value = false
       isAutoPageAnalysisActive.value = false
     }
+  }
+
+  async function processPhase1(book: any, signal: AbortSignal) {
+    const pendingCacheTasks = taskQueue.value.filter(taskItem => (taskItem.type === 'sentence' || taskItem.type === 'word') && taskItem.status === 'pending')
+    if (pendingCacheTasks.length === 0)
+      return false
+
+    const currentChunk = pendingCacheTasks.slice(0, 200)
+    currentChunk.forEach(taskItem => taskItem.status = 'checking_cache')
+
+    const cacheChecks = await Promise.all(currentChunk.map(async (task) => {
+      const cached = await repos.analysis.getLocalAnalysis(task.text)
+      return { task, cached }
+    }))
+
+    const missingInLocalCache: AnalysisTask[] = []
+
+    for (const { task, cached } of cacheChecks) {
+      if (cached) {
+        handleTaskSuccess(task, cached)
+        queueDone.value++
+        taskQueue.value = taskQueue.value.filter(t => t.id !== task.id)
+      }
+      else {
+        missingInLocalCache.push(task)
+      }
+    }
+
+    if (missingInLocalCache.length > 0) {
+      try {
+        const uniqueMap = new Map<string, 'sentence' | 'word'>()
+        missingInLocalCache.forEach(t => uniqueMap.set(t.text, t.type === 'sentence' ? 'sentence' : 'word'))
+        const itemsToCheck = Array.from(uniqueMap.entries()).map(([text, type]) => ({ text, type }))
+
+        const res = await repos.analysis.checkCache(
+          book.id,
+          itemsToCheck,
+          book.language,
+          signal,
+        )
+        const serverCacheMap = new Map(res.results.map((result: any) => [result.sentence, result.analysis]))
+
+        for (const task of missingInLocalCache) {
+          const serverCached = serverCacheMap.get(task.text) as LlmAnalysis
+          if (serverCached) {
+            await repos.analysis.saveLocalAnalysis(task.text, serverCached)
+            handleTaskSuccess(task, serverCached)
+            queueDone.value++
+            taskQueue.value = taskQueue.value.filter(t => t.id !== task.id)
+          }
+          else {
+            task.status = 'pending_llm'
+          }
+        }
+      }
+      catch (e) {
+        const err = e as Error
+        if (err.name !== 'AbortError')
+          console.warn('Server cache check failed:', e)
+        missingInLocalCache.forEach(t => t.status = 'pending_llm')
+      }
+    }
+    if (!signal.aborted)
+      checkPageAnalysisCompletion()
+    return true
+  }
+
+  async function processPhase2(book: any, signal: AbortSignal) {
+    const settingsStore = useGlobalSettingsStore()
+    const pendingLlmTasks = taskQueue.value.filter(taskItem => (taskItem.type === 'sentence' || taskItem.type === 'word') && taskItem.status === 'pending_llm')
+    if (pendingLlmTasks.length === 0)
+      return false
+
+    const batchSize = settingsStore.useCustomLlm ? 1 : 5
+    const concurrencyLimit = settingsStore.useCustomLlm ? 1 : 5
+
+    const llmChunk = pendingLlmTasks.slice(0, batchSize * concurrencyLimit)
+    llmChunk.forEach(taskItem => taskItem.status = 'processing')
+
+    const batches: AnalysisTask[][] = []
+    for (let j = 0; j < llmChunk.length; j += batchSize)
+      batches.push(llmChunk.slice(j, j + batchSize))
+
+    await Promise.all(batches.map(async (batch) => {
+      const itemsToAnalyze = batch.map(t => ({
+        id: t.id,
+        sentence: t.text,
+        context: t.context,
+        type: (t.type === 'sentence' ? 'sentence' : 'word') as 'sentence' | 'word',
+      }))
+
+      try {
+        const res = await repos.analysis.analyzeBatch(
+          book.id,
+          itemsToAnalyze,
+          book.language,
+          signal,
+        )
+        for (const result of res.results) {
+          const task = batch.find(it => it.id === result.id)
+          if (task) {
+            await repos.analysis.saveLocalAnalysis(task.text, result.analysis)
+            handleTaskSuccess(task, result.analysis)
+            queueDone.value++
+            taskQueue.value = taskQueue.value.filter(t => t.id !== task.id)
+          }
+        }
+      }
+      catch (e) {
+        const err = e as Error
+        if (err.name !== 'AbortError')
+          console.error('Analyze batch error:', err)
+        taskQueue.value = taskQueue.value.filter(t => !batch.some(it => it.id === t.id))
+        queueDone.value += batch.length
+      }
+    }))
+
+    if (!signal.aborted)
+      checkPageAnalysisCompletion()
+    return true
+  }
+
+  async function processPhase3(book: any, signal: AbortSignal) {
+    const settingsStore = useGlobalSettingsStore()
+    const ttsTask = taskQueue.value.find(taskItem => taskItem.type.startsWith('tts_') && taskItem.status === 'pending')
+    if (!ttsTask)
+      return false
+
+    ttsTask.status = 'processing'
+    try {
+      const voice = settingsStore.ttsVoice || 'Kore'
+      const cacheKey = `${book.id}_${voice}_${ttsTask.text.trim().toLowerCase()}`
+      const cached = await repos.analysis.getLocalTts(cacheKey)
+      if (!cached) {
+        const res = await repos.analysis.generateTts(
+          book.id,
+          ttsTask.text,
+          voice,
+          signal,
+        )
+        await repos.analysis.saveLocalTts(cacheKey, res.audioBase64)
+      }
+      if (ttsTask.type === 'tts_sentence')
+        pageAnalysisTtsCurrent.value++
+      if (ttsTask.type === 'tts_word')
+        pageAnalysisTtsCurrent.value++
+    }
+    catch (e: unknown) {
+      if ((e as Error).name !== 'AbortError')
+        console.error('TTS Task Error:', e)
+    }
+    finally {
+      taskQueue.value = taskQueue.value.filter(t => t.id !== ttsTask.id)
+      queueDone.value += 1
+      if (!signal.aborted)
+        checkPageAnalysisCompletion()
+    }
+    return true
+  }
+
+  async function processQueueStep(book: any, signal: AbortSignal): Promise<boolean> {
+    taskQueue.value.sort((a, b) => b.priority - a.priority)
+
+    let processed = false
+    if (await processPhase1(book, signal) || await processPhase2(book, signal) || await processPhase3(book, signal)) {
+      processed = true
+    }
+    return processed
   }
 
   async function processQueue() {
@@ -208,7 +374,6 @@ export const useAnalysisStore = defineStore('analysis', () => {
     const signal = pageAnalysisAbortController.signal
 
     const readerStore = useReaderStore()
-    const settingsStore = useGlobalSettingsStore()
 
     while (taskQueue.value.length > 0 && isQueueProcessing.value) {
       const book = readerStore.currentBook || useLibraryStore().currentBookInfo
@@ -217,160 +382,13 @@ export const useAnalysisStore = defineStore('analysis', () => {
         break
       }
 
-      taskQueue.value.sort((a, b) => b.priority - a.priority)
+      const processed = await processQueueStep(book, signal)
 
-      // --- ФАЗА 1: Кэширование (IndexedDB + API /cache-check) ---
-      const pendingCacheTasks = taskQueue.value.filter(t => (t.type === 'sentence' || t.type === 'word') && t.status === 'pending')
-
-      if (pendingCacheTasks.length > 0) {
-        // Берем батч до 200 задач за раз
-        const currentChunk = pendingCacheTasks.slice(0, 200)
-        currentChunk.forEach(t => t.status = 'checking_cache')
-
-        // 1.1 Параллельная проверка IndexedDB (без bookId)
-        const cacheChecks = await Promise.all(currentChunk.map(async (task) => {
-          const cached = await repos.analysis.getLocalAnalysis(task.text)
-          return { task, cached }
-        }))
-
-        const missingInLocalCache: AnalysisTask[] = []
-
-        for (const { task, cached } of cacheChecks) {
-          if (cached) {
-            handleTaskSuccess(task, cached)
-            queueDone.value++
-            taskQueue.value = taskQueue.value.filter(t => t.id !== task.id)
-          }
-          else {
-            missingInLocalCache.push(task)
-          }
-        }
-
-        // 1.2 Массовая проверка кэша на сервере (без LLM)
-        if (missingInLocalCache.length > 0) {
-          try {
-            const uniqueMap = new Map<string, 'sentence' | 'word'>()
-            missingInLocalCache.forEach(t => uniqueMap.set(t.text, t.type === 'sentence' ? 'sentence' : 'word'))
-            const itemsToCheck = Array.from(uniqueMap.entries()).map(([text, type]) => ({ text, type }))
-
-            const res = await repos.analysis.checkCache(
-              book.id,
-              itemsToCheck,
-              book.language,
-              signal,
-            )
-            const serverCacheMap = new Map(res.results.map((r: any) => [r.sentence, r.analysis]))
-
-            for (const task of missingInLocalCache) {
-              const serverCached = serverCacheMap.get(task.text) as unknown as LlmAnalysis
-              if (serverCached) {
-                await repos.analysis.saveLocalAnalysis(task.text, serverCached)
-                handleTaskSuccess(task, serverCached)
-                queueDone.value++
-                taskQueue.value = taskQueue.value.filter(t => t.id !== task.id)
-              }
-              else {
-                task.status = 'pending_llm'
-              }
-            }
-          }
-          catch (e) {
-            const err = e as Error
-            if (err.name === 'AbortError')
-              break
-            console.warn('Server cache check failed:', e)
-            missingInLocalCache.forEach(t => t.status = 'pending_llm')
-          }
-        }
-
-        if (!signal.aborted)
-          checkPageAnalysisCompletion()
+      if (signal.aborted)
+        break
+      if (processed)
         continue
-      }
-
-      // --- ФАЗА 2: Обработка нейросетью ---
-      const pendingLlmTasks = taskQueue.value.filter(t => (t.type === 'sentence' || t.type === 'word') && t.status === 'pending_llm')
-
-      if (pendingLlmTasks.length > 0) {
-        const batchSize = settingsStore.useCustomLlm ? 1 : 5
-        const concurrencyLimit = settingsStore.useCustomLlm ? 1 : 5
-
-        const llmChunk = pendingLlmTasks.slice(0, batchSize * concurrencyLimit)
-        llmChunk.forEach(t => t.status = 'processing')
-
-        const batches: AnalysisTask[][] = []
-        for (let j = 0; j < llmChunk.length; j += batchSize) {
-          batches.push(llmChunk.slice(j, j + batchSize))
-        }
-
-        await Promise.all(batches.map(async (batch) => {
-          const itemsToAnalyze = batch.map(t => ({ id: t.id, sentence: t.text, context: t.context, type: t.type === 'sentence' ? 'sentence' : 'word' as 'sentence' | 'word' }))
-          try {
-            const res = await repos.analysis.analyzeBatch(
-              book.id,
-              itemsToAnalyze,
-              book.language,
-              signal,
-            )
-            for (const result of res.results) {
-              const task = batch.find(it => it.id === result.id)
-              if (task) {
-                await repos.analysis.saveLocalAnalysis(task.text, result.analysis)
-                handleTaskSuccess(task, result.analysis)
-                queueDone.value++
-                taskQueue.value = taskQueue.value.filter(t => t.id !== task.id)
-              }
-            }
-          }
-          catch (e) {
-            const err = e as Error
-            if (err.name !== 'AbortError') {
-              console.error('Analyze batch error:', err)
-            }
-            taskQueue.value = taskQueue.value.filter(t => !batch.some(it => it.id === t.id))
-            queueDone.value += batch.length
-          }
-        }))
-
-        if (!signal.aborted)
-          checkPageAnalysisCompletion()
-        continue
-      }
-
-      // --- ФАЗА 3: TTS Озвучка ---
-      const ttsTask = taskQueue.value.find(t => t.type.startsWith('tts_') && t.status === 'pending')
-      if (ttsTask) {
-        ttsTask.status = 'processing'
-        try {
-          const voice = settingsStore.ttsVoice || 'Kore'
-          const cacheKey = `${book.id}_${voice}_${ttsTask.text.trim().toLowerCase()}`
-          const cached = await repos.analysis.getLocalTts(cacheKey)
-          if (!cached) {
-            const res = await repos.analysis.generateTts(
-              book.id,
-              ttsTask.text,
-              voice,
-              signal,
-            )
-            await repos.analysis.saveLocalTts(cacheKey, res.audioBase64)
-          }
-          if (ttsTask.type === 'tts_sentence')
-            pageAnalysisTtsCurrent.value++
-          if (ttsTask.type === 'tts_word')
-            pageAnalysisTtsCurrent.value++
-        }
-        catch (e: unknown) {
-          if ((e as Error).name === 'AbortError')
-            break
-          console.error('TTS Task Error:', e)
-        }
-        finally {
-          taskQueue.value = taskQueue.value.filter(t => t.id !== ttsTask.id)
-          queueDone.value += 1
-          if (!signal.aborted)
-            checkPageAnalysisCompletion()
-        }
-      }
+      break
     }
 
     if (!signal.aborted) {
@@ -391,43 +409,27 @@ export const useAnalysisStore = defineStore('analysis', () => {
     }
 
     if (task.type === 'sentence') {
-      const exists = analysisHistory.value.find(h => h.sentence === task.text)
-      if (!exists) {
+      const exists = analysisHistory.value.find(historyItem => historyItem.sentence === task.text)
+      if (!exists)
         analysisHistory.value.unshift({ sentence: task.text, analysis, timestamp: Date.now() })
-      }
+
       pageAnalysisSentencesCurrent.value++
     }
     if (task.type === 'word')
       pageAnalysisWordsCurrent.value++
   }
 
-  async function handleSentenceAnalysis(sentence: string, context?: string) {
-    const settingsStore = useGlobalSettingsStore()
-    const readerStore = useReaderStore()
-    const libraryStore = useLibraryStore()
-    const currentBook = readerStore.currentBook || libraryStore.currentBookInfo
+  function getSentenceCachedAnalysis(sentence: string) {
+    const existing = analysisHistory.value.find(historyItem => historyItem.sentence.trim().toLowerCase() === sentence.trim().toLowerCase())
+    return existing ? existing.analysis : null
+  }
 
-    if (!currentBook)
-      return
-
-    if (currentBook.language === settingsStore.appLanguage)
-      return
-
-    if (manualAnalysisAbortController) {
-      manualAnalysisAbortController.abort()
-      manualAnalysisAbortController = null
-    }
-
-    sidebarSentence.value = sentence
-    sidebarOpen.value = true
-    sidebarAnalysis.value = null
-    isAnalyzing.value = true
-
-    const existing = analysisHistory.value.find(h => h.sentence.trim().toLowerCase() === sentence.trim().toLowerCase())
-    if (existing) {
-      sidebarAnalysis.value = existing.analysis
+  async function checkAndApplyCachedSentence(sentence: string): Promise<boolean> {
+    const historyCached = getSentenceCachedAnalysis(sentence)
+    if (historyCached) {
+      sidebarAnalysis.value = historyCached
       isAnalyzing.value = false
-      return
+      return true
     }
 
     const cached = await repos.analysis.getLocalAnalysis(sentence)
@@ -435,12 +437,18 @@ export const useAnalysisStore = defineStore('analysis', () => {
       sidebarAnalysis.value = cached
       analysisHistory.value.unshift({ sentence, analysis: cached, timestamp: Date.now() })
       isAnalyzing.value = false
-      return
+      return true
     }
+    return false
+  }
 
-    manualAnalysisAbortController = new AbortController()
-    const signal = manualAnalysisAbortController.signal
-
+  async function performSentenceAnalysis(
+    currentBook: any,
+    sentence: string,
+    context: string | undefined,
+    signal: AbortSignal,
+    settingsStore: any,
+  ) {
     try {
       const res = await repos.analysis.analyze(
         currentBook.id,
@@ -465,16 +473,179 @@ export const useAnalysisStore = defineStore('analysis', () => {
     }
     catch (err: unknown) {
       const e = err as Error
-      if ((e as Error).name !== 'AbortError') {
+      if (e.name !== 'AbortError') {
         console.error('Manual analyze error:', e)
         useToastStore().error('Ошибка анализа предложения')
       }
     }
-    finally {
-      if (sidebarSentence.value === sentence && !signal.aborted) {
-        isAnalyzing.value = false
+  }
+
+  async function handleSentenceAnalysis(sentence: string, context?: string) {
+    const settingsStore = useGlobalSettingsStore()
+    const readerStore = useReaderStore()
+    const libraryStore = useLibraryStore()
+    const currentBook = readerStore.currentBook || libraryStore.currentBookInfo
+
+    if (!currentBook || currentBook.language === settingsStore.appLanguage)
+      return
+
+    manualAnalysisAbortController?.abort()
+    manualAnalysisAbortController = null
+
+    sidebarSentence.value = sentence
+    sidebarOpen.value = true
+    sidebarAnalysis.value = null
+    isAnalyzing.value = true
+
+    if (await checkAndApplyCachedSentence(sentence))
+      return
+
+    manualAnalysisAbortController = new AbortController()
+    const signal = manualAnalysisAbortController.signal
+
+    await performSentenceAnalysis(
+      currentBook,
+      sentence,
+      context,
+      signal,
+      settingsStore,
+    )
+
+    if (sidebarSentence.value === sentence && !signal.aborted)
+      isAnalyzing.value = false
+  }
+
+  function createAnalysisTasks(sentences: string[], words: string[], options: { doSent: boolean, doWords: boolean, doTtsSent: boolean, doTtsWords: boolean }): AnalysisTask[] {
+    const tasks: AnalysisTask[] = []
+    if (options.doSent) {
+      sentences.forEach(text => tasks.push({
+        id: uuidv4(),
+        type: 'sentence',
+        text,
+        priority: 0,
+        status: 'pending',
+      }))
+    }
+    if (options.doWords) {
+      words.forEach(text => tasks.push({
+        id: uuidv4(),
+        type: 'word',
+        text,
+        priority: 0,
+        status: 'pending',
+      }))
+    }
+    if (options.doTtsSent) {
+      sentences.forEach(text => tasks.push({
+        id: uuidv4(),
+        type: 'tts_sentence',
+        text,
+        priority: 0,
+        status: 'pending',
+      }))
+    }
+    if (options.doTtsWords) {
+      words.forEach(text => tasks.push({
+        id: uuidv4(),
+        type: 'tts_word',
+        text,
+        priority: 0,
+        status: 'pending',
+      }))
+    }
+    return tasks
+  }
+
+  function extractPageTexts(currentPage: any, options: { sentences: boolean, words: boolean, ttsSentences: boolean, ttsWords: boolean }) {
+    const sentencesToProcess = new Set<string>()
+    const wordsToProcess = new Set<string>()
+    const { sentences: doSent, words: doWords, ttsSentences: doTtsSent, ttsWords: doTtsWords } = options
+
+    const extractFromHtml = (html: string) => {
+      if (doSent || doTtsSent) {
+        const sentRegex = /data-raw-sent="([^"]+)"/g
+        let match = sentRegex.exec(html)
+        while (match !== null) {
+          sentencesToProcess.add(decodeURIComponent(match[1]))
+          match = sentRegex.exec(html)
+        }
+      }
+
+      if (doWords || doTtsWords) {
+        const wordRegex = /data-word="([^"]+)"[^>]*?data-pos="([^"]+)"/g
+        let match = wordRegex.exec(html)
+        while (match !== null) {
+          if (match[2] !== 'x')
+            wordsToProcess.add(decodeURIComponent(match[1]))
+          match = wordRegex.exec(html)
+        }
       }
     }
+
+    if (currentPage.type === 'manga' && currentPage.ocrBlocks) {
+      currentPage.ocrBlocks.forEach((b: any) => {
+        if (b.html)
+          extractFromHtml(b.html)
+      })
+    }
+    else if (currentPage.content) {
+      extractFromHtml(currentPage.content)
+    }
+
+    const sentences = Array.from(sentencesToProcess).filter(sentence => /[\p{L}\p{N}]/u.test(sentence))
+    const words = Array.from(wordsToProcess).filter(word => /[\p{L}\p{N}]/u.test(word))
+
+    return { sentences, words }
+  }
+
+  function setupPageAnalysisState(isBackground: boolean): boolean {
+    if (isBackground && isManualPageAnalysisActive.value)
+      return false
+
+    cancelPageAnalysis()
+    if (!isBackground) {
+      isManualPageAnalysisActive.value = true
+      isPageAnalysisModalOpen.value = true
+    }
+    else {
+      isAutoPageAnalysisActive.value = true
+    }
+    return true
+  }
+
+  function initPageAnalysisProgress(
+    sentences: string[],
+    words: string[],
+    doSent: boolean,
+    doWords: boolean,
+    totalTtsItems: number,
+  ) {
+    isPageAnalysisFinished.value = false
+    pageAnalysisSentencesTotal.value = doSent ? sentences.length : 0
+    pageAnalysisSentencesCurrent.value = 0
+    pageAnalysisWordsTotal.value = doWords ? words.length : 0
+    pageAnalysisWordsCurrent.value = 0
+    pageAnalysisTtsTotal.value = totalTtsItems
+    pageAnalysisTtsCurrent.value = 0
+  }
+
+  function checkOptionsSelected(options: any, isBackground: boolean): boolean {
+    const { sentences: doSent, words: doWords, ttsSentences: doTtsSent, ttsWords: doTtsWords } = options
+    if (!doSent && !doWords && !doTtsSent && !doTtsWords) {
+      if (!isBackground)
+        useToastStore().info('Выберите хотя бы одно действие.')
+      return false
+    }
+    return true
+  }
+
+  function calculateTotalItems(
+    doActive: boolean,
+    activeLen: number,
+    doOther: boolean,
+    otherLen: number,
+  ): number {
+    return (doActive ? activeLen : 0) + (doOther ? otherLen : 0)
   }
 
   async function analyzeWholePage(options: { sentences: boolean, words: boolean, ttsSentences: boolean, ttsWords: boolean }, isBackground: boolean = false) {
@@ -495,66 +666,27 @@ export const useAnalysisStore = defineStore('analysis', () => {
       isBackground,
     })
 
-    if (!isBackground) {
-      cancelPageAnalysis()
-      isManualPageAnalysisActive.value = true
-      isPageAnalysisModalOpen.value = true
-    }
-    else {
-      if (isManualPageAnalysisActive.value)
-        return
-      cancelPageAnalysis()
-      isAutoPageAnalysisActive.value = true
-    }
+    if (!setupPageAnalysisState(isBackground))
+      return
+
+    if (!checkOptionsSelected(options, isBackground))
+      return
 
     const { sentences: doSent, words: doWords, ttsSentences: doTtsSent, ttsWords: doTtsWords } = options
+    const { sentences, words } = extractPageTexts(readerStore.currentPage, options)
 
-    if (!doSent && !doWords && !doTtsSent && !doTtsWords) {
-      if (!isBackground)
-        useToastStore().info('Выберите хотя бы одно действие.')
-      return
-    }
-
-    const sentencesToProcess = new Set<string>()
-    const wordsToProcess = new Set<string>()
-
-    const extractFromHtml = (html: string) => {
-      if (doSent || doTtsSent) {
-        const sentRegex = /data-raw-sent="([^"]+)"/g
-        let match
-        // eslint-disable-next-line no-cond-assign
-        while ((match = sentRegex.exec(html)) !== null) {
-          sentencesToProcess.add(decodeURIComponent(match[1]))
-        }
-      }
-
-      if (doWords || doTtsWords) {
-        const wordRegex = /data-word="([^"]+)"[^>]*?data-pos="([^"]+)"/g
-        let match
-        // eslint-disable-next-line no-cond-assign
-        while ((match = wordRegex.exec(html)) !== null) {
-          if (match[2] !== 'x') {
-            wordsToProcess.add(decodeURIComponent(match[1]))
-          }
-        }
-      }
-    }
-
-    if (readerStore.currentPage.type === 'manga' && readerStore.currentPage.ocrBlocks) {
-      readerStore.currentPage.ocrBlocks.forEach((b) => {
-        if (b.html)
-          extractFromHtml(b.html)
-      })
-    }
-    else if (readerStore.currentPage.content) {
-      extractFromHtml(readerStore.currentPage.content)
-    }
-
-    const sentences = Array.from(sentencesToProcess).filter(s => /[\p{L}\p{N}]/u.test(s))
-    const words = Array.from(wordsToProcess).filter(w => /[\p{L}\p{N}]/u.test(w))
-
-    const totalAnalysisItems = (doSent ? sentences.length : 0) + (doWords ? words.length : 0)
-    const totalTtsItems = (doTtsSent ? sentences.length : 0) + (doTtsWords ? words.length : 0)
+    const totalAnalysisItems = calculateTotalItems(
+      doSent,
+      sentences.length,
+      doWords,
+      words.length,
+    )
+    const totalTtsItems = calculateTotalItems(
+      doTtsSent,
+      sentences.length,
+      doTtsWords,
+      words.length,
+    )
 
     if (totalAnalysisItems === 0 && totalTtsItems === 0) {
       if (!isBackground)
@@ -564,57 +696,71 @@ export const useAnalysisStore = defineStore('analysis', () => {
       return
     }
 
-    isPageAnalysisFinished.value = false
-    pageAnalysisSentencesTotal.value = doSent ? sentences.length : 0
-    pageAnalysisSentencesCurrent.value = 0
-    pageAnalysisWordsTotal.value = doWords ? words.length : 0
-    pageAnalysisWordsCurrent.value = 0
-    pageAnalysisTtsTotal.value = totalTtsItems
-    pageAnalysisTtsCurrent.value = 0
+    initPageAnalysisProgress(
+      sentences,
+      words,
+      doSent,
+      doWords,
+      totalTtsItems,
+    )
 
-    const newTasks: AnalysisTask[] = []
-
-    if (doSent) {
-      sentences.forEach(s => newTasks.push({
-        id: uuidv4(),
-        type: 'sentence',
-        text: s,
-        priority: 0,
-        status: 'pending',
-      }))
-    }
-    if (doWords) {
-      words.forEach(w => newTasks.push({
-        id: uuidv4(),
-        type: 'word',
-        text: w,
-        priority: 0,
-        status: 'pending',
-      }))
-    }
-    if (doTtsSent) {
-      sentences.forEach(s => newTasks.push({
-        id: uuidv4(),
-        type: 'tts_sentence',
-        text: s,
-        priority: 0,
-        status: 'pending',
-      }))
-    }
-    if (doTtsWords) {
-      words.forEach(w => newTasks.push({
-        id: uuidv4(),
-        type: 'tts_word',
-        text: w,
-        priority: 0,
-        status: 'pending',
-      }))
-    }
+    const newTasks: AnalysisTask[] = createAnalysisTasks(sentences, words, {
+      doSent,
+      doWords,
+      doTtsSent,
+      doTtsWords,
+    })
 
     taskQueue.value.push(...newTasks)
     queueTotal.value += newTasks.length
 
     processQueue()
+  }
+
+  function applyAiAnalysisData(analysisData: LlmAnalysis) {
+    if (!wordPopover.value)
+      return
+    wordPopover.value.aiData = analysisData
+    wordPopover.value.aiTranslation = analysisData.translation
+
+    const targetWord = wordPopover.value.word
+    const vocabMatch = analysisData.vocabulary?.find(vocabItem => vocabItem?.word && (vocabItem.word.includes(targetWord) || targetWord.includes(vocabItem.word)))
+    wordPopover.value.aiTranscription = analysisData.transcription || vocabMatch?.transcription || ''
+  }
+
+  async function checkAndApplyCachedTranslation(word: string): Promise<boolean> {
+    const cached = await repos.analysis.getLocalAnalysis(word)
+    if (cached && wordPopover.value) {
+      applyAiAnalysisData(cached)
+      wordPopover.value.isAiLoading = false
+      return true
+    }
+    return false
+  }
+
+  async function performAiTranslation(currentBook: any, word: string, controller: AbortController) {
+    try {
+      const res = await repos.analysis.analyze(
+        currentBook.id,
+        word,
+        currentBook.language,
+        undefined,
+        controller.signal,
+        'word',
+      )
+
+      if (wordAbortController === controller)
+        applyAiAnalysisData(res)
+    }
+    catch (err: unknown) {
+      if (err instanceof Error && err.name !== 'AbortError' && wordPopover.value && wordAbortController === controller) {
+        wordPopover.value.aiTranslation = i18n.global.t('analysis.offlineTranslationNotFound')
+      }
+    }
+    finally {
+      if (wordPopover.value && wordAbortController === controller)
+        wordPopover.value.isAiLoading = false
+    }
   }
 
   async function fetchAiTranslation() {
@@ -626,72 +772,41 @@ export const useAnalysisStore = defineStore('analysis', () => {
     if (!wordPopover.value || wordPopover.value.aiTranslation || !currentBook)
       return
 
-    const cached = await repos.analysis.getLocalAnalysis(wordPopover.value.word)
-    if (cached && wordPopover.value) {
-      wordPopover.value.aiData = cached
-      wordPopover.value.aiTranslation = cached.translation
-
-      const targetWord = wordPopover.value.word
-      const vocabMatch = cached.vocabulary?.find(v => v?.word && (v.word.includes(targetWord) || targetWord.includes(v.word)))
-      wordPopover.value.aiTranscription = cached.transcription || vocabMatch?.transcription || ''
-      wordPopover.value.isAiLoading = false
+    const word = wordPopover.value.word
+    if (await checkAndApplyCachedTranslation(word))
       return
-    }
 
-    if (wordAbortController)
-      wordAbortController.abort()
+    wordAbortController?.abort()
     const controller = new AbortController()
     wordAbortController = controller
 
     wordPopover.value.isAiLoading = true
-    trackEvent('ai_translation_requested', { word: wordPopover.value.word })
+    trackEvent('ai_translation_requested', { word })
 
-    try {
-      const res = await repos.analysis.analyze(
-        currentBook.id,
-        wordPopover.value.word,
-        currentBook.language,
-        undefined,
-        controller.signal,
-        'word',
-      )
-
-      if (wordAbortController !== controller)
-        return
-
-      if (wordPopover.value) {
-        wordPopover.value.aiData = res
-        wordPopover.value.aiTranslation = res.translation
-
-        const targetWord = wordPopover.value.word
-        const vocabMatch = res.vocabulary?.find(v => v?.word && (v.word.includes(targetWord) || targetWord.includes(v.word)))
-        wordPopover.value.aiTranscription = res.transcription || vocabMatch?.transcription || ''
-      }
-    }
-    catch (err: unknown) {
-      if (!(err instanceof Error))
-        return
-      if (err.name === 'AbortError')
-        return
-
-      if (currentBook && wordPopover.value && wordAbortController === controller) {
-        wordPopover.value.aiTranslation = i18n.global.t('analysis.offlineTranslationNotFound')
-      }
-    }
-    finally {
-      if (wordPopover.value && wordAbortController === controller) {
-        wordPopover.value.isAiLoading = false
-      }
-    }
+    await performAiTranslation(currentBook, word, controller)
   }
 
   function toggleAiTranslation() {
     if (!wordPopover.value)
       return
     wordPopover.value.showAi = !wordPopover.value.showAi
-    if (wordPopover.value.showAi) {
+    if (wordPopover.value.showAi)
       fetchAiTranslation()
+  }
+
+  function tryApplyDictTranslation(entry: any, basePopover: any, priority: string): boolean {
+    if (priority === 'dict' && entry?.translation) {
+      wordAbortController?.abort()
+      wordPopover.value = {
+        ...basePopover,
+        transcription: entry.transcription,
+        translation: entry.translation,
+        showAi: false,
+        isAiLoading: false,
+      }
+      return true
     }
+    return false
   }
 
   async function handleWordClick(
@@ -727,22 +842,10 @@ export const useAnalysisStore = defineStore('analysis', () => {
       isSaved: !!entry?.isUserDict,
     }
 
-    if (settingsStore.translationPriority === 'dict' && entry?.translation) {
-      if (wordAbortController)
-        wordAbortController.abort()
-
-      wordPopover.value = {
-        ...basePopoverData,
-        transcription: entry.transcription,
-        translation: entry.translation,
-        showAi: false,
-        isAiLoading: false,
-      }
+    if (tryApplyDictTranslation(entry, basePopoverData, settingsStore.translationPriority))
       return
-    }
 
-    if (wordAbortController)
-      wordAbortController.abort()
+    wordAbortController?.abort()
     const controller = new AbortController()
     wordAbortController = controller
 
@@ -755,6 +858,85 @@ export const useAnalysisStore = defineStore('analysis', () => {
     }
 
     fetchAiTranslation()
+  }
+
+  function applyStandaloneWordResult(
+    result: any,
+    word: string,
+    pos: string,
+    targetRect: DOMRect,
+    target: HTMLElement,
+    priority: string,
+  ) {
+    if (priority === 'dict' && result.translation) {
+      wordPopover.value = {
+        word,
+        pos,
+        transcription: result.transcription,
+        translation: result.translation,
+        targetRect,
+        target,
+        showAi: false,
+        isAiLoading: false,
+        isSaved: !!result.isUserDict,
+      }
+    }
+    else {
+      wordPopover.value = {
+        word,
+        pos,
+        transcription: result.transcription,
+        translation: result.translation || i18n.global.t('analysis.wordNotFoundInDict'),
+        targetRect,
+        target,
+        showAi: true,
+        isAiLoading: true,
+        isSaved: !!result.isUserDict,
+      }
+      fetchAiTranslation()
+    }
+  }
+
+  async function performStandaloneWordLookup(
+    bookId: number,
+    word: string,
+    pos: string,
+    targetRect: DOMRect,
+    target: HTMLElement,
+    controller: AbortController,
+    priority: string,
+  ) {
+    try {
+      trackEvent('ai_word_lookup', { word })
+      const result = await repos.analysis.lookupWord(bookId, word, controller.signal)
+      if (wordAbortController !== controller)
+        return
+
+      applyStandaloneWordResult(
+        result,
+        word,
+        pos,
+        targetRect,
+        target,
+        priority,
+      )
+    }
+    catch (err: unknown) {
+      if (err instanceof Error && err.name !== 'AbortError' && wordAbortController === controller) {
+        wordPopover.value = {
+          word,
+          pos,
+          transcription: '',
+          translation: i18n.global.t('analysis.wordNotFoundInDict'),
+          targetRect,
+          target,
+          showAi: true,
+          isAiLoading: true,
+          isSaved: false,
+        }
+        fetchAiTranslation()
+      }
+    }
   }
 
   async function lookupStandaloneWord(word: string, pos: string, target: HTMLElement) {
@@ -773,68 +955,37 @@ export const useAnalysisStore = defineStore('analysis', () => {
     closeSelectionTooltip()
     const targetRect = target.getBoundingClientRect()
 
-    if (wordAbortController)
-      wordAbortController.abort()
+    wordAbortController?.abort()
     const controller = new AbortController()
     wordAbortController = controller
 
-    try {
-      trackEvent('ai_word_lookup', { word })
-      const result = await repos.analysis.lookupWord(bookId, word, controller.signal)
-      if (wordAbortController !== controller)
-        return
+    await performStandaloneWordLookup(
+      bookId,
+      word,
+      pos,
+      targetRect,
+      target,
+      controller,
+      settingsStore.translationPriority,
+    )
+  }
 
-      const settingsStore = useGlobalSettingsStore()
+  function buildAiNotes(aiData?: LlmAnalysis) {
+    if (!aiData)
+      return { grammarNote: null, vocabularyNote: null }
 
-      if (settingsStore.translationPriority === 'dict' && result.translation) {
-        wordPopover.value = {
-          word,
-          pos,
-          transcription: result.transcription,
-          translation: result.translation,
-          targetRect,
-          target,
-          showAi: false,
-          isAiLoading: false,
-          isSaved: !!result.isUserDict,
-        }
-      }
-      else {
-        wordPopover.value = {
-          word,
-          pos,
-          transcription: result.transcription,
-          translation: result.translation || i18n.global.t('analysis.wordNotFoundInDict'),
-          targetRect,
-          target,
-          showAi: true,
-          isAiLoading: true,
-          isSaved: !!result.isUserDict,
-        }
-        fetchAiTranslation()
-      }
-    }
-    catch (err: unknown) {
-      if (!(err instanceof Error))
-        return
-      if (err.name === 'AbortError')
-        return
-      if (wordAbortController !== controller)
-        return
+    const grammarNote = aiData.grammarRules?.length
+      ? aiData.grammarRules.map(rule => `<b>${rule.pattern}</b> — ${rule.explanation}`).join('<br>')
+      : null
 
-      wordPopover.value = {
-        word,
-        pos,
-        transcription: '',
-        translation: i18n.global.t('analysis.wordNotFoundInDict'),
-        targetRect,
-        target,
-        showAi: true,
-        isAiLoading: true,
-        isSaved: false,
-      }
-      fetchAiTranslation()
-    }
+    const vocabularyNote = aiData.vocabulary?.length
+      ? aiData.vocabulary
+          .filter(vocabItem => vocabItem && vocabItem.word)
+          .map(vocabItem => `<b>${vocabItem.word}</b> (${vocabItem.transcription || ''}) — ${vocabItem.meaning || ''}`)
+          .join('<br>')
+      : null
+
+    return { grammarNote, vocabularyNote }
   }
 
   async function openAddEditWordModal(wordData: WordPopoverData) {
@@ -854,19 +1005,7 @@ export const useAnalysisStore = defineStore('analysis', () => {
       const transcription = wordData.showAi ? (wordData.aiTranscription || wordData.transcription) : wordData.transcription
       const translation = wordData.showAi ? (wordData.aiTranslation || wordData.translation) : wordData.translation
 
-      let grammarNote = null
-      let vocabularyNote = null
-      if (wordData.showAi && wordData.aiData) {
-        if (wordData.aiData.grammarRules?.length) {
-          grammarNote = wordData.aiData.grammarRules.map(r => `<b>${r.pattern}</b> — ${r.explanation}`).join('<br>')
-        }
-        if (wordData.aiData.vocabulary?.length) {
-          vocabularyNote = wordData.aiData.vocabulary
-            .filter(v => v && v.word)
-            .map(v => `<b>${v.word}</b> (${v.transcription || ''}) — ${v.meaning || ''}`)
-            .join('<br>')
-        }
-      }
+      const { grammarNote, vocabularyNote } = wordData.showAi ? buildAiNotes(wordData.aiData) : { grammarNote: null, vocabularyNote: null }
 
       wordToEdit.value = {
         word: wordData.word,
@@ -895,9 +1034,8 @@ export const useAnalysisStore = defineStore('analysis', () => {
 
     appEventBus.emit('DICTIONARY:REQUEST_SAVE_WORD', item)
 
-    if (wordPopover.value && wordPopover.value.word === item.word) {
+    if (wordPopover.value && wordPopover.value.word === item.word)
       wordPopover.value.isSaved = true
-    }
   }
 
   async function removeFromDict(word: string) {
@@ -907,9 +1045,8 @@ export const useAnalysisStore = defineStore('analysis', () => {
 
     appEventBus.emit('DICTIONARY:REQUEST_REMOVE_WORD', word)
 
-    if (wordPopover.value && wordPopover.value.word === word) {
+    if (wordPopover.value && wordPopover.value.word === word)
       wordPopover.value.isSaved = false
-    }
   }
 
   return {

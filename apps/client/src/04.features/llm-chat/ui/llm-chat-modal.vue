@@ -40,9 +40,8 @@ const chatHistoryRef = ref<HTMLElement | null>(null)
 
 function scrollToBottom() {
   nextTick(() => {
-    if (chatHistoryRef.value) {
+    if (chatHistoryRef.value)
       chatHistoryRef.value.scrollTop = chatHistoryRef.value.scrollHeight
-    }
   })
 }
 
@@ -93,12 +92,11 @@ async function sendMessage() {
       language: props.language || 'en',
       uiLanguage: locale.value,
     }
-    if (promptId) {
+    if (promptId)
       payload.customPromptId = Number(promptId)
-    }
-    if (userText) {
+
+    if (userText)
       payload.userPromptText = userText
-    }
 
     const res = await repos.dictionary.chat(payload)
     messages.value.push({
@@ -117,12 +115,12 @@ async function sendMessage() {
 }
 
 function handleEnterKey(e: KeyboardEvent) {
-  if (e.shiftKey) {
+  if (e.shiftKey)
     return
-  }
-  if (isAiLoading.value || (!messageText.value.trim() && !selectedPromptId.value)) {
+
+  if (isAiLoading.value || (!messageText.value.trim() && !selectedPromptId.value))
     return
-  }
+
   sendMessage()
 }
 
@@ -187,9 +185,9 @@ async function onDeletePromptConfirm() {
   try {
     await repos.dictionary.promptsDelete(id)
     toast.success('Prompt deleted')
-    if (selectedPromptId.value === id) {
+    if (selectedPromptId.value === id)
       selectedPromptId.value = ''
-    }
+
     await fetchPrompts()
   }
   catch (e) {
@@ -215,9 +213,8 @@ watch(visible, (isOpen) => {
 })
 
 onMounted(() => {
-  if (visible.value) {
+  if (visible.value)
     fetchPrompts()
-  }
 })
 </script>
 

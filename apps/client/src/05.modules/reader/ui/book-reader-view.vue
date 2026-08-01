@@ -66,6 +66,7 @@ function startPageAnalysis() {
   if (analysisStore.isManualPageAnalysisActive) {
     analysisStore.isPageAnalysisModalOpen = true
   }
+
   else {
     analysisStore.analyzeWholePage({
       sentences: analysisStore.pageActionOpts.sentences,

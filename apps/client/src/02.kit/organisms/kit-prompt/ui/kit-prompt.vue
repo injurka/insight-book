@@ -30,9 +30,8 @@ const visible = defineModel<boolean>('visible', { required: true })
 const inputValue = ref<string>('')
 
 watch(visible, (isOpen) => {
-  if (isOpen) {
+  if (isOpen)
     inputValue.value = props.defaultValue !== undefined ? String(props.defaultValue) : ''
-  }
 })
 
 function onSubmit() {

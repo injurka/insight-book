@@ -105,9 +105,9 @@ const filteredBookGroups = computed(() => {
     if (!matchesSearch)
       return
 
-    if (!groupsMap[h.bookId]) {
+    if (!groupsMap[h.bookId])
       groupsMap[h.bookId] = []
-    }
+
     groupsMap[h.bookId].push(h)
   })
 
@@ -192,9 +192,8 @@ async function saveEdit(data: { text: string, translation: string, note: string,
 
     // Update in local state
     const index = highlights.value.findIndex(h => h.id === id)
-    if (index !== -1) {
+    if (index !== -1)
       highlights.value[index] = { ...highlights.value[index], ...updated }
-    }
 
     isEditModalOpen.value = false
     toast.success('Цитата сохранена')
@@ -261,9 +260,9 @@ async function translateQuote(h: Highlight, book: Book) {
       })
 
       const index = highlights.value.findIndex(item => item.id === h.id)
-      if (index !== -1) {
+      if (index !== -1)
         highlights.value[index] = { ...highlights.value[index], translation: res.translation }
-      }
+
       toast.success(t('notebook.translationSaved') || 'Перевод получен и сохранен')
     }
     else {
@@ -285,9 +284,9 @@ onUnmounted(() => {
 onMounted(async () => {
   isLoading.value = true
   try {
-    if (libraryStore.books.length === 0) {
+    if (libraryStore.books.length === 0)
       await libraryStore.fetchBooks()
-    }
+
     highlights.value = await repos.highlights.list() as any
   }
   catch (err) {

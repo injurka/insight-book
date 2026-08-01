@@ -1,0 +1,8 @@
+{
+  "id": "scroll-study",
+  "name": "Изучение свитков",
+  "version": "1.0.0",
+  "description": "Магическое исследование свитков и иероглифов на шестиугольной доске.",
+  "icon": "mdi:scroll-text-outline",
+  "entryUrl": "./remoteEntry.js"
+}

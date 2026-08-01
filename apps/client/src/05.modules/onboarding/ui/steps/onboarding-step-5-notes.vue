@@ -29,9 +29,8 @@ function onSelect() {
   if (timer)
     clearTimeout(timer)
   timer = setTimeout(() => {
-    if (!isSaved.value) {
+    if (!isSaved.value)
       showBtnBlink.value = true
-    }
   }, 3000)
 }
 

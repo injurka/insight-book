@@ -25,9 +25,8 @@ function handlePageSubmit(value: string) {
   const current = readerStore.currentBook?.currentPage || 1
   const page = Number.parseInt(value, 10)
 
-  if (!Number.isNaN(page) && page >= 1 && page <= total && page !== current) {
+  if (!Number.isNaN(page) && page >= 1 && page <= total && page !== current)
     emit('goTo', page)
-  }
 }
 </script>
 

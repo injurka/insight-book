@@ -18,9 +18,8 @@ const { isSwiping, direction, lengthX } = useSwipe(toastEl, {
   threshold: 60,
   onSwipeEnd: () => {
     if (props.message.swipeToClose && (direction.value === 'left' || direction.value === 'right')) {
-      if (Math.abs(lengthX.value) > 60) {
+      if (Math.abs(lengthX.value) > 60)
         emit('remove')
-      }
     }
   },
 })

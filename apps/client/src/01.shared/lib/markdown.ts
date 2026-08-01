@@ -65,9 +65,8 @@ export function formatMarkdown(text: string): string {
   processed = processed.replace(/<\/li><br>/g, '</li>')
 
   // 6. Возвращаем блоки кода на место
-  for (let i = 0; i < blocks.length; i++) {
+  for (let i = 0; i < blocks.length; i++)
     processed = processed.replace(`__BLOCK_PLACEHOLDER_${i}__`, blocks[i])
-  }
 
   // Очищаем итоговый HTML для безопасности (разрешены только теги, которые генерирует парсер)
   return DOMPurify.sanitize(processed, {
