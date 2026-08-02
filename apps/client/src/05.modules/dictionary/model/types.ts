@@ -3,7 +3,7 @@ import type { UserDictItem, WordEncounter } from '~/01.shared/types/models'
 export interface WordFormData extends Partial<UserDictItem> {
   contextSentence?: string
   contextBookId?: number
-  encounters?: (WordEncounter & { book?: { title: string } })[]
+  encounters?: (WordEncounter & { book?: { title: string } | null })[]
 }
 
 export type QuizState = 'select_level' | 'loading' | 'testing' | 'summary'

@@ -181,7 +181,7 @@ export interface WordEncounter {
   sentence: string
   createdAt: string
   bookTitle?: string
-  book?: { title: string }
+  book?: { title: string } | null
 }
 
 export interface UserDictItem {
