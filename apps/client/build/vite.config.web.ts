@@ -6,10 +6,10 @@ import Icons from 'unplugin-icons/vite'
 import { defineConfig } from 'vite'
 import { compression as Compression } from 'vite-plugin-compression2'
 import { VitePWA } from 'vite-plugin-pwa'
-import { autoImportOptionsCfg } from './cfg/auto-import'
-import { iconsCfg } from './cfg/icons'
-import { pwaCfg } from './cfg/pwa'
-import { visualizerPlugin } from './lib/helpers'
+import { autoImportOptionsCfg } from './cfg/auto-import.ts'
+import { iconsCfg } from './cfg/icons.ts'
+import { pwaCfg } from './cfg/pwa.ts'
+import { visualizerPlugin } from './lib/helpers.ts'
 
 const buildDate = new Date()
 const buildRevision = buildDate.toISOString()
@@ -123,8 +123,6 @@ export default defineConfig({
             return 'app-locales'
           if (id.includes('plugin-grammar-rules'))
             return 'plugin-grammar-rules'
-          if (id.includes('plugin-scroll-study'))
-            return 'plugin-scroll-study'
         },
       },
     },

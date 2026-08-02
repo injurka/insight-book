@@ -112,6 +112,7 @@ useInfiniteScroll(containerRef, () => {
   min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
+  padding: 4px 0;
 
   &::-webkit-scrollbar {
     width: 6px;

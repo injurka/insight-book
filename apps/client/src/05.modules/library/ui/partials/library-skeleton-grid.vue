@@ -50,6 +50,7 @@ withDefaults(defineProps<Props>(), {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
   gap: 24px;
+  padding: 4px 0;
 
   @include media-down(sm) {
     grid-template-columns: 1fr;

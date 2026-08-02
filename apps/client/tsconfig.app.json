@@ -48,9 +48,7 @@
     "../../packages/plugin-api/src/**/*.ts",
     "../../packages/plugin-api/src/**/*.vue",
     "../../packages/plugin-grammar-rules/src/**/*.ts",
-    "../../packages/plugin-grammar-rules/src/**/*.vue",
-    "../../packages/plugin-scroll-study/src/**/*.ts",
-    "../../packages/plugin-scroll-study/src/**/*.vue"
+    "../../packages/plugin-grammar-rules/src/**/*.vue"
   ],
   "exclude": [
     "src/**/*.spec.ts",

@@ -6,9 +6,9 @@ import Icons from 'unplugin-icons/vite'
 import { defineConfig } from 'vite'
 import { compression as Compression } from 'vite-plugin-compression2'
 import { VitePWA } from 'vite-plugin-pwa'
-import { autoImportOptionsCfg } from './cfg/auto-import'
-import { iconsCfg } from './cfg/icons'
-import { visualizerPlugin } from './lib/helpers'
+import { autoImportOptionsCfg } from './cfg/auto-import.ts'
+import { iconsCfg } from './cfg/icons.ts'
+import { visualizerPlugin } from './lib/helpers.ts'
 
 const host = process.env.TAURI_DEV_HOST
 const appVersion = process.env.VITE_APP_VERSION || '1.0.0'

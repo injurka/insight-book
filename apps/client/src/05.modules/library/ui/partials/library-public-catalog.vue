@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import type { Book } from '~/01.shared/types/models'
 import { Icon } from '@iconify/vue'
+import { toRef } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useDelayedLoading } from '~/01.shared/composables/use-delayed-loading'
 import BooksVirtualGrid from './books-virtual-grid.vue'
 import LibrarySkeletonGrid from './library-skeleton-grid.vue'
 
@@ -20,6 +22,8 @@ const emit = defineEmits<{
 }>()
 
 const { t } = useI18n()
+
+const isLoadingDelayed = useDelayedLoading(toRef(props, 'isLoading'))
 </script>
 
 <template>
@@ -29,9 +33,15 @@ const { t } = useI18n()
       <span class="text">{{ t('library.menuPublicCatalog') }}</span>
     </h3>
 
-    <LibrarySkeletonGrid v-if="isLoading && books.length === 0" :count="10" />
+    <LibrarySkeletonGrid
+      v-if="isLoadingDelayed && books.length === 0"
+      :count="10"
+    />
 
-    <div v-else-if="books.length === 0" class="empty-state">
+    <div
+      v-else-if="!props.isLoading && books.length === 0"
+      class="empty-state"
+    >
       <h2>{{ t('library.emptySection') }}</h2>
     </div>
 

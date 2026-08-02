@@ -3,6 +3,7 @@ import type { Book } from '~/01.shared/types/models'
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
+import { useDelayedLoading } from '~/01.shared/composables/use-delayed-loading'
 import { useToast } from '~/01.shared/composables/use-toast'
 import { AppRoutePaths } from '~/01.shared/constants/routes'
 import { BOOK_TAGS } from '~/01.shared/constants/tags'
@@ -58,6 +59,12 @@ const tagOptions = computed(() => {
 
   return opts
 })
+
+const isInitialLoading = computed(() => {
+  return (!store.isInitialized || store.isLoading) && (!store.books.length && !store.publicBooks.length)
+})
+
+const showInitialSkeleton = useDelayedLoading(isInitialLoading)
 
 function loadPublic(page: number, append = false) {
   store.fetchPublicBooks(
@@ -218,7 +225,9 @@ onUnmounted(() => {
             @open-upload-modal="isUploadModalOpen = true"
           />
 
-          <LibrarySkeletonGrid v-if="(!store.isInitialized || store.isLoading) && (!store.books.length && !store.publicBooks.length)" :show-title="true" />
+          <template v-if="isInitialLoading">
+            <LibrarySkeletonGrid v-if="showInitialSkeleton" :show-title="true" />
+          </template>
 
           <LibraryPublicCatalog
             v-else-if="currentView === 'public-catalog'"

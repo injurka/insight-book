@@ -37,7 +37,6 @@
     "@iconify-icons/mdi": "^1.2.48",
     "@injurka/insight-book-plugin-api": "workspace:*",
     "@injurka/insight-book-plugin-grammar-rules": "workspace:*",
-    "@injurka/insight-book-plugin-scroll-study": "workspace:*",
     "@module-federation/enhanced": "^2.8.1",
     "@pinia/colada": "^1.4.2",
     "@tauri-apps/api": "^2.11.1",
