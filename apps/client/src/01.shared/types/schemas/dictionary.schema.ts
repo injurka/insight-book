@@ -8,7 +8,7 @@ export const WordEncounterSchema = z.object({
   sentence: z.string().default(''),
   createdAt: z.string(),
   bookTitle: z.string().optional(),
-  book: z.object({ title: z.string().default('') }).optional(),
+  book: z.object({ title: z.string().default('') }).nullable().optional(),
 })
 
 // Главная схема слова пользовательского словаря (ACL)
