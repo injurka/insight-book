@@ -26,7 +26,18 @@ export const BookSchema = z.object({
   updatedAt: z.string().optional(),
   userId: z.number().optional(),
   type: z.string().optional(),
-  toc: z.array(TocItemSchema).optional(),
+  toc: z.preprocess((val) => {
+    if (typeof val === 'string') {
+      try {
+        return JSON.parse(val)
+      }
+      catch {
+        return []
+      }
+    }
+
+    return val
+  }, z.array(TocItemSchema)).optional(),
 
   stats: z.custom<BookStats>().nullish(),
   series: z.string().nullish(),

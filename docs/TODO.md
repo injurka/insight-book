@@ -236,5 +236,3 @@ Workbox из коробки не сохраняет `206 Partial Content` в `Ca
    - Кэш UI картинок (`insight-book-images`).
    - Навигационный роут SPA (`NavigationRoute`).
    - Push-уведомления.
-
-# 3 Реализовать eslint для сортировки кода
