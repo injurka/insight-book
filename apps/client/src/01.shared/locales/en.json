@@ -184,6 +184,7 @@
     "catalogActionFailed": "Failed to perform the action",
     "systemTitle": "System",
     "hoverRevealBg": "Hover reveal background effect",
+    "enableEruda": "Enable developer console (Eruda)",
     "appLanguage": "App Language",
     "aiTitle": "Artificial Intelligence",
     "useCustomLlm": "Use local/custom LLM (Ollama, LM Studio, etc.)",

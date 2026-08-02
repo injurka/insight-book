@@ -25,6 +25,7 @@ export const useGlobalSettingsStore = defineStore('globalSettings', () => {
   const customLlmModel = useLocalStorage<string>('global-custom-llm-model', 'llama3')
 
   const enableHoverRevealBg = useLocalStorage<boolean>('global-enable-hover-reveal-bg', true)
+  const enableEruda = useLocalStorage<boolean>('global-enable-eruda', false)
 
   const autoAnalyzePage = useLocalStorage<boolean>('global-auto-analyze-page', false)
   const autoAnalyzeSentences = useLocalStorage<boolean>('global-auto-analyze-sentences', true)
@@ -66,6 +67,7 @@ export const useGlobalSettingsStore = defineStore('globalSettings', () => {
     highlightSavedQuotes,
     showSentenceTtsButton,
     enableHoverRevealBg,
+    enableEruda,
     enabledPlugins,
   }
 })

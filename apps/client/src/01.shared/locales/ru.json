@@ -184,6 +184,7 @@
     "catalogActionFailed": "Не удалось выполнить действие",
     "systemTitle": "Система",
     "hoverRevealBg": "Эффект подсветки фона",
+    "enableEruda": "Включить консоль разработчика (Eruda)",
     "appLanguage": "Язык приложения",
     "aiTitle": "Искусственный интеллект",
     "useCustomLlm": "Использовать локальный/собственный LLM (Ollama, LM Studio и др.)",

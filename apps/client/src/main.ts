@@ -2,7 +2,7 @@ import { addCollection } from '@iconify/vue'
 import { PiniaColada } from '@pinia/colada'
 import { createHead } from '@vueuse/head'
 import { createPinia } from 'pinia'
-import { createApp } from 'vue'
+import { createApp, watch } from 'vue'
 import { defaultRepositories, REPOS_INJECTION_KEY } from '~/00.plugins/di'
 import { i18n, localePromise } from '~/00.plugins/i18n.ts'
 import { vLongPress } from '~/01.shared/directives/long-press'
@@ -29,14 +29,17 @@ async function bootstrap() {
   app.provide(REPOS_INJECTION_KEY, defaultRepositories)
 
   const { configureApi } = await import('~/01.shared/services/api.service')
-  const { initEruda } = await import('~/01.shared/services/eruda.service')
+  const { setErudaEnabled } = await import('~/01.shared/services/eruda.service')
   const { useGlobalSettingsStore } = await import('~/01.shared/store/settings.store')
   const { useAuthStore } = await import('~/01.shared/store/auth.store')
   const { useToastStore } = await import('~/01.shared/store/toast.store')
 
-  void initEruda()
-
   const settingsStore = useGlobalSettingsStore()
+
+  watch(() => settingsStore.enableEruda, (enabled) => {
+    void setErudaEnabled(enabled)
+  }, { immediate: true })
+
   const authStore = useAuthStore()
   const toastStore = useToastStore()
 

@@ -185,6 +185,7 @@
     "catalogActionFailed": "操作失败",
     "systemTitle": "系统",
     "hoverRevealBg": "悬停显示背景效果",
+    "enableEruda": "启用开发者控制台 (Eruda)",
     "appLanguage": "应用语言",
     "aiTitle": "人工智能 (AI)",
     "useCustomLlm": "使用本地/自定义 LLM (Ollama, LM Studio 等)",
