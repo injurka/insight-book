@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { Icon } from '@iconify/vue'
 import { useScrollStudyStore } from '../../model/scroll-study.store'
 
 const emit = defineEmits<{

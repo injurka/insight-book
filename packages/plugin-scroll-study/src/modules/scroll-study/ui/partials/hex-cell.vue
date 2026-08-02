@@ -2,6 +2,7 @@
 import type { PuzzleNode } from '../../model/types'
 import { computed, ref } from 'vue'
 import { useScrollStudyStore } from '../../model/scroll-study.store'
+import EnergyCoreCanvas from './energy-core-canvas.vue'
 
 const props = defineProps<{
   node: PuzzleNode
@@ -83,10 +84,12 @@ function handleDragLeave() {
     @click="emit('click', node)"
   >
     <div class="hex-cell-inner">
-      <div class="aura-dot" />
+      <div v-if="node.character !== '?' && node.type !== 'target'" class="aura-dot" />
+
+      <EnergyCoreCanvas v-if="node.character === '?'" />
 
       <span
-        v-if="node.character"
+        v-else-if="node.character"
         class="hex-char"
         :style="{ fontSize: getCharFontSize(node.character) }"
       >
@@ -209,14 +212,91 @@ function handleDragLeave() {
   .aura-dot {
     width: 60px;
     height: 60px;
-    background: radial-gradient(circle, rgba(140, 115, 90, 0.2) 0%, rgba(140, 115, 90, 0) 80%);
-    border: 2px dashed rgba(74, 60, 49, 0.5);
+    background: radial-gradient(circle, rgba(224, 159, 62, 0.25) 0%, rgba(224, 159, 62, 0.05) 60%, rgba(140, 115, 90, 0) 80%);
+    border: 1.5px dashed rgba(224, 159, 62, 0.5);
     animation: target-aura-pulse 3s infinite ease-in-out;
   }
 
   .hex-char {
     color: rgba(255, 255, 255, 0.6);
     animation: target-text-pulse 2s infinite alternate;
+  }
+}
+
+/* Energy Center Effect (replaces question mark) */
+.energy-center {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+
+  .energy-core {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: radial-gradient(circle, #fffbeb 0%, #fbbf24 45%, #d97706 80%, rgba(217, 119, 6, 0) 100%);
+    box-shadow:
+      0 0 12px #fbbf24,
+      0 0 24px rgba(245, 158, 11, 0.8),
+      inset 0 0 6px #ffffff;
+    animation: energy-core-breath 2s infinite ease-in-out;
+    z-index: 5;
+  }
+
+  .energy-ring {
+    position: absolute;
+    border-radius: 50%;
+    pointer-events: none;
+
+    &.ring-1 {
+      width: 32px;
+      height: 32px;
+      border: 1.5px dashed rgba(251, 191, 36, 0.7);
+      animation: energy-spin-cw 8s linear infinite;
+      box-shadow: 0 0 10px rgba(251, 191, 36, 0.3);
+    }
+
+    &.ring-2 {
+      width: 46px;
+      height: 46px;
+      border: 1px solid rgba(245, 158, 11, 0.3);
+      border-top-color: rgba(251, 191, 36, 0.85);
+      border-bottom-color: rgba(251, 191, 36, 0.85);
+      animation: energy-spin-ccw 5s linear infinite, energy-pulse-scale 3s ease-in-out infinite;
+    }
+  }
+
+  .energy-particles {
+    position: absolute;
+    width: 40px;
+    height: 40px;
+    animation: energy-spin-cw 6s linear infinite;
+
+    .particle {
+      position: absolute;
+      width: 4px;
+      height: 4px;
+      border-radius: 50%;
+      background: #fbbf24;
+      box-shadow: 0 0 6px #f59e0b;
+
+      &.p1 {
+        top: 0;
+        left: 50%;
+        transform: translateX(-50%);
+      }
+      &.p2 {
+        bottom: 4px;
+        left: 6px;
+      }
+      &.p3 {
+        bottom: 4px;
+        right: 6px;
+      }
+    }
   }
 }
 
@@ -240,6 +320,52 @@ function handleDragLeave() {
   }
 }
 
+@keyframes energy-core-breath {
+  0%, 100% {
+    transform: scale(0.85);
+    box-shadow:
+      0 0 10px #fbbf24,
+      0 0 20px rgba(245, 158, 11, 0.6),
+      inset 0 0 4px #ffffff;
+  }
+  50% {
+    transform: scale(1.15);
+    box-shadow:
+      0 0 16px #fef08a,
+      0 0 32px rgba(245, 158, 11, 1),
+      inset 0 0 8px #ffffff;
+  }
+}
+
+@keyframes energy-spin-cw {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes energy-spin-ccw {
+  from {
+    transform: rotate(360deg);
+  }
+  to {
+    transform: rotate(0deg);
+  }
+}
+
+@keyframes energy-pulse-scale {
+  0%, 100% {
+    transform: scale(0.95);
+    opacity: 0.6;
+  }
+  50% {
+    transform: scale(1.08);
+    opacity: 1;
+  }
+}
+
 @keyframes target-aura-pulse {
   0%, 100% {
     transform: scale(0.95);
@@ -248,7 +374,7 @@ function handleDragLeave() {
   50% {
     transform: scale(1.05);
     opacity: 1;
-    box-shadow: 0 0 15px rgba(140, 115, 90, 0.3);
+    box-shadow: 0 0 18px rgba(224, 159, 62, 0.4);
   }
 }
 

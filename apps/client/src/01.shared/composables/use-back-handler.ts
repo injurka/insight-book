@@ -1,3 +1,5 @@
+import { ref } from 'vue'
+
 const handlers = ref<Array<() => void>>([])
 
 export function useBackHandler() {

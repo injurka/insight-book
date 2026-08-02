@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Icon } from '@iconify/vue'
+import { useI18n } from 'vue-i18n'
 
 interface Props {
   pluginName: string
@@ -20,6 +21,8 @@ const emit = defineEmits<{
   (e: 'toggleActivation'): void
   (e: 'enterFullscreen'): void
 }>()
+
+const { t } = useI18n()
 </script>
 
 <template>
@@ -27,7 +30,7 @@ const emit = defineEmits<{
     <button
       class="icon-btn menu-btn"
       :class="{ active: isSidebarOpen }"
-      title="Меню"
+      :title="t('sandbox.menu')"
       @click="emit('toggleSidebar')"
     >
       <Icon :icon="isSidebarOpen ? 'mdi:close' : 'mdi:menu'" />
@@ -47,7 +50,7 @@ const emit = defineEmits<{
     <div class="header-controls">
       <button class="status-button" :class="{ active: isActive }" @click="emit('toggleActivation')">
         <span class="status-dot" />
-        {{ isActive ? 'Activated' : 'Deactivated' }}
+        {{ isActive ? t('sandbox.activated') : t('sandbox.deactivated') }}
       </button>
 
       <div class="locale-selector">
@@ -70,13 +73,13 @@ const emit = defineEmits<{
 
       <button
         class="icon-btn"
-        :title="isDark ? 'Светлая тема' : 'Тёмная тема'"
+        :title="isDark ? t('sandbox.themeLight') : t('sandbox.themeDark')"
         @click="emit('update:isDark', !isDark)"
       >
         <Icon :icon="isDark ? 'mdi:weather-sunny' : 'mdi:weather-night'" />
       </button>
 
-      <button class="icon-btn" title="Полноэкранный режим плагина" @click="emit('enterFullscreen')">
+      <button class="icon-btn" :title="t('sandbox.fullscreen')" @click="emit('enterFullscreen')">
         <Icon icon="mdi:fullscreen" />
       </button>
     </div>

@@ -5,7 +5,7 @@ import type {
   PluginUIWidget,
   UIPosition,
 } from '../types'
-import { reactive, ref } from 'vue'
+import { markRaw, reactive, ref } from 'vue'
 import { MockEventBus } from './event-bus'
 
 export interface PluginNotification {
@@ -51,7 +51,7 @@ export interface MockPluginContextResult {
 }
 
 class MockLogger {
-  constructor(private apiLogs: ApiLogEntry[]) {}
+  constructor(private apiLogs: ApiLogEntry[]) { }
 
   log(method: string, ...args: unknown[]) {
     this.apiLogs.unshift({
@@ -98,7 +98,7 @@ class MockDictionaryApi {
 }
 
 class MockReaderApi {
-  constructor(private currentBook: Record<string, unknown> | null, private logger: MockLogger) {}
+  constructor(private currentBook: Record<string, unknown> | null, private logger: MockLogger) { }
 
   getCurrentBook() {
     this.logger.log('reader.getCurrentBook')
@@ -107,7 +107,7 @@ class MockReaderApi {
 }
 
 class MockUserApi {
-  constructor(private userProfile: Record<string, unknown> | null, private logger: MockLogger) {}
+  constructor(private userProfile: Record<string, unknown> | null, private logger: MockLogger) { }
 
   getProfile() {
     this.logger.log('user.getProfile')
@@ -193,7 +193,7 @@ export function createMockPluginContext(options: MockContextOptions = {}): MockP
       component: any,
       props?: Record<string, unknown>,
     ) => {
-      widgets[id] = { id, position, component, props }
+      widgets[id] = { id, position, component: markRaw(component), props }
     },
     unregisterUIWidget: (id: string) => {
       delete widgets[id]

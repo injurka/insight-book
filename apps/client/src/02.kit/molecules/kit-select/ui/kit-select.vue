@@ -3,6 +3,7 @@ import type { Ref } from 'vue'
 import { autoUpdate, flip, size as floatingSize, offset, useFloating } from '@floating-ui/vue'
 import { Icon } from '@iconify/vue'
 import { onClickOutside } from '@vueuse/core'
+import { computed, inject, onUnmounted, ref } from 'vue'
 
 interface Option {
   label: string

@@ -164,6 +164,18 @@ function onDrop(event: DragEvent, node: PuzzleNode) {
   animation: pulse-line 1.5s infinite alternate;
 }
 
+@keyframes pulse-line {
+  0% {
+    stroke-width: 4px;
+    opacity: 0.7;
+  }
+  100% {
+    stroke-width: 6px;
+    opacity: 1;
+    filter: drop-shadow(0 0 10px #f59e0b);
+  }
+}
+
 .empty-state {
   position: relative;
   z-index: 10;

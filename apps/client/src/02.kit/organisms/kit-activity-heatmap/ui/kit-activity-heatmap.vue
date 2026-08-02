@@ -17,6 +17,7 @@ const props = defineProps<Props>()
 const emit = defineEmits<{
   clickLevel: [data: { language: string, levelValue: string }]
 }>()
+
 const { t, locale } = useI18n()
 const scrollAreaRef = ref<HTMLElement | null>(null)
 

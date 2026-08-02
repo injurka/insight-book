@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Icon } from '@iconify/vue'
+import { computed, useSlots } from 'vue'
 import { useHaptic } from '~/01.shared/composables/use-haptic'
 import { vRipple } from '~/01.shared/directives/ripple'
 

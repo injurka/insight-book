@@ -2,7 +2,7 @@
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
-import { KitBtn, KitTabs } from '~/02.kit/index.ts'
+import { KitBtn, KitTabs } from '~/02.kit'
 import hsk1Rules from '~plugin/shared/data/hsk1-rules.json'
 import hsk2Rules from '~plugin/shared/data/hsk2-rules.json'
 import hsk1Tests from '~plugin/shared/data/hsk1-tests.json'
@@ -79,6 +79,7 @@ const tabItems = computed(() => [
 }
 
 .rules-page {
+  background-color: var(--bg-primary-color);
   max-width: 1000px;
   width: 100%;
   margin: 0 auto;

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Icon } from '@iconify/vue'
+import { useI18n } from 'vue-i18n'
 
 interface Props {
   isSidebarOpen: boolean
@@ -20,6 +21,8 @@ const emit = defineEmits<{
   (e: 'update:selectedPageKey', key: string): void
   (e: 'update:selectedWidgetId', id: string | null): void
 }>()
+
+const { t } = useI18n()
 </script>
 
 <template>
@@ -33,7 +36,7 @@ const emit = defineEmits<{
     <Transition name="sidebar-slide">
       <aside v-if="isSidebarOpen && !isFullscreen" class="sandbox-sidebar">
         <div class="sidebar-header">
-          <span class="sidebar-title">Навигация</span>
+          <span class="sidebar-title">{{ t('sandbox.navigation') }}</span>
           <button class="icon-btn sidebar-close-btn" @click="emit('closeSidebar')">
             <Icon icon="mdi:close" />
           </button>
@@ -41,7 +44,7 @@ const emit = defineEmits<{
 
         <div class="sidebar-content">
           <div class="sidebar-section">
-            <h3>Pages ({{ Object.keys(pages).length }})</h3>
+            <h3>{{ t('sandbox.pages') }} ({{ Object.keys(pages).length }})</h3>
             <ul>
               <li
                 v-for="(_, key) in pages"
@@ -56,7 +59,7 @@ const emit = defineEmits<{
           </div>
 
           <div class="sidebar-section">
-            <h3>Widgets ({{ Object.keys(widgets).length }})</h3>
+            <h3>{{ t('sandbox.widgets') }} ({{ Object.keys(widgets).length }})</h3>
             <ul v-if="Object.keys(widgets).length > 0">
               <li
                 v-for="widget in widgets"
@@ -72,7 +75,7 @@ const emit = defineEmits<{
               </li>
             </ul>
             <p v-else class="empty-hint">
-              No widgets registered yet
+              {{ t('sandbox.noWidgets') }}
             </p>
           </div>
 
@@ -83,7 +86,7 @@ const emit = defineEmits<{
               @click="emit('update:activeTab', 'logs'); emit('closeSidebar')"
             >
               <Icon icon="mdi:chart-bar" />
-              Inspector &amp; Logs
+              {{ t('sandbox.inspectorLogs') }}
               <span class="tab-badge" :class="{ hasItems: apiLogsCount > 0 }">{{ apiLogsCount }}</span>
             </button>
           </div>

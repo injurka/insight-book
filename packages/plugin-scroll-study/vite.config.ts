@@ -7,29 +7,30 @@ export default defineConfig(({ command }) => ({
   resolve: {
     alias: {
       '~': fileURLToPath(new URL('../../apps/client/src', import.meta.url)),
+      '~plugin': fileURLToPath(new URL('./src', import.meta.url)),
       '@injurka/insight-book-plugin-api': fileURLToPath(new URL('../plugin-api/src', import.meta.url)),
-      '@injurka/insight-book-plugin-scroll-study': fileURLToPath(new URL('./src', import.meta.url)),
     },
   },
   plugins: [
     vue(),
     ...(command === 'build'
       ? [
-          federation({
-            name: 'plugin_scroll_study',
-            filename: 'remoteEntry.js',
-            exposes: {
-              './Plugin': './src/index.ts',
-            },
-            shared: {
-              vue: { singleton: true },
-              'vue-router': { singleton: true },
-              pinia: { singleton: true },
-              '@injurka/insight-book-plugin-api': { singleton: true },
-            },
-            dts: false,
-          }),
-        ]
+        federation({
+          name: 'plugin_scroll_study',
+          filename: 'remoteEntry.js',
+          exposes: {
+            './Plugin': './src/index.ts',
+          },
+          shared: {
+            vue: { singleton: true },
+            'vue-router': { singleton: true },
+            'vue-i18n': { singleton: true },
+            pinia: { singleton: true },
+            '@injurka/insight-book-plugin-api': { singleton: true },
+          },
+          dts: false,
+        }),
+      ]
       : []),
   ],
   build: {

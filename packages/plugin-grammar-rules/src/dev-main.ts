@@ -1,8 +1,5 @@
-import { PluginSandbox } from '@injurka/insight-book-plugin-api'
-import { createPinia } from 'pinia'
-import { createApp } from 'vue'
+import { createSandboxApp } from '@injurka/insight-book-plugin-api'
 import plugin from './index'
 
-const app = createApp(PluginSandbox, { plugin })
-app.use(createPinia())
+const app = createSandboxApp({ plugin })
 app.mount('#app')

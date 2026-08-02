@@ -38,6 +38,7 @@ export default defineConfig({
       shared: {
         'vue': { singleton: true },
         'vue-router': { singleton: true },
+        'vue-i18n': { singleton: true },
         'pinia': { singleton: true },
         '@injurka/insight-book-plugin-api': { singleton: true },
       },

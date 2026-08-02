@@ -2,6 +2,10 @@
   "name": "@injurka/insight-book-plugin-api",
   "type": "module",
   "version": "1.0.0",
+  "exports": {
+    ".": "./src/index.ts",
+    "./styles/*": "./styles/*"
+  },
   "main": "src/index.ts",
   "scripts": {
     "lint": "eslint .",
@@ -10,7 +14,9 @@
   },
   "dependencies": {
     "@iconify/vue": "^5.0.1",
+    "pinia": "4.0.2",
     "vue": "3.5.40",
+    "vue-i18n": "^11.4.8",
     "vue-router": "^5.2.0"
   },
   "devDependencies": {

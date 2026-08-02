@@ -2,7 +2,8 @@
 import type { InsightBookPlugin } from '../index'
 import type { MockContextOptions } from '../testing/mock-context'
 import { Icon } from '@iconify/vue'
-import { computed, onMounted, onUnmounted, provide, ref } from 'vue'
+import { computed, markRaw, onMounted, onUnmounted, provide, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { createMemoryHistory, createRouter } from 'vue-router'
 
 import { createMockPluginContext } from '../testing/mock-context'
@@ -28,14 +29,41 @@ const mockRouter = createRouter({
 })
 provide('router', mockRouter)
 
-const mock = createMockPluginContext(props.options)
+const mock = createMockPluginContext({
+  ...props.options,
+})
+
+const i18n = useI18n({ useScope: 'global' })
+
+watch(() => mock.translations, (newTranslations) => {
+  for (const [locale, msgs] of Object.entries(newTranslations)) {
+    i18n.mergeLocaleMessage(locale, {
+      plugins: {
+        [props.plugin.id]: msgs,
+      },
+    })
+  }
+}, { deep: true, immediate: true })
+
+watch(() => mock.locale.value, (newLocale) => {
+  i18n.locale.value = newLocale
+}, { immediate: true })
 
 const isActive = ref(false)
 const activeTab = ref<'pages' | 'widgets' | 'logs'>('pages')
 const selectedPageKey = ref<string>('index')
 const selectedWidgetId = ref<string | null>(null)
 
-const isDark = ref(true)
+const isDark = ref(typeof localStorage !== 'undefined'
+  ? localStorage.getItem('insightbook-sandbox-theme') !== 'light'
+  : true)
+
+watch(isDark, (val) => {
+  if (typeof localStorage !== 'undefined') {
+    localStorage.setItem('insightbook-sandbox-theme', val ? 'dark' : 'light')
+  }
+})
+
 const isFullscreen = ref(false)
 const isSidebarOpen = ref(false)
 
@@ -96,7 +124,10 @@ const pages = computed(() => props.plugin.pages ?? {})
 const activePageComponent = computed(() => {
   if (!pages.value || Object.keys(pages.value).length === 0)
     return null
-  return pages.value[selectedPageKey.value] ?? pages.value.index ?? Object.values(pages.value)[0]
+
+  const rawComp = pages.value[selectedPageKey.value] ?? pages.value.index ?? Object.values(pages.value)[0]
+
+  return rawComp ? markRaw(rawComp) : null
 })
 
 const activeWidget = computed(() => {
@@ -113,11 +144,10 @@ const activeWidget = computed(() => {
       <button
         v-if="isFullscreen"
         class="exit-fullscreen-fab"
-        title="Выйти из полноэкранного режима (Esc)"
+        :title="i18n.t('sandbox.exitFullscreen')"
         @click="exitFullscreen"
       >
         <Icon icon="mdi:fullscreen-exit" />
-        <span>Выйти</span>
       </button>
     </Transition>
 
@@ -164,7 +194,7 @@ const activeWidget = computed(() => {
             <component :is="activePageComponent" />
           </div>
           <div v-else class="empty-state">
-            No page components exposed by plugin.
+            {{ i18n.t('sandbox.noPages') }}
           </div>
         </div>
 
@@ -174,7 +204,7 @@ const activeWidget = computed(() => {
             <component :is="activeWidget.component" v-bind="activeWidget.props || {}" />
           </SandboxWidgetStage>
           <div v-else class="empty-state">
-            Select a widget from the sidebar to inspect.
+            {{ i18n.t('sandbox.selectWidget') }}
           </div>
         </div>
 
@@ -192,6 +222,8 @@ const activeWidget = computed(() => {
 </template>
 
 <style>
+@import '../../styles/theme-variables.css';
+
 /* Global CSS variables & Reset */
 html,
 body,
@@ -260,9 +292,9 @@ body,
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 10px 18px;
+  padding: 10px;
   border-radius: 50px;
-  background: rgba(15, 23, 42, 0.85);
+  background: rgba(15, 23, 42, 0.5);
   backdrop-filter: blur(12px);
   border: 1px solid rgba(255, 255, 255, 0.12);
   color: #f8fafc;

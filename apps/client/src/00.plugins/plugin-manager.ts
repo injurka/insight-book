@@ -10,7 +10,7 @@ import type {
 import type { App, Component } from 'vue'
 import type { RouteComponent, Router } from 'vue-router'
 import { init, loadRemote, registerRemotes } from '@module-federation/enhanced/runtime'
-import { reactive } from 'vue'
+import { markRaw, reactive } from 'vue'
 import { defaultRepositories } from '~/00.plugins/di'
 import { i18n } from '~/00.plugins/i18n'
 
@@ -159,7 +159,7 @@ export function usePluginManager(): PluginManager {
     const widget: ManagedUIWidget = {
       id,
       position,
-      component,
+      component: markRaw(component),
       props,
       pluginId,
     }

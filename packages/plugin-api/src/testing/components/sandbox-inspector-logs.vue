@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Icon } from '@iconify/vue'
+import { useI18n } from 'vue-i18n'
 
 interface Props {
   notifications: any[]
@@ -12,6 +13,8 @@ const emit = defineEmits<{
   (e: 'clearNotifications'): void
   (e: 'clearLogs'): void
 }>()
+
+const { t } = useI18n()
 </script>
 
 <template>
@@ -21,7 +24,7 @@ const emit = defineEmits<{
       <div class="panel-header">
         <h2>
           <span class="panel-icon"><Icon icon="mdi:bell-outline" /></span>
-          Notifications Log
+          {{ t('sandbox.notificationsLog') }}
           <span class="count-badge">{{ notifications.length }}</span>
         </h2>
         <button
@@ -43,7 +46,7 @@ const emit = defineEmits<{
             <path d="M10 11v6M14 11v6" />
             <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
           </svg>
-          Clear
+          {{ t('sandbox.clear') }}
         </button>
       </div>
       <ul v-if="notifications.length > 0" class="notification-list">
@@ -59,7 +62,7 @@ const emit = defineEmits<{
         </li>
       </ul>
       <div v-else class="empty-log">
-        <span>No notifications yet</span>
+        <span>{{ t('sandbox.noNotifications') }}</span>
       </div>
     </div>
 
@@ -68,7 +71,7 @@ const emit = defineEmits<{
       <div class="panel-header">
         <h2>
           <span class="panel-icon"><Icon icon="mdi:flash-outline" /></span>
-          API Call History
+          {{ t('sandbox.apiCallHistory') }}
           <span class="count-badge">{{ apiLogs.length }}</span>
         </h2>
         <button
@@ -90,7 +93,7 @@ const emit = defineEmits<{
             <path d="M10 11v6M14 11v6" />
             <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
           </svg>
-          Clear
+          {{ t('sandbox.clear') }}
         </button>
       </div>
       <ul v-if="apiLogs.length > 0" class="api-log-list">
@@ -101,7 +104,7 @@ const emit = defineEmits<{
         </li>
       </ul>
       <div v-else class="empty-log">
-        <span>No API calls logged yet</span>
+        <span>{{ t('sandbox.noApiCalls') }}</span>
       </div>
     </div>
   </div>
@@ -212,7 +215,7 @@ const emit = defineEmits<{
   font-size: 12px;
   display: flex;
   gap: 8px;
-  align-items: flex-start;
+  align-items: center;
 }
 
 .notif-item.info {

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import RulesView from '~plugin/modules/grammar-rules/ui/rules-view.vue'
+import RulesView from '~plugin/modules/grammar-rules'
 </script>
 
 <template>
