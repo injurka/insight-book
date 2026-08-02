@@ -48,6 +48,7 @@
     "@vueuse/head": "^2.0.0",
     "birpc": "^4.0.0",
     "dompurify": "^3.4.12",
+    "eruda": "^3.4.3",
     "hanzi-writer": "^3.7.3",
     "localforage": "^1.10.0",
     "ofetch": "^1.5.1",

@@ -29,9 +29,12 @@ async function bootstrap() {
   app.provide(REPOS_INJECTION_KEY, defaultRepositories)
 
   const { configureApi } = await import('~/01.shared/services/api.service')
+  const { initEruda } = await import('~/01.shared/services/eruda.service')
   const { useGlobalSettingsStore } = await import('~/01.shared/store/settings.store')
   const { useAuthStore } = await import('~/01.shared/store/auth.store')
   const { useToastStore } = await import('~/01.shared/store/toast.store')
+
+  void initEruda()
 
   const settingsStore = useGlobalSettingsStore()
   const authStore = useAuthStore()
