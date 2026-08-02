@@ -7,6 +7,7 @@ export interface IStorageRepository {
   requestPersistentStorage: () => Promise<boolean>
   getCacheStats: () => Promise<Awaited<ReturnType<typeof offlineService.getCacheStats>>>
   clearBookCache: (bookId: number) => Promise<void>
+  deleteLanguage: (lang: string) => Promise<void>
 }
 
 export class DefaultStorageRepository implements IStorageRepository {
@@ -28,6 +29,10 @@ export class DefaultStorageRepository implements IStorageRepository {
 
   async clearBookCache(bookId: number) {
     await offlineService.clearBookCache(bookId)
+  }
+
+  async deleteLanguage(lang: string) {
+    await offlineService.deleteLanguage(lang)
   }
 }
 

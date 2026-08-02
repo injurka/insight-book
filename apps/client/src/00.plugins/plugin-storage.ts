@@ -1,5 +1,5 @@
 import type { InsightBookPluginManifest } from '@injurka/insight-book-plugin-api'
-import localForage from 'localforage'
+import { dbRpc } from '~/01.shared/lib/db.client'
 
 export interface CachedPluginRecord {
   pluginId: string
@@ -9,10 +9,9 @@ export interface CachedPluginRecord {
   updatedAt: number
 }
 
-const pluginStore = localForage.createInstance({
-  name: 'insight_book_plugins',
-  storeName: 'cached_plugins',
-})
+function getPluginKey(pluginId: string) {
+  return `plugin_cached_${pluginId}`
+}
 
 export async function saveCachedPlugin(
   pluginId: string,
@@ -28,19 +27,23 @@ export async function saveCachedPlugin(
       remoteEntryUrl,
       updatedAt: Date.now(),
     }
-    await pluginStore.setItem<CachedPluginRecord>(pluginId, record)
+    await dbRpc.saveSetting(getPluginKey(pluginId), JSON.stringify(record))
   }
   catch (err) {
-    console.warn('[Plugin Storage] Failed to save plugin to localforage cache:', err)
+    console.warn('[Plugin Storage] Failed to save plugin to SQLite cache:', err)
   }
 }
 
 export async function getCachedPlugin(pluginId: string): Promise<CachedPluginRecord | null> {
   try {
-    return await pluginStore.getItem<CachedPluginRecord>(pluginId)
+    const json = await dbRpc.getSetting(getPluginKey(pluginId))
+    if (!json)
+      return null
+
+    return JSON.parse(json)
   }
   catch (err) {
-    console.warn('[Plugin Storage] Failed to read plugin from localforage cache:', err)
+    console.warn('[Plugin Storage] Failed to read plugin from SQLite cache:', err)
 
     return null
   }
@@ -48,9 +51,9 @@ export async function getCachedPlugin(pluginId: string): Promise<CachedPluginRec
 
 export async function removeCachedPlugin(pluginId: string): Promise<void> {
   try {
-    await pluginStore.removeItem(pluginId)
+    await dbRpc.deleteSetting(getPluginKey(pluginId))
   }
   catch (err) {
-    console.warn('[Plugin Storage] Failed to remove plugin from localforage cache:', err)
+    console.warn('[Plugin Storage] Failed to remove plugin from SQLite cache:', err)
   }
 }

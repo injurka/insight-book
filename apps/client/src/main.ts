@@ -7,6 +7,7 @@ import { defaultRepositories, REPOS_INJECTION_KEY } from '~/00.plugins/di'
 import { i18n, localePromise } from '~/00.plugins/i18n.ts'
 import { vLongPress } from '~/01.shared/directives/long-press'
 import { vRipple } from '~/01.shared/directives/ripple'
+import { initDatabase } from '~/01.shared/lib/db.client'
 import { isTauri } from '~/01.shared/lib/env'
 import router from '~/01.shared/lib/router'
 import App from './app.vue'
@@ -27,6 +28,8 @@ async function bootstrap() {
   app.use(i18n)
   app.use(head)
   app.provide(REPOS_INJECTION_KEY, defaultRepositories)
+
+  await initDatabase()
 
   const { configureApi } = await import('~/01.shared/services/api.service')
   const { setErudaEnabled } = await import('~/01.shared/services/eruda.service')

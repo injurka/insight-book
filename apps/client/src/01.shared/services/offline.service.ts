@@ -1,343 +1,118 @@
 import type { Book, DictDeck, Highlight, LlmAnalysis, PageDictEntry, PagePayload, TocItem, UserDictItem } from '../types/models'
-import localforage from 'localforage'
-import { AppRoutePaths } from '~/01.shared/constants/routes'
-import router from '~/01.shared/lib/router'
-import { useToastStore } from '~/01.shared/store/toast.store'
-import { useGlobalSettingsStore } from '../store/settings.store'
-
-const MEDIA_CACHE_NAME = 'insight-book-offline-media'
-
-localforage.config({
-  name: 'InsightBook',
-  storeName: 'offline_cache',
-  description: 'Кэш для работы читалки в оффлайн-режиме',
-})
-
-function getKey(key: string) {
-  const uid = localStorage.getItem('insight_uid') || '1'
-
-  return `u${uid}_${key}`
-}
-
-function getAppLanguage() {
-  if (getActivePinia())
-    return useGlobalSettingsStore().appLanguage
-
-  try {
-    const saved = localStorage.getItem('global-app-language')
-    if (saved)
-      return JSON.parse(saved)
-  }
-  catch { }
-
-  return 'ru'
-}
-
-async function getMediaCache(): Promise<Cache | null> {
-  if (typeof window !== 'undefined' && 'caches' in window)
-    return caches.open(MEDIA_CACHE_NAME)
-
-  return null
-}
-
-function handleBookPageOrDictKey(key: string, itemSize: number, bookStats: Record<number, any>) {
-  if (key.includes('_page_') && !key.endsWith('_dict')) {
-    const bookId = Number(key.split('_')[1])
-    const pageNum = Number(key.split('_')[3])
-    if (bookStats[bookId]) {
-      if (!bookStats[bookId].cachedPages.includes(pageNum))
-        bookStats[bookId].cachedPages.push(pageNum)
-      bookStats[bookId].sizeBytes += itemSize
-    }
-
-    return true
-  }
-
-  if (key.endsWith('_dict')) {
-    const bookId = Number(key.split('_')[1])
-    if (bookStats[bookId]) {
-      bookStats[bookId].sizeBytes += itemSize
-      bookStats[bookId].dictPagesCount++
-    }
-
-    return true
-  }
-
-  return false
-}
-
-function handleImageKey(key: string, itemSize: number, bookStats: Record<number, any>) {
-  const bookId = Number(key.split('_')[1])
-  if (bookStats[bookId]) {
-    bookStats[bookId].sizeBytes += itemSize
-    bookStats[bookId].imagesCount++
-  }
-}
-
-function handleCoverKey(key: string, itemSize: number, bookStats: Record<number, any>) {
-  const bookId = Number(key.replace('cover_', ''))
-  if (bookStats[bookId])
-    bookStats[bookId].sizeBytes += itemSize
-}
-
-function handleTtsKey(key: string, itemSize: number, bookStats: Record<number, any>) {
-  const hashParts = key.replace('tts_', '').split('_')
-  const bookId = Number(hashParts[0])
-  if (!Number.isNaN(bookId) && bookStats[bookId]) {
-    bookStats[bookId].sizeBytes += itemSize
-    bookStats[bookId].ttsCount++
-  }
-}
-
-function handleBookMetaKey(key: string, itemSize: number, bookStats: Record<number, any>) {
-  const bookId = Number(key.split('_')[2])
-  if (bookStats[bookId])
-    bookStats[bookId].sizeBytes += itemSize
-}
-
-function handleOtherLocalForageKeys(key: string, itemSize: number, bookStats: Record<number, any>) {
-  if (key.startsWith('image_')) {
-    handleImageKey(key, itemSize, bookStats)
-  }
-  else if (key.startsWith('cover_')) {
-    handleCoverKey(key, itemSize, bookStats)
-  }
-  else if (key.startsWith('tts_')) {
-    handleTtsKey(key, itemSize, bookStats)
-  }
-  else if (key.startsWith('book_info_') || key.startsWith('book_toc_') || key.startsWith('book_highlights_')) {
-    handleBookMetaKey(key, itemSize, bookStats)
-  }
-}
-
-function processLocalForageKey(key: string, itemSize: number, bookStats: Record<number, any>) {
-  if (key.startsWith('book_')) {
-    if (handleBookPageOrDictKey(key, itemSize, bookStats))
-      return
-  }
-
-  handleOtherLocalForageKeys(key, itemSize, bookStats)
-}
-
-function handleMediaCacheImageOrCover(
-  type: string,
-  pathParts: string[],
-  size: number,
-  bookStats: Record<number, any>,
-) {
-  const bookId = Number(pathParts[3])
-  if (bookStats[bookId]) {
-    bookStats[bookId].sizeBytes += size
-    if (type === 'image')
-      bookStats[bookId].imagesCount++
-  }
-}
-
-function handleMediaCacheTts(pathParts: string[], size: number, bookStats: Record<number, any>) {
-  if (pathParts[3]?.includes('_')) {
-    const bookId = Number(pathParts[3].split('_')[0])
-    if (!Number.isNaN(bookId) && bookStats[bookId]) {
-      bookStats[bookId].sizeBytes += size
-      bookStats[bookId].ttsCount++
-    }
-  }
-}
-
-async function processMediaCacheReq(cache: Cache, req: Request, bookStats: Record<number, any>): Promise<number> {
-  const url = new URL(req.url)
-  const pathParts = url.pathname.split('/')
-  const type = pathParts[2]
-
-  const res = await cache.match(req)
-  const size = res ? Number(res.headers.get('content-length') || 0) : 0
-
-  if (type === 'image' || type === 'cover') {
-    handleMediaCacheImageOrCover(
-      type,
-      pathParts,
-      size,
-      bookStats,
-    )
-  }
-  else if (type === 'tts') {
-    handleMediaCacheTts(pathParts, size, bookStats)
-  }
-
-  return size
-}
-
-async function safeSetItem<T>(key: string, value: T): Promise<void> {
-  try {
-    await localforage.setItem(getKey(key), value)
-  }
-  catch (e) {
-    const err = e as Error
-    if (err.name === 'QuotaExceededError' || err.name === 'NS_ERROR_DOM_QUOTA_REACHED') {
-      const toast = useToastStore()
-      toast.error('Память устройства переполнена! Очистите кэш.', {
-        expire: 8000,
-        action: {
-          label: 'Очистить кэш',
-          onClick: () => {
-            router.push(AppRoutePaths.Settings)
-          },
-        },
-      })
-    }
-  }
-}
-
-async function safeGetItem<T>(key: string): Promise<T | null> {
-  try {
-    return await localforage.getItem<T>(getKey(key))
-  }
-  catch (e) {
-    console.error(`[OfflineService] Error reading from localForage (key: ${key}):`, e)
-    try {
-      await localforage.removeItem(getKey(key))
-    }
-    catch (removeErr) {
-      console.warn(`[OfflineService] Failed to remove corrupted item (key: ${key}):`, removeErr)
-    }
-
-    return null
-  }
-}
+import { dbRpc } from '~/01.shared/lib/db.client'
 
 export const offlineService = {
-
   async savePage(bookId: number, pageNum: number, payload: PagePayload) {
-    await safeSetItem(`book_${bookId}_page_${pageNum}`, JSON.parse(JSON.stringify(payload)))
+    await dbRpc.savePage(bookId, pageNum, JSON.parse(JSON.stringify(payload)))
   },
 
   async getPage(bookId: number, pageNum: number): Promise<PagePayload | null> {
-    return safeGetItem(`book_${bookId}_page_${pageNum}`)
+    return dbRpc.getPage(bookId, pageNum)
   },
 
   async saveImage(bookId: number, pageNum: number, blob: Blob) {
-    const cache = await getMediaCache()
-    if (cache) {
-      await cache.put(`/offline/image/${bookId}/${pageNum}`, new Response(blob, {
-        headers: {
-          'Content-Type': blob.type,
-          'Content-Length': blob.size.toString(),
-        },
-      }))
-    }
-    else {
-      // Legacy fallback
-      await safeSetItem(`image_${bookId}_${pageNum}`, blob)
-    }
+    const buffer = await blob.arrayBuffer()
+    await dbRpc.saveMedia(`opfs-media/manga/${bookId}/${pageNum}.jpg`, buffer, blob.type)
   },
 
   async getImage(bookId: number, pageNum: number): Promise<Blob | null> {
-    const cache = await getMediaCache()
-    if (cache) {
-      const res = await cache.match(`/offline/image/${bookId}/${pageNum}`)
-      if (res)
-        return res.blob()
-    }
+    const media = await dbRpc.getMedia(`opfs-media/manga/${bookId}/${pageNum}.jpg`)
+    if (media)
+      return new Blob([media.buffer], { type: media.mimeType })
 
-    return safeGetItem<Blob>(`image_${bookId}_${pageNum}`)
+    return null
   },
 
   async saveCover(bookId: number, blob: Blob) {
-    const cache = await getMediaCache()
-    if (cache) {
-      await cache.put(`/offline/cover/${bookId}`, new Response(blob, {
-        headers: {
-          'Content-Type': blob.type,
-          'Content-Length': blob.size.toString(),
-        },
-      }))
-    }
-    else {
-      await safeSetItem(`cover_${bookId}`, blob)
-    }
+    const buffer = await blob.arrayBuffer()
+    await dbRpc.saveMedia(`opfs-media/covers/${bookId}.jpg`, buffer, blob.type)
   },
 
   async getCover(bookId: number): Promise<Blob | null> {
-    const cache = await getMediaCache()
-    if (cache) {
-      const res = await cache.match(`/offline/cover/${bookId}`)
-      if (res)
-        return res.blob()
-    }
+    const media = await dbRpc.getMedia(`opfs-media/covers/${bookId}.jpg`)
+    if (media)
+      return new Blob([media.buffer], { type: media.mimeType })
 
-    return safeGetItem<Blob>(`cover_${bookId}`)
+    return null
   },
 
   async savePageDictionary(bookId: number, pageNum: number, dict: Record<string, PageDictEntry>) {
-    await safeSetItem(`book_${bookId}_page_${pageNum}_dict`, JSON.parse(JSON.stringify(dict)))
+    const existing = await dbRpc.getPage(bookId, pageNum)
+    if (existing) {
+      existing.pageDictionary = dict
+      await dbRpc.savePage(bookId, pageNum, JSON.parse(JSON.stringify(existing)))
+    }
+    else {
+      await dbRpc.savePage(bookId, pageNum, {
+        bookId,
+        pageNum,
+        totalPages: 0,
+        content: '',
+        pageDictionary: dict,
+      })
+    }
   },
 
   async getPageDictionary(bookId: number, pageNum: number): Promise<Record<string, PageDictEntry> | null> {
-    return safeGetItem(`book_${bookId}_page_${pageNum}_dict`)
+    const page = await dbRpc.getPage(bookId, pageNum)
+
+    return page?.pageDictionary || null
   },
 
-  async saveBookInfo(bookId: number, info: Book) {
-    await safeSetItem(`book_info_${bookId}`, JSON.parse(JSON.stringify(info)))
+  async saveBookInfo(_bookId: number, info: Book) {
+    await dbRpc.saveBookInfo(JSON.parse(JSON.stringify(info)))
   },
 
   async getBookInfo(bookId: number): Promise<Book | null> {
-    return safeGetItem(`book_info_${bookId}`)
+    return dbRpc.getBookInfo(bookId)
   },
 
   async saveBooksList(books: Book[]) {
-    await safeSetItem('library_books_list', JSON.parse(JSON.stringify(books)))
+    await dbRpc.saveBooksList(JSON.parse(JSON.stringify(books)))
   },
 
   async getBooksList(): Promise<Book[] | null> {
-    return safeGetItem('library_books_list')
+    return dbRpc.getBooksList()
   },
 
   async saveToc(bookId: number, toc: TocItem[]) {
-    await safeSetItem(`book_toc_${bookId}`, JSON.parse(JSON.stringify(toc)))
+    await dbRpc.saveToc(bookId, JSON.parse(JSON.stringify(toc)))
   },
 
   async getToc(bookId: number): Promise<TocItem[] | null> {
-    return safeGetItem(`book_toc_${bookId}`)
+    return dbRpc.getToc(bookId)
   },
 
   async saveHighlights(bookId: number, highlights: Highlight[]) {
-    await safeSetItem(`book_highlights_${bookId}`, JSON.parse(JSON.stringify(highlights)))
+    await dbRpc.saveHighlights(bookId, JSON.parse(JSON.stringify(highlights)))
   },
 
   async getHighlights(bookId: number): Promise<Highlight[] | null> {
-    return safeGetItem(`book_highlights_${bookId}`)
+    return dbRpc.getHighlights(bookId)
   },
 
   async saveDictionary(words: UserDictItem[]) {
-    const lang = getAppLanguage()
-    await safeSetItem(`dictionary_words_${lang}`, JSON.parse(JSON.stringify(words)))
+    await dbRpc.saveDictionary(JSON.parse(JSON.stringify(words)))
   },
 
   async getDictionary(): Promise<UserDictItem[] | null> {
-    const lang = getAppLanguage()
-
-    return safeGetItem(`dictionary_words_${lang}`)
+    return dbRpc.getAllDictionaryWords()
   },
 
   async saveDecks(decks: DictDeck[]) {
-    const lang = getAppLanguage()
-    await safeSetItem(`dictionary_decks_${lang}`, JSON.parse(JSON.stringify(decks)))
+    await dbRpc.saveDecks(JSON.parse(JSON.stringify(decks)))
   },
 
   async getDecks(): Promise<DictDeck[] | null> {
-    const lang = getAppLanguage()
-
-    return safeGetItem(`dictionary_decks_${lang}`)
+    return dbRpc.getDecks()
   },
 
   async saveAnalysis(text: string, analysis: LlmAnalysis) {
-    const lang = getAppLanguage()
-    await safeSetItem(`analysis_${lang}_${text.trim().toLowerCase()}`, JSON.parse(JSON.stringify(analysis)))
+    await dbRpc.saveAnalysis(text, JSON.parse(JSON.stringify(analysis)))
   },
 
   async getAnalysis(text: string): Promise<LlmAnalysis | null> {
-    const lang = getAppLanguage()
-
-    return safeGetItem(`analysis_${lang}_${text.trim().toLowerCase()}`)
+    return dbRpc.getAnalysis(text)
   },
 
   async saveTts(hashKey: string, audioBase64: string) {
@@ -347,46 +122,21 @@ export const offlineService = {
     for (let i = 0; i < binaryString.length; i++)
       bytes[i] = binaryString.charCodeAt(i)
 
-    const blob = new Blob([bytes], { type: mimeType })
-
-    const cache = await getMediaCache()
-    if (cache) {
-      await cache.put(`/offline/tts/${hashKey}`, new Response(blob, {
-        headers: {
-          'Content-Type': blob.type,
-          'Content-Length': blob.size.toString(),
-        },
-      }))
-    }
-    else {
-      await safeSetItem(`tts_${hashKey}`, audioBase64)
-    }
+    const ext = mimeType === 'audio/wav' ? 'wav' : 'mp3'
+    await dbRpc.saveMedia(`opfs-media/tts/${hashKey}.${ext}`, bytes.buffer, mimeType)
   },
 
   async getTtsBlob(hashKey: string): Promise<Blob | null> {
-    const cache = await getMediaCache()
-    if (cache) {
-      const res = await cache.match(`/offline/tts/${hashKey}`)
-      if (res)
-        return res.blob()
-    }
+    let media = await dbRpc.getMedia(`opfs-media/tts/${hashKey}.mp3`)
+    if (!media)
+      media = await dbRpc.getMedia(`opfs-media/tts/${hashKey}.wav`)
 
-    // Legacy fallback (Base64)
-    const base64 = await safeGetItem<string>(`tts_${hashKey}`)
-    if (base64) {
-      const mimeType = base64.startsWith('UklGR') ? 'audio/wav' : 'audio/mp3'
-      const binaryString = window.atob(base64)
-      const bytes = new Uint8Array(binaryString.length)
-      for (let i = 0; i < binaryString.length; i++)
-        bytes[i] = binaryString.charCodeAt(i)
-
-      return new Blob([bytes], { type: mimeType })
-    }
+    if (media)
+      return new Blob([media.buffer], { type: media.mimeType })
 
     return null
   },
 
-  // === МЕТОДЫ ДЛЯ МЕНЕДЖЕРА КЭША ===
   async getStorageEstimate(): Promise<{ usage: number, quota: number } | null> {
     if (navigator.storage && navigator.storage.estimate) {
       try {
@@ -414,91 +164,14 @@ export const offlineService = {
   },
 
   async getCacheStats() {
-    const keys = await localforage.keys()
-    const prefix = getKey('')
-
-    const userKeys = keys.filter(keyItem => keyItem.startsWith(prefix))
-    const booksList = await this.getBooksList() || []
-    const bookStats: Record<number, any> = {}
-
-    booksList.forEach((bookItem) => {
-      bookStats[bookItem.id] = {
-        title: bookItem.title,
-        totalPages: bookItem.totalPages || 0,
-        cachedPages: [],
-        analysesCount: bookItem.analysesCount || 0,
-        sizeBytes: 0,
-        imagesCount: 0,
-        ttsCount: 0,
-        dictPagesCount: 0,
-      }
-    })
-
-    let totalDictionaryWords = 0
-    let totalSize = 0
-
-    for (const fullKey of userKeys) {
-      const key = fullKey.replace(prefix, '')
-      const item = await localforage.getItem(fullKey)
-      const itemSize = item instanceof Blob ? item.size : (item ? JSON.stringify(item).length : 0)
-      totalSize += itemSize
-
-      if (key.startsWith('dictionary_words_')) {
-        totalDictionaryWords += Array.isArray(item) ? item.length : 0
-      }
-      else {
-        processLocalForageKey(key, itemSize, bookStats)
-      }
-    }
-
-    const cache = await getMediaCache()
-    if (cache) {
-      const cacheKeys = await cache.keys()
-      for (const req of cacheKeys) {
-        const size = await processMediaCacheReq(cache, req, bookStats)
-        totalSize += size
-      }
-    }
-
-    return { bookStats, totalDictionaryWords, totalSizeBytes: totalSize }
+    return dbRpc.getStorageStats()
   },
 
   async clearBookCache(bookId: number) {
-    // 1. Очистка старого IndexedDB хранилища
-    const keys = await localforage.keys()
-    const prefix = getKey('')
+    await dbRpc.clearBookCache(bookId)
+  },
 
-    const keysToRemove = keys.filter((fullKey) => {
-      if (!fullKey.startsWith(prefix))
-        return false
-
-      const key = fullKey.replace(prefix, '')
-
-      return key.startsWith(`book_${bookId}_page_`) || key === `book_info_${bookId}` || key === `book_toc_${bookId}` || key === `book_highlights_${bookId}` || key.startsWith(`image_${bookId}_`) || key === `cover_${bookId}` || key.startsWith(`tts_${bookId}_`)
-    })
-
-    for (const key of keysToRemove)
-      await localforage.removeItem(key)
-
-    // 2. Очистка Cache API
-    const cache = await getMediaCache()
-    if (cache) {
-      const cacheKeys = await cache.keys()
-      for (const req of cacheKeys) {
-        const url = new URL(req.url)
-        const pathParts = url.pathname.split('/')
-        const type = pathParts[2]
-
-        if (type === 'image' || type === 'cover') {
-          if (Number(pathParts[3]) === bookId)
-            await cache.delete(req)
-        }
-        else if (type === 'tts') {
-          const hashKey = pathParts[3]
-          if (hashKey && hashKey.startsWith(`${bookId}_`))
-            await cache.delete(req)
-        }
-      }
-    }
+  async deleteLanguage(lang: string) {
+    await dbRpc.deleteLanguage(lang)
   },
 }

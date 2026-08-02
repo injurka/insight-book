@@ -4,7 +4,7 @@ import { clientsClaim } from 'workbox-core'
 import { cleanupOutdatedCaches, createHandlerBoundToURL, precacheAndRoute } from 'workbox-precaching'
 import { NavigationRoute, registerRoute } from 'workbox-routing'
 import { messageHandlers } from './lib/message-handlers'
-import { AssetAnalyzer, CacheStrategyFactory } from './lib/utils'
+import { CacheStrategyFactory } from './lib/utils'
 import { CACHE_CONFIG } from './model/types'
 
 declare let self: ServiceWorkerGlobalScope
@@ -14,6 +14,53 @@ clientsClaim()
 cleanupOutdatedCaches()
 
 precacheAndRoute(self.__WB_MANIFEST || [])
+
+function getMimeTypeFromExt(ext: string): string {
+  if (ext === 'jpg' || ext === 'jpeg')
+    return 'image/jpeg'
+  if (ext === 'png')
+    return 'image/png'
+  if (ext === 'webp')
+    return 'image/webp'
+  if (ext === 'mp3')
+    return 'audio/mp3'
+  if (ext === 'wav')
+    return 'audio/wav'
+
+  return 'application/octet-stream'
+}
+
+async function handleOpfsMediaRequest(url: URL): Promise<Response> {
+  try {
+    const cleanPath = url.pathname.replace(/^\/opfs-media\//, '')
+    const parts = cleanPath.split('/')
+    const root = await navigator.storage.getDirectory()
+
+    let dir = root
+    for (let i = 0; i < parts.length - 1; i++) {
+      dir = await dir.getDirectoryHandle(parts[i])
+    }
+
+    const fileHandle = await dir.getFileHandle(parts[parts.length - 1])
+    const file = await fileHandle.getFile()
+
+    const ext = parts[parts.length - 1].split('.').pop()?.toLowerCase() || ''
+    const contentType = getMimeTypeFromExt(ext)
+
+    return new Response(file, {
+      headers: {
+        'Content-Type': contentType,
+        'Cache-Control': 'public, max-age=31536000, immutable',
+      },
+    })
+  }
+  catch {
+    return new Response('File not found in OPFS', { status: 404 })
+  }
+}
+
+// OPFS Media Interceptor (/opfs-media/*)
+registerRoute(({ url }) => url.pathname.startsWith('/opfs-media/'), ({ url }) => handleOpfsMediaRequest(url))
 
 if (import.meta.env.PROD) {
   // WEB APP MANIFEST
@@ -60,39 +107,7 @@ registerRoute(({ request, url }) => {
   maxAgeSeconds: CACHE_CONFIG.durations.images,
 }))
 
-// --- СТАТИЧЕСКИЕ АССЕТЫ (JS, CSS) ---
-
-function isScriptOrStyle({ request, url }: { request: Request, url: URL }) {
-  if (!url.protocol.startsWith('http'))
-    return false
-
-  return request.destination === 'script' || request.destination === 'style'
-    || url.pathname.endsWith('.js') || url.pathname.endsWith('.css')
-}
-
-const hashedAssetsStrategy = CacheStrategyFactory.createCacheFirst(CACHE_CONFIG.names.hashedAssets, {
-  maxEntries: CACHE_CONFIG.limits.hashedAssets,
-  maxAgeSeconds: CACHE_CONFIG.durations.static.hashed,
-})
-
-const vendorAssetsStrategy = CacheStrategyFactory.createCacheFirst(CACHE_CONFIG.names.vendorAssets, {
-  maxEntries: CACHE_CONFIG.limits.vendorAssets,
-  maxAgeSeconds: CACHE_CONFIG.durations.static.vendor,
-  statuses: [0, 200],
-})
-
-const regularAssetsStrategy = CacheStrategyFactory.createStaleWhileRevalidate(CACHE_CONFIG.names.regularAssets, {
-  maxEntries: CACHE_CONFIG.limits.regularAssets,
-  maxAgeSeconds: CACHE_CONFIG.durations.static.regular,
-})
-
-registerRoute(options => isScriptOrStyle(options) && AssetAnalyzer.getAssetType(options.url.href) === 'hashed', hashedAssetsStrategy)
-
-registerRoute(options => isScriptOrStyle(options) && AssetAnalyzer.getAssetType(options.url.href) === 'vendor', vendorAssetsStrategy)
-
-registerRoute(options => isScriptOrStyle(options) && AssetAnalyzer.getAssetType(options.url.href) === 'regular', regularAssetsStrategy)
-
-// --- SPA НАВИГАЦИЯ ---
+// --- SPA NAВИГАЦИЯ ---
 
 let allowlist: undefined | RegExp[]
 if (import.meta.env.DEV)
@@ -145,14 +160,6 @@ self.addEventListener('message', async (event) => {
 
 if (import.meta.env.DEV) {
   console.log('🔧 Service Worker в режиме разработки')
-
-  self.addEventListener('fetch', (event) => {
-    if (event.request.method === 'GET') {
-      const assetType = AssetAnalyzer.getAssetType(event.request.url)
-      if (!event.request.url.includes('/api/'))
-        console.log(`📥 ${assetType}: ${event.request.url}`)
-    }
-  })
 }
 
 self.addEventListener('push', (event: PushEvent) => {
@@ -194,7 +201,6 @@ self.addEventListener('notificationclick', (event: NotificationEvent) => {
     for (let i = 0; i < windowClients.length; i++) {
       const client = windowClients[i]
       if (client.url.includes(self.location.origin) && 'focus' in client) {
-        // Вместо перезагрузки SPA используем обмен сообщениями для навигации
         client.postMessage({ type: 'NAVIGATE', url: urlToOpen })
 
         return client.focus()

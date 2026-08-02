@@ -34,6 +34,12 @@ export const useCacheStore = defineStore('cache', () => {
     await loadStats()
   }
 
+  async function deleteLanguage(lang: string) {
+    await repos.storage.deleteLanguage(lang)
+    useToastStore().success(`База языка ${lang} удалена`)
+    await loadStats()
+  }
+
   return {
     stats,
     deviceStorage,
@@ -41,5 +47,6 @@ export const useCacheStore = defineStore('cache', () => {
     isLoading,
     loadStats,
     clearBookCache,
+    deleteLanguage,
   }
 })

@@ -312,7 +312,7 @@ export interface UserData {
   pushCount?: number
   timezone?: string
   uiLanguage?: string
-  avatarUrl?: string
+  avatarUrl?: string | null
 }
 
 export interface Highlight {

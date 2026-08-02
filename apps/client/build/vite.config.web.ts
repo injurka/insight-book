@@ -76,6 +76,10 @@ export default defineConfig({
 
   server: {
     port: 5173,
+    headers: {
+      'Cross-Origin-Opener-Policy': 'same-origin',
+      'Cross-Origin-Embedder-Policy': 'credentialless',
+    },
     proxy: {
       '/api': {
         target: process.env.API_PROXY_TARGET || 'http://localhost:4445',
@@ -104,7 +108,7 @@ export default defineConfig({
               return 'vendor-dompurify'
             if (pathId.includes('@floating-ui') || pathId.includes('@iconify'))
               return 'vendor-ui'
-            if (pathId.includes('localforage') || pathId.includes('workbox'))
+            if (pathId.includes('sqlite') || pathId.includes('workbox'))
               return 'vendor-storage'
 
             return 'vendor-others'

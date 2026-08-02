@@ -1,6 +1,11 @@
+import { rm } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+import { Database } from 'bun:sqlite'
 import { Elysia, t } from 'elysia'
 import jwt from 'jsonwebtoken'
 import { AUTH_MODE, JWT_SECRET } from '../config'
+import { db } from '../db'
 import { dictionaryService } from '../services/dictionary.service'
 import { checkPronunciationAudio, generateDeepDiveQuiz, generateWordExamples } from '../services/llm.service'
 import { AppError } from '../utils/errors'
@@ -33,6 +38,58 @@ export const dictionaryController = new Elysia({ prefix: '/api/dictionary' })
     logger.error(error)
     set.status = 500
     return { error: 'Internal Server Error' }
+  })
+  .get('/llm-cache', async ({ query, set }) => {
+    const lang = normalizeLanguageCode(query.lang || 'en')
+    const targetLang = normalizeLanguageCode(query.targetLang || 'ru')
+
+    // Fetch all records from llmCache for the given language
+    const rows = await db.query.llmCache.findMany({
+      where: (table, { eq, and }) => and(eq(table.language, lang), eq(table.targetLanguage, targetLang)),
+    })
+
+    if (rows.length === 0) {
+      throw new AppError(404, 'Кэш для данного языка не найден')
+    }
+
+    const tempPath = join(tmpdir(), `llm-cache-${Date.now()}-${Math.random().toString(36).substring(2)}.sqlite`)
+    const tempDb = new Database(tempPath)
+
+    try {
+      tempDb.run('PRAGMA journal_mode = DELETE')
+
+      tempDb.run(`CREATE TABLE dictionary (
+        word TEXT, transcription TEXT, translation TEXT, language TEXT, target_language TEXT, notes TEXT, tags TEXT, difficulty TEXT,
+        grammar_note TEXT, vocabulary_note TEXT, deck_ids_json TEXT, state INTEGER, due TEXT, stability REAL, difficulty_fsrs REAL,
+        scheduled_days INTEGER, reps INTEGER, lapses INTEGER, last_review TEXT, learning_steps INTEGER, created_at TEXT, updated_at TEXT, raw_json TEXT
+      )`)
+
+      tempDb.run('CREATE TABLE analyses (text_key TEXT UNIQUE, language TEXT, analysis_json TEXT)')
+
+      const insert = tempDb.prepare('INSERT OR IGNORE INTO analyses (text_key, language, analysis_json) VALUES (?, ?, ?)')
+      tempDb.run('BEGIN TRANSACTION')
+      for (const row of rows) {
+        insert.run(row.sentenceHash, row.language, row.analysis)
+      }
+      tempDb.run('COMMIT')
+
+      tempDb.close()
+
+      const { readFile } = await import('node:fs/promises')
+      const fileBuffer = await readFile(tempPath)
+
+      set.headers['Content-Type'] = 'application/octet-stream'
+      return new Response(fileBuffer)
+    }
+    finally {
+      try {
+        tempDb.close()
+      }
+      catch { }
+      await rm(tempPath, { force: true })
+    }
+  }, {
+    query: t.Object({ lang: t.Optional(t.String()), targetLang: t.Optional(t.String()) }),
   })
   .get('/', async ({ userId, query }) => {
     const targetLang = normalizeLanguageCode(query.targetLang || 'ru')
