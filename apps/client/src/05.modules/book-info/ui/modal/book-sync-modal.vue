@@ -34,6 +34,7 @@ const syncStateIcon = computed(() => {
     return 'mdi:alert-circle-outline'
   if (isFinished.value)
     return 'mdi:check-circle-outline'
+
   return 'mdi:loading'
 })
 
@@ -42,6 +43,7 @@ const syncStateClass = computed(() => {
     return 'is-error'
   if (isFinished.value)
     return 'is-success'
+
   return 'is-running'
 })
 

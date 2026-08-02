@@ -38,6 +38,7 @@ function wordSpan(sentId: string, idx: number, text: string): string {
 function sentenceSpan(sentId: string, words: string[]): string {
   const rawSent = encodeURIComponent(words.join(' '))
   const inner = words.map((w, i) => wordSpan(sentId, i, w)).join(' ')
+
   return `<span class="sentence" data-sent-id="${sentId}" data-raw-sent="${rawSent}">${inner}</span>`
 }
 

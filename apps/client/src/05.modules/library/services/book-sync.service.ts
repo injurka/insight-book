@@ -53,6 +53,7 @@ export function cancelSync(): void {
     syncAbortController.abort()
     syncAbortController = null
   }
+
   syncState.value = 'idle'
 }
 
@@ -256,6 +257,7 @@ async function generateTtsForTexts(texts: string[], ctx: AnalysisContext, pageNu
         if ((e as Error).name !== 'AbortError')
           console.error('TTS Sync error:', e)
       }
+
       syncProgress.value.ttsDone++
     }))
     syncProgress.value.currentTask = `Генерация аудио: стр. ${pageNum}, ${syncProgress.value.ttsDone} / ${syncProgress.value.ttsTotal}`
@@ -328,6 +330,7 @@ async function processPage(
   }
   catch (e) {
     console.warn(`Failed to fetch page ${pageNum}`, e)
+
     return
   }
 

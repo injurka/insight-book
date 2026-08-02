@@ -15,6 +15,7 @@ const brightnessIcon = computed(() => {
     return 'mdi:brightness-7'
   if (val > 0.4)
     return 'mdi:brightness-5'
+
   return 'mdi:brightness-4'
 })
 </script>

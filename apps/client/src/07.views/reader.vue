@@ -25,6 +25,7 @@ async function initBookSession(bookId: number, page?: number) {
     catch {
       router.replace(AppRoutePaths.Home)
     }
+
     return
   }
 

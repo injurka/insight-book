@@ -12,6 +12,7 @@ export function useReaderScroll(saveScrollPosition: () => void, closeBubblePopov
     if (currentY < 80) {
       isHeaderVisible.value = true
       scrollAccumulator = 0
+
       return
     }
 

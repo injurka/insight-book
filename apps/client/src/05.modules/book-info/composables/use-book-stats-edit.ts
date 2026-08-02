@@ -27,6 +27,7 @@ function parseDescriptionJson(raw: string | undefined): Record<DescLang, string>
   catch {
     result.ru = raw
   }
+
   return result
 }
 
@@ -34,6 +35,7 @@ function serializeDescriptionJson(byLang: Record<DescLang, string>): string {
   const nonEmpty = DESCRIPTION_LANGS.some(l => byLang[l].trim())
   if (!nonEmpty)
     return ''
+
   return JSON.stringify({ ru: byLang.ru, en: byLang.en, zh: byLang.zh })
 }
 
@@ -82,6 +84,7 @@ export function useBookStatsEdit(isEditingStats: Ref<boolean>) {
       return 'level-easy'
     if (found.level <= 4)
       return 'level-medium'
+
     return 'level-hard'
   })
 
@@ -96,6 +99,7 @@ export function useBookStatsEdit(isEditingStats: Ref<boolean>) {
         return DESCRIPTION_LANGS.filter(l => parsed[l]?.trim())
     }
     catch { /* plain string */ }
+
     return raw.trim() ? ['ru'] : []
   })
 
@@ -114,6 +118,7 @@ export function useBookStatsEdit(isEditingStats: Ref<boolean>) {
       }
     }
     catch { /* plain string */ }
+
     return raw
   })
 

@@ -85,10 +85,12 @@ export const useLibraryStore = defineStore('library', () => {
         q.set('search', publicQuerySearch.value)
         trackEvent('public_book_search', { query: publicQuerySearch.value })
       }
+
       if (publicQueryLang.value)
         q.set('lang', publicQueryLang.value)
 
       const res = await repos.book.getPublic(q.toString())
+
       return res
     },
     enabled: () => isInitialized.value,
@@ -138,6 +140,7 @@ export const useLibraryStore = defineStore('library', () => {
       const id = currentBookId.value
       if (!id)
         return null
+
       return repos.book.getInfo(id)
     },
     enabled: () => currentBookId.value !== null,
@@ -217,6 +220,7 @@ export const useLibraryStore = defineStore('library', () => {
         currentBookInfo.value.stats = res.stats
         await repos.book.saveLocalBookInfo(id, currentBookInfo.value)
       }
+
       queryCache.invalidateQueries({ key: queryKeys.books.all })
       queryCache.invalidateQueries({ key: queryKeys.books(id) })
     },
@@ -245,6 +249,7 @@ export const useLibraryStore = defineStore('library', () => {
         currentBookInfo.value.stats.lexicalDiversity = res.lexicalStats.lexicalDiversity
         await repos.book.saveLocalBookInfo(id, currentBookInfo.value)
       }
+
       queryCache.invalidateQueries({ key: queryKeys.books.all })
       queryCache.invalidateQueries({ key: queryKeys.books(id) })
     },
@@ -269,6 +274,7 @@ export const useLibraryStore = defineStore('library', () => {
         currentBookInfo.value.coverUrl = res.coverUrl
         await repos.book.saveLocalBookInfo(id, currentBookInfo.value)
       }
+
       const listBook = books.value.find(b => b.id === id)
       if (listBook)
         listBook.coverUrl = res.coverUrl
@@ -290,6 +296,7 @@ export const useLibraryStore = defineStore('library', () => {
         currentBookInfo.value.stats = res.stats
         await repos.book.saveLocalBookInfo(id, currentBookInfo.value)
       }
+
       queryCache.invalidateQueries({ key: queryKeys.books.all })
       queryCache.invalidateQueries({ key: queryKeys.books(id) })
     },
@@ -312,12 +319,14 @@ export const useLibraryStore = defineStore('library', () => {
       }
 
       trackEvent('book_uploaded', { format: ext, size_mb: Math.round(file.size / 1048576) })
+
       return book
     },
   })
 
   async function uploadBook(file: File) {
     const res = await uploadBookMutation(file)
+
     return 'book' in res ? res.book : (res as unknown as Book)
   }
 
@@ -329,12 +338,14 @@ export const useLibraryStore = defineStore('library', () => {
       books.value = [res.book, ...books.value]
       await refetchBooks()
       trackEvent('custom_manga_created', { language: params.language })
+
       return res.book
     },
   })
 
   async function createCustomManga(title: string, author: string, language: string) {
     const res = await createCustomMangaMutation({ title, author, language })
+
     return res.book
   }
 
@@ -355,8 +366,10 @@ export const useLibraryStore = defineStore('library', () => {
           catch { }
         }
       }
+
       queryCache.invalidateQueries({ key: queryKeys.books.all })
       queryCache.invalidateQueries({ key: queryKeys.books(bookId) })
+
       return res.book
     },
   })
@@ -365,6 +378,7 @@ export const useLibraryStore = defineStore('library', () => {
     const fd = new FormData()
     fd.append('chapterTitle', chapterTitle)
     files.forEach(f => fd.append('files', f))
+
     return uploadMangaChapterMutation({ bookId, fd })
   }
 
@@ -377,6 +391,7 @@ export const useLibraryStore = defineStore('library', () => {
         currentBookInfo.value = null
         currentBookId.value = null
       }
+
       queryCache.invalidateQueries({ key: queryKeys.books.all })
       trackEvent('book_deleted')
     },
@@ -401,6 +416,7 @@ export const useLibraryStore = defineStore('library', () => {
       isUploadingChapter,
       isDeletingBook,
     ]
+
     return loadingStates.some(state => state.value)
   })
 

@@ -22,6 +22,7 @@ export const Interactive: Story = {
     components: { KitToggle },
     setup() {
       const val = ref('list')
+
       return { args, val }
     },
     template: `
@@ -45,6 +46,7 @@ export const Sizes: Story = {
       const valSm = ref('list')
       const valMd = ref('list')
       const valLg = ref('list')
+
       return {
         options: defaultOptions,
         valXs,
@@ -86,6 +88,7 @@ export const IconsOnly: Story = {
         { value: 'grid', icon: 'mdi:view-grid', tooltip: 'Grid view' },
         { value: 'gallery', icon: 'mdi:image-multiple', tooltip: 'Gallery view' },
       ]
+
       return { val, options }
     },
     template: `
@@ -106,6 +109,7 @@ export const LabelsOnly: Story = {
         { value: 'weekly', label: 'Weekly' },
         { value: 'monthly', label: 'Monthly' },
       ]
+
       return { val, options }
     },
     template: `

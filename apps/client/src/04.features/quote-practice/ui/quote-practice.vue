@@ -36,6 +36,7 @@ function shuffle(array: any[]) {
     const j = Math.floor(Math.random() * (i + 1))
     ;[arr[i], arr[j]] = [arr[j], arr[i]]
   }
+
   return arr
 }
 
@@ -65,6 +66,7 @@ const isCorrect = computed(() => {
     return false
   const currentText = selectedWords.value.map(w => w.text).join('').toLowerCase()
   const targetText = allWords.value.map(w => w.text).join('').toLowerCase()
+
   return currentText === targetText
 })
 

@@ -84,6 +84,7 @@ const activeView = computed(() => {
     return SrsSummaryView
   if (trainingStore.trainingMode === 'match')
     return SrsModeMatch
+
   return SrsCardView
 })
 
@@ -102,6 +103,7 @@ async function startSession(options: {
 
     if (trainingStore.reviewQueue.length === 0) {
       toast.info(t('dictionary.emptySearch'))
+
       return
     }
 
@@ -124,6 +126,7 @@ async function handleGrade(grade: number) {
       trainingStore.reviewQueue.push(currentCard.value)
 
     currentIndex.value++
+
     return
   }
 
@@ -134,6 +137,7 @@ async function handleGrade(grade: number) {
     if (grade === 1) { // 1 = Rating.Again in FSRS
       trainingStore.reviewQueue.push(cardRef)
     }
+
     currentIndex.value++
   }
   finally {

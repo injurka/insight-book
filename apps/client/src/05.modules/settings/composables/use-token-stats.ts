@@ -32,9 +32,11 @@ export function useTokenStats() {
   const totalTokens = computed(() => {
     if (!tokensData.value)
       return { input: 0, output: 0 }
+
     return tokensData.value.stats.reduce((acc, curr) => {
       acc.input += curr.inputTokens
       acc.output += curr.outputTokens
+
       return acc
     }, { input: 0, output: 0 })
   })

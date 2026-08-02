@@ -62,12 +62,14 @@ export function formatPagesList(pages: number[], maxRanges = 20): string {
 
   const visible = ranges.slice(0, maxRanges).map(formatPageRange).join(', ')
   const hidden = ranges.length - maxRanges
+
   return `${visible} ... ${t('settings.andMore', { count: hidden }, `и ещё ${hidden}`)}`
 }
 
 export function formatNumber(num: number | undefined | null, locale = 'ru-RU'): string {
   if (num === undefined || num === null)
     return '0'
+
   return new Intl.NumberFormat(locale).format(num)
 }
 

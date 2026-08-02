@@ -36,6 +36,7 @@ function calculateActivityLevel(count: number): number {
     return 2
   if (count > 0)
     return 1
+
   return 0
 }
 
@@ -61,8 +62,10 @@ function checkAndPushMonth(
         col,
       })
     }
+
     return monthIdx
   }
+
   return currentMonth
 }
 
@@ -70,6 +73,7 @@ function getActivityCount(isFuture: boolean, dateStr: string, activityData: Arra
   if (isFuture)
     return 0
   const active = activityData.find(item => item.date === dateStr)
+
   return active?.count || 0
 }
 
@@ -144,6 +148,7 @@ const heatmapData = computed(() => {
       const idx = c * 7 + r
       rowDays.push(days[idx])
     }
+
     gridData.push({
       label: weekdays[r],
       days: rowDays,
@@ -187,10 +192,12 @@ const maxStreak = computed(() => {
           current = 1
         }
       }
+
       prevDate = new Date(item.date)
       max = Math.max(max, current)
     }
   }
+
   return max
 })
 
@@ -201,6 +208,7 @@ function getRankIdx(totalWords: number, ranks: Array<{ target: number }>): numbe
     if (totalWords >= prevTarget)
       rankIdx = i
   }
+
   return rankIdx
 }
 
@@ -241,6 +249,7 @@ function buildVocabAchievements(difficulties: Array<{ language: string, count: n
       labelType: t('activityHeatmap.vocabLevel', 'Словарный запас'),
     })
   }
+
   return achs
 }
 
@@ -274,6 +283,7 @@ function buildQuizAchievements(quizProgress: Array<any>): Array<any> {
       labelType: t('activityHeatmap.langLevel', 'Уровень языка'),
     })
   }
+
   return achs
 }
 

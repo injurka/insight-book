@@ -26,6 +26,7 @@ function onUploadFileChange(event: Event) {
 async function confirmUpload() {
   if (!uploadFile.value) {
     toast.error(t('settings.uploadPluginNoFile', 'Выберите zip-файл плагина'))
+
     return
   }
 

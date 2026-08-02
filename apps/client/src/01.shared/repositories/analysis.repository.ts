@@ -75,6 +75,7 @@ export class DefaultAnalysisRepository implements IAnalysisRepository {
     )
     const data = applyAcl(LlmAnalysisSchema, res, 'analysis.analyze()')
     await offlineService.saveAnalysis(text, data).catch(() => {})
+
     return data
   }
 
@@ -114,6 +115,7 @@ export class DefaultAnalysisRepository implements IAnalysisRepository {
     const cached = await offlineService.getAnalysis(text)
     if (!cached)
       return cached
+
     return applyAcl(LlmAnalysisSchema, cached, 'analysis.getLocalAnalysis()')
   }
 

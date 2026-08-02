@@ -33,6 +33,7 @@ export function hexToRgba(hex: string, alpha: number): string {
   const red = Number.parseInt(cleanHex.slice(0, 2), 16) || 0
   const green = Number.parseInt(cleanHex.slice(2, 4), 16) || 0
   const b = Number.parseInt(cleanHex.slice(4, 6), 16) || 0
+
   return `rgba(${red}, ${green}, ${b}, ${alpha})`
 }
 

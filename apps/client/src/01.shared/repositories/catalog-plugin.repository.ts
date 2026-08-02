@@ -16,16 +16,19 @@ export interface ICatalogPluginRepository {
 export class DefaultCatalogPluginRepository implements ICatalogPluginRepository {
   async getApproved() {
     const raw = await api.catalogPlugins.getApproved()
+
     return applyAcl(z.array(CatalogPluginRecordSchema), raw, 'catalogPlugin.getApproved()')
   }
 
   async getMy() {
     const raw = await api.catalogPlugins.getMy()
+
     return applyAcl(z.array(CatalogPluginRecordSchema), raw, 'catalogPlugin.getMy()')
   }
 
   async getPending() {
     const raw = await api.catalogPlugins.getPending()
+
     return applyAcl(z.array(CatalogPluginRecordSchema), raw, 'catalogPlugin.getPending()')
   }
 

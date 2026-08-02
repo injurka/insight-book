@@ -99,6 +99,7 @@ const deckIdsModel = computed<(string | number)[]>({
   get: () => {
     if (!localWord.value.deckIds || localWord.value.deckIds.length === 0)
       return ['none']
+
     return localWord.value.deckIds
   },
   set: (val) => {
@@ -116,6 +117,7 @@ const deckOptions = computed(() => {
   const opts: SelectOption[] = [{ label: t('dictionary.noDeckGeneral'), value: 'none' }]
   const langDecks = dictStore.decks.filter(deckItem => deckItem.language === localWord.value.language)
   langDecks.forEach(deckItem => opts.push({ label: deckItem.name, value: deckItem.id }))
+
   return opts
 })
 

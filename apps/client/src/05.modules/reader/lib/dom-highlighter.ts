@@ -38,10 +38,13 @@ function buildRange(textNodes: Text[], startIndex: number, endIndex: number): Ra
       range.setStart(textNode, Math.max(0, startIndex - nodeStart))
       started = true
     }
+
     if (started && nodeEnd >= endIndex) {
       range.setEnd(textNode, Math.min(nodeLength, endIndex - nodeStart))
+
       return range
     }
+
     currentIndex = nodeEnd
   }
 
@@ -90,6 +93,7 @@ export function collectQuoteRanges(root: HTMLElement, quotes: QuoteHighlightSour
 
     const matchingQuotes = validQuotes.filter((quoteItem) => {
       const qNorm = normalizeString(quoteItem.text)
+
       return rawNorm === qNorm || (qNorm.length >= 2 && (rawNorm.includes(qNorm) || qNorm.includes(rawNorm)))
     })
 
@@ -117,6 +121,7 @@ let registeredNames = new Set<string>()
 
 function colorToHighlightName(color: string): string {
   const rgba = hexToRgba(color, 0.35)
+
   return `${HIGHLIGHT_NAME_PREFIX}-${rgba.replace(/[^a-z0-9]/gi, '')}`
 }
 
@@ -127,6 +132,7 @@ function getStyleElement(): HTMLStyleElement {
     styleEl.id = STYLE_ELEMENT_ID
     document.head.appendChild(styleEl)
   }
+
   return styleEl
 }
 
@@ -159,6 +165,7 @@ function rebuildRegistry(): void {
     if (!nextNames.has(name))
       CSS.highlights.delete(name)
   }
+
   registeredNames = nextNames
 
   getStyleElement().textContent = cssRules.join('\n')

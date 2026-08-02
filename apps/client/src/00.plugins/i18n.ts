@@ -32,6 +32,7 @@ export async function loadLanguageAsync(lang: string) {
   if (loadedLocales.has(lang)) {
     i18n.global.locale.value = lang
     localStorage.setItem('global-app-language', lang)
+
     return nextTick()
   }
 

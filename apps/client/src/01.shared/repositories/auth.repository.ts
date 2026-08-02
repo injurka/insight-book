@@ -15,6 +15,7 @@ export interface IAuthRepository {
 export class DefaultAuthRepository implements IAuthRepository {
   async me() {
     const raw = await api.auth.me()
+
     return applyAcl(AuthMeResponseSchema, raw, 'auth.me()')
   }
 

@@ -18,6 +18,7 @@ const emit = defineEmits<{
 const promptText = computed(() => {
   if (!props.card.translation)
     return ''
+
   return props.card.translation.split(',')[0].split(';')[0].replace(/<[^>]+(>|$)/g, '').trim()
 })
 </script>

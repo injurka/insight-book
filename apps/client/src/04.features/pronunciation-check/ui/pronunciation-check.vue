@@ -45,6 +45,7 @@ const pronScoreClass = computed(() => {
     return 'is-success'
   if (pronScore.value >= 50)
     return 'is-warning'
+
   return 'is-error'
 })
 

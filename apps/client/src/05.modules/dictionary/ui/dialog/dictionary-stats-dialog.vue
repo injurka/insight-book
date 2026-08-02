@@ -30,6 +30,7 @@ const isActivityLoading = ref(true)
 async function fetchActivity() {
   if (!authStore.user) {
     isActivityLoading.value = false
+
     return
   }
 

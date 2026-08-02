@@ -62,6 +62,7 @@ function initializePwaUpdater(pinia: Pinia): void {
         catch (e) {
           console.warn('Failed to close global modals before navigation:', e)
         }
+
         router.push(event.data.url)
       }
     })

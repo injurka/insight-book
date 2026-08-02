@@ -24,6 +24,7 @@ const percentage = computed(() => {
     return 0
   if (limitVal === 0)
     return 100
+
   return Math.min(100, Math.round((usedVal / limitVal) * 100))
 })
 
@@ -32,12 +33,14 @@ const percentClass = computed(() => {
     return 'is-success'
   if (percentage.value <= 90)
     return 'is-warning'
+
   return 'is-error'
 })
 
 function formatNumber(num: number | undefined | null) {
   if (num == null)
     return '0'
+
   return new Intl.NumberFormat(settingsStore.appLanguage || 'ru-RU', {
     notation: 'compact',
     maximumFractionDigits: 1,

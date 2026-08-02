@@ -137,6 +137,7 @@ export const usePwaStore = defineStore('pwa', {
 
       if (isTauri()) {
         await this.toggleNativePush(toast, t)
+
         return
       }
 
@@ -179,8 +180,10 @@ export const usePwaStore = defineStore('pwa', {
           await repos.push.unsubscribeFcm(fcmToken)
           await repos.push.unsubscribeNativeFcm()
         }
+
         this.isPushSubscribed = false
         toast.info(t('settings.pushDisabled'))
+
         return
       }
 
@@ -201,6 +204,7 @@ export const usePwaStore = defineStore('pwa', {
         toast.error(t('settings.pushKeyError') || 'VAPID key missing')
         throw new Error('No public key')
       }
+
       return publicKey
     },
 
@@ -253,6 +257,7 @@ export const usePwaStore = defineStore('pwa', {
         await repos.push.unsubscribeWeb(sub.endpoint)
         this.isPushSubscribed = false
         toast.info(t('settings.pushDisabled'))
+
         return
       }
 

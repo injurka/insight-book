@@ -53,8 +53,10 @@ export const useTrainingStore = defineStore('training', () => {
               const targetLevel = Number.parseInt(d.split('_')[1], 10)
               const sys = DIFFICULTY_SYSTEMS[w.language] || DIFFICULTY_SYSTEMS.default
               const diffDef = sys.find(s => s.value === w.difficulty)
+
               return diffDef && diffDef.level === targetLevel
             }
+
             return w.difficulty === d
           })
         })

@@ -13,6 +13,7 @@ function getShikiRpc() {
       on: data => worker.addEventListener('message', data),
     })
   }
+
   return rpcClient
 }
 

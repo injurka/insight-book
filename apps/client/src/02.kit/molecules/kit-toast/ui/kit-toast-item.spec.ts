@@ -14,10 +14,12 @@ export const mockSwipeState = {
 
 vi.mock('@vueuse/core', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@vueuse/core')>()
+
   return {
     ...actual,
     useSwipe: vi.fn((target, options) => {
       mockSwipeState.onSwipeEnd = options?.onSwipeEnd || null
+
       return {
         isSwiping: mockSwipeState.isSwiping,
         direction: mockSwipeState.direction,

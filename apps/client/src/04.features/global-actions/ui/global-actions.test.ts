@@ -10,6 +10,7 @@ function computePercent(used: number | undefined | null, limit: number | undefin
     return 0
   if (l === 0)
     return 100
+
   return Math.min(100, Math.round((u / l) * 100))
 }
 
@@ -21,6 +22,7 @@ function getPercentClass(percentage: number): string {
     return 'is-success'
   if (percentage <= 90)
     return 'is-warning'
+
   return 'is-error'
 }
 

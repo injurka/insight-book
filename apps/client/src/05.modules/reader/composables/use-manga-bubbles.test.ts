@@ -7,6 +7,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 // interaction with Pinia state, not the network layer.
 vi.mock('@pinia/colada', async () => {
   const { ref } = await import('vue')
+
   return {
     useQuery: () => ({
       data: ref(null),
@@ -62,6 +63,7 @@ function setup() {
   const onPointerDown = vi.fn()
   const onWordClick = vi.fn()
   const bubbles = useMangaBubbles(onPointerDown, onWordClick)
+
   return {
     bubbles,
     onPointerDown,

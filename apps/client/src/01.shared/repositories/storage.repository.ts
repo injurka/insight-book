@@ -14,6 +14,7 @@ export class DefaultStorageRepository implements IStorageRepository {
     const raw = await offlineService.getStorageEstimate()
     if (!raw)
       return raw
+
     return applyAcl(StorageEstimateSchema, raw, 'storage.getStorageEstimate()')
   }
 

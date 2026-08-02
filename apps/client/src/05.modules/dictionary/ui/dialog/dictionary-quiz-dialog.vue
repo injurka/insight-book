@@ -38,6 +38,7 @@ const tabItems = computed(() => {
     { id: 'en', label: `${t('library.langEn')} (EN)` },
     { id: 'ru', label: `${t('library.langRu')} (RU)` },
   ]
+
   return items.filter(item => item.id !== locale.value)
 })
 
@@ -86,8 +87,10 @@ const activeLevelValue = computed(() => {
   const active = currentLevels.find(lvl => lvl.unlocked && lvl.bestScore < 80)
   if (!active) {
     const unlocked = currentLevels.filter(lvl => lvl.unlocked)
+
     return unlocked[unlocked.length - 1]?.levelValue || ''
   }
+
   return active.levelValue
 })
 
@@ -106,6 +109,7 @@ async function loadLevels() {
     levelsByLang.value[lang] = res.sort((a: any, b: any) => {
       const idxA = order.indexOf(a.levelValue)
       const idxB = order.indexOf(b.levelValue)
+
       return idxA - idxB
     })
   }
@@ -269,6 +273,7 @@ function checkAnswer() {
 async function nextQuestion() {
   if (lives.value <= 0) {
     finishQuiz()
+
     return
   }
 
@@ -305,6 +310,7 @@ async function finishQuiz() {
 const quizProgressPercent = computed(() => {
   if (questions.value.length === 0)
     return 0
+
   return Math.round((currentQuestionIndex.value / questions.value.length) * 100)
 })
 

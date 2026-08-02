@@ -52,9 +52,11 @@ export function useTts() {
         )
         audioBase64 = res.audioBase64
       }
+
       await repos.analysis.saveLocalTts(cacheKey, audioBase64)
       audioBlob = await repos.analysis.getLocalTts(cacheKey)
     }
+
     return audioBlob
   }
 
@@ -90,8 +92,10 @@ export function useTts() {
 
     if (text.length > maxLength) {
       toast.error('Текст слишком длинный (максимум ~15 секунд звучания)')
+
       return false
     }
+
     return true
   }
 
@@ -99,6 +103,7 @@ export function useTts() {
     const bookId = explicitBookId || readerStore.currentBook?.id
     const lang = explicitLanguage || readerStore.currentBook?.language || 'en'
     const voice = settingsStore.ttsVoice || 'Kore'
+
     return { bookId, lang, voice }
   }
 
@@ -158,14 +163,17 @@ export function useTts() {
       abortController.abort()
       abortController = null
     }
+
     if (currentAudio) {
       currentAudio.pause()
       currentAudio = null
     }
+
     if (currentAudioUrl) {
       URL.revokeObjectURL(currentAudioUrl)
       currentAudioUrl = null
     }
+
     isPlaying.value = false
     isLoading.value = false
   }

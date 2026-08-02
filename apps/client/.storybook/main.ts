@@ -6,6 +6,7 @@ import type { StorybookConfig } from '@storybook/vue3-vite'
  */
 function getAbsolutePath(value: string): string {
   const resolved = import.meta.resolve(`${value}/package.json`)
+
   return resolved
     .replace(/^file:\/\//, '') // Удаляем протокол file:// если он есть
     .replace(/[/\\]package\.json$/, '') // Удаляем /package.json с конца пути

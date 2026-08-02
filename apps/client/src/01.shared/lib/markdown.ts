@@ -32,6 +32,7 @@ export function formatMarkdown(text: string): string {
     const formattedCode = `<code class="chat-code">${escaped}</code>`
     const placeholder = `__BLOCK_PLACEHOLDER_${blocks.length}__`
     blocks.push(formattedCode)
+
     return placeholder
   })
 

@@ -31,6 +31,7 @@ const preview: Preview = {
   decorators: [
     (story, context) => {
       document.documentElement.setAttribute('data-theme', context.globals.theme)
+
       return story()
     },
   ],

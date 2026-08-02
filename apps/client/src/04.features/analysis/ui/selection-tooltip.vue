@@ -43,6 +43,7 @@ function getChapterTitle(pageNum: number): string | null {
         currentItem = item
     }
   }
+
   return currentItem ? currentItem.title : null
 }
 
@@ -93,6 +94,7 @@ function isElementSelectable(node: Node | null): boolean {
       return true
     curr = curr.parentNode
   }
+
   return false
 }
 
@@ -102,6 +104,7 @@ function getValidSelection(settingsStore: any, readerStore: any): Selection | nu
   const selection = window.getSelection()
   if (!selection || selection.isCollapsed)
     return null
+
   return selection
 }
 
@@ -110,6 +113,7 @@ function isValidSelection(text: string, anchorNode: Node | null): boolean {
     return false
   if (!/[\p{L}\p{N}]/u.test(text))
     return false
+
   return isElementSelectable(anchorNode)
 }
 
@@ -118,18 +122,21 @@ const checkTextSelection = useDebounceFn(() => {
   const selection = getValidSelection(settingsStore, readerStore)
   if (!selection) {
     analysisStore.closeSelectionTooltip()
+
     return
   }
 
   const text = selection.toString().trim()
   if (!isValidSelection(text, selection.anchorNode)) {
     analysisStore.closeSelectionTooltip()
+
     return
   }
 
   const rect = selection.getRangeAt(0).getBoundingClientRect()
   if (rect.width === 0 || rect.height === 0) {
     analysisStore.closeSelectionTooltip()
+
     return
   }
 
@@ -152,6 +159,7 @@ function getSelectionContext(text: string): string {
 
   const prev = span.previousElementSibling?.textContent || ''
   const next = span.nextElementSibling?.textContent || ''
+
   return `${prev} [${text}] ${next}`.trim()
 }
 
@@ -205,6 +213,7 @@ watch(() => analysisStore.selectionTooltip, async (val) => {
     popoverPos.value = { top: '-9999px', left: '-9999px', transform: 'none' }
     if (isPlaying.value || isLoading.value)
       stop()
+
     return
   }
 

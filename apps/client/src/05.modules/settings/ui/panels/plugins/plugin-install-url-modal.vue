@@ -23,6 +23,7 @@ async function confirmInstall() {
   const url = inputManifestUrl.value.trim()
   if (!url) {
     toast.error(t('settings.plugins.emptyUrl', 'Укажите URL манифеста плагина'))
+
     return
   }
 

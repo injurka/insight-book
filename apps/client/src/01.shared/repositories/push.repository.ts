@@ -69,6 +69,7 @@ export class DefaultPushRepository implements IPushRepository {
       throw new Error('VAPID key fetch failed')
     const raw = await res.json()
     const data = applyAcl(VapidPublicKeyResponseSchema, raw, 'push.getVapidPublicKey()')
+
     return data.publicKey
   }
 
@@ -83,12 +84,14 @@ export class DefaultPushRepository implements IPushRepository {
   async getNativeFcmToken() {
     if (!isTauri())
       return null
+
     return invoke<string | null>('get_fcm_token').catch(() => null)
   }
 
   async requestNativeFcmToken() {
     if (!isTauri())
       throw new Error('Not running in Tauri')
+
     return invoke<string>('request_fcm_token')
   }
 

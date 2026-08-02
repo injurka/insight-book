@@ -17,12 +17,14 @@ export function useSrsSession() {
   const timeSpentMs = computed(() => {
     if (startTime.value === 0)
       return 0
+
     return (endTime.value || Date.now()) - startTime.value
   })
 
   const accuracy = computed(() => {
     if (stats.value.totalAnswers === 0)
       return 0
+
     return Math.round((stats.value.correctAnswers / stats.value.totalAnswers) * 100)
   })
 

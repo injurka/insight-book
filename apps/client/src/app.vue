@@ -144,6 +144,7 @@ const titleChunk = computed(() => {
     if (val && val !== key)
       return val
   }
+
   return ''
 })
 

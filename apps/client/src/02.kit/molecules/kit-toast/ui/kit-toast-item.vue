@@ -32,6 +32,7 @@ const swipeStyle = computed(() => {
       transition: 'none',
     }
   }
+
   return {}
 })
 

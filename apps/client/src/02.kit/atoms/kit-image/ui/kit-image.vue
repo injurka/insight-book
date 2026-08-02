@@ -45,6 +45,7 @@ const resolvedSrc = computed(() => {
     return props.src
 
   const BASE = API_URL
+
   return `${BASE}${props.src}`
 })
 

@@ -24,6 +24,7 @@ export const useHighlightsStore = defineStore('highlights', () => {
       const id = currentBookId.value
       if (id === null)
         return []
+
       return repos.highlights.list(id)
     },
     enabled: () => currentBookId.value !== null,

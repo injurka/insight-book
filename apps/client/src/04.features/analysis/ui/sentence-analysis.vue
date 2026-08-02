@@ -34,6 +34,7 @@ const matchingHighlight = computed(() => {
 
   return highlightsStore.highlights.find((item) => {
     const hNorm = normalizeString(item.text)
+
     return Number(item.bookId) === Number(book.id) && (rawNorm === hNorm || (hNorm.length >= 2 && (rawNorm.includes(hNorm) || hNorm.includes(rawNorm))))
   })
 })
@@ -87,6 +88,7 @@ async function toggleHighlight() {
 
   if (matchingHighlight.value) {
     await highlightsStore.deleteHighlight(matchingHighlight.value.id)
+
     return
   }
 
@@ -110,6 +112,7 @@ function getChapterTitle(pageNum: number): string | null {
         currentItem = item
     }
   }
+
   return currentItem ? currentItem.title : null
 }
 

@@ -71,6 +71,7 @@ export function useDialogResize({
         newWidth = startWidth - dx
         newX = startPosX + dx
       }
+
       if (currentHandle.includes('bottom'))
         newHeight = startHeight + dy
       if (currentHandle.includes('top')) {
@@ -113,6 +114,7 @@ export function useDialogResize({
           newX -= (MIN_W - newWidth)
         newWidth = MIN_W
       }
+
       if (newHeight < MIN_H) {
         if (isFloating.value && currentHandle.includes('top'))
           newY -= (MIN_H - newHeight)

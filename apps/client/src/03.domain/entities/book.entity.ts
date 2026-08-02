@@ -42,6 +42,7 @@ export class BookEntity implements Book {
   getProgressPercent(): number {
     if (!this.currentPage || !this.totalPages || this.totalPages === 0)
       return 0
+
     return Math.min(100, Math.max(0, Math.round((this.currentPage / this.totalPages) * 100)))
   }
 

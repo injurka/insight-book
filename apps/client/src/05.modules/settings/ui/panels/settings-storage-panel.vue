@@ -12,6 +12,7 @@ const cacheStore = useCacheStore()
 const storagePercent = computed(() => {
   if (!cacheStore.deviceStorage || cacheStore.deviceStorage.quota === 0)
     return 0
+
   return Math.min(100, Math.round((cacheStore.deviceStorage.usage / cacheStore.deviceStorage.quota) * 100))
 })
 </script>

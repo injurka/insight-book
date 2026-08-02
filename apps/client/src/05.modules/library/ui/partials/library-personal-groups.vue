@@ -29,6 +29,7 @@ function getFolderIcon(view: string) {
     return 'mdi:folder'
   if (view === 'collections')
     return 'mdi:bookshelf'
+
   return 'mdi:folder'
 }
 </script>

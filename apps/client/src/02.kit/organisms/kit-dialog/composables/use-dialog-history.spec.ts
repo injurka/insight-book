@@ -121,6 +121,7 @@ describe('use-dialog-history', () => {
     const TestComp = defineComponent({
       setup() {
         useDialogHistory('dialog-unmount', visible)
+
         return () => null
       },
     })

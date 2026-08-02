@@ -34,6 +34,7 @@ const gridColumns = computed(() => {
   const w = gridContainerWidth.value
   if (!w || w <= 0)
     return 3
+
   return Math.max(1, Math.floor((w + 16) / (280 + 16)))
 })
 
@@ -57,8 +58,10 @@ watch(() => gridContainerProps.ref.value, (el) => {
 function handleItemClick(item: UserDictItem) {
   if (props.isEditMode) {
     store.toggleWordSelection(item.id)
+
     return
   }
+
   emit('openDetails', item)
 }
 

@@ -38,6 +38,7 @@ const deckOptions = computed(() => {
   store.decks.forEach((d) => {
     opts.push({ label: d.name, value: d.id })
   })
+
   return opts
 })
 

@@ -40,6 +40,7 @@ function restoreScrollTop(top: number): void {
       requestAnimationFrame(tick)
     }
   }
+
   tick()
 }
 
@@ -177,6 +178,7 @@ function getOnboardingRedirect(toName: string | symbol | null | undefined, hasSe
   ) {
     return { name: AppRouteNames.Onboarding }
   }
+
   return null
 }
 
@@ -194,6 +196,7 @@ function getSavedHomeQueryRedirect(toName: string | symbol | null | undefined, t
       console.warn('Failed to parse saved query', e)
     }
   }
+
   return null
 }
 

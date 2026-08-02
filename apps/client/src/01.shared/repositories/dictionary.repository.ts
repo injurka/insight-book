@@ -56,6 +56,7 @@ export class DefaultDictionaryRepository implements IDictionaryRepository {
       const raw = await api.dictionary.list()
       const data = applyAcl(z.array(UserDictItemSchema), raw, 'dictionary.list()')
       await offlineService.saveDictionary(data).catch(() => {})
+
       return data
     }
     catch (error) {
@@ -83,6 +84,7 @@ export class DefaultDictionaryRepository implements IDictionaryRepository {
       const raw = await api.dictionary.decks()
       const data = applyAcl(z.array(DictDeckSchema), raw, 'dictionary.getDecks()')
       await offlineService.saveDecks(data).catch(() => {})
+
       return data
     }
     catch (error) {
@@ -119,11 +121,13 @@ export class DefaultDictionaryRepository implements IDictionaryRepository {
 
   async getReviewQueue(opts: { lang: string, mode: 'srs' | 'random' | 'deep_dive' | 'cram' | 'match', deckId?: number | 'all' | 'none', difficulty?: string }) {
     const raw = await api.dictionary.getReviewQueue(opts)
+
     return applyAcl(z.array(UserDictItemSchema), raw, 'dictionary.getReviewQueue()')
   }
 
   async get(word: string) {
     const raw = await api.dictionary.get(word)
+
     return applyAcl(UserDictItemSchema, raw, `dictionary.get(${word})`)
   }
 
@@ -138,11 +142,13 @@ export class DefaultDictionaryRepository implements IDictionaryRepository {
   async importCsv(data: unknown) { return api.dictionary.importCsv(data) }
   async catalog() {
     const raw = await api.dictionary.catalog()
+
     return applyAcl(z.array(CatalogDeckSchema), raw, 'dictionary.catalog()')
   }
 
   async catalogWords(deckId: number) {
     const raw = await api.dictionary.catalogWords(deckId)
+
     return applyAcl(z.array(CatalogWordSchema), raw, `dictionary.catalogWords(${deckId})`)
   }
 
@@ -150,6 +156,7 @@ export class DefaultDictionaryRepository implements IDictionaryRepository {
   async chat(payload: { word: string, language: string, customPromptId?: number, userPromptText?: string }) { return api.dictionary.chat(payload) }
   async promptsList() {
     const raw = await api.dictionary.promptsList()
+
     return applyAcl(z.array(PromptItemSchema), raw, 'dictionary.promptsList()')
   }
 

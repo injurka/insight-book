@@ -9,6 +9,7 @@ export function useFsrsScheduling(card: Ref<UserDictItem | null>, isFlipped: Ref
       return null
 
     const flashcard = new Flashcard(card.value)
+
     return flashcard.calculateNextReviewIntervals()
   })
 

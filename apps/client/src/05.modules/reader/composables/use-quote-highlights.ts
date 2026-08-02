@@ -26,6 +26,7 @@ export function useQuoteHighlights(containerRef: Ref<HTMLElement | null>, conten
     const pageNum = Number(readerStore.currentPage?.pageNum)
     if (!root || !settingsStore.highlightSavedQuotes || !readerStore.currentPage) {
       clearQuoteHighlights(ownerId)
+
       return
     }
 

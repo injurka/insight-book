@@ -84,12 +84,15 @@ export class Flashcard implements UserDictItem {
   private formatInterval(days: number, due: Date, now: Date): string {
     if (days === 0) {
       const diffMin = Math.round((due.getTime() - now.getTime()) / 60000)
+
       return diffMin > 0 ? `${diffMin} м` : '<1 м'
     }
+
     if (days < 30)
       return `${Math.round(days)} дн`
     if (days < 365)
       return `${Math.round(days / 30)} мес`
+
     return `${Math.round(days / 365)} г`
   }
 }

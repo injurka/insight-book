@@ -37,6 +37,7 @@ export function useEditBookForm(bookProp: Ref<Book | null>, emit: any) {
     reader.onload = (event) => {
       editingBook.value.coverUrl = event.target?.result as string
     }
+
     reader.readAsDataURL(file)
   }
 

@@ -37,6 +37,7 @@ class AssetAnalyzer {
       const existingType = this.cache.get(url)!
       this.cache.delete(url)
       this.cache.set(url, existingType)
+
       return existingType
     }
 
@@ -54,6 +55,7 @@ class AssetAnalyzer {
     }
 
     this.cache.set(url, type)
+
     return type
   }
 }
@@ -157,6 +159,7 @@ function createMonitoringPlugin(cacheName: string): WorkboxPlugin {
     },
     fetchDidSucceed: async ({ request, response }) => {
       ServiceWorkerMonitor.trackCacheMiss(cacheName, request.url)
+
       return response
     },
   }
@@ -198,6 +201,7 @@ async function getCacheInfo(): Promise<CacheInfo[]> {
   }
   catch (error) {
     console.error('Ошибка получения информации о кешах:', error)
+
     return []
   }
 }

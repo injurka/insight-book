@@ -48,11 +48,13 @@ const currentLang = computed(() => {
     if (deck)
       return deck.language
   }
+
   return filtersStore.selectedLanguage !== 'all' ? filtersStore.selectedLanguage : 'all'
 })
 
 const showWritingMode = computed(() => {
   const hasChinese = dictionaryWords.value.some(c => c.language === 'zh' && /[\u4E00-\u9FA5]/.test(c.word || ''))
+
   return currentLang.value === 'zh' && hasChinese
 })
 
@@ -78,6 +80,7 @@ const deckOptions = computed(() => {
     if (filtersStore.selectedLanguage === 'all' || d.language === filtersStore.selectedLanguage)
       opts.push({ label: d.name, value: d.id })
   })
+
   return opts
 })
 
@@ -86,6 +89,7 @@ const difficultyOptions = computed(() => {
   const lang = currentLang.value !== 'all' ? currentLang.value : 'all'
   const sys = DIFFICULTY_SYSTEMS[lang] || DIFFICULTY_SYSTEMS.all
   sys.forEach(d => opts.push({ label: d.label, value: d.value }))
+
   return opts
 })
 
@@ -105,6 +109,7 @@ function start() {
 
   if (trainingStore.trainingMode === 'match') {
     emit('start', { ...setupOptions, modes: selectedModes })
+
     return
   }
 

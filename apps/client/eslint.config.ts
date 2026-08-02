@@ -4,9 +4,6 @@ export default antfu({
   vue: true,
   formatters: true,
   node: false,
-  // typescript: {
-  //   tsconfigPath: 'tsconfig.json',
-  // },
   ignores: [
     '**/assets/**',
     '**/public/**',
@@ -17,18 +14,23 @@ export default antfu({
     'bun.lock',
   ],
   rules: {
-    // Цикломатическая сложность
-    'complexity': ['error', { max: 10 }],
+    // === ВИЗУАЛЬНОЕ РАЗДЕЛЕНИЕ КОДА ===
+    // Заставляет делать пустые строки перед функциями, return и после if/for
+    'style/padding-line-between-statements': [
+      'error',
+      { blankLine: 'always', prev: '*', next: 'return' },
+      { blankLine: 'always', prev: '*', next: 'function' },
+      { blankLine: 'always', prev: 'block-like', next: '*' },
+    ],
 
-    // Гарантирует порядок макросов вверху script setup
+    // === БАЗОВЫЕ ПРАВИЛА ===
+    'complexity': ['error', { max: 10 }],
     'vue/define-macros-order': ['error', {
       order: ['defineOptions', 'defineProps', 'defineEmits', 'defineSlots'],
     }],
-    // Порядок тегов самого файла .vue
     'vue/block-order': ['error', {
       order: ['script', 'template', 'style'],
     }],
-    // Форматирование HTML
     'vue/max-attributes-per-line': ['error', {
       singleline: { max: 3 },
       multiline: { max: 1 },
@@ -41,7 +43,6 @@ export default antfu({
       singleline: 'never',
       multiline: 'always',
     }],
-
     'style/function-paren-newline': ['error', { minItems: 4 }],
     'style/object-curly-newline': ['error', {
       ExportDeclaration: { consistent: true, minProperties: 5, multiline: true },
@@ -58,32 +59,13 @@ export default antfu({
         selector: 'CallExpression[callee.name="defineProps"] > TSTypeParameterInstantiation > TSTypeLiteral',
       },
     ],
-
-    // Паттерн Early Return (Ранний возврат) — отсекает else после return
     'no-else-return': ['error', { allowElseIf: false }],
-
-    // Находит неглубокие вложенные if внутри else и подталкивает к плоской структуре
     'no-lonely-if': 'error',
-
-    // Гарантирует наличие явных блоков скобок {}, избавляя от багов ветвления
     'curly': 'off',
     'antfu/curly': 'error',
     'antfu/if-newline': 'error',
-
-    // Предупреждает о бессмысленных 1-буквенных переменных (в книге: `d`, `c`, `p`)
-    // 'id-length': ['warn', {
-    //   exceptions: ['i', 'j', 'k', '_', 'x', 'y', 'z', 'a', 'b', 'e', 't'],
-    //   min: 2,
-    //   properties: 'never', // не проверяем ключи объектов (POS-теги, Record и т.п.)
-    // }],
-
-    // Фиксирует публичные контракты компонента через обязательное декларирование emits
     'vue/require-explicit-emits': 'error',
-
-    // Форсирует использование только <script setup> для единообразия всего проекта
     'vue/component-api-style': ['error', ['script-setup']],
-
-    // Предотвращает баги при опечатках работы с .value у ref()
     'vue/no-ref-as-operand': 'error',
   },
 })

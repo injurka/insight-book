@@ -39,6 +39,7 @@ export class DefaultHighlightsRepository implements IHighlightsRepository {
         if (offlineData)
           return applyAcl(z.array(HighlightSchema), offlineData, 'highlights.list() [offline]')
       }
+
       throw error
     }
   }

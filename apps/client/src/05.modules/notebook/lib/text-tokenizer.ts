@@ -26,6 +26,7 @@ export function highlightTextQuery(text: string | null | undefined, query: strin
     result += escapeHtml(text.slice(lastIndex, offset))
     result += `<mark class="text-match">${escapeHtml(match)}</mark>`
     lastIndex = offset + match.length
+
     return match
   })
   result += escapeHtml(text.slice(lastIndex))

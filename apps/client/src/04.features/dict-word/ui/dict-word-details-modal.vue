@@ -93,6 +93,7 @@ const difficultyClass = computed(() => {
     return 'level-easy'
   if (found.level <= 4)
     return 'level-medium'
+
   return 'level-hard'
 })
 </script>

@@ -12,6 +12,7 @@ export function useCustomModels() {
   async function fetchModels() {
     if (!settingsStore.customLlmUrl) {
       toast.warn('Сначала укажите URL API')
+
       return
     }
 

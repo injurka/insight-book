@@ -26,6 +26,7 @@ const hoisted = vi.hoisted(() => {
     generateTts: vi.fn(),
     saveLocalTts: vi.fn(),
   }
+
   return {
     bookRepo,
     analysisRepo,
@@ -76,6 +77,7 @@ function makeTextPage(pageNum: number, sentences: string[] = [], words: string[]
   const wordHtml = words
     .map(w => `<span data-word="${encodeURIComponent(w)}" data-pos="noun">${w}</span>`)
     .join('')
+
   return {
     bookId: 1,
     pageNum,
@@ -167,6 +169,7 @@ describe('startWholeBookSync', () => {
       )
       expect(hoisted.bookRepo.getPageDict).toHaveBeenCalledWith(1, i)
     }
+
     expect(hoisted.bookRepo.getPageDict).toHaveBeenCalledTimes(10)
 
     expect(syncProgress.value.pagesTotal).toBe(10)
@@ -207,6 +210,7 @@ describe('startWholeBookSync', () => {
     hoisted.bookRepo.getPageDict.mockImplementation(async (_id: number, num: number) => {
       if (num === 3)
         throw new Error('dict fetch failed')
+
       return {}
     })
 
@@ -233,6 +237,7 @@ describe('startWholeBookSync', () => {
         continue
       expect(hoisted.bookRepo.fetchImageBlob).toHaveBeenCalledWith(`https://cdn.example.com/page-${i}.jpg`)
     }
+
     expect(syncState.value).toBe('finished')
   })
 
@@ -248,6 +253,7 @@ describe('startWholeBookSync', () => {
     hoisted.bookRepo.fetchImageBlob.mockImplementation(async (url: string) => {
       if (url.includes('page-4'))
         throw new Error('image fetch failed')
+
       return new Blob(['img'])
     })
 
@@ -296,6 +302,7 @@ describe('startWholeBookSync', () => {
     hoisted.analysisRepo.generateTts.mockImplementation(async (_id: number, text: string) => {
       if (text === 'Sentence A5.')
         throw new Error('tts failed')
+
       return { audioBase64: 'QUJD' }
     })
 
@@ -385,6 +392,7 @@ describe('startWholeBookSync', () => {
     hoisted.bookRepo.getPage.mockImplementation(async (_id: number, num: number) => {
       if (num === 5)
         throw new Error('page fetch exploded')
+
       return makeTextPage(num)
     })
 
@@ -400,6 +408,7 @@ describe('startWholeBookSync', () => {
     hoisted.bookRepo.getPage.mockImplementation(async (_id: number, num: number) => {
       if (num === 2)
         cancelSync()
+
       return makeTextPage(num)
     })
 

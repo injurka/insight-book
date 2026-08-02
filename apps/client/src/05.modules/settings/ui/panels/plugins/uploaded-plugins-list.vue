@@ -14,6 +14,7 @@ function statusLabel(status: CatalogPluginRecord['status']) {
     approved: t('settings.pluginStatusApproved', 'Одобрен'),
     rejected: t('settings.pluginStatusRejected', 'Отклонён'),
   }
+
   return labels[status]
 }
 </script>

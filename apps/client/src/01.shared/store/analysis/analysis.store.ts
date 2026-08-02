@@ -113,6 +113,7 @@ export const useAnalysisStore = defineStore('analysis', () => {
       wordAbortController.abort()
       wordAbortController = null
     }
+
     wordPopover.value = null
     activeTokenId.value = null
     grammarPopover.value = null
@@ -207,6 +208,7 @@ export const useAnalysisStore = defineStore('analysis', () => {
 
     const cacheChecks = await Promise.all(currentChunk.map(async (task) => {
       const cached = await repos.analysis.getLocalAnalysis(task.text)
+
       return { task, cached }
     }))
 
@@ -257,8 +259,10 @@ export const useAnalysisStore = defineStore('analysis', () => {
         missingInLocalCache.forEach(t => t.status = 'pending_llm')
       }
     }
+
     if (!signal.aborted)
       checkPageAnalysisCompletion()
+
     return true
   }
 
@@ -314,6 +318,7 @@ export const useAnalysisStore = defineStore('analysis', () => {
 
     if (!signal.aborted)
       checkPageAnalysisCompletion()
+
     return true
   }
 
@@ -337,6 +342,7 @@ export const useAnalysisStore = defineStore('analysis', () => {
         )
         await repos.analysis.saveLocalTts(cacheKey, res.audioBase64)
       }
+
       if (ttsTask.type === 'tts_sentence')
         pageAnalysisTtsCurrent.value++
       if (ttsTask.type === 'tts_word')
@@ -352,6 +358,7 @@ export const useAnalysisStore = defineStore('analysis', () => {
       if (!signal.aborted)
         checkPageAnalysisCompletion()
     }
+
     return true
   }
 
@@ -362,6 +369,7 @@ export const useAnalysisStore = defineStore('analysis', () => {
     if (await processPhase1(book, signal) || await processPhase2(book, signal) || await processPhase3(book, signal)) {
       processed = true
     }
+
     return processed
   }
 
@@ -415,12 +423,14 @@ export const useAnalysisStore = defineStore('analysis', () => {
 
       pageAnalysisSentencesCurrent.value++
     }
+
     if (task.type === 'word')
       pageAnalysisWordsCurrent.value++
   }
 
   function getSentenceCachedAnalysis(sentence: string) {
     const existing = analysisHistory.value.find(historyItem => historyItem.sentence.trim().toLowerCase() === sentence.trim().toLowerCase())
+
     return existing ? existing.analysis : null
   }
 
@@ -429,6 +439,7 @@ export const useAnalysisStore = defineStore('analysis', () => {
     if (historyCached) {
       sidebarAnalysis.value = historyCached
       isAnalyzing.value = false
+
       return true
     }
 
@@ -437,8 +448,10 @@ export const useAnalysisStore = defineStore('analysis', () => {
       sidebarAnalysis.value = cached
       analysisHistory.value.unshift({ sentence, analysis: cached, timestamp: Date.now() })
       isAnalyzing.value = false
+
       return true
     }
+
     return false
   }
 
@@ -526,6 +539,7 @@ export const useAnalysisStore = defineStore('analysis', () => {
         status: 'pending',
       }))
     }
+
     if (options.doWords) {
       words.forEach(text => tasks.push({
         id: uuidv4(),
@@ -535,6 +549,7 @@ export const useAnalysisStore = defineStore('analysis', () => {
         status: 'pending',
       }))
     }
+
     if (options.doTtsSent) {
       sentences.forEach(text => tasks.push({
         id: uuidv4(),
@@ -544,6 +559,7 @@ export const useAnalysisStore = defineStore('analysis', () => {
         status: 'pending',
       }))
     }
+
     if (options.doTtsWords) {
       words.forEach(text => tasks.push({
         id: uuidv4(),
@@ -553,6 +569,7 @@ export const useAnalysisStore = defineStore('analysis', () => {
         status: 'pending',
       }))
     }
+
     return tasks
   }
 
@@ -610,6 +627,7 @@ export const useAnalysisStore = defineStore('analysis', () => {
     else {
       isAutoPageAnalysisActive.value = true
     }
+
     return true
   }
 
@@ -634,8 +652,10 @@ export const useAnalysisStore = defineStore('analysis', () => {
     if (!doSent && !doWords && !doTtsSent && !doTtsWords) {
       if (!isBackground)
         useToastStore().info('Выберите хотя бы одно действие.')
+
       return false
     }
+
     return true
   }
 
@@ -693,6 +713,7 @@ export const useAnalysisStore = defineStore('analysis', () => {
         useToastStore().info('На странице нет элементов для обработки.')
       isManualPageAnalysisActive.value = false
       isAutoPageAnalysisActive.value = false
+
       return
     }
 
@@ -733,8 +754,10 @@ export const useAnalysisStore = defineStore('analysis', () => {
     if (cached && wordPopover.value) {
       applyAiAnalysisData(cached)
       wordPopover.value.isAiLoading = false
+
       return true
     }
+
     return false
   }
 
@@ -804,8 +827,10 @@ export const useAnalysisStore = defineStore('analysis', () => {
         showAi: false,
         isAiLoading: false,
       }
+
       return true
     }
+
     return false
   }
 
@@ -1018,6 +1043,7 @@ export const useAnalysisStore = defineStore('analysis', () => {
         contextBookId: wordData.contextBookId,
       }
     }
+
     addEditWordModalOpen.value = true
   }
 
@@ -1025,6 +1051,7 @@ export const useAnalysisStore = defineStore('analysis', () => {
     const settingsStore = useGlobalSettingsStore()
     if (item.language === settingsStore.appLanguage) {
       useToastStore().info(i18n.global.t('dictionary.cannotSaveSameLanguage'))
+
       return
     }
 

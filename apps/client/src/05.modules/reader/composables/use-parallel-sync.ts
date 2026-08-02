@@ -23,6 +23,7 @@ export function useParallelSync(readerViewRef: Ref<HTMLElement | null>, restoreS
 
       const getNodes = (pane: Element): HTMLElement[] => {
         const all = Array.from(pane.querySelectorAll(selectors)) as HTMLElement[]
+
         return all.filter(el => el.querySelectorAll(selectors).length === 0)
       }
 

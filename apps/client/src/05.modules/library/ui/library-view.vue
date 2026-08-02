@@ -97,6 +97,7 @@ const menuItems = computed(() => {
     items.push({ id: 'series', label: t('library.menuSeries'), icon: 'mdi:folder-outline' })
     items.push({ id: 'collections', label: t('library.menuCollections'), icon: 'mdi:bookshelf' })
   }
+
   if (!authStore.isSingleMode)
     items.push({ id: 'public-catalog', label: t('library.menuPublicCatalog'), icon: 'mdi:earth' })
 
@@ -113,8 +114,10 @@ function openEditModal(book: Book) {
   if (book.userId !== authStore.user?.id) {
     bookToHideId.value = book.id
     isHidePromptOpen.value = true
+
     return
   }
+
   selectedBookToEdit.value = book
   editModalOpen.value = true
 }
@@ -131,6 +134,7 @@ async function handleSaveEdit({ bookData, coverFile }: { bookData: Partial<Book>
       await store.updateBookCover(bookData.id!, coverFile)
       delete bookData.coverUrl
     }
+
     await store.updateBookInfo(bookData.id!, bookData)
     editModalOpen.value = false
     toast.success(t('library.bookUpdated'))

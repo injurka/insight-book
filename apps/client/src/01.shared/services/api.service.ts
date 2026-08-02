@@ -30,6 +30,7 @@ export interface ApiProviders {
 function readStoredLanguage(): string | null {
   try {
     const savedLang = localStorage.getItem('global-app-language')
+
     return savedLang ? savedLang.replace(/^"|"$/g, '') : null
   }
   catch {
@@ -114,6 +115,7 @@ export const api = {
     updateAvatar: async (file: File) => {
       const fd = new FormData()
       fd.append('file', file)
+
       return request<{ success: boolean, avatarUrl: string }>('/api/auth/me/avatar', {
         method: 'PATCH',
         body: fd,
@@ -147,6 +149,7 @@ export const api = {
     updateCover: async (id: number, file: File) => {
       const fd = new FormData()
       fd.append('file', file)
+
       return request<{ success: boolean, coverUrl: string }>(`/api/books/${id}/cover`, {
         method: 'PATCH',
         body: fd,
@@ -163,6 +166,7 @@ export const api = {
     upload: async (file: File) => {
       const fd = new FormData()
       fd.append('file', file)
+
       return request<{ success: boolean, book: Book }>('/api/books/upload', {
         method: 'POST',
         body: fd,
@@ -234,6 +238,7 @@ export const api = {
       type: 'sentence' | 'word' = 'sentence',
     ) => {
       const targetLanguage = providers.getAppLanguage() || 'ru'
+
       return request<LlmAnalysis>(`/api/books/${bookId}/analyze`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -273,6 +278,7 @@ export const api = {
       const res = await fetch(url, { headers })
       if (!res.ok)
         throw new Error(`Failed to fetch image: ${res.statusText}`)
+
       return res.blob()
     },
   },
@@ -329,6 +335,7 @@ export const api = {
         queryParams.set('deckId', String(opts.deckId))
       if (opts.difficulty && opts.difficulty !== 'all')
         queryParams.set('difficulty', opts.difficulty)
+
       return request<UserDictItem[]>(`/api/dictionary/review?${queryParams.toString()}`)
     },
 
@@ -371,6 +378,7 @@ export const api = {
       fd.append('audio', audioBlob, 'speech.webm')
       fd.append('word', word)
       fd.append('language', language)
+
       return request<{ score: number, heardText: string, heardPhonetic?: string, mistakeAnalysis?: string }>('/api/dictionary/pronunciation', {
         method: 'POST',
         body: fd,
@@ -403,6 +411,7 @@ export const api = {
   highlights: {
     list: async (bookId?: number) => {
       const queryStr = bookId ? `?bookId=${bookId}` : ''
+
       return request<Highlight[]>(`/api/highlights${queryStr}`)
     },
     create: async (data: {
@@ -462,6 +471,7 @@ export const api = {
     upload: async (file: File) => {
       const fd = new FormData()
       fd.append('file', file)
+
       return request<CatalogPluginRecord>('/api/catalog/plugins/upload', {
         method: 'POST',
         body: fd,

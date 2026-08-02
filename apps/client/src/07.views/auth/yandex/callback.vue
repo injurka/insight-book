@@ -18,6 +18,7 @@ onMounted(async () => {
     localStorage.setItem('insight_token', token)
     await authStore.checkAuth()
     router.push('/')
+
     return
   }
 
@@ -33,8 +34,10 @@ onMounted(async () => {
       const data = await res.json() as any
       if (!res.ok || !data.token) {
         error.value = data?.error || 'Ошибка обмена кода авторизации'
+
         return
       }
+
       localStorage.setItem('insight_token', data.token)
       await authStore.checkAuth()
       router.push('/')
@@ -42,6 +45,7 @@ onMounted(async () => {
     catch (e: any) {
       error.value = e.message || 'Ошибка сети'
     }
+
     return
   }
 

@@ -193,6 +193,7 @@ export const useReaderStore = defineStore('reader', () => {
         updateReadingProgress(bookId, prevPageNum)
         toastStore.error(i18n.global.t('dictionary.pageOfflineError'))
       }
+
       throw e
     }
     finally {

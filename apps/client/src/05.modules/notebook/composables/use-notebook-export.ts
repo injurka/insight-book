@@ -29,6 +29,7 @@ export function useNotebookExport() {
           meta.push(`${t('notebook.page', { page: h.pageNum })}`)
         content += `_${meta.join(' | ')}_\n\n`
       }
+
       content += `---\n\n`
     })
 

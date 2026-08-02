@@ -20,6 +20,7 @@ if (import.meta.env.PROD) {
   registerRoute(({ request, sameOrigin, url }) => {
     if (!url.protocol.startsWith('http'))
       return false
+
     return sameOrigin && request.destination === 'manifest'
   }, CacheStrategyFactory.createNetworkFirst(CACHE_CONFIG.names.webmanifest, {
     maxEntries: CACHE_CONFIG.limits.manifests,
@@ -30,6 +31,7 @@ if (import.meta.env.PROD) {
   registerRoute(({ request, url }) => {
     if (!url.protocol.startsWith('http'))
       return false
+
     return request.destination === 'font'
   }, CacheStrategyFactory.createCacheFirst(CACHE_CONFIG.names.fonts, {
     maxEntries: CACHE_CONFIG.limits.fonts,
@@ -63,6 +65,7 @@ registerRoute(({ request, url }) => {
 function isScriptOrStyle({ request, url }: { request: Request, url: URL }) {
   if (!url.protocol.startsWith('http'))
     return false
+
   return request.destination === 'script' || request.destination === 'style'
     || url.pathname.endsWith('.js') || url.pathname.endsWith('.css')
 }
@@ -193,9 +196,11 @@ self.addEventListener('notificationclick', (event: NotificationEvent) => {
       if (client.url.includes(self.location.origin) && 'focus' in client) {
         // Вместо перезагрузки SPA используем обмен сообщениями для навигации
         client.postMessage({ type: 'NAVIGATE', url: urlToOpen })
+
         return client.focus()
       }
     }
+
     if (self.clients.openWindow)
       return self.clients.openWindow(urlToOpen)
   }))

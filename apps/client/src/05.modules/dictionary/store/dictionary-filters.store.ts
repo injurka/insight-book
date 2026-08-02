@@ -21,6 +21,7 @@ export const useDictionaryFiltersStore = defineStore('dictionary-filters', () =>
 
   const availableLanguages = computed<string[]>(() => {
     const langs = new Set<string>(dictionaryWords.value.map(wordItem => wordItem.language))
+
     return Array.from(langs)
   })
 
@@ -34,6 +35,7 @@ export const useDictionaryFiltersStore = defineStore('dictionary-filters', () =>
       result = result.filter((wordItem) => {
         if (!wordItem.deckIds || wordItem.deckIds.length === 0)
           return selectedDeckId.value.includes('none')
+
         return wordItem.deckIds.some((id: number) => selectedDeckId.value.includes(id))
       })
     }
@@ -47,8 +49,10 @@ export const useDictionaryFiltersStore = defineStore('dictionary-filters', () =>
             const targetLevel = Number.parseInt(diffVal.split('_')[1], 10)
             const sys = DIFFICULTY_SYSTEMS[wordItem.language] || DIFFICULTY_SYSTEMS.default
             const diffDef = sys.find(sysItem => sysItem.value === wordItem.difficulty)
+
             return diffDef && diffDef.level === targetLevel
           }
+
           return wordItem.difficulty === diffVal
         })
       })
@@ -61,11 +65,13 @@ export const useDictionaryFiltersStore = defineStore('dictionary-filters', () =>
       const lowerTerm = searchTerm.value.toLowerCase()
       result = result.filter(item => matchesSearchTerm(item, lowerTerm))
     }
+
     return result
   })
 
   function matchesSearchTerm(item: UserDictItem, lowerTerm: string): boolean {
     const fields = [item.word, item.transcription, item.translation, item.notes, item.tags, item.difficulty]
+
     return fields.some(field => field && field.toLowerCase().includes(lowerTerm))
   }
 

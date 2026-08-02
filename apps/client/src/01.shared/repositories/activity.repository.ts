@@ -10,11 +10,13 @@ export interface IActivityRepository {
 export class DefaultActivityRepository implements IActivityRepository {
   async getStats() {
     const raw = await api.activity.getStats()
+
     return applyAcl(ActivityStatsSchema, raw, 'activity.getStats()')
   }
 
   async getTokens(period: string) {
     const raw = await api.activity.getTokens(period)
+
     return applyAcl(ActivityTokensSchema, raw, 'activity.getTokens()')
   }
 }

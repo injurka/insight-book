@@ -12,6 +12,7 @@ function isValidWordTarget(
     return false
   if (Number.isNaN(sentenceId) || Number.isNaN(tokenIndex))
     return false
+
   return /[\p{L}\p{N}]/u.test(word)
 }
 
@@ -35,6 +36,7 @@ export function useTextSelection() {
       clearTimeout(pressTimer)
       pressTimer = null
     }
+
     if (selectionChangeListener) {
       document.removeEventListener('selectionchange', selectionChangeListener)
       selectionChangeListener = null
@@ -61,6 +63,7 @@ export function useTextSelection() {
       if (selection && selection.toString().trim().length > 0)
         clearPressTimer()
     }
+
     document.addEventListener('selectionchange', selectionChangeListener)
 
     pressTimer = setTimeout(() => {
@@ -103,6 +106,7 @@ export function useTextSelection() {
       currentPlayingBtn = ttsBtn
       speak(text)
     }
+
     return true
   }
 
@@ -114,6 +118,7 @@ export function useTextSelection() {
     const translationSpan = grammarBadge.closest('.interleaved-translation, .split-translation')
     if (translationSpan && translationSpan.classList.contains('is-blurred')) {
       event.stopPropagation()
+
       return true
     }
 
@@ -127,6 +132,7 @@ export function useTextSelection() {
       example,
       grammarBadge,
     )
+
     return true
   }
 

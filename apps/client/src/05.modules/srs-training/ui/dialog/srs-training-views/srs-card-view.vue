@@ -176,6 +176,7 @@ function initScramble() {
     for (let i = 0; i < word.length; i += 2)
       chunks.push(word.substring(i, i + 2))
   }
+
   scrambleChunks.value = chunks.map((text, i) => ({ id: i, text })).sort(() => Math.random() - 0.5)
   scrambleAnswer.value = []
 }
@@ -256,6 +257,7 @@ type SrsMode = 'standard' | 'audio' | 'writing' | 'typing' | 'choice' | 'choice-
 function isZhCard(card: any): boolean {
   if (!card)
     return false
+
   return card.language === 'zh' && !!card.word && /[\u4E00-\u9FA5]/.test(card.word)
 }
 
@@ -288,6 +290,7 @@ function determineAvailableModes(): SrsMode[] {
   ]
 
   const availableModes = modeChecks.filter(([_, isEnabled]) => isEnabled).map(([mode]) => mode)
+
   return availableModes.length > 0 ? availableModes : ['standard']
 }
 
@@ -316,6 +319,7 @@ function shouldUseChoiceMode(
 ): boolean {
   if (!config[mode] || !available.includes(mode) || !isNew)
     return false
+
   return Math.random() > 0.3
 }
 
@@ -331,6 +335,7 @@ function selectInitialMode(availableModes: SrsMode[]): SrsMode {
   )) {
     return 'choice'
   }
+
   if (shouldUseChoiceMode(
     'choice-reverse',
     modesConfig,

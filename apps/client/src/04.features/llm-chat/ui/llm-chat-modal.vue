@@ -162,6 +162,7 @@ async function savePrompt() {
       toast.success('Prompt created')
       selectedPromptId.value = newPrompt.id
     }
+
     await fetchPrompts()
     cancelPromptForm()
   }

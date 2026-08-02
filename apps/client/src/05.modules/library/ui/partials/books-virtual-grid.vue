@@ -35,6 +35,7 @@ const columns = computed(() => {
   const w = containerWidth.value
   if (!w)
     return 4
+
   return Math.max(1, Math.floor((w + gap.value) / (MIN_CARD_WIDTH + gap.value)))
 })
 
@@ -46,6 +47,7 @@ const rowHeight = computed(() => {
   if (!w)
     return 480
   const colWidth = (w - gap.value * (columns.value - 1)) / columns.value
+
   return Math.ceil(colWidth * 1.5) + CARD_INFO_HEIGHT + gap.value
 })
 
@@ -54,6 +56,7 @@ const rows = computed(() => {
   const result: Book[][] = []
   for (let i = 0; i < props.books.length; i += cols)
     result.push(props.books.slice(i, i + cols))
+
   return result
 })
 

@@ -28,6 +28,7 @@ onMounted(async () => {
       const isHypr = await invoke<boolean>('is_hyprland').catch(() => false)
       if (isHypr) {
         showTitlebar.value = false
+
         return
       }
 

@@ -23,6 +23,7 @@ const tokenPercent = computed(() => {
     return 0
   if (limit === 0)
     return 100
+
   return Math.min(100, Math.round((used / limit) * 100))
 })
 
@@ -33,6 +34,7 @@ const bookPercent = computed(() => {
     return 0
   if (limit === 0)
     return 100
+
   return Math.min(100, Math.round((used / limit) * 100))
 })
 

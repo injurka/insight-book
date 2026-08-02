@@ -29,6 +29,7 @@ export function usePushSettings() {
     dictStore.decks.forEach((d) => {
       opts.push({ label: d.name, value: d.id })
     })
+
     return opts
   })
 
@@ -39,6 +40,7 @@ export function usePushSettings() {
       opts.push({ label: `${hourStr}:00`, value: `${hourStr}:00` })
       opts.push({ label: `${hourStr}:30`, value: `${hourStr}:30` })
     }
+
     return opts
   })
 

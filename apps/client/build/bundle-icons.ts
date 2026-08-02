@@ -28,6 +28,7 @@ async function bundle() {
   if (usedIcons.length === 0) {
     console.warn('⚠️ Иконки не найдены. Проверьте путь сканирования или префикс.')
     await Bun.write(OUTPUT_FILE, JSON.stringify({ prefix: 'mdi', icons: {} }))
+
     return
   }
 

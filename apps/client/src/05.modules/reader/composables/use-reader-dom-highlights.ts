@@ -11,6 +11,7 @@ export function useReaderDomHighlights(containerRef: Ref<HTMLElement | null>) {
       if (el)
         el.classList.remove('is-active')
     }
+
     if (newId) {
       const [sentId, tokenIdx] = newId.split('-')
       const el = containerRef.value?.querySelector(`.word[data-sent-id="${sentId}"][data-token-idx="${tokenIdx}"]`)

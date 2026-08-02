@@ -81,6 +81,7 @@ function createCharacterWriters(docStyle: CSSStyleDeclaration): HanziWriter[] {
 
     newWriters.push(writer)
   }
+
   return newWriters
 }
 
@@ -98,6 +99,7 @@ async function initWriters() {
 
   if (validChars.value.length === 0) {
     emit('complete')
+
     return
   }
 
@@ -115,8 +117,10 @@ function startQuizSequence(index: number, seqId: number) {
   if (index >= writers.value.length) {
     isComplete.value = true
     emit('complete')
+
     return
   }
+
   currentIndex.value = index
   writers.value[index].quiz({
     onComplete: () => {
@@ -138,8 +142,10 @@ function startAnimationSequence(index: number, seqId: number) {
   if (index >= writers.value.length) {
     isComplete.value = true
     emit('complete')
+
     return
   }
+
   currentIndex.value = index
   writers.value[index].animateCharacter({
     onComplete: () => {

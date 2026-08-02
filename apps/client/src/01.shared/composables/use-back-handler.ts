@@ -17,6 +17,7 @@ export function useBackHandler() {
     if (handlers.value.length > 0) {
       const handler = handlers.value[handlers.value.length - 1]
       handler()
+
       return true // Handled
     }
 

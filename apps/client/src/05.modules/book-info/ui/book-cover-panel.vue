@@ -43,6 +43,7 @@ function onCoverChange(e: Event) {
 async function startReading() {
   if (!authStore.user && !authStore.isSingleMode) {
     router.push(AppRoutePaths.SignIn)
+
     return
   }
 

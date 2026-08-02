@@ -15,6 +15,7 @@ export function useDictFilterOptions() {
       const translated = t(key)
       opts.push({ label: translated !== key ? translated : l.toUpperCase(), value: l })
     })
+
     return opts
   })
 
@@ -27,6 +28,7 @@ export function useDictFilterOptions() {
       if (store.selectedLanguage === 'all' || d.language === store.selectedLanguage)
         opts.push({ label: d.name, value: d.id })
     })
+
     return opts
   })
 
@@ -38,6 +40,7 @@ export function useDictFilterOptions() {
     const lang = store.selectedLanguage !== 'all' ? store.selectedLanguage : 'all'
     const sys = DIFFICULTY_SYSTEMS[lang] || DIFFICULTY_SYSTEMS.all
     sys.forEach(d => opts.push({ label: d.label, value: d.value }))
+
     return opts
   })
 
@@ -51,9 +54,11 @@ export function useDictFilterOptions() {
 
   const newDeckLangOptions = computed(() => {
     const langs = new Set(['en', 'zh', 'ja', 'ru', ...store.availableLanguages])
+
     return Array.from(langs).map((l) => {
       const key = `library.lang${l.charAt(0).toUpperCase() + l.slice(1)}`
       const translated = t(key)
+
       return { label: translated !== key ? translated : l.toUpperCase(), value: l }
     })
   })

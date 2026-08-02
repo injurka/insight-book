@@ -12,11 +12,13 @@ export interface IQuizRepository {
 export class DefaultQuizRepository implements IQuizRepository {
   async getLevels(lang: string) {
     const raw = await api.quiz.getLevels(lang)
+
     return applyAcl(z.array(QuizLevelSchema), raw, 'quiz.getLevels()')
   }
 
   async generate(lang: string, level: string) {
     const raw = await api.quiz.generate(lang, level)
+
     return applyAcl(QuizQuestionsResponseSchema, raw, 'quiz.generate()')
   }
 

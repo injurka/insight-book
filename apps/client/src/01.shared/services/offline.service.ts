@@ -15,6 +15,7 @@ localforage.config({
 
 function getKey(key: string) {
   const uid = localStorage.getItem('insight_uid') || '1'
+
   return `u${uid}_${key}`
 }
 
@@ -48,16 +49,20 @@ function handleBookPageOrDictKey(key: string, itemSize: number, bookStats: Recor
         bookStats[bookId].cachedPages.push(pageNum)
       bookStats[bookId].sizeBytes += itemSize
     }
+
     return true
   }
+
   if (key.endsWith('_dict')) {
     const bookId = Number(key.split('_')[1])
     if (bookStats[bookId]) {
       bookStats[bookId].sizeBytes += itemSize
       bookStats[bookId].dictPagesCount++
     }
+
     return true
   }
+
   return false
 }
 
@@ -110,6 +115,7 @@ function processLocalForageKey(key: string, itemSize: number, bookStats: Record<
     if (handleBookPageOrDictKey(key, itemSize, bookStats))
       return
   }
+
   handleOtherLocalForageKeys(key, itemSize, bookStats)
 }
 
@@ -156,6 +162,7 @@ async function processMediaCacheReq(cache: Cache, req: Request, bookStats: Recor
   else if (type === 'tts') {
     handleMediaCacheTts(pathParts, size, bookStats)
   }
+
   return size
 }
 
@@ -192,6 +199,7 @@ async function safeGetItem<T>(key: string): Promise<T | null> {
     catch (removeErr) {
       console.warn(`[OfflineService] Failed to remove corrupted item (key: ${key}):`, removeErr)
     }
+
     return null
   }
 }
@@ -229,6 +237,7 @@ export const offlineService = {
       if (res)
         return res.blob()
     }
+
     return safeGetItem<Blob>(`image_${bookId}_${pageNum}`)
   },
 
@@ -254,6 +263,7 @@ export const offlineService = {
       if (res)
         return res.blob()
     }
+
     return safeGetItem<Blob>(`cover_${bookId}`)
   },
 
@@ -304,6 +314,7 @@ export const offlineService = {
 
   async getDictionary(): Promise<UserDictItem[] | null> {
     const lang = getAppLanguage()
+
     return safeGetItem(`dictionary_words_${lang}`)
   },
 
@@ -314,6 +325,7 @@ export const offlineService = {
 
   async getDecks(): Promise<DictDeck[] | null> {
     const lang = getAppLanguage()
+
     return safeGetItem(`dictionary_decks_${lang}`)
   },
 
@@ -324,6 +336,7 @@ export const offlineService = {
 
   async getAnalysis(text: string): Promise<LlmAnalysis | null> {
     const lang = getAppLanguage()
+
     return safeGetItem(`analysis_${lang}_${text.trim().toLowerCase()}`)
   },
 
@@ -378,10 +391,12 @@ export const offlineService = {
     if (navigator.storage && navigator.storage.estimate) {
       try {
         const estimate = await navigator.storage.estimate()
+
         return { usage: estimate.usage || 0, quota: estimate.quota || 0 }
       }
       catch { return null }
     }
+
     return null
   },
 
@@ -394,6 +409,7 @@ export const offlineService = {
         return false
       }
     }
+
     return false
   },
 

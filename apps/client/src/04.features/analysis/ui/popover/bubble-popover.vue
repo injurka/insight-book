@@ -93,8 +93,10 @@ const matchingHighlight = computed(() => {
   if (!props.box?.text || !readerStore.currentBook)
     return null
   const rawNorm = normalizeString(props.box.text)
+
   return highlightsStore.highlights.find((item) => {
     const hNorm = normalizeString(item.text)
+
     return Number(item.bookId) === Number(readerStore.currentBook?.id) && (rawNorm === hNorm || (hNorm.length >= 2 && (rawNorm.includes(hNorm) || hNorm.includes(rawNorm))))
   })
 })
@@ -109,6 +111,7 @@ function getChapterTitle(pageNum: number): string | null {
         currentItem = item
     }
   }
+
   return currentItem ? currentItem.title : null
 }
 
@@ -165,6 +168,7 @@ const { x, y, strategy } = useFloating(toRef(props, 'referenceEl'), floating, {
 
 const style = computed(() => {
   const isPositioned = x.value != null && y.value != null
+
   return {
     position: strategy.value,
     top: `${y.value ?? 0}px`,

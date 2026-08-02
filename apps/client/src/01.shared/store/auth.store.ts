@@ -57,6 +57,7 @@ export const useAuthStore = defineStore('auth', () => {
 
     if (status === 401) {
       clearCachedUserSession()
+
       return
     }
 
@@ -70,6 +71,7 @@ export const useAuthStore = defineStore('auth', () => {
     if (!token && cachedMode === 'multi') {
       isSingleMode.value = false
       user.value = null
+
       return
     }
 

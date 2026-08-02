@@ -111,6 +111,7 @@ export function usePluginManager(): PluginManager {
         try {
           const { useDictionaryStore } = await import('~/05.modules/dictionary/store/dictionary.store')
           const store = useDictionaryStore()
+
           return store.words
         }
         catch {
@@ -128,6 +129,7 @@ export function usePluginManager(): PluginManager {
       getCurrentBook: async () => {
         try {
           const { useReaderStore } = await import('~/05.modules/reader/store/reader.store')
+
           return useReaderStore().currentBook
         }
         catch {
@@ -139,6 +141,7 @@ export function usePluginManager(): PluginManager {
       getProfile: async () => {
         try {
           const { useAuthStore } = await import('~/01.shared/store/auth.store')
+
           return useAuthStore().user
         }
         catch {
@@ -276,6 +279,7 @@ export function usePluginManager(): PluginManager {
     const index = plugins.findIndex(item => item.id === pluginId)
     if (index === -1) {
       console.warn(`[Plugin Manager] Plugin "${pluginId}" is not installed.`)
+
       return
     }
 
@@ -316,6 +320,7 @@ export function usePluginManager(): PluginManager {
       if (idx !== -1)
         navItems.splice(idx, 1)
     }
+
     navItemsByPlugin.delete(plugin.id)
 
     plugins.splice(index, 1)
@@ -339,6 +344,7 @@ export function usePluginManager(): PluginManager {
         manifest,
         remoteEntryUrl,
       )
+
       return { manifest, remoteEntryUrl }
     }
     catch (netError) {
@@ -348,6 +354,7 @@ export function usePluginManager(): PluginManager {
         return { manifest: cached.manifest, remoteEntryUrl: cached.remoteEntryUrl }
 
       console.error(`[Plugin Manager] Plugin at ${manifestUrl} could not be loaded from network or offline cache.`)
+
       return null
     }
   }
@@ -377,6 +384,7 @@ export function usePluginManager(): PluginManager {
     }
     catch (err) {
       console.error(`[Plugin Manager] Failed to load remote plugin via Module Federation from ${remoteEntryUrl}:`, err)
+
       return null
     }
   }

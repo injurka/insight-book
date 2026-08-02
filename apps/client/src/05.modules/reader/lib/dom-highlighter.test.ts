@@ -14,6 +14,7 @@ function buildSentence(sentId: string, words: string[]): HTMLElement {
     if (i < words.length - 1)
       span.appendChild(document.createTextNode(' '))
   })
+
   return span
 }
 
@@ -21,6 +22,7 @@ function buildRoot(...sentences: HTMLElement[]): HTMLElement {
   const root = document.createElement('div')
   for (const sentence of sentences)
     root.appendChild(sentence)
+
   return root
 }
 

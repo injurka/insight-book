@@ -58,6 +58,7 @@ function hasExtraFields(mode: string, initialData: any): boolean {
     return false
   const grammarCount = analysis.grammarRules ? analysis.grammarRules.length : 0
   const vocabCount = analysis.vocabulary ? analysis.vocabulary.length : 0
+
   return grammarCount > 0 || vocabCount > 0
 }
 
@@ -90,6 +91,7 @@ function checkHasExtraData(res: LlmAnalysis | null): boolean {
     return false
   const hasGrammar = res.grammarRules ? res.grammarRules.length > 0 : false
   const hasVocabulary = res.vocabulary ? res.vocabulary.length > 0 : false
+
   return hasGrammar || hasVocabulary
 }
 
@@ -102,6 +104,7 @@ async function translate() {
     const res = await repos.analysis.analyze(props.bookContext.id, form.value.text, props.bookContext.language)
     if (!res || !res.translation) {
       toast.error(t('aiAnalysisError') || 'Не удалось получить перевод')
+
       return
     }
 

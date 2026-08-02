@@ -82,8 +82,10 @@ function startRandomPractice() {
   const practiceableQuotes = highlights.value.filter(h => h.translation && h.text)
   if (practiceableQuotes.length === 0) {
     toast.error('Нет цитат с переводами для тренировки')
+
     return
   }
+
   const randomQuote = practiceableQuotes[Math.floor(Math.random() * practiceableQuotes.length)]
   openPractice(randomQuote, randomQuote.bookId)
 }
@@ -153,6 +155,7 @@ const notebookFlatItems = computed<NotebookFlatItem[]>(() => {
       })
     })
   })
+
   return result
 })
 
@@ -233,6 +236,7 @@ async function playTts(h: Highlight, book: Book) {
   if (activeTtsId.value === h.id && tts.isPlaying.value) {
     tts.stop()
     activeTtsId.value = null
+
     return
   }
 

@@ -12,6 +12,7 @@ vi.mock('vue-i18n', () => ({
 
 vi.mock('@vueuse/core', async (importOriginal) => {
   const actual = await importOriginal<any>()
+
   return {
     ...actual,
     useDraggable: () => ({

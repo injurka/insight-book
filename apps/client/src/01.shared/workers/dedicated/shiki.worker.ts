@@ -31,6 +31,7 @@ async function getHighlighter() {
       langs: SUPPORTED_LANGS,
     })
   }
+
   return highlighterPromise
 }
 

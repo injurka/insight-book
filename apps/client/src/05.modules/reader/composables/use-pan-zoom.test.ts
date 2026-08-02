@@ -14,12 +14,14 @@ function setupPanZoom() {
   const Host = defineComponent({
     setup() {
       api = usePanZoom(containerRef, wrapperRef)
+
       return { containerRef, wrapperRef }
     },
     template: `<div ref="containerRef"><div ref="wrapperRef" /></div>`,
   })
 
   const wrapper = mount(Host, { attachTo: document.body })
+
   return { api, wrapper, container: containerRef.value!, wrapperEl: wrapperRef.value! }
 }
 

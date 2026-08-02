@@ -34,12 +34,16 @@ const selectedLabel = computed(() => {
   if (props.multiple && Array.isArray(modelValue.value)) {
     if (modelValue.value.length === 0)
       return ''
+
     return modelValue.value.map((v) => {
       const opt = props.options.find(o => o.value === v)
+
       return opt ? opt.label : ''
     }).filter(Boolean).join(', ')
   }
+
   const opt = props.options.find(o => o.value === modelValue.value)
+
   return opt ? opt.label : ''
 })
 
@@ -73,8 +77,10 @@ function selectOption(val: string | number) {
     const current = Array.isArray(modelValue.value) ? modelValue.value : []
     if (val === 'all') {
       modelValue.value = ['all']
+
       return
     }
+
     const isSelected = current.includes(val)
     let next = isSelected ? current.filter(v => v !== val) : [...current, val]
     next = next.filter(v => v !== 'all')

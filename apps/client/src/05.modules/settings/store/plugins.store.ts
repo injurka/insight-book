@@ -93,13 +93,16 @@ export const usePluginsStore = defineStore('settings-plugins', () => {
         manifestUrl,
         isEnabled: true,
       })
+
       return loadedPlugin
     },
     onSuccess(loadedPlugin) {
       if (!loadedPlugin) {
         toast.error(t('settings.plugins.installFailed', 'Не удалось загрузить плагин по указанному URL'))
+
         return
       }
+
       toast.success(t('settings.plugins.installSuccess', { name: loadedPlugin.name }))
       refetchRemotePlugins()
     },
@@ -192,6 +195,7 @@ export const usePluginsStore = defineStore('settings-plugins', () => {
   async function uploadPlugin(file: File): Promise<boolean> {
     try {
       await uploadPluginMutation(file)
+
       return true
     }
     catch {

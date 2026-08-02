@@ -37,6 +37,7 @@ export function lazyComponent(loader: () => Promise<any>) {
         if (reloadCount < 2) {
           sessionStorage.setItem('chunk_reload_count', String(reloadCount + 1))
           window.location.reload()
+
           return
         }
       }

@@ -72,6 +72,7 @@ export function useLibraryDisplay() {
       const translated = i18n.global.t(key)
       opts.push({ label: translated !== key ? translated : langCode.toUpperCase(), value: langCode })
     })
+
     return opts
   })
 
@@ -80,8 +81,10 @@ export function useLibraryDisplay() {
     if (view === 'reading-now') {
       const filtered = books.filter(b => b.status === 'reading' || !b.status)
       filtered.sort((a, b) => new Date(b.progressUpdatedAt || b.updatedAt || 0).getTime() - new Date(a.progressUpdatedAt || a.updatedAt || 0).getTime())
+
       return [{ seriesName: t('library.menuReadingNow'), icon: 'mdi:book-open-page-variant-outline', books: filtered }]
     }
+
     if (view === 'favorites')
       return [{ seriesName: t('library.menuFavorites'), icon: 'mdi:star-outline', books: books.filter(b => b.isFavorite) }]
     if (view === 'to-read')
@@ -90,6 +93,7 @@ export function useLibraryDisplay() {
       return [{ seriesName: t('library.menuHaveRead'), icon: 'mdi:check-all', books: books.filter(b => b.status === 'have-read') }]
     if (view === 'books')
       return [{ seriesName: t('library.menuBooks'), icon: 'mdi:book-open-blank-variant', books: [...books].sort((a, b) => new Date(b.updatedAt || 0).getTime() - new Date(a.updatedAt || 0).getTime()) }]
+
     return null
   }
 
@@ -99,6 +103,7 @@ export function useLibraryDisplay() {
       const matchLang = selectedLang.value === 'all' || book.language === selectedLang.value
       const matchSearch = book.title.toLowerCase().includes(searchQuery.value.toLowerCase())
         || (book.author && book.author.toLowerCase().includes(searchQuery.value.toLowerCase()))
+
       return matchLang && matchSearch
     })
 
@@ -126,6 +131,7 @@ export function useLibraryDisplay() {
         counts[key] = (counts[key] || 0) + 1
       })
       const folders = Object.keys(counts).sort().map(k => ({ name: k, count: counts[k] }))
+
       return [{ seriesName: t('library.menuAuthors'), icon: 'mdi:account-group-outline', folders }]
     }
 
@@ -136,6 +142,7 @@ export function useLibraryDisplay() {
         counts[key] = (counts[key] || 0) + 1
       })
       const folders = Object.keys(counts).sort().map(k => ({ name: k, count: counts[k] }))
+
       return [{ seriesName: t('library.menuCollections'), icon: 'mdi:bookshelf', folders }]
     }
 
@@ -146,6 +153,7 @@ export function useLibraryDisplay() {
         counts[key] = (counts[key] || 0) + 1
       })
       const folders = Object.keys(counts).sort().map(k => ({ name: k, count: counts[k] }))
+
       return [{ seriesName: t('library.menuSeries'), icon: 'mdi:folder-outline', folders }]
     }
 

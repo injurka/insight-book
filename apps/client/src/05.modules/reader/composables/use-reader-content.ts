@@ -29,6 +29,7 @@ export function useReaderContent() {
   const safePageContent = computed(() => {
     if (!readerStore.currentPage?.content)
       return ''
+
     return DOMPurify.sanitize(readerStore.currentPage.content, {
       ADD_ATTR: ['data-sent-id', 'data-raw-sent', 'data-word', 'data-pos', 'data-token-idx'],
     })
@@ -41,8 +42,10 @@ export function useReaderContent() {
       const patternEscaped = encodeURIComponent(rule.pattern || '')
       const explanationEscaped = encodeURIComponent(rule.explanation || '')
       const exampleEscaped = encodeURIComponent(rule.example || '')
+
       return `<span class="grammar-rule-badge" data-pattern="${patternEscaped}" data-explanation="${explanationEscaped}" data-example="${exampleEscaped}">${escapeHtml(rule.pattern)}</span>`
     }).join('')
+
     return `<span class="grammar-rules-container">${badges}</span>`
   }
 
@@ -128,6 +131,7 @@ export function useReaderContent() {
     const parser = new DOMParser()
     const doc = parser.parseFromString(safePageContent.value, 'text/html')
     applyTranslations(doc, translationMap.value, 'left')
+
     return doc.body.innerHTML
   })
 
@@ -137,6 +141,7 @@ export function useReaderContent() {
     const parser = new DOMParser()
     const doc = parser.parseFromString(safePageContent.value, 'text/html')
     applyTranslations(doc, translationMap.value, 'right')
+
     return doc.body.innerHTML
   })
 
@@ -187,6 +192,7 @@ export function useReaderContent() {
 
     if (total === 0)
       return { total: 0, translated: 0, percentage: 100, isFullyTranslated: true }
+
     return {
       total,
       translated,

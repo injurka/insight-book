@@ -41,6 +41,7 @@ export async function getCachedPlugin(pluginId: string): Promise<CachedPluginRec
   }
   catch (err) {
     console.warn('[Plugin Storage] Failed to read plugin from localforage cache:', err)
+
     return null
   }
 }

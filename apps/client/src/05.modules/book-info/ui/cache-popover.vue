@@ -16,6 +16,7 @@ const MAX_VISIBLE_RANGES = 8
 const bookCacheStats = computed(() => {
   if (!cacheStore.stats || !libraryStore.currentBookInfo)
     return null
+
   return (
     cacheStore.stats.bookStats[libraryStore.currentBookInfo.id] || {
       cachedPages: [],
@@ -30,6 +31,7 @@ const cachedCount = computed(() => bookCacheStats.value?.cachedPages?.length ?? 
 const cachePercent = computed(() => {
   if (!totalPages.value)
     return 0
+
   return Math.min(100, Math.round((cachedCount.value / totalPages.value) * 100))
 })
 const isCacheFull = computed(() => cachedCount.value >= totalPages.value)

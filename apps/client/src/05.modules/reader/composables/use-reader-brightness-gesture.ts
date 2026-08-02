@@ -77,6 +77,7 @@ export function useReaderBrightnessGesture() {
       else if (deltaX > 15) {
         startX = 0
         startY = 0
+
         return
       }
     }

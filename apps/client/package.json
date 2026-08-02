@@ -89,7 +89,6 @@
     "eslint": "^10.8.0",
     "eslint-plugin-format": "2.0.1",
     "eslint-plugin-storybook": "^10.5.5",
-    "eslint-plugin-vue-setup-order": "^1.1.1",
     "happy-dom": "^20.11.1",
     "playwright": "^1.62.1",
     "rollup-plugin-visualizer": "^7.0.1",

@@ -19,6 +19,7 @@ export function useGlider(switcherRef: Ref<HTMLElement | null>) {
     const activeBtn = switcherEl.querySelector('.kit-view-switcher-button.is-active') as HTMLElement
     if (!activeBtn) {
       gliderStyle.value.opacity = 0
+
       return
     }
 

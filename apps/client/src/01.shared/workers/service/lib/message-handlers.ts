@@ -27,6 +27,7 @@ const messageHandlers: MessageHandlers = {
         type: 'ERROR',
         payload: { message: 'Не указано имя кеша' },
       })
+
       return
     }
 

@@ -6,6 +6,7 @@ import { useDialogSwipe } from './use-dialog-swipe'
 // Mock useSwipe and useMediaQuery
 vi.mock('@vueuse/core', async (importOriginal) => {
   const actual = await importOriginal<any>()
+
   return {
     ...actual,
     useMediaQuery: vi.fn(() => ref(true)),
@@ -24,6 +25,7 @@ describe('use-dialog-swipe', () => {
     vueuseCore.useSwipe.mockImplementation((ref, options) => {
       if (options.onSwipeEnd)
         swipeEndCb = options.onSwipeEnd
+
       return { lengthY, isSwiping, direction }
     })
 

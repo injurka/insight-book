@@ -15,6 +15,7 @@ export function useAnkiExport() {
     const rows = wordsToExport.map((w) => {
       const translation = (w.translation || '').replace(/\n/g, '<br>')
       const notes = (w.notes || '').replace(/\n/g, '<br>')
+
       return `${w.word}\t${w.transcription || ''}\t${translation}\t${notes}`
     })
 

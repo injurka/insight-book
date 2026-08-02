@@ -56,6 +56,7 @@ export function useSrsQuiz() {
     }
 
     fillFallbackDistractors(distractors, correctClean, count)
+
     return Array.from(distractors)
   }
 
@@ -106,6 +107,7 @@ export function useSrsQuiz() {
     const seconds = totalSeconds % 60
     if (minutes === 0)
       return `${seconds} сек`
+
     return `${minutes} мин ${seconds} сек`
   }
 

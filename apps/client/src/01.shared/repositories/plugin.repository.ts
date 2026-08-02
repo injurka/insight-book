@@ -14,6 +14,7 @@ export interface IPluginRepository {
 export class DefaultPluginRepository implements IPluginRepository {
   async getMyPlugins() {
     const raw = await api.plugins.getMyPlugins()
+
     return applyAcl(z.array(UserPluginRecordSchema), raw, 'plugin.getMyPlugins()')
   }
 

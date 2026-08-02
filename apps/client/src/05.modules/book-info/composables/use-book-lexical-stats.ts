@@ -12,12 +12,14 @@ export function useBookLexicalStats() {
   const legacyTopWords = computed(() => {
     if (isLegacyLexical.value)
       return libraryStore.currentBookInfo?.stats?.topWords as LexicalWordData[]
+
     return []
   })
 
   const lexData = computed(() => {
     if (isLegacyLexical.value)
       return null
+
     return libraryStore.currentBookInfo?.stats?.topWords as LexicalDataGroup
   })
 

@@ -298,6 +298,7 @@ describe('usePluginManager - uninstall', () => {
     })
 
     await manager.install(null, router, [plugin])
+
     return { manager, router, plugin, deactivate }
   }
 

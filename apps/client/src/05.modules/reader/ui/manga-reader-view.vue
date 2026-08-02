@@ -79,8 +79,10 @@ useQuoteHighlights(readerViewRef, [parallelTranslations])
 function handleWrapperClick(e: MouseEvent) {
   if (dragDist.value > 10 && scale.value > 1) {
     dragDist.value = 0
+
     return
   }
+
   onWordClick(e)
 }
 

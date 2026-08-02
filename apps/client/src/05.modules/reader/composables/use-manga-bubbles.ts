@@ -64,6 +64,7 @@ export function useMangaBubbles(onPointerDown: (e: MouseEvent | TouchEvent, t: s
       return {}
     const imgWidth = readerStore.currentPage.imageWidth || 1
     const imgHeight = readerStore.currentPage.imageHeight || 1
+
     return {
       left: `${(box.x / imgWidth) * 100}%`,
       top: `${(box.y / imgHeight) * 100}%`,
@@ -77,6 +78,7 @@ export function useMangaBubbles(onPointerDown: (e: MouseEvent | TouchEvent, t: s
       return {}
     const imgWidth = readerStore.currentPage.imageWidth || 1
     const imgHeight = readerStore.currentPage.imageHeight || 1
+
     return {
       left: `calc(${(box.x / imgWidth) * 100}% - 8px)`,
       top: `calc(${(box.y / imgHeight) * 100}% - 8px)`,
@@ -91,6 +93,7 @@ export function useMangaBubbles(onPointerDown: (e: MouseEvent | TouchEvent, t: s
     const pageHighlights = highlightsStore.highlights.filter(h => Number(h.pageNum) === pageNum)
     const matching = pageHighlights.find((h) => {
       const hNorm = normalizeString(h.text)
+
       return rawNorm === hNorm || (hNorm.length >= 2 && (rawNorm.includes(hNorm) || hNorm.includes(rawNorm)))
     })
 
@@ -100,6 +103,7 @@ export function useMangaBubbles(onPointerDown: (e: MouseEvent | TouchEvent, t: s
         '--hl-border': hexToRgba(matching.color || '#fde047', 0.8),
       }
     }
+
     return {}
   }
 

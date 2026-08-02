@@ -75,6 +75,7 @@ function percent(part: number | undefined, total: number | undefined) {
   if (!total || total === 0)
     return '0%'
   const p = Math.round(((part || 0) / total) * 100)
+
   return `${Math.min(100, Math.max(0, p))}%`
 }
 

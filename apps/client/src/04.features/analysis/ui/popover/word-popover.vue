@@ -64,12 +64,14 @@ const aiData = ref<GeneratedWordExamples | null>(null)
 const currentLanguage = computed(() => {
   const readerStore = useReaderStore()
   const libraryStore = useLibraryStore()
+
   return (readerStore.currentBook || libraryStore.currentBookInfo)?.language || 'en'
 })
 
 const headerText = computed(() => {
   if (!analysisStore.wordPopover)
     return ''
+
   return analysisStore.wordPopover.showAi ? (analysisStore.wordPopover.aiTranscription || analysisStore.wordPopover.transcription) : analysisStore.wordPopover.transcription
 })
 
@@ -93,6 +95,7 @@ function getPosClass(pos: string) {
     return 'pos-adj'
   if (posLower.startsWith('r'))
     return 'pos-pronoun'
+
   return 'pos-default'
 }
 

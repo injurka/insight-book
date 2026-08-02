@@ -20,6 +20,7 @@ const longPress = {
         clearTimeout(el._lpTimer)
         el._lpTimer = undefined
       }
+
       if (el._onSelectionChange) {
         document.removeEventListener('selectionchange', el._onSelectionChange)
         el._onSelectionChange = undefined
@@ -48,6 +49,7 @@ const longPress = {
           cancel()
         }
       }
+
       document.addEventListener('selectionchange', el._onSelectionChange)
 
       el._lpTimer = setTimeout(() => {
@@ -111,11 +113,13 @@ const longPress = {
       el.removeEventListener('mousedown', el._lpStart)
       el.removeEventListener('touchstart', el._lpStart)
     }
+
     if (el._lpCancel) {
       el.removeEventListener('mouseup', el._lpCancel)
       el.removeEventListener('mouseleave', el._lpCancel)
       el.removeEventListener('touchend', el._lpCancel)
     }
+
     if (el._lpMove) {
       el.removeEventListener('mousemove', el._lpMove)
       el.removeEventListener('touchmove', el._lpMove)

@@ -28,6 +28,7 @@ export function usePronunciationCheck(word?: MaybeRef<string> | (() => string), 
       return ''
     if (typeof word === 'function')
       return word()
+
     return unref(word)
   }
 
@@ -36,6 +37,7 @@ export function usePronunciationCheck(word?: MaybeRef<string> | (() => string), 
       return ''
     if (typeof language === 'function')
       return language()
+
     return unref(language)
   }
 
@@ -52,15 +54,19 @@ export function usePronunciationCheck(word?: MaybeRef<string> | (() => string), 
         userAudio.pause()
       }
       catch { }
+
       userAudio = null
     }
+
     if (userAudioUrl.value) {
       try {
         URL.revokeObjectURL(userAudioUrl.value)
       }
       catch { }
+
       userAudioUrl.value = ''
     }
+
     if (mediaRecorder && mediaRecorder.state !== 'inactive') {
       try {
         mediaRecorder.stop()
@@ -78,6 +84,7 @@ export function usePronunciationCheck(word?: MaybeRef<string> | (() => string), 
         mediaRecorder.stop()
 
       isRecording.value = false
+
       return
     }
 
@@ -136,8 +143,10 @@ export function usePronunciationCheck(word?: MaybeRef<string> | (() => string), 
       userAudio.pause()
       userAudio.currentTime = 0
       isUserAudioPlaying.value = false
+
       return
     }
+
     userAudio = new Audio(userAudioUrl.value)
     userAudio.onplay = () => isUserAudioPlaying.value = true
     userAudio.onended = () => isUserAudioPlaying.value = false
