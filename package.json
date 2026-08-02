@@ -27,6 +27,7 @@
     "--------------------------------<      BUILD     >--------------------------------": "",
     "build": "turbo build",
     "build:client": "turbo build --filter=@injurkx/insight-book-client",
+    "build:client:tauri": "turbo run build:tauri --filter=@injurkx/insight-book-client",
     "build:server": "turbo build --filter=@injurka/insight-book-server",
     "build:native": "turbo tauri:build --filter=@injurka/insight-book-native",
     "--------------------------------< LINT & FORMAT >---------------------------------": "",

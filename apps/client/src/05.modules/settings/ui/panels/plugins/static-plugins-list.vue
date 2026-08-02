@@ -40,15 +40,6 @@ async function toggleStaticPlugin(pluginId: string, enabled: boolean) {
           console.error('Failed to load plugin', e)
         }
       }
-      else if (pluginId === 'scroll-study') {
-        try {
-          const { default: scrollStudyPlugin } = await import('@injurka/insight-book-plugin-scroll-study')
-          await pluginManager.install(null, router, [scrollStudyPlugin])
-        }
-        catch (e) {
-          console.error('Failed to load plugin', e)
-        }
-      }
     }
   }
   else {

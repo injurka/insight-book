@@ -20,7 +20,7 @@
       "@injurka/insight-book-plugin-api": [
         "../plugin-api/src/index.ts"
       ],
-      "~plugin/*": [
+      "~plugin-grammar-rules/*": [
         "./src/*"
       ]
     }

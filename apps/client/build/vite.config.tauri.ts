@@ -5,24 +5,29 @@ import AutoImport from 'unplugin-auto-import/vite'
 import Icons from 'unplugin-icons/vite'
 import { defineConfig } from 'vite'
 import { compression as Compression } from 'vite-plugin-compression2'
+import { VitePWA } from 'vite-plugin-pwa'
 import { autoImportOptionsCfg } from './cfg/auto-import'
 import { iconsCfg } from './cfg/icons'
 import { visualizerPlugin } from './lib/helpers'
 
 const host = process.env.TAURI_DEV_HOST
+const appVersion = process.env.VITE_APP_VERSION || '1.0.0'
 
 export default defineConfig({
   base: './',
   root: fileURLToPath(new URL('../src', import.meta.url)),
   publicDir: fileURLToPath(new URL('../public', import.meta.url)),
   envDir: fileURLToPath(new URL('../', import.meta.url)),
+  define: {
+    __APP_VERSION__: JSON.stringify(appVersion),
+    __BUILD_DATE__: JSON.stringify(new Date().toISOString()),
+  },
 
   resolve: {
     dedupe: ['vue', 'vue-i18n', 'vue-router', 'pinia', '@injurka/insight-book-plugin-api'],
     alias: {
       '~': fileURLToPath(new URL('../src', import.meta.url)),
       '@injurka/insight-book-plugin-grammar-rules': fileURLToPath(new URL('../../../packages/plugin-grammar-rules/src', import.meta.url)),
-      '@injurka/insight-book-plugin-scroll-study': fileURLToPath(new URL('../../../packages/plugin-scroll-study/src', import.meta.url)),
     },
   },
 
@@ -32,6 +37,7 @@ export default defineConfig({
 
   plugins: [
     Vue(),
+    VitePWA({ disable: true }),
     federation({
       name: 'insight_book_host',
       dts: false,

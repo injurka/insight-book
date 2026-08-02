@@ -11,7 +11,7 @@ const emit = defineEmits<{
   flip: []
 }>()
 
-const HanziBoard = lazyComponent(() => import('../../../hanzi-board.vue'))
+const HanziBoard = lazyComponent(() => import('~/05.modules/dictionary/ui/hanzi-board.vue'))
 </script>
 
 <template>

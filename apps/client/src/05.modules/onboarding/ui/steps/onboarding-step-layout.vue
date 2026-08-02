@@ -54,8 +54,8 @@ defineProps<Props>()
 
 .step-icon-wrapper {
   margin-bottom: 32px;
-  width: 120px;
-  height: 120px;
+  min-width: 120px;
+  min-height: 120px;
   display: flex;
   align-items: center;
   justify-content: center;

@@ -11,6 +11,8 @@ import { useGlobalSettingsStore } from '~/01.shared/store/settings.store'
 import { KitHoverRevealBg } from '~/02.kit/atoms/kit-hover-reveal-bg/index.ts'
 import { KitDropdown } from '~/02.kit/index.ts'
 
+import OnboardingBackground from './onboarding-background.vue'
+
 import Step0Hook from './steps/onboarding-step-0-hook.vue'
 import Step1Ai from './steps/onboarding-step-1-ai.vue'
 import Step2LongPress from './steps/onboarding-step-2-long-press.vue'
@@ -86,44 +88,49 @@ function finishOnboarding() {
 
 <template>
   <div class="onboarding-page">
-    <KitHoverRevealBg :opacity="0.05" />
-
-    <!-- Кнопка пропуска -->
-    <button class="skip-btn" title="Пропустить обучение" @click="finishOnboarding">
-      <Icon icon="mdi:close" />
-    </button>
-
-    <!-- Настройки: тема и язык -->
-    <div class="settings-bar">
-      <KitDropdown width="140px" placement="bottom-end" :z-index="10001">
-        <template #activator>
-          <button class="settings-btn" :aria-label="t('globalActions.switchLanguage')">
-            <Icon icon="mdi:translate" />
-          </button>
-        </template>
-        <div class="lang-dropdown-list">
-          <button
-            v-for="lang in appLangOptions"
-            :key="lang.value"
-            class="lang-dropdown-item"
-            :class="{ 'is-active': settingsStore.appLanguage === lang.value }"
-            @click="setLanguage(lang.value)"
-          >
-            <span>{{ lang.label }}</span>
-            <Icon v-if="settingsStore.appLanguage === lang.value" icon="mdi:check" class="check-icon" />
-          </button>
-        </div>
-      </KitDropdown>
-
-      <div class="settings-divider" />
-
-      <button class="settings-btn" :aria-label="t('globalActions.switchTheme')" @click="toggleTheme">
-        <Icon :icon="currentThemeIcon" />
-      </button>
+    <!-- Делаем WebGL фон менее навязчивым -->
+    <div class="bg-wrapper">
+      <OnboardingBackground />
     </div>
+    <KitHoverRevealBg :opacity="0.08" />
 
-    <div class="onboarding-container">
-      <Transition name="fade-slide" mode="out-in">
+    <!-- Плавающие элементы управления сверху -->
+    <header class="top-header">
+      <div class="settings-group">
+        <KitDropdown width="140px" placement="bottom-start" :z-index="10001">
+          <template #activator>
+            <button class="icon-btn" :aria-label="t('globalActions.switchLanguage')">
+              <Icon icon="mdi:translate" />
+            </button>
+          </template>
+          <div class="lang-dropdown-list">
+            <button
+              v-for="lang in appLangOptions"
+              :key="lang.value"
+              class="lang-dropdown-item"
+              :class="{ 'is-active': settingsStore.appLanguage === lang.value }"
+              @click="setLanguage(lang.value)"
+            >
+              <span>{{ lang.label }}</span>
+              <Icon v-if="settingsStore.appLanguage === lang.value" icon="mdi:check" class="check-icon" />
+            </button>
+          </div>
+        </KitDropdown>
+
+        <button class="icon-btn" :aria-label="t('globalActions.switchTheme')" @click="toggleTheme">
+          <Icon :icon="currentThemeIcon" />
+        </button>
+      </div>
+
+      <button class="skip-btn" title="Пропустить" @click="finishOnboarding">
+        <span>Пропустить</span>
+        <Icon icon="mdi:arrow-right" />
+      </button>
+    </header>
+
+    <!-- Основной контент без "коробки" - полноэкранный фокус -->
+    <main class="onboarding-content-area">
+      <Transition name="premium-slide" mode="out-in">
         <component
           :is="CurrentComponent"
           :key="currentStep"
@@ -131,114 +138,233 @@ function finishOnboarding() {
           @finish="finishOnboarding"
         />
       </Transition>
+    </main>
 
-      <div class="progress-indicator">
-        <button
-          class="nav-btn"
-          :class="{ 'is-hidden': currentStep === 0 }"
-          aria-label="Назад"
-          @click="prevStep"
-        >
-          <Icon icon="mdi:chevron-left" />
-        </button>
+    <!-- Современный элегантный индикатор прогресса -->
+    <footer class="bottom-nav">
+      <button
+        class="nav-icon-btn"
+        :class="{ 'is-hidden': currentStep === 0 }"
+        @click="prevStep"
+      >
+        <Icon icon="mdi:arrow-left" />
+      </button>
 
-        <div class="dots">
-          <div
-            v-for="(_, index) in steps"
-            :key="index"
-            class="dot"
-            :class="{ active: currentStep === index, passed: index < currentStep }"
-            @click="currentStep = index"
-          />
-        </div>
-
-        <button
-          class="nav-btn"
-          :class="{ 'is-hidden': currentStep === steps.length - 1 }"
-          aria-label="Вперёд"
-          @click="nextStep"
-        >
-          <Icon icon="mdi:chevron-right" />
-        </button>
+      <div class="progress-pill">
+        <div
+          v-for="(_, index) in steps"
+          :key="index"
+          class="progress-segment"
+          :class="{ 'is-active': currentStep === index, 'is-passed': index < currentStep }"
+          @click="currentStep = index"
+        />
       </div>
-    </div>
+
+      <button
+        class="nav-icon-btn"
+        :class="{ 'is-hidden': currentStep === steps.length - 1 }"
+        @click="nextStep"
+      >
+        <Icon icon="mdi:arrow-right" />
+      </button>
+    </footer>
   </div>
 </template>
 
 <style lang="scss" scoped>
 .onboarding-page {
-  font-family: 'Maple Mono CN', 'serif', monospace;
+  font-family: 'Inter', 'Roboto', sans-serif;
   position: fixed;
   inset: 0;
   display: flex;
-  align-items: center;
-  justify-content: center;
+  flex-direction: column;
   background: var(--bg-primary-color);
   overflow: hidden;
   z-index: 10000;
-
-  // Резервируем место под settings-bar и skip-btn (≈60px сверху)
-  padding-top: max(60px, env(safe-area-inset-top, 60px));
+  color: var(--fg-primary-color);
 }
 
-.settings-bar {
+.bg-wrapper {
   position: absolute;
-  top: max(16px, env(safe-area-inset-top, 16px));
-  left: max(16px, env(safe-area-inset-left, 16px));
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  background: rgba(var(--bg-secondary-color-rgb), 0.7);
-  border: 1px solid rgba(var(--border-primary-color-rgb), 0.5);
-  border-radius: 14px;
-  padding: 5px;
-  backdrop-filter: blur(20px) saturate(160%);
-  z-index: 1000;
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
-  transition: all 0.3s ease;
-
-  &:hover {
-    background: var(--bg-tertiary-color);
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
-    transform: translateY(-1px);
-  }
+  inset: 0;
+  opacity: 0.6; // Смягчаем WebGL
+  pointer-events: none;
+  z-index: 0;
+  transition: opacity 1s ease;
 }
 
-.settings-btn {
-  width: 34px;
-  height: 34px;
+.top-header {
+  position: relative;
+  z-index: 10;
   display: flex;
+  justify-content: space-between;
   align-items: center;
-  justify-content: center;
-  border-radius: 9px;
+  padding: max(24px, env(safe-area-inset-top, 24px)) max(32px, env(safe-area-inset-right, 32px)) 0
+    max(32px, env(safe-area-inset-left, 32px));
+}
+
+.settings-group {
+  display: flex;
+  gap: 8px;
+  background: rgba(var(--bg-secondary-color-rgb), 0.5);
+  backdrop-filter: blur(12px);
+  padding: 6px;
+  border-radius: 100px;
+  border: 1px solid rgba(var(--border-primary-color-rgb), 0.2);
+}
+
+.icon-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
   border: none;
   background: transparent;
   color: var(--fg-secondary-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
   cursor: pointer;
-  transition: all 0.2s ease;
-  font-size: 1.15rem;
+  transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1);
 
   &:hover {
-    background: var(--bg-accent-overlay-color);
-    color: var(--fg-accent-color);
-  }
-
-  &:active {
-    transform: scale(0.92);
+    background: var(--bg-tertiary-color);
+    color: var(--fg-primary-color);
+    transform: translateY(-2px);
   }
 }
 
-.settings-divider {
-  width: 1px;
-  height: 16px;
-  border: 1px solid rgba(var(--border-primary-color-rgb), 0.3);
+.skip-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border-radius: 100px;
+  border: 1px solid transparent;
+  background: rgba(var(--bg-secondary-color-rgb), 0.5);
+  color: var(--fg-secondary-color);
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+
+  &:hover {
+    background: rgba(var(--bg-secondary-color-rgb), 0.4);
+    border-color: rgba(var(--border-primary-color-rgb), 0.3);
+    color: var(--fg-primary-color);
+  }
 }
 
+.onboarding-content-area {
+  position: relative;
+  z-index: 5;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 48px;
+  width: 100%;
+  max-width: 1000px;
+  margin: 0 auto;
+
+  @include media-down(md) {
+    padding: 24px;
+  }
+}
+
+.bottom-nav {
+  position: relative;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  padding-bottom: max(48px, env(safe-area-inset-bottom, 48px));
+}
+
+.nav-icon-btn {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(var(--bg-secondary-color-rgb), 0.5);
+  color: var(--fg-primary-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  cursor: pointer;
+  transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+
+  &:hover {
+    background: var(--fg-primary-color);
+    color: var(--bg-primary-color);
+    transform: scale(1.08);
+  }
+
+  &.is-hidden {
+    opacity: 0;
+    pointer-events: none;
+    transform: scale(0.8);
+  }
+}
+
+.progress-pill {
+  display: flex;
+  gap: 6px;
+  background: rgba(var(--bg-secondary-color-rgb), 0.2);
+  backdrop-filter: blur(10px);
+  padding: 8px 12px;
+  border-radius: 100px;
+}
+
+.progress-segment {
+  width: 24px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--border-secondary-color);
+  transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+
+  &.is-passed {
+    background: var(--fg-secondary-color);
+  }
+
+  &.is-active {
+    width: 36px;
+    background: var(--fg-accent-color);
+  }
+
+  &:hover:not(.is-active) {
+    background: var(--fg-primary-color);
+  }
+}
+
+/* Premium Transitions */
+.premium-slide-enter-active,
+.premium-slide-leave-active {
+  transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.premium-slide-enter-from {
+  opacity: 0;
+  transform: translateY(20px) scale(0.98);
+}
+.premium-slide-leave-to {
+  opacity: 0;
+  transform: translateY(-20px) scale(1.02);
+}
+
+// Переопределение стилей выпадающего списка
 .lang-dropdown-list {
   display: flex;
   flex-direction: column;
-  gap: 3px;
-  padding: 4px;
+  gap: 4px;
+  padding: 6px;
+  background: var(--bg-primary-color);
+  border-radius: 16px;
+  border: 1px solid var(--border-primary-color);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.1);
 }
 
 .lang-dropdown-item {
@@ -246,20 +372,18 @@ function finishOnboarding() {
   align-items: center;
   justify-content: space-between;
   width: 100%;
-  padding: 8px 12px;
-  border-radius: 8px;
+  padding: 10px 16px;
+  border-radius: 10px;
   border: none;
   background: transparent;
   color: var(--fg-secondary-color);
-  font-size: 0.875rem;
+  font-size: 0.95rem;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s ease;
-  text-align: left;
-  gap: 10px;
 
   &:hover {
-    background: var(--bg-hover-color);
+    background: var(--bg-secondary-color);
     color: var(--fg-primary-color);
   }
 
@@ -268,151 +392,5 @@ function finishOnboarding() {
     background: var(--bg-accent-overlay-color);
     font-weight: 600;
   }
-
-  .check-icon {
-    font-size: 0.9rem;
-  }
-}
-
-.skip-btn {
-  position: absolute;
-  top: max(16px, env(safe-area-inset-top, 16px));
-  right: max(16px, env(safe-area-inset-right, 16px));
-  z-index: 1000;
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  border: none;
-  background: rgba(128, 128, 128, 0.1);
-  color: var(--fg-secondary-color);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  font-size: 1.5rem;
-  transition: all 0.2s;
-
-  &:hover {
-    background: rgba(128, 128, 128, 0.2);
-    color: var(--fg-primary-color);
-    transform: scale(1.05);
-  }
-}
-
-.onboarding-container {
-  position: relative;
-  z-index: 2;
-  width: 100%;
-  max-width: 600px;
-  min-height: 650px;
-  // Ограничиваем высоту оставшимся пространством и включаем скролл
-  max-height: calc(100dvh - max(60px, env(safe-area-inset-top, 60px)));
-  overflow-y: auto;
-  overflow-x: hidden;
-  padding: 24px;
-  padding-bottom: 60px; // место под progress-indicator
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  // Скрываем скроллбар визуально, но оставляем функциональность
-  scrollbar-width: none;
-  &::-webkit-scrollbar {
-    display: none;
-  }
-
-  @include media-down(sm) {
-    padding: 16px;
-    padding-bottom: 60px;
-    min-height: unset;
-    max-height: calc(100dvh - max(60px, env(safe-area-inset-top, 60px)));
-  }
-}
-
-.progress-indicator {
-  position: absolute;
-  bottom: 32px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-
-  @include media-down(sm) {
-    bottom: max(24px, env(safe-area-inset-bottom, 24px));
-  }
-}
-
-.nav-btn {
-  width: 30px;
-  height: 30px;
-  border-radius: 50%;
-  border: 1px solid rgba(var(--border-primary-color-rgb), 0.4);
-  background: rgba(var(--bg-secondary-color-rgb), 0.6);
-  color: var(--fg-secondary-color);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  font-size: 1.1rem;
-  transition: all 0.2s ease;
-  backdrop-filter: blur(8px);
-  flex-shrink: 0;
-
-  &:hover {
-    background: var(--bg-accent-overlay-color);
-    color: var(--fg-accent-color);
-    border-color: var(--fg-accent-color);
-    transform: scale(1.1);
-  }
-
-  &:active {
-    transform: scale(0.92);
-  }
-
-  &.is-hidden {
-    opacity: 0;
-    pointer-events: none;
-  }
-}
-
-.dots {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-
-  .dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: var(--border-secondary-color);
-    transition: all 0.3s;
-    cursor: pointer;
-
-    &.passed {
-      background: var(--fg-tertiary-color);
-    }
-
-    &.active {
-      background: var(--fg-accent-color);
-      transform: scale(1.3);
-    }
-
-    &:hover:not(.active) {
-      background: var(--fg-secondary-color);
-    }
-  }
-}
-
-/* Transitions */
-.fade-slide-enter-active,
-.fade-slide-leave-active {
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-.fade-slide-enter-from {
-  opacity: 0;
-  transform: translateX(30px);
-}
-.fade-slide-leave-to {
-  opacity: 0;
-  transform: translateX(-30px);
 }
 </style>

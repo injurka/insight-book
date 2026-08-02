@@ -3,7 +3,7 @@ import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { KitInput, KitSelect } from '~/02.kit'
 import { Icon } from '@iconify/vue'
-import type { Rule } from '~plugin/shared/types'
+import type { Rule } from '~plugin-grammar-rules/shared/types'
 import RuleCard from './rule-card.vue'
 
 interface Props {

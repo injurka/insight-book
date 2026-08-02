@@ -14,12 +14,6 @@ export async function setupPlugins(app: App, router: Router) {
     pluginsToInstall.push(grammarRulesPlugin)
   }
 
-  if (enabledPlugins.includes('scroll-study')) {
-    const { default: scrollStudyPlugin } = await import('@injurka/insight-book-plugin-scroll-study')
-
-    pluginsToInstall.push(scrollStudyPlugin)
-  }
-
   if (pluginsToInstall.length > 0)
     await pluginManager.install(app, router, pluginsToInstall)
 }

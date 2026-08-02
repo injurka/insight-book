@@ -4,7 +4,7 @@ services:
       context: ..
       dockerfile: docker/Dockerfile.client
       args:
-        - VITE_API_URL=http://localhost:4445
+        - VITE_API_URL=https://api.insight-book.ru
     image: insight-book-client:local
     env_file:
       - .env

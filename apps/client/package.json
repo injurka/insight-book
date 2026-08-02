@@ -16,6 +16,7 @@
     "dev": "vite --config build/vite.config.web.ts",
     "--------------------------------<      BUILD     >--------------------------------": "",
     "build": "vite build --config build/vite.config.web.ts",
+    "build:tauri": "vite build --config build/vite.config.tauri.ts",
     "preview": "vite preview --config build/vite.config.web.ts",
     "--------------------------------<      STORY     >--------------------------------": "",
     "story:dev": "STORYBOOK_ENV=1 storybook dev -p 6006",

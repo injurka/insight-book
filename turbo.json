@@ -9,8 +9,12 @@
       "cache": false,
       "persistent": true
     },
+    "build:tauri": {
+      "dependsOn": ["^build"],
+      "outputs": ["dist/**"]
+    },
     "tauri:build": {
-      "dependsOn": ["@injurkx/insight-book-client#build"],
+      "dependsOn": ["@injurkx/insight-book-client#build:tauri"],
       "outputs": ["src-tauri/target/**", "src-tauri/gen/**"]
     },
     "tauri:dev": {

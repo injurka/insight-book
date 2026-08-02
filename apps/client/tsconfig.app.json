@@ -17,23 +17,11 @@
       "~/*": [
         "./src/*"
       ],
-      "@injurka/insight-book-plugin-api": [
-        "../../packages/plugin-api/src"
+      "~plugin-grammar-rules/*": [
+        "../../packages/plugin-grammar-rules/src/*"
       ],
       "@injurka/insight-book-plugin-grammar-rules": [
-        "../../packages/plugin-grammar-rules/src"
-      ],
-      "@injurka/insight-book-plugin-grammar-rules/*": [
-        "../../packages/plugin-grammar-rules/src/*"
-      ],
-      "@injurka/insight-book-plugin-scroll-study": [
-        "../../packages/plugin-scroll-study/src"
-      ],
-      "@injurka/insight-book-plugin-scroll-study/*": [
-        "../../packages/plugin-scroll-study/src/*"
-      ],
-      "~plugin/*": [
-        "../../packages/plugin-grammar-rules/src/*"
+        "../../packages/plugin-grammar-rules/src/index.ts"
       ]
     },
     "resolveJsonModule": true,

@@ -1,4 +1,4 @@
-import { createSandboxApp } from '@injurka/insight-book-plugin-api'
+import { createSandboxApp } from '@injurka/insight-book-plugin-api/testing'
 import plugin from './index'
 
 const app = createSandboxApp({ plugin })

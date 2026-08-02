@@ -35,7 +35,7 @@ const { t } = useI18n()
   display: flex;
   align-items: center;
   gap: 8px;
-  color: var(--fg-tertiary-color);
+  color: var(--fg-accent-color);
   font-size: 0.95rem;
   text-transform: uppercase;
   letter-spacing: 1px;
@@ -154,7 +154,7 @@ const { t } = useI18n()
 @keyframes blink-anim {
   0%,
   100% {
-    opacity: 0.5;
+    opacity: 0.7;
   }
   50% {
     opacity: 1;

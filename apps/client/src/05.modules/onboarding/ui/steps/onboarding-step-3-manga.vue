@@ -132,8 +132,8 @@ function closeWordPopover() {
   >
     <div class="interactive-zone">
       <div class="manga-container">
-        <!-- Картинка манги из папки public. Динамический биндинг решает проблему Vite -->
-        <img src="../../../../../assets/images/manga-preview.png" class="manga-image" alt="Manga Page">
+        <!-- Картинка манги из папки assets -->
+        <img src="../../../../assets/images/manga-preview.png" class="manga-image" alt="Manga Page">
 
         <!-- Интерактивный блок OCR (Координаты настроены под облачко справа вверху) -->
         <div
@@ -469,7 +469,7 @@ function closeWordPopover() {
   display: flex;
   align-items: center;
   gap: 8px;
-  color: var(--fg-tertiary-color);
+  color: var(--fg-accent-color);
   font-size: 0.95rem;
   text-transform: uppercase;
   letter-spacing: 1px;
@@ -518,7 +518,7 @@ function closeWordPopover() {
 @keyframes blink-anim {
   0%,
   100% {
-    opacity: 0.5;
+    opacity: 0.7;
   }
   50% {
     opacity: 1;

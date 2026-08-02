@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { Rule } from '~plugin/shared/types'
+import type { Rule } from '~plugin-grammar-rules/shared/types'
 
 interface Props {
   rule: Rule

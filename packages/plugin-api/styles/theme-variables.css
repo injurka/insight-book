@@ -1,7 +1,7 @@
 /* Light theme */
 html[data-theme='light'],
 .plugin-sandbox.light,
-:root:not([data-theme='dark']) {
+:root:not([data-theme]) {
   --bg-primary-color: #faf4f2;
   --bg-secondary-color: #f2edeb;
   --bg-tertiary-color: #e0dad9;

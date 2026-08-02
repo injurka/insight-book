@@ -222,10 +222,19 @@ function onSave() {
       justify-content: center;
       width: 36px;
       height: 36px;
+      border-radius: 50%;
+      transition: all 0.2s;
 
       &:hover {
         transform: scale(1.1);
         color: var(--fg-accent-color);
+        background: var(--bg-hover-color);
+      }
+
+      &.blink {
+        color: var(--fg-accent-color);
+        background: var(--bg-focus-color);
+        animation: blink-button-anim 2s infinite;
       }
     }
   }
@@ -309,7 +318,7 @@ function onSave() {
   display: flex;
   align-items: center;
   gap: 8px;
-  color: var(--fg-tertiary-color);
+  color: var(--fg-accent-color);
   font-size: 0.95rem;
   text-transform: uppercase;
   letter-spacing: 1px;
@@ -351,10 +360,21 @@ function onSave() {
 @keyframes blink-anim {
   0%,
   100% {
-    opacity: 0.5;
+    opacity: 0.7;
   }
   50% {
     opacity: 1;
+  }
+}
+@keyframes blink-button-anim {
+  0%,
+  100% {
+    opacity: 0.8;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.18);
   }
 }
 </style>
