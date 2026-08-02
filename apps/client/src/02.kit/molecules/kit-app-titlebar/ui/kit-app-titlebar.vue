@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { Window as TauriWindow } from '@tauri-apps/api/window'
 import { Icon } from '@iconify/vue'
 import { invoke } from '@tauri-apps/api/core'
 import { onMounted, onUnmounted, ref } from 'vue'
@@ -7,7 +8,7 @@ import { isMobile, isTauri } from '~/01.shared/lib/env'
 const showTitlebar = ref(isTauri && !isMobile)
 const isMaximized = ref(false)
 
-let appWindow: any = null
+let appWindow: TauriWindow | null = null
 let unlistenResize: (() => void) | null = null
 
 function minimize() {
@@ -37,7 +38,7 @@ onMounted(async () => {
       isMaximized.value = await appWindow.isMaximized()
 
       unlistenResize = await appWindow.onResized(async () => {
-        isMaximized.value = await appWindow.isMaximized()
+        isMaximized.value = await appWindow?.isMaximized() ?? false
       })
     }
     catch (e) {

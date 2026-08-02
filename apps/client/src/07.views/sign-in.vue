@@ -67,7 +67,7 @@ async function handleSignIn(payload: { username: string, password: string }) {
     router.push('/')
   }
   catch (e) {
-    toast.error(e instanceof Error ? e.message : t('signIn.errorAuth'))
+    toast.error(e instanceof Error ? (e as Error).message : t('signIn.errorAuth'))
   }
   finally {
     isLoading.value = false
@@ -81,8 +81,8 @@ async function handleSendCode(emailVal: string) {
     isCodeSent.value = true
     toast.success('Код отправлен на почту')
   }
-  catch (e: any) {
-    toast.error(e.message)
+  catch (e: unknown) {
+    toast.error((e as Error).message)
   }
   finally {
     isLoading.value = false
@@ -98,15 +98,15 @@ async function handleRegister(payload: { email: string, code: string, password: 
     trackEvent('register_success')
     router.push('/')
   }
-  catch (e: any) {
-    toast.error(e.message)
+  catch (e: unknown) {
+    toast.error((e as Error).message)
   }
   finally {
     isLoading.value = false
   }
 }
 
-let pollingInterval: any = null
+let pollingInterval: number | undefined
 
 async function loginYandex() {
   try {
@@ -118,13 +118,13 @@ async function loginYandex() {
 
       await openUrl(url)
 
-      pollingInterval = setInterval(async () => {
+      pollingInterval = window.setInterval(async () => {
         try {
           const res = await fetch(`${BASE_API_URL}/api/auth/status?session_id=${sessionId}`)
           const data = await res.json()
 
           if (data.status === 'success') {
-            clearInterval(pollingInterval)
+            clearInterval(pollingInterval as number)
             localStorage.setItem('insight_token', data.token)
             await authStore.checkAuth()
             trackEvent('login_success')
@@ -140,10 +140,10 @@ async function loginYandex() {
       window.location.href = `${BASE_API_URL}/api/auth/yandex`
     }
   }
-  catch (e: any) {
+  catch (e: unknown) {
     console.error('Yandex login error:', e)
     isLoading.value = false
-    toast.error(e.message || 'Error opening Yandex login')
+    toast.error((e as Error).message || 'Error opening Yandex login')
   }
 }
 
@@ -221,23 +221,23 @@ const bookTiles = [
 ]
 
 const showAuthControls = ref(false)
-let pressTimer: any = null
+let pressTimer: number | undefined
 let clickCount = 0
-let clickTimer: any = null
+let clickTimer: number | undefined
 
 function startPress() {
   if (showAuthControls.value)
     return
 
-  pressTimer = setTimeout(() => {
+  pressTimer = window.setTimeout(() => {
     showAuthControls.value = true
   }, 1000)
 }
 
 function cancelPress() {
   if (pressTimer) {
-    clearTimeout(pressTimer)
-    pressTimer = null
+    clearTimeout(pressTimer as number)
+    pressTimer = undefined
   }
 }
 
@@ -252,20 +252,20 @@ function handleClick() {
   }
 
   if (clickTimer)
-    clearTimeout(clickTimer)
+    clearTimeout(clickTimer as number)
 
-  clickTimer = setTimeout(() => {
+  clickTimer = window.setTimeout(() => {
     clickCount = 0
   }, 400)
 }
 
 onUnmounted(() => {
   if (pollingInterval)
-    clearInterval(pollingInterval)
+    clearInterval(pollingInterval as number)
   if (pressTimer)
-    clearTimeout(pressTimer)
+    clearTimeout(pressTimer as number)
   if (clickTimer)
-    clearTimeout(clickTimer)
+    clearTimeout(clickTimer as number)
 })
 </script>
 

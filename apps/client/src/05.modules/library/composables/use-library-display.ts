@@ -1,4 +1,5 @@
 import type { DisplayGroup } from '../model'
+import type { Book } from '~/01.shared/types/models'
 import { i18n } from '~/00.plugins/i18n'
 import { useLibraryStore } from '../store/library.store'
 
@@ -76,7 +77,7 @@ export function useLibraryDisplay() {
     return opts
   })
 
-  function getStatusGroup(view: string, books: any[]): DisplayGroup[] | null {
+  function getStatusGroup(view: string, books: Book[]): DisplayGroup[] | null {
     const t = i18n.global.t
     if (view === 'reading-now') {
       const filtered = books.filter(b => b.status === 'reading' || !b.status)

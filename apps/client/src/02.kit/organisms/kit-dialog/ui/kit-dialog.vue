@@ -32,7 +32,7 @@ interface Props {
   resizable?: boolean
   minimizable?: boolean
   fullscreen?: boolean
-  keyTrigger?: any
+  keyTrigger?: unknown
   zIndex?: number | string
 }
 

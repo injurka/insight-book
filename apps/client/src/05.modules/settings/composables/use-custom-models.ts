@@ -31,7 +31,7 @@ export function useCustomModels() {
       const data = await res.json()
 
       if (data && Array.isArray(data.data)) {
-        availableModels.value = data.data.map((modelItem: any) => ({
+        availableModels.value = data.data.map((modelItem: { id: string }) => ({
           label: modelItem.id,
           value: modelItem.id,
         }))
@@ -51,7 +51,7 @@ export function useCustomModels() {
       }
     }
     catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Не удалось загрузить модели')
+      toast.error(e instanceof Error ? (e as Error).message : 'Не удалось загрузить модели')
       availableModels.value = []
     }
     finally {

@@ -13,8 +13,8 @@ export interface IAnalysisRepository {
   generateGenericTts: (text: string, voice: string, signal?: AbortSignal, forceCacheBypass?: boolean) => Promise<{ audioBase64: string }>
 
   // Local Cache Methods
-  getLocalAnalysis: (text: string) => Promise<LlmAnalysis | null | undefined>
-  saveLocalAnalysis: (text: string, analysis: LlmAnalysis) => Promise<void>
+  getLocalAnalysis: (text: string, lang?: string) => Promise<LlmAnalysis | null | undefined>
+  saveLocalAnalysis: (text: string, analysis: LlmAnalysis, lang?: string) => Promise<void>
   getLocalTts: (cacheKey: string) => Promise<Blob | null | undefined>
   saveLocalTts: (cacheKey: string, audioBase64: string) => Promise<void>
 }
@@ -57,7 +57,7 @@ export class DefaultAnalysisRepository implements IAnalysisRepository {
     type: 'sentence' | 'word' = 'sentence',
   ): Promise<LlmAnalysis> {
     try {
-      const cached = await offlineService.getAnalysis(text)
+      const cached = await offlineService.getAnalysis(text, language)
       if (cached)
         return applyAcl(LlmAnalysisSchema, cached, 'analysis.analyze() [offline]')
     }
@@ -74,7 +74,7 @@ export class DefaultAnalysisRepository implements IAnalysisRepository {
       type,
     )
     const data = applyAcl(LlmAnalysisSchema, res, 'analysis.analyze()')
-    await offlineService.saveAnalysis(text, data).catch(() => {})
+    await offlineService.saveAnalysis(text, data, language).catch(() => { })
 
     return data
   }
@@ -111,16 +111,16 @@ export class DefaultAnalysisRepository implements IAnalysisRepository {
     )
   }
 
-  async getLocalAnalysis(text: string) {
-    const cached = await offlineService.getAnalysis(text)
+  async getLocalAnalysis(text: string, lang?: string) {
+    const cached = await offlineService.getAnalysis(text, lang)
     if (!cached)
       return cached
 
     return applyAcl(LlmAnalysisSchema, cached, 'analysis.getLocalAnalysis()')
   }
 
-  async saveLocalAnalysis(text: string, analysis: LlmAnalysis) {
-    await offlineService.saveAnalysis(text, analysis)
+  async saveLocalAnalysis(text: string, analysis: LlmAnalysis, lang?: string) {
+    await offlineService.saveAnalysis(text, analysis, lang)
   }
 
   async getLocalTts(cacheKey: string) {

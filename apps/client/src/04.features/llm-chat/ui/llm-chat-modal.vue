@@ -22,7 +22,7 @@ const { t, locale } = useI18n()
 const toast = useToast()
 
 const messages = ref<{ id: string, sender: 'user' | 'ai', text: string }[]>([])
-const prompts = ref<any[]>([])
+const prompts = ref<{ id: number, name: string, prompt: string }[]>([])
 const selectedPromptId = ref<number | ''>('')
 const messageText = ref('')
 const isAiLoading = ref(false)
@@ -87,7 +87,13 @@ async function sendMessage() {
   isAiLoading.value = true
 
   try {
-    const payload: any = {
+    const payload: {
+      word: string
+      language: string
+      uiLanguage: string
+      customPromptId?: number
+      userPromptText?: string
+    } = {
       word: props.word,
       language: props.language || 'en',
       uiLanguage: locale.value,
@@ -107,7 +113,7 @@ async function sendMessage() {
     scrollToBottom()
   }
   catch (e) {
-    toast.error(e instanceof Error ? e.message : 'Error calling chat API')
+    toast.error(e instanceof Error ? (e as Error).message : 'Error calling chat API')
   }
   finally {
     isAiLoading.value = false
@@ -131,7 +137,7 @@ function startCreatePrompt() {
   editPromptText.value = ''
 }
 
-function startEditPrompt(prompt: any) {
+function startEditPrompt(prompt: { id: number, name: string, prompt: string }) {
   isEditingPrompt.value = true
   editingPromptId.value = prompt.id
   editName.value = prompt.name
@@ -167,7 +173,7 @@ async function savePrompt() {
     cancelPromptForm()
   }
   catch (e) {
-    toast.error(e instanceof Error ? e.message : 'Error saving prompt')
+    toast.error(e instanceof Error ? (e as Error).message : 'Error saving prompt')
   }
 }
 
@@ -192,7 +198,7 @@ async function onDeletePromptConfirm() {
     await fetchPrompts()
   }
   catch (e) {
-    toast.error(e instanceof Error ? e.message : 'Error deleting prompt')
+    toast.error(e instanceof Error ? (e as Error).message : 'Error deleting prompt')
   }
   finally {
     promptToDelete.value = null

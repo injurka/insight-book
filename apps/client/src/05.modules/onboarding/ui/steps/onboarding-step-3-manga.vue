@@ -87,7 +87,7 @@ const mockDict: Record<string, any> = {
   },
 }
 
-const activeDict = computed(() => activeWordId.value ? mockDict[activeWordId.value] : null)
+const activeDict = computed(() => activeWordId.value ? mockDict[activeWordId.value as keyof typeof mockDict] : null)
 
 function handleBubbleClick() {
   if (currentStep.value === 0) {

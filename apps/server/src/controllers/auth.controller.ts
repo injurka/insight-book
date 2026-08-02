@@ -134,16 +134,16 @@ export const authRouter = new Elysia({ prefix: '/api/auth' })
     }
     return { status: 'pending' }
   })
-  .get('/me', async ({ userId }: any) => {
+  .get('/me', async ({ userId }: { userId?: number; [key: string]: unknown }) => {
     return authService.getMe(userId as number)
   })
-  .patch('/me/avatar', async ({ userId, body }: any) => {
-    const file = (body as { file: File }).file as File
+  .patch('/me/avatar', async ({ userId, body }: { userId?: number; body: unknown; [key: string]: unknown }) => {
+    const file = (body as { file: File }).file
     if (!file)
       throw new AppError(400, 'Файл не передан')
     return authService.updateAvatar(userId as number, file)
   }, { requireAuth: true })
-  .patch('/me/username', async ({ userId, body }: any) => {
+  .patch('/me/username', async ({ userId, body }: { userId?: number; body: { username: string }; [key: string]: unknown }) => {
     return authService.updateUsername(userId as number, (body as { username: string }).username)
   }, {
     requireAuth: true,

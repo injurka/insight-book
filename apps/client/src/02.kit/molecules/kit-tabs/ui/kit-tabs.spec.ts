@@ -12,7 +12,7 @@ const DummyComponent1 = defineComponent({
 const DummyComponent2 = defineComponent({
   name: 'DummyComponent2',
   props: ['text'],
-  render: (props: any) => h('div', { class: 'dummy-2' }, `Component 2: ${props.text}`),
+  render: (props: unknown) => h('div', { class: 'dummy-2' }, `Component 2: ${props.text}`),
 })
 
 describe('kit-tabs', () => {

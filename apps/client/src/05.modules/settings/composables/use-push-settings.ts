@@ -6,7 +6,19 @@ import { useAuthStore } from '~/01.shared/store/auth.store'
 import { usePwaStore } from '~/01.shared/store/pwa.store'
 import { useDictionaryStore } from '~/05.modules/dictionary/store/dictionary.store'
 
-export function usePushSettings() {
+export function usePushSettings(): {
+  pwaStore: ReturnType<typeof usePwaStore>
+  pushDeckOptions: import('vue').ComputedRef<SelectOption[]>
+  timeOptions: import('vue').ComputedRef<SelectOption[]>
+  countOptions: import('vue').ComputedRef<{ label: string, value: number }[]>
+  pushTargetDeckModel: import('vue').WritableComputedRef<string | number>
+  pushTimeStartModel: import('vue').Ref<string>
+  pushTimeEndModel: import('vue').Ref<string>
+  pushCountModel: import('vue').Ref<number>
+  savePushSettings: () => Promise<void>
+  handlePushToggle: () => Promise<void>
+  isPushLoading: import('vue').Ref<boolean>
+} {
   const pwaStore = usePwaStore()
   const authStore = useAuthStore()
   const dictStore = useDictionaryStore()

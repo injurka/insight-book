@@ -138,7 +138,7 @@ async function filterServerCachedTexts(
       ctx.language,
       ctx.signal,
     )
-    const cacheMap = new Map(res.results.map((resItem: any) => [resItem.sentence, resItem.analysis]))
+    const cacheMap = new Map(res.results.map((resItem: { sentence: string, analysis: LlmAnalysis }) => [resItem.sentence, resItem.analysis]))
 
     for (let j = missingTexts.length - 1; j >= 0; j--) {
       const text = missingTexts[j]

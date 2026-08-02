@@ -3,7 +3,7 @@ import { mount } from '@vue/test-utils'
 import { describe, expect, it, vi } from 'vitest'
 import KitViewSwitcher from './kit-view-switcher.vue'
 
-let resizeCallback: any = null
+let resizeCallback: (() => void) | null = null
 vi.mock('@vueuse/core', () => ({
   useResizeObserver: vi.fn((target, cb) => {
     resizeCallback = cb

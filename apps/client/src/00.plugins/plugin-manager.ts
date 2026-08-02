@@ -33,7 +33,7 @@ export interface PluginManager {
   uninstall: (pluginId: string, router: Router) => Promise<void>
   loadRemotePlugin: (manifestUrl: string, router: Router) => Promise<InsightBookPlugin | null>
   getWidgets: (position: UIPosition) => ManagedUIWidget[]
-  registerUIWidget: (pluginId: string, position: UIPosition, id: string, component: any, props?: Record<string, unknown>) => void
+  registerUIWidget: (pluginId: string, position: UIPosition, id: string, component: object, props?: Record<string, unknown>) => void
   unregisterUIWidget: (id: string) => void
   plugins: InsightBookPlugin[]
   navItems: PluginNavItem[]
@@ -155,7 +155,7 @@ export function usePluginManager(): PluginManager {
     pluginId: string,
     position: UIPosition,
     id: string,
-    component: any,
+    component: object,
     props?: Record<string, unknown>,
   ) => {
     const existingIndex = uiWidgets.findIndex(widget => widget.id === id)
@@ -232,7 +232,7 @@ export function usePluginManager(): PluginManager {
         registerUIWidget: (
           position: UIPosition,
           id: string,
-          component: any,
+          component: object,
           props?: Record<string, unknown>,
         ) => {
           registerUIWidget(

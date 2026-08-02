@@ -154,7 +154,7 @@ export const usePwaStore = defineStore('pwa', {
       }).catch(console.error)
     },
 
-    async subscribeNativePush(toast: any, t: any) {
+    async subscribeNativePush(toast: ReturnType<typeof useToastStore>, t: typeof i18n.global.t) {
       try {
         const fcmToken = await repos.push.requestNativeFcmToken()
         if (!fcmToken)
@@ -167,13 +167,13 @@ export const usePwaStore = defineStore('pwa', {
 
         this.initSubscribedSettings()
       }
-      catch (e: any) {
-        toast.error(`${t('settings.pushSubError')}: ${e.message || e}`)
+      catch (e: unknown) {
+        toast.error(`${t('settings.pushSubError')}: ${(e as Error).message || e}`)
         throw e
       }
     },
 
-    async toggleNativePush(toast: any, t: any) {
+    async toggleNativePush(toast: ReturnType<typeof useToastStore>, t: typeof i18n.global.t) {
       if (this.isPushSubscribed) {
         const fcmToken = await repos.push.getNativeFcmToken()
         if (fcmToken) {
@@ -190,7 +190,7 @@ export const usePwaStore = defineStore('pwa', {
       await this.subscribeNativePush(toast, t)
     },
 
-    async fetchVapidKey(toast: any, t: any): Promise<string> {
+    async fetchVapidKey(toast: ReturnType<typeof useToastStore>, t: typeof i18n.global.t): Promise<string> {
       let publicKey: string
       try {
         publicKey = await repos.push.getVapidPublicKey()
@@ -208,7 +208,7 @@ export const usePwaStore = defineStore('pwa', {
       return publicKey
     },
 
-    async subscribeWebPush(toast: any, t: any, reg: ServiceWorkerRegistration) {
+    async subscribeWebPush(toast: ReturnType<typeof useToastStore>, t: typeof i18n.global.t, reg: ServiceWorkerRegistration) {
       const permission = await Notification.requestPermission()
       if (permission === 'denied') {
         toast.error(t('settings.pushDenied'))
@@ -243,7 +243,7 @@ export const usePwaStore = defineStore('pwa', {
       this.initSubscribedSettings()
     },
 
-    async toggleWebPush(toast: any, t: any) {
+    async toggleWebPush(toast: ReturnType<typeof useToastStore>, t: typeof i18n.global.t) {
       if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
         toast.error(t('settings.pushNotSupported'))
         throw new Error('Push not supported')

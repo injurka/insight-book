@@ -3,7 +3,9 @@ import { Icon } from '@iconify/vue'
 import { computed, onUnmounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { dbRpc, onSyncProgress } from '~/01.shared/lib/db.client'
+import { API_URL } from '~/01.shared/lib/env'
 import { useCacheStore } from '~/01.shared/store/cache.store'
+import { useToastStore } from '~/01.shared/store/toast.store'
 import { KitBtn, KitDialog, KitSelect, KitSkeleton, KitTooltip } from '~/02.kit'
 import { formatBytes } from '../../lib/formatters'
 
@@ -53,12 +55,21 @@ async function startDownloadLlmCache() {
   isDownloading.value = true
   syncProgressState.value = { stage: 'Инициализация...', loaded: 0, total: 100 }
   try {
-    const url = `/api/dictionary/llm-cache?lang=${selectedLanguage.value}`
+    // Абсолютный URL API: фронт и API могут жить на разных источниках,
+    // поэтому относительный '/api/...' из воркера может уходить не туда.
+    const uiLanguage = (localStorage.getItem('global-app-language') || 'ru').split(/[-_]/)[0] || 'ru'
+    const params = new URLSearchParams({
+      lang: selectedLanguage.value,
+      targetLang: uiLanguage,
+    })
+    const url = `${API_URL}/api/dictionary/llm-cache?${params.toString()}`
     const token = localStorage.getItem('insight_token') || undefined
     await dbRpc.downloadAndAttachPublicDict(url, undefined, token)
+    useToastStore().success('Оффлайн-база успешно загружена')
   }
-  catch (e) {
+  catch (e: any) {
     console.error('Failed to download public LLM cache database:', e)
+    useToastStore().error(`Не удалось скачать оффлайн-базу: ${e?.message || e}`)
     isDownloading.value = false
   }
 }

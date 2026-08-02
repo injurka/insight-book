@@ -4,8 +4,64 @@ import sqlite3InitModule from '@sqlite.org/sqlite-wasm'
 import { createBirpc } from 'birpc'
 import { unzipSync } from 'fflate'
 
-let db: any = null
+type SqliteModule = Awaited<ReturnType<typeof sqlite3InitModule>>
+interface MySqliteDb {
+  exec: (opts: string | { sql: string, bind?: unknown[], rowMode?: string, callback?: (rowArg: unknown) => void }) => void
+  prepare: (sql: string) => { bind: (params: unknown[]) => void, step: () => boolean, get: (index: number) => unknown, reset: () => void, finalize: () => void, getAsObject: () => Record<string, unknown> }
+  close: () => void
+  pointer: number
+}
+let db: MySqliteDb = null as unknown as MySqliteDb
+let sqlite3Module: SqliteModule = null as unknown as SqliteModule
+/** true, если основная БД открыта через OPFS VFS (OpfsDb) */
+let isOpfsDb = false
 let rpcClient: WorkerToClientRPC | null = null
+
+/** Магический заголовок SQLite-файла ("SQLite format 3\0") */
+const SQLITE_MAGIC = 'SQLite format 3'
+
+/** Колонки таблицы dictionary в порядке, общем для клиента и серверного дампа */
+const DICT_COLUMNS = [
+  'word',
+  'transcription',
+  'translation',
+  'language',
+  'target_language',
+  'notes',
+  'tags',
+  'difficulty',
+  'grammar_note',
+  'vocabulary_note',
+  'deck_ids_json',
+  'state',
+  'due',
+  'stability',
+  'difficulty_fsrs',
+  'scheduled_days',
+  'reps',
+  'lapses',
+  'last_review',
+  'learning_steps',
+  'created_at',
+  'updated_at',
+  'raw_json',
+] as const
+const DICT_COLUMNS_SQL = DICT_COLUMNS.join(', ')
+const DICT_PLACEHOLDERS_SQL = DICT_COLUMNS.map(() => '?').join(', ')
+
+/** Нормализация текста для ключа анализа — единый формат с сервером */
+function normalizeAnalysisText(text: string): string {
+  return (text || '').trim().toLowerCase()
+}
+
+/**
+ * Ключ записи в таблице analyses.
+ * ВАЖНО: формат `${lang}_${text}` должен совпадать с серверным дампом
+ * (см. dictionary.controller.ts -> GET /api/dictionary/llm-cache).
+ */
+function buildAnalysisKey(lang: string, text: string): string {
+  return `${lang}_${normalizeAnalysisText(text)}`
+}
 
 // --- OPFS Media Helpers ---
 async function getOpfsRoot(): Promise<FileSystemDirectoryHandle> {
@@ -67,40 +123,358 @@ async function deleteOpfsFile(relativePath: string): Promise<void> {
   }
 }
 
+// --- Слияние скачанной оффлайн-базы с основной ---
+
+function remoteTableExists(tableName: string): boolean {
+  let exists = false
+  db.exec({
+    sql: `SELECT 1 FROM remote.sqlite_master WHERE type = 'table' AND name = ? LIMIT 1`,
+    bind: [tableName],
+    callback: () => {
+      exists = true
+    },
+  })
+
+  return exists
+}
+
+/** Проверка наличия колонки в таблице прикреплённой remote-БД */
+function remoteTableHasColumn(tableName: string, columnName: string): boolean {
+  let found = false
+  db.exec({
+    sql: `PRAGMA remote.table_info(${tableName})`,
+    callback: (rowArg: unknown) => {
+      const row = rowArg as [number, string, ...unknown[]]
+      if (row[1] === columnName)
+        found = true
+    },
+  })
+
+  return found
+}
+
+/**
+ * Слияние данных из прикреплённой (remote) БД в main.
+ * Дедупликация:
+ *  - dictionary: по (word, language, target_language) — UNIQUE-констрейнта в main нет,
+ *    поэтому INSERT OR IGNORE тут не работает и нужен WHERE NOT EXISTS;
+ *  - analyses:   по UNIQUE text_key через INSERT OR IGNORE.
+ *
+ * Каталожные слова мержатся с ОТРИЦАТЕЛЬНЫМ id (-r.id), чтобы локальные id
+ * никогда не пересеклись с серверными id пользовательских слов
+ * (saveDictionary работает через ON CONFLICT(id)).
+ */
+function mergeRemoteIntoMain(): void {
+  const hasDictionary = remoteTableExists('dictionary')
+  const hasAnalyses = remoteTableExists('analyses')
+
+  if (!hasDictionary && !hasAnalyses) {
+    throw new Error('Скачанная база не содержит таблиц dictionary/analyses '
+      + '(возможно, файл повреждён или сервер вернул не тот контент)')
+  }
+
+  db.exec('BEGIN TRANSACTION;')
+  try {
+    if (hasDictionary) {
+      const notExistsClause = `
+        WHERE NOT EXISTS (
+          SELECT 1 FROM main.dictionary m
+          WHERE m.word = r.word
+            AND IFNULL(m.language, '') = IFNULL(r.language, '')
+            AND IFNULL(m.target_language, '') = IFNULL(r.target_language, '')
+        )
+      `
+
+      if (remoteTableHasColumn('dictionary', 'id')) {
+        // Новый формат дампа: есть стабильный id слова каталога —
+        // сохраняем его отрицательным и прописываем в raw_json
+        const selectCols = DICT_COLUMNS
+          .map(c => (c === 'raw_json' ? `json_set(IFNULL(r.raw_json, '{}'), '$.id', -r.id)` : `r.${c}`))
+          .join(', ')
+
+        db.exec(`
+          INSERT INTO main.dictionary (id, ${DICT_COLUMNS_SQL})
+          SELECT -r.id, ${selectCols} FROM remote.dictionary r
+          ${notExistsClause};
+        `)
+      }
+      else {
+        // Старый формат дампа без id (обратная совместимость)
+        db.exec(`
+          INSERT INTO main.dictionary (${DICT_COLUMNS_SQL})
+          SELECT ${DICT_COLUMNS_SQL} FROM remote.dictionary r
+          ${notExistsClause};
+        `)
+      }
+    }
+
+    if (hasAnalyses) {
+      db.exec(`
+        INSERT OR IGNORE INTO main.analyses (text_key, language, analysis_json)
+        SELECT text_key, language, analysis_json FROM remote.analyses;
+      `)
+    }
+
+    db.exec('COMMIT;')
+  }
+  catch (e) {
+    db.exec('ROLLBACK;')
+    throw e
+  }
+}
+
+/**
+ * OPFS-режим: пишем дамп во временный OPFS-файл и мержим через ATTACH.
+ * ВАЖНО: ATTACH обязан идти через URI `file:...?vfs=opfs` — иначе SQLite
+ * открывает файл через VFS по умолчанию (in-memory MEMFS), не видит OPFS-файл
+ * и молча создаёт пустую БД (типичный симптом: "no such table: remote.dictionary").
+ */
 async function attachAndMergeDb(tempDbName: string): Promise<void> {
-  db.exec(`ATTACH DATABASE '/${tempDbName}' AS remote;`)
   try {
-    db.exec(`
-      INSERT OR IGNORE INTO main.dictionary (
-        word, transcription, translation, language, target_language, notes, tags, difficulty,
-        grammar_note, vocabulary_note, deck_ids_json, state, due, stability, difficulty_fsrs,
-        scheduled_days, reps, lapses, last_review, learning_steps, created_at, updated_at, raw_json
-      ) SELECT
-        word, transcription, translation, language, target_language, notes, tags, difficulty,
-        grammar_note, vocabulary_note, deck_ids_json, state, due, stability, difficulty_fsrs,
-        scheduled_days, reps, lapses, last_review, learning_steps, created_at, updated_at, raw_json
-      FROM remote.dictionary;
-    `)
+    db.exec(`ATTACH DATABASE 'file:/${tempDbName}?vfs=opfs' AS remote;`)
   }
   catch (e) {
-    console.warn('[SQLite Worker] Merging remote dictionary info:', e)
+    throw new Error(`Не удалось прикрепить скачанную базу через OPFS VFS: ${(e as Error)?.message || e}`)
   }
 
   try {
-    db.exec(`
-      INSERT OR IGNORE INTO main.analyses (text_key, language, analysis_json)
-      SELECT text_key, language, analysis_json FROM remote.analyses;
-    `)
+    mergeRemoteIntoMain()
   }
-  catch (e) {
-    console.warn('[SQLite Worker] Merging remote analyses info:', e)
+  finally {
+    try {
+      db.exec('DETACH DATABASE remote;')
+    }
+    catch { }
+  }
+}
+
+/**
+ * Fallback для не-OPFS режима (основная БД открыта через VFS по умолчанию):
+ * десериализуем дамп во временную in-memory БД и переносим строки в main
+ * через prepared-запросы (VFS-независимо, но медленнее на больших дампах).
+ */
+
+function tmpTableExists(tmpDb: MySqliteDb, tableName: string): boolean {
+  let exists = false
+  tmpDb.exec({
+    sql: `SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ? LIMIT 1`,
+    bind: [tableName],
+    callback: () => {
+      exists = true
+    },
+  })
+
+  return exists
+}
+
+function tmpTableHasColumn(tmpDb: MySqliteDb, tableName: string, columnName: string): boolean {
+  let found = false
+  tmpDb.exec({
+    sql: `PRAGMA table_info(${tableName})`,
+    callback: (rowArg: unknown) => {
+      const row = rowArg as [number, string, ...unknown[]]
+      if (row[1] === columnName)
+        found = true
+    },
+  })
+
+  return found
+}
+
+function deserializeTempDb(bytes: Uint8Array): MySqliteDb {
+  const sqlite3 = sqlite3Module
+  const capi = sqlite3.capi
+
+  const tmpDb = new sqlite3.oo1.DB(':memory:', 'c') as unknown as MySqliteDb
+
+  const ptr = sqlite3.wasm.allocFromTypedArray(bytes)
+  const flags = (capi.SQLITE_DESERIALIZE_FREEONCLOSE ?? 1) | (capi.SQLITE_DESERIALIZE_RESIZEABLE ?? 2)
+  const rc = capi.sqlite3_deserialize(
+    tmpDb.pointer as import('@sqlite.org/sqlite-wasm').DbPtr,
+    'main',
+    ptr,
+    bytes.byteLength,
+    bytes.byteLength,
+    flags,
+  )
+  if (rc !== 0) {
+    try {
+      tmpDb.close()
+    }
+    catch { }
+
+    throw new Error(`sqlite3_deserialize завершился с кодом ${rc}`)
   }
 
-  db.exec('DETACH DATABASE remote;')
+  return tmpDb
+}
+
+function mergeDictionaryRows(dictRows: unknown[][], dictHasId: boolean): void {
+  if (dictRows.length === 0)
+    return
+
+  const insertSql = dictHasId
+    ? `INSERT INTO main.dictionary (id, ${DICT_COLUMNS_SQL}) VALUES (?, ${DICT_PLACEHOLDERS_SQL})`
+    : `INSERT INTO main.dictionary (${DICT_COLUMNS_SQL}) VALUES (${DICT_PLACEHOLDERS_SQL})`
+  const insertStmt = db.prepare(insertSql)
+  const dupStmt = db.prepare(`
+    SELECT 1 FROM main.dictionary
+    WHERE word = ?
+      AND IFNULL(language, '') = IFNULL(?, '')
+      AND IFNULL(target_language, '') = IFNULL(?, '')
+    LIMIT 1
+  `)
+  const rawJsonIdx = DICT_COLUMNS.indexOf('raw_json')
+  try {
+    for (const rawRow of dictRows) {
+      // Каталожные слова получают ОТРИЦАТЕЛЬНЫЙ id, чтобы не пересекаться
+      // с серверными id пользовательских слов (ON CONFLICT(id))
+      const localId = dictHasId ? -Number(rawRow[0]) : null
+      const values = dictHasId ? rawRow.slice(1) : rawRow
+
+      // word / language / target_language для проверки дублей
+      dupStmt.bind([values[0], values[3], values[4]])
+      const isDuplicate = dupStmt.step()
+      dupStmt.reset()
+      if (isDuplicate)
+        continue
+
+      if (localId !== null) {
+        try {
+          const rawJson = JSON.parse(String(values[rawJsonIdx] || '{}'))
+          rawJson.id = localId
+          values[rawJsonIdx] = JSON.stringify(rawJson)
+        }
+        catch { }
+
+        insertStmt.bind([localId, ...values])
+      }
+      else {
+        insertStmt.bind(values)
+      }
+
+      insertStmt.step()
+      insertStmt.reset()
+    }
+  }
+  finally {
+    insertStmt.finalize()
+    dupStmt.finalize()
+  }
+}
+
+function mergeAnalysisRows(analysisRows: unknown[][]): void {
+  if (analysisRows.length === 0)
+    return
+
+  const stmt = db.prepare('INSERT OR IGNORE INTO main.analyses (text_key, language, analysis_json) VALUES (?, ?, ?)')
+  try {
+    for (const row of analysisRows) {
+      stmt.bind(row)
+      stmt.step()
+      stmt.reset()
+    }
+  }
+  finally {
+    stmt.finalize()
+  }
+}
+
+// eslint-disable-next-line complexity
+async function deserializeAndMergeDb(arrayBuffer: ArrayBuffer): Promise<void> {
+  const sqlite3 = sqlite3Module
+  const capi = sqlite3?.capi
+
+  if (!capi || typeof capi.sqlite3_deserialize !== 'function' || !sqlite3?.wasm?.allocFromTypedArray) {
+    throw new Error('Невозможно импортировать оффлайн-базу: OPFS недоступен, '
+      + 'а сборка sqlite-wasm не содержит sqlite3_deserialize')
+  }
+
+  const bytes = new Uint8Array(arrayBuffer)
+  const tmpDb = deserializeTempDb(bytes)
+
+  try {
+    // Новый формат дампа содержит стабильный id слова каталога
+    const dictHasId = tmpTableExists(tmpDb, 'dictionary') && tmpTableHasColumn(tmpDb, 'dictionary', 'id')
+
+    const dictRows: unknown[][] = []
+    if (tmpTableExists(tmpDb, 'dictionary')) {
+      tmpDb.exec({
+        sql: `SELECT ${dictHasId ? 'id, ' : ''}${DICT_COLUMNS_SQL} FROM dictionary`,
+        callback: (rowArg: unknown) => {
+          const row = rowArg as unknown[]
+          dictRows.push([...row])
+        },
+      })
+    }
+
+    const analysisRows: unknown[][] = []
+    if (tmpTableExists(tmpDb, 'analyses')) {
+      tmpDb.exec({
+        sql: 'SELECT text_key, language, analysis_json FROM analyses',
+        callback: (rowArg: unknown) => {
+          const row = rowArg as unknown[]
+          analysisRows.push([...row])
+        },
+      })
+    }
+
+    if (dictRows.length === 0 && analysisRows.length === 0)
+      throw new Error('Скачанная база не содержит данных dictionary/analyses')
+
+    db.exec('BEGIN TRANSACTION;')
+    try {
+      mergeDictionaryRows(dictRows, dictHasId)
+      mergeAnalysisRows(analysisRows)
+      db.exec('COMMIT;')
+    }
+    catch (e) {
+      db.exec('ROLLBACK;')
+      throw e
+    }
+  }
+  finally {
+    try {
+      tmpDb.close()
+    }
+    catch { }
+  }
 }
 
 function notifySyncProgress(stage: string, loaded: number, total: number): void {
   rpcClient?.onSyncProgress({ stage, loaded, total })
+}
+
+/**
+ * Сериализация скачиваний: параллельные downloadAndAttachPublicDict
+ * конфликтовали бы по алиасу ATTACH ('remote') и по временным файлам.
+ */
+let downloadQueue: Promise<unknown> = Promise.resolve()
+
+function enqueueExclusive<T>(task: () => Promise<T>): Promise<T> {
+  const result = downloadQueue.then(() => task())
+  downloadQueue = result.catch(() => { })
+
+  return result
+}
+
+/** Префлайт-проверка: хватит ли места в OPFS (дамп пишется рядом с основной БД) */
+async function ensureStorageQuota(neededBytes: number): Promise<void> {
+  try {
+    const estimate = await navigator.storage.estimate()
+    if (estimate.quota && estimate.usage != null) {
+      const required = neededBytes * 2 // сам дамп + рост основной БД при merge
+      if (estimate.usage + required > estimate.quota) {
+        throw new Error(`Недостаточно места в хранилище браузера: требуется ~${Math.ceil(required / 1048576)} МБ, `
+          + `доступно ~${Math.max(0, Math.floor((estimate.quota - estimate.usage) / 1048576))} МБ`)
+      }
+    }
+  }
+  catch (e) {
+    if (e instanceof Error && e.message.startsWith('Недостаточно'))
+      throw e
+    // estimate() недоступен — пропускаем проверку
+  }
 }
 
 function buildAuthHeaders(token?: string): Record<string, string> {
@@ -118,21 +492,64 @@ function appendCacheBustParam(url: string): string {
   return `${url}${separator}t=${Date.now()}`
 }
 
+function isSqliteBuffer(buffer: ArrayBuffer): boolean {
+  if (buffer.byteLength < SQLITE_MAGIC.length)
+    return false
+
+  const header = new Uint8Array(buffer, 0, SQLITE_MAGIC.length)
+  for (let i = 0; i < SQLITE_MAGIC.length; i++) {
+    if (header[i] !== SQLITE_MAGIC.charCodeAt(i))
+      return false
+  }
+
+  return true
+}
+
 async function downloadPublicDictBuffer(dbUrl: string, token?: string): Promise<ArrayBuffer> {
   const headers = buildAuthHeaders(token)
   const finalUrl = appendCacheBustParam(dbUrl)
   const res = await fetch(finalUrl, { headers, cache: 'no-store' })
 
   if (!res.ok) {
-    throw new Error(`Failed to download database: ${res.status} ${res.statusText}`)
+    let details = ''
+    try {
+      details = (await res.text()).slice(0, 200)
+    }
+    catch { }
+
+    throw new Error(`Failed to download database: ${res.status} ${res.statusText}${details ? ` — ${details}` : ''}`)
   }
 
   const contentLength = res.headers.get('content-length')
   const totalBytes = contentLength ? parseInt(contentLength, 10) : 0
 
-  if (totalBytes > 0) {
-    notifySyncProgress('Downloading...', 10, 100)
+  // Потоковое скачивание с прогрессом (0–85%)
+  if (res.body && totalBytes > 0) {
+    const reader = res.body.getReader()
+    const chunks: Uint8Array[] = []
+    let received = 0
+
+    for (; ;) {
+      const { done, value } = await reader.read()
+      if (done)
+        break
+
+      chunks.push(value)
+      received += value.byteLength
+      notifySyncProgress('Downloading...', Math.min(85, Math.round((received / totalBytes) * 85)), 100)
+    }
+
+    const merged = new Uint8Array(received)
+    let offset = 0
+    for (const chunk of chunks) {
+      merged.set(chunk, offset)
+      offset += chunk.byteLength
+    }
+
+    return merged.buffer
   }
+
+  notifySyncProgress('Downloading...', 50, 100)
 
   return await res.arrayBuffer()
 }
@@ -157,27 +574,45 @@ async function unpackMediaZip(mediaZipUrl: string, token?: string): Promise<void
 }
 
 // --- DB Initialization ---
+let initPromise: Promise<void> | null = null
+
 async function initDb(): Promise<void> {
   if (db)
     return
 
+  // Защита от гонки: параллельные RPC-вызовы при старте
+  // должны дождаться одной и той же инициализации
+  if (!initPromise)
+    initPromise = doInitDb()
+
+  await initPromise
+}
+
+async function doInitDb(): Promise<void> {
+  if (db)
+    return
+
   const sqlite3 = await sqlite3InitModule()
+  sqlite3Module = sqlite3
 
   if ('opfs' in sqlite3) {
     try {
-      db = new sqlite3.oo1.OpfsDb('/insight_book.sqlite', 'c')
+      db = new sqlite3.oo1.OpfsDb('/insight_book.sqlite', 'c') as unknown as MySqliteDb
+      isOpfsDb = true
     }
     catch (e) {
       console.warn('[SQLite Worker] Fallback to standard DB:', e)
-      db = new sqlite3.oo1.DB('/insight_book.sqlite', 'c')
+      db = new sqlite3.oo1.DB('/insight_book.sqlite', 'c') as unknown as MySqliteDb
+      isOpfsDb = false
     }
   }
   else {
-    db = new sqlite3.oo1.DB('/insight_book.sqlite', 'c')
+    db = new sqlite3.oo1.DB('/insight_book.sqlite', 'c') as unknown as MySqliteDb
+    isOpfsDb = false
   }
 
   if (db && db.pointer && sqlite3.capi && typeof sqlite3.capi.sqlite3_trace_v2 === 'function') {
-    ; (sqlite3.capi.sqlite3_trace_v2 as any)(
+    ; (sqlite3.capi.sqlite3_trace_v2 as unknown as (...args: unknown[]) => void)(
       db.pointer,
       0,
       0,
@@ -342,11 +777,8 @@ function getWordBindValues(w: UserDictItem, lang: string): unknown[] {
   ]
 }
 
-function bindWordStmt(stmt: { bind: (vals: unknown[]) => void, step: () => void, reset: () => void }, w: UserDictItem, lang: string) {
-  stmt.bind(getWordBindValues(w, lang))
-  stmt.step()
-  stmt.reset()
-}
+/** Точный матч deckId внутри JSON-массива deck_ids_json (вместо LIKE '%1%', который ловил 10, 21, ...) */
+const DECK_ID_MATCH_SQL = 'EXISTS (SELECT 1 FROM json_each(d.deck_ids_json) je WHERE je.value = ?)'
 
 function buildQueryParams(params: DictionaryQueryParams) {
   const conditions: string[] = []
@@ -358,8 +790,8 @@ function buildQueryParams(params: DictionaryQueryParams) {
   }
 
   if (params.deckId) {
-    conditions.push('d.deck_ids_json LIKE ?')
-    sqlParams.push(`%${params.deckId}%`)
+    conditions.push(DECK_ID_MATCH_SQL)
+    sqlParams.push(params.deckId)
   }
 
   if (params.state !== undefined) {
@@ -454,7 +886,8 @@ const rpcHandlers: ClientToWorkerRPC = {
     db.exec({
       sql: 'SELECT value FROM settings WHERE key = ?',
       bind: [key],
-      callback: (row: string[]) => {
+      callback: (rowArg: unknown) => {
+        const row = rowArg as string[]
         result = row[0]
       },
     })
@@ -471,7 +904,7 @@ const rpcHandlers: ClientToWorkerRPC = {
     await initDb()
     db.exec('BEGIN TRANSACTION;')
     try {
-      const stmt = db.prepare(`
+      const upsertByIdStmt = db.prepare(`
         INSERT INTO dictionary (
           id, word, transcription, translation, language, target_language, notes, tags, difficulty,
           grammar_note, vocabulary_note, deck_ids_json, state, due, stability, difficulty_fsrs,
@@ -485,11 +918,79 @@ const rpcHandlers: ClientToWorkerRPC = {
           last_review=excluded.last_review, updated_at=excluded.updated_at, raw_json=excluded.raw_json;
       `)
 
-      for (const w of words) {
-        bindWordStmt(stmt, w, lang)
+      // Вставка новой записи без серверного id (autoincrement)
+      const insertNoIdStmt = db.prepare(`
+        INSERT INTO dictionary (
+          word, transcription, translation, language, target_language, notes, tags, difficulty,
+          grammar_note, vocabulary_note, deck_ids_json, state, due, stability, difficulty_fsrs,
+          scheduled_days, reps, lapses, last_review, learning_steps, created_at, updated_at, raw_json
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+      `)
+
+      // Поиск уже существующей записи того же слова (например, каталожной с отрицательным id)
+      const findByWordStmt = db.prepare(`
+        SELECT id FROM dictionary
+        WHERE word = ?
+          AND IFNULL(language, '') = IFNULL(?, '')
+          AND IFNULL(target_language, '') = IFNULL(?, '')
+        LIMIT 1;
+      `)
+
+      // Обновление найденной записи с сохранением её локального id
+      const updateByIdStmt = db.prepare(`
+        UPDATE dictionary SET
+          word=?, transcription=?, translation=?, language=?, target_language=?, notes=?, tags=?,
+          difficulty=?, grammar_note=?, vocabulary_note=?, deck_ids_json=?, state=?, due=?,
+          stability=?, difficulty_fsrs=?, scheduled_days=?, reps=?, lapses=?, last_review=?,
+          learning_steps=?, created_at=?, updated_at=?, raw_json=?
+        WHERE id = ?;
+      `)
+
+      try {
+        for (const w of words) {
+          const values = getWordBindValues(w, lang)
+          const [wordId, word, , , language, targetLanguage] = values as [number | null, string, unknown, unknown, string, string]
+
+          // 1) Есть ли запись этого же слова с другим id (напр., каталожная)?
+          let existingId: number | null = null
+          findByWordStmt.bind([word, language, targetLanguage])
+          if (findByWordStmt.step()) {
+            const row = findByWordStmt.getAsObject() as { id?: number }
+            existingId = row.id ?? null
+          }
+
+          findByWordStmt.reset()
+
+          if (existingId !== null && existingId !== wordId) {
+            // Обновляем существующую (каталожную) запись, сохраняя её id,
+            // чтобы не плодить дубли «каталог + пользователь»
+            const rawJson = JSON.stringify({ ...w, id: existingId })
+            updateByIdStmt.bind([...values.slice(1, -1), rawJson, existingId] as unknown[])
+            updateByIdStmt.step()
+            updateByIdStmt.reset()
+            continue
+          }
+
+          if (wordId === null || wordId === undefined) {
+            // Новая запись без серверного id — вставка с autoincrement
+            insertNoIdStmt.bind(values.slice(1) as unknown[])
+            insertNoIdStmt.step()
+            insertNoIdStmt.reset()
+          }
+          else {
+            upsertByIdStmt.bind(values)
+            upsertByIdStmt.step()
+            upsertByIdStmt.reset()
+          }
+        }
+      }
+      finally {
+        upsertByIdStmt.finalize()
+        insertNoIdStmt.finalize()
+        findByWordStmt.finalize()
+        updateByIdStmt.finalize()
       }
 
-      stmt.finalize()
       db.exec('COMMIT;')
     }
     catch (e) {
@@ -508,15 +1009,25 @@ const rpcHandlers: ClientToWorkerRPC = {
     db.exec({
       sql: countSql,
       bind: sqlParams,
-      callback: (row: (number | string)[]) => {
+      callback: (rowArg: unknown) => {
+        const row = rowArg as (number | string)[]
         total = Number(row[0])
       },
     })
 
+    // Whitelist сортировки: маппинг camelCase → реальные колонки
+    // (иначе ORDER BY d.createdAt падает с "no such column" + риск инъекции)
+    const sortableColumns: Record<string, string> = {
+      word: 'word',
+      createdAt: 'created_at',
+      due: 'due',
+      difficulty: 'difficulty',
+    }
+
     let orderClause = 'ORDER BY d.id DESC'
-    if (params.sortBy) {
+    if (params.sortBy && sortableColumns[params.sortBy]) {
       const dir = params.sortOrder === 'asc' ? 'ASC' : 'DESC'
-      orderClause = `ORDER BY d.${params.sortBy} ${dir}`
+      orderClause = `ORDER BY d.${sortableColumns[params.sortBy]} ${dir}`
     }
 
     const limitClause = params.limit ? `LIMIT ${params.limit} OFFSET ${params.offset || 0}` : ''
@@ -526,7 +1037,8 @@ const rpcHandlers: ClientToWorkerRPC = {
     db.exec({
       sql: selectSql,
       bind: sqlParams,
-      callback: (row: string[]) => {
+      callback: (rowArg: unknown) => {
+        const row = rowArg as string[]
         try {
           items.push(JSON.parse(row[0]))
         }
@@ -543,7 +1055,8 @@ const rpcHandlers: ClientToWorkerRPC = {
     db.exec({
       sql: 'SELECT raw_json FROM dictionary WHERE language = ? OR language IS NULL ORDER BY id DESC',
       bind: [lang],
-      callback: (row: string[]) => {
+      callback: (rowArg: unknown) => {
+        const row = rowArg as string[]
         try {
           items.push(JSON.parse(row[0]))
         }
@@ -585,7 +1098,8 @@ const rpcHandlers: ClientToWorkerRPC = {
     db.exec({
       sql: 'SELECT id, user_id, name, language, target_language, created_at FROM decks WHERE language = ?',
       bind: [lang],
-      callback: (row: [number, number, string, string, string, string]) => {
+      callback: (rowArg: unknown) => {
+        const row = rowArg as [number, number, string, string, string, string]
         decks.push({
           id: row[0],
           userId: row[1],
@@ -610,7 +1124,8 @@ const rpcHandlers: ClientToWorkerRPC = {
             WHERE state IN (1, 3) OR due <= ?
             ORDER BY RANDOM() LIMIT ?`,
       bind: [nowIso, limit],
-      callback: (row: string[]) => {
+      callback: (rowArg: unknown) => {
+        const row = rowArg as string[]
         try {
           items.push(JSON.parse(row[0]))
         }
@@ -676,7 +1191,8 @@ const rpcHandlers: ClientToWorkerRPC = {
     db.exec({
       sql: 'SELECT raw_json FROM books WHERE id = ?',
       bind: [id],
-      callback: (row: string[]) => {
+      callback: (rowArg: unknown) => {
+        const row = rowArg as string[]
         try {
           result = JSON.parse(row[0])
         }
@@ -708,7 +1224,8 @@ const rpcHandlers: ClientToWorkerRPC = {
     const books: Book[] = []
     db.exec({
       sql: 'SELECT raw_json FROM books ORDER BY updated_at DESC',
-      callback: (row: string[]) => {
+      callback: (rowArg: unknown) => {
+        const row = rowArg as string[]
         try {
           books.push(JSON.parse(row[0]))
         }
@@ -743,14 +1260,15 @@ const rpcHandlers: ClientToWorkerRPC = {
     db.exec({
       sql: 'SELECT content, page_dict_json, type, image_url, local_image_url, image_width, image_height, ocr_blocks_json FROM pages WHERE book_id = ? AND page_num = ?',
       bind: [bookId, pageNum],
-      callback: (row: [string, string, string, string, string, number, number, string]) => {
+      callback: (rowArg: unknown) => {
+        const row = rowArg as [string, string, string, string, string, number, number, string]
         res = {
           bookId,
           pageNum,
           totalPages: 0,
           content: row[0] || '',
           pageDictionary: row[1] ? JSON.parse(row[1]) : undefined,
-          type: (row[2] as any) || undefined,
+          type: (row[2] as 'epub' | 'manga') || undefined,
           imageUrl: row[3] || undefined,
           localImageUrl: row[4] || undefined,
           imageWidth: row[5] || undefined,
@@ -808,7 +1326,8 @@ const rpcHandlers: ClientToWorkerRPC = {
     db.exec({
       sql: 'SELECT toc_json FROM books WHERE id = ?',
       bind: [bookId],
-      callback: (row: string[]) => {
+      callback: (rowArg: unknown) => {
+        const row = rowArg as string[]
         if (row[0]) {
           try {
             toc = JSON.parse(row[0])
@@ -851,7 +1370,8 @@ const rpcHandlers: ClientToWorkerRPC = {
     db.exec({
       sql: 'SELECT id, user_id, book_id, text, translation, note, color, chapter, page_num, analysis_data_json, created_at FROM highlights WHERE book_id = ?',
       bind: [bookId],
-      callback: (row: [number, number, number, string, string, string, string, string, number, string, string]) => {
+      callback: (rowArg: unknown) => {
+        const row = rowArg as [number, number, number, string, string, string, string, string, number, string, string]
         highlights.push({
           id: row[0],
           userId: row[1],
@@ -873,7 +1393,7 @@ const rpcHandlers: ClientToWorkerRPC = {
 
   async saveAnalysis(text: string, analysis: LlmAnalysis, lang = 'ru'): Promise<void> {
     await initDb()
-    const textKey = `${lang}_${text.trim().toLowerCase()}`
+    const textKey = buildAnalysisKey(lang, text)
     const stmt = db.prepare(`
       INSERT INTO analyses (text_key, language, analysis_json)
       VALUES (?, ?, ?)
@@ -884,20 +1404,42 @@ const rpcHandlers: ClientToWorkerRPC = {
     stmt.finalize()
   },
 
-  async getAnalysis(text: string, lang = 'ru'): Promise<LlmAnalysis | null> {
+  async getAnalysis(text: string, lang?: string): Promise<LlmAnalysis | null> {
     await initDb()
-    const textKey = `${lang}_${text.trim().toLowerCase()}`
+    const normalizedText = normalizeAnalysisText(text)
     let analysis: LlmAnalysis | null = null
-    db.exec({
-      sql: 'SELECT analysis_json FROM analyses WHERE text_key = ?',
-      bind: [textKey],
-      callback: (row: string[]) => {
-        try {
-          analysis = JSON.parse(row[0])
-        }
-        catch { }
-      },
-    })
+
+    const readRow = (rowArg: unknown) => {
+      const row = rowArg as string[]
+      try {
+        analysis = JSON.parse(row[0])
+      }
+      catch { }
+    }
+
+    // 1) Точное совпадение по ключу с языком: `${lang}_${text}`
+    if (lang) {
+      db.exec({
+        sql: 'SELECT analysis_json FROM analyses WHERE text_key = ? LIMIT 1',
+        bind: [buildAnalysisKey(lang, normalizedText)],
+        callback: readRow,
+      })
+    }
+
+    // 2) Fallback: тот же текст с любым языковым префиксом
+    //    (совместимость со старыми записями и вызовами без lang).
+    //    Предпочтение отдаётся запрошенному языку.
+    if (!analysis) {
+      const escapedText = normalizedText.replace(/[\\%_]/g, ch => `\\${ch}`)
+      db.exec({
+        sql: `SELECT analysis_json FROM analyses
+              WHERE text_key LIKE ? ESCAPE '\\'
+              ORDER BY CASE WHEN language = ? THEN 0 ELSE 1 END
+              LIMIT 1`,
+        bind: [`%\\_${escapedText}`, lang || ''],
+        callback: readRow,
+      })
+    }
 
     return analysis
   },
@@ -931,27 +1473,52 @@ const rpcHandlers: ClientToWorkerRPC = {
   },
 
   async downloadAndAttachPublicDict(dbUrl: string, mediaZipUrl?: string, token?: string): Promise<void> {
-    await initDb()
+    // Параллельные скачивания выполняются строго последовательно
+    await enqueueExclusive(async () => {
+      await initDb()
 
-    notifySyncProgress('Downloading public LLM cache database...', 0, 100)
+      notifySyncProgress('Downloading public LLM cache database...', 0, 100)
 
-    const arrayBuffer = await downloadPublicDictBuffer(dbUrl, token)
+      const arrayBuffer = await downloadPublicDictBuffer(dbUrl, token)
 
-    notifySyncProgress('Saving database to OPFS...', 90, 100)
+      await ensureStorageQuota(arrayBuffer.byteLength)
 
-    const tempDbName = `public_dict_${Date.now()}_${Math.random().toString(36).substring(7)}.sqlite`
-    await writeOpfsFile(tempDbName, arrayBuffer)
+      // Валидация: сервер должен вернуть SQLite-файл, а не HTML/JSON-ошибку
+      if (!isSqliteBuffer(arrayBuffer)) {
+        let preview = ''
+        try {
+          preview = new TextDecoder().decode(new Uint8Array(arrayBuffer).slice(0, 150))
+        }
+        catch { }
 
-    notifySyncProgress('Attaching & merging LLM cache database...', 95, 100)
-    await attachAndMergeDb(tempDbName)
+        throw new Error('Сервер вернул некорректную оффлайн-базу (это не SQLite-файл). '
+          + `Начало ответа: ${preview || '<пустой ответ>'}`)
+      }
 
-    await deleteOpfsFile(tempDbName)
+      notifySyncProgress('Merging LLM cache database...', 90, 100)
 
-    if (mediaZipUrl) {
-      await unpackMediaZip(mediaZipUrl, token)
-    }
+      if (isOpfsDb) {
+        // Основная БД в OPFS — мержим через ATTACH с vfs=opfs
+        const tempDbName = `public_dict_${Date.now()}_${Math.random().toString(36).substring(7)}.sqlite`
+        try {
+          await writeOpfsFile(tempDbName, arrayBuffer)
+          await attachAndMergeDb(tempDbName)
+        }
+        finally {
+          await deleteOpfsFile(tempDbName)
+        }
+      }
+      else {
+        // Fallback (основная БД не в OPFS): десериализация + перенос строк
+        await deserializeAndMergeDb(arrayBuffer)
+      }
 
-    notifySyncProgress('Completed', 100, 100)
+      if (mediaZipUrl) {
+        await unpackMediaZip(mediaZipUrl, token)
+      }
+
+      notifySyncProgress('Completed', 100, 100)
+    })
   },
 
   async getStorageStats() {
@@ -965,7 +1532,8 @@ const rpcHandlers: ClientToWorkerRPC = {
       db.exec({
         sql: 'SELECT COUNT(*) FROM pages WHERE book_id = ?',
         bind: [b.id],
-        callback: (row: (number | string)[]) => {
+        callback: (rowArg: unknown) => {
+          const row = rowArg as (number | string)[]
           cachedPagesCount = Number(row[0])
         },
       })
@@ -985,7 +1553,8 @@ const rpcHandlers: ClientToWorkerRPC = {
     let totalDictionaryWords = 0
     db.exec({
       sql: 'SELECT COUNT(*) FROM dictionary',
-      callback: (row: (number | string)[]) => {
+      callback: (rowArg: unknown) => {
+        const row = rowArg as (number | string)[]
         totalDictionaryWords = Number(row[0])
       },
     })
@@ -994,8 +1563,9 @@ const rpcHandlers: ClientToWorkerRPC = {
 
     try {
       db.exec({
-        sql: 'SELECT language, COUNT(*), SUM(length(analysis_json) + length(text_key)) FROM analyses GROUP BY language',
-        callback: (row: (number | string)[]) => {
+        sql: 'SELECT language, COUNT(*), SUM(COALESCE(length(analysis_json), 0) + COALESCE(length(text_key), 0)) FROM analyses GROUP BY language',
+        callback: (rowArg: unknown) => {
+          const row = rowArg as (number | string)[]
           const lang = String(row[0])
           if (!languageStats[lang])
             languageStats[lang] = { analysesCount: 0, dictionaryWords: 0, sizeBytes: 0 }
@@ -1008,8 +1578,9 @@ const rpcHandlers: ClientToWorkerRPC = {
 
     try {
       db.exec({
-        sql: 'SELECT language, COUNT(*), SUM(length(word) + length(translation) + length(raw_json)) FROM dictionary GROUP BY language',
-        callback: (row: (number | string)[]) => {
+        sql: 'SELECT language, COUNT(*), SUM(COALESCE(length(word), 0) + COALESCE(length(translation), 0) + COALESCE(length(raw_json), 0)) FROM dictionary GROUP BY language',
+        callback: (rowArg: unknown) => {
+          const row = rowArg as (number | string)[]
           const lang = String(row[0])
           if (!languageStats[lang])
             languageStats[lang] = { analysesCount: 0, dictionaryWords: 0, sizeBytes: 0 }
@@ -1071,6 +1642,11 @@ const rpcHandlers: ClientToWorkerRPC = {
     db.exec('DELETE FROM decks;')
     db.exec('DELETE FROM highlights;')
     db.exec('DELETE FROM analyses;')
+
+    try {
+      db.exec('VACUUM;')
+    }
+    catch { }
 
     try {
       const root = await getOpfsRoot()

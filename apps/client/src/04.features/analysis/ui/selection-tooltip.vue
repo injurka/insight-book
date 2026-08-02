@@ -98,7 +98,7 @@ function isElementSelectable(node: Node | null): boolean {
   return false
 }
 
-function getValidSelection(settingsStore: any, readerStore: any): Selection | null {
+function getValidSelection(settingsStore: ReturnType<typeof useGlobalSettingsStore>, readerStore: ReturnType<typeof useReaderStore>): Selection | null {
   if (readerStore.currentBook?.language === settingsStore.appLanguage)
     return null
   const selection = window.getSelection()

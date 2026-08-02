@@ -107,12 +107,12 @@ export const offlineService = {
     return dbRpc.getDecks()
   },
 
-  async saveAnalysis(text: string, analysis: LlmAnalysis) {
-    await dbRpc.saveAnalysis(text, JSON.parse(JSON.stringify(analysis)))
+  async saveAnalysis(text: string, analysis: LlmAnalysis, lang?: string) {
+    await dbRpc.saveAnalysis(text, JSON.parse(JSON.stringify(analysis)), lang)
   },
 
-  async getAnalysis(text: string): Promise<LlmAnalysis | null> {
-    return dbRpc.getAnalysis(text)
+  async getAnalysis(text: string, lang?: string): Promise<LlmAnalysis | null> {
+    return dbRpc.getAnalysis(text, lang)
   },
 
   async saveTts(hashKey: string, audioBase64: string) {

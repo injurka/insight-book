@@ -58,7 +58,7 @@ const scrambleChunks = ref<{ id: number, text: string }[]>([])
 const scrambleAnswer = ref<{ id: number, text: string }[]>([])
 
 // Deep Dive state
-const deepDiveData = ref<any>(null)
+const deepDiveData = ref<unknown>(null)
 const selectedRadicals = ref<string[]>([])
 const isAiLoadingMode = ref(false)
 
@@ -116,6 +116,7 @@ const modeProps = computed(() => {
       }
     case 'collocations':
       return {
+        card,
         deepDiveData: deepDiveData.value,
         choiceOptions: choiceOptions.value,
         isAnswerChecked: isAnswerChecked.value,
@@ -138,7 +139,7 @@ const modeEmits = computed(() => {
   switch (currentMode.value) {
     case 'audio':
       return {
-        speak: () => props.card && speak(props.card.word, props.card.language),
+        speak: () => props.card && speak(props.card!.word, props.card!.language),
         flip,
       }
     case 'writing':
@@ -218,7 +219,7 @@ async function initDeepDive(mode: 'collocations' | 'radicals') {
       selectedRadicals.value = []
 
     else if (mode === 'collocations')
-      choiceOptions.value = (res as any).options.map((text: string) => ({ text, isCorrect: text === (res as any).answer })).sort(() => Math.random() - 0.5)
+      choiceOptions.value = (res as { options: string[], answer: string }).options.map((text: string) => ({ text, isCorrect: text === (res as { options: string[], answer: string }).answer })).sort(() => Math.random() - 0.5)
   }
   catch {
     toast.error('Failed to load deep dive data')
@@ -243,7 +244,7 @@ function toggleRadical(rad: string) {
 function checkRadicals() {
   if (!deepDiveData.value || isAnswerChecked.value)
     return
-  const expected = deepDiveData.value.answer as string[]
+  const expected = (deepDiveData.value as { answer: string[] }).answer as string[]
   const selected = selectedRadicals.value
 
   const isCorrect = expected.length === selected.length && expected.every((e: string) => selected.includes(e))
@@ -254,11 +255,11 @@ function checkRadicals() {
 
 type SrsMode = 'standard' | 'audio' | 'writing' | 'typing' | 'choice' | 'choice-reverse' | 'scramble' | 'collocations' | 'radicals'
 
-function isZhCard(card: any): boolean {
+function isZhCard(card: import('~/01.shared/types/models').UserDictItem): boolean {
   if (!card)
     return false
 
-  return card.language === 'zh' && !!card.word && /[\u4E00-\u9FA5]/.test(card.word)
+  return (card as UserDictItem).language === 'zh' && !!(card as UserDictItem).word && /[\u4E00-\u9FA5]/.test((card as UserDictItem).word)
 }
 
 function determineAvailableModes(): SrsMode[] {
@@ -274,8 +275,8 @@ function determineAvailableModes(): SrsMode[] {
     'radicals': false,
   }
 
-  const isZh = isZhCard(props.card)
-  const cardWord = props.card ? props.card.word : ''
+  const isZh = props.card ? isZhCard(props.card) : false
+  const cardWord = props.card ? props.card!.word : ''
 
   const modeChecks: [SrsMode, boolean][] = [
     ['standard', !!modesConfig.standard],
@@ -313,11 +314,11 @@ function setupChoiceOptions(mode: 'choice' | 'choice-reverse') {
 
 function shouldUseChoiceMode(
   mode: 'choice' | 'choice-reverse',
-  config: any,
+  config: unknown,
   available: SrsMode[],
   isNew: boolean,
 ): boolean {
-  if (!config[mode] || !available.includes(mode) || !isNew)
+  if (!(config as Record<string, boolean>)[mode] || !available.includes(mode) || !isNew)
     return false
 
   return Math.random() > 0.3
@@ -375,7 +376,7 @@ function initCard() {
   if (currentMode.value === 'audio') {
     setTimeout(() => {
       if (props.card?.word)
-        speak(props.card.word, props.card.language)
+        speak(props.card!.word, props.card!.language)
     }, 300)
   }
 }
@@ -383,14 +384,14 @@ function initCard() {
 function flip() {
   isFlipped.value = true
   if (currentMode.value !== 'audio' && props.card?.word)
-    speak(props.card.word, props.card.language)
+    speak(props.card!.word, props.card!.language)
 }
 
 function submitTyping() {
   if (isAnswerChecked.value || !typedAnswer.value.trim() || !props.card)
     return
 
-  const { isCorrect, isTypo } = checkTypo(typedAnswer.value, props.card.word)
+  const { isCorrect, isTypo } = checkTypo(typedAnswer.value, props.card!.word)
   if (isCorrect) {
     isAnswerCorrect.value = true
     isAnswerChecked.value = true
@@ -398,13 +399,13 @@ function submitTyping() {
     flip()
   }
   else if (isTypo) {
-    typoFeedback.value = t('dictionary.almostCorrectTypo', { expected: props.card.word })
+    typoFeedback.value = t('dictionary.almostCorrectTypo', { expected: props.card!.word })
   }
 
   else {
     isAnswerCorrect.value = false
     isAnswerChecked.value = true
-    typoFeedback.value = t('dictionary.incorrectAnswer', { expected: props.card.word })
+    typoFeedback.value = t('dictionary.incorrectAnswer', { expected: props.card!.word })
     setTimeout(flip, 1200)
   }
 }
@@ -449,6 +450,7 @@ watch(() => props.card, initCard, { immediate: true })
         <p>{{ t('analysis.generatingContext') }}</p>
       </div>
 
+      <!-- @vue-ignore -->
       <component
         :is="currentModeComponent"
         v-else-if="currentMode !== 'collocations' || deepDiveData"
@@ -460,7 +462,7 @@ watch(() => props.card, initCard, { immediate: true })
     <div v-if="isFlipped" class="card-back fade-in">
       <div v-if="['audio', 'writing', 'typing', 'scramble', 'collocations'].includes(currentMode) || card.transcription" class="back-word-row">
         <div v-if="['audio', 'writing', 'typing', 'scramble', 'collocations'].includes(currentMode)" class="word-huge back-word fade-in">
-          {{ card.word }}
+          {{ (card as UserDictItem).word }}
         </div>
         <div v-if="card.transcription" class="transcription-badge fade-in">
           {{ card.transcription }}
@@ -479,8 +481,8 @@ watch(() => props.card, initCard, { immediate: true })
 
       <PronunciationCheck
         v-if="card"
-        :word="card.word"
-        :language="card.language"
+        :word="(card as UserDictItem).word"
+        :language="(card as UserDictItem).language"
         variant="inline"
       />
     </div>

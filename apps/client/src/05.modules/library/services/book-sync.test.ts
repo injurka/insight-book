@@ -321,8 +321,8 @@ describe('startWholeBookSync', () => {
     hoisted.analysisRepo.checkCache.mockResolvedValue({
       results: [{ sentence: 'Cached on server.', analysis: serverAnalysis }],
     })
-    hoisted.analysisRepo.analyzeBatch.mockImplementation(async (_id: number, items: any[]) => ({
-      results: items.map((it: any) => ({ id: it.id, analysis: { meanings: ['llm'] } })),
+    hoisted.analysisRepo.analyzeBatch.mockImplementation(async (_id: number, items: unknown[]) => ({
+      results: items.map((it: unknown) => ({ id: it.id, analysis: { meanings: ['llm'] } })),
     }))
 
     await startWholeBookSync(1, { ...baseOptions, analyzeSentences: true })
@@ -370,8 +370,8 @@ describe('startWholeBookSync', () => {
       content: '<span data-word="hello" data-pos="noun">hello</span>'
         + '<span data-word="the" data-pos="x">the</span>',
     }))
-    hoisted.analysisRepo.analyzeBatch.mockImplementation(async (_id: number, items: any[]) => ({
-      results: items.map((it: any) => ({ id: it.id, analysis: { meanings: ['llm'] } })),
+    hoisted.analysisRepo.analyzeBatch.mockImplementation(async (_id: number, items: unknown[]) => ({
+      results: items.map((it: unknown) => ({ id: it.id, analysis: { meanings: ['llm'] } })),
     }))
 
     await startWholeBookSync(1, { ...baseOptions, analyzeWords: true })

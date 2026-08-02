@@ -102,7 +102,7 @@ const siteUrl = 'https://insight-book.ru'
 const siteName = 'InsightBook'
 const description = computed(() => t('app.description'))
 
-const headScripts: any[] = [
+const headScripts: Record<string, unknown>[] = [
   {
     type: 'application/ld+json',
     children: computed(() => JSON.stringify({
@@ -177,7 +177,7 @@ useHead({
       href: computed(() => `${siteUrl}${route.path}`),
     },
   ],
-  script: headScripts,
+  script: headScripts as never[],
 })
 
 watch(() => route.name, (_name, oldName) => {

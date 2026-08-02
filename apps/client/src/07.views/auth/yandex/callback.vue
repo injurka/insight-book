@@ -31,19 +31,19 @@ onMounted(async () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ code }),
       })
-      const data = await res.json() as any
-      if (!res.ok || !data.token) {
-        error.value = data?.error || 'Ошибка обмена кода авторизации'
+      const data = await res.json() as unknown
+      if (!res.ok || !(data as { token: string }).token) {
+        error.value = (data as { error?: string })?.error || 'Ошибка обмена кода авторизации'
 
         return
       }
 
-      localStorage.setItem('insight_token', data.token)
+      localStorage.setItem('insight_token', (data as { token: string }).token)
       await authStore.checkAuth()
       router.push('/')
     }
-    catch (e: any) {
-      error.value = e.message || 'Ошибка сети'
+    catch (e: unknown) {
+      error.value = (e as Error).message || 'Ошибка сети'
     }
 
     return

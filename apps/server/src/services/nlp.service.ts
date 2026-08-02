@@ -138,7 +138,7 @@ class RussianTokenizer implements LanguageTokenizer {
   private initPromise: Promise<void> | null = null
   private isReady = false
   private segmenter = new Intl.Segmenter('ru', { granularity: 'word' })
-  private Az: any
+  private Az: { Morph: { init: (cb: () => void) => void, (arg: string): { word: string, tag: { POS: string, toString: () => string } }[] } } | null = null
 
   public init(): Promise<void> {
     if (this.isReady)
@@ -150,7 +150,7 @@ class RussianTokenizer implements LanguageTokenizer {
       // @ts-expect-error no dts
       import('az').then((azModule) => {
         this.Az = azModule.default || azModule
-        this.Az.Morph.init(() => {
+        this.Az!.Morph.init(() => {
           this.isReady = true
           resolve()
         })
@@ -205,7 +205,7 @@ class RussianTokenizer implements LanguageTokenizer {
         continue
       }
 
-      const parses = this.Az.Morph(segment)
+      const parses = this.Az!.Morph(segment)
       const pos = parses.length > 0 ? this.mapPos(parses[0].tag.POS) : 'unk'
       tokens.push({ word: segment, pos })
     }
@@ -256,12 +256,12 @@ export async function tokenizeHtmlPage(html: string, language: string) {
   const allWords = new Set<string>()
   let sentenceIdCounter = 0
 
-  const blocks: { textNodes: any[], fullText: string }[] = []
+  const blocks: { textNodes: { type?: string, name?: string, data?: string, children?: unknown[] }[], fullText: string }[] = []
   let currentBlock = { textNodes: [] as any[], fullText: '' }
 
-  function traverse(el: any) {
+  function traverse(el: { type?: string, name?: string, data?: string, children?: unknown[] }) {
     // eslint-disable-next-line regexp/no-unused-capturing-group
-    const isBlock = el.type === 'tag' && /^(p|div|h[1-6]|li|blockquote|td|th|br|hr|tr|ul|ol|table|article|section|main|aside|nav|header|footer|pre|figure|figcaption)$/i.test(el.name)
+    const isBlock = el.type === "tag" && /^(p|div|h[1-6]|li|blockquote|td|th|br|hr|tr|ul|ol|table|article|section|main|aside|nav|header|footer|pre|figure|figcaption)$/i.test(el.name || "")
 
     if (isBlock && currentBlock.textNodes.length > 0) {
       blocks.push(currentBlock)
@@ -276,7 +276,7 @@ export async function tokenizeHtmlPage(html: string, language: string) {
       }
     }
     else if (el.type === 'tag' && el.children) {
-      el.children.forEach(traverse)
+      (el.children as { type?: string, name?: string, data?: string, children?: unknown[] }[]).forEach(traverse)
     }
 
     if (isBlock && currentBlock.textNodes.length > 0) {
@@ -332,7 +332,7 @@ export async function tokenizeHtmlPage(html: string, language: string) {
     let currentTokenCharOffset = 0
 
     for (const node of block.textNodes) {
-      let nodeText = node.data
+      let nodeText = node.data || ""
       let newHtml = ''
       let activeSentId = -1
       let sentenceHtmlBuf = ''
@@ -393,7 +393,7 @@ export async function tokenizeHtmlPage(html: string, language: string) {
       if (nodeText.length > 0) {
         newHtml += nodeText.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
       }
-      $(node).replaceWith(newHtml)
+      $(node as Parameters<typeof $>[0]).replaceWith(newHtml)
     }
   }
 
@@ -484,7 +484,7 @@ export async function analyzeBookVocabulary(bookId: number, language: string) {
   }
 }
 
-export async function tokenizeOcrBlocks(blocks: any[], language: string) {
+export async function tokenizeOcrBlocks(blocks: { text: string }[], language: string) {
   const tokenizer = getTokenizer(language)
   const allWords = new Set<string>()
   let sentenceIdCounter = 10000

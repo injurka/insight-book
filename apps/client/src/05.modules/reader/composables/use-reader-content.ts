@@ -35,15 +35,15 @@ export function useReaderContent() {
     })
   })
 
-  function buildGrammarHtml(rules?: any[]): string {
+  function buildGrammarHtml(rules?: { pattern?: string, explanation?: string, example?: string }[]): string {
     if (!settingsStore.parallelShowGrammar || !rules || rules.length === 0)
       return ''
-    const badges = rules.map((rule: any) => {
+    const badges = rules.map((rule) => {
       const patternEscaped = encodeURIComponent(rule.pattern || '')
       const explanationEscaped = encodeURIComponent(rule.explanation || '')
       const exampleEscaped = encodeURIComponent(rule.example || '')
 
-      return `<span class="grammar-rule-badge" data-pattern="${patternEscaped}" data-explanation="${explanationEscaped}" data-example="${exampleEscaped}">${escapeHtml(rule.pattern)}</span>`
+      return `<span class="grammar-rule-badge" data-pattern="${patternEscaped}" data-explanation="${explanationEscaped}" data-example="${exampleEscaped}">${escapeHtml(rule.pattern || '')}</span>`
     }).join('')
 
     return `<span class="grammar-rules-container">${badges}</span>`
@@ -82,7 +82,7 @@ export function useReaderContent() {
       const analysisObj = map[rawSent]
       if (translatedSentIds.has(sentId)) {
         span.innerHTML = '';
-        (span as any).style.display = 'none'
+        (span as HTMLElement).style.display = 'none'
       }
       else {
         const blurClass = settingsStore.parallelBlurTranslation ? 'is-blurred' : ''

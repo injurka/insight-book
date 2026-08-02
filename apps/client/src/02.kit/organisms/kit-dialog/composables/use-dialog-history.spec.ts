@@ -4,11 +4,11 @@ import { nextTick, ref } from 'vue'
 import { useDialogHistory } from './use-dialog-history'
 
 describe('use-dialog-history', () => {
-  let originalWindow: any
-  let addEventListenerSpy: any
-  let removeEventListenerSpy: any
-  let pushStateSpy: any
-  let backSpy: any
+  let originalWindow: Window
+  let addEventListenerSpy: unknown
+  let removeEventListenerSpy: unknown
+  let pushStateSpy: unknown
+  let backSpy: unknown
 
   beforeEach(() => {
     originalWindow = global.window
@@ -64,7 +64,7 @@ describe('use-dialog-history', () => {
     expect(backSpy).toHaveBeenCalled()
 
     // Simulate popstate during programmatic back
-    const popstateHandler = addEventListenerSpy.mock.calls.find((c: any) => c[0] === 'popstate')[1]
+    const popstateHandler = addEventListenerSpy.mock.calls.find((c: unknown) => c[0] === 'popstate')[1]
     if (popstateHandler)
       popstateHandler() // Should return early due to isProgrammaticBack
 
@@ -81,8 +81,8 @@ describe('use-dialog-history', () => {
     await nextTick()
 
     const popstateHandlers = addEventListenerSpy.mock.calls
-      .filter((c: any) => c[0] === 'popstate')
-      .map((c: any) => c[1])
+      .filter((c: unknown) => c[0] === 'popstate')
+      .map((c: unknown) => c[1])
 
     // Trigger popstate
     // eslint-disable-next-line ts/no-unsafe-function-type

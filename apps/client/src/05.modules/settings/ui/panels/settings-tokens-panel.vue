@@ -34,21 +34,21 @@ const periodOptions = [
 
   <div class="settings-card tokens-card" :class="{ 'is-loading': isTokensLoading }">
     <KitSkeleton
-      v-if="isTokensLoading && totalTokens.input === 0 && totalTokens.output === 0"
+      v-if="isTokensLoading && (totalTokens as {input: number}).input === 0 && (totalTokens as {output: number}).output === 0"
       width="100%"
       height="150px"
       color="var(--bg-tertiary-color)"
     />
 
-    <template v-else-if="totalTokens.input > 0 || totalTokens.output > 0">
+    <template v-else-if="(totalTokens as {input: number}).input > 0 || (totalTokens as {output: number}).output > 0">
       <div class="total-tokens">
         <div class="stat-item">
           <span class="label">{{ t('settings.inputTokens') }}</span>
-          <span class="value text-accent">{{ formatNumber(totalTokens.input, settingsStore.appLanguage) }}</span>
+          <span class="value text-accent">{{ formatNumber((totalTokens as {input: number}).input, settingsStore.appLanguage) }}</span>
         </div>
         <div class="stat-item">
           <span class="label">{{ t('settings.outputTokens') }}</span>
-          <span class="value">{{ formatNumber(totalTokens.output, settingsStore.appLanguage) }}</span>
+          <span class="value">{{ formatNumber((totalTokens as {output: number}).output, settingsStore.appLanguage) }}</span>
         </div>
         <div v-if="totalCost" class="stat-item">
           <span class="label">{{ t('settings.totalCost') }}</span>

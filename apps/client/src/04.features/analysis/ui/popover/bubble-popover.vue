@@ -18,7 +18,7 @@ defineOptions({
 const props = defineProps<Props>()
 
 interface Props {
-  box: any
+  box: { id: string | number, text: string, html?: string } | null
   referenceEl: HTMLElement | null
 }
 
@@ -184,7 +184,7 @@ function analyzeSentence() {
     let context = ''
 
     const blocks = readerStore.currentPage?.ocrBlocks || []
-    const idx = blocks.findIndex(b => b.id === props.box.id)
+    const idx = blocks.findIndex(b => b.id === props.box?.id)
     if (idx !== -1) {
       const prev = idx > 0 ? blocks[idx - 1].text.replace(/\n+/g, '') : ''
       const next = idx < blocks.length - 1 ? blocks[idx + 1].text.replace(/\n+/g, '') : ''
