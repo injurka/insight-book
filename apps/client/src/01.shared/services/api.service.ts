@@ -1,6 +1,7 @@
 import type { AuthLoginDto, AuthRegisterDto, AuthSendCodeDto, Book, BookStats, CatalogDeck, CatalogPluginRecord, CatalogWord, DictDeck, GeneratedWordExamples, Highlight, LlmAnalysis, PageDictEntry, PagePayload, PromptItem, TocItem, UserData, UserDictItem, UserPluginRecord, WordAutoFillResponse } from '../types/models'
+import { fetch as tauriFetch } from '@tauri-apps/plugin-http'
 import { ofetch } from 'ofetch'
-import { API_URL } from '~/01.shared/lib/env'
+import { API_URL, isTauri } from '~/01.shared/lib/env'
 
 import { i18n } from '../../00.plugins/i18n'
 
@@ -104,6 +105,9 @@ export const request = ofetch.create({
 
     throw finalError
   },
+}, {
+  // Используем нативный fetch плагина HTTP для Tauri, если находимся в окружении десктопного/мобильного приложения
+  fetch: isTauri ? tauriFetch as unknown as typeof globalThis.fetch : globalThis.fetch,
 })
 
 export const api = {
@@ -275,7 +279,8 @@ export const api = {
       if (token)
         headers.set('Authorization', `Bearer ${token}`)
 
-      const res = await fetch(url, { headers })
+      const fetchImplementation = isTauri ? tauriFetch : globalThis.fetch
+      const res = await fetchImplementation(url, { headers })
       if (!res.ok)
         throw new Error(`Failed to fetch image: ${res.statusText}`)
 

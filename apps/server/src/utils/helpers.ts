@@ -111,10 +111,6 @@ export function json(data: unknown, status = 200, extraHeaders: Record<string, s
   })
 }
 
-export function corsOk() {
-  return new Response(null, { status: 204, headers: CORS_HEADERS })
-}
-
 export function parseLlmJson<T = unknown>(raw: string): T {
   let text = raw.trim()
 
