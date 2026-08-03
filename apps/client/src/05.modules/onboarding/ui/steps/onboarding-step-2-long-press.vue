@@ -13,7 +13,7 @@ const isPressing = ref(false)
 const isTranslated = ref(false)
 const ringX = ref(0)
 const ringY = ref(0)
-let pressTimer: any = null
+let pressTimer: number | undefined
 
 function startPress(e: MouseEvent | TouchEvent) {
   if (isTranslated.value)
@@ -35,7 +35,7 @@ function startPress(e: MouseEvent | TouchEvent) {
   ringY.value = clientY - rect.top
 
   // Ускоренное долгое нажатие (200мс)
-  pressTimer = setTimeout(() => {
+  pressTimer = window.setTimeout(() => {
     isTranslated.value = true
     isPressing.value = false
     if ('vibrate' in navigator)
@@ -46,7 +46,7 @@ function startPress(e: MouseEvent | TouchEvent) {
 function cancelPress() {
   if (!isTranslated.value) {
     isPressing.value = false
-    clearTimeout(pressTimer)
+    window.clearTimeout(pressTimer)
   }
 }
 </script>

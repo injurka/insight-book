@@ -52,8 +52,10 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  function handleSyncError(error: any) {
-    const status = error?.status ?? error?.statusCode ?? error?.response?.status
+  function handleSyncError(error: unknown) {
+    const errObj = error as Record<string, unknown> | null | undefined
+    const responseObj = errObj?.response as Record<string, unknown> | null | undefined
+    const status = errObj?.status ?? errObj?.statusCode ?? responseObj?.status
 
     if (status === 401) {
       clearCachedUserSession()
@@ -100,7 +102,7 @@ export const useAuthStore = defineStore('auth', () => {
         localStorage.removeItem('insight_user_data')
       }
     }
-    catch (e: any) {
+    catch (e) {
       handleSyncError(e)
     }
   }

@@ -2,7 +2,7 @@
 import { Icon } from '@iconify/vue'
 
 interface ToggleOption {
-  value: any
+  value: unknown
   icon?: string
   label?: string
   tooltip?: string
@@ -12,14 +12,14 @@ withDefaults(defineProps<Props>(), {
   size: 'sm',
 })
 
-const modelValue = defineModel<any>()
+const modelValue = defineModel<unknown>()
 
 interface Props {
   options: ToggleOption[]
   size?: 'xs' | 'sm' | 'md' | 'lg'
 }
 
-function select(value: any) {
+function select(value: unknown) {
   modelValue.value = value
 }
 </script>

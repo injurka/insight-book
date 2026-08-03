@@ -128,7 +128,7 @@ export const bookController = new Elysia({ prefix: '/api/books' })
     body: t.Object({ file: t.File() }),
   })
   .post('/custom', async ({ userId, body }) => {
-    return bookUploadService.createCustomBook(userId!, body as any)
+    return bookUploadService.createCustomBook(userId!, body as Parameters<typeof bookUploadService.createCustomBook>[1])
   }, {
     requireAuth: true,
     body: t.Object({

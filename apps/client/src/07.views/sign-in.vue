@@ -81,8 +81,8 @@ async function handleSendCode(emailVal: string) {
     isCodeSent.value = true
     toast.success('Код отправлен на почту')
   }
-  catch (e: any) {
-    toast.error(e.message)
+  catch (e: unknown) {
+    toast.error(e instanceof Error ? e.message : String(e))
   }
   finally {
     isLoading.value = false
@@ -98,15 +98,15 @@ async function handleRegister(payload: { email: string, code: string, password: 
     trackEvent('register_success')
     router.push('/')
   }
-  catch (e: any) {
-    toast.error(e.message)
+  catch (e: unknown) {
+    toast.error(e instanceof Error ? e.message : String(e))
   }
   finally {
     isLoading.value = false
   }
 }
 
-let pollingInterval: any = null
+let pollingInterval: number | undefined
 
 async function loginYandex() {
   try {
@@ -118,13 +118,13 @@ async function loginYandex() {
 
       await openUrl(url)
 
-      pollingInterval = setInterval(async () => {
+      pollingInterval = window.setInterval(async () => {
         try {
           const res = await fetch(`${BASE_API_URL}/api/auth/status?session_id=${sessionId}`)
           const data = await res.json()
 
           if (data.status === 'success') {
-            clearInterval(pollingInterval)
+            window.clearInterval(pollingInterval)
             localStorage.setItem('insight_token', data.token)
             await authStore.checkAuth()
             trackEvent('login_success')
@@ -140,10 +140,10 @@ async function loginYandex() {
       window.location.href = `${BASE_API_URL}/api/auth/yandex`
     }
   }
-  catch (e: any) {
+  catch (e: unknown) {
     console.error('Yandex login error:', e)
     isLoading.value = false
-    toast.error(e.message || 'Error opening Yandex login')
+    toast.error(e instanceof Error ? e.message : 'Error opening Yandex login')
   }
 }
 
@@ -221,9 +221,9 @@ const bookTiles = [
 ]
 
 const showAuthControls = ref(false)
-let pressTimer: any = null
+let pressTimer: ReturnType<typeof setTimeout> | null = null
 let clickCount = 0
-let clickTimer: any = null
+let clickTimer: ReturnType<typeof setTimeout> | null = null
 
 function startPress() {
   if (showAuthControls.value)

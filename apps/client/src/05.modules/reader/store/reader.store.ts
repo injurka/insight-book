@@ -115,7 +115,7 @@ export const useReaderStore = defineStore('reader', () => {
     debouncedUpdateProgress(bookId, pageNum)
   }
 
-  function triggerAutoAnalysis(settingsStore: any, analysisStore: any) {
+  function triggerAutoAnalysis(settingsStore: ReturnType<typeof useGlobalSettingsStore>, analysisStore: ReturnType<typeof useAnalysisStore>) {
     if (settingsStore.autoAnalyzePage && !analysisStore.isManualPageAnalysisActive) {
       setTimeout(() => {
         analysisStore.analyzeWholePage({
@@ -136,7 +136,7 @@ export const useReaderStore = defineStore('reader', () => {
     }
   }
 
-  function resetAnalysisState(analysisStore: any) {
+  function resetAnalysisState(analysisStore: ReturnType<typeof useAnalysisStore>) {
     analysisStore.cancelPageAnalysis()
     analysisStore.closePopover()
     analysisStore.closeSelectionTooltip()

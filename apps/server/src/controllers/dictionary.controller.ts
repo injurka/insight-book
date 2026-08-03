@@ -145,7 +145,7 @@ export const dictionaryController = new Elysia({ prefix: '/api/dictionary' })
     body: t.Object({ name: t.String(), language: t.Optional(t.String()) }),
   })
   .delete('/decks/:id', async ({ params: { id }, userId, query }) => {
-    await dictionaryService.deleteDeck(Number(id), userId, (query.mode as string) as any || 'keep')
+    await dictionaryService.deleteDeck(Number(id), userId, (query.mode as 'keep' | 'delete_all' | 'delete_exclusive') || 'keep')
     return { success: true }
   }, {
     params: t.Object({ id: t.String() }),

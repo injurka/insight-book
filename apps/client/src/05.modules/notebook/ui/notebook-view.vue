@@ -291,7 +291,7 @@ onMounted(async () => {
     if (libraryStore.books.length === 0)
       await libraryStore.fetchBooks()
 
-    highlights.value = await repos.highlights.list() as any
+    highlights.value = await repos.highlights.list() as Highlight[]
   }
   catch (err) {
     toast.error(err instanceof Error ? err.message : (t('notebook.loadQuotesError') || 'Ошибка загрузки цитат'))

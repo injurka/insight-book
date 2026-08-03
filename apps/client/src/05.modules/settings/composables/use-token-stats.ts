@@ -4,7 +4,7 @@ import { useRepos } from '~/00.plugins/di'
 
 export function useTokenStats() {
   const repos = useRepos()
-  const tokensData = ref<{ stats: any[], daily: any[], totalCost: number } | null>(null)
+  const tokensData = ref<{ stats: { action: string, inputTokens: number, outputTokens: number, cost: number }[], daily: unknown[], totalCost: number } | null>(null)
   const isTokensLoading = ref(true)
   const selectedPeriod = ref<'today' | 'week' | 'all'>('all')
 

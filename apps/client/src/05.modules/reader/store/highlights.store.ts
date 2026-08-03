@@ -100,7 +100,7 @@ export const useHighlightsStore = defineStore('highlights', () => {
     analysisData?: LlmAnalysis | null
   }) {
     try {
-      return await createHighlightMutation(data) as any
+      return await createHighlightMutation(data) as Highlight
     }
     catch (err) {
       console.error('Failed to create highlight', err)

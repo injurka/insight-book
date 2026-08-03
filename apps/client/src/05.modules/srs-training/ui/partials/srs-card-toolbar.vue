@@ -31,12 +31,12 @@ const isAdmin = computed(() => authStore.user?.role === 'admin')
 const isTtsPopoverOpen = ref(false)
 
 const showAnimation = ref(false)
-const hanziBoardRef = ref<InstanceType<typeof HanziBoard> | null>(null)
+const hanziBoardRef = ref<{ replay: () => void } | null>(null)
 
 const isAiModalOpen = ref(false)
 const isChatModalOpen = ref(false)
 const isAiLoading = ref(false)
-const aiData = ref<any>(null)
+const aiData = ref<unknown | null>(null)
 
 const expandedSections = reactive<Record<string, boolean>>({
   grammar: false,

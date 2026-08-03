@@ -1,4 +1,4 @@
-import type { LlmAnalysis, UserDictItem } from '~/01.shared/types/models'
+import type { Book, LlmAnalysis, PageDictEntry, PagePayload, UserDictItem } from '~/01.shared/types/models'
 import { defineStore } from 'pinia'
 import { v4 as uuidv4 } from 'uuid'
 import { computed, ref } from 'vue'
@@ -198,7 +198,7 @@ export const useAnalysisStore = defineStore('analysis', () => {
     }
   }
 
-  async function processPhase1(book: any, signal: AbortSignal) {
+  async function processPhase1(book: Book, signal: AbortSignal) {
     const pendingCacheTasks = taskQueue.value.filter(taskItem => (taskItem.type === 'sentence' || taskItem.type === 'word') && taskItem.status === 'pending')
     if (pendingCacheTasks.length === 0)
       return false
@@ -237,7 +237,7 @@ export const useAnalysisStore = defineStore('analysis', () => {
           book.language,
           signal,
         )
-        const serverCacheMap = new Map(res.results.map((result: any) => [result.sentence, result.analysis]))
+        const serverCacheMap = new Map(res.results.map(result => [result.sentence, result.analysis]))
 
         for (const task of missingInLocalCache) {
           const serverCached = serverCacheMap.get(task.text) as LlmAnalysis
@@ -266,7 +266,7 @@ export const useAnalysisStore = defineStore('analysis', () => {
     return true
   }
 
-  async function processPhase2(book: any, signal: AbortSignal) {
+  async function processPhase2(book: Book, signal: AbortSignal) {
     const settingsStore = useGlobalSettingsStore()
     const pendingLlmTasks = taskQueue.value.filter(taskItem => (taskItem.type === 'sentence' || taskItem.type === 'word') && taskItem.status === 'pending_llm')
     if (pendingLlmTasks.length === 0)
@@ -322,7 +322,7 @@ export const useAnalysisStore = defineStore('analysis', () => {
     return true
   }
 
-  async function processPhase3(book: any, signal: AbortSignal) {
+  async function processPhase3(book: Book, signal: AbortSignal) {
     const settingsStore = useGlobalSettingsStore()
     const ttsTask = taskQueue.value.find(taskItem => taskItem.type.startsWith('tts_') && taskItem.status === 'pending')
     if (!ttsTask)
@@ -362,7 +362,7 @@ export const useAnalysisStore = defineStore('analysis', () => {
     return true
   }
 
-  async function processQueueStep(book: any, signal: AbortSignal): Promise<boolean> {
+  async function processQueueStep(book: Book, signal: AbortSignal): Promise<boolean> {
     taskQueue.value.sort((a, b) => b.priority - a.priority)
 
     let processed = false
@@ -456,11 +456,11 @@ export const useAnalysisStore = defineStore('analysis', () => {
   }
 
   async function performSentenceAnalysis(
-    currentBook: any,
+    currentBook: Book,
     sentence: string,
     context: string | undefined,
     signal: AbortSignal,
-    settingsStore: any,
+    settingsStore: ReturnType<typeof useGlobalSettingsStore>,
   ) {
     try {
       const res = await repos.analysis.analyze(
@@ -573,7 +573,7 @@ export const useAnalysisStore = defineStore('analysis', () => {
     return tasks
   }
 
-  function extractPageTexts(currentPage: any, options: { sentences: boolean, words: boolean, ttsSentences: boolean, ttsWords: boolean }) {
+  function extractPageTexts(currentPage: PagePayload, options: { sentences: boolean, words: boolean, ttsSentences: boolean, ttsWords: boolean }) {
     const sentencesToProcess = new Set<string>()
     const wordsToProcess = new Set<string>()
     const { sentences: doSent, words: doWords, ttsSentences: doTtsSent, ttsWords: doTtsWords } = options
@@ -600,7 +600,7 @@ export const useAnalysisStore = defineStore('analysis', () => {
     }
 
     if (currentPage.type === 'manga' && currentPage.ocrBlocks) {
-      currentPage.ocrBlocks.forEach((b: any) => {
+      currentPage.ocrBlocks.forEach((b) => {
         if (b.html)
           extractFromHtml(b.html)
       })
@@ -647,7 +647,7 @@ export const useAnalysisStore = defineStore('analysis', () => {
     pageAnalysisTtsCurrent.value = 0
   }
 
-  function checkOptionsSelected(options: any, isBackground: boolean): boolean {
+  function checkOptionsSelected(options: { sentences: boolean, words: boolean, ttsSentences: boolean, ttsWords: boolean }, isBackground: boolean): boolean {
     const { sentences: doSent, words: doWords, ttsSentences: doTtsSent, ttsWords: doTtsWords } = options
     if (!doSent && !doWords && !doTtsSent && !doTtsWords) {
       if (!isBackground)
@@ -761,7 +761,7 @@ export const useAnalysisStore = defineStore('analysis', () => {
     return false
   }
 
-  async function performAiTranslation(currentBook: any, word: string, controller: AbortController) {
+  async function performAiTranslation(currentBook: Book, word: string, controller: AbortController) {
     try {
       const res = await repos.analysis.analyze(
         currentBook.id,
@@ -817,7 +817,7 @@ export const useAnalysisStore = defineStore('analysis', () => {
       fetchAiTranslation()
   }
 
-  function tryApplyDictTranslation(entry: any, basePopover: any, priority: string): boolean {
+  function tryApplyDictTranslation(entry: PageDictEntry | undefined, basePopover: Omit<WordPopoverData, 'transcription' | 'translation' | 'showAi' | 'isAiLoading'>, priority: string): boolean {
     if (priority === 'dict' && entry?.translation) {
       wordAbortController?.abort()
       wordPopover.value = {
@@ -886,7 +886,7 @@ export const useAnalysisStore = defineStore('analysis', () => {
   }
 
   function applyStandaloneWordResult(
-    result: any,
+    result: { transcription: string, translation: string, isUserDict?: boolean },
     word: string,
     pos: string,
     targetRect: DOMRect,

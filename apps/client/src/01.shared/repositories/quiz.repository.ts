@@ -1,12 +1,15 @@
+import type { QuizLevelDomain } from '~/01.shared/types/schemas/quiz.schema'
 import { z } from 'zod'
 import { applyAcl } from '~/01.shared/lib/acl'
 import { api } from '~/01.shared/services/api.service'
 import { QuizLevelSchema, QuizQuestionsResponseSchema } from '~/01.shared/types/schemas/quiz.schema'
 
+export type QuizQuestionsResponseDomain = z.infer<typeof QuizQuestionsResponseSchema>
+
 export interface IQuizRepository {
-  getLevels: (lang: string) => Promise<any>
-  generate: (lang: string, level: string) => Promise<any>
-  submit: (lang: string, level: string, scorePct: number) => Promise<any>
+  getLevels: (lang: string) => Promise<QuizLevelDomain[]>
+  generate: (lang: string, level: string) => Promise<QuizQuestionsResponseDomain>
+  submit: (lang: string, level: string, scorePct: number) => Promise<{ success: boolean, score: number, starsEarned: number, isPassed: boolean, nextLevelUnlocked: boolean, nextLevelValue: string | null }>
 }
 
 export class DefaultQuizRepository implements IQuizRepository {

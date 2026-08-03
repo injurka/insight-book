@@ -14,6 +14,7 @@ export default antfu({
     'bun.lock',
   ],
   rules: {
+    'ts/no-explicit-any': 'error',
     // === ВИЗУАЛЬНОЕ РАЗДЕЛЕНИЕ КОДА ===
     // Заставляет делать пустые строки перед функциями, return и после if/for
     'style/padding-line-between-statements': [

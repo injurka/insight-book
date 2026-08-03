@@ -134,11 +134,18 @@ class EnglishTokenizer implements LanguageTokenizer {
   }
 }
 
+interface AzModule {
+  Morph: {
+    (word: string): { tag: { POS: string } }[]
+    init: (cb: () => void) => void
+  }
+}
+
 class RussianTokenizer implements LanguageTokenizer {
   private initPromise: Promise<void> | null = null
   private isReady = false
   private segmenter = new Intl.Segmenter('ru', { granularity: 'word' })
-  private Az: any
+  private Az!: AzModule
 
   public init(): Promise<void> {
     if (this.isReady)
@@ -256,9 +263,12 @@ export async function tokenizeHtmlPage(html: string, language: string) {
   const allWords = new Set<string>()
   let sentenceIdCounter = 0
 
+  // eslint-disable-next-line ts/no-explicit-any
   const blocks: { textNodes: any[], fullText: string }[] = []
+  // eslint-disable-next-line ts/no-explicit-any
   let currentBlock = { textNodes: [] as any[], fullText: '' }
 
+  // eslint-disable-next-line ts/no-explicit-any
   function traverse(el: any) {
     // eslint-disable-next-line regexp/no-unused-capturing-group
     const isBlock = el.type === 'tag' && /^(p|div|h[1-6]|li|blockquote|td|th|br|hr|tr|ul|ol|table|article|section|main|aside|nav|header|footer|pre|figure|figcaption)$/i.test(el.name)
@@ -484,7 +494,7 @@ export async function analyzeBookVocabulary(bookId: number, language: string) {
   }
 }
 
-export async function tokenizeOcrBlocks(blocks: any[], language: string) {
+export async function tokenizeOcrBlocks(blocks: (Record<string, unknown> & { text?: string })[], language: string) {
   const tokenizer = getTokenizer(language)
   const allWords = new Set<string>()
   let sentenceIdCounter = 10000

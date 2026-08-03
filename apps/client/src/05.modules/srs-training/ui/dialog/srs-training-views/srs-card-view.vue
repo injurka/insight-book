@@ -58,7 +58,7 @@ const scrambleChunks = ref<{ id: number, text: string }[]>([])
 const scrambleAnswer = ref<{ id: number, text: string }[]>([])
 
 // Deep Dive state
-const deepDiveData = ref<any>(null)
+const deepDiveData = ref<{ options?: string[], answer?: string | string[] } | null>(null)
 const selectedRadicals = ref<string[]>([])
 const isAiLoadingMode = ref(false)
 
@@ -116,6 +116,7 @@ const modeProps = computed(() => {
       }
     case 'collocations':
       return {
+        card,
         deepDiveData: deepDiveData.value,
         choiceOptions: choiceOptions.value,
         isAnswerChecked: isAnswerChecked.value,
@@ -213,12 +214,12 @@ async function initDeepDive(mode: 'collocations' | 'radicals') {
   deepDiveData.value = null
   try {
     const res = await repos.dictionary.generateDeepDive(props.card!.word, props.card!.language, mode)
-    deepDiveData.value = res
+    deepDiveData.value = res as { options?: string[], answer?: string | string[] }
     if (mode === 'radicals')
       selectedRadicals.value = []
 
     else if (mode === 'collocations')
-      choiceOptions.value = (res as any).options.map((text: string) => ({ text, isCorrect: text === (res as any).answer })).sort(() => Math.random() - 0.5)
+      choiceOptions.value = (res as { options: string[], answer: string }).options.map((text: string) => ({ text, isCorrect: text === (res as { answer: string }).answer })).sort(() => Math.random() - 0.5)
   }
   catch {
     toast.error('Failed to load deep dive data')
@@ -254,7 +255,7 @@ function checkRadicals() {
 
 type SrsMode = 'standard' | 'audio' | 'writing' | 'typing' | 'choice' | 'choice-reverse' | 'scramble' | 'collocations' | 'radicals'
 
-function isZhCard(card: any): boolean {
+function isZhCard(card: UserDictItem | null | undefined): boolean {
   if (!card)
     return false
 
@@ -313,7 +314,7 @@ function setupChoiceOptions(mode: 'choice' | 'choice-reverse') {
 
 function shouldUseChoiceMode(
   mode: 'choice' | 'choice-reverse',
-  config: any,
+  config: Record<string, boolean>,
   available: SrsMode[],
   isNew: boolean,
 ): boolean {

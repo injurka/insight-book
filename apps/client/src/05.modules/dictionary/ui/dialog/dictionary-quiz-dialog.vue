@@ -106,7 +106,7 @@ async function loadLevels() {
   try {
     const res = await repos.quiz.getLevels(lang)
     const order = LEVEL_ORDER[lang] || LEVEL_ORDER.default
-    levelsByLang.value[lang] = res.sort((a: any, b: any) => {
+    levelsByLang.value[lang] = res.sort((a, b) => {
       const idxA = order.indexOf(a.levelValue)
       const idxB = order.indexOf(b.levelValue)
 
@@ -156,7 +156,7 @@ async function startQuizFlow(levelVal: string) {
 
   try {
     const res = await repos.quiz.generate(selectedLang.value, levelVal)
-    questions.value = res.questions.map((q: any) => ({ ...q }))
+    questions.value = res.questions.map(q => ({ ...q }))
 
     // Reset test variables
     currentQuestionIndex.value = 0
@@ -166,9 +166,9 @@ async function startQuizFlow(levelVal: string) {
 
     setupCurrentQuestion()
   }
-  catch (e: any) {
+  catch (e) {
     currentState.value = 'select_level'
-    const msg = e.message || ''
+    const msg = e instanceof Error ? e.message : ''
     if (msg === 'quiz_level_locked') {
       errorMessage.value = t('dictionary.quiz.errors.levelLocked')
     }

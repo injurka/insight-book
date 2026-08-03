@@ -29,7 +29,15 @@ const words = [
   { id: 'quiere', text: 'quiere', suffix: '.' },
 ]
 
-const mockDict: Record<string, any> = {
+interface MockDictEntry {
+  tr: string
+  trans: string
+  pos: string
+  posClass: string
+  rule: string
+}
+
+const mockDict: Record<string, MockDictEntry> = {
   El: {
     tr: '[эль]',
     trans: 'Определенный артикль',

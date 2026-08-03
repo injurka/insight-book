@@ -187,7 +187,7 @@ function finishOnboarding() {
 .bg-wrapper {
   position: absolute;
   inset: 0;
-  opacity: 0.6; // Смягчаем WebGL
+  opacity: 0.25; // Смягчаем WebGL еще сильнее
   pointer-events: none;
   z-index: 0;
   transition: opacity 1s ease;
@@ -201,16 +201,30 @@ function finishOnboarding() {
   align-items: center;
   padding: max(24px, env(safe-area-inset-top, 24px)) max(32px, env(safe-area-inset-right, 32px)) 0
     max(32px, env(safe-area-inset-left, 32px));
+
+  @include media-down(sm) {
+    padding: max(16px, env(safe-area-inset-top, 16px)) max(16px, env(safe-area-inset-right, 16px)) 0
+      max(16px, env(safe-area-inset-left, 16px));
+  }
 }
 
 .settings-group {
   display: flex;
+  align-items: center;
   gap: 8px;
   background: rgba(var(--bg-secondary-color-rgb), 0.5);
   backdrop-filter: blur(12px);
-  padding: 6px;
+  padding: 3px;
   border-radius: 100px;
   border: 1px solid rgba(var(--border-primary-color-rgb), 0.2);
+  height: 48px;
+  box-sizing: border-box;
+
+  @include media-down(sm) {
+    height: 40px;
+    padding: 2px;
+    gap: 4px;
+  }
 }
 
 .icon-btn {
@@ -227,6 +241,12 @@ function finishOnboarding() {
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1);
 
+  @include media-down(sm) {
+    width: 34px;
+    height: 34px;
+    font-size: 1.1rem;
+  }
+
   &:hover {
     background: var(--bg-tertiary-color);
     color: var(--fg-primary-color);
@@ -238,15 +258,25 @@ function finishOnboarding() {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 10px 20px;
+  height: 48px;
+  padding: 0 20px;
   border-radius: 100px;
-  border: 1px solid transparent;
+  border: 1px solid rgba(var(--border-primary-color-rgb), 0.2);
   background: rgba(var(--bg-secondary-color-rgb), 0.5);
+  backdrop-filter: blur(12px);
   color: var(--fg-secondary-color);
   font-size: 0.95rem;
   font-weight: 500;
   cursor: pointer;
+  box-sizing: border-box;
   transition: all 0.3s ease;
+
+  @include media-down(sm) {
+    height: 40px;
+    padding: 0 16px;
+    font-size: 0.85rem;
+    gap: 6px;
+  }
 
   &:hover {
     background: rgba(var(--bg-secondary-color-rgb), 0.4);
@@ -280,6 +310,15 @@ function finishOnboarding() {
   justify-content: center;
   gap: 24px;
   padding-bottom: max(48px, env(safe-area-inset-bottom, 48px));
+
+  @include media-down(sm) {
+    gap: 12px;
+    padding-bottom: max(24px, env(safe-area-inset-bottom, 24px));
+    padding-left: 16px;
+    padding-right: 16px;
+    width: 100%;
+    box-sizing: border-box;
+  }
 }
 
 .nav-icon-btn {
@@ -296,6 +335,12 @@ function finishOnboarding() {
   cursor: pointer;
   transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+
+  @include media-down(sm) {
+    width: 40px;
+    height: 40px;
+    font-size: 1.2rem;
+  }
 
   &:hover {
     background: var(--fg-primary-color);
@@ -317,6 +362,11 @@ function finishOnboarding() {
   backdrop-filter: blur(10px);
   padding: 8px 12px;
   border-radius: 100px;
+
+  @include media-down(sm) {
+    gap: 4px;
+    padding: 6px 10px;
+  }
 }
 
 .progress-segment {
@@ -327,6 +377,15 @@ function finishOnboarding() {
   transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
   cursor: pointer;
 
+  @include media-down(sm) {
+    width: 12px;
+    height: 4px;
+  }
+
+  @include media-down(xs) {
+    width: 8px;
+  }
+
   &.is-passed {
     background: var(--fg-secondary-color);
   }
@@ -334,6 +393,14 @@ function finishOnboarding() {
   &.is-active {
     width: 36px;
     background: var(--fg-accent-color);
+
+    @include media-down(sm) {
+      width: 20px;
+    }
+
+    @include media-down(xs) {
+      width: 14px;
+    }
   }
 
   &:hover:not(.is-active) {

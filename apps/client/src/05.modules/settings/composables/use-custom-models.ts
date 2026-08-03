@@ -31,7 +31,7 @@ export function useCustomModels() {
       const data = await res.json()
 
       if (data && Array.isArray(data.data)) {
-        availableModels.value = data.data.map((modelItem: any) => ({
+        availableModels.value = data.data.map((modelItem: { id: string }) => ({
           label: modelItem.id,
           value: modelItem.id,
         }))

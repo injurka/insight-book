@@ -298,7 +298,7 @@ export class BookService {
       }
 
       if (ocrBlocks && ocrBlocks.length > 0) {
-        const { processedBlocks } = await runWorkerTask<any>('tokenizeOcrBlocks', { blocks: ocrBlocks, language: bookLang })
+        const { processedBlocks } = await runWorkerTask<{ processedBlocks: unknown[] }>('tokenizeOcrBlocks', { blocks: ocrBlocks, language: bookLang })
         ocrBlocks = processedBlocks
       }
 
@@ -329,7 +329,7 @@ export class BookService {
     if (!pageRow)
       throw new AppError(404, 'Страница не найдена')
 
-    const { processedHtml } = await runWorkerTask<any>('tokenizeHtmlPage', { html: pageRow.content, language: bookLang })
+    const { processedHtml } = await runWorkerTask<{ processedHtml: string }>('tokenizeHtmlPage', { html: pageRow.content, language: bookLang })
     const payload: PagePayload = { bookId, pageNum, totalPages: book.totalPages, content: processedHtml, type: 'epub' }
 
     await this.bookRepo.upsertNlpCache(bookId, pageNum, JSON.stringify(payload))
@@ -350,7 +350,7 @@ export class BookService {
       const pageRow = await this.bookRepo.getMangaPageInfo(bookId, pageNum)
       const ocrBlocks = pageRow?.ocrData ? JSON.parse(pageRow.ocrData) : []
       if (ocrBlocks && ocrBlocks.length > 0) {
-        const { uniqueWords: ocrWords } = await runWorkerTask<any>('tokenizeOcrBlocks', { blocks: ocrBlocks, language: bookLang })
+        const { uniqueWords: ocrWords } = await runWorkerTask<{ uniqueWords: string[] }>('tokenizeOcrBlocks', { blocks: ocrBlocks, language: bookLang })
         uniqueWords = ocrWords
       }
     }
@@ -363,7 +363,7 @@ export class BookService {
       else {
         const pageRow = await this.bookRepo.getBookPageInfo(bookId, pageNum)
         if (pageRow) {
-          const { uniqueWords: epWords } = await runWorkerTask<any>('tokenizeHtmlPage', { html: pageRow.content, language: bookLang })
+          const { uniqueWords: epWords } = await runWorkerTask<{ uniqueWords: string[] }>('tokenizeHtmlPage', { html: pageRow.content, language: bookLang })
           uniqueWords = epWords
         }
       }

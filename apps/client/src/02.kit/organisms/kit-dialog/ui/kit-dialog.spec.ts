@@ -11,7 +11,7 @@ vi.mock('vue-i18n', () => ({
 }))
 
 vi.mock('@vueuse/core', async (importOriginal) => {
-  const actual = await importOriginal<any>()
+  const actual = await importOriginal<Record<string, unknown>>()
 
   return {
     ...actual,

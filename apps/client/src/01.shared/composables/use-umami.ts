@@ -1,8 +1,8 @@
 declare global {
   interface Window {
     umami?: {
-      track: (eventName: string | ((props: any) => any), eventData?: Record<string, any>) => void
-      identify: (sessionIdOrData: string | Record<string, any>, customData?: Record<string, any>) => void
+      track: (eventName: string | ((props: Record<string, unknown>) => Record<string, unknown>), eventData?: Record<string, unknown>) => void
+      identify: (sessionIdOrData: string | Record<string, unknown>, customData?: Record<string, unknown>) => void
     }
   }
 }
@@ -51,17 +51,22 @@ function enqueue(fn: () => void) {
 }
 
 export function useUmami() {
-  function trackEvent(eventName: string, eventData?: Record<string, any>) {
+  function trackEvent(eventName: string, eventData?: Record<string, unknown>) {
     enqueue(() => {
       window.umami?.track(eventName, eventData)
     })
   }
 
-  function identifyUser(userData: { id: string | number } & Record<string, any>) {
+  function identifyUser(userData: Record<string, unknown> & { id?: string | number }) {
     enqueue(() => {
       if (window.umami?.identify) {
-        const { id, ...sessionData } = userData
-        window.umami.identify(String(id), sessionData)
+        if (userData.id !== undefined) {
+          const { id, ...sessionData } = userData
+          window.umami.identify(String(id), sessionData)
+        }
+        else {
+          window.umami.identify(userData)
+        }
       }
     })
   }

@@ -58,7 +58,7 @@ describe('kitSkeleton', () => {
   it('does not apply wave class if type is not wave', () => {
     const wrapper = mount(KitSkeleton, {
       props: {
-        type: 'none' as any,
+        type: 'none' as unknown as 'pulse' | 'wave',
       },
     })
 

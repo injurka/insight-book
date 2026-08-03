@@ -1,5 +1,6 @@
 <!-- eslint-disable regexp/no-super-linear-backtracking -->
 <script setup lang="ts">
+import type { PromptItem } from '~/01.shared/types/models'
 import { Icon } from '@iconify/vue'
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -22,7 +23,7 @@ const { t, locale } = useI18n()
 const toast = useToast()
 
 const messages = ref<{ id: string, sender: 'user' | 'ai', text: string }[]>([])
-const prompts = ref<any[]>([])
+const prompts = ref<PromptItem[]>([])
 const selectedPromptId = ref<number | ''>('')
 const messageText = ref('')
 const isAiLoading = ref(false)
@@ -87,7 +88,13 @@ async function sendMessage() {
   isAiLoading.value = true
 
   try {
-    const payload: any = {
+    const payload: {
+      word: string
+      language: string
+      uiLanguage?: string
+      customPromptId?: number
+      userPromptText?: string
+    } = {
       word: props.word,
       language: props.language || 'en',
       uiLanguage: locale.value,
@@ -131,7 +138,7 @@ function startCreatePrompt() {
   editPromptText.value = ''
 }
 
-function startEditPrompt(prompt: any) {
+function startEditPrompt(prompt: PromptItem) {
   isEditingPrompt.value = true
   editingPromptId.value = prompt.id
   editName.value = prompt.name

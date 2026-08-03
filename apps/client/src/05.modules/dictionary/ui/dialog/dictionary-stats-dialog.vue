@@ -24,7 +24,15 @@ function onLevelClick(data: { language: string, levelValue: string }) {
 }
 
 const activityData = ref<{ date: string, count: number }[]>([])
-const activityStats = ref({ learnedWords: 0, readPages: 0, difficulties: [] as any[] })
+const activityStats = ref<{
+  learnedWords: number
+  readPages: number
+  difficulties: { language: string, difficulty: string, count: number }[]
+}>({
+  learnedWords: 0,
+  readPages: 0,
+  difficulties: [],
+})
 const isActivityLoading = ref(true)
 
 async function fetchActivity() {

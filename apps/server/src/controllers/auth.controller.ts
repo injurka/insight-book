@@ -134,16 +134,17 @@ export const authRouter = new Elysia({ prefix: '/api/auth' })
     }
     return { status: 'pending' }
   })
+  // eslint-disable-next-line ts/no-explicit-any
   .get('/me', async ({ userId }: any) => {
     return authService.getMe(userId as number)
   })
-  .patch('/me/avatar', async ({ userId, body }: any) => {
+  .patch('/me/avatar', async ({ userId, body }: { userId?: number | null, body?: unknown }) => {
     const file = (body as { file: File }).file as File
     if (!file)
       throw new AppError(400, 'Файл не передан')
     return authService.updateAvatar(userId as number, file)
   }, { requireAuth: true })
-  .patch('/me/username', async ({ userId, body }: any) => {
+  .patch('/me/username', async ({ userId, body }: { userId?: number | null, body?: unknown }) => {
     return authService.updateUsername(userId as number, (body as { username: string }).username)
   }, {
     requireAuth: true,

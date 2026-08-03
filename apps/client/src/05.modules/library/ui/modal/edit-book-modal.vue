@@ -29,7 +29,14 @@ const {
   onEditCoverChange,
   handleSave,
   handleDelete,
-} = useEditBookForm(toRef(props, 'book'), emit)
+} = useEditBookForm(toRef(props, 'book'), (event, data) => {
+  if (event === 'save') {
+    emit('save', data as { bookData: Partial<Book>, coverFile: File | null })
+  }
+  else if (event === 'delete') {
+    emit('delete', data as number)
+  }
+})
 
 const confirmDeleteVisible = ref(false)
 

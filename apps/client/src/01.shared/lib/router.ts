@@ -1,13 +1,21 @@
+import type { LocationQuery } from 'vue-router'
 import { createRouter, createWebHashHistory, createWebHistory } from 'vue-router'
 import { AppRouteNames } from '~/01.shared/constants/routes'
 import { API_URL } from '~/01.shared/lib/env'
 import { setupViewTransitions } from '~/01.shared/lib/view-transitions'
 import { useAuthStore } from '~/01.shared/store/auth.store'
 
+declare global {
+  interface Window {
+    __TAURI__?: unknown
+    __TAURI_IPC__?: unknown
+  }
+}
+
 function isTauriEnv() {
-  return !!(window as any).__TAURI__
+  return !!window.__TAURI__
     || '__TAURI_INTERNALS__' in window
-    || !!(window as any).__TAURI_IPC__
+    || !!window.__TAURI_IPC__
 }
 
 const MAIN_SCROLLER_SELECTOR = '.main-content'
@@ -182,7 +190,7 @@ function getOnboardingRedirect(toName: string | symbol | null | undefined, hasSe
   return null
 }
 
-function getSavedHomeQueryRedirect(toName: string | symbol | null | undefined, toQuery: Record<string, any>, fromName: string | symbol | null | undefined) {
+function getSavedHomeQueryRedirect(toName: string | symbol | null | undefined, toQuery: LocationQuery, fromName: string | symbol | null | undefined) {
   if (toName === AppRouteNames.Home && Object.keys(toQuery).length === 0 && !fromName) {
     try {
       const savedQueryStr = localStorage.getItem(LAST_VIEW_QUERY_KEY)

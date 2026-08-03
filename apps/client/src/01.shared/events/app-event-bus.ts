@@ -8,19 +8,19 @@ export interface AppEvents {
 }
 
 export class AppEventBus {
-  private listeners = new Map<keyof AppEvents, Set<(data: any) => void>>()
+  private listeners = new Map<keyof AppEvents, Set<(data: never) => void>>()
 
   on<K extends keyof AppEvents>(event: K, callback: (data: AppEvents[K]) => void) {
     if (!this.listeners.has(event))
       this.listeners.set(event, new Set())
 
-    this.listeners.get(event)!.add(callback)
+    this.listeners.get(event)!.add(callback as (data: never) => void)
   }
 
   off<K extends keyof AppEvents>(event: K, callback: (data: AppEvents[K]) => void) {
     const set = this.listeners.get(event)
     if (set) {
-      set.delete(callback as any)
+      set.delete(callback as (data: never) => void)
       if (set.size === 0)
         this.listeners.delete(event)
     }
@@ -31,7 +31,7 @@ export class AppEventBus {
     if (set) {
       set.forEach((cb) => {
         try {
-          cb(data)
+          cb(data as never)
         }
         catch (err) {
           console.error(`[App Event Bus] Error in listener for event "${String(event)}":`, err)

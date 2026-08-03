@@ -7,7 +7,7 @@ import { useTabsTransition } from '../composables/use-tabs-transition'
 
 export interface TabItem<T extends string | number = string | number> extends ViewSwitcherItem<T> {
   component?: Component
-  props?: Record<string, any>
+  props?: Record<string, unknown>
 }
 
 export interface Props<T extends string | number = string | number> {

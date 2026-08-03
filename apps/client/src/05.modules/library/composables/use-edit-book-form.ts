@@ -3,7 +3,7 @@ import type { Book } from '~/01.shared/types/models'
 import { ref, watch } from 'vue'
 import { formatToDateTimeLocal, parseFromDateTimeLocal } from '../lib/formatters'
 
-export function useEditBookForm(bookProp: Ref<Book | null>, emit: any) {
+export function useEditBookForm(bookProp: Ref<Book | null>, emit: (event: 'save' | 'delete', data?: { bookData: Partial<Book>, coverFile: File | null } | number) => void) {
   const editCoverInput = ref<HTMLInputElement | null>(null)
   const editingBook = ref<Partial<Book>>({})
   const editingCoverFile = ref<File | null>(null)

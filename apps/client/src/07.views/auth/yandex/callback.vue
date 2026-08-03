@@ -31,7 +31,7 @@ onMounted(async () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ code }),
       })
-      const data = await res.json() as any
+      const data = await res.json() as { token?: string, error?: string }
       if (!res.ok || !data.token) {
         error.value = data?.error || 'Ошибка обмена кода авторизации'
 
@@ -42,8 +42,8 @@ onMounted(async () => {
       await authStore.checkAuth()
       router.push('/')
     }
-    catch (e: any) {
-      error.value = e.message || 'Ошибка сети'
+    catch (e: unknown) {
+      error.value = e instanceof Error ? e.message : 'Ошибка сети'
     }
 
     return

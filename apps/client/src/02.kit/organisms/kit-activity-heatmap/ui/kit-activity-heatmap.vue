@@ -212,7 +212,28 @@ function getRankIdx(totalWords: number, ranks: Array<{ target: number }>): numbe
   return rankIdx
 }
 
-function buildVocabAchievements(difficulties: Array<{ language: string, count: number }>): Array<any> {
+interface VocabAchievement {
+  type: 'vocab'
+  lang: string
+  current: string
+  next: string | null
+  count: number
+  target: number
+  progress: number
+  labelType: string
+}
+
+interface QuizAchievement {
+  type: 'quiz'
+  lang: string
+  current: string
+  testPassed: boolean
+  testScore: number
+  testStars: number
+  labelType: string
+}
+
+function buildVocabAchievements(difficulties: NonNullable<Props['stats']>['difficulties']): VocabAchievement[] {
   const langGroups: Record<string, number> = {}
   for (const diffItem of difficulties)
     langGroups[diffItem.language] = (langGroups[diffItem.language] || 0) + diffItem.count
@@ -228,7 +249,7 @@ function buildVocabAchievements(difficulties: Array<{ language: string, count: n
     { label: t('activityHeatmap.ranks.polyglot', 'Полиглот'), target: 10000 },
   ]
 
-  const achs: Array<any> = []
+  const achs: VocabAchievement[] = []
   for (const [lang, totalWords] of Object.entries(langGroups)) {
     const currentRankIdx = getRankIdx(totalWords, VOCAB_RANKS)
 
@@ -253,9 +274,9 @@ function buildVocabAchievements(difficulties: Array<{ language: string, count: n
   return achs
 }
 
-function buildQuizAchievements(quizProgress: Array<any>): Array<any> {
+function buildQuizAchievements(quizProgress: NonNullable<NonNullable<Props['stats']>['quizProgress']>): QuizAchievement[] {
   const passedQuizzes = quizProgress.filter(quizItem => quizItem.bestScore >= 80)
-  const highestQuizPerLang: Record<string, any> = {}
+  const highestQuizPerLang: Record<string, NonNullable<NonNullable<Props['stats']>['quizProgress']>[number] & { levelIdx: number, current: string }> = {}
 
   for (const quizItem of passedQuizzes) {
     const sys = DIFFICULTY_SYSTEMS[quizItem.language] || DIFFICULTY_SYSTEMS.default
@@ -271,7 +292,7 @@ function buildQuizAchievements(quizProgress: Array<any>): Array<any> {
     }
   }
 
-  const achs: Array<any> = []
+  const achs: QuizAchievement[] = []
   for (const [lang, quizItem] of Object.entries(highestQuizPerLang)) {
     achs.push({
       type: 'quiz',
@@ -346,7 +367,7 @@ onMounted(async () => {
               </div>
             </div>
             <!-- Иконка верификации теста -->
-            <div v-if="lvl.testPassed" class="test-verified-badge" :title="`Уровень подтвержден тестом на ${lvl.testScore}%`">
+            <div v-if="lvl.type === 'quiz' && lvl.testPassed" class="test-verified-badge" :title="`Уровень подтвержден тестом на ${lvl.testScore}%`">
               <Icon icon="mdi:check-decagram" class="verified-icon" />
               <span class="stars-indicator">
                 <Icon

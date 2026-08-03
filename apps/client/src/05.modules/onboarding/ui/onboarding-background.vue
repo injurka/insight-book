@@ -153,8 +153,8 @@ const fragmentSource = `
       color = mix(color, uFgAccent, clamp(length(r.x) * 0.8, 0.0, 1.0));
     }
     
-    // Приглушаем на 10% для мягкости
-    color = mix(color, uBgPrimary, 0.10);
+    // Приглушаем на 50% для мягкости
+    color = mix(color, uBgPrimary, 0.50);
     
     gl_FragColor = vec4(color, 1.0);
   }
@@ -319,5 +319,6 @@ onMounted(() => {
   width: 100%;
   height: 100%;
   display: block;
+  opacity: 0.45;
 }
 </style>

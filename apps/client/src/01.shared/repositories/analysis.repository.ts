@@ -5,10 +5,10 @@ import { offlineService } from '~/01.shared/services/offline.service'
 import { LlmAnalysisSchema } from '~/01.shared/types/schemas/analysis.schema'
 
 export interface IAnalysisRepository {
-  checkCache: (bookId: number, items: { text: string, type: 'sentence' | 'word' }[], language: string, signal?: AbortSignal) => Promise<any>
-  analyzeBatch: (bookId: number, items: { id: string, sentence: string, context?: string, type: 'sentence' | 'word' }[], language: string, signal?: AbortSignal) => Promise<any>
+  checkCache: (bookId: number, items: { text: string, type: 'sentence' | 'word' }[], language: string, signal?: AbortSignal) => Promise<{ results: { sentence: string, analysis: LlmAnalysis }[] }>
+  analyzeBatch: (bookId: number, items: { id: string, sentence: string, context?: string, type: 'sentence' | 'word' }[], language: string, signal?: AbortSignal) => Promise<{ results: { id: string, analysis: LlmAnalysis }[] }>
   analyze: (bookId: number, text: string, language: string, context?: string, signal?: AbortSignal, type?: 'sentence' | 'word') => Promise<LlmAnalysis>
-  lookupWord: (bookId: number, word: string, signal?: AbortSignal) => Promise<any>
+  lookupWord: (bookId: number, word: string, signal?: AbortSignal) => Promise<{ transcription: string, translation: string, isUserDict?: boolean }>
   generateTts: (bookId: number, text: string, voice: string, signal?: AbortSignal) => Promise<{ audioBase64: string }>
   generateGenericTts: (text: string, voice: string, signal?: AbortSignal, forceCacheBypass?: boolean) => Promise<{ audioBase64: string }>
 

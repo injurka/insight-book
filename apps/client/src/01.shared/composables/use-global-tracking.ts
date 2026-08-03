@@ -34,12 +34,12 @@ export function useGlobalTracking() {
 
   watch(theme, (val) => {
     trackEvent('theme_changed', { theme: val })
-    identifyUser({ current_theme: val } as any)
+    identifyUser({ current_theme: val })
   })
 
   watch(() => settingsStore.appLanguage, (val) => {
     trackEvent('app_language_changed', { language: val })
-    identifyUser({ current_language: val } as any)
+    identifyUser({ current_language: val })
   })
 
   onMounted(() => {

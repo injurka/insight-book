@@ -48,7 +48,7 @@ const form = ref({
 const analysisData = ref<LlmAnalysis | null>(null)
 const showAdditionalFields = ref(false)
 
-function hasExtraFields(mode: string, initialData: any): boolean {
+function hasExtraFields(mode: string, initialData: Props['initialData']): boolean {
   if (mode !== 'edit')
     return false
   if (initialData.note)

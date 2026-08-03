@@ -160,7 +160,7 @@ self.addEventListener('push', (event: PushEvent) => {
     return
 
   let title = 'InsightBook'
-  let options: any = {
+  let options: NotificationOptions & { vibrate?: number[] } = {
     icon: '/logo.png',
     badge: '/logo.png',
   }

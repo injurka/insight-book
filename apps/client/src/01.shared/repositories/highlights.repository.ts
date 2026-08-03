@@ -18,7 +18,7 @@ export interface IHighlightsRepository {
     note?: string | null
     analysisData?: LlmAnalysis | null
   }) => Promise<Highlight>
-  update: (id: number, data: any) => Promise<Highlight>
+  update: (id: number, data: Partial<Highlight>) => Promise<Highlight>
   delete: (id: number) => Promise<{ success: boolean }>
   saveLocalHighlights: (bookId: number, highlights: Highlight[]) => Promise<void>
 }
@@ -29,7 +29,7 @@ export class DefaultHighlightsRepository implements IHighlightsRepository {
       const raw = await api.highlights.list(bookId)
       const data = applyAcl(z.array(HighlightSchema), raw, 'highlights.list()')
       if (bookId)
-        await offlineService.saveHighlights(bookId, data as any).catch(() => {})
+        await offlineService.saveHighlights(bookId, data).catch(() => {})
 
       return data
     }
@@ -48,7 +48,7 @@ export class DefaultHighlightsRepository implements IHighlightsRepository {
     return api.highlights.create(data)
   }
 
-  async update(id: number, data: any): Promise<Highlight> {
+  async update(id: number, data: Partial<Highlight>): Promise<Highlight> {
     return api.highlights.update(id, data)
   }
 

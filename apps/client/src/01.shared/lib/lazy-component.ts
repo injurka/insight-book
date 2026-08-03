@@ -1,3 +1,4 @@
+import type { Component } from 'vue'
 import { useToastStore } from '~/01.shared/store/toast.store'
 import { KitPageLoader } from '~/02.kit/atoms/kit-page-loader'
 
@@ -5,7 +6,7 @@ import { KitPageLoader } from '~/02.kit/atoms/kit-page-loader'
  * Умная обертка для ленивой загрузки компонентов.
  * Обрабатывает ошибки сети, ошибки версионирования чанков и показывает лоадер.
  */
-export function lazyComponent(loader: () => Promise<any>) {
+export function lazyComponent(loader: () => Promise<Component>) {
   return defineAsyncComponent({
     loader,
 

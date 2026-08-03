@@ -40,7 +40,18 @@ async function getMediaCache(): Promise<Cache | null> {
   return null
 }
 
-function handleBookPageOrDictKey(key: string, itemSize: number, bookStats: Record<number, any>) {
+export interface BookCacheStat {
+  title: string
+  totalPages: number
+  cachedPages: number[]
+  analysesCount: number
+  sizeBytes: number
+  imagesCount: number
+  ttsCount: number
+  dictPagesCount: number
+}
+
+function handleBookPageOrDictKey(key: string, itemSize: number, bookStats: Record<number, BookCacheStat>) {
   if (key.includes('_page_') && !key.endsWith('_dict')) {
     const bookId = Number(key.split('_')[1])
     const pageNum = Number(key.split('_')[3])
@@ -66,7 +77,7 @@ function handleBookPageOrDictKey(key: string, itemSize: number, bookStats: Recor
   return false
 }
 
-function handleImageKey(key: string, itemSize: number, bookStats: Record<number, any>) {
+function handleImageKey(key: string, itemSize: number, bookStats: Record<number, BookCacheStat>) {
   const bookId = Number(key.split('_')[1])
   if (bookStats[bookId]) {
     bookStats[bookId].sizeBytes += itemSize
@@ -74,13 +85,13 @@ function handleImageKey(key: string, itemSize: number, bookStats: Record<number,
   }
 }
 
-function handleCoverKey(key: string, itemSize: number, bookStats: Record<number, any>) {
+function handleCoverKey(key: string, itemSize: number, bookStats: Record<number, BookCacheStat>) {
   const bookId = Number(key.replace('cover_', ''))
   if (bookStats[bookId])
     bookStats[bookId].sizeBytes += itemSize
 }
 
-function handleTtsKey(key: string, itemSize: number, bookStats: Record<number, any>) {
+function handleTtsKey(key: string, itemSize: number, bookStats: Record<number, BookCacheStat>) {
   const hashParts = key.replace('tts_', '').split('_')
   const bookId = Number(hashParts[0])
   if (!Number.isNaN(bookId) && bookStats[bookId]) {
@@ -89,13 +100,13 @@ function handleTtsKey(key: string, itemSize: number, bookStats: Record<number, a
   }
 }
 
-function handleBookMetaKey(key: string, itemSize: number, bookStats: Record<number, any>) {
+function handleBookMetaKey(key: string, itemSize: number, bookStats: Record<number, BookCacheStat>) {
   const bookId = Number(key.split('_')[2])
   if (bookStats[bookId])
     bookStats[bookId].sizeBytes += itemSize
 }
 
-function handleOtherLocalForageKeys(key: string, itemSize: number, bookStats: Record<number, any>) {
+function handleOtherLocalForageKeys(key: string, itemSize: number, bookStats: Record<number, BookCacheStat>) {
   if (key.startsWith('image_')) {
     handleImageKey(key, itemSize, bookStats)
   }
@@ -110,7 +121,7 @@ function handleOtherLocalForageKeys(key: string, itemSize: number, bookStats: Re
   }
 }
 
-function processLocalForageKey(key: string, itemSize: number, bookStats: Record<number, any>) {
+function processLocalForageKey(key: string, itemSize: number, bookStats: Record<number, BookCacheStat>) {
   if (key.startsWith('book_')) {
     if (handleBookPageOrDictKey(key, itemSize, bookStats))
       return
@@ -123,7 +134,7 @@ function handleMediaCacheImageOrCover(
   type: string,
   pathParts: string[],
   size: number,
-  bookStats: Record<number, any>,
+  bookStats: Record<number, BookCacheStat>,
 ) {
   const bookId = Number(pathParts[3])
   if (bookStats[bookId]) {
@@ -133,7 +144,7 @@ function handleMediaCacheImageOrCover(
   }
 }
 
-function handleMediaCacheTts(pathParts: string[], size: number, bookStats: Record<number, any>) {
+function handleMediaCacheTts(pathParts: string[], size: number, bookStats: Record<number, BookCacheStat>) {
   if (pathParts[3]?.includes('_')) {
     const bookId = Number(pathParts[3].split('_')[0])
     if (!Number.isNaN(bookId) && bookStats[bookId]) {
@@ -143,7 +154,7 @@ function handleMediaCacheTts(pathParts: string[], size: number, bookStats: Recor
   }
 }
 
-async function processMediaCacheReq(cache: Cache, req: Request, bookStats: Record<number, any>): Promise<number> {
+async function processMediaCacheReq(cache: Cache, req: Request, bookStats: Record<number, BookCacheStat>): Promise<number> {
   const url = new URL(req.url)
   const pathParts = url.pathname.split('/')
   const type = pathParts[2]
@@ -419,7 +430,7 @@ export const offlineService = {
 
     const userKeys = keys.filter(keyItem => keyItem.startsWith(prefix))
     const booksList = await this.getBooksList() || []
-    const bookStats: Record<number, any> = {}
+    const bookStats: Record<number, BookCacheStat> = {}
 
     booksList.forEach((bookItem) => {
       bookStats[bookItem.id] = {

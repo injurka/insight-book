@@ -5,6 +5,7 @@ export default antfu({
   rules: {
     'node/prefer-global/process': 'off',
     'node/prefer-global/buffer': 'off',
+    'ts/no-explicit-any': 'error',
   },
   ignores: ['bun.lock'],
 })

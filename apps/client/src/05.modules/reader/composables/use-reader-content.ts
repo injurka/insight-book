@@ -1,3 +1,4 @@
+import type { LlmAnalysis } from '~/01.shared/types/models'
 import DOMPurify from 'dompurify'
 import { computed } from 'vue'
 import { useAnalysisStore } from '~/01.shared/store/analysis/analysis.store'
@@ -19,7 +20,7 @@ export function useReaderContent() {
   const settingsStore = useGlobalSettingsStore()
 
   const translationMap = computed(() => {
-    const map: Record<string, any> = {}
+    const map: Record<string, LlmAnalysis> = {}
     for (const item of analysisStore.analysisHistory)
       map[item.sentence] = item.analysis
 
@@ -35,15 +36,15 @@ export function useReaderContent() {
     })
   })
 
-  function buildGrammarHtml(rules?: any[]): string {
+  function buildGrammarHtml(rules?: { pattern?: string, explanation?: string, example?: string }[]): string {
     if (!settingsStore.parallelShowGrammar || !rules || rules.length === 0)
       return ''
-    const badges = rules.map((rule: any) => {
+    const badges = rules.map((rule) => {
       const patternEscaped = encodeURIComponent(rule.pattern || '')
       const explanationEscaped = encodeURIComponent(rule.explanation || '')
       const exampleEscaped = encodeURIComponent(rule.example || '')
 
-      return `<span class="grammar-rule-badge" data-pattern="${patternEscaped}" data-explanation="${explanationEscaped}" data-example="${exampleEscaped}">${escapeHtml(rule.pattern)}</span>`
+      return `<span class="grammar-rule-badge" data-pattern="${patternEscaped}" data-explanation="${explanationEscaped}" data-example="${exampleEscaped}">${escapeHtml(rule.pattern || '')}</span>`
     }).join('')
 
     return `<span class="grammar-rules-container">${badges}</span>`
@@ -53,7 +54,7 @@ export function useReaderContent() {
     span: Element,
     rawSent: string,
     sentId: string,
-    map: Record<string, any>,
+    map: Record<string, LlmAnalysis>,
     translatedSentIds: Set<string>,
   ) {
     if (settingsStore.showSentenceTtsButton && rawSent) {
@@ -75,14 +76,14 @@ export function useReaderContent() {
     span: Element,
     rawSent: string,
     sentId: string,
-    map: Record<string, any>,
+    map: Record<string, LlmAnalysis>,
     translatedSentIds: Set<string>,
   ) {
     if (map[rawSent]) {
       const analysisObj = map[rawSent]
       if (translatedSentIds.has(sentId)) {
         span.innerHTML = '';
-        (span as any).style.display = 'none'
+        (span as HTMLElement).style.display = 'none'
       }
       else {
         const blurClass = settingsStore.parallelBlurTranslation ? 'is-blurred' : ''
@@ -97,7 +98,7 @@ export function useReaderContent() {
     }
   }
 
-  function applyTranslations(doc: Document, map: Record<string, any>, mode: 'left' | 'right') {
+  function applyTranslations(doc: Document, map: Record<string, LlmAnalysis>, mode: 'left' | 'right') {
     const translatedSentIds = new Set<string>()
 
     doc.querySelectorAll('.sentence').forEach((span) => {

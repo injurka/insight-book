@@ -1,3 +1,4 @@
+import type { Highlight, LlmAnalysis, PagePayload } from '~/01.shared/types/models'
 import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { ref } from 'vue'
@@ -27,7 +28,7 @@ vi.mock('@pinia/colada', () => ({
     isLoading: ref(false),
     refetch: vi.fn(async () => { }),
   }),
-  useMutation: () => ({ mutateAsync: vi.fn(async (arg: any) => arg) }),
+  useMutation: () => ({ mutateAsync: vi.fn(async (arg: unknown) => arg) }),
   useQueryCache: () => ({ invalidateQueries: vi.fn() }),
 }))
 
@@ -52,7 +53,7 @@ function setPage(inner: string, pageNum = 1) {
     pageNum,
     totalPages: 10,
     content,
-  } as any
+  } as PagePayload
 }
 
 describe('useReaderContent - applyTranslations (left pane)', () => {
@@ -70,7 +71,7 @@ describe('useReaderContent - applyTranslations (left pane)', () => {
     setPage(sentenceSpan('s1', ['hello', 'world']))
     const analysisStore = useAnalysisStore()
     analysisStore.analysisHistory = [
-      { sentence: 'hello world', analysis: { translation: 'привет мир' } as any, timestamp: 1 },
+      { sentence: 'hello world', analysis: { translation: 'привет мир' } as LlmAnalysis, timestamp: 1 },
     ]
 
     const { leftPaneContent } = useReaderContent()
@@ -97,7 +98,7 @@ describe('useReaderContent - applyTranslations (left pane)', () => {
     setPage(sentenceSpan('s1', ['hello', 'world']))
     const analysisStore = useAnalysisStore()
     analysisStore.analysisHistory = [
-      { sentence: 'hello world', analysis: { translation: '<img src=x onerror=alert(1)>' } as any, timestamp: 1 },
+      { sentence: 'hello world', analysis: { translation: '<img src=x onerror=alert(1)>' } as LlmAnalysis, timestamp: 1 },
     ]
 
     const { leftPaneContent } = useReaderContent()
@@ -117,7 +118,7 @@ describe('useReaderContent - applyTranslations (left pane)', () => {
         text: 'brave',
         color: '#fde047',
         pageNum: 1,
-      } as any,
+      } as Highlight,
     ]
 
     const { leftPaneContent } = useReaderContent()
@@ -131,7 +132,7 @@ describe('useReaderContent - applyTranslations (left pane)', () => {
     setPage(sentenceSpan('s1', ['hello', 'world']))
     const analysisStore = useAnalysisStore()
     analysisStore.analysisHistory = [
-      { sentence: 'hello world', analysis: { translation: 'привет мир' } as any, timestamp: 1 },
+      { sentence: 'hello world', analysis: { translation: 'привет мир' } as LlmAnalysis, timestamp: 1 },
     ]
 
     const { leftPaneContent } = useReaderContent()
@@ -147,7 +148,7 @@ describe('useReaderContent - applyTranslations (left pane)', () => {
     setPage(content)
     const analysisStore = useAnalysisStore()
     analysisStore.analysisHistory = [
-      { sentence: 'hello world', analysis: { translation: 'привет мир' } as any, timestamp: 1 },
+      { sentence: 'hello world', analysis: { translation: 'привет мир' } as LlmAnalysis, timestamp: 1 },
     ]
 
     const { leftPaneContent } = useReaderContent()
@@ -166,7 +167,7 @@ describe('useReaderContent - applyTranslations (left pane)', () => {
         analysis: {
           translation: 'привет мир',
           grammarRules: [{ pattern: 'hello + noun', explanation: 'greeting', example: 'hello world' }],
-        } as any,
+        } as LlmAnalysis,
         timestamp: 1,
       },
     ]
@@ -206,7 +207,7 @@ describe('useReaderContent - applyTranslations (right pane, split mode)', () => 
     setPage(sentenceSpan('s1', ['hello', 'world']))
     const analysisStore = useAnalysisStore()
     analysisStore.analysisHistory = [
-      { sentence: 'hello world', analysis: { translation: 'привет мир' } as any, timestamp: 1 },
+      { sentence: 'hello world', analysis: { translation: 'привет мир' } as LlmAnalysis, timestamp: 1 },
     ]
 
     const { translatedPageContent } = useReaderContent()
@@ -232,7 +233,7 @@ describe('useReaderContent - applyTranslations (right pane, split mode)', () => 
     setPage(content)
     const analysisStore = useAnalysisStore()
     analysisStore.analysisHistory = [
-      { sentence: 'hello world', analysis: { translation: 'привет мир' } as any, timestamp: 1 },
+      { sentence: 'hello world', analysis: { translation: 'привет мир' } as LlmAnalysis, timestamp: 1 },
     ]
 
     const { translatedPageContent } = useReaderContent()
@@ -263,7 +264,7 @@ describe('useReaderContent - pageTranslationProgress', () => {
     setPage(content)
     const analysisStore = useAnalysisStore()
     analysisStore.analysisHistory = [
-      { sentence: 'hello world', analysis: { translation: 'x' } as any, timestamp: 1 },
+      { sentence: 'hello world', analysis: { translation: 'x' } as LlmAnalysis, timestamp: 1 },
     ]
 
     const { pageTranslationProgress } = useReaderContent()

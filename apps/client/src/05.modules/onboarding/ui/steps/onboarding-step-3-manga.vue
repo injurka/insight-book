@@ -36,7 +36,16 @@ onUnmounted(() => {
 })
 
 // Словарик из вашего примера HTML
-const mockDict: Record<string, any> = {
+interface MockDictEntry {
+  tr: string
+  trans: string
+  pos: string
+  posClass: string
+  rules?: { pattern: string, exp: string }[]
+  vocabs?: { word: string, tr: string, mean: string }[]
+}
+
+const mockDict: Record<string, MockDictEntry> = {
   'nàme': {
     tr: 'nàme',
     trans: 'тогда, в таком случае, значит',

@@ -17,8 +17,14 @@ defineOptions({
 
 const props = defineProps<Props>()
 
+export interface BubbleBox {
+  id?: string | number
+  text: string
+  html?: string
+}
+
 interface Props {
-  box: any
+  box: BubbleBox | null
   referenceEl: HTMLElement | null
 }
 
@@ -178,13 +184,14 @@ const style = computed(() => {
 })
 
 function analyzeSentence() {
-  if (props.box?.text) {
+  const box = props.box
+  if (box?.text) {
     const readerStore = useReaderStore()
-    const text = props.box.text.replace(/\n+/g, '')
+    const text = box.text.replace(/\n+/g, '')
     let context = ''
 
     const blocks = readerStore.currentPage?.ocrBlocks || []
-    const idx = blocks.findIndex(b => b.id === props.box.id)
+    const idx = blocks.findIndex(b => b.id === box.id)
     if (idx !== -1) {
       const prev = idx > 0 ? blocks[idx - 1].text.replace(/\n+/g, '') : ''
       const next = idx < blocks.length - 1 ? blocks[idx + 1].text.replace(/\n+/g, '') : ''

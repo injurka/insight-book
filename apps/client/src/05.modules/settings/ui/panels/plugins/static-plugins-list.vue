@@ -18,12 +18,6 @@ const availableStaticPlugins = computed(() => [
     description: t('plugins.grammar-rules.description', 'Изучение и проверка правил грамматики'),
     icon: 'mdi:school-outline',
   },
-  {
-    id: 'scroll-study',
-    name: t('plugins.scroll-study.name', 'Изучение свитков'),
-    description: t('plugins.scroll-study.description', 'Магическое исследование свитков и иероглифов на шестиугольной доске'),
-    icon: 'mdi:scroll-text-outline',
-  },
 ])
 
 async function toggleStaticPlugin(pluginId: string, enabled: boolean) {

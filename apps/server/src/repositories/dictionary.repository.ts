@@ -1,3 +1,4 @@
+import type { SQL } from 'drizzle-orm'
 import type { UserDictItem } from '../types'
 import type { IDictionaryRepository } from './interfaces'
 import { and, desc, eq, inArray, lte, notInArray, sql } from 'drizzle-orm'
@@ -90,7 +91,7 @@ export class DictionaryRepository implements IDictionaryRepository {
 
     return words.map(w => ({
       ...w,
-      deckIds: w.wordToDecks.map((wd: any) => wd.deckId),
+      deckIds: w.wordToDecks.map(wd => wd.deckId),
     })) as unknown as UserDictItem[]
   }
 
@@ -113,7 +114,7 @@ export class DictionaryRepository implements IDictionaryRepository {
 
     return {
       ...item,
-      deckIds: item.wordToDecks.map((wd: any) => wd.deckId),
+      deckIds: item.wordToDecks.map(wd => wd.deckId),
     } as unknown as UserDictItem
   }
 
@@ -215,7 +216,7 @@ export class DictionaryRepository implements IDictionaryRepository {
     deckId?: number | 'none',
     difficulty?: string,
   ) {
-    const filters: any[] = [
+    const filters: SQL[] = [
       eq(schema.userDictionary.userId, userId),
       eq(schema.userDictionary.targetLanguage, targetLang),
     ]
@@ -261,7 +262,7 @@ export class DictionaryRepository implements IDictionaryRepository {
     }
   }
 
-  async updateWordSrs(wordId: number, data: any) {
+  async updateWordSrs(wordId: number, data: Partial<typeof schema.userDictionary.$inferInsert>) {
     await db.update(schema.userDictionary).set(data).where(eq(schema.userDictionary.id, wordId))
   }
 
@@ -298,7 +299,7 @@ export class DictionaryRepository implements IDictionaryRepository {
     return await catalogDb.select().from(officialDecks).where(eq(officialDecks.id, deckId)).get()
   }
 
-  async upsertClonedWords(userWords: any[]) {
+  async upsertClonedWords(userWords: (typeof schema.userDictionary.$inferInsert)[]) {
     return await db.insert(schema.userDictionary).values(userWords).onConflictDoUpdate({
       target: [schema.userDictionary.userId, schema.userDictionary.word, schema.userDictionary.targetLanguage],
       set: {
@@ -311,7 +312,7 @@ export class DictionaryRepository implements IDictionaryRepository {
     }).returning({ id: schema.userDictionary.id })
   }
 
-  async linkWordsToDeck(links: any[]) {
+  async linkWordsToDeck(links: (typeof schema.wordToDeck.$inferInsert)[]) {
     await db.insert(schema.wordToDeck).values(links).onConflictDoNothing()
   }
 
@@ -335,7 +336,7 @@ export class DictionaryRepository implements IDictionaryRepository {
     return newPrompt
   }
 
-  async updateCustomPrompt(id: number, userId: number, updateData: any) {
+  async updateCustomPrompt(id: number, userId: number, updateData: Partial<typeof schema.customPrompts.$inferInsert>) {
     const [updatedPrompt] = await db
       .update(schema.customPrompts)
       .set({ ...updateData, updatedAt: sql`(datetime('now'))` })

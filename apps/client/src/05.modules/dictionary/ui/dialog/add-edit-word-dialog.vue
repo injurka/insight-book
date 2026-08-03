@@ -71,11 +71,8 @@ async function autoFillWithAI() {
 
   try {
     const res = await repos.dictionary.autoFillWord(localWord.value.word, lang)
-    const fields = ['transcription', 'translation', 'difficulty', 'tags', 'grammarNote', 'vocabularyNote'] as const
-    for (const field of fields) {
-      if (res[field])
-        (localWord.value as any)[field] = res[field]
-    }
+    const validEntries = Object.entries(res).filter(([_, v]) => v)
+    Object.assign(localWord.value, Object.fromEntries(validEntries))
 
     toast.success(t('dictionary.fieldsAutoFilled'))
   }

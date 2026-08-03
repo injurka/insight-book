@@ -1,6 +1,11 @@
 import { isTauri } from '~/01.shared/lib/env'
 
-let erudaInstance: any = null
+interface ErudaInstance {
+  init: () => void
+  destroy: () => void
+}
+
+let erudaInstance: ErudaInstance | null = null
 
 /**
  * Включает или выключает eruda (отладочную консоль) внутри Tauri webview.
