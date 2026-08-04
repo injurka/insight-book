@@ -1,0 +1,24 @@
+variables:
+  RUN_LINT: 'true'
+  RUN_TYPECHECK: 'true'
+  BUN_IMAGE: 'oven/bun:1.3.14-debian' # Официальный образ Bun
+  BUN_INSTALL_CACHE_DIR: '$CI_PROJECT_DIR/.bun-cache' # Bun всегда будет использовать этот кеш
+  FF_USE_FASTZIP: 'true' # Быстрый архиватор в GitLab Runner
+  CACHE_COMPRESSION_LEVEL: 'fastest' # Минимальное сжатие для локального диска
+
+default:
+  tags:
+    - docker
+
+stages:
+  - prepare
+  - quality
+  - build_docker
+  - deploy
+
+include:
+  - local: .gitlab/ci/base.yml
+  - local: .gitlab/ci/prepare.yml
+  - local: .gitlab/ci/quality.yml
+  - local: .gitlab/ci/docker.yml
+  - local: .gitlab/ci/deploy.yml

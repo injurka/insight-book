@@ -1,0 +1,10 @@
+.node_bun_base:
+  image: $BUN_IMAGE
+  cache:
+    key:
+      files:
+        - bun.lock
+      prefix: bun-cache
+    paths:
+      - .bun-cache
+    policy: pull

@@ -1,0 +1,13 @@
+prepare:
+  extends: .node_bun_base
+  stage: prepare
+  cache:
+    key:
+      files:
+        - bun.lock
+      prefix: bun-cache
+    paths:
+      - .bun-cache
+    policy: pull-push
+  script:
+    - bun install --frozen-lockfile --ignore-scripts

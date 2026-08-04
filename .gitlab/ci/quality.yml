@@ -1,0 +1,23 @@
+lint:
+  extends: .node_bun_base
+  stage: quality
+  needs:
+    - job: prepare
+      optional: true
+  rules:
+    - if: '$RUN_LINT == "true"'
+  script:
+    - bun install --frozen-lockfile --ignore-scripts
+    - bun run lint
+
+typecheck:
+  extends: .node_bun_base
+  stage: quality
+  needs:
+    - job: prepare
+      optional: true
+  rules:
+    - if: '$RUN_TYPECHECK == "true"'
+  script:
+    - bun install --frozen-lockfile --ignore-scripts
+    - bun run typecheck

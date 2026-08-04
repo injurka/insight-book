@@ -1,0 +1,16 @@
+deploy_to_server:
+  tags:
+    - "dns-editor"
+  stage: deploy
+  image: curlimages/curl:latest
+  needs:
+    - job: build_docker_client
+    - job: build_docker_server
+  rules:
+    - if: $CI_COMMIT_TAG
+  script:
+    - echo "Updating Client..."
+    - curl -k -X POST "$PORTAINER_WEBHOOK_CLIENT"
+    
+    - echo "Updating Server..."
+    - curl -k -X POST "$PORTAINER_WEBHOOK_SERVER"

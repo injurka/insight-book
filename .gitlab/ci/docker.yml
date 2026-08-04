@@ -1,0 +1,27 @@
+.docker_base:
+  image: docker:27.0.3
+  stage: build_docker
+  services:
+    - name: docker:27.0.3-dind
+      alias: docker
+      command: ["--tls=false"]
+  before_script:
+    - echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
+  rules:
+    - if: $CI_COMMIT_TAG
+
+build_docker_client:
+  extends: .docker_base
+  script:
+    - IMAGE_NAME="$DOCKERHUB_USERNAME/insight-book-client"
+    - docker build -f docker/Dockerfile.client -t $IMAGE_NAME:$CI_COMMIT_SHA -t $IMAGE_NAME:latest .
+    - docker push $IMAGE_NAME:$CI_COMMIT_SHA
+    - docker push $IMAGE_NAME:latest
+
+build_docker_server:
+  extends: .docker_base
+  script:
+    - IMAGE_NAME="$DOCKERHUB_USERNAME/insight-book-server"
+    - docker build -f docker/Dockerfile.server -t $IMAGE_NAME:$CI_COMMIT_SHA -t $IMAGE_NAME:latest .
+    - docker push $IMAGE_NAME:$CI_COMMIT_SHA
+    - docker push $IMAGE_NAME:latest
