@@ -40,20 +40,6 @@ export const pushRouter = new Elysia({ prefix: '/api/push' })
       endpoint: t.Optional(t.String()),
     }),
   })
-  .post('/fcm-subscribe', async ({ body, userId }) => {
-    return pushService.subscribeFcm(userId, body.token)
-  }, {
-    body: t.Object({
-      token: t.String(),
-    }),
-  })
-  .post('/fcm-unsubscribe', async ({ body, userId }) => {
-    return pushService.unsubscribeFcm(userId, body.token || '')
-  }, {
-    body: t.Object({
-      token: t.Optional(t.String()),
-    }),
-  })
   .put('/settings', async ({ userId, body }) => {
     const targetDeckId = body.targetDeckId === 'all'
       ? 'all'

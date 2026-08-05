@@ -30,9 +30,9 @@ services:
       - PORT=4445
       - DB_PATH=/db/insight-book.sqlite
       - CATALOG_DB_PATH=/db/catalog.sqlite
+      - AI_CONFIG_PATH=${AI_CONFIG_PATH:-/configs/ai-config.json}
       - DICTS_PATH=/db/dicts
       - UPLOADS_PATH=/uploads
-      - AI_CONFIG_PATH=${AI_CONFIG_PATH:-/configs/ai-config.json}
       - AUTH_MODE=${AUTH_MODE:-single}
       - JWT_SECRET=${JWT_SECRET:-super-secret-key}
       - ADMIN_USERNAME=${ADMIN_USERNAME:-admin}
@@ -50,7 +50,6 @@ services:
       - VAPID_PUBLIC_KEY=${VAPID_PUBLIC_KEY:-}
       - VAPID_PRIVATE_KEY=${VAPID_PRIVATE_KEY:-}
       - VAPID_SUBJECT=${VAPID_SUBJECT:-}
-      - GOOGLE_APPLICATION_CREDENTIALS=/configs/firebase-service-account.json
       - UNISENDER_API_KEY=${UNISENDER_API_KEY:-}
     volumes:
       - ./db:/db

@@ -1,4 +1,3 @@
-import { isTauri } from '@tauri-apps/api/core'
 import { defineStore } from 'pinia'
 
 import { useRepos } from '~/00.plugins/di'
@@ -80,12 +79,7 @@ export const usePwaStore = defineStore('pwa', {
     async checkPushStatus() {
       const token = localStorage.getItem('insight_token')
 
-      if (isTauri()) {
-        await this.checkNativePushStatus(token)
-      }
-      else {
-        await this.checkWebPushStatus(token)
-      }
+      await this.checkWebPushStatus(token)
 
       // Sync timezone if changed
       const authStore = useAuthStore()
@@ -97,18 +91,6 @@ export const usePwaStore = defineStore('pwa', {
           timeEnd: authStore.user.pushTimeEnd ?? '21:00',
           pushCount: authStore.user.pushCount ?? 1,
         }).catch(console.error)
-      }
-    },
-
-    async checkNativePushStatus(token: string | null) {
-      try {
-        const fcmToken = await repos.push.getNativeFcmToken()
-        this.isPushSubscribed = !!fcmToken
-        if (this.isPushSubscribed && fcmToken && token)
-          repos.push.subscribeFcm(fcmToken).catch(() => { })
-      }
-      catch (e) {
-        console.warn('FCM plugin error', e)
       }
     },
 
@@ -143,12 +125,6 @@ export const usePwaStore = defineStore('pwa', {
       const toast = useToastStore()
       const t = i18n.global.t
 
-      if (isTauri()) {
-        await this.toggleNativePush(toast, t)
-
-        return
-      }
-
       await this.toggleWebPush(toast, t)
     },
 
@@ -160,43 +136,6 @@ export const usePwaStore = defineStore('pwa', {
         timeEnd: authStore.user?.pushTimeEnd ?? '21:00',
         pushCount: authStore.user?.pushCount ?? 1,
       }).catch(console.error)
-    },
-
-    async subscribeNativePush(toast: ToastService, t: TranslateFn) {
-      try {
-        const fcmToken = await repos.push.requestNativeFcmToken()
-        if (!fcmToken)
-          throw new Error('No FCM token returned')
-
-        await repos.push.subscribeFcm(fcmToken)
-
-        this.isPushSubscribed = true
-        toast.success(t('settings.pushEnabled'))
-
-        this.initSubscribedSettings()
-      }
-      catch (e) {
-        const err = e as Error
-        toast.error(`${t('settings.pushSubError')}: ${err.message || err}`)
-        throw e
-      }
-    },
-
-    async toggleNativePush(toast: ToastService, t: TranslateFn) {
-      if (this.isPushSubscribed) {
-        const fcmToken = await repos.push.getNativeFcmToken()
-        if (fcmToken) {
-          await repos.push.unsubscribeFcm(fcmToken)
-          await repos.push.unsubscribeNativeFcm()
-        }
-
-        this.isPushSubscribed = false
-        toast.info(t('settings.pushDisabled'))
-
-        return
-      }
-
-      await this.subscribeNativePush(toast, t)
     },
 
     async fetchVapidKey(toast: ToastService, t: TranslateFn): Promise<string> {

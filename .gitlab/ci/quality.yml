@@ -7,7 +7,7 @@ lint:
   rules:
     - if: '$RUN_LINT == "true"'
   script:
-    - bun install --frozen-lockfile --ignore-scripts
+    - bun install --frozen-lockfile
     - bun run lint
 
 typecheck:
@@ -19,5 +19,5 @@ typecheck:
   rules:
     - if: '$RUN_TYPECHECK == "true"'
   script:
-    - bun install --frozen-lockfile --ignore-scripts
+    - bun install --frozen-lockfile
     - bun run typecheck

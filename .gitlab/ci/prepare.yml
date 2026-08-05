@@ -10,4 +10,4 @@ prepare:
       - .bun-cache
     policy: pull-push
   script:
-    - bun install --frozen-lockfile --ignore-scripts
+    - bun install --frozen-lockfile

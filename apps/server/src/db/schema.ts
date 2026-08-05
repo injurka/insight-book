@@ -280,17 +280,6 @@ export const webPushSubscriptionsRelations = relations(webPushSubscriptions, ({ 
   user: one(users, { fields: [webPushSubscriptions.userId], references: [users.id] }),
 }))
 
-export const fcmSubscriptions = sqliteTable('fcm_subscriptions', {
-  id: integer('id').primaryKey({ autoIncrement: true }),
-  userId: integer('userId').notNull().references(() => users.id, { onDelete: 'cascade' }),
-  token: text('token').notNull().unique(),
-  createdAt: text('createdAt').notNull().default(sql`(datetime('now'))`),
-})
-
-export const fcmSubscriptionsRelations = relations(fcmSubscriptions, ({ one }) => ({
-  user: one(users, { fields: [fcmSubscriptions.userId], references: [users.id] }),
-}))
-
 export const highlights = sqliteTable('highlights', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   userId: integer('userId').notNull().references(() => users.id, { onDelete: 'cascade' }),

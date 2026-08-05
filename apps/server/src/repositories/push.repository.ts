@@ -29,38 +29,12 @@ export class PushRepository implements IPushRepository {
     return db.delete(schema.webPushSubscriptions).where(eq(schema.webPushSubscriptions.id, id))
   }
 
-  async upsertFcmSubscription(userId: number, token: string) {
-    return db.insert(schema.fcmSubscriptions).values({
-      userId,
-      token,
-    }).onConflictDoUpdate({
-      target: schema.fcmSubscriptions.token,
-      set: {
-        userId,
-      },
-    })
-  }
-
-  async deleteFcmSubscription(userId: number, token: string) {
-    return db.delete(schema.fcmSubscriptions).where(
-      and(eq(schema.fcmSubscriptions.userId, userId), eq(schema.fcmSubscriptions.token, token)),
-    )
-  }
-
-  async deleteFcmSubscriptionById(id: number) {
-    return db.delete(schema.fcmSubscriptions).where(eq(schema.fcmSubscriptions.id, id))
-  }
-
   async updatePushSettings(userId: number, settings: Partial<typeof schema.users.$inferInsert>) {
     return db.update(schema.users).set(settings).where(eq(schema.users.id, userId))
   }
 
   async getAllWebSubscriptionsWithUsers() {
     return db.query.webPushSubscriptions.findMany({ with: { user: true } })
-  }
-
-  async getAllFcmSubscriptionsWithUsers() {
-    return db.query.fcmSubscriptions.findMany({ with: { user: true } })
   }
 
   async getRandomWordForPush(userId: number, nowIso: string, pushTargetDeckId?: number | null) {

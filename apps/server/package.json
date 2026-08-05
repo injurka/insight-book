@@ -40,7 +40,6 @@
     "drizzle-orm": "^0.45.2",
     "elysia": "^1.4.29",
     "epub2": "^3.0.2",
-    "firebase-admin": "^14.2.0",
     "image-size": "^2.0.2",
     "jsonwebtoken": "^9.0.3",
     "kuromoji": "^0.1.2",

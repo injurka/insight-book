@@ -1,20 +1,12 @@
-import { invoke, isTauri } from '@tauri-apps/api/core'
 import { applyAcl } from '~/01.shared/lib/acl'
 import { API_URL } from '~/01.shared/lib/env'
 import { VapidPublicKeyResponseSchema } from '~/01.shared/types/schemas/push.schema'
 
 export interface IPushRepository {
-  subscribeFcm: (token: string) => Promise<void>
-  unsubscribeFcm: (token: string) => Promise<void>
   subscribeWeb: (sub: PushSubscription) => Promise<void>
   unsubscribeWeb: (endpoint: string) => Promise<void>
   getVapidPublicKey: () => Promise<string>
   updateSettings: (settings: { targetDeckId: number | 'all', timeStart: string, timeEnd: string, timezone: string, uiLanguage: string, pushCount: number }) => Promise<void>
-
-  // Native Tauri wrappers
-  getNativeFcmToken: () => Promise<string | null>
-  requestNativeFcmToken: () => Promise<string>
-  unsubscribeNativeFcm: () => Promise<void>
 }
 
 export class DefaultPushRepository implements IPushRepository {
@@ -27,22 +19,6 @@ export class DefaultPushRepository implements IPushRepository {
 
   private getBaseUrl() {
     return API_URL
-  }
-
-  async subscribeFcm(token: string) {
-    await fetch(`${this.getBaseUrl()}/api/push/fcm-subscribe`, {
-      method: 'POST',
-      headers: this.getHeaders(),
-      body: JSON.stringify({ token }),
-    })
-  }
-
-  async unsubscribeFcm(token: string) {
-    await fetch(`${this.getBaseUrl()}/api/push/fcm-unsubscribe`, {
-      method: 'POST',
-      headers: this.getHeaders(),
-      body: JSON.stringify({ token }),
-    })
   }
 
   async subscribeWeb(sub: PushSubscription) {
@@ -79,26 +55,6 @@ export class DefaultPushRepository implements IPushRepository {
       headers: this.getHeaders(),
       body: JSON.stringify(settings),
     })
-  }
-
-  async getNativeFcmToken() {
-    if (!isTauri())
-      return null
-
-    return invoke<string | null>('get_fcm_token').catch(() => null)
-  }
-
-  async requestNativeFcmToken() {
-    if (!isTauri())
-      throw new Error('Not running in Tauri')
-
-    return invoke<string>('request_fcm_token')
-  }
-
-  async unsubscribeNativeFcm() {
-    if (!isTauri())
-      return
-    await invoke('unsubscribe_fcm').catch(() => null)
   }
 }
 

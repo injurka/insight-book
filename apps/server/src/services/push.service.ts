@@ -1,5 +1,3 @@
-import * as admin from 'firebase-admin'
-import { getMessaging } from 'firebase-admin/messaging'
 import webpush from 'web-push'
 import { getAiConfig } from '~/utils/ai-config'
 import { VAPID_PRIVATE_KEY, VAPID_PUBLIC_KEY, VAPID_SUBJECT } from '../config'
@@ -13,19 +11,6 @@ import { checkTokenLimit } from './limits.service'
 
 if (VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY) {
   webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY)
-}
-
-try {
-  if (process.env.GOOGLE_APPLICATION_CREDENTIALS || process.env.FIREBASE_CONFIG) {
-    admin.initializeApp()
-  }
-  else {
-    // Attempt default initialization if service account is provided in environment implicitly
-    admin.initializeApp()
-  }
-}
-catch {
-  // Ignore already initialized or missing credentials at startup
 }
 
 function getSeededRandom(seedStr: string) {
@@ -138,30 +123,20 @@ export async function sendDailyMotivations(customMessage?: string) {
   }
 
   logger.info('🚀 Starting push notifications dispatch...')
-  const [webSubscriptions, fcmSubscriptions] = await Promise.all([
-    pushRepository.getAllWebSubscriptionsWithUsers(),
-    pushRepository.getAllFcmSubscriptionsWithUsers(),
-  ])
+  const webSubscriptions = await pushRepository.getAllWebSubscriptionsWithUsers()
 
-  if (!webSubscriptions.length && !fcmSubscriptions.length) {
+  if (!webSubscriptions.length) {
     logger.info('[Push] No active subscriptions found.')
     return
   }
 
-  const userSubsMap = new Map<number, { user: { id: number, pushCount?: number | null, lastPushSentAt?: string | null, timezone?: string | null, pushTimeStart?: string | null, pushTimeEnd?: string | null, uiLanguage?: string | null, pushTargetDeckId?: number | null }, web: typeof webSubscriptions, fcm: typeof fcmSubscriptions }>()
+  const userSubsMap = new Map<number, { user: { id: number, pushCount?: number | null, lastPushSentAt?: string | null, timezone?: string | null, pushTimeStart?: string | null, pushTimeEnd?: string | null, uiLanguage?: string | null, pushTargetDeckId?: number | null }, web: typeof webSubscriptions }>()
 
   webSubscriptions.forEach((sub) => {
     if (!userSubsMap.has(sub.userId)) {
-      userSubsMap.set(sub.userId, { user: sub.user, web: [], fcm: [] })
+      userSubsMap.set(sub.userId, { user: sub.user, web: [] })
     }
     userSubsMap.get(sub.userId)!.web.push(sub)
-  })
-
-  fcmSubscriptions.forEach((sub) => {
-    if (!userSubsMap.has(sub.userId)) {
-      userSubsMap.set(sub.userId, { user: sub.user, web: [], fcm: [] })
-    }
-    userSubsMap.get(sub.userId)!.fcm.push(sub)
   })
 
   const now = new Date()
@@ -276,39 +251,6 @@ export async function sendDailyMotivations(customMessage?: string) {
         }
       }
 
-      for (const sub of data.fcm) {
-        try {
-          await getMessaging().send({
-            token: sub.token,
-            notification: {
-              title: messageTitle,
-              body: messageBody,
-            },
-            data: {
-              url: targetUrl,
-            },
-            android: {
-              notification: {
-                icon: 'ic_notification',
-                color: '#fde047',
-                tag: `insight-book-daily-${wordStrForTag || Date.now()}`,
-              },
-            },
-          })
-          sentCount++
-        }
-        catch (error: unknown) {
-          const fcmError = error as { code?: string, message?: string }
-          if (fcmError.code === 'messaging/registration-token-not-registered' || fcmError.code === 'messaging/invalid-registration-token') {
-            logger.info(`[FCM] Token expired for user ${userId}, deleting...`)
-            await pushRepository.deleteFcmSubscriptionById(sub.id)
-          }
-          else {
-            logger.error(fcmError.message, `[FCM] Error sending to user ${userId}:`)
-          }
-        }
-      }
-
       if (sentCount > 0) {
         await pushRepository.updateLastPushSentAt(userId, now.toISOString())
       }
@@ -332,20 +274,6 @@ export const pushService = {
   async unsubscribeWebPush(userId: number, endpoint: string) {
     if (endpoint) {
       await pushRepository.deleteWebSubscription(userId, endpoint)
-    }
-    return { success: true }
-  },
-
-  async subscribeFcm(userId: number, token: string) {
-    if (!token)
-      throw new Error('Invalid FCM token')
-    await pushRepository.upsertFcmSubscription(userId, token)
-    return { success: true }
-  },
-
-  async unsubscribeFcm(userId: number, token: string) {
-    if (token) {
-      await pushRepository.deleteFcmSubscription(userId, token)
     }
     return { success: true }
   },

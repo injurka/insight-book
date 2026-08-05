@@ -37,6 +37,3 @@ tauri-plugin-dialog = "2.6.0"
 tauri-plugin-http = "2"
 tauri-plugin-deep-link = "2"
 tauri-plugin-opener = "2"
-jni = "0.21"
-ndk-context = "0.1.1"
-tokio = { version = "1.52.3", features = ["time", "rt"] }

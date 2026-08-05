@@ -277,15 +277,8 @@ jobs:
         env:
           NDK_HOME: ${{ env.ANDROID_HOME }}/ndk/26.3.11579264
 
-      - name: Configure Android Project (Firebase & Permissions)
+      - name: Configure Android Project (Permissions)
         run: ./apps/native/src-tauri/setup-android.sh
-
-      - name: Inject google-services.json
-        env:
-          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
-        run: |
-          mkdir -p apps/native/src-tauri/gen/android/app
-          echo "$GOOGLE_SERVICES_JSON" > apps/native/src-tauri/gen/android/app/google-services.json
 
       - name: Generate Android Icons
         run: |

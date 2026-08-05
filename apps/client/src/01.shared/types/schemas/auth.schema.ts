@@ -16,7 +16,7 @@ export const UserDataSchema = z.object({
   pushCount: z.number().optional(),
   timezone: z.string().optional(),
   uiLanguage: z.string().optional(),
-  avatarUrl: z.string().optional(),
+  avatarUrl: z.string().nullish().transform(v => v ?? undefined),
 })
 
 // Схема ответа auth.me() (ACL)

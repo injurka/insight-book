@@ -128,5 +128,5 @@
 
 ## Взаимодействие с платформой и Устройствами
 
-* **Web и WebView (Tauri)**: Проверка окружения через `isTauri()` с динамической инициализацией нативных сервисов (Tauri auto-updater, FCM push-уведомления).
+* **Web и WebView (Tauri)**: Проверка окружения через `isTauri()` с динамической инициализацией нативных сервисов (Tauri auto-updater).
 * **Browser & Platform APIs**: Использование `MediaRecorder` для записи речи, `window.speechSynthesis` для озвучки, `navigator.storage` для контроля квоты памяти.
