@@ -11,6 +11,8 @@
 *.tsx eol=lf encoding=UTF-8
 *.txt eol=lf encoding=UTF-8
 *.xml eol=lf encoding=UTF-8
+Dockerfile* eol=lf
+*.sh eol=lf
 
 # Images
 *.gif binary
