@@ -1,8 +1,19 @@
-import { API_URL } from '~/01.shared/lib/env'
+import { API_URL, CDN_URL } from '~/01.shared/lib/env'
 
 function getMediaUrl(path: string) {
   if (path.startsWith('data:') || path.startsWith('http://') || path.startsWith('https://'))
     return path
+
+  if (
+    CDN_URL && (path.startsWith('/api/uploads/')
+      || path.startsWith('books/')
+      || path.startsWith('covers/')
+      || path.startsWith('avatars/'))
+  ) {
+    const cleanPath = path.replace(/^\/api\/uploads\//, '')
+
+    return `${CDN_URL}/${cleanPath}`
+  }
 
   return `${API_URL}${path}`
 }

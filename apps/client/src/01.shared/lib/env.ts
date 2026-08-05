@@ -8,6 +8,9 @@ const runtimeConfig = (window as { __APP_CONFIG__?: AppRuntimeConfig }).__APP_CO
 /** Базовый URL API: рантайм-конфиг контейнера → env при сборке → прод */
 export const API_URL = runtimeConfig?.API_URL || import.meta.env.VITE_API_URL || 'https://api.insight-book.ru'
 
+/** Базовый URL CDN (Pull Zone) для раздачи загруженных файлов (манга, обложки, аватарки) */
+export const CDN_URL = import.meta.env.VITE_CDN_URL || ''
+
 /** Приложение запущено внутри Tauri (десктоп или мобильное приложение) */
 export const isTauri = '__TAURI_INTERNALS__' in window
 

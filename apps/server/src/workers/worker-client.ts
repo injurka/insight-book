@@ -34,12 +34,21 @@ function initPool() {
     pool.push(worker)
 
     worker.onmessage = (event: MessageEvent) => {
-      const { id, success, data, error } = event.data
+      const { id, success, data, error, stack } = event.data
       const task = taskCallbacks.get(id)
       if (task) {
-        if (success)
+        if (success) {
           task.resolve(data)
-        else task.reject(new Error(error))
+        }
+        else {
+          const err = new Error(error)
+          // Подменяем стек на реальный стек из воркера,
+          // чтобы в логах было видно, где именно упала задача
+          if (stack)
+            err.stack = stack
+          logger.error({ taskId: id, taskType: task.type, err }, `[Worker Task Failed] ${task.type}: ${error}`)
+          task.reject(err)
+        }
         taskCallbacks.delete(id)
       }
       workerActive.set(worker, false)

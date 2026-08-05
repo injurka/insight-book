@@ -64,5 +64,6 @@ export const ALLOWED_ORIGINS = new Set([
 // CORS headers with Allow-Origin resolved against the request origin.
 export function corsHeadersFor(origin: string | null): Record<string, string> {
   const allowOrigin = origin && ALLOWED_ORIGINS.has(origin) ? origin : FRONTEND_URL
+
   return { ...CORS_HEADERS, 'Access-Control-Allow-Origin': allowOrigin, 'Vary': 'Origin' }
 }
