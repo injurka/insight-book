@@ -11,7 +11,7 @@ const stream = isDev
         ignore: 'pid,hostname',
       },
     })
-  : pino.destination({ sync: false, minLength: 4096 })
+  : pino.destination({ sync: true })
 
 export const logger = pino({
   level: process.env.LOG_LEVEL || 'info',

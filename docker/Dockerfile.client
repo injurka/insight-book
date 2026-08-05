@@ -98,7 +98,7 @@ COPY <<'EOF' /entrypoint.sh
 set -e
 
 cat > /usr/share/nginx/html/configs/app-config.js <<CONFIG
-// Сгенерировано entrypoint'ом контейнера при запуске
+// Сгенерировано entrypoint-ом контейнера при запуске
 window.__APP_CONFIG__ = {
   API_URL: "${VITE_API_URL:-}",
 }
