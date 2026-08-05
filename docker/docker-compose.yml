@@ -8,6 +8,8 @@ services:
         - VITE_UMAMI_URL=${VITE_UMAMI_URL:-}
     image: ${REGISTRY:-docker.io}/injurka/insight-book-client:${V_CLIENT:-latest}
     restart: unless-stopped
+    environment:
+      - VITE_API_URL=${VITE_API_URL:-}
     volumes:
       - ./configs:/usr/share/nginx/html/configs
     networks:
