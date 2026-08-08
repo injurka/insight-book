@@ -1,7 +1,7 @@
 /// <reference types="bun-types" />
 
 import { eq } from 'drizzle-orm'
-import { db, sqlite } from './db'
+import { client, db } from './db'
 import * as schema from './db/schema'
 import { logger } from './utils/logger'
 
@@ -184,10 +184,10 @@ async function main() {
 }
 
 main().then(() => {
-  sqlite.close()
+  client.close()
   process.exit(0)
 }).catch((err) => {
   logger.error(err, 'Ошибка:')
-  sqlite.close()
+  client.close()
   process.exit(1)
 })

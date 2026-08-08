@@ -817,8 +817,8 @@ export const useAnalysisStore = defineStore('analysis', () => {
       fetchAiTranslation()
   }
 
-  function tryApplyDictTranslation(entry: PageDictEntry | undefined, basePopover: Omit<WordPopoverData, 'transcription' | 'translation' | 'showAi' | 'isAiLoading'>, priority: string): boolean {
-    if (priority === 'dict' && entry?.translation) {
+  function tryApplyDictTranslation(entry: PageDictEntry | undefined, basePopover: Omit<WordPopoverData, 'transcription' | 'translation' | 'showAi' | 'isAiLoading'>): boolean {
+    if (entry?.translation) {
       wordAbortController?.abort()
       wordPopover.value = {
         ...basePopover,
@@ -867,7 +867,7 @@ export const useAnalysisStore = defineStore('analysis', () => {
       isSaved: !!entry?.isUserDict,
     }
 
-    if (tryApplyDictTranslation(entry, basePopoverData, settingsStore.translationPriority))
+    if (tryApplyDictTranslation(entry, basePopoverData))
       return
 
     wordAbortController?.abort()
@@ -891,9 +891,8 @@ export const useAnalysisStore = defineStore('analysis', () => {
     pos: string,
     targetRect: DOMRect,
     target: HTMLElement,
-    priority: string,
   ) {
-    if (priority === 'dict' && result.translation) {
+    if (result.translation) {
       wordPopover.value = {
         word,
         pos,
@@ -929,7 +928,6 @@ export const useAnalysisStore = defineStore('analysis', () => {
     targetRect: DOMRect,
     target: HTMLElement,
     controller: AbortController,
-    priority: string,
   ) {
     try {
       trackEvent('ai_word_lookup', { word })
@@ -943,7 +941,6 @@ export const useAnalysisStore = defineStore('analysis', () => {
         pos,
         targetRect,
         target,
-        priority,
       )
     }
     catch (err: unknown) {
@@ -991,7 +988,6 @@ export const useAnalysisStore = defineStore('analysis', () => {
       targetRect,
       target,
       controller,
-      settingsStore.translationPriority,
     )
   }
 

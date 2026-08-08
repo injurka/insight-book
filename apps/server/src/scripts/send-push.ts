@@ -1,4 +1,4 @@
-import { sqlite } from '../db'
+import { client } from '../db'
 import { sendDailyMotivations } from '../services/push.service'
 import { logger } from '../utils/logger'
 
@@ -21,11 +21,11 @@ async function main() {
 
 main()
   .then(() => {
-    sqlite.close()
+    client.close()
     process.exit(0)
   })
   .catch((err) => {
     logger.error(err, '\n❌ Fatal error:')
-    sqlite.close()
+    client.close()
     process.exit(1)
   })

@@ -1,8 +1,8 @@
 import { readdir, readFile, stat } from 'node:fs/promises'
 import path from 'node:path'
-import { catalogDb, catalogSqlite, initCatalogDb } from '../db/catalog'
-import { officialDecks, officialDeckWords } from '../db/catalog-schema'
-import { logger } from '../utils/logger'
+import { catalogClient, catalogDb, initCatalogDb } from '../../db/catalog'
+import { officialDecks, officialDeckWords } from '../../db/catalog-schema'
+import { logger } from '../../utils/logger'
 
 const DECKS_DIR = path.resolve(process.cwd(), 'assets', 'decks')
 
@@ -22,10 +22,10 @@ async function seed() {
   try {
     logger.info('🗑️ Очистка старых данных каталога...')
 
-    catalogSqlite.run(`DROP TABLE IF EXISTS official_deck_words;`)
-    catalogSqlite.run(`DROP TABLE IF EXISTS official_decks;`)
+    await catalogClient.execute(`DROP TABLE IF EXISTS official_deck_words;`)
+    await catalogClient.execute(`DROP TABLE IF EXISTS official_decks;`)
 
-    initCatalogDb()
+    await initCatalogDb()
 
     let subdirs: string[] = []
     try {
@@ -157,7 +157,7 @@ async function seed() {
   }
   finally {
     try {
-      catalogSqlite.close()
+      catalogClient.close()
     }
     catch { }
     process.exit(0)

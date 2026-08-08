@@ -1,18 +1,18 @@
-import type { LlmAnalysis, LlmConfig, ModelMessage } from '../types'
-import type { TokenUsage } from '../utils/llm-api'
+import type { LlmAnalysis, LlmConfig, ModelMessage } from '../../types'
+import type { TokenUsage } from '../../utils/llm-api'
 import { mkdir, readdir, readFile, stat, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { cancel, intro, isCancel, select } from '@clack/prompts'
 import { eq } from 'drizzle-orm'
-import { db, sqlite } from '~/db'
-import { catalogSqlite } from '~/db/catalog'
-import * as schema from '../db/schema'
-import { getSystemPrompt } from '../prompts'
-import { LlmAnalysisSchema } from '../types/schemas'
-import { getAiConfig } from '../utils/ai-config'
-import { hashSentence, normalizeLanguageCode, parseLlmJson } from '../utils/helpers'
-import { callLlmJsonWithRetry } from '../utils/llm-api'
-import { logger } from '../utils/logger'
+import { client, db } from '~/db'
+import { catalogClient } from '~/db/catalog'
+import * as schema from '../../db/schema'
+import { getSystemPrompt } from '../../prompts'
+import { LlmAnalysisSchema } from '../../types/schemas'
+import { getAiConfig } from '../../utils/ai-config'
+import { hashSentence, normalizeLanguageCode, parseLlmJson } from '../../utils/helpers'
+import { callLlmJsonWithRetry } from '../../utils/llm-api'
+import { logger } from '../../utils/logger'
 
 const args = process.argv.slice(2)
 const inputArg = args[0]
@@ -394,8 +394,8 @@ main()
   .catch(e => logger.error(e, 'Критическая ошибка:'))
   .finally(() => {
     try {
-      sqlite.close()
-      catalogSqlite.close()
+      client.close()
+      catalogClient.close()
     }
     catch { }
     process.exit(0)

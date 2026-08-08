@@ -1,10 +1,10 @@
 import { readdir, readFile, stat } from 'node:fs/promises'
 import path from 'node:path'
 import { cancel, intro, isCancel, select } from '@clack/prompts'
-import { db, sqlite } from '~/db'
-import * as schema from '../db/schema'
-import { hashSentence, normalizeLanguageCode } from '../utils/helpers'
-import { logger } from '../utils/logger'
+import { client, db } from '~/db'
+import * as schema from '../../db/schema'
+import { hashSentence, normalizeLanguageCode } from '../../utils/helpers'
+import { logger } from '../../utils/logger'
 
 const args = process.argv.slice(2)
 const inputArg = args[0]
@@ -262,7 +262,7 @@ main()
   .catch(e => logger.error(e, 'Критическая ошибка:'))
   .finally(() => {
     try {
-      sqlite.close()
+      client.close()
     }
     catch {}
     process.exit(0)

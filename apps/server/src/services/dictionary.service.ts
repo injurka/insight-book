@@ -1,9 +1,7 @@
 import type { IDictionaryRepository } from '../repositories/interfaces'
 import type { LlmConfig, PageDictEntry, UserDictItem } from '../types'
-import { inArray } from 'drizzle-orm'
-import { sqliteTable, text } from 'drizzle-orm/sqlite-core'
 import { createEmptyCard, FSRS, Rating } from 'ts-fsrs'
-import { db, getDictConnection } from '../db'
+import { db } from '../db'
 import { getDictionaryChatPrompt } from '../prompts'
 import { dictionaryRepository } from '../repositories/dictionary.repository'
 import { AppError } from '../utils/errors'
@@ -44,47 +42,6 @@ export class DictionaryService {
       }
     }
 
-    const conn = getDictConnection(language, targetLang)
-    if (conn) {
-      const schemaObj = {
-        [conn.wordCol]: text(conn.wordCol).notNull(),
-        [conn.translationCol]: text(conn.translationCol),
-        ...(conn.hasTranscription ? { [conn.transcriptionCol]: text(conn.transcriptionCol) } : {}),
-      }
-      const dictTable = sqliteTable(conn.tableName, schemaObj)
-
-      for (let i = 0; i < words.length; i += chunkSize) {
-        const chunk = words.slice(i, i + chunkSize)
-        const missingWords = chunk.filter(w => !dict[w] && !dict[w.toLowerCase()])
-        if (!missingWords.length)
-          continue
-
-        try {
-          const selection = {
-            word: dictTable[conn.wordCol],
-            translation: dictTable[conn.translationCol],
-            ...(conn.hasTranscription ? { transcription: dictTable[conn.transcriptionCol] } : {}),
-          }
-          const searchWords = Array.from(new Set(missingWords.flatMap(w => [w, w.toLowerCase()])))
-
-          const rows = await conn.dDb.select(selection).from(dictTable).where(inArray(dictTable[conn.wordCol], searchWords))
-          for (const row of rows) {
-            if (!row.word)
-              continue
-            const entry = {
-              transcription: (conn.hasTranscription ? row.transcription : '') || '',
-              translation: row.translation || '',
-              isUserDict: false,
-            }
-            dict[row.word as string] = entry
-            dict[(row.word as string).toLowerCase()] = entry
-          }
-        }
-        catch (e) {
-          logger.error(e, `[Dictionary Error] Failed to query ${conn.tableName}:`)
-        }
-      }
-    }
     return dict
   }
 
@@ -92,37 +49,6 @@ export class DictionaryService {
     const userWord = await this.dictRepo.getWordFromUserDictionary(word, userId, targetLang)
     if (userWord) {
       return { transcription: userWord.transcription || '', translation: userWord.translation || '', isUserDict: true }
-    }
-    const conn = getDictConnection(language, targetLang)
-    if (!conn)
-      return null
-
-    const schemaObj = {
-      [conn.wordCol]: text(conn.wordCol).notNull(),
-      [conn.translationCol]: text(conn.translationCol),
-      ...(conn.hasTranscription ? { [conn.transcriptionCol]: text(conn.transcriptionCol) } : {}),
-    }
-    const dictTable = sqliteTable(conn.tableName, schemaObj)
-
-    try {
-      const selection = {
-        word: dictTable[conn.wordCol],
-        translation: dictTable[conn.translationCol],
-        ...(conn.hasTranscription ? { transcription: dictTable[conn.transcriptionCol] } : {}),
-      }
-      const searchWords = Array.from(new Set([word, word.toLowerCase()]))
-      const rows = await conn.dDb.select(selection).from(dictTable).where(inArray(dictTable[conn.wordCol], searchWords)).limit(1)
-
-      if (rows.length > 0) {
-        return {
-          transcription: (conn.hasTranscription ? rows[0].transcription : '') || '',
-          translation: rows[0].translation || '',
-          isUserDict: false,
-        }
-      }
-    }
-    catch (e) {
-      logger.error(e, `[Dictionary Error] Failed to lookup single word:`)
     }
     return null
   }

@@ -19,7 +19,7 @@ Playwright сам поднимает оба сервиса через `webServer
 
 ## Изоляция данных
 
-На каждый прогон создаётся свежая временная директория (`os.tmpdir()/insight-book-e2e-*`) с чистыми `DB_PATH`, `CATALOG_DB_PATH`, `DICTS_PATH`, `UPLOADS_PATH`. Сервер при старте сам применяет миграции и сидит пользователя `admin/admin` (`AUTH_MODE=multi`, `JWT_SECRET=e2e-test-secret`). `reuseExistingServer: false` — Playwright всегда стартует свои экземпляры и гасит их после прогона.
+На каждый прогон создаётся свежая временная директория (`os.tmpdir()/insight-book-e2e-*`) с чистыми `DB_PATH`, `CATALOG_DB_PATH`, `UPLOADS_PATH`. Сервер при старте сам применяет миграции и сидит пользователя `admin/admin` (`AUTH_MODE=multi`, `JWT_SECRET=e2e-test-secret`). `reuseExistingServer: false` — Playwright всегда стартует свои экземпляры и гасит их после прогона.
 
 ## Решения
 

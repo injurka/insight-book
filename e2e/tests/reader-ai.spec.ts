@@ -101,7 +101,7 @@ test.describe('reader-ai: чтение и ИИ-анализ', () => {
     const popover = page.locator('.word-popover')
     await expect(popover).toBeVisible()
 
-    // 2. По умолчанию translationPriority=llm — ИИ-перевод подгружается сам (мок /analyze)
+    // 2. В словаре перевода нет — ИИ-перевод подгружается сам (мок /analyze)
     await expect(popover.locator('.translation')).toContainText('RU-WORD: quixotic')
 
     // 3. Явно дёргаем кнопку «Перевести с ИИ» (робот): off → on

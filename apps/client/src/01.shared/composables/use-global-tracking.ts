@@ -12,10 +12,6 @@ export function useGlobalTracking() {
     trackEvent('custom_llm_enabled', { enabled: val })
   })
 
-  watch(() => settingsStore.translationPriority, (val) => {
-    trackEvent('translation_priority_changed', { priority: val })
-  })
-
   watch(() => settingsStore.ttsSpeed, (val) => {
     trackEvent('tts_speed_changed', { speed: val })
   })

@@ -1,6 +1,6 @@
-import { Database } from 'bun:sqlite'
+import { createClient } from '@libsql/client'
 import { eq } from 'drizzle-orm'
-import { DB_PATH } from '../config'
+import { DATABASE_AUTH_TOKEN, DATABASE_URL, DB_PATH } from '../config'
 import { db } from '../db'
 import * as schema from '../db/schema'
 import { logger } from '../utils/logger'
@@ -23,9 +23,9 @@ export async function executeDump(logCallback?: (msg: string) => void): Promise<
 
     // 2. Сбрасываем WAL в основной файл
     log('🗄️ Checkpointing SQLite database...')
-    const sqliteDb = new Database(DB_PATH)
-    sqliteDb.run('PRAGMA wal_checkpoint(PASSIVE)') // В режиме PASSIVE не блокирует читающих/пишущих клиентов
-    sqliteDb.close()
+    const checkpointClient = createClient({ url: DATABASE_URL, authToken: DATABASE_AUTH_TOKEN })
+    await checkpointClient.execute('PRAGMA wal_checkpoint(PASSIVE)') // В режиме PASSIVE не блокирует читающих/пишущих клиентов
+    checkpointClient.close()
 
     const dbFile = Bun.file(DB_PATH)
     if (await dbFile.exists()) {

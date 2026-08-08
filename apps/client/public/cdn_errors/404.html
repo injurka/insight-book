@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>404 — Страница не найдена | InsightBook</title>
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <script>
+    // Global localization messages matching app capabilities
+    const translations = {
+      ru: {
+        title: '404 — Страница не найдена | InsightBook',
+        tag: 'Страница ошибки',
+        heading: 'Страница не найдена',
+        desc: 'Запрашиваемый ресурс перемещен, удален или никогда не существовал. Проверьте правильность введенного адреса.',
+        btn: 'Вернуться на главную'
+      },
+      en: {
+        title: '404 — Page Not Found | InsightBook',
+        tag: 'Error Page',
+        heading: 'Page Not Found',
+        desc: 'The requested resource has been moved, deleted, or never existed. Please verify the URL.',
+        btn: 'Back to Home'
+      },
+      zh: {
+        title: '404 — 页面未找到 | InsightBook',
+        tag: '错误页面',
+        heading: '页面未找到',
+        desc: '您请求的资源已被移动、删除或根本不存在。请检查输入的地址是否正确。',
+        btn: '返回首页'
+      }
+    };
+
+    let currentLang = 'ru';
+
+    (function() {
+      try {
+        // Theme resolving
+        let theme = localStorage.getItem('app-theme');
+        if (theme) {
+          if (theme.startsWith('"') && theme.endsWith('"')) {
+            theme = JSON.parse(theme);
+          }
+        }
+        if (!theme || theme === 'system') {
+          theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        }
+        document.documentElement.className = 'theme-' + theme;
+
+        // Language resolving
+        let lang = localStorage.getItem('global-app-language');
+        if (lang) {
+          if (lang.startsWith('"') && lang.endsWith('"')) {
+            lang = JSON.parse(lang);
+          }
+        }
+        if (!lang || !translations[lang]) {
+          const navLang = navigator.language || navigator.userLanguage || '';
+          if (navLang.startsWith('zh')) {
+            lang = 'zh';
+          } else if (navLang.startsWith('en')) {
+            lang = 'en';
+          } else {
+            lang = 'ru';
+          }
+        }
+        currentLang = lang;
+        document.documentElement.lang = lang;
+        document.title = translations[lang].title;
+      } catch (e) {
+        // Fallback in case of sandboxed env / localStorage errors
+        document.documentElement.className = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'theme-dark' : 'theme-light';
+      }
+    })();
+  </script>
+
+  <style>
+    /* Theme definitions matching InsightBook color tokens */
+    
+    .theme-dark {
+      --bg-color: #0d1117;
+      --card-bg: rgba(22, 27, 34, 0.7);
+      --border-color: rgba(48, 54, 61, 0.8);
+      --text-primary: #c9d1d9;
+      --text-secondary: #8b949e;
+      --accent-color: #c975de;
+      --accent-glow: rgba(201, 117, 222, 0.15);
+      --button-bg: #c975de;
+      --button-text: #0d1117;
+      --button-hover: #db90f5;
+      --shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+    }
+
+    .theme-light {
+      --bg-color: #faf4f2;
+      --card-bg: rgba(242, 237, 235, 0.75);
+      --border-color: rgba(210, 205, 203, 0.5);
+      --text-primary: #29242a;
+      --text-secondary: #706b6e;
+      --accent-color: #e16032;
+      --accent-glow: rgba(225, 96, 50, 0.12);
+      --button-bg: #e16032;
+      --button-text: #faf4f2;
+      --button-hover: #f37a51;
+      --shadow: 0 8px 32px 0 rgba(225, 96, 50, 0.06);
+    }
+
+    .theme-sepia {
+      --bg-color: #f4ecd8;
+      --card-bg: rgba(234, 221, 196, 0.75);
+      --border-color: rgba(209, 192, 172, 0.5);
+      --text-primary: #4a3c31;
+      --text-secondary: #735d4d;
+      --accent-color: #d18f52;
+      --accent-glow: rgba(209, 143, 82, 0.15);
+      --button-bg: #d18f52;
+      --button-text: #f4ecd8;
+      --button-hover: #f37a51;
+      --shadow: 0 8px 32px 0 rgba(209, 143, 82, 0.08);
+    }
+
+    .theme-green {
+      --bg-color: #e8f3e8;
+      --card-bg: rgba(213, 232, 213, 0.75);
+      --border-color: rgba(210, 205, 203, 0.5);
+      --text-primary: #1b3d1b;
+      --text-secondary: #385d38;
+      --accent-color: #4a8c4a;
+      --accent-glow: rgba(74, 140, 74, 0.15);
+      --button-bg: #4a8c4a;
+      --button-text: #e8f3e8;
+      --button-hover: #f37a51;
+      --shadow: 0 8px 32px 0 rgba(74, 140, 74, 0.08);
+    }
+
+    .theme-oled {
+      --bg-color: #000000;
+      --card-bg: rgba(10, 12, 16, 0.75);
+      --border-color: rgba(48, 54, 61, 0.8);
+      --text-primary: #c9d1d9;
+      --text-secondary: #8b949e;
+      --accent-color: #c975de;
+      --accent-glow: rgba(201, 117, 222, 0.15);
+      --button-bg: #c975de;
+      --button-text: #000000;
+      --button-hover: #db90f5;
+      --shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.6);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-primary);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      overflow: hidden;
+      position: relative;
+      transition: background-color 0.3s ease, color 0.3s ease;
+    }
+
+    /* Background decorative elements */
+    .bg-glow {
+      position: absolute;
+      width: 400px;
+      height: 400px;
+      background: var(--accent-glow);
+      filter: blur(100px);
+      border-radius: 50%;
+      z-index: 1;
+      pointer-events: none;
+      animation: float-glow 8s ease-in-out infinite;
+      transition: background 0.3s ease;
+    }
+
+    .bg-glow-1 {
+      top: 15%;
+      left: 15%;
+    }
+
+    .bg-glow-2 {
+      bottom: 15%;
+      right: 15%;
+      animation-delay: -4s;
+    }
+
+    /* Container Card with Glassmorphism */
+    .error-container {
+      position: relative;
+      z-index: 2;
+      background: var(--card-bg);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid var(--border-color);
+      border-radius: 24px;
+      padding: 60px 40px;
+      text-align: center;
+      max-width: 480px;
+      width: 100%;
+      box-shadow: var(--shadow);
+      animation: fade-in 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+      transition: background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    /* Creative 404 Illustration with Code Vibe */
+    .illustration {
+      margin-bottom: 30px;
+      position: relative;
+      display: inline-flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .error-code {
+      font-size: 100px;
+      font-weight: 800;
+      line-height: 1;
+      letter-spacing: -2px;
+      background: linear-gradient(135deg, var(--text-primary) 30%, var(--accent-color) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 10px;
+      animation: pulse-code 4s ease-in-out infinite;
+    }
+
+    .tag {
+      display: inline-block;
+      font-size: 13px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      padding: 6px 16px;
+      background: var(--accent-glow);
+      color: var(--accent-color);
+      border-radius: 20px;
+      border: 1px solid var(--accent-color);
+      margin-bottom: 24px;
+      animation: bounce-tag 2s ease-in-out infinite;
+      transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+    }
+
+    h1 {
+      font-size: 24px;
+      font-weight: 700;
+      margin-bottom: 12px;
+      letter-spacing: -0.5px;
+    }
+
+    p {
+      font-size: 15px;
+      color: var(--text-secondary);
+      line-height: 1.6;
+      margin-bottom: 32px;
+      transition: color 0.3s ease;
+    }
+
+    /* Premium Button Style */
+    .btn-home {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      text-decoration: none;
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--button-text);
+      background-color: var(--button-bg);
+      padding: 14px 28px;
+      border-radius: 12px;
+      transition: all 0.2s ease-in-out;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.1);
+    }
+
+    .btn-home:hover {
+      background-color: var(--button-hover);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+    }
+
+    .btn-home:active {
+      transform: translateY(0);
+    }
+
+    .btn-home svg {
+      width: 18px;
+      height: 18px;
+      transition: transform 0.2s ease;
+    }
+
+    .btn-home:hover svg {
+      transform: translateX(-3px);
+    }
+
+    /* Animations */
+    @keyframes fade-in {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes float-glow {
+      0%, 100% {
+        transform: translate(0, 0) scale(1);
+      }
+      50% {
+        transform: translate(30px, -20px) scale(1.1);
+      }
+    }
+
+    @keyframes pulse-code {
+      0%, 100% {
+        text-shadow: 0 0 0px rgba(0, 0, 0, 0);
+      }
+      50% {
+        filter: drop-shadow(0 0 15px var(--accent-glow));
+      }
+    }
+
+    @keyframes bounce-tag {
+      0%, 100% {
+        transform: translateY(0);
+      }
+      50% {
+        transform: translateY(-4px);
+      }
+    }
+
+    @media (max-width: 480px) {
+      .error-container {
+        padding: 40px 24px;
+      }
+      .error-code {
+        font-size: 80px;
+      }
+      h1 {
+        font-size: 20px;
+      }
+      p {
+        font-size: 14px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="bg-glow bg-glow-1"></div>
+  <div class="bg-glow bg-glow-2"></div>
+
+  <div class="error-container">
+    <div class="illustration">
+      <div class="error-code">404</div>
+    </div>
+    
+    <div>
+      <span class="tag" id="i18n-tag">Error Page</span>
+    </div>
+    
+    <h1 id="i18n-heading">Page Not Found</h1>
+    
+    <p id="i18n-desc">
+      The requested resource has been moved, deleted, or never existed. Please verify the URL.
+    </p>
+
+    <a href="/" class="btn-home">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+      </svg>
+      <span id="i18n-btn">Back to Home</span>
+    </a>
+  </div>
+
+  <script>
+    // Translate the page immediately before layout rendering to avoid flicker
+    (function() {
+      try {
+        const t = translations[currentLang];
+        if (t) {
+          document.getElementById('i18n-tag').textContent = t.tag;
+          document.getElementById('i18n-heading').textContent = t.heading;
+          document.getElementById('i18n-desc').textContent = t.desc;
+          document.getElementById('i18n-btn').textContent = t.btn;
+        }
+      } catch (e) {
+        console.error('Localization error:', e);
+      }
+    })();
+  </script>
+
+</body>
+</html>

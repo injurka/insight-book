@@ -34,10 +34,6 @@ function openPageAnalysisModal() {
     analysisStore.isPageAnalysisSetupModalOpen = true
 }
 
-function togglePriority() {
-  settingsStore.translationPriority = settingsStore.translationPriority === 'dict' ? 'llm' : 'dict'
-}
-
 function cycleTtsSpeed() {
   const speeds = [0.75, 1, 1.25, 1.5]
   const idx = speeds.indexOf(settingsStore.ttsSpeed)
@@ -155,14 +151,6 @@ const currentThemeName = computed(() => {
       <div class="section-title">
         {{ t('reader.translationAndVoice') }}
       </div>
-      <div class="menu-item" @click="togglePriority">
-        <div class="item-label">
-          <Icon icon="mdi:translate" class="item-icon" />
-          <span>{{ t('reader.translationPriority') }}</span>
-        </div>
-        <span class="value-badge">{{ settingsStore.translationPriority === 'dict' ? t('reader.dictionary') : t('reader.neuralNetwork') }}</span>
-      </div>
-
       <div class="settings-row">
         <div class="item-label">
           <Icon icon="mdi:account" class="item-icon" />

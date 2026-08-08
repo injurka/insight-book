@@ -8,7 +8,7 @@ const E2E_DIR = path.dirname(fileURLToPath(import.meta.url))
 
 /**
  * Изоляция данных: на каждый прогон создаётся свежая временная директория
- * с чистой SQLite БД, каталогом, словарями и загрузками.
+ * с чистой SQLite БД, каталогом и загрузками.
  * Сервер сам применяет миграции и сидит admin/admin (AUTH_MODE=multi).
  */
 const E2E_TMP_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'insight-book-e2e-'))
@@ -65,7 +65,6 @@ export default defineConfig({
         JWT_SECRET: 'e2e-test-secret',
         DB_PATH: path.join(E2E_TMP_DIR, 'insight-book.sqlite'),
         CATALOG_DB_PATH: path.join(E2E_TMP_DIR, 'catalog.sqlite'),
-        DICTS_PATH: path.join(E2E_TMP_DIR, 'dicts'),
         UPLOADS_PATH: path.join(E2E_TMP_DIR, 'uploads'),
         FRONTEND_URL: CLIENT_URL,
       },

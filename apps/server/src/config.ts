@@ -1,54 +1,98 @@
 import path from 'node:path'
+import { z } from 'zod'
 
-export const PORT = Number.parseInt(process.env.PORT || '4444')
+const envSchema = z.object({
+  NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
+  PORT: z.coerce.number().int().positive().default(4444),
 
-// --- Authentication ---
-export const AUTH_MODE = process.env.AUTH_MODE || 'single' // 'single' | 'multi'
+  // --- Authentication ---
+  AUTH_MODE: z.enum(['single', 'multi']).default('single'),
+  JWT_SECRET: z.string().min(1).default('super-secret-local-key'),
+  YANDEX_CLIENT_ID: z.string().default(''),
+  YANDEX_CLIENT_SECRET: z.string().default(''),
+  UNISENDER_API_KEY: z.string().default(''),
+  FRONTEND_URL: z.string().url().default('http://localhost:5173'),
 
-if (AUTH_MODE !== 'single' && !process.env.JWT_SECRET) {
+  // --- Storage & DB Paths ---
+  DB_PATH: z.string().optional(),
+  CATALOG_DB_PATH: z.string().optional(),
+  UPLOADS_PATH: z.string().optional(),
+  UPLOAD_STORAGE: z.enum(['local', 's3']).default('local'),
+
+  // --- Database Connection URLs ---
+  DATABASE_URL: z.string().optional(),
+  DATABASE_AUTH_TOKEN: z.string().optional(),
+  CATALOG_DATABASE_URL: z.string().optional(),
+
+  // --- Admin ---
+  ADMIN_USERNAME: z.string().default('admin'),
+  ADMIN_PASSWORD: z.string().default('admin'),
+
+  // --- Web Push ---
+  VAPID_PUBLIC_KEY: z.string().default(''),
+  VAPID_PRIVATE_KEY: z.string().default(''),
+  VAPID_SUBJECT: z.string().default('mailto:admin@insight-book.com'),
+
+  // --- Limits & Observability ---
+  MAX_DAILY_TOKENS: z.coerce.number().int().positive().default(100_000),
+  OTEL_EXPORTER_OTLP_ENDPOINT: z.string().url().default('http://alloy:4318/v1/traces'),
+
+  // --- Extras ---
+  CORS_EXTRA_ORIGINS: z.string().default(''),
+})
+
+const parsedEnv = envSchema.safeParse(process.env)
+
+if (!parsedEnv.success) {
+  console.error('❌ Invalid environment variables:', parsedEnv.error.format())
+  throw new Error('Application environment configuration error')
+}
+
+const env = parsedEnv.data
+
+if (env.NODE_ENV === 'production' && env.AUTH_MODE === 'multi' && env.JWT_SECRET === 'super-secret-local-key') {
   throw new Error('JWT_SECRET must be provided in production when AUTH_MODE !== single')
 }
 
-export const JWT_SECRET = process.env.JWT_SECRET || 'super-secret-local-key'
-export const YANDEX_CLIENT_ID = process.env.YANDEX_CLIENT_ID || ''
-export const YANDEX_CLIENT_SECRET = process.env.YANDEX_CLIENT_SECRET || ''
-export const UNISENDER_API_KEY = process.env.UNISENDER_API_KEY || ''
-export const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173'
-
-// --- Paths ---
-export const DB_PATH = process.env.DB_PATH || path.resolve(process.cwd(), 'db', 'insight-book.sqlite')
-export const CATALOG_DB_PATH = process.env.CATALOG_DB_PATH || path.resolve(process.cwd(), 'db', 'catalog.sqlite')
-export const DICTS_PATH = process.env.DICTS_PATH || path.resolve(process.cwd(), 'db', 'dicts')
-export const UPLOADS_PATH = process.env.UPLOADS_PATH || path.resolve(process.cwd(), 'uploads')
+// --- Dynamic Derived Paths ---
+export const DB_PATH = env.DB_PATH || path.resolve(process.cwd(), 'db', 'insight-book.sqlite')
+export const CATALOG_DB_PATH = env.CATALOG_DB_PATH || path.resolve(process.cwd(), 'db', 'catalog.sqlite')
+export const UPLOADS_PATH = env.UPLOADS_PATH || path.resolve(process.cwd(), 'uploads')
 export const BOOKS_PATH = path.join(UPLOADS_PATH, 'books')
 export const COVERS_PATH = path.join(UPLOADS_PATH, 'covers')
-export const UPLOAD_STORAGE = process.env.UPLOAD_STORAGE || 'local' // 'local' | 's3'
 
-// -- Default ADMIN user ---
-export const ADMIN_USERNAME = process.env.ADMIN_USERNAME || 'admin'
-export const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin'
+export const DATABASE_URL = env.DATABASE_URL || `file:${DB_PATH}`
+export const CATALOG_DATABASE_URL = env.CATALOG_DATABASE_URL || `file:${CATALOG_DB_PATH}`
 
-// --- Push Notifications (Web Push) ---
-export const VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY || ''
-export const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY || ''
-export const VAPID_SUBJECT = process.env.VAPID_SUBJECT || 'mailto:admin@insight-book.com'
+// --- Export validated env constants ---
+export const {
+  PORT,
+  AUTH_MODE,
+  JWT_SECRET,
+  YANDEX_CLIENT_ID,
+  YANDEX_CLIENT_SECRET,
+  UNISENDER_API_KEY,
+  FRONTEND_URL,
+  UPLOAD_STORAGE,
+  DATABASE_AUTH_TOKEN,
+  ADMIN_USERNAME,
+  ADMIN_PASSWORD,
+  VAPID_PUBLIC_KEY,
+  VAPID_PRIVATE_KEY,
+  VAPID_SUBJECT,
+  MAX_DAILY_TOKENS,
+  OTEL_EXPORTER_OTLP_ENDPOINT,
+} = env
 
 // --- Limits & Configs ---
 export const PAGE_SIZE_CHARS = 1500
-export const MAX_DAILY_TOKENS = Number.parseInt(process.env.MAX_DAILY_TOKENS || '100_000')
 
 export const MIME_OVERRIDES: Record<string, string> = {
   '.md': 'text/markdown; charset=utf-8',
 }
 
-export const CORS_HEADERS = {
-  'Access-Control-Allow-Origin': FRONTEND_URL,
-  'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, HEAD, OPTIONS, DELETE',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization, Accept, X-Custom-Llm-Url, X-Custom-Llm-Key, X-Custom-Llm-Model',
-}
-
-// Origins allowed in addition to FRONTEND_URL (Tauri webviews, extra env origins).
-const EXTRA_CORS_ORIGINS = (process.env.CORS_EXTRA_ORIGINS || '')
+// --- CORS Configuration ---
+const EXTRA_CORS_ORIGINS = env.CORS_EXTRA_ORIGINS
   .split(',')
   .map(o => o.trim())
   .filter(Boolean)
@@ -60,6 +104,12 @@ export const ALLOWED_ORIGINS = new Set([
   'tauri://localhost', // Tauri Windows/Linux
   ...EXTRA_CORS_ORIGINS,
 ])
+
+export const CORS_HEADERS = {
+  'Access-Control-Allow-Origin': FRONTEND_URL,
+  'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, HEAD, OPTIONS, DELETE',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization, Accept, X-Custom-Llm-Url, X-Custom-Llm-Key, X-Custom-Llm-Model',
+}
 
 // CORS headers with Allow-Origin resolved against the request origin.
 export function corsHeadersFor(origin: string | null): Record<string, string> {

@@ -1,5 +1,8 @@
+import { opentelemetry } from '@elysiajs/opentelemetry'
+import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-proto'
+import { BatchSpanProcessor } from '@opentelemetry/sdk-trace-node'
 import { Elysia } from 'elysia'
-import { corsHeadersFor, PORT } from './config'
+import { corsHeadersFor, OTEL_EXPORTER_OTLP_ENDPOINT, PORT } from './config'
 
 import { activityRouter } from './controllers/activity.controller'
 import { authRouter, authUploadsRouter } from './controllers/auth.controller'
@@ -18,6 +21,17 @@ import { logger } from './utils/logger'
 import './db'
 
 const app = new Elysia()
+  .use(
+    opentelemetry({
+      spanProcessors: [
+        new BatchSpanProcessor(
+          new OTLPTraceExporter({
+            url: OTEL_EXPORTER_OTLP_ENDPOINT,
+          }),
+        ),
+      ],
+    }),
+  )
   .use(bookController)
   .use(ttsController)
   .use(uploadsController)

@@ -53,11 +53,6 @@ const voiceOptions = computed(() => [
   { label: 'Fenrir (Male)', value: 'Fenrir' },
 ])
 
-const priorityOptions = computed(() => [
-  { label: t('reader.dictionary'), value: 'dict' },
-  { label: t('reader.neuralNetwork'), value: 'llm' },
-])
-
 const speedOptions = [
   { label: '0.75x', value: 0.75 },
   { label: '1.0x', value: 1 },
@@ -108,10 +103,6 @@ function previewVoice() {
     </h3>
 
     <div class="form-row">
-      <div class="form-group flex-1">
-        <label>{{ t('reader.translationPriority') }}</label>
-        <KitSelect v-model="settingsStore.translationPriority" :options="priorityOptions" />
-      </div>
       <div class="form-group flex-1">
         <label>{{ t('reader.voiceSpeed') }}</label>
         <KitSelect v-model="settingsStore.ttsSpeed" :options="speedOptions" />

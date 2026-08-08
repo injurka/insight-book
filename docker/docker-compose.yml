@@ -33,7 +33,6 @@ services:
       - DB_PATH=/db/insight-book.sqlite
       - CATALOG_DB_PATH=/db/catalog.sqlite
       - AI_CONFIG_PATH=${AI_CONFIG_PATH:-/configs/ai-config.json}
-      - DICTS_PATH=/db/dicts
       - UPLOADS_PATH=/uploads
       - AUTH_MODE=${AUTH_MODE:-single}
       - JWT_SECRET=${JWT_SECRET:-super-secret-key}

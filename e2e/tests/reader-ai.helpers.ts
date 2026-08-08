@@ -80,7 +80,7 @@ function crc32(buf: Buffer): number {
  * - загрузка книги через API (POST /api/auth/login + POST /api/books/upload).
  */
 
-export const E2E_SERVER_URL = `http://127.0.0.1:${process.env.E2E_SERVER_PORT || 4655}`
+export const E2E_SERVER_URL = `http://127.0.0.1:${process.env.E2E_SERVER_PORT || 4455}`
 
 const CHAPTER_TEXT = [
   'His quixotic plan surprised everyone in the village.',

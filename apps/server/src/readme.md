@@ -6,7 +6,7 @@
 
 - **Runtime:** Bun (быстрое выполнение, нативный TypeScript)
 - **Web-фреймворк:** Elysia.js (экстремально быстрый роутинг, TypeBox валидация)
-- **База данных:** SQLite + Drizzle ORM
+- **База данных:** libSQL (SQLite) через `@libsql/client` + Drizzle ORM
 - **Многопоточность:** Worker Threads (пул воркеров для тяжелых задач)
 
 ---

@@ -8,7 +8,6 @@ export const useGlobalSettingsStore = defineStore('globalSettings', () => {
   if (appLanguage.value.startsWith('"') && appLanguage.value.endsWith('"'))
     appLanguage.value = appLanguage.value.replace(/^"|"$/g, '')
 
-  const translationPriority = useLocalStorage<'dict' | 'llm'>('global-translation-priority', 'llm')
   const ttsSpeed = useLocalStorage<number>('global-tts-speed', 1)
   const ttsVoice = useLocalStorage<string>('global-tts-voice', 'Kore')
 
@@ -52,7 +51,6 @@ export const useGlobalSettingsStore = defineStore('globalSettings', () => {
     parallelViewMode,
     parallelBlurTranslation,
     parallelShowGrammar,
-    translationPriority,
     ttsSpeed,
     ttsVoice,
     readerFontSize,
