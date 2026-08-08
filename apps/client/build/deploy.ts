@@ -138,23 +138,24 @@ async function purgeBunnyCache() {
   if (!BUNNY_API_KEY || !BUNNY_PULL_ZONE_ID)
     return
 
-  logger.info('🧹 Очистка кэша в Bunny CDN...')
+  logger.info('🧹 Очистка кэша входных точек в Bunny CDN...')
   try {
-    const response = await fetch(`https://api.bunny.net/pullzone/${BUNNY_PULL_ZONE_ID}/purgeCache`, {
-      method: 'POST',
-      headers: { AccessKey: BUNNY_API_KEY },
-    })
+    const urlsToPurge = [
+      'https://cdn.insight-book.ru/index.html',
+      'https://cdn.insight-book.ru/sw.js',
+      'https://cdn.insight-book.ru/manifest.webmanifest',
+    ]
 
-    if (!response.ok) {
-      const errorText = await response.text()
-      throw new Error(`HTTP ${response.status}: ${errorText}`)
-    }
+    await Promise.all(urlsToPurge.map(url =>
+      fetch(`https://api.bunny.net/purge?url=${encodeURIComponent(url)}`, {
+        method: 'POST',
+        headers: { AccessKey: BUNNY_API_KEY },
+      })))
 
-    logger.info('✨ Кэш CDN успешно очищен!')
+    logger.info('✨ Кэш входных точек очищен!')
   }
   catch (err) {
-    logger.error({ err }, '⚠️ Ошибка при очистке кэша CDN Bunny')
-    // Очистка кэша критична для доставки изменений, поэтому выбрасываем ошибку:
+    logger.error({ err }, '⚠️ Ошибка при очистке кэша')
     throw err
   }
 }
