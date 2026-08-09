@@ -189,7 +189,7 @@ onMounted(() => {
     loadPublic(1)
   }
   else {
-    store.fetchBooks().then(setupPolling).catch(() => {})
+    setupPolling()
   }
 })
 

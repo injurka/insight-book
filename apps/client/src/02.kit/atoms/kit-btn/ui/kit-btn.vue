@@ -116,9 +116,6 @@ function handleClick(event: MouseEvent) {
     opacity: 0.6;
     transform: none;
     box-shadow: none;
-    background-color: var(--bg-disabled-color) !important;
-    color: var(--fg-disabled-color) !important;
-    border-color: var(--fg-disabled-color) !important;
   }
 
   &--size-xs {

@@ -33,6 +33,10 @@ description: Автоматически применяется для работ
    ```ts
    // В шаблоне: <input ref="inputRef" />
    const inputEl = useTemplateRef<HTMLInputElement>('inputRef')
+   ```
+
+8. **UI Kit компоненты:**
+   - Все компоненты из `02.kit` импортируются и реэкспортируются через точку входа `./ui` соответствующего элемента (например, `import { KitReloadPrompt } from './organisms/kit-reload-prompt/ui'`).
 
 ## Работа с документацией (MCP)
 - Если ты сомневаешься в синтаксисе Vue 3, Pinia или Vue Router, **не выдумывай код!** Сначала вызови инструменты из MCP-сервера `vue-docs` (например, `vue_api_lookup` или `pinia_docs_search`), прочитай официальный ответ, и только потом пиши реализацию.

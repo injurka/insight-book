@@ -7,7 +7,6 @@ import {
   writeFileSync,
 } from 'node:fs'
 import { join, relative } from 'node:path'
-import { ListObjectsV2Command, PutObjectCommand, S3Client } from '@aws-sdk/client-s3'
 import pino from 'pino'
 
 const logger = pino({
@@ -21,12 +20,11 @@ const logger = pino({
   },
 })
 
-// Настройки вашего S3
-let rawEndpoint = (process.env.S3_ENDPOINT || '').trim()
-const S3_REGION = (process.env.S3_REGION || '').trim()
-const S3_BUCKET = (process.env.S3_BUCKET || '').trim()
-const S3_ACCESS_KEY = (process.env.S3_ACCESS_KEY || '').trim()
-const S3_SECRET_KEY = (process.env.S3_SECRET_KEY || '').trim()
+// Настройки Bunny.net Storage
+// Для удобства поддерживаем как новые переменные, так и обратную совместимость с S3_* (можно прописать credentials туда)
+const BUNNY_STORAGE_ZONE = (process.env.BUNNY_STORAGE_ZONE || process.env.S3_BUCKET || '').trim()
+const BUNNY_STORAGE_PASSWORD = (process.env.BUNNY_STORAGE_PASSWORD || process.env.S3_SECRET_KEY || '').trim()
+const BUNNY_STORAGE_REGION = (process.env.BUNNY_STORAGE_REGION || '').trim() // e.g. 'ny', 'sg', по умолчанию пустой (Германия)
 
 // Bunny.net API для авто-сброса кэша (Purge)
 const BUNNY_API_KEY = (process.env.BUNNY_API_KEY || '').trim()
@@ -36,36 +34,19 @@ const BUNNY_PULL_ZONE_ID = (process.env.BUNNY_PULL_ZONE_ID || '').trim()
 const CONCURRENCY_LIMIT = 10
 
 const missingVars: string[] = []
-if (!rawEndpoint)
-  missingVars.push('S3_ENDPOINT')
-if (!S3_BUCKET)
-  missingVars.push('S3_BUCKET')
-if (!S3_ACCESS_KEY)
-  missingVars.push('S3_ACCESS_KEY')
-if (!S3_SECRET_KEY)
-  missingVars.push('S3_SECRET_KEY')
+if (!BUNNY_STORAGE_ZONE)
+  missingVars.push('BUNNY_STORAGE_ZONE (или S3_BUCKET)')
+if (!BUNNY_STORAGE_PASSWORD)
+  missingVars.push('BUNNY_STORAGE_PASSWORD (или S3_SECRET_KEY)')
 
 if (missingVars.length > 0) {
-  logger.error({ missingVars }, `❌ Не заполнены обязательные переменные S3 (${missingVars.join(', ')}). Проверьте секреты в GitHub Actions repository settings!`)
+  logger.error({ missingVars }, `❌ Не заполнены обязательные переменные Bunny Storage (${missingVars.join(', ')}). Проверьте секреты в GitHub Actions!`)
   process.exit(1)
 }
 
-if (!rawEndpoint.startsWith('http://') && !rawEndpoint.startsWith('https://')) {
-  rawEndpoint = `https://${rawEndpoint}`
-}
-
-const S3_ENDPOINT = rawEndpoint
-
-const s3 = new S3Client({
-  endpoint: S3_ENDPOINT,
-  region: S3_REGION,
-  credentials: {
-    accessKeyId: S3_ACCESS_KEY,
-    secretAccessKey: S3_SECRET_KEY,
-  },
-  forcePathStyle: true,
-  maxAttempts: 5,
-})
+const BUNNY_STORAGE_HOST = BUNNY_STORAGE_REGION
+  ? `${BUNNY_STORAGE_REGION.toLowerCase()}.storage.bunnycdn.com`
+  : 'storage.bunnycdn.com'
 
 const MIME_TYPES: Record<string, string> = {
   '.html': 'text/html; charset=utf-8',
@@ -211,39 +192,50 @@ async function purgeBunnyCache() {
   }
 }
 
-// Получение списка всех имеющихся ключей в S3 бакете для пропуска повторных ассетов
-async function getExistingS3Keys(bucket: string): Promise<Set<string>> {
+// Получение списка всех имеющихся файлов в Bunny Storage для пропуска повторных ассетов
+async function getExistingBunnyKeys(storageZone: string, accessKey: string): Promise<Set<string>> {
   const existingKeys = new Set<string>()
-  let continuationToken: string | undefined
 
-  try {
-    do {
-      const response = await s3.send(new ListObjectsV2Command({
-        Bucket: bucket,
-        ContinuationToken: continuationToken,
-      }))
+  async function scan(currentPath: string) {
+    try {
+      const url = `https://${BUNNY_STORAGE_HOST}/${storageZone}/${currentPath}`
+      const response = await fetch(url, {
+        headers: {
+          AccessKey: accessKey,
+          Accept: 'application/json',
+        },
+      })
 
-      if (response.Contents) {
-        for (const obj of response.Contents) {
-          if (obj.Key) {
-            existingKeys.add(obj.Key)
-          }
-        }
+      if (!response.ok) {
+        if (response.status === 404)
+          return
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`)
       }
 
-      continuationToken = response.IsTruncated ? response.NextContinuationToken : undefined
-    } while (continuationToken)
+      const items = (await response.json()) as Array<{ ObjectName: string, IsDirectory: boolean }>
+      for (const item of items) {
+        const itemPath = `${currentPath}${item.ObjectName}`
+        if (item.IsDirectory) {
+          await scan(`${itemPath}/`)
+        }
+        else {
+          existingKeys.add(itemPath)
+        }
+      }
+    }
+    catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err)
+      logger.warn({ path: currentPath, message }, '⚠️ Не удалось получить список файлов из Bunny Storage, файлы будут проверены на загрузку')
+    }
   }
-  catch (err: unknown) {
-    const message = err instanceof Error ? err.message : String(err)
-    logger.warn({ message }, '⚠️ Не удалось получить список существующих файлов в S3, все файлы будут проверены на загрузку')
-  }
+
+  await scan('')
 
   return existingKeys
 }
 
 async function deploy() {
-  logger.info({ endpoint: S3_ENDPOINT, bucket: S3_BUCKET, region: S3_REGION }, '🚀 Начинаем деплой в S3...')
+  logger.info({ host: BUNNY_STORAGE_HOST, zone: BUNNY_STORAGE_ZONE }, '🚀 Начинаем деплой в Bunny Storage...')
   const distDir = join(import.meta.dirname, '../dist')
 
   // Генерируем свежий рантайм-конфиг
@@ -256,10 +248,10 @@ async function deploy() {
 
   const { assets, entrypoints } = partitionFiles(filesToUpload, distDir)
 
-  // Получаем список уже загруженных файлов из S3
-  const existingKeys = await getExistingS3Keys(S3_BUCKET)
+  // Получаем список уже загруженных файлов из Bunny Storage
+  const existingKeys = await getExistingBunnyKeys(BUNNY_STORAGE_ZONE, BUNNY_STORAGE_PASSWORD)
 
-  // Исключаем ассеты, которые уже есть на S3 (так как их имена с хешем неизменяемы)
+  // Исключаем ассеты, которые уже есть в хранилище (так как их имена с хешем неизменяемы)
   const assetsToUpload = assets.filter((filePath) => {
     const relativePath = relative(distDir, filePath).replace(/\\/g, '/')
 
@@ -268,7 +260,7 @@ async function deploy() {
 
   const skippedCount = assets.length - assetsToUpload.length
   if (skippedCount > 0) {
-    logger.info({ count: skippedCount }, '⏩ Пропущены ассеты, уже присутствующие в S3')
+    logger.info({ count: skippedCount }, '⏩ Пропущены ассеты, уже присутствующие в Bunny Storage')
   }
 
   const uploadFile = async (filePath: string) => {
@@ -280,26 +272,29 @@ async function deploy() {
       = relativePath.startsWith('assets/')
         || /\.(?:woff2|woff|ttf|otf|eot)$/i.test(relativePath)
 
-    const cacheControl = isAsset
-      ? 'public, max-age=31536000, immutable'
-      : 'no-cache, no-store, must-revalidate'
-
     logger.info({
       file: relativePath,
       mime: mimeType,
       type: isAsset ? 'asset' : 'entrypoint',
-    }, '📤 Загрузка файла')
+    }, '📤 Загрузка файла в Bunny Storage')
 
+    const url = `https://${BUNNY_STORAGE_HOST}/${BUNNY_STORAGE_ZONE}/${relativePath}`
     const maxRetries = 5
+
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
-        await s3.send(new PutObjectCommand({
-          Bucket: S3_BUCKET,
-          Key: relativePath,
-          Body: fileContent,
-          ContentType: mimeType,
-          CacheControl: cacheControl,
-        }))
+        const response = await fetch(url, {
+          method: 'PUT',
+          headers: {
+            'AccessKey': BUNNY_STORAGE_PASSWORD,
+            'Content-Type': mimeType,
+          },
+          body: fileContent,
+        })
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+        }
 
         return
       }
@@ -315,7 +310,7 @@ async function deploy() {
           attempt,
           delay,
           message,
-        }, '⚠️ Ошибка при отправке файла в S3, повторная попытка...')
+        }, '⚠️ Ошибка при отправке файла в Bunny Storage, повторная попытка...')
 
         await new Promise(resolve => setTimeout(resolve, delay))
       }
@@ -334,7 +329,7 @@ async function deploy() {
     await pool(entrypoints, CONCURRENCY_LIMIT, uploadFile)
   }
 
-  logger.info('✅ Все файлы успешно загружены в S3!')
+  logger.info('✅ Все файлы успешно загружены в Bunny Storage!')
 
   await purgeBunnyCache()
 }
