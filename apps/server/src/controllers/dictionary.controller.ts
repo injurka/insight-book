@@ -186,7 +186,27 @@ export const dictionaryController = new Elysia({ prefix: '/api/dictionary' })
   .get('/review', async ({ userId, query }) => {
     const normalizedLang = normalizeLanguageCode((query.language || query.lang) as string)
     const targetLang = (query.targetLang as string) || 'ru'
-    const deckId = query.deckId ? Number(query.deckId) : undefined
+
+    let deckId: number | 'none' | (number | 'none')[] | undefined
+    if (query.deckId && query.deckId !== 'all') {
+      if (query.deckId.includes(',')) {
+        const parts = query.deckId.split(',')
+        const parsed = parts
+          .map(p => (p === 'none' ? 'none' : Number(p)))
+          .filter(p => p === 'none' || !Number.isNaN(p as number)) as (number | 'none')[]
+        if (parsed.length > 0)
+          deckId = parsed
+      }
+      else if (query.deckId === 'none') {
+        deckId = 'none'
+      }
+      else {
+        const num = Number(query.deckId)
+        if (!Number.isNaN(num))
+          deckId = num
+      }
+    }
+
     return await dictionaryService.getReviewQueue(userId, normalizedLang, targetLang, (query.mode as 'srs' | 'random' | 'deep_dive' | 'cram') || 'srs', deckId, query.difficulty as string | undefined)
   }, {
     requireAuth: true,

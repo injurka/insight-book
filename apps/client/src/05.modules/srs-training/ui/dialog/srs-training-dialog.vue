@@ -89,7 +89,7 @@ const activeView = computed(() => {
 })
 
 async function startSession(options: {
-  deckId: number | 'all' | 'none'
+  deckId: (number | 'all' | 'none')[] | number | 'all' | 'none'
   difficulty: string[]
   modes: Record<string, boolean>
 }) {
@@ -154,7 +154,7 @@ watch(visible, (val) => {
     resetSession()
 
   else
-    trainingStore.fetchTrainingQueue({ mode: 'srs', deckId: 'all', difficulty: ['all'] })
+    trainingStore.fetchTrainingQueue({ mode: 'srs', deckId: ['all'], difficulty: ['all'] })
 })
 
 watch(currentIndex, () => {

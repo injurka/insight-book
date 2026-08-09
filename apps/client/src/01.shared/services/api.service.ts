@@ -332,12 +332,20 @@ export const api = {
     remove: async (word: string) =>
       request<{ success: boolean }>(`/api/dictionary/${encodeURIComponent(word)}`, { method: 'DELETE' }),
 
-    getReviewQueue: async (opts: { lang: string, mode: 'srs' | 'random' | 'deep_dive' | 'cram' | 'match', deckId?: number | 'none' | 'all', difficulty?: string }) => {
+    getReviewQueue: async (opts: { lang: string, mode: 'srs' | 'random' | 'deep_dive' | 'cram' | 'match', deckId?: (number | 'none' | 'all')[] | number | 'none' | 'all', difficulty?: string }) => {
       const queryParams = new URLSearchParams()
       queryParams.set('lang', opts.lang)
       queryParams.set('mode', opts.mode)
-      if (opts.deckId !== undefined && opts.deckId !== 'all')
-        queryParams.set('deckId', String(opts.deckId))
+      if (opts.deckId !== undefined) {
+        if (Array.isArray(opts.deckId)) {
+          if (!opts.deckId.includes('all') && opts.deckId.length > 0)
+            queryParams.set('deckId', opts.deckId.join(','))
+        }
+        else if (opts.deckId !== 'all') {
+          queryParams.set('deckId', String(opts.deckId))
+        }
+      }
+
       if (opts.difficulty && opts.difficulty !== 'all')
         queryParams.set('difficulty', opts.difficulty)
 

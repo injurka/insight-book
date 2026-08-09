@@ -21,52 +21,67 @@ export const useTrainingStore = defineStore('training', () => {
   const reviewWordsQueueCount = computed(() => reviewQueue.value.filter(w => new Flashcard(w).isReview()).length)
   const totalReviewCount = computed(() => reviewQueue.value.length)
 
+  function resolveLangToFetch(deckIdParam: (number | 'none' | 'all')[] | number | 'none' | 'all') {
+    const filtersStore = useDictionaryFiltersStore()
+    const decksStore = useDecksStore()
+    const deckIdsArray = Array.isArray(deckIdParam) ? deckIdParam : [deckIdParam]
+    if (!deckIdsArray.includes('all') && !deckIdsArray.includes('none') && deckIdsArray.length > 0) {
+      const firstDeckId = deckIdsArray.find((id): id is number => typeof id === 'number')
+      if (firstDeckId !== undefined) {
+        const deck = decksStore.decks.find(d => d.id === firstDeckId)
+        if (deck)
+          return deck.language
+      }
+    }
+
+    return filtersStore.selectedLanguage
+  }
+
+  function filterQueueByDifficulty(queue: UserDictItem[], difficulty: string[]): UserDictItem[] {
+    if (difficulty.includes('all') || difficulty.length === 0)
+      return queue
+
+    return queue.filter(w => difficulty.some((d) => {
+      if (d === 'none')
+        return !w.difficulty
+      if (d.startsWith('level_')) {
+        const targetLevel = Number.parseInt(d.split('_')[1], 10)
+        const sys = DIFFICULTY_SYSTEMS[w.language] || DIFFICULTY_SYSTEMS.default
+        const diffDef = sys.find(s => s.value === w.difficulty)
+
+        return Boolean(diffDef && diffDef.level === targetLevel)
+      }
+
+      return w.difficulty === d
+    }))
+  }
+
+  function shuffleArray<T>(arr: T[]) {
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]]
+    }
+  }
+
   async function fetchTrainingQueue(opts: {
     mode: 'srs' | 'deep_dive' | 'cram' | 'match'
-    deckId: number | 'none' | 'all'
+    deckId: (number | 'none' | 'all')[] | number | 'none' | 'all'
     difficulty: string[]
   }) {
     trainingMode.value = opts.mode
     try {
-      const filtersStore = useDictionaryFiltersStore()
-      const decksStore = useDecksStore()
-      let langToFetch = filtersStore.selectedLanguage
-      if (opts.deckId !== 'all' && opts.deckId !== 'none') {
-        const deck = decksStore.decks.find(d => d.id === opts.deckId)
-        if (deck)
-          langToFetch = deck.language
-      }
-
-      let queue = await repos.dictionary.getReviewQueue({
+      const langToFetch = resolveLangToFetch(opts.deckId)
+      const rawQueue = await repos.dictionary.getReviewQueue({
         lang: langToFetch,
         mode: opts.mode,
         deckId: opts.deckId,
         difficulty: 'all',
       })
 
-      if (!opts.difficulty.includes('all') && opts.difficulty.length > 0) {
-        queue = queue.filter((w) => {
-          return opts.difficulty.some((d) => {
-            if (d === 'none')
-              return !w.difficulty
-            if (d.startsWith('level_')) {
-              const targetLevel = Number.parseInt(d.split('_')[1], 10)
-              const sys = DIFFICULTY_SYSTEMS[w.language] || DIFFICULTY_SYSTEMS.default
-              const diffDef = sys.find(s => s.value === w.difficulty)
-
-              return diffDef && diffDef.level === targetLevel
-            }
-
-            return w.difficulty === d
-          })
-        })
-      }
+      const queue = filterQueueByDifficulty(rawQueue, opts.difficulty)
 
       if (opts.mode === 'srs') {
-        for (let i = queue.length - 1; i > 0; i--) {
-          const j = Math.floor(Math.random() * (i + 1));
-          [queue[i], queue[j]] = [queue[j], queue[i]]
-        }
+        shuffleArray(queue)
       }
 
       reviewQueue.value = queue

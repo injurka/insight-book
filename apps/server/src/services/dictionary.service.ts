@@ -141,7 +141,7 @@ export class DictionaryService {
     await this.dictRepo.removeFromUserDictionary(word, userId, targetLang)
   }
 
-  async getReviewQueue(userId: number, language: string | undefined, targetLang: string, mode: 'srs' | 'random' | 'deep_dive' | 'cram' = 'srs', deckId?: number | 'none', difficulty?: string) {
+  async getReviewQueue(userId: number, language: string | undefined, targetLang: string, mode: 'srs' | 'random' | 'deep_dive' | 'cram' = 'srs', deckId?: number | 'none' | (number | 'none')[], difficulty?: string) {
     return await this.dictRepo.getReviewQueue(userId, language, targetLang, mode, deckId, difficulty)
   }
 

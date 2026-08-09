@@ -27,7 +27,7 @@ export interface IDictionaryRepository {
 
   bulkDelete: (ids: number[]) => Promise<{ success: boolean }>
   bulkMove: (ids: number[], deckIds: number[]) => Promise<{ success: boolean }>
-  getReviewQueue: (opts: { lang: string, mode: 'srs' | 'random' | 'deep_dive' | 'cram' | 'match', deckId?: number | 'all' | 'none', difficulty?: string }) => Promise<UserDictItem[]>
+  getReviewQueue: (opts: { lang: string, mode: 'srs' | 'random' | 'deep_dive' | 'cram' | 'match', deckId?: (number | 'all' | 'none')[] | number | 'all' | 'none', difficulty?: string }) => Promise<UserDictItem[]>
   get: (word: string) => Promise<UserDictItem>
   upsert: (item: Partial<UserDictItem>) => Promise<{ success: boolean }>
   autoFillWord: (word: string, lang: string) => Promise<WordAutoFillResponse>
@@ -119,7 +119,7 @@ export class DefaultDictionaryRepository implements IDictionaryRepository {
     return api.dictionary.bulkMove(ids, deckIds)
   }
 
-  async getReviewQueue(opts: { lang: string, mode: 'srs' | 'random' | 'deep_dive' | 'cram' | 'match', deckId?: number | 'all' | 'none', difficulty?: string }) {
+  async getReviewQueue(opts: { lang: string, mode: 'srs' | 'random' | 'deep_dive' | 'cram' | 'match', deckId?: (number | 'all' | 'none')[] | number | 'all' | 'none', difficulty?: string }) {
     const raw = await api.dictionary.getReviewQueue(opts)
 
     return applyAcl(z.array(UserDictItemSchema), raw, 'dictionary.getReviewQueue()')

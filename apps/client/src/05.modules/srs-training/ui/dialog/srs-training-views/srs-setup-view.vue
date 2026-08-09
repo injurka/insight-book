@@ -26,7 +26,7 @@ const dictionaryWords = useDictionaryWords()
 const { t } = useI18n()
 
 const setupOptions = reactive({
-  deckId: (Array.isArray(filtersStore.selectedDeckId) ? (filtersStore.selectedDeckId.length === 1 ? filtersStore.selectedDeckId[0] : 'all') : filtersStore.selectedDeckId) as number | 'all' | 'none',
+  deckId: (Array.isArray(filtersStore.selectedDeckId) ? [...filtersStore.selectedDeckId] : [filtersStore.selectedDeckId]) as (number | 'all' | 'none')[],
   difficulty: (Array.isArray(filtersStore.selectedDifficulty) ? [...filtersStore.selectedDifficulty] : [filtersStore.selectedDifficulty]) as string[],
 })
 
@@ -43,10 +43,13 @@ const modes = reactive({
 })
 
 const currentLang = computed(() => {
-  if (setupOptions.deckId !== 'all' && setupOptions.deckId !== 'none') {
-    const deck = decksStore.decks.find(d => d.id === setupOptions.deckId)
-    if (deck)
-      return deck.language
+  if (setupOptions.deckId.length > 0 && !setupOptions.deckId.includes('all') && !setupOptions.deckId.includes('none')) {
+    const firstSelectedDeckId = setupOptions.deckId.find((id): id is number => typeof id === 'number')
+    if (firstSelectedDeckId !== undefined) {
+      const deck = decksStore.decks.find(d => d.id === firstSelectedDeckId)
+      if (deck)
+        return deck.language
+    }
   }
 
   return filtersStore.selectedLanguage !== 'all' ? filtersStore.selectedLanguage : 'all'
@@ -94,8 +97,9 @@ const difficultyOptions = computed(() => {
 })
 
 watch(deckOptions, (newOpts) => {
-  if (!newOpts.some(o => o.value === setupOptions.deckId))
-    setupOptions.deckId = 'all'
+  setupOptions.deckId = setupOptions.deckId.filter(d => newOpts.some(o => o.value === d))
+  if (setupOptions.deckId.length === 0)
+    setupOptions.deckId = ['all']
 })
 
 watch(difficultyOptions, (newOpts) => {
@@ -137,7 +141,7 @@ function start() {
       <div class="form-row">
         <div class="form-col">
           <label>{{ t('dictionary.deck') }}</label>
-          <KitSelect v-model="setupOptions.deckId" :options="deckOptions" />
+          <KitSelect v-model="setupOptions.deckId" :options="deckOptions" multiple />
         </div>
         <div class="form-col">
           <label>{{ t('dictionary.difficulty') }}</label>

@@ -1,7 +1,7 @@
 import type { SQL } from 'drizzle-orm'
 import type { UserDictItem } from '../types'
 import type { IDictionaryRepository } from './interfaces'
-import { and, desc, eq, inArray, lte, notInArray, sql } from 'drizzle-orm'
+import { and, desc, eq, inArray, lte, notInArray, or, sql } from 'drizzle-orm'
 import { createEmptyCard } from 'ts-fsrs'
 import { db } from '../db'
 import { catalogDb } from '../db/catalog'
@@ -213,7 +213,7 @@ export class DictionaryRepository implements IDictionaryRepository {
     language: string | undefined,
     targetLang: string,
     mode: 'srs' | 'random' | 'deep_dive' | 'cram' = 'srs',
-    deckId?: number | 'none',
+    deckId?: number | 'none' | (number | 'none')[],
     difficulty?: string,
   ) {
     const filters: SQL[] = [
@@ -227,6 +227,27 @@ export class DictionaryRepository implements IDictionaryRepository {
 
     if (deckId === 'none') {
       filters.push(notInArray(schema.userDictionary.id, db.select({ id: schema.wordToDeck.wordId }).from(schema.wordToDeck)))
+    }
+    else if (Array.isArray(deckId)) {
+      const hasNone = deckId.includes('none')
+      const numericDeckIds = deckId.filter((id): id is number => typeof id === 'number')
+
+      const deckConditions: SQL[] = []
+      if (hasNone) {
+        deckConditions.push(notInArray(schema.userDictionary.id, db.select({ id: schema.wordToDeck.wordId }).from(schema.wordToDeck)))
+      }
+      if (numericDeckIds.length > 0) {
+        deckConditions.push(inArray(schema.userDictionary.id, db.select({ id: schema.wordToDeck.wordId }).from(schema.wordToDeck).where(inArray(schema.wordToDeck.deckId, numericDeckIds))))
+      }
+
+      if (deckConditions.length === 1) {
+        filters.push(deckConditions[0])
+      }
+      else if (deckConditions.length > 1) {
+        const combined = or(...deckConditions)
+        if (combined)
+          filters.push(combined)
+      }
     }
     else if (deckId !== undefined) {
       filters.push(inArray(schema.userDictionary.id, db.select({ id: schema.wordToDeck.wordId }).from(schema.wordToDeck).where(eq(schema.wordToDeck.deckId, deckId))))
