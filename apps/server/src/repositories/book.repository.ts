@@ -1,6 +1,7 @@
 import type { SQL } from 'drizzle-orm'
 import type { IBookRepository } from './interfaces'
 import { and, desc, eq, inArray, isNotNull, like, or, sql } from 'drizzle-orm'
+import { compressData } from '~/utils/compression'
 import { db } from '../db'
 import * as schema from '../db/schema'
 
@@ -258,9 +259,10 @@ export class BookRepository implements IBookRepository {
   }
 
   async upsertNlpCache(bookId: number, pageNum: number, data: string) {
+    const compressed = compressData(data)
     return db.transaction(async (tx) => {
       await tx.delete(schema.nlpCache).where(and(eq(schema.nlpCache.bookId, bookId), eq(schema.nlpCache.pageNum, pageNum)))
-      await tx.insert(schema.nlpCache).values({ bookId, pageNum, data })
+      await tx.insert(schema.nlpCache).values({ bookId, pageNum, data: compressed })
     })
   }
 

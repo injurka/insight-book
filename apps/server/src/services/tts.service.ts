@@ -1,6 +1,7 @@
 import type { LlmConfig, ModelMessage } from '../types'
 import { eq } from 'drizzle-orm'
 import { pinyin } from 'pinyin-pro'
+import { convertToOpus } from '~/utils/audio'
 import { hashTtsText, mapVoiceToOpenAi, parseLlmJson } from '~/utils/helpers'
 import { callLlmJsonWithRetry } from '~/utils/llm-api'
 import { db } from '../db'
@@ -49,7 +50,7 @@ export async function generateTts(
     if (bookId) {
       await db.insert(schema.bookTtsCache).values({ bookId, textHash: hash }).onConflictDoNothing()
     }
-    return cached.audioBase64
+    return Buffer.from(cached.audioBlob).toString('base64')
   }
 
   await checkTokenLimit(userId)
@@ -67,19 +68,31 @@ export async function generateTts(
   }
 
   async function tryGenerate(model: string, voiceName: string, isGemini: boolean) {
+    const formatToTry = isGemini ? 'wav' : 'opus'
     const requestBody = {
       model,
       input: textToRead,
       voice: voiceName,
-      response_format: isGemini ? 'wav' : 'mp3',
+      response_format: formatToTry,
     }
 
-    const response = await fetch(`${ttsUrl}/audio/speech`, {
+    let response = await fetch(`${ttsUrl}/audio/speech`, {
       method: 'POST',
       headers,
       body: JSON.stringify(requestBody),
       signal: AbortSignal.timeout(60000),
     })
+
+    if (!response.ok && formatToTry === 'opus') {
+      // Fallback to mp3 if provider API doesn't accept 'opus' format
+      requestBody.response_format = 'mp3'
+      response = await fetch(`${ttsUrl}/audio/speech`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(requestBody),
+        signal: AbortSignal.timeout(60000),
+      })
+    }
 
     if (!response.ok) {
       const errorText = await response.text()
@@ -92,15 +105,16 @@ export async function generateTts(
       throw new AppError(500, 'TTS API returned empty audio data')
     }
 
-    return Buffer.from(arrayBuffer).toString('base64')
+    const rawBuffer = Buffer.from(new Uint8Array(arrayBuffer))
+    return convertToOpus(rawBuffer)
   }
 
-  let base64 = ''
+  let audioBuffer: Buffer = Buffer.from(new Uint8Array(0))
   const isPrimaryGemini = primaryModel.toLowerCase().includes('gemini')
   let usedModel = primaryModel
 
   try {
-    base64 = await tryGenerate(primaryModel, voice, isPrimaryGemini)
+    audioBuffer = await tryGenerate(primaryModel, voice, isPrimaryGemini)
   }
   catch (error: unknown) {
     if ((error as Error).name === 'AbortError')
@@ -114,7 +128,7 @@ export async function generateTts(
       const fallbackVoice = isFallbackGemini ? voice : mapVoiceToOpenAi(voice)
 
       try {
-        base64 = await tryGenerate(fallbackModel, fallbackVoice, isFallbackGemini)
+        audioBuffer = await tryGenerate(fallbackModel, fallbackVoice, isFallbackGemini)
         usedModel = fallbackModel
       }
       catch (fallbackError: unknown) {
@@ -132,12 +146,12 @@ export async function generateTts(
   await db.insert(schema.ttsCache).values({
     textHash: hash,
     text: normalizedText,
-    audioBase64: base64,
+    audioBlob: audioBuffer,
   }).onConflictDoUpdate({
     target: schema.ttsCache.textHash,
     set: {
       text: normalizedText,
-      audioBase64: base64,
+      audioBlob: audioBuffer,
     },
   })
 
@@ -147,7 +161,7 @@ export async function generateTts(
 
   trackTokenUsage(userId, 'tts_generation', usedModel, normalizedText.length, 0, normalizedText, '[AUDIO BASE64]')
 
-  return base64
+  return audioBuffer.toString('base64')
 }
 
 function calculatePhoneticSimilarity(expected: string, heard: string, language: string): number {

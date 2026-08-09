@@ -30,8 +30,12 @@ services:
     restart: unless-stopped
     environment:
       - PORT=4445
-      - DB_PATH=/db/insight-book.sqlite
-      - CATALOG_DB_PATH=/db/catalog.sqlite
+      - DB_PATH=${DB_PATH:-/db/insight-book.sqlite}
+      - CATALOG_DB_PATH=${CATALOG_DB_PATH:-/db/catalog.sqlite}
+      - DATABASE_URL=${DATABASE_URL:-}
+      - DATABASE_AUTH_TOKEN=${DATABASE_AUTH_TOKEN:-}
+      - CATALOG_DATABASE_URL=${CATALOG_DATABASE_URL:-}
+      - CATALOG_DATABASE_AUTH_TOKEN=${CATALOG_DATABASE_AUTH_TOKEN:-}
       - AI_CONFIG_PATH=${AI_CONFIG_PATH:-/configs/ai-config.json}
       - UPLOADS_PATH=/uploads
       - AUTH_MODE=${AUTH_MODE:-single}

@@ -352,19 +352,18 @@ export const offlineService = {
   },
 
   async saveTts(hashKey: string, audioBase64: string) {
-    const mimeType = audioBase64.startsWith('UklGR') ? 'audio/wav' : 'audio/mp3'
     const binaryString = window.atob(audioBase64)
     const bytes = new Uint8Array(binaryString.length)
     for (let i = 0; i < binaryString.length; i++)
       bytes[i] = binaryString.charCodeAt(i)
 
-    const blob = new Blob([bytes], { type: mimeType })
+    const blob = new Blob([bytes], { type: 'audio/ogg' })
 
     const cache = await getMediaCache()
     if (cache) {
       await cache.put(`/offline/tts/${hashKey}`, new Response(blob, {
         headers: {
-          'Content-Type': blob.type,
+          'Content-Type': 'audio/ogg',
           'Content-Length': blob.size.toString(),
         },
       }))
@@ -382,16 +381,14 @@ export const offlineService = {
         return res.blob()
     }
 
-    // Legacy fallback (Base64)
     const base64 = await safeGetItem<string>(`tts_${hashKey}`)
     if (base64) {
-      const mimeType = base64.startsWith('UklGR') ? 'audio/wav' : 'audio/mp3'
       const binaryString = window.atob(base64)
       const bytes = new Uint8Array(binaryString.length)
       for (let i = 0; i < binaryString.length; i++)
         bytes[i] = binaryString.charCodeAt(i)
 
-      return new Blob([bytes], { type: mimeType })
+      return new Blob([bytes], { type: 'audio/ogg' })
     }
 
     return null

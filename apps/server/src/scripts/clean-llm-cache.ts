@@ -1,6 +1,7 @@
 import { eq } from 'drizzle-orm'
 import { db } from '~/db'
 import { llmCache } from '~/db/schema'
+import { decompressData } from '~/utils/compression'
 import { logger } from '../utils/logger'
 
 async function main() {
@@ -13,7 +14,7 @@ async function main() {
 
   for (const row of allCache) {
     try {
-      const data = JSON.parse(row.analysis)
+      const data = JSON.parse(decompressData(row.analysis))
 
       // Оригинальное условие
       const hasEmptyGrammarRules = Array.isArray(data.grammarRules) && data.grammarRules.length === 0

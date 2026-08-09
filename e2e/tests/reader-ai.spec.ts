@@ -2,24 +2,6 @@ import type { Page } from '@playwright/test'
 import { expect, test } from '../fixtures'
 import { E2E_SERVER_URL, uploadBookViaApi } from './reader-ai.helpers'
 
-/**
- * Путь «Чтение и ИИ-анализ» (киллер-фича).
- *
- * Реальный LLM недоступен, поэтому перехватываем POST /api/books/:id/analyze
- * (единственная точка, через которую ридер запрашивает ИИ-перевод слова/предложения)
- * и возвращаем реалистичные фикстуры LlmAnalysis. Кэш-проверки (cache-check) и
- * сохранение (dictionary/highlights) идут через настоящий сервер.
- *
- * NB: в задании упоминался путь «SelectionTooltip → Перевести с ИИ → QuoteModal →
- * словарь», но реальная разметка устроена иначе:
- * - «Перевести с ИИ» живёт в WordPopover (клик по слову), сохранение в словарь —
- *   через AddEditWordDialog (звезда);
- * - SelectionTooltip имеет кнопку «Разбор предложения» → сайдбар SentenceAnalysis;
- * - QuoteModal сохраняет цитату в блокнот (highlights), а не в словарь — открывается
- *   из сайдбара по кнопке-закладке.
- * Тесты ниже покрывают эти реальные пути.
- */
-
 const BOOK_TITLE = 'E2E Reader AI Book'
 
 let bookId: number

@@ -1,5 +1,6 @@
 import { relations, sql } from 'drizzle-orm'
 import {
+  blob,
   integer,
   primaryKey,
   real,
@@ -162,14 +163,14 @@ export const bookStats = sqliteTable('book_stats', {
 export const nlpCache = sqliteTable('nlp_cache', {
   bookId: integer('bookId').notNull(),
   pageNum: integer('pageNum').notNull(),
-  data: text('data').notNull(),
+  data: blob('data', { mode: 'buffer' }).notNull(),
 })
 
 export const llmCache = sqliteTable('llm_cache', {
   sentenceHash: text('sentenceHash').primaryKey(),
   language: text('language').notNull().default('en'),
   sentence: text('sentence').notNull(),
-  analysis: text('analysis').notNull(),
+  analysis: blob('analysis', { mode: 'buffer' }).notNull(),
   targetLanguage: text('targetLanguage').notNull().default('ru'),
 
   createdAt: text('createdAt').notNull().default(sql`(datetime('now'))`),
@@ -187,7 +188,7 @@ export const bookLlmCache = sqliteTable('book_llm_cache', {
 export const ttsCache = sqliteTable('tts_cache', {
   textHash: text('textHash').primaryKey(),
   text: text('text').notNull(),
-  audioBase64: text('audioBase64').notNull(),
+  audioBlob: blob('audioBlob', { mode: 'buffer' }).notNull(),
   createdAt: text('createdAt').notNull().default(sql`(datetime('now'))`),
 })
 

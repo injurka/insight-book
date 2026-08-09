@@ -17,6 +17,7 @@ import {
   DATABASE_AUTH_TOKEN,
   DATABASE_URL,
   DB_PATH,
+  UPLOAD_STORAGE,
   UPLOADS_PATH,
 } from '../config'
 import { ROLES } from '../constants/roles'
@@ -25,11 +26,15 @@ import * as schema from './schema'
 
 const dbDir = path.dirname(DB_PATH)
 
+// Создаем директории для БД и временной обработки файлов загрузки
 await fs.mkdir(dbDir, { recursive: true })
-await fs.mkdir(UPLOADS_PATH, { recursive: true })
 await fs.mkdir(BOOKS_PATH, { recursive: true })
-await fs.mkdir(COVERS_PATH, { recursive: true })
-await fs.mkdir(path.join(UPLOADS_PATH, 'avatars'), { recursive: true })
+
+// Внутренние папки постоянного хранения файлов создаем только для локального хранилища
+if (UPLOAD_STORAGE === 'local') {
+  await fs.mkdir(COVERS_PATH, { recursive: true })
+  await fs.mkdir(path.join(UPLOADS_PATH, 'avatars'), { recursive: true })
+}
 
 // ============================================================================
 // 1. ИНИЦИАЛИЗАЦИЯ ПОДКЛЮЧЕНИЯ

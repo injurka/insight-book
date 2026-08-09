@@ -1,6 +1,7 @@
 import type { BatchAnalysisRequest, BatchAnalysisResponse, GeneratedWordExamples, LlmAnalysis, LlmConfig, ModelMessage, WordAutoFillResponse } from '../types'
 import { eq, inArray, sql } from 'drizzle-orm'
 import { LlmAnalysisSchema } from '~/types/schemas'
+import { compressData, decompressData } from '~/utils/compression'
 import { hashSentence, parseLlmJson } from '~/utils/helpers'
 import { callLlmJsonWithRetry } from '~/utils/llm-api'
 import { db } from '../db'
@@ -46,7 +47,7 @@ export async function analyzeSentence(
 
   if (cached) {
     try {
-      const parsed = JSON.parse(cached.analysis)
+      const parsed = JSON.parse(decompressData(cached.analysis))
       if (!isOldFormatAnalysis(parsed)) {
         await db.insert(schema.bookLlmCache).values({
           bookId,
@@ -85,16 +86,18 @@ export async function analyzeSentence(
         },
       )
 
+      const compressedAnalysis = compressData(JSON.stringify(analysis))
+
       await db.insert(schema.llmCache).values({
         sentenceHash: hash,
         language,
         targetLanguage: targetLang,
         sentence,
-        analysis: JSON.stringify(analysis),
+        analysis: compressedAnalysis,
       }).onConflictDoUpdate({
         target: schema.llmCache.sentenceHash,
         set: {
-          analysis: JSON.stringify(analysis),
+          analysis: compressedAnalysis,
         },
       })
 
@@ -129,7 +132,7 @@ export async function checkCacheBatch(bookId: number, items: { text: string, typ
   const results: { sentence: string, analysis: LlmAnalysis }[] = []
   const bookCacheInserts: { bookId: number, sentenceHash: string, type: 'sentence' | 'word' }[] = []
 
-  const cacheMap = new Map(cachedDocs.map(d => [d.sentenceHash, d.analysis]))
+  const cacheMap = new Map(cachedDocs.map(d => [d.sentenceHash, decompressData(d.analysis)]))
 
   for (const item of items) {
     const hash = hashSentence(item.text, language, targetLang)
@@ -246,7 +249,7 @@ export async function analyzeBatch(userId: number, bookId: number, items: BatchA
       })
     : []
 
-  const cacheMap = new Map(cachedDocs.map(d => [d.sentenceHash, d.analysis]))
+  const cacheMap = new Map(cachedDocs.map(d => [d.sentenceHash, decompressData(d.analysis)]))
   const bookCacheInserts: { bookId: number, sentenceHash: string, type: 'sentence' | 'word' }[] = []
 
   for (const item of itemHashes) {
@@ -304,7 +307,7 @@ export async function analyzeBatch(userId: number, bookId: number, items: BatchA
         },
       )
 
-      const llmCacheInserts: { sentenceHash: string, language: string, targetLanguage: string, sentence: string, analysis: string }[] = []
+      const llmCacheInserts: { sentenceHash: string, language: string, targetLanguage: string, sentence: string, analysis: Buffer }[] = []
       const newBookCacheInserts: { bookId: number, sentenceHash: string, type: 'sentence' | 'word' }[] = []
 
       for (const res of parsedArray) {
@@ -317,7 +320,7 @@ export async function analyzeBatch(userId: number, bookId: number, items: BatchA
             language,
             targetLanguage: targetLang,
             sentence: originalItem.sentence,
-            analysis: JSON.stringify(res.analysis),
+            analysis: compressData(JSON.stringify(res.analysis)),
           })
           newBookCacheInserts.push({ bookId, sentenceHash: hash, type: originalItem.type || 'sentence' })
         }

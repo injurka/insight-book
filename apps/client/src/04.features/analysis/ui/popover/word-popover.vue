@@ -72,7 +72,7 @@ const headerText = computed(() => {
   if (!analysisStore.wordPopover)
     return ''
 
-  return analysisStore.wordPopover.showAi ? (analysisStore.wordPopover.aiTranscription || analysisStore.wordPopover.transcription) : analysisStore.wordPopover.transcription
+  return analysisStore.wordPopover.transcription
 })
 
 const innerRef = ref<HTMLElement | null>(null)
@@ -185,14 +185,14 @@ onUnmounted(() => {
           <div class="height-animator" :style="{ height: contentHeight, transition: 'height 0.25s ease', overflow: 'hidden' }">
             <div ref="innerRef" class="popover-inner-grid">
               <Transition name="content-fade">
-                <div v-if="analysisStore.wordPopover.showAi && analysisStore.wordPopover.isAiLoading" key="loader" class="ai-loader">
+                <div v-if="analysisStore.wordPopover.isLoading && !analysisStore.wordPopover.translation" key="loader" class="ai-loader">
                   <KitSkeleton width="95%" height="16px" />
                   <KitSkeleton width="75%" height="16px" />
                   <KitSkeleton width="90%" height="16px" />
                 </div>
                 <div v-else key="content" class="popover-body">
-                  <div class="translation" v-html="analysisStore.wordPopover.showAi ? analysisStore.wordPopover.aiTranslation : analysisStore.wordPopover.translation" />
-                  <template v-if="analysisStore.wordPopover.showAi && analysisStore.wordPopover.aiData">
+                  <div class="translation" v-html="analysisStore.wordPopover.translation" />
+                  <template v-if="analysisStore.wordPopover.aiData">
                     <div v-if="analysisStore.wordPopover.aiData.grammarRules?.length" class="ai-section">
                       <div class="ai-subtitle">
                         {{ t('analysis.grammarColon') }}
@@ -260,16 +260,6 @@ onUnmounted(() => {
                 </button>
               </div>
             </KitDropdown>
-
-            <KitTooltip :text="t('analysis.translateWithAi')" placement="bottom">
-              <KitBtn
-                icon="mdi:robot-outline"
-                size="xs"
-                variant="text"
-                :class="{ 'is-active-ai': analysisStore.wordPopover.showAi }"
-                @click.stop="analysisStore.toggleAiTranslation"
-              />
-            </KitTooltip>
 
             <KitTooltip v-if="authStore.user" :text="analysisStore.wordPopover.isSaved ? t('analysis.editCard') : t('analysis.saveToDict')" placement="bottom-end">
               <KitBtn

@@ -3,6 +3,7 @@ import type { LlmConfig, PagePayload } from '../types'
 import path from 'node:path'
 
 import sharp from 'sharp'
+import { decompressData } from '~/utils/compression'
 import { extractUniqueWordsFromHtml, normalizeLanguageCode } from '~/utils/helpers'
 import { bookRepository } from '../repositories/book.repository'
 import { AppError } from '../utils/errors'
@@ -318,7 +319,7 @@ export class BookService {
     const cached = await this.bookRepo.getNlpCache(bookId, pageNum)
     if (cached) {
       try {
-        const parsed = JSON.parse(cached.data) as PagePayload
+        const parsed = JSON.parse(decompressData(cached.data)) as PagePayload
         delete parsed.pageDictionary
         return parsed
       }
@@ -357,7 +358,7 @@ export class BookService {
     else {
       const cached = await this.bookRepo.getNlpCache(bookId, pageNum)
       if (cached) {
-        const parsed = JSON.parse(cached.data) as PagePayload
+        const parsed = JSON.parse(decompressData(cached.data)) as PagePayload
         uniqueWords = extractUniqueWordsFromHtml(parsed.content)
       }
       else {

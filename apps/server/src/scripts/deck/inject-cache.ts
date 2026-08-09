@@ -3,6 +3,7 @@ import path from 'node:path'
 import { cancel, intro, isCancel, select } from '@clack/prompts'
 import { client, db } from '~/db'
 import * as schema from '../../db/schema'
+import { compressData } from '../../utils/compression'
 import { hashSentence, normalizeLanguageCode } from '../../utils/helpers'
 import { logger } from '../../utils/logger'
 
@@ -99,7 +100,7 @@ async function injectFile(inputFile: string): Promise<{ injected: number, skippe
         language: lang,
         targetLanguage: targetLang,
         sentence,
-        analysis: JSON.stringify(analysis),
+        analysis: compressData(JSON.stringify(analysis)),
       }).onConflictDoNothing().returning()
 
       if (result.length > 0) {

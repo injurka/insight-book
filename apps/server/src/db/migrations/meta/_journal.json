@@ -225,6 +225,13 @@
       "when": 1785933247339,
       "tag": "0031_unusual_zuras",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "6",
+      "when": 1786233470453,
+      "tag": "0032_classy_skaar",
+      "breakpoints": true
     }
   ]
 }

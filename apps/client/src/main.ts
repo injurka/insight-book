@@ -38,13 +38,12 @@ async function bootstrap() {
   const { useToastStore } = await import('~/01.shared/store/toast.store')
 
   const settingsStore = useGlobalSettingsStore()
+  const authStore = useAuthStore()
+  const toastStore = useToastStore()
 
   watch(() => settingsStore.enableEruda, (enabled) => {
     void setErudaEnabled(enabled)
   }, { immediate: true })
-
-  const authStore = useAuthStore()
-  const toastStore = useToastStore()
 
   configureApi({
     getToken: () => localStorage.getItem('insight_token'),
@@ -73,6 +72,7 @@ async function bootstrap() {
 
   await localePromise
   await router.isReady()
+
   app.mount('#app')
 
   document.getElementById('app-preloader')?.remove()

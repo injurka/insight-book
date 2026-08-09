@@ -10,6 +10,7 @@ import * as schema from '../../db/schema'
 import { getSystemPrompt } from '../../prompts'
 import { LlmAnalysisSchema } from '../../types/schemas'
 import { getAiConfig } from '../../utils/ai-config'
+import { decompressData } from '../../utils/compression'
 import { hashSentence, normalizeLanguageCode, parseLlmJson } from '../../utils/helpers'
 import { callLlmJsonWithRetry } from '../../utils/llm-api'
 import { logger } from '../../utils/logger'
@@ -152,7 +153,7 @@ async function analyzeWordForDeck(
 
   if (cached) {
     try {
-      const parsed = JSON.parse(cached.analysis)
+      const parsed = JSON.parse(decompressData(cached.analysis))
       if (!isOldFormatAnalysis(parsed)) {
         return { analysis: parsed as LlmAnalysis, cached: true }
       }

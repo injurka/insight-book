@@ -1,4 +1,4 @@
-import type { Book, LlmAnalysis, PageDictEntry, PagePayload, UserDictItem } from '~/01.shared/types/models'
+import type { Book, LlmAnalysis, PagePayload, UserDictItem } from '~/01.shared/types/models'
 import { defineStore } from 'pinia'
 import { v4 as uuidv4 } from 'uuid'
 import { computed, ref } from 'vue'
@@ -18,10 +18,7 @@ export interface WordPopoverData {
   translation: string
   targetRect: DOMRect
   target?: HTMLElement
-  showAi: boolean
-  isAiLoading: boolean
-  aiTranslation?: string
-  aiTranscription?: string
+  isLoading: boolean
   aiData?: LlmAnalysis
   contextSentence?: string
   contextBookId?: number
@@ -742,18 +739,22 @@ export const useAnalysisStore = defineStore('analysis', () => {
     if (!wordPopover.value)
       return
     wordPopover.value.aiData = analysisData
-    wordPopover.value.aiTranslation = analysisData.translation
+    if (!wordPopover.value.translation || wordPopover.value.translation === i18n.global.t('analysis.wordNotFoundInDict')) {
+      wordPopover.value.translation = analysisData.translation
+    }
 
     const targetWord = wordPopover.value.word
     const vocabMatch = analysisData.vocabulary?.find(vocabItem => vocabItem?.word && (vocabItem.word.includes(targetWord) || targetWord.includes(vocabItem.word)))
-    wordPopover.value.aiTranscription = analysisData.transcription || vocabMatch?.transcription || ''
+    if (!wordPopover.value.transcription) {
+      wordPopover.value.transcription = analysisData.transcription || vocabMatch?.transcription || ''
+    }
   }
 
   async function checkAndApplyCachedTranslation(word: string): Promise<boolean> {
     const cached = await repos.analysis.getLocalAnalysis(word)
     if (cached && wordPopover.value) {
       applyAiAnalysisData(cached)
-      wordPopover.value.isAiLoading = false
+      wordPopover.value.isLoading = false
 
       return true
     }
@@ -777,12 +778,14 @@ export const useAnalysisStore = defineStore('analysis', () => {
     }
     catch (err: unknown) {
       if (err instanceof Error && err.name !== 'AbortError' && wordPopover.value && wordAbortController === controller) {
-        wordPopover.value.aiTranslation = i18n.global.t('analysis.offlineTranslationNotFound')
+        if (!wordPopover.value.translation) {
+          wordPopover.value.translation = i18n.global.t('analysis.offlineTranslationNotFound')
+        }
       }
     }
     finally {
       if (wordPopover.value && wordAbortController === controller)
-        wordPopover.value.isAiLoading = false
+        wordPopover.value.isLoading = false
     }
   }
 
@@ -792,7 +795,7 @@ export const useAnalysisStore = defineStore('analysis', () => {
 
     const currentBook = readerStore.currentBook || libraryStore.currentBookInfo
 
-    if (!wordPopover.value || wordPopover.value.aiTranslation || !currentBook)
+    if (!wordPopover.value || wordPopover.value.aiData || !currentBook)
       return
 
     const word = wordPopover.value.word
@@ -803,35 +806,33 @@ export const useAnalysisStore = defineStore('analysis', () => {
     const controller = new AbortController()
     wordAbortController = controller
 
-    wordPopover.value.isAiLoading = true
+    wordPopover.value.isLoading = true
     trackEvent('ai_translation_requested', { word })
 
     await performAiTranslation(currentBook, word, controller)
   }
 
-  function toggleAiTranslation() {
-    if (!wordPopover.value)
-      return
-    wordPopover.value.showAi = !wordPopover.value.showAi
-    if (wordPopover.value.showAi)
-      fetchAiTranslation()
-  }
-
-  function tryApplyDictTranslation(entry: PageDictEntry | undefined, basePopover: Omit<WordPopoverData, 'transcription' | 'translation' | 'showAi' | 'isAiLoading'>): boolean {
-    if (entry?.translation) {
-      wordAbortController?.abort()
-      wordPopover.value = {
-        ...basePopover,
-        transcription: entry.transcription,
-        translation: entry.translation,
-        showAi: false,
-        isAiLoading: false,
-      }
-
-      return true
+  function prepareWordPopover(
+    word: string,
+    pos: string,
+    targetRect: DOMRect,
+    target: HTMLElement,
+    contextSentence: string | undefined,
+    bookId: number,
+    entry: { isUserDict?: boolean, transcription?: string, translation?: string } | undefined,
+  ) {
+    wordPopover.value = {
+      word,
+      pos,
+      targetRect,
+      target,
+      contextSentence,
+      contextBookId: bookId,
+      isSaved: !!entry?.isUserDict,
+      transcription: entry?.transcription || '',
+      translation: entry?.translation || '',
+      isLoading: true,
     }
-
-    return false
   }
 
   async function handleWordClick(
@@ -844,43 +845,29 @@ export const useAnalysisStore = defineStore('analysis', () => {
   ) {
     const readerStore = useReaderStore()
     const settingsStore = useGlobalSettingsStore()
+    const { currentPage, currentBook, currentPageDictionary } = readerStore
 
-    if (!readerStore.currentPage || !readerStore.currentBook)
-      return
-
-    if (readerStore.currentBook.language === settingsStore.appLanguage)
+    if (!currentPage || !currentBook || currentBook.language === settingsStore.appLanguage)
       return
 
     closeSelectionTooltip()
     activeTokenId.value = `${sentenceId}-${tokenIndex}`
-    const targetRect = target.getBoundingClientRect()
 
-    const entry = readerStore.currentPageDictionary[word] || readerStore.currentPageDictionary[word.toLowerCase()]
-
-    const basePopoverData = {
-      word,
-      pos,
-      targetRect,
-      target,
-      contextSentence,
-      contextBookId: readerStore.currentBook.id,
-      isSaved: !!entry?.isUserDict,
-    }
-
-    if (tryApplyDictTranslation(entry, basePopoverData))
-      return
+    const entry = currentPageDictionary[word] || currentPageDictionary[word.toLowerCase()]
 
     wordAbortController?.abort()
     const controller = new AbortController()
     wordAbortController = controller
 
-    wordPopover.value = {
-      ...basePopoverData,
-      transcription: entry ? entry.transcription : '',
-      translation: entry ? entry.translation : i18n.global.t('analysis.wordNotFoundInDict'),
-      showAi: true,
-      isAiLoading: true,
-    }
+    prepareWordPopover(
+      word,
+      pos,
+      target.getBoundingClientRect(),
+      target,
+      contextSentence,
+      currentBook.id,
+      entry,
+    )
 
     fetchAiTranslation()
   }
@@ -892,33 +879,17 @@ export const useAnalysisStore = defineStore('analysis', () => {
     targetRect: DOMRect,
     target: HTMLElement,
   ) {
-    if (result.translation) {
-      wordPopover.value = {
-        word,
-        pos,
-        transcription: result.transcription,
-        translation: result.translation,
-        targetRect,
-        target,
-        showAi: false,
-        isAiLoading: false,
-        isSaved: !!result.isUserDict,
-      }
+    wordPopover.value = {
+      word,
+      pos,
+      transcription: result.transcription || '',
+      translation: result.translation || '',
+      targetRect,
+      target,
+      isLoading: true,
+      isSaved: !!result.isUserDict,
     }
-    else {
-      wordPopover.value = {
-        word,
-        pos,
-        transcription: result.transcription,
-        translation: result.translation || i18n.global.t('analysis.wordNotFoundInDict'),
-        targetRect,
-        target,
-        showAi: true,
-        isAiLoading: true,
-        isSaved: !!result.isUserDict,
-      }
-      fetchAiTranslation()
-    }
+    fetchAiTranslation()
   }
 
   async function performStandaloneWordLookup(
@@ -949,11 +920,10 @@ export const useAnalysisStore = defineStore('analysis', () => {
           word,
           pos,
           transcription: '',
-          translation: i18n.global.t('analysis.wordNotFoundInDict'),
+          translation: '',
           targetRect,
           target,
-          showAi: true,
-          isAiLoading: true,
+          isLoading: true,
           isSaved: false,
         }
         fetchAiTranslation()
@@ -1023,15 +993,12 @@ export const useAnalysisStore = defineStore('analysis', () => {
       }
     }
     catch {
-      const transcription = wordData.showAi ? (wordData.aiTranscription || wordData.transcription) : wordData.transcription
-      const translation = wordData.showAi ? (wordData.aiTranslation || wordData.translation) : wordData.translation
-
-      const { grammarNote, vocabularyNote } = wordData.showAi ? buildAiNotes(wordData.aiData) : { grammarNote: null, vocabularyNote: null }
+      const { grammarNote, vocabularyNote } = buildAiNotes(wordData.aiData)
 
       wordToEdit.value = {
         word: wordData.word,
-        transcription,
-        translation,
+        transcription: wordData.transcription,
+        translation: wordData.translation,
         grammarNote,
         vocabularyNote,
         language: currentBook?.language || 'en',
@@ -1113,7 +1080,6 @@ export const useAnalysisStore = defineStore('analysis', () => {
     cancelPageAnalysis,
     closePageAnalysisModal,
     fetchAiTranslation,
-    toggleAiTranslation,
     handleWordClick,
     lookupStandaloneWord,
     handleSentenceAnalysis,

@@ -3,13 +3,16 @@ import path from 'node:path'
 import { instrumentDrizzleClient } from '@kubiks/otel-drizzle'
 import { createClient } from '@libsql/client'
 import { drizzle } from 'drizzle-orm/libsql'
-import { CATALOG_DATABASE_URL, CATALOG_DB_PATH } from '../config'
+import { CATALOG_DATABASE_AUTH_TOKEN, CATALOG_DATABASE_URL, CATALOG_DB_PATH } from '../config'
 import * as catalogSchema from './catalog-schema'
 
 const catalogDbDir = path.dirname(CATALOG_DB_PATH)
 mkdirSync(catalogDbDir, { recursive: true })
 
-export const catalogClient = createClient({ url: CATALOG_DATABASE_URL })
+export const catalogClient = createClient({
+  url: CATALOG_DATABASE_URL,
+  authToken: CATALOG_DATABASE_AUTH_TOKEN,
+})
 
 export const catalogDb = drizzle(catalogClient, { schema: catalogSchema, logger: false })
 instrumentDrizzleClient(catalogDb)

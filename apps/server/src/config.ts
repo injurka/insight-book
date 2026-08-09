@@ -22,7 +22,10 @@ const envSchema = z.object({
   // --- Database Connection URLs ---
   DATABASE_URL: z.string().optional(),
   DATABASE_AUTH_TOKEN: z.string().optional(),
+  BUNNY_DATABASE_URL: z.string().optional(),
+  BUNNY_DATABASE_AUTH_TOKEN: z.string().optional(),
   CATALOG_DATABASE_URL: z.string().optional(),
+  CATALOG_DATABASE_AUTH_TOKEN: z.string().optional(),
 
   // --- Admin ---
   ADMIN_USERNAME: z.string().default('admin'),
@@ -62,7 +65,8 @@ export const BOOKS_PATH = path.join(UPLOADS_PATH, 'books')
 export const COVERS_PATH = path.join(UPLOADS_PATH, 'covers')
 
 export const DATABASE_URL = env.DATABASE_URL || `file:${DB_PATH}`
-export const CATALOG_DATABASE_URL = env.CATALOG_DATABASE_URL || `file:${CATALOG_DB_PATH}`
+export const CATALOG_DATABASE_URL = env.CATALOG_DATABASE_URL || env.BUNNY_DATABASE_URL || `file:${CATALOG_DB_PATH}`
+export const CATALOG_DATABASE_AUTH_TOKEN = env.CATALOG_DATABASE_AUTH_TOKEN || env.BUNNY_DATABASE_AUTH_TOKEN
 
 // --- Export validated env constants ---
 export const {
