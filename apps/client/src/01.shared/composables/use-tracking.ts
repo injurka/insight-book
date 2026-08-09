@@ -1,12 +1,13 @@
+import type { FaroEventName } from '~/01.shared/services/monitoring.service'
 import { setFaroUser, trackFaroEvent } from '~/01.shared/services/monitoring.service'
 
 export function useTracking() {
-  function trackEvent(eventName: string, eventData?: Record<string, unknown>) {
+  function trackEvent(eventName: FaroEventName, eventData?: Record<string, unknown>) {
     trackFaroEvent(eventName, eventData)
   }
 
   function identifyUser(userData: Record<string, unknown> & { id?: string | number, username?: string, role?: string }) {
-    if (userData.id) {
+    if (userData.id !== undefined) {
       setFaroUser({
         id: userData.id,
         username: userData.username,

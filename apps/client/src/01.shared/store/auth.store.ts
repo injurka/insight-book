@@ -1,11 +1,14 @@
 import type { UserData } from '../types/models'
+import { useQueryCache } from '@pinia/colada'
 import { useRepos } from '~/00.plugins/di'
 import { useTracking } from '~/01.shared/composables/use-tracking'
+import { queryKeys } from '~/01.shared/lib/query-keys'
 import { resetFaroUser } from '~/01.shared/services/monitoring.service'
 
 export const useAuthStore = defineStore('auth', () => {
   const repos = useRepos()
   const { identifyUser, trackEvent } = useTracking()
+  const queryCache = useQueryCache()
 
   const user = ref<UserData | null>(null)
 
@@ -28,6 +31,7 @@ export const useAuthStore = defineStore('auth', () => {
     localStorage.removeItem('insight_uid')
     localStorage.removeItem('insight_user_data')
     user.value = null
+    queryCache.invalidateQueries({ key: queryKeys.books.all })
   }
 
   function loadCachedUserSession() {
@@ -47,6 +51,8 @@ export const useAuthStore = defineStore('auth', () => {
         role: user.value!.role || 'user',
         auth_mode: isSingleMode.value ? 'single' : 'multi',
       })
+
+      queryCache.invalidateQueries({ key: queryKeys.books.all })
     }
     else {
       user.value = null
@@ -95,12 +101,15 @@ export const useAuthStore = defineStore('auth', () => {
           role: user.value!.role || 'user',
           auth_mode: isSingleMode.value ? 'single' : 'multi',
         })
+
+        queryCache.invalidateQueries({ key: queryKeys.books.all })
       }
       else {
         localStorage.setItem('insight_auth_mode', res.mode)
         localStorage.removeItem('insight_token')
         localStorage.removeItem('insight_uid')
         localStorage.removeItem('insight_user_data')
+        queryCache.invalidateQueries({ key: queryKeys.books.all })
       }
     }
     catch (e) {
@@ -153,6 +162,7 @@ export const useAuthStore = defineStore('auth', () => {
     localStorage.removeItem('insight_auth_mode')
 
     user.value = null
+    queryCache.invalidateQueries({ key: queryKeys.books.all })
     resetFaroUser()
   }
 

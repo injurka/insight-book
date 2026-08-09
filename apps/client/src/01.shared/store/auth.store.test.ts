@@ -5,6 +5,13 @@ import { useAuthStore } from './auth.store'
 
 const meMock = vi.fn()
 const getMyPluginsMock = vi.fn()
+const invalidateQueriesMock = vi.fn()
+
+vi.mock('@pinia/colada', () => ({
+  useQueryCache: () => ({
+    invalidateQueries: invalidateQueriesMock,
+  }),
+}))
 
 vi.mock('~/00.plugins/di', () => ({
   useRepos: () => ({
@@ -216,5 +223,32 @@ describe('authStore - isSingleMode', () => {
 
     expect(store.isSingleMode).toBe(false)
     expect(store.user).toBeNull()
+  })
+})
+
+describe('authStore - cache invalidation', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+    localStorage.clear()
+    vi.clearAllMocks()
+    getMyPluginsMock.mockResolvedValue([])
+  })
+
+  it('invalidates books query cache after successful user authentication', async () => {
+    const user = makeUser()
+    localStorage.setItem('insight_token', 'token-123')
+    meMock.mockResolvedValue({ user, mode: 'multi' })
+
+    const store = useAuthStore()
+    await store.checkAuth()
+
+    expect(invalidateQueriesMock).toHaveBeenCalledWith({ key: ['books'] })
+  })
+
+  it('invalidates books query cache on logout', async () => {
+    const store = useAuthStore()
+    await store.logout()
+
+    expect(invalidateQueriesMock).toHaveBeenCalledWith({ key: ['books'] })
   })
 })
