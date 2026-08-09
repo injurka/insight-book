@@ -20,11 +20,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
-      - name: Generate .env file
-        run: |
-          echo "VITE_UMAMI_WEBSITE_ID=${{ secrets.VITE_UMAMI_WEBSITE_ID }}" >> .env
-          echo "VITE_UMAMI_URL=${{ secrets.VITE_UMAMI_URL }}" >> .env
-
       - name: Docker meta
         id: meta
         uses: docker/metadata-action@v6
@@ -55,8 +50,6 @@ jobs:
           cache-to: type=gha,mode=max
           build-args: |
             APP_VERSION=${{ github.ref_name }}
-            VITE_UMAMI_WEBSITE_ID=${{ secrets.VITE_UMAMI_WEBSITE_ID }}
-            VITE_UMAMI_URL=${{ secrets.VITE_UMAMI_URL }}
 
   # ─── JOB 2: Сборка и пуш сервера ───────────────────────────────
   build-server:
@@ -115,8 +108,6 @@ jobs:
         run: bun run --cwd apps/client build
         env:
           VITE_APP_VERSION: ${{ github.ref_name }}
-          VITE_UMAMI_WEBSITE_ID: ${{ secrets.VITE_UMAMI_WEBSITE_ID }}
-          VITE_UMAMI_URL: ${{ secrets.VITE_UMAMI_URL }}
 
       - name: Deploy to S3/CDN
         run: bun run --cwd apps/client deploy

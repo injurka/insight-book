@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { trackFaroError } from '~/01.shared/services/monitoring.service'
 
 /**
  * Обертка ACL (Anti-Corruption Layer).
@@ -11,8 +12,14 @@ export function applyAcl<T>(schema: z.ZodType<T>, data: unknown, context: string
   if (result.success)
     return result.data
 
-  // Здесь можно отправлять логи в Sentry / Umami о том, что контракт нарушен
-  console.error(`[ACL Error] Contract mismatch in ${context}:`, z.treeifyError(result.error))
+  const details = z.treeifyError(result.error)
+  console.error(`[ACL Error] Contract mismatch in ${context}:`, details)
 
-  throw new Error(`Data validation failed in ${context}`)
+  const aclError = new Error(`[ACL Error] Contract mismatch in ${context}`)
+  trackFaroError(aclError, {
+    context,
+    details: typeof details === 'string' ? details : JSON.stringify(details),
+  })
+
+  throw aclError
 }

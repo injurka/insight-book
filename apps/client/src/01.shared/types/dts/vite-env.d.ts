@@ -7,8 +7,6 @@ declare const __BUILD_DATE__: string
 interface ImportMetaEnv {
   readonly VITE_API_URL: string
   readonly VITE_FARO_URL?: string
-  readonly VITE_UMAMI_WEBSITE_ID?: string
-  readonly VITE_UMAMI_URL?: string
 }
 
 interface ImportMeta {

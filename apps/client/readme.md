@@ -84,7 +84,7 @@
 - **`pages`**: Точки входа для Vue Router. Файлы здесь соответствуют URL-маршрутам и отображают компоненты из `05.modules`.
 - **`workers`**: PWA и Service Worker (`workers/service/sw.ts`) на базе Workbox.
 - **`shared`**: Глобальный не-компонентный код:
-  - `composables`: Общие Vue-композиты (`useUmami`, `useAppWakeLock`, `useBackHandler`).
+  - `composables`: Общие Vue-композиты (`useTracking`, `useAppWakeLock`, `useBackHandler`).
   - `events`: Шина событий (`AppEventBus`) для события-ориентированного взаимодействия между модулями.
   - `repositories`: Сетевой слой на основе **Repository Pattern** (`repos.book.list()`).
   - `services`: Сервисы приложения (IndexedDB / LocalForage, офлайн-кеширование, LLM, TTS, очередь фоновой синхронизации `book-sync.service.ts`).

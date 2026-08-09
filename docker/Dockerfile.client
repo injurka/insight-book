@@ -18,12 +18,6 @@ RUN bun install --ignore-scripts
 # Copy all source files
 COPY . .
 
-ARG VITE_UMAMI_WEBSITE_ID
-ARG VITE_UMAMI_URL
-
-ENV VITE_UMAMI_WEBSITE_ID=$VITE_UMAMI_WEBSITE_ID
-ENV VITE_UMAMI_URL=$VITE_UMAMI_URL
-
 ARG V_CLIENT="dev"
 
 ENV VITE_APP_VERSION=$V_CLIENT
@@ -101,6 +95,7 @@ cat > /usr/share/nginx/html/configs/app-config.js <<CONFIG
 // Сгенерировано entrypoint-ом контейнера при запуске
 window.__APP_CONFIG__ = {
   API_URL: "${VITE_API_URL:-}",
+  FARO_URL: "${FARO_URL:-}",
 }
 CONFIG
 

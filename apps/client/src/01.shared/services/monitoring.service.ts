@@ -100,3 +100,12 @@ export function trackFaroEvent(name: string, attributes?: Record<string, unknown
 
   faro.api.pushEvent(name, stringifiedAttrs, domain)
 }
+
+export function trackFaroError(error: Error, context?: Record<string, string>) {
+  if (!faro.api)
+    return
+
+  faro.api.pushError(error, {
+    context,
+  })
+}

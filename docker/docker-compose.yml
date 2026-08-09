@@ -3,13 +3,11 @@ services:
     build:
       context: ..
       dockerfile: docker/Dockerfile.client
-      args:
-        - VITE_UMAMI_WEBSITE_ID=${VITE_UMAMI_WEBSITE_ID:-}
-        - VITE_UMAMI_URL=${VITE_UMAMI_URL:-}
     image: ${REGISTRY:-docker.io}/injurka/insight-book-client:${V_CLIENT:-latest}
     restart: unless-stopped
     environment:
       - VITE_API_URL=${VITE_API_URL:-}
+      - FARO_URL=${FARO_URL:-https://faro.limited-dissolve.ru/collect}
     volumes:
       - ./configs:/usr/share/nginx/html/configs
     networks:
@@ -71,59 +69,8 @@ services:
       - "traefik.http.services.insight-server.loadbalancer.server.port=4445"
       - "traefik.docker.network=trip-net"
 
-  umami:
-    image: ghcr.io/umami-software/umami:postgresql-latest
-    restart: unless-stopped
-    environment:
-      - DATABASE_URL=postgresql://umami:${UMAMI_DB_PASSWORD:-umami_secure_password}@umami-db:5432/umami
-      - DATABASE_TYPE=postgresql
-      - APP_SECRET=${UMAMI_APP_SECRET:-generate_a_random_secret_string}
-    depends_on:
-      umami-db:
-        condition: service_healthy
-    networks:
-      - trip-net
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.insight-analytics.rule=Host(`analytics.insight-book.ru`)"
-      - "traefik.http.routers.insight-analytics.entrypoints=websecure"
-      - "traefik.http.routers.insight-analytics.tls.certresolver=letsencrypt"
-      - "traefik.http.services.insight-analytics.loadbalancer.server.port=3000"
-      - "traefik.docker.network=trip-net"
-
-      - "traefik.http.routers.umami-script.rule=Host(`insight-book.ru`) && Path(`/stats/app.js`)"
-      - "traefik.http.routers.umami-script.entrypoints=websecure"
-      - "traefik.http.routers.umami-script.tls.certresolver=letsencrypt"
-      - "traefik.http.routers.umami-script.service=insight-analytics"
-      - "traefik.http.routers.umami-script.middlewares=umami-script-rw"
-      - "traefik.http.middlewares.umami-script-rw.replacepath.path=/script.js"
-
-      - "traefik.http.routers.umami-api.rule=Host(`insight-book.ru`) && PathPrefix(`/api/send`)"
-      - "traefik.http.routers.umami-api.entrypoints=websecure"
-      - "traefik.http.routers.umami-api.tls.certresolver=letsencrypt"
-      - "traefik.http.routers.umami-api.service=insight-analytics"
-
-  umami-db:
-    image: postgres:15-alpine
-    restart: unless-stopped
-    environment:
-      - POSTGRES_DB=umami
-      - POSTGRES_USER=umami
-      - POSTGRES_PASSWORD=${UMAMI_DB_PASSWORD:-umami_secure_password}
-    volumes:
-      - umami-db-data:/var/lib/postgresql/data
-    networks:
-      - trip-net
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U umami"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-
 networks:
   trip-net:
     external: true
     name: trip-net
 
-volumes:
-  umami-db-data:
