@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Icon } from '@iconify/vue'
 import { useI18n } from 'vue-i18n'
+import logoSrc from '~/assets/logo.png'
 import OnboardingStepLayout from './onboarding-step-layout.vue'
 
 const emit = defineEmits<{
@@ -19,7 +20,7 @@ const { t } = useI18n()
       <div class="logo-onboarding-container">
         <div class="glow-orb" />
         <div class="glow-orb second" />
-        <img src="/logo.png" alt="Insight Logo" class="logo-image">
+        <img :src="logoSrc" alt="Insight Logo" class="logo-image">
       </div>
     </template>
 

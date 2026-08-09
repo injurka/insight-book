@@ -23,9 +23,18 @@ export async function executeDump(logCallback?: (msg: string) => void): Promise<
 
     // 2. Сбрасываем WAL в основной файл
     log('🗄️ Checkpointing SQLite database...')
-    const checkpointClient = createClient({ url: DATABASE_URL, authToken: DATABASE_AUTH_TOKEN })
-    await checkpointClient.execute('PRAGMA wal_checkpoint(PASSIVE)') // В режиме PASSIVE не блокирует читающих/пишущих клиентов
-    checkpointClient.close()
+    try {
+      const checkpointClient = createClient({ url: DATABASE_URL, authToken: DATABASE_AUTH_TOKEN })
+      try {
+        await checkpointClient.execute('PRAGMA wal_checkpoint(PASSIVE)')
+      }
+      finally {
+        checkpointClient.close()
+      }
+    }
+    catch (e) {
+      log(`⚠️ Skipping WAL checkpoint: ${(e as Error).message}`)
+    }
 
     const dbFile = Bun.file(DB_PATH)
     if (await dbFile.exists()) {

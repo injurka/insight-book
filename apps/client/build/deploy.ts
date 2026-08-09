@@ -21,7 +21,6 @@ const logger = pino({
 })
 
 // Настройки Bunny.net Storage
-// Для удобства поддерживаем как новые переменные, так и обратную совместимость с S3_* (можно прописать credentials туда)
 const BUNNY_STORAGE_ZONE = (process.env.BUNNY_STORAGE_ZONE || process.env.S3_BUCKET || '').trim()
 const BUNNY_STORAGE_PASSWORD = (process.env.BUNNY_STORAGE_PASSWORD || process.env.S3_SECRET_KEY || '').trim()
 const BUNNY_STORAGE_REGION = (process.env.BUNNY_STORAGE_REGION || '').trim() // e.g. 'ny', 'sg', по умолчанию пустой (Германия)
@@ -128,7 +127,7 @@ function partitionFiles(files: string[], distDir: string) {
     // В кэшируемые навсегда относим папку assets/ и все шрифты
     const isAsset
       = relativePath.startsWith('assets/')
-        || /\.(?:woff2|woff|ttf|otf|eot)$/i.test(relativePath)
+      || /\.(?:woff2|woff|ttf|otf|eot)$/i.test(relativePath)
 
     if (isAsset) {
       assets.push(filePath)
@@ -146,12 +145,13 @@ function generateAppConfig(distDir: string) {
   const configsDir = join(distDir, 'configs')
   const configPath = join(configsDir, 'app-config.js')
 
-  const apiUrl = process.env.VITE_API_URL || process.env.API_URL || ''
-  const faroUrl = process.env.VITE_FARO_URL || process.env.FARO_URL || ''
+  const apiUrl = process.env.VITE_API_URL || process.env.API_URL
+  const faroUrl = process.env.VITE_FARO_URL || process.env.FARO_URL
 
   const config: Record<string, string> = {}
   if (apiUrl)
     config.API_URL = apiUrl
+
   if (faroUrl)
     config.FARO_URL = faroUrl
 
@@ -270,7 +270,7 @@ async function deploy() {
 
     const isAsset
       = relativePath.startsWith('assets/')
-        || /\.(?:woff2|woff|ttf|otf|eot)$/i.test(relativePath)
+      || /\.(?:woff2|woff|ttf|otf|eot)$/i.test(relativePath)
 
     logger.info({
       file: relativePath,
