@@ -7,7 +7,7 @@ import {
   writeFileSync,
 } from 'node:fs'
 import { join, relative } from 'node:path'
-import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3'
+import { ListObjectsV2Command, PutObjectCommand, S3Client } from '@aws-sdk/client-s3'
 import pino from 'pino'
 
 const logger = pino({
@@ -43,6 +43,7 @@ const s3 = new S3Client({
     secretAccessKey: S3_SECRET_KEY,
   },
   forcePathStyle: true,
+  maxAttempts: 5,
 })
 
 const MIME_TYPES: Record<string, string> = {
@@ -100,20 +101,18 @@ function getAllFiles(dir: string): string[] {
   return files
 }
 
-// Функция-помощник для параллельного выполнения задач с ограничением concurrency
+// Функция-помощник для параллельного выполнения задач с ограничением concurrency через очередь воркеров
 async function pool<T>(items: T[], concurrency: number, task: (item: T) => Promise<void>): Promise<void> {
-  const executing = new Set<Promise<void>>()
-  for (const item of items) {
-    const p = Promise.resolve().then(() => task(item))
-    executing.add(p)
-    const clean = () => executing.delete(p)
-    p.then(clean, clean)
-    if (executing.size >= concurrency) {
-      await Promise.race(executing)
+  const queue = [...items]
+  const workers = Array.from({ length: Math.min(concurrency, items.length) }, async () => {
+    while (queue.length > 0) {
+      const item = queue.shift()
+      if (item !== undefined) {
+        await task(item)
+      }
     }
-  }
-
-  await Promise.all(executing)
+  })
+  await Promise.all(workers)
 }
 
 // Разделяет файлы на ассеты (кэшируемые навсегда) и входные точки (некэшируемые)
@@ -191,6 +190,37 @@ async function purgeBunnyCache() {
   }
 }
 
+// Получение списка всех имеющихся ключей в S3 бакете для пропуска повторных ассетов
+async function getExistingS3Keys(bucket: string): Promise<Set<string>> {
+  const existingKeys = new Set<string>()
+  let continuationToken: string | undefined
+
+  try {
+    do {
+      const response = await s3.send(new ListObjectsV2Command({
+        Bucket: bucket,
+        ContinuationToken: continuationToken,
+      }))
+
+      if (response.Contents) {
+        for (const obj of response.Contents) {
+          if (obj.Key) {
+            existingKeys.add(obj.Key)
+          }
+        }
+      }
+
+      continuationToken = response.IsTruncated ? response.NextContinuationToken : undefined
+    } while (continuationToken)
+  }
+  catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err)
+    logger.warn({ message }, '⚠️ Не удалось получить список существующих файлов в S3, все файлы будут проверены на загрузку')
+  }
+
+  return existingKeys
+}
+
 async function deploy() {
   logger.info('🚀 Начинаем деплой в S3...')
   const distDir = join(import.meta.dirname, '../dist')
@@ -204,6 +234,21 @@ async function deploy() {
   const filesToUpload = allFiles.filter(filePath => !filePath.endsWith('.gz') && !filePath.endsWith('.br'))
 
   const { assets, entrypoints } = partitionFiles(filesToUpload, distDir)
+
+  // Получаем список уже загруженных файлов из S3
+  const existingKeys = await getExistingS3Keys(S3_BUCKET)
+
+  // Исключаем ассеты, которые уже есть на S3 (так как их имена с хешем неизменяемы)
+  const assetsToUpload = assets.filter((filePath) => {
+    const relativePath = relative(distDir, filePath).replace(/\\/g, '/')
+
+    return !existingKeys.has(relativePath)
+  })
+
+  const skippedCount = assets.length - assetsToUpload.length
+  if (skippedCount > 0) {
+    logger.info({ count: skippedCount }, '⏩ Пропущены ассеты, уже присутствующие в S3')
+  }
 
   const uploadFile = async (filePath: string) => {
     const relativePath = relative(distDir, filePath).replace(/\\/g, '/')
@@ -224,19 +269,42 @@ async function deploy() {
       type: isAsset ? 'asset' : 'entrypoint',
     }, '📤 Загрузка файла')
 
-    await s3.send(new PutObjectCommand({
-      Bucket: S3_BUCKET,
-      Key: relativePath,
-      Body: fileContent,
-      ContentType: mimeType,
-      CacheControl: cacheControl,
-    }))
+    const maxRetries = 5
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        await s3.send(new PutObjectCommand({
+          Bucket: S3_BUCKET,
+          Key: relativePath,
+          Body: fileContent,
+          ContentType: mimeType,
+          CacheControl: cacheControl,
+        }))
+
+        return
+      }
+      catch (err: unknown) {
+        if (attempt === maxRetries) {
+          throw err
+        }
+
+        const delay = attempt * 500
+        const message = err instanceof Error ? err.message : String(err)
+        logger.warn({
+          file: relativePath,
+          attempt,
+          delay,
+          message,
+        }, '⚠️ Ошибка при отправке файла в S3, повторная попытка...')
+
+        await new Promise(resolve => setTimeout(resolve, delay))
+      }
+    }
   }
 
-  // 1. Сначала загружаем ассеты (безопасно для пользователей)
-  if (assets.length > 0) {
-    logger.info({ count: assets.length }, '📦 Загрузка ассетов')
-    await pool(assets, CONCURRENCY_LIMIT, uploadFile)
+  // 1. Сначала загружаем новые ассеты (безопасно для пользователей)
+  if (assetsToUpload.length > 0) {
+    logger.info({ count: assetsToUpload.length }, '📦 Загрузка новых ассетов')
+    await pool(assetsToUpload, CONCURRENCY_LIMIT, uploadFile)
   }
 
   // 2. Затем загружаем критически важные входные файлы (index.html, sw.js и т.д.)
