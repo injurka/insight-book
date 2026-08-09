@@ -22,18 +22,39 @@ const logger = pino({
 })
 
 // Настройки вашего S3
-const S3_ENDPOINT = process.env.S3_ENDPOINT!
-const S3_REGION = process.env.S3_REGION!
-const S3_BUCKET = process.env.S3_BUCKET!
-const S3_ACCESS_KEY = process.env.S3_ACCESS_KEY!
-const S3_SECRET_KEY = process.env.S3_SECRET_KEY!
+let rawEndpoint = (process.env.S3_ENDPOINT || '').trim()
+const S3_REGION = (process.env.S3_REGION || '').trim()
+const S3_BUCKET = (process.env.S3_BUCKET || '').trim()
+const S3_ACCESS_KEY = (process.env.S3_ACCESS_KEY || '').trim()
+const S3_SECRET_KEY = (process.env.S3_SECRET_KEY || '').trim()
 
 // Bunny.net API для авто-сброса кэша (Purge)
-const BUNNY_API_KEY = process.env.BUNNY_API_KEY!
-const BUNNY_PULL_ZONE_ID = process.env.BUNNY_PULL_ZONE_ID!
+const BUNNY_API_KEY = (process.env.BUNNY_API_KEY || '').trim()
+const BUNNY_PULL_ZONE_ID = (process.env.BUNNY_PULL_ZONE_ID || '').trim()
 
 // Лимит параллельных запросов на загрузку
 const CONCURRENCY_LIMIT = 10
+
+const missingVars: string[] = []
+if (!rawEndpoint)
+  missingVars.push('S3_ENDPOINT')
+if (!S3_BUCKET)
+  missingVars.push('S3_BUCKET')
+if (!S3_ACCESS_KEY)
+  missingVars.push('S3_ACCESS_KEY')
+if (!S3_SECRET_KEY)
+  missingVars.push('S3_SECRET_KEY')
+
+if (missingVars.length > 0) {
+  logger.error({ missingVars }, `❌ Не заполнены обязательные переменные S3 (${missingVars.join(', ')}). Проверьте секреты в GitHub Actions repository settings!`)
+  process.exit(1)
+}
+
+if (!rawEndpoint.startsWith('http://') && !rawEndpoint.startsWith('https://')) {
+  rawEndpoint = `https://${rawEndpoint}`
+}
+
+const S3_ENDPOINT = rawEndpoint
 
 const s3 = new S3Client({
   endpoint: S3_ENDPOINT,
@@ -222,7 +243,7 @@ async function getExistingS3Keys(bucket: string): Promise<Set<string>> {
 }
 
 async function deploy() {
-  logger.info('🚀 Начинаем деплой в S3...')
+  logger.info({ endpoint: S3_ENDPOINT, bucket: S3_BUCKET, region: S3_REGION }, '🚀 Начинаем деплой в S3...')
   const distDir = join(import.meta.dirname, '../dist')
 
   // Генерируем свежий рантайм-конфиг
