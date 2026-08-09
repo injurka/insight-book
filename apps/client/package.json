@@ -18,6 +18,7 @@
     "build": "vite build --config build/vite.config.web.ts",
     "build:tauri": "vite build --config build/vite.config.tauri.ts",
     "deploy": "bun run build/deploy.ts",
+    "check:cdn": "bun run build/check-cdn.ts",
     "preview": "vite preview --config build/vite.config.web.ts",
     "--------------------------------<      STORY     >--------------------------------": "",
     "story:dev": "STORYBOOK_ENV=1 storybook dev -p 6006",
