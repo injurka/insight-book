@@ -5,7 +5,7 @@ import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { loadLanguageAsync } from '~/00.plugins/i18n'
 import { ThemesVariant, useChangeTheme } from '~/01.shared/composables/use-change-theme'
-import { useUmami } from '~/01.shared/composables/use-umami'
+import { useTracking } from '~/01.shared/composables/use-tracking'
 import { AppRoutePaths } from '~/01.shared/constants/routes'
 import { useGlobalSettingsStore } from '~/01.shared/store/settings.store'
 import { KitHoverRevealBg } from '~/02.kit/atoms/kit-hover-reveal-bg/index.ts'
@@ -25,7 +25,7 @@ import Step8Epilogue from './steps/onboarding-step-8-epilogue.vue'
 
 const router = useRouter()
 const { t } = useI18n()
-const { trackEvent } = useUmami()
+const { trackEvent } = useTracking()
 const settingsStore = useGlobalSettingsStore()
 const { theme, toggleTheme } = useChangeTheme()
 

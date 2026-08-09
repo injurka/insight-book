@@ -1,12 +1,12 @@
 import { onMounted, watch } from 'vue'
 import { useChangeTheme } from '~/01.shared/composables/use-change-theme'
 import { useGlobalSettingsStore } from '~/01.shared/store/settings.store'
-import { useUmami } from './use-umami'
+import { useTracking } from './use-tracking'
 
 export function useGlobalTracking() {
   const settingsStore = useGlobalSettingsStore()
   const { theme } = useChangeTheme()
-  const { trackEvent, identifyUser } = useUmami()
+  const { trackEvent, identifyUser } = useTracking()
 
   watch(() => settingsStore.useCustomLlm, (val) => {
     trackEvent('custom_llm_enabled', { enabled: val })

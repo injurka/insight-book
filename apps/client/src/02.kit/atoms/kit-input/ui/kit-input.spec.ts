@@ -109,13 +109,13 @@ describe('kitInput', () => {
     expect(wrapperDiv.attributes('id')).toBeUndefined()
   })
 
-  it('sets data-umami-mask for password type', () => {
+  it('sets data-tracking-mask for password type', () => {
     const wrapper = mount(KitInput, {
       props: { type: 'password' },
     })
 
     const input = wrapper.find('input')
-    expect(input.attributes('data-umami-mask')).toBe('true')
+    expect(input.attributes('data-tracking-mask')).toBe('true')
   })
 
   it('applies color class when color prop is provided', () => {

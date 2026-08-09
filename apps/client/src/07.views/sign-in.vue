@@ -9,7 +9,7 @@ import { useRepos } from '~/00.plugins/di'
 import { loadLanguageAsync } from '~/00.plugins/i18n'
 import { ThemesVariant, useChangeTheme } from '~/01.shared/composables/use-change-theme'
 import { useToast } from '~/01.shared/composables/use-toast'
-import { useUmami } from '~/01.shared/composables/use-umami'
+import { useTracking } from '~/01.shared/composables/use-tracking'
 import { BASE_API_URL } from '~/01.shared/services/api.service'
 import { useAuthStore } from '~/01.shared/store/auth.store'
 import { useGlobalSettingsStore } from '~/01.shared/store/settings.store'
@@ -22,7 +22,7 @@ const router = useRouter()
 const authStore = useAuthStore()
 const toast = useToast()
 const { t } = useI18n()
-const { trackEvent } = useUmami()
+const { trackEvent } = useTracking()
 
 const settingsStore = useGlobalSettingsStore()
 const { theme, toggleTheme } = useChangeTheme()

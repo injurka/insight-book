@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 import dns from 'node:dns/promises'
 
 interface CheckResult {
@@ -37,6 +38,7 @@ function getContinent(countryCode: string): string {
     return '🌏 Asia & Oceania'
   if (['de', 'nl', 'uk', 'fr', 'it', 'pl', 'es', 'se', 'bg', 'fi', 'ch', 'cz', 'at', 'ua', 'ro'].includes(code))
     return '🌍 Europe'
+
   return '🌐 Other'
 }
 
@@ -47,6 +49,7 @@ async function sleep(ms: number) {
 async function resolveDns(domain: string) {
   try {
     const addresses = await dns.resolve4(domain)
+
     return addresses
   }
   catch {
@@ -145,6 +148,7 @@ async function runLocalHeaderCheck() {
   }
 }
 
+// eslint-disable-next-line complexity
 async function runGlobalRegionCheck() {
   const targetUrl = 'https://insight-book.ru/configs/app-config.js'
 
@@ -230,6 +234,7 @@ async function runGlobalRegionCheck() {
 
         console.log(`  ${icon}  ${loc} | ${ipStr} | Status: ${item.status} | TTFB: ${timeStr}`)
       }
+
       console.log('-------------------------------------------------------------------\n')
     }
   }

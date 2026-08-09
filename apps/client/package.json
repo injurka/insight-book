@@ -37,6 +37,7 @@
   "dependencies": {
     "@floating-ui/vue": "^2.0.1",
     "@grafana/faro-web-sdk": "^2.9.0",
+    "@grafana/faro-web-tracing": "^2.9.0",
     "@iconify-icons/mdi": "^1.2.48",
     "@injurka/insight-book-plugin-api": "workspace:*",
     "@injurka/insight-book-plugin-grammar-rules": "workspace:*",

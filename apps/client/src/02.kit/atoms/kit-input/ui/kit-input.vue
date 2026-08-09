@@ -81,7 +81,7 @@ function clear() {
         color && color !== 'default' ? `kit-input--color-${color}` : '',
       ]"
       :placeholder="placeholder"
-      :data-umami-mask="type === 'password' ? 'true' : undefined"
+      :data-tracking-mask="type === 'password' ? 'true' : undefined"
       @input="onInput"
     >
 

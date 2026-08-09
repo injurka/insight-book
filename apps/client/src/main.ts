@@ -9,7 +9,7 @@ import { vLongPress } from '~/01.shared/directives/long-press'
 import { vRipple } from '~/01.shared/directives/ripple'
 import { isTauri } from '~/01.shared/lib/env'
 import router from '~/01.shared/lib/router'
-import { initMonitoring } from '~/01.shared/services/monitoring.service.ts'
+import { initMonitoring, setupVueMonitoring } from '~/01.shared/services/monitoring.service.ts'
 import App from './app.vue'
 
 import '~/assets/scss/global.scss'
@@ -69,6 +69,7 @@ async function bootstrap() {
   }
 
   app.use(router)
+  setupVueMonitoring(app, router)
 
   await localePromise
   await router.isReady()

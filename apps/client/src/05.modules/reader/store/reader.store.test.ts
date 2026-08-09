@@ -74,8 +74,8 @@ vi.mock('./highlights.store', () => ({
   useHighlightsStore: () => mocks.highlightsStore,
 }))
 
-vi.mock('~/01.shared/composables/use-umami', () => ({
-  useUmami: () => ({
+vi.mock('~/01.shared/composables/use-tracking', () => ({
+  useTracking: () => ({
     trackEvent: mocks.trackEvent,
     identifyUser: vi.fn(),
     trackPageview: vi.fn(),

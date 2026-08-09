@@ -1,5 +1,5 @@
 import { computed, ref } from 'vue'
-import { useUmami } from '~/01.shared/composables/use-umami'
+import { useTracking } from '~/01.shared/composables/use-tracking'
 
 export function useSrsSession() {
   const sessionState = ref<'setup' | 'active' | 'finished'>('setup')
@@ -40,7 +40,7 @@ export function useSrsSession() {
   }
 
   function finishSession() {
-    const { trackEvent } = useUmami()
+    const { trackEvent } = useTracking()
 
     sessionState.value = 'finished'
     endTime.value = Date.now()
@@ -53,7 +53,7 @@ export function useSrsSession() {
   }
 
   function startSession() {
-    const { trackEvent } = useUmami()
+    const { trackEvent } = useTracking()
     trackEvent('srs_training_started')
 
     sessionState.value = 'active'

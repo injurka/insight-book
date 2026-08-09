@@ -1,7 +1,7 @@
 import { ref } from 'vue'
 import { useRepos } from '~/00.plugins/di'
 import { useToast } from '~/01.shared/composables/use-toast'
-import { useUmami } from '~/01.shared/composables/use-umami'
+import { useTracking } from '~/01.shared/composables/use-tracking'
 import { useGlobalSettingsStore } from '~/01.shared/store/settings.store'
 import { useReaderStore } from '~/05.modules/reader/store/reader.store'
 
@@ -14,7 +14,7 @@ let abortController: AbortController | null = null
 
 export function useTts() {
   const repos = useRepos()
-  const { trackEvent } = useUmami()
+  const { trackEvent } = useTracking()
 
   const readerStore = useReaderStore()
   const settingsStore = useGlobalSettingsStore()

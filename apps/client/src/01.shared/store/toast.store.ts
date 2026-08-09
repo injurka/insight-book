@@ -1,7 +1,7 @@
 import type { ToastMessage, ToastOptions } from '../types/models/toast'
 
 import { v4 as uuidv4 } from 'uuid'
-import { useUmami } from '~/01.shared/composables/use-umami'
+import { useTracking } from '~/01.shared/composables/use-tracking'
 
 export interface ToastState {
   messages: ToastMessage[]
@@ -49,7 +49,7 @@ export const useToastStore = defineStore('toast', {
     },
 
     error(detail: string, options: ToastOptions = {}) {
-      const { trackEvent } = useUmami()
+      const { trackEvent } = useTracking()
 
       this.add({ type: 'error', detail, ...options })
 

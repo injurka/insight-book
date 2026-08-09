@@ -3,14 +3,14 @@ import type { UserDictItem } from '~/01.shared/types/models'
 import { computed, ref } from 'vue'
 import { useRepos } from '~/00.plugins/di'
 import { useToast } from '~/01.shared/composables/use-toast'
-import { useUmami } from '~/01.shared/composables/use-umami'
+import { useTracking } from '~/01.shared/composables/use-tracking'
 import { DIFFICULTY_SYSTEMS } from '~/01.shared/constants/difficulties'
 import { dictionaryWords } from './dictionary-words.state'
 
 export const useDictionaryFiltersStore = defineStore('dictionary-filters', () => {
   const repos = useRepos()
   const toast = useToast()
-  const { trackEvent } = useUmami()
+  const { trackEvent } = useTracking()
 
   const searchTerm = ref('')
   const selectedLanguage = ref('all')

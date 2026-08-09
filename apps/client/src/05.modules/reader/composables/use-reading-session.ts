@@ -1,9 +1,9 @@
 import { onMounted, onUnmounted } from 'vue'
-import { useUmami } from '~/01.shared/composables/use-umami'
-import { useReaderStore } from '../store/reader.store'
+import { useTracking } from '~/01.shared/composables/use-tracking'
+import { useReaderStore } from '~/05.modules/reader/store/reader.store'
 
 export function useReadingSession() {
-  const { trackEvent } = useUmami()
+  const { trackEvent } = useTracking()
   const readerStore = useReaderStore()
   let readingSessionStartTime = 0
 

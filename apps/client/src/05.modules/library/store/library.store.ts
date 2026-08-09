@@ -1,7 +1,7 @@
 import type { Book, BookStats } from '~/01.shared/types/models'
 import { useMutation, useQuery, useQueryCache } from '@pinia/colada'
 import { useRepos } from '~/00.plugins/di'
-import { useUmami } from '~/01.shared/composables/use-umami'
+import { useTracking } from '~/01.shared/composables/use-tracking'
 import { queryKeys } from '~/01.shared/lib/query-keys'
 import { useAuthStore } from '~/01.shared/store/auth.store'
 import { attachCachedCovers } from '../services/book-cover.service'
@@ -14,7 +14,7 @@ import {
 } from '../services/book-sync.service'
 
 export const useLibraryStore = defineStore('library', () => {
-  const { trackEvent } = useUmami()
+  const { trackEvent } = useTracking()
   const queryCache = useQueryCache()
   const repos = useRepos()
 

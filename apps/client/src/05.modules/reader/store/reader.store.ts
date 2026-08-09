@@ -5,7 +5,7 @@ import { useDebounceFn } from '@vueuse/core'
 import { computed, ref, shallowRef, watch } from 'vue'
 import { useRepos } from '~/00.plugins/di'
 import { i18n } from '~/00.plugins/i18n'
-import { useUmami } from '~/01.shared/composables/use-umami'
+import { useTracking } from '~/01.shared/composables/use-tracking'
 import { queryKeys } from '~/01.shared/lib/query-keys'
 import { useAnalysisStore } from '~/01.shared/store/analysis/analysis.store'
 import { useGlobalSettingsStore } from '~/01.shared/store/settings.store'
@@ -16,7 +16,7 @@ import { useHighlightsStore } from './highlights.store'
 export const useReaderStore = defineStore('reader', () => {
   const repos = useRepos()
   const libraryStore = useLibraryStore()
-  const { trackEvent } = useUmami()
+  const { trackEvent } = useTracking()
 
   const currentBook = computed(() => libraryStore.currentBookInfo)
   const currentPage = shallowRef<PagePayload | null>(null)

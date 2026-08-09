@@ -6,7 +6,7 @@ import { useRouter } from 'vue-router'
 import { loadLanguageAsync } from '~/00.plugins/i18n'
 import { pluginManager } from '~/00.plugins/plugin-manager'
 import { ThemesVariant, useChangeTheme } from '~/01.shared/composables/use-change-theme'
-import { useUmami } from '~/01.shared/composables/use-umami'
+import { useTracking } from '~/01.shared/composables/use-tracking'
 import { AppRoutePaths } from '~/01.shared/constants/routes'
 import { useAuthStore } from '~/01.shared/store/auth.store'
 import { usePwaStore } from '~/01.shared/store/pwa.store'
@@ -27,7 +27,7 @@ const pwaStore = usePwaStore()
 const { theme, toggleTheme } = useChangeTheme()
 const { t } = useI18n()
 const settingsStore = useGlobalSettingsStore()
-const { trackEvent } = useUmami()
+const { trackEvent } = useTracking()
 
 const currentThemeIcon = computed(() => {
   switch (theme.value) {

@@ -2,7 +2,7 @@ import type { LlmAnalysis, PagePayload } from '~/01.shared/types/models'
 import { v4 as uuidv4 } from 'uuid'
 import { ref } from 'vue'
 import { useRepos } from '~/00.plugins/di'
-import { useUmami } from '~/01.shared/composables/use-umami'
+import { useTracking } from '~/01.shared/composables/use-tracking'
 import { useGlobalSettingsStore } from '~/01.shared/store/settings.store'
 import { extractPageData } from './book-sync-parser'
 
@@ -403,7 +403,7 @@ export async function startWholeBookSync(bookId: number, options: {
   if (!book)
     return
 
-  const { trackEvent } = useUmami()
+  const { trackEvent } = useTracking()
   syncOptions.value = {
     cachePages: options.cachePages,
     analyzeSentences: options.analyzeSentences,

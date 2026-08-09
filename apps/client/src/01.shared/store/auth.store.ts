@@ -1,10 +1,11 @@
 import type { UserData } from '../types/models'
 import { useRepos } from '~/00.plugins/di'
-import { useUmami } from '~/01.shared/composables/use-umami'
+import { useTracking } from '~/01.shared/composables/use-tracking'
+import { resetFaroUser } from '~/01.shared/services/monitoring.service'
 
 export const useAuthStore = defineStore('auth', () => {
   const repos = useRepos()
-  const { identifyUser, trackEvent } = useUmami()
+  const { identifyUser, trackEvent } = useTracking()
 
   const user = ref<UserData | null>(null)
 
@@ -152,6 +153,7 @@ export const useAuthStore = defineStore('auth', () => {
     localStorage.removeItem('insight_auth_mode')
 
     user.value = null
+    resetFaroUser()
   }
 
   async function updateAvatar(file: File) {

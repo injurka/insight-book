@@ -25,8 +25,8 @@ vi.mock('~/00.plugins/di', () => ({
 const identifyUserMock = vi.fn()
 const trackEventMock = vi.fn()
 
-vi.mock('~/01.shared/composables/use-umami', () => ({
-  useUmami: () => ({
+vi.mock('~/01.shared/composables/use-tracking', () => ({
+  useTracking: () => ({
     identifyUser: identifyUserMock,
     trackEvent: trackEventMock,
     trackPageview: vi.fn(),

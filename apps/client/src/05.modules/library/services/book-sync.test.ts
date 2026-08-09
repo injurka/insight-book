@@ -43,8 +43,8 @@ vi.mock('~/00.plugins/di', () => ({
   useRepos: () => hoisted.repos,
 }))
 
-vi.mock('~/01.shared/composables/use-umami', () => ({
-  useUmami: () => ({
+vi.mock('~/01.shared/composables/use-tracking', () => ({
+  useTracking: () => ({
     trackEvent: hoisted.trackEvent,
     identifyUser: vi.fn(),
     trackPageview: vi.fn(),

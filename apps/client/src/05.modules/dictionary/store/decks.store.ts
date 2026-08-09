@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryCache } from '@pinia/colada'
 import { computed, ref, watch } from 'vue'
 import { useRepos } from '~/00.plugins/di'
 import { useToast } from '~/01.shared/composables/use-toast'
-import { useUmami } from '~/01.shared/composables/use-umami'
+import { useTracking } from '~/01.shared/composables/use-tracking'
 import { queryKeys } from '~/01.shared/lib/query-keys'
 import { useAuthStore } from '~/01.shared/store/auth.store'
 import { useDictionaryFiltersStore } from './dictionary-filters.store'
@@ -13,7 +13,7 @@ import { dictionaryWords } from './dictionary-words.state'
 export const useDecksStore = defineStore('decks', () => {
   const repos = useRepos()
   const toast = useToast()
-  const { trackEvent } = useUmami()
+  const { trackEvent } = useTracking()
   const queryCache = useQueryCache()
   const authStore = useAuthStore()
 

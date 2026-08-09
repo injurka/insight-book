@@ -1,7 +1,7 @@
 import { usePreferredDark, useStorage } from '@vueuse/core'
 import { useHead } from '@vueuse/head'
 import { watchEffect } from 'vue'
-import { useUmami } from '~/01.shared/composables/use-umami'
+import { useTracking } from '~/01.shared/composables/use-tracking'
 
 export enum ThemesVariant {
   System = 'system',
@@ -24,7 +24,7 @@ const themesColors: Record<ThemesVariant, string> = {
 const themePreference = useStorage<ThemesVariant>('app-theme', ThemesVariant.System)
 
 export function useChangeTheme() {
-  const { trackEvent } = useUmami()
+  const { trackEvent } = useTracking()
   const preferredDark = usePreferredDark()
 
   function getActualTheme(value: ThemesVariant) {

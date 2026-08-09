@@ -15,8 +15,8 @@ vi.mock('~/01.shared/composables/use-toast', () => ({
   useToast: () => ({ success: toastSuccess, error: toastError }),
 }))
 
-vi.mock('~/01.shared/composables/use-umami', () => ({
-  useUmami: () => ({ trackEvent }),
+vi.mock('~/01.shared/composables/use-tracking', () => ({
+  useTracking: () => ({ trackEvent }),
 }))
 
 vi.mock('~/00.plugins/di', () => ({

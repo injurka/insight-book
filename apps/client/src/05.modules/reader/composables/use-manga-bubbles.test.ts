@@ -24,8 +24,8 @@ vi.mock('~/00.plugins/di', () => ({
   defaultRepositories: {},
 }))
 
-vi.mock('~/01.shared/composables/use-umami', () => ({
-  useUmami: () => ({ trackEvent: vi.fn() }),
+vi.mock('~/01.shared/composables/use-tracking', () => ({
+  useTracking: () => ({ trackEvent: vi.fn() }),
 }))
 
 const { useMangaBubbles } = await import('./use-manga-bubbles')

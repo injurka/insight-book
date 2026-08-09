@@ -8,6 +8,7 @@ import { KitBtn, KitPrompt, KitTooltip } from '~/02.kit/index.ts'
 import { useAnkiExport } from '../../composables/use-anki-export'
 import { useDictionaryStore } from '../../store/dictionary.store'
 import DictionaryItem from './dictionary-item.vue'
+import DictionarySkeletonList from './dictionary-skeleton-list.vue'
 
 interface Props {
   isEditMode: boolean
@@ -138,11 +139,13 @@ function handleEditWord(item: UserDictItem) {
       </div>
     </Transition>
 
-    <div v-if="!store.words.length && !store.isLoading" class="empty-state">
+    <DictionarySkeletonList v-if="store.isLoading && !store.words.length" :view-mode="viewMode" />
+
+    <div v-else-if="!store.words.length" class="empty-state">
       <p>{{ t('dictionary.emptyState') }}</p>
     </div>
 
-    <div v-else-if="!store.filteredWords.length && !store.isLoading" class="empty-state">
+    <div v-else-if="!store.filteredWords.length" class="empty-state">
       <p>{{ t('dictionary.emptySearch') }}</p>
       <p class="empty-hint">
         {{ t('dictionary.emptySearchHint') }}

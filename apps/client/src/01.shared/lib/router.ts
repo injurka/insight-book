@@ -249,7 +249,7 @@ router.beforeEach(async (to, from) => {
 })
 
 router.afterEach((to) => {
-  const { trackPageview } = useUmami()
+  const { trackPageview } = useTracking()
   trackPageview(to.fullPath, String(to.name || ''))
 
   if (to.name === AppRouteNames.Home)

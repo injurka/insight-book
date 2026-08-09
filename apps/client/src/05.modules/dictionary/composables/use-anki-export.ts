@@ -1,11 +1,11 @@
 import type { UserDictItem } from '~/01.shared/types/models'
 import { useI18n } from 'vue-i18n'
 import { useToast } from '~/01.shared/composables/use-toast'
-import { useUmami } from '~/01.shared/composables/use-umami'
+import { useTracking } from '~/01.shared/composables/use-tracking'
 
 export function useAnkiExport() {
   const toast = useToast()
-  const { trackEvent } = useUmami()
+  const { trackEvent } = useTracking()
   const { t } = useI18n()
 
   function exportToAnki(wordsToExport: UserDictItem[]) {

@@ -4,7 +4,7 @@ import { v4 as uuidv4 } from 'uuid'
 import { computed, ref } from 'vue'
 import { useRepos } from '~/00.plugins/di'
 import { i18n } from '~/00.plugins/i18n'
-import { useUmami } from '~/01.shared/composables/use-umami'
+import { useTracking } from '~/01.shared/composables/use-tracking'
 import { appEventBus } from '~/01.shared/events/app-event-bus'
 import { useGlobalSettingsStore } from '~/01.shared/store/settings.store'
 import { useToastStore } from '~/01.shared/store/toast.store'
@@ -54,7 +54,7 @@ export interface AnalysisTask {
 
 export const useAnalysisStore = defineStore('analysis', () => {
   const repos = useRepos()
-  const { trackEvent } = useUmami()
+  const { trackEvent } = useTracking()
 
   // Popovers & Tooltips
   const activeTokenId = ref<string | null>(null)

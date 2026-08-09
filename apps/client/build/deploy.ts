@@ -127,7 +127,7 @@ function partitionFiles(files: string[], distDir: string) {
     // В кэшируемые навсегда относим папку assets/ и все шрифты
     const isAsset
       = relativePath.startsWith('assets/')
-      || /\.(?:woff2|woff|ttf|otf|eot)$/i.test(relativePath)
+        || /\.(?:woff2|woff|ttf|otf|eot)$/i.test(relativePath)
 
     if (isAsset) {
       assets.push(filePath)
@@ -270,7 +270,7 @@ async function deploy() {
 
     const isAsset
       = relativePath.startsWith('assets/')
-      || /\.(?:woff2|woff|ttf|otf|eot)$/i.test(relativePath)
+        || /\.(?:woff2|woff|ttf|otf|eot)$/i.test(relativePath)
 
     logger.info({
       file: relativePath,
