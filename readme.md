@@ -99,6 +99,7 @@ ADMIN_PASSWORD=admin_super_password
 
 # --- Резервное копирование в S3 (Опционально) ---
 ENABLE_AUTO_DUMP=false
+DUMP_MEDIA=false # Если true, то помимо базы данных копируются медиа-файлы
 S3_BUCKET=insight-book-bucket
 S3_REGION=default
 S3_ENDPOINT=

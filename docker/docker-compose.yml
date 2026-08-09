@@ -43,6 +43,7 @@ services:
       - ADMIN_USERNAME=${ADMIN_USERNAME:-admin}
       - ADMIN_PASSWORD=${ADMIN_PASSWORD:-admin}
       - ENABLE_AUTO_DUMP=${ENABLE_AUTO_DUMP:-true}
+      - DUMP_MEDIA=${DUMP_MEDIA:-false}
       - S3_BUCKET=${S3_BUCKET:-}
       - S3_REGION=${S3_REGION:-}
       - S3_ENDPOINT=${S3_ENDPOINT:-}

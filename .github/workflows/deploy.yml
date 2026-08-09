@@ -128,6 +128,8 @@ jobs:
           S3_SECRET_KEY: ${{ secrets.S3_SECRET_KEY }}
           BUNNY_API_KEY: ${{ secrets.BUNNY_API_KEY }}
           BUNNY_PULL_ZONE_ID: ${{ secrets.BUNNY_PULL_ZONE_ID }}
+          VITE_API_URL: ${{ secrets.VITE_API_URL }}
+          VITE_FARO_URL: ${{ secrets.VITE_FARO_URL }}
 
   # ─── JOB 3: Деплой на VDS ───────────────────────────────────────
   deploy:

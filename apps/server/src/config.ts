@@ -42,6 +42,7 @@ const envSchema = z.object({
 
   // --- Extras ---
   CORS_EXTRA_ORIGINS: z.string().default(''),
+  DUMP_MEDIA: z.preprocess(val => val === 'true', z.boolean()).default(false),
 })
 
 const parsedEnv = envSchema.safeParse(process.env)
@@ -86,6 +87,7 @@ export const {
   VAPID_SUBJECT,
   MAX_DAILY_TOKENS,
   OTEL_EXPORTER_OTLP_ENDPOINT,
+  DUMP_MEDIA,
 } = env
 
 // --- Limits & Configs ---

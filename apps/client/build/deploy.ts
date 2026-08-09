@@ -1,4 +1,11 @@
-import { readdirSync, readFileSync, statSync } from 'node:fs'
+import {
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  statSync,
+  writeFileSync,
+} from 'node:fs'
 import { join, relative } from 'node:path'
 import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3'
 import pino from 'pino'
@@ -133,6 +140,29 @@ function partitionFiles(files: string[], distDir: string) {
   return { assets, entrypoints }
 }
 
+// Автоматическая генерация app-config.js из переменных окружения перед деплоем
+function generateAppConfig(distDir: string) {
+  const configsDir = join(distDir, 'configs')
+  const configPath = join(configsDir, 'app-config.js')
+
+  const apiUrl = process.env.VITE_API_URL || process.env.API_URL || ''
+  const faroUrl = process.env.VITE_FARO_URL || process.env.FARO_URL || ''
+
+  const config: Record<string, string> = {}
+  if (apiUrl)
+    config.API_URL = apiUrl
+  if (faroUrl)
+    config.FARO_URL = faroUrl
+
+  if (!existsSync(configsDir)) {
+    mkdirSync(configsDir, { recursive: true })
+  }
+
+  const content = `// Сгенерировано автоматически перед деплоем на S3/CDN\nwindow.__APP_CONFIG__ = ${JSON.stringify(config, null, 2)};\n`
+  writeFileSync(configPath, content, 'utf-8')
+  logger.info({ config }, '📝 Сгенерирован рантайм-конфиг configs/app-config.js')
+}
+
 // Автоматический сброс кэша Bunny CDN
 async function purgeBunnyCache() {
   if (!BUNNY_API_KEY || !BUNNY_PULL_ZONE_ID)
@@ -144,6 +174,7 @@ async function purgeBunnyCache() {
       'https://cdn.insight-book.ru/index.html',
       'https://cdn.insight-book.ru/sw.js',
       'https://cdn.insight-book.ru/manifest.webmanifest',
+      'https://cdn.insight-book.ru/configs/app-config.js',
     ]
 
     await Promise.all(urlsToPurge.map(url =>
@@ -163,6 +194,10 @@ async function purgeBunnyCache() {
 async function deploy() {
   logger.info('🚀 Начинаем деплой в S3...')
   const distDir = join(import.meta.dirname, '../dist')
+
+  // Генерируем свежий рантайм-конфиг
+  generateAppConfig(distDir)
+
   const allFiles = getAllFiles(distDir)
 
   // Фильтруем сжатые файлы, так как Bunny CDN сжимает на лету

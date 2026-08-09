@@ -1,6 +1,6 @@
 import { createClient } from '@libsql/client'
 import { eq } from 'drizzle-orm'
-import { DATABASE_AUTH_TOKEN, DATABASE_URL, DB_PATH } from '../config'
+import { DATABASE_AUTH_TOKEN, DATABASE_URL, DB_PATH, DUMP_MEDIA } from '../config'
 import { db } from '../db'
 import * as schema from '../db/schema'
 import { logger } from '../utils/logger'
@@ -33,19 +33,24 @@ export async function executeDump(logCallback?: (msg: string) => void): Promise<
       await storageService.uploadFile(`${dumpPrefix}/db/insight-book.sqlite`, buffer)
     }
 
-    log('📂 Copying media to dump...')
-    for (const prefix of ['covers/', 'avatars/', 'books/']) {
-      const keys = await storageService.listFilesInFolder(prefix)
-      let uploaded = 0
-      for (const key of keys) {
-        const fileData = await storageService.getFile(key)
-        if (fileData) {
-          await storageService.uploadFile(`${dumpPrefix}/uploads/${key}`, fileData.buffer, fileData.contentType)
-          uploaded++
-          if (uploaded % 100 === 0)
-            log(`✅ Copied ${uploaded} ${prefix} files`)
+    if (DUMP_MEDIA) {
+      log('📂 Copying media to dump...')
+      for (const prefix of ['covers/', 'avatars/', 'books/']) {
+        const keys = await storageService.listFilesInFolder(prefix)
+        let uploaded = 0
+        for (const key of keys) {
+          const fileData = await storageService.getFile(key)
+          if (fileData) {
+            await storageService.uploadFile(`${dumpPrefix}/uploads/${key}`, fileData.buffer, fileData.contentType)
+            uploaded++
+            if (uploaded % 100 === 0)
+              log(`✅ Copied ${uploaded} ${prefix} files`)
+          }
         }
       }
+    }
+    else {
+      log('⏭️ Skipping media dump as DUMP_MEDIA is set to false')
     }
 
     log(`🎉 Dump created successfully: ${dumpPrefix}`)
