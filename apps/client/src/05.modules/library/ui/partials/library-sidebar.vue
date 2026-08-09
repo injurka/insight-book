@@ -105,7 +105,7 @@ function onMenuClick(id: string) {
   cursor: pointer;
   color: var(--fg-secondary-color);
   transition: all 0.2s;
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   font-weight: 500;
 
   svg {

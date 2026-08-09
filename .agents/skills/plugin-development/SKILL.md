@@ -53,6 +53,8 @@ export default defineConfig({
 - `'dictionary:training-modes'` — кастомные режимы тренировок.
 - `'reader:header-actions'` — кнопки в шапке читалки.
 - `'settings:custom-tab'` — кастомные вкладки в настройках.
+- `'srs-card:toolbar-actions'` — кнопки в панели управления карточкой словаря.
+- `'srs-card:below-toolbar'` — кастомный контент под панелью управления карточкой словаря.
 
 Пример в `activate(ctx)`:
 ```typescript

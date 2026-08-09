@@ -93,6 +93,7 @@ function openLimits() {
           :src="getMediaUrl(authStore.user.avatarUrl)"
           alt="Avatar"
           class="avatar-img"
+          @error="(e) => (e.target as HTMLImageElement).src = '/images/smth-wrong.png'"
         >
         <Icon v-else icon="mdi:account-circle" />
         <div class="avatar-overlay">

@@ -203,4 +203,17 @@ describe('kitSelect', () => {
     await wrapper.find('.kit-select-trigger').trigger('click')
     wrapper.unmount()
   })
+
+  it('applies color class when color prop is provided', () => {
+    const wrapper = factory({ color: 'secondary' })
+    const trigger = wrapper.find('.kit-select-trigger')
+    expect(trigger.classes()).toContain('kit-select-trigger--color-secondary')
+  })
+
+  it('renders prepend icon when icon prop is provided', () => {
+    const wrapper = factory({ icon: 'mdi:translate' })
+    const trigger = wrapper.find('.kit-select-trigger')
+    expect(trigger.classes()).toContain('has-prepend')
+    expect(wrapper.find('.select-prepend').exists()).toBe(true)
+  })
 })

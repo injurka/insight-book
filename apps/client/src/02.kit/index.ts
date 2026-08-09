@@ -29,3 +29,5 @@ export {
   KitTooltip,
   KitViewSwitcher,
 }
+
+export type { KitSelectOption } from './molecules/kit-select/ui/kit-select.vue'

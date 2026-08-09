@@ -56,6 +56,8 @@ const isMobileFiltersOpen = ref(false)
         <KitInput
           v-model="search"
           :placeholder="t('library.searchPlaceholder')"
+          icon="mdi:magnify"
+          color="secondary"
           size="md"
           class="search-input"
         />
@@ -74,14 +76,18 @@ const isMobileFiltersOpen = ref(false)
           v-if="showTagFilter && tagOptions"
           v-model="tag!"
           :options="tagOptions"
+          icon="mdi:tag-outline"
           size="md"
+          color="secondary"
           class="filter-select tag-select"
         />
 
         <KitSelect
           v-model="lang"
           :options="langOptions"
+          icon="mdi:translate"
           size="md"
+          color="secondary"
           :aria-label="t('library.selectLanguage')"
           class="filter-select lang-select"
         />

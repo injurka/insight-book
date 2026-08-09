@@ -4,6 +4,8 @@ export type UIPosition
   = | 'dictionary:training-modes'
     | 'reader:header-actions'
     | 'settings:custom-tab'
+    | 'srs-card:toolbar-actions'
+    | 'srs-card:below-toolbar'
     | (string & {})
 
 export interface PluginUIWidget {

@@ -4,6 +4,7 @@ import { Icon } from '@iconify/vue'
 import { computed, nextTick, reactive, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRepos } from '~/00.plugins/di'
+import { pluginManager } from '~/00.plugins/plugin-manager'
 import { useToast } from '~/01.shared/composables/use-toast'
 import { useTts } from '~/01.shared/composables/use-tts'
 import { vLongPress } from '~/01.shared/directives/long-press'
@@ -43,6 +44,9 @@ const expandedSections = reactive<Record<string, boolean>>({
   vocab: false,
   notes: false,
 })
+
+const toolbarWidgets = computed(() => pluginManager.getWidgets('srs-card:toolbar-actions'))
+const belowToolbarWidgets = computed(() => pluginManager.getWidgets('srs-card:below-toolbar'))
 
 function openTtsPopover() {
   if (isAdmin.value)
@@ -196,7 +200,28 @@ function toggleAnimation() {
         />
       </KitTooltip>
     </div>
+
+    <template v-if="toolbarWidgets.length">
+      <div class="toolbar-divider" />
+      <div class="toolbar-group">
+        <component
+          :is="widget.component"
+          v-for="widget in toolbarWidgets"
+          :key="widget.id"
+          :card="card"
+          v-bind="widget.props"
+        />
+      </div>
+    </template>
   </div>
+
+  <component
+    :is="widget.component"
+    v-for="widget in belowToolbarWidgets"
+    :key="widget.id"
+    :card="card"
+    v-bind="widget.props"
+  />
 
   <div v-if="expandedSections.grammar && card.grammarNote" class="word-notes fade-in">
     <div class="notes-label">
@@ -273,7 +298,6 @@ function toggleAnimation() {
   color: var(--fg-secondary-color);
   line-height: 1.5;
   width: 100%;
-  margin-top: 8px;
 }
 .notes-label {
   display: flex;
@@ -295,7 +319,7 @@ function toggleAnimation() {
   padding: 12px;
   border-radius: 8px;
   border: 1px solid var(--border-secondary-color);
-  margin-top: 8px;
+
   h4 {
     margin: 0 0 8px 0;
     font-size: 0.9rem;

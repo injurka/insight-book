@@ -34,6 +34,8 @@ const { t } = useI18n()
         <KitInput
           :model-value="props.searchQuery"
           :placeholder="t('notebook.searchPlaceholder')"
+          icon="mdi:magnify"
+          color="secondary"
           class="search-input"
           clearable
           @update:model-value="emit('update:searchQuery', String($event ?? ''))"

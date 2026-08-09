@@ -1,9 +1,21 @@
 import { useLocalStorage } from '@vueuse/core'
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 
 export const useGlobalSettingsStore = defineStore('globalSettings', () => {
   const appLanguage = useLocalStorage<string>('global-app-language', 'ru')
+  const appFontFamily = useLocalStorage<string>('global-app-font-family', '\'Maple Mono CN\', monospace')
+  const appFontCustom = useLocalStorage<string>('global-app-font-custom', '')
+
+  const effectiveAppFont = computed(() => {
+    if (appFontFamily.value === 'custom') {
+      const clean = appFontCustom.value.trim()
+
+      return clean ? `'${clean}', sans-serif` : 'sans-serif'
+    }
+
+    return appFontFamily.value
+  })
 
   if (appLanguage.value.startsWith('"') && appLanguage.value.endsWith('"'))
     appLanguage.value = appLanguage.value.replace(/^"|"$/g, '')
@@ -43,6 +55,9 @@ export const useGlobalSettingsStore = defineStore('globalSettings', () => {
 
   return {
     appLanguage,
+    appFontFamily,
+    appFontCustom,
+    effectiveAppFont,
     autoAnalyzePage,
     autoAnalyzeSentences,
     autoAnalyzeWords,

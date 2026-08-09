@@ -61,8 +61,8 @@ function createTestRouter() {
 describe('usePluginManager - install', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    vi.spyOn(console, 'warn').mockImplementation(() => {})
-    vi.spyOn(console, 'error').mockImplementation(() => {})
+    vi.spyOn(console, 'warn').mockImplementation(() => { })
+    vi.spyOn(console, 'error').mockImplementation(() => { })
   })
 
   it('adds plugin pages to the router with derived paths and names', async () => {
@@ -113,12 +113,14 @@ describe('usePluginManager - install', () => {
           { level: 1 },
         )
         ctx.registerUIWidget('reader:header-actions', 'header-widget', widgetComponent)
+        ctx.registerUIWidget('srs-card:toolbar-actions', 'srs-toolbar-widget', widgetComponent)
+        ctx.registerUIWidget('srs-card:below-toolbar', 'srs-below-widget', widgetComponent)
       },
     })
 
     await manager.install(null, router, [plugin])
 
-    expect(manager.uiWidgets).toHaveLength(2)
+    expect(manager.uiWidgets).toHaveLength(4)
 
     const trainingWidgets = manager.getWidgets('dictionary:training-modes')
     expect(trainingWidgets).toHaveLength(1)
@@ -132,6 +134,14 @@ describe('usePluginManager - install', () => {
     const headerWidgets = manager.getWidgets('reader:header-actions')
     expect(headerWidgets).toHaveLength(1)
     expect(headerWidgets[0].id).toBe('header-widget')
+
+    const srsToolbarWidgets = manager.getWidgets('srs-card:toolbar-actions')
+    expect(srsToolbarWidgets).toHaveLength(1)
+    expect(srsToolbarWidgets[0].id).toBe('srs-toolbar-widget')
+
+    const srsBelowWidgets = manager.getWidgets('srs-card:below-toolbar')
+    expect(srsBelowWidgets).toHaveLength(1)
+    expect(srsBelowWidgets[0].id).toBe('srs-below-widget')
 
     expect(manager.getWidgets('settings:custom-tab')).toHaveLength(0)
   })
@@ -216,8 +226,8 @@ describe('usePluginManager - install', () => {
 
 describe('usePluginManager - widgets registry', () => {
   beforeEach(() => {
-    vi.spyOn(console, 'warn').mockImplementation(() => {})
-    vi.spyOn(console, 'error').mockImplementation(() => {})
+    vi.spyOn(console, 'warn').mockImplementation(() => { })
+    vi.spyOn(console, 'error').mockImplementation(() => { })
   })
 
   it('registerUIWidget replaces an existing widget with the same id', () => {
@@ -274,8 +284,8 @@ describe('usePluginManager - widgets registry', () => {
 
 describe('usePluginManager - uninstall', () => {
   beforeEach(() => {
-    vi.spyOn(console, 'warn').mockImplementation(() => {})
-    vi.spyOn(console, 'error').mockImplementation(() => {})
+    vi.spyOn(console, 'warn').mockImplementation(() => { })
+    vi.spyOn(console, 'error').mockImplementation(() => { })
   })
 
   async function installFullPlugin() {
@@ -379,8 +389,8 @@ describe('usePluginManager - uninstall', () => {
 describe('usePluginManager - loadRemotePlugin', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    vi.spyOn(console, 'warn').mockImplementation(() => {})
-    vi.spyOn(console, 'error').mockImplementation(() => {})
+    vi.spyOn(console, 'warn').mockImplementation(() => { })
+    vi.spyOn(console, 'error').mockImplementation(() => { })
   })
 
   it('fetches manifest, loads remote module and installs the plugin', async () => {

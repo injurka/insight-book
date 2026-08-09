@@ -82,8 +82,27 @@ async function checkAndResetLimits() {
   }
 }
 
+function formatMs(ms: number): string {
+  const seconds = Math.floor(ms / 1000)
+  const minutes = Math.floor(seconds / 60)
+  const hours = Math.floor(minutes / 60)
+  const days = Math.floor(hours / 24)
+
+  if (days > 0 && hours % 24 === 0)
+    return `${days}d`
+  if (hours > 0 && minutes % 60 === 0)
+    return `${hours}h`
+  if (minutes > 0 && seconds % 60 === 0)
+    return `${minutes}m`
+  if (seconds > 0)
+    return `${seconds}s`
+  return `${ms}ms`
+}
+
 export function initScheduler() {
-  logger.info('🕒 Initializing background scheduler...')
+  logger.info(
+    `🕒 Initializing background scheduler (check interval: ${formatMs(CHECK_INTERVAL_MS)}, period/dump threshold: ${formatMs(ONE_DAY_MS)})...`,
+  )
 
   if (process.env.ENABLE_AUTO_DUMP === 'true') {
     setTimeout(checkAndRunDump, 5000)

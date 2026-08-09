@@ -2,7 +2,8 @@
 @use './animations' as *;
 
 :root {
-   font-family:  'Inter', 'Maple Mono CN', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+   --app-font-family: 'Maple Mono CN', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+   font-family: var(--app-font-family);
 }
 
 html {
@@ -25,8 +26,13 @@ body {
   border: none;
   background-color: var(--bg-primary-color);
   color: var(--fg-primary-color);
+  font-family: var(--app-font-family);
   overflow-y: auto;
   overscroll-behavior-y: none;
+}
+
+input, button, textarea, select {
+  font-family: inherit;
 }
 
 *,

@@ -30,6 +30,6 @@ data/**
 docker/vault/**
 .venv
 db/**
-uploads/**
+uploads
 configs/**
 assets/decks/raw/**

@@ -7,12 +7,12 @@ import { instrumentDrizzleClient } from '@kubiks/otel-drizzle'
 import { createClient } from '@libsql/client'
 import { eq } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/libsql'
-import { migrate } from 'drizzle-orm/libsql/migrator'
 import { catalogClient, initCatalogDb } from '~/db/catalog'
 import {
   ADMIN_PASSWORD,
   ADMIN_USERNAME,
   BOOKS_PATH,
+  CATALOG_DATABASE_URL,
   COVERS_PATH,
   DATABASE_AUTH_TOKEN,
   DATABASE_URL,
@@ -56,6 +56,7 @@ void (async () => {
     logger.info('🔄 Checking and applying database migrations...')
 
     try {
+      logger.info(`🗄️  Catalog Database initialized at ${CATALOG_DATABASE_URL}`)
       await initCatalogDb()
 
       const deckRes = await catalogClient.execute('SELECT count(*) as count FROM official_decks')
@@ -74,14 +75,6 @@ void (async () => {
     }
     catch (e) {
       logger.error(e, '❌ Failed to setup catalog database tables:')
-    }
-
-    try {
-      await migrate(db, { migrationsFolder: path.resolve(import.meta.dir, 'migrations') })
-      logger.info('✅ Database migrations applied successfully!')
-    }
-    catch (e) {
-      logger.error(e, '❌ Failed to run migrations. Check if you generated them using `bunx drizzle-kit generate`. Error:')
     }
 
     try {

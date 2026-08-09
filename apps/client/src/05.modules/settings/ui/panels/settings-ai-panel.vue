@@ -73,56 +73,70 @@ const { availableModels, isFetchingModels, fetchModels } = useCustomModels()
       <KitCheckbox v-model="settingsStore.autoAnalyzePage" :label="t('settings.autoAnalyzePage')" />
     </div>
 
-    <Transition name="fade">
-      <div v-if="settingsStore.autoAnalyzePage" class="custom-llm-form">
-        <p class="hint" v-html="t('settings.autoAnalyzePageDesc')" />
-        <div class="sync-options">
-          <div class="sync-option-group">
-            <div class="sync-option-half" :class="{ 'is-active': settingsStore.autoAnalyzeSentences }" @click="settingsStore.autoAnalyzeSentences = !settingsStore.autoAnalyzeSentences">
-              <div class="option-content">
-                <Icon icon="mdi:brain" class="option-icon" />
-                <div class="option-texts">
-                  <span class="option-title">{{ t('bookInfo.deepAnalysis') }}</span>
-                </div>
+    <div class="custom-llm-form" :class="{ 'is-disabled': !settingsStore.autoAnalyzePage }">
+      <p class="hint" v-html="t('settings.autoAnalyzePageDesc')" />
+      <div class="sync-options">
+        <div class="sync-option-group">
+          <div
+            class="sync-option-half"
+            :class="{ 'is-active': settingsStore.autoAnalyzeSentences && settingsStore.autoAnalyzePage }"
+            @click="settingsStore.autoAnalyzePage && (settingsStore.autoAnalyzeSentences = !settingsStore.autoAnalyzeSentences)"
+          >
+            <div class="option-content">
+              <Icon icon="mdi:brain" class="option-icon" />
+              <div class="option-texts">
+                <span class="option-title">{{ t('bookInfo.deepAnalysis') }}</span>
               </div>
-              <KitCheckbox :model-value="settingsStore.autoAnalyzeSentences" style="pointer-events: none;" />
             </div>
-
-            <div class="sync-option-half" :class="{ 'is-active': settingsStore.autoAnalyzeWords }" @click="settingsStore.autoAnalyzeWords = !settingsStore.autoAnalyzeWords">
-              <div class="option-content">
-                <Icon icon="mdi:format-text" class="option-icon" />
-                <div class="option-texts">
-                  <span class="option-title">{{ t('bookInfo.analyzeWords') }}</span>
-                </div>
-              </div>
-              <KitCheckbox :model-value="settingsStore.autoAnalyzeWords" style="pointer-events: none;" />
-            </div>
+            <KitCheckbox :model-value="settingsStore.autoAnalyzeSentences && settingsStore.autoAnalyzePage" style="pointer-events: none;" />
           </div>
 
-          <div class="sync-option-group">
-            <div class="sync-option-half" :class="{ 'is-active': settingsStore.autoAnalyzeTtsSentences }" @click="settingsStore.autoAnalyzeTtsSentences = !settingsStore.autoAnalyzeTtsSentences">
-              <div class="option-content">
-                <Icon icon="mdi:headphones" class="option-icon" />
-                <div class="option-texts">
-                  <span class="option-title">{{ t('bookInfo.cacheTtsSentences') }}</span>
-                </div>
+          <div
+            class="sync-option-half"
+            :class="{ 'is-active': settingsStore.autoAnalyzeWords && settingsStore.autoAnalyzePage }"
+            @click="settingsStore.autoAnalyzePage && (settingsStore.autoAnalyzeWords = !settingsStore.autoAnalyzeWords)"
+          >
+            <div class="option-content">
+              <Icon icon="mdi:format-text" class="option-icon" />
+              <div class="option-texts">
+                <span class="option-title">{{ t('bookInfo.analyzeWords') }}</span>
               </div>
-              <KitCheckbox :model-value="settingsStore.autoAnalyzeTtsSentences" style="pointer-events: none;" />
             </div>
+            <KitCheckbox :model-value="settingsStore.autoAnalyzeWords && settingsStore.autoAnalyzePage" style="pointer-events: none;" />
+          </div>
+        </div>
 
-            <div class="sync-option-half" :class="{ 'is-active': settingsStore.autoAnalyzeTtsWords }" @click="settingsStore.autoAnalyzeTtsWords = !settingsStore.autoAnalyzeTtsWords">
-              <div class="option-content">
-                <Icon icon="mdi:headphones" class="option-icon" />
-                <div class="option-texts">
-                  <span class="option-title">{{ t('bookInfo.cacheTtsWords') }}</span>
-                </div>
+        <div class="sync-option-group">
+          <div
+            class="sync-option-half"
+            :class="{ 'is-active': settingsStore.autoAnalyzeTtsSentences && settingsStore.autoAnalyzePage }"
+            @click="settingsStore.autoAnalyzePage && (settingsStore.autoAnalyzeTtsSentences = !settingsStore.autoAnalyzeTtsSentences)"
+          >
+            <div class="option-content">
+              <Icon icon="mdi:headphones" class="option-icon" />
+              <div class="option-texts">
+                <span class="option-title">{{ t('bookInfo.cacheTtsSentences') }}</span>
               </div>
-              <KitCheckbox :model-value="settingsStore.autoAnalyzeTtsWords" style="pointer-events: none;" />
             </div>
+            <KitCheckbox :model-value="settingsStore.autoAnalyzeTtsSentences && settingsStore.autoAnalyzePage" style="pointer-events: none;" />
+          </div>
+
+          <div
+            class="sync-option-half"
+            :class="{ 'is-active': settingsStore.autoAnalyzeTtsWords && settingsStore.autoAnalyzePage }"
+            @click="settingsStore.autoAnalyzePage && (settingsStore.autoAnalyzeTtsWords = !settingsStore.autoAnalyzeTtsWords)"
+          >
+            <div class="option-content">
+              <Icon icon="mdi:headphones" class="option-icon" />
+              <div class="option-texts">
+                <span class="option-title">{{ t('bookInfo.cacheTtsWords') }}</span>
+              </div>
+            </div>
+            <KitCheckbox :model-value="settingsStore.autoAnalyzeTtsWords && settingsStore.autoAnalyzePage" style="pointer-events: none;" />
           </div>
         </div>
       </div>
-    </Transition>
+    </div>
   </div>
 </template>
 
@@ -149,6 +163,15 @@ const { availableModels, isFetchingModels, fetchModels } = useCustomModels()
     gap: 12px;
     padding-top: 12px;
     border-top: 1px dashed var(--border-secondary-color);
+    transition:
+      opacity 0.25s ease,
+      filter 0.25s ease;
+
+    &.is-disabled {
+      opacity: 0.45;
+      pointer-events: none;
+      filter: grayscale(0.3);
+    }
   }
   .hint {
     margin: 0 0 4px 0;

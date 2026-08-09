@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { useHead } from '@vueuse/head'
+import { watchEffect } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { loadLanguageAsync } from '~/00.plugins/i18n'
 import { useBackHandler } from '~/01.shared/composables/use-back-handler'
 import { useChangeTheme } from '~/01.shared/composables/use-change-theme'
+import { useCustomFonts } from '~/01.shared/composables/use-custom-fonts'
 import { useGlobalTracking } from '~/01.shared/composables/use-global-tracking'
 import { isTauri } from '~/01.shared/lib/env'
 import { isNativeTransitionRoute, isViewTransitionSupported } from '~/01.shared/lib/view-transitions'
@@ -18,6 +20,7 @@ const AddEditWordDialog = lazyComponent(() => import('~/05.modules/dictionary/ui
 
 useChangeTheme()
 useGlobalTracking()
+useCustomFonts()
 
 const route = useRoute()
 const analysisStore = useAnalysisStore()
@@ -79,6 +82,12 @@ onMounted(async () => {
 watch(() => settingsStore.appLanguage, (newLang) => {
   loadLanguageAsync(newLang)
 }, { immediate: true })
+
+watchEffect(() => {
+  if (typeof document !== 'undefined') {
+    document.documentElement.style.setProperty('--app-font-family', settingsStore.effectiveAppFont || '\'Maple Mono CN\', monospace')
+  }
+})
 
 const layoutName = computed(() => (route.meta.layout as string) || 'default')
 // Native View Transition (морф обложки) — только между библиотекой и страницей

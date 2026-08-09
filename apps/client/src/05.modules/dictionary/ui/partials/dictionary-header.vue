@@ -160,28 +160,38 @@ function openTrainingSettings(mode: 'srs' | 'deep_dive' | 'cram' | 'match') {
         <KitInput
           v-model="store.searchTerm"
           :placeholder="t('dictionary.searchPlaceholder')"
+          icon="mdi:magnify"
+          color="secondary"
           class="filter-search-input"
         />
         <KitSelect
           v-model="store.selectedLanguage"
           :options="langOptions"
+          icon="mdi:translate"
+          color="secondary"
           class="filter-select"
         />
         <KitSelect
           v-model="store.selectedDeckId"
           :options="deckOptions"
+          icon="mdi:folder-outline"
+          color="secondary"
           class="filter-select"
           multiple
         />
         <KitSelect
           v-model="store.selectedDifficulty"
           :options="difficultyOptions"
+          icon="mdi:chart-bar"
+          color="secondary"
           class="filter-select"
           multiple
         />
         <KitSelect
           v-model="store.selectedStatus"
           :options="statusOptions"
+          icon="mdi:check-circle-outline"
+          color="secondary"
           class="filter-select"
           multiple
         />

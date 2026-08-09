@@ -3,32 +3,48 @@ import type { Ref } from 'vue'
 import { autoUpdate, flip, size as floatingSize, offset, useFloating } from '@floating-ui/vue'
 import { Icon } from '@iconify/vue'
 import { onClickOutside } from '@vueuse/core'
-import { computed, inject, onUnmounted, ref } from 'vue'
+import { computed, inject, onUnmounted, ref, useSlots } from 'vue'
 
-interface Option {
+export interface KitSelectOption<T = Record<string, unknown>> {
   label: string
   value: string | number
+  icon?: string
+  group?: string
+  deletable?: boolean
+  meta?: T
+}
+
+interface Props {
+  options: KitSelectOption[]
+  size?: 'xs' | 'sm' | 'md' | 'lg'
+  color?: 'primary' | 'secondary' | 'accent' | 'error' | 'success' | 'warning' | 'info' | 'default'
+  icon?: string
+  prependIcon?: string
+  multiple?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
   size: 'md',
+  color: 'default',
   multiple: false,
 })
 
+const emit = defineEmits<{
+  (e: 'delete', option: KitSelectOption): void
+}>()
+
 const modelValue = defineModel<string | number | (string | number)[]>()
 
-interface Props {
-  options: Option[]
-  size?: 'xs' | 'sm' | 'md' | 'lg'
-  multiple?: boolean
-}
-
+const slots = useSlots()
 const isOpen = ref(false)
 const referenceRef = ref<HTMLElement | null>(null)
 const floatingRef = ref<HTMLElement | null>(null)
 
 const dialogZIndex = inject<Ref<number> | undefined>('kit-dialog-z-index', undefined)
 const dropdownZIndex = computed(() => dialogZIndex ? dialogZIndex.value + 10 : undefined)
+
+const finalPrependIcon = computed(() => props.icon || props.prependIcon)
+const hasPrepend = computed(() => !!finalPrependIcon.value || !!slots.prepend || !!slots.icon)
 
 const selectedLabel = computed(() => {
   if (props.multiple && Array.isArray(modelValue.value)) {
@@ -45,6 +61,26 @@ const selectedLabel = computed(() => {
   const opt = props.options.find(o => o.value === modelValue.value)
 
   return opt ? opt.label : ''
+})
+
+const groupedOptions = computed(() => {
+  const hasGroups = props.options.some(o => !!o.group)
+  if (!hasGroups) {
+    return [{ group: null, items: props.options }]
+  }
+
+  const groupsMap = new Map<string, KitSelectOption[]>()
+  for (const opt of props.options) {
+    const g = opt.group || ''
+    if (!groupsMap.has(g))
+      groupsMap.set(g, [])
+    groupsMap.get(g)!.push(opt)
+  }
+
+  return Array.from(groupsMap.entries()).map(([group, items]) => ({
+    group: group || null,
+    items,
+  }))
 })
 
 const { x, y, strategy } = useFloating(referenceRef, floatingRef, {
@@ -95,6 +131,10 @@ function selectOption(val: string | number) {
   }
 }
 
+function onDeleteOption(opt: KitSelectOption) {
+  emit('delete', opt)
+}
+
 onUnmounted(() => {
   isOpen.value = false
 })
@@ -107,11 +147,19 @@ onUnmounted(() => {
       class="kit-select-trigger"
       :class="[
         `kit-select-trigger--size-${size}`,
-        { 'is-open': isOpen },
+        color && color !== 'default' ? `kit-select-trigger--color-${color}` : '',
+        { 'is-open': isOpen, 'has-prepend': hasPrepend },
       ]"
       @click="toggle"
     >
       <div class="label-wrapper">
+        <span v-if="hasPrepend" class="select-prepend">
+          <slot name="prepend">
+            <slot name="icon">
+              <Icon v-if="finalPrependIcon" :icon="finalPrependIcon" class="select-prepend-icon" />
+            </slot>
+          </slot>
+        </span>
         <span class="selected-label">{{ selectedLabel }}</span>
         <span v-if="multiple && Array.isArray(modelValue) && modelValue.length > 1 && !modelValue.includes('all')" class="count-badge">
           {{ modelValue.length }}
@@ -140,13 +188,34 @@ onUnmounted(() => {
         >
           <div class="kit-select-options-list">
             <div
-              v-for="opt in options"
-              :key="opt.value"
-              class="kit-select-option"
-              :class="{ 'is-selected': multiple ? (Array.isArray(modelValue) && modelValue.includes(opt.value)) : opt.value === modelValue }"
-              @click.stop="selectOption(opt.value)"
+              v-for="gGroup in groupedOptions"
+              :key="gGroup.group || 'default'"
+              class="kit-select-group"
             >
-              {{ opt.label }}
+              <div v-if="gGroup.group" class="kit-select-group-header">
+                {{ gGroup.group }}
+              </div>
+              <div
+                v-for="opt in gGroup.items"
+                :key="opt.value"
+                class="kit-select-option"
+                :class="{ 'is-selected': multiple ? (Array.isArray(modelValue) && modelValue.includes(opt.value)) : opt.value === modelValue }"
+                @click.stop="selectOption(opt.value)"
+              >
+                <div class="option-label-content">
+                  <Icon v-if="opt.icon" :icon="opt.icon" class="option-icon" />
+                  <span class="option-label-text">{{ opt.label }}</span>
+                </div>
+                <button
+                  v-if="opt.deletable"
+                  type="button"
+                  class="option-delete-btn"
+                  title="Удалить"
+                  @click.stop="onDeleteOption(opt)"
+                >
+                  <Icon icon="mdi:close" />
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -206,6 +275,47 @@ onUnmounted(() => {
     padding: 0 16px;
     font-size: 1rem;
   }
+
+  &--color-primary {
+    background-color: rgba(var(--bg-primary-color-rgb, 13, 17, 23), 0.75);
+    background-color: color-mix(in srgb, var(--bg-primary-color) 75%, transparent);
+  }
+
+  &--color-secondary {
+    background-color: rgba(var(--bg-secondary-color-rgb, 22, 27, 34), 0.75);
+    background-color: color-mix(in srgb, var(--bg-secondary-color) 75%, transparent);
+  }
+
+  &--color-accent {
+    background-color: rgba(var(--bg-accent-color-rgb, 48, 33, 61), 0.75);
+    background-color: color-mix(in srgb, var(--bg-accent-color) 75%, transparent);
+  }
+
+  @each $name in (error, success, warning, info) {
+    &--color-#{$name} {
+      background-color: rgba(var(--bg-#{$name}-color-rgb), 0.75);
+      background-color: color-mix(in srgb, var(--bg-#{$name}-color) 75%, transparent);
+    }
+  }
+}
+
+.select-prepend {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: var(--fg-secondary-color);
+}
+
+.select-prepend-icon {
+  font-size: 1.25em;
+  flex-shrink: 0;
+}
+
+.option-icon {
+  font-size: 1.15em;
+  margin-right: 6px;
+  flex-shrink: 0;
 }
 
 .label-wrapper {
@@ -277,7 +387,26 @@ onUnmounted(() => {
   }
 }
 
+.kit-select-group + .kit-select-group {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px dashed var(--border-secondary-color);
+}
+
+.kit-select-group-header {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--fg-muted-color);
+  padding: 4px 10px 4px;
+  user-select: none;
+}
+
 .kit-select-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   padding: 8px 10px;
   font-size: 0.85rem;
   cursor: pointer;
@@ -296,6 +425,41 @@ onUnmounted(() => {
     background-color: rgba(var(--bg-accent-color-rgb, 201, 117, 222), 0.15);
     color: var(--fg-accent-color);
     font-weight: 500;
+  }
+}
+
+.option-label-content {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+}
+
+.option-label-text {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.option-delete-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px 4px;
+  margin-left: 8px;
+  border-radius: 4px;
+  color: var(--fg-secondary-color);
+  font-size: 0.9em;
+  transition:
+    color 0.2s,
+    background-color 0.2s;
+
+  &:hover {
+    color: var(--fg-error-color, #ff4d4f);
+    background-color: rgba(255, 77, 79, 0.15);
   }
 }
 
