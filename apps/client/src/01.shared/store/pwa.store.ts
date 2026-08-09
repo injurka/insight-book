@@ -1,5 +1,3 @@
-import { defineStore } from 'pinia'
-
 import { useRepos } from '~/00.plugins/di'
 import { i18n } from '~/00.plugins/i18n'
 import { useAuthStore } from './auth.store'

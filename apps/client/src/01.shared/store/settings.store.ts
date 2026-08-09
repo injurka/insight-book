@@ -1,5 +1,5 @@
 import { useLocalStorage } from '@vueuse/core'
-import { defineStore } from 'pinia'
+
 import { computed, ref } from 'vue'
 
 export const useGlobalSettingsStore = defineStore('globalSettings', () => {

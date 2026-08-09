@@ -58,6 +58,53 @@ const router = useRouter()
           Мы обязуемся рассмотреть ваше обращение в кратчайшие сроки и принять соответствующие меры
           вплоть до блокировки контента или аккаунтов пользователей, систематически нарушающих правила.
         </p>
+
+        <h2>Используемые технологии и открытые лицензии</h2>
+        <p>
+          InsightBook использует программное обеспечение, шрифты и данные с открытым исходным кодом. В соответствии с требованиями их лицензий (MIT, Apache 2.0, SIL OFL, CC BY 4.0), ниже приводится список используемых ключевых технологий и правообладателей:
+        </p>
+        <ul>
+          <li>
+            <strong>Vue.js, Vue Router, Pinia, VueUse</strong> —
+            распространяются под лицензией <a href="https://opensource.org/licenses/MIT" target="_blank" rel="noopener noreferrer">MIT License</a> (Copyright © Evan You и участники проекта).
+          </li>
+          <li>
+            <strong>Material Design Icons (MDI)</strong> —
+            распространяются под лицензией <a href="https://www.apache.org/licenses/LICENSE-2.0" target="_blank" rel="noopener noreferrer">Apache License 2.0</a> (Copyright © Google LLC / Pictogrammers).
+          </li>
+          <li>
+            <strong>Maple Mono Font</strong> —
+            распространяется под лицензией <a href="https://scripts.sil.org/OFL" target="_blank" rel="noopener noreferrer">SIL Open Font License 1.1</a> (Copyright © Subframe7536).
+          </li>
+          <li>
+            <strong>HanziWriter</strong> —
+            библиотека распространяется под лицензией <a href="https://opensource.org/licenses/MIT" target="_blank" rel="noopener noreferrer">MIT License</a> (Copyright © Chanind). Данные порядка написания иероглифов основаны на <strong>MakeMeAHanzi</strong> (<a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener noreferrer">CC BY 4.0</a>).
+          </li>
+          <li>
+            <strong>DOMPurify</strong> —
+            распространяется под лицензиями <a href="https://www.apache.org/licenses/LICENSE-2.0" target="_blank" rel="noopener noreferrer">Apache License 2.0</a> / MPL 2.0 (Copyright © Cure53).
+          </li>
+          <li>
+            <strong>Shiki</strong> —
+            подсветка синтаксиса, распространяется под лицензией <a href="https://opensource.org/licenses/MIT" target="_blank" rel="noopener noreferrer">MIT License</a> (Copyright © Pine Wu, Anthony Fu и участники).
+          </li>
+          <li>
+            <strong>ts-fsrs</strong> —
+            реализация алгоритма интервальных повторений FSRS, распространяется под лицензией <a href="https://opensource.org/licenses/MIT" target="_blank" rel="noopener noreferrer">MIT License</a> (Copyright © OpenSpacedRepetition).
+          </li>
+          <li>
+            <strong>Tauri Framework</strong> —
+            распространяется под лицензиями <a href="https://opensource.org/licenses/MIT" target="_blank" rel="noopener noreferrer">MIT</a> / <a href="https://www.apache.org/licenses/LICENSE-2.0" target="_blank" rel="noopener noreferrer">Apache 2.0</a> (Copyright © Tauri Programme Inc).
+          </li>
+          <li>
+            <strong>Kuromoji & IPADIC</strong> —
+            морфологический анализ японского языка, распространяется под лицензией <a href="https://opensource.org/licenses/BSD-3-Clause" target="_blank" rel="noopener noreferrer">BSD License</a>.
+          </li>
+          <li>
+            <strong>Grafana Faro Web SDK</strong> —
+            распространяется под лицензией <a href="https://www.apache.org/licenses/LICENSE-2.0" target="_blank" rel="noopener noreferrer">Apache License 2.0</a> (Copyright © Grafana Labs).
+          </li>
+        </ul>
       </div>
     </div>
   </div>

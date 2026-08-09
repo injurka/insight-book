@@ -74,6 +74,18 @@
     "tauriUpdateBtn": "下载",
     "closeBtn": "关闭"
   },
+  "network": {
+    "timeoutTitle": "网络连接较慢",
+    "timeoutDesc": "加载耗时已超过5秒。您可以切换至使用本地数据的离线模式，或重试连接。",
+    "workOfflineBtn": "离线工作",
+    "retryBtn": "重试",
+    "offlineModeActive": "离线模式",
+    "noConnection": "无网络连接",
+    "goOnline": "在线连接",
+    "tryOnline": "尝试在线连接",
+    "offlineDialogTitle": "离线模式",
+    "offlineDialogDesc": "您当前处于离线模式。您可以重新连接网络并重试。"
+  },
   "kit": {
     "dialog": {
       "minimize": "最小化",

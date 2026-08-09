@@ -1,5 +1,5 @@
 import type { LlmAnalysis } from '~/01.shared/types/models'
-import { defineStore } from 'pinia'
+
 import { ref } from 'vue'
 
 export interface AnalysisHistoryItem {

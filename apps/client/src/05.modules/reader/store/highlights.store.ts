@@ -1,6 +1,6 @@
 import type { Highlight, LlmAnalysis } from '~/01.shared/types/models'
 import { useMutation, useQuery, useQueryCache } from '@pinia/colada'
-import { defineStore } from 'pinia'
+
 import { ref, watch } from 'vue'
 import { useRepos } from '~/00.plugins/di'
 import { queryKeys } from '~/01.shared/lib/query-keys'

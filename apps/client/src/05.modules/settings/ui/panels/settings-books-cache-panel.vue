@@ -171,7 +171,10 @@ function handleConfirmClear() {
               <div class="progress-footer">
                 <span class="progress-text" v-html="t('settings.offlineAvailable').replace('{percent}', `<b>${book.totalPages > 0 ? Math.round((book.cachedPages.length / book.totalPages) * 100) : 0}</b>`)" />
                 <KitTooltip v-if="book.cachedPages.length > 0" :text="formatPagesList(book.cachedPages)" placement="top-end">
-                  <span class="pages-list-hint">{{ t('settings.pageNumbers') }}</span>
+                  <button class="pages-list-hint is-loaded" type="button">
+                    <Icon icon="mdi:information-outline" />
+                    <span>{{ t('settings.pageNumbers') }}</span>
+                  </button>
                 </KitTooltip>
               </div>
             </div>
@@ -337,14 +340,31 @@ function handleConfirmClear() {
         }
       }
       .pages-list-hint {
-        color: var(--fg-accent-color);
-        cursor: help;
+        background: transparent;
+        border: none;
+        color: var(--fg-secondary-color);
+        cursor: pointer;
+        font-size: 0.85rem;
         font-weight: 500;
-        text-decoration: underline;
-        text-decoration-style: dashed;
-        text-decoration-color: var(--fg-accent-color);
-        text-underline-offset: 4px;
-        padding-left: 12px;
+        padding: 4px 8px;
+        border-radius: 6px;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        transition: all 0.2s ease;
+
+        svg {
+          font-size: 1.05rem;
+        }
+
+        &.is-loaded {
+          color: var(--fg-accent-color);
+        }
+
+        &:hover {
+          color: var(--fg-primary-color);
+          background-color: var(--bg-tertiary-color);
+        }
       }
     }
   }

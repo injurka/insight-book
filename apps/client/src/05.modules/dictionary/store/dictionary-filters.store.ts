@@ -1,5 +1,5 @@
 import type { UserDictItem } from '~/01.shared/types/models'
-import { defineStore } from 'pinia'
+
 import { computed, ref } from 'vue'
 import { useRepos } from '~/00.plugins/di'
 import { useToast } from '~/01.shared/composables/use-toast'

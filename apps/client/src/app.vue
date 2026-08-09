@@ -10,10 +10,15 @@ import { useGlobalTracking } from '~/01.shared/composables/use-global-tracking'
 import { isTauri } from '~/01.shared/lib/env'
 import { isNativeTransitionRoute, isViewTransitionSupported } from '~/01.shared/lib/view-transitions'
 import { useAnalysisStore } from '~/01.shared/store/analysis/analysis.store'
+import { useNetworkStore } from '~/01.shared/store/network.store'
 import { usePwaStore } from '~/01.shared/store/pwa.store'
 import { useGlobalSettingsStore } from '~/01.shared/store/settings.store'
-import { KitReloadPrompt } from '~/02.kit/organisms/kit-reload-prompt'
-import { KitToastManager } from '~/02.kit/organisms/kit-toast-manager'
+import {
+  KitNetworkTimeoutDialog,
+  KitOfflineBadge,
+  KitReloadPrompt,
+  KitToastManager,
+} from '~/02.kit'
 import { DefaultLayout } from '~/06.layouts/default'
 
 const AddEditWordDialog = lazyComponent(() => import('~/05.modules/dictionary/ui/dialog/add-edit-word-dialog.vue'))
@@ -25,12 +30,14 @@ useCustomFonts()
 const route = useRoute()
 const analysisStore = useAnalysisStore()
 const settingsStore = useGlobalSettingsStore()
+const networkStore = useNetworkStore()
 const { locale, t } = useI18n()
 
 const router = useRouter()
 const { triggerBack } = useBackHandler()
 
 onMounted(async () => {
+  networkStore.initListeners()
   const pwaStore = usePwaStore()
   pwaStore.checkPushStatus()
 
@@ -236,6 +243,8 @@ watch(() => route.path, () => {
   </router-view>
 
   <KitReloadPrompt />
+  <KitNetworkTimeoutDialog />
+  <KitOfflineBadge />
   <AddEditWordDialog />
   <KitToastManager />
 </template>

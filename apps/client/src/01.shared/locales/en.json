@@ -74,6 +74,18 @@
     "tauriUpdateBtn": "Download",
     "closeBtn": "Close"
   },
+  "network": {
+    "timeoutTitle": "Slow Internet Connection",
+    "timeoutDesc": "Loading is taking longer than 5 seconds. You can switch to offline mode using local data or retry connecting.",
+    "workOfflineBtn": "Work Offline",
+    "retryBtn": "Retry",
+    "offlineModeActive": "Offline Mode",
+    "noConnection": "No Connection",
+    "goOnline": "Go Online",
+    "tryOnline": "Try connecting online",
+    "offlineDialogTitle": "Offline Mode",
+    "offlineDialogDesc": "You are currently working in offline mode. You can switch back online and reconnect."
+  },
   "kit": {
     "dialog": {
       "minimize": "Minimize",

@@ -26,7 +26,7 @@ const tabs = computed<TabItem<string>[]>(() => [
   { id: 'interface', label: t('settings.interfaceTitle'), icon: 'mdi:palette-outline' },
   { id: 'ai', label: t('settings.aiTitle'), icon: 'mdi:robot-outline' },
   { id: 'plugins', label: t('settings.pluginsTitle'), icon: 'mdi:puzzle-outline' },
-  { id: 'system', label: t('settings.systemTitle'), icon: 'mdi:cog-outline' },
+  { id: 'system', label: t('settings.systemTitle'), icon: 'mdi:database-outline' },
 ])
 onMounted(() => {
   cacheStore.loadStats()

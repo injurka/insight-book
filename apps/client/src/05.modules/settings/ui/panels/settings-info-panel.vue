@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { Icon } from '@iconify/vue'
 import { useRouter } from 'vue-router'
 import { AppRoutePaths } from '~/01.shared/constants/routes'
 
@@ -15,26 +16,26 @@ const router = useRouter()
       <div class="link-list">
         <button class="info-link-btn" @click="router.push(AppRoutePaths.About)">
           <div class="btn-content">
-            <span class="icon mdi mdi-information-outline" />
+            <Icon icon="mdi:information-outline" class="icon" />
             <span class="text">О сайте</span>
           </div>
-          <span class="chevron mdi mdi-chevron-right" />
+          <Icon icon="mdi:chevron-right" class="chevron" />
         </button>
 
         <button class="info-link-btn" @click="router.push(AppRoutePaths.Privacy)">
           <div class="btn-content">
-            <span class="icon mdi mdi-shield-account-outline" />
+            <Icon icon="mdi:shield-account-outline" class="icon" />
             <span class="text">Политика конфиденциальности</span>
           </div>
-          <span class="chevron mdi mdi-chevron-right" />
+          <Icon icon="mdi:chevron-right" class="chevron" />
         </button>
 
         <button class="info-link-btn" @click="router.push(AppRoutePaths.Copyright)">
           <div class="btn-content">
-            <span class="icon mdi mdi-copyright" />
+            <Icon icon="mdi:copyright" class="icon" />
             <span class="text">Для правообладателей</span>
           </div>
-          <span class="chevron mdi mdi-chevron-right" />
+          <Icon icon="mdi:chevron-right" class="chevron" />
         </button>
       </div>
     </div>

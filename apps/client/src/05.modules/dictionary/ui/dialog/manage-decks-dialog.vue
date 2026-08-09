@@ -160,6 +160,7 @@ async function onDeleteDeckConfirm() {
   gap: 8px;
   overflow-y: auto;
   padding: 0;
+  margin-bottom: 0px;
 }
 
 .deck-manage-item {

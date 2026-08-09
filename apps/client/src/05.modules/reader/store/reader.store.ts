@@ -1,7 +1,7 @@
 import type { Book, PageDictEntry, PagePayload, TocItem } from '~/01.shared/types/models'
 import { useQuery } from '@pinia/colada'
 import { useDebounceFn } from '@vueuse/core'
-import { defineStore } from 'pinia'
+
 import { computed, ref, shallowRef, watch } from 'vue'
 import { useRepos } from '~/00.plugins/di'
 import { i18n } from '~/00.plugins/i18n'

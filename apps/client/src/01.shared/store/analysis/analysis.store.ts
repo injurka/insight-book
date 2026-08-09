@@ -1,5 +1,5 @@
 import type { Book, LlmAnalysis, PagePayload, UserDictItem } from '~/01.shared/types/models'
-import { defineStore } from 'pinia'
+
 import { v4 as uuidv4 } from 'uuid'
 import { computed, ref } from 'vue'
 import { useRepos } from '~/00.plugins/di'
