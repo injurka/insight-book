@@ -13,13 +13,15 @@
     <!-- Рантайм-конфиг (генерируется при запуске контейнера) -->
     <script src="/configs/app-config.js"></script>
 
-    <!-- Шрифты загружаются синхронно (render-blocking), чтобы браузер как можно
-         раньше обнаружил @font-face и начал загрузку woff2-файлов.
-         font-display: swap гарантирует, что текст покажется системным шрифтом
-         немедленно, не дожидаясь окончания загрузки. -->
-    <link rel="stylesheet" href="/fonts/split/regular/result.css" />
-    <link rel="stylesheet" href="/fonts/split/medium/result.css" />
-    <link rel="stylesheet" href="/fonts/split/semibold/result.css" />
+    <!-- Критические шрифты (Latin + Cyrillic): синхронно, 6 @font-face на вес = 18 файлов, ~200 KB -->
+    <link rel="stylesheet" href="/fonts/split/regular/result-critical.css" />
+    <link rel="stylesheet" href="/fonts/split/medium/result-critical.css" />
+    <link rel="stylesheet" href="/fonts/split/semibold/result-critical.css" />
+
+    <!-- CJK-шрифты: лениво, только когда на странице есть иероглифы -->
+    <link rel="stylesheet" href="/fonts/split/regular/result-cjk.css" media="print" onload="this.media = 'all'" />
+    <link rel="stylesheet" href="/fonts/split/medium/result-cjk.css" media="print" onload="this.media = 'all'" />
+    <link rel="stylesheet" href="/fonts/split/semibold/result-cjk.css" media="print" onload="this.media = 'all'" />
 
     <script type="speculationrules">
       {
