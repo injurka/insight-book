@@ -13,15 +13,46 @@
     <!-- Рантайм-конфиг (генерируется при запуске контейнера) -->
     <script src="/configs/app-config.js"></script>
 
-    <!-- Критические шрифты (Latin + Cyrillic): синхронно, 6 @font-face на вес = 18 файлов, ~200 KB -->
+    <!-- Критические шрифты (Latin + Cyrillic): синхронно, 6 @font-face на вес = 18 woff2, ~200 KB -->
     <link rel="stylesheet" href="/fonts/split/regular/result-critical.css" />
     <link rel="stylesheet" href="/fonts/split/medium/result-critical.css" />
     <link rel="stylesheet" href="/fonts/split/semibold/result-critical.css" />
 
-    <!-- CJK-шрифты: лениво, только когда на странице есть иероглифы -->
-    <link rel="stylesheet" href="/fonts/split/regular/result-cjk.css" media="print" onload="this.media = 'all'" />
-    <link rel="stylesheet" href="/fonts/split/medium/result-cjk.css" media="print" onload="this.media = 'all'" />
-    <link rel="stylesheet" href="/fonts/split/semibold/result-cjk.css" media="print" onload="this.media = 'all'" />
+    <!-- CJK-шрифты загружаются лениво через JS — только когда на странице
+         реально встречаются иероглифы (см. loadCjkFonts в main.ts) -->
+
+    <script>
+      // Загружаем CJK-шрифты только когда они реально нужны.
+      // Ждём полной загрузки страницы, затем проверяем наличие иероглифов.
+      ;(function () {
+        var CJK_MIN = 0x4e00
+        function hasCJK() {
+          var walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT)
+          var node
+          while ((node = walker.nextNode())) {
+            for (var i = 0; i < node.textContent.length; i++) {
+              if (node.textContent.charCodeAt(i) >= CJK_MIN) return true
+            }
+          }
+          return false
+        }
+        function loadCjkCss() {
+          ;['regular', 'medium', 'semibold'].forEach(function (w) {
+            var link = document.createElement('link')
+            link.rel = 'stylesheet'
+            link.href = '/fonts/split/' + w + '/result-cjk.css'
+            document.head.appendChild(link)
+          })
+        }
+        if (document.readyState === 'complete') {
+          if (hasCJK()) loadCjkCss()
+        } else {
+          window.addEventListener('load', function () {
+            if (hasCJK()) loadCjkCss()
+          })
+        }
+      })()
+    </script>
 
     <script type="speculationrules">
       {
