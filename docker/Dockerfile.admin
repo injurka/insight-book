@@ -12,7 +12,6 @@ COPY apps/admin/package.json ./apps/admin/
 
 RUN bun install --ignore-scripts
 
-# Copy all source files
 COPY . .
 
 ARG APP_VERSION="dev"
@@ -25,6 +24,8 @@ RUN bun --cwd=apps/admin run build
 # Этап 2: "release" - Создание финального образа с Nginx
 # =================================================================
 FROM nginx:stable-alpine
+
+RUN rm -rf /usr/share/nginx/html/*
 
 COPY --from=builder /usr/src/app/apps/admin/dist /usr/share/nginx/html
 
@@ -62,3 +63,4 @@ EOF
 EXPOSE 3335
 
 CMD ["nginx", "-g", "daemon off;"]
+
