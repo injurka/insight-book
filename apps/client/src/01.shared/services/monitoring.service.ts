@@ -48,6 +48,60 @@ export type FaroEventName
     | 'page_view'
     | (string & {})
 
+/** Наблюдает Server-Timing метрики через PerformanceObserver и отправляет их в Faro */
+export function setupServerTimingObserver() {
+  if (!('PerformanceObserver' in window))
+    return
+
+  // Экранируем API_URL для использования в RegExp
+  const apiPattern = API_URL
+    ? new RegExp(`^${API_URL.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`)
+    : null
+
+  try {
+    const observer = new PerformanceObserver((list) => {
+      for (const entry of list.getEntries()) {
+        // Фильтруем только запросы к нашему API
+        if (apiPattern && !apiPattern.test(entry.name))
+          continue
+
+        const serverTiming = (entry as PerformanceResourceTiming).serverTiming
+        if (!serverTiming || serverTiming.length === 0)
+          continue
+
+        // Собираем метрики в плоский объект
+        const metrics: Record<string, number> = {}
+        for (const st of serverTiming) {
+          metrics[st.name] = st.duration
+        }
+
+        if (Object.keys(metrics).length === 0)
+          continue
+
+        // Отправляем в Faro как измерение (measurement)
+        if (faro.api) {
+          faro.api.pushMeasurement({
+            type: 'server-timing',
+            values: metrics,
+          }, {
+            context: {
+              url: entry.name,
+              entry_type: entry.entryType,
+            },
+          })
+        }
+      }
+    })
+
+    // Наблюдаем navigation (основные запросы страниц) и resource (fetch/XHR)
+    observer.observe({ type: 'navigation', buffered: true })
+    observer.observe({ type: 'resource', buffered: true })
+  }
+  catch {
+    // Server Timing API не поддерживается браузером — молча пропускаем
+  }
+}
+
 export function initMonitoring() {
   if (!FARO_URL)
     return
@@ -74,6 +128,8 @@ export function initMonitoring() {
       }),
     ],
   })
+
+  setupServerTimingObserver()
 }
 
 export function setupVueMonitoring(app: App, router: Router) {
