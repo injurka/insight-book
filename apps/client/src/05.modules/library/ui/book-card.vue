@@ -148,7 +148,7 @@ const coverTransitionStyle = computed(() =>
       position: absolute;
       bottom: 8px;
       right: 12px;
-      font-family: 'Maple Mono CN', serif;
+      font-family: 'Maple Mono CN', monospace;
       font-size: 2.4rem;
       font-weight: 700;
       font-style: italic;

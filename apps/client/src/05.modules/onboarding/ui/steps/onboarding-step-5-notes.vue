@@ -139,7 +139,7 @@ function onSave() {
 
 .quote-text {
   font-size: 1.3rem;
-  font-family: 'Maple Mono CN', 'Courier New', monospace;
+  font-family: var(--app-font-family);
   line-height: 1.6;
   color: var(--fg-primary-color);
   cursor: text;

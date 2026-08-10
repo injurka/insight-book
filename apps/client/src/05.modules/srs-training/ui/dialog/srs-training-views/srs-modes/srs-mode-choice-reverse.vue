@@ -81,7 +81,7 @@ const promptText = computed(() => {
       .choice-text {
         font-size: 1.5rem;
         font-weight: 500;
-        font-family: 'Maple Mono CN', sans-serif;
+        font-family: var(--app-font-family);
       }
 
       &:hover:not(:disabled) {

@@ -12,6 +12,7 @@ const envSchema = z.object({
   YANDEX_CLIENT_SECRET: z.string().default(''),
   UNISENDER_API_KEY: z.string().default(''),
   FRONTEND_URL: z.string().url().default('http://localhost:5173'),
+  ADMIN_FRONTEND_URL: z.string().url().optional(),
 
   // --- Storage & DB Paths ---
   DB_PATH: z.string().optional(),
@@ -86,6 +87,8 @@ export const {
   YANDEX_CLIENT_SECRET,
   UNISENDER_API_KEY,
   FRONTEND_URL,
+  ADMIN_FRONTEND_URL,
+  CORS_EXTRA_ORIGINS,
   UPLOAD_STORAGE,
   DATABASE_AUTH_TOKEN,
   ADMIN_USERNAME,
@@ -108,17 +111,87 @@ export const MIME_OVERRIDES: Record<string, string> = {
 
 // --- CORS Configuration ---
 const EXTRA_CORS_ORIGINS = env.CORS_EXTRA_ORIGINS
-  .split(',')
+  .split(/[\s,]+/)
   .map(o => o.trim())
   .filter(Boolean)
 
 export const ALLOWED_ORIGINS = new Set([
   FRONTEND_URL,
+  ...(env.ADMIN_FRONTEND_URL ? [env.ADMIN_FRONTEND_URL] : []),
+  'http://localhost:5173',
+  'http://localhost:5174',
+  'http://localhost:3334',
+  'http://localhost:3335',
+  'http://127.0.0.1:5173',
+  'http://127.0.0.1:5174',
+  'http://127.0.0.1:3334',
+  'http://127.0.0.1:3335',
   'http://tauri.localhost', // Tauri Android
   'https://tauri.localhost', // Tauri iOS/macOS
   'tauri://localhost', // Tauri Windows/Linux
   ...EXTRA_CORS_ORIGINS,
 ])
+
+export function isAllowedOrigin(origin: string | null): boolean {
+  if (!origin)
+    return false
+  if (ALLOWED_ORIGINS.has('*') || ALLOWED_ORIGINS.has(origin))
+    return true
+
+  for (const allowed of ALLOWED_ORIGINS) {
+    if (allowed.includes('*')) {
+      const regexPattern = allowed
+        .replace(/[.+?^${}()|[\]\\]/g, '\\$&')
+        .replace(/\\\*/g, '.*')
+      const regex = new RegExp(`^${regexPattern}$`, 'i')
+      if (regex.test(origin))
+        return true
+    }
+  }
+
+  try {
+    const originUrl = new URL(origin)
+    const originHost = originUrl.hostname
+
+    // Project domains (production, preview & staging)
+    if (
+      originHost.endsWith('.limited-dissolve.ru')
+      || originHost.endsWith('.insight-book.ru')
+      || originHost === 'limited-dissolve.ru'
+      || originHost === 'insight-book.ru'
+      || originHost === 'localhost'
+      || originHost === '127.0.0.1'
+    ) {
+      return true
+    }
+
+    const knownUrls = [FRONTEND_URL, env.ADMIN_FRONTEND_URL].filter(Boolean) as string[]
+
+    for (const knownStr of knownUrls) {
+      const knownUrl = new URL(knownStr)
+      const knownHost = knownUrl.hostname
+
+      if (originHost === knownHost || originHost.endsWith(`.${knownHost}`)) {
+        return true
+      }
+
+      const originParts = originHost.split('.')
+      const knownParts = knownHost.split('.')
+      if (originParts.length >= 2 && knownParts.length >= 2) {
+        const originRoot = originParts.slice(-2).join('.')
+        const knownRoot = knownParts.slice(-2).join('.')
+        if (originRoot === knownRoot && originRoot !== 'localhost') {
+          return true
+        }
+      }
+    }
+  }
+  catch {
+    // Ignore invalid URL format
+  }
+
+  return false
+}
 
 export const CORS_HEADERS = {
   'Access-Control-Allow-Origin': FRONTEND_URL,
@@ -129,7 +202,7 @@ export const CORS_HEADERS = {
 
 // CORS headers with Allow-Origin resolved against the request origin.
 export function corsHeadersFor(origin: string | null): Record<string, string> {
-  const allowOrigin = origin && ALLOWED_ORIGINS.has(origin) ? origin : FRONTEND_URL
+  const allowOrigin = origin && isAllowedOrigin(origin) ? origin : FRONTEND_URL
 
   return { ...CORS_HEADERS, 'Access-Control-Allow-Origin': allowOrigin, 'Vary': 'Origin' }
 }

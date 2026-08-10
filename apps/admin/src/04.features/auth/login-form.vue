@@ -30,7 +30,7 @@ async function handleSubmit() {
 </script>
 
 <template>
-  <div class="login-form">
+  <form class="login-form" @submit.prevent="handleSubmit">
     <h1 class="login-form__title">
       <Icon icon="mdi:bookshelf" class="login-form__icon" />
       <span>InsightBook Admin</span>
@@ -43,7 +43,11 @@ async function handleSubmit() {
       <template #label>
         Логин или email
       </template>
-      <KitInput v-model="login" placeholder="admin" @keyup.enter="handleSubmit" />
+      <KitInput
+        v-model="login"
+        placeholder="admin"
+        autocomplete="username"
+      />
     </KitFormGroup>
     <KitFormGroup>
       <template #label>
@@ -53,15 +57,15 @@ async function handleSubmit() {
         v-model="password"
         type="password"
         placeholder="••••••"
-        @keyup.enter="handleSubmit"
+        autocomplete="current-password"
       />
     </KitFormGroup>
 
     <KitBtn
+      type="submit"
       variant="primary"
       :disabled="loading"
       style="width:100%; padding:12px"
-      @click="handleSubmit"
     >
       <Icon v-if="!loading" icon="mdi:login" />
       <span>{{ loading ? 'Вход...' : 'Войти' }}</span>
@@ -70,7 +74,7 @@ async function handleSubmit() {
     <div v-if="error" class="login-form__error">
       {{ error }}
     </div>
-  </div>
+  </form>
 </template>
 
 <style scoped>

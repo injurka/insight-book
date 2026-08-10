@@ -174,7 +174,7 @@ onMounted(() => load())
 
     <KitError v-if="error" :message="error" />
 
-    <div v-if="!loading && user" class="user-edit-form__card">
+    <form v-if="!loading && user" class="user-edit-form__card" @submit.prevent="handleSave">
       <KitFormGroup>
         <template #label>
           ID
@@ -212,13 +212,18 @@ onMounted(() => load())
         <template #label>
           Имя пользователя
         </template>
-        <KitInput v-model="form.username" />
+        <KitInput v-model="form.username" autocomplete="username" />
       </KitFormGroup>
       <KitFormGroup>
         <template #label>
           Email
         </template>
-        <KitInput v-model="form.email" type="email" placeholder="user@example.com" />
+        <KitInput
+          v-model="form.email"
+          type="email"
+          placeholder="user@example.com"
+          autocomplete="email"
+        />
       </KitFormGroup>
       <KitFormGroup>
         <template #label>
@@ -270,15 +275,20 @@ onMounted(() => load())
         <template #label>
           Новый пароль (оставьте пустым, чтобы не менять)
         </template>
-        <KitInput v-model="form.password" type="password" placeholder="Новый пароль" />
+        <KitInput
+          v-model="form.password"
+          type="password"
+          placeholder="Новый пароль"
+          autocomplete="new-password"
+        />
       </KitFormGroup>
 
       <div class="user-edit-form__actions">
-        <KitBtn variant="success" :disabled="saving" @click="handleSave">
+        <KitBtn type="submit" variant="success" :disabled="saving">
           <Icon v-if="!saving" icon="mdi:content-save" />
           <span>{{ saving ? 'Сохранение...' : 'Сохранить' }}</span>
         </KitBtn>
-        <KitBtn variant="danger" @click="handleDelete">
+        <KitBtn type="button" variant="danger" @click="handleDelete">
           <Icon icon="mdi:delete" />
           <span>Удалить</span>
         </KitBtn>
@@ -286,7 +296,7 @@ onMounted(() => load())
       <div v-if="success" class="user-edit-form__success">
         {{ success }}
       </div>
-    </div>
+    </form>
   </div>
 </template>
 

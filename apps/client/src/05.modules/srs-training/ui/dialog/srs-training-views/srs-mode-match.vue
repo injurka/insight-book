@@ -335,7 +335,7 @@ function dismissMatchedCard() {
     border-radius: 8px;
     font-size: 1.1rem;
     font-weight: 500;
-    font-family: 'Maple Mono CN', 'Courier New', monospace;
+    font-family: 'Maple Mono CN', monospace;
   }
 
   .translation-box {

@@ -83,7 +83,7 @@ function handleAction() {
   cursor: grab;
   user-select: none;
   touch-action: none;
-  font-family: 'Rubik', sans-serif;
+  font-family: inherit;
   font-size: 0.95rem;
   font-weight: 500;
   line-height: 1.4;
@@ -112,7 +112,7 @@ function handleAction() {
     .detail-text {
       font-size: 0.9rem;
       word-break: break-word;
-      font-family: 'Maple Mono CN', 'Inter', Courier, monospace;
+      font-family: 'Maple Mono CN', monospace;
     }
   }
 

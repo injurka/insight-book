@@ -137,7 +137,7 @@ bun run db:studio
 
 Полный список — в [`.env.example`](./.env.example). Ключевые группы:
 
-- **Сервер:** `PORT`, `FRONTEND_URL`, `AUTH_MODE` (`single`/`multi`), `JWT_SECRET`
+- **Сервер:** `PORT`, `FRONTEND_URL`, `ADMIN_FRONTEND_URL`, `CORS_EXTRA_ORIGINS`, `AUTH_MODE` (`single`/`multi`), `JWT_SECRET`
 - **БД:** `DB_PATH`, `DATABASE_URL`, `DATABASE_AUTH_TOKEN`, `CATALOG_DB_PATH`, `CATALOG_DATABASE_URL`
 - **Файлы:** `UPLOADS_PATH`, `UPLOAD_STORAGE` (`local`/`s3`), `S3_*`
 - **ИИ:** `LLM_*`, `OCR_*`, `TTS_*`, `STT_*` (URL, ключи, модели)

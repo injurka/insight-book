@@ -120,7 +120,7 @@ const repeatedText = computed(() => Array.from({ length: 50 }).fill(props.text).
     width: 100vw;
     height: 100vh;
     color: var(--fg-accent-color);
-    font-family: 'Maple Mono CN', 'Microsoft YaHei', sans-serif;
+    font-family: var(--app-font-family);
     font-size: 1.1rem;
     line-height: 1.6;
     font-weight: 600;

@@ -250,7 +250,7 @@ function translateWord(id: string) {
 
 .mock-sentence {
   font-size: 1.4rem;
-  font-family: 'Maple Mono CN', 'Courier New', monospace;
+  font-family: var(--app-font-family);
   color: var(--fg-primary-color);
   padding: 4px;
   border-radius: 4px;

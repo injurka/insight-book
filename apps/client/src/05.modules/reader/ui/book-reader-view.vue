@@ -388,7 +388,7 @@ watch(() => readerStore.isPageLoading, async (isLoading) => {
   word-wrap: break-word;
   font-size: 1.4rem;
   line-height: 1.8;
-  font-family: 'Maple Mono CN', 'Microsoft YaHei', sans-serif;
+  font-family: var(--app-font-family);
   transition:
     font-size 0.2s,
     line-height 0.2s;

@@ -577,7 +577,7 @@ function previewVoice() {
 
     .preview-font-name {
       font-size: 0.8rem;
-      font-family: var(--font-monospace, monospace);
+      font-family: 'Maple Mono CN', monospace;
       color: var(--fg-accent-color);
     }
   }

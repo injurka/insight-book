@@ -346,7 +346,7 @@ function cancelPress() {
 
 .mock-paragraph {
   font-size: 1.5rem;
-  font-family: 'Maple Mono CN', 'Courier New', monospace;
+  font-family: var(--app-font-family);
   color: var(--fg-primary-color);
   cursor: pointer;
   padding: 16px;

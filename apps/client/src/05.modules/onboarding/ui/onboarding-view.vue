@@ -173,7 +173,7 @@ function finishOnboarding() {
 
 <style lang="scss" scoped>
 .onboarding-page {
-  font-family: 'Inter', 'Roboto', sans-serif;
+  font-family: var(--app-font-family);
   position: fixed;
   inset: 0;
   display: flex;
@@ -187,7 +187,7 @@ function finishOnboarding() {
 .bg-wrapper {
   position: absolute;
   inset: 0;
-  opacity: 0.25; // Смягчаем WebGL еще сильнее
+  opacity: 0.25;
   pointer-events: none;
   z-index: 0;
   transition: opacity 1s ease;

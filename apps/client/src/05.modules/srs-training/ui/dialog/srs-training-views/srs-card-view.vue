@@ -650,7 +650,7 @@ watch(() => props.card, initCard, { immediate: true })
     font-size: 1.1rem;
     font-weight: 500;
     letter-spacing: 0.5px;
-    font-family: 'Maple Mono CN', 'Courier New', monospace;
+    font-family: 'Maple Mono CN', monospace;
   }
 }
 

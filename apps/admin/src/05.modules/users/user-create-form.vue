@@ -84,26 +84,36 @@ async function handleSubmit() {
       <Icon icon="mdi:plus" class="user-create-form__title-icon" />
       <span>Создать пользователя</span>
     </h1>
-    <div class="user-create-form__card">
+    <form class="user-create-form__card" @submit.prevent="handleSubmit">
       <KitFormGroup>
         <template #label>
           Имя пользователя *
         </template>
-        <KitInput v-model="form.username" placeholder="username" />
+        <KitInput v-model="form.username" placeholder="username" autocomplete="username" />
       </KitFormGroup>
 
       <KitFormGroup>
         <template #label>
           Пароль *
         </template>
-        <KitInput v-model="form.password" type="password" placeholder="Минимум 6 символов" />
+        <KitInput
+          v-model="form.password"
+          type="password"
+          placeholder="Минимум 6 символов"
+          autocomplete="new-password"
+        />
       </KitFormGroup>
 
       <KitFormGroup>
         <template #label>
           Email
         </template>
-        <KitInput v-model="form.email" type="email" placeholder="user@example.com" />
+        <KitInput
+          v-model="form.email"
+          type="email"
+          placeholder="user@example.com"
+          autocomplete="email"
+        />
       </KitFormGroup>
 
       <KitFormGroup>
@@ -149,7 +159,7 @@ async function handleSubmit() {
         </div>
       </div>
 
-      <KitBtn variant="success" :disabled="loading" @click="handleSubmit">
+      <KitBtn type="submit" variant="success" :disabled="loading">
         <Icon v-if="!loading" icon="mdi:check" />
         <span>{{ loading ? 'Создание...' : 'Создать' }}</span>
       </KitBtn>
@@ -157,7 +167,7 @@ async function handleSubmit() {
       <div v-if="success" class="user-create-form__success">
         Пользователь создан! Перенаправление...
       </div>
-    </div>
+    </form>
   </div>
 </template>
 
