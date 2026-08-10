@@ -3,6 +3,7 @@ import type { Router } from 'vue-router'
 import { faro, getWebInstrumentations, initializeFaro } from '@grafana/faro-web-sdk'
 import { TracingInstrumentation } from '@grafana/faro-web-tracing'
 import { API_URL, FARO_URL } from '~/01.shared/lib/env'
+import packageJson from '../../../package.json'
 
 export type FaroEventName
   = | 'theme_changed'
@@ -114,7 +115,7 @@ export function initMonitoring() {
     url: targetUrl,
     app: {
       name: 'insight-book-client',
-      version: '1.0.0',
+      version: packageJson.version,
       environment: import.meta.env.MODE || 'production',
     },
     // Не шлём запросы во время загрузки страницы — копим в буфер

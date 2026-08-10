@@ -6,6 +6,7 @@ import Icons from 'unplugin-icons/vite'
 import { defineConfig } from 'vite'
 import { compression as Compression } from 'vite-plugin-compression2'
 import { VitePWA } from 'vite-plugin-pwa'
+import packageJson from '../package.json'
 import { autoImportOptionsCfg } from './cfg/auto-import.ts'
 import { iconsCfg } from './cfg/icons.ts'
 import { pwaCfg } from './cfg/pwa.ts'
@@ -14,7 +15,7 @@ import { visualizerPlugin } from './lib/helpers.ts'
 const buildDate = new Date()
 const buildRevision = buildDate.toISOString()
 
-const appVersion = process.env.VITE_APP_VERSION || '1.0.0'
+const appVersion = process.env.VITE_APP_VERSION || packageJson.version
 const isStorybook = !!process.env.STORYBOOK_ENV
 
 export default defineConfig({
