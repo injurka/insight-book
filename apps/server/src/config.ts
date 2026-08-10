@@ -40,6 +40,14 @@ const envSchema = z.object({
   MAX_DAILY_TOKENS: z.coerce.number().int().positive().default(100_000),
   OTEL_EXPORTER_OTLP_ENDPOINT: z.string().url().default('http://alloy:4318/v1/traces'),
 
+  // --- Dump Storage (separate from media uploads) ---
+  DUMP_STORAGE: z.enum(['local', 's3']).default('local'),
+  DUMP_S3_BUCKET: z.string().optional(),
+  DUMP_S3_REGION: z.string().default('default'),
+  DUMP_S3_ENDPOINT: z.string().optional(),
+  DUMP_S3_ACCESS_KEY: z.string().optional(),
+  DUMP_S3_SECRET_KEY: z.string().optional(),
+
   // --- Extras ---
   CORS_EXTRA_ORIGINS: z.string().default(''),
   DUMP_MEDIA: z.preprocess(val => val === 'true', z.boolean()).default(false),
@@ -88,6 +96,7 @@ export const {
   MAX_DAILY_TOKENS,
   OTEL_EXPORTER_OTLP_ENDPOINT,
   DUMP_MEDIA,
+  DUMP_STORAGE,
 } = env
 
 // --- Limits & Configs ---
@@ -115,6 +124,7 @@ export const CORS_HEADERS = {
   'Access-Control-Allow-Origin': FRONTEND_URL,
   'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, HEAD, OPTIONS, DELETE',
   'Access-Control-Allow-Headers': 'Content-Type, Authorization, Accept, X-Custom-Llm-Url, X-Custom-Llm-Key, X-Custom-Llm-Model',
+  'Access-Control-Expose-Headers': 'Server-Timing',
 }
 
 // CORS headers with Allow-Origin resolved against the request origin.

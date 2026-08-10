@@ -1,3 +1,4 @@
+import { serverTiming } from '@elysia/server-timing'
 import { opentelemetry } from '@elysiajs/opentelemetry'
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-proto'
 import { BatchSpanProcessor } from '@opentelemetry/sdk-trace-node'
@@ -33,6 +34,7 @@ const app = new Elysia()
       ],
     }),
   )
+  .use(serverTiming())
   .use(bookController)
   .use(ttsController)
   .use(uploadsController)
