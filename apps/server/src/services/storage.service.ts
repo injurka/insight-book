@@ -1,7 +1,8 @@
+import type { S3Config } from './s3.service'
 import fs from 'node:fs/promises'
 import path from 'node:path'
-import { UPLOAD_STORAGE, UPLOADS_PATH } from '../config'
-import { s3Service } from './s3.service'
+import { DUMP_STORAGE, UPLOAD_STORAGE, UPLOADS_PATH } from '../config'
+import { S3Service, s3Service } from './s3.service'
 
 export interface IStorageService {
   uploadFile: (key: string, buffer: Uint8Array | Buffer | ArrayBuffer, contentType?: string) => Promise<string>
@@ -113,30 +114,58 @@ class LocalStorageService implements IStorageService {
 }
 
 class S3StorageAdapter implements IStorageService {
+  private s3: S3Service
+
+  constructor(s3: S3Service) {
+    this.s3 = s3
+  }
+
   async uploadFile(key: string, buffer: Uint8Array | Buffer | ArrayBuffer, contentType?: string): Promise<string> {
-    await s3Service.uploadFile(key, buffer, contentType)
+    await this.s3.uploadFile(key, buffer, contentType)
     return key
   }
 
   async deleteFile(key: string): Promise<void> {
-    await s3Service.deleteFile(key)
+    await this.s3.deleteFile(key)
   }
 
   async deleteFolder(prefix: string): Promise<void> {
-    await s3Service.deleteFolder(prefix)
+    await this.s3.deleteFolder(prefix)
   }
 
   async getFile(key: string): Promise<{ buffer: Uint8Array, contentType: string } | null> {
-    return await s3Service.getFile(key)
+    return await this.s3.getFile(key)
   }
 
   async listDumpFolders(prefix: string): Promise<string[]> {
-    return await s3Service.listDumpFolders(prefix)
+    return await this.s3.listDumpFolders(prefix)
   }
 
   async listFilesInFolder(prefix: string): Promise<string[]> {
-    return await s3Service.listFilesInFolder(prefix)
+    return await this.s3.listFilesInFolder(prefix)
   }
 }
 
-export const storageService: IStorageService = UPLOAD_STORAGE === 's3' ? new S3StorageAdapter() : new LocalStorageService()
+/** Media storage — books, covers, avatars (uses S3_* or UPLOADS_PATH). */
+export const storageService: IStorageService = UPLOAD_STORAGE === 's3'
+  ? new S3StorageAdapter(s3Service)
+  : new LocalStorageService()
+
+/** Dump storage — database snapshots (uses DUMP_S3_* when DUMP_STORAGE=s3, otherwise falls back to UPLOADS_PATH). */
+function resolveDumpStorage(): IStorageService {
+  if (DUMP_STORAGE !== 's3')
+    return new LocalStorageService()
+
+  const config: S3Config = {
+    bucket: process.env.DUMP_S3_BUCKET || 'insight-book-dumps',
+    region: process.env.DUMP_S3_REGION || 'default',
+    endpoint: process.env.DUMP_S3_ENDPOINT,
+    accessKey: process.env.DUMP_S3_ACCESS_KEY || (process.env.S3_ACCESS_KEY || ''),
+    secretKey: process.env.DUMP_S3_SECRET_KEY || (process.env.S3_SECRET_KEY || ''),
+  }
+
+  const dumpS3 = new S3Service(config)
+  return new S3StorageAdapter(dumpS3)
+}
+
+export const dumpStorageService: IStorageService = resolveDumpStorage()

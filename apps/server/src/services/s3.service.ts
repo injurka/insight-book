@@ -9,18 +9,26 @@ import {
 } from '@aws-sdk/client-s3'
 import { logger } from '../utils/logger'
 
+export interface S3Config {
+  bucket: string
+  region: string
+  endpoint?: string
+  accessKey: string
+  secretKey: string
+}
+
 class S3Service {
   private client: S3Client
   private bucket: string
 
-  constructor() {
-    this.bucket = process.env.S3_BUCKET || 'insight-book-bucket'
+  constructor(config: S3Config) {
+    this.bucket = config.bucket
     this.client = new S3Client({
-      region: process.env.S3_REGION || 'default',
-      endpoint: process.env.S3_ENDPOINT,
+      region: config.region,
+      endpoint: config.endpoint,
       credentials: {
-        accessKeyId: process.env.S3_ACCESS_KEY || '',
-        secretAccessKey: process.env.S3_SECRET_KEY || '',
+        accessKeyId: config.accessKey,
+        secretAccessKey: config.secretKey,
       },
       forcePathStyle: true,
     })
@@ -95,7 +103,6 @@ class S3Service {
 
   async checkConnection(): Promise<void> {
     try {
-      // Пытаемся получить инфу о бакете
       await this.client.send(
         new HeadBucketCommand({ Bucket: this.bucket }),
       )
@@ -107,7 +114,6 @@ class S3Service {
 
         try {
           await this.client.send(new CreateBucketCommand({ Bucket: this.bucket }))
-          // Если бакет не найден (HTTP 404), пробуем его создать
           logger.info(`✅ Bucket '${this.bucket}' created successfully.`)
         }
         catch (createError) {
@@ -169,4 +175,13 @@ class S3Service {
   }
 }
 
-export const s3Service = new S3Service()
+/** Media S3 singleton — uses S3_* env vars for uploads (books, covers, avatars). */
+export const s3Service = new S3Service({
+  bucket: process.env.S3_BUCKET || 'insight-book-bucket',
+  region: process.env.S3_REGION || 'default',
+  endpoint: process.env.S3_ENDPOINT,
+  accessKey: process.env.S3_ACCESS_KEY || '',
+  secretKey: process.env.S3_SECRET_KEY || '',
+})
+
+export { S3Service }
