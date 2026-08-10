@@ -145,10 +145,12 @@ function generateAppConfig(distDir: string) {
   const configsDir = join(distDir, 'configs')
   const configPath = join(configsDir, 'app-config.js')
 
+  const config: Record<string, string> = {}
+
   const apiUrl = process.env.VITE_API_URL || process.env.API_URL
   const faroUrl = process.env.VITE_FARO_URL || process.env.FARO_URL
-
   const cdnUrl = process.env.VITE_CDN_URL || process.env.CDN_URL
+
   if (apiUrl)
     config.API_URL = apiUrl
 
