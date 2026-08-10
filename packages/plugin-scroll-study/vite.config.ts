@@ -2,6 +2,7 @@ import { fileURLToPath, URL } from 'node:url'
 import { federation } from '@module-federation/vite'
 import vue from '@vitejs/plugin-vue'
 import { defineConfig } from 'vite'
+import topLevelAwait from 'vite-plugin-top-level-await'
 
 export default defineConfig(({ command }) => ({
   resolve: {
@@ -13,6 +14,10 @@ export default defineConfig(({ command }) => ({
   },
   plugins: [
     vue(),
+    topLevelAwait({
+      promiseExportName: '__tla',
+      promiseImportName: i => `__tla_${i}`,
+    }),
     ...(command === 'build'
       ? [
         federation({
@@ -46,3 +51,4 @@ export default defineConfig(({ command }) => ({
     },
   },
 }))
+

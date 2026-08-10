@@ -13,13 +13,12 @@ import { useAnalysisStore } from '~/01.shared/store/analysis/analysis.store'
 import { useNetworkStore } from '~/01.shared/store/network.store'
 import { usePwaStore } from '~/01.shared/store/pwa.store'
 import { useGlobalSettingsStore } from '~/01.shared/store/settings.store'
-import {
-  KitNetworkTimeoutDialog,
-  KitOfflineBadge,
-  KitReloadPrompt,
-  KitToastManager,
-} from '~/02.kit'
-import { DefaultLayout } from '~/06.layouts/default'
+
+const KitNetworkTimeoutDialog = lazyComponent(() => import('~/02.kit/organisms/kit-network-timeout-dialog/ui/kit-network-timeout-dialog.vue'))
+const KitOfflineBadge = lazyComponent(() => import('~/02.kit/organisms/kit-offline-badge/ui/kit-offline-badge.vue'))
+const KitReloadPrompt = lazyComponent(() => import('~/02.kit/organisms/kit-reload-prompt/ui/kit-reload-prompt.vue'))
+const KitToastManager = lazyComponent(() => import('~/02.kit/organisms/kit-toast-manager/ui/kit-toast-manager.vue'))
+const DefaultLayout = lazyComponent(() => import('~/06.layouts/default/ui/default.vue'))
 
 const AddEditWordDialog = lazyComponent(() => import('~/05.modules/dictionary/ui/dialog/add-edit-word-dialog.vue'))
 

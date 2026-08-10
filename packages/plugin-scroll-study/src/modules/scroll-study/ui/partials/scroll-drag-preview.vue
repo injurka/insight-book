@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import type { CharacterData } from '../../../../data'
 import type { BurstEvent } from '../../lib/use-scroll-drag'
-import { onBeforeUnmount, ref, watch } from 'vue'
+import { Container, Graphics, Text, TextStyle } from 'pixi.js'
+import { onBeforeUnmount, watch } from 'vue'
+import { usePixiLayer } from '../../lib/use-shared-pixi'
 
-const props = defineProps<{
+interface Props {
   isDragging: boolean
   dragChar: CharacterData | null
   dragPos: { x: number, y: number }
@@ -12,137 +14,227 @@ const props = defineProps<{
   dragTiltY: number
   dragScale: number
   burstEvent: BurstEvent | null
-}>()
-
-const canvasRef = ref<HTMLCanvasElement | null>(null)
-let animId: number | null = null
-
-interface Particle {
-  x: number
-  y: number
-  vx: number
-  vy: number
-  radius: number
-  alpha: number
-  decay: number
-  color: string
 }
 
-const activeBursts: Array<{ particles: Particle[], char: string, x: number, y: number, alpha: number }> = []
+interface QiSpark {
+  gfx: Graphics
+  vx: number
+  vy: number
+  alpha: number
+  decay: number
+  radius: number
+}
+
+interface BurstInstance {
+  sparks: QiSpark[]
+  text?: Text
+  ring?: Graphics
+  ringRadius: number
+  ringAlpha: number
+  alpha: number
+  x: number
+  y: number
+}
+
+const props = defineProps<Props>()
+const { app, layer, isReady } = usePixiLayer('dragLayer')
+
+let trailContainer: Container | null = null
+let burstContainer: Container | null = null
+
+const activeSparks: QiSpark[] = []
+const activeBursts: BurstInstance[] = []
+
+const stopWatch = watch([isReady, app], ([ready, pixi]) => {
+  if (!ready || !pixi || trailContainer)
+    return
+
+  trailContainer = new Container({ label: 'dragTrail' })
+  burstContainer = new Container({ label: 'dragBurst' })
+  layer.addChild(trailContainer)
+  layer.addChild(burstContainer)
+
+  pixi.ticker.add(() => {
+    // 1. Spawn drag trail embers if user is dragging card
+    if (props.isDragging && trailContainer) {
+      const colors = [0xfbbf24, 0xf59e0b, 0xffffff, 0xd97706]
+      const count = 2
+      for (let i = 0; i < count; i++) {
+        const radius = Math.random() * 2.5 + 1.5
+        const color = colors[Math.floor(Math.random() * colors.length)]
+
+        const gfx = new Graphics()
+          .circle(0, 0, radius)
+          .fill({ color, alpha: 0.9 })
+
+        gfx.blendMode = 'add'
+        gfx.x = props.dragPos.x + (Math.random() - 0.5) * 36
+        gfx.y = props.dragPos.y + (Math.random() - 0.5) * 36
+
+        trailContainer.addChild(gfx)
+
+        activeSparks.push({
+          gfx,
+          vx: (Math.random() - 0.5) * 1.5,
+          vy: Math.random() * 1.5 + 0.5,
+          alpha: 1,
+          decay: Math.random() * 0.04 + 0.02,
+          radius,
+        })
+      }
+    }
+
+    // 2. Animate trailing sparks
+    for (let i = activeSparks.length - 1; i >= 0; i--) {
+      const spark = activeSparks[i]
+      spark.gfx.x += spark.vx
+      spark.gfx.y += spark.vy
+      spark.alpha -= spark.decay
+
+      if (spark.alpha <= 0) {
+        spark.gfx.destroy()
+        activeSparks.splice(i, 1)
+      }
+      else {
+        spark.gfx.alpha = spark.alpha
+        spark.gfx.scale.set(spark.alpha)
+      }
+    }
+
+    // 3. Animate burst instances
+    for (let i = activeBursts.length - 1; i >= 0; i--) {
+      const burst = activeBursts[i]
+      burst.alpha -= 0.02
+
+      burst.sparks.forEach((sp) => {
+        sp.gfx.x += sp.vx
+        sp.gfx.y += sp.vy
+        sp.vy += 0.12
+        sp.alpha -= sp.decay
+
+        if (sp.alpha > 0) {
+          sp.gfx.alpha = Math.max(0, sp.alpha)
+          sp.gfx.scale.set(Math.max(0.2, sp.alpha))
+        }
+        else {
+          sp.gfx.visible = false
+        }
+      })
+
+      if (burst.ring && burst.ringAlpha > 0) {
+        burst.ringRadius += 3.5
+        burst.ringAlpha -= 0.04
+        burst.ring.clear()
+          .circle(0, 0, burst.ringRadius)
+          .stroke({ width: 2, color: 0xfbbf24, alpha: Math.max(0, burst.ringAlpha) })
+      }
+
+      if (burst.text) {
+        burst.text.y -= 0.8
+        burst.text.alpha = Math.max(0, burst.alpha)
+      }
+
+      if (burst.alpha <= 0) {
+        burst.sparks.forEach(sp => sp.gfx.destroy())
+        if (burst.ring)
+          burst.ring.destroy()
+        if (burst.text)
+          burst.text.destroy()
+        activeBursts.splice(i, 1)
+      }
+    }
+  })
+}, { immediate: true })
 
 watch(() => props.burstEvent, (ev) => {
-  if (!ev)
+  if (!ev || !burstContainer)
     return
-  triggerInkBurst(ev.x, ev.y, ev.char)
+  triggerPixiBurst(ev.x, ev.y, ev.char)
 })
 
-function triggerInkBurst(x: number, y: number, char: string) {
-  const count = 28
-  const particles: Particle[] = []
-  const colors = ['#f59e0b', '#fbbf24', '#d97706', '#ffffff']
+function triggerPixiBurst(x: number, y: number, char: string) {
+  if (!burstContainer)
+    return
+
+  const count = 32
+  const sparks: QiSpark[] = []
+  const colors = [0xf59e0b, 0xfbbf24, 0xd97706, 0xffffff]
 
   for (let i = 0; i < count; i++) {
     const angle = Math.random() * Math.PI * 2
-    const speed = Math.random() * 6 + 2
-    particles.push({
-      x,
-      y,
+    const speed = Math.random() * 7 + 2.5
+    const radius = Math.random() * 3.5 + 2
+
+    const gfx = new Graphics()
+      .circle(0, 0, radius)
+      .fill({ color: colors[Math.floor(Math.random() * colors.length)], alpha: 1 })
+
+    gfx.blendMode = 'add'
+    gfx.x = x
+    gfx.y = y
+
+    burstContainer.addChild(gfx)
+
+    sparks.push({
+      gfx,
       vx: Math.cos(angle) * speed,
       vy: Math.sin(angle) * speed,
-      radius: Math.random() * 3 + 1.5,
       alpha: 1,
       decay: Math.random() * 0.03 + 0.015,
-      color: colors[Math.floor(Math.random() * colors.length)],
+      radius,
     })
   }
+
+  const ring = new Graphics()
+  ring.blendMode = 'add'
+  ring.x = x
+  ring.y = y
+  burstContainer.addChild(ring)
+
+  const textStyle = new TextStyle({
+    fontFamily: 'serif',
+    fontSize: 28,
+    fontWeight: 'bold',
+    fill: '#fbbf24',
+    dropShadow: {
+      color: '#f59e0b',
+      blur: 8,
+      distance: 0,
+    },
+  })
+  const text = new Text({ text: char, style: textStyle })
+  text.anchor.set(0.5, 0.5)
+  text.x = x
+  text.y = y - 10
+  burstContainer.addChild(text)
 
   activeBursts.push({
-    particles,
-    char,
+    sparks,
+    ring,
+    text,
+    ringRadius: 10,
+    ringAlpha: 1,
+    alpha: 1,
     x,
     y,
-    alpha: 1,
   })
-
-  if (!animId) {
-    loopBursts()
-  }
-}
-
-function loopBursts() {
-  const canvas = canvasRef.value
-  if (!canvas)
-    return
-
-  const ctx = canvas.getContext('2d')
-  if (!ctx)
-    return
-
-  if (canvas.width !== window.innerWidth || canvas.height !== window.innerHeight) {
-    canvas.width = window.innerWidth
-    canvas.height = window.innerHeight
-  }
-
-  ctx.clearRect(0, 0, canvas.width, canvas.height)
-
-  for (let i = activeBursts.length - 1; i >= 0; i--) {
-    const burst = activeBursts[i]
-    burst.alpha -= 0.025
-
-    burst.particles.forEach((p) => {
-      p.x += p.vx
-      p.y += p.vy
-      p.vy += 0.1 // gravity
-      p.alpha -= p.decay
-
-      if (p.alpha > 0) {
-        ctx.save()
-        ctx.beginPath()
-        ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2)
-        ctx.fillStyle = p.color
-        ctx.globalAlpha = Math.max(0, p.alpha)
-        ctx.shadowColor = '#f59e0b'
-        ctx.shadowBlur = 8
-        ctx.fill()
-        ctx.restore()
-      }
-    })
-
-    if (burst.alpha > 0) {
-      ctx.save()
-      ctx.font = 'bold 24px serif'
-      ctx.fillStyle = '#fbbf24'
-      ctx.globalAlpha = Math.max(0, burst.alpha)
-      ctx.textAlign = 'center'
-      ctx.fillText(burst.char, burst.x, burst.y - (1 - burst.alpha) * 30)
-      ctx.restore()
-    }
-
-    if (burst.alpha <= 0) {
-      activeBursts.splice(i, 1)
-    }
-  }
-
-  if (activeBursts.length > 0) {
-    animId = requestAnimationFrame(loopBursts)
-  }
-  else {
-    animId = null
-  }
 }
 
 onBeforeUnmount(() => {
-  if (animId) {
-    cancelAnimationFrame(animId)
+  stopWatch()
+  if (trailContainer) {
+    trailContainer.destroy({ children: true })
+    trailContainer = null
+  }
+  if (burstContainer) {
+    burstContainer.destroy({ children: true })
+    burstContainer = null
   }
 })
 </script>
 
 <template>
   <div class="drag-preview-layer">
-    <!-- Overlay Canvas for Ink Particle Bursts -->
-    <canvas ref="canvasRef" class="burst-canvas" />
-
     <!-- Physics Dragged Floating Card -->
     <div
       v-if="isDragging && dragChar"
@@ -169,13 +261,6 @@ onBeforeUnmount(() => {
   inset: 0;
   pointer-events: none;
   z-index: 100;
-}
-
-.burst-canvas {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
 }
 
 .floating-drag-card {
@@ -209,3 +294,5 @@ onBeforeUnmount(() => {
   }
 }
 </style>
+
+

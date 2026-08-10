@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Icon } from '@iconify/vue'
 import { useI18n } from 'vue-i18n'
-import logoSrc from '~/assets/logo.png'
+import logoSrc from '~/assets/logo.webp'
 import OnboardingStepLayout from './onboarding-step-layout.vue'
 
 const emit = defineEmits<{

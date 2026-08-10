@@ -52,6 +52,13 @@ server {
         try_files $uri =404;
     }
 
+    # --- Конфиги приложения ---
+    location /configs/ {
+        try_files $uri =404;
+        add_header Cache-Control "no-cache, must-revalidate";
+        access_log off;
+    }
+
     # --- SPA Роутинг ---
     location / {
         add_header Cache-Control "no-cache, must-revalidate";
@@ -60,7 +67,25 @@ server {
 }
 EOF
 
+COPY <<'EOF' /entrypoint.sh
+#!/bin/sh
+# Генерирует рантайм-конфиг админки из переменных окружения при старте контейнера
+set -e
+
+mkdir -p /usr/share/nginx/html/configs
+cat > /usr/share/nginx/html/configs/app-config.js <<CONFIG
+// Сгенерировано entrypoint-ом контейнера при запуске
+window.__APP_CONFIG__ = {
+  API_URL: "${VITE_API_URL:-}",
+}
+CONFIG
+
+exec nginx -g 'daemon off;'
+EOF
+
+RUN chmod +x /entrypoint.sh
+
 EXPOSE 3335
 
-CMD ["nginx", "-g", "daemon off;"]
+CMD ["/entrypoint.sh"]
 

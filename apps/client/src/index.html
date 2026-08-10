@@ -13,14 +13,13 @@
     <!-- Рантайм-конфиг (генерируется при запуске контейнера) -->
     <script src="/configs/app-config.js"></script>
 
-    <link rel="preload" as="style" href="/fonts/split/regular/result.css" onload="this.rel = 'stylesheet'" />
-    <link rel="preload" as="style" href="/fonts/split/medium/result.css" onload="this.rel = 'stylesheet'" />
-    <link rel="preload" as="style" href="/fonts/split/semibold/result.css" onload="this.rel = 'stylesheet'" />
-    <noscript>
-      <link rel="stylesheet" href="/fonts/split/regular/result.css" />
-      <link rel="stylesheet" href="/fonts/split/medium/result.css" />
-      <link rel="stylesheet" href="/fonts/split/semibold/result.css" />
-    </noscript>
+    <!-- Шрифты загружаются синхронно (render-blocking), чтобы браузер как можно
+         раньше обнаружил @font-face и начал загрузку woff2-файлов.
+         font-display: swap гарантирует, что текст покажется системным шрифтом
+         немедленно, не дожидаясь окончания загрузки. -->
+    <link rel="stylesheet" href="/fonts/split/regular/result.css" />
+    <link rel="stylesheet" href="/fonts/split/medium/result.css" />
+    <link rel="stylesheet" href="/fonts/split/semibold/result.css" />
 
     <script type="speculationrules">
       {

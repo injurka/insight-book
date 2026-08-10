@@ -1,7 +1,9 @@
 import type { DashboardStats, LoginResponse, MeResponse, PaginatedResponse, PendingBook, PendingPlugin, SubscriptionTier, UserDetail, UserRow } from '~/01.shared/types/models'
 import { ofetch } from 'ofetch'
 
-const API_BASE = import.meta.env.VITE_API_URL || ''
+import { API_URL } from '~/01.shared/lib/env'
+
+export const BASE_API_URL = API_URL
 
 // -- providers (внедряются через configureApi) --
 
@@ -22,7 +24,7 @@ export function configureApi(overrides: ApiProviders) {
 // -- ofetch client --
 
 export const request = ofetch.create({
-  baseURL: API_BASE,
+  baseURL: BASE_API_URL,
   async onRequest({ options }) {
     options.headers = new Headers(options.headers || {})
     const token = providers.getToken()

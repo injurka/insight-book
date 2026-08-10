@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
+import { providePixiApp } from '../lib/use-shared-pixi'
 import { useScrollDrag } from '../lib/use-scroll-drag'
 import { useScrollStudyStore } from '../model/scroll-study.store'
 import ResearchBoard from './partials/research-board.vue'
@@ -9,6 +10,11 @@ import ScrollHeader from './partials/scroll-header.vue'
 import ScrollSidebar from './partials/scroll-sidebar.vue'
 
 const scrollStore = useScrollStudyStore()
+const pixiHostRef = ref<HTMLDivElement | null>(null)
+
+// Initialize Single Shared PixiJS Application for the entire view
+providePixiApp(pixiHostRef)
+
 const {
   isPointerDragging,
   dragChar,
@@ -33,6 +39,9 @@ onMounted(() => {
 
 <template>
   <div class="scroll-desktop-view">
+    <!-- Single Shared PixiJS Canvas Layer across the entire view -->
+    <div ref="pixiHostRef" class="global-pixi-host" />
+
     <!-- Particle Background -->
     <div class="background-wrapper">
       <ScrollBackground />
@@ -79,6 +88,19 @@ onMounted(() => {
   font-family: inherit;
 }
 
+.global-pixi-host {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+
+  :deep(canvas) {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+}
+
 .background-wrapper {
   position: absolute;
   inset: 0;
@@ -97,3 +119,4 @@ onMounted(() => {
   padding: 24px;
 }
 </style>
+

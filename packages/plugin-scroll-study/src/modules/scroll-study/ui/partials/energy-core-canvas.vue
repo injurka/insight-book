@@ -1,112 +1,82 @@
 <script setup lang="ts">
+import { Application, Mesh, MeshGeometry, Shader, UniformGroup } from 'pixi.js'
 import { onBeforeUnmount, onMounted, ref } from 'vue'
 import fragmentSource from '../../shaders/energy-core.frag?raw'
 import vertexSource from '../../shaders/qi-shader.vert?raw'
 
-const canvasRef = ref<HTMLCanvasElement | null>(null)
-let animId: number | null = null
+const containerRef = ref<HTMLDivElement | null>(null)
+let pixiApp: Application | null = null
 
-function createShader(gl: WebGLRenderingContext, type: number, source: string) {
-  const shader = gl.createShader(type)
-  if (!shader)
-    return null
-
-  gl.shaderSource(shader, source)
-  gl.compileShader(shader)
-
-  if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-    console.error('EnergyCore shader error:', gl.getShaderInfoLog(shader))
-    gl.deleteShader(shader)
-    return null
-  }
-
-  return shader
-}
-
-onMounted(() => {
-  const canvas = canvasRef.value
-  if (!canvas)
+onMounted(async () => {
+  if (!containerRef.value)
     return
 
-  const gl = canvas.getContext('webgl', { alpha: true, antialias: true })
-  if (!gl) {
-    console.error('WebGL is unavailable')
+  const app = new Application()
+  pixiApp = app
+
+  await app.init({
+    width: 120,
+    height: 120,
+    backgroundAlpha: 0,
+    preference: 'webgl',
+    autoDensity: true,
+    resolution: window.devicePixelRatio || 1,
+  })
+
+  if (!containerRef.value || !pixiApp) {
+    app.destroy({ removeView: true, releaseGlobalResources: true }, { children: true })
     return
   }
 
-  const vert = createShader(gl, gl.VERTEX_SHADER, vertexSource)
-  const frag = createShader(gl, gl.FRAGMENT_SHADER, fragmentSource)
-  if (!vert || !frag)
-    return
+  containerRef.value.appendChild(app.canvas)
 
-  const program = gl.createProgram()
-  if (!program)
-    return
+  const uniforms = new UniformGroup({
+    uTime: { value: 0, type: 'f32' },
+  })
 
-  gl.attachShader(program, vert)
-  gl.attachShader(program, frag)
-  gl.linkProgram(program)
+  const shader = Shader.from({
+    gl: {
+      vertex: vertexSource,
+      fragment: fragmentSource,
+    },
+    resources: {
+      uniforms,
+    },
+  })
 
-  if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
-    console.error('EnergyCore program error:', gl.getProgramInfoLog(program))
-    return
-  }
-
-  gl.useProgram(program)
-
-  const buffer = gl.createBuffer()
-  gl.bindBuffer(gl.ARRAY_BUFFER, buffer)
-  gl.bufferData(
-    gl.ARRAY_BUFFER,
-    new Float32Array([
+  const geometry = new MeshGeometry({
+    positions: new Float32Array([
       -1, -1,
        1, -1,
       -1,  1,
-      -1,  1,
-       1, -1,
        1,  1,
     ]),
-    gl.STATIC_DRAW,
-  )
+    indices: new Uint32Array([0, 1, 2, 1, 3, 2]),
+  })
 
-  const posAttr = gl.getAttribLocation(program, 'position')
-  gl.enableVertexAttribArray(posAttr)
-  gl.vertexAttribPointer(posAttr, 2, gl.FLOAT, false, 0, 0)
-
-  const uTime = gl.getUniformLocation(program, 'uTime')
-
-  gl.enable(gl.BLEND)
-  gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
+  const mesh = new Mesh({ geometry, shader })
+  app.stage.addChild(mesh)
 
   const startTime = performance.now()
 
-  const render = () => {
-    if (!gl || !canvas)
-      return
-    gl.viewport(0, 0, canvas.width, canvas.height)
-    gl.clearColor(0, 0, 0, 0)
-    gl.clear(gl.COLOR_BUFFER_BIT)
-
-    const time = (performance.now() - startTime) * 0.001
-    gl.uniform1f(uTime, time)
-    gl.drawArrays(gl.TRIANGLES, 0, 6)
-
-    animId = requestAnimationFrame(render)
-  }
-
-  render()
+  app.ticker.add(() => {
+    uniforms.uniforms.uTime = (performance.now() - startTime) * 0.001
+  })
 })
 
 onBeforeUnmount(() => {
-  if (animId)
-    cancelAnimationFrame(animId)
+  if (pixiApp) {
+    pixiApp.destroy(
+      { removeView: true, releaseGlobalResources: true },
+      { children: true },
+    )
+    pixiApp = null
+  }
 })
 </script>
 
 <template>
-  <div class="energy-shader-wrapper">
-    <canvas ref="canvasRef" width="120" height="120" class="energy-canvas" />
-  </div>
+  <div ref="containerRef" class="energy-shader-wrapper" />
 </template>
 
 <style lang="scss" scoped>
@@ -118,13 +88,13 @@ onBeforeUnmount(() => {
   justify-content: center;
   pointer-events: none;
   z-index: 5;
-}
 
-.energy-canvas {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  animation: energy-canvas-breath 3.5s ease-in-out infinite alternate;
+  :deep(canvas) {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    animation: energy-canvas-breath 3.5s ease-in-out infinite alternate;
+  }
 }
 
 @keyframes energy-canvas-breath {
@@ -138,3 +108,4 @@ onBeforeUnmount(() => {
   }
 }
 </style>
+

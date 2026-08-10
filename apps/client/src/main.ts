@@ -9,7 +9,7 @@ import { vLongPress } from '~/01.shared/directives/long-press'
 import { vRipple } from '~/01.shared/directives/ripple'
 import { isTauri } from '~/01.shared/lib/env'
 import router from '~/01.shared/lib/router'
-import { initMonitoring, setupVueMonitoring } from '~/01.shared/services/monitoring.service.ts'
+import { initMonitoring, setupVueMonitoring, unpauseFaro } from '~/01.shared/services/monitoring.service.ts'
 import App from './app.vue'
 
 import '~/assets/scss/global.scss'
@@ -75,6 +75,10 @@ async function bootstrap() {
   await router.isReady()
 
   app.mount('#app')
+
+  // Разблокируем Faro после Critical Rendering Path —
+  // все накопленные события уйдут одним батчем
+  unpauseFaro()
 
   document.getElementById('app-preloader')?.remove()
 
