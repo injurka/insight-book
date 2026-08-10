@@ -69,6 +69,24 @@ services:
       - "traefik.http.services.insight-server.loadbalancer.server.port=4445"
       - "traefik.docker.network=trip-net"
 
+  insight-book-admin:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.admin
+    image: ${REGISTRY:-docker.io}/injurka/insight-book-admin:${V_ADMIN:-latest}
+    restart: unless-stopped
+    environment:
+      - VITE_API_URL=${VITE_API_URL:-}
+    networks:
+      - trip-net
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.insight-admin.rule=Host(`admin.insight-book.ru`)"
+      - "traefik.http.routers.insight-admin.entrypoints=websecure"
+      - "traefik.http.routers.insight-admin.tls.certresolver=letsencrypt"
+      - "traefik.http.services.insight-admin.loadbalancer.server.port=3335"
+      - "traefik.docker.network=trip-net"
+
 networks:
   trip-net:
     external: true

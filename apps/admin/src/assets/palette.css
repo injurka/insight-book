@@ -1,0 +1,57 @@
+:root {
+  /* BG - parchment and aged book shades */
+  --bg-primary-color: #f3efe9;
+  --bg-secondary-color: #e8e2d9;
+  --bg-tertiary-color: #d9d1c7;
+  --bg-header-color: 232, 226, 217;
+  --bg-disabled-color: #e8e2d9;
+  --bg-inverted-color: #4a443c;
+  --bg-accent-overlay-color: #4b826633;
+  --bg-accent-color: #e3eae6;
+  --bg-pressed-color: #4a443c0d;
+  --bg-overlay-primary-color: #8e867b36;
+  --bg-overlay-secondary-color: #a79c8edc;
+  --bg-action-hover-color: #5a9c7b;
+  --bg-hover-color: #d9d1c7;
+  --bg-focus-color: #e3eae6;
+  --bg-highlight-color: #f9f2d7;
+
+  /* BG STATUS - faded ink and old paper colors */
+  --bg-success-color: #e4eee6;
+  --bg-error-color: #f5e3e3;
+  --bg-warning-color: #fcf4dd;
+  --bg-info-color: #e0e7ee;
+
+  /* FG - dark, grey-brown tones like old ink */
+  --fg-primary-color: #4a443c;
+  --fg-secondary-color: #8e867b;
+  --fg-tertiary-color: #a79c8e;
+  --fg-muted-color: #4a443c66;
+  --fg-accent-color: #4b8266;
+  --fg-action-color: #4b8266;
+  --fg-inverted-color: #f3efe9;
+  --fg-disabled-color: #4a443c4d;
+  --fg-pressed-color: #4a443c;
+  --fg-highlight-color: #c2a14d;
+
+  /* FG STATUS */
+  --fg-success-color: #4b8266;
+  --fg-error-color: #c46d6d;
+  --fg-warning-color: #b38f2b;
+  --fg-info-color: #617a94;
+
+  /* Border - barely visible, elegant */
+  --border-primary-color: #c7c0b6;
+  --border-secondary-color: #d9d1c7;
+  --border-accent-color: #5a9c7b;
+  --border-disabled-color: #d9d1c7;
+  --border-button-secondary-color: #c0cec1;
+  --border-focus-color: #4b8266;
+  --border-pressed-color: #4b8266;
+
+  /* BORDER STATUS */
+  --border-success-color: #7dae94;
+  --border-error-color: #d49898;
+  --border-warning-color: #dac288;
+  --border-info-color: #95a9bd;
+}

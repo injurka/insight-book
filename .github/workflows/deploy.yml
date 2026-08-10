@@ -9,6 +9,7 @@ env:
   REGISTRY: docker.io
   CLIENT_IMAGE: injurka/insight-book-client
   SERVER_IMAGE: injurka/insight-book-server
+  ADMIN_IMAGE: injurka/insight-book-admin
 
 jobs:
   # ─── JOB 1: Сборка и пуш клиента ───────────────────────────────
@@ -87,6 +88,44 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+  # ─── JOB 2.1: Сборка и пуш админки ───────────────────────────────
+  build-admin:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v6
+        with:
+          images: ${{ env.ADMIN_IMAGE }}
+          tags: |
+            type=semver,pattern={{version}}
+            type=raw,value=latest
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v4
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Build & Push Admin
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: ./docker/Dockerfile.admin
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            APP_VERSION=${{ github.ref_name }}
+
   # ─── JOB 2.5: Деплой клиента на S3/CDN ──────────────────────────
   deploy-cdn:
     runs-on: ubuntu-latest
@@ -125,7 +164,7 @@ jobs:
   # ─── JOB 3: Деплой на VDS ───────────────────────────────────────
   deploy:
     runs-on: ubuntu-latest
-    needs: [build-client, build-server]
+    needs: [build-client, build-server, build-admin]
     steps:
       - name: Get version from tag
         id: version
@@ -143,15 +182,16 @@ jobs:
             
             export V_CLIENT=${{ steps.version.outputs.VERSION }}
             export V_SERVER=${{ steps.version.outputs.VERSION }}
+            export V_ADMIN=${{ steps.version.outputs.VERSION }}
 
-            docker compose pull insight-book-client insight-book-server
-            docker compose up -d --no-deps insight-book-client insight-book-server
+            docker compose pull insight-book-client insight-book-server insight-book-admin
+            docker compose up -d --no-deps insight-book-client insight-book-server insight-book-admin
             docker system prune -a -f --volumes
 
   # ─── JOB 4: Создание draft-релиза ──────────
   create-release:
     runs-on: ubuntu-latest
-    needs: [build-client, build-server]
+    needs: [build-client, build-server, build-admin]
     permissions:
       contents: write
     outputs:

@@ -1,5 +1,5 @@
 import type { CatalogPluginStatus } from '../constants/catalog-plugin'
-import { eq } from 'drizzle-orm'
+import { eq, sql } from 'drizzle-orm'
 import { db } from '../db'
 import * as schema from '../db/schema'
 
@@ -60,6 +60,14 @@ export class CatalogPluginRepository {
       .where(eq(schema.catalogPlugins.id, pluginId))
       .returning()
     return deleted.length > 0
+  }
+
+  async countPending() {
+    const result = await db.select({ count: sql<number>`count(*)` })
+      .from(schema.catalogPlugins)
+      .where(eq(schema.catalogPlugins.status, 'pending'))
+      .get()
+    return result?.count || 0
   }
 }
 

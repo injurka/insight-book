@@ -303,6 +303,35 @@ export class BookRepository implements IBookRepository {
       .where(and(eq(schema.mangaPages.bookId, bookId), eq(schema.mangaPages.pageNum, pageNum)))
       .get()
   }
+
+  async count() {
+    const result = await db.select({ count: sql<number>`count(*)` })
+      .from(schema.books)
+      .get()
+    return result?.count || 0
+  }
+
+  async countPendingPublic() {
+    const result = await db.select({ count: sql<number>`count(*)` })
+      .from(schema.books)
+      .where(and(
+        eq(schema.books.publicStatus, 'pending'),
+        eq(schema.books.isPublic, false),
+      ))
+      .get()
+    return result?.count || 0
+  }
+
+  async findPendingPublic() {
+    return db.query.books.findMany({
+      where: and(
+        eq(schema.books.publicStatus, 'pending'),
+        eq(schema.books.isPublic, false),
+      ),
+      with: { user: true },
+      orderBy: [desc(schema.books.createdAt)],
+    })
+  }
 }
 
 export const bookRepository = new BookRepository()

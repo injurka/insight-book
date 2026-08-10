@@ -5,6 +5,7 @@ import { Elysia } from 'elysia'
 import { corsHeadersFor, OTEL_EXPORTER_OTLP_ENDPOINT, PORT } from './config'
 
 import { activityRouter } from './controllers/activity.controller'
+import { adminRouter } from './controllers/admin.controller'
 import { authRouter, authUploadsRouter } from './controllers/auth.controller'
 import { bookController, ttsController, uploadsController } from './controllers/book.controller'
 import { catalogRouter } from './controllers/catalog.controller'
@@ -44,6 +45,7 @@ const app = new Elysia()
   .use(dictionaryController)
   .use(pluginRouter)
   .use(catalogRouter)
+  .use(adminRouter)
   .get('/health', () => ({ status: 'ok' }))
 
 Bun.serve({

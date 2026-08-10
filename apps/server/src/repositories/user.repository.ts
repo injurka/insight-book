@@ -1,5 +1,6 @@
+import type { SQL } from 'drizzle-orm'
 import type { IUserRepository } from './interfaces'
-import { eq, sql } from 'drizzle-orm'
+import { and, desc, eq, like, or, sql } from 'drizzle-orm'
 import { db } from '../db'
 import * as schema from '../db/schema'
 
@@ -65,6 +66,54 @@ export class UserRepository implements IUserRepository {
 
   async deleteEmailConfirmations(email: string) {
     await db.delete(schema.emailConfirmations).where(eq(schema.emailConfirmations.email, email))
+  }
+
+  async count() {
+    const result = await db.select({ count: sql<number>`count(*)` })
+      .from(schema.users)
+      .get()
+    return result?.count || 0
+  }
+
+  async countByRole(role: string) {
+    const result = await db.select({ count: sql<number>`count(*)` })
+      .from(schema.users)
+      .where(eq(schema.users.role, role))
+      .get()
+    return result?.count || 0
+  }
+
+  async list(opts: { limit: number, offset: number, search?: string }) {
+    const conditions: SQL[] = []
+    if (opts.search) {
+      conditions.push(
+        or(
+          like(schema.users.username, `%${opts.search}%`),
+          like(schema.users.email, `%${opts.search}%`),
+        )!,
+      )
+    }
+
+    const where = conditions.length > 0 ? and(...conditions) : undefined
+
+    const [usersResult, totalResult] = await Promise.all([
+      db.select()
+        .from(schema.users)
+        .where(where)
+        .orderBy(desc(schema.users.createdAt))
+        .limit(opts.limit)
+        .offset(opts.offset),
+      db.select({ count: sql<number>`count(*)` })
+        .from(schema.users)
+        .where(where)
+        .get(),
+    ])
+
+    return { users: usersResult, total: totalResult?.count || 0 }
+  }
+
+  async delete(id: number) {
+    await db.delete(schema.users).where(eq(schema.users.id, id))
   }
 }
 

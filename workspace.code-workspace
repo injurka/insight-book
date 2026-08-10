@@ -1,7 +1,7 @@
 {
 	"folders": [
 		{
-			"name": "📚",
+			"name": "~",
 			"path": "."
 		},
 		{
@@ -11,6 +11,10 @@
 		{
 			"name": "server",
 			"path": "apps/server"
+		},
+		{
+			"name": "admin",
+			"path": "apps/admin"
 		},
 		{
 			"name": "native",
