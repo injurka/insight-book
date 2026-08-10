@@ -118,14 +118,6 @@ export function initMonitoring() {
       version: packageJson.version,
       environment: import.meta.env.MODE || 'production',
     },
-    // Не шлём запросы во время загрузки страницы — копим в буфер
-    paused: true,
-    // Батчинг: шлём не чаще раза в 5 секунд, до 100 событий за раз
-    batching: {
-      enabled: true,
-      sendTimeout: 5000,
-      itemLimit: 100,
-    },
     instrumentations: [
       ...getWebInstrumentations(),
       new TracingInstrumentation({
@@ -139,14 +131,6 @@ export function initMonitoring() {
   })
 
   setupServerTimingObserver()
-}
-
-/**
- * Разблокирует отправку событий Faro после загрузки приложения.
- * Вызывается после app.mount(), чтобы аналитика не мешала Critical Rendering Path.
- */
-export function unpauseFaro() {
-  faro?.unpause()
 }
 
 export function setupVueMonitoring(app: App, router: Router) {

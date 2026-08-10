@@ -148,12 +148,15 @@ function generateAppConfig(distDir: string) {
   const apiUrl = process.env.VITE_API_URL || process.env.API_URL
   const faroUrl = process.env.VITE_FARO_URL || process.env.FARO_URL
 
-  const config: Record<string, string> = {}
+  const cdnUrl = process.env.VITE_CDN_URL || process.env.CDN_URL
   if (apiUrl)
     config.API_URL = apiUrl
 
   if (faroUrl)
     config.FARO_URL = faroUrl
+
+  if (cdnUrl)
+    config.CDN_URL = cdnUrl
 
   if (!existsSync(configsDir)) {
     mkdirSync(configsDir, { recursive: true })

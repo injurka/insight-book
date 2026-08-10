@@ -2,6 +2,7 @@
 interface AppRuntimeConfig {
   API_URL?: string
   FARO_URL?: string
+  CDN_URL?: string
 }
 
 const runtimeConfig = (window as { __APP_CONFIG__?: AppRuntimeConfig }).__APP_CONFIG__
@@ -13,7 +14,7 @@ export const API_URL = runtimeConfig?.API_URL || import.meta.env.VITE_API_URL ||
 export const FARO_URL = runtimeConfig?.FARO_URL || import.meta.env.VITE_FARO_URL || 'https://faro.limited-dissolve.ru/collect'
 
 /** Базовый URL CDN (Pull Zone) для раздачи загруженных файлов (манга, обложки, аватарки) */
-export const CDN_URL = import.meta.env.VITE_CDN_URL || ''
+export const CDN_URL = runtimeConfig?.CDN_URL || import.meta.env.VITE_CDN_URL || ''
 
 /** Приложение запущено внутри Tauri (десктоп или мобильное приложение) */
 export const isTauri = '__TAURI_INTERNALS__' in window

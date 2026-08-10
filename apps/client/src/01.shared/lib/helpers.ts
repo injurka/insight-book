@@ -1,21 +1,45 @@
 import { API_URL, CDN_URL } from '~/01.shared/lib/env'
 
-function getMediaUrl(path: string) {
-  if (path.startsWith('data:') || path.startsWith('http://') || path.startsWith('https://'))
-    return path
+function transformHttpUrl(path: string): string {
+  const apiUploadsRegex = new RegExp(`^${API_URL.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}/?(api/)?uploads/`, 'i')
 
-  if (
-    CDN_URL && (path.startsWith('/api/uploads/')
-      || path.startsWith('books/')
-      || path.startsWith('covers/')
-      || path.startsWith('avatars/'))
-  ) {
-    const cleanPath = path.replace(/^\/api\/uploads\//, '')
+  if (apiUploadsRegex.test(path)) {
+    const relativePath = path.replace(apiUploadsRegex, '')
+
+    return CDN_URL ? `${CDN_URL}/${relativePath}` : path
+  }
+
+  if (CDN_URL && /\/api\/uploads\//i.test(path)) {
+    const relativePath = path.replace(/^https?:\/\/[^/]+\/api\/uploads\//i, '')
+
+    return `${CDN_URL}/${relativePath}`
+  }
+
+  return path
+}
+
+function getMediaUrl(path?: string | null): string {
+  if (!path) {
+    return ''
+  }
+
+  if (path.startsWith('data:') || path.startsWith('blob:')) {
+    return path
+  }
+
+  if (path.startsWith('http://') || path.startsWith('https://')) {
+    return transformHttpUrl(path)
+  }
+
+  if (CDN_URL) {
+    const cleanPath = path.replace(/^\/?(api\/)?uploads\//, '').replace(/^\//, '')
 
     return `${CDN_URL}/${cleanPath}`
   }
 
-  return `${API_URL}${path}`
+  const cleanPath = path.startsWith('/') ? path : `/${path}`
+
+  return `${API_URL}${cleanPath}`
 }
 
 export function normalizeString(str: string): string {

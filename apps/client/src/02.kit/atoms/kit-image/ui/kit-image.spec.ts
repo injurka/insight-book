@@ -2,7 +2,11 @@ import { enableAutoUnmount, mount } from '@vue/test-utils'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import KitImage from './kit-image.vue'
 
-vi.mock('~/01.shared/lib/env', () => ({ API_URL: 'https://mock-api.com' }))
+vi.mock('~/01.shared/lib/env', async importOriginal => ({
+  ...(await importOriginal<typeof import('~/01.shared/lib/env')>()),
+  API_URL: 'https://mock-api.com',
+  CDN_URL: '',
+}))
 
 describe('kit-image', () => {
   enableAutoUnmount(afterEach)

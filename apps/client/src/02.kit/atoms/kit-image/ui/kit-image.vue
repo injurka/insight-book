@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Icon } from '@iconify/vue'
 import { computed, onMounted, ref, watch } from 'vue'
-import { API_URL } from '~/01.shared/lib/env'
+import { getMediaUrl } from '~/01.shared/lib/helpers'
 import { KitSkeleton } from '~/02.kit'
 
 interface Props {
@@ -38,16 +38,7 @@ onMounted(() => {
   }
 })
 
-const resolvedSrc = computed(() => {
-  if (!props.src)
-    return ''
-  if (props.src.startsWith('data:') || props.src.startsWith('http') || props.src.startsWith('blob:'))
-    return props.src
-
-  const BASE = API_URL
-
-  return `${BASE}${props.src}`
-})
+const resolvedSrc = computed(() => getMediaUrl(props.src))
 
 watch(() => props.src, () => {
   isLoaded.value = false
