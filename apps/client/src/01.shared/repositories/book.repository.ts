@@ -45,7 +45,7 @@ export class DefaultBookRepository implements IBookRepository {
 
     try {
       const raw = await api.books.list()
-      const data = applyAcl(z.array(BookSchema), raw, 'book.list()')
+      const data = applyAcl(z.array(BookSchema), raw.data, 'book.list()')
       await offlineService.saveBooksList(data).catch(() => {})
 
       return data

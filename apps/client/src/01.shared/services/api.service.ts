@@ -132,7 +132,7 @@ export const api = {
     }),
   },
   books: {
-    list: async () => request<Book[]>('/api/books'),
+    list: async () => request<{ data: Book[], total: number, page: number, limit: number }>('/api/books'),
     getPublic: async (query: string) => request<{ data: Book[], total: number, page: number, limit: number }>(`/api/books?${query}`),
 
     getInfo: async (id: number) => request<Book>(`/api/books/${id}/info`),
