@@ -84,7 +84,8 @@
     "goOnline": "在线连接",
     "tryOnline": "尝试在线连接",
     "offlineDialogTitle": "离线模式",
-    "offlineDialogDesc": "您当前处于离线模式。您可以重新连接网络并重试。"
+    "offlineDialogDesc": "您当前处于离线模式。您可以重新连接网络并重试。",
+    "needOnline": "您需要先联网"
   },
   "kit": {
     "dialog": {

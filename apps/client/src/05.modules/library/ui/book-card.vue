@@ -3,8 +3,10 @@ import type { Book } from '~/01.shared/types/models'
 import { Icon } from '@iconify/vue'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useToast } from '~/01.shared/composables/use-toast'
 import { BOOK_COVER_TRANSITION_NAME, coverTransitionBookId } from '~/01.shared/lib/view-transitions'
 import { useAuthStore } from '~/01.shared/store/auth.store'
+import { useNetworkStore } from '~/01.shared/store/network.store'
 import { KitImage } from '~/02.kit/atoms/kit-image/ui'
 import { KitTooltip } from '~/02.kit/molecules/kit-tooltip/ui'
 import { BookEntity } from '~/03.domain/entities/book.entity'
@@ -21,7 +23,19 @@ const emit = defineEmits<{
 }>()
 
 const authStore = useAuthStore()
+const networkStore = useNetworkStore()
+const toast = useToast()
 const { t } = useI18n()
+
+function handleEditClick() {
+  if (networkStore.effectiveOffline) {
+    toast.warn(t('network.needOnline'))
+
+    return
+  }
+
+  emit('edit')
+}
 
 const progressPercent = computed(() => {
   const entity = new BookEntity(props.book)
@@ -85,9 +99,9 @@ const coverTransitionStyle = computed(() =>
             <button
               class="edit-btn"
               :aria-label="book.userId === authStore.user.id ? t('library.edit') : t('library.removeFromLibrary')"
-              @click.stop="emit('edit')"
-              @keydown.enter.stop="emit('edit')"
-              @keydown.space.prevent.stop="emit('edit')"
+              @click.stop="handleEditClick"
+              @keydown.enter.stop="handleEditClick"
+              @keydown.space.prevent.stop="handleEditClick"
             >
               <Icon :icon="book.userId === authStore.user.id ? 'mdi:dots-vertical' : 'mdi:close'" />
             </button>

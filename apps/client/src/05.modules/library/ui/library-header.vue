@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useToast } from '~/01.shared/composables/use-toast'
 import { useAuthStore } from '~/01.shared/store/auth.store'
+import { useNetworkStore } from '~/01.shared/store/network.store'
 import { KitBtn } from '~/02.kit/atoms/kit-btn/ui'
 import { KitInput } from '~/02.kit/atoms/kit-input/ui'
 import { KitSelect } from '~/02.kit/molecules/kit-select/ui'
@@ -29,8 +31,20 @@ const lang = defineModel<string>('lang', { required: true })
 const tag = defineModel<string>('tag')
 
 const authStore = useAuthStore()
+const networkStore = useNetworkStore()
+const toast = useToast()
 const { t } = useI18n()
 const isMobileFiltersOpen = ref(false)
+
+function handleOpenUploadModal() {
+  if (networkStore.effectiveOffline) {
+    toast.warn(t('network.needOnline'))
+
+    return
+  }
+
+  emit('openUploadModal')
+}
 </script>
 
 <template>
@@ -101,7 +115,7 @@ const isMobileFiltersOpen = ref(false)
             v-if="authStore.user"
             icon="mdi:upload"
             color="primary"
-            @click="emit('openUploadModal')"
+            @click="handleOpenUploadModal"
           >
             {{ t('library.addBook') }}
           </KitBtn>

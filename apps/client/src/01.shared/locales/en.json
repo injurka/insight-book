@@ -84,7 +84,8 @@
     "goOnline": "Go Online",
     "tryOnline": "Try connecting online",
     "offlineDialogTitle": "Offline Mode",
-    "offlineDialogDesc": "You are currently working in offline mode. You can switch back online and reconnect."
+    "offlineDialogDesc": "You are currently working in offline mode. You can switch back online and reconnect.",
+    "needOnline": "You need to go online first"
   },
   "kit": {
     "dialog": {

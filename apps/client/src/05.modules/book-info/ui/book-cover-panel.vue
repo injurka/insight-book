@@ -3,9 +3,11 @@ import { Icon } from '@iconify/vue'
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
+import { useToast } from '~/01.shared/composables/use-toast'
 import { AppRoutePaths } from '~/01.shared/constants/routes'
 import { BOOK_COVER_TRANSITION_NAME, coverTransitionBookId } from '~/01.shared/lib/view-transitions'
 import { useAuthStore } from '~/01.shared/store/auth.store'
+import { useNetworkStore } from '~/01.shared/store/network.store'
 import { KitBtn } from '~/02.kit/atoms/kit-btn/ui'
 import { KitImage } from '~/02.kit/atoms/kit-image/ui'
 import { useLibraryStore } from '~/05.modules/library/store/library.store'
@@ -18,8 +20,40 @@ const emit = defineEmits<{
 
 const libraryStore = useLibraryStore()
 const authStore = useAuthStore()
+const networkStore = useNetworkStore()
+const toast = useToast()
 const router = useRouter()
 const { t } = useI18n()
+
+function handleOpenSync() {
+  if (networkStore.effectiveOffline) {
+    toast.warn(t('network.needOnline'))
+
+    return
+  }
+
+  emit('openSync')
+}
+
+function handleEditStats() {
+  if (networkStore.effectiveOffline) {
+    toast.warn(t('network.needOnline'))
+
+    return
+  }
+
+  emit('editStats')
+}
+
+function handleOpenAppendChapter() {
+  if (networkStore.effectiveOffline) {
+    toast.warn(t('network.needOnline'))
+
+    return
+  }
+
+  emit('openAppendChapter')
+}
 
 const coverInputRef = ref<HTMLInputElement | null>(null)
 
@@ -98,7 +132,7 @@ async function startReading() {
         color="secondary"
         class="full-width"
         icon="mdi:cloud-download-outline"
-        @click="emit('openSync')"
+        @click="handleOpenSync"
       >
         {{ t('bookInfo.cacheAnalysis') }}
       </KitBtn>
@@ -109,7 +143,7 @@ async function startReading() {
         color="accent"
         class="full-width"
         icon="mdi:image-plus"
-        @click="emit('openAppendChapter')"
+        @click="handleOpenAppendChapter"
       >
         {{ t('bookInfo.addPages') }}
       </KitBtn>
@@ -119,7 +153,7 @@ async function startReading() {
         variant="text"
         size="sm"
         class="edit-btn"
-        @click="emit('editStats')"
+        @click="handleEditStats"
       >
         {{ t('bookInfo.edit') }}
       </KitBtn>

@@ -56,18 +56,6 @@ describe('kit-toast-item.vue', () => {
     expect(wrapper.classes()).toContain('kit-toast-item--error')
   })
 
-  it('emits remove event when close button is clicked', async () => {
-    const wrapper = mount(KitToastItem, {
-      props: { message: defaultMessage },
-    })
-
-    const closeBtn = wrapper.find('.kit-toast-item-close-btn')
-    await closeBtn.trigger('click')
-
-    expect(wrapper.emitted('remove')).toBeTruthy()
-    expect(wrapper.emitted('remove')).toHaveLength(1)
-  })
-
   it('renders action button if action is provided and handles click', async () => {
     const onClickSpy = vi.fn()
     const messageWithAction = {

@@ -10,6 +10,7 @@ import { useTts } from '~/01.shared/composables/use-tts'
 import { POS_TAGS_MAP } from '~/01.shared/constants/pos-tags'
 import { useAnalysisStore } from '~/01.shared/store/analysis/analysis.store.ts'
 import { useAuthStore } from '~/01.shared/store/auth.store'
+import { useNetworkStore } from '~/01.shared/store/network.store'
 import { KitBtn } from '~/02.kit/atoms/kit-btn/ui'
 import { KitSkeleton } from '~/02.kit/atoms/kit-skeleton/ui'
 import { KitDropdown } from '~/02.kit/molecules/kit-dropdown/ui'
@@ -22,6 +23,7 @@ const repos = useRepos()
 
 const analysisStore = useAnalysisStore()
 const authStore = useAuthStore()
+const networkStore = useNetworkStore()
 const { speak, stop, isPlaying, isLoading } = useTts()
 const toast = useToast()
 const { t } = useI18n()
@@ -107,7 +109,23 @@ watch(() => analysisStore.wordPopover, (val) => {
     stop()
 })
 
+function handleDetailedWithAi(toggle: () => void) {
+  if (networkStore.effectiveOffline) {
+    toast.warn(t('network.needOnline'))
+
+    return
+  }
+
+  toggle()
+}
+
 function openSaveDialog() {
+  if (networkStore.effectiveOffline) {
+    toast.warn(t('network.needOnline'))
+
+    return
+  }
+
   if (!analysisStore.wordPopover)
     return
   analysisStore.openAddEditWordModal(analysisStore.wordPopover)
@@ -123,6 +141,12 @@ function playWordTTS() {
 }
 
 async function fetchAiExamples() {
+  if (networkStore.effectiveOffline) {
+    toast.warn(t('network.needOnline'))
+
+    return
+  }
+
   if (!analysisStore.wordPopover?.word)
     return
   const word = analysisStore.wordPopover.word
@@ -146,6 +170,12 @@ async function fetchAiExamples() {
 }
 
 function openFreeQuestion() {
+  if (networkStore.effectiveOffline) {
+    toast.warn(t('network.needOnline'))
+
+    return
+  }
+
   if (!analysisStore.wordPopover?.word)
     return
   chatWord.value = analysisStore.wordPopover.word
@@ -251,7 +281,7 @@ onUnmounted(() => {
               />
             </KitTooltip>
 
-            <KitDropdown placement="top" width="240px">
+            <KitDropdown placement="top" width="250px">
               <template #activator="{ props: { isOpen, toggle } }">
                 <KitTooltip :text="t('analysis.detailedWithAi')" placement="bottom">
                   <KitBtn
@@ -259,7 +289,7 @@ onUnmounted(() => {
                     size="xs"
                     variant="text"
                     :class="{ 'is-active-ai': isOpen }"
-                    @click.stop="toggle"
+                    @click.stop="handleDetailedWithAi(toggle)"
                   />
                 </KitTooltip>
               </template>

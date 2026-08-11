@@ -66,9 +66,18 @@ const { t } = useI18n()
         </span>
       </div>
       <div class="highlight-actions" @click.stop>
-        <PronunciationCheck :word="highlight.text" :language="book.language" variant="button" />
+        <PronunciationCheck
+          :word="highlight.text"
+          :language="book.language"
+          btn-color="secondary"
+          btn-variant="text"
+          variant="button"
+        />
         <!-- TTS Audio Playback Button -->
-        <KitTooltip :text="activeTtsId === highlight.id && isPlayingTts ? t('bookInfo.stop') : t('notebook.speak')" placement="top">
+        <KitTooltip
+          :text="activeTtsId === highlight.id && isPlayingTts ? t('bookInfo.stop') : t('notebook.speak')"
+          placement="top"
+        >
           <KitBtn
             class="tts-speak-btn"
             :icon="activeTtsId === highlight.id && isPlayingTts ? 'mdi:stop' : 'mdi:volume-high'"
@@ -83,7 +92,11 @@ const { t } = useI18n()
         </KitTooltip>
 
         <!-- AI Translate Button -->
-        <KitTooltip v-if="!highlight.translation" :text="translatingId === highlight.id ? t('notebook.translating') : t('notebook.aiTranslate')" placement="top">
+        <KitTooltip
+          v-if="!highlight.translation"
+          :text="translatingId === highlight.id ? t('notebook.translating') : t('notebook.aiTranslate')"
+          placement="top"
+        >
           <KitBtn
             class="ai-translate-btn"
             icon="mdi:translate"

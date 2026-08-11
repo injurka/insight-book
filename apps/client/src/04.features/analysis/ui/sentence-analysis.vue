@@ -4,9 +4,11 @@ import type { LlmAnalysis } from '~/01.shared/types/models'
 import { Icon } from '@iconify/vue'
 import { computed, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useToast } from '~/01.shared/composables/use-toast'
 import { useTts } from '~/01.shared/composables/use-tts'
 import { normalizeString } from '~/01.shared/lib/helpers'
 import { useAnalysisStore } from '~/01.shared/store/analysis/analysis.store'
+import { useNetworkStore } from '~/01.shared/store/network.store'
 import { KitSkeleton } from '~/02.kit/atoms/kit-skeleton/ui'
 import { KitTooltip } from '~/02.kit/molecules/kit-tooltip/ui'
 import { KitDialog } from '~/02.kit/organisms/kit-dialog/ui'
@@ -17,6 +19,8 @@ import { useReaderStore } from '~/05.modules/reader/store/reader.store'
 
 const { t } = useI18n()
 const analysisStore = useAnalysisStore()
+const networkStore = useNetworkStore()
+const toast = useToast()
 const { speak, stop, isPlaying, isLoading } = useTts()
 const readerStore = useReaderStore()
 const libraryStore = useLibraryStore()
@@ -90,6 +94,12 @@ async function toggleHighlight() {
 
   if (matchingHighlight.value) {
     await highlightsStore.deleteHighlight(matchingHighlight.value.id)
+
+    return
+  }
+
+  if (networkStore.effectiveOffline) {
+    toast.warn(t('network.needOnline'))
 
     return
   }

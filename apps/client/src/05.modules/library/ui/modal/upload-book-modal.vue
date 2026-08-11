@@ -4,6 +4,7 @@ import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useToast } from '~/01.shared/composables/use-toast'
 import { useAuthStore } from '~/01.shared/store/auth.store'
+import { useNetworkStore } from '~/01.shared/store/network.store'
 import { KitBtn } from '~/02.kit/atoms/kit-btn/ui'
 import { KitInput } from '~/02.kit/atoms/kit-input/ui'
 import { KitSelect } from '~/02.kit/molecules/kit-select/ui'
@@ -14,6 +15,7 @@ import { useLibraryStore } from '../../store/library.store'
 const visible = defineModel<boolean>('visible', { required: true })
 const store = useLibraryStore()
 const toast = useToast()
+const networkStore = useNetworkStore()
 const { t } = useI18n()
 const authStore = useAuthStore()
 
@@ -45,10 +47,22 @@ const langOptions = computed(() => [
 const archiveInputRef = ref<HTMLInputElement | null>(null)
 
 function triggerArchiveUpload() {
+  if (networkStore.effectiveOffline) {
+    toast.warn(t('network.needOnline'))
+
+    return
+  }
+
   archiveInputRef.value?.click()
 }
 
 async function onArchiveSelected(e: Event) {
+  if (networkStore.effectiveOffline) {
+    toast.warn(t('network.needOnline'))
+
+    return
+  }
+
   const target = e.target as HTMLInputElement
   if (target.files && target.files.length > 0) {
     const file = target.files[0]
@@ -99,6 +113,12 @@ const canSubmitManga = computed(() => {
 })
 
 async function submitCustomManga() {
+  if (networkStore.effectiveOffline) {
+    toast.warn(t('network.needOnline'))
+
+    return
+  }
+
   if (!canSubmitManga.value)
     return
 

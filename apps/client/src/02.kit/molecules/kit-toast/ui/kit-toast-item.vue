@@ -60,18 +60,14 @@ function handleAction() {
         {{ message.action.label }}
       </button>
     </div>
-    <button
-      class="kit-toast-item-close-btn"
-      @click.stop="emit('remove')"
-    >
-      &times;
-    </button>
   </div>
 </template>
 
 <style lang="scss">
 .kit-toast-item {
-  margin-left: auto;
+  width: 100%;
+  max-width: 350px;
+  min-width: 300px;
   padding: 16px;
   box-shadow: var(--s-m);
   pointer-events: all;
@@ -88,14 +84,12 @@ function handleAction() {
   font-weight: 500;
   line-height: 1.4;
   opacity: 1;
-  max-width: 350px;
-  min-width: 300px;
-  transition: all 0.3s cubic-bezier(0.22, 1, 0.36, 1);
   border: 1px solid transparent;
   transform-origin: right center;
 
   @include media-down(sm) {
     padding: 16px;
+    min-width: 0;
   }
 
   &:active {
@@ -133,23 +127,6 @@ function handleAction() {
     }
   }
 
-  &-close-btn {
-    background: none;
-    border: none;
-    color: inherit;
-    opacity: 0.7;
-    font-size: 1.5rem;
-    line-height: 1;
-    padding: 0 0.5rem;
-    cursor: pointer;
-    align-self: flex-start;
-    margin: -0.5rem -0.5rem -0.5rem 0;
-
-    &:hover {
-      opacity: 1;
-    }
-  }
-
   &--error {
     background: var(--bg-error-color);
     color: var(--fg-error-color);
@@ -169,6 +146,7 @@ function handleAction() {
     background: var(--bg-secondary-color);
     color: var(--fg-primary-color);
     border-color: var(--border-primary-color);
+
     .action-btn {
       background: var(--bg-tertiary-color);
       &:hover {

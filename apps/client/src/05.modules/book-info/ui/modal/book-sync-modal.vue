@@ -3,6 +3,8 @@ import { Icon } from '@iconify/vue'
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useAppWakeLock } from '~/01.shared/composables/use-app-wake-lock'
+import { useToast } from '~/01.shared/composables/use-toast'
+import { useNetworkStore } from '~/01.shared/store/network.store'
 import { KitBtn } from '~/02.kit/atoms/kit-btn/ui'
 import { KitCheckbox } from '~/02.kit/atoms/kit-checkbox/ui'
 import { KitDialog } from '~/02.kit/organisms/kit-dialog/ui'
@@ -15,6 +17,8 @@ interface Props {
 const props = defineProps<Props>()
 const visible = defineModel<boolean>('visible', { required: true })
 const libraryStore = useLibraryStore()
+const networkStore = useNetworkStore()
+const toast = useToast()
 const { t } = useI18n()
 
 const options = ref({
@@ -50,6 +54,12 @@ const syncStateClass = computed(() => {
 })
 
 function start() {
+  if (networkStore.effectiveOffline) {
+    toast.warn(t('network.needOnline'))
+
+    return
+  }
+
   libraryStore.startWholeBookSync(props.bookId, options.value)
 }
 

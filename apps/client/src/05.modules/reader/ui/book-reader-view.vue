@@ -4,8 +4,10 @@ import { computed, nextTick, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useAppWakeLock } from '~/01.shared/composables/use-app-wake-lock'
 import { useDelayedLoading } from '~/01.shared/composables/use-delayed-loading'
+import { useToast } from '~/01.shared/composables/use-toast'
 import { lazyComponent } from '~/01.shared/lib/lazy-component'
 import { useAnalysisStore } from '~/01.shared/store/analysis/analysis.store'
+import { useNetworkStore } from '~/01.shared/store/network.store'
 import { useGlobalSettingsStore } from '~/01.shared/store/settings.store'
 import { KitBtn } from '~/02.kit/atoms/kit-btn/ui'
 import { KitCheckbox } from '~/02.kit/atoms/kit-checkbox/ui'
@@ -36,6 +38,8 @@ const GrammarPopover = lazyComponent(() => import('~/04.features/analysis/ui/pop
 const readerStore = useReaderStore()
 const analysisStore = useAnalysisStore()
 const settingsStore = useGlobalSettingsStore()
+const networkStore = useNetworkStore()
+const toast = useToast()
 const { t } = useI18n()
 const readerViewRef = useTemplateRef<HTMLElement>('readerViewRef')
 useAppWakeLock(() => analysisStore.isManualPageAnalysisActive || analysisStore.isAutoPageAnalysisActive)
@@ -61,6 +65,12 @@ const { leftPaneContent, translatedPageContent, pageTranslationProgress } = useR
 useQuoteHighlights(readerViewRef, [leftPaneContent, translatedPageContent])
 
 function startPageTranslationOnly() {
+  if (networkStore.effectiveOffline) {
+    toast.warn(t('network.needOnline'))
+
+    return
+  }
+
   analysisStore.analyzeWholePage({
     sentences: true,
     words: false,
@@ -70,6 +80,12 @@ function startPageTranslationOnly() {
 }
 
 function startPageAnalysis() {
+  if (networkStore.effectiveOffline) {
+    toast.warn(t('network.needOnline'))
+
+    return
+  }
+
   analysisStore.isPageAnalysisSetupModalOpen = false
 
   if (analysisStore.isManualPageAnalysisActive) {

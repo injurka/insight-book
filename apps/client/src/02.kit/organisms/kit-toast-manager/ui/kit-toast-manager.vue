@@ -33,12 +33,15 @@ const { remove } = toastStore
   z-index: var(--z-toast, 1500);
   display: flex;
   flex-direction: column;
+  align-items: flex-end;
   gap: 8px;
   pointer-events: none;
   width: 350px;
+  max-width: calc(100vw - 32px);
 
   @include media-down(sm) {
     left: 16px;
+    right: 16px;
     width: auto;
   }
 }
@@ -57,6 +60,7 @@ const { remove } = toastStore
 
 .kit-toast-fade-leave-active {
   position: absolute;
+  right: 0;
   width: 100%;
 }
 </style>

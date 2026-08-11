@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { Icon } from '@iconify/vue'
 import { useI18n } from 'vue-i18n'
+import { useToast } from '~/01.shared/composables/use-toast'
 import { useAuthStore } from '~/01.shared/store/auth.store'
+import { useNetworkStore } from '~/01.shared/store/network.store'
 import { useGlobalSettingsStore } from '~/01.shared/store/settings.store'
 import { KitBtn } from '~/02.kit/atoms/kit-btn/ui'
 import { KitCheckbox } from '~/02.kit/atoms/kit-checkbox/ui'
@@ -13,7 +15,19 @@ import { useCustomModels } from '../../composables/use-custom-models'
 const { t } = useI18n()
 const settingsStore = useGlobalSettingsStore()
 const authStore = useAuthStore()
+const networkStore = useNetworkStore()
+const toast = useToast()
 const { availableModels, isFetchingModels, fetchModels } = useCustomModels()
+
+function toggleAutoAnalyzePage() {
+  if (networkStore.effectiveOffline) {
+    toast.warn(t('network.needOnline'))
+
+    return
+  }
+
+  settingsStore.autoAnalyzePage = !settingsStore.autoAnalyzePage
+}
 </script>
 
 <template>
@@ -73,8 +87,8 @@ const { availableModels, isFetchingModels, fetchModels } = useCustomModels()
       </Transition>
     </template>
 
-    <div class="llm-toggle">
-      <KitCheckbox v-model="settingsStore.autoAnalyzePage" :label="t('settings.autoAnalyzePage')" />
+    <div class="llm-toggle" :class="{ 'is-disabled': networkStore.effectiveOffline }" @click="toggleAutoAnalyzePage">
+      <KitCheckbox :model-value="settingsStore.autoAnalyzePage" :label="t('settings.autoAnalyzePage')" style="pointer-events: none;" />
     </div>
 
     <div class="custom-llm-form" :class="{ 'is-disabled': !settingsStore.autoAnalyzePage }">
@@ -161,6 +175,10 @@ const { availableModels, isFetchingModels, fetchModels } = useCustomModels()
   display: flex;
   flex-direction: column;
   gap: 16px;
+  .llm-toggle.is-disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
   .custom-llm-form {
     display: flex;
     flex-direction: column;

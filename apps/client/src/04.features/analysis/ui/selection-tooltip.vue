@@ -3,8 +3,10 @@ import type { LlmAnalysis } from '~/01.shared/types/models'
 import { Icon } from '@iconify/vue'
 import { useDebounceFn } from '@vueuse/core'
 import { useI18n } from 'vue-i18n'
+import { useToast } from '~/01.shared/composables/use-toast'
 import { useTts } from '~/01.shared/composables/use-tts'
 import { useAnalysisStore } from '~/01.shared/store/analysis/analysis.store'
+import { useNetworkStore } from '~/01.shared/store/network.store'
 import { useGlobalSettingsStore } from '~/01.shared/store/settings.store'
 import { QuoteModal } from '~/04.features/quote-modal'
 import { useHighlightsStore } from '~/05.modules/reader/store/highlights.store'
@@ -13,6 +15,8 @@ import { useReaderStore } from '~/05.modules/reader/store/reader.store'
 const highlightsStore = useHighlightsStore()
 const readerStore = useReaderStore()
 const analysisStore = useAnalysisStore()
+const networkStore = useNetworkStore()
+const toast = useToast()
 
 const isSavingHighlight = ref(false)
 
@@ -164,6 +168,12 @@ function getSelectionContext(text: string): string {
 }
 
 function analyzeFragment() {
+  if (networkStore.effectiveOffline) {
+    toast.warn(t('network.needOnline'))
+
+    return
+  }
+
   if (!analysisStore.selectionTooltip)
     return
   const text = analysisStore.selectionTooltip.text
@@ -178,6 +188,12 @@ function analyzeFragment() {
 }
 
 function playTTS() {
+  if (networkStore.effectiveOffline) {
+    toast.warn(t('network.needOnline'))
+
+    return
+  }
+
   if (!analysisStore.selectionTooltip)
     return
 

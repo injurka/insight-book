@@ -4,9 +4,11 @@ import { useFullscreen } from '@vueuse/core'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ThemesVariant, useChangeTheme } from '~/01.shared/composables/use-change-theme'
+import { useToast } from '~/01.shared/composables/use-toast'
 import { useTts } from '~/01.shared/composables/use-tts'
 import { isMobileApp as isApk } from '~/01.shared/lib/env'
 import { useAnalysisStore } from '~/01.shared/store/analysis/analysis.store'
+import { useNetworkStore } from '~/01.shared/store/network.store'
 import { useGlobalSettingsStore } from '~/01.shared/store/settings.store'
 import { KitBtn } from '~/02.kit/atoms/kit-btn/ui'
 import { KitCheckbox } from '~/02.kit/atoms/kit-checkbox/ui'
@@ -21,13 +23,31 @@ const emit = defineEmits<{
 const readerStore = useReaderStore()
 const analysisStore = useAnalysisStore()
 const settingsStore = useGlobalSettingsStore()
+const networkStore = useNetworkStore()
+const toast = useToast()
 const { t } = useI18n()
 const { speak, stop, isPlaying, isLoading } = useTts()
 
 const { theme, toggleTheme } = useChangeTheme()
 const { isFullscreen, toggle: toggleFullscreen } = useFullscreen()
 
+function toggleAutoAnalyzePage() {
+  if (networkStore.effectiveOffline) {
+    toast.warn(t('network.needOnline'))
+
+    return
+  }
+
+  settingsStore.autoAnalyzePage = !settingsStore.autoAnalyzePage
+}
+
 function openPageAnalysisModal() {
+  if (networkStore.effectiveOffline) {
+    toast.warn(t('network.needOnline'))
+
+    return
+  }
+
   emit('closeDropdown')
   if (analysisStore.isManualPageAnalysisActive)
     analysisStore.isPageAnalysisModalOpen = true
@@ -164,12 +184,17 @@ const currentThemeName = computed(() => {
         <span class="value-badge">{{ settingsStore.ttsSpeed }}x</span>
       </div>
 
-      <div v-if="readerStore.currentBook?.language !== settingsStore.appLanguage" class="menu-item" @click="settingsStore.autoAnalyzePage = !settingsStore.autoAnalyzePage">
+      <div
+        v-if="readerStore.currentBook?.language !== settingsStore.appLanguage"
+        class="menu-item"
+        :class="{ 'is-disabled': networkStore.effectiveOffline }"
+        @click="toggleAutoAnalyzePage"
+      >
         <div class="item-label">
           <Icon icon="mdi:robot-outline" class="item-icon" />
           <span>{{ t('settings.autoAnalyzePage') }}</span>
         </div>
-        <KitCheckbox v-model="settingsStore.autoAnalyzePage" class="readonly-checkbox" />
+        <KitCheckbox :model-value="settingsStore.autoAnalyzePage" class="readonly-checkbox" />
       </div>
 
       <div class="menu-item" @click="settingsStore.highlightSavedQuotes = !settingsStore.highlightSavedQuotes">
@@ -312,6 +337,19 @@ const currentThemeName = computed(() => {
     .value-badge {
       background-color: rgba(128, 128, 128, 0.2);
       color: var(--fg-primary-color);
+    }
+  }
+
+  &.is-disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+
+    &:hover {
+      background-color: transparent;
+
+      .item-icon {
+        color: var(--fg-secondary-color);
+      }
     }
   }
 }
