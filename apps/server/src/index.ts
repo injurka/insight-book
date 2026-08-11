@@ -58,13 +58,23 @@ Bun.serve({
     const origin = req.headers.get('Origin') || req.headers.get('origin')
 
     if (req.method === 'OPTIONS') {
+      const requestHeaders = req.headers.get('access-control-request-headers') || req.headers.get('Access-Control-Request-Headers')
+
       return new Response(null, {
         status: 204,
-        headers: corsHeadersFor(origin),
+        headers: corsHeadersFor(origin, requestHeaders),
       })
     }
 
-    return app.handle(req).then(res => withCors(res, origin))
+    const startTime = performance.now()
+    return app.handle(req).then((res) => {
+      const duration = (performance.now() - startTime).toFixed(1)
+      const url = new URL(req.url).pathname
+      if (!url.startsWith('/health')) {
+        logger.info(`[HTTP] ${req.method} ${url} ${res.status} - ${duration}ms`)
+      }
+      return withCors(res, origin)
+    })
   },
   error(err: unknown) {
     logger.error(err, '[Server Error]')

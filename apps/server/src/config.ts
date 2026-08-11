@@ -196,13 +196,24 @@ export function isAllowedOrigin(origin: string | null): boolean {
 export const CORS_HEADERS = {
   'Access-Control-Allow-Origin': FRONTEND_URL,
   'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, HEAD, OPTIONS, DELETE',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization, Accept, X-Custom-Llm-Url, X-Custom-Llm-Key, X-Custom-Llm-Model',
-  'Access-Control-Expose-Headers': 'Server-Timing',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization, Accept, X-Custom-Llm-Url, X-Custom-Llm-Key, X-Custom-Llm-Model, traceparent, tracestate, baggage, X-Requested-With, X-App-Language',
+  'Access-Control-Expose-Headers': 'Server-Timing, Content-Disposition, Content-Length',
+  'Access-Control-Max-Age': '86400',
 }
 
 // CORS headers with Allow-Origin resolved against the request origin.
-export function corsHeadersFor(origin: string | null): Record<string, string> {
+export function corsHeadersFor(origin: string | null, requestHeaders?: string | null): Record<string, string> {
   const allowOrigin = origin && isAllowedOrigin(origin) ? origin : FRONTEND_URL
 
-  return { ...CORS_HEADERS, 'Access-Control-Allow-Origin': allowOrigin, 'Vary': 'Origin' }
+  const headers: Record<string, string> = {
+    ...CORS_HEADERS,
+    'Access-Control-Allow-Origin': allowOrigin,
+    'Vary': 'Origin',
+  }
+
+  if (requestHeaders) {
+    headers['Access-Control-Allow-Headers'] = requestHeaders
+  }
+
+  return headers
 }

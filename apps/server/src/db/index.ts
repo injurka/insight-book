@@ -40,6 +40,14 @@ if (UPLOAD_STORAGE === 'local') {
 // 1. ИНИЦИАЛИЗАЦИЯ ПОДКЛЮЧЕНИЯ
 // ============================================================================
 export const client = createClient({ url: DATABASE_URL, authToken: DATABASE_AUTH_TOKEN })
+
+if (DATABASE_URL.startsWith('file:')) {
+  await client.execute('PRAGMA journal_mode = WAL')
+  await client.execute('PRAGMA synchronous = NORMAL')
+  await client.execute('PRAGMA busy_timeout = 5000')
+  await client.execute('PRAGMA cache_size = -64000')
+  await client.execute('PRAGMA temp_store = MEMORY')
+}
 await client.execute('PRAGMA foreign_keys = ON')
 
 export const db = drizzle(client, { schema, logger: false })

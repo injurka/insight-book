@@ -18,6 +18,13 @@ export const catalogDb = drizzle(catalogClient, { schema: catalogSchema, logger:
 instrumentDrizzleClient(catalogDb)
 
 export async function initCatalogDb() {
+  if (CATALOG_DATABASE_URL.startsWith('file:')) {
+    await catalogClient.execute('PRAGMA journal_mode = WAL')
+    await catalogClient.execute('PRAGMA synchronous = NORMAL')
+    await catalogClient.execute('PRAGMA busy_timeout = 5000')
+    await catalogClient.execute('PRAGMA cache_size = -64000')
+    await catalogClient.execute('PRAGMA temp_store = MEMORY')
+  }
   await catalogClient.execute('PRAGMA foreign_keys = ON')
   await catalogClient.batch([
     `CREATE TABLE IF NOT EXISTS official_decks (

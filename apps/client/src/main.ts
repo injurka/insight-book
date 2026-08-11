@@ -75,6 +75,7 @@ async function bootstrap() {
   app.mount('#app')
 
   initMonitoring()
+  setupVueMonitoring(app, router)
 
   document.getElementById('app-preloader')?.remove()
 
