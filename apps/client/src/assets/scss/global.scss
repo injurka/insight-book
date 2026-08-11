@@ -1,5 +1,7 @@
 @use 'sass:map';
 @use './animations' as *;
+@use '_css-variables.scss';
+@use '_dictionary.scss';
 
 :root {
    --app-font-family: 'Maple Mono CN', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;

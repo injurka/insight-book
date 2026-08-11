@@ -1,8 +1,7 @@
 @forward '_variables.scss';
 @forward '_functions.scss';
-@forward '_dictionary.scss';
-@forward 'themes/_theme.scss';
 @forward 'mixins/_media.scss';
 @forward 'mixins/_fonts.scss';
 @forward 'mixins/_theme.scss';
-@forward '_css-variables.scss';
+// NOTE: _css-variables.scss and _dictionary.scss import globally in global.scss
+//       (not here — they produce CSS output and must NOT be scoped per-component)

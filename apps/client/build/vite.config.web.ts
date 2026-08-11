@@ -114,13 +114,13 @@ export default defineConfig({
           if (id.includes('node_modules'))
             return getVendorChunk(id)
 
-          if (id.includes('/src/components/05.modules/reader/'))
+          if (id.includes('/05.modules/reader/'))
             return 'app-reader'
-          if (id.includes('/src/components/05.modules/dictionary/'))
+          if (id.includes('/05.modules/dictionary/'))
             return 'app-dictionary'
-          if (id.includes('/src/components/03.domain/analysis/'))
+          if (id.includes('/03.domain/analysis/'))
             return 'app-analysis'
-          if (id.includes('/src/shared/locales/'))
+          if (id.includes('/01.shared/locales/'))
             return 'app-locales'
           if (id.includes('plugin-grammar-rules'))
             return 'plugin-grammar-rules'
