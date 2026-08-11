@@ -2,12 +2,16 @@ import { Elysia, t } from 'elysia'
 import { highlightService } from '../services/highlight.service'
 import { authPlugin } from '../utils/auth'
 
+import { cachePlugin } from '../utils/cache'
+
 export const highlightRouter = new Elysia({ prefix: '/api/highlights' })
   .use(authPlugin)
+  .use(cachePlugin)
   .get('/', async ({ query, userId }) => {
     const bookId = query.bookId ? Number(query.bookId) : undefined
     return highlightService.getHighlights(userId, bookId)
   }, {
+    cache: 'shortPrivate',
     query: t.Optional(t.Object({
       bookId: t.Optional(t.String()),
     })),

@@ -2,7 +2,7 @@ import { Elysia, t } from 'elysia'
 import jwt from 'jsonwebtoken'
 import { AUTH_MODE, CORS_HEADERS, FRONTEND_URL, JWT_SECRET } from '../config'
 import { authService } from '../services/auth.service'
-import { cachePlugin } from '../utils/cache'
+import { CACHE_PROFILES, cachePlugin } from '../utils/cache'
 import { AppError } from '../utils/errors'
 import { createRateLimiter, getClientIp } from '../utils/rate-limit'
 
@@ -136,7 +136,8 @@ export const authRouter = new Elysia({ prefix: '/api/auth' })
     return { status: 'pending' }
   })
   // eslint-disable-next-line ts/no-explicit-any
-  .get('/me', async ({ userId }: any) => {
+  .get('/me', async ({ userId, set }: any) => {
+    set.headers['Cache-Control'] = CACHE_PROFILES.shortPrivate
     return authService.getMe(userId as number)
   })
   .patch('/me/avatar', async ({ userId, body }: { userId?: number | null, body?: unknown }) => {

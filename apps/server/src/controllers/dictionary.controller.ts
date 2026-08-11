@@ -40,6 +40,7 @@ export const dictionaryController = new Elysia({ prefix: '/api/dictionary' })
     const targetLang = normalizeLanguageCode(query.targetLang || 'ru')
     return await dictionaryService.getUserDictionary(userId, targetLang)
   }, {
+    cache: 'shortPrivate',
     query: t.Object({ targetLang: t.Optional(t.String()) }),
   })
   .post('/', async ({ userId, body, query }) => {
@@ -101,7 +102,7 @@ export const dictionaryController = new Elysia({ prefix: '/api/dictionary' })
   })
   .get('/prompts', async ({ userId }) => {
     return await dictionaryService.getCustomPrompts(userId)
-  })
+  }, { cache: 'shortPrivate' })
   .post('/prompts', async ({ userId, body }) => {
     return await dictionaryService.createCustomPrompt(userId, body.name, body.prompt)
   }, {
@@ -130,6 +131,7 @@ export const dictionaryController = new Elysia({ prefix: '/api/dictionary' })
     const targetLang = normalizeLanguageCode(query.targetLang || 'ru')
     return await dictionaryService.getUserDecks(userId, targetLang)
   }, {
+    cache: 'shortPrivate',
     query: t.Object({ targetLang: t.Optional(t.String()) }),
   })
   .post('/decks', async ({ userId, body, query }) => {
@@ -213,6 +215,7 @@ export const dictionaryController = new Elysia({ prefix: '/api/dictionary' })
     return await dictionaryService.getReviewQueue(userId, normalizedLang, targetLang, (query.mode as 'srs' | 'random' | 'deep_dive' | 'cram') || 'srs', deckId, query.difficulty as string | undefined)
   }, {
     requireAuth: true,
+    cache: 'shortPrivate',
     query: t.Object({
       targetLang: t.Optional(t.String()),
       language: t.Optional(t.String()),
@@ -242,6 +245,7 @@ export const dictionaryController = new Elysia({ prefix: '/api/dictionary' })
     const targetLang = normalizeLanguageCode(query.targetLang || 'ru')
     return await dictionaryService.getWordFromUserDictionary(decodeURIComponent(word), userId, targetLang)
   }, {
+    cache: 'shortPrivate',
     params: t.Object({ word: t.String() }),
     query: t.Object({ targetLang: t.Optional(t.String()) }),
   })

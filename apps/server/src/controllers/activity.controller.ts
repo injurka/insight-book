@@ -2,6 +2,7 @@ import { Elysia, t } from 'elysia'
 import jwt from 'jsonwebtoken'
 import { AUTH_MODE, JWT_SECRET } from '../config'
 import { activityService } from '../services/activity.service'
+import { cachePlugin } from '../utils/cache'
 import { AppError } from '../utils/errors'
 
 const authPlugin = new Elysia({ name: 'activity-auth' })
@@ -37,6 +38,7 @@ const authPlugin = new Elysia({ name: 'activity-auth' })
 
 export const activityRouter = new Elysia({ prefix: '/api/activity' })
   .use(authPlugin)
+  .use(cachePlugin)
   .onError(({ error, set }) => {
     if (error instanceof AppError) {
       set.status = error.statusCode
@@ -47,11 +49,12 @@ export const activityRouter = new Elysia({ prefix: '/api/activity' })
   })
   .get('/stats', async ({ userId }) => {
     return await activityService.getActivityStats(userId!)
-  }, { requireAuth: true })
+  }, { requireAuth: true, cache: 'shortPrivate' })
   .get('/tokens', async ({ userId, query }) => {
     return await activityService.getTokenUsage(userId!, query.period)
   }, {
     requireAuth: true,
+    cache: 'shortPrivate',
     query: t.Object({
       period: t.Optional(t.String()),
     }),
