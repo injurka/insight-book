@@ -61,13 +61,28 @@ onUnmounted(() => {
       InsightBook
     </div>
     <div class="titlebar-actions">
-      <button class="titlebar-btn" title="Свернуть" @click="minimize">
+      <button
+        class="titlebar-btn"
+        title="Свернуть"
+        aria-label="Свернуть"
+        @click="minimize"
+      >
         <Icon icon="mdi:window-minimize" />
       </button>
-      <button class="titlebar-btn" :title="isMaximized ? 'Восстановить' : 'Развернуть'" @click="toggleMaximize">
+      <button
+        class="titlebar-btn"
+        :title="isMaximized ? 'Восстановить' : 'Развернуть'"
+        :aria-label="isMaximized ? 'Восстановить' : 'Развернуть'"
+        @click="toggleMaximize"
+      >
         <Icon :icon="isMaximized ? 'mdi:window-restore' : 'mdi:window-maximize'" />
       </button>
-      <button class="titlebar-btn close-btn" title="Закрыть" @click="close">
+      <button
+        class="titlebar-btn close-btn"
+        title="Закрыть"
+        aria-label="Закрыть"
+        @click="close"
+      >
         <Icon icon="mdi:window-close" />
       </button>
     </div>
@@ -123,6 +138,11 @@ onUnmounted(() => {
   &:hover {
     background-color: var(--bg-hover-color);
     color: var(--fg-primary-color);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--fg-accent-color);
+    outline-offset: -2px;
   }
 
   &.close-btn:hover {

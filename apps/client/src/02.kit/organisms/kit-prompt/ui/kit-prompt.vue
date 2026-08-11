@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { nextTick, ref, useTemplateRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { KitBtn } from '~/02.kit/atoms/kit-btn/ui'
 import { KitInput } from '~/02.kit/atoms/kit-input/ui'
@@ -30,10 +30,18 @@ const { t } = useI18n()
 
 const visible = defineModel<boolean>('visible', { required: true })
 const inputValue = ref<string>('')
+const inputRef = useTemplateRef<InstanceType<typeof KitInput>>('inputRef')
 
-watch(visible, (isOpen) => {
-  if (isOpen)
+watch(visible, async (isOpen) => {
+  if (isOpen) {
     inputValue.value = props.defaultValue !== undefined ? String(props.defaultValue) : ''
+    await nextTick()
+    if (inputRef.value) {
+      const el = (inputRef.value as unknown as { $el?: HTMLElement }).$el || inputRef.value
+      const target = (el as HTMLElement).querySelector<HTMLInputElement>('input') || (el as HTMLElement)
+      target?.focus()
+    }
+  }
 })
 
 function onSubmit() {
@@ -62,6 +70,7 @@ function onCancel() {
 
       <KitInput
         v-if="!hideInput"
+        ref="inputRef"
         v-model="inputValue"
         :type="inputType"
         :placeholder="placeholder"

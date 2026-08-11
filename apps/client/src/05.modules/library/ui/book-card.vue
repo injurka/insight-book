@@ -38,7 +38,15 @@ const coverTransitionStyle = computed(() =>
 </script>
 
 <template>
-  <div class="book-card" @click="(!book.processStatus || book.processStatus === 'ready') ? emit('click') : null">
+  <div
+    class="book-card"
+    role="button"
+    tabindex="0"
+    :aria-label="book.title"
+    @click="(!book.processStatus || book.processStatus === 'ready') ? emit('click') : null"
+    @keydown.enter="(!book.processStatus || book.processStatus === 'ready') && emit('click')"
+    @keydown.space.prevent="(!book.processStatus || book.processStatus === 'ready') && emit('click')"
+  >
     <div class="cover-wrapper" :style="coverTransitionStyle">
       <KitImage
         :src="book.localCoverUrl || book.coverUrl"
@@ -74,7 +82,13 @@ const coverTransitionStyle = computed(() =>
 
         <div v-if="authStore.user" class="header-actions">
           <KitTooltip :text="book.userId === authStore.user.id ? t('library.edit') : t('library.removeFromLibrary')" placement="top-end">
-            <button class="edit-btn" @click.stop="emit('edit')">
+            <button
+              class="edit-btn"
+              :aria-label="book.userId === authStore.user.id ? t('library.edit') : t('library.removeFromLibrary')"
+              @click.stop="emit('edit')"
+              @keydown.enter.stop="emit('edit')"
+              @keydown.space.prevent.stop="emit('edit')"
+            >
               <Icon :icon="book.userId === authStore.user.id ? 'mdi:dots-vertical' : 'mdi:close'" />
             </button>
           </KitTooltip>
@@ -109,7 +123,8 @@ const coverTransitionStyle = computed(() =>
   display: flex;
   flex-direction: column;
 
-  &:hover {
+  &:hover,
+  &:focus-within {
     transform: translateY(-4px);
     box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1);
     border-color: var(--fg-accent-color);
@@ -121,6 +136,11 @@ const coverTransitionStyle = computed(() =>
     :deep(.real-image) {
       transform: scale(1.05);
     }
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--fg-accent-color);
+    outline-offset: 2px;
   }
 
   .cover-wrapper {
@@ -263,9 +283,12 @@ const coverTransitionStyle = computed(() =>
 
         opacity: 0;
 
-        &:hover {
+        &:hover,
+        &:focus-visible {
           background-color: var(--bg-hover-color);
           color: var(--fg-primary-color);
+          opacity: 1 !important;
+          outline: 2px solid var(--fg-accent-color);
         }
       }
     }

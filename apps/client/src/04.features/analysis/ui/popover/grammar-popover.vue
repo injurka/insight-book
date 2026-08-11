@@ -49,8 +49,20 @@ function closePopover(event?: MouseEvent) {
   analysisStore.closeGrammarPopover()
 }
 
-onMounted(() => document.addEventListener('click', closePopover))
-onUnmounted(() => document.removeEventListener('click', closePopover))
+function handleKeydown(e: KeyboardEvent) {
+  if (e.key === 'Escape' && analysisStore.grammarPopover) {
+    analysisStore.closeGrammarPopover()
+  }
+}
+
+onMounted(() => {
+  document.addEventListener('click', closePopover)
+  document.addEventListener('keydown', handleKeydown)
+})
+onUnmounted(() => {
+  document.removeEventListener('click', closePopover)
+  document.removeEventListener('keydown', handleKeydown)
+})
 </script>
 
 <template>
@@ -68,7 +80,7 @@ onUnmounted(() => document.removeEventListener('click', closePopover))
             <Icon icon="mdi:puzzle-outline" class="pattern-icon" />
             <span class="header-text">{{ analysisStore.grammarPopover.pattern }}</span>
           </div>
-          <button class="close-btn" @click.stop="analysisStore.closeGrammarPopover()">
+          <button class="close-btn" aria-label="Close" @click.stop="analysisStore.closeGrammarPopover()">
             <Icon width="18" height="18" icon="mdi:chevron-down" />
           </button>
         </div>

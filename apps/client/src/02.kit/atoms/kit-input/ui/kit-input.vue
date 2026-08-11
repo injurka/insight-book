@@ -187,6 +187,12 @@ function clear() {
   &:hover {
     color: var(--fg-primary-color);
   }
+
+  &:focus-visible {
+    outline: 2px solid var(--fg-accent-color);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
 }
 
 .kit-input-icon {
@@ -217,6 +223,12 @@ function clear() {
   }
 
   &:focus {
+    border-color: var(--fg-accent-color);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--fg-accent-color);
+    outline-offset: 1px;
     border-color: var(--fg-accent-color);
   }
 

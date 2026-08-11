@@ -25,13 +25,15 @@ function select(value: unknown) {
 </script>
 
 <template>
-  <div class="kit-toggle" :class="[`kit-toggle--size-${size}`]">
+  <div class="kit-toggle" role="group" :class="[`kit-toggle--size-${size}`]">
     <button
       v-for="opt in options"
       :key="String(opt.value)"
       type="button"
       class="kit-toggle-btn"
       :class="{ 'is-active': modelValue === opt.value }"
+      :aria-pressed="modelValue === opt.value"
+      :aria-label="opt.label || opt.tooltip"
       :title="opt.tooltip || opt.label"
       @click="select(opt.value)"
     >
@@ -67,6 +69,11 @@ function select(value: unknown) {
   &:hover {
     color: var(--fg-primary-color);
     background: var(--bg-hover-color, rgba(0, 0, 0, 0.05));
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--fg-accent-color);
+    outline-offset: 1px;
   }
 
   &.is-active {

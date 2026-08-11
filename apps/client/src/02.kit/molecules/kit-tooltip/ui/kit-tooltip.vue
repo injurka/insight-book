@@ -42,10 +42,13 @@ const {
 
 let timeout: ReturnType<typeof setTimeout>
 
-function show() {
-  // Теперь тултип откроется, если есть ЛИБО текст, ЛИБО кастомный слот content
-  if (props.disabled || (!props.text && !slots.content) || !isHoverable.value)
+function show(isFocus = false) {
+  if (props.disabled || (!props.text && !slots.content))
     return
+
+  if (!isFocus && !isHoverable.value)
+    return
+
   clearTimeout(timeout)
   timeout = setTimeout(() => {
     isVisible.value = true
@@ -95,9 +98,9 @@ onUnmounted(() => {
 <template>
   <div
     class="kit-tooltip-wrapper"
-    @mouseenter="show"
+    @mouseenter="show(false)"
     @mouseleave="hide"
-    @focusin="show"
+    @focusin="show(true)"
     @focusout="hide"
     @click="hide"
   >

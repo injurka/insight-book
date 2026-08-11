@@ -91,6 +91,7 @@ onUnmounted(() => {
   <div
     ref="switcherRef"
     class="kit-view-switcher"
+    role="tablist"
     :class="{
       'is-animating': isAnimating,
       'is-disabled': disabled,
@@ -104,6 +105,10 @@ onUnmounted(() => {
       v-for="item in items"
       :key="item.id"
       class="kit-view-switcher-button"
+      role="tab"
+      :aria-selected="model === item.id"
+      :aria-label="item.label || String(item.id)"
+      :title="item.label"
       :class="{
         'is-active': model === item.id,
         'has-icon': !!item.icon,
@@ -200,6 +205,11 @@ onUnmounted(() => {
 
   &:disabled {
     cursor: not-allowed;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--fg-accent-color);
+    outline-offset: 1px;
   }
 
   &.is-active {

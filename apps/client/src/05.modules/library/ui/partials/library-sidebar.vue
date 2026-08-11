@@ -39,8 +39,13 @@ function onMenuClick(id: string) {
         v-for="item in items"
         :key="item.id"
         class="nav-item"
+        role="button"
+        tabindex="0"
+        :aria-current="currentView === item.id ? 'page' : undefined"
         :class="{ active: currentView === item.id }"
         @click="onMenuClick(item.id)"
+        @keydown.enter.prevent="onMenuClick(item.id)"
+        @keydown.space.prevent="onMenuClick(item.id)"
       >
         <Icon :icon="item.icon" /> {{ item.label }}
       </li>
@@ -59,8 +64,13 @@ function onMenuClick(id: string) {
         v-for="item in items"
         :key="item.id"
         class="nav-item"
+        role="button"
+        tabindex="0"
+        :aria-current="currentView === item.id ? 'page' : undefined"
         :class="{ active: currentView === item.id }"
         @click="onMenuClick(item.id)"
+        @keydown.enter.prevent="onMenuClick(item.id)"
+        @keydown.space.prevent="onMenuClick(item.id)"
       >
         <Icon :icon="item.icon" /> {{ item.label }}
       </li>
@@ -107,6 +117,7 @@ function onMenuClick(id: string) {
   transition: all 0.2s;
   font-size: 0.9rem;
   font-weight: 500;
+  outline: none;
 
   svg {
     font-size: 1.3rem;
@@ -115,6 +126,11 @@ function onMenuClick(id: string) {
   &:hover {
     background-color: var(--bg-hover-color);
     color: var(--fg-primary-color);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--fg-accent-color);
+    outline-offset: 1px;
   }
 
   &.active {

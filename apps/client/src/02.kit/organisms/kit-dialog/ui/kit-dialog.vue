@@ -94,9 +94,40 @@ function handleOverlayClick(event: MouseEvent) {
   visible.value = false
 }
 
+let previouslyFocusedElement: HTMLElement | null = null
+
+function handleTabTrap(event: KeyboardEvent) {
+  if (!dialogContentRef.value)
+    return
+  const focusables = dialogContentRef.value.querySelectorAll<HTMLElement>('a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])')
+  if (focusables.length === 0)
+    return
+
+  const first = focusables[0]
+  const last = focusables[focusables.length - 1]
+
+  if (event.shiftKey && document.activeElement === first) {
+    event.preventDefault()
+    last.focus()
+  }
+  else if (!event.shiftKey && document.activeElement === last) {
+    event.preventDefault()
+    first.focus()
+  }
+}
+
 function handleKeydown(event: KeyboardEvent) {
-  if (event.key === 'Escape' && visible.value && !props.persistent)
+  if (!visible.value || isMinimized.value)
+    return
+
+  if (event.key === 'Escape' && !props.persistent) {
     visible.value = false
+
+    return
+  }
+
+  if (event.key === 'Tab')
+    handleTabTrap(event)
 }
 
 watch([visible, isMinimized, () => props.floating], ([isOpen, isMin, isFloating]) => {
@@ -122,10 +153,28 @@ watch(visible, (isOpen) => {
       unregisterBack()
       unregisterBack = null
     }
+
+    if (previouslyFocusedElement && typeof previouslyFocusedElement.focus === 'function') {
+      previouslyFocusedElement.focus()
+      previouslyFocusedElement = null
+    }
   }
   else {
+    if (typeof document !== 'undefined' && document.activeElement instanceof HTMLElement) {
+      previouslyFocusedElement = document.activeElement
+    }
+
     unregisterBack = registerBackHandler(() => {
       visible.value = false
+    })
+    nextTick(() => {
+      if (dialogContentRef.value) {
+        const inputOrBtn = dialogContentRef.value.querySelector<HTMLElement>('input, textarea, select, button:not(.close-button):not(.minimize-button)')
+        if (inputOrBtn)
+          inputOrBtn.focus()
+        else
+          dialogContentRef.value.focus()
+      }
     })
   }
 })
@@ -160,6 +209,7 @@ onUnmounted(() => {
         <div
           ref="dialogContentRef"
           class="dialog-content-wrapper"
+          tabindex="-1"
           v-bind="$attrs"
           :class="{
             'is-floating': floating,
@@ -444,6 +494,10 @@ onUnmounted(() => {
     background-color: var(--bg-hover-color);
     color: var(--fg-accent-color);
   }
+  &:focus-visible {
+    outline: 2px solid var(--fg-accent-color);
+    outline-offset: 2px;
+  }
 }
 .dialog-body {
   flex-grow: 1;
@@ -486,6 +540,10 @@ onUnmounted(() => {
     color: var(--fg-accent-color);
     background-color: var(--bg-hover-color);
     transform: translateY(-2px);
+  }
+  &:focus-visible {
+    outline: 2px solid var(--fg-accent-color);
+    outline-offset: 2px;
   }
 }
 .fab-zoom-enter-active,

@@ -42,15 +42,18 @@ function handlePageSubmit(value: string) {
       {{ t('reader.back') }}
     </KitBtn>
 
-    <span
+    <button
       v-if="readerStore.currentBook"
+      type="button"
       class="page-info"
       :title="t('reader.goToPage')"
+      :aria-label="t('reader.goToPage')"
+      :disabled="readerStore.isPageLoading"
       :class="{ 'is-disabled': readerStore.isPageLoading }"
       @click="openPrompt"
     >
       {{ readerStore.currentBook.currentPage }} / {{ readerStore.currentBook.totalPages }}
-    </span>
+    </button>
 
     <KitBtn
       append-icon="mdi:chevron-right"
@@ -91,6 +94,10 @@ function handlePageSubmit(value: string) {
     color: var(--fg-secondary-color);
     user-select: none;
     cursor: pointer;
+    background: transparent;
+    border: none;
+    padding: 4px 8px;
+    border-radius: 6px;
     text-decoration: underline;
     text-decoration-style: dotted;
     text-underline-offset: 4px;
@@ -102,8 +109,15 @@ function handlePageSubmit(value: string) {
       color: var(--fg-accent-color);
     }
 
-    &.is-disabled {
+    &:focus-visible {
+      outline: 2px solid var(--fg-accent-color);
+      outline-offset: 2px;
+    }
+
+    &.is-disabled,
+    &:disabled {
       opacity: 0.5;
+      cursor: not-allowed;
       pointer-events: none;
     }
   }

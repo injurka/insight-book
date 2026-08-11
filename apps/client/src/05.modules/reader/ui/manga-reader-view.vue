@@ -10,6 +10,7 @@ import { usePanZoom } from '../composables/use-pan-zoom'
 import { useQuoteHighlights } from '../composables/use-quote-highlights'
 import { useReaderContent } from '../composables/use-reader-content'
 import { useReaderDomHighlights } from '../composables/use-reader-dom-highlights'
+import { useReaderHotkeys } from '../composables/use-reader-hotkeys'
 import { useReaderNavigation } from '../composables/use-reader-navigation'
 import { useReaderScroll } from '../composables/use-reader-scroll'
 import { useReadingSession } from '../composables/use-reading-session'
@@ -47,6 +48,7 @@ const { saveScrollPosition, restoreScrollPosition, setScrollIntent } = useScroll
 
 const { onSentenceHover, onSentenceOut } = useReaderDomHighlights(readerViewRef)
 const { prevPage, nextPage, goToPage } = useReaderNavigation(setScrollIntent)
+useReaderHotkeys(prevPage, nextPage)
 const { onPointerDown, onPointerUp, onWordClick } = useTextSelection()
 
 const {

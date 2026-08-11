@@ -14,10 +14,19 @@ function toggle() {
 </script>
 
 <template>
-  <div class="kit-checkbox" @click="toggle">
-    <div class="checkbox-box" :class="{ checked: modelValue }">
+  <div
+    class="kit-checkbox"
+    role="checkbox"
+    tabindex="0"
+    :aria-checked="!!model"
+    :aria-label="label"
+    @click="toggle"
+    @keydown.space.prevent="toggle"
+    @keydown.enter.prevent="toggle"
+  >
+    <div class="checkbox-box" :class="{ checked: model }">
       <Icon
-        v-if="modelValue"
+        v-if="model"
         icon="mdi:check"
         size="14"
         style="color: white;"
@@ -29,15 +38,22 @@ function toggle() {
 
 <style lang="scss" scoped>
 .kit-checkbox {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   cursor: pointer;
   user-select: none;
-  padding: 4px 0;
+  padding: 4px 6px;
   gap: 8px;
+  border-radius: 6px;
+  outline: none;
 
   &:hover .checkbox-box {
     border-color: var(--fg-accent-color);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--fg-accent-color);
+    outline-offset: 2px;
   }
 }
 

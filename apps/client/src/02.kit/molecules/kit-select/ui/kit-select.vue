@@ -145,12 +145,22 @@ onUnmounted(() => {
     <div
       ref="referenceRef"
       class="kit-select-trigger"
+      role="combobox"
+      tabindex="0"
+      :aria-expanded="isOpen"
+      aria-haspopup="listbox"
+      :aria-label="selectedLabel || 'Select'"
       :class="[
         `kit-select-trigger--size-${size}`,
         color && color !== 'default' ? `kit-select-trigger--color-${color}` : '',
         { 'is-open': isOpen, 'has-prepend': hasPrepend },
       ]"
       @click="toggle"
+      @keydown.enter.prevent="toggle"
+      @keydown.space.prevent="toggle"
+      @keydown.down.prevent="isOpen = true"
+      @keydown.up.prevent="isOpen = true"
+      @keydown.escape.prevent="isOpen = false"
     >
       <div class="label-wrapper">
         <span v-if="hasPrepend" class="select-prepend">
@@ -186,7 +196,7 @@ onUnmounted(() => {
             zIndex: dropdownZIndex,
           }"
         >
-          <div class="kit-select-options-list">
+          <div class="kit-select-options-list" role="listbox">
             <div
               v-for="gGroup in groupedOptions"
               :key="gGroup.group || 'default'"
@@ -199,8 +209,13 @@ onUnmounted(() => {
                 v-for="opt in gGroup.items"
                 :key="opt.value"
                 class="kit-select-option"
+                role="option"
+                tabindex="0"
+                :aria-selected="multiple ? (Array.isArray(modelValue) && modelValue.includes(opt.value)) : opt.value === modelValue"
                 :class="{ 'is-selected': multiple ? (Array.isArray(modelValue) && modelValue.includes(opt.value)) : opt.value === modelValue }"
                 @click.stop="selectOption(opt.value)"
+                @keydown.enter.prevent.stop="selectOption(opt.value)"
+                @keydown.space.prevent.stop="selectOption(opt.value)"
               >
                 <div class="option-label-content">
                   <Icon v-if="opt.icon" :icon="opt.icon" class="option-icon" />
@@ -250,6 +265,11 @@ onUnmounted(() => {
   &:hover,
   &.is-open {
     border-color: var(--fg-accent-color);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--fg-accent-color);
+    outline-offset: 1px;
   }
 
   &--size-xs {
@@ -419,6 +439,11 @@ onUnmounted(() => {
 
   &:hover {
     background-color: var(--bg-hover-color);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--fg-accent-color);
+    outline-offset: -2px;
   }
 
   &.is-selected {

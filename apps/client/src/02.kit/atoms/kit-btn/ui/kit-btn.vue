@@ -98,6 +98,11 @@ function handleClick(event: MouseEvent) {
   white-space: nowrap;
   flex-shrink: 0;
 
+  &:focus-visible {
+    outline: 2px solid var(--fg-accent-color);
+    outline-offset: 2px;
+  }
+
   & * {
     pointer-events: none;
   }

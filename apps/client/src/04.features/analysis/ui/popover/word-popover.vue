@@ -160,9 +160,19 @@ function closePopover(event?: MouseEvent) {
   analysisStore.closePopover()
 }
 
-onMounted(() => document.addEventListener('click', closePopover))
+function handleKeydown(e: KeyboardEvent) {
+  if (e.key === 'Escape' && analysisStore.wordPopover) {
+    analysisStore.closePopover()
+  }
+}
+
+onMounted(() => {
+  document.addEventListener('click', closePopover)
+  document.addEventListener('keydown', handleKeydown)
+})
 onUnmounted(() => {
   document.removeEventListener('click', closePopover)
+  document.removeEventListener('keydown', handleKeydown)
   stop()
 })
 </script>
@@ -179,7 +189,7 @@ onUnmounted(() => {
       >
         <div class="transcription-header">
           <span class="header-text">{{ headerText }}</span>
-          <button class="close-btn" @click.stop="analysisStore.closePopover()">
+          <button class="close-btn" :aria-label="t('kit.dialog.close')" @click.stop="analysisStore.closePopover()">
             <Icon width="18" height="18" icon="mdi:chevron-down" />
           </button>
         </div>

@@ -12,6 +12,7 @@ import { useParallelSync } from '../composables/use-parallel-sync.ts'
 import { useQuoteHighlights } from '../composables/use-quote-highlights.ts'
 import { useReaderContent } from '../composables/use-reader-content.ts'
 import { useReaderDomHighlights } from '../composables/use-reader-dom-highlights.ts'
+import { useReaderHotkeys } from '../composables/use-reader-hotkeys.ts'
 import { useReaderNavigation } from '../composables/use-reader-navigation.ts'
 import { useReaderScroll } from '../composables/use-reader-scroll.ts'
 import { useReadingSession } from '../composables/use-reading-session.ts'
@@ -46,6 +47,7 @@ const { saveScrollPosition, restoreScrollPosition, setScrollIntent } = useScroll
 
 const { onSentenceHover, onSentenceOut } = useReaderDomHighlights(readerViewRef)
 const { prevPage, nextPage, goToPage } = useReaderNavigation(setScrollIntent)
+useReaderHotkeys(prevPage, nextPage)
 const { onPointerDown, onPointerUp, onWordClick } = useTextSelection()
 
 const { isHeaderVisible, onScroll } = useReaderScroll(saveScrollPosition)
