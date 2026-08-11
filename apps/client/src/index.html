@@ -60,9 +60,17 @@
           {
             "source": "document",
             "where": {
-              "href_matches": "/*"
+              "and": [
+                { "href_matches": "/*" },
+                { "not": { "href_matches": "/sign-in" } },
+                { "not": { "href_matches": "/auth/*" } },
+                { "not": { "href_matches": "/api/*" } },
+                { "not": { "href_matches": "/reader" } },
+                { "not": { "href_matches": "/onboarding" } }
+              ]
             },
-            "eagerness": "moderate"
+            "eagerness": "moderate",
+            "expects_no_vary_search": true
           }
         ]
       }

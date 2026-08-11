@@ -2,7 +2,8 @@
 import type { GeneratedWordExamples } from '~/01.shared/types/models'
 import { Icon } from '@iconify/vue'
 import { useI18n } from 'vue-i18n'
-import { KitDialog, KitSkeleton } from '~/02.kit'
+import { KitSkeleton } from '~/02.kit/atoms/kit-skeleton/ui'
+import { KitDialog } from '~/02.kit/organisms/kit-dialog/ui'
 
 interface Props {
   loading?: boolean

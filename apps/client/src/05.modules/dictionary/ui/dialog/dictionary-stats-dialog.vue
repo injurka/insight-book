@@ -2,9 +2,8 @@
 import { useI18n } from 'vue-i18n'
 import { useRepos } from '~/00.plugins/di'
 import { useAuthStore } from '~/01.shared/store/auth.store'
-import { KitDialog } from '~/02.kit'
-
-import KitSkeleton from '~/02.kit/atoms/kit-skeleton/ui/kit-skeleton.vue'
+import { KitSkeleton } from '~/02.kit/atoms/kit-skeleton/ui'
+import { KitDialog } from '~/02.kit/organisms/kit-dialog/ui'
 
 const emit = defineEmits<{
   openQuiz: [data: { language: string, levelValue: string }]

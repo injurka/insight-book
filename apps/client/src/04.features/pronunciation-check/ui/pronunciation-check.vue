@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { KitBtn, KitDropdown, KitTooltip } from '~/02.kit'
+import { KitBtn } from '~/02.kit/atoms/kit-btn/ui'
+import { KitDropdown } from '~/02.kit/molecules/kit-dropdown/ui'
+import { KitTooltip } from '~/02.kit/molecules/kit-tooltip/ui'
 import { usePronunciationCheck } from '../composables/use-pronunciation-check'
 
 interface Props {

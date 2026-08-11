@@ -9,7 +9,9 @@ import { useToast } from '~/01.shared/composables/use-toast'
 import { useTts } from '~/01.shared/composables/use-tts'
 import { vLongPress } from '~/01.shared/directives/long-press'
 import { useAuthStore } from '~/01.shared/store/auth.store'
-import { KitBtn, KitDropdown, KitTooltip } from '~/02.kit/index.ts'
+import { KitBtn } from '~/02.kit/atoms/kit-btn/ui'
+import { KitDropdown } from '~/02.kit/molecules/kit-dropdown/ui'
+import { KitTooltip } from '~/02.kit/molecules/kit-tooltip/ui'
 import { PronunciationCheck } from '~/04.features/pronunciation-check'
 
 interface Props {

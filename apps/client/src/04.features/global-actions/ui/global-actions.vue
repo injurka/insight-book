@@ -11,7 +11,9 @@ import { AppRoutePaths } from '~/01.shared/constants/routes'
 import { useAuthStore } from '~/01.shared/store/auth.store'
 import { usePwaStore } from '~/01.shared/store/pwa.store'
 import { useGlobalSettingsStore } from '~/01.shared/store/settings.store'
-import { KitBtn, KitDropdown, KitSelect } from '~/02.kit/index.ts'
+import { KitBtn } from '~/02.kit/atoms/kit-btn/ui'
+import { KitDropdown } from '~/02.kit/molecules/kit-dropdown/ui'
+import { KitSelect } from '~/02.kit/molecules/kit-select/ui'
 import UserProfileSection from './partials/user-profile-section.vue'
 
 interface Props {

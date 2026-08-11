@@ -8,8 +8,8 @@ import { ThemesVariant, useChangeTheme } from '~/01.shared/composables/use-chang
 import { useTracking } from '~/01.shared/composables/use-tracking'
 import { AppRoutePaths } from '~/01.shared/constants/routes'
 import { useGlobalSettingsStore } from '~/01.shared/store/settings.store'
-import { KitHoverRevealBg } from '~/02.kit/atoms/kit-hover-reveal-bg/index.ts'
-import KitDropdown from '~/02.kit/molecules/kit-dropdown/ui/kit-dropdown.vue'
+import { KitHoverRevealBg } from '~/02.kit/atoms/kit-hover-reveal-bg/ui'
+import { KitDropdown } from '~/02.kit/molecules/kit-dropdown/ui'
 
 import OnboardingBackground from './onboarding-background.vue'
 

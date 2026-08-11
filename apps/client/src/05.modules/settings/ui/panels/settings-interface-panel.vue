@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { KitSelectOption } from '~/02.kit'
+import type { KitSelectOption } from '~/02.kit/molecules/kit-select/ui'
 import { Icon } from '@iconify/vue'
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -8,7 +8,11 @@ import { useCustomFonts } from '~/01.shared/composables/use-custom-fonts'
 import { useTts } from '~/01.shared/composables/use-tts'
 import { isTauri } from '~/01.shared/lib/env'
 import { useGlobalSettingsStore } from '~/01.shared/store/settings.store'
-import { KitBtn, KitCheckbox, KitInput, KitSelect, KitTooltip } from '~/02.kit'
+import { KitBtn } from '~/02.kit/atoms/kit-btn/ui'
+import { KitCheckbox } from '~/02.kit/atoms/kit-checkbox/ui'
+import { KitInput } from '~/02.kit/atoms/kit-input/ui'
+import { KitSelect } from '~/02.kit/molecules/kit-select/ui'
+import { KitTooltip } from '~/02.kit/molecules/kit-tooltip/ui'
 import { usePushSettings } from '../../composables/use-push-settings'
 
 const { t } = useI18n()

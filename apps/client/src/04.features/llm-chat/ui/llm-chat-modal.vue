@@ -7,7 +7,11 @@ import { useI18n } from 'vue-i18n'
 import { useRepos } from '~/00.plugins/di'
 import { useToast } from '~/01.shared/composables/use-toast'
 import { formatMarkdown } from '~/01.shared/lib/markdown'
-import { KitBtn, KitDialog, KitDropdown, KitInput, KitPrompt } from '~/02.kit'
+import { KitBtn } from '~/02.kit/atoms/kit-btn/ui'
+import { KitInput } from '~/02.kit/atoms/kit-input/ui'
+import { KitDropdown } from '~/02.kit/molecules/kit-dropdown/ui'
+import { KitDialog } from '~/02.kit/organisms/kit-dialog/ui'
+import { KitPrompt } from '~/02.kit/organisms/kit-prompt/ui'
 
 interface Props {
   word: string

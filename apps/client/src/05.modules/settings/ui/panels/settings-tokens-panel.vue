@@ -2,8 +2,8 @@
 import { Icon } from '@iconify/vue'
 import { useI18n } from 'vue-i18n'
 import { useGlobalSettingsStore } from '~/01.shared/store/settings.store'
-import { KitSkeleton } from '~/02.kit'
-import { KitViewSwitcher } from '~/02.kit/molecules/kit-view-switcher'
+import { KitSkeleton } from '~/02.kit/atoms/kit-skeleton/ui'
+import { KitViewSwitcher } from '~/02.kit/molecules/kit-view-switcher/ui'
 import { useTokenStats } from '../../composables/use-token-stats'
 import { formatCurrency, formatNumber } from '../../lib/formatters'
 

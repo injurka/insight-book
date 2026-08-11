@@ -13,7 +13,7 @@ import { useTracking } from '~/01.shared/composables/use-tracking'
 import { BASE_API_URL } from '~/01.shared/services/api.service'
 import { useAuthStore } from '~/01.shared/store/auth.store'
 import { useGlobalSettingsStore } from '~/01.shared/store/settings.store'
-import { KitDropdown } from '~/02.kit'
+import { KitDropdown } from '~/02.kit/molecules/kit-dropdown/ui'
 import { AuthOAuthProviders, AuthSignInForm, AuthSignUpForm } from '~/04.features/auth'
 
 const repos = useRepos()

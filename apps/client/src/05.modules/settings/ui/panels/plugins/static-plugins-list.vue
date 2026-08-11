@@ -5,7 +5,7 @@ import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { pluginManager } from '~/00.plugins/plugin-manager'
 import { useGlobalSettingsStore } from '~/01.shared/store/settings.store'
-import { KitCheckbox } from '~/02.kit'
+import { KitCheckbox } from '~/02.kit/atoms/kit-checkbox/ui'
 
 const { t } = useI18n()
 const settingsStore = useGlobalSettingsStore()

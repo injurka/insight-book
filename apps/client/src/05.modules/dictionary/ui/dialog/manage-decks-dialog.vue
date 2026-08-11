@@ -1,7 +1,12 @@
 <script setup lang="ts">
 import { Icon } from '@iconify/vue'
 import { useI18n } from 'vue-i18n'
-import { KitBtn, KitCheckbox, KitDialog, KitInput, KitPrompt, KitSelect } from '~/02.kit'
+import { KitBtn } from '~/02.kit/atoms/kit-btn/ui'
+import { KitCheckbox } from '~/02.kit/atoms/kit-checkbox/ui'
+import { KitInput } from '~/02.kit/atoms/kit-input/ui'
+import { KitSelect } from '~/02.kit/molecules/kit-select/ui'
+import { KitDialog } from '~/02.kit/organisms/kit-dialog/ui'
+import { KitPrompt } from '~/02.kit/organisms/kit-prompt/ui'
 import { useDictFilterOptions } from '../../composables/use-dict-filter-options'
 import { useDictionaryStore } from '../../store/dictionary.store'
 

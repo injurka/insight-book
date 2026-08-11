@@ -5,7 +5,9 @@ import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRepos } from '~/00.plugins/di'
 
-import { KitBtn, KitDialog, KitTabs } from '~/02.kit'
+import { KitBtn } from '~/02.kit/atoms/kit-btn/ui'
+import { KitTabs } from '~/02.kit/molecules/kit-tabs/ui'
+import { KitDialog } from '~/02.kit/organisms/kit-dialog/ui'
 
 interface Props {
   initialLang?: string

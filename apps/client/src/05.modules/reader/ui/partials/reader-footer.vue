@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { KitBtn, KitPrompt } from '~/02.kit'
+import { KitBtn } from '~/02.kit/atoms/kit-btn/ui'
+import { KitPrompt } from '~/02.kit/organisms/kit-prompt/ui'
 import { BookEntity } from '~/03.domain/entities/book.entity'
 import { useReaderStore } from '../../store/reader.store'
 

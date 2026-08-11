@@ -15,7 +15,7 @@
     "--------------------------------<      DEV       >--------------------------------": "",
     "dev": "vite --config build/vite.config.web.ts",
     "--------------------------------<      BUILD     >--------------------------------": "",
-    "build": "vite build --config build/vite.config.web.ts",
+    "build": "vite build --config build/vite.config.web.ts && bun run build/inject-font-preloads.ts",
     "build:tauri": "vite build --config build/vite.config.tauri.ts",
     "deploy": "bun run build/deploy.ts",
     "check:cdn": "bun run build/check-cdn.ts",

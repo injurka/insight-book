@@ -1,7 +1,7 @@
 import { mount } from '@vue/test-utils'
 import { describe, expect, it } from 'vitest'
 import { defineComponent, h, markRaw } from 'vue'
-import { KitViewSwitcher } from '~/02.kit/molecules/kit-view-switcher'
+import { KitViewSwitcher } from '~/02.kit/molecules/kit-view-switcher/ui'
 import KitTabs from './kit-tabs.vue'
 
 const DummyComponent1 = defineComponent({

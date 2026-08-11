@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { UserDictItem } from '~/01.shared/types/models'
 import { useRoute } from 'vue-router'
-import { KitHoverRevealBg } from '~/02.kit/atoms/kit-hover-reveal-bg/index.ts'
+import { KitHoverRevealBg } from '~/02.kit/atoms/kit-hover-reveal-bg/ui'
 import { useDictionaryStore } from '../store/dictionary.store'
 import BulkMoveDialog from './dialog/bulk-move-dialog.vue'
 import DictionaryDiscoverDialog from './dialog/dictionary-discover-dialog.vue'

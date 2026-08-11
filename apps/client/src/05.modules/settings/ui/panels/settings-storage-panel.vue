@@ -3,7 +3,8 @@ import { Icon } from '@iconify/vue'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useCacheStore } from '~/01.shared/store/cache.store'
-import { KitSkeleton, KitTooltip } from '~/02.kit'
+import { KitSkeleton } from '~/02.kit/atoms/kit-skeleton/ui'
+import { KitTooltip } from '~/02.kit/molecules/kit-tooltip/ui'
 import { formatBytes } from '../../lib/formatters'
 
 const { t } = useI18n()

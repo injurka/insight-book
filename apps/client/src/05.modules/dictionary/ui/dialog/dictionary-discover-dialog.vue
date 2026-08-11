@@ -5,8 +5,12 @@ import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRepos } from '~/00.plugins/di'
 import { useToast } from '~/01.shared/composables/use-toast'
-import { KitBtn, KitCheckbox, KitDialog, KitInput, KitSelect, KitTabs } from '~/02.kit'
-
+import { KitBtn } from '~/02.kit/atoms/kit-btn/ui'
+import { KitCheckbox } from '~/02.kit/atoms/kit-checkbox/ui'
+import { KitInput } from '~/02.kit/atoms/kit-input/ui'
+import { KitSelect } from '~/02.kit/molecules/kit-select/ui'
+import { KitTabs } from '~/02.kit/molecules/kit-tabs/ui'
+import { KitDialog } from '~/02.kit/organisms/kit-dialog/ui'
 import { useDictionaryStore } from '../../store/dictionary.store'
 
 const repos = useRepos()

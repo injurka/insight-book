@@ -3,7 +3,9 @@ import { Icon } from '@iconify/vue'
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useAppWakeLock } from '~/01.shared/composables/use-app-wake-lock'
-import { KitBtn, KitCheckbox, KitDialog } from '~/02.kit'
+import { KitBtn } from '~/02.kit/atoms/kit-btn/ui'
+import { KitCheckbox } from '~/02.kit/atoms/kit-checkbox/ui'
+import { KitDialog } from '~/02.kit/organisms/kit-dialog/ui'
 import { useLibraryStore } from '~/05.modules/library/store/library.store'
 
 interface Props {

@@ -3,7 +3,11 @@ import { Icon } from '@iconify/vue'
 import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '~/01.shared/store/auth.store'
 import { useGlobalSettingsStore } from '~/01.shared/store/settings.store'
-import { KitBtn, KitCheckbox, KitInput, KitSelect, KitTooltip } from '~/02.kit'
+import { KitBtn } from '~/02.kit/atoms/kit-btn/ui'
+import { KitCheckbox } from '~/02.kit/atoms/kit-checkbox/ui'
+import { KitInput } from '~/02.kit/atoms/kit-input/ui'
+import { KitSelect } from '~/02.kit/molecules/kit-select/ui'
+import { KitTooltip } from '~/02.kit/molecules/kit-tooltip/ui'
 import { useCustomModels } from '../../composables/use-custom-models'
 
 const { t } = useI18n()

@@ -6,7 +6,8 @@ import { useI18n } from 'vue-i18n'
 import { SUBSCRIPTION_TIERS_CONFIG } from '~/01.shared/constants/subscriptions'
 import { useAuthStore } from '~/01.shared/store/auth.store'
 import { useGlobalSettingsStore } from '~/01.shared/store/settings.store'
-import { KitBtn, KitDialog } from '~/02.kit'
+import { KitBtn } from '~/02.kit/atoms/kit-btn/ui'
+import { KitDialog } from '~/02.kit/organisms/kit-dialog/ui'
 
 const { t } = useI18n()
 const authStore = useAuthStore()

@@ -3,7 +3,9 @@ import { Icon } from '@iconify/vue'
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useToast } from '~/01.shared/composables/use-toast'
-import { KitBtn, KitDialog, KitInput } from '~/02.kit'
+import { KitBtn } from '~/02.kit/atoms/kit-btn/ui'
+import { KitInput } from '~/02.kit/atoms/kit-input/ui'
+import { KitDialog } from '~/02.kit/organisms/kit-dialog/ui'
 import { useLibraryStore } from '~/05.modules/library/store/library.store'
 
 const visible = defineModel<boolean>('visible', { required: true })

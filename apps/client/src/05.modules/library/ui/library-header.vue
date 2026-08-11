@@ -2,7 +2,9 @@
 import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '~/01.shared/store/auth.store'
-import { KitBtn, KitInput, KitSelect } from '~/02.kit'
+import { KitBtn } from '~/02.kit/atoms/kit-btn/ui'
+import { KitInput } from '~/02.kit/atoms/kit-input/ui'
+import { KitSelect } from '~/02.kit/molecules/kit-select/ui'
 import { GlobalActions } from '~/04.features/global-actions'
 
 interface Props {

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
-import { KitDialog } from '~/02.kit'
+import { KitDialog } from '~/02.kit/organisms/kit-dialog/ui'
 import { useReaderStore } from '../../store/reader.store'
 
 const emit = defineEmits<{

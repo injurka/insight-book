@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { UserDictItem } from '~/01.shared/types/models'
-import { KitBtn } from '~/02.kit'
+import { KitBtn } from '~/02.kit/atoms/kit-btn/ui'
 
 interface Props {
   card: UserDictItem

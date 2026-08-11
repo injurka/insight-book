@@ -8,7 +8,9 @@ import { useTts } from '~/01.shared/composables/use-tts'
 import { isMobileApp as isApk } from '~/01.shared/lib/env'
 import { useAnalysisStore } from '~/01.shared/store/analysis/analysis.store'
 import { useGlobalSettingsStore } from '~/01.shared/store/settings.store'
-import { KitBtn, KitCheckbox, KitSelect } from '~/02.kit'
+import { KitBtn } from '~/02.kit/atoms/kit-btn/ui'
+import { KitCheckbox } from '~/02.kit/atoms/kit-checkbox/ui'
+import { KitSelect } from '~/02.kit/molecules/kit-select/ui'
 import { useReaderStore } from '../../store/reader.store'
 
 const emit = defineEmits<{

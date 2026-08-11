@@ -6,7 +6,8 @@ import { useRouter } from 'vue-router'
 import { AppRoutePaths } from '~/01.shared/constants/routes'
 import { BOOK_COVER_TRANSITION_NAME, coverTransitionBookId } from '~/01.shared/lib/view-transitions'
 import { useAuthStore } from '~/01.shared/store/auth.store'
-import { KitBtn, KitImage } from '~/02.kit'
+import { KitBtn } from '~/02.kit/atoms/kit-btn/ui'
+import { KitImage } from '~/02.kit/atoms/kit-image/ui'
 import { useLibraryStore } from '~/05.modules/library/store/library.store'
 
 const emit = defineEmits<{

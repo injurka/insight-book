@@ -5,7 +5,8 @@ import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useTts } from '~/01.shared/composables/use-tts'
 
-import { KitBtn, KitDialog } from '~/02.kit'
+import { KitBtn } from '~/02.kit/atoms/kit-btn/ui'
+import { KitDialog } from '~/02.kit/organisms/kit-dialog/ui'
 
 interface Props {
   visible: boolean

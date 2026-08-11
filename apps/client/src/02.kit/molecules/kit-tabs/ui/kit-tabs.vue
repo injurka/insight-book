@@ -1,8 +1,8 @@
 <script setup lang="ts" generic="T extends string | number">
 import type { Component } from 'vue'
-import type { ViewSwitcherItem } from '~/02.kit/molecules/kit-view-switcher'
+import type { ViewSwitcherItem } from '~/02.kit/molecules/kit-view-switcher/ui'
 import { computed, ref } from 'vue'
-import { KitViewSwitcher } from '~/02.kit/molecules/kit-view-switcher'
+import { KitViewSwitcher } from '~/02.kit/molecules/kit-view-switcher/ui'
 import { useTabsTransition } from '../composables/use-tabs-transition'
 
 export interface TabItem<T extends string | number = string | number> extends ViewSwitcherItem<T> {

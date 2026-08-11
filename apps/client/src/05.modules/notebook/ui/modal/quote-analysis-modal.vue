@@ -3,7 +3,7 @@ import type { Highlight } from '~/01.shared/types/models'
 import { Icon } from '@iconify/vue'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { KitDialog } from '~/02.kit'
+import { KitDialog } from '~/02.kit/organisms/kit-dialog/ui'
 
 interface Props {
   visible: boolean

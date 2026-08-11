@@ -1,6 +1,6 @@
 import type { Component } from 'vue'
 import { useToastStore } from '~/01.shared/store/toast.store'
-import { KitPageLoader } from '~/02.kit/atoms/kit-page-loader'
+import { KitPageLoader } from '~/02.kit/atoms/kit-page-loader/ui'
 
 /**
  * Умная обертка для ленивой загрузки компонентов.

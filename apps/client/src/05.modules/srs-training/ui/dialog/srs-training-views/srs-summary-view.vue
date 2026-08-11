@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Icon } from '@iconify/vue'
 import { useI18n } from 'vue-i18n'
-import { KitBtn } from '~/02.kit'
+import { KitBtn } from '~/02.kit/atoms/kit-btn/ui'
 import { useSrsQuiz } from '../../../composables/use-srs-quiz'
 import { useTrainingStore } from '../../../store/training.store'
 

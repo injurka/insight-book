@@ -3,7 +3,8 @@ import { Icon } from '@iconify/vue'
 import { useI18n } from 'vue-i18n'
 import { useAnalysisStore } from '~/01.shared/store/analysis/analysis.store'
 import { useGlobalSettingsStore } from '~/01.shared/store/settings.store'
-import { KitBtn, KitCheckbox } from '~/02.kit'
+import { KitBtn } from '~/02.kit/atoms/kit-btn/ui'
+import { KitCheckbox } from '~/02.kit/atoms/kit-checkbox/ui'
 import { useReaderStore } from '../../store/reader.store'
 
 const emit = defineEmits<{

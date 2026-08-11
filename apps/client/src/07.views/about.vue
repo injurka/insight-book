@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { useRouter } from 'vue-router'
 import { AppRoutePaths } from '~/01.shared/constants/routes'
-import { KitBtn } from '~/02.kit'
-import { KitHoverRevealBg } from '~/02.kit/atoms/kit-hover-reveal-bg'
+import { KitBtn } from '~/02.kit/atoms/kit-btn/ui'
+import { KitHoverRevealBg } from '~/02.kit/atoms/kit-hover-reveal-bg/ui'
 
 const router = useRouter()
 </script>

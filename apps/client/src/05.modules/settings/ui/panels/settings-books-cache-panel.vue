@@ -4,8 +4,10 @@ import { Icon } from '@iconify/vue'
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useCacheStore } from '~/01.shared/store/cache.store'
-import { KitBtn, KitPrompt, KitSkeleton, KitTooltip } from '~/02.kit'
-
+import { KitBtn } from '~/02.kit/atoms/kit-btn/ui'
+import { KitSkeleton } from '~/02.kit/atoms/kit-skeleton/ui'
+import { KitTooltip } from '~/02.kit/molecules/kit-tooltip/ui'
+import { KitPrompt } from '~/02.kit/organisms/kit-prompt/ui'
 import { formatBytes, formatPagesList } from '../../lib/formatters'
 
 const { t } = useI18n()

@@ -3,7 +3,7 @@ import type { DisplayGroup } from '../../model'
 import type { Book } from '~/01.shared/types/models'
 import { Icon } from '@iconify/vue'
 import { useI18n } from 'vue-i18n'
-import { KitBtn } from '~/02.kit/index.ts'
+import { KitBtn } from '~/02.kit/atoms/kit-btn/ui'
 import BookCard from '../book-card.vue'
 
 interface Props {

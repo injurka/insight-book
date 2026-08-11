@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Icon } from '@iconify/vue'
 import { useI18n } from 'vue-i18n'
-import { KitDialog } from '~/02.kit'
+import { KitDialog } from '~/02.kit/organisms/kit-dialog/ui'
 
 interface MenuItem {
   id: string

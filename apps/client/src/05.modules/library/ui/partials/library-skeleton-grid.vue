@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { KitSkeleton } from '~/02.kit'
+import { KitSkeleton } from '~/02.kit/atoms/kit-skeleton/ui'
 
 interface Props {
   count?: number

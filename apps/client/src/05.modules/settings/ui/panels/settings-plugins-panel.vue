@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { KitBtn } from '~/02.kit/index.ts'
+import { KitBtn } from '~/02.kit/atoms/kit-btn/ui'
 import { usePluginsStore } from '../../store/plugins.store'
 import ModerationPluginsList from './plugins/moderation-plugins-list.vue'
 import PluginCatalogModal from './plugins/plugin-catalog-modal.vue'

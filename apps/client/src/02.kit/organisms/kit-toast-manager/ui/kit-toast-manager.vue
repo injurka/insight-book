@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import { storeToRefs } from 'pinia'
 import { useToastStore } from '~/01.shared/store/toast.store'
-import KitToast from '~/02.kit/molecules/kit-toast/ui/kit-toast-item.vue'
+import { KitToast } from '~/02.kit/molecules/kit-toast/ui'
 
 const toastStore = useToastStore()
 

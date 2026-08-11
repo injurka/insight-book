@@ -5,7 +5,7 @@ import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRepos } from '~/00.plugins/di'
 import { useToast } from '~/01.shared/composables/use-toast'
-import { KitDialog } from '~/02.kit/index.ts'
+import { KitDialog } from '~/02.kit/organisms/kit-dialog/ui'
 
 import { Flashcard } from '~/03.domain/entities/flashcard.entity.ts'
 import { useSrsSession } from '../../composables/use-srs-session'

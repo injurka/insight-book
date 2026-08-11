@@ -5,7 +5,8 @@ import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { BOOK_COVER_TRANSITION_NAME, coverTransitionBookId } from '~/01.shared/lib/view-transitions'
 import { useAuthStore } from '~/01.shared/store/auth.store'
-import { KitImage, KitTooltip } from '~/02.kit'
+import { KitImage } from '~/02.kit/atoms/kit-image/ui'
+import { KitTooltip } from '~/02.kit/molecules/kit-tooltip/ui'
 import { BookEntity } from '~/03.domain/entities/book.entity'
 
 interface Props {

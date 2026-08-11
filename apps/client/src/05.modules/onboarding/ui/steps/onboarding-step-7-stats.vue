@@ -2,7 +2,7 @@
 import { Icon } from '@iconify/vue'
 import { onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { KitBtn } from '~/02.kit/index.ts'
+import { KitBtn } from '~/02.kit/atoms/kit-btn/ui'
 import OnboardingStepLayout from './onboarding-step-layout.vue'
 
 const emit = defineEmits<{

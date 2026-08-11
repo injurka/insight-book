@@ -3,7 +3,9 @@ import type { UserDictItem } from '~/01.shared/types/models'
 import { Icon } from '@iconify/vue'
 import { useI18n } from 'vue-i18n'
 import { DIFFICULTY_SYSTEMS } from '~/01.shared/constants/difficulties'
-import { KitBtn, KitCheckbox, KitTooltip } from '~/02.kit'
+import { KitBtn } from '~/02.kit/atoms/kit-btn/ui'
+import { KitCheckbox } from '~/02.kit/atoms/kit-checkbox/ui'
+import { KitTooltip } from '~/02.kit/molecules/kit-tooltip/ui'
 
 interface Props {
   item: UserDictItem

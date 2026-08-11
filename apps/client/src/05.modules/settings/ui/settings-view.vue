@@ -1,13 +1,13 @@
 <script setup lang="ts">
-import type { TabItem } from '~/02.kit/molecules/kit-tabs/index.ts'
+import type { TabItem } from '~/02.kit/molecules/kit-tabs/ui'
 import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { AppRoutePaths } from '~/01.shared/constants/routes'
 import { useCacheStore } from '~/01.shared/store/cache.store'
-import { KitHoverRevealBg } from '~/02.kit/atoms/kit-hover-reveal-bg/index.ts'
-import { KitBtn } from '~/02.kit/index.ts'
-import { KitTabs } from '~/02.kit/molecules/kit-tabs/index.ts'
+import { KitBtn } from '~/02.kit/atoms/kit-btn/ui'
+import { KitHoverRevealBg } from '~/02.kit/atoms/kit-hover-reveal-bg/ui'
+import { KitTabs } from '~/02.kit/molecules/kit-tabs/ui'
 
 import SettingsAiPanel from './panels/settings-ai-panel.vue'
 import SettingsBooksCachePanel from './panels/settings-books-cache-panel.vue'

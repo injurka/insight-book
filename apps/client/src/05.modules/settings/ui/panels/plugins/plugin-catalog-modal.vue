@@ -3,7 +3,8 @@ import type { CatalogPluginRecord } from '~/01.shared/types/models'
 import { Icon } from '@iconify/vue'
 import { ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { KitBtn, KitDialog } from '~/02.kit'
+import { KitBtn } from '~/02.kit/atoms/kit-btn/ui'
+import { KitDialog } from '~/02.kit/organisms/kit-dialog/ui'
 import { usePluginsStore } from '../../../store/plugins.store'
 
 const visible = defineModel<boolean>('visible', { required: true })

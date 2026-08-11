@@ -5,7 +5,9 @@ import { ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRepos } from '~/00.plugins/di'
 import { useToast } from '~/01.shared/composables/use-toast'
-import { KitBtn, KitDialog, KitToggle } from '~/02.kit'
+import { KitBtn } from '~/02.kit/atoms/kit-btn/ui'
+import { KitToggle } from '~/02.kit/molecules/kit-toggle/ui'
+import { KitDialog } from '~/02.kit/organisms/kit-dialog/ui'
 
 interface Props {
   visible: boolean

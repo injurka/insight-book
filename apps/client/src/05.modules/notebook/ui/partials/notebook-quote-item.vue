@@ -2,7 +2,8 @@
 import type { Book, Highlight } from '~/01.shared/types/models'
 import { Icon } from '@iconify/vue'
 import { useI18n } from 'vue-i18n'
-import { KitBtn, KitTooltip } from '~/02.kit'
+import { KitBtn } from '~/02.kit/atoms/kit-btn/ui'
+import { KitTooltip } from '~/02.kit/molecules/kit-tooltip/ui'
 import { PronunciationCheck } from '~/04.features/pronunciation-check'
 import { highlightTextQuery } from '~/05.modules/notebook/lib/text-tokenizer'
 

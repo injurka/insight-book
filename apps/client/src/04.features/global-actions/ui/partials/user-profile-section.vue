@@ -7,7 +7,7 @@ import { useToast } from '~/01.shared/composables/use-toast'
 import { AppRoutePaths } from '~/01.shared/constants/routes'
 import { getMediaUrl } from '~/01.shared/lib/helpers'
 import { useAuthStore } from '~/01.shared/store/auth.store'
-import { KitPrompt } from '~/02.kit'
+import { KitPrompt } from '~/02.kit/organisms/kit-prompt/ui'
 
 const emit = defineEmits(['closeDropdown'])
 

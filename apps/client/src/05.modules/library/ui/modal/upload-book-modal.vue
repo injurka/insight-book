@@ -4,7 +4,11 @@ import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useToast } from '~/01.shared/composables/use-toast'
 import { useAuthStore } from '~/01.shared/store/auth.store'
-import { KitBtn, KitDialog, KitInput, KitSelect, KitTabs } from '~/02.kit'
+import { KitBtn } from '~/02.kit/atoms/kit-btn/ui'
+import { KitInput } from '~/02.kit/atoms/kit-input/ui'
+import { KitSelect } from '~/02.kit/molecules/kit-select/ui'
+import { KitTabs } from '~/02.kit/molecules/kit-tabs/ui'
+import { KitDialog } from '~/02.kit/organisms/kit-dialog/ui'
 import { useLibraryStore } from '../../store/library.store'
 
 const visible = defineModel<boolean>('visible', { required: true })
