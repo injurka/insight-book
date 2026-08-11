@@ -22,7 +22,24 @@ export class BookRepository implements IBookRepository {
 
   async getPublicBooksBaseQuery(page: number, limit: number, conditions: (SQL | undefined)[]) {
     return db.select({
-      book: schema.books,
+      book: {
+        id: schema.books.id,
+        userId: schema.books.userId,
+        type: schema.books.type,
+        title: schema.books.title,
+        author: schema.books.author,
+        coverUrl: schema.books.coverUrl,
+        filePath: schema.books.filePath,
+        language: schema.books.language,
+        totalPages: schema.books.totalPages,
+        series: schema.books.series,
+        seriesNumber: schema.books.seriesNumber,
+        isPublic: schema.books.isPublic,
+        publicStatus: schema.books.publicStatus,
+        textDirection: schema.books.textDirection,
+        createdAt: schema.books.createdAt,
+        updatedAt: schema.books.updatedAt,
+      },
       stats: schema.bookStats,
       progress: schema.readingProgress,
     })
@@ -65,6 +82,9 @@ export class BookRepository implements IBookRepository {
 
   async getUserBooks(userId: number) {
     return db.query.books.findMany({
+      columns: {
+        toc: false,
+      },
       where: or(
         eq(schema.books.userId, userId),
         eq(schema.books.isPublic, true),
