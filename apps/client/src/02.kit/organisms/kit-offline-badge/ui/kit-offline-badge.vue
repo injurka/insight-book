@@ -8,7 +8,7 @@ import { KitBtn } from '~/02.kit/atoms/kit-btn/ui'
 import { KitDialog } from '~/02.kit/organisms/kit-dialog/ui'
 
 const networkStore = useNetworkStore()
-const { isForcedOffline, effectiveOffline } = storeToRefs(networkStore)
+const { isForcedOffline } = storeToRefs(networkStore)
 const { t } = useI18n()
 
 const isDialogOpen = ref(false)
@@ -29,23 +29,17 @@ function handleReconnect() {
   <Teleport to="body">
     <Transition name="badge-fade">
       <div
-        v-if="effectiveOffline"
+        v-if="isForcedOffline"
         class="offline-badge"
         :class="{ 'is-forced': isForcedOffline }"
         role="status"
-        :title="isForcedOffline ? t('network.offlineModeActive') : t('network.noConnection')"
+        :title="t('network.offlineModeActive')"
         @click="handleBadgeClick"
       >
         <Icon
-          :icon="isForcedOffline ? 'mdi:wifi-off' : 'mdi:cloud-off-outline'"
+          icon="mdi:wifi-off"
           class="badge-icon"
         />
-
-        <template v-if="!isForcedOffline">
-          <span class="badge-text">
-            {{ t('network.noConnection') }}
-          </span>
-        </template>
       </div>
     </Transition>
 

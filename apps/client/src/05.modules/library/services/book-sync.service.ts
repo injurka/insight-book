@@ -57,6 +57,19 @@ export function cancelSync(): void {
   syncState.value = 'idle'
 }
 
+async function fetchAndHydrateServerCache(ctx: AnalysisContext): Promise<void> {
+  try {
+    syncProgress.value.currentTask = 'Загрузка имеющегося кэша с сервера...'
+    const res = await repos.analysis.getAllCacheAll(ctx.bookId)
+    if (res && res.results && res.results.length > 0) {
+      await Promise.all(res.results.map(item => repos.analysis.saveLocalAnalysis(item.sentence, item.analysis)))
+    }
+  }
+  catch (e) {
+    console.warn('[Sync Service] Failed to pre-fetch server cache in bulk:', e)
+  }
+}
+
 /** Синхронизирует оглавление книги (ошибки не прерывают синк). */
 async function syncBookToc(bookId: number): Promise<void> {
   try {
@@ -371,7 +384,12 @@ async function executeBookSync(book: SyncBook, options: typeof syncOptions.value
   await syncBookToc(ctx.bookId)
   await cacheBookCover(book, options.cachePages)
 
-  const needPageContent = options.cachePages || options.analyzeSentences || options.analyzeWords || options.ttsSentences || options.ttsWords
+  const needAnalysis = options.analyzeSentences || options.analyzeWords
+  if (needAnalysis) {
+    await fetchAndHydrateServerCache(ctx)
+  }
+
+  const needPageContent = options.cachePages || needAnalysis || options.ttsSentences || options.ttsWords
 
   if (needPageContent) {
     for (let i = 1; i <= book.totalPages; i++) {

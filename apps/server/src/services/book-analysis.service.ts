@@ -8,6 +8,15 @@ import { runWorkerTask } from '../workers/worker-client'
 import { analyzeBatch, analyzeBookExcerpt, analyzeMangaInfo, analyzeSentence, checkCacheBatch } from './llm.service'
 
 export class BookAnalysisService {
+  async getAllCache(bookId: number, userId: number, targetLang: string) {
+    const book = await bookRepository.getBookUserIdAndPublic(bookId)
+    if (!book || (book.userId !== userId && !book.isPublic))
+      throw new AppError(403, ERROR_CODES.BOOK.ACCESS_DENIED, 'Access denied')
+
+    const results = await bookRepository.getAllBookLlmCache(bookId, targetLang)
+    return { results }
+  }
+
   async analyzeVocabulary(id: number, userId: number) {
     const book = await bookRepository.findFirstBook(id)
     if (!book || book.userId !== userId)

@@ -1,10 +1,12 @@
 <script setup lang="ts">
-import { useI18n } from 'vue-i18n'
+import { computed, nextTick, onMounted, onUnmounted, useTemplateRef, watch } from 'vue'
+import { useAppWakeLock } from '~/01.shared/composables/use-app-wake-lock'
+import { useDelayedLoading } from '~/01.shared/composables/use-delayed-loading'
 import { getMediaUrl } from '~/01.shared/lib/helpers'
-import { useAnalysisStore } from '~/01.shared/store/analysis/analysis.store.ts'
+import { lazyComponent } from '~/01.shared/lib/lazy-component'
+import { useAnalysisStore } from '~/01.shared/store/analysis/analysis.store'
 import { useGlobalSettingsStore } from '~/01.shared/store/settings.store'
-import { KitPageLoader } from '~/02.kit/atoms/kit-page-loader/ui'
-import { useTextSelection } from '~/04.features/analysis/index.ts'
+import { useTextSelection } from '~/04.features/analysis'
 import { useMangaBubbles } from '../composables/use-manga-bubbles'
 import { usePanZoom } from '../composables/use-pan-zoom'
 import { useQuoteHighlights } from '../composables/use-quote-highlights'
@@ -17,9 +19,9 @@ import { useReadingSession } from '../composables/use-reading-session'
 import { useScrollRestoration } from '../composables/use-scroll-restoration'
 import { useReaderStore } from '../store/reader.store'
 import ReaderTocDialog from './dialog/reader-toc-dialog.vue'
-import ReaderBrightness from './partials/reader-brightness.vue'
 import ReaderFooter from './partials/reader-footer.vue'
 import ReaderHeader from './partials/reader-header.vue'
+import ReaderLoader from './partials/reader-loader.vue'
 
 const BubblePopover = lazyComponent(() => import('~/04.features/analysis/ui/popover/bubble-popover.vue'))
 const PageAnalysisModal = lazyComponent(() => import('~/04.features/analysis/ui/modal/page-analysis-modal.vue'))
@@ -30,7 +32,6 @@ const WordPopover = lazyComponent(() => import('~/04.features/analysis/ui/popove
 const readerStore = useReaderStore()
 const analysisStore = useAnalysisStore()
 const settingsStore = useGlobalSettingsStore()
-const { t } = useI18n()
 
 const readerViewRef = useTemplateRef<HTMLElement>('readerViewRef')
 const mangaContainerRef = useTemplateRef<HTMLElement>('mangaContainerRef')
@@ -38,6 +39,8 @@ const mangaWrapperRef = useTemplateRef<HTMLElement>('mangaWrapperRef')
 
 useAppWakeLock(() => analysisStore.isManualPageAnalysisActive || analysisStore.isAutoPageAnalysisActive)
 useReadingSession()
+
+const showSpinner = useDelayedLoading(computed(() => readerStore.isPageLoading), 1000)
 
 const { saveScrollPosition, restoreScrollPosition, setScrollIntent } = useScrollRestoration(
   readerViewRef,
@@ -93,8 +96,11 @@ watch(() => readerStore.currentPage, () => {
 })
 
 watch(() => readerStore.isPageLoading, async (isLoading) => {
-  if (isLoading)
+  if (isLoading) {
     closeBubblePopover()
+    if (readerViewRef.value)
+      readerViewRef.value.scrollTop = 0
+  }
 
   if (!isLoading && readerStore.currentPage) {
     await nextTick()
@@ -124,97 +130,89 @@ onUnmounted(() => {
     <ReaderHeader :is-visible="isHeaderVisible" />
 
     <div class="reader-content-wrapper">
-      <div v-if="readerStore.isPageLoading && !readerStore.currentPage" class="reader-loading-wrapper">
-        <div class="spinner-box">
-          <KitPageLoader />
-        </div>
-        <h3 class="loading-text">
-          {{ t('reader.preparingPageTitle') }}
-        </h3>
-        <p class="loading-subtext">
-          {{ t('reader.preparingPageDesc') }}
-        </p>
-      </div>
+      <ReaderLoader :show="showSpinner" />
 
-      <div
-        v-else-if="readerStore.currentPage?.imageUrl"
-        :key="readerStore.currentPage.pageNum"
-        class="manga-layout-wrapper page-enter-anim"
-        :class="{ 'is-parallel': settingsStore.parallelViewMode !== 'none', 'is-loading': readerStore.isPageLoading }"
-      >
-        <div ref="mangaContainerRef" class="manga-container left-pane">
-          <div
-            ref="mangaWrapperRef"
-            class="manga-page-wrapper js-tooltip-selectable"
-            :style="{
-              transform: `translate(${panX}px, ${panY}px) scale(${scale})`,
-              transformOrigin: '0 0',
-              cursor: scale > 1 ? (isPanning ? 'grabbing' : 'grab') : 'default',
-              transition: isPinching || isPanning ? 'none' : 'transform 0.1s ease-out',
-              willChange: 'transform',
-            }"
-            @click="handleWrapperClick"
-            @mouseup="onPointerUp"
-            @touchend="onPointerUp"
-            @touchcancel="onPointerUp"
-            @mouseleave="onPointerUp"
-          >
-            <img :src="readerStore.currentPage.localImageUrl || (readerStore.currentPage.imageUrl ? getMediaUrl(readerStore.currentPage.imageUrl) : '')" class="manga-image" @load="restoreScrollPosition">
-
-            <div class="ocr-overlay">
-              <template v-for="(box, idx) in readerStore.currentPage.ocrBlocks" :key="box.id">
-                <div
-                  class="ocr-bubble"
-                  :class="[
-                    {
-                      'is-active': (activeBubble?.id === box.id && settingsStore.mangaOcrDisplayMode === 'popover') || settingsStore.parallelViewMode !== 'none',
-                      'mode-hover': settingsStore.mangaOcrDisplayMode === 'hover',
-                      'mode-popover': settingsStore.mangaOcrDisplayMode === 'popover' || settingsStore.parallelViewMode !== 'none',
-                      'has-parallel': settingsStore.parallelViewMode !== 'none',
-                      'has-highlight': Object.keys(getBubbleHighlightStyle(box)).length > 0,
-                    },
-                  ]"
-                  :style="[getBoxStyle(box), getBubbleHighlightStyle(box)]"
-                  @mousedown="handleBubblePointerDown($event, box)"
-                  @touchstart="handleBubblePointerDown($event, box)"
-                  @click="handleBubbleClick($event, box, dragDist, scale)"
-                >
-                  <div v-if="settingsStore.mangaOcrDisplayMode === 'hover'" class="bubble-text-preview" v-html="box.html || box.text.replace(/\n+/g, '')" />
-                </div>
-                <div
-                  v-if="settingsStore.parallelViewMode !== 'none'"
-                  class="bubble-number-outer"
-                  :style="getOuterNumberStyle(box)"
-                >
-                  {{ idx + 1 }}
-                </div>
-              </template>
-            </div>
-          </div>
-        </div>
-        <div v-if="settingsStore.parallelViewMode !== 'none'" class="manga-translations-pane right-pane">
-          <div class="translations-scroll">
+      <Transition name="fade-in-only">
+        <div
+          v-if="!readerStore.isPageLoading && readerStore.currentPage?.imageUrl"
+          :key="readerStore.currentPage.pageNum"
+          class="manga-layout-wrapper page-enter-anim"
+          :class="{ 'is-parallel': settingsStore.parallelViewMode !== 'none' }"
+        >
+          <div ref="mangaContainerRef" class="manga-container left-pane">
             <div
-              v-for="(trans, idx) in parallelTranslations"
-              :key="trans.id"
-              class="manga-translation-item"
-              @mousedown="onPointerDown"
-              @touchstart="onPointerDown"
+              ref="mangaWrapperRef"
+              class="manga-page-wrapper js-tooltip-selectable"
+              :style="{
+                transform: `translate(${panX}px, ${panY}px) scale(${scale})`,
+                transformOrigin: '0 0',
+                cursor: scale > 1 ? (isPanning ? 'grabbing' : 'grab') : 'default',
+                transition: isPinching || isPanning ? 'none' : 'transform 0.1s ease-out',
+                willChange: 'transform',
+              }"
+              @click="handleWrapperClick"
               @mouseup="onPointerUp"
               @touchend="onPointerUp"
               @touchcancel="onPointerUp"
               @mouseleave="onPointerUp"
-              @mouseover="onSentenceHover"
-              @mouseout="onSentenceOut"
             >
-              <div class="translation-number">
-                {{ idx + 1 }}
+              <img :src="readerStore.currentPage.localImageUrl || (readerStore.currentPage.imageUrl ? getMediaUrl(readerStore.currentPage.imageUrl) : '')" class="manga-image" @load="restoreScrollPosition">
+
+              <div class="ocr-overlay">
+                <template v-for="(box, idx) in readerStore.currentPage.ocrBlocks" :key="box.id">
+                  <div
+                    class="ocr-bubble"
+                    :class="[
+                      {
+                        'is-active': (activeBubble?.id === box.id && settingsStore.mangaOcrDisplayMode === 'popover') || settingsStore.parallelViewMode !== 'none',
+                        'mode-hover': settingsStore.mangaOcrDisplayMode === 'hover',
+                        'mode-popover': settingsStore.mangaOcrDisplayMode === 'popover' || settingsStore.parallelViewMode !== 'none',
+                        'has-parallel': settingsStore.parallelViewMode !== 'none',
+                        'has-highlight': Object.keys(getBubbleHighlightStyle(box)).length > 0,
+                      },
+                    ]"
+                    :style="[getBoxStyle(box), getBubbleHighlightStyle(box)]"
+                    @mousedown="handleBubblePointerDown($event, box)"
+                    @touchstart="handleBubblePointerDown($event, box)"
+                    @click="handleBubbleClick($event, box, dragDist, scale)"
+                  >
+                    <div v-if="settingsStore.mangaOcrDisplayMode === 'hover'" class="bubble-text-preview" v-html="box.html || box.text.replace(/\n+/g, '')" />
+                  </div>
+                  <div
+                    v-if="settingsStore.parallelViewMode !== 'none'"
+                    class="bubble-number-outer"
+                    :style="getOuterNumberStyle(box)"
+                  >
+                    {{ idx + 1 }}
+                  </div>
+                </template>
               </div>
-              <div class="translation-html" v-html="trans.html" />
+            </div>
+          </div>
+          <div v-if="settingsStore.parallelViewMode !== 'none'" class="manga-translations-pane right-pane">
+            <div class="translations-scroll">
+              <div
+                v-for="(trans, idx) in parallelTranslations"
+                :key="trans.id"
+                class="manga-translation-item"
+                @mousedown="onPointerDown"
+                @touchstart="onPointerDown"
+                @mouseup="onPointerUp"
+                @touchend="onPointerUp"
+                @touchcancel="onPointerUp"
+                @mouseleave="onPointerUp"
+                @mouseover="onSentenceHover"
+                @mouseout="onSentenceOut"
+              >
+                <div class="translation-number">
+                  {{ idx + 1 }}
+                </div>
+                <div class="translation-html" v-html="trans.html" />
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      </Transition>
     </div>
 
     <BubblePopover
@@ -236,7 +234,6 @@ onUnmounted(() => {
     <SelectionTooltip />
     <SentenceAnalysis />
     <PageAnalysisModal />
-    <ReaderBrightness />
 
     <ReaderFooter @prev="prevPage" @next="nextPage" @go-to="goToPage" />
   </div>
@@ -278,15 +275,6 @@ onUnmounted(() => {
   justify-content: center;
   align-items: center;
   padding: 24px;
-  transition:
-    opacity 0.2s ease,
-    filter 0.2s ease;
-
-  &.is-loading {
-    opacity: 0.4;
-    filter: blur(2px);
-    pointer-events: none;
-  }
 
   @include media-down(sm) {
     padding: 16px;
@@ -568,49 +556,27 @@ onUnmounted(() => {
   transition: all 0.2s ease;
 }
 
-.reader-loading-wrapper {
-  flex-grow: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  padding: 32px;
-  text-align: center;
-  .spinner-box {
-    height: 80px;
-    margin-bottom: 24px;
-    :deep(.page-loader) {
-      min-height: unset;
-    }
-  }
-  .loading-text {
-    font-size: 1.3rem;
-    font-weight: 600;
-    color: var(--fg-primary-color);
-    margin: 0 0 8px 0;
-  }
-  .loading-subtext {
-    font-size: 1rem;
-    color: var(--fg-secondary-color);
-    margin: 0;
-    max-width: 320px;
-    line-height: 1.5;
-  }
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.25s ease;
 }
 
-@keyframes pageEnter {
-  from {
-    opacity: 0;
-    transform: translateY(-5px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
 }
 
-.page-enter-anim {
-  animation: pageEnter 0.2s ease-out 0.1s both;
+.fade-in-only-enter-active {
+  transition: opacity 0.25s ease-out;
+}
+.fade-in-only-enter-from {
+  opacity: 0;
+}
+.fade-in-only-leave-active {
+  transition: none !important;
+  display: none !important;
+}
+.fade-in-only-leave-to {
+  opacity: 0;
 }
 </style>

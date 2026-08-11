@@ -21,6 +21,10 @@ export function useTextSelection() {
   const { speak, isPlaying } = useTts()
   let pressTimer: ReturnType<typeof setTimeout> | null = null
   let selectionChangeListener: (() => void) | null = null
+  let pressMoveListener: ((e: Event) => void) | null = null
+  let pressScrollListener: (() => void) | null = null
+  let pressStartX = 0
+  let pressStartY = 0
 
   let currentPlayingBtn: HTMLElement | null = null
 
@@ -41,6 +45,62 @@ export function useTextSelection() {
       document.removeEventListener('selectionchange', selectionChangeListener)
       selectionChangeListener = null
     }
+
+    if (pressMoveListener) {
+      window.removeEventListener('touchmove', pressMoveListener)
+      window.removeEventListener('mousemove', pressMoveListener)
+      pressMoveListener = null
+    }
+
+    if (pressScrollListener) {
+      window.removeEventListener('scroll', pressScrollListener, { capture: true })
+      pressScrollListener = null
+    }
+  }
+
+  function capturePressOrigin(event: MouseEvent | TouchEvent) {
+    if ('touches' in event && event.touches.length > 0) {
+      pressStartX = event.touches[0].clientX
+      pressStartY = event.touches[0].clientY
+    }
+    else {
+      pressStartX = (event as MouseEvent).clientX
+      pressStartY = (event as MouseEvent).clientY
+    }
+  }
+
+  function pressMovedBeyondThreshold(e: Event): boolean {
+    let currentX = 0
+    let currentY = 0
+
+    if (e.type === 'touchmove') {
+      const touch = (e as TouchEvent).touches[0]
+      if (!touch)
+        return false
+      currentX = touch.clientX
+      currentY = touch.clientY
+    }
+    else {
+      currentX = (e as MouseEvent).clientX
+      currentY = (e as MouseEvent).clientY
+    }
+
+    return Math.abs(currentX - pressStartX) > 10 || Math.abs(currentY - pressStartY) > 10
+  }
+
+  function armPressCancellers() {
+    pressMoveListener = (e: Event) => {
+      if (pressMovedBeyondThreshold(e))
+        clearPressTimer()
+    }
+
+    window.addEventListener('touchmove', pressMoveListener, { passive: true })
+    window.addEventListener('mousemove', pressMoveListener, { passive: true })
+
+    // Скролл — верный признак того, что жест не является длинным нажатием:
+    // срабатывает даже там, где браузер не шлёт touchcancel при захвате жеста.
+    pressScrollListener = () => clearPressTimer()
+    window.addEventListener('scroll', pressScrollListener, { capture: true, passive: true })
   }
 
   function onPointerDown(event: MouseEvent | TouchEvent, fallbackText?: string) {
@@ -58,6 +118,8 @@ export function useTextSelection() {
     if (!rawSent || !/[\p{L}\p{N}]/u.test(rawSent))
       return
 
+    capturePressOrigin(event)
+
     selectionChangeListener = () => {
       const selection = window.getSelection()
       if (selection && selection.toString().trim().length > 0)
@@ -65,6 +127,8 @@ export function useTextSelection() {
     }
 
     document.addEventListener('selectionchange', selectionChangeListener)
+
+    armPressCancellers()
 
     pressTimer = setTimeout(() => {
       clearPressTimer()

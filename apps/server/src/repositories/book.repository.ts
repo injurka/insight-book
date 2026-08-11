@@ -1,7 +1,7 @@
 import type { SQL } from 'drizzle-orm'
 import type { IBookRepository } from './interfaces'
 import { and, desc, eq, inArray, isNotNull, like, or, sql } from 'drizzle-orm'
-import { compressData } from '~/utils/compression'
+import { compressData, decompressData } from '~/utils/compression'
 import { db } from '../db'
 import * as schema from '../db/schema'
 
@@ -64,6 +64,26 @@ export class BookRepository implements IBookRepository {
         eq(schema.llmCache.targetLanguage, targetLang),
       ))
       .groupBy(schema.bookLlmCache.bookId)
+  }
+
+  async getAllBookLlmCache(id: number, targetLang: string) {
+    const rows = await db.select({
+      sentenceHash: schema.llmCache.sentenceHash,
+      sentence: schema.llmCache.sentence,
+      analysis: schema.llmCache.analysis,
+    })
+      .from(schema.bookLlmCache)
+      .innerJoin(schema.llmCache, eq(schema.bookLlmCache.sentenceHash, schema.llmCache.sentenceHash))
+      .where(and(
+        eq(schema.bookLlmCache.bookId, id),
+        eq(schema.llmCache.targetLanguage, targetLang),
+      ))
+
+    return rows.map(r => ({
+      sentenceHash: r.sentenceHash,
+      sentence: r.sentence,
+      analysis: JSON.parse(decompressData(r.analysis)),
+    }))
   }
 
   async getUserBooks(userId: number) {

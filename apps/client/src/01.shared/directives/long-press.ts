@@ -102,6 +102,7 @@ const longPress = {
     el.addEventListener('mouseup', cancel)
     el.addEventListener('mouseleave', cancel)
     el.addEventListener('touchend', cancel)
+    el.addEventListener('touchcancel', cancel)
     el.addEventListener('mousemove', move)
     el.addEventListener('touchmove', move, { passive: true })
   },
@@ -118,6 +119,7 @@ const longPress = {
       el.removeEventListener('mouseup', el._lpCancel)
       el.removeEventListener('mouseleave', el._lpCancel)
       el.removeEventListener('touchend', el._lpCancel)
+      el.removeEventListener('touchcancel', el._lpCancel)
     }
 
     if (el._lpMove) {

@@ -13,6 +13,52 @@ localforage.config({
   description: 'Кэш для работы читалки в оффлайн-режиме',
 })
 
+// === L1 IN-MEMORY CACHE (RAM) ===
+const L1_ANALYSIS_MAX_SIZE = 100
+const l1AnalysisCache = new Map<string, LlmAnalysis>()
+
+function buildAnalysisCacheKey(text: string, srcLang?: string): string {
+  const targetLang = getAppLanguage()
+  const normalizedSrc = (srcLang || 'any').toLowerCase().trim()
+  const normalizedText = text.trim().toLowerCase()
+
+  return `analysis_${normalizedSrc}_${targetLang}_${normalizedText}`
+}
+
+function buildLegacyAnalysisCacheKey(text: string): string {
+  const targetLang = getAppLanguage()
+  const normalizedText = text.trim().toLowerCase()
+
+  return `analysis_${targetLang}_${normalizedText}`
+}
+
+function getL1Analysis(key: string): LlmAnalysis | null {
+  if (!l1AnalysisCache.has(key))
+    return null
+
+  // Обновляем порядок (LRU)
+  const val = l1AnalysisCache.get(key)!
+  l1AnalysisCache.delete(key)
+  l1AnalysisCache.set(key, val)
+
+  return val
+}
+
+function setL1Analysis(key: string, analysis: LlmAnalysis): void {
+  if (l1AnalysisCache.has(key)) {
+    l1AnalysisCache.delete(key)
+  }
+  else if (l1AnalysisCache.size >= L1_ANALYSIS_MAX_SIZE) {
+    // Вытесняем самую старую запись из RAM
+    const oldestKey = l1AnalysisCache.keys().next().value
+    if (oldestKey !== undefined) {
+      l1AnalysisCache.delete(oldestKey)
+    }
+  }
+
+  l1AnalysisCache.set(key, analysis)
+}
+
 function getKey(key: string) {
   const uid = localStorage.getItem('insight_uid') || '1'
 
@@ -348,15 +394,45 @@ export const offlineService = {
     return safeGetItem(`dictionary_decks_${lang}`)
   },
 
-  async saveAnalysis(text: string, analysis: LlmAnalysis) {
-    const lang = getAppLanguage()
-    await safeSetItem(`analysis_${lang}_${text.trim().toLowerCase()}`, JSON.parse(JSON.stringify(analysis)))
+  async saveAnalysis(text: string, analysis: LlmAnalysis, srcLang?: string) {
+    if (!text || !analysis)
+      return
+
+    const key = buildAnalysisCacheKey(text, srcLang)
+
+    // L1: Запись в оперативную память (RAM)
+    setL1Analysis(key, analysis)
+
+    // L2: Запись в IndexedDB
+    await safeSetItem(key, JSON.parse(JSON.stringify(analysis)))
   },
 
-  async getAnalysis(text: string): Promise<LlmAnalysis | null> {
-    const lang = getAppLanguage()
+  async getAnalysis(text: string, srcLang?: string): Promise<LlmAnalysis | null> {
+    if (!text)
+      return null
 
-    return safeGetItem(`analysis_${lang}_${text.trim().toLowerCase()}`)
+    const key = buildAnalysisCacheKey(text, srcLang)
+
+    // 1. Проверяем L1-кэш в RAM (0.0001 мс)
+    const l1Hit = getL1Analysis(key)
+    if (l1Hit)
+      return l1Hit
+
+    // 2. Проверяем L2-кэш в IndexedDB по новому ключу (с srcLang)
+    let cached = await safeGetItem<LlmAnalysis>(key)
+
+    // 3. Fallback: проверяем L2-кэш по старому ключу для обратной совместимости
+    if (!cached && srcLang) {
+      const legacyKey = buildLegacyAnalysisCacheKey(text)
+      cached = await safeGetItem<LlmAnalysis>(legacyKey)
+    }
+
+    // Если нашли в L2 — кладём в L1 в оперативной памяти для следующих мгновенных обращений
+    if (cached) {
+      setL1Analysis(key, cached)
+    }
+
+    return cached
   },
 
   async saveTts(hashKey: string, audioBase64: string) {

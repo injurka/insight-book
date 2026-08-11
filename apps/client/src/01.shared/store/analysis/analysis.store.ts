@@ -204,7 +204,7 @@ export const useAnalysisStore = defineStore('analysis', () => {
     currentChunk.forEach(taskItem => taskItem.status = 'checking_cache')
 
     const cacheChecks = await Promise.all(currentChunk.map(async (task) => {
-      const cached = await repos.analysis.getLocalAnalysis(task.text)
+      const cached = await repos.analysis.getLocalAnalysis(task.text, book.language)
 
       return { task, cached }
     }))
@@ -239,7 +239,7 @@ export const useAnalysisStore = defineStore('analysis', () => {
         for (const task of missingInLocalCache) {
           const serverCached = serverCacheMap.get(task.text) as LlmAnalysis
           if (serverCached) {
-            await repos.analysis.saveLocalAnalysis(task.text, serverCached)
+            await repos.analysis.saveLocalAnalysis(task.text, serverCached, book.language)
             handleTaskSuccess(task, serverCached)
             queueDone.value++
             taskQueue.value = taskQueue.value.filter(t => t.id !== task.id)
@@ -297,7 +297,7 @@ export const useAnalysisStore = defineStore('analysis', () => {
         for (const result of res.results) {
           const task = batch.find(it => it.id === result.id)
           if (task) {
-            await repos.analysis.saveLocalAnalysis(task.text, result.analysis)
+            await repos.analysis.saveLocalAnalysis(task.text, result.analysis, book.language)
             handleTaskSuccess(task, result.analysis)
             queueDone.value++
             taskQueue.value = taskQueue.value.filter(t => t.id !== task.id)
@@ -440,7 +440,12 @@ export const useAnalysisStore = defineStore('analysis', () => {
       return true
     }
 
-    const cached = await repos.analysis.getLocalAnalysis(sentence)
+    const readerStore = useReaderStore()
+    const libraryStore = useLibraryStore()
+    const currentBook = readerStore.currentBook || libraryStore.currentBookInfo
+    const language = currentBook?.language
+
+    const cached = await repos.analysis.getLocalAnalysis(sentence, language)
     if (cached) {
       sidebarAnalysis.value = cached
       analysisHistory.value.unshift({ sentence, analysis: cached, timestamp: Date.now() })
@@ -751,7 +756,12 @@ export const useAnalysisStore = defineStore('analysis', () => {
   }
 
   async function checkAndApplyCachedTranslation(word: string): Promise<boolean> {
-    const cached = await repos.analysis.getLocalAnalysis(word)
+    const readerStore = useReaderStore()
+    const libraryStore = useLibraryStore()
+    const currentBook = readerStore.currentBook || libraryStore.currentBookInfo
+    const language = currentBook?.language
+
+    const cached = await repos.analysis.getLocalAnalysis(word, language)
     if (cached && wordPopover.value) {
       applyAiAnalysisData(cached)
       wordPopover.value.isLoading = false
@@ -915,7 +925,7 @@ export const useAnalysisStore = defineStore('analysis', () => {
       )
     }
     catch (err: unknown) {
-      if (err instanceof Error && err.name !== 'AbortError' && wordAbortController === controller) {
+      if (err instanceof Error && err.name !== 'AbortError' && wordPopover.value && wordAbortController === controller) {
         wordPopover.value = {
           word,
           pos,

@@ -28,6 +28,15 @@ export const useReaderStore = defineStore('reader', () => {
   const isParallelView = computed(() => useGlobalSettingsStore().parallelViewMode === 'split')
   const tocOpen = ref(false)
 
+  const targetPageNum = ref<number | null>(null)
+
+  const displayPageNum = computed(() => {
+    if (targetPageNum.value !== null)
+      return targetPageNum.value
+
+    return currentBook.value?.currentPage || 1
+  })
+
   let lastTocBookId = 0
   let loadPageSeq = 0
 
@@ -59,6 +68,7 @@ export const useReaderStore = defineStore('reader', () => {
     if (!newBook) {
       currentPage.value = null
       currentPageDictionary.value = {}
+      targetPageNum.value = null
       const highlightsStore = useHighlightsStore()
       highlightsStore.clear()
       tocBookId.value = null
@@ -173,7 +183,10 @@ export const useReaderStore = defineStore('reader', () => {
     const toastStore = useToastStore()
 
     const seq = ++loadPageSeq
-    const prevPageNum = currentBook.value?.currentPage || 1
+    const prevPageNum = targetPageNum.value || currentBook.value?.currentPage || 1
+
+    targetPageNum.value = pageNum
+    currentPage.value = null
 
     resetAnalysisState(analysisStore)
 
@@ -190,6 +203,7 @@ export const useReaderStore = defineStore('reader', () => {
     }
     catch (e) {
       if (seq === loadPageSeq) {
+        targetPageNum.value = prevPageNum
         updateReadingProgress(bookId, prevPageNum)
         toastStore.error(i18n.global.t('dictionary.pageOfflineError'))
       }
@@ -217,6 +231,7 @@ export const useReaderStore = defineStore('reader', () => {
     analysisStore.analysisHistory = []
 
     const startPage = book.currentPage || 1
+    targetPageNum.value = startPage
 
     await loadPage(book.id, startPage)
   }
@@ -246,6 +261,7 @@ export const useReaderStore = defineStore('reader', () => {
 
       analysisStore.analysisHistory = []
       const pageToLoad = startPage || book.currentPage || 1
+      targetPageNum.value = pageToLoad
       await loadPage(book.id, pageToLoad)
     }
     finally {
@@ -261,6 +277,8 @@ export const useReaderStore = defineStore('reader', () => {
     isPageLoading,
     isParallelView,
     tocOpen,
+    targetPageNum,
+    displayPageNum,
     fetchToc,
     loadPage,
     openBook,

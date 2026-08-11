@@ -153,6 +153,9 @@ export const api = {
 
     getInfo: async (id: number) => request<Book>(`/api/books/${id}/info`),
 
+    getAllCacheAll: async (bookId: number, targetLang?: string) =>
+      request<{ results: { sentence: string, analysis: LlmAnalysis }[] }>(`/api/books/${bookId}/cache-all${targetLang ? `?targetLang=${targetLang}` : ''}`),
+
     startReading: async (id: number) => request<{ success: boolean }>(`/api/books/${id}/start`, { method: 'POST' }),
 
     updateInfo: async (id: number, data: Partial<Book>) =>

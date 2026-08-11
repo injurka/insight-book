@@ -90,7 +90,11 @@ function handlePageClick(pageNum?: number) {
     }
   }
   .toc-title {
-    flex-shrink: 0;
+    flex-shrink: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
     font-size: 0.95rem;
   }
   .toc-dots {

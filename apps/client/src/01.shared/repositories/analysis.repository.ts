@@ -5,6 +5,7 @@ import { offlineService } from '~/01.shared/services/offline.service'
 import { LlmAnalysisSchema } from '~/01.shared/types/schemas/analysis.schema'
 
 export interface IAnalysisRepository {
+  getAllCacheAll: (bookId: number, targetLang?: string) => Promise<{ results: { sentence: string, analysis: LlmAnalysis }[] }>
   checkCache: (bookId: number, items: { text: string, type: 'sentence' | 'word' }[], language: string, signal?: AbortSignal) => Promise<{ results: { sentence: string, analysis: LlmAnalysis }[] }>
   analyzeBatch: (bookId: number, items: { id: string, sentence: string, context?: string, type: 'sentence' | 'word' }[], language: string, signal?: AbortSignal) => Promise<{ results: { id: string, analysis: LlmAnalysis }[] }>
   analyze: (bookId: number, text: string, language: string, context?: string, signal?: AbortSignal, type?: 'sentence' | 'word') => Promise<LlmAnalysis>
@@ -13,13 +14,17 @@ export interface IAnalysisRepository {
   generateGenericTts: (text: string, voice: string, signal?: AbortSignal, forceCacheBypass?: boolean) => Promise<{ audioBase64: string }>
 
   // Local Cache Methods
-  getLocalAnalysis: (text: string) => Promise<LlmAnalysis | null | undefined>
-  saveLocalAnalysis: (text: string, analysis: LlmAnalysis) => Promise<void>
+  getLocalAnalysis: (text: string, language?: string) => Promise<LlmAnalysis | null | undefined>
+  saveLocalAnalysis: (text: string, analysis: LlmAnalysis, language?: string) => Promise<void>
   getLocalTts: (cacheKey: string) => Promise<Blob | null | undefined>
   saveLocalTts: (cacheKey: string, audioBase64: string) => Promise<void>
 }
 
 export class DefaultAnalysisRepository implements IAnalysisRepository {
+  async getAllCacheAll(bookId: number, targetLang?: string) {
+    return api.books.getAllCacheAll(bookId, targetLang)
+  }
+
   async checkCache(
     bookId: number,
     items: { text: string, type: 'sentence' | 'word' }[],
@@ -74,7 +79,7 @@ export class DefaultAnalysisRepository implements IAnalysisRepository {
       type,
     )
     const data = applyAcl(LlmAnalysisSchema, res, 'analysis.analyze()')
-    await offlineService.saveAnalysis(text, data).catch(() => {})
+    await offlineService.saveAnalysis(text, data).catch(() => { })
 
     return data
   }
@@ -111,16 +116,16 @@ export class DefaultAnalysisRepository implements IAnalysisRepository {
     )
   }
 
-  async getLocalAnalysis(text: string) {
-    const cached = await offlineService.getAnalysis(text)
+  async getLocalAnalysis(text: string, language?: string) {
+    const cached = await offlineService.getAnalysis(text, language)
     if (!cached)
       return cached
 
     return applyAcl(LlmAnalysisSchema, cached, 'analysis.getLocalAnalysis()')
   }
 
-  async saveLocalAnalysis(text: string, analysis: LlmAnalysis) {
-    await offlineService.saveAnalysis(text, analysis)
+  async saveLocalAnalysis(text: string, analysis: LlmAnalysis, language?: string) {
+    await offlineService.saveAnalysis(text, analysis, language)
   }
 
   async getLocalTts(cacheKey: string) {

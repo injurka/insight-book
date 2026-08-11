@@ -1,28 +1,31 @@
 <script setup lang="ts">
 import { Icon } from '@iconify/vue'
+import { computed, nextTick, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useAnalysisStore } from '~/01.shared/store/analysis/analysis.store.ts'
+import { useAppWakeLock } from '~/01.shared/composables/use-app-wake-lock'
+import { useDelayedLoading } from '~/01.shared/composables/use-delayed-loading'
+import { lazyComponent } from '~/01.shared/lib/lazy-component'
+import { useAnalysisStore } from '~/01.shared/store/analysis/analysis.store'
 import { useGlobalSettingsStore } from '~/01.shared/store/settings.store'
 import { KitBtn } from '~/02.kit/atoms/kit-btn/ui'
 import { KitCheckbox } from '~/02.kit/atoms/kit-checkbox/ui'
-import { KitPageLoader } from '~/02.kit/atoms/kit-page-loader/ui'
 import { KitDialog } from '~/02.kit/organisms/kit-dialog/ui'
-import { useTextSelection } from '~/04.features/analysis/index.ts'
-import { useParallelSync } from '../composables/use-parallel-sync.ts'
-import { useQuoteHighlights } from '../composables/use-quote-highlights.ts'
-import { useReaderContent } from '../composables/use-reader-content.ts'
-import { useReaderDomHighlights } from '../composables/use-reader-dom-highlights.ts'
-import { useReaderHotkeys } from '../composables/use-reader-hotkeys.ts'
-import { useReaderNavigation } from '../composables/use-reader-navigation.ts'
-import { useReaderScroll } from '../composables/use-reader-scroll.ts'
-import { useReadingSession } from '../composables/use-reading-session.ts'
-import { useScrollRestoration } from '../composables/use-scroll-restoration.ts'
-import { useReaderStore } from '../store/reader.store.ts'
+import { useTextSelection } from '~/04.features/analysis'
+import { useParallelSync } from '../composables/use-parallel-sync'
+import { useQuoteHighlights } from '../composables/use-quote-highlights'
+import { useReaderContent } from '../composables/use-reader-content'
+import { useReaderDomHighlights } from '../composables/use-reader-dom-highlights'
+import { useReaderHotkeys } from '../composables/use-reader-hotkeys'
+import { useReaderNavigation } from '../composables/use-reader-navigation'
+import { useReaderScroll } from '../composables/use-reader-scroll'
+import { useReadingSession } from '../composables/use-reading-session'
+import { useScrollRestoration } from '../composables/use-scroll-restoration'
+import { useReaderStore } from '../store/reader.store'
 
 import ReaderTocDialog from './dialog/reader-toc-dialog.vue'
-import ReaderBrightness from './partials/reader-brightness.vue'
 import ReaderFooter from './partials/reader-footer.vue'
 import ReaderHeader from './partials/reader-header.vue'
+import ReaderLoader from './partials/reader-loader.vue'
 
 const PageAnalysisModal = lazyComponent(() => import('~/04.features/analysis/ui/modal/page-analysis-modal.vue'))
 const SelectionTooltip = lazyComponent(() => import('~/04.features/analysis/ui/selection-tooltip.vue'))
@@ -37,6 +40,8 @@ const { t } = useI18n()
 const readerViewRef = useTemplateRef<HTMLElement>('readerViewRef')
 useAppWakeLock(() => analysisStore.isManualPageAnalysisActive || analysisStore.isAutoPageAnalysisActive)
 useReadingSession()
+
+const showSpinner = useDelayedLoading(computed(() => readerStore.isPageLoading), 1000)
 
 const { saveScrollPosition, restoreScrollPosition, setScrollIntent } = useScrollRestoration(
   readerViewRef,
@@ -112,6 +117,10 @@ watch([
 })
 
 watch(() => readerStore.isPageLoading, async (isLoading) => {
+  if (isLoading && readerViewRef.value) {
+    readerViewRef.value.scrollTop = 0
+  }
+
   if (!isLoading && readerStore.currentPage) {
     await nextTick()
     await applyCodeHighlighting()
@@ -125,56 +134,22 @@ watch(() => readerStore.isPageLoading, async (isLoading) => {
     <ReaderHeader :is-visible="isHeaderVisible" />
 
     <div class="reader-content-wrapper">
-      <div v-if="readerStore.isPageLoading && !readerStore.currentPage" class="reader-loading-wrapper">
-        <div class="spinner-box">
-          <KitPageLoader />
-        </div>
-        <h3 class="loading-text">
-          {{ t('reader.preparingPageTitle') }}
-        </h3>
-        <p class="loading-subtext">
-          {{ t('reader.preparingPageDesc') }}
-        </p>
-      </div>
+      <ReaderLoader :show="showSpinner" />
 
-      <div
-        v-else-if="readerStore.currentPage"
-        :key="readerStore.currentPage.pageNum"
-        class="reader-layout-wrapper page-enter-anim"
-        :class="{ 'is-loading': readerStore.isPageLoading }"
-      >
-        <div class="reader-content-layout" :class="{ 'is-parallel': readerStore.isParallelView }">
-          <div
-            class="reader-content left-pane js-tooltip-selectable"
-            :style="{
-              fontSize: `${settingsStore.readerFontSize}rem`,
-              lineHeight: settingsStore.readerLineHeight,
-              fontFamily: settingsStore.readerFontFamily,
-            }"
-            @click="onWordClick"
-            @mousedown="onPointerDown"
-            @touchstart="onPointerDown"
-            @mouseup="onPointerUp"
-            @touchend="onPointerUp"
-            @touchcancel="onPointerUp"
-            @mouseleave="onPointerUp"
-            @mouseover="onSentenceHover"
-            @mouseout="onSentenceOut"
-            v-html="leftPaneContent"
-          />
-
-          <div
-            v-if="readerStore.isParallelView"
-            class="reader-content right-pane"
-            :style="{
-              fontSize: `${settingsStore.readerFontSize}rem`,
-              lineHeight: settingsStore.readerLineHeight,
-              fontFamily: settingsStore.readerFontFamily,
-            }"
-          >
+      <Transition name="fade-in-only">
+        <div
+          v-if="!readerStore.isPageLoading && readerStore.currentPage"
+          :key="readerStore.currentPage.pageNum"
+          class="reader-layout-wrapper"
+        >
+          <div class="reader-content-layout" :class="{ 'is-parallel': readerStore.isParallelView }">
             <div
-              v-if="pageTranslationProgress.isFullyTranslated"
-              class="translated-content-wrapper"
+              class="reader-content left-pane js-tooltip-selectable"
+              :style="{
+                fontSize: `${settingsStore.readerFontSize}rem`,
+                lineHeight: settingsStore.readerLineHeight,
+                fontFamily: settingsStore.readerFontFamily,
+              }"
               @click="onWordClick"
               @mousedown="onPointerDown"
               @touchstart="onPointerDown"
@@ -184,41 +159,66 @@ watch(() => readerStore.isPageLoading, async (isLoading) => {
               @mouseleave="onPointerUp"
               @mouseover="onSentenceHover"
               @mouseout="onSentenceOut"
-              v-html="translatedPageContent"
+              v-html="leftPaneContent"
             />
-            <div v-else class="untranslated-overlay-container">
+
+            <div
+              v-if="readerStore.isParallelView"
+              class="reader-content right-pane"
+              :style="{
+                fontSize: `${settingsStore.readerFontSize}rem`,
+                lineHeight: settingsStore.readerLineHeight,
+                fontFamily: settingsStore.readerFontFamily,
+              }"
+            >
               <div
-                class="untranslated-content is-blurred"
-                v-html="leftPaneContent"
+                v-if="pageTranslationProgress.isFullyTranslated"
+                class="translated-content-wrapper"
+                @click="onWordClick"
+                @mousedown="onPointerDown"
+                @touchstart="onPointerDown"
+                @mouseup="onPointerUp"
+                @touchend="onPointerUp"
+                @touchcancel="onPointerUp"
+                @mouseleave="onPointerUp"
+                @mouseover="onSentenceHover"
+                @mouseout="onSentenceOut"
+                v-html="translatedPageContent"
               />
-              <div class="untranslated-overlay-action">
-                <div class="hint-text">
-                  {{ t('reader.parallelViewRequiresFullTranslation', 'Для отображения текста необходимо перевести все предложения на странице.') }}
-                </div>
-
-                <div v-if="analysisStore.isAutoPageAnalysisActive || analysisStore.isManualPageAnalysisActive" class="translation-progress">
-                  <div class="progress-info">
-                    <span>{{ t('reader.translatingSentences', 'Перевод предложений...') }}</span>
-                    <span>{{ pageTranslationProgress.translated }} / {{ pageTranslationProgress.total }}</span>
+              <div v-else class="untranslated-overlay-container">
+                <div
+                  class="untranslated-content is-blurred"
+                  v-html="leftPaneContent"
+                />
+                <div class="untranslated-overlay-action">
+                  <div class="hint-text">
+                    {{ t('reader.parallelReadingHint', 'Для отображения текста необходимо перевести все предложения на странице.') }}
                   </div>
-                  <div class="progress-bar-bg">
-                    <div class="progress-bar-fill" :style="{ width: `${pageTranslationProgress.percentage}%` }" />
-                  </div>
-                </div>
 
-                <KitBtn
-                  v-else
-                  color="primary"
-                  class="action-btn"
-                  @click="startPageTranslationOnly"
-                >
-                  <Icon icon="mdi:translate" class="btn-icon" /> {{ t('reader.translatePage', 'Перевести страницу') }}
-                </KitBtn>
+                  <div v-if="analysisStore.isAutoPageAnalysisActive || analysisStore.isManualPageAnalysisActive" class="translation-progress">
+                    <div class="progress-info">
+                      <span>{{ t('reader.translatingPage', 'Перевод предложений...') }}</span>
+                      <span>{{ pageTranslationProgress.translated }} / {{ pageTranslationProgress.total }}</span>
+                    </div>
+                    <div class="progress-bar-bg">
+                      <div class="progress-bar-fill" :style="{ width: `${pageTranslationProgress.percentage}%` }" />
+                    </div>
+                  </div>
+
+                  <KitBtn
+                    v-else
+                    color="primary"
+                    class="action-btn"
+                    @click="startPageTranslationOnly"
+                  >
+                    <Icon icon="mdi:translate" class="btn-icon" /> {{ t('reader.translateWholePage', 'Перевести страницу') }}
+                  </KitBtn>
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
+      </Transition>
     </div>
 
     <GrammarPopover />
@@ -262,7 +262,6 @@ watch(() => readerStore.isPageLoading, async (isLoading) => {
     <SelectionTooltip />
     <SentenceAnalysis />
     <PageAnalysisModal />
-    <ReaderBrightness />
 
     <ReaderFooter @prev="prevPage" @next="nextPage" @go-to="goToPage" />
   </div>
@@ -342,15 +341,6 @@ watch(() => readerStore.isPageLoading, async (isLoading) => {
   display: flex;
   justify-content: center;
   padding: 24px;
-  transition:
-    opacity 0.2s ease,
-    filter 0.2s ease;
-
-  &.is-loading {
-    opacity: 0.4;
-    filter: blur(2px);
-    pointer-events: none;
-  }
 
   @include media-down(sm) {
     padding: 16px;
@@ -638,50 +628,29 @@ watch(() => readerStore.isPageLoading, async (isLoading) => {
     }
   }
 }
-.reader-loading-wrapper {
-  flex-grow: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  padding: 32px;
-  text-align: center;
-  .spinner-box {
-    height: 80px;
-    margin-bottom: 24px;
-    :deep(.page-loader) {
-      min-height: unset;
-    }
-  }
-  .loading-text {
-    font-size: 1.3rem;
-    font-weight: 600;
-    color: var(--fg-primary-color);
-    margin: 0 0 8px 0;
-  }
-  .loading-subtext {
-    font-size: 1rem;
-    color: var(--fg-secondary-color);
-    margin: 0;
-    max-width: 320px;
-    line-height: 1.5;
-  }
+
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.25s ease;
 }
 
-@keyframes pageEnter {
-  from {
-    opacity: 0;
-    transform: translateY(-5px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
 }
 
-.page-enter-anim {
-  animation: pageEnter 0.2s ease-out 0.1s both;
+.fade-in-only-enter-active {
+  transition: opacity 0.25s ease-out;
+}
+.fade-in-only-enter-from {
+  opacity: 0;
+}
+.fade-in-only-leave-active {
+  transition: none !important;
+  display: none !important;
+}
+.fade-in-only-leave-to {
+  opacity: 0;
 }
 
 .untranslated-overlay-container {

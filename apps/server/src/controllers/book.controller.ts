@@ -80,6 +80,10 @@ export const bookController = new Elysia({ prefix: '/api/books' })
     const info = await bookService.getBookInfo(Number(id), userId, targetLang)
     return info
   }, { cache: 'shortPrivate' })
+  .get('/:id/cache-all', async ({ params: { id }, userId, query }) => {
+    const targetLang = (query.targetLang as string) || 'ru'
+    return bookAnalysisService.getAllCache(Number(id), userId!, targetLang)
+  }, { requireAuth: true, cache: 'shortPrivate' })
   .post('/:id/start', async ({ params: { id }, userId }) => {
     return bookService.startReading(Number(id), userId!)
   }, { requireAuth: true })

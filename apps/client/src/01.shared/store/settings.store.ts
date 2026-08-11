@@ -1,6 +1,6 @@
 import { useLocalStorage } from '@vueuse/core'
 
-import { computed, ref } from 'vue'
+import { computed } from 'vue'
 
 export const useGlobalSettingsStore = defineStore('globalSettings', () => {
   const appLanguage = useLocalStorage<string>('global-app-language', 'ru')
@@ -26,7 +26,6 @@ export const useGlobalSettingsStore = defineStore('globalSettings', () => {
   const readerFontSize = useLocalStorage<number>('global-reader-font-size', 1.4)
   const readerLineHeight = useLocalStorage<number>('global-reader-line-height', 1.8)
   const readerFontFamily = useLocalStorage<string>('global-reader-font-family', '\'Maple Mono CN\', \'Microsoft YaHei\', sans-serif')
-  const readerBrightness = ref<number>(1.0)
 
   const mangaOcrDisplayMode = useLocalStorage<'hover' | 'popover'>('global-manga-ocr-mode', 'popover')
 
@@ -71,7 +70,6 @@ export const useGlobalSettingsStore = defineStore('globalSettings', () => {
     readerFontSize,
     readerLineHeight,
     readerFontFamily,
-    readerBrightness,
     mangaOcrDisplayMode,
     useCustomLlm,
     customLlmUrl,

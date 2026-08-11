@@ -23,7 +23,7 @@ function openPrompt() {
 
 function handlePageSubmit(value: string) {
   const total = readerStore.currentBook?.totalPages || 1
-  const current = readerStore.currentBook?.currentPage || 1
+  const current = readerStore.displayPageNum
   const page = Number.parseInt(value, 10)
 
   if (!Number.isNaN(page) && page >= 1 && page <= total && page !== current)
@@ -52,7 +52,7 @@ function handlePageSubmit(value: string) {
       :class="{ 'is-disabled': readerStore.isPageLoading }"
       @click="openPrompt"
     >
-      {{ readerStore.currentBook.currentPage }} / {{ readerStore.currentBook.totalPages }}
+      {{ readerStore.displayPageNum }} / {{ readerStore.currentBook.totalPages }}
     </button>
 
     <KitBtn
@@ -70,7 +70,7 @@ function handlePageSubmit(value: string) {
       :description="t('reader.enterPageNumber', { total: readerStore.currentBook?.totalPages || 1 })"
       input-type="number"
       :placeholder="t('reader.pageNumber')"
-      :default-value="readerStore.currentBook?.currentPage || 1"
+      :default-value="readerStore.displayPageNum"
       :confirm-text="t('reader.go')"
       @submit="handlePageSubmit"
     />
