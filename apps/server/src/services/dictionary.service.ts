@@ -1,6 +1,7 @@
 import type { IDictionaryRepository } from '../repositories/interfaces'
 import type { LlmConfig, PageDictEntry, UserDictItem } from '../types'
 import { createEmptyCard, FSRS, Rating } from 'ts-fsrs'
+import { ERROR_CODES } from '../constants/error-codes'
 import { db } from '../db'
 import { getDictionaryChatPrompt } from '../prompts'
 import { dictionaryRepository } from '../repositories/dictionary.repository'
@@ -13,7 +14,7 @@ import { generateWordAutoFill } from './llm.service'
 import { trackTokenUsage } from './token.service'
 
 export class DictionaryService {
-  constructor(private dictRepo: IDictionaryRepository = dictionaryRepository) {}
+  constructor(private dictRepo: IDictionaryRepository = dictionaryRepository) { }
   async lookupWords(words: string[], language: string, targetLang: string, userId: number): Promise<Record<string, PageDictEntry>> {
     if (!words.length)
       return {}
@@ -64,13 +65,13 @@ export class DictionaryService {
   async updateDeck(deckId: number, userId: number, name: string) {
     const res = await this.dictRepo.updateDeck(deckId, userId, name)
     if (res.length === 0)
-      throw new AppError(404, 'Колода не найдена')
+      throw new AppError(404, ERROR_CODES.DICTIONARY.DECK_NOT_FOUND, 'Deck not found')
   }
 
   async deleteDeck(deckId: number, userId: number, mode: 'keep' | 'delete_all' | 'delete_exclusive' = 'keep') {
     const deck = await this.dictRepo.getDeck(deckId, userId)
     if (!deck)
-      throw new AppError(404, 'Колода не найдена')
+      throw new AppError(404, ERROR_CODES.DICTIONARY.DECK_NOT_FOUND, 'Deck not found')
 
     if (mode === 'delete_all') {
       const wordsInDeck = await this.dictRepo.getWordsInDeck(deckId)
@@ -87,7 +88,7 @@ export class DictionaryService {
 
     const res = await this.dictRepo.deleteDeck(deckId, userId)
     if (res.length === 0)
-      throw new AppError(404, 'Колода не найдена')
+      throw new AppError(404, ERROR_CODES.DICTIONARY.DECK_NOT_FOUND, 'Deck not found')
   }
 
   async getUserDictionary(userId: number, targetLang: string) {
@@ -97,7 +98,7 @@ export class DictionaryService {
   async getWordFromUserDictionary(word: string, userId: number, targetLang: string) {
     const entry = await this.dictRepo.getWordFromUserDictionary(word, userId, targetLang)
     if (!entry)
-      throw new AppError(404, 'Слово не найдено в словаре пользователя')
+      throw new AppError(404, ERROR_CODES.DICTIONARY.WORD_NOT_FOUND, 'Word not found in user dictionary')
     return entry
   }
 
@@ -217,7 +218,7 @@ export class DictionaryService {
   async cloneCatalogDeck(userId: number, deckId: number, targetLang: string) {
     const deckToClone = await this.dictRepo.getCatalogDeckById(deckId)
     if (!deckToClone)
-      throw new AppError(404, 'Deck not found')
+      throw new AppError(404, ERROR_CODES.DICTIONARY.DECK_NOT_FOUND, 'Deck not found')
 
     const wordsToClone = await this.dictRepo.getCatalogWords(deckId)
     const newDeck = await this.dictRepo.createDeck(userId, deckToClone.title, deckToClone.language, targetLang)
@@ -261,7 +262,7 @@ export class DictionaryService {
     if (customPromptId) {
       const dbPrompt = await this.dictRepo.getCustomPromptById(customPromptId, userId)
       if (!dbPrompt)
-        throw new AppError(404, 'Custom prompt not found')
+        throw new AppError(404, ERROR_CODES.DICTIONARY.PROMPT_NOT_FOUND, 'Custom prompt not found')
       systemPrompt += `\n\nAdditional Instructions:\n${dbPrompt.prompt}`
     }
 
@@ -346,14 +347,14 @@ export class DictionaryService {
   async updateCustomPrompt(id: number, userId: number, updateData: { name?: string, prompt?: string }) {
     const prompt = await this.dictRepo.updateCustomPrompt(id, userId, updateData)
     if (!prompt)
-      throw new AppError(404, 'Custom prompt not found')
+      throw new AppError(404, ERROR_CODES.DICTIONARY.PROMPT_NOT_FOUND, 'Custom prompt not found')
     return prompt
   }
 
   async deleteCustomPrompt(id: number, userId: number) {
     const prompt = await this.dictRepo.deleteCustomPrompt(id, userId)
     if (!prompt)
-      throw new AppError(404, 'Custom prompt not found')
+      throw new AppError(404, ERROR_CODES.DICTIONARY.PROMPT_NOT_FOUND, 'Custom prompt not found')
   }
 }
 

@@ -56,18 +56,16 @@ async function bootstrap() {
 
   setupMobileDevtools(settingsStore)
 
-  // 3. Router & Mount
+  // 3. Critical path: sync auth session from backend before mount
+  await authStore.checkAuth().catch((err: unknown) => console.warn('[bootstrap] Background auth check failed:', err))
+
+  // 4. Router & Mount
   app.use(router)
   app.mount('#app')
   document.getElementById('app-preloader')?.remove()
 
-  // 4. Non-blocking Post-mount tasks
-  initDeferredTasks(
-    app,
-    router,
-    pinia,
-    authStore,
-  )
+  // 5. Non-blocking Post-mount tasks
+  initDeferredTasks(app, router, pinia)
 
   if (import.meta.env.DEV) {
     app.config.performance = true
@@ -87,14 +85,8 @@ function setupMobileDevtools(settingsStore: ReturnType<typeof useGlobalSettingsS
 }
 
 /** Фоновые неблокирующие задачи после монтирования */
-function initDeferredTasks(
-  app: VueApp,
-  router: Router,
-  pinia: Pinia,
-  authStore: ReturnType<typeof useAuthStore>,
-) {
-  // Проверка сессии и гидратация локали
-  authStore.checkAuth().catch((err: unknown) => console.warn('[bootstrap] Background auth check failed:', err))
+function initDeferredTasks(app: VueApp, router: Router, pinia: Pinia) {
+  // Гидратация локали
   localePromise.catch((err: unknown) => console.warn('[bootstrap] Locale load failed:', err))
 
   // Мониторинг (инициализируем Faro SDK, затем регистрируем Vue error handler и router hooks)

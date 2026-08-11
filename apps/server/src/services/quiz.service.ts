@@ -1,5 +1,6 @@
 import type { LlmConfig } from '../types'
 import { generateLevelQuiz } from '~/services/llm.service'
+import { ERROR_CODES } from '../constants/error-codes'
 import { quizRepository } from '../repositories/quiz.repository'
 import { AppError } from '../utils/errors'
 
@@ -82,19 +83,19 @@ export const quizService = {
     const progress = await quizRepository.getProgressForLevel(userId, normalizedLang, levelValue)
 
     if (!progress || !progress.unlocked) {
-      throw new AppError(403, 'quiz_level_locked')
+      throw new AppError(403, ERROR_CODES.QUIZ.LEVEL_LOCKED, 'Quiz level is locked')
     }
 
     const deck = await quizRepository.getOfficialDeck(normalizedLang, levelValue)
 
     if (!deck) {
-      throw new AppError(404, `quiz_deck_not_found:${levelValue}:${normalizedLang}`)
+      throw new AppError(404, ERROR_CODES.DICTIONARY.DECK_NOT_FOUND, 'Quiz deck not found', { levelValue, language: normalizedLang })
     }
 
     const deckWords = await quizRepository.getDeckWords(deck.id)
 
     if (deckWords.length === 0) {
-      throw new AppError(404, 'quiz_no_words')
+      throw new AppError(404, ERROR_CODES.DICTIONARY.WORD_NOT_FOUND, 'No words for quiz')
     }
 
     const wordsSample = deckWords

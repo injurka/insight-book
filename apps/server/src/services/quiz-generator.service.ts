@@ -1,4 +1,5 @@
 import type { DeepDiveQuizResponse, LlmConfig, ModelMessage, QuizQuestion } from '../types'
+import { ERROR_CODES } from '../constants/error-codes'
 import { getDeepDivePrompt, getLangName, getQuizGenerationPrompt } from '../prompts'
 import { AppError } from '../utils/errors'
 import { parseLlmJson } from '../utils/helpers'
@@ -10,7 +11,7 @@ import { trackTokenUsage } from './token.service'
 export async function generateDeepDiveQuiz(userId: number, word: string, language: string, targetLang: string, mode: 'collocations' | 'radicals', config: LlmConfig): Promise<DeepDiveQuizResponse> {
   await checkTokenLimit(userId)
   if (!config.url)
-    throw new AppError(500, 'LLM API не настроен')
+    throw new AppError(500, ERROR_CODES.SYSTEM.LLM_NOT_CONFIGURED, 'LLM API not configured')
 
   const messages: ModelMessage[] = [
     { role: 'system', content: getDeepDivePrompt(language, targetLang, mode) },
@@ -41,7 +42,7 @@ export async function generateDeepDiveQuiz(userId: number, word: string, languag
     }
   }
 
-  throw new AppError(500, `Не удалось получить ответ от ИИ: ${lastError?.message || 'Unknown error'}`)
+  throw new AppError(500, ERROR_CODES.QUIZ.GENERATION_FAILED, `Quiz generation failed: ${lastError?.message || 'Unknown error'}`)
 }
 
 function reconstructReorderOptions(questions: QuizQuestion[], language: string): QuizQuestion[] {
@@ -145,7 +146,7 @@ export async function generateLevelQuiz(
 ): Promise<QuizQuestion[]> {
   await checkTokenLimit(userId)
   if (!config.url)
-    throw new AppError(500, 'LLM API не настроен')
+    throw new AppError(500, ERROR_CODES.SYSTEM.LLM_NOT_CONFIGURED, 'LLM API not configured')
 
   const prompt = getQuizGenerationPrompt(language, targetLang, levelValue)
 
@@ -260,5 +261,5 @@ Output MUST be a valid JSON array of question objects, exactly matching the sche
     }
   }
 
-  throw new AppError(500, `Не удалось сгенерировать вопросы: ${lastError?.message || 'Unknown error'}`)
+  throw new AppError(500, ERROR_CODES.QUIZ.GENERATION_FAILED, `Quiz generation failed: ${lastError?.message || 'Unknown error'}`)
 }

@@ -2,6 +2,7 @@ import type { IUserRepository } from '../repositories/interfaces'
 import path from 'node:path'
 import jwt from 'jsonwebtoken'
 import { AUTH_MODE, FRONTEND_URL, JWT_SECRET, UNISENDER_API_KEY, YANDEX_CLIENT_ID, YANDEX_CLIENT_SECRET } from '../config'
+import { ERROR_CODES } from '../constants/error-codes'
 import { ROLES } from '../constants/roles'
 import { userRepository } from '../repositories/user.repository'
 import { AppError } from '../utils/errors'
@@ -51,11 +52,11 @@ export class AuthService {
 
     const user = await this.userRepo.findByLogin(login)
     if (!user)
-      throw new AppError(401, 'Неверный логин или пароль')
+      throw new AppError(401, ERROR_CODES.AUTH.INVALID_CREDENTIALS, 'Invalid credentials')
 
     const isMatch = await Bun.password.verify(passwordString, user.passwordHash)
     if (!isMatch)
-      throw new AppError(401, 'Неверный логин или пароль')
+      throw new AppError(401, ERROR_CODES.AUTH.INVALID_CREDENTIALS, 'Invalid credentials')
 
     const token = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: '30d' })
     const userPayload = await this.getUserPayload(user)
@@ -66,7 +67,7 @@ export class AuthService {
   async sendCode(email: string) {
     const existingUser = await this.userRepo.findByEmail(email)
     if (existingUser)
-      throw new AppError(400, 'Пользователь с таким email уже существует')
+      throw new AppError(400, ERROR_CODES.AUTH.EMAIL_ALREADY_EXISTS, 'User with this email already exists')
 
     const code = Math.floor(100000 + Math.random() * 900000).toString()
     await this.userRepo.createEmailConfirmation(email, code)
@@ -113,7 +114,7 @@ export class AuthService {
       if (jsonRes.status !== 'success') {
         logger.error(jsonRes, 'Unisender Go error:')
         const errorMessage = jsonRes.message || (jsonRes.errors && jsonRes.errors[0]?.message) || 'Неизвестная ошибка'
-        throw new AppError(500, `Ошибка при отправке письма: ${errorMessage}`)
+        throw new AppError(500, ERROR_CODES.SYSTEM.EMAIL_SEND_FAILED, `Email send failed: ${errorMessage}`)
       }
     }
     else {
@@ -126,11 +127,11 @@ export class AuthService {
   async register(email: string, code: string, passwordString: string) {
     const confirmation = await this.userRepo.findEmailConfirmation(email, code)
     if (!confirmation)
-      throw new AppError(400, 'Неверный код подтверждения')
+      throw new AppError(400, ERROR_CODES.AUTH.INVALID_VERIFICATION_CODE, 'Invalid verification code')
 
     const createdAt = new Date(`${confirmation.createdAt}Z`).getTime()
     if (Date.now() - createdAt > 15 * 60 * 1000)
-      throw new AppError(400, 'Код подтверждения истек')
+      throw new AppError(400, ERROR_CODES.AUTH.VERIFICATION_CODE_EXPIRED, 'Verification code expired')
 
     let randomUsername = `user_${Math.random().toString(36).substring(2, 8)}`
     let existingUser = await this.userRepo.findByUsername(randomUsername)
@@ -155,7 +156,7 @@ export class AuthService {
       return { user: null, mode: AUTH_MODE }
     const user = await this.userRepo.findById(userId)
     if (!user)
-      throw new AppError(404, 'Пользователь не найден')
+      throw new AppError(404, ERROR_CODES.USER.NOT_FOUND, 'User not found')
     return { user: await this.getUserPayload(user), mode: AUTH_MODE }
   }
 
@@ -184,12 +185,12 @@ export class AuthService {
 
   async updateUsername(userId: number, username: string) {
     if (!username || username.trim().length < 2)
-      throw new AppError(400, 'Некорректное имя пользователя')
+      throw new AppError(400, ERROR_CODES.AUTH.INVALID_USERNAME, 'Invalid username')
     const newUsername = username.trim()
 
     const existing = await this.userRepo.findByUsername(newUsername)
     if (existing && existing.id !== userId)
-      throw new AppError(400, 'Имя пользователя уже занято')
+      throw new AppError(400, ERROR_CODES.AUTH.USERNAME_TAKEN, 'Username taken')
 
     await this.userRepo.updateUser(userId, { username: newUsername })
     return { success: true, username: newUsername }
@@ -218,7 +219,7 @@ export class AuthService {
 
     if (!tokenRes.ok) {
       const errText = await tokenRes.text().catch(() => '')
-      throw new AppError(400, `Failed to exchange token: ${errText}`)
+      throw new AppError(400, ERROR_CODES.AUTH.OAUTH_TOKEN_EXCHANGE_FAILED, `Failed to exchange token: ${errText}`)
     }
     const tokenData = (await tokenRes.json()) as { access_token: string }
 
@@ -226,7 +227,7 @@ export class AuthService {
       headers: { Authorization: `OAuth ${tokenData.access_token}` },
     })
     if (!userRes.ok)
-      throw new AppError(400, 'Failed to fetch user info')
+      throw new AppError(400, ERROR_CODES.AUTH.OAUTH_USER_INFO_FAILED, 'Failed to fetch user info')
     const userData = (await userRes.json()) as { id: string | number, login?: string, default_avatar_id?: string }
 
     const yandexId = String(userData.id)

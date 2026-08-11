@@ -118,6 +118,7 @@ function onMenuClick(id: string) {
   font-size: 0.9rem;
   font-weight: 500;
   outline: none;
+  letter-spacing: -0.5px;
 
   svg {
     font-size: 1.3rem;

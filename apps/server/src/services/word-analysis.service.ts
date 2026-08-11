@@ -1,9 +1,9 @@
 import type { BatchAnalysisRequest, BatchAnalysisResponse, GeneratedWordExamples, LlmAnalysis, LlmConfig, ModelMessage, WordAutoFillResponse } from '../types'
 import { eq, inArray, sql } from 'drizzle-orm'
-import { LlmAnalysisSchema } from '~/types/schemas'
 import { compressData, decompressData } from '~/utils/compression'
 import { hashSentence, parseLlmJson } from '~/utils/helpers'
 import { callLlmJsonWithRetry } from '~/utils/llm-api'
+import { ERROR_CODES } from '../constants/error-codes'
 import { db } from '../db'
 import * as schema from '../db/schema'
 import { getBatchSystemPrompt, getSystemPrompt, getWordAutoFillPrompt, getWordExamplesPrompt } from '../prompts'
@@ -62,7 +62,7 @@ export async function analyzeSentence(
   }
 
   if (!config.url)
-    throw new AppError(500, 'LLM API не настроен')
+    throw new AppError(500, ERROR_CODES.SYSTEM.LLM_NOT_CONFIGURED, 'LLM API not configured')
 
   const messages: ModelMessage[] = [
     { role: 'system', content: getSystemPrompt(language, targetLang) },
@@ -74,23 +74,27 @@ export async function analyzeSentence(
 
   for (const model of modelsToTry) {
     try {
-      const { parsed: analysis } = await callLlmJsonWithRetry<LlmAnalysis>(
+      const { parsed } = await callLlmJsonWithRetry<LlmAnalysis>(
         model,
         messages,
-        0.2,
+        0.3,
         AbortSignal.timeout(60000),
         config,
-        raw => LlmAnalysisSchema.parse(parseLlmJson(raw)) as LlmAnalysis,
+        raw => parseLlmJson<LlmAnalysis>(raw),
         (usage, rawText, messagesUsed) => {
           trackTokenUsage(userId, 'analyze_sentence', model, usage.promptTokens, usage.completionTokens, JSON.stringify(messagesUsed, null, 2), rawText)
         },
       )
 
-      const compressedAnalysis = compressData(JSON.stringify(analysis))
+      if (isOldFormatAnalysis(parsed)) {
+        logger.warn({ parsed }, `[LLM] Model [${model}] returned old format analysis, trying next model...`)
+        continue
+      }
+
+      const compressedAnalysis = compressData(JSON.stringify(parsed))
 
       await db.insert(schema.llmCache).values({
         sentenceHash: hash,
-        language,
         targetLanguage: targetLang,
         sentence,
         analysis: compressedAnalysis,
@@ -107,7 +111,7 @@ export async function analyzeSentence(
         type,
       }).onConflictDoNothing()
 
-      return analysis
+      return parsed
     }
     catch (e) {
       lastError = e as Error
@@ -160,7 +164,7 @@ export async function generateWordExamples(userId: number, word: string, languag
   await checkTokenLimit(userId)
 
   if (!config.url)
-    throw new AppError(500, 'LLM API не настроен')
+    throw new AppError(500, ERROR_CODES.SYSTEM.LLM_NOT_CONFIGURED, 'LLM API not configured')
 
   const messages: ModelMessage[] = [
     { role: 'system', content: getWordExamplesPrompt(language, targetLang) },
@@ -191,14 +195,14 @@ export async function generateWordExamples(userId: number, word: string, languag
     }
   }
 
-  throw new AppError(500, `Не удалось получить валидный ответ от ИИ: ${lastError?.message || 'Unknown error'}`)
+  throw new AppError(500, ERROR_CODES.SYSTEM.LLM_ERROR, `LLM error: ${lastError?.message || 'Unknown error'}`)
 }
 
 export async function generateWordAutoFill(userId: number, word: string, language: string, targetLang: string, config: LlmConfig): Promise<WordAutoFillResponse> {
   await checkTokenLimit(userId)
 
   if (!config.url)
-    throw new AppError(500, 'LLM API не настроен')
+    throw new AppError(500, ERROR_CODES.SYSTEM.LLM_NOT_CONFIGURED, 'LLM API not configured')
 
   const messages: ModelMessage[] = [
     { role: 'system', content: getWordAutoFillPrompt(language, targetLang) },
@@ -229,7 +233,7 @@ export async function generateWordAutoFill(userId: number, word: string, languag
     }
   }
 
-  throw new AppError(500, `Не удалось получить валидный ответ от ИИ: ${lastError?.message || 'Unknown error'}`)
+  throw new AppError(500, ERROR_CODES.SYSTEM.LLM_ERROR, `LLM error: ${lastError?.message || 'Unknown error'}`)
 }
 
 export async function analyzeBatch(userId: number, bookId: number, items: BatchAnalysisRequest[], language: string, targetLang: string, config: LlmConfig): Promise<BatchAnalysisResponse[]> {

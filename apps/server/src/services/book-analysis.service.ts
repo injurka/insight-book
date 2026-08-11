@@ -1,6 +1,7 @@
 import type { BatchAnalysisRequest, LlmConfig } from '../types'
 import { parse as parseHtml } from 'node-html-parser'
 import { normalizeLanguageCode } from '~/utils/helpers'
+import { ERROR_CODES } from '../constants/error-codes'
 import { bookRepository } from '../repositories/book.repository'
 import { AppError } from '../utils/errors'
 import { runWorkerTask } from '../workers/worker-client'
@@ -10,7 +11,7 @@ export class BookAnalysisService {
   async analyzeVocabulary(id: number, userId: number) {
     const book = await bookRepository.findFirstBook(id)
     if (!book || book.userId !== userId)
-      throw new AppError(403, 'Нет доступа')
+      throw new AppError(403, ERROR_CODES.BOOK.ACCESS_DENIED, 'Access denied')
 
     const result = await runWorkerTask<{ posDistribution?: unknown, topWords?: unknown, lexicalDiversity?: number, totalSentences?: number, totalWords?: number }>('analyzeBookVocabulary', { bookId: id, language: normalizeLanguageCode(book.language) })
     await bookRepository.upsertBookStats(id, {
@@ -27,7 +28,7 @@ export class BookAnalysisService {
   async analyzeBookStats(id: number, userId: number, config: LlmConfig) {
     const book = await bookRepository.findFirstBook(id)
     if (!book || book.userId !== userId)
-      throw new AppError(403, 'Нет доступа')
+      throw new AppError(403, ERROR_CODES.BOOK.ACCESS_DENIED, 'Access denied')
 
     let aiData
     let totalItems = 0
@@ -39,7 +40,7 @@ export class BookAnalysisService {
     else {
       const pages = await bookRepository.getBookPages(id)
       if (!pages.length)
-        throw new AppError(400, 'Страницы для анализа не найдены')
+        throw new AppError(400, ERROR_CODES.BOOK.NO_PAGES_TO_ANALYZE, 'No pages to analyze')
 
       let excerpt = ''
       for (const p of pages) {
@@ -86,7 +87,7 @@ export class BookAnalysisService {
   async checkCache(bookId: number, userId: number, items: { text: string, type: 'sentence' | 'word' }[], language: string, targetLang: string) {
     const book = await bookRepository.getBookUserIdAndPublic(bookId)
     if (!book || (book.userId !== userId && !book.isPublic))
-      throw new AppError(403, 'Нет доступа')
+      throw new AppError(403, ERROR_CODES.BOOK.ACCESS_DENIED, 'Access denied')
 
     return checkCacheBatch(bookId, items, normalizeLanguageCode(language), targetLang)
   }
@@ -94,7 +95,7 @@ export class BookAnalysisService {
   async analyzeSentence(bookId: number, userId: number, sentence: string, language: string, context: string, targetLang: string, type: string, config: LlmConfig) {
     const book = await bookRepository.getBookUserIdAndPublic(bookId)
     if (!book || (book.userId !== userId && !book.isPublic))
-      throw new AppError(403, 'Нет доступа')
+      throw new AppError(403, ERROR_CODES.BOOK.ACCESS_DENIED, 'Access denied')
 
     return analyzeSentence(userId, bookId, sentence, normalizeLanguageCode(language), targetLang, config, context, type as 'sentence' | 'word')
   }
@@ -102,7 +103,7 @@ export class BookAnalysisService {
   async analyzeBatch(bookId: number, userId: number, items: BatchAnalysisRequest[], language: string, targetLang: string, config: LlmConfig) {
     const book = await bookRepository.getBookUserIdAndPublic(bookId)
     if (!book || (book.userId !== userId && !book.isPublic))
-      throw new AppError(403, 'Нет доступа')
+      throw new AppError(403, ERROR_CODES.BOOK.ACCESS_DENIED, 'Access denied')
 
     return analyzeBatch(userId, bookId, items, normalizeLanguageCode(language), targetLang, config)
   }

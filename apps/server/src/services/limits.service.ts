@@ -1,4 +1,5 @@
 import { eq, sql } from 'drizzle-orm'
+import { ERROR_CODES } from '../constants/error-codes'
 import { db } from '../db'
 import * as schema from '../db/schema'
 import { AppError } from '../utils/errors'
@@ -11,7 +12,7 @@ export async function checkTokenLimit(userId: number): Promise<void> {
 
   // 1. Абсолютный исторический лимит пользователя (если он задан)
   if (user && user.tokenLimit !== null && user.usedTokens >= user.tokenLimit) {
-    throw new AppError(403, 'Превышен лимит использования ИИ (токенов)')
+    throw new AppError(403, ERROR_CODES.LIMITS.TOKEN_LIMIT_EXCEEDED, 'AI token limit exceeded')
   }
 
   // Todo МБ
@@ -46,7 +47,7 @@ export async function checkBookLimit(userId: number): Promise<void> {
         sql`${schema.books.userId} = ${userId} AND datetime(${schema.books.createdAt}) >= datetime(${user.periodStart})`,
       )
     if (count >= user.bookLimit) {
-      throw new AppError(403, `Превышен лимит книг в библиотеке (макс. ${user.bookLimit})`)
+      throw new AppError(403, ERROR_CODES.LIMITS.BOOK_LIMIT_EXCEEDED, 'Book limit exceeded', { maxBooks: user.bookLimit })
     }
   }
 }

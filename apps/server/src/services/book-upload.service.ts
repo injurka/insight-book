@@ -1,6 +1,7 @@
 import path from 'node:path'
 import { normalizeLanguageCode } from '~/utils/helpers'
 import { BOOKS_PATH } from '../config'
+import { ERROR_CODES } from '../constants/error-codes'
 import { bookRepository } from '../repositories/book.repository'
 import { AppError } from '../utils/errors'
 import { runWorkerTask } from '../workers/worker-client'
@@ -12,7 +13,7 @@ export class BookUploadService {
 
     const MAX_FILE_SIZE = 5000 * 1024 * 1024
     if (file.size > MAX_FILE_SIZE) {
-      throw new AppError(413, `Размер файла превышает лимит в 5 ГБ. Ваш файл: ${(file.size / 1024 / 1024).toFixed(2)} МБ`)
+      throw new AppError(413, ERROR_CODES.BOOK.FILE_TOO_LARGE, 'File size exceeds 5 GB limit', { maxMb: 5000, sizeMb: (file.size / 1024 / 1024).toFixed(2) })
     }
 
     const filename = file.name.toLowerCase()
@@ -33,11 +34,11 @@ export class BookUploadService {
         bookId = await runWorkerTask('processCbz', { filePath, filename: file.name, userId })
       }
       else {
-        throw new AppError(400, 'Поддерживаются только .epub, .cbz, .zip и .fb2 файлы')
+        throw new AppError(400, ERROR_CODES.BOOK.INVALID_FILE_TYPE, 'Only .epub, .cbz, .zip and .fb2 files are supported')
       }
     }
     else {
-      throw new AppError(400, 'Поддерживаются только .epub, .cbz, .zip и .fb2 файлы')
+      throw new AppError(400, ERROR_CODES.BOOK.INVALID_FILE_TYPE, 'Only .epub, .cbz, .zip and .fb2 files are supported')
     }
 
     const book = await bookRepository.findFirstBook(bookId)
@@ -66,11 +67,11 @@ export class BookUploadService {
 
   async appendMangaChapter(id: number, userId: number, chapterTitle: string, files: File[]) {
     if (!files.length)
-      throw new AppError(400, 'Файлы не переданы')
+      throw new AppError(400, ERROR_CODES.BOOK.FILE_REQUIRED, 'Files are required')
 
     const book = await bookRepository.findFirstBook(id)
     if (!book || book.userId !== userId)
-      throw new AppError(403, 'Нет доступа к книге')
+      throw new AppError(403, ERROR_CODES.BOOK.ACCESS_DENIED, 'Access denied to book')
 
     const { appendMangaChapter } = await import('../services/manga.service')
     await appendMangaChapter(book, chapterTitle, files)

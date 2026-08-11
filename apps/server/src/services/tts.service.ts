@@ -4,6 +4,7 @@ import { pinyin } from 'pinyin-pro'
 import { convertToOpus } from '~/utils/audio'
 import { hashTtsText, mapVoiceToOpenAi, parseLlmJson } from '~/utils/helpers'
 import { callLlmJsonWithRetry } from '~/utils/llm-api'
+import { ERROR_CODES } from '../constants/error-codes'
 import { db } from '../db'
 import * as schema from '../db/schema'
 import { AppError } from '../utils/errors'
@@ -22,13 +23,13 @@ export async function generateTts(
   const normalizedText = text.trim()
 
   if (!normalizedText)
-    throw new AppError(400, 'Текст не передан')
+    throw new AppError(400, ERROR_CODES.TTS.TEXT_REQUIRED, 'Text is required')
 
   const hasChineseChars = /[\u4E00-\u9FA5]/.test(normalizedText)
   const maxLength = hasChineseChars ? 80 : 250
 
   if (normalizedText.length > maxLength) {
-    throw new AppError(400, 'Текст слишком длинный (максимум ~15 секунд звучания)')
+    throw new AppError(400, ERROR_CODES.TTS.TEXT_TOO_LONG, 'Text is too long for TTS', { maxLength })
   }
 
   const ttsUrl = config.ttsUrl || config.url
@@ -37,7 +38,7 @@ export async function generateTts(
   const fallbackModel = config.fallbackTtsModel || 'gemini-2.5-flash-preview-tts'
 
   if (!ttsUrl)
-    throw new AppError(500, 'TTS API не настроен')
+    throw new AppError(500, ERROR_CODES.TTS.NOT_CONFIGURED, 'TTS API not configured')
 
   const voice = selectedVoice || 'Kore'
   const hash = hashTtsText(normalizedText, voice)
@@ -96,13 +97,13 @@ export async function generateTts(
 
     if (!response.ok) {
       const errorText = await response.text()
-      throw new AppError(500, `TTS API error ${response.status}: ${errorText}`)
+      throw new AppError(500, ERROR_CODES.TTS.GENERATION_FAILED, `TTS API error ${response.status}: ${errorText}`)
     }
 
     const arrayBuffer = await response.arrayBuffer()
 
     if (arrayBuffer.byteLength === 0) {
-      throw new AppError(500, 'TTS API returned empty audio data')
+      throw new AppError(500, ERROR_CODES.TTS.GENERATION_FAILED, 'TTS API returned empty audio data')
     }
 
     const rawBuffer = Buffer.from(new Uint8Array(arrayBuffer))
@@ -226,7 +227,7 @@ export async function checkPronunciationAudio(userId: number, word: string, lang
   }
 
   if (!config.url)
-    throw new AppError(500, getErrorMsg('not_configured'))
+    throw new AppError(500, ERROR_CODES.TTS.NOT_CONFIGURED, getErrorMsg('not_configured'))
 
   let apiUrl = config.sttUrl || config.url
   if (apiUrl.endsWith('/chat/completions')) {
@@ -356,6 +357,6 @@ Output STRICT JSON ONLY. Never use backticks for strings.
       return
 
     logger.error(err, '[Audio Service] Pronunciation Check Failed:')
-    throw new AppError(500, getErrorMsg('recognition_failed', err.message))
+    throw new AppError(500, ERROR_CODES.TTS.GENERATION_FAILED, getErrorMsg('recognition_failed', err.message))
   }
 }

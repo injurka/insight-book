@@ -71,10 +71,19 @@ export const request = ofetch.create({
       options.headers.set('X-Custom-Llm-Model', customLlm.model)
     }
   },
+  // eslint-disable-next-line complexity
   async onResponseError({ response, options }) {
-    let errMessage = response._data?.error || `HTTP ${response.status} ${response.statusText}`
+    const data = response._data || {}
+    const errCode = data.code
+    let errMessage = data.message || data.error || `HTTP ${response.status} ${response.statusText}`
 
-    if (response.status === 500) {
+    if (errCode && i18n.global.te(`errors.api.${errCode}`)) {
+      errMessage = i18n.global.t(`errors.api.${errCode}`, data.details || {})
+    }
+    else if (errCode && i18n.global.te(`errors.${errCode}`)) {
+      errMessage = i18n.global.t(`errors.${errCode}`, data.details || {})
+    }
+    else if (response.status === 500) {
       const isLlmError = options.withLlm || errMessage.includes('LLM') || errMessage.includes('AI')
       errMessage = isLlmError
         ? (i18n.global.t('errors.aiServer'))
@@ -87,7 +96,14 @@ export const request = ofetch.create({
         providers.onUnauthorized()
     }
 
-    throw new Error(errMessage)
+    const customError = new Error(errMessage) as Error & { code?: string, status?: number, details?: Record<string, unknown> }
+    if (errCode)
+      customError.code = errCode
+    customError.status = response.status
+    if (data.details)
+      customError.details = data.details
+
+    throw customError
   },
   async onRequestError({ error, options }) {
     let errMessage = error.message

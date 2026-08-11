@@ -1,4 +1,5 @@
 import type { IHighlightRepository } from '../repositories/interfaces'
+import { ERROR_CODES } from '../constants/error-codes'
 import { highlightRepository } from '../repositories/highlight.repository'
 import { AppError } from '../utils/errors'
 
@@ -49,7 +50,7 @@ export class HighlightService {
   ) {
     const updated = await this.highlightRepo.update(id, userId, body)
     if (!updated) {
-      throw new AppError(404, 'Выделение не найдено или доступ закрыт')
+      throw new AppError(404, ERROR_CODES.HIGHLIGHT.NOT_FOUND, 'Highlight not found')
     }
     return updated
   }
@@ -57,7 +58,7 @@ export class HighlightService {
   async deleteHighlight(id: number, userId: number) {
     const isDeleted = await this.highlightRepo.delete(id, userId)
     if (!isDeleted) {
-      throw new AppError(404, 'Выделение не найдено или доступ закрыт')
+      throw new AppError(404, ERROR_CODES.HIGHLIGHT.NOT_FOUND, 'Highlight not found')
     }
     return { success: true }
   }

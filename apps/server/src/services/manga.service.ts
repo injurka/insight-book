@@ -5,8 +5,10 @@ import * as cheerio from 'cheerio'
 import { eq } from 'drizzle-orm'
 import sizeOf from 'image-size'
 import { BOOKS_PATH, UPLOADS_PATH } from '../config'
+import { ERROR_CODES } from '../constants/error-codes'
 import { db } from '../db'
 import * as schema from '../db/schema'
+import { AppError } from '../utils/errors'
 import { logger } from '../utils/logger'
 import { storageService } from './storage.service'
 
@@ -22,7 +24,7 @@ export async function processCbz(filePath: string, filename: string, userId: num
     .sort((a, b) => a.entryName.localeCompare(b.entryName, undefined, { numeric: true }))
 
   if (imageEntries.length === 0) {
-    throw new Error('Архив не содержит изображений')
+    throw new AppError(400, ERROR_CODES.BOOK.MANGA_NO_IMAGES, 'Archive contains no images')
   }
 
   let tocJson = '[]'

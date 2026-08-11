@@ -1,9 +1,10 @@
 import { Elysia, t } from 'elysia'
 import jwt from 'jsonwebtoken'
 import { AUTH_MODE, CORS_HEADERS, FRONTEND_URL, JWT_SECRET } from '../config'
+import { ERROR_CODES } from '../constants/error-codes'
 import { authService } from '../services/auth.service'
 import { cachePlugin } from '../utils/cache'
-import { AppError } from '../utils/errors'
+import { AppError, handleElysiaError } from '../utils/errors'
 import { createRateLimiter, getClientIp } from '../utils/rate-limit'
 
 const authPlugin = new Elysia({ name: 'auth-plugin' })
@@ -33,7 +34,7 @@ const authPlugin = new Elysia({ name: 'auth-plugin' })
       return {
         beforeHandle: ({ userId }: { userId?: number | null }) => {
           if (!userId)
-            throw new AppError(401, 'Необходима авторизация')
+            throw new AppError(401, ERROR_CODES.AUTH.UNAUTHORIZED, 'Unauthorized')
         },
       }
     },
@@ -47,14 +48,7 @@ const authLimiter = createRateLimiter(5, 60 * 1000)
 export const authRouter = new Elysia({ prefix: '/api/auth' })
   .use(authPlugin)
   .use(cachePlugin)
-  .onError(({ error, set }) => {
-    if (error instanceof AppError) {
-      set.status = error.statusCode
-      return { error: error.message }
-    }
-    set.status = 500
-    return { error: 'Internal Server Error' }
-  })
+  .onError(handleElysiaError)
   .post('/login', async ({ body, request }) => {
     authLimiter(getClientIp(request))
     return authService.login(body.login, body.password)
@@ -91,7 +85,7 @@ export const authRouter = new Elysia({ prefix: '/api/auth' })
     const code = query.code as string | undefined
     const state = query.state as string | undefined
     if (!code)
-      throw new AppError(400, 'No code provided')
+      throw new AppError(400, ERROR_CODES.AUTH.NO_CODE_PROVIDED, 'No code provided')
 
     const token = await authService.exchangeYandexCode(code)
 
@@ -126,12 +120,12 @@ export const authRouter = new Elysia({ prefix: '/api/auth' })
     return Response.redirect(frontendUrl.toString(), 302)
   })
   .post('/yandex/mobile-exchange', async () => {
-    throw new AppError(400, 'Not implemented')
+    throw new AppError(400, ERROR_CODES.SYSTEM.NOT_IMPLEMENTED, 'Not implemented')
   })
   .get('/status', async ({ query }) => {
     const sessionId = query.session_id as string | undefined
     if (!sessionId)
-      throw new AppError(400, 'No session id')
+      throw new AppError(400, ERROR_CODES.AUTH.NO_SESSION_ID, 'No session id')
 
     const token = authSessions.get(sessionId)
     if (token) {
@@ -146,7 +140,7 @@ export const authRouter = new Elysia({ prefix: '/api/auth' })
   .patch('/me/avatar', async ({ userId, body }) => {
     const file = (body as { file: File }).file as File
     if (!file)
-      throw new AppError(400, 'Файл не передан')
+      throw new AppError(400, ERROR_CODES.BOOK.FILE_REQUIRED, 'File required')
     return authService.updateAvatar(userId as number, file)
   }, { requireAuth: true })
   .patch('/me/username', async ({ userId, body }) => {

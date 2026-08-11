@@ -72,8 +72,6 @@ export class BookRepository implements IBookRepository {
         eq(schema.books.userId, userId),
         eq(schema.books.isPublic, true),
       ),
-      // toc — тяжёлая JSON-строка, в списке библиотеки не используется
-      // (он нужен только в /api/books/:id/info и /api/books/:id/toc)
       columns: { toc: false },
       with: { progresses: { where: eq(schema.readingProgress.userId, userId), limit: 1 } },
       orderBy: [desc(schema.books.updatedAt)],
@@ -174,17 +172,21 @@ export class BookRepository implements IBookRepository {
   }
 
   async upsertReadingProgress(bookId: number, userId: number, payload: Partial<typeof schema.readingProgress.$inferInsert>) {
-    return db.insert(schema.readingProgress).values({
-      bookId,
-      userId,
+    const now = new Date().toISOString()
+    const values = {
       currentPage: payload.currentPage ?? 1,
       status: payload.status ?? 'reading',
       isFavorite: payload.isFavorite ?? false,
       collection: payload.collection ?? null,
-      updatedAt: new Date().toISOString(),
+      updatedAt: now,
+    }
+    return db.insert(schema.readingProgress).values({
+      bookId,
+      userId,
+      ...values,
     }).onConflictDoUpdate({
       target: [schema.readingProgress.bookId, schema.readingProgress.userId],
-      set: payload,
+      set: values,
     })
   }
 

@@ -1,10 +1,12 @@
 import type { IBookRepository } from '../repositories/interfaces'
 import type { LlmConfig, PagePayload } from '../types'
+import type { UpdateBookDto, UpdateStatsDto } from '../types/schemas'
 import path from 'node:path'
 
 import sharp from 'sharp'
 import { decompressData } from '~/utils/compression'
 import { extractUniqueWordsFromHtml, normalizeLanguageCode } from '~/utils/helpers'
+import { ERROR_CODES } from '../constants/error-codes'
 import { bookRepository } from '../repositories/book.repository'
 import { AppError } from '../utils/errors'
 import { logger } from '../utils/logger'
@@ -17,7 +19,15 @@ import { storageService } from './storage.service'
 
 export class BookService {
   constructor(private bookRepo: IBookRepository = bookRepository) { }
-  async getPublicBooks(page: number, limit: number, tag: string | null, search: string | null, language: string | null, targetLang: string, _userId: number | null) {
+  async getPublicBooks(
+    page: number,
+    limit: number,
+    tag: string | null,
+    search: string | null,
+    language: string | null,
+    targetLang: string,
+    _userId: number | null,
+  ) {
     const conditions = this.bookRepo.buildPublicConditions(tag, search, language)
     const total = await this.bookRepo.countPublicBooks(conditions)
     const rows = await this.bookRepo.getPublicBooksBaseQuery(page, limit, conditions)
@@ -42,11 +52,21 @@ export class BookService {
 
   async getUserBooks(userId: number, targetLang: string) {
     const allBooks = await this.bookRepo.getUserBooks(userId)
+
     const result = allBooks
-      .filter((b: { userId: number | null, progresses: { currentPage?: number, status?: string, isFavorite?: boolean, collection?: string | null, updatedAt?: string }[] }) => b.userId === userId || b.progresses.length > 0)
-      .map((book: { id: number, updatedAt: string, progresses: { currentPage?: number, status?: string, isFavorite?: boolean, collection?: string | null, updatedAt?: string }[], [key: string]: unknown }) => {
+      .filter((b: {
+        userId: number | null
+        progresses: { currentPage?: number, status?: string, isFavorite?: boolean, collection?: string | null, updatedAt?: string }[]
+      }) => b.userId === userId || b.progresses.length > 0)
+      .map((book: {
+        id: number
+        updatedAt: string
+        progresses: { currentPage?: number, status?: string, isFavorite?: boolean, collection?: string | null, updatedAt?: string }[]
+        [key: string]: unknown
+      }) => {
         const progress = book.progresses[0]
         const { progresses, ...bookData } = book
+
         return {
           ...bookData,
           currentPage: progress?.currentPage ?? null,
@@ -78,7 +98,7 @@ export class BookService {
   async getBookInfo(id: number, userId: number | null, targetLang: string) {
     const book = await this.bookRepo.getBookById(id, userId)
     if (!book)
-      throw new AppError(404, 'Книга не найдена или доступ закрыт')
+      throw new AppError(404, ERROR_CODES.BOOK.NOT_FOUND, 'Book not found')
 
     const progress = book.progresses ? book.progresses[0] : null
     const { progresses, stats, ...bookData } = book
@@ -117,51 +137,53 @@ export class BookService {
   async startReading(id: number, userId: number) {
     const book = await this.bookRepo.findFirstBook(id)
     if (!book)
-      throw new AppError(404, 'Книга не найдена')
+      throw new AppError(404, ERROR_CODES.BOOK.NOT_FOUND, 'Book not found')
     if (!book.isPublic && book.userId !== userId)
-      throw new AppError(403, 'Нет доступа')
+      throw new AppError(403, ERROR_CODES.BOOK.ACCESS_DENIED, 'Access denied')
 
     await this.bookRepo.startReadingProgress(id, userId)
     return { success: true }
   }
 
-  async updateBook(id: number, userId: number, body: Record<string, unknown>) {
+  async updateBook(id: number, userId: number, body: UpdateBookDto) {
     const book = await this.bookRepo.findFirstBook(id)
     if (!book)
-      throw new AppError(404, 'Книга не найдена')
+      throw new AppError(404, ERROR_CODES.BOOK.NOT_FOUND, 'Book not found')
     if (book.userId !== userId && !book.isPublic)
-      throw new AppError(404, 'Книга не найдена или доступ закрыт')
+      throw new AppError(404, ERROR_CODES.BOOK.NOT_FOUND, 'Book not found')
 
     const metadataKeys = ['title', 'author', 'coverUrl', 'language', 'series', 'seriesNumber', 'createdAt', 'isPublic', 'publicStatus', 'textDirection'] as const
     const hasMetadataChanges = metadataKeys.some((key) => {
       if (body[key] === undefined)
         return false
       if (key === 'language' && body.language)
-        return normalizeLanguageCode(body.language as string) !== book.language
+        return normalizeLanguageCode(body.language) !== book.language
       return body[key] !== (book as Record<string, unknown>)[key]
     })
     const isReadOnly = book.isPublic || book.publicStatus === 'public'
 
     if (hasMetadataChanges && isReadOnly)
-      throw new AppError(403, 'Публичные книги нельзя редактировать')
+      throw new AppError(403, ERROR_CODES.BOOK.CANNOT_EDIT_PUBLIC, 'Cannot edit public book')
 
     if (hasMetadataChanges && book.userId === userId) {
+      const { title, author, coverUrl, language, series, seriesNumber, createdAt, isPublic, publicStatus, textDirection } = body
+
       await this.bookRepo.updateBook(id, {
-        title: body.title as string | undefined,
-        author: body.author as string | null | undefined,
-        coverUrl: body.coverUrl as string | null | undefined,
-        language: body.language ? normalizeLanguageCode(body.language as string) : undefined,
-        series: body.series as string | null | undefined,
-        seriesNumber: body.seriesNumber as number | null | undefined,
-        createdAt: body.createdAt as string | undefined,
-        isPublic: body.isPublic as boolean | undefined,
-        publicStatus: body.publicStatus as string | undefined,
-        textDirection: body.textDirection as string | null | undefined,
+        title,
+        author,
+        coverUrl,
+        language: language ? normalizeLanguageCode(language) : undefined,
+        series,
+        seriesNumber,
+        createdAt,
+        isPublic,
+        publicStatus,
+        textDirection,
         updatedAt: new Date().toISOString(),
       })
     }
 
-    const progressKeys = ['currentPage', 'status', 'isFavorite', 'collection']
+    const progressKeys = ['currentPage', 'status', 'isFavorite', 'collection'] as const
     const hasProgressChanges = progressKeys.some(key => body[key] !== undefined)
 
     if (hasProgressChanges) {
@@ -174,7 +196,7 @@ export class BookService {
   async updateCover(id: number, userId: number, file: File) {
     const oldBook = await this.bookRepo.getOldBookForCover(id)
     if (!oldBook || oldBook.userId !== userId)
-      throw new AppError(403, 'Нет доступа')
+      throw new AppError(403, ERROR_CODES.BOOK.ACCESS_DENIED, 'Access denied')
 
     const buffer = await file.arrayBuffer()
     const ext = path.extname(file.name).toLowerCase() || '.jpg'
@@ -193,10 +215,10 @@ export class BookService {
     return { success: true, coverUrl }
   }
 
-  async updateStats(id: number, userId: number, body: { difficulty?: string, description?: string, tags?: string[] }) {
+  async updateStats(id: number, userId: number, body: UpdateStatsDto) {
     const book = await this.bookRepo.findFirstBook(id)
     if (!book || book.userId !== userId)
-      throw new AppError(403, 'Нет доступа')
+      throw new AppError(403, ERROR_CODES.BOOK.ACCESS_DENIED, 'Access denied')
 
     const tagsJson = JSON.stringify(body.tags || [])
     await this.bookRepo.upsertBookStats(id, { description: body.description || '', difficulty: body.difficulty || '', tags: tagsJson })
@@ -208,7 +230,7 @@ export class BookService {
   async deleteBook(id: number, userId: number) {
     const book = await this.bookRepo.getBookForDeletion(id)
     if (!book)
-      throw new AppError(404, 'Книга не найдена')
+      throw new AppError(404, ERROR_CODES.BOOK.NOT_FOUND, 'Book not found')
 
     if (book.userId !== userId) {
       await this.bookRepo.deleteReadingProgress(id, userId)
@@ -216,7 +238,7 @@ export class BookService {
     }
 
     if (book.isPublic || book.publicStatus === 'public') {
-      throw new AppError(403, 'Публичные книги нельзя удалить')
+      throw new AppError(403, ERROR_CODES.BOOK.CANNOT_DELETE_PUBLIC, 'Cannot delete public book')
     }
 
     await this.bookRepo.deleteBook(id)
@@ -241,18 +263,18 @@ export class BookService {
   async getToc(id: number, userId: number) {
     const book = await this.bookRepo.getBookToc(id)
     if (!book || (book.userId !== userId && !book.isPublic))
-      throw new AppError(403, 'Нет доступа к книге')
+      throw new AppError(403, ERROR_CODES.BOOK.ACCESS_DENIED, 'Access denied to book')
     return book.toc ? JSON.parse(book.toc) : []
   }
 
   async getPage(bookId: number, pageNum: number, userId: number, isSync: boolean, config: LlmConfig) {
     const book = await this.bookRepo.getBookForPage(bookId)
     if (!book)
-      throw new AppError(404, 'Книга не найдена')
+      throw new AppError(404, ERROR_CODES.BOOK.NOT_FOUND, 'Book not found')
 
     const bookLang = normalizeLanguageCode(book.language)
     if (book.userId !== userId && !book.isPublic)
-      throw new AppError(403, 'Нет доступа к книге')
+      throw new AppError(403, ERROR_CODES.BOOK.ACCESS_DENIED, 'Access denied to book')
 
     if (!isSync) {
       await this.bookRepo.upsertReadingProgress(bookId, userId, { currentPage: pageNum })
@@ -262,7 +284,7 @@ export class BookService {
     if (book.type === 'manga') {
       const pageRow = await this.bookRepo.getMangaPage(bookId, pageNum)
       if (!pageRow)
-        throw new AppError(404, 'Страница манги не найдена')
+        throw new AppError(404, ERROR_CODES.BOOK.MANGA_NOT_FOUND, 'Manga page not found', { pageNum })
 
       let ocrBlocks = pageRow.ocrData ? JSON.parse(pageRow.ocrData) : null
 
@@ -328,7 +350,7 @@ export class BookService {
 
     const pageRow = await this.bookRepo.getBookPageContent(bookId, pageNum)
     if (!pageRow)
-      throw new AppError(404, 'Страница не найдена')
+      throw new AppError(404, ERROR_CODES.BOOK.PAGE_NOT_FOUND, 'Page not found', { pageNum })
 
     const { processedHtml } = await runWorkerTask<{ processedHtml: string }>('tokenizeHtmlPage', { html: pageRow.content, language: bookLang })
     const payload: PagePayload = { bookId, pageNum, totalPages: book.totalPages, content: processedHtml, type: 'epub' }
@@ -340,9 +362,9 @@ export class BookService {
   async getPageDictionary(bookId: number, pageNum: number, userId: number, targetLang: string) {
     const book = await this.bookRepo.getBookLangAndType(bookId)
     if (!book)
-      throw new AppError(404, 'Книга не найдена')
+      throw new AppError(404, ERROR_CODES.BOOK.NOT_FOUND, 'Book not found')
     if (book.userId !== userId && !book.isPublic)
-      throw new AppError(403, 'Нет доступа к книге')
+      throw new AppError(403, ERROR_CODES.BOOK.ACCESS_DENIED, 'Access denied to book')
 
     let uniqueWords: string[] = []
     const bookLang = normalizeLanguageCode(book.language)
@@ -376,24 +398,24 @@ export class BookService {
   async lookupWord(bookId: number, word: string, userId: number, targetLang: string) {
     const book = await this.bookRepo.getBookLanguage(bookId)
     if (!book || (book.userId !== userId && !book.isPublic))
-      throw new AppError(403, 'Нет доступа')
+      throw new AppError(403, ERROR_CODES.BOOK.ACCESS_DENIED, 'Access denied')
 
     const lang = normalizeLanguageCode(book.language || 'en')
     const entry = await dictionaryService.lookupSingleWord(decodeURIComponent(word), lang, targetLang, userId)
     if (!entry)
-      throw new AppError(404, 'Слово не найдено в локальном словаре')
+      throw new AppError(404, ERROR_CODES.DICTIONARY.WORD_NOT_FOUND, 'Word not found in local dictionary')
     return entry
   }
 
   async generateTts(bookId: number, userId: number, text: string, voice: string, forceCacheBypass: boolean, config: LlmConfig) {
     const book = await this.bookRepo.getBookUserIdAndPublic(bookId)
     if (!book || (book.userId !== userId && !book.isPublic))
-      throw new AppError(403, 'Нет доступа')
+      throw new AppError(403, ERROR_CODES.BOOK.ACCESS_DENIED, 'Access denied')
 
     if (forceCacheBypass) {
       const user = await this.bookRepo.getUserRole(userId)
       if (user?.role !== 'admin')
-        throw new AppError(403, 'Только администратор может игнорировать кэш')
+        throw new AppError(403, ERROR_CODES.SYSTEM.ADMIN_ONLY, 'Only administrators can bypass cache')
     }
 
     return generateTts(userId, bookId, text, config, voice, forceCacheBypass)
@@ -403,7 +425,7 @@ export class BookService {
     if (forceCacheBypass) {
       const user = await this.bookRepo.getUserRole(userId)
       if (user?.role !== 'admin')
-        throw new AppError(403, 'Только администратор может игнорировать кэш')
+        throw new AppError(403, ERROR_CODES.SYSTEM.ADMIN_ONLY, 'Only administrators can bypass cache')
     }
     return generateTts(userId, null, text, config, voice, forceCacheBypass)
   }

@@ -1,9 +1,10 @@
 import { Elysia, t } from 'elysia'
 import jwt from 'jsonwebtoken'
 import { AUTH_MODE, JWT_SECRET } from '../config'
+import { ERROR_CODES } from '../constants/error-codes'
 import { activityService } from '../services/activity.service'
 import { cachePlugin } from '../utils/cache'
-import { AppError } from '../utils/errors'
+import { AppError, handleElysiaError } from '../utils/errors'
 
 const authPlugin = new Elysia({ name: 'activity-auth' })
   .derive(({ request }) => {
@@ -32,7 +33,7 @@ const authPlugin = new Elysia({ name: 'activity-auth' })
       return {
         beforeHandle: ({ userId }: { userId?: number | null }) => {
           if (!userId)
-            throw new AppError(401, 'Необходима авторизация')
+            throw new AppError(401, ERROR_CODES.AUTH.UNAUTHORIZED, 'Unauthorized')
         },
       }
     },
@@ -42,14 +43,7 @@ const authPlugin = new Elysia({ name: 'activity-auth' })
 export const activityRouter = new Elysia({ prefix: '/api/activity' })
   .use(authPlugin)
   .use(cachePlugin)
-  .onError(({ error, set }) => {
-    if (error instanceof AppError) {
-      set.status = error.statusCode
-      return { error: error.message }
-    }
-    set.status = 500
-    return { error: 'Internal Server Error' }
-  })
+  .onError(handleElysiaError)
   .get('/stats', async ({ userId }) => {
     return await activityService.getActivityStats(userId!)
   }, { requireAuth: true, cache: 'shortPrivate' })

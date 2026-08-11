@@ -18,11 +18,13 @@ import { pluginRouter } from './controllers/user-plugin.controller'
 
 import { initScheduler } from './services/scheduler.service'
 import { withCors } from './utils/cors'
+import { handleElysiaError } from './utils/errors'
 import { logger } from './utils/logger'
 
 import './db'
 
 const app = new Elysia()
+  .onError(handleElysiaError)
   .use(
     opentelemetry({
       spanProcessors: [

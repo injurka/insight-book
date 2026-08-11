@@ -1,3 +1,4 @@
+import { ERROR_CODES } from '../constants/error-codes'
 import { AppError } from './errors'
 
 interface RateLimitStore {
@@ -38,7 +39,7 @@ export function createRateLimiter(maxRequests: number, windowMs: number) {
     record.count += 1
 
     if (record.count > maxRequests) {
-      throw new AppError(429, 'Слишком много запросов. Пожалуйста, подождите немного.')
+      throw new AppError(429, ERROR_CODES.SYSTEM.RATE_LIMIT_EXCEEDED, 'Too many requests')
     }
   }
 }

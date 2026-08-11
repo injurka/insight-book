@@ -101,6 +101,41 @@ describe('kit-tooltip', () => {
     expect(wrapper.find('.kit-tooltip-floating').exists()).toBe(false)
   })
 
+  it('does not show tooltip on programmatic focus (e.g. dialog autofocus)', async () => {
+    const wrapper = mountTooltip({ text: 'Tooltip text' })
+
+    // Программный фокус (как при автофокусе первой кнопки диалога)
+    await wrapper.find('.kit-tooltip-wrapper').trigger('focusin')
+    vi.runAllTimers()
+    await wrapper.vm.$nextTick()
+
+    expect(wrapper.find('.kit-tooltip-floating').exists()).toBe(false)
+  })
+
+  it('shows tooltip on keyboard focus (Tab navigation)', async () => {
+    const wrapper = mountTooltip({ text: 'Tooltip text' })
+
+    // Клавиатурная навигация: сначала Tab, затем фокус приходит на кнопку
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab' }))
+    await wrapper.find('.kit-tooltip-wrapper').trigger('focusin')
+    vi.runAllTimers()
+    await wrapper.vm.$nextTick()
+
+    expect(wrapper.find('.kit-tooltip-floating').exists()).toBe(true)
+  })
+
+  it('resets keyboard focus flag on mousedown', async () => {
+    const wrapper = mountTooltip({ text: 'Tooltip text' })
+
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab' }))
+    window.dispatchEvent(new MouseEvent('mousedown'))
+    await wrapper.find('.kit-tooltip-wrapper').trigger('focusin')
+    vi.runAllTimers()
+    await wrapper.vm.$nextTick()
+
+    expect(wrapper.find('.kit-tooltip-floating').exists()).toBe(false)
+  })
+
   it('does not show tooltip if disabled', async () => {
     const wrapper = mountTooltip({ text: 'Tooltip text', disabled: true })
 

@@ -4,14 +4,15 @@ import { Elysia, t } from 'elysia'
 import jwt from 'jsonwebtoken'
 import { extractLlmConfig } from '~/utils/helpers'
 import { AUTH_MODE, CORS_HEADERS, JWT_SECRET } from '../config'
+import { ERROR_CODES } from '../constants/error-codes'
 import { bookRepository } from '../repositories/book.repository'
 import { bookAnalysisService } from '../services/book-analysis.service'
 import { bookUploadService } from '../services/book-upload.service'
 import { bookService } from '../services/book.service'
 import { storageService } from '../services/storage.service'
+import { UpdateBookSchema, UpdateStatsSchema } from '../types/schemas'
 import { CACHE_PROFILES, cachePlugin } from '../utils/cache'
-import { AppError } from '../utils/errors'
-import { logger } from '../utils/logger'
+import { AppError, handleElysiaError } from '../utils/errors'
 
 // A small auth plugin to extract user info from headers
 const authPlugin = new Elysia({ name: 'books-auth' })
@@ -41,7 +42,7 @@ const authPlugin = new Elysia({ name: 'books-auth' })
       return {
         beforeHandle: ({ userId }: { userId?: number | null }) => {
           if (!userId)
-            throw new AppError(401, 'Необходима авторизация')
+            throw new AppError(401, ERROR_CODES.AUTH.UNAUTHORIZED, 'Unauthorized')
         },
       }
     },
@@ -51,21 +52,13 @@ const authPlugin = new Elysia({ name: 'books-auth' })
 export const bookController = new Elysia({ prefix: '/api/books' })
   .use(authPlugin)
   .use(cachePlugin)
-  .onError(({ error, set }) => {
-    if (error instanceof AppError) {
-      set.status = error.statusCode
-      return { error: error.message }
-    }
-    logger.error({ err: error })
-    set.status = 500
-    return { error: 'Internal Server Error' }
-  })
+  .onError(handleElysiaError)
   .get('/', async (ctx) => {
     const { userId, query, set } = ctx
     const targetLang = (query.targetLang as string) || 'ru'
 
     if (!userId)
-      throw new AppError(401, 'Необходима авторизация')
+      throw new AppError(401, ERROR_CODES.AUTH.UNAUTHORIZED, 'Unauthorized')
 
     set.headers['Cache-Control'] = CACHE_PROFILES.shortPrivate
     return bookService.getUserBooks(userId as number, targetLang)
@@ -94,7 +87,8 @@ export const bookController = new Elysia({ prefix: '/api/books' })
     return bookAnalysisService.analyzeVocabulary(Number(id), userId!)
   }, { requireAuth: true })
   .patch('/:id', async ({ params: { id }, userId, body }) => {
-    return bookService.updateBook(Number(id), userId!, body as Record<string, unknown>)
+    const parsedBody = UpdateBookSchema.parse(body)
+    return bookService.updateBook(Number(id), userId!, parsedBody)
   }, {
     requireAuth: true,
     body: t.Record(t.String(), t.Any()),
@@ -111,7 +105,8 @@ export const bookController = new Elysia({ prefix: '/api/books' })
     body: t.Object({ file: t.File() }),
   })
   .patch('/:id/stats', async ({ params: { id }, userId, body }) => {
-    return bookService.updateStats(Number(id), userId!, body as { difficulty?: string, description?: string, tags?: string[] })
+    const parsedBody = UpdateStatsSchema.parse(body)
+    return bookService.updateStats(Number(id), userId!, parsedBody)
   }, {
     requireAuth: true,
     body: t.Object({

@@ -1,41 +1,33 @@
 import { Elysia, t } from 'elysia'
 import jwt from 'jsonwebtoken'
 import { AUTH_MODE, JWT_SECRET } from '../config'
+import { ERROR_CODES } from '../constants/error-codes'
 import { dictionaryService } from '../services/dictionary.service'
 import { checkPronunciationAudio, generateDeepDiveQuiz, generateWordExamples } from '../services/llm.service'
 import { cachePlugin } from '../utils/cache'
-import { AppError } from '../utils/errors'
+import { AppError, handleElysiaError } from '../utils/errors'
 import { extractLlmConfig, normalizeLanguageCode } from '../utils/helpers'
-import { logger } from '../utils/logger'
 
 const authPlugin = new Elysia().derive({ as: 'global' }, ({ headers }) => {
   if (AUTH_MODE === 'single')
     return { userId: 1 }
   const authHeader = headers.authorization
   if (!authHeader || !authHeader.startsWith('Bearer '))
-    throw new AppError(401, 'Необходима авторизация')
+    throw new AppError(401, ERROR_CODES.AUTH.UNAUTHORIZED, 'Unauthorized')
   const token = authHeader.split(' ')[1]
   try {
     const decoded = jwt.verify(token, JWT_SECRET) as { userId: number }
     return { userId: decoded.userId }
   }
   catch {
-    throw new AppError(401, 'Недействительный токен')
+    throw new AppError(401, ERROR_CODES.AUTH.INVALID_TOKEN, 'Invalid token')
   }
 })
 
 export const dictionaryController = new Elysia({ prefix: '/api/dictionary' })
   .use(authPlugin)
   .use(cachePlugin)
-  .onError(({ error, set }) => {
-    if (error instanceof AppError) {
-      set.status = error.statusCode
-      return { error: error.message }
-    }
-    logger.error(error)
-    set.status = 500
-    return { error: 'Internal Server Error' }
-  })
+  .onError(handleElysiaError)
   .get('/', async ({ userId, query }) => {
     const targetLang = normalizeLanguageCode(query.targetLang || 'ru')
     return await dictionaryService.getUserDictionary(userId, targetLang)
@@ -235,7 +227,7 @@ export const dictionaryController = new Elysia({ prefix: '/api/dictionary' })
     const config = extractLlmConfig(request)
     const targetLang = normalizeLanguageCode(query.targetLang || 'ru')
     if (!body.audio || !body.word)
-      throw new AppError(400, 'Audio and word required')
+      throw new AppError(400, ERROR_CODES.DICTIONARY.AUDIO_AND_WORD_REQUIRED, 'Audio and word required')
     return await checkPronunciationAudio(userId, body.word, normalizeLanguageCode(body.language), targetLang, body.audio as File, config)
   }, {
     query: t.Object({ targetLang: t.Optional(t.String()) }),

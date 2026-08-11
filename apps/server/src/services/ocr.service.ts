@@ -1,5 +1,6 @@
 import type { GlmOcrLayoutDetail, LlmConfig, OpenAiMessageContent, OpenAiResponse } from '../types'
 import sharp from 'sharp'
+import { ERROR_CODES } from '../constants/error-codes'
 import { getOcrPrompt, getOcrRefinementPrompt } from '../prompts'
 import { AppError } from '../utils/errors'
 import { logger } from '../utils/logger'
@@ -46,7 +47,7 @@ async function getOcrLayout(userId: number, imageUrl: string, language: string, 
   const model = config.ocrModel!
 
   if (!apiUrl)
-    throw new AppError(500, 'API URL для OCR не настроен')
+    throw new AppError(500, ERROR_CODES.OCR.NOT_CONFIGURED, 'OCR API URL not configured')
 
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
@@ -192,7 +193,7 @@ async function refineOcrText(userId: number, base64Image: string, blocks: OcrBlo
     const model = config.ocrRefinementModel!
 
     if (!apiUrl)
-      throw new AppError(500, 'API URL для OCR Refinement не настроен')
+      throw new AppError(500, ERROR_CODES.OCR.NOT_CONFIGURED, 'OCR Refinement API URL not configured')
 
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',

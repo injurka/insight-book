@@ -1,3 +1,4 @@
+import { ERROR_CODES } from '../constants/error-codes'
 import { ROLES } from '../constants/roles'
 import { SUBSCRIPTION_TIERS } from '../constants/subscriptions'
 import { bookRepository } from '../repositories/book.repository'
@@ -11,7 +12,7 @@ export class AdminService {
   private async assertAdmin(userId: number) {
     const user = await userRepository.findById(userId)
     if (!user || user.role !== ROLES.ADMIN) {
-      throw new AppError(403, 'Только администратор может выполнять это действие')
+      throw new AppError(403, ERROR_CODES.AUTH.FORBIDDEN, 'Forbidden')
     }
   }
 
@@ -60,7 +61,7 @@ export class AdminService {
 
     const user = await userRepository.findById(targetUserId)
     if (!user) {
-      throw new AppError(404, 'Пользователь не найден')
+      throw new AppError(404, ERROR_CODES.USER.NOT_FOUND, 'User not found')
     }
 
     const usedBooks = await userRepository.getUsedBooksCount(user.id, user.periodStart)
@@ -79,13 +80,13 @@ export class AdminService {
 
     const existing = await userRepository.findByUsername(data.username)
     if (existing) {
-      throw new AppError(400, 'Пользователь с таким именем уже существует')
+      throw new AppError(400, ERROR_CODES.AUTH.USER_ALREADY_EXISTS, 'User already exists')
     }
 
     if (data.email) {
       const emailExists = await userRepository.findByEmail(data.email)
       if (emailExists) {
-        throw new AppError(400, 'Пользователь с таким email уже существует')
+        throw new AppError(400, ERROR_CODES.AUTH.EMAIL_ALREADY_EXISTS, 'Email already exists')
       }
     }
 
@@ -111,14 +112,14 @@ export class AdminService {
 
     const user = await userRepository.findById(targetUserId)
     if (!user) {
-      throw new AppError(404, 'Пользователь не найден')
+      throw new AppError(404, ERROR_CODES.USER.NOT_FOUND, 'User not found')
     }
 
     // Защита: нельзя менять роль последнему админу
     if (data.role && data.role !== ROLES.ADMIN && user.role === ROLES.ADMIN) {
       const adminCount = await userRepository.countByRole(ROLES.ADMIN)
       if (adminCount <= 1) {
-        throw new AppError(400, 'Нельзя понизить роль последнему администратору')
+        throw new AppError(400, ERROR_CODES.USER.CANNOT_DEMOTE_LAST_ADMIN, 'Cannot demote last admin')
       }
     }
 
@@ -135,7 +136,7 @@ export class AdminService {
     if (data.username !== undefined) {
       const existing = await userRepository.findByUsername(data.username)
       if (existing && existing.id !== targetUserId) {
-        throw new AppError(400, 'Пользователь с таким именем уже существует')
+        throw new AppError(400, ERROR_CODES.AUTH.USER_ALREADY_EXISTS, 'User already exists')
       }
       updateData.username = data.username
     }
@@ -146,7 +147,7 @@ export class AdminService {
     }
 
     if (Object.keys(updateData).length === 0) {
-      throw new AppError(400, 'Нет данных для обновления')
+      throw new AppError(400, ERROR_CODES.SYSTEM.NO_DATA_TO_UPDATE, 'No data to update')
     }
 
     const updated = await userRepository.updateUser(targetUserId, updateData as Parameters<typeof userRepository.updateUser>[1])
@@ -159,18 +160,18 @@ export class AdminService {
     await this.assertAdmin(adminUserId)
 
     if (targetUserId === adminUserId) {
-      throw new AppError(400, 'Нельзя удалить самого себя')
+      throw new AppError(400, ERROR_CODES.USER.CANNOT_DELETE_SELF, 'Cannot delete self')
     }
 
     const user = await userRepository.findById(targetUserId)
     if (!user) {
-      throw new AppError(404, 'Пользователь не найден')
+      throw new AppError(404, ERROR_CODES.USER.NOT_FOUND, 'User not found')
     }
 
     if (user.role === ROLES.ADMIN) {
       const adminCount = await userRepository.countByRole(ROLES.ADMIN)
       if (adminCount <= 1) {
-        throw new AppError(400, 'Нельзя удалить последнего администратора')
+        throw new AppError(400, ERROR_CODES.USER.CANNOT_DELETE_LAST_ADMIN, 'Cannot delete last admin')
       }
     }
 
@@ -191,7 +192,7 @@ export class AdminService {
 
     const book = await bookRepository.findFirstBook(bookId)
     if (!book) {
-      throw new AppError(404, 'Книга не найдена')
+      throw new AppError(404, ERROR_CODES.BOOK.NOT_FOUND, 'Book not found')
     }
 
     const newIsPublic = status === 'approved'

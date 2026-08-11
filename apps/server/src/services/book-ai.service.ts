@@ -1,4 +1,5 @@
 import type { LlmConfig, ModelMessage } from '../types'
+import { ERROR_CODES } from '../constants/error-codes'
 import { BOOK_ANALYSIS_PROMPT, getMangaAnalysisPrompt } from '../prompts'
 import { AppError } from '../utils/errors'
 import { parseLlmJson } from '../utils/helpers'
@@ -11,7 +12,7 @@ export async function analyzeBookExcerpt(userId: number, excerpt: string, config
   await checkTokenLimit(userId)
 
   if (!config.url)
-    throw new AppError(500, 'LLM API не настроен')
+    throw new AppError(500, ERROR_CODES.SYSTEM.LLM_NOT_CONFIGURED, 'LLM API not configured')
 
   const messages: ModelMessage[] = [
     { role: 'system', content: BOOK_ANALYSIS_PROMPT },
@@ -51,14 +52,14 @@ export async function analyzeBookExcerpt(userId: number, excerpt: string, config
     }
   }
 
-  throw new AppError(500, `Ошибка LLM: ${lastError?.message || 'Неизвестная ошибка'}`)
+  throw new AppError(500, ERROR_CODES.SYSTEM.LLM_ERROR, `LLM error: ${lastError?.message || 'Unknown error'}`)
 }
 
 export async function analyzeMangaInfo(userId: number, title: string, author: string | null, language: string, config: LlmConfig): Promise<{ description: string, difficulty: string, tags: string[] }> {
   await checkTokenLimit(userId)
 
   if (!config.url)
-    throw new AppError(500, 'LLM API не настроен')
+    throw new AppError(500, ERROR_CODES.SYSTEM.LLM_NOT_CONFIGURED, 'LLM API not configured')
 
   const promptText = getMangaAnalysisPrompt(language)
   const authorInfo = author ? ` Автор: ${author}` : ''
@@ -92,5 +93,5 @@ export async function analyzeMangaInfo(userId: number, title: string, author: st
     }
   }
 
-  throw new AppError(500, `Ошибка LLM: ${lastError?.message || 'Неизвестная ошибка'}`)
+  throw new AppError(500, ERROR_CODES.SYSTEM.LLM_ERROR, `LLM error: ${lastError?.message || 'Unknown error'}`)
 }

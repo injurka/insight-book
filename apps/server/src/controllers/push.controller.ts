@@ -1,27 +1,29 @@
 import { Elysia, t } from 'elysia'
 import jwt from 'jsonwebtoken'
 import { AUTH_MODE, JWT_SECRET } from '../config'
+import { ERROR_CODES } from '../constants/error-codes'
 import { pushService } from '../services/push.service'
-import { AppError } from '../utils/errors'
+import { AppError, handleElysiaError } from '../utils/errors'
 
 export const authPlugin = new Elysia().derive({ as: 'scoped' }, ({ headers }) => {
   if (AUTH_MODE === 'single')
     return { userId: 1 }
   const authHeader = headers.authorization
   if (!authHeader || !authHeader.startsWith('Bearer '))
-    throw new AppError(401, 'Необходима авторизация')
+    throw new AppError(401, ERROR_CODES.AUTH.UNAUTHORIZED, 'Unauthorized')
   const token = authHeader.split(' ')[1]
   try {
     const decoded = jwt.verify(token, JWT_SECRET) as { userId: number }
     return { userId: decoded.userId }
   }
   catch {
-    throw new AppError(401, 'Недействительный токен')
+    throw new AppError(401, ERROR_CODES.AUTH.INVALID_TOKEN, 'Invalid token')
   }
 })
 
 export const pushRouter = new Elysia({ prefix: '/api/push' })
   .use(authPlugin)
+  .onError(handleElysiaError)
   .get('/vapid-public-key', async () => {
     return pushService.getVapidKey()
   })

@@ -2,6 +2,7 @@ import type { CatalogPluginStatus } from '../constants/catalog-plugin'
 import path from 'node:path'
 import AdmZip from 'adm-zip'
 import { CATALOG_PLUGIN_STATUS } from '../constants/catalog-plugin'
+import { ERROR_CODES } from '../constants/error-codes'
 import { ROLES } from '../constants/roles'
 import { catalogPluginRepository } from '../repositories/catalog-plugin.repository'
 import { userRepository } from '../repositories/user.repository'
@@ -61,7 +62,7 @@ export class CatalogPluginService {
 
     const updated = await this.catalogRepo.updateStatus(pluginId, status)
     if (!updated) {
-      throw new AppError(404, 'Плагин не найден в каталоге')
+      throw new AppError(404, ERROR_CODES.PLUGIN.NOT_FOUND, 'Plugin not found in catalog')
     }
 
     logger.info(`[Catalog] Plugin "${pluginId}" status changed to "${status}" by user ${userId}`)
@@ -71,7 +72,7 @@ export class CatalogPluginService {
   async getPlugin(pluginId: string) {
     const plugin = await this.catalogRepo.findOne(pluginId)
     if (!plugin) {
-      throw new AppError(404, 'Плагин не найден в каталоге')
+      throw new AppError(404, ERROR_CODES.PLUGIN.NOT_FOUND, 'Plugin not found in catalog')
     }
     return plugin
   }
@@ -84,7 +85,7 @@ export class CatalogPluginService {
    */
   async uploadPlugin(userId: number, file: File) {
     if (!file.name.toLowerCase().endsWith('.zip')) {
-      throw new AppError(400, 'Ожидается zip-архив со сборкой плагина')
+      throw new AppError(400, ERROR_CODES.PLUGIN.INVALID_MANIFEST, 'Zip archive with plugin build expected')
     }
 
     let zip: AdmZip
@@ -92,7 +93,7 @@ export class CatalogPluginService {
       zip = new AdmZip(Buffer.from(await file.arrayBuffer()))
     }
     catch {
-      throw new AppError(400, 'Не удалось прочитать zip-архив')
+      throw new AppError(400, ERROR_CODES.PLUGIN.INVALID_MANIFEST, 'Failed to read zip archive')
     }
 
     const entries = zip.getEntries().filter(e => !e.isDirectory)
@@ -103,7 +104,7 @@ export class CatalogPluginService {
       .sort((a, b) => a.entryName.length - b.entryName.length)[0]
 
     if (!manifestEntry) {
-      throw new AppError(400, 'В архиве не найден manifest.json')
+      throw new AppError(400, ERROR_CODES.PLUGIN.INVALID_MANIFEST, 'manifest.json not found in archive')
     }
 
     let manifest: PluginManifest
@@ -111,15 +112,15 @@ export class CatalogPluginService {
       manifest = JSON.parse(manifestEntry.getData().toString('utf-8'))
     }
     catch {
-      throw new AppError(400, 'manifest.json содержит невалидный JSON')
+      throw new AppError(400, ERROR_CODES.PLUGIN.INVALID_MANIFEST, 'manifest.json contains invalid JSON')
     }
 
     if (!manifest.id || !manifest.name || !manifest.version || !manifest.entryUrl) {
-      throw new AppError(400, 'manifest.json: обязательны поля id, name, version, entryUrl')
+      throw new AppError(400, ERROR_CODES.PLUGIN.INVALID_MANIFEST, 'manifest.json: fields id, name, version, entryUrl are required')
     }
 
     if (!/^[a-z0-9][\w-]*$/i.test(manifest.id)) {
-      throw new AppError(400, 'manifest.json: недопустимый id плагина')
+      throw new AppError(400, ERROR_CODES.PLUGIN.INVALID_MANIFEST, 'manifest.json: invalid plugin id')
     }
 
     // Префикс папки внутри архива, в которой лежит manifest.json
@@ -170,12 +171,12 @@ export class CatalogPluginService {
   async deletePlugin(userId: number, pluginId: string) {
     const plugin = await this.catalogRepo.findOne(pluginId)
     if (!plugin) {
-      throw new AppError(404, 'Плагин не найден в каталоге')
+      throw new AppError(404, ERROR_CODES.PLUGIN.NOT_FOUND, 'Plugin not found in catalog')
     }
 
     const user = await userRepository.findById(userId)
     if (user?.role !== ROLES.ADMIN && plugin.uploadedBy !== userId) {
-      throw new AppError(403, 'Удалить плагин может только администратор или его загрузивший')
+      throw new AppError(403, ERROR_CODES.AUTH.FORBIDDEN, 'Only admin or plugin uploader can delete plugin')
     }
 
     await this.catalogRepo.delete(pluginId)
@@ -187,7 +188,7 @@ export class CatalogPluginService {
   /** Отдача файла плагина (manifest.json, remoteEntry.js, ассеты) */
   async getPluginFile(storageKey: string) {
     if (storageKey.includes('..')) {
-      throw new AppError(400, 'Недопустимый путь')
+      throw new AppError(400, ERROR_CODES.SYSTEM.VALIDATION_ERROR, 'Invalid path')
     }
     return storageService.getFile(storageKey)
   }
@@ -195,7 +196,7 @@ export class CatalogPluginService {
   private async assertAdmin(userId: number) {
     const user = await userRepository.findById(userId)
     if (user?.role !== ROLES.ADMIN) {
-      throw new AppError(403, 'Только администратор может управлять каталогом плагинов')
+      throw new AppError(403, ERROR_CODES.AUTH.FORBIDDEN, 'Only admin can manage plugin catalog')
     }
   }
 }

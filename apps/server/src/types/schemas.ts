@@ -137,12 +137,14 @@ export const UpdateBookSchema = z.object({
   publicStatus: z.enum(['private', 'pending', 'public', 'rejected']).optional(),
   textDirection: z.string().nullable().optional(),
 })
+export type UpdateBookDto = z.infer<typeof UpdateBookSchema>
 
 export const UpdateStatsSchema = z.object({
   description: z.string().optional(),
   difficulty: z.string().optional(),
   tags: z.array(z.string()).optional(),
 })
+export type UpdateStatsDto = z.infer<typeof UpdateStatsSchema>
 
 export const AnalyzeSentenceSchema = z.object({
   sentence: z.string()

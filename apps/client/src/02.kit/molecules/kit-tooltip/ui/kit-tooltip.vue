@@ -42,6 +42,27 @@ const {
 
 let timeout: ReturnType<typeof setTimeout>
 
+let isKeyboardFocus = false
+
+function onWindowKeydown(e: KeyboardEvent) {
+  if (e.key === 'Tab' || e.key.startsWith('Arrow'))
+    isKeyboardFocus = true
+}
+
+function onWindowMousedown() {
+  isKeyboardFocus = false
+}
+
+onMounted(() => {
+  window.addEventListener('keydown', onWindowKeydown)
+  window.addEventListener('mousedown', onWindowMousedown)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('keydown', onWindowKeydown)
+  window.removeEventListener('mousedown', onWindowMousedown)
+})
+
 function show(isFocus = false) {
   if (props.disabled || (!props.text && !slots.content))
     return
@@ -58,6 +79,15 @@ function show(isFocus = false) {
 function hide() {
   clearTimeout(timeout)
   isVisible.value = false
+}
+
+// Фокус показывает тултип только при клавиатурной навигации (Tab/стрелки).
+// Программный фокус (автофокус первой кнопки при открытии диалога) и фокус
+// после клика мышью не должны триггерить тултип.
+function onFocusIn() {
+  if (!isKeyboardFocus)
+    return
+  show(true)
 }
 
 const floatingStyle = computed(() => {
@@ -100,7 +130,7 @@ onUnmounted(() => {
     class="kit-tooltip-wrapper"
     @mouseenter="show(false)"
     @mouseleave="hide"
-    @focusin="show(true)"
+    @focusin="onFocusIn"
     @focusout="hide"
     @click="hide"
   >
