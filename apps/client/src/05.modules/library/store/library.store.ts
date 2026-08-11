@@ -17,6 +17,7 @@ export const useLibraryStore = defineStore('library', () => {
   const { trackEvent } = useTracking()
   const queryCache = useQueryCache()
   const repos = useRepos()
+  const authStore = useAuthStore()
 
   const books = shallowRef<Book[]>([])
   const publicBooks = shallowRef<Book[]>([])
@@ -96,7 +97,13 @@ export const useLibraryStore = defineStore('library', () => {
 
       return res
     },
-    enabled: () => isInitialized.value,
+    enabled: () => false,
+  })
+
+  watch(() => authStore.user, (newUser, oldUser) => {
+    if (newUser && !oldUser) {
+      fetchBooks()
+    }
   })
 
   watch(publicBooksQueryData, async (res) => {

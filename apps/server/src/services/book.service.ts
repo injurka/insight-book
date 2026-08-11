@@ -16,7 +16,7 @@ import { recognizeMangaPage } from './ocr.service'
 import { storageService } from './storage.service'
 
 export class BookService {
-  constructor(private bookRepo: IBookRepository = bookRepository) {}
+  constructor(private bookRepo: IBookRepository = bookRepository) { }
   async getPublicBooks(page: number, limit: number, tag: string | null, search: string | null, language: string | null, targetLang: string, _userId: number | null) {
     const conditions = this.bookRepo.buildPublicConditions(tag, search, language)
     const total = await this.bookRepo.countPublicBooks(conditions)

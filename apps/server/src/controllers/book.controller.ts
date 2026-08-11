@@ -33,16 +33,19 @@ const authPlugin = new Elysia({ name: 'books-auth' })
     }
     return { userId }
   })
-  .macro(({ onBeforeHandle }) => ({
+  .macro({
     requireAuth(value: boolean) {
       if (!value)
         return
-      onBeforeHandle(({ userId }: { userId?: number | null }) => {
-        if (!userId)
-          throw new AppError(401, 'Необходима авторизация')
-      })
+
+      return {
+        beforeHandle: ({ userId }: { userId?: number | null }) => {
+          if (!userId)
+            throw new AppError(401, 'Необходима авторизация')
+        },
+      }
     },
-  }))
+  })
   .as('global')
 
 export const bookController = new Elysia({ prefix: '/api/books' })

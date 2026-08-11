@@ -25,16 +25,20 @@ const authPlugin = new Elysia({ name: 'auth-plugin' })
     }
     return { userId }
   })
-  .macro(({ onBeforeHandle }) => ({
+  .macro({
     requireAuth(value: boolean) {
       if (!value)
         return
-      onBeforeHandle(({ userId }: { userId?: number | null }) => {
-        if (!userId)
-          throw new AppError(401, 'Необходима авторизация')
-      })
+
+      return {
+        beforeHandle: ({ userId }: { userId?: number | null }) => {
+          if (!userId)
+            throw new AppError(401, 'Необходима авторизация')
+        },
+      }
     },
-  }))
+  })
+  .as('global')
 
 const authSessions = new Map<string, string>()
 
@@ -42,6 +46,7 @@ const authLimiter = createRateLimiter(5, 60 * 1000)
 
 export const authRouter = new Elysia({ prefix: '/api/auth' })
   .use(authPlugin)
+  .use(cachePlugin)
   .onError(({ error, set }) => {
     if (error instanceof AppError) {
       set.status = error.statusCode
@@ -135,17 +140,16 @@ export const authRouter = new Elysia({ prefix: '/api/auth' })
     }
     return { status: 'pending' }
   })
-  // eslint-disable-next-line ts/no-explicit-any
-  .get('/me', async ({ userId }: any) => {
-    return authService.getMe(userId as number)
-  })
-  .patch('/me/avatar', async ({ userId, body }: { userId?: number | null, body?: unknown }) => {
+  .get('/me', async ({ userId }) => {
+    return authService.getMe(userId)
+  }, { cache: 'shortPrivate' })
+  .patch('/me/avatar', async ({ userId, body }) => {
     const file = (body as { file: File }).file as File
     if (!file)
       throw new AppError(400, 'Файл не передан')
     return authService.updateAvatar(userId as number, file)
   }, { requireAuth: true })
-  .patch('/me/username', async ({ userId, body }: { userId?: number | null, body?: unknown }) => {
+  .patch('/me/username', async ({ userId, body }) => {
     return authService.updateUsername(userId as number, (body as { username: string }).username)
   }, {
     requireAuth: true,

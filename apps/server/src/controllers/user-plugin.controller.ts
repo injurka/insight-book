@@ -2,11 +2,14 @@ import { Elysia, t } from 'elysia'
 import { userPluginService } from '../services/user-plugin.service'
 import { authPlugin } from '../utils/auth'
 
+import { cachePlugin } from '../utils/cache'
+
 export const pluginRouter = new Elysia({ prefix: '/api/plugins' })
   .use(authPlugin)
+  .use(cachePlugin)
   .get('/my', async ({ userId }) => {
     return userPluginService.getUserPlugins(userId)
-  })
+  }, { cache: 'shortPrivate' })
   .post('/', async ({ body, userId }) => {
     return userPluginService.installPlugin(userId, body)
   }, {

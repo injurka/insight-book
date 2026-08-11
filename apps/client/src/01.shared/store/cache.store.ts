@@ -20,7 +20,8 @@ export const useCacheStore = defineStore('cache', () => {
 
       stats.value = await repos.storage.getCacheStats()
     }
-    catch {
+    catch (err) {
+      console.error('[CacheStore] Error loading stats:', err)
       useToastStore().error('Ошибка загрузки статистики кэша')
     }
     finally {

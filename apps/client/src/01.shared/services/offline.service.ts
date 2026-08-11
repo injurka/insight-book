@@ -34,8 +34,16 @@ function getAppLanguage() {
 }
 
 async function getMediaCache(): Promise<Cache | null> {
-  if (typeof window !== 'undefined' && 'caches' in window)
-    return caches.open(MEDIA_CACHE_NAME)
+  if (typeof window !== 'undefined' && 'caches' in window) {
+    try {
+      return await caches.open(MEDIA_CACHE_NAME)
+    }
+    catch (e) {
+      console.warn('[OfflineService] Failed to open MediaCache:', e)
+
+      return null
+    }
+  }
 
   return null
 }
