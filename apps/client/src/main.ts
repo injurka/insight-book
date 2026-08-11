@@ -1,15 +1,22 @@
+import type { Pinia } from 'pinia'
+import type { App as VueApp } from 'vue'
+import type { Router } from 'vue-router'
 import { addCollection } from '@iconify/vue'
 import { PiniaColada } from '@pinia/colada'
 import { createHead } from '@vueuse/head'
 import { createPinia } from 'pinia'
-import { createApp } from 'vue'
+import { createApp, watch } from 'vue'
 import { defaultRepositories, REPOS_INJECTION_KEY } from '~/00.plugins/di'
-import { i18n, localePromise } from '~/00.plugins/i18n.ts'
+import { i18n, localePromise } from '~/00.plugins/i18n'
 import { vLongPress } from '~/01.shared/directives/long-press'
 import { vRipple } from '~/01.shared/directives/ripple'
-import { isMobileApp } from '~/01.shared/lib/env'
+import { isMobileApp, isTauri } from '~/01.shared/lib/env'
 import router from '~/01.shared/lib/router'
-import { initMonitoring, setupVueMonitoring } from '~/01.shared/services/monitoring.service.ts'
+import { configureApi } from '~/01.shared/services/api.service'
+import { initMonitoring, setupVueMonitoring } from '~/01.shared/services/monitoring.service'
+import { useAuthStore } from '~/01.shared/store/auth.store'
+import { useGlobalSettingsStore } from '~/01.shared/store/settings.store'
+import { useToastStore } from '~/01.shared/store/toast.store'
 import App from './app.vue'
 
 import '~/assets/scss/global.scss'
@@ -20,6 +27,7 @@ async function bootstrap() {
   const pinia = createPinia()
   const head = createHead()
 
+  // 1. Directives & Core Plugins
   app.directive('ripple', vRipple)
   app.directive('longPress', vLongPress)
 
@@ -29,24 +37,11 @@ async function bootstrap() {
   app.use(head)
   app.provide(REPOS_INJECTION_KEY, defaultRepositories)
 
-  // ── Critical path: load stores & API synchronously, init from cache ──
-  const [
-    { configureApi },
-    { useGlobalSettingsStore },
-    { useAuthStore },
-    { useToastStore },
-  ] = await Promise.all([
-    import('~/01.shared/services/api.service'),
-    import('~/01.shared/store/settings.store'),
-    import('~/01.shared/store/auth.store'),
-    import('~/01.shared/store/toast.store'),
-  ])
-
+  // 2. Critical path: init auth from cache & configure API
   const settingsStore = useGlobalSettingsStore()
   const authStore = useAuthStore()
   const toastStore = useToastStore()
 
-  // Init auth from cached session (sync, no API call — isAuthReady = true immediately)
   authStore.init()
 
   configureApi({
@@ -59,37 +54,57 @@ async function bootstrap() {
     onError: message => toastStore.error(message),
   })
 
-  if (isMobileApp) {
-    const [{ setErudaEnabled }] = await Promise.all([
-      import('~/01.shared/services/eruda.service'),
-    ])
-    import('vue').then(({ watch }) => {
-      watch(() => settingsStore.enableEruda, (enabled) => {
-        void setErudaEnabled(enabled)
-      }, { immediate: true })
-    })
-  }
+  setupMobileDevtools(settingsStore)
 
-  // ── Router & mount: DON'T wait for initial navigation ──
-  // Mount immediately — router guards use cached auth (isAuthReady already true).
-  // The initial navigation + redirects (onboarding, auth) resolve from cache
-  // without hitting the API.
+  // 3. Router & Mount
   app.use(router)
-  setupVueMonitoring(app, router)
   app.mount('#app')
-
-  // Remove preloader now that Vue has mounted
   document.getElementById('app-preloader')?.remove()
 
-  // ── Post-mount: everything below is non-blocking ──
-  // Refresh auth in background (API call, updates reactively)
-  authStore.checkAuth().catch((err: unknown) => console.warn('[bootstrap] Background auth check failed:', err))
+  // 4. Non-blocking Post-mount tasks
+  initDeferredTasks(
+    app,
+    router,
+    pinia,
+    authStore,
+  )
 
-  // Locale is already loaded from cache by i18n plugin; await the promise
-  // for hydration but it doesn't block render
+  if (import.meta.env.DEV) {
+    app.config.performance = true
+  }
+}
+
+/** Настройка Eruda (девтулы для мобильного приложения) */
+function setupMobileDevtools(settingsStore: ReturnType<typeof useGlobalSettingsStore>) {
+  if (!isMobileApp)
+    return
+
+  void import('~/01.shared/services/eruda.service').then(({ setErudaEnabled }) => {
+    watch(() => settingsStore.enableEruda, (enabled) => {
+      void setErudaEnabled(enabled)
+    }, { immediate: true })
+  })
+}
+
+/** Фоновые неблокирующие задачи после монтирования */
+function initDeferredTasks(
+  app: VueApp,
+  router: Router,
+  pinia: Pinia,
+  authStore: ReturnType<typeof useAuthStore>,
+) {
+  // Проверка сессии и гидратация локали
+  authStore.checkAuth().catch((err: unknown) => console.warn('[bootstrap] Background auth check failed:', err))
   localePromise.catch((err: unknown) => console.warn('[bootstrap] Locale load failed:', err))
 
-  // Plugins & event wiring — fire-and-forget, don't block render
+  // Мониторинг (инициализируем Faro SDK, затем регистрируем Vue error handler и router hooks)
+  initMonitoring()
+  setupVueMonitoring(app, router)
+
+  // Обновления платформы (Tauri / PWA)
+  setupPlatformUpdaters(pinia).catch((err: unknown) => console.warn('[bootstrap] Platform updater setup failed:', err))
+
+  // Плагины и слушатели событий
   Promise.all([
     import('~/00.plugins/index'),
     import('~/01.shared/events/dictionary-events'),
@@ -102,46 +117,22 @@ async function bootstrap() {
     await setupPlugins(app, router)
     void setupDictionaryEvents()
     void setupReaderEvents()
-  }).catch(err => console.error('Failed to setup plugins:', err))
-
-  // Monitoring — init after mount, non-blocking
-  initMonitoring()
-  // Re-register Vue monitoring now that Faro API is available.
-  // The pre-mount call at line 79 set up the error handler structure;
-  // this call registers router.afterEach page_view tracking with a live Faro instance.
-  setupVueMonitoring(app, router)
-
-  // Platform-specific initializers (Tauri updater / PWA) — non-blocking
-  const platformStrategies = [
-    {
-      shouldRun: isTauri,
-      run: async () => {
-        const { initializeTauriUpdater } = await import('~/01.shared/services/tauri-update.service')
-        initializeTauriUpdater(pinia)
-      },
-      name: 'Tauri updater',
-    },
-    {
-      shouldRun: !isTauri && 'serviceWorker' in navigator,
-      run: async () => {
-        const { initializePwaUpdater } = await import('~/01.shared/services/pwa.service')
-        initializePwaUpdater(pinia)
-      },
-      name: 'PWA plugin',
-    },
-  ]
-
-  const activeStrategy = platformStrategies.find(s => s.shouldRun)
-  if (activeStrategy) {
-    activeStrategy.run().catch((err: unknown) => {
-      console.warn(`Failed to initialize ${activeStrategy.name}:`, err)
-    })
-  }
-
-  if (import.meta.env.DEV)
-    app.config.performance = true
+  }).catch(err => console.error('[bootstrap] Failed to setup plugins/events:', err))
 }
 
+/** Инициализаторы обновлений в зависимости от окружения */
+async function setupPlatformUpdaters(pinia: Pinia) {
+  if (isTauri) {
+    const { initializeTauriUpdater } = await import('~/01.shared/services/tauri-update.service')
+    initializeTauriUpdater(pinia)
+  }
+  else if ('serviceWorker' in navigator) {
+    const { initializePwaUpdater } = await import('~/01.shared/services/pwa.service')
+    initializePwaUpdater(pinia)
+  }
+}
+
+// Предзагрузка иконочного бандла Iconify
 import('~/assets/icons-bundle.json').then((module) => {
   addCollection(module.default)
 })
