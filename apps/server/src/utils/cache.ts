@@ -22,7 +22,7 @@ export const CACHE_PROFILES = {
   immutable: 'public, max-age=31536000, immutable',
 
   /** Приватные данные юзера: инфо о книге, оглавление */
-  shortPrivate: 'private, stale-while-revalidate=60',
+  shortPrivate: 'private, no-cache, no-store, must-revalidate',
   /** Приватный словарь страницы */
   dayPrivate: 'private, max-age=86400',
 } as const
