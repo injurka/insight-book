@@ -170,38 +170,41 @@ function generateAppConfig(distDir: string) {
 }
 
 // Автоматический сброс кэша Bunny CDN
-async function purgeBunnyCache() {
+async function purgeBunnyCache(entrypoints: string[], distDir: string) {
   if (!BUNNY_API_KEY || !BUNNY_PULL_ZONE_ID)
     return
 
   logger.info('🧹 Очистка кэша входных точек в Bunny CDN...')
   try {
-    const urlsToPurge = [
-      // Основные входные точки приложения
-      'https://insight-book.ru/',
-      'https://insight-book.ru/index.html',
-      'https://insight-book.ru/sw.js',
-      'https://insight-book.ru/manifest.webmanifest',
-      'https://insight-book.ru/configs/app-config.js',
-      // CDN
-      'https://cdn.insight-book.ru/index.html',
-      'https://cdn.insight-book.ru/sw.js',
-      'https://cdn.insight-book.ru/manifest.webmanifest',
-      'https://cdn.insight-book.ru/configs/app-config.js',
-      // Bunny CDN
-      'https://insight-book.b-cdn.net/index.html',
-      'https://insight-book.b-cdn.net/sw.js',
-      'https://insight-book.b-cdn.net/manifest.webmanifest',
-      'https://insight-book.b-cdn.net/configs/app-config.js',
+    const domains = [
+      'https://insight-book.ru',
+      'https://cdn.insight-book.ru',
+      'https://insight-book.b-cdn.net',
     ]
 
-    await Promise.all(urlsToPurge.map(url =>
+    const urlsToPurge: string[] = []
+
+    for (const filePath of entrypoints) {
+      const relativePath = relative(distDir, filePath).replace(/\\/g, '/')
+
+      for (const domain of domains) {
+        urlsToPurge.push(`${domain}/${relativePath}`)
+
+        if (relativePath === 'index.html') {
+          urlsToPurge.push(`${domain}/`)
+        }
+      }
+    }
+
+    const uniqueUrls = Array.from(new Set(urlsToPurge))
+
+    await Promise.all(uniqueUrls.map(url =>
       fetch(`https://api.bunny.net/purge?url=${encodeURIComponent(url)}`, {
         method: 'POST',
         headers: { AccessKey: BUNNY_API_KEY },
       })))
 
-    logger.info('✨ Кэш входных точек очищен!')
+    logger.info({ count: uniqueUrls.length }, '✨ Кэш входных точек очищен!')
   }
   catch (err) {
     logger.error({ err }, '⚠️ Ошибка при очистке кэша')
@@ -348,7 +351,7 @@ async function deploy() {
 
   logger.info('✅ Все файлы успешно загружены в Bunny Storage!')
 
-  await purgeBunnyCache()
+  await purgeBunnyCache(entrypoints, distDir)
 }
 
 deploy().catch((err) => {

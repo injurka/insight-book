@@ -47,26 +47,6 @@ if [ -n "$(git status --porcelain)" ]; then
   exit 1
 fi
 
-# Update package.json version
-if [ -f "package.json" ]; then
-  echo "Updating version in package.json to $NEW_VERSION..."
-  node -e "
-    const fs = require('fs');
-    const file = 'package.json';
-    const content = fs.readFileSync(file, 'utf8');
-    const json = JSON.parse(content);
-    json.version = process.argv[1];
-    fs.writeFileSync(file, JSON.stringify(json, null, 2) + '\n');
-  " "$NEW_VERSION"
-  git add package.json
-  if [ -f "package-lock.json" ]; then
-    git add package-lock.json
-  fi
-else
-  echo "Error: package.json not found in current directory!"
-  exit 1
-fi
-
 # Determine current branch and check for unpushed local commits
 CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
 UPSTREAM=$(git rev-parse --abbrev-ref @{u} 2>/dev/null || true)
