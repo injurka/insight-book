@@ -160,6 +160,7 @@ jobs:
           BUNNY_PULL_ZONE_ID: ${{ secrets.BUNNY_PULL_ZONE_ID }}
           VITE_API_URL: ${{ secrets.VITE_API_URL }}
           VITE_FARO_URL: ${{ secrets.VITE_FARO_URL }}
+          VITE_CDN_URL: ${{ secrets.VITE_CDN_URL }}
 
   # ─── JOB 3: Деплой на VDS ───────────────────────────────────────
   deploy:

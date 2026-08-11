@@ -7,6 +7,7 @@ services:
     restart: unless-stopped
     environment:
       - VITE_API_URL=${VITE_API_URL:-}
+      - VITE_CDN_URL=${VITE_CDN_URL:-}
       - FARO_URL=${FARO_URL:-https://faro.limited-dissolve.ru/collect}
     volumes:
       - ./configs:/usr/share/nginx/html/configs
