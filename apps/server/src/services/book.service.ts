@@ -26,9 +26,8 @@ export class BookService {
     const llmCounts = await this.bookRepo.getLlmCounts(bookIds, targetLang)
     const countMap = new Map(llmCounts.map((r: { bookId: number, count: number }) => [r.bookId, r.count]))
 
-    const data = rows.map((r: { book: { id: number, [key: string]: unknown }, stats?: { tags?: string | null, [key: string]: unknown } | null, progress?: { currentPage?: number | null, status?: string | null, isFavorite?: boolean | null, collection?: string | null, updatedAt?: string | null } | null }) => ({
+    const data = rows.map((r: { book: { id: number, [key: string]: unknown }, progress?: { currentPage?: number | null, status?: string | null, isFavorite?: boolean | null, collection?: string | null, updatedAt?: string | null } | null }) => ({
       ...r.book,
-      stats: r.stats ? { ...r.stats, tags: JSON.parse(r.stats.tags || '[]') } : null,
       currentPage: r.progress?.currentPage ?? null,
       status: r.progress?.status ?? 'reading',
       isFavorite: r.progress?.isFavorite ?? false,
