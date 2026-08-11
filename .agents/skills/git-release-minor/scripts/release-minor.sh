@@ -62,7 +62,7 @@ if [ "$UNPUSHED_COUNT" -gt 0 ]; then
   git commit --amend --no-edit
 else
   echo "No unpushed local commits found. Creating release commit..."
-  git commit -m "chore(release): $NEW_TAG"
+  git commit --allow-empty -m "chore(release): $NEW_TAG"
 fi
 
 echo "Pushing branch $CURRENT_BRANCH to remote origin..."
