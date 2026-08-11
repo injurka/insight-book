@@ -2,6 +2,7 @@ import { Elysia, t } from 'elysia'
 import jwt from 'jsonwebtoken'
 import { AUTH_MODE, CORS_HEADERS, FRONTEND_URL, JWT_SECRET } from '../config'
 import { authService } from '../services/auth.service'
+import { cachePlugin } from '../utils/cache'
 import { AppError } from '../utils/errors'
 import { createRateLimiter, getClientIp } from '../utils/rate-limit'
 
@@ -154,6 +155,7 @@ export const authRouter = new Elysia({ prefix: '/api/auth' })
   })
 
 export const authUploadsRouter = new Elysia({ prefix: '/api/uploads/avatars' })
+  .use(cachePlugin)
   .get('/:filename', async ({ params: { filename }, set }) => {
     const fileData = await authService.getAvatarImage(filename)
     if (!fileData) {
@@ -164,7 +166,6 @@ export const authUploadsRouter = new Elysia({ prefix: '/api/uploads/avatars' })
     set.headers = {
       ...CORS_HEADERS,
       'Content-Type': fileData.contentType,
-      'Cache-Control': 'public, max-age=31536000, immutable',
     }
     return Buffer.from(fileData.buffer)
-  })
+  }, { cache: 'immutable' })

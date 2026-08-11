@@ -9,6 +9,7 @@ import { bookAnalysisService } from '../services/book-analysis.service'
 import { bookUploadService } from '../services/book-upload.service'
 import { bookService } from '../services/book.service'
 import { storageService } from '../services/storage.service'
+import { CACHE_PROFILES, cachePlugin } from '../utils/cache'
 import { AppError } from '../utils/errors'
 import { logger } from '../utils/logger'
 
@@ -46,6 +47,7 @@ const authPlugin = new Elysia({ name: 'books-auth' })
 
 export const bookController = new Elysia({ prefix: '/api/books' })
   .use(authPlugin)
+  .use(cachePlugin)
   .onError(({ error, set }) => {
     if (error instanceof AppError) {
       set.status = error.statusCode
@@ -56,7 +58,7 @@ export const bookController = new Elysia({ prefix: '/api/books' })
     return { error: 'Internal Server Error' }
   })
   .get('/', async (ctx) => {
-    const { userId, query } = ctx
+    const { userId, query, set } = ctx
     const tab = query.tab || 'my'
     const targetLang = (query.targetLang as string) || 'ru'
 
@@ -67,6 +69,7 @@ export const bookController = new Elysia({ prefix: '/api/books' })
       const search = query.search as string | undefined
       const language = query.lang as string | undefined
 
+      set.headers['Cache-Control'] = CACHE_PROFILES.shortPublic
       return bookService.getPublicBooks(page, limit, tag || null, search || null, language || null, targetLang, (userId as number) || null)
     }
 
@@ -74,12 +77,11 @@ export const bookController = new Elysia({ prefix: '/api/books' })
       throw new AppError(401, 'Необходима авторизация')
     return bookService.getUserBooks(userId as number, targetLang)
   })
-  .get('/:id/info', async ({ params: { id }, userId, query, set }) => {
+  .get('/:id/info', async ({ params: { id }, userId, query }) => {
     const targetLang = (query.targetLang as string) || 'ru'
     const info = await bookService.getBookInfo(Number(id), userId, targetLang)
-    set.headers['Cache-Control'] = 'private, stale-while-revalidate=60'
     return info
-  })
+  }, { cache: 'shortPrivate' })
   .post('/:id/start', async ({ params: { id }, userId }) => {
     return bookService.startReading(Number(id), userId!)
   }, { requireAuth: true })
@@ -158,24 +160,21 @@ export const bookController = new Elysia({ prefix: '/api/books' })
   .delete('/:id', async ({ params: { id }, userId }) => {
     return bookService.deleteBook(Number(id), userId!)
   }, { requireAuth: true })
-  .get('/:id/toc', async ({ params: { id }, userId, set }) => {
+  .get('/:id/toc', async ({ params: { id }, userId }) => {
     const toc = await bookService.getToc(Number(id), userId!)
-    set.headers['Cache-Control'] = 'private, stale-while-revalidate=60'
     return toc
-  }, { requireAuth: true })
-  .get('/:id/page/:pageNum', async ({ params: { id, pageNum }, userId, query, request, set }) => {
+  }, { requireAuth: true, cache: 'shortPrivate' })
+  .get('/:id/page/:pageNum', async ({ params: { id, pageNum }, userId, query, request }) => {
     const isSync = query.sync === 'true'
     const config = extractLlmConfig(request)
     const page = await bookService.getPage(Number(id), Number(pageNum), userId!, isSync, config)
-    set.headers['Cache-Control'] = 'public, max-age=86400'
     return page
-  }, { requireAuth: true })
-  .get('/:id/page/:pageNum/dict', async ({ params: { id, pageNum }, userId, query, set }) => {
+  }, { requireAuth: true, cache: 'dayPublic' })
+  .get('/:id/page/:pageNum/dict', async ({ params: { id, pageNum }, userId, query }) => {
     const targetLang = (query.targetLang as string) || 'ru'
     const dict = await bookService.getPageDictionary(Number(id), Number(pageNum), userId!, targetLang)
-    set.headers['Cache-Control'] = 'private, max-age=86400'
     return { pageDictionary: dict }
-  }, { requireAuth: true })
+  }, { requireAuth: true, cache: 'dayPrivate' })
   .get('/:id/page/:pageNum/image', async ({ params: { id, pageNum }, set }) => {
     const pageRow = await bookRepository.getMangaPageImageUrl(Number(id), Number(pageNum))
     if (!pageRow || !pageRow.imageUrl) {
@@ -194,10 +193,9 @@ export const bookController = new Elysia({ prefix: '/api/books' })
     set.headers = {
       ...CORS_HEADERS,
       'Content-Type': `image/${ext === 'jpg' ? 'jpeg' : ext}`,
-      'Cache-Control': 'public, max-age=31536000, immutable',
     }
     return buffer
-  })
+  }, { cache: 'immutable' })
   .get('/:id/word/:word', async ({ params: { id, word }, userId, query }) => {
     const targetLang = (query.targetLang as string) || 'ru'
     return bookService.lookupWord(Number(id), word, userId!, targetLang)
@@ -278,6 +276,7 @@ export const ttsController = new Elysia()
   })
 
 export const uploadsController = new Elysia()
+  .use(cachePlugin)
   .get('/api/uploads/covers/:filename', async ({ params: { filename }, set }) => {
     const key = `covers/${filename}`
     const fileData = await storageService.getFile(key)
@@ -288,7 +287,6 @@ export const uploadsController = new Elysia()
     set.headers = {
       ...CORS_HEADERS,
       'Content-Type': fileData.contentType,
-      'Cache-Control': 'public, max-age=31536000, immutable',
     }
     return Buffer.from(fileData.buffer)
-  })
+  }, { cache: 'immutable' })

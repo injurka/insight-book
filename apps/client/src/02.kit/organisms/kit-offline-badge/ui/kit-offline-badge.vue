@@ -88,9 +88,8 @@ function handleReconnect() {
   backdrop-filter: blur(12px);
   transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 
-  // Когда нет сети (обычный оффлайн) — наверху справа с текстом
-  top: 14px;
-  right: 14px;
+  bottom: calc(env(safe-area-inset-bottom, 20px) + 20px);
+  right: 20px;
   padding: 8px 14px;
   border-radius: 20px;
   font-size: 0.82rem;
@@ -100,12 +99,7 @@ function handleReconnect() {
   border: 1px solid var(--border-primary-color);
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
 
-  // При принудительном ручном оффлайне (isForcedOffline):
-  // Только иконка без текста в ПРАВОМ НИЖНЕМ углу с курсором-кнопкой
   &.is-forced {
-    top: auto;
-    bottom: calc(env(safe-area-inset-bottom, 20px) + 20px);
-    right: 20px;
     padding: 12px;
     border-radius: 50%;
     background-color: rgba(234, 179, 8, 0.16);

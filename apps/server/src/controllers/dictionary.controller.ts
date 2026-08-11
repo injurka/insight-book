@@ -3,6 +3,7 @@ import jwt from 'jsonwebtoken'
 import { AUTH_MODE, JWT_SECRET } from '../config'
 import { dictionaryService } from '../services/dictionary.service'
 import { checkPronunciationAudio, generateDeepDiveQuiz, generateWordExamples } from '../services/llm.service'
+import { cachePlugin } from '../utils/cache'
 import { AppError } from '../utils/errors'
 import { extractLlmConfig, normalizeLanguageCode } from '../utils/helpers'
 import { logger } from '../utils/logger'
@@ -25,6 +26,7 @@ const authPlugin = new Elysia().derive({ as: 'global' }, ({ headers }) => {
 
 export const dictionaryController = new Elysia({ prefix: '/api/dictionary' })
   .use(authPlugin)
+  .use(cachePlugin)
   .onError(({ error, set }) => {
     if (error instanceof AppError) {
       set.status = error.statusCode
@@ -153,11 +155,12 @@ export const dictionaryController = new Elysia({ prefix: '/api/dictionary' })
   })
   .get('/catalog', async () => {
     return await dictionaryService.getCatalogDecks()
-  })
+  }, { cache: 'longPublic' })
   .get('/catalog/:id/words', async ({ params: { id } }) => {
     return await dictionaryService.getCatalogWords(Number(id))
   }, {
     params: t.Object({ id: t.String() }),
+    cache: 'longPublic',
   })
   .post('/catalog/:id/clone', async ({ userId, params: { id }, query }) => {
     const targetLang = normalizeLanguageCode(query.targetLang || 'ru')

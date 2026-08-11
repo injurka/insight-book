@@ -3,12 +3,14 @@ import { CORS_HEADERS } from '../config'
 import { CATALOG_PLUGIN_STATUS } from '../constants/catalog-plugin'
 import { catalogPluginService, getPluginContentType } from '../services/catalog-plugin.service'
 import { authPlugin } from '../utils/auth'
+import { cachePlugin } from '../utils/cache'
 
 export const catalogRouter = new Elysia({ prefix: '/api/catalog/plugins' })
   .use(authPlugin)
+  .use(cachePlugin)
   .get('/', async () => {
     return catalogPluginService.getPlugins()
-  })
+  }, { cache: 'mediumPublic' })
   .get('/my', async ({ userId }) => {
     return catalogPluginService.getMyPlugins(userId)
   })
@@ -25,14 +27,14 @@ export const catalogRouter = new Elysia({ prefix: '/api/catalog/plugins' })
     set.headers = {
       ...CORS_HEADERS,
       'Content-Type': getPluginContentType(storageKey),
-      'Cache-Control': 'public, max-age=3600',
     }
     return Buffer.from(fileData.buffer)
-  })
+  }, { cache: 'hourPublic' })
   .get('/:id', async ({ params }) => {
     return catalogPluginService.getPlugin(params.id)
   }, {
     params: t.Object({ id: t.String() }),
+    cache: 'mediumPublic',
   })
   .post('/upload', async ({ body, userId }) => {
     return catalogPluginService.uploadPlugin(userId, body.file)
