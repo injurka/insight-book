@@ -1,27 +1,34 @@
 import type { Component } from 'vue'
+import { defineAsyncComponent, h } from 'vue'
 import { useToastStore } from '~/01.shared/store/toast.store'
 import { KitPageLoader } from '~/02.kit/atoms/kit-page-loader/ui'
+
+interface LazyComponentOptions {
+  showLoader?: boolean
+  delay?: number
+  timeout?: number
+}
 
 /**
  * Умная обертка для ленивой загрузки компонентов.
  * Обрабатывает ошибки сети, ошибки версионирования чанков и показывает лоадер.
  */
-export function lazyComponent(loader: () => Promise<Component>) {
+export function lazyComponent(loader: () => Promise<Component>, options: LazyComponentOptions = {}) {
+  const { showLoader = false, delay = 300, timeout = 10000 } = options
+
   return defineAsyncComponent({
     loader,
 
-    // Глобальный лоадер для всех ленивых компонентов
-    loadingComponent: () => h('div', {
-      style: 'display: flex; justify-content: center; padding: 24px; width: 100%;',
-    }, [h(KitPageLoader)]),
+    // Лоадер рендерится только если явно указан showLoader: true
+    loadingComponent: showLoader
+      ? () => h('div', {
+          style: 'display: flex; justify-content: center; padding: 24px; width: 100%;',
+        }, [h(KitPageLoader)])
+      : undefined,
 
-    // Задержка перед показом лоадера (избегает моргания при быстром интернете)
-    delay: 200,
+    delay,
+    timeout,
 
-    // Таймаут загрузки (10 секунд)
-    timeout: 10000,
-
-    // Обработка ошибок (очень важно для Vite)
     onError(
       error,
       retry,
@@ -49,7 +56,6 @@ export function lazyComponent(loader: () => Promise<Component>) {
       }
 
       // Ждем 1 секунду перед новой попыткой
-
       else {
         const toast = useToastStore()
         toast.error('Ошибка загрузки компонента. Проверьте интернет-соединение.')

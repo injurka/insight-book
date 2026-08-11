@@ -1,26 +1,28 @@
 <script setup lang="ts">
 import { useHead } from '@vueuse/head'
-import { watchEffect } from 'vue'
+import { computed, onMounted, ref, watch, watchEffect } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useRoute, useRouter } from 'vue-router'
 import { loadLanguageAsync } from '~/00.plugins/i18n'
 import { useBackHandler } from '~/01.shared/composables/use-back-handler'
 import { useChangeTheme } from '~/01.shared/composables/use-change-theme'
 import { useCustomFonts } from '~/01.shared/composables/use-custom-fonts'
 import { useGlobalTracking } from '~/01.shared/composables/use-global-tracking'
 import { isTauri } from '~/01.shared/lib/env'
+import { lazyComponent } from '~/01.shared/lib/lazy-component'
 import { isNativeTransitionRoute, isViewTransitionSupported } from '~/01.shared/lib/view-transitions'
 import { useAnalysisStore } from '~/01.shared/store/analysis/analysis.store'
 import { useNetworkStore } from '~/01.shared/store/network.store'
 import { usePwaStore } from '~/01.shared/store/pwa.store'
 import { useGlobalSettingsStore } from '~/01.shared/store/settings.store'
 
-const KitNetworkTimeoutDialog = lazyComponent(() => import('~/02.kit/organisms/kit-network-timeout-dialog/ui/kit-network-timeout-dialog.vue'))
-const KitOfflineBadge = lazyComponent(() => import('~/02.kit/organisms/kit-offline-badge/ui/kit-offline-badge.vue'))
-const KitReloadPrompt = lazyComponent(() => import('~/02.kit/organisms/kit-reload-prompt/ui/kit-reload-prompt.vue'))
-const KitToastManager = lazyComponent(() => import('~/02.kit/organisms/kit-toast-manager/ui/kit-toast-manager.vue'))
-const DefaultLayout = lazyComponent(() => import('~/06.layouts/default/ui/default.vue'))
+import KitNetworkTimeoutDialog from '~/02.kit/organisms/kit-network-timeout-dialog/ui/kit-network-timeout-dialog.vue'
+import KitOfflineBadge from '~/02.kit/organisms/kit-offline-badge/ui/kit-offline-badge.vue'
+import KitReloadPrompt from '~/02.kit/organisms/kit-reload-prompt/ui/kit-reload-prompt.vue'
+import KitToastManager from '~/02.kit/organisms/kit-toast-manager/ui/kit-toast-manager.vue'
+import DefaultLayout from '~/06.layouts/default/ui/default.vue'
 
-const AddEditWordDialog = lazyComponent(() => import('~/05.modules/dictionary/ui/dialog/add-edit-word-dialog.vue'))
+const AddEditWordDialog = lazyComponent(() => import('~/05.modules/dictionary/ui/dialog/add-edit-word-dialog.vue'), { showLoader: false })
 
 useChangeTheme()
 useGlobalTracking()
