@@ -45,14 +45,16 @@ export class DefaultBookRepository implements IBookRepository {
 
     try {
       const raw = await api.books.list()
+
       const data = applyAcl(z.array(BookSchema), raw, 'book.list()')
-      await offlineService.saveBooksList(data).catch(() => {})
+      await offlineService.saveBooksList(data).catch(() => { })
 
       return data
     }
     catch (error) {
       const offlineData = await offlineService.getBooksList()
-      if (offlineData)
+
+      if (offlineData && offlineData.length > 0)
         return applyAcl(z.array(BookSchema), offlineData, 'book.list() [offline]')
 
       throw error
@@ -67,7 +69,7 @@ export class DefaultBookRepository implements IBookRepository {
     try {
       const raw = await api.books.getInfo(id)
       const data = applyAcl(BookSchema, raw, `book.getInfo(${id})`)
-      await offlineService.saveBookInfo(id, data).catch(() => {})
+      await offlineService.saveBookInfo(id, data).catch(() => { })
 
       return data
     }
@@ -127,7 +129,7 @@ export class DefaultBookRepository implements IBookRepository {
     try {
       const raw = await api.books.getToc(id)
       const data = applyAcl(z.array(TocItemSchema), raw, `book.getToc(${id})`)
-      await offlineService.saveToc(id, data).catch(() => {})
+      await offlineService.saveToc(id, data).catch(() => { })
 
       return data
     }
@@ -151,7 +153,7 @@ export class DefaultBookRepository implements IBookRepository {
 
     const data = await api.books.getPage(id, num, isSync)
     if (data)
-      await offlineService.savePage(id, num, data).catch(() => {})
+      await offlineService.savePage(id, num, data).catch(() => { })
 
     return data
   }
@@ -168,7 +170,7 @@ export class DefaultBookRepository implements IBookRepository {
 
     const res = await api.books.getPageDict(id, num)
     const data = res.pageDictionary || {}
-    await offlineService.savePageDictionary(id, num, data).catch(() => {})
+    await offlineService.savePageDictionary(id, num, data).catch(() => { })
 
     return data
   }

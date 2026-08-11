@@ -62,25 +62,25 @@ export const bookController = new Elysia({ prefix: '/api/books' })
   })
   .get('/', async (ctx) => {
     const { userId, query, set } = ctx
-    const tab = query.tab || 'my'
     const targetLang = (query.targetLang as string) || 'ru'
-
-    if (tab === 'public') {
-      const page = Math.max(1, Number.parseInt((query.page as string) || '1'))
-      const limit = Math.max(1, Number.parseInt((query.limit as string) || '20'))
-      const tag = query.tag as string | undefined
-      const search = query.search as string | undefined
-      const language = query.lang as string | undefined
-
-      set.headers['Cache-Control'] = CACHE_PROFILES.shortPublic
-      return bookService.getPublicBooks(page, limit, tag || null, search || null, language || null, targetLang, (userId as number) || null)
-    }
 
     if (!userId)
       throw new AppError(401, 'Необходима авторизация')
 
     set.headers['Cache-Control'] = CACHE_PROFILES.shortPrivate
     return bookService.getUserBooks(userId as number, targetLang)
+  })
+  .get('/public', async (ctx) => {
+    const { userId, query, set } = ctx
+    const page = Math.max(1, Number.parseInt((query.page as string) || '1'))
+    const limit = Math.max(1, Number.parseInt((query.limit as string) || '20'))
+    const tag = query.tag as string | undefined
+    const search = query.search as string | undefined
+    const language = query.lang as string | undefined
+    const targetLang = (query.targetLang as string) || 'ru'
+
+    set.headers['Cache-Control'] = 'no-store'
+    return bookService.getPublicBooks(page, limit, tag || null, search || null, language || null, targetLang, (userId as number) || null)
   })
   .get('/:id/info', async ({ params: { id }, userId, query }) => {
     const targetLang = (query.targetLang as string) || 'ru'

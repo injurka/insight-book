@@ -299,6 +299,8 @@
     "emptyStateTitle": "Library is empty",
     "emptyStateAuth": "Upload your first book or manga.",
     "emptyStateGuest": "Sign in to upload and read books.",
+    "loadErrorTitle": "Failed to load books",
+    "loadErrorDesc": "The server returned an unexpected response. Please try again.",
     "emptySection": "This section is empty for now",
     "hidePromptTitle": "Hide book",
     "hidePromptDesc": "Hide this public book from your library? Your personal reading progress will be deleted.",

@@ -21,8 +21,11 @@ export class BookRepository implements IBookRepository {
   }
 
   async getPublicBooksBaseQuery(page: number, limit: number, conditions: (SQL | undefined)[]) {
+    // Не тащим тяжёлый toc в ответ каталога — он нужен только в /api/books/:id/info
+    const { toc: _toc, ...bookColumns } = schema.books
+
     return db.select({
-      book: schema.books,
+      book: bookColumns,
       stats: schema.bookStats,
       progress: schema.readingProgress,
     })
@@ -69,6 +72,9 @@ export class BookRepository implements IBookRepository {
         eq(schema.books.userId, userId),
         eq(schema.books.isPublic, true),
       ),
+      // toc — тяжёлая JSON-строка, в списке библиотеки не используется
+      // (он нужен только в /api/books/:id/info и /api/books/:id/toc)
+      columns: { toc: false },
       with: { progresses: { where: eq(schema.readingProgress.userId, userId), limit: 1 } },
       orderBy: [desc(schema.books.updatedAt)],
     })

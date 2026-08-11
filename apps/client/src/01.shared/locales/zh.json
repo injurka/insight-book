@@ -298,6 +298,8 @@
     "emptyStateTitle": "书库为空",
     "emptyStateAuth": "上传您的第一本书或漫画。",
     "emptyStateGuest": "登录以上传和阅读书籍。",
+    "loadErrorTitle": "无法加载书籍",
+    "loadErrorDesc": "服务器返回了意外响应，请重试。",
     "emptySection": "该部分目前为空",
     "hidePromptTitle": "隐藏书籍",
     "hidePromptDesc": "从您的书库中隐藏这本公共书籍？您的个人阅读进度将被删除。",

@@ -38,6 +38,7 @@ export const useLibraryStore = defineStore('library', () => {
   // --- QUERY: Books List ---
   const {
     data: booksData,
+    error: booksError,
     isLoading: isBooksLoading,
     refetch: refetchBooks,
   } = useQuery<Book[]>({
@@ -79,7 +80,6 @@ export const useLibraryStore = defineStore('library', () => {
     }),
     query: async () => {
       const q = new URLSearchParams()
-      q.set('tab', 'public')
       q.set('page', String(publicQueryPage.value))
 
       if (publicQueryTag.value)
@@ -432,6 +432,7 @@ export const useLibraryStore = defineStore('library', () => {
 
   return {
     books,
+    booksError,
     publicBooks,
     publicTotal,
     publicPage,

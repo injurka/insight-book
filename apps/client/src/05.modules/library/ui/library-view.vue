@@ -239,6 +239,14 @@ onUnmounted(() => {
             @edit-book="openEditModal"
           />
 
+          <div v-else-if="store.books.length === 0 && store.isInitialized && store.booksError" class="empty-state error-state">
+            <h2>{{ t('library.loadErrorTitle') }}</h2>
+            <p>{{ t('library.loadErrorDesc') }}</p>
+            <button class="retry-btn" type="button" @click="store.fetchBooks()">
+              {{ t('network.retryBtn') }}
+            </button>
+          </div>
+
           <div v-else-if="store.books.length === 0 && store.isInitialized" class="empty-state">
             <h2>{{ t('library.emptyStateTitle') }}</h2>
             <p v-if="authStore.user">
@@ -365,6 +373,26 @@ onUnmounted(() => {
   }
   p {
     color: var(--fg-secondary-color);
+  }
+}
+
+.error-state {
+  border-color: var(--danger-color, var(--border-primary-color));
+}
+
+.retry-btn {
+  margin-top: 20px;
+  padding: 10px 24px;
+  border: none;
+  border-radius: 10px;
+  background-color: var(--bg-action-color);
+  color: var(--fg-inverted-color);
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+
+  &:hover {
+    background-color: var(--bg-action-hover-color);
   }
 }
 

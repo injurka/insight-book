@@ -177,10 +177,22 @@ async function purgeBunnyCache() {
   logger.info('🧹 Очистка кэша входных точек в Bunny CDN...')
   try {
     const urlsToPurge = [
+      // Основные входные точки приложения
+      'https://insight-book.ru/',
+      'https://insight-book.ru/index.html',
+      'https://insight-book.ru/sw.js',
+      'https://insight-book.ru/manifest.webmanifest',
+      'https://insight-book.ru/configs/app-config.js',
+      // CDN
       'https://cdn.insight-book.ru/index.html',
       'https://cdn.insight-book.ru/sw.js',
       'https://cdn.insight-book.ru/manifest.webmanifest',
       'https://cdn.insight-book.ru/configs/app-config.js',
+      // Bunny CDN
+      'https://insight-book.b-cdn.net/index.html',
+      'https://insight-book.b-cdn.net/sw.js',
+      'https://insight-book.b-cdn.net/manifest.webmanifest',
+      'https://insight-book.b-cdn.net/configs/app-config.js',
     ]
 
     await Promise.all(urlsToPurge.map(url =>
