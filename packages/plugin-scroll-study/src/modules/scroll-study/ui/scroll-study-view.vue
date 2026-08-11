@@ -77,7 +77,10 @@ onMounted(() => {
 </template>
 
 <style lang="scss" scoped>
+@import url('https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;500;600;700&display=swap');
+
 .scroll-desktop-view {
+  --font-pixel: 'Pixelify Sans', monospace;
   width: 100%;
   height: 100%;
   background-color: #020617;
@@ -86,6 +89,10 @@ onMounted(() => {
   overflow: hidden;
   color: #e2e8f0;
   font-family: inherit;
+}
+
+:global(.font-pixel) {
+  font-family: 'Pixelify Sans', monospace;
 }
 
 .global-pixi-host {

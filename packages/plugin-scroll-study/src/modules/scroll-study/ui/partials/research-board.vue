@@ -25,7 +25,6 @@ function onDrop(event: DragEvent, node: PuzzleNode) {
   <div class="research-board-container">
     <!-- Parchment Texture Overlay -->
     <div class="parchment-texture" />
-    <div class="vignette-overlay" />
 
     <template v-if="scrollStore.activeWord">
       <!-- Grid Container -> Origin centered -->
@@ -113,10 +112,10 @@ function onDrop(event: DragEvent, node: PuzzleNode) {
   justify-content: center;
   user-select: none;
   overflow: hidden;
-  border-radius: 18px;
-  border: 4px solid rgba(120, 53, 15, 0.6);
-  background-color: #e4d5b7;
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+  background-image: url('~plugin/assets/bg_white_edges.png');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
 }
 
 .parchment-texture {
@@ -129,13 +128,6 @@ function onDrop(event: DragEvent, node: PuzzleNode) {
   z-index: 0;
 }
 
-.vignette-overlay {
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(circle at center, transparent 30%, rgba(120, 53, 15, 0.15) 70%, rgba(69, 26, 3, 0.6) 100%);
-  pointer-events: none;
-  z-index: 0;
-}
 
 .grid-center {
   position: absolute;

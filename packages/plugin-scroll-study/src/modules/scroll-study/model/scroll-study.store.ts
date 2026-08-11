@@ -135,20 +135,13 @@ export const useScrollStudyStore = defineStore('scrollStudy', () => {
 
     for (let q = -radius; q <= radius; q++) {
       for (let r = Math.max(-radius, -q - radius); r <= Math.min(radius, -q + radius); r++) {
-        let type: 'empty' | 'anchor' | 'target' = 'empty'
+        let type: 'empty' | 'anchor' = 'empty'
         let char: string | undefined
 
-        // Target cell at center (0, 0)
-        if (q === 0 && r === 0) {
-          type = 'target'
-          char = '?'
-        }
-        else {
-          const anchor = anchorPositions.find(a => a.q === q && a.r === r)
-          if (anchor) {
-            type = 'anchor'
-            char = anchor.char
-          }
+        const anchor = anchorPositions.find(a => a.q === q && a.r === r)
+        if (anchor) {
+          type = 'anchor'
+          char = anchor.char
         }
 
         grid.push({
@@ -243,7 +236,7 @@ export const useScrollStudyStore = defineStore('scrollStudy', () => {
     const connections: GridConnection[] = []
     const nodes = activeGrid.value
 
-    const filledNodes = nodes.filter(n => n.type === 'anchor' || n.type === 'target' || (n.type === 'empty' && n.character))
+    const filledNodes = nodes.filter(n => n.type === 'anchor' || (n.type === 'empty' && n.character))
 
     for (let i = 0; i < filledNodes.length; i++) {
       for (let j = i + 1; j < filledNodes.length; j++) {
@@ -259,8 +252,7 @@ export const useScrollStudyStore = defineStore('scrollStudy', () => {
           const s1 = n1.character
           const s2 = n2.character
 
-          // If target cell ('?'), connect if adjacent filled cell is related to target character or any symbol
-          const related = (s1 && s2) ? isRelatedSymbols(s1 === '?' ? (activeTargetChar.value?.char || '') : s1, s2 === '?' ? (activeTargetChar.value?.char || '') : s2) : false
+          const related = (s1 && s2) ? isRelatedSymbols(s1, s2) : false
 
           if (related) {
             connections.push({
@@ -280,8 +272,7 @@ export const useScrollStudyStore = defineStore('scrollStudy', () => {
   }
 
   function checkWin() {
-    const target = activeGrid.value.find(n => n.type === 'target')
-    if (!target || isFinished.value)
+    if (isFinished.value)
       return
 
     const anchors = activeGrid.value.filter(n => n.type === 'anchor')
@@ -300,10 +291,11 @@ export const useScrollStudyStore = defineStore('scrollStudy', () => {
       graph.get(n2Id)!.add(n1Id)
     })
 
-    // BFS from target node
+    // BFS from the first anchor node
+    const firstAnchor = anchors[0]
     const visited = new Set<string>()
-    const queue = [target.id]
-    visited.add(target.id)
+    const queue = [firstAnchor.id]
+    visited.add(firstAnchor.id)
 
     while (queue.length > 0) {
       const current = queue.shift()!
@@ -318,19 +310,13 @@ export const useScrollStudyStore = defineStore('scrollStudy', () => {
       }
     }
 
-    // Check if ALL anchors are reached by BFS from target
+    // Check if ALL anchors are connected in the same network
     const allAnchorsConnected = anchors.every(a => visited.has(a.id))
 
     if (allAnchorsConnected) {
       isFinished.value = true
-      if (activeTargetChar.value) {
-        target.character = activeTargetChar.value.char
-        if (!completedScrollIds.value.includes(activeTargetChar.value.id)) {
-          completedScrollIds.value.push(activeTargetChar.value.id)
-        }
-      }
-      else {
-        target.character = '★'
+      if (activeTargetChar.value && !completedScrollIds.value.includes(activeTargetChar.value.id)) {
+        completedScrollIds.value.push(activeTargetChar.value.id)
       }
 
       // Submit dictionary grade if came from dictionary word

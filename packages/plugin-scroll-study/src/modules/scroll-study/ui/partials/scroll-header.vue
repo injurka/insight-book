@@ -79,7 +79,10 @@ const scrollStore = useScrollStudyStore()
   .header-subtitle {
     margin: 0;
     color: #94a3b8;
-    font-size: 0.85rem;
+    font-size: 0.95rem;
+    font-family: var(--font-pixel, 'Pixelify Sans', monospace);
+    letter-spacing: 0.05em;
+    text-shadow: 1px 1px 0px rgba(0, 0, 0, 0.8);
   }
 }
 </style>
