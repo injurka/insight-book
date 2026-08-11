@@ -2,7 +2,7 @@
 import { Icon } from '@iconify/vue'
 import { computed, onMounted, ref, watch } from 'vue'
 import { getMediaUrl } from '~/01.shared/lib/helpers'
-import { KitSkeleton } from '~/02.kit'
+import KitSkeleton from '~/02.kit/atoms/kit-skeleton/ui/kit-skeleton.vue'
 
 interface Props {
   src?: string | null

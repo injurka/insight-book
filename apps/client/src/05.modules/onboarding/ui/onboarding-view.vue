@@ -9,7 +9,7 @@ import { useTracking } from '~/01.shared/composables/use-tracking'
 import { AppRoutePaths } from '~/01.shared/constants/routes'
 import { useGlobalSettingsStore } from '~/01.shared/store/settings.store'
 import { KitHoverRevealBg } from '~/02.kit/atoms/kit-hover-reveal-bg/index.ts'
-import { KitDropdown } from '~/02.kit/index.ts'
+import KitDropdown from '~/02.kit/molecules/kit-dropdown/ui/kit-dropdown.vue'
 
 import OnboardingBackground from './onboarding-background.vue'
 

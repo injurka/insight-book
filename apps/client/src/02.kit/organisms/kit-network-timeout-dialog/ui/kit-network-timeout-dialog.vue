@@ -2,7 +2,8 @@
 import { storeToRefs } from 'pinia'
 import { useI18n } from 'vue-i18n'
 import { useNetworkStore } from '~/01.shared/store/network.store'
-import { KitBtn, KitDialog } from '~/02.kit'
+import KitBtn from '~/02.kit/atoms/kit-btn/ui/kit-btn.vue'
+import KitDialog from '~/02.kit/organisms/kit-dialog/ui/kit-dialog.vue'
 
 const networkStore = useNetworkStore()
 const { isTimeoutModalOpen } = storeToRefs(networkStore)

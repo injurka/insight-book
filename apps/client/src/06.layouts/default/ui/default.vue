@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { KitAppTitlebar } from '~/02.kit/molecules/kit-app-titlebar'
+import KitAppTitlebar from '~/02.kit/molecules/kit-app-titlebar/ui/kit-app-titlebar.vue'
 </script>
 
 <template>

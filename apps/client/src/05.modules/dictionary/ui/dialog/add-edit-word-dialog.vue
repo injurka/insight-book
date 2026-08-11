@@ -7,10 +7,15 @@ import { useRepos } from '~/00.plugins/di'
 import { useToast } from '~/01.shared/composables/use-toast'
 import { useTts } from '~/01.shared/composables/use-tts'
 import { DIFFICULTY_SYSTEMS } from '~/01.shared/constants/difficulties'
-
 import { useAnalysisStore } from '~/01.shared/store/analysis/analysis.store'
-import { KitBtn, KitDialog, KitInput, KitPrompt, KitSelect, KitToggle, KitTooltip } from '~/02.kit'
+import KitBtn from '~/02.kit/atoms/kit-btn/ui/kit-btn.vue'
+import KitInput from '~/02.kit/atoms/kit-input/ui/kit-input.vue'
+import KitSelect from '~/02.kit/molecules/kit-select/ui/kit-select.vue'
+import KitToggle from '~/02.kit/molecules/kit-toggle/ui/kit-toggle.vue'
+import KitTooltip from '~/02.kit/molecules/kit-tooltip/ui/kit-tooltip.vue'
+import KitDialog from '~/02.kit/organisms/kit-dialog/ui/kit-dialog.vue'
 
+import KitPrompt from '~/02.kit/organisms/kit-prompt/ui/kit-prompt.vue'
 import { useDictionaryStore } from '../../store/dictionary.store'
 
 const repos = useRepos()

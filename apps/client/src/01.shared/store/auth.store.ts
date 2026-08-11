@@ -15,6 +15,21 @@ export const useAuthStore = defineStore('auth', () => {
   const isSingleMode = ref(false)
   const isAuthReady = ref(false)
 
+  /**
+   * Synchronous init from localStorage cache.
+   * Sets isAuthReady = true immediately — the app can render with cached auth state.
+   * Background API refresh happens later via checkAuth().
+   */
+  function init() {
+    loadCachedUserSession()
+    isAuthReady.value = true
+  }
+
+  /**
+   * Background auth refresh. Fires API call to sync user data.
+   * Sets isAuthReady = true in finally for callers that skip init() (tests, storybook).
+   * In production, init() already set isAuthReady before mount — this runs purely as refresh.
+   */
   async function checkAuth() {
     try {
       await syncUser()
@@ -186,6 +201,7 @@ export const useAuthStore = defineStore('auth', () => {
     user,
     isSingleMode,
     isAuthReady,
+    init,
     checkAuth,
     logout,
     updateAvatar,

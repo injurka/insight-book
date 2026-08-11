@@ -3,7 +3,7 @@ import { Icon } from '@iconify/vue'
 import { useI18n } from 'vue-i18n'
 import { isTauri as isTauriApp } from '~/01.shared/lib/env'
 import { usePwaStore } from '~/01.shared/store/pwa.store'
-import { KitBtn } from '~/02.kit'
+import KitBtn from '~/02.kit/atoms/kit-btn/ui/kit-btn.vue'
 
 const pwaStore = usePwaStore()
 const { t } = useI18n()

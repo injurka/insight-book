@@ -85,7 +85,7 @@ async function applyCodeHighlighting() {
   if (!readerViewRef.value || !readerViewRef.value.querySelector('pre, code'))
     return
 
-  const { highlightCodeBlocks } = await import('~/01.shared/lib/shiki-highlighter')
+  const { highlightCodeBlocks } = await import('~/01.shared/lib/code-highlighter')
   const themeAttr = document.documentElement.getAttribute('data-theme')
   const isDark = themeAttr === 'dark' || themeAttr === 'oled'
 

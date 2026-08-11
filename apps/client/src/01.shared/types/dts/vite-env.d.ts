@@ -20,3 +20,32 @@ declare module '*.vue' {
   const component: DefineComponent<{}, {}, any>
   export default component
 }
+
+declare module 'highlight.js' {
+  export interface LanguageFn {
+    (hljs: any): any
+  }
+  export interface HLJSApi {
+    highlight(code: string, options: { language: string, ignoreIllegals?: boolean }): { value: string, language?: string }
+    highlightAuto(code: string, languageSubset?: string[]): { value: string, language?: string }
+    registerLanguage(languageName: string, languageDefinition: LanguageFn): void
+  }
+  const hljs: HLJSApi
+  export default hljs
+}
+
+declare module 'highlight.js/lib/core' {
+  import hljs from 'highlight.js'
+
+  export default hljs
+}
+
+
+declare module 'highlight.js/lib/languages/*' {
+  import type { LanguageFn } from 'highlight.js'
+
+  const language: LanguageFn
+  export default language
+}
+
+

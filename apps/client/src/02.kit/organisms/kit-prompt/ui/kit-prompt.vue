@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { KitBtn, KitDialog, KitInput } from '~/02.kit'
+import KitBtn from '~/02.kit/atoms/kit-btn/ui/kit-btn.vue'
+import KitInput from '~/02.kit/atoms/kit-input/ui/kit-input.vue'
+import KitDialog from '~/02.kit/organisms/kit-dialog/ui/kit-dialog.vue'
 
 interface Props {
   title?: string
