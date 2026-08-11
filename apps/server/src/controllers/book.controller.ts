@@ -75,6 +75,8 @@ export const bookController = new Elysia({ prefix: '/api/books' })
 
     if (!userId)
       throw new AppError(401, 'Необходима авторизация')
+
+    set.headers['Cache-Control'] = CACHE_PROFILES.shortPrivate
     return bookService.getUserBooks(userId as number, targetLang)
   })
   .get('/:id/info', async ({ params: { id }, userId, query }) => {

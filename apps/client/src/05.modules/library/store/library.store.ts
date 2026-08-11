@@ -44,10 +44,13 @@ export const useLibraryStore = defineStore('library', () => {
     query: async () => repos.book.list(),
   })
 
-  watch(booksData, async (newBooks) => {
+  watch([booksData, isBooksLoading], ([newBooks, loading]) => {
     if (newBooks) {
       books.value = [...newBooks]
-      await attachCachedCovers(books.value)
+      void attachCachedCovers(books.value)
+    }
+
+    if (!loading) {
       isInitialized.value = true
     }
   }, { immediate: true })
