@@ -47,6 +47,11 @@ if [ -n "$(git status --porcelain)" ]; then
   exit 1
 fi
 
+# Update package.json version
+echo "Updating package.json to version $NEW_VERSION..."
+node -e "const fs = require('fs'); const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8')); pkg.version = '$NEW_VERSION'; fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n', 'utf8');"
+git add package.json
+
 # Determine current branch and check for unpushed local commits
 CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
 UPSTREAM=$(git rev-parse --abbrev-ref @{u} 2>/dev/null || true)

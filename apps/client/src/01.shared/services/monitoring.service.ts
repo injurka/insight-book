@@ -1,7 +1,10 @@
 import type { App } from 'vue'
 import type { Router } from 'vue-router'
-import { faro, getWebInstrumentations, initializeFaro } from '@grafana/faro-web-sdk'
-import { TracingInstrumentation } from '@grafana/faro-web-tracing'
+import {
+  faro,
+  getWebInstrumentations,
+  initializeFaro,
+} from '@grafana/faro-web-sdk'
 import { API_URL, FARO_URL } from '~/01.shared/lib/env'
 import packageJson from '../../../package.json'
 
@@ -116,18 +119,24 @@ export function initMonitoring() {
     app: {
       name: 'insight-book-client',
       version: packageJson.version,
-      environment: import.meta.env.MODE || 'production',
+      environment: import.meta.env.MODE,
     },
     instrumentations: [
       ...getWebInstrumentations(),
-      new TracingInstrumentation({
-        instrumentationOptions: {
-          propagateTraceHeaderCorsUrls: API_URL
-            ? [new RegExp(API_URL.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))]
-            : [],
-        },
-      }),
     ],
+    batching: {
+      enabled: true,
+      sendTimeout: 5_000,
+      itemLimit: 100,
+    },
+    requestCompression: true,
+    // beforeSend: (item) => {
+    //   // В dev-режиме не шлём поток телеметрии — только ошибки
+    //   if (import.meta.env.DEV && item.type !== TransportItemType.EXCEPTION)
+    //     return null
+
+    //   return item
+    // },
   })
 
   setupServerTimingObserver()
@@ -162,14 +171,9 @@ export function setupVueMonitoring(app: App, router: Router) {
 
   router.afterEach((to) => {
     const pageName = String(to.name || to.path)
-    // Устанавливаем View в Faro SDK
+
     faro.api.setView({
       name: pageName,
-    })
-    // Отправляем явное событие page_view для гарантированного попадания в аналитику
-    faro.api.pushEvent('page_view', {
-      page_name: pageName,
-      path: to.fullPath,
     })
   })
 }
