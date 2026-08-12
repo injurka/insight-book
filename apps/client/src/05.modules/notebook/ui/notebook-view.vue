@@ -339,7 +339,6 @@ onMounted(async () => {
           <div
             v-for="item in virtualHighlightsList"
             :key="item.data.id"
-            class="virtual-notebook-item"
           >
             <!-- Book Header Block -->
             <div v-if="item.data.kind === 'header'" class="book-group-header">
@@ -576,7 +575,7 @@ onMounted(async () => {
   gap: 20px;
   border-radius: 16px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-  margin-bottom: 8px;
+  margin-bottom: 16px;
 
   @include media-down(xs) {
     padding: 12px 16px;
@@ -980,9 +979,5 @@ onMounted(async () => {
 .virtual-list-wrapper {
   display: flex;
   flex-direction: column;
-}
-
-.virtual-notebook-item {
-  margin-bottom: 12px;
 }
 </style>

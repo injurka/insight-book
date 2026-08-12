@@ -22,21 +22,26 @@
          реально встречаются иероглифы (см. loadCjkFonts в main.ts) -->
 
     <script>
-      // Загружаем CJK-шрифты только когда они реально нужны.
-      // Ждём полной загрузки страницы, затем проверяем наличие иероглифов.
+      // Загружаем CJK-шрифты динамически, когда на странице появляются иероглифы
       ;(function () {
         var CJK_MIN = 0x4e00
-        function hasCJK() {
-          var walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT)
-          var node
-          while ((node = walker.nextNode())) {
-            for (var i = 0; i < node.textContent.length; i++) {
-              if (node.textContent.charCodeAt(i) >= CJK_MIN) return true
-            }
+        var loaded = false
+        var observer = null
+
+        function hasCJK(text) {
+          if (!text) return false
+          for (var i = 0; i < text.length; i++) {
+            if (text.charCodeAt(i) >= CJK_MIN) return true
           }
           return false
         }
+
         function loadCjkCss() {
+          if (loaded) return
+          loaded = true
+          if (observer) {
+            observer.disconnect()
+          }
           ;['regular', 'medium', 'semibold'].forEach(function (w) {
             var link = document.createElement('link')
             link.rel = 'stylesheet'
@@ -44,12 +49,72 @@
             document.head.appendChild(link)
           })
         }
-        if (document.readyState === 'complete') {
-          if (hasCJK()) loadCjkCss()
-        } else {
+
+        function checkNode(node) {
+          if (node.nodeType === 3) {
+            // Text node
+            if (hasCJK(node.textContent)) {
+              loadCjkCss()
+              return true
+            }
+          } else if (node.nodeType === 1) {
+            // Element node
+            if (hasCJK(node.textContent)) {
+              loadCjkCss()
+              return true
+            }
+          }
+          return false
+        }
+
+        function checkInitial() {
+          if (!document.body) return false
+          var walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT)
+          var node
+          while ((node = walker.nextNode())) {
+            if (hasCJK(node.textContent)) {
+              loadCjkCss()
+              return true
+            }
+          }
+          return false
+        }
+
+        function init() {
+          if (checkInitial()) return
+
+          // Используем MutationObserver для отслеживания динамического контента (Vue/SPA)
+          if (typeof MutationObserver !== 'undefined') {
+            observer = new MutationObserver(function (mutations) {
+              for (var i = 0; i < mutations.length; i++) {
+                var mutation = mutations[i]
+                if (mutation.addedNodes) {
+                  for (var j = 0; j < mutation.addedNodes.length; j++) {
+                    if (checkNode(mutation.addedNodes[j])) return
+                  }
+                }
+                if (mutation.type === 'characterData') {
+                  if (checkNode(mutation.target)) return
+                }
+              }
+            })
+            observer.observe(document.documentElement, {
+              childList: true,
+              subtree: true,
+              characterData: true,
+            })
+          }
+
+          // Резервный вариант на случай полной загрузки страницы
           window.addEventListener('load', function () {
-            if (hasCJK()) loadCjkCss()
+            checkInitial()
           })
+        }
+
+        if (document.body) {
+          init()
+        } else {
+          document.addEventListener('DOMContentLoaded', init)
         }
       })()
     </script>
