@@ -23,7 +23,7 @@ const logger = pino({
 // Настройки Bunny.net Storage
 const BUNNY_STORAGE_ZONE = (process.env.BUNNY_STORAGE_ZONE || process.env.S3_BUCKET || '').trim()
 const BUNNY_STORAGE_PASSWORD = (process.env.BUNNY_STORAGE_PASSWORD || process.env.S3_SECRET_KEY || '').trim()
-const BUNNY_STORAGE_REGION = (process.env.BUNNY_STORAGE_REGION || '').trim() // e.g. 'ny', 'sg', по умолчанию пустой (Германия)
+const BUNNY_STORAGE_REGION = (process.env.BUNNY_STORAGE_REGION || '').trim()
 
 // Bunny.net API для авто-сброса кэша (Purge)
 const BUNNY_API_KEY = (process.env.BUNNY_API_KEY || '').trim()
