@@ -60,6 +60,7 @@ export interface InsightBookPluginManifest {
   version: string
   description?: string
   icon?: string
+  source?: string
   entryUrl: string
 }
 

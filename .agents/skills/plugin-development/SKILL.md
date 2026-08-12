@@ -9,6 +9,25 @@ description: Разработка и сборка динамических пл�
 
 ## 1. Сборка плагинов (Vite + Module Federation v2)
 Плагины собираются как MF-remote через `@module-federation/vite`. Хостовые зависимости объявляются в `shared` (НЕ бандлятся внутрь плагина):
+
+```bash
+# Сборка (только build)
+bun run build
+
+# Сборка + упаковка в ZIP для загрузки в каталог
+bun run pack
+```
+
+Скрипт `pack` автоматически:
+1. Запускает сборку (`bun run build`)
+2. Проверяет наличие `manifest.json` и `remoteEntry.js` в `dist/`
+3. Архивирует содержимое `dist/` в `<plugin-id>-v<version>.zip` в корне пакета
+4. ZIP готов к загрузке через админку: Настройки → Плагины → Загрузить в каталог
+
+Также можно запустить скрипт напрямую из корня монорепо:
+```bash
+bun run tools/pack-plugin.ts packages/plugin-scroll-study
+```
 ```typescript
 import { federation } from '@module-federation/vite'
 import vue from '@vitejs/plugin-vue'

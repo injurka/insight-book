@@ -482,6 +482,8 @@ export const catalogPlugins = sqliteTable('catalog_plugins', {
   description: text('description'),
   icon: text('icon'),
   author: text('author'),
+  /** Ссылка на исходный код плагина (из manifest.json, для модерации) */
+  sourceUrl: text('sourceUrl'),
   /** URL, по которому клиент запрашивает manifest.json (и remoteEntry.js относительно него) */
   manifestUrl: text('manifestUrl').notNull(),
   uploadedBy: integer('uploadedBy').references(() => users.id, { onDelete: 'set null' }),

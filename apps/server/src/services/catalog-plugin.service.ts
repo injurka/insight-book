@@ -17,6 +17,8 @@ export interface PluginManifest {
   description?: string
   icon?: string
   author?: string
+  /** Ссылка на исходный код плагина (репозиторий), используется при модерации */
+  source?: string
   entryUrl: string
 }
 
@@ -123,6 +125,12 @@ export class CatalogPluginService {
       throw new AppError(400, ERROR_CODES.PLUGIN.INVALID_MANIFEST, 'manifest.json: invalid plugin id')
     }
 
+    if (manifest.source !== undefined) {
+      if (typeof manifest.source !== 'string' || !/^https?:\/\//i.test(manifest.source)) {
+        throw new AppError(400, ERROR_CODES.PLUGIN.INVALID_MANIFEST, 'manifest.json: field source must be an http(s) URL')
+      }
+    }
+
     // Префикс папки внутри архива, в которой лежит manifest.json
     const basePrefix = path.posix.dirname(manifestEntry.entryName)
     const storagePrefix = `plugins/${manifest.id}/${manifest.version}`
@@ -149,6 +157,11 @@ export class CatalogPluginService {
       uploadedCount++
     }
 
+    // Сохраняем оригинальный zip-архив для скачивания модератором/автором
+    const archiveKey = `${storagePrefix}.zip`
+    await storageService.deleteFile(archiveKey).catch(() => {})
+    await storageService.uploadFile(archiveKey, Buffer.from(await file.arrayBuffer()), 'application/zip')
+
     const manifestUrl = `/api/catalog/plugins/files/${manifest.id}/${manifest.version}/manifest.json`
 
     const plugin = await this.catalogRepo.upsert({
@@ -158,6 +171,7 @@ export class CatalogPluginService {
       description: manifest.description ?? null,
       icon: manifest.icon ?? null,
       author: manifest.author ?? null,
+      sourceUrl: manifest.source ?? null,
       manifestUrl,
       uploadedBy: userId,
       status: CATALOG_PLUGIN_STATUS.PENDING,
@@ -166,6 +180,31 @@ export class CatalogPluginService {
     logger.info(`[Catalog] Plugin "${manifest.id}" v${manifest.version} uploaded by user ${userId} (${uploadedCount} files)`)
 
     return plugin
+  }
+
+  /**
+   * Скачивание оригинального zip-архива плагина (для модерации).
+   * Доступно админу; автор плагина также может скачать свой архив.
+   */
+  async downloadPlugin(userId: number, pluginId: string) {
+    const plugin = await this.catalogRepo.findOne(pluginId)
+    if (!plugin) {
+      throw new AppError(404, ERROR_CODES.PLUGIN.NOT_FOUND, 'Plugin not found in catalog')
+    }
+
+    const user = await userRepository.findById(userId)
+    const isAdmin = user?.role === ROLES.ADMIN
+    if (!isAdmin && plugin.uploadedBy !== userId) {
+      throw new AppError(403, ERROR_CODES.AUTH.FORBIDDEN, 'Only admin or plugin uploader can download plugin archive')
+    }
+
+    const archiveKey = `plugins/${plugin.id}/${plugin.version}.zip`
+    const fileData = await storageService.getFile(archiveKey)
+    if (!fileData) {
+      throw new AppError(404, ERROR_CODES.PLUGIN.NOT_FOUND, 'Plugin archive not found in storage')
+    }
+
+    return { buffer: fileData.buffer, filename: `${plugin.id}-v${plugin.version}.zip` }
   }
 
   async deletePlugin(userId: number, pluginId: string) {

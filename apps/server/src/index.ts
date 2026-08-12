@@ -1,10 +1,5 @@
 import { serverTiming } from '@elysia/server-timing'
-import { opentelemetry } from '@elysiajs/opentelemetry'
-import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-proto'
-import { BatchSpanProcessor } from '@opentelemetry/sdk-trace-node'
 import { Elysia } from 'elysia'
-import { corsHeadersFor, OTEL_EXPORTER_OTLP_ENDPOINT, PORT } from './config'
-
 import { activityRouter } from './controllers/activity.controller'
 import { adminRouter } from './controllers/admin.controller'
 import { authRouter, authUploadsRouter } from './controllers/auth.controller'
@@ -16,33 +11,18 @@ import { pushRouter } from './controllers/push.controller'
 import { quizRouter } from './controllers/quiz.controller'
 import { subscriptionRouter } from './controllers/subscription.controller'
 import { pluginRouter } from './controllers/user-plugin.controller'
-
+import { registerRuntimeMetrics, telemetryPlugin } from './plugins/telemetry'
+import { createServer } from './server'
 import { initScheduler } from './services/scheduler.service'
-import { withCors } from './utils/cors'
 import { handleElysiaError } from './utils/errors'
-import { logger } from './utils/logger'
 
 import './db'
 
 const app = new Elysia()
   .onError(handleElysiaError)
-  .use(
-    opentelemetry({
-      spanProcessors: [
-        new BatchSpanProcessor(
-          new OTLPTraceExporter({
-            url: OTEL_EXPORTER_OTLP_ENDPOINT,
-          }),
-        ),
-      ],
-    }),
-  )
+  .use(telemetryPlugin)
   .use(serverTiming())
   .use(bookController)
-  // ⚠️ ВАЖНО: subscriptionRouter обязан регистрироваться ДО контроллеров с throwing-auth
-  // (activity/quiz/push/highlight/plugin/catalog/admin). В elysia 1.4.29 scoped-деривы
-  // из `.use()`-инстансов протекают на роуты родителя, зарегистрированные ПОЗЖЕ них —
-  // иначе публичный `/api/subscription-tiers/:lang` без токена отдаёт 401.
   .use(subscriptionRouter)
   .use(ttsController)
   .use(uploadsController)
@@ -58,41 +38,9 @@ const app = new Elysia()
   .use(adminRouter)
   .get('/health', () => ({ status: 'ok' }))
 
-Bun.serve({
-  port: PORT,
-  idleTimeout: 255,
-  maxRequestBodySize: 5000 * 1024 * 1024,
-  fetch(req) {
-    const origin = req.headers.get('Origin') || req.headers.get('origin')
+// Регистрируем runtime-метрики после запуска OTel SDK (см. telemetry.ts)
+registerRuntimeMetrics()
 
-    const requestHeaders = req.headers.get('access-control-request-headers') || req.headers.get('Access-Control-Request-Headers')
-
-    if (req.method === 'OPTIONS') {
-      return new Response(null, {
-        status: 204,
-        headers: corsHeadersFor(origin, requestHeaders),
-      })
-    }
-
-    const startTime = performance.now()
-    return app.handle(req).then((res) => {
-      const duration = (performance.now() - startTime).toFixed(1)
-      const url = new URL(req.url).pathname
-      if (!url.startsWith('/health')) {
-        logger.info(`[HTTP] ${req.method} ${url} ${res.status} - ${duration}ms`)
-      }
-      return withCors(res, origin, requestHeaders)
-    })
-  },
-  error(err: unknown) {
-    logger.error(err, '[Server Error]')
-    return new Response('Internal Server Error', {
-      status: 500,
-      headers: corsHeadersFor(null),
-    })
-  },
-})
-
-logger.info(`✅ Server running on port ${PORT}`)
+createServer(app)
 
 initScheduler()

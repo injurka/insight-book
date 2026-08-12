@@ -1,0 +1,1 @@
+ALTER TABLE `catalog_plugins` ADD `sourceUrl` text;

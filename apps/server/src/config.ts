@@ -39,7 +39,10 @@ const envSchema = z.object({
 
   // --- Limits & Observability ---
   MAX_DAILY_TOKENS: z.coerce.number().int().positive().default(100_000),
-  OTEL_EXPORTER_OTLP_ENDPOINT: z.string().url().default('http://alloy:4318/v1/traces'),
+  // OTLP-коллектор: SigNoz ingester (алиас в prod-net). Корневой URL,
+  // сигнальный путь (/v1/traces|metrics|logs) экспортеры дописывают сами.
+  OTEL_EXPORTER_OTLP_ENDPOINT: z.string().url().default('http://signoz-ingester:4318'),
+  OTEL_SERVICE_NAME: z.string().min(1).default('insight-book-server'),
 
   // --- Dump Storage (separate from media uploads) ---
   DUMP_STORAGE: z.enum(['local', 's3']).default('local'),
@@ -80,6 +83,7 @@ export const CATALOG_DATABASE_AUTH_TOKEN = env.CATALOG_DATABASE_AUTH_TOKEN || en
 
 // --- Export validated env constants ---
 export const {
+  NODE_ENV,
   PORT,
   AUTH_MODE,
   JWT_SECRET,
@@ -98,9 +102,16 @@ export const {
   VAPID_SUBJECT,
   MAX_DAILY_TOKENS,
   OTEL_EXPORTER_OTLP_ENDPOINT,
+  OTEL_SERVICE_NAME,
   DUMP_MEDIA,
   DUMP_STORAGE,
 } = env
+
+// Пробрасываем OTLP-конфигурацию в переменные окружения процесса:
+// их читают и OTel SDK, и pino-opentelemetry-transport (воркер-процесс pino,
+// которому экспортированные константы недоступны).
+process.env.OTEL_EXPORTER_OTLP_ENDPOINT ??= env.OTEL_EXPORTER_OTLP_ENDPOINT
+process.env.OTEL_SERVICE_NAME ??= env.OTEL_SERVICE_NAME
 
 // --- Limits & Configs ---
 export const PAGE_SIZE_CHARS = 1500

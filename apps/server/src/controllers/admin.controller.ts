@@ -151,3 +151,15 @@ export const adminRouter = new Elysia({ prefix: '/api/admin' })
       status: t.Union([t.Literal('approved'), t.Literal('rejected')]),
     }),
   })
+
+  .get('/plugins/:id/download', async ({ userId, params, set }) => {
+    const { catalogPluginService } = await import('../services/catalog-plugin.service')
+    const archive = await catalogPluginService.downloadPlugin(userId, params.id)
+    set.headers = {
+      'Content-Type': 'application/zip',
+      'Content-Disposition': `attachment; filename="${archive.filename}"`,
+    }
+    return Buffer.from(archive.buffer)
+  }, {
+    params: t.Object({ id: t.String() }),
+  })

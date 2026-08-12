@@ -34,3 +34,6 @@ auto-imports.d.ts
 playwright-report/
 test-results/
 blob-report/
+
+# Plugin pack ZIPs
+packages/plugin-*-v*.zip

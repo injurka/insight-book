@@ -3,7 +3,7 @@ import { useQueryCache } from '@pinia/colada'
 import { useRepos } from '~/00.plugins/di'
 import { useTracking } from '~/01.shared/composables/use-tracking'
 import { queryKeys } from '~/01.shared/lib/query-keys'
-import { resetFaroUser } from '~/01.shared/services/monitoring.service'
+import { resetTelemetryUser } from '~/01.shared/services/monitoring.service'
 
 export const useAuthStore = defineStore('auth', () => {
   const repos = useRepos()
@@ -178,7 +178,7 @@ export const useAuthStore = defineStore('auth', () => {
 
     user.value = null
     queryCache.invalidateQueries({ key: queryKeys.books.all })
-    resetFaroUser()
+    resetTelemetryUser()
   }
 
   async function updateAvatar(file: File) {

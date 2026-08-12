@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { trackFaroError } from '~/01.shared/services/monitoring.service'
+import { trackError } from '~/01.shared/services/monitoring.service'
 
 /**
  * Обертка ACL (Anti-Corruption Layer).
@@ -16,7 +16,7 @@ export function applyAcl<T>(schema: z.ZodType<T>, data: unknown, context: string
   console.error(`[ACL Error] Contract mismatch in ${context}:`, details)
 
   const aclError = new Error(`[ACL Error] Contract mismatch in ${context}`)
-  trackFaroError(aclError, {
+  trackError(aclError, {
     context,
     details: typeof details === 'string' ? details : JSON.stringify(details),
   })

@@ -1,14 +1,22 @@
+import type { Attributes, Span } from '@opentelemetry/api'
+import type { Logger } from '@opentelemetry/api-logs'
+import type { SpanProcessor } from '@opentelemetry/sdk-trace-web'
 import type { App } from 'vue'
 import type { Router } from 'vue-router'
-import {
-  faro,
-  getWebInstrumentations,
-  initializeFaro,
-} from '@grafana/faro-web-sdk'
-import { API_URL, FARO_URL } from '~/01.shared/lib/env'
+import { SpanStatusCode, trace } from '@opentelemetry/api'
+import { logs } from '@opentelemetry/api-logs'
+import { getWebAutoInstrumentations } from '@opentelemetry/auto-instrumentations-web'
+import { ZoneContextManager } from '@opentelemetry/context-zone-peer-dep'
+import { OTLPLogExporter } from '@opentelemetry/exporter-logs-otlp-http'
+import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http'
+import { registerInstrumentations } from '@opentelemetry/instrumentation'
+import { resourceFromAttributes } from '@opentelemetry/resources'
+import { BatchLogRecordProcessor, LoggerProvider } from '@opentelemetry/sdk-logs'
+import { BatchSpanProcessor, WebTracerProvider } from '@opentelemetry/sdk-trace-web'
+import { API_URL, OTEL_EXPORTER_OTLP_ENDPOINT } from '~/01.shared/lib/env'
 import packageJson from '../../../package.json'
 
-export type FaroEventName
+export type TelemetryEventName
   = | 'theme_changed'
     | 'custom_llm_enabled'
     | 'tts_speed_changed'
@@ -52,7 +60,60 @@ export type FaroEventName
     | 'page_view'
     | (string & {})
 
-/** Наблюдает Server-Timing метрики через PerformanceObserver и отправляет их в Faro */
+const SERVICE_NAME = 'insight-book-client'
+
+// Severity по OTel Log Data Model: INFO = 9, ERROR = 17
+const SEVERITY_INFO = 9
+const SEVERITY_ERROR = 17
+
+const tracer = trace.getTracer(SERVICE_NAME, packageJson.version)
+
+// Логгер привязывается к глобальному провайдеру; провайдер ставится в initMonitoring(),
+// поэтому пересоздаём логгер после инициализации.
+let otelLogger: Logger = logs.getLogger(SERVICE_NAME)
+let enabled = false
+
+/** Атрибуты пользователя, прикрепляются ко всем спанам и лог-записям */
+let userAttributes: Record<string, string> = {}
+
+/**
+ * Обогащает каждый спан (включая спаны авто-инструментаций fetch/XHR/document-load)
+ * атрибутами пользователя.
+ */
+class UserAttributesSpanProcessor implements SpanProcessor {
+  onStart(span: Span): void {
+    for (const [key, value] of Object.entries(userAttributes))
+      span.setAttribute(key, value)
+  }
+
+  onEnd(): void {}
+
+  shutdown(): Promise<void> {
+    return Promise.resolve()
+  }
+
+  forceFlush(): Promise<void> {
+    return Promise.resolve()
+  }
+}
+
+function stringifyAttributes(attributes?: Record<string, unknown>): Record<string, string> {
+  const result: Record<string, string> = {}
+
+  if (attributes) {
+    for (const [key, value] of Object.entries(attributes)) {
+      if (value !== undefined && value !== null) {
+        result[key] = typeof value === 'object'
+          ? JSON.stringify(value)
+          : String(value)
+      }
+    }
+  }
+
+  return result
+}
+
+/** Наблюдает Server-Timing метрики через PerformanceObserver и отправляет их как лог-записи */
 export function setupServerTimingObserver() {
   if (!('PerformanceObserver' in window))
     return
@@ -82,18 +143,17 @@ export function setupServerTimingObserver() {
         if (Object.keys(metrics).length === 0)
           continue
 
-        // Отправляем в Faro как измерение (measurement)
-        if (faro.api) {
-          faro.api.pushMeasurement({
-            type: 'server-timing',
-            values: metrics,
-          }, {
-            context: {
-              url: entry.name,
-              entry_type: entry.entryType,
-            },
-          })
-        }
+        otelLogger.emit({
+          body: 'server-timing',
+          severityNumber: SEVERITY_INFO,
+          severityText: 'INFO',
+          attributes: {
+            url: entry.name,
+            entry_type: entry.entryType,
+            ...userAttributes,
+            ...metrics,
+          },
+        })
       }
     })
 
@@ -106,63 +166,68 @@ export function setupServerTimingObserver() {
   }
 }
 
+/**
+ * Инициализирует OpenTelemetry Web SDK (нативный стек SigNoz):
+ * - WebTracerProvider + ZoneContextManager → спаны страниц, fetch/XHR, кликов
+ * - OTLP/HTTP экспортеры (traces + logs) → SigNoz ingester
+ *
+ * Требует `import 'zone.js'` первым импортом в main.ts.
+ */
 export function initMonitoring() {
-  if (!FARO_URL)
+  if (!OTEL_EXPORTER_OTLP_ENDPOINT)
     return
 
-  const targetUrl = FARO_URL.endsWith('/collect')
-    ? FARO_URL
-    : `${FARO_URL.replace(/\/+$/, '')}/collect`
-
-  initializeFaro({
-    url: targetUrl,
-    app: {
-      name: 'insight-book-client',
-      version: packageJson.version,
-      environment: import.meta.env.MODE,
-    },
-    instrumentations: [
-      ...getWebInstrumentations(),
-    ],
-    batching: {
-      enabled: true,
-      sendTimeout: 5_000,
-      itemLimit: 100,
-    },
-    requestCompression: true,
-    // beforeSend: (item) => {
-    //   // В dev-режиме не шлём поток телеметрии — только ошибки
-    //   if (import.meta.env.DEV && item.type !== TransportItemType.EXCEPTION)
-    //     return null
-
-    //   return item
-    // },
+  const resource = resourceFromAttributes({
+    'service.name': SERVICE_NAME,
+    'service.version': packageJson.version,
+    'deployment.environment': import.meta.env.MODE,
   })
+
+  // --- Traces: страницы, запросы, интеракции ---
+  const tracerProvider = new WebTracerProvider({
+    resource,
+    spanProcessors: [
+      new UserAttributesSpanProcessor(),
+      new BatchSpanProcessor(new OTLPTraceExporter({ url: OTEL_EXPORTER_OTLP_ENDPOINT })),
+    ],
+  })
+
+  tracerProvider.register({
+    contextManager: new ZoneContextManager(),
+  })
+
+  // --- Logs: кастомные события, ошибки, server-timing ---
+  const loggerProvider = new LoggerProvider({
+    resource,
+    processors: [
+      new BatchLogRecordProcessor({
+        exporter: new OTLPLogExporter({ url: OTEL_EXPORTER_OTLP_ENDPOINT }),
+      }),
+    ],
+  })
+  logs.setGlobalLoggerProvider(loggerProvider)
+  otelLogger = logs.getLogger(SERVICE_NAME)
+
+  // --- Авто-инструментации: document-load, fetch, XHR, user-interaction ---
+  registerInstrumentations({
+    instrumentations: getWebAutoInstrumentations(),
+  })
+
+  enabled = true
 
   setupServerTimingObserver()
 }
 
 export function setupVueMonitoring(app: App, router: Router) {
-  if (!faro.api)
+  if (!enabled)
     return
 
   const originalErrorHandler = app.config.errorHandler
   app.config.errorHandler = (err, instance, info) => {
-    if (err instanceof Error) {
-      faro.api.pushError(err, {
-        context: {
-          vue_component: instance?.$options?.name || instance?.$options?.__name || 'UnknownComponent',
-          vue_info: String(info),
-        },
-      })
-    }
-    else {
-      faro.api.pushError(new Error(String(err)), {
-        context: {
-          vue_info: String(info),
-        },
-      })
-    }
+    trackError(err, {
+      vue_component: instance?.$options?.name || instance?.$options?.__name || 'UnknownComponent',
+      vue_info: String(info),
+    })
 
     if (originalErrorHandler) {
       originalErrorHandler(err, instance, info)
@@ -172,71 +237,75 @@ export function setupVueMonitoring(app: App, router: Router) {
   router.afterEach((to) => {
     const pageName = String(to.name || to.path)
 
-    faro.api.setView({
-      name: pageName,
-    })
+    tracer.startSpan('routeChange', {
+      attributes: {
+        'view.name': pageName,
+        'page.url': to.fullPath,
+      },
+    }).end()
+  })
+
+  // Глобальные ошибки, которые не проходят через Vue errorHandler
+  window.addEventListener('error', (event) => {
+    trackError(event.error ?? new Error(event.message), { source: 'window.onerror' })
+  })
+  window.addEventListener('unhandledrejection', (event) => {
+    trackError(event.reason, { source: 'unhandledrejection' })
   })
 }
 
-export function setFaroUser(userData: { id: string | number, username?: string, role?: string }) {
-  if (!faro.api)
+export function setTelemetryUser(userData: { id: string | number, username?: string, role?: string }) {
+  userAttributes = {
+    'enduser.id': String(userData.id),
+    ...(userData.username ? { 'enduser.username': userData.username } : {}),
+    ...(userData.role ? { 'user.role': userData.role } : {}),
+  }
+}
+
+export function resetTelemetryUser() {
+  userAttributes = {}
+}
+
+export function trackEvent(name: TelemetryEventName, attributes?: Record<string, unknown>) {
+  if (!enabled)
     return
 
-  faro.api.setUser({
-    id: String(userData.id),
-    username: userData.username,
+  otelLogger.emit({
+    body: name,
+    severityNumber: SEVERITY_INFO,
+    severityText: 'INFO',
     attributes: {
-      role: userData.role || 'user',
+      event_name: name,
+      ...userAttributes,
+      ...stringifyAttributes(attributes),
     },
   })
 }
 
-export function resetFaroUser() {
-  if (!faro.api)
+export function trackError(error: Error | unknown, context?: Record<string, unknown>) {
+  if (!enabled)
     return
 
-  faro.api.resetUser()
-}
+  const err = error instanceof Error
+    ? error
+    : new Error(typeof error === 'string' ? error : JSON.stringify(error))
 
-export function trackFaroEvent(name: FaroEventName, attributes?: Record<string, unknown>, domain?: string) {
-  if (!faro.api)
-    return
-
-  const stringifiedAttrs: Record<string, string> = {
-    event_name: name,
+  const attributes: Attributes = {
+    ...userAttributes,
+    ...stringifyAttributes(context),
   }
 
-  if (attributes) {
-    for (const [key, value] of Object.entries(attributes)) {
-      if (value !== undefined && value !== null) {
-        stringifiedAttrs[key] = typeof value === 'object'
-          ? JSON.stringify(value)
-          : String(value)
-      }
-    }
+  // Исключение в активный спан — видно в трейсе операции (если спан есть)
+  const span = trace.getActiveSpan()
+  if (span) {
+    span.recordException(err)
+    span.setStatus({ code: SpanStatusCode.ERROR, message: err.message })
   }
 
-  faro.api.pushEvent(name, stringifiedAttrs, domain)
-}
-
-export function trackFaroError(error: Error | unknown, context?: Record<string, unknown>) {
-  if (!faro.api)
-    return
-
-  const err = error instanceof Error ? error : new Error(typeof error === 'string' ? error : JSON.stringify(error))
-
-  const stringifiedContext: Record<string, string> = {}
-  if (context) {
-    for (const [key, value] of Object.entries(context)) {
-      if (value !== undefined && value !== null) {
-        stringifiedContext[key] = typeof value === 'object'
-          ? JSON.stringify(value)
-          : String(value)
-      }
-    }
-  }
-
-  faro.api.pushError(err, {
-    context: stringifiedContext,
+  otelLogger.emit({
+    body: `${err.name}: ${err.message}`,
+    severityNumber: SEVERITY_ERROR,
+    severityText: 'ERROR',
+    attributes,
   })
 }

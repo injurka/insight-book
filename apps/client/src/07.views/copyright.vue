@@ -101,8 +101,8 @@ const router = useRouter()
             морфологический анализ японского языка, распространяется под лицензией <a href="https://opensource.org/licenses/BSD-3-Clause" target="_blank" rel="noopener noreferrer">BSD License</a>.
           </li>
           <li>
-            <strong>Grafana Faro Web SDK</strong> —
-            распространяется под лицензией <a href="https://www.apache.org/licenses/LICENSE-2.0" target="_blank" rel="noopener noreferrer">Apache License 2.0</a> (Copyright © Grafana Labs).
+            <strong>OpenTelemetry JS</strong> —
+            распространяется под лицензией <a href="https://www.apache.org/licenses/LICENSE-2.0" target="_blank" rel="noopener noreferrer">Apache License 2.0</a> (Copyright © The OpenTelemetry Authors).
           </li>
         </ul>
       </div>

@@ -126,5 +126,10 @@ export const api = {
         body: JSON.stringify({ status }),
         headers: { 'Content-Type': 'application/json' },
       }),
+
+    downloadPlugin: (id: string) =>
+      request<Blob, 'blob'>(`/api/admin/plugins/${id}/download`, {
+        responseType: 'blob',
+      }),
   },
 }

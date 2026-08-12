@@ -239,6 +239,13 @@
       "when": 1786533211235,
       "tag": "0033_ordinary_wildside",
       "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "6",
+      "when": 1786561068870,
+      "tag": "0034_catalog_plugin_source_url",
+      "breakpoints": true
     }
   ]
 }

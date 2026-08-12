@@ -4,6 +4,7 @@ export interface PendingPlugin {
   version: string
   description: string | null
   author: string | null
+  sourceUrl: string | null
   manifestUrl: string
   uploadedBy: number | null
   createdAt: string

@@ -16,6 +16,7 @@ export interface IAdminRepository {
   setBookStatus: (id: number, status: 'approved' | 'rejected') => Promise<{ success: boolean }>
   pendingPlugins: () => Promise<PendingPlugin[]>
   setPluginStatus: (id: string, status: 'approved' | 'rejected') => Promise<Record<string, unknown>>
+  downloadPlugin: (id: string) => Promise<Blob>
 }
 
 export class DefaultAdminRepository implements IAdminRepository {
@@ -33,6 +34,7 @@ export class DefaultAdminRepository implements IAdminRepository {
   async setBookStatus(id: number, status: 'approved' | 'rejected') { return api.admin.setBookStatus(id, status) }
   async pendingPlugins() { return api.admin.pendingPlugins() }
   async setPluginStatus(id: string, status: 'approved' | 'rejected') { return api.admin.setPluginStatus(id, status) }
+  async downloadPlugin(id: string) { return api.admin.downloadPlugin(id) }
 }
 
 export const adminRepository: IAdminRepository = new DefaultAdminRepository()

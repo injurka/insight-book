@@ -4,5 +4,6 @@
   "version": "1.0.0",
   "description": "Магическое исследование свитков и иероглифов на шестиугольной доске.",
   "icon": "mdi:scroll-text-outline",
+  "source": "https://github.com/injurka/insight-book/tree/master/packages/plugin-scroll-study",
   "entryUrl": "./remoteEntry.js"
 }

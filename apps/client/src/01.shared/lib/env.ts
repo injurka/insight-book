@@ -1,17 +1,17 @@
 /** Рантайм-конфиг, генерируется entrypoint'ом контейнера при запуске (/configs/app-config.js) */
 interface AppRuntimeConfig {
   API_URL?: string
-  FARO_URL?: string
+  OTEL_EXPORTER_OTLP_ENDPOINT?: string
   CDN_URL?: string
 }
 
 const runtimeConfig = (window as { __APP_CONFIG__?: AppRuntimeConfig }).__APP_CONFIG__
 
 /** Базовый URL API: рантайм-конфиг контейнера → env при сборке → прод */
-export const API_URL = runtimeConfig?.API_URL || import.meta.env.VITE_API_URL || 'https://api.insight-book.ru'
+export const API_URL = runtimeConfig?.API_URL || import.meta.env.VITE_API_URL || ''
 
-/** URL коллектора Grafana Faro */
-export const FARO_URL = runtimeConfig?.FARO_URL || import.meta.env.VITE_FARO_URL || 'https://faro.limited-dissolve.ru/collect'
+/** OTLP-эндпоинт (SigNoz ingester через traefik): рантайм-конфиг → env при сборке → прод */
+export const OTEL_EXPORTER_OTLP_ENDPOINT = runtimeConfig?.OTEL_EXPORTER_OTLP_ENDPOINT || import.meta.env.VITE_OTEL_EXPORTER_OTLP_ENDPOINT || ''
 
 /** Базовый URL CDN (Pull Zone) для раздачи загруженных файлов (манга, обложки, аватарки) */
 export const CDN_URL = runtimeConfig?.CDN_URL || import.meta.env.VITE_CDN_URL || ''

@@ -1,3 +1,5 @@
+/* eslint-disable perfectionist/sort-imports */
+import 'zone.js' // MUST быть первым импортом: патчит глобальный API до загрузки остальных модулей (OTel ZoneContextManager)
 import type { Pinia } from 'pinia'
 import type { App as VueApp } from 'vue'
 import type { Router } from 'vue-router'
@@ -21,6 +23,7 @@ import App from './app.vue'
 
 import '~/assets/scss/global.scss'
 import '~/assets/scss/normalize.scss'
+/* eslint-enable perfectionist/sort-imports */
 
 async function bootstrap() {
   const app = createApp(App)
@@ -89,7 +92,7 @@ function initDeferredTasks(app: VueApp, router: Router, pinia: Pinia) {
   // Гидратация локали
   localePromise.catch((err: unknown) => console.warn('[bootstrap] Locale load failed:', err))
 
-  // Мониторинг (инициализируем Faro SDK, затем регистрируем Vue error handler и router hooks)
+  // Мониторинг (инициализируем OpenTelemetry Web SDK, затем регистрируем Vue error handler и router hooks)
   initMonitoring()
   setupVueMonitoring(app, router)
 

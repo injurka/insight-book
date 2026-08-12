@@ -8,7 +8,7 @@ services:
     environment:
       - VITE_API_URL=${VITE_API_URL:-}
       - VITE_CDN_URL=${VITE_CDN_URL:-}
-      - FARO_URL=${FARO_URL:-https://faro.limited-dissolve.ru/collect}
+      - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-}
     volumes:
       - ./configs:/usr/share/nginx/html/configs
     networks:
@@ -62,6 +62,8 @@ services:
       - VAPID_PRIVATE_KEY=${VAPID_PRIVATE_KEY:-}
       - VAPID_SUBJECT=${VAPID_SUBJECT:-}
       - UNISENDER_API_KEY=${UNISENDER_API_KEY:-}
+      - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-}
+      - OTEL_SERVICE_NAME=${OTEL_SERVICE_NAME:-}
     volumes:
       - ./db:/db
       - ./uploads:/uploads

@@ -4,5 +4,6 @@
   "version": "1.0.0",
   "description": "A plugin to learn and test language grammar rules.",
   "icon": "mdi:school-outline",
+  "source": "https://github.com/injurka/insight-book/tree/master/packages/plugin-grammar-rules",
   "entryUrl": "./remoteEntry.js"
 }

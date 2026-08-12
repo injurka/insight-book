@@ -39,6 +39,23 @@ async function handleAction(pluginId: string, status: 'approved' | 'rejected') {
   }
 }
 
+async function handleDownload(p: PendingPlugin) {
+  try {
+    const blob = await admin.downloadPlugin(p.id)
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `${p.id}-v${p.version}.zip`
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+    URL.revokeObjectURL(url)
+  }
+  catch (e: unknown) {
+    error.value = (e as Error).message
+  }
+}
+
 onMounted(() => load())
 </script>
 
@@ -63,7 +80,7 @@ onMounted(() => load())
           <th>Автор</th>
           <th>Описание</th>
           <th>Дата</th>
-          <th style="width: 100px; text-align: right;">
+          <th style="width: 140px; text-align: right;">
             Действия
           </th>
         </tr>
@@ -92,6 +109,7 @@ onMounted(() => load())
             <div class="moderation__actions">
               <KitSkeleton width="24px" height="24px" border-radius="4px" />
               <KitSkeleton width="24px" height="24px" border-radius="4px" />
+              <KitSkeleton width="24px" height="24px" border-radius="4px" />
             </div>
           </td>
         </tr>
@@ -116,6 +134,24 @@ onMounted(() => load())
           </td>
           <td>
             <div class="moderation__actions">
+              <a
+                v-if="p.sourceUrl"
+                :href="p.sourceUrl"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="moderation__link-btn"
+                title="Исходный код плагина"
+              >
+                <Icon icon="mdi:code-tags" />
+              </a>
+              <KitBtn
+                variant="ghost"
+                style="padding: 4px 6px; font-size: 12px"
+                title="Скачать плагин (zip)"
+                @click="handleDownload(p)"
+              >
+                <Icon icon="mdi:download" />
+              </KitBtn>
               <KitBtn
                 variant="ghost-success"
                 style="padding: 4px 6px; font-size: 12px"
@@ -212,6 +248,23 @@ onMounted(() => load())
   align-items: center;
   justify-content: flex-end;
   gap: 2px;
+}
+.moderation__link-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 6px;
+  font-size: 16px;
+  color: var(--fg-secondary-color, #8e867b);
+  border-radius: 4px;
+  text-decoration: none;
+  transition:
+    color 0.15s,
+    background-color 0.15s;
+}
+.moderation__link-btn:hover {
+  color: var(--fg-accent-color, #4b8266);
+  background: var(--bg-overlay-primary-color, rgba(142, 134, 123, 0.1));
 }
 .moderation__empty {
   color: var(--fg-secondary-color, #8e867b);

@@ -352,6 +352,7 @@ export interface CatalogPluginRecord {
   description?: string | null
   icon?: string | null
   author?: string | null
+  sourceUrl?: string | null
   manifestUrl: string
   status: 'pending' | 'approved' | 'rejected'
   uploadedBy: number
