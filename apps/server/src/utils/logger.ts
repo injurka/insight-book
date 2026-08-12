@@ -16,12 +16,15 @@ const stream = isDev
         ignore: 'pid,hostname',
       },
     })
-  : pino.transport({
-      target: 'pino-opentelemetry-transport',
-      options: {
-        loggerName: OTEL_SERVICE_NAME,
-      },
-    })
+  : pino.multistream([
+      process.stdout,
+      pino.transport({
+        target: 'pino-opentelemetry-transport',
+        options: {
+          loggerName: OTEL_SERVICE_NAME,
+        },
+      }),
+    ])
 
 export const logger = pino({
   level: process.env.LOG_LEVEL || 'info',
