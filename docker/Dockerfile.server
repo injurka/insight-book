@@ -7,11 +7,17 @@ COPY apps/server/package.json ./apps/server/
 
 RUN bun install --ignore-scripts
 
-# bun nests workspace deps under apps/server/node_modules in this partial layout.
-# nodejieba's own install/build scripts use npx (npm is absent in bun images), so
-# fetch its official prebuilt N-API binary (node ABI v137 = what bun 1.3.14 reports)
-# with node-pre-gyp, run under bun explicitly.
-RUN cd apps/server/node_modules/nodejieba && bunx --bun @mapbox/node-pre-gyp install
+# nodejieba: bun nests workspace deps under apps/server/node_modules in this partial
+# layout, and nodejieba's own scripts need npx (absent in bun images). The build
+# environment can't reliably reach github.com release assets, so the official
+# prebuilt N-API binary (node ABI v137 = what bun 1.3.14 reports) is vendored
+# in docker/nodejieba/ (linux-x64-glibc; re-vendor for other arch/bun ABI).
+COPY docker/nodejieba/nodejieba-v3.5.8-node-v137-linux-x64-glibc.tar.gz /tmp/nodejieba.tgz
+RUN cd apps/server/node_modules/nodejieba && \
+    echo "22d424a2f5664dd611da643dca7f7c48fa1262247c9497952667155e2c97eeb2  /tmp/nodejieba.tgz" | sha256sum -c - && \
+    mkdir -p build/Release && \
+    tar -xzf /tmp/nodejieba.tgz --strip-components=1 -C build/Release && \
+    rm /tmp/nodejieba.tgz
 
 COPY . .
 
