@@ -11,6 +11,7 @@ import { pluginRepository } from '~/01.shared/repositories/plugin.repository'
 import { pushRepository } from '~/01.shared/repositories/push.repository'
 import { quizRepository } from '~/01.shared/repositories/quiz.repository'
 import { storageRepository } from '~/01.shared/repositories/storage.repository'
+import { subscriptionRepository } from '~/01.shared/repositories/subscription.repository'
 
 export interface Repositories {
   activity: typeof activityRepository
@@ -24,6 +25,7 @@ export interface Repositories {
   push: typeof pushRepository
   quiz: typeof quizRepository
   storage: typeof storageRepository
+  subscription: typeof subscriptionRepository
 }
 
 export const defaultRepositories: Repositories = {
@@ -38,6 +40,7 @@ export const defaultRepositories: Repositories = {
   push: pushRepository,
   quiz: quizRepository,
   storage: storageRepository,
+  subscription: subscriptionRepository,
 }
 
 export const REPOS_INJECTION_KEY = Symbol('Repositories') as InjectionKey<Repositories>

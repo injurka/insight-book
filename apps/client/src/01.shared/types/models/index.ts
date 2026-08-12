@@ -358,3 +358,19 @@ export interface CatalogPluginRecord {
   createdAt: string
   updatedAt: string
 }
+
+/** Тариф подписки в локализованном виде (сервер отдаёт тексты на языке запроса). */
+export interface SubscriptionTier {
+  id: string
+  icon: string
+  badge: string
+  name: string
+  price: number
+  dailyTokenLimit: number | null
+  dailyBookLimit: number | null
+  description: string
+  features: string[]
+  isPopular: boolean
+  gradient: string
+  accentColor: string
+}

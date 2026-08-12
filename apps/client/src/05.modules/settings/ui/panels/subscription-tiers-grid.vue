@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import type { SubscriptionTierConfig, SubscriptionTierId } from '~/01.shared/constants/subscriptions'
+import type { SubscriptionTier } from '~/01.shared/types/models'
 import { Icon } from '@iconify/vue'
-import { computed, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useRepos } from '~/00.plugins/di'
 import { SUBSCRIPTION_TIERS_CONFIG } from '~/01.shared/constants/subscriptions'
 import { useAuthStore } from '~/01.shared/store/auth.store'
 import { useGlobalSettingsStore } from '~/01.shared/store/settings.store'
@@ -12,18 +13,57 @@ import { KitDialog } from '~/02.kit/organisms/kit-dialog/ui'
 const { t } = useI18n()
 const authStore = useAuthStore()
 const settingsStore = useGlobalSettingsStore()
+const { subscription } = useRepos()
 
-const currentTierId = computed<SubscriptionTierId>(() => authStore.user?.subscriptionTier || 'free')
+const currentTierId = computed(() => authStore.user?.subscriptionTier || 'free')
 const showDetailsModal = ref(false)
-const selectedModalTier = ref<SubscriptionTierConfig | null>(null)
+const selectedModalTier = ref<SubscriptionTier | null>(null)
 
-const tiers = computed(() => Object.values(SUBSCRIPTION_TIERS_CONFIG))
+// Тарифы с сервера (локализованные). Пока не загрузились/при ошибке — статический фоллбек.
+const serverTiers = ref<SubscriptionTier[]>([])
 
-function isCurrentTier(tierId: SubscriptionTierId) {
+function staticTiers(): SubscriptionTier[] {
+  return Object.values(SUBSCRIPTION_TIERS_CONFIG).map(cfg => ({
+    id: cfg.id,
+    icon: cfg.icon,
+    badge: cfg.badge,
+    name: t(cfg.nameKey),
+    price: cfg.priceRu,
+    dailyTokenLimit: cfg.dailyTokens,
+    dailyBookLimit: cfg.dailyBooks,
+    description: t(cfg.descriptionKey),
+    features: cfg.featuresKeys.map(key => t(key)),
+    isPopular: cfg.popular ?? false,
+    gradient: cfg.gradient,
+    accentColor: cfg.accentColor,
+  }))
+}
+
+const tiers = computed<SubscriptionTier[]>(() =>
+  serverTiers.value.length > 0 ? serverTiers.value : staticTiers())
+
+async function loadTiers(lang: string) {
+  try {
+    serverTiers.value = await subscription.getTiers(lang)
+  }
+  catch {
+    // Оффлайн/ошибка API — остаёмся на статическом фоллбеке
+  }
+}
+
+watch(() => settingsStore.appLanguage, (lang) => {
+  loadTiers(lang || 'ru')
+})
+
+onMounted(() => {
+  loadTiers(settingsStore.appLanguage || 'ru')
+})
+
+function isCurrentTier(tierId: string) {
   return currentTierId.value === tierId
 }
 
-function openTierDetails(tier: SubscriptionTierConfig) {
+function openTierDetails(tier: SubscriptionTier) {
   selectedModalTier.value = tier
   showDetailsModal.value = true
 }
@@ -33,8 +73,8 @@ function closeDetails() {
   selectedModalTier.value = null
 }
 
-function formatTokens(num: number) {
-  return new Intl.NumberFormat(settingsStore.appLanguage || 'ru-RU').format(num)
+function formatTokens(num: number | null) {
+  return new Intl.NumberFormat(settingsStore.appLanguage || 'ru-RU').format(num ?? 0)
 }
 </script>
 
@@ -63,12 +103,12 @@ function formatTokens(num: number) {
         class="tier-card"
         :class="{
           'is-current': isCurrentTier(tier.id),
-          'is-popular': tier.popular,
+          'is-popular': tier.isPopular,
         }"
         :style="{ '--tier-accent': tier.accentColor, '--tier-bg-gradient': tier.gradient }"
       >
         <!-- Popular Ribbon -->
-        <div v-if="tier.popular" class="popular-ribbon">
+        <div v-if="tier.isPopular" class="popular-ribbon">
           <Icon icon="mdi:star" />
           <span>{{ t('subscriptions.popular') }}</span>
         </div>
@@ -87,31 +127,31 @@ function formatTokens(num: number) {
         </div>
 
         <h3 class="tier-title">
-          {{ t(tier.nameKey) }}
+          {{ tier.name }}
         </h3>
 
         <div class="price-container">
-          <span v-if="tier.priceRu === 0" class="price-free">{{ t('subscriptions.free') }}</span>
+          <span v-if="tier.price === 0" class="price-free">{{ t('subscriptions.free') }}</span>
           <template v-else>
             <span class="price-currency">₽</span>
-            <span class="price-value">{{ tier.priceRu }}</span>
+            <span class="price-value">{{ tier.price }}</span>
             <span class="price-period">/ {{ t('subscriptions.monthShort') }}</span>
           </template>
         </div>
 
         <p class="tier-short-desc">
-          {{ t(tier.descriptionKey) }}
+          {{ tier.description }}
         </p>
 
         <!-- Daily Limits Chips -->
         <div class="stats-chips">
           <div class="chip" title="Лимит токенов в день">
             <Icon icon="mdi:lightning-bolt" class="chip-icon tokens-color" />
-            <span><b>{{ formatTokens(tier.dailyTokens) }}</b> токенов/день</span>
+            <span><b>{{ formatTokens(tier.dailyTokenLimit) }}</b> токенов/день</span>
           </div>
           <div class="chip" title="Лимит книг в день">
             <Icon icon="mdi:book-open-page-variant" class="chip-icon books-color" />
-            <span><b>{{ tier.dailyBooks }}</b> книг/день</span>
+            <span><b>{{ tier.dailyBookLimit ?? 0 }}</b> книг/день</span>
           </div>
         </div>
 
@@ -119,9 +159,9 @@ function formatTokens(num: number) {
 
         <!-- Feature List -->
         <ul class="features-list">
-          <li v-for="(fKey, idx) in tier.featuresKeys" :key="idx" class="feature-item">
+          <li v-for="(feature, idx) in tier.features" :key="idx" class="feature-item">
             <Icon icon="mdi:check" class="check-icon" />
-            <span>{{ t(fKey) }}</span>
+            <span>{{ feature }}</span>
           </li>
         </ul>
 
@@ -151,7 +191,7 @@ function formatTokens(num: number) {
     <KitDialog
       v-if="selectedModalTier"
       v-model:visible="showDetailsModal"
-      :title="t(selectedModalTier.nameKey)"
+      :title="selectedModalTier.name"
       :icon="selectedModalTier.icon"
       :max-width="540"
       :style="{ '--tier-accent': selectedModalTier.accentColor }"
@@ -159,7 +199,7 @@ function formatTokens(num: number) {
       <div class="modal-body-content">
         <div class="modal-price-box">
           <span class="price-big">
-            {{ selectedModalTier.priceRu === 0 ? t('subscriptions.free') : `${selectedModalTier.priceRu} ₽ / мес` }}
+            {{ selectedModalTier.price === 0 ? t('subscriptions.free') : `${selectedModalTier.price} ₽ / мес` }}
           </span>
           <span class="modal-badge-pill">{{ selectedModalTier.badge }}</span>
         </div>
@@ -170,23 +210,23 @@ function formatTokens(num: number) {
             <Icon icon="mdi:lightning-bolt" class="b-icon tokens" />
             <div class="b-text">
               <span class="b-label">{{ t('subscriptions.tokensLimit') }}</span>
-              <span class="b-val">{{ formatTokens(selectedModalTier.dailyTokens) }} / день</span>
+              <span class="b-val">{{ formatTokens(selectedModalTier.dailyTokenLimit) }} / день</span>
             </div>
           </div>
           <div class="breakdown-card">
             <Icon icon="mdi:book-open-page-variant" class="b-icon books" />
             <div class="b-text">
               <span class="b-label">{{ t('subscriptions.booksLimit') }}</span>
-              <span class="b-val">{{ selectedModalTier.dailyBooks }} книг / день</span>
+              <span class="b-val">{{ selectedModalTier.dailyBookLimit ?? 0 }} книг / день</span>
             </div>
           </div>
         </div>
 
         <h4>{{ t('subscriptions.whatIsIncluded') }}</h4>
         <ul class="features-list modal-features">
-          <li v-for="(fKey, idx) in selectedModalTier.featuresKeys" :key="idx" class="feature-item">
+          <li v-for="(feature, idx) in selectedModalTier.features" :key="idx" class="feature-item">
             <Icon icon="mdi:check-circle-outline" class="check-icon" />
-            <span>{{ t(fKey) }}</span>
+            <span>{{ feature }}</span>
           </li>
         </ul>
 

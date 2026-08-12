@@ -14,6 +14,7 @@ import { dictionaryController } from './controllers/dictionary.controller'
 import { highlightRouter } from './controllers/highlight.controller'
 import { pushRouter } from './controllers/push.controller'
 import { quizRouter } from './controllers/quiz.controller'
+import { subscriptionRouter } from './controllers/subscription.controller'
 import { pluginRouter } from './controllers/user-plugin.controller'
 
 import { initScheduler } from './services/scheduler.service'
@@ -38,6 +39,11 @@ const app = new Elysia()
   )
   .use(serverTiming())
   .use(bookController)
+  // ⚠️ ВАЖНО: subscriptionRouter обязан регистрироваться ДО контроллеров с throwing-auth
+  // (activity/quiz/push/highlight/plugin/catalog/admin). В elysia 1.4.29 scoped-деривы
+  // из `.use()`-инстансов протекают на роуты родителя, зарегистрированные ПОЗЖЕ них —
+  // иначе публичный `/api/subscription-tiers/:lang` без токена отдаёт 401.
+  .use(subscriptionRouter)
   .use(ttsController)
   .use(uploadsController)
   .use(authRouter)

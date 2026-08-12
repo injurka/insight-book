@@ -1,4 +1,26 @@
-import type { AuthLoginDto, AuthRegisterDto, AuthSendCodeDto, Book, BookStats, CatalogDeck, CatalogPluginRecord, CatalogWord, DictDeck, GeneratedWordExamples, Highlight, LlmAnalysis, PageDictEntry, PagePayload, PromptItem, TocItem, UserData, UserDictItem, UserPluginRecord, WordAutoFillResponse } from '../types/models'
+import type {
+  AuthLoginDto,
+  AuthRegisterDto,
+  AuthSendCodeDto,
+  Book,
+  BookStats,
+  CatalogDeck,
+  CatalogPluginRecord,
+  CatalogWord,
+  DictDeck,
+  GeneratedWordExamples,
+  Highlight,
+  LlmAnalysis,
+  PageDictEntry,
+  PagePayload,
+  PromptItem,
+  SubscriptionTier,
+  TocItem,
+  UserData,
+  UserDictItem,
+  UserPluginRecord,
+  WordAutoFillResponse,
+} from '../types/models'
 import { fetch as tauriFetch } from '@tauri-apps/plugin-http'
 import { ofetch } from 'ofetch'
 import { API_URL, isTauri } from '~/01.shared/lib/env'
@@ -517,5 +539,11 @@ export const api = {
       }),
     delete: async (id: number) =>
       request<{ success: boolean }>(`/api/catalog/plugins/${id}`, { method: 'DELETE' }),
+  },
+
+  subscriptions: {
+    /** Локализованный список тарифов подписки (язык — в пути). */
+    getTiers: async (lang: string) =>
+      request<SubscriptionTier[]>(`/api/subscription-tiers/${lang}`, { silentErrors: true }),
   },
 }

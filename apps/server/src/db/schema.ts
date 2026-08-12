@@ -50,6 +50,36 @@ export const users = sqliteTable('users', {
   yandexId: text('yandexId').unique(),
 })
 
+/** Описание тарифов подписки. Тексты локализованы (en/ru/zh), клиент выбирает нужный язык. */
+export const subscriptionTiers = sqliteTable('subscription_tiers', {
+  id: text('id').primaryKey(),
+  sortOrder: integer('sortOrder').notNull().default(0),
+
+  // Нелокализуемые поля
+  icon: text('icon').notNull(),
+  price: integer('price').notNull().default(0),
+  dailyTokenLimit: integer('dailyTokenLimit'),
+  dailyBookLimit: integer('dailyBookLimit'),
+  isPopular: integer('isPopular', { mode: 'boolean' }).notNull().default(false),
+  gradient: text('gradient').notNull(),
+  accentColor: text('accentColor').notNull(),
+
+  // Локализованные тексты (en / ru / zh)
+  badgeEn: text('badgeEn').notNull(),
+  badgeRu: text('badgeRu').notNull(),
+  badgeZh: text('badgeZh').notNull(),
+  nameEn: text('nameEn').notNull(),
+  nameRu: text('nameRu').notNull(),
+  nameZh: text('nameZh').notNull(),
+  descriptionEn: text('descriptionEn').notNull(),
+  descriptionRu: text('descriptionRu').notNull(),
+  descriptionZh: text('descriptionZh').notNull(),
+  featuresEn: text('featuresEn', { mode: 'json' }).notNull().$type<string[]>(),
+  featuresRu: text('featuresRu', { mode: 'json' }).notNull().$type<string[]>(),
+  featuresZh: text('featuresZh', { mode: 'json' }).notNull().$type<string[]>(),
+  updatedAt: text('updatedAt').notNull().default(sql`(datetime('now'))`),
+})
+
 export const emailConfirmations = sqliteTable('email_confirmations', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   email: text('email').notNull(),

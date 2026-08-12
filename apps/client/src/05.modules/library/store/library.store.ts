@@ -31,6 +31,14 @@ export const useLibraryStore = defineStore('library', () => {
   const currentBookInfo = ref<Book | null>(null)
   const currentBookId = ref<number | null>(null)
 
+  /**
+   * Настоящие данные книги (ответ `/api/books/:id/info`) для текущего id уже получены.
+   * Отличие от `currentBookInfo`: последний может содержать оптимистичную копию
+   * книги из списка библиотеки (префилл), пока API не ответил. По этому флагу
+   * страница книги скрывает скелетон-оверлей.
+   */
+  const hasLoadedBookInfo = ref(false)
+
   const isInitialized = ref(false)
   const isAnalyzingBook = ref(false)
   const isAnalyzingVocab = ref(false)
@@ -142,6 +150,7 @@ export const useLibraryStore = defineStore('library', () => {
   // --- QUERY: Book Info ---
   const {
     data: bookInfoData,
+    error: bookInfoError,
     isLoading: isBookInfoLoading,
     refetch: refetchBookInfo,
   } = useQuery<Book | null>({
@@ -163,13 +172,29 @@ export const useLibraryStore = defineStore('library', () => {
       // снапшот страницы должен содержать финальную картинку)
       await attachCachedCovers([newInfo])
       currentBookInfo.value = newInfo
+      hasLoadedBookInfo.value = true
     }
+  })
+
+  // Ошибка API: снимаем скелетон-оверлей, чтобы страница не висела на шиммере
+  // вечно — остаётся оптимистичная информация из префилла (или пустота, как раньше).
+  watch(bookInfoError, (err) => {
+    if (err)
+      hasLoadedBookInfo.value = true
   })
 
   async function fetchBookInfo(id: number) {
     if (currentBookId.value !== id) {
-      currentBookInfo.value = null
+      // Оптимистичный префилл: книга уже известна из списка библиотеки —
+      // подставляем её сразу, чтобы страница рендерила реальную структуру
+      // (обложка, название, автор, кнопки) с первого кадра. Ответ API затем
+      // атомарно заменит currentBookInfo, а скелетон-оверлей скроет зоны,
+      // данных по которым ещё нет.
+      const known = books.value.find(b => b.id === id)
+        ?? publicBooks.value.find(b => b.id === id)
+      currentBookInfo.value = known ? { ...known } : null
       currentBookId.value = id
+      hasLoadedBookInfo.value = false
     }
     else {
       await refetchBookInfo()
@@ -440,6 +465,7 @@ export const useLibraryStore = defineStore('library', () => {
     publicHasMore,
     isPublicLoading: isPublicBooksLoading,
     currentBookInfo,
+    hasLoadedBookInfo,
     isLoading,
     isInitialized,
     isAnalyzingBook,

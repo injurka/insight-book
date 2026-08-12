@@ -1,8 +1,9 @@
+import type { Ref } from 'vue'
 import { ref, watch } from 'vue'
 import { useAnalysisStore } from '~/01.shared/store/analysis/analysis.store'
 import { useReaderStore } from '../store/reader.store'
 
-export function useReaderScroll(saveScrollPosition: () => void, closeBubblePopover?: () => void) {
+export function useReaderScroll(saveScrollPosition: () => void, closeBubblePopover?: () => void, isRestoringScroll?: Ref<boolean>) {
   const analysisStore = useAnalysisStore()
   const readerStore = useReaderStore()
   const isHeaderVisible = ref(true)
@@ -55,6 +56,12 @@ export function useReaderScroll(saveScrollPosition: () => void, closeBubblePopov
     const currentY = Math.max(0, target.scrollTop)
     const delta = currentY - lastScrollY
     lastScrollY = currentY
+
+    if (isRestoringScroll?.value) {
+      scrollAccumulator = 0
+
+      return
+    }
 
     // Игнорируем скачки позиции при восстановлении скролла или резкой смене контента
     if (Math.abs(delta) > 300) {

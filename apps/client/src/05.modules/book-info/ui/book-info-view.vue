@@ -3,10 +3,8 @@ import { useHead } from '@vueuse/head'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import { AppRoutePaths } from '~/01.shared/constants/routes'
-import { BOOK_COVER_TRANSITION_NAME, coverTransitionBookId } from '~/01.shared/lib/view-transitions'
 import { KitBtn } from '~/02.kit/atoms/kit-btn/ui'
 import { KitHoverRevealBg } from '~/02.kit/atoms/kit-hover-reveal-bg/ui'
-import { KitImage } from '~/02.kit/atoms/kit-image/ui'
 import { KitSkeleton } from '~/02.kit/atoms/kit-skeleton/ui'
 import { useLibraryStore } from '~/05.modules/library/store/library.store'
 import BookCoverPanel from './book-cover-panel.vue'
@@ -34,23 +32,9 @@ const isEditingStats = ref(false)
 const isSyncModalOpen = ref(false)
 const isAppendChapterOpen = ref(false)
 
-// Пока данные книги грузятся, целью shared-element перехода обложки
-// служит скелетон обложки (View Transitions API)
-const skeletonCoverTransitionStyle = computed(() =>
-  coverTransitionBookId.value === bookId.value
-    ? { viewTransitionName: BOOK_COVER_TRANSITION_NAME }
-    : undefined)
-
-// Данные книги уже известны из списка библиотеки — используем их в состоянии
-// загрузки, чтобы первый переход на страницу был бесшовным (View Transitions API)
-const knownBook = computed(() =>
-  libraryStore.books.find(b => b.id === bookId.value)
-  || libraryStore.publicBooks.find(b => b.id === bookId.value)
-  || null)
-
-const optimisticCoverUrl = computed(() =>
-  knownBook.value?.localCoverUrl || knownBook.value?.coverUrl || null)
-
+// Стор префиллит currentBookInfo книгой из списка библиотеки, поэтому реальная
+// структура (обложка, название, автор, кнопки) рендерится с первого кадра,
+// а скелетон-оверлей плавно растворяется, когда API ответит.
 watch(bookId, (newId) => {
   if (newId)
     libraryStore.fetchBookInfo(newId)
@@ -71,64 +55,11 @@ function goBack() {
         <span class="header-title">{{ t('bookInfo.aboutBook') }}</span>
       </header>
 
-      <div v-if="libraryStore.isLoading && !libraryStore.currentBookInfo" class="loading-state book-container">
-        <div class="layout-top">
-          <div class="cover-col">
-            <div class="cover-skeleton" :style="skeletonCoverTransitionStyle">
-              <KitImage
-                v-if="optimisticCoverUrl"
-                :src="optimisticCoverUrl"
-                :alt="t('library.cover')"
-                :lazy="false"
-              />
-              <KitSkeleton
-                v-else
-                width="100%"
-                height="100%"
-                border-radius="12px"
-              />
-            </div>
-            <div class="action-buttons">
-              <KitSkeleton width="100%" height="38px" border-radius="6px" />
-              <KitSkeleton width="100%" height="38px" border-radius="6px" />
-            </div>
-          </div>
-          <div class="content-col">
-            <h1 v-if="knownBook" class="opt-book-title">
-              {{ knownBook.title }}
-            </h1>
-            <KitSkeleton
-              v-else
-              width="80%"
-              height="40px"
-              class="title-skeleton"
-              border-radius="8px"
-            />
-            <p v-if="knownBook" class="opt-book-author">
-              {{ knownBook.author || t('bookStats.authorNotSpecified') }}
-            </p>
-            <KitSkeleton
-              v-else
-              width="40%"
-              height="24px"
-              class="author-skeleton"
-              border-radius="6px"
-            />
-            <KitSkeleton
-              width="100%"
-              height="72px"
-              border-radius="12px"
-              class="progress-skeleton"
-            />
-            <KitSkeleton width="100%" height="240px" border-radius="12px" />
-          </div>
-        </div>
-        <div class="layout-bottom">
-          <KitSkeleton width="100%" height="300px" border-radius="12px" />
-        </div>
-      </div>
-
-      <div v-else-if="libraryStore.currentBookInfo" class="book-container">
+      <!-- Реальная структура рендерится с первого кадра: обложка, название и автор
+           приходят оптимистично из списка библиотеки (префилл в сторе), пока API
+           отвечает. Скелетоны — отдельный оверлей поверх; он плавно растворяется,
+           когда данные загружены, поэтому нет подмены DOM, моргания и сдвига скролла -->
+      <div v-if="libraryStore.isLoading || libraryStore.currentBookInfo" class="book-container">
         <div class="layout-top">
           <BookCoverPanel
             @edit-stats="isEditingStats = true"
@@ -140,9 +71,75 @@ function goBack() {
           </div>
         </div>
         <div class="layout-bottom">
-          <BookLexicalPanel v-if="libraryStore.currentBookInfo.type !== 'manga'" />
+          <BookLexicalPanel v-if="libraryStore.currentBookInfo?.type !== 'manga'" />
           <BookTocPanel />
         </div>
+
+        <Transition name="skeleton-fade">
+          <div v-if="!libraryStore.hasLoadedBookInfo" class="skeleton-overlay" aria-hidden="true">
+            <div class="layout-top">
+              <!-- Без префилла (глубокая ссылка) — скелетоны и для обложки с кнопками;
+                   с префиллом колонка прозрачная: реальная обложка уже под оверлеем -->
+              <div class="cover-col">
+                <template v-if="!libraryStore.currentBookInfo">
+                  <div class="cover-skeleton">
+                    <KitSkeleton width="100%" height="100%" border-radius="12px" />
+                  </div>
+                  <div class="action-buttons">
+                    <KitSkeleton width="100%" height="38px" border-radius="6px" />
+                    <KitSkeleton width="100%" height="38px" border-radius="6px" />
+                  </div>
+                </template>
+                <template v-else>
+                  <!-- Невидимые распорки повторяют высоты реальной обложки и кнопок,
+                       чтобы нижние скелетоны встали ровно на место будущих панелей -->
+                  <div class="cover-space" />
+                  <div class="actions-space" />
+                </template>
+              </div>
+              <div class="content-col">
+                <template v-if="!libraryStore.currentBookInfo">
+                  <KitSkeleton
+                    width="80%"
+                    height="40px"
+                    class="title-skeleton"
+                    border-radius="8px"
+                  />
+                  <KitSkeleton
+                    width="40%"
+                    height="24px"
+                    class="author-skeleton"
+                    border-radius="6px"
+                  />
+                  <KitSkeleton
+                    width="100%"
+                    height="72px"
+                    class="progress-skeleton"
+                    border-radius="12px"
+                  />
+                </template>
+                <template v-else>
+                  <!-- Прозрачные распорки повторяют высоты реальных заголовка/автора/прогресса,
+                       чтобы скелетон статистики встал ровно на место будущего блока -->
+                  <div class="title-space" />
+                  <div class="author-space" />
+                  <div class="progress-space" />
+                </template>
+                <div class="skeleton-block stats-block">
+                  <KitSkeleton width="100%" height="100%" border-radius="12px" />
+                </div>
+              </div>
+            </div>
+            <div class="layout-bottom">
+              <div class="skeleton-block bottom-block">
+                <KitSkeleton width="100%" height="100%" border-radius="12px" />
+              </div>
+              <div class="skeleton-block bottom-block toc-block">
+                <KitSkeleton width="100%" height="100%" border-radius="12px" />
+              </div>
+            </div>
+          </div>
+        </Transition>
       </div>
     </div>
 
@@ -219,38 +216,94 @@ function goBack() {
   gap: 32px;
 }
 
-.loading-state {
-  .cover-skeleton {
-    aspect-ratio: 2 / 3;
-    margin-bottom: 24px;
-    border-radius: 12px;
-    overflow: hidden;
-  }
-  .action-buttons {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-  }
-  .opt-book-title {
-    font-size: 2.2rem;
-    line-height: 1.2;
-    margin: 0 0 8px 0;
-    color: var(--fg-primary-color);
-  }
-  .opt-book-author {
-    font-size: 1.1rem;
-    color: var(--fg-secondary-color);
-    margin: 0 0 24px 0;
-  }
-  .title-skeleton {
-    margin-bottom: 8px;
-  }
-  .author-skeleton {
-    margin-bottom: 24px;
-  }
-  .progress-skeleton {
-    margin-bottom: 24px;
-  }
+.book-container {
+  position: relative;
+}
+
+.skeleton-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 5;
+  pointer-events: none;
+}
+
+.skeleton-block {
+  background-color: var(--bg-primary-color);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.stats-block {
+  height: 240px;
+}
+
+.bottom-block {
+  height: 300px;
+}
+
+.toc-block {
+  height: 180px;
+}
+
+.title-space {
+  height: 42px;
+  margin-bottom: 8px;
+}
+
+.author-space {
+  height: 25px;
+  margin-bottom: 24px;
+}
+
+.progress-space {
+  height: 70px;
+  margin-bottom: 24px;
+}
+
+.cover-space {
+  aspect-ratio: 2 / 3;
+  margin-bottom: 24px;
+}
+
+.actions-space {
+  height: 132px;
+}
+
+.skeleton-fade-enter-active,
+.skeleton-fade-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.skeleton-fade-enter-from,
+.skeleton-fade-leave-to {
+  opacity: 0;
+}
+
+.cover-skeleton {
+  aspect-ratio: 2 / 3;
+  margin-bottom: 24px;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.action-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.title-skeleton {
+  margin-bottom: 8px;
+}
+
+.author-skeleton {
+  margin-bottom: 24px;
+}
+
+.progress-skeleton {
+  margin-bottom: 24px;
 }
 
 .content-col {

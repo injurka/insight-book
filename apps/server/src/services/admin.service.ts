@@ -1,6 +1,5 @@
 import { ERROR_CODES } from '../constants/error-codes'
 import { ROLES } from '../constants/roles'
-import { SUBSCRIPTION_TIERS } from '../constants/subscriptions'
 import { bookRepository } from '../repositories/book.repository'
 import { catalogPluginRepository } from '../repositories/catalog-plugin.repository'
 import { userRepository } from '../repositories/user.repository'
@@ -9,16 +8,11 @@ import { logger } from '../utils/logger'
 
 export class AdminService {
   /** Проверка, что пользователь — админ */
-  private async assertAdmin(userId: number) {
+  async assertAdmin(userId: number) {
     const user = await userRepository.findById(userId)
     if (!user || user.role !== ROLES.ADMIN) {
       throw new AppError(403, ERROR_CODES.AUTH.FORBIDDEN, 'Forbidden')
     }
-  }
-
-  async getSubscriptionTiers(userId: number) {
-    await this.assertAdmin(userId)
-    return SUBSCRIPTION_TIERS
   }
 
   async getStats(userId: number) {

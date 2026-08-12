@@ -1,9 +1,12 @@
-import type { DashboardStats, PaginatedResponse, PendingBook, PendingPlugin, SubscriptionTier, UserDetail, UserRow } from '~/01.shared/types/models'
+import type { DashboardStats, PaginatedResponse, PendingBook, PendingPlugin, SubscriptionTier, SubscriptionTierInput, UserDetail, UserRow } from '~/01.shared/types/models'
 import { api } from '~/01.shared/lib/api'
 
 export interface IAdminRepository {
   stats: () => Promise<DashboardStats>
   getSubscriptionTiers: () => Promise<SubscriptionTier[]>
+  createSubscriptionTier: (data: SubscriptionTierInput) => Promise<SubscriptionTier>
+  updateSubscriptionTier: (id: string, data: SubscriptionTierInput) => Promise<SubscriptionTier>
+  deleteSubscriptionTier: (id: string) => Promise<{ success: boolean }>
   listUsers: (opts?: { page?: number, limit?: number, search?: string }) => Promise<PaginatedResponse<UserRow>>
   getUser: (id: number) => Promise<UserDetail>
   createUser: (data: { username: string, password: string, role?: string, email?: string | null, subscriptionTier?: string, tokenLimit?: number, bookLimit?: number }) => Promise<{ success: boolean, user: Record<string, unknown> }>
@@ -18,6 +21,9 @@ export interface IAdminRepository {
 export class DefaultAdminRepository implements IAdminRepository {
   async stats() { return api.admin.stats() }
   async getSubscriptionTiers() { return api.admin.getSubscriptionTiers() }
+  async createSubscriptionTier(data: SubscriptionTierInput) { return api.admin.createSubscriptionTier(data) }
+  async updateSubscriptionTier(id: string, data: SubscriptionTierInput) { return api.admin.updateSubscriptionTier(id, data) }
+  async deleteSubscriptionTier(id: string) { return api.admin.deleteSubscriptionTier(id) }
   async listUsers(opts?: { page?: number, limit?: number, search?: string }) { return api.admin.listUsers(opts) }
   async getUser(id: number) { return api.admin.getUser(id) }
   async createUser(data: Parameters<IAdminRepository['createUser']>[0]) { return api.admin.createUser(data) }

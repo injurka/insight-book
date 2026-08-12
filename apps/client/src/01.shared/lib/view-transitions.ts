@@ -38,18 +38,22 @@ const SNAPSHOT_SETTLE_DELAY = 50
 /**
  * Ждёт, пока загрузятся данные книги (с таймаутом).
  * Нужно, чтобы «новый» снапшот View Transition содержал финальную раскладку
- * страницы книги, а не скелетон — иначе по окончании анимации скелетон
- * резко подменяется реальным контентом.
+ * страницы книги, а не скелетон-оверлей — иначе по окончании анимации оверлей
+ * будет плавно растворяться уже после перехода. Ждём именно hasLoadedBookInfo:
+ * currentBookInfo может быть заполнен оптимистично (префилл из списка библиотеки)
+ * ещё до ответа API.
  */
 async function waitForBookInfoReady(bookId: number): Promise<void> {
   const { useLibraryStore } = await import('~/05.modules/library/store/library.store')
   const libraryStore = useLibraryStore()
 
-  if (libraryStore.currentBookInfo?.id !== bookId) {
+  // Префилл заполняет currentBookInfo мгновенно, поэтому ждём именно реальные
+  // данные (hasLoadedBookInfo). Если они уже пришли (кэш/быстрый API) — не ждём.
+  if (!(libraryStore.currentBookInfo?.id === bookId && libraryStore.hasLoadedBookInfo)) {
     await Promise.race([
       new Promise<void>((resolve) => {
-        const stop = watch(() => libraryStore.currentBookInfo?.id, (id) => {
-          if (id === bookId) {
+        const stop = watch(() => libraryStore.currentBookInfo?.id === bookId && libraryStore.hasLoadedBookInfo, (ready) => {
+          if (ready) {
             stop()
             resolve()
           }
@@ -135,7 +139,7 @@ export function setupViewTransitions(router: Router): void {
         // После нормального завершения перехода skipTransition — безопасный no-op.
         const safetyTimer = setTimeout(() => transition.skipTransition(), 2000)
         transition.finished
-          .catch(() => {}) // переход пропущен — finished отклоняется, это нормально
+          .catch(() => { }) // переход пропущен — finished отклоняется, это нормально
           .finally(() => clearTimeout(safetyTimer))
       }
       catch {

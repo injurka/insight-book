@@ -35,6 +35,25 @@ export const router = createRouter({
       props: true,
     },
     {
+      path: '/subscriptions',
+      name: 'subscriptions',
+      component: () => import('~/07.views/subscriptions.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/subscriptions/create',
+      name: 'subscription-create',
+      component: () => import('~/07.views/subscription-create.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/subscriptions/:id',
+      name: 'subscription-edit',
+      component: () => import('~/07.views/subscription-edit.vue'),
+      meta: { requiresAuth: true },
+      props: true,
+    },
+    {
       path: '/books/pending',
       name: 'books-pending',
       component: () => import('~/07.views/books-pending.vue'),

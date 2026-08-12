@@ -47,7 +47,13 @@ useReadingSession()
 
 const showSpinner = useDelayedLoading(computed(() => readerStore.isPageLoading), 1000)
 
-const { saveScrollPosition, restoreScrollPosition, setScrollIntent } = useScrollRestoration(
+const {
+  isRestoringScroll,
+  saveScrollPosition,
+  restoreScrollPosition,
+  setScrollIntent,
+
+} = useScrollRestoration(
   readerViewRef,
   () => readerStore.currentBook?.id,
   () => readerStore.currentPage?.pageNum,
@@ -59,7 +65,7 @@ const { prevPage, nextPage, goToPage } = useReaderNavigation(setScrollIntent)
 useReaderHotkeys(prevPage, nextPage)
 const { onPointerDown, onPointerUp, onWordClick } = useTextSelection()
 
-const { isHeaderVisible, onScroll } = useReaderScroll(saveScrollPosition)
+const { isHeaderVisible, onScroll } = useReaderScroll(saveScrollPosition, undefined, isRestoringScroll)
 const { performLayoutSync } = useParallelSync(readerViewRef, restoreScrollPosition)
 const { leftPaneContent, translatedPageContent, pageTranslationProgress } = useReaderContent()
 useQuoteHighlights(readerViewRef, [leftPaneContent, translatedPageContent])

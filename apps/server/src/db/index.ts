@@ -7,6 +7,7 @@ import { instrumentDrizzleClient } from '@kubiks/otel-drizzle'
 import { createClient } from '@libsql/client'
 import { eq } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/libsql'
+import { migrate } from 'drizzle-orm/libsql/migrator'
 import { catalogClient, initCatalogDb } from '~/db/catalog'
 import {
   ADMIN_PASSWORD,
@@ -64,6 +65,15 @@ void (async () => {
     logger.info('🔄 Checking and applying database migrations...')
 
     try {
+      await migrate(db, { migrationsFolder: new URL('./migrations', import.meta.url).pathname })
+      logger.info('✅ Database migrations applied successfully.')
+    }
+    catch (e) {
+      logger.error(e, '❌ Failed to apply database migrations:')
+      process.exit(1)
+    }
+
+    try {
       logger.info(`🗄️  Catalog Database initialized at ${CATALOG_DATABASE_URL}`)
       await initCatalogDb()
 
@@ -105,6 +115,14 @@ void (async () => {
     }
     catch (e) {
       logger.error(e, '⚠️ Could not check/create admin user:')
+    }
+
+    try {
+      const { subscriptionTierService } = await import('../services/subscription-tier.service')
+      await subscriptionTierService.seedIfEmpty()
+    }
+    catch (e) {
+      logger.error(e, '⚠️ Could not seed subscription tiers:')
     }
 
     logger.info(`🗄️ Main Database initialized at ${DATABASE_URL}`)

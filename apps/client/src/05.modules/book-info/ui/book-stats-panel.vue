@@ -213,15 +213,18 @@ onMounted(() => {
           <p>{{ bookDescription }}</p>
         </div>
 
-        <div v-if="libraryStore.currentBookInfo.stats.totalSentences || libraryStore.currentBookInfo.type === 'manga'" class="crowdsource-section">
+        <div
+          v-if="libraryStore.currentBookInfo.stats.totalSentences || libraryStore.currentBookInfo.totalPages"
+          class="crowdsource-section"
+        >
           <div class="cs-box-header" @click="showCrowdsource = !showCrowdsource">
             <h3><Icon icon="mdi:earth" /> {{ t('globalAiCache') }}</h3>
             <Icon :icon="showCrowdsource ? 'mdi:chevron-up' : 'mdi:chevron-down'" class="cs-toggle-icon" />
           </div>
           <Transition name="fade-slide">
             <div v-show="showCrowdsource" class="crowdsource-list">
-              <!-- Страницы (для манги) -->
-              <div v-if="libraryStore.currentBookInfo.type === 'manga'" class="cs-item">
+              <!-- Страницы -->
+              <div v-if="libraryStore.currentBookInfo.totalPages" class="cs-item">
                 <div class="cs-info">
                   <span><Icon icon="mdi:file-document-outline" /> {{ t('bookStats.analyzedPages') || 'Проанализировано страниц' }}</span>
                   <span>{{ formatNumber(libraryStore.currentBookInfo.analysesCount) }} / {{ formatNumber(libraryStore.currentBookInfo.totalPages) }}</span>
@@ -235,32 +238,40 @@ onMounted(() => {
               <div class="cs-item">
                 <div class="cs-info">
                   <span><Icon icon="mdi:brain" /> {{ t('translatedSentences') }}</span>
-                  <span v-if="libraryStore.currentBookInfo.type === 'manga'">{{ formatNumber(libraryStore.currentBookInfo.cachedSentences) }}</span>
-                  <span v-else>{{ formatNumber(libraryStore.currentBookInfo.cachedSentences) }} / {{ formatNumber(libraryStore.currentBookInfo.stats.totalSentences) }}</span>
+                  <span v-if="libraryStore.currentBookInfo.stats.totalSentences">
+                    {{ formatNumber(libraryStore.currentBookInfo.cachedSentences) }} / {{ formatNumber(libraryStore.currentBookInfo.stats.totalSentences) }}
+                  </span>
+                  <span v-else>{{ formatNumber(libraryStore.currentBookInfo.cachedSentences) }}</span>
                 </div>
-                <div v-if="libraryStore.currentBookInfo.type !== 'manga'" class="cs-bar">
+                <div v-if="libraryStore.currentBookInfo.stats.totalSentences" class="cs-bar">
                   <div class="cs-fill" :style="{ width: percent(libraryStore.currentBookInfo.cachedSentences, libraryStore.currentBookInfo.stats.totalSentences) }" />
                 </div>
               </div>
+
               <!-- Слова -->
               <div class="cs-item">
                 <div class="cs-info">
                   <span><Icon icon="mdi:format-text" /> {{ t('translatedWords') }}</span>
-                  <span v-if="libraryStore.currentBookInfo.type === 'manga'">{{ formatNumber(libraryStore.currentBookInfo.cachedWords) }}</span>
-                  <span v-else>{{ formatNumber(libraryStore.currentBookInfo.cachedWords) }} / {{ formatNumber(libraryStore.currentBookInfo.stats.totalWords) }}</span>
+                  <span v-if="libraryStore.currentBookInfo.stats.totalWords">
+                    {{ formatNumber(libraryStore.currentBookInfo.cachedWords) }} / {{ formatNumber(libraryStore.currentBookInfo.stats.totalWords) }}
+                  </span>
+                  <span v-else>{{ formatNumber(libraryStore.currentBookInfo.cachedWords) }}</span>
                 </div>
-                <div v-if="libraryStore.currentBookInfo.type !== 'manga'" class="cs-bar">
+                <div v-if="libraryStore.currentBookInfo.stats.totalWords" class="cs-bar">
                   <div class="cs-fill" :style="{ width: percent(libraryStore.currentBookInfo.cachedWords, libraryStore.currentBookInfo.stats.totalWords) }" />
                 </div>
               </div>
+
               <!-- Озвучка -->
               <div class="cs-item">
                 <div class="cs-info">
                   <span><Icon icon="mdi:headphones" /> {{ t('voicedTts') }}</span>
-                  <span v-if="libraryStore.currentBookInfo.type === 'manga'">{{ formatNumber(libraryStore.currentBookInfo.cachedTts) }}</span>
-                  <span v-else>{{ formatNumber(libraryStore.currentBookInfo.cachedTts) }} / {{ formatNumber((libraryStore.currentBookInfo.stats.totalSentences || 0) + (libraryStore.currentBookInfo.stats.totalWords || 0)) }}</span>
+                  <span v-if="libraryStore.currentBookInfo.stats.totalSentences || libraryStore.currentBookInfo.stats.totalWords">
+                    {{ formatNumber(libraryStore.currentBookInfo.cachedTts) }} / {{ formatNumber((libraryStore.currentBookInfo.stats.totalSentences || 0) + (libraryStore.currentBookInfo.stats.totalWords || 0)) }}
+                  </span>
+                  <span v-else>{{ formatNumber(libraryStore.currentBookInfo.cachedTts) }}</span>
                 </div>
-                <div v-if="libraryStore.currentBookInfo.type !== 'manga'" class="cs-bar">
+                <div v-if="libraryStore.currentBookInfo.stats.totalSentences || libraryStore.currentBookInfo.stats.totalWords" class="cs-bar">
                   <div class="cs-fill tts" :style="{ width: percent(libraryStore.currentBookInfo.cachedTts, (libraryStore.currentBookInfo.stats.totalSentences || 0) + (libraryStore.currentBookInfo.stats.totalWords || 0)) }" />
                 </div>
               </div>

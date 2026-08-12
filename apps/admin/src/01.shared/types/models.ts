@@ -62,10 +62,29 @@ export interface LoginResponse {
 
 export interface SubscriptionTier {
   id: string
-  name: string
-  tokenLimit: number
-  bookLimit: number
+  sortOrder: number
+  icon: string
+  price: number
+  dailyTokenLimit: number | null
+  dailyBookLimit: number | null
+  isPopular: boolean
+  gradient: string
+  accentColor: string
+  badgeEn: string
+  badgeRu: string
+  badgeZh: string
+  nameEn: string
+  nameRu: string
+  nameZh: string
+  descriptionEn: string
+  descriptionRu: string
+  descriptionZh: string
+  featuresEn: string[]
+  featuresRu: string[]
+  featuresZh: string[]
 }
+
+export type SubscriptionTierInput = Partial<Omit<SubscriptionTier, 'id'>> & { id?: string }
 
 export interface MeResponse {
   user: AdminUser | null

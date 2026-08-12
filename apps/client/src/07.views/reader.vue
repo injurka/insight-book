@@ -62,4 +62,8 @@ onMounted(async () => {
   width: 100%;
   height: 100%;
 }
+
+.reader-page-wrapper.reader-page-wrapper {
+  min-height: 0;
+}
 </style>

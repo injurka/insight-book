@@ -16,6 +16,7 @@ function toggleCollapse() {
 const navLinks = [
   { to: '/', label: 'Дашборд', icon: 'mdi:view-dashboard' },
   { to: '/users', label: 'Пользователи', icon: 'mdi:account-group' },
+  { to: '/subscriptions', label: 'Подписки', icon: 'mdi:card-account-details' },
   { to: '/books/pending', label: 'Книги на модерацию', icon: 'mdi:book-open-variant' },
   { to: '/plugins/pending', label: 'Плагины на модерацию', icon: 'mdi:puzzle' },
 ]

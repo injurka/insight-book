@@ -1,13 +1,66 @@
 import type { CATALOG_PLUGIN_STATUS } from '../constants/catalog-plugin'
 import { Elysia, t } from 'elysia'
 import { adminService } from '../services/admin.service'
+import { subscriptionTierService } from '../services/subscription-tier.service'
 import { authPlugin } from '../utils/auth'
+
+const localizedFields = {
+  badgeEn: t.Optional(t.String()),
+  badgeRu: t.Optional(t.String()),
+  badgeZh: t.Optional(t.String()),
+  nameEn: t.Optional(t.String()),
+  nameRu: t.Optional(t.String()),
+  nameZh: t.Optional(t.String()),
+  descriptionEn: t.Optional(t.String()),
+  descriptionRu: t.Optional(t.String()),
+  descriptionZh: t.Optional(t.String()),
+  featuresEn: t.Optional(t.Array(t.String())),
+  featuresRu: t.Optional(t.Array(t.String())),
+  featuresZh: t.Optional(t.Array(t.String())),
+}
+
+const tierBody = t.Object({
+  id: t.Optional(t.String()),
+  sortOrder: t.Optional(t.Number()),
+  icon: t.Optional(t.String()),
+  price: t.Optional(t.Number()),
+  dailyTokenLimit: t.Optional(t.Nullable(t.Number())),
+  dailyBookLimit: t.Optional(t.Nullable(t.Number())),
+  isPopular: t.Optional(t.Boolean()),
+  gradient: t.Optional(t.String()),
+  accentColor: t.Optional(t.String()),
+  ...localizedFields,
+})
 
 export const adminRouter = new Elysia({ prefix: '/api/admin' })
   .use(authPlugin)
 
   .get('/subscription-tiers', async ({ userId }) => {
-    return adminService.getSubscriptionTiers(userId)
+    await adminService.assertAdmin(userId)
+    return subscriptionTierService.list()
+  })
+
+  .post('/subscription-tiers', async ({ userId, body }) => {
+    await adminService.assertAdmin(userId)
+    return subscriptionTierService.create(body as Parameters<typeof subscriptionTierService.create>[0])
+  }, {
+    body: tierBody,
+  })
+
+  .patch('/subscription-tiers/:id', async ({ userId, params, body }) => {
+    await adminService.assertAdmin(userId)
+    return subscriptionTierService.update(params.id, body as Parameters<typeof subscriptionTierService.update>[1])
+  }, {
+    params: t.Object({ id: t.String() }),
+    body: tierBody,
+  })
+
+  .delete('/subscription-tiers/:id', async ({ userId, params }) => {
+    await adminService.assertAdmin(userId)
+    await subscriptionTierService.remove(params.id)
+    return { success: true }
+  }, {
+    params: t.Object({ id: t.String() }),
   })
 
   .get('/stats', async ({ userId }) => {

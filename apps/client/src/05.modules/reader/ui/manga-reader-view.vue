@@ -42,7 +42,13 @@ useReadingSession()
 
 const showSpinner = useDelayedLoading(computed(() => readerStore.isPageLoading), 1000)
 
-const { saveScrollPosition, restoreScrollPosition, setScrollIntent } = useScrollRestoration(
+const {
+  isRestoringScroll,
+  saveScrollPosition,
+  restoreScrollPosition,
+  setScrollIntent,
+
+} = useScrollRestoration(
   readerViewRef,
   () => readerStore.currentBook?.id,
   () => readerStore.currentPage?.pageNum,
@@ -76,7 +82,7 @@ const {
   getBubbleHighlightStyle,
 } = useMangaBubbles(onPointerDown, onWordClick)
 
-const { isHeaderVisible, onScroll } = useReaderScroll(saveScrollPosition, closeBubblePopover)
+const { isHeaderVisible, onScroll } = useReaderScroll(saveScrollPosition, closeBubblePopover, isRestoringScroll)
 
 const { parallelTranslations } = useReaderContent()
 useQuoteHighlights(readerViewRef, [parallelTranslations])

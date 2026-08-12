@@ -1,4 +1,4 @@
-import type { DashboardStats, LoginResponse, MeResponse, PaginatedResponse, PendingBook, PendingPlugin, SubscriptionTier, UserDetail, UserRow } from '~/01.shared/types/models'
+import type { DashboardStats, LoginResponse, MeResponse, PaginatedResponse, PendingBook, PendingPlugin, SubscriptionTier, SubscriptionTierInput, UserDetail, UserRow } from '~/01.shared/types/models'
 import { ofetch } from 'ofetch'
 
 import { API_URL } from '~/01.shared/lib/env'
@@ -55,6 +55,23 @@ export const api = {
   admin: {
     getSubscriptionTiers: () =>
       request<SubscriptionTier[]>('/api/admin/subscription-tiers'),
+
+    createSubscriptionTier: (data: SubscriptionTierInput) =>
+      request<SubscriptionTier>('/api/admin/subscription-tiers', {
+        method: 'POST',
+        body: JSON.stringify(data),
+        headers: { 'Content-Type': 'application/json' },
+      }),
+
+    updateSubscriptionTier: (id: string, data: SubscriptionTierInput) =>
+      request<SubscriptionTier>(`/api/admin/subscription-tiers/${encodeURIComponent(id)}`, {
+        method: 'PATCH',
+        body: JSON.stringify(data),
+        headers: { 'Content-Type': 'application/json' },
+      }),
+
+    deleteSubscriptionTier: (id: string) =>
+      request<{ success: boolean }>(`/api/admin/subscription-tiers/${encodeURIComponent(id)}`, { method: 'DELETE' }),
 
     stats: () =>
       request<DashboardStats>('/api/admin/stats'),
