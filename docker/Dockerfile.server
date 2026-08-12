@@ -1,11 +1,4 @@
-FROM oven/bun:1.3-slim
-
-RUN apt-get update && apt-get install -y \
-    python3 \
-    make \
-    g++ \
-    build-essential \
-    && rm -rf /var/lib/apt/lists/*
+FROM oven/bun:1.3.14-slim
 
 WORKDIR /app
 
@@ -14,7 +7,11 @@ COPY apps/server/package.json ./apps/server/
 
 RUN bun install --ignore-scripts
 
-RUN cd node_modules/nodejieba && bun run build || npm run build || bunx node-gyp rebuild
+# bun nests workspace deps under apps/server/node_modules in this partial layout.
+# nodejieba's own install/build scripts use npx (npm is absent in bun images), so
+# fetch its official prebuilt N-API binary (node ABI v137 = what bun 1.3.14 reports)
+# with node-pre-gyp, run under bun explicitly.
+RUN cd apps/server/node_modules/nodejieba && bunx --bun @mapbox/node-pre-gyp install
 
 COPY . .
 
