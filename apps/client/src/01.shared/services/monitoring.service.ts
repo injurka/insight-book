@@ -118,7 +118,6 @@ export function setupServerTimingObserver() {
   if (!('PerformanceObserver' in window))
     return
 
-  // Экранируем API_URL для использования в RegExp
   const apiPattern = API_URL
     ? new RegExp(`^${API_URL.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`)
     : null
@@ -126,7 +125,6 @@ export function setupServerTimingObserver() {
   try {
     const observer = new PerformanceObserver((list) => {
       for (const entry of list.getEntries()) {
-        // Фильтруем только запросы к нашему API
         if (apiPattern && !apiPattern.test(entry.name))
           continue
 
@@ -134,7 +132,6 @@ export function setupServerTimingObserver() {
         if (!serverTiming || serverTiming.length === 0)
           continue
 
-        // Собираем метрики в плоский объект
         const metrics: Record<string, number> = {}
         for (const st of serverTiming) {
           metrics[st.name] = st.duration
