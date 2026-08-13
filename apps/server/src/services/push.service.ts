@@ -122,13 +122,14 @@ export async function sendDailyMotivations(customMessage?: string) {
     return
   }
 
-  logger.info('🚀 Starting push notifications dispatch...')
   const webSubscriptions = await pushRepository.getAllWebSubscriptionsWithUsers()
 
   if (!webSubscriptions.length) {
-    logger.info('[Push] No active subscriptions found.')
+    logger.debug('[Push] No active subscriptions found.')
     return
   }
+
+  logger.info('🚀 Starting push notifications dispatch...')
 
   const userSubsMap = new Map<number, { user: { id: number, pushCount?: number | null, lastPushSentAt?: string | null, timezone?: string | null, pushTimeStart?: string | null, pushTimeEnd?: string | null, uiLanguage?: string | null, pushTargetDeckId?: number | null }, web: typeof webSubscriptions }>()
 
