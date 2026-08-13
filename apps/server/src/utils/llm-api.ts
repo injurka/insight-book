@@ -1,6 +1,8 @@
+import type { Attributes } from '@opentelemetry/api'
 import type { ModelMessage } from 'ai'
 import type { LlmConfig } from '~/types'
 import { logger } from '../utils/logger'
+import { attachUrlToActiveSpan, runWithClientSpan } from './external-call'
 import { parseLlmJson } from './helpers'
 
 const MAX_OUTPUT_TOKENS = 8192
@@ -32,6 +34,36 @@ class LlmHttpError extends Error {
   }
 }
 
+// ============================================================================
+// OTel: исходящие LLM-вызовы. Общая обёртка внешних вызовов — utils/external-call.ts
+// (runWithClientSpan): спан с GenAI-семантикой (semconv gen_ai.*), даёт секцию
+// External calls в APM-дашбордах и связывает LLM-запросы с HTTP-трейсом запроса.
+// ============================================================================
+function llmSystemFor(url: string): string {
+  if (isOllamaNativeUrl(url))
+    return 'ollama'
+  if (isGeminiNativeUrl(url))
+    return 'gemini'
+  return 'openai'
+}
+
+/** Базовые атрибуты спана LLM-вызова (без чувствительных данных) */
+function llmBaseAttributes(config: LlmConfig, modelName: string): Attributes {
+  const attributes: Attributes = {
+    'gen_ai.system': llmSystemFor(config.url),
+    'gen_ai.request.model': modelName,
+    'http.request.method': 'POST',
+    'http.method': 'POST',
+  }
+  try {
+    attributes['server.address'] = new URL(config.url).hostname
+  }
+  catch {
+    // невалидный url — атрибут пропускаем
+  }
+  return attributes
+}
+
 async function callLlmApi(
   modelName: string,
   messages: ModelMessage[],
@@ -41,29 +73,37 @@ async function callLlmApi(
   forceJson: boolean = false,
 ): Promise<{ text: string, usage: TokenUsage }> {
   try {
-    if (isOllamaNativeUrl(config.url)) {
-      return await callOllamaNative({
-        modelName,
-        messages,
-        temperature,
-        signal,
-        config,
-        forceJson,
-      })
-    }
+    return await runWithClientSpan(
+      `LLM ${modelName}`,
+      llmBaseAttributes(config, modelName),
+      async (span) => {
+        const result = await dispatchLlm(modelName, messages, temperature, signal, config, forceJson)
 
-    if (isGeminiNativeUrl(config.url)) {
-      return await callGeminiNative({
-        modelName,
-        messages,
-        temperature,
-        signal,
-        config,
-        forceJson,
-      })
-    }
+        span.setAttribute('gen_ai.usage.input_tokens', result.usage.promptTokens)
+        span.setAttribute('gen_ai.usage.output_tokens', result.usage.completionTokens)
 
-    return await callOpenAiCompatible({
+        return result
+      },
+    )
+  }
+  catch (error: unknown) {
+    const errObj = error as { message?: string }
+    throw new Error(
+      `AI SDK Error[${modelName}]: ${errObj?.message || JSON.stringify(error)} `,
+    )
+  }
+}
+
+async function dispatchLlm(
+  modelName: string,
+  messages: ModelMessage[],
+  temperature: number,
+  signal: AbortSignal,
+  config: LlmConfig,
+  forceJson: boolean = false,
+): Promise<{ text: string, usage: TokenUsage }> {
+  if (isOllamaNativeUrl(config.url)) {
+    return await callOllamaNative({
       modelName,
       messages,
       temperature,
@@ -72,12 +112,26 @@ async function callLlmApi(
       forceJson,
     })
   }
-  catch (error: unknown) {
-    const errObj = error as { message?: string }
-    throw new Error(
-      `AI SDK Error[${modelName}]: ${errObj?.message || JSON.stringify(error)} `,
-    )
+
+  if (isGeminiNativeUrl(config.url)) {
+    return await callGeminiNative({
+      modelName,
+      messages,
+      temperature,
+      signal,
+      config,
+      forceJson,
+    })
   }
+
+  return await callOpenAiCompatible({
+    modelName,
+    messages,
+    temperature,
+    signal,
+    config,
+    forceJson,
+  })
 }
 
 /**
@@ -429,6 +483,9 @@ async function postJson<T>(params: {
     signal,
     headers = {},
   } = params
+
+  // Реальный URL запроса — для секции External calls в APM (без query: там ключи)
+  attachUrlToActiveSpan(url)
 
   const response = await fetch(url, {
     method: 'POST',

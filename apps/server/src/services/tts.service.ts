@@ -2,6 +2,7 @@ import type { LlmConfig, ModelMessage } from '../types'
 import { eq } from 'drizzle-orm'
 import { pinyin } from 'pinyin-pro'
 import { convertToOpus } from '~/utils/audio'
+import { attachUrlToActiveSpan, runWithClientSpan } from '~/utils/external-call'
 import { hashTtsText, mapVoiceToOpenAi, parseLlmJson } from '~/utils/helpers'
 import { callLlmJsonWithRetry } from '~/utils/llm-api'
 import { ERROR_CODES } from '../constants/error-codes'
@@ -77,37 +78,50 @@ export async function generateTts(
       response_format: formatToTry,
     }
 
-    let response = await fetch(`${ttsUrl}/audio/speech`, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify(requestBody),
-      signal: AbortSignal.timeout(60000),
-    })
+    return await runWithClientSpan(
+      `TTS ${model}`,
+      {
+        'gen_ai.system': isGemini ? 'gemini' : 'openai',
+        'gen_ai.request.model': model,
+        'http.request.method': 'POST',
+        'http.method': 'POST',
+      },
+      async () => {
+        attachUrlToActiveSpan(`${ttsUrl}/audio/speech`)
 
-    if (!response.ok && formatToTry === 'opus') {
-      // Fallback to mp3 if provider API doesn't accept 'opus' format
-      requestBody.response_format = 'mp3'
-      response = await fetch(`${ttsUrl}/audio/speech`, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify(requestBody),
-        signal: AbortSignal.timeout(60000),
-      })
-    }
+        let response = await fetch(`${ttsUrl}/audio/speech`, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify(requestBody),
+          signal: AbortSignal.timeout(60000),
+        })
 
-    if (!response.ok) {
-      const errorText = await response.text()
-      throw new AppError(500, ERROR_CODES.TTS.GENERATION_FAILED, `TTS API error ${response.status}: ${errorText}`)
-    }
+        if (!response.ok && formatToTry === 'opus') {
+          // Fallback to mp3 if provider API doesn't accept 'opus' format
+          requestBody.response_format = 'mp3'
+          response = await fetch(`${ttsUrl}/audio/speech`, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify(requestBody),
+            signal: AbortSignal.timeout(60000),
+          })
+        }
 
-    const arrayBuffer = await response.arrayBuffer()
+        if (!response.ok) {
+          const errorText = await response.text()
+          throw new AppError(500, ERROR_CODES.TTS.GENERATION_FAILED, `TTS API error ${response.status}: ${errorText}`)
+        }
 
-    if (arrayBuffer.byteLength === 0) {
-      throw new AppError(500, ERROR_CODES.TTS.GENERATION_FAILED, 'TTS API returned empty audio data')
-    }
+        const arrayBuffer = await response.arrayBuffer()
 
-    const rawBuffer = Buffer.from(new Uint8Array(arrayBuffer))
-    return convertToOpus(rawBuffer)
+        if (arrayBuffer.byteLength === 0) {
+          throw new AppError(500, ERROR_CODES.TTS.GENERATION_FAILED, 'TTS API returned empty audio data')
+        }
+
+        const rawBuffer = Buffer.from(new Uint8Array(arrayBuffer))
+        return convertToOpus(rawBuffer)
+      },
+    )
   }
 
   let audioBuffer: Buffer = Buffer.from(new Uint8Array(0))
@@ -254,19 +268,32 @@ export async function checkPronunciationAudio(userId: number, word: string, lang
       fd.append('language', language.substring(0, 2))
     }
 
-    const response = await fetch(apiUrl, {
-      method: 'POST',
-      headers: sttKey ? { Authorization: `Bearer ${sttKey}` } : {},
-      body: fd,
-      signal: AbortSignal.timeout(30000),
-    })
+    return await runWithClientSpan(
+      `STT ${model}`,
+      {
+        'gen_ai.system': 'openai',
+        'gen_ai.request.model': model,
+        'http.request.method': 'POST',
+        'http.method': 'POST',
+      },
+      async () => {
+        attachUrlToActiveSpan(apiUrl)
 
-    if (!response.ok) {
-      const errorText = await response.text()
-      throw new Error(`STT API Error: ${response.status} ${errorText}`)
-    }
+        const response = await fetch(apiUrl, {
+          method: 'POST',
+          headers: sttKey ? { Authorization: `Bearer ${sttKey}` } : {},
+          body: fd,
+          signal: AbortSignal.timeout(30000),
+        })
 
-    return response.json() as Promise<{ text?: string, usage?: { prompt_tokens?: number, completion_tokens?: number } }>
+        if (!response.ok) {
+          const errorText = await response.text()
+          throw new Error(`STT API Error: ${response.status} ${errorText}`)
+        }
+
+        return response.json() as Promise<{ text?: string, usage?: { prompt_tokens?: number, completion_tokens?: number } }>
+      },
+    )
   }
 
   try {
