@@ -128,9 +128,9 @@ async function setupPlatformUpdaters(pinia: Pinia) {
   }
 }
 
+bootstrap()
+
 // Предзагрузка иконочного бандла Iconify
 import('~/assets/icons-bundle.json').then((module) => {
   addCollection(module.default)
 })
-
-bootstrap()

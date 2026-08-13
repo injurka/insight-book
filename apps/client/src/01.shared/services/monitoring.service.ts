@@ -84,6 +84,15 @@ let enabled = false
 let eventCounter: Counter | null = null
 let errorCounter: Counter | null = null
 
+// OTLP-экспортёры используют переданный url как есть и сигнальный путь сами не дописывают.
+// Разводим по сигналам явно, как в server/plugins/telemetry.ts (otlpRootUrl):
+// OTEL_EXPORTER_OTLP_ENDPOINT — базовый URL коллектора БЕЗ сигнального пути.
+const otlpBaseUrl = OTEL_EXPORTER_OTLP_ENDPOINT.replace(/\/(?:v1\/(?:traces|metrics|logs))?\/?$/, '')
+
+function otlpSignalUrl(signal: 'traces' | 'logs' | 'metrics') {
+  return `${otlpBaseUrl}/v1/${signal}`
+}
+
 /** Атрибуты пользователя, прикрепляются ко всем спанам и лог-записям */
 let userAttributes: Record<string, string> = {}
 
@@ -259,7 +268,7 @@ export function initMonitoring() {
     resource,
     spanProcessors: [
       new UserAttributesSpanProcessor(),
-      new BatchSpanProcessor(new OTLPTraceExporter({ url: OTEL_EXPORTER_OTLP_ENDPOINT })),
+      new BatchSpanProcessor(new OTLPTraceExporter({ url: otlpSignalUrl('traces') })),
     ],
   })
 
@@ -272,7 +281,7 @@ export function initMonitoring() {
     resource,
     processors: [
       new BatchLogRecordProcessor({
-        exporter: new OTLPLogExporter({ url: OTEL_EXPORTER_OTLP_ENDPOINT }),
+        exporter: new OTLPLogExporter({ url: otlpSignalUrl('logs') }),
       }),
     ],
   })
@@ -281,7 +290,7 @@ export function initMonitoring() {
 
   // --- Metrics: Web Vitals, server-timing, счётчики событий/ошибок ---
   const metricReader = new PeriodicExportingMetricReader({
-    exporter: new OTLPMetricExporter({ url: OTEL_EXPORTER_OTLP_ENDPOINT }),
+    exporter: new OTLPMetricExporter({ url: otlpSignalUrl('metrics') }),
     exportIntervalMillis: 10_000,
   })
   const meterProvider = new MeterProvider({ resource, readers: [metricReader] })
