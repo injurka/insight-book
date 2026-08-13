@@ -94,6 +94,75 @@ async function getMediaCache(): Promise<Cache | null> {
   return null
 }
 
+function isCacheLostError(err: unknown): boolean {
+  return err instanceof DOMException && err.name === 'NotReadableError'
+}
+
+/**
+ * Безопасный cache.match: если браузер потерял файл записи кэша
+ * (NotReadableError — «Data lost due to missing file»), запись невосстановима
+ * и остаётся в индексе, отравляя каждый вызов. Удаляем её и возвращаем null.
+ */
+async function safeCacheMatch(cache: Cache, req: RequestInfo | URL): Promise<Response | null> {
+  try {
+    return (await cache.match(req)) ?? null
+  }
+  catch (err) {
+    if (isCacheLostError(err)) {
+      try {
+        await cache.delete(req)
+        console.warn(`[OfflineService] Удалена битая запись кэша: ${req}`)
+      }
+      catch (deleteErr) {
+        console.warn('[OfflineService] Не удалось удалить битую запись кэша:', deleteErr)
+      }
+    }
+    else {
+      console.warn('[OfflineService] cache.match failed:', err)
+    }
+
+    return null
+  }
+}
+
+/**
+ * Безопасный cache.put: если в индексе есть битая запись с тем же URL,
+ * put падает с NotReadableError. Удаляем запись и пробуем один раз заново.
+ * Возвращает false, если записать не удалось (вызывающий код уходит в legacy-fallback).
+ */
+async function safeCachePut(cache: Cache, req: RequestInfo | URL, response: Response): Promise<boolean> {
+  const retryResponse = response.clone()
+
+  try {
+    await cache.put(req, response)
+
+    return true
+  }
+  catch (err) {
+    if (isCacheLostError(err)) {
+      try {
+        await cache.delete(req)
+      }
+      catch { }
+
+      try {
+        await cache.put(req, retryResponse)
+
+        return true
+      }
+      catch (retryErr) {
+        console.warn('[OfflineService] cache.put failed after cleanup:', retryErr)
+
+        return false
+      }
+    }
+
+    console.warn('[OfflineService] cache.put failed:', err)
+
+    return false
+  }
+}
+
 export interface BookCacheStat {
   title: string
   totalPages: number
@@ -213,7 +282,7 @@ async function processMediaCacheReq(cache: Cache, req: Request, bookStats: Recor
   const pathParts = url.pathname.split('/')
   const type = pathParts[2]
 
-  const res = await cache.match(req)
+  const res = await safeCacheMatch(cache, req)
   const size = res ? Number(res.headers.get('content-length') || 0) : 0
 
   if (type === 'image' || type === 'cover') {
@@ -229,6 +298,89 @@ async function processMediaCacheReq(cache: Cache, req: Request, bookStats: Recor
   }
 
   return size
+}
+
+/** Проверяет, относится ли URL записи медиа-кэша к указанной книге. */
+function isBookMediaEntry(url: string, bookId: number): boolean {
+  const pathParts = new URL(url).pathname.split('/')
+  const type = pathParts[2]
+
+  if (type === 'image' || type === 'cover')
+    return Number(pathParts[3]) === bookId
+
+  if (type === 'tts') {
+    const hashKey = pathParts[3]
+
+    return !!hashKey && hashKey.startsWith(`${bookId}_`)
+  }
+
+  return false
+}
+
+/** Сносит медиа-кэш целиком (последнее средство при нечитаемом индексе). */
+async function deleteWholeMediaCache(): Promise<void> {
+  try {
+    await caches.delete(MEDIA_CACHE_NAME)
+  }
+  catch (deleteErr) {
+    console.warn('[OfflineService] Не удалось удалить медиа-кэш:', deleteErr)
+  }
+}
+
+/**
+ * Считает суммарный размер записей медиа-кэша (Cache API).
+ * Если индекс кэша нечитаем (потеряны файлы записей) — сносит кэш целиком
+ * и возвращает 0, чтобы не ломать загрузку статистики.
+ */
+async function collectMediaCacheStats(bookStats: Record<number, BookCacheStat>): Promise<number> {
+  const cache = await getMediaCache()
+  if (!cache)
+    return 0
+
+  let totalSize = 0
+
+  try {
+    const cacheKeys = await cache.keys()
+    for (const req of cacheKeys) {
+      const size = await processMediaCacheReq(cache, req, bookStats)
+      totalSize += size
+    }
+  }
+  catch (err) {
+    if (isCacheLostError(err)) {
+      await deleteWholeMediaCache()
+      console.warn('[OfflineService] Медиа-кэш повреждён, сброшен целиком:', err)
+    }
+    else {
+      console.warn('[OfflineService] Не удалось посчитать медиа-кэш:', err)
+    }
+  }
+
+  return totalSize
+}
+
+/** Удаляет из медиа-кэша записи, относящиеся к книге. */
+async function clearMediaCacheForBook(bookId: number): Promise<void> {
+  const cache = await getMediaCache()
+  if (!cache)
+    return
+
+  try {
+    const cacheKeys = await cache.keys()
+    for (const req of cacheKeys) {
+      if (isBookMediaEntry(req.url, bookId))
+        await cache.delete(req)
+    }
+  }
+  catch (err) {
+    if (isCacheLostError(err)) {
+      await deleteWholeMediaCache()
+      console.warn('[OfflineService] Медиа-кэш повреждён, сброшен целиком:', err)
+    }
+    else {
+      console.warn('[OfflineService] Не удалось очистить медиа-кэш:', err)
+    }
+  }
 }
 
 async function safeSetItem<T>(key: string, value: T): Promise<void> {
@@ -282,23 +434,24 @@ export const offlineService = {
   async saveImage(bookId: number, pageNum: number, blob: Blob) {
     const cache = await getMediaCache()
     if (cache) {
-      await cache.put(`/offline/image/${bookId}/${pageNum}`, new Response(blob, {
+      const saved = await safeCachePut(cache, `/offline/image/${bookId}/${pageNum}`, new Response(blob, {
         headers: {
           'Content-Type': blob.type,
           'Content-Length': blob.size.toString(),
         },
       }))
+      if (saved)
+        return
     }
-    else {
-      // Legacy fallback
-      await safeSetItem(`image_${bookId}_${pageNum}`, blob)
-    }
+
+    // Legacy fallback (нет Cache API или запись не удалась)
+    await safeSetItem(`image_${bookId}_${pageNum}`, blob)
   },
 
   async getImage(bookId: number, pageNum: number): Promise<Blob | null> {
     const cache = await getMediaCache()
     if (cache) {
-      const res = await cache.match(`/offline/image/${bookId}/${pageNum}`)
+      const res = await safeCacheMatch(cache, `/offline/image/${bookId}/${pageNum}`)
       if (res)
         return res.blob()
     }
@@ -309,22 +462,23 @@ export const offlineService = {
   async saveCover(bookId: number, blob: Blob) {
     const cache = await getMediaCache()
     if (cache) {
-      await cache.put(`/offline/cover/${bookId}`, new Response(blob, {
+      const saved = await safeCachePut(cache, `/offline/cover/${bookId}`, new Response(blob, {
         headers: {
           'Content-Type': blob.type,
           'Content-Length': blob.size.toString(),
         },
       }))
+      if (saved)
+        return
     }
-    else {
-      await safeSetItem(`cover_${bookId}`, blob)
-    }
+
+    await safeSetItem(`cover_${bookId}`, blob)
   },
 
   async getCover(bookId: number): Promise<Blob | null> {
     const cache = await getMediaCache()
     if (cache) {
-      const res = await cache.match(`/offline/cover/${bookId}`)
+      const res = await safeCacheMatch(cache, `/offline/cover/${bookId}`)
       if (res)
         return res.blob()
     }
@@ -445,22 +599,23 @@ export const offlineService = {
 
     const cache = await getMediaCache()
     if (cache) {
-      await cache.put(`/offline/tts/${hashKey}`, new Response(blob, {
+      const saved = await safeCachePut(cache, `/offline/tts/${hashKey}`, new Response(blob, {
         headers: {
           'Content-Type': 'audio/ogg',
           'Content-Length': blob.size.toString(),
         },
       }))
+      if (saved)
+        return
     }
-    else {
-      await safeSetItem(`tts_${hashKey}`, audioBase64)
-    }
+
+    await safeSetItem(`tts_${hashKey}`, audioBase64)
   },
 
   async getTtsBlob(hashKey: string): Promise<Blob | null> {
     const cache = await getMediaCache()
     if (cache) {
-      const res = await cache.match(`/offline/tts/${hashKey}`)
+      const res = await safeCacheMatch(cache, `/offline/tts/${hashKey}`)
       if (res)
         return res.blob()
     }
@@ -543,14 +698,7 @@ export const offlineService = {
       }
     }
 
-    const cache = await getMediaCache()
-    if (cache) {
-      const cacheKeys = await cache.keys()
-      for (const req of cacheKeys) {
-        const size = await processMediaCacheReq(cache, req, bookStats)
-        totalSize += size
-      }
-    }
+    totalSize += await collectMediaCacheStats(bookStats)
 
     return { bookStats, totalDictionaryWords, totalSizeBytes: totalSize }
   },
@@ -573,24 +721,6 @@ export const offlineService = {
       await localforage.removeItem(key)
 
     // 2. Очистка Cache API
-    const cache = await getMediaCache()
-    if (cache) {
-      const cacheKeys = await cache.keys()
-      for (const req of cacheKeys) {
-        const url = new URL(req.url)
-        const pathParts = url.pathname.split('/')
-        const type = pathParts[2]
-
-        if (type === 'image' || type === 'cover') {
-          if (Number(pathParts[3]) === bookId)
-            await cache.delete(req)
-        }
-        else if (type === 'tts') {
-          const hashKey = pathParts[3]
-          if (hashKey && hashKey.startsWith(`${bookId}_`))
-            await cache.delete(req)
-        }
-      }
-    }
+    await clearMediaCacheForBook(bookId)
   },
 }
