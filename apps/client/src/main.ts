@@ -53,7 +53,6 @@ async function bootstrap() {
     getToken: () => localStorage.getItem('insight_token'),
     getAppLanguage: () => settingsStore.appLanguage || null,
     getCustomLlm: () => settingsStore.customLlmConfig,
-    getAnalysisLlm: () => settingsStore.analysisLlmConfig,
     onUnauthorized: async () => authStore.logout(),
     onError: message => toastStore.error(message),
   })

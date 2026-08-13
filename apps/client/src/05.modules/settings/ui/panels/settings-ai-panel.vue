@@ -155,32 +155,6 @@ function toggleAutoAnalyzePage() {
         </div>
       </div>
     </div>
-
-    <div class="llm-toggle">
-      <KitCheckbox v-model="settingsStore.useAnalysisLlm" :label="t('settings.useAnalysisLlm')" />
-    </div>
-
-    <Transition name="fade">
-      <div v-if="settingsStore.useAnalysisLlm" class="custom-llm-form">
-        <p class="hint" v-html="t('settings.analysisLlmHint')" />
-        <div class="form-row">
-          <div class="form-group flex-2">
-            <label>{{ t('settings.apiUrl') }}</label>
-            <KitInput v-model="settingsStore.analysisLlmUrl" placeholder="https://api.example.com/v1" />
-          </div>
-
-          <div class="form-group flex-1">
-            <label>{{ t('settings.modelName') }}</label>
-            <KitInput v-model="settingsStore.analysisLlmModel" placeholder="model-name" />
-          </div>
-
-          <div class="form-group flex-1">
-            <label>{{ t('settings.apiKey') }}</label>
-            <KitInput v-model="settingsStore.analysisLlmKey" placeholder="API Key" />
-          </div>
-        </div>
-      </div>
-    </Transition>
   </div>
 </template>
 

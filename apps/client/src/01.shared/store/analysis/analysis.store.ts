@@ -272,7 +272,7 @@ export const useAnalysisStore = defineStore('analysis', () => {
     if (pendingLlmTasks.length === 0)
       return false
 
-    const usesCustomModel = settingsStore.useCustomLlm || settingsStore.useAnalysisLlm
+    const usesCustomModel = settingsStore.useCustomLlm
     const batchSize = usesCustomModel ? 1 : 5
     const concurrencyLimit = usesCustomModel ? 1 : 5
 

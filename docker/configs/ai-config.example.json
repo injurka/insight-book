@@ -5,12 +5,6 @@
     "model": "gemini-3.1-flash-lite",
     "fallbackModel": "gpt-4o-mini"
   },
-  "analysis": {
-    "url": "",
-    "key": "",
-    "model": "",
-    "fallbackModel": ""
-  },
   "tts": {
     "url": "",
     "key": "",

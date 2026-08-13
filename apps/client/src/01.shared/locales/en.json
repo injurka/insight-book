@@ -225,8 +225,6 @@
     "apiKey": "API Key",
     "autoAnalyzePage": "Analyze in background",
     "autoAnalyzePageDesc": "Automatically translates and generates TTS for the page text in the background while reading. This eliminates delays when clicking on text but <b>actively consumes API limits</b> (especially tokens).",
-    "useAnalysisLlm": "Separate model for background analysis and caching",
-    "analysisLlmHint": "A model with its own URL and API key used for background page analysis and analysis preloading (caching). If not set, the regular LLM settings are used.",
     "highlightSavedQuotes": "Highlight saved quotes",
     "showSentenceTtsButton": "Sentence TTS button",
     "storageTitle": "Local Storage",

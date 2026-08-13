@@ -224,8 +224,6 @@
     "apiKey": "API Key",
     "autoAnalyzePage": "在后台自动分析页面",
     "autoAnalyzePageDesc": "在阅读时在后台自动翻译和生成页面文本的语音。这消除了点击文本或开启双语阅读时的延迟，但会<b>主动消耗 API 额度</b>（尤其是 Token）。",
-    "useAnalysisLlm": "用于后台分析和缓存的独立模型",
-    "analysisLlmHint": "使用自己 URL 和 API 密钥的模型，用于后台页面分析和分析预加载（缓存）。如果未设置，则使用常规 LLM 设置。",
     "highlightSavedQuotes": "高亮已保存的句子",
     "showSentenceTtsButton": "显示句子朗读按钮",
     "storageTitle": "本地存储",

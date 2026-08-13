@@ -32,7 +32,7 @@ export function hashSentence(sentence: string, language: string, targetLang: str
   return hasher.digest('hex')
 }
 
-export function extractLlmConfig(req: Request, opts?: { preferAnalysis?: boolean }): LlmConfig {
+export function extractLlmConfig(req: Request): LlmConfig {
   const aiConfig = getAiConfig()
 
   // TTS/STT/OCR всегда наследуются из серверного ai-config:
@@ -52,22 +52,7 @@ export function extractLlmConfig(req: Request, opts?: { preferAnalysis?: boolean
     ocrKey: aiConfig.ocr.key,
   }
 
-  // Приоритет моделей: отдельная модель анализа (X-Analysis-Llm-*) →
-  // пользовательская (X-Custom-Llm-*) → серверная (preferAnalysis: analysis →
-  // иначе llm). Фоновый анализ страниц и предзагрузка анализа (кэширование)
-  // шлют X-Analysis-Llm-* — свою url/model/apiKey для этих тяжёлых флоу.
-  const analysisUrl = req.headers.get('x-analysis-llm-url')
-  const analysisModel = req.headers.get('x-analysis-llm-model')
-  if (analysisUrl && analysisModel) {
-    return {
-      url: analysisUrl,
-      key: req.headers.get('x-analysis-llm-key') || '',
-      model: analysisModel,
-      fallbackModel: analysisModel,
-      ...media,
-    }
-  }
-
+  // Приоритет моделей: пользовательская (X-Custom-Llm-*) → серверная (llm).
   const customUrl = req.headers.get('x-custom-llm-url')
   const customModel = req.headers.get('x-custom-llm-model')
   if (customUrl && customModel) {
@@ -80,7 +65,7 @@ export function extractLlmConfig(req: Request, opts?: { preferAnalysis?: boolean
     }
   }
 
-  const base = opts?.preferAnalysis ? aiConfig.analysis : aiConfig.llm
+  const base = aiConfig.llm
 
   return {
     url: base.url,

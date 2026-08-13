@@ -30,7 +30,6 @@ import { i18n } from '../../00.plugins/i18n'
 declare module 'ofetch' {
   interface FetchOptions {
     withLlm?: boolean
-    withAnalysisLlm?: boolean
     silentErrors?: boolean
   }
 }
@@ -47,7 +46,6 @@ export interface ApiProviders {
   getToken?: () => string | null
   getAppLanguage?: () => string | null
   getCustomLlm?: () => CustomLlmConfig | null
-  getAnalysisLlm?: () => CustomLlmConfig | null
   onUnauthorized?: () => void
   onError?: (message: string) => void
 }
@@ -67,7 +65,6 @@ const providers: Required<ApiProviders> = {
   getToken: () => localStorage.getItem('insight_token'),
   getAppLanguage: readStoredLanguage,
   getCustomLlm: () => null,
-  getAnalysisLlm: () => null,
   onUnauthorized: () => { },
   onError: () => { },
 }
@@ -94,14 +91,6 @@ export const request = ofetch.create({
       options.headers.set('X-Custom-Llm-Url', customLlm.url)
       options.headers.set('X-Custom-Llm-Key', customLlm.key)
       options.headers.set('X-Custom-Llm-Model', customLlm.model)
-    }
-
-    // Отдельная модель для фонового анализа/кэширования (имеет приоритет на сервере)
-    const analysisLlm = options.withAnalysisLlm ? providers.getAnalysisLlm() : null
-    if (analysisLlm) {
-      options.headers.set('X-Analysis-Llm-Url', analysisLlm.url)
-      options.headers.set('X-Analysis-Llm-Key', analysisLlm.key)
-      options.headers.set('X-Analysis-Llm-Model', analysisLlm.model)
     }
   },
   // eslint-disable-next-line complexity
@@ -294,7 +283,6 @@ export const api = {
         body: JSON.stringify({ items, language, targetLanguage }),
         signal,
         withLlm: true,
-        withAnalysisLlm: true,
       })
     },
 
