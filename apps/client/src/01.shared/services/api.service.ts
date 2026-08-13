@@ -186,8 +186,11 @@ export const api = {
 
     getInfo: async (id: number) => request<Book>(`/api/books/${id}/info`),
 
-    getAllCacheAll: async (bookId: number, targetLang?: string) =>
-      request<{ results: { sentence: string, analysis: LlmAnalysis }[] }>(`/api/books/${bookId}/cache-all${targetLang ? `?targetLang=${targetLang}` : ''}`),
+    getAllCacheAll: async (bookId: number, targetLang?: string) => {
+      const targetLanguage = targetLang || providers.getAppLanguage() || 'ru'
+
+      return request<{ results: { sentence: string, analysis: LlmAnalysis }[] }>(`/api/books/${bookId}/cache-all?targetLang=${encodeURIComponent(targetLanguage)}`)
+    },
 
     startReading: async (id: number) => request<{ success: boolean }>(`/api/books/${id}/start`, { method: 'POST' }),
 
@@ -249,24 +252,33 @@ export const api = {
     getPage: async (bookId: number, page: number, isSync?: boolean) =>
       request<PagePayload>(`/api/books/${bookId}/page/${page}${isSync ? '?sync=true' : ''}`),
 
-    getPageDict: async (bookId: number, page: number) =>
-      request<{ pageDictionary: Record<string, PageDictEntry> }>(`/api/books/${bookId}/page/${page}/dict`),
+    getPageDict: async (bookId: number, page: number) => {
+      const targetLanguage = providers.getAppLanguage() || 'ru'
 
-    lookupWord: async (bookId: number, word: string, signal?: AbortSignal) =>
-      request<{ transcription: string, translation: string, isUserDict?: boolean }>(`/api/books/${bookId}/word/${encodeURIComponent(word)}`, { signal, silentErrors: true }),
+      return request<{ pageDictionary: Record<string, PageDictEntry> }>(`/api/books/${bookId}/page/${page}/dict?targetLang=${encodeURIComponent(targetLanguage)}`)
+    },
+
+    lookupWord: async (bookId: number, word: string, signal?: AbortSignal) => {
+      const targetLanguage = providers.getAppLanguage() || 'ru'
+
+      return request<{ transcription: string, translation: string, isUserDict?: boolean }>(`/api/books/${bookId}/word/${encodeURIComponent(word)}?targetLang=${encodeURIComponent(targetLanguage)}`, { signal, silentErrors: true })
+    },
 
     checkCache: async (
       bookId: number,
       items: { text: string, type: 'sentence' | 'word' }[],
       language: string,
       signal?: AbortSignal,
-    ) =>
-      request<{ results: { sentence: string, analysis: LlmAnalysis }[] }>(`/api/books/${bookId}/cache-check`, {
+    ) => {
+      const targetLanguage = providers.getAppLanguage() || 'ru'
+
+      return request<{ results: { sentence: string, analysis: LlmAnalysis }[] }>(`/api/books/${bookId}/cache-check`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ items, language }),
+        body: JSON.stringify({ items, language, targetLanguage }),
         signal,
-      }),
+      })
+    },
 
     analyzeBatch: async (
       bookId: number,
@@ -327,13 +339,13 @@ export const api = {
 
     fetchImageBlob: async (path: string) => {
       const url = path.startsWith('http') ? path : `${BASE_API_URL}${path}`
-      const headers = new Headers()
-      const token = providers.getToken()
-      if (token)
-        headers.set('Authorization', `Bearer ${token}`)
 
+      // Медиа (/api/uploads/*) публичное и отдаётся BunnyCDN edge, который не
+      // разрешает кастомные заголовки в CORS (allow-headers без authorization).
+      // Authorization здесь не шлём: иначе префлайт падает, а `<img>` грузит
+      // те же URL вообще без заголовков — медиа публичное по дизайну.
       const fetchImplementation = isTauri ? tauriFetch : globalThis.fetch
-      const res = await fetchImplementation(url, { headers })
+      const res = await fetchImplementation(url)
       if (!res.ok)
         throw new Error(`Failed to fetch image: ${res.statusText}`)
 

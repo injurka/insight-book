@@ -6,6 +6,7 @@ import { useRepos } from '~/00.plugins/di'
 import { i18n } from '~/00.plugins/i18n'
 import { useTracking } from '~/01.shared/composables/use-tracking'
 import { appEventBus } from '~/01.shared/events/app-event-bus'
+import { useNetworkStore } from '~/01.shared/store/network.store'
 import { useGlobalSettingsStore } from '~/01.shared/store/settings.store'
 import { useToastStore } from '~/01.shared/store/toast.store'
 import { useLibraryStore } from '~/05.modules/library/store/library.store'
@@ -100,6 +101,7 @@ export const useAnalysisStore = defineStore('analysis', () => {
   let wordAbortController: AbortController | null = null
   let pageAnalysisAbortController: AbortController | null = null
   let manualAnalysisAbortController: AbortController | null = null
+  let prewarmAbortController: AbortController | null = null
 
   // Dictionary Modal
   const addEditWordModalOpen = ref(false)
@@ -741,6 +743,84 @@ export const useAnalysisStore = defineStore('analysis', () => {
     processQueue()
   }
 
+  const PREWARM_CHUNK_SIZE = 200
+
+  function shouldSkipPrewarm(book: Book): boolean {
+    const settingsStore = useGlobalSettingsStore()
+    const networkStore = useNetworkStore()
+
+    return book.language === settingsStore.appLanguage || networkStore.effectiveOffline
+  }
+
+  function extractPrewarmWords(page: PagePayload): string[] {
+    const { words } = extractPageTexts(page, {
+      sentences: false,
+      words: true,
+      ttsSentences: false,
+      ttsWords: false,
+    })
+
+    return words
+  }
+
+  async function collectMissingWordAnalyses(words: string[], book: Book): Promise<string[]> {
+    const localChecks = await Promise.all(words.map(async (word) => {
+      const cached = await repos.analysis.getLocalAnalysis(word, book.language)
+
+      return cached ? null : word
+    }))
+
+    return localChecks.filter((word): word is string => word !== null)
+  }
+
+  async function hydrateMissingWordAnalyses(book: Book, words: string[], signal: AbortSignal): Promise<void> {
+    for (let i = 0; i < words.length; i += PREWARM_CHUNK_SIZE) {
+      if (signal.aborted)
+        return
+      const chunk = words.slice(i, i + PREWARM_CHUNK_SIZE)
+      const res = await repos.analysis.checkCache(
+        book.id,
+        chunk.map(text => ({ text, type: 'word' as const })),
+        book.language,
+        signal,
+      )
+      for (const item of res.results) {
+        await repos.analysis.saveLocalAnalysis(item.sentence, item.analysis, book.language)
+      }
+    }
+  }
+
+  /**
+   * Преворм кеша слов страницы: спрашиваем у сервера готовые анализы
+   * (только хиты, без LLM-запросов) и прогреваем локальный кэш
+   * (L1 RAM + IndexedDB), чтобы клики по словам мгновенно получали aiData.
+   * Fire-and-forget: не блокирует загрузку страницы, ошибки не всплывают.
+   */
+  async function prewarmPageAnalysis(book: Book, page: PagePayload) {
+    if (shouldSkipPrewarm(book))
+      return
+
+    const words = extractPrewarmWords(page)
+    if (words.length === 0)
+      return
+
+    prewarmAbortController?.abort()
+    const controller = new AbortController()
+    prewarmAbortController = controller
+
+    try {
+      const missingWords = await collectMissingWordAnalyses(words, book)
+      if (missingWords.length === 0)
+        return
+      await hydrateMissingWordAnalyses(book, missingWords, controller.signal)
+    }
+    catch (e) {
+      const err = e as Error
+      if (err.name !== 'AbortError')
+        console.warn('[Analysis] Page cache prewarm failed:', e)
+    }
+  }
+
   function applyAiAnalysisData(analysisData: LlmAnalysis) {
     if (!wordPopover.value)
       return
@@ -982,9 +1062,9 @@ export const useAnalysisStore = defineStore('analysis', () => {
 
     const vocabularyNote = aiData.vocabulary?.length
       ? aiData.vocabulary
-        .filter(vocabItem => vocabItem && vocabItem.word)
-        .map(vocabItem => `<b>${vocabItem.word}</b> (${vocabItem.transcription || ''}) — ${vocabItem.meaning || ''}`)
-        .join('<br>')
+          .filter(vocabItem => vocabItem && vocabItem.word)
+          .map(vocabItem => `<b>${vocabItem.word}</b> (${vocabItem.transcription || ''}) — ${vocabItem.meaning || ''}`)
+          .join('<br>')
       : null
 
     return { grammarNote, vocabularyNote }
@@ -1095,6 +1175,7 @@ export const useAnalysisStore = defineStore('analysis', () => {
     lookupStandaloneWord,
     handleSentenceAnalysis,
     analyzeWholePage,
+    prewarmPageAnalysis,
     openAddEditWordModal,
     saveWordToDict,
     removeFromDict,

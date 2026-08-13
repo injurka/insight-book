@@ -205,7 +205,7 @@ export const bookController = new Elysia({ prefix: '/api/books' })
     return bookService.lookupWord(Number(id), word, userId!, targetLang)
   }, { requireAuth: true })
   .post('/:id/cache-check', async ({ params: { id }, userId, body, query }) => {
-    const targetLang = (query.targetLang as string) || 'ru'
+    const targetLang = (query.targetLang as string) || body.targetLanguage || 'ru'
     const { items, language } = body as { items: unknown[], language: string }
     const results = await bookAnalysisService.checkCache(Number(id), userId!, items as { text: string, type: 'sentence' | 'word' }[], language, targetLang)
     return { results }

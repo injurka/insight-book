@@ -487,11 +487,15 @@ export const offlineService = {
   },
 
   async savePageDictionary(bookId: number, pageNum: number, dict: Record<string, PageDictEntry>) {
-    await safeSetItem(`book_${bookId}_page_${pageNum}_dict`, JSON.parse(JSON.stringify(dict)))
+    const targetLang = getAppLanguage()
+
+    await safeSetItem(`book_${bookId}_page_${pageNum}_dict_${targetLang}`, JSON.parse(JSON.stringify(dict)))
   },
 
   async getPageDictionary(bookId: number, pageNum: number): Promise<Record<string, PageDictEntry> | null> {
-    return safeGetItem(`book_${bookId}_page_${pageNum}_dict`)
+    const targetLang = getAppLanguage()
+
+    return safeGetItem(`book_${bookId}_page_${pageNum}_dict_${targetLang}`)
   },
 
   async saveBookInfo(bookId: number, info: Book) {

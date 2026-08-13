@@ -75,18 +75,12 @@ const SEVERITY_ERROR = 17
 
 const tracer = trace.getTracer(SERVICE_NAME, packageJson.version)
 
-// Логгер привязывается к глобальному провайдеру; провайдер ставится в initMonitoring(),
-// поэтому пересоздаём логгер после инициализации.
 let otelLogger: Logger = logs.getLogger(SERVICE_NAME)
 let enabled = false
 
-// Метрические инструменты создаются в initMonitoring(); счётчики доступны из trackEvent/trackError
 let eventCounter: Counter | null = null
 let errorCounter: Counter | null = null
 
-// OTLP-экспортёры используют переданный url как есть и сигнальный путь сами не дописывают.
-// Разводим по сигналам явно, как в server/plugins/telemetry.ts (otlpRootUrl):
-// OTEL_EXPORTER_OTLP_ENDPOINT — базовый URL коллектора БЕЗ сигнального пути.
 const otlpBaseUrl = OTEL_EXPORTER_OTLP_ENDPOINT.replace(/\/(?:v1\/(?:traces|metrics|logs))?\/?$/, '')
 
 function otlpSignalUrl(signal: 'traces' | 'logs' | 'metrics') {
@@ -106,7 +100,7 @@ class UserAttributesSpanProcessor implements SpanProcessor {
       span.setAttribute(key, value)
   }
 
-  onEnd(): void {}
+  onEnd(): void { }
 
   shutdown(): Promise<void> {
     return Promise.resolve()
@@ -171,7 +165,6 @@ export function setupServerTimingObserver(serverTimingHistogram: Histogram) {
       }
     })
 
-    // Наблюдаем navigation (основные запросы страниц) и resource (fetch/XHR)
     observer.observe({ type: 'navigation', buffered: true })
     observer.observe({ type: 'resource', buffered: true })
   }
@@ -192,9 +185,8 @@ interface WebVitalsInstruments {
 
 /**
  * Собирает Core Web Vitals (LCP, INP, CLS, TTFB, FCP) через web-vitals
- * и экспортирует их как OTLP-метрики (отдельный инструмент на метрику).
- * FID (устаревшая метрика, заменена на INP) считается вручную через
- * PerformanceObserver: web-vitals v6 удалил onFID.
+ * и экспортирует их как OTLP-метрики.
+ * Передача reportAllChanges: true гарантирует немедленную запись измерений.
  */
 function setupWebVitals(vitals: WebVitalsInstruments) {
   let clsValue: number | null = null
@@ -225,11 +217,13 @@ function setupWebVitals(vitals: WebVitalsInstruments) {
     }
   }
 
-  onCLS(record)
-  onINP(record)
-  onLCP(record)
-  onTTFB(record)
-  onFCP(record)
+  const options = { reportAllChanges: true }
+
+  onCLS(record, options)
+  onINP(record, options)
+  onLCP(record, options)
+  onTTFB(record, options)
+  onFCP(record, options)
 
   if ('PerformanceObserver' in window) {
     try {
@@ -250,8 +244,6 @@ function setupWebVitals(vitals: WebVitalsInstruments) {
  * - WebTracerProvider + ZoneContextManager → спаны страниц, fetch/XHR, кликов
  * - LoggerProvider → ошибки и кастомные события
  * - MeterProvider → Web Vitals, server-timing, счётчики событий/ошибок
- *
- * Требует `import 'zone.js'` первым импортом в main.ts.
  */
 export function initMonitoring() {
   if (!OTEL_EXPORTER_OTLP_ENDPOINT)
@@ -263,7 +255,7 @@ export function initMonitoring() {
     'deployment.environment': import.meta.env.MODE,
   })
 
-  // --- Traces: страницы, запросы, интеракции ---
+  // --- Traces ---
   const tracerProvider = new WebTracerProvider({
     resource,
     spanProcessors: [
@@ -276,7 +268,7 @@ export function initMonitoring() {
     contextManager: new ZoneContextManager(),
   })
 
-  // --- Logs: кастомные события, ошибки, server-timing ---
+  // --- Logs ---
   const loggerProvider = new LoggerProvider({
     resource,
     processors: [
@@ -288,7 +280,7 @@ export function initMonitoring() {
   logs.setGlobalLoggerProvider(loggerProvider)
   otelLogger = logs.getLogger(SERVICE_NAME)
 
-  // --- Metrics: Web Vitals, server-timing, счётчики событий/ошибок ---
+  // --- Metrics ---
   const metricReader = new PeriodicExportingMetricReader({
     exporter: new OTLPMetricExporter({ url: otlpSignalUrl('metrics') }),
     exportIntervalMillis: 10_000,
@@ -296,7 +288,6 @@ export function initMonitoring() {
   const meterProvider = new MeterProvider({ resource, readers: [metricReader] })
   const meter = meterProvider.getMeter(SERVICE_NAME, packageJson.version)
 
-  // Глобальный MeterProvider — метрики доступны из любого модуля через API (как в доках SigNoz)
   metrics.setGlobalMeterProvider(meterProvider)
 
   const serverTimingHistogram = meter.createHistogram('app.server_timing', {
@@ -306,7 +297,6 @@ export function initMonitoring() {
   eventCounter = meter.createCounter('app.events', { description: 'Пользовательские события приложения' })
   errorCounter = meter.createCounter('app.errors', { description: 'Перехваченные ошибки фронтенда' })
 
-  // Web Vitals: отдельный инструмент на каждую метрику, имена — как в доках SigNoz
   const webVitalsMeter = meterProvider.getMeter('web-vitals')
   setupWebVitals({
     lcp: webVitalsMeter.createHistogram('lcp', { description: 'Largest Contentful Paint', unit: 'ms' }),
@@ -317,26 +307,29 @@ export function initMonitoring() {
     cls: webVitalsMeter.createObservableGauge('cls', { description: 'Cumulative Layout Shift' }),
   })
 
-  // Метрики буферизуются (10с); при уходе со страницы сбрасываем буфер,
-  // иначе CLS/INP, зафиксированные в конце сессии, могут не уехать.
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'hidden')
       metricReader.forceFlush()
   })
 
-  // --- Авто-инструментации: document-load, fetch, XHR, user-interaction ---
-  // propagateTraceHeaderCorsUrls: пробрасываем traceparent на API-хост (кросс-ориджин),
-  // чтобы спаны фронтенда связывались со спанами сервера (distributed tracing).
   const apiTracePattern = API_URL
     ? new RegExp(`^${API_URL.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`)
     : undefined
 
+  const mediaIgnorePattern = /\/api\/uploads\//
+
   registerInstrumentations({
     instrumentations: [
       new DocumentLoadInstrumentation(),
-      new FetchInstrumentation({ propagateTraceHeaderCorsUrls: apiTracePattern }),
+      new FetchInstrumentation({
+        propagateTraceHeaderCorsUrls: apiTracePattern,
+        ignoreUrls: [mediaIgnorePattern],
+      }),
       new UserInteractionInstrumentation(),
-      new XMLHttpRequestInstrumentation({ propagateTraceHeaderCorsUrls: apiTracePattern }),
+      new XMLHttpRequestInstrumentation({
+        propagateTraceHeaderCorsUrls: apiTracePattern,
+        ignoreUrls: [mediaIgnorePattern],
+      }),
     ],
   })
 
@@ -372,7 +365,6 @@ export function setupVueMonitoring(app: App, router: Router) {
     }).end()
   })
 
-  // Глобальные ошибки, которые не проходят через Vue errorHandler
   window.addEventListener('error', (event) => {
     trackError(event.error ?? new Error(event.message), { source: 'window.onerror' })
   })
@@ -427,7 +419,6 @@ export function trackError(error: Error | unknown, context?: Record<string, unkn
     ...stringifyAttributes(context),
   }
 
-  // Исключение в активный спан — видно в трейсе операции (если спан есть)
   const span = trace.getActiveSpan()
   if (span) {
     span.recordException(err)

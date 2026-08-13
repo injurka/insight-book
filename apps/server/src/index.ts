@@ -1,3 +1,9 @@
+/* eslint-disable perfectionist/sort-imports */
+
+// OTel инициализируется первее всех остальных импортов
+import { registerRuntimeMetrics, telemetryPlugin } from './plugins/telemetry'
+import './db'
+
 import { serverTiming } from '@elysia/server-timing'
 import { Elysia } from 'elysia'
 import { activityRouter } from './controllers/activity.controller'
@@ -11,12 +17,9 @@ import { pushRouter } from './controllers/push.controller'
 import { quizRouter } from './controllers/quiz.controller'
 import { subscriptionRouter } from './controllers/subscription.controller'
 import { pluginRouter } from './controllers/user-plugin.controller'
-import { registerRuntimeMetrics, telemetryPlugin } from './plugins/telemetry'
 import { createServer } from './server'
 import { initScheduler } from './services/scheduler.service'
 import { handleElysiaError } from './utils/errors'
-
-import './db'
 
 const app = new Elysia()
   .onError(handleElysiaError)
@@ -38,7 +41,6 @@ const app = new Elysia()
   .use(adminRouter)
   .get('/health', () => ({ status: 'ok' }))
 
-// Регистрируем runtime-метрики после запуска OTel SDK (см. telemetry.ts)
 registerRuntimeMetrics()
 
 createServer(app)

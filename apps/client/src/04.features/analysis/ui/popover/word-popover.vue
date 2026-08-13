@@ -234,29 +234,42 @@ onUnmounted(() => {
                   <KitSkeleton width="90%" height="16px" />
                 </div>
                 <div v-else key="content" class="popover-body">
-                  <div class="translation" v-html="analysisStore.wordPopover.translation" />
-                  <template v-if="analysisStore.wordPopover.aiData">
-                    <div v-if="analysisStore.wordPopover.aiData.grammarRules?.length" class="ai-section">
-                      <div class="ai-subtitle">
-                        {{ t('analysis.grammarColon') }}
+                  <div v-if="analysisStore.wordPopover.translation" class="translation" v-html="analysisStore.wordPopover.translation" />
+                  <div class="ai-slot">
+                    <Transition name="content-fade">
+                      <div
+                        v-if="analysisStore.wordPopover.isLoading && !analysisStore.wordPopover.aiData"
+                        key="ai-loader"
+                        class="ai-loader ai-loader--section"
+                      >
+                        <KitSkeleton width="55%" height="14px" />
+                        <KitSkeleton width="90%" height="14px" />
+                        <KitSkeleton width="70%" height="14px" />
                       </div>
-                      <div v-for="(rule, idx) in analysisStore.wordPopover.aiData.grammarRules" :key="idx" class="ai-rule">
-                        <b>{{ rule.pattern }}</b> — {{ rule.explanation }}
-                      </div>
-                    </div>
-                    <div v-if="analysisStore.wordPopover.aiData.vocabulary?.length" class="ai-section">
-                      <div class="ai-subtitle">
-                        {{ t('analysis.vocabularyColon') }}
-                      </div>
-                      <template v-for="(vocab, idx) in analysisStore.wordPopover.aiData.vocabulary" :key="idx">
-                        <div v-if="vocab && vocab.word" class="ai-vocab">
-                          <b>{{ vocab.word }}</b> <template v-if="vocab.transcription">
-                            ({{ vocab.transcription }})
-                          </template> — {{ vocab.meaning }}
+                      <div v-else-if="analysisStore.wordPopover.aiData" key="ai-content" class="ai-sections">
+                        <div v-if="analysisStore.wordPopover.aiData.grammarRules?.length" class="ai-section">
+                          <div class="ai-subtitle">
+                            {{ t('analysis.grammarColon') }}
+                          </div>
+                          <div v-for="(rule, idx) in analysisStore.wordPopover.aiData.grammarRules" :key="idx" class="ai-rule">
+                            <b>{{ rule.pattern }}</b> — {{ rule.explanation }}
+                          </div>
                         </div>
-                      </template>
-                    </div>
-                  </template>
+                        <div v-if="analysisStore.wordPopover.aiData.vocabulary?.length" class="ai-section">
+                          <div class="ai-subtitle">
+                            {{ t('analysis.vocabularyColon') }}
+                          </div>
+                          <template v-for="(vocab, idx) in analysisStore.wordPopover.aiData.vocabulary" :key="idx">
+                            <div v-if="vocab && vocab.word" class="ai-vocab">
+                              <b>{{ vocab.word }}</b> <template v-if="vocab.transcription">
+                                ({{ vocab.transcription }})
+                              </template> — {{ vocab.meaning }}
+                            </div>
+                          </template>
+                        </div>
+                      </div>
+                    </Transition>
+                  </div>
                 </div>
               </Transition>
             </div>
@@ -428,6 +441,24 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   gap: 8px;
+}
+
+/* Слот под ai-часть: скелетон и секции лежат в одной грид-ячейке,
+   чтобы кроссфейд не дёргал высоту поповера */
+.ai-slot {
+  display: grid;
+  grid-template-columns: 100%;
+}
+
+.ai-slot > * {
+  grid-column: 1;
+  grid-row: 1;
+}
+
+.ai-loader--section {
+  padding: 12px 0 4px;
+  margin-top: 12px;
+  border-top: 1px dashed var(--border-secondary-color);
 }
 
 .translation {

@@ -176,6 +176,11 @@ export const useReaderStore = defineStore('reader', () => {
 
     trackEvent('page_loaded', { bookId, pageNum, type: page?.type })
     triggerAutoAnalysis(settingsStore, analysisStore)
+
+    // Прогреваем локальный кэш анализа словами страницы из серверного кэша (без LLM).
+    // Не блокирует рендер; клик по слову до завершения преворма идёт обычным путём.
+    if (currentBook.value)
+      void analysisStore.prewarmPageAnalysis(currentBook.value, page)
   }
 
   async function loadPage(bookId: number, pageNum: number) {

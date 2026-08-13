@@ -25,6 +25,7 @@ const mocks = vi.hoisted(() => {
     closePopover: vi.fn(),
     closeSelectionTooltip: vi.fn(),
     analyzeWholePage: vi.fn(),
+    prewarmPageAnalysis: vi.fn(),
     isManualPageAnalysisActive: false,
     isAutoPageAnalysisActive: false,
     sidebarOpen: true,
