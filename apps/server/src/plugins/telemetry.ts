@@ -40,26 +40,26 @@ const isTelemetryEnabled = Boolean(OTEL_EXPORTER_OTLP_ENDPOINT)
 export const telemetryPlugin
   = isTelemetryEnabled
     ? opentelemetry({
-      serviceName: OTEL_SERVICE_NAME,
-      resource: otlpResource,
-      spanProcessors: [
-        new BatchSpanProcessor(
-          new OTLPTraceExporter({
-            url: `${otlpRootUrl(OTEL_EXPORTER_OTLP_ENDPOINT)}/v1/traces`,
+        serviceName: OTEL_SERVICE_NAME,
+        resource: otlpResource,
+        spanProcessors: [
+          new BatchSpanProcessor(
+            new OTLPTraceExporter({
+              url: `${otlpRootUrl(OTEL_EXPORTER_OTLP_ENDPOINT)}/v1/traces`,
+              keepAlive: true,
+              timeoutMillis: 5_000,
+            }),
+          ),
+        ],
+        metricReader: new PeriodicExportingMetricReader({
+          exporter: new OTLPMetricExporter({
+            url: `${otlpRootUrl(OTEL_EXPORTER_OTLP_ENDPOINT)}/v1/metrics`,
             keepAlive: true,
             timeoutMillis: 5_000,
           }),
-        ),
-      ],
-      metricReader: new PeriodicExportingMetricReader({
-        exporter: new OTLPMetricExporter({
-          url: `${otlpRootUrl(OTEL_EXPORTER_OTLP_ENDPOINT)}/v1/metrics`,
-          keepAlive: true,
-          timeoutMillis: 5_000,
+          exportIntervalMillis: 10_000,
         }),
-        exportIntervalMillis: 10_000,
-      }),
-    })
+      })
     : new Elysia()
 
 /**

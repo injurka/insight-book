@@ -1,4 +1,5 @@
 import type { LlmAnalysis, PagePayload } from '~/01.shared/types/models'
+import { isValidWordForLanguage } from '@injurka/insight-book-language-utils'
 import { v4 as uuidv4 } from 'uuid'
 import { ref } from 'vue'
 import { useRepos } from '~/00.plugins/di'
@@ -358,10 +359,13 @@ async function processPage(
   if (!page)
     return
 
-  const { sentences, words } = extractPageData(page, {
+  const { sentences, words: rawWords } = extractPageData(page, {
     extractSentences: options.analyzeSentences || options.ttsSentences,
     extractWords: options.analyzeWords || options.ttsWords,
   })
+  // Слова не из языка книги не анализируем и не озвучиваем (сервер их всё равно отклонит) —
+  // фильтруем до подсчёта прогресса, чтобы счётчики не «застревали»
+  const words = rawWords.filter(w => isValidWordForLanguage(w, book.language))
 
   await processPageAnalysis(
     sentences,

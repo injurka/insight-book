@@ -37,6 +37,7 @@
   "dependencies": {
     "@floating-ui/vue": "^2.0.1",
     "@iconify-icons/mdi": "^1.2.48",
+    "@injurka/insight-book-language-utils": "workspace:*",
     "@injurka/insight-book-plugin-api": "workspace:*",
     "@injurka/insight-book-plugin-grammar-rules": "workspace:*",
     "@module-federation/enhanced": "^2.8.2",

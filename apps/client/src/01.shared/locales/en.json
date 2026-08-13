@@ -729,6 +729,7 @@
     "vocabularyColon": "Vocabulary:",
     "wordNotFoundInDict": "Word not found in local dictionary. Try AI translation",
     "offlineTranslationNotFound": "Offline: translation not found in cache",
+    "wordNotInLanguage": "The word doesn't look like a word of this language",
     "saveToNotebook": "To quotes",
     "toBackground": "To background"
   },

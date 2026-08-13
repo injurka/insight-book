@@ -1,7 +1,7 @@
 import type { BatchAnalysisRequest, BatchAnalysisResponse, GeneratedWordExamples, LlmAnalysis, LlmConfig, ModelMessage, WordAutoFillResponse } from '../types'
 import { eq, inArray, sql } from 'drizzle-orm'
 import { compressData, decompressData } from '~/utils/compression'
-import { hashSentence, parseLlmJson } from '~/utils/helpers'
+import { hashSentence, isValidWordForLanguage, parseLlmJson } from '~/utils/helpers'
 import { callLlmJsonWithRetry } from '~/utils/llm-api'
 import { ERROR_CODES } from '../constants/error-codes'
 import { db } from '../db'
@@ -37,6 +37,14 @@ export async function analyzeSentence(
   context?: string,
   type: 'sentence' | 'word' = 'sentence',
 ): Promise<LlmAnalysis> {
+  // Слово должно принадлежать заявленному языку — отсекаем мусор до LLM и кэша.
+  // Интерактивный запрос (клик пользователя): латиница разрешена как фолбэк —
+  // в книгах не на латинице встречаются бренды/сленг («Wi-Fi», «OK»), пользователь
+  // кликнул по слову осознанно, жжёт токены только на себя.
+  if (type === 'word' && !isValidWordForLanguage(sentence, language, { allowLatinFallback: true })) {
+    throw new AppError(400, ERROR_CODES.ANALYSIS.INVALID_WORD, `«${sentence}» — не похоже на слово языка "${language}"`)
+  }
+
   await checkTokenLimit(userId)
 
   const hash = hashSentence(sentence, language, targetLang)
@@ -237,10 +245,23 @@ export async function generateWordAutoFill(userId: number, word: string, languag
 }
 
 export async function analyzeBatch(userId: number, bookId: number, items: BatchAnalysisRequest[], language: string, targetLang: string, config: LlmConfig): Promise<BatchAnalysisResponse[]> {
+  // Слова не из заявленного языка пропускаем молча (клиент фильтрует до отправки,
+  // здесь это страховка): не жжём токены, не засоряем кэш и не роняем весь батч.
+  const validItems = items.filter((item) => {
+    if (item.type === 'word' && !isValidWordForLanguage(item.sentence, language)) {
+      logger.warn({ word: item.sentence, language }, '[LLM Batch] Skipping invalid word')
+      return false
+    }
+    return true
+  })
+
+  if (validItems.length === 0)
+    return []
+
   const results: BatchAnalysisResponse[] = []
   const missingItems: BatchAnalysisRequest[] = []
 
-  const itemHashes = items.map(item => ({
+  const itemHashes = validItems.map(item => ({
     ...item,
     hash: hashSentence(item.sentence, language, targetLang),
   }))

@@ -1,5 +1,6 @@
 import type { Book, LlmAnalysis, PagePayload, UserDictItem } from '~/01.shared/types/models'
 
+import { isValidWordForLanguage } from '@injurka/insight-book-language-utils'
 import { v4 as uuidv4 } from 'uuid'
 import { computed, ref } from 'vue'
 import { useRepos } from '~/00.plugins/di'
@@ -698,7 +699,11 @@ export const useAnalysisStore = defineStore('analysis', () => {
       return
 
     const { sentences: doSent, words: doWords, ttsSentences: doTtsSent, ttsWords: doTtsWords } = options
-    const { sentences, words } = extractPageTexts(readerStore.currentPage, options)
+    const { sentences, words: rawWords } = extractPageTexts(readerStore.currentPage, options)
+    // Слова не из языка книги в анализ не попадают (сервер их всё равно отклонит) —
+    // фильтруем до подсчёта прогресса, чтобы счётчики и очередь не «застревали»
+    const bookLanguage = readerStore.currentBook.language
+    const words = rawWords.filter(w => isValidWordForLanguage(w, bookLanguage))
 
     const totalAnalysisItems = calculateTotalItems(
       doSent,
@@ -764,7 +769,8 @@ export const useAnalysisStore = defineStore('analysis', () => {
   }
 
   async function collectMissingWordAnalyses(words: string[], book: Book): Promise<string[]> {
-    const localChecks = await Promise.all(words.map(async (word) => {
+    const validWords = words.filter(w => isValidWordForLanguage(w, book.language))
+    const localChecks = await Promise.all(validWords.map(async (word) => {
       const cached = await repos.analysis.getLocalAnalysis(word, book.language)
 
       return cached ? null : word
@@ -890,6 +896,16 @@ export const useAnalysisStore = defineStore('analysis', () => {
       return
 
     const word = wordPopover.value.word
+    // Слово не из языка книги: AI-анализ не запрашиваем вовсе — попап не ждёт ответа сервера.
+    // Латиница разрешена (бренды/сленг в книгах не на латинице — пользователь кликнул осознанно)
+    if (!isValidWordForLanguage(word, currentBook.language, { allowLatinFallback: true })) {
+      wordPopover.value.isLoading = false
+      if (!wordPopover.value.translation)
+        wordPopover.value.translation = i18n.global.t('analysis.wordNotInLanguage')
+
+      return
+    }
+
     if (await checkAndApplyCachedTranslation(word))
       return
 

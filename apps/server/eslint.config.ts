@@ -7,5 +7,5 @@ export default antfu({
     'node/prefer-global/buffer': 'off',
     'ts/no-explicit-any': 'error',
   },
-  ignores: ['bun.lock'],
+  ignores: ['bun.lock', 'src_prompt.md'],
 })

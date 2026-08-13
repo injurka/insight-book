@@ -728,6 +728,7 @@
     "vocabularyColon": "词汇：",
     "wordNotFoundInDict": "在本地词典中未找到该词。请尝试使用 AI 翻译",
     "offlineTranslationNotFound": "离线：缓存中未找到翻译",
+    "wordNotInLanguage": "该词与书籍语言不符",
     "saveToNotebook": "存为摘录",
     "toBackground": "转入后台"
   },
