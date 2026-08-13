@@ -26,6 +26,8 @@ import '~/assets/scss/normalize.scss'
 /* eslint-enable perfectionist/sort-imports */
 
 async function bootstrap() {
+  initMonitoring()
+
   const app = createApp(App)
   const pinia = createPinia()
   const head = createHead()
@@ -92,8 +94,7 @@ function initDeferredTasks(app: VueApp, router: Router, pinia: Pinia) {
   // Гидратация локали
   localePromise.catch((err: unknown) => console.warn('[bootstrap] Locale load failed:', err))
 
-  // Мониторинг (инициализируем OpenTelemetry Web SDK, затем регистрируем Vue error handler и router hooks)
-  initMonitoring()
+  // Регистрируем Vue error handler и router hooks (OTel SDK уже запущен в bootstrap())
   setupVueMonitoring(app, router)
 
   // Обновления платформы (Tauri / PWA)

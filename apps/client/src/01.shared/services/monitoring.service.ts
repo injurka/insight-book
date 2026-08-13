@@ -1,18 +1,25 @@
-import type { Attributes, Span } from '@opentelemetry/api'
+import type { Attributes, Counter, Histogram, ObservableGauge, Span } from '@opentelemetry/api'
 import type { Logger } from '@opentelemetry/api-logs'
 import type { SpanProcessor } from '@opentelemetry/sdk-trace-web'
 import type { App } from 'vue'
 import type { Router } from 'vue-router'
-import { SpanStatusCode, trace } from '@opentelemetry/api'
+import type { Metric } from 'web-vitals'
+import { metrics, SpanStatusCode, trace } from '@opentelemetry/api'
 import { logs } from '@opentelemetry/api-logs'
-import { getWebAutoInstrumentations } from '@opentelemetry/auto-instrumentations-web'
 import { ZoneContextManager } from '@opentelemetry/context-zone-peer-dep'
 import { OTLPLogExporter } from '@opentelemetry/exporter-logs-otlp-http'
+import { OTLPMetricExporter } from '@opentelemetry/exporter-metrics-otlp-http'
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http'
 import { registerInstrumentations } from '@opentelemetry/instrumentation'
+import { DocumentLoadInstrumentation } from '@opentelemetry/instrumentation-document-load'
+import { FetchInstrumentation } from '@opentelemetry/instrumentation-fetch'
+import { UserInteractionInstrumentation } from '@opentelemetry/instrumentation-user-interaction'
+import { XMLHttpRequestInstrumentation } from '@opentelemetry/instrumentation-xml-http-request'
 import { resourceFromAttributes } from '@opentelemetry/resources'
 import { BatchLogRecordProcessor, LoggerProvider } from '@opentelemetry/sdk-logs'
+import { MeterProvider, PeriodicExportingMetricReader } from '@opentelemetry/sdk-metrics'
 import { BatchSpanProcessor, WebTracerProvider } from '@opentelemetry/sdk-trace-web'
+import { onCLS, onFCP, onINP, onLCP, onTTFB } from 'web-vitals'
 import { API_URL, OTEL_EXPORTER_OTLP_ENDPOINT } from '~/01.shared/lib/env'
 import packageJson from '../../../package.json'
 
@@ -73,6 +80,10 @@ const tracer = trace.getTracer(SERVICE_NAME, packageJson.version)
 let otelLogger: Logger = logs.getLogger(SERVICE_NAME)
 let enabled = false
 
+// Метрические инструменты создаются в initMonitoring(); счётчики доступны из trackEvent/trackError
+let eventCounter: Counter | null = null
+let errorCounter: Counter | null = null
+
 /** Атрибуты пользователя, прикрепляются ко всем спанам и лог-записям */
 let userAttributes: Record<string, string> = {}
 
@@ -113,8 +124,8 @@ function stringifyAttributes(attributes?: Record<string, unknown>): Record<strin
   return result
 }
 
-/** Наблюдает Server-Timing метрики через PerformanceObserver и отправляет их как лог-записи */
-export function setupServerTimingObserver() {
+/** Наблюдает Server-Timing через PerformanceObserver и отправляет длительности как OTLP-метрики */
+export function setupServerTimingObserver(serverTimingHistogram: Histogram) {
   if (!('PerformanceObserver' in window))
     return
 
@@ -140,17 +151,14 @@ export function setupServerTimingObserver() {
         if (Object.keys(metrics).length === 0)
           continue
 
-        otelLogger.emit({
-          body: 'server-timing',
-          severityNumber: SEVERITY_INFO,
-          severityText: 'INFO',
-          attributes: {
+        for (const [metric, duration] of Object.entries(metrics)) {
+          serverTimingHistogram.record(duration, {
+            metric,
             url: entry.name,
             entry_type: entry.entryType,
             ...userAttributes,
-            ...metrics,
-          },
-        })
+          })
+        }
       }
     })
 
@@ -163,10 +171,76 @@ export function setupServerTimingObserver() {
   }
 }
 
+/** Инструменты Web Vitals (имена метрик — как в официальной документации SigNoz) */
+interface WebVitalsInstruments {
+  lcp: Histogram
+  inp: Histogram
+  ttfb: Histogram
+  fcp: Histogram
+  fid: Histogram
+  cls: ObservableGauge
+}
+
+/**
+ * Собирает Core Web Vitals (LCP, INP, CLS, TTFB, FCP) через web-vitals
+ * и экспортирует их как OTLP-метрики (отдельный инструмент на метрику).
+ * FID (устаревшая метрика, заменена на INP) считается вручную через
+ * PerformanceObserver: web-vitals v6 удалил onFID.
+ */
+function setupWebVitals(vitals: WebVitalsInstruments) {
+  let clsValue: number | null = null
+
+  vitals.cls.addCallback((result) => {
+    if (clsValue !== null)
+      result.observe(clsValue)
+  })
+
+  const record = (metric: Metric) => {
+    const attributes = { navigationType: metric.navigationType }
+    switch (metric.name) {
+      case 'LCP':
+        vitals.lcp.record(metric.value, attributes)
+        break
+      case 'INP':
+        vitals.inp.record(metric.value, attributes)
+        break
+      case 'TTFB':
+        vitals.ttfb.record(metric.value, attributes)
+        break
+      case 'FCP':
+        vitals.fcp.record(metric.value, attributes)
+        break
+      case 'CLS':
+        clsValue = metric.value
+        break
+    }
+  }
+
+  onCLS(record)
+  onINP(record)
+  onLCP(record)
+  onTTFB(record)
+  onFCP(record)
+
+  if ('PerformanceObserver' in window) {
+    try {
+      new PerformanceObserver((list) => {
+        for (const entry of list.getEntries() as PerformanceEventTiming[]) {
+          vitals.fid.record(entry.processingStart - entry.startTime)
+        }
+      }).observe({ type: 'first-input', buffered: true })
+    }
+    catch {
+      // first-input не поддерживается браузером — молча пропускаем
+    }
+  }
+}
+
 /**
  * Инициализирует OpenTelemetry Web SDK (нативный стек SigNoz):
  * - WebTracerProvider + ZoneContextManager → спаны страниц, fetch/XHR, кликов
- * - OTLP/HTTP экспортеры (traces + logs) → SigNoz ingester
+ * - LoggerProvider → ошибки и кастомные события
+ * - MeterProvider → Web Vitals, server-timing, счётчики событий/ошибок
  *
  * Требует `import 'zone.js'` первым импортом в main.ts.
  */
@@ -205,14 +279,61 @@ export function initMonitoring() {
   logs.setGlobalLoggerProvider(loggerProvider)
   otelLogger = logs.getLogger(SERVICE_NAME)
 
+  // --- Metrics: Web Vitals, server-timing, счётчики событий/ошибок ---
+  const metricReader = new PeriodicExportingMetricReader({
+    exporter: new OTLPMetricExporter({ url: OTEL_EXPORTER_OTLP_ENDPOINT }),
+    exportIntervalMillis: 10_000,
+  })
+  const meterProvider = new MeterProvider({ resource, readers: [metricReader] })
+  const meter = meterProvider.getMeter(SERVICE_NAME, packageJson.version)
+
+  // Глобальный MeterProvider — метрики доступны из любого модуля через API (как в доках SigNoz)
+  metrics.setGlobalMeterProvider(meterProvider)
+
+  const serverTimingHistogram = meter.createHistogram('app.server_timing', {
+    description: 'Длительности Server-Timing заголовков API (ms)',
+    unit: 'ms',
+  })
+  eventCounter = meter.createCounter('app.events', { description: 'Пользовательские события приложения' })
+  errorCounter = meter.createCounter('app.errors', { description: 'Перехваченные ошибки фронтенда' })
+
+  // Web Vitals: отдельный инструмент на каждую метрику, имена — как в доках SigNoz
+  const webVitalsMeter = meterProvider.getMeter('web-vitals')
+  setupWebVitals({
+    lcp: webVitalsMeter.createHistogram('lcp', { description: 'Largest Contentful Paint', unit: 'ms' }),
+    inp: webVitalsMeter.createHistogram('inp', { description: 'Interaction to Next Paint', unit: 'ms' }),
+    ttfb: webVitalsMeter.createHistogram('ttfb', { description: 'Time to First Byte', unit: 'ms' }),
+    fcp: webVitalsMeter.createHistogram('fcp', { description: 'First Contentful Paint', unit: 'ms' }),
+    fid: webVitalsMeter.createHistogram('fid', { description: 'First Input Delay (устаревшая, заменена на INP)', unit: 'ms' }),
+    cls: webVitalsMeter.createObservableGauge('cls', { description: 'Cumulative Layout Shift' }),
+  })
+
+  // Метрики буферизуются (10с); при уходе со страницы сбрасываем буфер,
+  // иначе CLS/INP, зафиксированные в конце сессии, могут не уехать.
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden')
+      metricReader.forceFlush()
+  })
+
   // --- Авто-инструментации: document-load, fetch, XHR, user-interaction ---
+  // propagateTraceHeaderCorsUrls: пробрасываем traceparent на API-хост (кросс-ориджин),
+  // чтобы спаны фронтенда связывались со спанами сервера (distributed tracing).
+  const apiTracePattern = API_URL
+    ? new RegExp(`^${API_URL.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`)
+    : undefined
+
   registerInstrumentations({
-    instrumentations: getWebAutoInstrumentations(),
+    instrumentations: [
+      new DocumentLoadInstrumentation(),
+      new FetchInstrumentation({ propagateTraceHeaderCorsUrls: apiTracePattern }),
+      new UserInteractionInstrumentation(),
+      new XMLHttpRequestInstrumentation({ propagateTraceHeaderCorsUrls: apiTracePattern }),
+    ],
   })
 
   enabled = true
 
-  setupServerTimingObserver()
+  setupServerTimingObserver(serverTimingHistogram)
 }
 
 export function setupVueMonitoring(app: App, router: Router) {
@@ -277,6 +398,11 @@ export function trackEvent(name: TelemetryEventName, attributes?: Record<string,
       ...stringifyAttributes(attributes),
     },
   })
+
+  eventCounter?.add(1, {
+    event_name: name,
+    ...userAttributes,
+  })
 }
 
 export function trackError(error: Error | unknown, context?: Record<string, unknown>) {
@@ -304,5 +430,10 @@ export function trackError(error: Error | unknown, context?: Record<string, unkn
     severityNumber: SEVERITY_ERROR,
     severityText: 'ERROR',
     attributes,
+  })
+
+  errorCounter?.add(1, {
+    error_type: err.name,
+    ...userAttributes,
   })
 }
