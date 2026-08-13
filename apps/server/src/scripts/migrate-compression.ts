@@ -57,13 +57,13 @@ async function migrateTable({ table, pkCols, dataCol }: MigrateTableOptions) {
   for (const row of rows.rows) {
     const raw = row[dataCol]
 
-    // libsql возвращает blob как Uint8Array
-    if (!raw || !(raw instanceof Uint8Array)) {
+    // @libsql/client (0.17.x) возвращает blob как ArrayBuffer, а не Uint8Array
+    if (!raw || !(raw instanceof Uint8Array || raw instanceof ArrayBuffer)) {
       skipped++
       continue
     }
 
-    const buf = Buffer.from(raw)
+    const buf = Buffer.from(raw instanceof ArrayBuffer ? new Uint8Array(raw) : raw)
     const decompressed = tryDecompress(buf)
 
     if (!decompressed) {

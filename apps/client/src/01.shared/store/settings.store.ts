@@ -34,6 +34,19 @@ export const useGlobalSettingsStore = defineStore('globalSettings', () => {
   const customLlmKey = useLocalStorage<string>('global-custom-llm-key', 'ollama')
   const customLlmModel = useLocalStorage<string>('global-custom-llm-model', 'llama3')
 
+  const useAnalysisLlm = useLocalStorage<boolean>('global-analysis-llm', false)
+  const analysisLlmUrl = useLocalStorage<string>('global-analysis-llm-url', '')
+  const analysisLlmKey = useLocalStorage<string>('global-analysis-llm-key', '')
+  const analysisLlmModel = useLocalStorage<string>('global-analysis-llm-model', '')
+
+  const analysisLlmConfig = computed(() => useAnalysisLlm.value && analysisLlmUrl.value && analysisLlmModel.value
+    ? { url: analysisLlmUrl.value, key: analysisLlmKey.value, model: analysisLlmModel.value }
+    : null)
+
+  const customLlmConfig = computed(() => useCustomLlm.value && customLlmUrl.value && customLlmModel.value
+    ? { url: customLlmUrl.value, key: customLlmKey.value || '', model: customLlmModel.value }
+    : null)
+
   const enableHoverRevealBg = useLocalStorage<boolean>('global-enable-hover-reveal-bg', true)
   const enableEruda = useLocalStorage<boolean>('global-enable-eruda', false)
 
@@ -75,6 +88,12 @@ export const useGlobalSettingsStore = defineStore('globalSettings', () => {
     customLlmUrl,
     customLlmKey,
     customLlmModel,
+    customLlmConfig,
+    useAnalysisLlm,
+    analysisLlmUrl,
+    analysisLlmKey,
+    analysisLlmModel,
+    analysisLlmConfig,
     highlightSavedQuotes,
     showSentenceTtsButton,
     enableHoverRevealBg,

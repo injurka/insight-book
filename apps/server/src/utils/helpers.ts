@@ -35,37 +35,12 @@ export function hashSentence(sentence: string, language: string, targetLang: str
   return hasher.digest('hex')
 }
 
-export function extractLlmConfig(req: Request): LlmConfig {
-  const customUrl = req.headers.get('x-custom-llm-url')
-  const customModel = req.headers.get('x-custom-llm-model')
+export function extractLlmConfig(req: Request, opts?: { preferAnalysis?: boolean }): LlmConfig {
   const aiConfig = getAiConfig()
 
-  if (customUrl && customModel) {
-    return {
-      url: customUrl,
-      key: req.headers.get('x-custom-llm-key') || '',
-      model: customModel,
-      fallbackModel: customModel,
-      ttsModel: 'gemini-2.5-flash-preview-tts',
-      fallbackTtsModel: 'gemini-2.5-flash-preview-tts',
-      ttsUrl: customUrl,
-      ttsKey: req.headers.get('x-custom-llm-key') || '',
-      sttModel: 'whisper-large-v3',
-      fallbackSttModel: 'whisper-large-v3',
-      sttUrl: customUrl,
-      sttKey: req.headers.get('x-custom-llm-key') || '',
-      ocrModel: customModel,
-      ocrRefinementModel: customModel,
-      ocrUrl: customUrl,
-      ocrKey: req.headers.get('x-custom-llm-key') || '',
-    }
-  }
-
-  return {
-    url: aiConfig.llm.url,
-    key: aiConfig.llm.key,
-    model: aiConfig.llm.model,
-    fallbackModel: aiConfig.llm.fallbackModel,
+  // TTS/STT/OCR всегда наследуются из серверного ai-config:
+  // кастомные заголовки переопределяют только LLM-триплет.
+  const media = {
     ttsModel: aiConfig.tts.model,
     fallbackTtsModel: aiConfig.tts.fallbackModel,
     ttsUrl: aiConfig.tts.url,
@@ -78,6 +53,44 @@ export function extractLlmConfig(req: Request): LlmConfig {
     ocrRefinementModel: aiConfig.ocr.refinementModel,
     ocrUrl: aiConfig.ocr.url,
     ocrKey: aiConfig.ocr.key,
+  }
+
+  // Приоритет моделей: отдельная модель анализа (X-Analysis-Llm-*) →
+  // пользовательская (X-Custom-Llm-*) → серверная (preferAnalysis: analysis →
+  // иначе llm). Фоновый анализ страниц и предзагрузка анализа (кэширование)
+  // шлют X-Analysis-Llm-* — свою url/model/apiKey для этих тяжёлых флоу.
+  const analysisUrl = req.headers.get('x-analysis-llm-url')
+  const analysisModel = req.headers.get('x-analysis-llm-model')
+  if (analysisUrl && analysisModel) {
+    return {
+      url: analysisUrl,
+      key: req.headers.get('x-analysis-llm-key') || '',
+      model: analysisModel,
+      fallbackModel: analysisModel,
+      ...media,
+    }
+  }
+
+  const customUrl = req.headers.get('x-custom-llm-url')
+  const customModel = req.headers.get('x-custom-llm-model')
+  if (customUrl && customModel) {
+    return {
+      url: customUrl,
+      key: req.headers.get('x-custom-llm-key') || '',
+      model: customModel,
+      fallbackModel: customModel,
+      ...media,
+    }
+  }
+
+  const base = opts?.preferAnalysis ? aiConfig.analysis : aiConfig.llm
+
+  return {
+    url: base.url,
+    key: base.key,
+    model: base.model,
+    fallbackModel: base.fallbackModel,
+    ...media,
   }
 }
 

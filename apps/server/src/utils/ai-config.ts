@@ -27,6 +27,7 @@ export interface ModelPrice {
 
 interface AiConfigFile {
   llm?: { url?: string, key?: string, model?: string, fallbackModel?: string }
+  analysis?: { url?: string, key?: string, model?: string, fallbackModel?: string }
   tts?: { url?: string, model?: string, fallbackModel?: string, key?: string }
   stt?: { url?: string, model?: string, fallbackModel?: string, key?: string }
   ocr?: { url?: string, key?: string, model?: string, refinementModel?: string }
@@ -53,6 +54,14 @@ export function getAiConfig() {
       key: llmKey,
       model: fileConfig.llm?.model || process.env.LLM_MODEL || 'gemini-3.1-flash-lite',
       fallbackModel: fileConfig.llm?.fallbackModel || process.env.LLM_FALLBACK_MODEL || 'gpt-4o-mini',
+    },
+    // Отдельная модель для фонового анализа/кэширования (эндпоинты анализа).
+    // Если поля не указаны — наследуются из llm (как обычный LLM).
+    analysis: {
+      url: fileConfig.analysis?.url || llmUrl,
+      key: fileConfig.analysis?.key || llmKey,
+      model: fileConfig.analysis?.model || fileConfig.llm?.model || process.env.LLM_MODEL || 'gemini-3.1-flash-lite',
+      fallbackModel: fileConfig.analysis?.fallbackModel || fileConfig.llm?.fallbackModel || process.env.LLM_FALLBACK_MODEL || 'gpt-4o-mini',
     },
     tts: {
       url: fileConfig.tts?.url || process.env.TTS_API_URL || llmUrl,

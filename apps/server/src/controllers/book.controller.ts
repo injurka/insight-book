@@ -251,7 +251,9 @@ export const bookController = new Elysia({ prefix: '/api/books' })
   .post('/:id/analyze-batch', async ({ params: { id }, userId, body, query, request }) => {
     const targetLang = (query.targetLang as string) || body.targetLanguage || 'ru'
     const { items, language } = body as { items: unknown[], language: string }
-    const config = extractLlmConfig(request)
+    // Фоновый анализ и кэширование: preferAnalysis — серверная отдельная модель
+    // (ai-config.json → analysis), если клиент не прислал X-Analysis-Llm-*
+    const config = extractLlmConfig(request, { preferAnalysis: true })
     const results = await bookAnalysisService.analyzeBatch(Number(id), userId!, items as BatchAnalysisRequest[], language, targetLang, config)
     return { results }
   }, {

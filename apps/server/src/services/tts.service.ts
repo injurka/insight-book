@@ -36,7 +36,7 @@ export async function generateTts(
   const ttsUrl = config.ttsUrl || config.url
   const ttsKey = config.ttsKey || config.key
   const primaryModel = config.ttsModel!
-  const fallbackModel = config.fallbackTtsModel || 'gemini-2.5-flash-preview-tts'
+  const fallbackModel = config.fallbackTtsModel!
 
   if (!ttsUrl)
     throw new AppError(500, ERROR_CODES.TTS.NOT_CONFIGURED, 'TTS API not configured')

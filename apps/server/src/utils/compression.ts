@@ -8,7 +8,7 @@ export function compressData(data: string | Buffer): Buffer {
 
 /**
  * Decompresses a zstd-compressed Buffer or Uint8Array back to string.
- * Gracefully falls back to plain UTF-8 if the input is uncompressed string/buffer.
+ * Throws if the data is not valid zstd (no fallback).
  */
 export function decompressData(data: Buffer | Uint8Array | string | null | undefined): string {
   if (!data)
@@ -23,8 +23,7 @@ export function decompressData(data: Buffer | Uint8Array | string | null | undef
   try {
     return Bun.zstdDecompressSync(buf).toString('utf-8')
   }
-  catch {
-    // Fallback if the data in DB was stored as plain UTF-8 text/buffer
-    return buf.toString('utf-8')
+  catch (e) {
+    throw new Error(`Failed to decompress cached data (${buf.length} bytes): ${e instanceof Error ? e.message : String(e)}`)
   }
 }

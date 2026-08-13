@@ -52,9 +52,8 @@ async function bootstrap() {
   configureApi({
     getToken: () => localStorage.getItem('insight_token'),
     getAppLanguage: () => settingsStore.appLanguage || null,
-    getCustomLlm: () => settingsStore.useCustomLlm && settingsStore.customLlmUrl && settingsStore.customLlmModel
-      ? { url: settingsStore.customLlmUrl, key: settingsStore.customLlmKey || '', model: settingsStore.customLlmModel }
-      : null,
+    getCustomLlm: () => settingsStore.customLlmConfig,
+    getAnalysisLlm: () => settingsStore.analysisLlmConfig,
     onUnauthorized: async () => authStore.logout(),
     onError: message => toastStore.error(message),
   })

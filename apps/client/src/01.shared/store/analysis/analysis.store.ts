@@ -269,8 +269,9 @@ export const useAnalysisStore = defineStore('analysis', () => {
     if (pendingLlmTasks.length === 0)
       return false
 
-    const batchSize = settingsStore.useCustomLlm ? 1 : 5
-    const concurrencyLimit = settingsStore.useCustomLlm ? 1 : 5
+    const usesCustomModel = settingsStore.useCustomLlm || settingsStore.useAnalysisLlm
+    const batchSize = usesCustomModel ? 1 : 5
+    const concurrencyLimit = usesCustomModel ? 1 : 5
 
     const llmChunk = pendingLlmTasks.slice(0, batchSize * concurrencyLimit)
     llmChunk.forEach(taskItem => taskItem.status = 'processing')
@@ -981,9 +982,9 @@ export const useAnalysisStore = defineStore('analysis', () => {
 
     const vocabularyNote = aiData.vocabulary?.length
       ? aiData.vocabulary
-          .filter(vocabItem => vocabItem && vocabItem.word)
-          .map(vocabItem => `<b>${vocabItem.word}</b> (${vocabItem.transcription || ''}) — ${vocabItem.meaning || ''}`)
-          .join('<br>')
+        .filter(vocabItem => vocabItem && vocabItem.word)
+        .map(vocabItem => `<b>${vocabItem.word}</b> (${vocabItem.transcription || ''}) — ${vocabItem.meaning || ''}`)
+        .join('<br>')
       : null
 
     return { grammarNote, vocabularyNote }
