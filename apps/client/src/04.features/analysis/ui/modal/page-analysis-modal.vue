@@ -16,6 +16,7 @@ const { t } = useI18n()
     icon="mdi:robot-outline"
     :max-width="450"
     :persistent="!analysisStore.isPageAnalysisFinished"
+    :minimizable="false"
   >
     <template v-if="!analysisStore.isPageAnalysisFinished">
       <div class="analysis-steps">
