@@ -117,15 +117,16 @@ export function useTts() {
     explicitLanguage?: string,
     explicitBookId?: number,
     forceCacheBypass?: boolean,
-  ) {
+  ): Promise<boolean> {
     if (!text || !validateText(text))
-      return
+      return false
 
     abortIfLoading()
     stop()
 
     isLoading.value = true
-    abortController = new AbortController()
+    const controller = new AbortController()
+    abortController = controller
 
     try {
       const { bookId, lang, voice } = getTtsParams(explicitLanguage, explicitBookId)
@@ -138,22 +139,27 @@ export function useTts() {
         normalizedText,
         text,
         forceCacheBypass,
-        abortController.signal,
+        controller.signal,
       )
 
-      if (abortController.signal.aborted)
-        return
+      if (controller.signal.aborted)
+        return false
 
-      if (audioBlob) {
-        await playAudioBlob(audioBlob, lang, voice)
-      }
+      if (!audioBlob)
+        return false
+
+      await playAudioBlob(audioBlob, lang, voice)
+
+      return true
     }
     catch (e) {
       if (!isAbortError(e as Error))
         console.error('TTS Error:', e)
+
+      return false
     }
     finally {
-      if (abortController && !abortController.signal.aborted)
+      if (abortController === controller)
         isLoading.value = false
     }
   }

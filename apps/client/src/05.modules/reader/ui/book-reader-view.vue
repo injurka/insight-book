@@ -249,6 +249,7 @@ watch(() => readerStore.isPageLoading, async (isLoading) => {
       v-model:visible="analysisStore.isPageAnalysisSetupModalOpen"
       :title="t('reader.analyzePage')"
       :max-width="400"
+      :minimizable="false"
       icon="mdi:robot-outline"
     >
       <div class="analysis-setup-content">
@@ -527,12 +528,14 @@ watch(() => readerStore.isPageLoading, async (isLoading) => {
       }
     }
 
-    &:hover {
-      opacity: 1;
-      background-color: var(--fg-accent-color);
-      color: var(--bg-primary-color);
-      transform: scale(1.15);
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    @media (hover: hover) and (pointer: fine) {
+      &:hover {
+        opacity: 1;
+        background-color: var(--fg-accent-color);
+        color: var(--bg-primary-color);
+        transform: scale(1.15);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      }
     }
 
     &:active {

@@ -18,7 +18,7 @@ function isValidWordTarget(
 
 export function useTextSelection() {
   const analysisStore = useAnalysisStore()
-  const { speak, isPlaying } = useTts()
+  const { speak, stop, isPlaying, isLoading } = useTts()
   let pressTimer: ReturnType<typeof setTimeout> | null = null
   let selectionChangeListener: (() => void) | null = null
   let pressMoveListener: ((e: Event) => void) | null = null
@@ -28,8 +28,8 @@ export function useTextSelection() {
 
   let currentPlayingBtn: HTMLElement | null = null
 
-  watch(isPlaying, (playing) => {
-    if (!playing && currentPlayingBtn) {
+  watch([isPlaying, isLoading], ([playing, loading]) => {
+    if (!playing && !loading && currentPlayingBtn) {
       currentPlayingBtn.classList.remove('is-playing')
       currentPlayingBtn = null
     }
@@ -163,13 +163,38 @@ export function useTextSelection() {
     event.stopPropagation()
     event.preventDefault()
     const text = decodeURIComponent(ttsBtn.dataset.ttsText || '')
-    if (text) {
-      if (currentPlayingBtn)
-        currentPlayingBtn.classList.remove('is-playing')
-      ttsBtn.classList.add('is-playing')
-      currentPlayingBtn = ttsBtn
-      speak(text)
+    if (!text)
+      return true
+
+    const prevBtn = currentPlayingBtn
+
+    if (ttsBtn === prevBtn) {
+      stop()
+      ttsBtn.classList.remove('is-playing')
+      currentPlayingBtn = null
+
+      return true
     }
+
+    if (prevBtn)
+      prevBtn.classList.remove('is-playing')
+
+    ttsBtn.classList.add('is-playing')
+    currentPlayingBtn = ttsBtn
+
+    void speak(text).then((started: boolean) => {
+      if (started || currentPlayingBtn !== ttsBtn)
+        return
+
+      ttsBtn.classList.remove('is-playing')
+      if (prevBtn && prevBtn.isConnected && isPlaying.value) {
+        prevBtn.classList.add('is-playing')
+        currentPlayingBtn = prevBtn
+      }
+      else {
+        currentPlayingBtn = null
+      }
+    })
 
     return true
   }

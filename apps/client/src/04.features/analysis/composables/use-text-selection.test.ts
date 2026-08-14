@@ -3,8 +3,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 // Мокаем хранилище анализа: тестируем таймер длинного нажатия,
 // а не сетевой слой (performSentenceAnalysis ходит в API).
-const { handleSentenceAnalysis } = vi.hoisted(() => ({
+const { handleSentenceAnalysis, speak, stop } = vi.hoisted(() => ({
   handleSentenceAnalysis: vi.fn().mockResolvedValue(undefined),
+  speak: vi.fn().mockResolvedValue(true),
+  stop: vi.fn(),
 }))
 
 vi.mock('~/01.shared/store/analysis/analysis.store', () => ({
@@ -20,8 +22,8 @@ vi.mock('~/01.shared/composables/use-tts', async () => {
 
   return {
     useTts: () => ({
-      speak: vi.fn(),
-      stop: vi.fn(),
+      speak,
+      stop,
       isPlaying: ref(false),
       isLoading: ref(false),
     }),
@@ -166,5 +168,80 @@ describe('useTextSelection press timer', () => {
 
     expect(handleSentenceAnalysis).toHaveBeenCalled()
     el.remove()
+  })
+})
+
+describe('useTextSelection tts button', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+    speak.mockReset()
+    speak.mockResolvedValue(true)
+    stop.mockReset()
+  })
+
+  function makeTtsButton(text = 'Hello world'): HTMLElement {
+    const btn = document.createElement('button')
+    btn.className = 'sentence-tts-btn'
+    btn.type = 'button'
+    btn.dataset.ttsText = encodeURIComponent(text)
+    document.body.appendChild(btn)
+
+    return btn
+  }
+
+  function clickOn(el: HTMLElement): MouseEvent {
+    const e = new MouseEvent('click', { bubbles: true, cancelable: true })
+    Object.defineProperty(e, 'target', { value: el })
+
+    return e
+  }
+
+  async function flushMicrotasks() {
+    await Promise.resolve()
+    await Promise.resolve()
+  }
+
+  it('запускает TTS и помечает кнопку is-playing', async () => {
+    const { selection } = setup()
+    const btn = makeTtsButton()
+
+    selection.onWordClick(clickOn(btn))
+    await flushMicrotasks()
+
+    expect(speak).toHaveBeenCalledTimes(1)
+    expect(speak).toHaveBeenCalledWith('Hello world')
+    expect(btn.classList.contains('is-playing')).toBe(true)
+
+    btn.remove()
+  })
+
+  it('повторный клик по играющей кнопке останавливает TTS без нового запроса', async () => {
+    const { selection } = setup()
+    const btn = makeTtsButton()
+
+    selection.onWordClick(clickOn(btn))
+    await flushMicrotasks()
+
+    selection.onWordClick(clickOn(btn))
+    await flushMicrotasks()
+
+    expect(speak).toHaveBeenCalledTimes(1)
+    expect(stop).toHaveBeenCalledTimes(1)
+    expect(btn.classList.contains('is-playing')).toBe(false)
+
+    btn.remove()
+  })
+
+  it('не оставляет is-playing, если speak отклонил текст', async () => {
+    const { selection } = setup()
+    const btn = makeTtsButton()
+    speak.mockResolvedValueOnce(false)
+
+    selection.onWordClick(clickOn(btn))
+    await flushMicrotasks()
+
+    expect(btn.classList.contains('is-playing')).toBe(false)
+
+    btn.remove()
   })
 })
