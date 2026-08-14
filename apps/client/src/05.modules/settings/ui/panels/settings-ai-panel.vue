@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { Icon } from '@iconify/vue'
 import { useI18n } from 'vue-i18n'
 import { useToast } from '~/01.shared/composables/use-toast'
 import { useAuthStore } from '~/01.shared/store/auth.store'
@@ -10,6 +9,7 @@ import { KitCheckbox } from '~/02.kit/atoms/kit-checkbox/ui'
 import { KitInput } from '~/02.kit/atoms/kit-input/ui'
 import { KitSelect } from '~/02.kit/molecules/kit-select/ui'
 import { KitTooltip } from '~/02.kit/molecules/kit-tooltip/ui'
+import AutoAnalysisOptions from '~/04.features/analysis/ui/auto-analysis-options.vue'
 import { useCustomModels } from '../../composables/use-custom-models'
 
 const { t } = useI18n()
@@ -93,67 +93,7 @@ function toggleAutoAnalyzePage() {
 
     <div class="custom-llm-form" :class="{ 'is-disabled': !settingsStore.autoAnalyzePage }">
       <p class="hint" v-html="t('settings.autoAnalyzePageDesc')" />
-      <div class="sync-options">
-        <div class="sync-option-group">
-          <div
-            class="sync-option-half"
-            :class="{ 'is-active': settingsStore.autoAnalyzeSentences && settingsStore.autoAnalyzePage }"
-            @click="settingsStore.autoAnalyzePage && (settingsStore.autoAnalyzeSentences = !settingsStore.autoAnalyzeSentences)"
-          >
-            <div class="option-content">
-              <Icon icon="mdi:brain" class="option-icon" />
-              <div class="option-texts">
-                <span class="option-title">{{ t('bookInfo.deepAnalysis') }}</span>
-              </div>
-            </div>
-            <KitCheckbox :model-value="settingsStore.autoAnalyzeSentences && settingsStore.autoAnalyzePage" style="pointer-events: none;" />
-          </div>
-
-          <div
-            class="sync-option-half"
-            :class="{ 'is-active': settingsStore.autoAnalyzeWords && settingsStore.autoAnalyzePage }"
-            @click="settingsStore.autoAnalyzePage && (settingsStore.autoAnalyzeWords = !settingsStore.autoAnalyzeWords)"
-          >
-            <div class="option-content">
-              <Icon icon="mdi:format-text" class="option-icon" />
-              <div class="option-texts">
-                <span class="option-title">{{ t('bookInfo.analyzeWords') }}</span>
-              </div>
-            </div>
-            <KitCheckbox :model-value="settingsStore.autoAnalyzeWords && settingsStore.autoAnalyzePage" style="pointer-events: none;" />
-          </div>
-        </div>
-
-        <div class="sync-option-group">
-          <div
-            class="sync-option-half"
-            :class="{ 'is-active': settingsStore.autoAnalyzeTtsSentences && settingsStore.autoAnalyzePage }"
-            @click="settingsStore.autoAnalyzePage && (settingsStore.autoAnalyzeTtsSentences = !settingsStore.autoAnalyzeTtsSentences)"
-          >
-            <div class="option-content">
-              <Icon icon="mdi:headphones" class="option-icon" />
-              <div class="option-texts">
-                <span class="option-title">{{ t('bookInfo.cacheTtsSentences') }}</span>
-              </div>
-            </div>
-            <KitCheckbox :model-value="settingsStore.autoAnalyzeTtsSentences && settingsStore.autoAnalyzePage" style="pointer-events: none;" />
-          </div>
-
-          <div
-            class="sync-option-half"
-            :class="{ 'is-active': settingsStore.autoAnalyzeTtsWords && settingsStore.autoAnalyzePage }"
-            @click="settingsStore.autoAnalyzePage && (settingsStore.autoAnalyzeTtsWords = !settingsStore.autoAnalyzeTtsWords)"
-          >
-            <div class="option-content">
-              <Icon icon="mdi:headphones" class="option-icon" />
-              <div class="option-texts">
-                <span class="option-title">{{ t('bookInfo.cacheTtsWords') }}</span>
-              </div>
-            </div>
-            <KitCheckbox :model-value="settingsStore.autoAnalyzeTtsWords && settingsStore.autoAnalyzePage" style="pointer-events: none;" />
-          </div>
-        </div>
-      </div>
+      <AutoAnalysisOptions />
     </div>
   </div>
 </template>
@@ -251,118 +191,5 @@ function toggleAutoAnalyzePage() {
 .fade-leave-to {
   opacity: 0;
   transform: translateY(-5px);
-}
-.sync-options {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-.sync-option-group {
-  display: flex;
-  gap: 12px;
-  @include media-down(sm) {
-    flex-direction: column;
-  }
-}
-.sync-option-half {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 12px 16px;
-  background: var(--bg-primary-color);
-  border: 1px solid var(--border-secondary-color);
-  border-radius: 12px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-
-  &:hover {
-    border-color: var(--border-primary-color);
-  }
-
-  &.is-active {
-    border-color: var(--fg-accent-color);
-    background: rgba(var(--bg-accent-color-rgb, 201, 117, 222), 0.05);
-
-    .option-icon {
-      color: var(--fg-accent-color);
-    }
-  }
-
-  .option-content {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-  }
-
-  .option-icon {
-    font-size: 1.6rem;
-    color: var(--fg-secondary-color);
-    transition: color 0.2s ease;
-  }
-
-  .option-texts {
-    display: flex;
-    flex-direction: column;
-
-    .option-title {
-      font-weight: 500;
-      font-size: 0.95rem;
-      color: var(--fg-primary-color);
-    }
-  }
-}
-.sync-option {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 16px;
-  background: var(--bg-primary-color);
-  border: 1px solid var(--border-secondary-color);
-  border-radius: 12px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-
-  &:hover {
-    border-color: var(--border-primary-color);
-  }
-
-  &.is-active {
-    border-color: var(--fg-accent-color);
-    background: rgba(var(--bg-accent-color-rgb, 201, 117, 222), 0.05);
-  }
-
-  .option-content {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-  }
-
-  .option-icon {
-    font-size: 1.8rem;
-    color: var(--fg-secondary-color);
-    transition: color 0.2s ease;
-  }
-
-  &.is-active .option-icon {
-    color: var(--fg-accent-color);
-  }
-
-  .option-texts {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-
-    .option-title {
-      font-weight: 600;
-      font-size: 1rem;
-      color: var(--fg-primary-color);
-    }
-
-    .option-desc {
-      font-size: 0.85rem;
-      color: var(--fg-secondary-color);
-    }
-  }
 }
 </style>

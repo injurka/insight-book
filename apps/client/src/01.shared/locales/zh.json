@@ -223,7 +223,7 @@
     "modelName": "模型名称",
     "apiKey": "API Key",
     "autoAnalyzePage": "在后台自动分析页面",
-    "autoAnalyzePageDesc": "在阅读时在后台自动翻译和生成页面文本的语音。这消除了点击文本或开启双语阅读时的延迟，但会<b>主动消耗 API 额度</b>（尤其是 Token）。",
+    "autoAnalyzePageDesc": "在阅读时在后台自动翻译和生成页面文本的语音。这消除了点击文本或开启双语阅读时的延迟，但会<b>主动消耗额度</b>。",
     "highlightSavedQuotes": "高亮已保存的句子",
     "showSentenceTtsButton": "显示句子朗读按钮",
     "storageTitle": "本地存储",
@@ -428,7 +428,8 @@
     "textAnalysis": "文本分析 (AI)",
     "voiceTts": "语音 (TTS)",
     "startAnalysis": "开始处理",
-    "fullscreen": "全屏"
+    "fullscreen": "全屏",
+    "autoAnalyzeSettings": "后台分析设置"
   },
   "dictionary": {
     "title": "我的词典",

@@ -18,6 +18,7 @@ import { useReaderStore } from '../../store/reader.store'
 const emit = defineEmits<{
   openPageAnalysis: []
   closeDropdown: []
+  openAutoAnalyzeSettings: []
 }>()
 
 const readerStore = useReaderStore()
@@ -30,6 +31,10 @@ const { speak, stop, isPlaying, isLoading } = useTts()
 
 const { theme, toggleTheme } = useChangeTheme()
 const { isFullscreen, toggle: toggleFullscreen } = useFullscreen()
+
+function openAutoAnalyzeSettings() {
+  emit('openAutoAnalyzeSettings')
+}
 
 function toggleAutoAnalyzePage() {
   if (networkStore.effectiveOffline) {
@@ -194,7 +199,19 @@ const currentThemeName = computed(() => {
           <Icon icon="mdi:robot-outline" class="item-icon" />
           <span>{{ t('settings.autoAnalyzePage') }}</span>
         </div>
-        <KitCheckbox :model-value="settingsStore.autoAnalyzePage" class="readonly-checkbox" />
+        <div class="item-actions">
+          <KitBtn
+            icon="mdi:cog-outline"
+            variant="tonal"
+            color="secondary"
+            size="xs"
+            density="compact"
+            class="auto-analyze-config-btn"
+            :title="t('reader.autoAnalyzeSettings')"
+            @click.stop="openAutoAnalyzeSettings"
+          />
+          <KitCheckbox :model-value="settingsStore.autoAnalyzePage" class="readonly-checkbox" />
+        </div>
       </div>
 
       <div class="menu-item" @click="settingsStore.highlightSavedQuotes = !settingsStore.highlightSavedQuotes">
@@ -321,7 +338,7 @@ const currentThemeName = computed(() => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 8px;
+  padding: 9px 8px;
   border-radius: 6px;
   cursor: pointer;
   transition: background-color 0.2s;
@@ -482,12 +499,24 @@ const currentThemeName = computed(() => {
 
 .divider {
   height: 1px;
-  background-color: var(--border-secondary-color);
+  background-color: var(--border-primary-color);
   margin: 0 4px;
 }
 
 .readonly-checkbox {
   pointer-events: none;
+}
+
+.item-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.auto-analyze-config-btn {
+  min-height: 26px;
+  width: 26px;
+  padding: 0;
 }
 
 .voice-select-wrapper {

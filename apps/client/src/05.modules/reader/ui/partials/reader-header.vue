@@ -9,6 +9,8 @@ import { useGlobalSettingsStore } from '~/01.shared/store/settings.store'
 import { KitBtn } from '~/02.kit/atoms/kit-btn/ui'
 import { KitDropdown } from '~/02.kit/molecules/kit-dropdown/ui'
 import { KitTooltip } from '~/02.kit/molecules/kit-tooltip/ui'
+import { KitDialog } from '~/02.kit/organisms/kit-dialog/ui'
+import AutoAnalysisOptions from '~/04.features/analysis/ui/auto-analysis-options.vue'
 import { useReaderStore } from '../../store/reader.store'
 import ReaderParallelMenu from './reader-parallel-menu.vue'
 import ReaderSettingsMenu from './reader-settings-menu.vue'
@@ -32,6 +34,13 @@ const router = useRouter()
 
 const parallelDropdownRef = ref<InstanceType<typeof KitDropdown> | null>(null)
 const settingsDropdownRef = ref<InstanceType<typeof KitDropdown> | null>(null)
+
+const showAutoAnalyzeSettings = ref(false)
+
+function openAutoAnalyzeSettings() {
+  settingsDropdownRef.value?.close()
+  showAutoAnalyzeSettings.value = true
+}
 
 function goBack() {
   if (readerStore.currentBook?.id)
@@ -118,8 +127,22 @@ watch(() => props.isVisible, (visible) => {
           </div>
         </KitTooltip>
       </template>
-      <ReaderSettingsMenu @close-dropdown="settingsDropdownRef?.close()" />
+      <ReaderSettingsMenu
+        @close-dropdown="settingsDropdownRef?.close()"
+        @open-auto-analyze-settings="openAutoAnalyzeSettings"
+      />
     </KitDropdown>
+
+    <KitDialog
+      v-model:visible="showAutoAnalyzeSettings"
+      :title="t('reader.autoAnalyzeSettings')"
+      icon="mdi:cog-outline"
+      :max-width="420"
+      :minimizable="false"
+    >
+      <p class="dialog-hint" v-html="t('settings.autoAnalyzePageDesc')" />
+      <AutoAnalysisOptions />
+    </KitDialog>
   </header>
 </template>
 
@@ -182,6 +205,13 @@ watch(() => props.isVisible, (visible) => {
   position: relative;
   display: inline-block;
   cursor: pointer;
+}
+
+.dialog-hint {
+  margin: 0 0 12px;
+  font-size: 0.85rem;
+  color: var(--fg-secondary-color);
+  line-height: 1.4;
 }
 
 .blinking-dot {

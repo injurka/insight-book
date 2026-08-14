@@ -224,7 +224,7 @@
     "modelName": "Model Name",
     "apiKey": "API Key",
     "autoAnalyzePage": "Analyze in background",
-    "autoAnalyzePageDesc": "Automatically translates and generates TTS for the page text in the background while reading. This eliminates delays when clicking on text but <b>actively consumes API limits</b> (especially tokens).",
+    "autoAnalyzePageDesc": "Automatically translates and generates TTS for the page text in the background while reading. This eliminates delays when clicking on text but <b>actively consumes limits</b>.",
     "highlightSavedQuotes": "Highlight saved quotes",
     "showSentenceTtsButton": "Sentence TTS button",
     "storageTitle": "Local Storage",
@@ -429,7 +429,8 @@
     "textAnalysis": "Text Analysis (AI)",
     "voiceTts": "Voiceover (TTS)",
     "startAnalysis": "Start processing",
-    "fullscreen": "Fullscreen"
+    "fullscreen": "Fullscreen",
+    "autoAnalyzeSettings": "Background analysis settings"
   },
   "dictionary": {
     "title": "My Dictionary",
