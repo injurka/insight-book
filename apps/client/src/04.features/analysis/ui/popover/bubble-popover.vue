@@ -72,14 +72,14 @@ async function openSaveModal() {
   isFetchingTranslation.value = true
 
   try {
-    const cached = await repos.analysis.getLocalAnalysis(text)
+    const language = readerStore.currentBook.language
+    const cached = await repos.analysis.getLocalAnalysis(text, language)
     if (cached && cached.translation) {
       modalInitialData.value.translation = cached.translation
       modalInitialData.value.analysisData = cached
       analysisData.value = cached
     }
     else {
-      const language = readerStore.currentBook.language || 'en'
       const res = await repos.analysis.analyze(readerStore.currentBook.id, text, language)
       // Save isn't explicitly needed here because analyze() saves automatically, but it doesn't hurt.
       modalInitialData.value.translation = res.translation || ''

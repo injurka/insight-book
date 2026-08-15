@@ -18,6 +18,7 @@ const hoisted = vi.hoisted(() => {
     getPageDict: vi.fn(),
   }
   const analysisRepo = {
+    getAllCacheAll: vi.fn(),
     getLocalAnalysis: vi.fn(),
     checkCache: vi.fn(),
     analyzeBatch: vi.fn(),
@@ -129,6 +130,7 @@ describe('startWholeBookSync', () => {
     hoisted.bookRepo.saveLocalImage.mockResolvedValue(undefined)
     hoisted.bookRepo.getPageDict.mockResolvedValue({})
 
+    hoisted.analysisRepo.getAllCacheAll.mockResolvedValue({ results: [] })
     hoisted.analysisRepo.getLocalAnalysis.mockResolvedValue(null)
     hoisted.analysisRepo.checkCache.mockResolvedValue({ results: [] })
     hoisted.analysisRepo.analyzeBatch.mockResolvedValue({ results: [] })
@@ -323,17 +325,34 @@ describe('startWholeBookSync', () => {
       expect.any(AbortSignal),
     )
     // Server-cached sentence is stored locally without LLM analysis
-    expect(hoisted.analysisRepo.saveLocalAnalysis).toHaveBeenCalledWith('Cached on server.', serverAnalysis)
+    expect(hoisted.analysisRepo.saveLocalAnalysis).toHaveBeenCalledWith('Cached on server.', serverAnalysis, 'en')
     // Only the missing sentence goes to analyzeBatch
     expect(hoisted.analysisRepo.analyzeBatch).toHaveBeenCalledTimes(1)
     const batchItems = hoisted.analysisRepo.analyzeBatch.mock.calls[0][1]
     expect(batchItems).toHaveLength(1)
     expect(batchItems[0].sentence).toBe('Needs analysis.')
-    expect(hoisted.analysisRepo.saveLocalAnalysis).toHaveBeenCalledWith('Needs analysis.', { meanings: ['llm'] })
+    expect(hoisted.analysisRepo.saveLocalAnalysis).toHaveBeenCalledWith('Needs analysis.', { meanings: ['llm'] }, 'en')
 
     expect(syncProgress.value.sentencesTotal).toBe(2)
     expect(syncProgress.value.sentencesDone).toBe(2)
     expect(syncProgress.value.sentencesFromCache).toBe(1)
+    expect(syncState.value).toBe('finished')
+  })
+
+  it('hydrates server cache in bulk via getAllCacheAll when analysis is requested', async () => {
+    hoisted.libraryState.books = [makeBook({ totalPages: 1 })]
+    hoisted.bookRepo.getPage.mockImplementation(async () => makeTextPage(1, ['Hello world']))
+    const bulkAnalysis = { meanings: ['bulk'] }
+    hoisted.analysisRepo.getAllCacheAll.mockResolvedValue({
+      results: [{ sentence: 'Hello world', analysis: bulkAnalysis }],
+    })
+    // After getAllCacheAll hydrates local storage, getLocalAnalysis will return the cached data
+    hoisted.analysisRepo.getLocalAnalysis.mockResolvedValue(bulkAnalysis)
+
+    await startWholeBookSync(1, { ...baseOptions, analyzeSentences: true })
+
+    expect(hoisted.analysisRepo.getAllCacheAll).toHaveBeenCalledWith(1, 'ru')
+    expect(hoisted.analysisRepo.saveLocalAnalysis).toHaveBeenCalledWith('Hello world', bulkAnalysis, 'en')
     expect(syncState.value).toBe('finished')
   })
 

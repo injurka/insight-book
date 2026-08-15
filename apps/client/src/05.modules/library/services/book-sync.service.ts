@@ -45,6 +45,7 @@ interface SyncBook {
 interface AnalysisContext {
   bookId: number
   language: string
+  totalPages: number
   signal: AbortSignal
   batchSize: number
   concurrencyLimit: number
@@ -64,12 +65,28 @@ export function cancelSync(): void {
 async function fetchAndHydrateServerCache(ctx: AnalysisContext): Promise<void> {
   try {
     syncProgress.value.currentTask = 'Загрузка имеющегося кэша с сервера...'
-    const res = await repos.analysis.getAllCacheAll(ctx.bookId)
+    const settingsStore = useGlobalSettingsStore()
+    const targetLang = settingsStore.appLanguage
+    const res = await repos.analysis.getAllCacheAll(ctx.bookId, targetLang)
+
     if (res && res.results && res.results.length > 0) {
-      await Promise.all(res.results.map(item => repos.analysis.saveLocalAnalysis(item.sentence, item.analysis)))
+      const CHUNK_SIZE = 50
+
+      for (let i = 0; i < res.results.length; i += CHUNK_SIZE) {
+        if (ctx.signal.aborted)
+          throw new Error('Aborted')
+
+        const chunk = res.results.slice(i, i + CHUNK_SIZE)
+        await Promise.all(chunk.map(item => repos.analysis.saveLocalAnalysis(item.sentence, item.analysis, ctx.language)))
+
+        syncProgress.value.currentTask = `Сохранение кэша: ${Math.min(i + CHUNK_SIZE, res.results.length)} / ${res.results.length}`
+      }
     }
   }
   catch (e) {
+    const err = e as Error
+    if (err.name === 'AbortError' || err.message === 'Aborted')
+      throw err
     console.warn('[Sync Service] Failed to pre-fetch server cache in bulk:', e)
   }
 }
@@ -154,7 +171,7 @@ async function filterServerCachedTexts(
       const text = missingTexts[j]
       const serverCached = cacheMap.get(text) as LlmAnalysis
       if (serverCached) {
-        await repos.analysis.saveLocalAnalysis(text, serverCached)
+        await repos.analysis.saveLocalAnalysis(text, serverCached, ctx.language)
         syncProgress.value[doneKey]++
         syncProgress.value[cacheKey]++
         missingTexts.splice(j, 1)
@@ -182,7 +199,7 @@ async function analyzeMissingTexts(
   const missingTexts: string[] = []
 
   for (const text of texts) {
-    const cached = await repos.analysis.getLocalAnalysis(text)
+    const cached = await repos.analysis.getLocalAnalysis(text, ctx.language)
     if (cached) {
       syncProgress.value[doneKey]++
       syncProgress.value[cacheKey]++
@@ -222,7 +239,7 @@ async function analyzeMissingTexts(
         for (const result of res.results) {
           const item = itemsToAnalyze.find(it => it.id === result.id)
           if (item) {
-            await repos.analysis.saveLocalAnalysis(item.sentence, result.analysis)
+            await repos.analysis.saveLocalAnalysis(item.sentence, result.analysis, ctx.language)
             syncProgress.value[doneKey]++
           }
         }
@@ -233,7 +250,7 @@ async function analyzeMissingTexts(
           console.error(`Analyze ${type} error:`, err)
       }
     }))
-    syncProgress.value.currentTask = `Анализ ${label}: стр. ${pageNum}, ${syncProgress.value[doneKey]} / ${syncProgress.value[totalKey]}`
+    syncProgress.value.currentTask = `Страница ${pageNum} из ${ctx.totalPages}: анализ ${label}`
   }
 }
 
@@ -277,7 +294,7 @@ async function generateTtsForTexts(texts: string[], ctx: AnalysisContext, pageNu
 
       syncProgress.value.ttsDone++
     }))
-    syncProgress.value.currentTask = `Генерация аудио: стр. ${pageNum}, ${syncProgress.value.ttsDone} / ${syncProgress.value.ttsTotal}`
+    syncProgress.value.currentTask = `Страница ${pageNum} из ${ctx.totalPages}: генерация озвучки`
   }
 }
 
@@ -341,7 +358,7 @@ async function processPage(
   if (ctx.signal.aborted)
     throw new Error('Aborted')
 
-  syncProgress.value.currentTask = `Загрузка страницы ${pageNum} из ${book.totalPages}`
+  syncProgress.value.currentTask = `Страница ${pageNum} из ${book.totalPages}: загрузка контента`
 
   let page: PagePayload | null
   try {
@@ -467,6 +484,7 @@ export async function startWholeBookSync(bookId: number, options: {
   const ctx: AnalysisContext = {
     bookId,
     language: book.language,
+    totalPages: book.totalPages,
     signal,
     batchSize,
     concurrencyLimit,

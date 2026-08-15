@@ -2,6 +2,8 @@ import type { SQL } from 'drizzle-orm'
 import type { IBookRepository } from './interfaces'
 import { and, desc, eq, inArray, isNotNull, like, or, sql } from 'drizzle-orm'
 import { compressData, decompressData } from '~/utils/compression'
+import { isOldFormatAnalysis } from '~/utils/helpers'
+import { logger } from '~/utils/logger'
 import { db } from '../db'
 import * as schema from '../db/schema'
 
@@ -79,11 +81,25 @@ export class BookRepository implements IBookRepository {
         eq(schema.llmCache.targetLanguage, targetLang),
       ))
 
-    return rows.map(r => ({
-      sentenceHash: r.sentenceHash,
-      sentence: r.sentence,
-      analysis: JSON.parse(decompressData(r.analysis)),
-    }))
+    const validResults: { sentenceHash: string, sentence: string, analysis: unknown }[] = []
+    for (const r of rows) {
+      try {
+        const decompressed = decompressData(r.analysis)
+        const parsed = JSON.parse(decompressed)
+        if (!isOldFormatAnalysis(parsed)) {
+          validResults.push({
+            sentenceHash: r.sentenceHash,
+            sentence: r.sentence,
+            analysis: parsed,
+          })
+        }
+      }
+      catch (e) {
+        logger.warn({ err: e, hash: r.sentenceHash }, '[BookRepository] Failed to decompress/parse cache item in getAllBookLlmCache')
+      }
+    }
+
+    return validResults
   }
 
   async getUserBooks(userId: number) {

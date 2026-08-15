@@ -1,7 +1,7 @@
 import type { BatchAnalysisRequest, BatchAnalysisResponse, GeneratedWordExamples, LlmAnalysis, LlmConfig, ModelMessage, WordAutoFillResponse } from '../types'
 import { eq, inArray, sql } from 'drizzle-orm'
 import { compressData, decompressData } from '~/utils/compression'
-import { hashSentence, isValidWordForLanguage, parseLlmJson } from '~/utils/helpers'
+import { hashSentence, isOldFormatAnalysis, isValidWordForLanguage, parseLlmJson } from '~/utils/helpers'
 import { callLlmJsonWithRetry } from '~/utils/llm-api'
 import { ERROR_CODES } from '../constants/error-codes'
 import { db } from '../db'
@@ -11,21 +11,6 @@ import { AppError } from '../utils/errors'
 import { logger } from '../utils/logger'
 import { checkTokenLimit } from './limits.service'
 import { trackTokenUsage } from './token.service'
-
-function isOldFormatAnalysis(parsed: unknown): boolean {
-  if (!parsed || typeof parsed !== 'object')
-    return true
-  const p = parsed as Record<string, unknown>
-  if (Array.isArray(p.grammarRules)) {
-    if (p.grammarRules.some((r: unknown) => typeof r !== 'object' || r === null))
-      return true
-  }
-  if (Array.isArray(p.vocabulary)) {
-    if (p.vocabulary.some((v: unknown) => typeof v !== 'object' || v === null))
-      return true
-  }
-  return false
-}
 
 export async function analyzeSentence(
   userId: number,

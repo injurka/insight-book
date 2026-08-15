@@ -32,6 +32,21 @@ export function hashSentence(sentence: string, language: string, targetLang: str
   return hasher.digest('hex')
 }
 
+export function isOldFormatAnalysis(parsed: unknown): boolean {
+  if (!parsed || typeof parsed !== 'object')
+    return true
+  const p = parsed as Record<string, unknown>
+  if (Array.isArray(p.grammarRules)) {
+    if (p.grammarRules.some((r: unknown) => typeof r !== 'object' || r === null))
+      return true
+  }
+  if (Array.isArray(p.vocabulary)) {
+    if (p.vocabulary.some((v: unknown) => typeof v !== 'object' || v === null))
+      return true
+  }
+  return false
+}
+
 export function extractLlmConfig(req: Request): LlmConfig {
   const aiConfig = getAiConfig()
 

@@ -583,6 +583,11 @@ export const offlineService = {
     if (!cached && srcLang) {
       const legacyKey = buildLegacyAnalysisCacheKey(text)
       cached = await safeGetItem<LlmAnalysis>(legacyKey)
+
+      if (!cached) {
+        const anyKey = buildAnalysisCacheKey(text, 'any')
+        cached = await safeGetItem<LlmAnalysis>(anyKey)
+      }
     }
 
     // Если нашли в L2 — кладём в L1 в оперативной памяти для следующих мгновенных обращений

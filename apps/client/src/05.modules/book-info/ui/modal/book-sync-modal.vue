@@ -9,6 +9,8 @@ import { KitBtn } from '~/02.kit/atoms/kit-btn/ui'
 import { KitCheckbox } from '~/02.kit/atoms/kit-checkbox/ui'
 import { KitDialog } from '~/02.kit/organisms/kit-dialog/ui'
 import { useLibraryStore } from '~/05.modules/library/store/library.store'
+import { useBookSyncSections } from '../../composables/use-book-sync-sections'
+import { formatNumber } from '../../lib/formatters'
 
 interface Props {
   bookId: number
@@ -33,104 +35,18 @@ const isRunning = computed(() => libraryStore.syncState === 'running')
 const isFinished = computed(() => libraryStore.syncState === 'finished')
 const hasError = computed(() => libraryStore.syncState === 'error')
 
-interface SyncSection {
-  key: string
-  icon: string
-  label: string
-  done: number
-  total: number
-  fromCache: number
-  percent: number
-  status: 'pending' | 'active' | 'done'
-  fillClass: string
-}
-
-const sections = computed<SyncSection[]>(() => {
-  const p = libraryStore.syncProgress
-  const opts = libraryStore.syncOptions
-  const list: SyncSection[] = []
-
-  const add = (
-    key: string,
-    icon: string,
-    label: string,
-    done: number,
-    total: number,
-    fromCache: number,
-    fillClass: string,
-  ) => {
-    const percent = total > 0 ? Math.min(100, Math.round((done / total) * 100)) : 0
-    const status: SyncSection['status'] = total === 0 ? 'pending' : isFinished.value ? 'done' : 'active'
-    list.push({
-      key,
-      icon,
-      label,
-      done,
-      total,
-      fromCache,
-      percent,
-      status,
-      fillClass,
-    })
-  }
-
-  if (opts.cachePages) {
-    add(
-      'pages',
-      'mdi:file-document-multiple-outline',
-      t('bookInfo.pages'),
-      p.pagesDone,
-      p.pagesTotal,
-      0,
-      'pages-fill',
-    )
-  }
-
-  if (opts.analyzeSentences) {
-    add(
-      'sentences',
-      'mdi:brain',
-      t('bookInfo.sentences'),
-      p.sentencesDone,
-      p.sentencesTotal,
-      p.sentencesFromCache,
-      'sentences-fill',
-    )
-  }
-
-  if (opts.analyzeWords) {
-    add(
-      'words',
-      'mdi:format-text',
-      t('analysis.words'),
-      p.wordsDone,
-      p.wordsTotal,
-      p.wordsFromCache,
-      'words-fill',
-    )
-  }
-
-  if (opts.ttsSentences || opts.ttsWords) {
-    add(
-      'tts',
-      'mdi:headphones',
-      t('reader.voiceTts'),
-      p.ttsDone,
-      p.ttsTotal,
-      p.ttsFromCache,
-      'tts-fill',
-    )
-  }
-
-  return list
-})
+const { sections } = useBookSyncSections(isFinished)
 
 const overallPercent = computed(() => {
-  const secs = sections.value
-  const total = secs.reduce((sum, s) => sum + s.total, 0)
-  const done = secs.reduce((sum, s) => sum + s.done, 0)
+  if (isFinished.value)
+    return 100
 
-  return total > 0 ? Math.min(100, Math.round((done / total) * 100)) : 0
+  const p = libraryStore.syncProgress
+
+  if (p.pagesTotal <= 0)
+    return 0
+
+  return Math.min(100, Math.round((p.pagesDone / p.pagesTotal) * 100))
 })
 
 const cachedSummaryItems = computed(() =>
@@ -293,8 +209,18 @@ watch(visible, (val) => {
               </span>
             </div>
             <span class="value">
-              <b>{{ section.done }}</b> / {{ section.total }}
-              <span class="percent">· {{ section.percent }}%</span>
+              <template v-if="section.key === 'pages' || isFinished">
+                <b>{{ formatNumber(section.done) }}</b> / {{ formatNumber(section.total) }}
+                <span class="percent">· {{ section.percent }}%</span>
+              </template>
+              <template v-else-if="section.estimatedTotal && section.estimatedTotal > section.done">
+                <b>{{ formatNumber(section.done) }}</b> / ~{{ formatNumber(section.estimatedTotal) }}
+                <span class="percent">· {{ section.percent }}%</span>
+              </template>
+              <template v-else>
+                <b>{{ formatNumber(section.done) }}</b>
+                <span class="percent">· {{ section.percent }}%</span>
+              </template>
               <Icon
                 v-if="section.status === 'done'"
                 icon="mdi:check-circle"
