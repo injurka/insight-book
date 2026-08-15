@@ -103,7 +103,6 @@ async function cacheBookCover(book: SyncBook, cachePages: boolean): Promise<void
   }
 }
 
-/** Кэширует изображение manga-страницы и словарь страницы. */
 async function cachePageAssets(
   bookId: number,
   page: PagePayload | undefined,
@@ -124,13 +123,6 @@ async function cachePageAssets(
         console.warn(`Failed to cache image for page ${pageNum}`, e)
       }
     }
-  }
-
-  try {
-    await repos.book.getPageDict(bookId, pageNum)
-  }
-  catch (e) {
-    console.warn(`Failed to fetch dictionary for page ${pageNum}`, e)
   }
 }
 

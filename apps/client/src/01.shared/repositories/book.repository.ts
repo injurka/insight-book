@@ -168,11 +168,19 @@ export class DefaultBookRepository implements IBookRepository {
       console.warn('[Repository] Failed to retrieve from offline cache:', err)
     }
 
-    const res = await api.books.getPageDict(id, num)
-    const data = res.pageDictionary || {}
-    await offlineService.savePageDictionary(id, num, data).catch(() => { })
+    if (typeof navigator !== 'undefined' && !navigator.onLine)
+      return {}
 
-    return data
+    try {
+      const res = await api.books.getPageDict(id, num)
+      const data = res.pageDictionary || {}
+      await offlineService.savePageDictionary(id, num, data).catch(() => { })
+
+      return data
+    }
+    catch {
+      return {}
+    }
   }
 
   async saveLocalPageDictionary(id: number, num: number, data: Record<string, PageDictEntry>) {

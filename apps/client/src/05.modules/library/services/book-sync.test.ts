@@ -147,7 +147,7 @@ describe('startWholeBookSync', () => {
     expect(syncState.value).toBe('idle')
   })
 
-  it('caches toc, cover, every page and its dictionary for a 10-page book', async () => {
+  it('caches toc, cover and every page for a 10-page book', async () => {
     await startWholeBookSync(1, baseOptions)
 
     expect(hoisted.trackEvent).toHaveBeenCalledWith('book_sync_started', expect.objectContaining({ cachePages: true }))
@@ -167,10 +167,9 @@ describe('startWholeBookSync', () => {
         i,
         true,
       )
-      expect(hoisted.bookRepo.getPageDict).toHaveBeenCalledWith(1, i)
     }
 
-    expect(hoisted.bookRepo.getPageDict).toHaveBeenCalledTimes(10)
+    expect(hoisted.bookRepo.getPageDict).not.toHaveBeenCalled()
 
     expect(syncProgress.value.pagesTotal).toBe(10)
     expect(syncProgress.value.pagesDone).toBe(10)
@@ -179,6 +178,7 @@ describe('startWholeBookSync', () => {
   })
 
   it('skips cover download when a local cover already exists', async () => {
+    hoisted.libraryState.books = [makeBook({ localCoverUrl: null })]
     hoisted.bookRepo.getLocalCover.mockResolvedValue(new Blob(['cached']))
 
     await startWholeBookSync(1, baseOptions)
@@ -203,21 +203,6 @@ describe('startWholeBookSync', () => {
     await startWholeBookSync(1, baseOptions)
 
     expect(hoisted.bookRepo.getPage).toHaveBeenCalledTimes(10)
-    expect(syncState.value).toBe('finished')
-  })
-
-  it('continues the sync when a page dictionary fetch fails', async () => {
-    hoisted.bookRepo.getPageDict.mockImplementation(async (_id: number, num: number) => {
-      if (num === 3)
-        throw new Error('dict fetch failed')
-
-      return {}
-    })
-
-    await startWholeBookSync(1, baseOptions)
-
-    expect(hoisted.bookRepo.getPage).toHaveBeenCalledTimes(10)
-    expect(syncProgress.value.pagesDone).toBe(10)
     expect(syncState.value).toBe('finished')
   })
 

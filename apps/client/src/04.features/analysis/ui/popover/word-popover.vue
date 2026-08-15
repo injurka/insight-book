@@ -317,7 +317,7 @@ onUnmounted(() => {
               </div>
             </KitDropdown>
 
-            <KitTooltip v-if="authStore.user" :text="analysisStore.wordPopover.isSaved ? t('analysis.editCard') : t('analysis.saveToDict')" placement="bottom-end">
+            <KitTooltip v-if="authStore.user && !networkStore.effectiveOffline" :text="analysisStore.wordPopover.isSaved ? t('analysis.editCard') : t('analysis.saveToDict')" placement="bottom-end">
               <KitBtn
                 :icon="analysisStore.wordPopover.isSaved ? 'mdi:star' : 'mdi:star-outline'"
                 size="xs"

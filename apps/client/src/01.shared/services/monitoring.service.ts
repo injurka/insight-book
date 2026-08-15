@@ -260,7 +260,9 @@ export function initMonitoring() {
     resource,
     spanProcessors: [
       new UserAttributesSpanProcessor(),
-      new BatchSpanProcessor(new OTLPTraceExporter({ url: otlpSignalUrl('traces') })),
+      new BatchSpanProcessor(new OTLPTraceExporter({ url: otlpSignalUrl('traces') }), {
+        scheduledDelayMillis: 5_000,
+      }),
     ],
   })
 
@@ -274,6 +276,7 @@ export function initMonitoring() {
     processors: [
       new BatchLogRecordProcessor({
         exporter: new OTLPLogExporter({ url: otlpSignalUrl('logs') }),
+        scheduledDelayMillis: 5_000,
       }),
     ],
   })
@@ -283,7 +286,7 @@ export function initMonitoring() {
   // --- Metrics ---
   const metricReader = new PeriodicExportingMetricReader({
     exporter: new OTLPMetricExporter({ url: otlpSignalUrl('metrics') }),
-    exportIntervalMillis: 10_000,
+    exportIntervalMillis: 5_000,
   })
   const meterProvider = new MeterProvider({ resource, readers: [metricReader] })
   const meter = meterProvider.getMeter(SERVICE_NAME, packageJson.version)
