@@ -123,6 +123,9 @@
     "cacheTtsWordsDesc": "Generate audio for each word",
     "pages": "Pages",
     "sentences": "Sentences",
+    "fromCache": "from cache",
+    "overallProgress": "Overall progress",
+    "cacheSummaryHint": "Loaded from cache without spending tokens:",
     "stop": "Stop"
   },
   "settings": {

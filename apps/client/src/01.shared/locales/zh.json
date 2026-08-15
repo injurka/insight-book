@@ -123,6 +123,9 @@
     "cacheTtsWordsDesc": "为每个单词生成音频",
     "pages": "页面",
     "sentences": "句子",
+    "fromCache": "来自缓存",
+    "overallProgress": "总体进度",
+    "cacheSummaryHint": "已从缓存加载（无需消耗令牌）：",
     "stop": "停止"
   },
   "settings": {

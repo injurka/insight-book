@@ -294,6 +294,7 @@ describe('startWholeBookSync', () => {
     expect(hoisted.analysisRepo.generateTts).toHaveBeenCalledTimes(9)
     expect(syncProgress.value.ttsTotal).toBe(10)
     expect(syncProgress.value.ttsDone).toBe(10)
+    expect(syncProgress.value.ttsFromCache).toBe(1)
   })
 
   it('continues TTS sync when generation fails for an item', async () => {
@@ -347,6 +348,7 @@ describe('startWholeBookSync', () => {
 
     expect(syncProgress.value.sentencesTotal).toBe(2)
     expect(syncProgress.value.sentencesDone).toBe(2)
+    expect(syncProgress.value.sentencesFromCache).toBe(1)
     expect(syncState.value).toBe('finished')
   })
 
@@ -360,6 +362,7 @@ describe('startWholeBookSync', () => {
     expect(hoisted.analysisRepo.checkCache).not.toHaveBeenCalled()
     expect(hoisted.analysisRepo.analyzeBatch).not.toHaveBeenCalled()
     expect(syncProgress.value.sentencesDone).toBe(1)
+    expect(syncProgress.value.sentencesFromCache).toBe(1)
     expect(syncState.value).toBe('finished')
   })
 

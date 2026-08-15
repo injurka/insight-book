@@ -123,6 +123,9 @@
     "cacheTtsWordsDesc": "Генерация аудио для каждого слова",
     "pages": "Страницы",
     "sentences": "Предложения",
+    "fromCache": "из кэша",
+    "overallProgress": "Общий прогресс",
+    "cacheSummaryHint": "Скачано из кэша без затрат токенов:",
     "stop": "Остановить"
   },
   "settings": {

@@ -33,6 +33,109 @@ const isRunning = computed(() => libraryStore.syncState === 'running')
 const isFinished = computed(() => libraryStore.syncState === 'finished')
 const hasError = computed(() => libraryStore.syncState === 'error')
 
+interface SyncSection {
+  key: string
+  icon: string
+  label: string
+  done: number
+  total: number
+  fromCache: number
+  percent: number
+  status: 'pending' | 'active' | 'done'
+  fillClass: string
+}
+
+const sections = computed<SyncSection[]>(() => {
+  const p = libraryStore.syncProgress
+  const opts = libraryStore.syncOptions
+  const list: SyncSection[] = []
+
+  const add = (
+    key: string,
+    icon: string,
+    label: string,
+    done: number,
+    total: number,
+    fromCache: number,
+    fillClass: string,
+  ) => {
+    const percent = total > 0 ? Math.min(100, Math.round((done / total) * 100)) : 0
+    const status: SyncSection['status'] = total === 0 ? 'pending' : isFinished.value ? 'done' : 'active'
+    list.push({
+      key,
+      icon,
+      label,
+      done,
+      total,
+      fromCache,
+      percent,
+      status,
+      fillClass,
+    })
+  }
+
+  if (opts.cachePages) {
+    add(
+      'pages',
+      'mdi:file-document-multiple-outline',
+      t('bookInfo.pages'),
+      p.pagesDone,
+      p.pagesTotal,
+      0,
+      'pages-fill',
+    )
+  }
+
+  if (opts.analyzeSentences) {
+    add(
+      'sentences',
+      'mdi:brain',
+      t('bookInfo.sentences'),
+      p.sentencesDone,
+      p.sentencesTotal,
+      p.sentencesFromCache,
+      'sentences-fill',
+    )
+  }
+
+  if (opts.analyzeWords) {
+    add(
+      'words',
+      'mdi:format-text',
+      t('analysis.words'),
+      p.wordsDone,
+      p.wordsTotal,
+      p.wordsFromCache,
+      'words-fill',
+    )
+  }
+
+  if (opts.ttsSentences || opts.ttsWords) {
+    add(
+      'tts',
+      'mdi:headphones',
+      t('reader.voiceTts'),
+      p.ttsDone,
+      p.ttsTotal,
+      p.ttsFromCache,
+      'tts-fill',
+    )
+  }
+
+  return list
+})
+
+const overallPercent = computed(() => {
+  const secs = sections.value
+  const total = secs.reduce((sum, s) => sum + s.total, 0)
+  const done = secs.reduce((sum, s) => sum + s.done, 0)
+
+  return total > 0 ? Math.min(100, Math.round((done / total) * 100)) : 0
+})
+
+const cachedSummaryItems = computed(() =>
+  sections.value.filter(s => s.fromCache > 0 && s.key !== 'pages'))
+
 useAppWakeLock(isRunning)
 
 const syncStateIcon = computed(() => {
@@ -158,62 +261,70 @@ watch(visible, (val) => {
     <div v-if="isRunning || isFinished || hasError" class="sync-progress-view">
       <div class="progress-status-header" :class="syncStateClass">
         <Icon :icon="syncStateIcon" class="status-icon" :class="{ 'spin-animation': isRunning }" />
-        <p class="current-task">
-          {{ libraryStore.syncProgress.currentTask }}
-        </p>
+        <div class="task-block">
+          <p class="current-task">
+            {{ libraryStore.syncProgress.currentTask }}
+          </p>
+          <div v-if="!hasError" class="overall-progress">
+            <span class="overall-label">{{ t('bookInfo.overallProgress') }}: {{ overallPercent }}%</span>
+            <div class="progress-bar overall-bar">
+              <div class="progress-fill" :style="{ width: `${overallPercent}%` }" />
+            </div>
+          </div>
+        </div>
       </div>
 
       <div class="progress-bars-container">
-        <div v-if="libraryStore.syncOptions.cachePages" class="progress-section">
+        <div
+          v-for="section in sections"
+          :key="section.key"
+          class="progress-section"
+          :class="`is-${section.status}`"
+        >
           <div class="progress-info">
-            <span class="label"><Icon icon="mdi:file-document-multiple-outline" /> {{ t('bookInfo.pages') }}</span>
-            <span class="value">{{ libraryStore.syncProgress.pagesDone }} / {{ libraryStore.syncProgress.pagesTotal }}</span>
+            <div class="label-group">
+              <span v-if="section.fromCache > 0" class="cache-badge">
+                <Icon icon="mdi:database-check-outline" />
+                {{ t('bookInfo.fromCache') }}: {{ section.fromCache }}
+              </span>
+              <span class="label">
+                <Icon :icon="section.icon" />
+                <span class="label-text">{{ section.label }}</span>
+              </span>
+            </div>
+            <span class="value">
+              <b>{{ section.done }}</b> / {{ section.total }}
+              <span class="percent">· {{ section.percent }}%</span>
+              <Icon
+                v-if="section.status === 'done'"
+                icon="mdi:check-circle"
+                class="section-status done-icon"
+              />
+              <Icon
+                v-else-if="section.status === 'active'"
+                icon="mdi:loading"
+                class="section-status spin-animation"
+              />
+            </span>
           </div>
           <div class="progress-bar">
             <div
-              class="progress-fill pages-fill"
-              :style="{ width: `${libraryStore.syncProgress.pagesTotal > 0 ? (libraryStore.syncProgress.pagesDone / libraryStore.syncProgress.pagesTotal) * 100 : 0}%` }"
+              class="progress-fill"
+              :class="section.fillClass"
+              :style="{ width: `${section.percent}%` }"
             />
           </div>
         </div>
+      </div>
 
-        <div v-if="libraryStore.syncOptions.analyzeSentences" class="progress-section">
-          <div class="progress-info">
-            <span class="label"><Icon icon="mdi:brain" /> {{ t('bookInfo.sentences') }}</span>
-            <span class="value">{{ libraryStore.syncProgress.sentencesDone }} / {{ libraryStore.syncProgress.sentencesTotal }}</span>
-          </div>
-          <div class="progress-bar">
-            <div
-              class="progress-fill sentences-fill"
-              :style="{ width: `${libraryStore.syncProgress.sentencesTotal > 0 ? (libraryStore.syncProgress.sentencesDone / libraryStore.syncProgress.sentencesTotal) * 100 : 0}%` }"
-            />
-          </div>
-        </div>
-
-        <div v-if="libraryStore.syncOptions.analyzeWords" class="progress-section">
-          <div class="progress-info">
-            <span class="label"><Icon icon="mdi:format-text" /> {{ t('analysis.words') }}</span>
-            <span class="value">{{ libraryStore.syncProgress.wordsDone }} / {{ libraryStore.syncProgress.wordsTotal }}</span>
-          </div>
-          <div class="progress-bar">
-            <div
-              class="progress-fill words-fill"
-              :style="{ width: `${libraryStore.syncProgress.wordsTotal > 0 ? (libraryStore.syncProgress.wordsDone / libraryStore.syncProgress.wordsTotal) * 100 : 0}%` }"
-            />
-          </div>
-        </div>
-
-        <!-- Прогресс для TTS -->
-        <div v-if="(libraryStore.syncOptions.ttsSentences || libraryStore.syncOptions.ttsWords)" class="progress-section">
-          <div class="progress-info">
-            <span class="label"><Icon icon="mdi:headphones" /> {{ t('reader.voiceTts') }}</span>
-            <span class="value">{{ libraryStore.syncProgress.ttsDone }} / {{ libraryStore.syncProgress.ttsTotal }}</span>
-          </div>
-          <div class="progress-bar">
-            <div
-              class="progress-fill tts-fill"
-              :style="{ width: `${libraryStore.syncProgress.ttsTotal > 0 ? (libraryStore.syncProgress.ttsDone / libraryStore.syncProgress.ttsTotal) * 100 : 0}%` }"
-            />
+      <div v-if="isFinished && cachedSummaryItems.length > 0" class="sync-summary">
+        <Icon icon="mdi:database-check-outline" class="summary-icon" />
+        <div class="summary-text">
+          <span>{{ t('bookInfo.cacheSummaryHint') }}</span>
+          <div class="summary-items">
+            <span v-for="item in cachedSummaryItems" :key="item.key" class="summary-item">
+              {{ item.label }}: <b>{{ item.fromCache }}</b>
+            </span>
           </div>
         </div>
       </div>
@@ -326,7 +437,7 @@ watch(visible, (val) => {
 
       .option-title {
         font-weight: 500;
-        font-size: 0.95rem;
+        font-size: 0.9rem;
         color: var(--fg-primary-color);
       }
     }
@@ -417,12 +528,36 @@ watch(visible, (val) => {
       color: var(--fg-error-color);
     }
 
+    .task-block {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      width: 100%;
+    }
+
     .current-task {
       margin: 0;
       font-size: 1.1rem;
       font-weight: 600;
       color: var(--fg-primary-color);
       font-variant-numeric: tabular-nums;
+    }
+
+    .overall-progress {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+
+      .overall-label {
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: var(--fg-secondary-color);
+        font-variant-numeric: tabular-nums;
+      }
+
+      .overall-bar {
+        height: 6px;
+      }
     }
   }
 
@@ -437,28 +572,135 @@ watch(visible, (val) => {
   }
 
   .progress-section {
+    transition: opacity 0.3s ease;
+
+    &.is-pending {
+      opacity: 0.45;
+    }
+
+    &.is-active {
+      .progress-fill {
+        animation: progress-stripes 1s linear infinite;
+        background-image: linear-gradient(
+          45deg,
+          rgba(255, 255, 255, 0.18) 25%,
+          transparent 25%,
+          transparent 50%,
+          rgba(255, 255, 255, 0.18) 50%,
+          rgba(255, 255, 255, 0.18) 75%,
+          transparent 75%,
+          transparent
+        );
+        background-size: 14px 14px;
+      }
+    }
+
+    &.is-done {
+      .progress-info .label {
+        color: var(--fg-success-color);
+      }
+
+      .progress-fill {
+        background-color: var(--fg-success-color);
+      }
+    }
+
     .progress-info {
       display: flex;
       justify-content: space-between;
+      align-items: center;
       margin-bottom: 8px;
       font-size: 0.95rem;
       font-weight: 500;
+      gap: 8px;
+      flex-wrap: wrap;
 
-      .label {
+      .label-group {
         display: flex;
         align-items: center;
-        gap: 6px;
-        color: var(--fg-primary-color);
+        gap: 8px;
+        flex-wrap: wrap;
+        min-width: 0;
 
-        svg {
-          color: var(--fg-secondary-color);
-          font-size: 1.1rem;
+        .label {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          color: var(--fg-primary-color);
+          white-space: nowrap;
+
+          svg {
+            color: var(--fg-secondary-color);
+            font-size: 1.1rem;
+            flex-shrink: 0;
+          }
+        }
+
+        .cache-badge {
+          display: inline-flex;
+          align-items: center;
+          gap: 3px;
+          padding: 1px 8px;
+          border-radius: 999px;
+          font-size: 0.75rem;
+          font-weight: 600;
+          color: var(--fg-success-color);
+          background: rgba(var(--bg-accent-color-rgb, 201, 117, 222), 0.08);
+          border: 1px solid color-mix(in srgb, var(--fg-success-color) 35%, transparent);
+          white-space: nowrap;
+
+          svg {
+            font-size: 0.85rem;
+            color: var(--fg-success-color);
+          }
         }
       }
 
       .value {
+        display: flex;
+        align-items: center;
+        gap: 6px;
         color: var(--fg-secondary-color);
         font-variant-numeric: tabular-nums;
+        white-space: nowrap;
+        margin-left: auto;
+
+        .percent {
+          font-size: 0.85rem;
+        }
+
+        .section-status {
+          font-size: 1.1rem;
+
+          &.done-icon {
+            color: var(--fg-success-color);
+          }
+        }
+      }
+
+      @include media-down(sm) {
+        align-items: flex-end;
+
+        .label-group {
+          flex-direction: column;
+          align-items: flex-start;
+          gap: 4px;
+
+          .cache-badge {
+            font-size: 0.7rem;
+            padding: 1px 6px;
+          }
+        }
+
+        .value {
+          font-size: 0.85rem;
+          gap: 4px;
+          align-self: flex-end;
+
+          .percent {
+            font-size: 0.8rem;
+          }
+        }
       }
     }
 
@@ -490,6 +732,58 @@ watch(visible, (val) => {
         }
       }
     }
+  }
+
+  .sync-summary {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    background: rgba(var(--bg-accent-color-rgb, 201, 117, 222), 0.08);
+    border: 1px solid color-mix(in srgb, var(--fg-success-color) 30%, transparent);
+    border-radius: 12px;
+    padding: 14px 16px;
+
+    .summary-icon {
+      font-size: 1.6rem;
+      color: var(--fg-success-color);
+      flex-shrink: 0;
+    }
+
+    .summary-text {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      font-size: 0.9rem;
+      color: var(--fg-primary-color);
+
+      .summary-items {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+
+        .summary-item {
+          font-size: 0.85rem;
+          color: var(--fg-secondary-color);
+          background: var(--bg-tertiary-color);
+          border-radius: 8px;
+          padding: 3px 10px;
+
+          b {
+            color: var(--fg-success-color);
+            font-variant-numeric: tabular-nums;
+          }
+        }
+      }
+    }
+  }
+}
+
+@keyframes progress-stripes {
+  from {
+    background-position: 0 0;
+  }
+  to {
+    background-position: 14px 0;
   }
 }
 

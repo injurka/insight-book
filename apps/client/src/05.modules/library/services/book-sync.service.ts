@@ -16,10 +16,13 @@ export const syncProgress = ref({
   pagesDone: 0,
   sentencesTotal: 0,
   sentencesDone: 0,
+  sentencesFromCache: 0,
   wordsTotal: 0,
   wordsDone: 0,
+  wordsFromCache: 0,
   ttsTotal: 0,
   ttsDone: 0,
+  ttsFromCache: 0,
   currentTask: '',
 })
 
@@ -140,6 +143,7 @@ async function filterServerCachedTexts(
   type: 'sentence' | 'word',
   ctx: AnalysisContext,
   doneKey: 'sentencesDone' | 'wordsDone',
+  cacheKey: 'sentencesFromCache' | 'wordsFromCache',
 ) {
   if (missingTexts.length === 0)
     return
@@ -160,6 +164,7 @@ async function filterServerCachedTexts(
       if (serverCached) {
         await repos.analysis.saveLocalAnalysis(text, serverCached)
         syncProgress.value[doneKey]++
+        syncProgress.value[cacheKey]++
         missingTexts.splice(j, 1)
       }
     }
@@ -177,6 +182,7 @@ async function analyzeMissingTexts(
   ctx: AnalysisContext,
   totalKey: 'sentencesTotal' | 'wordsTotal',
   doneKey: 'sentencesDone' | 'wordsDone',
+  cacheKey: 'sentencesFromCache' | 'wordsFromCache',
   label: string,
   pageNum: number,
 ): Promise<void> {
@@ -187,6 +193,7 @@ async function analyzeMissingTexts(
     const cached = await repos.analysis.getLocalAnalysis(text)
     if (cached) {
       syncProgress.value[doneKey]++
+      syncProgress.value[cacheKey]++
     }
     else {
       missingTexts.push(text)
@@ -198,6 +205,7 @@ async function analyzeMissingTexts(
     type,
     ctx,
     doneKey,
+    cacheKey,
   )
 
   const batches: string[][] = []
@@ -266,6 +274,9 @@ async function generateTtsForTexts(texts: string[], ctx: AnalysisContext, pageNu
           )
           await repos.analysis.saveLocalTts(cacheKey, res.audioBase64)
         }
+        else {
+          syncProgress.value.ttsFromCache++
+        }
       }
       catch (e: unknown) {
         if ((e as Error).name !== 'AbortError')
@@ -293,6 +304,7 @@ async function processPageAnalysis(
       ctx,
       'sentencesTotal',
       'sentencesDone',
+      'sentencesFromCache',
       'предложений',
       pageNum,
     )
@@ -305,6 +317,7 @@ async function processPageAnalysis(
       ctx,
       'wordsTotal',
       'wordsDone',
+      'wordsFromCache',
       'слов',
       pageNum,
     )
@@ -449,10 +462,13 @@ export async function startWholeBookSync(bookId: number, options: {
     pagesDone: 0,
     sentencesTotal: 0,
     sentencesDone: 0,
+    sentencesFromCache: 0,
     wordsTotal: 0,
     wordsDone: 0,
+    wordsFromCache: 0,
     ttsTotal: 0,
     ttsDone: 0,
+    ttsFromCache: 0,
     currentTask: 'Подготовка...',
   }
 
