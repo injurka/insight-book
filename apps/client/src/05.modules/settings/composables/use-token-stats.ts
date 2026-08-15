@@ -4,7 +4,18 @@ import { useRepos } from '~/00.plugins/di'
 
 export function useTokenStats() {
   const repos = useRepos()
-  const tokensData = ref<{ stats: { action: string, inputTokens: number, outputTokens: number, cost: number }[], daily: unknown[], totalCost: number } | null>(null)
+  const tokensData = ref<{
+    stats: {
+      action: string
+      inputTokens: number
+      outputTokens: number
+      audioInputSeconds?: number
+      audioOutputSeconds?: number
+      cost: number | null
+    }[]
+    daily: unknown[]
+    totalCost: number | null
+  } | null>(null)
   const isTokensLoading = ref(true)
   const selectedPeriod = ref<'today' | 'week' | 'all'>('all')
 
@@ -52,6 +63,8 @@ export function useTokenStats() {
       input: s.inputTokens,
       output: s.outputTokens,
       cost: s.cost || 0,
+      audioInputSeconds: s.audioInputSeconds || 0,
+      audioOutputSeconds: s.audioOutputSeconds || 0,
     }))
 
     result.sort((a, b) => (b.input + b.output) - (a.input + a.output))

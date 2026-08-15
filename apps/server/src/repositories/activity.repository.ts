@@ -87,6 +87,8 @@ export class ActivityRepository implements IActivityRepository {
       model: schema.tokenUsage.model,
       inputTokens: sql<number>`SUM(${schema.tokenUsage.inputTokens})`.mapWith(Number),
       outputTokens: sql<number>`SUM(${schema.tokenUsage.outputTokens})`.mapWith(Number),
+      audioInputSeconds: sql<number>`COALESCE(SUM(${schema.tokenUsage.audioInputSeconds}), 0)`.mapWith(Number),
+      audioOutputSeconds: sql<number>`COALESCE(SUM(${schema.tokenUsage.audioOutputSeconds}), 0)`.mapWith(Number),
     })
       .from(schema.tokenUsage)
       .where(and(eq(schema.tokenUsage.userId, userId), dateFilter))
@@ -100,6 +102,8 @@ export class ActivityRepository implements IActivityRepository {
       model: schema.tokenUsage.model,
       inputTokens: sql<number>`SUM(${schema.tokenUsage.inputTokens})`.mapWith(Number),
       outputTokens: sql<number>`SUM(${schema.tokenUsage.outputTokens})`.mapWith(Number),
+      audioInputSeconds: sql<number>`COALESCE(SUM(${schema.tokenUsage.audioInputSeconds}), 0)`.mapWith(Number),
+      audioOutputSeconds: sql<number>`COALESCE(SUM(${schema.tokenUsage.audioOutputSeconds}), 0)`.mapWith(Number),
     })
       .from(schema.tokenUsage)
       .where(and(eq(schema.tokenUsage.userId, userId), dateFilter))

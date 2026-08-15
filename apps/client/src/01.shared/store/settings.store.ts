@@ -22,6 +22,7 @@ export const useGlobalSettingsStore = defineStore('globalSettings', () => {
 
   const ttsSpeed = useLocalStorage<number>('global-tts-speed', 1)
   const ttsVoice = useLocalStorage<string>('global-tts-voice', 'Kore')
+  const fallbackToWebSpeech = useLocalStorage<boolean>('global-tts-fallback-web-speech', true)
 
   const readerFontSize = useLocalStorage<number>('global-reader-font-size', 1.4)
   const readerLineHeight = useLocalStorage<number>('global-reader-line-height', 1.8)
@@ -71,6 +72,7 @@ export const useGlobalSettingsStore = defineStore('globalSettings', () => {
     parallelShowGrammar,
     ttsSpeed,
     ttsVoice,
+    fallbackToWebSpeech,
     readerFontSize,
     readerLineHeight,
     readerFontFamily,

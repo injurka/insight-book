@@ -5,7 +5,7 @@ import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { useToast } from '~/01.shared/composables/use-toast'
 import { AppRoutePaths } from '~/01.shared/constants/routes'
-import { BOOK_COVER_TRANSITION_NAME, coverTransitionBookId } from '~/01.shared/lib/view-transitions'
+import { BOOK_COVER_TRANSITION_NAME, coverTransitionBookId, isViewTransitionSupported } from '~/01.shared/lib/view-transitions'
 import { useAuthStore } from '~/01.shared/store/auth.store'
 import { useNetworkStore } from '~/01.shared/store/network.store'
 import { KitBtn } from '~/02.kit/atoms/kit-btn/ui'
@@ -59,7 +59,7 @@ const coverInputRef = ref<HTMLInputElement | null>(null)
 
 // Цель shared-element перехода обложки из библиотеки (View Transitions API)
 const coverTransitionStyle = computed(() =>
-  libraryStore.currentBookInfo && coverTransitionBookId.value === libraryStore.currentBookInfo.id
+  isViewTransitionSupported() && libraryStore.currentBookInfo && coverTransitionBookId.value === libraryStore.currentBookInfo.id
     ? { viewTransitionName: BOOK_COVER_TRANSITION_NAME }
     : undefined)
 

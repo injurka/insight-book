@@ -189,6 +189,14 @@ const currentThemeName = computed(() => {
         <span class="value-badge">{{ settingsStore.ttsSpeed }}x</span>
       </div>
 
+      <div class="menu-item" @click="settingsStore.fallbackToWebSpeech = !settingsStore.fallbackToWebSpeech">
+        <div class="item-label">
+          <Icon icon="mdi:account-voice" class="item-icon" />
+          <span>{{ t('settings.fallbackToWebSpeech') }}</span>
+        </div>
+        <KitCheckbox :model-value="settingsStore.fallbackToWebSpeech" class="readonly-checkbox" />
+      </div>
+
       <div
         v-if="readerStore.currentBook?.language !== settingsStore.appLanguage"
         class="menu-item"

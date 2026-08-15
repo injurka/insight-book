@@ -349,6 +349,16 @@ function previewVoice() {
             </div>
           </div>
         </div>
+
+        <div class="form-row fallback-row">
+          <div class="form-group flex-1">
+            <KitCheckbox
+              v-model="settingsStore.fallbackToWebSpeech"
+              :label="t('settings.fallbackToWebSpeech')"
+            />
+            <span class="setting-desc">{{ t('settings.fallbackToWebSpeechDesc') }}</span>
+          </div>
+        </div>
       </div>
 
       <!-- Карта 4: Push-уведомления -->
@@ -602,6 +612,17 @@ function previewVoice() {
 .voice-select {
   flex: 1;
   min-width: 0;
+}
+
+.setting-desc {
+  font-size: 0.82rem;
+  color: var(--fg-secondary-color);
+  line-height: 1.4;
+  margin-top: 4px;
+}
+
+.fallback-row {
+  margin-top: 14px;
 }
 
 .preview-btn {

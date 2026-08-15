@@ -84,3 +84,40 @@ export function formatCurrency(num: number | undefined | null): string {
     maximumFractionDigits: num < 0.01 ? 4 : 2,
   }).format(num)
 }
+
+interface DurationUnits {
+  s: string
+  m: string
+  h: string
+}
+
+function getDurationUnits(locale: string): DurationUnits {
+  if (locale.startsWith('zh'))
+    return { s: ' 秒', m: ' 分', h: ' 小时' }
+  if (locale.startsWith('ru'))
+    return { s: ' сек', m: ' мин', h: ' ч' }
+
+  return { s: 's', m: 'm', h: 'h' }
+}
+
+export function formatDurationSeconds(seconds: number | undefined | null, locale = 'ru'): string {
+  const units = getDurationUnits(locale)
+  if (!seconds || seconds <= 0)
+    return `0${units.s.trim()}`
+
+  const total = Math.round(seconds)
+  if (total < 60)
+    return `${total}${units.s}`
+
+  if (total < 3600) {
+    const m = Math.floor(total / 60)
+    const s = total % 60
+
+    return s > 0 ? `${m}${units.m} ${s}${units.s}` : `${m}${units.m}`
+  }
+
+  const h = Math.floor(total / 3600)
+  const m = Math.round((total % 3600) / 60)
+
+  return m > 0 ? `${h}${units.h} ${m}${units.m}` : `${h}${units.h}`
+}

@@ -44,39 +44,74 @@ export class ActivityService {
 
     const isAdmin = user?.role === ROLES.ADMIN
 
-    const actionMap = new Map<string, { action: string, inputTokens: number, outputTokens: number, cost: number | null }>()
+    const actionMap = new Map<string, {
+      action: string
+      inputTokens: number
+      outputTokens: number
+      audioInputSeconds: number
+      audioOutputSeconds: number
+      cost: number | null
+    }>()
+
     for (const row of statsRaw) {
       const price = pricing[row.model] || { input: 0, output: 0 }
       const cost = (row.inputTokens / 1_000_000) * price.input + (row.outputTokens / 1_000_000) * price.output
 
       if (!actionMap.has(row.action)) {
-        actionMap.set(row.action, { action: row.action, inputTokens: 0, outputTokens: 0, cost: 0 })
+        actionMap.set(row.action, {
+          action: row.action,
+          inputTokens: 0,
+          outputTokens: 0,
+          audioInputSeconds: 0,
+          audioOutputSeconds: 0,
+          cost: 0,
+        })
       }
-      const act = actionMap.get(row.action)
-      act!.inputTokens += row.inputTokens
-      act!.outputTokens += row.outputTokens
-      act!.cost = (act!.cost || 0) + cost
+      const act = actionMap.get(row.action)!
+      act.inputTokens += row.inputTokens
+      act.outputTokens += row.outputTokens
+      act.audioInputSeconds += row.audioInputSeconds || 0
+      act.audioOutputSeconds += row.audioOutputSeconds || 0
+      act.cost = (act.cost || 0) + cost
     }
 
     const stats = Array.from(actionMap.values())
     const totalCost = stats.reduce((sum, item) => sum + (item.cost || 0), 0)
 
-    const dailyMap = new Map<string, { date: string, inputTokens: number, outputTokens: number, cost: number | null }>()
+    const dailyMap = new Map<string, {
+      date: string
+      inputTokens: number
+      outputTokens: number
+      audioInputSeconds: number
+      audioOutputSeconds: number
+      cost: number | null
+    }>()
+
     for (const row of dailyRaw) {
       const price = pricing[row.model] || { input: 0, output: 0 }
       const cost = (row.inputTokens / 1_000_000) * price.input + (row.outputTokens / 1_000_000) * price.output
 
       if (!dailyMap.has(row.date)) {
-        dailyMap.set(row.date, { date: row.date, inputTokens: 0, outputTokens: 0, cost: 0 })
+        dailyMap.set(row.date, {
+          date: row.date,
+          inputTokens: 0,
+          outputTokens: 0,
+          audioInputSeconds: 0,
+          audioOutputSeconds: 0,
+          cost: 0,
+        })
       }
-      const day = dailyMap.get(row.date)
-      day!.inputTokens += row.inputTokens
-      day!.outputTokens += row.outputTokens
-      day!.cost = (day!.cost || 0) + cost
+      const day = dailyMap.get(row.date)!
+      day.inputTokens += row.inputTokens
+      day.outputTokens += row.outputTokens
+      day.audioInputSeconds += row.audioInputSeconds || 0
+      day.audioOutputSeconds += row.audioOutputSeconds || 0
+      day.cost = (day.cost || 0) + cost
     }
 
-    const daily = Array.from(dailyMap.values()).slice(0, 30)
-    daily.sort((a, b) => b.date.localeCompare(a.date))
+    const daily = Array.from(dailyMap.values())
+      .sort((a, b) => b.date.localeCompare(a.date))
+      .slice(0, 30)
 
     if (!isAdmin) {
       stats.forEach(s => s.cost = null)

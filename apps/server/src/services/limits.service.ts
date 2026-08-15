@@ -4,14 +4,14 @@ import { db } from '../db'
 import * as schema from '../db/schema'
 import { AppError } from '../utils/errors'
 
-export async function checkTokenLimit(userId: number): Promise<void> {
+export async function checkTokenLimit(userId: number, neededTokens: number = 1): Promise<void> {
   const user = await db.query.users.findFirst({
     where: eq(schema.users.id, userId),
     columns: { usedTokens: true, tokenLimit: true },
   })
 
   // 1. Абсолютный исторический лимит пользователя (если он задан)
-  if (user && user.tokenLimit !== null && user.usedTokens >= user.tokenLimit) {
+  if (user && user.tokenLimit !== null && (user.usedTokens + neededTokens) > user.tokenLimit) {
     throw new AppError(403, ERROR_CODES.LIMITS.TOKEN_LIMIT_EXCEEDED, 'AI token limit exceeded')
   }
 

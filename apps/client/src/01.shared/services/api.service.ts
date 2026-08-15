@@ -465,7 +465,25 @@ export const api = {
 
   activity: {
     getStats: async () => request<{ heatmap: { date: string, count: number }[], learnedWords: number, readPages: number, difficulties: { language: string, difficulty: string, count: number }[], quizProgress?: { language: string, levelValue: string, bestScore: number, stars: number, unlocked: boolean }[] }>('/api/activity/stats'),
-    getTokens: async (period?: string) => request<{ stats: { action: string, inputTokens: number, outputTokens: number, cost: number }[], daily: { date: string, inputTokens: number, outputTokens: number, cost?: number }[], totalCost: number }>(`/api/activity/tokens${period ? `?period=${period}` : ''}`),
+    getTokens: async (period?: string) => request<{
+      stats: {
+        action: string
+        inputTokens: number
+        outputTokens: number
+        audioInputSeconds?: number
+        audioOutputSeconds?: number
+        cost: number | null
+      }[]
+      daily: {
+        date: string
+        inputTokens: number
+        outputTokens: number
+        audioInputSeconds?: number
+        audioOutputSeconds?: number
+        cost?: number | null
+      }[]
+      totalCost: number | null
+    }>(`/api/activity/tokens${period ? `?period=${period}` : ''}`),
   },
 
   quiz: {

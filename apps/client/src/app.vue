@@ -102,11 +102,10 @@ const layoutName = computed(() => (route.meta.layout as string) || 'default')
 // книги (оба маршрута из TRANSITION_ROUTES); для остальной навигации —
 // CSS-переход fade (см. template). Имя предыдущего маршрута нужно, чтобы
 // переходы вида «dictionary → home» тоже получили fade, а не мгновенный swap.
-const viewTransitionsSupported = isViewTransitionSupported()
 const prevRouteName = ref<unknown>(null)
 
 function useNativeTransition(routeName: unknown) {
-  return viewTransitionsSupported
+  return isViewTransitionSupported()
     && isNativeTransitionRoute(routeName)
     && isNativeTransitionRoute(prevRouteName.value)
 }

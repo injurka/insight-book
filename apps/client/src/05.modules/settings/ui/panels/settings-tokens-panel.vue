@@ -5,7 +5,7 @@ import { useGlobalSettingsStore } from '~/01.shared/store/settings.store'
 import { KitSkeleton } from '~/02.kit/atoms/kit-skeleton/ui'
 import { KitViewSwitcher } from '~/02.kit/molecules/kit-view-switcher/ui'
 import { useTokenStats } from '../../composables/use-token-stats'
-import { formatCurrency, formatNumber } from '../../lib/formatters'
+import { formatCurrency, formatDurationSeconds, formatNumber } from '../../lib/formatters'
 
 const { t } = useI18n()
 const settingsStore = useGlobalSettingsStore()
@@ -66,6 +66,22 @@ const periodOptions = [
               <span>{{ t(`settings.actions.${act.action}`) !== `settings.actions.${act.action}` ? t(`settings.actions.${act.action}`) : act.action }}</span>
             </div>
             <div class="model-stats">
+              <span
+                v-if="act.audioOutputSeconds && act.audioOutputSeconds > 0"
+                class="m-audio-badge"
+                :title="t('settings.audioGeneratedDuration')"
+              >
+                <Icon icon="mdi:volume-high" class="audio-badge-icon" />
+                {{ formatDurationSeconds(act.audioOutputSeconds, settingsStore.appLanguage) }}
+              </span>
+              <span
+                v-else-if="act.audioInputSeconds && act.audioInputSeconds > 0"
+                class="m-audio-badge"
+                :title="t('settings.audioRecordedDuration')"
+              >
+                <Icon icon="mdi:microphone" class="audio-badge-icon" />
+                {{ formatDurationSeconds(act.audioInputSeconds, settingsStore.appLanguage) }}
+              </span>
               <span class="m-in" :title="t('settings.inputTokens')">
                 <Icon icon="mdi:arrow-down" class="token-icon" /> {{ formatNumber(act.input, settingsStore.appLanguage) }}
               </span>
@@ -187,6 +203,22 @@ const periodOptions = [
         .token-icon {
           font-size: 1rem;
           margin-right: 2px;
+        }
+        .m-audio-badge {
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+          padding: 2px 8px;
+          border-radius: 6px;
+          background: var(--bg-secondary-color);
+          border: 1px solid var(--border-secondary-color);
+          color: var(--fg-accent-color);
+          font-size: 0.8rem;
+          font-weight: 600;
+
+          .audio-badge-icon {
+            font-size: 0.95rem;
+          }
         }
         .m-in {
           color: var(--fg-accent-color);

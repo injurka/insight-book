@@ -1,11 +1,12 @@
 import type { LlmConfig, ModelMessage } from '../types'
 import { eq } from 'drizzle-orm'
 import { pinyin } from 'pinyin-pro'
-import { convertToOpus } from '~/utils/audio'
+import { convertToOpus, getAudioDurationSeconds } from '~/utils/audio'
 import { attachUrlToActiveSpan, runWithClientSpan } from '~/utils/external-call'
 import { hashTtsText, mapVoiceToOpenAi, parseLlmJson } from '~/utils/helpers'
 import { callLlmJsonWithRetry } from '~/utils/llm-api'
 import { ERROR_CODES } from '../constants/error-codes'
+import { TOKEN_WEIGHTS } from '../constants/token-weights'
 import { db } from '../db'
 import * as schema from '../db/schema'
 import { AppError } from '../utils/errors'
@@ -55,7 +56,8 @@ export async function generateTts(
     return Buffer.from(cached.audioBlob).toString('base64')
   }
 
-  await checkTokenLimit(userId)
+  const estimatedTokens = Math.max(TOKEN_WEIGHTS.MIN_TTS_TOKENS, normalizedText.length * TOKEN_WEIGHTS.TTS_CHAR_MULTIPLIER)
+  await checkTokenLimit(userId, estimatedTokens)
 
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
@@ -174,7 +176,19 @@ export async function generateTts(
     await db.insert(schema.bookTtsCache).values({ bookId, textHash: hash }).onConflictDoNothing()
   }
 
-  trackTokenUsage(userId, 'tts_generation', usedModel, normalizedText.length, 0, normalizedText, '[AUDIO BASE64]')
+  const durationSeconds = getAudioDurationSeconds(audioBuffer)
+  const billableTokens = Math.max(TOKEN_WEIGHTS.MIN_TTS_TOKENS, normalizedText.length * TOKEN_WEIGHTS.TTS_CHAR_MULTIPLIER)
+
+  trackTokenUsage(
+    userId,
+    'tts_generation',
+    usedModel,
+    billableTokens,
+    0,
+    normalizedText,
+    `[AUDIO BASE64, duration: ${durationSeconds}s]`,
+    { outputAudioSeconds: durationSeconds },
+  )
 
   return audioBuffer.toString('base64')
 }
@@ -220,8 +234,6 @@ function calculatePhoneticSimilarity(expected: string, heard: string, language: 
 }
 
 export async function checkPronunciationAudio(userId: number, word: string, language: string, targetLang: string, audioFile: File, config: LlmConfig) {
-  await checkTokenLimit(userId)
-
   const getErrorMsg = (type: 'not_configured' | 'recognition_failed', detail?: string) => {
     if (type === 'not_configured') {
       if (targetLang === 'ru')
@@ -242,6 +254,13 @@ export async function checkPronunciationAudio(userId: number, word: string, lang
 
   if (!config.url)
     throw new AppError(500, ERROR_CODES.TTS.NOT_CONFIGURED, getErrorMsg('not_configured'))
+
+  const arrayBuffer = await audioFile.arrayBuffer()
+  const audioBuffer = Buffer.from(arrayBuffer)
+  const inputDurationSeconds = getAudioDurationSeconds(audioBuffer)
+  const billableSttTokens = Math.max(TOKEN_WEIGHTS.MIN_STT_TOKENS, Math.round(inputDurationSeconds * TOKEN_WEIGHTS.STT_SECOND_MULTIPLIER))
+
+  await checkTokenLimit(userId, billableSttTokens)
 
   let apiUrl = config.sttUrl || config.url
   if (apiUrl.endsWith('/chat/completions')) {
@@ -322,9 +341,17 @@ export async function checkPronunciationAudio(userId: number, word: string, lang
     let heardPhonetic = ''
     let mistakeAnalysis = ''
 
-    const sttPromptTokens = data.usage?.prompt_tokens || Math.round(audioFile.size / 100)
     const sttCompletionTokens = data.usage?.completion_tokens || heardText.length
-    trackTokenUsage(userId, 'check_pronunciation_stt', usedSttModel, sttPromptTokens, sttCompletionTokens, `[AUDIO ${Math.round(audioFile.size / 1024)}KB]`, heardText)
+    trackTokenUsage(
+      userId,
+      'check_pronunciation_stt',
+      usedSttModel,
+      billableSttTokens,
+      sttCompletionTokens,
+      `[AUDIO ${Math.round(audioFile.size / 1024)}KB, duration: ${inputDurationSeconds}s]`,
+      heardText,
+      { inputAudioSeconds: inputDurationSeconds },
+    )
 
     if (heardText && textSimilarity < 100) {
       try {

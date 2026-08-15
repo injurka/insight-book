@@ -31,3 +31,36 @@ export function convertToOpus(inputBuffer: Buffer): Buffer {
 
   return inputBuffer
 }
+
+/**
+ * Calculates or extracts duration of an audio buffer in seconds.
+ * Uses ffmpeg to parse the container/stream time and returns float seconds (e.g. 2.45).
+ * Falls back safely to 0 if buffer is empty or inspection fails.
+ */
+export function getAudioDurationSeconds(inputBuffer: Buffer): number {
+  if (!inputBuffer || inputBuffer.length === 0)
+    return 0
+
+  try {
+    const res = spawnSync('ffmpeg', ['-i', 'pipe:0', '-f', 'null', '-'], {
+      input: inputBuffer,
+      maxBuffer: 5 * 1024 * 1024,
+    })
+
+    const output = (res.stderr || '').toString()
+    const matches = [...output.matchAll(/time=(\d{2}):(\d{2}):(\d{2}(?:\.\d+)?)/g)]
+    if (matches.length > 0) {
+      const lastMatch = matches[matches.length - 1]
+      const hours = Number.parseFloat(lastMatch[1])
+      const minutes = Number.parseFloat(lastMatch[2])
+      const seconds = Number.parseFloat(lastMatch[3])
+      const totalSeconds = hours * 3600 + minutes * 60 + seconds
+      return Math.round(totalSeconds * 100) / 100
+    }
+  }
+  catch (err) {
+    logger.warn({ err }, '[Audio Utility] Failed to extract audio duration via ffmpeg')
+  }
+
+  return 0
+}

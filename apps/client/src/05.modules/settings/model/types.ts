@@ -3,6 +3,8 @@ export interface ActionStats {
   input: number
   output: number
   cost: number
+  audioInputSeconds?: number
+  audioOutputSeconds?: number
 }
 
 export interface BookCacheStat {

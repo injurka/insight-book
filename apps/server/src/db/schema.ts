@@ -104,6 +104,8 @@ export const tokenUsage = sqliteTable('token_usage', {
   model: text('model').notNull(),
   inputTokens: integer('inputTokens').notNull().default(0),
   outputTokens: integer('outputTokens').notNull().default(0),
+  audioInputSeconds: real('audioInputSeconds').default(0),
+  audioOutputSeconds: real('audioOutputSeconds').default(0),
 }, t => [
   unique().on(t.userId, t.date, t.action, t.model),
 ])
@@ -117,6 +119,8 @@ export const llmLogs = sqliteTable('llm_logs', {
   outputTokens: integer('outputTokens').notNull().default(0),
   inputText: text('inputText'),
   outputText: text('outputText'),
+  audioInputSeconds: real('audioInputSeconds'),
+  audioOutputSeconds: real('audioOutputSeconds'),
   createdAt: text('createdAt').notNull().default(sql`(datetime('now'))`),
 })
 

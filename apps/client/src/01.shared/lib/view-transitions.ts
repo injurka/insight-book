@@ -1,6 +1,7 @@
 import type { Router } from 'vue-router'
 import { nextTick, ref, watch } from 'vue'
 import { AppRouteNames } from '~/01.shared/constants/routes'
+import { isMobile } from '~/01.shared/lib/env'
 
 /**
  * `view-transition-name` для «перелетающей» обложки книги.
@@ -17,7 +18,9 @@ export const BOOK_COVER_TRANSITION_NAME = 'active-book-cover'
  */
 export const coverTransitionBookId = ref<number | null>(null)
 
-const reduceMotionQuery = window.matchMedia('(prefers-reduced-motion: reduce)')
+const reduceMotionQuery = typeof window !== 'undefined'
+  ? window.matchMedia('(prefers-reduced-motion: reduce)')
+  : { matches: false }
 
 /**
  * Сколько максимум ждём данные книги перед снятием «нового» снапшота.
@@ -29,7 +32,19 @@ const reduceMotionQuery = window.matchMedia('(prefers-reduced-motion: reduce)')
 const BOOK_INFO_WAIT_TIMEOUT = 150
 
 export function isViewTransitionSupported(): boolean {
-  return typeof document !== 'undefined' && 'startViewTransition' in document
+  if (typeof document === 'undefined' || !('startViewTransition' in document))
+    return false
+
+  // Отключаем View Transitions на мобильных устройствах и мобильных разрешениях (<= 768px):
+  // на мобильных GPU снятие полноэкранных снапшотов перегружает процессор и вызывает лаги.
+  // Для мобильной версии используется лёгкий стандартный CSS-переход fade.
+  if (isMobile)
+    return false
+
+  if (typeof window !== 'undefined' && window.matchMedia('(max-width: 768px)').matches)
+    return false
+
+  return true
 }
 
 /** Пауза на декодирование изображений из памяти перед снятием снапшота */

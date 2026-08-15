@@ -608,31 +608,37 @@ watch(visible, (val) => {
     .progress-info {
       display: flex;
       justify-content: space-between;
-      align-items: center;
+      align-items: flex-end;
       margin-bottom: 8px;
       font-size: 0.95rem;
       font-weight: 500;
       gap: 8px;
-      flex-wrap: wrap;
+      min-width: 0;
 
       .label-group {
         display: flex;
-        align-items: center;
-        gap: 8px;
-        flex-wrap: wrap;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 4px;
         min-width: 0;
+        flex: 1;
 
         .label {
           display: flex;
           align-items: center;
           gap: 6px;
           color: var(--fg-primary-color);
-          white-space: nowrap;
+          min-width: 0;
 
           svg {
             color: var(--fg-secondary-color);
             font-size: 1.1rem;
             flex-shrink: 0;
+          }
+
+          .label-text {
+            overflow: hidden;
+            text-overflow: ellipsis;
           }
         }
 
@@ -640,14 +646,15 @@ watch(visible, (val) => {
           display: inline-flex;
           align-items: center;
           gap: 3px;
-          padding: 1px 8px;
+          padding: 1px 7px;
           border-radius: 999px;
-          font-size: 0.75rem;
+          font-size: 0.72rem;
           font-weight: 600;
           color: var(--fg-success-color);
           background: rgba(var(--bg-accent-color-rgb, 201, 117, 222), 0.08);
           border: 1px solid color-mix(in srgb, var(--fg-success-color) 35%, transparent);
           white-space: nowrap;
+          flex-shrink: 0;
 
           svg {
             font-size: 0.85rem;
@@ -663,10 +670,13 @@ watch(visible, (val) => {
         color: var(--fg-secondary-color);
         font-variant-numeric: tabular-nums;
         white-space: nowrap;
+        font-size: 0.88rem;
+        flex-shrink: 0;
         margin-left: auto;
+        align-self: flex-end;
 
         .percent {
-          font-size: 0.85rem;
+          font-size: 0.82rem;
         }
 
         .section-status {
@@ -674,31 +684,6 @@ watch(visible, (val) => {
 
           &.done-icon {
             color: var(--fg-success-color);
-          }
-        }
-      }
-
-      @include media-down(sm) {
-        align-items: flex-end;
-
-        .label-group {
-          flex-direction: column;
-          align-items: flex-start;
-          gap: 4px;
-
-          .cache-badge {
-            font-size: 0.7rem;
-            padding: 1px 6px;
-          }
-        }
-
-        .value {
-          font-size: 0.85rem;
-          gap: 4px;
-          align-self: flex-end;
-
-          .percent {
-            font-size: 0.8rem;
           }
         }
       }
