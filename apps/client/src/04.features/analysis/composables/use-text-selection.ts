@@ -1,5 +1,6 @@
 import { watch } from 'vue'
 import { useTts } from '~/01.shared/composables/use-tts'
+import { safeDecodeURIComponent } from '~/01.shared/lib/helpers'
 import { useAnalysisStore } from '~/01.shared/store/analysis/analysis.store'
 
 function isValidWordTarget(
@@ -16,6 +17,16 @@ function isValidWordTarget(
   return /[\p{L}\p{N}]/u.test(word)
 }
 
+function clearSelectionRanges() {
+  const sel = window.getSelection()
+  if (sel) {
+    if (sel.removeAllRanges)
+      sel.removeAllRanges()
+    else if ('empty' in sel)
+      (sel as unknown as { empty: () => void }).empty()
+  }
+}
+
 export function useTextSelection() {
   const analysisStore = useAnalysisStore()
   const { speak, stop, isPlaying, isLoading } = useTts()
@@ -23,9 +34,8 @@ export function useTextSelection() {
   let selectionChangeListener: (() => void) | null = null
   let pressMoveListener: ((e: Event) => void) | null = null
   let pressScrollListener: (() => void) | null = null
-  let pressStartX = 0
-  let pressStartY = 0
-
+  let pressOriginX = 0
+  let pressOriginY = 0
   let currentPlayingBtn: HTMLElement | null = null
 
   watch([isPlaying, isLoading], ([playing, loading]) => {
@@ -47,8 +57,8 @@ export function useTextSelection() {
     }
 
     if (pressMoveListener) {
-      window.removeEventListener('touchmove', pressMoveListener)
-      window.removeEventListener('mousemove', pressMoveListener)
+      window.removeEventListener('pointermove', pressMoveListener, { capture: true })
+      window.removeEventListener('touchmove', pressMoveListener, { capture: true })
       pressMoveListener = null
     }
 
@@ -58,47 +68,34 @@ export function useTextSelection() {
     }
   }
 
-  function capturePressOrigin(event: MouseEvent | TouchEvent) {
+  function getClientCoords(event: MouseEvent | TouchEvent): { x: number, y: number } {
     if ('touches' in event && event.touches.length > 0) {
-      pressStartX = event.touches[0].clientX
-      pressStartY = event.touches[0].clientY
+      return { x: event.touches[0].clientX, y: event.touches[0].clientY }
     }
-    else {
-      pressStartX = (event as MouseEvent).clientX
-      pressStartY = (event as MouseEvent).clientY
+
+    if ('clientX' in event) {
+      return { x: event.clientX, y: event.clientY }
     }
+
+    return { x: 0, y: 0 }
   }
 
-  function pressMovedBeyondThreshold(e: Event): boolean {
-    let currentX = 0
-    let currentY = 0
+  function capturePressOrigin(event: MouseEvent | TouchEvent) {
+    const coords = getClientCoords(event)
+    pressOriginX = coords.x
+    pressOriginY = coords.y
 
-    if (e.type === 'touchmove') {
-      const touch = (e as TouchEvent).touches[0]
-      if (!touch)
-        return false
-      currentX = touch.clientX
-      currentY = touch.clientY
-    }
-    else {
-      currentX = (e as MouseEvent).clientX
-      currentY = (e as MouseEvent).clientY
-    }
-
-    return Math.abs(currentX - pressStartX) > 10 || Math.abs(currentY - pressStartY) > 10
-  }
-
-  function armPressCancellers() {
     pressMoveListener = (e: Event) => {
-      if (pressMovedBeyondThreshold(e))
+      const moveCoords = getClientCoords(e as MouseEvent | TouchEvent)
+      const dx = Math.abs(moveCoords.x - pressOriginX)
+      const dy = Math.abs(moveCoords.y - pressOriginY)
+      if (dx > 10 || dy > 10)
         clearPressTimer()
     }
 
-    window.addEventListener('touchmove', pressMoveListener, { passive: true })
-    window.addEventListener('mousemove', pressMoveListener, { passive: true })
+    window.addEventListener('pointermove', pressMoveListener, { capture: true, passive: true })
+    window.addEventListener('touchmove', pressMoveListener, { capture: true, passive: true })
 
-    // Скролл — верный признак того, что жест не является длинным нажатием:
-    // срабатывает даже там, где браузер не шлёт touchcancel при захвате жеста.
     pressScrollListener = () => clearPressTimer()
     window.addEventListener('scroll', pressScrollListener, { capture: true, passive: true })
   }
@@ -110,7 +107,7 @@ export function useTextSelection() {
     let rawSent = fallbackText || ''
 
     if (target && target.dataset.rawSent)
-      rawSent = decodeURIComponent(target.dataset.rawSent)
+      rawSent = safeDecodeURIComponent(target.dataset.rawSent)
 
     else if (fallbackText)
       rawSent = fallbackText.replace(/\n+/g, '')
@@ -128,11 +125,7 @@ export function useTextSelection() {
 
     document.addEventListener('selectionchange', selectionChangeListener)
 
-    armPressCancellers()
-
     pressTimer = setTimeout(() => {
-      clearPressTimer()
-
       const selection = window.getSelection()
       if (selection && selection.toString().trim().length > 0)
         return
@@ -146,7 +139,14 @@ export function useTextSelection() {
 
       analysisStore.closePopover()
       analysisStore.closeSelectionTooltip()
-      window.getSelection()?.empty()
+
+      if ('vibrate' in navigator) {
+        try {
+          navigator.vibrate(50)
+        }
+        catch { }
+      }
+
       analysisStore.handleSentenceAnalysis(rawSent, context)
     }, 500)
   }
@@ -162,7 +162,7 @@ export function useTextSelection() {
 
     event.stopPropagation()
     event.preventDefault()
-    const text = decodeURIComponent(ttsBtn.dataset.ttsText || '')
+    const text = safeDecodeURIComponent(ttsBtn.dataset.ttsText || '')
     if (!text)
       return true
 
@@ -212,9 +212,9 @@ export function useTextSelection() {
     }
 
     event.stopPropagation()
-    const pattern = decodeURIComponent(grammarBadge.dataset.pattern || '')
-    const explanation = decodeURIComponent(grammarBadge.dataset.explanation || '')
-    const example = decodeURIComponent(grammarBadge.dataset.example || '')
+    const pattern = safeDecodeURIComponent(grammarBadge.dataset.pattern || '')
+    const explanation = safeDecodeURIComponent(grammarBadge.dataset.explanation || '')
+    const example = safeDecodeURIComponent(grammarBadge.dataset.example || '')
     analysisStore.openGrammarPopover(
       pattern,
       explanation,
@@ -237,7 +237,7 @@ export function useTextSelection() {
       return
 
     const pos = target.dataset.pos
-    const word = decodeURIComponent(target.dataset.word || '')
+    const word = safeDecodeURIComponent(target.dataset.word || '')
     const sentenceId = Number(target.dataset.sentId)
     const tokenIndex = Number(target.dataset.tokenIdx)
 
@@ -251,9 +251,9 @@ export function useTextSelection() {
     }
 
     const sentenceEl = target.closest('.sentence') as HTMLElement | null
-    const contextSentence = sentenceEl ? decodeURIComponent(sentenceEl.dataset.rawSent || '') : ''
+    const contextSentence = sentenceEl ? safeDecodeURIComponent(sentenceEl.dataset.rawSent || '') : ''
 
-    window.getSelection()?.empty()
+    clearSelectionRanges()
     event.stopPropagation()
 
     analysisStore.handleWordClick(

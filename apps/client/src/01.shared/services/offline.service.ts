@@ -531,22 +531,30 @@ export const offlineService = {
   },
 
   async saveDictionary(words: UserDictItem[]) {
-    const lang = getAppLanguage()
-    await safeSetItem(`dictionary_words_${lang}`, JSON.parse(JSON.stringify(words)))
+    await safeSetItem('dictionary_words', JSON.parse(JSON.stringify(words)))
   },
 
   async getDictionary(): Promise<UserDictItem[] | null> {
+    const data = await safeGetItem<UserDictItem[]>('dictionary_words')
+    if (data)
+      return data
+
+    // Backwards compatibility fallback for legacy locale-keyed entries
     const lang = getAppLanguage()
 
     return safeGetItem(`dictionary_words_${lang}`)
   },
 
   async saveDecks(decks: DictDeck[]) {
-    const lang = getAppLanguage()
-    await safeSetItem(`dictionary_decks_${lang}`, JSON.parse(JSON.stringify(decks)))
+    await safeSetItem('dictionary_decks', JSON.parse(JSON.stringify(decks)))
   },
 
   async getDecks(): Promise<DictDeck[] | null> {
+    const data = await safeGetItem<DictDeck[]>('dictionary_decks')
+    if (data)
+      return data
+
+    // Backwards compatibility fallback for legacy locale-keyed entries
     const lang = getAppLanguage()
 
     return safeGetItem(`dictionary_decks_${lang}`)

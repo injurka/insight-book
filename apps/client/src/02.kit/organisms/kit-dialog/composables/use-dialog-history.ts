@@ -1,5 +1,5 @@
 import type { Ref } from 'vue'
-import { onUnmounted, watch } from 'vue'
+import { getCurrentInstance, onUnmounted, watch } from 'vue'
 
 // Глобальный стейт для отслеживания порядка открытия модалок
 const openModalsStack: string[] = []
@@ -62,7 +62,9 @@ export function useDialogHistory(dialogId: string, visible: Ref<boolean>) {
     }
   }, { immediate: true })
 
-  onUnmounted(() => {
-    cleanupHistory()
-  })
+  if (getCurrentInstance()) {
+    onUnmounted(() => {
+      cleanupHistory()
+    })
+  }
 }

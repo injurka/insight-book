@@ -66,8 +66,8 @@ export const dictionaryController = new Elysia({ prefix: '/api/dictionary' })
   }, {
     body: t.Object({ wordIds: t.Array(t.Number()) }),
   })
-  .post('/bulk/move', async ({ body }) => {
-    await dictionaryService.bulkMoveDict(body.wordIds, body.deckIds)
+  .post('/bulk/move', async ({ userId, body }) => {
+    await dictionaryService.bulkMoveDict(userId!, body.wordIds, body.deckIds)
     return { success: true }
   }, {
     body: t.Object({ wordIds: t.Array(t.Number()), deckIds: t.Optional(t.Array(t.Number())) }),

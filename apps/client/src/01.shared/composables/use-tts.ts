@@ -1,6 +1,5 @@
 import { ref } from 'vue'
 import { useRepos } from '~/00.plugins/di'
-import { useToast } from '~/01.shared/composables/use-toast'
 import { useTracking } from '~/01.shared/composables/use-tracking'
 import { useGlobalSettingsStore } from '~/01.shared/store/settings.store'
 import { useReaderStore } from '~/05.modules/reader/store/reader.store'
@@ -18,7 +17,6 @@ export function useTts() {
 
   const readerStore = useReaderStore()
   const settingsStore = useGlobalSettingsStore()
-  const toast = useToast()
 
   async function getOrGenerateAudioBlob(
     bookId: number | undefined,
@@ -91,8 +89,6 @@ export function useTts() {
     const maxLength = hasChineseChars ? 80 : 250
 
     if (text.length > maxLength) {
-      toast.error('Текст слишком длинный (максимум ~15 секунд звучания)')
-
       return false
     }
 
@@ -184,19 +180,30 @@ export function useTts() {
     })
   }
 
+  async function fallbackSpeak(text: string, lang: string): Promise<boolean> {
+    if (settingsStore.fallbackToWebSpeech) {
+      return await speakWithWebSpeech(text, lang, settingsStore.ttsSpeed)
+    }
+
+    return false
+  }
+
   async function speak(
     text: string | null | undefined,
     explicitLanguage?: string,
     explicitBookId?: number,
     forceCacheBypass?: boolean,
   ): Promise<boolean> {
-    if (!text || !validateText(text))
+    if (!text)
       return false
+
+    const { bookId, lang, voice } = getTtsParams(explicitLanguage, explicitBookId)
+
+    if (!validateText(text))
+      return fallbackSpeak(text, lang)
 
     abortIfLoading()
     stop()
-
-    const { bookId, lang, voice } = getTtsParams(explicitLanguage, explicitBookId)
 
     isLoading.value = true
     const controller = new AbortController()
@@ -218,13 +225,8 @@ export function useTts() {
       if (controller.signal.aborted)
         return false
 
-      if (!audioBlob) {
-        if (settingsStore.fallbackToWebSpeech) {
-          return await speakWithWebSpeech(text, lang, settingsStore.ttsSpeed)
-        }
-
-        return false
-      }
+      if (!audioBlob)
+        return fallbackSpeak(text, lang)
 
       await playAudioBlob(audioBlob, lang, voice)
 
@@ -236,11 +238,7 @@ export function useTts() {
 
       console.error('TTS Error:', e)
 
-      if (settingsStore.fallbackToWebSpeech) {
-        return await speakWithWebSpeech(text, lang, settingsStore.ttsSpeed)
-      }
-
-      return false
+      return fallbackSpeak(text, lang)
     }
     finally {
       if (abortController === controller)

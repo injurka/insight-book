@@ -22,10 +22,10 @@ describe('env', () => {
     expect(API_URL).toBe('https://mock-api.com')
   })
 
-  it('falls back to production URL when VITE_API_URL is not set', async () => {
+  it('falls back to empty string when VITE_API_URL is not set', async () => {
     vi.stubEnv('VITE_API_URL', '')
     const { API_URL } = await import('./env')
 
-    expect(API_URL).toBe('https://api.insight-book.ru')
+    expect(API_URL).toBe('')
   })
 })

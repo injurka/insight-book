@@ -16,6 +16,7 @@ export default mergeConfig(viteConfig, defineConfig({
     projects: [{
       extends: true,
       test: {
+        name: 'unit',
         globals: true,
         environment: 'happy-dom',
         root: '.',
@@ -23,6 +24,9 @@ export default mergeConfig(viteConfig, defineConfig({
       },
     }, {
       extends: true,
+      optimizeDeps: {
+        include: ['aria-query'],
+      },
       plugins: [
         storybookTest({
           configDir: path.join(dirname, '.storybook'),

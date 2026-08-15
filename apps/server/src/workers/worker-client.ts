@@ -23,43 +23,73 @@ logger.info(`🚀 Worker Pool initialized with ${MAX_WORKERS} threads (CPU cores
 const pool: Worker[] = []
 const taskQueue: Task[] = []
 const workerActive = new Map<Worker, boolean>()
+const workerCurrentTaskId = new Map<Worker, number>()
 
 const taskCallbacks = new Map<number, Task>()
 let taskIdSeq = 0
 
+function createWorker(): Worker {
+  const worker = new Worker(new URL('./task.worker.ts', import.meta.url))
+  workerActive.set(worker, false)
+  pool.push(worker)
+
+  worker.onmessage = (event: MessageEvent) => {
+    const { id, success, data, error, stack } = event.data
+    const task = taskCallbacks.get(id)
+    if (task) {
+      if (success) {
+        task.resolve(data)
+      }
+      else {
+        const err = new Error(error)
+        // Подменяем стек на реальный стек из воркера,
+        // чтобы в логах было видно, где именно упала задача
+        if (stack)
+          err.stack = stack
+        logger.error({ taskId: id, taskType: task.type, err }, `[Worker Task Failed] ${task.type}: ${error}`)
+        task.reject(err)
+      }
+      taskCallbacks.delete(id)
+    }
+    workerCurrentTaskId.delete(worker)
+    workerActive.set(worker, false)
+    processNextTask()
+  }
+
+  worker.onerror = (err) => {
+    logger.error(err, '[Worker Pool Error]')
+    const currentTaskId = workerCurrentTaskId.get(worker)
+    if (currentTaskId !== undefined) {
+      const task = taskCallbacks.get(currentTaskId)
+      if (task) {
+        const errMsg = err instanceof Error ? err.message : String(err)
+        task.reject(new Error(`Worker crashed while processing task ${task.type}: ${errMsg}`))
+        taskCallbacks.delete(currentTaskId)
+      }
+      workerCurrentTaskId.delete(worker)
+    }
+
+    try {
+      worker.terminate()
+    }
+    catch { }
+
+    workerActive.delete(worker)
+    const index = pool.indexOf(worker)
+    if (index !== -1) {
+      pool.splice(index, 1)
+    }
+
+    createWorker()
+    processNextTask()
+  }
+
+  return worker
+}
+
 function initPool() {
   for (let i = 0; i < MAX_WORKERS; i++) {
-    const worker = new Worker(new URL('./task.worker.ts', import.meta.url))
-    workerActive.set(worker, false)
-    pool.push(worker)
-
-    worker.onmessage = (event: MessageEvent) => {
-      const { id, success, data, error, stack } = event.data
-      const task = taskCallbacks.get(id)
-      if (task) {
-        if (success) {
-          task.resolve(data)
-        }
-        else {
-          const err = new Error(error)
-          // Подменяем стек на реальный стек из воркера,
-          // чтобы в логах было видно, где именно упала задача
-          if (stack)
-            err.stack = stack
-          logger.error({ taskId: id, taskType: task.type, err }, `[Worker Task Failed] ${task.type}: ${error}`)
-          task.reject(err)
-        }
-        taskCallbacks.delete(id)
-      }
-      workerActive.set(worker, false)
-      processNextTask()
-    }
-
-    worker.onerror = (err) => {
-      logger.error(err, '[Worker Pool Error]')
-      workerActive.set(worker, false)
-      processNextTask()
-    }
+    createWorker()
   }
 }
 
@@ -71,6 +101,7 @@ function processNextTask() {
   if (availableWorker) {
     const task = taskQueue.shift()!
     workerActive.set(availableWorker, true)
+    workerCurrentTaskId.set(availableWorker, task.id)
     taskCallbacks.set(task.id, task)
     availableWorker.postMessage({ id: task.id, type: task.type, payload: task.payload })
   }

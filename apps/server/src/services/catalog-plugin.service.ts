@@ -131,6 +131,16 @@ export class CatalogPluginService {
       }
     }
 
+    // Проверяем авторство, если плагин с таким ID уже существует
+    const existingPlugin = await this.catalogRepo.findOne(manifest.id)
+    if (existingPlugin) {
+      const user = await userRepository.findById(userId)
+      const isAdmin = user?.role === ROLES.ADMIN
+      if (!isAdmin && existingPlugin.uploadedBy !== userId) {
+        throw new AppError(403, ERROR_CODES.AUTH.FORBIDDEN, 'Plugin ID already taken by another author')
+      }
+    }
+
     // Префикс папки внутри архива, в которой лежит manifest.json
     const basePrefix = path.posix.dirname(manifestEntry.entryName)
     const storagePrefix = `plugins/${manifest.id}/${manifest.version}`

@@ -60,15 +60,23 @@ export class Flashcard implements UserDictItem {
    * Calculates intervals for different FSRS ratings.
    */
   calculateNextReviewIntervals(now: Date = new Date()) {
+    const parseSafeDate = (d?: string | number | Date | null): Date | undefined => {
+      if (!d)
+        return undefined
+      const parsed = new Date(d)
+
+      return Number.isNaN(parsed.getTime()) ? undefined : parsed
+    }
+
     const fsrsCard = createEmptyCard()
-    fsrsCard.due = new Date(this.due)
+    fsrsCard.due = parseSafeDate(this.due) ?? new Date(now)
     fsrsCard.stability = this.stability
     fsrsCard.difficulty = this.difficultyFsrs
     fsrsCard.scheduled_days = this.scheduledDays
     fsrsCard.reps = this.reps
     fsrsCard.lapses = this.lapses
     fsrsCard.state = this.state
-    fsrsCard.last_review = this.lastReview ? new Date(this.lastReview) : undefined
+    fsrsCard.last_review = parseSafeDate(this.lastReview)
     fsrsCard.learning_steps = this.learningSteps ?? 0
 
     const schedulingCards = Flashcard.fsrs.repeat(fsrsCard, now)

@@ -138,11 +138,23 @@ export const useReaderStore = defineStore('reader', () => {
     }
   }
 
+  let activeMangaBlobUrl: string | null = null
+
+  function revokeActiveMangaBlobUrl() {
+    if (activeMangaBlobUrl) {
+      URL.revokeObjectURL(activeMangaBlobUrl)
+      activeMangaBlobUrl = null
+    }
+  }
+
   async function resolveMangaImage(page: PagePayload) {
     if (page.type === 'manga' && page.imageUrl) {
       const cachedBlob = await repos.book.getLocalImage(Number(page.bookId), Number(page.pageNum))
-      if (cachedBlob)
-        page.localImageUrl = URL.createObjectURL(cachedBlob)
+      if (cachedBlob) {
+        revokeActiveMangaBlobUrl()
+        activeMangaBlobUrl = URL.createObjectURL(cachedBlob)
+        page.localImageUrl = activeMangaBlobUrl
+      }
     }
   }
 
@@ -261,6 +273,7 @@ export const useReaderStore = defineStore('reader', () => {
       highlightsStore.fetchHighlights(book.id).catch(console.error)
 
       libraryStore.currentBookInfo = book
+      revokeActiveMangaBlobUrl()
       currentPage.value = null
       currentPageDictionary.value = {}
 

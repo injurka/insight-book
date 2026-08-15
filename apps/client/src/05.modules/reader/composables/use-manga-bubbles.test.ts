@@ -11,6 +11,7 @@ vi.mock('@pinia/colada', async () => {
   return {
     useQuery: () => ({
       data: ref(null),
+      error: ref(null),
       isLoading: ref(false),
       refetch: vi.fn().mockResolvedValue(undefined),
     }),

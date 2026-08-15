@@ -294,18 +294,45 @@ export class DictionaryRepository implements IDictionaryRepository {
     ))
   }
 
-  async bulkMoveWords(wordIds: number[], deckIds?: number[]) {
-    await db.delete(schema.wordToDeck).where(inArray(schema.wordToDeck.wordId, wordIds))
+  async bulkMoveWords(userId: number, wordIds: number[], deckIds?: number[]) {
+    if (wordIds.length === 0)
+      return
 
+    const userWords = await db.select({ id: schema.userDictionary.id })
+      .from(schema.userDictionary)
+      .where(and(
+        inArray(schema.userDictionary.id, wordIds),
+        eq(schema.userDictionary.userId, userId),
+      ))
+
+    const validWordIds = userWords.map(w => w.id)
+    if (validWordIds.length === 0)
+      return
+
+    let validDeckIds: number[] = []
     if (deckIds && deckIds.length > 0) {
-      const links = []
-      for (const wordId of wordIds) {
-        for (const deckId of deckIds) {
-          links.push({ wordId, deckId })
-        }
-      }
-      await db.insert(schema.wordToDeck).values(links).onConflictDoNothing()
+      const userDecks = await db.select({ id: schema.dictDecks.id })
+        .from(schema.dictDecks)
+        .where(and(
+          inArray(schema.dictDecks.id, deckIds),
+          eq(schema.dictDecks.userId, userId),
+        ))
+      validDeckIds = userDecks.map(d => d.id)
     }
+
+    await db.transaction(async (tx) => {
+      await tx.delete(schema.wordToDeck).where(inArray(schema.wordToDeck.wordId, validWordIds))
+
+      if (validDeckIds.length > 0) {
+        const links = []
+        for (const wordId of validWordIds) {
+          for (const deckId of validDeckIds) {
+            links.push({ wordId, deckId })
+          }
+        }
+        await tx.insert(schema.wordToDeck).values(links).onConflictDoNothing()
+      }
+    })
   }
 
   async getCatalogDecks() {

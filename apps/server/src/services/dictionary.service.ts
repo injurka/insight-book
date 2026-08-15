@@ -202,8 +202,8 @@ export class DictionaryService {
     await this.dictRepo.bulkDeleteWords(userId, wordIds)
   }
 
-  async bulkMoveDict(wordIds: number[], deckIds?: number[]) {
-    await this.dictRepo.bulkMoveWords(wordIds, deckIds)
+  async bulkMoveDict(userId: number, wordIds: number[], deckIds?: number[]) {
+    await this.dictRepo.bulkMoveWords(userId, wordIds, deckIds)
   }
 
   async getCatalogDecks() {
@@ -252,7 +252,7 @@ export class DictionaryService {
         const links = upserted.map(u => ({ wordId: u.id, deckId: newDeck.id }))
         await this.dictRepo.linkWordsToDeck(links)
       }
-      await activityService.trackActivity(userId, 'wordsReviewed', userWords.length)
+      await activityService.trackActivity(userId, 'wordsAdded', userWords.length)
     }
     return newDeck.id
   }

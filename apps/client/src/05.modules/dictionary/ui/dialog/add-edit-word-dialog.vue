@@ -105,11 +105,15 @@ const deckIdsModel = computed<(string | number)[]>({
     return localWord.value.deckIds
   },
   set: (val) => {
-    if (val.includes('none'))
+    const lastSelected = val[val.length - 1]
+    if (lastSelected === 'none') {
       localWord.value.deckIds = []
 
-    else
-      localWord.value.deckIds = val.map(Number)
+      return
+    }
+
+    const numericDecks = val.filter(v => v !== 'none').map(Number)
+    localWord.value.deckIds = numericDecks
   },
 })
 

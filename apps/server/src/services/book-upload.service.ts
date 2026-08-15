@@ -1,3 +1,4 @@
+import { unlink } from 'node:fs/promises'
 import path from 'node:path'
 import { normalizeLanguageCode } from '~/utils/helpers'
 import { BOOKS_PATH } from '../config'
@@ -24,17 +25,23 @@ export class BookUploadService {
       const filePath = path.join(BOOKS_PATH, safeName)
       await Bun.write(filePath, file)
 
-      if (filename.endsWith('.epub')) {
-        bookId = await runWorkerTask('processEpub', { filePath, filename: file.name, userId })
+      try {
+        if (filename.endsWith('.epub')) {
+          bookId = await runWorkerTask('processEpub', { filePath, filename: file.name, userId })
+        }
+        else if (filename.endsWith('.fb2') || filename.endsWith('.fb2.zip')) {
+          bookId = await runWorkerTask('processFb2', { filePath, filename: file.name, userId })
+        }
+        else if (filename.endsWith('.cbz') || filename.endsWith('.zip')) {
+          bookId = await runWorkerTask('processCbz', { filePath, filename: file.name, userId })
+        }
+        else {
+          throw new AppError(400, ERROR_CODES.BOOK.INVALID_FILE_TYPE, 'Only .epub, .cbz, .zip and .fb2 files are supported')
+        }
       }
-      else if (filename.endsWith('.fb2') || filename.endsWith('.fb2.zip')) {
-        bookId = await runWorkerTask('processFb2', { filePath, filename: file.name, userId })
-      }
-      else if (filename.endsWith('.cbz') || filename.endsWith('.zip')) {
-        bookId = await runWorkerTask('processCbz', { filePath, filename: file.name, userId })
-      }
-      else {
-        throw new AppError(400, ERROR_CODES.BOOK.INVALID_FILE_TYPE, 'Only .epub, .cbz, .zip and .fb2 files are supported')
+      catch (err) {
+        await unlink(filePath).catch(() => {})
+        throw err
       }
     }
     else {

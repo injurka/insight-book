@@ -7,6 +7,7 @@ import { useRepos } from '~/00.plugins/di'
 import { i18n } from '~/00.plugins/i18n'
 import { useTracking } from '~/01.shared/composables/use-tracking'
 import { appEventBus } from '~/01.shared/events/app-event-bus'
+import { safeDecodeURIComponent } from '~/01.shared/lib/helpers'
 import { useNetworkStore } from '~/01.shared/store/network.store'
 import { useGlobalSettingsStore } from '~/01.shared/store/settings.store'
 import { useToastStore } from '~/01.shared/store/toast.store'
@@ -589,7 +590,7 @@ export const useAnalysisStore = defineStore('analysis', () => {
         const sentRegex = /data-raw-sent="([^"]+)"/g
         let match = sentRegex.exec(html)
         while (match !== null) {
-          sentencesToProcess.add(decodeURIComponent(match[1]))
+          sentencesToProcess.add(safeDecodeURIComponent(match[1]))
           match = sentRegex.exec(html)
         }
       }
@@ -599,7 +600,7 @@ export const useAnalysisStore = defineStore('analysis', () => {
         let match = wordRegex.exec(html)
         while (match !== null) {
           if (match[2] !== 'x')
-            wordsToProcess.add(decodeURIComponent(match[1]))
+            wordsToProcess.add(safeDecodeURIComponent(match[1]))
           match = wordRegex.exec(html)
         }
       }

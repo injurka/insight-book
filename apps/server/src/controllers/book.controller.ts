@@ -179,7 +179,18 @@ export const bookController = new Elysia({ prefix: '/api/books' })
     const dict = await bookService.getPageDictionary(Number(id), Number(pageNum), userId!, targetLang)
     return { pageDictionary: dict }
   }, { requireAuth: true, cache: 'dayPrivate' })
-  .get('/:id/page/:pageNum/image', async ({ params: { id, pageNum }, set }) => {
+  .get('/:id/page/:pageNum/image', async ({ params: { id, pageNum }, userId, set }) => {
+    const book = await bookRepository.findFirstBook(Number(id))
+    if (!book) {
+      set.status = 404
+      return 'Not found'
+    }
+
+    if (book.userId !== userId && !book.isPublic) {
+      set.status = 403
+      return 'Forbidden'
+    }
+
     const pageRow = await bookRepository.getMangaPageImageUrl(Number(id), Number(pageNum))
     if (!pageRow || !pageRow.imageUrl) {
       set.status = 404
@@ -199,7 +210,7 @@ export const bookController = new Elysia({ prefix: '/api/books' })
       'Content-Type': `image/${ext === 'jpg' ? 'jpeg' : ext}`,
     }
     return buffer
-  }, { cache: 'immutable' })
+  }, { requireAuth: true, cache: 'dayPrivate' })
   .get('/:id/word/:word', async ({ params: { id, word }, userId, query }) => {
     const targetLang = (query.targetLang as string) || 'ru'
     return bookService.lookupWord(Number(id), word, userId!, targetLang)

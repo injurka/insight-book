@@ -278,7 +278,7 @@ export class BookService {
 
     if (!isSync) {
       await this.bookRepo.upsertReadingProgress(bookId, userId, { currentPage: pageNum })
-      await activityService.trackActivity(userId, 'wordsAdded', 1)
+      await activityService.trackActivity(userId, 'pagesRead', 1)
     }
 
     if (book.type === 'manga') {

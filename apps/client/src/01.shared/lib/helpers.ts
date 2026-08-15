@@ -72,4 +72,16 @@ export function hexToRgba(hex: string, alpha: number): string {
   return `rgba(${red}, ${green}, ${b}, ${alpha})`
 }
 
+export function safeDecodeURIComponent(str: string): string {
+  if (!str)
+    return ''
+
+  try {
+    return decodeURIComponent(str)
+  }
+  catch {
+    return str
+  }
+}
+
 export { getMediaUrl }

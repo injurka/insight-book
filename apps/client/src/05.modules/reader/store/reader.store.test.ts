@@ -94,6 +94,8 @@ vi.mock('~/00.plugins/i18n', () => ({
 vi.mock('@pinia/colada', () => ({
   useQuery: () => ({
     data: ref([]),
+    error: ref(null),
+    isLoading: ref(false),
     refetch: vi.fn().mockResolvedValue(undefined),
   }),
 }))

@@ -25,6 +25,7 @@ vi.mock('~/01.shared/composables/use-tracking', () => ({
 vi.mock('@pinia/colada', () => ({
   useQuery: () => ({
     data: ref(null),
+    error: ref(null),
     isLoading: ref(false),
     refetch: vi.fn(async () => { }),
   }),

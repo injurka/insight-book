@@ -28,7 +28,7 @@ export async function generateTts(
     throw new AppError(400, ERROR_CODES.TTS.TEXT_REQUIRED, 'Text is required')
 
   const hasChineseChars = /[\u4E00-\u9FA5]/.test(normalizedText)
-  const maxLength = hasChineseChars ? 80 : 250
+  const maxLength = hasChineseChars ? 100 : 250
 
   if (normalizedText.length > maxLength) {
     throw new AppError(400, ERROR_CODES.TTS.TEXT_TOO_LONG, 'Text is too long for TTS', { maxLength })

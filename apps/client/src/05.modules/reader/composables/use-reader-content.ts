@@ -1,6 +1,7 @@
 import type { LlmAnalysis } from '~/01.shared/types/models'
 import DOMPurify from 'dompurify'
 import { computed } from 'vue'
+import { safeDecodeURIComponent } from '~/01.shared/lib/helpers'
 import { useAnalysisStore } from '~/01.shared/store/analysis/analysis.store'
 import { useGlobalSettingsStore } from '~/01.shared/store/settings.store'
 import { useReaderStore } from '../store/reader.store'
@@ -102,7 +103,7 @@ export function useReaderContent() {
     const translatedSentIds = new Set<string>()
 
     doc.querySelectorAll('.sentence').forEach((span) => {
-      const rawSent = decodeURIComponent(span.getAttribute('data-raw-sent') || '')
+      const rawSent = safeDecodeURIComponent(span.getAttribute('data-raw-sent') || '')
       const sentId = span.getAttribute('data-sent-id') || ''
 
       if (mode === 'left') {
@@ -185,7 +186,7 @@ export function useReaderContent() {
     // eslint-disable-next-line no-cond-assign
     while ((match = sentRegex.exec(safePageContent.value)) !== null) {
       total++
-      const rawSent = decodeURIComponent(match[1])
+      const rawSent = safeDecodeURIComponent(match[1])
       if (map[rawSent]) {
         translated++
       }

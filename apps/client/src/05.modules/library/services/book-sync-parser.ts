@@ -1,4 +1,5 @@
 import type { PagePayload } from '~/01.shared/types/models'
+import { safeDecodeURIComponent } from '~/01.shared/lib/helpers'
 
 export interface ExtractPageDataOptions {
   extractSentences: boolean
@@ -23,7 +24,7 @@ function extractFromHtml(
     let match
     // eslint-disable-next-line no-cond-assign
     while ((match = sentRegex.exec(html)) !== null)
-      sentences.add(decodeURIComponent(match[1]))
+      sentences.add(safeDecodeURIComponent(match[1]))
   }
 
   if (options.extractWords) {
@@ -33,7 +34,7 @@ function extractFromHtml(
     while ((match = wordRegex.exec(html)) !== null) {
       // Пропускаем служебные части речи (частицы и т.п.)
       if (match[2] !== 'x')
-        words.add(decodeURIComponent(match[1]))
+        words.add(safeDecodeURIComponent(match[1]))
     }
   }
 }

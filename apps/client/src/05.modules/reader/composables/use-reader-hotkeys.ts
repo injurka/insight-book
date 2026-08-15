@@ -44,7 +44,7 @@ export function useReaderHotkeys(prevPage: () => void, nextPage: () => void) {
   }
 
   function handleKeydown(event: KeyboardEvent) {
-    if (isTyping())
+    if (isTyping() || event.ctrlKey || event.metaKey || event.altKey)
       return
 
     if (event.key === 'Escape') {

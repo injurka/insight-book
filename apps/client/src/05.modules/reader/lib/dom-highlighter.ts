@@ -1,4 +1,4 @@
-import { hexToRgba, normalizeString } from '~/01.shared/lib/helpers'
+import { hexToRgba, normalizeString, safeDecodeURIComponent } from '~/01.shared/lib/helpers'
 
 export interface QuoteHighlightSource {
   text: string
@@ -88,7 +88,7 @@ export function collectQuoteRanges(root: HTMLElement, quotes: QuoteHighlightSour
     return rangesByColor
 
   root.querySelectorAll('.sentence').forEach((span) => {
-    const rawSent = decodeURIComponent(span.getAttribute('data-raw-sent') || '')
+    const rawSent = safeDecodeURIComponent(span.getAttribute('data-raw-sent') || '')
     const rawNorm = normalizeString(rawSent)
 
     const matchingQuotes = validQuotes.filter((quoteItem) => {
