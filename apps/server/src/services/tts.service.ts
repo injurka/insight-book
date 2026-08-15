@@ -5,6 +5,7 @@ import { convertToOpus, getAudioDurationSeconds } from '~/utils/audio'
 import { attachUrlToActiveSpan, runWithClientSpan } from '~/utils/external-call'
 import { hashTtsText, mapVoiceToOpenAi, parseLlmJson } from '~/utils/helpers'
 import { callLlmJsonWithRetry } from '~/utils/llm-api'
+import { singleflight } from '~/utils/singleflight'
 import { ERROR_CODES } from '../constants/error-codes'
 import { TOKEN_WEIGHTS } from '../constants/token-weights'
 import { db } from '../db'
@@ -14,47 +15,27 @@ import { logger } from '../utils/logger'
 import { checkTokenLimit } from './limits.service'
 import { trackTokenUsage } from './token.service'
 
-export async function generateTts(
+async function generateAndCacheTts(
   userId: number,
-  bookId: number | null,
-  text: string,
+  normalizedText: string,
+  voice: string,
+  hash: string,
   config: LlmConfig,
-  selectedVoice?: string,
   forceCacheBypass?: boolean,
 ): Promise<string> {
-  const normalizedText = text.trim()
-
-  if (!normalizedText)
-    throw new AppError(400, ERROR_CODES.TTS.TEXT_REQUIRED, 'Text is required')
-
-  const hasChineseChars = /[\u4E00-\u9FA5]/.test(normalizedText)
-  const maxLength = hasChineseChars ? 100 : 250
-
-  if (normalizedText.length > maxLength) {
-    throw new AppError(400, ERROR_CODES.TTS.TEXT_TOO_LONG, 'Text is too long for TTS', { maxLength })
+  if (!forceCacheBypass) {
+    const freshCached = await db.query.ttsCache.findFirst({
+      where: eq(schema.ttsCache.textHash, hash),
+    })
+    if (freshCached) {
+      return Buffer.from(freshCached.audioBlob).toString('base64')
+    }
   }
 
   const ttsUrl = config.ttsUrl || config.url
   const ttsKey = config.ttsKey || config.key
   const primaryModel = config.ttsModel!
   const fallbackModel = config.fallbackTtsModel!
-
-  if (!ttsUrl)
-    throw new AppError(500, ERROR_CODES.TTS.NOT_CONFIGURED, 'TTS API not configured')
-
-  const voice = selectedVoice || 'Kore'
-  const hash = hashTtsText(normalizedText, voice)
-
-  const cached = await db.query.ttsCache.findFirst({
-    where: eq(schema.ttsCache.textHash, hash),
-  })
-
-  if (cached && !forceCacheBypass) {
-    if (bookId) {
-      await db.insert(schema.bookTtsCache).values({ bookId, textHash: hash }).onConflictDoNothing()
-    }
-    return Buffer.from(cached.audioBlob).toString('base64')
-  }
 
   const estimatedTokens = Math.max(TOKEN_WEIGHTS.MIN_TTS_TOKENS, normalizedText.length * TOKEN_WEIGHTS.TTS_CHAR_MULTIPLIER)
   await checkTokenLimit(userId, estimatedTokens)
@@ -172,10 +153,6 @@ export async function generateTts(
     },
   })
 
-  if (bookId) {
-    await db.insert(schema.bookTtsCache).values({ bookId, textHash: hash }).onConflictDoNothing()
-  }
-
   const durationSeconds = getAudioDurationSeconds(audioBuffer)
   const billableTokens = Math.max(TOKEN_WEIGHTS.MIN_TTS_TOKENS, normalizedText.length * TOKEN_WEIGHTS.TTS_CHAR_MULTIPLIER)
 
@@ -191,6 +168,54 @@ export async function generateTts(
   )
 
   return audioBuffer.toString('base64')
+}
+
+export async function generateTts(
+  userId: number,
+  bookId: number | null,
+  text: string,
+  config: LlmConfig,
+  selectedVoice?: string,
+  forceCacheBypass?: boolean,
+): Promise<string> {
+  const normalizedText = text.trim()
+
+  if (!normalizedText)
+    throw new AppError(400, ERROR_CODES.TTS.TEXT_REQUIRED, 'Text is required')
+
+  const hasChineseChars = /[\u4E00-\u9FA5]/.test(normalizedText)
+  const maxLength = hasChineseChars ? 100 : 350
+
+  if (normalizedText.length > maxLength) {
+    throw new AppError(400, ERROR_CODES.TTS.TEXT_TOO_LONG, 'Text is too long for TTS', { maxLength })
+  }
+
+  const ttsUrl = config.ttsUrl || config.url
+  if (!ttsUrl)
+    throw new AppError(500, ERROR_CODES.TTS.NOT_CONFIGURED, 'TTS API not configured')
+
+  const voice = selectedVoice || 'Kore'
+  const hash = hashTtsText(normalizedText, voice)
+
+  const cached = await db.query.ttsCache.findFirst({
+    where: eq(schema.ttsCache.textHash, hash),
+  })
+
+  if (cached && !forceCacheBypass) {
+    if (bookId) {
+      await db.insert(schema.bookTtsCache).values({ bookId, textHash: hash }).onConflictDoNothing()
+    }
+    return Buffer.from(cached.audioBlob).toString('base64')
+  }
+
+  const base64Audio = await singleflight.do(`tts:${hash}`, () =>
+    generateAndCacheTts(userId, normalizedText, voice, hash, config, forceCacheBypass))
+
+  if (bookId) {
+    await db.insert(schema.bookTtsCache).values({ bookId, textHash: hash }).onConflictDoNothing()
+  }
+
+  return base64Audio
 }
 
 function calculatePhoneticSimilarity(expected: string, heard: string, language: string): number {

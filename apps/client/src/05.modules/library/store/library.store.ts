@@ -8,6 +8,7 @@ import { attachCachedCovers } from '../services/book-cover.service'
 import {
   cancelSync,
   startWholeBookSync,
+  syncErrorCode,
   syncOptions,
   syncProgress,
   syncState,
@@ -473,6 +474,7 @@ export const useLibraryStore = defineStore('library', () => {
 
     // Re-exported from book-sync.service for backward compatibility
     syncState,
+    syncErrorCode,
     syncProgress,
     syncOptions,
     startWholeBookSync,

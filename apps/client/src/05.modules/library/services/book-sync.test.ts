@@ -3,7 +3,7 @@ import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { useGlobalSettingsStore } from '~/01.shared/store/settings.store'
 
-import { cancelSync, startWholeBookSync, syncProgress, syncState } from './book-sync.service'
+import { cancelSync, startWholeBookSync, syncErrorCode, syncProgress, syncState } from './book-sync.service'
 
 const hoisted = vi.hoisted(() => {
   const bookRepo = {
@@ -353,6 +353,7 @@ describe('startWholeBookSync', () => {
 
     expect(hoisted.analysisRepo.getAllCacheAll).toHaveBeenCalledWith(1, 'ru')
     expect(hoisted.analysisRepo.saveLocalAnalysis).toHaveBeenCalledWith('Hello world', bulkAnalysis, 'en')
+    expect(syncProgress.value.totalPreloadedCache).toBe(1)
     expect(syncState.value).toBe('finished')
   })
 
@@ -423,5 +424,45 @@ describe('startWholeBookSync', () => {
 
     expect(hoisted.bookRepo.getPage).toHaveBeenCalledTimes(2)
     expect(syncState.value).toBe('idle')
+  })
+
+  it('stops sync immediately and sets error state when token limit is exceeded during analysis', async () => {
+    hoisted.libraryState.books = [makeBook({ totalPages: 5 })]
+    hoisted.bookRepo.getPage.mockImplementation(async (_id: number, num: number) => makeTextPage(num, [`Sentence on page ${num}`]))
+    hoisted.analysisRepo.getLocalAnalysis.mockResolvedValue(null)
+    hoisted.analysisRepo.checkCache.mockResolvedValue({ results: [] })
+
+    const tokenLimitError = Object.assign(new Error('AI token limit exceeded'), {
+      code: 'TOKEN_LIMIT_EXCEEDED',
+      status: 403,
+    })
+    hoisted.analysisRepo.analyzeBatch.mockRejectedValue(tokenLimitError)
+
+    await startWholeBookSync(1, { ...baseOptions, analyzeSentences: true })
+
+    expect(syncState.value).toBe('error')
+    expect(syncErrorCode.value).toBe('TOKEN_LIMIT_EXCEEDED')
+    expect(syncProgress.value.currentTask).toContain('лимит')
+    // Should stop on page 1 and not process pages 2-5
+    expect(hoisted.bookRepo.getPage).toHaveBeenCalledTimes(1)
+  })
+
+  it('stops sync immediately and sets error state when token limit is exceeded during TTS generation', async () => {
+    hoisted.libraryState.books = [makeBook({ totalPages: 5 })]
+    hoisted.bookRepo.getPage.mockImplementation(async (_id: number, num: number) => makeTextPage(num, [`Text ${num}`]))
+    hoisted.analysisRepo.getLocalTts.mockResolvedValue(null)
+
+    const tokenLimitError = Object.assign(new Error('AI token limit exceeded'), {
+      code: 'TOKEN_LIMIT_EXCEEDED',
+      status: 403,
+    })
+    hoisted.analysisRepo.generateTts.mockRejectedValue(tokenLimitError)
+
+    await startWholeBookSync(1, { ...baseOptions, ttsSentences: true })
+
+    expect(syncState.value).toBe('error')
+    expect(syncErrorCode.value).toBe('TOKEN_LIMIT_EXCEEDED')
+    expect(syncProgress.value.currentTask).toContain('лимит')
+    expect(hoisted.bookRepo.getPage).toHaveBeenCalledTimes(1)
   })
 })

@@ -10,6 +10,23 @@ import { extractPageData } from './book-sync-parser'
 const repos = useRepos()
 
 export const syncState = ref<'idle' | 'running' | 'finished' | 'error'>('idle')
+export const syncErrorCode = ref<string | null>(null)
+
+export function isTokenLimitError(e: unknown): boolean {
+  if (!e || typeof e !== 'object')
+    return false
+  const err = e as { code?: string, status?: number, message?: string }
+
+  return (
+    err.code === 'TOKEN_LIMIT_EXCEEDED'
+    || err.status === 403
+    || (typeof err.message === 'string' && (
+      err.message.includes('TOKEN_LIMIT_EXCEEDED')
+      || err.message.toLowerCase().includes('token limit')
+      || err.message.toLowerCase().includes('лимит')
+    ))
+  )
+}
 
 export const syncProgress = ref({
   pagesTotal: 0,
@@ -23,6 +40,7 @@ export const syncProgress = ref({
   ttsTotal: 0,
   ttsDone: 0,
   ttsFromCache: 0,
+  totalPreloadedCache: 0,
   currentTask: '',
 })
 
@@ -70,6 +88,7 @@ async function fetchAndHydrateServerCache(ctx: AnalysisContext): Promise<void> {
     const res = await repos.analysis.getAllCacheAll(ctx.bookId, targetLang)
 
     if (res && res.results && res.results.length > 0) {
+      syncProgress.value.totalPreloadedCache = res.results.length
       const CHUNK_SIZE = 50
 
       for (let i = 0; i < res.results.length; i += CHUNK_SIZE) {
@@ -85,7 +104,7 @@ async function fetchAndHydrateServerCache(ctx: AnalysisContext): Promise<void> {
   }
   catch (e) {
     const err = e as Error
-    if (err.name === 'AbortError' || err.message === 'Aborted')
+    if (err.name === 'AbortError' || err.message === 'Aborted' || isTokenLimitError(e))
       throw err
     console.warn('[Sync Service] Failed to pre-fetch server cache in bulk:', e)
   }
@@ -180,7 +199,7 @@ async function filterServerCachedTexts(
   }
   catch (e) {
     const err = e as Error
-    if (err.name === 'AbortError')
+    if (err.name === 'AbortError' || isTokenLimitError(e))
       throw err
   }
 }
@@ -246,8 +265,9 @@ async function analyzeMissingTexts(
       }
       catch (e) {
         const err = e as Error
-        if (err.name !== 'AbortError')
-          console.error(`Analyze ${type} error:`, err)
+        if (err.name === 'AbortError' || isTokenLimitError(e))
+          throw err
+        console.error(`Analyze ${type} error:`, err)
       }
     }))
     syncProgress.value.currentTask = `Страница ${pageNum} из ${ctx.totalPages}: анализ ${label}`
@@ -288,8 +308,10 @@ async function generateTtsForTexts(texts: string[], ctx: AnalysisContext, pageNu
         }
       }
       catch (e: unknown) {
-        if ((e as Error).name !== 'AbortError')
-          console.error('TTS Sync error:', e)
+        const err = e as Error
+        if (err.name === 'AbortError' || isTokenLimitError(e))
+          throw err
+        console.error('TTS Sync error:', e)
       }
 
       syncProgress.value.ttsDone++
@@ -478,6 +500,7 @@ export async function startWholeBookSync(bookId: number, options: {
     ttsTotal: 0,
     ttsDone: 0,
     ttsFromCache: 0,
+    totalPreloadedCache: 0,
     currentTask: 'Подготовка...',
   }
 
@@ -491,17 +514,25 @@ export async function startWholeBookSync(bookId: number, options: {
   }
 
   try {
+    syncErrorCode.value = null
     await executeBookSync(book, syncOptions.value, ctx)
   }
   catch (e) {
     const err = e as Error
     if (err.message === 'Aborted' || err.name === 'AbortError') {
       syncState.value = 'idle'
+      syncErrorCode.value = null
     }
-
     else {
       syncState.value = 'error'
-      syncProgress.value.currentTask = `Ошибка: ${err.message}`
+      if (isTokenLimitError(err)) {
+        syncErrorCode.value = 'TOKEN_LIMIT_EXCEEDED'
+        syncProgress.value.currentTask = 'Превышен лимит использования ИИ (токенов)'
+      }
+      else {
+        syncErrorCode.value = (err as Error & { code?: string }).code || 'UNKNOWN_ERROR'
+        syncProgress.value.currentTask = `Ошибка: ${err.message}`
+      }
     }
   }
   finally {

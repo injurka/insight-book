@@ -3,6 +3,7 @@ import { eq, inArray, sql } from 'drizzle-orm'
 import { compressData, decompressData } from '~/utils/compression'
 import { hashSentence, isOldFormatAnalysis, isValidWordForLanguage, parseLlmJson } from '~/utils/helpers'
 import { callLlmJsonWithRetry } from '~/utils/llm-api'
+import { singleflight } from '~/utils/singleflight'
 import { ERROR_CODES } from '../constants/error-codes'
 import { db } from '../db'
 import * as schema from '../db/schema'
@@ -12,47 +13,31 @@ import { logger } from '../utils/logger'
 import { checkTokenLimit } from './limits.service'
 import { trackTokenUsage } from './token.service'
 
-export async function analyzeSentence(
+async function fetchAndCacheSentenceAnalysis(
   userId: number,
-  bookId: number,
   sentence: string,
   language: string,
   targetLang: string,
+  hash: string,
   config: LlmConfig,
   context?: string,
-  type: 'sentence' | 'word' = 'sentence',
 ): Promise<LlmAnalysis> {
-  // Слово должно принадлежать заявленному языку — отсекаем мусор до LLM и кэша.
-  // Интерактивный запрос (клик пользователя): латиница разрешена как фолбэк —
-  // в книгах не на латинице встречаются бренды/сленг («Wi-Fi», «OK»), пользователь
-  // кликнул по слову осознанно, жжёт токены только на себя.
-  if (type === 'word' && !isValidWordForLanguage(sentence, language, { allowLatinFallback: true })) {
-    throw new AppError(400, ERROR_CODES.ANALYSIS.INVALID_WORD, `«${sentence}» — не похоже на слово языка "${language}"`)
-  }
-
-  await checkTokenLimit(userId)
-
-  const hash = hashSentence(sentence, language, targetLang)
-
-  const cached = await db.query.llmCache.findFirst({
+  // Повторная проверка кэша на случай, если параллельный запрос только что завершился
+  const freshCached = await db.query.llmCache.findFirst({
     where: eq(schema.llmCache.sentenceHash, hash),
   })
 
-  if (cached) {
+  if (freshCached) {
     try {
-      const parsed = JSON.parse(decompressData(cached.analysis))
-      if (!isOldFormatAnalysis(parsed)) {
-        await db.insert(schema.bookLlmCache).values({
-          bookId,
-          sentenceHash: hash,
-          type,
-        }).onConflictDoNothing()
-
-        return parsed as LlmAnalysis
+      const p = JSON.parse(decompressData(freshCached.analysis))
+      if (!isOldFormatAnalysis(p)) {
+        return p as LlmAnalysis
       }
     }
     catch { }
   }
+
+  await checkTokenLimit(userId)
 
   if (!config.url)
     throw new AppError(500, ERROR_CODES.SYSTEM.LLM_NOT_CONFIGURED, 'LLM API not configured')
@@ -98,12 +83,6 @@ export async function analyzeSentence(
         },
       })
 
-      await db.insert(schema.bookLlmCache).values({
-        bookId,
-        sentenceHash: hash,
-        type,
-      }).onConflictDoNothing()
-
       return parsed
     }
     catch (e) {
@@ -113,6 +92,62 @@ export async function analyzeSentence(
   }
 
   throw new AppError(500, `Не удалось получить валидный ответ от ИИ: ${lastError?.message || 'Unknown error'}`)
+}
+
+export async function analyzeSentence(
+  userId: number,
+  bookId: number,
+  sentence: string,
+  language: string,
+  targetLang: string,
+  config: LlmConfig,
+  context?: string,
+  type: 'sentence' | 'word' = 'sentence',
+): Promise<LlmAnalysis> {
+  // Слово должно принадлежать заявленному языку — отсекаем мусор до LLM и кэша.
+  // Интерактивный запрос (клик пользователя): латиница разрешена как фолбэк —
+  // в книгах не на латинице встречаются бренды/сленг («Wi-Fi», «OK»), пользователь
+  // кликнул по слову осознанно, жжёт токены только на себя.
+  if (type === 'word' && !isValidWordForLanguage(sentence, language, { allowLatinFallback: true })) {
+    throw new AppError(400, ERROR_CODES.ANALYSIS.INVALID_WORD, `«${sentence}» — не похоже на слово языка "${language}"`)
+  }
+
+  const hash = hashSentence(sentence, language, targetLang)
+
+  const cached = await db.query.llmCache.findFirst({
+    where: eq(schema.llmCache.sentenceHash, hash),
+  })
+
+  if (cached) {
+    try {
+      const parsed = JSON.parse(decompressData(cached.analysis))
+      if (!isOldFormatAnalysis(parsed)) {
+        if (bookId) {
+          await db.insert(schema.bookLlmCache).values({
+            bookId,
+            sentenceHash: hash,
+            type,
+          }).onConflictDoNothing()
+        }
+
+        return parsed as LlmAnalysis
+      }
+    }
+    catch { }
+  }
+
+  const parsed = await singleflight.do(`analysis:${hash}`, () =>
+    fetchAndCacheSentenceAnalysis(userId, sentence, language, targetLang, hash, config, context))
+
+  if (bookId) {
+    await db.insert(schema.bookLlmCache).values({
+      bookId,
+      sentenceHash: hash,
+      type,
+    }).onConflictDoNothing()
+  }
+
+  return parsed
 }
 
 export async function checkCacheBatch(bookId: number, items: { text: string, type: 'sentence' | 'word' }[], language: string, targetLang: string) {
@@ -153,7 +188,7 @@ export async function checkCacheBatch(bookId: number, items: { text: string, typ
   return results
 }
 
-export async function generateWordExamples(userId: number, word: string, language: string, targetLang: string, config: LlmConfig): Promise<GeneratedWordExamples> {
+async function fetchWordExamples(userId: number, word: string, language: string, targetLang: string, config: LlmConfig): Promise<GeneratedWordExamples> {
   await checkTokenLimit(userId)
 
   if (!config.url)
@@ -191,7 +226,13 @@ export async function generateWordExamples(userId: number, word: string, languag
   throw new AppError(500, ERROR_CODES.SYSTEM.LLM_ERROR, `LLM error: ${lastError?.message || 'Unknown error'}`)
 }
 
-export async function generateWordAutoFill(userId: number, word: string, language: string, targetLang: string, config: LlmConfig): Promise<WordAutoFillResponse> {
+export async function generateWordExamples(userId: number, word: string, language: string, targetLang: string, config: LlmConfig): Promise<GeneratedWordExamples> {
+  const flightKey = `word_examples:${(language || 'en').toLowerCase()}:${(targetLang || 'ru').toLowerCase()}:${word.trim().toLowerCase()}`
+
+  return singleflight.do(flightKey, () => fetchWordExamples(userId, word, language, targetLang, config))
+}
+
+async function fetchWordAutoFill(userId: number, word: string, language: string, targetLang: string, config: LlmConfig): Promise<WordAutoFillResponse> {
   await checkTokenLimit(userId)
 
   if (!config.url)
@@ -227,6 +268,12 @@ export async function generateWordAutoFill(userId: number, word: string, languag
   }
 
   throw new AppError(500, ERROR_CODES.SYSTEM.LLM_ERROR, `LLM error: ${lastError?.message || 'Unknown error'}`)
+}
+
+export async function generateWordAutoFill(userId: number, word: string, language: string, targetLang: string, config: LlmConfig): Promise<WordAutoFillResponse> {
+  const flightKey = `word_autofill:${(language || 'en').toLowerCase()}:${(targetLang || 'ru').toLowerCase()}:${word.trim().toLowerCase()}`
+
+  return singleflight.do(flightKey, () => fetchWordAutoFill(userId, word, language, targetLang, config))
 }
 
 export async function analyzeBatch(userId: number, bookId: number, items: BatchAnalysisRequest[], language: string, targetLang: string, config: LlmConfig): Promise<BatchAnalysisResponse[]> {

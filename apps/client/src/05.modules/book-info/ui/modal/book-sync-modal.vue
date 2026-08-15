@@ -2,8 +2,10 @@
 import { Icon } from '@iconify/vue'
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useRouter } from 'vue-router'
 import { useAppWakeLock } from '~/01.shared/composables/use-app-wake-lock'
 import { useToast } from '~/01.shared/composables/use-toast'
+import { useAuthStore } from '~/01.shared/store/auth.store'
 import { useNetworkStore } from '~/01.shared/store/network.store'
 import { KitBtn } from '~/02.kit/atoms/kit-btn/ui'
 import { KitCheckbox } from '~/02.kit/atoms/kit-checkbox/ui'
@@ -11,6 +13,7 @@ import { KitDialog } from '~/02.kit/organisms/kit-dialog/ui'
 import { useLibraryStore } from '~/05.modules/library/store/library.store'
 import { useBookSyncSections } from '../../composables/use-book-sync-sections'
 import { formatNumber } from '../../lib/formatters'
+import BookSyncCacheOverview from './book-sync-cache-overview.vue'
 
 interface Props {
   bookId: number
@@ -20,8 +23,15 @@ const props = defineProps<Props>()
 const visible = defineModel<boolean>('visible', { required: true })
 const libraryStore = useLibraryStore()
 const networkStore = useNetworkStore()
+const authStore = useAuthStore()
+const router = useRouter()
 const toast = useToast()
 const { t } = useI18n()
+
+const currentBook = computed(() =>
+  libraryStore.currentBookInfo?.id === props.bookId
+    ? libraryStore.currentBookInfo
+    : libraryStore.books.find(b => b.id === props.bookId))
 
 const options = ref({
   cachePages: true,
@@ -31,9 +41,34 @@ const options = ref({
   ttsWords: false,
 })
 
+const isIdle = computed(() => libraryStore.syncState === 'idle')
 const isRunning = computed(() => libraryStore.syncState === 'running')
 const isFinished = computed(() => libraryStore.syncState === 'finished')
 const hasError = computed(() => libraryStore.syncState === 'error')
+
+const hasTokenLimitError = computed(() =>
+  libraryStore.syncErrorCode === 'TOKEN_LIMIT_EXCEEDED')
+
+const isAccountTokenLimitExceeded = computed(() => {
+  if (hasTokenLimitError.value)
+    return true
+  const user = authStore.user
+  if (!user || user.tokenLimit === null || user.tokenLimit === undefined)
+    return false
+
+  return (user.usedTokens ?? 0) >= user.tokenLimit
+})
+
+const canStart = computed(() => {
+  const opts = options.value
+
+  return (
+    opts.cachePages
+    || opts.ttsSentences
+    || opts.ttsWords
+    || (!isAccountTokenLimitExceeded.value && (opts.analyzeSentences || opts.analyzeWords))
+  )
+})
 
 const { sections } = useBookSyncSections(isFinished)
 
@@ -55,6 +90,8 @@ const cachedSummaryItems = computed(() =>
 useAppWakeLock(isRunning)
 
 const syncStateIcon = computed(() => {
+  if (hasTokenLimitError.value)
+    return 'mdi:alert-octagon-outline'
   if (hasError.value)
     return 'mdi:alert-circle-outline'
   if (isFinished.value)
@@ -64,6 +101,8 @@ const syncStateIcon = computed(() => {
 })
 
 const syncStateClass = computed(() => {
+  if (hasTokenLimitError.value)
+    return 'is-limit-error'
   if (hasError.value)
     return 'is-error'
   if (isFinished.value)
@@ -71,6 +110,39 @@ const syncStateClass = computed(() => {
 
   return 'is-running'
 })
+
+function toggleSentences() {
+  if (isAccountTokenLimitExceeded.value) {
+    toast.warn(t('bookInfo.tokenLimitSetupWarning'))
+
+    return
+  }
+
+  options.value.analyzeSentences = !options.value.analyzeSentences
+}
+
+function toggleWords() {
+  if (isAccountTokenLimitExceeded.value) {
+    toast.warn(t('bookInfo.tokenLimitSetupWarning'))
+
+    return
+  }
+
+  options.value.analyzeWords = !options.value.analyzeWords
+}
+
+function resetToSetup() {
+  libraryStore.syncState = 'idle'
+  libraryStore.syncErrorCode = null
+  options.value.analyzeSentences = false
+  options.value.analyzeWords = false
+  options.value.cachePages = true
+}
+
+function goToLimits() {
+  visible.value = false
+  router.push('/limits')
+}
 
 function start() {
   if (networkStore.effectiveOffline) {
@@ -94,8 +166,15 @@ function close() {
 
 watch(visible, (val) => {
   if (val && libraryStore.syncState !== 'running') {
-    libraryStore.syncState = 'idle'
-    options.value = { ...libraryStore.syncOptions }
+    if (libraryStore.syncState !== 'error') {
+      libraryStore.syncState = 'idle'
+      options.value = { ...libraryStore.syncOptions }
+    }
+
+    if (isAccountTokenLimitExceeded.value) {
+      options.value.analyzeSentences = false
+      options.value.analyzeWords = false
+    }
   }
 })
 </script>
@@ -108,7 +187,24 @@ watch(visible, (val) => {
     :persistent="isRunning"
     :max-width="500"
   >
-    <div v-if="!isRunning && !isFinished" class="sync-setup">
+    <div v-if="isIdle" class="sync-setup">
+      <div v-if="isAccountTokenLimitExceeded" class="token-limit-setup-alert">
+        <Icon icon="mdi:alert-octagon-outline" class="alert-icon" />
+        <div class="alert-content">
+          <span class="alert-title">{{ t('bookInfo.tokenLimitTitle') }}</span>
+          <span class="alert-desc">{{ t('bookInfo.tokenLimitSetupWarning') }}</span>
+        </div>
+        <KitBtn
+          size="sm"
+          variant="text"
+          color="primary"
+          class="alert-action"
+          @click="goToLimits"
+        >
+          {{ t('bookInfo.viewLimits') }}
+        </KitBtn>
+      </div>
+
       <div class="setup-header">
         <Icon icon="mdi:wifi-off" class="setup-icon" />
         <p>{{ t('bookInfo.syncSetupHint') }}</p>
@@ -128,24 +224,52 @@ watch(visible, (val) => {
 
         <!-- Группа анализа текста -->
         <div class="sync-option-group">
-          <div class="sync-option-half" :class="{ 'is-active': options.analyzeSentences }" @click="options.analyzeSentences = !options.analyzeSentences">
+          <div
+            class="sync-option-half"
+            :class="{
+              'is-active': options.analyzeSentences && !isAccountTokenLimitExceeded,
+              'is-disabled': isAccountTokenLimitExceeded,
+            }"
+            @click="toggleSentences"
+          >
             <div class="option-content">
               <Icon icon="mdi:brain" class="option-icon" />
               <div class="option-texts">
                 <span class="option-title">{{ t('bookInfo.deepAnalysis') }}</span>
+                <span v-if="isAccountTokenLimitExceeded" class="option-limit-chip">
+                  {{ t('bookInfo.tokenLimitBadge') }}
+                </span>
               </div>
             </div>
-            <KitCheckbox :model-value="options.analyzeSentences" style="pointer-events: none;" />
+            <KitCheckbox
+              :model-value="options.analyzeSentences && !isAccountTokenLimitExceeded"
+              :disabled="isAccountTokenLimitExceeded"
+              style="pointer-events: none;"
+            />
           </div>
 
-          <div class="sync-option-half" :class="{ 'is-active': options.analyzeWords }" @click="options.analyzeWords = !options.analyzeWords">
+          <div
+            class="sync-option-half"
+            :class="{
+              'is-active': options.analyzeWords && !isAccountTokenLimitExceeded,
+              'is-disabled': isAccountTokenLimitExceeded,
+            }"
+            @click="toggleWords"
+          >
             <div class="option-content">
               <Icon icon="mdi:format-text" class="option-icon" />
               <div class="option-texts">
                 <span class="option-title">{{ t('bookInfo.analyzeWords') }}</span>
+                <span v-if="isAccountTokenLimitExceeded" class="option-limit-chip">
+                  {{ t('bookInfo.tokenLimitBadge') }}
+                </span>
               </div>
             </div>
-            <KitCheckbox :model-value="options.analyzeWords" style="pointer-events: none;" />
+            <KitCheckbox
+              :model-value="options.analyzeWords && !isAccountTokenLimitExceeded"
+              :disabled="isAccountTokenLimitExceeded"
+              style="pointer-events: none;"
+            />
           </div>
         </div>
 
@@ -174,7 +298,7 @@ watch(visible, (val) => {
       </div>
     </div>
 
-    <div v-if="isRunning || isFinished || hasError" class="sync-progress-view">
+    <div v-else class="sync-progress-view">
       <div class="progress-status-header" :class="syncStateClass">
         <Icon :icon="syncStateIcon" class="status-icon" :class="{ 'spin-animation': isRunning }" />
         <div class="task-block">
@@ -188,6 +312,42 @@ watch(visible, (val) => {
             </div>
           </div>
         </div>
+      </div>
+
+      <div v-if="hasTokenLimitError" class="token-limit-banner">
+        <div class="banner-header">
+          <Icon icon="mdi:alert-octagon-outline" class="banner-icon" />
+          <div class="banner-title-group">
+            <span class="banner-title">{{ t('bookInfo.tokenLimitTitle') }}</span>
+            <span class="banner-desc">{{ t('bookInfo.tokenLimitSyncError') }}</span>
+          </div>
+        </div>
+        <div class="banner-actions">
+          <KitBtn size="sm" variant="tonal" @click="resetToSetup">
+            <Icon icon="mdi:cog-outline" />
+            {{ t('bookInfo.changeSyncOptions') }}
+          </KitBtn>
+          <KitBtn
+            size="sm"
+            variant="outlined"
+            color="primary"
+            @click="goToLimits"
+          >
+            <Icon icon="mdi:lightning-bolt" />
+            {{ t('bookInfo.viewLimits') }}
+          </KitBtn>
+        </div>
+      </div>
+
+      <BookSyncCacheOverview
+        :book="currentBook"
+        :preloaded-count="libraryStore.syncProgress.totalPreloadedCache"
+        :tts-from-cache="libraryStore.syncProgress.ttsFromCache"
+      />
+
+      <div class="progress-section-header">
+        <Icon icon="mdi:progress-clock" class="header-icon" />
+        <span>{{ t('bookInfo.pageByPageProgress') }}</span>
       </div>
 
       <div class="progress-bars-container">
@@ -257,24 +417,34 @@ watch(visible, (val) => {
     </div>
 
     <template #footer>
-      <KitBtn v-if="!isRunning && !isFinished" variant="tonal" @click="close">
-        {{ t('dictionary.cancel') }}
-      </KitBtn>
-      <KitBtn v-if="!isRunning && !isFinished" color="primary" @click="start">
-        {{ t('dictionary.start') }}
-      </KitBtn>
+      <template v-if="isIdle">
+        <KitBtn variant="tonal" @click="close">
+          {{ t('dictionary.cancel') }}
+        </KitBtn>
+        <KitBtn
+          color="primary"
+          :disabled="!canStart"
+          @click="start"
+        >
+          {{ t('dictionary.start') }}
+        </KitBtn>
+      </template>
 
-      <KitBtn
-        v-if="isRunning"
-        color="error"
-        variant="outlined"
-        @click="cancel"
-      >
-        {{ t('bookInfo.stop') }}
-      </KitBtn>
-      <KitBtn v-if="isFinished || hasError" color="primary" @click="close">
-        {{ t('dictWord.close') }}
-      </KitBtn>
+      <template v-else-if="isRunning">
+        <KitBtn
+          color="error"
+          variant="outlined"
+          @click="cancel"
+        >
+          {{ t('bookInfo.stop') }}
+        </KitBtn>
+      </template>
+
+      <template v-else>
+        <KitBtn color="primary" @click="close">
+          {{ t('dictWord.close') }}
+        </KitBtn>
+      </template>
     </template>
   </KitDialog>
 </template>
@@ -284,6 +454,49 @@ watch(visible, (val) => {
   display: flex;
   flex-direction: column;
   gap: 20px;
+
+  .token-limit-setup-alert {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    background: color-mix(in srgb, var(--fg-warning-color) 8%, var(--bg-secondary-color));
+    border: 1px solid color-mix(in srgb, var(--fg-warning-color) 35%, transparent);
+    border-radius: 10px;
+    padding: 10px 12px;
+
+    .alert-icon {
+      font-size: 1.3rem;
+      color: var(--fg-warning-color);
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    .alert-content {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      flex: 1;
+      min-width: 0;
+
+      .alert-title {
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: var(--fg-primary-color);
+      }
+
+      .alert-desc {
+        font-size: 0.78rem;
+        color: var(--fg-secondary-color);
+        line-height: 1.3;
+      }
+    }
+
+    .alert-action {
+      flex-shrink: 0;
+      align-self: center;
+      font-size: 0.8rem;
+    }
+  }
 
   .setup-header {
     display: flex;
@@ -345,6 +558,17 @@ watch(visible, (val) => {
       }
     }
 
+    &.is-disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      border-color: var(--border-secondary-color) !important;
+      background: var(--bg-secondary-color) !important;
+
+      .option-icon {
+        color: var(--fg-secondary-color) !important;
+      }
+    }
+
     .option-content {
       display: flex;
       align-items: center;
@@ -360,11 +584,23 @@ watch(visible, (val) => {
     .option-texts {
       display: flex;
       flex-direction: column;
+      gap: 2px;
 
       .option-title {
         font-weight: 500;
         font-size: 0.9rem;
         color: var(--fg-primary-color);
+      }
+
+      .option-limit-chip {
+        display: inline-flex;
+        font-size: 0.68rem;
+        font-weight: 600;
+        color: var(--fg-warning-color);
+        background: color-mix(in srgb, var(--fg-warning-color) 12%, transparent);
+        border-radius: 4px;
+        padding: 1px 5px;
+        width: fit-content;
       }
     }
   }
@@ -454,6 +690,10 @@ watch(visible, (val) => {
       color: var(--fg-error-color);
     }
 
+    &.is-limit-error .status-icon {
+      color: var(--fg-warning-color);
+    }
+
     .task-block {
       display: flex;
       flex-direction: column;
@@ -484,6 +724,73 @@ watch(visible, (val) => {
       .overall-bar {
         height: 6px;
       }
+    }
+  }
+
+  .token-limit-banner {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    background: color-mix(in srgb, var(--fg-warning-color) 10%, var(--bg-secondary-color));
+    border: 1px solid color-mix(in srgb, var(--fg-warning-color) 40%, transparent);
+    border-radius: 12px;
+    padding: 14px 16px;
+
+    .banner-header {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+
+      .banner-icon {
+        font-size: 1.8rem;
+        color: var(--fg-warning-color);
+        flex-shrink: 0;
+        margin-top: 2px;
+      }
+
+      .banner-title-group {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+
+        .banner-title {
+          font-size: 0.95rem;
+          font-weight: 600;
+          color: var(--fg-primary-color);
+        }
+
+        .banner-desc {
+          font-size: 0.84rem;
+          color: var(--fg-secondary-color);
+          line-height: 1.4;
+        }
+      }
+    }
+
+    .banner-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      padding-left: 40px;
+
+      @include media-down(sm) {
+        padding-left: 0;
+      }
+    }
+  }
+
+  .progress-section-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 4px;
+    margin-bottom: -6px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--fg-secondary-color);
+
+    .header-icon {
+      font-size: 0.95rem;
     }
   }
 
