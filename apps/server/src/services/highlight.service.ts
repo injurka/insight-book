@@ -1,4 +1,5 @@
 import type { IHighlightRepository } from '../repositories/interfaces'
+import type { LlmAnalysis } from '../types'
 import { ERROR_CODES } from '../constants/error-codes'
 import { highlightRepository } from '../repositories/highlight.repository'
 import { AppError } from '../utils/errors'
@@ -16,10 +17,10 @@ export class HighlightService {
       text: string
       translation?: string | null
       note?: string | null
-      color?: string
+      color?: string | null
       chapter?: string | null
       pageNum: number
-      analysisData?: string | null
+      analysisData?: LlmAnalysis | null
     },
   ) {
     return this.highlightRepo.create({
@@ -28,7 +29,7 @@ export class HighlightService {
       text: body.text,
       translation: body.translation,
       note: body.note,
-      color: body.color,
+      color: body.color ?? undefined,
       chapter: body.chapter,
       pageNum: body.pageNum,
       analysisData: body.analysisData,
@@ -42,13 +43,16 @@ export class HighlightService {
       text?: string
       translation?: string | null
       note?: string | null
-      color?: string
+      color?: string | null
       chapter?: string | null
       pageNum?: number
-      analysisData?: string | null
+      analysisData?: LlmAnalysis | null
     },
   ) {
-    const updated = await this.highlightRepo.update(id, userId, body)
+    const updated = await this.highlightRepo.update(id, userId, {
+      ...body,
+      color: body.color ?? undefined,
+    })
     if (!updated) {
       throw new AppError(404, ERROR_CODES.HIGHLIGHT.NOT_FOUND, 'Highlight not found')
     }

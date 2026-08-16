@@ -1,4 +1,5 @@
 import type { ErrorCode } from '../constants/error-codes'
+import { NotFoundError, ValidationError } from 'elysia'
 import { CORS_HEADERS } from '../config'
 import { ERROR_CODES } from '../constants/error-codes'
 import { logger } from '../utils/logger'
@@ -71,6 +72,32 @@ export function extractErrorInfo(error: unknown): ProcessedError {
       code: ERROR_CODES.SYSTEM.VALIDATION_ERROR,
       message: msg,
       error: msg,
+    }
+  }
+
+  if (error instanceof ValidationError) {
+    let msg = 'Ошибка валидации данных.'
+    try {
+      const parsed = JSON.parse(error.message)
+      msg = parsed.summary || parsed.message || msg
+    }
+    catch {
+      msg = error.message || msg
+    }
+    return {
+      status: 400,
+      code: ERROR_CODES.SYSTEM.VALIDATION_ERROR,
+      message: msg,
+      error: msg,
+    }
+  }
+
+  if (error instanceof NotFoundError) {
+    return {
+      status: 404,
+      code: 'NOT_FOUND',
+      message: error.message || 'Not Found',
+      error: error.message || 'Not Found',
     }
   }
 
