@@ -123,7 +123,7 @@ function installOfflineOtlpGate() {
     return !!url && otlpHostPattern.test(url)
   }
 
-  const wrappedFetch: BrowserFetch = (input, init) => {
+  const wrappedFetch: BrowserFetch = async (input, init) => {
     // Для не-OTLP запросов — без изменений.
     if (!isOtlp(input))
       return originalFetch(input, init)
@@ -133,12 +133,12 @@ function installOfflineOtlpGate() {
       return fakeSuccess()
 
     try {
-      return originalFetch(input, init)
+      return await originalFetch(input, init)
     }
     catch (error) {
       // Сеть отвалилась уже во время запроса (TypeError без cause — сетевая ошибка,
       // та же эвристика, что и isFetchNetworkErrorRetryable в otlp-exporter-base).
-      if (error instanceof TypeError && !error.cause)
+      if (error instanceof TypeError && !('cause' in error))
         return fakeSuccess()
       throw error
     }
