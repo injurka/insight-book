@@ -99,6 +99,12 @@ export const useAuthStore = defineStore('auth', () => {
       return
     }
 
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      loadCachedUserSession()
+
+      return
+    }
+
     try {
       const res = await repos.auth.me()
 
@@ -134,6 +140,9 @@ export const useAuthStore = defineStore('auth', () => {
 
   async function loadUserPlugins() {
     if (!user.value)
+      return
+
+    if (typeof navigator !== 'undefined' && !navigator.onLine)
       return
 
     try {

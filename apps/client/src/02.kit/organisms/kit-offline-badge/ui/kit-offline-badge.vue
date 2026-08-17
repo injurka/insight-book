@@ -84,7 +84,7 @@ function handleReconnect() {
   transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 
   bottom: calc(env(safe-area-inset-bottom, 20px) + 20px);
-  right: 20px;
+  left: 20px;
   padding: 8px 14px;
   border-radius: 20px;
   font-size: 0.82rem;

@@ -127,14 +127,17 @@ export const request = ofetch.create({
 
     throw customError
   },
+  // eslint-disable-next-line complexity
   async onRequestError({ error, options }) {
     let errMessage = error.message
-    if (errMessage.includes('Failed to fetch') || errMessage.includes('Network Error'))
+    const isNetworkError = errMessage.includes('Failed to fetch') || errMessage.includes('Network Error')
+    if (isNetworkError)
       errMessage = i18n.global.t('errors.network')
 
     const isAbort = error.name === 'AbortError' || errMessage.toLowerCase().includes('abort') || errMessage.toLowerCase().includes('cancel')
+    const isOffline = typeof navigator !== 'undefined' && !navigator.onLine
 
-    if (!options?.silentErrors && !isAbort)
+    if (!options?.silentErrors && !isAbort && !isOffline && !isNetworkError)
       providers.onError(errMessage)
 
     const finalError = new Error(errMessage)
