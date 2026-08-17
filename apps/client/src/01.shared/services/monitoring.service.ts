@@ -81,6 +81,75 @@ let enabled = false
 let eventCounter: Counter | null = null
 let errorCounter: Counter | null = null
 
+/**
+ * Оффлайн-гейт для OTLP-экспортёров.
+ *
+ * При отсутствии сети FetchTransport (otlp-exporter-base) возвращает retryable-ошибку,
+ * поверх которой RetryingTransport делает до 5 попыток с бэкоффом (1s→1.5s→…).
+ * Три экспортёра (traces/metrics/logs) с периодичностью 5s каждый цикл дают в Network
+ * «бесконечный» поток POST на /v1/{traces|metrics} при выключенном интернете.
+ *
+ * Обёртка перехватывает fetch до того, как транспорт его захватит (транспорт читает
+ * `globalThis.fetch` в момент send), и для OTLP-эндпоинтов:
+ *  - если браузер оффлайн (navigator.onLine === false) — мгновенно резолвит притворный
+ *    2xx-ответ, RetryingTransport считает экспорт успешным и не ретраит. Данные
+ *    продолжают буферизоваться в Batch-процессорах и уедут, когда сеть вернётся;
+ *  - если сеть есть, но запрос упал с сетевой ошибкой — резолвим 2xx, чтобы не плодить
+ *    ретраи с бэкоффом (сам fetch уже завершился ошибкой, повторять бессмысленно).
+ *
+ * Обычные (не-OTLP) запросы приложения проходят насквозь без изменений.
+ */
+function installOfflineOtlpGate() {
+  const otlpBaseUrl = OTEL_EXPORTER_OTLP_ENDPOINT.replace(/\/(?:v1\/(?:traces|metrics|logs))?\/?$/, '')
+  const otlpHostPattern = otlpBaseUrl
+    ? new RegExp(`^${otlpBaseUrl.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}/`)
+    : null
+
+  if (!otlpHostPattern || typeof globalThis.fetch !== 'function')
+    return
+
+  // В рантайме (браузер, Vite web-target) globalThis.fetch — стандартный DOM-fetch.
+  // Аннотируем явными DOM-типами, а не `typeof fetch` (в проекте с @types/bun он
+  // резолвится в Bun-fetch с лишним полем preconnect и ломает присваивание).
+  type BrowserFetch = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>
+  const originalFetch: BrowserFetch = globalThis.fetch as BrowserFetch
+
+  /** Притворный 2xx — RetryingTransport считает экспорт успешным и не ретраит */
+  const fakeSuccess = () => Promise.resolve(new Response(null, { status: 200 }))
+
+  const isOtlp = (input: RequestInfo | URL): boolean => {
+    const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input?.url
+
+    return !!url && otlpHostPattern.test(url)
+  }
+
+  const wrappedFetch: BrowserFetch = (input, init) => {
+    // Для не-OTLP запросов — без изменений.
+    if (!isOtlp(input))
+      return originalFetch(input, init)
+
+    // Оффлайн: мгновенный синтетический успех — без ретраев и «вечного» потока запросов.
+    if (typeof navigator !== 'undefined' && navigator.onLine === false)
+      return fakeSuccess()
+
+    try {
+      return originalFetch(input, init)
+    }
+    catch (error) {
+      // Сеть отвалилась уже во время запроса (TypeError без cause — сетевая ошибка,
+      // та же эвристика, что и isFetchNetworkErrorRetryable в otlp-exporter-base).
+      if (error instanceof TypeError && !error.cause)
+        return fakeSuccess()
+      throw error
+    }
+  }
+
+  // Присваивание глобал-патча: таргет `globalThis.fetch` типизирован Bun-типами
+  // (требует пре-заданный `preconnect`), в браузере же это стандартный DOM-fetch —
+  // кастим явно, это осознанный срез неверной типизации для рантайма.
+  globalThis.fetch = wrappedFetch as typeof fetch
+}
+
 const otlpBaseUrl = OTEL_EXPORTER_OTLP_ENDPOINT.replace(/\/(?:v1\/(?:traces|metrics|logs))?\/?$/, '')
 
 function otlpSignalUrl(signal: 'traces' | 'logs' | 'metrics') {
@@ -248,6 +317,10 @@ function setupWebVitals(vitals: WebVitalsInstruments) {
 export function initMonitoring() {
   if (!OTEL_EXPORTER_OTLP_ENDPOINT)
     return
+
+  // Оффлайн-гейт должен встать до создания экспортёров: отсекает OTLP-запросы
+  // при отсутствии сети, чтобы не плодить ретраи с бэкоффом (см. докблок функции).
+  installOfflineOtlpGate()
 
   const resource = resourceFromAttributes({
     'service.name': SERVICE_NAME,
