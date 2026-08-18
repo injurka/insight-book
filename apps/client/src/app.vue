@@ -53,8 +53,7 @@ onMounted(async () => {
             const isWebCallback = parsed.pathname.includes('/callback')
 
             if (isInsightbook || isWebCallback) {
-              // For mobile: insightbook://auth/callback?code=...  → exchange code for token
-              // For web:    https://.../auth/yandex/callback?token=... → use token directly
+              // https://.../auth/yandex/callback?token=... → use token directly
               router.push({
                 path: '/auth/yandex/callback',
                 query: Object.fromEntries(parsed.searchParams),

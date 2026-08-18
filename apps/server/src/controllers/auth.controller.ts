@@ -119,9 +119,6 @@ export const authRouter = new Elysia({ prefix: '/api/auth' })
     frontendUrl.searchParams.set('token', token)
     return Response.redirect(frontendUrl.toString(), 302)
   })
-  .post('/yandex/mobile-exchange', async () => {
-    throw new AppError(400, ERROR_CODES.SYSTEM.NOT_IMPLEMENTED, 'Not implemented')
-  })
   .get('/status', async ({ query }) => {
     const sessionId = query.session_id as string | undefined
     if (!sessionId)
