@@ -3,7 +3,7 @@ import jwt from 'jsonwebtoken'
 import { AUTH_MODE, JWT_SECRET } from '../config'
 import { ERROR_CODES } from '../constants/error-codes'
 import { dictionaryService } from '../services/dictionary.service'
-import { checkPronunciationAudio, generateDeepDiveQuiz, generateWordExamples } from '../services/llm.service'
+import { checkPronunciationAudio, generateDeepDiveQuiz, generateWordAutoFill, generateWordExamples } from '../services/llm.service'
 import { cachePlugin } from '../utils/cache'
 import { AppError, handleElysiaError } from '../utils/errors'
 import { extractLlmConfig, normalizeLanguageCode } from '../utils/helpers'
@@ -81,8 +81,13 @@ export const dictionaryController = new Elysia({ prefix: '/api/dictionary' })
     query: t.Object({ targetLang: t.Optional(t.String()) }),
     body: t.Object({ word: t.String(), language: t.String() }),
   })
-  .post('/auto-fill', async () => {
-    return { success: true }
+  .post('/auto-fill', async ({ userId, body, query, request }) => {
+    const config = extractLlmConfig(request)
+    const targetLang = normalizeLanguageCode(query.targetLang || 'ru')
+    return await generateWordAutoFill(userId, body.word, normalizeLanguageCode(body.language || 'en'), targetLang, config)
+  }, {
+    query: t.Object({ targetLang: t.Optional(t.String()) }),
+    body: t.Object({ word: t.String(), language: t.Optional(t.String()) }),
   })
   .post('/deep-dive', async ({ userId, body, query, request }) => {
     const config = extractLlmConfig(request)

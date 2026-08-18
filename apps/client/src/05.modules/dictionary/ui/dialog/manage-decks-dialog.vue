@@ -157,6 +157,7 @@ async function onDeleteDeckConfirm() {
 .create-deck-row {
   display: flex;
   gap: 8px;
+  padding: 3px;
 }
 
 .decks-manage-list {
