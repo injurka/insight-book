@@ -8,6 +8,8 @@ interface UseDialogSwipeOptions {
   isMinimized: Ref<boolean>
   isFloating: Ref<boolean>
   isMinimizable: Ref<boolean>
+  isPersistent?: Ref<boolean>
+  isClosable?: Ref<boolean>
 }
 
 export function useDialogSwipe({
@@ -16,27 +18,50 @@ export function useDialogSwipe({
   isMinimized,
   isFloating,
   isMinimizable,
+  isPersistent,
+  isClosable,
 }: UseDialogSwipeOptions) {
   const isMobile = useMediaQuery('(max-width: 599px)')
   const swipeOffset = ref(0)
   const isSnappingBack = ref(false)
 
+  function snapBack() {
+    isSnappingBack.value = true
+    swipeOffset.value = 0
+  }
+
+  function handleSwipeDismiss() {
+    if (isPersistent?.value) {
+      snapBack()
+
+      return
+    }
+
+    if (isMinimizable.value) {
+      isMinimized.value = true
+
+      return
+    }
+
+    if (isClosable?.value ?? true) {
+      visible.value = false
+
+      return
+    }
+
+    snapBack()
+  }
+
   const { lengthY, isSwiping, direction } = useSwipe(headerRef, {
     threshold: 10,
     onSwipeEnd: () => {
-      if (isMobile.value && !isFloating.value && direction.value === 'down') {
-        if (swipeOffset.value > 100) {
-          if (isMinimizable.value)
-            isMinimized.value = true
+      if (!isMobile.value || isFloating.value || direction.value !== 'down')
+        return
 
-          else
-            visible.value = false
-        }
-        else {
-          isSnappingBack.value = true
-          swipeOffset.value = 0
-        }
-      }
+      if (swipeOffset.value > 100)
+        handleSwipeDismiss()
+      else
+        snapBack()
     },
   })
 

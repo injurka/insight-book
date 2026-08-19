@@ -109,6 +109,18 @@ function processNextTask() {
 
 initPool()
 
+export function terminatePool(): void {
+  for (const worker of pool) {
+    try {
+      worker.terminate()
+    }
+    catch { }
+  }
+  pool.length = 0
+  workerActive.clear()
+  workerCurrentTaskId.clear()
+}
+
 export function runWorkerTask<T = unknown>(type: string, payload: unknown): Promise<T> {
   return new Promise((resolve, reject) => {
     const id = ++taskIdSeq

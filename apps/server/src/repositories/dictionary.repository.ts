@@ -330,7 +330,11 @@ export class DictionaryRepository implements IDictionaryRepository {
             links.push({ wordId, deckId })
           }
         }
-        await tx.insert(schema.wordToDeck).values(links).onConflictDoNothing()
+        const chunkSize = 250
+        for (let i = 0; i < links.length; i += chunkSize) {
+          const chunk = links.slice(i, i + chunkSize)
+          await tx.insert(schema.wordToDeck).values(chunk).onConflictDoNothing()
+        }
       }
     })
   }
@@ -348,20 +352,31 @@ export class DictionaryRepository implements IDictionaryRepository {
   }
 
   async upsertClonedWords(userWords: (typeof schema.userDictionary.$inferInsert)[]) {
-    return await db.insert(schema.userDictionary).values(userWords).onConflictDoUpdate({
-      target: [schema.userDictionary.userId, schema.userDictionary.word, schema.userDictionary.targetLanguage],
-      set: {
-        transcription: sql`excluded.transcription`,
-        translation: sql`excluded.translation`,
-        grammarNote: sql`excluded.grammarNote`,
-        vocabularyNote: sql`excluded.vocabularyNote`,
-        updatedAt: new Date().toISOString(),
-      },
-    }).returning({ id: schema.userDictionary.id })
+    const chunkSize = 50
+    const upserted: { id: number }[] = []
+    for (let i = 0; i < userWords.length; i += chunkSize) {
+      const chunk = userWords.slice(i, i + chunkSize)
+      const res = await db.insert(schema.userDictionary).values(chunk).onConflictDoUpdate({
+        target: [schema.userDictionary.userId, schema.userDictionary.word, schema.userDictionary.targetLanguage],
+        set: {
+          transcription: sql`excluded.transcription`,
+          translation: sql`excluded.translation`,
+          grammarNote: sql`excluded.grammarNote`,
+          vocabularyNote: sql`excluded.vocabularyNote`,
+          updatedAt: new Date().toISOString(),
+        },
+      }).returning({ id: schema.userDictionary.id })
+      upserted.push(...res)
+    }
+    return upserted
   }
 
   async linkWordsToDeck(links: (typeof schema.wordToDeck.$inferInsert)[]) {
-    await db.insert(schema.wordToDeck).values(links).onConflictDoNothing()
+    const chunkSize = 250
+    for (let i = 0; i < links.length; i += chunkSize) {
+      const chunk = links.slice(i, i + chunkSize)
+      await db.insert(schema.wordToDeck).values(chunk).onConflictDoNothing()
+    }
   }
 
   async getCustomPrompts(userId: number) {

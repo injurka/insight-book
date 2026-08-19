@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { CatalogDeck, CatalogWord, SelectOption } from '~/01.shared/types/models'
 import { Icon } from '@iconify/vue'
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, useTemplateRef } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRepos } from '~/00.plugins/di'
 import { useToast } from '~/01.shared/composables/use-toast'
@@ -28,7 +28,7 @@ const tabItems = computed(() => [
 ])
 
 // -- Import Block --
-const fileInputRef = ref<HTMLInputElement | null>(null)
+const fileInputRef = useTemplateRef<HTMLInputElement>('fileInputRef')
 const selectedFile = ref<File | null>(null)
 const previewRows = ref<string[][]>([])
 const mapping = ref({ word: 0, translation: 1, transcription: 2, tags: 3 })
@@ -36,6 +36,10 @@ const importDeckId = ref('none')
 const importNewDeckName = ref('')
 const importAutoFill = ref(false)
 const isImporting = ref(false)
+
+const cloningDeckId = ref<number | null>(null)
+const isCloning = computed(() => cloningDeckId.value !== null)
+const isBusy = computed(() => isCloning.value || isImporting.value)
 
 const deckOptions = computed(() => {
   const opts: SelectOption[] = [{ label: t('dictionary.discover.no_deck'), value: 'none' }]
@@ -47,6 +51,8 @@ const deckOptions = computed(() => {
 })
 
 function triggerFileUpload() {
+  if (isBusy.value)
+    return
   fileInputRef.value?.click()
 }
 
@@ -64,7 +70,7 @@ async function onFileSelected(e: Event) {
 }
 
 async function doImport() {
-  if (!selectedFile.value)
+  if (!selectedFile.value || isBusy.value)
     return
   isImporting.value = true
 
@@ -81,10 +87,10 @@ async function doImport() {
       autoFill: importAutoFill.value,
     })
 
-    toast.success(t('dictionary.discover.import_success'))
     await store.fetchDictionary()
     await store.fetchDecks()
     visible.value = false
+    toast.success(t('dictionary.discover.import_success'))
   }
   catch (err: unknown) {
     toast.error(t('dictionary.discover.import_failed', { error: (err as Error).message }))
@@ -119,6 +125,8 @@ async function loadCatalog() {
 }
 
 async function openPreview(deck: CatalogDeck) {
+  if (isBusy.value)
+    return
   previewDeck.value = deck
   previewWords.value = []
   isPreviewLoading.value = true
@@ -134,23 +142,23 @@ async function openPreview(deck: CatalogDeck) {
 }
 
 function closePreview() {
+  if (isBusy.value)
+    return
   previewDeck.value = null
 }
 
-const cloningDeckId = ref<number | null>(null)
-
 async function cloneDeck(id: number) {
-  if (cloningDeckId.value !== null)
+  if (isBusy.value)
     return
   cloningDeckId.value = id
   try {
     await repos.dictionary.cloneCatalog(id)
-    toast.success(t('dictionary.discover.clone_success'))
     await store.fetchDictionary()
     await store.fetchDecks()
 
     previewDeck.value = null
     visible.value = false
+    toast.success(t('dictionary.discover.clone_success'))
   }
   catch (err: unknown) {
     toast.error(t('dictionary.discover.clone_failed', { error: (err as Error).message }))
@@ -171,12 +179,25 @@ onMounted(() => {
     :title="t('dictionary.discover.title')"
     icon="mdi:bookshelf"
     :max-width="800"
+    :persistent="isBusy"
+    :closable="!isBusy"
+    :minimizable="!isBusy"
   >
     <div class="discover-modal-content">
-      <KitTabs v-model="activeTab" :items="tabItems" :cache="false">
+      <KitTabs
+        v-model="activeTab"
+        :items="tabItems"
+        :cache="false"
+        :disabled="isBusy"
+      >
         <template #import>
           <div class="tab-pane import-pane">
-            <div v-if="!selectedFile" class="upload-area" @click="triggerFileUpload">
+            <div
+              v-if="!selectedFile"
+              class="upload-area"
+              :class="{ 'is-disabled': isBusy }"
+              @click="triggerFileUpload"
+            >
               <Icon icon="mdi:file-upload-outline" class="upload-icon" />
               <h3>{{ t('dictionary.discover.upload_title') }}</h3>
               <p>{{ t('dictionary.discover.upload_desc') }}</p>
@@ -185,6 +206,7 @@ onMounted(() => {
                 type="file"
                 accept=".csv,.txt"
                 hidden
+                :disabled="isBusy"
                 @change="onFileSelected"
               >
             </div>
@@ -196,6 +218,7 @@ onMounted(() => {
                   size="xs"
                   variant="text"
                   color="error"
+                  :disabled="isBusy"
                   @click="selectedFile = null; previewRows = []"
                 >
                   {{ t('dictionary.discover.change') }}
@@ -210,17 +233,17 @@ onMounted(() => {
                   <thead>
                     <tr>
                       <th v-for="(_, i) in previewRows[0] || []" :key="i">
-                        <select v-if="i === mapping.word" v-model="mapping.word">
+                        <select v-if="i === mapping.word" v-model="mapping.word" :disabled="isBusy">
                           <option :value="i">
                             {{ t('dictionary.discover.col_word') }}
                           </option>
                         </select>
-                        <select v-if="i === mapping.translation" v-model="mapping.translation">
+                        <select v-if="i === mapping.translation" v-model="mapping.translation" :disabled="isBusy">
                           <option :value="i">
                             {{ t('dictionary.discover.col_translation') }}
                           </option>
                         </select>
-                        <select v-if="i === mapping.transcription" v-model="mapping.transcription">
+                        <select v-if="i === mapping.transcription" v-model="mapping.transcription" :disabled="isBusy">
                           <option :value="i">
                             {{ t('dictionary.discover.col_transcription') }}
                           </option>
@@ -241,19 +264,30 @@ onMounted(() => {
 
               <h4>{{ t('dictionary.discover.target_deck') }}</h4>
               <div class="form-row">
-                <KitSelect v-model="importDeckId" :options="deckOptions" class="form-field" />
+                <KitSelect
+                  v-model="importDeckId"
+                  :options="deckOptions"
+                  :disabled="isBusy"
+                  class="form-field"
+                />
                 <span>{{ t('dictionary.discover.or') }}</span>
-                <KitInput v-model="importNewDeckName" :placeholder="t('dictionary.discover.new_deck_placeholder')" class="form-field" />
+                <KitInput
+                  v-model="importNewDeckName"
+                  :placeholder="t('dictionary.discover.new_deck_placeholder')"
+                  :disabled="isBusy"
+                  class="form-field"
+                />
               </div>
 
               <div class="checkbox-row">
-                <KitCheckbox v-model="importAutoFill" :label="t('dictionary.discover.auto_fill_label')" />
+                <KitCheckbox v-model="importAutoFill" :label="t('dictionary.discover.auto_fill_label')" :disabled="isBusy" />
               </div>
 
               <KitBtn
                 color="primary"
                 class="submit-btn"
-                :disabled="isImporting"
+                :disabled="isBusy"
+                :loading="isImporting"
                 @click="doImport"
               >
                 {{ isImporting ? t('dictionary.discover.importing') : t('dictionary.discover.import_btn') }}
@@ -267,7 +301,12 @@ onMounted(() => {
             <Transition name="fade" mode="out-in">
               <div v-if="previewDeck" key="preview" class="preview-container">
                 <div class="preview-header">
-                  <KitBtn icon="mdi:arrow-left" variant="text" @click="closePreview" />
+                  <KitBtn
+                    icon="mdi:arrow-left"
+                    variant="text"
+                    :disabled="isBusy"
+                    @click="closePreview"
+                  />
                   <h3>{{ previewDeck.name }}</h3>
                   <div class="spacer" />
                   <KitBtn
@@ -275,6 +314,7 @@ onMounted(() => {
                     size="sm"
                     icon="mdi:plus"
                     :loading="cloningDeckId === previewDeck.id"
+                    :disabled="isBusy && cloningDeckId !== previewDeck.id"
                     @click="cloneDeck(previewDeck.id)"
                   >
                     {{ t('dictionary.discover.add_to_library') }}
@@ -301,11 +341,15 @@ onMounted(() => {
                 <div v-else-if="catalogDecks.length === 0" class="empty-catalog">
                   {{ t('dictionary.discover.no_decks') }}
                 </div>
-                <div v-else class="catalog-grid">
+                <div v-else class="catalog-grid" :class="{ 'is-disabled': isBusy }">
                   <div
                     v-for="deck in catalogDecks"
                     :key="deck.id"
                     class="catalog-card"
+                    :class="{
+                      'is-cloning': cloningDeckId === deck.id,
+                      'is-disabled': isBusy && cloningDeckId !== deck.id,
+                    }"
                     @click="openPreview(deck)"
                   >
                     <div class="card-header">
@@ -328,6 +372,7 @@ onMounted(() => {
                         class="card-btn"
                         :title="t('dictionary.discover.add_to_library')"
                         :loading="cloningDeckId === deck.id"
+                        :disabled="isBusy && cloningDeckId !== deck.id"
                         @click.stop="cloneDeck(deck.id)"
                       />
                     </div>
@@ -357,6 +402,12 @@ onMounted(() => {
   &:hover {
     background-color: var(--bg-tertiary-color);
     border-color: var(--border-primary-color);
+  }
+
+  &.is-disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    pointer-events: none;
   }
 }
 
@@ -491,9 +542,22 @@ onMounted(() => {
   flex-direction: column;
   gap: 16px;
   cursor: pointer;
-  transition: border-color 0.25s ease;
+  transition:
+    border-color 0.25s ease,
+    opacity 0.25s ease;
 
   &:hover {
+    border-color: var(--border-accent-color);
+  }
+
+  &.is-disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    pointer-events: none;
+  }
+
+  &.is-cloning {
+    cursor: wait;
     border-color: var(--border-accent-color);
   }
 

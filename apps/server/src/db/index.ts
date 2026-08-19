@@ -135,10 +135,29 @@ void (async () => {
 // ============================================================================
 // 3. БЕЗОПАСНОЕ ЗАВЕРШЕНИЕ РАБОТЫ
 // ============================================================================
-function shutdown() {
+let isShuttingDown = false
+
+async function shutdown() {
+  if (isShuttingDown)
+    return
+  isShuttingDown = true
+
   if (isMainThread)
     logger.info('\n🛑 Shutting down server... Closing databases...')
+
   try {
+    const { terminatePool } = await import('../workers/worker-client')
+    terminatePool()
+    await new Promise(resolve => setTimeout(resolve, 50))
+
+    if (DATABASE_URL.startsWith('file:')) {
+      await client.execute('PRAGMA wal_checkpoint(TRUNCATE);')
+      await client.execute('PRAGMA journal_mode = DELETE;')
+    }
+    if (CATALOG_DATABASE_URL.startsWith('file:')) {
+      await catalogClient.execute('PRAGMA wal_checkpoint(TRUNCATE);')
+      await catalogClient.execute('PRAGMA journal_mode = DELETE;')
+    }
     client.close()
     catalogClient.close()
   }

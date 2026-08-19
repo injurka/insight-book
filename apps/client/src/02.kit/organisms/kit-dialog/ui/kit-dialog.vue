@@ -16,6 +16,7 @@ defineOptions({
 const props = withDefaults(defineProps<Props>(), {
   maxWidth: 700,
   persistent: false,
+  closable: true,
   floating: false,
   resizable: true,
   minimizable: true,
@@ -27,6 +28,7 @@ interface Props {
   title?: string
   icon?: string
   persistent?: boolean
+  closable?: boolean
   description?: string
   floating?: boolean
   resizable?: boolean
@@ -50,6 +52,8 @@ const isMinimized = ref(false)
 const isFloatingRef = computed(() => props.floating)
 const isResizableRef = computed(() => props.resizable)
 const isMinimizableRef = computed(() => props.minimizable)
+const isPersistentRef = computed(() => props.persistent)
+const isClosableRef = computed(() => props.closable)
 
 useDialogHistory(dialogId, visible)
 
@@ -67,6 +71,8 @@ const { isMobile, isSwiping, direction, swipeOffset } = useDialogSwipe({
   isMinimized,
   isFloating: isFloatingRef,
   isMinimizable: isMinimizableRef,
+  isPersistent: isPersistentRef,
+  isClosable: isClosableRef,
 })
 
 const {
@@ -165,7 +171,9 @@ watch(visible, (isOpen) => {
     }
 
     unregisterBack = registerBackHandler(() => {
-      visible.value = false
+      if (!props.persistent && props.closable) {
+        visible.value = false
+      }
     })
     nextTick(() => {
       if (dialogContentRef.value) {
@@ -253,15 +261,18 @@ onUnmounted(() => {
                 class="dialog-icon-btn minimize-button"
                 :aria-label="t('kit.dialog.minimize')"
                 :title="t('kit.dialog.minimize')"
-                @click="isMinimized = true"
+                :disabled="persistent"
+                @click="!persistent && (isMinimized = true)"
               >
                 <Icon icon="mdi:minus" />
               </button>
               <button
+                v-if="closable"
                 class="dialog-icon-btn close-button"
                 :aria-label="t('kit.dialog.close')"
                 :title="t('kit.dialog.close')"
-                @click="visible = false"
+                :disabled="persistent"
+                @click="!persistent && (visible = false)"
               >
                 <Icon icon="mdi:close" />
               </button>
@@ -497,6 +508,11 @@ onUnmounted(() => {
   &:focus-visible {
     outline: 2px solid var(--fg-accent-color);
     outline-offset: 2px;
+  }
+  &:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+    pointer-events: none;
   }
 }
 .dialog-body {

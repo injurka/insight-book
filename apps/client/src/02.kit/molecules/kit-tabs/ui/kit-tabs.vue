@@ -13,9 +13,12 @@ export interface TabItem<T extends string | number = string | number> extends Vi
 export interface Props<T extends string | number = string | number> {
   items: TabItem<T>[]
   cache?: boolean
+  disabled?: boolean
 }
 
-const props = defineProps<Props<T>>()
+const props = withDefaults(defineProps<Props<T>>(), {
+  disabled: false,
+})
 
 const model = defineModel<T>({ required: true })
 
@@ -34,7 +37,12 @@ const {
 
 <template>
   <div class="kit-tabs" :class="{ single: items.length === 1 }">
-    <KitViewSwitcher v-model="model" :items="items" full-width />
+    <KitViewSwitcher
+      v-model="model"
+      :items="items"
+      :disabled="disabled"
+      full-width
+    />
 
     <div v-if="currentTab" class="mobile-tab-info">
       <span class="mobile-tab-label">{{ currentTab.label }}</span>

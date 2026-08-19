@@ -1,5 +1,6 @@
 import { readdir, readFile, stat } from 'node:fs/promises'
 import path from 'node:path'
+import { CATALOG_DATABASE_URL } from '../../config'
 import { catalogClient, catalogDb, initCatalogDb } from '../../db/catalog'
 import { officialDecks, officialDeckWords } from '../../db/catalog-schema'
 import { logger } from '../../utils/logger'
@@ -157,6 +158,10 @@ async function seed() {
   }
   finally {
     try {
+      if (CATALOG_DATABASE_URL.startsWith('file:')) {
+        await catalogClient.execute('PRAGMA wal_checkpoint(TRUNCATE);')
+        await catalogClient.execute('PRAGMA journal_mode = DELETE;')
+      }
       catalogClient.close()
     }
     catch { }
