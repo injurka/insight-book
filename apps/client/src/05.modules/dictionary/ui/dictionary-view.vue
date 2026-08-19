@@ -133,6 +133,9 @@ watch(isDetailsModalOpen, (isOpen) => {
   width: 100%;
   margin: 0 auto;
   height: 100%;
+  min-height: 0 !important;
+  max-height: 100%;
+  overflow: hidden;
   padding-bottom: env(safe-area-inset-bottom, 0px);
   display: flex;
   flex-direction: column;
@@ -147,5 +150,6 @@ watch(isDetailsModalOpen, (isOpen) => {
   flex-grow: 1;
   gap: 20px;
   min-height: 0;
+  overflow: hidden;
 }
 </style>

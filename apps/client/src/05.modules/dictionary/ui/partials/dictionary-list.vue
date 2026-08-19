@@ -213,6 +213,8 @@ function handleEditWord(item: UserDictItem) {
   flex-direction: column;
   min-width: 0;
   min-height: 0;
+  height: 100%;
+  overflow: hidden;
 }
 .bulk-action-bar {
   display: flex;
@@ -245,6 +247,7 @@ function handleEditWord(item: UserDictItem) {
 .virtual-list-container {
   flex-grow: 1;
   min-height: 0;
+  height: 100%;
   overflow-y: auto;
 }
 .virtual-list-container::-webkit-scrollbar {

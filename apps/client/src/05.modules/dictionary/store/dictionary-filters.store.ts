@@ -76,17 +76,22 @@ export const useDictionaryFiltersStore = defineStore('dictionary-filters', () =>
   }
 
   function toggleWordSelection(id: number) {
-    if (selectedWordIds.value.has(id))
-      selectedWordIds.value.delete(id)
-    else selectedWordIds.value.add(id)
+    const next = new Set(selectedWordIds.value)
+    if (next.has(id))
+      next.delete(id)
+    else
+      next.add(id)
+    selectedWordIds.value = next
   }
 
   function clearSelection() {
-    selectedWordIds.value.clear()
+    if (selectedWordIds.value.size === 0)
+      return
+    selectedWordIds.value = new Set()
   }
 
   function selectAllFiltered() {
-    filteredWords.value.forEach(wordItem => selectedWordIds.value.add(wordItem.id))
+    selectedWordIds.value = new Set(filteredWords.value.map(wordItem => wordItem.id))
   }
 
   async function bulkDelete() {

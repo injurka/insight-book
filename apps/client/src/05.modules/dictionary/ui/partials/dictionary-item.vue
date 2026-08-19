@@ -5,7 +5,6 @@ import { useI18n } from 'vue-i18n'
 import { DIFFICULTY_SYSTEMS } from '~/01.shared/constants/difficulties'
 import { KitBtn } from '~/02.kit/atoms/kit-btn/ui'
 import { KitCheckbox } from '~/02.kit/atoms/kit-checkbox/ui'
-import { KitTooltip } from '~/02.kit/molecules/kit-tooltip/ui'
 
 interface Props {
   item: UserDictItem
@@ -77,11 +76,13 @@ function getDifficultyClass(lang: string, diffValue: string | null) {
           >
             {{ item.difficulty }}
           </span>
-          <KitTooltip v-if="item.deckIds && item.deckIds.length > 1" :text="t('dictionary.inMultipleDecks') || 'Слово в нескольких колодах'">
-            <span class="multi-deck-badge">
-              <Icon icon="mdi:folder-multiple-outline" />
-            </span>
-          </KitTooltip>
+          <span
+            v-if="item.deckIds && item.deckIds.length > 1"
+            class="multi-deck-badge"
+            :title="t('dictionary.inMultipleDecks') || 'Слово в нескольких колодах'"
+          >
+            <Icon icon="mdi:folder-multiple-outline" />
+          </span>
           <span class="srs-badge" :style="{ color: getStatusLabel(item.state).color }">
             {{ getStatusLabel(item.state).label }}
           </span>
@@ -91,23 +92,21 @@ function getDifficultyClass(lang: string, diffValue: string | null) {
     </div>
 
     <div v-if="isEditMode" class="dict-actions" @click.stop>
-      <KitTooltip :text="t('dictionary.editItem')" placement="top">
-        <KitBtn
-          icon="mdi:pencil"
-          variant="text"
-          size="xs"
-          @click="emit('edit', item)"
-        />
-      </KitTooltip>
-      <KitTooltip :text="t('dictionary.deleteItem')" placement="top-end">
-        <KitBtn
-          icon="mdi:delete-outline"
-          variant="text"
-          size="xs"
-          color="error"
-          @click="emit('delete', item.word)"
-        />
-      </KitTooltip>
+      <KitBtn
+        icon="mdi:pencil"
+        variant="text"
+        size="xs"
+        :title="t('dictionary.editItem')"
+        @click="emit('edit', item)"
+      />
+      <KitBtn
+        icon="mdi:delete-outline"
+        variant="text"
+        size="xs"
+        color="error"
+        :title="t('dictionary.deleteItem')"
+        @click="emit('delete', item.word)"
+      />
     </div>
   </div>
 </template>
