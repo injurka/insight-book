@@ -1,5 +1,5 @@
-import { ref, computed } from 'vue'
-import type { RuleTest } from '~plugin-grammar-rules/shared/types'
+import { computed, ref } from 'vue'
+import type { RuleTest } from '../../../shared/types'
 
 export function useMistakeQueue() {
   const mistakes = ref<RuleTest[]>([])

@@ -39,6 +39,16 @@ const en = {
   correctAnswerIs: 'Correct answer',
   typeAnswerPlaceholder: 'Type the correct form...',
   clickTokensToAssemble: 'Click word tokens below to assemble in order...',
+  filtersToggle: 'Filters',
+  categoryFilter: 'Category',
+  levelFilter: 'Level',
+  generateAiTests: 'Generate Quiz',
+  generatingAiTests: 'Generating questions...',
+  aiTestsGenerated: 'Generated {count} questions for rule',
+  roundComplete: 'Round Complete!',
+  roundResult: 'Correct answers: {score} of {total} ({percent}%)',
+  startNextRound: 'Start Next Round',
+  selectLanguage: 'Language',
 }
 
 export default en

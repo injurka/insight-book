@@ -62,12 +62,22 @@ async function bootstrap() {
   // 3. Critical path: sync auth session from backend before mount
   await authStore.checkAuth().catch((err: unknown) => console.warn('[bootstrap] Background auth check failed:', err))
 
-  // 4. Router & Mount
+  // 4. Critical path: setup enabled plugins & dynamic routes before router initialization
+  try {
+    const { setupPlugins } = await import('~/00.plugins/index')
+    await setupPlugins(app, router)
+  }
+  catch (err) {
+    console.error('[bootstrap] Failed to setup plugins:', err)
+  }
+
+  // 5. Router & Mount
   app.use(router)
+  await router.isReady()
   app.mount('#app')
   document.getElementById('app-preloader')?.remove()
 
-  // 5. Non-blocking Post-mount tasks
+  // 6. Non-blocking Post-mount tasks
   initDeferredTasks(app, router, pinia)
 
   if (import.meta.env.DEV) {
@@ -98,20 +108,17 @@ function initDeferredTasks(app: VueApp, router: Router, pinia: Pinia) {
   // Обновления платформы (Tauri / PWA)
   setupPlatformUpdaters(pinia).catch((err: unknown) => console.warn('[bootstrap] Platform updater setup failed:', err))
 
-  // Плагины и слушатели событий
+  // Слушатели событий
   Promise.all([
-    import('~/00.plugins/index'),
     import('~/01.shared/events/dictionary-events'),
     import('~/01.shared/events/reader-events'),
-  ]).then(async ([
-    { setupPlugins },
+  ]).then(([
     { setupDictionaryEvents },
     { setupReaderEvents },
   ]) => {
-    await setupPlugins(app, router)
     void setupDictionaryEvents()
     void setupReaderEvents()
-  }).catch(err => console.error('[bootstrap] Failed to setup plugins/events:', err))
+  }).catch(err => console.error('[bootstrap] Failed to setup events:', err))
 }
 
 /** Инициализаторы обновлений в зависимости от окружения */

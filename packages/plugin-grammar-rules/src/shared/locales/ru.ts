@@ -39,6 +39,16 @@ const ru = {
   correctAnswerIs: 'Правильный ответ',
   typeAnswerPlaceholder: 'Введите правильную форму...',
   clickTokensToAssemble: 'Нажимайте на слова ниже, чтобы собрать предложение по порядку...',
+  filtersToggle: 'Фильтры',
+  categoryFilter: 'Категория',
+  levelFilter: 'Уровень',
+  generateAiTests: 'Сгенерировать тест',
+  generatingAiTests: 'Генерация вопросов...',
+  aiTestsGenerated: 'Сгенерировано {count} вопросов для правила',
+  roundComplete: 'Раунд завершен!',
+  roundResult: 'Правильных ответов: {score} из {total} ({percent}%)',
+  startNextRound: 'Начать следующий раунд',
+  selectLanguage: 'Язык',
 }
 
 export default ru

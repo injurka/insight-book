@@ -19,9 +19,6 @@
       ],
       "@injurka/insight-book-plugin-api": [
         "../plugin-api/src/index.ts"
-      ],
-      "~plugin-grammar-rules/*": [
-        "./src/*"
       ]
     }
   },

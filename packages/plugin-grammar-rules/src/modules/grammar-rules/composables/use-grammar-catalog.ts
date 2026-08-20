@@ -1,13 +1,33 @@
-import { ref, computed, watch } from 'vue'
-import type { LanguageConfig, Rule, RuleTest, SupportedLanguage } from '~plugin-grammar-rules/shared/types'
+import { computed, ref, watch } from 'vue'
+import type { LanguageConfig, Rule, RuleTest, SupportedLanguage } from '../../../shared/types'
 import {
   getAvailableLanguages,
   getLanguageConfig,
   loadLanguageRules,
-  loadLanguageTests
-} from '~plugin-grammar-rules/shared/data/languages'
+  loadLanguageTests,
+} from '../../../shared/data/languages'
 
 const STORAGE_KEY = 'plugin_grammar_selected_lang'
+const CUSTOM_TESTS_PREFIX = 'plugin_grammar_custom_tests_'
+
+function getCustomTests(lang: string): RuleTest[] {
+  try {
+    const raw = localStorage.getItem(`${CUSTOM_TESTS_PREFIX}${lang}`)
+    return raw ? JSON.parse(raw) : []
+  }
+  catch {
+    return []
+  }
+}
+
+function saveCustomTests(lang: string, customTests: RuleTest[]) {
+  try {
+    localStorage.setItem(`${CUSTOM_TESTS_PREFIX}${lang}`, JSON.stringify(customTests))
+  }
+  catch (e) {
+    console.warn('[Grammar Catalog] Failed to save custom tests', e)
+  }
+}
 
 export function useGrammarCatalog() {
   const savedLang = (localStorage.getItem(STORAGE_KEY) as SupportedLanguage) || 'en'
@@ -17,24 +37,36 @@ export function useGrammarCatalog() {
   const currentConfig = computed<LanguageConfig>(() => getLanguageConfig(currentLanguage.value))
 
   const rules = ref<Rule[]>(loadLanguageRules(currentLanguage.value))
-  const tests = ref<RuleTest[]>(loadLanguageTests(currentLanguage.value))
+  const tests = ref<RuleTest[]>([...loadLanguageTests(currentLanguage.value), ...getCustomTests(currentLanguage.value)])
   const isLoading = ref(false)
-
-  const setLanguage = (lang: SupportedLanguage) => {
-    if (currentLanguage.value === lang) return
-    currentLanguage.value = lang
-    localStorage.setItem(STORAGE_KEY, lang)
-    loadData(lang)
-  }
 
   const loadData = (lang: SupportedLanguage) => {
     isLoading.value = true
     try {
       rules.value = loadLanguageRules(lang)
-      tests.value = loadLanguageTests(lang)
-    } finally {
+      const baseTests = loadLanguageTests(lang)
+      const customTests = getCustomTests(lang)
+      tests.value = [...baseTests, ...customTests]
+    }
+    finally {
       isLoading.value = false
     }
+  }
+
+  const setLanguage = (lang: SupportedLanguage) => {
+    if (currentLanguage.value === lang)
+      return
+    currentLanguage.value = lang
+    localStorage.setItem(STORAGE_KEY, lang)
+    loadData(lang)
+  }
+
+  const addCustomTests = (newTests: RuleTest[]) => {
+    const lang = currentLanguage.value
+    const existingCustom = getCustomTests(lang)
+    const updatedCustom = [...existingCustom, ...newTests]
+    saveCustomTests(lang, updatedCustom)
+    tests.value = [...tests.value, ...newTests]
   }
 
   watch(currentLanguage, (newLang) => {
@@ -48,6 +80,7 @@ export function useGrammarCatalog() {
     rules,
     tests,
     isLoading,
-    setLanguage
+    setLanguage,
+    addCustomTests,
   }
 }

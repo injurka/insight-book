@@ -17,9 +17,6 @@
       "~/*": [
         "./src/*"
       ],
-      "~plugin-grammar-rules/*": [
-        "../../packages/plugin-grammar-rules/src/*"
-      ],
       "@injurka/insight-book-plugin-grammar-rules": [
         "../../packages/plugin-grammar-rules/src/index.ts"
       ]

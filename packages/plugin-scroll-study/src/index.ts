@@ -5,7 +5,6 @@ import en from './shared/locales/en'
 import ru from './shared/locales/ru'
 import zh from './shared/locales/zh'
 
-const ScrollStudyPage = defineAsyncComponent(() => import('./pages/scroll-study-page.vue'))
 const TrainingModeWidget = defineAsyncComponent(() => import('./modules/scroll-study/ui/partials/training-mode-widget.vue'))
 
 const plugin: InsightBookPlugin = {
@@ -16,7 +15,7 @@ const plugin: InsightBookPlugin = {
   icon: 'mdi:scroll-text-outline',
 
   pages: {
-    index: ScrollStudyPage,
+    index: () => import('./pages/scroll-study-page.vue'),
   },
 
   activate(ctx: InsightBookPluginContext) {

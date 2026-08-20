@@ -1,4 +1,4 @@
-import type { LanguageConfig, Rule, RuleTest, SupportedLanguage } from '~plugin-grammar-rules/shared/types'
+import type { LanguageConfig, Rule, RuleTest, SupportedLanguage } from '../../types'
 import { enConfig } from './en/config'
 import enRulesData from './en/rules.json'
 import enTestsData from './en/tests.json'

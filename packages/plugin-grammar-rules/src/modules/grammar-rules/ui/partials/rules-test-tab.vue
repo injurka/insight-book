@@ -1,8 +1,8 @@
 <script setup lang="ts">
+import { Icon } from '@iconify/vue'
 import { computed, ref, toRef } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { KitBtn, KitInput } from '~/02.kit'
-import { Icon } from '@iconify/vue'
 import type {
   AnyRuleTest,
   ClozeChoiceTest,
@@ -11,8 +11,8 @@ import type {
   MultipleChoiceTest,
   Rule,
   RuleTest,
-  SentenceScrambleTest
-} from '~plugin-grammar-rules/shared/types'
+  SentenceScrambleTest,
+} from '../../../../shared/types'
 import { useGrammarSrs } from '../../composables/use-grammar-srs'
 import { useMistakeQueue } from '../../composables/use-mistake-queue'
 import { useTestEngine } from '../../composables/use-test-engine'
@@ -24,6 +24,7 @@ interface Props {
 }
 
 const props = defineProps<Props>()
+
 const { t } = useI18n()
 
 const currentLangRef = toRef(props, 'currentLang')
@@ -51,10 +52,12 @@ const activeTests = computed(() => {
 
 // 3. Test Engine
 const {
+  sessionTests,
   currentTestIndex,
   currentTest,
   currentRule,
   isSubmitted,
+  isRoundComplete,
   score,
   hasAnswer,
   selectedOption,
@@ -67,17 +70,23 @@ const {
   removeScrambleToken,
   submitAnswer,
   nextQuestion,
-  restartTest
+  restartTest,
 } = useTestEngine(activeTests, filteredRulesRef, {
   onResult: (ruleId, isCorrect, test) => {
     recordRuleResult(ruleId, isCorrect)
     if (!isCorrect) {
       addMistake(test)
-    } else {
+    }
+    else {
       removeMistake(test.id)
     }
-  }
+  },
 })
+
+const setTestMode = (mode: 'all' | 'srs' | 'mistakes') => {
+  testMode.value = mode
+  restartTest()
+}
 
 // Helpers for polymorphic test types
 const currentTestPolymorphic = computed<AnyRuleTest | null>(() => {
@@ -93,10 +102,11 @@ const getOptionText = (opt: string | MultipleChoiceOption): string => {
 }
 
 const getOptionsList = (test: MultipleChoiceTest | ClozeChoiceTest): Array<{ text: string, raw: string | MultipleChoiceOption }> => {
-  if (!test.options) return []
+  if (!test.options)
+    return []
   return (test.options as Array<string | MultipleChoiceOption>).map(opt => ({
     text: getOptionText(opt),
-    raw: opt
+    raw: opt,
   }))
 }
 </script>
@@ -109,7 +119,7 @@ const getOptionsList = (test: MultipleChoiceTest | ClozeChoiceTest): Array<{ tex
         <button
           class="mode-chip"
           :class="{ active: testMode === 'all' }"
-          @click="testMode = 'all'"
+          @click="setTestMode('all')"
         >
           <Icon icon="mdi:format-list-bulleted" />
           {{ t('plugins.grammar-rules.modeAll') }} ({{ allTestsRef.length }})
@@ -118,7 +128,7 @@ const getOptionsList = (test: MultipleChoiceTest | ClozeChoiceTest): Array<{ tex
         <button
           class="mode-chip"
           :class="{ active: testMode === 'srs' }"
-          @click="testMode = 'srs'"
+          @click="setTestMode('srs')"
         >
           <Icon icon="mdi:calendar-clock" />
           {{ t('plugins.grammar-rules.modeSrs') }} ({{ rulesDueForReview.length }})
@@ -128,7 +138,7 @@ const getOptionsList = (test: MultipleChoiceTest | ClozeChoiceTest): Array<{ tex
           class="mode-chip"
           :class="{ active: testMode === 'mistakes', disabled: mistakeCount === 0 }"
           :disabled="mistakeCount === 0"
-          @click="testMode = 'mistakes'"
+          @click="setTestMode('mistakes')"
         >
           <Icon icon="mdi:alert-circle-outline" />
           {{ t('plugins.grammar-rules.modeMistakes') }} ({{ mistakeCount }})
@@ -149,12 +159,35 @@ const getOptionsList = (test: MultipleChoiceTest | ClozeChoiceTest): Array<{ tex
       </div>
     </div>
 
+    <!-- Divider above test container -->
+    <div class="test-divider" />
+
+    <!-- Round Complete State -->
+    <div v-if="isRoundComplete" class="round-complete-card">
+      <div class="trophy-badge">
+        <Icon icon="mdi:trophy-outline" class="trophy-icon" />
+      </div>
+      <h3>{{ t('plugins.grammar-rules.roundComplete') }}</h3>
+      <p class="result-text">
+        {{ t('plugins.grammar-rules.roundResult', {
+          score,
+          total: sessionTests.length,
+          percent: sessionTests.length ? Math.round((score / sessionTests.length) * 100) : 100,
+        }) }}
+      </p>
+      <div class="complete-actions">
+        <KitBtn color="primary" icon="mdi:refresh" @click="restartTest()">
+          {{ t('plugins.grammar-rules.startNextRound') }}
+        </KitBtn>
+      </div>
+    </div>
+
     <!-- Empty State -->
-    <div v-if="activeTests.length === 0" class="empty-state">
+    <div v-else-if="sessionTests.length === 0" class="empty-state">
       <Icon icon="mdi:check-circle-outline" class="empty-icon success-icon" />
       <h3>{{ testMode === 'mistakes' ? t('plugins.grammar-rules.noMistakes') : t('plugins.grammar-rules.noTestsDue') }}</h3>
       <p>{{ t('plugins.grammar-rules.switchModeHint') }}</p>
-      <KitBtn v-if="testMode !== 'all'" variant="outlined" @click="testMode = 'all'">
+      <KitBtn v-if="testMode !== 'all'" variant="outlined" @click="setTestMode('all')">
         {{ t('plugins.grammar-rules.modeAll') }}
       </KitBtn>
     </div>
@@ -163,7 +196,7 @@ const getOptionsList = (test: MultipleChoiceTest | ClozeChoiceTest): Array<{ tex
     <div v-else-if="currentTest" class="test-container">
       <div class="test-progress-bar">
         <span class="progress-text">
-          {{ t('plugins.grammar-rules.progressText', { current: (currentTestIndex % activeTests.length) + 1, total: activeTests.length }) }}
+          {{ t('plugins.grammar-rules.progressText', { current: currentTestIndex + 1, total: sessionTests.length }) }}
         </span>
         <span class="score-text">
           {{ t('plugins.grammar-rules.scoreText', { score }) }}
@@ -326,9 +359,9 @@ const getOptionsList = (test: MultipleChoiceTest | ClozeChoiceTest): Array<{ tex
             color="primary"
             @click="nextQuestion"
           >
-            {{ (currentTestIndex + 1) % activeTests.length === 0 ? t('plugins.grammar-rules.finishRound') : t('plugins.grammar-rules.nextQuestion') }}
+            {{ currentTestIndex + 1 >= sessionTests.length ? t('plugins.grammar-rules.finishRound') : t('plugins.grammar-rules.nextQuestion') }}
           </KitBtn>
-          <KitBtn variant="text" color="secondary" @click="restartTest">
+          <KitBtn variant="text" color="secondary" @click="() => restartTest()">
             {{ t('plugins.grammar-rules.resetTest') }}
           </KitBtn>
         </div>
@@ -351,13 +384,31 @@ const getOptionsList = (test: MultipleChoiceTest | ClozeChoiceTest): Array<{ tex
   align-items: center;
   flex-wrap: wrap;
   gap: 12px;
-  padding: 8px 4px;
+  padding: 4px 0;
+
+  @media (max-width: 768px) {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
 }
 
 .mode-chips {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
+  align-items: center;
+
+  @media (max-width: 768px) {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    padding-bottom: 4px;
+    -webkit-overflow-scrolling: touch;
+
+    &::-webkit-scrollbar {
+      display: none;
+    }
+  }
 }
 
 .mode-chip {
@@ -373,6 +424,7 @@ const getOptionsList = (test: MultipleChoiceTest | ClozeChoiceTest): Array<{ tex
   color: var(--fg-secondary-color);
   cursor: pointer;
   transition: all 0.2s ease;
+  flex-shrink: 0;
 
   &:hover:not(.disabled) {
     border-color: var(--fg-accent-color);
@@ -394,10 +446,19 @@ const getOptionsList = (test: MultipleChoiceTest | ClozeChoiceTest): Array<{ tex
 
 .srs-quick-stats {
   display: flex;
-  gap: 12px;
+  gap: 14px;
   align-items: center;
   font-size: 0.85rem;
   font-weight: 600;
+  background-color: var(--bg-secondary-color);
+  border: 1px solid var(--border-primary-color);
+  border-radius: 20px;
+  padding: 6px 14px;
+
+  @media (max-width: 768px) {
+    justify-content: space-around;
+    width: 100%;
+  }
 
   .stat-item {
     display: inline-flex;
@@ -407,6 +468,58 @@ const getOptionsList = (test: MultipleChoiceTest | ClozeChoiceTest): Array<{ tex
     &.mastered { color: #4caf50; }
     &.learning { color: #2196f3; }
     &.new { color: var(--fg-secondary-color); }
+  }
+}
+
+.test-divider {
+  height: 1px;
+  background: var(--border-primary-color);
+  margin: 4px 0 12px 0;
+  width: 100%;
+  opacity: 0.8;
+}
+
+.round-complete-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 24px;
+  background-color: var(--bg-primary-color);
+  border: 1px solid var(--border-primary-color);
+  border-radius: 16px;
+  text-align: center;
+  gap: 16px;
+  max-width: 600px;
+  margin: 0 auto;
+  width: 100%;
+
+  .trophy-badge {
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    background-color: rgba(255, 193, 7, 0.15);
+    color: #ffb300;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2.5rem;
+  }
+
+  h3 {
+    margin: 0;
+    font-size: 1.5rem;
+    color: var(--fg-primary-color);
+  }
+
+  .result-text {
+    margin: 0;
+    color: var(--fg-secondary-color);
+    font-size: 1.05rem;
+  }
+
+  .complete-actions {
+    margin-top: 12px;
   }
 }
 
@@ -459,10 +572,8 @@ const getOptionsList = (test: MultipleChoiceTest | ClozeChoiceTest): Array<{ tex
 }
 
 .test-card {
-  background-color: var(--bg-primary-color);
-  border: 1px solid var(--border-primary-color);
   border-radius: 16px;
-  padding: 32px;
+  padding: 32px 0;
   display: flex;
   flex-direction: column;
   gap: 24px;

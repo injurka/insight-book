@@ -1,15 +1,15 @@
-import { ref, computed, type Ref, watch } from 'vue'
+import { computed, type Ref, ref, watch } from 'vue'
 import type {
   AnyRuleTest,
-  MultipleChoiceOption,
-  MultipleChoiceTest,
   ClozeChoiceTest,
   ClozeInputTest,
+  MultipleChoiceOption,
+  MultipleChoiceTest,
   Rule,
   RuleTest,
   SentenceScrambleTest,
-  TestResultFeedback
-} from '~plugin-grammar-rules/shared/types'
+  TestResultFeedback,
+} from '../../../shared/types'
 
 export interface TestEngineOptions {
   onResult?: (ruleId: string, isCorrect: boolean, test: RuleTest) => void
@@ -18,10 +18,12 @@ export interface TestEngineOptions {
 export function useTestEngine(
   tests: Ref<RuleTest[]>,
   rules: Ref<Rule[]>,
-  options?: TestEngineOptions
+  options?: TestEngineOptions,
 ) {
+  const sessionTests = ref<RuleTest[]>([])
   const currentTestIndex = ref(0)
   const isSubmitted = ref(false)
+  const isRoundComplete = ref(false)
   const score = ref(0)
   const completedCount = ref(0)
 
@@ -33,12 +35,16 @@ export function useTestEngine(
   const currentFeedback = ref<TestResultFeedback | null>(null)
 
   const currentTest = computed<RuleTest | null>(() => {
-    if (!tests.value || tests.value.length === 0) return null
-    return tests.value[currentTestIndex.value % tests.value.length]
+    if (!sessionTests.value || sessionTests.value.length === 0)
+      return null
+    if (currentTestIndex.value >= sessionTests.value.length)
+      return null
+    return sessionTests.value[currentTestIndex.value]
   })
 
   const currentRule = computed<Rule | null>(() => {
-    if (!currentTest.value) return null
+    if (!currentTest.value)
+      return null
     return rules.value.find(r => r.id === currentTest.value!.ruleId) || null
   })
 
@@ -50,7 +56,8 @@ export function useTestEngine(
     currentFeedback.value = null
     isSubmitted.value = false
 
-    if (!currentTest.value) return
+    if (!currentTest.value)
+      return
 
     const t = currentTest.value as AnyRuleTest
     if (t.type === 'sentence_scramble') {
@@ -60,33 +67,49 @@ export function useTestEngine(
     }
   }
 
-  watch(currentTest, () => {
+  const initSession = (newTests?: RuleTest[]) => {
+    sessionTests.value = newTests ? [...newTests] : [...tests.value]
+    currentTestIndex.value = 0
+    score.value = 0
+    completedCount.value = 0
+    isRoundComplete.value = false
     initCurrentQuestion()
+  }
+
+  watch(tests, (newTests) => {
+    if (!isSubmitted.value && (sessionTests.value.length === 0 || currentTestIndex.value === 0)) {
+      sessionTests.value = [...newTests]
+      initCurrentQuestion()
+    }
   }, { immediate: true })
 
   // Multiple Choice / Cloze Choice action
   const selectChoice = (opt: string) => {
-    if (isSubmitted.value) return
+    if (isSubmitted.value)
+      return
     selectedOption.value = opt
   }
 
   // Sentence Scramble actions
   const selectScrambleToken = (tokenIndex: number) => {
-    if (isSubmitted.value) return
+    if (isSubmitted.value)
+      return
     const token = scrambleAvailableTokens.value[tokenIndex]
     scrambleAvailableTokens.value.splice(tokenIndex, 1)
     scrambleSelectedTokens.value.push(token)
   }
 
   const removeScrambleToken = (tokenIndex: number) => {
-    if (isSubmitted.value) return
+    if (isSubmitted.value)
+      return
     const token = scrambleSelectedTokens.value[tokenIndex]
     scrambleSelectedTokens.value.splice(tokenIndex, 1)
     scrambleAvailableTokens.value.push(token)
   }
 
   const hasAnswer = computed(() => {
-    if (!currentTest.value) return false
+    if (!currentTest.value)
+      return false
     const t = currentTest.value as AnyRuleTest
     const type = t.type || 'multiple_choice'
 
@@ -105,7 +128,8 @@ export function useTestEngine(
 
   // Validation & Submission
   const submitAnswer = () => {
-    if (isSubmitted.value || !currentTest.value || !hasAnswer.value) return
+    if (isSubmitted.value || !currentTest.value || !hasAnswer.value)
+      return
 
     const t = currentTest.value as AnyRuleTest
     const type = t.type || 'multiple_choice'
@@ -133,20 +157,23 @@ export function useTestEngine(
           distractorFeedback = matchingOpt.feedback
         }
       }
-    } else if (type === 'cloze_choice') {
+    }
+    else if (type === 'cloze_choice') {
       const cc = t as ClozeChoiceTest
       userAnswerText = selectedOption.value || ''
       expectedAnswerText = cc.correctAnswer
       isCorrect = userAnswerText.trim().toLowerCase() === expectedAnswerText.trim().toLowerCase()
-    } else if (type === 'cloze_input') {
+    }
+    else if (type === 'cloze_input') {
       const ci = t as ClozeInputTest
       userAnswerText = typedInput.value.trim()
       expectedAnswerText = ci.validAnswers[0] || ''
-      const normalizedUser = userAnswerText.toLowerCase().replace(/['’]/g, "'")
+      const normalizedUser = userAnswerText.toLowerCase().replace(/['’]/g, '\'')
       isCorrect = ci.validAnswers.some((ans) => {
-        return ans.toLowerCase().replace(/['’]/g, "'") === normalizedUser
+        return ans.toLowerCase().replace(/['’]/g, '\'') === normalizedUser
       })
-    } else if (type === 'sentence_scramble') {
+    }
+    else if (type === 'sentence_scramble') {
       const ss = t as SentenceScrambleTest
       userAnswerText = scrambleSelectedTokens.value.join(' ')
       expectedAnswerText = ss.correctOrder.join(' ')
@@ -155,7 +182,8 @@ export function useTestEngine(
       const correctJoined = ss.correctOrder.join(' ').toLowerCase()
       if (userTokensJoined === correctJoined) {
         isCorrect = true
-      } else if (ss.acceptableOrders) {
+      }
+      else if (ss.acceptableOrders) {
         isCorrect = ss.acceptableOrders.some(order => order.join(' ').toLowerCase() === userTokensJoined)
       }
     }
@@ -172,29 +200,33 @@ export function useTestEngine(
       userAnswer: userAnswerText,
       correctAnswer: expectedAnswerText,
       explanation: t.explanation,
-      distractorFeedback
+      distractorFeedback,
     }
 
     options?.onResult?.(currentTest.value.ruleId, isCorrect, currentTest.value)
   }
 
   const nextQuestion = () => {
-    currentTestIndex.value++
-    initCurrentQuestion()
+    if (currentTestIndex.value + 1 >= sessionTests.value.length) {
+      isRoundComplete.value = true
+    }
+    else {
+      currentTestIndex.value++
+      initCurrentQuestion()
+    }
   }
 
-  const restartTest = () => {
-    currentTestIndex.value = 0
-    score.value = 0
-    completedCount.value = 0
-    initCurrentQuestion()
+  const restartTest = (customTests?: RuleTest[]) => {
+    initSession(customTests)
   }
 
   return {
+    sessionTests,
     currentTestIndex,
     currentTest,
     currentRule,
     isSubmitted,
+    isRoundComplete,
     score,
     completedCount,
     hasAnswer,
@@ -208,6 +240,6 @@ export function useTestEngine(
     removeScrambleToken,
     submitAnswer,
     nextQuestion,
-    restartTest
+    restartTest,
   }
 }

@@ -4,7 +4,6 @@ import path from 'node:path'
 import AdmZip from 'adm-zip'
 import * as cheerio from 'cheerio'
 import { eq } from 'drizzle-orm'
-import sizeOf from 'image-size'
 import { BOOKS_PATH, UPLOADS_PATH } from '../config'
 import { ERROR_CODES } from '../constants/error-codes'
 import { db } from '../db'
@@ -97,7 +96,7 @@ export async function processCbz(filePath: string, filename: string, userId: num
         const pageNum = idx + 1
         const ext = path.extname(entry.entryName).toLowerCase()
         const buffer = entry.getData()
-        const dimensions = sizeOf(buffer)
+        const dimensions = await new Bun.Image(buffer).metadata()
 
         const folderName = path.basename(filePath).replace(/\.(cbz|zip)$/i, '')
         const key = `books/${folderName}/page_${pageNum}${ext}`
@@ -153,7 +152,7 @@ export async function appendMangaChapter(book: { id: number, totalPages: number,
     const fullPath = path.join(BOOKS_PATH, folderName, filename)
     await Bun.write(fullPath, file)
 
-    const dimensions = sizeOf(Buffer.from(await Bun.file(fullPath).arrayBuffer()))
+    const dimensions = await Bun.file(fullPath).image().metadata()
 
     // Если нужно, заливаем в S3 через storageService
     // Но так как mangaFiles обычно живут в BOOKS_PATH локально (либо монтируются),

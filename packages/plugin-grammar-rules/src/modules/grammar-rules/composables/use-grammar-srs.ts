@@ -1,5 +1,5 @@
-import { ref, computed, type Ref } from 'vue'
-import type { GrammarMasteryLevel, GrammarSrsItem, Rule } from '~plugin-grammar-rules/shared/types'
+import { computed, type Ref, ref } from 'vue'
+import type { GrammarMasteryLevel, GrammarSrsItem, Rule } from '../../../shared/types'
 
 const SRS_STORAGE_KEY = 'plugin_grammar_rules_srs_v1'
 

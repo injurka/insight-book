@@ -1,6 +1,6 @@
 import { ref } from 'vue'
-import { generateGrammarTestsViaLlm } from '~plugin-grammar-rules/shared/lib/api'
-import type { Rule, RuleTest } from '~plugin-grammar-rules/shared/types'
+import { generateGrammarTestsViaLlm } from '../../../shared/lib/api'
+import type { Rule, RuleTest } from '../../../shared/types'
 
 export function useAiGrammar() {
   const isGenerating = ref(false)

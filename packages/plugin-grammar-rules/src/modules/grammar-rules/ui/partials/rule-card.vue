@@ -1,20 +1,34 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
-import type { Rule } from '~plugin-grammar-rules/shared/types'
+import { KitBtn } from '~/02.kit'
+import type { Rule, RuleTest } from '../../../../shared/types'
+import { useAiGrammar } from '../../composables/use-ai-grammar'
 
 interface Props {
   rule: Rule
   mastery?: 'new' | 'learning' | 'review' | 'mastered'
 }
 
-defineProps<Props>()
+const props = defineProps<Props>()
+const emit = defineEmits<{
+  (e: 'generateTest', tests: RuleTest[]): void
+}>()
 
 const { t, te } = useI18n()
+const { isGenerating, generateTestsForRule } = useAiGrammar()
+
+const onGenerateAiTest = async () => {
+  const generated = await generateTestsForRule(props.rule)
+  if (generated && generated.length > 0) {
+    emit('generateTest', generated)
+  }
+}
 
 const categoryLabel = (cat: string) => {
   const i18nKey = `plugins.grammar-rules.cat_${cat}`
-  if (te(i18nKey)) return t(i18nKey)
-  
+  if (te(i18nKey))
+    return t(i18nKey)
+
   switch (cat) {
     case 'grammar': return t('plugins.grammar-rules.catGrammar')
     case 'tenses': return t('plugins.grammar-rules.catTenses')
@@ -44,16 +58,22 @@ const categoryLabel = (cat: string) => {
           </span>
         </div>
       </div>
-      <h3 class="rule-title">{{ rule.title }}</h3>
+      <h3 class="rule-title">
+        {{ rule.title }}
+      </h3>
       <code v-if="rule.pattern" class="rule-pattern">{{ rule.pattern }}</code>
     </div>
 
-    <p class="rule-desc">{{ rule.description }}</p>
+    <p class="rule-desc">
+      {{ rule.description }}
+    </p>
 
     <div v-if="rule.examples && rule.examples.length > 0" class="rule-examples">
       <ol class="examples-list">
         <li v-for="(ex, index) in rule.examples" :key="index" class="example-item">
-          <div class="example-index">{{ index + 1 }}</div>
+          <div class="example-index">
+            {{ index + 1 }}
+          </div>
           <div class="example-content">
             <span class="example-sentence">{{ ex.sentence }}</span>
             <span v-if="ex.phonetic || ex.pinyin" class="example-phonetic">
@@ -63,6 +83,19 @@ const categoryLabel = (cat: string) => {
           </div>
         </li>
       </ol>
+    </div>
+
+    <div class="card-actions">
+      <KitBtn
+        size="xs"
+        variant="tonal"
+        color="accent"
+        :loading="isGenerating"
+        icon="mdi:creation-outline"
+        @click="onGenerateAiTest"
+      >
+        {{ isGenerating ? t('plugins.grammar-rules.generatingAiTests') : t('plugins.grammar-rules.generateAiTests') }}
+      </KitBtn>
     </div>
   </div>
 </template>
@@ -264,5 +297,12 @@ const categoryLabel = (cat: string) => {
   font-size: 0.82rem;
   color: var(--fg-secondary-color);
   line-height: 1.4;
+}
+
+.card-actions {
+  margin-top: auto;
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 4px;
 }
 </style>

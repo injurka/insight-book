@@ -1,4 +1,4 @@
-import type { Rule, RuleTest } from '~plugin-grammar-rules/shared/types'
+import type { Rule, RuleTest } from '../types'
 
 export interface CustomLlmConfig {
   url: string

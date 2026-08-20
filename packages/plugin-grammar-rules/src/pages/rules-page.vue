@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import RulesView from '~plugin-grammar-rules/modules/grammar-rules'
+import RulesView from '../modules/grammar-rules'
 </script>
 
 <template>

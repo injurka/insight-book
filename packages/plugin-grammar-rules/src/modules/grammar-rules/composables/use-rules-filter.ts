@@ -1,6 +1,6 @@
-import { ref, computed, type Ref, watch } from 'vue'
+import { computed, type Ref, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import type { LanguageConfig, Rule } from '~plugin-grammar-rules/shared/types'
+import type { LanguageConfig, Rule } from '../../../shared/types'
 
 export function useRulesFilter(
   rules: Ref<Rule[]>,

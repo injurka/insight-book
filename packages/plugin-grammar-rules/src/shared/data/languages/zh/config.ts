@@ -1,4 +1,4 @@
-import type { LanguageConfig } from '~plugin-grammar-rules/shared/types'
+import type { LanguageConfig } from '../../../types'
 
 export const zhConfig: LanguageConfig = {
   code: 'zh',

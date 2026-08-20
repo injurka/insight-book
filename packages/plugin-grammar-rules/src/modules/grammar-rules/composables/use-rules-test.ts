@@ -1,5 +1,5 @@
-import { ref, computed, type Ref } from 'vue'
-import type { Rule, RuleTest } from '~plugin-grammar-rules/shared/types'
+import { computed, type Ref, ref } from 'vue'
+import type { Rule, RuleTest } from '../../../shared/types'
 
 export function useRulesTest(
   filteredRules: Ref<Rule[]>,

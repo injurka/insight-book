@@ -39,6 +39,16 @@ const zh = {
   correctAnswerIs: '正确答案',
   typeAnswerPlaceholder: '输入正确形式...',
   clickTokensToAssemble: '点击下方单词按顺序组句...',
+  filtersToggle: '筛选',
+  categoryFilter: '类别',
+  levelFilter: '等级',
+  generateAiTests: '生成练习题',
+  generatingAiTests: '正在生成题目...',
+  aiTestsGenerated: '已为该规则生成 {count} 道题目',
+  roundComplete: '练习完成！',
+  roundResult: '正确答对: {score} / {total} ({percent}%)',
+  startNextRound: '开始下一轮',
+  selectLanguage: '语言',
 }
 
 export default zh

@@ -6,10 +6,8 @@ import { executeDump } from './dump.service'
 import { sendDailyMotivations } from './push.service'
 
 const ONE_DAY_MS = 24 * 60 * 60 * 1000
-const CHECK_INTERVAL_MS = 15 * 60 * 1000
 
 let isDumping = false
-let isPushing = false
 
 async function checkAndRunDump() {
   if (isDumping)
@@ -82,47 +80,26 @@ async function checkAndResetLimits() {
   }
 }
 
-function formatMs(ms: number): string {
-  const seconds = Math.floor(ms / 1000)
-  const minutes = Math.floor(seconds / 60)
-  const hours = Math.floor(minutes / 60)
-  const days = Math.floor(hours / 24)
-
-  if (days > 0 && hours % 24 === 0)
-    return `${days}d`
-  if (hours > 0 && minutes % 60 === 0)
-    return `${hours}h`
-  if (minutes > 0 && seconds % 60 === 0)
-    return `${minutes}m`
-  if (seconds > 0)
-    return `${seconds}s`
-  return `${ms}ms`
-}
-
 export function initScheduler() {
-  logger.info(
-    `🕒 Initializing background scheduler (check interval: ${formatMs(CHECK_INTERVAL_MS)}, period/dump threshold: ${formatMs(ONE_DAY_MS)})...`,
-  )
+  logger.info('🕒 Initializing background scheduler with Bun.cron...')
 
   if (process.env.ENABLE_AUTO_DUMP === 'true') {
+    // Первоначальная проверка при старте контейнера/сервера
     setTimeout(checkAndRunDump, 5000)
-    setInterval(checkAndRunDump, CHECK_INTERVAL_MS)
+    // Ежедневный авто-дамп базы данных в 03:00
+    Bun.cron('0 3 * * *', checkAndRunDump)
   }
 
-  setInterval(checkAndResetLimits, CHECK_INTERVAL_MS)
+  // Проверка истечения суточных периодов пользователей каждые 15 минут
+  Bun.cron('*/15 * * * *', checkAndResetLimits)
 
-  setInterval(async () => {
-    if (isPushing)
-      return
-    isPushing = true
+  // Проверка и рассылка мотивационных пуш-уведомлений каждые 15 минут
+  Bun.cron('*/15 * * * *', async () => {
     try {
       await sendDailyMotivations()
     }
     catch (err) {
       logger.error(err)
     }
-    finally {
-      isPushing = false
-    }
-  }, CHECK_INTERVAL_MS)
+  })
 }
