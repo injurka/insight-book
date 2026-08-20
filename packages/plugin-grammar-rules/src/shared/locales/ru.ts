@@ -49,6 +49,20 @@ const ru = {
   roundResult: 'Правильных ответов: {score} из {total} ({percent}%)',
   startNextRound: 'Начать следующий раунд',
   selectLanguage: 'Язык',
+  masteryNew: 'Новое',
+  masteryLearning: 'Изучается',
+  masteryReview: 'Повторение',
+  masteryMastered: 'Освоено',
+  statMastered: 'Освоенные правила',
+  statLearning: 'В процессе изучения',
+  statNew: 'Новые правила',
+  learnMore: 'Изучить подробнее',
+  ruleDetailsModalTitle: 'Подробный разбор правила',
+  patternLabel: 'Формула / Паттерн',
+  generatingExplanation: 'ИИ генерирует подробный разбор правила...',
+  generatingExplanationHint: 'Формируем глубокое объяснение, формулы, реальные примеры и разбор подводных камней',
+  regenerateExplanation: 'Сгенерировать заново',
+  closeModal: 'Закрыть',
 }
 
 export default ru

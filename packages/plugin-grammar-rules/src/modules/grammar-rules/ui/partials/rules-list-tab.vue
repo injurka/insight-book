@@ -4,7 +4,9 @@ import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { KitBtn, KitInput, KitSelect } from '~/02.kit'
 import type { Rule, RuleTest } from '../../../../shared/types'
+import { useRuleDetails } from '../../composables/use-rule-details'
 import RuleCard from './rule-card.vue'
+import RuleDetailsModal from './rule-details-modal.vue'
 
 interface Props {
   filteredRules: Rule[]
@@ -24,6 +26,16 @@ const selectedLevel = defineModel<string>('selectedLevel', { required: true })
 
 const { t } = useI18n()
 const showMobileFilters = ref(false)
+
+const {
+  selectedRule,
+  isModalOpen,
+  explanation,
+  isLoading: isExplanationLoading,
+  error: explanationError,
+  openRuleDetails,
+  regenerate: regenerateExplanation,
+} = useRuleDetails()
 
 const activeFilterCount = computed(() => {
   let count = 0
@@ -91,8 +103,18 @@ const activeFilterCount = computed(() => {
         :key="rule.id"
         :rule="rule"
         @generate-test="(tests) => emit('addTests', tests)"
+        @learn-more="(r) => openRuleDetails(r)"
       />
     </div>
+
+    <RuleDetailsModal
+      v-model:visible="isModalOpen"
+      :rule="selectedRule"
+      :explanation="explanation"
+      :loading="isExplanationLoading"
+      :error="explanationError"
+      @regenerate="regenerateExplanation"
+    />
   </div>
 </template>
 

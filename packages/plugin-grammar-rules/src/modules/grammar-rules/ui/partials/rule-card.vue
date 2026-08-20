@@ -12,6 +12,7 @@ interface Props {
 const props = defineProps<Props>()
 const emit = defineEmits<{
   (e: 'generateTest', tests: RuleTest[]): void
+  (e: 'learnMore', rule: Rule): void
 }>()
 
 const { t, te } = useI18n()
@@ -42,6 +43,16 @@ const categoryLabel = (cat: string) => {
     default: return cat
   }
 }
+
+const masteryLabel = (m: string) => {
+  switch (m) {
+    case 'new': return t('plugins.grammar-rules.masteryNew')
+    case 'learning': return t('plugins.grammar-rules.masteryLearning')
+    case 'review': return t('plugins.grammar-rules.masteryReview')
+    case 'mastered': return t('plugins.grammar-rules.masteryMastered')
+    default: return m
+  }
+}
 </script>
 
 <template>
@@ -51,7 +62,7 @@ const categoryLabel = (cat: string) => {
         <span class="category-badge" :class="rule.category">{{ categoryLabel(rule.category) }}</span>
         <div class="level-badges">
           <span v-if="mastery" class="mastery-badge" :class="mastery">
-            {{ mastery }}
+            {{ masteryLabel(mastery) }}
           </span>
           <span class="category-badge level-badge">
             {{ (rule.level || rule.hskLevel || '').toUpperCase() }}
@@ -86,6 +97,16 @@ const categoryLabel = (cat: string) => {
     </div>
 
     <div class="card-actions">
+      <KitBtn
+        size="xs"
+        variant="tonal"
+        color="secondary"
+        icon="mdi:book-open-page-variant-outline"
+        @click="emit('learnMore', rule)"
+      >
+        {{ t('plugins.grammar-rules.learnMore') }}
+      </KitBtn>
+
       <KitBtn
         size="xs"
         variant="tonal"
@@ -302,7 +323,10 @@ const categoryLabel = (cat: string) => {
 .card-actions {
   margin-top: auto;
   display: flex;
+  align-items: center;
   justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
   padding-top: 4px;
 }
 </style>

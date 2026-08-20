@@ -101,8 +101,13 @@ export async function requestLlmGenerate<T = unknown>(params: {
     },
   })
 
-  if (res.success && res.data) {
-    return res.data
+  if (res.success) {
+    if (params.json === false && typeof res.text === 'string') {
+      return res.text as unknown as T
+    }
+    if (res.data !== undefined) {
+      return res.data
+    }
   }
   return null
 }
@@ -150,7 +155,8 @@ JSON Schema:
     "correctOrder": ["token1", "token2", "token3"],
     "explanation": "Explanation"
   }
-]`
+]
+`
 }
 
 export function buildGrammarUserPrompt(rule: Rule, count = 3): string {
@@ -186,4 +192,59 @@ export async function generateGrammarTestsViaLlm(rule: Rule, targetLang = 'ru', 
     }))
   }
   return []
+}
+
+export function buildGrammarExplanationSystemPrompt(language: string, targetLanguage: string): string {
+  return `You are an expert linguist, pedagogical author, and language teacher explaining ${language} grammar to ${targetLanguage}-speaking students.
+Your task is to provide a comprehensive, deep, and crystal-clear masterclass lesson for a specific grammar rule.
+
+Structure your explanation strictly in ${targetLanguage} using well-structured Markdown (headings ##, ###, bullet points, bold highlights, code blocks for formulas).
+
+Include the following sections:
+1. 📌 **Суть и концепция правила**
+   - Глубокое объяснение логики правила, почему носители языка говорят именно так.
+   - В каких жизненных контекстах и ситуациях оно применяется.
+2. ⚙️ **Схема и образование форм**
+   - Наглядная формула (утверждение, отрицание, вопрос).
+   - Особенности присоединения окончаний, вспомогательные глаголы, чередования.
+3. 💡 **Живые примеры употребления**
+   - 4-6 разнообразных примеров из реальной разговорной и письменной речи с точным переводом на ${targetLanguage}.
+   - Разбор каждого примера.
+4. ⚠️ **Подводные камни и частые ошибки**
+   - Типичные ловушки и ошибки, которые часто совершают изучающие язык.
+   - Сравнение с похожими временами или конструкциями (в чем ключевое отличие).
+5. 🎯 **Секреты запоминания и слова-маркеры**
+   - Маркеры времени / сигнальные слова.
+   - Практические лайфхаки для легкого запоминания.`
+}
+
+export function buildGrammarExplanationUserPrompt(rule: Rule): string {
+  return `Подготовь подробное и глубокое учебное объяснение грамматического правила:
+ID правила: ${rule.id}
+Язык: ${rule.lang || 'en'}
+Название: "${rule.title}"
+Паттерн / формула: ${rule.pattern || 'Не указана'}
+Уровень: ${rule.level || 'all'}
+Категория: ${rule.category}
+Краткое описание: ${rule.description}
+Базовые примеры:
+${(rule.examples || []).map(ex => `- ${ex.sentence} (${ex.translation})`).join('\n')}
+
+Сделай объяснение максимально понятным, практичным и структурированным.`
+}
+
+export async function generateRuleExplanationViaLlm(rule: Rule, targetLang = 'ru'): Promise<string> {
+  const language = rule.lang || 'en'
+  const systemPrompt = buildGrammarExplanationSystemPrompt(language, targetLang)
+  const userPrompt = buildGrammarExplanationUserPrompt(rule)
+
+  const text = await requestLlmGenerate<string>({
+    action: 'explain_grammar_rule',
+    systemPrompt,
+    prompt: userPrompt,
+    json: false,
+    temperature: 0.4,
+  })
+
+  return text || ''
 }

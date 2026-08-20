@@ -2,12 +2,12 @@
   {
     "id": "en_a1_01",
     "lang": "en",
-    "title": "Present Simple Tense",
+    "title": "Настоящее простое время (Present Simple)",
     "pattern": "Subject + Verb(s/es) + Object",
     "level": "a1",
     "category": "tenses",
     "tags": ["present", "routines", "facts"],
-    "description": "Used for repeated actions, daily routines, general truths, and permanent situations. Add -s/-es for he/she/it.",
+    "description": "Используется для повторяющихся действий, регулярных привычек, общеизвестных фактов и постоянных ситуаций. Для местоимений he/she/it к глаголу добавляется окончание -s/-es.",
     "contrastWith": ["en_a1_02"],
     "examples": [
       {
@@ -25,12 +25,12 @@
   {
     "id": "en_a1_02",
     "lang": "en",
-    "title": "Present Continuous Tense",
+    "title": "Настоящее длительное время (Present Continuous)",
     "pattern": "Subject + am/is/are + Verb-ing",
     "level": "a1",
     "category": "tenses",
     "tags": ["present", "now", "temporary"],
-    "description": "Used for actions happening right now at the moment of speaking or temporary situations around now.",
+    "description": "Используется для действий, происходящих прямо сейчас (в момент речи), а также для временных ситуаций в текущий период времени.",
     "contrastWith": ["en_a1_01"],
     "examples": [
       {
@@ -48,12 +48,12 @@
   {
     "id": "en_a2_01",
     "lang": "en",
-    "title": "Past Simple Tense",
+    "title": "Прошедшее простое время (Past Simple)",
     "pattern": "Subject + Verb-ed / V2",
     "level": "a2",
     "category": "tenses",
     "tags": ["past", "completed_action", "time_markers"],
-    "description": "Used for completed actions in the past with a specific time mentioned (yesterday, last year, in 2010, ago).",
+    "description": "Используется для завершенных действий в прошлом с указанием конкретного времени (yesterday, last year, in 2010, ago).",
     "contrastWith": ["en_b1_01"],
     "examples": [
       {
@@ -71,12 +71,12 @@
   {
     "id": "en_b1_01",
     "lang": "en",
-    "title": "Present Perfect Tense",
+    "title": "Настоящее совершенное время (Present Perfect)",
     "pattern": "Subject + have/has + Past Participle (V3)",
     "level": "b1",
     "category": "tenses",
     "tags": ["past_to_present", "result", "experience"],
-    "description": "Connects the past with the present: focuses on life experience (ever/never), result now (already/yet/just), or unfinished time periods.",
+    "description": "Связывает прошлое с настоящим: выражает жизненный опыт (ever/never), результат действия в настоящем (already/yet/just) или незавершенный период времени.",
     "contrastWith": ["en_a2_01"],
     "examples": [
       {
@@ -94,12 +94,12 @@
   {
     "id": "en_b1_02",
     "lang": "en",
-    "title": "First Conditional (Real Possibility)",
+    "title": "Первый тип условных предложений (First Conditional)",
     "pattern": "If + Present Simple, will + Verb (Base)",
     "level": "b1",
     "category": "conditionals",
     "tags": ["conditions", "future_possibility", "if_clause"],
-    "description": "Talks about real and possible situations in the future. Remember: do NOT use 'will' in the If-clause!",
+    "description": "Используется для выражения реальных и вероятных событий в будущем и их последствий. Важно: после If в придаточном предложении will не ставится!",
     "examples": [
       {
         "sentence": "If it rains tomorrow, we will stay at home.",
@@ -111,12 +111,12 @@
   {
     "id": "en_a1_03",
     "lang": "en",
-    "title": "Articles: A, An, The",
-    "pattern": "a/an + singular countable noun | the + specific noun",
+    "title": "Артикли: A, An, The",
+    "pattern": "a/an + исчисляемое сущ. в ед. ч. | the + конкретное сущ.",
     "level": "a1",
     "category": "articles",
     "tags": ["determiners", "nouns", "basics"],
-    "description": "'A/An' for non-specific singular countable items (first mention). 'The' when both speaker and listener know which specific item is meant.",
+    "description": "Неопределенный артикль a/an используется для неисчисляемых или впервые упоминаемых объектов в единственном числе. Определенный артикль the используется, когда предмет конкретен и известен обоим собеседникам.",
     "examples": [
       {
         "sentence": "I saw a dog. The dog was barking.",

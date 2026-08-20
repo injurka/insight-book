@@ -49,6 +49,20 @@ const zh = {
   roundResult: '正确答对: {score} / {total} ({percent}%)',
   startNextRound: '开始下一轮',
   selectLanguage: '语言',
+  masteryNew: '新规则',
+  masteryLearning: '学习中',
+  masteryReview: '复习中',
+  masteryMastered: '已掌握',
+  statMastered: '已掌握规则',
+  statLearning: '学习中',
+  statNew: '新规则',
+  learnMore: '详细学习',
+  ruleDetailsModalTitle: '规则详细解析',
+  patternLabel: '句型 / 公式',
+  generatingExplanation: 'AI 正在生成规则详细解析...',
+  generatingExplanationHint: '正在准备深入解释、公式、实际示例和常见错误分析',
+  regenerateExplanation: '重新生成',
+  closeModal: '关闭',
 }
 
 export default zh

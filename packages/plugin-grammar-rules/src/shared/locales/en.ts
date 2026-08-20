@@ -49,6 +49,20 @@ const en = {
   roundResult: 'Correct answers: {score} of {total} ({percent}%)',
   startNextRound: 'Start Next Round',
   selectLanguage: 'Language',
+  masteryNew: 'New',
+  masteryLearning: 'Learning',
+  masteryReview: 'Review',
+  masteryMastered: 'Mastered',
+  statMastered: 'Mastered rules',
+  statLearning: 'In progress',
+  statNew: 'New rules',
+  learnMore: 'Learn More',
+  ruleDetailsModalTitle: 'Rule Deep Dive',
+  patternLabel: 'Pattern / Formula',
+  generatingExplanation: 'AI is generating detailed rule explanation...',
+  generatingExplanationHint: 'Preparing deep explanations, formulas, real-world examples and common pitfalls',
+  regenerateExplanation: 'Regenerate',
+  closeModal: 'Close',
 }
 
 export default en

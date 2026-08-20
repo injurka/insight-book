@@ -147,13 +147,13 @@ const getOptionsList = (test: MultipleChoiceTest | ClozeChoiceTest): Array<{ tex
 
       <!-- SRS Quick Stats -->
       <div class="srs-quick-stats">
-        <span class="stat-item mastered" title="Mastered rules">
+        <span class="stat-item mastered" :title="t('plugins.grammar-rules.statMastered')">
           <Icon icon="mdi:check-decagram" /> {{ srsStats.masteredCount }}
         </span>
-        <span class="stat-item learning" title="In progress">
+        <span class="stat-item learning" :title="t('plugins.grammar-rules.statLearning')">
           <Icon icon="mdi:trending-up" /> {{ srsStats.learningCount + srsStats.reviewCount }}
         </span>
-        <span class="stat-item new" title="New rules">
+        <span class="stat-item new" :title="t('plugins.grammar-rules.statNew')">
           <Icon icon="mdi:star-outline" /> {{ srsStats.newCount }}
         </span>
       </div>

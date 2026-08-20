@@ -3,10 +3,11 @@ import { enConfig } from './en/config'
 import enRulesData from './en/rules.json'
 import enTestsData from './en/tests.json'
 import { zhConfig } from './zh/config'
-import hsk1Rules from '../hsk1-rules.json'
-import hsk1Tests from '../hsk1-tests.json'
-import hsk2Rules from '../hsk2-rules.json'
-import hsk2Tests from '../hsk2-tests.json'
+
+import hsk1Rules from './zh/hsk1-rules.json'
+import hsk1Tests from './zh/hsk1-tests.json'
+import hsk2Rules from './zh/hsk2-rules.json'
+import hsk2Tests from './zh/hsk2-tests.json'
 
 const zhRulesNormalized: Rule[] = ([...hsk1Rules, ...hsk2Rules] as Array<Record<string, unknown>>).map((r) => {
   return {
@@ -123,8 +124,8 @@ export const LANGUAGE_CONFIGS: Record<SupportedLanguage, LanguageConfig> = {
 
 export function getAvailableLanguages(): Array<{ code: SupportedLanguage, name: string }> {
   return [
-    { code: 'en', name: 'English' },
-    { code: 'zh', name: 'Chinese (中文)' },
+    { code: 'en', name: 'Английский (English)' },
+    { code: 'zh', name: 'Китайский (中文)' },
   ]
 }
 
