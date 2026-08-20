@@ -1,0 +1,128 @@
+[
+  {
+    "id": "en_a1_01",
+    "lang": "en",
+    "title": "Present Simple Tense",
+    "pattern": "Subject + Verb(s/es) + Object",
+    "level": "a1",
+    "category": "tenses",
+    "tags": ["present", "routines", "facts"],
+    "description": "Used for repeated actions, daily routines, general truths, and permanent situations. Add -s/-es for he/she/it.",
+    "contrastWith": ["en_a1_02"],
+    "examples": [
+      {
+        "sentence": "She works in a hospital.",
+        "phonetic": "/ʃiː wɜːks ɪn ə ˈhɒspɪtl/",
+        "translation": "Она работает в больнице."
+      },
+      {
+        "sentence": "Water boils at 100 degrees Celsius.",
+        "phonetic": "/ˈwɔːtər bɔɪlz æt wʌn ˈhʌndrəd dɪˈɡriːz/",
+        "translation": "Вода закипает при 100 градусах Цельсия."
+      }
+    ]
+  },
+  {
+    "id": "en_a1_02",
+    "lang": "en",
+    "title": "Present Continuous Tense",
+    "pattern": "Subject + am/is/are + Verb-ing",
+    "level": "a1",
+    "category": "tenses",
+    "tags": ["present", "now", "temporary"],
+    "description": "Used for actions happening right now at the moment of speaking or temporary situations around now.",
+    "contrastWith": ["en_a1_01"],
+    "examples": [
+      {
+        "sentence": "They are watching a movie right now.",
+        "phonetic": "/ðeɪ ɑːr ˈwɒtʃɪŋ ə ˈmuːvi raɪt naʊ/",
+        "translation": "Они смотрят фильм прямо сейчас."
+      },
+      {
+        "sentence": "I am living with my friends this week.",
+        "phonetic": "/aɪ æm ˈlɪvɪŋ wɪð maɪ frendz ðɪs wiːk/",
+        "translation": "Я живу у друзей на этой неделе."
+      }
+    ]
+  },
+  {
+    "id": "en_a2_01",
+    "lang": "en",
+    "title": "Past Simple Tense",
+    "pattern": "Subject + Verb-ed / V2",
+    "level": "a2",
+    "category": "tenses",
+    "tags": ["past", "completed_action", "time_markers"],
+    "description": "Used for completed actions in the past with a specific time mentioned (yesterday, last year, in 2010, ago).",
+    "contrastWith": ["en_b1_01"],
+    "examples": [
+      {
+        "sentence": "We visited London last summer.",
+        "phonetic": "/wiː ˈvɪzɪtɪd ˈlʌndən lɑːst ˈsʌmər/",
+        "translation": "Мы посетили Лондон прошлым летом."
+      },
+      {
+        "sentence": "He bought a new car two days ago.",
+        "phonetic": "/hiː bɔːt ə njuː kɑːr tuː deɪz əˈɡoʊ/",
+        "translation": "Он купил новую машину два дня назад."
+      }
+    ]
+  },
+  {
+    "id": "en_b1_01",
+    "lang": "en",
+    "title": "Present Perfect Tense",
+    "pattern": "Subject + have/has + Past Participle (V3)",
+    "level": "b1",
+    "category": "tenses",
+    "tags": ["past_to_present", "result", "experience"],
+    "description": "Connects the past with the present: focuses on life experience (ever/never), result now (already/yet/just), or unfinished time periods.",
+    "contrastWith": ["en_a2_01"],
+    "examples": [
+      {
+        "sentence": "I have already finished my homework.",
+        "phonetic": "/aɪ hæv ɔːlˈredi ˈfɪnɪʃt maɪ ˈhoʊmwɜːrk/",
+        "translation": "Я уже сделал домашнее задание (результат налицо)."
+      },
+      {
+        "sentence": "Have you ever been to Japan?",
+        "phonetic": "/hæv juː ˈevər biːn tuː dʒəˈpæn/",
+        "translation": "Ты когда-нибудь был в Японии?"
+      }
+    ]
+  },
+  {
+    "id": "en_b1_02",
+    "lang": "en",
+    "title": "First Conditional (Real Possibility)",
+    "pattern": "If + Present Simple, will + Verb (Base)",
+    "level": "b1",
+    "category": "conditionals",
+    "tags": ["conditions", "future_possibility", "if_clause"],
+    "description": "Talks about real and possible situations in the future. Remember: do NOT use 'will' in the If-clause!",
+    "examples": [
+      {
+        "sentence": "If it rains tomorrow, we will stay at home.",
+        "phonetic": "/ɪf ɪt reɪnz təˈmɒroʊ wiː wɪl steɪ æt hoʊm/",
+        "translation": "Если завтра пойдет дождь, мы останемся дома."
+      }
+    ]
+  },
+  {
+    "id": "en_a1_03",
+    "lang": "en",
+    "title": "Articles: A, An, The",
+    "pattern": "a/an + singular countable noun | the + specific noun",
+    "level": "a1",
+    "category": "articles",
+    "tags": ["determiners", "nouns", "basics"],
+    "description": "'A/An' for non-specific singular countable items (first mention). 'The' when both speaker and listener know which specific item is meant.",
+    "examples": [
+      {
+        "sentence": "I saw a dog. The dog was barking.",
+        "phonetic": "/aɪ sɔː ə dɒɡ ðə dɒɡ wɒz ˈbɑːrkɪŋ/",
+        "translation": "Я увидел собаку (какую-то). Собака (эта конкретная) лаяла."
+      }
+    ]
+  }
+]

@@ -470,3 +470,52 @@ JSON structure:
   }
 ]`
 }
+
+export function getGrammarTestGenerationPrompt(language: string, targetLanguage: string): string {
+  const srcLang = getLangName(language)
+  const tgtLang = getLangName(targetLanguage)
+
+  return `You are a professional ${srcLang} linguistics professor and test designer for ${tgtLang}-speaking students.
+Your task is to generate high-quality polymorphic grammar test questions for a specific grammar rule.
+
+CRITICAL INSTRUCTIONS:
+1. Target Rule: Ensure every generated question specifically and accurately tests the given grammar rule.
+2. Explanations & Translations: Write all instructions, translations, prompts, and explanations strictly in ${tgtLang}.
+3. Question Types to support:
+   - "multiple_choice": 4 options. Each option MUST be an object with "text", "isCorrect", and "feedback" (explaining why that specific option is right or wrong).
+   - "cloze_input": A sentence with a "___ (base_word)" blank, "validAnswers" array of acceptable forms in ${srcLang}, and "hints" array in ${tgtLang}.
+   - "sentence_scramble": A sentence in ${srcLang} translated to ${tgtLang}, split into shuffled "tokens", with "correctOrder" and optional "acceptableOrders".
+   - "cloze_choice": A sentence with "___", 4 word options, and 1 "correctAnswer".
+
+4. Formatting: Output STRICT RAW JSON ARRAY of question objects. Never use markdown (\`\`\`json).
+
+JSON Schema:
+[
+  {
+    "type": "multiple_choice",
+    "question": "Question text in ${tgtLang} or sentence with blank",
+    "options": [
+      { "text": "option 1", "isCorrect": true, "feedback": "Explanation why it is correct in ${tgtLang}" },
+      { "text": "option 2", "isCorrect": false, "feedback": "Explanation of the mistake in ${tgtLang}" }
+    ],
+    "correctAnswer": "option 1",
+    "explanation": "General rule explanation in ${tgtLang}"
+  },
+  {
+    "type": "cloze_input",
+    "prompt": "Instruction in ${tgtLang}",
+    "sentenceWithBlank": "Sentence in ${srcLang} with ___ (base_verb)",
+    "validAnswers": ["correct_form"],
+    "hints": ["Hint in ${tgtLang}"],
+    "explanation": "Explanation in ${tgtLang}"
+  },
+  {
+    "type": "sentence_scramble",
+    "prompt": "Instruction in ${tgtLang}",
+    "translation": "Full natural sentence translation in ${tgtLang}",
+    "tokens": ["token1", "token2", "token3"],
+    "correctOrder": ["token1", "token2", "token3"],
+    "explanation": "Explanation in ${tgtLang}"
+  }
+]`
+}

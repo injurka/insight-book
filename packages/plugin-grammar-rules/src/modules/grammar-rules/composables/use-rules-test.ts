@@ -35,8 +35,8 @@ export function useRulesTest(
 
   const submitAnswer = () => {
     if (!selectedAnswer.value || !currentTest.value) return
-    testSubmitted.value = true
-    if (selectedAnswer.value === currentTest.value.correctAnswer) {
+    const correctAns = 'correctAnswer' in currentTest.value ? currentTest.value.correctAnswer : ''
+    if (selectedAnswer.value === correctAns) {
       score.value++
     }
   }

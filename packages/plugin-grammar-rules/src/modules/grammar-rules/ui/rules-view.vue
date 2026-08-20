@@ -2,12 +2,9 @@
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
-import { KitBtn, KitTabs } from '~/02.kit'
-import hsk1Rules from '~plugin-grammar-rules/shared/data/hsk1-rules.json'
-import hsk2Rules from '~plugin-grammar-rules/shared/data/hsk2-rules.json'
-import hsk1Tests from '~plugin-grammar-rules/shared/data/hsk1-tests.json'
-import hsk2Tests from '~plugin-grammar-rules/shared/data/hsk2-tests.json'
-import type { Rule, RuleTest } from '~plugin-grammar-rules/shared/types'
+import { KitBtn, KitSelect, KitTabs } from '~/02.kit'
+import type { SupportedLanguage } from '~plugin-grammar-rules/shared/types'
+import { useGrammarCatalog } from '../composables/use-grammar-catalog'
 import { useRulesFilter } from '../composables/use-rules-filter'
 
 import RulesListTab from './partials/rules-list-tab.vue'
@@ -16,17 +13,44 @@ import RulesTestTab from './partials/rules-test-tab.vue'
 const { t } = useI18n()
 const router = useRouter()
 
-const rules = ref<Rule[]>([...hsk1Rules, ...hsk2Rules] as Rule[])
-const tests = ref<RuleTest[]>([...hsk1Tests, ...hsk2Tests] as RuleTest[])
-const activeTab = ref<'rules' | 'test'>('rules')
-const loading = ref(false)
+const {
+  currentLanguage,
+  availableLanguages,
+  currentConfig,
+  rules,
+  tests,
+  isLoading,
+  setLanguage
+} = useGrammarCatalog()
 
-const { searchQuery, selectedCategory, selectedLevel, filteredRules } = useRulesFilter(rules)
+const activeTab = ref<'rules' | 'test'>('rules')
+
+const {
+  searchQuery,
+  selectedCategory,
+  selectedLevel,
+  categoryOptions,
+  levelOptions,
+  filteredRules
+} = useRulesFilter(rules, currentConfig)
 
 const tabItems = computed(() => [
   { id: 'rules', label: t('plugins.grammar-rules.tabStudy') },
   { id: 'test', label: t('plugins.grammar-rules.tabTest') }
 ])
+
+const languageSelectOptions = computed(() => {
+  return availableLanguages.value.map(lang => ({
+    label: lang.name,
+    value: lang.code
+  }))
+})
+
+const onLanguageChange = (val: unknown) => {
+  if (typeof val === 'string') {
+    setLanguage(val as SupportedLanguage)
+  }
+}
 </script>
 
 <template>
@@ -40,6 +64,15 @@ const tabItems = computed(() => [
             <p class="page-subtitle">{{ t('plugins.grammar-rules.pageSubtitle') }}</p>
           </div>
         </div>
+
+        <div class="header-actions">
+          <KitSelect
+            :model-value="currentLanguage"
+            :options="languageSelectOptions"
+            class="language-selector"
+            @update:model-value="onLanguageChange"
+          />
+        </div>
       </header>
 
       <div class="rules-tabs-container">
@@ -47,16 +80,19 @@ const tabItems = computed(() => [
           <template #rules>
             <RulesListTab
               :filtered-rules="filteredRules"
+              :category-options="categoryOptions"
+              :level-options="levelOptions"
               v-model:searchQuery="searchQuery"
               v-model:selectedCategory="selectedCategory"
               v-model:selectedLevel="selectedLevel"
-              :loading="loading"
+              :loading="isLoading"
             />
           </template>
           <template #test>
             <RulesTestTab
               :filtered-rules="filteredRules"
               :tests="tests"
+              :current-lang="currentLanguage"
             />
           </template>
         </KitTabs>
@@ -72,7 +108,7 @@ const tabItems = computed(() => [
   overflow-y: auto;
 }
 
-.header-nav{
+.header-nav {
   display: flex;
   align-items: center;
   gap: 12px;
@@ -83,7 +119,7 @@ const tabItems = computed(() => [
   max-width: 1000px;
   width: 100%;
   margin: 0 auto;
-  padding: 32px 0px;
+  padding: 32px 16px;
   display: flex;
   flex-direction: column;
   gap: 24px;
@@ -97,7 +133,17 @@ const tabItems = computed(() => [
 
   @media (max-width: 600px) {
     flex-direction: column;
-    align-items: flex-start;
+    align-items: stretch;
+  }
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+
+  .language-selector {
+    min-width: 180px;
   }
 }
 
@@ -118,6 +164,5 @@ const tabItems = computed(() => [
 
 .rules-tabs-container {
   border-radius: 16px;
-  padding: 12px;
 }
 </style>

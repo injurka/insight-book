@@ -1,0 +1,106 @@
+[
+  {
+    "id": "test_en_a1_01_mc",
+    "ruleId": "en_a1_01",
+    "type": "multiple_choice",
+    "question": "Choose the correct form: 'He ___ English very well.'",
+    "correctAnswer": "speaks",
+    "explanation": "In Present Simple with he/she/it, we add -s to the verb.",
+    "options": [
+      {
+        "text": "speaks",
+        "isCorrect": true,
+        "feedback": "Correct! He/She/It takes the -s suffix in Present Simple."
+      },
+      {
+        "text": "speak",
+        "isCorrect": false,
+        "feedback": "'speak' is used with I/you/we/they, but 'he' requires -s."
+      },
+      {
+        "text": "is speaking",
+        "isCorrect": false,
+        "feedback": "Present Continuous describes an action happening right now, not a general ability."
+      },
+      {
+        "text": "spoken",
+        "isCorrect": false,
+        "feedback": "'spoken' is the past participle (V3) and cannot be the main predicate without an auxiliary verb."
+      }
+    ]
+  },
+  {
+    "id": "test_en_a1_02_cloze",
+    "ruleId": "en_a1_02",
+    "type": "cloze_input",
+    "prompt": "Fill in the blank with the correct form of the verb in brackets:",
+    "sentenceWithBlank": "Listen! The baby ___ (cry) in the room.",
+    "validAnswers": ["is crying", "is cryin"],
+    "hints": ["Present Continuous", "am/is/are + V-ing"],
+    "explanation": "'Listen!' signals an action happening right now in the present moment, requiring Present Continuous (is crying)."
+  },
+  {
+    "id": "test_en_a2_01_scramble",
+    "ruleId": "en_a2_01",
+    "type": "sentence_scramble",
+    "prompt": "Arrange the words to form a grammatically correct sentence:",
+    "translation": "Мы вчера посмотрели отличный фильм.",
+    "tokens": ["We", "watched", "a", "great", "movie", "yesterday"],
+    "correctOrder": ["We", "watched", "a", "great", "movie", "yesterday"],
+    "acceptableOrders": [
+      ["Yesterday", "we", "watched", "a", "great", "movie"],
+      ["We", "watched", "a", "great", "movie", "yesterday"]
+    ],
+    "explanation": "Standard English SVO order: Subject (We) + Verb (watched) + Object (a great movie) + Time adverbial (yesterday)."
+  },
+  {
+    "id": "test_en_b1_01_mc",
+    "ruleId": "en_b1_01",
+    "type": "multiple_choice",
+    "question": "Which sentence correctly uses Present Perfect?",
+    "correctAnswer": "I have lost my keys and cannot enter the house.",
+    "explanation": "Present Perfect emphasizes the present result of a past event.",
+    "options": [
+      {
+        "text": "I have lost my keys and cannot enter the house.",
+        "isCorrect": true,
+        "feedback": "Correct! 'Have lost' connects past loss to the present inability to enter."
+      },
+      {
+        "text": "I have lost my keys yesterday.",
+        "isCorrect": false,
+        "feedback": "'Yesterday' is a specific finished past time marker, which forbids Present Perfect — use Past Simple 'I lost' instead."
+      },
+      {
+        "text": "I lost my keys just now and have no problem.",
+        "isCorrect": false,
+        "feedback": "Doesn't focus on the current result relation."
+      },
+      {
+        "text": "I am losing my keys three times in my life.",
+        "isCorrect": false,
+        "feedback": "Life experience count requires Present Perfect (have lost), not Continuous."
+      }
+    ]
+  },
+  {
+    "id": "test_en_b1_02_cloze",
+    "ruleId": "en_b1_02",
+    "type": "cloze_input",
+    "prompt": "Complete the First Conditional sentence:",
+    "sentenceWithBlank": "If you study hard, you ___ (pass) the exam.",
+    "validAnswers": ["will pass", "'ll pass"],
+    "hints": ["Main clause takes 'will + base verb'"],
+    "explanation": "In First Conditional: If + Present Simple, will + base verb."
+  },
+  {
+    "id": "test_en_a1_03_choice",
+    "ruleId": "en_a1_03",
+    "type": "cloze_choice",
+    "prompt": "Choose the correct article for the blank:",
+    "sentenceWithBlank": "She wants to buy ___ expensive dress.",
+    "options": ["a", "an", "the", "—"],
+    "correctAnswer": "an",
+    "explanation": "Use 'an' before words starting with a vowel sound (/ɪkˈspensɪv/)."
+  }
+]

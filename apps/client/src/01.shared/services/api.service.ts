@@ -495,6 +495,22 @@ export const api = {
     submit: async (language: string, levelValue: string, score: number) => request<{ success: boolean, score: number, starsEarned: number, isPassed: boolean, nextLevelUnlocked: boolean, nextLevelValue: string | null }>('/api/quiz/submit', { method: 'POST', body: JSON.stringify({ language, levelValue, score }), headers: { 'Content-Type': 'application/json' } }),
   },
 
+  llm: {
+    generate: async <T = unknown>(payload: {
+      action?: string
+      prompt?: string
+      systemPrompt?: string
+      messages?: Array<{ role: 'system' | 'user' | 'assistant', content: string }>
+      json?: boolean
+      temperature?: number
+    }) => request<{ success: boolean, data?: T, text?: string, usage?: unknown }>('/api/llm/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+      withLlm: true,
+    }),
+  },
+
   highlights: {
     list: async (bookId?: number) => {
       const queryStr = bookId ? `?bookId=${bookId}` : ''

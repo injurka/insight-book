@@ -1,18 +1,30 @@
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n'
 import type { Rule } from '~plugin-grammar-rules/shared/types'
 
 interface Props {
   rule: Rule
+  mastery?: 'new' | 'learning' | 'review' | 'mastered'
 }
 
 defineProps<Props>()
 
+const { t, te } = useI18n()
+
 const categoryLabel = (cat: string) => {
+  const i18nKey = `plugins.grammar-rules.cat_${cat}`
+  if (te(i18nKey)) return t(i18nKey)
+  
   switch (cat) {
-    case 'grammar': return 'Грамматика'
-    case 'lexical': return 'Лексика'
-    case 'collocation': return 'Коллокация'
-    case 'measure_words': return 'Счетное слово'
+    case 'grammar': return t('plugins.grammar-rules.catGrammar')
+    case 'tenses': return t('plugins.grammar-rules.catTenses')
+    case 'modals': return t('plugins.grammar-rules.catModals')
+    case 'conditionals': return t('plugins.grammar-rules.catConditionals')
+    case 'passive': return t('plugins.grammar-rules.catPassive')
+    case 'articles': return t('plugins.grammar-rules.catArticles')
+    case 'lexical': return t('plugins.grammar-rules.catLexical')
+    case 'collocation': return t('plugins.grammar-rules.catCollocation')
+    case 'measure_words': return t('plugins.grammar-rules.catMeasureWords')
     default: return cat
   }
 }
@@ -23,21 +35,30 @@ const categoryLabel = (cat: string) => {
     <div class="card-header">
       <div class="badges">
         <span class="category-badge" :class="rule.category">{{ categoryLabel(rule.category) }}</span>
-        <span class="category-badge hsk-badge">{{ rule.hskLevel.toUpperCase() }}</span>
+        <div class="level-badges">
+          <span v-if="mastery" class="mastery-badge" :class="mastery">
+            {{ mastery }}
+          </span>
+          <span class="category-badge level-badge">
+            {{ (rule.level || rule.hskLevel || '').toUpperCase() }}
+          </span>
+        </div>
       </div>
       <h3 class="rule-title">{{ rule.title }}</h3>
       <code v-if="rule.pattern" class="rule-pattern">{{ rule.pattern }}</code>
     </div>
-    
+
     <p class="rule-desc">{{ rule.description }}</p>
 
-    <div class="rule-examples">
+    <div v-if="rule.examples && rule.examples.length > 0" class="rule-examples">
       <ol class="examples-list">
         <li v-for="(ex, index) in rule.examples" :key="index" class="example-item">
           <div class="example-index">{{ index + 1 }}</div>
           <div class="example-content">
             <span class="example-sentence">{{ ex.sentence }}</span>
-            <span v-if="ex.pinyin" class="example-pinyin">{{ ex.pinyin }}</span>
+            <span v-if="ex.phonetic || ex.pinyin" class="example-phonetic">
+              {{ ex.phonetic || ex.pinyin }}
+            </span>
             <span class="example-translation">{{ ex.translation }}</span>
           </div>
         </li>
@@ -77,6 +98,37 @@ const categoryLabel = (cat: string) => {
   gap: 8px;
 }
 
+.level-badges {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.mastery-badge {
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 3px 6px;
+  border-radius: 4px;
+  text-transform: uppercase;
+
+  &.new {
+    background-color: var(--bg-tertiary-color);
+    color: var(--fg-secondary-color);
+  }
+  &.learning {
+    background-color: rgba(255, 183, 77, 0.2);
+    color: #ff9800;
+  }
+  &.review {
+    background-color: rgba(100, 181, 246, 0.2);
+    color: #2196f3;
+  }
+  &.mastered {
+    background-color: rgba(129, 199, 132, 0.2);
+    color: #4caf50;
+  }
+}
+
 .category-badge {
   align-self: flex-start;
   font-size: 0.75rem;
@@ -85,30 +137,38 @@ const categoryLabel = (cat: string) => {
   border-radius: 6px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  background-color: var(--bg-tertiary-color);
+  color: var(--fg-secondary-color);
 
-  &.grammar {
-    background-color: var(--bg-accent-color);
+  &.grammar, &.tenses {
+    background-color: rgba(100, 100, 255, 0.15);
     color: var(--fg-accent-color);
   }
 
-  &.lexical {
-    background-color: var(--bg-success-color);
-    color: var(--fg-success-color);
+  &.lexical, &.articles {
+    background-color: rgba(76, 175, 80, 0.15);
+    color: #4caf50;
   }
 
-  &.collocation {
-    background-color: var(--bg-error-color);
-    color: var(--fg-error-color);
+  &.collocation, &.passive {
+    background-color: rgba(244, 67, 54, 0.15);
+    color: #f44336;
   }
 
-  &.measure_words {
-    background-color: var(--bg-warning-color);
-    color: var(--fg-warning-color);
+  &.measure_words, &.conditionals {
+    background-color: rgba(255, 152, 0, 0.15);
+    color: #ff9800;
   }
 
-  &.hsk-badge {
-    background-color: var(--bg-info-color);
-    color: var(--fg-info-color);
+  &.modals {
+    background-color: rgba(0, 188, 212, 0.15);
+    color: #00bcd4;
+  }
+
+  &.level-badge {
+    background-color: var(--bg-tertiary-color);
+    color: var(--fg-primary-color);
+    font-weight: 700;
   }
 }
 
@@ -193,7 +253,7 @@ const categoryLabel = (cat: string) => {
   line-height: 1.4;
 }
 
-.example-pinyin {
+.example-phonetic {
   font-size: 0.8rem;
   font-style: italic;
   color: var(--fg-accent-color);

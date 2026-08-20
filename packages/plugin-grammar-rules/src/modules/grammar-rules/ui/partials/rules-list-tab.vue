@@ -1,5 +1,4 @@
-1<script setup lang="ts">
-import { computed } from 'vue'
+<script setup lang="ts">
 import { useI18n } from 'vue-i18n'
 import { KitInput, KitSelect } from '~/02.kit'
 import { Icon } from '@iconify/vue'
@@ -8,6 +7,8 @@ import RuleCard from './rule-card.vue'
 
 interface Props {
   filteredRules: Rule[]
+  categoryOptions: Array<{ label: string, value: string }>
+  levelOptions: Array<{ label: string, value: string }>
   loading?: boolean
 }
 
@@ -18,29 +19,26 @@ const selectedCategory = defineModel<string>('selectedCategory', { required: tru
 const selectedLevel = defineModel<string>('selectedLevel', { required: true })
 
 const { t } = useI18n()
-
-const categoryOptions = computed(() => [
-  { label: t('plugins.grammar-rules.catAll'), value: 'all' },
-  { label: t('plugins.grammar-rules.catGrammar'), value: 'grammar' },
-  { label: t('plugins.grammar-rules.catLexical'), value: 'lexical' },
-  { label: t('plugins.grammar-rules.catCollocation'), value: 'collocation' },
-  { label: t('plugins.grammar-rules.catMeasureWords'), value: 'measure_words' }
-])
-
-const levelOptions = computed(() => [
-  { label: t('plugins.grammar-rules.levelAll'), value: 'all' },
-  { label: 'HSK 1', value: 'hsk1' },
-  { label: 'HSK 2', value: 'hsk2' },
-  { label: 'HSK 3', value: 'hsk3' }
-])
 </script>
 
 <template>
   <div class="rules-tab-content">
     <div class="filters-bar">
-      <KitInput v-model="searchQuery" :placeholder="t('plugins.grammar-rules.searchPlaceholder')" class="search-input" />
-      <KitSelect v-model="selectedCategory" :options="categoryOptions" class="category-select" />
-      <KitSelect v-model="selectedLevel" :options="levelOptions" class="level-select" />
+      <KitInput
+        v-model="searchQuery"
+        :placeholder="t('plugins.grammar-rules.searchPlaceholder')"
+        class="search-input"
+      />
+      <KitSelect
+        v-model="selectedCategory"
+        :options="categoryOptions"
+        class="category-select"
+      />
+      <KitSelect
+        v-model="selectedLevel"
+        :options="levelOptions"
+        class="level-select"
+      />
     </div>
 
     <div v-if="loading" class="loading-state">
@@ -54,7 +52,11 @@ const levelOptions = computed(() => [
     </div>
 
     <div v-else class="rules-grid">
-      <RuleCard v-for="rule in filteredRules" :key="rule.id" :rule="rule" />
+      <RuleCard
+        v-for="rule in filteredRules"
+        :key="rule.id"
+        :rule="rule"
+      />
     </div>
   </div>
 </template>
@@ -65,6 +67,7 @@ const levelOptions = computed(() => [
   flex-direction: column;
   gap: 20px;
   margin-top: 12px;
+  padding: 4px;
 }
 
 .filters-bar {
