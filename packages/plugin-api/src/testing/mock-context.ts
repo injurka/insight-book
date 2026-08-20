@@ -2,6 +2,9 @@ import type {
   InsightBookPluginApiFacade,
   InsightBookPluginContext,
   InsightBookPluginEventBus,
+  PluginHttpRequestOptions,
+  PluginLlmGeneratePayload,
+  PluginLlmGenerateResult,
   PluginUIWidget,
   UIPosition,
 } from '../types'
@@ -34,6 +37,8 @@ export interface MockContextOptions {
   words?: Array<{ id: number, word: string, score?: number, grade?: number }>
   currentBook?: Record<string, unknown> | null
   userProfile?: Record<string, unknown> | null
+  onRequest?: (endpoint: string, options?: PluginHttpRequestOptions) => Promise<unknown> | unknown
+  onLlmGenerate?: (payload: PluginLlmGeneratePayload) => Promise<PluginLlmGenerateResult<unknown>> | PluginLlmGenerateResult<unknown>
 }
 
 export interface MockPluginContextResult {
@@ -153,6 +158,27 @@ export function createMockPluginContext(options: MockContextOptions = {}): MockP
       }, logger)
 
   const api: InsightBookPluginApiFacade = {
+    request: async <T = unknown>(endpoint: string, reqOptions?: PluginHttpRequestOptions): Promise<T> => {
+      logger.log('request', endpoint, reqOptions)
+      if (options.onRequest) {
+        return (await options.onRequest(endpoint, reqOptions)) as T
+      }
+      return { success: true } as unknown as T
+    },
+    llm: {
+      generate: async <T = unknown>(payload: PluginLlmGeneratePayload): Promise<PluginLlmGenerateResult<T>> => {
+        logger.log('llm.generate', payload)
+        if (options.onLlmGenerate) {
+          const result = await options.onLlmGenerate(payload)
+          return result as PluginLlmGenerateResult<T>
+        }
+        return {
+          success: true,
+          data: (payload.json ? {} : undefined) as T,
+          text: payload.json ? undefined : 'Mock LLM generated content',
+        }
+      },
+    },
     dictionary: {
       getWords: () => dictionaryApi.getWords(),
       updateWordStats: (id, score) => dictionaryApi.updateWordStats(id, score),

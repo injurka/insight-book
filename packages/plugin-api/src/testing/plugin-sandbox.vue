@@ -6,6 +6,7 @@ import { computed, markRaw, onMounted, onUnmounted, provide, ref, watch } from '
 import { useI18n } from 'vue-i18n'
 import { createMemoryHistory, createRouter } from 'vue-router'
 
+import { setPluginContext } from '../index'
 import { createMockPluginContext } from '../testing/mock-context'
 
 import SandboxHeader from './components/sandbox-header.vue'
@@ -101,6 +102,7 @@ onUnmounted(() => {
 })
 
 async function activatePlugin() {
+  setPluginContext(mock.context)
   if (props.plugin.activate) {
     await props.plugin.activate(mock.context)
   }

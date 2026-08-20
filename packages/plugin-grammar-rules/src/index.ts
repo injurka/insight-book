@@ -1,4 +1,5 @@
 import type { InsightBookPlugin, InsightBookPluginContext } from '@injurka/insight-book-plugin-api'
+import { setPluginApi, setPluginContext } from '@injurka/insight-book-plugin-api'
 
 import en from './shared/locales/en'
 import ru from './shared/locales/ru'
@@ -16,6 +17,11 @@ const plugin: InsightBookPlugin = {
   },
 
   activate(ctx: InsightBookPluginContext) {
+    setPluginContext(ctx)
+    if (ctx.api) {
+      setPluginApi(ctx.api)
+    }
+
     ctx.registerTranslations({ ru, en, zh })
 
     const locales = { ru, en, zh } as const
@@ -25,7 +31,7 @@ const plugin: InsightBookPlugin = {
       title: 'Grammar Rules',
       titleKey: 'plugins.grammar-rules.navItemTitle',
       icon: 'mdi:school-outline',
-      routeName: 'plugin-grammar-rules-index'
+      routeName: 'plugin-grammar-rules-index',
     })
     ctx.notify(t.notifyActivated, 'success')
   },
@@ -34,7 +40,7 @@ const plugin: InsightBookPlugin = {
     const locales = { ru, en, zh } as const
     const t = locales[ctx.locale as keyof typeof locales] ?? en
     ctx.notify(t.notifyDeactivated, 'info')
-  }
+  },
 }
 
 export default plugin

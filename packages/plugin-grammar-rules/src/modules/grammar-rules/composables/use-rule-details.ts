@@ -1,4 +1,5 @@
 import { ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { generateRuleExplanationViaLlm } from '../../../shared/lib/api'
 import type { Rule } from '../../../shared/types'
 
@@ -23,13 +24,16 @@ function setCachedExplanation(ruleId: string, text: string) {
 }
 
 export function useRuleDetails() {
+  const { locale } = useI18n()
   const selectedRule = ref<Rule | null>(null)
   const isModalOpen = ref(false)
   const explanation = ref('')
   const isLoading = ref(false)
   const error = ref<string | null>(null)
 
-  const fetchExplanation = async (rule: Rule, targetLang = 'ru', forceRefresh = false) => {
+  const fetchExplanation = async (rule: Rule, targetLang?: string, forceRefresh = false) => {
+    const lang = targetLang || (locale.value as string) || 'ru'
+
     if (!forceRefresh) {
       const cached = getCachedExplanation(rule.id)
       if (cached) {
@@ -45,7 +49,8 @@ export function useRuleDetails() {
     explanation.value = ''
 
     try {
-      const generated = await generateRuleExplanationViaLlm(rule, targetLang)
+      const generated = await generateRuleExplanationViaLlm(rule, lang)
+
       if (generated) {
         explanation.value = generated
         setCachedExplanation(rule.id, generated)
@@ -64,15 +69,17 @@ export function useRuleDetails() {
     }
   }
 
-  const openRuleDetails = (rule: Rule, targetLang = 'ru') => {
+  const openRuleDetails = (rule: Rule, targetLang?: string) => {
+    const lang = targetLang || (locale.value as string) || 'ru'
     selectedRule.value = rule
     isModalOpen.value = true
-    fetchExplanation(rule, targetLang, false)
+    fetchExplanation(rule, lang, false)
   }
 
-  const regenerate = (targetLang = 'ru') => {
+  const regenerate = (targetLang?: string) => {
+    const lang = targetLang || (locale.value as string) || 'ru'
     if (selectedRule.value) {
-      fetchExplanation(selectedRule.value, targetLang, true)
+      fetchExplanation(selectedRule.value, lang, true)
     }
   }
 

@@ -4,6 +4,9 @@ import type {
   InsightBookPluginContext,
   InsightBookPluginEventBus,
   InsightBookPluginManifest,
+  PluginHttpRequestOptions,
+  PluginLlmGeneratePayload,
+  PluginLlmGenerateResult,
   PluginUIWidget,
   UIPosition,
 } from '@injurka/insight-book-plugin-api'
@@ -13,6 +16,7 @@ import { init, loadRemote, registerRemotes } from '@module-federation/enhanced/r
 import { markRaw, reactive } from 'vue'
 import { defaultRepositories } from '~/00.plugins/di'
 import { i18n } from '~/00.plugins/i18n'
+import { api, request } from '~/01.shared/services/api.service'
 
 import { getCachedPlugin, saveCachedPlugin } from './plugin-storage'
 
@@ -99,6 +103,20 @@ function toMfRemoteName(pluginId: string) {
   return `plugin_${pluginId.replace(/\W/g, '_')}`
 }
 
+function executePluginRequest<T = unknown>(endpoint: string, options?: PluginHttpRequestOptions): Promise<T> {
+  const opts = options || {}
+
+  return request<T>(endpoint, {
+    method: (opts.method || 'GET') as ('GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH' | 'HEAD' | 'OPTIONS' | 'CONNECT' | 'TRACE'),
+    body: opts.body as BodyInit | Record<string, unknown> | null | undefined,
+    headers: opts.headers,
+    query: opts.query ?? opts.params,
+    withLlm: opts.withLlm,
+    silentErrors: opts.silentErrors,
+    signal: opts.signal,
+  })
+}
+
 export function usePluginManager(): PluginManager {
   const plugins = reactive<InsightBookPlugin[]>([])
   const navItems = reactive<PluginNavItem[]>([])
@@ -106,6 +124,12 @@ export function usePluginManager(): PluginManager {
   const uiWidgets = reactive<ManagedUIWidget[]>([])
 
   const createApiFacade = (): InsightBookPluginApiFacade => ({
+    request: executePluginRequest,
+    llm: {
+      generate: <T = unknown>(payload: PluginLlmGeneratePayload): Promise<PluginLlmGenerateResult<T>> => {
+        return api.llm.generate<T>(payload)
+      },
+    },
     dictionary: {
       getWords: async () => {
         try {
@@ -149,6 +173,7 @@ export function usePluginManager(): PluginManager {
         }
       },
     },
+    client: api as unknown as Record<string, unknown>,
   })
 
   const registerUIWidget = (

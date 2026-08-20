@@ -25,6 +25,19 @@ vi.mock('~/00.plugins/di', () => ({
   },
 }))
 
+vi.mock('~/01.shared/services/api.service', () => ({
+  request: vi.fn().mockResolvedValue({ success: true, from: 'mockRequest' }),
+  api: {
+    llm: {
+      generate: vi.fn().mockResolvedValue({ success: true, text: 'mock generated text' }),
+    },
+    books: {
+      list: vi.fn().mockResolvedValue([]),
+    },
+    dictionary: {},
+  },
+}))
+
 vi.mock('./plugin-storage', () => ({
   saveCachedPlugin: vi.fn(),
   getCachedPlugin: vi.fn(),
@@ -492,5 +505,45 @@ describe('usePluginManager - loadRemotePlugin', () => {
     expect(result).toBe(cachedPlugin)
     expect(manager.plugins).toHaveLength(1)
     expect(manager.plugins[0].id).toBe('cached-plugin')
+  })
+})
+
+describe('usePluginManager - api facade', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('provides working request, llm, and client on ctx.api', async () => {
+    const { api, request } = await import('~/01.shared/services/api.service')
+    const manager = usePluginManager()
+    const router = createTestRouter()
+
+    let capturedCtx: InsightBookPluginContext | null = null
+    const plugin = createTestPlugin({
+      activate(ctx: InsightBookPluginContext) {
+        capturedCtx = ctx
+      },
+    })
+
+    await manager.install(null, router, [plugin])
+
+    expect(capturedCtx).not.toBeNull()
+    const facade = capturedCtx!.api
+
+    // Test llm.generate
+    const llmRes = await facade.llm.generate({ prompt: 'hello', action: 'test' })
+    expect(api.llm.generate).toHaveBeenCalledWith({ prompt: 'hello', action: 'test' })
+    expect(llmRes).toEqual({ success: true, text: 'mock generated text' })
+
+    // Test request
+    const reqRes = await facade.request('/api/custom-endpoint', { method: 'POST', body: { a: 1 } })
+    expect(request).toHaveBeenCalledWith('/api/custom-endpoint', expect.objectContaining({
+      method: 'POST',
+      body: { a: 1 },
+    }))
+    expect(reqRes).toEqual({ success: true, from: 'mockRequest' })
+
+    // Test client object presence
+    expect(facade.client).toBe(api)
   })
 })

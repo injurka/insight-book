@@ -1,21 +1,24 @@
 import { ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { generateGrammarTestsViaLlm } from '../../../shared/lib/api'
 import type { Rule, RuleTest } from '../../../shared/types'
 
 export function useAiGrammar() {
+  const { locale } = useI18n()
   const isGenerating = ref(false)
   const error = ref<string | null>(null)
 
   const generateTestsForRule = async (
     rule: Rule,
-    targetLang = 'ru',
-    count = 3
+    targetLang?: string,
+    count = 3,
   ): Promise<RuleTest[] | null> => {
+    const lang = targetLang || (locale.value as string) || 'ru'
     isGenerating.value = true
     error.value = null
 
     try {
-      const questions = await generateGrammarTestsViaLlm(rule, targetLang, count)
+      const questions = await generateGrammarTestsViaLlm(rule, lang, count)
       return questions
     }
     catch (e: unknown) {

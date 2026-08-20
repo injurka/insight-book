@@ -1,76 +1,39 @@
+import type {
+  InsightBookPluginApiFacade,
+  PluginHttpRequestOptions,
+  PluginLlmGeneratePayload,
+} from '@injurka/insight-book-plugin-api'
+import { getPluginApi as getGlobalPluginApi } from '@injurka/insight-book-plugin-api'
 import type { Rule, RuleTest } from '../types'
 
-export interface CustomLlmConfig {
-  url: string
-  key: string
-  model: string
+let localPluginApi: InsightBookPluginApiFacade | null = null
+
+export function setPluginApi(api: InsightBookPluginApiFacade) {
+  localPluginApi = api
 }
 
-function getStoredToken(): string | null {
-  try {
-    return localStorage.getItem('insight_token')
-  }
-  catch {
-    return null
-  }
-}
-
-function getStoredTargetLang(): string {
-  try {
-    const saved = localStorage.getItem('global-app-language')
-    return saved ? saved.replace(/^"|"$/g, '') : 'ru'
-  }
-  catch {
-    return 'ru'
-  }
-}
-
-function getStoredCustomLlm(): CustomLlmConfig | null {
-  try {
-    const raw = localStorage.getItem('custom_llm_config')
-    return raw ? JSON.parse(raw) : null
-  }
-  catch {
-    return null
-  }
+export function getPluginApi(): InsightBookPluginApiFacade | null {
+  return localPluginApi ?? getGlobalPluginApi()
 }
 
 export async function pluginRequest<T = unknown>(
   endpoint: string,
-  options: {
-    method?: string
-    body?: unknown
-    headers?: Record<string, string>
-  } = {},
+  options?: PluginHttpRequestOptions,
 ): Promise<T> {
-  const token = getStoredToken()
-  const targetLang = getStoredTargetLang()
-  const customLlm = getStoredCustomLlm()
-
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-    ...(options.headers || {}),
+  const api = getPluginApi()
+  if (api?.request) {
+    return api.request<T>(endpoint, options)
   }
 
-  if (token) {
-    headers.Authorization = `Bearer ${token}`
-  }
-
-  if (customLlm) {
-    headers['X-Custom-Llm-Url'] = customLlm.url
-    headers['X-Custom-Llm-Key'] = customLlm.key
-    headers['X-Custom-Llm-Model'] = customLlm.model
-  }
-
-  const url = endpoint.startsWith('http') ? new URL(endpoint) : new URL(endpoint, window.location.origin)
-  if (targetLang && !url.searchParams.has('targetLang')) {
-    url.searchParams.set('targetLang', targetLang)
-  }
-
-  const response = await fetch(url.toString(), {
-    method: options.method || 'GET',
-    headers,
-    body: options.body ? JSON.stringify(options.body) : undefined,
+  // Fallback for standalone/testing environments
+  const response = await fetch(endpoint, {
+    method: options?.method || 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(options?.headers || {}),
+    },
+    body: options?.body ? JSON.stringify(options.body) : undefined,
+    signal: options?.signal,
   })
 
   if (!response.ok) {
@@ -81,14 +44,31 @@ export async function pluginRequest<T = unknown>(
   return response.json() as Promise<T>
 }
 
-export async function requestLlmGenerate<T = unknown>(params: {
-  action?: string
-  prompt?: string
-  systemPrompt?: string
-  messages?: Array<{ role: 'system' | 'user' | 'assistant', content: string }>
-  json?: boolean
-  temperature?: number
-}): Promise<T | null> {
+export async function requestLlmGenerate<T = unknown>(params: PluginLlmGeneratePayload): Promise<T | null> {
+  const api = getPluginApi()
+
+  if (api?.llm?.generate) {
+    const res = await api.llm.generate<T>({
+      action: params.action || 'grammar_generate',
+      prompt: params.prompt,
+      systemPrompt: params.systemPrompt,
+      messages: params.messages,
+      json: params.json ?? true,
+      temperature: params.temperature ?? 0.3,
+    })
+
+    if (res.success) {
+      if (params.json === false && typeof res.text === 'string') {
+        return res.text as unknown as T
+      }
+      if (res.data !== undefined) {
+        return res.data
+      }
+    }
+    return null
+  }
+
+  // Fallback via general request
   const res = await pluginRequest<{ success: boolean, data?: T, text?: string }>('/api/llm/generate', {
     method: 'POST',
     body: {
@@ -99,6 +79,7 @@ export async function requestLlmGenerate<T = unknown>(params: {
       json: params.json ?? true,
       temperature: params.temperature ?? 0.3,
     },
+    withLlm: true,
   })
 
   if (res.success) {

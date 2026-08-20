@@ -86,7 +86,11 @@ ctx.unregisterUIWidget('widget-id')
 
 ## 4. Использование API (Facade Pattern)
 - **Запрещено** импортировать Pinia-сторы приложения напрямую.
-- Используй только фасад `ctx.api`:
+- Используй только фасад `ctx.api` (или хелперы `usePluginApi()` / `getPluginApi()` из `@injurka/insight-book-plugin-api` после `activate`):
+  - `ctx.api.llm.generate({ prompt, systemPrompt, json, temperature })` — вызовы LLM (AI) через бэкенд
+  - `ctx.api.request<T>(url, options)` — HTTP-запросы через клиент приложения (с авторизацией, CORS, LLM-хедерами)
+  - `ctx.api.client` — прямой доступ ко всем методам `api` хоста (`books`, `dictionary`, `quiz`, `tts`, `activity`, и др.)
   - `ctx.api.dictionary.getWords()`
   - `ctx.api.reader.getCurrentBook()`
   - `ctx.api.user.getProfile()`
+

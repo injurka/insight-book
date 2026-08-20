@@ -550,7 +550,7 @@ export const api = {
   },
 
   plugins: {
-    getMyPlugins: async () => request<UserPluginRecord[]>('/api/plugins/my'),
+    getMyPlugins: async () => request<UserPluginRecord[]>('/api/plugins/my', { silentErrors: true }),
     installPlugin: async (data: { pluginId: string, manifestUrl: string, settings?: string | null, isEnabled?: boolean }) =>
       request<UserPluginRecord>('/api/plugins', {
         method: 'POST',

@@ -21,18 +21,66 @@ export interface InsightBookPluginEventBus {
   emit: (event: string, data?: unknown) => void
 }
 
+export interface PluginHttpRequestOptions {
+  method?: string
+  body?: BodyInit | Record<string, unknown> | null
+  headers?: Record<string, string>
+  params?: Record<string, unknown>
+  query?: Record<string, unknown>
+  withLlm?: boolean
+  silentErrors?: boolean
+  signal?: AbortSignal
+}
+
+export interface PluginLlmMessage {
+  role: 'system' | 'user' | 'assistant'
+  content: string
+}
+
+export interface PluginLlmGeneratePayload {
+  action?: string
+  prompt?: string
+  systemPrompt?: string
+  messages?: PluginLlmMessage[]
+  json?: boolean
+  temperature?: number
+}
+
+export interface PluginLlmGenerateResult<T = unknown> {
+  success: boolean
+  data?: T
+  text?: string
+  usage?: unknown
+}
+
 export interface InsightBookPluginApiFacade {
+  /** Универсальный метод выполнения HTTP-запросов к API бэкенда через клиент приложения */
+  request: <T = unknown>(endpoint: string, options?: PluginHttpRequestOptions) => Promise<T>
+
+  /** Методы генерации через LLM (AI) */
+  llm: {
+    generate: <T = unknown>(payload: PluginLlmGeneratePayload) => Promise<PluginLlmGenerateResult<T>>
+  }
+
+  /** Методы словаря пользователя */
   dictionary: {
     getWords: () => Promise<unknown[]>
     updateWordStats: (id: number, score: number) => Promise<void>
     submitGrade: (wordId: number, grade: number) => Promise<void>
   }
+
+  /** Методы читалки */
   reader: {
     getCurrentBook: () => Promise<unknown | null> | (unknown | null)
   }
+
+  /** Методы пользователя */
   user: {
     getProfile: () => Promise<unknown | null> | (unknown | null)
   }
+
+  /** Прямой доступ к клиенту API приложения (все зарегистрированные контроллеры и ручки) */
+  client?: Record<string, unknown>
 }
 
 export interface InsightBookPluginContext {
