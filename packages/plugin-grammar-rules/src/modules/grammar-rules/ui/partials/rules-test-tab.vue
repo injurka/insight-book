@@ -572,11 +572,11 @@ const getOptionsList = (test: MultipleChoiceTest | ClozeChoiceTest): Array<{ tex
 }
 
 .test-card {
-  border-radius: 16px;
   padding: 32px 0;
   display: flex;
   flex-direction: column;
   gap: 24px;
+  border-top: 1px solid var(--border-primary-color);
 }
 
 .test-rule-ref {

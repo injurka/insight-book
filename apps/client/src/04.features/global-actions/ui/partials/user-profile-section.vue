@@ -150,8 +150,6 @@ function openLimits() {
           </div>
         </div>
       </div>
-
-      <Icon icon="mdi:chevron-right" class="limits-chevron" />
     </div>
 
     <KitPrompt
@@ -275,10 +273,6 @@ function openLimits() {
   &:hover {
     background-color: var(--bg-hover-color);
     transform: translateY(-2px);
-
-    .limits-chevron {
-      color: var(--fg-accent-color);
-    }
   }
 
   .limits-content {
@@ -287,13 +281,6 @@ function openLimits() {
     gap: 12px;
     flex-grow: 1;
     min-width: 0;
-  }
-
-  .limits-chevron {
-    font-size: 1.25rem;
-    color: var(--fg-secondary-color);
-    transition: color 0.2s;
-    flex-shrink: 0;
   }
 
   .limit-widget-item {

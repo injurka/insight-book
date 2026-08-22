@@ -617,11 +617,18 @@ onMounted(() => {
 .message-content {
   :deep(h1),
   :deep(h2),
-  :deep(h3) {
+  :deep(h3),
+  :deep(h4) {
     margin: 12px 0 6px;
-    font-size: 1.1rem;
+    font-size: 1.05rem;
     font-weight: 600;
     color: var(--fg-primary-color);
+  }
+  :deep(hr) {
+    border: none;
+    border-top: 1px solid var(--border-primary-color);
+    margin: 12px 0;
+    opacity: 0.6;
   }
   :deep(strong) {
     font-weight: 600;
@@ -629,6 +636,40 @@ onMounted(() => {
   }
   :deep(em) {
     font-style: italic;
+  }
+  :deep(blockquote) {
+    margin: 8px 0;
+    padding: 6px 12px;
+    border-left: 3px solid var(--fg-accent-color);
+    background-color: var(--bg-hover-color);
+    border-radius: 0 6px 6px 0;
+    color: var(--fg-secondary-color);
+  }
+  :deep(table),
+  :deep(.markdown-table) {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 10px 0;
+    font-size: 0.88rem;
+    background-color: var(--bg-primary-color);
+    border-radius: 6px;
+    overflow: hidden;
+    border: 1px solid var(--border-primary-color);
+
+    th,
+    td {
+      padding: 6px 10px;
+      text-align: left;
+      border: 1px solid var(--border-primary-color);
+    }
+    th {
+      background-color: var(--bg-hover-color);
+      font-weight: 600;
+      color: var(--fg-primary-color);
+    }
+    tr:nth-child(even) {
+      background-color: rgba(128, 128, 128, 0.04);
+    }
   }
   :deep(code.chat-code) {
     background-color: var(--bg-hover-color);
@@ -647,15 +688,19 @@ onMounted(() => {
     overflow-x: auto;
   }
 
-  :deep(ul),
+  :deep(ul) {
+    margin: 8px 0;
+    padding-left: 22px;
+    list-style-type: disc;
+  }
   :deep(ol) {
     margin: 8px 0;
-    padding-left: 24px;
+    padding-left: 22px;
+    list-style-type: decimal;
   }
   :deep(li) {
     margin-bottom: 4px;
     line-height: 1.4;
-    list-style-type: disc;
 
     &:last-child {
       margin-bottom: 0;

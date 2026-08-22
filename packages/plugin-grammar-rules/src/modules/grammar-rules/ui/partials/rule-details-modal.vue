@@ -263,35 +263,59 @@ const formattedExplanation = computed(() => {
   font-size: 0.95rem;
 
   :deep(.markdown-body) {
-    h1, h2, h3 {
+    h1, h2, h3, h4 {
       color: var(--fg-primary-color);
-      margin-top: 20px;
-      margin-bottom: 10px;
       font-weight: 700;
-      line-height: 1.3;
+      line-height: 1.35;
     }
 
     h1 {
       font-size: 1.3rem;
       border-bottom: 1px solid var(--border-secondary-color);
       padding-bottom: 6px;
+      margin-top: 22px;
+      margin-bottom: 12px;
     }
 
     h2 {
       font-size: 1.15rem;
       border-bottom: 1px solid var(--border-secondary-color);
       padding-bottom: 4px;
+      margin-top: 20px;
+      margin-bottom: 10px;
     }
 
     h3 {
       font-size: 1.02rem;
+      margin-top: 16px;
+      margin-bottom: 8px;
+    }
+
+    h4 {
+      font-size: 0.95rem;
+      margin-top: 14px;
+      margin-bottom: 6px;
+    }
+
+    hr {
+      border: none;
+      border-top: 1px solid var(--border-primary-color);
+      margin: 20px 0;
+      opacity: 0.6;
     }
 
     p {
       margin: 8px 0;
     }
 
-    ul, ol {
+    ul {
+      list-style-type: disc;
+      padding-left: 20px;
+      margin: 8px 0;
+    }
+
+    ol {
+      list-style-type: decimal;
       padding-left: 20px;
       margin: 8px 0;
     }
@@ -303,6 +327,48 @@ const formattedExplanation = computed(() => {
     strong {
       font-weight: 600;
       color: var(--fg-primary-color);
+    }
+
+    em {
+      font-style: italic;
+    }
+
+    blockquote {
+      margin: 12px 0;
+      padding: 8px 14px;
+      border-left: 3px solid var(--fg-accent-color);
+      background-color: var(--bg-tertiary-color);
+      border-radius: 0 6px 6px 0;
+      color: var(--fg-secondary-color);
+    }
+
+    table,
+    .markdown-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 16px 0;
+      font-size: 0.9rem;
+      background-color: var(--bg-tertiary-color);
+      border-radius: 8px;
+      overflow: hidden;
+      border: 1px solid var(--border-primary-color);
+
+      th, td {
+        padding: 8px 12px;
+        text-align: left;
+        border: 1px solid var(--border-primary-color);
+        vertical-align: top;
+      }
+
+      th {
+        background-color: var(--bg-primary-color);
+        font-weight: 600;
+        color: var(--fg-primary-color);
+      }
+
+      tr:nth-child(even) {
+        background-color: rgba(255, 255, 255, 0.02);
+      }
     }
 
     code {

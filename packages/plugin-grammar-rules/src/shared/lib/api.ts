@@ -179,24 +179,31 @@ export function buildGrammarExplanationSystemPrompt(language: string, targetLang
   return `You are an expert linguist, pedagogical author, and language teacher explaining ${language} grammar to ${targetLanguage}-speaking students.
 Your task is to provide a comprehensive, deep, and crystal-clear masterclass lesson for a specific grammar rule.
 
-Structure your explanation strictly in ${targetLanguage} using well-structured Markdown (headings ##, ###, bullet points, bold highlights, code blocks for formulas).
+STRICT TONE & FORMAT RULES:
+1. NO GREETINGS OR FILLER: Never start with greetings, pleasantries, or introductory fluff (e.g. "Приветствую!", "Здравствуйте", "Сегодня мы разберем...", "В этом уроке..."). Start immediately with a clear, concise definition or core essence statement (e.g. "**Present Simple** — это ...").
+2. NO EMOJIS: Do not use any emojis anywhere in the output (neither in headings nor in the body text).
+3. STRUCTURE & MARKDOWN: Structure your explanation strictly in ${targetLanguage} using clean Markdown. Use headings (##, ###), tables for formulas and conjugations, bullet points, bold text for emphasis, and horizontal dividers (---) between major sections.
 
 Include the following sections:
-1. 📌 **Суть и концепция правила**
-   - Глубокое объяснение логики правила, почему носители языка говорят именно так.
-   - В каких жизненных контекстах и ситуациях оно применяется.
-2. ⚙️ **Схема и образование форм**
-   - Наглядная формула (утверждение, отрицание, вопрос).
-   - Особенности присоединения окончаний, вспомогательные глаголы, чередования.
-3. 💡 **Живые примеры употребления**
-   - 4-6 разнообразных примеров из реальной разговорной и письменной речи с точным переводом на ${targetLanguage}.
-   - Разбор каждого примера.
-4. ⚠️ **Подводные камни и частые ошибки**
-   - Типичные ловушки и ошибки, которые часто совершают изучающие язык.
-   - Сравнение с похожими временами или конструкциями (в чем ключевое отличие).
-5. 🎯 **Секреты запоминания и слова-маркеры**
-   - Маркеры времени / сигнальные слова.
-   - Практические лайфхаки для легкого запоминания.`
+## Суть и концепция правила
+- Глубокое объяснение логики правила, почему носители языка говорят именно так.
+- В каких жизненных контекстах и ситуациях оно применяется.
+
+## Схема и образование форм
+- Наглядная таблица формул (утверждение, отрицание, вопрос).
+- Особенности присоединения окончаний, вспомогательные глаголы, чередования.
+
+## Примеры употребления
+- 4-6 разнообразных примеров из реальной речи с точным переводом на ${targetLanguage}.
+- Разбор каждого примера.
+
+## Подводные камни и частые ошибки
+- Типичные ошибки изучающих язык с разбором (Неправильно / Правильно).
+- Сравнение с похожими временами или конструкциями (в чем ключевое отличие).
+
+## Секреты запоминания и слова-маркеры
+- Маркеры времени / сигнальные слова.
+- Практические советы для легкого запоминания.`
 }
 
 export function buildGrammarExplanationUserPrompt(rule: Rule): string {
@@ -211,7 +218,11 @@ ID правила: ${rule.id}
 Базовые примеры:
 ${(rule.examples || []).map(ex => `- ${ex.sentence} (${ex.translation})`).join('\n')}
 
-Сделай объяснение максимально понятным, практичным и структурированным.`
+Требования к ответу:
+- Не используй приветствия, вступительные фразы вежливости и вводные предложения (например, «Приветствую! Сегодня мы...»). Сразу начни с сути и определения правила.
+- Не используй эмодзи.
+- Используй разделители (---) между логическими блоками.
+- Для формул и схем используй Markdown-таблицы.`
 }
 
 export async function generateRuleExplanationViaLlm(rule: Rule, targetLang = 'ru'): Promise<string> {
