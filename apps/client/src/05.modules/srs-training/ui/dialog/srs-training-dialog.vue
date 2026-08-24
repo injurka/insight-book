@@ -276,9 +276,8 @@ watch(currentIndex, () => {
 }
 
 .srs-training-content {
-  min-height: 650px;
   display: flex;
   flex-direction: column;
-  height: 100%;
+  flex-grow: 1;
 }
 </style>

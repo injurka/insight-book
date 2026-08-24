@@ -66,13 +66,12 @@ const { t } = useI18n()
 <style lang="scss" scoped>
 .finished-state {
   text-align: center;
-  padding: 40px 0;
-  height: 100%;
+  padding: 24px 0;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  flex: 1;
+  width: 100%;
 
   h2 {
     margin-bottom: 12px;

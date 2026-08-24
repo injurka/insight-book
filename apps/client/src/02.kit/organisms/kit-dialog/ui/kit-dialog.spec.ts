@@ -85,6 +85,15 @@ describe('kit-dialog.vue', () => {
     expect(wrapper.emitted('update:visible')?.[0]).toEqual([false])
   })
 
+  it('emits update:visible when close button is clicked even if persistent', async () => {
+    const wrapper = createWrapper({ persistent: true })
+    const closeBtn = wrapper.find('.close-button')
+    expect(closeBtn.attributes('disabled')).toBeUndefined()
+    await closeBtn.trigger('click')
+
+    expect(wrapper.emitted('update:visible')?.[0]).toEqual([false])
+  })
+
   it('renders default slot content', () => {
     const wrapper = createWrapper({}, { default: '<div class="test-slot">Slot Content</div>' })
     expect(wrapper.find('.test-slot').exists()).toBe(true)

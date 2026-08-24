@@ -261,8 +261,7 @@ onUnmounted(() => {
                 class="dialog-icon-btn minimize-button"
                 :aria-label="t('kit.dialog.minimize')"
                 :title="t('kit.dialog.minimize')"
-                :disabled="persistent"
-                @click="!persistent && (isMinimized = true)"
+                @click="isMinimized = true"
               >
                 <Icon icon="mdi:minus" />
               </button>
@@ -271,8 +270,7 @@ onUnmounted(() => {
                 class="dialog-icon-btn close-button"
                 :aria-label="t('kit.dialog.close')"
                 :title="t('kit.dialog.close')"
-                :disabled="persistent"
-                @click="!persistent && (visible = false)"
+                @click="visible = false"
               >
                 <Icon icon="mdi:close" />
               </button>

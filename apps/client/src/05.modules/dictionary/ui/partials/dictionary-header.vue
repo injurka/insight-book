@@ -166,21 +166,21 @@ function openTrainingSettings(mode: 'srs' | 'deep_dive' | 'cram' | 'match') {
           v-model="store.searchTerm"
           :placeholder="t('dictionary.searchPlaceholder')"
           icon="mdi:magnify"
-          color="secondary"
+          color="primary"
           class="filter-search-input"
         />
         <KitSelect
           v-model="store.selectedLanguage"
           :options="langOptions"
           icon="mdi:translate"
-          color="secondary"
+          color="primary"
           class="filter-select"
         />
         <KitSelect
           v-model="store.selectedDeckId"
           :options="deckOptions"
           icon="mdi:folder-outline"
-          color="secondary"
+          color="primary"
           class="filter-select"
           multiple
         />
@@ -188,7 +188,7 @@ function openTrainingSettings(mode: 'srs' | 'deep_dive' | 'cram' | 'match') {
           v-model="store.selectedDifficulty"
           :options="difficultyOptions"
           icon="mdi:chart-bar"
-          color="secondary"
+          color="primary"
           class="filter-select"
           multiple
         />
@@ -196,7 +196,7 @@ function openTrainingSettings(mode: 'srs' | 'deep_dive' | 'cram' | 'match') {
           v-model="store.selectedStatus"
           :options="statusOptions"
           icon="mdi:check-circle-outline"
-          color="secondary"
+          color="primary"
           class="filter-select"
           multiple
         />
