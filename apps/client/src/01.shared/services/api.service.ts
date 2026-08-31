@@ -171,6 +171,11 @@ export const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username }),
     }),
+    unlinkProvider: async (provider: string) => request<{ success: boolean, user: UserData }>('/api/auth/unlink-provider', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ provider }),
+    }),
   },
   books: {
     list: async () => request<Book[]>('/api/books'),

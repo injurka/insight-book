@@ -61,7 +61,9 @@
     "createPassword": "Придумайте пароль",
     "registerBtn": "Зарегистрироваться",
     "getCode": "Получить код",
-    "changeEmail": "Изменить email"
+    "changeEmail": "Изменить email",
+    "privacyConsent": "Авторизуясь или регистрируясь, вы принимаете условия сервиса и соглашаетесь с",
+    "privacyLink": "Политикой конфиденциальности"
   },
   "pwa": {
     "offlineReadyTitle": "Готово к оффлайн-работе",
@@ -166,6 +168,20 @@
     "pushSettingsUpdated": "Настройки уведомлений сохранены",
     "title": "Настройки",
     "subtitle": "Память, оффлайн режим и ИИ",
+    "accountTitle": "Аккаунт",
+    "linkedAccountsTitle": "Связанные аккаунты",
+    "linkedAccountsDesc": "Привяжите сторонние сервисы для быстрого входа в аккаунт в один клик.",
+    "yandex": "Яндекс",
+    "linked": "Подключен",
+    "notLinked": "Не привязан",
+    "link": "Привязать",
+    "unlink": "Отвязать",
+    "unlinkConfirmTitle": "Отвязать аккаунт?",
+    "unlinkConfirmDesc": "Вы уверены, что хотите отвязать {provider} от вашего профиля?",
+    "yandexLinkedSuccess": "Аккаунт Яндекс успешно привязан!",
+    "yandexUnlinkedSuccess": "Аккаунт Яндекс успешно отвязан",
+    "accountLinkedSuccess": "Аккаунт успешно привязан!",
+    "linkFailed": "Не удалось привязать аккаунт",
     "interfaceTitle": "Интерфейс",
     "pluginsTitle": "Плагины",
     "pluginsSubtitle": "Управление дополнительными модулями и динамическими плагинами по URL",
@@ -1069,7 +1085,10 @@
       "TEXT_TOO_LONG": "Текст слишком длинный",
       "RATE_LIMIT_EXCEEDED": "Слишком много запросов. Пожалуйста, подождите.",
       "LLM_NOT_CONFIGURED": "LLM API не настроен",
-      "LLM_ERROR": "Ошибка при работе с ИИ"
+      "LLM_ERROR": "Ошибка при работе с ИИ",
+      "OAUTH_ALREADY_LINKED": "Этот аккаунт уже привязан к другому пользователю.",
+      "OAUTH_NOT_LINKED": "Этот аккаунт не привязан.",
+      "CANNOT_UNLINK_LAST_AUTH": "Нельзя отвязать единственный способ входа в аккаунт."
     }
   },
   "pronunciation": {

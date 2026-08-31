@@ -4,6 +4,10 @@ import { z } from 'zod'
 export const UserDataSchema = z.object({
   id: z.number(),
   username: z.string().default(''),
+  email: z.string().nullish(),
+  yandexId: z.string().nullish(),
+  isYandexLinked: z.boolean().optional(),
+  hasPassword: z.boolean().optional(),
   role: z.string().optional(),
   subscriptionTier: z.enum(['free', 'base', 'advanced', 'premium']).catch('free').optional(),
   usedTokens: z.number().optional(),

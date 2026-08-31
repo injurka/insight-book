@@ -1,4 +1,4 @@
-/// <reference types="bun-types" />
+/// <reference types="@types/bun" />
 
 import { eq } from 'drizzle-orm'
 import { client, db } from './db'

@@ -10,6 +10,7 @@ import { loadLanguageAsync } from '~/00.plugins/i18n'
 import { ThemesVariant, useChangeTheme } from '~/01.shared/composables/use-change-theme'
 import { useToast } from '~/01.shared/composables/use-toast'
 import { useTracking } from '~/01.shared/composables/use-tracking'
+import { AppRoutePaths } from '~/01.shared/constants/routes'
 import { BASE_API_URL } from '~/01.shared/services/api.service'
 import { useAuthStore } from '~/01.shared/store/auth.store'
 import { useGlobalSettingsStore } from '~/01.shared/store/settings.store'
@@ -425,6 +426,13 @@ onUnmounted(() => {
             </button>
           </div>
         </Transition>
+
+        <p class="auth-legal">
+          {{ t('signIn.privacyConsent') }}
+          <router-link :to="AppRoutePaths.Privacy" class="auth-legal-link">
+            {{ t('signIn.privacyLink') }}
+          </router-link>
+        </p>
       </div>
     </main>
   </div>
@@ -957,5 +965,25 @@ onUnmounted(() => {
 .fade-enter-from,
 .fade-leave-to {
   opacity: 0;
+}
+
+.auth-legal {
+  font-size: 0.78rem;
+  line-height: 1.45;
+  color: var(--fg-secondary-color);
+  text-align: center;
+  margin-top: 4px;
+  padding: 0 8px;
+
+  .auth-legal-link {
+    color: var(--fg-accent-color);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    transition: opacity 0.2s ease;
+
+    &:hover {
+      opacity: 0.8;
+    }
+  }
 }
 </style>

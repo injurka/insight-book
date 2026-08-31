@@ -61,7 +61,9 @@
     "createPassword": "Create a password",
     "registerBtn": "Register",
     "getCode": "Get code",
-    "changeEmail": "Change email"
+    "changeEmail": "Change email",
+    "privacyConsent": "By signing in or registering, you agree to the terms of service and our",
+    "privacyLink": "Privacy Policy"
   },
   "pwa": {
     "offlineReadyTitle": "Ready for offline use",
@@ -166,6 +168,20 @@
     "pushSettingsUpdated": "Notification settings saved",
     "title": "Settings",
     "subtitle": "Storage, Offline Mode, and AI",
+    "accountTitle": "Account",
+    "linkedAccountsTitle": "Linked Accounts",
+    "linkedAccountsDesc": "Link third-party services for quick one-click login.",
+    "yandex": "Yandex",
+    "linked": "Connected",
+    "notLinked": "Not connected",
+    "link": "Link",
+    "unlink": "Unlink",
+    "unlinkConfirmTitle": "Unlink account?",
+    "unlinkConfirmDesc": "Are you sure you want to unlink {provider} from your profile?",
+    "yandexLinkedSuccess": "Yandex account linked successfully!",
+    "yandexUnlinkedSuccess": "Yandex account unlinked successfully",
+    "accountLinkedSuccess": "Account linked successfully!",
+    "linkFailed": "Failed to link account",
     "interfaceTitle": "Interface",
     "pluginsTitle": "Plugins",
     "pluginsSubtitle": "Manage additional modules and dynamic plugins via URL",
@@ -1069,7 +1085,10 @@
       "TEXT_TOO_LONG": "Text is too long",
       "RATE_LIMIT_EXCEEDED": "Too many requests. Please try again later.",
       "LLM_NOT_CONFIGURED": "LLM API not configured",
-      "LLM_ERROR": "AI service error"
+      "LLM_ERROR": "AI service error",
+      "OAUTH_ALREADY_LINKED": "This account is already linked to another user.",
+      "OAUTH_NOT_LINKED": "This account is not linked.",
+      "CANNOT_UNLINK_LAST_AUTH": "Cannot unlink the only login method for this account."
     }
   },
   "pronunciation": {

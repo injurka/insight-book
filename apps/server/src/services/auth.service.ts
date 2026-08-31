@@ -24,6 +24,10 @@ export class AuthService {
     return {
       id: user.id,
       username: user.username,
+      email: user.email,
+      yandexId: user.yandexId,
+      isYandexLinked: Boolean(user.yandexId),
+      hasPassword: Boolean(user.email && user.passwordHash),
       role: user.role,
       subscriptionTier: user.subscriptionTier || 'free',
       usedTokens: totalTokens,
@@ -196,17 +200,17 @@ export class AuthService {
     return { success: true, username: newUsername }
   }
 
-  async handleYandexAuth(sessionId?: string) {
+  async handleYandexAuth(state?: string) {
     const url = new URL('https://oauth.yandex.ru/authorize')
     url.searchParams.set('response_type', 'code')
     url.searchParams.set('client_id', YANDEX_CLIENT_ID)
     url.searchParams.set('redirect_uri', `${FRONTEND_URL}/api/auth/yandex/callback`)
-    if (sessionId)
-      url.searchParams.set('state', sessionId)
+    if (state)
+      url.searchParams.set('state', state)
     return { redirectUrl: url.toString() }
   }
 
-  async exchangeYandexCode(code: string) {
+  private async fetchYandexUserData(code: string) {
     const WEB_REDIRECT_URI = `${FRONTEND_URL}/api/auth/yandex/callback`
     const tokenRes = await fetch('https://oauth.yandex.ru/token', {
       method: 'POST',
@@ -228,29 +232,102 @@ export class AuthService {
     })
     if (!userRes.ok)
       throw new AppError(400, ERROR_CODES.AUTH.OAUTH_USER_INFO_FAILED, 'Failed to fetch user info')
-    const userData = (await userRes.json()) as { id: string | number, login?: string, default_avatar_id?: string }
 
+    return (await userRes.json()) as {
+      id: string | number
+      login?: string
+      default_email?: string
+      emails?: string[]
+      default_avatar_id?: string
+      is_avatar_empty?: boolean
+    }
+  }
+
+  async exchangeYandexCode(code: string) {
+    const userData = await this.fetchYandexUserData(code)
     const yandexId = String(userData.id)
     let user = await this.userRepo.findByYandexId(yandexId)
 
     if (!user) {
-      let proposedUsername = userData.login || `yandex_${yandexId}`
-      const existing = await this.userRepo.findByUsername(proposedUsername)
-      if (existing)
-        proposedUsername = `yandex_${yandexId}_${Date.now()}`
+      const email = userData.default_email || userData.emails?.[0] || null
+      if (email) {
+        const userWithEmail = await this.userRepo.findByEmail(email)
+        if (userWithEmail) {
+          user = await this.userRepo.updateUser(userWithEmail.id, { yandexId })
+        }
+      }
 
-      const dummyPassword = await Bun.password.hash(crypto.randomUUID())
-      user = await this.userRepo.createUser({
-        yandexId,
-        username: proposedUsername,
-        passwordHash: dummyPassword,
-        avatarUrl: userData.default_avatar_id
-          ? `https://avatars.yandex.net/get-yapic/${userData.default_avatar_id}/islands-200`
-          : null,
-      })
+      if (!user) {
+        let proposedUsername = userData.login || `yandex_${yandexId}`
+        const existing = await this.userRepo.findByUsername(proposedUsername)
+        if (existing)
+          proposedUsername = `yandex_${yandexId}_${Date.now()}`
+
+        const dummyPassword = await Bun.password.hash(crypto.randomUUID())
+        user = await this.userRepo.createUser({
+          email: email || undefined,
+          yandexId,
+          username: proposedUsername,
+          passwordHash: dummyPassword,
+          avatarUrl: (userData.default_avatar_id && !userData.is_avatar_empty)
+            ? `https://avatars.yandex.net/get-yapic/${userData.default_avatar_id}/islands-200`
+            : null,
+        })
+      }
     }
 
+    if (!user)
+      throw new AppError(500, ERROR_CODES.SYSTEM.INTERNAL_SERVER_ERROR, 'Failed to authenticate user')
+
     return jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: '30d' })
+  }
+
+  async linkYandex(userId: number, code: string) {
+    const userData = await this.fetchYandexUserData(code)
+    const yandexId = String(userData.id)
+
+    const existing = await this.userRepo.findByYandexId(yandexId)
+    if (existing) {
+      if (existing.id === userId) {
+        return this.userRepo.findById(userId)
+      }
+      throw new AppError(400, ERROR_CODES.AUTH.OAUTH_ALREADY_LINKED, 'Этот аккаунт Яндекс уже привязан к другому пользователю.')
+    }
+
+    const currentUser = await this.userRepo.findById(userId)
+    if (!currentUser)
+      throw new AppError(404, ERROR_CODES.USER.NOT_FOUND, 'User not found')
+
+    const updatePayload: { yandexId: string, avatarUrl?: string } = { yandexId }
+    if (!currentUser.avatarUrl && userData.default_avatar_id && !userData.is_avatar_empty) {
+      updatePayload.avatarUrl = `https://avatars.yandex.net/get-yapic/${userData.default_avatar_id}/islands-200`
+    }
+
+    return this.userRepo.updateUser(userId, updatePayload)
+  }
+
+  async unlinkProvider(userId: number, provider: string) {
+    if (provider !== 'yandex')
+      throw new AppError(400, ERROR_CODES.SYSTEM.VALIDATION_ERROR, 'Неподдерживаемый провайдер')
+
+    const user = await this.userRepo.findById(userId)
+    if (!user)
+      throw new AppError(404, ERROR_CODES.USER.NOT_FOUND, 'User not found')
+
+    if (!user.yandexId)
+      throw new AppError(400, ERROR_CODES.AUTH.OAUTH_NOT_LINKED, 'Этот аккаунт не привязан.')
+
+    if (!user.email)
+      throw new AppError(400, ERROR_CODES.AUTH.CANNOT_UNLINK_LAST_AUTH, 'Нельзя отвязать единственный способ входа в аккаунт. Сначала укажите почту или другой способ входа.')
+
+    const updatedUser = await this.userRepo.updateUser(userId, { yandexId: null })
+    if (!updatedUser)
+      throw new AppError(500, ERROR_CODES.SYSTEM.INTERNAL_SERVER_ERROR, 'Failed to update user')
+
+    return {
+      success: true,
+      user: await this.getUserPayload(updatedUser),
+    }
   }
 }
 

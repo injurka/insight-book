@@ -61,7 +61,9 @@
     "createPassword": "设置密码",
     "registerBtn": "注册",
     "getCode": "获取验证码",
-    "changeEmail": "更改邮箱"
+    "changeEmail": "更改邮箱",
+    "privacyConsent": "登录或注册即表示您同意服务条款和我们的",
+    "privacyLink": "隐私政策"
   },
   "pwa": {
     "offlineReadyTitle": "已准备好离线使用",
@@ -166,6 +168,20 @@
     "pushSettingsUpdated": "通知设置已保存",
     "title": "设置",
     "subtitle": "存储、离线模式和 AI",
+    "accountTitle": "账户",
+    "linkedAccountsTitle": "关联账户",
+    "linkedAccountsDesc": "关联第三方服务以实现一键快速登录。",
+    "yandex": "Yandex",
+    "linked": "已关联",
+    "notLinked": "未关联",
+    "link": "关联",
+    "unlink": "解除关联",
+    "unlinkConfirmTitle": "解除关联账户？",
+    "unlinkConfirmDesc": "您确定要从个人资料中解除与 {provider} 的关联吗？",
+    "yandexLinkedSuccess": "Yandex 账户关联成功！",
+    "yandexUnlinkedSuccess": "Yandex 账户已成功解除关联",
+    "accountLinkedSuccess": "账户关联成功！",
+    "linkFailed": "关联账户失败",
     "interfaceTitle": "界面",
     "pluginsTitle": "插件",
     "pluginsSubtitle": "管理附加模块和通过 URL 安装的动态插件",
@@ -1068,7 +1084,10 @@
       "TEXT_TOO_LONG": "文本过长",
       "RATE_LIMIT_EXCEEDED": "请求过多，请稍后再试。",
       "LLM_NOT_CONFIGURED": "未配置LLM API",
-      "LLM_ERROR": "AI服务错误"
+      "LLM_ERROR": "AI服务错误",
+      "OAUTH_ALREADY_LINKED": "该账户已与其他用户关联。",
+      "OAUTH_NOT_LINKED": "该账户未关联。",
+      "CANNOT_UNLINK_LAST_AUTH": "无法解除该账户唯一的登录方式。"
     }
   },
   "pronunciation": {

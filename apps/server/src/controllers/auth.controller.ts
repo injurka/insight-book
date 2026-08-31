@@ -78,7 +78,27 @@ export const authRouter = new Elysia({ prefix: '/api/auth' })
   })
   .get('/yandex', async ({ query }) => {
     const sessionId = query.session_id as string | undefined
-    const res = await authService.handleYandexAuth(sessionId)
+    const linkToken = query.linkToken as string | undefined
+    let linkUserId: number | undefined
+    if (linkToken) {
+      try {
+        const decoded = jwt.verify(linkToken, JWT_SECRET) as { userId: number }
+        linkUserId = decoded.userId
+      }
+      catch { }
+    }
+
+    let state: string | undefined
+    if (sessionId || linkUserId) {
+      const stateObj = {
+        sessionId: sessionId || undefined,
+        linkUserId: linkUserId || undefined,
+        nonce: crypto.randomUUID(),
+      }
+      state = Buffer.from(JSON.stringify(stateObj)).toString('base64url')
+    }
+
+    const res = await authService.handleYandexAuth(state)
     return Response.redirect(res.redirectUrl, 302)
   })
   .get('/yandex/callback', async ({ query, set }) => {
@@ -87,10 +107,92 @@ export const authRouter = new Elysia({ prefix: '/api/auth' })
     if (!code)
       throw new AppError(400, ERROR_CODES.AUTH.NO_CODE_PROVIDED, 'No code provided')
 
+    let sessionId: string | undefined
+    let linkUserId: number | undefined
+
+    if (state) {
+      try {
+        const parsed = JSON.parse(Buffer.from(state, 'base64url').toString('utf-8'))
+        sessionId = parsed.sessionId
+        linkUserId = parsed.linkUserId ? Number(parsed.linkUserId) : undefined
+      }
+      catch {
+        sessionId = state
+      }
+    }
+
+    if (linkUserId) {
+      try {
+        await authService.linkYandex(linkUserId, code)
+
+        if (sessionId) {
+          authSessions.set(sessionId, JSON.stringify({ status: 'success', linked: true }))
+          const html = `
+            <!DOCTYPE html>
+            <html lang="ru">
+            <head>
+              <meta charset="utf-8">
+              <meta name="viewport" content="width=device-width, initial-scale=1">
+              <title>Привязка аккаунта</title>
+              <style>
+                body { font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; background: #0d1117; color: #fff; text-align: center; }
+                .icon { font-size: 64px; margin-bottom: 16px; color: #22c55e; }
+              </style>
+            </head>
+            <body>
+              <div class="icon">✓</div>
+              <h2>Аккаунт Яндекс успешно привязан!</h2>
+              <p style="color: #8b949e;">Вы можете закрыть этот браузер и вернуться в приложение InsightBook.</p>
+            </body>
+            </html>
+          `
+          set.headers['Content-Type'] = 'text/html; charset=utf-8'
+          return html
+        }
+
+        const frontendUrl = new URL(FRONTEND_URL)
+        frontendUrl.pathname = '/settings'
+        frontendUrl.searchParams.set('oauth_success', 'yandex_linked')
+        return Response.redirect(frontendUrl.toString(), 302)
+      }
+      catch (error: unknown) {
+        const errMessage = error instanceof Error ? error.message : 'Не удалось привязать Яндекс аккаунт'
+        if (sessionId) {
+          authSessions.set(sessionId, JSON.stringify({ status: 'error', error: errMessage }))
+          const html = `
+            <!DOCTYPE html>
+            <html lang="ru">
+            <head>
+              <meta charset="utf-8">
+              <meta name="viewport" content="width=device-width, initial-scale=1">
+              <title>Ошибка привязки</title>
+              <style>
+                body { font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; background: #0d1117; color: #fff; text-align: center; }
+                .icon { font-size: 64px; margin-bottom: 16px; color: #ef4444; }
+              </style>
+            </head>
+            <body>
+              <div class="icon">✕</div>
+              <h2>Не удалось привязать аккаунт</h2>
+              <p style="color: #8b949e;">${errMessage}</p>
+            </body>
+            </html>
+          `
+          set.headers['Content-Type'] = 'text/html; charset=utf-8'
+          return html
+        }
+
+        const frontendUrl = new URL(FRONTEND_URL)
+        frontendUrl.pathname = '/settings'
+        frontendUrl.searchParams.set('oauth_error', errMessage)
+        return Response.redirect(frontendUrl.toString(), 302)
+      }
+    }
+
     const token = await authService.exchangeYandexCode(code)
 
-    if (state && state.length > 10) {
-      authSessions.set(state, token)
+    if (sessionId) {
+      authSessions.set(sessionId, token)
       const html = `
         <!DOCTYPE html>
         <html lang="ru">
@@ -124,12 +226,26 @@ export const authRouter = new Elysia({ prefix: '/api/auth' })
     if (!sessionId)
       throw new AppError(400, ERROR_CODES.AUTH.NO_SESSION_ID, 'No session id')
 
-    const token = authSessions.get(sessionId)
-    if (token) {
+    const sessionData = authSessions.get(sessionId)
+    if (sessionData) {
       authSessions.delete(sessionId)
-      return { status: 'success', token }
+      try {
+        const parsed = JSON.parse(sessionData)
+        return parsed
+      }
+      catch {
+        return { status: 'success', token: sessionData }
+      }
     }
     return { status: 'pending' }
+  })
+  .post('/unlink-provider', async ({ userId, body }) => {
+    return authService.unlinkProvider(userId as number, body.provider)
+  }, {
+    requireAuth: true,
+    body: t.Object({
+      provider: t.String({ minLength: 1 }),
+    }),
   })
   .get('/me', async ({ userId }) => {
     return authService.getMe(userId)

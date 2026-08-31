@@ -206,6 +206,16 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  async function unlinkProvider(provider: string) {
+    const res = await repos.auth.unlinkProvider(provider)
+    if (res.user) {
+      user.value = res.user
+      localStorage.setItem('insight_user_data', JSON.stringify(user.value))
+    }
+
+    return res
+  }
+
   return {
     user,
     isSingleMode,
@@ -215,5 +225,6 @@ export const useAuthStore = defineStore('auth', () => {
     logout,
     updateAvatar,
     updateUsername,
+    unlinkProvider,
   }
 })

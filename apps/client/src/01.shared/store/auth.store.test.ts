@@ -19,6 +19,7 @@ vi.mock('~/00.plugins/di', () => ({
       me: meMock,
       updateAvatar: vi.fn(),
       updateUsername: vi.fn(),
+      unlinkProvider: vi.fn(),
     },
     plugin: {
       getMyPlugins: getMyPluginsMock,

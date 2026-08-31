@@ -10,6 +10,7 @@ export interface IAuthRepository {
   updateUsername: (username: string) => Promise<{ username: string }>
   sendCode: (data: AuthSendCodeDto) => Promise<{ success: boolean, message: string }>
   register: (data: AuthRegisterDto) => Promise<{ token: string, user: UserData }>
+  unlinkProvider: (provider: string) => Promise<{ success: boolean, user: UserData }>
 }
 
 export class DefaultAuthRepository implements IAuthRepository {
@@ -37,6 +38,10 @@ export class DefaultAuthRepository implements IAuthRepository {
 
   async updateUsername(username: string) {
     return api.auth.updateUsername(username)
+  }
+
+  async unlinkProvider(provider: string) {
+    return api.auth.unlinkProvider(provider)
   }
 }
 

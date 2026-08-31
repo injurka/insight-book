@@ -2,13 +2,16 @@
 import type { TabItem } from '~/02.kit/molecules/kit-tabs/ui'
 import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
+import { useToast } from '~/01.shared/composables/use-toast'
 import { AppRoutePaths } from '~/01.shared/constants/routes'
+import { useAuthStore } from '~/01.shared/store/auth.store'
 import { useCacheStore } from '~/01.shared/store/cache.store'
 import { KitBtn } from '~/02.kit/atoms/kit-btn/ui'
 import { KitHoverRevealBg } from '~/02.kit/atoms/kit-hover-reveal-bg/ui'
 import { KitTabs } from '~/02.kit/molecules/kit-tabs/ui'
 
+import SettingsAccountPanel from './panels/settings-account-panel.vue'
 import SettingsAiPanel from './panels/settings-ai-panel.vue'
 import SettingsBooksCachePanel from './panels/settings-books-cache-panel.vue'
 import SettingsInfoPanel from './panels/settings-info-panel.vue'
@@ -17,19 +20,52 @@ import SettingsPluginsPanel from './panels/settings-plugins-panel.vue'
 import SettingsStoragePanel from './panels/settings-storage-panel.vue'
 
 const cacheStore = useCacheStore()
+const authStore = useAuthStore()
 const router = useRouter()
+const route = useRoute()
+const toast = useToast()
 const { t } = useI18n()
 
-const currentTab = ref('interface')
+const currentTab = ref((!authStore.isSingleMode && authStore.user) ? 'account' : 'interface')
 
-const tabs = computed<TabItem<string>[]>(() => [
-  { id: 'interface', label: t('settings.interfaceTitle'), icon: 'mdi:palette-outline' },
-  { id: 'ai', label: t('settings.aiTitle'), icon: 'mdi:robot-outline' },
-  { id: 'plugins', label: t('settings.pluginsTitle'), icon: 'mdi:puzzle-outline' },
-  { id: 'system', label: t('settings.systemTitle'), icon: 'mdi:database-outline' },
-])
+const tabs = computed<TabItem<string>[]>(() => {
+  const items: TabItem<string>[] = []
+
+  if (!authStore.isSingleMode && authStore.user) {
+    items.push({ id: 'account', label: t('settings.accountTitle', 'Аккаунт'), icon: 'mdi:account-outline' })
+  }
+
+  items.push(
+    { id: 'interface', label: t('settings.interfaceTitle'), icon: 'mdi:palette-outline' },
+    { id: 'ai', label: t('settings.aiTitle'), icon: 'mdi:robot-outline' },
+    { id: 'plugins', label: t('settings.pluginsTitle'), icon: 'mdi:puzzle-outline' },
+    { id: 'system', label: t('settings.systemTitle'), icon: 'mdi:database-outline' },
+  )
+
+  return items
+})
+
 onMounted(() => {
   cacheStore.loadStats()
+
+  if (route.query.oauth_success) {
+    const successKey = String(route.query.oauth_success)
+    if (successKey === 'yandex_linked') {
+      toast.success(t('settings.yandexLinkedSuccess', 'Аккаунт Яндекс успешно привязан!'))
+    }
+    else {
+      toast.success(t('settings.accountLinkedSuccess', 'Аккаунт успешно привязан!'))
+    }
+
+    currentTab.value = 'account'
+    authStore.checkAuth()
+    router.replace({ query: {} })
+  }
+  else if (route.query.oauth_error) {
+    toast.error(decodeURIComponent(String(route.query.oauth_error)))
+    currentTab.value = 'account'
+    router.replace({ query: {} })
+  }
 })
 </script>
 
@@ -52,6 +88,11 @@ onMounted(() => {
 
     <div class="content-wrapper">
       <KitTabs v-model="currentTab" :items="tabs" :cache="false">
+        <template #account>
+          <div class="tab-pane-content">
+            <SettingsAccountPanel />
+          </div>
+        </template>
         <template #interface>
           <div class="tab-pane-content">
             <SettingsInterfacePanel />

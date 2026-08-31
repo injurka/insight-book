@@ -300,6 +300,10 @@ export interface SelectOption {
 export interface UserData {
   id: number
   username: string
+  email?: string | null
+  yandexId?: string | null
+  isYandexLinked?: boolean
+  hasPassword?: boolean
   role?: string
   subscriptionTier?: 'free' | 'base' | 'advanced' | 'premium'
   usedTokens?: number
