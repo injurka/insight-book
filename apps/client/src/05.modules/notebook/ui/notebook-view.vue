@@ -687,7 +687,6 @@ onMounted(async () => {
   }
 
   &:hover {
-    transform: translateY(-4px);
     box-shadow: 0 12px 32px rgba(0, 0, 0, 0.15);
     border-color: rgba(255, 255, 255, 0.1);
   }
@@ -916,7 +915,6 @@ onMounted(async () => {
         border-color 0.1s;
 
       &:hover {
-        transform: scale(1.1);
       }
 
       &.is-active {

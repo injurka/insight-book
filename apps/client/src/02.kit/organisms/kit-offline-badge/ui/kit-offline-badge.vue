@@ -105,7 +105,6 @@ function handleReconnect() {
 
     &:hover {
       background-color: rgba(234, 179, 8, 0.28);
-      transform: scale(1.08);
     }
   }
 }

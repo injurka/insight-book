@@ -309,7 +309,6 @@ onUnmounted(() => stop())
     &:hover {
       background-color: var(--bg-hover-color);
       color: var(--fg-accent-color);
-      transform: scale(1.05);
     }
   }
 

@@ -475,7 +475,6 @@ onUnmounted(() => {
   &:hover {
     background: var(--bg-tertiary-color);
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
-    transform: translateY(-1px);
   }
 
   @include media-down(sm) {

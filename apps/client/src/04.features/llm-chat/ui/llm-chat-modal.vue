@@ -551,7 +551,6 @@ onMounted(() => {
     background-color: var(--bg-hover-color);
     color: var(--fg-primary-color);
     border-color: var(--fg-accent-color);
-    transform: translateY(-1px);
   }
 }
 

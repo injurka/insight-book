@@ -553,7 +553,6 @@ onUnmounted(() => {
     border-color: var(--fg-accent-color);
     color: var(--fg-accent-color);
     background-color: var(--bg-hover-color);
-    transform: translateY(-2px);
   }
   &:focus-visible {
     outline: 2px solid var(--fg-accent-color);

@@ -750,7 +750,6 @@ watch(() => props.card, initCard, { immediate: true })
 
     &:hover:not(:disabled) {
       background: var(--bg-tertiary-color);
-      transform: translateY(-2px);
     }
 
     &.is-suggested {

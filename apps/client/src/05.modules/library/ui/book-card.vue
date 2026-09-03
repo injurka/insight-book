@@ -139,16 +139,11 @@ const coverTransitionStyle = computed(() =>
 
   &:hover,
   &:focus-within {
-    transform: translateY(-4px);
     box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1);
     border-color: var(--fg-accent-color);
 
     .edit-btn {
       opacity: 1 !important;
-    }
-
-    :deep(.real-image) {
-      transform: scale(1.05);
     }
   }
 
@@ -339,10 +334,6 @@ const coverTransitionStyle = computed(() =>
     flex-direction: row;
     padding: 12px;
     align-items: center;
-
-    &:hover {
-      transform: translateY(-2px);
-    }
 
     .cover-wrapper {
       width: auto;

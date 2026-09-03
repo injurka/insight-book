@@ -31,6 +31,13 @@ body {
   font-family: var(--app-font-family);
   overflow-y: auto;
   overscroll-behavior-y: none;
+  scrollbar-gutter: stable;
+}
+
+@media (hover: none) and (pointer: coarse) {
+  *:hover {
+    transform: none !important;
+  }
 }
 
 input, button, textarea, select {

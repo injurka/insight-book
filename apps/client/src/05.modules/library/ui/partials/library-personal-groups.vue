@@ -130,11 +130,9 @@ function getFolderIcon(view: string) {
   border: 1px solid var(--border-secondary-color);
   cursor: pointer;
   transition:
-    transform 0.2s,
     border-color 0.2s;
 
   &:hover {
-    transform: translateY(-2px);
     border-color: var(--fg-accent-color);
   }
 

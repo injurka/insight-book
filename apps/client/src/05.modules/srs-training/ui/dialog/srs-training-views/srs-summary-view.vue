@@ -71,6 +71,7 @@ const { t } = useI18n()
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  flex: 1;
   width: 100%;
 
   h2 {

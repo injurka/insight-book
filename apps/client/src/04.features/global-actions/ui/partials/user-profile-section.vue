@@ -267,12 +267,10 @@ function openLimits() {
   border-radius: var(--r-m, 12px);
   cursor: pointer;
   transition:
-    background-color 0.2s ease,
-    transform 0.2s ease;
+    background-color 0.2s ease;
 
   &:hover {
     background-color: var(--bg-hover-color);
-    transform: translateY(-2px);
   }
 
   .limits-content {

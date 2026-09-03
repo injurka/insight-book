@@ -202,7 +202,6 @@ async function startReading() {
 
     &:hover {
       :deep(.real-image) {
-        transform: scale(1.05);
       }
       .cover-overlay {
         opacity: 1;

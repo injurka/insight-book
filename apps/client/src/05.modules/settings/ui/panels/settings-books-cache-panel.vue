@@ -235,7 +235,6 @@ function handleConfirmClear() {
   &:hover {
     border-color: var(--border-accent-color);
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.05);
-    transform: translateY(-2px);
   }
   .book-card-header {
     display: flex;

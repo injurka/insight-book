@@ -101,7 +101,6 @@ function formatNumber(num: number | undefined | null) {
   }
 
   &:hover {
-    transform: translateY(-4px);
     border-color: var(--border-accent-color);
     box-shadow: var(--shadow-md, 0 4px 16px rgba(0, 0, 0, 0.1));
   }

@@ -666,11 +666,9 @@ function start() {
         &:hover {
           border-color: var(--border-secondary-color);
           background: var(--bg-hover-color);
-          transform: translateY(-2px);
           box-shadow: 0 4px 14px rgba(0, 0, 0, 0.05);
 
           .mode-icon-box {
-            transform: scale(1.05);
           }
         }
 
@@ -686,7 +684,6 @@ function start() {
             0 4px 16px rgba(var(--bg-accent-color-rgb, 201, 117, 222), 0.12);
 
           &:hover {
-            transform: translateY(-2px);
             box-shadow:
               0 0 0 1px var(--fg-accent-color),
               0 6px 20px rgba(var(--bg-accent-color-rgb, 201, 117, 222), 0.18);

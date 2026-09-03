@@ -30,6 +30,7 @@ import { KitAppTitlebar } from '~/02.kit/molecules/kit-app-titlebar/ui'
   height: 100%;
   position: relative;
   overflow-y: auto;
+  scrollbar-gutter: stable;
 
   > * {
     min-height: min-content;

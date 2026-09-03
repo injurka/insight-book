@@ -533,7 +533,6 @@ watch(() => readerStore.isPageLoading, async (isLoading) => {
         opacity: 1;
         background-color: var(--fg-accent-color);
         color: var(--bg-primary-color);
-        transform: scale(1.15);
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
       }
     }

@@ -250,7 +250,6 @@ function finishOnboarding() {
   &:hover {
     background: var(--bg-tertiary-color);
     color: var(--fg-primary-color);
-    transform: translateY(-2px);
   }
 }
 
@@ -345,7 +344,6 @@ function finishOnboarding() {
   &:hover {
     background: var(--fg-primary-color);
     color: var(--bg-primary-color);
-    transform: scale(1.08);
   }
 
   &.is-hidden {

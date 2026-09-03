@@ -85,7 +85,6 @@ const router = useRouter()
   &:hover {
     border-color: var(--border-accent-color);
     background: var(--bg-tertiary-color);
-    transform: translateY(-2px);
     box-shadow: var(--shadow-sm, 0 2px 8px rgba(0, 0, 0, 0.05));
   }
 
@@ -117,7 +116,6 @@ const router = useRouter()
   }
 
   &:hover .chevron {
-    transform: translateX(4px);
     color: var(--fg-primary-color);
   }
 }

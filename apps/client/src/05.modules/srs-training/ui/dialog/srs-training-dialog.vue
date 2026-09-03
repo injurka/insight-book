@@ -207,7 +207,7 @@ watch(currentIndex, () => {
       </div>
     </template>
 
-    <div class="srs-training-content">
+    <div class="srs-training-content" :class="{ 'is-session': sessionState !== 'setup' }">
       <KeepAlive>
         <component
           :is="activeView"
@@ -279,5 +279,12 @@ watch(currentIndex, () => {
   display: flex;
   flex-direction: column;
   flex-grow: 1;
+
+  // Игровые вью (карточки, match, summary) растягиваются на свободное место,
+  // чтобы .word-huge снова центрировался в высоком блоке, как раньше.
+  // min-height убрали в 681d6e5b ради adaptive height setup-вью — там остаётся натуральная высота.
+  &.is-session {
+    min-height: 650px;
+  }
 }
 </style>

@@ -104,12 +104,10 @@ const emit = defineEmits<{
     color: var(--fg-primary-color);
     user-select: none;
     transition:
-      transform 0.1s,
-      background-color 0.2s;
+      transform 0.1s;
 
     &:hover {
       background: var(--bg-hover-color);
-      transform: translateY(-2px);
     }
   }
 

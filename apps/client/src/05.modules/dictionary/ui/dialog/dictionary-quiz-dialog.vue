@@ -1068,7 +1068,6 @@ function exitQuiz() {
     &:hover:not(:disabled) {
       background: var(--bg-hover-color);
       border-color: var(--border-primary-color);
-      transform: translateY(-1px);
     }
 
     &.selected-token {

@@ -436,7 +436,6 @@ watch(() => libraryStore.currentBookInfo?.id, () => {
       background-color: color-mix(in srgb, var(--fg-accent-color) 10%, transparent);
       border-color: var(--fg-accent-color);
       color: var(--fg-accent-color);
-      transform: translateY(-1px);
     }
 
     &:active {

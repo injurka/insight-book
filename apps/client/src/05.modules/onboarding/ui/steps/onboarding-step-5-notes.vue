@@ -195,7 +195,6 @@ function onSave() {
       border-color 0.2s;
 
     &:hover {
-      transform: scale(1.2);
     }
 
     &.is-active {
@@ -226,7 +225,6 @@ function onSave() {
       transition: all 0.2s;
 
       &:hover {
-        transform: scale(1.1);
         color: var(--fg-accent-color);
         background: var(--bg-hover-color);
       }
