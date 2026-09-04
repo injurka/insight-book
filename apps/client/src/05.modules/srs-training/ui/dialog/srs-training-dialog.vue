@@ -279,6 +279,7 @@ watch(currentIndex, () => {
   display: flex;
   flex-direction: column;
   flex-grow: 1;
+  height: 100%;
 
   // Игровые вью (карточки, match, summary) растягиваются на свободное место,
   // чтобы .word-huge снова центрировался в высоком блоке, как раньше.
