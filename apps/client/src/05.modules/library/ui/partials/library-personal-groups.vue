@@ -129,8 +129,7 @@ function getFolderIcon(view: string) {
   border-radius: 12px;
   border: 1px solid var(--border-secondary-color);
   cursor: pointer;
-  transition:
-    border-color 0.2s;
+  transition: border-color 0.2s;
 
   &:hover {
     border-color: var(--fg-accent-color);

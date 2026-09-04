@@ -20,7 +20,7 @@ export default mergeConfig(viteConfig, defineConfig({
         globals: true,
         environment: 'happy-dom',
         root: '.',
-        include: ['src/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'],
+        include: ['**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'],
       },
     }, {
       extends: true,

@@ -289,7 +289,6 @@ async function onDeleteDeckConfirm() {
     background-color: var(--bg-hover-color);
     border-color: var(--border-primary-color);
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-
   }
 
   .deck-main {

@@ -25,7 +25,7 @@ function close() {
 }
 
 onMounted(async () => {
-  if (isTauri) {
+  if (isTauri && !isMobile) {
     try {
       const isHypr = await invoke<boolean>('is_hyprland').catch(() => false)
       if (isHypr) {

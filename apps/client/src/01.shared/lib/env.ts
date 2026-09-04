@@ -7,15 +7,6 @@ interface AppRuntimeConfig {
 
 const runtimeConfig = (window as { __APP_CONFIG__?: AppRuntimeConfig }).__APP_CONFIG__
 
-/** Базовый URL API: рантайм-конфиг контейнера → env при сборке → прод */
-export const API_URL = runtimeConfig?.API_URL || import.meta.env.VITE_API_URL || ''
-
-/** OTLP-эндпоинт (SigNoz ingester через traefik): рантайм-конфиг → env при сборке → прод */
-export const OTEL_EXPORTER_OTLP_ENDPOINT = runtimeConfig?.OTEL_EXPORTER_OTLP_ENDPOINT || import.meta.env.VITE_OTEL_EXPORTER_OTLP_ENDPOINT || ''
-
-/** Базовый URL CDN (Pull Zone) для раздачи загруженных файлов (манга, обложки, аватарки) */
-export const CDN_URL = runtimeConfig?.CDN_URL || import.meta.env.VITE_CDN_URL || ''
-
 /** Приложение запущено внутри Tauri (десктоп или мобильное приложение) */
 export const isTauri = '__TAURI_INTERNALS__' in window
 
@@ -24,3 +15,12 @@ export const isMobile = /android|webos|iphone|ipad|ipod|blackberry|iemobile|oper
 
 /** Мобильная сборка приложения (APK/iOS через Tauri) */
 export const isMobileApp = isTauri && isMobile
+
+/** Базовый URL API: рантайм-конфиг контейнера → env при сборке → прод для Tauri → пусто для веба */
+export const API_URL = runtimeConfig?.API_URL || import.meta.env.VITE_API_URL || (isTauri ? 'https://api.insight-book.ru' : '')
+
+/** OTLP-эндпоинт (SigNoz ingester через traefik): рантайм-конфиг → env при сборке → прод */
+export const OTEL_EXPORTER_OTLP_ENDPOINT = runtimeConfig?.OTEL_EXPORTER_OTLP_ENDPOINT || import.meta.env.VITE_OTEL_EXPORTER_OTLP_ENDPOINT || ''
+
+/** Базовый URL CDN (Pull Zone) для раздачи загруженных файлов (манга, обложки, аватарки) */
+export const CDN_URL = runtimeConfig?.CDN_URL || import.meta.env.VITE_CDN_URL || ''

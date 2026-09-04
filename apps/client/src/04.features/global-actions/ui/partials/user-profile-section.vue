@@ -266,8 +266,7 @@ function openLimits() {
   padding: 12px;
   border-radius: var(--r-m, 12px);
   cursor: pointer;
-  transition:
-    background-color 0.2s ease;
+  transition: background-color 0.2s ease;
 
   &:hover {
     background-color: var(--bg-hover-color);

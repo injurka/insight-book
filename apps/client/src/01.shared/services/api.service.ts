@@ -600,4 +600,27 @@ export const api = {
     getTiers: async (lang: string) =>
       request<SubscriptionTier[]>(`/api/subscription-tiers/${lang}`, { silentErrors: true }),
   },
+
+  push: {
+    subscribe: async (sub: PushSubscription) =>
+      request<void>('/api/push/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(sub),
+      }),
+    unsubscribe: async (endpoint: string) =>
+      request<void>('/api/push/unsubscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ endpoint }),
+      }),
+    getVapidPublicKey: async () =>
+      request<unknown>('/api/push/vapid-public-key'),
+    updateSettings: async (settings: { targetDeckId: number | 'all', timeStart: string, timeEnd: string, timezone: string, uiLanguage: string, pushCount: number }) =>
+      request<void>('/api/push/settings', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(settings),
+      }),
+  },
 }

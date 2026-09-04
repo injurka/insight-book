@@ -103,8 +103,7 @@ const emit = defineEmits<{
     font-weight: 500;
     color: var(--fg-primary-color);
     user-select: none;
-    transition:
-      transform 0.1s;
+    transition: transform 0.1s;
 
     &:hover {
       background: var(--bg-hover-color);
