@@ -97,44 +97,45 @@ export const request = ofetch.create({
   async onResponseError({ response, options }) {
     const data = response._data || {}
     const errCode = data.code
-    let errMessage = data.message || data.error || `HTTP ${response.status} ${response.statusText}`
+    let errMessage = String(data?.message || data?.error || (response?.status ? `HTTP ${response.status} ${response.statusText || ''}` : 'Unknown error'))
 
     if (errCode && i18n.global.te(`errors.api.${errCode}`)) {
-      errMessage = i18n.global.t(`errors.api.${errCode}`, data.details || {})
+      errMessage = i18n.global.t(`errors.api.${errCode}`, data?.details || {})
     }
     else if (errCode && i18n.global.te(`errors.${errCode}`)) {
-      errMessage = i18n.global.t(`errors.${errCode}`, data.details || {})
+      errMessage = i18n.global.t(`errors.${errCode}`, data?.details || {})
     }
-    else if (response.status === 500) {
-      const isLlmError = options.withLlm || errMessage.includes('LLM') || errMessage.includes('AI')
+    else if (response?.status === 500) {
+      const isLlmError = options?.withLlm || (typeof errMessage === 'string' && (errMessage.includes('LLM') || errMessage.includes('AI')))
       errMessage = isLlmError
         ? (i18n.global.t('errors.aiServer'))
         : (i18n.global.t('errors.server500'))
     }
 
-    if (!options.silentErrors) {
+    if (!options?.silentErrors) {
       providers.onError(errMessage)
-      if (response.status === 401)
+      if (response?.status === 401)
         providers.onUnauthorized()
     }
 
     const customError = new Error(errMessage) as Error & { code?: string, status?: number, details?: Record<string, unknown> }
     if (errCode)
       customError.code = errCode
-    customError.status = response.status
-    if (data.details)
+    if (response?.status)
+      customError.status = response.status
+    if (data?.details)
       customError.details = data.details
 
     throw customError
   },
   // eslint-disable-next-line complexity
   async onRequestError({ error, options }) {
-    let errMessage = error.message
+    let errMessage = typeof error?.message === 'string' ? error.message : String(error || '')
     const isNetworkError = errMessage.includes('Failed to fetch') || errMessage.includes('Network Error')
     if (isNetworkError)
       errMessage = i18n.global.t('errors.network')
 
-    const isAbort = error.name === 'AbortError' || errMessage.toLowerCase().includes('abort') || errMessage.toLowerCase().includes('cancel')
+    const isAbort = error?.name === 'AbortError' || errMessage.toLowerCase().includes('abort') || errMessage.toLowerCase().includes('cancel')
     const isOffline = typeof navigator !== 'undefined' && !navigator.onLine
 
     if (!options?.silentErrors && !isAbort && !isOffline && !isNetworkError)

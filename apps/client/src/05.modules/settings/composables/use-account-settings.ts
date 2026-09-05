@@ -1,10 +1,10 @@
-import { isTauri } from '@tauri-apps/api/core'
 import { fetch as tauriFetch } from '@tauri-apps/plugin-http'
 import { openUrl } from '@tauri-apps/plugin-opener'
 import { v4 as uuidv4 } from 'uuid'
 import { computed, onBeforeUnmount, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useToast } from '~/01.shared/composables/use-toast'
+import { isTauri } from '~/01.shared/lib/env'
 import { BASE_API_URL } from '~/01.shared/services/api.service'
 import { useAuthStore } from '~/01.shared/store/auth.store'
 
@@ -35,7 +35,7 @@ export function useAccountSettings() {
     try {
       const token = localStorage.getItem('insight_token') || ''
 
-      if (isTauri()) {
+      if (isTauri) {
         isLinking.value = true
         const sessionId = uuidv4()
         const url = `${BASE_API_URL}/api/auth/${provider}?session_id=${sessionId}&linkToken=${encodeURIComponent(token)}`
@@ -45,7 +45,7 @@ export function useAccountSettings() {
         clearPolling()
         pollingInterval = window.setInterval(async () => {
           try {
-            const fetchImpl = isTauri() ? tauriFetch : fetch
+            const fetchImpl = isTauri ? tauriFetch : fetch
             const res = await fetchImpl(`${BASE_API_URL}/api/auth/status?session_id=${sessionId}`)
             const data = await res.json()
 
