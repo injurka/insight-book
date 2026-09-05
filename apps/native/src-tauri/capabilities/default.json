@@ -18,6 +18,9 @@
           "url": "https://api.insight-book.ru/*"
         },
         {
+          "url": "https://insight-book-api.limited-dissolve.ru/*"
+        },
+        {
           "url": "http://localhost:*/*"
         }
       ]
