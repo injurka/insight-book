@@ -217,9 +217,11 @@ onUnmounted(() => {
     font-weight: 600;
   }
 
-  &:not(.is-active):hover:not(:disabled) {
-    color: var(--fg-primary-color);
-    transform: translateY(-1px);
+  @media (hover: hover) and (pointer: fine) {
+    &:not(.is-active):hover:not(:disabled) {
+      color: var(--fg-primary-color);
+      transform: translateY(-1px);
+    }
   }
 
   &:active:not(:disabled) {

@@ -107,9 +107,11 @@ function handleClick(event: MouseEvent) {
     pointer-events: none;
   }
 
-  &:not(.kit-btn--text):not(:disabled):hover {
-    transform: translateY(-1px);
-    box-shadow: var(--s-l);
+  @media (hover: hover) and (pointer: fine) {
+    &:not(.kit-btn--text):not(:disabled):hover {
+      transform: translateY(-1px);
+      box-shadow: var(--s-l);
+    }
   }
 
   &:not(.kit-btn--text):not(:disabled):active {

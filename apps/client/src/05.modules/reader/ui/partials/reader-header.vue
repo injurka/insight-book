@@ -150,8 +150,10 @@ watch(() => props.isVisible, (visible) => {
 .reader-header {
   position: fixed;
   top: calc(16px + env(safe-area-inset-top, 0px));
-  left: 50%;
-  transform: translateX(-50%) translateY(0);
+  left: 0;
+  right: 0;
+  margin: 0 auto;
+  transform: translateY(0);
   z-index: var(--z-header, 1100);
 
   background-color: rgba(var(--bg-secondary-color-rgb, 33, 38, 45), 0.85);
@@ -168,14 +170,13 @@ watch(() => props.isVisible, (visible) => {
   gap: 8px;
   width: calc(100% - 32px);
   max-width: 800px;
-  margin: 0;
 
   transition:
     transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
     opacity 0.3s ease;
 
   &.is-hidden {
-    transform: translateX(-50%) translateY(calc(-100% - 24px));
+    transform: translateY(calc(-100% - 24px));
     opacity: 0;
     pointer-events: none;
   }

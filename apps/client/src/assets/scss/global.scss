@@ -34,11 +34,6 @@ body {
   scrollbar-gutter: stable;
 }
 
-@media (hover: none) and (pointer: coarse) {
-  *:hover {
-    transform: none !important;
-  }
-}
 
 input, button, textarea, select {
   font-family: inherit;

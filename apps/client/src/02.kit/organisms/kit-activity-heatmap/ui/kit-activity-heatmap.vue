@@ -806,11 +806,13 @@ onMounted(async () => {
     transform 0.15s ease,
     box-shadow 0.15s ease;
 
-  &:not(.is-future):hover {
-    opacity: 1;
-    transform: scale(1.15);
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
-    z-index: 10;
+  @media (hover: hover) and (pointer: fine) {
+    &:not(.is-future):hover {
+      opacity: 1;
+      transform: scale(1.15);
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+      z-index: 10;
+    }
   }
 
   &.is-future {
