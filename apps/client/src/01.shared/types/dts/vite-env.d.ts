@@ -3,6 +3,7 @@
 
 declare const __APP_VERSION__: string
 declare const __BUILD_DATE__: string
+declare const __TAURI_BUILD__: boolean | undefined
 
 interface ImportMetaEnv {
   readonly VITE_API_URL: string

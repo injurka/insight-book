@@ -148,7 +148,12 @@ export const request = ofetch.create({
   },
 }, {
   // Используем нативный fetch плагина HTTP для Tauri, если находимся в окружении десктопного/мобильного приложения
-  fetch: isTauri ? tauriFetch as unknown as typeof globalThis.fetch : globalThis.fetch,
+  fetch: ((input: RequestInfo | URL, init?: RequestInit) => {
+    if (isTauri)
+      return (tauriFetch as unknown as typeof globalThis.fetch)(input, init)
+
+    return globalThis.fetch(input, init)
+  }) as unknown as typeof globalThis.fetch,
 })
 
 export const api = {

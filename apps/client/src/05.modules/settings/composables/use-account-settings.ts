@@ -1,4 +1,5 @@
 import { isTauri } from '@tauri-apps/api/core'
+import { fetch as tauriFetch } from '@tauri-apps/plugin-http'
 import { openUrl } from '@tauri-apps/plugin-opener'
 import { v4 as uuidv4 } from 'uuid'
 import { computed, onBeforeUnmount, ref } from 'vue'
@@ -44,7 +45,8 @@ export function useAccountSettings() {
         clearPolling()
         pollingInterval = window.setInterval(async () => {
           try {
-            const res = await fetch(`${BASE_API_URL}/api/auth/status?session_id=${sessionId}`)
+            const fetchImpl = isTauri() ? tauriFetch : fetch
+            const res = await fetchImpl(`${BASE_API_URL}/api/auth/status?session_id=${sessionId}`)
             const data = await res.json()
 
             if (data.status === 'success') {
