@@ -47,6 +47,7 @@ export function pwaCfg(revision: string) {
     devOptions: {
       enabled: false,
       type: 'module',
+      navigateFallback: 'index.html',
     },
   } satisfies Parameters<typeof VitePWA>[0]
 }

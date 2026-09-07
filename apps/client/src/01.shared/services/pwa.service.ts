@@ -9,6 +9,9 @@ import { usePwaStore } from '~/01.shared/store/pwa.store'
  * Инициализирует PWA и периодическую проверку обновлений.
  */
 function initializePwaUpdater(pinia: Pinia): void {
+  if (import.meta.env.DEV)
+    return
+
   const pwaStore = usePwaStore(pinia)
   const intervalMS = 60 * 1 * 1000 * 10
 

@@ -109,7 +109,7 @@ if (import.meta.env.PROD) {
   ]
 }
 
-registerRoute(new NavigationRoute(createHandlerBoundToURL('/'), {
+registerRoute(new NavigationRoute(createHandlerBoundToURL(import.meta.env.DEV ? 'index.html' : '/'), {
   allowlist,
   denylist,
 }))
