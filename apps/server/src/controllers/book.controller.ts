@@ -31,6 +31,17 @@ const authPlugin = new Elysia({ name: 'books-auth' })
         }
         catch { }
       }
+      else {
+        try {
+          const url = new URL(request.url)
+          const token = url.searchParams.get('token')
+          if (token) {
+            const decoded = jwt.verify(token, JWT_SECRET) as { userId: number }
+            userId = decoded.userId
+          }
+        }
+        catch { }
+      }
     }
     return { userId }
   })
@@ -197,20 +208,21 @@ export const bookController = new Elysia({ prefix: '/api/books' })
       return 'Not found'
     }
 
-    const fileData = await storageService.getFile(pageRow.imageUrl)
+    const cleanKey = pageRow.imageUrl.replace(/^\/?(api\/)?uploads\//i, '').replace(/^\//, '')
+    const fileData = await storageService.getFile(cleanKey)
     if (!fileData) {
       set.status = 404
       return 'Not found'
     }
     const buffer = Buffer.from(fileData.buffer)
-    const ext = path.extname(pageRow.imageUrl).slice(1).toLowerCase()
+    const ext = path.extname(cleanKey).slice(1).toLowerCase()
 
     set.headers = {
       ...CORS_HEADERS,
       'Content-Type': `image/${ext === 'jpg' ? 'jpeg' : ext}`,
     }
     return buffer
-  }, { requireAuth: true, cache: 'dayPrivate' })
+  }, { cache: 'dayPublic' })
   .get('/:id/word/:word', async ({ params: { id, word }, userId, query }) => {
     const targetLang = (query.targetLang as string) || 'ru'
     return bookService.lookupWord(Number(id), word, userId!, targetLang)
@@ -292,9 +304,10 @@ export const ttsController = new Elysia()
 
 export const uploadsController = new Elysia()
   .use(cachePlugin)
-  .get('/api/uploads/covers/:filename', async ({ params: { filename }, set }) => {
-    const key = `covers/${filename}`
-    const fileData = await storageService.getFile(key)
+  .get('/api/uploads/*', async ({ params, set }) => {
+    const key = (params as Record<string, string>)['*']
+    const cleanKey = key.replace(/^\/?(api\/)?uploads\//i, '').replace(/^\//, '')
+    const fileData = await storageService.getFile(cleanKey)
     if (!fileData) {
       set.status = 404
       return 'Not found'

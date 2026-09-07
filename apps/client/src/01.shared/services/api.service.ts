@@ -24,6 +24,7 @@ import type {
 import { fetch as tauriFetch } from '@tauri-apps/plugin-http'
 import { ofetch } from 'ofetch'
 import { API_URL, isTauri } from '~/01.shared/lib/env'
+import { getMediaUrl } from '~/01.shared/lib/helpers'
 
 import { i18n } from '../../00.plugins/i18n'
 
@@ -340,7 +341,7 @@ export const api = {
       }),
 
     fetchImageBlob: async (path: string) => {
-      const url = path.startsWith('http') ? path : `${BASE_API_URL}${path}`
+      const url = getMediaUrl(path)
 
       // Медиа (/api/uploads/*) публичное и отдаётся BunnyCDN edge, который не
       // разрешает кастомные заголовки в CORS (allow-headers без authorization).

@@ -290,13 +290,14 @@ export class BookService {
 
       if (ocrBlocks === null && pageRow.imageUrl) {
         try {
-          const fileData = await storageService.getFile(pageRow.imageUrl)
+          const cleanKey = pageRow.imageUrl.replace(/^\/?(api\/)?uploads\//i, '').replace(/^\//, '')
+          const fileData = await storageService.getFile(cleanKey)
           if (!fileData)
             throw new Error('File not found')
           const fileBuffer = Buffer.from(fileData.buffer)
           let base64 = ''
 
-          const ext = path.extname(pageRow.imageUrl).toLowerCase()
+          const ext = path.extname(cleanKey).toLowerCase()
           const isSupportedOCR = ['.jpg', '.jpeg', '.png', '.pdf'].includes(ext)
           const isTooLarge = fileBuffer.byteLength > 9.5 * 1024 * 1024
 
@@ -325,12 +326,17 @@ export class BookService {
         ocrBlocks = processedBlocks
       }
 
+      const rawImageUrl = pageRow.imageUrl || ''
+      const imagePath = rawImageUrl.startsWith('http://') || rawImageUrl.startsWith('https://') || rawImageUrl.startsWith('/')
+        ? rawImageUrl
+        : `/api/uploads/${rawImageUrl}`
+
       return {
         bookId,
         pageNum,
         totalPages: book.totalPages,
         type: 'manga',
-        imageUrl: `/api/books/${bookId}/page/${pageNum}/image`,
+        imageUrl: imagePath,
         imageWidth: pageRow.imageWidth,
         imageHeight: pageRow.imageHeight,
         ocrBlocks: ocrBlocks || [],
