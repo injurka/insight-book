@@ -18,6 +18,12 @@ export const BOOK_COVER_TRANSITION_NAME = 'active-book-cover'
  */
 export const coverTransitionBookId = ref<number | null>(null)
 
+/**
+ * Флаг активности нативного View Transition между главной и страницей книги.
+ * Выставляется синхронно в beforeEach до начала монтирования компонентов.
+ */
+export const isNativeTransitionActive = ref(false)
+
 const reduceMotionQuery = typeof window !== 'undefined'
   ? window.matchMedia('(prefers-reduced-motion: reduce)')
   : { matches: false }
@@ -111,6 +117,13 @@ export function isNativeTransitionRoute(name: unknown): boolean {
  * и морф элементов с совпадающим `view-transition-name`).
  */
 export function setupViewTransitions(router: Router): void {
+  router.beforeEach((to, from) => {
+    isNativeTransitionActive.value = isViewTransitionSupported()
+      && !reduceMotionQuery.matches
+      && isNativeTransitionRoute(to.name)
+      && isNativeTransitionRoute(from.name)
+  })
+
   router.beforeResolve(async (to, from) => {
     const isSamePage = to.path === from.path // смена query/hash на той же странице — без анимации
     const isTransitionRoute = TRANSITION_ROUTES.includes(to.name as AppRouteNames)
@@ -144,8 +157,13 @@ export function setupViewTransitions(router: Router): void {
           // Страница книги: ждём данные (с коротким таймаутом), чтобы снапшот
           // содержал финальную раскладку, а не скелетон. Пока ждём, страница
           // заморожена — поэтому таймаут маленький (см. BOOK_INFO_WAIT_TIMEOUT).
-          if (to.name === AppRouteNames.BookInfo)
+          if (to.name === AppRouteNames.BookInfo) {
             await waitForBookInfoReady(Number(to.params.id))
+          }
+          else if (to.name === AppRouteNames.Home) {
+            await nextTick()
+            await new Promise<void>(resolve => setTimeout(resolve, SNAPSHOT_SETTLE_DELAY))
+          }
         })
 
         // Страховка: пока колбэк перехода не завершится, рендеринг страницы
@@ -155,7 +173,11 @@ export function setupViewTransitions(router: Router): void {
         const safetyTimer = setTimeout(() => transition.skipTransition(), 2000)
         transition.finished
           .catch(() => { }) // переход пропущен — finished отклоняется, это нормально
-          .finally(() => clearTimeout(safetyTimer))
+          .finally(() => {
+            clearTimeout(safetyTimer)
+            if (to.name !== AppRouteNames.BookInfo)
+              coverTransitionBookId.value = null
+          })
       }
       catch {
         confirmNavigation()

@@ -2,7 +2,7 @@ import type { LocationQuery } from 'vue-router'
 import { createRouter, createWebHashHistory, createWebHistory } from 'vue-router'
 import { AppRouteNames } from '~/01.shared/constants/routes'
 import { API_URL, isTauri } from '~/01.shared/lib/env'
-import { setupViewTransitions } from '~/01.shared/lib/view-transitions'
+import { isNativeTransitionRoute, isViewTransitionSupported, setupViewTransitions } from '~/01.shared/lib/view-transitions'
 import { useAuthStore } from '~/01.shared/store/auth.store'
 
 const MAIN_SCROLLER_SELECTOR = '.main-content'
@@ -29,7 +29,7 @@ function restoreScrollTop(top: number): void {
     if (!scroller)
       return
 
-    if (scroller.scrollTop !== top && attempts < 20) {
+    if (scroller.scrollTop !== top && attempts < 30) {
       scroller.scrollTop = top
       attempts++
       requestAnimationFrame(tick)
@@ -44,28 +44,36 @@ export const router = createRouter({
     ? createWebHashHistory(import.meta.env.BASE_URL)
     : createWebHistory(import.meta.env.BASE_URL),
 
-  scrollBehavior(to, _from, savedPosition) {
-    // vue-router умеет скроллить только window: даже при возврате { el, top }
-    // он делает window.scrollTo до позиции элемента, а не el.scrollTop.
-    // В нашем лейауте window не скроллится (100dvh + overflow: hidden),
-    // скроллится контейнер — поэтому крутим его вручную. scrollBehavior
-    // вызывается после рендера новой страницы, её DOM уже на месте.
-    if (savedPosition) {
-      // popstate (кнопка «назад»/«вперёд») — восстанавливаем позицию скролла,
-      // которую запомнили при уходе со страницы
+  scrollBehavior(to, from, savedPosition) {
+    // Восстанавливаем сохраненную позицию при popstate («Назад»/«Вперед»)
+    // либо при возврате с деталей книги на главную
+    const isReturningToHomeFromBook = to.name === AppRouteNames.Home && from.name === AppRouteNames.BookInfo
+    if (savedPosition || isReturningToHomeFromBook) {
       const top = mainScrollPositions.get(to.fullPath)
-      if (top != null)
+      if (top != null) {
         restoreScrollTop(top)
 
-      return
+        return
+      }
     }
 
-    // Обычная навигация — всегда в начало страницы. .main-content — общий
-    // overflow-контейнер, который переживает смену страниц (window не
-    // скроллится), поэтому сбрасываем его вручную.
+    const isNativeTransition = isViewTransitionSupported()
+      && isNativeTransitionRoute(to.name)
+      && isNativeTransitionRoute(from.name)
+
     const main = findScroller()
-    if (main)
-      main.scrollTop = 0
+    if (main) {
+      // При нативном переходе сбрасываем скролл новой страницы на следующем тике,
+      // чтобы текущая страница не подскакивала вверх перед началом перехода
+      if (isNativeTransition) {
+        nextTick(() => {
+          main.scrollTop = 0
+        })
+      }
+      else {
+        main.scrollTop = 0
+      }
+    }
   },
 
   routes: [

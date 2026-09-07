@@ -31,8 +31,12 @@ function getMediaUrl(path?: string | null): string {
     return transformHttpUrl(path)
   }
 
-  if (CDN_URL) {
-    const cleanPath = path.replace(/^\/?(api\/)?uploads\//, '').replace(/^\//, '')
+  // На CDN мапим только реальные файлы из storage (обложки, аватары и т.п.).
+  // API-роуты вроде /api/books/:id/page/:n/image должны идти на API, а не на CDN-pull-zone.
+  const isApiRoute = /^\/api\/(?!uploads\/)/i.test(path)
+
+  if (CDN_URL && !isApiRoute) {
+    const cleanPath = path.replace(/^\/?(api\/)?uploads\//i, '').replace(/^\//, '')
 
     return `${CDN_URL}/${cleanPath}`
   }

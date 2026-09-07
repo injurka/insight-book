@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useHead } from '@vueuse/head'
-import { computed, onMounted, ref, watch, watchEffect } from 'vue'
+import { computed, onMounted, watch, watchEffect } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import { loadLanguageAsync } from '~/00.plugins/i18n'
@@ -10,7 +10,7 @@ import { useCustomFonts } from '~/01.shared/composables/use-custom-fonts'
 import { useGlobalTracking } from '~/01.shared/composables/use-global-tracking'
 import { isTauri } from '~/01.shared/lib/env'
 import { lazyComponent } from '~/01.shared/lib/lazy-component'
-import { isNativeTransitionRoute, isViewTransitionSupported } from '~/01.shared/lib/view-transitions'
+import { isNativeTransitionActive } from '~/01.shared/lib/view-transitions'
 import { useAnalysisStore } from '~/01.shared/store/analysis/analysis.store'
 import { useNetworkStore } from '~/01.shared/store/network.store'
 import { usePwaStore } from '~/01.shared/store/pwa.store'
@@ -53,7 +53,6 @@ onMounted(async () => {
             const isWebCallback = parsed.pathname.includes('/callback')
 
             if (isInsightbook || isWebCallback) {
-              // https://.../auth/yandex/callback?token=... → use token directly
               router.push({
                 path: '/auth/yandex/callback',
                 query: Object.fromEntries(parsed.searchParams),
@@ -97,17 +96,6 @@ watchEffect(() => {
 })
 
 const layoutName = computed(() => (route.meta.layout as string) || 'default')
-// Native View Transition (морф обложки) — только между библиотекой и страницей
-// книги (оба маршрута из TRANSITION_ROUTES); для остальной навигации —
-// CSS-переход fade (см. template). Имя предыдущего маршрута нужно, чтобы
-// переходы вида «dictionary → home» тоже получили fade, а не мгновенный swap.
-const prevRouteName = ref<unknown>(null)
-
-function useNativeTransition(routeName: unknown) {
-  return isViewTransitionSupported()
-    && isNativeTransitionRoute(routeName)
-    && isNativeTransitionRoute(prevRouteName.value)
-}
 
 const layouts: Record<string, Component> = {
   default: DefaultLayout,
@@ -182,10 +170,6 @@ useHead({
   script: headScripts,
 })
 
-watch(() => route.name, (_name, oldName) => {
-  prevRouteName.value = oldName
-})
-
 watch(() => route.path, () => {
   analysisStore.closePopover()
   analysisStore.closeSelectionTooltip()
@@ -198,12 +182,9 @@ watch(() => route.path, () => {
 <template>
   <component :is="layouts[layoutName]" v-if="layouts[layoutName]">
     <router-view v-slot="{ Component, route: currentRoute }">
-      <!-- Native-маршруты рендерим без <transition>: старая и новая страницы
-           не должны перекрываться в DOM, иначе view-transition-name обложки
-           дублируется, и браузер абортит переход (InvalidStateError) -->
-      <component :is="Component" v-if="useNativeTransition(currentRoute.name)" :key="currentRoute.path" />
-      <!-- appear — чтобы fade срабатывал и при первом монтировании этой ветки
-           (переход с native-маршрута на обычный) -->
+      <!-- Нативные View Transitions рендерим без vue-transition, чтобы компоненты
+           не зависали в DOM одновременно при переходе между главной и книгой -->
+      <component :is="Component" v-if="isNativeTransitionActive" :key="currentRoute.path" />
       <transition
         v-else
         name="fade"
@@ -216,7 +197,7 @@ watch(() => route.path, () => {
   </component>
 
   <router-view v-else v-slot="{ Component, route: currentRoute }">
-    <component :is="Component" v-if="useNativeTransition(currentRoute.name)" :key="currentRoute.path" />
+    <component :is="Component" v-if="isNativeTransitionActive" :key="currentRoute.path" />
     <transition
       v-else
       name="fade"

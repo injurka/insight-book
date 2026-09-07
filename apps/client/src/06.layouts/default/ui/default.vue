@@ -35,5 +35,13 @@ import { KitAppTitlebar } from '~/02.kit/molecules/kit-app-titlebar/ui'
   > * {
     min-height: min-content;
   }
+
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+  &::-webkit-scrollbar-thumb {
+    background-color: var(--border-secondary-color);
+    border-radius: 4px;
+  }
 }
 </style>

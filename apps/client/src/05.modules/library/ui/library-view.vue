@@ -311,22 +311,12 @@ onUnmounted(() => {
   padding-top: var(--safe-area-top);
   padding-bottom: env(safe-area-inset-bottom, 0px);
 
-  height: 100%;
   width: 100%;
-  overflow-x: hidden;
-  overflow-y: auto;
+  min-height: 100%;
   box-sizing: border-box;
 
   display: flex;
   flex-direction: column;
-
-  &::-webkit-scrollbar {
-    width: 6px;
-  }
-  &::-webkit-scrollbar-thumb {
-    background-color: var(--border-secondary-color);
-    border-radius: 4px;
-  }
 }
 
 .library-view {

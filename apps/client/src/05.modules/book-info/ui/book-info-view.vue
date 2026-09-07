@@ -32,16 +32,16 @@ const isEditingStats = ref(false)
 const isSyncModalOpen = ref(false)
 const isAppendChapterOpen = ref(false)
 
-// Стор префиллит currentBookInfo книгой из списка библиотеки, поэтому реальная
-// структура (обложка, название, автор, кнопки) рендерится с первого кадра,
-// а скелетон-оверлей плавно растворяется, когда API ответит.
 watch(bookId, (newId) => {
   if (newId)
     libraryStore.fetchBookInfo(newId)
 }, { immediate: true })
 
 function goBack() {
-  router.push(AppRoutePaths.Home)
+  if (typeof window !== 'undefined' && window.history.state?.back)
+    router.back()
+  else
+    router.push(AppRoutePaths.Home)
 }
 </script>
 
@@ -55,10 +55,6 @@ function goBack() {
         <span class="header-title">{{ t('bookInfo.aboutBook') }}</span>
       </header>
 
-      <!-- Реальная структура рендерится с первого кадра: обложка, название и автор
-           приходят оптимистично из списка библиотеки (префилл в сторе), пока API
-           отвечает. Скелетоны — отдельный оверлей поверх; он плавно растворяется,
-           когда данные загружены, поэтому нет подмены DOM, моргания и сдвига скролла -->
       <div v-if="libraryStore.isLoading || libraryStore.currentBookInfo" class="book-container">
         <div class="layout-top">
           <BookCoverPanel
@@ -78,8 +74,6 @@ function goBack() {
         <Transition name="skeleton-fade">
           <div v-if="!libraryStore.hasLoadedBookInfo" class="skeleton-overlay" aria-hidden="true">
             <div class="layout-top">
-              <!-- Без префилла (глубокая ссылка) — скелетоны и для обложки с кнопками;
-                   с префиллом колонка прозрачная: реальная обложка уже под оверлеем -->
               <div class="cover-col">
                 <template v-if="!libraryStore.currentBookInfo">
                   <div class="cover-skeleton">
@@ -91,8 +85,6 @@ function goBack() {
                   </div>
                 </template>
                 <template v-else>
-                  <!-- Невидимые распорки повторяют высоты реальной обложки и кнопок,
-                       чтобы нижние скелетоны встали ровно на место будущих панелей -->
                   <div class="cover-space" />
                   <div class="actions-space" />
                 </template>
@@ -119,8 +111,6 @@ function goBack() {
                   />
                 </template>
                 <template v-else>
-                  <!-- Прозрачные распорки повторяют высоты реальных заголовка/автора/прогресса,
-                       чтобы скелетон статистики встал ровно на место будущего блока -->
                   <div class="title-space" />
                   <div class="author-space" />
                   <div class="progress-space" />
@@ -155,19 +145,9 @@ function goBack() {
 .book-info-scroll-wrapper {
   padding-top: var(--safe-area-top);
 
-  height: 100%;
   width: 100%;
-  overflow-x: hidden;
-  overflow-y: auto;
+  min-height: 100%;
   box-sizing: border-box;
-
-  &::-webkit-scrollbar {
-    width: 6px;
-  }
-  &::-webkit-scrollbar-thumb {
-    background-color: var(--border-secondary-color);
-    border-radius: 4px;
-  }
 }
 
 .book-info-page {
