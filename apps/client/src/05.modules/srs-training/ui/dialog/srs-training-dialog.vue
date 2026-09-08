@@ -170,6 +170,7 @@ watch(currentIndex, () => {
     persistent
     class="srs-dialog"
     :minimizable="false"
+    :closable="!trainingStore.isLoadingQueue"
     :fullscreen="isFullscreen"
   >
     <template #header-actions>

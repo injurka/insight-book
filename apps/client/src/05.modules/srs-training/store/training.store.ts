@@ -15,6 +15,7 @@ export const useTrainingStore = defineStore('training', () => {
   const repos = useRepos()
   const reviewQueue = ref<UserDictItem[]>([])
   const trainingMode = ref<'srs' | 'deep_dive' | 'cram' | 'match'>('srs')
+  const isLoadingQueue = ref(false)
 
   const newWordsQueueCount = computed(() => reviewQueue.value.filter(w => new Flashcard(w).isNew()).length)
   const learningWordsQueueCount = computed(() => reviewQueue.value.filter(w => new Flashcard(w).isLearning()).length)
@@ -69,6 +70,7 @@ export const useTrainingStore = defineStore('training', () => {
     difficulty: string[]
   }) {
     trainingMode.value = opts.mode
+    isLoadingQueue.value = true
     try {
       const langToFetch = resolveLangToFetch(opts.deckId)
       const rawQueue = await repos.dictionary.getReviewQueue({
@@ -91,11 +93,15 @@ export const useTrainingStore = defineStore('training', () => {
       reviewQueue.value = []
       throw e
     }
+    finally {
+      isLoadingQueue.value = false
+    }
   }
 
   return {
     reviewQueue,
     trainingMode,
+    isLoadingQueue,
     newWordsQueueCount,
     learningWordsQueueCount,
     reviewWordsQueueCount,

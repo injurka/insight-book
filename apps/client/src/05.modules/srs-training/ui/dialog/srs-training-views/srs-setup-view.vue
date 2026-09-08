@@ -192,7 +192,7 @@ function start() {
           <span class="group-label">{{ t('dictionary.filterParams') }}</span>
         </div>
       </div>
-      <div class="form-row">
+      <div class="form-row" :class="{ 'is-disabled': trainingStore.isLoadingQueue }">
         <div class="form-col">
           <label class="form-label">
             <Icon icon="mdi:cards-outline" class="label-icon" />
@@ -229,6 +229,8 @@ function start() {
           <button
             type="button"
             class="quick-action-btn"
+            :class="{ 'is-disabled': trainingStore.isLoadingQueue }"
+            :disabled="trainingStore.isLoadingQueue"
             :title="t('dictionary.selectAll')"
             @click="selectAllModes"
           >
@@ -239,6 +241,8 @@ function start() {
             v-if="activeModesCount > 0"
             type="button"
             class="quick-action-btn"
+            :class="{ 'is-disabled': trainingStore.isLoadingQueue }"
+            :disabled="trainingStore.isLoadingQueue"
             :title="t('dictionary.reset')"
             @click="resetModes"
           >
@@ -257,14 +261,15 @@ function start() {
           <!-- Standard Cards -->
           <div
             class="mode-card"
-            :class="{ 'is-active': modes.standard }"
+            :class="{ 'is-active': modes.standard, 'is-disabled': trainingStore.isLoadingQueue }"
             style="--mode-accent: #3b82f6"
-            tabindex="0"
+            :tabindex="trainingStore.isLoadingQueue ? -1 : 0"
             role="checkbox"
             :aria-checked="modes.standard"
-            @click="modes.standard = !modes.standard"
-            @keydown.enter.prevent="modes.standard = !modes.standard"
-            @keydown.space.prevent="modes.standard = !modes.standard"
+            :aria-disabled="trainingStore.isLoadingQueue"
+            @click="!trainingStore.isLoadingQueue && (modes.standard = !modes.standard)"
+            @keydown.enter.prevent="!trainingStore.isLoadingQueue && (modes.standard = !modes.standard)"
+            @keydown.space.prevent="!trainingStore.isLoadingQueue && (modes.standard = !modes.standard)"
           >
             <div class="mode-card-top">
               <div class="mode-icon-box">
@@ -283,14 +288,15 @@ function start() {
           <!-- Typing -->
           <div
             class="mode-card"
-            :class="{ 'is-active': modes.typing }"
+            :class="{ 'is-active': modes.typing, 'is-disabled': trainingStore.isLoadingQueue }"
             style="--mode-accent: #10b981"
-            tabindex="0"
+            :tabindex="trainingStore.isLoadingQueue ? -1 : 0"
             role="checkbox"
             :aria-checked="modes.typing"
-            @click="modes.typing = !modes.typing"
-            @keydown.enter.prevent="modes.typing = !modes.typing"
-            @keydown.space.prevent="modes.typing = !modes.typing"
+            :aria-disabled="trainingStore.isLoadingQueue"
+            @click="!trainingStore.isLoadingQueue && (modes.typing = !modes.typing)"
+            @keydown.enter.prevent="!trainingStore.isLoadingQueue && (modes.typing = !modes.typing)"
+            @keydown.space.prevent="!trainingStore.isLoadingQueue && (modes.typing = !modes.typing)"
           >
             <div class="mode-card-top">
               <div class="mode-icon-box">
@@ -309,14 +315,15 @@ function start() {
           <!-- Multiple Choice Test -->
           <div
             class="mode-card"
-            :class="{ 'is-active': modes.choice }"
+            :class="{ 'is-active': modes.choice, 'is-disabled': trainingStore.isLoadingQueue }"
             style="--mode-accent: #8b5cf6"
-            tabindex="0"
+            :tabindex="trainingStore.isLoadingQueue ? -1 : 0"
             role="checkbox"
             :aria-checked="modes.choice"
-            @click="modes.choice = !modes.choice"
-            @keydown.enter.prevent="modes.choice = !modes.choice"
-            @keydown.space.prevent="modes.choice = !modes.choice"
+            :aria-disabled="trainingStore.isLoadingQueue"
+            @click="!trainingStore.isLoadingQueue && (modes.choice = !modes.choice)"
+            @keydown.enter.prevent="!trainingStore.isLoadingQueue && (modes.choice = !modes.choice)"
+            @keydown.space.prevent="!trainingStore.isLoadingQueue && (modes.choice = !modes.choice)"
           >
             <div class="mode-card-top">
               <div class="mode-icon-box">
@@ -335,14 +342,15 @@ function start() {
           <!-- Reverse Choice Test -->
           <div
             class="mode-card"
-            :class="{ 'is-active': modes['choice-reverse'] }"
+            :class="{ 'is-active': modes['choice-reverse'], 'is-disabled': trainingStore.isLoadingQueue }"
             style="--mode-accent: #f59e0b"
-            tabindex="0"
+            :tabindex="trainingStore.isLoadingQueue ? -1 : 0"
             role="checkbox"
             :aria-checked="modes['choice-reverse']"
-            @click="modes['choice-reverse'] = !modes['choice-reverse']"
-            @keydown.enter.prevent="modes['choice-reverse'] = !modes['choice-reverse']"
-            @keydown.space.prevent="modes['choice-reverse'] = !modes['choice-reverse']"
+            :aria-disabled="trainingStore.isLoadingQueue"
+            @click="!trainingStore.isLoadingQueue && (modes['choice-reverse'] = !modes['choice-reverse'])"
+            @keydown.enter.prevent="!trainingStore.isLoadingQueue && (modes['choice-reverse'] = !modes['choice-reverse'])"
+            @keydown.space.prevent="!trainingStore.isLoadingQueue && (modes['choice-reverse'] = !modes['choice-reverse'])"
           >
             <div class="mode-card-top">
               <div class="mode-icon-box">
@@ -361,14 +369,15 @@ function start() {
           <!-- Audio Listening -->
           <div
             class="mode-card"
-            :class="{ 'is-active': modes.audio }"
+            :class="{ 'is-active': modes.audio, 'is-disabled': trainingStore.isLoadingQueue }"
             style="--mode-accent: #ec4899"
-            tabindex="0"
+            :tabindex="trainingStore.isLoadingQueue ? -1 : 0"
             role="checkbox"
             :aria-checked="modes.audio"
-            @click="modes.audio = !modes.audio"
-            @keydown.enter.prevent="modes.audio = !modes.audio"
-            @keydown.space.prevent="modes.audio = !modes.audio"
+            :aria-disabled="trainingStore.isLoadingQueue"
+            @click="!trainingStore.isLoadingQueue && (modes.audio = !modes.audio)"
+            @keydown.enter.prevent="!trainingStore.isLoadingQueue && (modes.audio = !modes.audio)"
+            @keydown.space.prevent="!trainingStore.isLoadingQueue && (modes.audio = !modes.audio)"
           >
             <div class="mode-card-top">
               <div class="mode-icon-box">
@@ -388,14 +397,15 @@ function start() {
           <div
             v-if="showWritingMode"
             class="mode-card"
-            :class="{ 'is-active': modes.writing }"
+            :class="{ 'is-active': modes.writing, 'is-disabled': trainingStore.isLoadingQueue }"
             style="--mode-accent: #06b6d4"
-            tabindex="0"
+            :tabindex="trainingStore.isLoadingQueue ? -1 : 0"
             role="checkbox"
             :aria-checked="modes.writing"
-            @click="modes.writing = !modes.writing"
-            @keydown.enter.prevent="modes.writing = !modes.writing"
-            @keydown.space.prevent="modes.writing = !modes.writing"
+            :aria-disabled="trainingStore.isLoadingQueue"
+            @click="!trainingStore.isLoadingQueue && (modes.writing = !modes.writing)"
+            @keydown.enter.prevent="!trainingStore.isLoadingQueue && (modes.writing = !modes.writing)"
+            @keydown.space.prevent="!trainingStore.isLoadingQueue && (modes.writing = !modes.writing)"
           >
             <div class="mode-card-top">
               <div class="mode-icon-box">
@@ -415,14 +425,15 @@ function start() {
           <!-- Scramble -->
           <div
             class="mode-card"
-            :class="{ 'is-active': modes.scramble }"
+            :class="{ 'is-active': modes.scramble, 'is-disabled': trainingStore.isLoadingQueue }"
             style="--mode-accent: #6366f1"
-            tabindex="0"
+            :tabindex="trainingStore.isLoadingQueue ? -1 : 0"
             role="checkbox"
             :aria-checked="modes.scramble"
-            @click="modes.scramble = !modes.scramble"
-            @keydown.enter.prevent="modes.scramble = !modes.scramble"
-            @keydown.space.prevent="modes.scramble = !modes.scramble"
+            :aria-disabled="trainingStore.isLoadingQueue"
+            @click="!trainingStore.isLoadingQueue && (modes.scramble = !modes.scramble)"
+            @keydown.enter.prevent="!trainingStore.isLoadingQueue && (modes.scramble = !modes.scramble)"
+            @keydown.space.prevent="!trainingStore.isLoadingQueue && (modes.scramble = !modes.scramble)"
           >
             <div class="mode-card-top">
               <div class="mode-icon-box">
@@ -441,14 +452,15 @@ function start() {
           <!-- Collocations -->
           <div
             class="mode-card"
-            :class="{ 'is-active': modes.collocations }"
+            :class="{ 'is-active': modes.collocations, 'is-disabled': trainingStore.isLoadingQueue }"
             style="--mode-accent: #f97316"
-            tabindex="0"
+            :tabindex="trainingStore.isLoadingQueue ? -1 : 0"
             role="checkbox"
             :aria-checked="modes.collocations"
-            @click="modes.collocations = !modes.collocations"
-            @keydown.enter.prevent="modes.collocations = !modes.collocations"
-            @keydown.space.prevent="modes.collocations = !modes.collocations"
+            :aria-disabled="trainingStore.isLoadingQueue"
+            @click="!trainingStore.isLoadingQueue && (modes.collocations = !modes.collocations)"
+            @keydown.enter.prevent="!trainingStore.isLoadingQueue && (modes.collocations = !modes.collocations)"
+            @keydown.space.prevent="!trainingStore.isLoadingQueue && (modes.collocations = !modes.collocations)"
           >
             <div class="mode-card-top">
               <div class="mode-icon-box">
@@ -468,14 +480,15 @@ function start() {
           <div
             v-if="showWritingMode"
             class="mode-card"
-            :class="{ 'is-active': modes.radicals }"
+            :class="{ 'is-active': modes.radicals, 'is-disabled': trainingStore.isLoadingQueue }"
             style="--mode-accent: #eab308"
-            tabindex="0"
+            :tabindex="trainingStore.isLoadingQueue ? -1 : 0"
             role="checkbox"
             :aria-checked="modes.radicals"
-            @click="modes.radicals = !modes.radicals"
-            @keydown.enter.prevent="modes.radicals = !modes.radicals"
-            @keydown.space.prevent="modes.radicals = !modes.radicals"
+            :aria-disabled="trainingStore.isLoadingQueue"
+            @click="!trainingStore.isLoadingQueue && (modes.radicals = !modes.radicals)"
+            @keydown.enter.prevent="!trainingStore.isLoadingQueue && (modes.radicals = !modes.radicals)"
+            @keydown.space.prevent="!trainingStore.isLoadingQueue && (modes.radicals = !modes.radicals)"
           >
             <div class="mode-card-top">
               <div class="mode-icon-box">
@@ -509,13 +522,20 @@ function start() {
         <span>{{ t('dictionary.modesShuffleHint') }}</span>
       </div>
       <div class="buttons-wrap">
-        <KitBtn variant="tonal" size="md" @click="emit('close')">
+        <KitBtn
+          variant="tonal"
+          size="md"
+          :disabled="trainingStore.isLoadingQueue"
+          @click="emit('close')"
+        >
           {{ t('dictionary.cancel') }}
         </KitBtn>
         <KitBtn
           color="primary"
           size="md"
-          prepend-icon="mdi:play"
+          :prepend-icon="trainingStore.isLoadingQueue ? undefined : 'mdi:play'"
+          :loading="trainingStore.isLoadingQueue"
+          :disabled="trainingStore.isLoadingQueue"
           @click="start"
         >
           {{ t('dictionary.start') }}
@@ -613,6 +633,13 @@ function start() {
             outline: 2px solid var(--fg-accent-color);
             outline-offset: 1px;
           }
+
+          &.is-disabled,
+          &:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            pointer-events: none;
+          }
         }
       }
     }
@@ -662,6 +689,12 @@ function start() {
         transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
         user-select: none;
         outline: none;
+
+        &.is-disabled {
+          opacity: 0.55;
+          cursor: not-allowed;
+          pointer-events: none;
+        }
 
         &:hover {
           border-color: var(--border-secondary-color);
@@ -764,6 +797,11 @@ function start() {
     .form-row {
       display: flex;
       gap: 12px;
+
+      &.is-disabled {
+        opacity: 0.6;
+        pointer-events: none;
+      }
 
       @include media-down(sm) {
         flex-direction: column;
