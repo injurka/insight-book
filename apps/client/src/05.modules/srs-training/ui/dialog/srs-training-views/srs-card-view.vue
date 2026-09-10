@@ -582,7 +582,6 @@ watch(() => props.card, initCard, { immediate: true })
   margin-top: 16px;
   padding-top: 16px;
   border-top: 1px dashed var(--border-secondary-color);
-  max-height: 40vh;
   overflow-y: auto;
   display: flex;
   flex-direction: column;

@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import type { Book } from '~/01.shared/types/models'
-import { Icon } from '@iconify/vue'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '~/01.shared/store/auth.store'
@@ -12,6 +11,7 @@ import { KitSelect } from '~/02.kit/molecules/kit-select/ui'
 import { KitDialog } from '~/02.kit/organisms/kit-dialog/ui'
 import { KitPrompt } from '~/02.kit/organisms/kit-prompt/ui'
 import { useEditBookForm } from '../../composables/use-edit-book-form'
+import PublishRequestBlock from './publish-request-block.vue'
 
 interface Props {
   book: Book | null
@@ -141,51 +141,11 @@ const isReadOnly = computed(() => editingBook.value.publicStatus === 'public' ||
         <KitCheckbox v-model="editingBook.isFavorite" :label="t('library.addToFavorites')" :disabled="isReadOnly" />
       </div>
 
-      <div v-if="!authStore.isSingleMode" class="publish-request-block">
-        <template v-if="isReadOnly">
-          <div class="status-info">
-            <div class="status-badge success">
-              <Icon icon="mdi:check-circle" class="iconify" />
-              {{ t('library.publicStatusPublished') }}
-            </div>
-            <p class="warning-text">
-              {{ t('library.publicBookWarning') }}
-            </p>
-          </div>
-        </template>
-        <template v-else-if="editingBook.publicStatus === 'pending'">
-          <div class="status-info">
-            <div class="status-badge warning">
-              <Icon icon="mdi:clock-outline" class="iconify" />
-              {{ t('library.publicStatusPending') }}
-            </div>
-          </div>
-          <KitBtn
-            variant="outlined"
-            color="error"
-            size="sm"
-            @click="editingBook.publicStatus = 'private'"
-          >
-            {{ t('library.cancelPublishRequest') }}
-          </KitBtn>
-        </template>
-        <template v-else>
-          <div class="status-info">
-            <div class="status-badge">
-              {{ t('library.notPublished') || 'Не опубликовано' }}
-            </div>
-          </div>
-          <KitBtn
-            variant="outlined"
-            color="primary"
-            size="sm"
-            icon="mdi:earth"
-            @click="editingBook.publicStatus = 'pending'"
-          >
-            {{ t('library.sendPublishRequest') }}
-          </KitBtn>
-        </template>
-      </div>
+      <PublishRequestBlock
+        v-if="!authStore.isSingleMode"
+        v-model:status="editingBook.publicStatus"
+        :is-read-only="isReadOnly"
+      />
 
       <div class="form-group row-group">
         <div class="form-group flex-2">
@@ -334,47 +294,5 @@ const isReadOnly = computed(() => editingBook.value.publicStatus === 'public' ||
 }
 .spacer {
   flex-grow: 1;
-}
-.publish-request-block {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 12px 16px;
-  border-radius: 12px;
-  background-color: var(--bg-tertiary-color);
-  border: 1px solid var(--border-secondary-color);
-
-  .status-info {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-  }
-}
-.status-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 0.875rem;
-  font-weight: 600;
-  padding: 4px 12px;
-  border-radius: 16px;
-  &.success {
-    background-color: rgba(var(--v-theme-success), 0.15);
-    color: var(--fg-success-color, #4caf50);
-  }
-  &.warning {
-    background-color: rgba(var(--v-theme-warning), 0.15);
-    color: var(--fg-warning-color, #ff9800);
-  }
-  .iconify {
-    font-size: 1.2rem;
-  }
-}
-.warning-text {
-  font-size: 0.85rem;
-  color: var(--fg-error-color, #f44336);
-  margin: 0;
 }
 </style>

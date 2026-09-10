@@ -116,7 +116,7 @@ function toggleAnimation() {
               color="secondary"
               size="sm"
               :class="{ 'is-playing-pulse': isPlaying, 'is-active-btn': isTtsPopoverOpen }"
-              @click="playTTS(false)"
+              @click.stop="playTTS(false)"
               @contextmenu.prevent="openTtsPopover"
             />
           </KitTooltip>

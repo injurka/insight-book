@@ -18,6 +18,7 @@ const navLinks = [
   { to: '/users', label: 'Пользователи', icon: 'mdi:account-group' },
   { to: '/subscriptions', label: 'Подписки', icon: 'mdi:card-account-details' },
   { to: '/books/pending', label: 'Книги на модерацию', icon: 'mdi:book-open-variant' },
+  { to: '/books/public', label: 'Публичные книги', icon: 'mdi:book-multiple' },
   { to: '/plugins/pending', label: 'Плагины на модерацию', icon: 'mdi:puzzle' },
 ]
 

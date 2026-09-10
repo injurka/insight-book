@@ -376,6 +376,45 @@ export class BookRepository implements IBookRepository {
       orderBy: [desc(schema.books.createdAt)],
     })
   }
+
+  async findPublicBooks(opts?: { page?: number, limit?: number, search?: string }) {
+    const page = Math.max(1, opts?.page || 1)
+    const limit = Math.max(1, Math.min(100, opts?.limit || 20))
+    const offset = (page - 1) * limit
+
+    const conditions: (SQL | undefined)[] = [eq(schema.books.isPublic, true)]
+    if (opts?.search) {
+      conditions.push(
+        or(
+          like(schema.books.title, `%${opts.search}%`),
+          like(schema.books.author, `%${opts.search}%`),
+        ),
+      )
+    }
+    const where = and(...conditions)
+
+    const [books, totalResult] = await Promise.all([
+      db.query.books.findMany({
+        where,
+        with: { user: true },
+        columns: { toc: false },
+        orderBy: [desc(schema.books.createdAt)],
+        limit,
+        offset,
+      }),
+      db.select({ count: sql<number>`count(*)` })
+        .from(schema.books)
+        .where(where)
+        .get(),
+    ])
+
+    return {
+      data: books,
+      total: totalResult?.count || 0,
+      page,
+      limit,
+    }
+  }
 }
 
 export const bookRepository = new BookRepository()

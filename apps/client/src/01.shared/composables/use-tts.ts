@@ -38,6 +38,7 @@ export function useTts() {
           text,
           voice,
           signal,
+          forceCacheBypass,
         )
         audioBase64 = res.audioBase64
       }

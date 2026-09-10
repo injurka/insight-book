@@ -1,3 +1,4 @@
+import path from 'node:path'
 import { ERROR_CODES } from '../constants/error-codes'
 import { ROLES } from '../constants/roles'
 import { bookRepository } from '../repositories/book.repository'
@@ -5,6 +6,7 @@ import { catalogPluginRepository } from '../repositories/catalog-plugin.reposito
 import { userRepository } from '../repositories/user.repository'
 import { AppError } from '../utils/errors'
 import { logger } from '../utils/logger'
+import { storageService } from './storage.service'
 
 export class AdminService {
   /** Проверка, что пользователь — админ */
@@ -179,6 +181,40 @@ export class AdminService {
     await this.assertAdmin(userId)
 
     return bookRepository.findPendingPublic()
+  }
+
+  async listPublicBooks(userId: number, opts: { page?: number, limit?: number, search?: string }) {
+    await this.assertAdmin(userId)
+
+    return bookRepository.findPublicBooks(opts)
+  }
+
+  async deleteBook(adminUserId: number, bookId: number) {
+    await this.assertAdmin(adminUserId)
+
+    const book = await bookRepository.getBookForDeletion(bookId)
+    if (!book) {
+      throw new AppError(404, ERROR_CODES.BOOK.NOT_FOUND, 'Book not found')
+    }
+
+    await bookRepository.deleteBook(bookId)
+
+    try {
+      if (book.filePath) {
+        const folderName = path.basename(book.filePath)
+        await storageService.deleteFolder(`books/${folderName}`)
+      }
+      if (book.coverUrl && book.coverUrl.startsWith('/api/uploads/covers/')) {
+        const coverFilename = book.coverUrl.split('/').pop()!
+        await storageService.deleteFile(`covers/${coverFilename}`)
+      }
+    }
+    catch (err: unknown) {
+      logger.warn(err as Error, `[File Delete Warning] Не удалось удалить файлы книги:`)
+    }
+
+    logger.info(`[Admin] Book ${bookId} deleted by admin ${adminUserId}`)
+    return { success: true }
   }
 
   async setBookPublicStatus(adminUserId: number, bookId: number, status: 'approved' | 'rejected') {

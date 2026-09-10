@@ -1,4 +1,4 @@
-import type { DashboardStats, LoginResponse, MeResponse, PaginatedResponse, PendingBook, PendingPlugin, SubscriptionTier, SubscriptionTierInput, UserDetail, UserRow } from '~/01.shared/types/models'
+import type { DashboardStats, LoginResponse, MeResponse, PaginatedResponse, PendingBook, PendingPlugin, PublicBook, SubscriptionTier, SubscriptionTierInput, UserDetail, UserRow } from '~/01.shared/types/models'
 import { ofetch } from 'ofetch'
 
 import { API_URL } from '~/01.shared/lib/env'
@@ -109,6 +109,12 @@ export const api = {
 
     pendingBooks: () =>
       request<PendingBook[]>('/api/admin/books/pending'),
+
+    publicBooks: (opts: { page?: number, limit?: number, search?: string } = {}) =>
+      request<PaginatedResponse<PublicBook>>('/api/admin/books/public', { query: opts as Record<string, unknown> }),
+
+    deleteBook: (id: number) =>
+      request<{ success: boolean }>(`/api/admin/books/${id}`, { method: 'DELETE' }),
 
     setBookStatus: (id: number, status: 'approved' | 'rejected') =>
       request<{ success: boolean }>(`/api/admin/books/${id}/public-status`, {

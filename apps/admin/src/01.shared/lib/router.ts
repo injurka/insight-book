@@ -60,6 +60,12 @@ export const router = createRouter({
       meta: { requiresAuth: true },
     },
     {
+      path: '/books/public',
+      name: 'books-public',
+      component: () => import('~/07.views/books-public.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
       path: '/plugins/pending',
       name: 'plugins-pending',
       component: () => import('~/07.views/plugins-pending.vue'),

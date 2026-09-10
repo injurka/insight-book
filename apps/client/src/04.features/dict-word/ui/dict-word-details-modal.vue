@@ -150,7 +150,7 @@ const difficultyClass = computed(() => {
                     size="sm"
                     :loading="isTtsLoading"
                     :class="{ 'pulse-animation': isPlaying, 'is-active-btn': isTtsPopoverOpen }"
-                    @click="playTTS(false)"
+                    @click.stop="playTTS(false)"
                     @contextmenu.prevent="openTtsPopover"
                   />
                 </KitTooltip>

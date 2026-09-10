@@ -1,4 +1,4 @@
-import type { DashboardStats, PaginatedResponse, PendingBook, PendingPlugin, SubscriptionTier, SubscriptionTierInput, UserDetail, UserRow } from '~/01.shared/types/models'
+import type { DashboardStats, PaginatedResponse, PendingBook, PendingPlugin, PublicBook, SubscriptionTier, SubscriptionTierInput, UserDetail, UserRow } from '~/01.shared/types/models'
 import { api } from '~/01.shared/lib/api'
 
 export interface IAdminRepository {
@@ -13,6 +13,8 @@ export interface IAdminRepository {
   updateUser: (id: number, data: Record<string, unknown>) => Promise<{ success: boolean, user: Record<string, unknown> | null }>
   deleteUser: (id: number) => Promise<{ success: boolean }>
   pendingBooks: () => Promise<PendingBook[]>
+  listPublicBooks: (opts?: { page?: number, limit?: number, search?: string }) => Promise<PaginatedResponse<PublicBook>>
+  deleteBook: (id: number) => Promise<{ success: boolean }>
   setBookStatus: (id: number, status: 'approved' | 'rejected') => Promise<{ success: boolean }>
   pendingPlugins: () => Promise<PendingPlugin[]>
   setPluginStatus: (id: string, status: 'approved' | 'rejected') => Promise<Record<string, unknown>>
@@ -31,6 +33,8 @@ export class DefaultAdminRepository implements IAdminRepository {
   async updateUser(id: number, data: Record<string, unknown>) { return api.admin.updateUser(id, data) }
   async deleteUser(id: number) { return api.admin.deleteUser(id) }
   async pendingBooks() { return api.admin.pendingBooks() }
+  async listPublicBooks(opts?: { page?: number, limit?: number, search?: string }) { return api.admin.publicBooks(opts) }
+  async deleteBook(id: number) { return api.admin.deleteBook(id) }
   async setBookStatus(id: number, status: 'approved' | 'rejected') { return api.admin.setBookStatus(id, status) }
   async pendingPlugins() { return api.admin.pendingPlugins() }
   async setPluginStatus(id: string, status: 'approved' | 'rejected') { return api.admin.setPluginStatus(id, status) }

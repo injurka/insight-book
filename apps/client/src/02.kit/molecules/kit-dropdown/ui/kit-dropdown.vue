@@ -11,7 +11,12 @@ const props = withDefaults(defineProps<Props>(), {
   disabled: false,
   closeOnOutsideClick: true,
   zIndex: undefined,
+  visible: undefined,
 })
+
+const emit = defineEmits<{
+  (e: 'update:visible', val: boolean): void
+}>()
 
 const modelValue = defineModel<boolean>()
 
@@ -22,15 +27,25 @@ interface Props {
   disabled?: boolean
   closeOnOutsideClick?: boolean
   zIndex?: number | string
+  visible?: boolean
 }
 
 const internalOpen = ref(false)
 
 const isOpen = computed({
-  get: () => modelValue.value !== undefined ? modelValue.value : internalOpen.value,
+  get: () => {
+    if (props.visible !== undefined)
+      return props.visible
+    if (modelValue.value !== undefined)
+      return modelValue.value
+
+    return internalOpen.value
+  },
   set: (val) => {
     internalOpen.value = val
-    modelValue.value = val
+    emit('update:visible', val)
+    if (modelValue.value !== undefined)
+      modelValue.value = val
   },
 })
 

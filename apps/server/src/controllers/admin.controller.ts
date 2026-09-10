@@ -126,6 +126,26 @@ export const adminRouter = new Elysia({ prefix: '/api/admin' })
     return adminService.listPendingBooks(userId)
   })
 
+  .get('/books/public', async ({ userId, query }) => {
+    return adminService.listPublicBooks(userId, {
+      page: Number(query.page) || 1,
+      limit: Number(query.limit) || 20,
+      search: query.search as string | undefined,
+    })
+  }, {
+    query: t.Object({
+      page: t.Optional(t.Numeric()),
+      limit: t.Optional(t.Numeric()),
+      search: t.Optional(t.String()),
+    }),
+  })
+
+  .delete('/books/:id', async ({ userId, params }) => {
+    return adminService.deleteBook(userId, Number(params.id))
+  }, {
+    params: t.Object({ id: t.Numeric() }),
+  })
+
   .patch('/books/:id/public-status', async ({ userId, params, body }) => {
     return adminService.setBookPublicStatus(userId, Number(params.id), body.status as 'approved' | 'rejected')
   }, {
