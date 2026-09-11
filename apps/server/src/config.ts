@@ -140,6 +140,7 @@ export const ALLOWED_ORIGINS = new Set([
   'http://tauri.localhost', // Tauri Android
   'https://tauri.localhost', // Tauri iOS/macOS
   'tauri://localhost', // Tauri Windows/Linux
+  'https://insight-book.b-cdn.net', // Bunny CDN web client
   ...EXTRA_CORS_ORIGINS,
 ])
 
