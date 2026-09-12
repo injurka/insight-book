@@ -37,6 +37,17 @@ declare module 'ofetch' {
 
 export const BASE_API_URL = API_URL
 
+function getDiagnosticUrl(requestValue: RequestInfo | URL, baseUrl?: string): string {
+  const rawUrl = requestValue instanceof Request ? requestValue.url : String(requestValue)
+
+  try {
+    return new URL(rawUrl, baseUrl || window.location.origin).href
+  }
+  catch {
+    return rawUrl
+  }
+}
+
 export interface CustomLlmConfig {
   url: string
   key: string
@@ -95,7 +106,7 @@ export const request = ofetch.create({
     }
   },
   // eslint-disable-next-line complexity
-  async onResponseError({ response, options }) {
+  async onResponseError({ request: failedRequest, response, options }) {
     const data = response._data || {}
     const errCode = data.code
     let errMessage = String(data?.message || data?.error || (response?.status ? `HTTP ${response.status} ${response.statusText || ''}` : 'Unknown error'))
@@ -112,6 +123,13 @@ export const request = ofetch.create({
         ? (i18n.global.t('errors.aiServer'))
         : (i18n.global.t('errors.server500'))
     }
+
+    console.error('[API] Request failed', {
+      method: options.method || 'GET',
+      url: getDiagnosticUrl(failedRequest, options.baseURL),
+      status: response.status,
+      code: errCode || null,
+    })
 
     if (!options?.silentErrors) {
       providers.onError(errMessage)
@@ -130,7 +148,7 @@ export const request = ofetch.create({
     throw customError
   },
   // eslint-disable-next-line complexity
-  async onRequestError({ error, options }) {
+  async onRequestError({ request: failedRequest, error, options }) {
     let errMessage = typeof error?.message === 'string' ? error.message : String(error || '')
     const isNetworkError = errMessage.includes('Failed to fetch') || errMessage.includes('Network Error')
     if (isNetworkError)
@@ -138,6 +156,12 @@ export const request = ofetch.create({
 
     const isAbort = error?.name === 'AbortError' || errMessage.toLowerCase().includes('abort') || errMessage.toLowerCase().includes('cancel')
     const isOffline = typeof navigator !== 'undefined' && !navigator.onLine
+
+    console.error('[API] Network request failed', {
+      method: options.method || 'GET',
+      url: getDiagnosticUrl(failedRequest, options.baseURL),
+      error: errMessage,
+    })
 
     if (!options?.silentErrors && !isAbort && !isOffline && !isNetworkError)
       providers.onError(errMessage)
@@ -163,7 +187,7 @@ export const api = {
     login: async (data: AuthLoginDto) => request<{ token: string, user: UserData }>('/api/auth/login', { method: 'POST', body: JSON.stringify(data) }),
     sendCode: async (data: AuthSendCodeDto) => request<{ success: boolean, message: string }>('/api/auth/send-code', { method: 'POST', body: JSON.stringify(data) }),
     register: async (data: AuthRegisterDto) => request<{ token: string, user: UserData }>('/api/auth/register', { method: 'POST', body: JSON.stringify(data) }),
-    me: async () => request<{ user: UserData | null, mode: string }>('/api/auth/me'),
+    me: async () => request<{ user: UserData | null, mode: string }>('/api/auth/me', { silentErrors: true }),
     updateAvatar: async (file: File) => {
       const fd = new FormData()
       fd.append('file', file)

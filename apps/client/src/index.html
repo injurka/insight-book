@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.ico" />
+    <link rel="icon" type="image/svg+xml" href="./favicon.ico" />
     <meta
       name="viewport"
       content="width=device-width, initial-scale=1, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
@@ -11,12 +11,12 @@
     <title>InsightBook</title>
 
     <!-- Рантайм-конфиг (генерируется при запуске контейнера) -->
-    <script src="/configs/app-config.js"></script>
+    <script src="./configs/app-config.js"></script>
 
     <!-- Критические шрифты (Latin + Cyrillic): синхронно, 6 @font-face на вес = 18 woff2, ~200 KB -->
-    <link rel="stylesheet" href="/fonts/split/regular/result-critical.css" />
-    <link rel="stylesheet" href="/fonts/split/medium/result-critical.css" />
-    <link rel="stylesheet" href="/fonts/split/semibold/result-critical.css" />
+    <link rel="stylesheet" href="./fonts/split/regular/result-critical.css" />
+    <link rel="stylesheet" href="./fonts/split/medium/result-critical.css" />
+    <link rel="stylesheet" href="./fonts/split/semibold/result-critical.css" />
 
     <!-- CJK-шрифты загружаются лениво через JS — только когда на странице
          реально встречаются иероглифы (см. loadCjkFonts в main.ts) -->
@@ -45,7 +45,7 @@
           ;['regular', 'medium', 'semibold'].forEach(function (w) {
             var link = document.createElement('link')
             link.rel = 'stylesheet'
-            link.href = '/fonts/split/' + w + '/result-cjk.css'
+            link.href = new URL('./fonts/split/' + w + '/result-cjk.css', document.baseURI).href
             document.head.appendChild(link)
           })
         }

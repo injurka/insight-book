@@ -3,6 +3,14 @@ import localforage from 'localforage'
 import { onMounted, ref } from 'vue'
 import { useToast } from '~/01.shared/composables/use-toast'
 
+interface LocalFontData {
+  family: string
+}
+
+interface WindowWithLocalFonts extends Window {
+  queryLocalFonts?: () => Promise<LocalFontData[]>
+}
+
 export interface UploadedFontMeta {
   name: string
   family: string
@@ -53,11 +61,10 @@ export function useCustomFonts() {
 
     isScanning.value = true
     try {
-      if ('queryLocalFonts' in window) {
-        // eslint-disable-next-line ts/no-explicit-any
-        const fontData = await (window as any).queryLocalFonts()
-        // eslint-disable-next-line ts/no-explicit-any
-        const rawFamilies: string[] = fontData.map((f: any) => String(f.family))
+      const queryLocalFonts = (window as WindowWithLocalFonts).queryLocalFonts
+      if (queryLocalFonts) {
+        const fontData = await queryLocalFonts.call(window)
+        const rawFamilies = fontData.map(font => font.family)
         const families: string[] = Array.from(new Set<string>(rawFamilies)).sort()
 
         scannedSystemFonts.value = families

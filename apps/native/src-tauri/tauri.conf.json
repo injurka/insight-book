@@ -1,7 +1,7 @@
 {
   "$schema": "../../../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "insight-book",
-  "version": "0.1.0",
+  "version": "3.23.1",
   "identifier": "ru.insightbook.insightbook",
   "build": {
     "frontendDist": "../../client/dist",
@@ -21,7 +21,19 @@
       }
     ],
     "security": {
-      "csp": null
+      "csp": {
+        "default-src": ["'self'", "customprotocol:", "asset:"],
+        "connect-src": ["'self'", "ipc:", "http://ipc.localhost", "https:"],
+        "font-src": ["'self'", "data:", "https:"],
+        "img-src": ["'self'", "asset:", "data:", "blob:", "https:"],
+        "media-src": ["'self'", "asset:", "blob:", "https:"],
+        "object-src": ["'none'"],
+        "script-src": ["'self'", "https:"],
+        "style-src": ["'self'", "'unsafe-inline'", "https:"],
+        "worker-src": ["'self'", "blob:"]
+      },
+      "devCsp": null,
+      "freezePrototype": true
     }
   },
   "bundle": {
@@ -44,7 +56,7 @@
       },
       "mobile": [
         {
-          "host": "api.insight-book.ru",
+          "host": "insight-book.ru",
           "pathPrefix": [
             "/api/auth/yandex/callback"
           ]

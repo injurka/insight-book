@@ -8,23 +8,15 @@
   "permissions": [
     "core:default",
     "log:default",
-    "fs:default",
-    "dialog:default",
     "http:allow-fetch",
     {
       "identifier": "http:default",
       "allow": [
         {
-          "url": "https://api.insight-book.ru/*?*"
-        },
-        {
           "url": "https://insight-book-api.limited-dissolve.ru/*?*"
         },
         {
           "url": "http://localhost:*/*?*"
-        },
-        {
-          "url": "https://api.insight-book.ru/*"
         },
         {
           "url": "https://insight-book-api.limited-dissolve.ru/*"
@@ -34,8 +26,6 @@
         }
       ]
     },
-    "fs:allow-appdata-read-recursive",
-    "fs:allow-appdata-write-recursive",
     "core:window:allow-close",
     "core:window:allow-minimize",
     "core:window:allow-maximize",
@@ -43,6 +33,12 @@
     "core:window:allow-unmaximize",
     "core:window:allow-start-dragging",
     "deep-link:default",
-    "opener:default"
+    {
+      "identifier": "opener:allow-open-url",
+      "allow": [
+        { "url": "https://insight-book-api.limited-dissolve.ru/*" },
+        { "url": "https://github.com/injurka/insight-book/*" }
+      ]
+    }
   ]
 }

@@ -1,3 +1,4 @@
+import type { AnyNode, Text } from 'domhandler'
 import type { LanguageTokenizer, TokenizedWord } from '../types'
 import { createRequire } from 'node:module'
 import path from 'node:path'
@@ -263,13 +264,10 @@ export async function tokenizeHtmlPage(html: string, language: string) {
   const allWords = new Set<string>()
   let sentenceIdCounter = 0
 
-  // eslint-disable-next-line ts/no-explicit-any
-  const blocks: { textNodes: any[], fullText: string }[] = []
-  // eslint-disable-next-line ts/no-explicit-any
-  let currentBlock = { textNodes: [] as any[], fullText: '' }
+  const blocks: { textNodes: Text[], fullText: string }[] = []
+  let currentBlock: { textNodes: Text[], fullText: string } = { textNodes: [], fullText: '' }
 
-  // eslint-disable-next-line ts/no-explicit-any
-  function traverse(el: any) {
+  function traverse(el: AnyNode) {
     // eslint-disable-next-line regexp/no-unused-capturing-group
     const isBlock = el.type === 'tag' && /^(p|div|h[1-6]|li|blockquote|td|th|br|hr|tr|ul|ol|table|article|section|main|aside|nav|header|footer|pre|figure|figcaption)$/i.test(el.name)
 
@@ -281,7 +279,7 @@ export async function tokenizeHtmlPage(html: string, language: string) {
     if (el.type === 'text') {
       const text = el.data
       if (text) {
-        currentBlock.textNodes.push(el)
+        currentBlock.textNodes.push(el as Text)
         currentBlock.fullText += text
       }
     }

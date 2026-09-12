@@ -105,8 +105,7 @@ const siteUrl = 'https://insight-book.ru'
 const siteName = 'InsightBook'
 const description = computed(() => t('app.description'))
 
-// eslint-disable-next-line ts/no-explicit-any
-const headScripts: any[] = [
+const headScripts = [
   {
     type: 'application/ld+json',
     children: computed(() => JSON.stringify({
