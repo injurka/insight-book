@@ -17,8 +17,8 @@
     "tauri:build": "tauri build",
     "tauri:build:linux:x64": "tauri build --target x86_64-unknown-linux-gnu",
     "tauri:build:win:x64": "tauri build --target x86_64-pc-windows-msvc",
-    "tauri:android:init": "tauri android init && bash src-tauri/setup-android.sh",
-    "tauri:android:build": "bash src-tauri/setup-android.sh && tauri android build --apk"
+    "tauri:android:init": "tauri android init",
+    "tauri:android:build": "bash src-tauri/setup-android.sh && tauri android build --apk --target aarch64 --ci"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2.11.4"
