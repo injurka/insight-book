@@ -53,6 +53,7 @@ export const useLibraryStore = defineStore('library', () => {
   } = useQuery<Book[]>({
     key: queryKeys.books.all,
     query: async () => repos.book.list(),
+    enabled: () => !!authStore.user || authStore.isSingleMode,
   })
 
   watch([booksData, isBooksLoading], ([newBooks, loading]) => {
@@ -107,12 +108,6 @@ export const useLibraryStore = defineStore('library', () => {
       return res
     },
     enabled: () => false,
-  })
-
-  watch(() => authStore.user, (newUser, oldUser) => {
-    if (newUser && !oldUser) {
-      fetchBooks()
-    }
   })
 
   watch(publicBooksQueryData, async (res) => {
