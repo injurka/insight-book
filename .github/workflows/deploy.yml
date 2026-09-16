@@ -303,7 +303,11 @@ jobs:
           java-version: '17'
 
       - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
+        uses: android-actions/setup-android@v4
+        with:
+          # The deprecated SDK Tools package (`tools`) is no longer available
+          # from sdkmanager. Command-line tools are provided by the action.
+          packages: platform-tools
 
       - name: Install Android NDK r26d
         run: sdkmanager "ndk;26.3.11579264"
