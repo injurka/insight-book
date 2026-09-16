@@ -21,7 +21,8 @@
     <!-- CJK-шрифты загружаются лениво через JS — только когда на странице
          реально встречаются иероглифы (см. loadCjkFonts в main.ts) -->
 
-    <script>
+    <script type="module" src="./load-cjk-fonts.ts"></script>
+    <!--
       // Загружаем CJK-шрифты динамически, когда на странице появляются иероглифы
       ;(function () {
         var CJK_MIN = 0x4e00
@@ -117,7 +118,7 @@
           document.addEventListener('DOMContentLoaded', init)
         }
       })()
-    </script>
+    -->
 
     <script type="speculationrules">
       {

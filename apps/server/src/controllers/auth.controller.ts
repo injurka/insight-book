@@ -41,7 +41,30 @@ const authPlugin = new Elysia({ name: 'auth-plugin' })
   })
   .as('global')
 
-const authSessions = new Map<string, string>()
+const AUTH_SESSION_TTL_MS = 10 * 60 * 1000
+const authSessions = new Map<string, { value: string, createdAt: number }>()
+
+function pruneAuthSessions(now = Date.now()) {
+  for (const [sessionId, session] of authSessions) {
+    if (now - session.createdAt > AUTH_SESSION_TTL_MS)
+      authSessions.delete(sessionId)
+  }
+}
+
+function saveAuthSession(sessionId: string, value: string) {
+  pruneAuthSessions()
+  authSessions.set(sessionId, { value, createdAt: Date.now() })
+}
+
+function consumeAuthSession(sessionId: string): string | undefined {
+  pruneAuthSessions()
+  const session = authSessions.get(sessionId)
+  if (!session)
+    return undefined
+
+  authSessions.delete(sessionId)
+  return session.value
+}
 
 const authLimiter = createRateLimiter(5, 60 * 1000)
 
@@ -126,7 +149,7 @@ export const authRouter = new Elysia({ prefix: '/api/auth' })
         await authService.linkYandex(linkUserId, code)
 
         if (sessionId) {
-          authSessions.set(sessionId, JSON.stringify({ status: 'success', linked: true }))
+          saveAuthSession(sessionId, JSON.stringify({ status: 'success', linked: true }))
           const html = `
             <!DOCTYPE html>
             <html lang="ru">
@@ -158,7 +181,7 @@ export const authRouter = new Elysia({ prefix: '/api/auth' })
       catch (error: unknown) {
         const errMessage = error instanceof Error ? error.message : 'Не удалось привязать Яндекс аккаунт'
         if (sessionId) {
-          authSessions.set(sessionId, JSON.stringify({ status: 'error', error: errMessage }))
+          saveAuthSession(sessionId, JSON.stringify({ status: 'error', error: errMessage }))
           const html = `
             <!DOCTYPE html>
             <html lang="ru">
@@ -192,7 +215,7 @@ export const authRouter = new Elysia({ prefix: '/api/auth' })
     const token = await authService.exchangeYandexCode(code)
 
     if (sessionId) {
-      authSessions.set(sessionId, token)
+      saveAuthSession(sessionId, token)
       const html = `
         <!DOCTYPE html>
         <html lang="ru">
@@ -226,9 +249,8 @@ export const authRouter = new Elysia({ prefix: '/api/auth' })
     if (!sessionId)
       throw new AppError(400, ERROR_CODES.AUTH.NO_SESSION_ID, 'No session id')
 
-    const sessionData = authSessions.get(sessionId)
+    const sessionData = consumeAuthSession(sessionId)
     if (sessionData) {
-      authSessions.delete(sessionId)
       try {
         const parsed = JSON.parse(sessionData)
         return parsed

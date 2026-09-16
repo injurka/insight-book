@@ -14,6 +14,7 @@ import type { App, Component } from 'vue'
 import type { RouteComponent, Router } from 'vue-router'
 import { init, loadRemote, registerRemotes } from '@module-federation/enhanced/runtime'
 import { markRaw, reactive } from 'vue'
+import { z } from 'zod'
 import { defaultRepositories } from '~/00.plugins/di'
 import { i18n } from '~/00.plugins/i18n'
 import { api, request } from '~/01.shared/services/api.service'
@@ -354,13 +355,24 @@ export function usePluginManager(): PluginManager {
 
   const fetchRemoteManifest = async (manifestUrl: string): Promise<{ manifest: InsightBookPluginManifest, remoteEntryUrl: string } | null> => {
     try {
-      const manifestRes = await fetch(manifestUrl)
-      if (!manifestRes.ok)
-        throw new Error(`Failed to fetch manifest from ${manifestUrl}: status ${manifestRes.status}`)
+      const manifestResult = z.object({
+        id: z.string().min(1),
+        name: z.string().min(1),
+        version: z.string().min(1),
+        description: z.string().optional(),
+        icon: z.string().optional(),
+        source: z.string().optional(),
+        entryUrl: z.string().min(1),
+      }).safeParse(await request<unknown>(manifestUrl, {
+        timeout: 20_000,
+        silentErrors: true,
+        headers: { 'Cache-Control': 'no-cache' },
+      }))
 
-      const manifest: InsightBookPluginManifest = await manifestRes.json()
-      if (!manifest || !manifest.id || !manifest.entryUrl)
-        throw new Error('Invalid manifest format: id and entryUrl are required.')
+      if (!manifestResult.success)
+        throw new Error('Invalid manifest format: id, name, version and entryUrl are required.')
+
+      const manifest: InsightBookPluginManifest = manifestResult.data
 
       const remoteEntryUrl = new URL(manifest.entryUrl, manifestUrl).toString()
       await saveCachedPlugin(
@@ -374,7 +386,8 @@ export function usePluginManager(): PluginManager {
     }
     catch (netError) {
       console.warn(`[Plugin Manager] Network fetch failed for ${manifestUrl}. Trying offline cache...`, netError)
-      const cached = await getCachedPlugin(manifestUrl) || await getCachedPlugin(manifestUrl.split('/').pop()?.replace('.json', '') || '')
+      const manifestId = manifestUrl.split('/').pop()?.replace('.json', '') || ''
+      const cached = await getCachedPlugin(manifestUrl) || await getCachedPlugin(manifestId)
       if (cached)
         return { manifest: cached.manifest, remoteEntryUrl: cached.remoteEntryUrl }
 

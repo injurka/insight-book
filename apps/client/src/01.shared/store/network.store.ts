@@ -5,6 +5,7 @@ export interface NetworkState {
   isRequestPending: boolean
   pendingControllers: Set<AbortController>
   timeoutId: ReturnType<typeof setTimeout> | null
+  retryHandler: (() => void) | null
 }
 
 export const useNetworkStore = defineStore('network', {
@@ -15,6 +16,7 @@ export const useNetworkStore = defineStore('network', {
     isRequestPending: false,
     pendingControllers: new Set<AbortController>(),
     timeoutId: null,
+    retryHandler: null,
   }),
 
   getters: {
@@ -71,7 +73,13 @@ export const useNetworkStore = defineStore('network', {
 
     retryRequest(durationMs = 5000) {
       this.isTimeoutModalOpen = false
-      this.startLoadingTimer(durationMs)
+      this.retryHandler?.()
+      if (!this.retryHandler)
+        this.startLoadingTimer(durationMs)
+    },
+
+    setRetryHandler(handler: (() => void) | null) {
+      this.retryHandler = handler
     },
 
     enterOfflineMode() {

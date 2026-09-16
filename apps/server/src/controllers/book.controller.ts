@@ -184,7 +184,7 @@ export const bookController = new Elysia({ prefix: '/api/books' })
     const config = extractLlmConfig(request)
     const page = await bookService.getPage(Number(id), Number(pageNum), userId!, isSync, config)
     return page
-  }, { requireAuth: true, cache: 'dayPublic' })
+  }, { requireAuth: true, cache: 'dayPrivate' })
   .get('/:id/page/:pageNum/dict', async ({ params: { id, pageNum }, userId, query }) => {
     const targetLang = (query.targetLang as string) || 'ru'
     const dict = await bookService.getPageDictionary(Number(id), Number(pageNum), userId!, targetLang)

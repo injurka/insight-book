@@ -32,33 +32,55 @@ export function useNetworkTimeout(options: UseNetworkTimeoutOptions = {}) {
       return fn(controller.signal)
     }
 
-    const controller = new AbortController()
-    currentController.value = controller
-    networkStore.registerController(controller)
-    networkStore.startLoadingTimer(timeoutMs)
+    return new Promise<T>((resolve, reject) => {
+      let retryRequested = false
 
-    try {
-      const result = await fn(controller.signal)
-      networkStore.stopLoadingTimer()
+      const execute = async () => {
+        const controller = new AbortController()
+        currentController.value = controller
+        networkStore.registerController(controller)
+        networkStore.startLoadingTimer(timeoutMs)
 
-      return result
-    }
-    catch (error) {
-      networkStore.stopLoadingTimer()
-      throw error
-    }
-    finally {
-      networkStore.unregisterController(controller)
-      if (currentController.value === controller) {
-        currentController.value = null
+        try {
+          const result = await fn(controller.signal)
+          networkStore.stopLoadingTimer()
+          resolve(result)
+        }
+        catch (error) {
+          if (retryRequested && !networkStore.effectiveOffline) {
+            retryRequested = false
+            void execute()
+          }
+          else {
+            networkStore.stopLoadingTimer()
+            reject(error)
+          }
+        }
+        finally {
+          networkStore.unregisterController(controller)
+          if (currentController.value === controller)
+            currentController.value = null
+        }
       }
-    }
+
+      networkStore.setRetryHandler(() => {
+        retryRequested = true
+        currentController.value?.abort('Retry requested')
+      })
+
+      void execute()
+    }).finally(() => {
+      networkStore.setRetryHandler(null)
+    })
   }
 
   onUnmounted(() => {
     if (currentController.value) {
+      currentController.value.abort('Component unmounted')
       networkStore.unregisterController(currentController.value)
     }
+
+    networkStore.setRetryHandler(null)
   })
 
   return {

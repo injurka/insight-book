@@ -2,6 +2,7 @@ import type { LlmAnalysis } from '~/01.shared/types/models'
 import type { Highlight } from '~/05.modules/reader/store/highlights.store'
 import { z } from 'zod'
 import { applyAcl } from '~/01.shared/lib/acl'
+import { canUseOfflineFallback } from '~/01.shared/lib/offline-fallback'
 import { api } from '~/01.shared/services/api.service'
 import { offlineService } from '~/01.shared/services/offline.service'
 import { HighlightSchema } from '~/01.shared/types/schemas/highlight.schema'
@@ -34,6 +35,9 @@ export class DefaultHighlightsRepository implements IHighlightsRepository {
       return data
     }
     catch (error) {
+      if (!canUseOfflineFallback(error))
+        throw error
+
       if (bookId) {
         const offlineData = await offlineService.getHighlights(bookId)
         if (offlineData)

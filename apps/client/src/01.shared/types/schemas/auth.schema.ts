@@ -29,5 +29,13 @@ export const AuthMeResponseSchema = z.object({
   mode: z.string().default('single'),
 })
 
+export const AuthOAuthStatusSchema = z.object({
+  status: z.enum(['pending', 'success', 'error']),
+  token: z.string().optional(),
+  linked: z.boolean().optional(),
+  error: z.string().optional(),
+})
+
 export type UserDataDomain = z.infer<typeof UserDataSchema>
 export type AuthMeResponseDomain = z.infer<typeof AuthMeResponseSchema>
+export type AuthOAuthStatusDomain = z.infer<typeof AuthOAuthStatusSchema>

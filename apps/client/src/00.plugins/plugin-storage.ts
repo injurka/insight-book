@@ -29,6 +29,10 @@ export async function saveCachedPlugin(
       updatedAt: Date.now(),
     }
     await pluginStore.setItem<CachedPluginRecord>(pluginId, record)
+    // Keep a URL index as well: the manifest URL is what is available when
+    // loading an offline plugin before its manifest can be read.
+    if (manifestUrl !== pluginId)
+      await pluginStore.setItem<CachedPluginRecord>(manifestUrl, record)
   }
   catch (err) {
     console.warn('[Plugin Storage] Failed to save plugin to localforage cache:', err)

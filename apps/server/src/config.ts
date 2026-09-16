@@ -147,62 +147,8 @@ export const ALLOWED_ORIGINS = new Set([
 export function isAllowedOrigin(origin: string | null): boolean {
   if (!origin)
     return false
-  if (ALLOWED_ORIGINS.has('*') || ALLOWED_ORIGINS.has(origin))
-    return true
 
-  for (const allowed of ALLOWED_ORIGINS) {
-    if (allowed.includes('*')) {
-      const regexPattern = allowed
-        .replace(/[.+?^${}()|[\]\\]/g, '\\$&')
-        .replace(/\\\*/g, '.*')
-      const regex = new RegExp(`^${regexPattern}$`, 'i')
-      if (regex.test(origin))
-        return true
-    }
-  }
-
-  try {
-    const originUrl = new URL(origin)
-    const originHost = originUrl.hostname
-
-    // Project domains (production, preview & staging)
-    if (
-      originHost.endsWith('.limited-dissolve.ru')
-      || originHost.endsWith('.insight-book.ru')
-      || originHost === 'limited-dissolve.ru'
-      || originHost === 'insight-book.ru'
-      || originHost === 'localhost'
-      || originHost === '127.0.0.1'
-    ) {
-      return true
-    }
-
-    const knownUrls = [FRONTEND_URL, env.ADMIN_FRONTEND_URL].filter(Boolean) as string[]
-
-    for (const knownStr of knownUrls) {
-      const knownUrl = new URL(knownStr)
-      const knownHost = knownUrl.hostname
-
-      if (originHost === knownHost || originHost.endsWith(`.${knownHost}`)) {
-        return true
-      }
-
-      const originParts = originHost.split('.')
-      const knownParts = knownHost.split('.')
-      if (originParts.length >= 2 && knownParts.length >= 2) {
-        const originRoot = originParts.slice(-2).join('.')
-        const knownRoot = knownParts.slice(-2).join('.')
-        if (originRoot === knownRoot && originRoot !== 'localhost') {
-          return true
-        }
-      }
-    }
-  }
-  catch {
-    // Ignore invalid URL format
-  }
-
-  return false
+  return ALLOWED_ORIGINS.has(origin)
 }
 
 export const CORS_HEADERS = {

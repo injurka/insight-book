@@ -47,6 +47,15 @@ describe('env', () => {
     expect(API_URL).toBe('https://insight-book-api.limited-dissolve.ru')
   })
 
+  it('ignores a localhost runtime API URL in Tauri builds', async () => {
+    ; (window as { __TAURI_INTERNALS__?: unknown }).__TAURI_INTERNALS__ = {}
+    ; (window as { __APP_CONFIG__?: { API_URL: string } }).__APP_CONFIG__ = { API_URL: 'http://localhost:4445' }
+    vi.stubEnv('VITE_API_URL', '')
+    const { API_URL } = await import('./env')
+
+    expect(API_URL).toBe('https://insight-book-api.limited-dissolve.ru')
+  })
+
   it('detects Tauri via window.location.hostname tauri.localhost', async () => {
     const originalHostname = window.location.hostname
     Object.defineProperty(window, 'location', {

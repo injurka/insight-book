@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { Icon } from '@iconify/vue'
-import { fetch as tauriFetch } from '@tauri-apps/plugin-http'
 import { openUrl } from '@tauri-apps/plugin-opener'
 import { v4 as uuidv4 } from 'uuid'
+import { onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { useRepos } from '~/00.plugins/di'
@@ -11,8 +11,8 @@ import { ThemesVariant, useChangeTheme } from '~/01.shared/composables/use-chang
 import { useToast } from '~/01.shared/composables/use-toast'
 import { useTracking } from '~/01.shared/composables/use-tracking'
 import { AppRoutePaths } from '~/01.shared/constants/routes'
-import { isTauri } from '~/01.shared/lib/env'
-import { BASE_API_URL } from '~/01.shared/services/api.service'
+import { API_URL, isTauri } from '~/01.shared/lib/env'
+import { pollOAuthStatus } from '~/01.shared/lib/poll-oauth-status'
 import { useAuthStore } from '~/01.shared/store/auth.store'
 import { useGlobalSettingsStore } from '~/01.shared/store/settings.store'
 import { KitDropdown } from '~/02.kit/molecules/kit-dropdown/ui'
@@ -108,7 +108,7 @@ async function handleRegister(payload: { email: string, code: string, password: 
   }
 }
 
-let pollingInterval: number | undefined
+let oauthAbortController: AbortController | null = null
 
 async function loginYandex() {
   try {
@@ -116,37 +116,33 @@ async function loginYandex() {
       isLoading.value = true
 
       const sessionId = uuidv4()
-      const url = `${BASE_API_URL}/api/auth/yandex?session_id=${sessionId}`
+      const url = `${API_URL}/api/auth/yandex?session_id=${sessionId}`
 
       await openUrl(url)
 
-      pollingInterval = window.setInterval(async () => {
-        try {
-          const fetchImpl = isTauri ? tauriFetch : fetch
-          const res = await fetchImpl(`${BASE_API_URL}/api/auth/status?session_id=${sessionId}`)
-          const data = await res.json()
+      oauthAbortController?.abort()
+      oauthAbortController = new AbortController()
+      const data = await pollOAuthStatus(() => repos.auth.oauthStatus(sessionId), { signal: oauthAbortController.signal })
 
-          if (data.status === 'success') {
-            window.clearInterval(pollingInterval)
-            localStorage.setItem('insight_token', data.token)
-            await authStore.checkAuth()
-            trackEvent('login_success')
-            router.push('/')
-          }
-        }
-        catch {
-          // Игнорируем сетевые ошибки пуллинга
-        }
-      }, 2000)
+      if (data.status === 'error')
+        throw new Error(data.error || t('signIn.errorAuth'))
+      if (!data.token)
+        throw new Error(t('signIn.errorAuth'))
+
+      localStorage.setItem('insight_token', data.token)
+      await authStore.checkAuth()
+      trackEvent('login_success')
+      await router.push('/')
     }
     else {
-      window.location.href = `${BASE_API_URL}/api/auth/yandex`
+      window.location.href = `${API_URL}/api/auth/yandex`
     }
   }
   catch (e: unknown) {
     console.error('Yandex login error:', e)
     isLoading.value = false
-    toast.error(e instanceof Error ? e.message : 'Error opening Yandex login')
+    if (!(e instanceof Error && e.name === 'AbortError'))
+      toast.error(e instanceof Error ? e.message : 'Error opening Yandex login')
   }
 }
 
@@ -263,8 +259,7 @@ function handleClick() {
 }
 
 onUnmounted(() => {
-  if (pollingInterval)
-    clearInterval(pollingInterval)
+  oauthAbortController?.abort()
   if (pressTimer)
     clearTimeout(pressTimer)
   if (clickTimer)

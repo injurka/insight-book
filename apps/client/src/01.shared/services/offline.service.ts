@@ -95,7 +95,15 @@ async function getMediaCache(): Promise<Cache | null> {
 }
 
 function isCacheLostError(err: unknown): boolean {
-  return err instanceof DOMException && err.name === 'NotReadableError'
+  if (!err || typeof err !== 'object')
+    return false
+
+  const errorName = 'name' in err && typeof err.name === 'string' ? err.name : ''
+  const errorMessage = 'message' in err && typeof err.message === 'string' ? err.message.toLowerCase() : ''
+
+  return errorName === 'NotReadableError'
+    || errorMessage.includes('data lost')
+    || errorMessage.includes('missing file')
 }
 
 /**
@@ -678,7 +686,14 @@ export const offlineService = {
   },
 
   async getCacheStats() {
-    const keys = await localforage.keys()
+    let keys: string[] = []
+    try {
+      keys = await localforage.keys()
+    }
+    catch (error) {
+      console.warn('[OfflineService] Failed to enumerate IndexedDB cache:', error)
+    }
+
     const prefix = getKey('')
 
     const userKeys = keys.filter(keyItem => keyItem.startsWith(prefix))
@@ -702,16 +717,21 @@ export const offlineService = {
     let totalSize = 0
 
     for (const fullKey of userKeys) {
-      const key = fullKey.replace(prefix, '')
-      const item = await localforage.getItem(fullKey)
-      const itemSize = item instanceof Blob ? item.size : (item ? JSON.stringify(item).length : 0)
-      totalSize += itemSize
+      try {
+        const key = fullKey.replace(prefix, '')
+        const item = await localforage.getItem(fullKey)
+        const itemSize = item instanceof Blob ? item.size : (item ? JSON.stringify(item).length : 0)
+        totalSize += itemSize
 
-      if (key.startsWith('dictionary_words_')) {
-        totalDictionaryWords += Array.isArray(item) ? item.length : 0
+        if (key.startsWith('dictionary_words_')) {
+          totalDictionaryWords += Array.isArray(item) ? item.length : 0
+        }
+        else {
+          processLocalForageKey(key, itemSize, bookStats)
+        }
       }
-      else {
-        processLocalForageKey(key, itemSize, bookStats)
+      catch (error) {
+        console.warn(`[OfflineService] Failed to inspect cached item ${fullKey}:`, error)
       }
     }
 
@@ -721,23 +741,29 @@ export const offlineService = {
   },
 
   async clearBookCache(bookId: number) {
-    // 1. Очистка старого IndexedDB хранилища
-    const keys = await localforage.keys()
-    const prefix = getKey('')
+    try {
+      // 1. Очистка старого IndexedDB хранилища
+      const keys = await localforage.keys()
+      const prefix = getKey('')
 
-    const keysToRemove = keys.filter((fullKey) => {
-      if (!fullKey.startsWith(prefix))
-        return false
+      const keysToRemove = keys.filter((fullKey) => {
+        if (!fullKey.startsWith(prefix))
+          return false
 
-      const key = fullKey.replace(prefix, '')
+        const key = fullKey.replace(prefix, '')
 
-      return key.startsWith(`book_${bookId}_page_`) || key === `book_info_${bookId}` || key === `book_toc_${bookId}` || key === `book_highlights_${bookId}` || key.startsWith(`image_${bookId}_`) || key === `cover_${bookId}` || key.startsWith(`tts_${bookId}_`)
-    })
+        return key.startsWith(`book_${bookId}_page_`) || key === `book_info_${bookId}` || key === `book_toc_${bookId}` || key === `book_highlights_${bookId}` || key.startsWith(`image_${bookId}_`) || key === `cover_${bookId}` || key.startsWith(`tts_${bookId}_`)
+      })
 
-    for (const key of keysToRemove)
-      await localforage.removeItem(key)
-
-    // 2. Очистка Cache API
-    await clearMediaCacheForBook(bookId)
+      for (const key of keysToRemove)
+        await localforage.removeItem(key)
+    }
+    catch (error) {
+      console.warn(`[OfflineService] Failed to clear IndexedDB cache for book ${bookId}:`, error)
+    }
+    finally {
+      // Cache API must still be cleaned if IndexedDB is unavailable/corrupted.
+      await clearMediaCacheForBook(bookId)
+    }
   },
 }

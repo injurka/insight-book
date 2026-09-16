@@ -2,6 +2,7 @@ import type { InsightBookPlugin, InsightBookPluginContext } from '@injurka/insig
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { defineComponent, h } from 'vue'
 import { createMemoryHistory, createRouter } from 'vue-router'
+import { request } from '~/01.shared/services/api.service'
 
 import { usePluginManager } from './plugin-manager'
 
@@ -413,6 +414,13 @@ describe('usePluginManager - loadRemotePlugin', () => {
       pages: { index: createTestComponent('RemoteIndex') },
     })
 
+    vi.mocked(request).mockResolvedValueOnce({
+      id: 'test-plugin',
+      name: 'Test Plugin',
+      version: '1.0.0',
+      entryUrl: './remoteEntry.js',
+    })
+
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
       ok: true,
       json: async () => ({
@@ -458,6 +466,13 @@ describe('usePluginManager - loadRemotePlugin', () => {
   it('returns null when remote module does not export a default plugin', async () => {
     const manager = usePluginManager()
     const router = createTestRouter()
+
+    vi.mocked(request).mockResolvedValueOnce({
+      id: 'bad-plugin',
+      name: 'Bad',
+      version: '0.1.0',
+      entryUrl: './remoteEntry.js',
+    })
 
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
       ok: true,

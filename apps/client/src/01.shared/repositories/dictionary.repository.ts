@@ -9,6 +9,7 @@ import type {
 } from '~/01.shared/types/models'
 import { z } from 'zod'
 import { applyAcl } from '~/01.shared/lib/acl'
+import { canUseOfflineFallback } from '~/01.shared/lib/offline-fallback'
 import { api } from '~/01.shared/services/api.service'
 import { offlineService } from '~/01.shared/services/offline.service'
 import { useAuthStore } from '~/01.shared/store/auth.store'
@@ -60,6 +61,9 @@ export class DefaultDictionaryRepository implements IDictionaryRepository {
       return data
     }
     catch (error) {
+      if (!canUseOfflineFallback(error))
+        throw error
+
       const offlineData = await offlineService.getDictionary()
       if (offlineData)
         return applyAcl(z.array(UserDictItemSchema), offlineData, 'dictionary.list() [offline]')
@@ -88,6 +92,9 @@ export class DefaultDictionaryRepository implements IDictionaryRepository {
       return data
     }
     catch (error) {
+      if (!canUseOfflineFallback(error))
+        throw error
+
       const offlineData = await offlineService.getDecks()
       if (offlineData)
         return applyAcl(z.array(DictDeckSchema), offlineData, 'dictionary.getDecks() [offline]')

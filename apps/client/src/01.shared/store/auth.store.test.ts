@@ -176,6 +176,33 @@ describe('authStore - checkAuth', () => {
     expect(store.isSingleMode).toBe(true)
     expect(store.user).toBeNull()
   })
+
+  it('ignores a corrupted cached user instead of aborting auth initialization', async () => {
+    localStorage.setItem('insight_token', 'token-123')
+    localStorage.setItem('insight_user_data', '{broken-json')
+    meMock.mockRejectedValue(new Error('Network Error'))
+
+    const store = useAuthStore()
+    await store.checkAuth()
+
+    expect(store.user).toBeNull()
+    expect(store.isAuthReady).toBe(true)
+    expect(localStorage.getItem('insight_user_data')).toBeNull()
+  })
+
+  it('clears a cached session when the API says that its user no longer exists', async () => {
+    localStorage.setItem('insight_token', 'stale-token')
+    localStorage.setItem('insight_user_data', JSON.stringify(makeUser()))
+    const missingUser = Object.assign(new Error('User not found'), { status: 404, code: 'USER_NOT_FOUND' })
+    meMock.mockRejectedValue(missingUser)
+
+    const store = useAuthStore()
+    await store.checkAuth()
+
+    expect(store.user).toBeNull()
+    expect(localStorage.getItem('insight_token')).toBeNull()
+    expect(localStorage.getItem('insight_user_data')).toBeNull()
+  })
 })
 
 describe('authStore - isSingleMode', () => {

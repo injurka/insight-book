@@ -4,6 +4,35 @@ import { useRepos } from '~/00.plugins/di'
 import { useTracking } from '~/01.shared/composables/use-tracking'
 import { queryKeys } from '~/01.shared/lib/query-keys'
 import { resetTelemetryUser } from '~/01.shared/services/monitoring.service'
+import { UserDataSchema } from '~/01.shared/types/schemas/auth.schema'
+
+function toErrorStatus(value: unknown): number | null {
+  if (value === null || value === undefined)
+    return null
+
+  const status = typeof value === 'number' ? value : Number(value)
+
+  return Number.isFinite(status) ? status : null
+}
+
+function getErrorStatus(error: unknown): number | null {
+  if (!error || typeof error !== 'object')
+    return null
+
+  const errObj = error as Record<string, unknown> | null | undefined
+  const responseObj = errObj?.response as Record<string, unknown> | null | undefined
+
+  return toErrorStatus(errObj?.status)
+    ?? toErrorStatus(errObj?.statusCode)
+    ?? toErrorStatus(responseObj?.status)
+}
+
+function isInvalidSessionError(error: unknown): boolean {
+  const errObj = error as Record<string, unknown> | null | undefined
+  const code = typeof errObj?.code === 'string' ? errObj.code : null
+
+  return getErrorStatus(error) === 401 || code === 'INVALID_TOKEN' || code === 'USER_NOT_FOUND'
+}
 
 export const useAuthStore = defineStore('auth', () => {
   const repos = useRepos()
@@ -14,6 +43,8 @@ export const useAuthStore = defineStore('auth', () => {
 
   const isSingleMode = ref(false)
   const isAuthReady = ref(false)
+  const isAuthRefreshing = ref(false)
+  let authRefreshPromise: Promise<void> | null = null
 
   /**
    * Synchronous init from localStorage cache.
@@ -30,15 +61,33 @@ export const useAuthStore = defineStore('auth', () => {
    * Sets isAuthReady = true in finally for callers that skip init() (tests, storybook).
    * In production, init() already set isAuthReady before mount — this runs purely as refresh.
    */
-  async function checkAuth() {
-    try {
-      await syncUser()
-    }
-    finally {
-      isAuthReady.value = true
-      if (user.value)
-        loadUserPlugins().catch(err => console.warn('[Auth Store] Error loading plugins:', err))
-    }
+  function checkAuth(): Promise<void> {
+    if (authRefreshPromise)
+      return authRefreshPromise
+
+    const refreshPromise = (async () => {
+      isAuthRefreshing.value = true
+      try {
+        await syncUser()
+      }
+      finally {
+        isAuthRefreshing.value = false
+        isAuthReady.value = true
+        if (user.value)
+          loadUserPlugins().catch(err => console.warn('[Auth Store] Error loading plugins:', err))
+      }
+    })()
+
+    authRefreshPromise = refreshPromise
+    void refreshPromise.then(() => {
+      if (authRefreshPromise === refreshPromise)
+        authRefreshPromise = null
+    }, () => {
+      if (authRefreshPromise === refreshPromise)
+        authRefreshPromise = null
+    })
+
+    return refreshPromise
   }
 
   function clearCachedUserSession() {
@@ -51,14 +100,31 @@ export const useAuthStore = defineStore('auth', () => {
 
   function loadCachedUserSession() {
     const cachedToken = localStorage.getItem('insight_token')
-    const cachedUser = localStorage.getItem('insight_user_data')
     const cachedMode = localStorage.getItem('insight_auth_mode')
+    const cachedUserJson = localStorage.getItem('insight_user_data')
+    let cachedUser: UserData | null = null
+
+    if (cachedUserJson) {
+      try {
+        const parsed = UserDataSchema.safeParse(JSON.parse(cachedUserJson) as unknown)
+        if (parsed.success) {
+          cachedUser = parsed.data
+        }
+        else {
+          throw new Error('cached user schema mismatch')
+        }
+      }
+      catch (error) {
+        console.warn('[Auth Store] Ignoring corrupted cached user session:', error)
+        localStorage.removeItem('insight_user_data')
+      }
+    }
 
     if (cachedMode)
       isSingleMode.value = cachedMode === 'single'
 
     if ((cachedToken || isSingleMode.value) && cachedUser) {
-      user.value = JSON.parse(cachedUser)
+      user.value = cachedUser
 
       identifyUser({
         id: String(user.value!.id),
@@ -75,11 +141,7 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   function handleSyncError(error: unknown) {
-    const errObj = error as Record<string, unknown> | null | undefined
-    const responseObj = errObj?.response as Record<string, unknown> | null | undefined
-    const status = errObj?.status ?? errObj?.statusCode ?? responseObj?.status
-
-    if (status === 401) {
+    if (isInvalidSessionError(error)) {
       clearCachedUserSession()
 
       return
@@ -220,6 +282,7 @@ export const useAuthStore = defineStore('auth', () => {
     user,
     isSingleMode,
     isAuthReady,
+    isAuthRefreshing,
     init,
     checkAuth,
     logout,

@@ -3,11 +3,22 @@ import type { Pinia } from 'pinia'
 import { getVersion } from '@tauri-apps/api/app'
 import { isTauri } from '@tauri-apps/api/core'
 import { openUrl } from '@tauri-apps/plugin-opener'
+import { z } from 'zod'
 import { i18n } from '~/00.plugins/i18n'
 import { usePwaStore } from '~/01.shared/store/pwa.store'
 import { useToastStore } from '~/01.shared/store/toast.store'
 
 const GITHUB_REPO = 'injurka/insight-book'
+const UPDATE_REQUEST_TIMEOUT_MS = 15_000
+
+const ReleaseSchema = z.object({
+  tag_name: z.string().min(1),
+  html_url: z.string().url(),
+  assets: z.array(z.object({
+    name: z.string(),
+    browser_download_url: z.string().url(),
+  })).default([]),
+})
 
 function compareVersions(v1: string, v2: string): number {
   const parts1 = v1.replace(/^v/, '').split('.').map(Number)
@@ -36,11 +47,24 @@ export async function initializeTauriUpdater(pinia: Pinia): Promise<void> {
   try {
     const currentVersion = await getVersion()
 
-    const res = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/releases/latest`)
+    const controller = new AbortController()
+    const timeoutId = window.setTimeout(() => controller.abort(), UPDATE_REQUEST_TIMEOUT_MS)
+    let res: Response
+    try {
+      res = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/releases/latest`, { signal: controller.signal })
+    }
+    finally {
+      window.clearTimeout(timeoutId)
+    }
+
     if (!res.ok)
       return
 
-    const release = await res.json()
+    const releaseResult = ReleaseSchema.safeParse(await res.json())
+    if (!releaseResult.success)
+      return
+
+    const release = releaseResult.data
     const latestVersion = release.tag_name
 
     const lastPromptStr = localStorage.getItem('insight_last_update_prompt')

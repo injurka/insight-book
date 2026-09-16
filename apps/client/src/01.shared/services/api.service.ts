@@ -36,6 +36,7 @@ declare module 'ofetch' {
 }
 
 export const BASE_API_URL = API_URL
+const REQUEST_TIMEOUT_MS = 20_000
 
 function getDiagnosticUrl(requestValue: RequestInfo | URL, baseUrl?: string): string {
   const rawUrl = requestValue instanceof Request ? requestValue.url : String(requestValue)
@@ -87,6 +88,10 @@ export function configureApi(overrides: ApiProviders) {
 
 export const request = ofetch.create({
   baseURL: BASE_API_URL,
+  // A mobile WebView can keep a dead TCP connection pending indefinitely.
+  // Bound requests that do not already provide an AbortSignal so screens can
+  // fall back to their repository/offline path.
+  timeout: REQUEST_TIMEOUT_MS,
   async onRequest({ options }) {
     options.headers = new Headers(options.headers || {})
 
@@ -150,11 +155,21 @@ export const request = ofetch.create({
   // eslint-disable-next-line complexity
   async onRequestError({ request: failedRequest, error, options }) {
     let errMessage = typeof error?.message === 'string' ? error.message : String(error || '')
-    const isNetworkError = errMessage.includes('Failed to fetch') || errMessage.includes('Network Error')
+    const isAbort = error?.name === 'AbortError' || errMessage.toLowerCase().includes('abort') || errMessage.toLowerCase().includes('cancel')
+    const normalizedError = errMessage.toLowerCase()
+    const isNetworkError = error?.name === 'TypeError'
+      || error?.name === 'FetchError'
+      || normalizedError.includes('failed to fetch')
+      || normalizedError.includes('network error')
+      || normalizedError.includes('fetch failed')
+      || normalizedError.includes('error sending request')
+      || normalizedError.includes('timed out')
+      || normalizedError.includes('timeout')
+      || normalizedError.includes('connection refused')
+      || normalizedError.includes('dns')
     if (isNetworkError)
       errMessage = i18n.global.t('errors.network')
 
-    const isAbort = error?.name === 'AbortError' || errMessage.toLowerCase().includes('abort') || errMessage.toLowerCase().includes('cancel')
     const isOffline = typeof navigator !== 'undefined' && !navigator.onLine
 
     console.error('[API] Network request failed', {
@@ -187,7 +202,21 @@ export const api = {
     login: async (data: AuthLoginDto) => request<{ token: string, user: UserData }>('/api/auth/login', { method: 'POST', body: JSON.stringify(data) }),
     sendCode: async (data: AuthSendCodeDto) => request<{ success: boolean, message: string }>('/api/auth/send-code', { method: 'POST', body: JSON.stringify(data) }),
     register: async (data: AuthRegisterDto) => request<{ token: string, user: UserData }>('/api/auth/register', { method: 'POST', body: JSON.stringify(data) }),
-    me: async () => request<{ user: UserData | null, mode: string }>('/api/auth/me', { silentErrors: true }),
+    me: async () => request<{ user: UserData | null, mode: string }>('/api/auth/me', {
+      silentErrors: true,
+      headers: {
+        'Cache-Control': 'no-cache, no-store',
+        'Pragma': 'no-cache',
+      },
+    }),
+    oauthStatus: async (sessionId: string) => request<unknown>(`/api/auth/status?session_id=${encodeURIComponent(sessionId)}`, {
+      timeout: REQUEST_TIMEOUT_MS,
+      silentErrors: true,
+      headers: {
+        'Cache-Control': 'no-cache, no-store',
+        'Pragma': 'no-cache',
+      },
+    }),
     updateAvatar: async (file: File) => {
       const fd = new FormData()
       fd.append('file', file)

@@ -1,10 +1,12 @@
 import type { AuthLoginDto, AuthRegisterDto, AuthSendCodeDto, UserData } from '~/01.shared/types/models'
+import type { AuthOAuthStatusDomain } from '~/01.shared/types/schemas/auth.schema'
 import { applyAcl } from '~/01.shared/lib/acl'
 import { api } from '~/01.shared/services/api.service'
-import { AuthMeResponseSchema } from '~/01.shared/types/schemas/auth.schema'
+import { AuthMeResponseSchema, AuthOAuthStatusSchema } from '~/01.shared/types/schemas/auth.schema'
 
 export interface IAuthRepository {
   me: () => Promise<{ user: UserData | null, mode: string }>
+  oauthStatus: (sessionId: string) => Promise<AuthOAuthStatusDomain>
   login: (credentials: AuthLoginDto) => Promise<{ token: string, user: UserData }>
   updateAvatar: (file: File) => Promise<{ avatarUrl: string }>
   updateUsername: (username: string) => Promise<{ username: string }>
@@ -18,6 +20,12 @@ export class DefaultAuthRepository implements IAuthRepository {
     const raw = await api.auth.me()
 
     return applyAcl(AuthMeResponseSchema, raw, 'auth.me()')
+  }
+
+  async oauthStatus(sessionId: string) {
+    const raw = await api.auth.oauthStatus(sessionId)
+
+    return applyAcl(AuthOAuthStatusSchema, raw, 'auth.oauthStatus()')
   }
 
   async login(credentials: AuthLoginDto) {

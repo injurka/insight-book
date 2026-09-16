@@ -1,15 +1,16 @@
-import { fetch as tauriFetch } from '@tauri-apps/plugin-http'
 import { openUrl } from '@tauri-apps/plugin-opener'
 import { v4 as uuidv4 } from 'uuid'
 import { computed, onBeforeUnmount, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useRepos } from '~/00.plugins/di'
 import { useToast } from '~/01.shared/composables/use-toast'
-import { isTauri } from '~/01.shared/lib/env'
-import { BASE_API_URL } from '~/01.shared/services/api.service'
+import { API_URL, isTauri } from '~/01.shared/lib/env'
+import { pollOAuthStatus } from '~/01.shared/lib/poll-oauth-status'
 import { useAuthStore } from '~/01.shared/store/auth.store'
 
 export function useAccountSettings() {
   const authStore = useAuthStore()
+  const repos = useRepos()
   const toast = useToast()
   const { t } = useI18n()
 
@@ -22,13 +23,11 @@ export function useAccountSettings() {
   const providerToUnlink = ref<string | null>(null)
   const isUsernamePromptOpen = ref(false)
 
-  let pollingInterval: number | undefined
+  let oauthAbortController: AbortController | null = null
 
   function clearPolling() {
-    if (pollingInterval !== undefined) {
-      window.clearInterval(pollingInterval)
-      pollingInterval = undefined
-    }
+    oauthAbortController?.abort()
+    oauthAbortController = null
   }
 
   async function linkOAuth(provider: 'yandex') {
@@ -37,40 +36,30 @@ export function useAccountSettings() {
 
       if (isTauri) {
         isLinking.value = true
+        clearPolling()
         const sessionId = uuidv4()
-        const url = `${BASE_API_URL}/api/auth/${provider}?session_id=${sessionId}&linkToken=${encodeURIComponent(token)}`
+        const url = `${API_URL}/api/auth/${provider}?session_id=${sessionId}&linkToken=${encodeURIComponent(token)}`
 
         await openUrl(url)
 
-        clearPolling()
-        pollingInterval = window.setInterval(async () => {
-          try {
-            const fetchImpl = isTauri ? tauriFetch : fetch
-            const res = await fetchImpl(`${BASE_API_URL}/api/auth/status?session_id=${sessionId}`)
-            const data = await res.json()
+        oauthAbortController = new AbortController()
+        const data = await pollOAuthStatus(() => repos.auth.oauthStatus(sessionId), { signal: oauthAbortController.signal })
 
-            if (data.status === 'success') {
-              clearPolling()
-              isLinking.value = false
-              toast.success(t('settings.yandexLinkedSuccess', 'Аккаунт Яндекс успешно привязан!'))
-              await authStore.checkAuth()
-            }
-            else if (data.status === 'error') {
-              clearPolling()
-              isLinking.value = false
-              toast.error(data.error || t('settings.linkFailed', 'Не удалось привязать аккаунт'))
-            }
-          }
-          catch {
-            // Network polling error - continue polling
-          }
-        }, 2000)
+        if (data.status === 'error')
+          throw new Error(data.error || t('settings.linkFailed', 'Не удалось привязать аккаунт'))
+
+        isLinking.value = false
+        toast.success(t('settings.yandexLinkedSuccess', 'Аккаунт Яндекс успешно привязан!'))
+        await authStore.checkAuth()
       }
       else {
-        window.location.href = `${BASE_API_URL}/api/auth/${provider}?linkToken=${encodeURIComponent(token)}`
+        window.location.href = `${API_URL}/api/auth/${provider}?linkToken=${encodeURIComponent(token)}`
       }
     }
     catch (e: unknown) {
+      if (e instanceof Error && e.name === 'AbortError')
+        return
+
       isLinking.value = false
       toast.error(e instanceof Error ? e.message : t('settings.linkFailed', 'Не удалось привязать аккаунт'))
     }

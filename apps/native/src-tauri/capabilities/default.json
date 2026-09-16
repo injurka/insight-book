@@ -22,7 +22,25 @@
           "url": "https://insight-book-api.limited-dissolve.ru/*"
         },
         {
+          "url": "https://*.limited-dissolve.ru/*?*"
+        },
+        {
+          "url": "https://*.limited-dissolve.ru/*"
+        },
+        {
+          "url": "https://*.insight-book.ru/*?*"
+        },
+        {
+          "url": "https://*.insight-book.ru/*"
+        },
+        {
           "url": "http://localhost:*/*"
+        },
+        {
+          "url": "https://cdn.insight-book.ru/*?*"
+        },
+        {
+          "url": "https://cdn.insight-book.ru/*"
         }
       ]
     },

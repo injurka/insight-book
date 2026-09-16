@@ -44,15 +44,21 @@ onMounted(async () => {
 
   if (isTauri) {
     try {
-      const { onOpenUrl } = await import('@tauri-apps/plugin-deep-link')
-      await onOpenUrl((urls) => {
+      const { getCurrent, onOpenUrl } = await import('@tauri-apps/plugin-deep-link')
+      let lastHandledUrl: string | null = null
+
+      const handleDeepLinks = (urls: string[]) => {
         for (const url of urls) {
+          if (url === lastHandledUrl)
+            continue
+
           try {
             const parsed = new URL(url)
             const isInsightbook = parsed.protocol === 'insightbook:'
             const isWebCallback = parsed.pathname.includes('/callback')
 
             if (isInsightbook || isWebCallback) {
+              lastHandledUrl = url
               router.push({
                 path: '/auth/yandex/callback',
                 query: Object.fromEntries(parsed.searchParams),
@@ -63,7 +69,14 @@ onMounted(async () => {
             console.error('Invalid deep link URL', e)
           }
         }
-      })
+      }
+
+      // On mobile the callback can arrive before the WebView has mounted.
+      // Register first, then consume the launch URL so neither case is lost.
+      await onOpenUrl(handleDeepLinks)
+      const launchUrls = await getCurrent()
+      if (launchUrls?.length)
+        handleDeepLinks(launchUrls)
     }
     catch (e) {
       console.warn('Failed to attach deep link listener', e)

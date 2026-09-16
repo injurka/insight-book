@@ -29,25 +29,53 @@ function isLocalhost(url?: string | null): boolean {
   if (!url)
     return false
 
-  return url.includes('localhost') || url.includes('127.0.0.1') || url.includes('tauri.localhost')
+  try {
+    const parsed = new URL(url)
+
+    return parsed.hostname === 'localhost'
+      || parsed.hostname === '127.0.0.1'
+      || parsed.hostname === 'tauri.localhost'
+  }
+  catch {
+    return url.includes('localhost') || url.includes('127.0.0.1') || url.includes('tauri.localhost')
+  }
+}
+
+function isUsableTauriApiUrl(url?: string | null): url is string {
+  if (!url || isLocalhost(url))
+    return false
+
+  try {
+    const parsed = new URL(url)
+
+    return parsed.protocol === 'https:'
+      && (parsed.hostname === 'limited-dissolve.ru'
+        || parsed.hostname.endsWith('.limited-dissolve.ru')
+        || parsed.hostname === 'insight-book.ru'
+        || parsed.hostname.endsWith('.insight-book.ru'))
+  }
+  catch {
+    return false
+  }
 }
 
 function resolveApiUrl(): string {
-  // 1. Рантайм-конфиг контейнера (__APP_CONFIG__)
-  if (runtimeConfig?.API_URL)
-    return runtimeConfig.API_URL
-
   const envApiUrl = import.meta.env.VITE_API_URL
 
   // 2. Внутри Tauri (десктоп или мобильное приложение):
   // Запросы к localhost недопустимы (на мобайле localhost - сам девайс, на tauri.localhost перехватывается WebView).
-  // Поэтому при пустом значении или localhost всегда используем продакшн API.
+  // Поэтому при пустом, malformed или localhost-значении всегда используем продакшн API.
   if (isTauri) {
-    if (envApiUrl && !isLocalhost(envApiUrl))
-      return envApiUrl
+    const configuredApiUrl = runtimeConfig?.API_URL || envApiUrl
+    if (isUsableTauriApiUrl(configuredApiUrl))
+      return configuredApiUrl
 
     return DEFAULT_API_URL
   }
+
+  // 1. Рантайм-конфиг контейнера (__APP_CONFIG__)
+  if (runtimeConfig?.API_URL)
+    return runtimeConfig.API_URL
 
   // 3. Веб-окружение: VITE_API_URL (если задан) или пустая строка для относительных запросов (через proxy / Nginx)
   return envApiUrl || ''

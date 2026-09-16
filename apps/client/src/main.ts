@@ -59,8 +59,10 @@ async function bootstrap() {
 
   setupMobileDevtools(settingsStore)
 
-  // 3. Critical path: sync auth session from backend before mount
-  await authStore.checkAuth().catch((err: unknown) => console.warn('[bootstrap] Background auth check failed:', err))
+  // 3. Refresh auth in the background. The cached session is already available
+  // through init(), so a slow or temporarily unavailable mobile network must
+  // not keep the native WebView on the preloader.
+  void authStore.checkAuth().catch((err: unknown) => console.warn('[bootstrap] Background auth check failed:', err))
 
   // 4. Critical path: setup enabled plugins & dynamic routes before router initialization
   try {

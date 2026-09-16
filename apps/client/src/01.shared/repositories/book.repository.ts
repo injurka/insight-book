@@ -1,6 +1,7 @@
 import type { Book, BookStats, PageDictEntry, PagePayload, TocItem } from '~/01.shared/types/models'
 import { z } from 'zod'
 import { applyAcl } from '~/01.shared/lib/acl'
+import { canUseOfflineFallback } from '~/01.shared/lib/offline-fallback'
 import { api } from '~/01.shared/services/api.service'
 import { offlineService } from '~/01.shared/services/offline.service'
 import { useAuthStore } from '~/01.shared/store/auth.store'
@@ -52,6 +53,9 @@ export class DefaultBookRepository implements IBookRepository {
       return data
     }
     catch (error) {
+      if (!canUseOfflineFallback(error))
+        throw error
+
       const offlineData = await offlineService.getBooksList()
 
       if (offlineData && offlineData.length > 0)
@@ -74,6 +78,9 @@ export class DefaultBookRepository implements IBookRepository {
       return data
     }
     catch (error) {
+      if (!canUseOfflineFallback(error))
+        throw error
+
       const offlineData = await offlineService.getBookInfo(id)
       if (offlineData)
         return applyAcl(BookSchema, offlineData, `book.getInfo(${id}) [offline]`)
@@ -134,6 +141,9 @@ export class DefaultBookRepository implements IBookRepository {
       return data
     }
     catch (error) {
+      if (!canUseOfflineFallback(error))
+        throw error
+
       const offlineData = await offlineService.getToc(id)
       if (offlineData)
         return applyAcl(z.array(TocItemSchema), offlineData, `book.getToc(${id}) [offline]`)
@@ -141,7 +151,26 @@ export class DefaultBookRepository implements IBookRepository {
     }
   }
 
+  // eslint-disable-next-line complexity
   async getPage(id: number, num: number, isSync?: boolean): Promise<PagePayload | null> {
+    const isOffline = typeof navigator !== 'undefined' && !navigator.onLine
+    let networkError: unknown
+
+    if (!isOffline || isSync) {
+      try {
+        const data = await api.books.getPage(id, num, isSync)
+        if (data)
+          await offlineService.savePage(id, num, data).catch(() => { })
+
+        return data
+      }
+      catch (error) {
+        if (!canUseOfflineFallback(error))
+          throw error
+        networkError = error
+      }
+    }
+
     try {
       const cached = await offlineService.getPage(id, num)
       if (cached)
@@ -151,6 +180,9 @@ export class DefaultBookRepository implements IBookRepository {
       console.warn('[Repository] Failed to retrieve from offline cache:', err)
     }
 
+    if (networkError)
+      throw networkError
+
     const data = await api.books.getPage(id, num, isSync)
     if (data)
       await offlineService.savePage(id, num, data).catch(() => { })
@@ -158,7 +190,26 @@ export class DefaultBookRepository implements IBookRepository {
     return data
   }
 
+  // eslint-disable-next-line complexity
   async getPageDict(id: number, num: number): Promise<Record<string, PageDictEntry>> {
+    const isOffline = typeof navigator !== 'undefined' && !navigator.onLine
+    let networkError: unknown
+
+    if (!isOffline) {
+      try {
+        const res = await api.books.getPageDict(id, num)
+        const data = res.pageDictionary || {}
+        await offlineService.savePageDictionary(id, num, data).catch(() => { })
+
+        return data
+      }
+      catch (error) {
+        if (!canUseOfflineFallback(error))
+          throw error
+        networkError = error
+      }
+    }
+
     try {
       const cached = await offlineService.getPageDictionary(id, num)
       if (cached)
@@ -168,19 +219,17 @@ export class DefaultBookRepository implements IBookRepository {
       console.warn('[Repository] Failed to retrieve from offline cache:', err)
     }
 
+    if (networkError)
+      throw networkError
+
     if (typeof navigator !== 'undefined' && !navigator.onLine)
       return {}
 
-    try {
-      const res = await api.books.getPageDict(id, num)
-      const data = res.pageDictionary || {}
-      await offlineService.savePageDictionary(id, num, data).catch(() => { })
+    const res = await api.books.getPageDict(id, num)
+    const data = res.pageDictionary || {}
+    await offlineService.savePageDictionary(id, num, data).catch(() => { })
 
-      return data
-    }
-    catch {
-      return {}
-    }
+    return data
   }
 
   async saveLocalPageDictionary(id: number, num: number, data: Record<string, PageDictEntry>) {
