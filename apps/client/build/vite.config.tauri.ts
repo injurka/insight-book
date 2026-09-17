@@ -16,6 +16,12 @@ const appVersion = process.env.VITE_APP_VERSION || packageJson.version
 const tauriApiUrl = process.env.VITE_API_URL && !process.env.VITE_API_URL.includes('localhost') && !process.env.VITE_API_URL.includes('127.0.0.1')
   ? process.env.VITE_API_URL
   : 'https://insight-book-api.limited-dissolve.ru'
+const configuredTauriOtelEndpoint = process.env.VITE_OTEL_EXPORTER_OTLP_ENDPOINT
+const tauriOtelEndpoint = configuredTauriOtelEndpoint
+  && !configuredTauriOtelEndpoint.includes('localhost')
+  && !configuredTauriOtelEndpoint.includes('127.0.0.1')
+  ? configuredTauriOtelEndpoint
+  : ''
 const tauriCdnUrl = process.env.VITE_CDN_URL && !process.env.VITE_CDN_URL.includes('localhost')
   ? process.env.VITE_CDN_URL
   : 'https://cdn.insight-book.ru'
@@ -30,6 +36,7 @@ export default defineConfig({
     '__BUILD_DATE__': JSON.stringify(new Date().toISOString()),
     '__TAURI_BUILD__': JSON.stringify(true),
     'import.meta.env.VITE_API_URL': JSON.stringify(tauriApiUrl),
+    'import.meta.env.VITE_OTEL_EXPORTER_OTLP_ENDPOINT': JSON.stringify(tauriOtelEndpoint),
     'import.meta.env.VITE_CDN_URL': JSON.stringify(tauriCdnUrl),
   },
 

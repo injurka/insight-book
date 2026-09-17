@@ -10,6 +10,57 @@
 
     <title>InsightBook</title>
 
+    <style>
+      html,
+      body {
+        width: 100%;
+        min-height: 100%;
+        margin: 0;
+      }
+
+      #app-preloader {
+        position: fixed;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        left: 0;
+        display: flex;
+        width: 100%;
+        min-height: 100vh;
+        box-sizing: border-box;
+        align-items: center;
+        justify-content: center;
+        background-color: #0d1117;
+        z-index: 99999;
+      }
+
+      #app-preloader .spinner {
+        width: 40px;
+        height: 40px;
+        border: 3px solid #21262d;
+        border-top-color: #c975de;
+        border-radius: 50%;
+        animation: app-preloader-spin 1s linear infinite;
+      }
+
+      @media (prefers-color-scheme: light) {
+        #app-preloader {
+          background-color: #faf4f2;
+        }
+
+        #app-preloader .spinner {
+          border-color: #e0dad9;
+          border-top-color: #f37a51;
+        }
+      }
+
+      @keyframes app-preloader-spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+    </style>
+
     <!-- Рантайм-конфиг (генерируется при запуске контейнера) -->
     <script src="./configs/app-config.js"></script>
 
@@ -144,45 +195,7 @@
   </head>
 
   <body>
-    <div
-      id="app-preloader"
-      style="
-        position: fixed;
-        inset: 0;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        background-color: #0d1117;
-        z-index: 99999;
-      "
-    >
-      <style>
-        #app-preloader .spinner {
-          width: 40px;
-          height: 40px;
-          border: 3px solid #21262d;
-          border-top-color: #c975de;
-          border-radius: 50%;
-          animation: spin 1s linear infinite;
-        }
-
-        @media (prefers-color-scheme: light) {
-          #app-preloader {
-            background-color: #faf4f2 !important;
-          }
-
-          #app-preloader .spinner {
-            border-color: #e0dad9;
-            border-top-color: #f37a51;
-          }
-        }
-
-        @keyframes spin {
-          to {
-            transform: rotate(360deg);
-          }
-        }
-      </style>
+    <div id="app-preloader">
       <div class="spinner"></div>
     </div>
 

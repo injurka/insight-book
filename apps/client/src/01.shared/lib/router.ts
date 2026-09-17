@@ -222,18 +222,10 @@ function getAuthRedirect(toName: string | symbol | null | undefined, isAuth: boo
   return null
 }
 
-const protectedRouteNames = new Set([
-  AppRouteNames.Dictionary,
-  AppRouteNames.Reader,
-  AppRouteNames.Settings,
-  AppRouteNames.Limits,
-  AppRouteNames.Notebook,
-])
-
 router.beforeEach(async (to, from) => {
   const authStore = useAuthStore()
 
-  if (!authStore.isAuthReady || (authStore.isAuthRefreshing && protectedRouteNames.has(to.name as AppRouteNames)))
+  if (!authStore.isAuthReady)
     await authStore.checkAuth()
 
   const hasSeenOnboarding = localStorage.getItem('insight_onboarding_completed') === 'true'

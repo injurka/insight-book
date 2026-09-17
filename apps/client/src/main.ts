@@ -26,7 +26,12 @@ import '~/assets/scss/normalize.scss'
 /* eslint-enable perfectionist/sort-imports */
 
 async function bootstrap() {
-  initMonitoring()
+  try {
+    initMonitoring()
+  }
+  catch (err) {
+    console.warn('[bootstrap] Monitoring initialization failed:', err)
+  }
 
   const app = createApp(App)
   const pinia = createPinia()
@@ -64,23 +69,19 @@ async function bootstrap() {
   // not keep the native WebView on the preloader.
   void authStore.checkAuth().catch((err: unknown) => console.warn('[bootstrap] Background auth check failed:', err))
 
-  // 4. Critical path: setup enabled plugins & dynamic routes before router initialization
-  try {
-    const { setupPlugins } = await import('~/00.plugins/index')
-    await setupPlugins(app, router)
-  }
-  catch (err) {
-    console.error('[bootstrap] Failed to setup plugins:', err)
-  }
-
-  // 5. Router & Mount
+  // 4. Router & Mount. Optional plugins are initialized after the first paint
+  // so a broken plugin chunk cannot leave the native preloader on screen.
   app.use(router)
   await router.isReady()
   app.mount('#app')
   document.getElementById('app-preloader')?.remove()
 
-  // 6. Non-blocking Post-mount tasks
+  // 5. Non-blocking Post-mount tasks
   initDeferredTasks(app, router, pinia)
+
+  void import('~/00.plugins/index')
+    .then(({ setupPlugins }) => setupPlugins(app, router))
+    .catch(err => console.error('[bootstrap] Failed to setup plugins:', err))
 
   if (import.meta.env.DEV) {
     app.config.performance = true
@@ -135,7 +136,12 @@ async function setupPlatformUpdaters(pinia: Pinia) {
   }
 }
 
-bootstrap()
+function handleBootstrapFailure(err: unknown) {
+  console.error('[bootstrap] Application startup failed:', err)
+  document.getElementById('app-preloader')?.remove()
+}
+
+void bootstrap().catch(handleBootstrapFailure)
 
 // Предзагрузка иконочного бандла Iconify
 import('~/assets/icons-bundle.json').then((module) => {
