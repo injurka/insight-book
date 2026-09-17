@@ -150,7 +150,13 @@ export const useLibraryStore = defineStore('library', () => {
     isLoading: isBookInfoLoading,
     refetch: refetchBookInfo,
   } = useQuery<Book | null>({
-    key: () => queryKeys.books(currentBookId.value),
+    // ВАЖНО: key через byId() (['books', null] при отсутствии id), а НЕ queryKeys.books(null),
+    // который коллапсирует в ['books'] — тот же ключ, что у квери списка книг (queryKeys.books.all).
+    // colada-кэш хранит один entry на keyHash и перезаписывает entry.options при каждом useQuery
+    // с тем же ключом: options книжной инфы (enabled: currentBookId !== null, query: getInfo)
+    // затирали options списка, из-за чего invalidateQueries(books.all) в auth.store отменял
+    // in-flight запрос списка и НЕ перезапускал его (enabled=false) → «Библиотека пуста».
+    key: () => queryKeys.books.byId(currentBookId.value),
     query: async () => {
       const id = currentBookId.value
       if (!id)
