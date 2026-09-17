@@ -33,7 +33,7 @@
         "worker-src": ["'self'", "blob:"]
       },
       "devCsp": null,
-      "freezePrototype": true
+      "freezePrototype": false
     }
   },
   "bundle": {

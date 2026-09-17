@@ -60,8 +60,13 @@ const tagOptions = computed(() => {
   return opts
 })
 
+const isAuthBootstrapLoading = computed(() => {
+  return authStore.isAuthRefreshing && !authStore.user && !authStore.isSingleMode
+})
+
 const isInitialLoading = computed(() => {
-  return (!store.isInitialized || store.isLoading) && (!store.books.length && !store.publicBooks.length)
+  return (isAuthBootstrapLoading.value || !store.isInitialized || store.isLoading)
+    && (!store.books.length && !store.publicBooks.length)
 })
 
 const showInitialSkeleton = useDelayedLoading(isInitialLoading)
@@ -159,6 +164,7 @@ async function handleDeleteBook(id: number) {
 
 // --- Поллинг статуса обработки книг ---
 let pollInterval: ReturnType<typeof setInterval> | null = null
+let initialAuthResolved = false
 
 function setupPolling() {
   if (pollInterval)
@@ -179,18 +185,34 @@ watch(() => store.books, () => {
   setupPolling()
 }, { deep: true })
 
+function resolveInitialView() {
+  if (initialAuthResolved || authStore.isAuthRefreshing)
+    return
+
+  initialAuthResolved = true
+
+  if (!authStore.user && !authStore.isSingleMode) {
+    if (currentView.value !== 'public-catalog')
+      currentView.value = 'public-catalog'
+    else if (store.publicBooks.length === 0)
+      loadPublic(1)
+  }
+  else {
+    setupPolling()
+  }
+}
+
+watch(() => authStore.isAuthRefreshing, (isRefreshing) => {
+  if (!isRefreshing)
+    resolveInitialView()
+}, { immediate: true })
+
 onMounted(() => {
   // Прогреваем чанк страницы книги, чтобы первый переход на неё
   // (View Transitions API) начинался мгновенно, без загрузки модуля
   void import('~/07.views/book.vue')
 
-  if (!authStore.user && !authStore.isSingleMode) {
-    currentView.value = 'public-catalog'
-    loadPublic(1)
-  }
-  else {
-    setupPolling()
-  }
+  resolveInitialView()
 })
 
 onUnmounted(() => {
