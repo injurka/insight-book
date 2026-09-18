@@ -3,10 +3,11 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 // Мокаем хранилище анализа: тестируем таймер длинного нажатия,
 // а не сетевой слой (performSentenceAnalysis ходит в API).
-const { handleSentenceAnalysis, speak, stop } = vi.hoisted(() => ({
+const { handleSentenceAnalysis, speak, stop, openGrammarPopover } = vi.hoisted(() => ({
   handleSentenceAnalysis: vi.fn().mockResolvedValue(undefined),
   speak: vi.fn().mockResolvedValue(true),
   stop: vi.fn(),
+  openGrammarPopover: vi.fn(),
 }))
 
 vi.mock('~/01.shared/store/analysis/analysis.store', () => ({
@@ -14,6 +15,7 @@ vi.mock('~/01.shared/store/analysis/analysis.store', () => ({
     closePopover: vi.fn(),
     closeSelectionTooltip: vi.fn(),
     handleSentenceAnalysis,
+    openGrammarPopover,
   }),
 }))
 
@@ -26,6 +28,7 @@ vi.mock('~/01.shared/composables/use-tts', async () => {
       stop,
       isPlaying: ref(false),
       isLoading: ref(false),
+      currentText: ref(null),
     }),
   }
 })
@@ -243,5 +246,81 @@ describe('useTextSelection tts button', () => {
     expect(btn.classList.contains('is-playing')).toBe(false)
 
     btn.remove()
+  })
+})
+
+describe('useTextSelection translation blur & pointer down guards', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+    vi.useFakeTimers()
+    handleSentenceAnalysis.mockClear()
+    openGrammarPopover.mockClear()
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  function clickOn(el: HTMLElement): MouseEvent {
+    const e = new MouseEvent('click', { bubbles: true, cancelable: true })
+    Object.defineProperty(e, 'target', { value: el })
+
+    return e
+  }
+
+  it('снимает класс is-blurred при клике на заблюренный interleaved-translation', () => {
+    const { selection } = setup()
+    const span = document.createElement('span')
+    span.className = 'interleaved-translation is-blurred'
+    const textSpan = document.createElement('span')
+    textSpan.className = 'translation-text'
+    textSpan.textContent = 'Перевод предложения'
+    span.appendChild(textSpan)
+    document.body.appendChild(span)
+
+    const event = clickOn(textSpan)
+    const stopSpy = vi.spyOn(event, 'stopPropagation')
+
+    selection.onWordClick(event)
+
+    expect(span.classList.contains('is-blurred')).toBe(false)
+    expect(stopSpy).toHaveBeenCalled()
+    span.remove()
+  })
+
+  it('снимает класс is-blurred при клике на заблюренный split-translation', () => {
+    const { selection } = setup()
+    const span = document.createElement('span')
+    span.className = 'split-translation is-blurred'
+    const textSpan = document.createElement('span')
+    textSpan.className = 'translation-text'
+    textSpan.textContent = 'Параллельный перевод'
+    span.appendChild(textSpan)
+    document.body.appendChild(span)
+
+    selection.onWordClick(clickOn(textSpan))
+
+    expect(span.classList.contains('is-blurred')).toBe(false)
+    span.remove()
+  })
+
+  it('не запускает анализ предложения при pointerdown на переводе', () => {
+    const { selection } = setup()
+    const sentence = makeSentenceElement('Sentence text')
+    const translation = document.createElement('span')
+    translation.className = 'interleaved-translation is-blurred'
+    sentence.appendChild(translation)
+    document.body.appendChild(sentence)
+
+    selection.onPointerDown(makeTouchEvent(
+      'touchstart',
+      translation,
+      50,
+      50,
+    ))
+    vi.advanceTimersByTime(600)
+
+    expect(handleSentenceAnalysis).not.toHaveBeenCalled()
+    sentence.remove()
   })
 })

@@ -580,6 +580,7 @@ watch(() => readerStore.isPageLoading, async (isLoading) => {
     &.is-blurred {
       filter: blur(5px);
       cursor: pointer;
+      user-select: none;
       opacity: 0.7;
       transition:
         filter 0.2s,
@@ -597,6 +598,7 @@ watch(() => readerStore.isPageLoading, async (isLoading) => {
     &.is-blurred {
       filter: blur(5px);
       cursor: pointer;
+      user-select: none;
       opacity: 0.7;
       transition:
         filter 0.2s,

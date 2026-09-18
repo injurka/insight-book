@@ -1,6 +1,7 @@
 /* eslint-disable no-restricted-globals */
 import { mount } from '@vue/test-utils'
 import { describe, expect, it, vi } from 'vitest'
+import { ref } from 'vue'
 import KitDialog from './kit-dialog.vue'
 
 // Mock dependencies
@@ -47,7 +48,7 @@ vi.mock('../composables/use-dialog-swipe', () => ({
 }))
 
 describe('kit-dialog.vue', () => {
-  const createWrapper = (props = {}, slots = {}) => {
+  const createWrapper = (props = {}, slots = {}, options: { provide?: Record<string, unknown> } = {}) => {
     return mount(KitDialog, {
       props: {
         visible: true,
@@ -55,6 +56,7 @@ describe('kit-dialog.vue', () => {
       },
       slots,
       global: {
+        provide: options.provide,
         stubs: {
           Teleport: true,
           Transition: true,
@@ -189,5 +191,27 @@ describe('kit-dialog.vue', () => {
 
     // It should not throw and just return
     global.window = originalWindow
+  })
+
+  it('sets default --z-modal style to 1200', () => {
+    const wrapper = createWrapper()
+    const dialogRoot = wrapper.find('.dialog-root')
+    expect(dialogRoot.attributes('style')).toContain('--z-modal: 1200')
+  })
+
+  it('sets custom --z-modal style from zIndex prop', () => {
+    const wrapper = createWrapper({ zIndex: 1500 })
+    const dialogRoot = wrapper.find('.dialog-root')
+    expect(dialogRoot.attributes('style')).toContain('--z-modal: 1500')
+  })
+
+  it('inherits and increments parent dialog z-index', () => {
+    const wrapper = createWrapper({}, {}, {
+      provide: {
+        'kit-dialog-z-index': ref(1500),
+      },
+    })
+    const dialogRoot = wrapper.find('.dialog-root')
+    expect(dialogRoot.attributes('style')).toContain('--z-modal: 1600')
   })
 })

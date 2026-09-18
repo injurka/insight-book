@@ -578,6 +578,7 @@
     "deck": "Deck",
     "selectDeck": "Select a deck",
     "new": "New",
+    "createBookDeck": "From book title: \"{title}\"",
     "difficulty": "Difficulty",
     "translationHtml": "Translation (HTML supported)",
     "grammar": "Grammar",

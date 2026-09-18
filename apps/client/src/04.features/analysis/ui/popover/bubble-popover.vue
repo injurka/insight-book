@@ -36,7 +36,17 @@ const highlightsStore = useHighlightsStore()
 const readerStore = useReaderStore()
 const { t } = useI18n()
 const analysisStore = useAnalysisStore()
-const { speak, stop, isPlaying, isLoading } = useTts()
+const {
+  speak,
+  stop,
+  isPlaying,
+  isLoading,
+  currentText,
+} = useTts()
+
+const bubbleText = computed(() => props.box?.text?.replace(/\n+/g, '') || '')
+const isBubblePlaying = computed(() => isPlaying.value && currentText.value === bubbleText.value)
+const isBubbleLoading = computed(() => isLoading.value && currentText.value === bubbleText.value)
 
 const isSaveModalOpen = ref(false)
 const modalInitialData = ref<{
@@ -204,16 +214,20 @@ function analyzeSentence() {
 }
 
 function playTTS() {
-  if (props.box?.text) {
-    if (isPlaying.value || isLoading.value)
-      stop()
+  const text = bubbleText.value
+  if (text) {
+    if (isBubblePlaying.value || isBubbleLoading.value)
+      stop(text)
 
     else
-      speak(props.box.text.replace(/\n+/g, ''))
+      speak(text)
   }
 }
 
-onUnmounted(() => stop())
+onUnmounted(() => {
+  if (bubbleText.value)
+    stop(bubbleText.value)
+})
 </script>
 
 <template>
@@ -231,8 +245,8 @@ onUnmounted(() => stop())
         </button>
         <button class="action-btn" :title="t('analysis.voice')" @click.stop="playTTS">
           <Icon
-            :icon="isLoading ? 'mdi:loading' : (isPlaying ? 'mdi:volume-high' : 'mdi:volume-medium')"
-            :class="{ 'spin-animation': isLoading, 'pulse-animation': isPlaying }"
+            :icon="isBubbleLoading ? 'mdi:loading' : (isBubblePlaying ? 'mdi:volume-high' : 'mdi:volume-medium')"
+            :class="{ 'spin-animation': isBubbleLoading, 'pulse-animation': isBubblePlaying }"
           />
         </button>
 

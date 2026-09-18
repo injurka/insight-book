@@ -67,7 +67,7 @@ export function useReaderContent() {
       const blurClass = settingsStore.parallelBlurTranslation ? 'is-blurred' : ''
       const analysisObj = map[rawSent]
       const grammarHtml = buildGrammarHtml(analysisObj.grammarRules)
-      const translationHtml = `<span class="interleaved-translation ${blurClass}" onclick="this.classList.remove('is-blurred')"><span class="translation-text">${escapeHtml(analysisObj.translation || '')}</span>${grammarHtml}</span>`
+      const translationHtml = `<span class="interleaved-translation ${blurClass}"><span class="translation-text">${escapeHtml(analysisObj.translation || '')}</span>${grammarHtml}</span>`
       span.insertAdjacentHTML('afterend', translationHtml)
       translatedSentIds.add(sentId)
     }
@@ -89,7 +89,7 @@ export function useReaderContent() {
       else {
         const blurClass = settingsStore.parallelBlurTranslation ? 'is-blurred' : ''
         const grammarHtml = buildGrammarHtml(analysisObj.grammarRules)
-        span.innerHTML = `<span class="split-translation ${blurClass}" onclick="this.classList.remove('is-blurred')"><span class="translation-text">${escapeHtml(analysisObj.translation || '')}</span>${grammarHtml}</span>`
+        span.innerHTML = `<span class="split-translation ${blurClass}"><span class="translation-text">${escapeHtml(analysisObj.translation || '')}</span>${grammarHtml}</span>`
         span.classList.add('has-translation')
         translatedSentIds.add(sentId)
       }

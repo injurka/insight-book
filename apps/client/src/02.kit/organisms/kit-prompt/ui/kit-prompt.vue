@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { nextTick, ref, useTemplateRef, watch } from 'vue'
+import type { Ref } from 'vue'
+import { computed, inject, nextTick, ref, useTemplateRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { KitBtn } from '~/02.kit/atoms/kit-btn/ui'
 import { KitInput } from '~/02.kit/atoms/kit-input/ui'
@@ -14,6 +15,7 @@ interface Props {
   confirmText?: string
   cancelText?: string
   hideInput?: boolean
+  zIndex?: number | string
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -44,6 +46,17 @@ watch(visible, async (isOpen) => {
   }
 })
 
+const parentDialogZIndex = inject<Ref<number> | undefined>('kit-dialog-z-index', undefined)
+
+const effectiveZIndex = computed(() => {
+  if (props.zIndex !== undefined && props.zIndex !== null && props.zIndex !== '')
+    return props.zIndex
+  if (parentDialogZIndex?.value)
+    return parentDialogZIndex.value + 100
+
+  return 1600
+})
+
 function onSubmit() {
   emit('submit', inputValue.value)
   visible.value = false
@@ -62,6 +75,7 @@ function onCancel() {
     :max-width="360"
     :resizable="false"
     :minimizable="false"
+    :z-index="effectiveZIndex"
   >
     <div class="kit-prompt-body">
       <p v-if="description" class="prompt-desc">
@@ -76,6 +90,8 @@ function onCancel() {
         :placeholder="placeholder"
         @keyup.enter="onSubmit"
       />
+
+      <slot :set-value="(val: string) => { inputValue = val }" />
     </div>
 
     <template #footer>

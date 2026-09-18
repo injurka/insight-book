@@ -578,6 +578,7 @@
     "deck": "Колода",
     "selectDeck": "Выберите колоду",
     "new": "Новая",
+    "createBookDeck": "По названию книги: «{title}»",
     "difficulty": "Сложность",
     "translationHtml": "Перевод (поддерживает HTML разметку)",
     "grammar": "Грамматика",

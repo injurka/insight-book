@@ -577,6 +577,7 @@
     "deck": "牌组",
     "selectDeck": "选择一个牌组",
     "new": "新建",
+    "createBookDeck": "按书名创建: 「{title}」",
     "difficulty": "难度",
     "translationHtml": "翻译 (支持 HTML)",
     "grammar": "语法",

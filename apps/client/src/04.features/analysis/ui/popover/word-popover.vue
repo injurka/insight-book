@@ -24,7 +24,15 @@ const repos = useRepos()
 const analysisStore = useAnalysisStore()
 const authStore = useAuthStore()
 const networkStore = useNetworkStore()
-const { speak, stop, isPlaying, isLoading } = useTts()
+const {
+  speak,
+  stop,
+  isPlaying,
+  isLoading,
+  currentText,
+} = useTts()
+const isWordAudioPlaying = computed(() => isPlaying.value && currentText.value === analysisStore.wordPopover?.word)
+const isWordAudioLoading = computed(() => isLoading.value && currentText.value === analysisStore.wordPopover?.word)
 const toast = useToast()
 const { t } = useI18n()
 
@@ -104,9 +112,9 @@ function getPosClass(pos: string) {
   return 'pos-default'
 }
 
-watch(() => analysisStore.wordPopover, (val) => {
-  if (!val)
-    stop()
+watch(() => analysisStore.wordPopover, (val, oldVal) => {
+  if (oldVal?.word && oldVal.word !== val?.word)
+    stop(oldVal.word)
 })
 
 function handleDetailedWithAi(toggle: () => void) {
@@ -133,10 +141,12 @@ function openSaveDialog() {
 }
 
 function playWordTTS() {
-  if (analysisStore.wordPopover) {
-    if (isPlaying.value || isLoading.value)
-      stop()
-    else speak(analysisStore.wordPopover.word)
+  if (analysisStore.wordPopover?.word) {
+    const word = analysisStore.wordPopover.word
+    if (isWordAudioPlaying.value || isWordAudioLoading.value)
+      stop(word)
+    else
+      speak(word)
   }
 }
 
@@ -203,7 +213,8 @@ onMounted(() => {
 onUnmounted(() => {
   document.removeEventListener('click', closePopover)
   document.removeEventListener('keydown', handleKeydown)
-  stop()
+  if (analysisStore.wordPopover?.word)
+    stop(analysisStore.wordPopover.word)
 })
 </script>
 
@@ -285,11 +296,11 @@ onUnmounted(() => {
           <div class="popover-actions">
             <KitTooltip :text="t('analysis.voice')" placement="bottom">
               <KitBtn
-                :icon="isPlaying ? 'mdi:volume-high' : 'mdi:volume-medium'"
+                :icon="isWordAudioPlaying ? 'mdi:volume-high' : 'mdi:volume-medium'"
                 size="xs"
                 variant="text"
-                :loading="isLoading"
-                :class="{ 'pulse-animation': isPlaying }"
+                :loading="isWordAudioLoading"
+                :class="{ 'pulse-animation': isWordAudioPlaying }"
                 @click.stop="playWordTTS"
               />
             </KitTooltip>

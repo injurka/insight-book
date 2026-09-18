@@ -14,14 +14,17 @@ import { KitSelect } from '~/02.kit/molecules/kit-select/ui'
 import { KitToggle } from '~/02.kit/molecules/kit-toggle/ui'
 import { KitTooltip } from '~/02.kit/molecules/kit-tooltip/ui'
 import { KitDialog } from '~/02.kit/organisms/kit-dialog/ui'
-
 import { KitPrompt } from '~/02.kit/organisms/kit-prompt/ui'
+import { useLibraryStore } from '~/05.modules/library/store/library.store'
+import { useReaderStore } from '~/05.modules/reader/store/reader.store'
 import { useDictionaryStore } from '../../store/dictionary.store'
 
 const repos = useRepos()
 
 const analysisStore = useAnalysisStore()
 const dictStore = useDictionaryStore()
+const readerStore = useReaderStore()
+const libraryStore = useLibraryStore()
 const { speak, isPlaying, isLoading } = useTts()
 const toast = useToast()
 const { t } = useI18n()
@@ -32,9 +35,33 @@ const isEditing = computed(() => !!localWord.value.id)
 const isDeckPromptOpen = ref(false)
 const isAutoFilling = ref(false)
 
+const currentBookTitle = computed(() => {
+  if (localWord.value.contextBookId) {
+    const encBook = localWord.value.encounters?.find(e => e.bookId === localWord.value.contextBookId)?.book?.title
+    if (encBook)
+      return encBook
+  }
+
+  return readerStore.currentBook?.title || libraryStore.currentBookInfo?.title || null
+})
+
+const canCreateBookDeck = computed(() => {
+  if (!currentBookTitle.value || !currentBookTitle.value.trim())
+    return false
+  const title = currentBookTitle.value.trim().toLowerCase()
+  const lang = localWord.value.language || 'en'
+  const alreadyExists = dictStore.decks.some(deck => deck.language === lang && deck.name.trim().toLowerCase() === title)
+
+  return !alreadyExists
+})
+
 watch(() => analysisStore.addEditWordModalOpen, async (isOpen) => {
-  if (isOpen)
+  if (isOpen) {
     await dictStore.fetchDecks()
+  }
+  else {
+    isDeckPromptOpen.value = false
+  }
 })
 
 function handleSave() {
@@ -65,6 +92,14 @@ async function onInlineDeckSubmit(name: string) {
     catch {
       // Ошибка обрабатывается в сторе (показывается toast)
     }
+  }
+}
+
+async function createDeckWithBookTitle() {
+  if (currentBookTitle.value) {
+    const title = currentBookTitle.value.trim()
+    isDeckPromptOpen.value = false
+    await onInlineDeckSubmit(title)
   }
 }
 
@@ -333,8 +368,24 @@ const previewVocabulary = ref(true)
     :title="t('dictionary.newDeckName')"
     :placeholder="t('dictionary.newDeckName')"
     :confirm-text="t('dictionary.create')"
+    z-index="1600"
     @submit="onInlineDeckSubmit"
-  />
+  >
+    <div v-if="canCreateBookDeck && currentBookTitle" class="deck-prompt-suggestion">
+      <KitBtn
+        size="sm"
+        variant="tonal"
+        color="secondary"
+        icon="mdi:book-plus-outline"
+        class="book-deck-btn"
+        @click="createDeckWithBookTitle"
+      >
+        <span class="book-deck-btn-text">
+          {{ t('dictionary.createBookDeck', { title: currentBookTitle }) }}
+        </span>
+      </KitBtn>
+    </div>
+  </KitPrompt>
 </template>
 
 <style lang="scss" scoped>
@@ -526,6 +577,24 @@ const previewVocabulary = ref(true)
   }
   100% {
     transform: scale(1);
+  }
+}
+
+.deck-prompt-suggestion {
+  display: flex;
+  width: 100%;
+
+  .book-deck-btn {
+    width: 100%;
+    justify-content: flex-start;
+    text-align: left;
+    overflow: hidden;
+
+    .book-deck-btn-text {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
   }
 }
 </style>

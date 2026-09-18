@@ -83,7 +83,15 @@ async function handleSaveQuote(data: { text: string, translation: string, note: 
   }
 }
 
-const { speak, stop, isPlaying, isLoading } = useTts()
+const {
+  speak,
+  stop,
+  isPlaying,
+  isLoading,
+  currentText,
+} = useTts()
+const isTooltipPlaying = computed(() => isPlaying.value && currentText.value === analysisStore.selectionTooltip?.text)
+const isTooltipLoading = computed(() => isLoading.value && currentText.value === analysisStore.selectionTooltip?.text)
 const { t } = useI18n()
 
 const popoverRef = ref<HTMLElement | null>(null)
@@ -194,13 +202,14 @@ function playTTS() {
     return
   }
 
-  if (!analysisStore.selectionTooltip)
+  if (!analysisStore.selectionTooltip?.text)
     return
 
-  if (isPlaying.value || isLoading.value)
-    stop()
+  const text = analysisStore.selectionTooltip.text
+  if (isTooltipPlaying.value || isTooltipLoading.value)
+    stop(text)
   else
-    speak(analysisStore.selectionTooltip.text)
+    speak(text)
 }
 
 function calculatePopoverCoords(rect: DOMRect, popRect: DOMRect) {
@@ -224,11 +233,11 @@ function calculatePopoverCoords(rect: DOMRect, popRect: DOMRect) {
   return { top, left }
 }
 
-watch(() => analysisStore.selectionTooltip, async (val) => {
+watch(() => analysisStore.selectionTooltip, async (val, oldVal) => {
   if (!val) {
     popoverPos.value = { top: '-9999px', left: '-9999px', transform: 'none' }
-    if (isPlaying.value || isLoading.value)
-      stop()
+    if (oldVal?.text)
+      stop(oldVal.text)
 
     return
   }
@@ -251,7 +260,8 @@ onMounted(() => {
 
 onUnmounted(() => {
   document.removeEventListener('selectionchange', checkTextSelection)
-  stop()
+  if (analysisStore.selectionTooltip?.text)
+    stop(analysisStore.selectionTooltip.text)
 })
 </script>
 
@@ -274,8 +284,8 @@ onUnmounted(() => {
         <div class="divider" />
         <button class="tooltip-btn" :title="t('analysis.voice')" @click="playTTS">
           <Icon
-            :icon="isLoading ? 'mdi:loading' : (isPlaying ? 'mdi:volume-high' : 'mdi:volume-medium')"
-            :class="{ 'pulse-animation': isPlaying, 'spin-animation': isLoading }"
+            :icon="isTooltipLoading ? 'mdi:loading' : (isTooltipPlaying ? 'mdi:volume-high' : 'mdi:volume-medium')"
+            :class="{ 'pulse-animation': isTooltipPlaying, 'spin-animation': isTooltipLoading }"
           />
           <span>{{ t('analysis.listen') }}</span>
         </button>

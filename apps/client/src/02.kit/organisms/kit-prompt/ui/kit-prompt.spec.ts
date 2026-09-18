@@ -1,5 +1,6 @@
 import { mount } from '@vue/test-utils'
 import { describe, expect, it, vi } from 'vitest'
+import { ref } from 'vue'
 import KitPrompt from './kit-prompt.vue'
 
 vi.mock('vue-i18n', () => ({
@@ -9,17 +10,18 @@ vi.mock('vue-i18n', () => ({
 }))
 
 describe('kitPrompt', () => {
-  const mountComponent = (props = {}) => {
+  const mountComponent = (props = {}, options: { provide?: Record<string, unknown> } = {}) => {
     return mount(KitPrompt, {
       props: {
         visible: true,
         ...props,
       },
       global: {
+        provide: options.provide,
         stubs: {
           KitDialog: {
-            template: '<div class="kit-dialog-stub" :title="title" @click="$emit(\'update:visible\', false)"><slot /><slot name="footer" /></div>',
-            props: ['title', 'visible'],
+            template: '<div class="kit-dialog-stub" :title="title" :data-z-index="zIndex" @click="$emit(\'update:visible\', false)"><slot /><slot name="footer" /></div>',
+            props: ['title', 'visible', 'zIndex'],
           },
           KitInput: {
             template: '<input class="kit-input-stub" :value="modelValue" @input="$emit(\'update:modelValue\', $event.target.value)" @keyup.enter="$emit(\'keyup.enter\')" />',
@@ -111,5 +113,43 @@ describe('kitPrompt', () => {
     await wrapper.find('.kit-dialog-stub').trigger('click')
     expect(wrapper.emitted('update:visible')).toBeDefined()
     expect(wrapper.emitted('update:visible')?.[0]).toEqual([false])
+  })
+
+  it('passes default zIndex 1600 to KitDialog', () => {
+    const wrapper = mountComponent()
+    expect(wrapper.find('.kit-dialog-stub').attributes('data-z-index')).toBe('1600')
+  })
+
+  it('passes custom zIndex to KitDialog', () => {
+    const wrapper = mountComponent({ zIndex: 1800 })
+    expect(wrapper.find('.kit-dialog-stub').attributes('data-z-index')).toBe('1800')
+  })
+
+  it('inherits and increments parent dialog z-index via provide/inject', () => {
+    const wrapper = mountComponent({}, {
+      provide: {
+        'kit-dialog-z-index': ref(1500),
+      },
+    })
+    expect(wrapper.find('.kit-dialog-stub').attributes('data-z-index')).toBe('1600')
+  })
+
+  it('renders default slot content', () => {
+    const wrapper = mount(KitPrompt, {
+      props: { visible: true },
+      slots: {
+        default: '<div class="custom-slot-content">Custom</div>',
+      },
+      global: {
+        stubs: {
+          KitDialog: {
+            template: '<div class="kit-dialog-stub"><slot /></div>',
+          },
+          KitInput: true,
+          KitBtn: true,
+        },
+      },
+    })
+    expect(wrapper.find('.custom-slot-content').exists()).toBe(true)
   })
 })

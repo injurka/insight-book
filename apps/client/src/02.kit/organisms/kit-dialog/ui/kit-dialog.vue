@@ -1,10 +1,12 @@
 <script lang="ts" setup>
+import type { Ref } from 'vue'
 import { Icon } from '@iconify/vue'
 import { useDraggable } from '@vueuse/core'
 import { useI18n } from 'vue-i18n'
 import { useBackHandler } from '~/01.shared/composables/use-back-handler'
 import { useDialogHistory } from '../composables/use-dialog-history'
 import { useDialogResize } from '../composables/use-dialog-resize'
+
 import { useDialogSwipe } from '../composables/use-dialog-swipe'
 
 import DialogResizeHandles from './dialog-resize-handles.vue'
@@ -42,7 +44,19 @@ const { t } = useI18n()
 const visible = defineModel<boolean>('visible', { required: true })
 const dialogId = useId()
 
-const effectiveZIndex = computed(() => Number(props.zIndex ?? 1200))
+const parentDialogZIndex = inject<Ref<number> | undefined>('kit-dialog-z-index', undefined)
+
+const effectiveZIndex = computed(() => {
+  if (props.zIndex !== undefined && props.zIndex !== null && props.zIndex !== '') {
+    return Number(props.zIndex)
+  }
+
+  if (parentDialogZIndex?.value) {
+    return parentDialogZIndex.value + 100
+  }
+
+  return 1200
+})
 provide('kit-dialog-z-index', effectiveZIndex)
 
 const dialogContentRef = ref<HTMLElement | null>(null)
@@ -210,7 +224,7 @@ onUnmounted(() => {
         v-if="visible"
         v-show="!isMinimized"
         class="dialog-root"
-        :style="zIndex ? { '--z-modal': zIndex } : undefined"
+        :style="{ '--z-modal': effectiveZIndex }"
       >
         <div v-if="!floating" class="dialog-overlay" @mousedown="handleOverlayClick" />
 
@@ -296,7 +310,7 @@ onUnmounted(() => {
       <button
         v-if="visible && isMinimized"
         class="dialog-minimized-fab"
-        :style="zIndex ? { '--z-modal': zIndex } : undefined"
+        :style="{ '--z-modal': effectiveZIndex }"
         :title="title || t('kit.dialog.expand')"
         @click="isMinimized = false"
       >

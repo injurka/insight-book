@@ -11,6 +11,7 @@ import { safeDecodeURIComponent } from '~/01.shared/lib/helpers'
 import { useNetworkStore } from '~/01.shared/store/network.store'
 import { useGlobalSettingsStore } from '~/01.shared/store/settings.store'
 import { useToastStore } from '~/01.shared/store/toast.store'
+import { dictionaryWords } from '~/05.modules/dictionary/store/dictionary-words.state'
 import { useLibraryStore } from '~/05.modules/library/store/library.store'
 import { useReaderStore } from '~/05.modules/reader/store/reader.store'
 
@@ -1087,35 +1088,53 @@ export const useAnalysisStore = defineStore('analysis', () => {
     return { grammarNote, vocabularyNote }
   }
 
+  function buildInitialWordToEdit(wordData: WordPopoverData, bookLanguage: string, localMatch?: UserDictItem) {
+    if (localMatch) {
+      return {
+        ...localMatch,
+        contextSentence: wordData.contextSentence,
+        contextBookId: wordData.contextBookId,
+      }
+    }
+
+    const { grammarNote, vocabularyNote } = buildAiNotes(wordData.aiData)
+
+    return {
+      word: wordData.word,
+      transcription: wordData.transcription,
+      translation: wordData.translation,
+      grammarNote,
+      vocabularyNote,
+      language: bookLanguage,
+      contextSentence: wordData.contextSentence,
+      contextBookId: wordData.contextBookId,
+    }
+  }
+
   async function openAddEditWordModal(wordData: WordPopoverData) {
     const readerStore = useReaderStore()
     const libraryStore = useLibraryStore()
     const currentBook = readerStore.currentBook || libraryStore.currentBookInfo
+    const localMatch = dictionaryWords.value.find(w => w.word.toLowerCase() === wordData.word.toLowerCase())
 
-    try {
-      const existingWord = await repos.dictionary.get(wordData.word)
-      wordToEdit.value = {
-        ...existingWord,
-        contextSentence: wordData.contextSentence,
-        contextBookId: wordData.contextBookId,
-      }
-    }
-    catch {
-      const { grammarNote, vocabularyNote } = buildAiNotes(wordData.aiData)
-
-      wordToEdit.value = {
-        word: wordData.word,
-        transcription: wordData.transcription,
-        translation: wordData.translation,
-        grammarNote,
-        vocabularyNote,
-        language: currentBook?.language || 'en',
-        contextSentence: wordData.contextSentence,
-        contextBookId: wordData.contextBookId,
-      }
-    }
-
+    wordToEdit.value = buildInitialWordToEdit(wordData, currentBook?.language || 'en', localMatch)
     addEditWordModalOpen.value = true
+
+    if (wordData.isSaved && !localMatch) {
+      try {
+        const existingWord = await repos.dictionary.get(wordData.word)
+        if (addEditWordModalOpen.value && wordToEdit.value?.word === wordData.word) {
+          wordToEdit.value = {
+            ...existingWord,
+            contextSentence: wordData.contextSentence,
+            contextBookId: wordData.contextBookId,
+          }
+        }
+      }
+      catch {
+        // Игнорируем сетевые ошибки, данные уже предзаполнены
+      }
+    }
   }
 
   async function saveWordToDict(item: Partial<UserDictItem> & { contextSentence?: string, contextBookId?: number }) {

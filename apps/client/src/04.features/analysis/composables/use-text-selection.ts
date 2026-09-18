@@ -100,17 +100,29 @@ export function useTextSelection() {
     window.addEventListener('scroll', pressScrollListener, { capture: true, passive: true })
   }
 
+  function shouldIgnorePointerDown(targetEl: HTMLElement | null): boolean {
+    return Boolean(targetEl?.closest?.('.interleaved-translation, .split-translation, .sentence-tts-btn, .grammar-rule-badge'))
+  }
+
+  function extractSentenceText(target: HTMLElement | null, fallbackText?: string): string {
+    if (target?.dataset.rawSent)
+      return safeDecodeURIComponent(target.dataset.rawSent)
+
+    if (fallbackText)
+      return fallbackText.replace(/\n+/g, '')
+
+    return ''
+  }
+
   function onPointerDown(event: MouseEvent | TouchEvent, fallbackText?: string) {
     clearPressTimer()
 
-    const target = (event.target as HTMLElement).closest('.sentence') as HTMLElement | null
-    let rawSent = fallbackText || ''
+    const targetEl = event.target as HTMLElement | null
+    if (shouldIgnorePointerDown(targetEl))
+      return
 
-    if (target && target.dataset.rawSent)
-      rawSent = safeDecodeURIComponent(target.dataset.rawSent)
-
-    else if (fallbackText)
-      rawSent = fallbackText.replace(/\n+/g, '')
+    const target = targetEl?.closest?.('.sentence') as HTMLElement | null
+    const rawSent = extractSentenceText(target, fallbackText)
 
     if (!rawSent || !/[\p{L}\p{N}]/u.test(rawSent))
       return
@@ -199,6 +211,21 @@ export function useTextSelection() {
     return true
   }
 
+  function handleTranslationBlurClick(event: MouseEvent, targetEl: HTMLElement): boolean {
+    const translationSpan = targetEl.closest('.interleaved-translation, .split-translation') as HTMLElement | null
+    if (!translationSpan)
+      return false
+
+    if (translationSpan.classList.contains('is-blurred')) {
+      translationSpan.classList.remove('is-blurred')
+      event.stopPropagation()
+
+      return true
+    }
+
+    return false
+  }
+
   function handleGrammarBadgeClick(event: MouseEvent, targetEl: HTMLElement): boolean {
     const grammarBadge = targetEl.closest('.grammar-rule-badge') as HTMLElement | null
     if (!grammarBadge)
@@ -229,8 +256,13 @@ export function useTextSelection() {
     clearPressTimer()
 
     const targetEl = event.target as HTMLElement
-    if (handleTtsBtnClick(event, targetEl) || handleGrammarBadgeClick(event, targetEl))
+    if (
+      handleTtsBtnClick(event, targetEl)
+      || handleTranslationBlurClick(event, targetEl)
+      || handleGrammarBadgeClick(event, targetEl)
+    ) {
       return
+    }
 
     const target = targetEl.closest('.word') as HTMLElement | null
     if (!target)
