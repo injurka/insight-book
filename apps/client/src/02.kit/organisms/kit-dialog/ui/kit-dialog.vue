@@ -338,9 +338,11 @@ onUnmounted(() => {
 }
 .dialog-overlay {
   background-color: rgba(0, 0, 0, 0.4);
+  -webkit-backdrop-filter: blur(10px) saturate(90%);
+  backdrop-filter: blur(10px) saturate(90%);
   position: fixed;
   inset: 0;
-  top: env(safe-area-inset-top);
+  isolation: isolate;
   .dialog-enter-active & {
     animation: overlay-show 200ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
   }
