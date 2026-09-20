@@ -2,7 +2,6 @@ import type { LocationQuery } from 'vue-router'
 import { createRouter, createWebHashHistory, createWebHistory } from 'vue-router'
 import { AppRouteNames } from '~/01.shared/constants/routes'
 import { API_URL, isTauri } from '~/01.shared/lib/env'
-import { isNativeTransitionRoute, isViewTransitionSupported, setupViewTransitions } from '~/01.shared/lib/view-transitions'
 import { useAuthStore } from '~/01.shared/store/auth.store'
 
 const MAIN_SCROLLER_SELECTOR = '.main-content'
@@ -18,9 +17,7 @@ function findScroller(): HTMLElement | null {
  * Восстанавливает scrollTop контейнера. Контент страницы может дорисоваться
  * позже (асинхронные данные, обложки) — тогда scrollTop клампится высотой
  * неполного контента. Поэтому повторяем попытку несколько кадров, пока
- * позиция не «приклеится». rAF-колбэки не выполняются, пока идёт
- * View Transition (рендеринг заморожен), так что повторы случаются
- * уже после него, на финальной раскладке.
+ * позиция не «приклеится».
  */
 function restoreScrollTop(top: number): void {
   let attempts = 0
@@ -57,23 +54,9 @@ export const router = createRouter({
       }
     }
 
-    const isNativeTransition = isViewTransitionSupported()
-      && isNativeTransitionRoute(to.name)
-      && isNativeTransitionRoute(from.name)
-
     const main = findScroller()
-    if (main) {
-      // При нативном переходе сбрасываем скролл новой страницы на следующем тике,
-      // чтобы текущая страница не подскакивала вверх перед началом перехода
-      if (isNativeTransition) {
-        nextTick(() => {
-          main.scrollTop = 0
-        })
-      }
-      else {
-        main.scrollTop = 0
-      }
-    }
+    if (main)
+      main.scrollTop = 0
   },
 
   routes: [
@@ -169,8 +152,6 @@ router.beforeEach((_to, from) => {
       mainScrollPositions.set(from.fullPath, scroller.scrollTop)
   }
 })
-
-setupViewTransitions(router)
 
 function getOnboardingRedirect(toName: string | symbol | null | undefined, hasSeenOnboarding: boolean) {
   if (

@@ -4,7 +4,6 @@ import { Icon } from '@iconify/vue'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useToast } from '~/01.shared/composables/use-toast'
-import { BOOK_COVER_TRANSITION_NAME, coverTransitionBookId, isViewTransitionSupported } from '~/01.shared/lib/view-transitions'
 import { useAuthStore } from '~/01.shared/store/auth.store'
 import { useNetworkStore } from '~/01.shared/store/network.store'
 import { KitImage } from '~/02.kit/atoms/kit-image/ui'
@@ -42,13 +41,6 @@ const progressPercent = computed(() => {
 
   return entity.getProgressPercent()
 })
-
-// Обложка «перелетает» на страницу книги через View Transitions API —
-// имя вешается только на карточку, по которой кликнули (см. shared/lib/view-transitions.ts).
-const coverTransitionStyle = computed(() =>
-  isViewTransitionSupported() && coverTransitionBookId.value === props.book.id
-    ? { viewTransitionName: BOOK_COVER_TRANSITION_NAME }
-    : undefined)
 </script>
 
 <template>
@@ -61,7 +53,7 @@ const coverTransitionStyle = computed(() =>
     @keydown.enter="(!book.processStatus || book.processStatus === 'ready') && emit('click')"
     @keydown.space.prevent="(!book.processStatus || book.processStatus === 'ready') && emit('click')"
   >
-    <div class="cover-wrapper" :style="coverTransitionStyle">
+    <div class="cover-wrapper">
       <KitImage
         :src="book.localCoverUrl || book.coverUrl"
         :alt="t('library.cover')"

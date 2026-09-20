@@ -44,10 +44,10 @@ function openAutoAnalyzeSettings() {
 
 function goBack() {
   if (readerStore.currentBook?.id)
-    router.push(AppRoutePaths.Book.Info(readerStore.currentBook.id))
+    router.replace(AppRoutePaths.Book.Info(readerStore.currentBook.id))
 
   else
-    router.push(AppRoutePaths.Home)
+    router.replace(AppRoutePaths.Home)
 }
 
 watch(() => props.isVisible, (visible) => {

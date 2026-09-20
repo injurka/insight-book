@@ -38,10 +38,7 @@ watch(bookId, (newId) => {
 }, { immediate: true })
 
 function goBack() {
-  if (typeof window !== 'undefined' && window.history.state?.back)
-    router.back()
-  else
-    router.push(AppRoutePaths.Home)
+  router.replace(AppRoutePaths.Home)
 }
 </script>
 

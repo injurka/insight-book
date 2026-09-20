@@ -30,7 +30,6 @@ let mountedAt = 0
 onMounted(() => {
   mountedAt = performance.now()
   // Картинка уже в кэше браузера — показываем сразу, без fade-in.
-  // Важно для View Transitions: новый снапшот снимается в первый кадр после монтирования.
   const img = imgRef.value
   if (img?.complete && img.naturalWidth > 0) {
     isLoaded.value = true

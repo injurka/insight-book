@@ -11,7 +11,7 @@ const { t } = useI18n()
 function goToPage(pageNum?: number) {
   if (!pageNum || !libraryStore.currentBookInfo)
     return
-  router.push({
+  router.replace({
     path: AppRoutePaths.Reader,
     query: { bookId: libraryStore.currentBookInfo.id, page: pageNum },
   })

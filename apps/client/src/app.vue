@@ -10,7 +10,6 @@ import { useCustomFonts } from '~/01.shared/composables/use-custom-fonts'
 import { useGlobalTracking } from '~/01.shared/composables/use-global-tracking'
 import { isTauri } from '~/01.shared/lib/env'
 import { lazyComponent } from '~/01.shared/lib/lazy-component'
-import { isNativeTransitionActive } from '~/01.shared/lib/view-transitions'
 import { useAnalysisStore } from '~/01.shared/store/analysis/analysis.store'
 import { useNetworkStore } from '~/01.shared/store/network.store'
 import { usePwaStore } from '~/01.shared/store/pwa.store'
@@ -194,11 +193,7 @@ watch(() => route.path, () => {
 <template>
   <component :is="layouts[layoutName]" v-if="layouts[layoutName]">
     <router-view v-slot="{ Component, route: currentRoute }">
-      <!-- Нативные View Transitions рендерим без vue-transition, чтобы компоненты
-           не зависали в DOM одновременно при переходе между главной и книгой -->
-      <component :is="Component" v-if="isNativeTransitionActive" :key="currentRoute.path" />
       <transition
-        v-else
         name="fade"
         mode="out-in"
         appear
@@ -209,9 +204,7 @@ watch(() => route.path, () => {
   </component>
 
   <router-view v-else v-slot="{ Component, route: currentRoute }">
-    <component :is="Component" v-if="isNativeTransitionActive" :key="currentRoute.path" />
     <transition
-      v-else
       name="fade"
       mode="out-in"
       appear

@@ -7,7 +7,6 @@ import { useDelayedLoading } from '~/01.shared/composables/use-delayed-loading'
 import { useToast } from '~/01.shared/composables/use-toast'
 import { AppRoutePaths } from '~/01.shared/constants/routes'
 import { BOOK_TAGS } from '~/01.shared/constants/tags'
-import { coverTransitionBookId } from '~/01.shared/lib/view-transitions'
 import { useAuthStore } from '~/01.shared/store/auth.store'
 import { useGlobalSettingsStore } from '~/01.shared/store/settings.store'
 import { KitHoverRevealBg } from '~/02.kit/atoms/kit-hover-reveal-bg/ui'
@@ -117,8 +116,6 @@ const menuItems = computed(() => {
 })
 
 function openBookInfo(book: Book) {
-  // Помечаем обложку для shared-element перехода (View Transitions API)
-  coverTransitionBookId.value = book.id
   router.push(AppRoutePaths.Book.Info(book.id))
 }
 
@@ -208,8 +205,7 @@ watch(() => authStore.isAuthRefreshing, (isRefreshing) => {
 }, { immediate: true })
 
 onMounted(() => {
-  // Прогреваем чанк страницы книги, чтобы первый переход на неё
-  // (View Transitions API) начинался мгновенно, без загрузки модуля
+  // Прогреваем чанк страницы книги, чтобы первый переход не ждал загрузки модуля.
   void import('~/07.views/book.vue')
 
   resolveInitialView()
