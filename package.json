@@ -1,6 +1,6 @@
 {
   "name": "@injurka/insight-book",
-  "version": "3.24.6",
+  "version": "3.25.0",
   "private": true,
   "type": "module",
   "packageManager": "bun@1.4.0",
