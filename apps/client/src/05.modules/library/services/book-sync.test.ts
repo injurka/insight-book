@@ -412,6 +412,35 @@ describe('startWholeBookSync', () => {
     expect(syncState.value).toBe('finished')
   })
 
+  it('counts processed pages instead of using the current page number', async () => {
+    let resolvePage3: (page: PagePayload) => void = () => undefined
+    const page3 = new Promise<PagePayload>((resolve) => {
+      resolvePage3 = resolve
+    })
+
+    hoisted.libraryState.books = [makeBook({ totalPages: 3 })]
+    hoisted.bookRepo.getPage.mockImplementation(async (_id: number, num: number) => {
+      if (num === 2)
+        throw new Error('page fetch exploded')
+      if (num === 3)
+        return page3
+
+      return makeTextPage(num)
+    })
+
+    const syncPromise = startWholeBookSync(1, baseOptions)
+    await vi.waitFor(() => expect(hoisted.bookRepo.getPage).toHaveBeenCalledTimes(3))
+
+    expect(syncProgress.value.currentTask).toContain('Страница 3 из 3')
+    expect(syncProgress.value.pagesDone).toBe(2)
+
+    resolvePage3(makeTextPage(3))
+    await syncPromise
+
+    expect(syncProgress.value.pagesDone).toBe(3)
+    expect(syncState.value).toBe('finished')
+  })
+
   it('returns to idle state when the sync is cancelled', async () => {
     hoisted.bookRepo.getPage.mockImplementation(async (_id: number, num: number) => {
       if (num === 2)

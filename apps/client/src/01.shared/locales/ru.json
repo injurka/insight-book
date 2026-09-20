@@ -124,6 +124,7 @@
     "cacheTtsWords": "Озвучка слов",
     "cacheTtsWordsDesc": "Генерация аудио для каждого слова",
     "pages": "Страницы",
+    "pagesProcessed": "Обработано страниц",
     "sentences": "Предложения",
     "fromCache": "из кэша",
     "overallProgress": "Общий прогресс",

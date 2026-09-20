@@ -388,6 +388,8 @@ async function processPage(
   }
   catch (e) {
     console.warn(`Failed to fetch page ${pageNum}`, e)
+    if (!ctx.signal.aborted)
+      syncProgress.value.pagesDone++
 
     return
   }
@@ -398,10 +400,12 @@ async function processPage(
     pageNum,
     options.cachePages,
   )
-  syncProgress.value.pagesDone = pageNum
 
-  if (!page)
+  if (!page) {
+    syncProgress.value.pagesDone++
+
     return
+  }
 
   const { sentences, words: rawWords } = extractPageData(page, {
     extractSentences: options.analyzeSentences || options.ttsSentences,
@@ -426,6 +430,7 @@ async function processPage(
     ctx,
     pageNum,
   )
+  syncProgress.value.pagesDone++
 }
 
 async function executeBookSync(book: SyncBook, options: typeof syncOptions.value, ctx: AnalysisContext) {

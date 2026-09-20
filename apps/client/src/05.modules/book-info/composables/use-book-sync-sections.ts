@@ -240,7 +240,7 @@ export function useBookSyncSections(isFinished: ComputedRef<boolean>) {
       p,
       finished,
       pagePercent,
-      t('bookInfo.pages'),
+      t('bookInfo.pagesProcessed'),
     )
     appendSentencesSection(
       list,

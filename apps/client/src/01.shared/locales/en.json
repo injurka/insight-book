@@ -124,6 +124,7 @@
     "cacheTtsWords": "Voice words",
     "cacheTtsWordsDesc": "Generate audio for each word",
     "pages": "Pages",
+    "pagesProcessed": "Pages processed",
     "sentences": "Sentences",
     "fromCache": "from cache",
     "overallProgress": "Overall progress",
