@@ -392,21 +392,39 @@ jobs:
       - name: Rename APK
         run: mv ${{ steps.sign_app.outputs.signedReleaseFile }} insight-book-${{ github.ref_name }}-android.apk
 
-      - name: Upload APK to CDN
+      - name: Upload APK to Media CDN
         shell: bash
         env:
           APK_FILE: insight-book-${{ github.ref_name }}-android.apk
-          BUNNY_STORAGE_ZONE: ${{ secrets.BUNNY_STORAGE_ZONE || secrets.S3_BUCKET }}
-          BUNNY_STORAGE_PASSWORD: ${{ secrets.BUNNY_STORAGE_PASSWORD || secrets.S3_SECRET_KEY }}
+          # Медиа-зона, которую раздаёт cdn.insight-book.ru — именно этот хост зашит в APK.
+          BUNNY_MEDIA_STORAGE_ZONE: ${{ secrets.BUNNY_MEDIA_STORAGE_ZONE }}
+          BUNNY_MEDIA_STORAGE_PASSWORD: ${{ secrets.BUNNY_MEDIA_STORAGE_PASSWORD }}
+          APK_PUBLIC_URL: https://cdn.insight-book.ru/releases
         run: |
-          test -n "$BUNNY_STORAGE_ZONE"
-          test -n "$BUNNY_STORAGE_PASSWORD"
+          set -euo pipefail
+          test -n "$BUNNY_MEDIA_STORAGE_ZONE"
+          test -n "$BUNNY_MEDIA_STORAGE_PASSWORD"
           curl --fail-with-body --retry 3 --retry-all-errors \
             --request PUT \
-            --header "AccessKey: $BUNNY_STORAGE_PASSWORD" \
+            --header "AccessKey: $BUNNY_MEDIA_STORAGE_PASSWORD" \
             --header "Content-Type: application/vnd.android.package-archive" \
             --upload-file "$APK_FILE" \
-            "https://storage.bunnycdn.com/$BUNNY_STORAGE_ZONE/releases/$APK_FILE"
+            "https://storage.bunnycdn.com/$BUNNY_MEDIA_STORAGE_ZONE/releases/$APK_FILE"
+
+          # Проверяем ровно тот URL, который запрашивает приложение: тихая 404 здесь
+          # означает, что автообновление сломано, поэтому валим джобу.
+          for attempt in {1..10}; do
+            status=$(curl -sIL -o /dev/null -w '%{http_code}' "$APK_PUBLIC_URL/$APK_FILE" || true)
+            if [ "$status" = "200" ]; then
+              echo "✅ APK доступен: $APK_PUBLIC_URL/$APK_FILE"
+              exit 0
+            fi
+            echo "попытка $attempt: CDN вернул $status, ждём 10s"
+            sleep 10
+          done
+
+          echo "::error::APK не отдаётся по $APK_PUBLIC_URL/$APK_FILE (последний статус: $status)"
+          exit 1
 
       - name: Upload APK to GitHub Release
         uses: softprops/action-gh-release@v3
