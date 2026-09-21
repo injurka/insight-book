@@ -71,7 +71,31 @@ const SERVICE_NAME = 'insight-book-client'
 
 // Severity по OTel Log Data Model: INFO = 9, ERROR = 17
 const SEVERITY_INFO = 9
+const SEVERITY_WARN = 13
 const SEVERITY_ERROR = 17
+
+export type ApiTransport = 'browser' | 'tauri' | 'unknown'
+export type ApiErrorClassification = 'expected' | 'unexpected'
+
+/**
+ * Минимальный контекст API-телеметрии. `path` должен быть endpoint без тела
+ * запроса; сервис дополнительно удаляет query/hash и маскирует id-подобные
+ * сегменты перед отправкой в SigNoz.
+ */
+export interface ApiRequestTelemetry {
+  method?: string
+  path: string
+  status?: number
+  code?: string
+  feature?: string
+  transport?: ApiTransport
+  durationMs?: number
+}
+
+export interface ApiErrorTelemetry extends ApiRequestTelemetry {
+  error?: unknown
+  expected?: boolean
+}
 
 const tracer = trace.getTracer(SERVICE_NAME, packageJson.version)
 
@@ -80,6 +104,13 @@ let enabled = false
 
 let eventCounter: Counter | null = null
 let errorCounter: Counter | null = null
+let apiRequestCounter: Counter | null = null
+let apiErrorCounter: Counter | null = null
+let apiRequestDuration: Histogram | null = null
+let telemetryTracerProvider: WebTracerProvider | null = null
+let telemetryLoggerProvider: LoggerProvider | null = null
+let telemetryMetricReader: PeriodicExportingMetricReader | null = null
+const reportedApiErrors = new WeakSet<object>()
 
 /**
  * Оффлайн-гейт для OTLP-экспортёров.
@@ -196,6 +227,238 @@ function stringifyAttributes(attributes?: Record<string, unknown>): Record<strin
   return result
 }
 
+const SAFE_API_CODE_PATTERN = /^[\w.:-]{1,64}$/
+const SAFE_API_LABEL_PATTERN = /^[\w.:-]{1,64}$/
+
+function safeApiLabel(value: unknown, fallback: string): string {
+  if (typeof value !== 'string')
+    return fallback
+
+  const normalized = value.trim().replace(/[^\w.:-]+/g, '_').slice(0, 64)
+
+  return SAFE_API_LABEL_PATTERN.test(normalized) ? normalized : fallback
+}
+
+function normalizeApiPath(value: string): string {
+  const rawValue = value.trim()
+  if (!rawValue)
+    return '/unknown'
+
+  let pathname = rawValue.split(/[?#]/, 1)[0] || '/unknown'
+
+  try {
+    pathname = new URL(rawValue, API_URL || 'https://telemetry.invalid').pathname
+  }
+  catch {
+    // Relative malformed paths are still safe after query/hash removal below.
+  }
+
+  if (!pathname.startsWith('/'))
+    pathname = `/${pathname}`
+
+  const segments = pathname.split('/').map((segment) => {
+    // Query strings are removed above. Encoded values, UUIDs, numeric ids and
+    // long opaque tokens are path parameters rather than useful route labels.
+    if (!segment || segment.includes('%') || /^\d+$/.test(segment) || /^[0-9a-f]{8}-[0-9a-f-]{27,}$/i.test(segment) || /^[\w-]{24,}$/.test(segment))
+      return segment ? ':id' : segment
+
+    return segment.replace(/[^\w.:-]+/g, '_').slice(0, 64) || ':param'
+  })
+
+  return segments.join('/').slice(0, 240) || '/unknown'
+}
+
+function normalizeApiMethod(value?: string): string {
+  const method = safeApiLabel(value?.toUpperCase(), 'GET')
+
+  return method.length <= 16 ? method : 'OTHER'
+}
+
+function normalizeApiStatus(value?: number): number | undefined {
+  return typeof value === 'number' && Number.isInteger(value) && value >= 100 && value <= 599
+    ? value
+    : undefined
+}
+
+function normalizeApiDuration(value?: number): number | undefined {
+  return typeof value === 'number' && Number.isFinite(value) && value >= 0
+    ? Math.min(Math.round(value), 86_400_000)
+    : undefined
+}
+
+function extractErrorName(error: unknown): string {
+  if (error instanceof Error)
+    return safeApiLabel(error.name, 'Error')
+
+  if (typeof error === 'object' && error !== null && 'name' in error)
+    return safeApiLabel(String(error.name), 'Error')
+
+  return 'Error'
+}
+
+function extractErrorCode(error: unknown): string | undefined {
+  if (typeof error !== 'object' || error === null || !('code' in error))
+    return undefined
+
+  const code = String(error.code)
+
+  return SAFE_API_CODE_PATTERN.test(code) ? code : undefined
+}
+
+function isApiOfflineError(error: unknown): boolean {
+  if (typeof navigator !== 'undefined' && navigator.onLine === false)
+    return true
+
+  const name = extractErrorName(error).toLowerCase()
+  const code = extractErrorCode(error)?.toLowerCase()
+
+  return name === 'aborterror' || name === 'cancelederror' || code === 'abort_err' || code === 'offline'
+}
+
+function buildApiAttributes(context: ApiRequestTelemetry, classification?: ApiErrorClassification): Attributes {
+  const status = normalizeApiStatus(context.status)
+  const durationMs = normalizeApiDuration(context.durationMs)
+  const attributes: Attributes = {
+    'http.method': normalizeApiMethod(context.method),
+    'url.path': normalizeApiPath(context.path),
+    'api.transport': context.transport || 'unknown',
+  }
+
+  if (status !== undefined)
+    attributes['http.status_code'] = status
+  if (context.code && SAFE_API_CODE_PATTERN.test(context.code))
+    attributes['api.error_code'] = context.code
+  if (context.feature)
+    attributes['app.feature'] = safeApiLabel(context.feature, 'unknown')
+  if (durationMs !== undefined)
+    attributes['api.duration_ms'] = durationMs
+  if (classification)
+    attributes['api.error_classification'] = classification
+
+  return attributes
+}
+
+function classifyApiError(context: ApiErrorTelemetry): ApiErrorClassification {
+  if (context.expected !== undefined)
+    return context.expected ? 'expected' : 'unexpected'
+
+  if (normalizeApiStatus(context.status) === 401 || isApiOfflineError(context.error))
+    return 'expected'
+
+  return 'unexpected'
+}
+
+function toSafeApiException(error: unknown): Error {
+  const safeError = new Error('API request failed')
+  safeError.name = extractErrorName(error)
+
+  return safeError
+}
+
+function apiMetricAttributes(context: ApiRequestTelemetry): Record<string, string> {
+  const attributes: Record<string, string> = {
+    method: normalizeApiMethod(context.method),
+    transport: context.transport || 'unknown',
+  }
+  const status = normalizeApiStatus(context.status)
+
+  if (status !== undefined)
+    attributes.status_code = String(status)
+  if (context.feature)
+    attributes.feature = safeApiLabel(context.feature, 'unknown')
+
+  return attributes
+}
+
+function inferApiFeature(path: string): string | undefined {
+  const segments = normalizeApiPath(path).split('/').filter(Boolean)
+
+  return segments[0] === 'api' ? segments[1] : segments[0]
+}
+
+function annotateApiErrorSpan(
+  activeSpan: Span | undefined,
+  attributes: Attributes,
+  classification: ApiErrorClassification,
+  safeError: Error,
+): void {
+  if (!activeSpan)
+    return
+
+  for (const [key, value] of Object.entries(attributes)) {
+    if (value !== undefined)
+      activeSpan.setAttribute(key, value)
+  }
+
+  if (classification === 'unexpected') {
+    activeSpan.recordException(safeError)
+    activeSpan.setStatus({ code: SpanStatusCode.ERROR, message: 'API request failed' })
+  }
+}
+
+function emitApiErrorLog(attributes: Attributes, classification: ApiErrorClassification): void {
+  otelLogger.emit({
+    body: 'api.request.error',
+    severityNumber: classification === 'unexpected' ? SEVERITY_ERROR : SEVERITY_WARN,
+    severityText: classification === 'unexpected' ? 'ERROR' : 'WARN',
+    attributes,
+  })
+}
+
+/** Records one completed request without exposing URLs, query values or bodies. */
+export function recordApiRequest(context: ApiRequestTelemetry): void {
+  if (!enabled)
+    return
+
+  const enrichedContext = context.feature
+    ? context
+    : { ...context, feature: inferApiFeature(context.path) }
+  const attributes = buildApiAttributes(enrichedContext)
+  apiRequestCounter?.add(1, apiMetricAttributes(enrichedContext))
+
+  if (enrichedContext.durationMs !== undefined)
+    apiRequestDuration?.record(normalizeApiDuration(enrichedContext.durationMs) || 0, apiMetricAttributes(enrichedContext))
+
+  const activeSpan = trace.getActiveSpan()
+  if (activeSpan) {
+    for (const [key, value] of Object.entries(attributes)) {
+      if (value !== undefined)
+        activeSpan.setAttribute(key, value)
+    }
+  }
+}
+
+/** Records a structured API failure while keeping expected failures visible as warnings. */
+export function recordApiError(context: ApiErrorTelemetry): void {
+  if (!enabled)
+    return
+
+  const enrichedContext = context.feature
+    ? context
+    : { ...context, feature: inferApiFeature(context.path) }
+  const classification = classifyApiError(enrichedContext)
+  const attributes = {
+    ...buildApiAttributes(enrichedContext, classification),
+    'error.type': extractErrorName(context.error),
+    ...userAttributes,
+  }
+  const safeError = toSafeApiException(context.error)
+  if (typeof context.error === 'object' && context.error !== null)
+    reportedApiErrors.add(context.error)
+  annotateApiErrorSpan(
+    trace.getActiveSpan(),
+    attributes,
+    classification,
+    safeError,
+  )
+  emitApiErrorLog(attributes, classification)
+  apiErrorCounter?.add(1, {
+    classification,
+    ...apiMetricAttributes(enrichedContext),
+    ...userAttributes,
+  })
+}
+
 /** Наблюдает Server-Timing через PerformanceObserver и отправляет длительности как OTLP-метрики */
 export function setupServerTimingObserver(serverTimingHistogram: Histogram) {
   if (!('PerformanceObserver' in window))
@@ -308,6 +571,20 @@ function setupWebVitals(vitals: WebVitalsInstruments) {
   }
 }
 
+function flushTelemetry() {
+  const flushes: Promise<void>[] = []
+
+  if (telemetryTracerProvider)
+    flushes.push(telemetryTracerProvider.forceFlush())
+  if (telemetryLoggerProvider)
+    flushes.push(telemetryLoggerProvider.forceFlush())
+  if (telemetryMetricReader)
+    flushes.push(telemetryMetricReader.forceFlush())
+
+  if (flushes.length > 0)
+    void Promise.all(flushes).catch(() => undefined)
+}
+
 /**
  * Инициализирует OpenTelemetry Web SDK (нативный стек SigNoz):
  * - WebTracerProvider + ZoneContextManager → спаны страниц, fetch/XHR, кликов
@@ -342,6 +619,7 @@ export function initMonitoring() {
   tracerProvider.register({
     contextManager: new ZoneContextManager(),
   })
+  telemetryTracerProvider = tracerProvider
 
   // --- Logs ---
   const loggerProvider = new LoggerProvider({
@@ -355,12 +633,14 @@ export function initMonitoring() {
   })
   logs.setGlobalLoggerProvider(loggerProvider)
   otelLogger = logs.getLogger(SERVICE_NAME)
+  telemetryLoggerProvider = loggerProvider
 
   // --- Metrics ---
   const metricReader = new PeriodicExportingMetricReader({
     exporter: new OTLPMetricExporter({ url: otlpSignalUrl('metrics') }),
     exportIntervalMillis: 5_000,
   })
+  telemetryMetricReader = metricReader
   const meterProvider = new MeterProvider({ resource, readers: [metricReader] })
   const meter = meterProvider.getMeter(SERVICE_NAME, packageJson.version)
 
@@ -372,6 +652,12 @@ export function initMonitoring() {
   })
   eventCounter = meter.createCounter('app.events', { description: 'Пользовательские события приложения' })
   errorCounter = meter.createCounter('app.errors', { description: 'Перехваченные ошибки фронтенда' })
+  apiRequestCounter = meter.createCounter('app.api.requests', { description: 'Завершённые API-запросы' })
+  apiErrorCounter = meter.createCounter('app.api.errors', { description: 'Ошибки API с классификацией expected/unexpected' })
+  apiRequestDuration = meter.createHistogram('app.api.duration', {
+    description: 'Длительность API-запросов',
+    unit: 'ms',
+  })
 
   const webVitalsMeter = meterProvider.getMeter('web-vitals')
   setupWebVitals({
@@ -385,8 +671,9 @@ export function initMonitoring() {
 
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'hidden')
-      metricReader.forceFlush()
+      flushTelemetry()
   })
+  window.addEventListener('pagehide', flushTelemetry)
 
   const apiTracePattern = API_URL
     ? new RegExp(`^${API_URL.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`)
@@ -484,6 +771,9 @@ export function trackEvent(name: TelemetryEventName, attributes?: Record<string,
 
 export function trackError(error: Error | unknown, context?: Record<string, unknown>) {
   if (!enabled)
+    return
+
+  if (typeof error === 'object' && error !== null && reportedApiErrors.has(error))
     return
 
   const err = error instanceof Error

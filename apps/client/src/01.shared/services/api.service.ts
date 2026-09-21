@@ -25,18 +25,39 @@ import { fetch as tauriFetch } from '@tauri-apps/plugin-http'
 import { ofetch } from 'ofetch'
 import { API_URL, isTauri } from '~/01.shared/lib/env'
 import { getMediaUrl } from '~/01.shared/lib/helpers'
-
+import { recordApiError } from '~/01.shared/services/monitoring.service'
 import { i18n } from '../../00.plugins/i18n'
+
+import { createApiFetch } from './api-transport.service'
 
 declare module 'ofetch' {
   interface FetchOptions {
     withLlm?: boolean
     silentErrors?: boolean
+    telemetryExpected?: boolean
+    telemetryFeature?: string
+    telemetryStartedAt?: number
   }
 }
 
 export const BASE_API_URL = API_URL
 const REQUEST_TIMEOUT_MS = 20_000
+let apiFetchImplementation: typeof globalThis.fetch | null = null
+
+function requestDuration(startedAt?: number): number | undefined {
+  if (startedAt === undefined)
+    return undefined
+
+  const now = typeof performance !== 'undefined' ? performance.now() : Date.now()
+
+  return Math.max(0, now - startedAt)
+}
+
+function fetchWithTelemetry(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
+  apiFetchImplementation ??= createApiFetch()
+
+  return apiFetchImplementation(input, init)
+}
 
 function getDiagnosticUrl(requestValue: RequestInfo | URL, baseUrl?: string): string {
   const rawUrl = requestValue instanceof Request ? requestValue.url : String(requestValue)
@@ -94,6 +115,7 @@ export const request = ofetch.create({
   timeout: REQUEST_TIMEOUT_MS,
   async onRequest({ options }) {
     options.headers = new Headers(options.headers || {})
+    options.telemetryStartedAt = typeof performance !== 'undefined' ? performance.now() : Date.now()
 
     const token = providers.getToken()
     if (token)
@@ -150,6 +172,18 @@ export const request = ofetch.create({
     if (data?.details)
       customError.details = data.details
 
+    recordApiError({
+      method: options.method,
+      path: getDiagnosticUrl(failedRequest, options.baseURL),
+      status: response.status,
+      code: typeof errCode === 'string' ? errCode : undefined,
+      feature: options.telemetryFeature,
+      transport: isTauri ? 'tauri' : 'browser',
+      durationMs: requestDuration(options.telemetryStartedAt),
+      error: customError,
+      expected: options.telemetryExpected,
+    })
+
     throw customError
   },
   // eslint-disable-next-line complexity
@@ -185,16 +219,21 @@ export const request = ofetch.create({
     if (isAbort)
       finalError.name = 'AbortError'
 
+    recordApiError({
+      method: options.method,
+      path: getDiagnosticUrl(failedRequest, options.baseURL),
+      feature: options.telemetryFeature,
+      transport: isTauri ? 'tauri' : 'browser',
+      durationMs: requestDuration(options.telemetryStartedAt),
+      error: finalError,
+      expected: options.telemetryExpected ?? (isAbort || isOffline || isNetworkError),
+    })
+
     throw finalError
   },
 }, {
   // Используем нативный fetch плагина HTTP для Tauri, если находимся в окружении десктопного/мобильного приложения
-  fetch: ((input: RequestInfo | URL, init?: RequestInit) => {
-    if (isTauri)
-      return (tauriFetch as unknown as typeof globalThis.fetch)(input, init)
-
-    return globalThis.fetch(input, init)
-  }) as unknown as typeof globalThis.fetch,
+  fetch: fetchWithTelemetry as typeof globalThis.fetch,
 })
 
 export const api = {
