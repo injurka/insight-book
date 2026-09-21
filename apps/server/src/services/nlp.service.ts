@@ -11,21 +11,7 @@ import nodejieba from 'nodejieba'
 import { db } from '../db'
 import * as schema from '../db/schema'
 import { logger } from '../utils/logger'
-
-// Умное разбиение на предложения через встроенный Intl.Segmenter
-function splitIntoSentences(text: string, language: string): string[] {
-  try {
-    const segmenter = new Intl.Segmenter(language, { granularity: 'sentence' })
-    const sentences: string[] = []
-    for (const { segment } of segmenter.segment(text)) {
-      sentences.push(segment)
-    }
-    return sentences
-  }
-  catch {
-    return text.split(/([.。！？…!?]+|\n{2,})/g).filter(Boolean)
-  }
-}
+import { splitIntoSentences } from './sentence-splitter'
 
 class ChineseTokenizer implements LanguageTokenizer {
   tokenize(text: string): TokenizedWord[] {
