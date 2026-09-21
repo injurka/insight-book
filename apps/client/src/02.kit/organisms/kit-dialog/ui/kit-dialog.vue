@@ -342,7 +342,6 @@ onUnmounted(() => {
   backdrop-filter: blur(10px) saturate(90%);
   position: fixed;
   inset: 0;
-  isolation: isolate;
   .dialog-enter-active & {
     animation: overlay-show 200ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
   }
@@ -589,17 +588,25 @@ onUnmounted(() => {
 @keyframes overlay-show {
   from {
     opacity: 0;
+    -webkit-backdrop-filter: blur(0) saturate(100%);
+    backdrop-filter: blur(0) saturate(100%);
   }
   to {
     opacity: 1;
+    -webkit-backdrop-filter: blur(10px) saturate(90%);
+    backdrop-filter: blur(10px) saturate(90%);
   }
 }
 @keyframes overlay-hide {
   from {
     opacity: 1;
+    -webkit-backdrop-filter: blur(10px) saturate(90%);
+    backdrop-filter: blur(10px) saturate(90%);
   }
   to {
     opacity: 0;
+    -webkit-backdrop-filter: blur(0) saturate(100%);
+    backdrop-filter: blur(0) saturate(100%);
   }
 }
 @keyframes content-warp-in {
