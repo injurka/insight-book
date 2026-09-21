@@ -392,6 +392,22 @@ jobs:
       - name: Rename APK
         run: mv ${{ steps.sign_app.outputs.signedReleaseFile }} insight-book-${{ github.ref_name }}-android.apk
 
+      - name: Upload APK to CDN
+        shell: bash
+        env:
+          APK_FILE: insight-book-${{ github.ref_name }}-android.apk
+          BUNNY_STORAGE_ZONE: ${{ secrets.BUNNY_STORAGE_ZONE || secrets.S3_BUCKET }}
+          BUNNY_STORAGE_PASSWORD: ${{ secrets.BUNNY_STORAGE_PASSWORD || secrets.S3_SECRET_KEY }}
+        run: |
+          test -n "$BUNNY_STORAGE_ZONE"
+          test -n "$BUNNY_STORAGE_PASSWORD"
+          curl --fail-with-body --retry 3 --retry-all-errors \
+            --request PUT \
+            --header "AccessKey: $BUNNY_STORAGE_PASSWORD" \
+            --header "Content-Type: application/vnd.android.package-archive" \
+            --upload-file "$APK_FILE" \
+            "https://storage.bunnycdn.com/$BUNNY_STORAGE_ZONE/releases/$APK_FILE"
+
       - name: Upload APK to GitHub Release
         uses: softprops/action-gh-release@v3
         with:

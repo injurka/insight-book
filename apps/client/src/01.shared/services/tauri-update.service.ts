@@ -9,6 +9,7 @@ import { usePwaStore } from '~/01.shared/store/pwa.store'
 import { useToastStore } from '~/01.shared/store/toast.store'
 
 const GITHUB_REPO = 'injurka/insight-book'
+const RELEASE_DOWNLOAD_BASE_URL = 'https://cdn.insight-book.ru/releases'
 const UPDATE_REQUEST_TIMEOUT_MS = 15_000
 
 const ReleaseSchema = z.object({
@@ -77,7 +78,9 @@ export async function initializeTauriUpdater(pinia: Pinia): Promise<void> {
       pwaStore.setNeedRefresh(true)
       pwaStore.setUpdateFunction(async () => {
         const apkAsset = release.assets?.find((a: { name: string }) => a.name.endsWith('.apk'))
-        const urlToOpen = apkAsset ? apkAsset.browser_download_url : release.html_url
+        const urlToOpen = apkAsset
+          ? `${RELEASE_DOWNLOAD_BASE_URL}/${encodeURIComponent(apkAsset.name)}`
+          : release.html_url
 
         await openUrl(urlToOpen)
 
