@@ -90,7 +90,7 @@ async function bootstrap() {
 
 /** Настройка Eruda (девтулы для мобильного приложения) */
 function setupMobileDevtools(settingsStore: ReturnType<typeof useGlobalSettingsStore>) {
-  if (!import.meta.env.DEV || !isMobileApp)
+  if (!isMobileApp)
     return
 
   void import('~/01.shared/services/eruda.service').then(({ setErudaEnabled }) => {

@@ -1,13 +1,60 @@
 <script setup lang="ts">
 import { Icon } from '@iconify/vue'
+import { getActivePinia } from 'pinia'
+import { ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
+import { useToast } from '~/01.shared/composables/use-toast'
 import { AppRoutePaths } from '~/01.shared/constants/routes'
+import { isMobileApp } from '~/01.shared/lib/env'
+import { checkForTauriUpdate } from '~/01.shared/services/tauri-update.service'
+import { KitBtn } from '~/02.kit/atoms/kit-btn/ui'
 
 const router = useRouter()
+const toast = useToast()
+const { t } = useI18n()
+const isCheckingForUpdates = ref(false)
+
+async function checkForUpdates() {
+  const pinia = getActivePinia()
+  if (!pinia)
+    return
+
+  isCheckingForUpdates.value = true
+  try {
+    const updateAvailable = await checkForTauriUpdate(pinia, true)
+    if (!updateAvailable)
+      toast.success(t('settings.appUpToDate'))
+  }
+  catch (error) {
+    console.error('Manual update check failed:', error)
+    toast.error(t('settings.updateCheckFailed'))
+  }
+  finally {
+    isCheckingForUpdates.value = false
+  }
+}
 </script>
 
 <template>
   <div class="settings-panel">
+    <div v-if="isMobileApp" class="panel-section update-section">
+      <h2 class="section-title">
+        {{ t('settings.appUpdatesTitle') }}
+      </h2>
+      <p class="section-description">
+        {{ t('settings.appUpdatesDescription') }}
+      </p>
+      <KitBtn
+        prepend-icon="mdi:update"
+        variant="tonal"
+        :loading="isCheckingForUpdates"
+        @click="checkForUpdates"
+      >
+        {{ t('settings.checkForUpdates') }}
+      </KitBtn>
+    </div>
+
     <div class="panel-section">
       <h2 class="section-title">
         Правовая информация
@@ -60,6 +107,16 @@ const router = useRouter()
   margin: 0;
   color: var(--fg-primary-color);
   font-weight: 600;
+}
+
+.update-section {
+  align-items: flex-start;
+}
+
+.section-description {
+  margin: 0;
+  color: var(--fg-secondary-color);
+  line-height: 1.5;
 }
 
 .link-list {

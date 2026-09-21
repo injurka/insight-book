@@ -6,6 +6,7 @@ interface ErudaInstance {
 }
 
 let erudaInstance: ErudaInstance | null = null
+let stateGeneration = 0
 
 /**
  * Включает или выключает eruda (отладочную консоль) внутри Tauri webview.
@@ -16,8 +17,14 @@ export async function setErudaEnabled(enabled: boolean): Promise<void> {
   if (!isTauri)
     return
 
+  const generation = ++stateGeneration
+
   if (enabled && !erudaInstance) {
     const { default: eruda } = await import('eruda')
+
+    if (generation !== stateGeneration)
+      return
+
     erudaInstance = eruda
     erudaInstance.init()
   }
