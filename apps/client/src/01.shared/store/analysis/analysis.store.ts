@@ -285,6 +285,8 @@ export const useAnalysisStore = defineStore('analysis', () => {
     for (let j = 0; j < llmChunk.length; j += batchSize)
       batches.push(llmChunk.slice(j, j + batchSize))
 
+    let phaseFailed = false
+
     await Promise.all(batches.map(async (batch) => {
       const itemsToAnalyze = batch.map(t => ({
         id: t.id,
@@ -309,15 +311,35 @@ export const useAnalysisStore = defineStore('analysis', () => {
             taskQueue.value = taskQueue.value.filter(t => t.id !== task.id)
           }
         }
+
+        const unresolvedTasks = batch.filter(task => taskQueue.value.some(queuedTask => queuedTask.id === task.id))
+        for (const task of unresolvedTasks) {
+          handleTaskFailure(task)
+          taskQueue.value = taskQueue.value.filter(queuedTask => queuedTask.id !== task.id)
+        }
       }
       catch (e) {
         const err = e as Error
-        if (err.name !== 'AbortError')
+        if (err.name !== 'AbortError') {
           console.error('Analyze batch error:', err)
+          phaseFailed = true
+          for (const task of batch)
+            handleTaskFailure(task)
+        }
+
         taskQueue.value = taskQueue.value.filter(t => !batch.some(it => it.id === t.id))
-        queueDone.value += batch.length
       }
     }))
+
+    // Если LLM недоступен, не ждём тот же таймаут для каждой следующей порции.
+    // Завершаем оставшиеся задачи этой страницы как ошибочные за один проход.
+    if (phaseFailed && !signal.aborted) {
+      const remainingAnalysisTasks = taskQueue.value.filter(task => task.type === 'sentence' || task.type === 'word')
+      for (const task of remainingAnalysisTasks)
+        handleTaskFailure(task)
+      const remainingIds = new Set(remainingAnalysisTasks.map(task => task.id))
+      taskQueue.value = taskQueue.value.filter(task => !remainingIds.has(task.id))
+    }
 
     if (!signal.aborted)
       checkPageAnalysisCompletion()
@@ -345,17 +367,14 @@ export const useAnalysisStore = defineStore('analysis', () => {
         )
         await repos.analysis.saveLocalTts(cacheKey, res.audioBase64)
       }
-
-      if (ttsTask.type === 'tts_sentence')
-        pageAnalysisTtsCurrent.value++
-      if (ttsTask.type === 'tts_word')
-        pageAnalysisTtsCurrent.value++
     }
     catch (e: unknown) {
       if ((e as Error).name !== 'AbortError')
         console.error('TTS Task Error:', e)
     }
     finally {
+      if (!signal.aborted)
+        pageAnalysisTtsCurrent.value++
       taskQueue.value = taskQueue.value.filter(t => t.id !== ttsTask.id)
       queueDone.value += 1
       if (!signal.aborted)
@@ -429,6 +448,14 @@ export const useAnalysisStore = defineStore('analysis', () => {
 
     if (task.type === 'word')
       pageAnalysisWordsCurrent.value++
+  }
+
+  function handleTaskFailure(task: AnalysisTask) {
+    if (task.type === 'sentence')
+      pageAnalysisSentencesCurrent.value++
+    if (task.type === 'word')
+      pageAnalysisWordsCurrent.value++
+    queueDone.value++
   }
 
   function getSentenceCachedAnalysis(sentence: string) {

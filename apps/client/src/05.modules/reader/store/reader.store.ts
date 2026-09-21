@@ -39,6 +39,7 @@ export const useReaderStore = defineStore('reader', () => {
 
   let lastTocBookId = 0
   let loadPageSeq = 0
+  let autoAnalysisTimer: ReturnType<typeof setTimeout> | null = null
 
   // Query state refs
   const tocBookId = ref<number | null>(null)
@@ -126,8 +127,26 @@ export const useReaderStore = defineStore('reader', () => {
   }
 
   function triggerAutoAnalysis(settingsStore: ReturnType<typeof useGlobalSettingsStore>, analysisStore: ReturnType<typeof useAnalysisStore>) {
+    if (autoAnalysisTimer) {
+      clearTimeout(autoAnalysisTimer)
+      autoAnalysisTimer = null
+    }
+
     if (settingsStore.autoAnalyzePage && !analysisStore.isManualPageAnalysisActive) {
-      setTimeout(() => {
+      const scheduledBookId = currentBook.value?.id
+      const scheduledPageNum = currentPage.value?.pageNum
+
+      autoAnalysisTimer = setTimeout(() => {
+        autoAnalysisTimer = null
+        if (
+          !settingsStore.autoAnalyzePage
+          || analysisStore.isManualPageAnalysisActive
+          || currentBook.value?.id !== scheduledBookId
+          || currentPage.value?.pageNum !== scheduledPageNum
+        ) {
+          return
+        }
+
         analysisStore.analyzeWholePage({
           sentences: settingsStore.autoAnalyzeSentences,
           words: settingsStore.autoAnalyzeWords,
@@ -159,6 +178,11 @@ export const useReaderStore = defineStore('reader', () => {
   }
 
   function resetAnalysisState(analysisStore: ReturnType<typeof useAnalysisStore>) {
+    if (autoAnalysisTimer) {
+      clearTimeout(autoAnalysisTimer)
+      autoAnalysisTimer = null
+    }
+
     analysisStore.cancelPageAnalysis()
     analysisStore.closePopover()
     analysisStore.closeSelectionTooltip()

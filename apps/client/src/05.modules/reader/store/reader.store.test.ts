@@ -219,6 +219,29 @@ describe('readerStore - loadPage', () => {
     }
   })
 
+  it('cancels delayed auto analysis when another page is loaded', async () => {
+    vi.useFakeTimers()
+    try {
+      const settingsStore = useGlobalSettingsStore()
+      settingsStore.autoAnalyzePage = true
+
+      mocks.bookRepo.getPage.mockImplementation(async (_bookId: number, pageNum: number) => makePage({ pageNum }))
+
+      const store = useReaderStore()
+      await store.loadPage(1, 2)
+      await store.loadPage(1, 3)
+
+      mocks.analysisStore.analyzeWholePage.mockClear()
+      await vi.advanceTimersByTimeAsync(1000)
+
+      expect(mocks.analysisStore.analyzeWholePage).toHaveBeenCalledTimes(1)
+      expect(store.currentPage?.pageNum).toBe(3)
+    }
+    finally {
+      vi.useRealTimers()
+    }
+  })
+
   it('does not start auto analysis when autoAnalyzePage is disabled', async () => {
     vi.useFakeTimers()
     try {
