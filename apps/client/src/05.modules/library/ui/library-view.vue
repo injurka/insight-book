@@ -9,6 +9,7 @@ import { AppRoutePaths } from '~/01.shared/constants/routes'
 import { BOOK_TAGS } from '~/01.shared/constants/tags'
 import { useAuthStore } from '~/01.shared/store/auth.store'
 import { useGlobalSettingsStore } from '~/01.shared/store/settings.store'
+import { KitBtn } from '~/02.kit/atoms/kit-btn/ui'
 import { KitHoverRevealBg } from '~/02.kit/atoms/kit-hover-reveal-bg/ui'
 import { KitPrompt } from '~/02.kit/organisms/kit-prompt/ui'
 import { useLibraryDisplay } from '../composables/use-library-display'
@@ -260,9 +261,9 @@ onUnmounted(() => {
           <div v-else-if="store.books.length === 0 && store.isInitialized && store.booksError" class="empty-state error-state">
             <h2>{{ t('library.loadErrorTitle') }}</h2>
             <p>{{ t('library.loadErrorDesc') }}</p>
-            <button class="retry-btn" type="button" @click="store.fetchBooks()">
+            <KitBtn class="retry-btn" icon="mdi:refresh" @click="store.fetchBooks()">
               {{ t('network.retryBtn') }}
-            </button>
+            </KitBtn>
           </div>
 
           <div v-else-if="store.books.length === 0 && store.isInitialized" class="empty-state">
@@ -390,18 +391,6 @@ onUnmounted(() => {
 
 .retry-btn {
   margin-top: 20px;
-  padding: 10px 24px;
-  border: none;
-  border-radius: 10px;
-  background-color: var(--bg-action-color);
-  color: var(--fg-inverted-color);
-  font-size: 0.95rem;
-  cursor: pointer;
-  transition: background-color 0.2s ease;
-
-  &:hover {
-    background-color: var(--bg-action-hover-color);
-  }
 }
 
 .library-footer {

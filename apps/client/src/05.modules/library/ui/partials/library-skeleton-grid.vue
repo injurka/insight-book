@@ -20,10 +20,33 @@ withDefaults(defineProps<Props>(), {
     </div>
     <div class="books-grid">
       <div v-for="i in count" :key="i" class="book-card-skeleton">
-        <div class="cover-skeleton" />
+        <div class="cover-skeleton">
+          <KitSkeleton width="100%" height="100%" border-radius="0" />
+          <KitSkeleton
+            class="language-skeleton"
+            width="28px"
+            height="18px"
+            border-radius="4px"
+          />
+        </div>
         <div class="info-skeleton">
-          <KitSkeleton width="80%" height="18px" />
-          <KitSkeleton width="50%" height="14px" />
+          <div class="title-row-skeleton">
+            <div class="title-lines-skeleton">
+              <KitSkeleton width="88%" height="18px" />
+              <KitSkeleton width="62%" height="18px" />
+            </div>
+            <KitSkeleton
+              class="action-skeleton"
+              width="28px"
+              height="28px"
+              border-radius="6px"
+            />
+          </div>
+          <KitSkeleton class="author-skeleton" width="48%" height="14px" />
+          <div class="progress-skeleton">
+            <KitSkeleton width="42%" height="13px" />
+            <KitSkeleton width="100%" height="4px" border-radius="2px" />
+          </div>
         </div>
       </div>
     </div>
@@ -34,6 +57,7 @@ withDefaults(defineProps<Props>(), {
 .skeleton-section {
   display: flex;
   flex-direction: column;
+  padding-bottom: 24px;
 
   .title-skeleton {
     display: flex;
@@ -50,7 +74,6 @@ withDefaults(defineProps<Props>(), {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
   gap: 24px;
-  padding: 4px 0;
 
   @include media-down(sm) {
     grid-template-columns: 1fr;
@@ -59,39 +82,107 @@ withDefaults(defineProps<Props>(), {
 }
 
 .book-card-skeleton {
+  display: flex;
+  flex-direction: column;
   background-color: var(--bg-secondary-color);
   border-radius: 12px;
   overflow: hidden;
   border: 1px solid var(--border-secondary-color);
 
   .cover-skeleton {
+    position: relative;
     width: 100%;
     aspect-ratio: 2 / 3;
-    background-color: var(--bg-tertiary-color);
+    overflow: hidden;
+    border-bottom: 1px solid var(--border-secondary-color);
+    border-radius: 12px;
+
+    .language-skeleton {
+      position: absolute;
+      top: 8px;
+      left: 8px;
+    }
   }
+
   .info-skeleton {
     padding: 16px;
+    flex-grow: 1;
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    min-height: 128px;
+  }
+
+  .title-row-skeleton {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 8px;
+  }
+
+  .title-lines-skeleton {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: 5px;
+    padding-top: 2px;
+  }
+
+  .action-skeleton {
+    flex-shrink: 0;
+    margin: -4px -8px 0 0;
+  }
+
+  .author-skeleton {
+    margin-top: 8px;
+  }
+
+  .progress-skeleton {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: auto;
   }
 
   @include media-down(sm) {
-    display: flex;
     flex-direction: row;
-    height: 120px;
     padding: 12px;
     align-items: center;
 
     .cover-skeleton {
-      width: 72px;
-      height: 108px;
+      width: 80px;
+      height: 120px;
+      aspect-ratio: auto;
       flex-shrink: 0;
+      border-bottom: none;
       border-radius: 6px;
+
+      .language-skeleton {
+        top: 4px;
+        left: 4px;
+        width: 24px !important;
+        height: 16px !important;
+      }
     }
+
     .info-skeleton {
       flex-grow: 1;
+      align-self: stretch;
       justify-content: center;
+      min-width: 0;
+      min-height: 0;
+      padding: 0 0 0 16px;
+    }
+
+    .title-lines-skeleton {
+      gap: 4px;
+    }
+
+    .author-skeleton {
+      margin-top: 7px;
+    }
+
+    .progress-skeleton {
+      margin-top: auto;
     }
   }
 }
