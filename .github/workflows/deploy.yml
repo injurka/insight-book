@@ -396,7 +396,6 @@ jobs:
         shell: bash
         env:
           APK_FILE: insight-book-${{ github.ref_name }}-android.apk
-          # Медиа-зона, которую раздаёт cdn.insight-book.ru — именно этот хост зашит в APK.
           BUNNY_MEDIA_STORAGE_ZONE: ${{ secrets.BUNNY_MEDIA_STORAGE_ZONE }}
           BUNNY_MEDIA_STORAGE_PASSWORD: ${{ secrets.BUNNY_MEDIA_STORAGE_PASSWORD }}
           APK_PUBLIC_URL: https://cdn.insight-book.ru/releases

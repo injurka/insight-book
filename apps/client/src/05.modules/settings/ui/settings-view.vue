@@ -112,7 +112,6 @@ onMounted(() => {
           <div class="tab-pane-content storage-tab-content">
             <SettingsStoragePanel />
             <SettingsBooksCachePanel />
-            <div style="height: 32px" />
             <SettingsInfoPanel />
           </div>
         </template>
@@ -179,16 +178,7 @@ onMounted(() => {
 }
 
 .storage-tab-content {
-  :deep(.section-title) {
-    // Only show secondary section titles in storage tab
-    &:not(:first-child) {
-      display: block;
-      margin-top: 16px;
-      margin-bottom: 16px;
-      font-size: 1.2rem;
-      color: var(--fg-secondary-color);
-    }
-  }
+  gap: 28px;
 }
 
 @keyframes fade-in {

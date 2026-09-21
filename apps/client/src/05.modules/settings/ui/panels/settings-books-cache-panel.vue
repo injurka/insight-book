@@ -5,14 +5,15 @@ import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useCacheStore } from '~/01.shared/store/cache.store'
 import { KitBtn } from '~/02.kit/atoms/kit-btn/ui'
+import { KitInput } from '~/02.kit/atoms/kit-input/ui'
 import { KitSkeleton } from '~/02.kit/atoms/kit-skeleton/ui'
-import { KitTooltip } from '~/02.kit/molecules/kit-tooltip/ui'
 import { KitPrompt } from '~/02.kit/organisms/kit-prompt/ui'
-import { formatBytes, formatPagesList } from '../../lib/formatters'
+import BookCacheItem from './storage/book-cache-item.vue'
 
 const { t } = useI18n()
 const cacheStore = useCacheStore()
 
+const searchQuery = ref('')
 const pageSize = 5
 const currentPage = ref(1)
 
@@ -26,15 +27,28 @@ const activeBookStats = computed(() => {
       res.push({ id, ...book })
   }
 
-  return res
+  return res.sort((a, b) => b.sizeBytes - a.sizeBytes)
+})
+
+const filteredBookStats = computed(() => {
+  const query = searchQuery.value.trim().toLowerCase()
+  if (!query)
+    return activeBookStats.value
+
+  return activeBookStats.value.filter(book =>
+    book.title.toLowerCase().includes(query))
 })
 
 const displayedBookStats = computed(() => {
-  return activeBookStats.value.slice(0, currentPage.value * pageSize)
+  return filteredBookStats.value.slice(0, currentPage.value * pageSize)
 })
 
 const hasMoreBooks = computed(() => {
-  return displayedBookStats.value.length < activeBookStats.value.length
+  return displayedBookStats.value.length < filteredBookStats.value.length
+})
+
+const remainingBooksCount = computed(() => {
+  return filteredBookStats.value.length - displayedBookStats.value.length
 })
 
 function loadMore() {
@@ -43,149 +57,106 @@ function loadMore() {
 
 const confirmVisible = ref(false)
 const confirmBookId = ref<number | null>(null)
+const deletingBookId = ref<number | null>(null)
 
 function confirmClearCache(bookId: string) {
   confirmBookId.value = Number(bookId)
   confirmVisible.value = true
 }
 
-function handleConfirmClear() {
+async function handleConfirmClear() {
   if (confirmBookId.value !== null) {
-    cacheStore.clearBookCache(confirmBookId.value)
+    const id = confirmBookId.value
+    deletingBookId.value = id
     confirmBookId.value = null
+    try {
+      await cacheStore.clearBookCache(id)
+    }
+    finally {
+      deletingBookId.value = null
+    }
   }
 }
 </script>
 
 <template>
-  <h2 class="section-title">
-    {{ t('settings.savedBooksData') }}
-  </h2>
-  <div class="books-list">
-    <TransitionGroup name="list" appear>
+  <div class="settings-books-cache-panel">
+    <div class="panel-header">
+      <div class="header-left">
+        <h3 class="panel-title">
+          {{ t('settings.savedBooksData') }}
+        </h3>
+        <span v-if="activeBookStats.length > 0" class="count-badge">
+          {{ activeBookStats.length }}
+        </span>
+      </div>
+
+      <div v-if="activeBookStats.length > 2" class="header-search">
+        <KitInput
+          v-model="searchQuery"
+          :placeholder="t('settings.searchBooksPlaceholder', 'Поиск по книгам...')"
+          icon="mdi:magnify"
+          size="sm"
+          :clearable="true"
+        />
+      </div>
+    </div>
+
+    <div class="books-list">
       <template v-if="cacheStore.isLoading && !cacheStore.stats">
-        <div v-for="i in 2" :key="`mock-${i}`" class="settings-card book-cache-card">
-          <div class="book-card-header">
-            <div class="title-section">
-              <div class="icon-wrapper">
-                <Icon icon="mdi:book-open-variant" />
-              </div>
-              <KitSkeleton width="200px" height="24px" color="var(--bg-tertiary-color)" />
-            </div>
-            <KitBtn
-              icon="mdi:delete-outline"
-              variant="outlined"
-              class="delete-btn"
-              :disabled="true"
+        <div v-for="i in 2" :key="`mock-${i}`" class="book-skeleton-item">
+          <div class="skeleton-icon">
+            <KitSkeleton
+              width="40px"
+              height="40px"
+              border-radius="10px"
+              color="var(--bg-tertiary-color)"
             />
           </div>
-          <div class="book-card-body">
-            <div class="stats-badges">
+          <div class="skeleton-content">
+            <KitSkeleton
+              width="220px"
+              height="20px"
+              border-radius="4px"
+              color="var(--bg-tertiary-color)"
+            />
+            <div class="skeleton-badges">
               <KitSkeleton
-                width="100px"
-                height="32px"
-                border-radius="8px"
+                width="80px"
+                height="24px"
+                border-radius="6px"
                 color="var(--bg-tertiary-color)"
               />
               <KitSkeleton
-                width="140px"
-                height="32px"
-                border-radius="8px"
+                width="120px"
+                height="24px"
+                border-radius="6px"
                 color="var(--bg-tertiary-color)"
               />
-              <KitSkeleton
-                width="160px"
-                height="32px"
-                border-radius="8px"
-                color="var(--bg-tertiary-color)"
-              />
-            </div>
-            <div class="cache-progress-section">
-              <div class="progress-bar-wrap">
-                <KitSkeleton width="100%" height="100%" color="var(--bg-tertiary-color)" />
-              </div>
-              <div class="progress-footer">
-                <KitSkeleton width="180px" height="16px" color="var(--bg-tertiary-color)" />
-              </div>
             </div>
           </div>
         </div>
       </template>
 
       <template v-else-if="cacheStore.stats">
-        <div v-for="book in displayedBookStats" :key="book.id" class="settings-card book-cache-card">
-          <div class="book-card-header">
-            <div class="title-section">
-              <div class="icon-wrapper">
-                <Icon icon="mdi:book-open-variant" />
-              </div>
-              <h3>{{ book.title }}</h3>
-            </div>
-            <KitBtn
-              icon="mdi:delete-outline"
-              variant="outlined"
-              class="delete-btn"
-              @click="confirmClearCache(book.id)"
-            />
-          </div>
-
-          <div class="book-card-body">
-            <div class="stats-badges">
-              <div class="badge">
-                <Icon icon="mdi:database-outline" />
-                <span>{{ formatBytes(book.sizeBytes) }}</span>
-              </div>
-              <div v-if="book.analysesCount > 0" class="badge">
-                <Icon icon="mdi:robot-outline" />
-                <span>{{ t('settings.cacheAiAnalyses') }} <b>{{ book.analysesCount }}</b></span>
-              </div>
-              <div class="badge">
-                <Icon icon="mdi:file-document-edit-outline" />
-                <span>{{ t('settings.cachePages') }} <b>{{ book.cachedPages.length }} / {{ book.totalPages }}</b></span>
-              </div>
-              <KitTooltip v-if="book.imagesCount > 0" text="Кэшированные иллюстрации" placement="top">
-                <div class="badge">
-                  <Icon icon="mdi:image-outline" />
-                  <span><b>{{ book.imagesCount }}</b></span>
-                </div>
-              </KitTooltip>
-              <KitTooltip v-if="book.ttsCount > 0" text="Кэшированные аудио-фрагменты (озвучка)" placement="top">
-                <div class="badge">
-                  <Icon icon="mdi:volume-high" />
-                  <span><b>{{ book.ttsCount }}</b></span>
-                </div>
-              </KitTooltip>
-              <KitTooltip v-if="book.dictPagesCount > 0" text="Кэшированные словари для страниц" placement="top">
-                <div class="badge">
-                  <Icon icon="mdi:translate" />
-                  <span><b>{{ book.dictPagesCount }}</b></span>
-                </div>
-              </KitTooltip>
-            </div>
-
-            <div class="cache-progress-section">
-              <div class="progress-bar-wrap">
-                <div
-                  class="progress-fill"
-                  :style="{ width: `${book.totalPages > 0 ? (book.cachedPages.length / book.totalPages) * 100 : 0}%` }"
-                />
-              </div>
-              <div class="progress-footer">
-                <span class="progress-text" v-html="t('settings.offlineAvailable').replace('{percent}', `<b>${book.totalPages > 0 ? Math.round((book.cachedPages.length / book.totalPages) * 100) : 0}</b>`)" />
-                <KitTooltip v-if="book.cachedPages.length > 0" :text="formatPagesList(book.cachedPages)" placement="top-end">
-                  <button class="pages-list-hint is-loaded" type="button">
-                    <Icon icon="mdi:information-outline" />
-                    <span>{{ t('settings.pageNumbers') }}</span>
-                  </button>
-                </KitTooltip>
-              </div>
-            </div>
-          </div>
-        </div>
+        <TransitionGroup name="list" appear>
+          <BookCacheItem
+            v-for="book in displayedBookStats"
+            :key="book.id"
+            :book="book"
+            :is-deleting="deletingBookId === Number(book.id)"
+            @delete="confirmClearCache"
+          />
+        </TransitionGroup>
 
         <div v-if="hasMoreBooks" class="load-more-container">
-          <KitBtn class="load-more-btn" @click="loadMore">
-            {{ t('settings.showMore', 'Показать еще') }}
+          <KitBtn
+            variant="tonal"
+            color="primary"
+            class="load-more-btn"
+            @click="loadMore"
+          >
+            {{ t('settings.showMore', 'Показать еще') }} ({{ remainingBooksCount }})
           </KitBtn>
         </div>
 
@@ -193,8 +164,13 @@ function handleConfirmClear() {
           <Icon icon="mdi:folder-open-outline" class="empty-icon" />
           <p>{{ t('settings.noBooks') }}</p>
         </div>
+
+        <div v-else-if="filteredBookStats.length === 0" class="empty-state">
+          <Icon icon="mdi:book-search-outline" class="empty-icon" />
+          <p>{{ t('settings.noBooksFound', 'Ничего не найдено') }}</p>
+        </div>
       </template>
-    </TransitionGroup>
+    </div>
 
     <KitPrompt
       v-model:visible="confirmVisible"
@@ -206,210 +182,125 @@ function handleConfirmClear() {
 </template>
 
 <style lang="scss" scoped>
-.section-title {
-  margin-top: 32px;
-  margin-bottom: 16px;
-  font-size: 1.4rem;
+.settings-books-cache-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
-.settings-card {
-  background: var(--bg-secondary-color);
-  padding: 24px;
-  border-radius: 12px;
-  border: 1px solid var(--border-secondary-color);
-  margin-bottom: 16px;
+
+.panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+
+  @include media-down(xs) {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .header-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+
+    .panel-title {
+      margin: 0;
+      font-size: 1.15rem;
+      font-weight: 600;
+      color: var(--fg-primary-color);
+    }
+
+    .count-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2px 8px;
+      border-radius: 99px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      background: var(--bg-tertiary-color);
+      color: var(--fg-secondary-color);
+    }
+  }
+
+  .header-search {
+    width: 240px;
+
+    @include media-down(xs) {
+      width: 100%;
+    }
+  }
 }
+
 .books-list {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 12px;
 }
-.book-cache-card {
+
+.book-skeleton-item {
   background: var(--bg-primary-color);
-  border: 1px solid var(--border-primary-color);
-  padding: 20px;
-  margin-bottom: 0 !important;
+  border: 1px solid var(--border-secondary-color);
+  border-radius: 14px;
+  padding: 16px 20px;
   display: flex;
-  flex-direction: column;
-  gap: 20px;
-  transition: all 0.3s ease;
-  &:hover {
-    border-color: var(--border-accent-color);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.05);
-  }
-  .book-card-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    gap: 16px;
-    .title-section {
-      display: flex;
-      align-items: center;
-      gap: 16px;
-      flex-grow: 1;
-      min-width: 0;
-      .icon-wrapper {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        width: 48px;
-        height: 48px;
-        background: rgba(var(--bg-accent-color-rgb, 201, 117, 222), 0.15);
-        color: var(--fg-accent-color);
-        border-radius: 12px;
-        font-size: 1.6rem;
-        flex-shrink: 0;
-      }
-      h3 {
-        margin: 0;
-        font-size: 1.15rem;
-        color: var(--fg-primary-color);
-        font-weight: 600;
-        line-height: 1.4;
-        word-break: break-word;
-      }
-    }
-    .delete-btn {
-      color: var(--fg-error-color) !important;
-      border-color: var(--border-error-color) !important;
-      flex-shrink: 0;
-      padding: 0.5rem;
-      &:hover:not(:disabled) {
-        background-color: var(--bg-error-color) !important;
-        color: white !important;
-      }
-    }
-  }
-  .book-card-body {
+  align-items: center;
+  gap: 14px;
+
+  .skeleton-content {
     display: flex;
     flex-direction: column;
-    gap: 16px;
-  }
-  .stats-badges {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 12px;
-    .badge {
+    gap: 8px;
+    flex: 1;
+
+    .skeleton-badges {
       display: flex;
-      align-items: center;
       gap: 8px;
-      background: var(--bg-secondary-color);
-      border: 1px solid var(--border-secondary-color);
-      padding: 6px 12px;
-      border-radius: 8px;
-      font-size: 0.9rem;
-      color: var(--fg-secondary-color);
-      svg {
-        font-size: 1.2rem;
-        color: var(--fg-primary-color);
-      }
-      b {
-        color: var(--fg-primary-color);
-        font-weight: 600;
-      }
-    }
-  }
-  .cache-progress-section {
-    background: var(--bg-secondary-color);
-    padding: 16px;
-    border-radius: 12px;
-    .progress-bar-wrap {
-      width: 100%;
-      height: 6px;
-      background-color: var(--bg-tertiary-color);
-      border-radius: 3px;
-      overflow: hidden;
-      margin-bottom: 12px;
-      .progress-fill {
-        height: 100%;
-        background-color: var(--fg-accent-color);
-        border-radius: 3px;
-        transition: width 0.3s ease;
-      }
-    }
-    .progress-footer {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      font-size: 0.85rem;
-      .progress-text {
-        color: var(--fg-secondary-color);
-        display: inline-flex;
-        align-items: center;
-        :deep(b) {
-          color: var(--fg-primary-color);
-          margin: 0 4px;
-        }
-      }
-      .pages-list-hint {
-        background: transparent;
-        border: none;
-        color: var(--fg-secondary-color);
-        cursor: pointer;
-        font-size: 0.85rem;
-        font-weight: 500;
-        padding: 4px 8px;
-        border-radius: 6px;
-        display: inline-flex;
-        align-items: center;
-        gap: 4px;
-        transition: all 0.2s ease;
-
-        svg {
-          font-size: 1.05rem;
-        }
-
-        &.is-loaded {
-          color: var(--fg-accent-color);
-        }
-
-        &:hover {
-          color: var(--fg-primary-color);
-          background-color: var(--bg-tertiary-color);
-        }
-      }
     }
   }
 }
+
 .load-more-container {
   display: flex;
   justify-content: center;
-  margin-bottom: 32px;
+  margin-top: 8px;
 
   .load-more-btn {
     width: 100%;
-    max-width: 300px;
+    max-width: 240px;
   }
 }
+
 .empty-state {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 12px;
-  padding: 60px;
+  padding: 48px 24px;
   color: var(--fg-secondary-color);
-  border: 1px dashed var(--border-primary-color);
-  border-radius: 16px;
+  border: 1px dashed var(--border-secondary-color);
+  border-radius: 14px;
   background-color: var(--bg-secondary-color);
+
   .empty-icon {
-    font-size: 3rem;
-    opacity: 0.5;
+    font-size: 2.8rem;
+    opacity: 0.4;
   }
+
   p {
     margin: 0;
-    font-size: 1.1rem;
+    font-size: 1rem;
   }
 }
 
 .list-enter-active,
 .list-leave-active {
-  transition: all 0.4s ease;
+  transition: all 0.3s ease;
 }
 .list-enter-from,
 .list-leave-to {
   opacity: 0;
-  transform: translateX(30px);
-}
-.list-leave-active {
-  position: absolute;
+  transform: translateY(10px);
 }
 </style>
