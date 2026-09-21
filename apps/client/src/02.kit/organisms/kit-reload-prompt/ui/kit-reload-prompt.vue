@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { Icon } from '@iconify/vue'
 import { useI18n } from 'vue-i18n'
-import { isTauri as isTauriApp } from '~/01.shared/lib/env'
 import { usePwaStore } from '~/01.shared/store/pwa.store'
 import { KitBtn } from '~/02.kit/atoms/kit-btn/ui'
 
@@ -28,7 +27,7 @@ const { offlineReady, needRefresh } = storeToRefs(pwaStore)
               {{ offlineReady ? t('pwa.offlineReadyTitle') : t('pwa.updateAvailableTitle') }}
             </div>
             <div class="prompt-description">
-              {{ offlineReady ? t('pwa.offlineReadyDesc') : isTauriApp ? t('pwa.tauriUpdateAvailableDesc') : t('pwa.updateAvailableDesc') }}
+              {{ offlineReady ? t('pwa.offlineReadyDesc') : t('pwa.updateAvailableDesc') }}
             </div>
           </div>
           <button class="prompt-close-btn" aria-label="Close" @click="pwaStore.closePrompt()">
@@ -43,7 +42,7 @@ const { offlineReady, needRefresh } = storeToRefs(pwaStore)
             icon="mdi:refresh"
             @click="pwaStore.triggerUpdate()"
           >
-            {{ isTauriApp ? t('pwa.tauriUpdateBtn') : t('pwa.updateBtn') }}
+            {{ t('pwa.updateBtn') }}
           </KitBtn>
         </div>
       </div>

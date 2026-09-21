@@ -51,6 +51,7 @@
     "core:window:allow-unmaximize",
     "core:window:allow-start-dragging",
     "deep-link:default",
+    "opener:default",
     {
       "identifier": "opener:allow-open-url",
       "allow": [

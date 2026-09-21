@@ -16,6 +16,7 @@ import { useNetworkStore } from '~/01.shared/store/network.store'
 import { usePwaStore } from '~/01.shared/store/pwa.store'
 import { useGlobalSettingsStore } from '~/01.shared/store/settings.store'
 
+import { KitAppUpdatePrompt } from '~/02.kit/organisms/kit-app-update-prompt'
 import KitNetworkTimeoutDialog from '~/02.kit/organisms/kit-network-timeout-dialog/ui/kit-network-timeout-dialog.vue'
 import KitOfflineBadge from '~/02.kit/organisms/kit-offline-badge/ui/kit-offline-badge.vue'
 import KitReloadPrompt from '~/02.kit/organisms/kit-reload-prompt/ui/kit-reload-prompt.vue'
@@ -217,6 +218,7 @@ watch(() => route.path, () => {
   </router-view>
 
   <KitReloadPrompt />
+  <KitAppUpdatePrompt />
   <KitNetworkTimeoutDialog />
   <KitOfflineBadge />
   <AddEditWordDialog />
