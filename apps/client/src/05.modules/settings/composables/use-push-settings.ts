@@ -19,9 +19,11 @@ export function usePushSettings() {
 
   const isPushLoading = ref(false)
 
-  onMounted(() => {
-    pwaStore.checkPushStatus()
-    dictStore.fetchDecks()
+  onMounted(async () => {
+    await pwaStore.checkPushStatus()
+
+    if (pwaStore.isPushSubscribed)
+      await dictStore.fetchDecks()
   })
 
   const pushDeckOptions = computed(() => {
