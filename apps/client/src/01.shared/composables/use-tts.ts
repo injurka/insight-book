@@ -1,3 +1,4 @@
+import { isTtsTextWithinLimit } from '@injurka/insight-book-language-utils'
 import { ref } from 'vue'
 import { useRepos } from '~/00.plugins/di'
 import { useTracking } from '~/01.shared/composables/use-tracking'
@@ -96,14 +97,7 @@ export function useTts() {
   }
 
   function validateText(text: string): boolean {
-    const hasChineseChars = /[\u4E00-\u9FA5]/.test(text)
-    const maxLength = hasChineseChars ? 80 : 250
-
-    if (text.length > maxLength) {
-      return false
-    }
-
-    return true
+    return isTtsTextWithinLimit(text)
   }
 
   function getTtsParams(explicitLanguage?: string, explicitBookId?: number) {

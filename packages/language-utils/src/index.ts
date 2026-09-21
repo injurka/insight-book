@@ -11,6 +11,19 @@ export function normalizeLanguageCode(code?: string | null): string {
   return code.toLowerCase().split(/[-,;]/)[0].trim()
 }
 
+export const TTS_TEXT_MAX_LENGTH = 350
+export const TTS_HAN_TEXT_MAX_LENGTH = 100
+
+export function getTtsTextMaxLength(text: string): number {
+  return /\p{Script=Han}/u.test(text)
+    ? TTS_HAN_TEXT_MAX_LENGTH
+    : TTS_TEXT_MAX_LENGTH
+}
+
+export function isTtsTextWithinLimit(text: string): boolean {
+  return text.length <= getTtsTextMaxLength(text)
+}
+
 // Письменности, допустимые для «слова»:
 // - \p{Script=...} — буквы конкретной письменности
 // - \p{N} — цифры (ASCII и полной ширины)

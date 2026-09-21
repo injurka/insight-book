@@ -68,6 +68,16 @@ describe('useTts composable', () => {
     expect(tts.currentText.value).toBe(sentence)
   })
 
+  it('uses AI audio for a non-Han sentence longer than the old 250 character limit', async () => {
+    const tts = useTts()
+    const sentence = 'a'.repeat(300)
+
+    const started = await tts.speak(sentence)
+
+    expect(started).toBe(true)
+    expect(tts.currentText.value).toBe(sentence)
+  })
+
   it('does not stop playback when stop(targetText) is called with a mismatched text', async () => {
     const tts = useTts()
     const sentence = 'For Ganoes, the ancient fortification overlooking the city was too familiar.'

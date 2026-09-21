@@ -1,4 +1,5 @@
 import type { LlmConfig, ModelMessage } from '../types'
+import { getTtsTextMaxLength } from '@injurka/insight-book-language-utils'
 import { eq } from 'drizzle-orm'
 import { pinyin } from 'pinyin-pro'
 import { convertToOpus, getAudioDurationSeconds } from '~/utils/audio'
@@ -183,8 +184,7 @@ export async function generateTts(
   if (!normalizedText)
     throw new AppError(400, ERROR_CODES.TTS.TEXT_REQUIRED, 'Text is required')
 
-  const hasChineseChars = /[\u4E00-\u9FA5]/.test(normalizedText)
-  const maxLength = hasChineseChars ? 100 : 350
+  const maxLength = getTtsTextMaxLength(normalizedText)
 
   if (normalizedText.length > maxLength) {
     throw new AppError(400, ERROR_CODES.TTS.TEXT_TOO_LONG, 'Text is too long for TTS', { maxLength })
