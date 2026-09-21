@@ -392,6 +392,17 @@ jobs:
       - name: Rename APK
         run: mv ${{ steps.sign_app.outputs.signedReleaseFile }} insight-book-${{ github.ref_name }}-android.apk
 
+      - name: Upload APK to GitHub Release
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: ${{ github.ref_name }}
+          release_id: ${{ needs.create-release.outputs.release_id }}
+          files: insight-book-${{ github.ref_name }}-android.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # Идёт последним: проверка публичного URL валит джобу при поломке раздачи,
+      # но артефакт к этому моменту уже приложен к релизу.
       - name: Upload APK to Media CDN
         shell: bash
         env:
@@ -411,7 +422,7 @@ jobs:
             "https://storage.bunnycdn.com/$BUNNY_MEDIA_STORAGE_ZONE/releases/$APK_FILE"
 
           # Проверяем ровно тот URL, который запрашивает приложение: тихая 404 здесь
-          # означает, что автообновление сломано, поэтому валим джобу.
+          # означает, что автообновление сломано.
           for attempt in {1..10}; do
             status=$(curl -sIL -o /dev/null -w '%{http_code}' "$APK_PUBLIC_URL/$APK_FILE" || true)
             if [ "$status" = "200" ]; then
@@ -424,12 +435,3 @@ jobs:
 
           echo "::error::APK не отдаётся по $APK_PUBLIC_URL/$APK_FILE (последний статус: $status)"
           exit 1
-
-      - name: Upload APK to GitHub Release
-        uses: softprops/action-gh-release@v3
-        with:
-          tag_name: ${{ github.ref_name }}
-          release_id: ${{ needs.create-release.outputs.release_id }}
-          files: insight-book-${{ github.ref_name }}-android.apk
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
