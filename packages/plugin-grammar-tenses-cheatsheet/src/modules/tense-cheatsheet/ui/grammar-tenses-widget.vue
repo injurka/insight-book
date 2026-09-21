@@ -213,26 +213,6 @@ onBeforeUnmount(() => {
         <header class="ib-grammar-tenses-modal-header">
           <h2 id="ib-grammar-tenses-title">Шпаргалка по временам</h2>
           <div class="ib-grammar-tenses-actions">
-            <div class="ib-grammar-tenses-view-switch" role="group" aria-label="Вид шпаргалки">
-              <button
-                type="button"
-                :class="{ 'is-active': viewMode === 'table' }"
-                :aria-pressed="viewMode === 'table'"
-                title="Компактная таблица"
-                @click="viewMode = 'table'"
-              >
-                Таблица
-              </button>
-              <button
-                type="button"
-                :class="{ 'is-active': viewMode === 'detail' }"
-                :aria-pressed="viewMode === 'detail'"
-                title="Подробные карточки"
-                @click="viewMode = 'detail'"
-              >
-                Подробно
-              </button>
-            </div>
             <button
               ref="closeButtonRef"
               type="button"
@@ -251,6 +231,26 @@ onBeforeUnmount(() => {
           <span v-for="tense in highlightedTenses" :key="tense.id" class="ib-grammar-tenses-chip">
             {{ tense.name }}
           </span>
+          <div class="ib-grammar-tenses-view-switch" role="group" aria-label="Вид шпаргалки">
+            <button
+              type="button"
+              :class="{ 'is-active': viewMode === 'table' }"
+              :aria-pressed="viewMode === 'table'"
+              title="Компактная таблица"
+              @click="viewMode = 'table'"
+            >
+              Таблица
+            </button>
+            <button
+              type="button"
+              :class="{ 'is-active': viewMode === 'detail' }"
+              :aria-pressed="viewMode === 'detail'"
+              title="Подробные карточки"
+              @click="viewMode = 'detail'"
+            >
+              Подробно
+            </button>
+          </div>
         </div>
 
         <div v-if="viewMode === 'detail'" class="ib-grammar-tenses-body ib-grammar-tenses-body--detail">
@@ -770,6 +770,8 @@ onBeforeUnmount(() => {
 
 .ib-grammar-tenses-view-switch {
   display: inline-flex;
+  flex: 0 0 auto;
+  margin-left: auto;
   padding: 2px;
   border: 1px solid var(--border-secondary-color, rgba(255, 255, 255, 0.14));
   border-radius: 7px;
@@ -1093,67 +1095,9 @@ onBeforeUnmount(() => {
   }
 
   .ib-grammar-tenses-table-wrap {
-    overflow: visible;
-    border: 0;
-  }
-
-  .ib-grammar-tenses-table {
-    display: block;
-    min-width: 0;
-  }
-
-  .ib-grammar-tenses-table thead {
-    display: none;
-  }
-
-  .ib-grammar-tenses-table tbody {
-    display: grid;
-    gap: 8px;
-  }
-
-  .ib-grammar-tenses-table tbody tr,
-  .ib-grammar-tenses-table tbody tr:nth-child(even),
-  .ib-grammar-tenses-table tbody tr.is-highlighted {
-    display: block;
-    padding: 9px 10px;
-    border: 1px solid var(--border-secondary-color, rgba(255, 255, 255, 0.1));
-    border-radius: 10px;
-    background: var(--bg-secondary-color, rgba(255, 255, 255, 0.025));
-    box-shadow: none;
-  }
-
-  .ib-grammar-tenses-table tbody tr.is-highlighted {
-    border-color: color-mix(in srgb, var(--fg-accent-color, #d69e2e) 70%, transparent);
-    box-shadow: inset 3px 0 0 var(--fg-accent-color, #d69e2e);
-  }
-
-  .ib-grammar-tenses-table th[scope='row'],
-  .ib-grammar-tenses-table td {
-    display: block;
-    padding: 5px 0;
-    border: 0;
-  }
-
-  .ib-grammar-tenses-table th[scope='row'] {
-    padding-bottom: 8px;
-    border-bottom: 1px solid var(--border-secondary-color, rgba(255, 255, 255, 0.1));
-  }
-
-  .ib-grammar-tenses-table td::before {
-    display: block;
-    margin-bottom: 3px;
-    color: var(--fg-secondary-color, #aeb7c4);
-    content: attr(data-label);
-    font-size: 0.61rem;
-    font-weight: 800;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-  }
-
-  .ib-grammar-tenses-table code {
-    overflow: visible;
-    white-space: normal;
-    overflow-wrap: anywhere;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
   }
 }
 
