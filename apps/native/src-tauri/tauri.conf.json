@@ -28,7 +28,7 @@
         "img-src": ["'self'", "asset:", "data:", "blob:", "https:"],
         "media-src": ["'self'", "asset:", "blob:", "https:"],
         "object-src": ["'none'"],
-        "script-src": ["'self'", "https:"],
+        "script-src": ["'self'", "'unsafe-eval'", "https:"],
         "style-src": ["'self'", "'unsafe-inline'", "https:"],
         "worker-src": ["'self'", "blob:"]
       },

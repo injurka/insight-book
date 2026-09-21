@@ -12,10 +12,10 @@ import { defaultRepositories, REPOS_INJECTION_KEY } from '~/00.plugins/di'
 import { i18n, localePromise } from '~/00.plugins/i18n'
 import { vLongPress } from '~/01.shared/directives/long-press'
 import { vRipple } from '~/01.shared/directives/ripple'
-import { isMobileApp, isTauri } from '~/01.shared/lib/env'
+import { isTauri } from '~/01.shared/lib/env'
 import router from '~/01.shared/lib/router'
 import { configureApi } from '~/01.shared/services/api.service'
-import { initMonitoring, setupVueMonitoring } from '~/01.shared/services/monitoring.service'
+import { initMonitoring, setupVueMonitoring, trackError } from '~/01.shared/services/monitoring.service'
 import { useAuthStore } from '~/01.shared/store/auth.store'
 import { useGlobalSettingsStore } from '~/01.shared/store/settings.store'
 import { useToastStore } from '~/01.shared/store/toast.store'
@@ -90,13 +90,19 @@ async function bootstrap() {
 
 /** Настройка Eruda (девтулы для мобильного приложения) */
 function setupMobileDevtools(settingsStore: ReturnType<typeof useGlobalSettingsStore>) {
-  if (!isMobileApp)
+  if (!isTauri)
     return
 
   void import('~/01.shared/services/eruda.service').then(({ setErudaEnabled }) => {
     watch(() => settingsStore.enableEruda, (enabled) => {
-      void setErudaEnabled(enabled)
+      void setErudaEnabled(enabled).catch((err: unknown) => {
+        console.error('[Eruda] Failed to update developer console state:', err)
+        trackError(err, { source: 'eruda', operation: 'set_enabled' })
+      })
     }, { immediate: true })
+  }).catch((err: unknown) => {
+    console.error('[Eruda] Failed to load developer console:', err)
+    trackError(err, { source: 'eruda', operation: 'load' })
   })
 }
 
