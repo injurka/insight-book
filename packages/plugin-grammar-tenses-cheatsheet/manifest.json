@@ -1,0 +1,9 @@
+{
+  "id": "grammar-tenses-cheatsheet",
+  "name": "Grammar Tenses Cheatsheet",
+  "version": "1.0.0",
+  "description": "Открывает подробную шпаргалку по английским временам прямо из блока грамматического анализа.",
+  "icon": "mdi:clock-check-outline",
+  "source": "https://github.com/injurka/insight-book/tree/master/packages/plugin-grammar-tenses-cheatsheet",
+  "entryUrl": "./remoteEntry.js"
+}

@@ -1,0 +1,20 @@
+{
+  "name": "@injurka/insight-book-plugin-grammar-tenses-cheatsheet",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "src/index.ts",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build && cp manifest.json dist/manifest.json",
+    "pack": "bun run --filter @injurka/insight-book-pack-plugin pack $PWD"
+  },
+  "dependencies": {
+    "@injurka/insight-book-plugin-api": "workspace:*",
+    "vue": "3.5.42"
+  },
+  "devDependencies": {
+    "@module-federation/vite": "^1.21.2",
+    "@vitejs/plugin-vue": "^6.0.8",
+    "vite": "^8.2.2"
+  }
+}

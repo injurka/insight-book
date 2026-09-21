@@ -256,6 +256,19 @@
         "vite": "^8.2.2",
       },
     },
+    "packages/plugin-grammar-tenses-cheatsheet": {
+      "name": "@injurka/insight-book-plugin-grammar-tenses-cheatsheet",
+      "version": "1.0.0",
+      "dependencies": {
+        "@injurka/insight-book-plugin-api": "workspace:*",
+        "vue": "3.5.42",
+      },
+      "devDependencies": {
+        "@module-federation/vite": "^1.21.2",
+        "@vitejs/plugin-vue": "^6.0.8",
+        "vite": "^8.2.2",
+      },
+    },
     "packages/plugin-scroll-study": {
       "name": "@injurka/insight-book-plugin-scroll-study",
       "version": "1.0.0",
@@ -769,6 +782,8 @@
     "@injurka/insight-book-plugin-api": ["@injurka/insight-book-plugin-api@workspace:packages/plugin-api"],
 
     "@injurka/insight-book-plugin-grammar-rules": ["@injurka/insight-book-plugin-grammar-rules@workspace:packages/plugin-grammar-rules"],
+
+    "@injurka/insight-book-plugin-grammar-tenses-cheatsheet": ["@injurka/insight-book-plugin-grammar-tenses-cheatsheet@workspace:packages/plugin-grammar-tenses-cheatsheet"],
 
     "@injurka/insight-book-plugin-scroll-study": ["@injurka/insight-book-plugin-scroll-study@workspace:packages/plugin-scroll-study"],
 
