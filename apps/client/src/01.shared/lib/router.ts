@@ -8,6 +8,8 @@ const MAIN_SCROLLER_SELECTOR = '.main-content'
 
 const mainScrollPositions = new Map<string, number>()
 
+let pendingMainScrollTop: number | null = null
+
 /** Скролл-контейнер приложения (.main-content из DefaultLayout, общий для всех страниц) */
 function findScroller(): HTMLElement | null {
   return document.querySelector<HTMLElement>(MAIN_SCROLLER_SELECTOR)
@@ -36,6 +38,17 @@ function restoreScrollTop(top: number): void {
   tick()
 }
 
+/** Применяет позицию только после исчезновения предыдущей страницы. */
+export function applyPendingMainScroll(): void {
+  if (pendingMainScrollTop == null)
+    return
+
+  const top = pendingMainScrollTop
+  pendingMainScrollTop = null
+
+  restoreScrollTop(top)
+}
+
 export const router = createRouter({
   history: isTauri
     ? createWebHashHistory(import.meta.env.BASE_URL)
@@ -48,15 +61,19 @@ export const router = createRouter({
     if (savedPosition || isReturningToHomeFromBook) {
       const top = mainScrollPositions.get(to.fullPath)
       if (top != null) {
-        restoreScrollTop(top)
+        if (to.path === from.path)
+          restoreScrollTop(top)
+        else
+          pendingMainScrollTop = top
 
         return
       }
     }
 
-    const main = findScroller()
-    if (main)
-      main.scrollTop = 0
+    if (to.path === from.path)
+      restoreScrollTop(0)
+    else
+      pendingMainScrollTop = 0
   },
 
   routes: [

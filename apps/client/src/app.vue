@@ -10,6 +10,7 @@ import { useCustomFonts } from '~/01.shared/composables/use-custom-fonts'
 import { useGlobalTracking } from '~/01.shared/composables/use-global-tracking'
 import { isTauri } from '~/01.shared/lib/env'
 import { lazyComponent } from '~/01.shared/lib/lazy-component'
+import { applyPendingMainScroll } from '~/01.shared/lib/router'
 import { useAnalysisStore } from '~/01.shared/store/analysis/analysis.store'
 import { useNetworkStore } from '~/01.shared/store/network.store'
 import { usePwaStore } from '~/01.shared/store/pwa.store'
@@ -197,6 +198,7 @@ watch(() => route.path, () => {
         name="fade"
         mode="out-in"
         appear
+        @after-leave="applyPendingMainScroll"
       >
         <component :is="Component" :key="currentRoute.path" />
       </transition>
@@ -208,6 +210,7 @@ watch(() => route.path, () => {
       name="fade"
       mode="out-in"
       appear
+      @after-leave="applyPendingMainScroll"
     >
       <component :is="Component" :key="currentRoute.path" />
     </transition>
