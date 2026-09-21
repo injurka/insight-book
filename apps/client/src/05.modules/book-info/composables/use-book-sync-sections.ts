@@ -37,11 +37,16 @@ function computeSectionPercent(
   done: number,
   total: number,
   pagePercent: number,
+  estimatedTotal?: number,
 ): number {
   if (isFinished)
     return 100
   if (isPages)
     return total > 0 ? Math.min(100, Math.round((done / total) * 100)) : 0
+  if (estimatedTotal && estimatedTotal > 0)
+    return Math.min(100, Math.round((done / estimatedTotal) * 100))
+  if (total > 0)
+    return Math.min(100, Math.round((done / total) * 100))
 
   return pagePercent
 }
@@ -68,6 +73,7 @@ function createSyncSection(params: SectionParams): SyncSection {
     params.done,
     params.total,
     params.pagePercent,
+    params.estimatedTotal,
   )
 
   const status = computeSectionStatus(

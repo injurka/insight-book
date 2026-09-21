@@ -369,17 +369,26 @@ watch(visible, (val) => {
               </span>
             </div>
             <span class="value">
-              <template v-if="section.key === 'pages' || isFinished">
+              <template v-if="section.key === 'pages'">
                 <b>{{ formatNumber(section.done) }}</b> / {{ formatNumber(section.total) }}
                 <span class="percent">· {{ section.percent }}%</span>
               </template>
-              <template v-else-if="section.estimatedTotal && section.estimatedTotal > section.done">
+              <template v-else-if="isFinished">
+                <template v-if="section.total > 0">
+                  <b>{{ formatNumber(section.done) }}</b> / {{ formatNumber(section.total) }}
+                </template>
+                <template v-else>
+                  <b>{{ formatNumber(section.done) }}</b>
+                </template>
+                <span class="percent">· 100%</span>
+              </template>
+              <template v-else-if="section.estimatedTotal">
                 <b>{{ formatNumber(section.done) }}</b> / ~{{ formatNumber(section.estimatedTotal) }}
                 <span class="percent">· {{ section.percent }}%</span>
               </template>
               <template v-else>
                 <b>{{ formatNumber(section.done) }}</b>
-                <span class="percent">· {{ section.percent }}%</span>
+                <span v-if="section.percent > 0" class="percent">· {{ section.percent }}%</span>
               </template>
               <Icon
                 v-if="section.status === 'done'"
