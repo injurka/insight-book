@@ -64,19 +64,21 @@ async function installCatalogPlugin(record: CatalogPluginRecord) {
               v-if="pluginsStore.isCatalogPluginInstalled(record)"
               variant="tonal"
               size="sm"
+              icon="mdi:check"
+              :title="t('settings.installedFromCatalog', 'Установлен')"
+              :aria-label="t('settings.installedFromCatalog', 'Установлен')"
               disabled
-            >
-              {{ t('settings.installedFromCatalog', 'Установлен') }}
-            </KitBtn>
+            />
             <KitBtn
               v-else
               color="primary"
               size="sm"
+              icon="mdi:download-outline"
               :loading="installingCatalogId === record.id"
+              :title="t('settings.installFromCatalog', 'Установить')"
+              :aria-label="t('settings.installFromCatalog', 'Установить')"
               @click="installCatalogPlugin(record)"
-            >
-              {{ t('settings.installFromCatalog', 'Установить') }}
-            </KitBtn>
+            />
           </div>
         </div>
       </div>
@@ -146,6 +148,7 @@ async function installCatalogPlugin(record: CatalogPluginRecord) {
     background: var(--bg-tertiary-color);
     color: var(--fg-accent-color);
     font-size: 1.5rem;
+    flex-shrink: 0;
   }
 
   .plugin-info {
@@ -170,6 +173,7 @@ async function installCatalogPlugin(record: CatalogPluginRecord) {
   .plugin-action {
     display: flex;
     align-items: center;
+    flex-shrink: 0;
   }
 }
 

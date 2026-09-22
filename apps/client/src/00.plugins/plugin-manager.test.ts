@@ -27,6 +27,7 @@ vi.mock('~/00.plugins/di', () => ({
 }))
 
 vi.mock('~/01.shared/services/api.service', () => ({
+  BASE_API_URL: 'https://api.example.com',
   request: vi.fn().mockResolvedValue({ success: true, from: 'mockRequest' }),
   api: {
     llm: {
@@ -444,6 +445,40 @@ describe('usePluginManager - loadRemotePlugin', () => {
     expect(mockLoadRemote).toHaveBeenCalledWith('plugin_test_plugin/Plugin')
     expect(manager.plugins).toHaveLength(1)
     expect(router.hasRoute('plugin-test-plugin-index')).toBe(true)
+  })
+
+  it('correctly resolves relative manifestUrl and entryUrl without throwing Invalid base URL', async () => {
+    const manager = usePluginManager()
+    const router = createTestRouter()
+    const plugin = createTestPlugin({ id: 'relative-plugin' })
+
+    vi.mocked(request).mockResolvedValueOnce({
+      id: 'relative-plugin',
+      name: 'Relative Plugin',
+      version: '1.0.0',
+      entryUrl: './remoteEntry.js',
+    })
+
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        id: 'relative-plugin',
+        name: 'Relative Plugin',
+        version: '1.0.0',
+        entryUrl: './remoteEntry.js',
+      }),
+    }))
+
+    mockLoadRemote.mockResolvedValue({ default: plugin })
+
+    const result = await manager.loadRemotePlugin('/api/catalog/plugins/files/relative-plugin/1.0.0/manifest.json', router)
+
+    expect(result).toBe(plugin)
+    expect(mockRegisterRemotes).toHaveBeenCalledWith([expect.objectContaining({
+      name: 'plugin_relative_plugin',
+      entry: expect.stringMatching(/\/api\/catalog\/plugins\/files\/relative-plugin\/1\.0\.0\/remoteEntry\.js$/),
+      type: 'module',
+    })])
   })
 
   it('returns null when manifest is invalid and offline cache is empty', async () => {

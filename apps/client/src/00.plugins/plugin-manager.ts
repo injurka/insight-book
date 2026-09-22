@@ -17,7 +17,7 @@ import { markRaw, reactive } from 'vue'
 import { z } from 'zod'
 import { defaultRepositories } from '~/00.plugins/di'
 import { i18n } from '~/00.plugins/i18n'
-import { api, request } from '~/01.shared/services/api.service'
+import { api, BASE_API_URL, request } from '~/01.shared/services/api.service'
 
 import { getCachedPlugin, saveCachedPlugin } from './plugin-storage'
 
@@ -353,6 +353,17 @@ export function usePluginManager(): PluginManager {
     console.warn(`[Plugin Manager] Plugin "${pluginId}" uninstalled.`)
   }
 
+  const resolveManifestBaseUrl = (manifestUrl: string): string => {
+    if (/^https?:\/\//i.test(manifestUrl))
+      return manifestUrl
+
+    const apiBase = BASE_API_URL && /^https?:\/\//i.test(BASE_API_URL)
+      ? BASE_API_URL
+      : (typeof window !== 'undefined' && window.location?.origin ? window.location.origin : 'http://localhost')
+
+    return new URL(manifestUrl, apiBase).toString()
+  }
+
   const fetchRemoteManifest = async (manifestUrl: string): Promise<{ manifest: InsightBookPluginManifest, remoteEntryUrl: string } | null> => {
     try {
       const manifestResult = z.object({
@@ -374,7 +385,8 @@ export function usePluginManager(): PluginManager {
 
       const manifest: InsightBookPluginManifest = manifestResult.data
 
-      const remoteEntryUrl = new URL(manifest.entryUrl, manifestUrl).toString()
+      const baseUrl = resolveManifestBaseUrl(manifestUrl)
+      const remoteEntryUrl = new URL(manifest.entryUrl, baseUrl).toString()
       await saveCachedPlugin(
         manifest.id,
         manifestUrl,

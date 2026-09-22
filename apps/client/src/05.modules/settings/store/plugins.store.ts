@@ -78,7 +78,7 @@ export const usePluginsStore = defineStore('settings-plugins', () => {
   }
 
   function isCatalogPluginInstalled(record: CatalogPluginRecord) {
-    return remotePlugins.value.some(p => p.manifestUrl === record.manifestUrl)
+    return remotePlugins.value.some(p => p.pluginId === record.id || p.manifestUrl === record.manifestUrl)
   }
 
   // --- MUTATION: Установка динамического плагина по URL манифеста ---
