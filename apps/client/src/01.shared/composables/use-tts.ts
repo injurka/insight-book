@@ -2,6 +2,7 @@ import { isTtsTextWithinLimit } from '@injurka/insight-book-language-utils'
 import { ref } from 'vue'
 import { useRepos } from '~/00.plugins/di'
 import { useTracking } from '~/01.shared/composables/use-tracking'
+import { DEFAULT_TTS_VOICE } from '~/01.shared/constants/tts'
 import { useGlobalSettingsStore } from '~/01.shared/store/settings.store'
 import { useReaderStore } from '~/05.modules/reader/store/reader.store'
 
@@ -29,7 +30,7 @@ export function useTts() {
     forceCacheBypass: boolean | undefined,
     signal: AbortSignal,
   ) {
-    const cacheKey = bookId ? `${bookId}_${voice}_${normalizedText}` : `dict_${lang}_${voice}_${normalizedText}`
+    const cacheKey = bookId ? `qwen_${bookId}_${voice}_${normalizedText}` : `qwen_dict_${lang}_${voice}_${normalizedText}`
     let audioBlob = forceCacheBypass ? null : await repos.analysis.getLocalTts(cacheKey)
 
     if (!audioBlob) {
@@ -103,7 +104,7 @@ export function useTts() {
   function getTtsParams(explicitLanguage?: string, explicitBookId?: number) {
     const bookId = explicitBookId || readerStore.currentBook?.id
     const lang = explicitLanguage || readerStore.currentBook?.language || 'en'
-    const voice = settingsStore.ttsVoice || 'Kore'
+    const voice = settingsStore.ttsVoice || DEFAULT_TTS_VOICE
 
     return { bookId, lang, voice }
   }

@@ -6,6 +6,7 @@ import { useI18n } from 'vue-i18n'
 import { ThemesVariant, useChangeTheme } from '~/01.shared/composables/use-change-theme'
 import { useToast } from '~/01.shared/composables/use-toast'
 import { useTts } from '~/01.shared/composables/use-tts'
+import { TTS_VOICE_OPTIONS } from '~/01.shared/constants/tts'
 import { isMobileApp as isApk } from '~/01.shared/lib/env'
 import { useAnalysisStore } from '~/01.shared/store/analysis/analysis.store'
 import { useNetworkStore } from '~/01.shared/store/network.store'
@@ -94,15 +95,7 @@ const fontOptions = computed(() => [
   { label: t('reader.fontCursive'), value: '\'Comic Sans MS\', cursive, sans-serif' },
 ])
 
-const voiceOptions = computed(() => [
-  { label: 'Kore (Female)', value: 'Kore' },
-  { label: 'Callirrhoe (Female)', value: 'Callirrhoe' },
-  { label: 'Leda (Female)', value: 'Leda' },
-  { label: 'Orus (Male)', value: 'Orus' },
-  { label: 'Puck (Male)', value: 'Puck' },
-  { label: 'Charon (Male)', value: 'Charon' },
-  { label: 'Fenrir (Male)', value: 'Fenrir' },
-])
+const voiceOptions = computed(() => [...TTS_VOICE_OPTIONS])
 
 const currentThemeIcon = computed(() => {
   switch (theme.value) {

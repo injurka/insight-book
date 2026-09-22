@@ -6,23 +6,24 @@ import { getAiConfig } from './ai-config'
 // единый источник правды для server и client
 export { isValidWordForLanguage, normalizeLanguageCode } from '@injurka/insight-book-language-utils'
 
-export function hashTtsText(text: string, voice: string): string {
+export function hashTtsText(text: string, voice: string, model: string): string {
   const hasher = new Bun.CryptoHasher('sha256')
-  hasher.update(text.trim().toLowerCase() + voice.toLowerCase())
+  hasher.update(`${model.toLowerCase()}::${voice.toLowerCase()}::${text.trim().toLowerCase()}`)
   return hasher.digest('hex')
 }
 
-export function mapVoiceToOpenAi(geminiVoice: string): string {
+export function mapVoiceToOpenAi(selectedVoice: string): string {
   const map: Record<string, string> = {
-    kore: 'alloy',
-    callirrhoe: 'shimmer',
-    orus: 'nova',
-    puck: 'echo',
-    charon: 'onyx',
-    fenrir: 'fable',
-    leda: 'alloy',
+    'longanhuan_v3.6': 'shimmer',
+    'longanfengyue': 'shimmer',
+    'longanyuanfei': 'shimmer',
+    'longanlingxi': 'shimmer',
+    'loongmary': 'shimmer',
+    'loongeva_v3.6': 'shimmer',
+    'loongjohn': 'onyx',
+    'longchuanshu_v3.6': 'onyx',
   }
-  return map[geminiVoice.toLowerCase()] || 'alloy'
+  return map[selectedVoice.toLowerCase()] || 'alloy'
 }
 
 export function hashSentence(sentence: string, language: string, targetLang: string): string {

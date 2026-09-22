@@ -1,6 +1,7 @@
 import { useLocalStorage } from '@vueuse/core'
 
 import { computed } from 'vue'
+import { DEFAULT_TTS_VOICE } from '~/01.shared/constants/tts'
 
 export const useGlobalSettingsStore = defineStore('globalSettings', () => {
   const appLanguage = useLocalStorage<string>('global-app-language', 'ru')
@@ -21,7 +22,7 @@ export const useGlobalSettingsStore = defineStore('globalSettings', () => {
     appLanguage.value = appLanguage.value.replace(/^"|"$/g, '')
 
   const ttsSpeed = useLocalStorage<number>('global-tts-speed', 1)
-  const ttsVoice = useLocalStorage<string>('global-tts-voice', 'Kore')
+  const ttsVoice = useLocalStorage<string>('global-qwen-tts-voice', DEFAULT_TTS_VOICE)
   const fallbackToWebSpeech = useLocalStorage<boolean>('global-tts-fallback-web-speech', true)
 
   const readerFontSize = useLocalStorage<number>('global-reader-font-size', 1.4)

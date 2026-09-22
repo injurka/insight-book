@@ -3,6 +3,7 @@ import { Icon } from '@iconify/vue'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useTts } from '~/01.shared/composables/use-tts'
+import { TTS_VOICE_OPTIONS } from '~/01.shared/constants/tts'
 import { useGlobalSettingsStore } from '~/01.shared/store/settings.store'
 import { KitBtn } from '~/02.kit/atoms/kit-btn/ui'
 import { KitCheckbox } from '~/02.kit/atoms/kit-checkbox/ui'
@@ -13,15 +14,7 @@ const { t } = useI18n()
 const settingsStore = useGlobalSettingsStore()
 const { speak, stop, isPlaying, isLoading } = useTts()
 
-const voiceOptions = computed(() => [
-  { label: 'Kore (Female)', value: 'Kore' },
-  { label: 'Callirrhoe (Female)', value: 'Callirrhoe' },
-  { label: 'Leda (Female)', value: 'Leda' },
-  { label: 'Orus (Male)', value: 'Orus' },
-  { label: 'Puck (Male)', value: 'Puck' },
-  { label: 'Charon (Male)', value: 'Charon' },
-  { label: 'Fenrir (Male)', value: 'Fenrir' },
-])
+const voiceOptions = computed(() => [...TTS_VOICE_OPTIONS])
 
 const speedOptions = [
   { label: '0.75x', value: 0.75 },

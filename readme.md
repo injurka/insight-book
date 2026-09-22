@@ -70,7 +70,7 @@ LLM_FALLBACK_MODEL=gpt-4o-mini
 # TTS — синтез речи (основная и запасная модель)
 TTS_API_KEY=
 TTS_API_URL=
-TTS_MODEL=gemini-2.5-flash-preview-tts
+TTS_MODEL=qwen-audio-3.0-tts-flash
 TTS_FALLBACK_MODEL=gpt-4o-mini-tts
 
 # STT — распознавание речи (основная и запасная модель)

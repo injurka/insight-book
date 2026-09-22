@@ -16,6 +16,10 @@ import { logger } from '../utils/logger'
 import { checkTokenLimit } from './limits.service'
 import { trackTokenUsage } from './token.service'
 
+const DEFAULT_TTS_MODEL = 'qwen-audio-3.0-tts-flash'
+const DEFAULT_TTS_VOICE = 'default'
+const FIRST_PRESET_TTS_VOICE = 'longanhuan_v3.6'
+
 async function generateAndCacheTts(
   userId: number,
   normalizedText: string,
@@ -194,8 +198,23 @@ export async function generateTts(
   if (!ttsUrl)
     throw new AppError(500, ERROR_CODES.TTS.NOT_CONFIGURED, 'TTS API not configured')
 
-  const voice = selectedVoice || 'Kore'
-  const hash = hashTtsText(normalizedText, voice)
+  const requestedVoice = selectedVoice || DEFAULT_TTS_VOICE
+
+  if (requestedVoice === DEFAULT_TTS_VOICE && !forceCacheBypass) {
+    const cachedByText = await db.query.ttsCache.findFirst({
+      where: eq(schema.ttsCache.text, normalizedText),
+    })
+    if (cachedByText) {
+      if (bookId) {
+        await db.insert(schema.bookTtsCache).values({ bookId, textHash: cachedByText.textHash }).onConflictDoNothing()
+      }
+      return Buffer.from(cachedByText.audioBlob).toString('base64')
+    }
+  }
+
+  const voice = requestedVoice === DEFAULT_TTS_VOICE ? FIRST_PRESET_TTS_VOICE : requestedVoice
+  const primaryModel = config.ttsModel || DEFAULT_TTS_MODEL
+  const hash = hashTtsText(normalizedText, voice, primaryModel)
 
   const cached = await db.query.ttsCache.findFirst({
     where: eq(schema.ttsCache.textHash, hash),
