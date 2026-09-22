@@ -189,8 +189,13 @@ export const request = ofetch.create({
   // eslint-disable-next-line complexity
   async onRequestError({ request: failedRequest, error, options }) {
     let errMessage = typeof error?.message === 'string' ? error.message : String(error || '')
+    const durationMs = requestDuration(options.telemetryStartedAt)
+    const timeoutMs = typeof options.timeout === 'number' ? options.timeout : REQUEST_TIMEOUT_MS
     const isAbort = error?.name === 'AbortError' || errMessage.toLowerCase().includes('abort') || errMessage.toLowerCase().includes('cancel')
     const normalizedError = errMessage.toLowerCase()
+    const isTimeout = normalizedError.includes('timed out')
+      || normalizedError.includes('timeout')
+      || (isAbort && durationMs !== undefined && durationMs >= timeoutMs - 100)
     const isNetworkError = error?.name === 'TypeError'
       || error?.name === 'FetchError'
       || normalizedError.includes('failed to fetch')
@@ -205,6 +210,15 @@ export const request = ofetch.create({
       errMessage = i18n.global.t('errors.network')
 
     const isOffline = typeof navigator !== 'undefined' && !navigator.onLine
+    const errorReason = isTimeout
+      ? 'timeout'
+      : isOffline
+        ? 'offline'
+        : isAbort
+          ? 'cancelled'
+          : isNetworkError
+            ? 'network'
+            : undefined
 
     console.error('[API] Network request failed', {
       method: options.method || 'GET',
@@ -224,9 +238,11 @@ export const request = ofetch.create({
       path: getDiagnosticUrl(failedRequest, options.baseURL),
       feature: options.telemetryFeature,
       transport: isTauri ? 'tauri' : 'browser',
-      durationMs: requestDuration(options.telemetryStartedAt),
+      durationMs,
       error: finalError,
       expected: options.telemetryExpected ?? (isAbort || isOffline || isNetworkError),
+      reason: errorReason,
+      timeoutMs: isTimeout ? timeoutMs : undefined,
     })
 
     throw finalError

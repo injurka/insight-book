@@ -84,6 +84,7 @@ const METRIC_ONLY_EVENT_NAMES = new Set<string>([
 
 export type ApiTransport = 'browser' | 'tauri' | 'unknown'
 export type ApiErrorClassification = 'expected' | 'unexpected'
+export type ApiErrorReason = 'timeout' | 'cancelled' | 'offline' | 'network'
 
 /**
  * Минимальный контекст API-телеметрии. `path` должен быть endpoint без тела
@@ -103,6 +104,8 @@ export interface ApiRequestTelemetry {
 export interface ApiErrorTelemetry extends ApiRequestTelemetry {
   error?: unknown
   expected?: boolean
+  reason?: ApiErrorReason
+  timeoutMs?: number
 }
 
 const tracer = trace.getTracer(SERVICE_NAME, packageJson.version)
@@ -346,6 +349,25 @@ function buildApiAttributes(context: ApiRequestTelemetry, classification?: ApiEr
   return attributes
 }
 
+function buildApiErrorReasonAttributes(context: ApiErrorTelemetry): Attributes {
+  if (!context.reason)
+    return {}
+
+  const attributes: Attributes = {
+    'api.error_reason': context.reason,
+  }
+
+  if (context.reason === 'timeout') {
+    const timeoutMs = normalizeApiDuration(context.timeoutMs)
+    if (timeoutMs !== undefined) {
+      attributes['api.timeout_ms'] = timeoutMs
+      attributes['error.message'] = `Request exceeded the ${timeoutMs} ms client timeout`
+    }
+  }
+
+  return attributes
+}
+
 function classifyApiError(context: ApiErrorTelemetry): ApiErrorClassification {
   if (context.expected !== undefined)
     return context.expected ? 'expected' : 'unexpected'
@@ -447,6 +469,7 @@ export function recordApiError(context: ApiErrorTelemetry): void {
   const classification = classifyApiError(enrichedContext)
   const attributes = {
     ...buildApiAttributes(enrichedContext, classification),
+    ...buildApiErrorReasonAttributes(enrichedContext),
     'error.type': extractErrorName(context.error),
     ...userAttributes,
   }
@@ -459,7 +482,7 @@ export function recordApiError(context: ApiErrorTelemetry): void {
     classification,
     safeError,
   )
-  if (classification === 'unexpected')
+  if (classification === 'unexpected' || enrichedContext.reason === 'timeout')
     emitApiErrorLog(attributes, classification)
   apiErrorCounter?.add(1, {
     classification,

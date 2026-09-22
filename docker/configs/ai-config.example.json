@@ -56,6 +56,10 @@
       "input": 14.1,
       "output": 14.1
     },
+    "qwen-audio-3.0-tts-plus": {
+      "input": 19.7,
+      "output": 19.7
+    },
     "whisper-large-v3": {
       "input": 0.111,
       "output": 0.111
