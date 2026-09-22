@@ -74,6 +74,14 @@ const SEVERITY_INFO = 9
 const SEVERITY_WARN = 13
 const SEVERITY_ERROR = 17
 
+// High-volume product events remain available through app.events, but do not
+// pollute the operational log stream. Their useful dimensions are better
+// explored as metrics or dedicated analytics data than as individual logs.
+const METRIC_ONLY_EVENT_NAMES = new Set<string>([
+  'page_view',
+  'page_analysis_started',
+])
+
 export type ApiTransport = 'browser' | 'tauri' | 'unknown'
 export type ApiErrorClassification = 'expected' | 'unexpected'
 
@@ -428,7 +436,7 @@ export function recordApiRequest(context: ApiRequestTelemetry): void {
   }
 }
 
-/** Records a structured API failure while keeping expected failures visible as warnings. */
+/** Records unexpected API failures as logs and all failures as metrics. */
 export function recordApiError(context: ApiErrorTelemetry): void {
   if (!enabled)
     return
@@ -451,7 +459,8 @@ export function recordApiError(context: ApiErrorTelemetry): void {
     classification,
     safeError,
   )
-  emitApiErrorLog(attributes, classification)
+  if (classification === 'unexpected')
+    emitApiErrorLog(attributes, classification)
   apiErrorCounter?.add(1, {
     classification,
     ...apiMetricAttributes(enrichedContext),
@@ -760,16 +769,18 @@ export function trackEvent(name: TelemetryEventName, attributes?: Record<string,
   if (!enabled)
     return
 
-  otelLogger.emit({
-    body: name,
-    severityNumber: SEVERITY_INFO,
-    severityText: 'INFO',
-    attributes: {
-      event_name: name,
-      ...userAttributes,
-      ...stringifyAttributes(attributes),
-    },
-  })
+  if (!METRIC_ONLY_EVENT_NAMES.has(name)) {
+    otelLogger.emit({
+      body: name,
+      severityNumber: SEVERITY_INFO,
+      severityText: 'INFO',
+      attributes: {
+        event_name: name,
+        ...userAttributes,
+        ...stringifyAttributes(attributes),
+      },
+    })
+  }
 
   eventCounter?.add(1, {
     event_name: name,

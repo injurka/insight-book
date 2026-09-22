@@ -12,14 +12,6 @@ if (!existsSync(defaultPath)) {
 
 export const CONFIG_PATH = process.env.AI_CONFIG_PATH || defaultPath
 
-// Логируем один раз при старте сервера
-if (existsSync(CONFIG_PATH)) {
-  logger.info(`🤖 AI Config loaded from: ${CONFIG_PATH}`)
-}
-else {
-  logger.info(`⚠️ AI Config file not found at ${CONFIG_PATH}, using defaults/env.`)
-}
-
 export interface ModelPrice {
   input: number
   output: number
@@ -74,4 +66,27 @@ export function getAiConfig() {
     },
     pricing: (fileConfig.pricing || {}) as Record<string, ModelPrice>,
   }
+}
+
+function redactSecret(value: string): string {
+  return value ? '[REDACTED]' : '[EMPTY]'
+}
+
+function sanitizeAiConfig(config: ReturnType<typeof getAiConfig>) {
+  return {
+    ...config,
+    llm: { ...config.llm, key: redactSecret(config.llm.key) },
+    tts: { ...config.tts, key: redactSecret(config.tts.key) },
+    stt: { ...config.stt, key: redactSecret(config.stt.key) },
+    ocr: { ...config.ocr, key: redactSecret(config.ocr.key) },
+  }
+}
+
+// Логируем эффективную конфигурацию один раз при старте сервера.
+// API-ключи выводятся только в редактированном виде.
+if (existsSync(CONFIG_PATH)) {
+  logger.info({ aiConfig: sanitizeAiConfig(getAiConfig()) }, `🤖 AI Config loaded from: ${CONFIG_PATH}`)
+}
+else {
+  logger.info({ aiConfig: sanitizeAiConfig(getAiConfig()) }, `⚠️ AI Config file not found at ${CONFIG_PATH}, using defaults/env.`)
 }

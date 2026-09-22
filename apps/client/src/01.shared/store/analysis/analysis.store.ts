@@ -714,14 +714,6 @@ export const useAnalysisStore = defineStore('analysis', () => {
     if (readerStore.currentBook.language === settingsStore.appLanguage)
       return
 
-    trackEvent('page_analysis_started', {
-      sentences: options.sentences,
-      words: options.words,
-      ttsSentences: options.ttsSentences,
-      ttsWords: options.ttsWords,
-      isBackground,
-    })
-
     if (!setupPageAnalysisState(isBackground))
       return
 
@@ -756,6 +748,18 @@ export const useAnalysisStore = defineStore('analysis', () => {
 
       return
     }
+
+    trackEvent('page_analysis_started', {
+      bookId: readerStore.currentBook.id,
+      pageNum: readerStore.currentPage.pageNum,
+      sentences: options.sentences,
+      words: options.words,
+      ttsSentences: options.ttsSentences,
+      ttsWords: options.ttsWords,
+      isBackground,
+      analysisItems: totalAnalysisItems,
+      ttsItems: totalTtsItems,
+    })
 
     initPageAnalysisProgress(
       sentences,

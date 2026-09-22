@@ -8,11 +8,17 @@ interface ElysiaApp {
 
 const IDLE_TIMEOUT = 255
 const DEFAULT_MAX_REQUEST_BODY_SIZE_MB = 512
+const DEFAULT_HTTP_SLOW_REQUEST_MS = 500
 const configuredMaxRequestBodySizeMb = Number.parseInt(process.env.MAX_REQUEST_BODY_SIZE_MB || '', 10)
 const MAX_REQUEST_BODY_SIZE_MB = configuredMaxRequestBodySizeMb > 0 && configuredMaxRequestBodySizeMb <= 1024
   ? configuredMaxRequestBodySizeMb
   : DEFAULT_MAX_REQUEST_BODY_SIZE_MB
 const MAX_REQUEST_BODY_SIZE = MAX_REQUEST_BODY_SIZE_MB * 1024 * 1024
+const configuredHttpSlowRequestMs = Number.parseInt(process.env.HTTP_SLOW_REQUEST_MS || '', 10)
+const HTTP_SLOW_REQUEST_MS = configuredHttpSlowRequestMs >= 0
+  ? configuredHttpSlowRequestMs
+  : DEFAULT_HTTP_SLOW_REQUEST_MS
+const LOG_ALL_HTTP_REQUESTS = process.env.HTTP_ACCESS_LOG === 'all'
 
 function getOrigin(req: Request): string | null {
   return req.headers.get('Origin') || req.headers.get('origin')
@@ -44,10 +50,28 @@ function createFetchHandler(app: ElysiaApp) {
 
     return app.handle(req).then((res) => {
       const url = new URL(req.url).pathname
-      const duration = (performance.now() - startTime).toFixed(1)
+      const durationMs = performance.now() - startTime
 
       if (!url.startsWith('/health')) {
-        logger.info(`[HTTP] ${req.method} ${url} ${res.status} - ${duration}ms`)
+        const fields = {
+          method: req.method,
+          path: url,
+          status: res.status,
+          duration_ms: Number(durationMs.toFixed(1)),
+        }
+        const shouldLog = LOG_ALL_HTTP_REQUESTS || res.status >= 400 || durationMs >= HTTP_SLOW_REQUEST_MS
+
+        if (shouldLog) {
+          if (res.status >= 500)
+            logger.error(fields, '[HTTP]')
+          else if (res.status >= 400)
+            logger.warn(fields, '[HTTP]')
+          else
+            logger.info(fields, '[HTTP]')
+        }
+        else {
+          logger.debug(fields, '[HTTP]')
+        }
       }
 
       return withCors(res, origin, requestHeaders)

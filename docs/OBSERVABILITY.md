@@ -14,27 +14,31 @@ manual client span because `@tauri-apps/plugin-http` does not go through the
 browser `fetch` implementation. Both transports propagate W3C `traceparent`
 to the API.
 
-API errors are emitted as a structured log with body `api.request.error` and
-these attributes:
+Unexpected API errors are emitted as a structured log with body
+`api.request.error` and these attributes:
 
 - `http.method`
 - `url.path` (query strings and identifier-like path segments are redacted)
 - `http.status_code`
 - `api.error_code`
-- `api.error_classification=expected|unexpected`
+- `api.error_classification=unexpected`
 - `api.transport=browser|tauri`
 - `app.feature`
 - `api.duration_ms`
 
-Expected errors remain visible with WARN severity. They include cancelled or
-offline requests and ordinary `401` session checks. Unexpected API failures
-use ERROR severity and mark the active span as failed.
+Expected errors remain available through `app.api.errors`, but are not emitted
+as individual log records. They include cancelled or offline requests and
+ordinary `401` session checks. Unexpected API failures use ERROR severity and
+mark the active span as failed.
 
 The client also exports:
 
 - `app.api.requests` — completed API calls;
 - `app.api.errors` — API failures by classification;
 - `app.api.duration` — API duration histogram.
+- `app.events` — product-event counter. High-volume `page_view` and
+  `page_analysis_started` events are metrics-only and do not pollute the log
+  stream.
 
 Useful SigNoz views are:
 
@@ -49,6 +53,13 @@ Useful SigNoz views are:
 The repository configures the client signals and attributes; dashboards and
 alerts are SigNoz-side resources and still need to be created in the target
 SigNoz installation.
+
+## Server access logs
+
+The server keeps HTTP access logs for errors and requests slower than 500 ms.
+Fast successful requests are sent at DEBUG level, so they are hidden by the
+default production log level. Set `HTTP_ACCESS_LOG=all` to restore every
+request, or change `HTTP_SLOW_REQUEST_MS` to adjust the threshold.
 
 ## This deployment
 
