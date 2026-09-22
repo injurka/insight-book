@@ -10,7 +10,7 @@ export const catalogRouter = new Elysia({ prefix: '/api/catalog/plugins' })
   .use(cachePlugin)
   .get('/', async () => {
     return catalogPluginService.getPlugins()
-  }, { cache: 'mediumPublic' })
+  }, { cache: 'shortPrivate' })
   .get('/my', async ({ userId }) => {
     return catalogPluginService.getMyPlugins(userId)
   })
@@ -29,12 +29,12 @@ export const catalogRouter = new Elysia({ prefix: '/api/catalog/plugins' })
       'Content-Type': getPluginContentType(storageKey),
     }
     return Buffer.from(fileData.buffer)
-  }, { cache: 'hourPublic' })
+  }, { cache: 'shortPrivate' })
   .get('/:id', async ({ params }) => {
     return catalogPluginService.getPlugin(params.id)
   }, {
     params: t.Object({ id: t.String() }),
-    cache: 'mediumPublic',
+    cache: 'shortPrivate',
   })
   .post('/upload', async ({ body, userId }) => {
     return catalogPluginService.uploadPlugin(userId, body.file)

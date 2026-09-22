@@ -14,7 +14,25 @@ const pluginsStore = usePluginsStore()
       {{ t('settings.moderationTitle', 'Модерация') }}
     </h3>
 
-    <div v-if="pluginsStore.pendingPlugins.length === 0" class="empty-state">
+    <div v-if="pluginsStore.isPendingPluginsLoading" class="status-state" role="status">
+      <Icon icon="mdi:loading" class="status-icon status-icon--loading" />
+      <p>{{ t('settings.loadingPlugins', 'Загрузка списка плагинов...') }}</p>
+    </div>
+
+    <div v-else-if="pluginsStore.pendingPluginsError" class="status-state status-state--error" role="alert">
+      <Icon icon="mdi:alert-circle-outline" class="status-icon" />
+      <p>{{ t('settings.pluginsLoadError', 'Не удалось загрузить список плагинов') }}</p>
+      <KitBtn
+        variant="tonal"
+        size="sm"
+        icon="mdi:refresh"
+        @click="pluginsStore.refreshPendingPlugins()"
+      >
+        {{ t('network.retryBtn', 'Повторить попытку') }}
+      </KitBtn>
+    </div>
+
+    <div v-else-if="pluginsStore.pendingPlugins.length === 0" class="empty-state">
       <Icon icon="mdi:shield-check-outline" class="empty-icon" />
       <p>{{ t('settings.noPendingPlugins', 'Нет плагинов на модерации') }}</p>
     </div>
@@ -100,6 +118,42 @@ const pluginsStore = usePluginsStore()
   p {
     margin: 0;
     font-size: 0.9rem;
+  }
+}
+
+.status-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 32px;
+  background: var(--bg-secondary-color);
+  border-radius: 12px;
+  border: 1px solid var(--border-secondary-color);
+  color: var(--fg-secondary-color);
+  text-align: center;
+
+  p {
+    margin: 0;
+    font-size: 0.9rem;
+  }
+}
+
+.status-state--error {
+  color: var(--fg-error-color, #b94a48);
+}
+
+.status-icon {
+  font-size: 2rem;
+}
+
+.status-icon--loading {
+  animation: plugin-list-spin 1s linear infinite;
+}
+
+@keyframes plugin-list-spin {
+  to {
+    transform: rotate(360deg);
   }
 }
 

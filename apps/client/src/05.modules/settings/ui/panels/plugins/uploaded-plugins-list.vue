@@ -20,11 +20,33 @@ function statusLabel(status: CatalogPluginRecord['status']) {
 </script>
 
 <template>
-  <div v-if="pluginsStore.myUploadedPlugins.length > 0" class="section-group">
+  <div
+    v-if="pluginsStore.isMyUploadedPluginsLoading || pluginsStore.myUploadedPluginsError || pluginsStore.myUploadedPlugins.length > 0"
+    class="section-group"
+  >
     <h3 class="group-title">
       {{ t('settings.myUploadedPlugins', 'Мои загруженные плагины') }}
     </h3>
-    <div class="plugins-list">
+
+    <div v-if="pluginsStore.isMyUploadedPluginsLoading" class="status-state" role="status">
+      <Icon icon="mdi:loading" class="status-icon status-icon--loading" />
+      <p>{{ t('settings.loadingPlugins', 'Загрузка списка плагинов...') }}</p>
+    </div>
+
+    <div v-else-if="pluginsStore.myUploadedPluginsError" class="status-state status-state--error" role="alert">
+      <Icon icon="mdi:alert-circle-outline" class="status-icon" />
+      <p>{{ t('settings.pluginsLoadError', 'Не удалось загрузить список плагинов') }}</p>
+      <KitBtn
+        variant="tonal"
+        size="sm"
+        icon="mdi:refresh"
+        @click="pluginsStore.refreshMyUploadedPlugins()"
+      >
+        {{ t('network.retryBtn', 'Повторить попытку') }}
+      </KitBtn>
+    </div>
+
+    <div v-else class="plugins-list">
       <div v-for="record in pluginsStore.myUploadedPlugins" :key="record.id" class="plugin-card">
         <div class="plugin-icon">
           <Icon :icon="record.icon || 'mdi:puzzle-outline'" />
@@ -72,6 +94,42 @@ function statusLabel(status: CatalogPluginRecord['status']) {
   display: flex;
   flex-direction: column;
   gap: 16px;
+}
+
+.status-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 32px;
+  background: var(--bg-secondary-color);
+  border-radius: 12px;
+  border: 1px solid var(--border-secondary-color);
+  color: var(--fg-secondary-color);
+  text-align: center;
+
+  p {
+    margin: 0;
+    font-size: 0.9rem;
+  }
+}
+
+.status-state--error {
+  color: var(--fg-error-color, #b94a48);
+}
+
+.status-icon {
+  font-size: 2rem;
+}
+
+.status-icon--loading {
+  animation: plugin-list-spin 1s linear infinite;
+}
+
+@keyframes plugin-list-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .plugin-card {

@@ -1,4 +1,4 @@
-import type { DashboardStats, PaginatedResponse, PendingBook, PendingPlugin, PublicBook, SubscriptionTier, SubscriptionTierInput, UserDetail, UserRow } from '~/01.shared/types/models'
+import type { CatalogPlugin, DashboardStats, PaginatedResponse, PendingBook, PendingPlugin, PublicBook, SubscriptionTier, SubscriptionTierInput, UserDetail, UserRow } from '~/01.shared/types/models'
 import { api } from '~/01.shared/lib/api'
 
 export interface IAdminRepository {
@@ -17,7 +17,9 @@ export interface IAdminRepository {
   deleteBook: (id: number) => Promise<{ success: boolean }>
   setBookStatus: (id: number, status: 'approved' | 'rejected') => Promise<{ success: boolean }>
   pendingPlugins: () => Promise<PendingPlugin[]>
+  listPlugins: (status?: string) => Promise<CatalogPlugin[]>
   setPluginStatus: (id: string, status: 'approved' | 'rejected') => Promise<Record<string, unknown>>
+  deletePlugin: (id: string) => Promise<{ success: boolean }>
   downloadPlugin: (id: string) => Promise<Blob>
 }
 
@@ -37,7 +39,9 @@ export class DefaultAdminRepository implements IAdminRepository {
   async deleteBook(id: number) { return api.admin.deleteBook(id) }
   async setBookStatus(id: number, status: 'approved' | 'rejected') { return api.admin.setBookStatus(id, status) }
   async pendingPlugins() { return api.admin.pendingPlugins() }
+  async listPlugins(status?: string) { return api.admin.listPlugins(status) }
   async setPluginStatus(id: string, status: 'approved' | 'rejected') { return api.admin.setPluginStatus(id, status) }
+  async deletePlugin(id: string) { return api.admin.deletePlugin(id) }
   async downloadPlugin(id: string) { return api.admin.downloadPlugin(id) }
 }
 

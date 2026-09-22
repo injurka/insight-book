@@ -36,6 +36,8 @@ export const usePluginsStore = defineStore('settings-plugins', () => {
   // --- QUERY: Мои загруженные в каталог плагины ---
   const {
     data: myUploadedPluginsData,
+    isLoading: isMyUploadedPluginsLoading,
+    error: myUploadedPluginsError,
     refetch: refetchMyUploadedPlugins,
   } = useQuery<CatalogPluginRecord[]>({
     key: queryKeys.plugins.catalogMine,
@@ -46,6 +48,8 @@ export const usePluginsStore = defineStore('settings-plugins', () => {
   // --- QUERY: Плагины на модерации (только админ) ---
   const {
     data: pendingPluginsData,
+    isLoading: isPendingPluginsLoading,
+    error: pendingPluginsError,
     refetch: refetchPendingPlugins,
   } = useQuery<CatalogPluginRecord[]>({
     key: queryKeys.plugins.catalogPending,
@@ -184,6 +188,8 @@ export const usePluginsStore = defineStore('settings-plugins', () => {
     onSuccess() {
       toast.success(t('settings.uploadPluginSuccess', 'Плагин отправлен на рассмотрение'))
       refetchMyUploadedPlugins()
+      if (isAdmin.value)
+        refetchPendingPlugins()
     },
     onError(err) {
       console.error('Failed to upload plugin:', err)
@@ -205,12 +211,14 @@ export const usePluginsStore = defineStore('settings-plugins', () => {
 
   // --- MUTATION: Удаление плагина из каталога ---
   const { mutateAsync: deleteCatalogPluginMutation } = useMutation({
-    mutation: async (id: number) => repos.catalogPlugin.delete(id),
+    mutation: async (id: string) => repos.catalogPlugin.delete(id),
     onSuccess() {
       toast.success(t('settings.catalogPluginDeleted', 'Плагин удалён из каталога'))
       refetchMyUploadedPlugins()
       if (isAdmin.value)
         refetchPendingPlugins()
+      if (isCatalogRequested.value)
+        refetchCatalogPlugins()
     },
     onError(err) {
       console.error('Failed to delete catalog plugin:', err)
@@ -218,7 +226,7 @@ export const usePluginsStore = defineStore('settings-plugins', () => {
     },
   })
 
-  async function deleteCatalogPlugin(id: number) {
+  async function deleteCatalogPlugin(id: string) {
     try {
       await deleteCatalogPluginMutation(id)
     }
@@ -227,11 +235,14 @@ export const usePluginsStore = defineStore('settings-plugins', () => {
 
   // --- MUTATION: Модерация плагина каталога ---
   const { mutateAsync: moderatePluginMutation } = useMutation({
-    mutation: async ({ id, status }: { id: number, status: 'approved' | 'rejected' }) =>
+    mutation: async ({ id, status }: { id: string, status: 'approved' | 'rejected' }) =>
       repos.catalogPlugin.updateStatus(id, status),
     onSuccess() {
       toast.success(t('settings.catalogPluginStatusUpdated', 'Статус плагина обновлён'))
       refetchPendingPlugins()
+      refetchMyUploadedPlugins()
+      if (isCatalogRequested.value)
+        refetchCatalogPlugins()
     },
     onError(err) {
       console.error('Failed to moderate plugin:', err)
@@ -251,7 +262,13 @@ export const usePluginsStore = defineStore('settings-plugins', () => {
     remotePlugins,
     isRemotePluginsLoading,
     myUploadedPlugins,
+    isMyUploadedPluginsLoading,
+    myUploadedPluginsError,
+    refreshMyUploadedPlugins: refetchMyUploadedPlugins,
     pendingPlugins,
+    isPendingPluginsLoading,
+    pendingPluginsError,
+    refreshPendingPlugins: refetchPendingPlugins,
     catalogPlugins,
     isCatalogLoading,
     isInstallingPlugin,

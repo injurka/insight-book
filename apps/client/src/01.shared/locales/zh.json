@@ -217,6 +217,8 @@
     "uploadPluginFailed": "插件上传失败",
     "uploadConfirm": "提交审核",
     "myUploadedPlugins": "我上传的插件",
+    "loadingPlugins": "正在加载插件列表...",
+    "pluginsLoadError": "无法加载插件列表",
     "pluginStatusPending": "审核中",
     "pluginStatusApproved": "已批准",
     "pluginStatusRejected": "已拒绝",

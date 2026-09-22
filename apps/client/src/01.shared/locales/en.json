@@ -217,6 +217,8 @@
     "uploadPluginFailed": "Failed to upload the plugin",
     "uploadConfirm": "Send for review",
     "myUploadedPlugins": "My uploaded plugins",
+    "loadingPlugins": "Loading plugin list...",
+    "pluginsLoadError": "Failed to load the plugin list",
     "pluginStatusPending": "Pending review",
     "pluginStatusApproved": "Approved",
     "pluginStatusRejected": "Rejected",

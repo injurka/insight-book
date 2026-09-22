@@ -261,7 +261,7 @@ export const api = {
       fd.append('file', file)
 
       return request<{ success: boolean, avatarUrl: string }>('/api/auth/me/avatar', {
-        method: 'PATCH',
+        method: 'PUT',
         body: fd,
       })
     },
@@ -684,13 +684,13 @@ export const api = {
         body: fd,
       })
     },
-    updateStatus: async (id: number, status: 'approved' | 'rejected') =>
+    updateStatus: async (id: string, status: 'approved' | 'rejected') =>
       request<CatalogPluginRecord>(`/api/catalog/plugins/${id}/status`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status }),
       }),
-    delete: async (id: number) =>
+    delete: async (id: string) =>
       request<{ success: boolean }>(`/api/catalog/plugins/${id}`, { method: 'DELETE' }),
   },
 
@@ -717,7 +717,7 @@ export const api = {
       request<unknown>('/api/push/vapid-public-key'),
     updateSettings: async (settings: { targetDeckId: number | 'all', timeStart: string, timeEnd: string, timezone: string, uiLanguage: string, pushCount: number }) =>
       request<void>('/api/push/settings', {
-        method: 'PATCH',
+        method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(settings),
       }),

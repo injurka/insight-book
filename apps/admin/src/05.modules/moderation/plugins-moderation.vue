@@ -61,10 +61,17 @@ onMounted(() => load())
 
 <template>
   <div>
-    <h1 class="moderation__title">
-      <Icon icon="mdi:puzzle" class="moderation__title-icon" />
-      <span>Плагины на модерацию</span>
-    </h1>
+    <div class="moderation__header">
+      <h1 class="moderation__title">
+        <Icon icon="mdi:puzzle" class="moderation__title-icon" />
+        <span>Плагины на модерацию</span>
+      </h1>
+
+      <RouterLink to="/plugins" class="moderation__catalog-link">
+        <Icon icon="mdi:puzzle-outline" />
+        <span>Каталог плагинов</span>
+      </RouterLink>
+    </div>
 
     <KitError v-if="error" :message="error" />
     <div v-if="actionMsg" class="moderation__success">
@@ -175,17 +182,27 @@ onMounted(() => load())
     </table>
 
     <div v-if="!loading && !plugins.length && !error" class="moderation__empty">
-      Нет плагинов на модерации
+      <p>Нет плагинов на модерации</p>
+      <RouterLink to="/plugins" class="moderation__empty-link">
+        Перейти в каталог плагинов
+      </RouterLink>
     </div>
   </div>
 </template>
 
 <style scoped>
+.moderation__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+}
+
 .moderation__title {
   font-size: 24px;
   font-weight: 600;
   color: var(--fg-primary-color, #4a443c);
-  margin-bottom: 24px;
+  margin-bottom: 0;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -193,6 +210,37 @@ onMounted(() => load())
 .moderation__title-icon {
   color: var(--fg-accent-color, #4b8266);
   font-size: 28px;
+}
+.moderation__catalog-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--fg-accent-color, #4b8266);
+  background: var(--bg-secondary-color, #e8e2d9);
+  border: 1px solid var(--border-secondary-color, #d9d1c7);
+  padding: 6px 12px;
+  border-radius: 6px;
+  text-decoration: none;
+  transition:
+    background-color 0.15s,
+    border-color 0.15s;
+}
+.moderation__catalog-link:hover {
+  background: var(--bg-tertiary-color, #d9d1c7);
+  border-color: var(--border-primary-color, #c7c0b6);
+}
+.moderation__empty-link {
+  display: inline-block;
+  margin-top: 12px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--fg-accent-color, #4b8266);
+  text-decoration: none;
+}
+.moderation__empty-link:hover {
+  text-decoration: underline;
 }
 .moderation__success {
   color: var(--fg-success-color, #4b8266);

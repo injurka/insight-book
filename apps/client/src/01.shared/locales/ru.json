@@ -217,6 +217,8 @@
     "uploadPluginFailed": "Не удалось загрузить плагин",
     "uploadConfirm": "Отправить на рассмотрение",
     "myUploadedPlugins": "Мои загруженные плагины",
+    "loadingPlugins": "Загрузка списка плагинов...",
+    "pluginsLoadError": "Не удалось загрузить список плагинов",
     "pluginStatusPending": "На рассмотрении",
     "pluginStatusApproved": "Одобрен",
     "pluginStatusRejected": "Отклонён",

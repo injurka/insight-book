@@ -1,4 +1,4 @@
-import type { CATALOG_PLUGIN_STATUS } from '../constants/catalog-plugin'
+import type { CatalogPluginStatus } from '../constants/catalog-plugin'
 import { Elysia, t } from 'elysia'
 import { adminService } from '../services/admin.service'
 import { subscriptionTierService } from '../services/subscription-tier.service'
@@ -155,7 +155,22 @@ export const adminRouter = new Elysia({ prefix: '/api/admin' })
     }),
   })
 
-  // ─── Plugin Moderation (delegates to existing catalog) ──────
+  // ─── Plugin Moderation & Catalog Management ──────
+  .get('/plugins', async ({ userId, query }) => {
+    const { catalogPluginService } = await import('../services/catalog-plugin.service')
+    const status = query.status && query.status !== 'all' ? query.status : undefined
+    return catalogPluginService.listPlugins(userId, status)
+  }, {
+    query: t.Object({
+      status: t.Optional(t.Union([
+        t.Literal('all'),
+        t.Literal('pending'),
+        t.Literal('approved'),
+        t.Literal('rejected'),
+      ])),
+    }),
+  })
+
   .get('/plugins/pending', async ({ userId }) => {
     // Reuse the existing catalog plugin service's pending check
     const { catalogPluginService } = await import('../services/catalog-plugin.service')
@@ -164,12 +179,19 @@ export const adminRouter = new Elysia({ prefix: '/api/admin' })
 
   .patch('/plugins/:id/status', async ({ userId, params, body }) => {
     const { catalogPluginService } = await import('../services/catalog-plugin.service')
-    return catalogPluginService.setPluginStatus(userId, params.id, body.status as typeof CATALOG_PLUGIN_STATUS.APPROVED | typeof CATALOG_PLUGIN_STATUS.REJECTED)
+    return catalogPluginService.setPluginStatus(userId, params.id, body.status as Extract<CatalogPluginStatus, 'approved' | 'rejected'>)
   }, {
     params: t.Object({ id: t.String() }),
     body: t.Object({
       status: t.Union([t.Literal('approved'), t.Literal('rejected')]),
     }),
+  })
+
+  .delete('/plugins/:id', async ({ userId, params }) => {
+    const { catalogPluginService } = await import('../services/catalog-plugin.service')
+    return catalogPluginService.deletePlugin(userId, params.id)
+  }, {
+    params: t.Object({ id: t.String() }),
   })
 
   .get('/plugins/:id/download', async ({ userId, params, set }) => {

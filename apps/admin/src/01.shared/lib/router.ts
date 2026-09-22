@@ -71,6 +71,12 @@ export const router = createRouter({
       component: () => import('~/07.views/plugins-pending.vue'),
       meta: { requiresAuth: true },
     },
+    {
+      path: '/plugins',
+      name: 'plugins-catalog',
+      component: () => import('~/07.views/plugins-catalog.vue'),
+      meta: { requiresAuth: true },
+    },
   ],
 })
 

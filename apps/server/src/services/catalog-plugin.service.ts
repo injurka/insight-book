@@ -59,6 +59,11 @@ export class CatalogPluginService {
     return this.catalogRepo.findMany(CATALOG_PLUGIN_STATUS.PENDING)
   }
 
+  async listPlugins(userId: number, status?: CatalogPluginStatus) {
+    await this.assertAdmin(userId)
+    return this.catalogRepo.findMany(status)
+  }
+
   async setPluginStatus(userId: number, pluginId: string, status: CatalogPluginStatus) {
     await this.assertAdmin(userId)
 
@@ -73,7 +78,7 @@ export class CatalogPluginService {
 
   async getPlugin(pluginId: string) {
     const plugin = await this.catalogRepo.findOne(pluginId)
-    if (!plugin) {
+    if (!plugin || plugin.status !== CATALOG_PLUGIN_STATUS.APPROVED) {
       throw new AppError(404, ERROR_CODES.PLUGIN.NOT_FOUND, 'Plugin not found in catalog')
     }
     return plugin
@@ -239,6 +244,19 @@ export class CatalogPluginService {
     if (storageKey.includes('..')) {
       throw new AppError(400, ERROR_CODES.SYSTEM.VALIDATION_ERROR, 'Invalid path')
     }
+
+    const pathParts = storageKey.split('/')
+    const pluginId = pathParts[1]
+    const version = pathParts[2]
+    if (pathParts[0] !== 'plugins' || pathParts.length < 4 || !pluginId || !version) {
+      throw new AppError(400, ERROR_CODES.SYSTEM.VALIDATION_ERROR, 'Invalid plugin path')
+    }
+
+    const plugin = await this.catalogRepo.findOne(pluginId)
+    if (!plugin || plugin.status !== CATALOG_PLUGIN_STATUS.APPROVED || plugin.version !== version) {
+      return null
+    }
+
     return storageService.getFile(storageKey)
   }
 

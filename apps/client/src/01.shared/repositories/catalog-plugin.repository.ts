@@ -9,8 +9,8 @@ export interface ICatalogPluginRepository {
   getMy: () => Promise<CatalogPluginRecord[]>
   getPending: () => Promise<CatalogPluginRecord[]>
   upload: (file: File) => Promise<CatalogPluginRecord>
-  updateStatus: (id: number, status: 'approved' | 'rejected') => Promise<CatalogPluginRecord>
-  delete: (id: number) => Promise<{ success: boolean }>
+  updateStatus: (id: string, status: 'approved' | 'rejected') => Promise<CatalogPluginRecord>
+  delete: (id: string) => Promise<{ success: boolean }>
 }
 
 export class DefaultCatalogPluginRepository implements ICatalogPluginRepository {
@@ -36,11 +36,11 @@ export class DefaultCatalogPluginRepository implements ICatalogPluginRepository 
     return api.catalogPlugins.upload(file)
   }
 
-  async updateStatus(id: number, status: 'approved' | 'rejected') {
+  async updateStatus(id: string, status: 'approved' | 'rejected') {
     return api.catalogPlugins.updateStatus(id, status)
   }
 
-  async delete(id: number) {
+  async delete(id: string) {
     return api.catalogPlugins.delete(id)
   }
 }

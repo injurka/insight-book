@@ -12,7 +12,7 @@ const visible = defineModel<boolean>('visible', { required: true })
 const { t } = useI18n()
 const pluginsStore = usePluginsStore()
 
-const installingCatalogId = ref<number | null>(null)
+const installingCatalogId = ref<string | null>(null)
 
 watch(visible, (isOpen) => {
   if (isOpen)

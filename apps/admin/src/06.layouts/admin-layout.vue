@@ -20,6 +20,7 @@ const navLinks = [
   { to: '/books/pending', label: 'Книги на модерацию', icon: 'mdi:book-open-variant' },
   { to: '/books/public', label: 'Публичные книги', icon: 'mdi:book-multiple' },
   { to: '/plugins/pending', label: 'Плагины на модерацию', icon: 'mdi:puzzle' },
+  { to: '/plugins', label: 'Каталог плагинов', icon: 'mdi:puzzle-outline' },
 ]
 
 function handleLogout() {

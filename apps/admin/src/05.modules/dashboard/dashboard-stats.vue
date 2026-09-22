@@ -55,6 +55,10 @@ onMounted(async () => {
         <Icon icon="mdi:puzzle" class="dashboard-stats__link-icon" />
         <span>Модерация плагинов</span>
       </RouterLink>
+      <RouterLink to="/plugins" class="dashboard-stats__link">
+        <Icon icon="mdi:puzzle-outline" class="dashboard-stats__link-icon" />
+        <span>Каталог плагинов</span>
+      </RouterLink>
     </div>
   </div>
 </template>

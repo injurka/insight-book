@@ -350,7 +350,7 @@ export interface UserPluginRecord {
 }
 
 export interface CatalogPluginRecord {
-  id: number
+  id: string
   name: string
   version: string
   description?: string | null
@@ -359,7 +359,7 @@ export interface CatalogPluginRecord {
   sourceUrl?: string | null
   manifestUrl: string
   status: 'pending' | 'approved' | 'rejected'
-  uploadedBy: number
+  uploadedBy?: number | null
   createdAt: string
   updatedAt: string
 }

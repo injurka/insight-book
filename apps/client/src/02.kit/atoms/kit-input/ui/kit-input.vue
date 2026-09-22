@@ -227,8 +227,6 @@ function clear() {
   }
 
   &:focus-visible {
-    outline: 2px solid var(--fg-accent-color);
-    outline-offset: 1px;
     border-color: var(--fg-accent-color);
   }
 

@@ -1,4 +1,4 @@
-import type { DashboardStats, LoginResponse, MeResponse, PaginatedResponse, PendingBook, PendingPlugin, PublicBook, SubscriptionTier, SubscriptionTierInput, UserDetail, UserRow } from '~/01.shared/types/models'
+import type { CatalogPlugin, DashboardStats, LoginResponse, MeResponse, PaginatedResponse, PendingBook, PendingPlugin, PublicBook, SubscriptionTier, SubscriptionTierInput, UserDetail, UserRow } from '~/01.shared/types/models'
 import { ofetch } from 'ofetch'
 
 import { API_URL } from '~/01.shared/lib/env'
@@ -126,12 +126,18 @@ export const api = {
     pendingPlugins: () =>
       request<PendingPlugin[]>('/api/admin/plugins/pending'),
 
+    listPlugins: (status?: string) =>
+      request<CatalogPlugin[]>(status ? `/api/admin/plugins?status=${encodeURIComponent(status)}` : '/api/admin/plugins'),
+
     setPluginStatus: (id: string, status: 'approved' | 'rejected') =>
       request<Record<string, unknown>>(`/api/admin/plugins/${id}/status`, {
         method: 'PATCH',
         body: JSON.stringify({ status }),
         headers: { 'Content-Type': 'application/json' },
       }),
+
+    deletePlugin: (id: string) =>
+      request<{ success: boolean }>(`/api/admin/plugins/${id}`, { method: 'DELETE' }),
 
     downloadPlugin: (id: string) =>
       request<Blob, 'blob'>(`/api/admin/plugins/${id}/download`, {
