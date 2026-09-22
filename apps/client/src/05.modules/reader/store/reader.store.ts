@@ -189,9 +189,8 @@ export const useReaderStore = defineStore('reader', () => {
     analysisStore.sidebarOpen = false
   }
 
-  async function fetchAndApplyPageData(bookId: number, pageNum: number, seq: number) {
+  async function fetchPage(bookId: number, pageNum: number): Promise<PagePayload> {
     const analysisStore = useAnalysisStore()
-    const settingsStore = useGlobalSettingsStore()
 
     const [newPage, newDict] = await Promise.all([
       repos.book.getPage(bookId, pageNum),
@@ -204,19 +203,29 @@ export const useReaderStore = defineStore('reader', () => {
     const page = { ...newPage }
     await resolveMangaImage(page)
 
+    if (newDict) {
+      Object.assign(currentPageDictionary.value, newDict)
+    }
+
+    if (currentBook.value)
+      void analysisStore.prewarmPageAnalysis(currentBook.value, page)
+
+    return page
+  }
+
+  async function fetchAndApplyPageData(bookId: number, pageNum: number, seq: number) {
+    const analysisStore = useAnalysisStore()
+    const settingsStore = useGlobalSettingsStore()
+
+    const page = await fetchPage(bookId, pageNum)
+
     if (seq !== loadPageSeq)
       return
 
     currentPage.value = page
-    currentPageDictionary.value = newDict || {}
 
     trackEvent('page_loaded', { bookId, pageNum, type: page?.type })
     triggerAutoAnalysis(settingsStore, analysisStore)
-
-    // Прогреваем локальный кэш анализа словами страницы из серверного кэша (без LLM).
-    // Не блокирует рендер; клик по слову до завершения преворма идёт обычным путём.
-    if (currentBook.value)
-      void analysisStore.prewarmPageAnalysis(currentBook.value, page)
   }
 
   async function loadPage(bookId: number, pageNum: number) {
@@ -322,7 +331,9 @@ export const useReaderStore = defineStore('reader', () => {
     targetPageNum,
     displayPageNum,
     fetchToc,
+    fetchPage,
     loadPage,
+    updateReadingProgress,
     openBook,
     openBookById,
   }

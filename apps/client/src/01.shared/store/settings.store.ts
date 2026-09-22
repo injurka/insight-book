@@ -56,6 +56,7 @@ export const useGlobalSettingsStore = defineStore('globalSettings', () => {
 
   const highlightSavedQuotes = useLocalStorage<boolean>('global-highlight-saved-quotes', true)
   const showSentenceTtsButton = useLocalStorage<boolean>('global-show-sentence-tts-button', false)
+  const readerScrollMode = useLocalStorage<'paginated' | 'continuous'>('global-reader-scroll-mode', 'paginated')
 
   return {
     appLanguage,
@@ -84,6 +85,7 @@ export const useGlobalSettingsStore = defineStore('globalSettings', () => {
     customLlmConfig,
     highlightSavedQuotes,
     showSentenceTtsButton,
+    readerScrollMode,
     enableHoverRevealBg,
     enableEruda,
     enabledPlugins,

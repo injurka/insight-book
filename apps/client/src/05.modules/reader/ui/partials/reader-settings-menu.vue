@@ -149,6 +149,17 @@ const currentThemeName = computed(() => {
         </div>
         <span class="value-badge">{{ currentThemeName }}</span>
       </div>
+      <div
+        v-if="readerStore.currentBook?.type !== 'manga'"
+        class="menu-item"
+        @click="settingsStore.readerScrollMode = settingsStore.readerScrollMode === 'continuous' ? 'paginated' : 'continuous'"
+      >
+        <div class="item-label">
+          <Icon :icon="settingsStore.readerScrollMode === 'continuous' ? 'mdi:view-sequential' : 'mdi:book-open-page-variant-outline'" class="item-icon" />
+          <span>{{ t('reader.readingMode') }}</span>
+        </div>
+        <span class="value-badge">{{ settingsStore.readerScrollMode === 'continuous' ? t('reader.continuousScroll') : t('reader.paginated') }}</span>
+      </div>
     </div>
 
     <div class="divider" />

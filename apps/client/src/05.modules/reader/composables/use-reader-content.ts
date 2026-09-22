@@ -1,4 +1,5 @@
-import type { LlmAnalysis } from '~/01.shared/types/models'
+import type { Ref } from 'vue'
+import type { LlmAnalysis, PagePayload } from '~/01.shared/types/models'
 import DOMPurify from 'dompurify'
 import { computed } from 'vue'
 import { safeDecodeURIComponent } from '~/01.shared/lib/helpers'
@@ -15,10 +16,18 @@ function escapeHtml(text: string): string {
     .replace(/'/g, '&#039;')
 }
 
-export function useReaderContent() {
+export function useReaderContent(pageSource?: Ref<PagePayload | null | undefined> | (() => PagePayload | null | undefined)) {
   const readerStore = useReaderStore()
   const analysisStore = useAnalysisStore()
   const settingsStore = useGlobalSettingsStore()
+
+  const currentPage = computed<PagePayload | null>(() => {
+    if (pageSource) {
+      return (typeof pageSource === 'function' ? pageSource() : pageSource.value) || null
+    }
+
+    return readerStore.currentPage
+  })
 
   const translationMap = computed(() => {
     const map: Record<string, LlmAnalysis> = {}
@@ -29,10 +38,10 @@ export function useReaderContent() {
   })
 
   const safePageContent = computed(() => {
-    if (!readerStore.currentPage?.content)
+    if (!currentPage.value?.content)
       return ''
 
-    return DOMPurify.sanitize(readerStore.currentPage.content, {
+    return DOMPurify.sanitize(currentPage.value.content, {
       ADD_ATTR: ['data-sent-id', 'data-raw-sent', 'data-word', 'data-pos', 'data-token-idx'],
     })
   })
@@ -148,13 +157,13 @@ export function useReaderContent() {
   })
 
   const parallelTranslations = computed(() => {
-    if (settingsStore.parallelViewMode === 'none' || !readerStore.currentPage?.ocrBlocks)
+    if (settingsStore.parallelViewMode === 'none' || !currentPage.value?.ocrBlocks)
       return []
 
     const map = translationMap.value
     const parser = new DOMParser()
 
-    return readerStore.currentPage.ocrBlocks.map((box) => {
+    return currentPage.value.ocrBlocks.map((box) => {
       let resultHtml = ''
       if (box.html) {
         const doc = parser.parseFromString(box.html, 'text/html')
