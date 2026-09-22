@@ -267,7 +267,7 @@
     "autoAnalyzePageDesc": "Automatically translates and generates TTS for the page text in the background while reading. This eliminates delays when clicking on text but <b>actively consumes limits</b>.",
     "highlightSavedQuotes": "Highlight saved quotes",
     "showSentenceTtsButton": "Sentence TTS button",
-    "fallbackToWebSpeech": "Free Web Speech API as fallback",
+    "fallbackToWebSpeech": "Web Speech as fallback",
     "fallbackToWebSpeechDesc": "If token limit is exceeded or server is unavailable, synthesize speech via browser's built-in engine.",
     "storageTitle": "Local Storage",
     "browserStorage": "Browser Storage",

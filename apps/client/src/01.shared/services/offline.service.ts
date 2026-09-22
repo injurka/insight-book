@@ -620,13 +620,13 @@ export const offlineService = {
     for (let i = 0; i < binaryString.length; i++)
       bytes[i] = binaryString.charCodeAt(i)
 
-    const blob = new Blob([bytes], { type: 'audio/ogg' })
+    const blob = new Blob([bytes], { type: 'audio/mpeg' })
 
     const cache = await getMediaCache()
     if (cache) {
       const saved = await safeCachePut(cache, `/offline/tts/${hashKey}`, new Response(blob, {
         headers: {
-          'Content-Type': 'audio/ogg',
+          'Content-Type': 'audio/mpeg',
           'Content-Length': blob.size.toString(),
         },
       }))
@@ -652,7 +652,7 @@ export const offlineService = {
       for (let i = 0; i < binaryString.length; i++)
         bytes[i] = binaryString.charCodeAt(i)
 
-      return new Blob([bytes], { type: 'audio/ogg' })
+      return new Blob([bytes], { type: 'audio/mpeg' })
     }
 
     return null

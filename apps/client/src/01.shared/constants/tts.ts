@@ -1,4 +1,13 @@
 export const DEFAULT_TTS_VOICE = 'default'
+export const TTS_AUDIO_CACHE_PREFIX = 'mp3_v1'
+
+export function buildBookTtsCacheKey(bookId: number, voice: string, normalizedText: string): string {
+  return `${TTS_AUDIO_CACHE_PREFIX}_${bookId}_${voice}_${normalizedText}`
+}
+
+export function buildDictionaryTtsCacheKey(lang: string, voice: string, normalizedText: string): string {
+  return `${TTS_AUDIO_CACHE_PREFIX}_dict_${lang}_${voice}_${normalizedText}`
+}
 
 export const TTS_VOICE_OPTIONS = [
   { label: 'Default', value: DEFAULT_TTS_VOICE },

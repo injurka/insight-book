@@ -2,7 +2,7 @@ import type { LlmConfig, ModelMessage } from '../types'
 import { getTtsTextMaxLength } from '@injurka/insight-book-language-utils'
 import { eq } from 'drizzle-orm'
 import { pinyin } from 'pinyin-pro'
-import { convertToOpus, getAudioDurationSeconds } from '~/utils/audio'
+import { convertToMp3, getAudioDurationSeconds, isMp3Audio } from '~/utils/audio'
 import { attachUrlToActiveSpan, runWithClientSpan } from '~/utils/external-call'
 import { hashTtsText, mapVoiceToOpenAi, parseLlmJson } from '~/utils/helpers'
 import { callLlmJsonWithRetry } from '~/utils/llm-api'
@@ -32,7 +32,7 @@ async function generateAndCacheTts(
     const freshCached = await db.query.ttsCache.findFirst({
       where: eq(schema.ttsCache.textHash, hash),
     })
-    if (freshCached) {
+    if (freshCached && isMp3Audio(Buffer.from(freshCached.audioBlob))) {
       return Buffer.from(freshCached.audioBlob).toString('base64')
     }
   }
@@ -58,7 +58,7 @@ async function generateAndCacheTts(
   }
 
   async function tryGenerate(model: string, voiceName: string, isGemini: boolean) {
-    const formatToTry = isGemini ? 'wav' : 'opus'
+    const formatToTry = isGemini ? 'wav' : 'mp3'
     const requestBody = {
       model,
       input: textToRead,
@@ -77,23 +77,12 @@ async function generateAndCacheTts(
       async () => {
         attachUrlToActiveSpan(`${ttsUrl}/audio/speech`)
 
-        let response = await fetch(`${ttsUrl}/audio/speech`, {
+        const response = await fetch(`${ttsUrl}/audio/speech`, {
           method: 'POST',
           headers,
           body: JSON.stringify(requestBody),
           signal: AbortSignal.timeout(60000),
         })
-
-        if (!response.ok && formatToTry === 'opus') {
-          // Fallback to mp3 if provider API doesn't accept 'opus' format
-          requestBody.response_format = 'mp3'
-          response = await fetch(`${ttsUrl}/audio/speech`, {
-            method: 'POST',
-            headers,
-            body: JSON.stringify(requestBody),
-            signal: AbortSignal.timeout(60000),
-          })
-        }
 
         if (!response.ok) {
           const errorText = await response.text()
@@ -107,7 +96,7 @@ async function generateAndCacheTts(
         }
 
         const rawBuffer = Buffer.from(new Uint8Array(arrayBuffer))
-        return convertToOpus(rawBuffer)
+        return await convertToMp3(rawBuffer)
       },
     )
   }
@@ -158,7 +147,7 @@ async function generateAndCacheTts(
     },
   })
 
-  const durationSeconds = getAudioDurationSeconds(audioBuffer)
+  const durationSeconds = await getAudioDurationSeconds(audioBuffer)
   const billableTokens = Math.max(TOKEN_WEIGHTS.MIN_TTS_TOKENS, normalizedText.length * TOKEN_WEIGHTS.TTS_CHAR_MULTIPLIER)
 
   trackTokenUsage(
@@ -204,7 +193,7 @@ export async function generateTts(
     const cachedByText = await db.query.ttsCache.findFirst({
       where: eq(schema.ttsCache.text, normalizedText),
     })
-    if (cachedByText) {
+    if (cachedByText && isMp3Audio(Buffer.from(cachedByText.audioBlob))) {
       if (bookId) {
         await db.insert(schema.bookTtsCache).values({ bookId, textHash: cachedByText.textHash }).onConflictDoNothing()
       }
@@ -220,7 +209,7 @@ export async function generateTts(
     where: eq(schema.ttsCache.textHash, hash),
   })
 
-  if (cached && !forceCacheBypass) {
+  if (cached && isMp3Audio(Buffer.from(cached.audioBlob)) && !forceCacheBypass) {
     if (bookId) {
       await db.insert(schema.bookTtsCache).values({ bookId, textHash: hash }).onConflictDoNothing()
     }
@@ -301,7 +290,7 @@ export async function checkPronunciationAudio(userId: number, word: string, lang
 
   const arrayBuffer = await audioFile.arrayBuffer()
   const audioBuffer = Buffer.from(arrayBuffer)
-  const inputDurationSeconds = getAudioDurationSeconds(audioBuffer)
+  const inputDurationSeconds = await getAudioDurationSeconds(audioBuffer)
   const billableSttTokens = Math.max(TOKEN_WEIGHTS.MIN_STT_TOKENS, Math.round(inputDurationSeconds * TOKEN_WEIGHTS.STT_SECOND_MULTIPLIER))
 
   await checkTokenLimit(userId, billableSttTokens)

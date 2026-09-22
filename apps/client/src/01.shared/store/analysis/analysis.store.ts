@@ -6,7 +6,7 @@ import { computed, ref } from 'vue'
 import { useRepos } from '~/00.plugins/di'
 import { i18n } from '~/00.plugins/i18n'
 import { useTracking } from '~/01.shared/composables/use-tracking'
-import { DEFAULT_TTS_VOICE } from '~/01.shared/constants/tts'
+import { buildBookTtsCacheKey, DEFAULT_TTS_VOICE } from '~/01.shared/constants/tts'
 import { appEventBus } from '~/01.shared/events/app-event-bus'
 import { safeDecodeURIComponent } from '~/01.shared/lib/helpers'
 import { useNetworkStore } from '~/01.shared/store/network.store'
@@ -357,7 +357,7 @@ export const useAnalysisStore = defineStore('analysis', () => {
     ttsTask.status = 'processing'
     try {
       const voice = settingsStore.ttsVoice || DEFAULT_TTS_VOICE
-      const cacheKey = `qwen_${book.id}_${voice}_${ttsTask.text.trim().toLowerCase()}`
+      const cacheKey = buildBookTtsCacheKey(book.id, voice, ttsTask.text.trim().toLowerCase())
       const cached = await repos.analysis.getLocalTts(cacheKey)
       if (!cached) {
         const res = await repos.analysis.generateTts(

@@ -4,7 +4,7 @@ import { v4 as uuidv4 } from 'uuid'
 import { ref } from 'vue'
 import { useRepos } from '~/00.plugins/di'
 import { useTracking } from '~/01.shared/composables/use-tracking'
-import { DEFAULT_TTS_VOICE } from '~/01.shared/constants/tts'
+import { buildBookTtsCacheKey, DEFAULT_TTS_VOICE } from '~/01.shared/constants/tts'
 import { useGlobalSettingsStore } from '~/01.shared/store/settings.store'
 import { extractPageData } from './book-sync-parser'
 
@@ -291,7 +291,7 @@ async function generateTtsForTexts(texts: string[], ctx: AnalysisContext, pageNu
       if (ctx.signal.aborted)
         return
       const normalizedText = text.trim().toLowerCase()
-      const cacheKey = `qwen_${ctx.bookId}_${voice}_${normalizedText}`
+      const cacheKey = buildBookTtsCacheKey(ctx.bookId, voice, normalizedText)
 
       try {
         const cached = await repos.analysis.getLocalTts(cacheKey)

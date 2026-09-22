@@ -264,7 +264,7 @@ describe('startWholeBookSync', () => {
       'longanhuan_v3.6',
       expect.any(AbortSignal),
     )
-    expect(hoisted.analysisRepo.saveLocalTts).toHaveBeenCalledWith('qwen_1_longanhuan_v3.6_sentence a1.', 'QUJD')
+    expect(hoisted.analysisRepo.saveLocalTts).toHaveBeenCalledWith('mp3_v1_1_longanhuan_v3.6_sentence a1.', 'QUJD')
     expect(syncProgress.value.ttsTotal).toBe(20)
     expect(syncProgress.value.ttsDone).toBe(20)
     expect(syncState.value).toBe('finished')

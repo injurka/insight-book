@@ -8,7 +8,7 @@ import { cachePlugin } from '../utils/cache'
 import { AppError, handleElysiaError } from '../utils/errors'
 import { extractLlmConfig, normalizeLanguageCode } from '../utils/helpers'
 
-const authPlugin = new Elysia().derive({ as: 'global' }, ({ headers }) => {
+const authPlugin = new Elysia().derive({ as: 'scoped' }, ({ headers }) => {
   if (AUTH_MODE === 'single')
     return { userId: 1 }
   const authHeader = headers.authorization
