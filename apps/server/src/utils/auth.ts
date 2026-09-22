@@ -24,7 +24,7 @@ export const authPlugin = new Elysia({ name: 'auth' }).derive({ as: 'scoped' }, 
   }
 })
 
-export const optionalAuthPlugin = new Elysia({ name: 'optionalAuth' }).derive(({ headers }) => {
+export const optionalAuthPlugin = new Elysia({ name: 'optionalAuth' }).derive({ as: 'scoped' }, ({ headers }) => {
   if (AUTH_MODE === 'single') {
     return { userId: 1 }
   }

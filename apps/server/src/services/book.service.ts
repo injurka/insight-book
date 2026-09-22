@@ -277,7 +277,9 @@ export class BookService {
       throw new AppError(403, ERROR_CODES.BOOK.ACCESS_DENIED, 'Access denied to book')
 
     if (!isSync) {
-      await this.bookRepo.upsertReadingProgress(bookId, userId, { currentPage: pageNum })
+      // The reader persists the latest page through its coalesced PATCH queue.
+      // Keep the activity counter here, but avoid a second DB write for every
+      // page request and let offline page reads remain local-only.
       await activityService.trackActivity(userId, 'pagesRead', 1)
     }
 

@@ -34,10 +34,13 @@ export function canUseOfflineFallback(error: unknown): boolean {
     return status === 0 || status >= 500
 
   if (error instanceof Error) {
-    if (error.name === 'AbortError')
-      return false
-
     const message = error.message.toLowerCase()
+    const isTimeout = error.name === 'TimeoutError'
+      || message.includes('timed out')
+      || message.includes('timeout')
+
+    if (error.name === 'AbortError' && !isTimeout)
+      return false
 
     return error.name === 'TypeError'
       || error.name === 'FetchError'
@@ -45,8 +48,7 @@ export function canUseOfflineFallback(error: unknown): boolean {
       || message.includes('network error')
       || message.includes('fetch failed')
       || message.includes('error sending request')
-      || message.includes('timed out')
-      || message.includes('timeout')
+      || isTimeout
       || message.includes('connection refused')
       || message.includes('dns')
   }

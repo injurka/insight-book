@@ -152,7 +152,7 @@ describe('readerStore - loadPage', () => {
     await store.loadPage(1, 3)
 
     expect(mocks.bookRepo.getPage).toHaveBeenCalledWith(1, 3)
-    expect(mocks.bookRepo.getPageDict).toHaveBeenCalledWith(1, 3)
+    expect(mocks.bookRepo.getPageDict).toHaveBeenCalledWith(1, 3, expect.any(AbortSignal))
     expect(store.currentPage).toMatchObject({ bookId: 1, pageNum: 3, content: 'Page content' })
     expect(store.currentPageDictionary).toEqual({ word: { translation: 'слово' } })
   })
@@ -163,6 +163,52 @@ describe('readerStore - loadPage', () => {
 
     expect(mocks.libraryStore.currentBookInfo?.currentPage).toBe(3)
     expect(mocks.trackEvent).toHaveBeenCalledWith('page_loaded', { bookId: 1, pageNum: 3, type: 'text' })
+  })
+
+  it('coalesces progress updates and never sends them concurrently', async () => {
+    vi.useFakeTimers()
+    try {
+      let resolveFirstRequest!: () => void
+      mocks.libraryStore.updateBookInfo.mockImplementationOnce(() => new Promise<void>((resolve) => {
+        resolveFirstRequest = resolve
+      }))
+
+      const store = useReaderStore()
+      store.updateReadingProgress(1, 2)
+      store.updateReadingProgress(1, 3)
+
+      await vi.advanceTimersByTimeAsync(1500)
+
+      expect(mocks.libraryStore.updateBookInfo).toHaveBeenCalledTimes(1)
+      expect(mocks.libraryStore.updateBookInfo).toHaveBeenLastCalledWith(1, { currentPage: 3 })
+
+      store.updateReadingProgress(1, 4)
+      await vi.advanceTimersByTimeAsync(1500)
+      expect(mocks.libraryStore.updateBookInfo).toHaveBeenCalledTimes(1)
+
+      resolveFirstRequest()
+      await vi.waitFor(() => expect(mocks.libraryStore.updateBookInfo).toHaveBeenCalledTimes(2))
+      expect(mocks.libraryStore.updateBookInfo).toHaveBeenLastCalledWith(1, { currentPage: 4 })
+    }
+    finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('does not keep page loading while the dictionary request is slow', async () => {
+    let resolveDictionary!: (dictionary: Record<string, { translation: string }>) => void
+    mocks.bookRepo.getPageDict.mockReturnValue(new Promise((resolve) => {
+      resolveDictionary = resolve
+    }))
+
+    const store = useReaderStore()
+    await store.loadPage(1, 3)
+
+    expect(store.currentPage).not.toBeNull()
+    expect(store.isPageLoading).toBe(false)
+
+    resolveDictionary({ word: { translation: 'слово' } })
+    await vi.waitFor(() => expect(store.currentPageDictionary).toEqual({ word: { translation: 'слово' } }))
   })
 
   it('resets previous analysis state before loading', async () => {

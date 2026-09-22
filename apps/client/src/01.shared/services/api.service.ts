@@ -196,17 +196,17 @@ export const request = ofetch.create({
     const isTimeout = normalizedError.includes('timed out')
       || normalizedError.includes('timeout')
       || (isAbort && durationMs !== undefined && durationMs >= timeoutMs - 100)
-    const isNetworkError = error?.name === 'TypeError'
+    const isNetworkError = !isTimeout && (error?.name === 'TypeError'
       || error?.name === 'FetchError'
       || normalizedError.includes('failed to fetch')
       || normalizedError.includes('network error')
       || normalizedError.includes('fetch failed')
       || normalizedError.includes('error sending request')
-      || normalizedError.includes('timed out')
-      || normalizedError.includes('timeout')
       || normalizedError.includes('connection refused')
-      || normalizedError.includes('dns')
-    if (isNetworkError)
+      || normalizedError.includes('dns'))
+    if (isTimeout)
+      errMessage = `Request exceeded the ${timeoutMs} ms client timeout`
+    else if (isNetworkError)
       errMessage = i18n.global.t('errors.network')
 
     const isOffline = typeof navigator !== 'undefined' && !navigator.onLine
@@ -226,11 +226,13 @@ export const request = ofetch.create({
       error: errMessage,
     })
 
-    if (!options?.silentErrors && !isAbort && !isOffline && !isNetworkError)
+    if (!options?.silentErrors && !isTimeout && !isAbort && !isOffline && !isNetworkError)
       providers.onError(errMessage)
 
     const finalError = new Error(errMessage)
-    if (isAbort)
+    if (isTimeout)
+      finalError.name = 'TimeoutError'
+    else if (isAbort)
       finalError.name = 'AbortError'
 
     recordApiError({
@@ -240,7 +242,7 @@ export const request = ofetch.create({
       transport: isTauri ? 'tauri' : 'browser',
       durationMs,
       error: finalError,
-      expected: options.telemetryExpected ?? (isAbort || isOffline || isNetworkError),
+      expected: options.telemetryExpected ?? (isTimeout || isAbort || isOffline || isNetworkError),
       reason: errorReason,
       timeoutMs: isTimeout ? timeoutMs : undefined,
     })
@@ -364,10 +366,10 @@ export const api = {
     getPage: async (bookId: number, page: number, isSync?: boolean) =>
       request<PagePayload>(`/api/books/${bookId}/page/${page}${isSync ? '?sync=true' : ''}`),
 
-    getPageDict: async (bookId: number, page: number) => {
+    getPageDict: async (bookId: number, page: number, signal?: AbortSignal) => {
       const targetLanguage = providers.getAppLanguage() || 'ru'
 
-      return request<{ pageDictionary: Record<string, PageDictEntry> }>(`/api/books/${bookId}/page/${page}/dict?targetLang=${encodeURIComponent(targetLanguage)}`)
+      return request<{ pageDictionary: Record<string, PageDictEntry> }>(`/api/books/${bookId}/page/${page}/dict?targetLang=${encodeURIComponent(targetLanguage)}`, { signal })
     },
 
     lookupWord: async (bookId: number, word: string, signal?: AbortSignal) => {

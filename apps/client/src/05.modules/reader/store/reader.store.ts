@@ -1,8 +1,7 @@
 import type { Book, PageDictEntry, PagePayload, TocItem } from '~/01.shared/types/models'
 import { useQuery } from '@pinia/colada'
-import { useDebounceFn } from '@vueuse/core'
 
-import { computed, ref, shallowRef, watch } from 'vue'
+import { computed, onScopeDispose, ref, shallowRef, watch } from 'vue'
 import { useRepos } from '~/00.plugins/di'
 import { i18n } from '~/00.plugins/i18n'
 import { useTracking } from '~/01.shared/composables/use-tracking'
@@ -40,6 +39,10 @@ export const useReaderStore = defineStore('reader', () => {
   let lastTocBookId = 0
   let loadPageSeq = 0
   let autoAnalysisTimer: ReturnType<typeof setTimeout> | null = null
+  let progressTimer: ReturnType<typeof setTimeout> | null = null
+  let progressRequest: Promise<void> | null = null
+  let pendingProgress: { bookId: number, pageNum: number } | null = null
+  let pageDictionaryController: AbortController | null = null
 
   // Query state refs
   const tocBookId = ref<number | null>(null)
@@ -67,6 +70,8 @@ export const useReaderStore = defineStore('reader', () => {
 
   watch(() => libraryStore.currentBookInfo, (newBook) => {
     if (!newBook) {
+      pageDictionaryController?.abort()
+      pageDictionaryController = null
       currentPage.value = null
       currentPageDictionary.value = {}
       targetPageNum.value = null
@@ -114,16 +119,48 @@ export const useReaderStore = defineStore('reader', () => {
     }
   }
 
-  // Дебаунс для избежания перезатирания стейта при быстрых перелистываниях
-  const debouncedUpdateProgress = useDebounceFn((bookId: number, pageNum: number) => {
-    libraryStore.updateBookInfo(bookId, { currentPage: pageNum })
-  }, 1500)
+  async function flushReadingProgress() {
+    if (progressRequest || !pendingProgress)
+      return
+
+    const nextProgress = pendingProgress
+    pendingProgress = null
+
+    const request = libraryStore.updateBookInfo(nextProgress.bookId, { currentPage: nextProgress.pageNum })
+    progressRequest = request
+
+    try {
+      await request
+    }
+    catch (error) {
+      // Progress is best-effort: the page itself can still be read from the
+      // repository cache, and the next navigation will enqueue the newest page.
+      console.warn('[Reader] Failed to save reading progress:', error)
+    }
+    finally {
+      progressRequest = null
+      if (pendingProgress)
+        void flushReadingProgress()
+    }
+  }
+
+  function scheduleReadingProgress(bookId: number, pageNum: number) {
+    pendingProgress = { bookId, pageNum }
+
+    if (progressTimer)
+      clearTimeout(progressTimer)
+
+    progressTimer = setTimeout(() => {
+      progressTimer = null
+      void flushReadingProgress()
+    }, 1500)
+  }
 
   function updateReadingProgress(bookId: number, pageNum: number) {
     if (libraryStore.currentBookInfo && libraryStore.currentBookInfo.id === bookId)
       libraryStore.currentBookInfo.currentPage = pageNum
 
-    debouncedUpdateProgress(bookId, pageNum)
+    scheduleReadingProgress(bookId, pageNum)
   }
 
   function triggerAutoAnalysis(settingsStore: ReturnType<typeof useGlobalSettingsStore>, analysisStore: ReturnType<typeof useAnalysisStore>) {
@@ -192,10 +229,18 @@ export const useReaderStore = defineStore('reader', () => {
   async function fetchPage(bookId: number, pageNum: number): Promise<PagePayload> {
     const analysisStore = useAnalysisStore()
 
-    const [newPage, newDict] = await Promise.all([
-      repos.book.getPage(bookId, pageNum),
-      repos.book.getPageDict(bookId, pageNum).catch(() => ({})),
-    ])
+    pageDictionaryController?.abort()
+    const dictionaryController = new AbortController()
+    pageDictionaryController = dictionaryController
+
+    const dictionaryPromise = repos.book.getPageDict(bookId, pageNum, dictionaryController.signal)
+      .then((newDict) => {
+        if (!dictionaryController.signal.aborted)
+          Object.assign(currentPageDictionary.value, newDict)
+      })
+      .catch(() => { })
+
+    const newPage = await repos.book.getPage(bookId, pageNum)
 
     if (!newPage)
       throw new Error('Page not found')
@@ -203,9 +248,10 @@ export const useReaderStore = defineStore('reader', () => {
     const page = { ...newPage }
     await resolveMangaImage(page)
 
-    if (newDict) {
-      Object.assign(currentPageDictionary.value, newDict)
-    }
+    // A slow dictionary request must not keep the page spinner open. It is
+    // cancelled when another page starts loading and may fill the dictionary
+    // after the page content is already visible.
+    void dictionaryPromise
 
     if (currentBook.value)
       void analysisStore.prewarmPageAnalysis(currentBook.value, page)
@@ -253,6 +299,8 @@ export const useReaderStore = defineStore('reader', () => {
     }
     catch (e) {
       if (seq === loadPageSeq) {
+        pageDictionaryController?.abort()
+        pageDictionaryController = null
         targetPageNum.value = prevPageNum
         updateReadingProgress(bookId, prevPageNum)
         toastStore.error(i18n.global.t('dictionary.pageOfflineError'))
@@ -265,6 +313,12 @@ export const useReaderStore = defineStore('reader', () => {
         isPageLoading.value = false
     }
   }
+
+  onScopeDispose(() => {
+    if (progressTimer)
+      clearTimeout(progressTimer)
+    pageDictionaryController?.abort()
+  })
 
   async function openBook(book: Book) {
     trackEvent('book_opened', { bookId: book.id, type: book.type, language: book.language })

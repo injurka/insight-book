@@ -27,7 +27,7 @@ export interface IBookRepository {
 
   getToc: (id: number) => Promise<TocItem[]>
   getPage: (id: number, num: number, isSync?: boolean) => Promise<PagePayload | null>
-  getPageDict: (id: number, num: number) => Promise<Record<string, PageDictEntry>>
+  getPageDict: (id: number, num: number, signal?: AbortSignal) => Promise<Record<string, PageDictEntry>>
   saveLocalPageDictionary: (id: number, num: number, data: Record<string, PageDictEntry>) => Promise<void>
   getLocalImage: (bookId: number, pageNum: number) => Promise<Blob | null | undefined>
   saveLocalPage: (id: number, num: number, data: PagePayload) => Promise<void>
@@ -191,13 +191,13 @@ export class DefaultBookRepository implements IBookRepository {
   }
 
   // eslint-disable-next-line complexity
-  async getPageDict(id: number, num: number): Promise<Record<string, PageDictEntry>> {
+  async getPageDict(id: number, num: number, signal?: AbortSignal): Promise<Record<string, PageDictEntry>> {
     const isOffline = typeof navigator !== 'undefined' && !navigator.onLine
     let networkError: unknown
 
     if (!isOffline) {
       try {
-        const res = await api.books.getPageDict(id, num)
+        const res = await api.books.getPageDict(id, num, signal)
         const data = res.pageDictionary || {}
         await offlineService.savePageDictionary(id, num, data).catch(() => { })
 
@@ -225,7 +225,7 @@ export class DefaultBookRepository implements IBookRepository {
     if (typeof navigator !== 'undefined' && !navigator.onLine)
       return {}
 
-    const res = await api.books.getPageDict(id, num)
+    const res = await api.books.getPageDict(id, num, signal)
     const data = res.pageDictionary || {}
     await offlineService.savePageDictionary(id, num, data).catch(() => { })
 
