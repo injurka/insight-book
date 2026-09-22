@@ -1,5 +1,3 @@
-import { isTauri } from '~/01.shared/lib/env'
-
 interface ErudaInstance {
   init: () => void
   destroy: () => void
@@ -9,14 +7,10 @@ let erudaInstance: ErudaInstance | null = null
 let stateGeneration = 0
 
 /**
- * Включает или выключает eruda (отладочную консоль) внутри Tauri webview.
- * В tauri-сборке devtools по умолчанию недоступны, поэтому консоль eruda
- * позволяет смотреть логи прямо в приложении.
+ * Включает или выключает eruda (отладочную консоль).
+ * Позволяет смотреть логи и отлаживать прямо в приложении (Tauri APK, PWA и веб-окружение).
  */
 export async function setErudaEnabled(enabled: boolean): Promise<void> {
-  if (!isTauri)
-    return
-
   const generation = ++stateGeneration
 
   if (enabled && !erudaInstance) {

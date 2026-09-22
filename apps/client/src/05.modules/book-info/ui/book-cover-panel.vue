@@ -9,6 +9,7 @@ import { useAuthStore } from '~/01.shared/store/auth.store'
 import { useNetworkStore } from '~/01.shared/store/network.store'
 import { KitBtn } from '~/02.kit/atoms/kit-btn/ui'
 import { KitImage } from '~/02.kit/atoms/kit-image/ui'
+import { KitTooltip } from '~/02.kit/molecules/kit-tooltip/ui'
 import { useLibraryStore } from '~/05.modules/library/store/library.store'
 
 const emit = defineEmits<{
@@ -115,40 +116,92 @@ async function startReading() {
     </div>
 
     <div class="action-buttons">
-      <KitBtn color="primary" class="full-width" @click="startReading">
+      <KitBtn
+        color="primary"
+        icon="mdi:book-open-page-variant-outline"
+        class="primary-action-btn full-width"
+        @click="startReading"
+      >
         {{ (libraryStore.currentBookInfo?.currentPage || 1) > 1 ? t('bookInfo.continueReading') : t('bookInfo.startReading') }}
       </KitBtn>
 
-      <KitBtn
-        variant="tonal"
-        color="secondary"
-        class="full-width"
-        icon="mdi:cloud-download-outline"
-        @click="handleOpenSync"
-      >
-        {{ t('bookInfo.cacheAnalysis') }}
-      </KitBtn>
+      <!-- Desktop secondary buttons -->
+      <div class="desktop-secondary-actions">
+        <KitBtn
+          variant="tonal"
+          color="secondary"
+          class="full-width"
+          icon="mdi:cloud-download-outline"
+          @click="handleOpenSync"
+        >
+          {{ t('bookInfo.cacheAnalysis') }}
+        </KitBtn>
 
-      <KitBtn
-        v-if="authStore.user && libraryStore.currentBookInfo?.userId === authStore.user?.id && libraryStore.currentBookInfo?.type === 'manga'"
-        variant="tonal"
-        color="accent"
-        class="full-width"
-        icon="mdi:image-plus"
-        @click="handleOpenAppendChapter"
-      >
-        {{ t('bookInfo.addPages') }}
-      </KitBtn>
+        <KitBtn
+          v-if="authStore.user && libraryStore.currentBookInfo?.userId === authStore.user?.id && libraryStore.currentBookInfo?.type === 'manga'"
+          variant="tonal"
+          color="accent"
+          class="full-width"
+          icon="mdi:image-plus"
+          @click="handleOpenAppendChapter"
+        >
+          {{ t('bookInfo.addPages') }}
+        </KitBtn>
 
-      <KitBtn
-        v-if="authStore.user && libraryStore.currentBookInfo?.userId === authStore.user?.id"
-        variant="text"
-        size="sm"
-        class="edit-btn"
-        @click="handleEditStats"
-      >
-        {{ t('bookInfo.edit') }}
-      </KitBtn>
+        <KitBtn
+          v-if="authStore.user && libraryStore.currentBookInfo?.userId === authStore.user?.id"
+          variant="text"
+          size="sm"
+          class="edit-btn"
+          @click="handleEditStats"
+        >
+          {{ t('bookInfo.edit') }}
+        </KitBtn>
+      </div>
+
+      <!-- Mobile compact icon buttons -->
+      <div class="mobile-secondary-actions">
+        <KitTooltip :text="t('bookInfo.cacheAnalysis')" placement="top">
+          <KitBtn
+            variant="tonal"
+            color="secondary"
+            icon="mdi:cloud-download-outline"
+            :title="t('bookInfo.cacheAnalysis')"
+            :aria-label="t('bookInfo.cacheAnalysis')"
+            @click="handleOpenSync"
+          />
+        </KitTooltip>
+
+        <KitTooltip
+          v-if="authStore.user && libraryStore.currentBookInfo?.userId === authStore.user?.id && libraryStore.currentBookInfo?.type === 'manga'"
+          :text="t('bookInfo.addPages')"
+          placement="top"
+        >
+          <KitBtn
+            variant="tonal"
+            color="accent"
+            icon="mdi:image-plus"
+            :title="t('bookInfo.addPages')"
+            :aria-label="t('bookInfo.addPages')"
+            @click="handleOpenAppendChapter"
+          />
+        </KitTooltip>
+
+        <KitTooltip
+          v-if="authStore.user && libraryStore.currentBookInfo?.userId === authStore.user?.id"
+          :text="t('bookInfo.edit')"
+          placement="top"
+        >
+          <KitBtn
+            variant="tonal"
+            color="secondary"
+            icon="mdi:pencil-outline"
+            :title="t('bookInfo.edit')"
+            :aria-label="t('bookInfo.edit')"
+            @click="handleEditStats"
+          />
+        </KitTooltip>
+      </div>
     </div>
   </div>
 </template>
@@ -206,11 +259,25 @@ async function startReading() {
   flex-direction: column;
   gap: 10px;
   align-items: center;
+  width: 100%;
 
   .full-width {
     width: 100%;
     justify-content: center;
   }
+
+  .desktop-secondary-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: 100%;
+    align-items: center;
+  }
+
+  .mobile-secondary-actions {
+    display: none;
+  }
+
   .edit-btn {
     opacity: 0.5;
     font-weight: 500;
@@ -219,6 +286,29 @@ async function startReading() {
     &:hover {
       opacity: 0.9;
       background-color: transparent;
+    }
+  }
+
+  @include media-down(md) {
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+
+    .primary-action-btn {
+      flex: 1;
+      width: auto;
+      min-width: 0;
+    }
+
+    .desktop-secondary-actions {
+      display: none;
+    }
+
+    .mobile-secondary-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
     }
   }
 }

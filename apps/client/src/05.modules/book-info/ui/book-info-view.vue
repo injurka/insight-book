@@ -77,8 +77,18 @@ function goBack() {
                     <KitSkeleton width="100%" height="100%" border-radius="12px" />
                   </div>
                   <div class="action-buttons">
-                    <KitSkeleton width="100%" height="38px" border-radius="6px" />
-                    <KitSkeleton width="100%" height="38px" border-radius="6px" />
+                    <KitSkeleton
+                      class="skeleton-primary"
+                      width="100%"
+                      height="38px"
+                      border-radius="6px"
+                    />
+                    <KitSkeleton
+                      class="skeleton-secondary"
+                      width="100%"
+                      height="38px"
+                      border-radius="6px"
+                    />
                   </div>
                 </template>
                 <template v-else>
@@ -247,6 +257,10 @@ function goBack() {
 
 .actions-space {
   height: 132px;
+
+  @include media-down(md) {
+    height: 38px;
+  }
 }
 
 .skeleton-fade-enter-active,
@@ -270,6 +284,21 @@ function goBack() {
   display: flex;
   flex-direction: column;
   gap: 10px;
+
+  @include media-down(md) {
+    flex-direction: row;
+    gap: 8px;
+
+    .skeleton-primary {
+      flex: 1;
+      width: auto !important;
+    }
+
+    .skeleton-secondary {
+      width: 38px !important;
+      flex-shrink: 0;
+    }
+  }
 }
 
 .title-skeleton {

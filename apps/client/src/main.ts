@@ -88,11 +88,8 @@ async function bootstrap() {
   }
 }
 
-/** Настройка Eruda (девтулы для мобильного приложения) */
+/** Настройка Eruda (девтулы для мобильного приложения, PWA и веб-окружения) */
 function setupMobileDevtools(settingsStore: ReturnType<typeof useGlobalSettingsStore>) {
-  if (!isTauri)
-    return
-
   void import('~/01.shared/services/eruda.service').then(({ setErudaEnabled }) => {
     watch(() => settingsStore.enableEruda, (enabled) => {
       void setErudaEnabled(enabled).catch((err: unknown) => {

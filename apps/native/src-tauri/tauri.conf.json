@@ -21,19 +21,7 @@
       }
     ],
     "security": {
-      "csp": {
-        "default-src": ["'self'", "customprotocol:", "asset:"],
-        "connect-src": ["'self'", "ipc:", "http://ipc.localhost", "https:"],
-        "font-src": ["'self'", "data:", "https:"],
-        "img-src": ["'self'", "asset:", "data:", "blob:", "https:"],
-        "media-src": ["'self'", "asset:", "blob:", "https:"],
-        "object-src": ["'none'"],
-        "script-src": ["'self'", "'unsafe-eval'", "https:"],
-        "style-src": ["'self'", "'unsafe-inline'", "https:"],
-        "worker-src": ["'self'", "blob:"]
-      },
-      "devCsp": null,
-      "freezePrototype": false
+      "csp": null
     }
   },
   "bundle": {

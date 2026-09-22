@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Icon } from '@iconify/vue'
-import { computed, ref } from 'vue'
+import { computed, ref, useTemplateRef } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useToast } from '~/01.shared/composables/use-toast'
 import { useAuthStore } from '~/01.shared/store/auth.store'
@@ -44,7 +44,7 @@ const langOptions = computed(() => [
   { label: t('library.langRu'), value: 'ru' },
 ])
 
-const archiveInputRef = ref<HTMLInputElement | null>(null)
+const archiveInputRef = useTemplateRef<HTMLInputElement>('archiveInputRef')
 
 function triggerArchiveUpload() {
   if (networkStore.effectiveOffline) {
@@ -170,6 +170,7 @@ async function submitCustomManga() {
     :minimizable="false"
     :max-width="600"
     :persistent="isUploading"
+    :closable="!isUploading"
     icon="mdi:book-plus-outline"
   >
     <div v-if="isUploading" class="uploading-state">

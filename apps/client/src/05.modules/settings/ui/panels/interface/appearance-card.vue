@@ -3,7 +3,6 @@ import { Icon } from '@iconify/vue'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ThemesVariant, useChangeTheme } from '~/01.shared/composables/use-change-theme'
-import { isTauri } from '~/01.shared/lib/env'
 import { useGlobalSettingsStore } from '~/01.shared/store/settings.store'
 import { KitCheckbox } from '~/02.kit/atoms/kit-checkbox/ui'
 import { KitSelect } from '~/02.kit/molecules/kit-select/ui'
@@ -52,7 +51,7 @@ const themeOptions = computed(() => [
       <div class="form-group">
         <KitCheckbox v-model="settingsStore.enableHoverRevealBg" :label="t('settings.hoverRevealBg')" />
       </div>
-      <div v-if="isTauri" class="form-group">
+      <div class="form-group">
         <KitCheckbox v-model="settingsStore.enableEruda" :label="t('settings.enableEruda')" />
       </div>
     </div>

@@ -8,7 +8,7 @@ import { metrics, SpanStatusCode, trace } from '@opentelemetry/api'
 import { logs } from '@opentelemetry/api-logs'
 import { ZoneContextManager } from '@opentelemetry/context-zone-peer-dep'
 import { OTLPLogExporter } from '@opentelemetry/exporter-logs-otlp-http'
-import { OTLPMetricExporter } from '@opentelemetry/exporter-metrics-otlp-http'
+import { AggregationTemporalityPreference, OTLPMetricExporter } from '@opentelemetry/exporter-metrics-otlp-http'
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http'
 import { registerInstrumentations } from '@opentelemetry/instrumentation'
 import { DocumentLoadInstrumentation } from '@opentelemetry/instrumentation-document-load'
@@ -518,14 +518,18 @@ interface WebVitalsInstruments {
 /**
  * Собирает Core Web Vitals (LCP, INP, CLS, TTFB, FCP) через web-vitals
  * и экспортирует их как OTLP-метрики.
- * Передача reportAllChanges: true гарантирует немедленную запись измерений.
  */
 function setupWebVitals(vitals: WebVitalsInstruments) {
   let clsValue: number | null = null
+  let lastReportedCls: number | null = null
 
   vitals.cls.addCallback((result) => {
-    if (clsValue !== null)
+    // Наблюдаем CLS только при изменении значения, чтобы исключить
+    // постоянные повторные отправки при отсутствии сдвигов разметки.
+    if (clsValue !== null && clsValue !== lastReportedCls) {
       result.observe(clsValue)
+      lastReportedCls = clsValue
+    }
   })
 
   const record = (metric: Metric) => {
@@ -549,13 +553,14 @@ function setupWebVitals(vitals: WebVitalsInstruments) {
     }
   }
 
-  const options = { reportAllChanges: true }
-
-  onCLS(record, options)
-  onINP(record, options)
-  onLCP(record, options)
-  onTTFB(record, options)
-  onFCP(record, options)
+  // Для CLS отслеживаем обновления, чтобы фиксировать динамические сдвиги.
+  // Для LCP, INP, TTFB, FCP используем стандартный режим (однократная запись
+  // итогового значения за сессию без искажения перцентилей промежуточными замерами).
+  onCLS(record, { reportAllChanges: true })
+  onINP(record)
+  onLCP(record)
+  onTTFB(record)
+  onFCP(record)
 
   if ('PerformanceObserver' in window) {
     try {
@@ -637,8 +642,11 @@ export function initMonitoring() {
 
   // --- Metrics ---
   const metricReader = new PeriodicExportingMetricReader({
-    exporter: new OTLPMetricExporter({ url: otlpSignalUrl('metrics') }),
-    exportIntervalMillis: 5_000,
+    exporter: new OTLPMetricExporter({
+      url: otlpSignalUrl('metrics'),
+      temporalityPreference: AggregationTemporalityPreference.DELTA,
+    }),
+    exportIntervalMillis: 30_000,
   })
   telemetryMetricReader = metricReader
   const meterProvider = new MeterProvider({ resource, readers: [metricReader] })
