@@ -5,5 +5,6 @@
   "description": "Открывает подробную шпаргалку по английским временам прямо из блока грамматического анализа.",
   "icon": "mdi:clock-check-outline",
   "source": "https://github.com/injurka/insight-book/tree/master/packages/plugin-grammar-tenses-cheatsheet",
+  "styleUrl": "./assets/plugin.css",
   "entryUrl": "./remoteEntry.js"
 }

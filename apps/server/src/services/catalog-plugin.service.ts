@@ -19,6 +19,7 @@ export interface PluginManifest {
   author?: string
   /** Ссылка на исходный код плагина (репозиторий), используется при модерации */
   source?: string
+  styleUrl?: string
   entryUrl: string
 }
 

@@ -1,12 +1,28 @@
 <script setup lang="ts">
+import type { InsightBookPluginManifest } from '@injurka/insight-book-plugin-api'
 import { Icon } from '@iconify/vue'
+import { ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { getCachedPlugin } from '~/00.plugins/plugin-storage'
 import { KitBtn } from '~/02.kit/atoms/kit-btn/ui'
 import { KitCheckbox } from '~/02.kit/atoms/kit-checkbox/ui'
 import { usePluginsStore } from '../../../store/plugins.store'
 
 const { t } = useI18n()
 const pluginsStore = usePluginsStore()
+const manifestsByPluginId = ref<Record<string, InsightBookPluginManifest>>({})
+
+async function loadCachedManifests() {
+  const entries = await Promise.all(pluginsStore.remotePlugins.map(async (record) => {
+    const cached = await getCachedPlugin(record.pluginId) || await getCachedPlugin(record.manifestUrl)
+
+    return [record.pluginId, cached?.manifest] as const
+  }))
+
+  manifestsByPluginId.value = Object.fromEntries(entries.filter((entry): entry is [string, InsightBookPluginManifest] => Boolean(entry[1])))
+}
+
+watch(() => pluginsStore.remotePlugins, loadCachedManifests, { immediate: true })
 </script>
 
 <template>
@@ -23,11 +39,14 @@ const pluginsStore = usePluginsStore()
     <div v-else class="plugins-list">
       <div v-for="record in pluginsStore.remotePlugins" :key="record.pluginId" class="plugin-card">
         <div class="plugin-icon">
-          <Icon icon="mdi:puzzle-outline" />
+          <Icon :icon="manifestsByPluginId[record.pluginId]?.icon || 'mdi:puzzle-outline'" />
         </div>
         <div class="plugin-info">
-          <h3>{{ record.pluginId }}</h3>
-          <p class="manifest-url">
+          <h3>{{ manifestsByPluginId[record.pluginId]?.name || record.pluginId }}</h3>
+          <p v-if="manifestsByPluginId[record.pluginId]?.description">
+            {{ manifestsByPluginId[record.pluginId]?.description }}
+          </p>
+          <p v-else class="manifest-url">
             {{ record.manifestUrl }}
           </p>
         </div>

@@ -373,6 +373,7 @@ export function usePluginManager(): PluginManager {
         description: z.string().optional(),
         icon: z.string().optional(),
         source: z.string().optional(),
+        styleUrl: z.string().optional(),
         entryUrl: z.string().min(1),
       }).safeParse(await request<unknown>(manifestUrl, {
         timeout: 20_000,
@@ -417,6 +418,22 @@ export function usePluginManager(): PluginManager {
     const { manifest, remoteEntryUrl } = fetchedData
 
     try {
+      if (manifest.styleUrl && typeof document !== 'undefined') {
+        const styleUrl = new URL(manifest.styleUrl, resolveManifestBaseUrl(manifestUrl)).toString()
+        const existingStyle = document.querySelector(`link[rel="stylesheet"][href="${styleUrl}"]`)
+
+        if (!existingStyle) {
+          await new Promise<void>((resolve, reject) => {
+            const link = document.createElement('link')
+            link.rel = 'stylesheet'
+            link.href = styleUrl
+            link.onload = () => resolve()
+            link.onerror = () => reject(new Error(`Failed to load plugin stylesheet: ${styleUrl}`))
+            document.head.appendChild(link)
+          })
+        }
+      }
+
       ensureMfRuntime()
 
       const remoteName = toMfRemoteName(manifest.id)

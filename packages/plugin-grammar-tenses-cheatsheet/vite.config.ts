@@ -32,5 +32,12 @@ export default defineConfig(({ command }) => ({
     target: 'esnext',
     minify: false,
     cssCodeSplit: false,
+    rollupOptions: {
+      output: {
+        assetFileNames: assetInfo => assetInfo.name?.endsWith('.css')
+          ? 'assets/plugin.css'
+          : 'assets/[name]-[hash][extname]',
+      },
+    },
   },
 }))

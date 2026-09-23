@@ -109,6 +109,7 @@ export interface InsightBookPluginManifest {
   description?: string
   icon?: string
   source?: string
+  styleUrl?: string
   entryUrl: string
 }
 

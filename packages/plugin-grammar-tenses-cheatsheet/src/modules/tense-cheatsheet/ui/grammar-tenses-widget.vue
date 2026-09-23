@@ -374,6 +374,10 @@ onBeforeUnmount(() => {
   gap: 8px;
 }
 
+.analysis-block.ib-has-grammar-tenses-trigger h3 > svg {
+  flex: 0 0 auto;
+}
+
 .grammar-tenses-sandbox-analysis {
   position: relative;
   z-index: 1;
@@ -411,6 +415,7 @@ onBeforeUnmount(() => {
 .ib-grammar-tenses-trigger {
   display: inline-flex;
   align-items: center;
+  flex: 0 0 auto;
   gap: 5px;
   min-height: 28px;
   margin-left: auto;
@@ -423,8 +428,18 @@ onBeforeUnmount(() => {
   font-size: 0.72em;
   font-weight: 600;
   line-height: 1;
+  white-space: nowrap;
   cursor: pointer;
   transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+}
+
+.ib-grammar-tenses-trigger > span:first-child {
+  display: inline-flex;
+  flex: 0 0 1em;
+  width: 1em;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
 }
 
 .ib-grammar-tenses-trigger:hover,
