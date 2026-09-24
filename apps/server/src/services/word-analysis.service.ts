@@ -73,6 +73,7 @@ async function fetchAndCacheSentenceAnalysis(
 
       await db.insert(schema.llmCache).values({
         sentenceHash: hash,
+        language,
         targetLanguage: targetLang,
         sentence,
         analysis: compressedAnalysis,

@@ -222,7 +222,7 @@ export const bookController = new Elysia({ prefix: '/api/books' })
       'Content-Type': `image/${ext === 'jpg' ? 'jpeg' : ext}`,
     }
     return buffer
-  }, { cache: 'dayPublic' })
+  }, { cache: 'shortPrivate' })
   .get('/:id/word/:word', async ({ params: { id, word }, userId, query }) => {
     const targetLang = (query.targetLang as string) || 'ru'
     return bookService.lookupWord(Number(id), word, userId!, targetLang)

@@ -219,7 +219,6 @@ function onDrop(event: DragEvent, node: PuzzleNode) {
 
   &:hover {
     background: linear-gradient(180deg, #d97706 0%, #92400e 100%);
-    transform: translateY(-1px);
     box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
   }
 

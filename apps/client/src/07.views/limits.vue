@@ -7,13 +7,10 @@ import { KitBtn } from '~/02.kit/atoms/kit-btn/ui'
 import { KitHoverRevealBg } from '~/02.kit/atoms/kit-hover-reveal-bg/ui'
 import { LimitProgressCard } from '~/04.features/limits'
 import SettingsTokensPanel from '~/05.modules/settings/ui/panels/settings-tokens-panel.vue'
-import SubscriptionTiersGrid from '~/05.modules/settings/ui/panels/subscription-tiers-grid.vue'
 
 const router = useRouter()
 const { t } = useI18n()
 const authStore = useAuthStore()
-
-const showSubscriptionTiers = ref(false)
 </script>
 
 <template>
@@ -52,25 +49,6 @@ const showSubscriptionTiers = ref(false)
           :limit="authStore.user?.bookLimit"
         />
       </div>
-
-      <!-- Кнопка раскрытия тарифов -->
-      <div class="tiers-toggle-bar">
-        <KitBtn
-          :icon="showSubscriptionTiers ? 'mdi:chevron-up' : 'mdi:view-grid-plus-outline'"
-          variant="outlined"
-          class="toggle-tiers-btn"
-          @click="showSubscriptionTiers = !showSubscriptionTiers"
-        >
-          {{ showSubscriptionTiers ? 'Скрыть тарифные планы' : 'Сравнить и выбрать тарифный план' }}
-        </KitBtn>
-      </div>
-
-      <!-- Тарифные планы подписки -->
-      <Transition name="fade-slide">
-        <div v-if="showSubscriptionTiers" class="tiers-wrapper">
-          <SubscriptionTiersGrid />
-        </div>
-      </Transition>
 
       <SettingsTokensPanel />
     </div>
@@ -257,33 +235,5 @@ const showSubscriptionTiers = ref(false)
       }
     }
   }
-}
-
-.tiers-toggle-bar {
-  display: flex;
-  justify-content: center;
-  margin: 16px 0 24px;
-
-  .toggle-tiers-btn {
-    padding: 10px 20px;
-    border-radius: 12px;
-    font-weight: 600;
-    transition: all 0.2s ease;
-  }
-}
-
-.tiers-wrapper {
-  margin-bottom: 24px;
-}
-
-.fade-slide-enter-active,
-.fade-slide-leave-active {
-  transition: all 0.3s ease;
-}
-
-.fade-slide-enter-from,
-.fade-slide-leave-to {
-  opacity: 0;
-  transform: translateY(-10px);
 }
 </style>

@@ -144,6 +144,5 @@ withDefaults(defineProps<Props>(), {
 
 .kit-btn:hover:not(:disabled) {
   opacity: 0.95;
-  transform: translateY(-1px);
 }
 </style>

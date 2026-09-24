@@ -183,6 +183,12 @@ export class DefaultBookRepository implements IBookRepository {
     if (networkError)
       throw networkError
 
+    // An uncached page must not turn an offline read into a 20-second network
+    // timeout. The reader treats null as a missing offline page and can show
+    // its normal empty/error state.
+    if (isOffline && !isSync)
+      return null
+
     const data = await api.books.getPage(id, num, isSync)
     if (data)
       await offlineService.savePage(id, num, data).catch(() => { })

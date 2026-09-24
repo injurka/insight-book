@@ -1,8 +1,7 @@
 <script setup lang="ts">
-import type { BookGroup, NotebookFlatItem } from '../model'
+import type { BookGroup } from '../model'
 import type { Book, Highlight, LlmAnalysis } from '~/01.shared/types/models'
 import { Icon } from '@iconify/vue'
-import { useVirtualList } from '@vueuse/core'
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRepos } from '~/00.plugins/di'
@@ -11,7 +10,6 @@ import { useTts } from '~/01.shared/composables/use-tts'
 import { KitBtn } from '~/02.kit/atoms/kit-btn/ui'
 import { KitHoverRevealBg } from '~/02.kit/atoms/kit-hover-reveal-bg/ui'
 import { KitImage } from '~/02.kit/atoms/kit-image/ui'
-import { KitSkeleton } from '~/02.kit/atoms/kit-skeleton/ui'
 import { KitDropdown } from '~/02.kit/molecules/kit-dropdown/ui'
 import { KitPrompt } from '~/02.kit/organisms/kit-prompt/ui'
 import { QuoteModal } from '~/04.features/quote-modal'
@@ -21,8 +19,9 @@ import { useLibraryStore } from '~/05.modules/library/store/library.store'
 import { useNotebookExport } from '../composables/use-notebook-export'
 import QuoteAnalysisModal from './modal/quote-analysis-modal.vue'
 import NotebookHeader from './partials/notebook-header.vue'
-
 import NotebookQuoteItem from './partials/notebook-quote-item.vue'
+
+import NotebookSkeleton from './partials/notebook-skeleton.vue'
 
 const repos = useRepos()
 const { t } = useI18n()
@@ -141,33 +140,6 @@ const filteredBookGroups = computed(() => {
   // Sort groups: most recent activity first
   return groups.sort((a, b) => new Date(b.lastActivityDate).getTime() - new Date(a.lastActivityDate).getTime())
 })
-
-const notebookFlatItems = computed<NotebookFlatItem[]>(() => {
-  const result: NotebookFlatItem[] = []
-  filteredBookGroups.value.forEach((group) => {
-    result.push({
-      id: `header-${group.book.id}`,
-      kind: 'header',
-      group,
-    })
-    group.highlights.forEach((h) => {
-      result.push({
-        id: `h-${h.id}`,
-        kind: 'highlight',
-        highlight: h,
-        group,
-      })
-    })
-  })
-
-  return result
-})
-
-const {
-  list: virtualHighlightsList,
-  containerProps: notebookContainerProps,
-  wrapperProps: notebookWrapperProps,
-} = useVirtualList(notebookFlatItems, { itemHeight: 160 })
 
 const isTtsActive = computed(() => tts.isPlaying.value || tts.isLoading.value)
 
@@ -317,13 +289,7 @@ onMounted(async () => {
 
     <div class="notebook-content">
       <div v-if="isLoading" class="loading-state">
-        <KitSkeleton
-          v-for="n in 3"
-          :key="n"
-          width="100%"
-          height="160px"
-          class="mb-4"
-        />
+        <NotebookSkeleton />
       </div>
 
       <div v-else-if="filteredBookGroups.length === 0" class="empty-state">
@@ -334,65 +300,67 @@ onMounted(async () => {
         </p>
       </div>
 
-      <div v-else class="virtual-list-container" v-bind="notebookContainerProps">
-        <div v-bind="notebookWrapperProps" class="virtual-list-wrapper">
-          <div
-            v-for="item in virtualHighlightsList"
-            :key="item.data.id"
-          >
-            <!-- Book Header Block -->
-            <div v-if="item.data.kind === 'header'" class="book-group-header">
-              <div class="book-cover-container">
-                <KitImage
-                  :src="item.data.group.book.localCoverUrl || item.data.group.book.coverUrl"
-                  :alt="item.data.group.book.title"
-                  fallback-icon="mdi:book-open-blank-variant"
-                />
-              </div>
-              <div class="book-metadata">
-                <h2 class="book-title">
-                  {{ item.data.group.book.title }}
-                </h2>
-                <p class="book-author">
-                  {{ item.data.group.book.author || t('notebook.authorUnknown') }}
-                </p>
-                <div class="book-stats">
-                  <span class="badge">{{ t('notebook.quotesCount', { count: item.data.group.highlights.length }) }}</span>
-                </div>
-              </div>
-              <div class="book-actions">
-                <KitDropdown placement="bottom-end" width="180px">
-                  <template #activator="{ props: dropdownProps }">
-                    <KitBtn
-                      icon="mdi:download"
-                      variant="tonal"
-                      color="secondary"
-                      size="sm"
-                      class="export-btn"
-                      :class="{ 'is-active-btn': dropdownProps.isOpen }"
-                    >
-                      <span class="btn-text">{{ t('notebook.export') }}</span>
-                    </KitBtn>
-                  </template>
-                  <div class="dropdown-menu-list">
-                    <button class="dropdown-item" @click="exportToMarkdown(item.data.group)">
-                      <Icon icon="mdi:markdown" />
-                      {{ t('notebook.exportMarkdown') }}
-                    </button>
-                    <button class="dropdown-item" @click="exportToPlainText(item.data.group)">
-                      <Icon icon="mdi:file-document-outline" />
-                      {{ t('notebook.exportText') }}
-                    </button>
-                  </div>
-                </KitDropdown>
+      <div v-else class="book-groups-list">
+        <section
+          v-for="group in filteredBookGroups"
+          :key="group.book.id"
+          class="book-group"
+        >
+          <!-- Book Header Block -->
+          <div class="book-group-header">
+            <div class="book-cover-container">
+              <KitImage
+                :src="group.book.localCoverUrl || group.book.coverUrl"
+                :alt="group.book.title"
+                fallback-icon="mdi:book-open-blank-variant"
+              />
+            </div>
+            <div class="book-metadata">
+              <h2 class="book-title">
+                {{ group.book.title }}
+              </h2>
+              <p class="book-author">
+                {{ group.book.author || t('notebook.authorUnknown') }}
+              </p>
+              <div class="book-stats">
+                <span class="badge">{{ t('notebook.quotesCount', { count: group.highlights.length }) }}</span>
               </div>
             </div>
+            <div class="book-actions">
+              <KitDropdown placement="bottom-end" width="180px">
+                <template #activator="{ props: dropdownProps }">
+                  <KitBtn
+                    icon="mdi:download"
+                    variant="tonal"
+                    color="secondary"
+                    size="sm"
+                    class="export-btn"
+                    :class="{ 'is-active-btn': dropdownProps.isOpen }"
+                  >
+                    <span class="btn-text">{{ t('notebook.export') }}</span>
+                  </KitBtn>
+                </template>
+                <div class="dropdown-menu-list">
+                  <button class="dropdown-item" @click="exportToMarkdown(group)">
+                    <Icon icon="mdi:markdown" />
+                    {{ t('notebook.exportMarkdown') }}
+                  </button>
+                  <button class="dropdown-item" @click="exportToPlainText(group)">
+                    <Icon icon="mdi:file-document-outline" />
+                    {{ t('notebook.exportText') }}
+                  </button>
+                </div>
+              </KitDropdown>
+            </div>
+          </div>
 
-            <!-- Book Highlight Block -->
+          <!-- Book Highlight Block -->
+          <div class="highlights-list">
             <NotebookQuoteItem
-              v-else
-              :highlight="item.data.highlight"
-              :book="item.data.group.book"
+              v-for="highlight in group.highlights"
+              :key="highlight.id"
+              :highlight="highlight"
+              :book="group.book"
               :search-query="searchQuery"
               :active-tts-id="activeTtsId"
               :translating-id="translatingId"
@@ -406,7 +374,7 @@ onMounted(async () => {
               @confirm-delete="confirmDelete"
             />
           </div>
-        </div>
+        </section>
       </div>
     </div>
 
@@ -462,8 +430,7 @@ onMounted(async () => {
   max-width: 1000px;
   width: 100%;
   margin: 0 auto;
-  height: 100%;
-  overflow-y: auto;
+  min-height: min-content;
   display: flex;
   flex-direction: column;
 
@@ -519,6 +486,11 @@ onMounted(async () => {
   text-align: center;
 }
 
+.loading-state {
+  display: block;
+  padding: 0;
+}
+
 .empty-state {
   background-color: var(--bg-secondary-color);
   border: 1px solid var(--border-secondary-color);
@@ -549,6 +521,11 @@ onMounted(async () => {
   display: flex;
   flex-direction: column;
   gap: 24px;
+}
+
+.book-group {
+  display: flex;
+  flex-direction: column;
 }
 
 .book-group-card {
@@ -958,24 +935,5 @@ onMounted(async () => {
   100% {
     transform: scale(1);
   }
-}
-
-.virtual-list-container {
-  flex-grow: 1;
-  overflow-y: auto;
-  min-height: 0;
-
-  &::-webkit-scrollbar {
-    width: 6px;
-  }
-  &::-webkit-scrollbar-thumb {
-    background-color: var(--border-secondary-color);
-    border-radius: 4px;
-  }
-}
-
-.virtual-list-wrapper {
-  display: flex;
-  flex-direction: column;
 }
 </style>

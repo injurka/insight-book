@@ -5,7 +5,7 @@ import { useRepos } from '~/00.plugins/di'
 import { i18n } from '~/00.plugins/i18n'
 import { pluginManager } from '~/00.plugins/plugin-manager'
 import { useToast } from '~/01.shared/composables/use-toast'
-import { queryKeys } from '~/01.shared/lib/query-keys'
+import { queryKeys, scopedQueryKey } from '~/01.shared/lib/query-keys'
 import { useAuthStore } from '~/01.shared/store/auth.store'
 
 // Динамический импорт во избежание циклической зависимости router -> views -> store
@@ -28,7 +28,7 @@ export const usePluginsStore = defineStore('settings-plugins', () => {
     isLoading: isRemotePluginsLoading,
     refetch: refetchRemotePlugins,
   } = useQuery<UserPluginRecord[]>({
-    key: queryKeys.plugins.my,
+    key: () => scopedQueryKey(queryKeys.plugins.my),
     query: async () => repos.plugin.getMyPlugins(),
   })
   const remotePlugins = computed(() => remotePluginsData.value ?? [])
@@ -40,7 +40,7 @@ export const usePluginsStore = defineStore('settings-plugins', () => {
     error: myUploadedPluginsError,
     refetch: refetchMyUploadedPlugins,
   } = useQuery<CatalogPluginRecord[]>({
-    key: queryKeys.plugins.catalogMine,
+    key: () => scopedQueryKey(queryKeys.plugins.catalogMine),
     query: async () => repos.catalogPlugin.getMy(),
   })
   const myUploadedPlugins = computed(() => myUploadedPluginsData.value ?? [])
@@ -52,7 +52,7 @@ export const usePluginsStore = defineStore('settings-plugins', () => {
     error: pendingPluginsError,
     refetch: refetchPendingPlugins,
   } = useQuery<CatalogPluginRecord[]>({
-    key: queryKeys.plugins.catalogPending,
+    key: () => scopedQueryKey(queryKeys.plugins.catalogPending),
     query: async () => repos.catalogPlugin.getPending(),
     enabled: () => isAdmin.value,
   })

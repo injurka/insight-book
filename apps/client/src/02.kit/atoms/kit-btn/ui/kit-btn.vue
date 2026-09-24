@@ -109,7 +109,6 @@ function handleClick(event: MouseEvent) {
 
   @media (hover: hover) and (pointer: fine) {
     &:not(.kit-btn--text):not(:disabled):hover {
-      transform: translateY(-1px);
       box-shadow: var(--s-l);
     }
   }

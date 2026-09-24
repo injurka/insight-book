@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryCache } from '@pinia/colada'
 
 import { ref, watch } from 'vue'
 import { useRepos } from '~/00.plugins/di'
-import { queryKeys } from '~/01.shared/lib/query-keys'
+import { queryKeys, scopedQueryKey } from '~/01.shared/lib/query-keys'
 
 export type { Highlight }
 
@@ -19,7 +19,7 @@ export const useHighlightsStore = defineStore('highlights', () => {
     isLoading: isQueryLoading,
     refetch: refetchHighlightsQuery,
   } = useQuery<Highlight[]>({
-    key: () => queryKeys.highlights(currentBookId.value),
+    key: () => scopedQueryKey(queryKeys.highlights(currentBookId.value)),
     query: async () => {
       const id = currentBookId.value
       if (id === null)

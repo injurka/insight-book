@@ -2,7 +2,7 @@ import type { DictDeck, UserDictItem } from '~/01.shared/types/models'
 import { useMutation, useQuery, useQueryCache } from '@pinia/colada'
 import { useRepos } from '~/00.plugins/di'
 import { useToast } from '~/01.shared/composables/use-toast'
-import { queryKeys } from '~/01.shared/lib/query-keys'
+import { queryKeys, scopedQueryKey } from '~/01.shared/lib/query-keys'
 import { useAnalysisStore } from '~/01.shared/store/analysis/analysis.store'
 import { useAuthStore } from '~/01.shared/store/auth.store'
 
@@ -28,7 +28,7 @@ export const useDictionaryStore = defineStore('dictionary', () => {
     isLoading: isDictionaryLoading,
     refetch: refetchDictionary,
   } = useQuery<UserDictItem[]>({
-    key: queryKeys.dictionary.all,
+    key: () => scopedQueryKey(queryKeys.dictionary.all),
     query: async () => repos.dictionary.list(),
     enabled: () => !!authStore.user || authStore.isSingleMode,
   })

@@ -5,7 +5,7 @@ import { computed, onScopeDispose, ref, shallowRef, watch } from 'vue'
 import { useRepos } from '~/00.plugins/di'
 import { i18n } from '~/00.plugins/i18n'
 import { useTracking } from '~/01.shared/composables/use-tracking'
-import { queryKeys } from '~/01.shared/lib/query-keys'
+import { queryKeys, scopedQueryKey } from '~/01.shared/lib/query-keys'
 import { useAnalysisStore } from '~/01.shared/store/analysis/analysis.store'
 import { useGlobalSettingsStore } from '~/01.shared/store/settings.store'
 import { useToastStore } from '~/01.shared/store/toast.store'
@@ -52,7 +52,7 @@ export const useReaderStore = defineStore('reader', () => {
     data: tocQueryData,
     refetch: refetchTocQuery,
   } = useQuery<TocItem[]>({
-    key: () => queryKeys.toc(tocBookId.value),
+    key: () => scopedQueryKey(queryKeys.toc(tocBookId.value)),
     query: async () => {
       const id = tocBookId.value
       if (!id)

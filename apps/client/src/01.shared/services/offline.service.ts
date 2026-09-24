@@ -17,19 +17,31 @@ localforage.config({
 const L1_ANALYSIS_MAX_SIZE = 100
 const l1AnalysisCache = new Map<string, LlmAnalysis>()
 
+function getCacheScope(): string | null {
+  try {
+    const token = localStorage.getItem('insight_token')
+    const uid = localStorage.getItem('insight_uid')
+    if (token && uid && /^\d+$/.test(uid) && Number(uid) > 0)
+      return `u${uid}`
+
+    // Single-user deployments do not always persist a uid, but they still
+    // need an explicit scope. Never fall back to user 1 for multi-user or
+    // logged-out sessions. A multi-user uid without a token is stale session
+    // state and must not unlock the previous user's offline data.
+    if (localStorage.getItem('insight_auth_mode') === 'single')
+      return 'u1'
+  }
+  catch { }
+
+  return null
+}
+
 function buildAnalysisCacheKey(text: string, srcLang?: string): string {
   const targetLang = getAppLanguage()
   const normalizedSrc = (srcLang || 'any').toLowerCase().trim()
   const normalizedText = text.trim().toLowerCase()
 
   return `analysis_${normalizedSrc}_${targetLang}_${normalizedText}`
-}
-
-function buildLegacyAnalysisCacheKey(text: string): string {
-  const targetLang = getAppLanguage()
-  const normalizedText = text.trim().toLowerCase()
-
-  return `analysis_${targetLang}_${normalizedText}`
 }
 
 function getL1Analysis(key: string): LlmAnalysis | null {
@@ -60,9 +72,9 @@ function setL1Analysis(key: string, analysis: LlmAnalysis): void {
 }
 
 function getKey(key: string) {
-  const uid = localStorage.getItem('insight_uid') || '1'
+  const scope = getCacheScope()
 
-  return `u${uid}_${key}`
+  return scope ? `${scope}_${key}` : null
 }
 
 function getAppLanguage() {
@@ -267,7 +279,7 @@ function handleMediaCacheImageOrCover(
   size: number,
   bookStats: Record<number, BookCacheStat>,
 ) {
-  const bookId = Number(pathParts[3])
+  const bookId = Number(pathParts[4])
   if (bookStats[bookId]) {
     bookStats[bookId].sizeBytes += size
     if (type === 'image')
@@ -276,8 +288,8 @@ function handleMediaCacheImageOrCover(
 }
 
 function handleMediaCacheTts(pathParts: string[], size: number, bookStats: Record<number, BookCacheStat>) {
-  if (pathParts[3]?.includes('_')) {
-    const bookId = Number(pathParts[3].split('_')[0])
+  if (pathParts[4]?.includes('_')) {
+    const bookId = Number(pathParts[4].split('_')[0])
     if (!Number.isNaN(bookId) && bookStats[bookId]) {
       bookStats[bookId].sizeBytes += size
       bookStats[bookId].ttsCount++
@@ -285,10 +297,18 @@ function handleMediaCacheTts(pathParts: string[], size: number, bookStats: Recor
   }
 }
 
-async function processMediaCacheReq(cache: Cache, req: Request, bookStats: Record<number, BookCacheStat>): Promise<number> {
+async function processMediaCacheReq(
+  cache: Cache,
+  req: Request,
+  bookStats: Record<number, BookCacheStat>,
+  scope: string,
+): Promise<number> {
   const url = new URL(req.url)
   const pathParts = url.pathname.split('/')
-  const type = pathParts[2]
+  if (pathParts[1] !== 'offline' || pathParts[2] !== scope)
+    return 0
+
+  const type = pathParts[3]
 
   const res = await safeCacheMatch(cache, req)
   const size = res ? Number(res.headers.get('content-length') || 0) : 0
@@ -309,15 +329,18 @@ async function processMediaCacheReq(cache: Cache, req: Request, bookStats: Recor
 }
 
 /** Проверяет, относится ли URL записи медиа-кэша к указанной книге. */
-function isBookMediaEntry(url: string, bookId: number): boolean {
+function isBookMediaEntry(url: string, bookId: number, scope: string): boolean {
   const pathParts = new URL(url).pathname.split('/')
-  const type = pathParts[2]
+  if (pathParts[1] !== 'offline' || pathParts[2] !== scope)
+    return false
+
+  const type = pathParts[3]
 
   if (type === 'image' || type === 'cover')
-    return Number(pathParts[3]) === bookId
+    return Number(pathParts[4]) === bookId
 
   if (type === 'tts') {
-    const hashKey = pathParts[3]
+    const hashKey = pathParts[4]
 
     return !!hashKey && hashKey.startsWith(`${bookId}_`)
   }
@@ -340,7 +363,10 @@ async function deleteWholeMediaCache(): Promise<void> {
  * Если индекс кэша нечитаем (потеряны файлы записей) — сносит кэш целиком
  * и возвращает 0, чтобы не ломать загрузку статистики.
  */
-async function collectMediaCacheStats(bookStats: Record<number, BookCacheStat>): Promise<number> {
+async function collectMediaCacheStats(bookStats: Record<number, BookCacheStat>, scope: string | null): Promise<number> {
+  if (!scope)
+    return 0
+
   const cache = await getMediaCache()
   if (!cache)
     return 0
@@ -350,7 +376,12 @@ async function collectMediaCacheStats(bookStats: Record<number, BookCacheStat>):
   try {
     const cacheKeys = await cache.keys()
     for (const req of cacheKeys) {
-      const size = await processMediaCacheReq(cache, req, bookStats)
+      const size = await processMediaCacheReq(
+        cache,
+        req,
+        bookStats,
+        scope,
+      )
       totalSize += size
     }
   }
@@ -369,6 +400,10 @@ async function collectMediaCacheStats(bookStats: Record<number, BookCacheStat>):
 
 /** Удаляет из медиа-кэша записи, относящиеся к книге. */
 async function clearMediaCacheForBook(bookId: number): Promise<void> {
+  const scope = getCacheScope()
+  if (!scope)
+    return
+
   const cache = await getMediaCache()
   if (!cache)
     return
@@ -376,7 +411,7 @@ async function clearMediaCacheForBook(bookId: number): Promise<void> {
   try {
     const cacheKeys = await cache.keys()
     for (const req of cacheKeys) {
-      if (isBookMediaEntry(req.url, bookId))
+      if (isBookMediaEntry(req.url, bookId, scope))
         await cache.delete(req)
     }
   }
@@ -392,8 +427,12 @@ async function clearMediaCacheForBook(bookId: number): Promise<void> {
 }
 
 async function safeSetItem<T>(key: string, value: T): Promise<void> {
+  const scopedKey = getKey(key)
+  if (!scopedKey)
+    return
+
   try {
-    await localforage.setItem(getKey(key), value)
+    await localforage.setItem(scopedKey, value)
   }
   catch (e) {
     const err = e as Error
@@ -413,16 +452,20 @@ async function safeSetItem<T>(key: string, value: T): Promise<void> {
 }
 
 async function safeGetItem<T>(key: string): Promise<T | null> {
+  const scopedKey = getKey(key)
+  if (!scopedKey)
+    return null
+
   try {
-    return await localforage.getItem<T>(getKey(key))
+    return await localforage.getItem<T>(scopedKey)
   }
   catch (e) {
-    console.error(`[OfflineService] Error reading from localForage (key: ${key}):`, e)
+    console.error(`[OfflineService] Error reading from localForage (key: ${scopedKey}):`, e)
     try {
-      await localforage.removeItem(getKey(key))
+      await localforage.removeItem(scopedKey)
     }
     catch (removeErr) {
-      console.warn(`[OfflineService] Failed to remove corrupted item (key: ${key}):`, removeErr)
+      console.warn(`[OfflineService] Failed to remove corrupted item (key: ${scopedKey}):`, removeErr)
     }
 
     return null
@@ -440,9 +483,13 @@ export const offlineService = {
   },
 
   async saveImage(bookId: number, pageNum: number, blob: Blob) {
+    const scope = getCacheScope()
+    if (!scope)
+      return
+
     const cache = await getMediaCache()
     if (cache) {
-      const saved = await safeCachePut(cache, `/offline/image/${bookId}/${pageNum}`, new Response(blob, {
+      const saved = await safeCachePut(cache, `/offline/${scope}/image/${bookId}/${pageNum}`, new Response(blob, {
         headers: {
           'Content-Type': blob.type,
           'Content-Length': blob.size.toString(),
@@ -457,9 +504,13 @@ export const offlineService = {
   },
 
   async getImage(bookId: number, pageNum: number): Promise<Blob | null> {
+    const scope = getCacheScope()
+    if (!scope)
+      return null
+
     const cache = await getMediaCache()
     if (cache) {
-      const res = await safeCacheMatch(cache, `/offline/image/${bookId}/${pageNum}`)
+      const res = await safeCacheMatch(cache, `/offline/${scope}/image/${bookId}/${pageNum}`)
       if (res)
         return res.blob()
     }
@@ -468,9 +519,13 @@ export const offlineService = {
   },
 
   async saveCover(bookId: number, blob: Blob) {
+    const scope = getCacheScope()
+    if (!scope)
+      return
+
     const cache = await getMediaCache()
     if (cache) {
-      const saved = await safeCachePut(cache, `/offline/cover/${bookId}`, new Response(blob, {
+      const saved = await safeCachePut(cache, `/offline/${scope}/cover/${bookId}`, new Response(blob, {
         headers: {
           'Content-Type': blob.type,
           'Content-Length': blob.size.toString(),
@@ -484,9 +539,13 @@ export const offlineService = {
   },
 
   async getCover(bookId: number): Promise<Blob | null> {
+    const scope = getCacheScope()
+    if (!scope)
+      return null
+
     const cache = await getMediaCache()
     if (cache) {
-      const res = await safeCacheMatch(cache, `/offline/cover/${bookId}`)
+      const res = await safeCacheMatch(cache, `/offline/${scope}/cover/${bookId}`)
       if (res)
         return res.blob()
     }
@@ -573,9 +632,12 @@ export const offlineService = {
       return
 
     const key = buildAnalysisCacheKey(text, srcLang)
+    const scope = getCacheScope()
+    if (!scope)
+      return
 
     // L1: Запись в оперативную память (RAM)
-    setL1Analysis(key, analysis)
+    setL1Analysis(`${scope}_${key}`, analysis)
 
     // L2: Запись в IndexedDB
     await safeSetItem(key, JSON.parse(JSON.stringify(analysis)))
@@ -586,29 +648,22 @@ export const offlineService = {
       return null
 
     const key = buildAnalysisCacheKey(text, srcLang)
+    const scope = getCacheScope()
+    if (!scope)
+      return null
 
     // 1. Проверяем L1-кэш в RAM (0.0001 мс)
-    const l1Hit = getL1Analysis(key)
+    const scopedKey = `${scope}_${key}`
+    const l1Hit = getL1Analysis(scopedKey)
     if (l1Hit)
       return l1Hit
 
     // 2. Проверяем L2-кэш в IndexedDB по новому ключу (с srcLang)
-    let cached = await safeGetItem<LlmAnalysis>(key)
-
-    // 3. Fallback: проверяем L2-кэш по старому ключу для обратной совместимости
-    if (!cached && srcLang) {
-      const legacyKey = buildLegacyAnalysisCacheKey(text)
-      cached = await safeGetItem<LlmAnalysis>(legacyKey)
-
-      if (!cached) {
-        const anyKey = buildAnalysisCacheKey(text, 'any')
-        cached = await safeGetItem<LlmAnalysis>(anyKey)
-      }
-    }
+    const cached = await safeGetItem<LlmAnalysis>(key)
 
     // Если нашли в L2 — кладём в L1 в оперативной памяти для следующих мгновенных обращений
     if (cached) {
-      setL1Analysis(key, cached)
+      setL1Analysis(scopedKey, cached)
     }
 
     return cached
@@ -621,10 +676,13 @@ export const offlineService = {
       bytes[i] = binaryString.charCodeAt(i)
 
     const blob = new Blob([bytes], { type: 'audio/mpeg' })
+    const scope = getCacheScope()
+    if (!scope)
+      return
 
     const cache = await getMediaCache()
     if (cache) {
-      const saved = await safeCachePut(cache, `/offline/tts/${hashKey}`, new Response(blob, {
+      const saved = await safeCachePut(cache, `/offline/${scope}/tts/${hashKey}`, new Response(blob, {
         headers: {
           'Content-Type': 'audio/mpeg',
           'Content-Length': blob.size.toString(),
@@ -638,9 +696,13 @@ export const offlineService = {
   },
 
   async getTtsBlob(hashKey: string): Promise<Blob | null> {
+    const scope = getCacheScope()
+    if (!scope)
+      return null
+
     const cache = await getMediaCache()
     if (cache) {
-      const res = await safeCacheMatch(cache, `/offline/tts/${hashKey}`)
+      const res = await safeCacheMatch(cache, `/offline/${scope}/tts/${hashKey}`)
       if (res)
         return res.blob()
     }
@@ -695,6 +757,9 @@ export const offlineService = {
     }
 
     const prefix = getKey('')
+    if (!prefix) {
+      return { bookStats: {}, totalDictionaryWords: 0, totalSizeBytes: 0 }
+    }
 
     const userKeys = keys.filter(keyItem => keyItem.startsWith(prefix))
     const booksList = await this.getBooksList() || []
@@ -735,7 +800,7 @@ export const offlineService = {
       }
     }
 
-    totalSize += await collectMediaCacheStats(bookStats)
+    totalSize += await collectMediaCacheStats(bookStats, getCacheScope())
 
     return { bookStats, totalDictionaryWords, totalSizeBytes: totalSize }
   },
@@ -745,6 +810,8 @@ export const offlineService = {
       // 1. Очистка старого IndexedDB хранилища
       const keys = await localforage.keys()
       const prefix = getKey('')
+      if (!prefix)
+        return
 
       const keysToRemove = keys.filter((fullKey) => {
         if (!fullKey.startsWith(prefix))

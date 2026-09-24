@@ -51,6 +51,12 @@ registerRoute(({ request, url }) => {
   if (!url.protocol.startsWith('http'))
     return false
 
+  // API responses can be private even when the browser marks the request as
+  // an image (for example a protected manga page). Keep them out of the
+  // shared Workbox image cache; auth-aware data is handled by repositories.
+  if (url.pathname.startsWith('/api/'))
+    return false
+
   if (request.destination === 'video' || request.destination === 'audio')
     return false
 

@@ -1,3 +1,27 @@
+import type { EntryKey } from '@pinia/colada'
+import { ref } from 'vue'
+
+// Server-backed query data must not be shared between authenticated sessions.
+// The scope is rotated by the auth store after restoring or changing identity;
+// including it in the key also makes a logout/login cycle start with a fresh
+// query entry instead of briefly rendering the previous user's data.
+const authQueryScope = ref('anonymous:0')
+let authQueryScopeRevision = 0
+let authQueryIdentity: string | null = null
+
+export function setAuthQueryScope(identity: string | null): void {
+  if (authQueryIdentity === identity)
+    return
+
+  authQueryIdentity = identity
+  authQueryScopeRevision++
+  authQueryScope.value = `${identity || 'anonymous'}:${authQueryScopeRevision}`
+}
+
+export function scopedQueryKey(key: EntryKey): EntryKey {
+  return [...key, authQueryScope.value]
+}
+
 export interface PublicBooksQueryParams {
   page?: number
   tag?: string

@@ -32,13 +32,36 @@ const periodOptions = [
     <KitViewSwitcher v-model="selectedPeriod" :items="periodOptions" />
   </div>
 
-  <div class="settings-card tokens-card" :class="{ 'is-loading': isTokensLoading }">
-    <KitSkeleton
+  <div
+    class="settings-card tokens-card"
+    :class="{ 'is-loading': isTokensLoading }"
+    :aria-busy="isTokensLoading"
+  >
+    <div
       v-if="isTokensLoading && totalTokens.input === 0 && totalTokens.output === 0"
-      width="100%"
-      height="150px"
-      color="var(--bg-tertiary-color)"
-    />
+      class="tokens-skeleton"
+      aria-hidden="true"
+    >
+      <div class="tokens-summary-skeleton">
+        <div v-for="i in 3" :key="`summary-${i}`" class="token-stat-skeleton">
+          <KitSkeleton width="96px" height="14px" />
+          <KitSkeleton width="112px" height="38px" />
+        </div>
+      </div>
+
+      <div class="divider" />
+
+      <div class="models-tokens-skeleton">
+        <div v-for="i in 3" :key="`action-${i}`" class="model-row-skeleton">
+          <KitSkeleton width="152px" height="18px" />
+          <div class="model-stats-skeleton">
+            <KitSkeleton width="68px" height="16px" />
+            <KitSkeleton width="68px" height="16px" />
+            <KitSkeleton width="56px" height="16px" />
+          </div>
+        </div>
+      </div>
+    </div>
 
     <template v-else-if="totalTokens.input > 0 || totalTokens.output > 0">
       <div class="total-tokens">
@@ -141,6 +164,63 @@ const periodOptions = [
   display: flex;
   flex-direction: column;
   gap: 24px;
+
+  .tokens-skeleton {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+
+  .tokens-summary-skeleton {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 48px;
+    padding: 12px 12px 0;
+
+    @include media-down(sm) {
+      gap: 24px;
+    }
+  }
+
+  .token-stat-skeleton {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .models-tokens-skeleton {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .model-row-skeleton {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 44px;
+    padding: 12px 16px;
+    background: var(--bg-tertiary-color);
+    border: 1px solid var(--border-secondary-color);
+    border-radius: 8px;
+
+    @include media-down(md) {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 8px;
+    }
+  }
+
+  .model-stats-skeleton {
+    display: flex;
+    gap: 16px;
+
+    @include media-down(sm) {
+      margin-left: 28px;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+  }
 
   .total-tokens {
     display: flex;

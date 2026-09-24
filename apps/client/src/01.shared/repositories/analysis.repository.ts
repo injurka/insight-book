@@ -62,7 +62,9 @@ export class DefaultAnalysisRepository implements IAnalysisRepository {
     type: 'sentence' | 'word' = 'sentence',
   ): Promise<LlmAnalysis> {
     try {
-      const cached = await offlineService.getAnalysis(text)
+      // Source language is part of the offline cache identity. Omitting it
+      // lets the same text in another language reuse the wrong translation.
+      const cached = await offlineService.getAnalysis(text, language)
       if (cached)
         return applyAcl(LlmAnalysisSchema, cached, 'analysis.analyze() [offline]')
     }
@@ -79,7 +81,7 @@ export class DefaultAnalysisRepository implements IAnalysisRepository {
       type,
     )
     const data = applyAcl(LlmAnalysisSchema, res, 'analysis.analyze()')
-    await offlineService.saveAnalysis(text, data).catch(() => { })
+    await offlineService.saveAnalysis(text, data, language).catch(() => { })
 
     return data
   }

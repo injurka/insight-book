@@ -5,7 +5,7 @@ import { computed, ref, watch } from 'vue'
 import { useRepos } from '~/00.plugins/di'
 import { useToast } from '~/01.shared/composables/use-toast'
 import { useTracking } from '~/01.shared/composables/use-tracking'
-import { queryKeys } from '~/01.shared/lib/query-keys'
+import { queryKeys, scopedQueryKey } from '~/01.shared/lib/query-keys'
 import { useAuthStore } from '~/01.shared/store/auth.store'
 import { useDictionaryFiltersStore } from './dictionary-filters.store'
 import { dictionaryWords } from './dictionary-words.state'
@@ -24,7 +24,7 @@ export const useDecksStore = defineStore('decks', () => {
     isLoading: isDecksLoading,
     refetch: refetchDecks,
   } = useQuery<DictDeck[]>({
-    key: queryKeys.decks.all,
+    key: () => scopedQueryKey(queryKeys.decks.all),
     query: async () => {
       return repos.dictionary.getDecks()
     },

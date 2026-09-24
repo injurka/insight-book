@@ -107,7 +107,6 @@ onMounted(async () => {
 }
 .dashboard-stats__link:hover {
   border-color: var(--border-accent-color, #5a9c7b);
-  transform: translateY(-2px);
 }
 .dashboard-stats__link-icon {
   font-size: 24px;

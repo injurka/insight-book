@@ -2,7 +2,7 @@ import type { UserData } from '../types/models'
 import { useQueryCache } from '@pinia/colada'
 import { useRepos } from '~/00.plugins/di'
 import { useTracking } from '~/01.shared/composables/use-tracking'
-import { queryKeys } from '~/01.shared/lib/query-keys'
+import { queryKeys, setAuthQueryScope } from '~/01.shared/lib/query-keys'
 import { resetTelemetryUser } from '~/01.shared/services/monitoring.service'
 import { UserDataSchema } from '~/01.shared/types/schemas/auth.schema'
 
@@ -94,7 +94,10 @@ export const useAuthStore = defineStore('auth', () => {
     localStorage.removeItem('insight_token')
     localStorage.removeItem('insight_uid')
     localStorage.removeItem('insight_user_data')
+    localStorage.removeItem('insight_auth_mode')
     user.value = null
+    isSingleMode.value = false
+    setAuthQueryScope(null)
     queryCache.invalidateQueries({ key: queryKeys.books.all })
   }
 
@@ -125,6 +128,7 @@ export const useAuthStore = defineStore('auth', () => {
 
     if ((cachedToken || isSingleMode.value) && cachedUser) {
       user.value = cachedUser
+      setAuthQueryScope(String(cachedUser.id))
 
       identifyUser({
         id: String(user.value!.id),
@@ -137,6 +141,8 @@ export const useAuthStore = defineStore('auth', () => {
     }
     else {
       user.value = null
+      isSingleMode.value = false
+      setAuthQueryScope(null)
     }
   }
 
@@ -157,6 +163,7 @@ export const useAuthStore = defineStore('auth', () => {
     if (!token && cachedMode === 'multi') {
       isSingleMode.value = false
       user.value = null
+      setAuthQueryScope(null)
 
       return
     }
@@ -177,6 +184,7 @@ export const useAuthStore = defineStore('auth', () => {
         localStorage.setItem('insight_uid', String(res.user.id))
         localStorage.setItem('insight_user_data', JSON.stringify(res.user))
         localStorage.setItem('insight_auth_mode', res.mode)
+        setAuthQueryScope(String(res.user.id))
 
         identifyUser({
           id: String(user.value!.id),
@@ -192,6 +200,7 @@ export const useAuthStore = defineStore('auth', () => {
         localStorage.removeItem('insight_token')
         localStorage.removeItem('insight_uid')
         localStorage.removeItem('insight_user_data')
+        setAuthQueryScope(null)
         queryCache.invalidateQueries({ key: queryKeys.books.all })
       }
     }
@@ -248,6 +257,8 @@ export const useAuthStore = defineStore('auth', () => {
     localStorage.removeItem('insight_auth_mode')
 
     user.value = null
+    isSingleMode.value = false
+    setAuthQueryScope(null)
     queryCache.invalidateQueries({ key: queryKeys.books.all })
     resetTelemetryUser()
   }

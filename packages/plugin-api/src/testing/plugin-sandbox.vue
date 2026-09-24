@@ -312,7 +312,6 @@ body,
 .exit-fullscreen-fab:hover {
   background: rgba(30, 41, 59, 0.95);
   border-color: rgba(255, 255, 255, 0.25);
-  transform: translateY(-1px);
 }
 
 .exit-fullscreen-fab svg {

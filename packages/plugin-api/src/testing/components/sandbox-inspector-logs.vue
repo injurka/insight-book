@@ -190,7 +190,6 @@ const { t } = useI18n()
 .clear-btn:hover:not(:disabled) {
   background: rgba(239, 68, 68, 0.18);
   border-color: rgba(239, 68, 68, 0.6);
-  transform: translateY(-1px);
 }
 
 .clear-btn:disabled {

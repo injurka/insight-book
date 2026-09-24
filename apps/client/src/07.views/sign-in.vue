@@ -647,7 +647,6 @@ onUnmounted(() => {
 @media (hover: hover) and (pointer: fine) {
   .deco-logo:hover {
     opacity: 0.9;
-    transform: translateY(-2px);
   }
 }
 

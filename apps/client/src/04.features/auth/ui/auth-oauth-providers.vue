@@ -49,7 +49,6 @@ const { t } = useI18n()
 
 @media (hover: hover) and (pointer: fine) {
   .yandex-btn:hover:not(.is-disabled) {
-    transform: translateY(-2px);
     box-shadow: 0 8px 28px rgba(252, 63, 29, 0.45);
     background: linear-gradient(135deg, #ff4d27 0%, #e0381a 100%);
   }

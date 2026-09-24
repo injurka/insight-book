@@ -447,7 +447,6 @@ onBeforeUnmount(() => {
   border-color: var(--fg-accent-color, #d69e2e);
   background: color-mix(in srgb, var(--fg-accent-color, #d69e2e) 16%, transparent);
   outline: none;
-  transform: translateY(-1px);
 }
 
 .ib-grammar-tenses-overlay {

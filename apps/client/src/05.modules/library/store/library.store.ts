@@ -2,7 +2,7 @@ import type { Book, BookStats } from '~/01.shared/types/models'
 import { useMutation, useQuery, useQueryCache } from '@pinia/colada'
 import { useRepos } from '~/00.plugins/di'
 import { useTracking } from '~/01.shared/composables/use-tracking'
-import { queryKeys } from '~/01.shared/lib/query-keys'
+import { queryKeys, scopedQueryKey } from '~/01.shared/lib/query-keys'
 import { useAuthStore } from '~/01.shared/store/auth.store'
 import { attachCachedCovers } from '../services/book-cover.service'
 import {
@@ -51,7 +51,7 @@ export const useLibraryStore = defineStore('library', () => {
     isLoading: isBooksLoading,
     refetch: refetchBooks,
   } = useQuery<Book[]>({
-    key: queryKeys.books.all,
+    key: () => scopedQueryKey(queryKeys.books.all),
     query: async () => repos.book.list(),
     enabled: () => !!authStore.user || authStore.isSingleMode,
   })
@@ -82,12 +82,12 @@ export const useLibraryStore = defineStore('library', () => {
     isLoading: isPublicBooksLoading,
     refetch: refetchPublicBooks,
   } = useQuery({
-    key: () => queryKeys.books.public({
+    key: () => scopedQueryKey(queryKeys.books.public({
       page: publicQueryPage.value,
       tag: publicQueryTag.value,
       search: publicQuerySearch.value,
       lang: publicQueryLang.value,
-    }),
+    })),
     query: async () => {
       const q = new URLSearchParams()
       q.set('page', String(publicQueryPage.value))
@@ -156,7 +156,7 @@ export const useLibraryStore = defineStore('library', () => {
     // с тем же ключом: options книжной инфы (enabled: currentBookId !== null, query: getInfo)
     // затирали options списка, из-за чего invalidateQueries(books.all) в auth.store отменял
     // in-flight запрос списка и НЕ перезапускал его (enabled=false) → «Библиотека пуста».
-    key: () => queryKeys.books.byId(currentBookId.value),
+    key: () => scopedQueryKey(queryKeys.books.byId(currentBookId.value)),
     query: async () => {
       const id = currentBookId.value
       if (!id)

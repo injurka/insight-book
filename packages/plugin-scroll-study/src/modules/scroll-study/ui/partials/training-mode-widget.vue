@@ -39,7 +39,6 @@ function startScrollStudy() {
   &:hover {
     border-color: #fbbf24 !important;
     background: rgba(245, 158, 11, 0.05) !important;
-    transform: translateY(-2px);
     box-shadow: 0 8px 24px rgba(245, 158, 11, 0.1) !important;
 
     .mode-icon {
