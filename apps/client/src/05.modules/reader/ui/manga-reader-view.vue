@@ -385,6 +385,10 @@ onUnmounted(() => {
           background-color: var(--fg-accent-color);
           color: var(--bg-primary-color);
           font-weight: 600;
+
+          &.add-space {
+            font-weight: inherit;
+          }
         }
       }
       :deep(.untranslated-text) {

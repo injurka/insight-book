@@ -2,6 +2,7 @@ import type { LocationQuery } from 'vue-router'
 import { createRouter, createWebHashHistory, createWebHistory } from 'vue-router'
 import { AppRouteNames } from '~/01.shared/constants/routes'
 import { API_URL, isTauri } from '~/01.shared/lib/env'
+import { shouldWaitForAuth } from '~/01.shared/lib/router-auth'
 import { useAuthStore } from '~/01.shared/store/auth.store'
 
 const MAIN_SCROLLER_SELECTOR = '.main-content'
@@ -223,7 +224,11 @@ function getAuthRedirect(toName: string | symbol | null | undefined, isAuth: boo
 router.beforeEach(async (to, from) => {
   const authStore = useAuthStore()
 
-  if (!authStore.isAuthReady)
+  // `init()` restores the cached user synchronously, while `checkAuth()` is
+  // already running in the background. Protected deep links must wait for
+  // that refresh before their first API request; otherwise a reader opened
+  // with F5 can fail to load its book and redirect to the home page.
+  if (shouldWaitForAuth(to.name, authStore.isAuthReady, authStore.isAuthRefreshing))
     await authStore.checkAuth()
 
   const hasSeenOnboarding = localStorage.getItem('insight_onboarding_completed') === 'true'

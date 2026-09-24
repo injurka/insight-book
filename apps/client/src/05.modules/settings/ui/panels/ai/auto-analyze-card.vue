@@ -128,7 +128,6 @@ function toggleAutoAnalyzePage() {
 
   &.is-disabled {
     opacity: 0.45;
-    pointer-events: none;
     filter: grayscale(0.3);
   }
 

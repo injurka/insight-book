@@ -384,6 +384,10 @@ onUnmounted(() => {
         background-color: var(--fg-accent-color);
         color: var(--bg-primary-color);
         font-weight: bold;
+
+        &.add-space {
+          font-weight: inherit;
+        }
       }
     }
   }

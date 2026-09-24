@@ -69,70 +69,57 @@ function goBack() {
         </div>
 
         <Transition name="skeleton-fade">
-          <div v-if="!libraryStore.hasLoadedBookInfo" class="skeleton-overlay" aria-hidden="true">
+          <div
+            v-if="!libraryStore.hasLoadedBookInfo && !libraryStore.currentBookInfo"
+            class="skeleton-overlay"
+            aria-hidden="true"
+          >
             <div class="layout-top">
               <div class="cover-col">
-                <template v-if="!libraryStore.currentBookInfo">
-                  <div class="cover-skeleton">
-                    <KitSkeleton width="100%" height="100%" border-radius="12px" />
-                  </div>
-                  <div class="action-buttons">
-                    <KitSkeleton
-                      class="skeleton-primary"
-                      width="100%"
-                      height="38px"
-                      border-radius="6px"
-                    />
-                    <KitSkeleton
-                      class="skeleton-secondary"
-                      width="100%"
-                      height="38px"
-                      border-radius="6px"
-                    />
-                  </div>
-                </template>
-                <template v-else>
-                  <div class="cover-space" />
-                  <div class="actions-space" />
-                </template>
-              </div>
-              <div class="content-col">
-                <template v-if="!libraryStore.currentBookInfo">
+                <div class="cover-skeleton">
+                  <KitSkeleton width="100%" height="100%" border-radius="12px" />
+                </div>
+                <div class="action-buttons">
                   <KitSkeleton
-                    width="80%"
-                    height="40px"
-                    class="title-skeleton"
-                    border-radius="8px"
-                  />
-                  <KitSkeleton
-                    width="40%"
-                    height="24px"
-                    class="author-skeleton"
+                    class="skeleton-primary"
+                    width="100%"
+                    height="38px"
                     border-radius="6px"
                   />
                   <KitSkeleton
+                    class="skeleton-secondary"
                     width="100%"
-                    height="72px"
-                    class="progress-skeleton"
-                    border-radius="12px"
+                    height="38px"
+                    border-radius="6px"
                   />
-                </template>
-                <template v-else>
-                  <div class="title-space" />
-                  <div class="author-space" />
-                  <div class="progress-space" />
-                </template>
-                <div class="skeleton-block stats-block">
-                  <KitSkeleton width="100%" height="100%" border-radius="12px" />
                 </div>
               </div>
-            </div>
-            <div class="layout-bottom">
-              <div class="skeleton-block bottom-block">
-                <KitSkeleton width="100%" height="100%" border-radius="12px" />
-              </div>
-              <div class="skeleton-block bottom-block toc-block">
-                <KitSkeleton width="100%" height="100%" border-radius="12px" />
+              <div class="content-col">
+                <KitSkeleton
+                  width="80%"
+                  height="40px"
+                  class="title-skeleton"
+                  border-radius="8px"
+                />
+                <KitSkeleton
+                  width="40%"
+                  height="24px"
+                  class="author-skeleton"
+                  border-radius="6px"
+                />
+                <div class="progress-skeleton">
+                  <KitSkeleton width="55%" height="19px" border-radius="5px" />
+                  <KitSkeleton width="100%" height="6px" border-radius="3px" />
+                </div>
+                <div class="stats-skeleton">
+                  <KitSkeleton width="35%" height="22px" border-radius="5px" />
+                  <div class="stats-skeleton-grid">
+                    <KitSkeleton width="100%" height="42px" border-radius="6px" />
+                    <KitSkeleton width="100%" height="42px" border-radius="6px" />
+                    <KitSkeleton width="100%" height="42px" border-radius="6px" />
+                  </div>
+                  <KitSkeleton width="100%" height="72px" border-radius="6px" />
+                </div>
               </div>
             </div>
           </div>
@@ -217,52 +204,6 @@ function goBack() {
   pointer-events: none;
 }
 
-.skeleton-block {
-  background-color: var(--bg-primary-color);
-  border-radius: 12px;
-  overflow: hidden;
-}
-
-.stats-block {
-  height: 240px;
-}
-
-.bottom-block {
-  height: 300px;
-}
-
-.toc-block {
-  height: 180px;
-}
-
-.title-space {
-  height: 42px;
-  margin-bottom: 8px;
-}
-
-.author-space {
-  height: 25px;
-  margin-bottom: 24px;
-}
-
-.progress-space {
-  height: 70px;
-  margin-bottom: 24px;
-}
-
-.cover-space {
-  aspect-ratio: 2 / 3;
-  margin-bottom: 24px;
-}
-
-.actions-space {
-  height: 132px;
-
-  @include media-down(md) {
-    height: 38px;
-  }
-}
-
 .skeleton-fade-enter-active,
 .skeleton-fade-leave-active {
   transition: opacity 0.3s ease;
@@ -310,7 +251,37 @@ function goBack() {
 }
 
 .progress-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px;
   margin-bottom: 24px;
+  background-color: var(--bg-primary-color);
+  border-radius: 12px;
+}
+
+.stats-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 24px;
+  background-color: var(--bg-primary-color);
+  border: 1px solid var(--border-accent-color);
+  border-radius: 12px;
+}
+
+.stats-skeleton-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+
+  @include media-down(sm) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.progress-skeleton > .kit-skeleton:last-child {
+  opacity: 0.8;
 }
 
 .content-col {

@@ -6,67 +6,68 @@ import { KitCheckbox } from '~/02.kit/atoms/kit-checkbox/ui'
 
 const { t } = useI18n()
 const settingsStore = useGlobalSettingsStore()
+
+type AutoAnalysisOptionKey
+  = | 'autoAnalyzeSentences'
+    | 'autoAnalyzeWords'
+    | 'autoAnalyzeTtsSentences'
+    | 'autoAnalyzeTtsWords'
+
+interface AutoAnalysisOption {
+  key: AutoAnalysisOptionKey
+  icon: string
+  title: string
+}
+
+const optionGroups = computed<AutoAnalysisOption[][]>(() => [
+  [
+    { key: 'autoAnalyzeSentences', icon: 'mdi:brain', title: t('bookInfo.deepAnalysis') },
+    { key: 'autoAnalyzeWords', icon: 'mdi:format-text', title: t('bookInfo.analyzeWords') },
+  ],
+  [
+    { key: 'autoAnalyzeTtsSentences', icon: 'mdi:headphones', title: t('bookInfo.cacheTtsSentences') },
+    { key: 'autoAnalyzeTtsWords', icon: 'mdi:headphones', title: t('bookInfo.cacheTtsWords') },
+  ],
+])
+
+function isOptionEnabled(key: AutoAnalysisOptionKey) {
+  return settingsStore.autoAnalyzePage && settingsStore[key]
+}
+
+function toggleOption(key: AutoAnalysisOptionKey) {
+  const wasEnabled = isOptionEnabled(key)
+
+  settingsStore.autoAnalyzePage = true
+  settingsStore[key] = !wasEnabled
+}
 </script>
 
 <template>
   <div class="auto-analysis-options" :class="{ 'is-disabled': !settingsStore.autoAnalyzePage }">
-    <div class="options-group">
+    <div v-for="(group, groupIndex) in optionGroups" :key="groupIndex" class="options-group">
       <div
+        v-for="option in group"
+        :key="option.key"
         class="option-card"
-        :class="{ 'is-active': settingsStore.autoAnalyzeSentences && settingsStore.autoAnalyzePage }"
-        @click="settingsStore.autoAnalyzePage && (settingsStore.autoAnalyzeSentences = !settingsStore.autoAnalyzeSentences)"
+        :class="{ 'is-active': isOptionEnabled(option.key) }"
+        role="checkbox"
+        :aria-checked="isOptionEnabled(option.key)"
+        tabindex="0"
+        @click="toggleOption(option.key)"
+        @keydown.enter.self.prevent="toggleOption(option.key)"
+        @keydown.space.self.prevent="toggleOption(option.key)"
       >
         <div class="option-content">
-          <Icon icon="mdi:brain" class="option-icon" />
+          <Icon :icon="option.icon" class="option-icon" />
           <div class="option-texts">
-            <span class="option-title">{{ t('bookInfo.deepAnalysis') }}</span>
+            <span class="option-title">{{ option.title }}</span>
           </div>
         </div>
-        <KitCheckbox :model-value="settingsStore.autoAnalyzeSentences && settingsStore.autoAnalyzePage" style="pointer-events: none;" />
-      </div>
-
-      <div
-        class="option-card"
-        :class="{ 'is-active': settingsStore.autoAnalyzeWords && settingsStore.autoAnalyzePage }"
-        @click="settingsStore.autoAnalyzePage && (settingsStore.autoAnalyzeWords = !settingsStore.autoAnalyzeWords)"
-      >
-        <div class="option-content">
-          <Icon icon="mdi:format-text" class="option-icon" />
-          <div class="option-texts">
-            <span class="option-title">{{ t('bookInfo.analyzeWords') }}</span>
-          </div>
-        </div>
-        <KitCheckbox :model-value="settingsStore.autoAnalyzeWords && settingsStore.autoAnalyzePage" style="pointer-events: none;" />
-      </div>
-    </div>
-
-    <div class="options-group">
-      <div
-        class="option-card"
-        :class="{ 'is-active': settingsStore.autoAnalyzeTtsSentences && settingsStore.autoAnalyzePage }"
-        @click="settingsStore.autoAnalyzePage && (settingsStore.autoAnalyzeTtsSentences = !settingsStore.autoAnalyzeTtsSentences)"
-      >
-        <div class="option-content">
-          <Icon icon="mdi:headphones" class="option-icon" />
-          <div class="option-texts">
-            <span class="option-title">{{ t('bookInfo.cacheTtsSentences') }}</span>
-          </div>
-        </div>
-        <KitCheckbox :model-value="settingsStore.autoAnalyzeTtsSentences && settingsStore.autoAnalyzePage" style="pointer-events: none;" />
-      </div>
-
-      <div
-        class="option-card"
-        :class="{ 'is-active': settingsStore.autoAnalyzeTtsWords && settingsStore.autoAnalyzePage }"
-        @click="settingsStore.autoAnalyzePage && (settingsStore.autoAnalyzeTtsWords = !settingsStore.autoAnalyzeTtsWords)"
-      >
-        <div class="option-content">
-          <Icon icon="mdi:headphones" class="option-icon" />
-          <div class="option-texts">
-            <span class="option-title">{{ t('bookInfo.cacheTtsWords') }}</span>
-          </div>
-        </div>
-        <KitCheckbox :model-value="settingsStore.autoAnalyzeTtsWords && settingsStore.autoAnalyzePage" style="pointer-events: none;" />
+        <KitCheckbox
+          :model-value="isOptionEnabled(option.key)"
+          @click.stop="toggleOption(option.key)"
+          @update:model-value="toggleOption(option.key)"
+        />
       </div>
     </div>
   </div>
@@ -82,8 +83,7 @@ const settingsStore = useGlobalSettingsStore()
     filter 0.25s ease;
 
   &.is-disabled {
-    opacity: 0.45;
-    pointer-events: none;
+    opacity: 0.65;
     filter: grayscale(0.3);
   }
 }
@@ -108,6 +108,11 @@ const settingsStore = useGlobalSettingsStore()
   border-radius: 12px;
   cursor: pointer;
   transition: all 0.2s ease;
+
+  &:focus-visible {
+    outline: 2px solid var(--fg-accent-color);
+    outline-offset: 2px;
+  }
 
   &:hover {
     border-color: var(--border-primary-color);

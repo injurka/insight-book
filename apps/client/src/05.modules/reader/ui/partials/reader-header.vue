@@ -137,7 +137,7 @@ watch(() => props.isVisible, (visible) => {
       v-model:visible="showAutoAnalyzeSettings"
       :title="t('reader.autoAnalyzeSettings')"
       icon="mdi:cog-outline"
-      :max-width="420"
+      :max-width="600"
       :minimizable="false"
     >
       <p class="dialog-hint" v-html="t('settings.autoAnalyzePageDesc')" />
