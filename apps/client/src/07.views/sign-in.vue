@@ -11,7 +11,7 @@ import { ThemesVariant, useChangeTheme } from '~/01.shared/composables/use-chang
 import { useToast } from '~/01.shared/composables/use-toast'
 import { useTracking } from '~/01.shared/composables/use-tracking'
 import { AppRoutePaths } from '~/01.shared/constants/routes'
-import { API_URL, isTauri } from '~/01.shared/lib/env'
+import { getApiEndpointUrl, isTauri } from '~/01.shared/lib/env'
 import { pollOAuthStatus } from '~/01.shared/lib/poll-oauth-status'
 import { useAuthStore } from '~/01.shared/store/auth.store'
 import { useGlobalSettingsStore } from '~/01.shared/store/settings.store'
@@ -116,7 +116,7 @@ async function loginYandex() {
       isLoading.value = true
 
       const sessionId = uuidv4()
-      const url = `${API_URL}/api/auth/yandex?session_id=${sessionId}`
+      const url = getApiEndpointUrl(`/api/auth/yandex?session_id=${sessionId}`)
 
       await openUrl(url)
 
@@ -135,7 +135,7 @@ async function loginYandex() {
       await router.push('/')
     }
     else {
-      window.location.href = `${API_URL}/api/auth/yandex`
+      window.location.href = getApiEndpointUrl('/api/auth/yandex')
     }
   }
   catch (e: unknown) {

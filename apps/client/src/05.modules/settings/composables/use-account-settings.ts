@@ -4,7 +4,7 @@ import { computed, onBeforeUnmount, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRepos } from '~/00.plugins/di'
 import { useToast } from '~/01.shared/composables/use-toast'
-import { API_URL, isTauri } from '~/01.shared/lib/env'
+import { getApiEndpointUrl, isTauri } from '~/01.shared/lib/env'
 import { pollOAuthStatus } from '~/01.shared/lib/poll-oauth-status'
 import { useAuthStore } from '~/01.shared/store/auth.store'
 
@@ -38,7 +38,7 @@ export function useAccountSettings() {
         isLinking.value = true
         clearPolling()
         const sessionId = uuidv4()
-        const url = `${API_URL}/api/auth/${provider}?session_id=${sessionId}&linkToken=${encodeURIComponent(token)}`
+        const url = getApiEndpointUrl(`/api/auth/${provider}?session_id=${sessionId}&linkToken=${encodeURIComponent(token)}`)
 
         await openUrl(url)
 
@@ -53,7 +53,7 @@ export function useAccountSettings() {
         await authStore.checkAuth()
       }
       else {
-        window.location.href = `${API_URL}/api/auth/${provider}?linkToken=${encodeURIComponent(token)}`
+        window.location.href = getApiEndpointUrl(`/api/auth/${provider}?linkToken=${encodeURIComponent(token)}`)
       }
     }
     catch (e: unknown) {

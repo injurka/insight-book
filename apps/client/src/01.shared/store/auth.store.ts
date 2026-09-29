@@ -45,6 +45,8 @@ export const useAuthStore = defineStore('auth', () => {
   const isAuthReady = ref(false)
   const isAuthRefreshing = ref(false)
   let authRefreshPromise: Promise<void> | null = null
+  let authRefreshToken: string | null = null
+  let authRefreshRevision = 0
 
   /**
    * Synchronous init from localStorage cache.
@@ -62,29 +64,38 @@ export const useAuthStore = defineStore('auth', () => {
    * In production, init() already set isAuthReady before mount — this runs purely as refresh.
    */
   function checkAuth(): Promise<void> {
-    if (authRefreshPromise)
+    const token = localStorage.getItem('insight_token')
+    if (authRefreshPromise && authRefreshToken === token)
       return authRefreshPromise
 
+    const revision = ++authRefreshRevision
     const refreshPromise = (async () => {
       isAuthRefreshing.value = true
       try {
-        await syncUser()
+        await syncUser(token)
       }
       finally {
-        isAuthRefreshing.value = false
-        isAuthReady.value = true
-        if (user.value)
-          loadUserPlugins().catch(err => console.warn('[Auth Store] Error loading plugins:', err))
+        if (revision === authRefreshRevision) {
+          isAuthRefreshing.value = false
+          isAuthReady.value = true
+          if (user.value)
+            loadUserPlugins().catch(err => console.warn('[Auth Store] Error loading plugins:', err))
+        }
       }
     })()
 
     authRefreshPromise = refreshPromise
+    authRefreshToken = token
     void refreshPromise.then(() => {
-      if (authRefreshPromise === refreshPromise)
+      if (revision === authRefreshRevision) {
         authRefreshPromise = null
+        authRefreshToken = null
+      }
     }, () => {
-      if (authRefreshPromise === refreshPromise)
+      if (revision === authRefreshRevision) {
         authRefreshPromise = null
+        authRefreshToken = null
+      }
     })
 
     return refreshPromise
@@ -156,9 +167,37 @@ export const useAuthStore = defineStore('auth', () => {
     loadCachedUserSession()
   }
 
-  async function syncUser() {
-    const token = localStorage.getItem('insight_token')
+  function applyAuthResponse(res: { user: UserData | null, mode: string }) {
+    user.value = res.user
+    isSingleMode.value = res.mode === 'single'
+
+    if (res.user) {
+      localStorage.setItem('insight_uid', String(res.user.id))
+      localStorage.setItem('insight_user_data', JSON.stringify(res.user))
+      localStorage.setItem('insight_auth_mode', res.mode)
+      setAuthQueryScope(String(res.user.id))
+
+      identifyUser({
+        id: String(res.user.id),
+        username: res.user.username,
+        role: res.user.role || 'user',
+        auth_mode: isSingleMode.value ? 'single' : 'multi',
+      })
+    }
+    else {
+      localStorage.setItem('insight_auth_mode', res.mode)
+      localStorage.removeItem('insight_token')
+      localStorage.removeItem('insight_uid')
+      localStorage.removeItem('insight_user_data')
+      setAuthQueryScope(null)
+    }
+
+    queryCache.invalidateQueries({ key: queryKeys.books.all })
+  }
+
+  async function syncUser(token: string | null) {
     const cachedMode = localStorage.getItem('insight_auth_mode')
+    const hasSameToken = () => localStorage.getItem('insight_token') === token
 
     if (!token && cachedMode === 'multi') {
       isSingleMode.value = false
@@ -176,36 +215,14 @@ export const useAuthStore = defineStore('auth', () => {
 
     try {
       const res = await repos.auth.me()
+      if (!hasSameToken())
+        return
 
-      user.value = res.user || null
-      isSingleMode.value = res.mode === 'single'
-
-      if (res.user) {
-        localStorage.setItem('insight_uid', String(res.user.id))
-        localStorage.setItem('insight_user_data', JSON.stringify(res.user))
-        localStorage.setItem('insight_auth_mode', res.mode)
-        setAuthQueryScope(String(res.user.id))
-
-        identifyUser({
-          id: String(user.value!.id),
-          username: user.value!.username,
-          role: user.value!.role || 'user',
-          auth_mode: isSingleMode.value ? 'single' : 'multi',
-        })
-
-        queryCache.invalidateQueries({ key: queryKeys.books.all })
-      }
-      else {
-        localStorage.setItem('insight_auth_mode', res.mode)
-        localStorage.removeItem('insight_token')
-        localStorage.removeItem('insight_uid')
-        localStorage.removeItem('insight_user_data')
-        setAuthQueryScope(null)
-        queryCache.invalidateQueries({ key: queryKeys.books.all })
-      }
+      applyAuthResponse(res)
     }
     catch (e) {
-      handleSyncError(e)
+      if (hasSameToken())
+        handleSyncError(e)
     }
   }
 

@@ -31,6 +31,28 @@ describe('env', () => {
     expect(API_URL).toBe('')
   })
 
+  it('uses the production API when a PWA has no runtime API URL', async () => {
+    vi.stubEnv('PROD', true)
+    vi.stubEnv('VITE_API_URL', '')
+    const { API_URL } = await import('./env')
+
+    expect(API_URL).toBe('https://insight-book-api.limited-dissolve.ru')
+  })
+
+  it('builds OAuth URLs under the configured API origin without double slashes', async () => {
+    vi.stubEnv('VITE_API_URL', 'https://mock-api.com/')
+    const { getApiEndpointUrl } = await import('./env')
+
+    expect(getApiEndpointUrl('/api/auth/yandex')).toBe('https://mock-api.com/api/auth/yandex')
+  })
+
+  it('keeps explicit same-origin API URLs on the current origin', async () => {
+    vi.stubEnv('VITE_API_URL', '/')
+    const { getApiEndpointUrl } = await import('./env')
+
+    expect(getApiEndpointUrl('/api/auth/yandex')).toBe(`${window.location.origin}/api/auth/yandex`)
+  })
+
   it('falls back to production API in Tauri when VITE_API_URL is not set', async () => {
     ; (window as { __TAURI_INTERNALS__?: unknown }).__TAURI_INTERNALS__ = {}
     vi.stubEnv('VITE_API_URL', '')

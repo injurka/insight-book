@@ -87,6 +87,31 @@ describe('authStore - checkAuth', () => {
     })
   })
 
+  it('ignores an old auth response after the OAuth callback stores a new token', async () => {
+    const user = makeUser({ id: 2, username: 'yandex-user' })
+    let resolveOldRequest!: (value: { user: UserData | null, mode: string }) => void
+    const oldRequest = new Promise<{ user: UserData | null, mode: string }>((resolve) => {
+      resolveOldRequest = resolve
+    })
+    meMock.mockReturnValueOnce(oldRequest).mockResolvedValueOnce({ user, mode: 'multi' })
+
+    localStorage.setItem('insight_token', 'old-token')
+    const store = useAuthStore()
+    const oldRefresh = store.checkAuth()
+
+    localStorage.setItem('insight_token', 'yandex-token')
+    const newRefresh = store.checkAuth()
+    await newRefresh
+
+    resolveOldRequest({ user: null, mode: 'multi' })
+    await oldRefresh
+
+    expect(meMock).toHaveBeenCalledTimes(2)
+    expect(store.user).toEqual(user)
+    expect(store.isAuthRefreshing).toBe(false)
+    expect(localStorage.getItem('insight_token')).toBe('yandex-token')
+  })
+
   it('clears the token and user when the server returns no user', async () => {
     localStorage.setItem('insight_token', 'stale-token')
     localStorage.setItem('insight_uid', '1')

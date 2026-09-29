@@ -1,25 +1,50 @@
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
+import { AppRouteNames } from '~/01.shared/constants/routes'
 import { useAuthStore } from '~/01.shared/store/auth.store'
 
 const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
+const { t } = useI18n()
 
 const error = ref('')
 
 onMounted(async () => {
-  const token = route.query.token as string | undefined
-
-  if (token) {
-    localStorage.setItem('insight_token', token)
-    await authStore.checkAuth()
-    router.push('/')
+  if (route.query.oauth_error === 'api_unavailable') {
+    error.value = t('signIn.errorAuth')
 
     return
   }
 
-  router.push('/sign-in')
+  const token = typeof route.query.token === 'string' ? route.query.token : null
+
+  if (token) {
+    localStorage.setItem('insight_token', token)
+    localStorage.removeItem('insight_uid')
+    localStorage.removeItem('insight_user_data')
+    localStorage.removeItem('insight_auth_mode')
+    await router.replace({ name: AppRouteNames.YandexCallback })
+
+    try {
+      await authStore.checkAuth()
+      if (!authStore.user) {
+        error.value = t('signIn.errorAuth')
+
+        return
+      }
+
+      await router.replace('/')
+    }
+    catch (e: unknown) {
+      error.value = e instanceof Error ? e.message : t('signIn.errorAuth')
+    }
+
+    return
+  }
+
+  await router.replace('/sign-in')
 })
 </script>
 

@@ -77,12 +77,17 @@ function resolveApiUrl(): string {
   if (runtimeConfig?.API_URL)
     return runtimeConfig.API_URL
 
-  // 3. Веб-окружение: VITE_API_URL (если задан) или пустая строка для относительных запросов (через proxy / Nginx)
-  return envApiUrl || ''
+  // В dev используем локальный proxy. Продакшн-клиент раздается отдельно от API.
+  return envApiUrl || (import.meta.env.PROD ? DEFAULT_API_URL : '')
 }
 
-/** Базовый URL API: рантайм-конфиг контейнера → env при сборке → прод для Tauri → пусто для веба */
+/** Базовый URL API: рантайм-конфиг → env при сборке → продакшн API или dev proxy */
 export const API_URL = resolveApiUrl()
+
+/** Абсолютный URL API-маршрута для переходов браузера и системного браузера Tauri. */
+export function getApiEndpointUrl(path: `/${string}`): string {
+  return new URL(path, new URL(API_URL || '/', window.location.origin)).toString()
+}
 
 /** OTLP-эндпоинт (SigNoz ingester через traefik): рантайм-конфиг → env при сборке → прод */
 export const OTEL_EXPORTER_OTLP_ENDPOINT = runtimeConfig?.OTEL_EXPORTER_OTLP_ENDPOINT || import.meta.env.VITE_OTEL_EXPORTER_OTLP_ENDPOINT || ''

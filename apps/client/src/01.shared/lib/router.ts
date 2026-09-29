@@ -1,7 +1,7 @@
 import type { LocationQuery } from 'vue-router'
 import { createRouter, createWebHashHistory, createWebHistory } from 'vue-router'
 import { AppRouteNames } from '~/01.shared/constants/routes'
-import { API_URL, isTauri } from '~/01.shared/lib/env'
+import { getApiEndpointUrl, isTauri } from '~/01.shared/lib/env'
 import { shouldWaitForAuth } from '~/01.shared/lib/router-auth'
 import { useAuthStore } from '~/01.shared/store/auth.store'
 
@@ -88,7 +88,15 @@ export const router = createRouter({
       name: 'YandexApiCallbackProxy',
       component: async () => import('~/07.views/auth/yandex/callback.vue'),
       beforeEnter: (to) => {
-        window.location.href = `${API_URL}${to.fullPath}`
+        const callbackUrl = getApiEndpointUrl(to.fullPath as `/${string}`)
+
+        // The SPA received a callback that should have reached the API.
+        // Reopening the same URL would reload the SPA indefinitely.
+        if (new URL(callbackUrl).origin === window.location.origin) {
+          return { name: AppRouteNames.YandexCallback, query: { oauth_error: 'api_unavailable' } }
+        }
+
+        window.location.replace(callbackUrl)
 
         return false
       },
@@ -203,9 +211,7 @@ function getSavedHomeQueryRedirect(toName: string | symbol | null | undefined, t
 }
 
 function getAuthRedirect(toName: string | symbol | null | undefined, isAuth: boolean, isSingleMode: boolean) {
-  const isAuthRoute = toName === AppRouteNames.SignIn || toName === AppRouteNames.YandexCallback
-
-  if (isAuth && isAuthRoute)
+  if (isAuth && toName === AppRouteNames.SignIn)
     return { name: AppRouteNames.Home }
 
   const protectedRoutes = [
