@@ -17,6 +17,16 @@ import { useLibraryStore } from '~/05.modules/library/store/library.store'
 import { useHighlightsStore } from '~/05.modules/reader/store/highlights.store'
 import { useReaderStore } from '~/05.modules/reader/store/reader.store'
 
+interface Props {
+  floatingPosition?: { x: number } | null
+}
+
+defineProps<Props>()
+const emit = defineEmits<{
+  floatingChange: [floating: boolean]
+  floatingMove: [x: number]
+}>()
+
 const { t } = useI18n()
 const analysisStore = useAnalysisStore()
 const networkStore = useNetworkStore()
@@ -27,6 +37,12 @@ const libraryStore = useLibraryStore()
 const highlightsStore = useHighlightsStore()
 
 const isPinned = ref(true)
+
+function togglePinned() {
+  isPinned.value = !isPinned.value
+  emit('floatingChange', !isPinned.value)
+}
+
 const showHistory = ref(false)
 const isSavingHighlight = ref(false)
 
@@ -165,12 +181,15 @@ onUnmounted(() => stop())
 <template>
   <KitDialog
     v-model:visible="analysisStore.sidebarOpen"
+    class="sentence-analysis-dialog"
     :title="showHistory ? t('analysis.sessionHistory') : t('analysis.aiAnalysis')"
     :max-width="650"
     icon="mdi:text-search"
     :floating="!isPinned"
+    :floating-position="floatingPosition"
     :persistent="!isPinned"
     :key-trigger="analysisStore.sidebarSentence"
+    @floating-move="emit('floatingMove', $event)"
   >
     <template #header-actions>
       <KitTooltip :text="showHistory ? t('analysis.hideHistory') : t('analysis.sessionHistory')" placement="bottom">
@@ -186,7 +205,7 @@ onUnmounted(() => stop())
         <button
           class="dialog-icon-btn pin-btn"
           :class="{ 'is-active': !isPinned }"
-          @click="isPinned = !isPinned"
+          @click="togglePinned"
         >
           <Icon :icon="isPinned ? 'mdi:pin' : 'mdi:pin-off-outline'" />
         </button>

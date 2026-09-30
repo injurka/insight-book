@@ -25,6 +25,8 @@ const props = withDefaults(defineProps<Props>(), {
   fullscreen: false,
 })
 
+const emit = defineEmits<{ floatingMove: [x: number] }>()
+
 interface Props {
   maxWidth?: number
   title?: string
@@ -36,6 +38,7 @@ interface Props {
   resizable?: boolean
   minimizable?: boolean
   fullscreen?: boolean
+  floatingPosition?: { x: number } | null
   keyTrigger?: unknown
   zIndex?: number | string
 }
@@ -77,6 +80,17 @@ const initialY = typeof window !== 'undefined' ? 100 : 0
 const { x, y, style: dragStyle } = useDraggable(dialogContentRef, {
   initialValue: { x: initialX, y: initialY },
   handle: dialogHeaderRef,
+  onEnd: (position) => {
+    if (props.floating)
+      emit('floatingMove', position.x)
+  },
+})
+
+watch(() => props.floatingPosition, (position, previous) => {
+  if (position != null)
+    x.value = position.x
+  else if (previous != null)
+    x.value = Math.max((window.innerWidth - props.maxWidth) / 2, 0)
 })
 
 const { isMobile, isSwiping, direction, swipeOffset } = useDialogSwipe({

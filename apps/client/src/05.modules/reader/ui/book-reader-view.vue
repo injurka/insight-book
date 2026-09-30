@@ -13,6 +13,7 @@ import { KitBtn } from '~/02.kit/atoms/kit-btn/ui'
 import { KitCheckbox } from '~/02.kit/atoms/kit-checkbox/ui'
 import { KitDialog } from '~/02.kit/organisms/kit-dialog/ui'
 import { useTextSelection } from '~/04.features/analysis'
+import { useFloatingAnalysisLayout } from '../composables/use-floating-analysis-layout'
 import { useParallelSync } from '../composables/use-parallel-sync'
 import { useQuoteHighlights } from '../composables/use-quote-highlights'
 import { useReaderContent } from '../composables/use-reader-content'
@@ -76,6 +77,8 @@ const {
   activePageNum,
   jumpToPage: jumpToPageContinuous,
 } = useReaderContinuous(readerViewRef, topSentinelRef, bottomSentinelRef)
+
+const { floating: isAnalysisFloating, offset: floatingOffset, dialogPosition, onDragEnd } = useFloatingAnalysisLayout(() => readerViewRef.value, () => analysisStore.sidebarOpen, () => `${readerStore.currentPage?.pageNum}:${readerStore.isPageLoading}:${readerStore.isParallelView}:${settingsStore.readerScrollMode}:${continuousPages.value.length}`)
 
 async function handlePrev() {
   if (settingsStore.readerScrollMode === 'continuous') {
@@ -254,6 +257,7 @@ watch(() => readerStore.isPageLoading, async (isLoading) => {
           :key="settingsStore.readerScrollMode === 'paginated' ? readerStore.currentPage.pageNum : 'continuous'"
           class="reader-layout-wrapper"
           :class="{ 'is-continuous': settingsStore.readerScrollMode === 'continuous' }"
+          :style="{ '--reader-floating-offset': `${floatingOffset}px` }"
         >
           <!-- Paginated Mode -->
           <template v-if="settingsStore.readerScrollMode === 'paginated'">
@@ -347,7 +351,7 @@ watch(() => readerStore.isPageLoading, async (isLoading) => {
     <ReaderTocDialog @go-to="handleGoTo" />
     <WordPopover />
     <SelectionTooltip />
-    <SentenceAnalysis />
+    <SentenceAnalysis :floating-position="dialogPosition" @floating-change="isAnalysisFloating = $event" @floating-move="onDragEnd" />
     <PageAnalysisModal />
 
     <ReaderFooter @prev="handlePrev" @next="handleNext" @go-to="handleGoTo" />

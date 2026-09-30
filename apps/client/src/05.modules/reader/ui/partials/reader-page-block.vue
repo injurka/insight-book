@@ -143,7 +143,10 @@ useQuoteHighlights(blockRef, [leftPaneContent, translatedPageContent], () => pro
   font-size: 0.85rem;
   font-weight: 500;
   user-select: none;
-  transition: max-width 0.3s ease;
+  transition:
+    max-width 0.3s ease,
+    transform 0.3s ease;
+  transform: translateX(var(--reader-floating-offset, 0px));
 
   &.is-parallel {
     max-width: 1600px;
@@ -167,7 +170,10 @@ useQuoteHighlights(blockRef, [leftPaneContent, translatedPageContent], () => pro
   display: flex;
   width: 100%;
   max-width: 800px;
-  transition: max-width 0.3s ease;
+  transition:
+    max-width 0.3s ease,
+    transform 0.3s ease;
+  transform: translateX(var(--reader-floating-offset, 0px));
   gap: 48px;
 
   &.is-parallel {
