@@ -32,12 +32,7 @@ export const useLibraryStore = defineStore('library', () => {
   const currentBookInfo = ref<Book | null>(null)
   const currentBookId = ref<number | null>(null)
 
-  /**
-   * Настоящие данные книги (ответ `/api/books/:id/info`) для текущего id уже получены.
-   * Отличие от `currentBookInfo`: последний может содержать оптимистичную копию
-   * книги из списка библиотеки (префилл), пока API не ответил. Скелетон страницы
-   * используется только когда такой оптимистичной копии ещё нет.
-   */
+  /** Данные книги для текущего id получены из `/api/books/:id/info`. */
   const hasLoadedBookInfo = ref(false)
 
   const isInitialized = ref(false)
@@ -168,17 +163,19 @@ export const useLibraryStore = defineStore('library', () => {
   })
 
   watch(bookInfoData, async (newInfo) => {
-    if (newInfo) {
+    if (newInfo && newInfo.id === currentBookId.value) {
       // Сначала прикрепляем локальную обложку, потом атомарно обновляем стейт,
       // чтобы src обложки не менялся сразу после рендера.
       await attachCachedCovers([newInfo])
+      if (newInfo.id !== currentBookId.value)
+        return
+
       currentBookInfo.value = newInfo
       hasLoadedBookInfo.value = true
     }
   })
 
-  // Ошибка API: снимаем скелетон-оверлей, чтобы страница не висела на шиммере
-  // вечно — остаётся оптимистичная информация из префилла (или пустота, как раньше).
+  // При ошибке запроса прекращаем показывать скелетон.
   watch(bookInfoError, (err) => {
     if (err)
       hasLoadedBookInfo.value = true
@@ -186,14 +183,7 @@ export const useLibraryStore = defineStore('library', () => {
 
   async function fetchBookInfo(id: number) {
     if (currentBookId.value !== id) {
-      // Оптимистичный префилл: книга уже известна из списка библиотеки —
-      // подставляем её сразу, чтобы страница рендерила реальную структуру
-      // (обложка, название, автор, кнопки) с первого кадра. Ответ API затем
-      // атомарно заменит currentBookInfo; для глубокой ссылки без префилла
-      // страница показывает скелетон до получения ответа.
-      const known = books.value.find(b => b.id === id)
-        ?? publicBooks.value.find(b => b.id === id)
-      currentBookInfo.value = known ? { ...known } : null
+      currentBookInfo.value = null
       currentBookId.value = id
       hasLoadedBookInfo.value = false
     }

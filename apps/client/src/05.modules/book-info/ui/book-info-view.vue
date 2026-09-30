@@ -28,6 +28,8 @@ useHead({
 })
 
 const bookId = computed(() => Number(route.params.id))
+const isBookReady = computed(() =>
+  libraryStore.hasLoadedBookInfo && libraryStore.currentBookInfo?.id === bookId.value)
 const isEditingStats = ref(false)
 const isSyncModalOpen = ref(false)
 const isAppendChapterOpen = ref(false)
@@ -52,8 +54,8 @@ function goBack() {
         <span class="header-title">{{ t('bookInfo.aboutBook') }}</span>
       </header>
 
-      <div v-if="libraryStore.isLoading || libraryStore.currentBookInfo" class="book-container">
-        <div class="layout-top">
+      <div v-if="!libraryStore.hasLoadedBookInfo || libraryStore.currentBookInfo" class="book-container" :aria-busy="!isBookReady">
+        <div v-if="isBookReady" class="layout-top">
           <BookCoverPanel
             @edit-stats="isEditingStats = true"
             @open-sync="isSyncModalOpen = true"
@@ -63,74 +65,72 @@ function goBack() {
             <BookStatsPanel v-model:is-editing="isEditingStats" />
           </div>
         </div>
-        <div class="layout-bottom">
+        <div v-if="isBookReady" class="layout-bottom">
           <BookLexicalPanel v-if="libraryStore.currentBookInfo?.type !== 'manga'" />
           <BookTocPanel />
         </div>
 
-        <Transition name="skeleton-fade">
-          <div
-            v-if="!libraryStore.hasLoadedBookInfo && !libraryStore.currentBookInfo"
-            class="skeleton-overlay"
-            aria-hidden="true"
-          >
-            <div class="layout-top">
-              <div class="cover-col">
-                <div class="cover-skeleton">
-                  <KitSkeleton width="100%" height="100%" border-radius="12px" />
-                </div>
-                <div class="action-buttons">
-                  <KitSkeleton
-                    class="skeleton-primary"
-                    width="100%"
-                    height="38px"
-                    border-radius="6px"
-                  />
-                  <KitSkeleton
-                    class="skeleton-secondary"
-                    width="100%"
-                    height="38px"
-                    border-radius="6px"
-                  />
-                </div>
+        <div
+          v-if="!isBookReady"
+          class="skeleton-content"
+          aria-hidden="true"
+        >
+          <div class="layout-top">
+            <div class="cover-col">
+              <div class="cover-skeleton">
+                <KitSkeleton width="100%" height="100%" border-radius="12px" />
               </div>
-              <div class="content-col">
+              <div class="action-buttons">
                 <KitSkeleton
-                  width="80%"
-                  height="40px"
-                  class="title-skeleton"
-                  border-radius="8px"
-                />
-                <KitSkeleton
-                  width="40%"
-                  height="24px"
-                  class="author-skeleton"
+                  class="skeleton-primary"
+                  width="100%"
+                  height="38px"
                   border-radius="6px"
                 />
-                <div class="progress-skeleton">
-                  <KitSkeleton width="55%" height="19px" border-radius="5px" />
-                  <KitSkeleton width="100%" height="6px" border-radius="3px" />
+                <KitSkeleton
+                  class="skeleton-secondary"
+                  width="100%"
+                  height="38px"
+                  border-radius="6px"
+                />
+              </div>
+            </div>
+            <div class="content-col">
+              <KitSkeleton
+                width="80%"
+                height="40px"
+                class="title-skeleton"
+                border-radius="8px"
+              />
+              <KitSkeleton
+                width="40%"
+                height="24px"
+                class="author-skeleton"
+                border-radius="6px"
+              />
+              <div class="progress-skeleton">
+                <KitSkeleton width="55%" height="19px" border-radius="5px" />
+                <KitSkeleton width="100%" height="6px" border-radius="3px" />
+              </div>
+              <div class="stats-skeleton">
+                <KitSkeleton width="35%" height="22px" border-radius="5px" />
+                <div class="stats-skeleton-grid">
+                  <KitSkeleton width="100%" height="42px" border-radius="6px" />
+                  <KitSkeleton width="100%" height="42px" border-radius="6px" />
+                  <KitSkeleton width="100%" height="42px" border-radius="6px" />
                 </div>
-                <div class="stats-skeleton">
-                  <KitSkeleton width="35%" height="22px" border-radius="5px" />
-                  <div class="stats-skeleton-grid">
-                    <KitSkeleton width="100%" height="42px" border-radius="6px" />
-                    <KitSkeleton width="100%" height="42px" border-radius="6px" />
-                    <KitSkeleton width="100%" height="42px" border-radius="6px" />
-                  </div>
-                  <KitSkeleton width="100%" height="72px" border-radius="6px" />
-                </div>
+                <KitSkeleton width="100%" height="72px" border-radius="6px" />
               </div>
             </div>
           </div>
-        </Transition>
+        </div>
       </div>
     </div>
 
     <WordPopover />
     <SelectionTooltip />
     <SentenceAnalysis />
-    <BookSyncModal v-if="libraryStore.currentBookInfo" v-model:visible="isSyncModalOpen" :book-id="bookId" />
+    <BookSyncModal v-if="isBookReady" v-model:visible="isSyncModalOpen" :book-id="bookId" />
     <AppendMangaModal v-model:visible="isAppendChapterOpen" />
   </div>
 </template>
@@ -189,29 +189,6 @@ function goBack() {
   display: flex;
   flex-direction: column;
   gap: 32px;
-}
-
-.book-container {
-  position: relative;
-}
-
-.skeleton-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  z-index: 5;
-  pointer-events: none;
-}
-
-.skeleton-fade-enter-active,
-.skeleton-fade-leave-active {
-  transition: opacity 0.3s ease;
-}
-
-.skeleton-fade-enter-from,
-.skeleton-fade-leave-to {
-  opacity: 0;
 }
 
 .cover-skeleton {
