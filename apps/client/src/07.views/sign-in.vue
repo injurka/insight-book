@@ -57,13 +57,20 @@ const isLoading = ref(false)
 const isCodeSent = ref(false)
 const currentTab = ref<'login' | 'register'>('login')
 
+async function refreshAuthenticatedUser() {
+  await authStore.checkAuth()
+
+  if (!authStore.user)
+    throw new Error(t('signIn.errorAuth'))
+}
+
 async function handleSignIn(payload: { username: string, password: string }) {
   isLoading.value = true
 
   try {
     const res = await repos.auth.login({ login: payload.username, password: payload.password })
     localStorage.setItem('insight_token', res.token)
-    await authStore.checkAuth()
+    await refreshAuthenticatedUser()
 
     trackEvent('login_success')
     router.push('/')
@@ -96,7 +103,7 @@ async function handleRegister(payload: { email: string, code: string, password: 
   try {
     const res = await repos.auth.register({ email: payload.email, code: payload.code, password: payload.password })
     localStorage.setItem('insight_token', res.token)
-    await authStore.checkAuth()
+    await refreshAuthenticatedUser()
     trackEvent('register_success')
     router.push('/')
   }
@@ -130,7 +137,7 @@ async function loginYandex() {
         throw new Error(t('signIn.errorAuth'))
 
       localStorage.setItem('insight_token', data.token)
-      await authStore.checkAuth()
+      await refreshAuthenticatedUser()
       trackEvent('login_success')
       await router.push('/')
     }

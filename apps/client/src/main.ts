@@ -141,7 +141,23 @@ async function setupPlatformUpdaters(pinia: Pinia) {
 
 function handleBootstrapFailure(err: unknown) {
   console.error('[bootstrap] Application startup failed:', err)
-  document.getElementById('app-preloader')?.remove()
+  const preloader = document.getElementById('app-preloader')
+  if (!preloader)
+    return
+
+  const errorPanel = document.createElement('div')
+  errorPanel.className = 'bootstrap-error'
+
+  const message = document.createElement('p')
+  message.textContent = 'Не удалось открыть InsightBook. Проверьте подключение и попробуйте ещё раз.'
+
+  const retryButton = document.createElement('button')
+  retryButton.type = 'button'
+  retryButton.textContent = 'Обновить приложение'
+  retryButton.addEventListener('click', () => window.location.reload())
+
+  errorPanel.append(message, retryButton)
+  preloader.replaceChildren(errorPanel)
 }
 
 void bootstrap().catch(handleBootstrapFailure)

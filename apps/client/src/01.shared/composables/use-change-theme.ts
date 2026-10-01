@@ -40,6 +40,16 @@ export function useChangeTheme() {
         name: 'theme-color',
         content: () => themesColors[getActualTheme(themePreference.value)],
       },
+      {
+        name: 'apple-mobile-web-app-status-bar-style',
+        content: () => {
+          const actualTheme = getActualTheme(themePreference.value)
+
+          return actualTheme === ThemesVariant.Dark || actualTheme === ThemesVariant.Oled
+            ? 'black-translucent'
+            : 'default'
+        },
+      },
     ],
   })
 

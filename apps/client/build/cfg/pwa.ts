@@ -13,7 +13,8 @@ export function pwaCfg(revision: string) {
       name: 'InsightBook',
       short_name: 'InsightBook',
       description: 'Да здравствуют ваши заметки',
-      theme_color: '#ffffff',
+      theme_color: '#0d1117',
+      background_color: '#0d1117',
       lang: 'ru',
       icons: [{
         src: 'pwa-64x64.png',

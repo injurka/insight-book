@@ -7,6 +7,40 @@
       name="viewport"
       content="width=device-width, initial-scale=1, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
     />
+    <meta name="theme-color" content="#0d1117" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+
+    <script>
+      ;(() => {
+        const colors = {
+          light: '#faf4f2',
+          dark: '#0d1117',
+          sepia: '#f4ecd8',
+          green: '#e8f3e8',
+          oled: '#000000',
+        }
+        let theme = 'system'
+
+        try {
+          theme = localStorage.getItem('app-theme') || theme
+        } catch {
+          // Use the system preference when storage is unavailable.
+        }
+
+        if (theme === 'system') {
+          theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+        }
+
+        if (!Object.hasOwn(colors, theme)) theme = 'light'
+
+        document.documentElement.setAttribute('data-theme', theme)
+        document.querySelector('meta[name="theme-color"]')?.setAttribute('content', colors[theme])
+        document
+          .querySelector('meta[name="apple-mobile-web-app-status-bar-style"]')
+          ?.setAttribute('content', theme === 'dark' || theme === 'oled' ? 'black-translucent' : 'default')
+      })()
+    </script>
 
     <title>InsightBook</title>
 
@@ -44,14 +78,35 @@
       }
 
       @media (prefers-color-scheme: light) {
-        #app-preloader {
+        html[data-theme='light'] #app-preloader {
           background-color: #faf4f2;
         }
 
-        #app-preloader .spinner {
+        html[data-theme='light'] #app-preloader .spinner {
           border-color: #e0dad9;
           border-top-color: #f37a51;
         }
+      }
+
+      #app-preloader .bootstrap-error {
+        max-width: 360px;
+        padding: 24px;
+        color: #f0f6fc;
+        font:
+          16px/1.5 system-ui,
+          sans-serif;
+        text-align: center;
+      }
+
+      #app-preloader .bootstrap-error button {
+        margin-top: 12px;
+        padding: 10px 16px;
+        border: 0;
+        border-radius: 8px;
+        background: #c975de;
+        color: #0d1117;
+        font: inherit;
+        cursor: pointer;
       }
 
       @keyframes app-preloader-spin {
