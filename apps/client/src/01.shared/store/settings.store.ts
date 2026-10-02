@@ -3,6 +3,20 @@ import { useLocalStorage } from '@vueuse/core'
 import { computed } from 'vue'
 import { DEFAULT_TTS_VOICE } from '~/01.shared/constants/tts'
 
+export const READER_CONTENT_WIDTH_MIN = 50
+export const READER_CONTENT_WIDTH_MAX = 150
+export const READER_CONTENT_WIDTH_STEP = 10
+const READER_CONTENT_WIDTH_DEFAULT = 100
+
+function normalizeReaderContentWidth(value: number) {
+  if (!Number.isFinite(value))
+    return READER_CONTENT_WIDTH_DEFAULT
+
+  const steppedValue = Math.round(value / READER_CONTENT_WIDTH_STEP) * READER_CONTENT_WIDTH_STEP
+
+  return Math.min(READER_CONTENT_WIDTH_MAX, Math.max(READER_CONTENT_WIDTH_MIN, steppedValue))
+}
+
 export const useGlobalSettingsStore = defineStore('globalSettings', () => {
   const appLanguage = useLocalStorage<string>('global-app-language', 'ru')
   const appFontFamily = useLocalStorage<string>('global-app-font-family', '\'Maple Mono CN\', monospace')
@@ -28,6 +42,13 @@ export const useGlobalSettingsStore = defineStore('globalSettings', () => {
   const readerFontSize = useLocalStorage<number>('global-reader-font-size', 1.4)
   const readerLineHeight = useLocalStorage<number>('global-reader-line-height', 1.8)
   const readerFontFamily = useLocalStorage<string>('global-reader-font-family', '\'Maple Mono CN\', \'Microsoft YaHei\', sans-serif')
+  const storedReaderContentWidthPercent = useLocalStorage<number>('global-reader-content-width-percent', READER_CONTENT_WIDTH_DEFAULT)
+  const readerContentWidthPercent = computed({
+    get: () => normalizeReaderContentWidth(storedReaderContentWidthPercent.value),
+    set: (value: number) => {
+      storedReaderContentWidthPercent.value = normalizeReaderContentWidth(value)
+    },
+  })
 
   const mangaOcrDisplayMode = useLocalStorage<'hover' | 'popover'>('global-manga-ocr-mode', 'popover')
 
@@ -78,6 +99,7 @@ export const useGlobalSettingsStore = defineStore('globalSettings', () => {
     readerFontSize,
     readerLineHeight,
     readerFontFamily,
+    readerContentWidthPercent,
     mangaOcrDisplayMode,
     useCustomLlm,
     customLlmUrl,

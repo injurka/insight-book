@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { PagePayload } from '~/01.shared/types/models'
 import { Icon } from '@iconify/vue'
-import { useTemplateRef } from 'vue'
+import { computed, useTemplateRef } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useAnalysisStore } from '~/01.shared/store/analysis/analysis.store'
 import { useGlobalSettingsStore } from '~/01.shared/store/settings.store'
@@ -33,6 +33,15 @@ const { t } = useI18n()
 const settingsStore = useGlobalSettingsStore()
 const analysisStore = useAnalysisStore()
 const blockRef = useTemplateRef<HTMLElement>('blockRef')
+const contentLayoutStyle = computed(() => {
+  const widthPercent = settingsStore.readerContentWidthPercent
+  const baseWidth = props.isParallelView ? 1600 : 800
+
+  return {
+    width: `${widthPercent}%`,
+    maxWidth: `min(${baseWidth * widthPercent / 100}px, 100%)`,
+  }
+})
 
 const { leftPaneContent, translatedPageContent, pageTranslationProgress } = useReaderContent(() => props.page)
 useQuoteHighlights(blockRef, [leftPaneContent, translatedPageContent], () => props.page.pageNum)
@@ -46,7 +55,7 @@ useQuoteHighlights(blockRef, [leftPaneContent, translatedPageContent], () => pro
       <span class="divider-line" />
     </div>
 
-    <div class="reader-content-layout" :class="{ 'is-parallel': isParallelView }">
+    <div class="reader-content-layout" :class="{ 'is-parallel': isParallelView }" :style="contentLayoutStyle">
       <div
         class="reader-content left-pane js-tooltip-selectable"
         :style="{

@@ -204,6 +204,7 @@ watch([
   () => readerStore.isParallelView,
   () => settingsStore.readerFontSize,
   () => settingsStore.readerLineHeight,
+  () => settingsStore.readerContentWidthPercent,
   rightPaneContentForSync,
 ], async () => {
   if (readerStore.isPageLoading)
@@ -219,6 +220,19 @@ watch([
       performLayoutSync()
   }, 50)
 })
+
+function handleReaderLayoutTransitionEnd(event: TransitionEvent) {
+  if (!readerStore.isParallelView || event.propertyName !== 'max-width')
+    return
+
+  if (!(event.target instanceof HTMLElement) || !event.target.classList.contains('reader-content-layout'))
+    return
+
+  if (settingsStore.readerScrollMode === 'continuous')
+    syncLayout()
+  else
+    performLayoutSync()
+}
 
 watch(continuousPages, async () => {
   await nextTick()
@@ -245,7 +259,12 @@ watch(() => readerStore.isPageLoading, async (isLoading) => {
 </script>
 
 <template>
-  <div ref="readerViewRef" class="reader-view" @scroll.passive="onScroll">
+  <div
+    ref="readerViewRef"
+    class="reader-view"
+    @scroll.passive="onScroll"
+    @transitionend="handleReaderLayoutTransitionEnd"
+  >
     <ReaderHeader :is-visible="isHeaderVisible" />
 
     <div class="reader-content-wrapper">

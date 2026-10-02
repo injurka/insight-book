@@ -10,7 +10,12 @@ import { TTS_VOICE_OPTIONS } from '~/01.shared/constants/tts'
 import { isMobileApp as isApk } from '~/01.shared/lib/env'
 import { useAnalysisStore } from '~/01.shared/store/analysis/analysis.store'
 import { useNetworkStore } from '~/01.shared/store/network.store'
-import { useGlobalSettingsStore } from '~/01.shared/store/settings.store'
+import {
+  READER_CONTENT_WIDTH_MAX,
+  READER_CONTENT_WIDTH_MIN,
+  READER_CONTENT_WIDTH_STEP,
+  useGlobalSettingsStore,
+} from '~/01.shared/store/settings.store'
 import { KitBtn } from '~/02.kit/atoms/kit-btn/ui'
 import { KitCheckbox } from '~/02.kit/atoms/kit-checkbox/ui'
 import { KitSelect } from '~/02.kit/molecules/kit-select/ui'
@@ -86,6 +91,12 @@ function adjustLineHeight(delta: number) {
   const newHeight = settingsStore.readerLineHeight + delta
   if (newHeight >= 1.0 && newHeight <= 3.0)
     settingsStore.readerLineHeight = Number(newHeight.toFixed(1))
+}
+
+function adjustReaderContentWidth(delta: number) {
+  const newWidth = settingsStore.readerContentWidthPercent + delta
+  if (newWidth >= READER_CONTENT_WIDTH_MIN && newWidth <= READER_CONTENT_WIDTH_MAX)
+    settingsStore.readerContentWidthPercent = newWidth
 }
 
 const fontOptions = computed(() => [
@@ -297,6 +308,34 @@ const currentThemeName = computed(() => {
 
       <div class="settings-row">
         <div class="item-label">
+          <Icon icon="mdi:arrow-expand-horizontal" class="item-icon" />
+          <span>{{ t('reader.textWidth') }}</span>
+        </div>
+        <div class="control-pill stepper-pill">
+          <button
+            type="button"
+            class="stepper-btn"
+            :aria-label="t('reader.decreaseTextWidth')"
+            :disabled="settingsStore.readerContentWidthPercent <= READER_CONTENT_WIDTH_MIN"
+            @click="adjustReaderContentWidth(-READER_CONTENT_WIDTH_STEP)"
+          >
+            <Icon icon="mdi:minus" />
+          </button>
+          <span class="stepper-value">{{ settingsStore.readerContentWidthPercent }}%</span>
+          <button
+            type="button"
+            class="stepper-btn"
+            :aria-label="t('reader.increaseTextWidth')"
+            :disabled="settingsStore.readerContentWidthPercent >= READER_CONTENT_WIDTH_MAX"
+            @click="adjustReaderContentWidth(READER_CONTENT_WIDTH_STEP)"
+          >
+            <Icon icon="mdi:plus" />
+          </button>
+        </div>
+      </div>
+
+      <div class="settings-row">
+        <div class="item-label">
           <Icon icon="mdi:format-font" class="item-icon" />
           <span>{{ t('reader.font') }}</span>
         </div>
@@ -466,6 +505,11 @@ const currentThemeName = computed(() => {
     &:hover {
       background-color: rgba(128, 128, 128, 0.15);
       color: var(--fg-primary-color);
+    }
+
+    &:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
     }
   }
 
