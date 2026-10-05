@@ -1092,6 +1092,16 @@ export const useAnalysisStore = defineStore('analysis', () => {
     const controller = new AbortController()
     wordAbortController = controller
 
+    prepareWordPopover(
+      word,
+      pos,
+      targetRect,
+      target,
+      undefined,
+      bookId,
+      undefined,
+    )
+
     await performStandaloneWordLookup(
       bookId,
       word,

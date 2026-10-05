@@ -7,6 +7,7 @@ const mocks = vi.hoisted(() => ({
     getLocalAnalysis: vi.fn(),
     checkCache: vi.fn(),
     analyzeBatch: vi.fn(),
+    lookupWord: vi.fn(),
   },
   readerStore: {
     currentBook: {
@@ -71,5 +72,26 @@ describe('analysisStore page queue', () => {
     expect(store.pageAnalysisSentencesTotal).toBe(2)
     expect(store.isAutoPageAnalysisActive).toBe(false)
     expect(store.taskQueue).toHaveLength(0)
+  })
+
+  it('opens a standalone word popover before the dictionary request finishes and keeps it closed after dismissal', async () => {
+    let resolveLookup!: (result: { transcription: string, translation: string }) => void
+    mocks.analysisRepo.lookupWord.mockImplementation(() => new Promise((resolve) => {
+      resolveLookup = resolve
+    }))
+    const store = useAnalysisStore()
+    const target = document.createElement('div')
+
+    const lookup = store.lookupStandaloneWord('Her', 'r', target)
+
+    expect(store.wordPopover).toMatchObject({ word: 'Her', isLoading: true, contextBookId: 1 })
+    expect(store.wordPopover?.target).toBe(target)
+    expect(mocks.analysisRepo.lookupWord).toHaveBeenCalledWith(1, 'Her', expect.any(AbortSignal))
+
+    store.closePopover()
+    resolveLookup({ transcription: '', translation: 'её' })
+    await lookup
+
+    expect(store.wordPopover).toBeNull()
   })
 })
