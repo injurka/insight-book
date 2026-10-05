@@ -394,7 +394,7 @@ onUnmounted(() => {
 }
 
 .library-footer {
-  padding: 24px 16px;
+  padding: 16px;
   display: flex;
   justify-content: center;
   align-items: center;

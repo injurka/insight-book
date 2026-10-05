@@ -57,6 +57,7 @@ function onMenuClick(id: string) {
     v-model:visible="isMobileMenuOpen"
     :title="t('library.menuTitle')"
     :max-width="400"
+    :minimizable="false"
     :floating="false"
   >
     <ul class="nav-menu mobile-menu">
