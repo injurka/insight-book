@@ -48,9 +48,14 @@ const { t } = useI18n()
     </div>
 
     <div class="header-controls">
-      <button class="status-button" :class="{ active: isActive }" @click="emit('toggleActivation')">
+      <button
+        class="status-button"
+        :class="{ active: isActive }"
+        :aria-label="isActive ? t('sandbox.activated') : t('sandbox.deactivated')"
+        @click="emit('toggleActivation')"
+      >
         <span class="status-dot" />
-        {{ isActive ? t('sandbox.activated') : t('sandbox.deactivated') }}
+        <span class="status-label">{{ isActive ? t('sandbox.activated') : t('sandbox.deactivated') }}</span>
       </button>
 
       <div class="locale-selector">
@@ -177,6 +182,9 @@ const { t } = useI18n()
 }
 
 .locale-selector select {
+  box-sizing: border-box;
+  height: 34px;
+  appearance: none;
   background: var(--bg-surface);
   color: var(--text-primary);
   border: 1px solid var(--border);
@@ -225,5 +233,50 @@ const { t } = useI18n()
 .status-button.active .status-dot {
   background: #10b981;
   box-shadow: 0 0 8px #10b981;
+}
+
+@media (max-width: 640px) {
+  .sandbox-header {
+    padding: 10px;
+    gap: 8px;
+  }
+
+  .header-brand {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+
+  .sandbox-badge {
+    padding: 3px 6px;
+    font-size: 8px;
+    letter-spacing: 0.3px;
+    white-space: normal;
+  }
+
+  .plugin-title {
+    font-size: 12px;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .plugin-version {
+    font-size: 10px;
+  }
+
+  .header-controls {
+    gap: 6px;
+  }
+
+  .status-button.active {
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    padding: 0;
+  }
+
+  .status-button.active .status-label {
+    display: none;
+  }
 }
 </style>

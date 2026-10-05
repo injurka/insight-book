@@ -1,10 +1,16 @@
 <script setup lang="ts">
+import type { CatalogPluginRecord } from '~/01.shared/types/models'
 import { ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useToast } from '~/01.shared/composables/use-toast'
 import { KitBtn } from '~/02.kit/atoms/kit-btn/ui'
 import { KitDialog } from '~/02.kit/organisms/kit-dialog/ui'
 import { usePluginsStore } from '../../../store/plugins.store'
+
+interface Props {
+  plugin?: CatalogPluginRecord | null
+}
+const props = defineProps<Props>()
 
 const visible = defineModel<boolean>('visible', { required: true })
 
@@ -31,7 +37,7 @@ async function confirmUpload() {
     return
   }
 
-  const success = await pluginsStore.uploadPlugin(uploadFile.value)
+  const success = await pluginsStore.uploadPlugin(uploadFile.value, props.plugin?.id)
   if (success) {
     visible.value = false
     uploadFile.value = null
@@ -42,11 +48,15 @@ async function confirmUpload() {
 <template>
   <KitDialog
     v-model:visible="visible"
-    :title="t('settings.uploadPluginTitle', 'Загрузка своего плагина')"
+    :title="props.plugin ? t('settings.updatePluginTitle') : t('settings.uploadPluginTitle')"
     :max-width="540"
   >
     <div class="install-dialog-content">
-      <p class="upload-hint">
+      <p v-if="props.plugin" class="upload-hint">
+        <strong>{{ props.plugin.name }} · v{{ props.plugin.version }}</strong><br>
+        {{ t('settings.updatePluginHint', { id: props.plugin.id }) }}
+      </p>
+      <p v-else class="upload-hint">
         {{ t('settings.uploadPluginHint', 'Выберите zip-архив с плагином. После загрузки он будет отправлен на рассмотрение модератором.') }}
       </p>
 
@@ -68,6 +78,7 @@ async function confirmUpload() {
           color="primary"
           size="sm"
           :loading="pluginsStore.isUploadingPlugin"
+          :disabled="!uploadFile"
           @click="confirmUpload"
         >
           {{ t('settings.uploadConfirm', 'Отправить на рассмотрение') }}

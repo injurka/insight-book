@@ -100,10 +100,9 @@ const pluginsStore = usePluginsStore()
 
 .empty-state {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 8px;
-  padding: 32px;
+  gap: 12px;
+  padding: 16px;
   background: var(--bg-secondary-color);
   border-radius: 12px;
   border: 1px dashed var(--border-secondary-color);
@@ -111,7 +110,7 @@ const pluginsStore = usePluginsStore()
   text-align: center;
 
   .empty-icon {
-    font-size: 2.5rem;
+    font-size: 1.5rem;
     opacity: 0.6;
   }
 

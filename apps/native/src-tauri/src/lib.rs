@@ -129,6 +129,23 @@ async fn open_downloaded_apk(app: tauri::AppHandle, path: String) -> Result<(), 
     }
 }
 
+#[tauri::command]
+fn set_system_bars_theme(app: tauri::AppHandle, dark: bool) -> Result<(), String> {
+    #[cfg(target_os = "android")]
+    {
+        use tauri_plugin_apk_installer::{ApkInstallerExt, SystemBarsPayload};
+        app.apk_installer()
+            .set_system_bars_theme(SystemBarsPayload { dark })
+            .map(|_| ())
+            .map_err(|e| e.to_string())
+    }
+    #[cfg(not(target_os = "android"))]
+    {
+        let _ = (app, dark);
+        Ok(())
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -139,7 +156,8 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             is_hyprland,
             download_app_update,
-            open_downloaded_apk
+            open_downloaded_apk,
+            set_system_bars_theme
         ])
         .setup(|app| {
             if cfg!(debug_assertions) {

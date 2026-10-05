@@ -1,7 +1,9 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import type { CatalogPluginRecord } from '~/01.shared/types/models'
+import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { KitBtn } from '~/02.kit/atoms/kit-btn/ui'
+import { KitTabs } from '~/02.kit/molecules/kit-tabs/ui'
 import { usePluginsStore } from '../../store/plugins.store'
 import ModerationPluginsList from './plugins/moderation-plugins-list.vue'
 import PluginCatalogModal from './plugins/plugin-catalog-modal.vue'
@@ -17,6 +19,18 @@ const pluginsStore = usePluginsStore()
 const isInstallModalOpen = ref(false)
 const isCatalogModalOpen = ref(false)
 const isUploadModalOpen = ref(false)
+const selectedPlugin = ref<CatalogPluginRecord | null>(null)
+const currentTab = ref('installed')
+const tabs = computed(() => [
+  { id: 'installed', label: t('settings.installedPluginsTab'), icon: 'mdi:puzzle-outline' },
+  { id: 'published', label: t('settings.publishedPluginsTab'), icon: 'mdi:upload-outline' },
+  ...(pluginsStore.isAdmin ? [{ id: 'moderation', label: t('settings.moderationTitle'), icon: 'mdi:shield-check-outline' }] : []),
+])
+
+function openUpload(plugin: CatalogPluginRecord | null = null) {
+  selectedPlugin.value = plugin
+  isUploadModalOpen.value = true
+}
 </script>
 
 <template>
@@ -43,7 +57,7 @@ const isUploadModalOpen = ref(false)
           variant="tonal"
           icon="mdi:upload-outline"
           size="sm"
-          @click="isUploadModalOpen = true"
+          @click="openUpload()"
         >
           {{ t('settings.uploadPlugin', 'Загрузить плагин') }}
         </KitBtn>
@@ -55,18 +69,34 @@ const isUploadModalOpen = ref(false)
           :title="t('settings.addRemotePlugin')"
           :aria-label="t('settings.addRemotePlugin')"
           @click="isInstallModalOpen = true"
-        />
+        >
+          {{ t('settings.addRemotePlugin') }}
+        </KitBtn>
       </div>
     </div>
 
-    <StaticPluginsList />
-    <RemotePluginsList />
-    <UploadedPluginsList />
-    <ModerationPluginsList v-if="pluginsStore.isAdmin" />
+    <KitTabs v-model="currentTab" :items="tabs" :cache="false">
+      <template #installed>
+        <div class="plugin-sections">
+          <StaticPluginsList />
+          <RemotePluginsList />
+        </div>
+      </template>
+      <template #published>
+        <div class="plugin-sections">
+          <UploadedPluginsList @update="openUpload" />
+        </div>
+      </template>
+      <template #moderation>
+        <div v-if="pluginsStore.isAdmin" class="plugin-sections">
+          <ModerationPluginsList />
+        </div>
+      </template>
+    </KitTabs>
 
     <PluginInstallUrlModal v-model:visible="isInstallModalOpen" />
     <PluginCatalogModal v-model:visible="isCatalogModalOpen" />
-    <PluginUploadModal v-model:visible="isUploadModalOpen" />
+    <PluginUploadModal v-model:visible="isUploadModalOpen" :plugin="selectedPlugin" />
   </div>
 </template>
 
@@ -75,6 +105,13 @@ const isUploadModalOpen = ref(false)
   display: flex;
   flex-direction: column;
   gap: 28px;
+}
+
+.plugin-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding-top: 16px;
 }
 
 .panel-header {
@@ -102,10 +139,6 @@ const isUploadModalOpen = ref(false)
   width: 100%;
   gap: 12px;
   flex-wrap: wrap;
-
-  .add-remote-plugin-btn {
-    margin-left: auto;
-  }
 }
 
 @include media-down(sm) {

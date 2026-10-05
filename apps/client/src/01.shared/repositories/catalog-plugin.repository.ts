@@ -8,7 +8,7 @@ export interface ICatalogPluginRepository {
   getApproved: () => Promise<CatalogPluginRecord[]>
   getMy: () => Promise<CatalogPluginRecord[]>
   getPending: () => Promise<CatalogPluginRecord[]>
-  upload: (file: File) => Promise<CatalogPluginRecord>
+  upload: (file: File, pluginId?: string) => Promise<CatalogPluginRecord>
   updateStatus: (id: string, status: 'approved' | 'rejected') => Promise<CatalogPluginRecord>
   delete: (id: string) => Promise<{ success: boolean }>
 }
@@ -32,8 +32,8 @@ export class DefaultCatalogPluginRepository implements ICatalogPluginRepository 
     return applyAcl(z.array(CatalogPluginRecordSchema), raw, 'catalogPlugin.getPending()')
   }
 
-  async upload(file: File) {
-    return api.catalogPlugins.upload(file)
+  async upload(file: File, pluginId?: string) {
+    return api.catalogPlugins.upload(file, pluginId)
   }
 
   async updateStatus(id: string, status: 'approved' | 'rejected') {

@@ -694,9 +694,11 @@ export const api = {
     getApproved: async () => request<CatalogPluginRecord[]>('/api/catalog/plugins'),
     getMy: async () => request<CatalogPluginRecord[]>('/api/catalog/plugins/my'),
     getPending: async () => request<CatalogPluginRecord[]>('/api/catalog/plugins/pending'),
-    upload: async (file: File) => {
+    upload: async (file: File, pluginId?: string) => {
       const fd = new FormData()
       fd.append('file', file)
+      if (pluginId)
+        fd.append('pluginId', pluginId)
 
       return request<CatalogPluginRecord>('/api/catalog/plugins/upload', {
         method: 'POST',

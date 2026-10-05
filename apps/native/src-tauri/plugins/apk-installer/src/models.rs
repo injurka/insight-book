@@ -5,3 +5,9 @@ use serde::{Deserialize, Serialize};
 pub struct InstallApkPayload {
     pub path: String,
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SystemBarsPayload {
+    pub dark: bool,
+}

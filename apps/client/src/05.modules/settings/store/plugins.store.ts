@@ -184,7 +184,7 @@ export const usePluginsStore = defineStore('settings-plugins', () => {
     mutateAsync: uploadPluginMutation,
     isLoading: isUploadingPlugin,
   } = useMutation({
-    mutation: async (file: File) => repos.catalogPlugin.upload(file),
+    mutation: async (data: { file: File, pluginId?: string }) => repos.catalogPlugin.upload(data.file, data.pluginId),
     onSuccess() {
       toast.success(t('settings.uploadPluginSuccess', 'Плагин отправлен на рассмотрение'))
       refetchMyUploadedPlugins()
@@ -198,9 +198,9 @@ export const usePluginsStore = defineStore('settings-plugins', () => {
     },
   })
 
-  async function uploadPlugin(file: File): Promise<boolean> {
+  async function uploadPlugin(file: File, pluginId?: string): Promise<boolean> {
     try {
-      await uploadPluginMutation(file)
+      await uploadPluginMutation({ file, pluginId })
 
       return true
     }

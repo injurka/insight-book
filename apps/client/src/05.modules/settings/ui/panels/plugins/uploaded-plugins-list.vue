@@ -5,6 +5,8 @@ import { useI18n } from 'vue-i18n'
 import { KitBtn } from '~/02.kit/atoms/kit-btn/ui'
 import { usePluginsStore } from '../../../store/plugins.store'
 
+const emit = defineEmits<{ update: [plugin: CatalogPluginRecord] }>()
+
 const { t } = useI18n()
 const pluginsStore = usePluginsStore()
 
@@ -21,7 +23,6 @@ function statusLabel(status: CatalogPluginRecord['status']) {
 
 <template>
   <div
-    v-if="pluginsStore.isMyUploadedPluginsLoading || pluginsStore.myUploadedPluginsError || pluginsStore.myUploadedPlugins.length > 0"
     class="section-group"
   >
     <h3 class="group-title">
@@ -46,6 +47,9 @@ function statusLabel(status: CatalogPluginRecord['status']) {
       </KitBtn>
     </div>
 
+    <div v-else-if="pluginsStore.myUploadedPlugins.length === 0" class="status-state">
+      <p>{{ t('settings.noUploadedPlugins') }}</p>
+    </div>
     <div v-else class="plugins-list">
       <div v-for="record in pluginsStore.myUploadedPlugins" :key="record.id" class="plugin-card">
         <div class="plugin-icon">
@@ -62,6 +66,14 @@ function statusLabel(status: CatalogPluginRecord['status']) {
           </p>
         </div>
         <div class="plugin-action">
+          <KitBtn
+            variant="tonal"
+            icon="mdi:upload-outline"
+            size="sm"
+            @click="emit('update', record)"
+          >
+            {{ t('settings.updatePlugin') }}
+          </KitBtn>
           <KitBtn
             variant="text"
             color="error"
@@ -152,6 +164,7 @@ function statusLabel(status: CatalogPluginRecord['status']) {
     display: flex;
     align-items: center;
     justify-content: center;
+    flex-shrink: 0;
     width: 48px;
     height: 48px;
     border-radius: 10px;
@@ -182,6 +195,7 @@ function statusLabel(status: CatalogPluginRecord['status']) {
   .plugin-action {
     display: flex;
     align-items: center;
+    gap: 8px;
   }
 }
 
@@ -219,6 +233,18 @@ function statusLabel(status: CatalogPluginRecord['status']) {
   &.status-rejected {
     background: rgba(239, 68, 68, 0.15);
     color: #ef4444;
+  }
+}
+@include media-down(sm) {
+  .plugin-card {
+    flex-wrap: wrap;
+    .plugin-info {
+      flex-basis: calc(100% - 64px);
+    }
+    .plugin-action {
+      width: 100%;
+      justify-content: flex-end;
+    }
   }
 }
 </style>

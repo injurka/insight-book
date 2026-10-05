@@ -2,6 +2,8 @@ import { usePreferredDark, useStorage } from '@vueuse/core'
 import { useHead } from '@vueuse/head'
 import { watchEffect } from 'vue'
 import { useTracking } from '~/01.shared/composables/use-tracking'
+import { isMobileApp } from '~/01.shared/lib/env'
+import { syncSystemBarsTheme } from '~/01.shared/services/system-bars.service'
 
 export enum ThemesVariant {
   System = 'system',
@@ -56,6 +58,8 @@ export function useChangeTheme() {
   function applyTheme(value: ThemesVariant) {
     const actualTheme = getActualTheme(value)
     document.documentElement.setAttribute('data-theme', actualTheme)
+    if (isMobileApp)
+      void syncSystemBarsTheme(actualTheme === ThemesVariant.Dark || actualTheme === ThemesVariant.Oled)
   }
 
   watchEffect(() => applyTheme(themePreference.value))

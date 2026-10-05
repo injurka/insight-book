@@ -308,12 +308,8 @@ function handleRefresh() {
 
 .metrics-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
-
-  @include media-down(md) {
-    grid-template-columns: repeat(2, 1fr);
-  }
 
   @include media-down(xs) {
     grid-template-columns: 1fr;

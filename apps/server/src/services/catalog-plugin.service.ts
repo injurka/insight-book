@@ -91,7 +91,7 @@ export class CatalogPluginService {
    * пользователю; плагин попадает в каталог со статусом "pending" и публикуется
    * после модерации.
    */
-  async uploadPlugin(userId: number, file: File) {
+  async uploadPlugin(userId: number, file: File, pluginId?: string) {
     if (!file.name.toLowerCase().endsWith('.zip')) {
       throw new AppError(400, ERROR_CODES.PLUGIN.INVALID_MANIFEST, 'Zip archive with plugin build expected')
     }
@@ -129,6 +129,10 @@ export class CatalogPluginService {
 
     if (!/^[a-z0-9][\w-]*$/i.test(manifest.id)) {
       throw new AppError(400, ERROR_CODES.PLUGIN.INVALID_MANIFEST, 'manifest.json: invalid plugin id')
+    }
+
+    if (pluginId !== undefined && manifest.id !== pluginId) {
+      throw new AppError(400, ERROR_CODES.PLUGIN.INVALID_MANIFEST, 'Archive plugin ID does not match the plugin being updated')
     }
 
     if (manifest.source !== undefined) {

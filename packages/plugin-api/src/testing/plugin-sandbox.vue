@@ -1,8 +1,9 @@
 <script setup lang="ts">
+import type { Component } from 'vue'
 import type { InsightBookPlugin } from '../index'
 import type { MockContextOptions } from '../testing/mock-context'
 import { Icon } from '@iconify/vue'
-import { computed, markRaw, onMounted, onUnmounted, provide, ref, watch } from 'vue'
+import { computed, defineAsyncComponent, markRaw, onMounted, onUnmounted, provide, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { createMemoryHistory, createRouter } from 'vue-router'
 
@@ -129,7 +130,13 @@ const activePageComponent = computed(() => {
 
   const rawComp = pages.value[selectedPageKey.value] ?? pages.value.index ?? Object.values(pages.value)[0]
 
-  return rawComp ? markRaw(rawComp) : null
+  if (!rawComp)
+    return null
+
+  // Router-style lazy imports need an async wrapper outside RouterView.
+  return markRaw(typeof rawComp === 'function'
+    ? defineAsyncComponent(rawComp as () => Promise<Component | { default: Component }>)
+    : rawComp)
 })
 
 const activeWidget = computed(() => {

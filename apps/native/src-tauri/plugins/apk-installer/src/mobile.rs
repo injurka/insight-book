@@ -19,6 +19,10 @@ pub fn init<R: Runtime>(
 pub struct ApkInstaller<R: Runtime>(PluginHandle<R>);
 
 impl<R: Runtime> ApkInstaller<R> {
+    pub fn set_system_bars_theme(&self, payload: SystemBarsPayload) -> Result<bool> {
+        self.0.run_mobile_plugin("setSystemBarsTheme", payload).map_err(Into::into)
+    }
+
     pub fn install_apk(&self, payload: InstallApkPayload) -> Result<bool> {
         self.0.run_mobile_plugin("installApk", payload).map_err(Into::into)
     }

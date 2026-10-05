@@ -50,10 +50,11 @@ export const catalogRouter = new Elysia({ prefix: '/api/catalog/plugins' })
     cache: 'mediumPublic',
   })
   .post('/upload', async ({ body, userId }) => {
-    return catalogPluginService.uploadPlugin(requireUserId(userId), body.file)
+    return catalogPluginService.uploadPlugin(requireUserId(userId), body.file, body.pluginId)
   }, {
     body: t.Object({
       file: t.File(),
+      pluginId: t.Optional(t.String()),
     }),
   })
   .patch('/:id/status', async ({ params, body, userId }) => {

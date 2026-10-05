@@ -130,7 +130,7 @@ onMounted(() => {
   padding-top: calc(32px + var(--safe-area-top));
   width: 100%;
   height: 100%;
-  padding-bottom: env(safe-area-inset-bottom, 0px);
+  padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
   overflow-y: auto;
 
   @include media-down(md) {
