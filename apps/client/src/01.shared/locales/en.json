@@ -1008,6 +1008,7 @@
     }
   },
   "notebook": {
+    "quoteActions": "Quote actions",
     "title": "Quotes & Notes",
     "next": "Next",
     "searchPlaceholder": "Search by original, translation and notes...",

@@ -1007,6 +1007,7 @@
     }
   },
   "notebook": {
+    "quoteActions": "引用操作",
     "title": "摘录与笔记",
     "next": "下一条",
     "searchPlaceholder": "按原文、翻译和笔记搜索...",

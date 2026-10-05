@@ -3,6 +3,7 @@ import type { Book, Highlight } from '~/01.shared/types/models'
 import { Icon } from '@iconify/vue'
 import { useI18n } from 'vue-i18n'
 import { KitBtn } from '~/02.kit/atoms/kit-btn/ui'
+import { KitDropdown } from '~/02.kit/molecules/kit-dropdown/ui'
 import { KitTooltip } from '~/02.kit/molecules/kit-tooltip/ui'
 import { PronunciationCheck } from '~/04.features/pronunciation-check'
 import { highlightTextQuery } from '~/05.modules/notebook/lib/text-tokenizer'
@@ -66,67 +67,82 @@ const { t } = useI18n()
         </span>
       </div>
       <div class="highlight-actions" @click.stop>
-        <PronunciationCheck
-          :word="highlight.text"
-          :language="book.language"
-          btn-color="secondary"
-          btn-variant="text"
-          variant="button"
-        />
-        <!-- TTS Audio Playback Button -->
-        <KitTooltip
-          :text="activeTtsId === highlight.id && isPlayingTts ? t('bookInfo.stop') : t('notebook.speak')"
-          placement="top"
-        >
-          <KitBtn
-            class="tts-speak-btn"
-            :icon="activeTtsId === highlight.id && isPlayingTts ? 'mdi:stop' : 'mdi:volume-high'"
-            :class="{ 'pulse-animation': activeTtsId === highlight.id && isPlayingTts }"
-            :loading="activeTtsId === highlight.id && isLoadingTts"
-            variant="text"
-            size="xs"
-            color="primary"
-            :disabled="activeTtsId !== null && activeTtsId !== highlight.id && isTtsActive"
-            @click.stop="emit('playTts', highlight, book)"
-          />
-        </KitTooltip>
+        <KitDropdown placement="bottom-end" width="auto" :close-on-content-click="false">
+          <template #activator="{ props: dropdownProps }">
+            <KitBtn
+              icon="mdi:dots-vertical"
+              variant="text"
+              size="xs"
+              color="secondary"
+              :aria-label="t('notebook.quoteActions')"
+              :aria-expanded="dropdownProps.isOpen"
+              aria-haspopup="true"
+            />
+          </template>
+          <div class="highlight-actions-popover" @click.stop>
+            <PronunciationCheck
+              :word="highlight.text"
+              :language="book.language"
+              btn-color="secondary"
+              btn-variant="text"
+              variant="button"
+            />
+            <!-- TTS Audio Playback Button -->
+            <KitTooltip
+              :text="activeTtsId === highlight.id && isPlayingTts ? t('bookInfo.stop') : t('notebook.speak')"
+              placement="top"
+            >
+              <KitBtn
+                class="tts-speak-btn"
+                :icon="activeTtsId === highlight.id && isPlayingTts ? 'mdi:stop' : 'mdi:volume-high'"
+                :class="{ 'pulse-animation': activeTtsId === highlight.id && isPlayingTts }"
+                :loading="activeTtsId === highlight.id && isLoadingTts"
+                variant="text"
+                size="xs"
+                color="primary"
+                :disabled="activeTtsId !== null && activeTtsId !== highlight.id && isTtsActive"
+                @click.stop="emit('playTts', highlight, book)"
+              />
+            </KitTooltip>
 
-        <!-- AI Translate Button -->
-        <KitTooltip
-          v-if="!highlight.translation"
-          :text="translatingId === highlight.id ? t('notebook.translating') : t('notebook.aiTranslate')"
-          placement="top"
-        >
-          <KitBtn
-            class="ai-translate-btn"
-            icon="mdi:translate"
-            :loading="translatingId === highlight.id"
-            variant="text"
-            size="xs"
-            color="primary"
-            :disabled="translatingId !== null"
-            @click.stop="emit('translateQuote', highlight, book)"
-          />
-        </KitTooltip>
+            <!-- AI Translate Button -->
+            <KitTooltip
+              v-if="!highlight.translation"
+              :text="translatingId === highlight.id ? t('notebook.translating') : t('notebook.aiTranslate')"
+              placement="top"
+            >
+              <KitBtn
+                class="ai-translate-btn"
+                icon="mdi:translate"
+                :loading="translatingId === highlight.id"
+                variant="text"
+                size="xs"
+                color="primary"
+                :disabled="translatingId !== null"
+                @click.stop="emit('translateQuote', highlight, book)"
+              />
+            </KitTooltip>
 
-        <KitTooltip :text="t('notebook.editQuote')" placement="top">
-          <KitBtn
-            icon="mdi:pencil"
-            variant="text"
-            size="xs"
-            color="secondary"
-            @click.stop="emit('openEditModal', highlight)"
-          />
-        </KitTooltip>
-        <KitTooltip :text="t('notebook.deleteQuote')" placement="top-end">
-          <KitBtn
-            icon="mdi:delete-outline"
-            variant="text"
-            size="xs"
-            color="error"
-            @click.stop="emit('confirmDelete', highlight)"
-          />
-        </KitTooltip>
+            <KitTooltip :text="t('notebook.editQuote')" placement="top">
+              <KitBtn
+                icon="mdi:pencil"
+                variant="text"
+                size="xs"
+                color="secondary"
+                @click.stop="emit('openEditModal', highlight)"
+              />
+            </KitTooltip>
+            <KitTooltip :text="t('notebook.deleteQuote')" placement="top-end">
+              <KitBtn
+                icon="mdi:delete-outline"
+                variant="text"
+                size="xs"
+                color="error"
+                @click.stop="emit('confirmDelete', highlight)"
+              />
+            </KitTooltip>
+          </div>
+        </KitDropdown>
       </div>
     </div>
   </div>
@@ -192,9 +208,13 @@ const { t } = useI18n()
     align-items: center;
     border-top: 1px solid var(--border-secondary-color);
     padding-top: 10px;
+    gap: 8px;
 
     .highlight-info {
       display: flex;
+      flex: 1;
+      min-width: 0;
+      flex-wrap: wrap;
       gap: 8px;
       align-items: center;
       font-size: 0.8rem;
@@ -206,14 +226,24 @@ const { t } = useI18n()
         background-color: var(--bg-tertiary-color);
         padding: 2px 6px;
         border-radius: 4px;
+        white-space: nowrap;
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
       }
     }
 
     .highlight-actions {
+      flex-shrink: 0;
       display: flex;
       align-items: center;
       gap: 4px;
     }
   }
+}
+.highlight-actions-popover {
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 </style>
