@@ -1,11 +1,68 @@
 import type { Book, DictDeck, Highlight, LlmAnalysis, PageDictEntry, PagePayload, TocItem, UserDictItem } from '../types/models'
+import type { TtsCacheMetadata } from '../types/schemas/tts.schema'
 import localforage from 'localforage'
 import { AppRoutePaths } from '~/01.shared/constants/routes'
 import router from '~/01.shared/lib/router'
+import { decodeTtsMetadata, isReusableLocalTtsKey, StoredTtsSchema, ttsBase64ToBlob, unknownTtsMetadata } from '~/01.shared/lib/tts-cache'
 import { useToastStore } from '~/01.shared/store/toast.store'
 import { useGlobalSettingsStore } from '../store/settings.store'
 
 const MEDIA_CACHE_NAME = 'insight-book-offline-media'
+
+async function findMediaTts(cache: Cache, scope: string, hashKey: string): Promise<Response | undefined> {
+  const exact = await safeCacheMatch(cache, `/offline/${scope}/tts/${hashKey}`)
+  if (exact)
+    return exact
+
+  try {
+    const prefix = `/offline/${scope}/tts/`
+    for (const request of await cache.keys()) {
+      const url = new URL(request.url)
+      const path = decodeURIComponent(url.pathname + url.search)
+      if (path.startsWith(prefix) && isReusableLocalTtsKey(path.slice(prefix.length), hashKey)) {
+        const response = await safeCacheMatch(cache, request.url)
+        if (response)
+          return response
+      }
+    }
+  }
+  catch { }
+
+  return undefined
+}
+
+async function findIndexedTts(scope: string, hashKey: string) {
+  let stored: unknown = await safeGetItem<unknown>(`tts_${hashKey}`)
+  if (!stored) {
+    try {
+      const prefix = `${scope}_tts_`
+      const keys = await localforage.keys()
+      const match = keys.find(key => key.startsWith(prefix) && isReusableLocalTtsKey(key.slice(prefix.length), hashKey))
+      if (match)
+        stored = await safeGetItem<unknown>(match.slice(`${scope}_`.length))
+    }
+    catch { }
+  }
+
+  const parsed = StoredTtsSchema.safeParse(stored)
+
+  return parsed.success
+    ? { blob: ttsBase64ToBlob(parsed.data.audioBase64), metadata: parsed.data.cache || unknownTtsMetadata() }
+    : null
+}
+
+async function findLocalTts(hashKey: string): Promise<{ blob: Blob, metadata: TtsCacheMetadata } | null> {
+  const scope = getCacheScope()
+  if (!scope)
+    return null
+
+  const cache = await getMediaCache()
+  const response = cache ? await findMediaTts(cache, scope, hashKey) : undefined
+  if (response)
+    return { blob: await response.blob(), metadata: decodeTtsMetadata(response.headers.get('X-TTS-Cache')) }
+
+  return findIndexedTts(scope, hashKey)
+}
 
 localforage.config({
   name: 'InsightBook',
@@ -669,13 +726,8 @@ export const offlineService = {
     return cached
   },
 
-  async saveTts(hashKey: string, audioBase64: string) {
-    const binaryString = window.atob(audioBase64)
-    const bytes = new Uint8Array(binaryString.length)
-    for (let i = 0; i < binaryString.length; i++)
-      bytes[i] = binaryString.charCodeAt(i)
-
-    const blob = new Blob([bytes], { type: 'audio/mpeg' })
+  async saveTts(hashKey: string, audioBase64: string, metadata?: TtsCacheMetadata) {
+    const blob = ttsBase64ToBlob(audioBase64)
     const scope = getCacheScope()
     if (!scope)
       return
@@ -686,38 +738,22 @@ export const offlineService = {
         headers: {
           'Content-Type': 'audio/mpeg',
           'Content-Length': blob.size.toString(),
+          'X-TTS-Cache': encodeURIComponent(JSON.stringify(metadata || unknownTtsMetadata())),
         },
       }))
       if (saved)
         return
     }
 
-    await safeSetItem(`tts_${hashKey}`, audioBase64)
+    await safeSetItem(`tts_${hashKey}`, { audioBase64, cache: metadata })
   },
 
   async getTtsBlob(hashKey: string): Promise<Blob | null> {
-    const scope = getCacheScope()
-    if (!scope)
-      return null
+    return (await findLocalTts(hashKey))?.blob || null
+  },
 
-    const cache = await getMediaCache()
-    if (cache) {
-      const res = await safeCacheMatch(cache, `/offline/${scope}/tts/${hashKey}`)
-      if (res)
-        return res.blob()
-    }
-
-    const base64 = await safeGetItem<string>(`tts_${hashKey}`)
-    if (base64) {
-      const binaryString = window.atob(base64)
-      const bytes = new Uint8Array(binaryString.length)
-      for (let i = 0; i < binaryString.length; i++)
-        bytes[i] = binaryString.charCodeAt(i)
-
-      return new Blob([bytes], { type: 'audio/mpeg' })
-    }
-
-    return null
+  async getTtsMetadata(hashKey: string): Promise<TtsCacheMetadata | null> {
+    return (await findLocalTts(hashKey))?.metadata || null
   },
 
   // === МЕТОДЫ ДЛЯ МЕНЕДЖЕРА КЭША ===

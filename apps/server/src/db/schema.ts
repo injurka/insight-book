@@ -1,6 +1,7 @@
 import { relations, sql } from 'drizzle-orm'
 import {
   blob,
+  index,
   integer,
   primaryKey,
   real,
@@ -220,11 +221,18 @@ export const bookLlmCache = sqliteTable('book_llm_cache', {
 ])
 
 export const ttsCache = sqliteTable('tts_cache', {
+  model: text('model').notNull().default('unknown'),
+  provider: text('provider').notNull().default('unknown'),
+  voice: text('voice').notNull().default('unknown'),
+  requestedVoice: text('requestedVoice').notNull().default('unknown'),
   textHash: text('textHash').primaryKey(),
   text: text('text').notNull(),
   audioBlob: blob('audioBlob', { mode: 'buffer' }).notNull(),
   createdAt: text('createdAt').notNull().default(sql`(datetime('now'))`),
-})
+}, table => [
+  index('tts_cache_model_idx').on(table.model),
+  index('tts_cache_text_voice_idx').on(table.text, table.voice),
+])
 
 export const bookTtsCache = sqliteTable('book_tts_cache', {
   bookId: integer('bookId').notNull().references(() => books.id, { onDelete: 'cascade' }),

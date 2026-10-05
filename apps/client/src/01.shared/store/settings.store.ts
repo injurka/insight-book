@@ -36,7 +36,7 @@ export const useGlobalSettingsStore = defineStore('globalSettings', () => {
     appLanguage.value = appLanguage.value.replace(/^"|"$/g, '')
 
   const ttsSpeed = useLocalStorage<number>('global-tts-speed', 1)
-  const ttsVoice = useLocalStorage<string>('global-qwen-tts-voice', DEFAULT_TTS_VOICE)
+  const ttsVoice = useLocalStorage<string>('global-gemini-3.8-tts-voice', DEFAULT_TTS_VOICE)
   const fallbackToWebSpeech = useLocalStorage<boolean>('global-tts-fallback-web-speech', true)
 
   const readerFontSize = useLocalStorage<number>('global-reader-font-size', 1.4)

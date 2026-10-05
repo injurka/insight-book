@@ -48,7 +48,7 @@ export function getAiConfig() {
     },
     tts: {
       url: fileConfig.tts?.url || process.env.TTS_API_URL || llmUrl,
-      model: fileConfig.tts?.model || process.env.TTS_MODEL || 'qwen-audio-3.0-tts-flash',
+      model: fileConfig.tts?.model || process.env.TTS_MODEL || 'gemini-3.8-flash-tts',
       fallbackModel: fileConfig.tts?.fallbackModel || process.env.TTS_FALLBACK_MODEL || 'gpt-4o-mini-tts',
       key: fileConfig.tts?.key || process.env.TTS_API_KEY || llmKey,
     },

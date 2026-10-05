@@ -1,12 +1,14 @@
 import type { LlmConfig, ModelMessage } from '../types'
+import type { TtsResult } from '../types/tts'
 import { getTtsTextMaxLength } from '@injurka/insight-book-language-utils'
-import { eq } from 'drizzle-orm'
+import { asc, eq } from 'drizzle-orm'
 import { pinyin } from 'pinyin-pro'
-import { convertToMp3, getAudioDurationSeconds, isMp3Audio } from '~/utils/audio'
+import { convertToMp3, getAudioDurationSeconds } from '~/utils/audio'
 import { attachUrlToActiveSpan, runWithClientSpan } from '~/utils/external-call'
 import { hashTtsText, mapVoiceToOpenAi, parseLlmJson } from '~/utils/helpers'
 import { callLlmJsonWithRetry } from '~/utils/llm-api'
 import { singleflight } from '~/utils/singleflight'
+import { selectReusableTts, toTtsResult } from '~/utils/tts-cache'
 import { ERROR_CODES } from '../constants/error-codes'
 import { TOKEN_WEIGHTS } from '../constants/token-weights'
 import { db } from '../db'
@@ -16,30 +18,33 @@ import { logger } from '../utils/logger'
 import { checkTokenLimit } from './limits.service'
 import { trackTokenUsage } from './token.service'
 
-const DEFAULT_TTS_MODEL = 'qwen-audio-3.0-tts-flash'
+const DEFAULT_TTS_MODEL = 'gemini-3.8-flash-tts'
 const DEFAULT_TTS_VOICE = 'default'
-const FIRST_PRESET_TTS_VOICE = 'longanhuan_v3.6'
+const FIRST_PRESET_TTS_VOICE = 'Kore'
+
+async function findReusableTts(text: string, requestedVoice: string) {
+  const rows = await db.query.ttsCache.findMany({
+    where: eq(schema.ttsCache.text, text),
+    orderBy: [asc(schema.ttsCache.createdAt), asc(schema.ttsCache.textHash)],
+  })
+  return selectReusableTts(rows, requestedVoice)
+}
 
 async function generateAndCacheTts(
   userId: number,
   normalizedText: string,
-  voice: string,
-  hash: string,
+  requestedVoice: string,
   config: LlmConfig,
   forceCacheBypass?: boolean,
-): Promise<string> {
-  if (!forceCacheBypass) {
-    const freshCached = await db.query.ttsCache.findFirst({
-      where: eq(schema.ttsCache.textHash, hash),
-    })
-    if (freshCached && isMp3Audio(Buffer.from(freshCached.audioBlob))) {
-      return Buffer.from(freshCached.audioBlob).toString('base64')
-    }
-  }
+): Promise<TtsResult> {
+  const previous = await findReusableTts(normalizedText, requestedVoice)
+  if (previous && !forceCacheBypass)
+    return toTtsResult(previous)
 
+  const voice = requestedVoice === DEFAULT_TTS_VOICE ? FIRST_PRESET_TTS_VOICE : requestedVoice
   const ttsUrl = config.ttsUrl || config.url
   const ttsKey = config.ttsKey || config.key
-  const primaryModel = config.ttsModel!
+  const primaryModel = config.ttsModel || DEFAULT_TTS_MODEL
   const fallbackModel = config.fallbackTtsModel!
 
   const estimatedTokens = Math.max(TOKEN_WEIGHTS.MIN_TTS_TOKENS, normalizedText.length * TOKEN_WEIGHTS.TTS_CHAR_MULTIPLIER)
@@ -104,6 +109,7 @@ async function generateAndCacheTts(
   let audioBuffer: Buffer = Buffer.from(new Uint8Array(0))
   const isPrimaryGemini = primaryModel.toLowerCase().includes('gemini')
   let usedModel = primaryModel
+  let usedVoice = voice
 
   try {
     audioBuffer = await tryGenerate(primaryModel, voice, isPrimaryGemini)
@@ -122,6 +128,7 @@ async function generateAndCacheTts(
       try {
         audioBuffer = await tryGenerate(fallbackModel, fallbackVoice, isFallbackGemini)
         usedModel = fallbackModel
+        usedVoice = fallbackVoice
       }
       catch (fallbackError: unknown) {
         if ((fallbackError as Error).name === 'AbortError')
@@ -135,16 +142,23 @@ async function generateAndCacheTts(
     }
   }
 
-  await db.insert(schema.ttsCache).values({
+  // Preserve the cache id on forced replacement so existing book links remain valid.
+  const hash = forceCacheBypass && previous
+    ? previous.textHash
+    : hashTtsText(normalizedText, usedVoice, usedModel)
+  const cacheEntry = {
     textHash: hash,
     text: normalizedText,
     audioBlob: audioBuffer,
-  }).onConflictDoUpdate({
+    model: usedModel,
+    provider: new URL(ttsUrl!).hostname,
+    requestedVoice: voice,
+    voice: usedVoice,
+    createdAt: new Date().toISOString(),
+  }
+  await db.insert(schema.ttsCache).values(cacheEntry).onConflictDoUpdate({
     target: schema.ttsCache.textHash,
-    set: {
-      text: normalizedText,
-      audioBlob: audioBuffer,
-    },
+    set: cacheEntry,
   })
 
   const durationSeconds = await getAudioDurationSeconds(audioBuffer)
@@ -161,7 +175,7 @@ async function generateAndCacheTts(
     { outputAudioSeconds: durationSeconds },
   )
 
-  return audioBuffer.toString('base64')
+  return toTtsResult(cacheEntry)
 }
 
 export async function generateTts(
@@ -171,7 +185,7 @@ export async function generateTts(
   config: LlmConfig,
   selectedVoice?: string,
   forceCacheBypass?: boolean,
-): Promise<string> {
+): Promise<TtsResult> {
   const normalizedText = text.trim()
 
   if (!normalizedText)
@@ -189,41 +203,17 @@ export async function generateTts(
 
   const requestedVoice = selectedVoice || DEFAULT_TTS_VOICE
 
-  if (requestedVoice === DEFAULT_TTS_VOICE && !forceCacheBypass) {
-    const cachedByText = await db.query.ttsCache.findFirst({
-      where: eq(schema.ttsCache.text, normalizedText),
-    })
-    if (cachedByText && isMp3Audio(Buffer.from(cachedByText.audioBlob))) {
-      if (bookId) {
-        await db.insert(schema.bookTtsCache).values({ bookId, textHash: cachedByText.textHash }).onConflictDoNothing()
-      }
-      return Buffer.from(cachedByText.audioBlob).toString('base64')
-    }
-  }
-
-  const voice = requestedVoice === DEFAULT_TTS_VOICE ? FIRST_PRESET_TTS_VOICE : requestedVoice
-  const primaryModel = config.ttsModel || DEFAULT_TTS_MODEL
-  const hash = hashTtsText(normalizedText, voice, primaryModel)
-
-  const cached = await db.query.ttsCache.findFirst({
-    where: eq(schema.ttsCache.textHash, hash),
-  })
-
-  if (cached && isMp3Audio(Buffer.from(cached.audioBlob)) && !forceCacheBypass) {
-    if (bookId) {
-      await db.insert(schema.bookTtsCache).values({ bookId, textHash: hash }).onConflictDoNothing()
-    }
-    return Buffer.from(cached.audioBlob).toString('base64')
-  }
-
-  const base64Audio = await singleflight.do(`tts:${hash}`, () =>
-    generateAndCacheTts(userId, normalizedText, voice, hash, config, forceCacheBypass))
+  const cached = await findReusableTts(normalizedText, requestedVoice)
+  const result = cached && !forceCacheBypass
+    ? toTtsResult(cached)
+    : await singleflight.do(`tts:${forceCacheBypass ? 'replace' : 'reuse'}:${normalizedText}:${requestedVoice}`, () =>
+        generateAndCacheTts(userId, normalizedText, requestedVoice, config, forceCacheBypass))
 
   if (bookId) {
-    await db.insert(schema.bookTtsCache).values({ bookId, textHash: hash }).onConflictDoNothing()
+    await db.insert(schema.bookTtsCache).values({ bookId, textHash: result.cache.id }).onConflictDoNothing()
   }
 
-  return base64Audio
+  return result
 }
 
 function calculatePhoneticSimilarity(expected: string, heard: string, language: string): number {

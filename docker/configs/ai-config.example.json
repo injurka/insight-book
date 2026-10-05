@@ -8,7 +8,7 @@
   "tts": {
     "url": "",
     "key": "",
-    "model": "qwen-audio-3.0-tts-flash",
+    "model": "gemini-3.8-flash-tts",
     "fallbackModel": "tts-1"
   },
   "stt": {
@@ -52,13 +52,9 @@
       "input": 1,
       "output": 20
     },
-    "qwen-audio-3.0-tts-flash": {
-      "input": 14.1,
-      "output": 14.1
-    },
-    "qwen-audio-3.0-tts-plus": {
-      "input": 19.7,
-      "output": 19.7
+    "gemini-3.8-flash-tts": {
+      "input": 0.5,
+      "output": 9
     },
     "whisper-large-v3": {
       "input": 0.111,

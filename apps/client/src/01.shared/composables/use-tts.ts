@@ -36,28 +36,21 @@ export function useTts() {
     let audioBlob = forceCacheBypass ? null : await repos.analysis.getLocalTts(cacheKey)
 
     if (!audioBlob) {
-      let audioBase64 = ''
-      if (bookId) {
-        const res = await repos.analysis.generateTts(
-          bookId,
-          text,
-          voice,
-          signal,
-          forceCacheBypass,
-        )
-        audioBase64 = res.audioBase64
-      }
-      else {
-        const res = await repos.analysis.generateGenericTts(
-          text,
-          voice,
-          signal,
-          forceCacheBypass,
-        )
-        audioBase64 = res.audioBase64
-      }
-
-      await repos.analysis.saveLocalTts(cacheKey, audioBase64)
+      const result = bookId
+        ? await repos.analysis.generateTts(
+            bookId,
+            text,
+            voice,
+            signal,
+            forceCacheBypass,
+          )
+        : await repos.analysis.generateGenericTts(
+            text,
+            voice,
+            signal,
+            forceCacheBypass,
+          )
+      await repos.analysis.saveLocalTts(cacheKey, result.audioBase64, result.cache)
       audioBlob = await repos.analysis.getLocalTts(cacheKey)
     }
 

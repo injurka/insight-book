@@ -68,6 +68,22 @@ describe('useTts composable', () => {
     expect(tts.currentText.value).toBe(sentence)
   })
 
+  it('saves server provenance together with newly generated audio', async () => {
+    const cache = {
+      id: 'tts-id',
+      model: 'tts-1',
+      provider: 'aihubmix.com',
+      voice: 'alloy',
+      requestedVoice: 'Kore',
+      createdAt: '2026-10-05T00:00:00Z',
+    }
+    getLocalTtsMock.mockResolvedValueOnce(null)
+    generateTtsMock.mockResolvedValueOnce({ audioBase64: 'QUJD', cache })
+    const started = await useTts().speak('Hello.')
+    expect(started).toBe(true)
+    expect(saveLocalTtsMock).toHaveBeenCalledWith('mp3_v1_1_default_hello.', 'QUJD', cache)
+  })
+
   it('uses AI audio for a non-Han sentence longer than the old 250 character limit', async () => {
     const tts = useTts()
     const sentence = 'a'.repeat(300)

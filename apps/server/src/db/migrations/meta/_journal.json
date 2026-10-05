@@ -253,6 +253,13 @@
       "when": 1786782622295,
       "tag": "0035_marvelous_sister_grimm",
       "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "6",
+      "when": 1791206986527,
+      "tag": "0036_superb_lockjaw",
+      "breakpoints": true
     }
   ]
 }

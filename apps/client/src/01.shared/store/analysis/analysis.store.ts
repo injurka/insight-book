@@ -366,7 +366,7 @@ export const useAnalysisStore = defineStore('analysis', () => {
           voice,
           signal,
         )
-        await repos.analysis.saveLocalTts(cacheKey, res.audioBase64)
+        await repos.analysis.saveLocalTts(cacheKey, res.audioBase64, res.cache)
       }
     }
     catch (e: unknown) {

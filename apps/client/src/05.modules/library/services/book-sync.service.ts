@@ -302,7 +302,7 @@ async function generateTtsForTexts(texts: string[], ctx: AnalysisContext, pageNu
             voice,
             ctx.signal,
           )
-          await repos.analysis.saveLocalTts(cacheKey, res.audioBase64)
+          await repos.analysis.saveLocalTts(cacheKey, res.audioBase64, res.cache)
         }
         else {
           syncProgress.value.ttsFromCache++

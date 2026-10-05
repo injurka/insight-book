@@ -261,8 +261,8 @@ export const bookController = new Elysia({ prefix: '/api/books' })
   .post('/:id/tts', async ({ params: { id }, userId, body, request }) => {
     const { text, voice, forceCacheBypass } = body as { text: string, voice: string, forceCacheBypass?: boolean }
     const config = extractLlmConfig(request)
-    const audioBase64 = await bookService.generateTts(Number(id), userId!, text as string, voice, forceCacheBypass || false, config)
-    return { audioBase64 }
+    const result = await bookService.generateTts(Number(id), userId!, text as string, voice, forceCacheBypass || false, config)
+    return result
   }, {
     requireAuth: true,
     body: t.Object({
@@ -291,8 +291,8 @@ export const ttsController = new Elysia()
   .post('/api/tts', async ({ userId, body, request }) => {
     const { text, voice, forceCacheBypass } = body as { text: string, voice: string, forceCacheBypass?: boolean }
     const config = extractLlmConfig(request)
-    const audioBase64 = await bookService.standaloneTts(userId!, text as string, voice, forceCacheBypass || false, config)
-    return { audioBase64 }
+    const result = await bookService.standaloneTts(userId!, text as string, voice, forceCacheBypass || false, config)
+    return result
   }, {
     requireAuth: true,
     body: t.Object({

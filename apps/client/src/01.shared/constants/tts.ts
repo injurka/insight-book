@@ -11,12 +11,12 @@ export function buildDictionaryTtsCacheKey(lang: string, voice: string, normaliz
 
 export const TTS_VOICE_OPTIONS = [
   { label: 'Default', value: DEFAULT_TTS_VOICE },
-  { label: 'Long An Huan (Female)', value: 'longanhuan_v3.6' },
-  { label: 'Long An Feng Yue (Female)', value: 'longanfengyue' },
-  { label: 'Long An Yuan Fei (Female)', value: 'longanyuanfei' },
-  { label: 'Long An Ling Xi (Female)', value: 'longanlingxi' },
-  { label: 'Mary (Female, British)', value: 'loongmary' },
-  { label: 'Eva (Female, American)', value: 'loongeva_v3.6' },
-  { label: 'John (Male, American)', value: 'loongjohn' },
-  { label: 'Long Chuan Shu (Male)', value: 'longchuanshu_v3.6' },
+  { label: 'Kore (Firm)', value: 'Kore' },
+  { label: 'Zephyr (Bright)', value: 'Zephyr' },
+  { label: 'Puck (Upbeat)', value: 'Puck' },
+  { label: 'Charon (Informative)', value: 'Charon' },
+  { label: 'Fenrir (Excitable)', value: 'Fenrir' },
+  { label: 'Leda (Youthful)', value: 'Leda' },
+  { label: 'Orus (Firm)', value: 'Orus' },
+  { label: 'Aoede (Breezy)', value: 'Aoede' },
 ] as const

@@ -1,8 +1,10 @@
 import type { LlmAnalysis } from '~/01.shared/types/models'
+import type { TtsCacheMetadata, TtsResult } from '~/01.shared/types/schemas/tts.schema'
 import { applyAcl } from '~/01.shared/lib/acl'
 import { api } from '~/01.shared/services/api.service'
 import { offlineService } from '~/01.shared/services/offline.service'
 import { LlmAnalysisSchema } from '~/01.shared/types/schemas/analysis.schema'
+import { TtsResultSchema } from '~/01.shared/types/schemas/tts.schema'
 
 export interface IAnalysisRepository {
   getAllCacheAll: (bookId: number, targetLang?: string) => Promise<{ results: { sentence: string, analysis: LlmAnalysis }[] }>
@@ -10,14 +12,15 @@ export interface IAnalysisRepository {
   analyzeBatch: (bookId: number, items: { id: string, sentence: string, context?: string, type: 'sentence' | 'word' }[], language: string, signal?: AbortSignal) => Promise<{ results: { id: string, analysis: LlmAnalysis }[] }>
   analyze: (bookId: number, text: string, language: string, context?: string, signal?: AbortSignal, type?: 'sentence' | 'word') => Promise<LlmAnalysis>
   lookupWord: (bookId: number, word: string, signal?: AbortSignal) => Promise<{ transcription: string, translation: string, isUserDict?: boolean }>
-  generateTts: (bookId: number, text: string, voice: string, signal?: AbortSignal, forceCacheBypass?: boolean) => Promise<{ audioBase64: string }>
-  generateGenericTts: (text: string, voice: string, signal?: AbortSignal, forceCacheBypass?: boolean) => Promise<{ audioBase64: string }>
+  generateTts: (bookId: number, text: string, voice: string, signal?: AbortSignal, forceCacheBypass?: boolean) => Promise<TtsResult>
+  generateGenericTts: (text: string, voice: string, signal?: AbortSignal, forceCacheBypass?: boolean) => Promise<TtsResult>
 
   // Local Cache Methods
   getLocalAnalysis: (text: string, language?: string) => Promise<LlmAnalysis | null | undefined>
   saveLocalAnalysis: (text: string, analysis: LlmAnalysis, language?: string) => Promise<void>
   getLocalTts: (cacheKey: string) => Promise<Blob | null | undefined>
-  saveLocalTts: (cacheKey: string, audioBase64: string) => Promise<void>
+  getLocalTtsMetadata: (cacheKey: string) => Promise<TtsCacheMetadata | null>
+  saveLocalTts: (cacheKey: string, audioBase64: string, metadata?: TtsCacheMetadata) => Promise<void>
 }
 
 export class DefaultAnalysisRepository implements IAnalysisRepository {
@@ -97,13 +100,15 @@ export class DefaultAnalysisRepository implements IAnalysisRepository {
     signal?: AbortSignal,
     forceCacheBypass?: boolean,
   ) {
-    return api.books.generateTts(
+    const response = await api.books.generateTts(
       bookId,
       text,
       voice,
       signal,
       forceCacheBypass,
     )
+
+    return applyAcl(TtsResultSchema, response, 'analysis.generateTts()')
   }
 
   async generateGenericTts(
@@ -112,12 +117,14 @@ export class DefaultAnalysisRepository implements IAnalysisRepository {
     signal?: AbortSignal,
     forceCacheBypass?: boolean,
   ) {
-    return api.tts.generate(
+    const response = await api.tts.generate(
       text,
       voice,
       signal,
       forceCacheBypass,
     )
+
+    return applyAcl(TtsResultSchema, response, 'analysis.generateTts()')
   }
 
   async getLocalAnalysis(text: string, language?: string) {
@@ -136,8 +143,12 @@ export class DefaultAnalysisRepository implements IAnalysisRepository {
     return offlineService.getTtsBlob(cacheKey)
   }
 
-  async saveLocalTts(cacheKey: string, audioBase64: string) {
-    await offlineService.saveTts(cacheKey, audioBase64)
+  async getLocalTtsMetadata(cacheKey: string) {
+    return offlineService.getTtsMetadata(cacheKey)
+  }
+
+  async saveLocalTts(cacheKey: string, audioBase64: string, metadata?: TtsCacheMetadata) {
+    await offlineService.saveTts(cacheKey, audioBase64, metadata)
   }
 }
 

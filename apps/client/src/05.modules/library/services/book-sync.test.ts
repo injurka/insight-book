@@ -117,7 +117,7 @@ describe('startWholeBookSync', () => {
     hoisted.libraryState.currentBookInfo = null
 
     const settings = useGlobalSettingsStore()
-    settings.ttsVoice = 'longanhuan_v3.6'
+    settings.ttsVoice = 'Kore'
     settings.useCustomLlm = false
 
     hoisted.bookRepo.getToc.mockResolvedValue([])
@@ -261,10 +261,10 @@ describe('startWholeBookSync', () => {
     expect(hoisted.analysisRepo.generateTts).toHaveBeenCalledWith(
       1,
       'Sentence A1.',
-      'longanhuan_v3.6',
+      'Kore',
       expect.any(AbortSignal),
     )
-    expect(hoisted.analysisRepo.saveLocalTts).toHaveBeenCalledWith('mp3_v1_1_longanhuan_v3.6_sentence a1.', 'QUJD')
+    expect(hoisted.analysisRepo.saveLocalTts).toHaveBeenCalledWith('mp3_v1_1_Kore_sentence a1.', 'QUJD', undefined)
     expect(syncProgress.value.ttsTotal).toBe(20)
     expect(syncProgress.value.ttsDone).toBe(20)
     expect(syncState.value).toBe('finished')

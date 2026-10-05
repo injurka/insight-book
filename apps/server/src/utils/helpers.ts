@@ -14,14 +14,14 @@ export function hashTtsText(text: string, voice: string, model: string): string 
 
 export function mapVoiceToOpenAi(selectedVoice: string): string {
   const map: Record<string, string> = {
-    'longanhuan_v3.6': 'shimmer',
-    'longanfengyue': 'shimmer',
-    'longanyuanfei': 'shimmer',
-    'longanlingxi': 'shimmer',
-    'loongmary': 'shimmer',
-    'loongeva_v3.6': 'shimmer',
-    'loongjohn': 'onyx',
-    'longchuanshu_v3.6': 'onyx',
+    kore: 'alloy',
+    zephyr: 'fable',
+    puck: 'echo',
+    charon: 'onyx',
+    fenrir: 'ash',
+    leda: 'coral',
+    orus: 'nova',
+    aoede: 'ballad',
   }
   return map[selectedVoice.toLowerCase()] || 'alloy'
 }

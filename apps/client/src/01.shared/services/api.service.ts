@@ -21,6 +21,7 @@ import type {
   UserPluginRecord,
   WordAutoFillResponse,
 } from '../types/models'
+import type { TtsResult } from '~/01.shared/types/schemas/tts.schema'
 import { fetch as tauriFetch } from '@tauri-apps/plugin-http'
 import { ofetch } from 'ofetch'
 import { API_URL, isTauri } from '~/01.shared/lib/env'
@@ -443,7 +444,7 @@ export const api = {
       signal?: AbortSignal,
       forceCacheBypass?: boolean,
     ) =>
-      request<{ audioBase64: string, timings?: unknown[] }>(`/api/books/${bookId}/tts`, {
+      request<TtsResult>(`/api/books/${bookId}/tts`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text, voice, forceCacheBypass }),
@@ -473,7 +474,7 @@ export const api = {
       signal?: AbortSignal,
       forceCacheBypass?: boolean,
     ) =>
-      request<{ audioBase64: string }>(`/api/tts`, {
+      request<TtsResult>(`/api/tts`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text, voice, forceCacheBypass }),
