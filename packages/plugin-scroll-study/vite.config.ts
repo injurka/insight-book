@@ -5,6 +5,7 @@ import { defineConfig } from 'vite'
 import topLevelAwait from 'vite-plugin-top-level-await'
 
 export default defineConfig(({ command }) => ({
+  base: './',
   resolve: {
     alias: {
       '~': fileURLToPath(new URL('../../apps/client/src', import.meta.url)),
@@ -51,4 +52,3 @@ export default defineConfig(({ command }) => ({
     },
   },
 }))
-

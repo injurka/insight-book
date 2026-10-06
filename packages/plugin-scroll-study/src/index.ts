@@ -4,6 +4,7 @@ import { useScrollStudyStore } from './modules/scroll-study/model/scroll-study.s
 import en from './shared/locales/en'
 import ru from './shared/locales/ru'
 import zh from './shared/locales/zh'
+import '../../../apps/client/public/fonts/fonts.css'
 
 const TrainingModeWidget = defineAsyncComponent(() => import('./modules/scroll-study/ui/partials/training-mode-widget.vue'))
 

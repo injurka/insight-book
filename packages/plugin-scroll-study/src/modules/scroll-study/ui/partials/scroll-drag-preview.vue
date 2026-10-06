@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import type { CharacterData } from '../../../../data'
 import type { BurstEvent } from '../../lib/use-scroll-drag'
+import type { Ticker } from 'pixi.js'
 import { Container, Graphics, Text, TextStyle } from 'pixi.js'
-import { onBeforeUnmount, watch } from 'vue'
-import { usePixiLayer } from '../../lib/use-shared-pixi'
+import { onBeforeUnmount, useTemplateRef, watch } from 'vue'
+import { usePixiApp } from '../../lib/use-pixi-app'
 
 interface Props {
   isDragging: boolean
@@ -37,13 +38,25 @@ interface BurstInstance {
 }
 
 const props = defineProps<Props>()
-const { app, layer, isReady } = usePixiLayer('dragLayer')
+const effectsHost = useTemplateRef<HTMLDivElement>('effectsHost')
+const { app, isReady } = usePixiApp(effectsHost)
 
 let trailContainer: Container | null = null
 let burstContainer: Container | null = null
 
 const activeSparks: QiSpark[] = []
 const activeBursts: BurstInstance[] = []
+let stopTicker: (() => void) | undefined
+let emissionBudget = 0
+
+function createSoftSpark(radius: number, color: number) {
+  return new Graphics()
+    .circle(0, 0, radius * 3).fill({ color, alpha: 0.04 })
+    .circle(0, 0, radius * 2).fill({ color, alpha: 0.09 })
+    .circle(0, 0, radius * 1.4).fill({ color, alpha: 0.18 })
+    .circle(0, 0, radius).fill({ color, alpha: 0.45 })
+    .circle(0, 0, radius * 0.4).fill({ color: 0xffedc2, alpha: 0.75 })
+}
 
 const stopWatch = watch([isReady, app], ([ready, pixi]) => {
   if (!ready || !pixi || trailContainer)
@@ -51,34 +64,35 @@ const stopWatch = watch([isReady, app], ([ready, pixi]) => {
 
   trailContainer = new Container({ label: 'dragTrail' })
   burstContainer = new Container({ label: 'dragBurst' })
-  layer.addChild(trailContainer)
-  layer.addChild(burstContainer)
+  pixi.stage.addChild(trailContainer)
+  pixi.stage.addChild(burstContainer)
 
-  pixi.ticker.add(() => {
+  const animate = (ticker: Ticker) => {
+    const delta = Math.min(ticker.deltaTime, 3)
     // 1. Spawn drag trail embers if user is dragging card
     if (props.isDragging && trailContainer) {
-      const colors = [0xfbbf24, 0xf59e0b, 0xffffff, 0xd97706]
-      const count = 2
+      const colors = [0xe8b456, 0xd2913e, 0xffd78a]
+      emissionBudget += ticker.deltaMS * 0.035
+      const count = Math.min(Math.floor(emissionBudget), 4)
+      emissionBudget -= count
       for (let i = 0; i < count; i++) {
-        const radius = Math.random() * 2.5 + 1.5
+        const radius = Math.random() * 1.5 + 2
         const color = colors[Math.floor(Math.random() * colors.length)]
 
-        const gfx = new Graphics()
-          .circle(0, 0, radius)
-          .fill({ color, alpha: 0.9 })
+        const gfx = createSoftSpark(radius, color)
 
-        gfx.blendMode = 'add'
-        gfx.x = props.dragPos.x + (Math.random() - 0.5) * 36
-        gfx.y = props.dragPos.y + (Math.random() - 0.5) * 36
+        gfx.blendMode = 'normal'
+        gfx.x = props.dragPos.x + (Math.random() - 0.5) * 66
+        gfx.y = props.dragPos.y + (Math.random() - 0.5) * 66
 
         trailContainer.addChild(gfx)
 
         activeSparks.push({
           gfx,
-          vx: (Math.random() - 0.5) * 1.5,
-          vy: Math.random() * 1.5 + 0.5,
+          vx: (Math.random() - 0.5) * 0.7,
+          vy: Math.random() * 0.5 + 0.2,
           alpha: 1,
-          decay: Math.random() * 0.04 + 0.02,
+          decay: Math.random() * 0.003 + 0.008,
           radius,
         })
       }
@@ -87,9 +101,9 @@ const stopWatch = watch([isReady, app], ([ready, pixi]) => {
     // 2. Animate trailing sparks
     for (let i = activeSparks.length - 1; i >= 0; i--) {
       const spark = activeSparks[i]
-      spark.gfx.x += spark.vx
-      spark.gfx.y += spark.vy
-      spark.alpha -= spark.decay
+      spark.gfx.x += spark.vx * delta
+      spark.gfx.y += spark.vy * delta
+      spark.alpha -= spark.decay * delta
 
       if (spark.alpha <= 0) {
         spark.gfx.destroy()
@@ -97,20 +111,20 @@ const stopWatch = watch([isReady, app], ([ready, pixi]) => {
       }
       else {
         spark.gfx.alpha = spark.alpha
-        spark.gfx.scale.set(spark.alpha)
+        spark.gfx.scale.set(0.65 + spark.alpha * 0.35)
       }
     }
 
     // 3. Animate burst instances
     for (let i = activeBursts.length - 1; i >= 0; i--) {
       const burst = activeBursts[i]
-      burst.alpha -= 0.02
+      burst.alpha -= 0.012 * delta
 
       burst.sparks.forEach((sp) => {
-        sp.gfx.x += sp.vx
-        sp.gfx.y += sp.vy
-        sp.vy += 0.12
-        sp.alpha -= sp.decay
+        sp.gfx.x += sp.vx * delta
+        sp.gfx.y += sp.vy * delta
+        sp.vy += 0.06 * delta
+        sp.alpha -= sp.decay * delta
 
         if (sp.alpha > 0) {
           sp.gfx.alpha = Math.max(0, sp.alpha)
@@ -122,15 +136,15 @@ const stopWatch = watch([isReady, app], ([ready, pixi]) => {
       })
 
       if (burst.ring && burst.ringAlpha > 0) {
-        burst.ringRadius += 3.5
-        burst.ringAlpha -= 0.04
+        burst.ringRadius += 2 * delta
+        burst.ringAlpha -= 0.025 * delta
         burst.ring.clear()
           .circle(0, 0, burst.ringRadius)
           .stroke({ width: 2, color: 0xfbbf24, alpha: Math.max(0, burst.ringAlpha) })
       }
 
       if (burst.text) {
-        burst.text.y -= 0.8
+        burst.text.y -= 0.5 * delta
         burst.text.alpha = Math.max(0, burst.alpha)
       }
 
@@ -143,7 +157,11 @@ const stopWatch = watch([isReady, app], ([ready, pixi]) => {
         activeBursts.splice(i, 1)
       }
     }
-  })
+  }
+  pixi.ticker.add(animate)
+  stopTicker = () => {
+    pixi.ticker?.remove(animate)
+  }
 }, { immediate: true })
 
 watch(() => props.burstEvent, (ev) => {
@@ -152,7 +170,8 @@ watch(() => props.burstEvent, (ev) => {
   triggerPixiBurst(ev.x, ev.y, ev.char)
 })
 
-function triggerPixiBurst(x: number, y: number, char: string) {
+async function triggerPixiBurst(x: number, y: number, char: string) {
+  await document.fonts.load('600 28px "Maple Mono CN"', char).catch(() => [])
   if (!burstContainer)
     return
 
@@ -162,14 +181,12 @@ function triggerPixiBurst(x: number, y: number, char: string) {
 
   for (let i = 0; i < count; i++) {
     const angle = Math.random() * Math.PI * 2
-    const speed = Math.random() * 7 + 2.5
+    const speed = Math.random() * 3 + 1.5
     const radius = Math.random() * 3.5 + 2
 
-    const gfx = new Graphics()
-      .circle(0, 0, radius)
-      .fill({ color: colors[Math.floor(Math.random() * colors.length)], alpha: 1 })
+    const gfx = createSoftSpark(radius, colors[Math.floor(Math.random() * colors.length)])
 
-    gfx.blendMode = 'add'
+    gfx.blendMode = 'normal'
     gfx.x = x
     gfx.y = y
 
@@ -180,7 +197,7 @@ function triggerPixiBurst(x: number, y: number, char: string) {
       vx: Math.cos(angle) * speed,
       vy: Math.sin(angle) * speed,
       alpha: 1,
-      decay: Math.random() * 0.03 + 0.015,
+      decay: Math.random() * 0.004 + 0.012,
       radius,
     })
   }
@@ -192,9 +209,9 @@ function triggerPixiBurst(x: number, y: number, char: string) {
   burstContainer.addChild(ring)
 
   const textStyle = new TextStyle({
-    fontFamily: 'serif',
+    fontFamily: ['Maple Mono CN', 'monospace'],
     fontSize: 28,
-    fontWeight: 'bold',
+    fontWeight: '600',
     fill: '#fbbf24',
     dropShadow: {
       color: '#f59e0b',
@@ -222,11 +239,12 @@ function triggerPixiBurst(x: number, y: number, char: string) {
 
 onBeforeUnmount(() => {
   stopWatch()
-  if (trailContainer) {
+  stopTicker?.()
+  if (trailContainer && !trailContainer.destroyed) {
     trailContainer.destroy({ children: true })
     trailContainer = null
   }
-  if (burstContainer) {
+  if (burstContainer && !burstContainer.destroyed) {
     burstContainer.destroy({ children: true })
     burstContainer = null
   }
@@ -234,7 +252,9 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
+  <Teleport to="body">
   <div class="drag-preview-layer">
+    <div ref="effectsHost" class="drag-effects" />
     <!-- Physics Dragged Floating Card -->
     <div
       v-if="isDragging && dragChar"
@@ -248,11 +268,9 @@ onBeforeUnmount(() => {
       <div class="drag-char">
         {{ dragChar.char }}
       </div>
-      <div class="drag-pinyin">
-        {{ dragChar.pinyin }}
-      </div>
     </div>
   </div>
+  </Teleport>
 </template>
 
 <style lang="scss" scoped>
@@ -263,15 +281,21 @@ onBeforeUnmount(() => {
   z-index: 100;
 }
 
+.drag-effects {
+  position: absolute;
+  inset: 0;
+
+  :deep(canvas) {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+}
+
 .floating-drag-card {
   position: absolute;
   width: 64px;
   height: 64px;
-  border-radius: 16px;
-  background: rgba(15, 23, 42, 0.95);
-  border: 2px solid #fbbf24;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8), 0 0 20px rgba(251, 191, 36, 0.5);
-  backdrop-filter: blur(8px);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -280,18 +304,17 @@ onBeforeUnmount(() => {
   will-change: transform, left, top;
 
   .drag-char {
-    font-size: 2rem;
-    color: #fef08a;
+    font-size: 2.5rem;
+    color: #48250f;
+    -webkit-text-stroke: 1.5px #fff0ce;
+    paint-order: stroke fill;
+    text-shadow: 0 2px 4px #24140880;
     line-height: 1;
     font-weight: 500;
-    text-shadow: 0 0 10px rgba(245, 158, 11, 0.8);
+
   }
 
-  .drag-pinyin {
-    font-size: 0.65rem;
-    color: #94a3b8;
-    font-family: monospace;
-  }
+
 }
 </style>
 

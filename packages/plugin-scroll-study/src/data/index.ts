@@ -1,5 +1,4 @@
 import type { CharacterData } from './types'
-
 import tier0Data from './tier/tier0.json'
 import tier1Data from './tier/tier1.json'
 import tier2Data from './tier/tier2.json'

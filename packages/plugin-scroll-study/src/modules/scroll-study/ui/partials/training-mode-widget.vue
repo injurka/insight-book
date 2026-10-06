@@ -31,7 +31,6 @@ function startScrollStudy() {
   border-radius: 12px;
   cursor: pointer;
   transition: all 0.2s ease;
-  user-select: none;
 
   /* Custom Amber/Gold styling overrides */
   border-color: rgba(245, 158, 11, 0.3) !important;
@@ -62,6 +61,12 @@ function startScrollStudy() {
     font-size: 0.75rem;
     color: var(--fg-muted-color);
     line-height: 1.3;
+  }
+}
+
+@media (min-width: 901px) {
+  .scroll-training-widget {
+    user-select: none;
   }
 }
 </style>

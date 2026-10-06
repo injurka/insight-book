@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
-import { providePixiApp } from '../lib/use-shared-pixi'
 import { useScrollDrag } from '../lib/use-scroll-drag'
+import { providePixiApp } from '../lib/use-shared-pixi'
 import { useScrollStudyStore } from '../model/scroll-study.store'
 import ResearchBoard from './partials/research-board.vue'
 import ScrollBackground from './partials/scroll-background.vue'
@@ -38,7 +38,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="scroll-desktop-view">
+  <div class="scroll-desktop-view" :class="{ 'panel-open': isPanelOpen }">
     <!-- Single Shared PixiJS Canvas Layer across the entire view -->
     <div ref="pixiHostRef" class="global-pixi-host" />
 
@@ -77,28 +77,37 @@ onMounted(() => {
 </template>
 
 <style lang="scss" scoped>
-@import url('https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;500;600;700&display=swap');
-
 .scroll-desktop-view {
-  --font-pixel: 'Pixelify Sans', monospace;
+  --font-pixel: 'Maple Mono CN', monospace;
+  container: scroll-study / size;
+  box-sizing: border-box;
   width: 100%;
   height: 100%;
+  min-width: 0;
+  min-height: 0;
   background-color: #020617;
   display: flex;
   position: relative;
   overflow: hidden;
   color: #e2e8f0;
-  font-family: inherit;
+  font-family: 'Maple Mono CN', monospace;
 }
 
-:global(.font-pixel) {
-  font-family: 'Pixelify Sans', monospace;
+:deep(.font-pixel) {
+  font-family: var(--font-pixel);
+}
+
+.scroll-desktop-view :deep(button),
+.scroll-desktop-view :deep(input),
+.scroll-desktop-view :deep(select),
+.scroll-desktop-view :deep(textarea) {
+  font-family: inherit;
 }
 
 .global-pixi-host {
   position: absolute;
   inset: 0;
-  z-index: 0;
+  z-index: 1;
   pointer-events: none;
 
   :deep(canvas) {
@@ -111,12 +120,15 @@ onMounted(() => {
 .background-wrapper {
   position: absolute;
   inset: 0;
-  z-index: 0;
+  z-index: auto;
   pointer-events: none;
 }
 
 .center-workspace {
   flex: 1;
+  min-width: 0;
+  min-height: 0;
+  box-sizing: border-box;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -125,5 +137,13 @@ onMounted(() => {
   z-index: 10;
   padding: 24px;
 }
-</style>
+@container scroll-study (max-width: 900px) {
+  .center-workspace {
+    padding: 12px;
+  }
 
+  .panel-open .center-workspace :deep(.board-viewport) {
+    transform: translateX(calc(min(320px, calc(100cqw - 80px)) / 2 + 6px));
+  }
+}
+</style>

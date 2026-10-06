@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useScrollStudyStore } from '../../model/scroll-study.store'
 
-const emit = defineEmits<{
+defineEmits<{
   (e: 'open-scrolls'): void
 }>()
 
@@ -11,7 +11,7 @@ const scrollStore = useScrollStudyStore()
 <template>
   <div v-if="scrollStore.activeWord" class="scroll-header-container">
     <p class="header-subtitle">
-      Соедините все доступные ключи потоками Ци с центральным символом
+      Соедините все доступные ключи потоками Ци...
     </p>
   </div>
 </template>
@@ -80,9 +80,20 @@ const scrollStore = useScrollStudyStore()
     margin: 0;
     color: #94a3b8;
     font-size: 0.95rem;
-    font-family: var(--font-pixel, 'Pixelify Sans', monospace);
+    font-family: var(--font-pixel, 'Maple Mono CN', monospace);
     letter-spacing: 0.05em;
     text-shadow: 1px 1px 0px rgba(0, 0, 0, 0.8);
+  }
+}
+@container scroll-study (max-width: 900px) {
+  .scroll-header-container {
+    flex-shrink: 0;
+    margin-bottom: 8px;
+
+    .header-subtitle {
+      font-size: 0.8rem;
+      letter-spacing: 0;
+    }
   }
 }
 </style>

@@ -412,7 +412,6 @@ defineProps<Props>()
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border: 1px solid var(--border-secondary-color);
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.2);
 }
 
 .book-title {

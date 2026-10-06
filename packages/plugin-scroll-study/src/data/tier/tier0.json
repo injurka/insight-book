@@ -10,14 +10,18 @@
     "isStandaloneWord": true,
     "themeGroupId": "TG-flora",
     "etymology": "Изображение ствола с корнями внизу и ветвями наверху.",
-    "partOfSpeech": ["noun"],
+    "partOfSpeech": [
+      "noun"
+    ],
     "hskLevel": 1,
     "strokeCount": 4
   },
   {
     "id": "R-huo",
     "char": "火",
-    "variants": ["灬"],
+    "variants": [
+      "灬"
+    ],
     "pinyin": "huo3",
     "translation": "Огонь",
     "tier": 0,
@@ -25,14 +29,18 @@
     "isStandaloneWord": true,
     "themeGroupId": "TG-nature",
     "etymology": "Языки пламени, поднимающиеся вверх от костра.",
-    "partOfSpeech": ["noun"],
+    "partOfSpeech": [
+      "noun"
+    ],
     "hskLevel": 1,
     "strokeCount": 4
   },
   {
     "id": "R-shui",
     "char": "水",
-    "variants": ["氵"],
+    "variants": [
+      "氵"
+    ],
     "pinyin": "shui3",
     "translation": "Вода",
     "tier": 0,
@@ -40,14 +48,18 @@
     "isStandaloneWord": true,
     "themeGroupId": "TG-nature",
     "etymology": "Поток извилистой реки с капельками по бокам.",
-    "partOfSpeech": ["noun"],
+    "partOfSpeech": [
+      "noun"
+    ],
     "hskLevel": 1,
     "strokeCount": 4
   },
   {
     "id": "R-jin",
     "char": "金",
-    "variants": ["钅"],
+    "variants": [
+      "钅"
+    ],
     "pinyin": "jin1",
     "translation": "Металл / Золото",
     "tier": 0,
@@ -55,7 +67,9 @@
     "isStandaloneWord": true,
     "themeGroupId": "TG-nature",
     "etymology": "Слитки металла, укрытые под крышей шахты в недрах земли.",
-    "partOfSpeech": ["noun"],
+    "partOfSpeech": [
+      "noun"
+    ],
     "hskLevel": 1,
     "strokeCount": 8
   },
@@ -70,7 +84,9 @@
     "isStandaloneWord": true,
     "themeGroupId": "TG-nature",
     "etymology": "Ком земли, поднимающийся над горизонтом суши.",
-    "partOfSpeech": ["noun"],
+    "partOfSpeech": [
+      "noun"
+    ],
     "hskLevel": 1,
     "strokeCount": 3
   },
@@ -85,14 +101,18 @@
     "isStandaloneWord": false,
     "themeGroupId": "TG-human",
     "etymology": "Вертикальное изображение человеческого глаза со зрачком.",
-    "partOfSpeech": ["noun"],
+    "partOfSpeech": [
+      "noun"
+    ],
     "hskLevel": 0,
     "strokeCount": 5
   },
   {
     "id": "R-xin",
     "char": "心",
-    "variants": ["忄"],
+    "variants": [
+      "忄"
+    ],
     "pinyin": "xin1",
     "translation": "Сердце",
     "tier": 0,
@@ -100,7 +120,9 @@
     "isStandaloneWord": true,
     "themeGroupId": "TG-human",
     "etymology": "Изображение анатомического сердца с клапанами и каплями крови.",
-    "partOfSpeech": ["noun"],
+    "partOfSpeech": [
+      "noun"
+    ],
     "hskLevel": 1,
     "strokeCount": 4
   },
@@ -115,7 +137,9 @@
     "isStandaloneWord": true,
     "themeGroupId": "TG-human",
     "etymology": "Оружие (секира) или человек, стоящий на земле (нижняя черта короче верхней).",
-    "partOfSpeech": ["noun"],
+    "partOfSpeech": [
+      "noun"
+    ],
     "hskLevel": 0,
     "strokeCount": 3
   },
@@ -130,8 +154,4153 @@
     "isStandaloneWord": true,
     "themeGroupId": "TG-human",
     "etymology": "Открытый рот. Символизирует речь, вход или отверстие.",
-    "partOfSpeech": ["noun"],
+    "partOfSpeech": [
+      "noun"
+    ],
     "hskLevel": 1,
+    "strokeCount": 3
+  },
+  {
+    "id": "R-u2e84",
+    "char": "⺄",
+    "variants": [],
+    "pinyin": "yi3",
+    "translation": "Изогнутый крюк",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-abstract",
+    "etymology": "Вариант ключа 乚 — изогнутая линия с крюком на конце. В знаках 与, 卂 служит опорной чертой.",
+    "partOfSpeech": [
+      "noun"
+    ],
+    "hskLevel": 0,
+    "strokeCount": 0
+  },
+  {
+    "id": "R-u2e86",
+    "char": "⺆",
+    "variants": [],
+    "pinyin": "jiong1",
+    "translation": "Рамка-обводка",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-space",
+    "etymology": "Вариант ключа 冂 — обрамляющая рамка, охватывающая внутренние элементы знака.",
+    "partOfSpeech": [
+      "noun"
+    ],
+    "hskLevel": 0,
+    "strokeCount": 0
+  },
+  {
+    "id": "R-u2e8a",
+    "char": "⺊",
+    "variants": [],
+    "pinyin": "bu3",
+    "translation": "Гадание (ключ сверху)",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-society",
+    "etymology": "Верхняя форма ключа 卜 «гадание». Изображает трещину на панцире черепахи, по которой в древности предсказывали судьбу.",
+    "partOfSpeech": [
+      "noun",
+      "verb"
+    ],
+    "hskLevel": 0,
+    "strokeCount": 0
+  },
+  {
+    "id": "R-u2e8c",
+    "char": "⺌",
+    "variants": [],
+    "pinyin": "xiao3",
+    "translation": "Малый (верхняя форма)",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-quality",
+    "etymology": "Верхняя форма ключа 小 «маленький». Три коротких штриха над основной частью знака.",
+    "partOfSpeech": [
+      "adjective"
+    ],
+    "hskLevel": 0,
+    "strokeCount": 0
+  },
+  {
+    "id": "R-u2e95",
+    "char": "⺕",
+    "variants": [],
+    "pinyin": "ji4",
+    "translation": "Рыло (вариант ключа)",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-animal",
+    "etymology": "Вариант ключа 彐 — изображение свиного рыла. Встречается в знаках животных, например 马, 鸟.",
+    "partOfSpeech": [
+      "noun"
+    ],
+    "hskLevel": 0,
+    "strokeCount": 0
+  },
+  {
+    "id": "R-u2ebc",
+    "char": "⺼",
+    "variants": [],
+    "pinyin": "rou4",
+    "translation": "мясо, плоть",
+    "tier": 0,
+    "components": [
+      "R-u2e86",
+      "R-bng"
+    ],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-human",
+    "etymology": "Сокращённая форма ключа 肉 (мясо, плоть) в левой позиции. Входит в знаки, связанные с телом и плотью.",
+    "partOfSpeech": [
+      "noun"
+    ],
+    "hskLevel": 0,
+    "strokeCount": 0
+  },
+  {
+    "id": "R-u31c0",
+    "char": "㇀",
+    "variants": [],
+    "pinyin": "ti2",
+    "translation": "Восходящий штрих",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-abstract",
+    "etymology": "Штрих «ти» — короткая черта, пишущаяся снизу вверх. Входит в знаки 七, 刁.",
+    "partOfSpeech": [
+      "noun"
+    ],
+    "hskLevel": 0,
+    "strokeCount": 0
+  },
+  {
+    "id": "R-u31c7",
+    "char": "㇇",
+    "variants": [],
+    "pinyin": "pie3",
+    "translation": "Горизонталь с откидной",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-abstract",
+    "etymology": "Сложный штрих «хэн-пе» — горизонталь, переходящая в откидную влево. Верхняя часть знака 今.",
+    "partOfSpeech": [
+      "noun"
+    ],
+    "hskLevel": 0,
+    "strokeCount": 0
+  },
+  {
+    "id": "R-u31c9",
+    "char": "㇉",
+    "variants": [],
+    "pinyin": "yi3",
+    "translation": "Вертикаль с изломом",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-abstract",
+    "etymology": "Штрих «шу-чжэ» — вертикаль, заканчивающаяся изломом вправо. Входит в знак 丂.",
+    "partOfSpeech": [
+      "noun"
+    ],
+    "hskLevel": 0,
+    "strokeCount": 0
+  },
+  {
+    "id": "R-ku",
+    "char": "㐄",
+    "variants": [],
+    "pinyin": "kua4",
+    "translation": "Шаг, перешагивать",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-action",
+    "etymology": "Изображение двух ступней, перешагивающих через преграду. Компонент знаков движения, например 舛.",
+    "partOfSpeech": [
+      "verb",
+      "noun"
+    ],
+    "hskLevel": 0,
+    "strokeCount": 3
+  },
+  {
+    "id": "R-w-3",
+    "char": "㐅",
+    "variants": [],
+    "pinyin": "wu3",
+    "translation": "Пять (древняя форма)",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-abstract",
+    "etymology": "Древняя форма цифры 五 — перекрещенные черты. Позднее начертание изменилось, но значение сохранилось.",
+    "partOfSpeech": [
+      "numeral"
+    ],
+    "hskLevel": 0,
+    "strokeCount": 2
+  },
+  {
+    "id": "R-xin-2",
+    "char": "㔾",
+    "variants": [],
+    "pinyin": "xian1",
+    "translation": "Коленопреклонённый (ключ)",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-human",
+    "etymology": "Вариант ключа 卩 — человек, опустившийся на колени. В древности знак обозначал также печать.",
+    "partOfSpeech": [
+      "noun"
+    ],
+    "hskLevel": 0,
+    "strokeCount": 2
+  },
+  {
+    "id": "R-y-14",
+    "char": "㠯",
+    "variants": [],
+    "pinyin": "yi3",
+    "translation": "С помощью (древняя форма)",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-abstract",
+    "etymology": "Древняя форма знака 以 «посредством». Позже упростилась до современного начертания.",
+    "partOfSpeech": [
+      "preposition"
+    ],
+    "hskLevel": 0,
+    "strokeCount": 5
+  },
+  {
+    "id": "R-y-15",
+    "char": "一",
+    "variants": [],
+    "pinyin": "yi1",
+    "translation": "один",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": true,
+    "themeGroupId": "TG-abstract",
+    "etymology": "Одна горизонтальная черта — древнейший счётный знак. Первоначально зарубка на палке, обозначавшая единицу.",
+    "partOfSpeech": [
+      "numeral"
+    ],
+    "hskLevel": 1,
+    "strokeCount": 1
+  },
+  {
+    "id": "R-zhng-2",
+    "char": "丈",
+    "variants": [],
+    "pinyin": "zhang4",
+    "translation": "Чжан (мера длины)",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-quality",
+    "etymology": "Пиктограмма руки, держащей измерительный шест. Древняя мера длины, около 3,3 метра.",
+    "partOfSpeech": [
+      "noun",
+      "measure"
+    ],
+    "hskLevel": 1,
+    "strokeCount": 3
+  },
+  {
+    "id": "R-gi",
+    "char": "丐",
+    "variants": [],
+    "pinyin": "gai4",
+    "translation": "Нищий, попрошайка",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-human",
+    "etymology": "Упрощённый вариант знака 匃 «просить». Изображал человека, протягивающего руку за подаянием.",
+    "partOfSpeech": [
+      "noun",
+      "verb"
+    ],
+    "hskLevel": 5,
+    "strokeCount": 4
+  },
+  {
+    "id": "R-chu",
+    "char": "丑",
+    "variants": [],
+    "pinyin": "chou3",
+    "translation": "некрасивый, уродливый",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": true,
+    "themeGroupId": "TG-quality",
+    "etymology": "Первоначально изображение сжатой руки или когтя. В циклическом календаре — вторая земная ветвь, позднее получило значение «уродливый».",
+    "partOfSpeech": [
+      "adjective",
+      "noun"
+    ],
+    "hskLevel": 5,
+    "strokeCount": 4
+  },
+  {
+    "id": "R-zhun",
+    "char": "专",
+    "variants": [],
+    "pinyin": "zhuan1",
+    "translation": "Специальный, особый",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-quality",
+    "etymology": "От древнего знака 叀 — веретено в руке. Идея сосредоточенности на одном деле дала значения «специальный, целиком».",
+    "partOfSpeech": [
+      "adjective",
+      "verb"
+    ],
+    "hskLevel": 3,
+    "strokeCount": 4
+  },
+  {
+    "id": "R-qi-2",
+    "char": "且",
+    "variants": [],
+    "pinyin": "qie3",
+    "translation": "К тому же, притом",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-abstract",
+    "etymology": "Древнее изображение алтаря-подставки для жертвоприношений. Как служебное слово стало употребляться позднее.",
+    "partOfSpeech": [
+      "conjunction",
+      "adverb"
+    ],
+    "hskLevel": 3,
+    "strokeCount": 5
+  },
+  {
+    "id": "R-sh-8",
+    "char": "世",
+    "variants": [],
+    "pinyin": "shi4",
+    "translation": "Мир, эпоха, поколение",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-time",
+    "etymology": "Три десятки, соединённые вместе, — тридцать лет, срок жизни одного поколения. Отсюда «поколение», «эпоха», «мир».",
+    "partOfSpeech": [
+      "noun"
+    ],
+    "hskLevel": 3,
+    "strokeCount": 5
+  },
+  {
+    "id": "R-qi",
+    "char": "丘",
+    "variants": [],
+    "pinyin": "qiu1",
+    "translation": "Холм",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-nature",
+    "etymology": "Пиктограмма двух холмов, стоящих рядом. Также древнее название возвышенной местности.",
+    "partOfSpeech": [
+      "noun"
+    ],
+    "hskLevel": 6,
+    "strokeCount": 5
+  },
+  {
+    "id": "R-dng-2",
+    "char": "东",
+    "variants": [],
+    "pinyin": "dong1",
+    "translation": "Восток",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-space",
+    "etymology": "Изначально мешок, завязанный с двух концов. Значение «восток» закрепилось по созвучию — солнце, восходящее из-за дерева.",
+    "partOfSpeech": [
+      "noun"
+    ],
+    "hskLevel": 1,
+    "strokeCount": 5
+  },
+  {
+    "id": "R-gn-2",
+    "char": "丨",
+    "variants": [],
+    "pinyin": "gun3",
+    "translation": "Вертикальная черта",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-abstract",
+    "etymology": "Один из базовых штрихов китайской каллиграфии — вертикальная линия. В древности мог служить счётным знаком.",
+    "partOfSpeech": [
+      "noun"
+    ],
+    "hskLevel": 0,
+    "strokeCount": 1
+  },
+  {
+    "id": "R-ji-3",
+    "char": "丩",
+    "variants": [],
+    "pinyin": "jiu1",
+    "translation": "Связывать, соединять",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-abstract",
+    "etymology": "Изображение переплетённых лоз или верёвок. Передаёт идею соединения и запутанности.",
+    "partOfSpeech": [
+      "verb"
+    ],
+    "hskLevel": 0,
+    "strokeCount": 2
+  },
+  {
+    "id": "R-qing",
+    "char": "丬",
+    "variants": [],
+    "pinyin": "qiang2",
+    "translation": "Кровать (левый ключ)",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-object",
+    "etymology": "Левая часть знака 爿 «кровать, скамья» — половина деревянной плахи, поставленной на бок.",
+    "partOfSpeech": [
+      "noun"
+    ],
+    "hskLevel": 0,
+    "strokeCount": 3
+  },
+  {
+    "id": "R-zh-4",
+    "char": "丶",
+    "variants": [],
+    "pinyin": "zhu3",
+    "translation": "Точка",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-abstract",
+    "etymology": "Базовый штрих «дянь» — капля-точка. В древности служил знаком препинания и пометкой.",
+    "partOfSpeech": [
+      "noun"
+    ],
+    "hskLevel": 0,
+    "strokeCount": 1
+  },
+  {
+    "id": "R-b-2",
+    "char": "丷",
+    "variants": [],
+    "pinyin": "ba1",
+    "translation": "Рожки (древнее восемь)",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-abstract",
+    "etymology": "Древняя форма цифры 八. В верхней позиции превратился в пару коротких «рожек», как в знаке 兑.",
+    "partOfSpeech": [
+      "noun"
+    ],
+    "hskLevel": 0,
+    "strokeCount": 2
+  },
+  {
+    "id": "R-wi-3",
+    "char": "为",
+    "variants": [],
+    "pinyin": "wei4",
+    "translation": "Делать; ради, для",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-action",
+    "etymology": "Первоначально рука, ведущая слона, — «трудиться, делать». Позднее начертание сильно упростилось.",
+    "partOfSpeech": [
+      "verb",
+      "preposition"
+    ],
+    "hskLevel": 1,
+    "strokeCount": 4
+  },
+  {
+    "id": "R-pi",
+    "char": "丿",
+    "variants": [],
+    "pinyin": "pie3",
+    "translation": "Откидная влево",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-abstract",
+    "etymology": "Базовый штрих «пе» — линия, падающая влево с постепенным ослаблением нажима.",
+    "partOfSpeech": [
+      "noun"
+    ],
+    "hskLevel": 0,
+    "strokeCount": 1
+  },
+  {
+    "id": "R-f-3",
+    "char": "乀",
+    "variants": [],
+    "pinyin": "fu2",
+    "translation": "Откидная вправо",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-abstract",
+    "etymology": "Штрих «на» — линия, тянущаяся вправо с расширением к концу. Входит в знаки 展, 畏.",
+    "partOfSpeech": [
+      "noun"
+    ],
+    "hskLevel": 0,
+    "strokeCount": 1
+  },
+  {
+    "id": "R-y-16",
+    "char": "乁",
+    "variants": [],
+    "pinyin": "yi2",
+    "translation": "Черта с откидной вправо",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-abstract",
+    "etymology": "Служебный компонент — горизонталь с откидной вправо. Верхняя часть знака 气 «воздух».",
+    "partOfSpeech": [
+      "noun"
+    ],
+    "hskLevel": 0,
+    "strokeCount": 1
+  },
+  {
+    "id": "R-ji-6",
+    "char": "久",
+    "variants": [],
+    "pinyin": "jiu3",
+    "translation": "Долго, давно",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-time",
+    "etymology": "Первоначально изображение человека, лечащегося прижиганием. Из идеи затянувшегося лечения выросло значение «долгий».",
+    "partOfSpeech": [
+      "adjective",
+      "adverb"
+    ],
+    "hskLevel": 5,
+    "strokeCount": 3
+  },
+  {
+    "id": "R-zh",
+    "char": "乍",
+    "variants": [],
+    "pinyin": "zha4",
+    "translation": "Впервые, внезапно",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-time",
+    "etymology": "Изображение трещины при гадании или первого ростка. Знак начала, первого раза.",
+    "partOfSpeech": [
+      "adverb"
+    ],
+    "hskLevel": 0,
+    "strokeCount": 5
+  },
+  {
+    "id": "R-h",
+    "char": "乎",
+    "variants": [],
+    "pinyin": "hu1",
+    "translation": "Ли, разве (частица)",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-abstract",
+    "etymology": "Первоначально выдох с паром изо рта. Стал вопросительной и восклицательной частицей.",
+    "partOfSpeech": [
+      "particle"
+    ],
+    "hskLevel": 4,
+    "strokeCount": 5
+  },
+  {
+    "id": "R-l-2",
+    "char": "乐",
+    "variants": [],
+    "pinyin": "le4",
+    "translation": "Радость; музыка",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-feeling",
+    "etymology": "Изображение деревянной подставки с подвешенными колокольчиками. Радость — от удовольствия слушать музыку.",
+    "partOfSpeech": [
+      "adjective",
+      "noun"
+    ],
+    "hskLevel": 1,
+    "strokeCount": 5
+  },
+  {
+    "id": "R-yn",
+    "char": "乑",
+    "variants": [],
+    "pinyin": "yin2",
+    "translation": "Стоять рядом (компонент)",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-action",
+    "etymology": "Компонент знака 聚 — несколько человек, стоящих бок о бок. Передаёт идею скопления, собрания.",
+    "partOfSpeech": [
+      "verb"
+    ],
+    "hskLevel": 0,
+    "strokeCount": 6
+  },
+  {
+    "id": "R-y-3",
+    "char": "乙",
+    "variants": [],
+    "pinyin": "yi3",
+    "translation": "Второй (в циклическом порядке)",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": true,
+    "themeGroupId": "TG-time",
+    "etymology": "Изогнутая линия — изображение ростка, изгибающегося при прорастании. Второй знак циклического ряда небесных стволов.",
+    "partOfSpeech": [
+      "numeral",
+      "noun"
+    ],
+    "hskLevel": 6,
+    "strokeCount": 1
+  },
+  {
+    "id": "R-yn-2",
+    "char": "乚",
+    "variants": [],
+    "pinyin": "yin3",
+    "translation": "Крюк, заворот",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-abstract",
+    "etymology": "Базовая черта с заворотом вправо. Как самостоятельный знак имел значение «скрытый».",
+    "partOfSpeech": [
+      "noun"
+    ],
+    "hskLevel": 0,
+    "strokeCount": 1
+  },
+  {
+    "id": "R-y-4",
+    "char": "乛",
+    "variants": [],
+    "pinyin": "yi3",
+    "translation": "Горизонталь с крюком",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-abstract",
+    "etymology": "Служебный штрих — горизонталь, заканчивающаяся крюком. Верхняя часть знаков 之, 买.",
+    "partOfSpeech": [
+      "noun"
+    ],
+    "hskLevel": 0,
+    "strokeCount": 1
+  },
+  {
+    "id": "R-ji",
+    "char": "九",
+    "variants": [],
+    "pinyin": "jiu3",
+    "translation": "девять",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": true,
+    "themeGroupId": "TG-abstract",
+    "etymology": "Изогнутая линия-локоть — древний счётный символ. Сохранила значение «девять» до наших дней.",
+    "partOfSpeech": [
+      "numeral"
+    ],
+    "hskLevel": 1,
+    "strokeCount": 2
+  },
+  {
+    "id": "R-y-12",
+    "char": "也",
+    "variants": [],
+    "pinyin": "ye3",
+    "translation": "тоже, также, и",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": true,
+    "themeGroupId": "TG-abstract",
+    "etymology": "Первоначально изображение изогнутого сосуда. Как служебное слово закрепилось в значении «тоже».",
+    "partOfSpeech": [
+      "adverb",
+      "particle"
+    ],
+    "hskLevel": 1,
+    "strokeCount": 3
+  },
+  {
+    "id": "R-xing",
+    "char": "乡",
+    "variants": [],
+    "pinyin": "xiang1",
+    "translation": "Деревня, родные края",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-society",
+    "etymology": "Упрощённая форма знака 鄉 — два человека перед наполненной чашей. Обозначал общину и родные места.",
+    "partOfSpeech": [
+      "noun"
+    ],
+    "hskLevel": 3,
+    "strokeCount": 3
+  },
+  {
+    "id": "R-sh-6",
+    "char": "书",
+    "variants": [],
+    "pinyin": "shu1",
+    "translation": "книга",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": true,
+    "themeGroupId": "TG-society",
+    "etymology": "Упрощение знака 書 — рука с кистью, пишущая на дощечке. Отсюда значения «писать» и «книга».",
+    "partOfSpeech": [
+      "noun",
+      "verb"
+    ],
+    "hskLevel": 1,
+    "strokeCount": 4
+  },
+  {
+    "id": "R-ju",
+    "char": "亅",
+    "variants": [],
+    "pinyin": "jue2",
+    "translation": "Вертикаль с крюком",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-abstract",
+    "etymology": "Базовый штрих — вертикальная черта, заканчивающаяся крюком. Входит в знаки 丁, 了.",
+    "partOfSpeech": [
+      "noun"
+    ],
+    "hskLevel": 0,
+    "strokeCount": 1
+  },
+  {
+    "id": "R-sh-4",
+    "char": "事",
+    "variants": [],
+    "pinyin": "shi4",
+    "translation": "дело, событие, работа, случай",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": true,
+    "themeGroupId": "TG-action",
+    "etymology": "Рука, держащая шест с флажком-сигналом. Изначально «служба, поручение», затем «дело».",
+    "partOfSpeech": [
+      "noun"
+    ],
+    "hskLevel": 1,
+    "strokeCount": 8
+  },
+  {
+    "id": "R-y-11",
+    "char": "于",
+    "variants": [],
+    "pinyin": "yu2",
+    "translation": "В, на, к (предлог)",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-abstract",
+    "etymology": "Древнее изображение изогнутой трубы или ручки сосуда. Рано стал предлогом места и времени.",
+    "partOfSpeech": [
+      "preposition"
+    ],
+    "hskLevel": 3,
+    "strokeCount": 3
+  },
+  {
+    "id": "R-jng",
+    "char": "井",
+    "variants": [],
+    "pinyin": "jing3",
+    "translation": "колодец",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": true,
+    "themeGroupId": "TG-nature",
+    "etymology": "Пиктограмма сруба колодца — перекрещенные балки. Также название древней системы полей «цзин-тянь».",
+    "partOfSpeech": [
+      "noun"
+    ],
+    "hskLevel": 5,
+    "strokeCount": 4
+  },
+  {
+    "id": "R-tu-2",
+    "char": "亠",
+    "variants": [],
+    "pinyin": "tou2",
+    "translation": "крышка, верх",
+    "tier": 0,
+    "components": [
+      "R-zh-4",
+      "R-y-15"
+    ],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-space",
+    "etymology": "Горизонтальная черта с точкой — верхний элемент («крышка») знаков 京, 高, 六. Символизирует покрытие, верх.",
+    "partOfSpeech": [
+      "noun"
+    ],
+    "hskLevel": 0,
+    "strokeCount": 2
+  },
+  {
+    "id": "R-rn-2",
+    "char": "人",
+    "variants": [
+      "亻"
+    ],
+    "pinyin": "ren2",
+    "translation": "человек, люди",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": true,
+    "themeGroupId": "TG-human",
+    "etymology": "Пиктограмма человека в профиль — наклонённое туловище и две ноги.",
+    "partOfSpeech": [
+      "noun"
+    ],
+    "hskLevel": 1,
+    "strokeCount": 2
+  },
+  {
+    "id": "R-rn-3",
+    "char": "亻",
+    "variants": [],
+    "pinyin": "ren2",
+    "translation": "Человек (ключ слева)",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-human",
+    "etymology": "Сокращённая форма знака 人 в левой позиции. Входит в знаки, связанные с людьми и их занятиями.",
+    "partOfSpeech": [
+      "noun"
+    ],
+    "hskLevel": 0,
+    "strokeCount": 2
+  },
+  {
+    "id": "R-y-7",
+    "char": "以",
+    "variants": [],
+    "pinyin": "yi3",
+    "translation": "Посредством; чтобы",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-abstract",
+    "etymology": "Первоначально изображение плуга. Стало служебным словом со значением «с помощью, посредством».",
+    "partOfSpeech": [
+      "preposition",
+      "conjunction"
+    ],
+    "hskLevel": 1,
+    "strokeCount": 5
+  },
+  {
+    "id": "R-zho-3",
+    "char": "兆",
+    "variants": [],
+    "pinyin": "zhao4",
+    "translation": "Знамение; миллион",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-abstract",
+    "etymology": "Изображение трещин на панцире черепахи при гадании — предзнаменование. Позже стало также числом «миллион».",
+    "partOfSpeech": [
+      "noun",
+      "numeral"
+    ],
+    "hskLevel": 6,
+    "strokeCount": 6
+  },
+  {
+    "id": "R-r-3",
+    "char": "入",
+    "variants": [],
+    "pinyin": "ru4",
+    "translation": "Входить",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-action",
+    "etymology": "Пиктограмма наконечника стрелы или острия, входящего внутрь. Отсюда значение «входить».",
+    "partOfSpeech": [
+      "verb"
+    ],
+    "hskLevel": 3,
+    "strokeCount": 2
+  },
+  {
+    "id": "R-b-3",
+    "char": "八",
+    "variants": [],
+    "pinyin": "ba1",
+    "translation": "восемь",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": true,
+    "themeGroupId": "TG-abstract",
+    "etymology": "Две расходящиеся черты — древний символ разделения. Счётный знак для числа восемь.",
+    "partOfSpeech": [
+      "numeral"
+    ],
+    "hskLevel": 1,
+    "strokeCount": 2
+  },
+  {
+    "id": "R-jing",
+    "char": "冂",
+    "variants": [],
+    "pinyin": "jiong1",
+    "translation": "Рама, граница (ключ)",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-space",
+    "etymology": "Изображение ворот или границ отдалённой местности. В знаках служит обрамляющей рамкой.",
+    "partOfSpeech": [
+      "noun"
+    ],
+    "hskLevel": 0,
+    "strokeCount": 2
+  },
+  {
+    "id": "R-rn",
+    "char": "冉",
+    "variants": [],
+    "pinyin": "ran3",
+    "translation": "Мягкий, постепенный",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-quality",
+    "etymology": "Изображение ростка или свисающей мягкими прядями бороды. Отсюда «мягкий, постепенный».",
+    "partOfSpeech": [
+      "adjective",
+      "adverb"
+    ],
+    "hskLevel": 0,
+    "strokeCount": 5
+  },
+  {
+    "id": "R-c-2",
+    "char": "册",
+    "variants": [],
+    "pinyin": "ce4",
+    "translation": "Том, книга, реестр",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": true,
+    "themeGroupId": "TG-society",
+    "etymology": "Связка бамбуковых дощечек, нанизанных на верёвку, — древняя книга.",
+    "partOfSpeech": [
+      "noun"
+    ],
+    "hskLevel": 4,
+    "strokeCount": 5
+  },
+  {
+    "id": "R-m-2",
+    "char": "冖",
+    "variants": [],
+    "pinyin": "mi4",
+    "translation": "Крышка-компонент",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-object",
+    "etymology": "Пиктограмма куска ткани, накрывающего предмет сверху. В знаках — покрывающий элемент.",
+    "partOfSpeech": [
+      "noun"
+    ],
+    "hskLevel": 0,
+    "strokeCount": 2
+  },
+  {
+    "id": "R-yn-7",
+    "char": "冘",
+    "variants": [],
+    "pinyin": "yin2",
+    "translation": "Колебаться, продвигаться",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-action",
+    "etymology": "Человек, выходящий из-под навеса с грузом. Передаёт нерешительность и медленное движение.",
+    "partOfSpeech": [
+      "verb"
+    ],
+    "hskLevel": 0,
+    "strokeCount": 4
+  },
+  {
+    "id": "R-bng",
+    "char": "冫",
+    "variants": [],
+    "pinyin": "bing1",
+    "translation": "Лёд (ключ)",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-nature",
+    "etymology": "Два коротких штриха — кристаллы льда. Ключ знаков, связанных с холодом.",
+    "partOfSpeech": [
+      "noun"
+    ],
+    "hskLevel": 0,
+    "strokeCount": 2
+  },
+  {
+    "id": "R-j-4",
+    "char": "几",
+    "variants": [],
+    "pinyin": "ji3",
+    "translation": "сколько; несколько",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": true,
+    "themeGroupId": "TG-abstract",
+    "etymology": "Пиктограмма низкого столика. Как вопросительное слово «сколько» употребляется по заимствованию.",
+    "partOfSpeech": [
+      "pronoun",
+      "numeral",
+      "noun"
+    ],
+    "hskLevel": 1,
+    "strokeCount": 2
+  },
+  {
+    "id": "R-qin-2",
+    "char": "凵",
+    "variants": [],
+    "pinyin": "qian3",
+    "translation": "Яма, открытый короб",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-object",
+    "etymology": "Пиктограмма открытого сосуда или ямы. Ключ знаков 出, 凶.",
+    "partOfSpeech": [
+      "noun"
+    ],
+    "hskLevel": 0,
+    "strokeCount": 2
+  },
+  {
+    "id": "R-o",
+    "char": "凹",
+    "variants": [],
+    "pinyin": "ao1",
+    "translation": "вогнутый, впадина",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": true,
+    "themeGroupId": "TG-quality",
+    "etymology": "Схематическое изображение углубления между краями. Противопоставлен знаку 凸 «выпуклый».",
+    "partOfSpeech": [
+      "adjective",
+      "noun"
+    ],
+    "hskLevel": 6,
+    "strokeCount": 5
+  },
+  {
+    "id": "R-do",
+    "char": "刂",
+    "variants": [],
+    "pinyin": "dao1",
+    "translation": "Нож (ключ справа)",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-object",
+    "etymology": "Сокращённая форма ключа 刀 «нож» в правой позиции. Входит в знаки резания и разделения.",
+    "partOfSpeech": [
+      "noun"
+    ],
+    "hskLevel": 0,
+    "strokeCount": 2
+  },
+  {
+    "id": "R-bo",
+    "char": "勹",
+    "variants": [],
+    "pinyin": "bao1",
+    "translation": "Завёртывать (ключ)",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-action",
+    "etymology": "Изображение человека, наклонившегося и обхватывающего что-то руками. Ключ «обёртывания».",
+    "partOfSpeech": [
+      "verb"
+    ],
+    "hskLevel": 0,
+    "strokeCount": 2
+  },
+  {
+    "id": "R-fng",
+    "char": "匚",
+    "variants": [],
+    "pinyin": "fang1",
+    "translation": "Ящик (ключ)",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-object",
+    "etymology": "Открытый с трёх сторон короб-сосуд. Ключ знаков ёмкостей.",
+    "partOfSpeech": [
+      "noun"
+    ],
+    "hskLevel": 0,
+    "strokeCount": 2
+  },
+  {
+    "id": "R-sh-2",
+    "char": "十",
+    "variants": [],
+    "pinyin": "shi2",
+    "translation": "Десять",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": true,
+    "themeGroupId": "TG-abstract",
+    "etymology": "Вертикаль с поперечной чертой — зарубка на счётной палочке. Символ полного десятка.",
+    "partOfSpeech": [
+      "numeral"
+    ],
+    "hskLevel": 1,
+    "strokeCount": 2
+  },
+  {
+    "id": "R-x",
+    "char": "卌",
+    "variants": [],
+    "pinyin": "xi4",
+    "translation": "Сорок",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-abstract",
+    "etymology": "Четыре десятки, соединённые в одном знаке. Древняя запись числа сорок, входит в знак 舞.",
+    "partOfSpeech": [
+      "numeral"
+    ],
+    "hskLevel": 0,
+    "strokeCount": 5
+  },
+  {
+    "id": "R-bo-2",
+    "char": "卜",
+    "variants": [],
+    "pinyin": "bo",
+    "translation": "Гадать, предсказывать",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-society",
+    "etymology": "Трещина на нагретом панцире черепахи. По её форме в древности предсказывали будущее.",
+    "partOfSpeech": [
+      "verb",
+      "noun"
+    ],
+    "hskLevel": 0,
+    "strokeCount": 2
+  },
+  {
+    "id": "R-ji-4",
+    "char": "卩",
+    "variants": [],
+    "pinyin": "jie2",
+    "translation": "Коленопреклонённый (ключ)",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-human",
+    "etymology": "Человек на коленях. Позже знак стал обозначать печать и верительные бирки.",
+    "partOfSpeech": [
+      "noun"
+    ],
+    "hskLevel": 0,
+    "strokeCount": 2
+  },
+  {
+    "id": "R-chng-2",
+    "char": "厂",
+    "variants": [],
+    "pinyin": "chang3",
+    "translation": "Завод; обрыв (ключ)",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-society",
+    "etymology": "Первоначально пиктограмма отвесного обрыва. В упрощённом китайском стал знаком «завод».",
+    "partOfSpeech": [
+      "noun"
+    ],
+    "hskLevel": 0,
+    "strokeCount": 2
+  },
+  {
+    "id": "R-s-2",
+    "char": "厶",
+    "variants": [],
+    "pinyin": "si1",
+    "translation": "Личный, частный (ключ)",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-abstract",
+    "etymology": "Древняя форма знака 私 «частный». Изогнутый крючок, загребающий к себе.",
+    "partOfSpeech": [
+      "adjective"
+    ],
+    "hskLevel": 0,
+    "strokeCount": 2
+  },
+  {
+    "id": "R-yu",
+    "char": "又",
+    "variants": [],
+    "pinyin": "you4",
+    "translation": "Опять, снова",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-time",
+    "etymology": "Пиктограмма правой руки. Значение «снова» возникло из жеста повторения.",
+    "partOfSpeech": [
+      "adverb"
+    ],
+    "hskLevel": 0,
+    "strokeCount": 2
+  },
+  {
+    "id": "R-j-2",
+    "char": "及",
+    "variants": [],
+    "pinyin": "ji2",
+    "translation": "Достигать; и",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-action",
+    "etymology": "Рука, дотягивающаяся до бегущего человека, — «догонять, достигать». Позже стал и союзом «и».",
+    "partOfSpeech": [
+      "verb",
+      "conjunction"
+    ],
+    "hskLevel": 3,
+    "strokeCount": 4
+  },
+  {
+    "id": "R-f",
+    "char": "发",
+    "variants": [],
+    "pinyin": "fa1",
+    "translation": "отправлять, выпускать, возникать",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": true,
+    "themeGroupId": "TG-action",
+    "etymology": "Упрощение двух разных знаков: 發 «пускать стрелу» и 髮 «волосы». Ныне совмещает оба значения.",
+    "partOfSpeech": [
+      "verb",
+      "noun"
+    ],
+    "hskLevel": 1,
+    "strokeCount": 5
+  },
+  {
+    "id": "R-sh-12",
+    "char": "史",
+    "variants": [],
+    "pinyin": "shi3",
+    "translation": "История, летопись",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-society",
+    "etymology": "Рука, держащая кисть с цилиндром для записей. Обозначал писца-историка, отсюда «летопись».",
+    "partOfSpeech": [
+      "noun"
+    ],
+    "hskLevel": 3,
+    "strokeCount": 5
+  },
+  {
+    "id": "R-wi",
+    "char": "囗",
+    "variants": [],
+    "pinyin": "wei2",
+    "translation": "Ограда (ключ)",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-space",
+    "etymology": "Пиктограмма городской стены или ограды. Охватывает внутренние элементы знаков 国, 园.",
+    "partOfSpeech": [
+      "noun"
+    ],
+    "hskLevel": 0,
+    "strokeCount": 3
+  },
+  {
+    "id": "R-zh-3",
+    "char": "夂",
+    "variants": [],
+    "pinyin": "zhi3",
+    "translation": "Шагать (ключ-нога)",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-action",
+    "etymology": "Ступня, направленная вниз, — след ноги. Ключ движения.",
+    "partOfSpeech": [
+      "noun"
+    ],
+    "hskLevel": 0,
+    "strokeCount": 3
+  },
+  {
+    "id": "R-su",
+    "char": "夊",
+    "variants": [],
+    "pinyin": "sui1",
+    "translation": "Идти медленно (ключ)",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-action",
+    "etymology": "Вариант ключа 夂 — нога с волочащимся следом. Передаёт медленную ходьбу.",
+    "partOfSpeech": [
+      "noun"
+    ],
+    "hskLevel": 0,
+    "strokeCount": 3
+  },
+  {
+    "id": "R-yng",
+    "char": "央",
+    "variants": [],
+    "pinyin": "yang1",
+    "translation": "Центр, середина",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-space",
+    "etymology": "Человек под перекладиной-коромыслом — точка равновесия. Отсюда «центр, середина».",
+    "partOfSpeech": [
+      "noun"
+    ],
+    "hskLevel": 0,
+    "strokeCount": 5
+  },
+  {
+    "id": "R-tu-3",
+    "char": "头",
+    "variants": [],
+    "pinyin": "tou2",
+    "translation": "голова, начало, первый",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": true,
+    "themeGroupId": "TG-human",
+    "etymology": "Упрощение знака 頭 — лицо с волосами. Из значения «голова» выросли «начало, первый».",
+    "partOfSpeech": [
+      "noun",
+      "adjective"
+    ],
+    "hskLevel": 1,
+    "strokeCount": 5
+  },
+  {
+    "id": "R-n-2",
+    "char": "女",
+    "variants": [],
+    "pinyin": "nü3",
+    "translation": "Женщина",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": true,
+    "themeGroupId": "TG-human",
+    "etymology": "Пиктограмма женщины, сидящей на коленях со скрещёнными руками.",
+    "partOfSpeech": [
+      "noun"
+    ],
+    "hskLevel": 1,
+    "strokeCount": 3
+  },
+  {
+    "id": "R-z-2",
+    "char": "子",
+    "variants": [],
+    "pinyin": "zi3",
+    "translation": "Ребёнок, сын",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-human",
+    "etymology": "Пиктограмма младенца с раскинутыми ручками и запелёнатыми ножками.",
+    "partOfSpeech": [
+      "noun"
+    ],
+    "hskLevel": 1,
+    "strokeCount": 3
+  },
+  {
+    "id": "R-min",
+    "char": "宀",
+    "variants": [],
+    "pinyin": "mian2",
+    "translation": "Крыша (ключ)",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-society",
+    "etymology": "Пиктограмма крыши с коньком. Ключ знаков дома и жилья.",
+    "partOfSpeech": [
+      "noun"
+    ],
+    "hskLevel": 0,
+    "strokeCount": 3
+  },
+  {
+    "id": "R-cn",
+    "char": "寸",
+    "variants": [],
+    "pinyin": "cun4",
+    "translation": "Цунь (мера длины)",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-quality",
+    "etymology": "Рука с отметкой у запястья — точка пульса. Древняя мера длины около трёх сантиметров.",
+    "partOfSpeech": [
+      "noun",
+      "measure"
+    ],
+    "hskLevel": 5,
+    "strokeCount": 3
+  },
+  {
+    "id": "R-xio",
+    "char": "小",
+    "variants": [],
+    "pinyin": "xiao3",
+    "translation": "маленький",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": true,
+    "themeGroupId": "TG-quality",
+    "etymology": "Три песчинки или мелкие капли. Знак малого размера.",
+    "partOfSpeech": [
+      "adjective"
+    ],
+    "hskLevel": 1,
+    "strokeCount": 3
+  },
+  {
+    "id": "R-wng-2",
+    "char": "尢",
+    "variants": [],
+    "pinyin": "wang1",
+    "translation": "Хромой (ключ)",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-human",
+    "etymology": "Человек с согнутой ногой. Ключ знаков физических недостатков.",
+    "partOfSpeech": [
+      "noun",
+      "adjective"
+    ],
+    "hskLevel": 0,
+    "strokeCount": 3
+  },
+  {
+    "id": "R-sh-9",
+    "char": "尸",
+    "variants": [],
+    "pinyin": "shi1",
+    "translation": "Труп, тело (ключ)",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-human",
+    "etymology": "Изображение распростёртого тела. В древности также обозначал того, кто представлял умершего на обряде.",
+    "partOfSpeech": [
+      "noun"
+    ],
+    "hskLevel": 5,
+    "strokeCount": 3
+  },
+  {
+    "id": "R-ch-4",
+    "char": "尺",
+    "variants": [],
+    "pinyin": "chi3",
+    "translation": "Чи (мера длины)",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-quality",
+    "etymology": "Ладонь с расставленными пальцами — расстояние от запястья. Древняя мера длины, около трети метра.",
+    "partOfSpeech": [
+      "noun",
+      "measure"
+    ],
+    "hskLevel": 0,
+    "strokeCount": 4
+  },
+  {
+    "id": "R-shn-2",
+    "char": "山",
+    "variants": [],
+    "pinyin": "shan1",
+    "translation": "Гора",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-nature",
+    "etymology": "Три пика, поднимающиеся над землёй. Классическая пиктограмма горы.",
+    "partOfSpeech": [
+      "noun"
+    ],
+    "hskLevel": 2,
+    "strokeCount": 3
+  },
+  {
+    "id": "R-chun",
+    "char": "川",
+    "variants": [],
+    "pinyin": "chuan1",
+    "translation": "Река, поток",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-nature",
+    "etymology": "Три извилистые линии воды, текущей между берегами.",
+    "partOfSpeech": [
+      "noun"
+    ],
+    "hskLevel": 0,
+    "strokeCount": 3
+  },
+  {
+    "id": "R-zhu-2",
+    "char": "州",
+    "variants": [],
+    "pinyin": "zhou1",
+    "translation": "Область, округ, провинция",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": true,
+    "themeGroupId": "TG-society",
+    "etymology": "Островки земли посреди реки — знак 川 с точками суши. Позже административная единица.",
+    "partOfSpeech": [
+      "noun"
+    ],
+    "hskLevel": 4,
+    "strokeCount": 6
+  },
+  {
+    "id": "R-gng",
+    "char": "工",
+    "variants": [],
+    "pinyin": "gong1",
+    "translation": "Работа, труд",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-action",
+    "etymology": "Пиктограмма плотницкого угольника или орудия труда. Знак мастерства и работы.",
+    "partOfSpeech": [
+      "noun",
+      "verb"
+    ],
+    "hskLevel": 1,
+    "strokeCount": 3
+  },
+  {
+    "id": "R-j-7",
+    "char": "巨",
+    "variants": [],
+    "pinyin": "ju4",
+    "translation": "Огромный",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-quality",
+    "etymology": "Изображение большой рамы-угольника для вычерчивания. Передаёт идею крупного размера.",
+    "partOfSpeech": [
+      "adjective"
+    ],
+    "hskLevel": 4,
+    "strokeCount": 5
+  },
+  {
+    "id": "R-j-6",
+    "char": "己",
+    "variants": [],
+    "pinyin": "ji3",
+    "translation": "Сам, себя",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-human",
+    "etymology": "Древнее изображение изогнутого шнура. Рано стало обозначать «сам, себя».",
+    "partOfSpeech": [
+      "pronoun"
+    ],
+    "hskLevel": 2,
+    "strokeCount": 3
+  },
+  {
+    "id": "R-y-9",
+    "char": "已",
+    "variants": [],
+    "pinyin": "yi3",
+    "translation": "Уже, закончено",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-time",
+    "etymology": "Изображение ростка, прекратившего рост. Отсюда «уже, кончено».",
+    "partOfSpeech": [
+      "adverb",
+      "verb"
+    ],
+    "hskLevel": 1,
+    "strokeCount": 3
+  },
+  {
+    "id": "R-s-3",
+    "char": "巳",
+    "variants": [],
+    "pinyin": "si4",
+    "translation": "Шестая земная ветвь",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-time",
+    "etymology": "Изображение зародыша в утробе — символ зарождения. Шестой знак двенадцатеричного цикла.",
+    "partOfSpeech": [
+      "noun"
+    ],
+    "hskLevel": 0,
+    "strokeCount": 3
+  },
+  {
+    "id": "R-b-4",
+    "char": "巴",
+    "variants": [],
+    "pinyin": "ba1",
+    "translation": "Жаждать, прижиматься",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-feeling",
+    "etymology": "Пиктограмма змеи, прижавшейся к земле. Отсюда «прижиматься» и «страстно желать».",
+    "partOfSpeech": [
+      "verb",
+      "particle"
+    ],
+    "hskLevel": 3,
+    "strokeCount": 4
+  },
+  {
+    "id": "R-jn",
+    "char": "巾",
+    "variants": [],
+    "pinyin": "jin1",
+    "translation": "Платок, полотенце (ключ)",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-object",
+    "etymology": "Пиктограмма свисающего полотнища ткани. Ключ знаков ткани и полотенец.",
+    "partOfSpeech": [
+      "noun"
+    ],
+    "hskLevel": 2,
+    "strokeCount": 3
+  },
+  {
+    "id": "R-gn-5",
+    "char": "干",
+    "variants": [],
+    "pinyin": "gan4",
+    "translation": "делать, заниматься (чем-либо); сухой",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": true,
+    "themeGroupId": "TG-action",
+    "etymology": "Пиктограмма шеста-ствола с развилкой. Совместил значения «ствол», «сушить» и «заниматься делом».",
+    "partOfSpeech": [
+      "verb",
+      "adjective",
+      "noun"
+    ],
+    "hskLevel": 1,
+    "strokeCount": 3
+  },
+  {
+    "id": "R-nin",
+    "char": "年",
+    "variants": [],
+    "pinyin": "nian2",
+    "translation": "год",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": true,
+    "themeGroupId": "TG-time",
+    "etymology": "Человек, несущий на спине сноп созревшего зерна, — сбор урожая. Отсюда счёт лет.",
+    "partOfSpeech": [
+      "noun"
+    ],
+    "hskLevel": 1,
+    "strokeCount": 6
+  },
+  {
+    "id": "R-gung",
+    "char": "广",
+    "variants": [],
+    "pinyin": "guang3",
+    "translation": "Широкий; навес (ключ)",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-quality",
+    "etymology": "Дом с односкатной крышей, открытый с одной стороны. Ключ построек, позже стал «широкий».",
+    "partOfSpeech": [
+      "adjective",
+      "noun"
+    ],
+    "hskLevel": 2,
+    "strokeCount": 3
+  },
+  {
+    "id": "R-yn-6",
+    "char": "廴",
+    "variants": [],
+    "pinyin": "yin3",
+    "translation": "Тянуться вперёд (ключ)",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-action",
+    "etymology": "Ключ движения — растянутый шаг, удлинённая форма ключа 彳. Входит в знаки 建, 延.",
+    "partOfSpeech": [
+      "verb"
+    ],
+    "hskLevel": 0,
+    "strokeCount": 3
+  },
+  {
+    "id": "R-nin-2",
+    "char": "廿",
+    "variants": [],
+    "pinyin": "nian4",
+    "translation": "Двадцать",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-abstract",
+    "etymology": "Две десятки, соединённые в одном знаке. Древняя запись числа двадцать.",
+    "partOfSpeech": [
+      "numeral"
+    ],
+    "hskLevel": 0,
+    "strokeCount": 4
+  },
+  {
+    "id": "R-gng-2",
+    "char": "弓",
+    "variants": [],
+    "pinyin": "gong1",
+    "translation": "Лук (оружие)",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-society",
+    "etymology": "Пиктограмма натянутого лука с изогнутым древком.",
+    "partOfSpeech": [
+      "noun"
+    ],
+    "hskLevel": 0,
+    "strokeCount": 3
+  },
+  {
+    "id": "R-j-5",
+    "char": "彐",
+    "variants": [],
+    "pinyin": "ji4",
+    "translation": "Рыло, морда (ключ)",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-animal",
+    "etymology": "Изображение свиной головы с рылом. Ключ знаков, связанных с животными.",
+    "partOfSpeech": [
+      "noun"
+    ],
+    "hskLevel": 0,
+    "strokeCount": 3
+  },
+  {
+    "id": "R-j-3",
+    "char": "彑",
+    "variants": [],
+    "pinyin": "ji4",
+    "translation": "Морда (вариант ключа)",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-animal",
+    "etymology": "Вариант начертания ключа 彐 — голова животного с рылом.",
+    "partOfSpeech": [
+      "noun"
+    ],
+    "hskLevel": 0,
+    "strokeCount": 3
+  },
+  {
+    "id": "R-shn-4",
+    "char": "彡",
+    "variants": [],
+    "pinyin": "shan1",
+    "translation": "Волосы, перья (ключ)",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-animal",
+    "etymology": "Три длинных штриха — пряди волос или перьев. Ключ украшений и растительности.",
+    "partOfSpeech": [
+      "noun"
+    ],
+    "hskLevel": 0,
+    "strokeCount": 3
+  },
+  {
+    "id": "R-ch-3",
+    "char": "彳",
+    "variants": [],
+    "pinyin": "chi4",
+    "translation": "Шаг (ключ движения)",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-action",
+    "etymology": "Левая половина знака 行 «идти» — перекрёсток дорог. Ключ знаков движения.",
+    "partOfSpeech": [
+      "noun"
+    ],
+    "hskLevel": 0,
+    "strokeCount": 3
+  },
+  {
+    "id": "R-xn",
+    "char": "忄",
+    "variants": [],
+    "pinyin": "xin1",
+    "translation": "Сердце (ключ слева)",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-feeling",
+    "etymology": "Сокращённая форма ключа 心 «сердце» в левой позиции. Входит в знаки чувств и мыслей.",
+    "partOfSpeech": [
+      "noun"
+    ],
+    "hskLevel": 0,
+    "strokeCount": 3
+  },
+  {
+    "id": "R-yu-5",
+    "char": "戉",
+    "variants": [],
+    "pinyin": "yue4",
+    "translation": "Боевой топор",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-society",
+    "etymology": "Пиктограмма боевого топора с широким лезвием. От него происходят знаки 戊, 戌.",
+    "partOfSpeech": [
+      "noun"
+    ],
+    "hskLevel": 0,
+    "strokeCount": 5
+  },
+  {
+    "id": "R-w-2",
+    "char": "戊",
+    "variants": [],
+    "pinyin": "wu4",
+    "translation": "Пятый небесный ствол",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-time",
+    "etymology": "Древний боевой топор с лезвием. Позже закрепился как пятый знак циклического счёта.",
+    "partOfSpeech": [
+      "noun"
+    ],
+    "hskLevel": 0,
+    "strokeCount": 5
+  },
+  {
+    "id": "R-w",
+    "char": "我",
+    "variants": [],
+    "pinyin": "wo3",
+    "translation": "Я",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": true,
+    "themeGroupId": "TG-human",
+    "etymology": "Древнее изображение боевого оружия с зубцами. Как местоимение «я» используется по заимствованию.",
+    "partOfSpeech": [
+      "pronoun"
+    ],
+    "hskLevel": 1,
+    "strokeCount": 7
+  },
+  {
+    "id": "R-shu-2",
+    "char": "手",
+    "variants": [
+      "扌"
+    ],
+    "pinyin": "shou3",
+    "translation": "Рука, ладонь",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": true,
+    "themeGroupId": "TG-human",
+    "etymology": "Пиктограмма ладони с пятью растопыренными пальцами.",
+    "partOfSpeech": [
+      "noun"
+    ],
+    "hskLevel": 1,
+    "strokeCount": 4
+  },
+  {
+    "id": "R-shu",
+    "char": "扌",
+    "variants": [],
+    "pinyin": "shou3",
+    "translation": "Рука (ключ слева)",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-human",
+    "etymology": "Сокращённая форма знака 手 в левой позиции. Входит в знаки действий руками.",
+    "partOfSpeech": [
+      "noun"
+    ],
+    "hskLevel": 0,
+    "strokeCount": 3
+  },
+  {
+    "id": "R-ci",
+    "char": "才",
+    "variants": [],
+    "pinyin": "cai2",
+    "translation": "только, лишь, только что, как раз (подчеркивает запоздалость или условие)",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": true,
+    "themeGroupId": "TG-time",
+    "etymology": "Пиктограмма молодого ростка, едва пробившегося из земли. Отсюда «только что» и «способность».",
+    "partOfSpeech": [
+      "adverb",
+      "noun"
+    ],
+    "hskLevel": 2,
+    "strokeCount": 3
+  },
+  {
+    "id": "R-chng",
+    "char": "承",
+    "variants": [],
+    "pinyin": "cheng2",
+    "translation": "Наследовать, принимать",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-action",
+    "etymology": "Две руки, подхватывающие ребёнка или дар снизу. Отсюда «принимать, перенимать».",
+    "partOfSpeech": [
+      "verb"
+    ],
+    "hskLevel": 4,
+    "strokeCount": 8
+  },
+  {
+    "id": "R-p-2",
+    "char": "攵",
+    "variants": [],
+    "pinyin": "pu1",
+    "translation": "Ударять (ключ справа)",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-action",
+    "etymology": "Рука с палкой или хлыстом. Ключ действия «бить», входит в знаки 改, 放.",
+    "partOfSpeech": [
+      "verb"
+    ],
+    "hskLevel": 0,
+    "strokeCount": 4
+  },
+  {
+    "id": "R-du",
+    "char": "斗",
+    "variants": [],
+    "pinyin": "dou4",
+    "translation": "Ковш; мера объёма",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-object",
+    "etymology": "Пиктограмма черпака-ковша с ручкой. Отсюда мера сыпучих тел, около десяти литров.",
+    "partOfSpeech": [
+      "noun",
+      "measure"
+    ],
+    "hskLevel": 4,
+    "strokeCount": 4
+  },
+  {
+    "id": "R-j",
+    "char": "旡",
+    "variants": [],
+    "pinyin": "ji4",
+    "translation": "Давиться, икать (ключ)",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-human",
+    "etymology": "Человек с запрокинутой головой, подавившийся едой. Ключ знаков 既, 概.",
+    "partOfSpeech": [
+      "verb"
+    ],
+    "hskLevel": 0,
+    "strokeCount": 4
+  },
+  {
+    "id": "R-r",
+    "char": "日",
+    "variants": [],
+    "pinyin": "ri4",
+    "translation": "день, солнце",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": true,
+    "themeGroupId": "TG-nature",
+    "etymology": "Пиктограмма солнца: круг с точкой в центре, со временем ставший прямоугольником с поперечной чертой. Означает солнце, день и счёт дней.",
+    "partOfSpeech": [
+      "noun"
+    ],
+    "hskLevel": 1,
+    "strokeCount": 4
+  },
+  {
+    "id": "R-q",
+    "char": "曲",
+    "variants": [],
+    "pinyin": "qu1",
+    "translation": "Кривой, изгиб",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-quality",
+    "etymology": "Пиктограмма изогнутого предмета, возможно плетёной корзины с закруглённым краем. Означает кривой, изогнутый, а также мелодию.",
+    "partOfSpeech": [
+      "adjective",
+      "noun"
+    ],
+    "hskLevel": 3,
+    "strokeCount": 6
+  },
+  {
+    "id": "R-y-6",
+    "char": "曳",
+    "variants": [],
+    "pinyin": "ye4",
+    "translation": "Тащить, волочить",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-action",
+    "etymology": "Вариант знака 申 (растянутый, удлинённый) с наклонным штрихом, передающим волочение. Означает тащить, тянуть за собой.",
+    "partOfSpeech": [
+      "verb"
+    ],
+    "hskLevel": 0,
+    "strokeCount": 6
+  },
+  {
+    "id": "R-yu-3",
+    "char": "月",
+    "variants": [],
+    "pinyin": "yue4",
+    "translation": "Луна, месяц",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": true,
+    "themeGroupId": "TG-nature",
+    "etymology": "Пиктограмма серпа молодой луны. Означает луну и месяц; в составе иероглифов часто означает мясо (упрощённое 肉).",
+    "partOfSpeech": [
+      "noun"
+    ],
+    "hskLevel": 1,
+    "strokeCount": 4
+  },
+  {
+    "id": "R-dng",
+    "char": "朩",
+    "variants": [],
+    "pinyin": "deng3",
+    "translation": "Компонент «дерево»",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-flora",
+    "etymology": "Сокращённый вариант знака 木 (дерево) в нижней позиции, как в 杀 и 条. Обозначает дерево или пучок веток.",
+    "partOfSpeech": [
+      "noun"
+    ],
+    "hskLevel": 0,
+    "strokeCount": 4
+  },
+  {
+    "id": "R-wi-2",
+    "char": "未",
+    "variants": [],
+    "pinyin": "wei4",
+    "translation": "Ещё не, пока не",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-time",
+    "etymology": "Пиктограмма дерева с густой верхней кроной, изначально означавшая пышный рост. Позже стала обозначать восьмую земную ветвь и отрицание «ещё не».",
+    "partOfSpeech": [
+      "adverb"
+    ],
+    "hskLevel": 3,
+    "strokeCount": 5
+  },
+  {
+    "id": "R-m-3",
+    "char": "末",
+    "variants": [],
+    "pinyin": "mo4",
+    "translation": "Конец, верхушка",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-abstract",
+    "etymology": "Идеограмма: дерево 木 с длинной чертой у верхушки, отмечающей кончик. Означает конец, верхушку, а также порошок.",
+    "partOfSpeech": [
+      "noun"
+    ],
+    "hskLevel": 5,
+    "strokeCount": 5
+  },
+  {
+    "id": "R-bn",
+    "char": "本",
+    "variants": [],
+    "pinyin": "ben3",
+    "translation": "Книга, основа, корень.",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": true,
+    "themeGroupId": "TG-flora",
+    "etymology": "Идеограмма: дерево 木 с короткой чертой у основания, указывающей на корни. Отсюда значения корень и основа, а позже книга.",
+    "partOfSpeech": [
+      "noun"
+    ],
+    "hskLevel": 1,
+    "strokeCount": 5
+  },
+  {
+    "id": "R-zh-2",
+    "char": "朱",
+    "variants": [],
+    "pinyin": "zhu1",
+    "translation": "Киноварь, алый",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-quality",
+    "etymology": "Идеограмма: дерево 木 с чертой на стволе, отмечающей красное сердцевинное дерево. Означает киноварь и ярко-красный цвет.",
+    "partOfSpeech": [
+      "noun",
+      "adjective"
+    ],
+    "hskLevel": 0,
+    "strokeCount": 6
+  },
+  {
+    "id": "R-c",
+    "char": "朿",
+    "variants": [],
+    "pinyin": "ci4",
+    "translation": "Шип, колючка",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-flora",
+    "etymology": "Пиктограмма ветки или деревца с торчащими колючками. Древняя форма иероглифа 刺; означает острое, колющее.",
+    "partOfSpeech": [
+      "noun"
+    ],
+    "hskLevel": 0,
+    "strokeCount": 6
+  },
+  {
+    "id": "R-sh-11",
+    "char": "束",
+    "variants": [],
+    "pinyin": "shu4",
+    "translation": "Связка; связывать",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-action",
+    "etymology": "Пиктограмма вязанки хвороста, перетянутой посередине верёвкой. Означает связывать, стягивать, пучок.",
+    "partOfSpeech": [
+      "verb",
+      "noun"
+    ],
+    "hskLevel": 3,
+    "strokeCount": 7
+  },
+  {
+    "id": "R-li",
+    "char": "来",
+    "variants": [],
+    "pinyin": "lai2",
+    "translation": "приходить, прибывать",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": true,
+    "themeGroupId": "TG-space",
+    "etymology": "Пиктограмма колоса пшеницы: изначально означала пшеницу, затем по созвучию стала обозначать приходить.",
+    "partOfSpeech": [
+      "verb"
+    ],
+    "hskLevel": 1,
+    "strokeCount": 7
+  },
+  {
+    "id": "R-jin-3",
+    "char": "柬",
+    "variants": [],
+    "pinyin": "jian3",
+    "translation": "Приглашение, записка",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-society",
+    "etymology": "Идеограмма: связка 束 с разделительными штрихами, означающая отбирать, разбирать. В современном языке — приглашение, письмо.",
+    "partOfSpeech": [
+      "noun"
+    ],
+    "hskLevel": 5,
+    "strokeCount": 9
+  },
+  {
+    "id": "R-qin",
+    "char": "欠",
+    "variants": [],
+    "pinyin": "qian4",
+    "translation": "быть должным; не хватать; зевать",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": true,
+    "themeGroupId": "TG-human",
+    "etymology": "Пиктограмма человека с широко открытым ртом: зевать, выдыхать. Как ключ указывает на действия рта и дыхания, а также на нехватку.",
+    "partOfSpeech": [
+      "verb"
+    ],
+    "hskLevel": 4,
+    "strokeCount": 4
+  },
+  {
+    "id": "R-zh-5",
+    "char": "止",
+    "variants": [],
+    "pinyin": "zhi3",
+    "translation": "Стопа; останавливаться",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-action",
+    "etymology": "Пиктограмма стопы с пальцами, позже упрощённая до линий. Изначально означала ногу, теперь — останавливаться, прекращать.",
+    "partOfSpeech": [
+      "verb",
+      "noun"
+    ],
+    "hskLevel": 3,
+    "strokeCount": 4
+  },
+  {
+    "id": "R-gun",
+    "char": "毌",
+    "variants": [],
+    "pinyin": "guan4",
+    "translation": "Компонент «продевать»",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-object",
+    "etymology": "Древняя форма знака 貫: предмет, пронзённый насквозь нитью или прутом. Встречается в иероглифах со значением нанизывать, продевать.",
+    "partOfSpeech": [
+      "verb"
+    ],
+    "hskLevel": 0,
+    "strokeCount": 4
+  },
+  {
+    "id": "R-m",
+    "char": "母",
+    "variants": [],
+    "pinyin": "mu3",
+    "translation": "Мать",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-human",
+    "etymology": "Пиктограмма женщины 女 с двумя точками — грудью кормящей матери. Означает мать, а также женское начало.",
+    "partOfSpeech": [
+      "noun"
+    ],
+    "hskLevel": 3,
+    "strokeCount": 5
+  },
+  {
+    "id": "R-b",
+    "char": "比",
+    "variants": [],
+    "pinyin": "bi3",
+    "translation": "сравнивать; по сравнению с",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": true,
+    "themeGroupId": "TG-abstract",
+    "etymology": "Идеограмма двух людей, стоящих рядом друг с другом. Означает сравнивать, сопоставлять, рядом.",
+    "partOfSpeech": [
+      "verb"
+    ],
+    "hskLevel": 2,
+    "strokeCount": 4
+  },
+  {
+    "id": "R-sh-3",
+    "char": "氏",
+    "variants": [],
+    "pinyin": "shi4",
+    "translation": "Род, клан",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-human",
+    "etymology": "Пиктограмма наклонённого сосуда или ростка, в древности обозначавшая родовую ветвь. Означает род, фамилию, клан.",
+    "partOfSpeech": [
+      "noun"
+    ],
+    "hskLevel": 3,
+    "strokeCount": 4
+  },
+  {
+    "id": "R-mn",
+    "char": "民",
+    "variants": [],
+    "pinyin": "min2",
+    "translation": "Народ, люди",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-society",
+    "etymology": "Пиктограмма глаза, пронзённого остриём, — древний образ покорённого раба. Теперь означает народ, население, граждан.",
+    "partOfSpeech": [
+      "noun"
+    ],
+    "hskLevel": 4,
+    "strokeCount": 5
+  },
+  {
+    "id": "R-shu-3",
+    "char": "氵",
+    "variants": [],
+    "pinyin": "shui3",
+    "translation": "Ключ «вода»",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-nature",
+    "etymology": "Сокращённая форма знака 水 (вода): три капли в левой части иероглифа. Указывает на воду, жидкости и связанные понятия.",
+    "partOfSpeech": [
+      "noun"
+    ],
+    "hskLevel": 0,
+    "strokeCount": 3
+  },
+  {
+    "id": "R-yng-3",
+    "char": "永",
+    "variants": [],
+    "pinyin": "yong3",
+    "translation": "Вечный, навсегда",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-time",
+    "etymology": "Пиктограмма длинного потока воды с боковым ответвлением, передающая идею непрерывности. Означает вечный, долгий, всегда.",
+    "partOfSpeech": [
+      "adjective",
+      "adverb"
+    ],
+    "hskLevel": 3,
+    "strokeCount": 5
+  },
+  {
+    "id": "R-bio",
+    "char": "灬",
+    "variants": [],
+    "pinyin": "biao1",
+    "translation": "Ключ «огонь»",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-nature",
+    "etymology": "Сокращённая форма знака 火 (огонь): четыре точки пламени в нижней части иероглифа. Означает огонь, жар, горение.",
+    "partOfSpeech": [
+      "noun"
+    ],
+    "hskLevel": 0,
+    "strokeCount": 4
+  },
+  {
+    "id": "R-xn-2",
+    "char": "熏",
+    "variants": [],
+    "pinyin": "xun1",
+    "translation": "коптить, окуривать; дымиться",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": true,
+    "themeGroupId": "TG-nature",
+    "etymology": "Идеограмма: пучок трав над огнём 灬, дающий ароматный дым. Означает коптить, окуривать, дымиться.",
+    "partOfSpeech": [
+      "verb",
+      "noun"
+    ],
+    "hskLevel": 6,
+    "strokeCount": 14
+  },
+  {
+    "id": "R-zho",
+    "char": "爪",
+    "variants": [
+      "爫"
+    ],
+    "pinyin": "zhao3",
+    "translation": "Коготь, лапа",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-animal",
+    "etymology": "Пиктограмма ладони с пальцами, обращёнными вниз. Означает коготь, лапу; как ключ указывает на хватание.",
+    "partOfSpeech": [
+      "noun"
+    ],
+    "hskLevel": 0,
+    "strokeCount": 4
+  },
+  {
+    "id": "R-zho-2",
+    "char": "爫",
+    "variants": [],
+    "pinyin": "zhao3",
+    "translation": "когти (компонент)",
+    "tier": 0,
+    "components": [
+      "R-pi",
+      "R-u2d544"
+    ],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-animal",
+    "etymology": "Сокращённая форма ключа 爪 (когти, лапа) в верхней позиции: три коротких штриха. Входит в знаки 爱, 采, 受.",
+    "partOfSpeech": [
+      "noun"
+    ],
+    "hskLevel": 0,
+    "strokeCount": 4
+  },
+  {
+    "id": "R-pn",
+    "char": "爿",
+    "variants": [],
+    "pinyin": "pan2",
+    "translation": "Половина ствола",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-object",
+    "etymology": "Правая половина пиктограммы дерева 木, расколотого вдоль. Означает расколотый ствол, а как ключ — кровать, лежанку.",
+    "partOfSpeech": [
+      "noun"
+    ],
+    "hskLevel": 0,
+    "strokeCount": 4
+  },
+  {
+    "id": "R-pin",
+    "char": "片",
+    "variants": [],
+    "pinyin": "pian4",
+    "translation": "кусок, ломтик, пластинка; карточка; фильм",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": true,
+    "themeGroupId": "TG-object",
+    "etymology": "Левая половина пиктограммы дерева 木, расщеплённого вдоль: тонкая щепка, пластинка. Означает плоский кусок и служит счётным словом для плоских предметов.",
+    "partOfSpeech": [
+      "noun",
+      "measure"
+    ],
+    "hskLevel": 2,
+    "strokeCount": 4
+  },
+  {
+    "id": "R-y-5",
+    "char": "牙",
+    "variants": [],
+    "pinyin": "ya2",
+    "translation": "Зуб, клык",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-human",
+    "etymology": "Пиктограмма клыка или челюсти со смыкающимися зубами. Означает зуб, клык, зубчатую кромку.",
+    "partOfSpeech": [
+      "noun"
+    ],
+    "hskLevel": 1,
+    "strokeCount": 4
+  },
+  {
+    "id": "R-ni",
+    "char": "牛",
+    "variants": [],
+    "pinyin": "niu2",
+    "translation": "Корова, бык",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-animal",
+    "etymology": "Пиктограмма головы быка с рогами, видимой спереди. Как ключ обозначает крупный рогатый скот.",
+    "partOfSpeech": [
+      "noun"
+    ],
+    "hskLevel": 1,
+    "strokeCount": 4
+  },
+  {
+    "id": "R-qun",
+    "char": "犬",
+    "variants": [
+      "犭"
+    ],
+    "pinyin": "quan3",
+    "translation": "Собака",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-animal",
+    "etymology": "Пиктограмма собаки с поднятым хвостом: туловище, лапы и хвост. Как ключ указывает на зверей; слева упрощается до 犭.",
+    "partOfSpeech": [
+      "noun"
+    ],
+    "hskLevel": 0,
+    "strokeCount": 4
+  },
+  {
+    "id": "R-qun-2",
+    "char": "犭",
+    "variants": [],
+    "pinyin": "quan3",
+    "translation": "Ключ «собака»",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-animal",
+    "etymology": "Упрощённая форма знака 犬 (собака) в левой позиции: три штриха вместо четырёх. Указывает на зверей и животных.",
+    "partOfSpeech": [
+      "noun"
+    ],
+    "hskLevel": 0,
+    "strokeCount": 3
+  },
+  {
+    "id": "R-gu",
+    "char": "瓜",
+    "variants": [],
+    "pinyin": "gua1",
+    "translation": "Тыква, огурец",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-object",
+    "etymology": "Пиктограмма тыквенного растения со свисающими с плетей плодами. Означает тыквы, дыни, огурцы.",
+    "partOfSpeech": [
+      "noun"
+    ],
+    "hskLevel": 2,
+    "strokeCount": 5
+  },
+  {
+    "id": "R-w-4",
+    "char": "瓦",
+    "variants": [],
+    "pinyin": "wa3",
+    "translation": "Черепица, керамика",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-society",
+    "etymology": "Пиктограмма двух перекрывающихся черепиц крыши. Как ключ указывает на керамику, глиняную посуду и черепицу.",
+    "partOfSpeech": [
+      "noun"
+    ],
+    "hskLevel": 6,
+    "strokeCount": 5
+  },
+  {
+    "id": "R-gn",
+    "char": "甘",
+    "variants": [],
+    "pinyin": "gan1",
+    "translation": "Сладкий, вкусный",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-quality",
+    "etymology": "Идеограмма: рот 口 со сладким кусочком внутри, передающая приятный вкус. Означает сладкий, вкусный, охотно.",
+    "partOfSpeech": [
+      "adjective",
+      "noun"
+    ],
+    "hskLevel": 5,
+    "strokeCount": 5
+  },
+  {
+    "id": "R-shng",
+    "char": "生",
+    "variants": [],
+    "pinyin": "sheng1",
+    "translation": "Рождаться; жизнь",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-action",
+    "etymology": "Пиктограмма ростка, пробивающегося из земли: горизонталь — почва, вверх тянется стебель. Означает рождаться, расти, жизнь, а также сырой.",
+    "partOfSpeech": [
+      "verb",
+      "noun"
+    ],
+    "hskLevel": 1,
+    "strokeCount": 5
+  },
+  {
+    "id": "R-tin",
+    "char": "田",
+    "variants": [],
+    "pinyin": "tian2",
+    "translation": "Поле, пашня",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-nature",
+    "etymology": "Пиктограмма поля, разделённого межами на квадратные участки. Означает возделываемую землю, поле.",
+    "partOfSpeech": [
+      "noun"
+    ],
+    "hskLevel": 4,
+    "strokeCount": 5
+  },
+  {
+    "id": "R-yu-2",
+    "char": "由",
+    "variants": [],
+    "pinyin": "you2",
+    "translation": "Причина; из, от",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-abstract",
+    "etymology": "Идеограмма: росток 田 с чертой, пробившейся вверх и указывающей путь от корня. Означает из, от, причину, источник.",
+    "partOfSpeech": [
+      "noun",
+      "preposition"
+    ],
+    "hskLevel": 3,
+    "strokeCount": 5
+  },
+  {
+    "id": "R-ji-2",
+    "char": "甲",
+    "variants": [],
+    "pinyin": "jia3",
+    "translation": "Первый (в ряду), А (как классификатор), панцирь",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": true,
+    "themeGroupId": "TG-time",
+    "etymology": "Пиктограмма ростка, пробивающего скорлупу семени, напоминающую панцирь. Означает панцирь, ноготь и первый знак десятеричного цикла.",
+    "partOfSpeech": [
+      "noun",
+      "numeral"
+    ],
+    "hskLevel": 3,
+    "strokeCount": 5
+  },
+  {
+    "id": "R-shn-3",
+    "char": "申",
+    "variants": [],
+    "pinyin": "shen1",
+    "translation": "Заявлять, излагать",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-action",
+    "etymology": "Пиктограмма изогнутой молнии, рассекающей небо. Позже стала обозначать вытягиваться, излагать, а также девятую земную ветвь.",
+    "partOfSpeech": [
+      "verb"
+    ],
+    "hskLevel": 5,
+    "strokeCount": 5
+  },
+  {
+    "id": "R-p-3",
+    "char": "疋",
+    "variants": [],
+    "pinyin": "pi3",
+    "translation": "Рулон ткани; стопа",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-object",
+    "etymology": "Пиктограмма ноги со ступнёй, позже переосмысленная как рулон ткани. Служит счётным словом для рулонов и используется как компонент.",
+    "partOfSpeech": [
+      "noun",
+      "measure"
+    ],
+    "hskLevel": 0,
+    "strokeCount": 5
+  },
+  {
+    "id": "R-ji-5",
+    "char": "疌",
+    "variants": [],
+    "pinyin": "jie2",
+    "translation": "Компонент «проворный»",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-quality",
+    "etymology": "Архаичный знак, изображающий быстрый шаг ноги; основа иероглифа 捷 (проворный, побеждать). Отдельно не употребляется.",
+    "partOfSpeech": [
+      "adjective"
+    ],
+    "hskLevel": 0,
+    "strokeCount": 8
+  },
+  {
+    "id": "R-n",
+    "char": "疒",
+    "variants": [],
+    "pinyin": "ne4",
+    "translation": "Ключ «болезнь»",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-feeling",
+    "etymology": "Пиктограмма человека, лежащего на кровати 爿 во время болезни. Как ключ указывает на болезни и недомогания.",
+    "partOfSpeech": [
+      "noun"
+    ],
+    "hskLevel": 0,
+    "strokeCount": 5
+  },
+  {
+    "id": "R-bi-2",
+    "char": "白",
+    "variants": [],
+    "pinyin": "bai2",
+    "translation": "Белый, светлый",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-quality",
+    "etymology": "Древний знак, вероятно изображавший язычок пламени или луч света. Означает белый цвет, ясность, чистоту.",
+    "partOfSpeech": [
+      "adjective"
+    ],
+    "hskLevel": 1,
+    "strokeCount": 5
+  },
+  {
+    "id": "R-p",
+    "char": "皮",
+    "variants": [],
+    "pinyin": "pi2",
+    "translation": "Кожа, шкура",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-human",
+    "etymology": "Пиктограмма руки, снимающей шкуру с туши, с кистью внизу. Означает кожу, шкуру, поверхность.",
+    "partOfSpeech": [
+      "noun"
+    ],
+    "hskLevel": 2,
+    "strokeCount": 5
+  },
+  {
+    "id": "R-mn-2",
+    "char": "皿",
+    "variants": [],
+    "pinyin": "min3",
+    "translation": "Сосуд, посуда",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-object",
+    "etymology": "Пиктограмма неглубокой чаши на ножке, вид сбоку. Как ключ указывает на посуду, ёмкости и сосуды.",
+    "partOfSpeech": [
+      "noun"
+    ],
+    "hskLevel": 0,
+    "strokeCount": 5
+  },
+  {
+    "id": "R-sh-5",
+    "char": "示",
+    "variants": [
+      "礻"
+    ],
+    "pinyin": "shi4",
+    "translation": "Показывать; алтарь",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-society",
+    "etymology": "Пиктограмма жертвенного алтаря со знаками божеств. Означает показывать, объявлять; как ключ указывает на культ и божеств.",
+    "partOfSpeech": [
+      "verb",
+      "noun"
+    ],
+    "hskLevel": 4,
+    "strokeCount": 5
+  },
+  {
+    "id": "R-sh",
+    "char": "礻",
+    "variants": [],
+    "pinyin": "shi4",
+    "translation": "Ключ «культ»",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-society",
+    "etymology": "Упрощённая форма знака 示 (алтарь) в левой позиции. Указывает на божества, жертвоприношения, счастье и беды.",
+    "partOfSpeech": [
+      "noun"
+    ],
+    "hskLevel": 0,
+    "strokeCount": 5
+  },
+  {
+    "id": "R-y-2",
+    "char": "禹",
+    "variants": [],
+    "pinyin": "yu3",
+    "translation": "Юй (правитель)",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-human",
+    "etymology": "Имя легендарного правителя Юя, усмирившего великий потоп. Встречается как компонент в иероглифе 属.",
+    "partOfSpeech": [
+      "noun"
+    ],
+    "hskLevel": 0,
+    "strokeCount": 9
+  },
+  {
+    "id": "R-y",
+    "char": "禺",
+    "variants": [],
+    "pinyin": "yu2",
+    "translation": "Компонент «обезьяна»",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-animal",
+    "etymology": "Древняя пиктограмма длиннохвостой обезьяны. Сегодня употребляется лишь как компонент в иероглифах 偶, 遇, 寓.",
+    "partOfSpeech": [
+      "noun"
+    ],
+    "hskLevel": 0,
+    "strokeCount": 9
+  },
+  {
+    "id": "R-m-4",
+    "char": "米",
+    "variants": [],
+    "pinyin": "mi3",
+    "translation": "Рис, крупа",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-object",
+    "etymology": "Пиктограмма колоска с разлетающимися зёрнами: длинная черта — стебель, точки — зёрна. Означает очищенный рис, зерно.",
+    "partOfSpeech": [
+      "noun"
+    ],
+    "hskLevel": 1,
+    "strokeCount": 6
+  },
+  {
+    "id": "R-s",
+    "char": "纟",
+    "variants": [],
+    "pinyin": "si1",
+    "translation": "Ключ «шёлк»",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-object",
+    "etymology": "Сокращённая форма знака 糸 (нить): скрученные шёлковые нити. Указывает на нити, ткани, вязание и связи.",
+    "partOfSpeech": [
+      "noun"
+    ],
+    "hskLevel": 0,
+    "strokeCount": 3
+  },
+  {
+    "id": "R-fu",
+    "char": "缶",
+    "variants": [],
+    "pinyin": "fou3",
+    "translation": "Глиняный кувшин",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-object",
+    "etymology": "Пиктограмма глиняного сосуда с крышкой и туловом, в древности служившего ударным инструментом. Как ключ указывает на гончарные изделия.",
+    "partOfSpeech": [
+      "noun"
+    ],
+    "hskLevel": 0,
+    "strokeCount": 6
+  },
+  {
+    "id": "R-wng",
+    "char": "罒",
+    "variants": [],
+    "pinyin": "wang3",
+    "translation": "Ключ «сеть»",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-object",
+    "etymology": "Упрощённая форма знака 网 (сеть): переплетённые нити рыболовной сети. Указывает на сеть, ловушку, накрытие.",
+    "partOfSpeech": [
+      "noun"
+    ],
+    "hskLevel": 0,
+    "strokeCount": 5
+  },
+  {
+    "id": "R-lo",
+    "char": "耂",
+    "variants": [],
+    "pinyin": "lao3",
+    "translation": "Ключ «старик»",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-human",
+    "etymology": "Верхняя часть иероглифа 老 (старик): согбенный человек, опирающийся на посох. Указывает на старость и пожилых людей.",
+    "partOfSpeech": [
+      "noun"
+    ],
+    "hskLevel": 0,
+    "strokeCount": 4
+  },
+  {
+    "id": "R-r-2",
+    "char": "耳",
+    "variants": [],
+    "pinyin": "er3",
+    "translation": "Ухо",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-human",
+    "etymology": "Пиктограмма ушной раковины с мочкой. Означает ухо, слух; также используется как частица «только лишь».",
+    "partOfSpeech": [
+      "noun"
+    ],
+    "hskLevel": 1,
+    "strokeCount": 6
+  },
+  {
+    "id": "R-s-4",
+    "char": "肃",
+    "variants": [],
+    "pinyin": "su4",
+    "translation": "Строгий, почтительный",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-feeling",
+    "etymology": "Идеограмма: рука с кистью над глубоким водоёмом, передающая осторожность и сосредоточенность. Означает строгий, почтительный, торжественный.",
+    "partOfSpeech": [
+      "adjective"
+    ],
+    "hskLevel": 4,
+    "strokeCount": 8
+  },
+  {
+    "id": "R-ru",
+    "char": "肉",
+    "variants": [
+      "⺼"
+    ],
+    "pinyin": "rou4",
+    "translation": "мясо",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": true,
+    "themeGroupId": "TG-object",
+    "etymology": "Пиктограмма куска мяса с прожилками внутри. Означает мясо, плоть; как ключ (в виде 月) указывает на части тела.",
+    "partOfSpeech": [
+      "noun"
+    ],
+    "hskLevel": 1,
+    "strokeCount": 6
+  },
+  {
+    "id": "R-chn",
+    "char": "臣",
+    "variants": [],
+    "pinyin": "chen2",
+    "translation": "Министр, подданный",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-human",
+    "etymology": "Пиктограмма глаза, опущенного вниз, — покорный взгляд слуги или пленника. Означает подданного, чиновника, министра.",
+    "partOfSpeech": [
+      "noun"
+    ],
+    "hskLevel": 5,
+    "strokeCount": 6
+  },
+  {
+    "id": "R-z",
+    "char": "自",
+    "variants": [],
+    "pinyin": "zi4",
+    "translation": "Сам, себя",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-human",
+    "etymology": "Пиктограмма носа с ноздрями: люди указывают на свой нос, говоря о себе. Отсюда значение сам, себя, а также из, от.",
+    "partOfSpeech": [
+      "pronoun"
+    ],
+    "hskLevel": 2,
+    "strokeCount": 6
+  },
+  {
+    "id": "R-ji-7",
+    "char": "臼",
+    "variants": [],
+    "pinyin": "jiu4",
+    "translation": "Ступка",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-object",
+    "etymology": "Пиктограмма каменной ступки с зубцами внутри. Как ключ указывает на толчение зерна и на углубления.",
+    "partOfSpeech": [
+      "noun"
+    ],
+    "hskLevel": 0,
+    "strokeCount": 6
+  },
+  {
+    "id": "R-zhu-3",
+    "char": "舟",
+    "variants": [],
+    "pinyin": "zhou1",
+    "translation": "лодка, судно",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": true,
+    "themeGroupId": "TG-space",
+    "etymology": "Пиктограмма лодки-долблёнки с бортами и перекладинами. Как ключ указывает на суда и корабли.",
+    "partOfSpeech": [
+      "noun"
+    ],
+    "hskLevel": 6,
+    "strokeCount": 6
+  },
+  {
+    "id": "R-gn-4",
+    "char": "艮",
+    "variants": [],
+    "pinyin": "gen3",
+    "translation": "Компонент «остановка»",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-abstract",
+    "etymology": "Древняя пиктограмма человека, оглядывающегося назад, — знак остановки. Теперь употребляется как компонент (根, 很, 跟) и как триграмма «гора».",
+    "partOfSpeech": [
+      "verb",
+      "noun"
+    ],
+    "hskLevel": 0,
+    "strokeCount": 6
+  },
+  {
+    "id": "R-co",
+    "char": "艹",
+    "variants": [],
+    "pinyin": "cao3",
+    "translation": "трава (компонент)",
+    "tier": 0,
+    "components": [
+      "R-sh-2",
+      "R-gn-2"
+    ],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-flora",
+    "etymology": "Сокращённая форма ключа 艸 (трава) в верхней позиции: два «ростка». Указывает на растения: 花, 茶, 草.",
+    "partOfSpeech": [
+      "noun"
+    ],
+    "hskLevel": 0,
+    "strokeCount": 4
+  },
+  {
+    "id": "R-chng-3",
+    "char": "虫",
+    "variants": [],
+    "pinyin": "chong2",
+    "translation": "Насекомое, червь",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-animal",
+    "etymology": "Пиктограмма змеи с широкой головой и изогнутым телом. Как ключ означает насекомых, червей, пресмыкающихся.",
+    "partOfSpeech": [
+      "noun"
+    ],
+    "hskLevel": 3,
+    "strokeCount": 6
+  },
+  {
+    "id": "R-y-8",
+    "char": "衤",
+    "variants": [],
+    "pinyin": "yi1",
+    "translation": "Ключ «одежда»",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-object",
+    "etymology": "Сокращённая форма знака 衣 (одежда) в левой позиции: ворот, рукава и полы. Указывает на одежду и ткани.",
+    "partOfSpeech": [
+      "noun"
+    ],
+    "hskLevel": 0,
+    "strokeCount": 6
+  },
+  {
+    "id": "R-jin-2",
+    "char": "见",
+    "variants": [],
+    "pinyin": "jian4",
+    "translation": "Видеть, встречать",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": true,
+    "themeGroupId": "TG-action",
+    "etymology": "Идеограмма: глаз 目 на ногах 儿 — человек, который идёт и смотрит. Означает видеть, встречать, воспринимать.",
+    "partOfSpeech": [
+      "verb"
+    ],
+    "hskLevel": 1,
+    "strokeCount": 4
+  },
+  {
+    "id": "R-jio",
+    "char": "角",
+    "variants": [],
+    "pinyin": "jiao3",
+    "translation": "Рог, угол",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-animal",
+    "etymology": "Пиктограмма рога животного с поперечными насечками. Означает рог, а также угол, грань.",
+    "partOfSpeech": [
+      "noun"
+    ],
+    "hskLevel": 3,
+    "strokeCount": 7
+  },
+  {
+    "id": "R-yn-4",
+    "char": "言",
+    "variants": [
+      "讠"
+    ],
+    "pinyin": "yan2",
+    "translation": "Слово, речь",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-society",
+    "etymology": "Идеограмма: рот 口 со знаком исходящего звука. Означает слова, речь, говорить.",
+    "partOfSpeech": [
+      "noun",
+      "verb"
+    ],
+    "hskLevel": 2,
+    "strokeCount": 7
+  },
+  {
+    "id": "R-yn-5",
+    "char": "讠",
+    "variants": [],
+    "pinyin": "yan2",
+    "translation": "Ключ «речь»",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-society",
+    "etymology": "Упрощённая форма знака 言 (речь) в левой позиции. Указывает на говорение, языки, споры и обсуждения.",
+    "partOfSpeech": [
+      "noun"
+    ],
+    "hskLevel": 0,
+    "strokeCount": 2
+  },
+  {
+    "id": "R-g-2",
+    "char": "谷",
+    "variants": [],
+    "pinyin": "gu3",
+    "translation": "Долина, ущелье",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-nature",
+    "etymology": "Идеограмма: расходящиеся склоны гор и устье 口 внизу. Означает долину между горами.",
+    "partOfSpeech": [
+      "noun"
+    ],
+    "hskLevel": 5,
+    "strokeCount": 7
+  },
+  {
+    "id": "R-du-2",
+    "char": "豆",
+    "variants": [],
+    "pinyin": "dou4",
+    "translation": "Боб, фасоль",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-object",
+    "etymology": "Пиктограмма древнего жертвенного сосуда на ножке с крышкой. Позже стала означать бобовые, фасоль.",
+    "partOfSpeech": [
+      "noun"
+    ],
+    "hskLevel": 2,
+    "strokeCount": 7
+  },
+  {
+    "id": "R-zh-6",
+    "char": "豸",
+    "variants": [],
+    "pinyin": "zhi4",
+    "translation": "Ключ «зверь»",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-animal",
+    "etymology": "Пиктограмма зверя с длинным телом без лап. Как ключ указывает на хищных зверей: 豹 (леопард), 猫 (кошка).",
+    "partOfSpeech": [
+      "noun"
+    ],
+    "hskLevel": 0,
+    "strokeCount": 7
+  },
+  {
+    "id": "R-bi",
+    "char": "贝",
+    "variants": [],
+    "pinyin": "bei4",
+    "translation": "Раковина, деньги",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-society",
+    "etymology": "Пиктограмма раковины каури с усиками. В древности раковины служили деньгами, поэтому ключ означает богатство и торговлю.",
+    "partOfSpeech": [
+      "noun"
+    ],
+    "hskLevel": 0,
+    "strokeCount": 4
+  },
+  {
+    "id": "R-shn",
+    "char": "身",
+    "variants": [],
+    "pinyin": "shen1",
+    "translation": "Тело, туловище",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-human",
+    "etymology": "Пиктограмма человека с выделенным животом, стоящего боком. Означает тело, туловище, себя.",
+    "partOfSpeech": [
+      "noun"
+    ],
+    "hskLevel": 1,
+    "strokeCount": 7
+  },
+  {
+    "id": "R-ch-2",
+    "char": "车",
+    "variants": [],
+    "pinyin": "che1",
+    "translation": "машина; автомобиль; транспортное средство",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": true,
+    "themeGroupId": "TG-space",
+    "etymology": "Пиктограмма повозки: колесо с осью и кузовом, вид сверху. В современном языке означает автомобиль, а как ключ — транспорт.",
+    "partOfSpeech": [
+      "noun"
+    ],
+    "hskLevel": 1,
+    "strokeCount": 4
+  },
+  {
+    "id": "R-chu-2",
+    "char": "辶",
+    "variants": [],
+    "pinyin": "chuo4",
+    "translation": "Ключ «движение»",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-space",
+    "etymology": "Сокращённая форма знака 辵: нога и дорога, знак шагающего человека. Указывает на движение, ходьбу, путь.",
+    "partOfSpeech": [
+      "noun"
+    ],
+    "hskLevel": 0,
+    "strokeCount": 4
+  },
+  {
+    "id": "R-yu-4",
+    "char": "酉",
+    "variants": [],
+    "pinyin": "you3",
+    "translation": "Винный кувшин",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-object",
+    "etymology": "Пиктограмма сосуда для вина с узким горлом и штрихами внутри — вино. Как ключ указывает на алкоголь и брожение, а также на десятую земную ветвь.",
+    "partOfSpeech": [
+      "noun"
+    ],
+    "hskLevel": 0,
+    "strokeCount": 7
+  },
+  {
+    "id": "R-zhng",
+    "char": "重",
+    "variants": [],
+    "pinyin": "zhong4",
+    "translation": "Тяжёлый; снова",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-quality",
+    "etymology": "Идеограмма: человек 人, несущий на спине тяжёлый мешок 束. Означает тяжёлый, весомый, а также повторный, снова.",
+    "partOfSpeech": [
+      "adjective",
+      "adverb"
+    ],
+    "hskLevel": 2,
+    "strokeCount": 9
+  },
+  {
+    "id": "R-jn-2",
+    "char": "钅",
+    "variants": [],
+    "pinyin": "jin1",
+    "translation": "Ключ «металл»",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-society",
+    "etymology": "Сокращённая форма знака 金 (металл): слиток в земле. Указывает на металлы, деньги и металлические предметы.",
+    "partOfSpeech": [
+      "noun"
+    ],
+    "hskLevel": 0,
+    "strokeCount": 5
+  },
+  {
+    "id": "R-zhng-3",
+    "char": "长",
+    "variants": [],
+    "pinyin": "chang2 / zhang3",
+    "translation": "Длинный; расти, старший",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": true,
+    "themeGroupId": "TG-quality",
+    "etymology": "Пиктограмма человека с длинными развевающимися волосами. Означает длинный, старший, расти, начальник.",
+    "partOfSpeech": [
+      "adjective",
+      "verb"
+    ],
+    "hskLevel": 1,
+    "strokeCount": 4
+  },
+  {
+    "id": "R-mn-3",
+    "char": "门",
+    "variants": [],
+    "pinyin": "men2",
+    "translation": "дверь",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": true,
+    "themeGroupId": "TG-society",
+    "etymology": "Пиктограмма двустворчатых ворот. Как ключ указывает на двери, ворота и входы.",
+    "partOfSpeech": [
+      "noun"
+    ],
+    "hskLevel": 1,
+    "strokeCount": 3
+  },
+  {
+    "id": "R-f-2",
+    "char": "阝",
+    "variants": [],
+    "pinyin": "fu4",
+    "translation": "Ключ «холм, город»",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-space",
+    "etymology": "Слева — сокращённая форма знака 阜 (земляной холм), справа — 邑 (город). Указывает на рельеф, склоны и населённые места.",
+    "partOfSpeech": [
+      "noun"
+    ],
+    "hskLevel": 0,
+    "strokeCount": 3
+  },
+  {
+    "id": "R-l",
+    "char": "隶",
+    "variants": [],
+    "pinyin": "li4",
+    "translation": "Слуга; принадлежать",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-society",
+    "etymology": "Пиктограмма руки, дотягивающейся до хвоста животного: догнать, ухватить. Означает принадлежать, подчиняться; упрощённая форма 隸 (слуга).",
+    "partOfSpeech": [
+      "noun",
+      "verb"
+    ],
+    "hskLevel": 5,
+    "strokeCount": 8
+  },
+  {
+    "id": "R-zhu",
+    "char": "隹",
+    "variants": [],
+    "pinyin": "zhui1",
+    "translation": "Ключ «птица»",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-animal",
+    "etymology": "Пиктограмма птицы с коротким хвостом: голова, крыло и лапки. Как ключ указывает на птиц.",
+    "partOfSpeech": [
+      "noun"
+    ],
+    "hskLevel": 0,
+    "strokeCount": 8
+  },
+  {
+    "id": "R-fi",
+    "char": "非",
+    "variants": [],
+    "pinyin": "fei1",
+    "translation": "не, не являться, отрицание",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": true,
+    "themeGroupId": "TG-abstract",
+    "etymology": "Пиктограмма двух крыльев, обращённых в разные стороны, — знак противостояния. Означает не, неверный, противоречить.",
+    "partOfSpeech": [
+      "adverb",
+      "adjective"
+    ],
+    "hskLevel": 1,
+    "strokeCount": 8
+  },
+  {
+    "id": "R-g",
+    "char": "革",
+    "variants": [],
+    "pinyin": "ge2",
+    "translation": "Выделанная кожа",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-object",
+    "etymology": "Пиктограмма снятой шкуры, растянутой на колодке: голова, тело и хвост. Означает выделанную кожу, а позже — перемены, реформы.",
+    "partOfSpeech": [
+      "noun"
+    ],
+    "hskLevel": 4,
+    "strokeCount": 9
+  },
+  {
+    "id": "R-wi-4",
+    "char": "韦",
+    "variants": [],
+    "pinyin": "wei2",
+    "translation": "Ключ «кожа»",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-object",
+    "etymology": "Первоначально изображала обход вокруг крепости, позднее стала означать выделанную кожу. Как ключ указывает на кожу и гибкие материалы.",
+    "partOfSpeech": [
+      "noun"
+    ],
+    "hskLevel": 0,
+    "strokeCount": 4
+  },
+  {
+    "id": "R-y-13",
+    "char": "页",
+    "variants": [],
+    "pinyin": "ye4",
+    "translation": "страница",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": true,
+    "themeGroupId": "TG-society",
+    "etymology": "Сокращённая форма знака 頁: пиктограмма человека с крупной головой. Как ключ означает голову, а в современном языке — страницу, лист.",
+    "partOfSpeech": [
+      "noun"
+    ],
+    "hskLevel": 3,
+    "strokeCount": 6
+  },
+  {
+    "id": "R-fi-2",
+    "char": "飞",
+    "variants": [],
+    "pinyin": "fei1",
+    "translation": "летать, полет",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": true,
+    "themeGroupId": "TG-space",
+    "etymology": "Пиктограмма взлетающей птицы с распростёртыми крыльями. Означает летать, быстро нестись.",
+    "partOfSpeech": [
+      "verb",
+      "noun"
+    ],
+    "hskLevel": 1,
+    "strokeCount": 3
+  },
+  {
+    "id": "R-sh-7",
+    "char": "饣",
+    "variants": [],
+    "pinyin": "shi2",
+    "translation": "Ключ «еда»",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-object",
+    "etymology": "Сокращённая форма знака 食 (пища): крышка, миска и рис. Указывает на еду, приёмы пищи и голод.",
+    "partOfSpeech": [
+      "noun"
+    ],
+    "hskLevel": 0,
+    "strokeCount": 3
+  },
+  {
+    "id": "R-ch",
+    "char": "齿",
+    "variants": [],
+    "pinyin": "chi3",
+    "translation": "Зубы, зубцы",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-human",
+    "etymology": "Идеограмма: рот 口 с рядом зубов внизу, позже дополненный знаком 止. Означает зубы, а также зубцы шестерён.",
+    "partOfSpeech": [
+      "noun"
+    ],
+    "hskLevel": 2,
+    "strokeCount": 8
+  },
+  {
+    "id": "R-zu",
+    "char": "龰",
+    "variants": [],
+    "pinyin": "zou3",
+    "translation": "Компонент «стопа»",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-human",
+    "etymology": "Вариант знака 止 (стопа) в нижней позиции, как в иероглифе 延. Обозначает ногу, шаг.",
+    "partOfSpeech": [
+      "noun"
+    ],
+    "hskLevel": 0,
+    "strokeCount": 4
+  },
+  {
+    "id": "R-u9fb4",
+    "char": "龴",
+    "variants": [],
+    "pinyin": "yu3",
+    "translation": "Компонент «крышка»",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-abstract",
+    "etymology": "Короткая горизонталь с крюком; верхняя деталь знаков 予, 令, 矛. Отдельного значения не имеет.",
+    "partOfSpeech": [
+      "noun"
+    ],
+    "hskLevel": 0,
+    "strokeCount": 2
+  },
+  {
+    "id": "R-shu-4",
+    "char": "龵",
+    "variants": [],
+    "pinyin": "shou3",
+    "translation": "Компонент «рука»",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-human",
+    "etymology": "Вариант знака 手 (рука) в верхней позиции, как в 看 и правой части 拜. Обозначает руку, ладонь.",
+    "partOfSpeech": [
+      "noun"
+    ],
+    "hskLevel": 0,
+    "strokeCount": 4
+  },
+  {
+    "id": "R-u9fb6",
+    "char": "龶",
+    "variants": [],
+    "pinyin": "qing1",
+    "translation": "Компонент «росток»",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-flora",
+    "etymology": "Верхняя часть знаков 青, 麦, 素: восходит к 生 (росток, растение). Обозначает растение, росток, зелень.",
+    "partOfSpeech": [
+      "noun"
+    ],
+    "hskLevel": 0,
+    "strokeCount": 4
+  },
+  {
+    "id": "R-y-10",
+    "char": "𠂆",
+    "variants": [],
+    "pinyin": "yi4",
+    "translation": "Компонент «наклонная»",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-abstract",
+    "etymology": "Наклонная черта с крюком внизу; левая деталь знаков 反, 盾, 质. Отдельного значения не имеет.",
+    "partOfSpeech": [
+      "noun"
+    ],
+    "hskLevel": 0,
+    "strokeCount": 2
+  },
+  {
+    "id": "R-zu-2",
+    "char": "𠂇",
+    "variants": [],
+    "pinyin": "zuo3",
+    "translation": "Компонент «рука»",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-human",
+    "etymology": "Верхняя часть знаков 左, 右, 有, 友: рука с растопыренными пальцами. Обозначает руку, действие руки.",
+    "partOfSpeech": [
+      "noun"
+    ],
+    "hskLevel": 0,
+    "strokeCount": 2
+  },
+  {
+    "id": "R-u20089",
+    "char": "𠂉",
+    "variants": [],
+    "pinyin": "ren2",
+    "translation": "Компонент «человек»",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-human",
+    "etymology": "Сокращённый вариант знака 人 в верхней позиции, как в 复, 乞, 午. Обозначает человека.",
+    "partOfSpeech": [
+      "noun"
+    ],
+    "hskLevel": 0,
+    "strokeCount": 2
+  },
+  {
+    "id": "R-u2008a",
+    "char": "𠂊",
+    "variants": [],
+    "pinyin": "bao1",
+    "translation": "Компонент «загнутый крюк»",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-abstract",
+    "etymology": "Наклонная с загнутым вниз крюком; верхняя деталь знаков 争, 免, 龟. Отдельного значения не имеет.",
+    "partOfSpeech": [
+      "noun"
+    ],
+    "hskLevel": 0,
+    "strokeCount": 2
+  },
+  {
+    "id": "R-u2008e",
+    "char": "𠂎",
+    "variants": [],
+    "pinyin": "mao3",
+    "translation": "Компонент «залом»",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-abstract",
+    "etymology": "Вертикальная черта с заломом и крюком; левая деталь знака 卯. Отдельного значения не имеет.",
+    "partOfSpeech": [
+      "noun"
+    ],
+    "hskLevel": 0,
+    "strokeCount": 3
+  },
+  {
+    "id": "R-u20092",
+    "char": "𠂒",
+    "variants": [],
+    "pinyin": "gao4",
+    "translation": "Компонент «бык»",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-animal",
+    "etymology": "Укороченный вариант знака 牛 (бык) без хвоста; верхняя часть знаков 先 и 告.",
+    "partOfSpeech": [
+      "noun"
+    ],
+    "hskLevel": 0,
+    "strokeCount": 4
+  },
+  {
+    "id": "R-yn-3",
+    "char": "𠃊",
+    "variants": [],
+    "pinyin": "yin3",
+    "translation": "Черта-уголок",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-abstract",
+    "etymology": "Вертикаль, переходящая в горизонталь, как в знаках 亡, 断, 继. Отдельного значения не имеет.",
+    "partOfSpeech": [
+      "noun"
+    ],
+    "hskLevel": 0,
+    "strokeCount": 1
+  },
+  {
+    "id": "R-u200cb",
+    "char": "𠃋",
+    "variants": [],
+    "pinyin": "si1",
+    "translation": "Наклонная с заломом",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-abstract",
+    "etymology": "Наклонная черта с заломом вниз; встречается в составе редких знаков, как 𠂈. Отдельного значения не имеет.",
+    "partOfSpeech": [
+      "noun"
+    ],
+    "hskLevel": 0,
+    "strokeCount": 1
+  },
+  {
+    "id": "R-gn-3",
+    "char": "𠃌",
+    "variants": [],
+    "pinyin": "gun3",
+    "translation": "Горизонталь с крюком",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-abstract",
+    "etymology": "Горизонталь, переходящая в вертикаль с крюком, как в знаках 刀, 力, 司. Отдельного значения не имеет.",
+    "partOfSpeech": [
+      "noun"
+    ],
+    "hskLevel": 0,
+    "strokeCount": 1
+  },
+  {
+    "id": "R-u200cd",
+    "char": "𠃍",
+    "variants": [],
+    "pinyin": "jie2",
+    "translation": "Горизонталь с заломом",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-abstract",
+    "etymology": "Горизонталь, переходящая в вертикаль, как угол знака 口. Отдельного значения не имеет.",
+    "partOfSpeech": [
+      "noun"
+    ],
+    "hskLevel": 0,
+    "strokeCount": 1
+  },
+  {
+    "id": "R-yng-2",
+    "char": "𠃓",
+    "variants": [],
+    "pinyin": "yang2",
+    "translation": "Компонент «раскрытый»",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-quality",
+    "etymology": "Упрощённая форма знака 昜 (раскрываться, светлый); правая часть знаков 汤, 杨, 场.",
+    "partOfSpeech": [
+      "adjective"
+    ],
+    "hskLevel": 0,
+    "strokeCount": 3
+  },
+  {
+    "id": "R-u200dc",
+    "char": "𠃜",
+    "variants": [],
+    "pinyin": "sheng1",
+    "translation": "Компонент «навес»",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-abstract",
+    "etymology": "Нависающая деталь с вертикалью вниз; верхняя часть знаков 眉 и 声. Отдельного значения не имеет.",
+    "partOfSpeech": [
+      "noun"
+    ],
+    "hskLevel": 0,
+    "strokeCount": 4
+  },
+  {
+    "id": "R-ju-2",
+    "char": "𠄌",
+    "variants": [],
+    "pinyin": "jue2",
+    "translation": "Вертикаль с подъёмом",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-abstract",
+    "etymology": "Вертикаль с подъёмом вправо, как в знаках 长, 辰, 畏. Отдельного значения не имеет.",
+    "partOfSpeech": [
+      "noun"
+    ],
+    "hskLevel": 0,
+    "strokeCount": 1
+  },
+  {
+    "id": "R-u2010e",
+    "char": "𠄎",
+    "variants": [],
+    "pinyin": "nai3",
+    "translation": "Черта с двумя заломами",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-abstract",
+    "etymology": "Изогнутая черта с двумя заломами, как в знаке 乃. Отдельного значения не имеет.",
+    "partOfSpeech": [
+      "noun"
+    ],
+    "hskLevel": 0,
+    "strokeCount": 1
+  },
+  {
+    "id": "R-sh-10",
+    "char": "𠘧",
+    "variants": [],
+    "pinyin": "shu1",
+    "translation": "Компонент «полка»",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-abstract",
+    "etymology": "Угловатая деталь-полка, как в знаке 殳 и правой части 铅, 船. Отдельного значения не имеет.",
+    "partOfSpeech": [
+      "noun"
+    ],
+    "hskLevel": 0,
+    "strokeCount": 2
+  },
+  {
+    "id": "R-qun-3",
+    "char": "𡿨",
+    "variants": [],
+    "pinyin": "quan3",
+    "translation": "Компонент «струйка»",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-nature",
+    "etymology": "Короткая изогнутая черта-струйка воды, часть знаков 巛 (река), 巜. Отдельного значения не имеет.",
+    "partOfSpeech": [
+      "noun"
+    ],
+    "hskLevel": 0,
+    "strokeCount": 1
+  },
+  {
+    "id": "R-t",
+    "char": "𣥂",
+    "variants": [],
+    "pinyin": "ta4",
+    "translation": "Нижняя часть стопы",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-human",
+    "etymology": "Упрощённая стопа 止 без верхней черты; нижняя часть знака 步. Обозначает ногу, шаг.",
+    "partOfSpeech": [
+      "noun"
+    ],
+    "hskLevel": 0,
+    "strokeCount": 4
+  },
+  {
+    "id": "R-u24d14",
+    "char": "𤴔",
+    "variants": [],
+    "pinyin": "shu1",
+    "translation": "Компонент «стопа»",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-object",
+    "etymology": "Вариант знака 疋 (стопа, рулон ткани); правая деталь знака 疏. Обозначает ногу или рулон ткани.",
+    "partOfSpeech": [
+      "noun"
+    ],
+    "hskLevel": 0,
+    "strokeCount": 5
+  },
+  {
+    "id": "R-u27607",
+    "char": "𧘇",
+    "variants": [],
+    "pinyin": "yi1",
+    "translation": "Компонент «полы одежды»",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-object",
+    "etymology": "Нижняя часть знака 衣 (одежда): полы и подол, как в 表, 衷, 农. Указывает на одежду.",
+    "partOfSpeech": [
+      "noun"
+    ],
+    "hskLevel": 0,
+    "strokeCount": 4
+  },
+  {
+    "id": "R-gng-3",
+    "char": "𧰨",
+    "variants": [],
+    "pinyin": "geng4",
+    "translation": "Компонент «туловище зверя»",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-animal",
+    "etymology": "Туловище свиньи 豕 в нижней части знаков 豕, 象. Указывает на зверя.",
+    "partOfSpeech": [
+      "noun"
+    ],
+    "hskLevel": 0,
+    "strokeCount": 6
+  },
+  {
+    "id": "R-u2b740",
+    "char": "𫝀",
+    "variants": [],
+    "pinyin": "wu3",
+    "translation": "Компонент «перекладина»",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-abstract",
+    "etymology": "Горизонталь с вертикалью вниз; деталь знаков 五 и 韦. Отдельного значения не имеет.",
+    "partOfSpeech": [
+      "noun"
+    ],
+    "hskLevel": 0,
+    "strokeCount": 3
+  },
+  {
+    "id": "R-u2b823",
+    "char": "𫠣",
+    "variants": [],
+    "pinyin": "dong1",
+    "translation": "Компонент «связка»",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-object",
+    "etymology": "Упрощённый вариант знака 柬 (связка, отбирать); правая часть знаков 练, 炼, 拣.",
+    "partOfSpeech": [
+      "noun"
+    ],
+    "hskLevel": 0,
+    "strokeCount": 5
+  },
+  {
+    "id": "R-u2d544",
+    "char": "𭕄",
+    "variants": [],
+    "pinyin": "zhao3",
+    "translation": "Компонент «три черты»",
+    "tier": 0,
+    "components": [],
+    "isStandaloneWord": false,
+    "themeGroupId": "TG-abstract",
+    "etymology": "Три короткие черты-пучок вверху знаков 兴, 学, 单. Отдельного значения не имеет.",
+    "partOfSpeech": [
+      "noun"
+    ],
+    "hskLevel": 0,
     "strokeCount": 3
   }
 ]

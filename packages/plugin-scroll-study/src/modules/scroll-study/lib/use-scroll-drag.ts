@@ -1,5 +1,6 @@
 import type { CharacterData } from '../../../data'
 import { reactive, ref, watch } from 'vue'
+import { playUiSound } from './ui-sound'
 import { useScrollStudyStore } from '../model/scroll-study.store'
 
 export interface BurstEvent {
@@ -71,6 +72,10 @@ export function useScrollDrag() {
       return
 
     scrollStore.selectedTablet = item.char
+    // Touch uses tap-to-select, then tap-to-place so the palette can scroll naturally.
+    if (e.pointerType === 'touch')
+      return
+
     dragChar.value = item
     startX = e.clientX
     startY = e.clientY
@@ -85,7 +90,7 @@ export function useScrollDrag() {
       const dist = Math.hypot(moveEv.clientX - startX, moveEv.clientY - startY)
       if (!isPointerDragging.value && dist > 4) {
         isPointerDragging.value = true
-        dragScale.value = 1.25
+        dragScale.value = 0.65
         if (!animFrameId) {
           animFrameId = requestAnimationFrame(updatePhysics)
         }
@@ -127,7 +132,9 @@ export function useScrollDrag() {
         if (nodeId) {
           const targetNode = scrollStore.activeGrid.find(n => n.id === nodeId)
           if (targetNode && targetNode.type === 'empty' && !scrollStore.isFinished) {
-            scrollStore.handleNodeDrop(dragChar.value.char, targetNode)
+            const action = scrollStore.handleNodeDrop(dragChar.value.char, targetNode)
+            if (action)
+              playUiSound(action)
             placed = true
           }
         }

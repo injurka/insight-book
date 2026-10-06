@@ -47,5 +47,7 @@ void main() {
     color = mix(color, vec3(0.45, 0.15, 0.0), clamp(length(q), 0.0, 1.0)); // warm amber
     color = mix(color, vec3(0.75, 0.45, 0.075), clamp(length(r.x) * 1.5, 0.0, 1.0)); // bright gold highlights
     
-    gl_FragColor = vec4(color * f * 1.5, 1.0);
+    // Premultiplied alpha keeps the landscape visible through the moving Qi.
+    float alpha = 0.18 + smoothstep(0.2, 0.75, f) * 0.62;
+    gl_FragColor = vec4(color * f * 1.5 * alpha, alpha);
 }

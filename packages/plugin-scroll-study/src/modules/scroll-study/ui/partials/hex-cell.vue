@@ -1,14 +1,17 @@
 <script setup lang="ts">
 import type { PuzzleNode } from '../../model/types'
-import { computed, ref } from 'vue'
+import { computed, ref, useTemplateRef } from 'vue'
 import { useScrollStudyStore } from '../../model/scroll-study.store'
+import AnchorInfoPopover from './anchor-info-popover.vue'
 
-const props = defineProps<{
+interface Props {
   node: PuzzleNode
   hexSize: number
   isFinished: boolean
   isSelectedTarget: boolean
-}>()
+}
+
+const props = defineProps<Props>()
 
 const emit = defineEmits<{
   (e: 'click', node: PuzzleNode): void
@@ -17,6 +20,18 @@ const emit = defineEmits<{
 
 const scrollStore = useScrollStudyStore()
 const isDragOver = ref(false)
+const isInfoOpen = ref(false)
+const infoPopover = useTemplateRef<InstanceType<typeof AnchorInfoPopover>>('infoPopover')
+const isInteractive = computed(() => props.node.type === 'anchor' || (props.node.type === 'empty' && !props.isFinished))
+
+function handleClick(event: MouseEvent | KeyboardEvent) {
+  if (props.node.type === 'anchor' && event.currentTarget instanceof HTMLElement) {
+    infoPopover.value?.toggle(event.currentTarget)
+    return
+  }
+  if (isInteractive.value)
+    emit('click', props.node)
+}
 
 const q = props.node.q
 const r = props.node.r
@@ -29,12 +44,12 @@ const yOffset = computed(() => props.hexSize * (3 / 2) * r)
 
 function getCharFontSize(symbol?: string) {
   if (!symbol)
-    return '1.6rem'
+    return `${props.hexSize * 0.76}px`
   if (symbol.length === 2)
-    return '1.2rem'
+    return `${props.hexSize * 0.52}px`
   if (symbol.length >= 3)
-    return '0.85rem'
-  return '1.6rem'
+    return `${props.hexSize * 0.36}px`
+  return `${props.hexSize * 0.76}px`
 }
 
 function handleDrop(event: DragEvent) {
@@ -66,7 +81,8 @@ function handleDragLeave() {
       {
         'filled': !!node.character,
         'finished-cell': isFinished && (node.type === 'anchor' || !!node.character),
-        'interactive': node.type === 'empty' && !isFinished,
+        'interactive': isInteractive,
+        'info-open': isInfoOpen,
         'selected-target': isSelectedTarget && node.type === 'empty' && !isFinished,
         'drag-over-cell': (isDragOver || scrollStore.hoveredNodeId === node.id) && node.type === 'empty' && !isFinished,
       },
@@ -80,18 +96,30 @@ function handleDragLeave() {
     @dragenter.prevent="isDragOver = true"
     @dragleave="handleDragLeave"
     @drop.prevent="handleDrop"
-    @click="emit('click', node)"
+    :role="isInteractive ? 'button' : undefined"
+    :tabindex="isInteractive ? 0 : undefined"
+    :aria-label="node.type === 'anchor' ? `О символе ${node.character}` : node.character || 'Пустая ячейка'"
+    :aria-expanded="node.type === 'anchor' ? isInfoOpen : undefined"
+    :aria-haspopup="node.type === 'anchor' ? 'dialog' : undefined"
+    :aria-controls="node.type === 'anchor' ? infoPopover?.id : undefined"
+    @keydown.enter.self.prevent="handleClick"
+    @keydown.space.self.prevent="handleClick"
+    @click="handleClick"
   >
+    <AnchorInfoPopover v-if="node.type === 'anchor'" ref="infoPopover" :node="node" @open-change="isInfoOpen = $event" />
     <div class="hex-cell-inner">
-      <div class="aura-dot" />
+      <div class="cell-surface" />
 
+      <Transition name="placement">
       <span
         v-if="node.character"
+        :key="node.character"
         class="hex-char"
         :style="{ fontSize: getCharFontSize(node.character) }"
       >
         {{ node.character }}
       </span>
+      </Transition>
     </div>
   </div>
 </template>
@@ -102,17 +130,17 @@ function handleDragLeave() {
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: transform 0.3s ease, filter 0.3s ease;
   z-index: 10;
-  user-select: none;
+  outline: none;
 
   &.interactive {
     cursor: pointer;
+  }
+}
 
-    &:hover {
-      transform: scale(1.1);
-      z-index: 20;
-    }
+@container scroll-study (min-width: 901px) {
+  .hex-cell {
+    user-select: none;
   }
 }
 
@@ -125,113 +153,115 @@ function handleDragLeave() {
   justify-content: center;
 }
 
-.aura-dot {
+.cell-surface {
   position: absolute;
-  border-radius: 50%;
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  background: #c6ae89;
+  border: 1px solid #a38b6a;
   pointer-events: none;
-  transition: all 0.3s ease;
+  transition:
+    width 0.16s ease-out,
+    height 0.16s ease-out,
+    border-radius 0.16s ease-out,
+    background 0.2s ease,
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    transform 0.16s ease-out;
 }
 
 .hex-char {
   position: relative;
-  z-index: 10;
+  color: #382719;
+  font-family: 'Maple Mono CN', monospace;
+  font-weight: 500;
   text-align: center;
-  line-height: 1;
-  transition: all 0.2s ease;
-  display: block;
-  user-select: none;
+  line-height: 1.15;
   pointer-events: none;
 }
 
-/* Empty cell styles */
-.cell-empty {
-  .aura-dot {
-    width: 14px;
-    height: 14px;
-    background: rgba(74, 60, 49, 0.4);
-    box-shadow: 0 0 8px rgba(74, 60, 49, 0.3);
-    border: 1px solid rgba(74, 60, 49, 0.5);
-  }
-
-  &.interactive:hover .aura-dot {
-    transform: scale(1.8);
-    background: rgba(224, 159, 62, 0.6);
-    box-shadow: 0 0 15px rgba(224, 159, 62, 0.8);
-    border-color: rgba(224, 159, 62, 0.9);
-  }
-
-  &.filled {
-    .aura-dot {
-      width: 42px;
-      height: 42px;
-      background: radial-gradient(circle, rgba(74, 60, 49, 0.3) 0%, rgba(74, 60, 49, 0.05) 70%);
-      border: 1px solid rgba(74, 60, 49, 0.5);
-    }
-
-    &.interactive:hover .aura-dot {
-      background: radial-gradient(circle, rgba(224, 159, 62, 0.4) 0%, rgba(224, 159, 62, 0.1) 70%);
-      border-color: rgba(224, 159, 62, 0.7);
-    }
-
-    .hex-char {
-      color: #fbbf24;
-      text-shadow: 0 0 8px rgba(251, 191, 36, 0.6);
-    }
-  }
+.filled .cell-surface {
+  width: 66%;
+  height: 57%;
+  border-radius: 7px;
+  background: #fff5df;
+  border-color: #bba078;
+  box-shadow: 0 2px 4px rgba(69, 38, 12, 0.16);
 }
 
-.drag-over-cell .aura-dot {
-  transform: scale(2.2) !important;
-  background: rgba(245, 158, 11, 0.8) !important;
-  box-shadow: 0 0 25px rgba(245, 158, 11, 0.9) !important;
-  border-color: #fbbf24 !important;
-}
-
-/* Anchor cell styles */
 .cell-anchor {
-  .aura-dot {
-    width: 48px;
-    height: 48px;
-    background: radial-gradient(circle, rgba(239, 68, 68, 0.3) 0%, rgba(239, 68, 68, 0.05) 70%);
-    box-shadow: 0 0 15px rgba(239, 68, 68, 0.4);
-    border: 1px solid rgba(239, 68, 68, 0.6);
+  .cell-surface {
+    background: #f6e0c4;
+    border-color: #a75c36;
+    box-shadow: 0 2px 4px rgba(69, 38, 12, 0.18), inset 0 3px #a75c36;
   }
 
   .hex-char {
-    color: #fca5a5;
-    font-weight: bold;
-    text-shadow: 0 0 10px rgba(239, 68, 68, 0.8);
+    color: #74351e;
+    font-weight: 600;
   }
+}
+
+.info-open .cell-surface,
+.interactive:hover .cell-surface,
+.hex-cell:focus-visible .cell-surface,
+.selected-target:not(.filled) .cell-surface {
+  background: #ffe6b6;
+  border-color: #a66b2d;
+  box-shadow: 0 0 0 3px rgba(166, 107, 45, 0.15);
+}
+
+.drag-over-cell .cell-surface {
+  width: 66%;
+  height: 57%;
+  border-radius: 7px;
+  background: #ffe6b6;
+  border-color: #8e541e;
+  box-shadow: 0 2px 7px rgba(69, 38, 12, 0.2);
+  transform: scale(1.03);
 }
 
 .finished-cell {
-  .aura-dot {
-    width: 80px;
-    height: 80px;
-    background: radial-gradient(circle, rgba(251, 191, 36, 0.5) 0%, rgba(251, 191, 36, 0.1) 70%) !important;
-    border: 2px solid #f59e0b !important;
-    box-shadow:
-      0 0 30px rgba(251, 191, 36, 0.8),
-      inset 0 0 15px rgba(251, 191, 36, 0.4) !important;
-    animation: final-aura-pulse 2.5s infinite alternate !important;
+  .cell-surface {
+    background: #f0edd2;
+    border-color: #7d8545;
+    box-shadow: 0 2px 4px rgba(69, 38, 12, 0.16), inset 0 3px #7d8545;
   }
 
   .hex-char {
-    color: #fffbeb !important;
-    font-weight: 700;
-    text-shadow: 0 0 15px #f59e0b !important;
-    animation: none !important;
+    color: #414a24;
   }
 }
+.placement-enter-active {
+  animation: glyph-stamp 480ms cubic-bezier(0.22, 1, 0.36, 1);
+}
 
-@keyframes final-aura-pulse {
-  0% {
-    transform: scale(1);
-    filter: drop-shadow(0 0 10px #f59e0b);
+.cell-empty .hex-cell-inner:has(.placement-enter-active) .cell-surface {
+  animation: placement-pulse 480ms ease-out;
+}
+
+@keyframes glyph-stamp {
+  0% { opacity: 0; transform: translateY(-8px) scale(1.3); }
+  45% { opacity: 1; transform: translateY(1px) scale(0.94); }
+  75% { transform: translateY(0) scale(1.04); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes placement-pulse {
+  0% { box-shadow: 0 0 0 0 #b8824580; background: #ffe6b6; }
+  55% { box-shadow: 0 0 0 9px #b8824520; }
+  100% { box-shadow: 0 0 0 15px #b8824500; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cell-surface {
+    transition: none;
   }
-  100% {
-    transform: scale(1.1);
-    filter: drop-shadow(0 0 25px #f59e0b);
+
+  .placement-enter-active,
+  .cell-empty .hex-cell-inner:has(.placement-enter-active) .cell-surface {
+    animation: none;
   }
 }
 </style>

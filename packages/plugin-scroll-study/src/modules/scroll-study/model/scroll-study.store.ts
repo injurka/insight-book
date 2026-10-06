@@ -38,17 +38,18 @@ export const useScrollStudyStore = defineStore('scrollStudy', () => {
   }
 
   function isRelatedSymbols(s1: string, s2: string): boolean {
-    if (!s1 || !s2)
+    if (!s1 || !s2 || s1 === s2)
       return false
-    if (s1 === s2)
-      return true
 
     const c1 = getCharacterObj(s1)
     const c2 = getCharacterObj(s2)
 
     if (!c1 || !c2) {
-      return s1 === s2
+      return false
     }
+
+    if (c1.id === c2.id)
+      return false
 
     // Direct component relationship
     if (c1.components.some(comp => comp === c2.id || comp === c2.char))
@@ -216,20 +217,21 @@ export const useScrollStudyStore = defineStore('scrollStudy', () => {
       node.character = symbol
       updateConnections()
       checkWin()
+      return 'place'
     }
+    return null
   }
 
   function handleNodeClick(node: PuzzleNode) {
-    if (node.type === 'empty' && selectedTablet.value && !isFinished.value) {
-      if (node.character === selectedTablet.value) {
-        node.character = undefined
-      }
-      else {
-        node.character = selectedTablet.value
-      }
+    const symbol = selectedTablet.value
+    if (node.type === 'empty' && symbol && !isFinished.value) {
+      const action = node.character === symbol ? 'remove' : 'place'
+      node.character = action === 'remove' ? undefined : symbol
       updateConnections()
       checkWin()
+      return action
     }
+    return null
   }
 
   function updateConnections() {
@@ -282,7 +284,8 @@ export const useScrollStudyStore = defineStore('scrollStudy', () => {
     // Build graph of connected nodes
     const graph = new Map<string, Set<string>>()
     gridConnections.value.forEach((conn) => {
-      const [n1Id, n2Id] = conn.id.split('-')
+      const n1Id = `${conn.q1},${conn.r1}`
+      const n2Id = `${conn.q2},${conn.r2}`
       if (!graph.has(n1Id))
         graph.set(n1Id, new Set())
       if (!graph.has(n2Id))
@@ -339,6 +342,7 @@ export const useScrollStudyStore = defineStore('scrollStudy', () => {
     boardRadius,
     currentDictWordId,
     setApiFacade,
+    isRelatedSymbols,
     loadCharacterScroll,
     loadRandomDictionaryScroll,
     initGrid,
