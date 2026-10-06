@@ -215,9 +215,10 @@ useQuoteHighlights(blockRef, [leftPaneContent, translatedPageContent], () => pro
 
 .reader-content {
   width: 100%;
+  min-width: 0;
   color: var(--fg-primary-color);
   user-select: text;
-  word-wrap: break-word;
+  overflow-wrap: anywhere;
   font-size: 1.4rem;
   line-height: 1.8;
   font-family: var(--app-font-family);
@@ -379,10 +380,6 @@ useQuoteHighlights(blockRef, [leftPaneContent, translatedPageContent], () => pro
     transition:
       background-color 0.1s,
       color 0.1s;
-
-    &.add-space {
-      padding-right: 0.25em;
-    }
 
     &.is-punctuation {
       cursor: default;
