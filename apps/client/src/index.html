@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="./favicon.ico" />
+    <link rel="icon" type="image/svg+xml" href="%BASE_URL%favicon.ico" />
     <meta
       name="viewport"
       content="width=device-width, initial-scale=1, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
@@ -117,12 +117,31 @@
     </style>
 
     <!-- Рантайм-конфиг (генерируется при запуске контейнера) -->
-    <script src="./configs/app-config.js"></script>
+    <script src="%BASE_URL%configs/app-config.js"></script>
+
+    <!-- OAuth callback must reach the API before loading the SPA and its chunks. -->
+    <script>
+      ;(() => {
+        if (window.location.pathname !== '/api/auth/yandex/callback') return
+
+        const configuredApiUrl = window.__APP_CONFIG__?.API_URL
+        const apiUrl =
+          configuredApiUrl ||
+          (window.location.hostname === 'insight-book.ru'
+            ? 'https://insight-book-api.limited-dissolve.ru'
+            : window.location.origin)
+        const callbackUrl = new URL(window.location.pathname + window.location.search, apiUrl)
+
+        if (callbackUrl.origin !== window.location.origin) {
+          window.location.replace(callbackUrl.href)
+        }
+      })()
+    </script>
 
     <!-- Критические шрифты (Latin + Cyrillic): синхронно, 6 @font-face на вес = 18 woff2, ~200 KB -->
-    <link rel="stylesheet" href="./fonts/split/regular/result-critical.css" />
-    <link rel="stylesheet" href="./fonts/split/medium/result-critical.css" />
-    <link rel="stylesheet" href="./fonts/split/semibold/result-critical.css" />
+    <link rel="stylesheet" href="%BASE_URL%fonts/split/regular/result-critical.css" />
+    <link rel="stylesheet" href="%BASE_URL%fonts/split/medium/result-critical.css" />
+    <link rel="stylesheet" href="%BASE_URL%fonts/split/semibold/result-critical.css" />
 
     <!-- CJK-шрифты загружаются лениво через JS — только когда на странице
          реально встречаются иероглифы (см. loadCjkFonts в main.ts) -->
