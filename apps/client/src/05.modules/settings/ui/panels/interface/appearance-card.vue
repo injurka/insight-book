@@ -48,7 +48,7 @@ const themeOptions = computed(() => [
     </div>
 
     <div class="checkboxes-row">
-      <div class="form-group">
+      <div v-if="!settingsStore.isMobileInterface" class="form-group">
         <KitCheckbox v-model="settingsStore.enableHoverRevealBg" :label="t('settings.hoverRevealBg')" />
       </div>
       <div class="form-group">

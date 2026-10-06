@@ -306,7 +306,7 @@ const currentThemeName = computed(() => {
         </div>
       </div>
 
-      <div class="settings-row">
+      <div v-if="!settingsStore.isMobileInterface" class="settings-row">
         <div class="item-label">
           <Icon icon="mdi:arrow-expand-horizontal" class="item-icon" />
           <span>{{ t('reader.textWidth') }}</span>

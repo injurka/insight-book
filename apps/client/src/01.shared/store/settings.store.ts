@@ -1,7 +1,8 @@
-import { useLocalStorage } from '@vueuse/core'
+import { useLocalStorage, useMediaQuery } from '@vueuse/core'
 
 import { computed } from 'vue'
 import { DEFAULT_TTS_VOICE } from '~/01.shared/constants/tts'
+import { isMobile } from '~/01.shared/lib/env'
 
 export const READER_CONTENT_WIDTH_MIN = 50
 export const READER_CONTENT_WIDTH_MAX = 150
@@ -18,6 +19,9 @@ function normalizeReaderContentWidth(value: number) {
 }
 
 export const useGlobalSettingsStore = defineStore('globalSettings', () => {
+  const isSmallScreen = useMediaQuery('(max-width: 599px)')
+  const isMobileInterface = computed(() => isMobile || isSmallScreen.value)
+
   const appLanguage = useLocalStorage<string>('global-app-language', 'ru')
   const appFontFamily = useLocalStorage<string>('global-app-font-family', '\'Maple Mono CN\', monospace')
   const appFontCustom = useLocalStorage<string>('global-app-font-custom', '')
@@ -61,7 +65,14 @@ export const useGlobalSettingsStore = defineStore('globalSettings', () => {
     ? { url: customLlmUrl.value, key: customLlmKey.value || '', model: customLlmModel.value }
     : null)
 
-  const enableHoverRevealBg = useLocalStorage<boolean>('global-enable-hover-reveal-bg', true)
+  const storedEnableHoverRevealBg = useLocalStorage<boolean>('global-enable-hover-reveal-bg', true)
+  const enableHoverRevealBg = computed({
+    get: () => !isMobileInterface.value && storedEnableHoverRevealBg.value,
+    set: (value: boolean) => {
+      if (!isMobileInterface.value)
+        storedEnableHoverRevealBg.value = value
+    },
+  })
   const enableEruda = useLocalStorage<boolean>('global-enable-eruda', false)
 
   const autoAnalyzePage = useLocalStorage<boolean>('global-auto-analyze-page', false)
@@ -81,6 +92,7 @@ export const useGlobalSettingsStore = defineStore('globalSettings', () => {
   const readerScrollMode = useLocalStorage<'paginated' | 'continuous'>('global-reader-scroll-mode', 'paginated')
 
   return {
+    isMobileInterface,
     appLanguage,
     appFontFamily,
     appFontCustom,
