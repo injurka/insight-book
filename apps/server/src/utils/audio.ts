@@ -71,6 +71,8 @@ export async function convertToMp3(inputBuffer: Buffer): Promise<Buffer> {
     return inputBuffer
   }
 
+  inputBuffer = unwrapNestedWav(inputBuffer)
+
   let result: FfmpegResult
   try {
     result = await runFfmpeg(
@@ -89,6 +91,33 @@ export async function convertToMp3(inputBuffer: Buffer): Promise<Buffer> {
   }
 
   return result.stdout
+}
+
+/** Some TTS gateways wrap a complete WAV file as if it were raw PCM. */
+export function unwrapNestedWav(inputBuffer: Buffer): Buffer {
+  function isWav(buffer: Buffer): boolean {
+    return buffer.length >= 12 && buffer.toString('ascii', 0, 4) === 'RIFF'
+      && buffer.toString('ascii', 8, 12) === 'WAVE'
+  }
+
+  if (!isWav(inputBuffer))
+    return inputBuffer
+
+  for (let offset = 12; offset + 8 <= inputBuffer.length;) {
+    const size = inputBuffer.readUInt32LE(offset + 4)
+    const end = offset + 8 + size
+    if (end > inputBuffer.length)
+      return inputBuffer
+    if (inputBuffer.toString('ascii', offset, offset + 4) === 'data') {
+      const payload = inputBuffer.subarray(offset + 8, end)
+      // Require a complete RIFF container, not just a coincidental PCM prefix.
+      if (isWav(payload) && payload.readUInt32LE(4) + 8 === payload.length)
+        return payload
+      return inputBuffer
+    }
+    offset = end + (size % 2)
+  }
+  return inputBuffer
 }
 
 /**

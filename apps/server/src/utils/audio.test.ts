@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test'
-import { convertToMp3, isMp3Audio } from './audio'
+import { convertToMp3, isMp3Audio, unwrapNestedWav } from './audio'
 
 function createPcmWav(): Buffer {
   const sampleRate = 8_000
@@ -22,6 +22,16 @@ function createPcmWav(): Buffer {
 }
 
 describe('isMp3Audio', () => {
+  it('unwraps a complete WAV embedded in the PCM data chunk', () => {
+    const inner = createPcmWav()
+    const outer = Buffer.from(createPcmWav().subarray(0, 44))
+    outer.writeUInt32LE(36 + inner.length, 4)
+    outer.writeUInt32LE(inner.length, 40)
+    expect(unwrapNestedWav(Buffer.concat([outer, inner]))).toEqual(inner)
+    expect(unwrapNestedWav(inner)).toBe(inner)
+    const truncated = Buffer.concat([outer, inner.subarray(0, -2)])
+    expect(unwrapNestedWav(truncated)).toBe(truncated)
+  })
   it('recognizes ID3 and MPEG frame headers', () => {
     expect(isMp3Audio(Buffer.from([0x49, 0x44, 0x33, 0x04, 0, 0, 0, 0, 0, 0, 0xFF, 0xFB, 0x90, 0x64]))).toBe(true)
     expect(isMp3Audio(Buffer.from([0xFF, 0xFB, 0x90, 0x64]))).toBe(true)
