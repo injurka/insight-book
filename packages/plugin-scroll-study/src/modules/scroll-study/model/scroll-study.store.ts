@@ -200,8 +200,9 @@ export const useScrollStudyStore = defineStore('scrollStudy', () => {
     }
   }
 
+  /** Возвращает промис первой раскладки: по нему экран загрузки дожидается готовой доски. */
   function initGrid() {
-    loadRandomDictionaryScroll()
+    return loadRandomDictionaryScroll()
   }
 
   function clearGrid() {

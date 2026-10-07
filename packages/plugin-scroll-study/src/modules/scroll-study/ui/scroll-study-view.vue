@@ -1,8 +1,10 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { preloadGameAssets, withTimeout } from '../lib/game-assets'
 import { useScrollDrag } from '../lib/use-scroll-drag'
 import { providePixiApp } from '../lib/use-shared-pixi'
 import { useScrollStudyStore } from '../model/scroll-study.store'
+import GameLoadingScreen from './partials/game-loading-screen.vue'
 import ResearchBoard from './partials/research-board.vue'
 import ScrollBackground from './partials/scroll-background.vue'
 import ScrollDragPreview from './partials/scroll-drag-preview.vue'
@@ -13,7 +15,77 @@ const scrollStore = useScrollStudyStore()
 const pixiHostRef = ref<HTMLDivElement | null>(null)
 
 // Initialize Single Shared PixiJS Application for the entire view
-providePixiApp(pixiHostRef)
+const { isReady: isPixiReady } = providePixiApp(pixiHostRef)
+
+/**
+ * Экран загрузки показываем только если подготовка реально затянулась:
+ * мгновенный старт из кеша не мигает оверлеем.
+ */
+const LOADING_SCREEN_DELAY_MS = 180
+/** Страховка: если WebGL не поднялся, игра обязана открыться всё равно. */
+const PIXI_FALLBACK_MS = 4000
+/** Первую раскладку доски ждём ограниченно, чтобы не залипнуть на экране загрузки из-за медленного API. */
+const FIRST_BOARD_TIMEOUT_MS = 2000
+
+const loadRatio = ref(0)
+const isAssetsReady = ref(false)
+const isBoardReady = ref(false)
+const isPixiSettled = ref(false)
+const isGateVisible = ref(false)
+const isRevealed = ref(false)
+
+let loadingScreenTimer: ReturnType<typeof setTimeout> | undefined
+let pixiFallbackTimer: ReturnType<typeof setTimeout> | undefined
+
+/** Игра открывается только с готовыми текстурами, рендерером и первой раскладкой. */
+const isSceneReady = computed(() => isAssetsReady.value && isBoardReady.value && isPixiSettled.value)
+
+const stopPixiWatch = watch(isPixiReady, (ready) => {
+  if (!ready)
+    return
+
+  isPixiSettled.value = true
+  clearTimeout(pixiFallbackTimer)
+})
+
+const stopReadyWatch = watch(isSceneReady, async (ready) => {
+  if (!ready || isRevealed.value)
+    return
+
+  await nextTick()
+  // Два кадра: к началу растворения оверлея под ним уже нарисован готовый кадр.
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    isRevealed.value = true
+  }))
+})
+
+onMounted(async () => {
+  loadingScreenTimer = setTimeout(() => {
+    isGateVisible.value = true
+  }, LOADING_SCREEN_DELAY_MS)
+  pixiFallbackTimer = setTimeout(() => {
+    isPixiSettled.value = true
+  }, PIXI_FALLBACK_MS)
+
+  const firstBoard = scrollStore.activeWord ? Promise.resolve() : scrollStore.initGrid()
+
+  await Promise.all([
+    preloadGameAssets((progress) => {
+      loadRatio.value = progress.ratio
+    }),
+    withTimeout(firstBoard, FIRST_BOARD_TIMEOUT_MS),
+  ])
+
+  isAssetsReady.value = true
+  isBoardReady.value = true
+})
+
+onBeforeUnmount(() => {
+  stopPixiWatch()
+  stopReadyWatch()
+  clearTimeout(loadingScreenTimer)
+  clearTimeout(pixiFallbackTimer)
+})
 
 const {
   isPointerDragging,
@@ -29,16 +101,10 @@ const {
 
 const isPanelOpen = ref(true)
 const activeTab = ref<'symbols' | 'scrolls'>('symbols')
-
-onMounted(() => {
-  if (!scrollStore.activeWord) {
-    scrollStore.initGrid()
-  }
-})
 </script>
 
 <template>
-  <div class="scroll-desktop-view" :class="{ 'panel-open': isPanelOpen }">
+  <div class="scroll-desktop-view" :class="{ 'panel-open': isPanelOpen, 'is-gated': !isRevealed }">
     <!-- Single Shared PixiJS Canvas Layer across the entire view -->
     <div ref="pixiHostRef" class="global-pixi-host" />
 
@@ -73,6 +139,11 @@ onMounted(() => {
       :drag-scale="dragScale"
       :burst-event="burstEvent"
     />
+
+    <!-- Loading Gate: сцена открывается уже целиком отрисованной -->
+    <Transition name="gate-fade">
+      <GameLoadingScreen v-if="isGateVisible && !isRevealed" :ratio="loadRatio" />
+    </Transition>
   </div>
 </template>
 
@@ -95,6 +166,15 @@ onMounted(() => {
 
 :deep(.font-pixel) {
   font-family: var(--font-pixel);
+}
+
+/*
+ * До готовности сцены содержимое не рисуется: игрок не должен видеть, как
+ * интерфейс «дособирается» из полутеней, пока грузятся текстуры. Тёмная
+ * подложка макета при этом остаётся — на неё ложится экран загрузки.
+ */
+.scroll-desktop-view.is-gated > :not(.game-loading) {
+  visibility: hidden;
 }
 
 .scroll-desktop-view :deep(button),
@@ -145,6 +225,28 @@ onMounted(() => {
 
   .panel-open .center-workspace :deep(.board-viewport) {
     transform: translateX(calc(min(320px, calc(100cqw - 80px)) / 2 + 6px));
+  }
+}
+
+.gate-fade-enter-active,
+.gate-fade-leave-active {
+  transition: opacity 0.34s ease;
+}
+
+/* Пока оверлей растворяется, он уже не перехватывает клики. */
+.gate-fade-leave-active {
+  pointer-events: none;
+}
+
+.gate-fade-enter-from,
+.gate-fade-leave-to {
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gate-fade-enter-active,
+  .gate-fade-leave-active {
+    transition: none;
   }
 }
 </style>
