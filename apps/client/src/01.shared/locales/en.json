@@ -76,6 +76,28 @@
     "tauriUpdateBtn": "Download",
     "closeBtn": "Close"
   },
+  "appUpdate": {
+    "availableTitle": "Update available v{version}",
+    "downloadingTitle": "Downloading update v{version}",
+    "readyTitle": "Update ready to install",
+    "errorTitle": "Download failed v{version}",
+    "availableDesc": "A new version v{version} is available. Download and install it now?",
+    "downloadingDesc": "Downloading the new version file...",
+    "readyDesc": "Update file v{version} has been downloaded successfully.",
+    "errorDesc": "{error}. You can retry or open the release page.",
+    "installBtn": "Install",
+    "downloadBtn": "Download",
+    "laterBtn": "Later",
+    "hideBtn": "Hide",
+    "retryBtn": "Retry",
+    "openInBrowserBtn": "In browser",
+    "closeBtn": "Close",
+    "openDownloadToast": "Opening the update download...",
+    "downloadedToast": "Update downloaded successfully!",
+    "downloadFailed": "Failed to download the update",
+    "downloadErrorToast": "Download error: {error}",
+    "installOpenFailedToast": "The APK has been downloaded, but Android could not open the installer. Tap 'Install' to try again."
+  },
   "network": {
     "timeoutTitle": "Slow Internet Connection",
     "timeoutDesc": "Loading is taking longer than 5 seconds. You can switch to offline mode using local data or retry connecting.",

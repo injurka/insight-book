@@ -1,10 +1,14 @@
 <script setup lang="ts">
 import { Icon } from '@iconify/vue'
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useAppUpdateStore } from '~/01.shared/store/app-update.store'
 import { KitBtn } from '~/02.kit/atoms/kit-btn/ui'
 
+type UpdateStatus = 'available' | 'downloading' | 'ready' | 'error'
+
 const appUpdateStore = useAppUpdateStore()
+const { t } = useI18n()
 const {
   hasUpdate,
   latestVersion,
@@ -15,6 +19,57 @@ const {
   downloadedFilePath,
   downloadError,
 } = storeToRefs(appUpdateStore)
+
+const status = computed<UpdateStatus>(() => {
+  if (downloadedFilePath.value && !isDownloading.value)
+    return 'ready'
+  if (isDownloading.value)
+    return 'downloading'
+  if (downloadError.value)
+    return 'error'
+
+  return 'available'
+})
+
+const statusIcon = computed(() => {
+  if (status.value === 'ready')
+    return 'mdi:check-circle-outline'
+  if (status.value === 'error')
+    return 'mdi:alert-circle-outline'
+
+  return 'solar:download-square-bold'
+})
+
+const title = computed(() => {
+  const version = latestVersion.value ?? ''
+  switch (status.value) {
+    case 'ready':
+      return t('appUpdate.readyTitle')
+    case 'downloading':
+      return t('appUpdate.downloadingTitle', { version })
+    case 'error':
+      return t('appUpdate.errorTitle', { version })
+    default:
+      return t('appUpdate.availableTitle', { version })
+  }
+})
+
+const description = computed(() => {
+  const version = latestVersion.value ?? ''
+  switch (status.value) {
+    case 'ready':
+      return t('appUpdate.readyDesc', { version })
+    case 'downloading':
+      return t('appUpdate.downloadingDesc')
+    case 'error':
+      return t('appUpdate.errorDesc', { error: downloadError.value ?? '' })
+    default:
+      return t('appUpdate.availableDesc', { version })
+  }
+})
+
+const showProgress = computed(() =>
+  isDownloading.value || (!!downloadedFilePath.value && downloadProgress.value === 100))
 
 function formatBytes(bytes: number): string {
   if (bytes <= 0)
@@ -46,141 +101,116 @@ const progressDetails = computed(() => {
         class="app-update-prompt"
         role="alert"
       >
-        <div
-          class="prompt-icon"
-          :class="{
-            'is-downloading': isDownloading,
-            'is-ready': !!downloadedFilePath && !isDownloading,
-            'is-error': !!downloadError && !isDownloading,
-          }"
-        >
-          <Icon
-            v-if="downloadedFilePath"
-            icon="mdi:check-circle-outline"
-          />
-          <Icon
-            v-else-if="downloadError"
-            icon="mdi:alert-circle-outline"
-          />
-          <Icon
-            v-else
-            icon="solar:download-square-bold"
-          />
+        <div class="prompt-message">
+          <div class="prompt-header">
+            <div
+              class="prompt-icon"
+              :class="{
+                'is-downloading': status === 'downloading',
+                'is-ready': status === 'ready',
+                'is-error': status === 'error',
+              }"
+            >
+              <Icon :icon="statusIcon" />
+            </div>
+
+            <h4 class="prompt-title">
+              {{ title }}
+            </h4>
+          </div>
+
+          <p class="prompt-description">
+            {{ description }}
+          </p>
         </div>
 
-        <div class="prompt-content-wrapper">
-          <div class="prompt-message">
-            <h4 class="prompt-title">
-              <span v-if="downloadedFilePath">Обновление готово к установке</span>
-              <span v-else-if="isDownloading">Загрузка обновления v{{ latestVersion }}</span>
-              <span v-else-if="downloadError">Ошибка загрузки v{{ latestVersion }}</span>
-              <span v-else>Доступно обновление v{{ latestVersion }}</span>
-            </h4>
-
-            <p class="prompt-description">
-              <span v-if="downloadedFilePath">
-                Файл обновления v{{ latestVersion }} успешно загружен.
-              </span>
-              <span v-else-if="downloadError">
-                {{ downloadError }}. Вы можете повторить попытку или перейти к релизу.
-              </span>
-              <span v-else-if="isDownloading">
-                Скачивание файла новой версии...
-              </span>
-              <span v-else>
-                Доступна новая версия v{{ latestVersion }}. Скачать и установить прямо сейчас?
-              </span>
-            </p>
-
-            <!-- Прогресс-бар во время загрузки -->
-            <div v-if="isDownloading || (downloadedFilePath && downloadProgress === 100)" class="update-progress-container">
-              <div class="update-progress-track">
-                <div
-                  class="update-progress-fill"
-                  :style="{ width: `${downloadProgress}%` }"
-                />
-              </div>
-              <div class="update-progress-meta">
-                <span class="update-progress-percentage">{{ downloadProgress }}%</span>
-                <span v-if="progressDetails" class="update-progress-bytes">{{ progressDetails }}</span>
-              </div>
-            </div>
+        <!-- Прогресс-бар во время загрузки -->
+        <div v-if="showProgress" class="update-progress-container">
+          <div class="update-progress-track">
+            <div
+              class="update-progress-fill"
+              :style="{ width: `${downloadProgress}%` }"
+            />
           </div>
-
-          <div class="prompt-actions">
-            <!-- Состояние 1: Загрузка завершена -->
-            <template v-if="downloadedFilePath && !isDownloading">
-              <KitBtn
-                icon="mdi:cellphone-arrow-down"
-                color="primary"
-                @click="appUpdateStore.installApk()"
-              >
-                Установить
-              </KitBtn>
-              <KitBtn
-                variant="outlined"
-                color="secondary"
-                @click="appUpdateStore.closePrompt()"
-              >
-                Закрыть
-              </KitBtn>
-            </template>
-
-            <!-- Состояние 2: Идет загрузка -->
-            <template v-else-if="isDownloading">
-              <KitBtn
-                variant="outlined"
-                color="secondary"
-                @click="appUpdateStore.closePrompt()"
-              >
-                Скрыть
-              </KitBtn>
-            </template>
-
-            <!-- Состояние 3: Ошибка при загрузке -->
-            <template v-else-if="downloadError">
-              <KitBtn
-                icon="mdi:refresh"
-                color="primary"
-                @click="appUpdateStore.startUpdate()"
-              >
-                Повторить
-              </KitBtn>
-              <KitBtn
-                variant="outlined"
-                color="secondary"
-                icon="mdi:open-in-new"
-                @click="appUpdateStore.openExternalRelease()"
-              >
-                В браузере
-              </KitBtn>
-              <KitBtn
-                variant="text"
-                color="secondary"
-                @click="appUpdateStore.closePrompt()"
-              >
-                Закрыть
-              </KitBtn>
-            </template>
-
-            <!-- Состояние 4: Исходное состояние предложения обновиться -->
-            <template v-else>
-              <KitBtn
-                icon="mdi:download"
-                color="primary"
-                @click="appUpdateStore.startUpdate()"
-              >
-                Скачать
-              </KitBtn>
-              <KitBtn
-                variant="outlined"
-                color="secondary"
-                @click="appUpdateStore.closePrompt()"
-              >
-                Позже
-              </KitBtn>
-            </template>
+          <div class="update-progress-meta">
+            <span class="update-progress-percentage">{{ downloadProgress }}%</span>
+            <span v-if="progressDetails" class="update-progress-bytes">{{ progressDetails }}</span>
           </div>
+        </div>
+
+        <div class="prompt-actions">
+          <!-- Состояние 1: Загрузка завершена -->
+          <template v-if="status === 'ready'">
+            <KitBtn
+              icon="mdi:cellphone-arrow-down"
+              color="primary"
+              @click="appUpdateStore.installApk()"
+            >
+              {{ t('appUpdate.installBtn') }}
+            </KitBtn>
+            <KitBtn
+              variant="outlined"
+              color="secondary"
+              @click="appUpdateStore.closePrompt()"
+            >
+              {{ t('appUpdate.closeBtn') }}
+            </KitBtn>
+          </template>
+
+          <!-- Состояние 2: Идет загрузка -->
+          <template v-else-if="status === 'downloading'">
+            <KitBtn
+              variant="outlined"
+              color="secondary"
+              @click="appUpdateStore.closePrompt()"
+            >
+              {{ t('appUpdate.hideBtn') }}
+            </KitBtn>
+          </template>
+
+          <!-- Состояние 3: Ошибка при загрузке -->
+          <template v-else-if="status === 'error'">
+            <KitBtn
+              icon="mdi:refresh"
+              color="primary"
+              @click="appUpdateStore.startUpdate()"
+            >
+              {{ t('appUpdate.retryBtn') }}
+            </KitBtn>
+            <KitBtn
+              variant="outlined"
+              color="secondary"
+              icon="mdi:open-in-new"
+              @click="appUpdateStore.openExternalRelease()"
+            >
+              {{ t('appUpdate.openInBrowserBtn') }}
+            </KitBtn>
+            <KitBtn
+              variant="text"
+              color="secondary"
+              @click="appUpdateStore.closePrompt()"
+            >
+              {{ t('appUpdate.closeBtn') }}
+            </KitBtn>
+          </template>
+
+          <!-- Состояние 4: Исходное состояние предложения обновиться -->
+          <template v-else>
+            <KitBtn
+              icon="mdi:download"
+              color="primary"
+              @click="appUpdateStore.startUpdate()"
+            >
+              {{ t('appUpdate.downloadBtn') }}
+            </KitBtn>
+            <KitBtn
+              variant="outlined"
+              color="secondary"
+              @click="appUpdateStore.closePrompt()"
+            >
+              {{ t('appUpdate.laterBtn') }}
+            </KitBtn>
+          </template>
         </div>
       </div>
     </Transition>
@@ -193,7 +223,7 @@ const progressDetails = computed(() => {
   right: var(--p-l, 20px);
   bottom: var(--p-l, 20px);
   display: flex;
-  align-items: flex-start;
+  flex-direction: column;
   gap: var(--p-m, 16px);
   padding: 16px 20px;
   border: 1px solid var(--border-primary-color);
@@ -207,24 +237,39 @@ const progressDetails = computed(() => {
   backdrop-filter: blur(12px);
 
   @include media-down(sm) {
-    flex-direction: column;
     right: 16px;
     left: 16px;
     bottom: calc(16px + var(--safe-area-inset-bottom, 0px));
     width: auto;
     max-width: none;
     padding: 14px 16px;
+    gap: var(--p-s, 12px);
   }
 }
 
+.prompt-message {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.prompt-header {
+  display: flex;
+  align-items: center;
+  gap: var(--p-s, 12px);
+}
+
 .prompt-icon {
-  font-size: 2.2rem;
-  color: var(--fg-accent-color);
-  flex-shrink: 0;
-  margin-top: 2px;
   display: flex;
   align-items: center;
   justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  background-color: var(--bg-tertiary-color);
+  color: var(--fg-accent-color);
+  font-size: 1.35rem;
+  flex-shrink: 0;
 
   &.is-downloading {
     color: var(--fg-primary-color);
@@ -237,24 +282,22 @@ const progressDetails = computed(() => {
   &.is-error {
     color: var(--fg-error-color);
   }
-}
 
-.prompt-content-wrapper {
-  display: flex;
-  flex-direction: column;
-  gap: var(--p-s, 12px);
-  flex-grow: 1;
-  width: 100%;
-}
-
-.prompt-message {
-  flex-grow: 1;
+  @include media-down(sm) {
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    font-size: 1.2rem;
+  }
 }
 
 .prompt-title {
-  margin: 0 0 6px 0;
-  font-size: 1.05rem;
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  font-size: 1rem;
   font-weight: 600;
+  line-height: 1.3;
   color: var(--fg-primary-color);
 }
 
@@ -266,7 +309,6 @@ const progressDetails = computed(() => {
 }
 
 .update-progress-container {
-  margin-top: 12px;
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -304,13 +346,12 @@ const progressDetails = computed(() => {
 .prompt-actions {
   display: flex;
   flex-wrap: wrap;
+  justify-content: flex-end;
   gap: var(--p-xs, 8px);
-  align-self: flex-end;
 
   @include media-down(xs) {
-    width: 100%;
     flex-direction: column;
-    align-self: stretch;
+    width: 100%;
 
     :deep(.kit-btn) {
       width: 100%;

@@ -2,6 +2,7 @@ import type { UnlistenFn } from '@tauri-apps/api/event'
 import { invoke } from '@tauri-apps/api/core'
 import { listen } from '@tauri-apps/api/event'
 import { defineStore } from 'pinia'
+import { i18n } from '~/00.plugins/i18n'
 import { isTauri } from '~/01.shared/lib/env'
 import { openExternalUrl } from '~/01.shared/lib/opener'
 import { useToastStore } from './toast.store'
@@ -166,7 +167,7 @@ export const useAppUpdateStore = defineStore('appUpdate', {
       }
 
       const toastStore = useToastStore()
-      toastStore.info('Переход к загрузке обновления...')
+      toastStore.info(i18n.global.t('appUpdate.openDownloadToast'))
       await openExternalUrl(url)
     },
 
@@ -210,14 +211,14 @@ export const useAppUpdateStore = defineStore('appUpdate', {
         this.downloadProgress = 100
         this.isDownloading = false
 
-        toastStore.success('Обновление успешно загружено!')
+        toastStore.success(i18n.global.t('appUpdate.downloadedToast'))
         await this.installApk()
       }
       catch (err: unknown) {
         console.error('[AppUpdate] Ошибка при загрузке обновления:', err)
         this.isDownloading = false
-        this.downloadError = typeof err === 'string' ? err : ((err as Error)?.message || 'Не удалось загрузить обновление')
-        toastStore.error(`Ошибка загрузки: ${this.downloadError}`)
+        this.downloadError = typeof err === 'string' ? err : ((err as Error)?.message || i18n.global.t('appUpdate.downloadFailed'))
+        toastStore.error(i18n.global.t('appUpdate.downloadErrorToast', { error: this.downloadError }))
       }
       finally {
         if (unlistenProgress) {
@@ -237,7 +238,7 @@ export const useAppUpdateStore = defineStore('appUpdate', {
       }
       catch (e: unknown) {
         console.error('[AppUpdate] Ошибка открытия локального установщика APK:', e)
-        toastStore.error('APK загружен, но Android не смог открыть установщик. Нажмите «Установить», чтобы повторить.')
+        toastStore.error(i18n.global.t('appUpdate.installOpenFailedToast'))
       }
     },
 

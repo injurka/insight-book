@@ -76,6 +76,28 @@
     "tauriUpdateBtn": "下载",
     "closeBtn": "关闭"
   },
+  "appUpdate": {
+    "availableTitle": "有可用更新 v{version}",
+    "downloadingTitle": "正在下载更新 v{version}",
+    "readyTitle": "更新已准备好安装",
+    "errorTitle": "下载失败 v{version}",
+    "availableDesc": "新版本 v{version} 已可用。现在下载并安装吗？",
+    "downloadingDesc": "正在下载新版本文件...",
+    "readyDesc": "更新文件 v{version} 已成功下载。",
+    "errorDesc": "{error}。您可以重试或前往发布页面。",
+    "installBtn": "安装",
+    "downloadBtn": "下载",
+    "laterBtn": "稍后",
+    "hideBtn": "隐藏",
+    "retryBtn": "重试",
+    "openInBrowserBtn": "在浏览器中打开",
+    "closeBtn": "关闭",
+    "openDownloadToast": "正在打开更新下载...",
+    "downloadedToast": "更新下载成功！",
+    "downloadFailed": "下载更新失败",
+    "downloadErrorToast": "下载错误：{error}",
+    "installOpenFailedToast": "APK 已下载，但 Android 无法打开安装程序。请点击“安装”重试。"
+  },
   "network": {
     "timeoutTitle": "网络连接较慢",
     "timeoutDesc": "加载耗时已超过5秒。您可以切换至使用本地数据的离线模式，或重试连接。",

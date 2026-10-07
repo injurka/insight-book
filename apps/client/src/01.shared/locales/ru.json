@@ -76,6 +76,28 @@
     "tauriUpdateBtn": "Скачать",
     "closeBtn": "Закрыть"
   },
+  "appUpdate": {
+    "availableTitle": "Доступно обновление v{version}",
+    "downloadingTitle": "Загрузка обновления v{version}",
+    "readyTitle": "Обновление готово к установке",
+    "errorTitle": "Ошибка загрузки v{version}",
+    "availableDesc": "Доступна новая версия v{version}. Скачать и установить прямо сейчас?",
+    "downloadingDesc": "Скачивание файла новой версии...",
+    "readyDesc": "Файл обновления v{version} успешно загружен.",
+    "errorDesc": "{error}. Вы можете повторить попытку или перейти к релизу.",
+    "installBtn": "Установить",
+    "downloadBtn": "Скачать",
+    "laterBtn": "Позже",
+    "hideBtn": "Скрыть",
+    "retryBtn": "Повторить",
+    "openInBrowserBtn": "В браузере",
+    "closeBtn": "Закрыть",
+    "openDownloadToast": "Переход к загрузке обновления...",
+    "downloadedToast": "Обновление успешно загружено!",
+    "downloadFailed": "Не удалось загрузить обновление",
+    "downloadErrorToast": "Ошибка загрузки: {error}",
+    "installOpenFailedToast": "APK загружен, но Android не смог открыть установщик. Нажмите «Установить», чтобы повторить."
+  },
   "network": {
     "timeoutTitle": "Медленное интернет-соединение",
     "timeoutDesc": "Загрузка длится дольше 5 секунд. Вы можете мгновенно перейти в оффлайн-режим с локальными данными или повторить попытку соединения.",
