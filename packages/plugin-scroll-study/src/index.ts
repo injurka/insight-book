@@ -1,6 +1,7 @@
 import type { InsightBookPlugin, InsightBookPluginContext } from '@injurka/insight-book-plugin-api'
 import { defineAsyncComponent } from 'vue'
 import { useScrollStudyStore } from './modules/scroll-study/model/scroll-study.store'
+import { registerScrollStudyIcons } from './shared/icons'
 import en from './shared/locales/en'
 import ru from './shared/locales/ru'
 import zh from './shared/locales/zh'
@@ -27,6 +28,9 @@ const plugin: InsightBookPlugin = {
   orientation: 'landscape',
 
   activate(ctx: InsightBookPluginContext) {
+    // Иконки интерфейса регистрируются локально — без похода в api.iconify.design.
+    registerScrollStudyIcons()
+
     ctx.registerTranslations({ ru, en, zh })
 
     const locales = { ru, en, zh } as const
