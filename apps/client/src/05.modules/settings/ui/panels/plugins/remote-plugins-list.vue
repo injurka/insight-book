@@ -3,6 +3,7 @@ import type { InsightBookPluginManifest } from '@injurka/insight-book-plugin-api
 import { Icon } from '@iconify/vue'
 import { ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { pluginManager } from '~/00.plugins/plugin-manager'
 import { getCachedPlugin } from '~/00.plugins/plugin-storage'
 import { KitBtn } from '~/02.kit/atoms/kit-btn/ui'
 import { KitCheckbox } from '~/02.kit/atoms/kit-checkbox/ui'
@@ -11,6 +12,11 @@ import { usePluginsStore } from '../../../store/plugins.store'
 const { t } = useI18n()
 const pluginsStore = usePluginsStore()
 const manifestsByPluginId = ref<Record<string, InsightBookPluginManifest>>({})
+
+function getInstalledVersion(pluginId: string) {
+  return pluginManager.plugins.find(plugin => plugin.id === pluginId)?.version
+    || manifestsByPluginId.value[pluginId]?.version
+}
 
 async function loadCachedManifests() {
   const entries = await Promise.all(pluginsStore.remotePlugins.map(async (record) => {
@@ -42,7 +48,12 @@ watch(() => pluginsStore.remotePlugins, loadCachedManifests, { immediate: true }
           <Icon :icon="manifestsByPluginId[record.pluginId]?.icon || 'mdi:puzzle-outline'" />
         </div>
         <div class="plugin-info">
-          <h3>{{ manifestsByPluginId[record.pluginId]?.name || record.pluginId }}</h3>
+          <div class="plugin-heading">
+            <h3>{{ manifestsByPluginId[record.pluginId]?.name || record.pluginId }}</h3>
+            <span v-if="getInstalledVersion(record.pluginId)" class="plugin-version">
+              v{{ getInstalledVersion(record.pluginId) }}
+            </span>
+          </div>
           <p v-if="manifestsByPluginId[record.pluginId]?.description">
             {{ manifestsByPluginId[record.pluginId]?.description }}
           </p>
@@ -143,8 +154,22 @@ watch(() => pluginsStore.remotePlugins, loadCachedManifests, { immediate: true }
     flex: 1;
     min-width: 0;
 
+    .plugin-heading {
+      display: flex;
+      align-items: baseline;
+      flex-wrap: wrap;
+      gap: 4px 8px;
+      margin-bottom: 4px;
+    }
+
+    .plugin-version {
+      font-size: 0.8rem;
+      color: var(--fg-muted-color);
+      white-space: nowrap;
+    }
+
     h3 {
-      margin: 0 0 4px;
+      margin: 0;
       font-size: 1.1rem;
       color: var(--fg-primary-color);
       font-weight: 600;
