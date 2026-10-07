@@ -260,6 +260,13 @@
       "when": 1791206986527,
       "tag": "0036_superb_lockjaw",
       "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "6",
+      "when": 1791379291041,
+      "tag": "0037_regular_network",
+      "breakpoints": true
     }
   ]
 }
