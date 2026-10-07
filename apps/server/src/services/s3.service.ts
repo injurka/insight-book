@@ -17,6 +17,8 @@ export interface S3Config {
   secretKey: string
 }
 
+const S3_DELETE_CONCURRENCY = 8
+
 class S3Service {
   private client: S3Client
   private bucket: string
@@ -64,8 +66,9 @@ class S3Service {
   async deleteFolder(prefix: string) {
     try {
       const keys = await this.listFilesInFolder(prefix)
-      for (const key of keys) {
-        await this.deleteFile(key)
+      for (let index = 0; index < keys.length; index += S3_DELETE_CONCURRENCY) {
+        const batch = keys.slice(index, index + S3_DELETE_CONCURRENCY)
+        await Promise.all(batch.map(key => this.deleteFile(key)))
       }
     }
     catch (error) {

@@ -204,9 +204,20 @@ async function confirmUpload() {
             <span>{{ uploadStatus }}</span>
             <span v-if="uploadPercent !== null && !isProcessingUpload">{{ uploadPercent }}%</span>
           </div>
+          <div
+            v-if="uploadPercent === null || isProcessingUpload"
+            class="upload-progress upload-progress--indeterminate"
+            role="progressbar"
+            :aria-label="uploadStatus"
+            aria-valuemin="0"
+            aria-valuemax="100"
+          >
+            <span class="upload-progress-indicator" />
+          </div>
           <progress
+            v-else
             class="upload-progress"
-            :value="isProcessingUpload ? undefined : uploadPercent ?? undefined"
+            :value="uploadPercent"
             max="100"
             :aria-label="uploadStatus"
           />
@@ -401,7 +412,28 @@ async function confirmUpload() {
   appearance: none;
   accent-color: var(--fg-accent-color);
   background: var(--bg-tertiary-color);
+}
 
+.upload-progress--indeterminate {
+  position: relative;
+}
+
+.upload-progress-indicator {
+  position: absolute;
+  inset: 0 auto 0 -35%;
+  width: 35%;
+  border-radius: inherit;
+  background: var(--fg-accent-color);
+  animation: plugin-upload-progress 1.6s ease-in-out infinite;
+}
+
+@keyframes plugin-upload-progress {
+  to {
+    transform: translateX(390%);
+  }
+}
+
+.upload-progress:not(.upload-progress--indeterminate) {
   &::-webkit-progress-bar {
     border-radius: 999px;
     background: var(--bg-tertiary-color);

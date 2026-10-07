@@ -40,6 +40,8 @@ const PLUGIN_CONTENT_TYPES: Record<string, string> = {
   '.ttf': 'font/ttf',
 }
 
+const PLUGIN_FILE_UPLOAD_CONCURRENCY = 8
+
 export function getPluginContentType(filename: string): string {
   return PLUGIN_CONTENT_TYPES[path.extname(filename).toLowerCase()] || 'application/octet-stream'
 }
@@ -158,32 +160,59 @@ export class CatalogPluginService {
     // Удаляем старую версию этой же версии (перезапись), остальные версии сохраняем
     await storageService.deleteFolder(storagePrefix)
 
-    let uploadedCount = 0
-    for (const entry of entries) {
+    const filesToUpload = entries.flatMap((entry) => {
       if (basePrefix !== '.' && !entry.entryName.startsWith(`${basePrefix}/`)) {
-        continue
+        return []
       }
 
       const relativePath = basePrefix === '.'
         ? entry.entryName
         : entry.entryName.slice(basePrefix.length + 1)
 
-      if (!relativePath || relativePath.includes('..')) {
-        continue
-      }
+      if (!relativePath || relativePath.includes('..'))
+        return []
 
       const key = `${storagePrefix}/${relativePath}`
-      await storageService.uploadFile(key, entry.getData(), getPluginContentType(relativePath))
-      uploadedCount++
+      return [{ entry, key, contentType: getPluginContentType(relativePath) }]
+    })
+
+    logger.info(`[Catalog] Storing plugin "${manifest.id}" v${manifest.version}: ${filesToUpload.length} files from ${file.size} bytes`)
+
+    let nextIndex = 0
+    let uploadError: unknown
+    let hasUploadError = false
+    const uploadWorker = async () => {
+      while (!hasUploadError) {
+        const item = filesToUpload[nextIndex++]
+        if (!item)
+          return
+
+        try {
+          await storageService.uploadFile(item.key, item.entry.getData(), item.contentType)
+        }
+        catch (error) {
+          if (!hasUploadError) {
+            uploadError = error
+            hasUploadError = true
+          }
+        }
+      }
     }
+
+    const workerCount = Math.min(PLUGIN_FILE_UPLOAD_CONCURRENCY, filesToUpload.length)
+    await Promise.all(Array.from({ length: workerCount }, () => uploadWorker()))
+    if (hasUploadError)
+      throw uploadError
 
     // Сохраняем оригинальный zip-архив для скачивания модератором/автором
     const archiveKey = `${storagePrefix}.zip`
+    logger.info(`[Catalog] Plugin "${manifest.id}" v${manifest.version}: assets stored; saving original archive`)
     await storageService.deleteFile(archiveKey).catch(() => {})
     await storageService.uploadFile(archiveKey, Buffer.from(await file.arrayBuffer()), 'application/zip')
 
     const manifestUrl = `/api/catalog/plugins/files/${manifest.id}/${manifest.version}/manifest.json`
 
+    logger.info(`[Catalog] Plugin "${manifest.id}" v${manifest.version}: archive stored; saving catalog record`)
     const plugin = await this.catalogRepo.upsert({
       id: manifest.id,
       name: manifest.name,
@@ -197,7 +226,7 @@ export class CatalogPluginService {
       status: CATALOG_PLUGIN_STATUS.PENDING,
     })
 
-    logger.info(`[Catalog] Plugin "${manifest.id}" v${manifest.version} uploaded by user ${userId} (${uploadedCount} files)`)
+    logger.info(`[Catalog] Plugin "${manifest.id}" v${manifest.version} uploaded by user ${userId} (${filesToUpload.length} files)`)
 
     return plugin
   }
