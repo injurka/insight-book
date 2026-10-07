@@ -56,10 +56,12 @@ function statusLabel(status: CatalogPluginRecord['status']) {
           <Icon :icon="record.icon || 'mdi:puzzle-outline'" />
         </div>
         <div class="plugin-info">
-          <h3>
-            {{ record.name }}
-            <span class="version-badge">v{{ record.version }}</span>
-            <span class="status-badge" :class="`status-${record.status}`">{{ statusLabel(record.status) }}</span>
+          <h3 class="plugin-heading">
+            <span class="plugin-name">{{ record.name }}</span>
+            <span class="plugin-badges">
+              <span class="version-badge">v{{ record.version }}</span>
+              <span class="status-badge" :class="`status-${record.status}`">{{ statusLabel(record.status) }}</span>
+            </span>
           </h3>
           <p v-if="record.description">
             {{ record.description }}
@@ -177,7 +179,11 @@ function statusLabel(status: CatalogPluginRecord['status']) {
     flex: 1;
     min-width: 0;
 
-    h3 {
+    .plugin-heading {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
       margin: 0 0 4px;
       font-size: 1.1rem;
       color: var(--fg-primary-color);
@@ -199,27 +205,36 @@ function statusLabel(status: CatalogPluginRecord['status']) {
   }
 }
 
+.plugin-name {
+  min-width: 0;
+}
+
+.plugin-badges {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+
 .version-badge {
-  display: inline-block;
-  margin-left: 8px;
+  display: inline-flex;
+  align-items: center;
   padding: 2px 8px;
   border-radius: 8px;
   background: var(--bg-tertiary-color);
   color: var(--fg-secondary-color);
   font-size: 0.75rem;
   font-weight: 500;
-  vertical-align: middle;
 }
 
 .status-badge {
-  display: inline-block;
-  margin-left: 8px;
+  display: inline-flex;
+  align-items: center;
   padding: 2px 8px;
   border-radius: 8px;
   font-size: 0.75rem;
   font-weight: 500;
-  vertical-align: middle;
-
   &.status-pending {
     background: rgba(234, 179, 8, 0.15);
     color: #eab308;
