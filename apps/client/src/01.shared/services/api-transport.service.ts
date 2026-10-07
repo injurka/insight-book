@@ -1,4 +1,5 @@
 import type { Span } from '@opentelemetry/api'
+import type { UploadProgress } from '~/01.shared/types/models'
 import { context, propagation, SpanKind, SpanStatusCode, trace } from '@opentelemetry/api'
 import { fetch as tauriFetch } from '@tauri-apps/plugin-http'
 import { isTauri } from '~/01.shared/lib/env'
@@ -8,6 +9,11 @@ const SERVICE_NAME = 'insight-book-client'
 const FALLBACK_BASE_URL = 'http://localhost'
 
 type FetchTransport = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>
+
+interface FetchOptionsWithUploadProgress extends RequestInit {
+  onUploadProgress?: (progress: UploadProgress) => void
+  timeout?: number
+}
 
 interface TransportUrl {
   path: string
@@ -134,6 +140,91 @@ function createRequestHeaders(input: RequestInfo | URL, init?: RequestInit): Hea
   return headers
 }
 
+function createXhrResponse(xhr: XMLHttpRequest): Response {
+  const headers = new Headers()
+  const rawHeaders = xhr.getAllResponseHeaders()
+
+  for (const line of rawHeaders.trim().split(/[\r\n]+/)) {
+    const separator = line.indexOf(':')
+    if (separator > 0)
+      headers.append(line.slice(0, separator).trim(), line.slice(separator + 1).trim())
+  }
+
+  return new Response(xhr.responseText, {
+    status: xhr.status,
+    statusText: xhr.statusText,
+    headers,
+  })
+}
+
+function xhrFetch(
+  input: RequestInfo | URL,
+  init: RequestInit,
+  timeout: number | undefined,
+  onUploadProgress: (progress: UploadProgress) => void,
+): Promise<Response> {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest()
+    const signal = init.signal
+    let settled = false
+    let abortFromSignal = () => undefined
+
+    const cleanup = () => signal?.removeEventListener('abort', abortFromSignal)
+    const fail = (error: unknown) => {
+      if (settled)
+        return
+
+      settled = true
+      cleanup()
+      reject(error)
+    }
+
+    abortFromSignal = () => {
+      const reason = signal?.reason
+      fail(reason instanceof Error ? reason : new DOMException('The request was aborted', 'AbortError'))
+      xhr.abort()
+    }
+
+    if (signal?.aborted) {
+      abortFromSignal()
+
+      return
+    }
+
+    xhr.open(requestMethod(input, init), input instanceof Request ? input.url : String(input))
+    xhr.responseType = 'text'
+    if (timeout)
+      xhr.timeout = timeout
+
+    const headers = createRequestHeaders(input, init)
+    headers.forEach((value, key) => xhr.setRequestHeader(key, value))
+
+    signal?.addEventListener('abort', abortFromSignal, { once: true })
+    xhr.upload.addEventListener('progress', (event) => {
+      onUploadProgress({ loaded: event.loaded, total: event.lengthComputable ? event.total : 0 })
+    })
+    xhr.addEventListener('load', () => {
+      if (settled)
+        return
+
+      if (xhr.status === 0) {
+        fail(new TypeError('Failed to fetch'))
+
+        return
+      }
+
+      settled = true
+      cleanup()
+      resolve(createXhrResponse(xhr))
+    }, { once: true })
+    xhr.addEventListener('error', () => fail(new TypeError('Failed to fetch')), { once: true })
+    xhr.addEventListener('timeout', () => fail(new DOMException('The request timed out', 'TimeoutError')), { once: true })
+    xhr.addEventListener('abort', () => fail(new DOMException('The request was aborted', 'AbortError')), { once: true })
+
+    xhr.send(init.body as XMLHttpRequestBodyInit | Document | null)
+  })
+}
+
 function recordCompletedRequest(
   method: string,
   safeUrl: TransportUrl,
@@ -171,16 +262,27 @@ export function createApiFetch(): typeof globalThis.fetch {
 
     // Create a fresh carrier so Authorization and other caller headers are
     // preserved for the request but never copied into telemetry attributes.
+    const fetchOptions = init as FetchOptionsWithUploadProgress | undefined
+    const { onUploadProgress, timeout, ...standardOptions } = fetchOptions || {}
     const headers = createRequestHeaders(input, init)
 
     if (span)
       propagation.inject(spanContext, headers, { set: setHeader })
-    const requestInit: RequestInit = { ...init, headers }
+    const requestInit: RequestInit = { ...standardOptions, headers }
 
     try {
       const response = await context.with(spanContext, () => {
         if (tauriTransport)
           return tauriTransport(input, requestInit)
+
+        if (onUploadProgress) {
+          return xhrFetch(
+            input,
+            requestInit,
+            timeout,
+            onUploadProgress,
+          )
+        }
 
         return globalThis.fetch(input, requestInit)
       })

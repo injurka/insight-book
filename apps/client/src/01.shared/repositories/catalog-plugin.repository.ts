@@ -1,4 +1,4 @@
-import type { CatalogPluginRecord } from '~/01.shared/types/models'
+import type { CatalogPluginRecord, UploadProgress } from '~/01.shared/types/models'
 import { z } from 'zod'
 import { applyAcl } from '~/01.shared/lib/acl'
 import { api } from '~/01.shared/services/api.service'
@@ -8,7 +8,7 @@ export interface ICatalogPluginRepository {
   getApproved: () => Promise<CatalogPluginRecord[]>
   getMy: () => Promise<CatalogPluginRecord[]>
   getPending: () => Promise<CatalogPluginRecord[]>
-  upload: (file: File, pluginId?: string) => Promise<CatalogPluginRecord>
+  upload: (file: File, pluginId?: string, onUploadProgress?: (progress: UploadProgress) => void) => Promise<CatalogPluginRecord>
   updateStatus: (id: string, status: 'approved' | 'rejected') => Promise<CatalogPluginRecord>
   delete: (id: string) => Promise<{ success: boolean }>
 }
@@ -32,8 +32,8 @@ export class DefaultCatalogPluginRepository implements ICatalogPluginRepository 
     return applyAcl(z.array(CatalogPluginRecordSchema), raw, 'catalogPlugin.getPending()')
   }
 
-  async upload(file: File, pluginId?: string) {
-    return api.catalogPlugins.upload(file, pluginId)
+  async upload(file: File, pluginId?: string, onUploadProgress?: (progress: UploadProgress) => void) {
+    return api.catalogPlugins.upload(file, pluginId, onUploadProgress)
   }
 
   async updateStatus(id: string, status: 'approved' | 'rejected') {

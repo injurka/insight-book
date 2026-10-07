@@ -16,6 +16,7 @@ import type {
   PromptItem,
   SubscriptionTier,
   TocItem,
+  UploadProgress,
   UserData,
   UserDictItem,
   UserPluginRecord,
@@ -38,11 +39,13 @@ declare module 'ofetch' {
     telemetryExpected?: boolean
     telemetryFeature?: string
     telemetryStartedAt?: number
+    onUploadProgress?: (progress: UploadProgress) => void
   }
 }
 
 export const BASE_API_URL = API_URL
 const REQUEST_TIMEOUT_MS = 20_000
+const PLUGIN_UPLOAD_TIMEOUT_MS = 10 * 60_000
 let apiFetchImplementation: typeof globalThis.fetch | null = null
 
 function requestDuration(startedAt?: number): number | undefined {
@@ -694,7 +697,7 @@ export const api = {
     getApproved: async () => request<CatalogPluginRecord[]>('/api/catalog/plugins'),
     getMy: async () => request<CatalogPluginRecord[]>('/api/catalog/plugins/my'),
     getPending: async () => request<CatalogPluginRecord[]>('/api/catalog/plugins/pending'),
-    upload: async (file: File, pluginId?: string) => {
+    upload: async (file: File, pluginId?: string, onUploadProgress?: (progress: UploadProgress) => void) => {
       const fd = new FormData()
       fd.append('file', file)
       if (pluginId)
@@ -703,6 +706,8 @@ export const api = {
       return request<CatalogPluginRecord>('/api/catalog/plugins/upload', {
         method: 'POST',
         body: fd,
+        timeout: PLUGIN_UPLOAD_TIMEOUT_MS,
+        onUploadProgress,
       })
     },
     updateStatus: async (id: string, status: 'approved' | 'rejected') =>

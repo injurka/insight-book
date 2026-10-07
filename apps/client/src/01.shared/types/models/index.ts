@@ -364,6 +364,11 @@ export interface CatalogPluginRecord {
   updatedAt: string
 }
 
+export interface UploadProgress {
+  loaded: number
+  total: number
+}
+
 /** Тариф подписки в локализованном виде (сервер отдаёт тексты на языке запроса). */
 export interface SubscriptionTier {
   id: string

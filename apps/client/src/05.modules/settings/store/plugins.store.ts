@@ -1,5 +1,5 @@
 import type { Router } from 'vue-router'
-import type { CatalogPluginRecord, UserPluginRecord } from '~/01.shared/types/models'
+import type { CatalogPluginRecord, UploadProgress, UserPluginRecord } from '~/01.shared/types/models'
 import { useMutation, useQuery } from '@pinia/colada'
 import { useRepos } from '~/00.plugins/di'
 import { i18n } from '~/00.plugins/i18n'
@@ -184,7 +184,8 @@ export const usePluginsStore = defineStore('settings-plugins', () => {
     mutateAsync: uploadPluginMutation,
     isLoading: isUploadingPlugin,
   } = useMutation({
-    mutation: async (data: { file: File, pluginId?: string }) => repos.catalogPlugin.upload(data.file, data.pluginId),
+    mutation: async (data: { file: File, pluginId?: string, onUploadProgress?: (progress: UploadProgress) => void }) =>
+      repos.catalogPlugin.upload(data.file, data.pluginId, data.onUploadProgress),
     onSuccess() {
       toast.success(t('settings.uploadPluginSuccess', 'Плагин отправлен на рассмотрение'))
       refetchMyUploadedPlugins()
@@ -198,9 +199,9 @@ export const usePluginsStore = defineStore('settings-plugins', () => {
     },
   })
 
-  async function uploadPlugin(file: File, pluginId?: string): Promise<boolean> {
+  async function uploadPlugin(file: File, pluginId?: string, onUploadProgress?: (progress: UploadProgress) => void): Promise<boolean> {
     try {
-      await uploadPluginMutation({ file, pluginId })
+      await uploadPluginMutation({ file, pluginId, onUploadProgress })
 
       return true
     }
