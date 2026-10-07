@@ -63,10 +63,10 @@ async function load() {
   }
 }
 
-async function handleStatusChange(pluginId: string, status: 'approved' | 'rejected') {
+async function handleStatusChange(pluginId: string, version: string, status: 'approved' | 'rejected') {
   actionMsg.value = ''
   try {
-    await admin.setPluginStatus(pluginId, status)
+    await admin.setPluginStatus(pluginId, version, status)
     actionMsg.value = `Статус плагина "${pluginId}" изменён на "${status === 'approved' ? 'одобрен' : 'отклонён / отозван'}"`
     await load()
   }
@@ -93,7 +93,7 @@ async function handleDelete(p: CatalogPlugin) {
 
 async function handleDownload(p: CatalogPlugin) {
   try {
-    const blob = await admin.downloadPlugin(p.id)
+    const blob = await admin.downloadPlugin(p.id, p.version)
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
@@ -224,7 +224,7 @@ onMounted(() => load())
         </tr>
       </tbody>
       <tbody v-else>
-        <tr v-for="p in filteredPlugins" :key="p.id">
+        <tr v-for="p in filteredPlugins" :key="`${p.id}:${p.version}`">
           <td class="plugins-catalog__mono">
             {{ p.id }}
           </td>
@@ -279,7 +279,7 @@ onMounted(() => load())
                 variant="ghost-danger"
                 style="padding: 4px 6px; font-size: 14px"
                 title="Отозвать плагин (отклонить)"
-                @click="handleStatusChange(p.id, 'rejected')"
+                @click="handleStatusChange(p.id, p.version, 'rejected')"
               >
                 <Icon icon="mdi:cancel" />
               </KitBtn>
@@ -290,7 +290,7 @@ onMounted(() => load())
                 variant="ghost-success"
                 style="padding: 4px 6px; font-size: 14px"
                 title="Одобрить плагин"
-                @click="handleStatusChange(p.id, 'approved')"
+                @click="handleStatusChange(p.id, p.version, 'approved')"
               >
                 <Icon icon="mdi:thumb-up" />
               </KitBtn>
@@ -301,7 +301,7 @@ onMounted(() => load())
                   variant="ghost-success"
                   style="padding: 4px 6px; font-size: 14px"
                   title="Одобрить"
-                  @click="handleStatusChange(p.id, 'approved')"
+                  @click="handleStatusChange(p.id, p.version, 'approved')"
                 >
                   <Icon icon="mdi:thumb-up" />
                 </KitBtn>
@@ -309,7 +309,7 @@ onMounted(() => load())
                   variant="ghost-danger"
                   style="padding: 4px 6px; font-size: 14px"
                   title="Отклонить"
-                  @click="handleStatusChange(p.id, 'rejected')"
+                  @click="handleStatusChange(p.id, p.version, 'rejected')"
                 >
                   <Icon icon="mdi:thumb-down" />
                 </KitBtn>

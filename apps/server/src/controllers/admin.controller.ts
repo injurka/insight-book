@@ -177,9 +177,19 @@ export const adminRouter = new Elysia({ prefix: '/api/admin' })
     return catalogPluginService.getPendingPlugins(userId)
   })
 
+  .patch('/plugins/:id/versions/:version/status', async ({ userId, params, body }) => {
+    const { catalogPluginService } = await import('../services/catalog-plugin.service')
+    return catalogPluginService.setPluginStatus(userId, params.id, params.version, body.status as Extract<CatalogPluginStatus, 'approved' | 'rejected'>)
+  }, {
+    params: t.Object({ id: t.String(), version: t.String() }),
+    body: t.Object({
+      status: t.Union([t.Literal('approved'), t.Literal('rejected')]),
+    }),
+  })
+
   .patch('/plugins/:id/status', async ({ userId, params, body }) => {
     const { catalogPluginService } = await import('../services/catalog-plugin.service')
-    return catalogPluginService.setPluginStatus(userId, params.id, body.status as Extract<CatalogPluginStatus, 'approved' | 'rejected'>)
+    return catalogPluginService.setLatestPluginStatus(userId, params.id, body.status as Extract<CatalogPluginStatus, 'approved' | 'rejected'>)
   }, {
     params: t.Object({ id: t.String() }),
     body: t.Object({
@@ -192,6 +202,18 @@ export const adminRouter = new Elysia({ prefix: '/api/admin' })
     return catalogPluginService.deletePlugin(userId, params.id)
   }, {
     params: t.Object({ id: t.String() }),
+  })
+
+  .get('/plugins/:id/versions/:version/download', async ({ userId, params, set }) => {
+    const { catalogPluginService } = await import('../services/catalog-plugin.service')
+    const archive = await catalogPluginService.downloadPlugin(userId, params.id, params.version)
+    set.headers = {
+      'Content-Type': 'application/zip',
+      'Content-Disposition': `attachment; filename="${archive.filename}"`,
+    }
+    return Buffer.from(archive.buffer)
+  }, {
+    params: t.Object({ id: t.String(), version: t.String() }),
   })
 
   .get('/plugins/:id/download', async ({ userId, params, set }) => {

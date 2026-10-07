@@ -508,3 +508,31 @@ export const catalogPlugins = sqliteTable('catalog_plugins', {
 export const catalogPluginsRelations = relations(catalogPlugins, ({ one }) => ({
   uploader: one(users, { fields: [catalogPlugins.uploadedBy], references: [users.id] }),
 }))
+
+/**
+ * Immutable releases for a catalog plugin. `catalog_plugins` remains the
+ * current catalog projection; keeping release rows lets installed clients
+ * continue loading their pinned version while a newer release is reviewed.
+ */
+export const catalogPluginVersions = sqliteTable('catalog_plugin_versions', {
+  pluginId: text('pluginId').notNull(),
+  version: text('version').notNull(),
+  name: text('name').notNull(),
+  description: text('description'),
+  icon: text('icon'),
+  author: text('author'),
+  sourceUrl: text('sourceUrl'),
+  manifestUrl: text('manifestUrl').notNull(),
+  uploadedBy: integer('uploadedBy').references(() => users.id, { onDelete: 'set null' }),
+  status: text('status').notNull().default('pending'),
+  createdAt: text('createdAt').notNull().default(sql`(datetime('now'))`),
+  updatedAt: text('updatedAt').notNull().default(sql`(datetime('now'))`),
+}, t => [
+  primaryKey({ columns: [t.pluginId, t.version] }),
+  index('catalog_plugin_versions_status_idx').on(t.status),
+  index('catalog_plugin_versions_uploader_idx').on(t.uploadedBy),
+])
+
+export const catalogPluginVersionsRelations = relations(catalogPluginVersions, ({ one }) => ({
+  uploader: one(users, { fields: [catalogPluginVersions.uploadedBy], references: [users.id] }),
+}))

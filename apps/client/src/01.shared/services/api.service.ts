@@ -710,14 +710,16 @@ export const api = {
         onUploadProgress,
       })
     },
-    updateStatus: async (id: string, status: 'approved' | 'rejected') =>
-      request<CatalogPluginRecord>(`/api/catalog/plugins/${id}/status`, {
+    updateStatus: async (id: string, version: string, status: 'approved' | 'rejected') =>
+      request<CatalogPluginRecord>(`/api/catalog/plugins/${id}/versions/${version}/status`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status }),
       }),
     delete: async (id: string) =>
       request<{ success: boolean }>(`/api/catalog/plugins/${id}`, { method: 'DELETE' }),
+    deleteVersion: async (id: string, version: string) =>
+      request<{ success: boolean }>(`/api/catalog/plugins/${id}/versions/${version}`, { method: 'DELETE' }),
   },
 
   subscriptions: {

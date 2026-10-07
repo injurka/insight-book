@@ -57,8 +57,22 @@ export const catalogRouter = new Elysia({ prefix: '/api/catalog/plugins' })
       pluginId: t.Optional(t.String()),
     }),
   })
+  .patch('/:id/versions/:version/status', async ({ params, body, userId }) => {
+    return catalogPluginService.setPluginStatus(requireUserId(userId), params.id, params.version, body.status)
+  }, {
+    params: t.Object({ id: t.String(), version: t.String() }),
+    body: t.Object({
+      status: t.Enum({ approved: CATALOG_PLUGIN_STATUS.APPROVED, rejected: CATALOG_PLUGIN_STATUS.REJECTED }),
+    }),
+  })
+  .delete('/:id/versions/:version', async ({ params, userId }) => {
+    return catalogPluginService.deletePluginVersion(requireUserId(userId), params.id, params.version)
+  }, {
+    params: t.Object({ id: t.String(), version: t.String() }),
+  })
+  // Keep existing admin clients working during a rolling frontend deployment.
   .patch('/:id/status', async ({ params, body, userId }) => {
-    return catalogPluginService.setPluginStatus(requireUserId(userId), params.id, body.status)
+    return catalogPluginService.setLatestPluginStatus(requireUserId(userId), params.id, body.status)
   }, {
     params: t.Object({ id: t.String() }),
     body: t.Object({

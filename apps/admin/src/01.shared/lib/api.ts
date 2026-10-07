@@ -129,8 +129,8 @@ export const api = {
     listPlugins: (status?: string) =>
       request<CatalogPlugin[]>(status ? `/api/admin/plugins?status=${encodeURIComponent(status)}` : '/api/admin/plugins'),
 
-    setPluginStatus: (id: string, status: 'approved' | 'rejected') =>
-      request<Record<string, unknown>>(`/api/admin/plugins/${id}/status`, {
+    setPluginStatus: (id: string, version: string, status: 'approved' | 'rejected') =>
+      request<Record<string, unknown>>(`/api/admin/plugins/${id}/versions/${version}/status`, {
         method: 'PATCH',
         body: JSON.stringify({ status }),
         headers: { 'Content-Type': 'application/json' },
@@ -139,8 +139,8 @@ export const api = {
     deletePlugin: (id: string) =>
       request<{ success: boolean }>(`/api/admin/plugins/${id}`, { method: 'DELETE' }),
 
-    downloadPlugin: (id: string) =>
-      request<Blob, 'blob'>(`/api/admin/plugins/${id}/download`, {
+    downloadPlugin: (id: string, version: string) =>
+      request<Blob, 'blob'>(`/api/admin/plugins/${id}/versions/${version}/download`, {
         responseType: 'blob',
       }),
   },

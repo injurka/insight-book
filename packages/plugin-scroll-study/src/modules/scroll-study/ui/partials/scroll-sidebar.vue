@@ -777,7 +777,7 @@ function getDifficultyBadgeClass(difficulty: MysteryScrollData['difficulty']) {
   opacity: 0;
   transform: translateX(-30px);
 }
-@container scroll-study (max-width: 900px) {
+@container scroll-study (max-width: 1500px) {
   .sidebar-wrapper {
     position: absolute;
     inset: 0;

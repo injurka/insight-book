@@ -212,7 +212,8 @@ export const usePluginsStore = defineStore('settings-plugins', () => {
 
   // --- MUTATION: Удаление плагина из каталога ---
   const { mutateAsync: deleteCatalogPluginMutation } = useMutation({
-    mutation: async (id: string) => repos.catalogPlugin.delete(id),
+    mutation: async ({ id, version }: { id: string, version?: string }) =>
+      version ? repos.catalogPlugin.deleteVersion(id, version) : repos.catalogPlugin.delete(id),
     onSuccess() {
       toast.success(t('settings.catalogPluginDeleted', 'Плагин удалён из каталога'))
       refetchMyUploadedPlugins()
@@ -227,17 +228,17 @@ export const usePluginsStore = defineStore('settings-plugins', () => {
     },
   })
 
-  async function deleteCatalogPlugin(id: string) {
+  async function deleteCatalogPlugin(id: string, version?: string) {
     try {
-      await deleteCatalogPluginMutation(id)
+      await deleteCatalogPluginMutation({ id, version })
     }
     catch { }
   }
 
   // --- MUTATION: Модерация плагина каталога ---
   const { mutateAsync: moderatePluginMutation } = useMutation({
-    mutation: async ({ id, status }: { id: string, status: 'approved' | 'rejected' }) =>
-      repos.catalogPlugin.updateStatus(id, status),
+    mutation: async ({ id, version, status }: { id: string, version: string, status: 'approved' | 'rejected' }) =>
+      repos.catalogPlugin.updateStatus(id, version, status),
     onSuccess() {
       toast.success(t('settings.catalogPluginStatusUpdated', 'Статус плагина обновлён'))
       refetchPendingPlugins()
@@ -253,7 +254,7 @@ export const usePluginsStore = defineStore('settings-plugins', () => {
 
   async function moderatePlugin(record: CatalogPluginRecord, status: 'approved' | 'rejected') {
     try {
-      await moderatePluginMutation({ id: record.id, status })
+      await moderatePluginMutation({ id: record.id, version: record.version, status })
     }
     catch { }
   }

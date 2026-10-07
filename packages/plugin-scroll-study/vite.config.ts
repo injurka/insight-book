@@ -24,6 +24,7 @@ export default defineConfig(({ command }) => ({
         federation({
           name: 'plugin_scroll_study',
           filename: 'remoteEntry.js',
+          bundleAllCSS: true,
           exposes: {
             './Plugin': './src/index.ts',
           },

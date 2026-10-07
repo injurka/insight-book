@@ -27,10 +27,10 @@ async function load() {
   }
 }
 
-async function handleAction(pluginId: string, status: 'approved' | 'rejected') {
+async function handleAction(pluginId: string, version: string, status: 'approved' | 'rejected') {
   actionMsg.value = ''
   try {
-    await admin.setPluginStatus(pluginId, status)
+    await admin.setPluginStatus(pluginId, version, status)
     actionMsg.value = `Плагин ${status === 'approved' ? 'одобрен' : 'отклонён'}`
     await load()
   }
@@ -41,7 +41,7 @@ async function handleAction(pluginId: string, status: 'approved' | 'rejected') {
 
 async function handleDownload(p: PendingPlugin) {
   try {
-    const blob = await admin.downloadPlugin(p.id)
+    const blob = await admin.downloadPlugin(p.id, p.version)
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
@@ -122,7 +122,7 @@ onMounted(() => load())
         </tr>
       </tbody>
       <tbody v-else>
-        <tr v-for="p in plugins" :key="p.id">
+        <tr v-for="p in plugins" :key="`${p.id}:${p.version}`">
           <td class="moderation__mono">
             {{ p.id }}
           </td>
@@ -163,7 +163,7 @@ onMounted(() => load())
                 variant="ghost-success"
                 style="padding: 4px 6px; font-size: 12px"
                 title="Одобрить"
-                @click="handleAction(p.id, 'approved')"
+                @click="handleAction(p.id, p.version, 'approved')"
               >
                 <Icon icon="mdi:thumb-up" />
               </KitBtn>
@@ -171,7 +171,7 @@ onMounted(() => load())
                 variant="ghost-danger"
                 style="padding: 4px 6px; font-size: 12px"
                 title="Отклонить"
-                @click="handleAction(p.id, 'rejected')"
+                @click="handleAction(p.id, p.version, 'rejected')"
               >
                 <Icon icon="mdi:thumb-down" />
               </KitBtn>

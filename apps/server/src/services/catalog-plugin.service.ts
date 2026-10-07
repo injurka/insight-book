@@ -50,38 +50,73 @@ export class CatalogPluginService {
   constructor(private catalogRepo = catalogPluginRepository) {}
 
   async getPlugins() {
-    return this.catalogRepo.findMany(CATALOG_PLUGIN_STATUS.APPROVED)
+    return this.catalogRepo.findLatestApprovedVersions()
   }
 
   async getMyPlugins(userId: number) {
-    return this.catalogRepo.findByUploader(userId)
+    return this.catalogRepo.findLatestVersionsByUploader(userId)
   }
 
   async getPendingPlugins(userId: number) {
     await this.assertAdmin(userId)
-    return this.catalogRepo.findMany(CATALOG_PLUGIN_STATUS.PENDING)
+    return this.catalogRepo.findVersions(CATALOG_PLUGIN_STATUS.PENDING)
   }
 
   async listPlugins(userId: number, status?: CatalogPluginStatus) {
     await this.assertAdmin(userId)
-    return this.catalogRepo.findMany(status)
+    return this.catalogRepo.findVersions(status)
   }
 
-  async setPluginStatus(userId: number, pluginId: string, status: CatalogPluginStatus) {
+  async setPluginStatus(userId: number, pluginId: string, version: string, status: CatalogPluginStatus) {
     await this.assertAdmin(userId)
 
-    const updated = await this.catalogRepo.updateStatus(pluginId, status)
+    const updated = await this.catalogRepo.updateVersionStatus(pluginId, version, status)
     if (!updated) {
-      throw new AppError(404, ERROR_CODES.PLUGIN.NOT_FOUND, 'Plugin not found in catalog')
+      throw new AppError(404, ERROR_CODES.PLUGIN.NOT_FOUND, 'Plugin version not found in catalog')
     }
 
-    logger.info(`[Catalog] Plugin "${pluginId}" status changed to "${status}" by user ${userId}`)
+    const currentRelease = (await this.catalogRepo.findLatestApprovedVersions())
+      .find(plugin => plugin.id === pluginId)
+    if (currentRelease) {
+      await this.catalogRepo.upsert({
+        id: currentRelease.id,
+        name: currentRelease.name,
+        version: currentRelease.version,
+        description: currentRelease.description,
+        icon: currentRelease.icon,
+        author: currentRelease.author,
+        sourceUrl: currentRelease.sourceUrl,
+        manifestUrl: currentRelease.manifestUrl,
+        uploadedBy: currentRelease.uploadedBy,
+        status: CATALOG_PLUGIN_STATUS.APPROVED,
+      })
+    }
+    else {
+      await this.catalogRepo.updateStatus(pluginId, CATALOG_PLUGIN_STATUS.REJECTED)
+    }
+
+    logger.info(`[Catalog] Plugin "${pluginId}" v${version} status changed to "${status}" by user ${userId}`)
     return updated
   }
 
+  async setLatestPluginStatus(userId: number, pluginId: string, status: CatalogPluginStatus) {
+    await this.assertAdmin(userId)
+    const releases = await this.catalogRepo.findVersions()
+    const pluginReleases = releases.filter(release => release.id === pluginId)
+    const target = pluginReleases.find(release => release.status === CATALOG_PLUGIN_STATUS.PENDING)
+      ?? pluginReleases[0]
+
+    if (!target) {
+      throw new AppError(404, ERROR_CODES.PLUGIN.NOT_FOUND, 'Plugin not found in catalog')
+    }
+
+    return this.setPluginStatus(userId, pluginId, target.version, status)
+  }
+
   async getPlugin(pluginId: string) {
-    const plugin = await this.catalogRepo.findOne(pluginId)
-    if (!plugin || plugin.status !== CATALOG_PLUGIN_STATUS.APPROVED) {
+    const plugin = (await this.catalogRepo.findLatestApprovedVersions())
+      .find(record => record.id === pluginId)
+    if (!plugin) {
       throw new AppError(404, ERROR_CODES.PLUGIN.NOT_FOUND, 'Plugin not found in catalog')
     }
     return plugin
@@ -153,6 +188,11 @@ export class CatalogPluginService {
       }
     }
 
+    const existingVersion = await this.catalogRepo.findVersion(manifest.id, manifest.version)
+    if (existingVersion?.status === CATALOG_PLUGIN_STATUS.APPROVED) {
+      throw new AppError(409, ERROR_CODES.PLUGIN.INVALID_MANIFEST, `Version ${manifest.version} is already published and cannot be replaced`)
+    }
+
     // Префикс папки внутри архива, в которой лежит manifest.json
     const basePrefix = path.posix.dirname(manifestEntry.entryName)
     const storagePrefix = `plugins/${manifest.id}/${manifest.version}`
@@ -212,11 +252,28 @@ export class CatalogPluginService {
 
     const manifestUrl = `/api/catalog/plugins/files/${manifest.id}/${manifest.version}/manifest.json`
 
-    logger.info(`[Catalog] Plugin "${manifest.id}" v${manifest.version}: archive stored; saving catalog record`)
-    const plugin = await this.catalogRepo.upsert({
+    logger.info(`[Catalog] Plugin "${manifest.id}" v${manifest.version}: archive stored; saving release record`)
+    const versionRecord = {
       id: manifest.id,
       name: manifest.name,
       version: manifest.version,
+      description: manifest.description ?? null,
+      icon: manifest.icon ?? null,
+      author: manifest.author ?? null,
+      sourceUrl: manifest.source ?? null,
+      manifestUrl,
+      uploadedBy: userId,
+      status: CATALOG_PLUGIN_STATUS.PENDING,
+    }
+
+    if (!existingPlugin) {
+      await this.catalogRepo.upsert(versionRecord)
+    }
+
+    const plugin = await this.catalogRepo.saveVersion({
+      pluginId: manifest.id,
+      version: manifest.version,
+      name: manifest.name,
       description: manifest.description ?? null,
       icon: manifest.icon ?? null,
       author: manifest.author ?? null,
@@ -228,17 +285,24 @@ export class CatalogPluginService {
 
     logger.info(`[Catalog] Plugin "${manifest.id}" v${manifest.version} uploaded by user ${userId} (${filesToUpload.length} files)`)
 
-    return plugin
+    return plugin ?? versionRecord
   }
 
   /**
    * Скачивание оригинального zip-архива плагина (для модерации).
    * Доступно админу; автор плагина также может скачать свой архив.
    */
-  async downloadPlugin(userId: number, pluginId: string) {
-    const plugin = await this.catalogRepo.findOne(pluginId)
+  async downloadPlugin(userId: number, pluginId: string, version?: string) {
+    let plugin = version ? await this.catalogRepo.findVersion(pluginId, version) : null
+    if (!version) {
+      const releases = await this.catalogRepo.findVersions()
+        .then(records => records.filter(record => record.id === pluginId))
+      plugin = releases.find(release => release.status === CATALOG_PLUGIN_STATUS.PENDING)
+        ?? releases[0]
+        ?? null
+    }
     if (!plugin) {
-      throw new AppError(404, ERROR_CODES.PLUGIN.NOT_FOUND, 'Plugin not found in catalog')
+      throw new AppError(404, ERROR_CODES.PLUGIN.NOT_FOUND, 'Plugin version not found in catalog')
     }
 
     const user = await userRepository.findById(userId)
@@ -273,6 +337,32 @@ export class CatalogPluginService {
     return { success: true }
   }
 
+  async deletePluginVersion(userId: number, pluginId: string, version: string) {
+    const release = await this.catalogRepo.findVersion(pluginId, version)
+    if (!release) {
+      throw new AppError(404, ERROR_CODES.PLUGIN.NOT_FOUND, 'Plugin version not found in catalog')
+    }
+
+    const user = await userRepository.findById(userId)
+    const isAdmin = user?.role === ROLES.ADMIN
+    if (!isAdmin && release.uploadedBy !== userId) {
+      throw new AppError(403, ERROR_CODES.AUTH.FORBIDDEN, 'Only admin or plugin uploader can delete this release')
+    }
+    if (release.status === CATALOG_PLUGIN_STATUS.APPROVED) {
+      throw new AppError(409, ERROR_CODES.PLUGIN.INVALID_MANIFEST, 'Published releases cannot be deleted individually')
+    }
+
+    await this.catalogRepo.deleteVersion(pluginId, version)
+    await storageService.deleteFolder(`plugins/${pluginId}/${version}`)
+    await storageService.deleteFile(`plugins/${pluginId}/${version}.zip`).catch(() => {})
+
+    const remainingReleases = await this.catalogRepo.findVersions()
+    if (!remainingReleases.some(item => item.id === pluginId))
+      await this.catalogRepo.delete(pluginId)
+
+    return { success: true }
+  }
+
   /** Отдача файла плагина (manifest.json, remoteEntry.js, ассеты) */
   async getPluginFile(storageKey: string) {
     if (storageKey.includes('..')) {
@@ -286,8 +376,8 @@ export class CatalogPluginService {
       throw new AppError(400, ERROR_CODES.SYSTEM.VALIDATION_ERROR, 'Invalid plugin path')
     }
 
-    const plugin = await this.catalogRepo.findOne(pluginId)
-    if (!plugin || plugin.status !== CATALOG_PLUGIN_STATUS.APPROVED || plugin.version !== version) {
+    const release = await this.catalogRepo.findVersion(pluginId, version)
+    if (!release || release.status !== CATALOG_PLUGIN_STATUS.APPROVED) {
       return null
     }
 

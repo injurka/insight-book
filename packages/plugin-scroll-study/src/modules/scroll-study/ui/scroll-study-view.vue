@@ -137,7 +137,8 @@ onMounted(() => {
   z-index: 10;
   padding: 24px;
 }
-@container scroll-study (max-width: 900px) {
+
+@container scroll-study (max-width: 1500px) {
   .center-workspace {
     padding: 12px;
   }

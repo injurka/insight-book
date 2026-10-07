@@ -38,7 +38,7 @@ const pluginsStore = usePluginsStore()
     </div>
 
     <div v-else class="plugins-list">
-      <div v-for="record in pluginsStore.pendingPlugins" :key="record.id" class="plugin-card">
+      <div v-for="record in pluginsStore.pendingPlugins" :key="`${record.id}:${record.version}`" class="plugin-card">
         <div class="plugin-icon">
           <Icon :icon="record.icon || 'mdi:puzzle-outline'" />
         </div>
@@ -76,7 +76,7 @@ const pluginsStore = usePluginsStore()
             icon="mdi:delete-outline"
             size="sm"
             :title="t('settings.deleteCatalogPlugin', 'Удалить')"
-            @click="pluginsStore.deleteCatalogPlugin(record.id)"
+            @click="pluginsStore.deleteCatalogPlugin(record.id, record.version)"
           />
         </div>
       </div>
