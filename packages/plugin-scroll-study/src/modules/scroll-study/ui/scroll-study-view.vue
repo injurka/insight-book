@@ -218,16 +218,6 @@ const activeTab = ref<'symbols' | 'scrolls'>('symbols')
   padding: 24px;
 }
 
-@container scroll-study (max-width: 1500px) {
-  .center-workspace {
-    padding: 12px;
-  }
-
-  .panel-open .center-workspace :deep(.board-viewport) {
-    transform: translateX(calc(min(320px, calc(100cqw - 80px)) / 2 + 6px));
-  }
-}
-
 .gate-fade-enter-active,
 .gate-fade-leave-active {
   transition: opacity 0.34s ease;

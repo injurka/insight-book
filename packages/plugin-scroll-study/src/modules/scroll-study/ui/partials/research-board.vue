@@ -485,11 +485,10 @@ function changeScroll() {
     font-size: 0.72rem;
     white-space: nowrap;
     cursor: pointer;
-    transition: background-color 0.2s ease, transform 0.2s ease;
+    transition: background-color 0.2s ease;
 
     &:hover {
       background: #80502d;
-      transform: translateY(-1px);
     }
 
     &:active {

@@ -85,15 +85,4 @@ const scrollStore = useScrollStudyStore()
     text-shadow: 1px 1px 0px rgba(0, 0, 0, 0.8);
   }
 }
-@container scroll-study (max-width: 1500px) {
-  .scroll-header-container {
-    flex-shrink: 0;
-    margin-bottom: 8px;
-
-    .header-subtitle {
-      font-size: 0.8rem;
-      letter-spacing: 0;
-    }
-  }
-}
 </style>
