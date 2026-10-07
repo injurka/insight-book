@@ -218,21 +218,28 @@ export const useScrollStudyStore = defineStore('scrollStudy', () => {
       node.character = symbol
       updateConnections()
       checkWin()
+
       return 'place'
     }
+
     return null
   }
 
   function handleNodeClick(node: PuzzleNode) {
-    const symbol = selectedTablet.value
-    if (node.type === 'empty' && symbol && !isFinished.value) {
-      const action = node.character === symbol ? 'remove' : 'place'
-      node.character = action === 'remove' ? undefined : symbol
+    if (node.type !== 'empty' || isFinished.value)
+      return null
+
+    if (node.character) {
+      node.character = undefined
       updateConnections()
       checkWin()
-      return action
+
+      return 'remove'
     }
-    return null
+
+    const symbol = selectedTablet.value
+
+    return symbol ? handleNodeDrop(symbol, node) : null
   }
 
   function updateConnections() {

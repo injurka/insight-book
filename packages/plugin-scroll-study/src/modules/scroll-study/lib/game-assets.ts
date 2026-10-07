@@ -5,7 +5,6 @@ import buttonDisabledUrl from '../../../assets/ui-kit/square-button/disabled.png
 import buttonHoverUrl from '../../../assets/ui-kit/square-button/hover.png'
 import buttonNormalUrl from '../../../assets/ui-kit/square-button/normal.png'
 import buttonPressedUrl from '../../../assets/ui-kit/square-button/pressed.png'
-import infoParchmentUrl from '../../../assets/sidebar/info-parchment.png'
 import panelArtUrl from '../../../assets/sidebar/parchment-art.webp'
 import panelFrameUrl from '../../../assets/sidebar/pixel-wood-frame.webp'
 import popoverPaperUrl from '../../../assets/sidebar/popover-paper-tile.webp'
@@ -26,7 +25,6 @@ export const GAME_TEXTURES = {
   boardFrame: boardFrameUrl,
   panelParchment: panelArtUrl,
   panelFrame: panelFrameUrl,
-  panelInfo: infoParchmentUrl,
   popoverParchment: popoverParchmentUrl,
   popoverPaper: popoverPaperUrl,
   buttonNormal: buttonNormalUrl,

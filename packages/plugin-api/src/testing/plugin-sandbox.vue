@@ -295,13 +295,13 @@ body,
 
 .exit-fullscreen-fab {
   position: fixed;
-  top: 20px;
-  right: 20px;
+  top: 4px;
+  right: 4px;
   z-index: 9999;
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 10px;
+  padding: 4px;
   border-radius: 50px;
   background: rgba(15, 23, 42, 0.5);
   backdrop-filter: blur(12px);

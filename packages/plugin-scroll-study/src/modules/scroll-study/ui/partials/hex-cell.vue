@@ -253,15 +253,4 @@ function handleDragLeave() {
   55% { box-shadow: 0 0 0 9px #b8824520; }
   100% { box-shadow: 0 0 0 15px #b8824500; }
 }
-
-@media (prefers-reduced-motion: reduce) {
-  .cell-surface {
-    transition: none;
-  }
-
-  .placement-enter-active,
-  .cell-empty .hex-cell-inner:has(.placement-enter-active) .cell-surface {
-    animation: none;
-  }
-}
 </style>

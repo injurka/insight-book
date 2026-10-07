@@ -1,13 +1,13 @@
 <script setup lang="ts">
 import type { CharacterData } from '../../../../data'
 import { Icon } from '@iconify/vue'
-import { computed, ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
 import { allCharacters } from '../../../../data'
 import { formatPinyin } from '../../lib/format-pinyin'
 import { playUiSound } from '../../lib/ui-sound'
 import { useScrollStudyStore } from '../../model/scroll-study.store'
 import GamePanelFrame from './game-panel-frame.vue'
+import ParchmentScrollbar from './parchment-scrollbar.vue'
 
 interface MysteryScrollData {
   id: string
@@ -20,47 +20,129 @@ interface MysteryScrollData {
   hintText: string
 }
 
-defineProps<{
+interface Props {
   isOpen: boolean
   activeTab: 'symbols' | 'scrolls'
-}>()
+  compact: boolean
+}
+
+const props = defineProps<Props>()
 
 const emit = defineEmits<{
   (e: 'update:isOpen', value: boolean): void
   (e: 'update:activeTab', value: 'symbols' | 'scrolls'): void
+  (e: 'symbolSelected', item: CharacterData): void
   (e: 'pointerdownSymbol', event: PointerEvent, item: CharacterData): void
 }>()
+
+const toggleRef = ref<HTMLButtonElement | null>(null)
+const panelRef = ref<HTMLElement | null>(null)
+
+watch(() => props.isOpen, async (open) => {
+  const focusWasInPanel = panelRef.value?.contains(document.activeElement)
+  await nextTick()
+  if (!open && focusWasInPanel)
+    toggleRef.value?.focus()
+})
 
 const mysteryScrolls: MysteryScrollData[] = []
 
 const scrollStore = useScrollStudyStore()
-const router = useRouter()
 
-const selectedTierFilter = ref<number | 'all'>('all')
 const searchQuery = ref('')
-const hoveredChar = ref<CharacterData | null>(null)
 
 const filteredCharacters = computed(() => {
+  const q = searchQuery.value.trim().toLowerCase()
+  if (!q)
+    return allCharacters
+
   return allCharacters.filter((item) => {
-    if (selectedTierFilter.value !== 'all' && item.tier !== selectedTierFilter.value) {
-      return false
-    }
+    const matchesChar = item.char.includes(q)
+    const matchesPinyin = item.pinyin.toLowerCase().includes(q)
+    const matchesTrans = item.translation.toLowerCase().includes(q)
 
-    if (searchQuery.value.trim()) {
-      const q = searchQuery.value.trim().toLowerCase()
-      const matchesChar = item.char.includes(q)
-      const matchesPinyin = item.pinyin.toLowerCase().includes(q)
-      const matchesTrans = item.translation.toLowerCase().includes(q)
-      return matchesChar || matchesPinyin || matchesTrans
-    }
-
-    return true
+    return matchesChar || matchesPinyin || matchesTrans
   })
 })
 
-const selectedCharObj = computed(() => {
-  return allCharacters.find(c => c.char === scrollStore.selectedTablet) || null
-})
+// Virtualize whole rows so the palette keeps its responsive square-card layout.
+const symbolsGridRef = ref<HTMLElement | null>(null)
+const gridWidth = ref(0)
+const gridHeight = ref(0)
+const gridScrollTop = ref(0)
+const gridGap = 8
+const overscanRows = 3
+const columnCount = computed(() => Math.max(1, Math.min(
+  filteredCharacters.value.length || 1,
+  Math.floor((gridWidth.value + gridGap) / (64 + gridGap)),
+)))
+const rowHeight = computed(() => (gridWidth.value - (columnCount.value - 1) * gridGap) / columnCount.value + gridGap)
+const rowCount = computed(() => Math.ceil(filteredCharacters.value.length / columnCount.value))
+const totalHeight = computed(() => Math.max(0, rowCount.value * rowHeight.value - gridGap))
+const startRow = computed(() => Math.max(0, Math.min(
+  rowCount.value - 1,
+  Math.floor(Math.max(0, gridScrollTop.value - 3) / rowHeight.value),
+) - overscanRows))
+const endRow = computed(() => Math.min(rowCount.value,
+  Math.ceil((gridScrollTop.value + gridHeight.value) / rowHeight.value) + overscanRows,
+))
+const visibleCharacters = computed(() => filteredCharacters.value.slice(
+  startRow.value * columnCount.value,
+  endRow.value * columnCount.value,
+))
+
+let gridResizeObserver: ResizeObserver | undefined
+watch(symbolsGridRef, (element) => {
+  gridResizeObserver?.disconnect()
+  if (!element)
+    return
+
+  const measure = () => {
+    const content = element.querySelector<HTMLElement>('.parchment-scrollbar-content')
+    if (!content)
+      return
+    const style = getComputedStyle(content)
+    gridWidth.value = Math.max(1, content.clientWidth - Number.parseFloat(style.paddingLeft) - Number.parseFloat(style.paddingRight))
+    gridHeight.value = element.clientHeight
+    gridScrollTop.value = element.scrollTop
+  }
+  measure()
+  gridResizeObserver = new ResizeObserver(measure)
+  gridResizeObserver.observe(element)
+}, { flush: 'post' })
+
+watch(searchQuery, () => {
+  gridScrollTop.value = 0
+  if (symbolsGridRef.value)
+    symbolsGridRef.value.scrollTop = 0
+}, { flush: 'sync' })
+
+onBeforeUnmount(() => gridResizeObserver?.disconnect())
+
+function onSymbolsScroll(event: Event) {
+  gridScrollTop.value = (event.currentTarget as HTMLElement).scrollTop
+}
+
+async function onSymbolKeydown(event: KeyboardEvent, index: number) {
+  if (event.key !== 'Tab' || event.altKey || event.ctrlKey || event.metaKey)
+    return
+
+  const nextIndex = index + (event.shiftKey ? -1 : 1)
+  const element = symbolsGridRef.value
+  if (!element || nextIndex < 0 || nextIndex >= filteredCharacters.value.length)
+    return
+
+  event.preventDefault()
+  const top = 3 + Math.floor(nextIndex / columnCount.value) * rowHeight.value
+  const bottom = top + rowHeight.value - gridGap
+  if (top < element.scrollTop)
+    element.scrollTop = top
+  else if (bottom > element.scrollTop + element.clientHeight)
+    element.scrollTop = bottom - element.clientHeight
+  gridScrollTop.value = element.scrollTop
+  await nextTick()
+  element.querySelector<HTMLButtonElement>(`[data-symbol-index="${nextIndex}"]`)?.focus({ preventScroll: true })
+}
 
 function selectScroll(scroll: MysteryScrollData) {
   const charObj = allCharacters.find(c => c.char === scroll.char || c.id === scroll.targetCharacterId)
@@ -73,11 +155,7 @@ function selectScroll(scroll: MysteryScrollData) {
 function selectSymbol(item: CharacterData) {
   scrollStore.selectedTablet = item.char
   playUiSound('select')
-}
-
-function closePlugin() {
-  playUiSound('select')
-  void router.push('/')
+  emit('symbolSelected', item)
 }
 
 function getDifficultyBadgeClass(difficulty: MysteryScrollData['difficulty']) {
@@ -97,12 +175,25 @@ function getDifficultyBadgeClass(difficulty: MysteryScrollData['difficulty']) {
 </script>
 
 <template>
-  <div class="sidebar-wrapper">
+  <div class="sidebar-wrapper" :class="{ 'is-compact': compact }" @keydown.esc="emit('update:isOpen', false)">
+    <button
+      v-if="compact && isOpen"
+      class="panel-backdrop"
+      aria-label="Вернуться к игровому полю"
+      tabindex="-1"
+      @click="emit('update:isOpen', false)"
+    />
     <!-- Framed parchment panel -->
     <Transition name="ink-slide">
-      <div v-if="isOpen" class="sidebar-panel">
+      <section
+        v-if="isOpen"
+        id="scroll-study-palette"
+        ref="panelRef"
+        class="sidebar-panel"
+        aria-label="Знаки и свитки"
+      >
         <div class="sidebar-art" aria-hidden="true" />
-        <GamePanelFrame  />
+        <GamePanelFrame />
         <!-- TAB 1: ALL SYMBOLS -->
         <div v-if="activeTab === 'symbols'" class="tab-content">
           <!-- Search & Filter Controls -->
@@ -116,94 +207,45 @@ function getDifficultyBadgeClass(difficulty: MysteryScrollData['difficulty']) {
                 aria-label="Поиск иероглифов"
               >
               <Icon icon="mdi:magnify" class="search-icon" />
-              <button v-if="searchQuery" class="clear-btn" aria-label="Очистить поиск" @click="searchQuery = ''">
+              <button
+                v-if="searchQuery"
+                class="clear-btn"
+                aria-label="Очистить поиск"
+                @click="searchQuery = ''"
+              >
                 <Icon icon="mdi:close" />
-              </button>
-            </div>
-
-            <!-- Tier Pills -->
-            <div class="tier-pills">
-              <button
-                class="tier-pill"
-                :class="{ active: selectedTierFilter === 'all' }"
-                @click="selectedTierFilter = 'all'"
-              >
-                Все ({{ allCharacters.length }})
-              </button>
-              <button
-                class="tier-pill"
-                :class="{ active: selectedTierFilter === 0 }"
-                @click="selectedTierFilter = 0"
-              >
-                Радикалы
-              </button>
-              <button
-                class="tier-pill"
-                :class="{ active: selectedTierFilter === 1 }"
-                @click="selectedTierFilter = 1"
-              >
-                Простые
-              </button>
-              <button
-                class="tier-pill"
-                :class="{ active: selectedTierFilter === 2 }"
-                @click="selectedTierFilter = 2"
-              >
-                Сложные
               </button>
             </div>
           </div>
 
           <!-- Symbols Grid -->
-          <div class="symbols-grid custom-scrollbar">
-            <button
-              v-for="item in filteredCharacters"
-              :key="item.id"
-              class="symbol-card"
-              :class="{ selected: scrollStore.selectedTablet === item.char }"
-              :aria-pressed="scrollStore.selectedTablet === item.char"
-              @click="selectSymbol(item)"
-              @pointerdown="emit('pointerdownSymbol', $event, item)"
-              @mouseenter="hoveredChar = item"
-              @mouseleave="hoveredChar = null"
-              @focus="hoveredChar = item"
-              @blur="hoveredChar = null"
-            >
-              <span class="char-symbol">{{ item.char }}</span>
-              <span class="char-pinyin">{{ formatPinyin(item.pinyin) }}</span>
-              <div class="card-hover-overlay" />
-            </button>
-          </div>
-
-          <!-- Bottom Info Box -->
-          <div class="info-box">
-            <template v-if="hoveredChar || selectedCharObj">
-              <div class="info-header">
-                <span class="info-char">
-                  {{ (hoveredChar || selectedCharObj)?.char }}
-                </span>
-                <div class="info-meta">
-                  <div class="info-trans">
-                    {{ (hoveredChar || selectedCharObj)?.translation }}
-                    <span class="info-pinyin">
-                      [{{ formatPinyin((hoveredChar || selectedCharObj)?.pinyin ?? '') }}]
-                    </span>
-                  </div>
-                  <div class="info-sub">
-                    Тьер {{ (hoveredChar || selectedCharObj)?.tier }} • Черты: {{ (hoveredChar || selectedCharObj)?.strokeCount }}
-                  </div>
-                </div>
+          <ParchmentScrollbar class="symbols-grid" @ready="symbolsGridRef = $event" @scroll="onSymbolsScroll">
+            <div class="symbols-spacer" :style="{ height: `${totalHeight}px` }">
+              <div
+                class="symbols-window"
+                :style="{
+                  gridTemplateColumns: `repeat(${columnCount}, minmax(0, 1fr))`,
+                  transform: `translateY(${startRow * rowHeight}px)`,
+                }"
+              >
+                <button
+                  v-for="(item, index) in visibleCharacters"
+                  :key="item.id"
+                  :data-symbol-index="startRow * columnCount + index"
+                  @keydown="onSymbolKeydown($event, startRow * columnCount + index)"
+                  class="symbol-card"
+                  :class="{ selected: scrollStore.selectedTablet === item.char }"
+                  :aria-pressed="scrollStore.selectedTablet === item.char"
+                  @click="selectSymbol(item)"
+                  @pointerdown="emit('pointerdownSymbol', $event, item)"
+                >
+                  <span class="char-symbol">{{ item.char }}</span>
+                  <span class="char-pinyin">{{ formatPinyin(item.pinyin) }}</span>
+                  <div class="card-hover-overlay" />
+                </button>
               </div>
-              <p class="info-etymology">
-                {{ (hoveredChar || selectedCharObj)?.etymology }}
-              </p>
-            </template>
-            <template v-else>
-              <p class="info-placeholder">
-                Выберите иероглиф из таблицы выше и кликните по пустой ячейке на пергаменте, чтобы нанести его.
-              </p>
-            </template>
-          </div>
+            </div>
+          </ParchmentScrollbar>
         </div>
 
         <!-- TAB 2: SCROLLS SELECTION -->
@@ -212,57 +254,61 @@ function getDifficultyBadgeClass(difficulty: MysteryScrollData['difficulty']) {
             Выберите древний свиток для постижения тайных связей знаков.
           </p>
 
-          <div class="scrolls-list custom-scrollbar">
-            <div
-              v-for="scroll in mysteryScrolls"
-              :key="scroll.id"
-              class="scroll-card"
-              :class="{ active: scrollStore.activeTargetChar?.char === scroll.char }"
-            >
-              <div class="scroll-card-header">
-                <div class="scroll-info">
-                  <div class="scroll-char-box">
-                    {{ scroll.char }}
-                  </div>
-                  <div>
-                    <h3 class="scroll-title">
-                      {{ scroll.title }}
-                      <span
-                        v-if="scrollStore.completedScrollIds.includes(scroll.id)"
-                        class="check-icon"
-                        title="Постигнуто"
-                      >✓</span>
-                    </h3>
-                    <div class="scroll-target">
-                      Цель: <span class="highlight">{{ scroll.translation }}</span> [{{ formatPinyin(scroll.pinyin) }}]
+          <ParchmentScrollbar class="scrolls-list">
+            <div class="scrolls-content">
+              <div
+                v-for="scroll in mysteryScrolls"
+                :key="scroll.id"
+                class="scroll-card"
+                :class="{ active: scrollStore.activeTargetChar?.char === scroll.char }"
+              >
+                <div class="scroll-card-header">
+                  <div class="scroll-info">
+                    <div class="scroll-char-box">
+                      {{ scroll.char }}
+                    </div>
+                    <div>
+                      <h3 class="scroll-title">
+                        {{ scroll.title }}
+                        <span
+                          v-if="scrollStore.completedScrollIds.includes(scroll.id)"
+                          class="check-icon"
+                          title="Постигнуто"
+                        >✓</span>
+                      </h3>
+                      <div class="scroll-target">
+                        Цель: <span class="highlight">{{ scroll.translation }}</span> [{{ formatPinyin(scroll.pinyin) }}]
+                      </div>
                     </div>
                   </div>
+
+                  <span class="difficulty-badge" :class="getDifficultyBadgeClass(scroll.difficulty)">
+                    {{ scroll.difficulty }}
+                  </span>
                 </div>
 
-                <span class="difficulty-badge" :class="getDifficultyBadgeClass(scroll.difficulty)">
-                  {{ scroll.difficulty }}
-                </span>
-              </div>
+                <p class="scroll-hint">
+                  "{{ scroll.hintText }}"
+                </p>
 
-              <p class="scroll-hint">
-                "{{ scroll.hintText }}"
-              </p>
-
-              <div class="scroll-card-footer">
-                <button class="select-scroll-btn" @click="selectScroll(scroll)">
-                  <Icon icon="mdi:play" class="play-icon" />
-                  {{ scrollStore.activeTargetChar?.char === scroll.char ? 'Текущий' : 'Развернуть' }}
-                </button>
+                <div class="scroll-card-footer">
+                  <button class="select-scroll-btn" @click="selectScroll(scroll)">
+                    <Icon icon="mdi:play" class="play-icon" />
+                    {{ scrollStore.activeTargetChar?.char === scroll.char ? 'Текущий' : 'Развернуть' }}
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
+          </ParchmentScrollbar>
         </div>
-      </div>
+      </section>
     </Transition>
 
     <!-- Attached Toggle Button -->
     <button
+      ref="toggleRef"
       class="toggle-btn"
+      aria-controls="scroll-study-palette"
       :class="{ 'is-open': isOpen }"
       :aria-expanded="isOpen"
       :aria-label="isOpen ? 'Свернуть панель' : 'Открыть меню знаков и свитков'"
@@ -271,35 +317,32 @@ function getDifficultyBadgeClass(difficulty: MysteryScrollData['difficulty']) {
     >
       <Icon :icon="isOpen ? 'mdi:close' : 'mdi:script-text-outline'" class="toggle-icon" />
     </button>
-
-    <!-- Close / Exit Button -->
-    <button
-      class="close-btn"
-      aria-label="Закрыть и выйти из игры"
-      title="Закрыть и выйти из игры"
-      @click="closePlugin"
-    >
-      <Icon icon="mdi:close" class="close-icon" />
-    </button>
   </div>
 </template>
 
 <style lang="scss" scoped>
 .sidebar-wrapper {
-  position: relative;
+  position: absolute;
+  inset: 0;
   z-index: 20;
+  pointer-events: none;
+}
+
+.sidebar-panel,
+.toggle-btn {
+  pointer-events: auto;
 }
 
 .sidebar-panel {
   box-sizing: border-box;
   position: absolute;
-  top: 24px;
-  left: 24px;
-  width: 420px;
-  height: calc(100% - 48px);
+  top: var(--game-top);
+  left: var(--game-left);
+  bottom: var(--game-bottom);
+  width: min(var(--panel-width), calc(100% - var(--game-left) - var(--game-right)));
   display: flex;
   flex-direction: column;
-  padding: 48px 32px;
+  padding: 40px 32px;
   isolation: isolate;
   color: #48250f;
   border-radius: 8px;
@@ -312,6 +355,7 @@ function getDifficultyBadgeClass(difficulty: MysteryScrollData['difficulty']) {
   z-index: -1;
   pointer-events: none;
   background: url('../../../../assets/sidebar/parchment-art.webp') center bottom / cover no-repeat;
+  filter: brightness(0.78) saturate(0.85);
 }
 
 .tab-content {
@@ -339,10 +383,13 @@ function getDifficultyBadgeClass(difficulty: MysteryScrollData['difficulty']) {
     background: rgba(239, 217, 176, 0.8);
     border: 1px solid #b79a70;
     box-shadow: inset 0 1px 2px #48250f0a;
-    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    transition:
+      border-color 0.2s ease,
+      box-shadow 0.2s ease;
     border-radius: 10px;
     padding: 12px 32px 12px 34px;
-    font-size: 0.8rem;
+    font-size: 1rem;
+    min-height: 44px;
     color: #48250f;
 
     &::placeholder {
@@ -382,55 +429,47 @@ function getDifficultyBadgeClass(difficulty: MysteryScrollData['difficulty']) {
   }
 }
 
-.tier-pills {
-  display: flex;
-  gap: 6px;
-  overflow-x: auto;
-  padding: 5px;
-  border: 1px solid #b79a70;
-  border-radius: 10px;
-  background: rgba(222, 193, 148, 0.76);
-  box-shadow: inset 0 1px 2px #48250f0a;
+.panel-backdrop {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  background: #02061780;
+  pointer-events: auto;
+}
 
-  .tier-pill {
-    flex: 1;
-    padding: 7px 6px;
-    border-radius: 6px;
-    font-size: 0.7rem;
-    border: 1px solid transparent;
-    background: transparent;
-    color: #684421;
-    white-space: nowrap;
-    cursor: pointer;
-    transition: background 0.2s ease, border-color 0.2s ease;
-
-    &:hover {
-      background: rgba(239, 217, 176, 0.6);
-      border-color: #b79a70;
-    }
-
-    &.active {
-      background: rgba(239, 217, 176, 0.84);
-      border-color: #8e5c32;
-      color: #48250f;
-      box-shadow: 0 1px 3px #48250f1a;
-    }
-  }
+.sidebar-wrapper.is-compact .sidebar-panel {
+  top: max(calc(var(--game-top)), 26%);
+  left: max(var(--game-left), calc((100% - var(--panel-width)) / 2));
+  --panel-corner: 36px;
+  --panel-rail: 28px;
+  padding: 32px 24px;
 }
 
 .symbols-grid {
   flex: 1;
   min-height: 0;
-  overflow-y: auto;
+
+  :deep(.parchment-scrollbar-content) {
+    padding: 3px 21px 8px 3px;
+  }
+}
+
+.symbols-spacer {
+  position: relative;
+}
+
+.symbols-window {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  grid-auto-rows: max-content;
   gap: 8px;
-  padding: 3px 5px 8px 3px;
-  align-content: start;
 }
 
 .symbol-card {
+  box-sizing: border-box;
+  min-width: 0;
   aspect-ratio: 1;
   display: flex;
   flex-direction: column;
@@ -445,7 +484,10 @@ function getDifficultyBadgeClass(difficulty: MysteryScrollData['difficulty']) {
   overflow: hidden;
   cursor: grab;
   padding: 4px;
-  transition: border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    border-color 0.2s ease,
+    background 0.2s ease,
+    box-shadow 0.2s ease;
 
   &:hover {
     border-color: #8e5c32;
@@ -457,7 +499,9 @@ function getDifficultyBadgeClass(difficulty: MysteryScrollData['difficulty']) {
     background: linear-gradient(180deg, rgba(248, 223, 172, 0.87), rgba(235, 202, 141, 0.87));
     border-color: #8e5c32;
     color: #422009;
-    box-shadow: inset 0 0 0 1px #8e5c32, 0 2px 3px #48250f12;
+    box-shadow:
+      inset 0 0 0 1px #8e5c32,
+      0 2px 3px #48250f12;
   }
 
   .char-symbol {
@@ -486,69 +530,6 @@ function getDifficultyBadgeClass(difficulty: MysteryScrollData['difficulty']) {
   }
 }
 
-.info-box {
-  flex-shrink: 0;
-  margin-top: 16px;
-  border: 1px solid #b9843e;
-  box-sizing: border-box;
-  background: rgba(242, 211, 154, 0.82);
-  border-image: url('../../../../assets/sidebar/info-parchment.png') 64 fill / 9px;
-  border-radius: 8px;
-  padding: 18px 20px;
-  min-height: 125px;
-  box-shadow: 0 4px 10px #48250f66;
-
-  .info-header {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-bottom: 6px;
-
-    .info-char {
-      font-size: 1.6rem;
-      color: #ad641b;
-      text-shadow: 0 1px #ffedbc;
-      font-weight: 500;
-      line-height: 1;
-    }
-
-    .info-meta {
-      .info-trans {
-        font-size: 0.8rem;
-        font-weight: 600;
-        color: #48250f;
-
-        .info-pinyin {
-          font-size: 0.7rem;
-          color: #a4611c;
-          font-family: 'Maple Mono CN', monospace;
-          margin-left: 4px;
-        }
-      }
-
-      .info-sub {
-        font-size: 0.7rem;
-        color: #694221;
-      }
-    }
-  }
-
-  .info-etymology {
-    margin: 0;
-    font-size: 0.725rem;
-    color: #694221;
-    line-height: 1.4;
-  }
-
-  .info-placeholder {
-    margin: 0;
-    font-size: 0.75rem;
-    color: #79552e;
-    text-align: center;
-    line-height: 1.5;
-  }
-}
-
 .scrolls-desc {
   font-size: 0.75rem;
   color: #694221;
@@ -557,11 +538,13 @@ function getDifficultyBadgeClass(difficulty: MysteryScrollData['difficulty']) {
 
 .scrolls-list {
   flex: 1;
-  overflow-y: auto;
+}
+
+.scrolls-content {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  padding-right: 4px;
+  padding-right: 21px;
 }
 
 .scroll-card {
@@ -710,8 +693,8 @@ function getDifficultyBadgeClass(difficulty: MysteryScrollData['difficulty']) {
 
 .toggle-btn {
   position: absolute;
-  top: 24px;
-  left: 24px;
+  top: var(--game-top);
+  left: var(--game-left);
   z-index: 30;
   display: flex;
   align-items: center;
@@ -726,9 +709,8 @@ function getDifficultyBadgeClass(difficulty: MysteryScrollData['difficulty']) {
   cursor: pointer;
   transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 
-
   &.is-open {
-    left: 456px;
+    left: calc(var(--game-left) + var(--panel-width) + var(--game-gap));
   }
 
   &:hover:not(:disabled) {
@@ -749,39 +731,10 @@ function getDifficultyBadgeClass(difficulty: MysteryScrollData['difficulty']) {
   .toggle-icon {
     font-size: 1.35rem;
   }
-
 }
 
-.close-btn {
-  position: absolute;
-  top: 24px;
-  right: 24px;
-  z-index: 30;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 44px;
-  height: 44px;
-  border-radius: 12px;
-  background: url('../../../../assets/ui-kit/square-button/normal.png') center / 100% 100% no-repeat;
-  box-shadow: 0 4px 12px #160a0599;
-  border: 0;
-  color: #c4a16c;
-  cursor: pointer;
-  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-
-  &:hover {
-    color: #f87171;
-    background-image: url('../../../../assets/ui-kit/square-button/hover.png');
-  }
-
-  &:active {
-    background-image: url('../../../../assets/ui-kit/square-button/pressed.png');
-  }
-
-  .close-icon {
-    font-size: 1.35rem;
-  }
+.sidebar-wrapper.is-compact .toggle-btn.is-open {
+  left: var(--game-left);
 }
 
 .symbol-card:focus-visible {
@@ -789,42 +742,37 @@ function getDifficultyBadgeClass(difficulty: MysteryScrollData['difficulty']) {
   outline-offset: 2px;
 }
 
-.tier-pill:focus-visible {
-  outline: 2px solid #8e5c32;
-  outline-offset: 1px;
-}
-
 .toggle-btn:focus-visible,
-.clear-btn:focus-visible,
-.close-btn:focus-visible {
+.clear-btn:focus-visible {
   outline: 2px solid #ffe19a;
   outline-offset: 2px;
 }
 
-.custom-scrollbar {
-  scrollbar-width: thin;
-  scrollbar-color: #a4611c #6a321830;
-}
-
-.custom-scrollbar::-webkit-scrollbar {
-  width: 4px;
-}
-.custom-scrollbar::-webkit-scrollbar-track {
-  background: rgba(87, 38, 13, 0.75);
-  border-radius: 4px;
-}
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  background: rgba(245, 158, 11, 0.3);
-  border-radius: 4px;
-}
 
 .ink-slide-enter-active,
 .ink-slide-leave-active {
-  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease;
 }
 .ink-slide-enter-from,
 .ink-slide-leave-to {
   opacity: 0;
   transform: translateX(-30px);
+}
+.sidebar-wrapper.is-compact .ink-slide-enter-from,
+.sidebar-wrapper.is-compact .ink-slide-leave-to {
+  transform: translateY(24px);
+}
+
+@container scroll-study (max-height: 600px) {
+  .sidebar-wrapper.is-compact .sidebar-panel {
+    top: calc(var(--game-top));
+    padding-block: 28px;
+  }
+
+  .filter-controls {
+    margin-bottom: 8px;
+  }
 }
 </style>

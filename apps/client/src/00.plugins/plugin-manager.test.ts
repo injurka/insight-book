@@ -227,6 +227,72 @@ describe('usePluginManager - install', () => {
     expect(console.error).toHaveBeenCalledWith(expect.stringContaining('Failed to activate plugin'), expect.any(Error))
   })
 
+  it('activates a plugin only once during concurrent installation', async () => {
+    const manager = usePluginManager()
+    const router = createTestRouter()
+    let finishActivation: () => void = () => {}
+
+    const pending = new Promise<void>((resolve) => {
+      finishActivation = resolve
+    })
+    const activate = vi.fn(async (ctx: InsightBookPluginContext) => {
+      ctx.addNavigationItem({ title: 'Scroll study', routeName: 'plugin-test-plugin-index' })
+      await pending
+    })
+    const plugin = createTestPlugin({ activate })
+
+    const firstInstall = manager.install(null, router, [plugin])
+    await manager.install(null, router, [plugin])
+    finishActivation()
+    await firstInstall
+
+    expect(activate).toHaveBeenCalledTimes(1)
+    expect(manager.plugins).toHaveLength(1)
+    expect(manager.navItems).toHaveLength(1)
+  })
+
+  it('cleans failed activation registrations before a retry', async () => {
+    const manager = usePluginManager()
+    const router = createTestRouter()
+    let shouldFail = true
+    const plugin = createTestPlugin({
+      activate(ctx: InsightBookPluginContext) {
+        ctx.addNavigationItem({ title: 'Scroll study', routeName: 'plugin-test-plugin-index' })
+        ctx.registerUIWidget('reader:header-actions', 'scroll-widget', createTestComponent('Scroll'))
+        if (shouldFail)
+          throw new Error('activation failed after registration')
+      },
+    })
+
+    await manager.install(null, router, [plugin])
+    expect(manager.navItems).toHaveLength(0)
+    expect(manager.uiWidgets).toHaveLength(0)
+    shouldFail = false
+    await manager.install(null, router, [plugin])
+    expect(manager.plugins).toHaveLength(1)
+    expect(manager.navItems).toHaveLength(1)
+    expect(manager.uiWidgets).toHaveLength(1)
+    await manager.uninstall(plugin.id, router)
+    expect(manager.navItems).toHaveLength(0)
+  })
+
+  it('ignores repeated navigation registration for the same plugin route', async () => {
+    const manager = usePluginManager()
+    const router = createTestRouter()
+    const plugin = createTestPlugin({
+      activate(ctx: InsightBookPluginContext) {
+        ctx.addNavigationItem({ title: 'Scroll study', routeName: 'scroll' })
+        ctx.addNavigationItem({ title: 'Scroll study', routeName: 'scroll' })
+        ctx.addNavigationItem({ title: 'Settings', routeName: 'settings' })
+      },
+    })
+
+    await manager.install(null, router, [plugin])
+    expect(manager.navItems.map(item => item.routeName)).toEqual(['scroll', 'settings'])
+    await manager.uninstall(plugin.id, router)
+    expect(manager.navItems).toHaveLength(0)
+  })
+
   it('installs plugin without pages and without activate hook', async () => {
     const manager = usePluginManager()
     const router = createTestRouter()

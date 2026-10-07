@@ -122,6 +122,7 @@ export function usePluginManager(): PluginManager {
   const plugins = reactive<InsightBookPlugin[]>([])
   const navItems = reactive<PluginNavItem[]>([])
   const navItemsByPlugin = new Map<string, PluginNavItem[]>()
+  const installingPluginIds = new Set<string>()
   const uiWidgets = reactive<ManagedUIWidget[]>([])
 
   const createApiFacade = (): InsightBookPluginApiFacade => ({
@@ -238,13 +239,28 @@ export function usePluginManager(): PluginManager {
     }
   }
 
+  const removePluginRegistrations = (pluginId: string) => {
+    for (let i = uiWidgets.length - 1; i >= 0; i--) {
+      if (uiWidgets[i].pluginId === pluginId)
+        uiWidgets.splice(i, 1)
+    }
+
+    for (const item of navItemsByPlugin.get(pluginId) ?? []) {
+      const index = navItems.indexOf(item)
+      if (index !== -1)
+        navItems.splice(index, 1)
+    }
+
+    navItemsByPlugin.delete(pluginId)
+  }
+
   const install = async (_app: App | null, router: Router, pluginInstances: InsightBookPlugin[]) => {
     const notify = (message: string, type: 'info' | 'success' | 'warning' | 'error' = 'info') => {
       console.warn(`[Plugin Notify] ${type}: ${message}`)
     }
 
     for (const plugin of pluginInstances) {
-      if (plugins.some(item => item.id === plugin.id)) {
+      if (plugins.some(item => item.id === plugin.id) || installingPluginIds.has(plugin.id)) {
         console.warn(`[Plugin Manager] Plugin with ID "${plugin.id}" is already installed.`)
         continue
       }
@@ -254,8 +270,11 @@ export function usePluginManager(): PluginManager {
       const ctx: InsightBookPluginContext = {
         notify,
         addNavigationItem: (item: PluginNavItem) => {
-          navItems.push(item)
           const items = navItemsByPlugin.get(plugin.id) ?? []
+          if (items.some(existing => existing.routeName === item.routeName))
+            return
+
+          navItems.push(item)
           items.push(item)
           navItemsByPlugin.set(plugin.id, items)
         },
@@ -288,11 +307,10 @@ export function usePluginManager(): PluginManager {
         api: createApiFacade(),
       }
 
-      // Add pages to router
-      addPluginRoutes(plugin, router)
-
+      installingPluginIds.add(plugin.id)
       // Activate plugin safely
       try {
+        addPluginRoutes(plugin, router)
         if (plugin.activate)
           await plugin.activate(ctx)
 
@@ -301,6 +319,10 @@ export function usePluginManager(): PluginManager {
       catch (err) {
         console.error(`[Plugin Manager] Failed to activate plugin "${plugin.id}":`, err)
         removePluginRoutes(plugin, router)
+        removePluginRegistrations(plugin.id)
+      }
+      finally {
+        installingPluginIds.delete(plugin.id)
       }
     }
   }
@@ -335,23 +357,8 @@ export function usePluginManager(): PluginManager {
       console.error(`[Plugin Manager] Error during deactivation of plugin "${pluginId}":`, err)
     }
 
-    // Unregister widgets for this plugin
-    for (let i = uiWidgets.length - 1; i >= 0; i--) {
-      if (uiWidgets[i].pluginId === pluginId)
-        uiWidgets.splice(i, 1)
-    }
-
-    // Remove pages from router
+    removePluginRegistrations(pluginId)
     removePluginRoutes(plugin, router)
-
-    // Remove navigation items
-    for (const item of navItemsByPlugin.get(plugin.id) ?? []) {
-      const idx = navItems.indexOf(item)
-      if (idx !== -1)
-        navItems.splice(idx, 1)
-    }
-
-    navItemsByPlugin.delete(plugin.id)
 
     plugins.splice(index, 1)
     console.warn(`[Plugin Manager] Plugin "${pluginId}" uninstalled.`)

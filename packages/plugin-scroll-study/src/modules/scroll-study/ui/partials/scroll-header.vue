@@ -18,7 +18,8 @@ const scrollStore = useScrollStudyStore()
 
 <style lang="scss" scoped>
 .scroll-header-container {
-  margin-bottom: 24px;
+  flex: 0 0 auto;
+  margin-bottom: var(--game-gap);
   text-align: center;
 
   .title-row {

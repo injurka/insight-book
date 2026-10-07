@@ -31,6 +31,7 @@ async function installCatalogPlugin(record: CatalogPluginRecord) {
     v-model:visible="visible"
     :title="t('settings.communityPluginsTitle', 'Каталог плагинов сообщества')"
     :max-width="640"
+    :minimizable="false"
   >
     <div class="install-dialog-content">
       <div v-if="pluginsStore.isCatalogLoading" class="empty-state">

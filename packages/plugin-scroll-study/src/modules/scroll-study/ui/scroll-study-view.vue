@@ -1,6 +1,12 @@
 <script setup lang="ts">
+import type { CharacterData } from '../../../data'
+import type { PuzzleNode } from '../model/types'
+import { Icon } from '@iconify/vue'
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import { preloadGameAssets, withTimeout } from '../lib/game-assets'
+import { playUiSound } from '../lib/ui-sound'
+import { useGameLayout } from '../lib/use-game-layout'
 import { useScrollDrag } from '../lib/use-scroll-drag'
 import { providePixiApp } from '../lib/use-shared-pixi'
 import { useScrollStudyStore } from '../model/scroll-study.store'
@@ -10,6 +16,13 @@ import ScrollBackground from './partials/scroll-background.vue'
 import ScrollDragPreview from './partials/scroll-drag-preview.vue'
 import ScrollHeader from './partials/scroll-header.vue'
 import ScrollSidebar from './partials/scroll-sidebar.vue'
+
+const router = useRouter()
+
+function closePlugin() {
+  playUiSound('select')
+  void router.push('/')
+}
 
 const scrollStore = useScrollStudyStore()
 const pixiHostRef = ref<HTMLDivElement | null>(null)
@@ -99,12 +112,55 @@ const {
   onPointerDown,
 } = useScrollDrag()
 
-const isPanelOpen = ref(true)
+const {
+  rootRef,
+  viewport,
+  isCompact,
+  isPanelOpen,
+  panelWidth,
+  layoutStyle,
+} = useGameLayout()
+const isLayoutDebug = import.meta.env.DEV && new URLSearchParams(window.location.search).has('layoutDebug')
+watch(isPointerDragging, (dragging) => {
+  if (dragging && isCompact.value)
+    isPanelOpen.value = false
+})
 const activeTab = ref<'symbols' | 'scrolls'>('symbols')
+const pendingNodeId = ref<string | null>(null)
+
+function requestSymbol(node: PuzzleNode) {
+  pendingNodeId.value = node.id
+  activeTab.value = 'symbols'
+  isPanelOpen.value = true
+}
+
+function placeSelectedSymbol(item: CharacterData) {
+  const node = scrollStore.activeGrid.find(node => node.id === pendingNodeId.value)
+  if (isCompact.value && node && !node.character) {
+    const action = scrollStore.handleNodeDrop(item.char, node)
+    if (action)
+      playUiSound(action)
+  }
+
+  pendingNodeId.value = null
+  if (isCompact.value)
+    isPanelOpen.value = false
+}
+
+watch(isPanelOpen, (open) => {
+  if (!open)
+    pendingNodeId.value = null
+})
+watch(() => scrollStore.activeGrid, () => pendingNodeId.value = null)
 </script>
 
 <template>
-  <div class="scroll-desktop-view" :class="{ 'panel-open': isPanelOpen, 'is-gated': !isRevealed }">
+  <div
+    ref="rootRef"
+    class="scroll-desktop-view"
+    :class="{ 'panel-open': isPanelOpen, 'is-compact': isCompact, 'is-gated': !isRevealed, 'is-layout-debug': isLayoutDebug }"
+    :style="layoutStyle"
+  >
     <!-- Single Shared PixiJS Canvas Layer across the entire view -->
     <div ref="pixiHostRef" class="global-pixi-host" />
 
@@ -117,15 +173,26 @@ const activeTab = ref<'symbols' | 'scrolls'>('symbols')
     <ScrollSidebar
       v-model:is-open="isPanelOpen"
       v-model:active-tab="activeTab"
+      :compact="isCompact"
+      @symbol-selected="placeSelectedSymbol"
       @pointerdown-symbol="onPointerDown"
     />
 
+    <button
+      class="close-btn"
+      aria-label="Закрыть и выйти из игры"
+      title="Закрыть и выйти из игры"
+      @click="closePlugin"
+    >
+      <Icon icon="mdi:close" class="close-icon" />
+    </button>
+
     <!-- Center Workspace -->
-    <div class="center-workspace">
+    <div class="center-workspace" :inert="isCompact && isPanelOpen">
       <ScrollHeader
         @open-scrolls="isPanelOpen = true; activeTab = 'scrolls'"
       />
-      <ResearchBoard />
+      <ResearchBoard :select-on-click="isCompact" @request-symbol="requestSymbol" />
     </div>
 
     <!-- Floating Dynamic Drag Card with Physics & Canvas Burst -->
@@ -140,6 +207,11 @@ const activeTab = ref<'symbols' | 'scrolls'>('symbols')
       :burst-event="burstEvent"
     />
 
+    <output v-if="isLayoutDebug" class="layout-debug">
+      {{ viewport.width }} × {{ viewport.height }} CSS px · {{ isCompact ? 'compact' : 'wide' }}
+      · panel {{ panelWidth }}px · {{ isPanelOpen ? 'open' : 'closed' }}
+    </output>
+
     <!-- Loading Gate: сцена открывается уже целиком отрисованной -->
     <Transition name="gate-fade">
       <GameLoadingScreen v-if="isGateVisible && !isRevealed" :ratio="loadRatio" />
@@ -149,6 +221,11 @@ const activeTab = ref<'symbols' | 'scrolls'>('symbols')
 
 <style lang="scss" scoped>
 .scroll-desktop-view {
+  --game-top: max(var(--game-gap), env(safe-area-inset-top, 0px));
+  --game-bottom: max(var(--game-gap), env(safe-area-inset-bottom, 0px));
+  --game-left: max(var(--game-gap), env(safe-area-inset-left, 0px));
+  --game-right: max(var(--game-gap), env(safe-area-inset-right, 0px));
+  --game-toolbar: 44px;
   --font-pixel: 'Maple Mono CN', monospace;
   container: scroll-study / size;
   box-sizing: border-box;
@@ -159,9 +236,32 @@ const activeTab = ref<'symbols' | 'scrolls'>('symbols')
   background-color: #020617;
   display: flex;
   position: relative;
-  overflow: hidden;
+  overflow: clip;
   color: #e2e8f0;
   font-family: 'Maple Mono CN', monospace;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.scroll-desktop-view :deep(*) {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.scroll-desktop-view::selection,
+.scroll-desktop-view :deep(*::selection) {
+  background: transparent;
+  color: inherit;
+}
+
+.scroll-desktop-view :deep(:focus:not(:focus-visible)) {
+  outline: none;
+}
+
+.scroll-desktop-view :deep(:focus-visible) {
+  outline-color: #8e5c32;
 }
 
 :deep(.font-pixel) {
@@ -193,6 +293,8 @@ const activeTab = ref<'symbols' | 'scrolls'>('symbols')
   :deep(canvas) {
     width: 100%;
     height: 100%;
+    max-width: 100%;
+    max-height: 100%;
     display: block;
   }
 }
@@ -215,7 +317,69 @@ const activeTab = ref<'symbols' | 'scrolls'>('symbols')
   justify-content: center;
   position: relative;
   z-index: 10;
-  padding: 24px;
+  padding: 32px 0;
+}
+
+.close-btn {
+  position: absolute;
+  top: var(--game-top);
+  right: var(--game-right);
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: url('../../../assets/ui-kit/square-button/normal.png') center / 100% 100% no-repeat;
+  box-shadow: 0 4px 12px #160a0599;
+  border: 0;
+  color: #c4a16c;
+  cursor: pointer;
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+
+  &:hover {
+    color: #f87171;
+    background-image: url('../../../assets/ui-kit/square-button/hover.png');
+  }
+
+  &:active {
+    background-image: url('../../../assets/ui-kit/square-button/pressed.png');
+  }
+
+  .close-icon {
+    font-size: 1.35rem;
+  }
+}
+
+.close-btn:focus-visible {
+  outline: 2px solid #ffe19a;
+  outline-offset: 2px;
+}
+
+.close-btn:focus-visible {
+  outline: 2px solid #ffe19a;
+  outline-offset: 2px;
+}
+
+.is-layout-debug :deep(.board-stage) {
+  outline: 1px dashed #38bdf8;
+}
+
+.is-layout-debug :deep(.sidebar-panel) {
+  outline: 1px dashed #fbbf24;
+}
+
+.layout-debug {
+  position: absolute;
+  bottom: var(--game-bottom);
+  right: var(--game-right);
+  z-index: 60;
+  max-width: calc(100% - var(--game-left) - var(--game-right));
+  padding: 6px 10px;
+  background: #020617e6;
+  font: 12px/1.5 monospace;
+  pointer-events: none;
 }
 
 .gate-fade-enter-active,
@@ -231,12 +395,5 @@ const activeTab = ref<'symbols' | 'scrolls'>('symbols')
 .gate-fade-enter-from,
 .gate-fade-leave-to {
   opacity: 0;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .gate-fade-enter-active,
-  .gate-fade-leave-active {
-    transition: none;
-  }
 }
 </style>

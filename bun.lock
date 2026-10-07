@@ -257,7 +257,7 @@
     },
     "packages/plugin-grammar-tenses-cheatsheet": {
       "name": "@injurka/insight-book-plugin-grammar-tenses-cheatsheet",
-      "version": "1.0.1",
+      "version": "1.0.2",
       "dependencies": {
         "@iconify/vue": "^5.0.1",
         "@injurka/insight-book-plugin-api": "workspace:*",
@@ -271,13 +271,14 @@
     },
     "packages/plugin-scroll-study": {
       "name": "@injurka/insight-book-plugin-scroll-study",
-      "version": "1.0.2",
+      "version": "1.0.5",
       "dependencies": {
         "@iconify/vue": "^5.0.1",
         "@injurka/insight-book-plugin-api": "workspace:*",
         "@pixi/devtools": "^2.0.1",
         "pinia": "4.0.3",
         "pixi.js": "^8.20.1",
+        "simplebar": "^6.3.3",
         "vue": "3.5.42",
         "vue-i18n": "^11.4.10",
         "vue-router": "^5.3.1",
@@ -3182,6 +3183,10 @@
     "signal-exit": ["signal-exit@3.0.7", "", {}, "sha512-wnD2ZE+l+SPC/uoS0vXeE9L1+0wuaMqKlfz9AMUo38JsyLSBWSFcHR1Rri62LZc12vLr1gb3jl7iwQhgwpAbGQ=="],
 
     "simple-swizzle": ["simple-swizzle@0.2.4", "", { "dependencies": { "is-arrayish": "^0.3.1" } }, "sha512-nAu1WFPQSMNr2Zn9PGSZK9AGn4t/y97lEm+MXTtUDwfP0ksAIX4nO+6ruD9Jwut4C49SB1Ws+fbXsm/yScWOHw=="],
+
+    "simplebar": ["simplebar@6.3.3", "", { "dependencies": { "simplebar-core": "^1.3.2" } }, "sha512-ni9cIiA8GRitiaenV7A/gh8nTStiVqO3gLxrfCMmq6CSy/pB+fz+QxqvJLo142QHb2Tvgvr8ILwZxf3qzAq7pg=="],
+
+    "simplebar-core": ["simplebar-core@1.3.2", "", { "dependencies": { "lodash": "^4.17.21", "lodash-es": "^4.17.21" } }, "sha512-qKgTTuTqapjsFGkNhCjyPhysnbZGpQqNmjk0nOYjFN5ordC/Wjvg+RbYCyMSnW60l/Z0ZS82GbNltly6PMUH1w=="],
 
     "sirv": ["sirv@2.0.4", "", { "dependencies": { "@polka/url": "^1.0.0-next.24", "mrmime": "^2.0.0", "totalist": "^3.0.0" } }, "sha512-94Bdh3cC2PKrbgSOUqTiGPWVZeSiXfKOVZNJniWoqrWrRkB1CJzBU3NEbiTsPcYy1lDsANA/THzS+9WBiy5nfQ=="],
 

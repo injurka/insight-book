@@ -7,19 +7,18 @@ import { playUiSound } from '../../lib/ui-sound'
 import { useScrollStudyStore } from '../../model/scroll-study.store'
 import HexCell from './hex-cell.vue'
 
+interface Props {
+  selectOnClick: boolean
+}
+const props = defineProps<Props>()
+const emit = defineEmits<{ requestSymbol: [node: PuzzleNode] }>()
+
 const scrollStore = useScrollStudyStore()
 const viewportRef = ref<HTMLDivElement | null>(null)
-const victoryPanelRef = ref<HTMLElement | null>(null)
 const boardWidth = 620
 const boardHeight = boardWidth
 const boardScale = ref(1)
 const boardStyle = computed(() => ({ transform: `scale(${boardScale.value})` }))
-const changeScrollBtnStyle = computed(() => ({
-  top: `calc(50% - ${boardHeight * boardScale.value / 2}px - 60px)`,
-}))
-const victoryPanelStyle = computed(() => ({
-  top: `calc(50% + ${boardHeight * boardScale.value / 2}px + 12px)`,
-}))
 let resizeObserver: ResizeObserver | undefined
 
 function updateBoardScale() {
@@ -28,35 +27,13 @@ function updateBoardScale() {
     return
 
   const { width, height } = viewport.getBoundingClientRect()
-  const panelHeight = scrollStore.isFinished
-    ? victoryPanelRef.value?.getBoundingClientRect().height ?? 0
-    : 0
-  const availableHalfHeight = Math.max(0, height / 2 - panelHeight - 12)
-  const heightScale = scrollStore.isFinished
-    ? availableHalfHeight * 2 / boardHeight
-    : height / boardHeight
-
-  boardScale.value = Math.min(width / boardWidth, heightScale, 1)
-}
-
-function observeVictoryPanel(element: Element) {
-  victoryPanelRef.value = element as HTMLElement
-  resizeObserver?.observe(element)
-  updateBoardScale()
-}
-
-function unobserveVictoryPanel(element: Element) {
-  resizeObserver?.unobserve(element)
-  victoryPanelRef.value = null
-  updateBoardScale()
+  boardScale.value = Math.max(0, Math.min(width / boardWidth, height / boardHeight, 1))
 }
 
 onMounted(() => {
   resizeObserver = new ResizeObserver(updateBoardScale)
   if (viewportRef.value)
     resizeObserver.observe(viewportRef.value)
-  if (victoryPanelRef.value)
-    resizeObserver.observe(victoryPanelRef.value)
   updateBoardScale()
 })
 
@@ -66,6 +43,7 @@ function getLinePos(q: number, r: number) {
   const size = scrollStore.hexSize
   const x = size * Math.sqrt(3) * (q + r / 2)
   const y = size * (3 / 2) * r
+
   return { x, y }
 }
 
@@ -76,6 +54,7 @@ function getConnectionPos(conn: GridConnection) {
   const dy = end.y - start.y
   // Stop at the square tile edge, with a small gap around its border.
   const inset = scrollStore.hexSize * 0.62 / Math.max(Math.abs(dx), Math.abs(dy))
+
   return {
     x1: start.x + dx * inset,
     y1: start.y + dy * inset,
@@ -94,88 +73,77 @@ function onDrop(event: DragEvent, node: PuzzleNode) {
 }
 
 function onNodeClick(node: PuzzleNode) {
+  if (props.selectOnClick && !node.character && !scrollStore.isFinished) {
+    emit('requestSymbol', node)
+
+    return
+  }
+
   const action = scrollStore.handleNodeClick(node)
   if (action)
     playUiSound(action)
 }
-
-function changeScroll() {
-  playUiSound('select')
-  void scrollStore.loadRandomDictionaryScroll(scrollStore.activeTargetChar?.id ?? null)
-}
 </script>
 
 <template>
-  <div ref="viewportRef" class="board-viewport">
-    <!-- Change scroll: pick a random different one -->
-    <button
-      v-if="scrollStore.activeWord"
-      class="change-scroll-btn"
-      :style="changeScrollBtnStyle"
-      aria-label="Сменить свиток"
-      title="Сменить свиток — случайный другой"
-      @click="changeScroll"
-    >
-      <Icon icon="mdi:dice-multiple-outline" class="btn-icon" />
-      Сменить свиток
-    </button>
+  <div class="board-viewport">
+    <div ref="viewportRef" class="board-stage">
+      <div class="research-board-container" :style="boardStyle">
+        <div class="research-board-frame" aria-hidden="true" />
 
-    <div class="research-board-container" :style="boardStyle">
-      <div class="research-board-frame" aria-hidden="true" />
+        <template v-if="scrollStore.activeWord">
+          <!-- Grid Container -> Origin centered -->
+          <div class="grid-center">
+            <!-- Connections SVG -->
+            <svg class="connections-svg">
+              <g transform="translate(0, 0)">
+                <line
+                  v-for="conn in scrollStore.gridConnections"
+                  :key="conn.id"
+                  :x1="getConnectionPos(conn).x1"
+                  :y1="getConnectionPos(conn).y1"
+                  :x2="getConnectionPos(conn).x2"
+                  :y2="getConnectionPos(conn).y2"
+                  class="connection-line"
+                />
+              </g>
+            </svg>
 
-      <template v-if="scrollStore.activeWord">
-        <!-- Grid Container -> Origin centered -->
-        <div class="grid-center">
-          <!-- Connections SVG -->
-          <svg class="connections-svg">
-            <g transform="translate(0, 0)">
-              <line
-                v-for="conn in scrollStore.gridConnections"
-                :key="conn.id"
-                :x1="getConnectionPos(conn).x1"
-                :y1="getConnectionPos(conn).y1"
-                :x2="getConnectionPos(conn).x2"
-                :y2="getConnectionPos(conn).y2"
-                class="connection-line"
-              />
-            </g>
-          </svg>
+            <!-- Hex Cells -->
+            <HexCell
+              v-for="node in scrollStore.activeGrid"
+              :key="node.id"
+              :node="node"
+              :hex-size="scrollStore.hexSize"
+              :is-finished="scrollStore.isFinished"
+              :is-selected-target="!!scrollStore.selectedTablet"
+              @drop="onDrop"
+              @click="onNodeClick"
+            />
+          </div>
+        </template>
 
-          <!-- Hex Cells -->
-          <HexCell
-            v-for="node in scrollStore.activeGrid"
-            :key="node.id"
-            :node="node"
-            :hex-size="scrollStore.hexSize"
-            :is-finished="scrollStore.isFinished"
-            :is-selected-target="!!scrollStore.selectedTablet"
-            @drop="onDrop"
-            @click="onNodeClick"
-          />
+        <div v-else class="empty-state">
+          <div class="yin-yang-icon">
+            <Icon icon="mdi:yin-yang" />
+          </div>
+          <h2 class="empty-title">
+            Магический стол пустует
+          </h2>
+          <p class="empty-subtitle">
+            Нажмите "Развернуть свиток" чтобы открыть сетку и начать исследование тайных символов.
+          </p>
+          <button class="start-btn" @click="scrollStore.initGrid">
+            Развернуть свиток
+          </button>
         </div>
-      </template>
-
-      <div v-else class="empty-state">
-        <div class="yin-yang-icon">
-          <Icon icon="mdi:yin-yang" />
-        </div>
-        <h2 class="empty-title">
-          Магический стол пустует
-        </h2>
-        <p class="empty-subtitle">
-          Нажмите "Развернуть свиток" чтобы открыть сетку и начать исследование тайных символов.
-        </p>
-        <button class="start-btn" @click="scrollStore.initGrid">
-          Развернуть свиток
-        </button>
       </div>
     </div>
 
-    <Transition name="victory" @before-enter="observeVictoryPanel" @after-leave="unobserveVictoryPanel">
+    <Transition name="victory">
       <section
         v-if="scrollStore.isFinished"
         class="victory-panel"
-        :style="victoryPanelStyle"
         aria-live="polite"
       >
         <div class="victory-card">
@@ -195,7 +163,7 @@ function changeScroll() {
               {{ scrollStore.activeTargetChar?.etymology }}
             </p>
           </div>
-          <button class="next-btn" @click="scrollStore.loadRandomDictionaryScroll">
+          <button class="next-btn" @click="scrollStore.loadRandomDictionaryScroll()">
             Следующий свиток
             <Icon icon="mdi:arrow-right" class="btn-icon" />
           </button>
@@ -213,52 +181,27 @@ function changeScroll() {
   min-height: 0;
   position: relative;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
+  gap: 12px;
 }
 
-.change-scroll-btn {
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 30;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 10px 20px;
-  border-radius: 10px;
-  background: rgba(245, 158, 11, 0.15);
-  border: 1px solid rgba(245, 158, 11, 0.3);
-  color: #fcd34d;
-  font-size: 0.8rem;
-  font-weight: 500;
-  white-space: nowrap;
-  cursor: pointer;
-  transition: all 0.2s ease;
-
-  &:hover {
-    background: rgba(245, 158, 11, 0.28);
-    border-color: rgba(245, 158, 11, 0.5);
-    box-shadow: 0 0 18px rgba(245, 158, 11, 0.15);
-  }
-
-  &:active {
-    transform: translateX(-50%) scale(0.95);
-  }
-
-  &:focus-visible {
-    outline: 2px solid #ffe19a;
-    outline-offset: 2px;
-  }
-
-  .btn-icon {
-    font-size: 1rem;
-  }
+.board-stage {
+  box-sizing: border-box;
+  flex: 1;
+  width: 100%;
+  min-height: 0;
+  position: relative;
+  overflow: clip;
 }
 
 .research-board-container {
-  position: relative;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  margin-left: -310px;
+  margin-top: -310px;
+  transform-origin: center;
   flex-shrink: 0;
   width: 620px;
   aspect-ratio: 1;
@@ -274,8 +217,7 @@ function changeScroll() {
     pointer-events: none;
     inset: 4%;
     background: #efdbaf url('../../../../assets/research-board/parchment.webp') center / cover no-repeat;
-    filter: drop-shadow(0 10px 14px rgba(0, 0, 0, 0.5))
-      drop-shadow(0 0 22px rgba(0, 0, 0, 0.3));
+    filter: drop-shadow(0 10px 14px rgba(0, 0, 0, 0.5)) drop-shadow(0 0 22px rgba(0, 0, 0, 0.3));
   }
 }
 
@@ -382,8 +324,11 @@ function changeScroll() {
 }
 
 .victory-panel {
-  position: absolute;
-  left: 0;
+  flex: 0 1 auto;
+  min-height: 0;
+  max-height: 35%;
+  overflow-y: auto;
+  overscroll-behavior: contain;
   width: 100%;
   display: flex;
   justify-content: center;
@@ -472,6 +417,7 @@ function changeScroll() {
   }
 
   .next-btn {
+    min-height: 44px;
     display: flex;
     align-items: center;
     justify-content: center;
