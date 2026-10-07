@@ -2,8 +2,11 @@ package ru.insightbook.apkinstaller
 
 import android.app.Activity
 import android.content.Intent
+import android.content.pm.ActivityInfo
 import androidx.core.content.FileProvider
 import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import app.tauri.annotation.Command
 import app.tauri.annotation.TauriPlugin
 import app.tauri.plugin.Invoke
@@ -30,6 +33,56 @@ class ApkInstallerPlugin(private val activity: Activity) : Plugin(activity) {
             }
         } catch (e: Exception) {
             invoke.reject("Invalid system bars theme: ${e.message}")
+        }
+    }
+
+    @Command
+    fun setImmersiveMode(invoke: Invoke) {
+        try {
+            val enabled = invoke.getArgs().getBoolean("enabled")
+            activity.runOnUiThread {
+                try {
+                    val window = activity.window
+                    val controller = WindowCompat.getInsetsController(window, window.decorView)
+
+                    // Edge-to-edge: контент рисуется под системными панелями,
+                    // либо возвращаем стандартную подгонку окна.
+                    WindowCompat.setDecorFitsSystemWindows(window, !enabled)
+
+                    if (enabled) {
+                        // Полноэкранный режим: прячем статус-бар и навигацию,
+                        // свайп от края временно показывает панели.
+                        controller.systemBarsBehavior =
+                            WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+                        controller.hide(WindowInsetsCompat.Type.systemBars())
+                    } else {
+                        controller.show(WindowInsetsCompat.Type.systemBars())
+                    }
+
+                    invoke.resolveObject(true)
+                } catch (e: Exception) {
+                    invoke.reject("Failed to update immersive mode: ${e.message}")
+                }
+            }
+        } catch (e: Exception) {
+            invoke.reject("Invalid immersive mode args: ${e.message}")
+        }
+    }
+
+    @Command
+    fun setScreenOrientation(invoke: Invoke) {
+        try {
+            val mode = invoke.getArgs().optString("mode", "unspecified")
+            activity.runOnUiThread {
+                activity.requestedOrientation = when (mode) {
+                    "landscape" -> ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
+                    "portrait" -> ActivityInfo.SCREEN_ORIENTATION_SENSOR_PORTRAIT
+                    else -> ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+                }
+                invoke.resolveObject(true)
+            }
+        } catch (e: Exception) {
+            invoke.reject("Invalid screen orientation args: ${e.message}")
         }
     }
 

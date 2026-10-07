@@ -132,6 +132,21 @@ export interface InsightBookPlugin {
    */
   pages?: Record<string, Component>
 
+  /**
+   * Полноэкранные страницы: хост рендерит их без основного layout
+   * (без заголовка приложения и safe-area отступов, edge-to-edge),
+   * а на мобильных (Android) скрывает системные панели на время просмотра.
+   */
+  immersive?: boolean
+
+  /**
+   * Ориентация экрана на мобильных (Android) во время просмотра страниц плагина:
+   * 'landscape' — только горизонтальная, 'portrait' — только вертикальная.
+   * При уходе со страницы ориентация возвращается к системной.
+   * Применяется только для страниц с `immersive: true`.
+   */
+  orientation?: 'landscape' | 'portrait'
+
   /** Хук жизненного цикла: вызывается при активации плагина */
   activate?: (ctx: InsightBookPluginContext) => void | Promise<void>
 

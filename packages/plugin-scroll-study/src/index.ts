@@ -19,6 +19,13 @@ const plugin: InsightBookPlugin = {
     index: () => import('./pages/scroll-study-page.vue'),
   },
 
+  // Страницы игры рендерятся полноэкранно: без хрома приложения,
+  // edge-to-edge фон, скрытые системные панели на Android.
+  immersive: true,
+
+  // На мобильных игра открывается только в горизонтальной ориентации.
+  orientation: 'landscape',
+
   activate(ctx: InsightBookPluginContext) {
     ctx.registerTranslations({ ru, en, zh })
 

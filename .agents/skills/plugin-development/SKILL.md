@@ -67,6 +67,15 @@ export default defineConfig({
 }
 ```
 
+## 2a. Полноэкранные страницы (`immersive: true` + `orientation`)
+Если плагин — игра или полноэкранный опыт, поставь `immersive: true` в объекте `InsightBookPlugin`. Хост:
+- рендерит `plugin.pages` в layout `06.layouts/immersive` (без `KitAppTitlebar` и `env(safe-area-inset-*)`, edge-to-edge);
+- на Android вызывает команду `set_immersive_mode` (Rust `apps/native/src-tauri/src/lib.rs` → Kotlin `setImmersiveMode` в плагине apk-installer): прячет статус-бар/навигацию (BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE), при уходе со страницы — восстанавливает.
+
+`orientation: 'landscape' | 'portrait'` — блокировка ориентации экрана на Android на время просмотра страниц (только вместе с `immersive: true`): layout вызывает команду `set_screen_orientation`, Kotlin-команда `setScreenOrientation` ставит `Activity.requestedOrientation` (SENSOR_LANDSCAPE / SENSOR_PORTRAIT / UNSPECIFIED при выходе). На десктопе и в браузере — no-op.
+
+Route meta выставляется в `addPluginRoutes` (`apps/client/src/00.plugins/plugin-manager.ts`): `meta: { layout, orientation }`.
+
 ## 3. Точки расширения (Extension Points)
 Регистрируй UI-компоненты плагина в разрешенные позиции:
 - `'dictionary:training-modes'` — кастомные режимы тренировок.

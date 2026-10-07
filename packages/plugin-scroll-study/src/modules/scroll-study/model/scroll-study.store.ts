@@ -159,7 +159,7 @@ export const useScrollStudyStore = defineStore('scrollStudy', () => {
     updateConnections()
   }
 
-  async function loadRandomDictionaryScroll() {
+  async function loadRandomDictionaryScroll(excludeCharId?: string | null) {
     let targetCharObj: CharacterData | null = null
     let dictWordId: number | null = null
 
@@ -172,7 +172,7 @@ export const useScrollStudyStore = defineStore('scrollStudy', () => {
           for (const item of shuffled) {
             if (item.word) {
               const matched = allCharacters.find(c => c.char === item.word || item.word?.includes(c.char))
-              if (matched) {
+              if (matched && (!excludeCharId || matched.id !== excludeCharId)) {
                 targetCharObj = matched
                 dictWordId = item.id ?? null
                 break
@@ -188,7 +188,7 @@ export const useScrollStudyStore = defineStore('scrollStudy', () => {
 
     // If no dictionary match found, pick random scroll from dataset
     if (!targetCharObj) {
-      const candidates = allCharacters.filter(c => c.tier >= 1 && c.components.length > 0)
+      const candidates = allCharacters.filter(c => c.tier >= 1 && c.components.length > 0 && (!excludeCharId || c.id !== excludeCharId))
       const randomScroll = candidates.length > 0
         ? candidates[Math.floor(Math.random() * candidates.length)]
         : allCharacters[0]

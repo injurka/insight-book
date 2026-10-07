@@ -23,6 +23,14 @@ impl<R: Runtime> ApkInstaller<R> {
         self.0.run_mobile_plugin("setSystemBarsTheme", payload).map_err(Into::into)
     }
 
+    pub fn set_immersive_mode(&self, payload: ImmersivePayload) -> Result<bool> {
+        self.0.run_mobile_plugin("setImmersiveMode", payload).map_err(Into::into)
+    }
+
+    pub fn set_screen_orientation(&self, payload: OrientationPayload) -> Result<bool> {
+        self.0.run_mobile_plugin("setScreenOrientation", payload).map_err(Into::into)
+    }
+
     pub fn install_apk(&self, payload: InstallApkPayload) -> Result<bool> {
         self.0.run_mobile_plugin("installApk", payload).map_err(Into::into)
     }

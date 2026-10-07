@@ -16,12 +16,14 @@ import { useNetworkStore } from '~/01.shared/store/network.store'
 import { usePwaStore } from '~/01.shared/store/pwa.store'
 import { useGlobalSettingsStore } from '~/01.shared/store/settings.store'
 
-import { KitAppUpdatePrompt } from '~/02.kit/organisms/kit-app-update-prompt'
+import KitAppUpdatePrompt from '~/02.kit/organisms/kit-app-update-prompt/ui/kit-app-update-prompt.vue'
 import KitNetworkTimeoutDialog from '~/02.kit/organisms/kit-network-timeout-dialog/ui/kit-network-timeout-dialog.vue'
 import KitOfflineBadge from '~/02.kit/organisms/kit-offline-badge/ui/kit-offline-badge.vue'
 import KitReloadPrompt from '~/02.kit/organisms/kit-reload-prompt/ui/kit-reload-prompt.vue'
 import KitToastManager from '~/02.kit/organisms/kit-toast-manager/ui/kit-toast-manager.vue'
+
 import DefaultLayout from '~/06.layouts/default/ui/default.vue'
+import ImmersiveLayout from '~/06.layouts/immersive/ui/immersive.vue'
 
 const AddEditWordDialog = lazyComponent(() => import('~/05.modules/dictionary/ui/dialog/add-edit-word-dialog.vue'), { showLoader: false })
 
@@ -113,6 +115,7 @@ const layoutName = computed(() => (route.meta.layout as string) || 'default')
 
 const layouts: Record<string, Component> = {
   default: DefaultLayout,
+  immersive: ImmersiveLayout,
 }
 
 const siteUrl = 'https://insight-book.ru'
@@ -221,6 +224,7 @@ watch(() => route.path, () => {
   <KitAppUpdatePrompt />
   <KitNetworkTimeoutDialog />
   <KitOfflineBadge />
-  <AddEditWordDialog />
   <KitToastManager />
+
+  <AddEditWordDialog />
 </template>

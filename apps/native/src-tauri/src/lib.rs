@@ -146,6 +146,40 @@ fn set_system_bars_theme(app: tauri::AppHandle, dark: bool) -> Result<(), String
     }
 }
 
+#[tauri::command]
+fn set_immersive_mode(app: tauri::AppHandle, enabled: bool) -> Result<(), String> {
+    #[cfg(target_os = "android")]
+    {
+        use tauri_plugin_apk_installer::{ApkInstallerExt, ImmersivePayload};
+        app.apk_installer()
+            .set_immersive_mode(ImmersivePayload { enabled })
+            .map(|_| ())
+            .map_err(|e| e.to_string())
+    }
+    #[cfg(not(target_os = "android"))]
+    {
+        let _ = (app, enabled);
+        Ok(())
+    }
+}
+
+#[tauri::command]
+fn set_screen_orientation(app: tauri::AppHandle, mode: Option<String>) -> Result<(), String> {
+    #[cfg(target_os = "android")]
+    {
+        use tauri_plugin_apk_installer::{ApkInstallerExt, OrientationPayload};
+        app.apk_installer()
+            .set_screen_orientation(OrientationPayload { mode })
+            .map(|_| ())
+            .map_err(|e| e.to_string())
+    }
+    #[cfg(not(target_os = "android"))]
+    {
+        let _ = (app, mode);
+        Ok(())
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -157,7 +191,9 @@ pub fn run() {
             is_hyprland,
             download_app_update,
             open_downloaded_apk,
-            set_system_bars_theme
+            set_system_bars_theme,
+            set_immersive_mode,
+            set_screen_orientation
         ])
         .setup(|app| {
             if cfg!(debug_assertions) {

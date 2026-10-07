@@ -14,6 +14,9 @@ const boardWidth = 620
 const boardHeight = boardWidth
 const boardScale = ref(1)
 const boardStyle = computed(() => ({ transform: `scale(${boardScale.value})` }))
+const changeScrollBtnStyle = computed(() => ({
+  top: `calc(50% - ${boardHeight * boardScale.value / 2}px - 60px)`,
+}))
 const victoryPanelStyle = computed(() => ({
   top: `calc(50% + ${boardHeight * boardScale.value / 2}px + 12px)`,
 }))
@@ -95,10 +98,28 @@ function onNodeClick(node: PuzzleNode) {
   if (action)
     playUiSound(action)
 }
+
+function changeScroll() {
+  playUiSound('select')
+  void scrollStore.loadRandomDictionaryScroll(scrollStore.activeTargetChar?.id ?? null)
+}
 </script>
 
 <template>
   <div ref="viewportRef" class="board-viewport">
+    <!-- Change scroll: pick a random different one -->
+    <button
+      v-if="scrollStore.activeWord"
+      class="change-scroll-btn"
+      :style="changeScrollBtnStyle"
+      aria-label="Сменить свиток"
+      title="Сменить свиток — случайный другой"
+      @click="changeScroll"
+    >
+      <Icon icon="mdi:dice-multiple-outline" class="btn-icon" />
+      Сменить свиток
+    </button>
+
     <div class="research-board-container" :style="boardStyle">
       <div class="research-board-frame" aria-hidden="true" />
 
@@ -194,6 +215,46 @@ function onNodeClick(node: PuzzleNode) {
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+.change-scroll-btn {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border-radius: 10px;
+  background: rgba(245, 158, 11, 0.15);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  color: #fcd34d;
+  font-size: 0.8rem;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: rgba(245, 158, 11, 0.28);
+    border-color: rgba(245, 158, 11, 0.5);
+    box-shadow: 0 0 18px rgba(245, 158, 11, 0.15);
+  }
+
+  &:active {
+    transform: translateX(-50%) scale(0.95);
+  }
+
+  &:focus-visible {
+    outline: 2px solid #ffe19a;
+    outline-offset: 2px;
+  }
+
+  .btn-icon {
+    font-size: 1rem;
+  }
 }
 
 .research-board-container {

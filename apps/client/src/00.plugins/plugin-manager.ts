@@ -219,6 +219,10 @@ export function usePluginManager(): PluginManager {
           path: routePath,
           name: routeName,
           component: component as RouteComponent,
+          meta: {
+            layout: plugin.immersive ? 'immersive' : 'default',
+            orientation: plugin.orientation ?? null,
+          },
         })
       }
     }

@@ -2,6 +2,7 @@
 import type { CharacterData } from '../../../../data'
 import { Icon } from '@iconify/vue'
 import { computed, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { allCharacters } from '../../../../data'
 import { formatPinyin } from '../../lib/format-pinyin'
 import { playUiSound } from '../../lib/ui-sound'
@@ -33,6 +34,7 @@ const emit = defineEmits<{
 const mysteryScrolls: MysteryScrollData[] = []
 
 const scrollStore = useScrollStudyStore()
+const router = useRouter()
 
 const selectedTierFilter = ref<number | 'all'>('all')
 const searchQuery = ref('')
@@ -71,6 +73,11 @@ function selectScroll(scroll: MysteryScrollData) {
 function selectSymbol(item: CharacterData) {
   scrollStore.selectedTablet = item.char
   playUiSound('select')
+}
+
+function closePlugin() {
+  playUiSound('select')
+  void router.push('/')
 }
 
 function getDifficultyBadgeClass(difficulty: MysteryScrollData['difficulty']) {
@@ -263,6 +270,16 @@ function getDifficultyBadgeClass(difficulty: MysteryScrollData['difficulty']) {
       @click="emit('update:isOpen', !isOpen)"
     >
       <Icon :icon="isOpen ? 'mdi:close' : 'mdi:script-text-outline'" class="toggle-icon" />
+    </button>
+
+    <!-- Close / Exit Button -->
+    <button
+      class="close-btn"
+      aria-label="Закрыть и выйти из игры"
+      title="Закрыть и выйти из игры"
+      @click="closePlugin"
+    >
+      <Icon icon="mdi:close" class="close-icon" />
     </button>
   </div>
 </template>
@@ -735,6 +752,38 @@ function getDifficultyBadgeClass(difficulty: MysteryScrollData['difficulty']) {
 
 }
 
+.close-btn {
+  position: absolute;
+  top: 24px;
+  right: 24px;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: url('../../../../assets/ui-kit/square-button/normal.png') center / 100% 100% no-repeat;
+  box-shadow: 0 4px 12px #160a0599;
+  border: 0;
+  color: #c4a16c;
+  cursor: pointer;
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+
+  &:hover {
+    color: #f87171;
+    background-image: url('../../../../assets/ui-kit/square-button/hover.png');
+  }
+
+  &:active {
+    background-image: url('../../../../assets/ui-kit/square-button/pressed.png');
+  }
+
+  .close-icon {
+    font-size: 1.35rem;
+  }
+}
+
 .symbol-card:focus-visible {
   outline: 2px solid #8e5c32;
   outline-offset: 2px;
@@ -746,7 +795,8 @@ function getDifficultyBadgeClass(difficulty: MysteryScrollData['difficulty']) {
 }
 
 .toggle-btn:focus-visible,
-.clear-btn:focus-visible {
+.clear-btn:focus-visible,
+.close-btn:focus-visible {
   outline: 2px solid #ffe19a;
   outline-offset: 2px;
 }
@@ -802,6 +852,12 @@ function getDifficultyBadgeClass(difficulty: MysteryScrollData['difficulty']) {
     &.is-open {
       left: calc(min(320px, calc(100cqw - 80px)) + 20px);
     }
+  }
+
+  .close-btn {
+    top: 12px;
+    right: 12px;
+    pointer-events: auto;
   }
 
   .search-box .search-input {
