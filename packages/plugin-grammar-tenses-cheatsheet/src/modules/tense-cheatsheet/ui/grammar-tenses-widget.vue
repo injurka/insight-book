@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
+import { Icon } from '@iconify/vue'
+import { computed, h, nextTick, onBeforeUnmount, onMounted, ref, render } from 'vue'
 import { detectTenses, tenseById, tenseFamilies, tenses, type TenseDefinition } from '../data/tenses'
 
 const isOpen = ref(false)
@@ -12,7 +13,7 @@ const highlightedTenses = computed(() => highlightedTenseIds.value
   .map(id => tenseById.get(id))
   .filter((tense): tense is TenseDefinition => Boolean(tense)))
 
-const buttonByBlock = new Map<HTMLElement, HTMLButtonElement>()
+const hostByBlock = new Map<HTMLElement, HTMLSpanElement>()
 let observer: MutationObserver | null = null
 let scanFrame: number | null = null
 let previouslyFocusedElement: HTMLElement | null = null
@@ -56,33 +57,54 @@ function isGrammarBlock(block: HTMLElement): boolean {
   return Boolean(heading && /граммат|grammar|语法|문법/iu.test(heading))
 }
 
-function buttonForBlock(block: HTMLElement, detected: readonly TenseDefinition[]): HTMLButtonElement {
-  const existingButton = buttonByBlock.get(block)
-  const button = existingButton ?? document.createElement('button')
+/**
+ * Кнопка открывает шпаргалку из заголовка блока анализа — она живёт в DOM
+ * хоста, поэтому рендерится отдельным vnode-деревом (иконка берётся из
+ * локально зарегистрированной коллекции MDI).
+ */
+function triggerVNode(block: HTMLElement, detected: readonly TenseDefinition[]) {
+  const label = 'Открыть шпаргалку по временам'
 
-  if (!existingButton) {
-    button.type = 'button'
-    button.className = 'ib-grammar-tenses-trigger'
-    button.setAttribute('aria-label', 'Открыть шпаргалку по временам')
-    button.title = 'Открыть шпаргалку по временам'
-    button.innerHTML = '<span aria-hidden="true">◷</span><span>Времена</span>'
-    button.addEventListener('click', () => openCheatsheet(detectTenses(block.textContent ?? '')))
-    buttonByBlock.set(block, button)
+  return h('button', {
+    type: 'button',
+    class: 'ib-grammar-tenses-trigger',
+    'aria-label': label,
+    'title': label,
+    'data-detected-tenses': detected.map(tense => tense.id).join(','),
+    'disabled': detected.length === 0,
+    'onClick': () => openCheatsheet(detectTenses(block.textContent ?? '')),
+  }, [
+    h(Icon, {
+      icon: 'mdi:clock-check-outline',
+      class: 'ib-grammar-tenses-trigger-icon',
+      'aria-hidden': 'true',
+    }),
+    h('span', { class: 'ib-grammar-tenses-trigger-label' }, 'Времена'),
+  ])
+}
+
+function hostForBlock(block: HTMLElement, detected: readonly TenseDefinition[]): HTMLSpanElement {
+  let host = hostByBlock.get(block)
+
+  if (!host) {
+    host = document.createElement('span')
+    host.className = 'ib-grammar-tenses-trigger-host'
+    hostByBlock.set(block, host)
   }
 
-  button.dataset.detectedTenses = detected.map(tense => tense.id).join(',')
-  button.disabled = detected.length === 0
+  render(triggerVNode(block, detected), host)
 
-  return button
+  return host
 }
 
 function removeButton(block: HTMLElement) {
-  const button = buttonByBlock.get(block)
-  if (!button)
+  const host = hostByBlock.get(block)
+  if (!host)
     return
 
-  button.remove()
-  buttonByBlock.delete(block)
+  render(null, host)
+  host.remove()
+  hostByBlock.delete(block)
   block.classList.remove('ib-has-grammar-tenses-trigger')
 }
 
@@ -103,15 +125,15 @@ function scanAnalysisBlocks() {
       continue
     }
 
-    const button = buttonForBlock(block, detected)
-    if (!button.isConnected)
-      heading.append(button)
+    const host = hostForBlock(block, detected)
+    if (!host.isConnected)
+      heading.append(host)
 
     block.classList.add('ib-has-grammar-tenses-trigger')
     activeBlocks.add(block)
   }
 
-  for (const block of buttonByBlock.keys()) {
+  for (const block of hostByBlock.keys()) {
     if (!activeBlocks.has(block) || !block.isConnected)
       removeButton(block)
   }
@@ -160,7 +182,7 @@ function handleKeydown(event: KeyboardEvent) {
 }
 
 function clearInjectedButtons() {
-  for (const block of buttonByBlock.keys())
+  for (const block of hostByBlock.keys())
     removeButton(block)
 }
 
@@ -221,7 +243,7 @@ onBeforeUnmount(() => {
               title="Закрыть"
               @click="closeCheatsheet"
             >
-              ×
+              <Icon icon="mdi:close" aria-hidden="true" />
             </button>
           </div>
         </header>
@@ -336,8 +358,10 @@ onBeforeUnmount(() => {
                   :class="{ 'is-highlighted': highlightedTenseIds.includes(tense.id) }"
                 >
                   <th scope="row">
-                    <span class="ib-grammar-tenses-table-number">{{ index + 1 }}</span>
-                    <strong>{{ tense.name }}</strong>
+                    <span class="ib-grammar-tenses-table-name">
+                      <span class="ib-grammar-tenses-table-number">{{ index + 1 }}</span>
+                      <strong>{{ tense.name }}</strong>
+                    </span>
                     <small>{{ tense.short }}</small>
                   </th>
                   <td data-label="Формула">
@@ -363,7 +387,8 @@ onBeforeUnmount(() => {
 </template>
 
 <style>
-.ib-grammar-tenses-anchor {
+.ib-grammar-tenses-anchor,
+.ib-grammar-tenses-trigger-host {
   display: contents;
 }
 
@@ -412,6 +437,7 @@ onBeforeUnmount(() => {
   font-size: 0.82rem;
 }
 
+/* Кнопка-триггер в заголовке блока грамматического анализа */
 .ib-grammar-tenses-trigger {
   display: inline-flex;
   align-items: center;
@@ -433,13 +459,9 @@ onBeforeUnmount(() => {
   transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
 }
 
-.ib-grammar-tenses-trigger > span:first-child {
-  display: inline-flex;
-  flex: 0 0 1em;
-  width: 1em;
-  align-items: center;
-  justify-content: center;
-  line-height: 1;
+.ib-grammar-tenses-trigger-icon {
+  flex: 0 0 auto;
+  font-size: 1.2em;
 }
 
 .ib-grammar-tenses-trigger:hover,
@@ -449,6 +471,14 @@ onBeforeUnmount(() => {
   outline: none;
 }
 
+/* Оверлей и модальное окно шпаргалки */
+.ib-grammar-tenses-overlay,
+.ib-grammar-tenses-modal {
+  font-family: var(--app-font-family, 'Maple Mono CN', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif);
+  font-synthesis: none;
+  -webkit-font-smoothing: antialiased;
+}
+
 .ib-grammar-tenses-overlay {
   position: fixed;
   z-index: 1300;
@@ -456,7 +486,7 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 24px;
+  padding: 12px;
   background: rgba(8, 12, 18, 0.7);
   backdrop-filter: blur(6px);
 }
@@ -464,297 +494,14 @@ onBeforeUnmount(() => {
 .ib-grammar-tenses-modal {
   display: flex;
   flex-direction: column;
-  width: min(1100px, 100%);
-  max-height: min(900px, calc(100dvh - 48px));
+  width: min(1160px, 100%);
+  max-height: min(820px, calc(100dvh - 24px));
   overflow: hidden;
   border: 1px solid var(--border-secondary-color, rgba(255, 255, 255, 0.12));
   border-radius: 24px;
   background: var(--bg-primary-color, #151922);
   color: var(--fg-primary-color, #f5f7fa);
   box-shadow: 0 24px 80px rgba(0, 0, 0, 0.45);
-}
-
-.ib-grammar-tenses-modal-header {
-  display: flex;
-  justify-content: space-between;
-  gap: 24px;
-  padding: 28px 30px 22px;
-  border-bottom: 1px solid var(--border-secondary-color, rgba(255, 255, 255, 0.12));
-  background: linear-gradient(135deg, color-mix(in srgb, var(--fg-accent-color, #d69e2e) 11%, transparent), transparent 58%);
-}
-
-.ib-grammar-tenses-eyebrow {
-  margin: 0 0 7px;
-  color: var(--fg-accent-color, #d69e2e);
-  font-size: 0.7rem;
-  font-weight: 800;
-  letter-spacing: 0.14em;
-}
-
-.ib-grammar-tenses-modal h2 {
-  margin: 0;
-  font-size: clamp(1.35rem, 2.5vw, 2rem);
-  line-height: 1.15;
-}
-
-.ib-grammar-tenses-lead {
-  max-width: 720px;
-  margin: 9px 0 0;
-  color: var(--fg-secondary-color, #aeb7c4);
-  font-size: 0.92rem;
-  line-height: 1.5;
-}
-
-.ib-grammar-tenses-close {
-  flex: 0 0 auto;
-  width: 36px;
-  height: 36px;
-  border: 1px solid var(--border-secondary-color, rgba(255, 255, 255, 0.14));
-  border-radius: 50%;
-  background: transparent;
-  color: var(--fg-secondary-color, #aeb7c4);
-  font-size: 1.6rem;
-  line-height: 1;
-  cursor: pointer;
-}
-
-.ib-grammar-tenses-close:hover,
-.ib-grammar-tenses-close:focus-visible {
-  border-color: var(--fg-accent-color, #d69e2e);
-  color: var(--fg-primary-color, #f5f7fa);
-  outline: none;
-}
-
-.ib-grammar-tenses-detected {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 7px;
-  padding: 12px 30px;
-  background: color-mix(in srgb, var(--fg-accent-color, #d69e2e) 7%, transparent);
-  font-size: 0.8rem;
-}
-
-.ib-grammar-tenses-detected-label {
-  color: var(--fg-secondary-color, #aeb7c4);
-}
-
-.ib-grammar-tenses-chip,
-.ib-grammar-tense-signals span {
-  display: inline-flex;
-  padding: 4px 8px;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--fg-accent-color, #d69e2e) 13%, transparent);
-  color: var(--fg-accent-color, #d69e2e);
-  font-size: 0.78em;
-  font-weight: 700;
-}
-
-.ib-grammar-tenses-body {
-  overflow-y: auto;
-  padding: 22px 30px 30px;
-}
-
-.ib-grammar-tenses-quick-card {
-  margin-bottom: 18px;
-  padding: 18px;
-  border: 1px solid var(--border-secondary-color, rgba(255, 255, 255, 0.12));
-  border-radius: 16px;
-  background: var(--bg-secondary-color, rgba(255, 255, 255, 0.035));
-}
-
-.ib-grammar-tenses-quick-card h3 {
-  margin: 0 0 13px;
-  font-size: 1rem;
-}
-
-.ib-grammar-tenses-family-grid {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 9px;
-}
-
-.ib-grammar-tenses-family-grid article {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-  padding: 11px;
-  border-radius: 10px;
-  background: var(--bg-tertiary-color, rgba(255, 255, 255, 0.06));
-}
-
-.ib-grammar-tenses-family-grid strong {
-  color: var(--fg-accent-color, #d69e2e);
-  font-size: 0.86rem;
-}
-
-.ib-grammar-tenses-family-grid span,
-.ib-grammar-tenses-reference {
-  color: var(--fg-secondary-color, #aeb7c4);
-  font-size: 0.78rem;
-  line-height: 1.45;
-}
-
-.ib-grammar-tenses-reference {
-  margin: 14px 0 0;
-}
-
-.ib-grammar-tenses-reference code,
-.ib-grammar-tense-formulas code {
-  color: var(--fg-primary-color, #f5f7fa);
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-}
-
-.ib-grammar-tense-card {
-  margin-bottom: 14px;
-  padding: 19px;
-  border: 1px solid var(--border-secondary-color, rgba(255, 255, 255, 0.11));
-  border-radius: 16px;
-  background: var(--bg-secondary-color, rgba(255, 255, 255, 0.025));
-}
-
-.ib-grammar-tense-card.is-highlighted {
-  border-color: color-mix(in srgb, var(--fg-accent-color, #d69e2e) 70%, transparent);
-  box-shadow: inset 3px 0 0 var(--fg-accent-color, #d69e2e);
-}
-
-.ib-grammar-tense-heading {
-  display: flex;
-  align-items: flex-start;
-  gap: 11px;
-}
-
-.ib-grammar-tense-number {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 25px;
-  height: 25px;
-  flex: 0 0 auto;
-  border-radius: 8px;
-  background: color-mix(in srgb, var(--fg-accent-color, #d69e2e) 14%, transparent);
-  color: var(--fg-accent-color, #d69e2e);
-  font-size: 0.75rem;
-  font-weight: 800;
-}
-
-.ib-grammar-tense-heading h3 {
-  margin: 0;
-  font-size: 1.05rem;
-}
-
-.ib-grammar-tense-heading p {
-  margin: 4px 0 0;
-  color: var(--fg-secondary-color, #aeb7c4);
-  font-size: 0.84rem;
-  line-height: 1.4;
-}
-
-.ib-grammar-tense-columns {
-  display: grid;
-  grid-template-columns: 1.05fr 1.4fr 1fr;
-  gap: 17px;
-  margin-top: 17px;
-}
-
-.ib-grammar-tense-column h4 {
-  margin: 0 0 8px;
-  color: var(--fg-secondary-color, #aeb7c4);
-  font-size: 0.7rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.ib-grammar-tense-formulas {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-}
-
-.ib-grammar-tense-formulas code {
-  padding: 6px 8px;
-  overflow-x: auto;
-  border-radius: 7px;
-  background: var(--bg-tertiary-color, rgba(255, 255, 255, 0.06));
-  font-size: 0.77rem;
-  white-space: nowrap;
-}
-
-.ib-grammar-tense-column ul {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-  margin: 0;
-  padding-left: 18px;
-  color: var(--fg-primary-color, #f5f7fa);
-  font-size: 0.82rem;
-  line-height: 1.4;
-}
-
-.ib-grammar-tense-signals {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 5px;
-}
-
-.ib-grammar-tense-example {
-  display: grid;
-  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
-  gap: 17px;
-  margin-top: 17px;
-  padding-top: 15px;
-  border-top: 1px solid var(--border-secondary-color, rgba(255, 255, 255, 0.1));
-}
-
-.ib-grammar-tense-example > div {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.ib-grammar-tense-example-label {
-  color: var(--fg-accent-color, #d69e2e);
-  font-size: 0.7rem;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.ib-grammar-tense-example strong {
-  font-size: 0.9rem;
-  line-height: 1.4;
-}
-
-.ib-grammar-tense-example span:not(.ib-grammar-tense-example-label) {
-  color: var(--fg-secondary-color, #aeb7c4);
-  font-size: 0.82rem;
-}
-
-.ib-grammar-tense-example p {
-  margin: 0;
-  color: var(--fg-secondary-color, #aeb7c4);
-  font-size: 0.78rem;
-  line-height: 1.45;
-}
-
-.ib-grammar-tense-example b {
-  color: var(--fg-primary-color, #f5f7fa);
-}
-
-.ib-grammar-tenses-overlay,
-.ib-grammar-tenses-modal {
-  font-family: var(--app-font-family, 'Maple Mono CN', 'Microsoft YaHei', 'Noto Sans', sans-serif);
-  font-synthesis: none;
-  -webkit-font-smoothing: antialiased;
-}
-
-.ib-grammar-tenses-overlay {
-  padding: 12px;
-}
-
-.ib-grammar-tenses-modal {
-  width: min(1160px, 100%);
-  max-height: min(820px, calc(100dvh - 24px));
   font-size: 0.84rem;
 }
 
@@ -763,14 +510,19 @@ onBeforeUnmount(() => {
 }
 
 .ib-grammar-tenses-modal-header {
+  display: flex;
+  flex: 0 0 auto;
   align-items: center;
+  justify-content: space-between;
   gap: 14px;
   padding: 10px 14px;
+  border-bottom: 1px solid var(--border-secondary-color, rgba(255, 255, 255, 0.12));
   background: var(--bg-secondary-color, rgba(255, 255, 255, 0.035));
 }
 
 .ib-grammar-tenses-modal h2 {
   min-width: 0;
+  margin: 0;
   font-size: 1.05rem;
   font-weight: 700;
 }
@@ -782,9 +534,62 @@ onBeforeUnmount(() => {
   margin-left: auto;
 }
 
+.ib-grammar-tenses-close {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid var(--border-secondary-color, rgba(255, 255, 255, 0.14));
+  border-radius: 50%;
+  background: transparent;
+  color: var(--fg-secondary-color, #aeb7c4);
+  font-size: 1.25rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.ib-grammar-tenses-close:hover,
+.ib-grammar-tenses-close:focus-visible {
+  border-color: var(--fg-accent-color, #d69e2e);
+  color: var(--fg-primary-color, #f5f7fa);
+  outline: none;
+}
+
+/* Строка «В анализе» и переключатель вида */
+.ib-grammar-tenses-detected {
+  display: flex;
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px;
+  min-height: 34px;
+  padding: 6px 14px;
+  background: color-mix(in srgb, var(--fg-accent-color, #d69e2e) 7%, transparent);
+  font-size: 0.72rem;
+}
+
+.ib-grammar-tenses-detected-label {
+  color: var(--fg-secondary-color, #aeb7c4);
+}
+
+.ib-grammar-tenses-chip,
+.ib-grammar-tense-signals span {
+  display: inline-flex;
+  padding: 3px 6px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--fg-accent-color, #d69e2e) 13%, transparent);
+  color: var(--fg-accent-color, #d69e2e);
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
 .ib-grammar-tenses-view-switch {
   display: inline-flex;
   flex: 0 0 auto;
+  max-width: 100%;
   margin-left: auto;
   padding: 2px;
   border: 1px solid var(--border-secondary-color, rgba(255, 255, 255, 0.14));
@@ -806,6 +611,7 @@ onBeforeUnmount(() => {
   color: var(--fg-secondary-color, #aeb7c4);
   font-size: 0.72rem;
   font-weight: 700;
+  white-space: nowrap;
   cursor: pointer;
 }
 
@@ -817,33 +623,211 @@ onBeforeUnmount(() => {
   outline: none;
 }
 
-.ib-grammar-tenses-close {
-  width: 28px;
-  height: 28px;
-  font-size: 1.25rem;
-}
-
-.ib-grammar-tenses-detected {
-  min-height: 34px;
-  padding: 6px 14px;
-  gap: 5px;
-  font-size: 0.72rem;
-}
-
-.ib-grammar-tenses-chip,
-.ib-grammar-tense-signals span {
-  padding: 3px 6px;
-  font-size: 0.7rem;
-}
-
+/* Тело шпаргалки */
 .ib-grammar-tenses-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
   padding: 10px 14px 14px;
 }
 
-.ib-grammar-tenses-body--table {
-  min-height: 0;
+.ib-grammar-tenses-body--detail {
+  padding-top: 12px;
 }
 
+.ib-grammar-tenses-quick-card {
+  margin-bottom: 10px;
+  padding: 11px 13px;
+  border: 1px solid var(--border-secondary-color, rgba(255, 255, 255, 0.12));
+  border-radius: 10px;
+  background: var(--bg-secondary-color, rgba(255, 255, 255, 0.035));
+}
+
+.ib-grammar-tenses-quick-card h3 {
+  margin: 0 0 8px;
+  font-size: 0.86rem;
+}
+
+.ib-grammar-tenses-family-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.ib-grammar-tenses-family-grid article {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 7px 8px;
+  border-radius: 7px;
+  background: var(--bg-tertiary-color, rgba(255, 255, 255, 0.06));
+}
+
+.ib-grammar-tenses-family-grid strong {
+  color: var(--fg-accent-color, #d69e2e);
+  font-size: 0.74rem;
+}
+
+.ib-grammar-tenses-family-grid span,
+.ib-grammar-tenses-reference {
+  color: var(--fg-secondary-color, #aeb7c4);
+  font-size: 0.68rem;
+  line-height: 1.45;
+}
+
+.ib-grammar-tenses-reference {
+  margin: 8px 0 0;
+}
+
+.ib-grammar-tenses-reference code,
+.ib-grammar-tense-formulas code {
+  color: var(--fg-primary-color, #f5f7fa);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+/* Подробные карточки времён */
+.ib-grammar-tense-card {
+  margin-bottom: 8px;
+  padding: 11px 12px;
+  border: 1px solid var(--border-secondary-color, rgba(255, 255, 255, 0.11));
+  border-radius: 10px;
+  background: var(--bg-secondary-color, rgba(255, 255, 255, 0.025));
+}
+
+.ib-grammar-tense-card.is-highlighted {
+  border-color: color-mix(in srgb, var(--fg-accent-color, #d69e2e) 70%, transparent);
+  box-shadow: inset 3px 0 0 var(--fg-accent-color, #d69e2e);
+}
+
+.ib-grammar-tense-heading {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+}
+
+.ib-grammar-tense-number {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 21px;
+  height: 21px;
+  flex: 0 0 auto;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--fg-accent-color, #d69e2e) 14%, transparent);
+  color: var(--fg-accent-color, #d69e2e);
+  font-size: 0.65rem;
+  font-weight: 800;
+}
+
+.ib-grammar-tense-heading h3 {
+  margin: 0;
+  font-size: 0.86rem;
+}
+
+.ib-grammar-tense-heading p {
+  margin: 2px 0 0;
+  color: var(--fg-secondary-color, #aeb7c4);
+  font-size: 0.7rem;
+  line-height: 1.4;
+}
+
+.ib-grammar-tense-columns {
+  display: grid;
+  grid-template-columns: 1.05fr 1.4fr 1fr;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.ib-grammar-tense-column h4 {
+  margin: 0 0 5px;
+  color: var(--fg-secondary-color, #aeb7c4);
+  font-size: 0.62rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.ib-grammar-tense-formulas {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.ib-grammar-tense-formulas code {
+  padding: 4px 6px;
+  overflow-x: auto;
+  border-radius: 7px;
+  background: var(--bg-tertiary-color, rgba(255, 255, 255, 0.06));
+  font-size: 0.68rem;
+  white-space: nowrap;
+}
+
+.ib-grammar-tense-auxiliary {
+  color: var(--fg-accent-color, #d69e2e);
+  font-size: 0.66rem;
+  line-height: 1.3;
+}
+
+.ib-grammar-tense-column ul {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin: 0;
+  padding-left: 15px;
+  color: var(--fg-primary-color, #f5f7fa);
+  font-size: 0.7rem;
+  line-height: 1.4;
+}
+
+.ib-grammar-tense-signals {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+}
+
+.ib-grammar-tense-example {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+  gap: 10px;
+  margin-top: 10px;
+  padding-top: 9px;
+  border-top: 1px solid var(--border-secondary-color, rgba(255, 255, 255, 0.1));
+}
+
+.ib-grammar-tense-example > div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ib-grammar-tense-example-label {
+  color: var(--fg-accent-color, #d69e2e);
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.ib-grammar-tense-example strong {
+  font-size: 0.74rem;
+  line-height: 1.4;
+}
+
+.ib-grammar-tense-example span:not(.ib-grammar-tense-example-label),
+.ib-grammar-tense-example p {
+  color: var(--fg-secondary-color, #aeb7c4);
+  font-size: 0.68rem;
+}
+
+.ib-grammar-tense-example p {
+  margin: 0;
+  line-height: 1.45;
+}
+
+.ib-grammar-tense-example b {
+  color: var(--fg-primary-color, #f5f7fa);
+}
+
+/* Компактная таблица времён */
 .ib-grammar-tenses-table-wrap {
   overflow: auto;
   border: 1px solid var(--border-secondary-color, rgba(255, 255, 255, 0.1));
@@ -914,9 +898,16 @@ onBeforeUnmount(() => {
   font-weight: 400;
 }
 
-.ib-grammar-tenses-table th[scope='row'] strong,
+.ib-grammar-tenses-table-name {
+  display: flex;
+  align-items: flex-start;
+  gap: 5px;
+}
+
+.ib-grammar-tenses-table-name strong,
 .ib-grammar-tenses-table td > strong {
   display: block;
+  min-width: 0;
   font-size: 0.76rem;
   font-weight: 750;
 }
@@ -944,132 +935,14 @@ onBeforeUnmount(() => {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  flex: 0 0 auto;
   width: 18px;
   height: 18px;
-  margin-right: 4px;
   border-radius: 5px;
   background: color-mix(in srgb, var(--fg-accent-color, #d69e2e) 15%, transparent);
   color: var(--fg-accent-color, #d69e2e);
   font-size: 0.63rem;
   font-weight: 800;
-}
-
-.ib-grammar-tenses-body--detail {
-  padding-top: 12px;
-}
-
-.ib-grammar-tenses-quick-card {
-  margin-bottom: 10px;
-  padding: 11px 13px;
-  border-radius: 10px;
-}
-
-.ib-grammar-tenses-quick-card h3 {
-  margin-bottom: 8px;
-  font-size: 0.86rem;
-}
-
-.ib-grammar-tenses-family-grid {
-  gap: 6px;
-}
-
-.ib-grammar-tenses-family-grid article {
-  gap: 3px;
-  padding: 7px 8px;
-  border-radius: 7px;
-}
-
-.ib-grammar-tenses-family-grid strong {
-  font-size: 0.74rem;
-}
-
-.ib-grammar-tenses-family-grid span,
-.ib-grammar-tenses-reference {
-  font-size: 0.68rem;
-}
-
-.ib-grammar-tenses-reference {
-  margin-top: 8px;
-}
-
-.ib-grammar-tense-card {
-  margin-bottom: 8px;
-  padding: 11px 12px;
-  border-radius: 10px;
-}
-
-.ib-grammar-tense-heading {
-  gap: 7px;
-}
-
-.ib-grammar-tense-number {
-  width: 21px;
-  height: 21px;
-  border-radius: 6px;
-  font-size: 0.65rem;
-}
-
-.ib-grammar-tense-heading h3 {
-  font-size: 0.86rem;
-}
-
-.ib-grammar-tense-heading p {
-  margin-top: 2px;
-  font-size: 0.7rem;
-}
-
-.ib-grammar-tense-columns {
-  gap: 10px;
-  margin-top: 10px;
-}
-
-.ib-grammar-tense-column h4 {
-  margin-bottom: 5px;
-  font-size: 0.62rem;
-}
-
-.ib-grammar-tense-formulas {
-  gap: 3px;
-}
-
-.ib-grammar-tense-formulas code {
-  padding: 4px 6px;
-  font-size: 0.68rem;
-}
-
-.ib-grammar-tense-auxiliary {
-  color: var(--fg-accent-color, #d69e2e);
-  font-size: 0.66rem;
-  line-height: 1.3;
-}
-
-.ib-grammar-tense-column ul {
-  gap: 3px;
-  padding-left: 15px;
-  font-size: 0.7rem;
-}
-
-.ib-grammar-tense-signals {
-  gap: 3px;
-}
-
-.ib-grammar-tense-example {
-  gap: 10px;
-  margin-top: 10px;
-  padding-top: 9px;
-}
-
-.ib-grammar-tense-example-label {
-  font-size: 0.62rem;
-}
-
-.ib-grammar-tense-example strong {
-  font-size: 0.74rem;
-}
-
-.ib-grammar-tense-example span:not(.ib-grammar-tense-example-label),
-.ib-grammar-tense-example p {
-  font-size: 0.68rem;
 }
 
 @media (max-width: 760px) {
@@ -1084,7 +957,8 @@ onBeforeUnmount(() => {
   }
 
   .ib-grammar-tenses-modal-header,
-  .ib-grammar-tenses-body {
+  .ib-grammar-tenses-body,
+  .ib-grammar-tenses-detected {
     padding-left: 18px;
     padding-right: 18px;
   }
@@ -1093,19 +967,13 @@ onBeforeUnmount(() => {
     flex-wrap: wrap;
   }
 
-  .ib-grammar-tenses-detected {
-    padding-left: 18px;
-    padding-right: 18px;
+  .ib-grammar-tenses-family-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .ib-grammar-tenses-family-grid,
   .ib-grammar-tense-columns,
   .ib-grammar-tense-example {
     grid-template-columns: 1fr;
-  }
-
-  .ib-grammar-tenses-family-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .ib-grammar-tenses-table-wrap {
@@ -1116,7 +984,7 @@ onBeforeUnmount(() => {
 }
 
 @media (max-width: 430px) {
-  .ib-grammar-tenses-trigger span:last-child {
+  .ib-grammar-tenses-trigger-label {
     display: none;
   }
 

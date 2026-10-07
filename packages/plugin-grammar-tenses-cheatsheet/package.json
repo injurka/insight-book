@@ -9,6 +9,7 @@
     "pack": "bun run --filter @injurka/insight-book-pack-plugin pack $PWD"
   },
   "dependencies": {
+    "@iconify/vue": "^5.0.1",
     "@injurka/insight-book-plugin-api": "workspace:*",
     "vue": "3.5.42"
   },
