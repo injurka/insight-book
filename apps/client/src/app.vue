@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { listen } from '@tauri-apps/api/event'
 import { useHead } from '@vueuse/head'
 import { computed, onMounted, provide, watch, watchEffect } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -178,7 +179,6 @@ onMounted(async () => {
 
     if (/android/i.test(navigator.userAgent)) {
       try {
-        const { listen } = await import('@tauri-apps/api/event')
         await listen('tauri://go-back', () => {
           const wasHandled = triggerBack()
 

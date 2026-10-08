@@ -9,7 +9,7 @@ import { VitePWA } from 'vite-plugin-pwa'
 import packageJson from '../package.json' with { type: 'json' }
 import { autoImportOptionsCfg } from './cfg/auto-import.ts'
 import { iconsCfg } from './cfg/icons.ts'
-import { visualizerPlugin } from './lib/helpers.ts'
+import { onBuildWarning, visualizerPlugin } from './lib/helpers.ts'
 
 const host = process.env.TAURI_DEV_HOST
 const appVersion = process.env.VITE_APP_VERSION || packageJson.version
@@ -113,6 +113,7 @@ export default defineConfig({
     outDir: fileURLToPath(new URL('../dist', import.meta.url)),
     emptyOutDir: true,
     rollupOptions: {
+      onwarn: onBuildWarning,
       input: {
         main: fileURLToPath(new URL('../src/index.html', import.meta.url)),
       },

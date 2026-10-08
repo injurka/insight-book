@@ -6,6 +6,7 @@ import { useRepos } from '~/00.plugins/di'
 import { useTracking } from '~/01.shared/composables/use-tracking'
 import { buildBookTtsCacheKey, DEFAULT_TTS_VOICE } from '~/01.shared/constants/tts'
 import { useGlobalSettingsStore } from '~/01.shared/store/settings.store'
+import { useLibraryStore } from '../store/library.store'
 import { extractPageData } from './book-sync-parser'
 
 const repos = useRepos()
@@ -491,7 +492,6 @@ export async function startWholeBookSync(bookId: number, options: {
   ttsSentences?: boolean
   ttsWords?: boolean
 }): Promise<void> {
-  const { useLibraryStore } = await import('../store/library.store')
   const libraryStore = useLibraryStore()
   const book = libraryStore.books.find(b => b.id === bookId) || libraryStore.currentBookInfo
 

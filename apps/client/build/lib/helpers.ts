@@ -1,4 +1,4 @@
-import type { PluginOption } from 'vite'
+import type { BuildOptions, PluginOption } from 'vite'
 import { visualizer } from 'rollup-plugin-visualizer'
 
 /**
@@ -22,4 +22,12 @@ export function visualizerPlugin(title: string): PluginOption[] {
   }
 
   return []
+}
+
+export const onBuildWarning: NonNullable<NonNullable<BuildOptions['rolldownOptions']>['onwarn']> = (warning, warn) => {
+  // Eruda bundles eval("require") in its Node-only crypto fallback.
+  if (warning.code === 'EVAL' && /[/\\]eruda[/\\]eruda\.js$/.test(warning.id ?? ''))
+    return
+
+  warn(warning)
 }

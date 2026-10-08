@@ -1,4 +1,3 @@
-import type { Router } from 'vue-router'
 import type { CatalogPluginRecord, UploadProgress, UserPluginRecord } from '~/01.shared/types/models'
 import { useMutation, useQuery } from '@pinia/colada'
 import { useRepos } from '~/00.plugins/di'
@@ -6,12 +5,8 @@ import { i18n } from '~/00.plugins/i18n'
 import { pluginManager } from '~/00.plugins/plugin-manager'
 import { useToast } from '~/01.shared/composables/use-toast'
 import { queryKeys, scopedQueryKey } from '~/01.shared/lib/query-keys'
+import router from '~/01.shared/lib/router'
 import { useAuthStore } from '~/01.shared/store/auth.store'
-
-// Динамический импорт во избежание циклической зависимости router -> views -> store
-async function getRouter(): Promise<Router> {
-  return (await import('~/01.shared/lib/router')).default
-}
 
 export const usePluginsStore = defineStore('settings-plugins', () => {
   const toast = useToast()
@@ -87,7 +82,6 @@ export const usePluginsStore = defineStore('settings-plugins', () => {
     isLoading: isInstallingPlugin,
   } = useMutation({
     mutation: async (manifestUrl: string) => {
-      const router = await getRouter()
       const loadedPlugin = await pluginManager.loadRemotePlugin(manifestUrl, router)
 
       if (!loadedPlugin)
@@ -130,7 +124,6 @@ export const usePluginsStore = defineStore('settings-plugins', () => {
   const { mutateAsync: toggleRemotePluginMutation } = useMutation({
     mutation: async ({ record, enabled }: { record: UserPluginRecord, enabled: boolean }) => {
       await repos.plugin.updatePlugin(record.pluginId, { isEnabled: enabled })
-      const router = await getRouter()
 
       if (enabled)
         await pluginManager.loadRemotePlugin(record.manifestUrl, router)
@@ -162,7 +155,6 @@ export const usePluginsStore = defineStore('settings-plugins', () => {
   const { mutateAsync: uninstallRemotePluginMutation } = useMutation({
     mutation: async (pluginId: string) => {
       await repos.plugin.uninstallPlugin(pluginId)
-      const router = await getRouter()
       await pluginManager.uninstall(pluginId, router)
     },
     onSuccess() {

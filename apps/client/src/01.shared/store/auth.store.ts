@@ -3,6 +3,7 @@ import { useQueryCache } from '@pinia/colada'
 import { useRepos } from '~/00.plugins/di'
 import { useTracking } from '~/01.shared/composables/use-tracking'
 import { queryKeys, setAuthQueryScope } from '~/01.shared/lib/query-keys'
+import router from '~/01.shared/lib/router'
 import { resetTelemetryUser } from '~/01.shared/services/monitoring.service'
 import { UserDataSchema } from '~/01.shared/types/schemas/auth.schema'
 
@@ -240,7 +241,6 @@ export const useAuthStore = defineStore('auth', () => {
 
     try {
       const userPlugins = await repos.plugin.getMyPlugins()
-      const router = (await import('~/01.shared/lib/router')).default
       const { pluginManager } = await import('~/00.plugins/plugin-manager')
 
       for (const pluginRecord of userPlugins) {

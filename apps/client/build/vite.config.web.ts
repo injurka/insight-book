@@ -10,7 +10,7 @@ import packageJson from '../package.json' with { type: 'json' }
 import { autoImportOptionsCfg } from './cfg/auto-import.ts'
 import { iconsCfg } from './cfg/icons.ts'
 import { pwaCfg } from './cfg/pwa.ts'
-import { visualizerPlugin } from './lib/helpers.ts'
+import { onBuildWarning, visualizerPlugin } from './lib/helpers.ts'
 
 const buildDate = new Date()
 const buildRevision = buildDate.toISOString()
@@ -92,6 +92,7 @@ export default defineConfig({
     emptyOutDir: true,
     chunkSizeWarningLimit: 800,
     rollupOptions: {
+      onwarn: onBuildWarning,
       output: {
         manualChunks(id) {
           const getVendorChunk = (pathId: string) => {

@@ -32,6 +32,22 @@ export function pwaCfg(revision: string) {
       }],
     },
     injectManifest: {
+      buildPlugins: {
+        vite: [{
+          name: 'pwa-service-worker-code-splitting',
+          config(config) {
+            // vite-plugin-pwa still uses the deprecated Rolldown option.
+            const output = config.build?.rollupOptions?.output
+
+            for (const options of Array.isArray(output) ? output : [output]) {
+              if (options?.inlineDynamicImports === true) {
+                delete options.inlineDynamicImports
+                options.codeSplitting = false
+              }
+            }
+          },
+        }],
+      },
       globPatterns: ['**/*.{js,json,css,html,txt,svg,png,ico,webp,woff,woff2,ttf,eot,otf,wasm}'],
       globIgnores: ['emojis/**', 'manifest**.webmanifest'],
       maximumFileSizeToCacheInBytes: 20 * 1024 * 1024,
