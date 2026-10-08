@@ -29,6 +29,7 @@ onMounted(async () => {
 
     try {
       await authStore.checkAuth()
+
       if (!authStore.user) {
         error.value = t('signIn.errorAuth')
 

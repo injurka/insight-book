@@ -41,6 +41,7 @@ export function useMangaBubbles(onPointerDown: (e: MouseEvent | TouchEvent, t: s
 
   function closeBubblePopover(event?: Event) {
     const target = event?.target as HTMLElement | null
+
     if (target?.closest && (target.closest('.word-popover') || target.closest('.kit-dialog') || target.closest('.selection-tooltip')))
       return
 
@@ -62,6 +63,7 @@ export function useMangaBubbles(onPointerDown: (e: MouseEvent | TouchEvent, t: s
   function getBoxStyle(box: OcrBlock) {
     if (!readerStore.currentPage?.imageWidth || !readerStore.currentPage?.imageHeight)
       return {}
+
     const imgWidth = readerStore.currentPage.imageWidth || 1
     const imgHeight = readerStore.currentPage.imageHeight || 1
 
@@ -76,6 +78,7 @@ export function useMangaBubbles(onPointerDown: (e: MouseEvent | TouchEvent, t: s
   function getOuterNumberStyle(box: OcrBlock) {
     if (!readerStore.currentPage?.imageWidth || !readerStore.currentPage?.imageHeight)
       return {}
+
     const imgWidth = readerStore.currentPage.imageWidth || 1
     const imgHeight = readerStore.currentPage.imageHeight || 1
 
@@ -88,6 +91,7 @@ export function useMangaBubbles(onPointerDown: (e: MouseEvent | TouchEvent, t: s
   function getBubbleHighlightStyle(box: OcrBlock) {
     if (!box?.text || !settingsStore.highlightSavedQuotes)
       return {}
+
     const rawNorm = normalizeString(box.text)
     const pageNum = Number(readerStore.currentPage?.pageNum)
     const pageHighlights = highlightsStore.highlights.filter(h => Number(h.pageNum) === pageNum)

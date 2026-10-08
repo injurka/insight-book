@@ -36,12 +36,16 @@ function getStatusLabel(state: number) {
 function getDifficultyClass(lang: string, diffValue: string | null) {
   if (!diffValue)
     return ''
+
   const system = DIFFICULTY_SYSTEMS[lang] || DIFFICULTY_SYSTEMS.default
   const found = system.find(s => s.value === diffValue)
+
   if (!found)
     return ''
+
   if (found.level <= 2)
     return 'level-easy'
+
   if (found.level <= 4)
     return 'level-medium'
 

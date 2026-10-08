@@ -5,12 +5,14 @@ import { i18n } from '~/00.plugins/i18n'
 function getLevenshteinDistance(a: string, b: string): number {
   if (a.length === 0)
     return b.length
+
   if (b.length === 0)
     return a.length
 
   const matrix = Array.from({ length: a.length + 1 }, () => Array.from({ length: b.length + 1 }).fill(0)) as number[][]
 
   for (let i = 0; i <= a.length; i++) matrix[i][0] = i
+
   for (let j = 0; j <= b.length; j++) matrix[0][j] = j
 
   for (let i = 1; i <= a.length; i++) {
@@ -29,10 +31,13 @@ function getLevenshteinDistance(a: string, b: string): number {
 export function useSrsQuiz() {
   function fillFallbackDistractors(distractors: Set<string>, correctClean: string | undefined, count: number) {
     const fallbacks = (i18n.global.t('srs.fallbackWords')).split(',')
+
     for (const fallbackRaw of fallbacks) {
       if (distractors.size >= count)
         break
+
       const fallback = fallbackRaw.trim()
+
       if (fallback && fallback !== correctClean)
         distractors.add(fallback)
     }
@@ -48,8 +53,10 @@ export function useSrsQuiz() {
     for (const wordItem of shuffled) {
       if (distractors.size >= count)
         break
+
       if (wordItem.translation) {
         const cleanTrans = wordItem.translation.split(',')[0].split(';')[0].replace(/<[^>]+(>|$)/g, '').trim()
+
         if (cleanTrans && cleanTrans !== correctClean)
           distractors.add(cleanTrans)
       }
@@ -69,14 +76,17 @@ export function useSrsQuiz() {
     for (const wordItem of shuffled) {
       if (distractors.size >= count)
         break
+
       if (wordItem.word && wordItem.word !== correctItem.word)
         distractors.add(wordItem.word)
     }
 
     const fallbacks = ['的', '一', '是', '不', '了', '人', '我', '在', '有', '他']
+
     for (const fallback of fallbacks) {
       if (distractors.size >= count)
         break
+
       if (fallback !== correctItem.word)
         distractors.add(fallback)
     }
@@ -105,6 +115,7 @@ export function useSrsQuiz() {
     const totalSeconds = Math.floor(ms / 1000)
     const minutes = Math.floor(totalSeconds / 60)
     const seconds = totalSeconds % 60
+
     if (minutes === 0)
       return `${seconds} сек`
 

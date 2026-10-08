@@ -5,7 +5,6 @@ import { useToast } from '~/01.shared/composables/use-toast'
 import { queryKeys, scopedQueryKey } from '~/01.shared/lib/query-keys'
 import { useAnalysisStore } from '~/01.shared/store/analysis/analysis.store'
 import { useAuthStore } from '~/01.shared/store/auth.store'
-
 import { useDecksStore } from './decks.store'
 import { useDictionaryFiltersStore } from './dictionary-filters.store'
 import { dictionaryWords } from './dictionary-words.state'
@@ -73,6 +72,7 @@ export const useDictionaryStore = defineStore('dictionary', () => {
 
   async function fetchDictionary() {
     isManualLoading.value = true
+
     try {
       await Promise.all([
         refetchDictionary(),

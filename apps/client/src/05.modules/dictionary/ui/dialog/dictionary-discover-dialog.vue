@@ -13,22 +13,16 @@ import { KitTabs } from '~/02.kit/molecules/kit-tabs/ui'
 import { KitDialog } from '~/02.kit/organisms/kit-dialog/ui'
 import { useDictionaryStore } from '../../store/dictionary.store'
 
-const repos = useRepos()
-
 const visible = defineModel<boolean>('visible', { required: true })
+
+const repos = useRepos()
 const store = useDictionaryStore()
 const toast = useToast()
 const { t } = useI18n()
-
-const activeTab = ref<'import' | 'catalog'>('catalog')
-
-const tabItems = computed(() => [
-  { id: 'catalog', label: t('dictionary.discover.marketplace_tab'), icon: 'mdi:store-search-outline' },
-  { id: 'import', label: t('dictionary.discover.import_tab'), icon: 'mdi:file-import-outline' },
-])
-
 // -- Import Block --
 const fileInputRef = useTemplateRef<HTMLInputElement>('fileInputRef')
+
+const activeTab = ref<'import' | 'catalog'>('catalog')
 const selectedFile = ref<File | null>(null)
 const previewRows = ref<string[][]>([])
 const mapping = ref({ word: 0, translation: 1, transcription: 2, tags: 3 })
@@ -36,11 +30,20 @@ const importDeckId = ref('none')
 const importNewDeckName = ref('')
 const importAutoFill = ref(false)
 const isImporting = ref(false)
-
 const cloningDeckId = ref<number | null>(null)
+// -- Catalog Block --
+const catalogDecks = ref<CatalogDeck[]>([])
+const isCatalogLoading = ref(false)
+const previewDeck = ref<CatalogDeck | null>(null)
+const previewWords = ref<CatalogWord[]>([])
+const isPreviewLoading = ref(false)
+
+const tabItems = computed(() => [
+  { id: 'catalog', label: t('dictionary.discover.marketplace_tab'), icon: 'mdi:store-search-outline' },
+  { id: 'import', label: t('dictionary.discover.import_tab'), icon: 'mdi:file-import-outline' },
+])
 const isCloning = computed(() => cloningDeckId.value !== null)
 const isBusy = computed(() => isCloning.value || isImporting.value)
-
 const deckOptions = computed(() => {
   const opts: SelectOption[] = [{ label: t('dictionary.discover.no_deck'), value: 'none' }]
   store.decks.forEach((d) => {
@@ -53,11 +56,12 @@ const deckOptions = computed(() => {
 function triggerFileUpload() {
   if (isBusy.value)
     return
+
   fileInputRef.value?.click()
 }
-
 async function onFileSelected(e: Event) {
   const target = e.target as HTMLInputElement
+
   if (target.files && target.files.length > 0) {
     selectedFile.value = target.files[0]
     target.value = ''
@@ -68,10 +72,10 @@ async function onFileSelected(e: Event) {
     previewRows.value = lines.map(l => l.split('\t').length > 1 ? l.split('\t') : l.split(','))
   }
 }
-
 async function doImport() {
   if (!selectedFile.value || isBusy.value)
     return
+
   isImporting.value = true
 
   try {
@@ -101,17 +105,9 @@ async function doImport() {
     previewRows.value = []
   }
 }
-
-// -- Catalog Block --
-const catalogDecks = ref<CatalogDeck[]>([])
-const isCatalogLoading = ref(false)
-
-const previewDeck = ref<CatalogDeck | null>(null)
-const previewWords = ref<CatalogWord[]>([])
-const isPreviewLoading = ref(false)
-
 async function loadCatalog() {
   isCatalogLoading.value = true
+
   try {
     const res = await repos.dictionary.catalog()
     catalogDecks.value = Array.isArray(res) ? res : (res as unknown as { data: CatalogDeck[] }).data || []
@@ -123,13 +119,14 @@ async function loadCatalog() {
     isCatalogLoading.value = false
   }
 }
-
 async function openPreview(deck: CatalogDeck) {
   if (isBusy.value)
     return
+
   previewDeck.value = deck
   previewWords.value = []
   isPreviewLoading.value = true
+
   try {
     previewWords.value = await repos.dictionary.catalogWords(deck.id)
   }
@@ -140,17 +137,18 @@ async function openPreview(deck: CatalogDeck) {
     isPreviewLoading.value = false
   }
 }
-
 function closePreview() {
   if (isBusy.value)
     return
+
   previewDeck.value = null
 }
-
 async function cloneDeck(id: number) {
   if (isBusy.value)
     return
+
   cloningDeckId.value = id
+
   try {
     await repos.dictionary.cloneCatalog(id)
     await store.fetchDictionary()

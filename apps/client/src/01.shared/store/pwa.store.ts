@@ -27,6 +27,7 @@ function urlBase64ToUint8Array(base64String: string) {
   const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/')
   const rawData = window.atob(base64)
   const outputArray = new Uint8Array(rawData.length)
+
   for (let i = 0; i < rawData.length; ++i)
     outputArray[i] = rawData.charCodeAt(i)
 
@@ -82,6 +83,7 @@ export const usePwaStore = defineStore('pwa', {
       // Sync timezone if changed
       const authStore = useAuthStore()
       const currentTimezone = new Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'
+
       if (token && authStore.user && authStore.user.timezone !== currentTimezone) {
         this.updatePushSettings({
           deckId: authStore.user.pushTargetDeckId ?? 'all',
@@ -110,6 +112,7 @@ export const usePwaStore = defineStore('pwa', {
           const sub = await reg.pushManager.getSubscription()
           const hasPermission = Notification.permission === 'granted'
           this.isPushSubscribed = !!sub && hasPermission
+
           if (this.isPushSubscribed && sub && token)
             repos.push.subscribeWeb(sub).catch(() => { })
         }
@@ -138,6 +141,7 @@ export const usePwaStore = defineStore('pwa', {
 
     async fetchVapidKey(toast: ToastService, t: TranslateFn): Promise<string> {
       let publicKey: string
+
       try {
         publicKey = await repos.push.getVapidPublicKey()
       }
@@ -156,6 +160,7 @@ export const usePwaStore = defineStore('pwa', {
 
     async subscribeWebPush(toast: ToastService, t: TranslateFn, reg: ServiceWorkerRegistration) {
       const permission = await Notification.requestPermission()
+
       if (permission === 'denied') {
         toast.error(t('settings.pushDenied'))
         throw new Error('Permission denied')
@@ -164,6 +169,7 @@ export const usePwaStore = defineStore('pwa', {
       const publicKey = await this.fetchVapidKey(toast, t)
 
       let sub: PushSubscription
+
       try {
         sub = await reg.pushManager.subscribe({
           userVisibleOnly: true,
@@ -228,6 +234,7 @@ export const usePwaStore = defineStore('pwa', {
       })
 
       const authStore = useAuthStore()
+
       if (authStore.user) {
         authStore.user.pushTargetDeckId = settings.deckId === 'all' ? null : settings.deckId
         authStore.user.pushTimeStart = settings.timeStart

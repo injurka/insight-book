@@ -25,6 +25,14 @@ const props = withDefaults(defineProps<Props>(), {
 })
 
 const check = usePronunciationCheck(() => props.word, () => props.language)
+
+// Exposed for testing
+defineExpose({
+  check,
+})
+
+const { t } = useI18n()
+
 const {
   isRecording,
   isAnalyzingAudio,
@@ -37,21 +45,20 @@ const {
   toggleRecording,
   playUserAudio,
 } = check
-
-const { t } = useI18n()
+const isDropdownOpen = ref(false)
 
 const pronScoreClass = computed(() => {
   if (pronScore.value === null)
     return ''
+
   if (pronScore.value >= 85)
     return 'is-success'
+
   if (pronScore.value >= 50)
     return 'is-warning'
 
   return 'is-error'
 })
-
-const isDropdownOpen = ref(false)
 
 watch(pronScore, (newVal) => {
   if (newVal !== null)
@@ -64,11 +71,6 @@ watch(pronScore, (newVal) => {
 function closeDropdown() {
   isDropdownOpen.value = false
 }
-
-// Exposed for testing
-defineExpose({
-  check,
-})
 </script>
 
 <template>

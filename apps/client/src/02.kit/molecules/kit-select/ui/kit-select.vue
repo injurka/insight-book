@@ -28,60 +28,16 @@ const props = withDefaults(defineProps<Props>(), {
   color: 'default',
   multiple: false,
 })
-
 const emit = defineEmits<{
   (e: 'delete', option: KitSelectOption): void
 }>()
-
 const modelValue = defineModel<string | number | (string | number)[]>()
 
 const slots = useSlots()
+
 const isOpen = ref(false)
 const referenceRef = ref<HTMLElement | null>(null)
 const floatingRef = ref<HTMLElement | null>(null)
-
-const dialogZIndex = inject<Ref<number> | undefined>('kit-dialog-z-index', undefined)
-const dropdownZIndex = computed(() => dialogZIndex ? dialogZIndex.value + 10 : undefined)
-
-const finalPrependIcon = computed(() => props.icon || props.prependIcon)
-const hasPrepend = computed(() => !!finalPrependIcon.value || !!slots.prepend || !!slots.icon)
-
-const selectedLabel = computed(() => {
-  if (props.multiple && Array.isArray(modelValue.value)) {
-    if (modelValue.value.length === 0)
-      return ''
-
-    return modelValue.value.map((v) => {
-      const opt = props.options.find(o => o.value === v)
-
-      return opt ? opt.label : ''
-    }).filter(Boolean).join(', ')
-  }
-
-  const opt = props.options.find(o => o.value === modelValue.value)
-
-  return opt ? opt.label : ''
-})
-
-const groupedOptions = computed(() => {
-  const hasGroups = props.options.some(o => !!o.group)
-  if (!hasGroups) {
-    return [{ group: null, items: props.options }]
-  }
-
-  const groupsMap = new Map<string, KitSelectOption[]>()
-  for (const opt of props.options) {
-    const g = opt.group || ''
-    if (!groupsMap.has(g))
-      groupsMap.set(g, [])
-    groupsMap.get(g)!.push(opt)
-  }
-
-  return Array.from(groupsMap.entries()).map(([group, items]) => ({
-    group: group || null,
-    items,
-  }))
-})
 
 const { x, y, strategy } = useFloating(referenceRef, floatingRef, {
   placement: 'bottom-start',
@@ -100,17 +56,58 @@ const { x, y, strategy } = useFloating(referenceRef, floatingRef, {
   ],
 })
 
-onClickOutside(floatingRef, () => {
-  isOpen.value = false
-}, { ignore: [referenceRef] })
+const dialogZIndex = inject<Ref<number> | undefined>('kit-dialog-z-index', undefined)
+
+const dropdownZIndex = computed(() => dialogZIndex ? dialogZIndex.value + 10 : undefined)
+const finalPrependIcon = computed(() => props.icon || props.prependIcon)
+const hasPrepend = computed(() => !!finalPrependIcon.value || !!slots.prepend || !!slots.icon)
+const selectedLabel = computed(() => {
+  if (props.multiple && Array.isArray(modelValue.value)) {
+    if (modelValue.value.length === 0)
+      return ''
+
+    return modelValue.value.map((v) => {
+      const opt = props.options.find(o => o.value === v)
+
+      return opt ? opt.label : ''
+    }).filter(Boolean).join(', ')
+  }
+
+  const opt = props.options.find(o => o.value === modelValue.value)
+
+  return opt ? opt.label : ''
+})
+const groupedOptions = computed(() => {
+  const hasGroups = props.options.some(o => !!o.group)
+
+  if (!hasGroups) {
+    return [{ group: null, items: props.options }]
+  }
+
+  const groupsMap = new Map<string, KitSelectOption[]>()
+
+  for (const opt of props.options) {
+    const g = opt.group || ''
+
+    if (!groupsMap.has(g))
+      groupsMap.set(g, [])
+
+    groupsMap.get(g)!.push(opt)
+  }
+
+  return Array.from(groupsMap.entries()).map(([group, items]) => ({
+    group: group || null,
+    items,
+  }))
+})
 
 function toggle() {
   isOpen.value = !isOpen.value
 }
-
 function selectOption(val: string | number) {
   if (props.multiple) {
     const current = Array.isArray(modelValue.value) ? modelValue.value : []
+
     if (val === 'all') {
       modelValue.value = ['all']
 
@@ -120,6 +117,7 @@ function selectOption(val: string | number) {
     const isSelected = current.includes(val)
     let next = isSelected ? current.filter(v => v !== val) : [...current, val]
     next = next.filter(v => v !== 'all')
+
     if (next.length === 0)
       next = ['all']
 
@@ -130,10 +128,13 @@ function selectOption(val: string | number) {
     isOpen.value = false
   }
 }
-
 function onDeleteOption(opt: KitSelectOption) {
   emit('delete', opt)
 }
+
+onClickOutside(floatingRef, () => {
+  isOpen.value = false
+}, { ignore: [referenceRef] })
 
 onUnmounted(() => {
   isOpen.value = false

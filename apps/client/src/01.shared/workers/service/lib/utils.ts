@@ -50,6 +50,7 @@ class AssetAnalyzer {
 
     if (this.cache.size >= 1000) {
       const oldestKey = this.cache.keys().next().value
+
       if (oldestKey)
         this.cache.delete(oldestKey)
     }
@@ -64,10 +65,13 @@ const safeCachePlugin: WorkboxPlugin = {
   cacheWillUpdate: async ({ response }) => {
     if (!response)
       return null
+
     if (response.status === 206)
       return null
+
     if (response.type === 'error')
       return null
+
     if (response.type !== 'opaque' && response.headers.has('vary') && response.headers.get('vary')?.includes('*'))
       return null
 
@@ -176,6 +180,7 @@ async function getCacheInfo(): Promise<CacheInfo[]> {
         const keys = await cache.keys()
 
         let totalSize = 0
+
         if (import.meta.env.DEV) {
           const responses = await Promise.all(keys.slice(0, 10).map(async req => cache.match(req)))
           totalSize = responses.reduce((sum, response) => {

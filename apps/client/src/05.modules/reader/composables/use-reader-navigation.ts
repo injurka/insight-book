@@ -11,8 +11,10 @@ export function useReaderNavigation(setScrollIntent: (bookId: number, pageNum: n
       return
 
     const current = readerStore.currentBook.currentPage || 1
+
     if (current > 1) {
       const newPage = current - 1
+
       try {
         setScrollIntent(readerStore.currentBook.id, newPage, 'bottom')
         router.replace({ query: { ...route.query, page: newPage } })
@@ -27,8 +29,10 @@ export function useReaderNavigation(setScrollIntent: (bookId: number, pageNum: n
       return
 
     const current = readerStore.currentBook.currentPage || 1
+
     if (current < readerStore.currentBook.totalPages) {
       const newPage = current + 1
+
       try {
         setScrollIntent(readerStore.currentBook.id, newPage, 'top')
         router.replace({ query: { ...route.query, page: newPage } })

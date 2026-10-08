@@ -19,11 +19,7 @@ export interface Props<T extends string | number = string | number> {
 const props = withDefaults(defineProps<Props<T>>(), {
   disabled: false,
 })
-
 const model = defineModel<T>({ required: true })
-
-const currentTab = computed(() => props.items.find(item => item.id === model.value))
-const currentProps = computed(() => currentTab.value?.props || {})
 
 const contentWrapperRef = ref<HTMLElement | null>(null)
 
@@ -33,6 +29,9 @@ const {
   onEnter,
   onAfterEnter,
 } = useTabsTransition(model, computed(() => props.items), contentWrapperRef)
+
+const currentTab = computed(() => props.items.find(item => item.id === model.value))
+const currentProps = computed(() => currentTab.value?.props || {})
 </script>
 
 <template>

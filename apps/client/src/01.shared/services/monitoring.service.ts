@@ -182,6 +182,7 @@ function installOfflineOtlpGate() {
       // та же эвристика, что и isFetchNetworkErrorRetryable в otlp-exporter-base).
       if (error instanceof TypeError && !('cause' in error))
         return fakeSuccess()
+
       throw error
     }
   }
@@ -252,6 +253,7 @@ function safeApiLabel(value: unknown, fallback: string): string {
 
 function normalizeApiPath(value: string): string {
   const rawValue = value.trim()
+
   if (!rawValue)
     return '/unknown'
 
@@ -337,12 +339,16 @@ function buildApiAttributes(context: ApiRequestTelemetry, classification?: ApiEr
 
   if (status !== undefined)
     attributes['http.status_code'] = status
+
   if (context.code && SAFE_API_CODE_PATTERN.test(context.code))
     attributes['api.error_code'] = context.code
+
   if (context.feature)
     attributes['app.feature'] = safeApiLabel(context.feature, 'unknown')
+
   if (durationMs !== undefined)
     attributes['api.duration_ms'] = durationMs
+
   if (classification)
     attributes['api.error_classification'] = classification
 
@@ -359,6 +365,7 @@ function buildApiErrorReasonAttributes(context: ApiErrorTelemetry): Attributes {
 
   if (context.reason === 'timeout') {
     const timeoutMs = normalizeApiDuration(context.timeoutMs)
+
     if (timeoutMs !== undefined) {
       attributes['api.timeout_ms'] = timeoutMs
       attributes['error.message'] = `Request exceeded the ${timeoutMs} ms client timeout`
@@ -394,6 +401,7 @@ function apiMetricAttributes(context: ApiRequestTelemetry): Record<string, strin
 
   if (status !== undefined)
     attributes.status_code = String(status)
+
   if (context.feature)
     attributes.feature = safeApiLabel(context.feature, 'unknown')
 
@@ -450,6 +458,7 @@ export function recordApiRequest(context: ApiRequestTelemetry): void {
     apiRequestDuration?.record(normalizeApiDuration(enrichedContext.durationMs) || 0, apiMetricAttributes(enrichedContext))
 
   const activeSpan = trace.getActiveSpan()
+
   if (activeSpan) {
     for (const [key, value] of Object.entries(attributes)) {
       if (value !== undefined)
@@ -474,16 +483,20 @@ export function recordApiError(context: ApiErrorTelemetry): void {
     ...userAttributes,
   }
   const safeError = toSafeApiException(context.error)
+
   if (typeof context.error === 'object' && context.error !== null)
     reportedApiErrors.add(context.error)
+
   annotateApiErrorSpan(
     trace.getActiveSpan(),
     attributes,
     classification,
     safeError,
   )
+
   if (classification === 'unexpected' || enrichedContext.reason === 'timeout')
     emitApiErrorLog(attributes, classification)
+
   apiErrorCounter?.add(1, {
     classification,
     ...apiMetricAttributes(enrichedContext),
@@ -507,10 +520,12 @@ export function setupServerTimingObserver(serverTimingHistogram: Histogram) {
           continue
 
         const serverTiming = (entry as PerformanceResourceTiming).serverTiming
+
         if (!serverTiming || serverTiming.length === 0)
           continue
 
         const metrics: Record<string, number> = {}
+
         for (const st of serverTiming) {
           metrics[st.name] = st.duration
         }
@@ -566,6 +581,7 @@ function setupWebVitals(vitals: WebVitalsInstruments) {
 
   const record = (metric: Metric) => {
     const attributes = { navigationType: metric.navigationType }
+
     switch (metric.name) {
       case 'LCP':
         vitals.lcp.record(metric.value, attributes)
@@ -613,8 +629,10 @@ function flushTelemetry() {
 
   if (telemetryTracerProvider)
     flushes.push(telemetryTracerProvider.forceFlush())
+
   if (telemetryLoggerProvider)
     flushes.push(telemetryLoggerProvider.forceFlush())
+
   if (telemetryMetricReader)
     flushes.push(telemetryMetricReader.forceFlush())
 
@@ -828,6 +846,7 @@ export function trackError(error: Error | unknown, context?: Record<string, unkn
   }
 
   const span = trace.getActiveSpan()
+
   if (span) {
     span.recordException(err)
     span.setStatus({ code: SpanStatusCode.ERROR, message: err.message })

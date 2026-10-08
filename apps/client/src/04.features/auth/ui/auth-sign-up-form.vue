@@ -25,11 +25,13 @@ function handleSubmit() {
   if (props.isCodeSent) {
     if (!email.value || !code.value || !password.value)
       return
+
     emit('register', { email: email.value, code: code.value, password: password.value })
   }
   else {
     if (!email.value)
       return
+
     emit('sendCode', email.value)
   }
 }

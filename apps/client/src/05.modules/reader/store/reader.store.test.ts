@@ -167,6 +167,7 @@ describe('readerStore - loadPage', () => {
 
   it('coalesces progress updates and never sends them concurrently', async () => {
     vi.useFakeTimers()
+
     try {
       let resolveFirstRequest!: () => void
       mocks.libraryStore.updateBookInfo.mockImplementationOnce(() => new Promise<void>((resolve) => {
@@ -234,6 +235,7 @@ describe('readerStore - loadPage', () => {
 
   it('starts background auto analysis after 1s when autoAnalyzePage is enabled', async () => {
     vi.useFakeTimers()
+
     try {
       const settingsStore = useGlobalSettingsStore()
       settingsStore.autoAnalyzePage = true
@@ -267,6 +269,7 @@ describe('readerStore - loadPage', () => {
 
   it('cancels delayed auto analysis when another page is loaded', async () => {
     vi.useFakeTimers()
+
     try {
       const settingsStore = useGlobalSettingsStore()
       settingsStore.autoAnalyzePage = true
@@ -290,6 +293,7 @@ describe('readerStore - loadPage', () => {
 
   it('does not start auto analysis when autoAnalyzePage is disabled', async () => {
     vi.useFakeTimers()
+
     try {
       const settingsStore = useGlobalSettingsStore()
       settingsStore.autoAnalyzePage = false
@@ -310,6 +314,7 @@ describe('readerStore - loadPage', () => {
 
   it('does not start auto analysis while a manual page analysis is active', async () => {
     vi.useFakeTimers()
+
     try {
       const settingsStore = useGlobalSettingsStore()
       settingsStore.autoAnalyzePage = true

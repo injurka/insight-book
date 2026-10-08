@@ -1,5 +1,4 @@
 import type { UserDictItem } from '~/01.shared/types/models'
-
 import { computed, ref } from 'vue'
 import { useRepos } from '~/00.plugins/di'
 import { useToast } from '~/01.shared/composables/use-toast'
@@ -45,6 +44,7 @@ export const useDictionaryFiltersStore = defineStore('dictionary-filters', () =>
         return selectedDifficulty.value.some((diffVal) => {
           if (diffVal === 'none')
             return !wordItem.difficulty
+
           if (diffVal.startsWith('level_')) {
             const targetLevel = Number.parseInt(diffVal.split('_')[1], 10)
             const sys = DIFFICULTY_SYSTEMS[wordItem.language] || DIFFICULTY_SYSTEMS.default
@@ -77,16 +77,19 @@ export const useDictionaryFiltersStore = defineStore('dictionary-filters', () =>
 
   function toggleWordSelection(id: number) {
     const next = new Set(selectedWordIds.value)
+
     if (next.has(id))
       next.delete(id)
     else
       next.add(id)
+
     selectedWordIds.value = next
   }
 
   function clearSelection() {
     if (selectedWordIds.value.size === 0)
       return
+
     selectedWordIds.value = new Set()
   }
 
@@ -96,6 +99,7 @@ export const useDictionaryFiltersStore = defineStore('dictionary-filters', () =>
 
   async function bulkDelete() {
     const ids = Array.from(selectedWordIds.value)
+
     if (!ids.length)
       return
 
@@ -114,6 +118,7 @@ export const useDictionaryFiltersStore = defineStore('dictionary-filters', () =>
 
   async function bulkMoveToDecks(deckIds: number[]) {
     const ids = Array.from(selectedWordIds.value)
+
     if (!ids.length)
       return
 

@@ -3,6 +3,7 @@ import { describe, expect, test } from 'bun:test'
 
 const html = await Bun.file(new URL('../src/index.html', import.meta.url)).text()
 const callbackScript = html.match(/<script>\s*(;\(\(\) => \{\s*if \(window\.location\.pathname[\s\S]*?)<\/script>/)?.[1]
+
 if (!callbackScript)
   throw new Error('Missing early OAuth callback script')
 

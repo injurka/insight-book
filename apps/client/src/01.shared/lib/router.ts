@@ -1,13 +1,16 @@
 import type { LocationQuery } from 'vue-router'
 import { createRouter, createWebHashHistory, createWebHistory } from 'vue-router'
+import { useTracking } from '~/01.shared/composables/use-tracking'
 import { AppRouteNames } from '~/01.shared/constants/routes'
 import { getApiEndpointUrl, isTauri } from '~/01.shared/lib/env'
-import { shouldWaitForAuth } from '~/01.shared/lib/router-auth'
+import { isProtectedRoute, shouldWaitForAuth } from '~/01.shared/lib/router-auth'
 import { useAuthStore } from '~/01.shared/store/auth.store'
 
 const MAIN_SCROLLER_SELECTOR = '.main-content'
 
 const mainScrollPositions = new Map<string, number>()
+
+let scrollRestorationRevision = 0
 
 let pendingMainScrollTop: number | null = null
 
@@ -23,15 +26,23 @@ function findScroller(): HTMLElement | null {
  * позиция не «приклеится».
  */
 function restoreScrollTop(top: number): void {
+  const revision = ++scrollRestorationRevision
   let attempts = 0
   const tick = () => {
-    const scroller = findScroller()
-    if (!scroller)
+    if (revision !== scrollRestorationRevision || attempts >= 30)
       return
 
-    if (scroller.scrollTop !== top && attempts < 30) {
+    const scroller = findScroller()
+    attempts++
+
+    if (!scroller) {
+      requestAnimationFrame(tick)
+
+      return
+    }
+
+    if (scroller.scrollTop !== top) {
       scroller.scrollTop = top
-      attempts++
       requestAnimationFrame(tick)
     }
   }
@@ -59,8 +70,10 @@ export const router = createRouter({
     // Восстанавливаем сохраненную позицию при popstate («Назад»/«Вперед»)
     // либо при возврате с деталей книги на главную
     const isReturningToHomeFromBook = to.name === AppRouteNames.Home && from.name === AppRouteNames.BookInfo
+
     if (savedPosition || isReturningToHomeFromBook) {
       const top = mainScrollPositions.get(to.fullPath)
+
       if (top != null) {
         if (to.path === from.path)
           restoreScrollTop(top)
@@ -172,12 +185,33 @@ export const router = createRouter({
 const LAST_VIEW_QUERY_KEY = 'library_last_view_query'
 
 router.beforeEach((_to, from) => {
+  scrollRestorationRevision++
+  pendingMainScrollTop = null
+
   if (from.name) {
     const scroller = findScroller()
+
     if (scroller)
       mainScrollPositions.set(from.fullPath, scroller.scrollTop)
   }
 })
+
+function readLocalStorage(key: string): string | null {
+  try {
+    return localStorage.getItem(key)
+  }
+  catch {
+    return null
+  }
+}
+
+function isSavedQuery(value: unknown): value is LocationQuery {
+  if (!value || typeof value !== 'object' || Array.isArray(value))
+    return false
+
+  return Object.values(value).every(item => item === null || typeof item === 'string'
+    || (Array.isArray(item) && item.every(entry => entry === null || typeof entry === 'string')))
+}
 
 function getOnboardingRedirect(toName: string | symbol | null | undefined, hasSeenOnboarding: boolean) {
   if (
@@ -195,10 +229,12 @@ function getOnboardingRedirect(toName: string | symbol | null | undefined, hasSe
 function getSavedHomeQueryRedirect(toName: string | symbol | null | undefined, toQuery: LocationQuery, fromName: string | symbol | null | undefined) {
   if (toName === AppRouteNames.Home && Object.keys(toQuery).length === 0 && !fromName) {
     try {
-      const savedQueryStr = localStorage.getItem(LAST_VIEW_QUERY_KEY)
+      const savedQueryStr = readLocalStorage(LAST_VIEW_QUERY_KEY)
+
       if (savedQueryStr) {
-        const savedQuery = JSON.parse(savedQueryStr)
-        if (Object.keys(savedQuery).length > 0)
+        const savedQuery: unknown = JSON.parse(savedQueryStr)
+
+        if (isSavedQuery(savedQuery) && Object.keys(savedQuery).length > 0)
           return { name: AppRouteNames.Home, query: savedQuery, replace: true }
       }
     }
@@ -214,14 +250,7 @@ function getAuthRedirect(toName: string | symbol | null | undefined, isAuth: boo
   if (isAuth && toName === AppRouteNames.SignIn)
     return { name: AppRouteNames.Home }
 
-  const protectedRoutes = [
-    AppRouteNames.Dictionary,
-    AppRouteNames.Reader,
-    AppRouteNames.Settings,
-    AppRouteNames.Limits,
-    AppRouteNames.Notebook,
-  ]
-  if (!isAuth && !isSingleMode && protectedRoutes.includes(toName as AppRouteNames))
+  if (!isAuth && !isSingleMode && isProtectedRoute(toName))
     return { name: AppRouteNames.SignIn }
 
   return null
@@ -237,27 +266,37 @@ router.beforeEach(async (to, from) => {
   if (shouldWaitForAuth(to.name, authStore.isAuthReady, authStore.isAuthRefreshing))
     await authStore.checkAuth()
 
-  const hasSeenOnboarding = localStorage.getItem('insight_onboarding_completed') === 'true'
+  const hasSeenOnboarding = readLocalStorage('insight_onboarding_completed') === 'true'
 
   const onboardingRedirect = getOnboardingRedirect(to.name, hasSeenOnboarding)
+
   if (onboardingRedirect)
     return onboardingRedirect
 
   const savedQueryRedirect = getSavedHomeQueryRedirect(to.name, to.query, from.name)
+
   if (savedQueryRedirect)
     return savedQueryRedirect
 
   const authRedirect = getAuthRedirect(to.name, !!authStore.user, !!authStore.isSingleMode)
+
   if (authRedirect)
     return authRedirect
 })
 
-router.afterEach((to) => {
+router.afterEach((to, _from, failure) => {
+  if (failure)
+    return
+
   const { trackPageview } = useTracking()
   trackPageview(to.fullPath, String(to.name || ''))
 
-  if (to.name === AppRouteNames.Home)
-    localStorage.setItem(LAST_VIEW_QUERY_KEY, JSON.stringify(to.query))
+  if (to.name === AppRouteNames.Home) {
+    try {
+      localStorage.setItem(LAST_VIEW_QUERY_KEY, JSON.stringify(to.query))
+    }
+    catch { /* Navigation must work even when storage is disabled. */ }
+  }
 })
 
 export default router

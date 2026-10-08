@@ -6,26 +6,8 @@ import { useI18n } from 'vue-i18n'
 import { useBackHandler } from '~/01.shared/composables/use-back-handler'
 import { useDialogHistory } from '../composables/use-dialog-history'
 import { useDialogResize } from '../composables/use-dialog-resize'
-
 import { useDialogSwipe } from '../composables/use-dialog-swipe'
-
 import DialogResizeHandles from './dialog-resize-handles.vue'
-
-defineOptions({
-  inheritAttrs: false,
-})
-
-const props = withDefaults(defineProps<Props>(), {
-  maxWidth: 700,
-  persistent: false,
-  closable: true,
-  floating: false,
-  resizable: true,
-  minimizable: true,
-  fullscreen: false,
-})
-
-const emit = defineEmits<{ floatingMove: [x: number] }>()
 
 interface Props {
   maxWidth?: number
@@ -43,37 +25,29 @@ interface Props {
   zIndex?: number | string
 }
 
-const { t } = useI18n()
+defineOptions({
+  inheritAttrs: false,
+})
+const props = withDefaults(defineProps<Props>(), {
+  maxWidth: 700,
+  persistent: false,
+  closable: true,
+  floating: false,
+  resizable: true,
+  minimizable: true,
+  fullscreen: false,
+})
+const emit = defineEmits<{ floatingMove: [x: number] }>()
 const visible = defineModel<boolean>('visible', { required: true })
+
+const { t } = useI18n()
 const dialogId = useId()
+const { registerBackHandler } = useBackHandler()
 
 const parentDialogZIndex = inject<Ref<number> | undefined>('kit-dialog-z-index', undefined)
-
-const effectiveZIndex = computed(() => {
-  if (props.zIndex !== undefined && props.zIndex !== null && props.zIndex !== '') {
-    return Number(props.zIndex)
-  }
-
-  if (parentDialogZIndex?.value) {
-    return parentDialogZIndex.value + 100
-  }
-
-  return 1200
-})
-provide('kit-dialog-z-index', effectiveZIndex)
-
 const dialogContentRef = ref<HTMLElement | null>(null)
 const dialogHeaderRef = ref<HTMLElement | null>(null)
 const isMinimized = ref(false)
-
-const isFloatingRef = computed(() => props.floating)
-const isResizableRef = computed(() => props.resizable)
-const isMinimizableRef = computed(() => props.minimizable)
-const isPersistentRef = computed(() => props.persistent)
-const isClosableRef = computed(() => props.closable)
-
-useDialogHistory(dialogId, visible)
-
 const initialX = typeof window !== 'undefined' ? Math.max((window.innerWidth - props.maxWidth) / 2, 0) : 0
 const initialY = typeof window !== 'undefined' ? 100 : 0
 
@@ -86,22 +60,22 @@ const { x, y, style: dragStyle } = useDraggable(dialogContentRef, {
   },
 })
 
-watch(() => props.floatingPosition, (position, previous) => {
-  if (position != null)
-    x.value = position.x
-  else if (previous != null)
-    x.value = Math.max((window.innerWidth - props.maxWidth) / 2, 0)
-})
+let previouslyFocusedElement: HTMLElement | null = null
+let unregisterBack: (() => void) | null = null
 
-const { isMobile, isSwiping, direction, swipeOffset } = useDialogSwipe({
-  headerRef: dialogHeaderRef,
-  visible,
-  isMinimized,
-  isFloating: isFloatingRef,
-  isMinimizable: isMinimizableRef,
-  isPersistent: isPersistentRef,
-  isClosable: isClosableRef,
+const effectiveZIndex = computed(() => {
+  if (props.zIndex !== undefined && props.zIndex !== null && props.zIndex !== '') {
+    return Number(props.zIndex)
+  }
+
+  if (parentDialogZIndex?.value) {
+    return parentDialogZIndex.value + 100
+  }
+
+  return 1200
 })
+const isFloatingRef = computed(() => props.floating)
+const isResizableRef = computed(() => props.resizable)
 
 const {
   dialogWidth,
@@ -117,56 +91,32 @@ const {
   isResizable: isResizableRef,
 })
 
+const isMinimizableRef = computed(() => props.minimizable)
+const isPersistentRef = computed(() => props.persistent)
+const isClosableRef = computed(() => props.closable)
+
+const { isMobile, isSwiping, direction, swipeOffset } = useDialogSwipe({
+  headerRef: dialogHeaderRef,
+  visible,
+  isMinimized,
+  isFloating: isFloatingRef,
+  isMinimizable: isMinimizableRef,
+  isPersistent: isPersistentRef,
+  isClosable: isClosableRef,
+})
+
 const maxWidthPx = computed(() => `${props.maxWidth}px`)
 
-function handleOverlayClick(event: MouseEvent) {
-  if (props.persistent || props.floating)
-    return
-  const target = event.target as HTMLElement
-  if (event.offsetX > target.clientWidth || event.offsetY > target.clientHeight)
-    return
-  visible.value = false
-}
-
-let previouslyFocusedElement: HTMLElement | null = null
-
-function handleTabTrap(event: KeyboardEvent) {
-  if (!dialogContentRef.value)
-    return
-  const focusables = dialogContentRef.value.querySelectorAll<HTMLElement>('a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])')
-  if (focusables.length === 0)
-    return
-
-  const first = focusables[0]
-  const last = focusables[focusables.length - 1]
-
-  if (event.shiftKey && document.activeElement === first) {
-    event.preventDefault()
-    last.focus()
-  }
-  else if (!event.shiftKey && document.activeElement === last) {
-    event.preventDefault()
-    first.focus()
-  }
-}
-
-function handleKeydown(event: KeyboardEvent) {
-  if (!visible.value || isMinimized.value)
-    return
-
-  if (event.key === 'Escape' && !props.persistent) {
-    visible.value = false
-
-    return
-  }
-
-  if (event.key === 'Tab')
-    handleTabTrap(event)
-}
-
+watch(() => props.floatingPosition, (position, previous) => {
+  if (position != null)
+    x.value = position.x
+  else if (previous != null)
+    x.value = Math.max((window.innerWidth - props.maxWidth) / 2, 0)
+})
 watch([visible, isMinimized, () => props.floating], ([isOpen, isMin, isFloating]) => {
   if (typeof window === 'undefined')
     return
+
   if (isOpen && !isMin && !isFloating)
     document.body.style.setProperty('overflow', 'hidden')
 
@@ -176,13 +126,10 @@ watch([visible, isMinimized, () => props.floating], ([isOpen, isMin, isFloating]
   if (isOpen && !hasResized.value)
     resetResize()
 }, { immediate: true })
-
-const { registerBackHandler } = useBackHandler()
-let unregisterBack: (() => void) | null = null
-
 watch(visible, (isOpen) => {
   if (!isOpen) {
     isMinimized.value = false
+
     if (unregisterBack) {
       unregisterBack()
       unregisterBack = null
@@ -206,6 +153,7 @@ watch(visible, (isOpen) => {
     nextTick(() => {
       if (dialogContentRef.value) {
         const inputOrBtn = dialogContentRef.value.querySelector<HTMLElement>('input, textarea, select, button:not(.close-button):not(.minimize-button)')
+
         if (inputOrBtn)
           inputOrBtn.focus()
         else
@@ -214,18 +162,68 @@ watch(visible, (isOpen) => {
     })
   }
 })
-
 watch(() => props.keyTrigger, () => {
   if (isMinimized.value)
     isMinimized.value = false
 })
 
-onMounted(() => document.addEventListener('keydown', handleKeydown))
+function handleOverlayClick(event: MouseEvent) {
+  if (props.persistent || props.floating)
+    return
 
+  const target = event.target as HTMLElement
+
+  if (event.offsetX > target.clientWidth || event.offsetY > target.clientHeight)
+    return
+
+  visible.value = false
+}
+function handleTabTrap(event: KeyboardEvent) {
+  if (!dialogContentRef.value)
+    return
+
+  const focusables = dialogContentRef.value.querySelectorAll<HTMLElement>('a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])')
+
+  if (focusables.length === 0)
+    return
+
+  const first = focusables[0]
+  const last = focusables[focusables.length - 1]
+
+  if (event.shiftKey && document.activeElement === first) {
+    event.preventDefault()
+    last.focus()
+  }
+  else if (!event.shiftKey && document.activeElement === last) {
+    event.preventDefault()
+    first.focus()
+  }
+}
+function handleKeydown(event: KeyboardEvent) {
+  if (!visible.value || isMinimized.value)
+    return
+
+  if (event.key === 'Escape' && !props.persistent) {
+    visible.value = false
+
+    return
+  }
+
+  if (event.key === 'Tab')
+    handleTabTrap(event)
+}
+
+provide('kit-dialog-z-index', effectiveZIndex)
+
+useDialogHistory(dialogId, visible)
+
+onMounted(() => document.addEventListener('keydown', handleKeydown))
 onUnmounted(() => {
   document.removeEventListener('keydown', handleKeydown)
+
   if (typeof window !== 'undefined')
     document.body.style.removeProperty('overflow')
+
   visible.value = false
   isMinimized.value = false
 })

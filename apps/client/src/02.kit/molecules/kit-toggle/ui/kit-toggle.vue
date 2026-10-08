@@ -7,17 +7,15 @@ interface ToggleOption {
   label?: string
   tooltip?: string
 }
-
-withDefaults(defineProps<Props>(), {
-  size: 'sm',
-})
-
-const modelValue = defineModel<unknown>()
-
 interface Props {
   options: ToggleOption[]
   size?: 'xs' | 'sm' | 'md' | 'lg'
 }
+
+withDefaults(defineProps<Props>(), {
+  size: 'sm',
+})
+const modelValue = defineModel<unknown>()
 
 function select(value: unknown) {
   modelValue.value = value

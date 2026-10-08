@@ -97,14 +97,19 @@ export default defineConfig({
           const getVendorChunk = (pathId: string) => {
             if (pathId.includes('shiki') || pathId.includes('@shikijs'))
               return undefined
+
             if (/[\\/]node_modules[\\/](?:vue|vue-router|pinia|@vueuse)[\\/]/.test(pathId))
               return 'vendor-core'
+
             if (pathId.includes('hanzi-writer'))
               return 'vendor-hanzi'
+
             if (pathId.includes('dompurify'))
               return 'vendor-dompurify'
+
             if (pathId.includes('@floating-ui') || pathId.includes('@iconify'))
               return 'vendor-ui'
+
             if (pathId.includes('localforage') || pathId.includes('workbox'))
               return 'vendor-storage'
 
@@ -116,12 +121,16 @@ export default defineConfig({
 
           if (id.includes('/05.modules/reader/'))
             return 'app-reader'
+
           if (id.includes('/05.modules/dictionary/'))
             return 'app-dictionary'
+
           if (id.includes('/03.domain/analysis/'))
             return 'app-analysis'
+
           if (id.includes('/01.shared/locales/'))
             return 'app-locales'
+
           if (id.includes('plugin-grammar-rules'))
             return 'plugin-grammar-rules'
         },

@@ -8,20 +8,18 @@ interface MenuItem {
   label: string
   icon: string
 }
-
 interface Props {
   items: MenuItem[]
   currentView: string
 }
 
 defineProps<Props>()
-
 const emit = defineEmits<{
   (e: 'select', id: string): void
 }>()
+const isMobileMenuOpen = defineModel<boolean>('isMobileMenuOpen', { required: true })
 
 const { t } = useI18n()
-const isMobileMenuOpen = defineModel<boolean>('isMobileMenuOpen', { required: true })
 
 function onMenuClick(id: string) {
   isMobileMenuOpen.value = false

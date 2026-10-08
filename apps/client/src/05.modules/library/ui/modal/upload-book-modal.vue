@@ -13,21 +13,17 @@ import { KitDialog } from '~/02.kit/organisms/kit-dialog/ui'
 import { useLibraryStore } from '../../store/library.store'
 
 const visible = defineModel<boolean>('visible', { required: true })
+
 const store = useLibraryStore()
 const toast = useToast()
 const networkStore = useNetworkStore()
 const { t } = useI18n()
 const authStore = useAuthStore()
+const archiveInputRef = useTemplateRef<HTMLInputElement>('archiveInputRef')
 
 const activeTab = ref<'file' | 'images'>('file')
 const isUploading = ref(false)
 const uploadProgressText = ref('')
-
-const tabItems = computed(() => [
-  { id: 'file', label: t('library.readyFile') },
-  { id: 'images', label: t('library.buildFromImages') },
-])
-
 const customManga = ref({
   title: '',
   author: '',
@@ -37,14 +33,20 @@ const customManga = ref({
   ],
 })
 
+const tabItems = computed(() => [
+  { id: 'file', label: t('library.readyFile') },
+  { id: 'images', label: t('library.buildFromImages') },
+])
 const langOptions = computed(() => [
   { label: t('library.langJa'), value: 'ja' },
   { label: t('library.langZh'), value: 'zh' },
   { label: t('library.langEn'), value: 'en' },
   { label: t('library.langRu'), value: 'ru' },
 ])
-
-const archiveInputRef = useTemplateRef<HTMLInputElement>('archiveInputRef')
+const canSubmitManga = computed(() => {
+  return customManga.value.title.trim().length > 0
+    && customManga.value.chapters.some(c => c.files.length > 0)
+})
 
 function triggerArchiveUpload() {
   if (networkStore.effectiveOffline) {
@@ -55,7 +57,6 @@ function triggerArchiveUpload() {
 
   archiveInputRef.value?.click()
 }
-
 async function onArchiveSelected(e: Event) {
   if (networkStore.effectiveOffline) {
     toast.warn(t('network.needOnline'))
@@ -64,6 +65,7 @@ async function onArchiveSelected(e: Event) {
   }
 
   const target = e.target as HTMLInputElement
+
   if (target.files && target.files.length > 0) {
     const file = target.files[0]
     target.value = ''
@@ -88,7 +90,6 @@ async function onArchiveSelected(e: Event) {
     }
   }
 }
-
 function addChapter() {
   customManga.value.chapters.push({
     id: Date.now(),
@@ -96,22 +97,15 @@ function addChapter() {
     files: [],
   })
 }
-
 function removeChapter(idx: number) {
   customManga.value.chapters.splice(idx, 1)
 }
-
 function handleChapterFiles(idx: number, e: Event) {
   const target = e.target as HTMLInputElement
+
   if (target.files && target.files.length > 0)
     customManga.value.chapters[idx].files = Array.from(target.files)
 }
-
-const canSubmitManga = computed(() => {
-  return customManga.value.title.trim().length > 0
-    && customManga.value.chapters.some(c => c.files.length > 0)
-})
-
 async function submitCustomManga() {
   if (networkStore.effectiveOffline) {
     toast.warn(t('network.needOnline'))
@@ -123,6 +117,7 @@ async function submitCustomManga() {
     return
 
   isUploading.value = true
+
   try {
     uploadProgressText.value = t('library.creatingBook')
     const newBook = await store.createCustomManga(customManga.value.title, customManga.value.author, customManga.value.language)
@@ -131,6 +126,7 @@ async function submitCustomManga() {
 
     for (let i = 0; i < totalChapters; i++) {
       const chapter = customManga.value.chapters[i]
+
       if (chapter.files.length === 0)
         continue
 

@@ -15,6 +15,7 @@ const showNextBtn = ref(false)
 
 function onDragStart(e: DragEvent) {
   isDragging.value = true
+
   if (e.dataTransfer) {
     e.dataTransfer.effectAllowed = 'move'
     e.dataTransfer.setData('text/plain', 'word')
@@ -44,8 +45,10 @@ function onTouchMove(e: TouchEvent) {
 function onTouchEnd(e: TouchEvent) {
   isDragging.value = false
   const touch = e.changedTouches[0]
+
   if (touch) {
     const target = document.elementFromPoint(touch.clientX, touch.clientY)
+
     if (target && target.closest('.chest-dropzone'))
       onDrop()
   }

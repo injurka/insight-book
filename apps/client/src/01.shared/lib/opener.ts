@@ -2,7 +2,7 @@ import { openUrl as tauriOpenUrl } from '@tauri-apps/plugin-opener'
 import { isTauri } from './env'
 
 /**
- * Открывает URL или локальный путь в системном браузере / стандартном приложении.
+ * Открывает URL в системном браузере.
  * В Tauri использует нативный плагин opener, в обычном браузере — window.open.
  */
 export async function openExternalUrl(url: string, target = '_blank'): Promise<void> {
@@ -20,5 +20,5 @@ export async function openExternalUrl(url: string, target = '_blank'): Promise<v
     }
   }
 
-  window.open(url, target)
+  window.open(url, target, 'noopener,noreferrer')
 }

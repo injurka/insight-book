@@ -13,6 +13,7 @@ export function useReadingSession() {
 
   onUnmounted(() => {
     const durationSeconds = Math.round((Date.now() - readingSessionStartTime) / 1000)
+
     if (durationSeconds > 10) {
       trackEvent('reading_session_ended', {
         duration_seconds: durationSeconds,

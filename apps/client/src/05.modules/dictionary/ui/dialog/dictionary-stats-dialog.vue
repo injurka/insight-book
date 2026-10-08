@@ -8,17 +8,12 @@ import { KitDialog } from '~/02.kit/organisms/kit-dialog/ui'
 const emit = defineEmits<{
   openQuiz: [data: { language: string, levelValue: string }]
 }>()
+const visible = defineModel<boolean>('visible', { required: true })
+defineExpose({ fetchActivity })
 
 const repos = useRepos()
-
-const visible = defineModel<boolean>('visible', { required: true })
 const authStore = useAuthStore()
 const { t } = useI18n()
-
-function onLevelClick(data: { language: string, levelValue: string }) {
-  visible.value = false
-  emit('openQuiz', data)
-}
 
 const activityData = ref<{ date: string, count: number }[]>([])
 const activityStats = ref<{
@@ -32,6 +27,15 @@ const activityStats = ref<{
 })
 const isActivityLoading = ref(true)
 
+watch(visible, (isOpen) => {
+  if (isOpen)
+    fetchActivity()
+})
+
+function onLevelClick(data: { language: string, levelValue: string }) {
+  visible.value = false
+  emit('openQuiz', data)
+}
 async function fetchActivity() {
   if (!authStore.user) {
     isActivityLoading.value = false
@@ -40,6 +44,7 @@ async function fetchActivity() {
   }
 
   isActivityLoading.value = true
+
   try {
     const res = await repos.activity.getStats()
     activityData.value = res.heatmap
@@ -56,13 +61,6 @@ async function fetchActivity() {
     isActivityLoading.value = false
   }
 }
-
-watch(visible, (isOpen) => {
-  if (isOpen)
-    fetchActivity()
-})
-
-defineExpose({ fetchActivity })
 </script>
 
 <template>

@@ -5,6 +5,7 @@ let locale = 'ru'
 
 try {
   const saved = localStorage.getItem('global-app-language')
+
   if (saved)
     locale = saved.replace(/^"|"$/g, '')
 }

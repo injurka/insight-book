@@ -19,8 +19,10 @@ export class AppEventBus {
 
   off<K extends keyof AppEvents>(event: K, callback: (data: AppEvents[K]) => void) {
     const set = this.listeners.get(event)
+
     if (set) {
       set.delete(callback as (data: never) => void)
+
       if (set.size === 0)
         this.listeners.delete(event)
     }
@@ -28,6 +30,7 @@ export class AppEventBus {
 
   emit<K extends keyof AppEvents>(event: K, data: AppEvents[K]) {
     const set = this.listeners.get(event)
+
     if (set) {
       set.forEach((cb) => {
         try {

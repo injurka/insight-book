@@ -26,6 +26,7 @@ export function usePronunciationCheck(word?: MaybeRef<string> | (() => string), 
   const getWord = () => {
     if (!word)
       return ''
+
     if (typeof word === 'function')
       return word()
 
@@ -35,6 +36,7 @@ export function usePronunciationCheck(word?: MaybeRef<string> | (() => string), 
   const getLang = () => {
     if (!language)
       return ''
+
     if (typeof language === 'function')
       return language()
 
@@ -49,6 +51,7 @@ export function usePronunciationCheck(word?: MaybeRef<string> | (() => string), 
     isRecording.value = false
     isAnalyzingAudio.value = false
     isUserAudioPlaying.value = false
+
     if (userAudio) {
       try {
         userAudio.pause()
@@ -104,6 +107,7 @@ export function usePronunciationCheck(word?: MaybeRef<string> | (() => string), 
 
         if (userAudioUrl.value)
           URL.revokeObjectURL(userAudioUrl.value)
+
         userAudioUrl.value = URL.createObjectURL(audioBlob)
 
         if (!activeWord)
@@ -139,6 +143,7 @@ export function usePronunciationCheck(word?: MaybeRef<string> | (() => string), 
   function playUserAudio() {
     if (!userAudioUrl.value)
       return
+
     if (isUserAudioPlaying.value && userAudio) {
       userAudio.pause()
       userAudio.currentTime = 0

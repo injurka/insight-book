@@ -29,6 +29,7 @@ export function useEditBookForm(bookProp: Ref<Book | null>, emit: (event: 'save'
   function onEditCoverChange(e: Event) {
     const target = e.target as HTMLInputElement
     const file = target.files?.[0]
+
     if (!file)
       return
 

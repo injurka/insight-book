@@ -10,7 +10,10 @@ let enginePromise: Promise<HighlightEngine> | null = null
 
 function getEngine(): Promise<HighlightEngine> {
   if (!enginePromise) {
-    enginePromise = HighlightEngine.create()
+    enginePromise = HighlightEngine.create().catch((error: unknown) => {
+      enginePromise = null
+      throw error
+    })
   }
 
   return enginePromise
@@ -22,7 +25,8 @@ function getEngine(): Promise<HighlightEngine> {
  */
 function extractLang(parentPre: HTMLElement, codeEl: HTMLElement): string | undefined {
   const classNames = `${parentPre.className} ${codeEl.className}`
-  const langMatch = classNames.match(/language-([\w-]+)/) || classNames.match(/lang-([\w-]+)/)
+  const langMatch = classNames.match(/language-([\w+-]+)/) || classNames.match(/lang-([\w+-]+)/)
+
   if (langMatch && langMatch[1] && langMatch[1] !== 'undefined')
     return langMatch[1]
 
@@ -32,6 +36,7 @@ function extractLang(parentPre: HTMLElement, codeEl: HTMLElement): string | unde
 function processPreElement(parentPre: HTMLPreElement, engine: HighlightEngine, isDarkTheme: boolean) {
   const codeEl = parentPre.querySelector('code') || parentPre
   const text = codeEl.textContent || ''
+
   if (!text.trim())
     return
 
@@ -39,11 +44,12 @@ function processPreElement(parentPre: HTMLPreElement, engine: HighlightEngine, i
 
   try {
     const result = engine.highlight(text, lang)
+
     if (result) {
-      parentPre.innerHTML = result.value
+      codeEl.innerHTML = result.value
       parentPre.classList.add('hljs')
-      if (isDarkTheme)
-        parentPre.classList.add('hljs-dark')
+
+      parentPre.classList.toggle('hljs-dark', isDarkTheme)
     }
   }
   catch (e) {
@@ -56,7 +62,8 @@ function processPreElement(parentPre: HTMLPreElement, engine: HighlightEngine, i
  * Runs in the main thread — fast enough for typical book code snippets.
  */
 export async function highlightCodeBlocks(container: HTMLElement, isDarkTheme = false): Promise<void> {
-  const codeBlocks = container.querySelectorAll<HTMLElement>('pre code, pre[class*="language-"]')
+  const codeBlocks = container.querySelectorAll<HTMLElement>('pre code, pre[class*="language-"], pre[class*="lang-"]')
+
   if (codeBlocks.length === 0)
     return
 
@@ -65,6 +72,7 @@ export async function highlightCodeBlocks(container: HTMLElement, isDarkTheme = 
 
   for (const el of codeBlocks) {
     const parentPre = el.closest('pre')
+
     if (parentPre && !processedPres.has(parentPre)) {
       processedPres.add(parentPre)
       processPreElement(parentPre, engine, isDarkTheme)

@@ -18,7 +18,6 @@ import { z } from 'zod'
 import { defaultRepositories } from '~/00.plugins/di'
 import { i18n } from '~/00.plugins/i18n'
 import { api, BASE_API_URL, request } from '~/01.shared/services/api.service'
-
 import { getCachedPlugin, saveCachedPlugin } from './plugin-storage'
 
 export interface PluginNavItem {
@@ -58,8 +57,10 @@ class SimpleEventBus implements InsightBookPluginEventBus {
 
   off(event: string, callback: (data: unknown) => void) {
     const set = this.listeners.get(event)
+
     if (set) {
       set.delete(callback)
+
       if (set.size === 0)
         this.listeners.delete(event)
     }
@@ -67,6 +68,7 @@ class SimpleEventBus implements InsightBookPluginEventBus {
 
   emit(event: string, data?: unknown) {
     const set = this.listeners.get(event)
+
     if (set) {
       set.forEach((cb) => {
         try {
@@ -193,6 +195,7 @@ export function usePluginManager(): PluginManager {
       props,
       pluginId,
     }
+
     if (existingIndex !== -1)
       uiWidgets[existingIndex] = widget
 
@@ -202,6 +205,7 @@ export function usePluginManager(): PluginManager {
 
   const unregisterUIWidget = (id: string) => {
     const index = uiWidgets.findIndex(widget => widget.id === id)
+
     if (index !== -1)
       uiWidgets.splice(index, 1)
   }
@@ -233,6 +237,7 @@ export function usePluginManager(): PluginManager {
     if (plugin.pages) {
       for (const pathKey of Object.keys(plugin.pages)) {
         const routeName = pathKey === 'index' ? `plugin-${plugin.id}-index` : `plugin-${plugin.id}-${pathKey}`
+
         if (router.hasRoute(routeName))
           router.removeRoute(routeName)
       }
@@ -247,6 +252,7 @@ export function usePluginManager(): PluginManager {
 
     for (const item of navItemsByPlugin.get(pluginId) ?? []) {
       const index = navItems.indexOf(item)
+
       if (index !== -1)
         navItems.splice(index, 1)
     }
@@ -271,6 +277,7 @@ export function usePluginManager(): PluginManager {
         notify,
         addNavigationItem: (item: PluginNavItem) => {
           const items = navItemsByPlugin.get(plugin.id) ?? []
+
           if (items.some(existing => existing.routeName === item.routeName))
             return
 
@@ -308,9 +315,11 @@ export function usePluginManager(): PluginManager {
       }
 
       installingPluginIds.add(plugin.id)
+
       // Activate plugin safely
       try {
         addPluginRoutes(plugin, router)
+
         if (plugin.activate)
           await plugin.activate(ctx)
 
@@ -329,6 +338,7 @@ export function usePluginManager(): PluginManager {
 
   const uninstall = async (pluginId: string, router: Router) => {
     const index = plugins.findIndex(item => item.id === pluginId)
+
     if (index === -1) {
       console.warn(`[Plugin Manager] Plugin "${pluginId}" is not installed.`)
 
@@ -412,6 +422,7 @@ export function usePluginManager(): PluginManager {
       console.warn(`[Plugin Manager] Network fetch failed for ${manifestUrl}. Trying offline cache...`, netError)
       const manifestId = manifestUrl.split('/').pop()?.replace('.json', '') || ''
       const cached = await getCachedPlugin(manifestUrl) || await getCachedPlugin(manifestId)
+
       if (cached)
         return { manifest: cached.manifest, remoteEntryUrl: cached.remoteEntryUrl }
 
@@ -423,6 +434,7 @@ export function usePluginManager(): PluginManager {
 
   const loadRemotePlugin = async (manifestUrl: string, router: Router): Promise<InsightBookPlugin | null> => {
     const fetchedData = await fetchRemoteManifest(manifestUrl)
+
     if (!fetchedData)
       return null
 

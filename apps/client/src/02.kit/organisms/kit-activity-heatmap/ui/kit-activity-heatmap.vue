@@ -14,6 +14,25 @@ interface Props {
     quizProgress?: { language: string, levelValue: string, bestScore: number, stars: number, unlocked: boolean }[]
   }
 }
+interface VocabAchievement {
+  type: 'vocab'
+  lang: string
+  current: string
+  next: string | null
+  count: number
+  target: number
+  progress: number
+  labelType: string
+}
+interface QuizAchievement {
+  type: 'quiz'
+  lang: string
+  current: string
+  testPassed: boolean
+  testScore: number
+  testStars: number
+  labelType: string
+}
 
 const props = defineProps<Props>()
 const emit = defineEmits<{
@@ -24,60 +43,6 @@ const { t, locale } = useI18n()
 const scrollAreaRef = useTemplateRef<HTMLElement>('scrollAreaRef')
 
 const WEEKS_TO_SHOW = 26
-
-function formatNum(num: number) {
-  return new Intl.NumberFormat(locale.value).format(num || 0)
-}
-
-function calculateActivityLevel(count: number): number {
-  if (count >= 40)
-    return 4
-  if (count >= 20)
-    return 3
-  if (count >= 10)
-    return 2
-  if (count > 0)
-    return 1
-
-  return 0
-}
-
-function checkAndPushMonth(
-  currentDate: Date,
-  i: number,
-  yyyy: number,
-  months: Array<{ id: string, name: string, col: number }>,
-  currentMonth: number,
-): number {
-  const monthIdx = currentDate.getMonth()
-  if (monthIdx !== currentMonth) {
-    const col = Math.floor(i / 7) + 1
-
-    if (months.length > 0 && col - months[months.length - 1].col < 3) {
-      months.pop()
-    }
-
-    if (col <= WEEKS_TO_SHOW - 1) {
-      months.push({
-        id: `${yyyy}-${monthIdx}`,
-        name: currentDate.toLocaleString('default', { month: 'short' }).replace('.', ''),
-        col,
-      })
-    }
-
-    return monthIdx
-  }
-
-  return currentMonth
-}
-
-function getActivityCount(isFuture: boolean, dateStr: string, activityData: Array<{ date: string, count: number }>): number {
-  if (isFuture)
-    return 0
-  const active = activityData.find(item => item.date === dateStr)
-
-  return active?.count || 0
-}
 
 const heatmapData = computed(() => {
   const today = new Date()
@@ -144,8 +109,10 @@ const heatmapData = computed(() => {
   ]
 
   const gridData = []
+
   for (let r = 0; r < 7; r++) {
     const rowDays = []
+
     for (let c = 0; c < WEEKS_TO_SHOW; c++) {
       const idx = c * 7 + r
       rowDays.push(days[idx])
@@ -163,11 +130,9 @@ const heatmapData = computed(() => {
     days,
   }
 })
-
 const totalActivity = computed(() => {
   return props.activityData.reduce((acc, curr) => acc + curr.count, 0)
 })
-
 const maxStreak = computed(() => {
   const sorted = [...props.activityData]
     .filter(item => item.count > 0)
@@ -202,41 +167,86 @@ const maxStreak = computed(() => {
 
   return max
 })
+const userAchievements = computed(() => {
+  if (!props.stats)
+    return []
 
+  const vocabAchs = props.stats.difficulties ? buildVocabAchievements(props.stats.difficulties) : []
+  const quizAchs = props.stats.quizProgress ? buildQuizAchievements(props.stats.quizProgress) : []
+
+  return [...vocabAchs, ...quizAchs]
+})
+
+function formatNum(num: number) {
+  return new Intl.NumberFormat(locale.value).format(num || 0)
+}
+function calculateActivityLevel(count: number): number {
+  if (count >= 40)
+    return 4
+
+  if (count >= 20)
+    return 3
+
+  if (count >= 10)
+    return 2
+
+  if (count > 0)
+    return 1
+
+  return 0
+}
+function checkAndPushMonth(
+  currentDate: Date,
+  i: number,
+  yyyy: number,
+  months: Array<{ id: string, name: string, col: number }>,
+  currentMonth: number,
+): number {
+  const monthIdx = currentDate.getMonth()
+
+  if (monthIdx !== currentMonth) {
+    const col = Math.floor(i / 7) + 1
+
+    if (months.length > 0 && col - months[months.length - 1].col < 3) {
+      months.pop()
+    }
+
+    if (col <= WEEKS_TO_SHOW - 1) {
+      months.push({
+        id: `${yyyy}-${monthIdx}`,
+        name: currentDate.toLocaleString('default', { month: 'short' }).replace('.', ''),
+        col,
+      })
+    }
+
+    return monthIdx
+  }
+
+  return currentMonth
+}
+function getActivityCount(isFuture: boolean, dateStr: string, activityData: Array<{ date: string, count: number }>): number {
+  if (isFuture)
+    return 0
+
+  const active = activityData.find(item => item.date === dateStr)
+
+  return active?.count || 0
+}
 function getRankIdx(totalWords: number, ranks: Array<{ target: number }>): number {
   let rankIdx = 0
+
   for (let i = 0; i < ranks.length; i++) {
     const prevTarget = i === 0 ? 0 : ranks[i - 1].target
+
     if (totalWords >= prevTarget)
       rankIdx = i
   }
 
   return rankIdx
 }
-
-interface VocabAchievement {
-  type: 'vocab'
-  lang: string
-  current: string
-  next: string | null
-  count: number
-  target: number
-  progress: number
-  labelType: string
-}
-
-interface QuizAchievement {
-  type: 'quiz'
-  lang: string
-  current: string
-  testPassed: boolean
-  testScore: number
-  testStars: number
-  labelType: string
-}
-
 function buildVocabAchievements(difficulties: NonNullable<Props['stats']>['difficulties']): VocabAchievement[] {
   const langGroups: Record<string, number> = {}
+
   for (const diffItem of difficulties)
     langGroups[diffItem.language] = (langGroups[diffItem.language] || 0) + diffItem.count
 
@@ -252,6 +262,7 @@ function buildVocabAchievements(difficulties: NonNullable<Props['stats']>['diffi
   ]
 
   const achs: VocabAchievement[] = []
+
   for (const [lang, totalWords] of Object.entries(langGroups)) {
     const currentRankIdx = getRankIdx(totalWords, VOCAB_RANKS)
 
@@ -275,7 +286,6 @@ function buildVocabAchievements(difficulties: NonNullable<Props['stats']>['diffi
 
   return achs
 }
-
 function buildQuizAchievements(quizProgress: NonNullable<NonNullable<Props['stats']>['quizProgress']>): QuizAchievement[] {
   const passedQuizzes = quizProgress.filter(quizItem => quizItem.bestScore >= 80)
   const highestQuizPerLang: Record<string, NonNullable<NonNullable<Props['stats']>['quizProgress']>[number] & { levelIdx: number, current: string }> = {}
@@ -295,6 +305,7 @@ function buildQuizAchievements(quizProgress: NonNullable<NonNullable<Props['stat
   }
 
   const achs: QuizAchievement[] = []
+
   for (const [lang, quizItem] of Object.entries(highestQuizPerLang)) {
     achs.push({
       type: 'quiz',
@@ -310,18 +321,9 @@ function buildQuizAchievements(quizProgress: NonNullable<NonNullable<Props['stat
   return achs
 }
 
-const userAchievements = computed(() => {
-  if (!props.stats)
-    return []
-
-  const vocabAchs = props.stats.difficulties ? buildVocabAchievements(props.stats.difficulties) : []
-  const quizAchs = props.stats.quizProgress ? buildQuizAchievements(props.stats.quizProgress) : []
-
-  return [...vocabAchs, ...quizAchs]
-})
-
 onMounted(async () => {
   await nextTick()
+
   if (scrollAreaRef.value)
     scrollAreaRef.value.scrollLeft = scrollAreaRef.value.scrollWidth
 })

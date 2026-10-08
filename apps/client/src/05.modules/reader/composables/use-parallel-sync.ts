@@ -30,6 +30,7 @@ export function useParallelSync(readerViewRef: Ref<HTMLElement | null>, restoreS
 
     const leftRect = leftPane.getBoundingClientRect()
     const rightRect = rightPane.getBoundingClientRect()
+
     if (Math.abs(leftRect.top - rightRect.top) > 10)
       return
 
@@ -49,6 +50,7 @@ export function useParallelSync(readerViewRef: Ref<HTMLElement | null>, restoreS
         if (heights[i] > 0) {
           if (leftNodes[i])
             leftNodes[i].style.minHeight = `${heights[i]}px`
+
           if (rightNodes[i])
             rightNodes[i].style.minHeight = `${heights[i]}px`
         }
@@ -64,10 +66,12 @@ export function useParallelSync(readerViewRef: Ref<HTMLElement | null>, restoreS
       rafId = null
 
       const pageBlocks = readerViewRef.value?.querySelectorAll('.reader-page-block')
+
       if (pageBlocks && pageBlocks.length > 0) {
         pageBlocks.forEach((block) => {
           const leftPane = block.querySelector('.left-pane')
           const rightPane = block.querySelector('.right-pane')
+
           if (leftPane && rightPane)
             syncPanePair(leftPane, rightPane)
         })
@@ -75,6 +79,7 @@ export function useParallelSync(readerViewRef: Ref<HTMLElement | null>, restoreS
       else {
         const leftPane = readerViewRef.value?.querySelector('.left-pane')
         const rightPane = readerViewRef.value?.querySelector('.right-pane')
+
         if (leftPane && rightPane)
           syncPanePair(leftPane, rightPane)
       }

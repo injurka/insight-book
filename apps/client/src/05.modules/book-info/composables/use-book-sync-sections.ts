@@ -41,10 +41,13 @@ function computeSectionPercent(
 ): number {
   if (isFinished)
     return 100
+
   if (isPages)
     return total > 0 ? Math.min(100, Math.round((done / total) * 100)) : 0
+
   if (estimatedTotal && estimatedTotal > 0)
     return Math.min(100, Math.round((done / estimatedTotal) * 100))
+
   if (total > 0)
     return Math.min(100, Math.round((done / total) * 100))
 
@@ -59,6 +62,7 @@ function computeSectionStatus(
 ): SyncSection['status'] {
   if (isFinished)
     return 'done'
+
   const isPending = isPages ? pagesTotal === 0 : pagesDone === 0
 
   return isPending ? 'pending' : 'active'
@@ -185,12 +189,15 @@ function appendWordsSection(
 
 function computeEstimatedTts(opts: SyncOptionsData, book: BookInfoData): number | undefined {
   const stats = book?.stats
+
   if (!stats)
     return undefined
 
   let total = 0
+
   if (opts.ttsSentences && stats.totalSentences)
     total += stats.totalSentences
+
   if (opts.ttsWords && stats.totalWords)
     total += stats.totalWords
 

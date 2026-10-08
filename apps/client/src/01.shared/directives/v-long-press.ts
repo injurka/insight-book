@@ -44,6 +44,7 @@ const longPress = {
 
       el._onSelectionChange = () => {
         const selection = window.getSelection()
+
         if (selection && selection.toString().trim().length > 0) {
           el._lpMoved = true
           cancel()
@@ -57,6 +58,7 @@ const longPress = {
 
         if (!el._lpMoved) {
           const selection = window.getSelection()
+
           if (selection && selection.toString().trim().length > 0)
             return
 
@@ -110,6 +112,7 @@ const longPress = {
   unmounted(el: LongPressHTMLElement) {
     if (el._lpCancel)
       el._lpCancel()
+
     if (el._lpStart) {
       el.removeEventListener('mousedown', el._lpStart)
       el.removeEventListener('touchstart', el._lpStart)

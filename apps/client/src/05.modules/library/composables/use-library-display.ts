@@ -79,6 +79,7 @@ export function useLibraryDisplay() {
 
   function getStatusGroup(view: string, books: Book[]): DisplayGroup[] | null {
     const t = i18n.global.t
+
     if (view === 'reading-now') {
       const filtered = books.filter(b => b.status === 'reading' || !b.status)
       filtered.sort((a, b) => new Date(b.progressUpdatedAt || b.updatedAt || 0).getTime() - new Date(a.progressUpdatedAt || a.updatedAt || 0).getTime())
@@ -88,10 +89,13 @@ export function useLibraryDisplay() {
 
     if (view === 'favorites')
       return [{ seriesName: t('library.menuFavorites'), icon: 'mdi:star-outline', books: books.filter(b => b.isFavorite) }]
+
     if (view === 'to-read')
       return [{ seriesName: t('library.menuToRead'), icon: 'mdi:clock-outline', books: books.filter(b => b.status === 'to-read') }]
+
     if (view === 'have-read')
       return [{ seriesName: t('library.menuHaveRead'), icon: 'mdi:check-all', books: books.filter(b => b.status === 'have-read') }]
+
     if (view === 'books')
       return [{ seriesName: t('library.menuBooks'), icon: 'mdi:book-open-blank-variant', books: [...books].sort((a, b) => new Date(b.updatedAt || 0).getTime() - new Date(a.updatedAt || 0).getTime()) }]
 
@@ -122,6 +126,7 @@ export function useLibraryDisplay() {
     }
 
     const statusGroup = getStatusGroup(currentView.value, filtered)
+
     if (statusGroup)
       return statusGroup
 

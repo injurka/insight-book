@@ -1,5 +1,5 @@
 import type { Ref } from 'vue'
-import { onUnmounted, ref, watch } from 'vue'
+import { onScopeDispose, ref, watch } from 'vue'
 
 /**
  * Возвращает реактивный флаг загрузки, который становится true только если исходный isLoading
@@ -10,26 +10,28 @@ export function useDelayedLoading(isLoading: Ref<boolean> | (() => boolean), del
   let timer: ReturnType<typeof setTimeout> | null = null
 
   const stopWatch = watch(isLoading, (loading) => {
-    if (timer) {
+    if (timer !== null) {
       clearTimeout(timer)
       timer = null
     }
 
     if (loading) {
       timer = setTimeout(() => {
+        timer = null
         isDelayedLoading.value = true
       }, delayMs)
     }
     else {
       isDelayedLoading.value = false
     }
-  }, { immediate: true })
+  }, { immediate: true, flush: 'sync' })
 
-  onUnmounted(() => {
-    if (timer) {
+  onScopeDispose(() => {
+    if (timer !== null) {
       clearTimeout(timer)
     }
 
+    isDelayedLoading.value = false
     stopWatch()
   })
 

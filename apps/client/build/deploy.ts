@@ -33,8 +33,10 @@ const BUNNY_PULL_ZONE_ID = (process.env.BUNNY_PULL_ZONE_ID || '').trim()
 const CONCURRENCY_LIMIT = 10
 
 const missingVars: string[] = []
+
 if (!BUNNY_STORAGE_ZONE)
   missingVars.push('BUNNY_STORAGE_ZONE (или S3_BUCKET)')
+
 if (!BUNNY_STORAGE_PASSWORD)
   missingVars.push('BUNNY_STORAGE_PASSWORD (или S3_SECRET_KEY)')
 
@@ -79,6 +81,7 @@ const MIME_TYPES: Record<string, string> = {
 
 function getMimeType(filePath: string): string {
   const dotIndex = filePath.lastIndexOf('.')
+
   if (dotIndex === -1)
     return 'application/octet-stream'
 
@@ -89,8 +92,10 @@ function getMimeType(filePath: string): string {
 
 function getAllFiles(dir: string): string[] {
   const files: string[] = []
+
   for (const file of readdirSync(dir)) {
     const fullPath = join(dir, file)
+
     if (statSync(fullPath).isDirectory()) {
       files.push(...getAllFiles(fullPath))
     }
@@ -108,6 +113,7 @@ async function pool<T>(items: T[], concurrency: number, task: (item: T) => Promi
   const workers = Array.from({ length: Math.min(concurrency, items.length) }, async () => {
     while (queue.length > 0) {
       const item = queue.shift()
+
       if (item !== undefined) {
         await task(item)
       }
@@ -175,6 +181,7 @@ async function purgeBunnyCache(entrypoints: string[], distDir: string) {
     return
 
   logger.info('🧹 Очистка кэша входных точек в Bunny CDN...')
+
   try {
     const domains = [
       'https://insight-book.ru',
@@ -229,12 +236,15 @@ async function getExistingBunnyKeys(storageZone: string, accessKey: string): Pro
       if (!response.ok) {
         if (response.status === 404)
           return
+
         throw new Error(`HTTP ${response.status}: ${response.statusText}`)
       }
 
       const items = (await response.json()) as Array<{ ObjectName: string, IsDirectory: boolean }>
+
       for (const item of items) {
         const itemPath = `${currentPath}${item.ObjectName}`
+
         if (item.IsDirectory) {
           await scan(`${itemPath}/`)
         }
@@ -279,6 +289,7 @@ async function deploy() {
   })
 
   const skippedCount = assets.length - assetsToUpload.length
+
   if (skippedCount > 0) {
     logger.info({ count: skippedCount }, '⏩ Пропущены ассеты, уже присутствующие в Bunny Storage')
   }

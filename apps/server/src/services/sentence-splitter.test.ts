@@ -17,3 +17,15 @@ describe('splitIntoSentences', () => {
     expect(splitIntoSentences(text, 'en').join('')).toBe(text)
   })
 })
+
+describe('multilingual sentence boundaries', () => {
+  test('full width semicolons retain delimiters', () => {
+    const text = '第一句； 第二句。第三句！'
+    expect(splitIntoSentences(text, 'zh-CN')).toEqual(['第一句； ', '第二句。', '第三句！'])
+  })
+  test('fallback keeps punctuation attached and retains whitespace', () => {
+    const text = 'First; second！\nThird。\n\nLast'
+    expect(splitIntoSentences(text, 'invalid_locale')).toEqual(['First; ', 'second！', '\n', 'Third。', '\n\n', 'Last'])
+    expect(splitIntoSentences(text, 'invalid_locale').join('')).toBe(text)
+  })
+})

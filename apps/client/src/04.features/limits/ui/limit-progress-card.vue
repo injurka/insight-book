@@ -20,8 +20,10 @@ const settingsStore = useGlobalSettingsStore()
 const percentage = computed(() => {
   const usedVal = props.used ?? 0
   const limitVal = props.limit
+
   if (limitVal === null || limitVal === undefined)
     return 0
+
   if (limitVal === 0)
     return 100
 
@@ -31,6 +33,7 @@ const percentage = computed(() => {
 const percentClass = computed(() => {
   if (percentage.value < 70)
     return 'is-success'
+
   if (percentage.value <= 90)
     return 'is-warning'
 

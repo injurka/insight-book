@@ -8,6 +8,7 @@ function roundShares(counts: number[], total: number) {
   const order = shares.map((share, index) => ({ index, remainder: share - percentages[index] }))
     .sort((a, b) => b.remainder - a.remainder)
   const remaining = 100 - percentages.reduce((sum, value) => sum + value, 0)
+
   for (let i = 0; i < remaining; i++) percentages[order[i].index]++
 
   return percentages
@@ -36,6 +37,7 @@ export function useBookLexicalStats() {
 
   const posStats = computed(() => {
     const dist = libraryStore.currentBookInfo?.stats?.posDistribution
+
     if (!dist)
       return null
 

@@ -18,17 +18,14 @@ interface Props {
 }
 
 const props = defineProps<Props>()
-
 const emit = defineEmits<{
   (e: 'save', payload: { bookData: Partial<Book>, coverFile: File | null }): void
   (e: 'delete', bookId: number): void
 }>()
+const visible = defineModel<boolean>('visible', { required: true })
 
 const authStore = useAuthStore()
 const { t } = useI18n()
-
-const visible = defineModel<boolean>('visible', { required: true })
-
 const {
   editCoverInput,
   editingBook,
@@ -46,36 +43,32 @@ const {
 
 const confirmDeleteVisible = ref(false)
 
-function onConfirmDelete() {
-  handleDelete()
-}
-
 const bookLanguageOptions = computed(() => [
   { label: t('library.langEn'), value: 'en' },
   { label: t('library.langZh'), value: 'zh' },
   { label: t('library.langRu'), value: 'ru' },
   { label: t('library.langJa'), value: 'ja' },
 ])
-
 const statusOptions = computed(() => [
   { label: t('library.statusReading'), value: 'reading' },
   { label: t('library.statusToRead'), value: 'to-read' },
   { label: t('library.statusRead'), value: 'have-read' },
 ])
-
 const textDirectionOptions = computed(() => [
   { label: t('library.dirAuto'), value: 'auto' },
   { label: t('library.dirLtr'), value: 'ltr' },
   { label: t('library.dirVertical'), value: 'v_rtl' },
   { label: t('library.dirRtl'), value: 'rtl' },
 ])
-
 const textDirectionModel = computed({
   get: () => editingBook.value.textDirection || 'auto',
   set: (val) => { editingBook.value.textDirection = val === 'auto' ? null : String(val) },
 })
-
 const isReadOnly = computed(() => editingBook.value.publicStatus === 'public' || editingBook.value.isPublic)
+
+function onConfirmDelete() {
+  handleDelete()
+}
 </script>
 
 <template>

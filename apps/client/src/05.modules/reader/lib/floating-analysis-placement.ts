@@ -33,6 +33,7 @@ function placeDragged(
 
   if (fitsLeft && (!fitsRight || Math.abs(leftOffset) <= rightOffset))
     return { x, offset: leftOffset }
+
   if (fitsRight)
     return { x, offset: rightOffset }
 
@@ -48,6 +49,7 @@ export function placeFloatingAnalysis(input: PlacementInput): Placement | null {
     draggedX,
   } = input
   const free = width - contentWidth - dialogWidth
+
   if (free < 0)
     return null
 

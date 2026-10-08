@@ -1,8 +1,6 @@
 export function useHaptic() {
   const vibrate = (pattern: number | number[] = 50) => {
-    // Only vibrate if the user allows haptic feedback in settings (you can add this to your settings store)
-    // and if the device supports it.
-    if (typeof navigator !== 'undefined' && navigator.vibrate) {
+    if (typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function') {
       try {
         navigator.vibrate(pattern)
       }

@@ -10,7 +10,6 @@ interface Props {
 }
 
 const props = defineProps<Props>()
-
 const emit = defineEmits<{
   (e: 'openBook', book: Book): void
   (e: 'editBook', book: Book): void
@@ -23,37 +22,40 @@ const isMobile = useMediaQuery('(max-width: 599px)')
 const MIN_CARD_WIDTH = 220
 // Приблизительная высота инфо-блока карточки под обложкой (padding, заголовок, автор, прогресс)
 const CARD_INFO_HEIGHT = 160
-
-const gap = computed(() => isMobile.value ? 12 : 24)
-
 const containerRef = shallowRef<HTMLElement | null>(null)
+
 const { width: containerWidth } = useElementSize(containerRef)
 
+const gap = computed(() => isMobile.value ? 12 : 24)
 const columns = computed(() => {
   if (isMobile.value)
     return 1
+
   const w = containerWidth.value
+
   if (!w)
     return 4
 
   return Math.max(1, Math.floor((w + gap.value) / (MIN_CARD_WIDTH + gap.value)))
 })
-
 // Высота строки: обложка (aspect-ratio 2/3) + инфо-блок + отступ между строками
 const rowHeight = computed(() => {
   if (isMobile.value)
     return 144 + gap.value // обложка 120px + padding карточки
+
   const w = containerWidth.value
+
   if (!w)
     return 480
+
   const colWidth = (w - gap.value * (columns.value - 1)) / columns.value
 
   return Math.ceil(colWidth * 1.5) + CARD_INFO_HEIGHT + gap.value
 })
-
 const rows = computed(() => {
   const cols = columns.value
   const result: Book[][] = []
+
   for (let i = 0; i < props.books.length; i += cols)
     result.push(props.books.slice(i, i + cols))
 

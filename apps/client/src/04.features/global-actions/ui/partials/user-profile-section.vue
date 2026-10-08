@@ -16,47 +16,51 @@ const authStore = useAuthStore()
 const toast = useToast()
 const { t } = useI18n()
 
+const avatarInputRef = ref<HTMLInputElement | null>(null)
+const isUsernamePromptOpen = ref(false)
+
 const tokenPercent = computed(() => {
   const used = authStore.user?.usedTokens ?? 0
   const limit = authStore.user?.tokenLimit
+
   if (limit === null || limit === undefined)
     return 0
+
   if (limit === 0)
     return 100
 
   return Math.min(100, Math.round((used / limit) * 100))
 })
-
 const bookPercent = computed(() => {
   const used = authStore.user?.usedBooks ?? 0
   const limit = authStore.user?.bookLimit
+
   if (limit === null || limit === undefined)
     return 0
+
   if (limit === 0)
     return 100
 
   return Math.min(100, Math.round((used / limit) * 100))
 })
-
 const userRoleName = computed(() => {
   const role = authStore.user?.role
+
   if (!role || role === 'user')
     return t('globalActions.roleUser')
+
   if (role === 'admin')
     return t('globalActions.roleAdmin')
 
   return role.charAt(0).toUpperCase() + role.slice(1)
 })
 
-const avatarInputRef = ref<HTMLInputElement | null>(null)
-const isUsernamePromptOpen = ref(false)
-
 function triggerAvatarUpload() {
   avatarInputRef.value?.click()
 }
-
 async function onAvatarChange(e: Event) {
   const target = e.target as HTMLInputElement
+
   if (target.files && target.files.length > 0) {
     try {
       await authStore.updateAvatar(target.files[0])
@@ -67,7 +71,6 @@ async function onAvatarChange(e: Event) {
     }
   }
 }
-
 async function handleUsernameSubmit(newUsername: string) {
   try {
     await authStore.updateUsername(newUsername)
@@ -77,7 +80,6 @@ async function handleUsernameSubmit(newUsername: string) {
     toast.error(err instanceof Error ? err.message : (t('common.error') || 'Ошибка'))
   }
 }
-
 function openLimits() {
   emit('closeDropdown')
   router.push(AppRoutePaths.Limits)

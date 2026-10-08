@@ -5,14 +5,13 @@ import { useSwipe } from '@vueuse/core'
 interface Props {
   message: ToastMessage
 }
-const props = defineProps<Props>()
 
+const props = defineProps<Props>()
 const emit = defineEmits<{
   (e: 'remove'): void
 }>()
 
 const toastEl = ref<HTMLElement | null>(null)
-const itemClass = computed(() => `kit-toast-item kit-toast-item--${props.message.type}`)
 
 const { isSwiping, direction, lengthX } = useSwipe(toastEl, {
   threshold: 60,
@@ -24,6 +23,7 @@ const { isSwiping, direction, lengthX } = useSwipe(toastEl, {
   },
 })
 
+const itemClass = computed(() => `kit-toast-item kit-toast-item--${props.message.type}`)
 const swipeStyle = computed(() => {
   if (isSwiping.value) {
     return {

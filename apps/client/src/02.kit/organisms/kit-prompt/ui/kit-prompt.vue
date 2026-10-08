@@ -22,22 +22,33 @@ const props = withDefaults(defineProps<Props>(), {
   inputType: 'text',
   hideInput: false,
 })
-
 const emit = defineEmits<{
   (e: 'submit', value: string): void
   (e: 'cancel'): void
 }>()
+const visible = defineModel<boolean>('visible', { required: true })
 
 const { t } = useI18n()
-
-const visible = defineModel<boolean>('visible', { required: true })
-const inputValue = ref<string>('')
 const inputRef = useTemplateRef<InstanceType<typeof KitInput>>('inputRef')
+
+const inputValue = ref<string>('')
+const parentDialogZIndex = inject<Ref<number> | undefined>('kit-dialog-z-index', undefined)
+
+const effectiveZIndex = computed(() => {
+  if (props.zIndex !== undefined && props.zIndex !== null && props.zIndex !== '')
+    return props.zIndex
+
+  if (parentDialogZIndex?.value)
+    return parentDialogZIndex.value + 100
+
+  return 1600
+})
 
 watch(visible, async (isOpen) => {
   if (isOpen) {
     inputValue.value = props.defaultValue !== undefined ? String(props.defaultValue) : ''
     await nextTick()
+
     if (inputRef.value) {
       const el = (inputRef.value as unknown as { $el?: HTMLElement }).$el || inputRef.value
       const target = (el as HTMLElement).querySelector<HTMLInputElement>('input') || (el as HTMLElement)
@@ -46,22 +57,10 @@ watch(visible, async (isOpen) => {
   }
 })
 
-const parentDialogZIndex = inject<Ref<number> | undefined>('kit-dialog-z-index', undefined)
-
-const effectiveZIndex = computed(() => {
-  if (props.zIndex !== undefined && props.zIndex !== null && props.zIndex !== '')
-    return props.zIndex
-  if (parentDialogZIndex?.value)
-    return parentDialogZIndex.value + 100
-
-  return 1600
-})
-
 function onSubmit() {
   emit('submit', inputValue.value)
   visible.value = false
 }
-
 function onCancel() {
   emit('cancel')
   visible.value = false

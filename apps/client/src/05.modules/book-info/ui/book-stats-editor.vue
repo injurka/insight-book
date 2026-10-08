@@ -12,10 +12,10 @@ import { useLibraryStore } from '~/05.modules/library/store/library.store'
 import { useBookStatsEdit } from '../composables/use-book-stats-edit'
 
 const visible = defineModel<boolean>('visible', { required: true })
+
 const libraryStore = useLibraryStore()
 const networkStore = useNetworkStore()
 const { t } = useI18n()
-const tab = ref<'manual' | 'automatic'>('manual')
 const {
   editForm,
   editDescLang,
@@ -26,12 +26,20 @@ const {
   triggerAiAnalysis,
   triggerVocabularyAnalysis,
 } = useBookStatsEdit(visible)
+const settingsStore = useGlobalSettingsStore()
+
+const tab = ref<'manual' | 'automatic'>('manual')
+const languages = [
+  { label: 'Русский', value: 'ru' },
+  { label: 'English', value: 'en' },
+  { label: '中文', value: 'zh' },
+]
+
 const busy = computed(() => isSaving.value || libraryStore.isAnalyzingBook || libraryStore.isAnalyzingVocab)
 const tabs = computed(() => [
   { id: 'manual' as const, label: t('bookStats.manualEdit') },
   { id: 'automatic' as const, label: t('bookStats.automatic') },
 ])
-const settingsStore = useGlobalSettingsStore()
 const selectedTags = computed({
   get: () => editForm.tags.split(',').map(tag => tag.trim()).filter(Boolean),
   set: (tags: (string | number)[]) => { editForm.tags = tags.join(', ') },
@@ -43,11 +51,7 @@ const tagOptions = computed(() => [
   })),
   ...selectedTags.value.filter(tag => !(tag in BOOK_TAGS)).map(tag => ({ value: tag, label: tag })),
 ])
-const languages = [
-  { label: 'Русский', value: 'ru' },
-  { label: 'English', value: 'en' },
-  { label: '中文', value: 'zh' },
-]
+
 watch(visible, (open) => {
   if (open)
     tab.value = 'manual'

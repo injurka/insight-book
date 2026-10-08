@@ -5,7 +5,7 @@ import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useTts } from '~/01.shared/composables/use-tts'
 import { DIFFICULTY_SYSTEMS } from '~/01.shared/constants/difficulties'
-import { vLongPress } from '~/01.shared/directives/long-press'
+import { vLongPress } from '~/01.shared/directives/v-long-press'
 import { useAnalysisStore } from '~/01.shared/store/analysis/analysis.store'
 import { useAuthStore } from '~/01.shared/store/auth.store'
 import { KitBtn } from '~/02.kit/atoms/kit-btn/ui'
@@ -21,6 +21,7 @@ interface Props {
 
 const props = defineProps<Props>()
 const visible = defineModel<boolean>('visible', { required: true })
+
 const { speak, isPlaying, isLoading: isTtsLoading, stop } = useTts()
 const { aiData, isAiLoading, generateExamples, clear } = useDictWordExamples()
 const analysisStore = useAnalysisStore()
@@ -29,11 +30,29 @@ const { t } = useI18n()
 
 const LlmChatModal = lazyComponent(() => import('~/04.features/llm-chat/ui/llm-chat-modal.vue'))
 const AiExamplesModal = lazyComponent(() => import('~/04.features/analysis/ui/modal/ai-examples-modal.vue'))
-
 const isChatModalOpen = ref(false)
 const isAiModalOpen = ref(false)
 const isTtsPopoverOpen = ref(false)
+
 const isAdmin = computed(() => authStore.user?.role === 'admin')
+const difficultyClass = computed(() => {
+  if (!props.word?.difficulty)
+    return ''
+
+  const system = DIFFICULTY_SYSTEMS[props.word.language] || DIFFICULTY_SYSTEMS.default
+  const found = system.find(s => s.value === props.word?.difficulty)
+
+  if (!found)
+    return ''
+
+  if (found.level <= 2)
+    return 'level-easy'
+
+  if (found.level <= 4)
+    return 'level-medium'
+
+  return 'level-hard'
+})
 
 watch(visible, (isOpen) => {
   if (isOpen)
@@ -47,7 +66,6 @@ function openTtsPopover() {
   if (isAdmin.value)
     isTtsPopoverOpen.value = true
 }
-
 function playTTS(forceCacheBypass = false) {
   if (props.word?.word) {
     speak(
@@ -58,14 +76,12 @@ function playTTS(forceCacheBypass = false) {
     )
   }
 }
-
 function handleGenerate() {
   if (props.word) {
     generateExamples(props.word.word, props.word.language)
     isAiModalOpen.value = true
   }
 }
-
 function openEdit() {
   if (props.word) {
     visible.value = false
@@ -73,7 +89,6 @@ function openEdit() {
     analysisStore.addEditWordModalOpen = true
   }
 }
-
 function getStatusLabel(state: number) {
   switch (state) {
     case 0: return { label: t('dictionary.statusNew'), color: 'var(--fg-info-color)' }
@@ -83,22 +98,6 @@ function getStatusLabel(state: number) {
     default: return { label: t('dictionary.statusUnknown'), color: 'var(--fg-muted-color)' }
   }
 }
-
-const difficultyClass = computed(() => {
-  if (!props.word?.difficulty)
-    return ''
-  const system = DIFFICULTY_SYSTEMS[props.word.language] || DIFFICULTY_SYSTEMS.default
-  const found = system.find(s => s.value === props.word?.difficulty)
-
-  if (!found)
-    return ''
-  if (found.level <= 2)
-    return 'level-easy'
-  if (found.level <= 4)
-    return 'level-medium'
-
-  return 'level-hard'
-})
 </script>
 
 <template>

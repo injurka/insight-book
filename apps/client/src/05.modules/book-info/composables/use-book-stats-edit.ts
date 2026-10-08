@@ -11,10 +11,13 @@ type DescLang = typeof DESCRIPTION_LANGS[number]
 
 function parseDescriptionJson(raw: string | undefined): Record<DescLang, string> {
   const result: Record<DescLang, string> = { ru: '', en: '', zh: '' }
+
   if (!raw)
     return result
+
   try {
     const parsed = JSON.parse(raw)
+
     if (typeof parsed === 'object' && parsed !== null) {
       for (const lang of DESCRIPTION_LANGS)
         result[lang] = parsed[lang] || ''
@@ -33,6 +36,7 @@ function parseDescriptionJson(raw: string | undefined): Record<DescLang, string>
 
 function serializeDescriptionJson(byLang: Record<DescLang, string>): string {
   const nonEmpty = DESCRIPTION_LANGS.some(l => byLang[l].trim())
+
   if (!nonEmpty)
     return ''
 
@@ -70,6 +74,7 @@ export function useBookStatsEdit(isEditingStats: Ref<boolean>) {
 
   const difficultyLevelClass = computed(() => {
     const diffValue = libraryStore.currentBookInfo?.stats?.difficulty
+
     if (!diffValue)
       return ''
 
@@ -82,6 +87,7 @@ export function useBookStatsEdit(isEditingStats: Ref<boolean>) {
 
     if (found.level <= 2)
       return 'level-easy'
+
     if (found.level <= 4)
       return 'level-medium'
 
@@ -90,10 +96,13 @@ export function useBookStatsEdit(isEditingStats: Ref<boolean>) {
 
   const currentDescription = computed(() => {
     const raw = libraryStore.currentBookInfo?.stats?.description
+
     if (!raw)
       return i18n.global.t('bookStats.noDescription')
+
     try {
       const parsed = JSON.parse(raw)
+
       if (typeof parsed === 'object' && parsed !== null) {
         return parsed[settingsStore.appLanguage as DescLang]
           || DESCRIPTION_LANGS.map(lang => parsed[lang]).find(value => typeof value === 'string' && value.trim())
@@ -125,7 +134,9 @@ export function useBookStatsEdit(isEditingStats: Ref<boolean>) {
   async function saveStats() {
     if (!libraryStore.currentBookInfo || isSaving.value)
       return
+
     isSaving.value = true
+
     try {
       const tagsArray = editForm.tags.split(',').map(t => t.trim()).filter(Boolean)
       const description = serializeDescriptionJson(editForm.descriptionByLang)
@@ -148,6 +159,7 @@ export function useBookStatsEdit(isEditingStats: Ref<boolean>) {
   async function triggerAiAnalysis() {
     if (!libraryStore.currentBookInfo)
       return
+
     try {
       await libraryStore.analyzeFullBook(libraryStore.currentBookInfo.id)
       isEditingStats.value = false
@@ -161,6 +173,7 @@ export function useBookStatsEdit(isEditingStats: Ref<boolean>) {
   async function triggerVocabularyAnalysis() {
     if (!libraryStore.currentBookInfo)
       return
+
     try {
       await libraryStore.analyzeVocabulary(libraryStore.currentBookInfo.id)
       isEditingStats.value = false

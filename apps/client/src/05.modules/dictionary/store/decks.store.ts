@@ -1,6 +1,5 @@
 import type { DictDeck } from '~/01.shared/types/models'
 import { useMutation, useQuery, useQueryCache } from '@pinia/colada'
-
 import { computed, ref, watch } from 'vue'
 import { useRepos } from '~/00.plugins/di'
 import { useToast } from '~/01.shared/composables/use-toast'
@@ -68,8 +67,10 @@ export const useDecksStore = defineStore('decks', () => {
     mutation: async ({ id, name }: { id: number, name: string }) => repos.dictionary.updateDeck(id, { name }),
     async onSuccess(_, { id, name }) {
       const deck = decks.value.find(d => d.id === id)
+
       if (deck)
         deck.name = name
+
       await repos.dictionary.saveLocalDecks(decks.value)
       queryCache.invalidateQueries({ key: queryKeys.decks.all })
       queryCache.invalidateQueries({ key: queryKeys.dictionary.all })
@@ -97,8 +98,10 @@ export const useDecksStore = defineStore('decks', () => {
       await repos.dictionary.saveLocalDecks(decks.value)
 
       const filtersStore = useDictionaryFiltersStore()
+
       if (filtersStore.selectedDeckId.includes(id)) {
         filtersStore.selectedDeckId = filtersStore.selectedDeckId.filter(d => d !== id)
+
         if (filtersStore.selectedDeckId.length === 0)
           filtersStore.selectedDeckId = ['all']
       }

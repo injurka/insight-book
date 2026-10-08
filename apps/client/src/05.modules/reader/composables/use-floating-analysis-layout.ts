@@ -12,6 +12,7 @@ export function useFloatingAnalysisLayout(readerView: () => HTMLElement | null, 
     const view = readerView()
     const layout = view?.querySelector<HTMLElement>('.reader-content-layout')
     const dialog = document.querySelector<HTMLElement>('.sentence-analysis-dialog.is-floating')
+
     if (!view || !layout || !dialog || !isOpen() || !floating.value)
       return null
 
@@ -30,6 +31,7 @@ export function useFloatingAnalysisLayout(readerView: () => HTMLElement | null, 
 
   function update(draggedX?: number) {
     const placement = measure(draggedX)
+
     if (!placement) {
       offset.value = 0
       dialogPosition.value = null
@@ -38,6 +40,7 @@ export function useFloatingAnalysisLayout(readerView: () => HTMLElement | null, 
     }
 
     offset.value = placement.offset
+
     if (draggedX !== undefined || dialogPosition.value?.x !== placement.x)
       dialogPosition.value = { x: placement.x }
   }
@@ -50,14 +53,18 @@ export function useFloatingAnalysisLayout(readerView: () => HTMLElement | null, 
   async function observe() {
     observer?.disconnect()
     await nextTick()
+
     if (!floating.value || !isOpen())
       dragged = false
+
     update()
+
     if (!floating.value || !isOpen())
       return
 
     const layout = readerView()?.querySelector<HTMLElement>('.reader-content-layout')
     const dialog = document.querySelector<HTMLElement>('.sentence-analysis-dialog.is-floating')
+
     if (!layout || !dialog)
       return
 

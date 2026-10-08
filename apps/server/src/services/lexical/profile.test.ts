@@ -68,3 +68,28 @@ describe('lexical profile', () => {
     expect(profile.finish().topWords.properNouns[0]?.word).toBe('東京')
   })
 })
+
+describe('multilingual profile boundaries', () => {
+  test('whitespace preserves phrases, punctuation interrupts them', () => {
+    const profile = new LexicalProfile('ru')
+    for (let i = 0; i < 3; i++) {
+      profile.addSentence([{ word: 'красивый', pos: 'a' }, { word: ' ', pos: 'x' }, { word: 'дом', pos: 'n' }], i)
+      profile.addSentence([{ word: 'красивый', pos: 'a' }, { word: ',', pos: 'x' }, { word: 'дом', pos: 'n' }], i)
+    }
+    expect(profile.finish().topWords.phrases[0]).toMatchObject({ word: 'красивый дом', count: 3, pageCount: 3 })
+  })
+  test('detailed Chinese noun tags form phrases but names do not', () => {
+    const profile = new LexicalProfile('zh')
+    for (let i = 0; i < 3; i++) {
+      profile.addSentence([{ word: '美好', pos: 'ad' }, { word: '生活', pos: 'ng' }], i)
+      profile.addSentence([{ word: '北京', pos: 'ns' }, { word: '生活', pos: 'ng' }], i)
+    }
+    expect(profile.finish().topWords.phrases.map(word => word.word)).toEqual(['美好生活'])
+  })
+  test('combining marks and alphanumeric words are retained', () => {
+    const profile = new LexicalProfile('fr')
+    profile.addSentence([{ word: 'cafe\u0301', pos: 'word' }, { word: 'café', pos: 'word' }, { word: 'B2B', pos: 'word' }, { word: '123', pos: 'word' }], 0)
+    expect(profile.finish().topWords.words).toEqual(expect.arrayContaining([expect.objectContaining({ word: 'café', count: 2 }), expect.objectContaining({ word: 'b2b', count: 1 })]))
+    expect(profile.finish().topWords.metrics.tokens).toBe(3)
+  })
+})

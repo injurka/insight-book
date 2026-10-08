@@ -4,6 +4,7 @@ function getStatus(value: unknown): number | null {
 
   if (typeof value === 'string' && value.trim() !== '') {
     const parsed = Number(value)
+
     if (Number.isFinite(parsed))
       return parsed
   }
@@ -30,6 +31,7 @@ function getErrorStatus(error: unknown): number | null {
 // eslint-disable-next-line complexity
 export function canUseOfflineFallback(error: unknown): boolean {
   const status = getErrorStatus(error)
+
   if (status !== null)
     return status === 0 || status >= 500
 

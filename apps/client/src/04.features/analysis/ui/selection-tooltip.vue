@@ -17,9 +17,47 @@ const readerStore = useReaderStore()
 const analysisStore = useAnalysisStore()
 const networkStore = useNetworkStore()
 const toast = useToast()
+const {
+  speak,
+  stop,
+  isPlaying,
+  isLoading,
+  currentText,
+} = useTts()
+const { t } = useI18n()
+const checkTextSelection = useDebounceFn(() => {
+  const settingsStore = useGlobalSettingsStore()
+  const selection = getValidSelection(settingsStore, readerStore)
+
+  if (!selection) {
+    analysisStore.closeSelectionTooltip()
+
+    return
+  }
+
+  const text = selection.toString().trim()
+
+  if (!isValidSelection(text, selection.anchorNode)) {
+    analysisStore.closeSelectionTooltip()
+
+    return
+  }
+
+  const rect = selection.getRangeAt(0).getBoundingClientRect()
+
+  if (rect.width === 0 || rect.height === 0) {
+    analysisStore.closeSelectionTooltip()
+
+    return
+  }
+
+  if (analysisStore.wordPopover)
+    analysisStore.closePopover()
+
+  analysisStore.selectionTooltip = { text, targetRect: rect }
+}, 250)
 
 const isSavingHighlight = ref(false)
-
 const isSaveModalOpen = ref(false)
 const highlightColors = ['#fde047', '#86efac', '#f472b6', '#93c5fd', '#c4b5fd']
 const modalInitialData = ref<{
@@ -36,11 +74,42 @@ const modalInitialData = ref<{
   analysisData: null,
 })
 const isFetchingTranslation = ref(false)
+const popoverRef = ref<HTMLElement | null>(null)
+const popoverPos = ref({ top: '-9999px', left: '-9999px', transform: 'none' })
+const offset = 24
+
+const isTooltipPlaying = computed(() => isPlaying.value && currentText.value === analysisStore.selectionTooltip?.text)
+const isTooltipLoading = computed(() => isLoading.value && currentText.value === analysisStore.selectionTooltip?.text)
+
+watch(() => analysisStore.selectionTooltip, async (val, oldVal) => {
+  if (!val) {
+    popoverPos.value = { top: '-9999px', left: '-9999px', transform: 'none' }
+
+    if (oldVal?.text)
+      stop(oldVal.text)
+
+    return
+  }
+
+  await nextTick()
+
+  if (!popoverRef.value || !val.targetRect)
+    return
+
+  const { top, left } = calculatePopoverCoords(val.targetRect, popoverRef.value.getBoundingClientRect())
+  popoverPos.value = {
+    top: `${top}px`,
+    left: `${left}px`,
+    transform: 'translateX(-50%)',
+  }
+}, { deep: true })
 
 function getChapterTitle(pageNum: number): string | null {
   if (!readerStore.currentToc || !readerStore.currentToc.length)
     return null
+
   let currentItem = null
+
   for (const item of readerStore.currentToc) {
     if (item.pageNum !== undefined && item.pageNum <= pageNum) {
       if (!currentItem || item.pageNum > (currentItem.pageNum || 0))
@@ -50,7 +119,6 @@ function getChapterTitle(pageNum: number): string | null {
 
   return currentItem ? currentItem.title : null
 }
-
 async function handleSaveQuote(data: { text: string, translation: string, note: string, color: string, analysisData?: LlmAnalysis | null }) {
   if (!readerStore.currentBook || !readerStore.currentPage || isSavingHighlight.value)
     return
@@ -82,90 +150,51 @@ async function handleSaveQuote(data: { text: string, translation: string, note: 
     isSavingHighlight.value = false
   }
 }
-
-const {
-  speak,
-  stop,
-  isPlaying,
-  isLoading,
-  currentText,
-} = useTts()
-const isTooltipPlaying = computed(() => isPlaying.value && currentText.value === analysisStore.selectionTooltip?.text)
-const isTooltipLoading = computed(() => isLoading.value && currentText.value === analysisStore.selectionTooltip?.text)
-const { t } = useI18n()
-
-const popoverRef = ref<HTMLElement | null>(null)
-const popoverPos = ref({ top: '-9999px', left: '-9999px', transform: 'none' })
-
-const offset = 24
-
 function isElementSelectable(node: Node | null): boolean {
   let curr = node
+
   while (curr && curr !== document.body) {
     if (curr.nodeType === Node.ELEMENT_NODE && (curr as HTMLElement).classList.contains('js-tooltip-selectable'))
       return true
+
     curr = curr.parentNode
   }
 
   return false
 }
-
 function getValidSelection(settingsStore: ReturnType<typeof useGlobalSettingsStore>, readerStore: ReturnType<typeof useReaderStore>): Selection | null {
   if (readerStore.currentBook?.language === settingsStore.appLanguage)
     return null
+
   const selection = window.getSelection()
+
   if (!selection || selection.isCollapsed)
     return null
 
   return selection
 }
-
 function isValidSelection(text: string, anchorNode: Node | null): boolean {
   if (!text || text.length > 250)
     return false
+
   if (!/[\p{L}\p{N}]/u.test(text))
     return false
 
   return isElementSelectable(anchorNode)
 }
-
-const checkTextSelection = useDebounceFn(() => {
-  const settingsStore = useGlobalSettingsStore()
-  const selection = getValidSelection(settingsStore, readerStore)
-  if (!selection) {
-    analysisStore.closeSelectionTooltip()
-
-    return
-  }
-
-  const text = selection.toString().trim()
-  if (!isValidSelection(text, selection.anchorNode)) {
-    analysisStore.closeSelectionTooltip()
-
-    return
-  }
-
-  const rect = selection.getRangeAt(0).getBoundingClientRect()
-  if (rect.width === 0 || rect.height === 0) {
-    analysisStore.closeSelectionTooltip()
-
-    return
-  }
-
-  if (analysisStore.wordPopover)
-    analysisStore.closePopover()
-
-  analysisStore.selectionTooltip = { text, targetRect: rect }
-}, 250)
-
 function getSelectionContext(text: string): string {
   const selection = window.getSelection()
+
   if (!selection || !selection.anchorNode)
     return ''
+
   const parent = selection.anchorNode.parentElement
+
   if (!parent)
     return ''
+
   const span = parent.closest('.sentence')
+
   if (!span)
     return ''
 
@@ -174,7 +203,6 @@ function getSelectionContext(text: string): string {
 
   return `${prev} [${text}] ${next}`.trim()
 }
-
 function analyzeFragment() {
   if (networkStore.effectiveOffline) {
     toast.warn(t('network.needOnline'))
@@ -184,17 +212,18 @@ function analyzeFragment() {
 
   if (!analysisStore.selectionTooltip)
     return
+
   const text = analysisStore.selectionTooltip.text
   const context = getSelectionContext(text)
 
   const sel = window.getSelection()
+
   if (sel)
     sel.removeAllRanges()
 
   analysisStore.closeSelectionTooltip()
   analysisStore.handleSentenceAnalysis(text, context)
 }
-
 function playTTS() {
   if (networkStore.effectiveOffline) {
     toast.warn(t('network.needOnline'))
@@ -206,12 +235,12 @@ function playTTS() {
     return
 
   const text = analysisStore.selectionTooltip.text
+
   if (isTooltipPlaying.value || isTooltipLoading.value)
     stop(text)
   else
     speak(text)
 }
-
 function calculatePopoverCoords(rect: DOMRect, popRect: DOMRect) {
   const ww = window.innerWidth
   const wh = window.innerHeight
@@ -233,33 +262,12 @@ function calculatePopoverCoords(rect: DOMRect, popRect: DOMRect) {
   return { top, left }
 }
 
-watch(() => analysisStore.selectionTooltip, async (val, oldVal) => {
-  if (!val) {
-    popoverPos.value = { top: '-9999px', left: '-9999px', transform: 'none' }
-    if (oldVal?.text)
-      stop(oldVal.text)
-
-    return
-  }
-
-  await nextTick()
-  if (!popoverRef.value || !val.targetRect)
-    return
-
-  const { top, left } = calculatePopoverCoords(val.targetRect, popoverRef.value.getBoundingClientRect())
-  popoverPos.value = {
-    top: `${top}px`,
-    left: `${left}px`,
-    transform: 'translateX(-50%)',
-  }
-}, { deep: true })
-
 onMounted(() => {
   document.addEventListener('selectionchange', checkTextSelection)
 })
-
 onUnmounted(() => {
   document.removeEventListener('selectionchange', checkTextSelection)
+
   if (analysisStore.selectionTooltip?.text)
     stop(analysisStore.selectionTooltip.text)
 })

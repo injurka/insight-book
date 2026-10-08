@@ -10,9 +10,7 @@ import { AppRoutePaths } from '~/01.shared/constants/routes'
 import { useGlobalSettingsStore } from '~/01.shared/store/settings.store'
 import { KitHoverRevealBg } from '~/02.kit/atoms/kit-hover-reveal-bg/ui'
 import { KitDropdown } from '~/02.kit/molecules/kit-dropdown/ui'
-
 import OnboardingBackground from './onboarding-background.vue'
-
 import Step0Hook from './steps/onboarding-step-0-hook.vue'
 import Step1Ai from './steps/onboarding-step-1-ai.vue'
 import Step2LongPress from './steps/onboarding-step-2-long-press.vue'
@@ -29,30 +27,11 @@ const { trackEvent } = useTracking()
 const settingsStore = useGlobalSettingsStore()
 const { theme, toggleTheme } = useChangeTheme()
 
-const currentThemeIcon = computed(() => {
-  switch (theme.value) {
-    case ThemesVariant.System: return 'mdi:theme-light-dark'
-    case ThemesVariant.Light: return 'mdi:weather-sunny'
-    case ThemesVariant.Dark: return 'mdi:weather-night'
-    case ThemesVariant.Sepia: return 'mdi:book-open-page-variant'
-    case ThemesVariant.Green: return 'mdi:leaf'
-    case ThemesVariant.Oled: return 'mdi:moon-waning-crescent'
-    default: return 'mdi:theme-light-dark'
-  }
-})
-
 const appLangOptions = [
   { label: 'Русский', value: 'ru' },
   { label: 'English', value: 'en' },
   { label: '中文', value: 'zh' },
 ]
-
-async function setLanguage(lang: string) {
-  await loadLanguageAsync(lang)
-  settingsStore.appLanguage = lang
-  trackEvent('app_language_changed', { language: lang })
-}
-
 const steps = [
   Step0Hook,
   Step1Ai,
@@ -64,22 +43,36 @@ const steps = [
   Step7Stats,
   Step8Epilogue,
 ]
-
 const currentStep = ref(0)
+
+const currentThemeIcon = computed(() => {
+  switch (theme.value) {
+    case ThemesVariant.System: return 'mdi:theme-light-dark'
+    case ThemesVariant.Light: return 'mdi:weather-sunny'
+    case ThemesVariant.Dark: return 'mdi:weather-night'
+    case ThemesVariant.Sepia: return 'mdi:book-open-page-variant'
+    case ThemesVariant.Green: return 'mdi:leaf'
+    case ThemesVariant.Oled: return 'mdi:moon-waning-crescent'
+    default: return 'mdi:theme-light-dark'
+  }
+})
 const CurrentComponent = computed(() => steps[currentStep.value])
 
+async function setLanguage(lang: string) {
+  await loadLanguageAsync(lang)
+  settingsStore.appLanguage = lang
+  trackEvent('app_language_changed', { language: lang })
+}
 function nextStep() {
   if (currentStep.value < steps.length - 1) {
     currentStep.value++
   }
 }
-
 function prevStep() {
   if (currentStep.value > 0) {
     currentStep.value--
   }
 }
-
 function finishOnboarding() {
   localStorage.setItem('insight_onboarding_completed', 'true')
   router.push(AppRoutePaths.Home)

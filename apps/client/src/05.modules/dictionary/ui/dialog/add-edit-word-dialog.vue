@@ -21,7 +21,6 @@ import { useReaderStore } from '~/05.modules/reader/store/reader.store'
 import { useDictionaryStore } from '../../store/dictionary.store'
 
 const repos = useRepos()
-
 const analysisStore = useAnalysisStore()
 const settingsStore = useGlobalSettingsStore()
 const dictStore = useDictionaryStore()
@@ -32,41 +31,81 @@ const toast = useToast()
 const { t } = useI18n()
 
 const localWord = ref<WordFormData>({})
-const isEditing = computed(() => !!localWord.value.id)
-
 const isDeckPromptOpen = ref(false)
 const isAutoFilling = ref(false)
+const previewTranslation = ref(true)
+const previewGrammar = ref(true)
+const previewVocabulary = ref(true)
 
+const isEditing = computed(() => !!localWord.value.id)
 const currentBookTitle = computed(() => {
   if (localWord.value.contextBookId) {
     const encBook = localWord.value.encounters?.find(e => e.bookId === localWord.value.contextBookId)?.book?.title
+
     if (encBook)
       return encBook
   }
 
   return readerStore.currentBook?.title || libraryStore.currentBookInfo?.title || null
 })
-
 const currentBookDeck = computed(() => {
   if (!currentBookTitle.value || !currentBookTitle.value.trim())
     return null
+
   const title = currentBookTitle.value.trim().toLowerCase()
   const lang = localWord.value.language || 'en'
 
   return dictStore.decks.find(deck => deck.language === lang && deck.name.trim().toLowerCase() === title) || null
 })
-
 const canCreateBookDeck = computed(() => !!currentBookTitle.value?.trim() && !currentBookDeck.value)
+const deckIdsModel = computed<(string | number)[]>({
+  get: () => {
+    if (!localWord.value.deckIds || localWord.value.deckIds.length === 0)
+      return ['none']
 
-function selectBookDeck() {
-  const deck = currentBookDeck.value
-  if (deck && !localWord.value.deckIds?.includes(deck.id))
-    localWord.value.deckIds = [...(localWord.value.deckIds || []), deck.id]
-}
+    return localWord.value.deckIds
+  },
+  set: (val) => {
+    const lastSelected = val[val.length - 1]
+
+    if (lastSelected === 'none') {
+      localWord.value.deckIds = []
+
+      return
+    }
+
+    const numericDecks = val.filter(v => v !== 'none').map(Number)
+    localWord.value.deckIds = numericDecks
+  },
+})
+const deckOptions = computed(() => {
+  if (!localWord.value.language)
+    return [{ label: t('dictionary.noDeckGeneral'), value: 'none' }]
+
+  const opts: SelectOption[] = [{ label: t('dictionary.noDeckGeneral'), value: 'none' }]
+  const langDecks = dictStore.decks.filter(deckItem => deckItem.language === localWord.value.language)
+  langDecks.forEach(deckItem => opts.push({ label: deckItem.name, value: deckItem.id }))
+
+  return opts
+})
+const currentDifficultyOptions = computed(() => {
+  const lang = localWord.value.language || 'en'
+  const system = DIFFICULTY_SYSTEMS[lang] || DIFFICULTY_SYSTEMS.default
+
+  return [
+    { label: t('dictionary.noDifficulty'), value: '' },
+    ...system.map(opt => ({ label: opt.label, value: opt.value })),
+  ]
+})
+const difficultyModel = computed({
+  get: () => localWord.value.difficulty || '',
+  set: (val) => { localWord.value.difficulty = val || null },
+})
 
 watch(() => analysisStore.addEditWordModalOpen, async (isOpen) => {
   if (isOpen) {
     await dictStore.fetchDecks()
+
     if (analysisStore.addEditWordModalOpen)
       selectBookDeck()
   }
@@ -74,28 +113,41 @@ watch(() => analysisStore.addEditWordModalOpen, async (isOpen) => {
     isDeckPromptOpen.value = false
   }
 })
+watch(() => analysisStore.wordToEdit, (newWord) => {
+  if (newWord)
+    localWord.value = { ...newWord }
 
+  else
+    localWord.value = {}
+
+  if (newWord && analysisStore.addEditWordModalOpen)
+    selectBookDeck()
+}, { deep: true })
+
+function selectBookDeck() {
+  const deck = currentBookDeck.value
+
+  if (deck && !localWord.value.deckIds?.includes(deck.id))
+    localWord.value.deckIds = [...(localWord.value.deckIds || []), deck.id]
+}
 function handleSave() {
   analysisStore.saveWordToDict(localWord.value)
 }
-
 function handleDelete() {
   if (localWord.value.word)
     analysisStore.removeFromDict(localWord.value.word)
 }
-
 function playTTS() {
   if (localWord.value.word)
     speak(localWord.value.word, localWord.value.language)
 }
-
 function openCreateDeckPrompt() {
   isDeckPromptOpen.value = true
 }
-
 async function onInlineDeckSubmit(name: string) {
   if (name && name.trim()) {
     const lang = localWord.value.language || 'en'
+
     try {
       const newDeck = await dictStore.createDeck(name.trim(), lang)
       localWord.value.deckIds = [...(localWord.value.deckIds || []), newDeck.id]
@@ -105,7 +157,6 @@ async function onInlineDeckSubmit(name: string) {
     }
   }
 }
-
 async function createDeckWithBookTitle() {
   if (currentBookTitle.value) {
     const title = currentBookTitle.value.trim()
@@ -113,10 +164,10 @@ async function createDeckWithBookTitle() {
     await onInlineDeckSubmit(title)
   }
 }
-
 async function autoFillWithAI() {
   if (!localWord.value.word)
     return
+
   isAutoFilling.value = true
   const lang = localWord.value.language || 'en'
 
@@ -134,66 +185,6 @@ async function autoFillWithAI() {
     isAutoFilling.value = false
   }
 }
-
-watch(() => analysisStore.wordToEdit, (newWord) => {
-  if (newWord)
-    localWord.value = { ...newWord }
-
-  else
-    localWord.value = {}
-
-  if (newWord && analysisStore.addEditWordModalOpen)
-    selectBookDeck()
-}, { deep: true })
-
-const deckIdsModel = computed<(string | number)[]>({
-  get: () => {
-    if (!localWord.value.deckIds || localWord.value.deckIds.length === 0)
-      return ['none']
-
-    return localWord.value.deckIds
-  },
-  set: (val) => {
-    const lastSelected = val[val.length - 1]
-    if (lastSelected === 'none') {
-      localWord.value.deckIds = []
-
-      return
-    }
-
-    const numericDecks = val.filter(v => v !== 'none').map(Number)
-    localWord.value.deckIds = numericDecks
-  },
-})
-
-const deckOptions = computed(() => {
-  if (!localWord.value.language)
-    return [{ label: t('dictionary.noDeckGeneral'), value: 'none' }]
-  const opts: SelectOption[] = [{ label: t('dictionary.noDeckGeneral'), value: 'none' }]
-  const langDecks = dictStore.decks.filter(deckItem => deckItem.language === localWord.value.language)
-  langDecks.forEach(deckItem => opts.push({ label: deckItem.name, value: deckItem.id }))
-
-  return opts
-})
-
-const currentDifficultyOptions = computed(() => {
-  const lang = localWord.value.language || 'en'
-  const system = DIFFICULTY_SYSTEMS[lang] || DIFFICULTY_SYSTEMS.default
-
-  return [
-    { label: t('dictionary.noDifficulty'), value: '' },
-    ...system.map(opt => ({ label: opt.label, value: opt.value })),
-  ]
-})
-
-const difficultyModel = computed({
-  get: () => localWord.value.difficulty || '',
-  set: (val) => { localWord.value.difficulty = val || null },
-})
-
-const previewTranslation = ref(true)
-const previewGrammar = ref(true)
-const previewVocabulary = ref(true)
 </script>
 
 <template>

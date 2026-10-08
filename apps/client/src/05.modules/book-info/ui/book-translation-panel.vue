@@ -10,16 +10,10 @@ import { formatNumber } from '../lib/formatters'
 
 const libraryStore = useLibraryStore()
 const { t, locale } = useI18n()
-const showCrowdsource = ref(false)
 const detailsId = useId()
 const trigger = useTemplateRef<InstanceType<typeof KitBtn>>('trigger')
 
-watch(showCrowdsource, async (isOpen, wasOpen) => {
-  if (!isOpen && wasOpen) {
-    await nextTick()
-    trigger.value?.$el.focus()
-  }
-})
+const showCrowdsource = ref(false)
 
 const metrics = computed(() => {
   const {
@@ -66,6 +60,13 @@ const metrics = computed(() => {
     percent: metric.total > 0 ? Math.min(100, Math.max(0, metric.count / metric.total * 100)) : null,
     complete: metric.total > 0 && metric.count >= metric.total,
   }))
+})
+
+watch(showCrowdsource, async (isOpen, wasOpen) => {
+  if (!isOpen && wasOpen) {
+    await nextTick()
+    trigger.value?.$el.focus()
+  }
 })
 
 function formatPercent(value: number) {

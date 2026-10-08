@@ -19,140 +19,23 @@ import { KitDropdown } from '~/02.kit/molecules/kit-dropdown/ui'
 import { AuthOAuthProviders, AuthSignInForm, AuthSignUpForm } from '~/04.features/auth'
 
 const repos = useRepos()
-
 const router = useRouter()
 const authStore = useAuthStore()
 const toast = useToast()
 const { t } = useI18n()
 const { trackEvent } = useTracking()
-
 const settingsStore = useGlobalSettingsStore()
 const { theme, toggleTheme } = useChangeTheme()
-
-const currentThemeIcon = computed(() => {
-  switch (theme.value) {
-    case ThemesVariant.System: return 'mdi:theme-light-dark'
-    case ThemesVariant.Light: return 'mdi:weather-sunny'
-    case ThemesVariant.Dark: return 'mdi:weather-night'
-    case ThemesVariant.Sepia: return 'mdi:book-open-page-variant'
-    case ThemesVariant.Green: return 'mdi:leaf'
-    case ThemesVariant.Oled: return 'mdi:moon-waning-crescent'
-    default: return 'mdi:theme-light-dark'
-  }
-})
 
 const appLangOptions = [
   { label: 'Русский', value: 'ru' },
   { label: 'English', value: 'en' },
   { label: '中文', value: 'zh' },
 ]
-
-async function setLanguage(lang: string) {
-  await loadLanguageAsync(lang)
-  settingsStore.appLanguage = lang
-  trackEvent('app_language_changed', { language: lang })
-}
-
 const isLoading = ref(false)
 const isCodeSent = ref(false)
 const currentTab = ref<'login' | 'register'>('login')
-
-async function refreshAuthenticatedUser() {
-  await authStore.checkAuth()
-
-  if (!authStore.user)
-    throw new Error(t('signIn.errorAuth'))
-}
-
-async function handleSignIn(payload: { username: string, password: string }) {
-  isLoading.value = true
-
-  try {
-    const res = await repos.auth.login({ login: payload.username, password: payload.password })
-    localStorage.setItem('insight_token', res.token)
-    await refreshAuthenticatedUser()
-
-    trackEvent('login_success')
-    router.push('/')
-  }
-  catch (e) {
-    toast.error(e instanceof Error ? e.message : t('signIn.errorAuth'))
-  }
-  finally {
-    isLoading.value = false
-  }
-}
-
-async function handleSendCode(emailVal: string) {
-  isLoading.value = true
-  try {
-    await repos.auth.sendCode({ email: emailVal })
-    isCodeSent.value = true
-    toast.success('Код отправлен на почту')
-  }
-  catch (e: unknown) {
-    toast.error(e instanceof Error ? e.message : String(e))
-  }
-  finally {
-    isLoading.value = false
-  }
-}
-
-async function handleRegister(payload: { email: string, code: string, password: string }) {
-  isLoading.value = true
-  try {
-    const res = await repos.auth.register({ email: payload.email, code: payload.code, password: payload.password })
-    localStorage.setItem('insight_token', res.token)
-    await refreshAuthenticatedUser()
-    trackEvent('register_success')
-    router.push('/')
-  }
-  catch (e: unknown) {
-    toast.error(e instanceof Error ? e.message : String(e))
-  }
-  finally {
-    isLoading.value = false
-  }
-}
-
 let oauthAbortController: AbortController | null = null
-
-async function loginYandex() {
-  try {
-    if (isTauri) {
-      isLoading.value = true
-
-      const sessionId = uuidv4()
-      const url = getApiEndpointUrl(`/api/auth/yandex?session_id=${sessionId}`)
-
-      await openUrl(url)
-
-      oauthAbortController?.abort()
-      oauthAbortController = new AbortController()
-      const data = await pollOAuthStatus(() => repos.auth.oauthStatus(sessionId), { signal: oauthAbortController.signal })
-
-      if (data.status === 'error')
-        throw new Error(data.error || t('signIn.errorAuth'))
-      if (!data.token)
-        throw new Error(t('signIn.errorAuth'))
-
-      localStorage.setItem('insight_token', data.token)
-      await refreshAuthenticatedUser()
-      trackEvent('login_success')
-      await router.push('/')
-    }
-    else {
-      window.location.href = getApiEndpointUrl('/api/auth/yandex')
-    }
-  }
-  catch (e: unknown) {
-    console.error('Yandex login error:', e)
-    isLoading.value = false
-    if (!(e instanceof Error && e.name === 'AbortError'))
-      toast.error(e instanceof Error ? e.message : 'Error opening Yandex login')
-  }
-}
-
 const bookTiles = [
   {
     top: '8%',
@@ -225,12 +108,121 @@ const bookTiles = [
     hue: 290,
   },
 ]
-
 const showAuthControls = ref(false)
 let pressTimer: ReturnType<typeof setTimeout> | null = null
 let clickCount = 0
 let clickTimer: ReturnType<typeof setTimeout> | null = null
 
+const currentThemeIcon = computed(() => {
+  switch (theme.value) {
+    case ThemesVariant.System: return 'mdi:theme-light-dark'
+    case ThemesVariant.Light: return 'mdi:weather-sunny'
+    case ThemesVariant.Dark: return 'mdi:weather-night'
+    case ThemesVariant.Sepia: return 'mdi:book-open-page-variant'
+    case ThemesVariant.Green: return 'mdi:leaf'
+    case ThemesVariant.Oled: return 'mdi:moon-waning-crescent'
+    default: return 'mdi:theme-light-dark'
+  }
+})
+
+async function setLanguage(lang: string) {
+  await loadLanguageAsync(lang)
+  settingsStore.appLanguage = lang
+  trackEvent('app_language_changed', { language: lang })
+}
+async function refreshAuthenticatedUser() {
+  await authStore.checkAuth()
+
+  if (!authStore.user)
+    throw new Error(t('signIn.errorAuth'))
+}
+async function handleSignIn(payload: { username: string, password: string }) {
+  isLoading.value = true
+
+  try {
+    const res = await repos.auth.login({ login: payload.username, password: payload.password })
+    localStorage.setItem('insight_token', res.token)
+    await refreshAuthenticatedUser()
+
+    trackEvent('login_success')
+    router.push('/')
+  }
+  catch (e) {
+    toast.error(e instanceof Error ? e.message : t('signIn.errorAuth'))
+  }
+  finally {
+    isLoading.value = false
+  }
+}
+async function handleSendCode(emailVal: string) {
+  isLoading.value = true
+
+  try {
+    await repos.auth.sendCode({ email: emailVal })
+    isCodeSent.value = true
+    toast.success('Код отправлен на почту')
+  }
+  catch (e: unknown) {
+    toast.error(e instanceof Error ? e.message : String(e))
+  }
+  finally {
+    isLoading.value = false
+  }
+}
+async function handleRegister(payload: { email: string, code: string, password: string }) {
+  isLoading.value = true
+
+  try {
+    const res = await repos.auth.register({ email: payload.email, code: payload.code, password: payload.password })
+    localStorage.setItem('insight_token', res.token)
+    await refreshAuthenticatedUser()
+    trackEvent('register_success')
+    router.push('/')
+  }
+  catch (e: unknown) {
+    toast.error(e instanceof Error ? e.message : String(e))
+  }
+  finally {
+    isLoading.value = false
+  }
+}
+async function loginYandex() {
+  try {
+    if (isTauri) {
+      isLoading.value = true
+
+      const sessionId = uuidv4()
+      const url = getApiEndpointUrl(`/api/auth/yandex?session_id=${sessionId}`)
+
+      await openUrl(url)
+
+      oauthAbortController?.abort()
+      oauthAbortController = new AbortController()
+      const data = await pollOAuthStatus(() => repos.auth.oauthStatus(sessionId), { signal: oauthAbortController.signal })
+
+      if (data.status === 'error')
+        throw new Error(data.error || t('signIn.errorAuth'))
+
+      if (!data.token)
+        throw new Error(t('signIn.errorAuth'))
+
+      localStorage.setItem('insight_token', data.token)
+      await refreshAuthenticatedUser()
+      trackEvent('login_success')
+      await router.push('/')
+    }
+    else {
+      window.location.href = getApiEndpointUrl('/api/auth/yandex')
+    }
+  }
+  catch (e: unknown) {
+    console.error('Yandex login error:', e)
+    isLoading.value = false
+
+    if (!(e instanceof Error && e.name === 'AbortError'))
+      toast.error(e instanceof Error ? e.message : 'Error opening Yandex login')
+  }
+}
 function startPress() {
   if (showAuthControls.value)
     return
@@ -239,19 +231,18 @@ function startPress() {
     showAuthControls.value = true
   }, 1000)
 }
-
 function cancelPress() {
   if (pressTimer) {
     clearTimeout(pressTimer)
     pressTimer = null
   }
 }
-
 function handleClick() {
   if (showAuthControls.value)
     return
 
   clickCount++
+
   if (clickCount >= 3) {
     showAuthControls.value = true
     clickCount = 0
@@ -267,8 +258,10 @@ function handleClick() {
 
 onUnmounted(() => {
   oauthAbortController?.abort()
+
   if (pressTimer)
     clearTimeout(pressTimer)
+
   if (clickTimer)
     clearTimeout(clickTimer)
 })

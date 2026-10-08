@@ -5,19 +5,17 @@ import { KitBtn } from '~/02.kit/atoms/kit-btn/ui'
 import { useSrsQuiz } from '../../../composables/use-srs-quiz'
 import { useTrainingStore } from '../../../store/training.store'
 
-defineOptions({
-  inheritAttrs: false,
-})
-
-defineProps<Props>()
-
-const emit = defineEmits(['close'])
-
 interface Props {
   stats: { newStudied: number, reviewed: number }
   accuracy: number
   timeSpentMs: number
 }
+
+defineOptions({
+  inheritAttrs: false,
+})
+defineProps<Props>()
+const emit = defineEmits(['close'])
 
 const trainingStore = useTrainingStore()
 const { formatTime } = useSrsQuiz()

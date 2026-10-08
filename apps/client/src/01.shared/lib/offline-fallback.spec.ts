@@ -22,3 +22,24 @@ describe('canUseOfflineFallback', () => {
     expect(canUseOfflineFallback({ status: 503 })).toBe(true)
   })
 })
+
+describe('offline fallback boundaries', () => {
+  it.each([null, undefined, '', 500, 'network', {}, { status: 'invalid' }])('rejects unclassified error %s', (error) => {
+    expect(canUseOfflineFallback(error)).toBe(false)
+  })
+  it.each([{ status: 0 }, { statusCode: '503' }, { response: { status: 502 } }, { status: 'bad', statusCode: 500 }])('accepts unavailable server %s', (error) => {
+    expect(canUseOfflineFallback(error)).toBe(true)
+  })
+  it.each([{ status: 403 }, { status: 429 }, { status: 200 }, { status: 400, response: { status: 503 } }])('respects HTTP status %s', (error) => {
+    expect(canUseOfflineFallback(error)).toBe(false)
+  })
+  it.each(['Failed to fetch', 'Network error', 'fetch failed', 'error sending request', 'connection refused', 'DNS unavailable', 'timed out'])('accepts transport error %s', (message) => {
+    expect(canUseOfflineFallback(new Error(message))).toBe(true)
+  })
+  it('handles TypeError and FetchError but preserves ordinary application errors', () => {
+    expect(canUseOfflineFallback(new TypeError('fetch'))).toBe(true)
+    expect(canUseOfflineFallback(Object.assign(new Error('fetch'), { name: 'FetchError' }))).toBe(true)
+    expect(canUseOfflineFallback(new Error('invalid data'))).toBe(false)
+    expect(canUseOfflineFallback(Object.assign(new Error('timeout'), { name: 'AbortError' }))).toBe(true)
+  })
+})

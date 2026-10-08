@@ -1,3 +1,4 @@
+import type { UploadedFontMeta } from '../types/models/custom-fonts'
 import { useLocalStorage } from '@vueuse/core'
 import localforage from 'localforage'
 import { onMounted, ref } from 'vue'
@@ -11,15 +12,36 @@ interface WindowWithLocalFonts extends Window {
   queryLocalFonts?: () => Promise<LocalFontData[]>
 }
 
-export interface UploadedFontMeta {
-  name: string
-  family: string
-  fileName: string
-  size: number
-}
+export type { UploadedFontMeta } from '../types/models/custom-fonts'
 
 const FONTS_STORE_KEY_PREFIX = 'user_font_'
-let isFontsLoaded = false
+const registeredFonts = new Map<string, FontFace>()
+const fontRevisions = new Map<string, number>()
+const pendingRestores = new Map<string, Promise<void>>()
+
+function registerFont(family: string, font: FontFace) {
+  const previous = registeredFonts.get(family)
+
+  if (previous)
+    document.fonts.delete(previous)
+
+  document.fonts.add(font)
+  registeredFonts.set(family, font)
+}
+
+async function restoreFont(family: string) {
+  const revision = fontRevisions.get(family)
+  const buffer = await localforage.getItem<ArrayBuffer>(`${FONTS_STORE_KEY_PREFIX}${family}`)
+
+  if (!buffer)
+    return
+
+  const font = new FontFace(family, buffer)
+  await font.load()
+
+  if (fontRevisions.get(family) === revision)
+    registerFont(family, font)
+}
 
 export function useCustomFonts() {
   const toast = useToast()
@@ -31,37 +53,43 @@ export function useCustomFonts() {
 
   // 1. Инициализация и регистрация сохраненных шрифтов при старте
   async function loadSavedFonts() {
-    if (typeof window === 'undefined' || isFontsLoaded)
+    if (typeof window === 'undefined' || typeof FontFace === 'undefined' || !document.fonts)
       return
 
-    isFontsLoaded = true
-    for (const fontMeta of uploadedFonts.value) {
+    await Promise.all(uploadedFonts.value.map(async ({ family }) => {
+      if (registeredFonts.has(family))
+        return
+
+      let pending = pendingRestores.get(family)
+
+      if (!pending) {
+        pending = restoreFont(family).finally(() => pendingRestores.delete(family))
+        pendingRestores.set(family, pending)
+      }
+
       try {
-        const buffer = await localforage.getItem<ArrayBuffer>(`${FONTS_STORE_KEY_PREFIX}${fontMeta.family}`)
-        if (buffer) {
-          const fontFace = new FontFace(fontMeta.family, buffer)
-          await fontFace.load()
-          document.fonts.add(fontFace)
-        }
+        await pending
       }
-      catch (e) {
-        console.warn(`Failed to restore font ${fontMeta.family}`, e)
+      catch (error) {
+        console.warn(`Failed to restore font ${family}`, error)
       }
-    }
+    }))
   }
 
   onMounted(() => {
-    loadSavedFonts()
+    void loadSavedFonts()
   })
 
   // 2. Сканирование шрифтов системы через window.queryLocalFonts
   async function scanSystemFonts(): Promise<string[]> {
-    if (typeof window === 'undefined')
+    if (typeof window === 'undefined' || isScanning.value)
       return []
 
     isScanning.value = true
+
     try {
       const queryLocalFonts = (window as WindowWithLocalFonts).queryLocalFonts
+
       if (queryLocalFonts) {
         const fontData = await queryLocalFonts.call(window)
         const rawFamilies = fontData.map(font => font.family)
@@ -88,12 +116,14 @@ export function useCustomFonts() {
 
   // 3. Загрузка пользовательского файла шрифта (.ttf, .otf, .woff, .woff2)
   async function uploadFontFile(file: File): Promise<string | null> {
-    if (!file)
+    if (!file || isUploading.value)
       return null
 
     isUploading.value = true
+
     try {
       const extension = file.name.split('.').pop()?.toLowerCase()
+
       if (!['ttf', 'otf', 'woff', 'woff2'].includes(extension || '')) {
         toast.error('Поддерживаются только форматы .ttf, .otf, .woff, .woff2')
 
@@ -102,6 +132,7 @@ export function useCustomFonts() {
 
       // Название семейства берем из имени файла без расширения
       const familyName = file.name.replace(/\.[^/.]+$/, '').trim()
+
       if (!familyName) {
         toast.error('Невалидное имя файла шрифта')
 
@@ -111,10 +142,11 @@ export function useCustomFonts() {
       const buffer = await file.arrayBuffer()
       const fontFace = new FontFace(familyName, buffer)
       await fontFace.load()
-      document.fonts.add(fontFace)
 
       // Сохраняем файл бинарно в IndexedDB
       await localforage.setItem(`${FONTS_STORE_KEY_PREFIX}${familyName}`, buffer)
+      fontRevisions.set(familyName, (fontRevisions.get(familyName) ?? 0) + 1)
+      registerFont(familyName, fontFace)
 
       // Сохраняем мета-информацию
       const meta: UploadedFontMeta = {
@@ -125,6 +157,7 @@ export function useCustomFonts() {
       }
 
       const existingIndex = uploadedFonts.value.findIndex(f => f.family === familyName)
+
       if (existingIndex >= 0)
         uploadedFonts.value[existingIndex] = meta
       else
@@ -148,7 +181,15 @@ export function useCustomFonts() {
   // 4. Удаление загруженного шрифта
   async function removeUploadedFont(familyName: string) {
     try {
+      fontRevisions.set(familyName, (fontRevisions.get(familyName) ?? 0) + 1)
       await localforage.removeItem(`${FONTS_STORE_KEY_PREFIX}${familyName}`)
+      const font = registeredFonts.get(familyName)
+
+      if (font) {
+        document.fonts.delete(font)
+        registeredFonts.delete(familyName)
+      }
+
       uploadedFonts.value = uploadedFonts.value.filter(f => f.family !== familyName)
       toast.success(`Шрифт "${familyName}" удален`)
     }

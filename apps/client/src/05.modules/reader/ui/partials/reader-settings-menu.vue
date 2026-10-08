@@ -34,81 +34,13 @@ const networkStore = useNetworkStore()
 const toast = useToast()
 const { t } = useI18n()
 const { speak, stop, isPlaying, isLoading } = useTts()
-
 const { theme, toggleTheme } = useChangeTheme()
 const { isFullscreen, toggle: toggleFullscreen } = useFullscreen()
-
 const expandedSections = useLocalStorage('reader-settings-expanded-sections', {
   interface: true,
   translationAndVoice: true,
   textDisplay: true,
 }, { mergeDefaults: true })
-
-function saveSectionState(section: keyof typeof expandedSections.value, event: Event) {
-  if (event.target instanceof HTMLDetailsElement)
-    expandedSections.value[section] = event.target.open
-}
-
-function openAutoAnalyzeSettings() {
-  emit('openAutoAnalyzeSettings')
-}
-
-function toggleAutoAnalyzePage() {
-  if (networkStore.effectiveOffline) {
-    toast.warn(t('network.needOnline'))
-
-    return
-  }
-
-  settingsStore.autoAnalyzePage = !settingsStore.autoAnalyzePage
-}
-
-function openPageAnalysisModal() {
-  if (networkStore.effectiveOffline) {
-    toast.warn(t('network.needOnline'))
-
-    return
-  }
-
-  emit('closeDropdown')
-  if (analysisStore.isManualPageAnalysisActive)
-    analysisStore.isPageAnalysisModalOpen = true
-
-  else
-    analysisStore.isPageAnalysisSetupModalOpen = true
-}
-
-function cycleTtsSpeed() {
-  const speeds = [0.75, 1, 1.25, 1.5]
-  const idx = speeds.indexOf(settingsStore.ttsSpeed)
-  settingsStore.ttsSpeed = speeds[(idx + 1) % speeds.length] || 1
-}
-
-function previewVoice() {
-  if (isPlaying.value || isLoading.value)
-    stop()
-
-  else
-    speak(t('settings.previewVoiceText'), settingsStore.appLanguage || 'en')
-}
-
-function adjustFontSize(delta: number) {
-  const newSize = settingsStore.readerFontSize + delta
-  if (newSize >= 0.8 && newSize <= 3.0)
-    settingsStore.readerFontSize = Number(newSize.toFixed(1))
-}
-
-function adjustLineHeight(delta: number) {
-  const newHeight = settingsStore.readerLineHeight + delta
-  if (newHeight >= 1.0 && newHeight <= 3.0)
-    settingsStore.readerLineHeight = Number(newHeight.toFixed(1))
-}
-
-function adjustReaderContentWidth(delta: number) {
-  const newWidth = settingsStore.readerContentWidthPercent + delta
-  if (newWidth >= READER_CONTENT_WIDTH_MIN && newWidth <= READER_CONTENT_WIDTH_MAX)
-    settingsStore.readerContentWidthPercent = newWidth
-}
 
 const fontOptions = computed(() => [
   { label: t('reader.fontDefault'), value: '\'Maple Mono CN\', \'Microsoft YaHei\', sans-serif' },
@@ -116,9 +48,7 @@ const fontOptions = computed(() => [
   { label: t('reader.fontSerif'), value: 'Georgia, \'Times New Roman\', serif' },
   { label: t('reader.fontCursive'), value: '\'Comic Sans MS\', cursive, sans-serif' },
 ])
-
 const voiceOptions = computed(() => [...TTS_VOICE_OPTIONS])
-
 const currentThemeIcon = computed(() => {
   switch (theme.value) {
     case ThemesVariant.System: return 'mdi:theme-light-dark'
@@ -130,7 +60,6 @@ const currentThemeIcon = computed(() => {
     default: return 'mdi:theme-light-dark'
   }
 })
-
 const currentThemeName = computed(() => {
   switch (theme.value) {
     case ThemesVariant.System: return t('reader.system')
@@ -142,6 +71,68 @@ const currentThemeName = computed(() => {
     default: return t('reader.system')
   }
 })
+
+function saveSectionState(section: keyof typeof expandedSections.value, event: Event) {
+  if (event.target instanceof HTMLDetailsElement)
+    expandedSections.value[section] = event.target.open
+}
+function openAutoAnalyzeSettings() {
+  emit('openAutoAnalyzeSettings')
+}
+function toggleAutoAnalyzePage() {
+  if (networkStore.effectiveOffline) {
+    toast.warn(t('network.needOnline'))
+
+    return
+  }
+
+  settingsStore.autoAnalyzePage = !settingsStore.autoAnalyzePage
+}
+function openPageAnalysisModal() {
+  if (networkStore.effectiveOffline) {
+    toast.warn(t('network.needOnline'))
+
+    return
+  }
+
+  emit('closeDropdown')
+
+  if (analysisStore.isManualPageAnalysisActive)
+    analysisStore.isPageAnalysisModalOpen = true
+
+  else
+    analysisStore.isPageAnalysisSetupModalOpen = true
+}
+function cycleTtsSpeed() {
+  const speeds = [0.75, 1, 1.25, 1.5]
+  const idx = speeds.indexOf(settingsStore.ttsSpeed)
+  settingsStore.ttsSpeed = speeds[(idx + 1) % speeds.length] || 1
+}
+function previewVoice() {
+  if (isPlaying.value || isLoading.value)
+    stop()
+
+  else
+    speak(t('settings.previewVoiceText'), settingsStore.appLanguage || 'en')
+}
+function adjustFontSize(delta: number) {
+  const newSize = settingsStore.readerFontSize + delta
+
+  if (newSize >= 0.8 && newSize <= 3.0)
+    settingsStore.readerFontSize = Number(newSize.toFixed(1))
+}
+function adjustLineHeight(delta: number) {
+  const newHeight = settingsStore.readerLineHeight + delta
+
+  if (newHeight >= 1.0 && newHeight <= 3.0)
+    settingsStore.readerLineHeight = Number(newHeight.toFixed(1))
+}
+function adjustReaderContentWidth(delta: number) {
+  const newWidth = settingsStore.readerContentWidthPercent + delta
+
+  if (newWidth >= READER_CONTENT_WIDTH_MIN && newWidth <= READER_CONTENT_WIDTH_MAX)
+    settingsStore.readerContentWidthPercent = newWidth
+}
 </script>
 
 <template>

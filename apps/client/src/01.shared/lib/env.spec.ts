@@ -107,3 +107,81 @@ describe('env', () => {
     expect(API_URL).toBe('https://staging-api.insight-book.ru')
   })
 })
+
+describe('env validation and platform flags', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs()
+    vi.unstubAllGlobals()
+    vi.resetModules()
+    delete (window as { __APP_CONFIG__?: unknown }).__APP_CONFIG__
+    delete (window as { __TAURI_INTERNALS__?: unknown }).__TAURI_INTERNALS__
+  })
+
+  it.each([
+    'http://api.insight-book.ru',
+    'https://insight-book.ru.attacker.com',
+    'https://external.com',
+    'not a URL',
+    'https://127.0.0.1',
+    'malformed localhost',
+  ])('rejects unsafe Tauri API config %s', async (url) => {
+    ;(window as { __TAURI_INTERNALS__?: unknown }).__TAURI_INTERNALS__ = {}
+    vi.stubEnv('VITE_API_URL', url)
+    const { API_URL, DEFAULT_API_URL } = await import('./env')
+    expect(API_URL).toBe(DEFAULT_API_URL)
+  })
+
+  it.each(['https://limited-dissolve.ru', 'https://api.limited-dissolve.ru', 'https://insight-book.ru'])('allows trusted Tauri HTTPS endpoint %s', async (url) => {
+    ;(window as { __TAURI_INTERNALS__?: unknown }).__TAURI_INTERNALS__ = {}
+    vi.stubEnv('VITE_API_URL', url)
+    const { API_URL } = await import('./env')
+    expect(API_URL).toBe(url)
+  })
+
+  it('uses runtime telemetry/CDN config before build config', async () => {
+    ;(window as { __APP_CONFIG__?: unknown }).__APP_CONFIG__ = {
+      OTEL_EXPORTER_OTLP_ENDPOINT: 'https://runtime.telemetry',
+      CDN_URL: 'https://runtime.cdn',
+    }
+    vi.stubEnv('VITE_OTEL_EXPORTER_OTLP_ENDPOINT', 'https://build.telemetry')
+    vi.stubEnv('VITE_CDN_URL', 'https://build.cdn')
+    const env = await import('./env')
+    expect(env.OTEL_EXPORTER_OTLP_ENDPOINT).toBe('https://runtime.telemetry')
+    expect(env.CDN_URL).toBe('https://runtime.cdn')
+  })
+
+  it('uses build telemetry/CDN config in web mode', async () => {
+    vi.stubEnv('VITE_OTEL_EXPORTER_OTLP_ENDPOINT', 'https://build.telemetry')
+    vi.stubEnv('VITE_CDN_URL', 'https://build.cdn')
+    const env = await import('./env')
+    expect(env.OTEL_EXPORTER_OTLP_ENDPOINT).toBe('https://build.telemetry')
+    expect(env.CDN_URL).toBe('https://build.cdn')
+  })
+
+  it('detects a mobile Tauri app and uses its default CDN', async () => {
+    ;(window as { __TAURI_INTERNALS__?: unknown }).__TAURI_INTERNALS__ = {}
+    vi.stubGlobal('navigator', { userAgent: 'Mozilla Android Mobile' })
+    vi.stubEnv('VITE_CDN_URL', '')
+    const env = await import('./env')
+    expect(env.isMobile).toBe(true)
+    expect(env.isMobileApp).toBe(true)
+    expect(env.CDN_URL).toBe('https://cdn.insight-book.ru')
+  })
+})
+
+it('can resolve build config without browser globals', async () => {
+  vi.resetModules()
+  vi.stubGlobal('window', undefined)
+  vi.stubGlobal('navigator', undefined)
+
+  try {
+    const env = await import('./env')
+    expect(env.isTauri).toBe(false)
+    expect(env.isMobile).toBe(false)
+    expect(env.isMobileApp).toBe(false)
+  }
+  finally {
+    vi.unstubAllGlobals()
+    vi.resetModules()
+  }
+})

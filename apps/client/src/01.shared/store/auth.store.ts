@@ -65,12 +65,14 @@ export const useAuthStore = defineStore('auth', () => {
    */
   function checkAuth(): Promise<void> {
     const token = localStorage.getItem('insight_token')
+
     if (authRefreshPromise && authRefreshToken === token)
       return authRefreshPromise
 
     const revision = ++authRefreshRevision
     const refreshPromise = (async () => {
       isAuthRefreshing.value = true
+
       try {
         await syncUser(token)
       }
@@ -78,6 +80,7 @@ export const useAuthStore = defineStore('auth', () => {
         if (revision === authRefreshRevision) {
           isAuthRefreshing.value = false
           isAuthReady.value = true
+
           if (user.value)
             loadUserPlugins().catch(err => console.warn('[Auth Store] Error loading plugins:', err))
         }
@@ -121,6 +124,7 @@ export const useAuthStore = defineStore('auth', () => {
     if (cachedUserJson) {
       try {
         const parsed = UserDataSchema.safeParse(JSON.parse(cachedUserJson) as unknown)
+
         if (parsed.success) {
           cachedUser = parsed.data
         }
@@ -215,6 +219,7 @@ export const useAuthStore = defineStore('auth', () => {
 
     try {
       const res = await repos.auth.me()
+
       if (!hasSameToken())
         return
 
@@ -255,9 +260,11 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       const { usePwaStore } = await import('~/01.shared/store/pwa.store')
       const pwaStore = usePwaStore()
+
       if (pwaStore.isPushSubscribed && 'serviceWorker' in navigator && 'PushManager' in window) {
         const reg = await navigator.serviceWorker.ready
         const sub = await reg.pushManager.getSubscription()
+
         if (sub) {
           await sub.unsubscribe()
           await repos.push.unsubscribeWeb(sub.endpoint).catch(() => { })
@@ -282,6 +289,7 @@ export const useAuthStore = defineStore('auth', () => {
 
   async function updateAvatar(file: File) {
     const res = await repos.auth.updateAvatar(file)
+
     if (user.value) {
       user.value.avatarUrl = res.avatarUrl
       localStorage.setItem('insight_user_data', JSON.stringify(user.value))
@@ -290,6 +298,7 @@ export const useAuthStore = defineStore('auth', () => {
 
   async function updateUsername(username: string) {
     const res = await repos.auth.updateUsername(username)
+
     if (user.value) {
       user.value.username = res.username
       localStorage.setItem('insight_user_data', JSON.stringify(user.value))
@@ -298,6 +307,7 @@ export const useAuthStore = defineStore('auth', () => {
 
   async function unlinkProvider(provider: string) {
     const res = await repos.auth.unlinkProvider(provider)
+
     if (res.user) {
       user.value = res.user
       localStorage.setItem('insight_user_data', JSON.stringify(user.value))

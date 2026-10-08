@@ -5,6 +5,7 @@ export type { PageRange }
 
 export function formatBytes(bytes: number, decimals = 2): string {
   const t = i18n.global.t
+
   if (!bytes || bytes <= 0)
     return `0 ${t('settings.bytes', 'Байт')}`
 
@@ -35,6 +36,7 @@ export function collapsePageRanges(pages: number[]): PageRange[] {
 
   for (const page of sorted) {
     const last = ranges[ranges.length - 1]
+
     if (last && page === last.end + 1)
       last.end = page
 
@@ -53,10 +55,12 @@ export function formatPageRange(range: PageRange): string {
 
 export function formatPagesList(pages: number[], maxRanges = 20): string {
   const t = i18n.global.t
+
   if (pages.length === 0)
     return t('settings.noSavedPages', 'Нет сохраненных страниц')
 
   const ranges = collapsePageRanges(pages)
+
   if (ranges.length <= maxRanges)
     return ranges.map(formatPageRange).join(', ')
 
@@ -94,6 +98,7 @@ interface DurationUnits {
 function getDurationUnits(locale: string): DurationUnits {
   if (locale.startsWith('zh'))
     return { s: ' 秒', m: ' 分', h: ' 小时' }
+
   if (locale.startsWith('ru'))
     return { s: ' сек', m: ' мин', h: ' ч' }
 
@@ -102,10 +107,12 @@ function getDurationUnits(locale: string): DurationUnits {
 
 export function formatDurationSeconds(seconds: number | undefined | null, locale = 'ru'): string {
   const units = getDurationUnits(locale)
+
   if (!seconds || seconds <= 0)
     return `0${units.s.trim()}`
 
   const total = Math.round(seconds)
+
   if (total < 60)
     return `${total}${units.s}`
 

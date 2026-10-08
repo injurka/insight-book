@@ -22,6 +22,7 @@ function extractFromHtml(
   if (options.extractSentences) {
     const sentRegex = /data-raw-sent="([^"]+)"/g
     let match
+
     // eslint-disable-next-line no-cond-assign
     while ((match = sentRegex.exec(html)) !== null)
       sentences.add(safeDecodeURIComponent(match[1]))
@@ -30,6 +31,7 @@ function extractFromHtml(
   if (options.extractWords) {
     const wordRegex = /data-word="([^"]+)"[^>]*?data-pos="([^"]+)"/g
     let match
+
     // eslint-disable-next-line no-cond-assign
     while ((match = wordRegex.exec(html)) !== null) {
       // Пропускаем служебные части речи (частицы и т.п.)

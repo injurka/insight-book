@@ -2,9 +2,9 @@
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useChangeTheme } from '~/01.shared/composables/use-change-theme'
 
-const canvasRef = ref<HTMLCanvasElement | null>(null)
 const { theme } = useChangeTheme()
 
+const canvasRef = ref<HTMLCanvasElement | null>(null)
 let animId: number | null = null
 let glContext: WebGLRenderingContext | null = null
 let uBgPrimaryLoc: WebGLUniformLocation | null = null
@@ -12,72 +12,6 @@ let uBgSecondaryLoc: WebGLUniformLocation | null = null
 let uBgAccentLoc: WebGLUniformLocation | null = null
 let uFgAccentLoc: WebGLUniformLocation | null = null
 let observer: MutationObserver | null = null
-
-function parseColorToVec3(colorStr: string, fallback: [number, number, number]): [number, number, number] {
-  if (!colorStr || !colorStr.trim())
-    return fallback
-
-  const temp = document.createElement('div')
-  temp.style.color = colorStr.trim()
-  document.body.appendChild(temp)
-  const computedColor = getComputedStyle(temp).color
-  document.body.removeChild(temp)
-
-  const matches = computedColor.match(/\d+(\.\d+)?/g)
-  if (matches && matches.length >= 3) {
-    return [
-      Number.parseFloat(matches[0]) / 255,
-      Number.parseFloat(matches[1]) / 255,
-      Number.parseFloat(matches[2]) / 255,
-    ]
-  }
-
-  return fallback
-}
-
-function getThemeColors() {
-  const styles = getComputedStyle(document.body)
-  const bgPrimary = styles.getPropertyValue('--bg-primary-color')
-  const bgSecondary = styles.getPropertyValue('--bg-secondary-color')
-  const bgAccent = styles.getPropertyValue('--bg-accent-color')
-  const fgAccent = styles.getPropertyValue('--fg-accent-color')
-
-  return {
-    bgPrimary: parseColorToVec3(bgPrimary, [0.05, 0.07, 0.09]),
-    bgSecondary: parseColorToVec3(bgSecondary, [0.1, 0.12, 0.15]),
-    bgAccent: parseColorToVec3(bgAccent, [0.18, 0.13, 0.24]),
-    fgAccent: parseColorToVec3(fgAccent, [0.78, 0.46, 0.87]),
-  }
-}
-
-function updateColors() {
-  if (!glContext)
-    return
-
-  const colors = getThemeColors()
-
-  if (uBgPrimaryLoc)
-    glContext.uniform3fv(uBgPrimaryLoc, new Float32Array(colors.bgPrimary))
-
-  if (uBgSecondaryLoc)
-    glContext.uniform3fv(uBgSecondaryLoc, new Float32Array(colors.bgSecondary))
-
-  if (uBgAccentLoc)
-    glContext.uniform3fv(uBgAccentLoc, new Float32Array(colors.bgAccent))
-
-  if (uFgAccentLoc)
-    glContext.uniform3fv(uFgAccentLoc, new Float32Array(colors.fgAccent))
-}
-
-function scheduleUpdateColors() {
-  requestAnimationFrame(() => {
-    updateColors()
-    setTimeout(() => {
-      updateColors()
-    }, 50)
-  })
-}
-
 const vertexSource = `
   attribute vec2 position;
   varying vec2 vUv;
@@ -86,7 +20,6 @@ const vertexSource = `
     gl_Position = vec4(position, 0.0, 1.0);
   }
 `
-
 const fragmentSource = `
   precision highp float;
   uniform float uTime;
@@ -160,8 +93,71 @@ const fragmentSource = `
   }
 `
 
+function parseColorToVec3(colorStr: string, fallback: [number, number, number]): [number, number, number] {
+  if (!colorStr || !colorStr.trim())
+    return fallback
+
+  const temp = document.createElement('div')
+  temp.style.color = colorStr.trim()
+  document.body.appendChild(temp)
+  const computedColor = getComputedStyle(temp).color
+  document.body.removeChild(temp)
+
+  const matches = computedColor.match(/\d+(\.\d+)?/g)
+
+  if (matches && matches.length >= 3) {
+    return [
+      Number.parseFloat(matches[0]) / 255,
+      Number.parseFloat(matches[1]) / 255,
+      Number.parseFloat(matches[2]) / 255,
+    ]
+  }
+
+  return fallback
+}
+function getThemeColors() {
+  const styles = getComputedStyle(document.body)
+  const bgPrimary = styles.getPropertyValue('--bg-primary-color')
+  const bgSecondary = styles.getPropertyValue('--bg-secondary-color')
+  const bgAccent = styles.getPropertyValue('--bg-accent-color')
+  const fgAccent = styles.getPropertyValue('--fg-accent-color')
+
+  return {
+    bgPrimary: parseColorToVec3(bgPrimary, [0.05, 0.07, 0.09]),
+    bgSecondary: parseColorToVec3(bgSecondary, [0.1, 0.12, 0.15]),
+    bgAccent: parseColorToVec3(bgAccent, [0.18, 0.13, 0.24]),
+    fgAccent: parseColorToVec3(fgAccent, [0.78, 0.46, 0.87]),
+  }
+}
+function updateColors() {
+  if (!glContext)
+    return
+
+  const colors = getThemeColors()
+
+  if (uBgPrimaryLoc)
+    glContext.uniform3fv(uBgPrimaryLoc, new Float32Array(colors.bgPrimary))
+
+  if (uBgSecondaryLoc)
+    glContext.uniform3fv(uBgSecondaryLoc, new Float32Array(colors.bgSecondary))
+
+  if (uBgAccentLoc)
+    glContext.uniform3fv(uBgAccentLoc, new Float32Array(colors.bgAccent))
+
+  if (uFgAccentLoc)
+    glContext.uniform3fv(uFgAccentLoc, new Float32Array(colors.fgAccent))
+}
+function scheduleUpdateColors() {
+  requestAnimationFrame(() => {
+    updateColors()
+    setTimeout(() => {
+      updateColors()
+    }, 50)
+  })
+}
 function createShader(gl: WebGLRenderingContext, type: number, source: string) {
   const shader = gl.createShader(type)
+
   if (!shader)
     return null
 
@@ -180,10 +176,12 @@ function createShader(gl: WebGLRenderingContext, type: number, source: string) {
 
 onMounted(() => {
   const canvas = canvasRef.value
+
   if (!canvas)
     return
 
   const gl = canvas.getContext('webgl')
+
   if (!gl) {
     console.error('WebGL context is not available')
 
@@ -194,10 +192,12 @@ onMounted(() => {
 
   const vert = createShader(gl, gl.VERTEX_SHADER, vertexSource)
   const frag = createShader(gl, gl.FRAGMENT_SHADER, fragmentSource)
+
   if (!vert || !frag)
     return
 
   const program = gl.createProgram()
+
   if (!program)
     return
 
@@ -291,9 +291,12 @@ onMounted(() => {
 
   onBeforeUnmount(() => {
     stopWatch()
+
     if (observer)
       observer.disconnect()
+
     window.removeEventListener('resize', resize)
+
     if (animId)
       cancelAnimationFrame(animId)
   })

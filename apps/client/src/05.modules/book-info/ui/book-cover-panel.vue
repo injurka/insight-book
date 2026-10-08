@@ -24,6 +24,8 @@ const toast = useToast()
 const router = useRouter()
 const { t } = useI18n()
 
+const coverInputRef = ref<HTMLInputElement | null>(null)
+
 function handleOpenSync() {
   if (networkStore.effectiveOffline) {
     toast.warn(t('network.needOnline'))
@@ -33,7 +35,6 @@ function handleOpenSync() {
 
   emit('openSync')
 }
-
 function handleOpenAppendChapter() {
   if (networkStore.effectiveOffline) {
     toast.warn(t('network.needOnline'))
@@ -43,21 +44,18 @@ function handleOpenAppendChapter() {
 
   emit('openAppendChapter')
 }
-
-const coverInputRef = ref<HTMLInputElement | null>(null)
-
 function triggerCoverInput() {
   if (!authStore.user)
     return
+
   coverInputRef.value?.click()
 }
-
 function onCoverChange(e: Event) {
   const target = e.target as HTMLInputElement
+
   if (target.files && target.files.length > 0 && libraryStore.currentBookInfo)
     libraryStore.updateBookCover(libraryStore.currentBookInfo.id, target.files[0])
 }
-
 async function startReading() {
   if (!authStore.user && !authStore.isSingleMode) {
     router.push(AppRoutePaths.SignIn)

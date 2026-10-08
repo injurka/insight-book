@@ -277,6 +277,19 @@ describe('useReaderContent - pageTranslationProgress', () => {
     expect(progress.isFullyTranslated).toBe(false)
   })
 
+  it('counts a sentence split across inline formatting once', () => {
+    const raw = encodeURIComponent('The cat sleeps.')
+    setPage(`<p><span class="sentence" data-sent-id="0" data-raw-sent="${raw}">The ca</span><em><span class="sentence" data-sent-id="0" data-raw-sent="${raw}">t</span></em><span class="sentence" data-sent-id="0" data-raw-sent="${raw}"> sleeps.</span></p>${sentenceSpan('1', ['Next'])}`)
+    useAnalysisStore().analysisHistory = [{ sentence: 'The cat sleeps.', analysis: { translation: 'x' } as LlmAnalysis, timestamp: 1 }]
+    expect(useReaderContent().pageTranslationProgress.value).toEqual({ total: 2, translated: 1, percentage: 50, isFullyTranslated: false })
+  })
+
+  it('counts repeated text with distinct sentence IDs separately', () => {
+    setPage(sentenceSpan('0', ['hello']) + sentenceSpan('1', ['hello']))
+    useAnalysisStore().analysisHistory = [{ sentence: 'hello', analysis: { translation: 'x' } as LlmAnalysis, timestamp: 1 }]
+    expect(useReaderContent().pageTranslationProgress.value).toMatchObject({ total: 2, translated: 2, percentage: 100 })
+  })
+
   it('treats a page without sentences as fully translated', () => {
     setPage('<p>no sentences here</p>')
 

@@ -26,6 +26,7 @@ const ripple = {
       circle.style.pointerEvents = 'none'
 
       const existingRipple = el.getElementsByClassName('ripple')[0]
+
       if (existingRipple)
         existingRipple.remove()
 

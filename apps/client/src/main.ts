@@ -10,8 +10,8 @@ import { createPinia } from 'pinia'
 import { createApp, watch } from 'vue'
 import { defaultRepositories, REPOS_INJECTION_KEY } from '~/00.plugins/di'
 import { i18n, localePromise } from '~/00.plugins/i18n'
-import { vLongPress } from '~/01.shared/directives/long-press'
-import { vRipple } from '~/01.shared/directives/ripple'
+import { vLongPress } from '~/01.shared/directives/v-long-press'
+import { vRipple } from '~/01.shared/directives/v-ripple'
 import { isTauri } from '~/01.shared/lib/env'
 import router from '~/01.shared/lib/router'
 import { configureApi } from '~/01.shared/services/api.service'
@@ -20,7 +20,6 @@ import { useAuthStore } from '~/01.shared/store/auth.store'
 import { useGlobalSettingsStore } from '~/01.shared/store/settings.store'
 import { useToastStore } from '~/01.shared/store/toast.store'
 import App from './app.vue'
-
 import '~/assets/scss/global.scss'
 import '~/assets/scss/normalize.scss'
 /* eslint-enable perfectionist/sort-imports */
@@ -142,6 +141,7 @@ async function setupPlatformUpdaters(pinia: Pinia) {
 function handleBootstrapFailure(err: unknown) {
   console.error('[bootstrap] Application startup failed:', err)
   const preloader = document.getElementById('app-preloader')
+
   if (!preloader)
     return
 

@@ -2,7 +2,7 @@
 import { Icon } from '@iconify/vue'
 import { computed, useSlots } from 'vue'
 import { useHaptic } from '~/01.shared/composables/use-haptic'
-import { vRipple } from '~/01.shared/directives/ripple'
+import { vRipple } from '~/01.shared/directives/v-ripple'
 
 interface Props {
   icon?: string

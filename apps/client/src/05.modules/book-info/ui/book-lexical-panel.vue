@@ -11,14 +11,16 @@ import BookLexicalWords from './book-lexical-words.vue'
 const { t, n } = useI18n()
 const libraryStore = useLibraryStore()
 const analysisStore = useAnalysisStore()
+const { isLegacyLexical, legacyTopWords, lexData, posStats } = useBookLexicalStats()
+
 const isLexicalExpanded = ref(false)
 const lexicalActiveTab = ref('core')
-const { isLegacyLexical, legacyTopWords, lexData, posStats } = useBookLexicalStats()
-const metrics = computed(() => lexData.value?.metrics)
-const isCurrentProfile = computed(() => lexData.value?.version === 2)
 const tabs = ['core', 'entities', 'rare', 'phrases'] as const
 const tabLabels = { core: 'core', entities: 'names', rare: 'nuggets', phrases: 'phrases' }
 const tabIcons = { core: 'mdi:bullseye-arrow', entities: 'mdi:account-group-outline', rare: 'mdi:diamond-stone', phrases: 'mdi:format-quote-close' }
+
+const metrics = computed(() => lexData.value?.metrics)
+const isCurrentProfile = computed(() => lexData.value?.version === 2)
 const groups = computed(() => [
   { key: 'nouns', words: lexData.value?.nouns, tone: 'noun', hint: 'themes' },
   { key: 'verbs', words: lexData.value?.verbs, tone: 'verb', hint: 'dynamics' },

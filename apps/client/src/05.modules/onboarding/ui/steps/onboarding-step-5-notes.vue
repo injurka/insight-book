@@ -8,41 +8,45 @@ import OnboardingStepLayout from './onboarding-step-layout.vue'
 const emit = defineEmits<{
   next: []
 }>()
+
 const { t } = useI18n()
+
 const isSelected = ref(false)
 const isSaved = ref(false)
 const hlClass = ref('hl-yellow')
 const showBtnBlink = ref(false)
-
 let timer: ReturnType<typeof setTimeout> | null = null
-
-onUnmounted(() => {
-  if (timer)
-    clearTimeout(timer)
-})
 
 function onSelect() {
   if (isSaved.value)
     return
+
   isSelected.value = true
 
   if (timer)
     clearTimeout(timer)
+
   timer = setTimeout(() => {
     if (!isSaved.value)
       showBtnBlink.value = true
   }, 3000)
 }
-
 function onSave() {
   if (!isSelected.value)
     return
+
   isSelected.value = false
   isSaved.value = true
   showBtnBlink.value = false
+
   if (timer)
     clearTimeout(timer)
 }
+
+onUnmounted(() => {
+  if (timer)
+    clearTimeout(timer)
+})
 </script>
 
 <template>

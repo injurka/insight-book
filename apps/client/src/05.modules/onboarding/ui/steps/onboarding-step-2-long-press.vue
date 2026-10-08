@@ -19,9 +19,11 @@ let pressTimer: number | undefined
 function startPress(e: MouseEvent | TouchEvent) {
   if (isTranslated.value)
     return
+
   isPressing.value = true
 
   let clientX, clientY
+
   if ('touches' in e) {
     clientX = e.touches[0].clientX
     clientY = e.touches[0].clientY
@@ -39,6 +41,7 @@ function startPress(e: MouseEvent | TouchEvent) {
   pressTimer = window.setTimeout(() => {
     isTranslated.value = true
     isPressing.value = false
+
     if ('vibrate' in navigator)
       navigator.vibrate(50)
   }, 200)

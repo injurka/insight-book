@@ -29,7 +29,6 @@ import { API_URL, isTauri } from '~/01.shared/lib/env'
 import { getMediaUrl } from '~/01.shared/lib/helpers'
 import { recordApiError } from '~/01.shared/services/monitoring.service'
 import { i18n } from '../../00.plugins/i18n'
-
 import { createApiFetch } from './api-transport.service'
 
 declare module 'ofetch' {
@@ -122,14 +121,17 @@ export const request = ofetch.create({
     options.telemetryStartedAt = typeof performance !== 'undefined' ? performance.now() : Date.now()
 
     const token = providers.getToken()
+
     if (token)
       options.headers.set('Authorization', `Bearer ${token}`)
 
     const appLanguage = providers.getAppLanguage()
+
     if (appLanguage)
       options.query = { ...options.query, targetLang: appLanguage }
 
     const customLlm = options.withLlm ? providers.getCustomLlm() : null
+
     if (customLlm) {
       options.headers.set('X-Custom-Llm-Url', customLlm.url)
       options.headers.set('X-Custom-Llm-Key', customLlm.key)
@@ -164,15 +166,19 @@ export const request = ofetch.create({
 
     if (!options?.silentErrors) {
       providers.onError(errMessage)
+
       if (response?.status === 401)
         providers.onUnauthorized()
     }
 
     const customError = new Error(errMessage) as Error & { code?: string, status?: number, details?: Record<string, unknown> }
+
     if (errCode)
       customError.code = errCode
+
     if (response?.status)
       customError.status = response.status
+
     if (data?.details)
       customError.details = data.details
 
@@ -208,6 +214,7 @@ export const request = ofetch.create({
       || normalizedError.includes('error sending request')
       || normalizedError.includes('connection refused')
       || normalizedError.includes('dns'))
+
     if (isTimeout)
       errMessage = `Request exceeded the ${timeoutMs} ms client timeout`
     else if (isNetworkError)
@@ -234,6 +241,7 @@ export const request = ofetch.create({
       providers.onError(errMessage)
 
     const finalError = new Error(errMessage)
+
     if (isTimeout)
       finalError.name = 'TimeoutError'
     else if (isAbort)
@@ -463,6 +471,7 @@ export const api = {
       // те же URL вообще без заголовков — медиа публичное по дизайну.
       const fetchImplementation = isTauri ? tauriFetch : globalThis.fetch
       const res = await fetchImplementation(url)
+
       if (!res.ok)
         throw new Error(`Failed to fetch image: ${res.statusText}`)
 
@@ -518,6 +527,7 @@ export const api = {
       const queryParams = new URLSearchParams()
       queryParams.set('lang', opts.lang)
       queryParams.set('mode', opts.mode)
+
       if (opts.deckId !== undefined) {
         if (Array.isArray(opts.deckId)) {
           if (!opts.deckId.includes('all') && opts.deckId.length > 0)
@@ -700,6 +710,7 @@ export const api = {
     upload: async (file: File, pluginId?: string, onUploadProgress?: (progress: UploadProgress) => void) => {
       const fd = new FormData()
       fd.append('file', file)
+
       if (pluginId)
         fd.append('pluginId', pluginId)
 

@@ -22,20 +22,9 @@ const isLoaded = ref(false)
 const hasError = ref(false)
 const isInstant = ref(false)
 const imgRef = ref<HTMLImageElement | null>(null)
-
 // Сколько мс после монтирования считаем загрузку «мгновенной» (картинка из кэша)
 const INSTANT_LOAD_THRESHOLD = 150
 let mountedAt = 0
-
-onMounted(() => {
-  mountedAt = performance.now()
-  // Картинка уже в кэше браузера — показываем сразу, без fade-in.
-  const img = imgRef.value
-  if (img?.complete && img.naturalWidth > 0) {
-    isLoaded.value = true
-    isInstant.value = true
-  }
-})
 
 const resolvedSrc = computed(() => getMediaUrl(props.src))
 
@@ -52,11 +41,21 @@ function handleLoad() {
 
   isLoaded.value = true
 }
-
 function handleError() {
   hasError.value = true
   isLoaded.value = false
 }
+
+onMounted(() => {
+  mountedAt = performance.now()
+  // Картинка уже в кэше браузера — показываем сразу, без fade-in.
+  const img = imgRef.value
+
+  if (img?.complete && img.naturalWidth > 0) {
+    isLoaded.value = true
+    isInstant.value = true
+  }
+})
 </script>
 
 <template>

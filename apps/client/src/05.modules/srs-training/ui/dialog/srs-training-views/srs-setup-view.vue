@@ -15,7 +15,6 @@ import { useTrainingStore } from '../../../store/training.store'
 defineOptions({
   inheritAttrs: false,
 })
-
 const emit = defineEmits<{
   (e: 'start', payload: {
     deckId: (number | 'all' | 'none')[]
@@ -24,8 +23,6 @@ const emit = defineEmits<{
   }): void
   (e: 'close'): void
 }>()
-
-const customTrainingModes = computed(() => pluginManager.getWidgets('dictionary:training-modes'))
 
 const trainingStore = useTrainingStore()
 const decksStore = useDecksStore()
@@ -37,7 +34,6 @@ const setupOptions = reactive({
   deckId: (Array.isArray(filtersStore.selectedDeckId) ? [...filtersStore.selectedDeckId] : [filtersStore.selectedDeckId]) as (number | 'all' | 'none')[],
   difficulty: (Array.isArray(filtersStore.selectedDifficulty) ? [...filtersStore.selectedDifficulty] : [filtersStore.selectedDifficulty]) as string[],
 })
-
 const modes = reactive({
   'standard': false,
   'audio': false,
@@ -50,11 +46,14 @@ const modes = reactive({
   'radicals': false,
 })
 
+const customTrainingModes = computed(() => pluginManager.getWidgets('dictionary:training-modes'))
 const currentLang = computed(() => {
   if (setupOptions.deckId.length > 0 && !setupOptions.deckId.includes('all') && !setupOptions.deckId.includes('none')) {
     const firstSelectedDeckId = setupOptions.deckId.find((id): id is number => typeof id === 'number')
+
     if (firstSelectedDeckId !== undefined) {
       const deck = decksStore.decks.find(d => d.id === firstSelectedDeckId)
+
       if (deck)
         return deck.language
     }
@@ -62,13 +61,11 @@ const currentLang = computed(() => {
 
   return filtersStore.selectedLanguage !== 'all' ? filtersStore.selectedLanguage : 'all'
 })
-
 const showWritingMode = computed(() => {
   const hasChinese = dictionaryWords.value.some(c => c.language === 'zh' && /[\u4E00-\u9FA5]/.test(c.word || ''))
 
   return currentLang.value === 'zh' && hasChinese
 })
-
 const activeModesCount = computed(() => {
   if (trainingStore.trainingMode === 'deep_dive') {
     const list = [modes.scramble, modes.collocations, showWritingMode.value && modes.radicals]
@@ -87,20 +84,6 @@ const activeModesCount = computed(() => {
 
   return list.filter(Boolean).length
 })
-
-watch(() => trainingStore.trainingMode, () => {
-  (Object.keys(modes) as Array<keyof typeof modes>).forEach((key) => {
-    modes[key] = false
-  })
-}, { immediate: true })
-
-watch(showWritingMode, (newVal) => {
-  if (!newVal) {
-    modes.writing = false
-    modes.radicals = false
-  }
-}, { immediate: true })
-
 const deckOptions = computed(() => {
   const opts: SelectOption[] = [
     { label: t('dictionary.allDecks'), value: 'all' },
@@ -113,7 +96,6 @@ const deckOptions = computed(() => {
 
   return opts
 })
-
 const difficultyOptions = computed(() => {
   const opts: SelectOption[] = [{ label: t('dictionary.allDifficulties'), value: 'all' }, { label: t('dictionary.noDifficulty'), value: 'none' }]
   const lang = currentLang.value !== 'all' ? currentLang.value : 'all'
@@ -123,14 +105,26 @@ const difficultyOptions = computed(() => {
   return opts
 })
 
+watch(() => trainingStore.trainingMode, () => {
+  (Object.keys(modes) as Array<keyof typeof modes>).forEach((key) => {
+    modes[key] = false
+  })
+}, { immediate: true })
+watch(showWritingMode, (newVal) => {
+  if (!newVal) {
+    modes.writing = false
+    modes.radicals = false
+  }
+}, { immediate: true })
 watch(deckOptions, (newOpts) => {
   setupOptions.deckId = setupOptions.deckId.filter(d => newOpts.some(o => o.value === d))
+
   if (setupOptions.deckId.length === 0)
     setupOptions.deckId = ['all']
 })
-
 watch(difficultyOptions, (newOpts) => {
   setupOptions.difficulty = setupOptions.difficulty.filter(d => newOpts.some(o => o.value === d))
+
   if (setupOptions.difficulty.length === 0)
     setupOptions.difficulty = ['all']
 })
@@ -139,6 +133,7 @@ function selectAllModes() {
   if (trainingStore.trainingMode === 'deep_dive') {
     modes.scramble = true
     modes.collocations = true
+
     if (showWritingMode.value)
       modes.radicals = true
   }
@@ -148,17 +143,16 @@ function selectAllModes() {
     modes.choice = true
     modes['choice-reverse'] = true
     modes.audio = true
+
     if (showWritingMode.value)
       modes.writing = true
   }
 }
-
 function resetModes() {
   (Object.keys(modes) as Array<keyof typeof modes>).forEach((key) => {
     modes[key] = false
   })
 }
-
 function start() {
   const selectedModes = { ...modes }
 

@@ -5,14 +5,22 @@ import { useI18n } from 'vue-i18n'
 import { KitBtn } from '~/02.kit/atoms/kit-btn/ui'
 import OnboardingStepLayout from './onboarding-step-layout.vue'
 
+interface MockDictEntry {
+  tr: string
+  trans: string
+  pos: string
+  posClass: string
+  rule: string
+}
+
 const emit = defineEmits<{
   next: []
 }>()
+
 const { t } = useI18n()
 
 const isWordTranslated = ref(false)
 const activeWordId = ref('felicidad')
-
 const words = [
   { id: 'El', text: 'El' },
   { id: 'secreto', text: 'secreto' },
@@ -28,15 +36,6 @@ const words = [
   { id: 'se', text: 'se' },
   { id: 'quiere', text: 'quiere', suffix: '.' },
 ]
-
-interface MockDictEntry {
-  tr: string
-  trans: string
-  pos: string
-  posClass: string
-  rule: string
-}
-
 const mockDict: Record<string, MockDictEntry> = {
   El: {
     tr: '[эль]',

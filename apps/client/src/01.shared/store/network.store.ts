@@ -74,6 +74,7 @@ export const useNetworkStore = defineStore('network', {
     retryRequest(durationMs = 5000) {
       this.isTimeoutModalOpen = false
       this.retryHandler?.()
+
       if (!this.retryHandler)
         this.startLoadingTimer(durationMs)
     },

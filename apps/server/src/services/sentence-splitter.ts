@@ -1,3 +1,5 @@
+import { normalizeLanguageCode } from '@injurka/insight-book-language-utils'
+
 const SEMICOLON_BOUNDARY = /[;；]+\s*/gu
 
 function splitAtSemicolons(text: string): string[] {
@@ -18,11 +20,12 @@ function splitAtSemicolons(text: string): string[] {
 
 export function splitIntoSentences(text: string, language: string): string[] {
   try {
-    const segmenter = new Intl.Segmenter(language, { granularity: 'sentence' })
+    const segmenter = new Intl.Segmenter(normalizeLanguageCode(language) || undefined, { granularity: 'sentence' })
     return Array.from(segmenter.segment(text), ({ segment }) => segment)
       .flatMap(splitAtSemicolons)
   }
   catch {
-    return text.split(/([.。！？…!?;]+|\n{2,})/gu).filter(Boolean)
+    // Keep delimiters with their sentence and retain every source character.
+    return text.match(/[^.。！？…!?;；\n]*(?:[.。！？…!?;；]+[^\S\n]*|\n+|$)/gu)?.filter(Boolean) || []
   }
 }

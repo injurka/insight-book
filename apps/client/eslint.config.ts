@@ -1,4 +1,5 @@
 import antfu from '@antfu/eslint-config'
+import vueSetupOrder from 'eslint-plugin-vue-setup-order'
 
 export default antfu({
   vue: true,
@@ -17,12 +18,7 @@ export default antfu({
     'ts/no-explicit-any': 'error',
     // === ВИЗУАЛЬНОЕ РАЗДЕЛЕНИЕ КОДА ===
     // Заставляет делать пустые строки перед функциями, return и после if/for
-    'style/padding-line-between-statements': [
-      'error',
-      { blankLine: 'always', prev: '*', next: 'return' },
-      { blankLine: 'always', prev: '*', next: 'function' },
-      { blankLine: 'always', prev: 'block-like', next: '*' },
-    ],
+    'style/padding-line-between-statements': ['error', { blankLine: 'always', prev: 'import', next: '*' }, { blankLine: 'never', prev: 'import', next: 'import' }, { blankLine: 'always', prev: '*', next: ['if', 'for', 'while', 'switch', 'try'] }, { blankLine: 'always', prev: ['if', 'for', 'while', 'switch', 'try'], next: '*' }, { blankLine: 'always', prev: '*', next: 'return' }],
 
     // === БАЗОВЫЕ ПРАВИЛА ===
     'complexity': ['error', { max: 10 }],
@@ -68,5 +64,28 @@ export default antfu({
     'vue/require-explicit-emits': 'error',
     'vue/component-api-style': ['error', ['script-setup']],
     'vue/no-ref-as-operand': 'error',
+  },
+}, {
+  files: ['**/*.vue'],
+  plugins: {
+    'vue-setup-order': vueSetupOrder,
+  },
+  rules: {
+    'vue-setup-order/order': ['error', {
+      groupBlankLines: true,
+      order: [
+        'import',
+        'types',
+        'defineProps',
+        'composable',
+        'ref',
+        'computed',
+        'watch',
+        'function',
+        'provide',
+        'unknown',
+        'onMounted',
+      ],
+    }],
   },
 })

@@ -121,6 +121,7 @@ describe('kit-view-switcher', () => {
     })
 
     wrapper.unmount()
+
     if (resizeCallback)
       resizeCallback()
   })

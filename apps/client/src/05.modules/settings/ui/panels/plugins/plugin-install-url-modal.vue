@@ -23,6 +23,7 @@ watch(visible, (isOpen) => {
 
 async function confirmInstall() {
   const url = inputManifestUrl.value.trim()
+
   if (!url) {
     toast.error(t('settings.plugins.emptyUrl', 'Укажите URL манифеста плагина'))
 
@@ -30,6 +31,7 @@ async function confirmInstall() {
   }
 
   const success = await pluginsStore.installPluginByUrl(url)
+
   if (success) {
     visible.value = false
     inputManifestUrl.value = ''

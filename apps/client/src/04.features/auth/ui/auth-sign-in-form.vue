@@ -21,6 +21,7 @@ const password = ref('')
 function handleSubmit() {
   if (!username.value || !password.value)
     return
+
   emit('submit', { username: username.value, password: password.value })
 }
 </script>

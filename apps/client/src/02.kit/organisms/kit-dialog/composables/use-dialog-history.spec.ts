@@ -65,6 +65,7 @@ describe('use-dialog-history', () => {
 
     // Simulate popstate during programmatic back
     const popstateHandler = addEventListenerSpy.mock.calls.find((c: unknown[]) => c[0] === 'popstate')?.[1] as (() => void) | undefined
+
     if (popstateHandler)
       popstateHandler() // Should return early due to isProgrammaticBack
 

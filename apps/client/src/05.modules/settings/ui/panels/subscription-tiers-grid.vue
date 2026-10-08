@@ -15,12 +15,18 @@ const authStore = useAuthStore()
 const settingsStore = useGlobalSettingsStore()
 const { subscription } = useRepos()
 
-const currentTierId = computed(() => authStore.user?.subscriptionTier || 'free')
 const showDetailsModal = ref(false)
 const selectedModalTier = ref<SubscriptionTier | null>(null)
-
 // Тарифы с сервера (локализованные). Пока не загрузились/при ошибке — статический фоллбек.
 const serverTiers = ref<SubscriptionTier[]>([])
+
+const currentTierId = computed(() => authStore.user?.subscriptionTier || 'free')
+const tiers = computed<SubscriptionTier[]>(() =>
+  serverTiers.value.length > 0 ? serverTiers.value : staticTiers())
+
+watch(() => settingsStore.appLanguage, (lang) => {
+  loadTiers(lang || 'ru')
+})
 
 function staticTiers(): SubscriptionTier[] {
   return Object.values(SUBSCRIPTION_TIERS_CONFIG).map(cfg => ({
@@ -38,10 +44,6 @@ function staticTiers(): SubscriptionTier[] {
     accentColor: cfg.accentColor,
   }))
 }
-
-const tiers = computed<SubscriptionTier[]>(() =>
-  serverTiers.value.length > 0 ? serverTiers.value : staticTiers())
-
 async function loadTiers(lang: string) {
   try {
     serverTiers.value = await subscription.getTiers(lang)
@@ -50,32 +52,24 @@ async function loadTiers(lang: string) {
     // Оффлайн/ошибка API — остаёмся на статическом фоллбеке
   }
 }
-
-watch(() => settingsStore.appLanguage, (lang) => {
-  loadTiers(lang || 'ru')
-})
-
-onMounted(() => {
-  loadTiers(settingsStore.appLanguage || 'ru')
-})
-
 function isCurrentTier(tierId: string) {
   return currentTierId.value === tierId
 }
-
 function openTierDetails(tier: SubscriptionTier) {
   selectedModalTier.value = tier
   showDetailsModal.value = true
 }
-
 function closeDetails() {
   showDetailsModal.value = false
   selectedModalTier.value = null
 }
-
 function formatTokens(num: number | null) {
   return new Intl.NumberFormat(settingsStore.appLanguage || 'ru-RU').format(num ?? 0)
 }
+
+onMounted(() => {
+  loadTiers(settingsStore.appLanguage || 'ru')
+})
 </script>
 
 <template>

@@ -1,28 +1,40 @@
-import { ref } from 'vue'
+import { getCurrentScope, onScopeDispose } from 'vue'
 
-const handlers = ref<Array<() => void>>([])
+const handlers: Array<() => void> = []
 
 export function useBackHandler() {
-  const registerBackHandler = (handler: () => void) => {
-    handlers.value.push(handler)
+  const registrations = new Set<() => void>()
 
-    return () => {
-      const idx = handlers.value.indexOf(handler)
-      if (idx !== -1)
-        handlers.value.splice(idx, 1)
+  function registerBackHandler(handler: () => void) {
+    // Each registration has its own identity, even for the same callback.
+    const entry = () => handler()
+    handlers.push(entry)
+    const unregister = () => {
+      const index = handlers.indexOf(entry)
+
+      if (index !== -1)
+        handlers.splice(index, 1)
+
+      registrations.delete(unregister)
     }
+    registrations.add(unregister)
+
+    return unregister
   }
 
-  const triggerBack = (): boolean => {
-    if (handlers.value.length > 0) {
-      const handler = handlers.value[handlers.value.length - 1]
-      handler()
+  function triggerBack(): boolean {
+    const handler = handlers.at(-1)
 
-      return true // Handled
-    }
+    if (!handler)
+      return false
 
-    return false // Not handled
+    handler()
+
+    return true
   }
+
+  if (getCurrentScope())
+    onScopeDispose(() => registrations.forEach(unregister => unregister()))
 
   return { registerBackHandler, triggerBack }
 }

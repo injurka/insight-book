@@ -2,7 +2,6 @@ import type { Book, PagePayload } from '~/01.shared/types/models'
 import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { useGlobalSettingsStore } from '~/01.shared/store/settings.store'
-
 import { cancelSync, startWholeBookSync, syncErrorCode, syncProgress, syncState } from './book-sync.service'
 
 const hoisted = vi.hoisted(() => {
@@ -162,6 +161,7 @@ describe('startWholeBookSync', () => {
     expect(hoisted.bookRepo.saveLocalCover).toHaveBeenCalledTimes(1)
 
     expect(hoisted.bookRepo.getPage).toHaveBeenCalledTimes(10)
+
     for (let i = 1; i <= 10; i++) {
       expect(hoisted.bookRepo.getPage).toHaveBeenNthCalledWith(
         i,
@@ -219,9 +219,11 @@ describe('startWholeBookSync', () => {
 
     expect(hoisted.bookRepo.getLocalImage).toHaveBeenCalledTimes(10)
     expect(hoisted.bookRepo.saveLocalImage).toHaveBeenCalledTimes(8)
+
     for (let i = 1; i <= 10; i++) {
       if (i === 2 || i === 5)
         continue
+
       expect(hoisted.bookRepo.fetchImageBlob).toHaveBeenCalledWith(`https://cdn.example.com/page-${i}.jpg`)
     }
 
@@ -422,6 +424,7 @@ describe('startWholeBookSync', () => {
     hoisted.bookRepo.getPage.mockImplementation(async (_id: number, num: number) => {
       if (num === 2)
         throw new Error('page fetch exploded')
+
       if (num === 3)
         return page3
 

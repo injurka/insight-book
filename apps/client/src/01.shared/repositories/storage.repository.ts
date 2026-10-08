@@ -12,6 +12,7 @@ export interface IStorageRepository {
 export class DefaultStorageRepository implements IStorageRepository {
   async getStorageEstimate() {
     const raw = await offlineService.getStorageEstimate()
+
     if (!raw)
       return raw
 

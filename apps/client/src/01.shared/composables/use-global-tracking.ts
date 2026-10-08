@@ -1,12 +1,11 @@
-import { onMounted, watch } from 'vue'
-import { useChangeTheme } from '~/01.shared/composables/use-change-theme'
+import { onMounted, onUnmounted, watch } from 'vue'
+import { themePreference } from '~/01.shared/composables/use-change-theme'
 import { useGlobalSettingsStore } from '~/01.shared/store/settings.store'
 import { useTracking } from './use-tracking'
 
 export function useGlobalTracking() {
   const settingsStore = useGlobalSettingsStore()
-  const { theme } = useChangeTheme()
-  const { trackEvent, identifyUser } = useTracking()
+  const { trackEvent } = useTracking()
 
   watch(() => settingsStore.useCustomLlm, (val) => {
     trackEvent('custom_llm_enabled', { enabled: val })
@@ -28,19 +27,16 @@ export function useGlobalTracking() {
     trackEvent('manga_ocr_mode_changed', { mode: val })
   })
 
-  watch(theme, (val) => {
+  watch(themePreference, (val) => {
     trackEvent('theme_changed', { theme: val })
-    identifyUser({ current_theme: val })
   })
 
   watch(() => settingsStore.appLanguage, (val) => {
     trackEvent('app_language_changed', { language: val })
-    identifyUser({ current_language: val })
   })
 
-  onMounted(() => {
-    window.addEventListener('appinstalled', () => {
-      trackEvent('pwa_installed')
-    })
-  })
+  const onAppInstalled = () => trackEvent('pwa_installed')
+
+  onMounted(() => window.addEventListener('appinstalled', onAppInstalled))
+  onUnmounted(() => window.removeEventListener('appinstalled', onAppInstalled))
 }

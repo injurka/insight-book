@@ -34,3 +34,28 @@ describe('offline TTS compatibility', () => {
     expect(isReusableLocalTtsKey('mp3_v1_1_Puck_hello.', 'mp3_v1_1_Kore_hello.')).toBe(false)
   })
 })
+
+describe('tTS data validation', () => {
+  it('rejects malformed records and falls back for malformed metadata', () => {
+    expect(StoredTtsSchema.safeParse({ audioBase64: 42 }).success).toBe(false)
+    expect(decodeTtsMetadata('%ZZ').id).toBe('unknown')
+    expect(decodeTtsMetadata(encodeURIComponent('{}')).id).toBe('unknown')
+    expect(decodeTtsMetadata(encodeURIComponent('null')).id).toBe('unknown')
+  })
+  it('accepts exact keys and equivalent explicit voices across MP3 namespaces', () => {
+    expect(isReusableLocalTtsKey('exact', 'exact')).toBe(true)
+    expect(isReusableLocalTtsKey('mp3_gemini_3_8_v1_1_Kore_text', 'mp3_v1_1_Kore_text')).toBe(true)
+    expect(isReusableLocalTtsKey('mp3_v1_1_123_text', 'mp3_v1_1_default_text')).toBe(false)
+  })
+  it('decodes the audio bytes into an MPEG blob', async () => {
+    const { ttsBase64ToBlob, unknownTtsMetadata } = await import('./tts-cache')
+    const blob = ttsBase64ToBlob('QUJD')
+    expect(blob.type).toBe('audio/mpeg')
+    expect(await blob.text()).toBe('ABC')
+    expect(ttsBase64ToBlob('').size).toBe(0)
+    expect(() => ttsBase64ToBlob('%%%')).toThrow()
+    const first = unknownTtsMetadata()
+    first.id = 'changed'
+    expect(unknownTtsMetadata().id).toBe('unknown')
+  })
+})

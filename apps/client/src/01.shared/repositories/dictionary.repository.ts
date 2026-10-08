@@ -50,6 +50,7 @@ export interface IDictionaryRepository {
 export class DefaultDictionaryRepository implements IDictionaryRepository {
   async list(): Promise<UserDictItem[]> {
     const authStore = useAuthStore()
+
     if (!authStore.user && !authStore.isSingleMode)
       return []
 
@@ -65,8 +66,10 @@ export class DefaultDictionaryRepository implements IDictionaryRepository {
         throw error
 
       const offlineData = await offlineService.getDictionary()
+
       if (offlineData)
         return applyAcl(z.array(UserDictItemSchema), offlineData, 'dictionary.list() [offline]')
+
       throw error
     }
   }
@@ -81,6 +84,7 @@ export class DefaultDictionaryRepository implements IDictionaryRepository {
 
   async getDecks(): Promise<DictDeck[]> {
     const authStore = useAuthStore()
+
     if (!authStore.user && !authStore.isSingleMode)
       return []
 
@@ -96,8 +100,10 @@ export class DefaultDictionaryRepository implements IDictionaryRepository {
         throw error
 
       const offlineData = await offlineService.getDecks()
+
       if (offlineData)
         return applyAcl(z.array(DictDeckSchema), offlineData, 'dictionary.getDecks() [offline]')
+
       throw error
     }
   }

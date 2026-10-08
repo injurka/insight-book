@@ -21,17 +21,13 @@ interface Props {
 
 const props = defineProps<Props>()
 const visible = defineModel<boolean>('visible', { required: true })
+
 const libraryStore = useLibraryStore()
 const networkStore = useNetworkStore()
 const authStore = useAuthStore()
 const router = useRouter()
 const toast = useToast()
 const { t } = useI18n()
-
-const currentBook = computed(() =>
-  libraryStore.currentBookInfo?.id === props.bookId
-    ? libraryStore.currentBookInfo
-    : libraryStore.books.find(b => b.id === props.bookId))
 
 const options = ref({
   cachePages: true,
@@ -41,24 +37,30 @@ const options = ref({
   ttsWords: false,
 })
 
+const currentBook = computed(() =>
+  libraryStore.currentBookInfo?.id === props.bookId
+    ? libraryStore.currentBookInfo
+    : libraryStore.books.find(b => b.id === props.bookId))
 const isIdle = computed(() => libraryStore.syncState === 'idle')
 const isRunning = computed(() => libraryStore.syncState === 'running')
 const isFinished = computed(() => libraryStore.syncState === 'finished')
-const hasError = computed(() => libraryStore.syncState === 'error')
 
+const { sections } = useBookSyncSections(isFinished)
+
+const hasError = computed(() => libraryStore.syncState === 'error')
 const hasTokenLimitError = computed(() =>
   libraryStore.syncErrorCode === 'TOKEN_LIMIT_EXCEEDED')
-
 const isAccountTokenLimitExceeded = computed(() => {
   if (hasTokenLimitError.value)
     return true
+
   const user = authStore.user
+
   if (!user || user.tokenLimit === null || user.tokenLimit === undefined)
     return false
 
   return (user.usedTokens ?? 0) >= user.tokenLimit
 })
-
 const canStart = computed(() => {
   const opts = options.value
 
@@ -69,9 +71,6 @@ const canStart = computed(() => {
     || (!isAccountTokenLimitExceeded.value && (opts.analyzeSentences || opts.analyzeWords))
   )
 })
-
-const { sections } = useBookSyncSections(isFinished)
-
 const overallPercent = computed(() => {
   if (isFinished.value)
     return 100
@@ -83,86 +82,32 @@ const overallPercent = computed(() => {
 
   return Math.min(100, Math.round((p.pagesDone / p.pagesTotal) * 100))
 })
-
 const cachedSummaryItems = computed(() =>
   sections.value.filter(s => s.fromCache > 0 && s.key !== 'pages'))
-
-useAppWakeLock(isRunning)
-
 const syncStateIcon = computed(() => {
   if (hasTokenLimitError.value)
     return 'mdi:alert-octagon-outline'
+
   if (hasError.value)
     return 'mdi:alert-circle-outline'
+
   if (isFinished.value)
     return 'mdi:check-circle-outline'
 
   return 'mdi:loading'
 })
-
 const syncStateClass = computed(() => {
   if (hasTokenLimitError.value)
     return 'is-limit-error'
+
   if (hasError.value)
     return 'is-error'
+
   if (isFinished.value)
     return 'is-success'
 
   return 'is-running'
 })
-
-function toggleSentences() {
-  if (isAccountTokenLimitExceeded.value) {
-    toast.warn(t('bookInfo.tokenLimitSetupWarning'))
-
-    return
-  }
-
-  options.value.analyzeSentences = !options.value.analyzeSentences
-}
-
-function toggleWords() {
-  if (isAccountTokenLimitExceeded.value) {
-    toast.warn(t('bookInfo.tokenLimitSetupWarning'))
-
-    return
-  }
-
-  options.value.analyzeWords = !options.value.analyzeWords
-}
-
-function resetToSetup() {
-  libraryStore.syncState = 'idle'
-  libraryStore.syncErrorCode = null
-  options.value.analyzeSentences = false
-  options.value.analyzeWords = false
-  options.value.cachePages = true
-}
-
-function goToLimits() {
-  visible.value = false
-  router.push('/limits')
-}
-
-function start() {
-  if (networkStore.effectiveOffline) {
-    toast.warn(t('network.needOnline'))
-
-    return
-  }
-
-  libraryStore.startWholeBookSync(props.bookId, options.value)
-}
-
-function cancel() {
-  libraryStore.cancelSync()
-}
-
-function close() {
-  if (isRunning.value)
-    return
-  visible.value = false
-}
 
 watch(visible, (val) => {
   if (val && libraryStore.syncState !== 'running') {
@@ -177,6 +122,56 @@ watch(visible, (val) => {
     }
   }
 })
+
+function toggleSentences() {
+  if (isAccountTokenLimitExceeded.value) {
+    toast.warn(t('bookInfo.tokenLimitSetupWarning'))
+
+    return
+  }
+
+  options.value.analyzeSentences = !options.value.analyzeSentences
+}
+function toggleWords() {
+  if (isAccountTokenLimitExceeded.value) {
+    toast.warn(t('bookInfo.tokenLimitSetupWarning'))
+
+    return
+  }
+
+  options.value.analyzeWords = !options.value.analyzeWords
+}
+function resetToSetup() {
+  libraryStore.syncState = 'idle'
+  libraryStore.syncErrorCode = null
+  options.value.analyzeSentences = false
+  options.value.analyzeWords = false
+  options.value.cachePages = true
+}
+function goToLimits() {
+  visible.value = false
+  router.push('/limits')
+}
+function start() {
+  if (networkStore.effectiveOffline) {
+    toast.warn(t('network.needOnline'))
+
+    return
+  }
+
+  libraryStore.startWholeBookSync(props.bookId, options.value)
+}
+function cancel() {
+  libraryStore.cancelSync()
+}
+function close() {
+  if (isRunning.value)
+    return
+
+  visible.value = false
+}
+
+useAppWakeLock(isRunning)
 </script>
 
 <template>

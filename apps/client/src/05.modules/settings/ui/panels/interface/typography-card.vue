@@ -11,7 +11,6 @@ import { KitSelect } from '~/02.kit/molecules/kit-select/ui'
 
 const { t } = useI18n()
 const settingsStore = useGlobalSettingsStore()
-
 const {
   scannedSystemFonts,
   uploadedFonts,
@@ -21,40 +20,9 @@ const {
   uploadFontFile,
   removeUploadedFont,
 } = useCustomFonts()
-
 const fontFileInputRef = useTemplateRef<HTMLInputElement>('fontFileInputRef')
+
 const isFontPreviewOpen = ref(false)
-
-function triggerFontUpload() {
-  fontFileInputRef.value?.click()
-}
-
-async function handleFontFileChange(e: Event) {
-  const target = e.target as HTMLInputElement
-  const file = target.files?.[0]
-  if (file) {
-    const familyName = await uploadFontFile(file)
-    if (familyName) {
-      settingsStore.appFontFamily = `'${familyName}', sans-serif`
-    }
-  }
-
-  target.value = ''
-}
-
-function handleDeleteFontOption(opt: KitSelectOption) {
-  const family = opt.meta?.family
-  if (typeof family === 'string') {
-    removeUploadedFont(family)
-    if (settingsStore.appFontFamily === `'${family}', sans-serif`) {
-      settingsStore.appFontFamily = '\'Maple Mono CN\', monospace'
-    }
-
-    if (settingsStore.readerFontFamily === `'${family}', sans-serif`) {
-      settingsStore.readerFontFamily = '\'Maple Mono CN\', \'Microsoft YaHei\', sans-serif'
-    }
-  }
-}
 
 const baseFontOptions = computed<KitSelectOption[]>(() => {
   const hasSystem = scannedSystemFonts.value.length > 0
@@ -98,7 +66,6 @@ const baseFontOptions = computed<KitSelectOption[]>(() => {
 
   return list
 })
-
 const appFontOptions = computed(() => baseFontOptions.value)
 const readerFontOptions = computed<KitSelectOption[]>(() => {
   const hasSystem = scannedSystemFonts.value.length > 0
@@ -111,6 +78,39 @@ const readerFontOptions = computed<KitSelectOption[]>(() => {
     ...baseFontOptions.value.filter(opt => opt.value !== '\'Maple Mono CN\', monospace'),
   ]
 })
+
+function triggerFontUpload() {
+  fontFileInputRef.value?.click()
+}
+async function handleFontFileChange(e: Event) {
+  const target = e.target as HTMLInputElement
+  const file = target.files?.[0]
+
+  if (file) {
+    const familyName = await uploadFontFile(file)
+
+    if (familyName) {
+      settingsStore.appFontFamily = `'${familyName}', sans-serif`
+    }
+  }
+
+  target.value = ''
+}
+function handleDeleteFontOption(opt: KitSelectOption) {
+  const family = opt.meta?.family
+
+  if (typeof family === 'string') {
+    removeUploadedFont(family)
+
+    if (settingsStore.appFontFamily === `'${family}', sans-serif`) {
+      settingsStore.appFontFamily = '\'Maple Mono CN\', monospace'
+    }
+
+    if (settingsStore.readerFontFamily === `'${family}', sans-serif`) {
+      settingsStore.readerFontFamily = '\'Maple Mono CN\', \'Microsoft YaHei\', sans-serif'
+    }
+  }
+}
 </script>
 
 <template>

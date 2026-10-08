@@ -11,12 +11,6 @@ import { QuoteModal } from '~/04.features/quote-modal'
 import { useHighlightsStore } from '~/05.modules/reader/store/highlights.store'
 import { useReaderStore } from '~/05.modules/reader/store/reader.store'
 
-defineOptions({
-  inheritAttrs: false,
-})
-
-const props = defineProps<Props>()
-
 export interface BubbleBox {
   id?: string | number
   text: string
@@ -28,10 +22,12 @@ interface Props {
   referenceEl: HTMLElement | null
 }
 
+defineOptions({
+  inheritAttrs: false,
+})
+const props = defineProps<Props>()
+
 const repos = useRepos()
-
-const highlightColors = ['#fde047', '#86efac', '#f472b6', '#93c5fd', '#c4b5fd']
-
 const highlightsStore = useHighlightsStore()
 const readerStore = useReaderStore()
 const { t } = useI18n()
@@ -44,10 +40,7 @@ const {
   currentText,
 } = useTts()
 
-const bubbleText = computed(() => props.box?.text?.replace(/\n+/g, '') || '')
-const isBubblePlaying = computed(() => isPlaying.value && currentText.value === bubbleText.value)
-const isBubbleLoading = computed(() => isLoading.value && currentText.value === bubbleText.value)
-
+const highlightColors = ['#fde047', '#86efac', '#f472b6', '#93c5fd', '#c4b5fd']
 const isSaveModalOpen = ref(false)
 const modalInitialData = ref<{
   text: string
@@ -65,6 +58,40 @@ const modalInitialData = ref<{
 const isFetchingTranslation = ref(false)
 const isSavingHighlight = ref(false)
 const analysisData = ref<LlmAnalysis | null>(null)
+const floating = ref<HTMLElement | null>(null)
+
+const { x, y, strategy } = useFloating(toRef(props, 'referenceEl'), floating, {
+  placement: 'bottom',
+  strategy: 'fixed',
+  middleware: [offset(8), flip(), shift({ padding: 12 })],
+  whileElementsMounted: autoUpdate,
+})
+
+const bubbleText = computed(() => props.box?.text?.replace(/\n+/g, '') || '')
+const isBubblePlaying = computed(() => isPlaying.value && currentText.value === bubbleText.value)
+const isBubbleLoading = computed(() => isLoading.value && currentText.value === bubbleText.value)
+const matchingHighlight = computed(() => {
+  if (!props.box?.text || !readerStore.currentBook)
+    return null
+
+  const rawNorm = normalizeString(props.box.text)
+
+  return highlightsStore.highlights.find((item) => {
+    const hNorm = normalizeString(item.text)
+
+    return Number(item.bookId) === Number(readerStore.currentBook?.id) && (rawNorm === hNorm || (hNorm.length >= 2 && (rawNorm.includes(hNorm) || hNorm.includes(rawNorm))))
+  })
+})
+const style = computed(() => {
+  const isPositioned = x.value != null && y.value != null
+
+  return {
+    position: strategy.value,
+    top: `${y.value ?? 0}px`,
+    left: `${x.value ?? 0}px`,
+    visibility: isPositioned ? 'visible' as const : 'hidden' as const,
+  }
+})
 
 async function openSaveModal() {
   if (!props.box?.text || !readerStore.currentBook)
@@ -84,6 +111,7 @@ async function openSaveModal() {
   try {
     const language = readerStore.currentBook.language
     const cached = await repos.analysis.getLocalAnalysis(text, language)
+
     if (cached && cached.translation) {
       modalInitialData.value.translation = cached.translation
       modalInitialData.value.analysisData = cached
@@ -104,23 +132,12 @@ async function openSaveModal() {
     isFetchingTranslation.value = false
   }
 }
-
-const matchingHighlight = computed(() => {
-  if (!props.box?.text || !readerStore.currentBook)
-    return null
-  const rawNorm = normalizeString(props.box.text)
-
-  return highlightsStore.highlights.find((item) => {
-    const hNorm = normalizeString(item.text)
-
-    return Number(item.bookId) === Number(readerStore.currentBook?.id) && (rawNorm === hNorm || (hNorm.length >= 2 && (rawNorm.includes(hNorm) || hNorm.includes(rawNorm))))
-  })
-})
-
 function getChapterTitle(pageNum: number): string | null {
   if (!readerStore.currentToc || !readerStore.currentToc.length)
     return null
+
   let currentItem = null
+
   for (const item of readerStore.currentToc) {
     if (item.pageNum !== undefined && item.pageNum <= pageNum) {
       if (!currentItem || item.pageNum > (currentItem.pageNum || 0))
@@ -130,7 +147,6 @@ function getChapterTitle(pageNum: number): string | null {
 
   return currentItem ? currentItem.title : null
 }
-
 async function handleSaveQuote(data: { text: string, translation: string, note: string, color: string, analysisData?: LlmAnalysis | null }) {
   if (!readerStore.currentBook || !readerStore.currentPage || isSavingHighlight.value)
     return
@@ -163,7 +179,6 @@ async function handleSaveQuote(data: { text: string, translation: string, note: 
     isSavingHighlight.value = false
   }
 }
-
 async function deleteHighlight(id: number) {
   try {
     await highlightsStore.deleteHighlight(id)
@@ -172,29 +187,9 @@ async function deleteHighlight(id: number) {
     console.error('Failed to delete highlight', err)
   }
 }
-
-const floating = ref<HTMLElement | null>(null)
-
-const { x, y, strategy } = useFloating(toRef(props, 'referenceEl'), floating, {
-  placement: 'bottom',
-  strategy: 'fixed',
-  middleware: [offset(8), flip(), shift({ padding: 12 })],
-  whileElementsMounted: autoUpdate,
-})
-
-const style = computed(() => {
-  const isPositioned = x.value != null && y.value != null
-
-  return {
-    position: strategy.value,
-    top: `${y.value ?? 0}px`,
-    left: `${x.value ?? 0}px`,
-    visibility: isPositioned ? 'visible' as const : 'hidden' as const,
-  }
-})
-
 function analyzeSentence() {
   const box = props.box
+
   if (box?.text) {
     const readerStore = useReaderStore()
     const text = box.text.replace(/\n+/g, '')
@@ -202,6 +197,7 @@ function analyzeSentence() {
 
     const blocks = readerStore.currentPage?.ocrBlocks || []
     const idx = blocks.findIndex(b => b.id === box.id)
+
     if (idx !== -1) {
       const prev = idx > 0 ? blocks[idx - 1].text.replace(/\n+/g, '') : ''
       const next = idx < blocks.length - 1 ? blocks[idx + 1].text.replace(/\n+/g, '') : ''
@@ -212,9 +208,9 @@ function analyzeSentence() {
     analysisStore.handleSentenceAnalysis(text, context)
   }
 }
-
 function playTTS() {
   const text = bubbleText.value
+
   if (text) {
     if (isBubblePlaying.value || isBubbleLoading.value)
       stop(text)

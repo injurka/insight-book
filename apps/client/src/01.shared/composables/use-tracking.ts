@@ -17,7 +17,7 @@ export function useTracking() {
   }
 
   function trackPageview(url: string, title?: string) {
-    trackEvent('page_view', { url, title: title || document.title })
+    trackEvent('page_view', { url, title: title ?? (typeof document === 'undefined' ? '' : document.title) })
   }
 
   return { trackEvent, identifyUser, trackPageview }

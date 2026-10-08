@@ -31,6 +31,13 @@ const { t } = useI18n()
 const settingsStore = useGlobalSettingsStore()
 const { trackEvent } = useTracking()
 
+const appLangOptions = [
+  { label: 'Русский', value: 'ru' },
+  { label: 'English', value: 'en' },
+  { label: '中文', value: 'zh' },
+]
+const mainDropdownRef = ref<InstanceType<typeof KitDropdown> | null>(null)
+
 const currentThemeIcon = computed(() => {
   switch (theme.value) {
     case ThemesVariant.System: return 'mdi:theme-light-dark'
@@ -42,7 +49,6 @@ const currentThemeIcon = computed(() => {
     default: return 'mdi:theme-light-dark'
   }
 })
-
 const currentThemeName = computed(() => {
   switch (theme.value) {
     case ThemesVariant.System: return t('reader.system')
@@ -54,14 +60,6 @@ const currentThemeName = computed(() => {
     default: return t('reader.system')
   }
 })
-
-const appLangOptions = [
-  { label: 'Русский', value: 'ru' },
-  { label: 'English', value: 'en' },
-  { label: '中文', value: 'zh' },
-]
-
-const mainDropdownRef = ref<InstanceType<typeof KitDropdown> | null>(null)
 
 async function setLanguage(lang: string) {
   await loadLanguageAsync(lang)
@@ -79,31 +77,25 @@ async function setLanguage(lang: string) {
     }).catch(() => {})
   }
 }
-
 function openDictionary() {
   mainDropdownRef.value?.close()
   router.push(AppRoutePaths.Dictionary)
 }
-
 function openNotebook() {
   mainDropdownRef.value?.close()
   router.push(AppRoutePaths.Notebook)
 }
-
 function openSettings() {
   mainDropdownRef.value?.close()
   router.push(AppRoutePaths.Settings)
 }
-
 function openPlugin(routeName: string) {
   mainDropdownRef.value?.close()
   router.push({ name: routeName })
 }
-
 function handleSignIn() {
   router.push(AppRoutePaths.SignIn)
 }
-
 async function handleLogout() {
   mainDropdownRef.value?.close()
   await authStore.logout()

@@ -19,10 +19,9 @@ interface Props {
 }
 
 const props = defineProps<Props>()
+const visible = defineModel<boolean>('visible', { required: true })
 
 const repos = useRepos()
-
-const visible = defineModel<boolean>('visible', { required: true })
 const { t, locale } = useI18n()
 const toast = useToast()
 
@@ -32,16 +31,33 @@ const selectedPromptId = ref<number | ''>('')
 const messageText = ref('')
 const isAiLoading = ref(false)
 const isManagingPrompts = ref(false)
-
 const isEditingPrompt = ref(false)
 const editingPromptId = ref<number | null>(null)
 const editName = ref('')
 const editPromptText = ref('')
-
 const isDeleteConfirmOpen = ref(false)
 const promptToDelete = ref<number | null>(null)
-
 const chatHistoryRef = ref<HTMLElement | null>(null)
+
+const quickStartPrompts = computed(() => [
+  { label: t('dictionary.explainPronunciation'), text: t('dictionary.promptPronunciationText') },
+  { label: t('dictionary.giveExamples'), text: t('dictionary.promptExamplesText') },
+  { label: t('dictionary.explainGrammar'), text: t('dictionary.promptGrammarText') },
+])
+
+watch(visible, (isOpen) => {
+  if (isOpen) {
+    messages.value = []
+    selectedPromptId.value = ''
+    messageText.value = ''
+    isManagingPrompts.value = false
+    cancelPromptForm()
+    fetchPrompts()
+  }
+  else {
+    messages.value = []
+  }
+})
 
 function scrollToBottom() {
   nextTick(() => {
@@ -49,7 +65,6 @@ function scrollToBottom() {
       chatHistoryRef.value.scrollTop = chatHistoryRef.value.scrollHeight
   })
 }
-
 async function fetchPrompts() {
   try {
     prompts.value = await repos.dictionary.promptsList()
@@ -58,23 +73,16 @@ async function fetchPrompts() {
     toast.error('Failed to load custom prompts')
   }
 }
-
-const quickStartPrompts = computed(() => [
-  { label: t('dictionary.explainPronunciation'), text: t('dictionary.promptPronunciationText') },
-  { label: t('dictionary.giveExamples'), text: t('dictionary.promptExamplesText') },
-  { label: t('dictionary.explainGrammar'), text: t('dictionary.promptGrammarText') },
-])
-
 function useQuickPrompt(text: string) {
   messageText.value = text
   sendMessage()
 }
-
 async function sendMessage() {
   const userText = messageText.value.trim()
   const promptId = selectedPromptId.value
 
   let displayUserText = userText
+
   if (promptId) {
     const p = prompts.value.find(pr => pr.id === promptId)
     const promptNameText = p ? p.name : ''
@@ -103,6 +111,7 @@ async function sendMessage() {
       language: props.language || 'en',
       uiLanguage: locale.value,
     }
+
     if (promptId)
       payload.customPromptId = Number(promptId)
 
@@ -124,7 +133,6 @@ async function sendMessage() {
     isAiLoading.value = false
   }
 }
-
 function handleEnterKey(e: KeyboardEvent) {
   if (e.shiftKey)
     return
@@ -134,28 +142,24 @@ function handleEnterKey(e: KeyboardEvent) {
 
   sendMessage()
 }
-
 function startCreatePrompt() {
   isEditingPrompt.value = true
   editingPromptId.value = null
   editName.value = ''
   editPromptText.value = ''
 }
-
 function startEditPrompt(prompt: PromptItem) {
   isEditingPrompt.value = true
   editingPromptId.value = prompt.id
   editName.value = prompt.name
   editPromptText.value = prompt.prompt
 }
-
 function cancelPromptForm() {
   isEditingPrompt.value = false
   editingPromptId.value = null
   editName.value = ''
   editPromptText.value = ''
 }
-
 async function savePrompt() {
   try {
     if (editingPromptId.value !== null) {
@@ -181,12 +185,10 @@ async function savePrompt() {
     toast.error(e instanceof Error ? e.message : 'Error saving prompt')
   }
 }
-
 function deletePrompt(id: number) {
   promptToDelete.value = id
   isDeleteConfirmOpen.value = true
 }
-
 async function onDeletePromptConfirm() {
   if (promptToDelete.value === null)
     return
@@ -197,6 +199,7 @@ async function onDeletePromptConfirm() {
   try {
     await repos.dictionary.promptsDelete(id)
     toast.success('Prompt deleted')
+
     if (selectedPromptId.value === id)
       selectedPromptId.value = ''
 
@@ -209,20 +212,6 @@ async function onDeletePromptConfirm() {
     promptToDelete.value = null
   }
 }
-
-watch(visible, (isOpen) => {
-  if (isOpen) {
-    messages.value = []
-    selectedPromptId.value = ''
-    messageText.value = ''
-    isManagingPrompts.value = false
-    cancelPromptForm()
-    fetchPrompts()
-  }
-  else {
-    messages.value = []
-  }
-})
 
 onMounted(() => {
   if (visible.value)

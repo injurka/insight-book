@@ -5,7 +5,7 @@ interface AppRuntimeConfig {
   CDN_URL?: string
 }
 
-const runtimeConfig = (window as { __APP_CONFIG__?: AppRuntimeConfig }).__APP_CONFIG__
+const runtimeConfig = typeof window === 'undefined' ? undefined : (window as { __APP_CONFIG__?: AppRuntimeConfig }).__APP_CONFIG__
 
 /** Приложение запущено внутри Tauri (десктоп или мобильное приложение) */
 export const isTauri = typeof window !== 'undefined' && Boolean((window as { isTauri?: boolean }).isTauri
@@ -67,6 +67,7 @@ function resolveApiUrl(): string {
   // Поэтому при пустом, malformed или localhost-значении всегда используем продакшн API.
   if (isTauri) {
     const configuredApiUrl = runtimeConfig?.API_URL || envApiUrl
+
     if (isUsableTauriApiUrl(configuredApiUrl))
       return configuredApiUrl
 

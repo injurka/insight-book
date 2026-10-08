@@ -15,3 +15,19 @@ describe('shouldWaitForAuth', () => {
     expect(shouldWaitForAuth(AppRouteNames.Reader, false, false)).toBe(true)
   })
 })
+
+it('classifies all protected routes consistently and ignores unknown names', async () => {
+  const { isProtectedRoute } = await import('./router-auth')
+
+  for (const name of [AppRouteNames.Dictionary, AppRouteNames.Reader, AppRouteNames.Settings, AppRouteNames.Limits, AppRouteNames.Notebook]) {
+    expect(isProtectedRoute(name)).toBe(true)
+    expect(shouldWaitForAuth(name, true, true)).toBe(true)
+    expect(shouldWaitForAuth(name, true, false)).toBe(false)
+  }
+
+  for (const name of [AppRouteNames.Home, undefined, null, Symbol('route'), 'unknown']) {
+    expect(isProtectedRoute(name)).toBe(false)
+    expect(shouldWaitForAuth(name, false, false)).toBe(true)
+    expect(shouldWaitForAuth(name, true, true)).toBe(false)
+  }
+})

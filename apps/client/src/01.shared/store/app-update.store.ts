@@ -78,6 +78,7 @@ function getCurrentAppVersion(): string {
 
 function shouldUpdate(tag: string, currentVersion: string): boolean {
   const cleanLatest = tag.replace(/^\D*/, '')
+
   if (!cleanLatest)
     return false
 
@@ -91,6 +92,7 @@ function findApkAsset(assets?: ReleaseAsset[]): ReleaseAsset | undefined {
 
 function parseUpdateInfo(release: GitHubReleaseResponse): ParsedUpdateInfo | null {
   const tag = release.tag_name || ''
+
   if (!shouldUpdate(tag, getCurrentAppVersion()))
     return null
 
@@ -105,6 +107,7 @@ function parseUpdateInfo(release: GitHubReleaseResponse): ParsedUpdateInfo | nul
 
 async function fetchLatestRelease(): Promise<GitHubReleaseResponse | null> {
   const response = await fetch(API_GITHUB_RELEASES_LATEST)
+
   if (!response.ok)
     return null
 
@@ -133,6 +136,7 @@ export const useAppUpdateStore = defineStore('appUpdate', {
       try {
         const latestRelease = await fetchLatestRelease()
         const updateInfo = latestRelease ? parseUpdateInfo(latestRelease) : null
+
         if (!updateInfo)
           return false
 
@@ -146,6 +150,7 @@ export const useAppUpdateStore = defineStore('appUpdate', {
       catch (e) {
         if (!silent)
           throw e
+
         console.error('[AppUpdate] Ошибка при проверке обновлений:', e)
 
         return false
@@ -160,6 +165,7 @@ export const useAppUpdateStore = defineStore('appUpdate', {
       }
 
       const url = this.apkUrl || this.releaseUrl
+
       if (!url) {
         this.closePrompt()
 
@@ -233,6 +239,7 @@ export const useAppUpdateStore = defineStore('appUpdate', {
         return
 
       const toastStore = useToastStore()
+
       try {
         await invoke('open_downloaded_apk', { path: this.downloadedFilePath })
       }
@@ -244,6 +251,7 @@ export const useAppUpdateStore = defineStore('appUpdate', {
 
     async openExternalRelease() {
       const url = this.apkUrl || this.releaseUrl
+
       if (url)
         await openExternalUrl(url)
     },

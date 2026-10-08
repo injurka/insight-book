@@ -14,13 +14,12 @@ const props = withDefaults(defineProps<Props>(), {
 })
 
 const slots = useSlots()
+const isHoverable = useMediaQuery('(hover: hover)')
 
 const referenceRef = ref<HTMLElement | null>(null)
 const floatingRef = ref<HTMLElement | null>(null)
 const arrowRef = ref<HTMLElement | null>(null)
 const isVisible = ref(false)
-
-const isHoverable = useMediaQuery('(hover: hover)')
 
 const {
   x,
@@ -41,54 +40,7 @@ const {
 })
 
 let timeout: ReturnType<typeof setTimeout>
-
 let isKeyboardFocus = false
-
-function onWindowKeydown(e: KeyboardEvent) {
-  if (e.key === 'Tab' || e.key.startsWith('Arrow'))
-    isKeyboardFocus = true
-}
-
-function onWindowMousedown() {
-  isKeyboardFocus = false
-}
-
-onMounted(() => {
-  window.addEventListener('keydown', onWindowKeydown)
-  window.addEventListener('mousedown', onWindowMousedown)
-})
-
-onUnmounted(() => {
-  window.removeEventListener('keydown', onWindowKeydown)
-  window.removeEventListener('mousedown', onWindowMousedown)
-})
-
-function show(isFocus = false) {
-  if (props.disabled || (!props.text && !slots.content))
-    return
-
-  if (!isFocus && !isHoverable.value)
-    return
-
-  clearTimeout(timeout)
-  timeout = setTimeout(() => {
-    isVisible.value = true
-  }, 200)
-}
-
-function hide() {
-  clearTimeout(timeout)
-  isVisible.value = false
-}
-
-// Фокус показывает тултип только при клавиатурной навигации (Tab/стрелки).
-// Программный фокус (автофокус первой кнопки при открытии диалога) и фокус
-// после клика мышью не должны триггерить тултип.
-function onFocusIn() {
-  if (!isKeyboardFocus)
-    return
-  show(true)
-}
 
 const floatingStyle = computed(() => {
   const isPositioned = x.value != null && y.value != null
@@ -101,10 +53,10 @@ const floatingStyle = computed(() => {
     visibility: isPositioned ? 'visible' as const : 'hidden' as const,
   }
 })
-
 const arrowStyle = computed(() => {
   if (!middlewareData.value.arrow)
     return {}
+
   const { x: arrowX, y: arrowY } = middlewareData.value.arrow
   const staticSide = {
     top: 'bottom',
@@ -120,6 +72,47 @@ const arrowStyle = computed(() => {
   }
 })
 
+function onWindowKeydown(e: KeyboardEvent) {
+  if (e.key === 'Tab' || e.key.startsWith('Arrow'))
+    isKeyboardFocus = true
+}
+function onWindowMousedown() {
+  isKeyboardFocus = false
+}
+function show(isFocus = false) {
+  if (props.disabled || (!props.text && !slots.content))
+    return
+
+  if (!isFocus && !isHoverable.value)
+    return
+
+  clearTimeout(timeout)
+  timeout = setTimeout(() => {
+    isVisible.value = true
+  }, 200)
+}
+function hide() {
+  clearTimeout(timeout)
+  isVisible.value = false
+}
+// Фокус показывает тултип только при клавиатурной навигации (Tab/стрелки).
+// Программный фокус (автофокус первой кнопки при открытии диалога) и фокус
+// после клика мышью не должны триггерить тултип.
+function onFocusIn() {
+  if (!isKeyboardFocus)
+    return
+
+  show(true)
+}
+
+onMounted(() => {
+  window.addEventListener('keydown', onWindowKeydown)
+  window.addEventListener('mousedown', onWindowMousedown)
+})
+onUnmounted(() => {
+  window.removeEventListener('keydown', onWindowKeydown)
+  window.removeEventListener('mousedown', onWindowMousedown)
+})
 onUnmounted(() => {
   hide()
 })

@@ -4,7 +4,6 @@ import { Icon } from '@iconify/vue'
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRepos } from '~/00.plugins/di'
-
 import { KitBtn } from '~/02.kit/atoms/kit-btn/ui'
 import { KitTabs } from '~/02.kit/molecules/kit-tabs/ui'
 import { KitDialog } from '~/02.kit/organisms/kit-dialog/ui'
@@ -15,35 +14,20 @@ interface Props {
 }
 
 const props = defineProps<Props>()
-
 const emit = defineEmits<{
   success: []
 }>()
+const visible = defineModel<boolean>('visible', { required: true })
 
 const repos = useRepos()
-
-const visible = defineModel<boolean>('visible', { required: true })
 const { t, locale } = useI18n()
 
 const currentState = ref<QuizState>('select_level')
-
 const selectedLang = ref('zh')
 const selectedLevel = ref('')
 const isLoading = ref(false)
 const errorMessage = ref('')
 const isFullscreen = ref(false)
-
-const tabItems = computed(() => {
-  const items = [
-    { id: 'zh', label: `${t('library.langZh')} (ZH)` },
-    { id: 'ja', label: `${t('library.langJa')} (JA)` },
-    { id: 'en', label: `${t('library.langEn')} (EN)` },
-    { id: 'ru', label: `${t('library.langRu')} (RU)` },
-  ]
-
-  return items.filter(item => item.id !== locale.value)
-})
-
 // Game state
 
 const levelsByLang = ref<Record<string, LevelNode[]>>({
@@ -56,16 +40,13 @@ const questions = ref<Question[]>([])
 const currentQuestionIndex = ref(0)
 const lives = ref(3)
 const correctCount = ref(0)
-
 // Reorder specific state
 const reorderSelected = ref<string[]>([])
 const reorderRemaining = ref<string[]>([])
-
 // Answering state
 const selectedOption = ref<string | null>(null)
 const isChecked = ref(false)
 const isCorrectAnswer = ref(false)
-
 // Result state
 const testResult = ref<{
   success: boolean
@@ -75,7 +56,6 @@ const testResult = ref<{
   nextLevelUnlocked: boolean
   nextLevelValue: string | null
 } | null>(null)
-
 const LEVEL_ORDER: Record<string, string[]> = {
   zh: ['HSK 1', 'HSK 2', 'HSK 3', 'HSK 4', 'HSK 5', 'HSK 6'],
   ja: ['JLPT N5', 'JLPT N4', 'JLPT N3', 'JLPT N2', 'JLPT N1'],
@@ -84,9 +64,20 @@ const LEVEL_ORDER: Record<string, string[]> = {
   default: ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'],
 }
 
+const tabItems = computed(() => {
+  const items = [
+    { id: 'zh', label: `${t('library.langZh')} (ZH)` },
+    { id: 'ja', label: `${t('library.langJa')} (JA)` },
+    { id: 'en', label: `${t('library.langEn')} (EN)` },
+    { id: 'ru', label: `${t('library.langRu')} (RU)` },
+  ]
+
+  return items.filter(item => item.id !== locale.value)
+})
 const activeLevelValue = computed(() => {
   const currentLevels = levelsByLang.value[selectedLang.value] || []
   const active = currentLevels.find(lvl => lvl.unlocked && lvl.bestScore < 80)
+
   if (!active) {
     const unlocked = currentLevels.filter(lvl => lvl.unlocked)
 
@@ -94,6 +85,40 @@ const activeLevelValue = computed(() => {
   }
 
   return active.levelValue
+})
+const currentQuestion = computed(() => questions.value[currentQuestionIndex.value])
+// Progress helper
+const quizProgressPercent = computed(() => {
+  if (questions.value.length === 0)
+    return 0
+
+  return Math.round((currentQuestionIndex.value / questions.value.length) * 100)
+})
+
+// Watchers
+watch(visible, (isOpen) => {
+  if (isOpen) {
+    currentState.value = 'select_level'
+    levelsByLang.value = { zh: [], ja: [], en: [], ru: [] }
+
+    if (props.initialLang)
+      selectedLang.value = props.initialLang
+
+    else if (!tabItems.value.some(t => t.id === selectedLang.value))
+      selectedLang.value = tabItems.value[0]?.id || 'en'
+
+    if (props.initialLevel) {
+      selectedLevel.value = props.initialLevel
+      startQuizFlow(props.initialLevel)
+    }
+    else {
+      loadLevels()
+    }
+  }
+})
+watch(selectedLang, () => {
+  if (visible.value && !props.initialLevel)
+    loadLevels()
 })
 
 // Initialize levels map
@@ -105,6 +130,7 @@ async function loadLevels() {
   errorMessage.value = ''
 
   const lang = selectedLang.value
+
   try {
     const res = await repos.quiz.getLevels(lang)
     const order = LEVEL_ORDER[lang] || LEVEL_ORDER.default
@@ -123,33 +149,6 @@ async function loadLevels() {
     isLoading.value = false
   }
 }
-
-// Watchers
-watch(visible, (isOpen) => {
-  if (isOpen) {
-    currentState.value = 'select_level'
-    levelsByLang.value = { zh: [], ja: [], en: [], ru: [] }
-    if (props.initialLang)
-      selectedLang.value = props.initialLang
-
-    else if (!tabItems.value.some(t => t.id === selectedLang.value))
-      selectedLang.value = tabItems.value[0]?.id || 'en'
-
-    if (props.initialLevel) {
-      selectedLevel.value = props.initialLevel
-      startQuizFlow(props.initialLevel)
-    }
-    else {
-      loadLevels()
-    }
-  }
-})
-
-watch(selectedLang, () => {
-  if (visible.value && !props.initialLevel)
-    loadLevels()
-})
-
 // Start Quiz Flow
 async function startQuizFlow(levelVal: string) {
   selectedLevel.value = levelVal
@@ -171,6 +170,7 @@ async function startQuizFlow(levelVal: string) {
   catch (e) {
     currentState.value = 'select_level'
     const msg = e instanceof Error ? e.message : ''
+
     if (msg === 'quiz_level_locked') {
       errorMessage.value = t('dictionary.quiz.errors.levelLocked')
     }
@@ -190,9 +190,6 @@ async function startQuizFlow(levelVal: string) {
     loadLevels()
   }
 }
-
-const currentQuestion = computed(() => questions.value[currentQuestionIndex.value])
-
 function setupCurrentQuestion() {
   selectedOption.value = null
   isChecked.value = false
@@ -204,31 +201,30 @@ function setupCurrentQuestion() {
     reorderRemaining.value = [...currentQuestion.value.options]
   }
 }
-
 // Action for clicking a choice
 function selectOption(opt: string) {
   if (isChecked.value)
     return
+
   selectedOption.value = opt
 }
-
 // Click on word in reorder
 function clickRemainingWord(idx: number) {
   if (isChecked.value)
     return
+
   const word = reorderRemaining.value[idx]
   reorderSelected.value.push(word)
   reorderRemaining.value.splice(idx, 1)
 }
-
 function clickSelectedWord(idx: number) {
   if (isChecked.value)
     return
+
   const word = reorderSelected.value[idx]
   reorderRemaining.value.push(word)
   reorderSelected.value.splice(idx, 1)
 }
-
 // Validate current answer
 function checkAnswer() {
   if (isChecked.value)
@@ -252,6 +248,7 @@ function checkAnswer() {
   q.userAnswer = answerStr
 
   let isCorrect = false
+
   if (q.type === 'reorder') {
     const normalize = (str: string) => str.replace(/[\s.,!?;:()¿¡"']/g, '').toLowerCase()
     isCorrect = normalize(answerStr) === normalize(q.correctAnswer)
@@ -270,7 +267,6 @@ function checkAnswer() {
     lives.value--
   }
 }
-
 // Proceed to next question
 async function nextQuestion() {
   if (lives.value <= 0) {
@@ -287,7 +283,6 @@ async function nextQuestion() {
     finishQuiz()
   }
 }
-
 // Finish and Submit
 async function finishQuiz() {
   currentState.value = 'loading'
@@ -307,15 +302,6 @@ async function finishQuiz() {
     console.error(e)
   }
 }
-
-// Progress helper
-const quizProgressPercent = computed(() => {
-  if (questions.value.length === 0)
-    return 0
-
-  return Math.round((currentQuestionIndex.value / questions.value.length) * 100)
-})
-
 function exitQuiz() {
   visible.value = false
 }

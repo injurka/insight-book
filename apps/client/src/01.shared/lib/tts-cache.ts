@@ -42,12 +42,14 @@ export function isReusableLocalTtsKey(candidate: string, requested: string): boo
 
   const stripPrefix = (key: string) => key.replace(/^(?:mp3_v1|mp3_gemini_3_8_v1)_/, '')
   const target = stripPrefix(requested).match(/^(dict_[^_]+|\d+)_default_(.+)$/s)
+
   if (!target)
     return stripPrefix(candidate) === stripPrefix(requested)
 
   const key = stripPrefix(candidate)
   const prefix = `${target[1]}_`
   const suffix = `_${target[2]}`
+
   if (!key.startsWith(prefix) || !key.endsWith(suffix))
     return false
 

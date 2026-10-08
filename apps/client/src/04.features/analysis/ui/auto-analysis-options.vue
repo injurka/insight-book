@@ -4,20 +4,19 @@ import { useI18n } from 'vue-i18n'
 import { useGlobalSettingsStore } from '~/01.shared/store/settings.store'
 import { KitCheckbox } from '~/02.kit/atoms/kit-checkbox/ui'
 
-const { t } = useI18n()
-const settingsStore = useGlobalSettingsStore()
-
 type AutoAnalysisOptionKey
   = | 'autoAnalyzeSentences'
     | 'autoAnalyzeWords'
     | 'autoAnalyzeTtsSentences'
     | 'autoAnalyzeTtsWords'
-
 interface AutoAnalysisOption {
   key: AutoAnalysisOptionKey
   icon: string
   title: string
 }
+
+const { t } = useI18n()
+const settingsStore = useGlobalSettingsStore()
 
 const optionGroups = computed<AutoAnalysisOption[][]>(() => [
   [
@@ -33,7 +32,6 @@ const optionGroups = computed<AutoAnalysisOption[][]>(() => [
 function isOptionEnabled(key: AutoAnalysisOptionKey) {
   return settingsStore.autoAnalyzePage && settingsStore[key]
 }
-
 function toggleOption(key: AutoAnalysisOptionKey) {
   const wasEnabled = isOptionEnabled(key)
 

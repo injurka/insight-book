@@ -11,14 +11,12 @@ import ManageDecksDialog from './dialog/manage-decks-dialog.vue'
 import DictionaryHeader from './partials/dictionary-header.vue'
 import DictionaryList from './partials/dictionary-list.vue'
 
-const SrsTrainingDialog = lazyComponent(() => import('~/05.modules/srs-training/ui/dialog/srs-training-dialog.vue'))
-
-const DictWordDetailsModal = lazyComponent(() => import('~/04.features/dict-word/ui/dict-word-details-modal.vue'))
-
 const store = useDictionaryStore()
 const router = useRouter()
 const route = useRoute()
 
+const SrsTrainingDialog = lazyComponent(() => import('~/05.modules/srs-training/ui/dialog/srs-training-dialog.vue'))
+const DictWordDetailsModal = lazyComponent(() => import('~/04.features/dict-word/ui/dict-word-details-modal.vue'))
 const isTrainingOpen = ref(false)
 const isEditMode = ref(false)
 const viewMode = ref<'list' | 'grid'>('list')
@@ -28,60 +26,56 @@ const isBulkMoveOpen = ref(false)
 const isStatsModalOpen = ref(false)
 const isDetailsModalOpen = ref(false)
 const selectedWordDetails = ref<UserDictItem | null>(null)
-
 const isQuizOpen = ref(false)
 const quizLang = ref('zh')
 const quizLevel = ref('')
+const statsDialog = ref<InstanceType<typeof DictionaryStatsDialog> | null>(null)
+
+watch(isTrainingOpen, (newVal, oldVal) => {
+  if (oldVal === true && newVal === false)
+    statsDialog.value?.fetchActivity()
+})
+watch(isEditMode, (val) => {
+  if (!val)
+    store.clearSelection()
+})
+watch(() => route.query.word, (newWord) => {
+  if (newWord) {
+    const found = store.words.find(w => w.word === newWord)
+
+    if (found)
+      openDetails(found)
+  }
+})
+watch(isDetailsModalOpen, (isOpen) => {
+  if (!isOpen && route.query.word)
+    router.replace({ query: { ...route.query, word: undefined } })
+})
 
 function handleOpenQuiz(data: { language: string, levelValue: string }) {
   quizLang.value = data.language
   quizLevel.value = data.levelValue
   isQuizOpen.value = true
 }
-
-const statsDialog = ref<InstanceType<typeof DictionaryStatsDialog> | null>(null)
-
-onMounted(() => {
-  store.fetchDictionary().then(() => {
-    const queryWord = route.query.word as string
-    if (queryWord) {
-      const found = store.words.find(w => w.word === queryWord)
-      if (found)
-        openDetails(found)
-    }
-  })
-})
-
 function openDetails(item: UserDictItem) {
   selectedWordDetails.value = item
   isDetailsModalOpen.value = true
 }
-
 function openTrainingSettings(_mode: 'srs' | 'deep_dive' | 'cram' | 'match') {
   isTrainingOpen.value = true
 }
 
-watch(isTrainingOpen, (newVal, oldVal) => {
-  if (oldVal === true && newVal === false)
-    statsDialog.value?.fetchActivity()
-})
+onMounted(() => {
+  store.fetchDictionary().then(() => {
+    const queryWord = route.query.word as string
 
-watch(isEditMode, (val) => {
-  if (!val)
-    store.clearSelection()
-})
+    if (queryWord) {
+      const found = store.words.find(w => w.word === queryWord)
 
-watch(() => route.query.word, (newWord) => {
-  if (newWord) {
-    const found = store.words.find(w => w.word === newWord)
-    if (found)
-      openDetails(found)
-  }
-})
-
-watch(isDetailsModalOpen, (isOpen) => {
-  if (!isOpen && route.query.word)
-    router.replace({ query: { ...route.query, word: undefined } })
+      if (found)
+        openDetails(found)
+    }
+  })
 })
 </script>
 

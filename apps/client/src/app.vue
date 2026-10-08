@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useHead } from '@vueuse/head'
-import { computed, onMounted, watch, watchEffect } from 'vue'
+import { computed, onMounted, provide, watch, watchEffect } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import { loadLanguageAsync } from '~/00.plugins/i18n'
@@ -15,30 +15,120 @@ import { useAnalysisStore } from '~/01.shared/store/analysis/analysis.store'
 import { useNetworkStore } from '~/01.shared/store/network.store'
 import { usePwaStore } from '~/01.shared/store/pwa.store'
 import { useGlobalSettingsStore } from '~/01.shared/store/settings.store'
-
+import { TTS_BOOK_CONTEXT_KEY } from '~/01.shared/types/tts-context'
 import KitAppUpdatePrompt from '~/02.kit/organisms/kit-app-update-prompt/ui/kit-app-update-prompt.vue'
 import KitNetworkTimeoutDialog from '~/02.kit/organisms/kit-network-timeout-dialog/ui/kit-network-timeout-dialog.vue'
 import KitOfflineBadge from '~/02.kit/organisms/kit-offline-badge/ui/kit-offline-badge.vue'
 import KitReloadPrompt from '~/02.kit/organisms/kit-reload-prompt/ui/kit-reload-prompt.vue'
 import KitToastManager from '~/02.kit/organisms/kit-toast-manager/ui/kit-toast-manager.vue'
-
+import { useReaderStore } from '~/05.modules/reader/store/reader.store'
 import DefaultLayout from '~/06.layouts/default/ui/default.vue'
 import ImmersiveLayout from '~/06.layouts/immersive/ui/immersive.vue'
 
-const AddEditWordDialog = lazyComponent(() => import('~/05.modules/dictionary/ui/dialog/add-edit-word-dialog.vue'), { showLoader: false })
-
-useChangeTheme()
-useGlobalTracking()
-useCustomFonts()
-
+const readerStore = useReaderStore()
 const route = useRoute()
 const analysisStore = useAnalysisStore()
 const settingsStore = useGlobalSettingsStore()
 const networkStore = useNetworkStore()
 const { locale, t } = useI18n()
-
 const router = useRouter()
 const { triggerBack } = useBackHandler()
+
+const AddEditWordDialog = lazyComponent(() => import('~/05.modules/dictionary/ui/dialog/add-edit-word-dialog.vue'))
+const layouts: Record<string, Component> = {
+  default: DefaultLayout,
+  immersive: ImmersiveLayout,
+}
+const siteUrl = 'https://insight-book.ru'
+const siteName = 'InsightBook'
+
+const description = computed(() => t('app.description'))
+const layoutName = computed(() => (route.meta.layout as string) || 'default')
+const headScripts = computed(() => [
+  {
+    type: 'application/ld+json',
+    children: JSON.stringify({
+      '@context': 'https://schema.org',
+      '@type': 'WebApplication',
+      'name': siteName,
+      'alternateName': [t('app.alternateName1'), t('app.alternateName2'), t('app.alternateName3')],
+      'url': siteUrl,
+      'description': description.value,
+      'applicationCategory': 'UtilityApplication',
+      'operatingSystem': 'Any',
+      'offers': {
+        '@type': 'Offer',
+        'price': '0',
+        'priceCurrency': 'RUB',
+      },
+    }),
+  },
+])
+
+const titleChunk = computed(() => {
+  if (route.name) {
+    const key = `routes.${String(route.name)}`
+    const val = t(key)
+
+    if (val && val !== key)
+      return val
+  }
+
+  return ''
+})
+
+watch(() => settingsStore.appLanguage, (newLang) => {
+  loadLanguageAsync(newLang)
+}, { immediate: true })
+watchEffect(() => {
+  if (typeof document !== 'undefined') {
+    document.documentElement.style.setProperty('--app-font-family', settingsStore.effectiveAppFont || '\'Maple Mono CN\', monospace')
+  }
+})
+watch(() => route.path, () => {
+  analysisStore.closePopover()
+  analysisStore.closeSelectionTooltip()
+  analysisStore.sidebarOpen = false
+  analysisStore.cancelPageAnalysis()
+  analysisStore.addEditWordModalOpen = false
+})
+
+provide(TTS_BOOK_CONTEXT_KEY, () => readerStore.currentBook)
+
+useChangeTheme()
+useGlobalTracking()
+useCustomFonts()
+useHead({
+  title: titleChunk,
+  titleTemplate: titleChunk => titleChunk ? `${titleChunk} | ${siteName}` : siteName,
+  htmlAttrs: {
+    lang: computed(() => locale.value),
+  },
+  meta: [
+    { name: 'description', content: description },
+    // Open Graph
+    { property: 'og:type', content: 'website' },
+    { property: 'og:title', content: computed(() => titleChunk.value ? `${titleChunk.value} | ${siteName}` : siteName) },
+    { property: 'og:description', content: description },
+    { property: 'og:url', content: computed(() => `${siteUrl}${route.path}`) },
+    { property: 'og:site_name', content: siteName },
+    { property: 'og:image', content: `${siteUrl}/logo.png` },
+    // Twitter Card
+    { name: 'twitter:card', content: 'summary_large_image' },
+    { name: 'twitter:title', content: computed(() => titleChunk.value ? `${titleChunk.value} | ${siteName}` : siteName) },
+    { name: 'twitter:description', content: description },
+    { name: 'twitter:image', content: `${siteUrl}/logo.png` },
+    // Additional SEO Tags
+    { name: 'robots', content: 'index, follow' },
+  ],
+  link: [
+    {
+      rel: 'canonical',
+      href: computed(() => `${siteUrl}${route.path}`),
+    },
+  ],
+  script: headScripts,
+})
 
 onMounted(async () => {
   networkStore.initListeners()
@@ -78,6 +168,7 @@ onMounted(async () => {
       // Register first, then consume the launch URL so neither case is lost.
       await onOpenUrl(handleDeepLinks)
       const launchUrls = await getCurrent()
+
       if (launchUrls?.length)
         handleDeepLinks(launchUrls)
     }
@@ -90,6 +181,7 @@ onMounted(async () => {
         const { listen } = await import('@tauri-apps/api/event')
         await listen('tauri://go-back', () => {
           const wasHandled = triggerBack()
+
           if (!wasHandled)
             router.back()
         })
@@ -99,99 +191,6 @@ onMounted(async () => {
       }
     }
   }
-})
-
-watch(() => settingsStore.appLanguage, (newLang) => {
-  loadLanguageAsync(newLang)
-}, { immediate: true })
-
-watchEffect(() => {
-  if (typeof document !== 'undefined') {
-    document.documentElement.style.setProperty('--app-font-family', settingsStore.effectiveAppFont || '\'Maple Mono CN\', monospace')
-  }
-})
-
-const layoutName = computed(() => (route.meta.layout as string) || 'default')
-
-const layouts: Record<string, Component> = {
-  default: DefaultLayout,
-  immersive: ImmersiveLayout,
-}
-
-const siteUrl = 'https://insight-book.ru'
-const siteName = 'InsightBook'
-const description = computed(() => t('app.description'))
-
-const headScripts = [
-  {
-    type: 'application/ld+json',
-    children: computed(() => JSON.stringify({
-      '@context': 'https://schema.org',
-      '@type': 'WebApplication',
-      'name': siteName,
-      'alternateName': [t('app.alternateName1'), t('app.alternateName2'), t('app.alternateName3')],
-      'url': siteUrl,
-      'description': description.value,
-      'applicationCategory': 'UtilityApplication',
-      'operatingSystem': 'Any',
-      'offers': {
-        '@type': 'Offer',
-        'price': '0',
-        'priceCurrency': 'RUB',
-      },
-    })),
-  },
-]
-
-const titleChunk = computed(() => {
-  if (route.name) {
-    const key = `routes.${String(route.name)}`
-    const val = t(key)
-    if (val && val !== key)
-      return val
-  }
-
-  return ''
-})
-
-useHead({
-  title: titleChunk,
-  titleTemplate: titleChunk => titleChunk ? `${titleChunk} | ${siteName}` : siteName,
-  htmlAttrs: {
-    lang: computed(() => locale.value),
-  },
-  meta: [
-    { name: 'description', content: description },
-    // Open Graph
-    { property: 'og:type', content: 'website' },
-    { property: 'og:title', content: computed(() => titleChunk.value ? `${titleChunk.value} | ${siteName}` : siteName) },
-    { property: 'og:description', content: description },
-    { property: 'og:url', content: computed(() => `${siteUrl}${route.path}`) },
-    { property: 'og:site_name', content: siteName },
-    { property: 'og:image', content: `${siteUrl}/logo.png` },
-    // Twitter Card
-    { name: 'twitter:card', content: 'summary_large_image' },
-    { name: 'twitter:title', content: computed(() => titleChunk.value ? `${titleChunk.value} | ${siteName}` : siteName) },
-    { name: 'twitter:description', content: description },
-    { name: 'twitter:image', content: `${siteUrl}/logo.png` },
-    // Additional SEO Tags
-    { name: 'robots', content: 'index, follow' },
-  ],
-  link: [
-    {
-      rel: 'canonical',
-      href: computed(() => `${siteUrl}${route.path}`),
-    },
-  ],
-  script: headScripts,
-})
-
-watch(() => route.path, () => {
-  analysisStore.closePopover()
-  analysisStore.closeSelectionTooltip()
-  analysisStore.sidebarOpen = false
-  analysisStore.cancelPageAnalysis()
-  analysisStore.addEditWordModalOpen = false
 })
 </script>
 

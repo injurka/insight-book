@@ -21,24 +21,22 @@ const emit = defineEmits<{
   openStats: []
   openQuiz: []
 }>()
-
 const isEditMode = defineModel<boolean>('isEditMode', { required: true })
 const viewMode = defineModel<'list' | 'grid'>('viewMode', { required: true })
 
 const { t } = useI18n()
+const store = useDictionaryStore()
+const trainingStore = useTrainingStore()
+const { langOptions, deckOptions, difficultyOptions, statusOptions } = useDictFilterOptions()
+const router = useRouter()
+
+const isFiltersOpen = ref(false)
+const dropdownRef = ref<InstanceType<typeof KitDropdown> | null>(null)
 
 const viewOptions = computed(() => [
   { id: 'list', icon: 'mdi:format-list-bulleted', label: t('dictionary.viewList') },
   { id: 'grid', icon: 'mdi:view-grid-outline', label: t('dictionary.viewGrid') },
 ])
-
-const store = useDictionaryStore()
-const trainingStore = useTrainingStore()
-const { langOptions, deckOptions, difficultyOptions, statusOptions } = useDictFilterOptions()
-
-const router = useRouter()
-const isFiltersOpen = ref(false)
-const dropdownRef = ref<InstanceType<typeof KitDropdown> | null>(null)
 
 watch(() => store.selectedLanguage, () => {
   store.selectedDeckId = ['all']

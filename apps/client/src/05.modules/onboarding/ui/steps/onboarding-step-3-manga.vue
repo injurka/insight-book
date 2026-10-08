@@ -5,36 +5,6 @@ import { useI18n } from 'vue-i18n'
 import { KitBtn } from '~/02.kit/atoms/kit-btn/ui'
 import OnboardingStepLayout from './onboarding-step-layout.vue'
 
-const emit = defineEmits<{
-  next: []
-}>()
-const { t } = useI18n()
-
-// 0 - ждем клика по облачку, 1 - облачко нажато (sentence popover), 2 - нажато слово (word popover)
-const currentStep = ref(0)
-const activeWordId = ref<string | null>(null)
-const wordClicked = ref(false)
-const showBubbleHint = ref(false)
-const showWordHint = ref(false)
-const randomWordIdForHint = ref('nàme')
-
-let bubbleTimer: ReturnType<typeof setTimeout> | null = null
-let wordTimer: ReturnType<typeof setTimeout> | null = null
-
-onMounted(() => {
-  bubbleTimer = setTimeout(() => {
-    if (currentStep.value === 0)
-      showBubbleHint.value = true
-  }, 3000)
-})
-
-onUnmounted(() => {
-  if (bubbleTimer)
-    clearTimeout(bubbleTimer)
-  if (wordTimer)
-    clearTimeout(wordTimer)
-})
-
 // Словарик из вашего примера HTML
 interface MockDictEntry {
   tr: string
@@ -45,6 +15,21 @@ interface MockDictEntry {
   vocabs?: { word: string, tr: string, mean: string }[]
 }
 
+const emit = defineEmits<{
+  next: []
+}>()
+
+const { t } = useI18n()
+
+// 0 - ждем клика по облачку, 1 - облачко нажато (sentence popover), 2 - нажато слово (word popover)
+const currentStep = ref(0)
+const activeWordId = ref<string | null>(null)
+const wordClicked = ref(false)
+const showBubbleHint = ref(false)
+const showWordHint = ref(false)
+const randomWordIdForHint = ref('nàme')
+let bubbleTimer: ReturnType<typeof setTimeout> | null = null
+let wordTimer: ReturnType<typeof setTimeout> | null = null
 const mockDict: Record<string, MockDictEntry> = {
   'nàme': {
     tr: 'nàme',
@@ -102,6 +87,7 @@ function handleBubbleClick() {
   if (currentStep.value === 0) {
     currentStep.value = 1
     showBubbleHint.value = false
+
     if (bubbleTimer)
       clearTimeout(bubbleTimer)
 
@@ -114,22 +100,36 @@ function handleBubbleClick() {
     }, 3000)
   }
 }
-
 function handleWordClick(id: string, isPunct: boolean) {
   if (isPunct)
     return
+
   activeWordId.value = id
   currentStep.value = 2
   wordClicked.value = true
   showWordHint.value = false
+
   if (wordTimer)
     clearTimeout(wordTimer)
 }
-
 function closeWordPopover() {
   currentStep.value = 1
   activeWordId.value = null
 }
+
+onMounted(() => {
+  bubbleTimer = setTimeout(() => {
+    if (currentStep.value === 0)
+      showBubbleHint.value = true
+  }, 3000)
+})
+onUnmounted(() => {
+  if (bubbleTimer)
+    clearTimeout(bubbleTimer)
+
+  if (wordTimer)
+    clearTimeout(wordTimer)
+})
 </script>
 
 <template>

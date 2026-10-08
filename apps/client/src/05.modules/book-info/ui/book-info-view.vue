@@ -12,27 +12,23 @@ import BookLexicalPanel from './book-lexical-panel.vue'
 import BookStatsPanel from './book-stats-panel.vue'
 import BookTocPanel from './book-toc-panel.vue'
 
-const SelectionTooltip = lazyComponent(() => import('~/04.features/analysis/ui/selection-tooltip.vue'))
-const SentenceAnalysis = lazyComponent(() => import('~/04.features/analysis/ui/sentence-analysis.vue'))
-const WordPopover = lazyComponent(() => import('~/04.features/analysis/ui/popover/word-popover.vue'))
-const AppendMangaModal = lazyComponent(() => import('./modal/append-manga-modal.vue'))
-const BookSyncModal = lazyComponent(() => import('./modal/book-sync-modal.vue'))
-
 const route = useRoute()
 const router = useRouter()
 const libraryStore = useLibraryStore()
 const { t } = useI18n()
 
-useHead({
-  title: computed(() => libraryStore.currentBookInfo?.title || t('bookInfo.aboutBook')),
-})
+const SelectionTooltip = lazyComponent(() => import('~/04.features/analysis/ui/selection-tooltip.vue'))
+const SentenceAnalysis = lazyComponent(() => import('~/04.features/analysis/ui/sentence-analysis.vue'))
+const WordPopover = lazyComponent(() => import('~/04.features/analysis/ui/popover/word-popover.vue'))
+const AppendMangaModal = lazyComponent(() => import('./modal/append-manga-modal.vue'))
+const BookSyncModal = lazyComponent(() => import('./modal/book-sync-modal.vue'))
+const isEditingStats = ref(false)
+const isSyncModalOpen = ref(false)
+const isAppendChapterOpen = ref(false)
 
 const bookId = computed(() => Number(route.params.id))
 const isBookReady = computed(() =>
   libraryStore.hasLoadedBookInfo && libraryStore.currentBookInfo?.id === bookId.value)
-const isEditingStats = ref(false)
-const isSyncModalOpen = ref(false)
-const isAppendChapterOpen = ref(false)
 
 watch(bookId, (newId) => {
   if (newId)
@@ -42,6 +38,10 @@ watch(bookId, (newId) => {
 function goBack() {
   router.replace(AppRoutePaths.Home)
 }
+
+useHead({
+  title: computed(() => libraryStore.currentBookInfo?.title || t('bookInfo.aboutBook')),
+})
 </script>
 
 <template>

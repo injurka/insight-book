@@ -3,7 +3,6 @@ import type { Window as TauriWindow } from '@tauri-apps/api/window'
 import { Icon } from '@iconify/vue'
 import { invoke } from '@tauri-apps/api/core'
 import { onMounted, onUnmounted, ref } from 'vue'
-
 import { isMobile, isTauri } from '~/01.shared/lib/env'
 
 const showTitlebar = ref(isTauri && !isMobile)
@@ -28,6 +27,7 @@ onMounted(async () => {
   if (isTauri && !isMobile) {
     try {
       const isHypr = await invoke<boolean>('is_hyprland').catch(() => false)
+
       if (isHypr) {
         showTitlebar.value = false
 

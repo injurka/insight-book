@@ -15,12 +15,10 @@ import { KitBtn } from '~/02.kit/atoms/kit-btn/ui'
 import { KitSkeleton } from '~/02.kit/atoms/kit-skeleton/ui'
 import { KitDropdown } from '~/02.kit/molecules/kit-dropdown/ui'
 import { KitTooltip } from '~/02.kit/molecules/kit-tooltip/ui'
-
 import { useLibraryStore } from '~/05.modules/library/store/library.store'
 import { useReaderStore } from '~/05.modules/reader/store/reader.store'
 
 const repos = useRepos()
-
 const analysisStore = useAnalysisStore()
 const authStore = useAuthStore()
 const networkStore = useNetworkStore()
@@ -31,18 +29,22 @@ const {
   isLoading,
   currentText,
 } = useTts()
-const isWordAudioPlaying = computed(() => isPlaying.value && currentText.value === analysisStore.wordPopover?.word)
-const isWordAudioLoading = computed(() => isLoading.value && currentText.value === analysisStore.wordPopover?.word)
 const toast = useToast()
 const { t } = useI18n()
 
 const AiExamplesModal = lazyComponent(() => import('../modal/ai-examples-modal.vue'))
 const LlmChatModal = lazyComponent(() => import('~/04.features/llm-chat/ui/llm-chat-modal.vue'))
-
-provide('kit-dialog-z-index', ref(1300))
-
 const popoverRef = ref<HTMLElement | null>(null)
+const isAiModalOpen = ref(false)
+const isChatModalOpen = ref(false)
+const chatWord = ref('')
+const isAiLoading = ref(false)
+const aiData = ref<GeneratedWordExamples | null>(null)
+const innerRef = ref<HTMLElement | null>(null)
+const contentHeight = ref<string>('auto')
 
+const isWordAudioPlaying = computed(() => isPlaying.value && currentText.value === analysisStore.wordPopover?.word)
+const isWordAudioLoading = computed(() => isLoading.value && currentText.value === analysisStore.wordPopover?.word)
 const referenceEl = computed(() => analysisStore.wordPopover?.target || null)
 
 const { x, y, strategy } = useFloating(referenceEl, popoverRef, {
@@ -67,20 +69,12 @@ const popoverPos = computed(() => {
     visibility: 'visible' as const,
   }
 })
-
-const isAiModalOpen = ref(false)
-const isChatModalOpen = ref(false)
-const chatWord = ref('')
-const isAiLoading = ref(false)
-const aiData = ref<GeneratedWordExamples | null>(null)
-
 const currentLanguage = computed(() => {
   const readerStore = useReaderStore()
   const libraryStore = useLibraryStore()
 
   return (readerStore.currentBook || libraryStore.currentBookInfo)?.language || 'en'
 })
-
 const headerText = computed(() => {
   if (!analysisStore.wordPopover)
     return ''
@@ -88,35 +82,31 @@ const headerText = computed(() => {
   return analysisStore.wordPopover.transcription
 })
 
-const innerRef = ref<HTMLElement | null>(null)
-const contentHeight = ref<string>('auto')
-
-useResizeObserver(innerRef, (entries) => {
-  const target = entries[0].target as HTMLElement
-  contentHeight.value = `${target.offsetHeight}px`
-})
-
-function getPosClass(pos: string) {
-  if (!pos)
-    return 'pos-default'
-  const posLower = pos.toLowerCase()
-  if (posLower.startsWith('n'))
-    return 'pos-noun'
-  if (posLower.startsWith('v'))
-    return 'pos-verb'
-  if (posLower.startsWith('a') || posLower.startsWith('d'))
-    return 'pos-adj'
-  if (posLower.startsWith('r'))
-    return 'pos-pronoun'
-
-  return 'pos-default'
-}
-
 watch(() => analysisStore.wordPopover, (val, oldVal) => {
   if (oldVal?.word && oldVal.word !== val?.word)
     stop(oldVal.word)
 })
 
+function getPosClass(pos: string) {
+  if (!pos)
+    return 'pos-default'
+
+  const posLower = pos.toLowerCase()
+
+  if (posLower.startsWith('n'))
+    return 'pos-noun'
+
+  if (posLower.startsWith('v'))
+    return 'pos-verb'
+
+  if (posLower.startsWith('a') || posLower.startsWith('d'))
+    return 'pos-adj'
+
+  if (posLower.startsWith('r'))
+    return 'pos-pronoun'
+
+  return 'pos-default'
+}
 function handleDetailedWithAi(toggle: () => void) {
   if (networkStore.effectiveOffline) {
     toast.warn(t('network.needOnline'))
@@ -126,7 +116,6 @@ function handleDetailedWithAi(toggle: () => void) {
 
   toggle()
 }
-
 function openSaveDialog() {
   if (networkStore.effectiveOffline) {
     toast.warn(t('network.needOnline'))
@@ -136,20 +125,20 @@ function openSaveDialog() {
 
   if (!analysisStore.wordPopover)
     return
+
   analysisStore.openAddEditWordModal(analysisStore.wordPopover)
   analysisStore.closePopover()
 }
-
 function playWordTTS() {
   if (analysisStore.wordPopover?.word) {
     const word = analysisStore.wordPopover.word
+
     if (isWordAudioPlaying.value || isWordAudioLoading.value)
       stop(word)
     else
       speak(word)
   }
 }
-
 async function fetchAiExamples() {
   if (networkStore.effectiveOffline) {
     toast.warn(t('network.needOnline'))
@@ -159,6 +148,7 @@ async function fetchAiExamples() {
 
   if (!analysisStore.wordPopover?.word)
     return
+
   const word = analysisStore.wordPopover.word
 
   analysisStore.closePopover()
@@ -178,7 +168,6 @@ async function fetchAiExamples() {
     isAiLoading.value = false
   }
 }
-
 function openFreeQuestion() {
   if (networkStore.effectiveOffline) {
     toast.warn(t('network.needOnline'))
@@ -188,23 +177,31 @@ function openFreeQuestion() {
 
   if (!analysisStore.wordPopover?.word)
     return
+
   chatWord.value = analysisStore.wordPopover.word
   analysisStore.closePopover()
   isChatModalOpen.value = true
 }
-
 function closePopover(event?: MouseEvent) {
   const target = event?.target as HTMLElement | null
+
   if (target?.closest('.kit-dialog') || target?.closest('.word-popover'))
     return
+
   analysisStore.closePopover()
 }
-
 function handleKeydown(e: KeyboardEvent) {
   if (e.key === 'Escape' && analysisStore.wordPopover) {
     analysisStore.closePopover()
   }
 }
+
+provide('kit-dialog-z-index', ref(1300))
+
+useResizeObserver(innerRef, (entries) => {
+  const target = entries[0].target as HTMLElement
+  contentHeight.value = `${target.offsetHeight}px`
+})
 
 onMounted(() => {
   document.addEventListener('click', closePopover)
@@ -213,6 +210,7 @@ onMounted(() => {
 onUnmounted(() => {
   document.removeEventListener('click', closePopover)
   document.removeEventListener('keydown', handleKeydown)
+
   if (analysisStore.wordPopover?.word)
     stop(analysisStore.wordPopover.word)
 })

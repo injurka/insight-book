@@ -21,6 +21,7 @@ const storagePercent = computed(() => {
 const storagePercentFormatted = computed(() => {
   if (storagePercent.value === 0)
     return '0%'
+
   if (storagePercent.value < 0.1)
     return '< 0.1%'
 

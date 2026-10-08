@@ -35,10 +35,13 @@ function extractWoff2Urls(cssPath: string): string[] {
 
 // Gather all critical woff2 files
 const preloadTags: string[] = []
+
 for (const weight of WEIGHTS) {
   const cssFile = join(FONTS_DIR, weight, 'result-critical.css')
+
   try {
     const woff2Files = extractWoff2Urls(cssFile)
+
     for (const woff2 of woff2Files) {
       const url = `/fonts/split/${weight}/${woff2}`
       preloadTags.push(`    <link rel="preload" as="font" type="font/woff2" href="${url}" crossorigin />`)

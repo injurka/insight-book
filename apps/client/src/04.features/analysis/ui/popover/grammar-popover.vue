@@ -8,6 +8,9 @@ import { useAnalysisStore } from '~/01.shared/store/analysis/analysis.store'
 const analysisStore = useAnalysisStore()
 
 const popoverRef = ref<HTMLElement | null>(null)
+const innerRef = ref<HTMLElement | null>(null)
+const contentHeight = ref<string>('auto')
+
 const referenceEl = computed(() => analysisStore.grammarPopover?.target || null)
 
 const { x, y, strategy } = useFloating(referenceEl, popoverRef, {
@@ -33,27 +36,25 @@ const popoverPos = computed(() => {
   }
 })
 
-const innerRef = ref<HTMLElement | null>(null)
-const contentHeight = ref<string>('auto')
-
-useResizeObserver(innerRef, (entries) => {
-  const target = entries[0].target as HTMLElement
-  contentHeight.value = `${target.offsetHeight}px`
-})
-
 function closePopover(event?: MouseEvent) {
   const target = event?.target as HTMLElement | null
+
   // Do not close if clicking inside the popover
   if (target?.closest('.grammar-popover'))
     return
+
   analysisStore.closeGrammarPopover()
 }
-
 function handleKeydown(e: KeyboardEvent) {
   if (e.key === 'Escape' && analysisStore.grammarPopover) {
     analysisStore.closeGrammarPopover()
   }
 }
+
+useResizeObserver(innerRef, (entries) => {
+  const target = entries[0].target as HTMLElement
+  contentHeight.value = `${target.offsetHeight}px`
+})
 
 onMounted(() => {
   document.addEventListener('click', closePopover)

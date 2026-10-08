@@ -3,8 +3,10 @@ import DOMPurify from 'dompurify'
 
 function splitTableRow(line: string): string[] {
   let trimmed = line.trim()
+
   if (trimmed.startsWith('|'))
     trimmed = trimmed.slice(1)
+
   if (trimmed.endsWith('|'))
     trimmed = trimmed.slice(0, -1)
 
@@ -13,8 +15,10 @@ function splitTableRow(line: string): string[] {
 
 function isTableDelimiter(line: string): boolean {
   const trimmed = line.trim()
+
   if (!trimmed.includes('-') || !trimmed.includes('|'))
     return false
+
   const cells = splitTableRow(trimmed)
 
   return cells.length > 0 && cells.every(c => /^:?-{2,}:?$/.test(c))
@@ -22,10 +26,13 @@ function isTableDelimiter(line: string): boolean {
 
 function getTableAlignment(cell: string): 'left' | 'center' | 'right' | '' {
   const trimmed = cell.trim()
+
   if (trimmed.startsWith(':') && trimmed.endsWith(':'))
     return 'center'
+
   if (trimmed.endsWith(':'))
     return 'right'
+
   if (trimmed.startsWith(':'))
     return 'left'
 
@@ -72,6 +79,7 @@ function parseTableBlock(lines: string[], startIndex: number): { html: string, n
   while (i < lines.length && lines[i].includes('|') && lines[i].trim().length > 0) {
     if (isTableDelimiter(lines[i]))
       break
+
     bodyRows.push(splitTableRow(lines[i]))
     i++
   }
@@ -89,6 +97,7 @@ function parseMarkdownTables(text: string): string {
 
   while (i < lines.length) {
     const table = parseTableBlock(lines, i)
+
     if (table) {
       result.push(table.html)
       i = table.nextIndex
@@ -108,9 +117,13 @@ export function formatMarkdown(text: string): string {
 
   let processed = text.trim()
   const blocks: string[] = []
+  let placeholderPrefix = '%%BLOCK_PLACEHOLDER_'
+
+  while (text.includes(placeholderPrefix))
+    placeholderPrefix = `%${placeholderPrefix}`
 
   // 1. Извлекаем и форматируем многострочные блоки кода
-  processed = processed.replace(/```([a-z]*)\s*([\s\S]*?)```/gi, (_, lang, codeContent) => {
+  processed = processed.replace(/```([\w+-]*)[^\S\n]*\n?([\s\S]*?)```/g, (_, lang, codeContent) => {
     const escaped = codeContent
       .replace(/&/g, '&amp;')
       .replace(/</g, '&lt;')
@@ -118,7 +131,7 @@ export function formatMarkdown(text: string): string {
 
     const langClass = lang ? `language-${lang.toLowerCase()}` : 'language-javascript'
     const formattedCode = `<pre class="chat-code-block ${langClass}"><code class="chat-code ${langClass}">${escaped}</code></pre>`
-    const placeholder = `%%BLOCK_PLACEHOLDER_${blocks.length}%%`
+    const placeholder = `${placeholderPrefix}${blocks.length}%%`
     blocks.push(formattedCode)
 
     return placeholder
@@ -131,7 +144,7 @@ export function formatMarkdown(text: string): string {
       .replace(/</g, '&lt;')
       .replace(/>/g, '&gt;')
     const formattedCode = `<code class="chat-code">${escaped}</code>`
-    const placeholder = `%%BLOCK_PLACEHOLDER_${blocks.length}%%`
+    const placeholder = `${placeholderPrefix}${blocks.length}%%`
     blocks.push(formattedCode)
 
     return placeholder
@@ -199,8 +212,7 @@ export function formatMarkdown(text: string): string {
   processed = processed.replace(/<\/td><br>/g, '</td>')
 
   // 11. Возвращаем блоки кода на место
-  for (let i = 0; i < blocks.length; i++)
-    processed = processed.replace(`%%BLOCK_PLACEHOLDER_${i}%%`, blocks[i])
+  processed = processed.replace(new RegExp(`${placeholderPrefix}(\\d+)%%`, 'g'), (_, index: string) => blocks[Number(index)])
 
   // 12. Очищаем итоговый HTML для безопасности
   return DOMPurify.sanitize(processed, {

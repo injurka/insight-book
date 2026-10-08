@@ -14,14 +14,14 @@ const { t } = useI18n()
 const settingsStore = useGlobalSettingsStore()
 const { speak, stop, isPlaying, isLoading } = useTts()
 
-const voiceOptions = computed(() => [...TTS_VOICE_OPTIONS])
-
 const speedOptions = [
   { label: '0.75x', value: 0.75 },
   { label: '1.0x', value: 1 },
   { label: '1.25x', value: 1.25 },
   { label: '1.5x', value: 1.5 },
 ]
+
+const voiceOptions = computed(() => [...TTS_VOICE_OPTIONS])
 
 function previewVoice() {
   if (isPlaying.value || isLoading.value)

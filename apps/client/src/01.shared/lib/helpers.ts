@@ -6,13 +6,13 @@ function transformHttpUrl(path: string): string {
   if (apiUploadsRegex.test(path)) {
     const relativePath = path.replace(apiUploadsRegex, '')
 
-    return CDN_URL ? `${CDN_URL}/${relativePath}` : path
+    return CDN_URL ? `${CDN_URL.replace(/\/$/, '')}/${relativePath}` : path
   }
 
-  if (CDN_URL && /\/api\/uploads\//i.test(path)) {
+  if (CDN_URL && /^https?:\/\/[^/]+\/api\/uploads\//i.test(path)) {
     const relativePath = path.replace(/^https?:\/\/[^/]+\/api\/uploads\//i, '')
 
-    return `${CDN_URL}/${relativePath}`
+    return `${CDN_URL.replace(/\/$/, '')}/${relativePath}`
   }
 
   return path
@@ -38,17 +38,17 @@ function getMediaUrl(path?: string | null): string {
   if (CDN_URL && !isApiRoute) {
     const cleanPath = path.replace(/^\/?(api\/)?uploads\//i, '').replace(/^\//, '')
 
-    return `${CDN_URL}/${cleanPath}`
+    return `${CDN_URL.replace(/\/$/, '')}/${cleanPath}`
   }
 
   const cleanPath = path.startsWith('/') ? path : `/${path}`
 
-  return `${API_URL}${cleanPath}`
+  return `${API_URL.replace(/\/$/, '')}${cleanPath}`
 }
 
 export function normalizeString(str: string): string {
   return (str || '')
-    .replace(/[\s\u200B-\u200D\p{P}\p{S}]+/gu, '')
+    .replace(/[\s\u200B-\u200D\p{Variation_Selector}\p{P}\p{S}]+/gu, '')
     .toLowerCase()
 }
 
@@ -63,9 +63,13 @@ export function hexToRgba(hex: string, alpha: number): string {
     blue: '#93c5fd',
     purple: '#c4b5fd',
   }
-  const resolvedHex = colorMap[hex.toLowerCase()] || hex
+  const resolvedHex = Object.hasOwn(colorMap, hex.toLowerCase()) ? colorMap[hex.toLowerCase()] : hex
 
-  let cleanHex = resolvedHex.replace('#', '')
+  let cleanHex = resolvedHex.replace(/^#/, '')
+
+  if (!/^(?:[a-f\d]{3}|[a-f\d]{6})$/i.test(cleanHex))
+    return `rgba(0, 0, 0, ${alpha})`
+
   if (cleanHex.length === 3)
     cleanHex = cleanHex.split('').map(char => char + char).join('')
 

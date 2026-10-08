@@ -1,27 +1,38 @@
 import type { Ref } from 'vue'
 import { useWakeLock } from '@vueuse/core'
+import { onScopeDispose, watch } from 'vue'
 
-/**
- * Универсальный хук для предотвращения блокировки экрана (Wake Lock).
- * @param trigger Реактивный флаг или функция, возвращающая boolean. Экран будет удерживаться активным, пока значение истинно.
- */
+/** Keeps the screen awake while the reactive trigger is active. */
 export function useAppWakeLock(trigger: Ref<boolean> | (() => boolean)) {
   const { isSupported, request, release } = useWakeLock()
+  let active = false
+  let disposed = false
+  let pending = Promise.resolve()
 
-  watch(trigger, async (isActive) => {
-    if (!isSupported.value)
-      return
+  function syncLock() {
+    pending = pending.then(async () => {
+      if (!isSupported.value)
+        return
 
-    if (isActive) {
       try {
-        await request('screen')
+        if (active && !disposed)
+          await request('screen')
+        else
+          await release()
       }
-      catch (err) {
-        console.warn('Wake Lock request failed:', err)
+      catch (error) {
+        console.warn('Wake Lock update failed:', error)
       }
-    }
-    else {
-      await release()
-    }
+    })
+  }
+
+  watch([trigger, isSupported], ([value]) => {
+    active = value
+    syncLock()
+  }, { immediate: true, flush: 'sync' })
+
+  onScopeDispose(() => {
+    disposed = true
+    syncLock()
   })
 }

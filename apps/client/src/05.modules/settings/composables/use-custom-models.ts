@@ -17,6 +17,7 @@ export function useCustomModels() {
     }
 
     isFetchingModels.value = true
+
     try {
       const baseUrl = settingsStore.customLlmUrl.replace(/\/$/, '')
       const res = await fetch(`${baseUrl}/models`, {
@@ -38,6 +39,7 @@ export function useCustomModels() {
 
         if (availableModels.value.length > 0) {
           toast.success('Список моделей успешно загружен')
+
           if (!availableModels.value.some(modelItem => modelItem.value === settingsStore.customLlmModel))
             settingsStore.customLlmModel = availableModels.value[0].value
         }

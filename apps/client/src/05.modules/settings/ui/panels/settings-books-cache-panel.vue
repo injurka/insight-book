@@ -16,12 +16,16 @@ const cacheStore = useCacheStore()
 const searchQuery = ref('')
 const pageSize = 5
 const currentPage = ref(1)
+const confirmVisible = ref(false)
+const confirmBookId = ref<number | null>(null)
+const deletingBookId = ref<number | null>(null)
 
 const activeBookStats = computed(() => {
   if (!cacheStore.stats?.bookStats)
     return []
 
   const res: BookCacheStat[] = []
+
   for (const [id, book] of Object.entries(cacheStore.stats.bookStats)) {
     if (book.sizeBytes > 0 || book.cachedPages.length > 0 || book.analysesCount > 0 || book.imagesCount > 0 || book.ttsCount > 0 || book.dictPagesCount > 0)
       res.push({ id, ...book })
@@ -29,24 +33,21 @@ const activeBookStats = computed(() => {
 
   return res.sort((a, b) => b.sizeBytes - a.sizeBytes)
 })
-
 const filteredBookStats = computed(() => {
   const query = searchQuery.value.trim().toLowerCase()
+
   if (!query)
     return activeBookStats.value
 
   return activeBookStats.value.filter(book =>
     book.title.toLowerCase().includes(query))
 })
-
 const displayedBookStats = computed(() => {
   return filteredBookStats.value.slice(0, currentPage.value * pageSize)
 })
-
 const hasMoreBooks = computed(() => {
   return displayedBookStats.value.length < filteredBookStats.value.length
 })
-
 const remainingBooksCount = computed(() => {
   return filteredBookStats.value.length - displayedBookStats.value.length
 })
@@ -54,21 +55,16 @@ const remainingBooksCount = computed(() => {
 function loadMore() {
   currentPage.value++
 }
-
-const confirmVisible = ref(false)
-const confirmBookId = ref<number | null>(null)
-const deletingBookId = ref<number | null>(null)
-
 function confirmClearCache(bookId: string) {
   confirmBookId.value = Number(bookId)
   confirmVisible.value = true
 }
-
 async function handleConfirmClear() {
   if (confirmBookId.value !== null) {
     const id = confirmBookId.value
     deletingBookId.value = id
     confirmBookId.value = null
+
     try {
       await cacheStore.clearBookCache(id)
     }

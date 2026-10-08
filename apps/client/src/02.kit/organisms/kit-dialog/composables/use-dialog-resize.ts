@@ -67,6 +67,7 @@ export function useDialogResize({
     if (isFloating.value) {
       if (currentHandle.includes('right'))
         newWidth = startWidth + dx
+
       if (currentHandle.includes('left')) {
         newWidth = startWidth - dx
         newX = startPosX + dx
@@ -74,6 +75,7 @@ export function useDialogResize({
 
       if (currentHandle.includes('bottom'))
         newHeight = startHeight + dy
+
       if (currentHandle.includes('top')) {
         newHeight = startHeight - dy
         newY = startPosY + dy
@@ -82,10 +84,13 @@ export function useDialogResize({
     else {
       if (currentHandle.includes('right'))
         newWidth = startWidth + dx * 2
+
       if (currentHandle.includes('left'))
         newWidth = startWidth - dx * 2
+
       if (currentHandle.includes('bottom'))
         newHeight = startHeight + dy * 2
+
       if (currentHandle.includes('top'))
         newHeight = startHeight - dy * 2
     }
@@ -112,12 +117,14 @@ export function useDialogResize({
       if (newWidth < MIN_W) {
         if (isFloating.value && currentHandle.includes('left'))
           newX -= (MIN_W - newWidth)
+
         newWidth = MIN_W
       }
 
       if (newHeight < MIN_H) {
         if (isFloating.value && currentHandle.includes('top'))
           newY -= (MIN_H - newHeight)
+
         newHeight = MIN_H
       }
 
@@ -133,8 +140,10 @@ export function useDialogResize({
 
   function stopResize() {
     isResizing = false
+
     if (resizeRaf)
       cancelAnimationFrame(resizeRaf)
+
     document.removeEventListener('mousemove', onResize)
     document.removeEventListener('mouseup', stopResize)
     document.body.style.userSelect = ''

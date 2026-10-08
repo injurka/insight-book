@@ -7,6 +7,8 @@ export function tokenizeEnglishProfile(text: string, lemmaCache: Map<string, str
   const result: ProfileToken[] = []
   for (const sentence of nlp(text).json()) {
     for (const [index, term] of sentence.terms.entries()) {
+      if (term.pre?.trim())
+        result.push({ word: term.pre, pos: 'x' })
       const word = term.text.normalize('NFKC').replace(/’/g, '\'')
       const normal = word.toLowerCase().replace(/'s$/u, '')
       const tags: string[] = term.tags
@@ -29,7 +31,7 @@ export function tokenizeEnglishProfile(text: string, lemmaCache: Map<string, str
         lemmaCache.set(cacheKey, lemma || normal)
       }
       result.push({ word, pos, lemma, entity, nameCandidate: !functional && capitalized && index > 0 })
-      if (/[.!?,;:]/u.test(term.post))
+      if (term.post?.trim())
         result.push({ word: term.post, pos: 'x' })
     }
     result.push({ word: '.', pos: 'x' })

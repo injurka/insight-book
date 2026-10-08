@@ -154,6 +154,7 @@ export const useLibraryStore = defineStore('library', () => {
     key: () => scopedQueryKey(queryKeys.books.byId(currentBookId.value)),
     query: async () => {
       const id = currentBookId.value
+
       if (!id)
         return null
 
@@ -167,6 +168,7 @@ export const useLibraryStore = defineStore('library', () => {
       // Сначала прикрепляем локальную обложку, потом атомарно обновляем стейт,
       // чтобы src обложки не менялся сразу после рендера.
       await attachCachedCovers([newInfo])
+
       if (newInfo.id !== currentBookId.value)
         return
 
@@ -197,10 +199,12 @@ export const useLibraryStore = defineStore('library', () => {
     mutation: async (id: number) => repos.book.startReading(id),
     async onSuccess(_, id) {
       trackEvent('public_book_downloaded', { bookId: id })
+
       if (currentBookInfo.value?.id === id)
         currentBookInfo.value.currentPage = 1
 
       const authStore = useAuthStore()
+
       if (authStore.user || authStore.isSingleMode)
         await refetchBooks()
     },
@@ -215,6 +219,7 @@ export const useLibraryStore = defineStore('library', () => {
     mutation: async ({ id, data }: { id: number, data: Partial<Book> }) => repos.book.updateInfo(id, data),
     onMutate({ id, data }) {
       const listBook = books.value.find(b => Number(b.id) === Number(id))
+
       if (listBook)
         Object.assign(listBook, data)
 
@@ -226,6 +231,7 @@ export const useLibraryStore = defineStore('library', () => {
 
       const keys = Object.keys(data)
       const isOnlyProgressUpdate = keys.length > 0 && keys.every(k => k === 'currentPage' || k === 'lastReadPosition' || k === 'updatedAt')
+
       if (!isOnlyProgressUpdate)
         queryCache.invalidateQueries({ key: queryKeys.books.all })
 
@@ -255,6 +261,7 @@ export const useLibraryStore = defineStore('library', () => {
   async function analyzeFullBook(id: number) {
     isAnalyzingBook.value = true
     trackEvent('book_full_analysis_started', { bookId: id })
+
     try {
       await analyzeFullBookMutation(id)
     }
@@ -270,6 +277,7 @@ export const useLibraryStore = defineStore('library', () => {
       if (currentBookInfo.value?.id === id) {
         if (!currentBookInfo.value.stats)
           currentBookInfo.value.stats = {} as BookStats
+
         currentBookInfo.value.stats.posDistribution = res.lexicalStats.posDistribution
         currentBookInfo.value.stats.topWords = res.lexicalStats.topWords
         currentBookInfo.value.stats.lexicalDiversity = res.lexicalStats.lexicalDiversity
@@ -286,6 +294,7 @@ export const useLibraryStore = defineStore('library', () => {
   async function analyzeVocabulary(id: number) {
     isAnalyzingVocab.value = true
     trackEvent('vocabulary_analysis_started', { bookId: id })
+
     try {
       await analyzeVocabularyMutation(id)
     }
@@ -304,6 +313,7 @@ export const useLibraryStore = defineStore('library', () => {
       }
 
       const listBook = books.value.find(b => b.id === id)
+
       if (listBook)
         listBook.coverUrl = res.coverUrl
 
@@ -382,11 +392,13 @@ export const useLibraryStore = defineStore('library', () => {
     mutation: async ({ bookId, fd }: { bookId: number, fd: FormData }) => repos.book.appendMangaChapter(bookId, fd),
     onSuccess(res, { bookId }) {
       const index = books.value.findIndex(b => b.id === bookId)
+
       if (index !== -1)
         Object.assign(books.value[index], res.book)
 
       if (currentBookInfo.value?.id === bookId) {
         Object.assign(currentBookInfo.value, res.book)
+
         if (typeof res.book.toc === 'string') {
           try {
             currentBookInfo.value.toc = JSON.parse(res.book.toc)
@@ -415,6 +427,7 @@ export const useLibraryStore = defineStore('library', () => {
     mutation: async (id: number) => repos.book.delete(id),
     onSuccess(_, id) {
       books.value = books.value.filter(b => b.id !== id)
+
       if (currentBookInfo.value?.id === id) {
         currentBookInfo.value = null
         currentBookId.value = null

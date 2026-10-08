@@ -75,6 +75,7 @@ export function useAccountSettings() {
       return
 
     isUnlinking.value = true
+
     try {
       await authStore.unlinkProvider(providerToUnlink.value)
       toast.success(t('settings.yandexUnlinkedSuccess', 'Аккаунт Яндекс успешно отвязан'))

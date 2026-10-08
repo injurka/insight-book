@@ -19,29 +19,26 @@ import BookStatsEditor from './book-stats-editor.vue'
 import BookTranslationPanel from './book-translation-panel.vue'
 import CachePopover from './cache-popover.vue'
 
+const isEditingStats = defineModel<boolean>('isEditing', { default: false })
+
 const libraryStore = useLibraryStore()
 const cacheStore = useCacheStore()
 const authStore = useAuthStore()
 const settingsStore = useGlobalSettingsStore()
 const { t } = useI18n()
-
-const isEditingStats = defineModel<boolean>('isEditing', { default: false })
 const networkStore = useNetworkStore()
-const canEdit = computed(() => !!authStore.user && libraryStore.currentBookInfo?.userId === authStore.user.id)
-
 const { currentDescription, difficultyLevelClass } = useBookStatsEdit(isEditingStats)
 
+const canEdit = computed(() => !!authStore.user && libraryStore.currentBookInfo?.userId === authStore.user.id)
 const bookCacheStats = computed(() => {
   if (!cacheStore.stats || !libraryStore.currentBookInfo)
     return null
 
   return cacheStore.stats.bookStats[libraryStore.currentBookInfo.id] || { cachedPages: [], analysesCount: 0, sizeBytes: 0 }
 })
-
 const bookDescription = computed(() => {
   return currentDescription.value
 })
-
 const progressPercent = computed(() => {
   if (!libraryStore.currentBookInfo)
     return 0
@@ -50,7 +47,6 @@ const progressPercent = computed(() => {
 
   return entity.getProgressPercent()
 })
-
 const localizedTags = computed(() => {
   const tags = libraryStore.currentBookInfo?.stats?.tags || []
 
@@ -62,6 +58,7 @@ const localizedTags = computed(() => {
 watch(() => libraryStore.syncState, (val) => {
   if (val === 'finished') {
     cacheStore.loadStats()
+
     // После успешной синхронизации (которая могла перевести фразы) обновляем текущую инфу о книге
     if (libraryStore.currentBookInfo)
       libraryStore.fetchBookInfo(libraryStore.currentBookInfo.id)

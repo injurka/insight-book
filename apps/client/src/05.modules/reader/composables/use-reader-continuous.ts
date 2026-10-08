@@ -38,11 +38,13 @@ export function useReaderContinuous(containerRef: Ref<HTMLElement | null>, topSe
       return
 
     const book = readerStore.currentBook
+
     if (!book || book.language === settingsStore.appLanguage)
       return
 
     autoAnalysisTimer = setTimeout(() => {
       autoAnalysisTimer = null
+
       if (
         !settingsStore.autoAnalyzePage
         || analysisStore.isManualPageAnalysisActive
@@ -69,6 +71,7 @@ export function useReaderContinuous(containerRef: Ref<HTMLElement | null>, topSe
     readerStore.targetPageNum = pageNum
 
     const page = continuousPages.value.find(p => p.pageNum === pageNum)
+
     if (page) {
       readerStore.currentPage = page
       triggerPageAutoAnalysis(page)
@@ -79,6 +82,7 @@ export function useReaderContinuous(containerRef: Ref<HTMLElement | null>, topSe
     }
 
     const currentQueryPage = Number(route.query.page)
+
     if (currentQueryPage !== pageNum) {
       void router.replace({ query: { ...route.query, page: pageNum } })
     }
@@ -89,10 +93,12 @@ export function useReaderContinuous(containerRef: Ref<HTMLElement | null>, topSe
       return null
 
     const pages = continuousPages.value
+
     if (pages.length === 0)
       return null
 
     const lastPage = pages[pages.length - 1]
+
     if (!lastPage || lastPage.pageNum >= readerStore.currentBook.totalPages)
       return null
 
@@ -101,6 +107,7 @@ export function useReaderContinuous(containerRef: Ref<HTMLElement | null>, topSe
 
   async function loadNext() {
     const nextNum = getNextPageNum()
+
     if (nextNum === null || !readerStore.currentBook)
       return
 
@@ -110,6 +117,7 @@ export function useReaderContinuous(containerRef: Ref<HTMLElement | null>, topSe
 
     try {
       const page = await readerStore.fetchPage(bookId, nextNum)
+
       if (!isCurrentBufferRequest(bookId, generation))
         return
 
@@ -128,10 +136,12 @@ export function useReaderContinuous(containerRef: Ref<HTMLElement | null>, topSe
       return null
 
     const pages = continuousPages.value
+
     if (pages.length === 0)
       return null
 
     const firstPage = pages[0]
+
     if (!firstPage || firstPage.pageNum <= 1)
       return null
 
@@ -148,6 +158,7 @@ export function useReaderContinuous(containerRef: Ref<HTMLElement | null>, topSe
 
   async function loadPrev() {
     const prevNum = getPrevPageNum()
+
     if (prevNum === null || !readerStore.currentBook)
       return
 
@@ -161,6 +172,7 @@ export function useReaderContinuous(containerRef: Ref<HTMLElement | null>, topSe
 
     try {
       const page = await readerStore.fetchPage(bookId, prevNum)
+
       if (!isCurrentBufferRequest(bookId, generation))
         return
 
@@ -179,8 +191,10 @@ export function useReaderContinuous(containerRef: Ref<HTMLElement | null>, topSe
 
   async function jumpToPage(bookId: number, pageNum: number) {
     const existing = continuousPages.value.find(p => p.pageNum === pageNum)
+
     if (existing && containerRef.value) {
       const el = containerRef.value.querySelector<HTMLElement>(`.reader-page-block[data-page-num="${pageNum}"]`)
+
       if (el) {
         el.scrollIntoView({ behavior: 'smooth', block: 'start' })
         onActivePageChange(pageNum)
@@ -193,6 +207,7 @@ export function useReaderContinuous(containerRef: Ref<HTMLElement | null>, topSe
 
     try {
       const page = await readerStore.fetchPage(bookId, pageNum)
+
       if (!isCurrentBufferRequest(bookId, generation))
         return
 
@@ -216,6 +231,7 @@ export function useReaderContinuous(containerRef: Ref<HTMLElement | null>, topSe
     cleanupObservers()
 
     const container = containerRef.value
+
     if (!container)
       return
 
@@ -223,6 +239,7 @@ export function useReaderContinuous(containerRef: Ref<HTMLElement | null>, topSe
     if (topSentinelRef.value) {
       topObserver = new IntersectionObserver((entries) => {
         const [entry] = entries
+
         if (entry?.isIntersecting) {
           void loadPrev()
         }
@@ -237,6 +254,7 @@ export function useReaderContinuous(containerRef: Ref<HTMLElement | null>, topSe
     if (bottomSentinelRef.value) {
       bottomObserver = new IntersectionObserver((entries) => {
         const [entry] = entries
+
         if (entry?.isIntersecting) {
           void loadNext()
         }
@@ -277,6 +295,7 @@ export function useReaderContinuous(containerRef: Ref<HTMLElement | null>, topSe
     }, null)
 
     const pageNum = Number(activeBlock?.dataset.pageNum)
+
     if (Number.isInteger(pageNum) && pageNum > 0)
       onActivePageChange(pageNum)
   }

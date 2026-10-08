@@ -1,10 +1,10 @@
 import { isTtsTextWithinLimit } from '@injurka/insight-book-language-utils'
-import { ref } from 'vue'
+import { hasInjectionContext, inject, ref } from 'vue'
 import { useRepos } from '~/00.plugins/di'
 import { useTracking } from '~/01.shared/composables/use-tracking'
 import { buildBookTtsCacheKey, buildDictionaryTtsCacheKey, DEFAULT_TTS_VOICE } from '~/01.shared/constants/tts'
 import { useGlobalSettingsStore } from '~/01.shared/store/settings.store'
-import { useReaderStore } from '~/05.modules/reader/store/reader.store'
+import { TTS_BOOK_CONTEXT_KEY } from '~/01.shared/types/tts-context'
 
 const isPlaying = ref(false)
 const isLoading = ref(false)
@@ -13,12 +13,14 @@ const currentText = ref<string | null>(null)
 let currentAudio: HTMLAudioElement | null = null
 let currentAudioUrl: string | null = null
 let abortController: AbortController | null = null
+let playbackId = 0
+let cancelWebSpeech: (() => void) | null = null
 
 export function useTts() {
   const repos = useRepos()
   const { trackEvent } = useTracking()
 
-  const readerStore = useReaderStore()
+  const getBook = hasInjectionContext() ? inject(TTS_BOOK_CONTEXT_KEY, () => null) : () => null
   const settingsStore = useGlobalSettingsStore()
 
   async function getOrGenerateAudioBlob(
@@ -35,6 +37,8 @@ export function useTts() {
       : buildDictionaryTtsCacheKey(lang, voice, normalizedText)
     let audioBlob = forceCacheBypass ? null : await repos.analysis.getLocalTts(cacheKey)
 
+    signal.throwIfAborted()
+
     if (!audioBlob) {
       const result = bookId
         ? await repos.analysis.generateTts(
@@ -50,6 +54,7 @@ export function useTts() {
             signal,
             forceCacheBypass,
           )
+      signal.throwIfAborted()
       await repos.analysis.saveLocalTts(cacheKey, result.audioBase64, result.cache)
       audioBlob = await repos.analysis.getLocalTts(cacheKey)
     }
@@ -57,12 +62,8 @@ export function useTts() {
     return audioBlob
   }
 
-  function isAbortError(err: Error) {
-    return err.name === 'AbortError'
-      || err.name === 'CanceledError'
-      || err.message?.toLowerCase().includes('abort')
-      || err.message?.toLowerCase().includes('cancel')
-      || err.message?.includes('is aborted')
+  function isAbortError(error: unknown) {
+    return error instanceof Error && ['AbortError', 'CanceledError'].includes(error.name)
   }
 
   async function playAudioBlob(
@@ -72,24 +73,32 @@ export function useTts() {
     text: string,
   ) {
     currentAudioUrl = URL.createObjectURL(audioBlob)
-    currentAudio = new Audio(currentAudioUrl)
-    currentAudio.playbackRate = settingsStore.ttsSpeed
+    const audio = new Audio(currentAudioUrl)
+    const audioUrl = currentAudioUrl
+    currentAudio = audio
+    audio.playbackRate = settingsStore.ttsSpeed
 
-    currentAudio.onplay = () => isPlaying.value = true
-    currentAudio.onended = () => {
+    audio.onplay = () => {
+      if (currentAudio === audio)
+        isPlaying.value = true
+    }
+    audio.onended = () => {
+      if (currentAudio !== audio)
+        return
+
+      currentAudio = null
       isPlaying.value = false
+
       if (currentText.value === text) {
         currentText.value = null
       }
 
-      if (currentAudioUrl) {
-        URL.revokeObjectURL(currentAudioUrl)
-        currentAudioUrl = null
-      }
+      URL.revokeObjectURL(audioUrl)
+      currentAudioUrl = null
     }
 
     trackEvent('tts_played', { lang, voice })
-    await currentAudio.play()
+    await audio.play()
   }
 
   function validateText(text: string): boolean {
@@ -97,8 +106,9 @@ export function useTts() {
   }
 
   function getTtsParams(explicitLanguage?: string, explicitBookId?: number) {
-    const bookId = explicitBookId || readerStore.currentBook?.id
-    const lang = explicitLanguage || readerStore.currentBook?.language || 'en'
+    const book = getBook()
+    const bookId = explicitBookId ?? book?.id
+    const lang = explicitLanguage || book?.language || 'en'
     const voice = settingsStore.ttsVoice || DEFAULT_TTS_VOICE
 
     return { bookId, lang, voice }
@@ -111,8 +121,10 @@ export function useTts() {
 
   function getSpeechSynthesisLang(lang: string): string {
     const lower = lang.toLowerCase()
+
     if (lower.startsWith('zh'))
       return 'zh-CN'
+
     if (lower.startsWith('ru'))
       return 'ru-RU'
 
@@ -124,6 +136,7 @@ export function useTts() {
       return null
 
     const voices = window.speechSynthesis.getVoices()
+
     if (!voices || voices.length === 0)
       return null
 
@@ -133,9 +146,22 @@ export function useTts() {
   }
 
   function speakWithWebSpeech(text: string, lang: string, rate: number = 1): Promise<boolean> {
+    const id = playbackId
+
     return new Promise((resolve) => {
+      const finish = (result: boolean) => {
+        if (playbackId === id) {
+          isPlaying.value = false
+          clearCurrentTextIfMatches(text)
+          cancelWebSpeech = null
+        }
+
+        resolve(result)
+      }
+      cancelWebSpeech = () => finish(false)
+
       if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
-        resolve(false)
+        finish(false)
 
         return
       }
@@ -148,34 +174,24 @@ export function useTts() {
         utterance.rate = rate || 1
 
         const match = pickVoice(langCode, lang)
+
         if (match) {
           utterance.voice = match
         }
 
         utterance.onstart = () => {
-          isPlaying.value = true
+          if (playbackId === id)
+            isPlaying.value = true
         }
 
-        utterance.onend = () => {
-          isPlaying.value = false
-          if (currentText.value === text) {
-            currentText.value = null
-          }
-
-          resolve(true)
-        }
+        utterance.onend = () => finish(true)
 
         utterance.onerror = (e) => {
           if (e.error !== 'interrupted' && e.error !== 'canceled') {
             console.warn('[Web Speech TTS Error]', e)
           }
 
-          isPlaying.value = false
-          if (currentText.value === text) {
-            currentText.value = null
-          }
-
-          resolve(false)
+          finish(false)
         }
 
         isPlaying.value = true
@@ -183,12 +199,7 @@ export function useTts() {
       }
       catch (err) {
         console.warn('[Web Speech TTS Exception]', err)
-        isPlaying.value = false
-        if (currentText.value === text) {
-          currentText.value = null
-        }
-
-        resolve(false)
+        finish(false)
       }
     })
   }
@@ -198,8 +209,10 @@ export function useTts() {
       abortIfLoading()
       stop()
       currentText.value = text
+      const id = playbackId
       const result = await speakWithWebSpeech(text, lang, settingsStore.ttsSpeed)
-      if (!result && currentText.value === text) {
+
+      if (!result && playbackId === id) {
         currentText.value = null
       }
 
@@ -209,6 +222,17 @@ export function useTts() {
     return false
   }
 
+  function isStale(controller: AbortController, id: number) {
+    return controller.signal.aborted || playbackId !== id
+  }
+
+  function matchesTarget(targetText?: string) {
+    if (targetText === undefined)
+      return true
+
+    return currentText.value?.trim() === targetText.trim()
+  }
+
   function clearCurrentTextIfMatches(text: string) {
     if (currentText.value === text) {
       currentText.value = null
@@ -216,8 +240,10 @@ export function useTts() {
   }
 
   async function handleSpeakFallback(text: string, lang: string): Promise<boolean> {
+    const id = playbackId
     const res = await fallbackSpeak(text, lang)
-    if (!res) {
+
+    if (!res && playbackId === id) {
       clearCurrentTextIfMatches(text)
     }
 
@@ -244,6 +270,7 @@ export function useTts() {
     currentText.value = text
     isLoading.value = true
     const controller = new AbortController()
+    const id = playbackId
     abortController = controller
 
     try {
@@ -259,14 +286,14 @@ export function useTts() {
         controller.signal,
       )
 
-      if (controller.signal.aborted) {
-        clearCurrentTextIfMatches(text)
-
+      if (isStale(controller, id))
         return false
-      }
 
-      if (!audioBlob)
+      if (!audioBlob) {
+        stop()
+
         return handleSpeakFallback(text, lang)
+      }
 
       await playAudioBlob(
         audioBlob,
@@ -275,33 +302,36 @@ export function useTts() {
         text,
       )
 
-      return true
+      return playbackId === id
     }
     catch (e) {
-      if (isAbortError(e as Error)) {
-        clearCurrentTextIfMatches(text)
+      if (isStale(controller, id) || isAbortError(e)) {
+        if (playbackId === id)
+          clearCurrentTextIfMatches(text)
 
         return false
       }
 
       console.error('TTS Error:', e)
+      stop()
 
       return handleSpeakFallback(text, lang)
     }
     finally {
-      if (abortController === controller)
+      if (abortController === controller) {
         isLoading.value = false
+        abortController = null
+      }
     }
   }
 
   function stop(targetText?: string) {
-    if (targetText !== undefined) {
-      const active = currentText.value
-      if (!active)
-        return
-      if (active !== targetText && active.trim() !== targetText.trim())
-        return
-    }
+    if (!matchesTarget(targetText))
+      return
+
+    cancelWebSpeech?.()
+    cancelWebSpeech = null
+    playbackId++
 
     if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
       window.speechSynthesis.cancel()

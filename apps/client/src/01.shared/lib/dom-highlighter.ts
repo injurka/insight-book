@@ -17,6 +17,7 @@ function collectTextNodes(root: HTMLElement): Text[] {
   const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null)
   const textNodes: Text[] = []
   let node: Text | null
+
   // eslint-disable-next-line no-cond-assign, no-unmodified-loop-condition
   while ((node = walker.nextNode() as Text | null))
     textNodes.push(node)
@@ -64,16 +65,28 @@ export function findQuoteRange(root: HTMLElement, textToHighlight: string): Rang
   const fullText = textNodes.map(node => node.nodeValue || '').join('')
 
   const startIndex = fullText.indexOf(textToHighlight)
+
   if (startIndex !== -1)
     return buildRange(textNodes, startIndex, startIndex + textToHighlight.length)
 
   const lowerFull = fullText.toLowerCase()
   const lowerSearch = textToHighlight.toLowerCase()
   const lowerStart = lowerFull.indexOf(lowerSearch)
+
   if (lowerStart === -1)
     return null
 
-  return buildRange(textNodes, lowerStart, lowerStart + lowerSearch.length)
+  let originalOffset = 0
+  const offsets: number[] = []
+  const endOffsets: number[] = []
+
+  for (const character of fullText) {
+    offsets.push(...Array.from<number>({ length: character.toLowerCase().length }).fill(originalOffset))
+    originalOffset += character.length
+    endOffsets.push(...Array.from<number>({ length: character.toLowerCase().length }).fill(originalOffset))
+  }
+
+  return buildRange(textNodes, offsets[lowerStart], endOffsets[lowerStart + lowerSearch.length - 1])
 }
 
 /**
@@ -84,6 +97,7 @@ export function findQuoteRange(root: HTMLElement, textToHighlight: string): Rang
 export function collectQuoteRanges(root: HTMLElement, quotes: QuoteHighlightSource[]): Map<string, Range[]> {
   const rangesByColor = new Map<string, Range[]>()
   const validQuotes = quotes.filter(quoteItem => quoteItem.text)
+
   if (validQuotes.length === 0)
     return rangesByColor
 
@@ -99,9 +113,11 @@ export function collectQuoteRanges(root: HTMLElement, quotes: QuoteHighlightSour
 
     for (const quote of matchingQuotes) {
       const range = findQuoteRange(span as HTMLElement, quote.text)
+
       if (range) {
         const color = quote.color || DEFAULT_COLOR
         const list = rangesByColor.get(color)
+
         if (list)
           list.push(range)
         else
@@ -119,14 +135,13 @@ export function collectQuoteRanges(root: HTMLElement, quotes: QuoteHighlightSour
 const ownerRanges = new Map<string, Map<string, Range[]>>()
 let registeredNames = new Set<string>()
 
-function colorToHighlightName(color: string): string {
-  const rgba = hexToRgba(color, 0.35)
-
-  return `${HIGHLIGHT_NAME_PREFIX}-${rgba.replace(/[^a-z0-9]/gi, '')}`
+function colorToHighlightName(rgba: string): string {
+  return `${HIGHLIGHT_NAME_PREFIX}-${rgba.replace(/[^a-z0-9]+/gi, '-')}`
 }
 
 function getStyleElement(): HTMLStyleElement {
   let styleEl = document.getElementById(STYLE_ELEMENT_ID) as HTMLStyleElement | null
+
   if (!styleEl) {
     styleEl = document.createElement('style')
     styleEl.id = STYLE_ELEMENT_ID
@@ -141,13 +156,16 @@ function rebuildRegistry(): void {
     return
 
   const rangesByColor = new Map<string, Range[]>()
+
   for (const ownerMap of ownerRanges.values()) {
     for (const [color, ranges] of ownerMap) {
-      const list = rangesByColor.get(color)
+      const canonicalColor = hexToRgba(color, 0.35)
+      const list = rangesByColor.get(canonicalColor)
+
       if (list)
         list.push(...ranges)
       else
-        rangesByColor.set(color, [...ranges])
+        rangesByColor.set(canonicalColor, [...ranges])
     }
   }
 
@@ -158,7 +176,7 @@ function rebuildRegistry(): void {
     const name = colorToHighlightName(color)
     nextNames.add(name)
     CSS.highlights.set(name, new Highlight(...ranges))
-    cssRules.push(`::highlight(${name}) { background-color: ${hexToRgba(color, 0.35)}; color: inherit; }`)
+    cssRules.push(`::highlight(${name}) { background-color: ${color}; color: inherit; }`)
   }
 
   for (const name of registeredNames) {
@@ -168,7 +186,10 @@ function rebuildRegistry(): void {
 
   registeredNames = nextNames
 
-  getStyleElement().textContent = cssRules.join('\n')
+  if (cssRules.length)
+    getStyleElement().textContent = cssRules.join('\n')
+  else
+    document.getElementById(STYLE_ELEMENT_ID)?.remove()
 }
 
 export function setQuoteHighlights(owner: string, rangesByColor: Map<string, Range[]>): void {
@@ -176,6 +197,7 @@ export function setQuoteHighlights(owner: string, rangesByColor: Map<string, Ran
     ownerRanges.delete(owner)
   else
     ownerRanges.set(owner, rangesByColor)
+
   rebuildRegistry()
 }
 

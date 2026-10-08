@@ -1,5 +1,4 @@
 import type { ToastMessage, ToastOptions } from '../types/models/toast'
-
 import { v4 as uuidv4 } from 'uuid'
 import { useTracking } from '~/01.shared/composables/use-tracking'
 
@@ -40,6 +39,7 @@ export const useToastStore = defineStore('toast', {
 
     remove(id: string) {
       const index = this.messages.findIndex((m: { id: string }) => m.id === id)
+
       if (index !== -1)
         this.messages.splice(index, 1)
     },

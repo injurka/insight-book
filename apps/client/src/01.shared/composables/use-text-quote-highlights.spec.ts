@@ -89,4 +89,27 @@ describe('text quote highlights', () => {
     second.wrapper.unmount()
     expect(registry.size).toBe(0)
   })
+
+  it('does not re-register highlights after immediate unmount with a pending DOM update', async () => {
+    const { wrapper } = renderText()
+    wrapper.unmount()
+    await nextTick()
+    await nextTick()
+    expect(registry.size).toBe(0)
+  })
+
+  it('groups quotes with the same color and ignores blank or unmatched quotes', async () => {
+    const { wrapper, quotes } = renderText()
+    quotes.value = [
+      { text: ' As far as ', color: '' },
+      { text: 'died instantly', color: '#fde047' },
+      { text: 'missing', color: '#fde047' },
+      { text: '   ', color: '#fde047' },
+    ]
+    await nextTick()
+    await nextTick()
+    expect(registry.size).toBe(1)
+    expect(highlightedText()).toEqual(['As far as', 'died instantly'])
+    wrapper.unmount()
+  })
 })

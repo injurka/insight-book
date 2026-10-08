@@ -93,6 +93,7 @@ export class HighlightEngine {
   private normalizeLang(lang?: string): string | undefined {
     if (!lang)
       return undefined
+
     const raw = lang.toLowerCase()
     const aliases: Record<string, string> = {
       'js': 'javascript',
@@ -109,6 +110,6 @@ export class HighlightEngine {
       'shell': 'bash',
     }
 
-    return aliases[raw] || raw
+    return Object.hasOwn(aliases, raw) ? aliases[raw] : raw
   }
 }

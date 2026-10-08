@@ -16,6 +16,7 @@ export const syncErrorCode = ref<string | null>(null)
 export function isTokenLimitError(e: unknown): boolean {
   if (!e || typeof e !== 'object')
     return false
+
   const err = e as { code?: string, status?: number, message?: string }
 
   return (
@@ -105,8 +106,10 @@ async function fetchAndHydrateServerCache(ctx: AnalysisContext): Promise<void> {
   }
   catch (e) {
     const err = e as Error
+
     if (err.name === 'AbortError' || err.message === 'Aborted' || isTokenLimitError(e))
       throw err
+
     console.warn('[Sync Service] Failed to pre-fetch server cache in bulk:', e)
   }
 }
@@ -127,6 +130,7 @@ async function cacheBookCover(book: SyncBook, cachePages: boolean): Promise<void
 
   syncProgress.value.currentTask = 'Кэширование обложки...'
   const cachedCover = await repos.book.getLocalCover(book.id)
+
   if (cachedCover)
     return
 
@@ -151,6 +155,7 @@ async function cachePageAssets(
 
   if (page?.type === 'manga' && page.imageUrl) {
     const cachedImage = await repos.book.getLocalImage(bookId, pageNum)
+
     if (!cachedImage) {
       try {
         const blob = await repos.book.fetchImageBlob(page.imageUrl)
@@ -190,6 +195,7 @@ async function filterServerCachedTexts(
     for (let j = missingTexts.length - 1; j >= 0; j--) {
       const text = missingTexts[j]
       const serverCached = cacheMap.get(text) as LlmAnalysis
+
       if (serverCached) {
         await repos.analysis.saveLocalAnalysis(text, serverCached, ctx.language)
         syncProgress.value[doneKey]++
@@ -200,6 +206,7 @@ async function filterServerCachedTexts(
   }
   catch (e) {
     const err = e as Error
+
     if (err.name === 'AbortError' || isTokenLimitError(e))
       throw err
   }
@@ -220,6 +227,7 @@ async function analyzeMissingTexts(
 
   for (const text of texts) {
     const cached = await repos.analysis.getLocalAnalysis(text, ctx.language)
+
     if (cached) {
       syncProgress.value[doneKey]++
       syncProgress.value[cacheKey]++
@@ -238,12 +246,14 @@ async function analyzeMissingTexts(
   )
 
   const batches: string[][] = []
+
   for (let j = 0; j < missingTexts.length; j += ctx.batchSize)
     batches.push(missingTexts.slice(j, j + ctx.batchSize))
 
   for (let j = 0; j < batches.length; j += ctx.concurrencyLimit) {
     if (ctx.signal.aborted)
       throw new Error('Aborted')
+
     const currentBatches = batches.slice(j, j + ctx.concurrencyLimit)
 
     await Promise.all(currentBatches.map(async (batch) => {
@@ -256,8 +266,10 @@ async function analyzeMissingTexts(
           ctx.language,
           ctx.signal,
         )
+
         for (const result of res.results) {
           const item = itemsToAnalyze.find(it => it.id === result.id)
+
           if (item) {
             await repos.analysis.saveLocalAnalysis(item.sentence, result.analysis, ctx.language)
             syncProgress.value[doneKey]++
@@ -266,8 +278,10 @@ async function analyzeMissingTexts(
       }
       catch (e) {
         const err = e as Error
+
         if (err.name === 'AbortError' || isTokenLimitError(e))
           throw err
+
         console.error(`Analyze ${type} error:`, err)
       }
     }))
@@ -285,16 +299,19 @@ async function generateTtsForTexts(texts: string[], ctx: AnalysisContext, pageNu
   for (let j = 0; j < texts.length; j += ttsConcurrency) {
     if (ctx.signal.aborted)
       throw new Error('Aborted')
+
     const batch = texts.slice(j, j + ttsConcurrency)
 
     await Promise.all(batch.map(async (text) => {
       if (ctx.signal.aborted)
         return
+
       const normalizedText = text.trim().toLowerCase()
       const cacheKey = buildBookTtsCacheKey(ctx.bookId, voice, normalizedText)
 
       try {
         const cached = await repos.analysis.getLocalTts(cacheKey)
+
         if (!cached) {
           const res = await repos.analysis.generateTts(
             ctx.bookId,
@@ -310,8 +327,10 @@ async function generateTtsForTexts(texts: string[], ctx: AnalysisContext, pageNu
       }
       catch (e: unknown) {
         const err = e as Error
+
         if (err.name === 'AbortError' || isTokenLimitError(e))
           throw err
+
         console.error('TTS Sync error:', e)
       }
 
@@ -384,11 +403,13 @@ async function processPage(
   syncProgress.value.currentTask = `Страница ${pageNum} из ${book.totalPages}: загрузка контента`
 
   let page: PagePayload | null
+
   try {
     page = await repos.book.getPage(ctx.bookId, pageNum, true)
   }
   catch (e) {
     console.warn(`Failed to fetch page ${pageNum}`, e)
+
     if (!ctx.signal.aborted)
       syncProgress.value.pagesDone++
 
@@ -439,6 +460,7 @@ async function executeBookSync(book: SyncBook, options: typeof syncOptions.value
   await cacheBookCover(book, options.cachePages)
 
   const needAnalysis = options.analyzeSentences || options.analyzeWords
+
   if (needAnalysis) {
     await fetchAndHydrateServerCache(ctx)
   }
@@ -472,6 +494,7 @@ export async function startWholeBookSync(bookId: number, options: {
   const { useLibraryStore } = await import('../store/library.store')
   const libraryStore = useLibraryStore()
   const book = libraryStore.books.find(b => b.id === bookId) || libraryStore.currentBookInfo
+
   if (!book)
     return
 
@@ -525,12 +548,14 @@ export async function startWholeBookSync(bookId: number, options: {
   }
   catch (e) {
     const err = e as Error
+
     if (err.message === 'Aborted' || err.name === 'AbortError') {
       syncState.value = 'idle'
       syncErrorCode.value = null
     }
     else {
       syncState.value = 'error'
+
       if (isTokenLimitError(err)) {
         syncErrorCode.value = 'TOKEN_LIMIT_EXCEEDED'
         syncProgress.value.currentTask = 'Превышен лимит использования ИИ (токенов)'

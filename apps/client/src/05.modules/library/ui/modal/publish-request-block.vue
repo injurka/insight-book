@@ -21,8 +21,10 @@ const { t } = useI18n()
 const effectiveStatus = computed<'private' | 'pending' | 'public' | 'rejected'>(() => {
   if (props.isReadOnly || status.value === 'public')
     return 'public'
+
   if (status.value === 'pending')
     return 'pending'
+
   if (status.value === 'rejected')
     return 'rejected'
 

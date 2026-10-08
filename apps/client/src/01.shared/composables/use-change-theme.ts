@@ -1,7 +1,6 @@
 import { usePreferredDark, useStorage } from '@vueuse/core'
 import { useHead } from '@vueuse/head'
 import { watchEffect } from 'vue'
-import { useTracking } from '~/01.shared/composables/use-tracking'
 import { isMobileApp } from '~/01.shared/lib/env'
 import { syncSystemBarsTheme } from '~/01.shared/services/system-bars.service'
 
@@ -23,17 +22,16 @@ const themesColors: Record<ThemesVariant, string> = {
   [ThemesVariant.Oled]: '#000000',
 }
 
-const themePreference = useStorage<ThemesVariant>('app-theme', ThemesVariant.System)
+export const themePreference = useStorage<ThemesVariant>('app-theme', ThemesVariant.System)
 
 export function useChangeTheme() {
-  const { trackEvent } = useTracking()
   const preferredDark = usePreferredDark()
 
   function getActualTheme(value: ThemesVariant) {
     if (value === ThemesVariant.System)
       return preferredDark.value ? ThemesVariant.Dark : ThemesVariant.Light
 
-    return value
+    return Object.values(ThemesVariant).includes(value) ? value : ThemesVariant.Light
   }
 
   useHead({
@@ -57,7 +55,12 @@ export function useChangeTheme() {
 
   function applyTheme(value: ThemesVariant) {
     const actualTheme = getActualTheme(value)
+
+    if (typeof document === 'undefined')
+      return
+
     document.documentElement.setAttribute('data-theme', actualTheme)
+
     if (isMobileApp)
       void syncSystemBarsTheme(actualTheme === ThemesVariant.Dark || actualTheme === ThemesVariant.Oled)
   }
@@ -84,7 +87,6 @@ export function useChangeTheme() {
     const currentIndex = themeOrder.indexOf(themePreference.value)
     const nextTheme = themeOrder[(currentIndex + 1) % themeOrder.length]
     setTheme(nextTheme)
-    trackEvent('theme_changed', { theme: nextTheme })
   }
 
   return {

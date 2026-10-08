@@ -13,10 +13,6 @@ const router = useRouter()
 const route = useRoute()
 const { t } = useI18n()
 
-useHead({
-  title: computed(() => store.currentBook ? `${store.currentBook.title} — ${t('routes.reader')}` : t('routes.reader')),
-})
-
 async function initBookSession(bookId: number, page?: number) {
   if (!store.currentBook || store.currentBook.id !== bookId) {
     try {
@@ -33,9 +29,14 @@ async function initBookSession(bookId: number, page?: number) {
   highlightsStore.fetchHighlights(bookId).catch(console.error)
 
   const targetPage = page || store.currentBook.currentPage || 1
+
   if (!store.currentPage || store.currentPage.pageNum !== targetPage)
     store.loadPage(bookId, targetPage)
 }
+
+useHead({
+  title: computed(() => store.currentBook ? `${store.currentBook.title} — ${t('routes.reader')}` : t('routes.reader')),
+})
 
 onMounted(async () => {
   const bookId = Number(route.query.bookId)

@@ -14,7 +14,9 @@ export function escapeRegExp(str: string): string {
 export function highlightTextQuery(text: string | null | undefined, query: string): string {
   if (!text)
     return ''
+
   const trimmedQuery = query.trim()
+
   if (!trimmedQuery)
     return escapeHtml(text)
 

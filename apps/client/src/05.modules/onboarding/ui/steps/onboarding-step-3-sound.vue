@@ -16,6 +16,7 @@ const isSuccess = ref(false)
 function playAudio() {
   if (isAudioPlayed.value || isSuccess.value)
     return
+
   isAudioPlayed.value = true
 
   setTimeout(() => {

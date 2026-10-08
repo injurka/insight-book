@@ -3,6 +3,12 @@ import { useMouse } from '@vueuse/core'
 import { computed, ref, watch } from 'vue'
 import { useGlobalSettingsStore } from '~/01.shared/store/settings.store'
 
+interface Props {
+  text?: string
+  radius?: number
+  opacity?: number
+}
+
 const props = withDefaults(defineProps<Props>(), {
   radius: 200,
   opacity: 0.10,
@@ -64,17 +70,17 @@ const props = withDefaults(defineProps<Props>(), {
 })
 
 const settingsStore = useGlobalSettingsStore()
-
-interface Props {
-  text?: string
-  radius?: number
-  opacity?: number
-}
+const { x: mouseX, y: mouseY } = useMouse({ type: 'client' })
 
 // 1. Создаем ссылку на корневой элемент
 const bgRef = ref<HTMLElement | null>(null)
 
-const { x: mouseX, y: mouseY } = useMouse({ type: 'client' })
+// 3. Статичные стили оставляем в computed (они меняются редко)
+const staticBgStyle = computed(() => ({
+  '--reveal-radius': `${props.radius}px`,
+  '--reveal-opacity': props.opacity,
+}))
+const repeatedText = computed(() => Array.from({ length: 50 }).fill(props.text).join(' ✨ '))
 
 // 2. Обновляем CSS-переменные напрямую, МИНУЯ цикл рендера Vue
 watch([mouseX, mouseY], ([x, y]) => {
@@ -83,14 +89,6 @@ watch([mouseX, mouseY], ([x, y]) => {
     bgRef.value.style.setProperty('--mouse-y', `${y}px`)
   }
 })
-
-// 3. Статичные стили оставляем в computed (они меняются редко)
-const staticBgStyle = computed(() => ({
-  '--reveal-radius': `${props.radius}px`,
-  '--reveal-opacity': props.opacity,
-}))
-
-const repeatedText = computed(() => Array.from({ length: 50 }).fill(props.text).join(' ✨ '))
 </script>
 
 <template>

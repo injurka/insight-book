@@ -25,7 +25,10 @@ export class LexicalProfile {
   addSentence(tokens: ProfileToken[], page: number) {
     let previous: ProfileToken | undefined
     for (const token of tokens) {
-      if (!/^\p{L}[\p{L}\p{M}'’-]*$/u.test(token.word)) {
+      // Whitespace separates words but does not interrupt a collocation.
+      if (/^\s+$/u.test(token.word))
+        continue
+      if (!/^\p{L}[\p{L}\p{M}\p{N}'’・-]*$/u.test(token.word.normalize('NFKC'))) {
         previous = undefined
         continue
       }
@@ -42,7 +45,7 @@ export class LexicalProfile {
       this.record(this.words, key, token, page)
       this.addDiversity(key)
       // Adjacent adjective+noun and noun+noun pairs, never across punctuation or sentences.
-      if (previous && ['n', 'a'].includes(previous.pos) && token.pos === 'n' && !previous.entity && !token.entity && !previous.nameCandidate && !token.nameCandidate) {
+      if (previous && /^[na]/u.test(previous.pos) && token.pos.startsWith('n') && !previous.entity && !token.entity && !isNameTag(previous.pos) && !isNameTag(token.pos) && !previous.nameCandidate && !token.nameCandidate) {
         const phrase = `${normalize(previous.word)}${['zh', 'ja'].includes(this.language) ? '' : ' '}${normalize(token.word)}`
         this.record(this.phrases, phrase, { word: phrase, pos: 'phrase' }, page)
       }

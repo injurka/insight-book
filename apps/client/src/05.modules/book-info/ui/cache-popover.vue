@@ -12,6 +12,7 @@ const cacheStore = useCacheStore()
 const { t } = useI18n()
 
 const MAX_VISIBLE_RANGES = 8
+const isPagesExpanded = ref(false)
 
 const bookCacheStats = computed(() => {
   if (!cacheStore.stats || !libraryStore.currentBookInfo)
@@ -25,7 +26,6 @@ const bookCacheStats = computed(() => {
     }
   )
 })
-
 const totalPages = computed(() => libraryStore.currentBookInfo?.totalPages ?? 0)
 const cachedCount = computed(() => bookCacheStats.value?.cachedPages?.length ?? 0)
 const cachePercent = computed(() => {
@@ -35,11 +35,8 @@ const cachePercent = computed(() => {
   return Math.min(100, Math.round((cachedCount.value / totalPages.value) * 100))
 })
 const isCacheFull = computed(() => cachedCount.value >= totalPages.value)
-
 const aiCount = computed(() => libraryStore.currentBookInfo?.analysesCount ?? 0)
 const hasAi = computed(() => aiCount.value > 0)
-
-const isPagesExpanded = ref(false)
 const pageRanges = computed(() => collapsePageRanges(bookCacheStats.value?.cachedPages ?? []))
 const hasHiddenRanges = computed(() => pageRanges.value.length > MAX_VISIBLE_RANGES)
 const hiddenRangesCount = computed(() => Math.max(0, pageRanges.value.length - MAX_VISIBLE_RANGES))

@@ -9,6 +9,7 @@ type UpdateStatus = 'available' | 'downloading' | 'ready' | 'error'
 
 const appUpdateStore = useAppUpdateStore()
 const { t } = useI18n()
+
 const {
   hasUpdate,
   latestVersion,
@@ -23,25 +24,27 @@ const {
 const status = computed<UpdateStatus>(() => {
   if (downloadedFilePath.value && !isDownloading.value)
     return 'ready'
+
   if (isDownloading.value)
     return 'downloading'
+
   if (downloadError.value)
     return 'error'
 
   return 'available'
 })
-
 const statusIcon = computed(() => {
   if (status.value === 'ready')
     return 'mdi:check-circle-outline'
+
   if (status.value === 'error')
     return 'mdi:alert-circle-outline'
 
   return 'solar:download-square-bold'
 })
-
 const title = computed(() => {
   const version = latestVersion.value ?? ''
+
   switch (status.value) {
     case 'ready':
       return t('appUpdate.readyTitle')
@@ -53,9 +56,9 @@ const title = computed(() => {
       return t('appUpdate.availableTitle', { version })
   }
 })
-
 const description = computed(() => {
   const version = latestVersion.value ?? ''
+
   switch (status.value) {
     case 'ready':
       return t('appUpdate.readyDesc', { version })
@@ -67,22 +70,14 @@ const description = computed(() => {
       return t('appUpdate.availableDesc', { version })
   }
 })
-
 const showProgress = computed(() =>
   isDownloading.value || (!!downloadedFilePath.value && downloadProgress.value === 100))
-
-function formatBytes(bytes: number): string {
-  if (bytes <= 0)
-    return '0 MB'
-  const mb = bytes / (1024 * 1024)
-
-  return `${mb.toFixed(1)} MB`
-}
-
 const progressDetails = computed(() => {
   if (!isDownloading.value && !downloadedFilePath.value)
     return null
+
   const current = formatBytes(downloadedBytes.value)
+
   if (totalBytes.value && totalBytes.value > 0) {
     const total = formatBytes(totalBytes.value)
 
@@ -91,6 +86,15 @@ const progressDetails = computed(() => {
 
   return current
 })
+
+function formatBytes(bytes: number): string {
+  if (bytes <= 0)
+    return '0 MB'
+
+  const mb = bytes / (1024 * 1024)
+
+  return `${mb.toFixed(1)} MB`
+}
 </script>
 
 <template>

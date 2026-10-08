@@ -4,22 +4,6 @@ import type { Ref } from 'vue'
 import { autoUpdate, flip, offset, shift, useFloating } from '@floating-ui/vue'
 import { onClickOutside, onKeyStroke } from '@vueuse/core'
 
-const props = withDefaults(defineProps<Props>(), {
-  placement: 'bottom-start',
-  width: '220px',
-  closeOnContentClick: true,
-  disabled: false,
-  closeOnOutsideClick: true,
-  zIndex: undefined,
-  visible: undefined,
-})
-
-const emit = defineEmits<{
-  (e: 'update:visible', val: boolean): void
-}>()
-
-const modelValue = defineModel<boolean>()
-
 interface Props {
   placement?: Placement
   width?: string | number
@@ -30,12 +14,30 @@ interface Props {
   visible?: boolean
 }
 
+const props = withDefaults(defineProps<Props>(), {
+  placement: 'bottom-start',
+  width: '220px',
+  closeOnContentClick: true,
+  disabled: false,
+  closeOnOutsideClick: true,
+  zIndex: undefined,
+  visible: undefined,
+})
+const emit = defineEmits<{
+  (e: 'update:visible', val: boolean): void
+}>()
+const modelValue = defineModel<boolean>()
+
 const internalOpen = ref(false)
+const referenceRef = ref<HTMLElement | null>(null)
+const floatingRef = ref<HTMLElement | null>(null)
+const dialogZIndex = inject<Ref<number> | undefined>('kit-dialog-z-index', undefined)
 
 const isOpen = computed({
   get: () => {
     if (props.visible !== undefined)
       return props.visible
+
     if (modelValue.value !== undefined)
       return modelValue.value
 
@@ -44,16 +46,13 @@ const isOpen = computed({
   set: (val) => {
     internalOpen.value = val
     emit('update:visible', val)
+
     if (modelValue.value !== undefined)
       modelValue.value = val
   },
 })
 
-const referenceRef = ref<HTMLElement | null>(null)
-const floatingRef = ref<HTMLElement | null>(null)
-
-const dialogZIndex = inject<Ref<number> | undefined>('kit-dialog-z-index', undefined)
-const dropdownZIndex = computed(() => dialogZIndex ? dialogZIndex.value + 10 : undefined)
+defineExpose({ close: () => isOpen.value = false, open: () => isOpen.value = true })
 
 const { x, y, strategy, placement: finalPlacement } = useFloating(referenceRef, floatingRef, {
   placement: computed(() => props.placement),
@@ -66,38 +65,7 @@ const { x, y, strategy, placement: finalPlacement } = useFloating(referenceRef, 
   open: isOpen,
 })
 
-onClickOutside(floatingRef, (e) => {
-  if (!props.closeOnOutsideClick)
-    return
-  if (referenceRef.value && referenceRef.value.contains(e.target as Node))
-    return
-
-  isOpen.value = false
-}, { ignore: [referenceRef, '.kit-select-dropdown'] })
-
-onKeyStroke('Escape', (e) => {
-  if (!props.closeOnOutsideClick)
-    return
-  if (isOpen.value) {
-    e.preventDefault()
-    isOpen.value = false
-  }
-})
-
-function toggle() {
-  if (props.disabled)
-    return
-  isOpen.value = !isOpen.value
-}
-
-function handleContentClick(e: MouseEvent) {
-  if ((e.target as HTMLElement).closest('.kit-select-wrapper'))
-    return
-
-  if (props.closeOnContentClick)
-    isOpen.value = false
-}
-
+const dropdownZIndex = computed(() => dialogZIndex ? dialogZIndex.value + 10 : undefined)
 const contentStyle = computed(() => {
   const isPositioned = x.value != null && y.value != null
 
@@ -111,7 +79,38 @@ const contentStyle = computed(() => {
   }
 })
 
-defineExpose({ close: () => isOpen.value = false, open: () => isOpen.value = true })
+function toggle() {
+  if (props.disabled)
+    return
+
+  isOpen.value = !isOpen.value
+}
+function handleContentClick(e: MouseEvent) {
+  if ((e.target as HTMLElement).closest('.kit-select-wrapper'))
+    return
+
+  if (props.closeOnContentClick)
+    isOpen.value = false
+}
+
+onClickOutside(floatingRef, (e) => {
+  if (!props.closeOnOutsideClick)
+    return
+
+  if (referenceRef.value && referenceRef.value.contains(e.target as Node))
+    return
+
+  isOpen.value = false
+}, { ignore: [referenceRef, '.kit-select-dropdown'] })
+onKeyStroke('Escape', (e) => {
+  if (!props.closeOnOutsideClick)
+    return
+
+  if (isOpen.value) {
+    e.preventDefault()
+    isOpen.value = false
+  }
+})
 
 onUnmounted(() => {
   isOpen.value = false

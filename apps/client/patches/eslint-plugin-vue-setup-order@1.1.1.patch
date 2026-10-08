@@ -1,0 +1,103 @@
+diff --git a/dist/index.js b/dist/index.js
+--- a/dist/index.js
++++ b/dist/index.js
+@@ -111,8 +111,12 @@
+     result.category = "types";
+     return result;
+   }
++  if (statement.type === "ExportNamedDeclaration" && statement.declaration) {
++    const analyzed = analyzeStatement(statement.declaration, sourceCode, orderConfig);
++    return { ...analyzed, node: statement };
++  }
+   if (statement.type === "ExportNamedDeclaration" || statement.type === "ExportDefaultDeclaration" || statement.type === "ExportAllDeclaration") {
+-    return null;
++    return result;
+   }
+   if (statement.type === "VariableDeclaration") {
+     const declaration = statement.declarations[0];
+@@ -220,6 +224,42 @@
+     lastOrder = statement.order;
+   }
+   return parts.join("\n");
++}
++
++// Keep declarations before their consumers, even across category boundaries.
++function sortByDependencies(statements, sourceCode) {
++  const byNode = new Map(statements.map(statement => [statement.node, statement]));
++  const dependencies = new Map(statements.map(statement => [statement, new Set()]));
++  const topLevelStatement = node => {
++    while (node && !byNode.has(node)) node = node.parent;
++    return byNode.get(node);
++  };
++  for (const scope of sourceCode.scopeManager.scopes) {
++    for (const variable of scope.variables) {
++      for (const definition of variable.defs) {
++        const declaration = topLevelStatement(definition.node);
++        if (!declaration || declaration.node.type === "FunctionDeclaration") continue;
++        for (const reference of variable.references) {
++          const consumer = topLevelStatement(reference.identifier);
++          if (consumer && consumer !== declaration && consumer.node.type !== "FunctionDeclaration") {
++            dependencies.get(consumer).add(declaration);
++          }
++        }
++      }
++    }
++  }
++  const pending = [...statements].sort((a, b) => a.order - b.order);
++  const sorted = [];
++  const emitted = new Set();
++  while (pending.length) {
++    const index = pending.findIndex(statement => [...dependencies.get(statement)].every(dependency => emitted.has(dependency)));
++    // Cyclic declarations cannot be safely reordered.
++    if (index === -1) return statements;
++    const [statement] = pending.splice(index, 1);
++    sorted.push(statement);
++    emitted.add(statement);
++  }
++  return sorted;
+ }
+
+ // src/rules/order.ts
+@@ -257,7 +297,7 @@
+   },
+   create(context) {
+     const sourceCode = context.sourceCode ?? context.getSourceCode();
+-    const filename = context.getFilename();
++    const filename = context.filename ?? (typeof context.getFilename === 'function' ? context.getFilename() : "");
+     const isVue = filename.endsWith(".vue");
+     const options = context.options[0] || {};
+     const groupBlankLines = false !== options.groupBlankLines;
+@@ -303,16 +343,10 @@
+           }
+         }
+         if (statements.length < 2) return;
+-        let firstError = null;
+-        for (let i = 1; i < statements.length; i++) {
+-          const prev = statements[i - 1];
+-          const curr = statements[i];
+-          if (curr.order < prev.order) {
+-            firstError = { index: i, current: curr, previous: prev };
+-            break;
+-          }
+-        }
+-        if (!firstError) return;
++        const sorted = sortByDependencies(statements, sourceCode);
++        const firstDifference = statements.findIndex((statement, index) => statement !== sorted[index]);
++        if (firstDifference === -1) return;
++        const firstError = { current: sorted[firstDifference], previous: statements[firstDifference] };
+         context.report({
+           node: firstError.current.node,
+           messageId: "wrongOrder",
+@@ -323,12 +357,6 @@
+             previousCategory: ORDER_NAMES[firstError.previous.order] || "unknown"
+           },
+           fix(fixer) {
+-            const sorted = [...statements].sort((a, b) => {
+-              if (a.order !== b.order) {
+-                return a.order - b.order;
+-              }
+-              return statements.indexOf(a) - statements.indexOf(b);
+-            });
+             const newCode = generateSortedCode(sorted, sourceCode, groupBlankLines);
+             const firstRange = getFullRange(statements[0].node, sourceCode);
+             const lastRange = getFullRange(statements[statements.length - 1].node, sourceCode);

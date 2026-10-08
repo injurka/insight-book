@@ -41,6 +41,7 @@ export interface IBookRepository {
 export class DefaultBookRepository implements IBookRepository {
   async list(): Promise<Book[]> {
     const authStore = useAuthStore()
+
     if (!authStore.user && !authStore.isSingleMode)
       return []
 
@@ -82,8 +83,10 @@ export class DefaultBookRepository implements IBookRepository {
         throw error
 
       const offlineData = await offlineService.getBookInfo(id)
+
       if (offlineData)
         return applyAcl(BookSchema, offlineData, `book.getInfo(${id}) [offline]`)
+
       throw error
     }
   }
@@ -145,8 +148,10 @@ export class DefaultBookRepository implements IBookRepository {
         throw error
 
       const offlineData = await offlineService.getToc(id)
+
       if (offlineData)
         return applyAcl(z.array(TocItemSchema), offlineData, `book.getToc(${id}) [offline]`)
+
       throw error
     }
   }
@@ -159,6 +164,7 @@ export class DefaultBookRepository implements IBookRepository {
     if (!isOffline || isSync) {
       try {
         const data = await api.books.getPage(id, num, isSync)
+
         if (data)
           await offlineService.savePage(id, num, data).catch(() => { })
 
@@ -167,12 +173,14 @@ export class DefaultBookRepository implements IBookRepository {
       catch (error) {
         if (!canUseOfflineFallback(error))
           throw error
+
         networkError = error
       }
     }
 
     try {
       const cached = await offlineService.getPage(id, num)
+
       if (cached)
         return cached
     }
@@ -190,6 +198,7 @@ export class DefaultBookRepository implements IBookRepository {
       return null
 
     const data = await api.books.getPage(id, num, isSync)
+
     if (data)
       await offlineService.savePage(id, num, data).catch(() => { })
 
@@ -212,12 +221,14 @@ export class DefaultBookRepository implements IBookRepository {
       catch (error) {
         if (!canUseOfflineFallback(error))
           throw error
+
         networkError = error
       }
     }
 
     try {
       const cached = await offlineService.getPageDictionary(id, num)
+
       if (cached)
         return cached
     }

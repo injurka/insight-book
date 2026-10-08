@@ -1,6 +1,5 @@
 import type { Book, PageDictEntry, PagePayload, TocItem } from '~/01.shared/types/models'
 import { useQuery } from '@pinia/colada'
-
 import { computed, onScopeDispose, ref, shallowRef, watch } from 'vue'
 import { useRepos } from '~/00.plugins/di'
 import { i18n } from '~/00.plugins/i18n'
@@ -55,6 +54,7 @@ export const useReaderStore = defineStore('reader', () => {
     key: () => scopedQueryKey(queryKeys.toc(tocBookId.value)),
     query: async () => {
       const id = tocBookId.value
+
       if (!id)
         return []
 
@@ -87,6 +87,7 @@ export const useReaderStore = defineStore('reader', () => {
 
   watch(() => useGlobalSettingsStore().autoAnalyzePage, (isActive) => {
     const analysisStore = useAnalysisStore()
+
     if (isActive) {
       if (currentPage.value && !analysisStore.isManualPageAnalysisActive && !analysisStore.isAutoPageAnalysisActive) {
         const settingsStore = useGlobalSettingsStore()
@@ -110,6 +111,7 @@ export const useReaderStore = defineStore('reader', () => {
 
   async function fetchToc(bookId: number) {
     tocBookId.value = bookId
+
     try {
       await refetchTocQuery()
       lastTocBookId = bookId
@@ -139,6 +141,7 @@ export const useReaderStore = defineStore('reader', () => {
     }
     finally {
       progressRequest = null
+
       if (pendingProgress)
         void flushReadingProgress()
     }
@@ -175,6 +178,7 @@ export const useReaderStore = defineStore('reader', () => {
 
       autoAnalysisTimer = setTimeout(() => {
         autoAnalysisTimer = null
+
         if (
           !settingsStore.autoAnalyzePage
           || analysisStore.isManualPageAnalysisActive
@@ -206,6 +210,7 @@ export const useReaderStore = defineStore('reader', () => {
   async function resolveMangaImage(page: PagePayload) {
     if (page.type === 'manga' && page.imageUrl) {
       const cachedBlob = await repos.book.getLocalImage(Number(page.bookId), Number(page.pageNum))
+
       if (cachedBlob) {
         revokeActiveMangaBlobUrl()
         activeMangaBlobUrl = URL.createObjectURL(cachedBlob)
@@ -317,6 +322,7 @@ export const useReaderStore = defineStore('reader', () => {
   onScopeDispose(() => {
     if (progressTimer)
       clearTimeout(progressTimer)
+
     pageDictionaryController?.abort()
   })
 
@@ -351,6 +357,7 @@ export const useReaderStore = defineStore('reader', () => {
         await libraryStore.fetchBooks()
 
       const book = libraryStore.books.find(b => b.id === id)
+
       if (!book)
         throw new Error(i18n.global.t('dictionary.bookNotFoundError'))
 

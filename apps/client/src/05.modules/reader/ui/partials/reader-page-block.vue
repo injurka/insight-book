@@ -19,7 +19,6 @@ interface Props {
 const props = withDefaults(defineProps<Props>(), {
   showPageDivider: false,
 })
-
 const emit = defineEmits<{
   wordClick: [e: MouseEvent]
   pointerDown: [e: MouseEvent | TouchEvent]
@@ -33,6 +32,8 @@ const { t } = useI18n()
 const settingsStore = useGlobalSettingsStore()
 const analysisStore = useAnalysisStore()
 const blockRef = useTemplateRef<HTMLElement>('blockRef')
+const { leftPaneContent, translatedPageContent, pageTranslationProgress } = useReaderContent(() => props.page)
+
 const contentLayoutStyle = computed(() => {
   const widthPercent = settingsStore.readerContentWidthPercent
   const baseWidth = props.isParallelView ? 1600 : 800
@@ -43,7 +44,6 @@ const contentLayoutStyle = computed(() => {
   }
 })
 
-const { leftPaneContent, translatedPageContent, pageTranslationProgress } = useReaderContent(() => props.page)
 useQuoteHighlights(blockRef, [leftPaneContent, translatedPageContent], () => props.page.pageNum)
 </script>
 

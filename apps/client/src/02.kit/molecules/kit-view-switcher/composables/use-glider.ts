@@ -13,10 +13,12 @@ export function useGlider(switcherRef: Ref<HTMLElement | null>) {
 
   function updatePosition() {
     const switcherEl = switcherRef.value
+
     if (!switcherEl)
       return
 
     const activeBtn = switcherEl.querySelector('.kit-view-switcher-button.is-active') as HTMLElement
+
     if (!activeBtn) {
       gliderStyle.value.opacity = 0
 
@@ -27,6 +29,7 @@ export function useGlider(switcherRef: Ref<HTMLElement | null>) {
     const buttonRect = activeBtn.getBoundingClientRect()
 
     const width = buttonRect.width
+
     if (width === 0)
       return
 
@@ -41,6 +44,7 @@ export function useGlider(switcherRef: Ref<HTMLElement | null>) {
     if (currentActiveBtn !== activeBtn) {
       if (observer)
         observer.disconnect()
+
       currentActiveBtn = activeBtn
 
       if (typeof ResizeObserver !== 'undefined') {
@@ -49,6 +53,7 @@ export function useGlider(switcherRef: Ref<HTMLElement | null>) {
             const newSwitcherRect = switcherEl.getBoundingClientRect()
             const newBtnRect = currentActiveBtn.getBoundingClientRect()
             const newWidth = newBtnRect.width
+
             if (newWidth > 0) {
               const newOffset = newBtnRect.left - newSwitcherRect.left - switcherEl.clientLeft - 4
               gliderStyle.value = {

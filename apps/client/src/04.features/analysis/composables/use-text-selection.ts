@@ -11,6 +11,7 @@ function isValidWordTarget(
 ): boolean {
   if (!word || !pos || pos === 'x')
     return false
+
   if (Number.isNaN(sentenceId) || Number.isNaN(tokenIndex))
     return false
 
@@ -19,6 +20,7 @@ function isValidWordTarget(
 
 function clearSelectionRanges() {
   const sel = window.getSelection()
+
   if (sel) {
     if (sel.removeAllRanges)
       sel.removeAllRanges()
@@ -89,6 +91,7 @@ export function useTextSelection() {
       const moveCoords = getClientCoords(e as MouseEvent | TouchEvent)
       const dx = Math.abs(moveCoords.x - pressOriginX)
       const dy = Math.abs(moveCoords.y - pressOriginY)
+
       if (dx > 10 || dy > 10)
         clearPressTimer()
     }
@@ -118,6 +121,7 @@ export function useTextSelection() {
     clearPressTimer()
 
     const targetEl = event.target as HTMLElement | null
+
     if (shouldIgnorePointerDown(targetEl))
       return
 
@@ -131,6 +135,7 @@ export function useTextSelection() {
 
     selectionChangeListener = () => {
       const selection = window.getSelection()
+
       if (selection && selection.toString().trim().length > 0)
         clearPressTimer()
     }
@@ -139,10 +144,12 @@ export function useTextSelection() {
 
     pressTimer = setTimeout(() => {
       const selection = window.getSelection()
+
       if (selection && selection.toString().trim().length > 0)
         return
 
       let context = ''
+
       if (target) {
         const prev = target.previousElementSibling?.textContent || ''
         const next = target.nextElementSibling?.textContent || ''
@@ -169,12 +176,14 @@ export function useTextSelection() {
 
   function handleTtsBtnClick(event: MouseEvent, targetEl: HTMLElement): boolean {
     const ttsBtn = targetEl.closest('.sentence-tts-btn') as HTMLElement | null
+
     if (!ttsBtn)
       return false
 
     event.stopPropagation()
     event.preventDefault()
     const text = safeDecodeURIComponent(ttsBtn.dataset.ttsText || '')
+
     if (!text)
       return true
 
@@ -199,6 +208,7 @@ export function useTextSelection() {
         return
 
       ttsBtn.classList.remove('is-playing')
+
       if (prevBtn && prevBtn.isConnected && isPlaying.value) {
         prevBtn.classList.add('is-playing')
         currentPlayingBtn = prevBtn
@@ -213,6 +223,7 @@ export function useTextSelection() {
 
   function handleTranslationBlurClick(event: MouseEvent, targetEl: HTMLElement): boolean {
     const translationSpan = targetEl.closest('.interleaved-translation, .split-translation') as HTMLElement | null
+
     if (!translationSpan)
       return false
 
@@ -228,10 +239,12 @@ export function useTextSelection() {
 
   function handleGrammarBadgeClick(event: MouseEvent, targetEl: HTMLElement): boolean {
     const grammarBadge = targetEl.closest('.grammar-rule-badge') as HTMLElement | null
+
     if (!grammarBadge)
       return false
 
     const translationSpan = grammarBadge.closest('.interleaved-translation, .split-translation')
+
     if (translationSpan && translationSpan.classList.contains('is-blurred')) {
       event.stopPropagation()
 
@@ -256,6 +269,7 @@ export function useTextSelection() {
     clearPressTimer()
 
     const targetEl = event.target as HTMLElement
+
     if (
       handleTtsBtnClick(event, targetEl)
       || handleTranslationBlurClick(event, targetEl)
@@ -265,6 +279,7 @@ export function useTextSelection() {
     }
 
     const target = targetEl.closest('.word') as HTMLElement | null
+
     if (!target)
       return
 

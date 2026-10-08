@@ -68,6 +68,7 @@ export class DefaultAnalysisRepository implements IAnalysisRepository {
       // Source language is part of the offline cache identity. Omitting it
       // lets the same text in another language reuse the wrong translation.
       const cached = await offlineService.getAnalysis(text, language)
+
       if (cached)
         return applyAcl(LlmAnalysisSchema, cached, 'analysis.analyze() [offline]')
     }
@@ -129,6 +130,7 @@ export class DefaultAnalysisRepository implements IAnalysisRepository {
 
   async getLocalAnalysis(text: string, language?: string) {
     const cached = await offlineService.getAnalysis(text, language)
+
     if (!cached)
       return cached
 

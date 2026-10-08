@@ -13,6 +13,7 @@ export function useDictWordExamples() {
   async function generateExamples(word: string, language: string) {
     isAiLoading.value = true
     aiData.value = null
+
     try {
       aiData.value = await repos.dictionary.generateExamples(word, language)
     }

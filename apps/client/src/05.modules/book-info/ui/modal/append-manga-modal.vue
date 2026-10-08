@@ -10,6 +10,7 @@ import { KitDialog } from '~/02.kit/organisms/kit-dialog/ui'
 import { useLibraryStore } from '~/05.modules/library/store/library.store'
 
 const visible = defineModel<boolean>('visible', { required: true })
+
 const store = useLibraryStore()
 const toast = useToast()
 const networkStore = useNetworkStore()
@@ -19,14 +20,14 @@ const isUploading = ref(false)
 const chapterTitle = ref('')
 const selectedFiles = ref<File[]>([])
 
+const canSubmit = computed(() => selectedFiles.value.length > 0)
+
 function onFilesChange(e: Event) {
   const target = e.target as HTMLInputElement
+
   if (target.files && target.files.length > 0)
     selectedFiles.value = Array.from(target.files).sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }))
 }
-
-const canSubmit = computed(() => selectedFiles.value.length > 0)
-
 async function submit() {
   if (networkStore.effectiveOffline) {
     toast.warn(t('network.needOnline'))
@@ -38,6 +39,7 @@ async function submit() {
     return
 
   isUploading.value = true
+
   try {
     await store.uploadMangaChapter(store.currentBookInfo.id, chapterTitle.value, selectedFiles.value)
     toast.success(`Успешно добавлено ${selectedFiles.value.length} страниц`)

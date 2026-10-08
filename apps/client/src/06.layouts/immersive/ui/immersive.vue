@@ -19,6 +19,7 @@ onMounted(() => {
   void setImmersiveMode(true)
 
   const orientation = route.meta.orientation
+
   if (orientation === 'landscape' || orientation === 'portrait') {
     orientationLocked = true
     void setScreenOrientation(orientation)

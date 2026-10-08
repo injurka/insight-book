@@ -31,6 +31,7 @@ export function useReaderContent(pageSource?: Ref<PagePayload | null | undefined
 
   const translationMap = computed(() => {
     const map: Record<string, LlmAnalysis> = {}
+
     for (const item of analysisStore.analysisHistory)
       map[item.sentence] = item.analysis
 
@@ -49,6 +50,7 @@ export function useReaderContent(pageSource?: Ref<PagePayload | null | undefined
   function buildGrammarHtml(rules?: { pattern?: string, explanation?: string, example?: string }[]): string {
     if (!settingsStore.parallelShowGrammar || !rules || rules.length === 0)
       return ''
+
     const badges = rules.map((rule) => {
       const patternEscaped = encodeURIComponent(rule.pattern || '')
       const explanationEscaped = encodeURIComponent(rule.explanation || '')
@@ -91,6 +93,7 @@ export function useReaderContent(pageSource?: Ref<PagePayload | null | undefined
   ) {
     if (map[rawSent]) {
       const analysisObj = map[rawSent]
+
       if (translatedSentIds.has(sentId)) {
         span.innerHTML = '';
         (span as HTMLElement).style.display = 'none'
@@ -139,6 +142,7 @@ export function useReaderContent(pageSource?: Ref<PagePayload | null | undefined
   const leftPaneContent = computed(() => {
     if (!safePageContent.value)
       return ''
+
     const parser = new DOMParser()
     const doc = parser.parseFromString(safePageContent.value, 'text/html')
     applyTranslations(doc, translationMap.value, 'left')
@@ -149,6 +153,7 @@ export function useReaderContent(pageSource?: Ref<PagePayload | null | undefined
   const translatedPageContent = computed(() => {
     if (!safePageContent.value || !readerStore.isParallelView)
       return ''
+
     const parser = new DOMParser()
     const doc = parser.parseFromString(safePageContent.value, 'text/html')
     applyTranslations(doc, translationMap.value, 'right')
@@ -165,6 +170,7 @@ export function useReaderContent(pageSource?: Ref<PagePayload | null | undefined
 
     return currentPage.value.ocrBlocks.map((box) => {
       let resultHtml = ''
+
       if (box.html) {
         const doc = parser.parseFromString(box.html, 'text/html')
         applyTranslations(doc, map, 'right')
@@ -186,20 +192,17 @@ export function useReaderContent(pageSource?: Ref<PagePayload | null | undefined
     if (!safePageContent.value)
       return { total: 0, translated: 0, percentage: 0, isFullyTranslated: false }
 
-    const sentRegex = /data-raw-sent="([^"]+)"/g
-    let match
-    let total = 0
-    let translated = 0
-    const map = translationMap.value
+    const doc = new DOMParser().parseFromString(safePageContent.value, 'text/html')
+    const sentences = new Map<string, string>()
+    doc.querySelectorAll('.sentence[data-raw-sent]').forEach((span, index) => {
+      const rawSent = safeDecodeURIComponent(span.getAttribute('data-raw-sent') || '')
 
-    // eslint-disable-next-line no-cond-assign
-    while ((match = sentRegex.exec(safePageContent.value)) !== null) {
-      total++
-      const rawSent = safeDecodeURIComponent(match[1])
-      if (map[rawSent]) {
-        translated++
-      }
-    }
+      if (rawSent)
+        sentences.set(span.getAttribute('data-sent-id') || `fragment-${index}`, rawSent)
+    })
+    const total = sentences.size
+    const map = translationMap.value
+    const translated = [...sentences.values()].filter(sentence => map[sentence]).length
 
     if (total === 0)
       return { total: 0, translated: 0, percentage: 100, isFullyTranslated: true }

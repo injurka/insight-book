@@ -21,6 +21,7 @@
 
     loaded = true
     observer?.disconnect()
+
     for (const weight of ['regular', 'medium', 'semibold']) {
       const link = document.createElement('link')
       link.rel = 'stylesheet'
@@ -47,6 +48,7 @@
 
     const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT)
     let node = walker.nextNode()
+
     while (node) {
       if (hasCJK(node.textContent)) {
         loadCjkCss()

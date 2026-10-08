@@ -3,7 +3,6 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { defineComponent, h } from 'vue'
 import { createMemoryHistory, createRouter } from 'vue-router'
 import { request } from '~/01.shared/services/api.service'
-
 import { usePluginManager } from './plugin-manager'
 
 const { mockLoadRemote, mockRegisterRemotes, mockInit } = vi.hoisted(() => ({
@@ -259,6 +258,7 @@ describe('usePluginManager - install', () => {
       activate(ctx: InsightBookPluginContext) {
         ctx.addNavigationItem({ title: 'Scroll study', routeName: 'plugin-test-plugin-index' })
         ctx.registerUIWidget('reader:header-actions', 'scroll-widget', createTestComponent('Scroll'))
+
         if (shouldFail)
           throw new Error('activation failed after registration')
       },

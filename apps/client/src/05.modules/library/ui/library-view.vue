@@ -14,18 +14,12 @@ import { KitHoverRevealBg } from '~/02.kit/atoms/kit-hover-reveal-bg/ui'
 import { KitPrompt } from '~/02.kit/organisms/kit-prompt/ui'
 import { useLibraryDisplay } from '../composables/use-library-display'
 import { useLibraryStore } from '../store/library.store'
-
 import LibraryHeader from './library-header.vue'
-
 // Подкомпоненты
 import LibraryPersonalGroups from './partials/library-personal-groups.vue'
 import LibraryPublicCatalog from './partials/library-public-catalog.vue'
 import LibrarySidebar from './partials/library-sidebar.vue'
 import LibrarySkeletonGrid from './partials/library-skeleton-grid.vue'
-
-// Модалки
-const EditBookModal = lazyComponent(() => import('./modal/edit-book-modal.vue'))
-const UploadBookModal = lazyComponent(() => import('./modal/upload-book-modal.vue'))
 
 const store = useLibraryStore()
 const authStore = useAuthStore()
@@ -33,7 +27,6 @@ const settingsStore = useGlobalSettingsStore()
 const router = useRouter()
 const toast = useToast()
 const { t } = useI18n()
-
 const {
   searchQuery,
   selectedLang,
@@ -43,27 +36,31 @@ const {
   displayGroups,
 } = useLibraryDisplay()
 
+// Модалки
+const EditBookModal = lazyComponent(() => import('./modal/edit-book-modal.vue'))
+const UploadBookModal = lazyComponent(() => import('./modal/upload-book-modal.vue'))
 const editModalOpen = ref(false)
 const selectedBookToEdit = ref<Book | null>(null)
-
 const isHidePromptOpen = ref(false)
 const bookToHideId = ref<number | null>(null)
 const isMobileMenuOpen = ref(false)
 const isUploadModalOpen = ref(false)
-
 const publicTagFilter = ref('all')
+// --- Поллинг статуса обработки книг ---
+let pollInterval: ReturnType<typeof setInterval> | null = null
+let initialAuthResolved = false
+
 const tagOptions = computed(() => {
   const opts = [{ label: t('library.allTags'), value: 'all' }]
+
   for (const [key, val] of Object.entries(BOOK_TAGS))
     opts.push({ label: val[settingsStore.appLanguage as keyof typeof val] || val.en, value: key })
 
   return opts
 })
-
 const isAuthBootstrapLoading = computed(() => {
   return authStore.isAuthRefreshing && !authStore.user && !authStore.isSingleMode
 })
-
 const isInitialLoading = computed(() => {
   return (isAuthBootstrapLoading.value || !store.isInitialized || store.isLoading)
     && (!store.books.length && !store.publicBooks.length)
@@ -71,34 +68,9 @@ const isInitialLoading = computed(() => {
 
 const showInitialSkeleton = useDelayedLoading(isInitialLoading)
 
-function loadPublic(page: number, append = false) {
-  store.fetchPublicBooks(
-    page,
-    publicTagFilter.value === 'all' ? undefined : publicTagFilter.value,
-    searchQuery.value,
-    selectedLang.value === 'all' ? undefined : selectedLang.value,
-    append,
-  )
-}
-
-function loadMorePublic() {
-  if (store.publicHasMore)
-    loadPublic(store.publicPage + 1, true)
-}
-
-watch([searchQuery, selectedLang, publicTagFilter], () => {
-  if (currentView.value === 'public-catalog')
-    loadPublic(1)
-})
-
-watch(currentView, (val) => {
-  activeFolder.value = null
-  if (val === 'public-catalog' && store.publicBooks.length === 0)
-    loadPublic(1)
-})
-
 const menuItems = computed(() => {
   const items = []
+
   if (authStore.user || authStore.isSingleMode) {
     items.push({ id: 'reading-now', label: t('library.menuReadingNow'), icon: 'mdi:book-open-page-variant-outline' })
     items.push({ id: 'books', label: t('library.menuBooks'), icon: 'mdi:book-open-blank-variant' })
@@ -116,10 +88,40 @@ const menuItems = computed(() => {
   return items
 })
 
+watch([searchQuery, selectedLang, publicTagFilter], () => {
+  if (currentView.value === 'public-catalog')
+    loadPublic(1)
+})
+watch(currentView, (val) => {
+  activeFolder.value = null
+
+  if (val === 'public-catalog' && store.publicBooks.length === 0)
+    loadPublic(1)
+})
+watch(() => store.books, () => {
+  setupPolling()
+}, { deep: true })
+watch(() => authStore.isAuthRefreshing, (isRefreshing) => {
+  if (!isRefreshing)
+    resolveInitialView()
+}, { immediate: true })
+
+function loadPublic(page: number, append = false) {
+  store.fetchPublicBooks(
+    page,
+    publicTagFilter.value === 'all' ? undefined : publicTagFilter.value,
+    searchQuery.value,
+    selectedLang.value === 'all' ? undefined : selectedLang.value,
+    append,
+  )
+}
+function loadMorePublic() {
+  if (store.publicHasMore)
+    loadPublic(store.publicPage + 1, true)
+}
 function openBookInfo(book: Book) {
   router.push(AppRoutePaths.Book.Info(book.id))
 }
-
 function openEditModal(book: Book) {
   if (book.userId !== authStore.user?.id) {
     bookToHideId.value = book.id
@@ -131,13 +133,12 @@ function openEditModal(book: Book) {
   selectedBookToEdit.value = book
   editModalOpen.value = true
 }
-
 function onConfirmHideBook() {
   if (bookToHideId.value)
     handleDeleteBook(bookToHideId.value)
+
   bookToHideId.value = null
 }
-
 async function handleSaveEdit({ bookData, coverFile }: { bookData: Partial<Book>, coverFile: File | null }) {
   try {
     if (coverFile) {
@@ -153,17 +154,11 @@ async function handleSaveEdit({ bookData, coverFile }: { bookData: Partial<Book>
     toast.error(e instanceof Error ? e.message : t('library.updateError'))
   }
 }
-
 async function handleDeleteBook(id: number) {
   await store.deleteBook(id)
   editModalOpen.value = false
   toast.success(t('library.bookDeleted'))
 }
-
-// --- Поллинг статуса обработки книг ---
-let pollInterval: ReturnType<typeof setInterval> | null = null
-let initialAuthResolved = false
-
 function setupPolling() {
   if (pollInterval)
     clearInterval(pollInterval)
@@ -171,6 +166,7 @@ function setupPolling() {
   if (store.books.some(b => b.processStatus === 'processing')) {
     pollInterval = setInterval(async () => {
       await store.fetchBooks()
+
       if (!store.books.some(b => b.processStatus === 'processing')) {
         clearInterval(pollInterval!)
         pollInterval = null
@@ -178,11 +174,6 @@ function setupPolling() {
     }, 3000)
   }
 }
-
-watch(() => store.books, () => {
-  setupPolling()
-}, { deep: true })
-
 function resolveInitialView() {
   if (initialAuthResolved || authStore.isAuthRefreshing)
     return
@@ -200,18 +191,12 @@ function resolveInitialView() {
   }
 }
 
-watch(() => authStore.isAuthRefreshing, (isRefreshing) => {
-  if (!isRefreshing)
-    resolveInitialView()
-}, { immediate: true })
-
 onMounted(() => {
   // Прогреваем чанк страницы книги, чтобы первый переход не ждал загрузки модуля.
   void import('~/07.views/book.vue')
 
   resolveInitialView()
 })
-
 onUnmounted(() => {
   if (pollInterval)
     clearInterval(pollInterval)

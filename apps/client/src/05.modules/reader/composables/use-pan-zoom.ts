@@ -43,6 +43,7 @@ export function usePanZoom(containerRef: Ref<HTMLElement | null>, wrapperRef: Re
       }
 
       scale.value = newScale
+
       if (scale.value === 1) {
         panX.value = 0
         panY.value = 0
@@ -213,8 +214,10 @@ export function usePanZoom(containerRef: Ref<HTMLElement | null>, wrapperRef: Re
   watch(containerRef, (el, oldEl) => {
     if (oldEl)
       detachListeners(oldEl)
+
     if (el)
       attachListeners(el)
+
     attachedEl = el ?? null
   })
 

@@ -4,7 +4,6 @@ import { Icon } from '@iconify/vue'
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useTts } from '~/01.shared/composables/use-tts'
-
 import { KitBtn } from '~/02.kit/atoms/kit-btn/ui'
 import { KitDialog } from '~/02.kit/organisms/kit-dialog/ui'
 
@@ -16,7 +15,6 @@ interface Props {
 }
 
 const props = defineProps<Props>()
-
 const emit = defineEmits<{
   'update:visible': [value: boolean]
   'next': []
@@ -31,8 +29,22 @@ const poolWords = ref<WordToken[]>([])
 const isSuccess = ref(false)
 const hasError = ref(false)
 
+const isCorrect = computed(() => {
+  if (selectedWords.value.length !== allWords.value.length)
+    return false
+
+  const currentText = selectedWords.value.map(w => w.text).join('').toLowerCase()
+  const targetText = allWords.value.map(w => w.text).join('').toLowerCase()
+
+  return currentText === targetText
+})
+
+watch(() => props.visible, initPractice)
+watch(() => props.quoteText, initPractice)
+
 function shuffle<T>(array: T[]): T[] {
   const arr = [...array]
+
   for (let i = arr.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1))
     ;[arr[i], arr[j]] = [arr[j], arr[i]]
@@ -40,7 +52,6 @@ function shuffle<T>(array: T[]): T[] {
 
   return arr
 }
-
 function initPractice() {
   if (props.visible && props.quoteText) {
     isSuccess.value = false
@@ -58,23 +69,11 @@ function initPractice() {
     poolWords.value = shuffle(words)
   }
 }
-
-watch(() => props.visible, initPractice)
-watch(() => props.quoteText, initPractice)
-
-const isCorrect = computed(() => {
-  if (selectedWords.value.length !== allWords.value.length)
-    return false
-  const currentText = selectedWords.value.map(w => w.text).join('').toLowerCase()
-  const targetText = allWords.value.map(w => w.text).join('').toLowerCase()
-
-  return currentText === targetText
-})
-
 function handleCheck() {
   if (isCorrect.value) {
     isSuccess.value = true
     hasError.value = false
+
     if (props.bookLanguage) {
       setTimeout(() => {
         tts.speak(props.quoteText, props.bookLanguage)
@@ -85,23 +84,22 @@ function handleCheck() {
     hasError.value = true
   }
 }
-
 function selectWord(word: WordToken) {
   if (isSuccess.value)
     return
+
   hasError.value = false
   poolWords.value = poolWords.value.filter(w => w.id !== word.id)
   selectedWords.value.push(word)
 }
-
 function removeWord(word: WordToken) {
   if (isSuccess.value)
     return
+
   hasError.value = false
   selectedWords.value = selectedWords.value.filter(w => w.id !== word.id)
   poolWords.value.push(word)
 }
-
 function handleReset() {
   selectedWords.value = []
   poolWords.value = shuffle(allWords.value)

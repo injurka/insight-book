@@ -10,7 +10,6 @@ import { useCacheStore } from '~/01.shared/store/cache.store'
 import { KitBtn } from '~/02.kit/atoms/kit-btn/ui'
 import { KitHoverRevealBg } from '~/02.kit/atoms/kit-hover-reveal-bg/ui'
 import { KitTabs } from '~/02.kit/molecules/kit-tabs/ui'
-
 import SettingsAccountPanel from './panels/settings-account-panel.vue'
 import SettingsAiPanel from './panels/settings-ai-panel.vue'
 import SettingsBooksCachePanel from './panels/settings-books-cache-panel.vue'
@@ -50,6 +49,7 @@ onMounted(() => {
 
   if (route.query.oauth_success) {
     const successKey = String(route.query.oauth_success)
+
     if (successKey === 'yandex_linked') {
       toast.success(t('settings.yandexLinkedSuccess', 'Аккаунт Яндекс успешно привязан!'))
     }

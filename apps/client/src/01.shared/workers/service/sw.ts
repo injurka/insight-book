@@ -101,10 +101,12 @@ registerRoute(options => isScriptOrStyle(options) && AssetAnalyzer.getAssetType(
 // --- SPA НАВИГАЦИЯ ---
 
 let allowlist: undefined | RegExp[]
+
 if (import.meta.env.DEV)
   allowlist = [/^\/$/]
 
 let denylist: undefined | RegExp[]
+
 if (import.meta.env.PROD) {
   denylist = [
     /^\/api\//,
@@ -127,12 +129,14 @@ self.addEventListener('message', async (event) => {
   const port = event.ports[0]
 
   const handler = messageHandlers[type]
+
   if (handler) {
     try {
       await handler(port, payload)
     }
     catch (error) {
       console.error(`Ошибка при обработке сообщения "${type}":`, error)
+
       if (port) {
         port.postMessage({
           type: 'ERROR',
@@ -155,6 +159,7 @@ if (import.meta.env.DEV) {
   self.addEventListener('fetch', (event) => {
     if (event.request.method === 'GET') {
       const assetType = AssetAnalyzer.getAssetType(event.request.url)
+
       if (!event.request.url.includes('/api/'))
         console.log(`📥 ${assetType}: ${event.request.url}`)
     }
@@ -199,6 +204,7 @@ self.addEventListener('notificationclick', (event: NotificationEvent) => {
   event.waitUntil(self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(async (windowClients) => {
     for (let i = 0; i < windowClients.length; i++) {
       const client = windowClients[i]
+
       if (client.url.includes(self.location.origin) && 'focus' in client) {
         // Вместо перезагрузки SPA используем обмен сообщениями для навигации
         client.postMessage({ type: 'NAVIGATE', url: urlToOpen })

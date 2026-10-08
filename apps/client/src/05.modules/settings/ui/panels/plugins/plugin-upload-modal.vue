@@ -27,6 +27,7 @@ const uploadProgress = ref<UploadProgress | null>(null)
 
 const uploadPercent = computed(() => {
   const progress = uploadProgress.value
+
   if (!progress || progress.total <= 0)
     return null
 
@@ -50,6 +51,7 @@ watch(visible, (isOpen) => {
     uploadFile.value = null
     uploadProgress.value = null
     isDragging.value = false
+
     if (fileInput.value)
       fileInput.value.value = ''
   }
@@ -66,6 +68,7 @@ function selectFile(file: File | null) {
 
   if (!file.name.toLowerCase().endsWith('.zip')) {
     toast.error(t('settings.uploadPluginInvalidFile'))
+
     if (fileInput.value)
       fileInput.value.value = ''
 
@@ -89,12 +92,14 @@ function onDragEnter() {
 function onDragLeave(event: DragEvent) {
   const nextTarget = event.relatedTarget
   const currentTarget = event.currentTarget
+
   if (!(nextTarget instanceof Node) || !(currentTarget instanceof Node) || !currentTarget.contains(nextTarget))
     isDragging.value = false
 }
 
 function onDrop(event: DragEvent) {
   isDragging.value = false
+
   if (pluginsStore.isUploadingPlugin)
     return
 
@@ -104,6 +109,7 @@ function onDrop(event: DragEvent) {
 function clearSelectedFile() {
   uploadFile.value = null
   uploadProgress.value = null
+
   if (fileInput.value)
     fileInput.value.value = ''
 }
@@ -119,6 +125,7 @@ async function confirmUpload() {
   const success = await pluginsStore.uploadPlugin(uploadFile.value, props.plugin?.id, (progress) => {
     uploadProgress.value = progress
   })
+
   if (success) {
     visible.value = false
     uploadFile.value = null

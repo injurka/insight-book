@@ -37,6 +37,7 @@ export function usePushSettings() {
 
   const timeOptions = computed(() => {
     const opts = []
+
     for (let h = 0; h < 24; h++) {
       const hourStr = h.toString().padStart(2, '0')
       opts.push({ label: `${hourStr}:00`, value: `${hourStr}:00` })

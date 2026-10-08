@@ -6,8 +6,10 @@ import { describe, expect, it } from 'vitest'
 function computePercent(used: number | undefined | null, limit: number | undefined | null): number {
   const u = used || 0
   const l = limit
+
   if (l === null || l === undefined || Number.isNaN(l))
     return 0
+
   if (l === 0)
     return 100
 
@@ -20,6 +22,7 @@ function computePercent(used: number | undefined | null, limit: number | undefin
 function getPercentClass(percentage: number): string {
   if (percentage < 70)
     return 'is-success'
+
   if (percentage <= 90)
     return 'is-warning'
 

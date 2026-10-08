@@ -11,16 +11,20 @@ const MEDIA_CACHE_NAME = 'insight-book-offline-media'
 
 async function findMediaTts(cache: Cache, scope: string, hashKey: string): Promise<Response | undefined> {
   const exact = await safeCacheMatch(cache, `/offline/${scope}/tts/${hashKey}`)
+
   if (exact)
     return exact
 
   try {
     const prefix = `/offline/${scope}/tts/`
+
     for (const request of await cache.keys()) {
       const url = new URL(request.url)
       const path = decodeURIComponent(url.pathname + url.search)
+
       if (path.startsWith(prefix) && isReusableLocalTtsKey(path.slice(prefix.length), hashKey)) {
         const response = await safeCacheMatch(cache, request.url)
+
         if (response)
           return response
       }
@@ -33,11 +37,13 @@ async function findMediaTts(cache: Cache, scope: string, hashKey: string): Promi
 
 async function findIndexedTts(scope: string, hashKey: string) {
   let stored: unknown = await safeGetItem<unknown>(`tts_${hashKey}`)
+
   if (!stored) {
     try {
       const prefix = `${scope}_tts_`
       const keys = await localforage.keys()
       const match = keys.find(key => key.startsWith(prefix) && isReusableLocalTtsKey(key.slice(prefix.length), hashKey))
+
       if (match)
         stored = await safeGetItem<unknown>(match.slice(`${scope}_`.length))
     }
@@ -53,11 +59,13 @@ async function findIndexedTts(scope: string, hashKey: string) {
 
 async function findLocalTts(hashKey: string): Promise<{ blob: Blob, metadata: TtsCacheMetadata } | null> {
   const scope = getCacheScope()
+
   if (!scope)
     return null
 
   const cache = await getMediaCache()
   const response = cache ? await findMediaTts(cache, scope, hashKey) : undefined
+
   if (response)
     return { blob: await response.blob(), metadata: decodeTtsMetadata(response.headers.get('X-TTS-Cache')) }
 
@@ -78,6 +86,7 @@ function getCacheScope(): string | null {
   try {
     const token = localStorage.getItem('insight_token')
     const uid = localStorage.getItem('insight_uid')
+
     if (token && uid && /^\d+$/.test(uid) && Number(uid) > 0)
       return `u${uid}`
 
@@ -120,6 +129,7 @@ function setL1Analysis(key: string, analysis: LlmAnalysis): void {
   else if (l1AnalysisCache.size >= L1_ANALYSIS_MAX_SIZE) {
     // Вытесняем самую старую запись из RAM
     const oldestKey = l1AnalysisCache.keys().next().value
+
     if (oldestKey !== undefined) {
       l1AnalysisCache.delete(oldestKey)
     }
@@ -140,6 +150,7 @@ function getAppLanguage() {
 
   try {
     const saved = localStorage.getItem('global-app-language')
+
     if (saved)
       return JSON.parse(saved)
   }
@@ -255,9 +266,11 @@ function handleBookPageOrDictKey(key: string, itemSize: number, bookStats: Recor
   if (key.includes('_page_') && !key.endsWith('_dict')) {
     const bookId = Number(key.split('_')[1])
     const pageNum = Number(key.split('_')[3])
+
     if (bookStats[bookId]) {
       if (!bookStats[bookId].cachedPages.includes(pageNum))
         bookStats[bookId].cachedPages.push(pageNum)
+
       bookStats[bookId].sizeBytes += itemSize
     }
 
@@ -266,6 +279,7 @@ function handleBookPageOrDictKey(key: string, itemSize: number, bookStats: Recor
 
   if (key.endsWith('_dict')) {
     const bookId = Number(key.split('_')[1])
+
     if (bookStats[bookId]) {
       bookStats[bookId].sizeBytes += itemSize
       bookStats[bookId].dictPagesCount++
@@ -279,6 +293,7 @@ function handleBookPageOrDictKey(key: string, itemSize: number, bookStats: Recor
 
 function handleImageKey(key: string, itemSize: number, bookStats: Record<number, BookCacheStat>) {
   const bookId = Number(key.split('_')[1])
+
   if (bookStats[bookId]) {
     bookStats[bookId].sizeBytes += itemSize
     bookStats[bookId].imagesCount++
@@ -287,6 +302,7 @@ function handleImageKey(key: string, itemSize: number, bookStats: Record<number,
 
 function handleCoverKey(key: string, itemSize: number, bookStats: Record<number, BookCacheStat>) {
   const bookId = Number(key.replace('cover_', ''))
+
   if (bookStats[bookId])
     bookStats[bookId].sizeBytes += itemSize
 }
@@ -294,6 +310,7 @@ function handleCoverKey(key: string, itemSize: number, bookStats: Record<number,
 function handleTtsKey(key: string, itemSize: number, bookStats: Record<number, BookCacheStat>) {
   const hashParts = key.replace('tts_', '').split('_')
   const bookId = Number(hashParts[0])
+
   if (!Number.isNaN(bookId) && bookStats[bookId]) {
     bookStats[bookId].sizeBytes += itemSize
     bookStats[bookId].ttsCount++
@@ -302,6 +319,7 @@ function handleTtsKey(key: string, itemSize: number, bookStats: Record<number, B
 
 function handleBookMetaKey(key: string, itemSize: number, bookStats: Record<number, BookCacheStat>) {
   const bookId = Number(key.split('_')[2])
+
   if (bookStats[bookId])
     bookStats[bookId].sizeBytes += itemSize
 }
@@ -337,8 +355,10 @@ function handleMediaCacheImageOrCover(
   bookStats: Record<number, BookCacheStat>,
 ) {
   const bookId = Number(pathParts[4])
+
   if (bookStats[bookId]) {
     bookStats[bookId].sizeBytes += size
+
     if (type === 'image')
       bookStats[bookId].imagesCount++
   }
@@ -347,6 +367,7 @@ function handleMediaCacheImageOrCover(
 function handleMediaCacheTts(pathParts: string[], size: number, bookStats: Record<number, BookCacheStat>) {
   if (pathParts[4]?.includes('_')) {
     const bookId = Number(pathParts[4].split('_')[0])
+
     if (!Number.isNaN(bookId) && bookStats[bookId]) {
       bookStats[bookId].sizeBytes += size
       bookStats[bookId].ttsCount++
@@ -362,6 +383,7 @@ async function processMediaCacheReq(
 ): Promise<number> {
   const url = new URL(req.url)
   const pathParts = url.pathname.split('/')
+
   if (pathParts[1] !== 'offline' || pathParts[2] !== scope)
     return 0
 
@@ -388,6 +410,7 @@ async function processMediaCacheReq(
 /** Проверяет, относится ли URL записи медиа-кэша к указанной книге. */
 function isBookMediaEntry(url: string, bookId: number, scope: string): boolean {
   const pathParts = new URL(url).pathname.split('/')
+
   if (pathParts[1] !== 'offline' || pathParts[2] !== scope)
     return false
 
@@ -425,6 +448,7 @@ async function collectMediaCacheStats(bookStats: Record<number, BookCacheStat>, 
     return 0
 
   const cache = await getMediaCache()
+
   if (!cache)
     return 0
 
@@ -432,6 +456,7 @@ async function collectMediaCacheStats(bookStats: Record<number, BookCacheStat>, 
 
   try {
     const cacheKeys = await cache.keys()
+
     for (const req of cacheKeys) {
       const size = await processMediaCacheReq(
         cache,
@@ -458,15 +483,18 @@ async function collectMediaCacheStats(bookStats: Record<number, BookCacheStat>, 
 /** Удаляет из медиа-кэша записи, относящиеся к книге. */
 async function clearMediaCacheForBook(bookId: number): Promise<void> {
   const scope = getCacheScope()
+
   if (!scope)
     return
 
   const cache = await getMediaCache()
+
   if (!cache)
     return
 
   try {
     const cacheKeys = await cache.keys()
+
     for (const req of cacheKeys) {
       if (isBookMediaEntry(req.url, bookId, scope))
         await cache.delete(req)
@@ -485,6 +513,7 @@ async function clearMediaCacheForBook(bookId: number): Promise<void> {
 
 async function safeSetItem<T>(key: string, value: T): Promise<void> {
   const scopedKey = getKey(key)
+
   if (!scopedKey)
     return
 
@@ -493,6 +522,7 @@ async function safeSetItem<T>(key: string, value: T): Promise<void> {
   }
   catch (e) {
     const err = e as Error
+
     if (err.name === 'QuotaExceededError' || err.name === 'NS_ERROR_DOM_QUOTA_REACHED') {
       const toast = useToastStore()
       toast.error('Память устройства переполнена! Очистите кэш.', {
@@ -510,6 +540,7 @@ async function safeSetItem<T>(key: string, value: T): Promise<void> {
 
 async function safeGetItem<T>(key: string): Promise<T | null> {
   const scopedKey = getKey(key)
+
   if (!scopedKey)
     return null
 
@@ -518,6 +549,7 @@ async function safeGetItem<T>(key: string): Promise<T | null> {
   }
   catch (e) {
     console.error(`[OfflineService] Error reading from localForage (key: ${scopedKey}):`, e)
+
     try {
       await localforage.removeItem(scopedKey)
     }
@@ -541,10 +573,12 @@ export const offlineService = {
 
   async saveImage(bookId: number, pageNum: number, blob: Blob) {
     const scope = getCacheScope()
+
     if (!scope)
       return
 
     const cache = await getMediaCache()
+
     if (cache) {
       const saved = await safeCachePut(cache, `/offline/${scope}/image/${bookId}/${pageNum}`, new Response(blob, {
         headers: {
@@ -552,6 +586,7 @@ export const offlineService = {
           'Content-Length': blob.size.toString(),
         },
       }))
+
       if (saved)
         return
     }
@@ -562,12 +597,15 @@ export const offlineService = {
 
   async getImage(bookId: number, pageNum: number): Promise<Blob | null> {
     const scope = getCacheScope()
+
     if (!scope)
       return null
 
     const cache = await getMediaCache()
+
     if (cache) {
       const res = await safeCacheMatch(cache, `/offline/${scope}/image/${bookId}/${pageNum}`)
+
       if (res)
         return res.blob()
     }
@@ -577,10 +615,12 @@ export const offlineService = {
 
   async saveCover(bookId: number, blob: Blob) {
     const scope = getCacheScope()
+
     if (!scope)
       return
 
     const cache = await getMediaCache()
+
     if (cache) {
       const saved = await safeCachePut(cache, `/offline/${scope}/cover/${bookId}`, new Response(blob, {
         headers: {
@@ -588,6 +628,7 @@ export const offlineService = {
           'Content-Length': blob.size.toString(),
         },
       }))
+
       if (saved)
         return
     }
@@ -597,12 +638,15 @@ export const offlineService = {
 
   async getCover(bookId: number): Promise<Blob | null> {
     const scope = getCacheScope()
+
     if (!scope)
       return null
 
     const cache = await getMediaCache()
+
     if (cache) {
       const res = await safeCacheMatch(cache, `/offline/${scope}/cover/${bookId}`)
+
       if (res)
         return res.blob()
     }
@@ -660,6 +704,7 @@ export const offlineService = {
 
   async getDictionary(): Promise<UserDictItem[] | null> {
     const data = await safeGetItem<UserDictItem[]>('dictionary_words')
+
     if (data)
       return data
 
@@ -675,6 +720,7 @@ export const offlineService = {
 
   async getDecks(): Promise<DictDeck[] | null> {
     const data = await safeGetItem<DictDeck[]>('dictionary_decks')
+
     if (data)
       return data
 
@@ -690,6 +736,7 @@ export const offlineService = {
 
     const key = buildAnalysisCacheKey(text, srcLang)
     const scope = getCacheScope()
+
     if (!scope)
       return
 
@@ -706,12 +753,14 @@ export const offlineService = {
 
     const key = buildAnalysisCacheKey(text, srcLang)
     const scope = getCacheScope()
+
     if (!scope)
       return null
 
     // 1. Проверяем L1-кэш в RAM (0.0001 мс)
     const scopedKey = `${scope}_${key}`
     const l1Hit = getL1Analysis(scopedKey)
+
     if (l1Hit)
       return l1Hit
 
@@ -729,10 +778,12 @@ export const offlineService = {
   async saveTts(hashKey: string, audioBase64: string, metadata?: TtsCacheMetadata) {
     const blob = ttsBase64ToBlob(audioBase64)
     const scope = getCacheScope()
+
     if (!scope)
       return
 
     const cache = await getMediaCache()
+
     if (cache) {
       const saved = await safeCachePut(cache, `/offline/${scope}/tts/${hashKey}`, new Response(blob, {
         headers: {
@@ -741,6 +792,7 @@ export const offlineService = {
           'X-TTS-Cache': encodeURIComponent(JSON.stringify(metadata || unknownTtsMetadata())),
         },
       }))
+
       if (saved)
         return
     }
@@ -785,6 +837,7 @@ export const offlineService = {
 
   async getCacheStats() {
     let keys: string[] = []
+
     try {
       keys = await localforage.keys()
     }
@@ -793,6 +846,7 @@ export const offlineService = {
     }
 
     const prefix = getKey('')
+
     if (!prefix) {
       return { bookStats: {}, totalDictionaryWords: 0, totalSizeBytes: 0 }
     }
@@ -846,6 +900,7 @@ export const offlineService = {
       // 1. Очистка старого IndexedDB хранилища
       const keys = await localforage.keys()
       const prefix = getKey('')
+
       if (!prefix)
         return
 

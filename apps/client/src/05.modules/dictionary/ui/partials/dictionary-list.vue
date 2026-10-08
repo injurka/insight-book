@@ -27,24 +27,28 @@ const store = useDictionaryStore()
 const analysisStore = useAnalysisStore()
 const { t } = useI18n()
 const { exportToAnki } = useAnkiExport()
-
 const { list, containerProps, wrapperProps } = useVirtualList(computed(() => store.filteredWords), { itemHeight: 110 })
 
 const gridContainerRef = shallowRef<HTMLElement | null>(null)
+
 const { width: gridContainerWidth } = useElementSize(gridContainerRef)
+
+const confirmDeleteVisible = ref(false)
+const wordToDelete = ref<string | null>(null)
 
 const gridColumns = computed(() => {
   const w = gridContainerWidth.value
+
   if (!w || w <= 0)
     return 3
 
   return Math.max(1, Math.floor((w + 16) / (280 + 16)))
 })
-
 const gridRows = computed(() => {
   const wordsList = store.filteredWords
   const cols = gridColumns.value
   const rows: UserDictItem[][] = []
+
   for (let i = 0; i < wordsList.length; i += cols)
     rows.push(wordsList.slice(i, i + cols))
 
@@ -67,28 +71,21 @@ function handleItemClick(item: UserDictItem) {
 
   emit('openDetails', item)
 }
-
 function handleExport() {
   const wordsToExport = store.words.filter(w => store.selectedWordIds.has(w.id))
   exportToAnki(wordsToExport)
   store.clearSelection()
 }
-
-const confirmDeleteVisible = ref(false)
-const wordToDelete = ref<string | null>(null)
-
 function openDeleteWord(word: string) {
   wordToDelete.value = word
   confirmDeleteVisible.value = true
 }
-
 function handleConfirmDelete() {
   if (wordToDelete.value) {
     store.deleteWord(wordToDelete.value)
     wordToDelete.value = null
   }
 }
-
 function handleEditWord(item: UserDictItem) {
   analysisStore.wordToEdit = item
   analysisStore.addEditWordModalOpen = true

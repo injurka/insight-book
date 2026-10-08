@@ -63,6 +63,7 @@ export class Flashcard implements UserDictItem {
     const parseSafeDate = (d?: string | number | Date | null): Date | undefined => {
       if (!d)
         return undefined
+
       const parsed = new Date(d)
 
       return Number.isNaN(parsed.getTime()) ? undefined : parsed
@@ -98,6 +99,7 @@ export class Flashcard implements UserDictItem {
 
     if (days < 30)
       return `${Math.round(days)} дн`
+
     if (days < 365)
       return `${Math.round(days / 30)} мес`
 

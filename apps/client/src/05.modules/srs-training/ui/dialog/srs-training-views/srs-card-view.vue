@@ -12,10 +12,8 @@ import { Flashcard } from '~/03.domain/entities/flashcard.entity.ts'
 import { PronunciationCheck } from '~/04.features/pronunciation-check'
 import { useDictionaryWords } from '../../../composables/use-dictionary-words'
 import { useFsrsScheduling } from '../../../composables/use-fsrs-scheduling.ts'
-
 import { useSrsQuiz } from '../../../composables/use-srs-quiz'
 import { useTrainingStore } from '../../../store/training.store'
-
 import SrsCardToolbar from '../../partials/srs-card-toolbar.vue'
 import SrsModeAudio from './srs-modes/srs-mode-audio.vue'
 import SrsModeChoiceReverse from './srs-modes/srs-mode-choice-reverse.vue'
@@ -32,6 +30,7 @@ interface Props {
   isSubmittingGrade: boolean
   modes?: Record<string, boolean>
 }
+type SrsMode = 'standard' | 'audio' | 'writing' | 'typing' | 'choice' | 'choice-reverse' | 'scramble' | 'collocations' | 'radicals'
 
 const props = defineProps<Props>()
 const emit = defineEmits(['grade'])
@@ -52,19 +51,13 @@ const isAnswerCorrect = ref(false)
 const choiceOptions = ref<{ text: string, isCorrect: boolean }[]>([])
 const selectedChoice = ref<string | null>(null)
 const currentMode = ref<'standard' | 'audio' | 'writing' | 'typing' | 'choice' | 'choice-reverse' | 'scramble' | 'collocations' | 'radicals'>('standard')
-
 // Scramble state
 const scrambleChunks = ref<{ id: number, text: string }[]>([])
 const scrambleAnswer = ref<{ id: number, text: string }[]>([])
-
 // Deep Dive state
 const deepDiveData = ref<{ options?: string[], answer?: string | string[] } | null>(null)
 const selectedRadicals = ref<string[]>([])
 const isAiLoadingMode = ref(false)
-
-const cardRef = computed(() => props.card)
-const { intervals } = useFsrsScheduling(cardRef, isFlipped)
-
 // Strategy pattern: map mode → component
 const modeComponentMap = {
   'audio': SrsModeAudio,
@@ -78,12 +71,15 @@ const modeComponentMap = {
   'standard': SrsModeStandard,
 }
 
+const cardRef = computed(() => props.card)
+
+const { intervals } = useFsrsScheduling(cardRef, isFlipped)
+
 const currentModeComponent = computed(() => modeComponentMap[currentMode.value] ?? SrsModeStandard)
-
 const originalSentence = computed(() => props.card?.encounters?.[0]?.sentence || '')
-
 const modeProps = computed(() => {
   const card = props.card!
+
   switch (currentMode.value) {
     case 'audio':
       return { card, isLoading: isLoading.value, isPlaying: isPlaying.value }
@@ -134,7 +130,6 @@ const modeProps = computed(() => {
       return { card }
   }
 })
-
 const modeEmits = computed(() => {
   switch (currentMode.value) {
     case 'audio':
@@ -166,9 +161,12 @@ const modeEmits = computed(() => {
   }
 })
 
+watch(() => props.card, initCard, { immediate: true })
+
 function initScramble() {
   const word = props.card!.word
   let chunks: string[] = []
+
   if (/[\u4E00-\u9FA5]/.test(word) || word.length <= 6) {
     chunks = word.split('')
   }
@@ -181,10 +179,10 @@ function initScramble() {
   scrambleChunks.value = chunks.map((text, i) => ({ id: i, text })).sort(() => Math.random() - 0.5)
   scrambleAnswer.value = []
 }
-
 function handleScrambleChunkClick(chunk: { id: number, text: string }, from: 'source' | 'answer') {
   if (isAnswerChecked.value)
     return
+
   if (from === 'source') {
     scrambleChunks.value = scrambleChunks.value.filter(c => c.id !== chunk.id)
     scrambleAnswer.value.push(chunk)
@@ -197,7 +195,6 @@ function handleScrambleChunkClick(chunk: { id: number, text: string }, from: 'so
   if (scrambleChunks.value.length === 0)
     checkScramble()
 }
-
 function checkScramble() {
   const answerStr = scrambleAnswer.value.map(c => c.text).join('')
   isAnswerChecked.value = true
@@ -208,13 +205,14 @@ function checkScramble() {
 
   setTimeout(flip, 1200)
 }
-
 async function initDeepDive(mode: 'collocations' | 'radicals') {
   isAiLoadingMode.value = true
   deepDiveData.value = null
+
   try {
     const res = await repos.dictionary.generateDeepDive(props.card!.word, props.card!.language, mode)
     deepDiveData.value = res as { options?: string[], answer?: string | string[] }
+
     if (mode === 'radicals')
       selectedRadicals.value = []
 
@@ -229,21 +227,22 @@ async function initDeepDive(mode: 'collocations' | 'radicals') {
     isAiLoadingMode.value = false
   }
 }
-
 function toggleRadical(rad: string) {
   if (isAnswerChecked.value)
     return
+
   const idx = selectedRadicals.value.indexOf(rad)
+
   if (idx > -1)
     selectedRadicals.value.splice(idx, 1)
 
   else
     selectedRadicals.value.push(rad)
 }
-
 function checkRadicals() {
   if (!deepDiveData.value || isAnswerChecked.value)
     return
+
   const expected = deepDiveData.value.answer as string[]
   const selected = selectedRadicals.value
 
@@ -252,16 +251,12 @@ function checkRadicals() {
   isAnswerCorrect.value = isCorrect
   setTimeout(flip, 1500)
 }
-
-type SrsMode = 'standard' | 'audio' | 'writing' | 'typing' | 'choice' | 'choice-reverse' | 'scramble' | 'collocations' | 'radicals'
-
 function isZhCard(card: UserDictItem | null | undefined): boolean {
   if (!card)
     return false
 
   return card.language === 'zh' && !!card.word && /[\u4E00-\u9FA5]/.test(card.word)
 }
-
 function determineAvailableModes(): SrsMode[] {
   const modesConfig = props.modes || {
     'standard': true,
@@ -294,7 +289,6 @@ function determineAvailableModes(): SrsMode[] {
 
   return availableModes.length > 0 ? availableModes : ['standard']
 }
-
 function setupChoiceOptions(mode: 'choice' | 'choice-reverse') {
   if (mode === 'choice') {
     const correctTrans = props.card!.translation?.split(',')[0].split(';')[0].replace(/<[^>]+(>|$)/g, '').trim() || t('analysis.translation')
@@ -311,7 +305,6 @@ function setupChoiceOptions(mode: 'choice' | 'choice-reverse') {
     choiceOptions.value = options.sort(() => 0.5 - Math.random())
   }
 }
-
 function shouldUseChoiceMode(
   mode: 'choice' | 'choice-reverse',
   config: Record<string, boolean>,
@@ -323,7 +316,6 @@ function shouldUseChoiceMode(
 
   return Math.random() > 0.3
 }
-
 function selectInitialMode(availableModes: SrsMode[]): SrsMode {
   const modesConfig = props.modes || {}
   const isNewCard = props.card ? new Flashcard(props.card).isNew() : false
@@ -348,7 +340,6 @@ function selectInitialMode(availableModes: SrsMode[]): SrsMode {
 
   return availableModes[Math.floor(Math.random() * availableModes.length)]
 }
-
 function initCard() {
   isFlipped.value = false
   typedAnswer.value = ''
@@ -380,18 +371,18 @@ function initCard() {
     }, 300)
   }
 }
-
 function flip() {
   isFlipped.value = true
+
   if (currentMode.value !== 'audio' && props.card?.word)
     speak(props.card.word, props.card.language)
 }
-
 function submitTyping() {
   if (isAnswerChecked.value || !typedAnswer.value.trim() || !props.card)
     return
 
   const { isCorrect, isTypo } = checkTypo(typedAnswer.value, props.card.word)
+
   if (isCorrect) {
     isAnswerCorrect.value = true
     isAnswerChecked.value = true
@@ -409,19 +400,19 @@ function submitTyping() {
     setTimeout(flip, 1200)
   }
 }
-
 function selectChoice(option: { text: string, isCorrect: boolean }) {
   if (isAnswerChecked.value)
     return
+
   selectedChoice.value = option.text
   isAnswerChecked.value = true
   isAnswerCorrect.value = option.isCorrect
   setTimeout(flip, 800)
 }
-
 function skipObjectiveTest() {
   isAnswerChecked.value = true
   isAnswerCorrect.value = false
+
   if (currentMode.value === 'collocations' && deepDiveData.value) {
     selectedChoice.value = null
     setTimeout(flip, 800)
@@ -434,12 +425,9 @@ function skipObjectiveTest() {
     flip()
   }
 }
-
 function gradeCard(grade: number) {
   emit('grade', grade)
 }
-
-watch(() => props.card, initCard, { immediate: true })
 </script>
 
 <template>

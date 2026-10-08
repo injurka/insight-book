@@ -8,6 +8,10 @@ const protectedRouteNames = new Set<AppRouteNames>([
   AppRouteNames.Notebook,
 ])
 
+export function isProtectedRoute(name: string | symbol | null | undefined): boolean {
+  return protectedRouteNames.has(name as AppRouteNames)
+}
+
 export function shouldWaitForAuth(toName: string | symbol | null | undefined, isAuthReady: boolean, isAuthRefreshing: boolean): boolean {
-  return !isAuthReady || (isAuthRefreshing && protectedRouteNames.has(toName as AppRouteNames))
+  return !isAuthReady || (isAuthRefreshing && isProtectedRoute(toName))
 }

@@ -11,13 +11,15 @@ import { usePluginsStore } from '../../../store/plugins.store'
 
 const { t } = useI18n()
 const pluginsStore = usePluginsStore()
+
 const manifestsByPluginId = ref<Record<string, InsightBookPluginManifest>>({})
+
+watch(() => pluginsStore.remotePlugins, loadCachedManifests, { immediate: true })
 
 function getInstalledVersion(pluginId: string) {
   return pluginManager.plugins.find(plugin => plugin.id === pluginId)?.version
     || manifestsByPluginId.value[pluginId]?.version
 }
-
 async function loadCachedManifests() {
   const entries = await Promise.all(pluginsStore.remotePlugins.map(async (record) => {
     const cached = await getCachedPlugin(record.pluginId) || await getCachedPlugin(record.manifestUrl)
@@ -27,8 +29,6 @@ async function loadCachedManifests() {
 
   manifestsByPluginId.value = Object.fromEntries(entries.filter((entry): entry is [string, InsightBookPluginManifest] => Boolean(entry[1])))
 }
-
-watch(() => pluginsStore.remotePlugins, loadCachedManifests, { immediate: true })
 </script>
 
 <template>

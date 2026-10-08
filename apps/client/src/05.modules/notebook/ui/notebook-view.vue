@@ -14,13 +14,11 @@ import { KitDropdown } from '~/02.kit/molecules/kit-dropdown/ui'
 import { KitPrompt } from '~/02.kit/organisms/kit-prompt/ui'
 import { QuoteModal } from '~/04.features/quote-modal'
 import { QuotePractice } from '~/04.features/quote-practice'
-
 import { useLibraryStore } from '~/05.modules/library/store/library.store'
 import { useNotebookExport } from '../composables/use-notebook-export'
 import QuoteAnalysisModal from './modal/quote-analysis-modal.vue'
 import NotebookHeader from './partials/notebook-header.vue'
 import NotebookQuoteItem from './partials/notebook-quote-item.vue'
-
 import NotebookSkeleton from './partials/notebook-skeleton.vue'
 
 const repos = useRepos()
@@ -28,21 +26,15 @@ const { t } = useI18n()
 const toast = useToast()
 const libraryStore = useLibraryStore()
 const tts = useTts()
+const { exportToMarkdown, exportToPlainText } = useNotebookExport()
 
 const searchQuery = ref('')
 const highlights = ref<Highlight[]>([])
 const isLoading = ref(true)
 const activeTtsId = ref<number | null>(null)
-
 // Analysis modal state
 const isAnalysisModalOpen = ref(false)
 const activeAnalysisHighlight = ref<Highlight | null>(null)
-
-function openAnalysisModal(h: Highlight) {
-  activeAnalysisHighlight.value = h
-  isAnalysisModalOpen.value = true
-}
-
 // Edit state
 const isEditModalOpen = ref(false)
 const editForm = ref<{
@@ -60,41 +52,18 @@ const editForm = ref<{
   color: '#fde047',
   analysisData: null,
 })
-
 // Delete state
 const isDeleteConfirmOpen = ref(false)
 const deleteTargetId = ref<number | null>(null)
-
 // Practice state
 const isPracticeModalOpen = ref(false)
 const practiceQuoteText = ref('')
 const practiceQuoteTranslation = ref('')
 const practiceBookLanguage = ref('')
-
-function openPractice(h: Highlight, bookId: number) {
-  if (!h.translation)
-    return
-  const book = libraryStore.books.find(b => b.id === bookId)
-  practiceQuoteText.value = h.text
-  practiceQuoteTranslation.value = h.translation
-  practiceBookLanguage.value = book?.language || ''
-  isPracticeModalOpen.value = true
-}
-
-function startRandomPractice() {
-  const practiceableQuotes = highlights.value.filter(h => h.translation && h.text)
-  if (practiceableQuotes.length === 0) {
-    toast.error('Нет цитат с переводами для тренировки')
-
-    return
-  }
-
-  const randomQuote = practiceableQuotes[Math.floor(Math.random() * practiceableQuotes.length)]
-  openPractice(randomQuote, randomQuote.bookId)
-}
+// AI Translation state
+const translatingId = ref<number | null>(null)
 
 const searchQueryTrimmed = computed(() => searchQuery.value.trim().toLowerCase())
-
 // Group quotes by book and filter by search
 const filteredBookGroups = computed(() => {
   const query = searchQueryTrimmed.value
@@ -121,6 +90,7 @@ const filteredBookGroups = computed(() => {
   for (const bookIdStr in groupsMap) {
     const bookId = Number(bookIdStr)
     const book = libraryStore.books.find(b => b.id === bookId)
+
     if (!book)
       continue
 
@@ -140,9 +110,34 @@ const filteredBookGroups = computed(() => {
   // Sort groups: most recent activity first
   return groups.sort((a, b) => new Date(b.lastActivityDate).getTime() - new Date(a.lastActivityDate).getTime())
 })
-
 const isTtsActive = computed(() => tts.isPlaying.value || tts.isLoading.value)
 
+function openAnalysisModal(h: Highlight) {
+  activeAnalysisHighlight.value = h
+  isAnalysisModalOpen.value = true
+}
+function openPractice(h: Highlight, bookId: number) {
+  if (!h.translation)
+    return
+
+  const book = libraryStore.books.find(b => b.id === bookId)
+  practiceQuoteText.value = h.text
+  practiceQuoteTranslation.value = h.translation
+  practiceBookLanguage.value = book?.language || ''
+  isPracticeModalOpen.value = true
+}
+function startRandomPractice() {
+  const practiceableQuotes = highlights.value.filter(h => h.translation && h.text)
+
+  if (practiceableQuotes.length === 0) {
+    toast.error('Нет цитат с переводами для тренировки')
+
+    return
+  }
+
+  const randomQuote = practiceableQuotes[Math.floor(Math.random() * practiceableQuotes.length)]
+  openPractice(randomQuote, randomQuote.bookId)
+}
 // Edit Actions
 function openEditModal(h: Highlight) {
   editForm.value = {
@@ -155,9 +150,9 @@ function openEditModal(h: Highlight) {
   }
   isEditModalOpen.value = true
 }
-
 async function saveEdit(data: { text: string, translation: string, note: string, color: string, analysisData?: LlmAnalysis | null }) {
   const id = editForm.value.id
+
   if (!id)
     return
 
@@ -171,6 +166,7 @@ async function saveEdit(data: { text: string, translation: string, note: string,
 
     // Update in local state
     const index = highlights.value.findIndex(h => h.id === id)
+
     if (index !== -1)
       highlights.value[index] = { ...highlights.value[index], ...updated }
 
@@ -181,15 +177,14 @@ async function saveEdit(data: { text: string, translation: string, note: string,
     toast.error(err instanceof Error ? err.message : 'Не удалось сохранить цитату')
   }
 }
-
 // Delete Actions
 function confirmDelete(h: Highlight) {
   deleteTargetId.value = h.id
   isDeleteConfirmOpen.value = true
 }
-
 async function onDeleteConfirmSubmit() {
   const id = deleteTargetId.value
+
   if (!id)
     return
 
@@ -205,9 +200,6 @@ async function onDeleteConfirmSubmit() {
     deleteTargetId.value = null
   }
 }
-
-const { exportToMarkdown, exportToPlainText } = useNotebookExport()
-
 async function playTts(h: Highlight, book: Book) {
   if (activeTtsId.value === h.id && tts.isPlaying.value) {
     tts.stop()
@@ -226,20 +218,19 @@ async function playTts(h: Highlight, book: Book) {
     activeTtsId.value = null
   }
 }
-
-// AI Translation state
-const translatingId = ref<number | null>(null)
-
 async function translateQuote(h: Highlight, book: Book) {
   translatingId.value = h.id
+
   try {
     const res = await repos.analysis.analyze(book.id, h.text, book.language)
+
     if (res && res.translation) {
       await repos.highlights.update(h.id, {
         translation: res.translation,
       })
 
       const index = highlights.value.findIndex(item => item.id === h.id)
+
       if (index !== -1)
         highlights.value[index] = { ...highlights.value[index], translation: res.translation }
 
@@ -260,9 +251,9 @@ async function translateQuote(h: Highlight, book: Book) {
 onUnmounted(() => {
   tts.stop()
 })
-
 onMounted(async () => {
   isLoading.value = true
+
   try {
     if (libraryStore.books.length === 0)
       await libraryStore.fetchBooks()

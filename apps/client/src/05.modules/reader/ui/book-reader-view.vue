@@ -25,18 +25,11 @@ import { useReaderScroll } from '../composables/use-reader-scroll'
 import { useReadingSession } from '../composables/use-reading-session'
 import { useScrollRestoration } from '../composables/use-scroll-restoration'
 import { useReaderStore } from '../store/reader.store'
-
 import ReaderTocDialog from './dialog/reader-toc-dialog.vue'
 import ReaderFooter from './partials/reader-footer.vue'
 import ReaderHeader from './partials/reader-header.vue'
 import ReaderLoader from './partials/reader-loader.vue'
 import ReaderPageBlock from './partials/reader-page-block.vue'
-
-const PageAnalysisModal = lazyComponent(() => import('~/04.features/analysis/ui/modal/page-analysis-modal.vue'))
-const SelectionTooltip = lazyComponent(() => import('~/04.features/analysis/ui/selection-tooltip.vue'))
-const SentenceAnalysis = lazyComponent(() => import('~/04.features/analysis/ui/sentence-analysis.vue'))
-const WordPopover = lazyComponent(() => import('~/04.features/analysis/ui/popover/word-popover.vue'))
-const GrammarPopover = lazyComponent(() => import('~/04.features/analysis/ui/popover/grammar-popover.vue'))
 
 const readerStore = useReaderStore()
 const analysisStore = useAnalysisStore()
@@ -47,13 +40,7 @@ const { t } = useI18n()
 const readerViewRef = useTemplateRef<HTMLElement>('readerViewRef')
 const topSentinelRef = useTemplateRef<HTMLElement>('topSentinelRef')
 const bottomSentinelRef = useTemplateRef<HTMLElement>('bottomSentinelRef')
-
-useAppWakeLock(() => analysisStore.isManualPageAnalysisActive || analysisStore.isAutoPageAnalysisActive)
-useReadingSession()
-
 const showSpinner = useDelayedLoading(computed(() => readerStore.isPageLoading), 1000)
-const totalPages = computed(() => readerStore.currentBook?.totalPages ?? 0)
-
 const {
   isRestoringScroll,
   saveScrollPosition,
@@ -65,11 +52,9 @@ const {
   () => readerStore.currentPage?.pageNum,
   () => readerStore.isPageLoading,
 )
-
 const { onSentenceHover, onSentenceOut } = useReaderDomHighlights(readerViewRef)
 const { prevPage, nextPage, goToPage } = useReaderNavigation(setScrollIntent)
 const { onPointerDown, onPointerUp, onWordClick } = useTextSelection()
-
 const {
   continuousPages,
   isLoadingNext,
@@ -77,8 +62,74 @@ const {
   activePageNum,
   jumpToPage: jumpToPageContinuous,
 } = useReaderContinuous(readerViewRef, topSentinelRef, bottomSentinelRef)
-
 const { floating: isAnalysisFloating, offset: floatingOffset, dialogPosition, onDragEnd } = useFloatingAnalysisLayout(() => readerViewRef.value, () => analysisStore.sidebarOpen, () => `${readerStore.currentPage?.pageNum}:${readerStore.isPageLoading}:${readerStore.isParallelView}:${settingsStore.readerScrollMode}:${continuousPages.value.length}`)
+const { isHeaderVisible, onScroll } = useReaderScroll(savePaginatedScrollPosition, undefined, isRestoringScroll)
+const { performLayoutSync, syncLayout } = useParallelSync(readerViewRef, restoreScrollPosition)
+const { leftPaneContent, translatedPageContent, pageTranslationProgress } = useReaderContent()
+
+const PageAnalysisModal = lazyComponent(() => import('~/04.features/analysis/ui/modal/page-analysis-modal.vue'))
+const SelectionTooltip = lazyComponent(() => import('~/04.features/analysis/ui/selection-tooltip.vue'))
+const SentenceAnalysis = lazyComponent(() => import('~/04.features/analysis/ui/sentence-analysis.vue'))
+const WordPopover = lazyComponent(() => import('~/04.features/analysis/ui/popover/word-popover.vue'))
+const GrammarPopover = lazyComponent(() => import('~/04.features/analysis/ui/popover/grammar-popover.vue'))
+
+const totalPages = computed(() => readerStore.currentBook?.totalPages ?? 0)
+const rightPaneContentForSync = computed(() => {
+  return pageTranslationProgress.value.isFullyTranslated ? translatedPageContent.value : leftPaneContent.value
+})
+
+watch([
+  () => readerStore.currentPage,
+  () => settingsStore.readerScrollMode,
+], ([newPage, mode]) => {
+  if (mode === 'continuous' && newPage) {
+    if (continuousPages.value.length === 0 || !continuousPages.value.some(p => p.pageNum === newPage.pageNum)) {
+      continuousPages.value = [newPage]
+      activePageNum.value = newPage.pageNum
+    }
+  }
+}, { immediate: true })
+watch([
+  () => readerStore.isParallelView,
+  () => settingsStore.readerFontSize,
+  () => settingsStore.readerLineHeight,
+  () => settingsStore.readerContentWidthPercent,
+  rightPaneContentForSync,
+], async () => {
+  if (readerStore.isPageLoading)
+    return
+
+  await nextTick()
+  await applyCodeHighlighting()
+
+  setTimeout(() => {
+    if (settingsStore.readerScrollMode === 'continuous')
+      syncLayout()
+    else
+      performLayoutSync()
+  }, 50)
+})
+watch(continuousPages, async () => {
+  await nextTick()
+  await applyCodeHighlighting()
+  setTimeout(syncLayout, 50)
+})
+watch(() => readerStore.isPageLoading, async (isLoading) => {
+  if (isLoading && readerViewRef.value) {
+    readerViewRef.value.scrollTop = 0
+  }
+
+  if (!isLoading && readerStore.currentPage) {
+    await nextTick()
+    await applyCodeHighlighting()
+    setTimeout(() => {
+      if (settingsStore.readerScrollMode === 'continuous')
+        syncLayout()
+      else
+        performLayoutSync()
+    }, 50)
+  }
+}, { immediate: true })
 
 async function handlePrev() {
   if (settingsStore.readerScrollMode === 'continuous') {
@@ -90,7 +141,6 @@ async function handlePrev() {
     await prevPage()
   }
 }
-
 async function handleNext() {
   if (settingsStore.readerScrollMode === 'continuous') {
     if (readerStore.currentBook && activePageNum.value < readerStore.currentBook.totalPages) {
@@ -101,7 +151,6 @@ async function handleNext() {
     await nextPage()
   }
 }
-
 async function handleGoTo(pageNum?: number) {
   if (!pageNum || !readerStore.currentBook)
     return
@@ -115,19 +164,10 @@ async function handleGoTo(pageNum?: number) {
     await goToPage(pageNum)
   }
 }
-
-useReaderHotkeys(handlePrev, handleNext)
-
 function savePaginatedScrollPosition() {
   if (settingsStore.readerScrollMode === 'paginated')
     saveScrollPosition()
 }
-
-const { isHeaderVisible, onScroll } = useReaderScroll(savePaginatedScrollPosition, undefined, isRestoringScroll)
-const { performLayoutSync, syncLayout } = useParallelSync(readerViewRef, restoreScrollPosition)
-const { leftPaneContent, translatedPageContent, pageTranslationProgress } = useReaderContent()
-useQuoteHighlights(readerViewRef, [leftPaneContent, translatedPageContent])
-
 function startPageTranslationOnly(pageNum?: number) {
   if (networkStore.effectiveOffline) {
     toast.warn(t('network.needOnline'))
@@ -137,6 +177,7 @@ function startPageTranslationOnly(pageNum?: number) {
 
   if (pageNum && pageNum !== readerStore.currentPage?.pageNum) {
     const targetPage = continuousPages.value.find(p => p.pageNum === pageNum)
+
     if (targetPage) {
       readerStore.currentPage = targetPage
       readerStore.targetPageNum = pageNum
@@ -150,7 +191,6 @@ function startPageTranslationOnly(pageNum?: number) {
     ttsWords: false,
   }, true)
 }
-
 function startPageAnalysis() {
   if (networkStore.effectiveOffline) {
     toast.warn(t('network.needOnline'))
@@ -172,11 +212,6 @@ function startPageAnalysis() {
     }, false)
   }
 }
-
-const rightPaneContentForSync = computed(() => {
-  return pageTranslationProgress.value.isFullyTranslated ? translatedPageContent.value : leftPaneContent.value
-})
-
 async function applyCodeHighlighting() {
   if (!readerViewRef.value || !readerViewRef.value.querySelector('pre, code'))
     return
@@ -187,40 +222,6 @@ async function applyCodeHighlighting() {
 
   await highlightCodeBlocks(readerViewRef.value, isDark)
 }
-
-watch([
-  () => readerStore.currentPage,
-  () => settingsStore.readerScrollMode,
-], ([newPage, mode]) => {
-  if (mode === 'continuous' && newPage) {
-    if (continuousPages.value.length === 0 || !continuousPages.value.some(p => p.pageNum === newPage.pageNum)) {
-      continuousPages.value = [newPage]
-      activePageNum.value = newPage.pageNum
-    }
-  }
-}, { immediate: true })
-
-watch([
-  () => readerStore.isParallelView,
-  () => settingsStore.readerFontSize,
-  () => settingsStore.readerLineHeight,
-  () => settingsStore.readerContentWidthPercent,
-  rightPaneContentForSync,
-], async () => {
-  if (readerStore.isPageLoading)
-    return
-
-  await nextTick()
-  await applyCodeHighlighting()
-
-  setTimeout(() => {
-    if (settingsStore.readerScrollMode === 'continuous')
-      syncLayout()
-    else
-      performLayoutSync()
-  }, 50)
-})
-
 function handleReaderLayoutTransitionEnd(event: TransitionEvent) {
   if (!readerStore.isParallelView || event.propertyName !== 'max-width')
     return
@@ -234,28 +235,10 @@ function handleReaderLayoutTransitionEnd(event: TransitionEvent) {
     performLayoutSync()
 }
 
-watch(continuousPages, async () => {
-  await nextTick()
-  await applyCodeHighlighting()
-  setTimeout(syncLayout, 50)
-})
-
-watch(() => readerStore.isPageLoading, async (isLoading) => {
-  if (isLoading && readerViewRef.value) {
-    readerViewRef.value.scrollTop = 0
-  }
-
-  if (!isLoading && readerStore.currentPage) {
-    await nextTick()
-    await applyCodeHighlighting()
-    setTimeout(() => {
-      if (settingsStore.readerScrollMode === 'continuous')
-        syncLayout()
-      else
-        performLayoutSync()
-    }, 50)
-  }
-}, { immediate: true })
+useAppWakeLock(() => analysisStore.isManualPageAnalysisActive || analysisStore.isAutoPageAnalysisActive)
+useReadingSession()
+useReaderHotkeys(handlePrev, handleNext)
+useQuoteHighlights(readerViewRef, [leftPaneContent, translatedPageContent])
 </script>
 
 <template>

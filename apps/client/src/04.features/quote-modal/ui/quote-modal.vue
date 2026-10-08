@@ -28,7 +28,6 @@ interface Props {
 }
 
 const props = defineProps<Props>()
-
 const emit = defineEmits<{
   'save': [data: { text: string, translation: string, note: string, color: string, analysisData?: LlmAnalysis | null }]
   'update:visible': [value: boolean]
@@ -39,30 +38,16 @@ const toast = useToast()
 const { t } = useI18n()
 
 const highlightColors = ['#fde047', '#86efac', '#f472b6', '#93c5fd', '#c4b5fd']
-
 const form = ref({
   text: '',
   translation: '',
   note: '',
   color: highlightColors[0],
 })
-
 const analysisData = ref<LlmAnalysis | null>(null)
 const showAdditionalFields = ref(false)
-
-function hasExtraFields(mode: string, initialData: Props['initialData']): boolean {
-  if (mode !== 'edit')
-    return false
-  if (initialData.note)
-    return true
-  const analysis = initialData.analysisData
-  if (!analysis)
-    return false
-  const grammarCount = analysis.grammarRules ? analysis.grammarRules.length : 0
-  const vocabCount = analysis.vocabulary ? analysis.vocabulary.length : 0
-
-  return grammarCount > 0 || vocabCount > 0
-}
+const isTranslating = ref(false)
+const previewTranslation = ref(true)
 
 watch(() => props.visible, (val) => {
   if (!val)
@@ -79,31 +64,46 @@ watch(() => props.visible, (val) => {
   analysisData.value = props.initialData.analysisData || null
   showAdditionalFields.value = hasExtra
 })
-
 watch(() => props.initialData.translation, (newVal) => {
   if (props.visible && newVal)
     form.value.translation = newVal
 })
 
-const isTranslating = ref(false)
-const previewTranslation = ref(true)
+function hasExtraFields(mode: string, initialData: Props['initialData']): boolean {
+  if (mode !== 'edit')
+    return false
 
+  if (initialData.note)
+    return true
+
+  const analysis = initialData.analysisData
+
+  if (!analysis)
+    return false
+
+  const grammarCount = analysis.grammarRules ? analysis.grammarRules.length : 0
+  const vocabCount = analysis.vocabulary ? analysis.vocabulary.length : 0
+
+  return grammarCount > 0 || vocabCount > 0
+}
 function checkHasExtraData(res: LlmAnalysis | null): boolean {
   if (!res)
     return false
+
   const hasGrammar = res.grammarRules ? res.grammarRules.length > 0 : false
   const hasVocabulary = res.vocabulary ? res.vocabulary.length > 0 : false
 
   return hasGrammar || hasVocabulary
 }
-
 async function translate() {
   if (!form.value.text || !props.bookContext)
     return
 
   isTranslating.value = true
+
   try {
     const res = await repos.analysis.analyze(props.bookContext.id, form.value.text, props.bookContext.language)
+
     if (!res || !res.translation) {
       toast.error(t('aiAnalysisError') || 'Не удалось получить перевод')
 
@@ -112,6 +112,7 @@ async function translate() {
 
     form.value.translation = res.translation
     analysisData.value = res
+
     if (checkHasExtraData(res))
       showAdditionalFields.value = true
 
@@ -124,7 +125,6 @@ async function translate() {
     isTranslating.value = false
   }
 }
-
 function handleSave() {
   emit('save', { ...form.value, analysisData: analysisData.value })
 }

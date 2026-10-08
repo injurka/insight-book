@@ -16,15 +16,12 @@ const props = withDefaults(defineProps<Props<T>>(), {
   disabled: false,
   fullWidth: false,
 })
-
 const emit = defineEmits<{
   (e: 'change', value: T): void
 }>()
-
 const model = defineModel<T>({ required: true })
 
 const switcherRef = ref<HTMLElement | null>(null)
-const isAnimating = ref(false)
 
 const { gliderStyle, updatePosition } = useGlider(switcherRef)
 const {
@@ -34,29 +31,31 @@ const {
   unobserveParent,
 } = useCompactMode(switcherRef)
 
-function handleItemClick(itemId: T) {
-  if (props.disabled)
-    return
-  model.value = itemId
-  emit('change', itemId)
-}
+const isAnimating = ref(false)
 
 watch(model, async () => {
   isAnimating.value = true
   await nextTick()
   updatePosition()
 })
-
-useResizeObserver(switcherRef, () => {
-  isAnimating.value = false
-  updatePosition()
-})
-
 watch(() => props.items, async () => {
   recalculateCompactMode()
   await nextTick()
   updatePosition()
 }, { deep: true })
+
+function handleItemClick(itemId: T) {
+  if (props.disabled)
+    return
+
+  model.value = itemId
+  emit('change', itemId)
+}
+
+useResizeObserver(switcherRef, () => {
+  isAnimating.value = false
+  updatePosition()
+})
 
 onMounted(async () => {
   recalculateCompactMode()
@@ -81,7 +80,6 @@ onMounted(async () => {
     })
   }
 })
-
 onUnmounted(() => {
   unobserveParent()
 })

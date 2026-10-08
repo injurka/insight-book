@@ -1,5 +1,4 @@
 import { useLocalStorage, useMediaQuery } from '@vueuse/core'
-
 import { computed } from 'vue'
 import { DEFAULT_TTS_VOICE } from '~/01.shared/constants/tts'
 import { isMobile } from '~/01.shared/lib/env'

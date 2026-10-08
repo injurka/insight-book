@@ -27,28 +27,13 @@ const readerStore = useReaderStore()
 const analysisStore = useAnalysisStore()
 const settingsStore = useGlobalSettingsStore()
 const { t } = useI18n()
-
-const readerHeaderWidgets = computed(() => pluginManager.getWidgets('reader:header-actions'))
-
 const router = useRouter()
 
 const parallelDropdownRef = ref<InstanceType<typeof KitDropdown> | null>(null)
 const settingsDropdownRef = ref<InstanceType<typeof KitDropdown> | null>(null)
-
 const showAutoAnalyzeSettings = ref(false)
 
-function openAutoAnalyzeSettings() {
-  settingsDropdownRef.value?.close()
-  showAutoAnalyzeSettings.value = true
-}
-
-function goBack() {
-  if (readerStore.currentBook?.id)
-    router.replace(AppRoutePaths.Book.Info(readerStore.currentBook.id))
-
-  else
-    router.replace(AppRoutePaths.Home)
-}
+const readerHeaderWidgets = computed(() => pluginManager.getWidgets('reader:header-actions'))
 
 watch(() => props.isVisible, (visible) => {
   if (!visible) {
@@ -56,6 +41,18 @@ watch(() => props.isVisible, (visible) => {
     parallelDropdownRef.value?.close()
   }
 })
+
+function openAutoAnalyzeSettings() {
+  settingsDropdownRef.value?.close()
+  showAutoAnalyzeSettings.value = true
+}
+function goBack() {
+  if (readerStore.currentBook?.id)
+    router.replace(AppRoutePaths.Book.Info(readerStore.currentBook.id))
+
+  else
+    router.replace(AppRoutePaths.Home)
+}
 </script>
 
 <template>

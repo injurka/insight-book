@@ -5,24 +5,22 @@ import { useTts } from '~/01.shared/composables/use-tts'
 import { useTrainingStore } from '../../../store/training.store'
 import SrsCardToolbar from '../../partials/srs-card-toolbar.vue'
 
-defineOptions({
-  inheritAttrs: false,
-})
-
-const props = defineProps<Props>()
-const emit = defineEmits(['grade'])
-
 interface Props {
   card: UserDictItem
   currentIndex: number
 }
+
+defineOptions({
+  inheritAttrs: false,
+})
+const props = defineProps<Props>()
+const emit = defineEmits(['grade'])
 
 const trainingStore = useTrainingStore()
 const { speak } = useTts()
 
 const leftItems = ref<UserDictItem[]>([])
 const rightItems = ref<UserDictItem[]>([])
-
 const selectedLeft = ref<UserDictItem | null>(null)
 const selectedRight = ref<UserDictItem | null>(null)
 const matchedIds = ref<Set<number>>(new Set())
@@ -30,8 +28,14 @@ const wrongPair = ref<{ leftId: number, rightId: number } | null>(null)
 const currentChunkEndIndex = ref(0)
 const matchedCard = ref<UserDictItem | null>(null)
 
+watch(() => props.currentIndex, (idx) => {
+  if (idx >= currentChunkEndIndex.value)
+    loadChunk(idx)
+}, { immediate: true })
+
 function shuffle<T>(array: T[]): T[] {
   const result = [...array]
+
   for (let i = result.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [result[i], result[j]] = [result[j], result[i]]
@@ -39,9 +43,9 @@ function shuffle<T>(array: T[]): T[] {
 
   return result
 }
-
 function loadChunk(startIndex: number) {
   const chunk = trainingStore.reviewQueue.slice(startIndex, startIndex + 5)
+
   if (chunk.length === 0)
     return
 
@@ -51,26 +55,20 @@ function loadChunk(startIndex: number) {
   leftItems.value = shuffle(chunk)
   rightItems.value = shuffle(chunk)
 }
-
-watch(() => props.currentIndex, (idx) => {
-  if (idx >= currentChunkEndIndex.value)
-    loadChunk(idx)
-}, { immediate: true })
-
 function selectLeft(item: UserDictItem) {
   if (matchedIds.value.has(item.id))
     return
+
   selectedLeft.value = item
   checkMatch()
 }
-
 function selectRight(item: UserDictItem) {
   if (matchedIds.value.has(item.id))
     return
+
   selectedRight.value = item
   checkMatch()
 }
-
 function checkMatch() {
   if (selectedLeft.value && selectedRight.value) {
     if (selectedLeft.value.id === selectedRight.value.id) {
@@ -82,6 +80,7 @@ function checkMatch() {
       selectedRight.value = null
 
       matchedCard.value = mCard
+
       if (mCard.word)
         speak(mCard.word, mCard.language)
     }
@@ -95,7 +94,6 @@ function checkMatch() {
     }
   }
 }
-
 function dismissMatchedCard() {
   matchedCard.value = null
   setTimeout(() => {

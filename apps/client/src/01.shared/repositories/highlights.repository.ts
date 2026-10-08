@@ -29,6 +29,7 @@ export class DefaultHighlightsRepository implements IHighlightsRepository {
     try {
       const raw = await api.highlights.list(bookId)
       const data = applyAcl(z.array(HighlightSchema), raw, 'highlights.list()')
+
       if (bookId)
         await offlineService.saveHighlights(bookId, data).catch(() => {})
 
@@ -40,6 +41,7 @@ export class DefaultHighlightsRepository implements IHighlightsRepository {
 
       if (bookId) {
         const offlineData = await offlineService.getHighlights(bookId)
+
         if (offlineData)
           return applyAcl(z.array(HighlightSchema), offlineData, 'highlights.list() [offline]')
       }

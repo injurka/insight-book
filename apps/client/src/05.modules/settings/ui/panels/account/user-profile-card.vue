@@ -9,30 +9,31 @@ import { useAccountSettings } from '../../../composables/use-account-settings'
 
 const { t } = useI18n()
 const { user, isUsernamePromptOpen, updateAvatar, updateUsername } = useAccountSettings()
-
 const avatarInputRef = useTemplateRef<HTMLInputElement>('avatarInputRef')
-
-function triggerAvatarUpload() {
-  avatarInputRef.value?.click()
-}
-
-async function onAvatarChange(e: Event) {
-  const target = e.target as HTMLInputElement
-  if (target.files && target.files.length > 0) {
-    await updateAvatar(target.files[0])
-    target.value = ''
-  }
-}
 
 const userRoleName = computed(() => {
   const role = user.value?.role
+
   if (!role || role === 'user')
     return t('globalActions.roleUser', 'Пользователь')
+
   if (role === 'admin')
     return t('globalActions.roleAdmin', 'Администратор')
 
   return role.charAt(0).toUpperCase() + role.slice(1)
 })
+
+function triggerAvatarUpload() {
+  avatarInputRef.value?.click()
+}
+async function onAvatarChange(e: Event) {
+  const target = e.target as HTMLInputElement
+
+  if (target.files && target.files.length > 0) {
+    await updateAvatar(target.files[0])
+    target.value = ''
+  }
+}
 </script>
 
 <template>

@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 describe('helpers: getMediaUrl', () => {
   afterEach(() => {
@@ -51,5 +51,54 @@ describe('helpers: getMediaUrl', () => {
     const { getMediaUrl } = await import('./helpers')
 
     expect(getMediaUrl('https://external.com/image.png')).toBe('https://external.com/image.png')
+  })
+})
+
+describe('helpers: text and colors', () => {
+  it('normalizes punctuation, whitespace, invisible characters and Unicode symbols', async () => {
+    const { normalizeString } = await import('./helpers')
+    expect(normalizeString('  HELLO,\u200B世界！ ❤️ ')).toBe('hello世界')
+    expect(normalizeString('')).toBe('')
+  })
+
+  it('converts short/full hex and named colors with a predictable fallback', async () => {
+    const { hexToRgba } = await import('./helpers')
+    expect(hexToRgba('#f0a', 0.5)).toBe('rgba(255, 0, 170, 0.5)')
+    expect(hexToRgba('#123456', 1)).toBe('rgba(18, 52, 86, 1)')
+    expect(hexToRgba('YELLOW', 0.35)).toBe('rgba(253, 224, 71, 0.35)')
+    expect(hexToRgba('', 0)).toBe('rgba(0, 0, 0, 0)')
+    expect(hexToRgba('invalid', 1)).toBe('rgba(0, 0, 0, 1)')
+    expect(hexToRgba('constructor', 1)).toBe('rgba(0, 0, 0, 1)')
+    expect(hexToRgba('#zzffff', 1)).toBe('rgba(0, 0, 0, 1)')
+  })
+
+  it('decodes valid URI text and preserves malformed values', async () => {
+    const { safeDecodeURIComponent } = await import('./helpers')
+    expect(safeDecodeURIComponent('%E4%BD%A0%E5%A5%BD')).toBe('你好')
+    expect(safeDecodeURIComponent('%ZZ')).toBe('%ZZ')
+    expect(safeDecodeURIComponent('')).toBe('')
+  })
+})
+
+describe('helpers: media URL boundaries', () => {
+  beforeEach(() => vi.resetModules())
+  afterEach(() => {
+    vi.unstubAllEnvs()
+    vi.resetModules()
+  })
+  it('keeps API image endpoints off CDN and normalizes trailing base slashes', async () => {
+    vi.stubEnv('VITE_API_URL', 'https://api.test.com/')
+    vi.stubEnv('VITE_CDN_URL', 'https://cdn.test.com/')
+    const { getMediaUrl } = await import('./helpers')
+    expect(getMediaUrl('/api/books/1/page/2/image')).toBe('https://api.test.com/api/books/1/page/2/image')
+    expect(getMediaUrl('/uploads/image.png')).toBe('https://cdn.test.com/image.png')
+    expect(getMediaUrl('/image.png')).toBe('https://cdn.test.com/image.png')
+  })
+  it('does not rewrite an upload-looking query or nested external URL', async () => {
+    vi.stubEnv('VITE_CDN_URL', 'https://cdn.test.com')
+    const { getMediaUrl } = await import('./helpers')
+
+    for (const url of ['https://external.com/image?src=/api/uploads/cover.jpg', 'https://external.com/nested/api/uploads/cover.jpg'])
+      expect(getMediaUrl(url)).toBe(url)
   })
 })

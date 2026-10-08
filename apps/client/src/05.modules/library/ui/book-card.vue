@@ -15,7 +15,6 @@ interface Props {
 }
 
 const props = defineProps<Props>()
-
 const emit = defineEmits<{
   (e: 'edit'): void
   (e: 'click'): void
@@ -26,6 +25,12 @@ const networkStore = useNetworkStore()
 const toast = useToast()
 const { t } = useI18n()
 
+const progressPercent = computed(() => {
+  const entity = new BookEntity(props.book)
+
+  return entity.getProgressPercent()
+})
+
 function handleEditClick() {
   if (networkStore.effectiveOffline) {
     toast.warn(t('network.needOnline'))
@@ -35,12 +40,6 @@ function handleEditClick() {
 
   emit('edit')
 }
-
-const progressPercent = computed(() => {
-  const entity = new BookEntity(props.book)
-
-  return entity.getProgressPercent()
-})
 </script>
 
 <template>

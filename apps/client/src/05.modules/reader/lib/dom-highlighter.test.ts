@@ -11,6 +11,7 @@ function buildSentence(sentId: string, words: string[]): HTMLElement {
     wordSpan.className = 'word'
     wordSpan.textContent = word
     span.appendChild(wordSpan)
+
     if (i < words.length - 1)
       span.appendChild(document.createTextNode(' '))
   })
@@ -20,6 +21,7 @@ function buildSentence(sentId: string, words: string[]): HTMLElement {
 
 function buildRoot(...sentences: HTMLElement[]): HTMLElement {
   const root = document.createElement('div')
+
   for (const sentence of sentences)
     root.appendChild(sentence)
 

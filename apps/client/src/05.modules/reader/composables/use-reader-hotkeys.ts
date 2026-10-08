@@ -4,8 +4,10 @@ import { useReaderStore } from '../store/reader.store'
 
 function isTyping(): boolean {
   const active = document.activeElement
+
   if (!active)
     return false
+
   const tag = active.tagName.toLowerCase()
 
   return tag === 'input' || tag === 'textarea' || tag === 'select' || (active as HTMLElement).isContentEditable

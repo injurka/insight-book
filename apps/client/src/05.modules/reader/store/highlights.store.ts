@@ -1,6 +1,5 @@
 import type { Highlight, LlmAnalysis } from '~/01.shared/types/models'
 import { useMutation, useQuery, useQueryCache } from '@pinia/colada'
-
 import { ref, watch } from 'vue'
 import { useRepos } from '~/00.plugins/di'
 import { queryKeys, scopedQueryKey } from '~/01.shared/lib/query-keys'
@@ -22,6 +21,7 @@ export const useHighlightsStore = defineStore('highlights', () => {
     key: () => scopedQueryKey(queryKeys.highlights(currentBookId.value)),
     query: async () => {
       const id = currentBookId.value
+
       if (id === null)
         return []
 
@@ -46,6 +46,7 @@ export const useHighlightsStore = defineStore('highlights', () => {
 
   async function fetchHighlights(bookId: number) {
     currentBookId.value = bookId
+
     try {
       await refetchHighlightsQuery()
     }
@@ -61,6 +62,7 @@ export const useHighlightsStore = defineStore('highlights', () => {
 
       // Update local state and save offline
       const exists = highlights.value.some(item => item.id === newHighlight.id)
+
       if (!exists)
         highlights.value.push(newHighlight)
 

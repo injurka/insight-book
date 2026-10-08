@@ -4,6 +4,9 @@
   "private": true,
   "type": "module",
   "packageManager": "bun@1.4.0",
+  "patchedDependencies": {
+    "eslint-plugin-vue-setup-order@1.1.1": "apps/client/patches/eslint-plugin-vue-setup-order@1.1.1.patch"
+  },
   "overrides": {
     "vue": "3.5.40",
     "vue-router": "^5.2.0",

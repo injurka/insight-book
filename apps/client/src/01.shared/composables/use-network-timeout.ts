@@ -1,5 +1,5 @@
 import { storeToRefs } from 'pinia'
-import { onUnmounted, ref } from 'vue'
+import { onScopeDispose, watch } from 'vue'
 import { useNetworkStore } from '../store/network.store'
 
 export interface UseNetworkTimeoutOptions {
@@ -7,80 +7,120 @@ export interface UseNetworkTimeoutOptions {
   autoAbortOnOffline?: boolean
 }
 
-/**
- * Composable для оборачивания долгих асинхронных операций (например, загрузка книги/главы).
- * Если операция превышает timeoutMs (по умолчанию 5 секунд), вызывается оверлей выбора:
- * - Продолжить повторным запросом
- * - Перейти в оффлайн-режим (с отменяющим AbortController)
- */
+interface PendingOperation {
+  retry: () => void
+}
+
+// The timeout dialog belongs to the store, so its lifetime must cover all callers.
+const operationsByStore = new WeakMap<ReturnType<typeof useNetworkStore>, Set<PendingOperation>>()
+
+function withAbort<T>(fn: (signal: AbortSignal) => Promise<T>, signal: AbortSignal): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const abort = () => reject(new DOMException(String(signal.reason ?? 'Aborted'), 'AbortError'))
+
+    if (signal.aborted) {
+      abort()
+
+      return
+    }
+
+    signal.addEventListener('abort', abort, { once: true })
+    Promise.resolve().then(() => {
+      signal.throwIfAborted()
+
+      return fn(signal)
+    }).then(resolve, reject).finally(() => {
+      signal.removeEventListener('abort', abort)
+    })
+  })
+}
+
+/** Runs cancellable operations under the shared network timeout dialog. */
 export function useNetworkTimeout(options: UseNetworkTimeoutOptions = {}) {
-  const { timeoutMs = 5000 } = options
+  const { timeoutMs = 5000, autoAbortOnOffline = true } = options
   const networkStore = useNetworkStore()
   const { isTimeoutModalOpen, effectiveOffline } = storeToRefs(networkStore)
+  const controllers = new Set<AbortController>()
+  let disposed = false
+  const operations = operationsByStore.get(networkStore) ?? new Set<PendingOperation>()
+  operationsByStore.set(networkStore, operations)
 
-  const currentController = ref<AbortController | null>(null)
+  function registerController(controller: AbortController) {
+    controllers.add(controller)
 
-  /**
-   * Выполняет асинхронную функцию под контролем таймера и AbortController
-   */
+    if (autoAbortOnOffline)
+      networkStore.registerController(controller)
+  }
+
   async function runWithTimeout<T>(fn: (signal: AbortSignal) => Promise<T>): Promise<T> {
+    if (disposed)
+      throw new DOMException('Scope disposed', 'AbortError')
+
     if (networkStore.effectiveOffline) {
-      // Если уже в forced offline режиме, выполняем без ожидания или вызываем с отмененным сигналом
       const controller = new AbortController()
       controller.abort('App in offline mode')
 
       return fn(controller.signal)
     }
 
-    return new Promise<T>((resolve, reject) => {
-      let retryRequested = false
+    let retryRequested = false
+    let controller: AbortController | null = null
+    const operation: PendingOperation = {
+      retry() {
+        retryRequested = true
+        controller?.abort('Retry requested')
+      },
+    }
+    operations.add(operation)
+    networkStore.setRetryHandler(() => {
+      operations.forEach(pending => pending.retry())
+    })
 
-      const execute = async () => {
-        const controller = new AbortController()
-        currentController.value = controller
-        networkStore.registerController(controller)
-        networkStore.startLoadingTimer(timeoutMs)
+    if (operations.size === 1)
+      networkStore.startLoadingTimer(timeoutMs)
+
+    try {
+      while (true) {
+        retryRequested = false
+        controller = new AbortController()
+        registerController(controller)
 
         try {
-          const result = await fn(controller.signal)
-          networkStore.stopLoadingTimer()
-          resolve(result)
+          return await withAbort(fn, controller.signal)
         }
         catch (error) {
-          if (retryRequested && !networkStore.effectiveOffline) {
-            retryRequested = false
-            void execute()
-          }
-          else {
-            networkStore.stopLoadingTimer()
-            reject(error)
-          }
+          if (!retryRequested || disposed || networkStore.effectiveOffline)
+            throw error
+
+          networkStore.startLoadingTimer(timeoutMs)
         }
         finally {
           networkStore.unregisterController(controller)
-          if (currentController.value === controller)
-            currentController.value = null
+          controllers.delete(controller)
         }
       }
+    }
+    finally {
+      operations.delete(operation)
 
-      networkStore.setRetryHandler(() => {
-        retryRequested = true
-        currentController.value?.abort('Retry requested')
-      })
-
-      void execute()
-    }).finally(() => {
-      networkStore.setRetryHandler(null)
-    })
+      if (operations.size === 0) {
+        networkStore.stopLoadingTimer()
+        networkStore.setRetryHandler(null)
+      }
+    }
   }
 
-  onUnmounted(() => {
-    if (currentController.value) {
-      currentController.value.abort('Component unmounted')
-      networkStore.unregisterController(currentController.value)
-    }
+  watch(effectiveOffline, (offline) => {
+    if (offline && autoAbortOnOffline)
+      controllers.forEach(controller => controller.abort('App in offline mode'))
+  }, { flush: 'sync' })
 
-    networkStore.setRetryHandler(null)
+  onScopeDispose(() => {
+    disposed = true
+    controllers.forEach((controller) => {
+      controller.abort('Scope disposed')
+      networkStore.unregisterController(controller)
+    })
   })
 
   return {

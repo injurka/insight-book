@@ -10,14 +10,13 @@ interface Props {
 const props = withDefaults(defineProps<Props>(), {
   size: 100,
 })
-
 const emit = defineEmits<{
   (e: 'complete'): void
 }>()
+defineExpose({ replay })
 
 const containerRefs = ref<HTMLElement[]>([])
 const writers = shallowRef<HanziWriter[]>([])
-
 const currentIndex = ref(0)
 const isComplete = ref(false)
 let currentSequenceId = 0
@@ -28,7 +27,6 @@ const validChars = computed(() => {
 
   return props.text.split('').filter(c => /[\u4E00-\u9FA5]/.test(c))
 })
-
 const trackTransform = computed(() => {
   const gap = 16
   let activeCenter = 0
@@ -47,6 +45,11 @@ const trackTransform = computed(() => {
   }
 })
 
+watch(() => props.text, async () => {
+  await nextTick()
+  initWriters()
+})
+
 function createCharacterWriters(docStyle: CSSStyleDeclaration): HanziWriter[] {
   const strokeColor = docStyle.getPropertyValue('--fg-primary-color').trim() || '#2c3e50'
   const radicalColor = docStyle.getPropertyValue('--fg-accent-color').trim() || '#c975de'
@@ -57,6 +60,7 @@ function createCharacterWriters(docStyle: CSSStyleDeclaration): HanziWriter[] {
 
   for (let i = 0; i < validChars.value.length; i++) {
     const el = containerRefs.value[i]
+
     if (!el)
       continue
 
@@ -76,6 +80,7 @@ function createCharacterWriters(docStyle: CSSStyleDeclaration): HanziWriter[] {
     })
 
     const svg = el.querySelector('svg')
+
     if (svg)
       svg.setAttribute('viewBox', `0 0 ${props.size} ${props.size}`)
 
@@ -84,7 +89,6 @@ function createCharacterWriters(docStyle: CSSStyleDeclaration): HanziWriter[] {
 
   return newWriters
 }
-
 async function initWriters() {
   currentSequenceId++
   const seqId = currentSequenceId
@@ -110,10 +114,10 @@ async function initWriters() {
   else if (props.mode === 'animation')
     startAnimationSequence(0, seqId)
 }
-
 function startQuizSequence(index: number, seqId: number) {
   if (seqId !== currentSequenceId)
     return
+
   if (index >= writers.value.length) {
     isComplete.value = true
     emit('complete')
@@ -126,6 +130,7 @@ function startQuizSequence(index: number, seqId: number) {
     onComplete: () => {
       if (seqId !== currentSequenceId)
         return
+
       setTimeout(
         startQuizSequence,
         300,
@@ -135,10 +140,10 @@ function startQuizSequence(index: number, seqId: number) {
     },
   })
 }
-
 function startAnimationSequence(index: number, seqId: number) {
   if (seqId !== currentSequenceId)
     return
+
   if (index >= writers.value.length) {
     isComplete.value = true
     emit('complete')
@@ -151,6 +156,7 @@ function startAnimationSequence(index: number, seqId: number) {
     onComplete: () => {
       if (seqId !== currentSequenceId)
         return
+
       setTimeout(
         startAnimationSequence,
         300,
@@ -160,7 +166,6 @@ function startAnimationSequence(index: number, seqId: number) {
     },
   })
 }
-
 function replay() {
   currentSequenceId++
   const seqId = currentSequenceId
@@ -177,13 +182,6 @@ function replay() {
   else if (props.mode === 'quiz')
     startQuizSequence(0, seqId)
 }
-
-defineExpose({ replay })
-
-watch(() => props.text, async () => {
-  await nextTick()
-  initWriters()
-})
 
 onMounted(initWriters)
 </script>

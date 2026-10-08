@@ -6,13 +6,13 @@ import { KitBtn } from '~/02.kit/atoms/kit-btn/ui'
 import { KitDialog } from '~/02.kit/organisms/kit-dialog/ui'
 
 const networkStore = useNetworkStore()
-const { isTimeoutModalOpen } = storeToRefs(networkStore)
 const { t } = useI18n()
+
+const { isTimeoutModalOpen } = storeToRefs(networkStore)
 
 function handleWorkOffline() {
   networkStore.enterOfflineMode()
 }
-
 function handleRetry() {
   networkStore.retryRequest()
 }

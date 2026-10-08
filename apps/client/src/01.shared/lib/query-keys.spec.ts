@@ -44,3 +44,29 @@ describe('scoped query keys', () => {
     expect(afterRelogin).not.toEqual(beforeLogout)
   })
 })
+
+describe('query key factories', () => {
+  it('keeps root keys and ID keys consistent, including ID zero', () => {
+    expect(queryKeys.books()).toEqual(queryKeys.books.all)
+    expect(queryKeys.books(null)).toEqual(queryKeys.books.all)
+    expect(queryKeys.books(0)).toEqual(queryKeys.books.byId(0))
+    expect(queryKeys.books.public()).toEqual(['books', 'public', null])
+    expect(queryKeys.books.public({ page: 2 })).toEqual(['books', 'public', { page: 2 }])
+    expect(queryKeys.decks()).toEqual(queryKeys.decks.all)
+    expect(queryKeys.dictionary()).toEqual(queryKeys.dictionary.all)
+
+    for (const factory of [queryKeys.highlights, queryKeys.toc]) {
+      expect(factory()).toEqual(factory.all)
+      expect(factory(null)).toEqual(factory.all)
+    }
+
+    expect(queryKeys.highlights(1)).toEqual(queryKeys.highlights.byBookId(1))
+    expect(queryKeys.toc(1)).toEqual(queryKeys.toc.byBookId(1))
+    expect(new Set(Object.values(queryKeys.plugins).map(key => JSON.stringify(key))).size).toBe(4)
+  })
+  it('does not mutate the input when adding an auth scope', () => {
+    const key = ['books', 1] as const
+    expect(scopedQueryKey(key).slice(0, -1)).toEqual(key)
+    expect(key).toEqual(['books', 1])
+  })
+})

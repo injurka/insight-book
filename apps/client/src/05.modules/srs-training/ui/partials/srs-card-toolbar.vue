@@ -7,7 +7,7 @@ import { useRepos } from '~/00.plugins/di'
 import { pluginManager } from '~/00.plugins/plugin-manager'
 import { useToast } from '~/01.shared/composables/use-toast'
 import { useTts } from '~/01.shared/composables/use-tts'
-import { vLongPress } from '~/01.shared/directives/long-press'
+import { vLongPress } from '~/01.shared/directives/v-long-press'
 import { useAuthStore } from '~/01.shared/store/auth.store'
 import { KitBtn } from '~/02.kit/atoms/kit-btn/ui'
 import { KitDropdown } from '~/02.kit/molecules/kit-dropdown/ui'
@@ -20,33 +20,29 @@ interface Props {
 
 const props = defineProps<Props>()
 
-const AiExamplesModal = lazyComponent(() => import('~/04.features/analysis/ui/modal/ai-examples-modal.vue'))
-const LlmChatModal = lazyComponent(() => import('~/04.features/llm-chat/ui/llm-chat-modal.vue'))
-const HanziBoard = lazyComponent(() => import('~/05.modules/dictionary/ui/hanzi-board.vue'))
-
 const repos = useRepos()
 const { speak, isPlaying, isLoading } = useTts()
 const toast = useToast()
 const { t } = useI18n()
 const authStore = useAuthStore()
 
-const isAdmin = computed(() => authStore.user?.role === 'admin')
+const AiExamplesModal = lazyComponent(() => import('~/04.features/analysis/ui/modal/ai-examples-modal.vue'))
+const LlmChatModal = lazyComponent(() => import('~/04.features/llm-chat/ui/llm-chat-modal.vue'))
+const HanziBoard = lazyComponent(() => import('~/05.modules/dictionary/ui/hanzi-board.vue'))
 const isTtsPopoverOpen = ref(false)
-
 const showAnimation = ref(false)
 const hanziBoardRef = ref<{ replay: () => void } | null>(null)
-
 const isAiModalOpen = ref(false)
 const isChatModalOpen = ref(false)
 const isAiLoading = ref(false)
 const aiData = ref<unknown | null>(null)
-
 const expandedSections = reactive<Record<string, boolean>>({
   grammar: false,
   vocab: false,
   notes: false,
 })
 
+const isAdmin = computed(() => authStore.user?.role === 'admin')
 const toolbarWidgets = computed(() => pluginManager.getWidgets('srs-card:toolbar-actions'))
 const belowToolbarWidgets = computed(() => pluginManager.getWidgets('srs-card:below-toolbar'))
 
@@ -54,7 +50,6 @@ function openTtsPopover() {
   if (isAdmin.value)
     isTtsPopoverOpen.value = true
 }
-
 function playTTS(forceCacheBypass = false) {
   if (props.card.word) {
     speak(
@@ -65,10 +60,10 @@ function playTTS(forceCacheBypass = false) {
     )
   }
 }
-
 async function fetchAiExamples() {
   if (!props.card.word)
     return
+
   isAiModalOpen.value = true
   isAiLoading.value = true
   aiData.value = null
@@ -85,13 +80,12 @@ async function fetchAiExamples() {
     isAiLoading.value = false
   }
 }
-
 function toggleSection(sec: 'grammar' | 'vocab' | 'notes') {
   expandedSections[sec] = !expandedSections[sec]
 }
-
 function toggleAnimation() {
   showAnimation.value = !showAnimation.value
+
   if (showAnimation.value)
     nextTick(() => hanziBoardRef.value?.replay())
 }

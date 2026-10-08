@@ -17,6 +17,7 @@ export function useScrollRestoration(
 
     const bookId = getBookId()
     const pageNum = getPageNum()
+
     if (!bookId || !pageNum)
       return
 
@@ -33,6 +34,7 @@ export function useScrollRestoration(
   function restoreScrollPosition() {
     const bookId = getBookId()
     const pageNum = getPageNum()
+
     if (!scrollContainerRef.value || !bookId || !pageNum)
       return
 
@@ -74,6 +76,7 @@ export function useScrollRestoration(
       el.scrollTop = target
 
       const mainContent = document.querySelector('.main-content')
+
       if (mainContent)
         mainContent.scrollTop = 0
 

@@ -45,8 +45,10 @@ export function useReaderScroll(saveScrollPosition: () => void, closeBubblePopov
   function onScroll(e: Event) {
     if (analysisStore.wordPopover)
       analysisStore.closePopover()
+
     if (analysisStore.selectionTooltip)
       analysisStore.closeSelectionTooltip()
+
     if (closeBubblePopover)
       closeBubblePopover()
 

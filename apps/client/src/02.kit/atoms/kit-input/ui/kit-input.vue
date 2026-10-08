@@ -2,19 +2,6 @@
 import { Icon } from '@iconify/vue'
 import { computed, useSlots } from 'vue'
 
-defineOptions({
-  inheritAttrs: false,
-})
-
-const props = withDefaults(defineProps<Props>(), {
-  placeholder: '',
-  variant: 'default',
-  size: 'md',
-  color: 'default',
-  clearable: false,
-  type: 'text',
-})
-
 interface Props {
   placeholder?: string
   rounded?: boolean
@@ -28,6 +15,17 @@ interface Props {
   type?: string
 }
 
+defineOptions({
+  inheritAttrs: false,
+})
+const props = withDefaults(defineProps<Props>(), {
+  placeholder: '',
+  variant: 'default',
+  size: 'md',
+  color: 'default',
+  clearable: false,
+  type: 'text',
+})
 const modelValue = defineModel<string | number | null>({ default: '' })
 
 const slots = useSlots()
@@ -44,7 +42,6 @@ function onInput(e: Event) {
   else
     modelValue.value = val
 }
-
 function clear() {
   modelValue.value = props.type === 'number' ? null : ''
 }

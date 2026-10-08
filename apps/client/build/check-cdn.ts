@@ -32,10 +32,13 @@ const TEST_URLS = [
 
 function getContinent(countryCode: string): string {
   const code = countryCode.toLowerCase()
+
   if (['us', 'ca', 'mx'].includes(code))
     return '🌎 North America'
+
   if (['jp', 'sg', 'au', 'kr', 'hk', 'in', 'tw', 'th', 'id', 'my', 'ph', 'vn', 'nz'].includes(code))
     return '🌏 Asia & Oceania'
+
   if (['de', 'nl', 'uk', 'fr', 'it', 'pl', 'es', 'se', 'bg', 'fi', 'ch', 'cz', 'at', 'ua', 'ro'].includes(code))
     return '🌍 Europe'
 
@@ -115,6 +118,7 @@ async function runLocalHeaderCheck() {
 
   console.log('1️⃣ Разрешение DNS:')
   const domains = ['insight-book.ru', 'cdn.insight-book.ru', 'api.insight-book.ru']
+
   for (const domain of domains) {
     const ips = await resolveDns(domain)
     console.log(`   • ${domain.padEnd(24)} -> ${ips.join(', ') || 'Не разрешено'}`)
@@ -194,6 +198,7 @@ async function runGlobalRegionCheck() {
       const continent = getContinent(countryCode)
 
       const nodeResults = resultData[nodeKey]
+
       if (nodeResults && nodeResults[0]) {
         const firstResult = nodeResults[0]
         const isSuccess = firstResult[0] === 1
@@ -220,6 +225,7 @@ async function runGlobalRegionCheck() {
 
     for (const continent of continentOrder) {
       const items = grouped[continent]
+
       if (!items || items.length === 0)
         continue
 

@@ -17,12 +17,15 @@ const isCheckingForUpdates = ref(false)
 
 async function checkForUpdates() {
   const pinia = getActivePinia()
+
   if (!pinia)
     return
 
   isCheckingForUpdates.value = true
+
   try {
     const updateAvailable = await checkForTauriUpdate(pinia, true)
+
     if (!updateAvailable)
       toast.success(t('settings.appUpToDate'))
   }

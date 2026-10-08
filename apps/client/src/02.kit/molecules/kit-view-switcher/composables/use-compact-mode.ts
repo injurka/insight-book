@@ -8,6 +8,7 @@ export function useCompactMode(switcherRef: Ref<HTMLElement | null>) {
 
   function measureNaturalWidth() {
     const el = switcherRef.value
+
     if (!el)
       return
 
@@ -26,6 +27,7 @@ export function useCompactMode(switcherRef: Ref<HTMLElement | null>) {
 
   function checkOverflow() {
     const el = switcherRef.value
+
     if (!el || !el.parentElement)
       return
 
@@ -46,6 +48,7 @@ export function useCompactMode(switcherRef: Ref<HTMLElement | null>) {
 
   function observeParent() {
     const parent = switcherRef.value?.parentElement
+
     if (parent) {
       parentObserver = new ResizeObserver(() => checkOverflow())
       parentObserver.observe(parent)

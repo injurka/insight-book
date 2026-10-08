@@ -33,6 +33,7 @@ export function getSafeTransportUrl(input: RequestInfo | URL): TransportUrl {
       : String(input)
 
   let url: URL
+
   try {
     const baseUrl = typeof globalThis.location !== 'undefined'
       ? globalThis.location.origin
@@ -95,6 +96,7 @@ function finishSpan(
   if (status !== undefined) {
     span.setAttribute('http.response.status_code', status)
     span.setAttribute('http.status_code', status)
+
     if (status >= 400) {
       span.setAttribute('error.type', 'HTTPError')
       span.setAttribute('error.code', String(status))
@@ -133,6 +135,7 @@ function createTauriSpan(tracer: ReturnType<typeof trace.getTracer>, method: str
 
 function createRequestHeaders(input: RequestInfo | URL, init?: RequestInit): Headers {
   const headers = new Headers(typeof Request !== 'undefined' && input instanceof Request ? input.headers : undefined)
+
   if (init?.headers) {
     new Headers(init.headers).forEach((value, key) => headers.set(key, value))
   }
@@ -146,6 +149,7 @@ function createXhrResponse(xhr: XMLHttpRequest): Response {
 
   for (const line of rawHeaders.trim().split(/[\r\n]+/)) {
     const separator = line.indexOf(':')
+
     if (separator > 0)
       headers.append(line.slice(0, separator).trim(), line.slice(separator + 1).trim())
   }
@@ -193,6 +197,7 @@ function xhrFetch(
 
     xhr.open(requestMethod(input, init), input instanceof Request ? input.url : String(input))
     xhr.responseType = 'text'
+
     if (timeout)
       xhr.timeout = timeout
 
@@ -268,6 +273,7 @@ export function createApiFetch(): typeof globalThis.fetch {
 
     if (span)
       propagation.inject(spanContext, headers, { set: setHeader })
+
     const requestInit: RequestInit = { ...standardOptions, headers }
 
     try {
@@ -286,8 +292,10 @@ export function createApiFetch(): typeof globalThis.fetch {
 
         return globalThis.fetch(input, requestInit)
       })
+
       if (span)
         finishSpan(span, startedAt, response.status)
+
       recordCompletedRequest(
         method,
         safeUrl,

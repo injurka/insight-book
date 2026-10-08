@@ -1,12 +1,35 @@
 import type { Component } from 'vue'
-import { defineAsyncComponent, h } from 'vue'
+import { defineAsyncComponent } from 'vue'
 import { useToastStore } from '~/01.shared/store/toast.store'
-import { KitPageLoader } from '~/02.kit/atoms/kit-page-loader/ui'
 
 interface LazyComponentOptions {
-  showLoader?: boolean
+  loadingComponent?: Component
   delay?: number
   timeout?: number
+}
+
+const CHUNK_RELOAD_WINDOW_MS = 60_000
+
+function tryReloadChunk(): boolean {
+  try {
+    const storedCount = Number(sessionStorage.getItem('chunk_reload_count') || '0')
+    const lastReload = Number(sessionStorage.getItem('chunk_reload_time') || '0')
+    const withinWindow = Date.now() - lastReload < CHUNK_RELOAD_WINDOW_MS
+    const reloadCount = withinWindow && Number.isFinite(storedCount) && storedCount >= 0 ? storedCount : 0
+
+    if (reloadCount >= 2)
+      return false
+
+    sessionStorage.setItem('chunk_reload_count', String(reloadCount + 1))
+    sessionStorage.setItem('chunk_reload_time', String(Date.now()))
+    window.location.reload()
+
+    return true
+  }
+  catch {
+    // Storage or reload can be unavailable in a restricted browser.
+    return false
+  }
 }
 
 /**
@@ -14,17 +37,13 @@ interface LazyComponentOptions {
  * Обрабатывает ошибки сети, ошибки версионирования чанков и показывает лоадер.
  */
 export function lazyComponent(loader: () => Promise<Component>, options: LazyComponentOptions = {}) {
-  const { showLoader = false, delay = 300, timeout = 10000 } = options
+  const { loadingComponent, delay = 300, timeout = 10000 } = options
 
   return defineAsyncComponent({
     loader,
 
-    // Лоадер рендерится только если явно указан showLoader: true
-    loadingComponent: showLoader
-      ? () => h('div', {
-          style: 'display: flex; justify-content: center; padding: 24px; width: 100%;',
-        }, [h(KitPageLoader)])
-      : undefined,
+    // The caller supplies UI from its own layer.
+    loadingComponent,
 
     delay,
     timeout,
@@ -39,16 +58,8 @@ export function lazyComponent(loader: () => Promise<Component>, options: LazyCom
       const isChunkLoadError = errorMessage.includes('fetch dynamically imported module')
         || errorMessage.includes('importing a module script failed')
 
-      if (isChunkLoadError) {
-        // Защита от бесконечного цикла перезагрузок
-        const reloadCount = Number(sessionStorage.getItem('chunk_reload_count') || '0')
-        if (reloadCount < 2) {
-          sessionStorage.setItem('chunk_reload_count', String(reloadCount + 1))
-          window.location.reload()
-
-          return
-        }
-      }
+      if (isChunkLoadError && tryReloadChunk())
+        return
 
       // Для других сетевых ошибок — делаем до 3 попыток перезапроса
       if (attempts <= 3) {

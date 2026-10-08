@@ -13,6 +13,7 @@ export const useCacheStore = defineStore('cache', () => {
 
   async function loadStats() {
     isLoading.value = true
+
     try {
       isPersisted.value = await repos.storage.requestPersistentStorage()
 

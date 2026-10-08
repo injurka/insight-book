@@ -25,8 +25,10 @@ const { t } = useI18n()
 function getFolderIcon(view: string) {
   if (view === 'authors')
     return 'mdi:account'
+
   if (view === 'series')
     return 'mdi:folder'
+
   if (view === 'collections')
     return 'mdi:bookshelf'
 

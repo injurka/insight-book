@@ -8,9 +8,9 @@ import { KitBtn } from '~/02.kit/atoms/kit-btn/ui'
 import { KitDialog } from '~/02.kit/organisms/kit-dialog/ui'
 
 const networkStore = useNetworkStore()
-const { isForcedOffline, effectiveOffline } = storeToRefs(networkStore)
 const { t } = useI18n()
 
+const { isForcedOffline, effectiveOffline } = storeToRefs(networkStore)
 const isDialogOpen = ref(false)
 
 function handleBadgeClick() {
@@ -18,7 +18,6 @@ function handleBadgeClick() {
     isDialogOpen.value = true
   }
 }
-
 function handleReconnect() {
   networkStore.exitOfflineMode()
   isDialogOpen.value = false

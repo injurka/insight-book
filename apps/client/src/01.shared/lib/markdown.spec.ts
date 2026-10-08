@@ -1,11 +1,6 @@
+// @vitest-environment jsdom
 import { describe, expect, it } from 'vitest'
 import { formatMarkdown } from './markdown'
-
-// NOTE: тесты бегут в happy-dom, где DOMPurify.sanitize теряет ПЕРВЫЙ
-// верхнеуровневый узел результата (особенность связки dompurify + happy-dom,
-// в браузере этого не происходит). Поэтому тесты в основном проверяют
-// наличие сгенерированной разметки через toContain, а не точное равенство,
-// а отдельный блок в конце фиксирует само это поведение окружения.
 
 describe('formatMarkdown', () => {
   describe('empty and falsy input', () => {
@@ -42,7 +37,6 @@ describe('formatMarkdown', () => {
 
   describe('headings', () => {
     it('formats h2 and h3 headings', () => {
-      // h1 идёт первым узлом и теряется в happy-dom (см. комментарий выше)
       const result = formatMarkdown('# One\n## Two\n### Three')
       expect(result).toContain('<h2>Two</h2>')
       expect(result).toContain('<h3>Three</h3>')
@@ -62,7 +56,6 @@ describe('formatMarkdown', () => {
     })
 
     it('groups consecutive list items into a single ul', () => {
-      // ul теряется, если он первый узел (happy-dom) — добавляем текст перед списком
       const result = formatMarkdown('intro\n- one\n- two\ntail')
       expect(result).toContain('<ul>')
       expect(result).toContain('<li>one</li><li>two</li>')
@@ -84,7 +77,6 @@ describe('formatMarkdown', () => {
 
   describe('code blocks', () => {
     it('formats a fenced code block with a language', () => {
-      // <pre> — первый узел и теряется в happy-dom, проверяем <code>
       const result = formatMarkdown('```ts\nconst a = 1\n```')
       expect(result).toContain('<code class="chat-code language-ts">')
       expect(result).toContain('const a = 1')
@@ -237,12 +229,28 @@ outro`
     })
   })
 
-  describe('happy-dom environment quirk', () => {
-    // Фиксируем фактическое поведение тестового окружения: dompurify в happy-dom
-    // отбрасывает первый верхнеуровневый узел санитизированного HTML.
-    it('drops the first top-level node of the sanitized output', () => {
-      expect(formatMarkdown('line one\nline two')).toBe('<br>line two')
-      expect(formatMarkdown('this is **bold**')).toBe('<strong>bold</strong>')
+  describe('content preservation', () => {
+    it('preserves the first text node and block wrapper', () => {
+      expect(formatMarkdown('line one\nline two')).toBe('line one<br>line two')
+      expect(formatMarkdown('this is **bold**')).toBe('this is <strong>bold</strong>')
+      expect(formatMarkdown('# Heading')).toBe('<h1>Heading</h1>')
+      expect(formatMarkdown('```ts\ncode\n```')).toContain('<pre class="chat-code-block language-ts">')
+    })
+
+    it('preserves placeholder-like input and does not recursively restore code', () => {
+      const result = formatMarkdown('%%BLOCK_PLACEHOLDER_0%% `first` `%%BLOCK_PLACEHOLDER_1%%`')
+      expect(result).toContain('%%BLOCK_PLACEHOLDER_0%%')
+      expect(result).toContain('<code class="chat-code">first</code>')
+      expect(result).toContain('<code class="chat-code">%%BLOCK_PLACEHOLDER_1%%</code>')
+    })
+
+    it('preserves replacement tokens in code', () => {
+      expect(formatMarkdown('`$& $`')).toBe('<code class="chat-code">$&amp; $</code>')
+    })
+
+    it('supports C++ and hyphenated language identifiers', () => {
+      expect(formatMarkdown('```c++\nx\n```')).toContain('language-c++')
+      expect(formatMarkdown('```objective-c\nx\n```')).toContain('language-objective-c')
     })
   })
 })

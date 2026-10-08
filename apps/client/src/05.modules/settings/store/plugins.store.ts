@@ -89,6 +89,7 @@ export const usePluginsStore = defineStore('settings-plugins', () => {
     mutation: async (manifestUrl: string) => {
       const router = await getRouter()
       const loadedPlugin = await pluginManager.loadRemotePlugin(manifestUrl, router)
+
       if (!loadedPlugin)
         return null
 
@@ -130,6 +131,7 @@ export const usePluginsStore = defineStore('settings-plugins', () => {
     mutation: async ({ record, enabled }: { record: UserPluginRecord, enabled: boolean }) => {
       await repos.plugin.updatePlugin(record.pluginId, { isEnabled: enabled })
       const router = await getRouter()
+
       if (enabled)
         await pluginManager.loadRemotePlugin(record.manifestUrl, router)
       else
@@ -140,6 +142,7 @@ export const usePluginsStore = defineStore('settings-plugins', () => {
         toast.success(t('settings.plugins.enabled', 'Плагин включен'))
       else
         toast.info(t('settings.plugins.disabled', 'Плагин отключен'))
+
       refetchRemotePlugins()
     },
     onError(err) {
@@ -189,6 +192,7 @@ export const usePluginsStore = defineStore('settings-plugins', () => {
     onSuccess() {
       toast.success(t('settings.uploadPluginSuccess', 'Плагин отправлен на рассмотрение'))
       refetchMyUploadedPlugins()
+
       if (isAdmin.value)
         refetchPendingPlugins()
     },
@@ -217,8 +221,10 @@ export const usePluginsStore = defineStore('settings-plugins', () => {
     onSuccess() {
       toast.success(t('settings.catalogPluginDeleted', 'Плагин удалён из каталога'))
       refetchMyUploadedPlugins()
+
       if (isAdmin.value)
         refetchPendingPlugins()
+
       if (isCatalogRequested.value)
         refetchCatalogPlugins()
     },
@@ -243,6 +249,7 @@ export const usePluginsStore = defineStore('settings-plugins', () => {
       toast.success(t('settings.catalogPluginStatusUpdated', 'Статус плагина обновлён'))
       refetchPendingPlugins()
       refetchMyUploadedPlugins()
+
       if (isCatalogRequested.value)
         refetchCatalogPlugins()
     },

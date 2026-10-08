@@ -36,67 +36,11 @@ const { speak, stop, isPlaying, isLoading } = useTts()
 const readerStore = useReaderStore()
 const libraryStore = useLibraryStore()
 const highlightsStore = useHighlightsStore()
-
 const originalSentence = useTemplateRef<HTMLElement>('originalSentence')
-const bookQuotes = computed(() => {
-  const book = readerStore.currentBook || libraryStore.currentBookInfo
-
-  return book ? highlightsStore.highlights.filter(item => Number(item.bookId) === Number(book.id)) : []
-})
-useTextQuoteHighlights(originalSentence, bookQuotes, () => analysisStore.sidebarSentence)
 
 const isPinned = ref(true)
-
-function togglePinned() {
-  isPinned.value = !isPinned.value
-  emit('floatingChange', !isPinned.value)
-}
-
 const showHistory = ref(false)
 const isSavingHighlight = ref(false)
-
-const matchingHighlight = computed(() => {
-  if (!analysisStore.sidebarSentence)
-    return null
-  const rawNorm = normalizeString(analysisStore.sidebarSentence)
-  const book = readerStore.currentBook || libraryStore.currentBookInfo
-  if (!book)
-    return null
-
-  return highlightsStore.highlights.find((item) => {
-    const hNorm = normalizeString(item.text)
-
-    return Number(item.bookId) === Number(book.id) && rawNorm === hNorm
-  })
-})
-
-watch(() => analysisStore.sidebarSentence, () => {
-  showHistory.value = false
-  if (isPlaying.value || isLoading.value)
-    stop()
-})
-
-watch(() => analysisStore.sidebarOpen, (isOpen) => {
-  if (!isOpen && (isPlaying.value || isLoading.value))
-    stop()
-})
-
-function loadHistoryItem(item: AnalysisHistoryItem) {
-  analysisStore.handleSentenceAnalysis(item.sentence)
-  showHistory.value = false
-}
-
-function playTTS() {
-  if (!analysisStore.sidebarSentence)
-    return
-
-  if (isPlaying.value || isLoading.value)
-    stop()
-
-  else
-    speak(analysisStore.sidebarSentence)
-}
-
 const isSaveModalOpen = ref(false)
 const modalInitialData = ref<{
   text: string
@@ -112,8 +56,60 @@ const modalInitialData = ref<{
   analysisData: null,
 })
 
+const bookQuotes = computed(() => {
+  const book = readerStore.currentBook || libraryStore.currentBookInfo
+
+  return book ? highlightsStore.highlights.filter(item => Number(item.bookId) === Number(book.id)) : []
+})
+const matchingHighlight = computed(() => {
+  if (!analysisStore.sidebarSentence)
+    return null
+
+  const rawNorm = normalizeString(analysisStore.sidebarSentence)
+  const book = readerStore.currentBook || libraryStore.currentBookInfo
+
+  if (!book)
+    return null
+
+  return highlightsStore.highlights.find((item) => {
+    const hNorm = normalizeString(item.text)
+
+    return Number(item.bookId) === Number(book.id) && rawNorm === hNorm
+  })
+})
+
+watch(() => analysisStore.sidebarSentence, () => {
+  showHistory.value = false
+
+  if (isPlaying.value || isLoading.value)
+    stop()
+})
+watch(() => analysisStore.sidebarOpen, (isOpen) => {
+  if (!isOpen && (isPlaying.value || isLoading.value))
+    stop()
+})
+
+function togglePinned() {
+  isPinned.value = !isPinned.value
+  emit('floatingChange', !isPinned.value)
+}
+function loadHistoryItem(item: AnalysisHistoryItem) {
+  analysisStore.handleSentenceAnalysis(item.sentence)
+  showHistory.value = false
+}
+function playTTS() {
+  if (!analysisStore.sidebarSentence)
+    return
+
+  if (isPlaying.value || isLoading.value)
+    stop()
+
+  else
+    speak(analysisStore.sidebarSentence)
+}
 async function toggleHighlight() {
   const book = readerStore.currentBook || libraryStore.currentBookInfo
+
   if (!book)
     return
 
@@ -138,11 +134,12 @@ async function toggleHighlight() {
   }
   isSaveModalOpen.value = true
 }
-
 function getChapterTitle(pageNum: number): string | null {
   if (!readerStore.currentToc || !readerStore.currentToc.length)
     return null
+
   let currentItem = null
+
   for (const item of readerStore.currentToc) {
     if (item.pageNum !== undefined && item.pageNum <= pageNum) {
       if (!currentItem || item.pageNum > (currentItem.pageNum || 0))
@@ -152,9 +149,9 @@ function getChapterTitle(pageNum: number): string | null {
 
   return currentItem ? currentItem.title : null
 }
-
 async function handleSaveQuote(data: { text: string, translation: string, note: string, color: string, analysisData?: LlmAnalysis | null }) {
   const book = readerStore.currentBook || libraryStore.currentBookInfo
+
   if (!book || isSavingHighlight.value)
     return
 
@@ -183,6 +180,8 @@ async function handleSaveQuote(data: { text: string, translation: string, note: 
     isSavingHighlight.value = false
   }
 }
+
+useTextQuoteHighlights(originalSentence, bookQuotes, () => analysisStore.sidebarSentence)
 
 onUnmounted(() => stop())
 </script>

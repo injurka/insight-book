@@ -23,25 +23,13 @@ import ReaderFooter from './partials/reader-footer.vue'
 import ReaderHeader from './partials/reader-header.vue'
 import ReaderLoader from './partials/reader-loader.vue'
 
-const BubblePopover = lazyComponent(() => import('~/04.features/analysis/ui/popover/bubble-popover.vue'))
-const PageAnalysisModal = lazyComponent(() => import('~/04.features/analysis/ui/modal/page-analysis-modal.vue'))
-const SelectionTooltip = lazyComponent(() => import('~/04.features/analysis/ui/selection-tooltip.vue'))
-const SentenceAnalysis = lazyComponent(() => import('~/04.features/analysis/ui/sentence-analysis.vue'))
-const WordPopover = lazyComponent(() => import('~/04.features/analysis/ui/popover/word-popover.vue'))
-
 const readerStore = useReaderStore()
 const analysisStore = useAnalysisStore()
 const settingsStore = useGlobalSettingsStore()
-
 const readerViewRef = useTemplateRef<HTMLElement>('readerViewRef')
 const mangaContainerRef = useTemplateRef<HTMLElement>('mangaContainerRef')
 const mangaWrapperRef = useTemplateRef<HTMLElement>('mangaWrapperRef')
-
-useAppWakeLock(() => analysisStore.isManualPageAnalysisActive || analysisStore.isAutoPageAnalysisActive)
-useReadingSession()
-
 const showSpinner = useDelayedLoading(computed(() => readerStore.isPageLoading), 1000)
-
 const {
   isRestoringScroll,
   saveScrollPosition,
@@ -54,12 +42,9 @@ const {
   () => readerStore.currentPage?.pageNum,
   () => readerStore.isPageLoading,
 )
-
 const { onSentenceHover, onSentenceOut } = useReaderDomHighlights(readerViewRef)
 const { prevPage, nextPage, goToPage } = useReaderNavigation(setScrollIntent)
-useReaderHotkeys(prevPage, nextPage)
 const { onPointerDown, onPointerUp, onWordClick } = useTextSelection()
-
 const {
   scale,
   panX,
@@ -69,7 +54,6 @@ const {
   dragDist,
   resetZoom,
 } = usePanZoom(mangaContainerRef, mangaWrapperRef)
-
 const {
   activeBubble,
   bubbleReference,
@@ -81,29 +65,22 @@ const {
   getOuterNumberStyle,
   getBubbleHighlightStyle,
 } = useMangaBubbles(onPointerDown, onWordClick)
-
 const { isHeaderVisible, onScroll } = useReaderScroll(saveScrollPosition, closeBubblePopover, isRestoringScroll)
-
 const { parallelTranslations } = useReaderContent()
-useQuoteHighlights(readerViewRef, [parallelTranslations])
 
-function handleWrapperClick(e: MouseEvent) {
-  if (dragDist.value > 10 && scale.value > 1) {
-    dragDist.value = 0
-
-    return
-  }
-
-  onWordClick(e)
-}
+const BubblePopover = lazyComponent(() => import('~/04.features/analysis/ui/popover/bubble-popover.vue'))
+const PageAnalysisModal = lazyComponent(() => import('~/04.features/analysis/ui/modal/page-analysis-modal.vue'))
+const SelectionTooltip = lazyComponent(() => import('~/04.features/analysis/ui/selection-tooltip.vue'))
+const SentenceAnalysis = lazyComponent(() => import('~/04.features/analysis/ui/sentence-analysis.vue'))
+const WordPopover = lazyComponent(() => import('~/04.features/analysis/ui/popover/word-popover.vue'))
 
 watch(() => readerStore.currentPage, () => {
   resetZoom()
 })
-
 watch(() => readerStore.isPageLoading, async (isLoading) => {
   if (isLoading) {
     closeBubblePopover()
+
     if (readerViewRef.value)
       readerViewRef.value.scrollTop = 0
   }
@@ -116,16 +93,29 @@ watch(() => readerStore.isPageLoading, async (isLoading) => {
       analysisStore.analyzeWholePage({ sentences: true, words: false, ttsSentences: false, ttsWords: false }, true)
   }
 }, { immediate: true })
-
 watch(() => settingsStore.parallelViewMode, (mode) => {
   if (mode !== 'none' && !readerStore.isPageLoading && readerStore.currentPage)
     analysisStore.analyzeWholePage({ sentences: true, words: false, ttsSentences: false, ttsWords: false }, true)
 })
 
+function handleWrapperClick(e: MouseEvent) {
+  if (dragDist.value > 10 && scale.value > 1) {
+    dragDist.value = 0
+
+    return
+  }
+
+  onWordClick(e)
+}
+
+useAppWakeLock(() => analysisStore.isManualPageAnalysisActive || analysisStore.isAutoPageAnalysisActive)
+useReadingSession()
+useReaderHotkeys(prevPage, nextPage)
+useQuoteHighlights(readerViewRef, [parallelTranslations])
+
 onMounted(() => {
   document.addEventListener('click', closeBubblePopover)
 })
-
 onUnmounted(() => {
   document.removeEventListener('click', closeBubblePopover)
 })

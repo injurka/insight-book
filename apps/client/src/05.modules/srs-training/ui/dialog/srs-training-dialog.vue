@@ -6,7 +6,6 @@ import { useI18n } from 'vue-i18n'
 import { useRepos } from '~/00.plugins/di'
 import { useToast } from '~/01.shared/composables/use-toast'
 import { KitDialog } from '~/02.kit/organisms/kit-dialog/ui'
-
 import { Flashcard } from '~/03.domain/entities/flashcard.entity.ts'
 import { useSrsSession } from '../../composables/use-srs-session'
 import { useTrainingStore } from '../../store/training.store'
@@ -15,9 +14,9 @@ import SrsModeMatch from './srs-training-views/srs-mode-match.vue'
 import SrsSetupView from './srs-training-views/srs-setup-view.vue'
 import SrsSummaryView from './srs-training-views/srs-summary-view.vue'
 
-const repos = useRepos()
-
 const visible = defineModel<boolean>('visible', { required: true })
+
+const repos = useRepos()
 const trainingStore = useTrainingStore()
 const toast = useToast()
 const { t } = useI18n()
@@ -26,26 +25,6 @@ const {
   toggle: toggleNativeFullscreen,
   isSupported: isNativeFullscreenSupported,
 } = useFullscreen()
-const isLocalFullscreen = ref(false)
-
-const isFullscreen = computed(() => isNativeFullscreen.value || isLocalFullscreen.value)
-
-async function toggleFullscreen() {
-  isLocalFullscreen.value = !isLocalFullscreen.value
-  if (isNativeFullscreenSupported.value) {
-    try {
-      if (isLocalFullscreen.value && !isNativeFullscreen.value)
-        await toggleNativeFullscreen()
-
-      else if (!isLocalFullscreen.value && isNativeFullscreen.value)
-        await toggleNativeFullscreen()
-    }
-    catch (e) {
-      console.warn('Native fullscreen failed', e)
-    }
-  }
-}
-
 const {
   sessionState,
   currentIndex,
@@ -58,6 +37,7 @@ const {
   reset: resetSession,
 } = useSrsSession()
 
+const isLocalFullscreen = ref(false)
 const isSubmittingGrade = ref(false)
 const activeModes = ref<Record<string, boolean>>({
   'standard': false,
@@ -71,23 +51,53 @@ const activeModes = ref<Record<string, boolean>>({
   'radicals': false,
 })
 
+const isFullscreen = computed(() => isNativeFullscreen.value || isLocalFullscreen.value)
 const remainingQueue = computed(() => trainingStore.reviewQueue.slice(currentIndex.value))
 const newCount = computed(() => remainingQueue.value.filter(c => new Flashcard(c).isNew()).length)
 const reviewCount = computed(() => remainingQueue.value.filter(c => new Flashcard(c).isReview() || new Flashcard(c).isLearning()).length)
 const currentCard = computed(() => trainingStore.reviewQueue[currentIndex.value])
 const isFinished = computed(() => currentIndex.value >= trainingStore.reviewQueue.length)
-
 const activeView = computed(() => {
   if (sessionState.value === 'setup')
     return SrsSetupView
+
   if (sessionState.value === 'finished')
     return SrsSummaryView
+
   if (trainingStore.trainingMode === 'match')
     return SrsModeMatch
 
   return SrsCardView
 })
 
+watch(visible, (val) => {
+  if (val)
+    resetSession()
+
+  else
+    trainingStore.fetchTrainingQueue({ mode: 'srs', deckId: ['all'], difficulty: ['all'] })
+})
+watch(currentIndex, () => {
+  if (isFinished.value && sessionState.value === 'active')
+    finishSession()
+})
+
+async function toggleFullscreen() {
+  isLocalFullscreen.value = !isLocalFullscreen.value
+
+  if (isNativeFullscreenSupported.value) {
+    try {
+      if (isLocalFullscreen.value && !isNativeFullscreen.value)
+        await toggleNativeFullscreen()
+
+      else if (!isLocalFullscreen.value && isNativeFullscreen.value)
+        await toggleNativeFullscreen()
+    }
+    catch (e) {
+      console.warn('Native fullscreen failed', e)
+    }
+  }
+}
 async function startSession(options: {
   deckId: (number | 'all' | 'none')[] | number | 'all' | 'none'
   difficulty: string[]
@@ -113,7 +123,6 @@ async function startSession(options: {
     toast.error(t('dictionary.loadCardsError'))
   }
 }
-
 async function handleGrade(grade: number) {
   if (isSubmittingGrade.value || !currentCard.value)
     return
@@ -131,9 +140,11 @@ async function handleGrade(grade: number) {
   }
 
   isSubmittingGrade.value = true
+
   try {
     const cardRef = currentCard.value
     await repos.dictionary.submitReview(cardRef.id, grade)
+
     if (grade === 1) { // 1 = Rating.Again in FSRS
       trainingStore.reviewQueue.push(cardRef)
     }
@@ -144,23 +155,9 @@ async function handleGrade(grade: number) {
     isSubmittingGrade.value = false
   }
 }
-
 function handleClose() {
   visible.value = false
 }
-
-watch(visible, (val) => {
-  if (val)
-    resetSession()
-
-  else
-    trainingStore.fetchTrainingQueue({ mode: 'srs', deckId: ['all'], difficulty: ['all'] })
-})
-
-watch(currentIndex, () => {
-  if (isFinished.value && sessionState.value === 'active')
-    finishSession()
-})
 </script>
 
 <template>

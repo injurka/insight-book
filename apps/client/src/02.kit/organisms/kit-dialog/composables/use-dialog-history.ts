@@ -32,6 +32,7 @@ export function useDialogHistory(dialogId: string, visible: Ref<boolean>) {
       return
 
     const idx = openModalsStack.indexOf(dialogId)
+
     if (idx > -1)
       openModalsStack.splice(idx, 1)
 
