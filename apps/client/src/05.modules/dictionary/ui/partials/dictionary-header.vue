@@ -243,7 +243,7 @@ function openTrainingSettings(mode: 'srs' | 'deep_dive' | 'cram' | 'match') {
       }
 
       .filter-select {
-        width: 170px;
+        width: 210px;
         flex-shrink: 0;
       }
     }

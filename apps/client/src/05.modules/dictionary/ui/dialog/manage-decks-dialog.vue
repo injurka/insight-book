@@ -71,7 +71,12 @@ async function onDeleteDeckConfirm() {
 </script>
 
 <template>
-  <KitDialog v-model:visible="visible" :title="t('dictionary.manageDecks')" :max-width="520">
+  <KitDialog
+    v-model:visible="visible"
+    :title="t('dictionary.manageDecks')"
+    :max-width="520"
+    :minimizable="false"
+  >
     <div class="manage-decks-content">
       <!-- Create Deck Section -->
       <div class="create-deck-section">
@@ -224,7 +229,7 @@ async function onDeleteDeckConfirm() {
     }
 
     .new-deck-lang {
-      width: 120px;
+      width: 150px;
       flex-shrink: 0;
     }
   }

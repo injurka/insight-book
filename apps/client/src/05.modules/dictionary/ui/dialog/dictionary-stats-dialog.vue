@@ -2,7 +2,7 @@
 import { useI18n } from 'vue-i18n'
 import { useRepos } from '~/00.plugins/di'
 import { useAuthStore } from '~/01.shared/store/auth.store'
-import { KitSkeleton } from '~/02.kit/atoms/kit-skeleton/ui'
+import ActivityHeatmap from '~/02.kit/organisms/kit-activity-heatmap/ui/kit-activity-heatmap.vue'
 import { KitDialog } from '~/02.kit/organisms/kit-dialog/ui'
 
 const emit = defineEmits<{
@@ -10,8 +10,6 @@ const emit = defineEmits<{
 }>()
 
 const repos = useRepos()
-
-const ActivityHeatmap = lazyComponent(() => import('~/02.kit/organisms/kit-activity-heatmap/ui/kit-activity-heatmap.vue'))
 
 const visible = defineModel<boolean>('visible', { required: true })
 const authStore = useAuthStore()
@@ -76,9 +74,8 @@ defineExpose({ fetchActivity })
     :max-width="850"
   >
     <div class="stats-modal-content">
-      <KitSkeleton v-if="isActivityLoading" width="100%" height="250px" />
       <ActivityHeatmap
-        v-else
+        :loading="isActivityLoading"
         :activity-data="activityData"
         :stats="activityStats"
         @click-level="onLevelClick"

@@ -181,7 +181,7 @@ onMounted(() => {
     :max-width="800"
     :persistent="isBusy"
     :closable="!isBusy"
-    :minimizable="!isBusy"
+    :minimizable="false"
   >
     <div class="discover-modal-content">
       <KitTabs

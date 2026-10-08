@@ -2,8 +2,10 @@
 import { Icon } from '@iconify/vue'
 import { useI18n } from 'vue-i18n'
 import { DIFFICULTY_SYSTEMS } from '~/01.shared/constants/difficulties'
+import { KitSkeleton } from '~/02.kit/atoms/kit-skeleton/ui'
 
 interface Props {
+  loading?: boolean
   activityData: { date: string, count: number }[]
   stats?: {
     learnedWords: number
@@ -19,7 +21,7 @@ const emit = defineEmits<{
 }>()
 
 const { t, locale } = useI18n()
-const scrollAreaRef = ref<HTMLElement | null>(null)
+const scrollAreaRef = useTemplateRef<HTMLElement>('scrollAreaRef')
 
 const WEEKS_TO_SHOW = 26
 
@@ -326,31 +328,62 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="activity-section">
+  <div class="activity-section" :aria-busy="loading">
     <div class="stats-overview">
       <div class="stat-box">
-        <span class="stat-value">{{ formatNum(totalActivity) }}</span>
+        <KitSkeleton
+          v-if="loading"
+          width="72px"
+          height="2.2rem"
+          color="var(--bg-tertiary-color)"
+        />
+        <span v-else class="stat-value">{{ formatNum(totalActivity) }}</span>
         <span class="stat-label">{{ t('activityHeatmap.totalActions') }}</span>
       </div>
       <div class="stat-box">
-        <span class="stat-value">{{ formatNum(maxStreak) }}</span>
+        <KitSkeleton
+          v-if="loading"
+          width="72px"
+          height="2.2rem"
+          color="var(--bg-tertiary-color)"
+        />
+        <span v-else class="stat-value">{{ formatNum(maxStreak) }}</span>
         <span class="stat-label">{{ t('activityHeatmap.maxStreak') }}</span>
       </div>
       <div class="stat-box">
-        <span class="stat-value">{{ formatNum(stats?.readPages || 0) }}</span>
+        <KitSkeleton
+          v-if="loading"
+          width="72px"
+          height="2.2rem"
+          color="var(--bg-tertiary-color)"
+        />
+        <span v-else class="stat-value">{{ formatNum(stats?.readPages || 0) }}</span>
         <span class="stat-label">{{ t('activityHeatmap.readPages') }}</span>
       </div>
       <div class="stat-box">
-        <span class="stat-value">{{ formatNum(stats?.learnedWords || 0) }}</span>
+        <KitSkeleton
+          v-if="loading"
+          width="72px"
+          height="2.2rem"
+          color="var(--bg-tertiary-color)"
+        />
+        <span v-else class="stat-value">{{ formatNum(stats?.learnedWords || 0) }}</span>
         <span class="stat-label">{{ t('activityHeatmap.learnedWords') }}</span>
       </div>
     </div>
 
-    <div v-if="userAchievements.length > 0" class="levels-section">
-      <h3 class="section-title">
-        <Icon icon="mdi:trophy-outline" /> {{ t('activityHeatmap.achievements') }}
-      </h3>
-      <div class="levels-grid">
+    <details class="levels-section">
+      <summary
+        class="levels-summary"
+        :aria-disabled="loading || userAchievements.length === 0"
+        @click="loading || userAchievements.length === 0 ? $event.preventDefault() : undefined"
+      >
+        <h3 class="section-title">
+          <Icon icon="mdi:trophy-outline" /> {{ t('activityHeatmap.achievements') }}
+        </h3>
+        <Icon icon="mdi:chevron-down" class="levels-chevron" />
+      </summary>
+      <div v-if="!loading && userAchievements.length > 0" class="levels-grid">
         <div
           v-for="lvl in userAchievements"
           :key="`${lvl.lang}-${lvl.type}`"
@@ -397,7 +430,7 @@ onMounted(async () => {
           </div>
         </div>
       </div>
-    </div>
+    </details>
 
     <div class="heatmap-container">
       <div ref="scrollAreaRef" class="heatmap-scroll-area">
@@ -420,8 +453,16 @@ onMounted(async () => {
             </div>
 
             <div class="heatmap-grid">
+              <KitSkeleton
+                v-for="day in loading ? heatmapData.days : []"
+                :key="`loading-${day.date}`"
+                width="14px"
+                height="14px"
+                color="var(--bg-tertiary-color)"
+                aria-hidden="true"
+              />
               <div
-                v-for="day in heatmapData.days"
+                v-for="day in loading ? [] : heatmapData.days"
                 :key="day.date"
                 class="heatmap-cell"
                 :class="[{ 'is-future': day.future }, `level-${day.level}`]"
@@ -488,6 +529,10 @@ onMounted(async () => {
     }
 
     .stat-value {
+      display: flex;
+      align-items: center;
+      height: 2.2rem;
+      flex-shrink: 0;
       font-size: 2.2rem;
       font-weight: 800;
       color: var(--fg-accent-color);
@@ -502,29 +547,65 @@ onMounted(async () => {
   }
 }
 
-.levels-section {
+.section-title {
+  margin: 0;
   display: flex;
-  flex-direction: column;
-  gap: 16px;
+  align-items: center;
+  gap: 8px;
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: var(--fg-primary-color);
 
-  .section-title {
-    font-size: 1.15rem;
-    font-weight: 600;
-    color: var(--fg-primary-color);
-    margin: 0;
-    display: flex;
-    align-items: center;
-    gap: 8px;
+  svg {
+    flex-shrink: 0;
+    color: var(--fg-accent-color);
+    font-size: 1.4rem;
+  }
+}
 
-    svg {
-      color: var(--fg-accent-color);
-      font-size: 1.4rem;
+.levels-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 6px;
+  cursor: pointer;
+  list-style: none;
+  border-radius: 8px;
+
+  &[aria-disabled='true'] {
+    cursor: default;
+
+    .levels-chevron {
+      visibility: hidden;
     }
   }
 
+  &::-webkit-details-marker {
+    display: none;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--fg-accent-color);
+    outline-offset: 2px;
+  }
+}
+
+.levels-chevron {
+  flex-shrink: 0;
+  font-size: 1.4rem;
+  color: var(--fg-secondary-color);
+}
+
+.levels-section[open] .levels-chevron {
+  transform: rotate(180deg);
+}
+
+.levels-section {
   .levels-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(min(280px, 100%), 1fr));
+    margin-top: 16px;
     gap: 16px;
     padding: 6px;
   }
