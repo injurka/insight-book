@@ -2,8 +2,9 @@
 import type { AnalysisHistoryItem } from '~/01.shared/store/analysis/analysis.store'
 import type { LlmAnalysis } from '~/01.shared/types/models'
 import { Icon } from '@iconify/vue'
-import { computed, onUnmounted, ref, watch } from 'vue'
+import { computed, onUnmounted, ref, useTemplateRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useTextQuoteHighlights } from '~/01.shared/composables/use-text-quote-highlights'
 import { useToast } from '~/01.shared/composables/use-toast'
 import { useTts } from '~/01.shared/composables/use-tts'
 import { normalizeString } from '~/01.shared/lib/helpers'
@@ -36,6 +37,14 @@ const readerStore = useReaderStore()
 const libraryStore = useLibraryStore()
 const highlightsStore = useHighlightsStore()
 
+const originalSentence = useTemplateRef<HTMLElement>('originalSentence')
+const bookQuotes = computed(() => {
+  const book = readerStore.currentBook || libraryStore.currentBookInfo
+
+  return book ? highlightsStore.highlights.filter(item => Number(item.bookId) === Number(book.id)) : []
+})
+useTextQuoteHighlights(originalSentence, bookQuotes, () => analysisStore.sidebarSentence)
+
 const isPinned = ref(true)
 
 function togglePinned() {
@@ -57,7 +66,7 @@ const matchingHighlight = computed(() => {
   return highlightsStore.highlights.find((item) => {
     const hNorm = normalizeString(item.text)
 
-    return Number(item.bookId) === Number(book.id) && (rawNorm === hNorm || (hNorm.length >= 2 && (rawNorm.includes(hNorm) || hNorm.includes(rawNorm))))
+    return Number(item.bookId) === Number(book.id) && rawNorm === hNorm
   })
 })
 
@@ -249,7 +258,7 @@ onUnmounted(() => stop())
       <div v-else-if="analysisStore.sidebarAnalysis" class="analysis-content">
         <div class="sentence-header">
           <div class="sentence-content js-tooltip-selectable">
-            <div class="original-sentence">
+            <div ref="originalSentence" class="original-sentence">
               {{ analysisStore.sidebarSentence }}
             </div>
             <div v-if="analysisStore.sidebarAnalysis.transcription" class="sentence-transcription">

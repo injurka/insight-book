@@ -8,6 +8,7 @@ import { useToast } from '~/01.shared/composables/use-toast'
 import { useTts } from '~/01.shared/composables/use-tts'
 import { DIFFICULTY_SYSTEMS } from '~/01.shared/constants/difficulties'
 import { useAnalysisStore } from '~/01.shared/store/analysis/analysis.store'
+import { useGlobalSettingsStore } from '~/01.shared/store/settings.store'
 import { KitBtn } from '~/02.kit/atoms/kit-btn/ui'
 import { KitInput } from '~/02.kit/atoms/kit-input/ui'
 import { KitSelect } from '~/02.kit/molecules/kit-select/ui'
@@ -22,6 +23,7 @@ import { useDictionaryStore } from '../../store/dictionary.store'
 const repos = useRepos()
 
 const analysisStore = useAnalysisStore()
+const settingsStore = useGlobalSettingsStore()
 const dictStore = useDictionaryStore()
 const readerStore = useReaderStore()
 const libraryStore = useLibraryStore()
@@ -45,19 +47,28 @@ const currentBookTitle = computed(() => {
   return readerStore.currentBook?.title || libraryStore.currentBookInfo?.title || null
 })
 
-const canCreateBookDeck = computed(() => {
+const currentBookDeck = computed(() => {
   if (!currentBookTitle.value || !currentBookTitle.value.trim())
-    return false
+    return null
   const title = currentBookTitle.value.trim().toLowerCase()
   const lang = localWord.value.language || 'en'
-  const alreadyExists = dictStore.decks.some(deck => deck.language === lang && deck.name.trim().toLowerCase() === title)
 
-  return !alreadyExists
+  return dictStore.decks.find(deck => deck.language === lang && deck.name.trim().toLowerCase() === title) || null
 })
+
+const canCreateBookDeck = computed(() => !!currentBookTitle.value?.trim() && !currentBookDeck.value)
+
+function selectBookDeck() {
+  const deck = currentBookDeck.value
+  if (deck && !localWord.value.deckIds?.includes(deck.id))
+    localWord.value.deckIds = [...(localWord.value.deckIds || []), deck.id]
+}
 
 watch(() => analysisStore.addEditWordModalOpen, async (isOpen) => {
   if (isOpen) {
     await dictStore.fetchDecks()
+    if (analysisStore.addEditWordModalOpen)
+      selectBookDeck()
   }
   else {
     isDeckPromptOpen.value = false
@@ -130,6 +141,9 @@ watch(() => analysisStore.wordToEdit, (newWord) => {
 
   else
     localWord.value = {}
+
+  if (newWord && analysisStore.addEditWordModalOpen)
+    selectBookDeck()
 }, { deep: true })
 
 const deckIdsModel = computed<(string | number)[]>({
@@ -236,9 +250,19 @@ const previewVocabulary = ref(true)
               multiple
             />
             <KitBtn
+              v-if="settingsStore.isMobileInterface"
               icon="mdi:plus"
               variant="outlined"
               color="secondary"
+              :aria-label="t('dictionary.newDeckName')"
+              @click="openCreateDeckPrompt"
+            />
+            <KitBtn
+              v-else
+              icon="mdi:plus"
+              variant="outlined"
+              color="secondary"
+              :aria-label="t('dictionary.newDeckName')"
               @click="openCreateDeckPrompt"
             >
               {{ t('dictionary.new') }}

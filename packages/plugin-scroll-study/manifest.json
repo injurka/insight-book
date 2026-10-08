@@ -1,7 +1,7 @@
 {
   "id": "scroll-study",
   "name": "Изучение свитков",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "description": "Магическое исследование свитков и иероглифов на шестиугольной доске.",
   "icon": "mdi:scroll-text-outline",
   "source": "https://github.com/injurka/insight-book/tree/master/packages/plugin-scroll-study",
