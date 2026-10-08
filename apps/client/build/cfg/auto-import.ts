@@ -24,6 +24,7 @@ export const autoImportOptionsCfg: AutoImportOptions = {
   exclude: [
     '**/node_modules/**',
     '**/dist/**',
+    '**/dist-tauri/**',
   ],
   resolvers: [
     IconsResolver({

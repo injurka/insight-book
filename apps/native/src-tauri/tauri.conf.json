@@ -4,7 +4,7 @@
   "version": "3.23.1",
   "identifier": "ru.insightbook.insightbook",
   "build": {
-    "frontendDist": "../../client/dist",
+    "frontendDist": "../../client/dist-tauri",
     "devUrl": "http://localhost:5173",
     "beforeDevCommand": "bun run --cwd ../.. dev:client",
     "beforeBuildCommand": "bun run --cwd ../.. build:client:tauri"

@@ -6,6 +6,7 @@ export default antfu({
   formatters: true,
   node: false,
   ignores: [
+    '**/dist-tauri/**',
     '**/assets/**',
     '**/public/**',
     '**/vite-env.d.ts',

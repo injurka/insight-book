@@ -38,3 +38,5 @@ blob-report/
 # Plugin pack ZIPs
 packages/plugin-*-v*.zip
 .firecrawl
+
+dist-tauri

@@ -4,11 +4,11 @@ import Vue from '@vitejs/plugin-vue'
 import AutoImport from 'unplugin-auto-import/vite'
 import Icons from 'unplugin-icons/vite'
 import { defineConfig } from 'vite'
-import { compression as Compression } from 'vite-plugin-compression2'
 import { VitePWA } from 'vite-plugin-pwa'
 import packageJson from '../package.json' with { type: 'json' }
 import { autoImportOptionsCfg } from './cfg/auto-import.ts'
 import { iconsCfg } from './cfg/icons.ts'
+import { fontPreloads } from './lib/font-preloads.ts'
 import { onBuildWarning, visualizerPlugin } from './lib/helpers.ts'
 
 const host = process.env.TAURI_DEV_HOST
@@ -59,6 +59,7 @@ export default defineConfig({
 
   plugins: [
     Vue(),
+    fontPreloads(),
     VitePWA({ disable: true }),
     federation({
       name: 'insight_book_host',
@@ -72,16 +73,8 @@ export default defineConfig({
       },
     }),
     AutoImport(autoImportOptionsCfg),
-    Compression({
-      algorithms: ['gzip'],
-      exclude: [/\.(br)$/, /\.(gz)$/],
-    }),
-    Compression({
-      algorithms: ['brotliCompress'],
-      exclude: [/\.(br)$/, /\.(gz)$/],
-    }),
     Icons(iconsCfg),
-    ...visualizerPlugin('renderer'),
+    ...visualizerPlugin('renderer', 'dist-tauri'),
   ],
 
   css: {
@@ -110,7 +103,7 @@ export default defineConfig({
   },
 
   build: {
-    outDir: fileURLToPath(new URL('../dist', import.meta.url)),
+    outDir: fileURLToPath(new URL('../dist-tauri', import.meta.url)),
     emptyOutDir: true,
     rollupOptions: {
       onwarn: onBuildWarning,

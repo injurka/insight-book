@@ -1,4 +1,5 @@
 import type { VitePWA } from 'vite-plugin-pwa'
+import { criticalFontPaths } from '../lib/font-preloads.ts'
 
 export function pwaCfg(revision: string) {
   return {
@@ -49,10 +50,10 @@ export function pwaCfg(revision: string) {
         }],
       },
       globPatterns: ['**/*.{js,json,css,html,txt,svg,png,ico,webp,woff,woff2,ttf,eot,otf,wasm}'],
-      globIgnores: ['emojis/**', 'manifest**.webmanifest'],
+      globIgnores: ['emojis/**', 'manifest**.webmanifest', 'fonts/**/*.woff2', 'fonts/**/*.html'],
       maximumFileSizeToCacheInBytes: 20 * 1024 * 1024,
       dontCacheBustURLsMatching: /\.\w{8}\./,
-      additionalManifestEntries: [{
+      additionalManifestEntries: [...criticalFontPaths().map(url => ({ url, revision: null })), {
         url: '/',
         revision,
       }],

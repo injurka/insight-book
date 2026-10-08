@@ -6,7 +6,7 @@ import { visualizer } from 'rollup-plugin-visualizer'
  * Запускается только если передана переменная окружения ANALYZE=true
  * Например: ANALYZE=true bun run build
  */
-export function visualizerPlugin(title: string): PluginOption[] {
+export function visualizerPlugin(title: string, outDir = 'dist'): PluginOption[] {
   const isAnalyze = process.env.ANALYZE === 'true' || process.env.ANALYZE === '1'
 
   if (isAnalyze) {
@@ -14,7 +14,7 @@ export function visualizerPlugin(title: string): PluginOption[] {
       visualizer({
         open: true,
         title: `Bundle Visualizer - ${title}`,
-        filename: `dist/stats-${title}.html`,
+        filename: `${outDir}/stats-${title}.html`,
         gzipSize: true,
         brotliSize: true,
       }),

@@ -10,6 +10,7 @@ import packageJson from '../package.json' with { type: 'json' }
 import { autoImportOptionsCfg } from './cfg/auto-import.ts'
 import { iconsCfg } from './cfg/icons.ts'
 import { pwaCfg } from './cfg/pwa.ts'
+import { fontPreloads } from './lib/font-preloads.ts'
 import { onBuildWarning, visualizerPlugin } from './lib/helpers.ts'
 
 const buildDate = new Date()
@@ -42,6 +43,7 @@ export default defineConfig({
 
   plugins: [
     Vue(),
+    fontPreloads(),
     federation({
       name: 'insight_book_host',
       dts: false,

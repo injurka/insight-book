@@ -7,7 +7,6 @@ export default defineConfig(({ command }) => ({
   resolve: {
     alias: {
       '~': fileURLToPath(new URL('../../apps/client/src', import.meta.url)),
-      '@injurka/insight-book-plugin-api': fileURLToPath(new URL('../plugin-api/src', import.meta.url)),
     },
   },
   plugins: [

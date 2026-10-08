@@ -6,7 +6,6 @@ import { defineConfig } from 'vite'
 export default defineConfig(({ command }) => ({
   resolve: {
     alias: {
-      '@injurka/insight-book-plugin-api': fileURLToPath(new URL('../plugin-api/src', import.meta.url)),
     },
   },
   plugins: [
