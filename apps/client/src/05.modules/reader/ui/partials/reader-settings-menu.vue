@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Icon } from '@iconify/vue'
-import { useFullscreen } from '@vueuse/core'
+import { useFullscreen, useLocalStorage } from '@vueuse/core'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ThemesVariant, useChangeTheme } from '~/01.shared/composables/use-change-theme'
@@ -37,6 +37,17 @@ const { speak, stop, isPlaying, isLoading } = useTts()
 
 const { theme, toggleTheme } = useChangeTheme()
 const { isFullscreen, toggle: toggleFullscreen } = useFullscreen()
+
+const expandedSections = useLocalStorage('reader-settings-expanded-sections', {
+  interface: true,
+  translationAndVoice: true,
+  textDisplay: true,
+}, { mergeDefaults: true })
+
+function saveSectionState(section: keyof typeof expandedSections.value, event: Event) {
+  if (event.target instanceof HTMLDetailsElement)
+    expandedSections.value[section] = event.target.open
+}
 
 function openAutoAnalyzeSettings() {
   emit('openAutoAnalyzeSettings')
@@ -135,218 +146,231 @@ const currentThemeName = computed(() => {
 
 <template>
   <div class="menu-content">
-    <div class="menu-section">
-      <div class="section-title">
-        {{ t('settings.interfaceTitle') }}
-      </div>
-      <div v-if="!isApk" class="menu-item" @click="toggleFullscreen">
-        <div class="item-label">
-          <Icon :icon="isFullscreen ? 'mdi:fullscreen-exit' : 'mdi:fullscreen'" class="item-icon" />
-          <span>{{ t('reader.fullscreen') }}</span>
+    <details class="menu-section" :open="expandedSections.interface" @toggle="saveSectionState('interface', $event)">
+      <summary class="section-title">
+        <span>{{ t('settings.interfaceTitle') }}</span>
+        <Icon icon="mdi:chevron-down" class="section-chevron" />
+      </summary>
+      <div class="section-content">
+        <div v-if="!isApk" class="menu-item" @click="toggleFullscreen">
+          <div class="item-label">
+            <Icon :icon="isFullscreen ? 'mdi:fullscreen-exit' : 'mdi:fullscreen'" class="item-icon" />
+            <span>{{ t('reader.fullscreen') }}</span>
+          </div>
+          <KitCheckbox :model-value="isFullscreen" class="readonly-checkbox" />
         </div>
-        <KitCheckbox :model-value="isFullscreen" class="readonly-checkbox" />
-      </div>
-      <div class="menu-item" @click="toggleTheme">
-        <div class="item-label">
-          <Icon :icon="currentThemeIcon" class="item-icon" />
-          <span>{{ t('reader.appearance') }}</span>
+        <div class="menu-item" @click="toggleTheme">
+          <div class="item-label">
+            <Icon :icon="currentThemeIcon" class="item-icon" />
+            <span>{{ t('reader.appearance') }}</span>
+          </div>
+          <span class="value-badge">{{ currentThemeName }}</span>
         </div>
-        <span class="value-badge">{{ currentThemeName }}</span>
-      </div>
-      <div
-        v-if="readerStore.currentBook?.type !== 'manga'"
-        class="menu-item"
-        @click="settingsStore.readerScrollMode = settingsStore.readerScrollMode === 'continuous' ? 'paginated' : 'continuous'"
-      >
-        <div class="item-label">
-          <Icon :icon="settingsStore.readerScrollMode === 'continuous' ? 'mdi:view-sequential' : 'mdi:book-open-page-variant-outline'" class="item-icon" />
-          <span>{{ t('reader.readingMode') }}</span>
+        <div
+          v-if="readerStore.currentBook?.type !== 'manga'"
+          class="menu-item"
+          @click="settingsStore.readerScrollMode = settingsStore.readerScrollMode === 'continuous' ? 'paginated' : 'continuous'"
+        >
+          <div class="item-label">
+            <Icon :icon="settingsStore.readerScrollMode === 'continuous' ? 'mdi:view-sequential' : 'mdi:book-open-page-variant-outline'" class="item-icon" />
+            <span>{{ t('reader.readingMode') }}</span>
+          </div>
+          <span class="value-badge">{{ settingsStore.readerScrollMode === 'continuous' ? t('reader.continuousScroll') : t('reader.paginated') }}</span>
         </div>
-        <span class="value-badge">{{ settingsStore.readerScrollMode === 'continuous' ? t('reader.continuousScroll') : t('reader.paginated') }}</span>
       </div>
-    </div>
+    </details>
 
     <div class="divider" />
 
-    <div class="menu-section">
-      <div class="section-title">
-        {{ t('reader.translationAndVoice') }}
-      </div>
-      <div class="settings-row">
-        <div class="item-label">
-          <Icon icon="mdi:account" class="item-icon" />
-          <span>{{ t('reader.voice') }}</span>
+    <details class="menu-section" :open="expandedSections.translationAndVoice" @toggle="saveSectionState('translationAndVoice', $event)">
+      <summary class="section-title">
+        <span>{{ t('reader.translationAndVoice') }}</span>
+        <Icon icon="mdi:chevron-down" class="section-chevron" />
+      </summary>
+      <div class="section-content">
+        <div class="settings-row">
+          <div class="item-label">
+            <Icon icon="mdi:account" class="item-icon" />
+            <span>{{ t('reader.voice') }}</span>
+          </div>
+          <div class="voice-select-wrapper">
+            <KitSelect
+              v-model="settingsStore.ttsVoice"
+              :options="voiceOptions"
+              size="xs"
+              class="font-select"
+            />
+            <KitBtn
+              :icon="isLoading ? 'mdi:loading' : (isPlaying ? 'mdi:stop' : 'mdi:play')"
+              :class="{ 'spin-animation': isLoading, 'pulse-animation': isPlaying }"
+              variant="tonal"
+              color="secondary"
+              size="xs"
+              class="preview-btn"
+              @click="previewVoice"
+            />
+          </div>
         </div>
-        <div class="voice-select-wrapper">
-          <KitSelect
-            v-model="settingsStore.ttsVoice"
-            :options="voiceOptions"
-            size="xs"
-            class="font-select"
-          />
-          <KitBtn
-            :icon="isLoading ? 'mdi:loading' : (isPlaying ? 'mdi:stop' : 'mdi:play')"
-            :class="{ 'spin-animation': isLoading, 'pulse-animation': isPlaying }"
-            variant="tonal"
-            color="secondary"
-            size="xs"
-            class="preview-btn"
-            @click="previewVoice"
-          />
-        </div>
-      </div>
 
-      <div class="menu-item" @click="cycleTtsSpeed">
-        <div class="item-label">
-          <Icon icon="mdi:play-speed" class="item-icon" />
-          <span>{{ t('reader.voiceSpeed') }}</span>
+        <div class="menu-item" @click="cycleTtsSpeed">
+          <div class="item-label">
+            <Icon icon="mdi:play-speed" class="item-icon" />
+            <span>{{ t('reader.voiceSpeed') }}</span>
+          </div>
+          <span class="value-badge">{{ settingsStore.ttsSpeed }}x</span>
         </div>
-        <span class="value-badge">{{ settingsStore.ttsSpeed }}x</span>
-      </div>
 
-      <div class="menu-item" @click="settingsStore.fallbackToWebSpeech = !settingsStore.fallbackToWebSpeech">
-        <div class="item-label">
-          <Icon icon="mdi:account-voice" class="item-icon" />
-          <span>{{ t('settings.fallbackToWebSpeech') }}</span>
+        <div
+          v-if="readerStore.currentBook?.language !== settingsStore.appLanguage"
+          class="menu-item"
+          :class="{ 'is-disabled': networkStore.effectiveOffline }"
+          @click="toggleAutoAnalyzePage"
+        >
+          <div class="item-label">
+            <Icon icon="mdi:robot-outline" class="item-icon" />
+            <span>{{ t('settings.autoAnalyzePage') }}</span>
+          </div>
+          <div class="item-actions">
+            <KitBtn
+              icon="mdi:cog-outline"
+              variant="tonal"
+              color="secondary"
+              size="xs"
+              density="compact"
+              class="auto-analyze-config-btn"
+              :title="t('reader.autoAnalyzeSettings')"
+              @click.stop="openAutoAnalyzeSettings"
+            />
+            <KitCheckbox :model-value="settingsStore.autoAnalyzePage" class="readonly-checkbox" />
+          </div>
         </div>
-        <KitCheckbox :model-value="settingsStore.fallbackToWebSpeech" class="readonly-checkbox" />
-      </div>
 
-      <div
-        v-if="readerStore.currentBook?.language !== settingsStore.appLanguage"
-        class="menu-item"
-        :class="{ 'is-disabled': networkStore.effectiveOffline }"
-        @click="toggleAutoAnalyzePage"
-      >
-        <div class="item-label">
-          <Icon icon="mdi:robot-outline" class="item-icon" />
-          <span>{{ t('settings.autoAnalyzePage') }}</span>
+        <div class="menu-item" @click="settingsStore.highlightSavedQuotes = !settingsStore.highlightSavedQuotes">
+          <div class="item-label">
+            <Icon icon="mdi:format-color-highlight" class="item-icon" />
+            <span>{{ t('settings.highlightSavedQuotes') }}</span>
+          </div>
+          <KitCheckbox v-model="settingsStore.highlightSavedQuotes" class="readonly-checkbox" />
         </div>
-        <div class="item-actions">
-          <KitBtn
-            icon="mdi:cog-outline"
-            variant="tonal"
-            color="secondary"
-            size="xs"
-            density="compact"
-            class="auto-analyze-config-btn"
-            :title="t('reader.autoAnalyzeSettings')"
-            @click.stop="openAutoAnalyzeSettings"
-          />
-          <KitCheckbox :model-value="settingsStore.autoAnalyzePage" class="readonly-checkbox" />
-        </div>
-      </div>
 
-      <div class="menu-item" @click="settingsStore.highlightSavedQuotes = !settingsStore.highlightSavedQuotes">
-        <div class="item-label">
-          <Icon icon="mdi:format-color-highlight" class="item-icon" />
-          <span>{{ t('settings.highlightSavedQuotes') }}</span>
+        <div class="menu-item" @click="settingsStore.showSentenceTtsButton = !settingsStore.showSentenceTtsButton">
+          <div class="item-label">
+            <Icon icon="mdi:headphones" class="item-icon" />
+            <span>{{ t('settings.showSentenceTtsButton') }}</span>
+          </div>
+          <KitCheckbox v-model="settingsStore.showSentenceTtsButton" class="readonly-checkbox" />
         </div>
-        <KitCheckbox v-model="settingsStore.highlightSavedQuotes" class="readonly-checkbox" />
       </div>
-
-      <div class="menu-item" @click="settingsStore.showSentenceTtsButton = !settingsStore.showSentenceTtsButton">
-        <div class="item-label">
-          <Icon icon="mdi:headphones" class="item-icon" />
-          <span>{{ t('settings.showSentenceTtsButton') }}</span>
-        </div>
-        <KitCheckbox v-model="settingsStore.showSentenceTtsButton" class="readonly-checkbox" />
-      </div>
-    </div>
+    </details>
 
     <div v-if="readerStore.currentBook?.type !== 'manga'" class="divider" />
 
-    <div v-if="readerStore.currentBook?.type === 'manga'" class="menu-section">
-      <div class="section-title">
-        {{ t('reader.textDisplayManga') }}
-      </div>
-      <div class="menu-item" @click="settingsStore.mangaOcrDisplayMode = settingsStore.mangaOcrDisplayMode === 'hover' ? 'popover' : 'hover'">
-        <div class="item-label">
-          <Icon icon="mdi:message-text-outline" class="item-icon" />
-          <span>{{ t('reader.translationMode') }}</span>
+    <details
+      v-if="readerStore.currentBook?.type === 'manga'"
+      class="menu-section"
+      :open="expandedSections.textDisplay"
+      @toggle="saveSectionState('textDisplay', $event)"
+    >
+      <summary class="section-title">
+        <span>{{ t('reader.textDisplayManga') }}</span>
+        <Icon icon="mdi:chevron-down" class="section-chevron" />
+      </summary>
+      <div class="section-content">
+        <div class="menu-item" @click="settingsStore.mangaOcrDisplayMode = settingsStore.mangaOcrDisplayMode === 'hover' ? 'popover' : 'hover'">
+          <div class="item-label">
+            <Icon icon="mdi:message-text-outline" class="item-icon" />
+            <span>{{ t('reader.translationMode') }}</span>
+          </div>
+          <span class="value-badge">{{ settingsStore.mangaOcrDisplayMode === 'hover' ? t('reader.hover') : t('reader.popover') }}</span>
         </div>
-        <span class="value-badge">{{ settingsStore.mangaOcrDisplayMode === 'hover' ? t('reader.hover') : t('reader.popover') }}</span>
       </div>
-    </div>
+    </details>
 
-    <div v-if="readerStore.currentBook?.type !== 'manga'" class="menu-section">
-      <div class="section-title">
-        {{ t('reader.textDisplay') }}
-      </div>
+    <details
+      v-if="readerStore.currentBook?.type !== 'manga'"
+      class="menu-section"
+      :open="expandedSections.textDisplay"
+      @toggle="saveSectionState('textDisplay', $event)"
+    >
+      <summary class="section-title">
+        <span>{{ t('reader.textDisplay') }}</span>
+        <Icon icon="mdi:chevron-down" class="section-chevron" />
+      </summary>
+      <div class="section-content">
+        <div class="settings-row">
+          <div class="item-label">
+            <Icon icon="mdi:format-size" class="item-icon" />
+            <span>{{ t('reader.size') }}</span>
+          </div>
+          <div class="control-pill stepper-pill">
+            <button class="stepper-btn" @click="adjustFontSize(-0.1)">
+              <Icon icon="mdi:minus" />
+            </button>
+            <span class="stepper-value">{{ settingsStore.readerFontSize.toFixed(1) }}rem</span>
+            <button class="stepper-btn" @click="adjustFontSize(0.1)">
+              <Icon icon="mdi:plus" />
+            </button>
+          </div>
+        </div>
 
-      <div class="settings-row">
-        <div class="item-label">
-          <Icon icon="mdi:format-size" class="item-icon" />
-          <span>{{ t('reader.size') }}</span>
+        <div class="settings-row">
+          <div class="item-label">
+            <Icon icon="mdi:format-line-spacing" class="item-icon" />
+            <span>{{ t('reader.lineHeight') }}</span>
+          </div>
+          <div class="control-pill stepper-pill">
+            <button class="stepper-btn" @click="adjustLineHeight(-0.1)">
+              <Icon icon="mdi:minus" />
+            </button>
+            <span class="stepper-value">{{ settingsStore.readerLineHeight.toFixed(1) }}</span>
+            <button class="stepper-btn" @click="adjustLineHeight(0.1)">
+              <Icon icon="mdi:plus" />
+            </button>
+          </div>
         </div>
-        <div class="control-pill stepper-pill">
-          <button class="stepper-btn" @click="adjustFontSize(-0.1)">
-            <Icon icon="mdi:minus" />
-          </button>
-          <span class="stepper-value">{{ settingsStore.readerFontSize.toFixed(1) }}rem</span>
-          <button class="stepper-btn" @click="adjustFontSize(0.1)">
-            <Icon icon="mdi:plus" />
-          </button>
-        </div>
-      </div>
 
-      <div class="settings-row">
-        <div class="item-label">
-          <Icon icon="mdi:format-line-spacing" class="item-icon" />
-          <span>{{ t('reader.lineHeight') }}</span>
+        <div v-if="!settingsStore.isMobileInterface" class="settings-row">
+          <div class="item-label">
+            <Icon icon="mdi:arrow-expand-horizontal" class="item-icon" />
+            <span>{{ t('reader.textWidth') }}</span>
+          </div>
+          <div class="control-pill stepper-pill">
+            <button
+              type="button"
+              class="stepper-btn"
+              :aria-label="t('reader.decreaseTextWidth')"
+              :disabled="settingsStore.readerContentWidthPercent <= READER_CONTENT_WIDTH_MIN"
+              @click="adjustReaderContentWidth(-READER_CONTENT_WIDTH_STEP)"
+            >
+              <Icon icon="mdi:minus" />
+            </button>
+            <span class="stepper-value">{{ settingsStore.readerContentWidthPercent }}%</span>
+            <button
+              type="button"
+              class="stepper-btn"
+              :aria-label="t('reader.increaseTextWidth')"
+              :disabled="settingsStore.readerContentWidthPercent >= READER_CONTENT_WIDTH_MAX"
+              @click="adjustReaderContentWidth(READER_CONTENT_WIDTH_STEP)"
+            >
+              <Icon icon="mdi:plus" />
+            </button>
+          </div>
         </div>
-        <div class="control-pill stepper-pill">
-          <button class="stepper-btn" @click="adjustLineHeight(-0.1)">
-            <Icon icon="mdi:minus" />
-          </button>
-          <span class="stepper-value">{{ settingsStore.readerLineHeight.toFixed(1) }}</span>
-          <button class="stepper-btn" @click="adjustLineHeight(0.1)">
-            <Icon icon="mdi:plus" />
-          </button>
-        </div>
-      </div>
 
-      <div v-if="!settingsStore.isMobileInterface" class="settings-row">
-        <div class="item-label">
-          <Icon icon="mdi:arrow-expand-horizontal" class="item-icon" />
-          <span>{{ t('reader.textWidth') }}</span>
-        </div>
-        <div class="control-pill stepper-pill">
-          <button
-            type="button"
-            class="stepper-btn"
-            :aria-label="t('reader.decreaseTextWidth')"
-            :disabled="settingsStore.readerContentWidthPercent <= READER_CONTENT_WIDTH_MIN"
-            @click="adjustReaderContentWidth(-READER_CONTENT_WIDTH_STEP)"
-          >
-            <Icon icon="mdi:minus" />
-          </button>
-          <span class="stepper-value">{{ settingsStore.readerContentWidthPercent }}%</span>
-          <button
-            type="button"
-            class="stepper-btn"
-            :aria-label="t('reader.increaseTextWidth')"
-            :disabled="settingsStore.readerContentWidthPercent >= READER_CONTENT_WIDTH_MAX"
-            @click="adjustReaderContentWidth(READER_CONTENT_WIDTH_STEP)"
-          >
-            <Icon icon="mdi:plus" />
-          </button>
+        <div class="settings-row">
+          <div class="item-label">
+            <Icon icon="mdi:format-font" class="item-icon" />
+            <span>{{ t('reader.font') }}</span>
+          </div>
+          <KitSelect
+            v-model="settingsStore.readerFontFamily"
+            :options="fontOptions"
+            size="xs"
+            class="font-select"
+          />
         </div>
       </div>
-
-      <div class="settings-row">
-        <div class="item-label">
-          <Icon icon="mdi:format-font" class="item-icon" />
-          <span>{{ t('reader.font') }}</span>
-        </div>
-        <KitSelect
-          v-model="settingsStore.readerFontFamily"
-          :options="fontOptions"
-          size="xs"
-          class="font-select"
-        />
-      </div>
-    </div>
+    </details>
 
     <div v-if="readerStore.currentBook?.language !== settingsStore.appLanguage" class="divider" />
 
@@ -370,19 +394,50 @@ const currentThemeName = computed(() => {
   gap: 8px;
 }
 
-.menu-section {
+.section-content {
   display: flex;
   flex-direction: column;
   gap: 4px;
 }
 
 .section-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  cursor: pointer;
+  list-style: none;
+  border-radius: 6px;
+
+  &::-webkit-details-marker {
+    display: none;
+  }
+
+  &:hover {
+    background-color: var(--bg-hover-color);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--fg-accent-color);
+    outline-offset: 2px;
+  }
+
   font-size: 0.75rem;
   text-transform: uppercase;
   color: var(--fg-muted-color);
   font-weight: 600;
   padding: 4px 8px;
   letter-spacing: 0.5px;
+}
+
+.section-chevron {
+  flex-shrink: 0;
+  font-size: 1.2rem;
+  transform: rotate(-90deg);
+}
+
+.menu-section[open] > .section-title .section-chevron {
+  transform: rotate(0deg);
 }
 
 .menu-item {

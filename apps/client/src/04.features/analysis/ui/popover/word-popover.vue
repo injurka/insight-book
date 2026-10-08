@@ -382,7 +382,7 @@ onUnmounted(() => {
 
   .header-text {
     font-weight: 600;
-    font-size: 1.15rem;
+    font-size: 1rem;
     color: var(--fg-accent-color);
     text-align: center;
   }

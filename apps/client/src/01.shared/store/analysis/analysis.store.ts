@@ -193,9 +193,6 @@ export const useAnalysisStore = defineStore('analysis', () => {
     ) {
       isPageAnalysisFinished.value = true
 
-      if (isManualPageAnalysisActive.value)
-        useToastStore().success(i18n.global.t('analysis.allElementsAnalyzed'))
-
       isManualPageAnalysisActive.value = false
       isAutoPageAnalysisActive.value = false
     }
