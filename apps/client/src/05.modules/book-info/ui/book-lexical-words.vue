@@ -20,7 +20,7 @@ const { t } = useI18n()
       class="word-chip"
       :class="props.tone"
       :title="[word.forms?.join(', '), word.pageCount ? t('bookLexical.pageSpread', { count: word.pageCount }) : ''].filter(Boolean).join(' · ')"
-      @click="emit('select', word, $event)"
+      @click.stop="emit('select', word, $event)"
     >
       {{ word.word }} <span class="count">{{ word.count }}</span>
     </button>
