@@ -44,14 +44,14 @@ export function useBookStatsEdit(isEditingStats: Ref<boolean>) {
   const settingsStore = useGlobalSettingsStore()
   const toast = useToast()
 
-  // Language selector for viewing description (defaults to app UI language)
-  const descriptionLang = ref<DescLang>((DESCRIPTION_LANGS as readonly string[]).includes(settingsStore.appLanguage)
+  const interfaceDescriptionLang = computed<DescLang>(() => (DESCRIPTION_LANGS as readonly string[]).includes(settingsStore.appLanguage)
     ? settingsStore.appLanguage as DescLang
     : 'ru')
 
-  // Language selector for editing description (same default)
-  const editDescLang = ref<DescLang>(descriptionLang.value)
+  const editDescLang = ref<DescLang>(interfaceDescriptionLang.value)
 
+  const isSaving = ref(false)
+  const initialForm = ref('')
   const editForm = reactive({
     difficulty: '',
     tags: '',
@@ -88,22 +88,6 @@ export function useBookStatsEdit(isEditingStats: Ref<boolean>) {
     return 'level-hard'
   })
 
-  // Available desc langs (where there's content) for the view selector
-  const availableDescLangs = computed<DescLang[]>(() => {
-    const raw = libraryStore.currentBookInfo?.stats?.description
-    if (!raw)
-      return []
-    try {
-      const parsed = JSON.parse(raw)
-      if (typeof parsed === 'object' && parsed !== null)
-        return DESCRIPTION_LANGS.filter(l => parsed[l]?.trim())
-    }
-    catch { /* plain string */ }
-
-    return raw.trim() ? ['ru'] : []
-  })
-
-  // Computed description text for currently selected lang (view mode)
   const currentDescription = computed(() => {
     const raw = libraryStore.currentBookInfo?.stats?.description
     if (!raw)
@@ -111,10 +95,9 @@ export function useBookStatsEdit(isEditingStats: Ref<boolean>) {
     try {
       const parsed = JSON.parse(raw)
       if (typeof parsed === 'object' && parsed !== null) {
-        return parsed[descriptionLang.value]
-          || parsed[settingsStore.appLanguage as DescLang]
-          || parsed.ru
-          || raw
+        return parsed[settingsStore.appLanguage as DescLang]
+          || DESCRIPTION_LANGS.map(lang => parsed[lang]).find(value => typeof value === 'string' && value.trim())
+          || i18n.global.t('bookStats.noDescription')
       }
     }
     catch { /* plain string */ }
@@ -131,14 +114,18 @@ export function useBookStatsEdit(isEditingStats: Ref<boolean>) {
       editForm.difficulty = opts.includes(currentDiff) ? currentDiff : ''
       editForm.tags = stats?.tags?.join(', ') || ''
       editForm.descriptionByLang = parseDescriptionJson(stats?.description)
-      // reset edit lang to current view lang
-      editDescLang.value = descriptionLang.value
+      // Start editing in the current interface language.
+      editDescLang.value = interfaceDescriptionLang.value
+      initialForm.value = JSON.stringify(editForm)
     }
   })
 
+  const isDirty = computed(() => JSON.stringify(editForm) !== initialForm.value)
+
   async function saveStats() {
-    if (!libraryStore.currentBookInfo)
+    if (!libraryStore.currentBookInfo || isSaving.value)
       return
+    isSaving.value = true
     try {
       const tagsArray = editForm.tags.split(',').map(t => t.trim()).filter(Boolean)
       const description = serializeDescriptionJson(editForm.descriptionByLang)
@@ -152,6 +139,9 @@ export function useBookStatsEdit(isEditingStats: Ref<boolean>) {
     }
     catch (e) {
       toast.error(e instanceof Error ? e.message : i18n.global.t('library.updateInfoError'))
+    }
+    finally {
+      isSaving.value = false
     }
   }
 
@@ -183,9 +173,9 @@ export function useBookStatsEdit(isEditingStats: Ref<boolean>) {
 
   return {
     editForm,
+    isSaving,
+    isDirty,
     editDescLang,
-    descriptionLang,
-    availableDescLangs,
     currentDescription,
     currentDifficultyOptions,
     difficultyLevelClass,

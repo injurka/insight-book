@@ -20,6 +20,8 @@ export interface LexicalWordData {
   word: string
   pos: string
   count: number
+  pageCount?: number
+  forms?: string[]
 }
 
 export interface LexicalDataGroup {
@@ -28,6 +30,19 @@ export interface LexicalDataGroup {
   adjs: LexicalWordData[]
   properNouns: LexicalWordData[]
   rareWords: LexicalWordData[]
+  version?: number
+  phrases?: LexicalWordData[]
+  words?: LexicalWordData[]
+  metrics?: {
+    tokens: number
+    contentTokens: number
+    vocabulary: number
+    pages: number
+    sampleSize: number
+    diversity: number | null
+    rareLimit: number
+    tagged: boolean
+  }
 }
 
 export interface BookStats {

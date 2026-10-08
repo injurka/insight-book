@@ -29,6 +29,7 @@ const isOpen = computed({
     v-model:visible="isOpen"
     :title="t('analysis.aiAnalysis') || 'Глубокий анализ цитаты'"
     :max-width="800"
+    :minimizable="false"
     icon="mdi:book-open-page-variant-outline"
   >
     <div v-if="highlight?.analysisData" class="quote-modal-content">
@@ -120,7 +121,6 @@ const isOpen = computed({
   text-align: center;
   overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.05);
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.15);
 
   @include media-down(sm) {
     padding: 24px 16px;

@@ -5,6 +5,7 @@ import { KitInput } from './atoms/kit-input/ui'
 import { KitSkeleton } from './atoms/kit-skeleton/ui'
 
 import { KitDropdown } from './molecules/kit-dropdown/ui'
+import { KitPageHeader } from './molecules/kit-page-header/ui'
 import { KitSelect } from './molecules/kit-select/ui'
 import { KitTabs } from './molecules/kit-tabs/ui'
 import { KitToast } from './molecules/kit-toast/ui'
@@ -28,6 +29,7 @@ export {
   KitInput,
   KitNetworkTimeoutDialog,
   KitOfflineBadge,
+  KitPageHeader,
   KitPrompt,
   KitReloadPrompt,
   KitSelect,

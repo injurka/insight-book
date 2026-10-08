@@ -321,7 +321,7 @@ export const api = {
 
     analyzeBook: async (id: number) => request<{ success: boolean, stats: Book['stats'] }>(`/api/books/${id}/analyze-book`, { method: 'POST', withLlm: true }),
 
-    analyzeVocabulary: async (id: number) => request<{ success: boolean, lexicalStats: Pick<BookStats, 'posDistribution' | 'topWords' | 'lexicalDiversity'> }>(`/api/books/${id}/analyze-vocabulary`, { method: 'POST', withLlm: true }),
+    analyzeVocabulary: async (id: number) => request<{ success: boolean, lexicalStats: Pick<BookStats, 'posDistribution' | 'topWords' | 'lexicalDiversity' | 'totalWords' | 'totalSentences'> }>(`/api/books/${id}/analyze-vocabulary`, { method: 'POST', withLlm: true }),
 
     updateCover: async (id: number, file: File) => {
       const fd = new FormData()

@@ -5,6 +5,7 @@ import { useI18n } from 'vue-i18n'
 import { KitBtn } from '~/02.kit/atoms/kit-btn/ui'
 import { KitInput } from '~/02.kit/atoms/kit-input/ui'
 import { KitDropdown } from '~/02.kit/molecules/kit-dropdown/ui'
+import { KitPageHeader } from '~/02.kit/molecules/kit-page-header/ui'
 import { KitSelect } from '~/02.kit/molecules/kit-select/ui'
 import { KitTooltip } from '~/02.kit/molecules/kit-tooltip/ui'
 import { KitViewSwitcher } from '~/02.kit/molecules/kit-view-switcher/ui'
@@ -53,13 +54,14 @@ function openTrainingSettings(mode: 'srs' | 'deep_dive' | 'cram' | 'match') {
 
 <template>
   <header class="dict-header">
-    <div class="header-top">
-      <div class="title-group">
+    <KitPageHeader :title="t('dictionary.title')" :subtitle="t('dictionary.headerSubtitle')">
+      <template #navigation>
         <KitBtn icon="mdi:arrow-left" variant="text" @click="router.back()" />
-        <h1>{{ t('dictionary.title') }}</h1>
-      </div>
-      <GlobalActions hide-dictionary />
-    </div>
+      </template>
+      <template #actions>
+        <GlobalActions hide-dictionary />
+      </template>
+    </KitPageHeader>
 
     <div class="header-bottom">
       <div class="actions-and-stats">
@@ -209,26 +211,9 @@ function openTrainingSettings(mode: 'srs' | 'deep_dive' | 'cram' | 'match') {
 .dict-header {
   display: flex;
   flex-direction: column;
-  gap: 20px;
-  margin-bottom: 20px;
+  gap: 24px;
+  margin-bottom: 24px;
   flex-shrink: 0;
-
-  .header-top {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-
-    .title-group {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-
-      h1 {
-        margin: 0;
-        font-size: 1.5rem;
-      }
-    }
-  }
 
   .header-bottom {
     display: flex;

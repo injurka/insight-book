@@ -5,9 +5,9 @@ import { useRoute, useRouter } from 'vue-router'
 import { AppRoutePaths } from '~/01.shared/constants/routes'
 import { KitBtn } from '~/02.kit/atoms/kit-btn/ui'
 import { KitHoverRevealBg } from '~/02.kit/atoms/kit-hover-reveal-bg/ui'
-import { KitSkeleton } from '~/02.kit/atoms/kit-skeleton/ui'
 import { useLibraryStore } from '~/05.modules/library/store/library.store'
 import BookCoverPanel from './book-cover-panel.vue'
+import BookInfoSkeleton from './book-info-skeleton.vue'
 import BookLexicalPanel from './book-lexical-panel.vue'
 import BookStatsPanel from './book-stats-panel.vue'
 import BookTocPanel from './book-toc-panel.vue'
@@ -57,7 +57,6 @@ function goBack() {
       <div v-if="!libraryStore.hasLoadedBookInfo || libraryStore.currentBookInfo" class="book-container" :aria-busy="!isBookReady">
         <div v-if="isBookReady" class="layout-top">
           <BookCoverPanel
-            @edit-stats="isEditingStats = true"
             @open-sync="isSyncModalOpen = true"
             @open-append-chapter="isAppendChapterOpen = true"
           />
@@ -70,60 +69,7 @@ function goBack() {
           <BookTocPanel />
         </div>
 
-        <div
-          v-if="!isBookReady"
-          class="skeleton-content"
-          aria-hidden="true"
-        >
-          <div class="layout-top">
-            <div class="cover-col">
-              <div class="cover-skeleton">
-                <KitSkeleton width="100%" height="100%" border-radius="12px" />
-              </div>
-              <div class="action-buttons">
-                <KitSkeleton
-                  class="skeleton-primary"
-                  width="100%"
-                  height="38px"
-                  border-radius="6px"
-                />
-                <KitSkeleton
-                  class="skeleton-secondary"
-                  width="100%"
-                  height="38px"
-                  border-radius="6px"
-                />
-              </div>
-            </div>
-            <div class="content-col">
-              <KitSkeleton
-                width="80%"
-                height="40px"
-                class="title-skeleton"
-                border-radius="8px"
-              />
-              <KitSkeleton
-                width="40%"
-                height="24px"
-                class="author-skeleton"
-                border-radius="6px"
-              />
-              <div class="progress-skeleton">
-                <KitSkeleton width="55%" height="19px" border-radius="5px" />
-                <KitSkeleton width="100%" height="6px" border-radius="3px" />
-              </div>
-              <div class="stats-skeleton">
-                <KitSkeleton width="35%" height="22px" border-radius="5px" />
-                <div class="stats-skeleton-grid">
-                  <KitSkeleton width="100%" height="42px" border-radius="6px" />
-                  <KitSkeleton width="100%" height="42px" border-radius="6px" />
-                  <KitSkeleton width="100%" height="42px" border-radius="6px" />
-                </div>
-                <KitSkeleton width="100%" height="72px" border-radius="6px" />
-              </div>
-            </div>
-          </div>
-        </div>
+        <BookInfoSkeleton v-if="!isBookReady" />
       </div>
     </div>
 
@@ -189,76 +135,6 @@ function goBack() {
   display: flex;
   flex-direction: column;
   gap: 32px;
-}
-
-.cover-skeleton {
-  aspect-ratio: 2 / 3;
-  margin-bottom: 24px;
-  border-radius: 12px;
-  overflow: hidden;
-}
-
-.action-buttons {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-
-  @include media-down(md) {
-    flex-direction: row;
-    gap: 8px;
-
-    .skeleton-primary {
-      flex: 1;
-      width: auto !important;
-    }
-
-    .skeleton-secondary {
-      width: 38px !important;
-      flex-shrink: 0;
-    }
-  }
-}
-
-.title-skeleton {
-  margin-bottom: 8px;
-}
-
-.author-skeleton {
-  margin-bottom: 24px;
-}
-
-.progress-skeleton {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 16px;
-  margin-bottom: 24px;
-  background-color: var(--bg-primary-color);
-  border-radius: 12px;
-}
-
-.stats-skeleton {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  padding: 24px;
-  background-color: var(--bg-primary-color);
-  border: 1px solid var(--border-accent-color);
-  border-radius: 12px;
-}
-
-.stats-skeleton-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
-
-  @include media-down(sm) {
-    grid-template-columns: 1fr;
-  }
-}
-
-.progress-skeleton > .kit-skeleton:last-child {
-  opacity: 0.8;
 }
 
 .content-col {

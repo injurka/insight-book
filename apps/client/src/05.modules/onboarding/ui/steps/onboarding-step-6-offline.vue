@@ -30,7 +30,7 @@ function toggleOffline() {
         <div class="mock-header">
           <Icon icon="mdi:cloud-download-outline" class="title-icon" />
           <div class="mock-title-text">
-            Кэшировать / Анализ
+            {{ t('bookInfo.cacheAnalysis') }}
           </div>
         </div>
         <div class="mock-body">

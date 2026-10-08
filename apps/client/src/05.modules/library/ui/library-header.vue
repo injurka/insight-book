@@ -6,6 +6,7 @@ import { useAuthStore } from '~/01.shared/store/auth.store'
 import { useNetworkStore } from '~/01.shared/store/network.store'
 import { KitBtn } from '~/02.kit/atoms/kit-btn/ui'
 import { KitInput } from '~/02.kit/atoms/kit-input/ui'
+import { KitPageHeader } from '~/02.kit/molecules/kit-page-header/ui'
 import { KitSelect } from '~/02.kit/molecules/kit-select/ui'
 import { GlobalActions } from '~/04.features/global-actions'
 
@@ -49,8 +50,8 @@ function handleOpenUploadModal() {
 
 <template>
   <header class="library-header">
-    <div class="header-top">
-      <div class="header-title-wrap">
+    <KitPageHeader title="Insight Book" :subtitle="t('library.headerSubtitle')">
+      <template #navigation>
         <KitBtn
           v-if="showMenuBtn"
           class="mobile-menu-btn"
@@ -58,14 +59,11 @@ function handleOpenUploadModal() {
           variant="text"
           @click="emit('openMenu')"
         />
-        <div class="header-title">
-          <h1>Insight Book</h1>
-          <p>{{ t('library.headerSubtitle') }}</p>
-        </div>
-      </div>
-
-      <GlobalActions />
-    </div>
+      </template>
+      <template #actions>
+        <GlobalActions />
+      </template>
+    </KitPageHeader>
 
     <div class="header-bottom">
       <div class="search-wrapper">
@@ -132,48 +130,11 @@ function handleOpenUploadModal() {
   gap: 24px;
   margin-bottom: 24px;
 
-  .header-top {
-    display: flex;
-    justify-content: space-between;
-
-    .header-title-wrap {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-
-    .mobile-menu-btn {
-      display: none;
-    }
-
-    .header-title {
-      h1 {
-        font-size: 2.2rem;
-        margin: 0 0 8px 0;
-        color: var(--fg-primary-color);
-        line-height: 1.1;
-      }
-      p {
-        margin: 0;
-        color: var(--fg-secondary-color);
-        font-size: 1rem;
-      }
-
-      @include media-down(sm) {
-        h1 {
-          font-size: 1.6rem;
-          margin: 0;
-        }
-        p {
-          display: none;
-        }
-      }
-    }
+  .mobile-menu-btn {
+    display: none;
 
     @include media-down(md) {
-      .mobile-menu-btn {
-        display: flex;
-      }
+      display: flex;
     }
   }
 

@@ -1,21 +1,22 @@
 <script setup lang="ts">
 import type { TagKey } from '~/01.shared/constants/tags'
 import { Icon } from '@iconify/vue'
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onMounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { BOOK_TAGS } from '~/01.shared/constants/tags'
 import { useAuthStore } from '~/01.shared/store/auth.store'
 import { useCacheStore } from '~/01.shared/store/cache.store'
+import { useNetworkStore } from '~/01.shared/store/network.store'
 import { useGlobalSettingsStore } from '~/01.shared/store/settings.store'
 import { KitBtn } from '~/02.kit/atoms/kit-btn/ui'
-import { KitInput } from '~/02.kit/atoms/kit-input/ui'
 import { KitDropdown } from '~/02.kit/molecules/kit-dropdown/ui'
-import { KitSelect } from '~/02.kit/molecules/kit-select/ui'
 import { KitTooltip } from '~/02.kit/molecules/kit-tooltip/ui'
 import { BookEntity } from '~/03.domain/entities/book.entity.ts'
 import { useLibraryStore } from '~/05.modules/library/store/library.store'
 import { useBookStatsEdit } from '../composables/use-book-stats-edit'
 import { formatNumber } from '../lib/formatters'
+import BookStatsEditor from './book-stats-editor.vue'
+import BookTranslationPanel from './book-translation-panel.vue'
 import CachePopover from './cache-popover.vue'
 
 const libraryStore = useLibraryStore()
@@ -25,18 +26,10 @@ const settingsStore = useGlobalSettingsStore()
 const { t } = useI18n()
 
 const isEditingStats = defineModel<boolean>('isEditing', { default: false })
-const showCrowdsource = ref(false)
+const networkStore = useNetworkStore()
+const canEdit = computed(() => !!authStore.user && libraryStore.currentBookInfo?.userId === authStore.user.id)
 
-const {
-  editForm,
-  editDescLang,
-  currentDescription,
-  currentDifficultyOptions,
-  difficultyLevelClass,
-  saveStats,
-  triggerAiAnalysis,
-  triggerVocabularyAnalysis,
-} = useBookStatsEdit(isEditingStats)
+const { currentDescription, difficultyLevelClass } = useBookStatsEdit(isEditingStats)
 
 const bookCacheStats = computed(() => {
   if (!cacheStore.stats || !libraryStore.currentBookInfo)
@@ -75,21 +68,13 @@ watch(() => libraryStore.syncState, (val) => {
   }
 })
 
-function percent(part: number | undefined, total: number | undefined) {
-  if (!total || total === 0)
-    return '0%'
-  const p = Math.round(((part || 0) / total) * 100)
-
-  return `${Math.min(100, Math.max(0, p))}%`
-}
-
 onMounted(() => {
   cacheStore.loadStats()
 })
 </script>
 
 <template>
-  <div v-if="libraryStore.currentBookInfo">
+  <div v-if="libraryStore.currentBookInfo" class="book-details">
     <h1 class="book-title">
       {{ libraryStore.currentBookInfo.title }}
     </h1>
@@ -105,7 +90,12 @@ onMounted(() => {
         <KitDropdown placement="bottom-end" width="300px">
           <template #activator="{ props: slotProps }">
             <KitTooltip :text="t('bookStats.inCache')" placement="top">
-              <button class="cache-trigger-btn" :class="{ 'is-active': slotProps.isOpen, 'is-loaded': bookCacheStats !== null }">
+              <button
+                type="button"
+                :aria-label="t('bookStats.inCache')"
+                class="cache-trigger-btn"
+                :class="{ 'is-active': slotProps.isOpen, 'is-loaded': bookCacheStats !== null }"
+              >
                 <Icon icon="mdi:cloud-outline" />
               </button>
             </KitTooltip>
@@ -119,75 +109,32 @@ onMounted(() => {
       </div>
     </div>
 
-    <div v-if="libraryStore.isAnalyzingBook" class="ai-analysis-box is-loading">
-      <Icon icon="mdi:robot-outline" class="spin-icon pulse" />
-      <p>{{ t('bookStats.aiAnalyzing') }}</p>
-      <p class="sub-text">
-        {{ t('bookStats.takesFewSeconds') }}
-      </p>
-    </div>
-
-    <div v-else class="ai-analysis-box">
+    <section class="book-overview">
       <div class="box-header">
-        <h3>{{ t('bookStats.info') }}</h3>
+        <h2>{{ t('bookStats.info') }}</h2>
+        <div class="overview-actions">
+          <BookTranslationPanel />
+          <KitTooltip v-if="canEdit" :text="t('bookInfo.edit')" placement="top">
+            <KitBtn
+              class="edit-info-btn"
+              variant="text"
+              size="sm"
+              icon="mdi:pencil-outline"
+              :aria-label="t('bookInfo.edit')"
+              :disabled="networkStore.effectiveOffline"
+              @click="isEditingStats = true"
+            />
+          </KitTooltip>
+        </div>
       </div>
 
-      <template v-if="isEditingStats && libraryStore.currentBookInfo.userId === authStore.user?.id">
-        <div class="edit-form">
-          <div class="ai-generate-actions">
-            <KitBtn
-              variant="outlined"
-              color="accent"
-              icon="mdi:robot-outline"
-              class="flex-1"
-              :disabled="libraryStore.isAnalyzingBook"
-              @click="triggerAiAnalysis"
-            >
-              {{ t('bookStats.generateAiInfo') }}
-            </KitBtn>
-            <KitBtn
-              variant="outlined"
-              color="secondary"
-              icon="mdi:chart-pie"
-              class="flex-1"
-              :disabled="libraryStore.isAnalyzingVocab"
-              @click="triggerVocabularyAnalysis"
-            >
-              {{ t('bookStats.collectVocab') }}
-            </KitBtn>
-          </div>
-          <div class="edit-divider">
-            <span>{{ t('bookStats.fillManually') }}</span>
-          </div>
-          <div class="form-group">
-            <label>{{ t('bookStats.difficulty') }}</label>
-            <KitSelect v-model="editForm.difficulty" :options="currentDifficultyOptions" />
-          </div>
-          <div class="form-group">
-            <label>{{ t('bookStats.tagsComma') }}</label>
-            <KitInput v-model="editForm.tags" :placeholder="t('dictionary.tagsComma')" />
-          </div>
-          <div class="form-group">
-            <label>{{ t('bookStats.annotation') }}</label>
-            <textarea
-              v-model="editForm.descriptionByLang[editDescLang]"
-              class="custom-textarea"
-              rows="4"
-              :placeholder="t('bookStats.annotation')"
-            />
-          </div>
-          <div class="form-actions">
-            <KitBtn variant="tonal" @click="isEditingStats = false">
-              {{ t('bookStats.cancel') }}
-            </KitBtn>
-            <KitBtn color="primary" @click="saveStats">
-              {{ t('bookStats.save') }}
-            </KitBtn>
-          </div>
+      <template v-if="libraryStore.currentBookInfo.stats">
+        <div v-if="localizedTags.length" class="tags-list">
+          <span v-for="tag in localizedTags" :key="tag" class="tag-badge">{{ tag }}</span>
         </div>
-      </template>
-
-      <template v-else-if="libraryStore.currentBookInfo.stats">
+        <div class="book-description">
+          <p>{{ bookDescription }}</p>
+        </div>
         <div class="stats-grid" :class="{ 'single-col': libraryStore.currentBookInfo.type === 'manga' }">
           <div class="stat-item">
             <span class="stat-label">{{ t('bookStats.difficulty') }}</span>
@@ -206,93 +153,40 @@ onMounted(() => {
             </div>
           </template>
         </div>
-        <div v-if="localizedTags.length" class="tags-list">
-          <span v-for="tag in localizedTags" :key="tag" class="tag-badge">{{ tag }}</span>
-        </div>
-        <div class="book-description">
-          <p>{{ bookDescription }}</p>
-        </div>
-
-        <div
-          v-if="libraryStore.currentBookInfo.stats.totalSentences || libraryStore.currentBookInfo.totalPages"
-          class="crowdsource-section"
-        >
-          <div class="cs-box-header" @click="showCrowdsource = !showCrowdsource">
-            <h3><Icon icon="mdi:earth" /> {{ t('globalAiCache') }}</h3>
-            <Icon :icon="showCrowdsource ? 'mdi:chevron-up' : 'mdi:chevron-down'" class="cs-toggle-icon" />
-          </div>
-          <Transition name="fade-slide">
-            <div v-show="showCrowdsource" class="crowdsource-list">
-              <!-- Страницы -->
-              <div v-if="libraryStore.currentBookInfo.totalPages" class="cs-item">
-                <div class="cs-info">
-                  <span><Icon icon="mdi:file-document-outline" /> {{ t('bookStats.analyzedPages') || 'Проанализировано страниц' }}</span>
-                  <span>{{ formatNumber(libraryStore.currentBookInfo.analysesCount) }} / {{ formatNumber(libraryStore.currentBookInfo.totalPages) }}</span>
-                </div>
-                <div class="cs-bar">
-                  <div class="cs-fill" :style="{ width: percent(libraryStore.currentBookInfo.analysesCount, libraryStore.currentBookInfo.totalPages) }" />
-                </div>
-              </div>
-
-              <!-- Предложения -->
-              <div class="cs-item">
-                <div class="cs-info">
-                  <span><Icon icon="mdi:brain" /> {{ t('translatedSentences') }}</span>
-                  <span v-if="libraryStore.currentBookInfo.stats.totalSentences">
-                    {{ formatNumber(libraryStore.currentBookInfo.cachedSentences) }} / {{ formatNumber(libraryStore.currentBookInfo.stats.totalSentences) }}
-                  </span>
-                  <span v-else>{{ formatNumber(libraryStore.currentBookInfo.cachedSentences) }}</span>
-                </div>
-                <div v-if="libraryStore.currentBookInfo.stats.totalSentences" class="cs-bar">
-                  <div class="cs-fill" :style="{ width: percent(libraryStore.currentBookInfo.cachedSentences, libraryStore.currentBookInfo.stats.totalSentences) }" />
-                </div>
-              </div>
-
-              <!-- Слова -->
-              <div class="cs-item">
-                <div class="cs-info">
-                  <span><Icon icon="mdi:format-text" /> {{ t('translatedWords') }}</span>
-                  <span v-if="libraryStore.currentBookInfo.stats.totalWords">
-                    {{ formatNumber(libraryStore.currentBookInfo.cachedWords) }} / {{ formatNumber(libraryStore.currentBookInfo.stats.totalWords) }}
-                  </span>
-                  <span v-else>{{ formatNumber(libraryStore.currentBookInfo.cachedWords) }}</span>
-                </div>
-                <div v-if="libraryStore.currentBookInfo.stats.totalWords" class="cs-bar">
-                  <div class="cs-fill" :style="{ width: percent(libraryStore.currentBookInfo.cachedWords, libraryStore.currentBookInfo.stats.totalWords) }" />
-                </div>
-              </div>
-
-              <!-- Озвучка -->
-              <div class="cs-item">
-                <div class="cs-info">
-                  <span><Icon icon="mdi:headphones" /> {{ t('voicedTts') }}</span>
-                  <span v-if="libraryStore.currentBookInfo.stats.totalSentences || libraryStore.currentBookInfo.stats.totalWords">
-                    {{ formatNumber(libraryStore.currentBookInfo.cachedTts) }} / {{ formatNumber((libraryStore.currentBookInfo.stats.totalSentences || 0) + (libraryStore.currentBookInfo.stats.totalWords || 0)) }}
-                  </span>
-                  <span v-else>{{ formatNumber(libraryStore.currentBookInfo.cachedTts) }}</span>
-                </div>
-                <div v-if="libraryStore.currentBookInfo.stats.totalSentences || libraryStore.currentBookInfo.stats.totalWords" class="cs-bar">
-                  <div class="cs-fill tts" :style="{ width: percent(libraryStore.currentBookInfo.cachedTts, (libraryStore.currentBookInfo.stats.totalSentences || 0) + (libraryStore.currentBookInfo.stats.totalWords || 0)) }" />
-                </div>
-              </div>
-            </div>
-          </Transition>
-        </div>
       </template>
 
       <template v-else>
         <div class="empty-stats">
           <p>{{ t('bookStats.noBookInfo') }}</p>
-          <KitBtn variant="outlined" color="primary" @click="isEditingStats = true">
+          <KitBtn
+            v-if="canEdit"
+            variant="outlined"
+            color="primary"
+            :disabled="networkStore.effectiveOffline"
+            @click="isEditingStats = true"
+          >
             {{ t('bookStats.add') }}
           </KitBtn>
         </div>
       </template>
-    </div>
+      <p v-if="libraryStore.isAnalyzingBook" class="analysis-status" role="status">
+        <Icon icon="mdi:robot-outline" /> {{ t('bookStats.aiAnalyzing') }}
+      </p>
+    </section>
+    <BookStatsEditor v-if="canEdit" v-model:visible="isEditingStats" />
   </div>
 </template>
 
 <style lang="scss" scoped>
+.book-details {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+.book-overview {
+  flex: 1;
+}
+
 .book-title {
   font-size: 2.2rem;
   line-height: 1.2;
@@ -359,326 +253,127 @@ onMounted(() => {
   }
 }
 
-.ai-analysis-box {
-  background-color: rgba(var(--bg-accent-color-rgb, 48, 33, 61), 0.3);
-  border: 1px solid var(--border-accent-color);
-  border-radius: 12px;
+.book-overview {
+  background: var(--bg-secondary-color);
+  border: 1px solid var(--border-secondary-color);
+  border-radius: 16px;
   padding: 24px;
-  margin-bottom: 0;
   .box-header {
     display: flex;
+    align-items: center;
     justify-content: space-between;
-    align-items: center;
+    gap: 12px;
     margin-bottom: 16px;
-    h3 {
-      font-size: 1.2rem;
-      margin: 0;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
   }
-  &.is-loading {
+  h2 {
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: 600;
+  }
+  .overview-actions {
     display: flex;
-    flex-direction: column;
     align-items: center;
-    text-align: center;
-    padding: 40px 24px;
-    .spin-icon {
-      font-size: 3rem;
-      color: var(--fg-accent-color);
-      margin-bottom: 16px;
-      &.pulse {
-        animation: pulse 1.5s infinite;
-      }
-    }
-    p {
-      margin: 0 0 8px 0;
-      font-size: 1.1rem;
-      font-weight: 500;
-    }
-    .sub-text {
-      font-size: 0.9rem;
-      color: var(--fg-secondary-color);
-    }
+    gap: 2px;
+    flex-shrink: 0;
   }
-  .empty-stats {
-    text-align: center;
+  .edit-info-btn {
     color: var(--fg-secondary-color);
-    padding: 16px 0;
-    p {
-      margin-bottom: 16px;
-    }
-  }
-  .stats-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 16px;
-    margin-bottom: 24px;
-    @include media-down(sm) {
-      grid-template-columns: 1fr;
-    }
-    &.single-col {
-      grid-template-columns: 1fr;
-    }
-    .stat-item {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-      .stat-label {
-        font-size: 0.85rem;
-        color: var(--fg-secondary-color);
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-      }
-      .stat-value {
-        font-size: 1.4rem;
-        font-weight: 600;
-        color: var(--fg-primary-color);
-        &.text-accent {
-          color: var(--fg-accent-color);
-        }
-        &.difficulty-badge {
-          display: inline-block;
-          background-color: var(--bg-tertiary-color);
-          color: var(--fg-primary-color);
-          font-size: 1.1rem;
-          padding: 2px 10px;
-          border-radius: 6px;
-          width: fit-content;
 
-          &.level-easy {
-            background-color: var(--bg-success-color);
-            color: var(--fg-success-color);
-          }
-          &.level-medium {
-            background-color: var(--bg-warning-color);
-            color: var(--fg-warning-color);
-          }
-          &.level-hard {
-            background-color: var(--bg-error-color);
-            color: var(--fg-error-color);
-          }
-        }
-      }
+    &:hover {
+      color: var(--fg-primary-color);
+    }
+
+    @media (pointer: coarse) {
+      width: 44px;
+      height: 44px;
     }
   }
   .tags-list {
     display: flex;
     flex-wrap: wrap;
-    gap: 8px;
-    margin-bottom: 24px;
-    .tag-badge {
-      background-color: var(--bg-tertiary-color);
-      color: var(--fg-primary-color);
-      padding: 4px 12px;
-      border-radius: 99px;
-      font-size: 0.85rem;
-      font-weight: 500;
-    }
+    gap: 6px;
+    margin-bottom: 16px;
   }
-  .book-description {
-    p {
-      margin: 0;
-      line-height: 1.6;
-      font-size: 0.95rem;
-      color: var(--fg-primary-color);
-      white-space: pre-wrap;
-    }
+  .tag-badge {
+    background: var(--bg-tertiary-color);
+    color: var(--fg-secondary-color);
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    overflow-wrap: anywhere;
   }
-}
-.edit-form {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  .ai-generate-actions {
-    display: flex;
-    gap: 12px;
-    @include media-down(sm) {
-      flex-direction: column;
-    }
-    .flex-1 {
-      flex: 1;
-    }
+  .book-description p {
+    margin: 0;
+    font-size: 1rem;
+    line-height: 1.75;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
   }
-  .edit-divider {
-    display: flex;
-    align-items: center;
-    text-align: center;
-    color: var(--fg-muted-color);
-    font-size: 0.85rem;
-    margin: 8px 0;
-    &::before,
-    &::after {
-      content: '';
-      flex: 1;
-      border-bottom: 1px solid var(--border-primary-color);
-    }
-    &:not(:empty)::before {
-      margin-right: 0.5em;
-    }
-    &:not(:empty)::after {
-      margin-left: 0.5em;
-    }
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px;
+    padding-top: 20px;
+    margin-top: 20px;
+    border-top: 1px solid var(--border-secondary-color);
   }
-  .form-group {
+  .stats-grid.single-col {
+    grid-template-columns: 1fr;
+  }
+  .stat-item {
     display: flex;
     flex-direction: column;
-    gap: 6px;
-    label {
-      font-size: 0.85rem;
-      font-weight: 500;
-      color: var(--fg-secondary-color);
-    }
-    .custom-textarea {
-      width: 100%;
-      background-color: var(--bg-primary-color);
-      color: var(--fg-primary-color);
-      border: 1px solid var(--border-primary-color);
-      border-radius: 6px;
-      padding: 10px 12px;
-      font-family: inherit;
-      font-size: 0.95rem;
-      resize: vertical;
-      outline: none;
-      transition: border-color 0.2s;
-      &:focus {
-        border-color: var(--fg-accent-color);
-      }
-    }
-  }
-  .desc-lang-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
+    align-items: flex-start;
     gap: 8px;
-    label {
-      flex: 1;
-    }
+    min-width: 0;
   }
-  .form-actions {
+  .stat-label {
+    color: var(--fg-secondary-color);
+    font-size: 0.8rem;
+    line-height: 1.4;
+  }
+  .stat-value {
+    font-size: 1.25rem;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+  .difficulty-badge {
+    padding: 2px 8px;
+    border-radius: 6px;
+    background: var(--bg-tertiary-color);
+    font-size: 1rem;
+  }
+  .level-easy {
+    background: var(--bg-success-color);
+    color: var(--fg-success-color);
+  }
+  .level-medium {
+    background: var(--bg-warning-color);
+    color: var(--fg-warning-color);
+  }
+  .level-hard {
+    background: var(--bg-error-color);
+    color: var(--fg-error-color);
+  }
+  .empty-stats {
+    color: var(--fg-secondary-color);
+    line-height: 1.6;
+  }
+  .analysis-status {
     display: flex;
     gap: 8px;
-    margin-top: 8px;
-  }
-}
-
-.crowdsource-section {
-  margin-top: 16px;
-  padding-top: 16px;
-  border-top: 1px solid var(--border-secondary-color);
-
-  .cs-box-header {
-    display: flex;
-    justify-content: space-between;
     align-items: center;
-    cursor: pointer;
-    user-select: none;
-    padding: 10px 12px;
-    border-radius: 8px;
-    transition: background-color 0.2s ease;
-
-    &:hover {
-      background-color: var(--bg-tertiary-color);
-    }
-
-    h3 {
-      font-size: 1rem;
-      font-weight: 500;
-      color: var(--fg-secondary-color);
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin: 0;
-
-      svg {
-        color: var(--fg-secondary-color);
-        font-size: 1.2rem;
-      }
-    }
-
-    .cs-toggle-icon {
-      font-size: 1.2rem;
-      color: var(--fg-secondary-color);
-    }
+    color: var(--fg-secondary-color);
+    line-height: 1.5;
   }
-}
-
-.fade-slide-enter-active,
-.fade-slide-leave-active {
-  transition:
-    opacity 0.3s ease,
-    transform 0.3s ease;
-}
-.fade-slide-enter-from,
-.fade-slide-leave-to {
-  opacity: 0;
-  transform: translateY(-5px);
-}
-
-.crowdsource-list {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  margin-top: 12px;
-}
-
-.cs-item {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-
-  .cs-info {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    font-size: 0.9rem;
-    font-weight: 500;
-    color: var(--fg-primary-color);
-    span:first-child {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      color: var(--fg-secondary-color);
-      svg {
-        font-size: 1.1em;
-      }
+  @include media-down(sm) {
+    padding: 16px;
+    .stats-grid {
+      gap: 10px;
     }
-    span:last-child {
-      font-variant-numeric: tabular-nums;
+    .stat-value {
+      font-size: 1.1rem;
     }
-  }
-
-  .cs-bar {
-    height: 6px;
-    background-color: var(--bg-tertiary-color);
-    border-radius: 3px;
-    overflow: hidden;
-
-    .cs-fill {
-      height: 100%;
-      background-color: var(--fg-accent-color);
-      transition: width 0.3s ease;
-
-      &.tts {
-        background-color: var(--fg-info-color);
-      }
-    }
-  }
-}
-
-@keyframes pulse {
-  0% {
-    transform: scale(1);
-    opacity: 1;
-  }
-  50% {
-    transform: scale(1.1);
-    opacity: 0.7;
-  }
-  100% {
-    transform: scale(1);
-    opacity: 1;
   }
 }
 </style>

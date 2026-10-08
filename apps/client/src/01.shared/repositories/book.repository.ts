@@ -14,7 +14,7 @@ export interface IBookRepository {
   startReading: (id: number) => Promise<{ success: boolean }>
   updateInfo: (id: number, data: Partial<Book>) => Promise<{ success: boolean }>
   analyzeBook: (id: number) => Promise<{ success: boolean, stats: Book['stats'] }>
-  analyzeVocabulary: (id: number) => Promise<{ success: boolean, lexicalStats: Pick<BookStats, 'posDistribution' | 'topWords' | 'lexicalDiversity'> }>
+  analyzeVocabulary: (id: number) => Promise<{ success: boolean, lexicalStats: Pick<BookStats, 'posDistribution' | 'topWords' | 'lexicalDiversity' | 'totalWords' | 'totalSentences'> }>
   updateCover: (id: number, file: File) => Promise<{ success: boolean, coverUrl: string }>
   updateStats: (id: number, data: Partial<BookStats>) => Promise<{ success: boolean, stats: BookStats }>
   upload: (file: File) => Promise<{ success: boolean, book: Book }>

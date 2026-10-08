@@ -1,57 +1,80 @@
 <script setup lang="ts">
+import type { LexicalWordData } from '~/01.shared/types/models'
 import { Icon } from '@iconify/vue'
+import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useAnalysisStore } from '~/01.shared/store/analysis/analysis.store'
 import { useLibraryStore } from '~/05.modules/library/store/library.store'
 import { useBookLexicalStats } from '../composables/use-book-lexical-stats'
+import BookLexicalWords from './book-lexical-words.vue'
 
-const { t } = useI18n()
+const { t, n } = useI18n()
 const libraryStore = useLibraryStore()
 const analysisStore = useAnalysisStore()
-
 const isLexicalExpanded = ref(false)
-const lexicalActiveTab = ref<'core' | 'entities' | 'rare'>('core')
-
+const lexicalActiveTab = ref('core')
 const { isLegacyLexical, legacyTopWords, lexData, posStats } = useBookLexicalStats()
+const metrics = computed(() => lexData.value?.metrics)
+const isCurrentProfile = computed(() => lexData.value?.version === 2)
+const tabs = ['core', 'entities', 'rare', 'phrases'] as const
+const tabLabels = { core: 'core', entities: 'names', rare: 'nuggets', phrases: 'phrases' }
+const tabIcons = { core: 'mdi:bullseye-arrow', entities: 'mdi:account-group-outline', rare: 'mdi:diamond-stone', phrases: 'mdi:format-quote-close' }
+const groups = computed(() => [
+  { key: 'nouns', words: lexData.value?.nouns, tone: 'noun', hint: 'themes' },
+  { key: 'verbs', words: lexData.value?.verbs, tone: 'verb', hint: 'dynamics' },
+  { key: 'adjectives', words: lexData.value?.adjs, tone: 'adj', hint: 'atmosphere' },
+])
 
-function handleWordClick(word: string, pos: string, event: MouseEvent) {
-  const target = event.currentTarget as HTMLElement
-  analysisStore.lookupStandaloneWord(word, pos || 'x', target)
+function handleWordClick(word: LexicalWordData, event: MouseEvent) {
+  analysisStore.lookupStandaloneWord(word.word, word.pos || 'x', event.currentTarget as HTMLElement)
 }
 </script>
 
 <template>
-  <div v-if="libraryStore.isAnalyzingVocab" class="ai-analysis-box is-loading">
+  <div v-if="libraryStore.isAnalyzingVocab" class="ai-analysis-box is-loading" role="status">
     <Icon icon="mdi:loading" class="spin-icon" />
     <p>{{ t('bookLexical.analyzingVocab') }}</p>
     <p class="sub-text">
       {{ t('bookLexical.tokenizationInfo') }}
     </p>
   </div>
-
   <div v-else-if="libraryStore.currentBookInfo?.stats?.topWords" class="ai-analysis-box lexical-box">
-    <div class="box-header expandable-header" @click="isLexicalExpanded = !isLexicalExpanded">
-      <div class="header-info">
-        <h3><Icon icon="mdi:chart-arc" /> {{ t('bookLexical.lexicalProfile') }}</h3>
-        <span class="diversity-inline">
+    <button
+      type="button"
+      class="box-header expandable-header"
+      :aria-expanded="isLexicalExpanded"
+      @click="isLexicalExpanded = !isLexicalExpanded"
+    >
+      <span class="header-info">
+        <span class="profile-title"><Icon icon="mdi:chart-arc" /> {{ t('bookLexical.lexicalProfile') }}</span>
+        <span v-if="isCurrentProfile && metrics?.diversity != null" class="diversity-inline">
           <span class="dot-divider">•</span>
-          {{ t('bookLexical.diversity') }} <b class="diversity-value">{{ libraryStore.currentBookInfo.stats.lexicalDiversity }}%</b>
+          {{ t('bookLexical.diversity') }} <b class="diversity-value">{{ metrics.diversity }}%</b>
         </span>
-      </div>
+      </span>
       <Icon :icon="isLexicalExpanded ? 'mdi:chevron-up' : 'mdi:chevron-down'" class="header-chevron" />
-    </div>
-
+    </button>
     <div v-show="isLexicalExpanded" class="lexical-expanded-content">
-      <p class="lexical-description">
-        {{ t('bookLexical.diversityDesc') }}
-        <b>{{ t('bookLexical.clickToTranslate') }}</b>
+      <dl v-if="metrics" class="profile-metrics">
+        <div><dt>{{ t('bookLexical.tokenCount') }}</dt><dd>{{ n(metrics.tokens) }}</dd></div>
+        <div><dt>{{ t('bookLexical.vocabulary') }}</dt><dd>{{ n(metrics.vocabulary) }}</dd></div>
+        <div><dt>{{ t('bookLexical.contentCount') }}</dt><dd>{{ n(metrics.contentTokens) }}</dd></div>
+      </dl>
+      <p v-if="metrics && metrics.diversity == null" class="tab-desc">
+        {{ t('bookLexical.shortSample') }}
       </p>
-
-      <div v-if="posStats" class="pos-container">
+      <p v-if="metrics && !metrics.tagged" class="tab-desc">
+        {{ t('bookLexical.untaggedLanguage') }}
+      </p>
+      <p class="tab-desc">
+        {{ t('bookLexical.clickToTranslate') }} {{ t('bookLexical.countHint') }}
+      </p>
+      <div v-if="posStats && (!metrics || metrics.tagged)" class="pos-container">
         <div class="pos-labels">
           <span class="noun-dot">{{ t('bookLexical.nouns') }} {{ posStats.nouns }}%</span>
           <span class="verb-dot">{{ t('bookLexical.verbs') }} {{ posStats.verbs }}%</span>
           <span class="adj-dot">{{ t('bookLexical.adjectives') }} {{ posStats.adjs }}%</span>
+          <span class="other-dot">{{ t('bookLexical.otherWords') }} {{ posStats.others }}%</span>
         </div>
         <div class="pos-bar">
           <div class="pos-segment noun" :style="{ width: `${posStats.nouns}%` }" />
@@ -59,120 +82,57 @@ function handleWordClick(word: string, pos: string, event: MouseEvent) {
           <div class="pos-segment adj" :style="{ width: `${posStats.adjs}%` }" />
         </div>
       </div>
-
-      <template v-if="isLegacyLexical">
-        <h4 class="top-words-title">
-          {{ t('bookLexical.topWords') }}
-        </h4>
-        <div class="top-words-cloud">
-          <div
-            v-for="word in legacyTopWords"
-            :key="word.word"
-            class="word-chip"
-            :class="{
-              'chip-n': word.pos.startsWith('n'),
-              'chip-v': word.pos.startsWith('v'),
-              'chip-a': word.pos.startsWith('a') || word.pos.startsWith('d'),
-            }"
-            @click.stop="handleWordClick(word.word, word.pos, $event)"
-          >
-            {{ word.word }} <span class="count">{{ word.count }}</span>
-          </div>
-        </div>
-      </template>
-
+      <BookLexicalWords v-if="isLegacyLexical" :words="legacyTopWords" @select="handleWordClick" />
       <template v-else>
-        <div class="lexical-tabs-nav">
-          <button :class="{ active: lexicalActiveTab === 'core' }" @click="lexicalActiveTab = 'core'">
-            <Icon icon="mdi:bullseye-arrow" /> {{ t('bookLexical.core') }}
-          </button>
-          <button :class="{ active: lexicalActiveTab === 'entities' }" @click="lexicalActiveTab = 'entities'">
-            <Icon icon="mdi:account-group-outline" /> {{ t('bookLexical.names') }}
-          </button>
-          <button :class="{ active: lexicalActiveTab === 'rare' }" @click="lexicalActiveTab = 'rare'">
-            <Icon icon="mdi:diamond-stone" /> {{ t('bookLexical.nuggets') }}
+        <div class="lexical-tabs-nav" :aria-label="t('bookLexical.lexicalProfile')">
+          <button
+            v-for="tab in tabs"
+            v-show="tab !== 'phrases' || isCurrentProfile"
+            :key="tab"
+            type="button"
+            :class="{ active: lexicalActiveTab === tab }"
+            :aria-pressed="lexicalActiveTab === tab"
+            @click="lexicalActiveTab = tab"
+          >
+            <Icon :icon="tabIcons[tab]" /> {{ t(`bookLexical.${tabLabels[tab]}`) }}
           </button>
         </div>
-
         <div class="lexical-tab-content">
           <div v-show="lexicalActiveTab === 'core'" class="tab-pane">
-            <div class="word-group">
-              <h5><Icon icon="mdi:shape-outline" /> {{ t('bookLexical.nouns') }} <span>{{ t('bookLexical.themes') }}</span></h5>
-              <div class="top-words-cloud">
-                <div
-                  v-for="w in lexData?.nouns"
-                  :key="w.word"
-                  class="word-chip chip-n"
-                  @click.stop="handleWordClick(w.word, w.pos, $event)"
-                >
-                  {{ w.word }} <span class="count">{{ w.count }}</span>
-                </div>
-              </div>
+            <p class="tab-desc">
+              {{ t('bookLexical.coreDesc') }}
+            </p>
+            <div
+              v-for="group in groups"
+              v-show="metrics?.tagged !== false"
+              :key="group.key"
+              class="word-group"
+            >
+              <h5>{{ t(`bookLexical.${group.key}`) }} <span>{{ t(`bookLexical.${group.hint}`) }}</span></h5>
+              <BookLexicalWords :words="group.words" :tone="group.tone" @select="handleWordClick" />
             </div>
-            <div class="word-group">
-              <h5><Icon icon="mdi:run-fast" /> {{ t('bookLexical.verbs') }} <span>{{ t('bookLexical.dynamics') }}</span></h5>
-              <div class="top-words-cloud">
-                <div
-                  v-for="w in lexData?.verbs"
-                  :key="w.word"
-                  class="word-chip chip-v"
-                  @click.stop="handleWordClick(w.word, w.pos, $event)"
-                >
-                  {{ w.word }} <span class="count">{{ w.count }}</span>
-                </div>
-              </div>
-            </div>
-            <div class="word-group">
-              <h5><Icon icon="mdi:weather-partly-cloudy" /> {{ t('bookLexical.adjectives') }} <span>{{ t('bookLexical.atmosphere') }}</span></h5>
-              <div class="top-words-cloud">
-                <div
-                  v-for="w in lexData?.adjs"
-                  :key="w.word"
-                  class="word-chip chip-a"
-                  @click.stop="handleWordClick(w.word, w.pos, $event)"
-                >
-                  {{ w.word }} <span class="count">{{ w.count }}</span>
-                </div>
-              </div>
+            <div v-if="lexData?.words?.length" class="word-group">
+              <h5>{{ t('bookLexical.unclassified') }}</h5>
+              <BookLexicalWords :words="lexData.words" @select="handleWordClick" />
             </div>
           </div>
-
           <div v-show="lexicalActiveTab === 'entities'" class="tab-pane">
             <p class="tab-desc">
               {{ t('bookLexical.namesDesc') }}
             </p>
-            <div class="top-words-cloud">
-              <div
-                v-for="w in lexData?.properNouns"
-                :key="w.word"
-                class="word-chip chip-entity"
-                @click.stop="handleWordClick(w.word, w.pos, $event)"
-              >
-                {{ w.word }} <span class="count">{{ w.count }}</span>
-              </div>
-              <div v-if="!lexData?.properNouns?.length" class="empty-state-text">
-                {{ t('bookLexical.noNamesFound') }}
-              </div>
-            </div>
+            <BookLexicalWords :words="lexData?.properNouns" tone="entity" @select="handleWordClick" />
           </div>
-
           <div v-show="lexicalActiveTab === 'rare'" class="tab-pane">
             <p class="tab-desc">
-              {{ t('bookLexical.rareDesc') }}
+              {{ t('bookLexical.rareDesc', { max: metrics?.rareLimit || 5 }) }}
             </p>
-            <div class="top-words-cloud">
-              <div
-                v-for="w in lexData?.rareWords"
-                :key="w.word"
-                class="word-chip chip-rare"
-                @click.stop="handleWordClick(w.word, w.pos, $event)"
-              >
-                {{ w.word }} <span class="count">{{ w.count }}</span>
-              </div>
-              <div v-if="!lexData?.rareWords?.length" class="empty-state-text">
-                {{ t('bookLexical.noRareFound') }}
-              </div>
-            </div>
+            <BookLexicalWords :words="lexData?.rareWords" tone="rare" @select="handleWordClick" />
+          </div>
+          <div v-show="lexicalActiveTab === 'phrases'" class="tab-pane">
+            <p class="tab-desc">
+              {{ t('bookLexical.phrasesDesc') }}
+            </p>
+            <BookLexicalWords :words="lexData?.phrases" @select="handleWordClick" />
           </div>
         </div>
       </template>
@@ -219,6 +179,16 @@ function handleWordClick(word: string, pos: string, event: MouseEvent) {
   }
 }
 .expandable-header {
+  width: 100%;
+  background: transparent;
+  border: 0;
+  padding: 0;
+  text-align: left;
+  font: inherit;
+  &:focus-visible {
+    outline: 2px solid var(--fg-accent-color);
+    outline-offset: 4px;
+  }
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -226,7 +196,7 @@ function handleWordClick(word: string, pos: string, event: MouseEvent) {
   user-select: none;
   margin-bottom: 0 !important;
   &:hover {
-    .header-info h3 {
+    .header-info .profile-title {
       color: var(--fg-accent-color);
     }
   }
@@ -235,7 +205,7 @@ function handleWordClick(word: string, pos: string, event: MouseEvent) {
     align-items: center;
     gap: 12px;
     flex-wrap: wrap;
-    h3 {
+    .profile-title {
       margin: 0;
       font-size: 1.2rem;
       display: flex;
@@ -273,10 +243,20 @@ function handleWordClick(word: string, pos: string, event: MouseEvent) {
   border-top: 1px dashed var(--border-secondary-color);
   animation: fade-in 0.3s ease;
 }
-.lexical-description {
-  font-size: 0.85rem;
+.profile-metrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 32px;
+  margin: 0 0 20px;
+}
+.profile-metrics dt {
+  font-size: 0.8rem;
   color: var(--fg-secondary-color);
-  margin: 0 0 20px 0;
+}
+.profile-metrics dd {
+  margin: 4px 0 0;
+  font-size: 1.15rem;
+  font-weight: 600;
 }
 .pos-container {
   margin-bottom: 24px;
@@ -303,6 +283,9 @@ function handleWordClick(word: string, pos: string, event: MouseEvent) {
         border-radius: 50%;
         flex-shrink: 0;
       }
+    }
+    .other-dot::before {
+      background-color: var(--fg-secondary-color);
     }
     .noun-dot::before {
       background-color: #3b82f6;
@@ -334,59 +317,6 @@ function handleWordClick(word: string, pos: string, event: MouseEvent) {
     }
   }
 }
-.top-words-title {
-  margin: 0 0 12px 0;
-  font-size: 1.1rem;
-  color: var(--fg-primary-color);
-}
-.top-words-cloud {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  padding-bottom: 8px;
-  .word-chip {
-    background-color: var(--bg-primary-color);
-    border: 1px solid var(--border-primary-color);
-    color: var(--fg-primary-color);
-    padding: 6px 12px;
-    border-radius: 8px;
-    font-size: 0.95rem;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    &:hover {
-      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-    }
-    .count {
-      font-size: 0.75rem;
-      background-color: var(--bg-tertiary-color);
-      padding: 2px 6px;
-      border-radius: 10px;
-      color: var(--fg-secondary-color);
-    }
-    &.chip-n {
-      border-color: #3b82f6;
-    }
-    &.chip-v {
-      border-color: #ef4444;
-    }
-    &.chip-a {
-      border-color: #10b981;
-    }
-    &.chip-entity {
-      border-color: #8b5cf6;
-      color: #8b5cf6;
-      background-color: rgba(139, 92, 246, 0.05);
-    }
-    &.chip-rare {
-      border-color: #f59e0b;
-      background-color: rgba(245, 158, 11, 0.05);
-      font-style: italic;
-    }
-  }
-}
 .lexical-tabs-nav {
   display: flex;
   gap: 8px;
@@ -404,6 +334,12 @@ function handleWordClick(word: string, pos: string, event: MouseEvent) {
     overflow-x: visible;
   }
   button {
+    border: 0;
+    font-family: inherit;
+    &:focus-visible {
+      outline: 2px solid var(--fg-accent-color);
+      outline-offset: 2px;
+    }
     display: flex;
     align-items: center;
     justify-content: center;
@@ -467,22 +403,6 @@ function handleWordClick(word: string, pos: string, event: MouseEvent) {
       color: var(--fg-secondary-color);
     }
   }
-}
-.chip-entity {
-  border-color: #8b5cf6 !important;
-  color: #8b5cf6 !important;
-  background-color: rgba(139, 92, 246, 0.05) !important;
-}
-.chip-rare {
-  border-color: #f59e0b !important;
-  background-color: rgba(245, 158, 11, 0.05) !important;
-  font-style: italic;
-}
-.empty-state-text {
-  font-size: 0.9rem;
-  color: var(--fg-muted-color);
-  font-style: italic;
-  padding: 12px 0;
 }
 @keyframes spin {
   to {

@@ -11,6 +11,8 @@ import nodejieba from 'nodejieba'
 import { db } from '../db'
 import * as schema from '../db/schema'
 import { logger } from '../utils/logger'
+import { tokenizeEnglishProfile } from './lexical/english'
+import { LexicalProfile } from './lexical/profile'
 import { splitIntoSentences } from './sentence-splitter'
 
 class ChineseTokenizer implements LanguageTokenizer {
@@ -80,7 +82,7 @@ class JapaneseTokenizer implements LanguageTokenizer {
       }
       else {
         const kuromojiTokens = this.tokenizer.tokenize(part)
-        tokens.push(...kuromojiTokens.map(t => ({ word: t.surface_form, pos: this.getSimpleTag(t.pos) })))
+        tokens.push(...kuromojiTokens.map(t => ({ word: t.surface_form, pos: t.pos_detail_1 === '代名詞' ? 'r' : this.getSimpleTag(t.pos), lemma: t.basic_form === '*' ? t.surface_form : t.basic_form, entity: t.pos_detail_1 === '固有名詞' })))
       }
     }
     return tokens
@@ -93,6 +95,8 @@ class EnglishTokenizer implements LanguageTokenizer {
   private getSimpleTag(tags: string[]): string {
     if (!tags || tags.length === 0)
       return 'x'
+    if (tags.includes('Pronoun') || tags.includes('Possessive'))
+      return 'r'
     for (const tag of tags) {
       if (this.tagMap[tag])
         return this.tagMap[tag]
@@ -123,7 +127,7 @@ class EnglishTokenizer implements LanguageTokenizer {
 
 interface AzModule {
   Morph: {
-    (word: string): { tag: { POS: string } }[]
+    (word: string): { tag: { POS: string, Name?: boolean, Surn?: boolean, Patr?: boolean, Geox?: boolean, Orgn?: boolean }, normalize: () => { toString: () => string } }[]
     init: (cb: () => void) => void
   }
 }
@@ -201,7 +205,8 @@ class RussianTokenizer implements LanguageTokenizer {
 
       const parses = this.Az.Morph(segment)
       const pos = parses.length > 0 ? this.mapPos(parses[0].tag.POS) : 'unk'
-      tokens.push({ word: segment, pos })
+      const parse = parses[0]
+      tokens.push({ word: segment, pos, lemma: parse?.normalize().toString(), entity: !!parse && (parse.tag.Name || parse.tag.Surn || parse.tag.Patr || parse.tag.Geox || parse.tag.Orgn) })
     }
 
     return tokens
@@ -397,85 +402,47 @@ export async function tokenizeHtmlPage(html: string, language: string) {
 export async function analyzeBookVocabulary(bookId: number, language: string) {
   const book = await db.select({ type: schema.books.type }).from(schema.books).where(eq(schema.books.id, bookId)).get()
   const tokenizer = getTokenizer(language)
-  const posCounts: Record<string, number> = {}
-  const wordFreq: Record<string, { count: number, pos: string, original: string }> = {}
-  let totalValidTokens = 0
+  const profile = new LexicalProfile(language)
+  const lemmaCache = new Map<string, string>()
   let totalSentencesCount = 0
+  let pageIndex = 0
 
   async function processSentences(sentences: string[]) {
     for (const raw of sentences) {
-      if (/^\s+$/.test(raw))
+      if (!/\p{L}/u.test(raw))
         continue
-      const tokens = await tokenizer.tokenize(raw)
-
-      for (const t of tokens) {
-        if (t.pos === 'x' && /[\p{L}\p{N}]/u.test(t.word)) {
-          t.pos = 'unk'
-        }
-
-        if (['x', 'u', 'p', 'c', 'm', 'r'].includes(t.pos))
-          continue
-        if (t.word.length < (['zh', 'ja'].includes(language) ? 1 : 2))
-          continue
-
-        totalValidTokens++
-        posCounts[t.pos] = (posCounts[t.pos] || 0) + 1
-
-        const w = t.word.toLowerCase()
-        if (!wordFreq[w])
-          wordFreq[w] = { count: 0, pos: t.pos, original: t.word }
-        wordFreq[w].count++
-        if (t.word !== w && wordFreq[w].original === w)
-          wordFreq[w].original = t.word
-      }
+      totalSentencesCount++
+      const tokens = language === 'en' ? tokenizeEnglishProfile(raw, lemmaCache) : await tokenizer.tokenize(raw)
+      profile.addSentence(tokens, pageIndex)
     }
   }
 
   if (book?.type === 'manga') {
-    const pages = await db.select({ ocrData: schema.mangaPages.ocrData }).from(schema.mangaPages).where(eq(schema.mangaPages.bookId, bookId))
+    const pages = await db.select({ ocrData: schema.mangaPages.ocrData }).from(schema.mangaPages).where(eq(schema.mangaPages.bookId, bookId)).orderBy(schema.mangaPages.pageNum)
     for (const page of pages) {
+      pageIndex++
       if (!page.ocrData)
         continue
       const blocks = JSON.parse(page.ocrData)
       for (const block of blocks) {
         const sentences = splitIntoSentences(block.text || '', language)
-        totalSentencesCount += sentences.length
         await processSentences(sentences)
       }
     }
   }
   else {
-    const pages = await db.select({ content: schema.bookPages.content }).from(schema.bookPages).where(eq(schema.bookPages.bookId, bookId))
+    const pages = await db.select({ content: schema.bookPages.content }).from(schema.bookPages).where(eq(schema.bookPages.bookId, bookId)).orderBy(schema.bookPages.pageNum)
     for (const page of pages) {
-      const plainText = parseHtml(page.content).textContent
+      pageIndex++
+      const html = parseHtml(page.content)
+      html.querySelectorAll('script, style').forEach(node => node.remove())
+      const plainText = html.structuredText
       const sentences = splitIntoSentences(plainText, language)
-      totalSentencesCount += sentences.length
       await processSentences(sentences)
     }
   }
 
-  const uniqueTokens = Object.keys(wordFreq).length
-  const lexicalDiversity = totalValidTokens > 0 ? Math.round((uniqueTokens / totalValidTokens) * 100) : 0
-  const allWordsArr = Object.values(wordFreq).map(data => ({ word: data.original, pos: data.pos, count: data.count }))
-
-  // eslint-disable-next-line regexp/no-obscure-range
-  const properNouns = allWordsArr.filter(w => ['nr', 'ns', 'nt'].includes(w.pos) || (w.pos.startsWith('n') && /^[A-ZА-ЯЁ]/.test(w.word))).sort((a, b) => b.count - a.count).slice(0, 30)
-  const isProper = (word: string) => properNouns.some(p => p.word === word)
-  const nouns = allWordsArr.filter(w => w.pos.startsWith('n') && !isProper(w.word)).sort((a, b) => b.count - a.count).slice(0, 30)
-  const verbs = allWordsArr.filter(w => w.pos.startsWith('v')).sort((a, b) => b.count - a.count).slice(0, 30)
-  const adjs = allWordsArr.filter(w => (w.pos.startsWith('a') || w.pos.startsWith('d')) && !isProper(w.word)).sort((a, b) => b.count - a.count).slice(0, 30)
-
-  // Минимальная длина слова для "редких", чтобы отсекать предлоги (особенно для ru и en)
-  const minLength = ['zh', 'ja'].includes(language) ? 2 : 5
-  const rareWords = allWordsArr.filter(w => w.count >= 2 && w.count <= 5 && w.word.length >= minLength && !isProper(w.word)).sort((a, b) => b.word.length - a.word.length).slice(0, 30)
-
-  return {
-    posDistribution: posCounts,
-    topWords: { nouns, verbs, adjs, properNouns, rareWords },
-    lexicalDiversity,
-    totalSentences: totalSentencesCount,
-    totalWords: uniqueTokens,
-  }
+  return { ...profile.finish(), totalSentences: totalSentencesCount }
 }
 
 export async function tokenizeOcrBlocks(blocks: (Record<string, unknown> & { text?: string })[], language: string) {

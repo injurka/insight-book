@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n'
+import { KitBtn } from '~/02.kit/atoms/kit-btn/ui'
 import { KitSkeleton } from '~/02.kit/atoms/kit-skeleton/ui'
 
 interface Props {
@@ -10,6 +12,7 @@ withDefaults(defineProps<Props>(), {
   groupCount: 2,
   quoteCount: 3,
 })
+const { t } = useI18n()
 </script>
 
 <template>
@@ -24,57 +27,91 @@ withDefaults(defineProps<Props>(), {
         />
 
         <div class="book-metadata-skeleton">
-          <KitSkeleton width="52%" height="22px" border-radius="5px" />
-          <KitSkeleton width="34%" height="15px" border-radius="4px" />
           <KitSkeleton
-            class="book-badge-skeleton"
-            width="96px"
-            height="24px"
-            border-radius="20px"
+            width="52%"
+            class="book-title-skeleton"
+            height="1lh"
+            border-radius="5px"
           />
+          <KitSkeleton
+            width="34%"
+            class="book-author-skeleton"
+            height="1lh"
+            border-radius="4px"
+          />
+          <div class="book-stats-skeleton">
+            <KitSkeleton
+              class="book-badge-skeleton"
+              width="96px"
+              height="calc(1lh + 10px)"
+              border-radius="20px"
+            />
+          </div>
         </div>
 
-        <KitSkeleton
-          class="book-action-skeleton"
-          width="112px"
-          height="40px"
-          border-radius="8px"
-        />
+        <div class="book-action-skeleton">
+          <KitBtn
+            class="export-placeholder"
+            icon="mdi:download"
+            variant="tonal"
+            color="secondary"
+            size="sm"
+            disabled
+          >
+            <span class="btn-text">{{ t('notebook.export') }}</span>
+          </KitBtn>
+          <KitSkeleton
+            class="book-action-fill"
+            width="100%"
+            height="32px"
+            border-radius="6px"
+          />
+        </div>
       </div>
 
       <div class="highlight-skeleton-list">
         <article v-for="quote in quoteCount" :key="quote" class="highlight-skeleton">
           <div class="highlight-body-skeleton">
             <div class="quote-content-skeleton">
-              <KitSkeleton width="92%" height="19px" border-radius="4px" />
-              <KitSkeleton width="68%" height="19px" border-radius="4px" />
+              <div class="quote-lines-skeleton">
+                <KitSkeleton width="92%" height="1.575rem" border-radius="4px" />
+                <KitSkeleton
+                  v-if="quote === 2"
+                  width="68%"
+                  height="1.575rem"
+                  border-radius="4px"
+                />
+              </div>
               <KitSkeleton
                 class="translation-skeleton"
                 width="74%"
-                height="16px"
+                height="1lh"
                 border-radius="4px"
               />
             </div>
 
-            <div v-if="quote === 1" class="note-skeleton">
-              <KitSkeleton width="18px" height="18px" border-radius="4px" />
+            <div v-if="quote === 3" class="note-skeleton">
+              <KitSkeleton
+                class="note-icon-skeleton"
+                width="0.9rem"
+                height="0.9rem"
+                border-radius="4px"
+              />
               <div class="note-lines-skeleton">
-                <KitSkeleton width="82%" height="14px" border-radius="4px" />
-                <KitSkeleton width="58%" height="14px" border-radius="4px" />
+                <KitSkeleton width="82%" height="1lh" border-radius="4px" />
+                <KitSkeleton width="58%" height="1lh" border-radius="4px" />
               </div>
             </div>
           </div>
 
           <div class="highlight-footer-skeleton">
             <div class="highlight-info-skeleton">
-              <KitSkeleton width="72px" height="22px" border-radius="6px" />
-              <KitSkeleton width="58px" height="22px" border-radius="6px" />
-              <KitSkeleton width="78px" height="22px" border-radius="6px" />
+              <KitSkeleton width="72px" height="calc(1lh + 4px)" border-radius="4px" />
+              <KitSkeleton width="58px" height="calc(1lh + 4px)" border-radius="4px" />
+              <KitSkeleton width="78px" height="calc(1lh + 4px)" border-radius="4px" />
             </div>
             <div class="highlight-actions-skeleton">
-              <KitSkeleton width="24px" height="24px" border-radius="6px" />
-              <KitSkeleton width="24px" height="24px" border-radius="6px" />
-              <KitSkeleton width="24px" height="24px" border-radius="6px" />
+              <KitSkeleton width="28px" height="28px" border-radius="4px" />
             </div>
           </div>
         </article>
@@ -116,75 +153,109 @@ withDefaults(defineProps<Props>(), {
   flex: 1;
   min-width: 0;
   flex-direction: column;
-  gap: 8px;
+}
+
+.book-action-skeleton {
+  position: relative;
+}
+
+.export-placeholder {
+  visibility: hidden;
+}
+
+.book-action-fill {
+  position: absolute;
+  inset: 0;
+}
+
+.book-title-skeleton {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.book-author-skeleton {
+  font-size: 0.95rem;
+  margin-bottom: 8px;
+}
+
+.book-stats-skeleton {
+  position: relative;
+  font-size: 0.75rem;
+  height: 1lh;
 }
 
 .book-badge-skeleton {
-  margin-top: 2px;
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.75rem;
 }
 
 .highlight-skeleton-list {
+  padding: 12px 0;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(320px, 100%), 1fr));
   gap: 20px;
   align-items: start;
 }
 
 .highlight-skeleton {
   display: flex;
-  min-height: 188px;
+  margin-bottom: 12px;
   flex-direction: column;
-  gap: 16px;
+  gap: 12px;
   padding: 16px;
   border: 1px solid rgba(255, 255, 255, 0.05);
   border-left: 4px solid rgba(var(--fg-accent-color-rgb, 201, 117, 222), 0.65);
-  border-radius: 16px;
+  border-radius: 8px;
   background: rgba(var(--bg-secondary-color-rgb, 40, 44, 52), 0.6);
 }
 
 .highlight-body-skeleton,
 .quote-content-skeleton,
+.quote-lines-skeleton,
 .note-lines-skeleton {
   display: flex;
   flex-direction: column;
 }
 
-.highlight-body-skeleton {
-  gap: 16px;
-}
-
 .quote-content-skeleton {
-  gap: 7px;
+  gap: 8px;
 }
 
 .translation-skeleton {
-  margin-top: 5px;
+  font-size: 0.95rem;
 }
 
 .note-skeleton {
   display: flex;
   align-items: flex-start;
-  gap: 12px;
-  padding: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  border-radius: 12px;
-  background: rgba(var(--bg-primary-color-rgb, 24, 24, 27), 0.5);
+  gap: 6px;
+  margin-top: 8px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  background: rgba(var(--bg-accent-color-rgb, 201, 117, 222), 0.05);
+}
+
+.note-icon-skeleton {
+  flex-shrink: 0;
+  margin-top: 2px;
 }
 
 .note-lines-skeleton {
+  font-size: 0.9rem;
   flex: 1;
-  gap: 6px;
-  padding-top: 2px;
+  gap: 0;
 }
 
 .highlight-footer-skeleton {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  margin-top: auto;
+  gap: 8px;
   padding-top: 10px;
-  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  border-top: 1px solid var(--border-secondary-color);
 }
 
 .highlight-info-skeleton,
@@ -194,7 +265,15 @@ withDefaults(defineProps<Props>(), {
   gap: 8px;
 }
 
+.highlight-info-skeleton {
+  font-size: 0.8rem;
+  flex: 1;
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
 .highlight-actions-skeleton {
+  flex-shrink: 0;
   gap: 4px;
 }
 
@@ -204,25 +283,12 @@ withDefaults(defineProps<Props>(), {
     padding: 12px 16px;
   }
 
-  .book-action-skeleton {
-    width: 40px !important;
+  .export-placeholder .btn-text {
+    display: none;
   }
 
-  .highlight-skeleton-list {
-    grid-template-columns: 1fr;
-    gap: 12px;
-  }
-
-  .highlight-skeleton {
-    min-height: 0;
-  }
-
-  .highlight-footer-skeleton {
-    align-items: flex-end;
-  }
-
-  .highlight-info-skeleton {
-    flex-wrap: wrap;
+  .export-placeholder :deep(.kit-btn-icon) {
+    margin-right: 0;
   }
 }
 </style>

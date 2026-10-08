@@ -13,7 +13,6 @@ import { KitTooltip } from '~/02.kit/molecules/kit-tooltip/ui'
 import { useLibraryStore } from '~/05.modules/library/store/library.store'
 
 const emit = defineEmits<{
-  (e: 'editStats'): void
   (e: 'openSync'): void
   (e: 'openAppendChapter'): void
 }>()
@@ -33,16 +32,6 @@ function handleOpenSync() {
   }
 
   emit('openSync')
-}
-
-function handleEditStats() {
-  if (networkStore.effectiveOffline) {
-    toast.warn(t('network.needOnline'))
-
-    return
-  }
-
-  emit('editStats')
 }
 
 function handleOpenAppendChapter() {
@@ -147,16 +136,6 @@ async function startReading() {
         >
           {{ t('bookInfo.addPages') }}
         </KitBtn>
-
-        <KitBtn
-          v-if="authStore.user && libraryStore.currentBookInfo?.userId === authStore.user?.id"
-          variant="text"
-          size="sm"
-          class="edit-btn"
-          @click="handleEditStats"
-        >
-          {{ t('bookInfo.edit') }}
-        </KitBtn>
       </div>
 
       <!-- Mobile compact icon buttons -->
@@ -186,27 +165,18 @@ async function startReading() {
             @click="handleOpenAppendChapter"
           />
         </KitTooltip>
-
-        <KitTooltip
-          v-if="authStore.user && libraryStore.currentBookInfo?.userId === authStore.user?.id"
-          :text="t('bookInfo.edit')"
-          placement="top"
-        >
-          <KitBtn
-            variant="tonal"
-            color="secondary"
-            icon="mdi:pencil-outline"
-            :title="t('bookInfo.edit')"
-            :aria-label="t('bookInfo.edit')"
-            @click="handleEditStats"
-          />
-        </KitTooltip>
       </div>
     </div>
   </div>
 </template>
 
 <style lang="scss" scoped>
+.cover-col {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
 .cover-wrapper {
   position: relative;
   width: 100%;
@@ -255,6 +225,7 @@ async function startReading() {
   }
 }
 .action-buttons {
+  margin-top: auto;
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -276,17 +247,6 @@ async function startReading() {
 
   .mobile-secondary-actions {
     display: none;
-  }
-
-  .edit-btn {
-    opacity: 0.5;
-    font-weight: 500;
-    transition: opacity 0.2s;
-    margin-top: 4px;
-    &:hover {
-      opacity: 0.9;
-      background-color: transparent;
-    }
   }
 
   @include media-down(md) {

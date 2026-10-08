@@ -176,12 +176,22 @@ function cancelRequest() {
 }
 
 .publish-content {
-  display: flex;
-  align-items: center;
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr);
+  grid-template-areas:
+    'icon details'
+    '. action';
+  align-items: start;
   gap: 12px;
 }
 
+.publish-request-block--public .publish-content {
+  grid-template-columns: 40px minmax(0, 1fr) 32px;
+  grid-template-areas: 'icon details action';
+}
+
 .publish-icon-box {
+  grid-area: icon;
   width: 40px;
   height: 40px;
   border-radius: 10px;
@@ -214,7 +224,7 @@ function cancelRequest() {
 }
 
 .publish-details {
-  flex: 1;
+  grid-area: details;
   min-width: 0;
   display: flex;
   flex-direction: column;
@@ -279,9 +289,16 @@ function cancelRequest() {
 }
 
 .publish-action {
-  flex-shrink: 0;
+  grid-area: action;
+  min-width: 0;
   display: flex;
   align-items: center;
+
+  @include media-down(sm) {
+    .kit-btn {
+      width: 100%;
+    }
+  }
 }
 
 .publish-lock-badge {

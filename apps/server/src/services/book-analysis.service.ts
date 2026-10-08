@@ -1,4 +1,4 @@
-import type { BatchAnalysisRequest, LlmConfig } from '../types'
+import type { BatchAnalysisRequest, BookStats, LlmConfig } from '../types'
 import { parse as parseHtml } from 'node-html-parser'
 import { normalizeLanguageCode } from '~/utils/helpers'
 import { ERROR_CODES } from '../constants/error-codes'
@@ -22,13 +22,13 @@ export class BookAnalysisService {
     if (!book || book.userId !== userId)
       throw new AppError(403, ERROR_CODES.BOOK.ACCESS_DENIED, 'Access denied')
 
-    const result = await runWorkerTask<{ posDistribution?: unknown, topWords?: unknown, lexicalDiversity?: number, totalSentences?: number, totalWords?: number }>('analyzeBookVocabulary', { bookId: id, language: normalizeLanguageCode(book.language) })
+    const result = await runWorkerTask<Pick<BookStats, 'posDistribution' | 'topWords' | 'lexicalDiversity' | 'totalSentences' | 'totalWords'>>('analyzeBookVocabulary', { bookId: id, language: normalizeLanguageCode(book.language) })
     await bookRepository.upsertBookStats(id, {
-      posDistribution: JSON.stringify((result as { posDistribution?: unknown }).posDistribution),
-      topWords: JSON.stringify((result as { topWords?: unknown }).topWords),
-      lexicalDiversity: (result as { lexicalDiversity?: number }).lexicalDiversity,
-      totalSentences: (result as { totalSentences?: number }).totalSentences,
-      totalWords: (result as { totalWords?: number }).totalWords,
+      posDistribution: JSON.stringify(result.posDistribution),
+      topWords: JSON.stringify(result.topWords),
+      lexicalDiversity: result.lexicalDiversity,
+      totalSentences: result.totalSentences,
+      totalWords: result.totalWords,
     })
 
     return { success: true, lexicalStats: result }

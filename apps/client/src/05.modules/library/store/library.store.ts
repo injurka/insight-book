@@ -273,6 +273,8 @@ export const useLibraryStore = defineStore('library', () => {
         currentBookInfo.value.stats.posDistribution = res.lexicalStats.posDistribution
         currentBookInfo.value.stats.topWords = res.lexicalStats.topWords
         currentBookInfo.value.stats.lexicalDiversity = res.lexicalStats.lexicalDiversity
+        currentBookInfo.value.stats.totalWords = res.lexicalStats.totalWords
+        currentBookInfo.value.stats.totalSentences = res.lexicalStats.totalSentences
         await repos.book.saveLocalBookInfo(id, currentBookInfo.value)
       }
 

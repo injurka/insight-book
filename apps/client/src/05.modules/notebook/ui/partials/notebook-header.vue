@@ -3,6 +3,7 @@ import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { KitBtn } from '~/02.kit/atoms/kit-btn/ui'
 import { KitInput } from '~/02.kit/atoms/kit-input/ui'
+import { KitPageHeader } from '~/02.kit/molecules/kit-page-header/ui'
 import { GlobalActions } from '~/04.features/global-actions'
 
 interface Props {
@@ -22,13 +23,14 @@ const { t } = useI18n()
 
 <template>
   <header class="notebook-header">
-    <div class="header-top">
-      <div class="title-group">
+    <KitPageHeader :title="t('notebook.title')" :subtitle="t('notebook.headerSubtitle')">
+      <template #navigation>
         <KitBtn icon="mdi:arrow-left" variant="text" @click="router.back()" />
-        <h1>{{ t('notebook.title') }}</h1>
-      </div>
-      <GlobalActions hide-notebook />
-    </div>
+      </template>
+      <template #actions>
+        <GlobalActions hide-notebook />
+      </template>
+    </KitPageHeader>
 
     <div class="header-bottom">
       <div class="search-wrapper">
@@ -56,27 +58,10 @@ const { t } = useI18n()
 
 <style lang="scss" scoped>
 .notebook-header {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
   margin-bottom: 24px;
-
-  .header-top {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 16px;
-
-    .title-group {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-
-      h1 {
-        font-size: 1.5rem;
-        font-weight: 700;
-        margin: 0;
-        color: var(--fg-primary-color);
-      }
-    }
-  }
 
   .header-bottom {
     display: flex;
