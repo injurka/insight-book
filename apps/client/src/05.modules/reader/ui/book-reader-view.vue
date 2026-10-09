@@ -323,7 +323,7 @@ useQuoteHighlights(readerViewRef, [leftPaneContent, translatedPageContent])
       icon="mdi:robot-outline"
     >
       <div class="analysis-setup-content">
-        <div class="settings-group has-divider">
+        <div class="settings-group">
           <div class="group-header">
             <Icon icon="mdi:text-search" class="item-icon" /> {{ t('reader.textAnalysis') }}
           </div>
@@ -362,15 +362,19 @@ useQuoteHighlights(readerViewRef, [leftPaneContent, translatedPageContent])
 
 <style lang="scss" scoped>
 .analysis-setup-content {
-  padding-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-top: 8px;
 
   .settings-group {
-    padding: 0 0 16px 0;
-
-    &.has-divider {
-      border-bottom: 1px solid var(--border-secondary-color);
-      margin-bottom: 16px;
-    }
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 12px;
+    border: 1px solid var(--border-secondary-color);
+    border-radius: 12px;
+    background-color: var(--bg-secondary-color);
   }
 
   .group-header {
@@ -378,18 +382,57 @@ useQuoteHighlights(readerViewRef, [leftPaneContent, translatedPageContent])
     font-size: 0.95rem;
     display: flex;
     align-items: center;
-    gap: 8px;
-    margin-bottom: 8px;
+    gap: 10px;
+    margin-bottom: 4px;
+    padding: 0 4px;
+    color: var(--fg-primary-color);
 
     .item-icon {
       font-size: 1.2rem;
-      color: var(--fg-secondary-color);
+      box-sizing: content-box;
+      padding: 6px;
+      border-radius: 9px;
+      color: var(--fg-accent-color);
+      background-color: rgba(var(--bg-accent-color-rgb, 201, 117, 222), 0.1);
+    }
+  }
+
+  :deep(.kit-checkbox) {
+    box-sizing: border-box;
+    width: 100%;
+    min-height: 38px;
+    padding: 8px 10px;
+    gap: 10px;
+    border: 1px solid transparent;
+    border-radius: 9px;
+    transition:
+      background-color 0.2s ease,
+      border-color 0.2s ease;
+
+    &:hover {
+      border-color: var(--border-secondary-color);
+      background-color: var(--bg-primary-color);
+    }
+
+    &[aria-checked='true'] {
+      border-color: rgba(var(--bg-accent-color-rgb, 201, 117, 222), 0.24);
+      background-color: rgba(var(--bg-accent-color-rgb, 201, 117, 222), 0.08);
+    }
+
+    .checkbox-box {
+      margin-left: 0;
+    }
+
+    .checkbox-label {
+      flex: 1;
+      margin-left: 0;
+      font-weight: 500;
     }
   }
 
   .start-btn {
     width: 100%;
-    margin-top: 8px;
+    margin-top: 2px;
 
     .btn-icon {
       margin-right: 6px;
