@@ -40,6 +40,7 @@ function stringArray(value: unknown): string[] | null {
   if (!Array.isArray(value) || !value.every(item => typeof item === 'string')) {
     return null
   }
+
   return value.map(item => item.trim()).filter(Boolean)
 }
 
@@ -51,12 +52,14 @@ function parseSrsWord(value: unknown): SrsWord | null {
   const id = numberValue(value.id, Number.NaN)
   const word = stringValue(value.word)
   const translation = stringValue(value.translation)
+
   if (!Number.isInteger(id) || !word || !translation) {
     return null
   }
 
   const language = stringValue(value.language, 'en')
   const targetLanguage = stringValue(value.targetLanguage, 'ru')
+
   if (!language.toLowerCase().startsWith('en') || !targetLanguage.toLowerCase().startsWith('ru')) {
     return null
   }
@@ -77,12 +80,15 @@ function dueBucket(word: SrsWord, now: number): number {
   if (word.reps === 0) {
     return 1
   }
+
   const due = Date.parse(word.due)
+
   return !Number.isFinite(due) || due <= now ? 0 : 2
 }
 
 function dueTimestamp(word: SrsWord): number {
   const due = Date.parse(word.due)
+
   return Number.isFinite(due) ? due : 0
 }
 
@@ -95,19 +101,25 @@ export function chooseCaseWords(values: unknown[], now = Date.now()): SrsWord[] 
       const rightDue = dueTimestamp(right)
       const leftBucket = dueBucket(left, now)
       const rightBucket = dueBucket(right, now)
+
       if (leftBucket !== rightBucket) {
         return leftBucket - rightBucket
       }
+
       return leftDue - rightDue || left.id - right.id
     })
 
   const seen = new Set<string>()
+
   return words.filter((word) => {
     const key = word.word.toLocaleLowerCase().trim()
+
     if (seen.has(key)) {
       return false
     }
+
     seen.add(key)
+
     return true
   }).slice(0, MAX_CASE_WORDS)
 }
@@ -116,6 +128,7 @@ function parseMaybeJson(value: unknown): unknown {
   if (typeof value !== 'string') {
     return value
   }
+
   try {
     return JSON.parse(value) as unknown
   }
@@ -131,10 +144,55 @@ function hasStringField(record: UnknownRecord, field: string): boolean {
 function containsTargetWord(text: string, target: string): boolean {
   const normalizedText = text.toLocaleLowerCase().replace(/[^a-z0-9\s'-]/g, ' ').replace(/\s+/g, ' ').trim()
   const normalizedTarget = target.toLocaleLowerCase().replace(/[^a-z0-9\s'-]/g, ' ').replace(/\s+/g, ' ').trim()
+
   if (!normalizedText || !normalizedTarget) {
     return false
   }
+
   return (` ${normalizedText} `).includes(` ${normalizedTarget} `)
+}
+
+const REQUIRED_CHALLENGE_FIELDS = [
+  'recognitionLine',
+  'contextSentence',
+  'contextAnswer',
+  'recallPrompt',
+  'recallAnswer',
+  'productionPrompt',
+  'productionExample',
+  'clueTitle',
+  'clueDescription',
+] as const
+
+function hasRequiredChallengeFields(value: UnknownRecord): boolean {
+  return REQUIRED_CHALLENGE_FIELDS.every(field => hasStringField(value, field))
+}
+
+function isValidRecallAnswer(answer: string, target: string): boolean {
+  return containsTargetWord(answer, target)
+    && answer.split(/\s+/).filter(Boolean).length >= 4
+}
+
+function isValidChallengeContent(content: Pick<WordChallenge, 'recognitionLine' | 'contextSentence' | 'contextAnswer' | 'contextOptions' | 'recallAnswer' | 'acceptedRecallAnswers' | 'productionExample'>, target: string): boolean {
+  const {
+    recognitionLine,
+    contextSentence,
+    contextAnswer,
+    contextOptions,
+    recallAnswer,
+    acceptedRecallAnswers,
+    productionExample,
+  } = content
+
+  return [
+    containsTargetWord(recognitionLine, target),
+    contextSentence.includes('___'),
+    containsTargetWord(contextAnswer, target),
+    isValidRecallAnswer(recallAnswer, target),
+    acceptedRecallAnswers.length > 0 && acceptedRecallAnswers.every(answer => isValidRecallAnswer(answer, target)),
+    containsTargetWord(productionExample, target),
+    contextOptions.some(option => option.toLocaleLowerCase() === contextAnswer.toLocaleLowerCase()),
+  ].every(Boolean)
 }
 
 function parseChallenge(value: unknown, word: SrsWord): WordChallenge | null {
@@ -144,19 +202,12 @@ function parseChallenge(value: unknown, word: SrsWord): WordChallenge | null {
 
   const contextOptions = stringArray(value.contextOptions)
   const acceptedRecallAnswers = stringArray(value.acceptedRecallAnswers)
+
   if (
     !contextOptions
     || contextOptions.length < 3
     || !acceptedRecallAnswers
-    || !hasStringField(value, 'recognitionLine')
-    || !hasStringField(value, 'contextSentence')
-    || !hasStringField(value, 'contextAnswer')
-    || !hasStringField(value, 'recallPrompt')
-    || !hasStringField(value, 'recallAnswer')
-    || !hasStringField(value, 'productionPrompt')
-    || !hasStringField(value, 'productionExample')
-    || !hasStringField(value, 'clueTitle')
-    || !hasStringField(value, 'clueDescription')
+    || !hasRequiredChallengeFields(value)
   ) {
     return null
   }
@@ -166,20 +217,16 @@ function parseChallenge(value: unknown, word: SrsWord): WordChallenge | null {
   const contextAnswer = stringValue(value.contextAnswer)
   const recallAnswer = stringValue(value.recallAnswer)
   const productionExample = stringValue(value.productionExample)
-  const recallAlternativesAreValid = acceptedRecallAnswers.length > 0
-    && acceptedRecallAnswers.every(answer => containsTargetWord(answer, word.word)
-      && answer.split(/\s+/).filter(Boolean).length >= 4)
 
-  if (
-    !containsTargetWord(recognitionLine, word.word)
-    || !contextSentence.includes('___')
-    || !containsTargetWord(contextAnswer, word.word)
-    || !containsTargetWord(recallAnswer, word.word)
-    || recallAnswer.split(/\s+/).filter(Boolean).length < 4
-    || !recallAlternativesAreValid
-    || !containsTargetWord(productionExample, word.word)
-    || !contextOptions.some(option => option.toLocaleLowerCase() === contextAnswer.toLocaleLowerCase())
-  ) {
+  if (!isValidChallengeContent({
+    recognitionLine,
+    contextSentence,
+    contextAnswer,
+    contextOptions,
+    recallAnswer,
+    acceptedRecallAnswers,
+    productionExample,
+  }, word.word)) {
     return null
   }
 
@@ -201,11 +248,13 @@ function parseChallenge(value: unknown, word: SrsWord): WordChallenge | null {
 
 function parseDetectiveCase(value: unknown, words: SrsWord[]): DetectiveCase | null {
   const parsed = parseMaybeJson(value)
+
   if (!isRecord(parsed)) {
     return null
   }
 
   const suspectsValue = parsed.suspects
+
   if (!Array.isArray(suspectsValue) || suspectsValue.length < 3) {
     return null
   }
@@ -214,6 +263,7 @@ function parseDetectiveCase(value: unknown, words: SrsWord[]): DetectiveCase | n
     if (!isRecord(suspect) || !hasStringField(suspect, 'id') || !hasStringField(suspect, 'name') || !hasStringField(suspect, 'role') || !hasStringField(suspect, 'statement')) {
       return []
     }
+
     return [{
       id: stringValue(suspect.id),
       name: stringValue(suspect.name),
@@ -221,16 +271,19 @@ function parseDetectiveCase(value: unknown, words: SrsWord[]): DetectiveCase | n
       statement: stringValue(suspect.statement),
     }]
   })
+
   if (suspects.length < 3 || new Set(suspects.map(suspect => suspect.id)).size !== suspects.length) {
     return null
   }
 
   const culpritId = stringValue(parsed.culpritId)
+
   if (!suspects.some(suspect => suspect.id === culpritId)) {
     return null
   }
 
   const challengeValues = parsed.challenges
+
   if (!Array.isArray(challengeValues)) {
     return null
   }
@@ -238,8 +291,10 @@ function parseDetectiveCase(value: unknown, words: SrsWord[]): DetectiveCase | n
   const challenges = words.flatMap((word) => {
     const valueForWord = challengeValues.find(item => isRecord(item) && numberValue(item.wordId, Number.NaN) === word.id)
     const challenge = parseChallenge(valueForWord, word)
+
     return challenge ? [challenge] : []
   })
+
   if (challenges.length !== words.length) {
     return null
   }
@@ -308,6 +363,7 @@ function buildCasePrompt(words: SrsWord[]): string {
       'Use the supplied word forms exactly in all required English fields and accepted recall sentences.',
     ],
   }
+
   return JSON.stringify(input)
 }
 
@@ -326,6 +382,7 @@ export async function generateDetectiveCase(words: SrsWord[]): Promise<Detective
   }
 
   const gameCase = parseDetectiveCase(result.data ?? result.text, words)
+
   if (!gameCase) {
     throw new Error('LLM вернул неполное дело. Попробуйте создать его ещё раз.')
   }
@@ -333,11 +390,9 @@ export async function generateDetectiveCase(words: SrsWord[]): Promise<Detective
   return gameCase
 }
 
-export function createRecognitionOptions(
-  challenge: WordChallenge,
-  words: SrsWord[],
-): string[] {
+export function createRecognitionOptions(challenge: WordChallenge, words: SrsWord[]): string[] {
   const target = words.find(word => word.id === challenge.wordId)
+
   if (!target) {
     return []
   }
@@ -347,9 +402,11 @@ export function createRecognitionOptions(
       && all.findIndex(item => item.toLocaleLowerCase() === word.toLocaleLowerCase()) === index)
     .slice(0, 3)
   const choices = [target.word, ...distractors]
+
   return choices.sort((left, right) => {
     const leftHash = (`${challenge.wordId}:${left}`).split('').reduce((sum, char) => sum + char.charCodeAt(0), 0)
     const rightHash = (`${challenge.wordId}:${right}`).split('').reduce((sum, char) => sum + char.charCodeAt(0), 0)
+
     return leftHash - rightHash
   })
 }
@@ -361,14 +418,18 @@ function normalizeAnswer(value: string): string {
 function containsTargetToken(value: string, target: string): boolean {
   const answerTokens = normalizeAnswer(value).split(' ')
   const targetTokens = normalizeAnswer(target).split(' ')
+
   if (!targetTokens.length || targetTokens.some(token => !token)) {
     return false
   }
+
   if (targetTokens.length === 1) {
     return answerTokens.includes(targetTokens[0])
       || answerTokens.some(token => token.startsWith(targetTokens[0]) && token.length <= targetTokens[0].length + 4)
   }
+
   const answer = ` ${answerTokens.join(' ')} `
+
   return answer.includes(` ${targetTokens.join(' ')} `)
 }
 
@@ -376,11 +437,14 @@ export function matchesRecallAnswer(answer: string, challenge: WordChallenge, wo
   const normalizedAnswer = normalizeAnswer(answer)
   const matchesAcceptedSentence = challenge.acceptedRecallAnswers.some((accepted) => {
     const normalizedAccepted = normalizeAnswer(accepted)
+
     return normalizedAccepted.length > 0 && normalizedAnswer === normalizedAccepted
   })
+
   if (matchesAcceptedSentence) {
     return true
   }
+
   return normalizedAnswer.split(' ').filter(Boolean).length >= 4
     && containsTargetToken(answer, word.word)
 }
@@ -417,6 +481,7 @@ export async function evaluateProduction(
       temperature: 0.1,
     })
     const parsed = parseMaybeJson(result.data ?? result.text)
+
     if (result.success && isRecord(parsed) && typeof parsed.accepted === 'boolean') {
       return {
         accepted: parsed.accepted,
@@ -433,6 +498,7 @@ export async function evaluateProduction(
   const hasTarget = containsTargetToken(answer, word.word)
   const hasSentenceLength = normalizeAnswer(answer).split(' ').filter(Boolean).length >= 3
   const accepted = hasTarget && hasSentenceLength
+
   return {
     accepted,
     score: accepted ? 0.65 : 0.1,

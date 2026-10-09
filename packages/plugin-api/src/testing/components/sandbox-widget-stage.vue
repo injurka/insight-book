@@ -1,8 +1,9 @@
 <script setup lang="ts">
+import type { PluginUIWidget } from '../../types'
 import { Icon } from '@iconify/vue'
 
 interface Props {
-  activeWidget: any
+  activeWidget: PluginUIWidget
 }
 
 defineProps<Props>()

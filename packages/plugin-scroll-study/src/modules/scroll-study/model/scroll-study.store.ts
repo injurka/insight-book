@@ -37,6 +37,26 @@ export const useScrollStudyStore = defineStore('scrollStudy', () => {
     return allCharacters.find(c => c.char === symbol || c.id === symbol)
   }
 
+  function isDirectComponent(character: CharacterData, other: CharacterData): boolean {
+    return character.components.includes(other.id) || character.components.includes(other.char)
+  }
+
+  function sharesComponent(first: CharacterData, second: CharacterData): boolean {
+    const firstComponents = first.components.length > 0 ? first.components : [first.id, first.char]
+    const secondComponents = second.components.length > 0 ? second.components : [second.id, second.char]
+
+    return firstComponents.some(component => secondComponents.includes(component))
+  }
+
+  function areRelatedCharacters(first: CharacterData, second: CharacterData): boolean {
+    const shareThemeGroup = first.themeGroupId && first.themeGroupId === second.themeGroupId
+
+    return isDirectComponent(first, second)
+      || isDirectComponent(second, first)
+      || sharesComponent(first, second)
+      || Boolean(shareThemeGroup)
+  }
+
   function isRelatedSymbols(s1: string, s2: string): boolean {
     if (!s1 || !s2 || s1 === s2)
       return false
@@ -44,30 +64,11 @@ export const useScrollStudyStore = defineStore('scrollStudy', () => {
     const c1 = getCharacterObj(s1)
     const c2 = getCharacterObj(s2)
 
-    if (!c1 || !c2) {
+    if (!c1 || !c2 || c1.id === c2.id) {
       return false
     }
 
-    if (c1.id === c2.id)
-      return false
-
-    // Direct component relationship
-    if (c1.components.some(comp => comp === c2.id || comp === c2.char))
-      return true
-    if (c2.components.some(comp => comp === c1.id || comp === c1.char))
-      return true
-
-    // Common component
-    const c1Comps = c1.components.length > 0 ? c1.components : [c1.id, c1.char]
-    const c2Comps = c2.components.length > 0 ? c2.components : [c2.id, c2.char]
-    if (c1Comps.some(comp => c2Comps.includes(comp)))
-      return true
-
-    // Theme group
-    if (c1.themeGroupId && c1.themeGroupId === c2.themeGroupId)
-      return true
-
-    return false
+    return areRelatedCharacters(c1, c2)
   }
 
   function getPerimeterCoords(radius: number): Array<{ q: number, r: number }> {
@@ -88,6 +89,7 @@ export const useScrollStudyStore = defineStore('scrollStudy', () => {
 
     for (let i = 0; i < 6; i++) {
       const [dq, dr] = directions[i]
+
       for (let j = 0; j < radius; j++) {
         points.push({ q, r })
         q += dq
@@ -140,6 +142,7 @@ export const useScrollStudyStore = defineStore('scrollStudy', () => {
         let char: string | undefined
 
         const anchor = anchorPositions.find(a => a.q === q && a.r === r)
+
         if (anchor) {
           type = 'anchor'
           char = anchor.char
@@ -159,44 +162,56 @@ export const useScrollStudyStore = defineStore('scrollStudy', () => {
     updateConnections()
   }
 
+  function findDictionaryCharacter(words: Array<{ id?: number, word?: string }>, excludeCharId?: string | null): { character: CharacterData, dictionaryWordId: number | null } | null {
+    const shuffled = [...words].sort(() => Math.random() - 0.5)
+
+    for (const item of shuffled) {
+      if (!item.word)
+        continue
+
+      const character = allCharacters.find(candidate => candidate.char === item.word || item.word?.includes(candidate.char))
+
+      if (character && (!excludeCharId || character.id !== excludeCharId)) {
+        return { character, dictionaryWordId: item.id ?? null }
+      }
+    }
+
+    return null
+  }
+
+  async function findDictionaryScroll(excludeCharId?: string | null): Promise<{ character: CharacterData, dictionaryWordId: number | null } | null> {
+    if (!apiFacade.value) {
+      return null
+    }
+
+    try {
+      const words = (await apiFacade.value.dictionary.getWords()) as Array<{ id?: number, word?: string }>
+
+      return findDictionaryCharacter(words, excludeCharId)
+    }
+    catch (error: unknown) {
+      console.warn('Failed to load dictionary words for scroll:', error)
+
+      return null
+    }
+  }
+
+  function getFallbackScroll(excludeCharId?: string | null): CharacterData {
+    const candidates = allCharacters.filter(character => character.tier >= 1
+      && character.components.length > 0
+      && (!excludeCharId || character.id !== excludeCharId))
+
+    return candidates.length > 0
+      ? candidates[Math.floor(Math.random() * candidates.length)]
+      : allCharacters[0]
+  }
+
   async function loadRandomDictionaryScroll(excludeCharId?: string | null) {
-    let targetCharObj: CharacterData | null = null
-    let dictWordId: number | null = null
+    const match = await findDictionaryScroll(excludeCharId)
+    const character = match?.character ?? getFallbackScroll(excludeCharId)
 
-    if (apiFacade.value) {
-      try {
-        const dictWords = (await apiFacade.value.dictionary.getWords()) as Array<{ id?: number, word?: string }>
-        if (dictWords && dictWords.length > 0) {
-          // Shuffle dictionary words to find one in dataset
-          const shuffled = [...dictWords].sort(() => Math.random() - 0.5)
-          for (const item of shuffled) {
-            if (item.word) {
-              const matched = allCharacters.find(c => c.char === item.word || item.word?.includes(c.char))
-              if (matched && (!excludeCharId || matched.id !== excludeCharId)) {
-                targetCharObj = matched
-                dictWordId = item.id ?? null
-                break
-              }
-            }
-          }
-        }
-      }
-      catch (e) {
-        console.warn('Failed to load dictionary words for scroll:', e)
-      }
-    }
-
-    // If no dictionary match found, pick random scroll from dataset
-    if (!targetCharObj) {
-      const candidates = allCharacters.filter(c => c.tier >= 1 && c.components.length > 0 && (!excludeCharId || c.id !== excludeCharId))
-      const randomScroll = candidates.length > 0
-        ? candidates[Math.floor(Math.random() * candidates.length)]
-        : allCharacters[0]
-      targetCharObj = randomScroll
-    }
-
-    if (targetCharObj) {
-      loadCharacterScroll(targetCharObj, dictWordId)
+    if (character) {
+      loadCharacterScroll(character, match?.dictionaryWordId ?? null)
     }
   }
 
@@ -286,6 +301,7 @@ export const useScrollStudyStore = defineStore('scrollStudy', () => {
       return
 
     const anchors = activeGrid.value.filter(n => n.type === 'anchor')
+
     if (anchors.length === 0)
       return
 
@@ -294,10 +310,13 @@ export const useScrollStudyStore = defineStore('scrollStudy', () => {
     gridConnections.value.forEach((conn) => {
       const n1Id = `${conn.q1},${conn.r1}`
       const n2Id = `${conn.q2},${conn.r2}`
+
       if (!graph.has(n1Id))
         graph.set(n1Id, new Set())
+
       if (!graph.has(n2Id))
         graph.set(n2Id, new Set())
+
       graph.get(n1Id)!.add(n2Id)
       graph.get(n2Id)!.add(n1Id)
     })
@@ -311,6 +330,7 @@ export const useScrollStudyStore = defineStore('scrollStudy', () => {
     while (queue.length > 0) {
       const current = queue.shift()!
       const neighbors = graph.get(current)
+
       if (neighbors) {
         neighbors.forEach((nb) => {
           if (!visited.has(nb)) {
@@ -326,6 +346,7 @@ export const useScrollStudyStore = defineStore('scrollStudy', () => {
 
     if (allAnchorsConnected) {
       isFinished.value = true
+
       if (activeTargetChar.value && !completedScrollIds.value.includes(activeTargetChar.value.id)) {
         completedScrollIds.value.push(activeTargetChar.value.id)
       }

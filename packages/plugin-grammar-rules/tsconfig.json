@@ -1,18 +1,13 @@
 {
   "compilerOptions": {
     "target": "ESNext",
-    "module": "ESNext",
-    "moduleResolution": "bundler",
-    "strict": true,
     "jsx": "preserve",
-    "resolveJsonModule": true,
-    "isolatedModules": true,
-    "esModuleInterop": true,
     "lib": [
       "ESNext",
       "DOM"
     ],
-    "skipLibCheck": true,
+    "module": "ESNext",
+    "moduleResolution": "bundler",
     "paths": {
       "~/*": [
         "../../apps/client/src/*"
@@ -20,7 +15,12 @@
       "@injurka/insight-book-plugin-api": [
         "../plugin-api/src/index.ts"
       ]
-    }
+    },
+    "resolveJsonModule": true,
+    "strict": true,
+    "esModuleInterop": true,
+    "isolatedModules": true,
+    "skipLibCheck": true
   },
   "include": [
     "src/**/*.ts",

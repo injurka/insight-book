@@ -1,10 +1,11 @@
 <script setup lang="ts">
+import type { ApiLogEntry, PluginNotification } from '../mock-context'
 import { Icon } from '@iconify/vue'
 import { useI18n } from 'vue-i18n'
 
 interface Props {
-  notifications: any[]
-  apiLogs: any[]
+  notifications: PluginNotification[]
+  apiLogs: ApiLogEntry[]
 }
 
 defineProps<Props>()

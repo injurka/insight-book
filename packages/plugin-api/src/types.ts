@@ -11,7 +11,7 @@ export type UIPosition
 export interface PluginUIWidget {
   id: string
   position: UIPosition
-  component: any
+  component: Component
   props?: Record<string, unknown>
 }
 
@@ -91,7 +91,7 @@ export interface InsightBookPluginContext {
   /** Добавляет элемент в главное навигационное меню приложения */
   addNavigationItem: (item: { title: string, titleKey?: string, icon?: string, routeName: string }) => void
   /** Регистрация UI виджета в точке расширения */
-  registerUIWidget: (position: UIPosition, id: string, component: any, props?: Record<string, unknown>) => void
+  registerUIWidget: (position: UIPosition, id: string, component: Component, props?: Record<string, unknown>) => void
   /** Отмена регистрации UI виджета */
   unregisterUIWidget: (id: string) => void
   /** Канал связи между плагинами и основной системой */

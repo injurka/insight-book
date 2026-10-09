@@ -1,9 +1,9 @@
-import { fileURLToPath, URL } from 'node:url'
 import { federation } from '@module-federation/vite'
 import vue from '@vitejs/plugin-vue'
 import { defineConfig } from 'vite'
 
 export default defineConfig(({ command }) => ({
+  base: './',
   resolve: {
     alias: {
     },

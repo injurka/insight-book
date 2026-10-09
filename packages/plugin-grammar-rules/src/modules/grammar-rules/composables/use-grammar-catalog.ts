@@ -1,5 +1,5 @@
-import { computed, ref, watch } from 'vue'
 import type { LanguageConfig, Rule, RuleTest, SupportedLanguage } from '../../../shared/types'
+import { computed, ref, watch } from 'vue'
 import {
   getAvailableLanguages,
   getLanguageConfig,
@@ -13,6 +13,7 @@ const CUSTOM_TESTS_PREFIX = 'plugin_grammar_custom_tests_'
 function getCustomTests(lang: string): RuleTest[] {
   try {
     const raw = localStorage.getItem(`${CUSTOM_TESTS_PREFIX}${lang}`)
+
     return raw ? JSON.parse(raw) : []
   }
   catch {
@@ -42,6 +43,7 @@ export function useGrammarCatalog() {
 
   const loadData = (lang: SupportedLanguage) => {
     isLoading.value = true
+
     try {
       rules.value = loadLanguageRules(lang)
       const baseTests = loadLanguageTests(lang)
@@ -56,6 +58,7 @@ export function useGrammarCatalog() {
   const setLanguage = (lang: SupportedLanguage) => {
     if (currentLanguage.value === lang)
       return
+
     currentLanguage.value = lang
     localStorage.setItem(STORAGE_KEY, lang)
     loadData(lang)

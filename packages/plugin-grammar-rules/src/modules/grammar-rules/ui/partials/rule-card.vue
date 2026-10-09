@@ -1,7 +1,7 @@
 <script setup lang="ts">
+import type { Rule, RuleTest } from '../../../../shared/types'
 import { useI18n } from 'vue-i18n'
 import { KitBtn } from '~/02.kit'
-import type { Rule, RuleTest } from '../../../../shared/types'
 import { useAiGrammar } from '../../composables/use-ai-grammar'
 
 interface Props {
@@ -17,34 +17,38 @@ const emit = defineEmits<{
 
 const { t, te } = useI18n()
 const { isGenerating, generateTestsForRule } = useAiGrammar()
+const categoryFallbackKeys: Record<string, string> = {
+  grammar: 'plugins.grammar-rules.catGrammar',
+  tenses: 'plugins.grammar-rules.catTenses',
+  modals: 'plugins.grammar-rules.catModals',
+  conditionals: 'plugins.grammar-rules.catConditionals',
+  passive: 'plugins.grammar-rules.catPassive',
+  articles: 'plugins.grammar-rules.catArticles',
+  lexical: 'plugins.grammar-rules.catLexical',
+  collocation: 'plugins.grammar-rules.catCollocation',
+  measure_words: 'plugins.grammar-rules.catMeasureWords',
+}
 
-const onGenerateAiTest = async () => {
+async function onGenerateAiTest() {
   const generated = await generateTestsForRule(props.rule)
+
   if (generated && generated.length > 0) {
     emit('generateTest', generated)
   }
 }
 
-const categoryLabel = (cat: string) => {
+function categoryLabel(cat: string) {
   const i18nKey = `plugins.grammar-rules.cat_${cat}`
+
   if (te(i18nKey))
     return t(i18nKey)
 
-  switch (cat) {
-    case 'grammar': return t('plugins.grammar-rules.catGrammar')
-    case 'tenses': return t('plugins.grammar-rules.catTenses')
-    case 'modals': return t('plugins.grammar-rules.catModals')
-    case 'conditionals': return t('plugins.grammar-rules.catConditionals')
-    case 'passive': return t('plugins.grammar-rules.catPassive')
-    case 'articles': return t('plugins.grammar-rules.catArticles')
-    case 'lexical': return t('plugins.grammar-rules.catLexical')
-    case 'collocation': return t('plugins.grammar-rules.catCollocation')
-    case 'measure_words': return t('plugins.grammar-rules.catMeasureWords')
-    default: return cat
-  }
+  const fallbackKey = categoryFallbackKeys[cat]
+
+  return fallbackKey ? t(fallbackKey) : cat
 }
 
-const masteryLabel = (m: string) => {
+function masteryLabel(m: string) {
   switch (m) {
     case 'new': return t('plugins.grammar-rules.masteryNew')
     case 'learning': return t('plugins.grammar-rules.masteryLearning')
@@ -130,7 +134,10 @@ const masteryLabel = (m: string) => {
   display: flex;
   flex-direction: column;
   gap: 16px;
-  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    border-color 0.2s ease;
 
   &:hover {
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
@@ -193,22 +200,26 @@ const masteryLabel = (m: string) => {
   background-color: var(--bg-tertiary-color);
   color: var(--fg-secondary-color);
 
-  &.grammar, &.tenses {
+  &.grammar,
+  &.tenses {
     background-color: rgba(100, 100, 255, 0.15);
     color: var(--fg-accent-color);
   }
 
-  &.lexical, &.articles {
+  &.lexical,
+  &.articles {
     background-color: rgba(76, 175, 80, 0.15);
     color: #4caf50;
   }
 
-  &.collocation, &.passive {
+  &.collocation,
+  &.passive {
     background-color: rgba(244, 67, 54, 0.15);
     color: #f44336;
   }
 
-  &.measure_words, &.conditionals {
+  &.measure_words,
+  &.conditionals {
     background-color: rgba(255, 152, 0, 0.15);
     color: #ff9800;
   }

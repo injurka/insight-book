@@ -1,0 +1,8 @@
+{
+  "id": "lotus-riddle",
+  "name": "Павильон загадок",
+  "version": "1.0.0",
+  "description": "Угадывайте существительные из очереди SRS: задавайте хранителю вопросы, получайте ответы и вспоминайте слова.",
+  "icon": "mdi:help-circle-outline",
+  "entryUrl": "./remoteEntry.js"
+}

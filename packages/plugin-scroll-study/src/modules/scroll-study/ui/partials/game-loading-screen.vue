@@ -1,16 +1,23 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 
-const props = defineProps<{
+interface Props {
   /** Готовность ресурсов 0..1. */
   ratio: number
-}>()
+}
+
+const props = defineProps<Props>()
 
 const percent = computed(() => Math.round(Math.min(Math.max(props.ratio, 0), 1) * 100))
 </script>
 
 <template>
-  <div class="game-loading" role="status" aria-live="polite" aria-label="Подготовка игры">
+  <div
+    class="game-loading"
+    role="status"
+    aria-live="polite"
+    aria-label="Подготовка игры"
+  >
     <div class="loading-emblem" aria-hidden="true">
       <span class="emblem-ring" />
       <span class="emblem-core" />
@@ -48,7 +55,11 @@ const percent = computed(() => Math.round(Math.min(Math.max(props.ratio, 0), 1) 
   background: #05080f;
   background-image: radial-gradient(ellipse at 50% 45%, rgba(245, 158, 11, 0.09) 0%, rgba(5, 8, 15, 0) 62%);
   color: #e2e8f0;
-  font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+  font-family:
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    sans-serif;
   cursor: progress;
 }
 
@@ -116,11 +127,20 @@ const percent = computed(() => Math.round(Math.min(Math.max(props.ratio, 0), 1) 
 }
 
 @keyframes emblem-spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 @keyframes emblem-pulse {
-  0%, 100% { opacity: 0.65; transform: scale(0.9); }
-  50% { opacity: 1; transform: scale(1.05); }
+  0%,
+  100% {
+    opacity: 0.65;
+    transform: scale(0.9);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.05);
+  }
 }
 </style>

@@ -11,6 +11,7 @@ let currentPluginApi: InsightBookPluginApiFacade | null = null
  */
 export function setPluginContext(ctx: InsightBookPluginContext): void {
   currentPluginContext = ctx
+
   if (ctx.api) {
     currentPluginApi = ctx.api
   }
@@ -43,9 +44,11 @@ export function getPluginApi(): InsightBookPluginApiFacade | null {
  */
 export function usePluginApi(): InsightBookPluginApiFacade {
   const api = getPluginApi()
+
   if (!api) {
     throw new Error('[insight-book-plugin] Plugin API is not initialized. Ensure setPluginContext(ctx) or setPluginApi(ctx.api) was called in activate(ctx).')
   }
+
   return api
 }
 
@@ -54,8 +57,10 @@ export function usePluginApi(): InsightBookPluginApiFacade {
  */
 export function usePluginContext(): InsightBookPluginContext {
   const ctx = getPluginContext()
+
   if (!ctx) {
     throw new Error('[insight-book-plugin] Plugin Context is not initialized. Ensure setPluginContext(ctx) was called in activate(ctx).')
   }
+
   return ctx
 }

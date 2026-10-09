@@ -13,22 +13,22 @@ export default defineConfig(({ command }) => ({
     vue(),
     ...(command === 'build'
       ? [
-        federation({
-          name: 'plugin_grammar_rules',
-          filename: 'remoteEntry.js',
-          exposes: {
-            './Plugin': './src/index.ts',
-          },
-          shared: {
-            vue: { singleton: true },
-            'vue-router': { singleton: true },
-            'vue-i18n': { singleton: true },
-            pinia: { singleton: true },
-            '@injurka/insight-book-plugin-api': { singleton: true },
-          },
-          dts: false,
-        }),
-      ]
+          federation({
+            name: 'plugin_grammar_rules',
+            filename: 'remoteEntry.js',
+            exposes: {
+              './Plugin': './src/index.ts',
+            },
+            shared: {
+              'vue': { singleton: true },
+              'vue-router': { singleton: true },
+              'vue-i18n': { singleton: true },
+              'pinia': { singleton: true },
+              '@injurka/insight-book-plugin-api': { singleton: true },
+            },
+            dts: false,
+          }),
+        ]
       : []),
   ],
   build: {

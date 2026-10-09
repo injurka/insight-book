@@ -1,7 +1,7 @@
+import type { Rule } from '../../../shared/types'
 import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { generateRuleExplanationViaLlm } from '../../../shared/lib/api'
-import type { Rule } from '../../../shared/types'
 
 const EXPLANATION_CACHE_PREFIX = 'plugin_grammar_rule_explanation_'
 
@@ -36,10 +36,12 @@ export function useRuleDetails() {
 
     if (!forceRefresh) {
       const cached = getCachedExplanation(rule.id)
+
       if (cached) {
         explanation.value = cached
         isLoading.value = false
         error.value = null
+
         return
       }
     }
@@ -78,6 +80,7 @@ export function useRuleDetails() {
 
   const regenerate = (targetLang?: string) => {
     const lang = targetLang || (locale.value as string) || 'ru'
+
     if (selectedRule.value) {
       fetchExplanation(selectedRule.value, lang, true)
     }

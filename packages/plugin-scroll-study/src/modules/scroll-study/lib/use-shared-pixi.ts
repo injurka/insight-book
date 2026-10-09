@@ -14,10 +14,7 @@ export interface SharedPixiContext {
 
 export const PIXI_APP_KEY: InjectionKey<SharedPixiContext> = Symbol('PIXI_APP_KEY')
 
-export function providePixiApp(
-  containerRef: Ref<HTMLElement | null>,
-  options: Partial<ApplicationOptions> = {},
-) {
+export function providePixiApp(containerRef: Ref<HTMLElement | null>, options: Partial<ApplicationOptions> = {}) {
   const app = shallowRef<Application | null>(null)
   const isReady = ref(false)
 
@@ -49,6 +46,7 @@ export function providePixiApp(
 
     if (!containerRef.value || app.value !== instance) {
       instance.destroy({ removeView: true, releaseGlobalResources: true }, { children: true })
+
       return
     }
 
@@ -69,10 +67,7 @@ export function providePixiApp(
 
   onBeforeUnmount(() => {
     if (app.value) {
-      app.value.destroy(
-        { removeView: true, releaseGlobalResources: true },
-        { children: true, texture: true, textureSource: true },
-      )
+      app.value.destroy({ removeView: true, releaseGlobalResources: true }, { children: true, texture: true, textureSource: true })
       app.value = null
       isReady.value = false
     }
@@ -91,9 +86,11 @@ export function providePixiApp(
 
 export function useSharedPixi() {
   const context = inject(PIXI_APP_KEY, null)
+
   if (!context) {
     throw new Error('useSharedPixi() must be called inside a component tree provided by providePixiApp()')
   }
+
   return context
 }
 

@@ -13,10 +13,9 @@
     "typecheck": "bunx tsc --noEmit"
   },
   "devDependencies": {
-    "@antfu/eslint-config": "9.5.1",
+    "@injurka/insight-book-eslint-config": "workspace:*",
     "@types/bun": "^1.4.0",
     "eslint": "^10.9.1",
-    "eslint-plugin-format": "2.0.1",
     "typescript": "7.0.2"
   }
 }

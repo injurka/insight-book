@@ -1,9 +1,9 @@
 <script setup lang="ts">
+import type { Rule, RuleTest } from '../../../../shared/types'
 import { Icon } from '@iconify/vue'
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { KitBtn, KitInput, KitSelect } from '~/02.kit'
-import type { Rule, RuleTest } from '../../../../shared/types'
 import { useRuleDetails } from '../../composables/use-rule-details'
 import RuleCard from './rule-card.vue'
 import RuleDetailsModal from './rule-details-modal.vue'
@@ -19,14 +19,11 @@ defineProps<Props>()
 const emit = defineEmits<{
   (e: 'addTests', tests: RuleTest[]): void
 }>()
-
 const searchQuery = defineModel<string>('searchQuery', { required: true })
 const selectedCategory = defineModel<string>('selectedCategory', { required: true })
 const selectedLevel = defineModel<string>('selectedLevel', { required: true })
 
 const { t } = useI18n()
-const showMobileFilters = ref(false)
-
 const {
   selectedRule,
   isModalOpen,
@@ -37,12 +34,17 @@ const {
   regenerate: regenerateExplanation,
 } = useRuleDetails()
 
+const showMobileFilters = ref(false)
+
 const activeFilterCount = computed(() => {
   let count = 0
+
   if (selectedCategory.value && selectedCategory.value !== 'all')
     count++
+
   if (selectedLevel.value && selectedLevel.value !== 'all')
     count++
+
   return count
 })
 </script>
@@ -155,7 +157,8 @@ const activeFilterCount = computed(() => {
     align-items: center;
   }
 
-  .category-select, .level-select {
+  .category-select,
+  .level-select {
     width: 190px;
     flex-shrink: 0;
   }
@@ -195,13 +198,15 @@ const activeFilterCount = computed(() => {
       }
     }
 
-    .category-select, .level-select {
+    .category-select,
+    .level-select {
       width: 100%;
     }
   }
 }
 
-.loading-state, .empty-state {
+.loading-state,
+.empty-state {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -228,8 +233,12 @@ const activeFilterCount = computed(() => {
 }
 
 @keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .rules-grid {

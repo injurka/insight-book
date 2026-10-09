@@ -36,9 +36,11 @@ function normalizeAnswer(value: string): string {
 
 function isMeaningAccepted(answer: string, translation: string): boolean {
   const normalizedAnswer = normalizeAnswer(answer)
+
   if (!normalizedAnswer) {
     return false
   }
+
   return translation.split(/[;,|]/)
     .map(value => normalizeAnswer(value))
     .filter(Boolean)
@@ -81,6 +83,7 @@ export function useDetectiveGame() {
     if (!state.gameCase || !currentWord.value) {
       return null
     }
+
     return state.gameCase.challenges.find(challenge => challenge.wordId === currentWord.value?.id) ?? null
   })
   const currentStage = computed(() => LEARNING_STAGES[state.current.stageIndex] ?? 'recognition')
@@ -88,6 +91,7 @@ export function useDetectiveGame() {
     if (!currentChallenge.value) {
       return []
     }
+
     return createRecognitionOptions(currentChallenge.value, state.words)
   })
   const currentClue = computed(() => currentChallenge.value
@@ -97,6 +101,7 @@ export function useDetectiveGame() {
     if (!state.gameCase) {
       return []
     }
+
     return state.gameCase.challenges
       .filter(challenge => state.progress.completedWordIds.includes(challenge.wordId))
       .map(challenge => ({ wordId: challenge.wordId, title: challenge.clueTitle, description: challenge.clueDescription }))
@@ -105,6 +110,7 @@ export function useDetectiveGame() {
   const progressPercent = computed(() => {
     const total = state.words.length * LEARNING_STAGES.length
     const completed = state.progress.completedWordIds.length * LEARNING_STAGES.length + state.current.stageIndex
+
     return total > 0 ? Math.min(100, Math.round((completed / total) * 100)) : 0
   })
   const dueCount = computed(() => state.reviewQueueCount)
@@ -112,6 +118,7 @@ export function useDetectiveGame() {
   async function loadWords(): Promise<void> {
     state.request.isLoadingWords = true
     state.request.error = ''
+
     try {
       const values = await getActiveApi().dictionary.getDueWords('en')
       state.words = chooseCaseWords(values)
@@ -131,13 +138,16 @@ export function useDetectiveGame() {
     if (state.words.length === 0) {
       await loadWords()
     }
+
     if (state.words.length === 0) {
       state.request.error = 'В словаре пока нет английских слов с переводом на русский.'
+
       return
     }
 
     state.request.isGeneratingCase = true
     state.request.error = ''
+
     try {
       state.gameCase = await generateDetectiveCase(state.words)
       state.current.wordIndex = 0
@@ -169,6 +179,7 @@ export function useDetectiveGame() {
       const wordId = currentWord.value.id
       state.progress.mistakesByWord[wordId] = (state.progress.mistakesByWord[wordId] ?? 0) + 1
     }
+
     state.response.feedback = { correct: false, message }
   }
 
@@ -178,9 +189,11 @@ export function useDetectiveGame() {
 
   function submitRecognition(selectedWord: string): void {
     clearFeedback()
+
     if (!currentWord.value) {
       return
     }
+
     if (selectedWord.toLocaleLowerCase() === currentWord.value.word.toLocaleLowerCase()) {
       markCorrect('Верно. Это слово прозвучало в реплике.')
     }
@@ -191,9 +204,11 @@ export function useDetectiveGame() {
 
   function submitMeaning(answer: string): void {
     clearFeedback()
+
     if (!currentWord.value) {
       return
     }
+
     if (isMeaningAccepted(answer, currentWord.value.translation)) {
       markCorrect('Да, значение подходит.')
     }
@@ -204,9 +219,11 @@ export function useDetectiveGame() {
 
   function submitContext(selectedAnswer: string): void {
     clearFeedback()
+
     if (!currentChallenge.value) {
       return
     }
+
     if (selectedAnswer.toLocaleLowerCase() === currentChallenge.value.contextAnswer.toLocaleLowerCase()) {
       markCorrect('Подходит по смыслу и по контексту.')
     }
@@ -217,9 +234,11 @@ export function useDetectiveGame() {
 
   function submitRecall(answer: string): void {
     clearFeedback()
+
     if (!currentWord.value || !currentChallenge.value) {
       return
     }
+
     if (matchesRecallAnswer(answer, currentChallenge.value, currentWord.value)) {
       markCorrect('Вы восстановили показание целиком.')
     }
@@ -232,8 +251,10 @@ export function useDetectiveGame() {
     if (!currentWord.value || !currentChallenge.value || !state.gameCase) {
       return
     }
+
     clearFeedback()
     state.request.isCheckingProduction = true
+
     try {
       const evaluation: ProductionEvaluation = await evaluateProduction(
         answer,
@@ -241,6 +262,7 @@ export function useDetectiveGame() {
         currentWord.value,
         state.gameCase,
       )
+
       if (evaluation.accepted) {
         state.progress.productionScoreByWord[currentWord.value.id] = evaluation.score
         state.response.feedback = {
@@ -269,15 +291,19 @@ export function useDetectiveGame() {
   function gradeForCurrentWord(wordId: number): number {
     const mistakes = state.progress.mistakesByWord[wordId] ?? 0
     const productionScore = state.progress.productionScoreByWord[wordId] ?? 0
+
     if (mistakes >= 4) {
       return 1
     }
+
     if (mistakes > 0 || productionScore < 0.8) {
       return 2
     }
+
     if (productionScore >= 0.95) {
       return 4
     }
+
     return 3
   }
 
@@ -287,17 +313,21 @@ export function useDetectiveGame() {
     }
 
     state.response.feedback = null
+
     if (state.current.stageIndex < LEARNING_STAGES.length - 1) {
       state.current.stageIndex += 1
+
       return
     }
 
     const word = currentWord.value
+
     if (!word) {
       return
     }
 
     state.request.isSavingGrade = true
+
     try {
       await getActiveApi().dictionary.submitGrade(word.id, gradeForCurrentWord(word.id))
       state.progress.completedWordIds.push(word.id)
@@ -312,6 +342,7 @@ export function useDetectiveGame() {
 
     if (state.current.wordIndex >= state.words.length - 1) {
       state.screen = 'accusation'
+
       return
     }
 
@@ -323,8 +354,10 @@ export function useDetectiveGame() {
     if (!state.gameCase) {
       return
     }
+
     state.accusedSuspectId = suspectId
     state.progress.accusationAttempts += 1
+
     if (suspectId === state.gameCase.culpritId) {
       state.response.accusationFeedback = 'Вы раскрыли дело.'
       state.screen = 'complete'

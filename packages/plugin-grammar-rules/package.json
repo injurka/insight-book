@@ -1,12 +1,14 @@
 {
   "name": "@injurka/insight-book-plugin-grammar-rules",
-  "version": "1.0.0",
   "type": "module",
+  "version": "1.0.0",
   "main": "src/index.ts",
   "scripts": {
     "dev": "vite",
     "build": "vite build && cp manifest.json dist/manifest.json",
-    "pack": "bun run --filter @injurka/insight-book-pack-plugin pack $PWD"
+    "pack": "bun run --filter @injurka/insight-book-pack-plugin pack $PWD",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix"
   },
   "dependencies": {
     "@iconify/vue": "^5.0.1",
@@ -17,8 +19,10 @@
     "vue-router": "^5.3.1"
   },
   "devDependencies": {
+    "@injurka/insight-book-eslint-config": "workspace:*",
     "@module-federation/vite": "^1.21.2",
     "@vitejs/plugin-vue": "^6.0.8",
+    "eslint": "^10.9.1",
     "sass": "1.103.1",
     "vite": "^8.2.2"
   }

@@ -1,0 +1,820 @@
+.lotus-riddle {
+  --lr-ivory: #f3e4c5;
+  --lr-gold: #dfb56a;
+  --lr-muted: #c6ae88;
+  --lr-ink: #483321;
+  position: relative;
+  isolation: isolate;
+  min-height: 100dvh;
+  color: var(--lr-ivory);
+  background: #24170f;
+  font-family: var(--app-font-family, 'Georgia', serif);
+  font-size: 15px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+  color-scheme: dark;
+}
+.lotus-riddle *,
+.lotus-riddle *::before,
+.lotus-riddle *::after {
+  box-sizing: border-box;
+}
+.lotus-riddle button,
+.lotus-riddle select,
+.lotus-riddle textarea {
+  font: inherit;
+}
+.lotus-riddle button {
+  cursor: pointer;
+}
+.lotus-riddle button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.lotus-riddle :is(button, select, textarea, [tabindex]):focus-visible {
+  outline: 3px solid #f5c975;
+  outline-offset: 4px;
+}
+.lotus-riddle h1,
+.lotus-riddle h2,
+.lotus-riddle h3,
+.lotus-riddle p {
+  margin: 0;
+}
+.lotus-riddle h1,
+.lotus-riddle h2,
+.lotus-riddle h3 {
+  font-family: Georgia, 'Times New Roman', serif;
+  font-weight: 400;
+  text-wrap: balance;
+}
+.lotus-riddle .lr-scenery {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  image-rendering: pixelated;
+  z-index: -3;
+  pointer-events: none;
+}
+.lotus-riddle .lr-shade {
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  background: linear-gradient(90deg, #1c1009b8, #1c10091a 75%), linear-gradient(0deg, #1c1009eb, transparent 65%);
+  pointer-events: none;
+}
+.lotus-riddle .lr-content {
+  max-width: 1240px;
+  margin: auto;
+  padding: 24px 40px 20px;
+}
+.lotus-riddle .lr-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  min-height: 65px;
+  margin-bottom: 46px;
+}
+.lotus-riddle .lr-back {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 8px 12px;
+  color: var(--lr-ivory);
+  background: #24170fcc;
+  border: 1px solid #a27c44;
+}
+.lotus-riddle .lr-brand {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  font-size: 19px;
+  line-height: 1.3;
+  text-shadow: 0 2px #24170f;
+}
+.lotus-riddle .lr-brand > span:first-child {
+  color: var(--lr-gold);
+  font-size: 36px;
+}
+.lotus-riddle .lr-brand small {
+  display: block;
+  margin-top: 5px;
+  color: var(--lr-gold);
+  font-size: 10px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+}
+.lotus-riddle .lr-header-note {
+  color: #e4cda5;
+  font-size: 12px;
+}
+.lotus-riddle .lr-wood {
+  position: relative;
+  padding: 32px;
+  background: linear-gradient(110deg, #39281bf5, #251910f5);
+  border: 3px solid #8c6435;
+  box-shadow:
+    0 0 0 1px #24170f,
+    0 0 0 5px #3e291c,
+    0 0 0 6px #74512f,
+    6px 8px 0 #170e0966,
+    inset 0 0 0 2px #513a25;
+}
+.lotus-riddle .lr-wood::before,
+.lotus-riddle .lr-wood::after {
+  content: '';
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  border: 2px solid #c69952;
+  pointer-events: none;
+}
+.lotus-riddle .lr-wood::before {
+  top: 8px;
+  left: 8px;
+  border-right: 0;
+  border-bottom: 0;
+}
+.lotus-riddle .lr-wood::after {
+  bottom: 8px;
+  right: 8px;
+  border-left: 0;
+  border-top: 0;
+}
+.lotus-riddle .lr-eyebrow {
+  display: block;
+  color: var(--lr-gold);
+  font-size: 10px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin-bottom: 14px;
+}
+.lotus-riddle .lr-home-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 510px) 1fr;
+  align-items: end;
+  gap: 60px;
+  min-height: 560px;
+}
+.lotus-riddle .lr-home h1 {
+  font-size: 43px;
+  line-height: 1.15;
+  margin-bottom: 20px;
+}
+.lotus-riddle .lr-lead {
+  color: #decba9;
+  font-size: 15px;
+}
+.lotus-riddle .lr-rules {
+  padding: 0;
+  margin: 24px 0;
+  list-style: none;
+  display: grid;
+  gap: 10px;
+  font-size: 13px;
+}
+.lotus-riddle .lr-rules span {
+  display: inline-block;
+  color: var(--lr-gold);
+  margin-right: 12px;
+  font-size: 11px;
+}
+.lotus-riddle .lr-field-label {
+  display: block;
+  font-size: 12px;
+  margin-bottom: 8px;
+  color: var(--lr-gold);
+}
+.lotus-riddle .lr-language-row {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  margin-bottom: 20px;
+}
+.lotus-riddle select {
+  min-height: 44px;
+  max-width: 100%;
+  padding: 8px 30px 8px 12px;
+  color: var(--lr-ivory);
+  background: #24170f;
+  border: 1px solid #9c7647;
+}
+.lotus-riddle .lr-soft {
+  color: var(--lr-muted);
+  font-size: 11px;
+}
+.lotus-riddle .lr-queue {
+  font-size: 13px;
+  padding: 12px 0 18px;
+  color: #e3cea7;
+}
+.lotus-riddle .lr-button {
+  display: inline-flex;
+  gap: 20px;
+  justify-content: center;
+  align-items: center;
+  min-height: 46px;
+  padding: 10px 18px;
+  border: 2px solid #a6814c;
+  background: #473221;
+  color: var(--lr-ivory);
+  box-shadow: 2px 3px 0 #170f0a;
+  font-size: 13px;
+}
+.lotus-riddle .lr-button:hover:not(:disabled) {
+  background: #5c422a;
+}
+.lotus-riddle .lr-primary {
+  color: #302012;
+  border-color: #e5c17d;
+  background: #d2a154;
+  box-shadow:
+    inset 0 0 0 2px #b9853f,
+    2px 3px 0 #170f0a;
+  font-weight: 600;
+}
+.lotus-riddle .lr-primary:hover:not(:disabled) {
+  background: #edc47c;
+}
+.lotus-riddle .lr-button:active:not(:disabled) {
+  transform: translate(1px, 2px);
+  box-shadow: none;
+}
+.lotus-riddle .lr-wide {
+  width: 100%;
+}
+.lotus-riddle .lr-footnote {
+  font-size: 11px;
+  color: var(--lr-muted);
+  margin-top: 18px;
+  line-height: 1.7;
+}
+.lotus-riddle .lr-scene-caption {
+  text-align: center;
+  margin-bottom: 34px;
+  color: #f1d6a4;
+  font:
+    italic 22px/1.7 Georgia,
+    serif;
+  text-shadow: 0 2px 2px #170f0a;
+}
+.lotus-riddle .lr-scene-caption span {
+  font-size: 48px;
+}
+.lotus-riddle .lr-footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  color: #d4b992;
+  font-size: 10px;
+  margin-top: 30px;
+}
+.lotus-riddle .lr-footer > :first-child {
+  letter-spacing: 2px;
+}
+.lotus-riddle .lr-game-layout {
+  display: grid;
+  grid-template-columns: 290px minmax(0, 1fr);
+  gap: 24px;
+  align-items: start;
+}
+.lotus-riddle .lr-guide {
+  padding: 26px;
+}
+.lotus-riddle .lr-guide h1 {
+  font-size: 30px;
+  line-height: 1.25;
+  margin-bottom: 16px;
+}
+.lotus-riddle .lr-guide > p {
+  font-size: 13px;
+  color: var(--lr-muted);
+}
+.lotus-riddle .lr-guide h2 {
+  font-size: 18px;
+}
+.lotus-riddle .lr-divider {
+  height: 1px;
+  background: #88623b;
+  margin: 24px 0;
+}
+.lotus-riddle .lr-hints {
+  list-style: none;
+  padding: 0;
+  margin: 18px 0;
+}
+.lotus-riddle .lr-hints li {
+  display: flex;
+  gap: 14px;
+  padding: 12px 0;
+  border-bottom: 1px solid #715031;
+  font-size: 12px;
+}
+.lotus-riddle .lr-petal {
+  color: var(--lr-gold);
+  font-size: 22px;
+  line-height: 1.2;
+}
+.lotus-riddle .lr-hints small {
+  display: block;
+  color: #b1956d;
+  font-size: 10px;
+  margin-top: 4px;
+}
+.lotus-riddle .lr-play-area {
+  display: grid;
+  gap: 18px;
+  min-width: 0;
+}
+.lotus-riddle .lr-paper {
+  color: var(--lr-ink);
+  background: repeating-linear-gradient(0deg, #b49a7010 0 1px, transparent 1px 4px), #efdfbc;
+  border: 3px solid #b79661;
+  box-shadow:
+    0 0 0 3px #493020,
+    0 0 0 4px #8c6435,
+    4px 6px 0 #170e0980;
+  color-scheme: light;
+}
+.lotus-riddle .lr-journal-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+  margin: 0 26px;
+  padding: 20px 0 16px;
+  border-bottom: 1px solid #b99869;
+}
+.lotus-riddle .lr-journal-heading h2 {
+  font-size: 22px;
+}
+.lotus-riddle .lr-journal-heading > span {
+  font-size: 11px;
+  color: #795c3f;
+}
+.lotus-riddle .lr-journal-scroll {
+  height: 350px;
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding: 20px 26px;
+  scrollbar-width: thin;
+  scrollbar-color: #9a784e #ddc7a1;
+}
+.lotus-riddle .lr-opening {
+  display: flex;
+  gap: 14px;
+  font-size: 13px;
+}
+.lotus-riddle .lr-opening strong {
+  font-size: 12px;
+  color: #7f5730;
+}
+.lotus-riddle .lr-opening p {
+  margin-top: 5px;
+}
+.lotus-riddle .lr-seal {
+  display: grid;
+  place-items: center;
+  flex: 0 0 38px;
+  height: 38px;
+  border: 2px solid #8f4f32;
+  color: #8f4f32;
+  font-size: 26px;
+}
+.lotus-riddle .lr-journal-empty {
+  text-align: center;
+  margin: 32px 0 24px;
+  color: #7e6649;
+  font-size: 13px;
+}
+.lotus-riddle .lr-journal-empty > span {
+  display: block;
+  font-size: 34px;
+  margin-bottom: 10px;
+}
+.lotus-riddle .lr-turn {
+  padding: 20px 0;
+  border-bottom: 1px solid #bea17a;
+}
+.lotus-riddle .lr-turn-top {
+  color: #806349;
+  font-size: 10px;
+  letter-spacing: 1px;
+}
+.lotus-riddle .lr-question {
+  font-size: 16px;
+  margin: 8px 0 12px;
+  white-space: pre-wrap;
+}
+.lotus-riddle .lr-reply {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 11px;
+  color: #705539;
+}
+.lotus-riddle .lr-verdict {
+  padding: 3px 12px;
+  font-size: 13px;
+  background: #d5bf99;
+  border: 1px solid #a0845b;
+  font-weight: 600;
+}
+.lotus-riddle .lr-yes,
+.lotus-riddle .lr-solved {
+  color: #365039;
+  border-color: #728460;
+  background: #c6d0af;
+}
+.lotus-riddle .lr-no {
+  color: #7e3a2b;
+  border-color: #b78869;
+  background: #e2bea1;
+}
+.lotus-riddle .lr-partial,
+.lotus-riddle .lr-almost {
+  background: #e2ce91;
+}
+.lotus-riddle .lr-answer-note {
+  font-size: 12px;
+  margin-top: 10px;
+  color: #775c3b;
+}
+.lotus-riddle .lr-thinking {
+  margin-top: 20px;
+  font-size: 12px;
+  color: #886238;
+}
+.lotus-riddle .lr-composer {
+  padding: 18px 22px;
+}
+.lotus-riddle .lr-composer-heading,
+.lotus-riddle .lr-composer-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.lotus-riddle .lr-tabs {
+  display: flex;
+  gap: 4px;
+}
+.lotus-riddle .lr-tabs button {
+  border: 0;
+  border-bottom: 2px solid transparent;
+  min-height: 40px;
+  background: none;
+  padding: 4px 10px;
+  font-size: 12px;
+  color: var(--lr-muted);
+}
+.lotus-riddle .lr-tabs button[aria-pressed='true'] {
+  color: var(--lr-gold);
+  border-bottom-color: var(--lr-gold);
+}
+.lotus-riddle textarea {
+  resize: vertical;
+  display: block;
+  width: 100%;
+  min-height: 76px;
+  max-height: 220px;
+  margin: 12px 0;
+  padding: 12px;
+  border: 1px solid #956e42;
+  border-radius: 0;
+  background: #21170f;
+  color: var(--lr-ivory);
+  font-size: 16px;
+}
+.lotus-riddle textarea::placeholder {
+  color: #b19976;
+}
+.lotus-riddle .lr-composer-bottom small {
+  max-width: 260px;
+  color: var(--lr-muted);
+  font-size: 10px;
+}
+.lotus-riddle .lr-status,
+.lotus-riddle .lr-alert {
+  max-width: 800px;
+  padding: 12px 18px;
+  margin: 0 auto 20px;
+  background: #302116f2;
+  border: 1px solid #b18b50;
+  font-size: 13px;
+}
+.lotus-riddle .lr-alert {
+  border-color: #ca936f;
+  color: #ffdfc3;
+}
+.lotus-riddle .lr-text-button {
+  border: 0;
+  background: none;
+  min-height: 44px;
+  padding: 10px 4px;
+  color: inherit;
+  font-size: 12px;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+.lotus-riddle .lr-result {
+  padding: 28px;
+}
+.lotus-riddle .lr-result .lr-eyebrow {
+  color: #8c6135;
+}
+.lotus-riddle .lr-result h2 {
+  font-size: 28px;
+  line-height: 1.3;
+  margin-bottom: 20px;
+}
+.lotus-riddle .lr-result h3 {
+  font-size: 21px;
+  margin: 22px 0 6px;
+}
+.lotus-riddle .lr-result p {
+  font-size: 13px;
+}
+.lotus-riddle .lr-result .lr-target {
+  font-size: 42px;
+  line-height: 1.3;
+  color: #704323;
+}
+.lotus-riddle .lr-result .lr-translation {
+  font-size: 19px;
+  margin-top: 8px;
+}
+.lotus-riddle .lr-transcription {
+  color: #7c6246;
+}
+.lotus-riddle .lr-result-count {
+  color: #81654a;
+  margin-top: 18px !important;
+}
+.lotus-riddle .lr-saved {
+  color: #365039;
+  margin: 20px 0 !important;
+}
+.lotus-riddle .lr-grades {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin: 18px 0 6px;
+}
+.lotus-riddle .lr-grade {
+  min-height: 72px;
+  padding: 10px;
+  background: #e3cfa7;
+  color: #593f27;
+  border: 1px solid #a48151;
+}
+.lotus-riddle .lr-grade strong,
+.lotus-riddle .lr-grade small {
+  display: block;
+}
+.lotus-riddle .lr-grade strong {
+  font-size: 12px;
+}
+.lotus-riddle .lr-grade small {
+  font-size: 9px;
+  margin-top: 4px;
+}
+.lotus-riddle .lr-grade:hover:not(:disabled) {
+  background: #d4b97f;
+}
+.lotus-riddle .lr-dialog {
+  border: 0;
+  padding: 6px;
+  width: min(480px, calc(100% - 32px));
+  max-height: calc(100dvh - 40px);
+  overflow: auto;
+  color: var(--lr-ivory);
+  background: transparent;
+}
+.lotus-riddle .lr-dialog::backdrop {
+  background: #140c09ba;
+}
+.lotus-riddle .lr-dialog h2 {
+  font-size: 26px;
+}
+.lotus-riddle .lr-dialog p {
+  margin: 14px 0 20px;
+  font-size: 14px;
+}
+.lotus-riddle .lr-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.lotus-riddle .lr-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+.lotus-riddle .lr-loading {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: #24170f;
+  color: var(--lr-gold);
+  z-index: 5;
+}
+.lotus-riddle.lr-gated > :not(.lr-loading) {
+  visibility: hidden;
+}
+@media (min-height: 850px) and (min-width: 850px) {
+  .lotus-riddle .lr-header {
+    margin-bottom: 72px;
+  }
+  .lotus-riddle .lr-journal-scroll {
+    height: 420px;
+  }
+}
+@media (max-width: 850px) {
+  .lotus-riddle .lr-content {
+    padding: 20px 24px;
+  }
+  .lotus-riddle .lr-header {
+    margin-bottom: 36px;
+  }
+  .lotus-riddle .lr-header-note {
+    display: none;
+  }
+  .lotus-riddle .lr-home-layout {
+    grid-template-columns: minmax(0, 510px);
+    justify-content: center;
+    gap: 0;
+  }
+  .lotus-riddle .lr-scene-caption {
+    display: none;
+  }
+  .lotus-riddle .lr-game-layout {
+    grid-template-columns: 220px minmax(0, 1fr);
+    gap: 18px;
+  }
+  .lotus-riddle .lr-guide {
+    padding: 20px;
+  }
+  .lotus-riddle .lr-guide h1 {
+    font-size: 25px;
+  }
+  .lotus-riddle .lr-grades {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .lotus-riddle .lr-footer {
+    flex-wrap: wrap;
+  }
+}
+@media (max-width: 620px) {
+  .lotus-riddle .lr-content {
+    padding: 14px 16px 24px;
+  }
+  .lotus-riddle .lr-header {
+    margin-bottom: 28px;
+    gap: 12px;
+    min-height: 50px;
+  }
+  .lotus-riddle .lr-back {
+    width: 44px;
+    padding: 8px;
+    justify-content: center;
+  }
+  .lotus-riddle .lr-back > :last-child {
+    display: none;
+  }
+  .lotus-riddle .lr-brand {
+    font-size: 16px;
+  }
+  .lotus-riddle .lr-brand > span:first-child {
+    font-size: 28px;
+  }
+  .lotus-riddle .lr-home {
+    padding: 26px 22px;
+  }
+  .lotus-riddle .lr-home h1 {
+    font-size: 34px;
+  }
+  .lotus-riddle .lr-lead {
+    font-size: 14px;
+  }
+  .lotus-riddle .lr-language-row {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .lotus-riddle .lr-home-layout {
+    min-height: auto;
+  }
+  .lotus-riddle .lr-game-layout {
+    display: flex;
+    flex-direction: column;
+  }
+  .lotus-riddle .lr-guide {
+    width: 100%;
+    padding: 20px;
+  }
+  .lotus-riddle .lr-guide h1 {
+    display: none;
+  }
+  .lotus-riddle .lr-guide .lr-eyebrow {
+    margin-bottom: 8px;
+  }
+  .lotus-riddle .lr-guide .lr-divider {
+    margin: 14px 0;
+  }
+  .lotus-riddle .lr-hints {
+    margin: 8px 0 14px;
+  }
+  .lotus-riddle .lr-hints li {
+    padding: 8px 0;
+  }
+  .lotus-riddle .lr-guide .lr-footnote {
+    margin-top: 12px;
+  }
+  .lotus-riddle .lr-play-area {
+    order: -1;
+    width: 100%;
+    gap: 18px;
+  }
+  .lotus-riddle .lr-journal-heading {
+    margin: 0 18px;
+  }
+  .lotus-riddle .lr-journal-heading h2 {
+    font-size: 20px;
+  }
+  .lotus-riddle .lr-journal-scroll {
+    height: 300px;
+    padding: 18px;
+  }
+  .lotus-riddle .lr-composer {
+    padding: 16px;
+  }
+  .lotus-riddle .lr-composer-bottom {
+    align-items: flex-start;
+  }
+  .lotus-riddle .lr-composer-bottom small {
+    max-width: 140px;
+  }
+  .lotus-riddle .lr-composer-bottom .lr-button {
+    padding: 10px 12px;
+    gap: 10px;
+  }
+  .lotus-riddle .lr-result {
+    padding: 22px;
+  }
+  .lotus-riddle .lr-result h2 {
+    font-size: 24px;
+  }
+  .lotus-riddle .lr-footer {
+    margin-top: 26px;
+    gap: 8px;
+  }
+  .lotus-riddle .lr-status,
+  .lotus-riddle .lr-alert {
+    margin-bottom: 16px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .lotus-riddle * {
+    scroll-behavior: auto !important;
+  }
+}
+
+@media (min-width: 851px) and (max-height: 850px) {
+  .lotus-riddle .lr-content {
+    padding-top: 16px;
+  }
+  .lotus-riddle .lr-header {
+    min-height: 44px;
+    margin-bottom: 24px;
+  }
+  .lotus-riddle .lr-guide h1 {
+    display: none;
+  }
+  .lotus-riddle .lr-guide .lr-divider {
+    margin: 16px 0;
+  }
+  .lotus-riddle .lr-hints {
+    margin: 12px 0;
+  }
+  .lotus-riddle .lr-hints li {
+    padding: 10px 0;
+  }
+  .lotus-riddle .lr-journal-scroll {
+    height: clamp(180px, calc(100dvh - 440px), 350px);
+  }
+  .lotus-riddle .lr-footer {
+    margin-top: 20px;
+  }
+}

@@ -3,8 +3,8 @@ import type {
   PluginHttpRequestOptions,
   PluginLlmGeneratePayload,
 } from '@injurka/insight-book-plugin-api'
-import { getPluginApi as getGlobalPluginApi } from '@injurka/insight-book-plugin-api'
 import type { Rule, RuleTest } from '../types'
+import { getPluginApi as getGlobalPluginApi } from '@injurka/insight-book-plugin-api'
 
 let localPluginApi: InsightBookPluginApiFacade | null = null
 
@@ -16,16 +16,7 @@ export function getPluginApi(): InsightBookPluginApiFacade | null {
   return localPluginApi ?? getGlobalPluginApi()
 }
 
-export async function pluginRequest<T = unknown>(
-  endpoint: string,
-  options?: PluginHttpRequestOptions,
-): Promise<T> {
-  const api = getPluginApi()
-  if (api?.request) {
-    return api.request<T>(endpoint, options)
-  }
-
-  // Fallback for standalone/testing environments
+async function standaloneRequest<T>(endpoint: string, options?: PluginHttpRequestOptions): Promise<T> {
   const response = await fetch(endpoint, {
     method: options?.method || 'GET',
     headers: {
@@ -44,53 +35,58 @@ export async function pluginRequest<T = unknown>(
   return response.json() as Promise<T>
 }
 
-export async function requestLlmGenerate<T = unknown>(params: PluginLlmGeneratePayload): Promise<T | null> {
+export async function pluginRequest<T = unknown>(endpoint: string, options?: PluginHttpRequestOptions): Promise<T> {
   const api = getPluginApi()
 
-  if (api?.llm?.generate) {
-    const res = await api.llm.generate<T>({
-      action: params.action || 'grammar_generate',
-      prompt: params.prompt,
-      systemPrompt: params.systemPrompt,
-      messages: params.messages,
-      json: params.json ?? true,
-      temperature: params.temperature ?? 0.3,
-    })
+  if (api?.request) {
+    return api.request<T>(endpoint, options)
+  }
 
-    if (res.success) {
-      if (params.json === false && typeof res.text === 'string') {
-        return res.text as unknown as T
-      }
-      if (res.data !== undefined) {
-        return res.data
-      }
-    }
+  // Fallback for standalone/testing environments.
+  return standaloneRequest<T>(endpoint, options)
+}
+
+function readLlmResponse<T>(res: { success: boolean, data?: T, text?: string }, json: boolean | undefined): T | null {
+  if (!res.success) {
     return null
   }
 
-  // Fallback via general request
-  const res = await pluginRequest<{ success: boolean, data?: T, text?: string }>('/api/llm/generate', {
+  if (json === false && typeof res.text === 'string') {
+    return res.text as unknown as T
+  }
+
+  return res.data ?? null
+}
+
+function createLlmPayload(params: PluginLlmGeneratePayload): PluginLlmGeneratePayload {
+  return {
+    action: params.action || 'grammar_generate',
+    prompt: params.prompt,
+    systemPrompt: params.systemPrompt,
+    messages: params.messages,
+    json: params.json ?? true,
+    temperature: params.temperature ?? 0.3,
+  }
+}
+
+export async function requestLlmGenerate<T = unknown>(params: PluginLlmGeneratePayload): Promise<T | null> {
+  const api = getPluginApi()
+  const payload = createLlmPayload(params)
+
+  if (api?.llm?.generate) {
+    const response = await api.llm.generate<T>(payload)
+
+    return readLlmResponse(response, params.json)
+  }
+
+  // Fallback via general request.
+  const response = await pluginRequest<{ success: boolean, data?: T, text?: string }>('/api/llm/generate', {
     method: 'POST',
-    body: {
-      action: params.action || 'grammar_generate',
-      prompt: params.prompt,
-      systemPrompt: params.systemPrompt,
-      messages: params.messages,
-      json: params.json ?? true,
-      temperature: params.temperature ?? 0.3,
-    },
+    body: payload,
     withLlm: true,
   })
 
-  if (res.success) {
-    if (params.json === false && typeof res.text === 'string') {
-      return res.text as unknown as T
-    }
-    if (res.data !== undefined) {
-      return res.data
-    }
-  }
-  return null
+  return readLlmResponse(response, params.json)
 }
 
 export function buildGrammarSystemPrompt(language: string, targetLanguage: string): string {
@@ -172,6 +168,7 @@ export async function generateGrammarTestsViaLlm(rule: Rule, targetLang = 'ru', 
       ruleId: rule.id,
     }))
   }
+
   return []
 }
 

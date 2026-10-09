@@ -12,8 +12,10 @@ export function setActiveApi(api: InsightBookPluginApiFacade | null): void {
 
 export function getActiveApi(): InsightBookPluginApiFacade {
   const api = activeApi ?? getGlobalPluginApi()
+
   if (!api) {
     throw new Error('API плагина ещё не подключён.')
   }
+
   return api
 }

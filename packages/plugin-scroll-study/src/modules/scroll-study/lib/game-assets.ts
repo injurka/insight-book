@@ -1,14 +1,14 @@
 import bgPrimaryUrl from '../../../assets/bg_primary.png'
 import boardFrameUrl from '../../../assets/research-board/frame.webp'
 import boardParchmentUrl from '../../../assets/research-board/parchment.webp'
-import buttonDisabledUrl from '../../../assets/ui-kit/square-button/disabled.png'
-import buttonHoverUrl from '../../../assets/ui-kit/square-button/hover.png'
-import buttonNormalUrl from '../../../assets/ui-kit/square-button/normal.png'
-import buttonPressedUrl from '../../../assets/ui-kit/square-button/pressed.png'
 import panelArtUrl from '../../../assets/sidebar/parchment-art.webp'
 import panelFrameUrl from '../../../assets/sidebar/pixel-wood-frame.webp'
 import popoverPaperUrl from '../../../assets/sidebar/popover-paper-tile.webp'
 import popoverParchmentUrl from '../../../assets/sidebar/popover-parchment.webp'
+import buttonDisabledUrl from '../../../assets/ui-kit/square-button/disabled.png'
+import buttonHoverUrl from '../../../assets/ui-kit/square-button/hover.png'
+import buttonNormalUrl from '../../../assets/ui-kit/square-button/normal.png'
+import buttonPressedUrl from '../../../assets/ui-kit/square-button/pressed.png'
 
 /**
  * Полный манифест текстур игры.
@@ -105,9 +105,7 @@ async function loadGameFont(): Promise<void> {
   if (typeof document === 'undefined' || !document.fonts?.load)
     return
 
-  await Promise.all(GAME_FONT_WEIGHTS.map(
-    weight => document.fonts.load(`${weight} 16px "${GAME_FONT_FAMILY}"`, GAME_FONT_SAMPLE),
-  ))
+  await Promise.all(GAME_FONT_WEIGHTS.map(weight => document.fonts.load(`${weight} 16px "${GAME_FONT_FAMILY}"`, GAME_FONT_SAMPLE)))
 }
 
 /**
@@ -115,9 +113,7 @@ async function loadGameFont(): Promise<void> {
  * Промис завершается, когда всё загружено и декодировано (или когда истёк
  * потолок ожидания) — вызывающий код по нему снимает экран загрузки.
  */
-export async function preloadGameAssets(
-  onProgress?: (progress: GameAssetsProgress) => void,
-): Promise<void> {
+export async function preloadGameAssets(onProgress?: (progress: GameAssetsProgress) => void): Promise<void> {
   const urls = Object.values(GAME_TEXTURES)
   const total = urls.length + 1 // + шрифт интерфейса
   let loaded = 0
@@ -130,8 +126,10 @@ export async function preloadGameAssets(
 
   const textures = Promise.all(urls.map(async (url) => {
     const ok = await loadTexture(url)
+
     if (!ok)
       console.warn(`[scroll-study] не удалось загрузить текстуру: ${url}`)
+
     loaded += 1
     report()
   }))

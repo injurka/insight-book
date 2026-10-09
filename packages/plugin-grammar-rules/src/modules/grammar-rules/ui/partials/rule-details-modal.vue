@@ -1,10 +1,10 @@
 <script setup lang="ts">
+import type { Rule } from '../../../../shared/types'
 import { Icon } from '@iconify/vue'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { formatMarkdown } from '~/01.shared/lib/markdown'
 import { KitBtn, KitDialog } from '~/02.kit'
-import type { Rule } from '../../../../shared/types'
 
 interface Props {
   rule: Rule | null
@@ -17,34 +17,38 @@ const props = defineProps<Props>()
 const emit = defineEmits<{
   (e: 'regenerate'): void
 }>()
-
 const visible = defineModel<boolean>('visible', { required: true })
+
 const { t, te } = useI18n()
-
-const categoryLabel = (cat?: string) => {
-  if (!cat)
-    return ''
-  const i18nKey = `plugins.grammar-rules.cat_${cat}`
-  if (te(i18nKey))
-    return t(i18nKey)
-
-  switch (cat) {
-    case 'grammar': return t('plugins.grammar-rules.catGrammar')
-    case 'tenses': return t('plugins.grammar-rules.catTenses')
-    case 'modals': return t('plugins.grammar-rules.catModals')
-    case 'conditionals': return t('plugins.grammar-rules.catConditionals')
-    case 'passive': return t('plugins.grammar-rules.catPassive')
-    case 'articles': return t('plugins.grammar-rules.catArticles')
-    case 'lexical': return t('plugins.grammar-rules.catLexical')
-    case 'collocation': return t('plugins.grammar-rules.catCollocation')
-    case 'measure_words': return t('plugins.grammar-rules.catMeasureWords')
-    default: return cat
-  }
+const categoryFallbackKeys: Record<string, string> = {
+  grammar: 'plugins.grammar-rules.catGrammar',
+  tenses: 'plugins.grammar-rules.catTenses',
+  modals: 'plugins.grammar-rules.catModals',
+  conditionals: 'plugins.grammar-rules.catConditionals',
+  passive: 'plugins.grammar-rules.catPassive',
+  articles: 'plugins.grammar-rules.catArticles',
+  lexical: 'plugins.grammar-rules.catLexical',
+  collocation: 'plugins.grammar-rules.catCollocation',
+  measure_words: 'plugins.grammar-rules.catMeasureWords',
 }
 
 const formattedExplanation = computed(() => {
   return formatMarkdown(props.explanation || '')
 })
+
+function categoryLabel(cat?: string) {
+  if (!cat)
+    return ''
+
+  const i18nKey = `plugins.grammar-rules.cat_${cat}`
+
+  if (te(i18nKey))
+    return t(i18nKey)
+
+  const fallbackKey = categoryFallbackKeys[cat]
+
+  return fallbackKey ? t(fallbackKey) : cat
+}
 </script>
 
 <template>
@@ -263,7 +267,10 @@ const formattedExplanation = computed(() => {
   font-size: 0.95rem;
 
   :deep(.markdown-body) {
-    h1, h2, h3, h4 {
+    h1,
+    h2,
+    h3,
+    h4 {
       color: var(--fg-primary-color);
       font-weight: 700;
       line-height: 1.35;
@@ -353,7 +360,8 @@ const formattedExplanation = computed(() => {
       overflow: hidden;
       border: 1px solid var(--border-primary-color);
 
-      th, td {
+      th,
+      td {
         padding: 8px 12px;
         text-align: left;
         border: 1px solid var(--border-primary-color);
@@ -407,7 +415,11 @@ const formattedExplanation = computed(() => {
 }
 
 @keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 </style>

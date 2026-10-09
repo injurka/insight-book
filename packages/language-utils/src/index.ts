@@ -79,10 +79,12 @@ export interface LanguageValidationOptions {
 
 export function isValidWordForLanguage(word: string, language: string, options: LanguageValidationOptions = {}): boolean {
   const normalizedWord = word.trim().normalize('NFC')
+
   if (!normalizedWord)
     return false
 
   const script = LANGUAGE_SCRIPTS[normalizeLanguageCode(language)]
+
   // Язык вне карты — не блокируем (неизвестные/новые языки)
   if (!script)
     return true

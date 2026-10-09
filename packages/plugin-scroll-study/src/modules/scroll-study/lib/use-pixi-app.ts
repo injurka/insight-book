@@ -9,10 +9,7 @@ export interface UsePixiOptions extends Partial<ApplicationOptions> {
   onInit?: (app: Application) => void | Promise<void>
 }
 
-export function usePixiApp(
-  containerRef: Ref<HTMLElement | null>,
-  options: UsePixiOptions = {},
-) {
+export function usePixiApp(containerRef: Ref<HTMLElement | null>, options: UsePixiOptions = {}) {
   const app = shallowRef<Application | null>(null)
   const isReady = ref(false)
 
@@ -36,6 +33,7 @@ export function usePixiApp(
 
     if (!containerRef.value || app.value !== instance) {
       instance.destroy({ removeView: true, releaseGlobalResources: true }, { children: true })
+
       return
     }
 
@@ -54,10 +52,7 @@ export function usePixiApp(
 
   onBeforeUnmount(() => {
     if (app.value) {
-      app.value.destroy(
-        { removeView: true, releaseGlobalResources: true },
-        { children: true, texture: true, textureSource: true },
-      )
+      app.value.destroy({ removeView: true, releaseGlobalResources: true }, { children: true, texture: true, textureSource: true })
       app.value = null
       isReady.value = false
     }

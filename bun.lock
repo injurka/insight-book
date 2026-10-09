@@ -52,6 +52,7 @@
         "@injurka/insight-book-language-utils": "workspace:*",
         "@injurka/insight-book-plugin-api": "workspace:*",
         "@injurka/insight-book-plugin-grammar-rules": "workspace:*",
+        "@injurka/insight-book-theme": "workspace:*",
         "@module-federation/enhanced": "^2.9.0",
         "@opentelemetry/api": "^1.9.1",
         "@opentelemetry/api-logs": "^0.222.0",
@@ -94,12 +95,12 @@
         "zone.js": "^0.16.3",
       },
       "devDependencies": {
-        "@antfu/eslint-config": "9.5.1",
         "@aws-sdk/client-s3": "^3.1125.0",
         "@chromatic-com/storybook": "^5.3.1",
         "@iconify-json/mdi": "^1.2.3",
         "@iconify/utils": "^3.1.4",
         "@iconify/vue": "^5.0.1",
+        "@injurka/insight-book-eslint-config": "workspace:*",
         "@konghayao/cn-font-split": "^4.15.0",
         "@module-federation/vite": "^1.21.2",
         "@storybook/addon-a11y": "^10.6.0",
@@ -119,9 +120,7 @@
         "@vitest/coverage-v8": "^5.0.0",
         "@vue/test-utils": "^2.5.0",
         "eslint": "^10.9.1",
-        "eslint-plugin-format": "2.0.1",
         "eslint-plugin-storybook": "^10.6.0",
-        "eslint-plugin-vue-setup-order": "^1.1.1",
         "happy-dom": "^20.13.2",
         "jsdom": "30.1.2",
         "pino": "^10.3.1",
@@ -209,14 +208,22 @@
         "typescript": "7.0.2",
       },
     },
+    "packages/eslint-config": {
+      "name": "@injurka/insight-book-eslint-config",
+      "version": "1.0.0",
+      "dependencies": {
+        "@antfu/eslint-config": "9.5.1",
+        "eslint-plugin-format": "2.0.1",
+        "eslint-plugin-vue-setup-order": "^1.1.1",
+      },
+    },
     "packages/language-utils": {
       "name": "@injurka/insight-book-language-utils",
       "version": "1.0.0",
       "devDependencies": {
-        "@antfu/eslint-config": "9.5.1",
+        "@injurka/insight-book-eslint-config": "workspace:*",
         "@types/bun": "^1.4.0",
         "eslint": "^10.9.1",
-        "eslint-plugin-format": "2.0.1",
         "typescript": "7.0.2",
       },
     },
@@ -225,17 +232,17 @@
       "version": "1.0.0",
       "dependencies": {
         "@iconify/vue": "^5.0.1",
+        "@injurka/insight-book-theme": "workspace:*",
         "pinia": "4.0.3",
         "vue": "3.5.42",
         "vue-i18n": "^11.4.10",
         "vue-router": "^5.3.1",
       },
       "devDependencies": {
-        "@antfu/eslint-config": "9.5.1",
+        "@injurka/insight-book-eslint-config": "workspace:*",
         "@types/bun": "^1.4.0",
         "bun": "^1.4.0",
         "eslint": "^10.9.1",
-        "eslint-plugin-format": "2.0.1",
         "typescript": "7.0.2",
       },
     },
@@ -249,7 +256,7 @@
         "vue-router": "^5.3.1",
       },
       "devDependencies": {
-        "@antfu/eslint-config": "9.5.1",
+        "@injurka/insight-book-eslint-config": "workspace:*",
         "@module-federation/vite": "^1.21.2",
         "@vitejs/plugin-vue": "^6.0.8",
         "eslint": "^10.9.1",
@@ -270,8 +277,10 @@
         "vue-router": "^5.3.1",
       },
       "devDependencies": {
+        "@injurka/insight-book-eslint-config": "workspace:*",
         "@module-federation/vite": "^1.21.2",
         "@vitejs/plugin-vue": "^6.0.8",
+        "eslint": "^10.9.1",
         "sass": "1.103.1",
         "vite": "^8.2.2",
       },
@@ -290,6 +299,25 @@
         "vite": "^8.2.2",
       },
     },
+    "packages/plugin-lotus-riddle": {
+      "name": "@injurka/insight-book-plugin-lotus-riddle",
+      "version": "1.0.0",
+      "dependencies": {
+        "@iconify/vue": "^5.0.1",
+        "@injurka/insight-book-plugin-api": "workspace:*",
+        "vue": "3.5.42",
+        "vue-router": "^5.3.1",
+      },
+      "devDependencies": {
+        "@injurka/insight-book-eslint-config": "workspace:*",
+        "@module-federation/vite": "^1.21.2",
+        "@vitejs/plugin-vue": "^6.0.8",
+        "eslint": "^10.9.1",
+        "typescript": "7.0.2",
+        "vite": "^8.2.2",
+        "vue-tsc": "^3.3.11",
+      },
+    },
     "packages/plugin-scroll-study": {
       "name": "@injurka/insight-book-plugin-scroll-study",
       "version": "1.0.6",
@@ -305,12 +333,18 @@
         "vue-router": "^5.3.1",
       },
       "devDependencies": {
+        "@injurka/insight-book-eslint-config": "workspace:*",
         "@module-federation/vite": "^1.21.2",
         "@vitejs/plugin-vue": "^6.0.8",
+        "eslint": "^10.9.1",
         "sass": "1.103.1",
         "vite": "^8.2.2",
         "vite-plugin-top-level-await": "^1.6.0",
       },
+    },
+    "packages/theme": {
+      "name": "@injurka/insight-book-theme",
+      "version": "1.0.0",
     },
     "tools/manhuagui-parser": {
       "name": "@injurka/insight-book-manhuagui-parser",
@@ -816,6 +850,8 @@
 
     "@injurka/insight-book-admin": ["@injurka/insight-book-admin@workspace:apps/admin"],
 
+    "@injurka/insight-book-eslint-config": ["@injurka/insight-book-eslint-config@workspace:packages/eslint-config"],
+
     "@injurka/insight-book-language-utils": ["@injurka/insight-book-language-utils@workspace:packages/language-utils"],
 
     "@injurka/insight-book-manhuagui-parser": ["@injurka/insight-book-manhuagui-parser@workspace:tools/manhuagui-parser"],
@@ -832,9 +868,13 @@
 
     "@injurka/insight-book-plugin-grammar-tenses-cheatsheet": ["@injurka/insight-book-plugin-grammar-tenses-cheatsheet@workspace:packages/plugin-grammar-tenses-cheatsheet"],
 
+    "@injurka/insight-book-plugin-lotus-riddle": ["@injurka/insight-book-plugin-lotus-riddle@workspace:packages/plugin-lotus-riddle"],
+
     "@injurka/insight-book-plugin-scroll-study": ["@injurka/insight-book-plugin-scroll-study@workspace:packages/plugin-scroll-study"],
 
     "@injurka/insight-book-server": ["@injurka/insight-book-server@workspace:apps/server"],
+
+    "@injurka/insight-book-theme": ["@injurka/insight-book-theme@workspace:packages/theme"],
 
     "@injurkx/insight-book-client": ["@injurkx/insight-book-client@workspace:apps/client"],
 

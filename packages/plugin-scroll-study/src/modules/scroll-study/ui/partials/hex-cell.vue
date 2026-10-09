@@ -12,61 +12,62 @@ interface Props {
 }
 
 const props = defineProps<Props>()
-
 const emit = defineEmits<{
   (e: 'click', node: PuzzleNode): void
   (e: 'drop', event: DragEvent, node: PuzzleNode): void
 }>()
 
 const scrollStore = useScrollStudyStore()
+const infoPopover = useTemplateRef<InstanceType<typeof AnchorInfoPopover>>('infoPopover')
+
 const isDragOver = ref(false)
 const isInfoOpen = ref(false)
-const infoPopover = useTemplateRef<InstanceType<typeof AnchorInfoPopover>>('infoPopover')
+const q = props.node.q
+const r = props.node.r
+
 const isInteractive = computed(() => props.node.type === 'anchor' || (props.node.type === 'empty' && !props.isFinished))
+const width = computed(() => props.hexSize * Math.sqrt(3))
+const height = computed(() => props.hexSize * 2)
+const xOffset = computed(() => props.hexSize * Math.sqrt(3) * (q + r / 2))
+const yOffset = computed(() => props.hexSize * (3 / 2) * r)
 
 function handleClick(event: MouseEvent | KeyboardEvent) {
   if (props.node.type === 'anchor' && event.currentTarget instanceof HTMLElement) {
     infoPopover.value?.toggle(event.currentTarget)
+
     return
   }
+
   if (isInteractive.value)
     emit('click', props.node)
 }
-
-const q = props.node.q
-const r = props.node.r
-
-const width = computed(() => props.hexSize * Math.sqrt(3))
-const height = computed(() => props.hexSize * 2)
-
-const xOffset = computed(() => props.hexSize * Math.sqrt(3) * (q + r / 2))
-const yOffset = computed(() => props.hexSize * (3 / 2) * r)
-
 function getCharFontSize(symbol?: string) {
   if (!symbol)
     return `${props.hexSize * 0.76}px`
+
   if (symbol.length === 2)
     return `${props.hexSize * 0.52}px`
+
   if (symbol.length >= 3)
     return `${props.hexSize * 0.36}px`
+
   return `${props.hexSize * 0.76}px`
 }
-
 function handleDrop(event: DragEvent) {
   isDragOver.value = false
   emit('drop', event, props.node)
 }
-
 function handleDragOver(event: DragEvent) {
   if (props.node.type === 'empty' && !props.isFinished) {
     event.preventDefault()
+
     if (event.dataTransfer) {
       event.dataTransfer.dropEffect = 'copy'
     }
+
     isDragOver.value = true
   }
 }
-
 function handleDragLeave() {
   isDragOver.value = false
 }
@@ -92,33 +93,38 @@ function handleDragLeave() {
       height: `${height}px`,
       transform: `translate(calc(${xOffset}px - 50%), calc(${yOffset}px - 50%))`,
     }"
-    @dragover="handleDragOver"
-    @dragenter.prevent="isDragOver = true"
-    @dragleave="handleDragLeave"
-    @drop.prevent="handleDrop"
     :role="isInteractive ? 'button' : undefined"
     :tabindex="isInteractive ? 0 : undefined"
     :aria-label="node.type === 'anchor' ? `О символе ${node.character}` : node.character || 'Пустая ячейка'"
     :aria-expanded="node.type === 'anchor' ? isInfoOpen : undefined"
     :aria-haspopup="node.type === 'anchor' ? 'dialog' : undefined"
     :aria-controls="node.type === 'anchor' ? infoPopover?.id : undefined"
+    @dragover="handleDragOver"
+    @dragenter.prevent="isDragOver = true"
+    @dragleave="handleDragLeave"
+    @drop.prevent="handleDrop"
     @keydown.enter.self.prevent="handleClick"
     @keydown.space.self.prevent="handleClick"
     @click="handleClick"
   >
-    <AnchorInfoPopover v-if="node.type === 'anchor'" ref="infoPopover" :node="node" @open-change="isInfoOpen = $event" />
+    <AnchorInfoPopover
+      v-if="node.type === 'anchor'"
+      ref="infoPopover"
+      :node="node"
+      @open-change="isInfoOpen = $event"
+    />
     <div class="hex-cell-inner">
       <div class="cell-surface" />
 
       <Transition name="placement">
-      <span
-        v-if="node.character"
-        :key="node.character"
-        class="hex-char"
-        :style="{ fontSize: getCharFontSize(node.character) }"
-      >
-        {{ node.character }}
-      </span>
+        <span
+          v-if="node.character"
+          :key="node.character"
+          class="hex-char"
+          :style="{ fontSize: getCharFontSize(node.character) }"
+        >
+          {{ node.character }}
+        </span>
       </Transition>
     </div>
   </div>
@@ -194,7 +200,9 @@ function handleDragLeave() {
   .cell-surface {
     background: #f6e0c4;
     border-color: #a75c36;
-    box-shadow: 0 2px 4px rgba(69, 38, 12, 0.18), inset 0 3px #a75c36;
+    box-shadow:
+      0 2px 4px rgba(69, 38, 12, 0.18),
+      inset 0 3px #a75c36;
   }
 
   .hex-char {
@@ -226,7 +234,9 @@ function handleDragLeave() {
   .cell-surface {
     background: #f0edd2;
     border-color: #7d8545;
-    box-shadow: 0 2px 4px rgba(69, 38, 12, 0.16), inset 0 3px #7d8545;
+    box-shadow:
+      0 2px 4px rgba(69, 38, 12, 0.16),
+      inset 0 3px #7d8545;
   }
 
   .hex-char {
@@ -242,15 +252,33 @@ function handleDragLeave() {
 }
 
 @keyframes glyph-stamp {
-  0% { opacity: 0; transform: translateY(-8px) scale(1.3); }
-  45% { opacity: 1; transform: translateY(1px) scale(0.94); }
-  75% { transform: translateY(0) scale(1.04); }
-  100% { opacity: 1; transform: translateY(0) scale(1); }
+  0% {
+    opacity: 0;
+    transform: translateY(-8px) scale(1.3);
+  }
+  45% {
+    opacity: 1;
+    transform: translateY(1px) scale(0.94);
+  }
+  75% {
+    transform: translateY(0) scale(1.04);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 @keyframes placement-pulse {
-  0% { box-shadow: 0 0 0 0 #b8824580; background: #ffe6b6; }
-  55% { box-shadow: 0 0 0 9px #b8824520; }
-  100% { box-shadow: 0 0 0 15px #b8824500; }
+  0% {
+    box-shadow: 0 0 0 0 #b8824580;
+    background: #ffe6b6;
+  }
+  55% {
+    box-shadow: 0 0 0 9px #b8824520;
+  }
+  100% {
+    box-shadow: 0 0 0 15px #b8824500;
+  }
 }
 </style>

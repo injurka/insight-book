@@ -3,7 +3,6 @@ import { enConfig } from './en/config'
 import enRulesData from './en/rules.json'
 import enTestsData from './en/tests.json'
 import { zhConfig } from './zh/config'
-
 import hsk1Rules from './zh/hsk1-rules.json'
 import hsk1Tests from './zh/hsk1-tests.json'
 import hsk2Rules from './zh/hsk2-rules.json'
@@ -136,15 +135,19 @@ export function getLanguageConfig(lang: SupportedLanguage): LanguageConfig {
 export function loadLanguageRules(lang: SupportedLanguage): Rule[] {
   if (lang === 'zh')
     return zhRulesNormalized
+
   if (lang === 'en')
     return enRulesNormalized
+
   return []
 }
 
 export function loadLanguageTests(lang: SupportedLanguage): RuleTest[] {
   if (lang === 'zh')
     return zhTestsNormalized
+
   if (lang === 'en')
     return enTestsNormalized
+
   return []
 }

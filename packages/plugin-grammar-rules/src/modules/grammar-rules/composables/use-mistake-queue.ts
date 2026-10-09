@@ -1,5 +1,5 @@
-import { computed, ref } from 'vue'
 import type { RuleTest } from '../../../shared/types'
+import { computed, ref } from 'vue'
 
 export function useMistakeQueue() {
   const mistakes = ref<RuleTest[]>([])
@@ -25,6 +25,6 @@ export function useMistakeQueue() {
     mistakeCount: computed(() => mistakes.value.length),
     addMistake,
     removeMistake,
-    clearMistakes
+    clearMistakes,
   }
 }

@@ -5,8 +5,10 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y --no-install-recommends ffmpeg && rm -rf /var/lib/apt/lists/*
 
 COPY package.json bun.lock* ./
+COPY apps/client/patches/ ./apps/client/patches/
 COPY apps/server/package.json ./apps/server/
 COPY packages/language-utils/package.json ./packages/language-utils/
+COPY packages/eslint-config/package.json ./packages/eslint-config/
 
 RUN bun install --ignore-scripts
 

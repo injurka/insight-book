@@ -18,18 +18,30 @@ import ScrollHeader from './partials/scroll-header.vue'
 import ScrollSidebar from './partials/scroll-sidebar.vue'
 
 const router = useRouter()
-
-function closePlugin() {
-  playUiSound('select')
-  void router.push('/')
-}
-
 const scrollStore = useScrollStudyStore()
-const pixiHostRef = ref<HTMLDivElement | null>(null)
+const {
+  isPointerDragging,
+  dragChar,
+  dragPos,
+  dragRotation,
+  dragTiltX,
+  dragTiltY,
+  dragScale,
+  burstEvent,
+  onPointerDown,
+} = useScrollDrag()
+const {
+  rootRef,
+  viewport,
+  isCompact,
+  isPanelOpen,
+  panelWidth,
+  layoutStyle,
+} = useGameLayout()
 
+const pixiHostRef = ref<HTMLDivElement | null>(null)
 // Initialize Single Shared PixiJS Application for the entire view
 const { isReady: isPixiReady } = providePixiApp(pixiHostRef)
-
 /**
  * Экран загрузки показываем только если подготовка реально затянулась:
  * мгновенный старт из кеша не мигает оверлеем.
@@ -39,16 +51,17 @@ const LOADING_SCREEN_DELAY_MS = 180
 const PIXI_FALLBACK_MS = 4000
 /** Первую раскладку доски ждём ограниченно, чтобы не залипнуть на экране загрузки из-за медленного API. */
 const FIRST_BOARD_TIMEOUT_MS = 2000
-
 const loadRatio = ref(0)
 const isAssetsReady = ref(false)
 const isBoardReady = ref(false)
 const isPixiSettled = ref(false)
 const isGateVisible = ref(false)
 const isRevealed = ref(false)
-
 let loadingScreenTimer: ReturnType<typeof setTimeout> | undefined
 let pixiFallbackTimer: ReturnType<typeof setTimeout> | undefined
+const isLayoutDebug = import.meta.env.DEV && new URLSearchParams(window.location.search).has('layoutDebug')
+const activeTab = ref<'symbols' | 'scrolls'>('symbols')
+const pendingNodeId = ref<string | null>(null)
 
 /** Игра открывается только с готовыми текстурами, рендерером и первой раскладкой. */
 const isSceneReady = computed(() => isAssetsReady.value && isBoardReady.value && isPixiSettled.value)
@@ -60,7 +73,6 @@ const stopPixiWatch = watch(isPixiReady, (ready) => {
   isPixiSettled.value = true
   clearTimeout(pixiFallbackTimer)
 })
-
 const stopReadyWatch = watch(isSceneReady, async (ready) => {
   if (!ready || isRevealed.value)
     return
@@ -71,6 +83,40 @@ const stopReadyWatch = watch(isSceneReady, async (ready) => {
     isRevealed.value = true
   }))
 })
+watch(isPointerDragging, (dragging) => {
+  if (dragging && isCompact.value)
+    isPanelOpen.value = false
+})
+watch(isPanelOpen, (open) => {
+  if (!open)
+    pendingNodeId.value = null
+})
+watch(() => scrollStore.activeGrid, () => pendingNodeId.value = null)
+
+function closePlugin() {
+  playUiSound('select')
+  void router.push('/')
+}
+function requestSymbol(node: PuzzleNode) {
+  pendingNodeId.value = node.id
+  activeTab.value = 'symbols'
+  isPanelOpen.value = true
+}
+function placeSelectedSymbol(item: CharacterData) {
+  const node = scrollStore.activeGrid.find(node => node.id === pendingNodeId.value)
+
+  if (isCompact.value && node && !node.character) {
+    const action = scrollStore.handleNodeDrop(item.char, node)
+
+    if (action)
+      playUiSound(action)
+  }
+
+  pendingNodeId.value = null
+
+  if (isCompact.value)
+    isPanelOpen.value = false
+}
 
 onMounted(async () => {
   loadingScreenTimer = setTimeout(() => {
@@ -92,66 +138,12 @@ onMounted(async () => {
   isAssetsReady.value = true
   isBoardReady.value = true
 })
-
 onBeforeUnmount(() => {
   stopPixiWatch()
   stopReadyWatch()
   clearTimeout(loadingScreenTimer)
   clearTimeout(pixiFallbackTimer)
 })
-
-const {
-  isPointerDragging,
-  dragChar,
-  dragPos,
-  dragRotation,
-  dragTiltX,
-  dragTiltY,
-  dragScale,
-  burstEvent,
-  onPointerDown,
-} = useScrollDrag()
-
-const {
-  rootRef,
-  viewport,
-  isCompact,
-  isPanelOpen,
-  panelWidth,
-  layoutStyle,
-} = useGameLayout()
-const isLayoutDebug = import.meta.env.DEV && new URLSearchParams(window.location.search).has('layoutDebug')
-watch(isPointerDragging, (dragging) => {
-  if (dragging && isCompact.value)
-    isPanelOpen.value = false
-})
-const activeTab = ref<'symbols' | 'scrolls'>('symbols')
-const pendingNodeId = ref<string | null>(null)
-
-function requestSymbol(node: PuzzleNode) {
-  pendingNodeId.value = node.id
-  activeTab.value = 'symbols'
-  isPanelOpen.value = true
-}
-
-function placeSelectedSymbol(item: CharacterData) {
-  const node = scrollStore.activeGrid.find(node => node.id === pendingNodeId.value)
-  if (isCompact.value && node && !node.character) {
-    const action = scrollStore.handleNodeDrop(item.char, node)
-    if (action)
-      playUiSound(action)
-  }
-
-  pendingNodeId.value = null
-  if (isCompact.value)
-    isPanelOpen.value = false
-}
-
-watch(isPanelOpen, (open) => {
-  if (!open)
-    pendingNodeId.value = null
-})
-watch(() => scrollStore.activeGrid, () => pendingNodeId.value = null)
 </script>
 
 <template>

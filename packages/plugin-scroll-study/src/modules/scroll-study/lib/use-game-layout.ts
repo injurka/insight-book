@@ -20,11 +20,13 @@ export function useGameLayout() {
 
   function measure() {
     const rect = rootRef.value?.getBoundingClientRect()
+
     if (!rect)
       return
 
     viewport.width = Math.round(rect.width)
     viewport.height = Math.round(rect.height)
+
     if (!initialized && rect.width > 0 && rect.height > 0) {
       isPanelOpen.value = !isCompact.value
       initialized = true
@@ -35,6 +37,7 @@ export function useGameLayout() {
   onMounted(() => {
     measure()
     observer = new ResizeObserver(measure)
+
     if (rootRef.value)
       observer.observe(rootRef.value)
   })

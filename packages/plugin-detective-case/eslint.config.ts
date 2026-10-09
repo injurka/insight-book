@@ -1,8 +1,5 @@
-import antfu from '@antfu/eslint-config'
+import { insightBookVueConfig } from '@injurka/insight-book-eslint-config/vue'
 
-export default antfu({
-  vue: true,
-  formatters: true,
-  node: false,
-  ignores: ['**/*.md', 'dist/**'],
+export default insightBookVueConfig({
+  ignores: ['**/*.md', '**/dist/**', '**/assets/**', '**/public/**', '**/vite-env.d.ts', 'auto-imports.d.ts'],
 })

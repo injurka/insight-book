@@ -1,6 +1,5 @@
 import type { InsightBookPlugin, InsightBookPluginContext } from '@injurka/insight-book-plugin-api'
 import { setPluginApi, setPluginContext } from '@injurka/insight-book-plugin-api'
-
 import en from './shared/locales/en'
 import ru from './shared/locales/ru'
 import zh from './shared/locales/zh'
@@ -18,6 +17,7 @@ const plugin: InsightBookPlugin = {
 
   activate(ctx: InsightBookPluginContext) {
     setPluginContext(ctx)
+
     if (ctx.api) {
       setPluginApi(ctx.api)
     }

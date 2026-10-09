@@ -19,7 +19,6 @@ interface MysteryScrollData {
   difficulty: 'Легкий' | 'Средний' | 'Сложный' | 'Легендарный'
   hintText: string
 }
-
 interface Props {
   isOpen: boolean
   activeTab: 'symbols' | 'scrolls'
@@ -27,7 +26,6 @@ interface Props {
 }
 
 const props = defineProps<Props>()
-
 const emit = defineEmits<{
   (e: 'update:isOpen', value: boolean): void
   (e: 'update:activeTab', value: 'symbols' | 'scrolls'): void
@@ -35,24 +33,24 @@ const emit = defineEmits<{
   (e: 'pointerdownSymbol', event: PointerEvent, item: CharacterData): void
 }>()
 
-const toggleRef = ref<HTMLButtonElement | null>(null)
-const panelRef = ref<HTMLElement | null>(null)
-
-watch(() => props.isOpen, async (open) => {
-  const focusWasInPanel = panelRef.value?.contains(document.activeElement)
-  await nextTick()
-  if (!open && focusWasInPanel)
-    toggleRef.value?.focus()
-})
-
-const mysteryScrolls: MysteryScrollData[] = []
-
 const scrollStore = useScrollStudyStore()
 
+const toggleRef = ref<HTMLButtonElement | null>(null)
+const panelRef = ref<HTMLElement | null>(null)
+const mysteryScrolls: MysteryScrollData[] = []
 const searchQuery = ref('')
+// Virtualize whole rows so the palette keeps its responsive square-card layout.
+const symbolsGridRef = ref<HTMLElement | null>(null)
+const gridWidth = ref(0)
+const gridHeight = ref(0)
+const gridScrollTop = ref(0)
+const gridGap = 8
+const overscanRows = 3
+let gridResizeObserver: ResizeObserver | undefined
 
 const filteredCharacters = computed(() => {
   const q = searchQuery.value.trim().toLowerCase()
+
   if (!q)
     return allCharacters
 
@@ -64,43 +62,33 @@ const filteredCharacters = computed(() => {
     return matchesChar || matchesPinyin || matchesTrans
   })
 })
-
-// Virtualize whole rows so the palette keeps its responsive square-card layout.
-const symbolsGridRef = ref<HTMLElement | null>(null)
-const gridWidth = ref(0)
-const gridHeight = ref(0)
-const gridScrollTop = ref(0)
-const gridGap = 8
-const overscanRows = 3
-const columnCount = computed(() => Math.max(1, Math.min(
-  filteredCharacters.value.length || 1,
-  Math.floor((gridWidth.value + gridGap) / (64 + gridGap)),
-)))
+const columnCount = computed(() => Math.max(1, Math.min(filteredCharacters.value.length || 1, Math.floor((gridWidth.value + gridGap) / (64 + gridGap)))))
 const rowHeight = computed(() => (gridWidth.value - (columnCount.value - 1) * gridGap) / columnCount.value + gridGap)
 const rowCount = computed(() => Math.ceil(filteredCharacters.value.length / columnCount.value))
 const totalHeight = computed(() => Math.max(0, rowCount.value * rowHeight.value - gridGap))
-const startRow = computed(() => Math.max(0, Math.min(
-  rowCount.value - 1,
-  Math.floor(Math.max(0, gridScrollTop.value - 3) / rowHeight.value),
-) - overscanRows))
-const endRow = computed(() => Math.min(rowCount.value,
-  Math.ceil((gridScrollTop.value + gridHeight.value) / rowHeight.value) + overscanRows,
-))
-const visibleCharacters = computed(() => filteredCharacters.value.slice(
-  startRow.value * columnCount.value,
-  endRow.value * columnCount.value,
-))
+const startRow = computed(() => Math.max(0, Math.min(rowCount.value - 1, Math.floor(Math.max(0, gridScrollTop.value - 3) / rowHeight.value)) - overscanRows))
+const endRow = computed(() => Math.min(rowCount.value, Math.ceil((gridScrollTop.value + gridHeight.value) / rowHeight.value) + overscanRows))
+const visibleCharacters = computed(() => filteredCharacters.value.slice(startRow.value * columnCount.value, endRow.value * columnCount.value))
 
-let gridResizeObserver: ResizeObserver | undefined
+watch(() => props.isOpen, async (open) => {
+  const focusWasInPanel = panelRef.value?.contains(document.activeElement)
+  await nextTick()
+
+  if (!open && focusWasInPanel)
+    toggleRef.value?.focus()
+})
 watch(symbolsGridRef, (element) => {
   gridResizeObserver?.disconnect()
+
   if (!element)
     return
 
   const measure = () => {
     const content = element.querySelector<HTMLElement>('.parchment-scrollbar-content')
+
     if (!content)
       return
+
     const style = getComputedStyle(content)
     gridWidth.value = Math.max(1, content.clientWidth - Number.parseFloat(style.paddingLeft) - Number.parseFloat(style.paddingRight))
     gridHeight.value = element.clientHeight
@@ -110,17 +98,25 @@ watch(symbolsGridRef, (element) => {
   gridResizeObserver = new ResizeObserver(measure)
   gridResizeObserver.observe(element)
 }, { flush: 'post' })
-
 watch(searchQuery, () => {
   gridScrollTop.value = 0
+
   if (symbolsGridRef.value)
     symbolsGridRef.value.scrollTop = 0
 }, { flush: 'sync' })
 
-onBeforeUnmount(() => gridResizeObserver?.disconnect())
-
 function onSymbolsScroll(event: Event) {
   gridScrollTop.value = (event.currentTarget as HTMLElement).scrollTop
+}
+
+function scrollSymbolIntoView(element: HTMLElement, index: number): void {
+  const top = 3 + Math.floor(index / columnCount.value) * rowHeight.value
+  const bottom = top + rowHeight.value - gridGap
+
+  if (top < element.scrollTop)
+    element.scrollTop = top
+  else if (bottom > element.scrollTop + element.clientHeight)
+    element.scrollTop = bottom - element.clientHeight
 }
 
 async function onSymbolKeydown(event: KeyboardEvent, index: number) {
@@ -129,35 +125,29 @@ async function onSymbolKeydown(event: KeyboardEvent, index: number) {
 
   const nextIndex = index + (event.shiftKey ? -1 : 1)
   const element = symbolsGridRef.value
+
   if (!element || nextIndex < 0 || nextIndex >= filteredCharacters.value.length)
     return
 
   event.preventDefault()
-  const top = 3 + Math.floor(nextIndex / columnCount.value) * rowHeight.value
-  const bottom = top + rowHeight.value - gridGap
-  if (top < element.scrollTop)
-    element.scrollTop = top
-  else if (bottom > element.scrollTop + element.clientHeight)
-    element.scrollTop = bottom - element.clientHeight
+  scrollSymbolIntoView(element, nextIndex)
   gridScrollTop.value = element.scrollTop
   await nextTick()
   element.querySelector<HTMLButtonElement>(`[data-symbol-index="${nextIndex}"]`)?.focus({ preventScroll: true })
 }
-
 function selectScroll(scroll: MysteryScrollData) {
   const charObj = allCharacters.find(c => c.char === scroll.char || c.id === scroll.targetCharacterId)
+
   if (charObj) {
     scrollStore.loadCharacterScroll(charObj)
     emit('update:activeTab', 'symbols')
   }
 }
-
 function selectSymbol(item: CharacterData) {
   scrollStore.selectedTablet = item.char
   playUiSound('select')
   emit('symbolSelected', item)
 }
-
 function getDifficultyBadgeClass(difficulty: MysteryScrollData['difficulty']) {
   switch (difficulty) {
     case 'Легкий':
@@ -172,6 +162,8 @@ function getDifficultyBadgeClass(difficulty: MysteryScrollData['difficulty']) {
       return 'badge-default'
   }
 }
+
+onBeforeUnmount(() => gridResizeObserver?.disconnect())
 </script>
 
 <template>
@@ -232,10 +224,10 @@ function getDifficultyBadgeClass(difficulty: MysteryScrollData['difficulty']) {
                   v-for="(item, index) in visibleCharacters"
                   :key="item.id"
                   :data-symbol-index="startRow * columnCount + index"
-                  @keydown="onSymbolKeydown($event, startRow * columnCount + index)"
                   class="symbol-card"
                   :class="{ selected: scrollStore.selectedTablet === item.char }"
                   :aria-pressed="scrollStore.selectedTablet === item.char"
+                  @keydown="onSymbolKeydown($event, startRow * columnCount + index)"
                   @click="selectSymbol(item)"
                   @pointerdown="emit('pointerdownSymbol', $event, item)"
                 >
@@ -747,7 +739,6 @@ function getDifficultyBadgeClass(difficulty: MysteryScrollData['difficulty']) {
   outline: 2px solid #ffe19a;
   outline-offset: 2px;
 }
-
 
 .ink-slide-enter-active,
 .ink-slide-leave-active {

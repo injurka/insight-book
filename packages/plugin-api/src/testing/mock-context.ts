@@ -90,15 +90,18 @@ class MockDictionaryApi {
 
   async getWords() {
     this.logger.log('dictionary.getWords')
+
     return JSON.parse(JSON.stringify(this.words))
   }
 
   async getDueWords(language: string) {
     this.logger.log('dictionary.getDueWords', language)
     const now = Date.now()
+
     return JSON.parse(JSON.stringify(this.words.filter((word) => {
       const due = word.due ? Date.parse(word.due) : Number.NaN
       const dueNow = !Number.isFinite(due) || due <= now
+
       return (!word.language || word.language.startsWith(language)) && dueNow
     })))
   }
@@ -106,6 +109,7 @@ class MockDictionaryApi {
   async updateWordStats(id: number, score: number) {
     this.logger.log('dictionary.updateWordStats', id, score)
     const word = this.words.find(w => w.id === id)
+
     if (word) {
       word.score = (word.score ?? 0) + score
     }
@@ -114,6 +118,7 @@ class MockDictionaryApi {
   async submitGrade(wordId: number, grade: number) {
     this.logger.log('dictionary.submitGrade', wordId, grade)
     const word = this.words.find(w => w.id === wordId)
+
     if (word) {
       word.grade = grade
     }
@@ -130,6 +135,7 @@ class MockReaderApi {
 
   getCurrentBook() {
     this.logger.log('reader.getCurrentBook')
+
     return this.currentBook
   }
 }
@@ -139,6 +145,7 @@ class MockUserApi {
 
   getProfile() {
     this.logger.log('user.getProfile')
+
     return this.userProfile
   }
 }
@@ -183,18 +190,23 @@ export function createMockPluginContext(options: MockContextOptions = {}): MockP
   const api: InsightBookPluginApiFacade = {
     request: async <T = unknown>(endpoint: string, reqOptions?: PluginHttpRequestOptions): Promise<T> => {
       logger.log('request', endpoint, reqOptions)
+
       if (options.onRequest) {
         return (await options.onRequest(endpoint, reqOptions)) as T
       }
+
       return { success: true } as unknown as T
     },
     llm: {
       generate: async <T = unknown>(payload: PluginLlmGeneratePayload): Promise<PluginLlmGenerateResult<T>> => {
         logger.log('llm.generate', payload)
+
         if (options.onLlmGenerate) {
           const result = await options.onLlmGenerate(payload)
+
           return result as PluginLlmGenerateResult<T>
         }
+
         return {
           success: true,
           data: (payload.json ? {} : undefined) as T,
@@ -233,6 +245,7 @@ export function createMockPluginContext(options: MockContextOptions = {}): MockP
     },
     addNavigationItem: (item) => {
       const exists = navigationItems.some(n => n.routeName === item.routeName)
+
       if (!exists) {
         navigationItems.push(item)
       }
@@ -240,7 +253,7 @@ export function createMockPluginContext(options: MockContextOptions = {}): MockP
     registerUIWidget: (
       position: UIPosition,
       id: string,
-      component: any,
+      component: PluginUIWidget['component'],
       props?: Record<string, unknown>,
     ) => {
       widgets[id] = { id, position, component: markRaw(component), props }

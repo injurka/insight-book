@@ -67,9 +67,10 @@ async function fetchActivity() {
   <KitDialog
     v-if="authStore.user"
     v-model:visible="visible"
-    :title="t('dictionary.activityStats')"
     icon="mdi:chart-box-outline"
+    :title="t('dictionary.activityStats')"
     :max-width="850"
+    :minimizable="false"
   >
     <div class="stats-modal-content">
       <ActivityHeatmap

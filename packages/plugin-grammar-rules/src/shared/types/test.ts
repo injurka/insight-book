@@ -1,22 +1,22 @@
-export type TestType =
-  | 'multiple_choice'   // Выбор 1 из N с объяснением дистракторов
-  | 'cloze_choice'      // Выбор пропущенного слова из чипов
-  | 'cloze_input'       // Ввод пропущенной формы с клавиатуры
-  | 'sentence_scramble' // Сборка предложения из перемешанных слов
-  | 'find_error'        // Поиск ошибки в сегментах предложения
+export type TestType
+  = | 'multiple_choice' // Выбор 1 из N с объяснением дистракторов
+    | 'cloze_choice' // Выбор пропущенного слова из чипов
+    | 'cloze_input' // Ввод пропущенной формы с клавиатуры
+    | 'sentence_scramble' // Сборка предложения из перемешанных слов
+    | 'find_error' // Поиск ошибки в сегментах предложения
 
 export interface BaseTest {
   id: string
   ruleId: string
   type: TestType
-  prompt?: string                // Инструкция к заданию
-  explanation?: string          // Общее объяснение правила / решения
+  prompt?: string // Инструкция к заданию
+  explanation?: string // Общее объяснение правила / решения
 }
 
 export interface MultipleChoiceOption {
   text: string
   isCorrect?: boolean
-  feedback?: string             // Почему этот вариант верный/неверный (distractor explanation)
+  feedback?: string // Почему этот вариант верный/неверный (distractor explanation)
 }
 
 export interface MultipleChoiceTest extends BaseTest {
@@ -28,22 +28,22 @@ export interface MultipleChoiceTest extends BaseTest {
 
 export interface ClozeChoiceTest extends BaseTest {
   type: 'cloze_choice'
-  sentenceWithBlank: string     // "She ___ (go) to school every day."
+  sentenceWithBlank: string // "She ___ (go) to school every day."
   options: string[]
   correctAnswer: string
 }
 
 export interface ClozeInputTest extends BaseTest {
   type: 'cloze_input'
-  sentenceWithBlank: string     // "She ___ (go) to school yesterday."
-  validAnswers: string[]        // ["went"] (проверка регистронезависима)
+  sentenceWithBlank: string // "She ___ (go) to school yesterday."
+  validAnswers: string[] // ["went"] (проверка регистронезависима)
   hints?: string[]
 }
 
 export interface SentenceScrambleTest extends BaseTest {
   type: 'sentence_scramble'
-  translation: string           // "Она вчера пошла в библиотеку"
-  tokens: string[]              // ["Yesterday", "she", "went", "to", "the", "library"]
+  translation: string // "Она вчера пошла в библиотеку"
+  tokens: string[] // ["Yesterday", "she", "went", "to", "the", "library"]
   correctOrder: string[]
   acceptableOrders?: string[][] // Альтернативные правильные варианты порядка слов
 }
@@ -61,12 +61,12 @@ export interface FindErrorTest extends BaseTest {
   segments: FindErrorSegment[]
 }
 
-export type AnyRuleTest =
-  | MultipleChoiceTest
-  | ClozeChoiceTest
-  | ClozeInputTest
-  | SentenceScrambleTest
-  | FindErrorTest
+export type AnyRuleTest
+  = | MultipleChoiceTest
+    | ClozeChoiceTest
+    | ClozeInputTest
+    | SentenceScrambleTest
+    | FindErrorTest
 
 // Legacy interface compatibility
 export interface LegacyRuleTest {

@@ -1,7 +1,7 @@
 import type { CharacterData } from '../../../data'
 import { reactive, ref, watch } from 'vue'
-import { playUiSound } from './ui-sound'
 import { useScrollStudyStore } from '../model/scroll-study.store'
+import { playUiSound } from './ui-sound'
 
 export interface BurstEvent {
   x: number
@@ -67,11 +67,35 @@ export function useScrollDrag() {
     }
   }
 
+  function placeDraggedCharacter(symbol: string, x: number, y: number): boolean {
+    const targetEl = document.elementFromPoint(x, y)
+    const nodeId = targetEl?.closest('[data-node-id]')?.getAttribute('data-node-id')
+
+    if (!nodeId) {
+      return false
+    }
+
+    const targetNode = scrollStore.activeGrid.find(node => node.id === nodeId)
+
+    if (!targetNode || targetNode.type !== 'empty' || scrollStore.isFinished) {
+      return false
+    }
+
+    const action = scrollStore.handleNodeDrop(symbol, targetNode)
+
+    if (action) {
+      playUiSound(action)
+    }
+
+    return true
+  }
+
   function onPointerDown(e: PointerEvent, item: CharacterData) {
     if (e.button !== 0 && e.pointerType === 'mouse')
       return
 
     scrollStore.selectedTablet = item.char
+
     // Touch uses tap-to-select, then tap-to-place so the palette can scroll naturally.
     if (e.pointerType === 'touch')
       return
@@ -88,9 +112,11 @@ export function useScrollDrag() {
 
     const onPointerMove = (moveEv: PointerEvent) => {
       const dist = Math.hypot(moveEv.clientX - startX, moveEv.clientY - startY)
+
       if (!isPointerDragging.value && dist > 4) {
         isPointerDragging.value = true
         dragScale.value = 0.65
+
         if (!animFrameId) {
           animFrameId = requestAnimationFrame(updatePhysics)
         }
@@ -118,26 +144,15 @@ export function useScrollDrag() {
     const onPointerUp = (upEv: PointerEvent) => {
       window.removeEventListener('pointermove', onPointerMove)
       window.removeEventListener('pointerup', onPointerUp)
+
       if (animFrameId) {
         cancelAnimationFrame(animFrameId)
         animFrameId = null
       }
 
       if (isPointerDragging.value && dragChar.value) {
-        const targetEl = document.elementFromPoint(upEv.clientX, upEv.clientY)
-        const nodeEl = targetEl?.closest('[data-node-id]')
-        const nodeId = nodeEl?.getAttribute('data-node-id')
-
-        let placed = false
-        if (nodeId) {
-          const targetNode = scrollStore.activeGrid.find(n => n.id === nodeId)
-          if (targetNode && targetNode.type === 'empty' && !scrollStore.isFinished) {
-            const action = scrollStore.handleNodeDrop(dragChar.value.char, targetNode)
-            if (action)
-              playUiSound(action)
-            placed = true
-          }
-        }
+        const symbol = dragChar.value.char
+        const placed = placeDraggedCharacter(symbol, upEv.clientX, upEv.clientY)
 
         if (!placed) {
           triggerBurstEffect(upEv.clientX, upEv.clientY, dragChar.value.char)

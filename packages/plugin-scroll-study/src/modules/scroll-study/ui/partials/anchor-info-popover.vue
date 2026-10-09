@@ -9,29 +9,38 @@ import { useScrollStudyStore } from '../../model/scroll-study.store'
 interface Props {
   node: PuzzleNode
 }
+
 const props = defineProps<Props>()
 const emit = defineEmits<{ openChange: [open: boolean] }>()
+
 const store = useScrollStudyStore()
-let trigger: HTMLElement | undefined
 const panel = useTemplateRef<HTMLDivElement>('panel')
 const id = useId()
+
+defineExpose({ toggle, id })
+
+let trigger: HTMLElement | undefined
+
 const character = computed(() => allCharacters.find(item => item.char === props.node.character))
+
+watch(() => store.activeGrid, () => close())
 
 function close(event?: Event) {
   if (event?.target instanceof Node && panel.value?.contains(event.target))
     return
+
   panel.value?.hidePopover()
 }
-
 function onToggle(event: ToggleEvent) {
   const open = event.newState === 'open'
   emit('openChange', open)
 }
-
 function toggle(anchor: HTMLElement) {
   const element = panel.value
+
   if (!element)
     return
+
   if (element.matches(':popover-open')) {
     element.hidePopover()
 
@@ -43,7 +52,6 @@ function toggle(anchor: HTMLElement) {
   positionPanel()
   element.querySelector<HTMLButtonElement>('button')?.focus({ preventScroll: true })
 }
-
 function getSceneBounds(board: Element) {
   const scene = board.closest('.scroll-desktop-view')?.getBoundingClientRect()
 
@@ -53,10 +61,10 @@ function getSceneBounds(board: Element) {
     bottom: Math.min(window.innerHeight, scene?.bottom ?? window.innerHeight),
   }
 }
-
 function positionPanel() {
   const element = panel.value
   const board = trigger?.closest('.research-board-container')
+
   if (!element?.matches(':popover-open') || !board)
     return
 
@@ -72,7 +80,6 @@ function positionPanel() {
   element.style.left = `${left}px`
   element.style.top = `${Math.max(topEdge, Math.min(rect.top + rect.height / 2 - element.offsetHeight / 2, bottomEdge - element.offsetHeight))}px`
 }
-
 function dismiss() {
   close()
   trigger?.focus({ preventScroll: true })
@@ -80,8 +87,6 @@ function dismiss() {
 
 onMounted(() => window.addEventListener('resize', close))
 onUnmounted(() => window.removeEventListener('resize', close))
-watch(() => store.activeGrid, () => close())
-defineExpose({ toggle, id })
 </script>
 
 <template>
@@ -147,8 +152,13 @@ defineExpose({ toggle, id })
   border-radius: 6px;
   background: linear-gradient(145deg, #302219, #1e1712);
   color: #ead9b9;
-  box-shadow: 0 8px 24px #0008, inset 0 0 0 2px #211810, inset 0 0 0 3px #73533240;
-  font: 12px/1.4 'Maple Mono CN', monospace;
+  box-shadow:
+    0 8px 24px #0008,
+    inset 0 0 0 2px #211810,
+    inset 0 0 0 3px #73533240;
+  font:
+    12px/1.4 'Maple Mono CN',
+    monospace;
   cursor: auto;
   opacity: 1;
   transform: scale(1) translateY(0);
@@ -186,18 +196,96 @@ defineExpose({ toggle, id })
   transform: scale(0.98) translateY(4px);
 }
 
-h3, p { margin: 0; }
+h3,
+p {
+  margin: 0;
+}
 
-.close-button { position: absolute; top: 4px; right: 4px; display: grid; place-items: center; width: 36px; height: 36px; flex-shrink: 0; padding: 0; border: 0; border-radius: 4px; background: transparent; color: #bda27a; font-size: 16px; cursor: pointer; }
-.close-button:hover { background: #94704430; color: #f4e2be; }
-.close-button:focus-visible { outline: 2px solid #d0ac73; outline-offset: 2px; }
-.identity { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding-right: 22px; display: flex; align-items: center; gap: 10px; }
-.symbol { display: grid; place-items: center; flex-shrink: 0; width: 48px; height: 48px; border: 1px solid #94704470; border-radius: 4px; background: #483222; color: #edc991; font: 32px/1.2 'Maple Mono CN', monospace; box-shadow: inset 0 1px 3px #48250f12; }
-.meaning { min-width: 0; }
-h3 { font-size: 16px; line-height: 1.25; overflow-wrap: anywhere; }
-.pronunciation { margin-bottom: 3px; color: #d0ac73; font-size: 14px; font-weight: 600; }
-.word-kind { margin-top: 5px; color: #bda27a; font-size: 11px; }
-.facts { display: flex; flex-wrap: wrap; gap: 6px; flex: 0 0 auto; margin-top: 0; padding-top: 8px; border-top: 1px solid #94704450; }
-.facts span { color: #bda27a; font-size: 10px; }
-.facts span + span::before { content: "·"; margin-right: 6px; opacity: 0.5; }
+.close-button {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: #bda27a;
+  font-size: 16px;
+  cursor: pointer;
+}
+.close-button:hover {
+  background: #94704430;
+  color: #f4e2be;
+}
+.close-button:focus-visible {
+  outline: 2px solid #d0ac73;
+  outline-offset: 2px;
+}
+.identity {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-right: 22px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.symbol {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 48px;
+  height: 48px;
+  border: 1px solid #94704470;
+  border-radius: 4px;
+  background: #483222;
+  color: #edc991;
+  font:
+    32px/1.2 'Maple Mono CN',
+    monospace;
+  box-shadow: inset 0 1px 3px #48250f12;
+}
+.meaning {
+  min-width: 0;
+}
+h3 {
+  font-size: 16px;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+.pronunciation {
+  margin-bottom: 3px;
+  color: #d0ac73;
+  font-size: 14px;
+  font-weight: 600;
+}
+.word-kind {
+  margin-top: 5px;
+  color: #bda27a;
+  font-size: 11px;
+}
+.facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  flex: 0 0 auto;
+  margin-top: 0;
+  padding-top: 8px;
+  border-top: 1px solid #94704450;
+}
+.facts span {
+  color: #bda27a;
+  font-size: 10px;
+}
+.facts span + span::before {
+  content: '·';
+  margin-right: 6px;
+  opacity: 0.5;
+}
 </style>

@@ -20,6 +20,7 @@ import { useAuthStore } from '~/01.shared/store/auth.store'
 import { useGlobalSettingsStore } from '~/01.shared/store/settings.store'
 import { useToastStore } from '~/01.shared/store/toast.store'
 import App from './app.vue'
+import '@injurka/insight-book-theme/styles/theme-variables.css'
 import '~/assets/scss/global.scss'
 import '~/assets/scss/normalize.scss'
 /* eslint-enable perfectionist/sort-imports */

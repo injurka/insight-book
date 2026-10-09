@@ -1,18 +1,13 @@
 {
   "compilerOptions": {
     "target": "ESNext",
-    "module": "ESNext",
-    "moduleResolution": "bundler",
-    "strict": true,
     "jsx": "preserve",
-    "resolveJsonModule": true,
-    "isolatedModules": true,
-    "esModuleInterop": true,
     "lib": [
       "ESNext",
       "DOM"
     ],
-    "skipLibCheck": true,
+    "module": "ESNext",
+    "moduleResolution": "bundler",
     "paths": {
       "~/*": [
         "../../apps/client/src/*"
@@ -23,7 +18,12 @@
       "~plugin/*": [
         "./src/*"
       ]
-    }
+    },
+    "resolveJsonModule": true,
+    "strict": true,
+    "esModuleInterop": true,
+    "isolatedModules": true,
+    "skipLibCheck": true
   },
   "include": [
     "src/**/*.ts",

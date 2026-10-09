@@ -7,6 +7,7 @@ FROM oven/bun:1.4-slim AS builder
 WORKDIR /usr/src/app
 
 COPY package.json bun.lock ./
+COPY apps/client/patches/ ./apps/client/patches/
 
 COPY apps/admin/package.json ./apps/admin/
 
@@ -88,4 +89,3 @@ RUN chmod +x /entrypoint.sh
 EXPOSE 3335
 
 CMD ["/entrypoint.sh"]
-

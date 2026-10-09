@@ -19,6 +19,7 @@ function onScroll(event: Event) {
 onMounted(() => {
   if (!rootRef.value)
     return
+
   scrollbar = new SimpleBar(rootRef.value, { autoHide: false, scrollbarMinSize: 56 })
   scrollElement = scrollbar.getScrollElement()
   scrollElement?.addEventListener('scroll', onScroll, { passive: true })
@@ -77,12 +78,16 @@ onBeforeUnmount(() => {
     background: #80512e;
     box-shadow: inset 0 0 0 1px #efd9b033;
     opacity: 1;
-    transition: background-color 0.15s ease, box-shadow 0.15s ease;
+    transition:
+      background-color 0.15s ease,
+      box-shadow 0.15s ease;
   }
 
   :deep(.simplebar-track.simplebar-vertical:hover .simplebar-scrollbar::before) {
     background: #694221;
-    box-shadow: inset 0 0 0 1px #efd9b04d, 0 0 4px #48250f26;
+    box-shadow:
+      inset 0 0 0 1px #efd9b04d,
+      0 0 4px #48250f26;
   }
 
   &.simplebar-dragging :deep(.simplebar-track.simplebar-vertical .simplebar-scrollbar::before) {

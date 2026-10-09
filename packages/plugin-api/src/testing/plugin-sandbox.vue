@@ -6,10 +6,8 @@ import { Icon } from '@iconify/vue'
 import { computed, defineAsyncComponent, markRaw, onMounted, onUnmounted, provide, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { createMemoryHistory, createRouter } from 'vue-router'
-
 import { setPluginContext } from '../index'
 import { createMockPluginContext } from '../testing/mock-context'
-
 import SandboxHeader from './components/sandbox-header.vue'
 import SandboxInspectorLogs from './components/sandbox-inspector-logs.vue'
 import SandboxSidebar from './components/sandbox-sidebar.vue'
@@ -22,6 +20,8 @@ interface Props {
 
 const props = defineProps<Props>()
 
+const i18n = useI18n({ useScope: 'global' })
+
 const mockRouter = createRouter({
   history: createMemoryHistory(),
   routes: [
@@ -29,109 +29,19 @@ const mockRouter = createRouter({
     { path: '/:pathMatch(.*)*', name: 'not-found', component: { template: '<div/>' } },
   ],
 })
-provide('router', mockRouter)
-
 const mock = createMockPluginContext({
   ...props.options,
 })
-
-const i18n = useI18n({ useScope: 'global' })
-
-watch(() => mock.translations, (newTranslations) => {
-  for (const [locale, msgs] of Object.entries(newTranslations)) {
-    i18n.mergeLocaleMessage(locale, {
-      plugins: {
-        [props.plugin.id]: msgs,
-      },
-    })
-  }
-}, { deep: true, immediate: true })
-
-watch(() => mock.locale.value, (newLocale) => {
-  i18n.locale.value = newLocale
-}, { immediate: true })
-
 const isActive = ref(false)
 const activationError = ref('')
 const activeTab = ref<'pages' | 'widgets' | 'logs'>('pages')
 const selectedPageKey = ref<string>('index')
 const selectedWidgetId = ref<string | null>(null)
-
 const isDark = ref(typeof localStorage !== 'undefined'
   ? localStorage.getItem('insightbook-sandbox-theme') !== 'light'
   : true)
-
-watch(isDark, (val) => {
-  if (typeof localStorage !== 'undefined') {
-    localStorage.setItem('insightbook-sandbox-theme', val ? 'dark' : 'light')
-  }
-})
-
 const isFullscreen = ref(false)
 const isSidebarOpen = ref(false)
-
-function enterFullscreen() {
-  isFullscreen.value = true
-}
-
-function exitFullscreen() {
-  isFullscreen.value = false
-}
-
-function toggleSidebar() {
-  isSidebarOpen.value = !isSidebarOpen.value
-}
-
-function closeSidebar() {
-  isSidebarOpen.value = false
-}
-
-function handleKeydown(e: KeyboardEvent) {
-  if (e.key === 'Escape') {
-    if (isFullscreen.value)
-      exitFullscreen()
-    else if (isSidebarOpen.value)
-      closeSidebar()
-  }
-}
-
-onMounted(() => {
-  window.addEventListener('keydown', handleKeydown)
-  activatePlugin()
-})
-onUnmounted(() => {
-  window.removeEventListener('keydown', handleKeydown)
-})
-
-async function activatePlugin() {
-  activationError.value = ''
-  try {
-    setPluginContext(mock.context)
-    if (props.plugin.activate) {
-      await props.plugin.activate(mock.context)
-    }
-    isActive.value = true
-  }
-  catch (error: unknown) {
-    activationError.value = error instanceof Error
-      ? error.message
-      : i18n.t('sandbox.activationError')
-    isActive.value = false
-  }
-}
-
-async function deactivatePlugin() {
-  if (props.plugin.deactivate) {
-    await props.plugin.deactivate(mock.context)
-  }
-  isActive.value = false
-}
-
-function toggleActivation() {
-  if (isActive.value)
-    deactivatePlugin()
-  else activatePlugin()
-}
 
 const pages = computed(() => props.plugin.pages ?? {})
 const activePageComponent = computed(() => {
@@ -148,11 +58,91 @@ const activePageComponent = computed(() => {
     ? defineAsyncComponent(rawComp as () => Promise<Component | { default: Component }>)
     : rawComp)
 })
-
 const activeWidget = computed(() => {
   if (!selectedWidgetId.value)
     return null
+
   return mock.widgets[selectedWidgetId.value] ?? null
+})
+
+watch(() => mock.translations, (newTranslations) => {
+  for (const [locale, msgs] of Object.entries(newTranslations)) {
+    i18n.mergeLocaleMessage(locale, {
+      plugins: {
+        [props.plugin.id]: msgs,
+      },
+    })
+  }
+}, { deep: true, immediate: true })
+watch(() => mock.locale.value, (newLocale) => {
+  i18n.locale.value = newLocale
+}, { immediate: true })
+watch(isDark, (val) => {
+  if (typeof localStorage !== 'undefined') {
+    localStorage.setItem('insightbook-sandbox-theme', val ? 'dark' : 'light')
+  }
+})
+
+function enterFullscreen() {
+  isFullscreen.value = true
+}
+function exitFullscreen() {
+  isFullscreen.value = false
+}
+function toggleSidebar() {
+  isSidebarOpen.value = !isSidebarOpen.value
+}
+function closeSidebar() {
+  isSidebarOpen.value = false
+}
+function handleKeydown(e: KeyboardEvent) {
+  if (e.key === 'Escape') {
+    if (isFullscreen.value)
+      exitFullscreen()
+    else if (isSidebarOpen.value)
+      closeSidebar()
+  }
+}
+async function activatePlugin() {
+  activationError.value = ''
+
+  try {
+    setPluginContext(mock.context)
+
+    if (props.plugin.activate) {
+      await props.plugin.activate(mock.context)
+    }
+
+    isActive.value = true
+  }
+  catch (error: unknown) {
+    activationError.value = error instanceof Error
+      ? error.message
+      : i18n.t('sandbox.activationError')
+    isActive.value = false
+  }
+}
+async function deactivatePlugin() {
+  if (props.plugin.deactivate) {
+    await props.plugin.deactivate(mock.context)
+  }
+
+  isActive.value = false
+}
+function toggleActivation() {
+  if (isActive.value)
+    deactivatePlugin()
+  else activatePlugin()
+}
+
+provide('router', mockRouter)
+
+onMounted(() => {
+  window.addEventListener('keydown', handleKeydown)
+  activatePlugin()
+})
+onUnmounted(() => {
+  window.removeEventListener('keydown', handleKeydown)
 })
 </script>
 

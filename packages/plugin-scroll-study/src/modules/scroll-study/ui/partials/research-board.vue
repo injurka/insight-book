@@ -10,35 +10,29 @@ import HexCell from './hex-cell.vue'
 interface Props {
   selectOnClick: boolean
 }
+
 const props = defineProps<Props>()
 const emit = defineEmits<{ requestSymbol: [node: PuzzleNode] }>()
 
 const scrollStore = useScrollStudyStore()
+
 const viewportRef = ref<HTMLDivElement | null>(null)
 const boardWidth = 620
 const boardHeight = boardWidth
 const boardScale = ref(1)
-const boardStyle = computed(() => ({ transform: `scale(${boardScale.value})` }))
 let resizeObserver: ResizeObserver | undefined
+
+const boardStyle = computed(() => ({ transform: `scale(${boardScale.value})` }))
 
 function updateBoardScale() {
   const viewport = viewportRef.value
+
   if (!viewport)
     return
 
   const { width, height } = viewport.getBoundingClientRect()
   boardScale.value = Math.max(0, Math.min(width / boardWidth, height / boardHeight, 1))
 }
-
-onMounted(() => {
-  resizeObserver = new ResizeObserver(updateBoardScale)
-  if (viewportRef.value)
-    resizeObserver.observe(viewportRef.value)
-  updateBoardScale()
-})
-
-onUnmounted(() => resizeObserver?.disconnect())
-
 function getLinePos(q: number, r: number) {
   const size = scrollStore.hexSize
   const x = size * Math.sqrt(3) * (q + r / 2)
@@ -46,7 +40,6 @@ function getLinePos(q: number, r: number) {
 
   return { x, y }
 }
-
 function getConnectionPos(conn: GridConnection) {
   const start = getLinePos(conn.q1, conn.r1)
   const end = getLinePos(conn.q2, conn.r2)
@@ -62,16 +55,16 @@ function getConnectionPos(conn: GridConnection) {
     y2: end.y - dy * inset,
   }
 }
-
 function onDrop(event: DragEvent, node: PuzzleNode) {
   const symbol = event.dataTransfer?.getData('text/plain') || scrollStore.selectedTablet
+
   if (symbol) {
     const action = scrollStore.handleNodeDrop(symbol, node)
+
     if (action)
       playUiSound(action)
   }
 }
-
 function onNodeClick(node: PuzzleNode) {
   if (props.selectOnClick && !node.character && !scrollStore.isFinished) {
     emit('requestSymbol', node)
@@ -80,9 +73,20 @@ function onNodeClick(node: PuzzleNode) {
   }
 
   const action = scrollStore.handleNodeClick(node)
+
   if (action)
     playUiSound(action)
 }
+
+onMounted(() => {
+  resizeObserver = new ResizeObserver(updateBoardScale)
+
+  if (viewportRef.value)
+    resizeObserver.observe(viewportRef.value)
+
+  updateBoardScale()
+})
+onUnmounted(() => resizeObserver?.disconnect())
 </script>
 
 <template>

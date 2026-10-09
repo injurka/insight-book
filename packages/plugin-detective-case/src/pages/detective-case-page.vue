@@ -30,8 +30,6 @@ const {
   returnHome,
 } = useDetectiveGame()
 
-const gameCase = computed(() => state.gameCase)
-
 const stageTitles: Record<LearningStage, string> = {
   recognition: 'Узнать',
   meaning: 'Понять',
@@ -40,7 +38,7 @@ const stageTitles: Record<LearningStage, string> = {
   production: 'Сказать',
 }
 
-onMounted(loadWords)
+const gameCase = computed(() => state.gameCase)
 
 function submitCurrentStage(answer: string): void {
   switch (currentStage.value) {
@@ -61,11 +59,12 @@ function submitCurrentStage(answer: string): void {
       break
   }
 }
-
 async function restart(): Promise<void> {
   returnHome()
   await loadWords()
 }
+
+onMounted(loadWords)
 </script>
 
 <template>

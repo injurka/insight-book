@@ -1,18 +1,16 @@
 <script setup lang="ts">
+import type { SupportedLanguage } from '../../../shared/types'
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { KitBtn, KitSelect, KitTabs } from '~/02.kit'
-import type { SupportedLanguage } from '../../../shared/types'
 import { useGrammarCatalog } from '../composables/use-grammar-catalog'
 import { useRulesFilter } from '../composables/use-rules-filter'
-
 import RulesListTab from './partials/rules-list-tab.vue'
 import RulesTestTab from './partials/rules-test-tab.vue'
 
 const { t } = useI18n()
 const router = useRouter()
-
 const {
   currentLanguage,
   availableLanguages,
@@ -23,9 +21,6 @@ const {
   setLanguage,
   addCustomTests,
 } = useGrammarCatalog()
-
-const activeTab = ref<'rules' | 'test'>('rules')
-
 const {
   searchQuery,
   selectedCategory,
@@ -34,6 +29,8 @@ const {
   levelOptions,
   filteredRules,
 } = useRulesFilter(rules, currentConfig)
+
+const activeTab = ref<'rules' | 'test'>('rules')
 
 const tabItems = computed(() => [
   {
@@ -47,7 +44,6 @@ const tabItems = computed(() => [
     icon: 'mdi:clipboard-check-outline',
   },
 ])
-
 const languageSelectOptions = computed(() => {
   return availableLanguages.value.map(lang => ({
     label: lang.name,
@@ -56,13 +52,12 @@ const languageSelectOptions = computed(() => {
   }))
 })
 
-const onLanguageChange = (val: unknown) => {
+function onLanguageChange(val: unknown) {
   if (typeof val === 'string') {
     setLanguage(val as SupportedLanguage)
   }
 }
-
-const onStartRuleTest = (generatedTests: typeof tests.value) => {
+function onStartRuleTest(generatedTests: typeof tests.value) {
   addCustomTests(generatedTests)
   activeTab.value = 'test'
 }
@@ -100,9 +95,9 @@ const onStartRuleTest = (generatedTests: typeof tests.value) => {
         <KitTabs v-model="activeTab" :items="tabItems">
           <template #rules>
             <RulesListTab
-              v-model:searchQuery="searchQuery"
-              v-model:selectedCategory="selectedCategory"
-              v-model:selectedLevel="selectedLevel"
+              v-model:search-query="searchQuery"
+              v-model:selected-category="selectedCategory"
+              v-model:selected-level="selectedLevel"
               :filtered-rules="filteredRules"
               :category-options="categoryOptions"
               :level-options="levelOptions"

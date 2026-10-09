@@ -1,12 +1,14 @@
 <script setup lang="ts">
+import type { Component } from 'vue'
+import type { PluginUIWidget } from '../../types'
 import { Icon } from '@iconify/vue'
 import { useI18n } from 'vue-i18n'
 
 interface Props {
   isSidebarOpen: boolean
   isFullscreen: boolean
-  pages: Record<string, any>
-  widgets: Record<string, any>
+  pages: Record<string, Component>
+  widgets: Record<string, PluginUIWidget>
   activeTab: 'pages' | 'widgets' | 'logs'
   selectedPageKey: string
   selectedWidgetId: string | null

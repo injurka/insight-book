@@ -1,5 +1,6 @@
-import { computed, type Ref, ref } from 'vue'
+import type { Ref } from 'vue'
 import type { GrammarMasteryLevel, GrammarSrsItem, Rule } from '../../../shared/types'
+import { computed, ref } from 'vue'
 
 const SRS_STORAGE_KEY = 'plugin_grammar_rules_srs_v1'
 
@@ -7,7 +8,7 @@ const INTERVALS_DAYS: Record<GrammarMasteryLevel, number> = {
   new: 0,
   learning: 1,
   review: 4,
-  mastered: 21
+  mastered: 21,
 }
 
 export function useGrammarSrs(rules: Ref<Rule[]>, lang: Ref<string>) {
@@ -16,10 +17,12 @@ export function useGrammarSrs(rules: Ref<Rule[]>, lang: Ref<string>) {
   const loadFromStorage = () => {
     try {
       const raw = localStorage.getItem(SRS_STORAGE_KEY)
+
       if (raw) {
         srsMap.value = JSON.parse(raw)
       }
-    } catch {
+    }
+    catch {
       srsMap.value = {}
     }
   }
@@ -27,7 +30,8 @@ export function useGrammarSrs(rules: Ref<Rule[]>, lang: Ref<string>) {
   const saveToStorage = () => {
     try {
       localStorage.setItem(SRS_STORAGE_KEY, JSON.stringify(srsMap.value))
-    } catch (e) {
+    }
+    catch (e) {
       console.warn('Failed to save SRS state', e)
     }
   }
@@ -36,6 +40,7 @@ export function useGrammarSrs(rules: Ref<Rule[]>, lang: Ref<string>) {
 
   const getRuleSrs = (ruleId: string): GrammarSrsItem => {
     const key = `${lang.value}:${ruleId}`
+
     if (!srsMap.value[key]) {
       srsMap.value[key] = {
         ruleId,
@@ -45,9 +50,10 @@ export function useGrammarSrs(rules: Ref<Rule[]>, lang: Ref<string>) {
         totalAttempts: 0,
         correctAttempts: 0,
         lastReviewedAt: null,
-        nextReviewAt: null
+        nextReviewAt: null,
       }
     }
+
     return srsMap.value[key]
   }
 
@@ -64,12 +70,15 @@ export function useGrammarSrs(rules: Ref<Rule[]>, lang: Ref<string>) {
 
       if (item.streak >= 4) {
         item.mastery = 'mastered'
-      } else if (item.streak >= 2) {
+      }
+      else if (item.streak >= 2) {
         item.mastery = 'review'
-      } else {
+      }
+      else {
         item.mastery = 'learning'
       }
-    } else {
+    }
+    else {
       item.streak = 0
       item.mastery = 'learning'
     }
@@ -84,11 +93,17 @@ export function useGrammarSrs(rules: Ref<Rule[]>, lang: Ref<string>) {
   }
 
   const rulesDueForReview = computed(() => {
-    const now = new Date().getTime()
+    const now = Date.now()
+
     return rules.value.filter((r) => {
       const item = getRuleSrs(r.id)
-      if (item.mastery === 'new') return true
-      if (!item.nextReviewAt) return true
+
+      if (item.mastery === 'new')
+        return true
+
+      if (!item.nextReviewAt)
+        return true
+
       return new Date(item.nextReviewAt).getTime() <= now
     })
   })
@@ -102,11 +117,20 @@ export function useGrammarSrs(rules: Ref<Rule[]>, lang: Ref<string>) {
 
     for (const r of currentRules) {
       const item = getRuleSrs(r.id)
+
       switch (item.mastery) {
-        case 'new': newCount++; break
-        case 'learning': learningCount++; break
-        case 'review': reviewCount++; break
-        case 'mastered': masteredCount++; break
+        case 'new':
+          newCount++
+          break
+        case 'learning':
+          learningCount++
+          break
+        case 'review':
+          reviewCount++
+          break
+        case 'mastered':
+          masteredCount++
+          break
       }
     }
 
@@ -119,7 +143,7 @@ export function useGrammarSrs(rules: Ref<Rule[]>, lang: Ref<string>) {
       learningCount,
       reviewCount,
       masteredCount,
-      progressPercent
+      progressPercent,
     }
   })
 
@@ -127,6 +151,6 @@ export function useGrammarSrs(rules: Ref<Rule[]>, lang: Ref<string>) {
     getRuleSrs,
     recordRuleResult,
     rulesDueForReview,
-    stats
+    stats,
   }
 }

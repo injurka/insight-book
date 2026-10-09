@@ -20,7 +20,6 @@ const emit = defineEmits<{
 }>()
 
 const answer = ref('')
-
 const stageLabels: Record<LearningStage, string> = {
   recognition: 'Узнавание',
   meaning: 'Значение',
@@ -28,7 +27,6 @@ const stageLabels: Record<LearningStage, string> = {
   recall: 'Воспоминание',
   production: 'Своя фраза',
 }
-
 const stageInstructions: Record<LearningStage, string> = {
   recognition: 'Ключевое слово прозвучало в показании. Найдите его.',
   meaning: 'Что означает это слово? Ответьте по-русски.',
@@ -36,7 +34,6 @@ const stageInstructions: Record<LearningStage, string> = {
   recall: 'Вспомните, что сообщил свидетель, и ответьте по-английски.',
   production: 'Составьте свою английскую фразу с этим словом.',
 }
-
 const textPlaceholder: Record<LearningStage, string> = {
   recognition: '',
   meaning: 'Например: заметить',
@@ -45,17 +42,15 @@ const textPlaceholder: Record<LearningStage, string> = {
   production: 'Напишите предложение на английском',
 }
 
-const isChoiceStage = (stage: LearningStage) => stage === 'recognition' || stage === 'context'
-const choiceOptions = () => props.stage === 'recognition' ? props.recognitionOptions : props.challenge.contextOptions
-
 watch(() => [props.word.id, props.stage], () => {
   answer.value = ''
 })
 
+const isChoiceStage = (stage: LearningStage) => stage === 'recognition' || stage === 'context'
+const choiceOptions = () => props.stage === 'recognition' ? props.recognitionOptions : props.challenge.contextOptions
 function submitText(): void {
   emit('submit', answer.value.trim())
 }
-
 function submitChoice(option: string): void {
   emit('submit', option)
 }
@@ -128,7 +123,12 @@ function submitChoice(option: string): void {
       </button>
     </form>
 
-    <div v-if="feedback" class="feedback" :class="{ correct: feedback.correct, incorrect: !feedback.correct }" role="status">
+    <div
+      v-if="feedback"
+      class="feedback"
+      :class="{ correct: feedback.correct, incorrect: !feedback.correct }"
+      role="status"
+    >
       <span class="feedback-mark">{{ feedback.correct ? '✓' : '↻' }}</span>
       <div>
         <strong>{{ feedback.correct ? 'Показание подтверждено' : 'Нужна ещё одна попытка' }}</strong>

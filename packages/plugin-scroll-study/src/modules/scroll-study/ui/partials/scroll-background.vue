@@ -29,16 +29,24 @@ const stopWatch = watch([isReady, app], ([ready, pixi]) => {
 
   const geometry = new MeshGeometry({
     positions: new Float32Array([
-      -1, -1,
-       1, -1,
-      -1,  1,
-       1,  1,
+      -1,
+      -1,
+      1,
+      -1,
+      -1,
+      1,
+      1,
+      1,
     ]),
     uvs: new Float32Array([
-      0, 0,
-      1, 0,
-      0, 1,
-      1, 1,
+      0,
+      0,
+      1,
+      0,
+      0,
+      1,
+      1,
+      1,
     ]),
     indices: new Uint32Array([0, 1, 2, 1, 3, 2]),
   })
@@ -59,6 +67,7 @@ const stopWatch = watch([isReady, app], ([ready, pixi]) => {
 onBeforeUnmount(() => {
   stopWatch()
   stopTicker?.()
+
   if (mesh) {
     mesh.destroy()
     mesh = null

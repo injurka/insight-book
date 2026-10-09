@@ -1,8 +1,4 @@
 <script setup lang="ts">
-import { Icon } from '@iconify/vue'
-import { computed, ref, toRef } from 'vue'
-import { useI18n } from 'vue-i18n'
-import { KitBtn, KitInput } from '~/02.kit'
 import type {
   AnyRuleTest,
   ClozeChoiceTest,
@@ -13,6 +9,10 @@ import type {
   RuleTest,
   SentenceScrambleTest,
 } from '../../../../shared/types'
+import { Icon } from '@iconify/vue'
+import { computed, ref, toRef } from 'vue'
+import { useI18n } from 'vue-i18n'
+import { KitBtn, KitInput } from '~/02.kit'
 import { useGrammarSrs } from '../../composables/use-grammar-srs'
 import { useMistakeQueue } from '../../composables/use-mistake-queue'
 import { useTestEngine } from '../../composables/use-test-engine'
@@ -26,15 +26,15 @@ interface Props {
 const props = defineProps<Props>()
 
 const { t } = useI18n()
+const { mistakes, mistakeCount, addMistake, removeMistake } = useMistakeQueue()
 
 const currentLangRef = toRef(props, 'currentLang')
 const filteredRulesRef = toRef(props, 'filteredRules')
-const allTestsRef = toRef(props, 'tests')
 
 // 1. SRS & Mistake queues
 const { recordRuleResult, rulesDueForReview, stats: srsStats } = useGrammarSrs(filteredRulesRef, currentLangRef)
-const { mistakes, mistakeCount, addMistake, removeMistake } = useMistakeQueue()
 
+const allTestsRef = toRef(props, 'tests')
 // 2. Modes: 'all' | 'srs' | 'mistakes'
 const testMode = ref<'all' | 'srs' | 'mistakes'>('all')
 
@@ -74,6 +74,7 @@ const {
 } = useTestEngine(activeTests, filteredRulesRef, {
   onResult: (ruleId, isCorrect, test) => {
     recordRuleResult(ruleId, isCorrect)
+
     if (!isCorrect) {
       addMistake(test)
     }
@@ -83,27 +84,25 @@ const {
   },
 })
 
-const setTestMode = (mode: 'all' | 'srs' | 'mistakes') => {
-  testMode.value = mode
-  restartTest()
-}
-
 // Helpers for polymorphic test types
 const currentTestPolymorphic = computed<AnyRuleTest | null>(() => {
   return currentTest.value as AnyRuleTest | null
 })
-
 const currentTestType = computed(() => {
   return currentTestPolymorphic.value?.type || 'multiple_choice'
 })
 
-const getOptionText = (opt: string | MultipleChoiceOption): string => {
+function setTestMode(mode: 'all' | 'srs' | 'mistakes') {
+  testMode.value = mode
+  restartTest()
+}
+function getOptionText(opt: string | MultipleChoiceOption): string {
   return typeof opt === 'object' && opt !== null ? opt.text : String(opt)
 }
-
-const getOptionsList = (test: MultipleChoiceTest | ClozeChoiceTest): Array<{ text: string, raw: string | MultipleChoiceOption }> => {
+function getOptionsList(test: MultipleChoiceTest | ClozeChoiceTest): Array<{ text: string, raw: string | MultipleChoiceOption }> {
   if (!test.options)
     return []
+
   return (test.options as Array<string | MultipleChoiceOption>).map(opt => ({
     text: getOptionText(opt),
     raw: opt,
@@ -241,7 +240,7 @@ const getOptionsList = (test: MultipleChoiceTest | ClozeChoiceTest): Array<{ tex
               selected: selectedOption === opt.text,
               correct: isSubmitted && opt.text === (currentTest as MultipleChoiceTest).correctAnswer,
               incorrect: isSubmitted && selectedOption === opt.text && opt.text !== (currentTest as MultipleChoiceTest).correctAnswer,
-              disabled: isSubmitted
+              disabled: isSubmitted,
             }"
             @click="selectChoice(opt.text)"
           >
@@ -465,9 +464,15 @@ const getOptionsList = (test: MultipleChoiceTest | ClozeChoiceTest): Array<{ tex
     align-items: center;
     gap: 4px;
 
-    &.mastered { color: #4caf50; }
-    &.learning { color: #2196f3; }
-    &.new { color: var(--fg-secondary-color); }
+    &.mastered {
+      color: #4caf50;
+    }
+    &.learning {
+      color: #2196f3;
+    }
+    &.new {
+      color: var(--fg-secondary-color);
+    }
   }
 }
 
@@ -796,13 +801,19 @@ const getOptionsList = (test: MultipleChoiceTest | ClozeChoiceTest): Array<{ tex
   &.correct {
     background-color: rgba(76, 175, 80, 0.08);
     border: 1px solid rgba(76, 175, 80, 0.3);
-    .feedback-icon, .feedback-title { color: #43a047; }
+    .feedback-icon,
+    .feedback-title {
+      color: #43a047;
+    }
   }
 
   &.error {
     background-color: rgba(244, 67, 54, 0.08);
     border: 1px solid rgba(244, 67, 54, 0.3);
-    .feedback-icon, .feedback-title { color: #e57373; }
+    .feedback-icon,
+    .feedback-title {
+      color: #e57373;
+    }
   }
 
   .feedback-header {
@@ -820,14 +831,17 @@ const getOptionsList = (test: MultipleChoiceTest | ClozeChoiceTest): Array<{ tex
     gap: 6px;
   }
 
-  .distractor-explanation, .general-explanation {
+  .distractor-explanation,
+  .general-explanation {
     font-size: 0.9rem;
     line-height: 1.5;
     color: var(--fg-primary-color);
     display: flex;
     gap: 8px;
 
-    p { margin: 0; }
+    p {
+      margin: 0;
+    }
   }
 }
 

@@ -13,6 +13,7 @@ export function playUiSound(sound: UiSound) {
     return
 
   audioContext ??= new window.AudioContext()
+
   if (audioContext.state === 'suspended')
     void audioContext.resume().catch(() => {})
 

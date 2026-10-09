@@ -1,4 +1,4 @@
-import { computed, type Ref, ref, watch } from 'vue'
+import type { Ref } from 'vue'
 import type {
   AnyRuleTest,
   ClozeChoiceTest,
@@ -10,16 +10,101 @@ import type {
   SentenceScrambleTest,
   TestResultFeedback,
 } from '../../../shared/types'
+import { computed, ref, watch } from 'vue'
 
 export interface TestEngineOptions {
   onResult?: (ruleId: string, isCorrect: boolean, test: RuleTest) => void
 }
 
-export function useTestEngine(
-  tests: Ref<RuleTest[]>,
-  rules: Ref<Rule[]>,
-  options?: TestEngineOptions,
-) {
+interface AnswerEvaluation {
+  isCorrect: boolean
+  userAnswerText: string
+  expectedAnswerText: string
+  distractorFeedback?: string
+}
+
+function getDistractorFeedback(test: MultipleChoiceTest, selectedOption: string | null): string | undefined {
+  if (!Array.isArray(test.options)) {
+    return undefined
+  }
+
+  const matchingOption = test.options.find((option) => {
+    return typeof option === 'object'
+      && option !== null
+      && (option as MultipleChoiceOption).text === selectedOption
+  }) as MultipleChoiceOption | undefined
+
+  return matchingOption?.feedback
+}
+
+function matchesAnswer(userAnswer: string, expectedAnswer: string): boolean {
+  return userAnswer.trim().toLowerCase() === expectedAnswer.trim().toLowerCase()
+}
+
+function evaluateMultipleChoice(test: MultipleChoiceTest, selectedOption: string | null): AnswerEvaluation {
+  const userAnswerText = selectedOption || ''
+
+  return {
+    isCorrect: matchesAnswer(userAnswerText, test.correctAnswer),
+    userAnswerText,
+    expectedAnswerText: test.correctAnswer,
+    distractorFeedback: getDistractorFeedback(test, selectedOption),
+  }
+}
+
+function evaluateClozeChoice(test: ClozeChoiceTest, selectedOption: string | null): AnswerEvaluation {
+  const userAnswerText = selectedOption || ''
+
+  return {
+    isCorrect: matchesAnswer(userAnswerText, test.correctAnswer),
+    userAnswerText,
+    expectedAnswerText: test.correctAnswer,
+  }
+}
+
+function evaluateClozeInput(test: ClozeInputTest, typedInput: string): AnswerEvaluation {
+  const userAnswerText = typedInput.trim()
+  const expectedAnswerText = test.validAnswers[0] || ''
+  const normalizedUser = userAnswerText.toLowerCase().replace(/['’]/g, '\'')
+
+  return {
+    isCorrect: test.validAnswers.some(answer => answer.toLowerCase().replace(/['’]/g, '\'') === normalizedUser),
+    userAnswerText,
+    expectedAnswerText,
+  }
+}
+
+function evaluateSentenceScramble(test: SentenceScrambleTest, selectedTokens: string[]): AnswerEvaluation {
+  const userAnswerText = selectedTokens.join(' ')
+  const expectedAnswerText = test.correctOrder.join(' ')
+  const normalizedUser = userAnswerText.toLowerCase()
+  const isCorrect = normalizedUser === expectedAnswerText.toLowerCase()
+    || Boolean(test.acceptableOrders?.some(order => order.join(' ').toLowerCase() === normalizedUser))
+
+  return { isCorrect, userAnswerText, expectedAnswerText }
+}
+
+function evaluateAnswer(
+  test: AnyRuleTest,
+  selectedOption: string | null,
+  typedInput: string,
+  selectedTokens: string[],
+): AnswerEvaluation {
+  switch (test.type || 'multiple_choice') {
+    case 'multiple_choice':
+      return evaluateMultipleChoice(test as MultipleChoiceTest, selectedOption)
+    case 'cloze_choice':
+      return evaluateClozeChoice(test as ClozeChoiceTest, selectedOption)
+    case 'cloze_input':
+      return evaluateClozeInput(test as ClozeInputTest, typedInput)
+    case 'sentence_scramble':
+      return evaluateSentenceScramble(test as SentenceScrambleTest, selectedTokens)
+    default:
+      return { isCorrect: false, userAnswerText: '', expectedAnswerText: '' }
+  }
+}
+
+export function useTestEngine(tests: Ref<RuleTest[]>, rules: Ref<Rule[]>, options?: TestEngineOptions) {
   const sessionTests = ref<RuleTest[]>([])
   const currentTestIndex = ref(0)
   const isSubmitted = ref(false)
@@ -37,14 +122,17 @@ export function useTestEngine(
   const currentTest = computed<RuleTest | null>(() => {
     if (!sessionTests.value || sessionTests.value.length === 0)
       return null
+
     if (currentTestIndex.value >= sessionTests.value.length)
       return null
+
     return sessionTests.value[currentTestIndex.value]
   })
 
   const currentRule = computed<Rule | null>(() => {
     if (!currentTest.value)
       return null
+
     return rules.value.find(r => r.id === currentTest.value!.ruleId) || null
   })
 
@@ -60,6 +148,7 @@ export function useTestEngine(
       return
 
     const t = currentTest.value as AnyRuleTest
+
     if (t.type === 'sentence_scramble') {
       const scrambleTest = t as SentenceScrambleTest
       // Shuffle tokens for scramble pool
@@ -87,6 +176,7 @@ export function useTestEngine(
   const selectChoice = (opt: string) => {
     if (isSubmitted.value)
       return
+
     selectedOption.value = opt
   }
 
@@ -94,6 +184,7 @@ export function useTestEngine(
   const selectScrambleToken = (tokenIndex: number) => {
     if (isSubmitted.value)
       return
+
     const token = scrambleAvailableTokens.value[tokenIndex]
     scrambleAvailableTokens.value.splice(tokenIndex, 1)
     scrambleSelectedTokens.value.push(token)
@@ -102,6 +193,7 @@ export function useTestEngine(
   const removeScrambleToken = (tokenIndex: number) => {
     if (isSubmitted.value)
       return
+
     const token = scrambleSelectedTokens.value[tokenIndex]
     scrambleSelectedTokens.value.splice(tokenIndex, 1)
     scrambleAvailableTokens.value.push(token)
@@ -110,6 +202,7 @@ export function useTestEngine(
   const hasAnswer = computed(() => {
     if (!currentTest.value)
       return false
+
     const t = currentTest.value as AnyRuleTest
     const type = t.type || 'multiple_choice'
 
@@ -131,64 +224,15 @@ export function useTestEngine(
     if (isSubmitted.value || !currentTest.value || !hasAnswer.value)
       return
 
-    const t = currentTest.value as AnyRuleTest
-    const type = t.type || 'multiple_choice'
-    let isCorrect = false
-    let distractorFeedback: string | undefined
-    let userAnswerText = ''
-    let expectedAnswerText = ''
+    const test = currentTest.value as AnyRuleTest
+    const evaluation = evaluateAnswer(
+      test,
+      selectedOption.value,
+      typedInput.value,
+      scrambleSelectedTokens.value,
+    )
 
-    if (type === 'multiple_choice' || !t.type) {
-      const mc = t as MultipleChoiceTest
-      userAnswerText = selectedOption.value || ''
-      expectedAnswerText = mc.correctAnswer
-      isCorrect = userAnswerText.trim().toLowerCase() === expectedAnswerText.trim().toLowerCase()
-
-      // Check if options have distractor feedback
-      if (Array.isArray(mc.options)) {
-        const matchingOpt = mc.options.find((opt) => {
-          if (typeof opt === 'object' && opt !== null) {
-            return (opt as MultipleChoiceOption).text === selectedOption.value
-          }
-          return false
-        }) as MultipleChoiceOption | undefined
-
-        if (matchingOpt && matchingOpt.feedback) {
-          distractorFeedback = matchingOpt.feedback
-        }
-      }
-    }
-    else if (type === 'cloze_choice') {
-      const cc = t as ClozeChoiceTest
-      userAnswerText = selectedOption.value || ''
-      expectedAnswerText = cc.correctAnswer
-      isCorrect = userAnswerText.trim().toLowerCase() === expectedAnswerText.trim().toLowerCase()
-    }
-    else if (type === 'cloze_input') {
-      const ci = t as ClozeInputTest
-      userAnswerText = typedInput.value.trim()
-      expectedAnswerText = ci.validAnswers[0] || ''
-      const normalizedUser = userAnswerText.toLowerCase().replace(/['’]/g, '\'')
-      isCorrect = ci.validAnswers.some((ans) => {
-        return ans.toLowerCase().replace(/['’]/g, '\'') === normalizedUser
-      })
-    }
-    else if (type === 'sentence_scramble') {
-      const ss = t as SentenceScrambleTest
-      userAnswerText = scrambleSelectedTokens.value.join(' ')
-      expectedAnswerText = ss.correctOrder.join(' ')
-
-      const userTokensJoined = scrambleSelectedTokens.value.join(' ').toLowerCase()
-      const correctJoined = ss.correctOrder.join(' ').toLowerCase()
-      if (userTokensJoined === correctJoined) {
-        isCorrect = true
-      }
-      else if (ss.acceptableOrders) {
-        isCorrect = ss.acceptableOrders.some(order => order.join(' ').toLowerCase() === userTokensJoined)
-      }
-    }
-
-    if (isCorrect) {
+    if (evaluation.isCorrect) {
       score.value++
     }
 
@@ -196,14 +240,14 @@ export function useTestEngine(
     isSubmitted.value = true
 
     currentFeedback.value = {
-      isCorrect,
-      userAnswer: userAnswerText,
-      correctAnswer: expectedAnswerText,
-      explanation: t.explanation,
-      distractorFeedback,
+      isCorrect: evaluation.isCorrect,
+      userAnswer: evaluation.userAnswerText,
+      correctAnswer: evaluation.expectedAnswerText,
+      explanation: test.explanation,
+      distractorFeedback: evaluation.distractorFeedback,
     }
 
-    options?.onResult?.(currentTest.value.ruleId, isCorrect, currentTest.value)
+    options?.onResult?.(test.ruleId, evaluation.isCorrect, currentTest.value)
   }
 
   const nextQuestion = () => {
