@@ -95,3 +95,5 @@ export function isValidWordForLanguage(word: string, language: string, options: 
 
   return false
 }
+
+export * from './difficulties'

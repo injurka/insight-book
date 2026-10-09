@@ -1,4 +1,5 @@
 import type { InsightBookPlugin } from '../types'
+import type { MockContextOptions } from './mock-context'
 import { createPinia } from 'pinia'
 import { createApp } from 'vue'
 import { createI18n } from 'vue-i18n'
@@ -7,14 +8,15 @@ import PluginSandbox from './plugin-sandbox.vue'
 
 export interface CreateSandboxAppOptions {
   plugin: InsightBookPlugin
+  options?: MockContextOptions
 }
 
 /**
  * Создает и настраивает Vue-приложение песочницы для тестирования и разработки плагина.
  * Автоматически инициализирует Pinia, vue-i18n и настраивает vue-router со всеми роутами страниц плагина.
  */
-export function createSandboxApp({ plugin }: CreateSandboxAppOptions) {
-  const app = createApp(PluginSandbox, { plugin })
+export function createSandboxApp({ plugin, options }: CreateSandboxAppOptions) {
+  const app = createApp(PluginSandbox, { plugin, options })
 
   // Инициализация Pinia
   const pinia = createPinia()
@@ -33,6 +35,8 @@ export function createSandboxApp({ plugin }: CreateSandboxAppOptions) {
           widgets: 'Виджеты',
           logs: 'Логи API ({count})',
           noPages: 'У плагина нет открытых страниц.',
+          waitingForActivation: 'Подключаем API плагина…',
+          activationError: 'Не удалось активировать плагин.',
           selectWidget: 'Выберите виджет в боковой панели для просмотра.',
           customPosition: 'Позиция:',
           notifications: 'Уведомления',
@@ -60,6 +64,8 @@ export function createSandboxApp({ plugin }: CreateSandboxAppOptions) {
           widgets: 'Widgets',
           logs: 'API Logs ({count})',
           noPages: 'No page components exposed by plugin.',
+          waitingForActivation: 'Connecting the plugin API…',
+          activationError: 'Could not activate the plugin.',
           selectWidget: 'Select a widget from the sidebar to inspect.',
           customPosition: 'Position:',
           notifications: 'Notifications',

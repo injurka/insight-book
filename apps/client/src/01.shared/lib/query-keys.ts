@@ -1,4 +1,5 @@
 import type { EntryKey } from '@pinia/colada'
+import type { DictionaryPageOptions } from '~/01.shared/types/schemas/dictionary.schema'
 import { ref } from 'vue'
 
 // Server-backed query data must not be shared between authenticated sessions.
@@ -40,6 +41,7 @@ export const queryKeys = {
   }),
   dictionary: Object.assign(() => ['dictionary'] as const, {
     all: ['dictionary'] as const,
+    page: (options: DictionaryPageOptions, targetLang: string) => ['dictionary', 'page', targetLang, options] as const,
   }),
   highlights: Object.assign((bookId?: number | null) => (bookId !== null && bookId !== undefined ? (['highlights', bookId] as const) : (['highlights'] as const)), {
     all: ['highlights'] as const,

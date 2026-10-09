@@ -22,6 +22,7 @@ import type {
   UserPluginRecord,
   WordAutoFillResponse,
 } from '../types/models'
+import type { DictionaryPage, DictionaryPageOptions } from '~/01.shared/types/schemas/dictionary.schema'
 import type { TtsResult } from '~/01.shared/types/schemas/tts.schema'
 import { fetch as tauriFetch } from '@tauri-apps/plugin-http'
 import { ofetch } from 'ofetch'
@@ -495,6 +496,7 @@ export const api = {
   },
 
   dictionary: {
+    page: async (options: DictionaryPageOptions) => request<DictionaryPage>('/api/dictionary/page', { query: options }),
     list: async () => request<UserDictItem[]>('/api/dictionary'),
 
     decks: async () => request<DictDeck[]>('/api/dictionary/decks'),

@@ -48,6 +48,7 @@ export const useAuthStore = defineStore('auth', () => {
   let authRefreshPromise: Promise<void> | null = null
   let authRefreshToken: string | null = null
   let authRefreshRevision = 0
+  const loadingUserPluginIds = new Set<string>()
 
   /**
    * Synchronous init from localStorage cache.
@@ -244,8 +245,24 @@ export const useAuthStore = defineStore('auth', () => {
       const { pluginManager } = await import('~/00.plugins/plugin-manager')
 
       for (const pluginRecord of userPlugins) {
-        if (pluginRecord.isEnabled && pluginRecord.manifestUrl)
+        if (!pluginRecord.isEnabled || !pluginRecord.manifestUrl)
+          continue
+
+        if (
+          pluginManager.plugins.some(plugin => plugin.id === pluginRecord.pluginId)
+          || loadingUserPluginIds.has(pluginRecord.pluginId)
+        ) {
+          continue
+        }
+
+        loadingUserPluginIds.add(pluginRecord.pluginId)
+
+        try {
           await pluginManager.loadRemotePlugin(pluginRecord.manifestUrl, router)
+        }
+        finally {
+          loadingUserPluginIds.delete(pluginRecord.pluginId)
+        }
       }
     }
     catch (e) {

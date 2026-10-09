@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#111e2b" />
+    <title>Detective English · Dev</title>
+  </head>
+  <body>
+    <main>
+      <h1>Detective English · Dev</h1>
+      <p>Добавьте манифест в InsightBook через Настройки → Плагины → Добавить по URL.</p>
+      <code id="manifest-url"></code>
+      <p>Состояние HMR: <strong id="hmr-status">Подключаемся…</strong></p>
+      <p>При изменении исходников страница InsightBook перезагрузится.</p>
+    </main>
+    <script>
+      document.querySelector('#manifest-url').textContent = `${window.location.origin}/manifest.json`
+    </script>
+    <script type="module">
+      import { connectDevRemoteHmr } from '/src/shared/dev-hmr.ts'
+
+      void connectDevRemoteHmr((status) => {
+        document.querySelector('#hmr-status').textContent = status === 'connected' ? 'подключён' : 'недоступен'
+      })
+    </script>
+  </body>
+</html>

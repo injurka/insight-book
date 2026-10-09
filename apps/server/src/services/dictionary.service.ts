@@ -1,5 +1,6 @@
 import type { IDictionaryRepository } from '../repositories/interfaces'
 import type { LlmConfig, PageDictEntry, UserDictItem } from '../types'
+import type { DictionaryPageOptions } from '../types/dictionary-page'
 import { createEmptyCard, FSRS, Rating } from 'ts-fsrs'
 import { ERROR_CODES } from '../constants/error-codes'
 import { db } from '../db'
@@ -89,6 +90,10 @@ export class DictionaryService {
     const res = await this.dictRepo.deleteDeck(deckId, userId)
     if (res.length === 0)
       throw new AppError(404, ERROR_CODES.DICTIONARY.DECK_NOT_FOUND, 'Deck not found')
+  }
+
+  async getUserDictionaryPage(userId: number, targetLang: string, options: DictionaryPageOptions) {
+    return this.dictRepo.getUserDictionaryPage(userId, targetLang, options)
   }
 
   async getUserDictionary(userId: number, targetLang: string) {

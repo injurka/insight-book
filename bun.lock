@@ -239,6 +239,25 @@
         "typescript": "7.0.2",
       },
     },
+    "packages/plugin-detective-case": {
+      "name": "@injurka/insight-book-plugin-detective-case",
+      "version": "1.0.0",
+      "dependencies": {
+        "@iconify/vue": "^5.0.1",
+        "@injurka/insight-book-plugin-api": "workspace:*",
+        "vue": "3.5.42",
+        "vue-router": "^5.3.1",
+      },
+      "devDependencies": {
+        "@antfu/eslint-config": "9.5.1",
+        "@module-federation/vite": "^1.21.2",
+        "@vitejs/plugin-vue": "^6.0.8",
+        "eslint": "^10.9.1",
+        "typescript": "7.0.2",
+        "vite": "^8.2.2",
+        "vue-tsc": "^3.3.11",
+      },
+    },
     "packages/plugin-grammar-rules": {
       "name": "@injurka/insight-book-plugin-grammar-rules",
       "version": "1.0.0",
@@ -806,6 +825,8 @@
     "@injurka/insight-book-pack-plugin": ["@injurka/insight-book-pack-plugin@workspace:tools/pack-plugin"],
 
     "@injurka/insight-book-plugin-api": ["@injurka/insight-book-plugin-api@workspace:packages/plugin-api"],
+
+    "@injurka/insight-book-plugin-detective-case": ["@injurka/insight-book-plugin-detective-case@workspace:packages/plugin-detective-case"],
 
     "@injurka/insight-book-plugin-grammar-rules": ["@injurka/insight-book-plugin-grammar-rules@workspace:packages/plugin-grammar-rules"],
 

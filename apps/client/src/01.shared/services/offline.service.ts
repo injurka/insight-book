@@ -1,4 +1,5 @@
 import type { Book, DictDeck, Highlight, LlmAnalysis, PageDictEntry, PagePayload, TocItem, UserDictItem } from '../types/models'
+import type { DictionaryPage, DictionaryPageOptions } from '../types/schemas/dictionary.schema'
 import type { TtsCacheMetadata } from '../types/schemas/tts.schema'
 import localforage from 'localforage'
 import { AppRoutePaths } from '~/01.shared/constants/routes'
@@ -696,6 +697,43 @@ export const offlineService = {
 
   async getHighlights(bookId: number): Promise<Highlight[] | null> {
     return safeGetItem(`book_highlights_${bookId}`)
+  },
+
+  async invalidateDictionaryCache() {
+    const prefix = getKey('')
+
+    if (!prefix)
+      return
+
+    const keys = await localforage.keys()
+    const dictionaryKeys = keys.filter((key) => {
+      if (!key.startsWith(prefix))
+        return false
+
+      const name = key.slice(prefix.length)
+
+      return name.startsWith('dictionary_page_')
+        || name.startsWith('dictionary_word_')
+        || name === 'dictionary_words'
+        || name.startsWith('dictionary_words_')
+    })
+    await Promise.all(dictionaryKeys.map(key => localforage.removeItem(key)))
+  },
+
+  async saveDictionaryWord(word: UserDictItem) {
+    await safeSetItem(`dictionary_word_${getAppLanguage()}_${word.word}`, word)
+  },
+
+  async getDictionaryWord(word: string): Promise<UserDictItem | null> {
+    return safeGetItem(`dictionary_word_${getAppLanguage()}_${word}`)
+  },
+
+  async saveDictionaryPage(options: DictionaryPageOptions, page: DictionaryPage) {
+    await safeSetItem(`dictionary_page_${getAppLanguage()}_${JSON.stringify(options)}`, page)
+  },
+
+  async getDictionaryPage(options: DictionaryPageOptions): Promise<DictionaryPage | null> {
+    return safeGetItem(`dictionary_page_${getAppLanguage()}_${JSON.stringify(options)}`)
   },
 
   async saveDictionary(words: UserDictItem[]) {

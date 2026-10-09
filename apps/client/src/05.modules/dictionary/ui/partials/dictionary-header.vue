@@ -82,19 +82,19 @@ function openTrainingSettings(mode: 'srs' | 'deep_dive' | 'cram' | 'match') {
               </KitBtn>
             </template>
             <div class="dropdown-menu-list">
-              <button class="dropdown-item" :disabled="store.words.length === 0" @click="openTrainingSettings('srs')">
+              <button class="dropdown-item" :disabled="store.totalWords === 0" @click="openTrainingSettings('srs')">
                 <Icon icon="mdi:calendar-clock" style="color: var(--fg-accent-color)" />
                 <span style="color: var(--fg-accent-color); font-weight: 700;">{{ t('dictionary.srsTraining') }}</span>
               </button>
-              <button class="dropdown-item" :disabled="store.words.length === 0" @click="openTrainingSettings('deep_dive')">
+              <button class="dropdown-item" :disabled="store.totalWords === 0" @click="openTrainingSettings('deep_dive')">
                 <Icon icon="mdi:diving-scuba" />
                 {{ t('dictionary.deepDiveTraining') }}
               </button>
-              <button class="dropdown-item" :disabled="store.words.length === 0" @click="openTrainingSettings('cram')">
+              <button class="dropdown-item" :disabled="store.totalWords === 0" @click="openTrainingSettings('cram')">
                 <Icon icon="mdi:lightning-bolt-outline" />
                 {{ t('dictionary.cramTraining') }}
               </button>
-              <button class="dropdown-item" :disabled="store.words.length === 0" @click="openTrainingSettings('match')">
+              <button class="dropdown-item" :disabled="store.totalWords === 0" @click="openTrainingSettings('match')">
                 <Icon icon="mdi:puzzle-outline" />
                 {{ t('dictionary.matchTraining') }}
               </button>
@@ -131,7 +131,7 @@ function openTrainingSettings(mode: 'srs' | 'deep_dive' | 'cram' | 'match') {
 
         <div class="stats-badge">
           <KitViewSwitcher v-model="viewMode" :items="viewOptions" class="view-switcher-custom" />
-          <span class="badge">{{ t('dictionary.wordsCount', { count: store.filteredWords.length }) }}</span>
+          <span class="badge">{{ t('dictionary.wordsCount', { count: store.filteredCount }) }}</span>
           <div class="badge-actions">
             <KitTooltip :text="isEditMode ? t('dictionary.done') : t('dictionary.edit')" placement="bottom-end">
               <KitBtn
@@ -308,7 +308,7 @@ function openTrainingSettings(mode: 'srs' | 'deep_dive' | 'cram' | 'match') {
         .badge-actions {
           display: flex;
           align-items: center;
-          gap: 4px;
+          gap: 8px;
           margin-left: auto;
         }
       }

@@ -52,6 +52,7 @@ watch(() => mock.locale.value, (newLocale) => {
 }, { immediate: true })
 
 const isActive = ref(false)
+const activationError = ref('')
 const activeTab = ref<'pages' | 'widgets' | 'logs'>('pages')
 const selectedPageKey = ref<string>('index')
 const selectedWidgetId = ref<string | null>(null)
@@ -103,11 +104,20 @@ onUnmounted(() => {
 })
 
 async function activatePlugin() {
-  setPluginContext(mock.context)
-  if (props.plugin.activate) {
-    await props.plugin.activate(mock.context)
+  activationError.value = ''
+  try {
+    setPluginContext(mock.context)
+    if (props.plugin.activate) {
+      await props.plugin.activate(mock.context)
+    }
+    isActive.value = true
   }
-  isActive.value = true
+  catch (error: unknown) {
+    activationError.value = error instanceof Error
+      ? error.message
+      : i18n.t('sandbox.activationError')
+    isActive.value = false
+  }
 }
 
 async function deactivatePlugin() {
@@ -199,8 +209,11 @@ const activeWidget = computed(() => {
       <main class="sandbox-stage">
         <!-- Render Active Page -->
         <div v-if="activeTab === 'pages' || isFullscreen" class="stage-view">
-          <div v-if="activePageComponent" class="view-container">
+          <div v-if="activePageComponent && isActive" class="view-container">
             <component :is="activePageComponent" />
+          </div>
+          <div v-else-if="!isActive" class="empty-state">
+            {{ activationError || i18n.t('sandbox.waitingForActivation') }}
           </div>
           <div v-else class="empty-state">
             {{ i18n.t('sandbox.noPages') }}

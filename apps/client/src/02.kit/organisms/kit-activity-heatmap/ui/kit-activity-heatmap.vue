@@ -98,34 +98,7 @@ const heatmapData = computed(() => {
     })
   }
 
-  const weekdays = [
-    t('activityHeatmap.weekdays.mon', 'Пн'),
-    '',
-    t('activityHeatmap.weekdays.wed', 'Ср'),
-    '',
-    t('activityHeatmap.weekdays.fri', 'Пт'),
-    '',
-    '',
-  ]
-
-  const gridData = []
-
-  for (let r = 0; r < 7; r++) {
-    const rowDays = []
-
-    for (let c = 0; c < WEEKS_TO_SHOW; c++) {
-      const idx = c * 7 + r
-      rowDays.push(days[idx])
-    }
-
-    gridData.push({
-      label: weekdays[r],
-      days: rowDays,
-    })
-  }
-
   return {
-    gridData,
     months,
     days,
   }

@@ -3,7 +3,7 @@ import { computed, ref } from 'vue'
 import { useRepos } from '~/00.plugins/di'
 import { useToast } from '~/01.shared/composables/use-toast'
 import { useTracking } from '~/01.shared/composables/use-tracking'
-import { DIFFICULTY_SYSTEMS } from '~/01.shared/constants/difficulties'
+import { filterDictionary } from '~/01.shared/lib/filter-dictionary'
 import { dictionaryWords } from './dictionary-words.state'
 
 export const useDictionaryFiltersStore = defineStore('dictionary-filters', () => {
@@ -25,55 +25,14 @@ export const useDictionaryFiltersStore = defineStore('dictionary-filters', () =>
   })
 
   const filteredWords = computed<UserDictItem[]>(() => {
-    let result = dictionaryWords.value
-
-    if (selectedLanguage.value !== 'all')
-      result = result.filter(wordItem => wordItem.language === selectedLanguage.value)
-
-    if (!selectedDeckId.value.includes('all') && selectedDeckId.value.length > 0) {
-      result = result.filter((wordItem) => {
-        if (!wordItem.deckIds || wordItem.deckIds.length === 0)
-          return selectedDeckId.value.includes('none')
-
-        return wordItem.deckIds.some((id: number) => selectedDeckId.value.includes(id))
-      })
-    }
-
-    if (!selectedDifficulty.value.includes('all') && selectedDifficulty.value.length > 0) {
-      result = result.filter((wordItem) => {
-        return selectedDifficulty.value.some((diffVal) => {
-          if (diffVal === 'none')
-            return !wordItem.difficulty
-
-          if (diffVal.startsWith('level_')) {
-            const targetLevel = Number.parseInt(diffVal.split('_')[1], 10)
-            const sys = DIFFICULTY_SYSTEMS[wordItem.language] || DIFFICULTY_SYSTEMS.default
-            const diffDef = sys.find(sysItem => sysItem.value === wordItem.difficulty)
-
-            return diffDef && diffDef.level === targetLevel
-          }
-
-          return wordItem.difficulty === diffVal
-        })
-      })
-    }
-
-    if (!selectedStatus.value.includes('all') && selectedStatus.value.length > 0)
-      result = result.filter(wordItem => selectedStatus.value.includes(String(wordItem.state) as '0' | '1' | '2' | '3'))
-
-    if (searchTerm.value) {
-      const lowerTerm = searchTerm.value.toLowerCase()
-      result = result.filter(item => matchesSearchTerm(item, lowerTerm))
-    }
-
-    return result
+    return filterDictionary(dictionaryWords.value, {
+      search: searchTerm.value,
+      language: selectedLanguage.value,
+      decks: selectedDeckId.value.join(','),
+      difficulties: selectedDifficulty.value.join(','),
+      statuses: selectedStatus.value.join(','),
+    })
   })
-
-  function matchesSearchTerm(item: UserDictItem, lowerTerm: string): boolean {
-    const fields = [item.word, item.transcription, item.translation, item.notes, item.tags, item.difficulty]
-
-    return fields.some(field => field && field.toLowerCase().includes(lowerTerm))
-  }
 
   function toggleWordSelection(id: number) {
     const next = new Set(selectedWordIds.value)

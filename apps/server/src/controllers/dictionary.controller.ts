@@ -35,6 +35,26 @@ export const dictionaryController = new Elysia({ prefix: '/api/dictionary' })
     cache: 'shortPrivate',
     query: t.Object({ targetLang: t.Optional(t.String()) }),
   })
+  .get('/page', async ({ userId, query }) => {
+    const targetLang = normalizeLanguageCode(query.targetLang || 'ru')
+    return dictionaryService.getUserDictionaryPage(userId, targetLang, {
+      ...query,
+      offset: query.offset ?? 0,
+      limit: query.limit ?? 50,
+    })
+  }, {
+    cache: 'shortPrivate',
+    query: t.Object({
+      targetLang: t.Optional(t.String()),
+      offset: t.Optional(t.Numeric({ minimum: 0, maximum: 10000000, multipleOf: 1 })),
+      limit: t.Optional(t.Numeric({ minimum: 1, maximum: 100, multipleOf: 1 })),
+      search: t.Optional(t.String({ maxLength: 500 })),
+      language: t.Optional(t.String({ maxLength: 20 })),
+      decks: t.Optional(t.String({ maxLength: 2000 })),
+      difficulties: t.Optional(t.String({ maxLength: 500 })),
+      statuses: t.Optional(t.String({ pattern: '^(all|[0-3])(,(all|[0-3]))*$' })),
+    }),
+  })
   .post('/', async ({ userId, body, query }) => {
     const targetLang = normalizeLanguageCode(query.targetLang || 'ru')
     const lang = body.language ? normalizeLanguageCode(body.language) : undefined

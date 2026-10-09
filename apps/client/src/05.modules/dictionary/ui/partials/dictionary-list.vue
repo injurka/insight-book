@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { UserDictItem } from '~/01.shared/types/models'
-import { useElementSize, useVirtualList } from '@vueuse/core'
+import { useElementSize, useScroll, useVirtualList } from '@vueuse/core'
 import { computed, ref, shallowRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useAnalysisStore } from '~/01.shared/store/analysis/analysis.store'
@@ -57,10 +57,27 @@ const gridRows = computed(() => {
 
 const { list: gridList, containerProps: gridContainerProps, wrapperProps: gridWrapperProps } = useVirtualList(gridRows, { itemHeight: 140 })
 
+const activeContainer = computed(() => props.viewMode === 'grid' ? gridContainerProps.ref.value : containerProps.ref.value)
+const { y: scrollTop } = useScroll(activeContainer)
+const { height: viewportHeight } = useElementSize(activeContainer)
+
 watch(() => gridContainerProps.ref.value, (el) => {
   if (el)
     gridContainerRef.value = el
 }, { immediate: true })
+
+watch([scrollTop, viewportHeight, () => store.words.length, () => store.isLoadingMore, () => props.viewMode], () => {
+  const count = props.viewMode === 'grid' ? gridRows.value.length : store.words.length
+  const itemHeight = props.viewMode === 'grid' ? 140 : 110
+
+  if (scrollTop.value + viewportHeight.value >= count * itemHeight - 600)
+    store.loadMore()
+}, { flush: 'post' })
+
+watch(() => [store.searchTerm, store.selectedLanguage, store.selectedDeckId, store.selectedDifficulty, store.selectedStatus], () => {
+  containerProps.ref.value?.scrollTo({ top: 0 })
+  gridContainerProps.ref.value?.scrollTo({ top: 0 })
+}, { deep: true })
 
 function handleItemClick(item: UserDictItem) {
   if (props.isEditMode) {
@@ -140,7 +157,14 @@ function handleEditWord(item: UserDictItem) {
 
     <DictionarySkeletonList v-if="store.isLoading && !store.words.length" :view-mode="viewMode" />
 
-    <div v-else-if="!store.words.length" class="empty-state">
+    <div v-else-if="store.loadError && !store.words.length" class="empty-state">
+      <p>{{ t('dictionary.loadError') }}</p>
+      <KitBtn @click="store.retryLoad()">
+        {{ t('dictionary.retryLoad') }}
+      </KitBtn>
+    </div>
+
+    <div v-else-if="!store.totalWords" class="empty-state">
       <p>{{ t('dictionary.emptyState') }}</p>
     </div>
 
@@ -192,6 +216,16 @@ function handleEditWord(item: UserDictItem) {
       </div>
     </div>
 
+    <div v-if="store.isLoadingMore && store.words.length" class="load-status" role="status">
+      {{ t('dictionary.loadingMore') }}
+    </div>
+    <div v-else-if="store.loadError && store.words.length" class="load-status" role="status">
+      {{ t('dictionary.loadError') }}
+      <KitBtn size="sm" @click="store.retryLoad()">
+        {{ t('dictionary.retryLoad') }}
+      </KitBtn>
+    </div>
+
     <KitPrompt
       v-model:visible="confirmDeleteVisible"
       :title="t('dictionary.delete')"
@@ -204,6 +238,12 @@ function handleEditWord(item: UserDictItem) {
 </template>
 
 <style lang="scss" scoped>
+.load-status {
+  flex-shrink: 0;
+  padding: 8px;
+  text-align: center;
+  color: var(--fg-secondary-color);
+}
 .words-content {
   flex-grow: 1;
   display: flex;

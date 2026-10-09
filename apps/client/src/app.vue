@@ -31,7 +31,7 @@ const route = useRoute()
 const analysisStore = useAnalysisStore()
 const settingsStore = useGlobalSettingsStore()
 const networkStore = useNetworkStore()
-const { locale, t } = useI18n()
+const { locale, t, te } = useI18n()
 const router = useRouter()
 const { triggerBack } = useBackHandler()
 
@@ -67,15 +67,19 @@ const headScripts = computed(() => [
 ])
 
 const titleChunk = computed(() => {
+  const routeTitleKey = route.meta.titleKey
+
+  if (typeof routeTitleKey === 'string' && te(routeTitleKey))
+    return t(routeTitleKey)
+
   if (route.name) {
     const key = `routes.${String(route.name)}`
-    const val = t(key)
 
-    if (val && val !== key)
-      return val
+    if (te(key))
+      return t(key)
   }
 
-  return ''
+  return typeof route.meta.title === 'string' ? route.meta.title : ''
 })
 
 watch(() => settingsStore.appLanguage, (newLang) => {

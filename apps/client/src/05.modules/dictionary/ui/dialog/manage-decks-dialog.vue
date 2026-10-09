@@ -33,7 +33,7 @@ const deleteModeOptions = computed<{ value: 'keep' | 'delete_all' | 'delete_excl
 ])
 
 function getDeckWordCount(deckId: number): number {
-  return store.words.filter(w => w.deckIds?.includes(deckId)).length
+  return store.deckCounts.find(row => row.deckId === deckId)?.count || 0
 }
 
 async function createNewDeck() {

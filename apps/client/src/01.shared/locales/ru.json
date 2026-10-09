@@ -547,6 +547,9 @@
     "autoAnalyzeSettings": "Настройки фонового анализа"
   },
   "dictionary": {
+    "loadingMore": "Загружаем слова…",
+    "loadError": "Не удалось загрузить слова",
+    "retryLoad": "Повторить",
     "title": "Мой словарь",
     "headerSubtitle": "Ваши слова для изучения и повторения",
     "searchPlaceholder": "Поиск по слову, переводу...",

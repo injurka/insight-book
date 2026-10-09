@@ -1,5 +1,6 @@
 import type { SQL } from 'drizzle-orm'
 import type { UserDictItem } from '../types'
+import type { DictionaryPageOptions } from '../types/dictionary-page'
 import type { IDictionaryRepository } from './interfaces'
 import { and, desc, eq, inArray, lte, notInArray, or, sql } from 'drizzle-orm'
 import { createEmptyCard } from 'ts-fsrs'
@@ -7,6 +8,7 @@ import { db } from '../db'
 import { catalogDb } from '../db/catalog'
 import { officialDecks, officialDeckWords } from '../db/catalog-schema'
 import * as schema from '../db/schema'
+import { dictionaryPageFilters } from './dictionary-page-filters'
 
 export class DictionaryRepository implements IDictionaryRepository {
   async getUserDecks(userId: number, targetLang: string) {
@@ -75,6 +77,36 @@ export class DictionaryRepository implements IDictionaryRepository {
         inArray(schema.wordToDeck.wordId, wordIds),
         sql`${schema.wordToDeck.deckId} != ${deckId}`,
       ))
+  }
+
+  async getUserDictionaryPage(userId: number, targetLang: string, options: DictionaryPageOptions) {
+    const base = and(eq(schema.userDictionary.userId, userId), eq(schema.userDictionary.targetLanguage, targetLang))
+    const where = and(...dictionaryPageFilters(userId, targetLang, options))
+    const [words, counts, languages, deckCounts] = await Promise.all([
+      db.query.userDictionary.findMany({
+        where,
+        with: { wordToDecks: true },
+        orderBy: [desc(schema.userDictionary.updatedAt), desc(schema.userDictionary.id)],
+        limit: options.limit,
+        offset: options.offset,
+      }),
+      db.select({ total: sql<number>`count(*)` }).from(schema.userDictionary).where(where),
+      db.select({ language: schema.userDictionary.language, count: sql<number>`count(*)` }).from(schema.userDictionary).where(base).groupBy(schema.userDictionary.language),
+      db.select({ deckId: schema.wordToDeck.deckId, count: sql<number>`count(*)` })
+        .from(schema.wordToDeck)
+        .innerJoin(schema.userDictionary, eq(schema.wordToDeck.wordId, schema.userDictionary.id))
+        .where(base)
+        .groupBy(schema.wordToDeck.deckId),
+    ])
+    const total = counts[0]?.total || 0
+    return {
+      items: words.map(({ wordToDecks, ...word }) => ({ ...word, deckIds: wordToDecks.map(link => link.deckId) })),
+      total,
+      nextOffset: options.offset + words.length < total ? options.offset + words.length : null,
+      languages: languages.map(row => row.language),
+      totalWords: languages.reduce((sum, row) => sum + row.count, 0),
+      deckCounts,
+    }
   }
 
   async getUserDictionary(userId: number, targetLang: string) {

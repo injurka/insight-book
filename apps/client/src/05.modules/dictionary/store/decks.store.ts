@@ -22,6 +22,7 @@ export const useDecksStore = defineStore('decks', () => {
     data: decksData,
     isLoading: isDecksLoading,
     refetch: refetchDecks,
+    refresh: refreshDecks,
   } = useQuery<DictDeck[]>({
     key: () => scopedQueryKey(queryKeys.decks.all),
     query: async () => {
@@ -35,9 +36,9 @@ export const useDecksStore = defineStore('decks', () => {
       decks.value = [...newDecks]
   }, { immediate: true })
 
-  async function fetchDecks() {
+  async function fetchDecks(force = true) {
     try {
-      await refetchDecks()
+      await (force ? refetchDecks() : refreshDecks())
     }
     catch (e) {
       console.warn('Could not fetch decks:', e)
@@ -111,7 +112,6 @@ export const useDecksStore = defineStore('decks', () => {
           w.deckIds = w.deckIds.filter(deckId => deckId !== id)
         }
       })
-      await repos.dictionary.saveLocalDictionary(dictionaryWords.value)
 
       queryCache.invalidateQueries({ key: queryKeys.decks.all })
       queryCache.invalidateQueries({ key: queryKeys.dictionary.all })

@@ -546,6 +546,9 @@
     "autoAnalyzeSettings": "后台分析设置"
   },
   "dictionary": {
+    "loadingMore": "正在加载单词…",
+    "loadError": "无法加载单词",
+    "retryLoad": "重试",
     "title": "我的词典",
     "headerSubtitle": "用于学习和复习的个人词汇",
     "searchPlaceholder": "按单词、翻译搜索...",

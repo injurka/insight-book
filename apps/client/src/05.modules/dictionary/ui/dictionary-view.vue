@@ -30,6 +30,7 @@ const isQuizOpen = ref(false)
 const quizLang = ref('zh')
 const quizLevel = ref('')
 const statsDialog = ref<InstanceType<typeof DictionaryStatsDialog> | null>(null)
+let detailsRequest = 0
 
 watch(isTrainingOpen, (newVal, oldVal) => {
   if (oldVal === true && newVal === false)
@@ -39,15 +40,14 @@ watch(isEditMode, (val) => {
   if (!val)
     store.clearSelection()
 })
-watch(() => route.query.word, (newWord) => {
-  if (newWord) {
-    const found = store.words.find(w => w.word === newWord)
-
-    if (found)
-      openDetails(found)
-  }
+watch(() => route.query.word, (word) => {
+  if (typeof word === 'string')
+    openWordDetails(word)
 })
 watch(isDetailsModalOpen, (isOpen) => {
+  if (!isOpen)
+    detailsRequest++
+
   if (!isOpen && route.query.word)
     router.replace({ query: { ...route.query, word: undefined } })
 })
@@ -57,25 +57,39 @@ function handleOpenQuiz(data: { language: string, levelValue: string }) {
   quizLevel.value = data.levelValue
   isQuizOpen.value = true
 }
+async function openWordDetails(word: string) {
+  const request = ++detailsRequest
+
+  try {
+    const item = await store.getWord(word)
+
+    if (request !== detailsRequest)
+      return
+
+    selectedWordDetails.value = item
+    isDetailsModalOpen.value = true
+  }
+  catch (error) {
+    console.warn('Could not load dictionary word:', error)
+  }
+}
 function openDetails(item: UserDictItem) {
   selectedWordDetails.value = item
   isDetailsModalOpen.value = true
+  openWordDetails(item.word)
 }
 function openTrainingSettings(_mode: 'srs' | 'deep_dive' | 'cram' | 'match') {
   isTrainingOpen.value = true
 }
 
 onMounted(() => {
-  store.fetchDictionary().then(() => {
-    const queryWord = route.query.word as string
+  store.fetchDictionary(false)
 
-    if (queryWord) {
-      const found = store.words.find(w => w.word === queryWord)
-
-      if (found)
-        openDetails(found)
-    }
-  })
+  if (typeof route.query.word === 'string')
+    openWordDetails(route.query.word)
+})
+onUnmounted(() => {
+  detailsRequest++
 })
 </script>
 

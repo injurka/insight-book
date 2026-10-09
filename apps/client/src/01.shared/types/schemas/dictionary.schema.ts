@@ -86,3 +86,23 @@ export type DictDeckDomain = z.infer<typeof DictDeckSchema>
 export type CatalogDeckDomain = z.infer<typeof CatalogDeckSchema>
 export type CatalogWordDomain = z.infer<typeof CatalogWordSchema>
 export type PromptItemDomain = z.infer<typeof PromptItemSchema>
+
+export const DictionaryPageSchema = z.object({
+  items: z.array(UserDictItemSchema),
+  total: z.number(),
+  totalWords: z.number(),
+  nextOffset: z.number().nullable(),
+  languages: z.array(z.string()),
+  deckCounts: z.array(z.object({ deckId: z.number(), count: z.number() })),
+})
+export type DictionaryPage = z.infer<typeof DictionaryPageSchema>
+
+export interface DictionaryPageOptions {
+  offset?: number
+  limit?: number
+  search?: string
+  language?: string
+  decks?: string
+  difficulties?: string
+  statuses?: string
+}

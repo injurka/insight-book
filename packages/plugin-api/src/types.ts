@@ -65,6 +65,8 @@ export interface InsightBookPluginApiFacade {
   /** Методы словаря пользователя */
   dictionary: {
     getWords: () => Promise<unknown[]>
+    /** Получить карточки, которые SRS назначил к повторению для языка. */
+    getDueWords: (language: string) => Promise<unknown[]>
     updateWordStats: (id: number, score: number) => Promise<void>
     submitGrade: (wordId: number, grade: number) => Promise<void>
   }

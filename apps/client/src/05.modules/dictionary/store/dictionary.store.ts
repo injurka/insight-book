@@ -1,10 +1,10 @@
 import type { DictDeck, UserDictItem } from '~/01.shared/types/models'
-import { useMutation, useQuery, useQueryCache } from '@pinia/colada'
+import { useMutation, useQueryCache } from '@pinia/colada'
 import { useRepos } from '~/00.plugins/di'
 import { useToast } from '~/01.shared/composables/use-toast'
-import { queryKeys, scopedQueryKey } from '~/01.shared/lib/query-keys'
+import { queryKeys } from '~/01.shared/lib/query-keys'
 import { useAnalysisStore } from '~/01.shared/store/analysis/analysis.store'
-import { useAuthStore } from '~/01.shared/store/auth.store'
+import { usePagedDictionary } from '../composables/use-paged-dictionary'
 import { useDecksStore } from './decks.store'
 import { useDictionaryFiltersStore } from './dictionary-filters.store'
 import { dictionaryWords } from './dictionary-words.state'
@@ -12,7 +12,6 @@ import { dictionaryWords } from './dictionary-words.state'
 export const useDictionaryStore = defineStore('dictionary', () => {
   const toast = useToast()
   const queryCache = useQueryCache()
-  const authStore = useAuthStore()
   const repos = useRepos()
 
   const decksStore = useDecksStore()
@@ -21,21 +20,7 @@ export const useDictionaryStore = defineStore('dictionary', () => {
   const words = dictionaryWords
   const isManualLoading = ref(false)
 
-  // Pinia Colada query for dictionary
-  const {
-    data: dictionaryData,
-    isLoading: isDictionaryLoading,
-    refetch: refetchDictionary,
-  } = useQuery<UserDictItem[]>({
-    key: () => scopedQueryKey(queryKeys.dictionary.all),
-    query: async () => repos.dictionary.list(),
-    enabled: () => !!authStore.user || authStore.isSingleMode,
-  })
-
-  watch(dictionaryData, (newWords) => {
-    if (newWords)
-      words.value = newWords
-  }, { immediate: true })
+  const pagination = usePagedDictionary()
 
   const decks = computed<DictDeck[]>({
     get: () => decksStore.decks,
@@ -67,16 +52,22 @@ export const useDictionaryStore = defineStore('dictionary', () => {
   })
 
   // Computed counts
-  const availableLanguages = computed<string[]>(() => filtersStore.availableLanguages)
-  const filteredWords = computed<UserDictItem[]>(() => filtersStore.filteredWords)
+  const availableLanguages = computed<string[]>(() => pagination.metadata.value?.languages || [])
+  const filteredWords = computed<UserDictItem[]>(() => words.value)
+  const filteredCount = computed(() => pagination.metadata.value?.total || 0)
+  const totalWords = computed(() => pagination.metadata.value?.totalWords || 0)
+  const deckCounts = computed(() => pagination.metadata.value?.deckCounts || [])
 
-  async function fetchDictionary() {
+  async function fetchDictionary(force = true) {
     isManualLoading.value = true
 
     try {
+      if (force)
+        await queryCache.invalidateQueries({ key: queryKeys.dictionary.all }, false)
+
       await Promise.all([
-        refetchDictionary(),
-        decksStore.fetchDecks(),
+        pagination.reload(force),
+        decksStore.fetchDecks(force),
       ])
     }
     catch (e) {
@@ -91,10 +82,8 @@ export const useDictionaryStore = defineStore('dictionary', () => {
     mutation: async (word: string) => repos.dictionary.remove(word),
     async onSuccess(_, word) {
       words.value = words.value.filter(w => w.word !== word)
-      await repos.dictionary.saveLocalDictionary(words.value)
 
-      queryCache.invalidateQueries({ key: queryKeys.dictionary.all })
-      queryCache.invalidateQueries({ key: queryKeys.decks.all })
+      await fetchDictionary()
       toast.success('Слово удалено')
     },
     onError(e) {
@@ -121,16 +110,33 @@ export const useDictionaryStore = defineStore('dictionary', () => {
   const fetchDecks = async () => decksStore.fetchDecks()
   const createDeck = async (name: string, language: string) => decksStore.createDeck(name, language)
   const updateDeck = async (id: number, name: string) => decksStore.updateDeck(id, name)
-  const deleteDeck = async (id: number, mode: 'keep' | 'delete_all' | 'delete_exclusive' = 'keep') => decksStore.deleteDeck(id, mode)
+  const deleteDeck = async (id: number, mode: 'keep' | 'delete_all' | 'delete_exclusive' = 'keep') => {
+    await decksStore.deleteDeck(id, mode)
+    await fetchDictionary()
+  }
   const toggleWordSelection = (id: number) => filtersStore.toggleWordSelection(id)
   const clearSelection = () => filtersStore.clearSelection()
-  const selectAllFiltered = () => filtersStore.selectAllFiltered()
-  const bulkDelete = async () => filtersStore.bulkDelete()
-  const bulkMoveToDecks = async (deckIds: number[]) => filtersStore.bulkMoveToDecks(deckIds)
+  const selectAllFiltered = async () => {
+    try {
+      await pagination.loadAll()
+      filtersStore.selectAllFiltered()
+    }
+    catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Не удалось загрузить слова')
+    }
+  }
+  const bulkDelete = async () => {
+    await filtersStore.bulkDelete()
+    await fetchDictionary()
+  }
+  const bulkMoveToDecks = async (deckIds: number[]) => {
+    await filtersStore.bulkMoveToDecks(deckIds)
+    await fetchDictionary()
+  }
 
   const isLoading = computed(() => {
     return isManualLoading.value
-      || isDictionaryLoading.value
+      || pagination.isLoading.value
       || isDeletingWord.value
       || decksStore.isLoading
   })
@@ -146,6 +152,14 @@ export const useDictionaryStore = defineStore('dictionary', () => {
     selectedStatus,
     availableLanguages,
     filteredWords,
+    filteredCount,
+    totalWords,
+    deckCounts,
+    isLoadingMore: pagination.isLoading,
+    loadError: pagination.error,
+    loadMore: pagination.loadMore,
+    retryLoad: pagination.retry,
+    getWord: (word: string) => repos.dictionary.get(word),
     selectedWordIds,
 
     fetchDictionary,

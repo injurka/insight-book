@@ -34,6 +34,12 @@ const stopWatch = watch([isReady, app], ([ready, pixi]) => {
       -1,  1,
        1,  1,
     ]),
+    uvs: new Float32Array([
+      0, 0,
+      1, 0,
+      0, 1,
+      1, 1,
+    ]),
     indices: new Uint32Array([0, 1, 2, 1, 3, 2]),
   })
 

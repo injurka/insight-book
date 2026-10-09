@@ -547,6 +547,9 @@
     "autoAnalyzeSettings": "Background analysis settings"
   },
   "dictionary": {
+    "loadingMore": "Loading words…",
+    "loadError": "Could not load words",
+    "retryLoad": "Retry",
     "title": "My Dictionary",
     "headerSubtitle": "Your words for learning and review",
     "searchPlaceholder": "Search by word, translation...",

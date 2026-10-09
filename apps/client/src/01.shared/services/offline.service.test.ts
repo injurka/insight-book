@@ -7,6 +7,7 @@ vi.mock('localforage', () => ({
     keys: async () => [...idb.keys()],
     getItem: async (key: string) => idb.get(key) ?? null,
     setItem: async (key: string, value: unknown) => idb.set(key, value),
+    removeItem: async (key: string) => { idb.delete(key) },
   },
 }))
 vi.mock('~/01.shared/lib/router', () => ({ default: {} }))
@@ -67,5 +68,30 @@ describe('tTS offline persistence', () => {
     expect((await offlineService.getTtsMetadata('mp3_v1_1_default_hello.'))?.model).toBe('unknown')
     await offlineService.saveTts('mp3_v1_1_Kore_new.', 'QUJD', metadata)
     expect(await offlineService.getTtsMetadata('mp3_v1_1_default_new.')).toEqual(metadata)
+  })
+})
+
+describe('dictionary offline invalidation', () => {
+  it('clears dictionary snapshots while preserving decks and other users', async () => {
+    const staleKeys = [
+      'u1_dictionary_page_ru_{}',
+      'u1_dictionary_word_ru_test',
+      'u1_dictionary_words',
+      'u1_dictionary_words_ru',
+    ]
+
+    for (const key of staleKeys)
+      idb.set(key, { stale: true })
+
+    idb.set('u1_dictionary_decks', ['deck'])
+    idb.set('u1_book_1_page_1', { text: 'book' })
+    idb.set('u2_dictionary_page_ru_{}', { otherUser: true })
+    await offlineService.invalidateDictionaryCache()
+    expect(staleKeys.every(key => !idb.has(key))).toBe(true)
+    expect([...idb.keys()].sort()).toEqual([
+      'u1_book_1_page_1',
+      'u1_dictionary_decks',
+      'u2_dictionary_page_ru_{}',
+    ])
   })
 })

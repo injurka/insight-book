@@ -1,0 +1,9 @@
+{
+  "id": "detective-case",
+  "name": "Detective English",
+  "version": "1.0.0",
+  "description": "Расследуй дело и встречай изучаемые слова в репликах, уликах и собственных фразах.",
+  "icon": "mdi:magnify",
+  "source": "https://github.com/injurka/insight-book/tree/master/packages/plugin-detective-case",
+  "entryUrl": "./remoteEntry.js"
+}

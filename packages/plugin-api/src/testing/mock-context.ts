@@ -32,9 +32,22 @@ export interface NavigationItem {
   routeName: string
 }
 
+export interface MockDictionaryWord {
+  id: number
+  word: string
+  translation?: string
+  language?: string
+  targetLanguage?: string
+  due?: string
+  reps?: number
+  state?: number
+  score?: number
+  grade?: number
+}
+
 export interface MockContextOptions {
   locale?: string
-  words?: Array<{ id: number, word: string, score?: number, grade?: number }>
+  words?: MockDictionaryWord[]
   currentBook?: Record<string, unknown> | null
   userProfile?: Record<string, unknown> | null
   onRequest?: (endpoint: string, options?: PluginHttpRequestOptions) => Promise<unknown> | unknown
@@ -52,7 +65,7 @@ export interface MockPluginContextResult {
   events: InsightBookPluginEventBus
   clearLogs: () => void
   clearNotifications: () => void
-  setWords: (words: Array<{ id: number, word: string, score?: number, grade?: number }>) => void
+  setWords: (words: MockDictionaryWord[]) => void
 }
 
 class MockLogger {
@@ -69,15 +82,25 @@ class MockLogger {
 }
 
 class MockDictionaryApi {
-  private words: Array<{ id: number, word: string, score?: number, grade?: number }>
+  private words: MockDictionaryWord[]
 
-  constructor(initialWords: Array<{ id: number, word: string, score?: number, grade?: number }>, private logger: MockLogger) {
+  constructor(initialWords: MockDictionaryWord[], private logger: MockLogger) {
     this.words = reactive([...initialWords])
   }
 
   async getWords() {
     this.logger.log('dictionary.getWords')
     return JSON.parse(JSON.stringify(this.words))
+  }
+
+  async getDueWords(language: string) {
+    this.logger.log('dictionary.getDueWords', language)
+    const now = Date.now()
+    return JSON.parse(JSON.stringify(this.words.filter((word) => {
+      const due = word.due ? Date.parse(word.due) : Number.NaN
+      const dueNow = !Number.isFinite(due) || due <= now
+      return (!word.language || word.language.startsWith(language)) && dueNow
+    })))
   }
 
   async updateWordStats(id: number, score: number) {
@@ -96,7 +119,7 @@ class MockDictionaryApi {
     }
   }
 
-  setWords(newWords: Array<{ id: number, word: string, score?: number, grade?: number }>) {
+  setWords(newWords: MockDictionaryWord[]) {
     this.words.length = 0
     this.words.push(...newWords)
   }
@@ -181,6 +204,7 @@ export function createMockPluginContext(options: MockContextOptions = {}): MockP
     },
     dictionary: {
       getWords: () => dictionaryApi.getWords(),
+      getDueWords: language => dictionaryApi.getDueWords(language),
       updateWordStats: (id, score) => dictionaryApi.updateWordStats(id, score),
       submitGrade: (wordId, grade) => dictionaryApi.submitGrade(wordId, grade),
     },

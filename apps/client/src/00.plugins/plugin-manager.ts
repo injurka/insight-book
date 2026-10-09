@@ -106,6 +106,25 @@ function toMfRemoteName(pluginId: string) {
   return `plugin_${pluginId.replace(/\W/g, '_')}`
 }
 
+function logPluginInfo(message: string) {
+  // eslint-disable-next-line no-console -- lifecycle and success messages are informational, not warnings
+  console.info(message)
+}
+
+function logPluginNotification(message: string, type: 'info' | 'success' | 'warning' | 'error' = 'info') {
+  const logMessage = `[Plugin Notify] ${type}: ${message}`
+
+  if (type === 'error') {
+    console.error(logMessage)
+  }
+  else if (type === 'warning') {
+    console.warn(logMessage)
+  }
+  else {
+    logPluginInfo(logMessage)
+  }
+}
+
 function executePluginRequest<T = unknown>(endpoint: string, options?: PluginHttpRequestOptions): Promise<T> {
   const opts = options || {}
 
@@ -137,14 +156,19 @@ export function usePluginManager(): PluginManager {
     dictionary: {
       getWords: async () => {
         try {
-          const { useDictionaryStore } = await import('~/05.modules/dictionary/store/dictionary.store')
-          const store = useDictionaryStore()
-
-          return store.words
+          return await defaultRepositories.dictionary.list()
         }
         catch {
           return []
         }
+      },
+      getDueWords: async (language: string) => {
+        return defaultRepositories.dictionary.getReviewQueue({
+          lang: language,
+          mode: 'srs',
+          deckId: 'all',
+          difficulty: 'all',
+        })
       },
       updateWordStats: async (id: number, score: number) => {
         await defaultRepositories.dictionary.submitReview(id, score)
@@ -227,6 +251,8 @@ export function usePluginManager(): PluginManager {
           meta: {
             layout: plugin.immersive ? 'immersive' : 'default',
             orientation: plugin.orientation ?? null,
+            title: plugin.name,
+            titleKey: `plugins.${plugin.id}.navItemTitle`,
           },
         })
       }
@@ -261,20 +287,16 @@ export function usePluginManager(): PluginManager {
   }
 
   const install = async (_app: App | null, router: Router, pluginInstances: InsightBookPlugin[]) => {
-    const notify = (message: string, type: 'info' | 'success' | 'warning' | 'error' = 'info') => {
-      console.warn(`[Plugin Notify] ${type}: ${message}`)
-    }
-
     for (const plugin of pluginInstances) {
       if (plugins.some(item => item.id === plugin.id) || installingPluginIds.has(plugin.id)) {
         console.warn(`[Plugin Manager] Plugin with ID "${plugin.id}" is already installed.`)
         continue
       }
 
-      console.warn(`[Plugin Manager] Activating plugin "${plugin.id}" (v${plugin.version})...`)
+      logPluginInfo(`[Plugin Manager] Activating plugin "${plugin.id}" (v${plugin.version})...`)
 
       const ctx: InsightBookPluginContext = {
-        notify,
+        notify: logPluginNotification,
         addNavigationItem: (item: PluginNavItem) => {
           const items = navItemsByPlugin.get(plugin.id) ?? []
 
@@ -346,12 +368,12 @@ export function usePluginManager(): PluginManager {
     }
 
     const plugin = plugins[index]
-    console.warn(`[Plugin Manager] Deactivating plugin "${plugin.id}"...`)
+    logPluginInfo(`[Plugin Manager] Deactivating plugin "${plugin.id}"...`)
 
     try {
       if (plugin.deactivate) {
         const ctx: InsightBookPluginContext = {
-          notify: (message, type) => console.warn(`[Plugin Notify] ${type}: ${message}`),
+          notify: logPluginNotification,
           addNavigationItem: () => { },
           registerUIWidget: () => { },
           unregisterUIWidget: () => { },
@@ -371,7 +393,7 @@ export function usePluginManager(): PluginManager {
     removePluginRoutes(plugin, router)
 
     plugins.splice(index, 1)
-    console.warn(`[Plugin Manager] Plugin "${pluginId}" uninstalled.`)
+    logPluginInfo(`[Plugin Manager] Plugin "${pluginId}" uninstalled.`)
   }
 
   const resolveManifestBaseUrl = (manifestUrl: string): string => {
