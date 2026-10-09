@@ -156,6 +156,45 @@ describe('useReaderContent - applyTranslations (left pane)', () => {
     expect((leftPaneContent.value.match(/interleaved-translation/g) || []).length).toBe(1)
   })
 
+  it.each([
+    ['EPUB span', '<span class="class_s4sc">', '</span>', 'The transformation occurred', ' at approximately 2:23 AM, Pacific Standard Time. '],
+    ['nested emphasis', '<strong><em>', '</em></strong>', 'The transformation occurred', ' at approximately 2:23 AM, Pacific Standard Time. '],
+    ['split word', '<em>', '</em>', 'The ca', 't sleeps. '],
+  ])('places one TTS button and translation at the end across %s', (
+    _,
+    open,
+    close,
+    first,
+    last,
+  ) => {
+    const raw = first + last
+    const fragment = (text: string) => `<span class="sentence" data-sent-id="0" data-raw-sent="${encodeURIComponent(raw)}">${text}</span>`
+    setPage(`<p>${open}${fragment(first)}${close}${fragment(last)}${sentenceSpan('1', ['Next.'])}</p>`)
+    useGlobalSettingsStore().showSentenceTtsButton = true
+    useAnalysisStore().analysisHistory = [{ sentence: raw, analysis: { translation: 'Перевод' } as LlmAnalysis, timestamp: 1 }]
+    const doc = new DOMParser().parseFromString(useReaderContent().leftPaneContent.value, 'text/html')
+    const fragments = doc.querySelectorAll('.sentence[data-sent-id="0"]')
+    expect(fragments).toHaveLength(2)
+    expect(fragments[0].querySelector('.sentence-tts-btn')).toBeNull()
+    expect(fragments[0].textContent).toBe(first)
+    expect(doc.querySelectorAll('.interleaved-translation')).toHaveLength(1)
+    expect(fragments[1].querySelectorAll('.sentence-tts-btn')).toHaveLength(1)
+    expect(fragments[1].querySelector('.sentence-tts-btn')?.getAttribute('data-tts-text')).toBe(encodeURIComponent(raw))
+    expect(fragments[1].nextElementSibling?.classList.contains('interleaved-translation')).toBe(true)
+    expect(fragments[1].nextElementSibling?.nextElementSibling?.getAttribute('data-sent-id')).toBe('1')
+    expect(doc.querySelectorAll('.sentence-tts-btn')).toHaveLength(2)
+    expect(doc.querySelector('.class_s4sc, strong, em')?.textContent).toBe(first)
+  })
+
+  it('keeps repeated text with distinct sentence IDs separate', () => {
+    useGlobalSettingsStore().showSentenceTtsButton = true
+    setPage(sentenceSpan('0', ['Hello.']) + sentenceSpan('1', ['Hello.']))
+    useAnalysisStore().analysisHistory = [{ sentence: 'Hello.', analysis: { translation: 'Перевод' } as LlmAnalysis, timestamp: 1 }]
+    const doc = new DOMParser().parseFromString(useReaderContent().leftPaneContent.value, 'text/html')
+    expect(doc.querySelectorAll('.sentence-tts-btn')).toHaveLength(2)
+    expect(doc.querySelectorAll('.interleaved-translation')).toHaveLength(2)
+  })
+
   it('adds is-blurred class and grammar badges when settings are enabled', () => {
     const settingsStore = useGlobalSettingsStore()
     settingsStore.parallelBlurTranslation = true

@@ -58,6 +58,21 @@ describe('multilingual tokenization contract', () => {
     expect(new Set(cats.map((_, el) => $(el).attr('data-token-idx')).get()).size).toBe(1)
   })
 
+  test('EPUB fragments preserve the full sentence and time', async () => {
+    const first = 'The transformation occurred'
+    const last = ' at approximately 2:23 AM, Pacific Standard Time. '
+    const next = 'As far as I could tell, anyone who was indoors when it happened died instantly.'
+    const $ = cheerio.load((await tokenizeHtmlPage(`<p><span class="class_s4sc">${first}</span>${last}${next}</p>`, 'en')).processedHtml)
+    expect($('p').text()).toBe(first + last + next)
+    const fragments = $('.sentence[data-sent-id="0"]')
+    expect(fragments).toHaveLength(2)
+    expect(fragments.map((_, el) => $(el).text()).get()).toEqual([first, last])
+    for (const el of fragments.toArray())
+      expect(decodeURIComponent($(el).attr('data-raw-sent')!)).toBe(first + last)
+    expect($('.sentence[data-sent-id="1"]').text()).toBe(next)
+    expect($('.class_s4sc').text()).toBe(first)
+  })
+
   test('HTML and OCR share fallback when a tokenizer loses characters', async () => {
     const spy = spyOn(getTokenizer('en'), 'tokenize').mockReturnValue([{ word: 'lost', pos: 'n' }])
     try {
