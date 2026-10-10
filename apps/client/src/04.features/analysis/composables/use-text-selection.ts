@@ -1,5 +1,6 @@
 import { watch } from 'vue'
 import { useTts } from '~/01.shared/composables/use-tts'
+import { findQuoteTextAtPoint } from '~/01.shared/lib/dom-highlighter'
 import { safeDecodeURIComponent } from '~/01.shared/lib/helpers'
 import { useAnalysisStore } from '~/01.shared/store/analysis/analysis.store'
 
@@ -126,7 +127,9 @@ export function useTextSelection() {
       return
 
     const target = targetEl?.closest?.('.sentence') as HTMLElement | null
-    const rawSent = extractSentenceText(target, fallbackText)
+    const coords = getClientCoords(event)
+    const quoteText = targetEl ? findQuoteTextAtPoint(targetEl, coords.x, coords.y) : undefined
+    const rawSent = quoteText || extractSentenceText(target, fallbackText)
 
     if (!rawSent || !/[\p{L}\p{N}]/u.test(rawSent))
       return

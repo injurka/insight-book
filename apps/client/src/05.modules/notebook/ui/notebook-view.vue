@@ -412,6 +412,8 @@ onMounted(async () => {
 
 <style lang="scss" scoped>
 .notebook-page {
+  --notebook-sticky-gap: 16px;
+
   padding: 16px;
   padding-top: calc(16px + var(--safe-area-top));
   padding-bottom: env(safe-area-inset-bottom, 24px);
@@ -426,6 +428,8 @@ onMounted(async () => {
   flex-direction: column;
 
   @include media-down(md) {
+    --notebook-sticky-gap: 8px;
+
     padding: 8px;
     padding-top: calc(8px + var(--safe-area-top));
   }
@@ -530,7 +534,7 @@ onMounted(async () => {
 
 .book-group-header {
   position: sticky;
-  top: 0;
+  top: calc(var(--safe-area-top) + var(--notebook-sticky-gap));
   z-index: 10;
   display: flex;
   align-items: center;

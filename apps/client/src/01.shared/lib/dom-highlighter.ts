@@ -135,6 +135,25 @@ export function collectQuoteRanges(root: HTMLElement, quotes: QuoteHighlightSour
 const ownerRanges = new Map<string, Map<string, Range[]>>()
 let registeredNames = new Set<string>()
 
+/** Returns the smallest saved quote under the pointer, including overlapping quotes. */
+export function findQuoteTextAtPoint(target: HTMLElement, x: number, y: number): string | undefined {
+  const matches: string[] = []
+
+  for (const colors of ownerRanges.values()) {
+    for (const ranges of colors.values()) {
+      for (const range of ranges) {
+        if (!range.startContainer.isConnected || !range.intersectsNode(target))
+          continue
+
+        if (Array.from(range.getClientRects()).some(rect => x >= rect.left && x < rect.right && y >= rect.top && y < rect.bottom))
+          matches.push(range.toString())
+      }
+    }
+  }
+
+  return matches.sort((a, b) => a.length - b.length)[0]
+}
+
 function colorToHighlightName(rgba: string): string {
   return `${HIGHLIGHT_NAME_PREFIX}-${rgba.replace(/[^a-z0-9]+/gi, '-')}`
 }

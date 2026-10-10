@@ -82,7 +82,7 @@ export async function requestLlmGenerate<T = unknown>(params: PluginLlmGenerateP
   // Fallback via general request.
   const response = await pluginRequest<{ success: boolean, data?: T, text?: string }>('/api/llm/generate', {
     method: 'POST',
-    body: payload,
+    body: { ...payload },
     withLlm: true,
   })
 

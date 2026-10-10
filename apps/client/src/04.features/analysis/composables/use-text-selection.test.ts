@@ -1,5 +1,6 @@
 import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { clearQuoteHighlights, findQuoteRange, setQuoteHighlights } from '~/01.shared/lib/dom-highlighter'
 
 // Мокаем хранилище анализа: тестируем таймер длинного нажатия,
 // а не сетевой слой (performSentenceAnalysis ходит в API).
@@ -71,7 +72,35 @@ describe('useTextSelection press timer', () => {
   })
 
   afterEach(() => {
+    clearQuoteHighlights('press-test')
     vi.useRealTimers()
+  })
+
+  it.each([
+    [110, 'saved quote'],
+    [210, 'Before saved quote after.'],
+  ])('analyzes the quote only when holding its text at x=%s', (x, expected) => {
+    const { selection } = setup()
+    const el = makeSentenceElement('Before saved quote after.')
+    el.innerHTML = 'Before <b>saved</b> quote after.'
+    document.body.appendChild(el)
+    const range = findQuoteRange(el, 'saved quote')!
+    Object.defineProperty(range, 'getClientRects', {
+      value: () => [{ left: 100, right: 200, top: 90, bottom: 120 }],
+    })
+    setQuoteHighlights('press-test', new Map([['#fde047', [range]]]))
+
+    selection.onPointerDown(makeTouchEvent(
+      'touchstart',
+      el,
+      x,
+      100,
+    ))
+    vi.advanceTimersByTime(600)
+
+    expect(handleSentenceAnalysis).toHaveBeenCalledWith(expected, expect.any(String))
+    selection.onPointerUp()
+    el.remove()
   })
 
   it('opens sentence analysis after 500ms hold without movement', () => {
