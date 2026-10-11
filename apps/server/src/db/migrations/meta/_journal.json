@@ -267,6 +267,13 @@
       "when": 1791379291041,
       "tag": "0037_regular_network",
       "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "6",
+      "when": 1791754950343,
+      "tag": "0038_needy_hulk",
+      "breakpoints": true
     }
   ]
 }

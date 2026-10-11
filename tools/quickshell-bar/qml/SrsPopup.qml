@@ -1,5 +1,4 @@
 import QtQuick
-import QtQuick.Controls
 import QtQuick.Layouts
 import Quickshell
 import qs.modules.common
@@ -9,36 +8,28 @@ PopupWindow {
     id: root
 
     required property Item button
-    property bool settingsOpen: false
 
     signal dismissed()
 
     anchor.item: button
     anchor.edges: Config.options.bar.vertical ? (Config.options.bar.bottom ? Edges.Left : Edges.Right) : (Config.options.bar.bottom ? Edges.Top : Edges.Bottom)
     anchor.gravity: anchor.edges
-    anchor.margins.left: 8
-    anchor.margins.right: 8
-    anchor.margins.top: 8
-    anchor.margins.bottom: 8
-    implicitWidth: 420
-    implicitHeight: Math.min(620, content.implicitHeight + 32)
+    implicitWidth: 500
+    implicitHeight: Math.min(740, content.implicitHeight + 40)
     color: "transparent"
     grabFocus: true
     onVisibleChanged: {
-        if (!visible) {
+        if (!visible)
             dismissed();
-        } else {
-            settingsOpen = SrsService.authRequired;
+        else
             keyboard.forceActiveFocus();
-        }
     }
 
-    Connections {
-        function onAuthenticated() {
-            root.settingsOpen = false;
-        }
-
-        target: SrsService
+    anchor.margins {
+        left: 8
+        right: 8
+        top: 8
+        bottom: 8
     }
 
     Rectangle {
@@ -55,21 +46,14 @@ PopupWindow {
             focus: true
             Keys.onEscapePressed: root.dismissed()
             Keys.onPressed: (event) => {
-                if (root.settingsOpen || !SrsService.card || SrsService.busy || SrsService.error)
-                    return ;
+                if (SrsService.stage === "training" && view.item)
+                    view.item.key(event);
 
-                if (event.key === Qt.Key_Space && !cardView.revealed) {
-                    cardView.revealed = true;
-                    event.accepted = true;
-                } else if (cardView.revealed && event.key >= Qt.Key_1 && event.key <= Qt.Key_4) {
-                    SrsService.review(event.key - Qt.Key_0);
-                    event.accepted = true;
-                }
             }
 
             Flickable {
                 anchors.fill: parent
-                anchors.margins: 16
+                anchors.margins: 20
                 contentHeight: content.implicitHeight
                 clip: true
                 boundsBehavior: Flickable.StopAtBounds
@@ -78,20 +62,36 @@ PopupWindow {
                     id: content
 
                     width: parent.width
-                    spacing: 14
+                    spacing: 18
 
                     RowLayout {
                         Layout.fillWidth: true
 
-                        StyledText {
-                            text: "InsightBook · SRS"
-                            font.bold: true
+                        ColumnLayout {
                             Layout.fillWidth: true
+                            spacing: 3
+
+                            StyledText {
+                                text: "InsightBook · SRS"
+                                font.bold: true
+                            }
+
+                            StyledText {
+                                text: ({
+                                    "connect": "1 / 3 · Сервер и вход",
+                                    "setup": "2 / 3 · Настройка",
+                                    "training": "3 / 3 · Повторение"
+                                })[SrsService.stage]
+                                color: Appearance.colors.colSubtext
+                                font.pixelSize: Appearance.font.pixelSize.small
+                            }
+
                         }
 
                         RippleButton {
                             implicitWidth: 32
                             implicitHeight: 32
+                            visible: SrsService.stage === "training"
                             enabled: !SrsService.busy
                             onClicked: SrsService.refresh()
 
@@ -106,7 +106,9 @@ PopupWindow {
                         RippleButton {
                             implicitWidth: 32
                             implicitHeight: 32
-                            onClicked: root.settingsOpen = !root.settingsOpen
+                            visible: SrsService.stage === "training"
+                            enabled: !SrsService.busy
+                            onClicked: SrsService.stage = "setup"
 
                             MaterialSymbol {
                                 anchors.centerIn: parent
@@ -131,36 +133,61 @@ PopupWindow {
 
                     }
 
+                    Rectangle {
+                        Layout.fillWidth: true
+                        implicitHeight: 1
+                        color: Appearance.colors.colOutlineVariant
+                    }
+
                     StyledText {
                         Layout.fillWidth: true
                         visible: SrsService.busy || !!SrsService.error
                         wrapMode: Text.Wrap
                         textFormat: Text.PlainText
-                        text: SrsService.error || "Обновляю…"
+                        text: SrsService.error || ({
+                            "connect": "Подключаюсь…",
+                            "setup": "Загружаю тренировку…",
+                            "training": "Обновляю…"
+                        })[SrsService.stage]
                         color: SrsService.error ? Appearance.m3colors.m3error : Appearance.colors.colSubtext
-                    }
-
-                    SrsCard {
-                        id: cardView
-
-                        Layout.fillWidth: true
-                        visible: !root.settingsOpen
+                        font.pixelSize: Appearance.font.pixelSize.small
                     }
 
                     Loader {
+                        id: view
+
                         Layout.fillWidth: true
-                        active: root.settingsOpen
-                        visible: active
-
-                        sourceComponent: SrsSettings {
-                        }
-
+                        sourceComponent: SrsService.stage === "connect" ? connectionView : SrsService.stage === "setup" ? setupView : cardView
                     }
 
                 }
 
             }
 
+        }
+
+    }
+
+    Component {
+        id: connectionView
+
+        SrsConnection {
+        }
+
+    }
+
+    Component {
+        id: setupView
+
+        SrsSettings {
+        }
+
+    }
+
+    Component {
+        id: cardView
+
+        SrsCard {
         }
 
     }

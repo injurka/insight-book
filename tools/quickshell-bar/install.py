@@ -6,17 +6,17 @@ from pathlib import Path
 import shutil
 
 SOURCE = Path(__file__).resolve().parent
-VERTICAL_IMPORT = 'import "../bar/insightBook"\n'
+VERTICAL_IMPORT = 'import "../bar/quickshellBar"\n'
 VERTICAL_WIDGET = '''            // InsightBook SRS
-            InsightBookButton {
+            QuickshellBarButton {
                 Layout.alignment: Qt.AlignHCenter
                 Layout.fillHeight: false
             }
 
 '''
-IMPORT = 'import "insightBook"\n'
+IMPORT = 'import "quickshellBar"\n'
 WIDGET = '''            // InsightBook SRS
-            InsightBookButton {
+            QuickshellBarButton {
                 Layout.alignment: Qt.AlignVCenter
                 Layout.fillWidth: false
             }
@@ -33,6 +33,12 @@ def main():
     content = target.read_text()
     vertical = args.shell / "modules/ii/verticalBar/VerticalBarContent.qml"
     vertical_content = vertical.read_text()
+    legacy_import = IMPORT.replace('quickshellBar', 'insightBook')
+    legacy_vertical_import = VERTICAL_IMPORT.replace('quickshellBar', 'insightBook')
+    legacy_widget = WIDGET.replace('QuickshellBarButton', 'InsightBookButton')
+    legacy_vertical_widget = VERTICAL_WIDGET.replace('QuickshellBarButton', 'InsightBookButton')
+    content = content.replace(legacy_import, '').replace(legacy_widget, '')
+    vertical_content = vertical_content.replace(legacy_vertical_import, '').replace(legacy_vertical_widget, '')
     if args.remove:
         target.write_text(content.replace(IMPORT, "").replace(WIDGET, ""))
         vertical.write_text(vertical_content.replace(VERTICAL_IMPORT, "").replace(VERTICAL_WIDGET, ""))
@@ -43,14 +49,15 @@ def main():
     if "            Item {\n                Layout.fillHeight: true" not in vertical_content:
         raise SystemExit("Не найдена точка установки в VerticalBarContent.qml. Файлы не изменены.")
     # Copy dependencies before inserting the button: end-4 watches source changes.
-    qml_dir = target.parent / "insightBook"
-    scripts = args.shell / "scripts/insightBook"
+    qml_dir = target.parent / "quickshellBar"
+    scripts = args.shell / "scripts/quickshellBar"
     qml_dir.mkdir(parents=True, exist_ok=True)
     scripts.mkdir(parents=True, exist_ok=True)
     for source in (SOURCE / "qml").iterdir():
         if source.is_file():
             shutil.copy2(source, qml_dir / source.name)
-    shutil.copy2(SOURCE / "bridge.py", scripts / "bridge.py")
+    for name in ("bridge.py", "session.py"):
+        shutil.copy2(SOURCE / name, scripts / name)
     if WIDGET not in content:
         backup = scripts / "backups" / datetime.now().strftime("%Y%m%d-%H%M%S-%f")
         backup.mkdir(parents=True)

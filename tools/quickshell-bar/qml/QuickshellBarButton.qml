@@ -38,7 +38,7 @@ RippleButton {
 
         StyledText {
             Layout.alignment: Qt.AlignHCenter
-            text: SrsService.authRequired ? "Вход" : SrsService.error ? "!" : SrsService.ready ? String(SrsService.count) : "…"
+            text: !SrsService.account.authenticated ? "Вход" : SrsService.error ? "!" : SrsService.ready ? String(SrsService.count) : "…"
             font.pixelSize: Appearance.font.pixelSize.small
         }
 

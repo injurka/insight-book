@@ -81,6 +81,15 @@ export const subscriptionTiers = sqliteTable('subscription_tiers', {
   updatedAt: text('updatedAt').notNull().default(sql`(datetime('now'))`),
 })
 
+// Rotating opaque refresh tokens; only SHA-256 hashes are persisted.
+export const authSessions = sqliteTable('auth_sessions', {
+  tokenHash: text('token_hash').primaryKey(),
+  userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  expiresAt: integer('expires_at').notNull(),
+}, t => [
+  index('auth_sessions_expiry_idx').on(t.expiresAt),
+])
+
 export const emailConfirmations = sqliteTable('email_confirmations', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   email: text('email').notNull(),
