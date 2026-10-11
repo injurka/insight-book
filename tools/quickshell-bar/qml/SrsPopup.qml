@@ -1,36 +1,51 @@
 import QtQuick
 import QtQuick.Layouts
 import Quickshell
+import Quickshell.Wayland
+import qs.services
 import qs.modules.common
 import qs.modules.common.widgets
 
-PopupWindow {
+PanelWindow {
     id: root
 
     required property Item button
+    property var targetScreen
 
     signal dismissed()
 
-    anchor.item: button
-    anchor.edges: Config.options.bar.vertical ? (Config.options.bar.bottom ? Edges.Left : Edges.Right) : (Config.options.bar.bottom ? Edges.Top : Edges.Bottom)
-    anchor.gravity: anchor.edges
-    readonly property real fitScale: Math.min(1, ((button.QsWindow.window?.screen?.height || 1080) - 40) / (content.implicitHeight + 40))
+    screen: targetScreen || Quickshell.screens[0]
+    exclusiveZone: 0
+    WlrLayershell.namespace: "quickshell:srs"
+    WlrLayershell.keyboardFocus: visible ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
+    anchors {
+        top: !Config.options.bar.bottom || Config.options.bar.vertical
+        bottom: Config.options.bar.bottom && !Config.options.bar.vertical
+        left: Config.options.bar.vertical && !Config.options.bar.bottom
+        right: !Config.options.bar.vertical || Config.options.bar.bottom
+    }
+    margins {
+        top: Appearance.sizes.hyprlandGapsOut
+        bottom: Appearance.sizes.hyprlandGapsOut
+        left: Appearance.sizes.hyprlandGapsOut
+        right: Appearance.sizes.hyprlandGapsOut
+    }
+    readonly property real fitScale: Math.min(1, ((root.screen?.height || 1080) - 40) / (content.implicitHeight + 40))
     implicitWidth: 500 * fitScale
     implicitHeight: (content.implicitHeight + 40) * fitScale
     color: "transparent"
-    grabFocus: true
     onVisibleChanged: {
-        if (!visible)
-            dismissed();
-        else
+        if (visible) {
+            GlobalFocusGrab.addDismissable(root);
             keyboard.forceActiveFocus();
+        } else {
+            GlobalFocusGrab.removeDismissable(root);
+            dismissed();
+        }
     }
-
-    anchor.margins {
-        left: 8
-        right: 8
-        top: 8
-        bottom: 8
+    Connections {
+        target: GlobalFocusGrab
+        function onDismissed() { if (root.visible) root.dismissed(); }
     }
 
     Rectangle {
@@ -64,19 +79,8 @@ PopupWindow {
 
                     RowLayout {
                         Layout.fillWidth: true
-
-                        RippleButton {
-                            implicitWidth: 32
-                            implicitHeight: 32
-                            onClicked: root.dismissed()
-
-                            MaterialSymbol {
-                                anchors.centerIn: parent
-                                text: "close"
-                                iconSize: 20
-                            }
-
-                        }
+                        Layout.minimumWidth: content.width
+                        Layout.maximumWidth: content.width
 
                         ColumnLayout {
                             Layout.fillWidth: true
@@ -128,6 +132,20 @@ PopupWindow {
                             }
 
                         }
+                        RippleButton {
+                            implicitWidth: 32
+                            implicitHeight: 32
+                            onClicked: root.dismissed()
+
+                            MaterialSymbol {
+                                anchors.centerIn: parent
+                                text: "close"
+                                iconSize: 20
+                            }
+
+                        }
+
+
 
 
 
@@ -141,15 +159,11 @@ PopupWindow {
 
                     StyledText {
                         Layout.fillWidth: true
-                        visible: SrsService.busy || !!SrsService.error
+                        visible: !!SrsService.error
                         wrapMode: Text.Wrap
                         textFormat: Text.PlainText
-                        text: SrsService.error || ({
-                            "connect": "Подключаюсь…",
-                            "setup": "Загружаю тренировку…",
-                            "training": "Обновляю…"
-                        })[SrsService.stage]
-                        color: SrsService.error ? Appearance.m3colors.m3error : Appearance.colors.colSubtext
+                        text: SrsService.error
+                        color: Appearance.m3colors.m3error
                         font.pixelSize: Appearance.font.pixelSize.small
                     }
 

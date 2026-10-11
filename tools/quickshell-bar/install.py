@@ -53,7 +53,10 @@ def main():
     scripts = args.shell / "scripts/quickshellBar"
     qml_dir.mkdir(parents=True, exist_ok=True)
     scripts.mkdir(parents=True, exist_ok=True)
-    for source in (SOURCE / "qml").iterdir():
+    # Existing shells reload while files change. Install new types first, then
+    # register them before updating components that refer to those types.
+    sources = sorted((SOURCE / "qml").iterdir(), key=lambda source: 0 if not (qml_dir / source.name).exists() else 1 if source.name == "qmldir" else 2)
+    for source in sources:
         if source.is_file():
             shutil.copy2(source, qml_dir / source.name)
     for name in ("bridge.py", "session.py"):

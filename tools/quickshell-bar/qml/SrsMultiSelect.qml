@@ -47,6 +47,7 @@ ColumnLayout {
                 clip: true
                 model: [{id: "all", name: root.allLabel}].concat(root.options)
                 delegate: RippleButton {
+                    id: option
                     required property var modelData
                     width: choices.width
                     implicitHeight: 36
@@ -62,10 +63,12 @@ ColumnLayout {
                         MaterialSymbol {
                             text: parent.parent.toggled ? "check_box" : "check_box_outline_blank"
                             iconSize: 18
+                            color: option.toggled ? Appearance.colors.colOnPrimary : Appearance.colors.colOnLayer0
                         }
                         StyledText {
                             Layout.fillWidth: true
                             text: modelData.name
+                            color: option.toggled ? Appearance.colors.colOnPrimary : Appearance.colors.colOnLayer0
                             elide: Text.ElideRight
                         }
                     }

@@ -6,3 +6,4 @@ SrsAction 1.0 SrsAction.qml
 SrsConnection 1.0 SrsConnection.qml
 QuickshellBarButton 1.0 QuickshellBarButton.qml
 SrsMultiSelect 1.0 SrsMultiSelect.qml
+SrsSection 1.0 SrsSection.qml

@@ -55,6 +55,7 @@ RippleButton {
     }
     SrsPopup {
         button: root
+        targetScreen: root.QsWindow.window?.screen
         visible: root.opened
         onDismissed: {
             root.opened = false;
