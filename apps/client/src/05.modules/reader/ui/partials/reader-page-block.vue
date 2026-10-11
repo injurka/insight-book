@@ -3,9 +3,9 @@ import type { PagePayload } from '~/01.shared/types/models'
 import { Icon } from '@iconify/vue'
 import { computed, useTemplateRef } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useAnalysisStore } from '~/01.shared/store/analysis/analysis.store'
 import { useGlobalSettingsStore } from '~/01.shared/store/settings.store'
 import { KitBtn } from '~/02.kit/atoms/kit-btn/ui'
+import { useParallelAlignment } from '../../composables/use-parallel-alignment'
 import { useQuoteHighlights } from '../../composables/use-quote-highlights'
 import { useReaderContent } from '../../composables/use-reader-content'
 
@@ -30,9 +30,8 @@ const emit = defineEmits<{
 
 const { t } = useI18n()
 const settingsStore = useGlobalSettingsStore()
-const analysisStore = useAnalysisStore()
 const blockRef = useTemplateRef<HTMLElement>('blockRef')
-const { leftPaneContent, translatedPageContent, pageTranslationProgress } = useReaderContent(() => props.page)
+const { leftPaneContent, translatedPageContent, pageTranslationProgress, isPageTranslating } = useReaderContent(() => props.page)
 
 const contentLayoutStyle = computed(() => {
   const widthPercent = settingsStore.readerContentWidthPercent
@@ -44,6 +43,17 @@ const contentLayoutStyle = computed(() => {
   }
 })
 
+useParallelAlignment(
+  blockRef,
+  () => props.isParallelView,
+  [leftPaneContent, translatedPageContent],
+  () => [
+    settingsStore.readerFontSize,
+    settingsStore.readerLineHeight,
+    settingsStore.readerFontFamily,
+  ],
+)
+
 useQuoteHighlights(blockRef, [leftPaneContent, translatedPageContent], () => props.page.pageNum)
 </script>
 
@@ -53,6 +63,33 @@ useQuoteHighlights(blockRef, [leftPaneContent, translatedPageContent], () => pro
       <span class="divider-line" />
       <span class="divider-text">{{ t('reader.pageDivider', { page: page.pageNum, total: totalPages }) }}</span>
       <span class="divider-line" />
+    </div>
+
+    <div
+      v-if="settingsStore.parallelViewMode !== 'none' && pageTranslationProgress.total > 0 && !pageTranslationProgress.isFullyTranslated"
+      class="page-translation-status"
+      :style="contentLayoutStyle"
+    >
+      <div class="translation-status-copy" role="status">
+        <span>{{ t(isPageTranslating ? 'reader.translatingPage' : 'reader.translationNotReady') }}</span>
+        <span class="translation-count">{{ pageTranslationProgress.translated }} / {{ pageTranslationProgress.total }}</span>
+      </div>
+      <div
+        v-if="isPageTranslating"
+        class="translation-progress"
+        role="progressbar"
+        :aria-valuenow="pageTranslationProgress.translated"
+        :aria-valuemax="pageTranslationProgress.total"
+        :aria-valuemin="0"
+        :aria-label="t('reader.translatingPage')"
+      >
+        <div class="progress-bar-bg">
+          <div class="progress-bar-fill" :style="{ width: `${pageTranslationProgress.percentage}%` }" />
+        </div>
+      </div>
+      <KitBtn v-else color="primary" @click="emit('translatePage', page.pageNum)">
+        <Icon icon="mdi:translate" /> {{ t('reader.translateWholePage') }}
+      </KitBtn>
     </div>
 
     <div class="reader-content-layout" :class="{ 'is-parallel': isParallelView }" :style="contentLayoutStyle">
@@ -85,7 +122,6 @@ useQuoteHighlights(blockRef, [leftPaneContent, translatedPageContent], () => pro
         }"
       >
         <div
-          v-if="pageTranslationProgress.isFullyTranslated"
           class="translated-content-wrapper"
           @click="emit('wordClick', $event)"
           @mousedown="emit('pointerDown', $event)"
@@ -98,36 +134,6 @@ useQuoteHighlights(blockRef, [leftPaneContent, translatedPageContent], () => pro
           @mouseout="emit('sentenceOut', $event)"
           v-html="translatedPageContent"
         />
-        <div v-else class="untranslated-overlay-container">
-          <div
-            class="untranslated-content is-blurred"
-            v-html="leftPaneContent"
-          />
-          <div class="untranslated-overlay-action">
-            <div class="hint-text">
-              {{ t('reader.parallelReadingHint', 'Для отображения текста необходимо перевести все предложения на странице.') }}
-            </div>
-
-            <div v-if="analysisStore.isAutoPageAnalysisActive || analysisStore.isManualPageAnalysisActive" class="translation-progress">
-              <div class="progress-info">
-                <span>{{ t('reader.translatingPage', 'Перевод предложений...') }}</span>
-                <span>{{ pageTranslationProgress.translated }} / {{ pageTranslationProgress.total }}</span>
-              </div>
-              <div class="progress-bar-bg">
-                <div class="progress-bar-fill" :style="{ width: `${pageTranslationProgress.percentage}%` }" />
-              </div>
-            </div>
-
-            <KitBtn
-              v-else
-              color="primary"
-              class="action-btn"
-              @click="emit('translatePage', page.pageNum)"
-            >
-              <Icon icon="mdi:translate" class="btn-icon" /> {{ t('reader.translateWholePage', 'Перевести страницу') }}
-            </KitBtn>
-          </div>
-        </div>
       </div>
     </div>
   </div>
@@ -401,6 +407,21 @@ useQuoteHighlights(blockRef, [leftPaneContent, translatedPageContent], () => pro
     }
   }
 
+  :deep(.parallel-sentence) {
+    display: block;
+    margin-bottom: 0.4em;
+    text-indent: 0;
+  }
+
+  :deep(.interleaved-translation.translation-pending),
+  :deep(.split-translation.translation-pending) {
+    color: var(--fg-muted-color);
+    font-size: 0.7em;
+    font-style: italic;
+    user-select: none;
+    cursor: default;
+  }
+
   :deep(.interleaved-translation) {
     display: block;
     text-indent: 0;
@@ -491,53 +512,30 @@ useQuoteHighlights(blockRef, [leftPaneContent, translatedPageContent], () => pro
   }
 }
 
-.untranslated-overlay-container {
-  position: relative;
-  width: 100%;
-  height: 100%;
-}
-
-.untranslated-content {
-  opacity: 0.25;
-  filter: blur(4px);
-  pointer-events: none;
-  user-select: none;
-  transition: all 0.3s ease;
-}
-
-.untranslated-overlay-action {
-  position: absolute;
-  top: 10%;
-  left: 50%;
-  transform: translateX(-50%);
+.page-translation-status {
   display: flex;
-  flex-direction: column;
+  flex-wrap: wrap;
   align-items: center;
-  justify-content: center;
-  background-color: var(--bg-primary-color);
-  padding: 24px 32px;
-  border-radius: 16px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+  gap: 12px 20px;
+  padding: 16px 20px;
+  margin-bottom: 24px;
   border: 1px solid var(--border-secondary-color);
-  width: 90%;
-  max-width: 400px;
-  text-align: center;
-  z-index: 10;
+  border-radius: 12px;
+  background: var(--bg-secondary-color);
+  transform: translateX(var(--reader-floating-offset, 0px));
 
-  .hint-text {
-    font-size: 1rem;
+  .translation-status-copy {
+    flex: 1;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 16px;
     color: var(--fg-secondary-color);
-    margin-bottom: 20px;
-    line-height: 1.5;
+    font-size: 0.9rem;
   }
 
-  .action-btn {
-    width: 100%;
-
-    .btn-icon {
-      margin-right: 8px;
-      font-size: 1.2rem;
-    }
+  .translation-count {
+    color: var(--fg-muted-color);
+    font-variant-numeric: tabular-nums;
   }
 }
 

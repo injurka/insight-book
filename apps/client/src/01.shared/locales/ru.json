@@ -508,6 +508,8 @@
     "parallelReadingInterleaved": "Текст, а под ним перевод",
     "parallelReadingBlur": "Заблюрить перевод",
     "parallelReadingShowGrammar": "Отображение грамматики",
+    "translationPending": "Перевод ещё не готов",
+    "translationNotReady": "Страница переведена не полностью",
     "parallelReadingHint": "Для отображения текста необходимо перевести все предложения на странице.",
     "translateWholePage": "Перевести страницу",
     "translatingPage": "Перевод...",

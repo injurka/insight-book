@@ -1,30 +1,13 @@
 <script setup lang="ts">
 import { Icon } from '@iconify/vue'
 import { useI18n } from 'vue-i18n'
-import { useAnalysisStore } from '~/01.shared/store/analysis/analysis.store'
 import { useGlobalSettingsStore } from '~/01.shared/store/settings.store'
-import { KitBtn } from '~/02.kit/atoms/kit-btn/ui'
 import { KitCheckbox } from '~/02.kit/atoms/kit-checkbox/ui'
 import { useReaderStore } from '../../store/reader.store'
 
-const emit = defineEmits<{
-  startAnalysis: []
-}>()
-
 const readerStore = useReaderStore()
-const analysisStore = useAnalysisStore()
 const settingsStore = useGlobalSettingsStore()
 const { t } = useI18n()
-
-function startParallelAnalysis() {
-  analysisStore.analyzeWholePage({
-    sentences: true,
-    words: false,
-    ttsSentences: false,
-    ttsWords: false,
-  }, false)
-  emit('startAnalysis')
-}
 </script>
 
 <template>
@@ -77,25 +60,6 @@ function startParallelAnalysis() {
         <KitCheckbox :model-value="settingsStore.parallelShowGrammar" class="readonly-checkbox" />
       </div>
     </div>
-
-    <template v-if="settingsStore.parallelViewMode === 'interleaved'">
-      <div class="divider" />
-
-      <div class="menu-section">
-        <div class="hint-text">
-          {{ t('reader.parallelReadingHint', 'Для отображения текста необходимо перевести все предложения на странице.') }}
-        </div>
-        <KitBtn
-          color="primary"
-          class="action-btn"
-          :disabled="analysisStore.isManualPageAnalysisActive"
-          @click="startParallelAnalysis"
-        >
-          <Icon icon="mdi:translate" class="btn-icon" />
-          {{ analysisStore.isManualPageAnalysisActive ? t('reader.translatingPage', 'Перевод...') : t('reader.translatePage', 'Перевести страницу') }}
-        </KitBtn>
-      </div>
-    </template>
   </div>
 </template>
 
@@ -169,21 +133,6 @@ function startParallelAnalysis() {
 
 .readonly-checkbox {
   pointer-events: none;
-}
-
-.hint-text {
-  font-size: 0.8rem;
-  color: var(--fg-secondary-color);
-  padding: 4px 8px;
-  line-height: 1.3;
-}
-
-.action-btn {
-  margin: 4px 8px 8px 8px;
-
-  :deep(.btn-icon) {
-    margin-right: 6px;
-  }
 }
 
 .desktop-only {

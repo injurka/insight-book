@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import type { Highlight, LlmAnalysis, PagePayload } from '~/01.shared/types/models'
 import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -84,13 +85,14 @@ describe('useReaderContent - applyTranslations (left pane)', () => {
     expect(html.indexOf('</span><span class="interleaved-translation')).toBeGreaterThan(-1)
   })
 
-  it('does not insert translations or highlights when lists are empty', () => {
+  it('reserves an unblurred translation block when no translation exists', () => {
     setPage(sentenceSpan('s1', ['hello', 'world']))
 
     const { leftPaneContent } = useReaderContent()
     const html = leftPaneContent.value
 
-    expect(html).not.toContain('interleaved-translation')
+    expect(html).toContain('interleaved-translation translation-pending')
+    expect(html).not.toContain('is-blurred')
     expect(html).not.toContain('exact-highlight')
     expect(html).not.toContain('sentence-tts-btn')
   })
@@ -177,7 +179,7 @@ describe('useReaderContent - applyTranslations (left pane)', () => {
     expect(fragments).toHaveLength(2)
     expect(fragments[0].querySelector('.sentence-tts-btn')).toBeNull()
     expect(fragments[0].textContent).toBe(first)
-    expect(doc.querySelectorAll('.interleaved-translation')).toHaveLength(1)
+    expect(doc.querySelectorAll('.interleaved-translation:not(.translation-pending)')).toHaveLength(1)
     expect(fragments[1].querySelectorAll('.sentence-tts-btn')).toHaveLength(1)
     expect(fragments[1].querySelector('.sentence-tts-btn')?.getAttribute('data-tts-text')).toBe(encodeURIComponent(raw))
     expect(fragments[1].nextElementSibling?.classList.contains('interleaved-translation')).toBe(true)
@@ -258,14 +260,14 @@ describe('useReaderContent - applyTranslations (right pane, split mode)', () => 
     expect(html).toContain('<span class="translation-text">привет мир</span>')
   })
 
-  it('wraps untranslated sentences in untranslated-text', () => {
+  it('shows a placeholder instead of duplicating untranslated source text', () => {
     setPage(sentenceSpan('s1', ['hello', 'world']))
 
     const { translatedPageContent } = useReaderContent()
     const html = translatedPageContent.value
 
-    expect(html).toContain('class="untranslated-text"')
-    expect(html).not.toContain('split-translation')
+    expect(html).toContain('class="split-translation translation-pending"')
+    expect(new DOMParser().parseFromString(html, 'text/html').body.textContent).not.toContain('hello')
   })
 
   it('hides a sentence whose data-sent-id was already translated in the same pass', () => {
@@ -281,6 +283,45 @@ describe('useReaderContent - applyTranslations (right pane, split mode)', () => 
 
     expect((html.match(/split-translation/g) || []).length).toBe(1)
     expect(html).toContain('style="display: none;"')
+  })
+
+  it('groups inline fragments into one aligned row without losing source formatting', () => {
+    const raw = encodeURIComponent('Hello world.')
+    setPage(`<p><strong><span class="sentence" data-sent-id="s1" data-raw-sent="${raw}">Hello </span></strong><span class="sentence" data-sent-id="s1" data-raw-sent="${raw}">world.</span>${sentenceSpan('s2', ['Next.'])}</p>`)
+    const { leftPaneContent, translatedPageContent } = useReaderContent()
+    const left = new DOMParser().parseFromString(leftPaneContent.value, 'text/html')
+    const right = new DOMParser().parseFromString(translatedPageContent.value, 'text/html')
+    expect(left.querySelectorAll('.parallel-sentence')).toHaveLength(2)
+    expect(right.querySelectorAll('.parallel-sentence')).toHaveLength(2)
+    expect(left.querySelector('.parallel-sentence')?.textContent).toBe('Hello world.')
+    expect(left.querySelector('.parallel-sentence strong')?.textContent).toBe('Hello ')
+    expect(right.querySelectorAll('.translation-pending')).toHaveLength(2)
+  })
+
+  it('does not count an empty analysis as a ready translation and tracks only tasks on this page', () => {
+    setPage(sentenceSpan('s1', ['hello']))
+    const analysis = useAnalysisStore()
+    analysis.analysisHistory = [{ sentence: 'hello', analysis: { translation: ' ' } as LlmAnalysis, timestamp: 1 }]
+    const { pageTranslationProgress, isPageTranslating } = useReaderContent()
+    expect(pageTranslationProgress.value.translated).toBe(0)
+    analysis.taskQueue = [{
+      id: 'other',
+      type: 'sentence',
+      text: 'other page',
+      priority: 1,
+      status: 'processing',
+    }]
+    expect(isPageTranslating.value).toBe(false)
+    analysis.taskQueue.push({
+      id: 'current',
+      type: 'sentence',
+      text: 'hello',
+      priority: 1,
+      status: 'processing',
+    })
+    expect(isPageTranslating.value).toBe(true)
+    analysis.taskQueue[1].status = 'error'
+    expect(isPageTranslating.value).toBe(false)
   })
 
   it('returns empty content when not in parallel (split) view', () => {

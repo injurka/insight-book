@@ -508,6 +508,8 @@
     "parallelReadingInterleaved": "Text, translation below",
     "parallelReadingBlur": "Blur translation",
     "parallelReadingShowGrammar": "Show grammar",
+    "translationPending": "Translation not ready yet",
+    "translationNotReady": "This page is not fully translated",
     "parallelReadingHint": "All sentences on the page must be translated to display the text.",
     "translateWholePage": "Translate whole page",
     "translatingPage": "Translating...",

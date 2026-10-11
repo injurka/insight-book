@@ -507,6 +507,8 @@
     "parallelReadingInterleaved": "文本，下方翻译",
     "parallelReadingBlur": "模糊翻译",
     "parallelReadingShowGrammar": "显示语法",
+    "translationPending": "译文尚未就绪",
+    "translationNotReady": "此页尚未完全翻译",
     "parallelReadingHint": "必须翻译页面上的所有句子才能显示文本。",
     "translateWholePage": "翻译整页",
     "translatingPage": "翻译中...",

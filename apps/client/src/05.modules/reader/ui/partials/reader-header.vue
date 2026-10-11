@@ -86,7 +86,7 @@ function goBack() {
           />
         </KitTooltip>
       </template>
-      <ReaderParallelMenu @start-analysis="parallelDropdownRef?.close()" />
+      <ReaderParallelMenu />
     </KitDropdown>
 
     <KitTooltip :text="t('bookInfo.tableOfContents')" placement="bottom-end">
