@@ -196,7 +196,7 @@ function start() {
         </div>
         <div class="form-col">
           <label class="form-label">
-            <Icon icon="mdi:speedometer-outline" class="label-icon" />
+            <Icon icon="mdi:speedometer" class="label-icon" />
             <span>{{ t('dictionary.difficulty') }}</span>
           </label>
           <KitSelect v-model="setupOptions.difficulty" :options="difficultyOptions" multiple />
