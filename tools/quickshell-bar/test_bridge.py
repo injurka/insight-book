@@ -16,6 +16,11 @@ class BridgeTest(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.words = [{"id": i, "word": f"word-{i}", "language": "en", "deckIds": [1], "due": "2000-01-01T00:00:00Z"} for i in range(1, 62)]
+        self.session_supported = False
+        self.access = "test-token"
+        self.refresh = "refresh-token-for-tests-000000000"
+        self.refreshes = 0
+        self.reject_once = False
         self.count_supported = False
         self.fail_refresh = False
         self.redirect_login = False
@@ -36,10 +41,17 @@ class BridgeTest(unittest.TestCase):
                 path = urlsplit(self.path).path
                 if path == "/stolen":
                     case.stolen = True
-                if self.headers.get("Authorization") != "Bearer test-token":
+                if path == "/api/auth/status":
+                    self.reply({"status": "success", "accessToken": case.access, "refreshToken": case.refresh, "expiresIn": 900})
+                    return
+                if case.reject_once:
+                    case.reject_once = False
+                    self.reply({}, 401)
+                    return
+                if self.headers.get("Authorization") != "Bearer " + case.access:
                     self.reply({}, 401)
                 elif path == "/api/auth/me":
-                    self.reply({"id": 1})
+                    self.reply({"user": {"id": 1, "username": "Test"}, "mode": "multi"})
                 elif path == "/api/dictionary/review/count":
                     self.reply({"count": len(case.words)} if case.count_supported else {}, 200 if case.count_supported else 404)
                 elif path == "/api/dictionary/review":
@@ -53,7 +65,23 @@ class BridgeTest(unittest.TestCase):
 
             def do_POST(self):
                 body = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
-                if self.path == "/api/auth/login":
+                if self.path == "/api/auth/session/login":
+                    if not case.session_supported:
+                        self.reply({}, 404)
+                    else:
+                        self.reply({"accessToken": case.access, "refreshToken": case.refresh, "expiresIn": 900})
+                elif self.path == "/api/auth/session/refresh":
+                    if body.get("refreshToken") != case.refresh:
+                        self.reply({}, 401)
+                    else:
+                        case.refreshes += 1
+                        case.access = "test-token-" + str(case.refreshes)
+                        case.refresh = "refresh-token-for-tests-" + str(case.refreshes)
+                        self.reply({"accessToken": case.access, "refreshToken": case.refresh, "expiresIn": 900})
+                elif self.path == "/api/auth/session/logout":
+                    case.refresh = "revoked"
+                    self.reply({"success": True})
+                elif self.path == "/api/auth/login":
                     if case.redirect_login:
                         self.send_response(307)
                         self.send_header("Location", "/stolen")
@@ -62,7 +90,7 @@ class BridgeTest(unittest.TestCase):
                         self.reply({"token": "test-token"})
                     else:
                         self.reply({}, 401)
-                elif self.path == "/api/dictionary/review" and self.headers.get("Authorization") == "Bearer test-token":
+                elif self.path == "/api/dictionary/review" and self.headers.get("Authorization") == "Bearer " + case.access:
                     case.words = [w for w in case.words if w["id"] != body["wordId"]]
                     self.reply({"success": True})
                 else:
@@ -84,6 +112,7 @@ class BridgeTest(unittest.TestCase):
                                 capture_output=True, env={**os.environ, "XDG_CONFIG_HOME": self.temp.name}, timeout=30)
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertNotIn("test-token", result.stdout)
+        self.assertNotIn("refresh-token-for-tests", result.stdout)
         self.assertNotIn("private-password", result.stdout)
         return json.loads(result.stdout)
 
@@ -95,7 +124,7 @@ class BridgeTest(unittest.TestCase):
         self.assertTrue(result["ok"])
         self.assertEqual(result["count"], 61)
         self.assertEqual(len(result["cards"]), 50)
-        path = Path(self.temp.name) / "insight-book-bar/settings.json"
+        path = Path(self.temp.name) / "quickshell-bar/settings.json"
         self.assertEqual(path.stat().st_mode & 0o777, 0o600)
         self.assertEqual(path.parent.stat().st_mode & 0o777, 0o700)
         self.assertNotIn("private-password", path.read_text())
@@ -122,6 +151,35 @@ class BridgeTest(unittest.TestCase):
         self.assertFalse(result["ok"])
         self.assertEqual(result["reviewedId"], 1)
         self.assertEqual(len(self.words), 60)
+
+    def test_refreshes_proactively_and_after_401_and_revokes(self):
+        self.session_supported = True
+        self.assertTrue(self.login()["renewable"])
+        path = Path(self.temp.name) / "quickshell-bar/settings.json"
+        saved = json.loads(path.read_text())
+        saved["accessExpiresAt"] = 0
+        path.write_text(json.dumps(saved))
+        self.assertTrue(self.call(action="refresh")["ok"])
+        self.assertEqual(self.refreshes, 1)
+        self.reject_once = True
+        self.assertTrue(self.call(action="refresh")["ok"])
+        self.assertEqual(self.refreshes, 2)
+        self.assertTrue(self.call(action="logout")["loggedOut"])
+        self.assertEqual(self.refresh, "revoked")
+        self.assertNotIn("refreshToken", json.loads(path.read_text()))
+
+    def test_oauth_pair_and_difficulty_are_preserved(self):
+        self.login()
+        self.words[0]["difficulty"] = "A1"
+        self.assertEqual(self.call(action="configure", difficulty="A1")["count"], 1)
+        path = Path(self.temp.name) / "quickshell-bar/settings.json"
+        saved = json.loads(path.read_text())
+        saved["oauthSession"] = "fixture-session"
+        path.write_text(json.dumps(saved))
+        result = self.call(action="oauth-poll")
+        self.assertTrue(result["ok"])
+        self.assertTrue(result["renewable"])
+        self.assertFalse(result["oauthPending"])
 
     def test_rejects_invalid_grade_insecure_host_and_redirects(self):
         self.login()

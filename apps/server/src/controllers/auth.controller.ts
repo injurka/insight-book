@@ -2,6 +2,7 @@ import { Elysia, t } from 'elysia'
 import jwt from 'jsonwebtoken'
 import { AUTH_MODE, CORS_HEADERS, FRONTEND_URL, JWT_SECRET } from '../config'
 import { ERROR_CODES } from '../constants/error-codes'
+import { authSessionService } from '../services/auth-session.service'
 import { authService } from '../services/auth.service'
 import { cachePlugin } from '../utils/cache'
 import { AppError, handleElysiaError } from '../utils/errors'
@@ -66,6 +67,7 @@ function consumeAuthSession(sessionId: string): string | undefined {
   return session.value
 }
 
+const sessionLimiter = createRateLimiter(60, 60 * 1000)
 const authLimiter = createRateLimiter(5, 60 * 1000)
 
 export const authRouter = new Elysia({ prefix: '/api/auth' })
@@ -80,6 +82,27 @@ export const authRouter = new Elysia({ prefix: '/api/auth' })
       login: t.String({ minLength: 1, error: 'Логин или email обязателен' }),
       password: t.String({ minLength: 1, error: 'Пароль обязателен' }),
     }),
+  })
+  .post('/session/login', async ({ body, request }) => {
+    authLimiter(getClientIp(request))
+    const result = await authService.login(body.login, body.password)
+    return { ...await authSessionService.create(result.user.id), user: result.user }
+  }, {
+    cache: 'shortPrivate',
+    body: t.Object({ login: t.String({ minLength: 1 }), password: t.String({ minLength: 1 }) }),
+  })
+  .post('/session/refresh', async ({ body, request }) => {
+    sessionLimiter(getClientIp(request))
+    return authSessionService.refresh(body.refreshToken)
+  }, {
+    cache: 'shortPrivate',
+    body: t.Object({ refreshToken: t.String({ minLength: 20, maxLength: 200 }) }),
+  })
+  .post('/session/logout', async ({ body }) => {
+    return authSessionService.revoke(body.refreshToken)
+  }, {
+    cache: 'shortPrivate',
+    body: t.Object({ refreshToken: t.String({ minLength: 20, maxLength: 200 }) }),
   })
   .post('/send-code', async ({ body, request }) => {
     authLimiter(getClientIp(request))
@@ -115,6 +138,7 @@ export const authRouter = new Elysia({ prefix: '/api/auth' })
     if (sessionId || linkUserId) {
       const stateObj = {
         sessionId: sessionId || undefined,
+        renewableSession: query.session === 'desktop',
         linkUserId: linkUserId || undefined,
         nonce: crypto.randomUUID(),
       }
@@ -132,11 +156,13 @@ export const authRouter = new Elysia({ prefix: '/api/auth' })
 
     let sessionId: string | undefined
     let linkUserId: number | undefined
+    let renewableSession = false
 
     if (state) {
       try {
         const parsed = JSON.parse(Buffer.from(state, 'base64url').toString('utf-8'))
         sessionId = parsed.sessionId
+        renewableSession = parsed.renewableSession === true
         linkUserId = parsed.linkUserId ? Number(parsed.linkUserId) : undefined
       }
       catch {
@@ -215,7 +241,14 @@ export const authRouter = new Elysia({ prefix: '/api/auth' })
     const token = await authService.exchangeYandexCode(code)
 
     if (sessionId) {
-      saveAuthSession(sessionId, token)
+      if (renewableSession) {
+        const payload = jwt.verify(token, JWT_SECRET) as { userId: number }
+        const session = await authSessionService.create(payload.userId)
+        saveAuthSession(sessionId, JSON.stringify({ status: 'success', ...session }))
+      }
+      else {
+        saveAuthSession(sessionId, token)
+      }
       const html = `
         <!DOCTYPE html>
         <html lang="ru">
@@ -260,7 +293,7 @@ export const authRouter = new Elysia({ prefix: '/api/auth' })
       }
     }
     return { status: 'pending' }
-  })
+  }, { cache: 'shortPrivate' })
   .post('/unlink-provider', async ({ userId, body }) => {
     return authService.unlinkProvider(userId as number, body.provider)
   }, {
