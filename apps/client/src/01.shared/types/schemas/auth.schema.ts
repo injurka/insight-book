@@ -32,9 +32,29 @@ export const AuthMeResponseSchema = z.object({
 export const AuthOAuthStatusSchema = z.object({
   status: z.enum(['pending', 'success', 'error']),
   token: z.string().optional(),
+  accessToken: z.string().optional(),
+  refreshToken: z.string().optional(),
+  expiresIn: z.number().positive().optional(),
   linked: z.boolean().optional(),
   error: z.string().optional(),
 })
+
+export const AuthSessionSchema = z.object({
+  accessToken: z.string().min(1),
+  refreshToken: z.string().min(20),
+  expiresIn: z.number().positive(),
+})
+
+export const AuthLoginResponseSchema = z.object({
+  token: z.string().optional(),
+  accessToken: z.string().optional(),
+  refreshToken: z.string().optional(),
+  expiresIn: z.number().positive().optional(),
+  user: UserDataSchema,
+}).refine(value => !!value.token || !!value.accessToken, 'Missing access token')
+
+export type AuthSessionDomain = z.infer<typeof AuthSessionSchema>
+export type AuthLoginResponseDomain = z.infer<typeof AuthLoginResponseSchema>
 
 export type UserDataDomain = z.infer<typeof UserDataSchema>
 export type AuthMeResponseDomain = z.infer<typeof AuthMeResponseSchema>

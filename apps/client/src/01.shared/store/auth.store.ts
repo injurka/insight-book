@@ -4,6 +4,7 @@ import { useRepos } from '~/00.plugins/di'
 import { useTracking } from '~/01.shared/composables/use-tracking'
 import { queryKeys, setAuthQueryScope } from '~/01.shared/lib/query-keys'
 import router from '~/01.shared/lib/router'
+import { authSessionIdentity, clearAuthSession } from '~/01.shared/services/auth-session.service'
 import { resetTelemetryUser } from '~/01.shared/services/monitoring.service'
 import { UserDataSchema } from '~/01.shared/types/schemas/auth.schema'
 
@@ -49,6 +50,15 @@ export const useAuthStore = defineStore('auth', () => {
   let authRefreshToken: string | null = null
   let authRefreshRevision = 0
   const loadingUserPluginIds = new Set<string>()
+  useEventListener(window, 'storage', (event) => {
+    if (event.key !== 'insight_token' && event.key !== 'insight_session' && event.key !== null)
+      return
+
+    if (!authSessionIdentity() && !isSingleMode.value)
+      expireSession()
+    else
+      void checkAuth()
+  })
 
   /**
    * Synchronous init from localStorage cache.
@@ -67,8 +77,9 @@ export const useAuthStore = defineStore('auth', () => {
    */
   function checkAuth(): Promise<void> {
     const token = localStorage.getItem('insight_token')
+    const identity = authSessionIdentity()
 
-    if (authRefreshPromise && authRefreshToken === token)
+    if (authRefreshPromise && authRefreshToken === identity)
       return authRefreshPromise
 
     const revision = ++authRefreshRevision
@@ -76,7 +87,7 @@ export const useAuthStore = defineStore('auth', () => {
       isAuthRefreshing.value = true
 
       try {
-        await syncUser(token)
+        await syncUser(token, identity, revision)
       }
       finally {
         if (revision === authRefreshRevision) {
@@ -90,7 +101,7 @@ export const useAuthStore = defineStore('auth', () => {
     })()
 
     authRefreshPromise = refreshPromise
-    authRefreshToken = token
+    authRefreshToken = identity
     void refreshPromise.then(() => {
       if (revision === authRefreshRevision) {
         authRefreshPromise = null
@@ -107,7 +118,7 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   function clearCachedUserSession() {
-    localStorage.removeItem('insight_token')
+    clearAuthSession()
     localStorage.removeItem('insight_uid')
     localStorage.removeItem('insight_user_data')
     localStorage.removeItem('insight_auth_mode')
@@ -192,7 +203,7 @@ export const useAuthStore = defineStore('auth', () => {
     }
     else {
       localStorage.setItem('insight_auth_mode', res.mode)
-      localStorage.removeItem('insight_token')
+      clearAuthSession()
       localStorage.removeItem('insight_uid')
       localStorage.removeItem('insight_user_data')
       setAuthQueryScope(null)
@@ -201,9 +212,13 @@ export const useAuthStore = defineStore('auth', () => {
     queryCache.invalidateQueries({ key: queryKeys.books.all })
   }
 
-  async function syncUser(token: string | null) {
+  function canApplySyncError(error: unknown, revision: number, sameSession: boolean): boolean {
+    return sameSession || (revision === authRefreshRevision && !authSessionIdentity() && isInvalidSessionError(error))
+  }
+
+  async function syncUser(token: string | null, identity: string | null, revision: number) {
     const cachedMode = localStorage.getItem('insight_auth_mode')
-    const hasSameToken = () => localStorage.getItem('insight_token') === token
+    const hasSameToken = () => authSessionIdentity() === identity && revision === authRefreshRevision
 
     if (!token && cachedMode === 'multi') {
       isSingleMode.value = false
@@ -228,7 +243,7 @@ export const useAuthStore = defineStore('auth', () => {
       applyAuthResponse(res)
     }
     catch (e) {
-      if (hasSameToken())
+      if (canApplySyncError(e, revision, hasSameToken()))
         handleSyncError(e)
     }
   }
@@ -270,7 +285,18 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  function expireSession() {
+    ++authRefreshRevision
+    authRefreshPromise = null
+    authRefreshToken = null
+    isAuthRefreshing.value = false
+    clearCachedUserSession()
+    resetTelemetryUser()
+  }
+
   async function logout() {
+    const identity = authSessionIdentity()
+    ++authRefreshRevision
     trackEvent('logout')
 
     // Отписываемся от Push перед выходом, чтобы пуши не приходили на чужой ПК
@@ -292,16 +318,13 @@ export const useAuthStore = defineStore('auth', () => {
       console.warn('Failed to unsubscribe on logout', e)
     }
 
-    localStorage.removeItem('insight_token')
-    localStorage.removeItem('insight_uid')
-    localStorage.removeItem('insight_user_data')
-    localStorage.removeItem('insight_auth_mode')
+    if (authSessionIdentity() !== identity)
+      return
 
-    user.value = null
-    isSingleMode.value = false
-    setAuthQueryScope(null)
-    queryCache.invalidateQueries({ key: queryKeys.books.all })
-    resetTelemetryUser()
+    // logout() clears tokens synchronously before starting remote revocation.
+    const revocation = repos.auth.logout()
+    expireSession()
+    await revocation.catch(error => console.warn('[Auth] Remote session revocation failed:', error))
   }
 
   async function updateAvatar(file: File) {
@@ -341,6 +364,7 @@ export const useAuthStore = defineStore('auth', () => {
     init,
     checkAuth,
     logout,
+    expireSession,
     updateAvatar,
     updateUsername,
     unlinkProvider,

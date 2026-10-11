@@ -40,8 +40,11 @@ Singleton {
         error = "";
         process.running = true;
     }
-    function refresh() { request({action: account.authenticated ? "refresh" : "bootstrap"}); }
-    function start(options) { request(Object.assign({action: "configure"}, options)); }
+    function refresh() {
+        if (stage === "training") request({action: "refresh"});
+        else if (!account.authenticated) request({action: "bootstrap"});
+    }
+    function start(options) { cards = []; count = 0; ready = false; request(Object.assign({action: "configure"}, options)); }
     function review(grade) { if (card && !error && account.authenticated) request({action: "review", wordId: card.id, grade: grade}); }
     function playAudio() { if (card && !busy) request({action: "audio", text: card.word}); }
     function receive(output) {
@@ -87,7 +90,7 @@ Singleton {
     }
     Timer {
         interval: 60000; repeat: true; running: true
-        onTriggered: if (!root.paused && !root.busy && root.account.authenticated && !root.oauthPending) root.refresh()
+        onTriggered: if (!root.paused && !root.busy && root.account.authenticated && root.stage === "training" && !root.oauthPending) root.refresh()
     }
     Timer {
         interval: 3000; repeat: true; running: root.oauthPending

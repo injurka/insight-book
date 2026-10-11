@@ -1,6 +1,7 @@
 import type { UserData } from '~/01.shared/types/models'
 import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { acceptAuthSession } from '../services/auth-session.service'
 import { useAuthStore } from './auth.store'
 
 const meMock = vi.fn()
@@ -16,6 +17,7 @@ vi.mock('@pinia/colada', () => ({
 vi.mock('~/00.plugins/di', () => ({
   useRepos: () => ({
     auth: {
+      logout: vi.fn().mockResolvedValue(undefined),
       me: meMock,
       updateAvatar: vi.fn(),
       updateUsername: vi.fn(),
@@ -110,6 +112,20 @@ describe('authStore - checkAuth', () => {
     expect(store.user).toEqual(user)
     expect(store.isAuthRefreshing).toBe(false)
     expect(localStorage.getItem('insight_token')).toBe('yandex-token')
+  })
+
+  it('applies the user response after access-token rotation within the same session', async () => {
+    const pair = { accessToken: 'old-access', refreshToken: 'refresh-token-000000001', expiresIn: 900 }
+    acceptAuthSession(pair, 'stable-session')
+    meMock.mockImplementation(async () => {
+      acceptAuthSession({ ...pair, accessToken: 'new-access' }, 'stable-session')
+
+      return { user: makeUser(), mode: 'multi' }
+    })
+    const store = useAuthStore()
+    await store.checkAuth()
+    expect(store.user).toEqual(makeUser())
+    expect(localStorage.getItem('insight_token')).toBe('new-access')
   })
 
   it('clears the token and user when the server returns no user', async () => {

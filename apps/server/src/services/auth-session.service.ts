@@ -20,7 +20,7 @@ export class AuthSessionService {
 
   private tokens(userId: number, refresh: string) {
     return {
-      accessToken: jwt.sign({ userId }, JWT_SECRET, { expiresIn: ACCESS_SECONDS }),
+      accessToken: jwt.sign({ userId }, JWT_SECRET, { expiresIn: ACCESS_SECONDS, jwtid: crypto.randomUUID() }),
       refreshToken: refresh,
       expiresIn: ACCESS_SECONDS,
     }

@@ -12,7 +12,7 @@ import { useToast } from '~/01.shared/composables/use-toast'
 import { useTracking } from '~/01.shared/composables/use-tracking'
 import { AppRoutePaths } from '~/01.shared/constants/routes'
 import { getApiEndpointUrl, isTauri } from '~/01.shared/lib/env'
-import { pollOAuthStatus } from '~/01.shared/lib/poll-oauth-status'
+import { hasOAuthSession, pollOAuthStatus } from '~/01.shared/lib/poll-oauth-status'
 import { useAuthStore } from '~/01.shared/store/auth.store'
 import { useGlobalSettingsStore } from '~/01.shared/store/settings.store'
 import { KitDropdown } from '~/02.kit/molecules/kit-dropdown/ui'
@@ -140,8 +140,7 @@ async function handleSignIn(payload: { username: string, password: string }) {
   isLoading.value = true
 
   try {
-    const res = await repos.auth.login({ login: payload.username, password: payload.password })
-    localStorage.setItem('insight_token', res.token)
+    await repos.auth.login({ login: payload.username, password: payload.password })
     await refreshAuthenticatedUser()
 
     trackEvent('login_success')
@@ -173,8 +172,7 @@ async function handleRegister(payload: { email: string, code: string, password: 
   isLoading.value = true
 
   try {
-    const res = await repos.auth.register({ email: payload.email, code: payload.code, password: payload.password })
-    localStorage.setItem('insight_token', res.token)
+    await repos.auth.register({ email: payload.email, code: payload.code, password: payload.password })
     await refreshAuthenticatedUser()
     trackEvent('register_success')
     router.push('/')
@@ -192,7 +190,7 @@ async function loginYandex() {
       isLoading.value = true
 
       const sessionId = uuidv4()
-      const url = getApiEndpointUrl(`/api/auth/yandex?session_id=${sessionId}`)
+      const url = getApiEndpointUrl(`/api/auth/yandex?session_id=${sessionId}&session=desktop`)
 
       await openUrl(url)
 
@@ -203,16 +201,17 @@ async function loginYandex() {
       if (data.status === 'error')
         throw new Error(data.error || t('signIn.errorAuth'))
 
-      if (!data.token)
+      if (!hasOAuthSession(data))
         throw new Error(t('signIn.errorAuth'))
 
-      localStorage.setItem('insight_token', data.token)
+      repos.auth.acceptOAuthSession(data)
+
       await refreshAuthenticatedUser()
       trackEvent('login_success')
       await router.push('/')
     }
     else {
-      window.location.href = getApiEndpointUrl('/api/auth/yandex')
+      window.location.href = getApiEndpointUrl('/api/auth/yandex?session=web')
     }
   }
   catch (e: unknown) {

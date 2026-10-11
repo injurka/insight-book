@@ -7,46 +7,34 @@ ColumnLayout {
     id: root
 
     property var selectedModes: SrsService.config.modes.slice()
+    property var selectedDecks: SrsService.config.deckId === "all" ? [] : SrsService.config.deckId.split(",")
+    property var selectedLevels: SrsService.config.difficulty === "all" ? [] : SrsService.config.difficulty.split(",")
     readonly property var decks: [{
-        "id": "all",
-        "name": "Все колоды",
-        "icon": ""
-    }, {
         "id": "none",
-        "name": "Без колоды",
-        "icon": ""
-    }].concat(SrsService.catalog.decks.map((d) => {
-        return Object.assign({
-            "icon": ""
-        }, d);
-    }))
-    readonly property var languages: [{
-        "id": "all",
-        "name": "Все языки",
-        "icon": ""
-    }].concat(SrsService.catalog.languages.map((id) => {
-        return ({
-            "id": id,
-            "name": ({
-                "en": "Английский",
-                "zh": "Китайский",
-                "ja": "Японский",
-                "ko": "Корейский",
-                "fr": "Французский",
-                "de": "Немецкий",
-                "es": "Испанский",
-                "ru": "Русский"
-            })[id] || id,
-            "icon": ""
-        });
-    }))
+        "name": "Без колоды"
+    }].concat(SrsService.catalog.decks)
     readonly property var levels: {
-        const deckId = String(root.decks[deck.currentIndex]?.id || "all");
-        const langId = root.languages[language.currentIndex]?.id || "all";
-        const groups = (SrsService.catalog.levels || {})[deckId] || {};
-        const values = langId === "all" ? Object.values(groups).reduce((all, list) => all.concat(list), []) : groups[langId] || [];
-        return [{id: "all", name: "Все сложности", icon: ""}, {id: "none", name: "Без сложности", icon: ""}].concat(Array.from(new Set(values)).sort().map(d => ({id: d, name: d, icon: ""})));
+        const ids = root.selectedDecks.length ? root.selectedDecks : ["all"];
+        const values = ids.reduce((all, id) => {
+            return all.concat(Object.values((SrsService.catalog.levels || {
+            })[id] || {
+            }).reduce((items, list) => {
+                return items.concat(list);
+            }, []));
+        }, []);
+        return [{
+            "id": "none",
+            "name": "Без сложности"
+        }].concat(Array.from(new Set(values)).sort().map((d) => {
+            return ({
+                "id": d,
+                "name": d
+            });
+        }));
     }
+
+    spacing: 10
+
     StyledText {
         text: "Настрой тренировку"
         font.pixelSize: 22
@@ -80,87 +68,34 @@ ColumnLayout {
 
     RowLayout {
         Layout.fillWidth: true
+        spacing: 10
 
-        ColumnLayout {
+        SrsMultiSelect {
             Layout.fillWidth: true
-
-            StyledText {
-                text: "Колода"
-                color: Appearance.colors.colSubtext
-                font.pixelSize: Appearance.font.pixelSize.small
+            title: "Колоды"
+            allLabel: "Все колоды"
+            options: root.decks
+            selected: root.selectedDecks
+            enabled: !SrsService.busy
+            onSelectionChanged: (values) => {
+                root.selectedDecks = values;
+                root.selectedLevels = root.selectedLevels.filter((id) => {
+                    return root.levels.some((l) => {
+                        return l.id === id;
+                    });
+                });
             }
-
-            StyledComboBox {
-                id: deck
-
-                Layout.fillWidth: true
-                model: root.decks
-                textRole: "name"
-                currentIndex: Math.max(0, root.decks.findIndex((d) => {
-                    return String(d.id) === SrsService.config.deckId;
-                }))
-                enabled: !SrsService.busy
-            }
-
         }
 
-        ColumnLayout {
+        SrsMultiSelect {
             Layout.fillWidth: true
-
-            StyledText {
-                text: "Сложность"
-                color: Appearance.colors.colSubtext
-                font.pixelSize: Appearance.font.pixelSize.small
-            }
-
-            StyledComboBox {
-                id: difficulty
-
-                Layout.fillWidth: true
-                model: root.levels
-                textRole: "name"
-                currentIndex: Math.max(0, root.levels.findIndex((d) => {
-                    return d.id === SrsService.config.difficulty;
-                }))
-                enabled: !SrsService.busy
-            }
-
-        }
-
-    }
-
-    RowLayout {
-        Layout.fillWidth: true
-
-        ColumnLayout {
-            Layout.fillWidth: true
-            StyledText {
-                text: "Язык слов"
-                color: Appearance.colors.colSubtext
-                font.pixelSize: Appearance.font.pixelSize.small
-            }
-            StyledComboBox {
-                id: language
-                Layout.fillWidth: true
-                model: root.languages
-                textRole: "name"
-                currentIndex: Math.max(0, root.languages.findIndex((d) => d.id === SrsService.config.language))
-                enabled: !SrsService.busy
-            }
-        }
-        ColumnLayout {
-            Layout.preferredWidth: 100
-            StyledText {
-                text: "Перевод"
-                color: Appearance.colors.colSubtext
-                font.pixelSize: Appearance.font.pixelSize.small
-            }
-            MaterialTextField {
-                id: target
-                Layout.fillWidth: true
-                text: SrsService.config.targetLang
-                placeholderText: "ru"
-                enabled: !SrsService.busy
+            title: "Сложности"
+            allLabel: "Все сложности"
+            options: root.levels
+            selected: root.selectedLevels
+            enabled: !SrsService.busy
+            onSelectionChanged: (values) => {
+                return root.selectedLevels = values;
             }
         }
 
@@ -227,7 +162,7 @@ ColumnLayout {
 
                 ColumnLayout {
                     anchors.fill: parent
-                    anchors.margins: 12
+                    anchors.margins: 10
                     spacing: 4
 
                     RowLayout {
@@ -274,7 +209,7 @@ ColumnLayout {
     StyledText {
         Layout.fillWidth: true
         wrapMode: Text.Wrap
-        text: root.selectedModes.length > 1 ? "Выбранные режимы будут чередоваться в случайном порядке." : "Выбери один или несколько режимов."
+        text: root.selectedModes.length > 1 ? "Выбранные режимы будут чередоваться в случайном порядке." : "Выбери режимы ответа."
         color: Appearance.colors.colSubtext
         font.pixelSize: Appearance.font.pixelSize.small
     }
@@ -285,10 +220,10 @@ ColumnLayout {
         primary: true
         enabled: !SrsService.busy && root.selectedModes.length > 0
         onClicked: SrsService.start({
-            "deckId": String(root.decks[deck.currentIndex]?.id || "all"),
-            "difficulty": root.levels[difficulty.currentIndex]?.id || "all",
-            "language": root.languages[language.currentIndex].id,
-            "targetLang": target.text || "ru",
+            "deckId": root.selectedDecks.join(",") || "all",
+            "difficulty": root.selectedLevels.join(",") || "all",
+            "language": "all",
+            "targetLang": "ru",
             "modes": root.selectedModes
         })
     }

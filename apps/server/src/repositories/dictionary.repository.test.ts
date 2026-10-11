@@ -105,6 +105,13 @@ describe('SRS review count', () => {
     expect(await repository.getReviewCount(991, 'all', 'en')).toEqual({ count: 1 })
   })
 
+  it('combines multiple decks and levels including uncategorized words', async () => {
+    expect(await repository.getReviewCount(991, 'all', 'ru', [991, 'none'], 'A1,HSK 1')).toEqual({ count: 114 })
+    expect(await repository.getReviewCount(991, 'all', 'ru', 991, 'A1,HSK 1')).toEqual({ count: 2 })
+    expect((await repository.getReviewQueue(991, 'all', 'ru', 'srs', 991, 'A1,HSK 1')).map(word => word.id)).toEqual([2, 4])
+    expect(await repository.getReviewCount(991, 'all', 'en', 'none', 'A1,none')).toEqual({ count: 1 })
+  })
+
   it('uses the same language, deck and difficulty filters as the queue', async () => {
     expect(await repository.getReviewCount(991, 'zh', 'ru')).toEqual({ count: 57 })
     expect(await repository.getReviewCount(991, 'zh', 'ru', 991, 'HSK 1')).toEqual({ count: 2 })

@@ -285,12 +285,16 @@ export class DictionaryRepository implements IDictionaryRepository {
     }
 
     if (difficulty && difficulty !== 'all') {
-      if (difficulty === 'none') {
-        filters.push(sql`${schema.userDictionary.difficulty} IS NULL OR ${schema.userDictionary.difficulty} = ''`)
-      }
-      else {
-        filters.push(eq(schema.userDictionary.difficulty, difficulty))
-      }
+      const levels = difficulty.split(',').filter(Boolean)
+      const conditions: SQL[] = []
+      if (levels.includes('none'))
+        conditions.push(sql`${schema.userDictionary.difficulty} IS NULL OR ${schema.userDictionary.difficulty} = ''`)
+      const named = levels.filter(level => level !== 'none')
+      if (named.length)
+        conditions.push(inArray(schema.userDictionary.difficulty, named))
+      const combined = or(...conditions)
+      if (combined)
+        filters.push(combined)
     }
 
     return filters

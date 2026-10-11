@@ -9,6 +9,10 @@ interface PollOAuthStatusOptions {
   timeoutMs?: number
 }
 
+export function hasOAuthSession(result: AuthOAuthStatusDomain): boolean {
+  return result.status === 'success' && !!(result.token || result.accessToken)
+}
+
 function abortError(): Error {
   const error = new Error('OAuth polling aborted')
   error.name = 'AbortError'

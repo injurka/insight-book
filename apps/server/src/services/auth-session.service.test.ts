@@ -41,6 +41,7 @@ describe('Rotating desktop sessions', () => {
     const initial = await service.create(1)
     const rotated = await service.refresh(initial.refreshToken)
     expect(rotated.refreshToken).not.toBe(initial.refreshToken)
+    expect(rotated.accessToken).not.toBe(initial.accessToken)
     expect((jwt.verify(rotated.accessToken, JWT_SECRET) as jwt.JwtPayload).userId).toBe(1)
     await expect(service.refresh(initial.refreshToken)).rejects.toThrow('Refresh session expired or revoked')
     await service.revoke(rotated.refreshToken)

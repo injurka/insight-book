@@ -14,8 +14,9 @@ PopupWindow {
     anchor.item: button
     anchor.edges: Config.options.bar.vertical ? (Config.options.bar.bottom ? Edges.Left : Edges.Right) : (Config.options.bar.bottom ? Edges.Top : Edges.Bottom)
     anchor.gravity: anchor.edges
-    implicitWidth: 500
-    implicitHeight: Math.min(740, content.implicitHeight + 40)
+    readonly property real fitScale: Math.min(1, ((button.QsWindow.window?.screen?.height || 1080) - 40) / (content.implicitHeight + 40))
+    implicitWidth: 500 * fitScale
+    implicitHeight: (content.implicitHeight + 40) * fitScale
     color: "transparent"
     grabFocus: true
     onVisibleChanged: {
@@ -51,21 +52,31 @@ PopupWindow {
 
             }
 
-            Flickable {
-                anchors.fill: parent
-                anchors.margins: 20
-                contentHeight: content.implicitHeight
-                clip: true
-                boundsBehavior: Flickable.StopAtBounds
-
                 ColumnLayout {
                     id: content
 
-                    width: parent.width
-                    spacing: 18
+                    x: 20 * root.fitScale
+                    y: 20 * root.fitScale
+                    width: 460
+                    scale: root.fitScale
+                    transformOrigin: Item.TopLeft
+                    spacing: 12
 
                     RowLayout {
                         Layout.fillWidth: true
+
+                        RippleButton {
+                            implicitWidth: 32
+                            implicitHeight: 32
+                            onClicked: root.dismissed()
+
+                            MaterialSymbol {
+                                anchors.centerIn: parent
+                                text: "close"
+                                iconSize: 20
+                            }
+
+                        }
 
                         ColumnLayout {
                             Layout.fillWidth: true
@@ -118,18 +129,7 @@ PopupWindow {
 
                         }
 
-                        RippleButton {
-                            implicitWidth: 32
-                            implicitHeight: 32
-                            onClicked: root.dismissed()
 
-                            MaterialSymbol {
-                                anchors.centerIn: parent
-                                text: "close"
-                                iconSize: 20
-                            }
-
-                        }
 
                     }
 
@@ -161,8 +161,6 @@ PopupWindow {
                     }
 
                 }
-
-            }
 
         }
 

@@ -18,6 +18,9 @@ RippleButton {
         id: title
 
         anchors.centerIn: parent
+        width: Math.min(implicitWidth, Math.max(0, root.width - 28))
+        horizontalAlignment: Text.AlignHCenter
+        elide: Text.ElideRight
         text: root.label
         font.pixelSize: Appearance.font.pixelSize.small
         color: root.primary ? Appearance.m3colors.m3onPrimary : Appearance.colors.colOnLayer0

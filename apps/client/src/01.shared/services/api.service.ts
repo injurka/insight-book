@@ -31,6 +31,7 @@ import { getMediaUrl } from '~/01.shared/lib/helpers'
 import { recordApiError } from '~/01.shared/services/monitoring.service'
 import { i18n } from '../../00.plugins/i18n'
 import { createApiFetch } from './api-transport.service'
+import { AuthSessionManager } from './auth-session.service'
 
 declare module 'ofetch' {
   interface FetchOptions {
@@ -46,7 +47,14 @@ declare module 'ofetch' {
 export const BASE_API_URL = API_URL
 const REQUEST_TIMEOUT_MS = 20_000
 const PLUGIN_UPLOAD_TIMEOUT_MS = 10 * 60_000
-let apiFetchImplementation: typeof globalThis.fetch | null = null
+let apiFetchImplementation: ReturnType<AuthSessionManager['wrap']> | null = null
+let sessionManager: AuthSessionManager | null = null
+
+export function getAuthSessionManager(): AuthSessionManager {
+  sessionManager ??= new AuthSessionManager(createApiFetch(), BASE_API_URL)
+
+  return sessionManager
+}
 
 function requestDuration(startedAt?: number): number | undefined {
   if (startedAt === undefined)
@@ -55,12 +63,6 @@ function requestDuration(startedAt?: number): number | undefined {
   const now = typeof performance !== 'undefined' ? performance.now() : Date.now()
 
   return Math.max(0, now - startedAt)
-}
-
-function fetchWithTelemetry(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
-  apiFetchImplementation ??= createApiFetch()
-
-  return apiFetchImplementation(input, init)
 }
 
 function getDiagnosticUrl(requestValue: RequestInfo | URL, baseUrl?: string): string {
@@ -109,6 +111,12 @@ const providers: Required<ApiProviders> = {
 
 export function configureApi(overrides: ApiProviders) {
   Object.assign(providers, overrides)
+}
+
+function fetchWithTelemetry(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
+  apiFetchImplementation ??= getAuthSessionManager().wrap(() => providers.getToken())
+
+  return apiFetchImplementation(input, init)
 }
 
 export const request = ofetch.create({
@@ -168,7 +176,7 @@ export const request = ofetch.create({
     if (!options?.silentErrors) {
       providers.onError(errMessage)
 
-      if (response?.status === 401)
+      if (response?.status === 401 && !/^.*\/api\/auth\/(?:session\/|login|register|send-code|status|yandex)/.test(String(failedRequest)))
         providers.onUnauthorized()
     }
 
@@ -241,7 +249,11 @@ export const request = ofetch.create({
     if (!options?.silentErrors && !isTimeout && !isAbort && !isOffline && !isNetworkError)
       providers.onError(errMessage)
 
-    const finalError = new Error(errMessage)
+    const status = error && typeof error === 'object' && 'status' in error ? Number(error.status) : undefined
+    const finalError = Object.assign(new Error(errMessage), status ? { status } : {})
+
+    if (status === 401 || status === 403)
+      providers.onUnauthorized()
 
     if (isTimeout)
       finalError.name = 'TimeoutError'
@@ -267,11 +279,25 @@ export const request = ofetch.create({
   fetch: fetchWithTelemetry as typeof globalThis.fetch,
 })
 
+async function loginSession(path: 'login' | 'register', data: AuthLoginDto | AuthRegisterDto): Promise<unknown> {
+  try {
+    return await request(`/api/auth/session/${path}`, { method: 'POST', body: JSON.stringify(data), silentErrors: true })
+  }
+  catch (error) {
+    if (!error || typeof error !== 'object' || !('status' in error) || error.status !== 404)
+      throw error
+
+    return request(`/api/auth/${path}`, { method: 'POST', body: JSON.stringify(data), silentErrors: true })
+  }
+}
+
 export const api = {
   auth: {
-    login: async (data: AuthLoginDto) => request<{ token: string, user: UserData }>('/api/auth/login', { method: 'POST', body: JSON.stringify(data) }),
+    login: async (data: AuthLoginDto) => loginSession('login', data),
+    logout: async () => getAuthSessionManager().logout(),
+    discardSession: (value: unknown) => getAuthSessionManager().discard(value),
     sendCode: async (data: AuthSendCodeDto) => request<{ success: boolean, message: string }>('/api/auth/send-code', { method: 'POST', body: JSON.stringify(data) }),
-    register: async (data: AuthRegisterDto) => request<{ token: string, user: UserData }>('/api/auth/register', { method: 'POST', body: JSON.stringify(data) }),
+    register: async (data: AuthRegisterDto) => loginSession('register', data),
     me: async () => request<{ user: UserData | null, mode: string }>('/api/auth/me', {
       silentErrors: true,
       headers: {

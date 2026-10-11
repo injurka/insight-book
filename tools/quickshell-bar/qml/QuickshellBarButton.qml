@@ -33,12 +33,12 @@ RippleButton {
             Layout.alignment: Qt.AlignHCenter
             text: "style"
             iconSize: 20
-            color: SrsService.count > 0 ? Appearance.colors.colPrimary : Appearance.colors.colOnLayer0
+            color: SrsService.stage === "training" && SrsService.count > 0 ? Appearance.colors.colPrimary : Appearance.colors.colOnLayer0
         }
 
         StyledText {
             Layout.alignment: Qt.AlignHCenter
-            text: !SrsService.account.authenticated ? "Вход" : SrsService.error ? "!" : SrsService.ready ? String(SrsService.count) : "…"
+            text: !SrsService.account.authenticated ? "Вход" : SrsService.error ? "!" : SrsService.stage !== "training" ? "SRS" : SrsService.ready ? String(SrsService.count) : "…"
             font.pixelSize: Appearance.font.pixelSize.small
         }
 

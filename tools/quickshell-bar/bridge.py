@@ -97,46 +97,45 @@ def filters(settings):
     return {key: settings[key] for key in ("language", "targetLang", "deckId", "difficulty")}
 
 
-def legacy_count(settings):
+def legacy_queue(settings):
     # Compatibility with a deployed server that predates /review/count.
     # /dictionary includes all words and deckIds, unlike the capped review batch.
     words = api(settings, "dictionary/", query={"targetLang": settings["targetLang"]})
     if not isinstance(words, list):
         raise ValueError("Некорректный ответ словаря.")
     now = datetime.now(timezone.utc)
-    total = 0
+    selected = []
     for word in words:
         if settings["language"] != "all" and word.get("language") != settings["language"]:
             continue
-        deck = settings["deckId"]
-        if deck == "none" and word.get("deckIds"):
+        decks = settings["deckId"].split(",")
+        if "all" not in decks and not (("none" in decks and not word.get("deckIds")) or any(str(d) in decks for d in word.get("deckIds", []))):
             continue
-        if deck not in ("all", "none") and int(deck) not in word.get("deckIds", []):
-            continue
-        difficulty = settings["difficulty"]
-        if difficulty == "none" and word.get("difficulty"):
-            continue
-        if difficulty not in ("all", "none") and word.get("difficulty") != difficulty:
+        levels = settings["difficulty"].split(",")
+        if "all" not in levels and not (("none" in levels and not word.get("difficulty")) or word.get("difficulty") in levels):
             continue
         due = datetime.fromisoformat(word["due"].replace("Z", "+00:00"))
         if due.tzinfo is None:
             due = due.replace(tzinfo=timezone.utc)
-        total += due <= now
-    return total
+        if due <= now:
+            selected.append(word)
+    return sorted(selected, key=lambda w: w["due"])
 
 
 def queue(settings):
-    words = api(settings, "dictionary/review", query={**filters(settings), "mode": "srs"})
-    if not isinstance(words, list) or any(not isinstance(w, dict) or "id" not in w or "word" not in w for w in words):
-        raise ValueError("Некорректная очередь повторения.")
     try:
         count = api(settings, "dictionary/review/count", query=filters(settings))["count"]
         if not isinstance(count, int) or count < 0:
             raise ValueError("Некорректный счётчик очереди.")
+        words = api(settings, "dictionary/review", query={**filters(settings), "mode": "srs"})
     except ApiError as error:
         if error.status != 404:
             raise
-        count = legacy_count(settings)
+        words = legacy_queue(settings)
+        count = len(words)
+        words = words[:50]
+    if not isinstance(words, list) or any(not isinstance(w, dict) or "id" not in w or "word" not in w for w in words):
+        raise ValueError("Некорректная очередь повторения.")
     # Send only the fields displayed by the desktop widget.
     cards = [{key: word.get(key) for key in ("id", "word", "transcription", "translation", "language")} for word in words]
     return {"cards": cards, "count": count}
@@ -248,7 +247,8 @@ def dispatch(command):
         if action in ("bootstrap", "connect", "login", "oauth-poll"):
             result.update(account(settings))
         result.update(metadata(settings) if action in ("bootstrap", "connect", "login", "oauth-poll", "metadata", "configure") else {})
-        result.update(queue(settings))
+        if action in ("configure", "refresh", "review"):
+            result.update(queue(settings))
     except (ApiError, ValueError, KeyError, TypeError) as error:
         result.update({"ok": False, "error": str(error), "authRequired": isinstance(error, ApiError) and error.status == 401})
         if result["authRequired"]:

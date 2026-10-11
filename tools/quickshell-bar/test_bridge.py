@@ -122,6 +122,8 @@ class BridgeTest(unittest.TestCase):
     def test_login_private_session_fallback_count_and_review(self):
         result = self.login()
         self.assertTrue(result["ok"])
+        self.assertNotIn("cards", result)
+        result = self.call(action="configure")
         self.assertEqual(result["count"], 61)
         self.assertEqual(len(result["cards"]), 50)
         path = Path(self.temp.name) / "quickshell-bar/settings.json"
@@ -138,7 +140,8 @@ class BridgeTest(unittest.TestCase):
 
     def test_new_count_endpoint_and_deck_filters(self):
         self.count_supported = True
-        self.assertEqual(self.login()["count"], 61)
+        self.login()
+        self.assertEqual(self.call(action="configure")["count"], 61)
         self.count_supported = False
         self.assertEqual(self.call(action="configure", deckId="none")["count"], 0)
         self.assertEqual(self.call(action="configure", deckId="1", language="en")["count"], 61)
@@ -146,6 +149,7 @@ class BridgeTest(unittest.TestCase):
 
     def test_acknowledgement_survives_failed_refresh(self):
         self.login()
+        self.count_supported = True
         self.fail_refresh = True
         result = self.call(action="review", wordId=1, grade=1)
         self.assertFalse(result["ok"])
@@ -180,6 +184,18 @@ class BridgeTest(unittest.TestCase):
         self.assertTrue(result["ok"])
         self.assertTrue(result["renewable"])
         self.assertFalse(result["oauthPending"])
+
+    def test_multiple_decks_and_difficulties(self):
+        self.words = [
+            {"id": i, "word": str(i), "language": "en", "deckIds": decks, "difficulty": level, "due": "2000-01-01T00:00:00Z"}
+            for i, decks, level in [(1, [1], "A1"), (2, [2], "A2"), (3, [], None), (4, [3], "B1")]
+        ]
+        self.login()
+        result = self.call(action="configure", deckId="1,2,none", difficulty="A1,A2,none")
+        self.assertEqual(result["count"], 3)
+        self.assertEqual([w["id"] for w in result["cards"]], [1, 2, 3])
+        result = self.call(action="configure", deckId="2", difficulty="A1,none")
+        self.assertEqual(result["count"], 0)
 
     def test_rejects_invalid_grade_insecure_host_and_redirects(self):
         self.login()

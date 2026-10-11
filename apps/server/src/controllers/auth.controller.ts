@@ -98,6 +98,18 @@ export const authRouter = new Elysia({ prefix: '/api/auth' })
     cache: 'shortPrivate',
     body: t.Object({ refreshToken: t.String({ minLength: 20, maxLength: 200 }) }),
   })
+  .post('/session/upgrade', async ({ userId, request }) => {
+    sessionLimiter(getClientIp(request))
+    return authSessionService.create(userId!)
+  }, { requireAuth: true, cache: 'shortPrivate' })
+  .post('/session/register', async ({ body, request }) => {
+    authLimiter(getClientIp(request))
+    const result = await authService.register(body.email, body.code, body.password)
+    return { ...await authSessionService.create(result.user.id), user: result.user }
+  }, {
+    cache: 'shortPrivate',
+    body: t.Object({ email: t.String({ format: 'email' }), code: t.String({ minLength: 6, maxLength: 6 }), password: t.String({ minLength: 6 }) }),
+  })
   .post('/session/logout', async ({ body }) => {
     return authSessionService.revoke(body.refreshToken)
   }, {
@@ -123,7 +135,7 @@ export const authRouter = new Elysia({ prefix: '/api/auth' })
     }),
   })
   .get('/yandex', async ({ query }) => {
-    const sessionId = query.session_id as string | undefined
+    const sessionId = query.session_id as string | undefined || (query.session === 'web' ? crypto.randomUUID() : undefined)
     const linkToken = query.linkToken as string | undefined
     let linkUserId: number | undefined
     if (linkToken) {
@@ -138,7 +150,8 @@ export const authRouter = new Elysia({ prefix: '/api/auth' })
     if (sessionId || linkUserId) {
       const stateObj = {
         sessionId: sessionId || undefined,
-        renewableSession: query.session === 'desktop',
+        renewableSession: query.session === 'desktop' || query.session === 'web',
+        webSession: query.session === 'web',
         linkUserId: linkUserId || undefined,
         nonce: crypto.randomUUID(),
       }
@@ -157,12 +170,14 @@ export const authRouter = new Elysia({ prefix: '/api/auth' })
     let sessionId: string | undefined
     let linkUserId: number | undefined
     let renewableSession = false
+    let webSession = false
 
     if (state) {
       try {
         const parsed = JSON.parse(Buffer.from(state, 'base64url').toString('utf-8'))
         sessionId = parsed.sessionId
         renewableSession = parsed.renewableSession === true
+        webSession = parsed.webSession === true
         linkUserId = parsed.linkUserId ? Number(parsed.linkUserId) : undefined
       }
       catch {
@@ -249,6 +264,12 @@ export const authRouter = new Elysia({ prefix: '/api/auth' })
       else {
         saveAuthSession(sessionId, token)
       }
+      if (webSession) {
+        const frontendUrl = new URL(FRONTEND_URL)
+        frontendUrl.pathname = '/auth/yandex/callback'
+        frontendUrl.searchParams.set('session_id', sessionId)
+        return Response.redirect(frontendUrl.toString(), 302)
+      }
       const html = `
         <!DOCTYPE html>
         <html lang="ru">
@@ -302,7 +323,9 @@ export const authRouter = new Elysia({ prefix: '/api/auth' })
       provider: t.String({ minLength: 1 }),
     }),
   })
-  .get('/me', async ({ userId }) => {
+  .get('/me', async ({ userId, request }) => {
+    if (!userId && request.headers.get('Authorization'))
+      throw new AppError(401, ERROR_CODES.AUTH.INVALID_TOKEN, 'Invalid token')
     return authService.getMe(userId)
   }, { cache: 'shortPrivate' })
   .patch('/me/avatar', async ({ userId, body }) => {

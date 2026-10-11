@@ -1,15 +1,42 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
+import { useRepos } from '~/00.plugins/di'
 import { AppRouteNames } from '~/01.shared/constants/routes'
+import { hasOAuthSession } from '~/01.shared/lib/poll-oauth-status'
 import { useAuthStore } from '~/01.shared/store/auth.store'
 
+const repos = useRepos()
 const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
 const { t } = useI18n()
 
 const error = ref('')
+
+async function restoreCallbackSession(): Promise<boolean> {
+  const token = typeof route.query.token === 'string' ? route.query.token : null
+  const sessionId = typeof route.query.session_id === 'string' ? route.query.session_id : null
+
+  if (sessionId) {
+    const result = await repos.auth.oauthStatus(sessionId)
+
+    if (!hasOAuthSession(result))
+      throw new Error(t('signIn.errorAuth'))
+
+    repos.auth.acceptOAuthSession(result)
+
+    return true
+  }
+
+  if (token) {
+    repos.auth.acceptLegacyToken(token)
+
+    return true
+  }
+
+  return false
+}
 
 onMounted(async () => {
   if (route.query.oauth_error === 'api_unavailable') {
@@ -18,10 +45,18 @@ onMounted(async () => {
     return
   }
 
-  const token = typeof route.query.token === 'string' ? route.query.token : null
+  let restored = false
 
-  if (token) {
-    localStorage.setItem('insight_token', token)
+  try {
+    restored = await restoreCallbackSession()
+  }
+  catch (e: unknown) {
+    error.value = e instanceof Error ? e.message : t('signIn.errorAuth')
+
+    return
+  }
+
+  if (restored) {
     localStorage.removeItem('insight_uid')
     localStorage.removeItem('insight_user_data')
     localStorage.removeItem('insight_auth_mode')
