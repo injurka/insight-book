@@ -240,11 +240,10 @@ export class DictionaryRepository implements IDictionaryRepository {
     ))
   }
 
-  async getReviewQueue(
+  private reviewFilters(
     userId: number,
     language: string | undefined,
     targetLang: string,
-    mode: 'srs' | 'random' | 'deep_dive' | 'cram' = 'srs',
     deckId?: number | 'none' | (number | 'none')[],
     difficulty?: string,
   ) {
@@ -293,6 +292,34 @@ export class DictionaryRepository implements IDictionaryRepository {
         filters.push(eq(schema.userDictionary.difficulty, difficulty))
       }
     }
+
+    return filters
+  }
+
+  async getReviewCount(
+    userId: number,
+    language: string | undefined,
+    targetLang: string,
+    deckId?: number | 'none' | (number | 'none')[],
+    difficulty?: string,
+  ) {
+    const filters = this.reviewFilters(userId, language, targetLang, deckId, difficulty)
+    filters.push(lte(schema.userDictionary.due, new Date().toISOString()))
+    const [result] = await db.select({ count: sql<number>`count(*)` })
+      .from(schema.userDictionary)
+      .where(and(...filters))
+    return { count: Number(result?.count ?? 0) }
+  }
+
+  async getReviewQueue(
+    userId: number,
+    language: string | undefined,
+    targetLang: string,
+    mode: 'srs' | 'random' | 'deep_dive' | 'cram' = 'srs',
+    deckId?: number | 'none' | (number | 'none')[],
+    difficulty?: string,
+  ) {
+    const filters = this.reviewFilters(userId, language, targetLang, deckId, difficulty)
 
     if (mode === 'srs') {
       const now = new Date().toISOString()

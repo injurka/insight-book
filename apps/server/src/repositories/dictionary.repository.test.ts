@@ -33,6 +33,7 @@ beforeAll(async () => {
       id: index + 1,
       userId: 991,
       word: `word-${index}`,
+      due: index === 0 ? '9999-01-01T00:00:00.000Z' : '2000-01-01T00:00:00.000Z',
       updatedAt: '2026-10-09',
       language: index % 2 ? 'zh' : 'en',
       difficulty: index % 2 ? 'HSK 1' : 'A1',
@@ -93,5 +94,22 @@ describe('Dictionary pagination', () => {
     const withoutDeck = await repository.getUserDictionaryPage(991, 'ru', { offset: 0, limit: 50, decks: 'none' })
     expect(withoutDeck.total).toBe(113)
     expect(withoutDeck.items.every(item => !item.deckIds.length)).toBe(true)
+  })
+})
+
+describe('SRS review count', () => {
+  it('counts all due cards beyond the queue limit and isolates user and translation language', async () => {
+    expect((await repository.getReviewQueue(991, 'all', 'ru')).length).toBe(50)
+    expect(await repository.getReviewCount(991, 'all', 'ru')).toEqual({ count: 114 })
+    expect(await repository.getReviewCount(992, 'all', 'ru')).toEqual({ count: 1 })
+    expect(await repository.getReviewCount(991, 'all', 'en')).toEqual({ count: 1 })
+  })
+
+  it('uses the same language, deck and difficulty filters as the queue', async () => {
+    expect(await repository.getReviewCount(991, 'zh', 'ru')).toEqual({ count: 57 })
+    expect(await repository.getReviewCount(991, 'zh', 'ru', 991, 'HSK 1')).toEqual({ count: 2 })
+    expect(await repository.getReviewCount(991, 'en', 'ru', 991)).toEqual({ count: 0 })
+    expect(await repository.getReviewCount(991, 'all', 'ru', 'none')).toEqual({ count: 112 })
+    expect(await repository.getReviewCount(991, 'all', 'ru', [991, 'none'])).toEqual({ count: 114 })
   })
 })

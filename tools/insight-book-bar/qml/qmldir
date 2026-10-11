@@ -1,0 +1,5 @@
+singleton SrsService 1.0 SrsService.qml
+InsightBookButton 1.0 InsightBookButton.qml
+SrsPopup 1.0 SrsPopup.qml
+SrsCard 1.0 SrsCard.qml
+SrsSettings 1.0 SrsSettings.qml

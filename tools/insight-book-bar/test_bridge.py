@@ -1,0 +1,137 @@
+"""Exercise the real bridge protocol against a local HTTP API without user data."""
+import json
+import os
+from pathlib import Path
+import subprocess
+import tempfile
+import threading
+import unittest
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from urllib.parse import urlsplit
+
+HERE = Path(__file__).resolve().parent
+
+
+class BridgeTest(unittest.TestCase):
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory()
+        self.words = [{"id": i, "word": f"word-{i}", "language": "en", "deckIds": [1], "due": "2000-01-01T00:00:00Z"} for i in range(1, 62)]
+        self.count_supported = False
+        self.fail_refresh = False
+        self.redirect_login = False
+        self.stolen = False
+        case = self
+
+        class Handler(BaseHTTPRequestHandler):
+            def log_message(self, *args):
+                pass
+
+            def reply(self, body, status=200):
+                self.send_response(status)
+                self.send_header("Content-Type", "application/json")
+                self.end_headers()
+                self.wfile.write(json.dumps(body).encode())
+
+            def do_GET(self):
+                path = urlsplit(self.path).path
+                if path == "/stolen":
+                    case.stolen = True
+                if self.headers.get("Authorization") != "Bearer test-token":
+                    self.reply({}, 401)
+                elif path == "/api/auth/me":
+                    self.reply({"id": 1})
+                elif path == "/api/dictionary/review/count":
+                    self.reply({"count": len(case.words)} if case.count_supported else {}, 200 if case.count_supported else 404)
+                elif path == "/api/dictionary/review":
+                    self.reply(case.words[:50], 503 if case.fail_refresh else 200)
+                elif path == "/api/dictionary/":
+                    self.reply(case.words)
+                elif path == "/api/dictionary/decks":
+                    self.reply([{"id": 1, "name": "English", "language": "en"}])
+                else:
+                    self.reply({}, 404)
+
+            def do_POST(self):
+                body = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
+                if self.path == "/api/auth/login":
+                    if case.redirect_login:
+                        self.send_response(307)
+                        self.send_header("Location", "/stolen")
+                        self.end_headers()
+                    elif body == {"login": "test", "password": "private-password"}:
+                        self.reply({"token": "test-token"})
+                    else:
+                        self.reply({}, 401)
+                elif self.path == "/api/dictionary/review" and self.headers.get("Authorization") == "Bearer test-token":
+                    case.words = [w for w in case.words if w["id"] != body["wordId"]]
+                    self.reply({"success": True})
+                else:
+                    self.reply({}, 404)
+
+        self.server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+        self.thread = threading.Thread(target=self.server.serve_forever, daemon=True)
+        self.thread.start()
+        self.url = f"http://127.0.0.1:{self.server.server_port}"
+
+    def tearDown(self):
+        self.server.shutdown()
+        self.server.server_close()
+        self.thread.join()
+        self.temp.cleanup()
+
+    def call(self, **command):
+        result = subprocess.run(["python3", str(HERE / "bridge.py")], input=json.dumps(command) + "\n", text=True,
+                                capture_output=True, env={**os.environ, "XDG_CONFIG_HOME": self.temp.name}, timeout=30)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertNotIn("test-token", result.stdout)
+        self.assertNotIn("private-password", result.stdout)
+        return json.loads(result.stdout)
+
+    def login(self):
+        return self.call(action="login", url=self.url, login="test", password="private-password")
+
+    def test_login_private_session_fallback_count_and_review(self):
+        result = self.login()
+        self.assertTrue(result["ok"])
+        self.assertEqual(result["count"], 61)
+        self.assertEqual(len(result["cards"]), 50)
+        path = Path(self.temp.name) / "insight-book-bar/settings.json"
+        self.assertEqual(path.stat().st_mode & 0o777, 0o600)
+        self.assertEqual(path.parent.stat().st_mode & 0o777, 0o700)
+        self.assertNotIn("private-password", path.read_text())
+        result = self.call(action="review", wordId=1, grade=3)
+        self.assertTrue(result["ok"])
+        self.assertEqual(result["reviewedId"], 1)
+        self.assertEqual(result["count"], 60)
+        self.assertEqual(result["cards"][0]["id"], 2)
+        self.assertTrue(self.call(action="logout")["loggedOut"])
+        self.assertTrue(self.call(action="refresh")["authRequired"])
+
+    def test_new_count_endpoint_and_deck_filters(self):
+        self.count_supported = True
+        self.assertEqual(self.login()["count"], 61)
+        self.count_supported = False
+        self.assertEqual(self.call(action="configure", deckId="none")["count"], 0)
+        self.assertEqual(self.call(action="configure", deckId="1", language="en")["count"], 61)
+        self.assertEqual(self.call(action="configure", language="zh")["count"], 0)
+
+    def test_acknowledgement_survives_failed_refresh(self):
+        self.login()
+        self.fail_refresh = True
+        result = self.call(action="review", wordId=1, grade=1)
+        self.assertFalse(result["ok"])
+        self.assertEqual(result["reviewedId"], 1)
+        self.assertEqual(len(self.words), 60)
+
+    def test_rejects_invalid_grade_insecure_host_and_redirects(self):
+        self.login()
+        self.assertFalse(self.call(action="review", wordId=1, grade=9)["ok"])
+        self.assertEqual(len(self.words), 61)
+        self.assertFalse(self.call(action="login", url="http://remote.example", login="test", password="private-password")["ok"])
+        self.redirect_login = True
+        self.assertFalse(self.login()["ok"])
+        self.assertFalse(self.stolen)
+
+
+if __name__ == "__main__":
+    unittest.main()

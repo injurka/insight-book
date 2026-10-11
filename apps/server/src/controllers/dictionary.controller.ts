@@ -24,6 +24,30 @@ const authPlugin = new Elysia().derive({ as: 'scoped' }, ({ headers }) => {
   }
 })
 
+function reviewDeckId(value: string | undefined) {
+  let deckId: number | 'none' | (number | 'none')[] | undefined
+  if (value && value !== 'all') {
+    if (value.includes(',')) {
+      const parts = value.split(',')
+      const parsed = parts
+        .map(p => (p === 'none' ? 'none' : Number(p)))
+        .filter(p => p === 'none' || !Number.isNaN(p as number)) as (number | 'none')[]
+      if (parsed.length > 0)
+        deckId = parsed
+    }
+    else if (value === 'none') {
+      deckId = 'none'
+    }
+    else {
+      const num = Number(value)
+      if (!Number.isNaN(num))
+        deckId = num
+    }
+  }
+
+  return deckId
+}
+
 export const dictionaryController = new Elysia({ prefix: '/api/dictionary' })
   .use(authPlugin)
   .use(cachePlugin)
@@ -205,29 +229,29 @@ export const dictionaryController = new Elysia({ prefix: '/api/dictionary' })
       autoFill: t.Optional(t.Boolean()),
     }),
   })
+  .get('/review/count', async ({ userId, query }) => {
+    return dictionaryService.getReviewCount(
+      userId,
+      normalizeLanguageCode(query.language || query.lang || 'all'),
+      query.targetLang || 'ru',
+      reviewDeckId(query.deckId),
+      query.difficulty,
+    )
+  }, {
+    cache: 'shortPrivate',
+    query: t.Object({
+      targetLang: t.Optional(t.String()),
+      language: t.Optional(t.String()),
+      lang: t.Optional(t.String()),
+      deckId: t.Optional(t.String()),
+      difficulty: t.Optional(t.String()),
+    }),
+  })
   .get('/review', async ({ userId, query }) => {
     const normalizedLang = normalizeLanguageCode((query.language || query.lang) as string)
     const targetLang = (query.targetLang as string) || 'ru'
 
-    let deckId: number | 'none' | (number | 'none')[] | undefined
-    if (query.deckId && query.deckId !== 'all') {
-      if (query.deckId.includes(',')) {
-        const parts = query.deckId.split(',')
-        const parsed = parts
-          .map(p => (p === 'none' ? 'none' : Number(p)))
-          .filter(p => p === 'none' || !Number.isNaN(p as number)) as (number | 'none')[]
-        if (parsed.length > 0)
-          deckId = parsed
-      }
-      else if (query.deckId === 'none') {
-        deckId = 'none'
-      }
-      else {
-        const num = Number(query.deckId)
-        if (!Number.isNaN(num))
-          deckId = num
-      }
-    }
+    const deckId = reviewDeckId(query.deckId)
 
     return await dictionaryService.getReviewQueue(userId, normalizedLang, targetLang, (query.mode as 'srs' | 'random' | 'deep_dive' | 'cram') || 'srs', deckId, query.difficulty as string | undefined)
   }, {

@@ -416,10 +416,26 @@ useQuoteHighlights(blockRef, [leftPaneContent, translatedPageContent], () => pro
   :deep(.interleaved-translation.translation-pending),
   :deep(.split-translation.translation-pending) {
     color: var(--fg-muted-color);
-    font-size: 0.7em;
-    font-style: italic;
     user-select: none;
     cursor: default;
+  }
+
+  :deep(.translation-pending-word) {
+    display: inline-block;
+    max-width: 100%;
+    overflow: hidden;
+    vertical-align: bottom;
+    white-space: nowrap;
+    font-style: normal;
+    font-weight: normal;
+    opacity: 0.35;
+    pointer-events: none;
+
+    &::before {
+      content: attr(data-placeholder-word);
+      color: transparent;
+      background: linear-gradient(var(--fg-muted-color), var(--fg-muted-color)) center / 100% 0.12em no-repeat;
+    }
   }
 
   :deep(.interleaved-translation) {

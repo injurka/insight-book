@@ -2,7 +2,6 @@ import type { Ref } from 'vue'
 import type { LlmAnalysis, PagePayload } from '~/01.shared/types/models'
 import DOMPurify from 'dompurify'
 import { computed } from 'vue'
-import { i18n } from '~/00.plugins/i18n'
 import { safeDecodeURIComponent } from '~/01.shared/lib/helpers'
 import { useAnalysisStore } from '~/01.shared/store/analysis/analysis.store'
 import { useGlobalSettingsStore } from '~/01.shared/store/settings.store'
@@ -63,8 +62,11 @@ export function useReaderContent(pageSource?: Ref<PagePayload | null | undefined
     return `<span class="grammar-rules-container">${badges}</span>`
   }
 
-  function buildPendingTranslation(className: string): string {
-    return `<span class="${className} translation-pending">${escapeHtml(i18n.global.t('reader.translationPending'))}</span>`
+  function buildPendingTranslation(className: string, rawSent: string): string {
+    const words = rawSent.match(/\S+/gu) || []
+    const placeholders = words.map(word => `<span class="translation-pending-word" aria-hidden="true" data-placeholder-word="${escapeHtml(word)}"></span>`).join(' ')
+
+    return `<span class="${className} translation-pending">${placeholders}</span>`
   }
 
   function wrapParallelSentences(doc: Document) {
@@ -96,7 +98,7 @@ export function useReaderContent(pageSource?: Ref<PagePayload | null | undefined
 
     if (settingsStore.parallelViewMode === 'interleaved' && rawSent) {
       if (!map[rawSent]?.translation?.trim()) {
-        span.insertAdjacentHTML('afterend', buildPendingTranslation('interleaved-translation'))
+        span.insertAdjacentHTML('afterend', buildPendingTranslation('interleaved-translation', rawSent))
 
         return
       }
@@ -134,7 +136,7 @@ export function useReaderContent(pageSource?: Ref<PagePayload | null | undefined
       span.classList.add('has-translation')
     }
     else {
-      span.innerHTML = buildPendingTranslation('split-translation')
+      span.innerHTML = buildPendingTranslation('split-translation', rawSent)
     }
   }
 
