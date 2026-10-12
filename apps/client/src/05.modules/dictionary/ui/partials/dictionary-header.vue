@@ -67,7 +67,7 @@ function openTrainingSettings(mode: 'srs' | 'deep_dive' | 'cram' | 'match') {
           <KitDropdown
             ref="dropdownRef"
             placement="bottom-end"
-            width="260px"
+            width="280px"
             class="training-dropdown"
           >
             <template #activator="{ props }">

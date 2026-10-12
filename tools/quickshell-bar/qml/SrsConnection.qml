@@ -20,20 +20,20 @@ ColumnLayout {
     spacing: 14
     Component.onDestruction: password.clear()
 
-    StyledText {
+    SrsText {
         text: "Подключи InsightBook"
         font.pixelSize: 22
         font.bold: true
     }
 
-    StyledText {
+    SrsText {
         Layout.fillWidth: true
         wrapMode: Text.Wrap
         text: "Выбери сервер, затем войди в свой аккаунт."
         color: Appearance.colors.colSubtext
     }
 
-    StyledText {
+    SrsText {
         text: "Сервер API"
         font.pixelSize: Appearance.font.pixelSize.small
     }
@@ -42,6 +42,8 @@ ColumnLayout {
         Layout.fillWidth: true
 
         MaterialTextField {
+            font.family: "Maple Mono"
+            font.variableAxes: ({})
             id: url
 
             Layout.fillWidth: true
@@ -87,12 +89,14 @@ ColumnLayout {
             color: Appearance.colors.colOutlineVariant
         }
 
-        StyledText {
+        SrsText {
             text: "Вход в аккаунт"
             font.bold: true
         }
 
         MaterialTextField {
+            font.family: "Maple Mono"
+            font.variableAxes: ({})
             id: login
 
             Layout.fillWidth: true
@@ -101,6 +105,8 @@ ColumnLayout {
         }
 
         MaterialTextField {
+            font.family: "Maple Mono"
+            font.variableAxes: ({})
             id: password
 
             Layout.fillWidth: true
@@ -122,7 +128,7 @@ ColumnLayout {
             onClicked: root.signIn()
         }
 
-        StyledText {
+        SrsText {
             Layout.alignment: Qt.AlignHCenter
             text: "или"
             color: Appearance.colors.colSubtext

@@ -197,6 +197,20 @@ class BridgeTest(unittest.TestCase):
         result = self.call(action="configure", deckId="2", difficulty="A1,none")
         self.assertEqual(result["count"], 0)
 
+    def test_card_notes_and_context_are_plain_text(self):
+        self.words[0].update(grammarNote="<p>Порядок слов</p><script>hidden()</script>",
+                             vocabularyNote="<b>Учёба</b> &amp; практика", notes="Заметка",
+                             encounters=[{"sentence": "<p>我每天学习。</p>", "privateField": "not-public"}])
+        self.login()
+        result = self.call(action="configure")
+        card = result["cards"][0]
+        self.assertEqual(card["grammarNote"], "Порядок слов")
+        self.assertEqual(card["vocabularyNote"], "Учёба & практика")
+        self.assertEqual(card["notes"], "Заметка")
+        self.assertEqual(card["sentence"], "我每天学习。")
+        self.assertNotIn("encounters", card)
+        self.assertNotIn("hidden()", json.dumps(card))
+
     def test_rejects_invalid_grade_insecure_host_and_redirects(self):
         self.login()
         self.assertFalse(self.call(action="review", wordId=1, grade=9)["ok"])

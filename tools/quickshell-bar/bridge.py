@@ -10,6 +10,7 @@ import tempfile
 import base64
 import random
 import session
+from html.parser import HTMLParser
 from datetime import datetime, timezone
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode, urlsplit
@@ -122,6 +123,43 @@ def legacy_queue(settings):
     return sorted(selected, key=lambda w: w["due"])
 
 
+class NoteText(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self.parts = []
+        self.hidden = 0
+
+    def handle_starttag(self, tag, attrs):
+        if tag in ("script", "style"):
+            self.hidden += 1
+        if tag in ("br", "p", "div", "li") and not self.hidden:
+            self.parts.append("\n")
+
+    def handle_endtag(self, tag):
+        if tag in ("script", "style"):
+            self.hidden = max(0, self.hidden - 1)
+        if tag in ("p", "div", "li") and not self.hidden:
+            self.parts.append("\n")
+
+    def handle_data(self, data):
+        if not self.hidden:
+            self.parts.append(data)
+
+
+def note_text(value):
+    parser = NoteText()
+    parser.feed(value if isinstance(value, str) else "")
+    return "\n".join(line.strip() for line in "".join(parser.parts).splitlines() if line.strip())[:4000]
+
+
+def public_card(word):
+    card = {key: word.get(key) for key in ("id", "word", "transcription", "translation", "language")}
+    card.update({key: note_text(word.get(key)) for key in ("grammarNote", "vocabularyNote", "notes")})
+    encounters = word.get("encounters") or []
+    card["sentence"] = note_text(encounters[0].get("sentence")) if encounters and isinstance(encounters[0], dict) else ""
+    return card
+
+
 def queue(settings):
     try:
         count = api(settings, "dictionary/review/count", query=filters(settings))["count"]
@@ -137,7 +175,7 @@ def queue(settings):
     if not isinstance(words, list) or any(not isinstance(w, dict) or "id" not in w or "word" not in w for w in words):
         raise ValueError("Некорректная очередь повторения.")
     # Send only the fields displayed by the desktop widget.
-    cards = [{key: word.get(key) for key in ("id", "word", "transcription", "translation", "language")} for word in words]
+    cards = [public_card(word) for word in words]
     return {"cards": cards, "count": count}
 
 

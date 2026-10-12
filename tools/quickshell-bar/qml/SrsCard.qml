@@ -31,11 +31,11 @@ ColumnLayout {
         }
     }
     function choose(value) {
-        feedback = Quiz.normalize(value) === Quiz.normalize(correct) ? "Верно" : "Правильный ответ: " + correct;
+        feedback = Quiz.normalize(value) === Quiz.normalize(correct) ? "" : "Правильный ответ: " + correct;
         revealed = true;
     }
     function checkInput() {
-        feedback = Quiz.normalize(input.text) === Quiz.normalize(card.word) ? "Верно" : "Правильный ответ: " + card.word;
+        feedback = Quiz.normalize(input.text) === Quiz.normalize(card.word) ? "" : "Правильный ответ: " + card.word;
         revealed = true;
     }
     function key(event) {
@@ -49,29 +49,45 @@ ColumnLayout {
             event.accepted = true;
         }
     }
-    StyledText {
+    SrsText {
         Layout.fillWidth: true
         text: card ? ({standard: "Чтение", typing: "Ввод", choice: "Тест", "choice-reverse": "Обратный тест", audio: "Аудирование"})[root.mode] : "Тренировка завершена"
         color: Appearance.colors.colSubtext; font.pixelSize: Appearance.font.pixelSize.small
     }
-    StyledText {
-        Layout.fillWidth: true; horizontalAlignment: Text.AlignHCenter; wrapMode: Text.Wrap; textFormat: Text.PlainText
-        text: !root.card ? "На сейчас всё повторено ✨" : root.mode === "audio" && !root.revealed ? "Послушай и выбери перевод" : ["typing", "choice-reverse"].includes(root.mode) && !root.revealed ? root.card.translation || "Перевод не указан" : root.card.word
-        font.pixelSize: root.card && root.mode !== "audio" ? 28 : 21
-    }
-    StyledText {
-        Layout.fillWidth: true; horizontalAlignment: Text.AlignHCenter; textFormat: Text.PlainText; wrapMode: Text.Wrap
-        visible: !!root.card?.transcription && (root.mode === "standard" || root.revealed)
-        text: root.card?.transcription || ""; color: Appearance.colors.colSubtext
+    Item {
+        objectName: "cardFront"
+        Layout.fillWidth: true
+        Layout.fillHeight: true
+        Layout.minimumHeight: implicitHeight
+        implicitHeight: wordContent.implicitHeight
+        ColumnLayout {
+            id: wordContent
+            anchors.verticalCenter: parent.verticalCenter
+            width: parent.width
+            spacing: root.spacing
+            SrsText {
+                Layout.fillWidth: true; horizontalAlignment: Text.AlignHCenter; wrapMode: Text.Wrap; textFormat: Text.PlainText
+                text: !root.card ? "На сейчас всё повторено ✨" : root.mode === "audio" && !root.revealed ? "Послушай и выбери перевод" : ["typing", "choice-reverse"].includes(root.mode) && !root.revealed ? root.card.translation || "Перевод не указан" : root.card.word
+                font.pixelSize: root.card && root.mode !== "audio" ? 28 : 21
+            }
+            SrsText {
+                Layout.fillWidth: true; horizontalAlignment: Text.AlignHCenter; textFormat: Text.PlainText; wrapMode: Text.Wrap
+                visible: !!root.card?.transcription && (root.mode === "standard" || root.revealed)
+                text: root.card?.transcription || ""; color: Appearance.colors.colSubtext
+            }
+        }
     }
     SrsAction {
-        Layout.fillWidth: true; visible: root.mode === "audio" && !!root.card
+        Layout.fillWidth: true; visible: root.mode === "audio" && !!root.card && !root.revealed
         label: "Послушать слово"; enabled: !SrsService.busy
         onClicked: SrsService.playAudio()
     }
     RowLayout {
         Layout.fillWidth: true; visible: root.mode === "typing" && !!root.card && !root.revealed
-        MaterialTextField { id: input; Layout.fillWidth: true; placeholderText: "Напиши слово"; enabled: !SrsService.busy; onAccepted: if (text) root.checkInput() }
+        MaterialTextField {
+            font.family: "Maple Mono"
+            font.variableAxes: ({})
+            id: input; Layout.fillWidth: true; placeholderText: "Напиши слово"; enabled: !SrsService.busy; onAccepted: if (text) root.checkInput() }
         SrsAction { label: "Проверить"; enabled: !!input.text && !SrsService.busy; onClicked: root.checkInput() }
     }
     ColumnLayout {
@@ -86,7 +102,7 @@ ColumnLayout {
                 implicitHeight: answer.implicitHeight + 24
                 enabled: !SrsService.busy && !SrsService.error
                 onClicked: root.choose(modelData)
-                contentItem: StyledText {
+                contentItem: SrsText {
                     id: answer
                     text: (index + 1) + ". " + modelData; wrapMode: Text.Wrap; textFormat: Text.PlainText
                     font.pixelSize: Appearance.font.pixelSize.small
@@ -99,34 +115,50 @@ ColumnLayout {
         visible: root.mode === "standard" && !!root.card && !root.revealed
         enabled: !SrsService.busy && !SrsService.error; onClicked: root.revealed = true
     }
-    StyledText {
+    SrsText {
         Layout.fillWidth: true; visible: root.revealed && !!root.card
         text: root.card?.translation || "Перевод не указан"; textFormat: Text.PlainText; wrapMode: Text.Wrap
         horizontalAlignment: Text.AlignHCenter; font.pixelSize: 20
     }
-    StyledText {
+    SrsText {
+        Layout.fillWidth: true
+        visible: root.revealed && !!root.card?.sentence
+        text: root.card?.sentence || ""
+        textFormat: Text.PlainText
+        wrapMode: Text.Wrap
+        maximumLineCount: 3
+        elide: Text.ElideRight
+        color: Appearance.colors.colSubtext
+        font.italic: true
+    }
+    SrsCardToolbar {
+        Layout.fillWidth: true
+        visible: root.revealed && !!root.card
+        card: root.card
+    }
+    SrsText {
         Layout.fillWidth: true; visible: !!root.feedback
         text: root.feedback; wrapMode: Text.Wrap; textFormat: Text.PlainText; color: Appearance.colors.colSubtext
         font.pixelSize: Appearance.font.pixelSize.small
     }
     ColumnLayout {
         Layout.fillWidth: true; visible: root.revealed && !!root.card
-        StyledText { text: "Как хорошо помнишь слово?"; font.pixelSize: Appearance.font.pixelSize.small; color: Appearance.colors.colSubtext }
         RowLayout {
             Layout.fillWidth: true; spacing: 6
             Repeater {
                 model: ["Снова", "Трудно", "Хорошо", "Легко"]
-                delegate: SrsAction {
+                delegate: SrsGradeButton {
                     required property string modelData
                     required property int index
-                    Layout.fillWidth: true; label: modelData + " · " + (index + 1)
+                    grade: index + 1
+                    label: modelData
                     enabled: !SrsService.busy && !SrsService.error
                     onClicked: SrsService.review(index + 1)
                 }
             }
         }
     }
-    StyledText {
+    SrsText {
         Layout.fillWidth: true
         text: "Осталось: " + SrsService.count + " · Повторено: " + SrsService.reviewed
         color: Appearance.colors.colSubtext; font.pixelSize: Appearance.font.pixelSize.small

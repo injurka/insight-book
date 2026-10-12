@@ -13,6 +13,9 @@ RippleButton {
     implicitHeight: Config.options.bar.vertical ? 54 : 32
     buttonRadius: Appearance.rounding.full
     toggled: opened
+    colBackgroundToggled: Appearance.colors.colPrimaryContainer
+    colBackgroundToggledHover: Appearance.colors.colPrimaryContainerHover
+    colRippleToggled: Appearance.colors.colPrimaryContainerActive
     onClicked: {
         opened = !opened;
         SrsService.paused = opened;
@@ -33,13 +36,14 @@ RippleButton {
             Layout.alignment: Qt.AlignHCenter
             text: "style"
             iconSize: 20
-            color: SrsService.stage === "training" && SrsService.count > 0 ? Appearance.colors.colPrimary : Appearance.colors.colOnLayer0
+            color: root.opened ? Appearance.colors.colOnPrimaryContainer : SrsService.stage === "training" && SrsService.count > 0 ? Appearance.colors.colPrimary : Appearance.colors.colOnLayer0
         }
 
-        StyledText {
+        SrsText {
             Layout.alignment: Qt.AlignHCenter
             text: !SrsService.account.authenticated ? "Вход" : SrsService.error ? "!" : SrsService.stage !== "training" ? "SRS" : SrsService.ready ? String(SrsService.count) : "…"
             font.pixelSize: Appearance.font.pixelSize.small
+            color: root.opened ? Appearance.colors.colOnPrimaryContainer : Appearance.colors.colOnLayer0
         }
 
     }
@@ -54,9 +58,11 @@ RippleButton {
         }
     }
     SrsPopup {
+        id: popup
         button: root
+        opened: root.opened
         targetScreen: root.QsWindow.window?.screen
-        visible: root.opened
+        visible: root.opened && !popup.detached
         onDismissed: {
             root.opened = false;
             SrsService.paused = false;

@@ -14,7 +14,7 @@ ColumnLayout {
     Layout.minimumWidth: 0
     Layout.preferredWidth: 220
     spacing: 4
-    StyledText {
+    SrsText {
         text: root.title
         color: Appearance.colors.colSubtext
         font.pixelSize: Appearance.font.pixelSize.small
@@ -65,7 +65,7 @@ ColumnLayout {
                             iconSize: 18
                             color: option.toggled ? Appearance.colors.colOnPrimary : Appearance.colors.colOnLayer0
                         }
-                        StyledText {
+                        SrsText {
                             Layout.fillWidth: true
                             text: modelData.name
                             color: option.toggled ? Appearance.colors.colOnPrimary : Appearance.colors.colOnLayer0

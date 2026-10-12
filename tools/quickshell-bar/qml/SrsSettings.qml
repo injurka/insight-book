@@ -35,7 +35,7 @@ ColumnLayout {
 
     spacing: 10
 
-    StyledText {
+    SrsText {
         text: "Настрой тренировку"
         font.pixelSize: 22
         font.bold: true
@@ -44,7 +44,7 @@ ColumnLayout {
     RowLayout {
         Layout.fillWidth: true
 
-        StyledText {
+        SrsText {
             Layout.fillWidth: true
             text: SrsService.account.username
             color: Appearance.colors.colSubtext
@@ -62,7 +62,7 @@ ColumnLayout {
     }
 
     SrsSection {
-        StyledText {
+        SrsText {
             text: "Параметры выборки"
             font.bold: true
         }
@@ -105,7 +105,7 @@ ColumnLayout {
     }
 
     SrsSection {
-        StyledText {
+        SrsText {
             text: "Режимы тренировки"
             font.bold: true
         }
@@ -174,7 +174,7 @@ ColumnLayout {
                                 color: modeButton.toggled ? Appearance.colors.colOnSecondaryContainer : Appearance.colors.colOnLayer0
                             }
 
-                            StyledText {
+                            SrsText {
                                 Layout.fillWidth: true
                                 text: modelData.name
                                 font.bold: true
@@ -191,7 +191,7 @@ ColumnLayout {
 
                         }
 
-                        StyledText {
+                        SrsText {
                             Layout.fillWidth: true
                             text: modelData.detail
                             wrapMode: Text.Wrap
@@ -209,10 +209,10 @@ ColumnLayout {
 
         }
 
-        StyledText {
+        SrsText {
             Layout.fillWidth: true
             wrapMode: Text.Wrap
-            text: root.selectedModes.length > 1 ? "Выбранные режимы будут чередоваться в случайном порядке." : "Выбери режимы ответа."
+            text: "Выбранные режимы будут чередоваться в случайном порядке."
             color: Appearance.colors.colSubtext
             font.pixelSize: Appearance.font.pixelSize.small
         }

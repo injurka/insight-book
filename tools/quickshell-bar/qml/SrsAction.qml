@@ -12,9 +12,11 @@ RippleButton {
     implicitWidth: title.implicitWidth + 28
     colBackground: primary ? Appearance.colors.colPrimary : Appearance.colors.colLayer1
     colBackgroundHover: primary ? Appearance.colors.colPrimaryHover : Appearance.colors.colLayer1Hover
+    opacity: 1
+    buttonColor: !enabled ? Appearance.colors.colLayer2 : hovered ? colBackgroundHover : colBackground
     buttonRadius: Appearance.rounding.small
 
-    StyledText {
+    SrsText {
         id: title
 
         anchors.centerIn: parent
@@ -23,7 +25,7 @@ RippleButton {
         elide: Text.ElideRight
         text: root.label
         font.pixelSize: Appearance.font.pixelSize.small
-        color: root.primary ? Appearance.m3colors.m3onPrimary : Appearance.colors.colOnLayer0
+        color: !root.enabled ? Appearance.colors.colSubtext : root.primary ? Appearance.m3colors.m3onPrimary : Appearance.colors.colOnLayer0
     }
 
 }

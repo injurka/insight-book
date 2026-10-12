@@ -1,6 +1,8 @@
 import QtQuick
+import QtQuick.Controls
 import QtQuick.Layouts
 import Quickshell
+import Quickshell.Io
 import Quickshell.Wayland
 import qs.services
 import qs.modules.common
@@ -11,8 +13,21 @@ PanelWindow {
 
     required property Item button
     property var targetScreen
+    property bool opened: false
+    property bool detached: false
+    readonly property real contentScale: detached ? SrsService.stage === "training" ? 1 : Math.min(1, floating.width / 500, floating.height / (content.implicitHeight + 40)) : fitScale
+    onDetachedChanged: Qt.callLater(() => keyboard.forceActiveFocus())
 
     signal dismissed()
+
+    function toggleDetached() {
+        if (detached) {
+            detached = false;
+        } else if (!floatingRule.running) {
+            // Install the mapping rule before exposing the native window.
+            floatingRule.running = true;
+        }
+    }
 
     screen: targetScreen || Quickshell.screens[0]
     exclusiveZone: 0
@@ -30,9 +45,9 @@ PanelWindow {
         left: Appearance.sizes.hyprlandGapsOut
         right: Appearance.sizes.hyprlandGapsOut
     }
-    readonly property real fitScale: Math.min(1, ((root.screen?.height || 1080) - 40) / (content.implicitHeight + 40))
+    readonly property real fitScale: Math.min(1, ((root.screen?.height || 1080) - 40) / Math.max(600, content.implicitHeight + 40))
     implicitWidth: 500 * fitScale
-    implicitHeight: (content.implicitHeight + 40) * fitScale
+    implicitHeight: Math.max(600, content.implicitHeight + 40) * fitScale
     color: "transparent"
     onVisibleChanged: {
         if (visible) {
@@ -40,15 +55,42 @@ PanelWindow {
             keyboard.forceActiveFocus();
         } else {
             GlobalFocusGrab.removeDismissable(root);
-            dismissed();
+            if (!detached) dismissed();
         }
     }
     Connections {
         target: GlobalFocusGrab
-        function onDismissed() { if (root.visible) root.dismissed(); }
+        function onDismissed() { if (root.visible && !root.detached) root.dismissed(); }
+    }
+
+    FloatingWindow {
+        id: floating
+        title: "InsightBook · SRS · " + root.screen.name
+        parentWindow: null
+        screen: root.screen
+        visible: root.opened && root.detached
+        implicitWidth: 500
+        implicitHeight: Math.max(600, Math.min((root.screen?.height || 1080) - 80, content.implicitHeight + 40))
+        minimumSize: Qt.size(500, 600)
+        maximumSize: Qt.size(500, Math.max(600, (root.screen?.height || 1080) - 80))
+        color: "transparent"
+        onVisibleChanged: {
+            if (!visible && root.detached && root.opened) root.dismissed();
+            if (visible) keyboard.forceActiveFocus();
+        }
+    }
+
+    Process {
+        id: floatingRule
+        command: ["hyprctl", "eval", "if not insightBookSrsFloatRule then insightBookSrsFloatRule = hl.window_rule({name='insight-book-srs-floating', match={title='^InsightBook · SRS · .*$'}, float=true, center=true, no_anim=true}) end"]
+        onExited: (code, status) => {
+            if (code === 0 && root.opened) root.detached = true;
+        }
     }
 
     Rectangle {
+        id: frame
+        parent: root.detached ? floating.contentItem : root.contentItem
         anchors.fill: parent
         radius: Appearance.rounding.large
         color: Appearance.m3colors.m3surfaceContainer
@@ -70,85 +112,96 @@ PanelWindow {
                 ColumnLayout {
                     id: content
 
-                    x: 20 * root.fitScale
-                    y: 20 * root.fitScale
+                    x: (frame.width - width * root.contentScale) / 2
+                    y: 20 * root.contentScale
                     width: 460
-                    scale: root.fitScale
+                    height: SrsService.stage === "training" ? Math.max(0, frame.height / root.contentScale - 40) : implicitHeight
+                    scale: root.contentScale
                     transformOrigin: Item.TopLeft
                     spacing: 12
 
-                    RowLayout {
+                    Item {
+                        id: header
+                        objectName: "popupHeader"
                         Layout.fillWidth: true
                         Layout.minimumWidth: content.width
                         Layout.maximumWidth: content.width
+                        implicitHeight: Math.max(title.implicitHeight, actions.implicitHeight)
 
                         ColumnLayout {
-                            Layout.fillWidth: true
+                            id: title
+                            anchors.left: parent.left
+                            anchors.right: actions.left
+                            anchors.rightMargin: 8
+                            anchors.verticalCenter: parent.verticalCenter
                             spacing: 3
-
-                            StyledText {
+                            SrsText {
                                 text: "InsightBook · SRS"
                                 font.bold: true
                             }
-
-                            StyledText {
-                                text: ({
-                                    "connect": "1 / 3 · Сервер и вход",
-                                    "setup": "2 / 3 · Настройка",
-                                    "training": "3 / 3 · Повторение"
-                                })[SrsService.stage]
+                            SrsText {
+                                text: ({connect: "1 / 3 · Сервер и вход", setup: "2 / 3 · Настройка", training: "3 / 3 · Повторение"})[SrsService.stage]
                                 color: Appearance.colors.colSubtext
                                 font.pixelSize: Appearance.font.pixelSize.small
                             }
-
                         }
-
-                        RippleButton {
-                            implicitWidth: 32
-                            implicitHeight: 32
-                            visible: SrsService.stage === "training"
-                            enabled: !SrsService.busy
-                            onClicked: SrsService.refresh()
-
-                            MaterialSymbol {
-                                anchors.centerIn: parent
-                                text: "refresh"
-                                iconSize: 20
+                        MouseArea {
+                            anchors.fill: title
+                            enabled: root.detached
+                            cursorShape: Qt.SizeAllCursor
+                            onPressed: floating.startSystemMove()
+                        }
+                        RowLayout {
+                            id: actions
+                            objectName: "headerActions"
+                            anchors.right: parent.right
+                            anchors.verticalCenter: parent.verticalCenter
+                            spacing: 4
+                            RippleButton {
+                                Layout.minimumWidth: 32
+                                Layout.maximumWidth: 32
+                                implicitHeight: 32
+                                visible: SrsService.stage === "training"
+                                enabled: !SrsService.busy
+                                opacity: 1
+                                onClicked: SrsService.refresh()
+                                MaterialSymbol {
+                                    anchors.centerIn: parent
+                                    text: "refresh"
+                                    iconSize: 20
+                                    color: parent.enabled ? Appearance.colors.colOnLayer0 : Appearance.colors.colSubtext
+                                }
                             }
-
-                        }
-
-                        RippleButton {
-                            implicitWidth: 32
-                            implicitHeight: 32
-                            visible: SrsService.stage === "training"
-                            enabled: !SrsService.busy
-                            onClicked: SrsService.stage = "setup"
-
-                            MaterialSymbol {
-                                anchors.centerIn: parent
-                                text: "settings"
-                                iconSize: 20
+                            RippleButton {
+                                Layout.minimumWidth: 32
+                                Layout.maximumWidth: 32
+                                implicitHeight: 32
+                                visible: SrsService.stage === "training"
+                                enabled: !SrsService.busy
+                                opacity: 1
+                                onClicked: SrsService.stage = "setup"
+                                MaterialSymbol {
+                                    anchors.centerIn: parent
+                                    text: "settings"
+                                    iconSize: 20
+                                    color: parent.enabled ? Appearance.colors.colOnLayer0 : Appearance.colors.colSubtext
+                                }
                             }
-
-                        }
-                        RippleButton {
-                            implicitWidth: 32
-                            implicitHeight: 32
-                            onClicked: root.dismissed()
-
-                            MaterialSymbol {
-                                anchors.centerIn: parent
-                                text: "close"
-                                iconSize: 20
+                            RippleButton {
+                                objectName: "detachButton"
+                                Layout.minimumWidth: 32
+                                Layout.maximumWidth: 32
+                                implicitHeight: 32
+                                onClicked: root.toggleDetached()
+                                Accessible.name: root.detached ? "Вернуть к панели" : "Открыть отдельным окном"
+                                StyledToolTip { font.family: "Maple Mono"; font.variableAxes: ({}); text: root.detached ? "Вернуть к панели" : "Открыть отдельным окном"; delay: 500 }
+                                MaterialSymbol {
+                                    anchors.centerIn: parent
+                                    text: root.detached ? "dock_to_right" : "open_in_new"
+                                    iconSize: 20
+                                }
                             }
-
                         }
-
-
-
-
-
                     }
 
                     Rectangle {
@@ -157,7 +210,7 @@ PanelWindow {
                         color: Appearance.colors.colOutlineVariant
                     }
 
-                    StyledText {
+                    SrsText {
                         Layout.fillWidth: true
                         visible: !!SrsService.error
                         wrapMode: Text.Wrap
@@ -171,6 +224,8 @@ PanelWindow {
                         id: view
 
                         Layout.fillWidth: true
+                        Layout.fillHeight: SrsService.stage === "training"
+                        Layout.minimumHeight: SrsService.stage === "training" ? 0 : implicitHeight
                         sourceComponent: SrsService.stage === "connect" ? connectionView : SrsService.stage === "setup" ? setupView : cardView
                     }
 
@@ -199,7 +254,8 @@ PanelWindow {
     Component {
         id: cardView
 
-        SrsCard {
+        SrsCardViewport {
+            maximumNaturalHeight: Math.max(120, (root.screen?.height || 1080) - header.implicitHeight - 100)
         }
 
     }
