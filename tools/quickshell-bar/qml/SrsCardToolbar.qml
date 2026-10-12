@@ -73,14 +73,27 @@ ColumnLayout {
     }
     SrsSection {
         visible: !!root.activeSection
-        SrsText {
-            text: root.activeSection?.label || ""
-            font.bold: true
+        RowLayout {
+            Layout.fillWidth: true
+            spacing: 8
+            MaterialSymbol {
+                text: root.activeSection?.icon || ""
+                iconSize: 19
+                color: Appearance.colors.colPrimary
+            }
+            SrsText {
+                Layout.fillWidth: true
+                text: (root.activeSection?.label || "").toUpperCase()
+                font.pixelSize: Appearance.font.pixelSize.small * 0.9
+                font.bold: true
+                font.letterSpacing: 1.2
+                color: Appearance.colors.colPrimary
+            }
         }
         SrsText {
             Layout.fillWidth: true
             text: root.activeSection?.text || ""
-            textFormat: Text.PlainText
+            textFormat: Text.StyledText
             wrapMode: Text.Wrap
             color: Appearance.colors.colOnLayer0
         }

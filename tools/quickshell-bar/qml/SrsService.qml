@@ -47,6 +47,7 @@ Singleton {
     function start(options) { cards = []; count = 0; ready = false; request(Object.assign({action: "configure"}, options)); }
     function review(grade) { if (card && !error && account.authenticated) request({action: "review", wordId: card.id, grade: grade}); }
     function playAudio() { if (card && !busy) request({action: "audio", text: card.word}); }
+    function playSentenceAudio() { if (card?.sentence && !busy) request({action: "audio", text: card.sentence}); }
     function receive(output) {
         try {
             const result = JSON.parse(output);

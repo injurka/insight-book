@@ -11,6 +11,7 @@ import base64
 import random
 import session
 from html.parser import HTMLParser
+from html import escape
 from datetime import datetime, timezone
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode, urlsplit
@@ -124,8 +125,9 @@ def legacy_queue(settings):
 
 
 class NoteText(HTMLParser):
-    def __init__(self):
+    def __init__(self, rich=False):
         super().__init__()
+        self.rich = rich
         self.parts = []
         self.hidden = 0
 
@@ -134,27 +136,32 @@ class NoteText(HTMLParser):
             self.hidden += 1
         if tag in ("br", "p", "div", "li") and not self.hidden:
             self.parts.append("\n")
+        if self.rich and tag in ("b", "strong", "i", "em", "u") and not self.hidden:
+            self.parts.append("<" + tag + ">")
 
     def handle_endtag(self, tag):
         if tag in ("script", "style"):
             self.hidden = max(0, self.hidden - 1)
         if tag in ("p", "div", "li") and not self.hidden:
             self.parts.append("\n")
+        if self.rich and tag in ("b", "strong", "i", "em", "u") and not self.hidden:
+            self.parts.append("</" + tag + ">")
 
     def handle_data(self, data):
         if not self.hidden:
-            self.parts.append(data)
+            self.parts.append(escape(data) if self.rich else data)
 
 
-def note_text(value):
-    parser = NoteText()
+def note_text(value, rich=False):
+    parser = NoteText(rich)
     parser.feed(value if isinstance(value, str) else "")
-    return "\n".join(line.strip() for line in "".join(parser.parts).splitlines() if line.strip())[:4000]
+    lines = [line.strip() for line in "".join(parser.parts).splitlines() if line.strip()]
+    return ("<br>" if rich else "\n").join(lines)[:4000]
 
 
 def public_card(word):
-    card = {key: word.get(key) for key in ("id", "word", "transcription", "translation", "language")}
-    card.update({key: note_text(word.get(key)) for key in ("grammarNote", "vocabularyNote", "notes")})
+    card = {key: word.get(key) for key in ("id", "word", "transcription", "translation", "language", "due", "stability", "difficultyFsrs", "scheduledDays", "reps", "lapses", "state", "lastReview", "learningSteps")}
+    card.update({key: note_text(word.get(key), rich=True) for key in ("grammarNote", "vocabularyNote", "notes")})
     encounters = word.get("encounters") or []
     card["sentence"] = note_text(encounters[0].get("sentence")) if encounters and isinstance(encounters[0], dict) else ""
     return card
@@ -265,7 +272,7 @@ def dispatch(command):
         result["reviewedId"] = word_id
     elif action == "audio":
         text = command.get("text", "")
-        if not isinstance(text, str) or not 0 < len(text) <= 200:
+        if not isinstance(text, str) or not 0 < len(text) <= 4096:
             raise ValueError("Некорректный текст озвучки.")
         response = api(settings, "tts", {"text": text, "voice": "alloy"})
         audio = base64.b64decode(response["audioBase64"], validate=True)

@@ -197,15 +197,15 @@ class BridgeTest(unittest.TestCase):
         result = self.call(action="configure", deckId="2", difficulty="A1,none")
         self.assertEqual(result["count"], 0)
 
-    def test_card_notes_and_context_are_plain_text(self):
+    def test_card_notes_preserve_formatting_and_context_is_plain_text(self):
         self.words[0].update(grammarNote="<p>Порядок слов</p><script>hidden()</script>",
-                             vocabularyNote="<b>Учёба</b> &amp; практика", notes="Заметка",
+                             vocabularyNote='<b class="term">Учёба</b> &amp; практика<br><i>Пример</i><img src="https://example.invalid/pixel">', notes="Заметка",
                              encounters=[{"sentence": "<p>我每天学习。</p>", "privateField": "not-public"}])
         self.login()
         result = self.call(action="configure")
         card = result["cards"][0]
         self.assertEqual(card["grammarNote"], "Порядок слов")
-        self.assertEqual(card["vocabularyNote"], "Учёба & практика")
+        self.assertEqual(card["vocabularyNote"], "<b>Учёба</b> &amp; практика<br><i>Пример</i>")
         self.assertEqual(card["notes"], "Заметка")
         self.assertEqual(card["sentence"], "我每天学习。")
         self.assertNotIn("encounters", card)

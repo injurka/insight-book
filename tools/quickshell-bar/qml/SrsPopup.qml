@@ -45,9 +45,9 @@ PanelWindow {
         left: Appearance.sizes.hyprlandGapsOut
         right: Appearance.sizes.hyprlandGapsOut
     }
-    readonly property real fitScale: Math.min(1, ((root.screen?.height || 1080) - 40) / Math.max(600, content.implicitHeight + 40))
+    readonly property real fitScale: Math.min(1, ((root.screen?.height || 1080) - 40) / Math.max(700, content.implicitHeight + 40))
     implicitWidth: 500 * fitScale
-    implicitHeight: Math.max(600, content.implicitHeight + 40) * fitScale
+    implicitHeight: Math.max(700, content.implicitHeight + 40) * fitScale
     color: "transparent"
     onVisibleChanged: {
         if (visible) {
@@ -70,9 +70,9 @@ PanelWindow {
         screen: root.screen
         visible: root.opened && root.detached
         implicitWidth: 500
-        implicitHeight: Math.max(600, Math.min((root.screen?.height || 1080) - 80, content.implicitHeight + 40))
-        minimumSize: Qt.size(500, 600)
-        maximumSize: Qt.size(500, Math.max(600, (root.screen?.height || 1080) - 80))
+        implicitHeight: Math.max(700, Math.min((root.screen?.height || 1080) - 80, content.implicitHeight + 40))
+        minimumSize: Qt.size(500, 700)
+        maximumSize: Qt.size(500, Math.max(700, (root.screen?.height || 1080) - 80))
         color: "transparent"
         onVisibleChanged: {
             if (!visible && root.detached && root.opened) root.dismissed();
@@ -82,7 +82,8 @@ PanelWindow {
 
     Process {
         id: floatingRule
-        command: ["hyprctl", "eval", "if not insightBookSrsFloatRule then insightBookSrsFloatRule = hl.window_rule({name='insight-book-srs-floating', match={title='^InsightBook · SRS · .*$'}, float=true, center=true, no_anim=true}) end"]
+        // QML owns the rounded frame; compositor decorations would overlap it.
+        command: ["hyprctl", "eval", "if not insightBookSrsFloatRule then insightBookSrsFloatRule = hl.window_rule({name='insight-book-srs-floating', match={title='^InsightBook · SRS · .*$'}, float=true, center=true, no_anim=true}) end; if not insightBookSrsFrameRule then insightBookSrsFrameRule = hl.window_rule({name='insight-book-srs-frame', match={title='^InsightBook · SRS · .*$'}, border_size=0, rounding=0, no_shadow=true}) end"]
         onExited: (code, status) => {
             if (code === 0 && root.opened) root.detached = true;
         }
@@ -93,6 +94,7 @@ PanelWindow {
         parent: root.detached ? floating.contentItem : root.contentItem
         anchors.fill: parent
         radius: Appearance.rounding.large
+        antialiasing: true
         color: Appearance.m3colors.m3surfaceContainer
         border.width: 1
         border.color: Appearance.colors.colLayer0Border

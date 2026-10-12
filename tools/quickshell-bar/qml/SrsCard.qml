@@ -5,6 +5,7 @@ import QtMultimedia
 import qs.modules.common
 import qs.modules.common.widgets
 import "SrsQuiz.js" as Quiz
+import "SrsIntervals.js" as Schedule
 
 ColumnLayout {
     id: root
@@ -15,6 +16,7 @@ ColumnLayout {
     property var options: []
     property int cardId: -1
     readonly property var card: SrsService.card
+    readonly property var intervals: card ? Schedule.intervals(card) : []
     readonly property string correct: mode === "choice-reverse" ? card?.word || "" : card?.translation || ""
     onCardChanged: reset()
     Component.onCompleted: reset()
@@ -49,10 +51,23 @@ ColumnLayout {
             event.accepted = true;
         }
     }
-    SrsText {
+    RowLayout {
         Layout.fillWidth: true
-        text: card ? ({standard: "Чтение", typing: "Ввод", choice: "Тест", "choice-reverse": "Обратный тест", audio: "Аудирование"})[root.mode] : "Тренировка завершена"
-        color: Appearance.colors.colSubtext; font.pixelSize: Appearance.font.pixelSize.small
+        spacing: 12
+        SrsText {
+            Layout.fillWidth: true
+            Layout.minimumWidth: 0
+            elide: Text.ElideRight
+            text: root.card ? ({standard: "Чтение", typing: "Ввод", choice: "Тест", "choice-reverse": "Обратный тест", audio: "Аудирование"})[root.mode] : "Тренировка завершена"
+            color: Appearance.colors.colSubtext
+            font.pixelSize: Appearance.font.pixelSize.small * 0.85
+        }
+        SrsText {
+            Layout.alignment: Qt.AlignRight
+            text: "Осталось: " + SrsService.count + " · Повторено: " + SrsService.reviewed
+            color: Appearance.colors.colSubtext
+            font.pixelSize: Appearance.font.pixelSize.small * 0.85
+        }
     }
     Item {
         objectName: "cardFront"
@@ -115,26 +130,77 @@ ColumnLayout {
         visible: root.mode === "standard" && !!root.card && !root.revealed
         enabled: !SrsService.busy && !SrsService.error; onClicked: root.revealed = true
     }
-    SrsText {
-        Layout.fillWidth: true; visible: root.revealed && !!root.card
-        text: root.card?.translation || "Перевод не указан"; textFormat: Text.PlainText; wrapMode: Text.Wrap
-        horizontalAlignment: Text.AlignHCenter; font.pixelSize: 20
-    }
-    SrsText {
-        Layout.fillWidth: true
-        visible: root.revealed && !!root.card?.sentence
-        text: root.card?.sentence || ""
-        textFormat: Text.PlainText
-        wrapMode: Text.Wrap
-        maximumLineCount: 3
-        elide: Text.ElideRight
-        color: Appearance.colors.colSubtext
-        font.italic: true
-    }
-    SrsCardToolbar {
+    ColumnLayout {
         Layout.fillWidth: true
         visible: root.revealed && !!root.card
-        card: root.card
+        spacing: root.spacing / 2
+        Rectangle {
+            Layout.fillWidth: true
+            visible: root.revealed && !!root.card
+            implicitHeight: translation.implicitHeight + 24
+            radius: Appearance.rounding.small
+            color: Qt.rgba(Appearance.colors.colPrimary.r, Appearance.colors.colPrimary.g, Appearance.colors.colPrimary.b, 0.04)
+            Rectangle {
+                anchors.left: parent.left; anchors.top: parent.top; anchors.bottom: parent.bottom
+                width: 4; radius: 2; color: Appearance.colors.colPrimary
+            }
+            SrsText {
+                id: translation
+                anchors.left: parent.left; anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter
+                anchors.leftMargin: 20; anchors.rightMargin: 16
+                text: root.card?.translation || "Перевод не указан"
+                textFormat: Text.PlainText; wrapMode: Text.Wrap; font.pixelSize: 15
+            }
+        }
+        Rectangle {
+            Layout.fillWidth: true
+            visible: root.revealed && !!root.card?.sentence
+            implicitHeight: sentence.implicitHeight + 28
+            radius: Appearance.rounding.small
+            color: Appearance.colors.colLayer1
+            MaterialSymbol {
+                id: quoteIcon
+                anchors.left: parent.left; anchors.top: parent.top
+                anchors.leftMargin: 16; anchors.topMargin: 14
+                text: "format_quote"; iconSize: 20; color: Appearance.colors.colSubtext
+            }
+            SrsText {
+                id: sentence
+                font.pixelSize: Appearance.font.pixelSize.small * 0.85
+                anchors.left: quoteIcon.right; anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter
+                anchors.leftMargin: 12; anchors.rightMargin: 16
+                text: root.card?.sentence || ""
+                textFormat: Text.PlainText; wrapMode: Text.Wrap
+                color: Appearance.colors.colSubtext
+                onLineLaidOut: line => {
+                    line.width = Math.max(0, sentence.width - sentenceAudio.width - 4);
+                    if (line.isLast) {
+                        sentenceAudio.x = line.x + line.implicitWidth + 4;
+                        sentenceAudio.y = line.y + (line.height - sentenceAudio.height) / 2;
+                    }
+                }
+                RippleButton {
+                    id: sentenceAudio
+                    width: 24; height: 24
+                    enabled: !SrsService.busy
+                    colBackground: "transparent"
+                    colBackgroundHover: Appearance.colors.colLayer1Hover
+                    onClicked: SrsService.playSentenceAudio()
+                    Accessible.name: "Послушать цитату целиком"
+                    StyledToolTip { font.family: "Maple Mono"; font.variableAxes: ({}); text: "Послушать цитату целиком"; delay: 500 }
+                    MaterialSymbol {
+                        anchors.centerIn: parent
+                        text: "volume_up"; iconSize: 16
+                        color: Appearance.colors.colSubtext
+                    }
+                }
+            }
+        }
+        SrsCardToolbar {
+            Layout.fillWidth: true
+            visible: root.revealed && !!root.card
+            card: root.card
+        }
     }
     SrsText {
         Layout.fillWidth: true; visible: !!root.feedback
@@ -152,16 +218,12 @@ ColumnLayout {
                     required property int index
                     grade: index + 1
                     label: modelData
+                    interval: root.intervals[index] || ""
                     enabled: !SrsService.busy && !SrsService.error
                     onClicked: SrsService.review(index + 1)
                 }
             }
         }
-    }
-    SrsText {
-        Layout.fillWidth: true
-        text: "Осталось: " + SrsService.count + " · Повторено: " + SrsService.reviewed
-        color: Appearance.colors.colSubtext; font.pixelSize: Appearance.font.pixelSize.small
     }
     SrsAction {
         Layout.fillWidth: true; visible: !root.card; label: "Настроить другую тренировку"; primary: true
