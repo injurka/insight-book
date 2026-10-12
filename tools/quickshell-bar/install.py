@@ -24,11 +24,50 @@ WIDGET = '''            // InsightBook SRS
 '''
 
 
+def uninstall(shell):
+    scripts = shell / "scripts/quickshellBar"
+    backup = scripts / "backups" / datetime.now().strftime("%Y%m%d-%H%M%S-%f")
+    panels = (
+        (shell / "modules/ii/bar/BarContent.qml", IMPORT, WIDGET),
+        (shell / "modules/ii/verticalBar/VerticalBarContent.qml", VERTICAL_IMPORT, VERTICAL_WIDGET),
+    )
+    updates = []
+    for target, imported, widget in panels:
+        if not target.is_file():
+            continue
+        original = target.read_text()
+        content = original
+        for block in (imported, widget, imported.replace("quickshellBar", "insightBook"), widget.replace("QuickshellBarButton", "InsightBookButton")):
+            content = content.replace(block, "")
+        if "QuickshellBarButton" in content or "InsightBookButton" in content:
+            raise SystemExit(f"Блок SRS изменён вручную в {target}. Удаление остановлено; файлы не изменены.")
+        if content != original:
+            updates.append((target, content))
+    for target, content in updates:
+        backup.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(target, backup / target.name)
+        target.write_text(content)
+    # Delete only files owned by this integration, preserving user files.
+    qml_dir = shell / "modules/ii/bar/quickshellBar"
+    for source in (SOURCE / "qml").iterdir():
+        if source.is_file():
+            (qml_dir / source.name).unlink(missing_ok=True)
+    for name in ("bridge.py", "session.py"):
+        (scripts / name).unlink(missing_ok=True)
+    for directory in (qml_dir, scripts):
+        if directory.is_dir() and not any(directory.iterdir()):
+            directory.rmdir()
+    print("Интеграция удалена. Настройки, сессия и резервные копии сохранены.")
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--shell", type=Path, default=Path.home() / ".config/quickshell/ii")
-    parser.add_argument("--remove", action="store_true", help="Remove only the button and import; keep session and backups")
+    parser.add_argument("--remove", action="store_true", help="Uninstall the integration; keep session and backups")
     args = parser.parse_args()
+    if args.remove:
+        uninstall(args.shell)
+        return
     target = args.shell / "modules/ii/bar/BarContent.qml"
     content = target.read_text()
     vertical = args.shell / "modules/ii/verticalBar/VerticalBarContent.qml"
@@ -39,11 +78,6 @@ def main():
     legacy_vertical_widget = VERTICAL_WIDGET.replace('QuickshellBarButton', 'InsightBookButton')
     content = content.replace(legacy_import, '').replace(legacy_widget, '')
     vertical_content = vertical_content.replace(legacy_vertical_import, '').replace(legacy_vertical_widget, '')
-    if args.remove:
-        target.write_text(content.replace(IMPORT, "").replace(WIDGET, ""))
-        vertical.write_text(vertical_content.replace(VERTICAL_IMPORT, "").replace(VERTICAL_WIDGET, ""))
-        print("Кнопка удалена. Настройки и резервные копии сохранены.")
-        return
     if "            SysTray {" not in content:
         raise SystemExit("Не найдена точка установки в BarContent.qml. Файл не изменён.")
     if "            Item {\n                Layout.fillHeight: true" not in vertical_content:
