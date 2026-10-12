@@ -19,6 +19,7 @@ export function selectReusableTts(rows: TtsCacheRow[], requestedVoice: string): 
 export function toTtsResult(row: TtsCacheRow): TtsResult {
   return {
     audioBase64: Buffer.from(row.audioBlob).toString('base64'),
+    mimeType: 'audio/mpeg',
     cache: {
       id: row.textHash,
       model: row.model,

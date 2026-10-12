@@ -18,6 +18,9 @@ ColumnLayout {
     readonly property var card: SrsService.card
     readonly property var intervals: card ? Schedule.intervals(card) : []
     readonly property string correct: mode === "choice-reverse" ? card?.word || "" : card?.translation || ""
+    readonly property string statusLabel: !card ? "" : ({0: "Новая", 1: "Изучаю", 2: "Повторяю", 3: "Переизучаю"})[card.state] || "Статус неизвестен"
+    readonly property color statusColor: !card ? Appearance.colors.colSubtext : ({0: Appearance.colors.colPrimary, 1: "#e5b45b", 2: "#74cf91", 3: Appearance.colors.colError})[card.state] || Appearance.colors.colSubtext
+    readonly property color difficultyColor: !card?.difficulty ? Appearance.colors.colSubtext : (["A1", "A2", "HSK 1", "HSK 2", "N5", "N4"].includes(card.difficulty) ? "#74cf91" : (["B1", "B2", "HSK 3", "HSK 4", "N3", "N2"].includes(card.difficulty) ? "#e5b45b" : Appearance.colors.colError))
     onCardChanged: reset()
     Component.onCompleted: reset()
     function reset() {
@@ -75,6 +78,42 @@ ColumnLayout {
         Layout.fillHeight: true
         Layout.minimumHeight: implicitHeight
         implicitHeight: wordContent.implicitHeight
+        RowLayout {
+            anchors.top: parent.top
+            width: parent.width
+            visible: !!root.card
+            spacing: 8
+            Rectangle {
+                implicitWidth: statusText.implicitWidth + 14
+                implicitHeight: statusText.implicitHeight + 6
+                radius: 6
+                color: Qt.rgba(root.statusColor.r, root.statusColor.g, root.statusColor.b, 0.08)
+                border.width: 1
+                border.color: root.statusColor
+                SrsText {
+                    id: statusText
+                    anchors.centerIn: parent
+                    text: root.statusLabel
+                    color: root.statusColor
+                    font.pixelSize: Appearance.font.pixelSize.small * 0.78
+                }
+            }
+            Item { Layout.fillWidth: true }
+            Rectangle {
+                visible: !!root.card?.difficulty
+                implicitWidth: difficultyText.implicitWidth + 14
+                implicitHeight: difficultyText.implicitHeight + 6
+                radius: 6
+                color: Qt.rgba(root.difficultyColor.r, root.difficultyColor.g, root.difficultyColor.b, 0.12)
+                SrsText {
+                    id: difficultyText
+                    anchors.centerIn: parent
+                    text: root.card?.difficulty || ""
+                    color: root.difficultyColor
+                    font.pixelSize: Appearance.font.pixelSize.small * 0.78
+                }
+            }
+        }
         ColumnLayout {
             id: wordContent
             anchors.verticalCenter: parent.verticalCenter

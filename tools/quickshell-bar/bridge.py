@@ -8,6 +8,7 @@ import subprocess
 import sys
 import tempfile
 import base64
+import binascii
 import random
 import session
 from html.parser import HTMLParser
@@ -47,6 +48,28 @@ def public_settings(settings):
     return {key: settings[key] for key in CONFIG_KEYS}
 
 
+def is_mp3_audio(audio):
+    def has_mpeg_frame_at(offset):
+        if len(audio) < offset + 4:
+            return False
+
+        header = int.from_bytes(audio[offset:offset + 4], "big")
+        version = (header >> 19) & 0b11
+        layer = (header >> 17) & 0b11
+        bitrate_index = (header >> 12) & 0b1111
+        sample_rate_index = (header >> 10) & 0b11
+        return (header & 0xFFE00000) == 0xFFE00000 and version != 0b01 and layer != 0 \
+            and bitrate_index not in (0, 0b1111) and sample_rate_index != 0b11
+
+    if has_mpeg_frame_at(0):
+        return True
+    if len(audio) < 10 or audio[:3] != b"ID3":
+        return False
+
+    tag_size = (audio[6] << 21) | (audio[7] << 14) | (audio[8] << 7) | audio[9]
+    return has_mpeg_frame_at(10 + tag_size)
+
+
 def configure(settings, values):
     url = str(values.get("url", settings["url"])).strip().rstrip("/")
     parts = urlsplit(url)
@@ -79,7 +102,8 @@ def raw_api(settings, path, payload=None, query=None):
     if data is not None:
         headers["Content-Type"] = "application/json"
     try:
-        with build_opener(NoRedirect()).open(Request(url, data=data, headers=headers), timeout=45 if path == "tts" else 12) as response:
+        timeout = 65 if path in ("dictionary/chat", "dictionary/generate-examples") else 45 if path == "tts" else 12
+        with build_opener(NoRedirect()).open(Request(url, data=data, headers=headers), timeout=timeout) as response:
             return json.load(response)
     except HTTPError as error:
         messages = {401: "Войди в аккаунт InsightBook.", 403: "Нет доступа к аккаунту.",
@@ -160,7 +184,7 @@ def note_text(value, rich=False):
 
 
 def public_card(word):
-    card = {key: word.get(key) for key in ("id", "word", "transcription", "translation", "language", "due", "stability", "difficultyFsrs", "scheduledDays", "reps", "lapses", "state", "lastReview", "learningSteps")}
+    card = {key: word.get(key) for key in ("id", "word", "transcription", "translation", "language", "difficulty", "due", "stability", "difficultyFsrs", "scheduledDays", "reps", "lapses", "state", "lastReview", "learningSteps")}
     card.update({key: note_text(word.get(key), rich=True) for key in ("grammarNote", "vocabularyNote", "notes")})
     encounters = word.get("encounters") or []
     card["sentence"] = note_text(encounters[0].get("sentence")) if encounters and isinstance(encounters[0], dict) else ""
@@ -275,14 +299,49 @@ def dispatch(command):
         if not isinstance(text, str) or not 0 < len(text) <= 4096:
             raise ValueError("Некорректный текст озвучки.")
         response = api(settings, "tts", {"text": text, "voice": "alloy"})
-        audio = base64.b64decode(response["audioBase64"], validate=True)
-        fd, filename = tempfile.mkstemp(prefix="srs-audio-", suffix=".wav", dir=CONFIG_DIR)
+        if not isinstance(response, dict) or not isinstance(response.get("audioBase64"), str):
+            raise ValueError("Сервер вернул некорректную озвучку.")
+        try:
+            audio = base64.b64decode(response["audioBase64"], validate=True)
+        except (binascii.Error, ValueError):
+            raise ValueError("Сервер вернул некорректную озвучку.") from None
+        mime_type = response.get("mimeType")
+        if mime_type not in (None, "audio/mpeg"):
+            raise ValueError("Сервер вернул неподдерживаемый формат озвучки.")
+        if not is_mp3_audio(audio):
+            raise ValueError("Сервер вернул данные, которые не являются MP3.")
+
+        fd, filename = tempfile.mkstemp(prefix="srs-audio-", suffix=".mp3", dir=CONFIG_DIR)
         with os.fdopen(fd, "wb") as stream:
             stream.write(audio)
         for old in CONFIG_DIR.glob("srs-audio-*"):
             if str(old) != filename:
                 old.unlink(missing_ok=True)
         return {"ok": True, "audioUrl": Path(filename).as_uri()}
+    elif action == "ai-chat":
+        word, language = command.get("word", ""), command.get("language", "")
+        prompt = command.get("prompt", "")
+        if not isinstance(word, str) or not 0 < len(word) <= 512 or not isinstance(language, str) or len(language) > 32:
+            raise ValueError("Некорректное слово или язык для ИИ-чата.")
+        if not isinstance(prompt, str) or not 0 < len(prompt.strip()) <= 2000:
+            raise ValueError("Напиши вопрос длиной до 2000 символов.")
+        response = api(settings, "dictionary/chat", {
+            "word": word, "language": language or "en",
+            "uiLanguage": "ru", "userPromptText": prompt.strip(),
+        })
+        if not isinstance(response, dict) or not isinstance(response.get("response"), str):
+            raise ValueError("Некорректный ответ ИИ-чата.")
+        result["aiResult"] = response["response"]
+    elif action == "ai-examples":
+        word, language = command.get("word", ""), command.get("language", "")
+        if not isinstance(word, str) or not 0 < len(word) <= 512 or not isinstance(language, str) or len(language) > 32:
+            raise ValueError("Некорректное слово или язык для ИИ-подсказки.")
+        response = api(settings, "dictionary/generate-examples", {
+            "word": word, "language": language or "en",
+        }, query={"targetLang": settings["targetLang"]})
+        if not isinstance(response, dict):
+            raise ValueError("Некорректный ответ ИИ-подсказки.")
+        result["aiResult"] = response
     elif action not in ("bootstrap", "refresh", "metadata"):
         raise ValueError("Неизвестная команда.")
     result["config"] = public_settings(settings)

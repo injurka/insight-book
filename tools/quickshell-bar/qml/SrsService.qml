@@ -23,6 +23,10 @@ Singleton {
     property string pendingInput: ""
     property string action: ""
     property string audioUrl: ""
+    property var aiResult: null
+    property string aiResultKind: ""
+    property int aiReplyVersion: 0
+    property string aiError: ""
     readonly property var card: cards.length ? cards[0] : null
     signal showPopup(string screenName)
     signal cardReviewed(int wordId)
@@ -47,11 +51,35 @@ Singleton {
     function start(options) { cards = []; count = 0; ready = false; request(Object.assign({action: "configure"}, options)); }
     function review(grade) { if (card && !error && account.authenticated) request({action: "review", wordId: card.id, grade: grade}); }
     function playAudio() { if (card && !busy) request({action: "audio", text: card.word}); }
+    function clearAiResult() {
+        aiResult = null;
+        aiResultKind = "";
+        aiError = "";
+    }
+    function askAi(word, language, prompt) {
+        if (!busy) {
+            aiResult = null;
+            aiError = "";
+            request({action: "ai-chat", word: word, language: language, prompt: prompt});
+        }
+    }
+    function generateAiExamples(word, language) {
+        if (!busy) {
+            aiResult = null;
+            aiError = "";
+            request({action: "ai-examples", word: word, language: language});
+        }
+    }
     function playSentenceAudio() { if (card?.sentence && !busy) request({action: "audio", text: card.sentence}); }
     function receive(output) {
         try {
             const result = JSON.parse(output);
             if (result.config) config = result.config;
+            if (result.aiResult !== undefined) {
+                aiResult = result.aiResult;
+                aiResultKind = action;
+                aiReplyVersion++;
+            }
             if (result.reviewedId) {
                 reviewed++; cards = cards.filter(c => c.id !== result.reviewedId); count = Math.max(0, count - 1);
                 cardReviewed(result.reviewedId);
@@ -65,9 +93,14 @@ Singleton {
             }
             if (!result.ok) {
                 // Needing credentials after selecting a server is a normal step.
+                if (["ai-chat", "ai-examples"].includes(action)) {
+                    aiError = result.error || "Не удалось получить ответ ИИ.";
+                    return;
+                }
                 error = result.authRequired && ["bootstrap", "connect"].includes(action) ? "" : result.error || "Не удалось обновить очередь.";
                 return;
             }
+            if (["ai-chat", "ai-examples"].includes(action)) aiError = "";
             if (result.loggedOut) { connectionChecked = true; oauthPending = false; error = result.warning || ""; return; }
             if (result.decks) catalog = {decks: result.decks, languages: result.languages, levels: result.levels, pool: result.pool};
             if (result.cards !== undefined) { cards = result.cards; count = result.count; ready = true; authRequired = false; }

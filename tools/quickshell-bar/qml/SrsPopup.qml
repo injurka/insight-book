@@ -142,7 +142,7 @@ PanelWindow {
                                 font.bold: true
                             }
                             SrsText {
-                                text: ({connect: "1 / 3 · Сервер и вход", setup: "2 / 3 · Настройка", training: "3 / 3 · Повторение"})[SrsService.stage]
+                                text: ({connect: "Сервер и вход", setup: "Настройка", training: "Повторение"})[SrsService.stage]
                                 color: Appearance.colors.colSubtext
                                 font.pixelSize: Appearance.font.pixelSize.small
                             }

@@ -11,6 +11,8 @@ export const TtsCacheMetadataSchema = z.object({
 
 export const TtsResultSchema = z.object({
   audioBase64: z.string(),
+  // Older servers omit this; new TTS responses explicitly identify MP3 audio.
+  mimeType: z.literal('audio/mpeg').optional(),
   // Keep old API responses usable during a rolling deployment.
   cache: TtsCacheMetadataSchema.optional(),
 })

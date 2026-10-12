@@ -25,6 +25,7 @@ describe('reusable TTS cache', () => {
   test('default preserves legacy audio with unknown provenance', () => {
     expect(selectReusableTts([legacy, fallback], 'default')).toBe(legacy)
     expect(toTtsResult(legacy).cache.model).toBe('unknown')
+    expect(toTtsResult(legacy).mimeType).toBe('audio/mpeg')
   })
 
   test('explicit voice reuses its fallback while reporting the actual model and voice', () => {

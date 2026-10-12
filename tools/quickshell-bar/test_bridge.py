@@ -1,4 +1,5 @@
 """Exercise the real bridge protocol against a local HTTP API without user data."""
+import base64
 import json
 import os
 from pathlib import Path
@@ -25,6 +26,11 @@ class BridgeTest(unittest.TestCase):
         self.fail_refresh = False
         self.redirect_login = False
         self.stolen = False
+        self.tts_requests = []
+        self.tts_response = {
+            "audioBase64": base64.b64encode(bytes([0xFF, 0xFB, 0x90, 0x64])).decode(),
+            "mimeType": "audio/mpeg",
+        }
         case = self
 
         class Handler(BaseHTTPRequestHandler):
@@ -90,6 +96,9 @@ class BridgeTest(unittest.TestCase):
                         self.reply({"token": "test-token"})
                     else:
                         self.reply({}, 401)
+                elif self.path == "/api/tts" and self.headers.get("Authorization") == "Bearer " + case.access:
+                    case.tts_requests.append(body)
+                    self.reply(case.tts_response)
                 elif self.path == "/api/dictionary/review" and self.headers.get("Authorization") == "Bearer " + case.access:
                     case.words = [w for w in case.words if w["id"] != body["wordId"]]
                     self.reply({"success": True})
@@ -210,6 +219,34 @@ class BridgeTest(unittest.TestCase):
         self.assertEqual(card["sentence"], "我每天学习。")
         self.assertNotIn("encounters", card)
         self.assertNotIn("hidden()", json.dumps(card))
+
+    def test_tts_audio_format_is_verified_and_saved_with_matching_extension(self):
+        self.login()
+        config_dir = Path(self.temp.name) / "quickshell-bar"
+
+        self.tts_response["mimeType"] = "audio/wav"
+        result = self.call(action="audio", text="word")
+        self.assertFalse(result["ok"])
+        self.assertEqual(list(config_dir.glob("srs-audio-*")), [])
+
+        self.tts_response["mimeType"] = "audio/mpeg"
+        result = self.call(action="audio", text="word")
+        self.assertTrue(result["ok"])
+        self.assertEqual(self.tts_requests, [{"text": "word", "voice": "alloy"}] * 2)
+        audio_path = Path(urlsplit(result["audioUrl"]).path)
+        self.assertEqual(audio_path.suffix, ".mp3")
+        self.assertEqual(audio_path.read_bytes(), base64.b64decode(self.tts_response["audioBase64"]))
+
+        self.tts_response.pop("mimeType")
+        result = self.call(action="audio", text="word")
+        self.assertTrue(result["ok"])
+        self.assertEqual(Path(urlsplit(result["audioUrl"]).path).suffix, ".mp3")
+
+        self.tts_response["audioBase64"] = base64.b64encode(b"not an audio stream").decode()
+        self.tts_response["mimeType"] = "audio/mpeg"
+        result = self.call(action="audio", text="word")
+        self.assertFalse(result["ok"])
+        self.assertIn("не являются MP3", result["error"])
 
     def test_rejects_invalid_grade_insecure_host_and_redirects(self):
         self.login()
