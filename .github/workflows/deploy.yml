@@ -175,11 +175,9 @@ jobs:
         run: python3 tools/quickshell-bar/release.py --version "$RELEASE_VERSION" --publish
         env:
           RELEASE_VERSION: ${{ github.ref_name }}
-          S3_ENDPOINT: ${{ secrets.S3_ENDPOINT }}
-          S3_REGION: ${{ secrets.S3_REGION }}
-          S3_ACCESS_KEY: ${{ secrets.S3_ACCESS_KEY }}
           S3_BUCKET: ${{ secrets.S3_BUCKET }}
           S3_SECRET_KEY: ${{ secrets.S3_SECRET_KEY }}
+          BUNNY_STORAGE_REGION: ${{ secrets.BUNNY_STORAGE_REGION }}
           BUNNY_API_KEY: ${{ secrets.BUNNY_API_KEY }}
           VITE_CDN_URL: ${{ secrets.VITE_CDN_URL }}
 

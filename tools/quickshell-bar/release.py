@@ -7,7 +7,6 @@ import json
 import os
 from pathlib import Path
 import re
-import subprocess
 import tarfile
 from urllib.error import HTTPError
 from urllib.parse import quote
@@ -58,18 +57,10 @@ def publish(files, version):
     region = os.environ.get("BUNNY_STORAGE_REGION", "").strip().lower()
     host = f"{region}.storage.bunnycdn.com" if region else "storage.bunnycdn.com"
     base = f"https://{host}/{quote(zone, safe='')}/quickshell-bar"
-    endpoint = os.environ.get("S3_ENDPOINT")
     # Upload versioned files first; update latest only after all uploads succeed.
     for directory in (version, "latest"):
         for path in files:
             content_type = "application/gzip" if path.suffix == ".gz" else "application/json" if path.suffix == ".json" else "text/plain"
-            if endpoint:
-                credentials = dict(os.environ, AWS_ACCESS_KEY_ID=os.environ.get("S3_ACCESS_KEY", ""), AWS_SECRET_ACCESS_KEY=password, AWS_DEFAULT_REGION=os.environ.get("S3_REGION", "us-east-1"), AWS_EC2_METADATA_DISABLED="true")
-                result = subprocess.run(["aws", "--endpoint-url", endpoint, "s3api", "put-object", "--bucket", zone, "--key", f"quickshell-bar/{directory}/{path.name}", "--body", str(path), "--content-type", content_type, "--cache-control", "no-cache"], env=credentials, capture_output=True)
-                if result.returncode:
-                    raise SystemExit(f"S3 upload failed for {directory}/{path.name} (exit {result.returncode})")
-                print(f"Published quickshell-bar/{directory}/{path.name}")
-                continue
             url = f"{base}/{quote(directory, safe='')}/{path.name}"
             request = Request(url, data=path.read_bytes(), method="PUT", headers={"AccessKey": password, "Content-Type": content_type})
             with urlopen(request, timeout=60) as response:

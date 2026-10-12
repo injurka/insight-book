@@ -54,7 +54,7 @@ python3 tools/quickshell-bar/release.py
 python3 tools/quickshell-bar/release.py --env-file apps/server/.env --publish
 ```
 
-Без `--publish` архив, контрольная сумма и манифест только создаются в `tools/quickshell-bar/dist/`. Версия по умолчанию берётся из корневого `package.json`; её можно задать через `--version`. Публикация использует S3 endpoint и AWS CLI при наличии `S3_ENDPOINT`, иначе Bunny Storage HTTP API. Ключи передаются через окружение или `--env-file`, в архив и аргументы команд не попадают.
+Без `--publish` архив, контрольная сумма и манифест только создаются в `tools/quickshell-bar/dist/`. Версия по умолчанию берётся из корневого `package.json`; её можно задать через `--version`.
 
 Workflow `.github/workflows/deploy.yml` публикует модуль при выпуске тегов `v*.*.*`, используя существующие секреты S3. Сначала загружается версия, затем `latest`.
 
