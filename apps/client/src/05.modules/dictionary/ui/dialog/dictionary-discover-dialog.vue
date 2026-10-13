@@ -386,6 +386,14 @@ onMounted(() => {
 </template>
 
 <style scoped lang="scss">
+.discover-modal-content {
+  :deep(.kit-tabs > .kit-view-switcher) {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+}
+
 .upload-area {
   text-align: center;
   padding: 48px;
