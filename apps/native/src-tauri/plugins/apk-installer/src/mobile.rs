@@ -27,7 +27,7 @@ impl<R: Runtime> ApkInstaller<R> {
                 "requestPermissions",
                 json!({ "permissions": ["postNotification"] }),
             )
-            .map_err(Into::into)?;
+            .map_err(crate::Error::from)?;
 
         Ok(permissions.as_bool().unwrap_or_else(|| {
             permissions
