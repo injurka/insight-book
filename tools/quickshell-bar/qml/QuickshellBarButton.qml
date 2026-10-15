@@ -50,6 +50,14 @@ RippleButton {
 
     Connections {
         target: SrsService
+        function onShowStatistics(screenName) {
+            if (root.QsWindow.window?.screen?.name === screenName) {
+                root.opened = true;
+                SrsService.paused = true;
+                popup.statisticsVisible = true;
+                SrsService.request({action: "statistics"});
+            }
+        }
         function onShowPopup(screenName) {
             if (root.QsWindow.window?.screen?.name === screenName) {
                 root.opened = true; SrsService.paused = true;

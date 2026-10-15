@@ -286,6 +286,11 @@ def dispatch(command):
         settings.pop("oauthSession", None)
         save_settings(settings)
         result["oauthPending"] = False
+    elif action == "statistics":
+        response = api(settings, "activity/stats")
+        if not isinstance(response, dict) or not isinstance(response.get("heatmap"), list):
+            raise ValueError("Сервер вернул некорректную статистику.")
+        return {"ok": True, "statistics": {key: response.get(key, [] if key in ("heatmap", "difficulties") else 0) for key in ("heatmap", "learnedWords", "readPages", "difficulties")}}
     elif action == "review":
         word_id, grade = command.get("wordId"), command.get("grade")
         if type(word_id) is not int or word_id < 1 or type(grade) is not int or grade not in (1, 2, 3, 4):

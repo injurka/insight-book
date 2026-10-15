@@ -15,6 +15,7 @@ PanelWindow {
     property var targetScreen
     property bool opened: false
     property bool detached: false
+    property bool statisticsVisible: false
     readonly property real contentScale: detached ? SrsService.stage === "training" ? 1 : Math.min(1, floating.width / 500, floating.height / (content.implicitHeight + 40)) : fitScale
     onDetachedChanged: Qt.callLater(() => keyboard.forceActiveFocus())
 
@@ -95,24 +96,33 @@ PanelWindow {
         anchors.fill: parent
         radius: Appearance.rounding.large
         antialiasing: true
-        color: Appearance.m3colors.m3surfaceContainer
-        border.width: 1
-        border.color: Appearance.colors.colLayer0Border
+        // Paint the outline up to the window edge. A Rectangle border on a
+        // transparent window leaves antialiased pixels that look like a gap.
+        color: Appearance.colors.colLayer0Border
+
+        Rectangle {
+            anchors.fill: parent
+            anchors.margins: 1
+            radius: Math.max(0, frame.radius - 1)
+            antialiasing: true
+            color: Appearance.m3colors.m3surfaceContainer
+        }
 
         FocusScope {
             id: keyboard
 
             anchors.fill: parent
             focus: true
-            Keys.onEscapePressed: root.dismissed()
+            Keys.onEscapePressed: { if (root.statisticsVisible) root.statisticsVisible = false; else root.dismissed(); }
             Keys.onPressed: (event) => {
-                if (SrsService.stage === "training" && view.item)
+                if (!root.statisticsVisible && SrsService.stage === "training" && view.item)
                     view.item.key(event);
 
             }
 
                 ColumnLayout {
                     id: content
+                    visible: !root.statisticsVisible
 
                     x: (frame.width - width * root.contentScale) / 2
                     y: 20 * root.contentScale
@@ -190,6 +200,21 @@ PanelWindow {
                                 }
                             }
                             RippleButton {
+                                Layout.minimumWidth: 32
+                                Layout.maximumWidth: 32
+                                implicitHeight: 32
+                                visible: SrsService.account.authenticated
+                                enabled: !SrsService.busy
+                                onClicked: { root.statisticsVisible = true; SrsService.request({action: "statistics"}); }
+                                Accessible.name: "Статистика"
+                                StyledToolTip { font.family: "Maple Mono"; font.variableAxes: ({}); text: "Статистика"; delay: 500 }
+                                MaterialSymbol {
+                                    anchors.centerIn: parent
+                                    text: "bar_chart"
+                                    iconSize: 20
+                                }
+                            }
+                            RippleButton {
                                 objectName: "detachButton"
                                 Layout.minimumWidth: 32
                                 Layout.maximumWidth: 32
@@ -232,6 +257,13 @@ PanelWindow {
                     }
 
                 }
+
+            SrsStatistics {
+                anchors.fill: parent
+                anchors.margins: 20
+                visible: root.statisticsVisible
+                onBack: root.statisticsVisible = false
+            }
 
         }
 

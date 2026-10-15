@@ -68,7 +68,7 @@ function handleWordClick(word: LexicalWordData, event: MouseEvent) {
       <p v-if="metrics && !metrics.tagged" class="tab-desc">
         {{ t('bookLexical.untaggedLanguage') }}
       </p>
-      <p class="tab-desc">
+      <p v-if="lexicalActiveTab !== 'phrases'" class="tab-desc">
         {{ t('bookLexical.clickToTranslate') }} {{ t('bookLexical.countHint') }}
       </p>
       <div v-if="posStats && (!metrics || metrics.tagged)" class="pos-container">
@@ -134,7 +134,7 @@ function handleWordClick(word: LexicalWordData, event: MouseEvent) {
             <p class="tab-desc">
               {{ t('bookLexical.phrasesDesc') }}
             </p>
-            <BookLexicalWords :words="lexData?.phrases" @select="handleWordClick" />
+            <BookLexicalWords :words="lexData?.phrases" :selectable="false" />
           </div>
         </div>
       </template>

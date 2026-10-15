@@ -46,6 +46,21 @@ class InstallTests(unittest.TestCase):
         self.assertFalse((scripts / "session.py").exists())
         self.assertFalse((qml / "SrsPopup.qml").exists())
 
+    def test_custom_button_is_preserved_and_legacy_duplicate_removed(self):
+        self.assertEqual(self.run_script("install.py").returncode, 0)
+        for panel in self.originals:
+            text = panel.read_text()
+            custom = text.replace("QuickshellBarButton {", "QuickshellBarButton {\n                visible: Config.options.bar.customButtons.showSrs")
+            block_start = text.index("            // InsightBook SRS")
+            block_end = text.index("            }", block_start) + len("            }\n\n")
+            panel.write_text(custom[:block_start] + text[block_start:block_end] + custom[block_start:])
+        for _ in range(2):
+            self.assertEqual(self.run_script("install.py").returncode, 0)
+            for panel in self.originals:
+                text = panel.read_text()
+                self.assertEqual(text.count("QuickshellBarButton {"), 1)
+                self.assertIn("visible: Config.options.bar.customButtons.showSrs", text)
+
     def test_remove_alias(self):
         self.assertEqual(self.run_script("install.py").returncode, 0)
         self.assertEqual(self.run_script("install.py", "--remove").returncode, 0)

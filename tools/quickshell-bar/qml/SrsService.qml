@@ -8,6 +8,7 @@ Singleton {
     property var config: ({url: "https://insight-book-api.limited-dissolve.ru", language: "all", targetLang: "ru", deckId: "all", difficulty: "all", modes: ["standard"]})
     property var account: ({authenticated: false, username: "", renewable: false})
     property var catalog: ({decks: [], languages: [], levels: ({}), pool: []})
+    property var statistics: null
     property var cards: []
     property int count: 0
     property int reviewed: 0
@@ -29,11 +30,13 @@ Singleton {
     property string aiError: ""
     readonly property var card: cards.length ? cards[0] : null
     signal showPopup(string screenName)
+    signal showStatistics(string screenName)
     signal cardReviewed(int wordId)
 
     IpcHandler {
         target: "quickshellBar"
         function open(screen: string): void { root.showPopup(screen); }
+        function statistics(screen: string): void { if (root.account.authenticated) root.showStatistics(screen); }
         function status(): string { return JSON.stringify({stage: root.stage, authenticated: root.account.authenticated, ready: root.ready, count: root.count, error: root.error, busy: root.busy}); }
     }
     function request(command) {
@@ -75,6 +78,7 @@ Singleton {
         try {
             const result = JSON.parse(output);
             if (result.config) config = result.config;
+            if (result.statistics !== undefined) statistics = result.statistics;
             if (result.aiResult !== undefined) {
                 aiResult = result.aiResult;
                 aiResultKind = action;
@@ -88,6 +92,7 @@ Singleton {
             if (result.oauthPending !== undefined) { oauthPending = result.oauthPending; if (action === "oauth-start") oauthPolls = 0; }
             if (action === "connect" && (result.authRequired || result.authenticated)) connectionChecked = true;
             if (result.loggedOut || result.authRequired) {
+                statistics = null;
                 stage = "connect"; cards = []; count = 0; ready = false; authRequired = true;
                 account = {authenticated: false, username: "", renewable: false};
             }

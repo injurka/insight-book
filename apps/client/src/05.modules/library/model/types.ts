@@ -7,3 +7,8 @@ export interface DisplayGroup {
   books?: Book[]
   folders?: { name: string, count: number }[]
 }
+
+export interface SyncProgressNotificationOptions {
+  title: string
+  formatProgress: (pagesDone: number, pagesTotal: number) => string
+}

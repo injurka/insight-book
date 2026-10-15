@@ -5,6 +5,10 @@ import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { useAppWakeLock } from '~/01.shared/composables/use-app-wake-lock'
 import { useToast } from '~/01.shared/composables/use-toast'
+import {
+  isNativeSyncProgressNotificationSupported,
+  requestNativeSyncProgressNotificationPermission,
+} from '~/01.shared/services/native-sync-progress-notification.service'
 import { useAuthStore } from '~/01.shared/store/auth.store'
 import { useNetworkStore } from '~/01.shared/store/network.store'
 import { KitBtn } from '~/02.kit/atoms/kit-btn/ui'
@@ -152,14 +156,27 @@ function goToLimits() {
   visible.value = false
   router.push('/limits')
 }
-function start() {
+async function start() {
   if (networkStore.effectiveOffline) {
     toast.warn(t('network.needOnline'))
 
     return
   }
 
-  libraryStore.startWholeBookSync(props.bookId, options.value)
+  const notificationPermissionGranted = await requestNativeSyncProgressNotificationPermission()
+
+  if (isNativeSyncProgressNotificationSupported && !notificationPermissionGranted)
+    toast.warn(t('bookInfo.syncNotificationPermissionDenied'))
+
+  libraryStore.startWholeBookSync(props.bookId, options.value, notificationPermissionGranted
+    ? {
+        title: t('bookInfo.syncNotificationTitle'),
+        formatProgress: (pagesDone, pagesTotal) => t('bookInfo.syncNotificationProgress', {
+          done: formatNumber(pagesDone),
+          total: formatNumber(pagesTotal),
+        }),
+      }
+    : undefined)
 }
 function cancel() {
   libraryStore.cancelSync()

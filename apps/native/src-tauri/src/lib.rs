@@ -9,6 +9,101 @@ fn is_hyprland() -> bool {
             .unwrap_or(false)
 }
 
+#[tauri::command]
+fn request_sync_notification_permission(app: tauri::AppHandle) -> std::result::Result<bool, String> {
+    #[cfg(target_os = "android")]
+    {
+        use tauri_plugin_apk_installer::ApkInstallerExt;
+
+        app.apk_installer()
+            .request_sync_notification_permission()
+            .map_err(|e| e.to_string())
+    }
+
+    #[cfg(not(target_os = "android"))]
+    {
+        let _ = app;
+        Ok(false)
+    }
+}
+
+#[tauri::command]
+fn start_sync_progress_notification(
+    app: tauri::AppHandle,
+    title: String,
+    body: String,
+    progress: i32,
+) -> std::result::Result<(), String> {
+    #[cfg(target_os = "android")]
+    {
+        use tauri_plugin_apk_installer::{ApkInstallerExt, SyncProgressNotificationPayload};
+
+        app.apk_installer()
+            .start_sync_progress_notification(SyncProgressNotificationPayload {
+                title,
+                body,
+                progress,
+            })
+            .map(|_| ())
+            .map_err(|e| e.to_string())
+    }
+
+    #[cfg(not(target_os = "android"))]
+    {
+        let _ = (app, title, body, progress);
+        Ok(())
+    }
+}
+
+#[tauri::command]
+fn update_sync_progress_notification(
+    app: tauri::AppHandle,
+    title: String,
+    body: String,
+    progress: i32,
+) -> std::result::Result<(), String> {
+    #[cfg(target_os = "android")]
+    {
+        use tauri_plugin_apk_installer::{ApkInstallerExt, SyncProgressNotificationPayload};
+
+        app.apk_installer()
+            .update_sync_progress_notification(SyncProgressNotificationPayload {
+                title,
+                body,
+                progress,
+            })
+            .map(|_| ())
+            .map_err(|e| e.to_string())
+    }
+
+    #[cfg(not(target_os = "android"))]
+    {
+        let _ = (app, title, body, progress);
+        Ok(())
+    }
+}
+
+#[tauri::command]
+fn stop_sync_progress_notification(
+    app: tauri::AppHandle,
+) -> std::result::Result<(), String> {
+    #[cfg(target_os = "android")]
+    {
+        use tauri_plugin_apk_installer::ApkInstallerExt;
+
+        app.apk_installer()
+            .stop_sync_progress_notification()
+            .map(|_| ())
+            .map_err(|e| e.to_string())
+    }
+
+    #[cfg(not(target_os = "android"))]
+    {
+        let _ = app;
+        Ok(())
+    }
+}
+
 #[derive(Clone, serde::Serialize)]
 struct DownloadProgressPayload {
     downloaded: u64,
@@ -189,6 +284,10 @@ pub fn run() {
         .plugin(tauri_plugin_apk_installer::init())
         .invoke_handler(tauri::generate_handler![
             is_hyprland,
+            request_sync_notification_permission,
+            start_sync_progress_notification,
+            update_sync_progress_notification,
+            stop_sync_progress_notification,
             download_app_update,
             open_downloaded_apk,
             set_system_bars_theme,

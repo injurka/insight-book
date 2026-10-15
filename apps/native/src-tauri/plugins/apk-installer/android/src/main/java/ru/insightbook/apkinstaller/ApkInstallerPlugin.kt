@@ -1,20 +1,80 @@
 package ru.insightbook.apkinstaller
 
 import android.app.Activity
+import android.Manifest
 import android.content.Intent
 import android.content.pm.ActivityInfo
+import android.os.Build
 import androidx.core.content.FileProvider
+import androidx.core.app.NotificationManagerCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import app.tauri.annotation.Command
+import app.tauri.annotation.Permission
 import app.tauri.annotation.TauriPlugin
 import app.tauri.plugin.Invoke
 import app.tauri.plugin.Plugin
 import java.io.File
 
-@TauriPlugin
+@TauriPlugin(
+    permissions = [
+        Permission(strings = [Manifest.permission.POST_NOTIFICATIONS], alias = "postNotification")
+    ],
+)
 class ApkInstallerPlugin(private val activity: Activity) : Plugin(activity) {
+
+    @Command
+    override fun requestPermissions(invoke: Invoke) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+            invoke.resolveObject(NotificationManagerCompat.from(activity).areNotificationsEnabled())
+            return
+        }
+
+        super.requestPermissions(invoke)
+    }
+
+    @Command
+    fun startSyncProgressNotification(invoke: Invoke) {
+        try {
+            val args = invoke.getArgs()
+            SyncProgressService.start(
+                activity,
+                args.getString("title"),
+                args.getString("body"),
+                args.optInt("progress", 0),
+            )
+            invoke.resolveObject(true)
+        } catch (e: Exception) {
+            invoke.reject("Failed to start sync notification: ${e.message}")
+        }
+    }
+
+    @Command
+    fun updateSyncProgressNotification(invoke: Invoke) {
+        try {
+            val args = invoke.getArgs()
+            SyncProgressService.update(
+                activity,
+                args.getString("title"),
+                args.getString("body"),
+                args.optInt("progress", 0),
+            )
+            invoke.resolveObject(true)
+        } catch (e: Exception) {
+            invoke.reject("Failed to update sync notification: ${e.message}")
+        }
+    }
+
+    @Command
+    fun stopSyncProgressNotification(invoke: Invoke) {
+        try {
+            SyncProgressService.stop(activity)
+            invoke.resolveObject(true)
+        } catch (e: Exception) {
+            invoke.reject("Failed to stop sync notification: ${e.message}")
+        }
+    }
 
     @Command
     fun setSystemBarsTheme(invoke: Invoke) {

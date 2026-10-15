@@ -5,6 +5,7 @@ import { useI18n } from 'vue-i18n'
 interface Props {
   words?: LexicalWordData[]
   tone?: string
+  selectable?: boolean
 }
 const props = defineProps<Props>()
 const emit = defineEmits<{ select: [word: LexicalWordData, event: MouseEvent] }>()
@@ -13,17 +14,30 @@ const { t } = useI18n()
 
 <template>
   <div class="words">
-    <button
-      v-for="word in props.words"
-      :key="word.word"
-      type="button"
-      class="word-chip"
-      :class="props.tone"
-      :title="[word.forms?.join(', '), word.pageCount ? t('bookLexical.pageSpread', { count: word.pageCount }) : ''].filter(Boolean).join(' · ')"
-      @click.stop="emit('select', word, $event)"
-    >
-      {{ word.word }} <span class="count">{{ word.count }}</span>
-    </button>
+    <template v-if="props.selectable !== false">
+      <button
+        v-for="word in props.words"
+        :key="word.word"
+        type="button"
+        class="word-chip is-selectable"
+        :class="props.tone"
+        :title="[word.forms?.join(', '), word.pageCount ? t('bookLexical.pageSpread', { count: word.pageCount }) : ''].filter(Boolean).join(' · ')"
+        @click.stop="emit('select', word, $event)"
+      >
+        {{ word.word }} <span class="count">{{ word.count }}</span>
+      </button>
+    </template>
+    <template v-else>
+      <span
+        v-for="word in props.words"
+        :key="word.word"
+        class="word-chip"
+        :class="props.tone"
+        :title="[word.forms?.join(', '), word.pageCount ? t('bookLexical.pageSpread', { count: word.pageCount }) : ''].filter(Boolean).join(' · ')"
+      >
+        {{ word.word }} <span class="count">{{ word.count }}</span>
+      </span>
+    </template>
     <p v-if="!props.words?.length" class="empty">
       {{ t('bookLexical.emptyGroup') }}
     </p>
@@ -50,13 +64,15 @@ const { t } = useI18n()
   border: 1px solid var(--border-primary-color);
   font: inherit;
   font-size: 0.9rem;
-  cursor: pointer;
-  &:hover {
-    background: var(--bg-hover-color);
-  }
-  &:focus-visible {
-    outline: 2px solid var(--fg-accent-color);
-    outline-offset: 2px;
+  &.is-selectable {
+    cursor: pointer;
+    &:hover {
+      background: var(--bg-hover-color);
+    }
+    &:focus-visible {
+      outline: 2px solid var(--fg-accent-color);
+      outline-offset: 2px;
+    }
   }
   &.noun {
     border-color: #3b82f6;

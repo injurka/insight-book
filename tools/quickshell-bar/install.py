@@ -4,6 +4,7 @@ import argparse
 from datetime import datetime
 from pathlib import Path
 import shutil
+import re
 
 SOURCE = Path(__file__).resolve().parent
 VERTICAL_IMPORT = 'import "../bar/quickshellBar"\n'
@@ -95,22 +96,31 @@ def main():
             shutil.copy2(source, qml_dir / source.name)
     for name in ("bridge.py", "session.py"):
         shutil.copy2(SOURCE / name, scripts / name)
-    if WIDGET not in content:
+    # A locally configured button is already an integration; preserve it.
+    if content.count("QuickshellBarButton {") > 1 and WIDGET in content:
+        content = content.replace(WIDGET, "", 1)
+    if vertical_content.count("QuickshellBarButton {") > 1 and VERTICAL_WIDGET in vertical_content:
+        vertical_content = vertical_content.replace(VERTICAL_WIDGET, "", 1)
+    if not re.search(r"\bQuickshellBarButton\s*\{", content):
         backup = scripts / "backups" / datetime.now().strftime("%Y%m%d-%H%M%S-%f")
         backup.mkdir(parents=True)
         shutil.copy2(target, backup / target.name)
         if IMPORT not in content:
             content = IMPORT + content
         content = content.replace("            SysTray {", WIDGET + "            SysTray {", 1)
-    if VERTICAL_WIDGET not in vertical_content:
+    if not re.search(r"\bQuickshellBarButton\s*\{", vertical_content):
         backup = scripts / "backups" / datetime.now().strftime("%Y%m%d-%H%M%S-%f")
         backup.mkdir(parents=True)
         shutil.copy2(vertical, backup / vertical.name)
         if VERTICAL_IMPORT not in vertical_content:
             vertical_content = VERTICAL_IMPORT + vertical_content
         vertical_content = vertical_content.replace("            Item {\n                Layout.fillHeight: true", VERTICAL_WIDGET + "            Item {\n                Layout.fillHeight: true", 1)
-    target.write_text(content)
-    vertical.write_text(vertical_content)
+    for panel, updated in ((target, content), (vertical, vertical_content)):
+        if panel.read_text() != updated:
+            backup = scripts / "backups" / datetime.now().strftime("%Y%m%d-%H%M%S-%f")
+            backup.mkdir(parents=True)
+            shutil.copy2(panel, backup / panel.name)
+            panel.write_text(updated)
     print(f"Установлено в {args.shell}. Кнопка появится после перезагрузки конфигурации Quickshell.")
 
 

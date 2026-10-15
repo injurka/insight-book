@@ -11,3 +11,4 @@ SrsGradeButton 1.0 SrsGradeButton.qml
 SrsCardToolbar 1.0 SrsCardToolbar.qml
 SrsCardViewport 1.0 SrsCardViewport.qml
 SrsText 1.0 SrsText.qml
+SrsStatistics 1.0 SrsStatistics.qml

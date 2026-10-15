@@ -23,3 +23,11 @@ pub struct ImmersivePayload {
 pub struct OrientationPayload {
     pub mode: Option<String>,
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SyncProgressNotificationPayload {
+    pub title: String,
+    pub body: String,
+    pub progress: i32,
+}
