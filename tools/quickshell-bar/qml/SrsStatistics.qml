@@ -97,94 +97,9 @@ ColumnLayout {
             SrsText { text: "Достижения и уровни"; font.bold: true }
             Repeater {
                 model: root.ranks
-                SrsSection {
+                SrsAchievementCard {
                     required property var modelData
-                    Layout.fillWidth: true
-                    Layout.minimumWidth: 0
-                    Layout.preferredWidth: 1
-                    RowLayout {
-                        Layout.fillWidth: true
-                        Layout.minimumWidth: 0
-                        spacing: 12
-                        Rectangle {
-                            Layout.preferredWidth: languageName.implicitWidth + 18
-                            Layout.minimumWidth: languageName.implicitWidth + 18
-                            Layout.maximumWidth: languageName.implicitWidth + 18
-                            Layout.preferredHeight: 28
-                            Layout.maximumHeight: 28
-                            radius: 9
-                            color: Appearance.colors.colSecondaryContainer
-                            SrsText {
-                                id: languageName
-                                anchors.centerIn: parent
-                                text: modelData.language
-                                color: Appearance.colors.colOnSecondaryContainer
-                                font.pixelSize: Appearance.font.pixelSize.small
-                                font.bold: true
-                            }
-                        }
-                        ColumnLayout {
-                            Layout.fillWidth: true
-                            Layout.minimumWidth: 0
-                            spacing: 2
-                            SrsText {
-                                Layout.fillWidth: true
-                                text: modelData.rank
-                                color: Appearance.colors.colOnLayer0
-                                font.bold: true
-                                font.pixelSize: Appearance.font.pixelSize.normal
-                                wrapMode: Text.Wrap
-                            }
-                            SrsText {
-                                Layout.fillWidth: true
-                                text: "Словарный запас"
-                                color: Appearance.colors.colSubtext
-                                font.pixelSize: Appearance.font.pixelSize.small
-                            }
-                        }
-                    }
-                    RowLayout {
-                        Layout.fillWidth: true
-                        Layout.minimumWidth: 0
-                        spacing: 6
-                        SrsText {
-                            Layout.fillWidth: true
-                            text: "Следующий уровень"
-                            color: Appearance.colors.colSubtext
-                            font.pixelSize: Appearance.font.pixelSize.small
-                            wrapMode: Text.Wrap
-                        }
-                        SrsText {
-                            text: modelData.next
-                            color: Appearance.colors.colPrimary
-                            font.pixelSize: Appearance.font.pixelSize.small
-                            font.bold: true
-                            horizontalAlignment: Text.AlignRight
-                            wrapMode: Text.Wrap
-                        }
-                    }
-                    RowLayout {
-                        Layout.fillWidth: true
-                        SrsText {
-                            text: "До следующего уровня"
-                            color: Appearance.colors.colSubtext
-                            font.pixelSize: Appearance.font.pixelSize.small
-                        }
-                        Item { Layout.fillWidth: true }
-                        SrsText {
-                            text: Number(modelData.count).toLocaleString(Qt.locale("ru_RU"), 'f', 0) + " / " + Number(modelData.target).toLocaleString(Qt.locale("ru_RU"), 'f', 0)
-                            color: Appearance.colors.colPrimary
-                            font.pixelSize: Appearance.font.pixelSize.small
-                            font.bold: true
-                        }
-                    }
-                    Rectangle {
-                        Layout.fillWidth: true
-                        implicitHeight: 6
-                        radius: 3
-                        color: Appearance.colors.colOutlineVariant
-                        Rectangle { width: parent.width * modelData.progress; height: parent.height; radius: 3; color: Appearance.colors.colPrimary }
-                    }
+                    achievement: modelData
                 }
             }
             SrsText {

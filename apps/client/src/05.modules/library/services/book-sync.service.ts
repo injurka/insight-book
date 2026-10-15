@@ -1,4 +1,4 @@
-import type { SyncProgressNotificationOptions } from '../model'
+import type { SyncNotificationPhase, SyncProgressNotificationOptions } from '../model'
 import type { LlmAnalysis, PagePayload } from '~/01.shared/types/models'
 import { isValidWordForLanguage } from '@injurka/insight-book-language-utils'
 import { v4 as uuidv4 } from 'uuid'
@@ -6,13 +6,9 @@ import { ref } from 'vue'
 import { useRepos } from '~/00.plugins/di'
 import { useTracking } from '~/01.shared/composables/use-tracking'
 import { buildBookTtsCacheKey, DEFAULT_TTS_VOICE } from '~/01.shared/constants/tts'
-import {
-  startNativeSyncProgressNotification,
-  stopNativeSyncProgressNotification,
-  updateNativeSyncProgressNotification,
-} from '~/01.shared/services/native-sync-progress-notification.service'
 import { useGlobalSettingsStore } from '~/01.shared/store/settings.store'
 import { useLibraryStore } from '../store/library.store'
+import { startBookSyncNotification } from './book-sync-notification.service'
 import { extractPageData } from './book-sync-parser'
 
 const repos = useRepos()
@@ -79,26 +75,23 @@ interface AnalysisContext {
 }
 
 let syncAbortController: AbortController | null = null
-let syncNotificationIsActive = false
+const syncActivity = ref<{ phase: SyncNotificationPhase, currentPage: number }>({ phase: 'preparing', currentPage: 0 })
+let stopNotification: (() => Promise<void>) | undefined
 
-function startSyncProgressNotification(notificationOptions: SyncProgressNotificationOptions | undefined, pagesTotal: number): void {
+function startSyncProgressNotification(notificationOptions: SyncProgressNotificationOptions | undefined): void {
   if (!notificationOptions)
     return
 
-  syncNotificationIsActive = true
-  void startNativeSyncProgressNotification({
-    title: notificationOptions.title,
-    body: notificationOptions.formatProgress(0, pagesTotal),
-    progress: 0,
-  })
+  stopNotification = startBookSyncNotification(notificationOptions, () => ({
+    ...syncProgress.value,
+    ...syncActivity.value,
+  }))
 }
 
 async function stopSyncProgressNotification(): Promise<void> {
-  if (!syncNotificationIsActive)
-    return
-
-  syncNotificationIsActive = false
-  await stopNativeSyncProgressNotification()
+  const stop = stopNotification
+  stopNotification = undefined
+  await stop?.()
 }
 
 export function cancelSync(): void {
@@ -113,6 +106,8 @@ export function cancelSync(): void {
 }
 
 async function fetchAndHydrateServerCache(ctx: AnalysisContext): Promise<void> {
+  syncActivity.value.phase = 'serverCache'
+
   try {
     syncProgress.value.currentTask = 'Загрузка имеющегося кэша с сервера...'
     const settingsStore = useGlobalSettingsStore()
@@ -158,6 +153,7 @@ async function cacheBookCover(book: SyncBook, cachePages: boolean): Promise<void
   if (!cachePages || !book.coverUrl || book.localCoverUrl)
     return
 
+  syncActivity.value.phase = 'cover'
   syncProgress.value.currentTask = 'Кэширование обложки...'
   const cachedCover = await repos.book.getLocalCover(book.id)
 
@@ -252,6 +248,7 @@ async function analyzeMissingTexts(
   label: string,
   pageNum: number,
 ): Promise<void> {
+  syncActivity.value.phase = type === 'sentence' ? 'sentences' : 'words'
   syncProgress.value[totalKey] += texts.length
   const missingTexts: string[] = []
 
@@ -321,6 +318,7 @@ async function analyzeMissingTexts(
 
 /** Генерирует TTS-аудио для предложений и слов страницы. */
 async function generateTtsForTexts(texts: string[], ctx: AnalysisContext, pageNum: number): Promise<void> {
+  syncActivity.value.phase = 'audio'
   syncProgress.value.ttsTotal += texts.length
   const ttsConcurrency = 3
   const settingsStore = useGlobalSettingsStore()
@@ -430,6 +428,7 @@ async function processPage(
   if (ctx.signal.aborted)
     throw new Error('Aborted')
 
+  syncActivity.value = { phase: 'pages', currentPage: pageNum }
   syncProgress.value.currentTask = `Страница ${pageNum} из ${book.totalPages}: загрузка контента`
 
   let page: PagePayload | null
@@ -485,26 +484,7 @@ async function processPage(
   syncProgress.value.pagesDone++
 }
 
-async function updateSyncProgressNotification(notificationOptions: SyncProgressNotificationOptions | undefined): Promise<void> {
-  if (!notificationOptions || !syncNotificationIsActive)
-    return
-
-  const pagesDone = syncProgress.value.pagesDone
-  const pagesTotal = syncProgress.value.pagesTotal
-
-  await updateNativeSyncProgressNotification({
-    title: notificationOptions.title,
-    body: notificationOptions.formatProgress(pagesDone, pagesTotal),
-    progress: pagesTotal > 0 ? Math.round((pagesDone / pagesTotal) * 100) : 0,
-  })
-}
-
-async function processBookPages(
-  book: SyncBook,
-  options: typeof syncOptions.value,
-  ctx: AnalysisContext,
-  notificationOptions?: SyncProgressNotificationOptions,
-): Promise<void> {
+async function processBookPages(book: SyncBook, options: typeof syncOptions.value, ctx: AnalysisContext): Promise<void> {
   for (let pageNum = 1; pageNum <= book.totalPages; pageNum++) {
     await processPage(
       book,
@@ -512,16 +492,10 @@ async function processBookPages(
       options,
       ctx,
     )
-    await updateSyncProgressNotification(notificationOptions)
   }
 }
 
-async function executeBookSync(
-  book: SyncBook,
-  options: typeof syncOptions.value,
-  ctx: AnalysisContext,
-  notificationOptions?: SyncProgressNotificationOptions,
-) {
+async function executeBookSync(book: SyncBook, options: typeof syncOptions.value, ctx: AnalysisContext) {
   await syncBookToc(ctx.bookId)
   await cacheBookCover(book, options.cachePages)
 
@@ -534,12 +508,7 @@ async function executeBookSync(
   const needPageContent = options.cachePages || needAnalysis || options.ttsSentences || options.ttsWords
 
   if (needPageContent) {
-    await processBookPages(
-      book,
-      options,
-      ctx,
-      notificationOptions,
-    )
+    await processBookPages(book, options, ctx)
   }
 
   if (!ctx.signal.aborted) {
@@ -596,7 +565,8 @@ export async function startWholeBookSync(bookId: number, options: {
     currentTask: 'Подготовка...',
   }
 
-  startSyncProgressNotification(notificationOptions, book.totalPages)
+  syncActivity.value = { phase: 'preparing', currentPage: 0 }
+  startSyncProgressNotification(notificationOptions)
 
   const ctx: AnalysisContext = {
     bookId,
@@ -609,12 +579,7 @@ export async function startWholeBookSync(bookId: number, options: {
 
   try {
     syncErrorCode.value = null
-    await executeBookSync(
-      book,
-      syncOptions.value,
-      ctx,
-      notificationOptions,
-    )
+    await executeBookSync(book, syncOptions.value, ctx)
   }
   catch (e) {
     const err = e as Error

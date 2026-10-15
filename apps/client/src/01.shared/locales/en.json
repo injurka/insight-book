@@ -136,7 +136,22 @@
     "pagesImages": "Pages (images)",
     "syncSetupHint": "Choose what to download for offline work.",
     "syncNotificationTitle": "InsightBook offline cache",
-    "syncNotificationProgress": "Pages {done} of {total}",
+    "syncNotificationProgress": "Pages processed: {done} / {total}",
+    "syncNotificationCurrentPage": "page {current} of {total}",
+    "syncNotificationPhases": {
+      "preparing": "Preparing offline cache",
+      "serverCache": "Downloading existing analysis",
+      "cover": "Saving cover",
+      "pages": "Downloading page",
+      "sentences": "Analyzing sentences",
+      "words": "Analyzing words",
+      "audio": "Preparing audio"
+    },
+    "syncNotificationCounts": {
+      "sentences": "Sentences: {done} · cached {cached}",
+      "words": "Words: {done} · cached {cached}",
+      "audio": "Audio: {done} · cached {cached}"
+    },
     "syncNotificationPermissionDenied": "Allow InsightBook notifications to see cache progress.",
     "cachePages": "Cache pages",
     "cachePagesDesc": "Text, styles, and images",

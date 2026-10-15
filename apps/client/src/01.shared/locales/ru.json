@@ -136,7 +136,22 @@
     "pagesImages": "Страницы (изображения)",
     "syncSetupHint": "Выберите, что нужно загрузить для работы в оффлайн-режиме.",
     "syncNotificationTitle": "Офлайн-кэш InsightBook",
-    "syncNotificationProgress": "Страницы {done} из {total}",
+    "syncNotificationProgress": "Обработано страниц: {done} / {total}",
+    "syncNotificationCurrentPage": "страница {current} из {total}",
+    "syncNotificationPhases": {
+      "preparing": "Подготовка офлайн-кэша",
+      "serverCache": "Загрузка готового анализа",
+      "cover": "Сохранение обложки",
+      "pages": "Загрузка страницы",
+      "sentences": "Анализ предложений",
+      "words": "Анализ слов",
+      "audio": "Подготовка озвучки"
+    },
+    "syncNotificationCounts": {
+      "sentences": "Предложения: {done} · из кэша {cached}",
+      "words": "Слова: {done} · из кэша {cached}",
+      "audio": "Аудио: {done} · из кэша {cached}"
+    },
     "syncNotificationPermissionDenied": "Разрешите InsightBook показывать уведомления, чтобы видеть прогресс кэширования.",
     "cachePages": "Кэшировать страницы",
     "cachePagesDesc": "Текст, стили и изображения",

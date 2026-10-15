@@ -43,8 +43,17 @@ function achievements(data) {
         for (let i = 1; i < ranks.length; i++) if (count >= targets[i - 1]) rank = i;
         const next = Math.min(rank + 1, ranks.length - 1);
         const languageCode = String(language).toLowerCase().split(/[-_]/)[0];
-        return {language: languageNames[languageCode] || String(language).toUpperCase(), rank: ranks[rank], next: rank < ranks.length - 1 ? ranks[next] : "Максимальный уровень", count: count, target: targets[next], progress: rank === ranks.length - 1 ? 1 : Math.min(1, count / targets[next])};
+        return {language: languageNames[languageCode] || String(language).toUpperCase(), rank: ranks[rank], next: rank < ranks.length - 1 ? ranks[next] : "Максимальный уровень", count: count, target: targets[next], remaining: Math.max(0, targets[next] - count), completed: rank === ranks.length - 1, progress: rank === ranks.length - 1 ? 1 : Math.min(1, count / targets[next])};
     });
+}
+
+function wordForm(count) {
+    const lastHundred = Math.abs(count) % 100;
+    if (lastHundred >= 11 && lastHundred <= 14) return "слов";
+    const lastDigit = lastHundred % 10;
+    if (lastDigit === 1) return "слово";
+    if (lastDigit >= 2 && lastDigit <= 4) return "слова";
+    return "слов";
 }
 
 function dateRange(days) {

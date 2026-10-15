@@ -136,7 +136,22 @@
     "pagesImages": "页面 (图片)",
     "syncSetupHint": "选择下载以供离线使用的内容。",
     "syncNotificationTitle": "InsightBook 离线缓存",
-    "syncNotificationProgress": "第 {done} / {total} 页",
+    "syncNotificationProgress": "已处理页面：{done} / {total}",
+    "syncNotificationCurrentPage": "第 {current} / {total} 页",
+    "syncNotificationPhases": {
+      "preparing": "正在准备离线缓存",
+      "serverCache": "正在下载已有分析",
+      "cover": "正在保存封面",
+      "pages": "正在下载页面",
+      "sentences": "正在分析句子",
+      "words": "正在分析词语",
+      "audio": "正在准备语音"
+    },
+    "syncNotificationCounts": {
+      "sentences": "句子：{done} · 缓存 {cached}",
+      "words": "词语：{done} · 缓存 {cached}",
+      "audio": "音频：{done} · 缓存 {cached}"
+    },
     "syncNotificationPermissionDenied": "请允许 InsightBook 发送通知，以查看缓存进度。",
     "cachePages": "缓存页面",
     "cachePagesDesc": "文本、样式和图片",

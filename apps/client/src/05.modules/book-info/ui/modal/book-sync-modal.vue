@@ -15,6 +15,7 @@ import { KitBtn } from '~/02.kit/atoms/kit-btn/ui'
 import { KitCheckbox } from '~/02.kit/atoms/kit-checkbox/ui'
 import { KitDialog } from '~/02.kit/organisms/kit-dialog/ui'
 import { useLibraryStore } from '~/05.modules/library/store/library.store'
+import { useBookSyncNotification } from '../../composables/use-book-sync-notification'
 import { useBookSyncSections } from '../../composables/use-book-sync-sections'
 import { formatNumber } from '../../lib/formatters'
 import BookSyncCacheOverview from './book-sync-cache-overview.vue'
@@ -32,6 +33,7 @@ const authStore = useAuthStore()
 const router = useRouter()
 const toast = useToast()
 const { t } = useI18n()
+const { createNotificationOptions } = useBookSyncNotification()
 
 const options = ref({
   cachePages: true,
@@ -169,13 +171,7 @@ async function start() {
     toast.warn(t('bookInfo.syncNotificationPermissionDenied'))
 
   libraryStore.startWholeBookSync(props.bookId, options.value, notificationPermissionGranted
-    ? {
-        title: t('bookInfo.syncNotificationTitle'),
-        formatProgress: (pagesDone, pagesTotal) => t('bookInfo.syncNotificationProgress', {
-          done: formatNumber(pagesDone),
-          total: formatNumber(pagesTotal),
-        }),
-      }
+    ? createNotificationOptions(currentBook.value?.title, options.value)
     : undefined)
 }
 function cancel() {
