@@ -288,7 +288,7 @@ export const userDictionary = sqliteTable('user_dictionary', {
   createdAt: text('createdAt').notNull().default(sql`(datetime('now'))`),
   updatedAt: text('updatedAt').notNull().default(sql`(datetime('now'))`),
 }, t => [
-  unique().on(t.userId, t.word, t.targetLanguage),
+  unique().on(t.userId, t.word, t.language, t.targetLanguage),
 ])
 
 export const wordToDeck = sqliteTable('word_to_deck', {

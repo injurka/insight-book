@@ -1,3 +1,4 @@
+import type { UserDictItem } from '../types'
 import webpush from 'web-push'
 import { getAiConfig } from '~/utils/ai-config'
 import { VAPID_PRIVATE_KEY, VAPID_PUBLIC_KEY, VAPID_SUBJECT } from '../config'
@@ -11,6 +12,10 @@ import { checkTokenLimit } from './limits.service'
 
 if (VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY) {
   webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY)
+}
+
+export function getWordPushUrl(word: Pick<UserDictItem, 'word' | 'language'>) {
+  return `/dictionary?${new URLSearchParams({ word: word.word, language: word.language })}`
 }
 
 function getSeededRandom(seedStr: string) {
@@ -170,7 +175,7 @@ export async function sendDailyMotivations(customMessage?: string) {
         const randomWord = await pushRepository.getRandomWordForPush(userId, nowIso, user.pushTargetDeckId)
 
         if (randomWord) {
-          targetUrl = `/dictionary?word=${encodeURIComponent(randomWord.word)}`
+          targetUrl = getWordPushUrl(randomWord)
           wordStrForTag = randomWord.word
           const wordStr = randomWord.word
           const transStr = randomWord.translation?.split(/<br>|,|;/)[0].replace(/<[^>]+>/g, '').trim() || ''

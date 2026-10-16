@@ -40,7 +40,7 @@ watch(isEditMode, (val) => {
   if (!val)
     store.clearSelection()
 })
-watch(() => route.query.word, (word) => {
+watch(() => [route.query.word, route.query.language], ([word]) => {
   if (typeof word === 'string')
     openWordDetails(word)
 })
@@ -57,11 +57,11 @@ function handleOpenQuiz(data: { language: string, levelValue: string }) {
   quizLevel.value = data.levelValue
   isQuizOpen.value = true
 }
-async function openWordDetails(word: string) {
+async function openWordDetails(word: string, language?: string) {
   const request = ++detailsRequest
 
   try {
-    const item = await store.getWord(word)
+    const item = await store.getWord(word, language || (typeof route.query.language === 'string' ? route.query.language : undefined))
 
     if (request !== detailsRequest)
       return
@@ -70,13 +70,21 @@ async function openWordDetails(word: string) {
     isDetailsModalOpen.value = true
   }
   catch (error) {
+    if (request !== detailsRequest)
+      return
+
+    // An older notification may contain only the spelling. Show all matching
+    // cards so the user can choose a language without selecting one for them.
+    if (error instanceof Error && 'status' in error && error.status === 409)
+      store.searchTerm = word
+
     console.warn('Could not load dictionary word:', error)
   }
 }
 function openDetails(item: UserDictItem) {
   selectedWordDetails.value = item
   isDetailsModalOpen.value = true
-  openWordDetails(item.word)
+  openWordDetails(item.word, item.language)
 }
 function openTrainingSettings(_mode: 'srs' | 'deep_dive' | 'cram' | 'match') {
   isTrainingOpen.value = true

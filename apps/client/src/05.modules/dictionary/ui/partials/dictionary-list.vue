@@ -34,7 +34,7 @@ const gridContainerRef = shallowRef<HTMLElement | null>(null)
 const { width: gridContainerWidth } = useElementSize(gridContainerRef)
 
 const confirmDeleteVisible = ref(false)
-const wordToDelete = ref<string | null>(null)
+const wordToDelete = ref<UserDictItem | null>(null)
 
 const gridColumns = computed(() => {
   const w = gridContainerWidth.value
@@ -93,7 +93,7 @@ function handleExport() {
   exportToAnki(wordsToExport)
   store.clearSelection()
 }
-function openDeleteWord(word: string) {
+function openDeleteWord(word: UserDictItem) {
   wordToDelete.value = word
   confirmDeleteVisible.value = true
 }

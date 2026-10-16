@@ -1,5 +1,5 @@
 import type { Book, LlmAnalysis, PagePayload, UserDictItem } from '~/01.shared/types/models'
-import { isValidWordForLanguage } from '@injurka/insight-book-language-utils'
+import { isValidWordForLanguage, normalizeLanguageCode } from '@injurka/insight-book-language-utils'
 import { v4 as uuidv4 } from 'uuid'
 import { computed, ref } from 'vue'
 import { useRepos } from '~/00.plugins/di'
@@ -1205,16 +1205,18 @@ export const useAnalysisStore = defineStore('analysis', () => {
     const readerStore = useReaderStore()
     const libraryStore = useLibraryStore()
     const currentBook = readerStore.currentBook || libraryStore.currentBookInfo
-    const localMatch = dictionaryWords.value.find(w => w.word.toLowerCase() === wordData.word.toLowerCase())
+    const language = normalizeLanguageCode(currentBook?.language) || 'en'
+    const localMatch = dictionaryWords.value.find(w => w.language === language && w.word.toLowerCase() === wordData.word.toLowerCase())
 
-    wordToEdit.value = buildInitialWordToEdit(wordData, currentBook?.language || 'en', localMatch)
+    wordToEdit.value = buildInitialWordToEdit(wordData, language, localMatch)
+    const initialWord = wordToEdit.value
     addEditWordModalOpen.value = true
 
     if (wordData.isSaved && !localMatch) {
       try {
-        const existingWord = await repos.dictionary.get(wordData.word)
+        const existingWord = await repos.dictionary.get(wordData.word, language)
 
-        if (addEditWordModalOpen.value && wordToEdit.value?.word === wordData.word) {
+        if (addEditWordModalOpen.value && wordToEdit.value === initialWord) {
           wordToEdit.value = {
             ...existingWord,
             contextSentence: wordData.contextSentence,
@@ -1247,12 +1249,12 @@ export const useAnalysisStore = defineStore('analysis', () => {
       wordPopover.value.isSaved = true
   }
 
-  async function removeFromDict(word: string) {
+  async function removeFromDict(word: string, language: string) {
     addEditWordModalOpen.value = false
 
     trackEvent('word_removed_from_dict', { word })
 
-    appEventBus.emit('DICTIONARY:REQUEST_REMOVE_WORD', word)
+    appEventBus.emit('DICTIONARY:REQUEST_REMOVE_WORD', { word, language })
 
     if (wordPopover.value && wordPopover.value.word === word)
       wordPopover.value.isSaved = false

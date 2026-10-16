@@ -79,9 +79,9 @@ export const useDictionaryStore = defineStore('dictionary', () => {
   }
 
   const { mutateAsync: deleteWordMutation, isLoading: isDeletingWord } = useMutation({
-    mutation: async (word: string) => repos.dictionary.remove(word),
-    async onSuccess(_, word) {
-      words.value = words.value.filter(w => w.word !== word)
+    mutation: async (item: UserDictItem) => repos.dictionary.remove(item.word, item.language),
+    async onSuccess(_, item) {
+      words.value = words.value.filter(w => w.id !== item.id)
 
       await fetchDictionary()
       toast.success('Слово удалено')
@@ -91,9 +91,9 @@ export const useDictionaryStore = defineStore('dictionary', () => {
     },
   })
 
-  async function deleteWord(word: string) {
+  async function deleteWord(item: UserDictItem) {
     try {
-      await deleteWordMutation(word)
+      await deleteWordMutation(item)
     }
     catch {
       // caught
@@ -159,7 +159,7 @@ export const useDictionaryStore = defineStore('dictionary', () => {
     loadError: pagination.error,
     loadMore: pagination.loadMore,
     retryLoad: pagination.retry,
-    getWord: (word: string) => repos.dictionary.get(word),
+    getWord: (word: string, language?: string) => repos.dictionary.get(word, language),
     selectedWordIds,
 
     fetchDictionary,

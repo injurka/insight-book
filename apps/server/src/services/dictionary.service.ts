@@ -30,6 +30,7 @@ export class DictionaryService {
         where: (users, { and, inArray, eq }) => and(
           inArray(users.word, chunk),
           eq(users.userId, userId),
+          eq(users.language, language),
           eq(users.targetLanguage, targetLang),
         ),
         columns: { word: true, transcription: true, translation: true },
@@ -48,7 +49,7 @@ export class DictionaryService {
   }
 
   async lookupSingleWord(word: string, language: string, targetLang: string, userId: number): Promise<PageDictEntry | null> {
-    const userWord = await this.dictRepo.getWordFromUserDictionary(word, userId, targetLang)
+    const userWord = await this.dictRepo.getWordFromUserDictionary(word, userId, targetLang, language)
     if (userWord) {
       return { transcription: userWord.transcription || '', translation: userWord.translation || '', isUserDict: true }
     }
@@ -100,8 +101,8 @@ export class DictionaryService {
     return await this.dictRepo.getUserDictionary(userId, targetLang)
   }
 
-  async getWordFromUserDictionary(word: string, userId: number, targetLang: string) {
-    const entry = await this.dictRepo.getWordFromUserDictionary(word, userId, targetLang)
+  async getWordFromUserDictionary(word: string, userId: number, targetLang: string, language?: string) {
+    const entry = await this.dictRepo.getWordFromUserDictionary(word, userId, targetLang, language)
     if (!entry)
       throw new AppError(404, ERROR_CODES.DICTIONARY.WORD_NOT_FOUND, 'Word not found in user dictionary')
     return entry
@@ -143,8 +144,8 @@ export class DictionaryService {
     await activityService.trackActivity(userId, 'wordsAdded', 1)
   }
 
-  async removeFromUserDictionary(word: string, userId: number, targetLang: string) {
-    await this.dictRepo.removeFromUserDictionary(word, userId, targetLang)
+  async removeFromUserDictionary(word: string, userId: number, targetLang: string, language?: string) {
+    await this.dictRepo.removeFromUserDictionary(word, userId, targetLang, language)
   }
 
   async getReviewCount(userId: number, language: string | undefined, targetLang: string, deckId?: number | 'none' | (number | 'none')[], difficulty?: string) {

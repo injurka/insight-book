@@ -73,6 +73,80 @@ async function findLocalTts(hashKey: string): Promise<{ blob: Blob, metadata: Tt
   return findIndexedTts(scope, hashKey)
 }
 
+function matchesDictionaryWordKey(
+  key: string,
+  prefix: string,
+  word: string,
+  targetLang: string,
+) {
+  if (!key.startsWith(prefix))
+    return false
+
+  try {
+    const identity: unknown = JSON.parse(key.slice(prefix.length))
+
+    return Array.isArray(identity) && identity[0] === targetLang && identity[2] === word
+  }
+  catch {
+    return false
+  }
+}
+
+function matchesDictionaryWord(
+  item: UserDictItem | null,
+  word: string,
+  language: string | undefined,
+  targetLang: string,
+): item is UserDictItem {
+  return !!item && item.word === word && !!item.language
+    && (!language || item.language === language)
+    && (item.targetLanguage || 'ru') === targetLang
+}
+
+async function readDictionarySnapshot(targetLang: string): Promise<UserDictItem[] | null> {
+  return await safeGetItem<UserDictItem[]>('dictionary_words')
+    || await safeGetItem<UserDictItem[]>(`dictionary_words_${targetLang}`)
+}
+
+async function findCachedDictionaryWord(word: string, language?: string): Promise<UserDictItem | null> {
+  const prefix = getKey('dictionary_word_')
+  const targetLang = getAppLanguage()
+
+  if (!prefix)
+    return null
+
+  const legacyKey = `${prefix}${targetLang}_${word}`
+  const modernKeys = language
+    ? [`${prefix}${JSON.stringify([targetLang, language, word])}`]
+    : (await localforage.keys().catch(() => [])).filter(key => matchesDictionaryWordKey(
+        key,
+        prefix,
+        word,
+        targetLang,
+      ))
+  const cached = await Promise.all([legacyKey, ...modernKeys].map(key => localforage.getItem<UserDictItem>(key).catch(() => null)))
+  const snapshot = await readDictionarySnapshot(targetLang) || []
+  const matches = new Map<string, UserDictItem>()
+
+  // Prefer individual current entries over legacy dictionary snapshots, and
+  // deduplicate the same card stored in both old and new cache formats.
+  for (const item of [...snapshot, ...cached]) {
+    if (matchesDictionaryWord(
+      item,
+      word,
+      language,
+      targetLang,
+    )) {
+      matches.set(item.language, item)
+    }
+  }
+
+  if (prefix !== getKey('dictionary_word_') || targetLang !== getAppLanguage())
+    return null
+
+  return matches.size === 1 ? [...matches.values()][0] : null
+}
+
 localforage.config({
   name: 'InsightBook',
   storeName: 'offline_cache',
@@ -721,11 +795,11 @@ export const offlineService = {
   },
 
   async saveDictionaryWord(word: UserDictItem) {
-    await safeSetItem(`dictionary_word_${getAppLanguage()}_${word.word}`, word)
+    await safeSetItem(`dictionary_word_${JSON.stringify([getAppLanguage(), word.language, word.word])}`, word)
   },
 
-  async getDictionaryWord(word: string): Promise<UserDictItem | null> {
-    return safeGetItem(`dictionary_word_${getAppLanguage()}_${word}`)
+  async getDictionaryWord(word: string, language?: string): Promise<UserDictItem | null> {
+    return findCachedDictionaryWord(word, language)
   },
 
   async saveDictionaryPage(options: DictionaryPageOptions, page: DictionaryPage) {
@@ -741,15 +815,7 @@ export const offlineService = {
   },
 
   async getDictionary(): Promise<UserDictItem[] | null> {
-    const data = await safeGetItem<UserDictItem[]>('dictionary_words')
-
-    if (data)
-      return data
-
-    // Backwards compatibility fallback for legacy locale-keyed entries
-    const lang = getAppLanguage()
-
-    return safeGetItem(`dictionary_words_${lang}`)
+    return readDictionarySnapshot(getAppLanguage())
   },
 
   async saveDecks(decks: DictDeck[]) {

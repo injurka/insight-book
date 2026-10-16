@@ -1,3 +1,4 @@
+import type { UserDictItem } from '../types/models'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const idb = vi.hoisted(() => new Map<string, unknown>())
@@ -93,5 +94,56 @@ describe('dictionary offline invalidation', () => {
       'u1_dictionary_decks',
       'u2_dictionary_page_ru_{}',
     ])
+  })
+})
+
+describe('dictionary offline word identity', () => {
+  it('keeps identical spellings separate by source and target language and user', async () => {
+    const english = { word: 'gift', language: 'en', targetLanguage: 'ru', translation: 'подарок' } as UserDictItem
+    const german = { word: 'gift', language: 'de', targetLanguage: 'ru', translation: 'яд' } as UserDictItem
+    await offlineService.saveDictionaryWord(english)
+    await offlineService.saveDictionaryWord(german)
+    expect(await offlineService.getDictionaryWord('gift', 'en')).toEqual(english)
+    expect(await offlineService.getDictionaryWord('gift', 'de')).toEqual(german)
+    localStorage.setItem('global-app-language', JSON.stringify('zh'))
+    expect(await offlineService.getDictionaryWord('gift', 'en')).toBeNull()
+    localStorage.removeItem('global-app-language')
+    localStorage.setItem('insight_uid', '2')
+    expect(await offlineService.getDictionaryWord('gift', 'en')).toBeNull()
+  })
+
+  it('only reuses legacy word caches for their recorded source language', async () => {
+    const german = { word: 'gift', language: 'de', translation: 'яд' } as UserDictItem
+    idb.set('u1_dictionary_word_ru_gift', german)
+    expect(await offlineService.getDictionaryWord('gift', 'de')).toEqual(german)
+    expect(await offlineService.getDictionaryWord('gift', 'en')).toBeNull()
+  })
+})
+
+describe('dictionary links without source language offline', () => {
+  it('opens a unique word cached individually, including both cache formats', async () => {
+    const card = { id: 1, word: 'gift', language: 'en', targetLanguage: 'ru' } as UserDictItem
+    idb.set('u1_dictionary_word_ru_gift', card)
+    await offlineService.saveDictionaryWord(card)
+    expect(await offlineService.getDictionaryWord('gift')).toEqual(card)
+  })
+
+  it('does not guess a language when individual caches contradict an older full snapshot', async () => {
+    const english = { id: 1, word: 'gift', language: 'en', targetLanguage: 'ru' } as UserDictItem
+    const german = { id: 2, word: 'gift', language: 'de', targetLanguage: 'ru' } as UserDictItem
+    await offlineService.saveDictionary([english])
+    await offlineService.saveDictionaryWord(english)
+    await offlineService.saveDictionaryWord(german)
+    expect(await offlineService.getDictionaryWord('gift')).toBeNull()
+    expect(await offlineService.getDictionaryWord('gift', 'en')).toEqual(english)
+    expect(await offlineService.getDictionaryWord('gift', 'de')).toEqual(german)
+  })
+
+  it('uses the full snapshot when needed and excludes other target languages', async () => {
+    const card = { id: 1, word: 'gift', language: 'en', targetLanguage: 'ru' } as UserDictItem
+    await offlineService.saveDictionary([card])
+    expect(await offlineService.getDictionaryWord('gift')).toEqual(card)
+    localStorage.setItem('global-app-language', JSON.stringify('zh'))
+    expect(await offlineService.getDictionaryWord('gift')).toBeNull()
   })
 })

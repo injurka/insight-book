@@ -21,7 +21,7 @@ import { CatalogDeckSchema, CatalogWordSchema, DictDeckSchema, DictionaryPageSch
 export interface IDictionaryRepository {
   page: (options: DictionaryPageOptions) => Promise<DictionaryPage>
   list: () => Promise<UserDictItem[]>
-  remove: (word: string) => Promise<{ success: boolean }>
+  remove: (word: string, language: string) => Promise<{ success: boolean }>
   saveLocalDictionary: (words: UserDictItem[]) => Promise<void>
 
   getDecks: () => Promise<DictDeck[]>
@@ -33,7 +33,7 @@ export interface IDictionaryRepository {
   bulkDelete: (ids: number[]) => Promise<{ success: boolean }>
   bulkMove: (ids: number[], deckIds: number[]) => Promise<{ success: boolean }>
   getReviewQueue: (opts: { lang: string, mode: 'srs' | 'random' | 'deep_dive' | 'cram' | 'match', deckId?: (number | 'all' | 'none')[] | number | 'all' | 'none', difficulty?: string }) => Promise<UserDictItem[]>
-  get: (word: string) => Promise<UserDictItem>
+  get: (word: string, language?: string) => Promise<UserDictItem>
   upsert: (item: Partial<UserDictItem>) => Promise<{ success: boolean }>
   autoFillWord: (word: string, lang: string) => Promise<WordAutoFillResponse>
   generateExamples: (word: string, lang: string) => Promise<GeneratedWordExamples>
@@ -163,8 +163,8 @@ export class DefaultDictionaryRepository implements IDictionaryRepository {
     }
   }
 
-  async remove(word: string) {
-    return this.mutateDictionary(() => api.dictionary.remove(word))
+  async remove(word: string, language: string) {
+    return this.mutateDictionary(() => api.dictionary.remove(word, language))
   }
 
   async saveLocalDictionary(words: UserDictItem[]) {
@@ -227,11 +227,11 @@ export class DefaultDictionaryRepository implements IDictionaryRepository {
     return applyAcl(z.array(UserDictItemSchema), raw, 'dictionary.getReviewQueue()')
   }
 
-  async get(word: string) {
+  async get(word: string, language?: string) {
     const scope = dictionaryCacheScope()
 
     try {
-      const raw = await api.dictionary.get(word)
+      const raw = await api.dictionary.get(word, language)
       const item = applyAcl(UserDictItemSchema, raw, `dictionary.get(${word})`)
 
       if (scope !== dictionaryCacheScope())
@@ -245,8 +245,7 @@ export class DefaultDictionaryRepository implements IDictionaryRepository {
       if (scope !== dictionaryCacheScope() || !canUseOfflineFallback(error))
         throw error
 
-      const cached = await offlineService.getDictionaryWord(word)
-        || (await offlineService.getDictionary())?.find(item => item.word === word)
+      const cached = await offlineService.getDictionaryWord(word, language)
 
       if (cached)
         return applyAcl(UserDictItemSchema, cached, `dictionary.get(${word}) [offline]`)

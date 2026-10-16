@@ -18,7 +18,7 @@ const emit = defineEmits<{
   click: [item: UserDictItem]
   toggleSelection: [id: number]
   edit: [item: UserDictItem]
-  delete: [word: string]
+  delete: [item: UserDictItem]
 }>()
 
 const { t } = useI18n()
@@ -109,7 +109,7 @@ function getDifficultyClass(lang: string, diffValue: string | null) {
         size="xs"
         color="error"
         :title="t('dictionary.deleteItem')"
-        @click="emit('delete', item.word)"
+        @click="emit('delete', item)"
       />
     </div>
   </div>

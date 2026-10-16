@@ -1,0 +1,2 @@
+DROP INDEX `user_dictionary_userId_word_targetLanguage_unique`;--> statement-breakpoint
+CREATE UNIQUE INDEX `user_dictionary_userId_word_language_targetLanguage_unique` ON `user_dictionary` (`userId`,`word`,`language`,`targetLanguage`);

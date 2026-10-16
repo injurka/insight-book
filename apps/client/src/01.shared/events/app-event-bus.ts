@@ -2,9 +2,9 @@ import type { UserDictItem } from '~/01.shared/types/models'
 
 export interface AppEvents {
   'DICTIONARY:REQUEST_SAVE_WORD': Partial<UserDictItem> & { contextSentence?: string, contextBookId?: number }
-  'DICTIONARY:REQUEST_REMOVE_WORD': string
+  'DICTIONARY:REQUEST_REMOVE_WORD': Pick<UserDictItem, 'word' | 'language'>
   'DICTIONARY:WORD_SAVED': Partial<UserDictItem>
-  'DICTIONARY:WORD_REMOVED': string
+  'DICTIONARY:WORD_REMOVED': Pick<UserDictItem, 'word' | 'language'>
 }
 
 export class AppEventBus {

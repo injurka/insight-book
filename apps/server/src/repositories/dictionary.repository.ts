@@ -8,6 +8,7 @@ import { db } from '../db'
 import { catalogDb } from '../db/catalog'
 import { officialDecks, officialDeckWords } from '../db/catalog-schema'
 import * as schema from '../db/schema'
+import { AppError } from '../utils/errors'
 import { dictionaryPageFilters } from './dictionary-page-filters'
 
 export class DictionaryRepository implements IDictionaryRepository {
@@ -127,12 +128,14 @@ export class DictionaryRepository implements IDictionaryRepository {
     })) as unknown as UserDictItem[]
   }
 
-  async getWordFromUserDictionary(word: string, userId: number, targetLang: string) {
-    const item = await db.query.userDictionary.findFirst({
+  async getWordFromUserDictionary(word: string, userId: number, targetLang: string, language?: string) {
+    const items = await db.query.userDictionary.findMany({
+      limit: 2,
       where: and(
         eq(schema.userDictionary.word, word),
         eq(schema.userDictionary.userId, userId),
         eq(schema.userDictionary.targetLanguage, targetLang),
+        language ? eq(schema.userDictionary.language, language) : undefined,
       ),
       with: {
         wordToDecks: true,
@@ -141,6 +144,10 @@ export class DictionaryRepository implements IDictionaryRepository {
         },
       },
     })
+    if (items.length > 1)
+      throw new AppError(409, 'Source language is required for this word')
+
+    const item = items[0]
     if (!item)
       return null
 
@@ -197,7 +204,7 @@ export class DictionaryRepository implements IDictionaryRepository {
 
       updatedAt: new Date().toISOString(),
     }).onConflictDoUpdate({
-      target: [schema.userDictionary.userId, schema.userDictionary.word, schema.userDictionary.targetLanguage],
+      target: [schema.userDictionary.userId, schema.userDictionary.word, schema.userDictionary.language, schema.userDictionary.targetLanguage],
       set: {
         transcription: data.transcription,
         translation: data.translation,
@@ -232,11 +239,16 @@ export class DictionaryRepository implements IDictionaryRepository {
     }).onConflictDoNothing()
   }
 
-  async removeFromUserDictionary(word: string, userId: number, targetLang: string) {
+  async removeFromUserDictionary(word: string, userId: number, targetLang: string, language?: string) {
+    const entry = await this.getWordFromUserDictionary(word, userId, targetLang, language)
+    if (!entry)
+      return
+
+    // Resolve legacy requests first, then delete only the resolved row even if
+    // another language is inserted between the lookup and this statement.
     await db.delete(schema.userDictionary).where(and(
-      eq(schema.userDictionary.word, word),
+      eq(schema.userDictionary.id, entry.id),
       eq(schema.userDictionary.userId, userId),
-      eq(schema.userDictionary.targetLanguage, targetLang),
     ))
   }
 
@@ -420,7 +432,7 @@ export class DictionaryRepository implements IDictionaryRepository {
     for (let i = 0; i < userWords.length; i += chunkSize) {
       const chunk = userWords.slice(i, i + chunkSize)
       const res = await db.insert(schema.userDictionary).values(chunk).onConflictDoUpdate({
-        target: [schema.userDictionary.userId, schema.userDictionary.word, schema.userDictionary.targetLanguage],
+        target: [schema.userDictionary.userId, schema.userDictionary.word, schema.userDictionary.language, schema.userDictionary.targetLanguage],
         set: {
           transcription: sql`excluded.transcription`,
           translation: sql`excluded.translation`,

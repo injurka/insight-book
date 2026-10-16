@@ -15,11 +15,11 @@ export function setupDictionaryEvents() {
     appEventBus.emit('DICTIONARY:WORD_SAVED', item)
   })
 
-  appEventBus.on('DICTIONARY:REQUEST_REMOVE_WORD', async (word: string) => {
-    await repos.dictionary.remove(word)
+  appEventBus.on('DICTIONARY:REQUEST_REMOVE_WORD', async (item) => {
+    await repos.dictionary.remove(item.word, item.language)
     const dictStore = useDictionaryStore()
     await dictStore.fetchDictionary()
-    useToastStore().success(`Слово "${word}" удалено`)
-    appEventBus.emit('DICTIONARY:WORD_REMOVED', word)
+    useToastStore().success(`Слово "${item.word}" удалено`)
+    appEventBus.emit('DICTIONARY:WORD_REMOVED', item)
   })
 }

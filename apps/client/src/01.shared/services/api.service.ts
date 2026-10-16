@@ -541,15 +541,15 @@ export const api = {
     deleteDeck: async (id: number, mode: 'keep' | 'delete_all' | 'delete_exclusive' = 'keep') =>
       request<{ success: boolean }>(`/api/dictionary/decks/${id}?mode=${mode}`, { method: 'DELETE' }),
 
-    get: async (word: string) => request<UserDictItem>(`/api/dictionary/${encodeURIComponent(word)}`, { silentErrors: true }),
+    get: async (word: string, language?: string) => request<UserDictItem>(`/api/dictionary/${encodeURIComponent(word)}`, { query: { language }, silentErrors: true }),
     upsert: async (item: Partial<UserDictItem> & { contextSentence?: string, contextBookId?: number }) =>
       request<{ success: boolean }>('/api/dictionary', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(item),
       }),
-    remove: async (word: string) =>
-      request<{ success: boolean }>(`/api/dictionary/${encodeURIComponent(word)}`, { method: 'DELETE' }),
+    remove: async (word: string, language: string) =>
+      request<{ success: boolean }>(`/api/dictionary/${encodeURIComponent(word)}`, { method: 'DELETE', query: { language } }),
 
     getReviewQueue: async (opts: { lang: string, mode: 'srs' | 'random' | 'deep_dive' | 'cram' | 'match', deckId?: (number | 'none' | 'all')[] | number | 'none' | 'all', difficulty?: string }) => {
       const queryParams = new URLSearchParams()

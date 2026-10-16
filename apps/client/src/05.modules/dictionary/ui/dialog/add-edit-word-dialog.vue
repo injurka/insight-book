@@ -134,8 +134,8 @@ function handleSave() {
   analysisStore.saveWordToDict(localWord.value)
 }
 function handleDelete() {
-  if (localWord.value.word)
-    analysisStore.removeFromDict(localWord.value.word)
+  if (localWord.value.word && localWord.value.language)
+    analysisStore.removeFromDict(localWord.value.word, localWord.value.language)
 }
 function playTTS() {
   if (localWord.value.word)

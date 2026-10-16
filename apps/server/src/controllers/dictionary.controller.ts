@@ -284,17 +284,17 @@ export const dictionaryController = new Elysia({ prefix: '/api/dictionary' })
   })
   .get('/:word', async ({ userId, params: { word }, query }) => {
     const targetLang = normalizeLanguageCode(query.targetLang || 'ru')
-    return await dictionaryService.getWordFromUserDictionary(decodeURIComponent(word), userId, targetLang)
+    return await dictionaryService.getWordFromUserDictionary(decodeURIComponent(word), userId, targetLang, query.language ? normalizeLanguageCode(query.language) : undefined)
   }, {
     cache: 'shortPrivate',
     params: t.Object({ word: t.String() }),
-    query: t.Object({ targetLang: t.Optional(t.String()) }),
+    query: t.Object({ targetLang: t.Optional(t.String()), language: t.Optional(t.String({ minLength: 1 })) }),
   })
   .delete('/:word', async ({ userId, params: { word }, query }) => {
     const targetLang = normalizeLanguageCode(query.targetLang || 'ru')
-    await dictionaryService.removeFromUserDictionary(decodeURIComponent(word), userId, targetLang)
+    await dictionaryService.removeFromUserDictionary(decodeURIComponent(word), userId, targetLang, query.language ? normalizeLanguageCode(query.language) : undefined)
     return { success: true }
   }, {
     params: t.Object({ word: t.String() }),
-    query: t.Object({ targetLang: t.Optional(t.String()) }),
+    query: t.Object({ targetLang: t.Optional(t.String()), language: t.Optional(t.String({ minLength: 1 })) }),
   })
