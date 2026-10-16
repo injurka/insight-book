@@ -291,6 +291,18 @@ export const userDictionary = sqliteTable('user_dictionary', {
   unique().on(t.userId, t.word, t.language, t.targetLanguage),
 ])
 
+export const bookDeckDrafts = sqliteTable('book_deck_drafts', {
+  id: text('id').primaryKey(),
+  userId: integer('userId').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  bookId: integer('bookId').notNull().references(() => books.id, { onDelete: 'cascade' }),
+  name: text('name').notNull(),
+  language: text('language').notNull(),
+  targetLanguage: text('targetLanguage').notNull(),
+  words: text('words').notNull(),
+  deckId: integer('deckId').references(() => dictDecks.id, { onDelete: 'set null' }),
+  updatedAt: text('updatedAt').notNull().default(sql`(datetime('now'))`),
+}, t => [unique().on(t.userId, t.bookId, t.targetLanguage)])
+
 export const wordToDeck = sqliteTable('word_to_deck', {
   wordId: integer('wordId').notNull().references(() => userDictionary.id, { onDelete: 'cascade' }),
   deckId: integer('deckId').notNull().references(() => dictDecks.id, { onDelete: 'cascade' }),

@@ -32,6 +32,18 @@ const quizLevel = ref('')
 const statsDialog = ref<InstanceType<typeof DictionaryStatsDialog> | null>(null)
 let detailsRequest = 0
 
+watch(() => route.query.deck, (value) => {
+  const deckId = typeof value === 'string' ? Number(value) : NaN
+
+  if (Number.isSafeInteger(deckId) && deckId > 0) {
+    store.selectedDeckId = [deckId]
+    store.searchTerm = ''
+    store.selectedLanguage = 'all'
+    store.selectedDifficulty = ['all']
+    store.selectedStatus = ['all']
+  }
+}, { immediate: true })
+
 watch(isTrainingOpen, (newVal, oldVal) => {
   if (oldVal === true && newVal === false)
     statsDialog.value?.fetchActivity()

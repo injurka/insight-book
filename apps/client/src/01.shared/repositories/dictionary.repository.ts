@@ -7,6 +7,7 @@ import type {
   UserDictItem,
   WordAutoFillResponse,
 } from '~/01.shared/types/models'
+import type { BookDeckDraft, BookDeckWord } from '~/01.shared/types/schemas/book-deck.schema'
 import type { DictionaryPage, DictionaryPageOptions } from '~/01.shared/types/schemas/dictionary.schema'
 import { z } from 'zod'
 import { applyAcl } from '~/01.shared/lib/acl'
@@ -16,9 +17,14 @@ import { api } from '~/01.shared/services/api.service'
 import { offlineService } from '~/01.shared/services/offline.service'
 import { useAuthStore } from '~/01.shared/store/auth.store'
 import { useGlobalSettingsStore } from '~/01.shared/store/settings.store'
+import { BookDeckDraftSchema, BookDeckWordSchema } from '~/01.shared/types/schemas/book-deck.schema'
 import { CatalogDeckSchema, CatalogWordSchema, DictDeckSchema, DictionaryPageSchema, PromptItemSchema, UserDictItemSchema } from '~/01.shared/types/schemas/dictionary.schema'
 
 export interface IDictionaryRepository {
+  openBookDeck: (bookId: number, restart?: boolean) => Promise<BookDeckDraft>
+  generateBookDeckWord: (id: string, word: string) => Promise<BookDeckWord>
+  saveBookDeck: (id: string, name: string, words: string[], updateExisting: boolean) => Promise<{ deckId: number }>
+
   page: (options: DictionaryPageOptions) => Promise<DictionaryPage>
   list: () => Promise<UserDictItem[]>
   remove: (word: string, language: string) => Promise<{ success: boolean }>
@@ -80,6 +86,28 @@ function paginateOfflineDictionary(words: UserDictItem[], options: DictionaryPag
 }
 
 export class DefaultDictionaryRepository implements IDictionaryRepository {
+  async openBookDeck(bookId: number, restart = false) {
+    return applyAcl(BookDeckDraftSchema, await api.dictionary.openBookDeck(bookId, restart), 'dictionary.openBookDeck')
+  }
+
+  async generateBookDeckWord(id: string, word: string) {
+    return applyAcl(BookDeckWordSchema, await api.dictionary.generateBookDeckWord(id, word), 'dictionary.generateBookDeckWord')
+  }
+
+  async saveBookDeck(
+    id: string,
+    name: string,
+    words: string[],
+    updateExisting: boolean,
+  ) {
+    return this.mutateDictionary(() => api.dictionary.saveBookDeck(
+      id,
+      name,
+      words,
+      updateExisting,
+    ))
+  }
+
   private async mutateDictionary<T>(mutation: () => Promise<T>): Promise<T> {
     const scope = dictionaryCacheScope()
     const result = await mutation()

@@ -1,5 +1,6 @@
 /// <reference lib="webworker" />
 
+import { extractBookDeckWords } from '../services/book-deck/extract'
 import { processEpub } from '../services/epub.service'
 import { processFb2 } from '../services/fb2.service'
 import { processCbz } from '../services/manga.service'
@@ -30,6 +31,9 @@ self.onmessage = async (event: MessageEvent) => {
         break
       case 'tokenizeOcrBlocks':
         result = await tokenizeOcrBlocks(payload.blocks, payload.language)
+        break
+      case 'extractBookDeckWords':
+        result = await extractBookDeckWords(payload.bookId, payload.language)
         break
       case 'analyzeBookVocabulary':
         result = await analyzeBookVocabulary(payload.bookId, payload.language)

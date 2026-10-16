@@ -522,6 +522,34 @@ export const api = {
   },
 
   dictionary: {
+    openBookDeck: (bookId: number, restart = false) => request<unknown>('/api/dictionary/book-deck/open', {
+      method: 'POST',
+      body: JSON.stringify({ bookId, restart }),
+      headers: { 'Content-Type': 'application/json' },
+      timeout: 300000,
+      retry: 0,
+    }),
+    generateBookDeckWord: (id: string, word: string) => request<unknown>(`/api/dictionary/book-deck/${id}/generate`, {
+      method: 'POST',
+      body: JSON.stringify({ word }),
+      headers: { 'Content-Type': 'application/json' },
+      withLlm: true,
+      timeout: 180000,
+      retry: 0,
+      silentErrors: true,
+    }),
+    saveBookDeck: (
+      id: string,
+      name: string,
+      words: string[],
+      updateExisting: boolean,
+    ) => request<{ deckId: number }>(`/api/dictionary/book-deck/${id}/save`, {
+      method: 'POST',
+      body: JSON.stringify({ name, words, updateExisting }),
+      headers: { 'Content-Type': 'application/json' },
+      timeout: 300000,
+      retry: 0,
+    }),
     page: async (options: DictionaryPageOptions) => request<DictionaryPage>('/api/dictionary/page', { query: options }),
     list: async () => request<UserDictItem[]>('/api/dictionary'),
 

@@ -2,6 +2,7 @@ import { Elysia, t } from 'elysia'
 import jwt from 'jsonwebtoken'
 import { AUTH_MODE, JWT_SECRET } from '../config'
 import { ERROR_CODES } from '../constants/error-codes'
+import { bookDeckService } from '../services/book-deck/service'
 import { dictionaryService } from '../services/dictionary.service'
 import { checkPronunciationAudio, generateDeepDiveQuiz, generateWordAutoFill, generateWordExamples } from '../services/llm.service'
 import { cachePlugin } from '../utils/cache'
@@ -52,6 +53,21 @@ export const dictionaryController = new Elysia({ prefix: '/api/dictionary' })
   .use(authPlugin)
   .use(cachePlugin)
   .onError(handleElysiaError)
+  .post('/book-deck/open', ({ userId, body, query }) =>
+    bookDeckService.open(body.bookId, userId, normalizeLanguageCode(query.targetLang || 'ru'), body.restart), {
+    query: t.Object({ targetLang: t.Optional(t.String()) }),
+    body: t.Object({ bookId: t.Number({ minimum: 1, multipleOf: 1 }), restart: t.Optional(t.Boolean()) }),
+  })
+  .post('/book-deck/:id/generate', ({ userId, params, body, query, request }) =>
+    bookDeckService.generate(params.id, body.word, userId, normalizeLanguageCode(query.targetLang || 'ru'), extractLlmConfig(request)), {
+    query: t.Object({ targetLang: t.Optional(t.String()) }),
+    body: t.Object({ word: t.String({ minLength: 1, maxLength: 100 }) }),
+  })
+  .post('/book-deck/:id/save', ({ userId, params, body, query }) =>
+    bookDeckService.save(params.id, userId, normalizeLanguageCode(query.targetLang || 'ru'), body.name, body.words, body.updateExisting ?? false), {
+    query: t.Object({ targetLang: t.Optional(t.String()) }),
+    body: t.Object({ name: t.String({ minLength: 1, maxLength: 200 }), words: t.Array(t.String(), { minItems: 1, maxItems: 50000 }), updateExisting: t.Optional(t.Boolean()) }),
+  })
   .get('/', async ({ userId, query }) => {
     const targetLang = normalizeLanguageCode(query.targetLang || 'ru')
     return await dictionaryService.getUserDictionary(userId, targetLang)
