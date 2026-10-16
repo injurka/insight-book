@@ -1,31 +1,39 @@
 <script setup lang="ts">
+import type { Book } from '~/01.shared/types/models'
 import { Icon } from '@iconify/vue'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { KitBtn } from '~/02.kit/atoms/kit-btn/ui'
 
+type PublishStatus = NonNullable<Book['publicStatus']>
+
 interface Props {
+  status?: PublishStatus
   isReadOnly?: boolean
+  loading?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
+  status: 'private',
   isReadOnly: false,
+  loading: false,
 })
 
-const status = defineModel<'private' | 'pending' | 'public' | 'rejected'>('status', {
-  default: 'private',
-})
+const emit = defineEmits<{
+  (e: 'request'): void
+  (e: 'cancel'): void
+}>()
 
 const { t } = useI18n()
 
-const effectiveStatus = computed<'private' | 'pending' | 'public' | 'rejected'>(() => {
-  if (props.isReadOnly || status.value === 'public')
+const effectiveStatus = computed<PublishStatus>(() => {
+  if (props.isReadOnly || props.status === 'public')
     return 'public'
 
-  if (status.value === 'pending')
+  if (props.status === 'pending')
     return 'pending'
 
-  if (status.value === 'rejected')
+  if (props.status === 'rejected')
     return 'rejected'
 
   return 'private'
@@ -69,12 +77,12 @@ const statusConfig = computed(() => {
   }
 })
 
-function setPending() {
-  status.value = 'pending'
+function requestPublish() {
+  emit('request')
 }
 
 function cancelRequest() {
-  status.value = 'private'
+  emit('cancel')
 }
 </script>
 
@@ -108,7 +116,8 @@ function cancelRequest() {
           color="primary"
           size="sm"
           prepend-icon="mdi:send-outline"
-          @click="setPending"
+          :loading="loading"
+          @click="requestPublish"
         >
           {{ t('library.sendPublishRequest') }}
         </KitBtn>
@@ -119,6 +128,7 @@ function cancelRequest() {
           color="error"
           size="sm"
           prepend-icon="mdi:close-circle-outline"
+          :loading="loading"
           @click="cancelRequest"
         >
           {{ t('library.cancelPublishRequest') }}
@@ -130,7 +140,8 @@ function cancelRequest() {
           color="primary"
           size="sm"
           prepend-icon="mdi:refresh"
-          @click="setPending"
+          :loading="loading"
+          @click="requestPublish"
         >
           {{ t('library.retryPublishRequest') }}
         </KitBtn>

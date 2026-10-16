@@ -2,7 +2,9 @@
 import type { Book } from '~/01.shared/types/models'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useToast } from '~/01.shared/composables/use-toast'
 import { useAuthStore } from '~/01.shared/store/auth.store'
+import { useNetworkStore } from '~/01.shared/store/network.store'
 import { KitBtn } from '~/02.kit/atoms/kit-btn/ui'
 import { KitCheckbox } from '~/02.kit/atoms/kit-checkbox/ui'
 import { KitImage } from '~/02.kit/atoms/kit-image/ui'
@@ -11,7 +13,10 @@ import { KitSelect } from '~/02.kit/molecules/kit-select/ui'
 import { KitDialog } from '~/02.kit/organisms/kit-dialog/ui'
 import { KitPrompt } from '~/02.kit/organisms/kit-prompt/ui'
 import { useEditBookForm } from '../../composables/use-edit-book-form'
+import { useLibraryStore } from '../../store/library.store'
 import PublishRequestBlock from './publish-request-block.vue'
+
+type PublishStatus = NonNullable<Book['publicStatus']>
 
 interface Props {
   book: Book | null
@@ -24,6 +29,9 @@ const emit = defineEmits<{
 }>()
 const visible = defineModel<boolean>('visible', { required: true })
 
+const store = useLibraryStore()
+const networkStore = useNetworkStore()
+const toast = useToast()
 const authStore = useAuthStore()
 const { t } = useI18n()
 const {
@@ -42,6 +50,7 @@ const {
 })
 
 const confirmDeleteVisible = ref(false)
+const isPublishLoading = ref(false)
 
 const bookLanguageOptions = computed(() => [
   { label: t('library.langEn'), value: 'en' },
@@ -65,6 +74,47 @@ const textDirectionModel = computed({
   set: (val) => { editingBook.value.textDirection = val === 'auto' ? null : String(val) },
 })
 const isReadOnly = computed(() => editingBook.value.publicStatus === 'public' || editingBook.value.isPublic)
+
+/**
+ * Отправка заявки идёт сразу по клику в блоке публикации, отдельным PATCH'ем
+ * только с publicStatus: держать её «в форме» до «Сохранить» нельзя — кнопка
+ * обещает отправку, а закрытие модалки молча теряло заявку.
+ */
+async function updatePublishStatus(next: PublishStatus) {
+  const bookId = editingBook.value.id
+  const previous = editingBook.value.publicStatus ?? 'private'
+
+  if (bookId === undefined || bookId === null || next === previous)
+    return
+
+  if (networkStore.effectiveOffline) {
+    toast.warn(t('network.needOnline'))
+
+    return
+  }
+
+  editingBook.value.publicStatus = next
+  isPublishLoading.value = true
+
+  try {
+    await store.updateBookInfo(bookId, { publicStatus: next })
+  }
+  catch {
+    editingBook.value.publicStatus = previous
+    void store.fetchBooks()
+  }
+  finally {
+    isPublishLoading.value = false
+  }
+}
+
+function onPublishRequest() {
+  void updatePublishStatus('pending')
+}
+
+function onPublishCancel() {
+  void updatePublishStatus('private')
+}
 
 function onConfirmDelete() {
   handleDelete()
@@ -136,8 +186,11 @@ function onConfirmDelete() {
 
       <PublishRequestBlock
         v-if="!authStore.isSingleMode"
-        v-model:status="editingBook.publicStatus"
+        :status="editingBook.publicStatus"
         :is-read-only="isReadOnly"
+        :loading="isPublishLoading"
+        @request="onPublishRequest"
+        @cancel="onPublishCancel"
       />
 
       <div class="form-group row-group">
