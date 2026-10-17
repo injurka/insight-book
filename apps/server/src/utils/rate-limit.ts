@@ -16,6 +16,7 @@ export function createRateLimiter(maxRequests: number, windowMs: number) {
 
   const cleanupInterval = setInterval(() => {
     const now = Date.now()
+
     for (const [key, record] of store.entries()) {
       if (now > record.resetAt) {
         store.delete(key)

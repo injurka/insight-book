@@ -10,15 +10,19 @@ import * as schema from '../db/schema'
 export class BookRepository implements IBookRepository {
   buildPublicConditions(tag: string | null, search: string | null, language: string | null): (SQL | undefined)[] {
     const conditions: (SQL | undefined)[] = [eq(schema.books.isPublic, true)]
+
     if (tag) {
       conditions.push(like(schema.bookStats.tags, `%${tag}%`))
     }
+
     if (search) {
       conditions.push(like(schema.books.title, `%${search}%`))
     }
+
     if (language) {
       conditions.push(eq(schema.books.language, language))
     }
+
     return conditions
   }
 
@@ -33,10 +37,7 @@ export class BookRepository implements IBookRepository {
     })
       .from(schema.books)
       .leftJoin(schema.bookStats, eq(schema.books.id, schema.bookStats.bookId))
-      .leftJoin(schema.readingProgress, and(
-        eq(schema.readingProgress.bookId, schema.books.id),
-        sql`1=0`,
-      ))
+      .leftJoin(schema.readingProgress, and(eq(schema.readingProgress.bookId, schema.books.id), sql`1=0`))
       .where(and(...conditions))
       .orderBy(desc(schema.books.createdAt))
       .limit(limit)
@@ -49,22 +50,21 @@ export class BookRepository implements IBookRepository {
       .leftJoin(schema.bookStats, eq(schema.books.id, schema.bookStats.bookId))
       .where(and(...conditions))
       .get()
+
     return res?.count || 0
   }
 
   async getLlmCounts(bookIds: number[], targetLang: string) {
     if (bookIds.length === 0)
       return []
+
     return db.select({
       bookId: schema.bookLlmCache.bookId,
       count: sql<number>`count(*)`.mapWith(Number),
     })
       .from(schema.bookLlmCache)
       .innerJoin(schema.llmCache, eq(schema.bookLlmCache.sentenceHash, schema.llmCache.sentenceHash))
-      .where(and(
-        inArray(schema.bookLlmCache.bookId, bookIds),
-        eq(schema.llmCache.targetLanguage, targetLang),
-      ))
+      .where(and(inArray(schema.bookLlmCache.bookId, bookIds), eq(schema.llmCache.targetLanguage, targetLang)))
       .groupBy(schema.bookLlmCache.bookId)
   }
 
@@ -76,16 +76,15 @@ export class BookRepository implements IBookRepository {
     })
       .from(schema.bookLlmCache)
       .innerJoin(schema.llmCache, eq(schema.bookLlmCache.sentenceHash, schema.llmCache.sentenceHash))
-      .where(and(
-        eq(schema.bookLlmCache.bookId, id),
-        eq(schema.llmCache.targetLanguage, targetLang),
-      ))
+      .where(and(eq(schema.bookLlmCache.bookId, id), eq(schema.llmCache.targetLanguage, targetLang)))
 
     const validResults: { sentenceHash: string, sentence: string, analysis: unknown }[] = []
+
     for (const r of rows) {
       try {
         const decompressed = decompressData(r.analysis)
         const parsed = JSON.parse(decompressed)
+
         if (!isOldFormatAnalysis(parsed)) {
           validResults.push({
             sentenceHash: r.sentenceHash,
@@ -104,10 +103,7 @@ export class BookRepository implements IBookRepository {
 
   async getUserBooks(userId: number) {
     return db.query.books.findMany({
-      where: or(
-        eq(schema.books.userId, userId),
-        eq(schema.books.isPublic, true),
-      ),
+      where: or(eq(schema.books.userId, userId), eq(schema.books.isPublic, true)),
       columns: { toc: false },
       with: { progresses: { where: eq(schema.readingProgress.userId, userId), limit: 1 } },
       orderBy: [desc(schema.books.updatedAt)],
@@ -116,17 +112,12 @@ export class BookRepository implements IBookRepository {
 
   async getBookById(id: number, userId: number | null) {
     let condition
+
     if (userId) {
-      condition = and(
-        eq(schema.books.id, id),
-        or(eq(schema.books.userId, userId), eq(schema.books.isPublic, true)),
-      )
+      condition = and(eq(schema.books.id, id), or(eq(schema.books.userId, userId), eq(schema.books.isPublic, true)))
     }
     else {
-      condition = and(
-        eq(schema.books.id, id),
-        eq(schema.books.isPublic, true),
-      )
+      condition = and(eq(schema.books.id, id), eq(schema.books.isPublic, true))
     }
 
     return db.query.books.findFirst({
@@ -143,26 +134,19 @@ export class BookRepository implements IBookRepository {
       db.select({ count: sql<number>`count(*)` })
         .from(schema.bookLlmCache)
         .innerJoin(schema.llmCache, eq(schema.bookLlmCache.sentenceHash, schema.llmCache.sentenceHash))
-        .where(and(
-          eq(schema.bookLlmCache.bookId, id),
-          eq(schema.bookLlmCache.type, 'sentence'),
-          eq(schema.llmCache.targetLanguage, targetLang),
-        ))
+        .where(and(eq(schema.bookLlmCache.bookId, id), eq(schema.bookLlmCache.type, 'sentence'), eq(schema.llmCache.targetLanguage, targetLang)))
         .get(),
       db.select({ count: sql<number>`count(*)` })
         .from(schema.bookLlmCache)
         .innerJoin(schema.llmCache, eq(schema.bookLlmCache.sentenceHash, schema.llmCache.sentenceHash))
-        .where(and(
-          eq(schema.bookLlmCache.bookId, id),
-          eq(schema.bookLlmCache.type, 'word'),
-          eq(schema.llmCache.targetLanguage, targetLang),
-        ))
+        .where(and(eq(schema.bookLlmCache.bookId, id), eq(schema.bookLlmCache.type, 'word'), eq(schema.llmCache.targetLanguage, targetLang)))
         .get(),
       db.select({ count: sql<number>`count(*)` })
         .from(schema.bookTtsCache)
         .where(eq(schema.bookTtsCache.bookId, id))
         .get(),
     ])
+
     return { sentencesCountRes, wordsCountRes, ttsCountRes }
   }
 
@@ -216,6 +200,7 @@ export class BookRepository implements IBookRepository {
       collection: payload.collection ?? null,
       updatedAt: now,
     }
+
     return db.insert(schema.readingProgress).values({
       bookId,
       userId,
@@ -248,12 +233,22 @@ export class BookRepository implements IBookRepository {
         userId,
         currentPage: 1,
       }).onConflictDoNothing()
+
       return book
     })
   }
 
   async getBookForDeletion(id: number) {
-    return db.query.books.findFirst({ where: eq(schema.books.id, id), columns: { filePath: true, coverUrl: true, userId: true, isPublic: true, publicStatus: true } })
+    return db.query.books.findFirst({
+      where: eq(schema.books.id, id),
+      columns: {
+        filePath: true,
+        coverUrl: true,
+        userId: true,
+        isPublic: true,
+        publicStatus: true,
+      },
+    })
   }
 
   async deleteReadingProgress(bookId: number, userId: number) {
@@ -304,6 +299,7 @@ export class BookRepository implements IBookRepository {
 
   async upsertNlpCache(bookId: number, pageNum: number, data: string) {
     const compressed = compressData(data)
+
     return db.transaction(async (tx) => {
       await tx.delete(schema.nlpCache).where(and(eq(schema.nlpCache.bookId, bookId), eq(schema.nlpCache.pageNum, pageNum)))
       await tx.insert(schema.nlpCache).values({ bookId, pageNum, data: compressed })
@@ -352,26 +348,22 @@ export class BookRepository implements IBookRepository {
     const result = await db.select({ count: sql<number>`count(*)` })
       .from(schema.books)
       .get()
+
     return result?.count || 0
   }
 
   async countPendingPublic() {
     const result = await db.select({ count: sql<number>`count(*)` })
       .from(schema.books)
-      .where(and(
-        eq(schema.books.publicStatus, 'pending'),
-        eq(schema.books.isPublic, false),
-      ))
+      .where(and(eq(schema.books.publicStatus, 'pending'), eq(schema.books.isPublic, false)))
       .get()
+
     return result?.count || 0
   }
 
   async findPendingPublic() {
     return db.query.books.findMany({
-      where: and(
-        eq(schema.books.publicStatus, 'pending'),
-        eq(schema.books.isPublic, false),
-      ),
+      where: and(eq(schema.books.publicStatus, 'pending'), eq(schema.books.isPublic, false)),
       with: { user: true },
       orderBy: [desc(schema.books.createdAt)],
     })
@@ -383,14 +375,11 @@ export class BookRepository implements IBookRepository {
     const offset = (page - 1) * limit
 
     const conditions: (SQL | undefined)[] = [eq(schema.books.isPublic, true)]
+
     if (opts?.search) {
-      conditions.push(
-        or(
-          like(schema.books.title, `%${opts.search}%`),
-          like(schema.books.author, `%${opts.search}%`),
-        ),
-      )
+      conditions.push(or(like(schema.books.title, `%${opts.search}%`), like(schema.books.author, `%${opts.search}%`)))
     }
+
     const where = and(...conditions)
 
     const [books, totalResult] = await Promise.all([

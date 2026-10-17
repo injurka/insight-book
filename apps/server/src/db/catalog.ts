@@ -25,6 +25,7 @@ export async function initCatalogDb() {
     await catalogClient.execute('PRAGMA cache_size = -64000')
     await catalogClient.execute('PRAGMA temp_store = MEMORY')
   }
+
   await catalogClient.execute('PRAGMA foreign_keys = ON')
   await catalogClient.batch([
     `CREATE TABLE IF NOT EXISTS official_decks (

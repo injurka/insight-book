@@ -5,10 +5,7 @@ import { activityRepository } from '../repositories/activity.repository'
 import { userRepository } from '../repositories/user.repository'
 
 export class ActivityService {
-  constructor(
-    private activityRepo: IActivityRepository = activityRepository,
-    private userRepo: IUserRepository = userRepository,
-  ) {}
+  constructor(private activityRepo: IActivityRepository = activityRepository, private userRepo: IUserRepository = userRepository) {}
 
   async getActivityStats(userId: number) {
     const sinceDate = new Date()
@@ -67,6 +64,7 @@ export class ActivityService {
           cost: 0,
         })
       }
+
       const act = actionMap.get(row.action)!
       act.inputTokens += row.inputTokens
       act.outputTokens += row.outputTokens
@@ -101,6 +99,7 @@ export class ActivityService {
           cost: 0,
         })
       }
+
       const day = dailyMap.get(row.date)!
       day.inputTokens += row.inputTokens
       day.outputTokens += row.outputTokens

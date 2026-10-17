@@ -9,7 +9,6 @@ import {
   text,
   unique,
 } from 'drizzle-orm/sqlite-core'
-
 import { ROLES } from '../constants/roles'
 
 export const dumpLogs = sqliteTable('dump_logs', {
@@ -117,7 +116,12 @@ export const tokenUsage = sqliteTable('token_usage', {
   audioInputSeconds: real('audioInputSeconds').default(0),
   audioOutputSeconds: real('audioOutputSeconds').default(0),
 }, t => [
-  unique().on(t.userId, t.date, t.action, t.model),
+  unique().on(
+    t.userId,
+    t.date,
+    t.action,
+    t.model,
+  ),
 ])
 
 export const llmLogs = sqliteTable('llm_logs', {
@@ -288,7 +292,12 @@ export const userDictionary = sqliteTable('user_dictionary', {
   createdAt: text('createdAt').notNull().default(sql`(datetime('now'))`),
   updatedAt: text('updatedAt').notNull().default(sql`(datetime('now'))`),
 }, t => [
-  unique().on(t.userId, t.word, t.language, t.targetLanguage),
+  unique().on(
+    t.userId,
+    t.word,
+    t.language,
+    t.targetLanguage,
+  ),
 ])
 
 export const bookDeckDrafts = sqliteTable('book_deck_drafts', {

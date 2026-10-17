@@ -27,6 +27,7 @@ interface AiConfigFile {
 
 export function getAiConfig() {
   let fileConfig: AiConfigFile = {}
+
   try {
     if (existsSync(CONFIG_PATH)) {
       fileConfig = JSON.parse(readFileSync(CONFIG_PATH, 'utf-8'))

@@ -3,6 +3,7 @@ import { normalizeLanguageCode } from '../utils/helpers'
 
 export function getLangName(code?: string): string {
   const normalized = normalizeLanguageCode(code)
+
   if (!normalized)
     return 'Foreign'
 
@@ -30,10 +31,8 @@ export function getOcrPrompt(language: string, textDirection?: string | null): s
   else if (textDirection === 'ltr') {
     layoutHint = 'Read bubbles and text in the standard horizontal order: left-to-right, top-to-bottom.'
   }
-  else {
-    if (language === 'ja' || language === 'zh') {
-      layoutHint = 'Pay close attention to VERTICAL text which is standard for manga/manhua. Read vertical bubbles correctly from top-to-bottom, right-to-left. If the layout is clearly left-to-right, adjust your reading order accordingly. Also parse any horizontal text if present.'
-    }
+  else if (language === 'ja' || language === 'zh') {
+    layoutHint = 'Pay close attention to VERTICAL text which is standard for manga/manhua. Read vertical bubbles correctly from top-to-bottom, right-to-left. If the layout is clearly left-to-right, adjust your reading order accordingly. Also parse any horizontal text if present.'
   }
 
   return `You are a highly precise OCR system. Extract all text from this image.
@@ -56,6 +55,7 @@ export function getOcrRefinementPrompt(language: string, imageCount: number, tex
   const langName = getLangName(language)
 
   let layoutHint = 'Read the text carefully in its natural reading order.'
+
   if (textDirection === 'v_rtl') {
     layoutHint = 'This is vertical text. Read columns from top-to-bottom, and proceed strictly from RIGHT to LEFT.'
   }
@@ -91,6 +91,7 @@ export function getSystemPrompt(language: string, targetLanguage: string): strin
 
   const normalizedLanguage = normalizeLanguageCode(language)
   let patternExample = 'V + ...'
+
   if (normalizedLanguage === 'ja') {
     patternExample = 'V + て + もいい'
   }
@@ -250,6 +251,7 @@ export function getWordAutoFillPrompt(language: string, targetLanguage: string):
   const tgtLang = getLangName(targetLanguage)
 
   let difficultyContext = '"A1", "A2", "B1", "B2", "C1", "C2"'
+
   if (language.toLowerCase() === 'zh')
     difficultyContext = '"HSK 1", "HSK 2", "HSK 3", "HSK 4", "HSK 5", "HSK 6"'
   else if (language.toLowerCase() === 'ja')
@@ -278,6 +280,7 @@ JSON Schema:
 
 export function getMangaAnalysisPrompt(language: string): string {
   let difficultyContext = '"A1", "A2", "B1", "B2", "C1", "C2"'
+
   if (language.toLowerCase() === 'zh')
     difficultyContext = '"HSK 1", "HSK 2", "HSK 3", "HSK 4", "HSK 5", "HSK 6"'
   else if (language.toLowerCase() === 'ja')
@@ -376,8 +379,8 @@ Output STRICT JSON ONLY. Never use backticks for strings.
   "answer": "correct answer"
 }`
   }
-  else {
-    return `You are a ${srcLang} language teacher. The user wants to practice the components of a specific word/character.
+
+  return `You are a ${srcLang} language teacher. The user wants to practice the components of a specific word/character.
 If the input is a single Chinese/Japanese character, break it down into its basic radicals.
 If the input is a multi-character word, break it down into its individual characters or morphemes.
 Return ONLY valid JSON.
@@ -387,7 +390,6 @@ Output STRICT JSON ONLY. Never use backticks for strings.
   "options": ["correct1", "correct2", "distractor1", "distractor2", "distractor3", "distractor4"],
   "answer": ["correct1", "correct2"]
 }`
-  }
 }
 
 export function getDictionaryChatPrompt(uiLanguage?: string): string {

@@ -10,6 +10,7 @@ export const highlightRouter = new Elysia({ prefix: '/api/highlights' })
   .onError(handleElysiaError)
   .get('/', async ({ query, userId }) => {
     const bookId = query.bookId ? Number(query.bookId) : undefined
+
     return highlightService.getHighlights(userId, bookId)
   }, {
     cache: 'shortPrivate',

@@ -9,15 +9,13 @@ export class QuizRepository implements IQuizRepository {
   async getRawProgressList(userId: number, language: string) {
     return await db.select()
       .from(schema.userQuizProgress)
-      .where(and(
-        eq(schema.userQuizProgress.userId, userId),
-        eq(schema.userQuizProgress.language, language),
-      ))
+      .where(and(eq(schema.userQuizProgress.userId, userId), eq(schema.userQuizProgress.language, language)))
   }
 
   async deleteProgressIds(ids: number[]) {
     if (ids.length === 0)
       return
+
     await db.delete(schema.userQuizProgress)
       .where(inArray(schema.userQuizProgress.id, ids))
   }
@@ -25,30 +23,21 @@ export class QuizRepository implements IQuizRepository {
   async insertProgressBatch(inserts: (typeof schema.userQuizProgress.$inferInsert)[]) {
     if (inserts.length === 0)
       return
+
     await db.insert(schema.userQuizProgress).values(inserts).onConflictDoNothing()
   }
 
   async getProgressForLevel(userId: number, language: string, levelValue: string) {
     return await db.select()
       .from(schema.userQuizProgress)
-      .where(and(
-        eq(schema.userQuizProgress.userId, userId),
-        eq(schema.userQuizProgress.language, language),
-        eq(schema.userQuizProgress.levelValue, levelValue),
-      ))
+      .where(and(eq(schema.userQuizProgress.userId, userId), eq(schema.userQuizProgress.language, language), eq(schema.userQuizProgress.levelValue, levelValue)))
       .get()
   }
 
   async getOfficialDeck(language: string, levelValue: string) {
     return await catalogDb.select()
       .from(officialDecks)
-      .where(and(
-        eq(officialDecks.language, language),
-        or(
-          eq(officialDecks.difficulty, levelValue),
-          eq(officialDecks.title, levelValue),
-        ),
-      ))
+      .where(and(eq(officialDecks.language, language), or(eq(officialDecks.difficulty, levelValue), eq(officialDecks.title, levelValue))))
       .get()
   }
 

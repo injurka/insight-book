@@ -8,6 +8,7 @@ export const GrammarRuleSchema = z.preprocess((val: unknown) => {
       example: '',
     }
   }
+
   return val
 }, z.object({
   pattern: z.string().catch(''),
@@ -19,10 +20,12 @@ export const VocabItemSchema = z.preprocess((val: unknown) => {
   if (typeof val === 'string') {
     return { word: val, transcription: '', meaning: '', usageInContext: '' }
   }
+
   // Deprecated
   // Поддержка старых ключей (pinyin -> transcription, translation -> meaning)
   if (val && typeof val === 'object') {
     const obj = val as Record<string, unknown>
+
     return {
       word: obj.word || '',
       transcription: obj.transcription || obj.pinyin || '',
@@ -30,6 +33,7 @@ export const VocabItemSchema = z.preprocess((val: unknown) => {
       usageInContext: obj.usageInContext || '',
     }
   }
+
   return val
 }, z.object({
   word: z.string().catch(''),

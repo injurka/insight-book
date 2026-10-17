@@ -9,13 +9,16 @@ import { AppError, handleElysiaError } from '../utils/errors'
 const authPlugin = new Elysia({ name: 'activity-auth' })
   .derive(({ request }) => {
     let userId: number | null = null
+
     if (AUTH_MODE === 'single') {
       userId = 1
     }
     else {
       const authHeader = request.headers.get('Authorization')
+
       if (authHeader && authHeader.startsWith('Bearer ')) {
         const token = authHeader.split(' ')[1]
+
         try {
           const decoded = jwt.verify(token, JWT_SECRET) as { userId: number }
           userId = decoded.userId
@@ -23,6 +26,7 @@ const authPlugin = new Elysia({ name: 'activity-auth' })
         catch { }
       }
     }
+
     return { userId }
   })
   .macro({

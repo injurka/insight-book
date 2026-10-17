@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "exports": {
+    "./server": "./server.ts",
     "./vue": "./vue.ts"
   },
   "dependencies": {

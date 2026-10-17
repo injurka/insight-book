@@ -10,6 +10,7 @@ const DECKS_DIR = path.resolve(process.cwd(), 'assets', 'decks')
 async function exists(p: string) {
   try {
     await stat(p)
+
     return true
   }
   catch {
@@ -29,6 +30,7 @@ async function seed() {
     await initCatalogDb()
 
     let subdirs: string[] = []
+
     try {
       const items = await readdir(DECKS_DIR, { withFileTypes: true })
       subdirs = items.filter(item => item.isDirectory()).map(item => item.name)
@@ -49,6 +51,7 @@ async function seed() {
 
       if (await exists(resultPath)) {
         const files = await readdir(resultPath)
+
         for (const file of files) {
           if (file.endsWith('.json')) {
             jsonFiles.push(path.join(resultPath, file))
@@ -103,29 +106,37 @@ async function seed() {
           }
 
           let grammarNote = w.grammarNote || ''
+
           if (!grammarNote && Array.isArray(w.grammarRules) && w.grammarRules.length > 0) {
             grammarNote = w.grammarRules.map((r) => {
               let note = `<b>${r.pattern}</b> — ${r.explanation}`
+
               if (r.example) {
                 note += `<br><i>Пример: ${r.example}</i>`
               }
+
               return note
             }).join('<br><br>')
           }
 
           let vocabularyNote = w.vocabularyNote || ''
+
           if (!vocabularyNote && Array.isArray(w.vocabulary) && w.vocabulary.length > 0) {
             vocabularyNote = w.vocabulary
               .filter(v => v && v.word)
               .map((v) => {
                 let note = `<b>${v.word}</b>`
+
                 if (v.transcription) {
                   note += ` (${v.transcription})`
                 }
+
                 note += ` — ${v.meaning || v.translation || ''}`
+
                 if (v.usageInContext) {
                   note += `<br><i>Использование: ${v.usageInContext}</i>`
                 }
+
                 return note
               })
               .join('<br><br>')
@@ -144,9 +155,11 @@ async function seed() {
         })
 
         const chunkSize = 500
+
         for (let i = 0; i < wordsToInsert.length; i += chunkSize) {
           await catalogDb.insert(officialDeckWords).values(wordsToInsert.slice(i, i + chunkSize))
         }
+
         logger.info(`   └─ ✅ Колода "${data.title}" импортирована успешно (${data.words.length} слов).`)
       }
     }
@@ -162,9 +175,11 @@ async function seed() {
         await catalogClient.execute('PRAGMA wal_checkpoint(TRUNCATE);')
         await catalogClient.execute('PRAGMA journal_mode = DELETE;')
       }
+
       catalogClient.close()
     }
     catch { }
+
     process.exit(0)
   }
 }

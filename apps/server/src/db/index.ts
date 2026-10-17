@@ -49,6 +49,7 @@ if (DATABASE_URL.startsWith('file:')) {
   await client.execute('PRAGMA cache_size = -64000')
   await client.execute('PRAGMA temp_store = MEMORY')
 }
+
 await client.execute('PRAGMA foreign_keys = ON')
 
 export const db = drizzle(client, { schema, logger: false })
@@ -140,6 +141,7 @@ let isShuttingDown = false
 async function shutdown() {
   if (isShuttingDown)
     return
+
   isShuttingDown = true
 
   if (isMainThread)
@@ -154,10 +156,12 @@ async function shutdown() {
       await client.execute('PRAGMA wal_checkpoint(TRUNCATE);')
       await client.execute('PRAGMA journal_mode = DELETE;')
     }
+
     if (CATALOG_DATABASE_URL.startsWith('file:')) {
       await catalogClient.execute('PRAGMA wal_checkpoint(TRUNCATE);')
       await catalogClient.execute('PRAGMA journal_mode = DELETE;')
     }
+
     client.close()
     catalogClient.close()
   }

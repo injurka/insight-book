@@ -16,6 +16,7 @@ self.onmessage = async (event: MessageEvent) => {
 
   try {
     let result
+
     switch (type) {
       case 'processEpub':
         result = await processEpub(payload.filePath, payload.filename, payload.userId)

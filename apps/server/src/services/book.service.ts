@@ -2,7 +2,6 @@ import type { IBookRepository } from '../repositories/interfaces'
 import type { LlmConfig, PagePayload } from '../types'
 import type { UpdateBookDto, UpdateStatsDto } from '../types/schemas'
 import path from 'node:path'
-
 import sharp from 'sharp'
 import { decompressData } from '~/utils/compression'
 import { extractUniqueWordsFromHtml, normalizeLanguageCode } from '~/utils/helpers'
@@ -89,6 +88,7 @@ export class BookService {
     finalResult.sort((a, b) => {
       const tA = new Date(a.progressUpdatedAt || a.updatedAt).getTime()
       const tB = new Date(b.progressUpdatedAt || b.updatedAt).getTime()
+
       return tB - tA
     })
 
@@ -97,6 +97,7 @@ export class BookService {
 
   async getBookInfo(id: number, userId: number | null, targetLang: string) {
     const book = await this.bookRepo.getBookById(id, userId)
+
     if (!book)
       throw new AppError(404, ERROR_CODES.BOOK.NOT_FOUND, 'Book not found')
 
@@ -136,19 +137,24 @@ export class BookService {
 
   async startReading(id: number, userId: number) {
     const book = await this.bookRepo.findFirstBook(id)
+
     if (!book)
       throw new AppError(404, ERROR_CODES.BOOK.NOT_FOUND, 'Book not found')
+
     if (!book.isPublic && book.userId !== userId)
       throw new AppError(403, ERROR_CODES.BOOK.ACCESS_DENIED, 'Access denied')
 
     await this.bookRepo.startReadingProgress(id, userId)
+
     return { success: true }
   }
 
   async updateBook(id: number, userId: number, body: UpdateBookDto) {
     const book = await this.bookRepo.findFirstBook(id)
+
     if (!book)
       throw new AppError(404, ERROR_CODES.BOOK.NOT_FOUND, 'Book not found')
+
     if (book.userId !== userId && !book.isPublic)
       throw new AppError(404, ERROR_CODES.BOOK.NOT_FOUND, 'Book not found')
 
@@ -156,8 +162,10 @@ export class BookService {
     const hasMetadataChanges = metadataKeys.some((key) => {
       if (body[key] === undefined)
         return false
+
       if (key === 'language' && body.language)
         return normalizeLanguageCode(body.language) !== book.language
+
       return body[key] !== (book as Record<string, unknown>)[key]
     })
     const isReadOnly = book.isPublic || book.publicStatus === 'public'
@@ -166,7 +174,18 @@ export class BookService {
       throw new AppError(403, ERROR_CODES.BOOK.CANNOT_EDIT_PUBLIC, 'Cannot edit public book')
 
     if (hasMetadataChanges && book.userId === userId) {
-      const { title, author, coverUrl, language, series, seriesNumber, createdAt, isPublic, publicStatus, textDirection } = body
+      const {
+        title,
+        author,
+        coverUrl,
+        language,
+        series,
+        seriesNumber,
+        createdAt,
+        isPublic,
+        publicStatus,
+        textDirection,
+      } = body
 
       await this.bookRepo.updateBook(id, {
         title,
@@ -195,6 +214,7 @@ export class BookService {
 
   async updateCover(id: number, userId: number, file: File) {
     const oldBook = await this.bookRepo.getOldBookForCover(id)
+
     if (!oldBook || oldBook.userId !== userId)
       throw new AppError(403, ERROR_CODES.BOOK.ACCESS_DENIED, 'Access denied')
 
@@ -217,6 +237,7 @@ export class BookService {
 
   async updateStats(id: number, userId: number, body: UpdateStatsDto) {
     const book = await this.bookRepo.findFirstBook(id)
+
     if (!book || book.userId !== userId)
       throw new AppError(403, ERROR_CODES.BOOK.ACCESS_DENIED, 'Access denied')
 
@@ -224,16 +245,19 @@ export class BookService {
     await this.bookRepo.upsertBookStats(id, { description: body.description || '', difficulty: body.difficulty || '', tags: tagsJson })
 
     const stats = await this.bookRepo.getBookStats(id)
+
     return { success: true, stats: stats ? { ...stats, tags: stats.tags ? JSON.parse(stats.tags) : [], posDistribution: stats.posDistribution ? JSON.parse(stats.posDistribution) : null, topWords: stats.topWords ? JSON.parse(stats.topWords) : null } : null }
   }
 
   async deleteBook(id: number, userId: number) {
     const book = await this.bookRepo.getBookForDeletion(id)
+
     if (!book)
       throw new AppError(404, ERROR_CODES.BOOK.NOT_FOUND, 'Book not found')
 
     if (book.userId !== userId) {
       await this.bookRepo.deleteReadingProgress(id, userId)
+
       return { success: true }
     }
 
@@ -248,6 +272,7 @@ export class BookService {
         const folderName = path.basename(book.filePath)
         await storageService.deleteFolder(`books/${folderName}`)
       }
+
       if (book.coverUrl && book.coverUrl.startsWith('/api/uploads/covers/')) {
         const coverFilename = book.coverUrl.split('/').pop()!
         await storageService.deleteFile(`covers/${coverFilename}`)
@@ -262,17 +287,27 @@ export class BookService {
 
   async getToc(id: number, userId: number) {
     const book = await this.bookRepo.getBookToc(id)
+
     if (!book || (book.userId !== userId && !book.isPublic))
       throw new AppError(403, ERROR_CODES.BOOK.ACCESS_DENIED, 'Access denied to book')
+
     return book.toc ? JSON.parse(book.toc) : []
   }
 
-  async getPage(bookId: number, pageNum: number, userId: number, isSync: boolean, config: LlmConfig) {
+  async getPage(
+    bookId: number,
+    pageNum: number,
+    userId: number,
+    isSync: boolean,
+    config: LlmConfig,
+  ) {
     const book = await this.bookRepo.getBookForPage(bookId)
+
     if (!book)
       throw new AppError(404, ERROR_CODES.BOOK.NOT_FOUND, 'Book not found')
 
     const bookLang = normalizeLanguageCode(book.language)
+
     if (book.userId !== userId && !book.isPublic)
       throw new AppError(403, ERROR_CODES.BOOK.ACCESS_DENIED, 'Access denied to book')
 
@@ -285,8 +320,15 @@ export class BookService {
 
     if (book.type === 'manga') {
       const pageRow = await this.bookRepo.getMangaPage(bookId, pageNum)
-      if (!pageRow)
-        throw new AppError(404, ERROR_CODES.BOOK.MANGA_NOT_FOUND, 'Manga page not found', { pageNum })
+
+      if (!pageRow) {
+        throw new AppError(
+          404,
+          ERROR_CODES.BOOK.MANGA_NOT_FOUND,
+          'Manga page not found',
+          { pageNum },
+        )
+      }
 
       let ocrBlocks = pageRow.ocrData ? JSON.parse(pageRow.ocrData) : null
 
@@ -294,8 +336,10 @@ export class BookService {
         try {
           const cleanKey = pageRow.imageUrl.replace(/^\/?(api\/)?uploads\//i, '').replace(/^\//, '')
           const fileData = await storageService.getFile(cleanKey)
+
           if (!fileData)
             throw new Error('File not found')
+
           const fileBuffer = Buffer.from(fileData.buffer)
           let base64 = ''
 
@@ -314,7 +358,13 @@ export class BookService {
             base64 = fileBuffer.toString('base64')
           }
 
-          ocrBlocks = await recognizeMangaPage(userId, base64, bookLang, book.textDirection || undefined, config)
+          ocrBlocks = await recognizeMangaPage(
+            userId,
+            base64,
+            bookLang,
+            book.textDirection || undefined,
+            config,
+          )
           await this.bookRepo.updateMangaPageOcr(pageRow.id, JSON.stringify(ocrBlocks))
         }
         catch (e: unknown) {
@@ -347,30 +397,53 @@ export class BookService {
     }
 
     const cached = await this.bookRepo.getNlpCache(bookId, pageNum)
+
     if (cached) {
       try {
         const parsed = JSON.parse(decompressData(cached.data)) as PagePayload
         delete parsed.pageDictionary
+
         return parsed
       }
       catch { }
     }
 
     const pageRow = await this.bookRepo.getBookPageContent(bookId, pageNum)
-    if (!pageRow)
-      throw new AppError(404, ERROR_CODES.BOOK.PAGE_NOT_FOUND, 'Page not found', { pageNum })
+
+    if (!pageRow) {
+      throw new AppError(
+        404,
+        ERROR_CODES.BOOK.PAGE_NOT_FOUND,
+        'Page not found',
+        { pageNum },
+      )
+    }
 
     const { processedHtml } = await runWorkerTask<{ processedHtml: string }>('tokenizeHtmlPage', { html: pageRow.content, language: bookLang })
-    const payload: PagePayload = { bookId, pageNum, totalPages: book.totalPages, content: processedHtml, type: 'epub' }
+    const payload: PagePayload = {
+      bookId,
+      pageNum,
+      totalPages: book.totalPages,
+      content: processedHtml,
+      type: 'epub',
+    }
 
     await this.bookRepo.upsertNlpCache(bookId, pageNum, JSON.stringify(payload))
+
     return payload
   }
 
-  async getPageDictionary(bookId: number, pageNum: number, userId: number, targetLang: string) {
+  async getPageDictionary(
+    bookId: number,
+    pageNum: number,
+    userId: number,
+    targetLang: string,
+  ) {
     const book = await this.bookRepo.getBookLangAndType(bookId)
+
     if (!book)
       throw new AppError(404, ERROR_CODES.BOOK.NOT_FOUND, 'Book not found')
+
     if (book.userId !== userId && !book.isPublic)
       throw new AppError(403, ERROR_CODES.BOOK.ACCESS_DENIED, 'Access denied to book')
 
@@ -380,6 +453,7 @@ export class BookService {
     if (book.type === 'manga') {
       const pageRow = await this.bookRepo.getMangaPageInfo(bookId, pageNum)
       const ocrBlocks = pageRow?.ocrData ? JSON.parse(pageRow.ocrData) : []
+
       if (ocrBlocks && ocrBlocks.length > 0) {
         const { uniqueWords: ocrWords } = await runWorkerTask<{ uniqueWords: string[] }>('tokenizeOcrBlocks', { blocks: ocrBlocks, language: bookLang })
         uniqueWords = ocrWords
@@ -387,12 +461,14 @@ export class BookService {
     }
     else {
       const cached = await this.bookRepo.getNlpCache(bookId, pageNum)
+
       if (cached) {
         const parsed = JSON.parse(decompressData(cached.data)) as PagePayload
         uniqueWords = extractUniqueWordsFromHtml(parsed.content)
       }
       else {
         const pageRow = await this.bookRepo.getBookPageInfo(bookId, pageNum)
+
         if (pageRow) {
           const { uniqueWords: epWords } = await runWorkerTask<{ uniqueWords: string[] }>('tokenizeHtmlPage', { html: pageRow.content, language: bookLang })
           uniqueWords = epWords
@@ -400,42 +476,91 @@ export class BookService {
       }
     }
 
-    return dictionaryService.lookupWords(uniqueWords, bookLang, targetLang, userId)
+    return dictionaryService.lookupWords(
+      uniqueWords,
+      bookLang,
+      targetLang,
+      userId,
+    )
   }
 
-  async lookupWord(bookId: number, word: string, userId: number, targetLang: string) {
+  async lookupWord(
+    bookId: number,
+    word: string,
+    userId: number,
+    targetLang: string,
+  ) {
     const book = await this.bookRepo.getBookLanguage(bookId)
+
     if (!book || (book.userId !== userId && !book.isPublic))
       throw new AppError(403, ERROR_CODES.BOOK.ACCESS_DENIED, 'Access denied')
 
     const lang = normalizeLanguageCode(book.language || 'en')
-    const entry = await dictionaryService.lookupSingleWord(decodeURIComponent(word), lang, targetLang, userId)
+    const entry = await dictionaryService.lookupSingleWord(
+      decodeURIComponent(word),
+      lang,
+      targetLang,
+      userId,
+    )
+
     if (!entry)
       throw new AppError(404, ERROR_CODES.DICTIONARY.WORD_NOT_FOUND, 'Word not found in local dictionary')
+
     return entry
   }
 
-  async generateTts(bookId: number, userId: number, text: string, voice: string, forceCacheBypass: boolean, config: LlmConfig) {
+  async generateTts(
+    bookId: number,
+    userId: number,
+    text: string,
+    voice: string,
+    forceCacheBypass: boolean,
+    config: LlmConfig,
+  ) {
     const book = await this.bookRepo.getBookUserIdAndPublic(bookId)
+
     if (!book || (book.userId !== userId && !book.isPublic))
       throw new AppError(403, ERROR_CODES.BOOK.ACCESS_DENIED, 'Access denied')
 
     if (forceCacheBypass) {
       const user = await this.bookRepo.getUserRole(userId)
+
       if (user?.role !== 'admin')
         throw new AppError(403, ERROR_CODES.SYSTEM.ADMIN_ONLY, 'Only administrators can bypass cache')
     }
 
-    return generateTts(userId, bookId, text, config, voice, forceCacheBypass)
+    return generateTts(
+      userId,
+      bookId,
+      text,
+      config,
+      voice,
+      forceCacheBypass,
+    )
   }
 
-  async standaloneTts(userId: number, text: string, voice: string, forceCacheBypass: boolean, config: LlmConfig) {
+  async standaloneTts(
+    userId: number,
+    text: string,
+    voice: string,
+    forceCacheBypass: boolean,
+    config: LlmConfig,
+  ) {
     if (forceCacheBypass) {
       const user = await this.bookRepo.getUserRole(userId)
+
       if (user?.role !== 'admin')
         throw new AppError(403, ERROR_CODES.SYSTEM.ADMIN_ONLY, 'Only administrators can bypass cache')
     }
-    return generateTts(userId, null, text, config, voice, forceCacheBypass)
+
+    return generateTts(
+      userId,
+      null,
+      text,
+      config,
+      voice,
+      forceCacheBypass,
+    )
   }
 }
 

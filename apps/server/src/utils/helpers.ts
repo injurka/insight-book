@@ -9,6 +9,7 @@ export { isValidWordForLanguage, normalizeLanguageCode } from '@injurka/insight-
 export function hashTtsText(text: string, voice: string, model: string): string {
   const hasher = new Bun.CryptoHasher('sha256')
   hasher.update(`${model.toLowerCase()}::${voice.toLowerCase()}::${text.trim().toLowerCase()}`)
+
   return hasher.digest('hex')
 }
 
@@ -23,6 +24,7 @@ export function mapVoiceToOpenAi(selectedVoice: string): string {
     orus: 'nova',
     aoede: 'ballad',
   }
+
   return map[selectedVoice.toLowerCase()] || 'alloy'
 }
 
@@ -36,15 +38,19 @@ export function hashSentence(sentence: string, language: string, targetLang: str
 export function isOldFormatAnalysis(parsed: unknown): boolean {
   if (!parsed || typeof parsed !== 'object')
     return true
+
   const p = parsed as Record<string, unknown>
+
   if (Array.isArray(p.grammarRules)) {
     if (p.grammarRules.some((r: unknown) => typeof r !== 'object' || r === null))
       return true
   }
+
   if (Array.isArray(p.vocabulary)) {
     if (p.vocabulary.some((v: unknown) => typeof v !== 'object' || v === null))
       return true
   }
+
   return false
 }
 
@@ -71,6 +77,7 @@ export function extractLlmConfig(req: Request): LlmConfig {
   // Приоритет моделей: пользовательская (X-Custom-Llm-*) → серверная (llm).
   const customUrl = req.headers.get('x-custom-llm-url')
   const customModel = req.headers.get('x-custom-llm-model')
+
   if (customUrl && customModel) {
     return {
       url: customUrl,
@@ -101,6 +108,7 @@ export function extractUniqueWordsFromHtml(html: string): string[] {
   while ((match = regex.exec(html)) !== null) {
     try {
       const word = decodeURIComponent(match[1])
+
       if (/[\p{L}\p{N}]/u.test(word)) {
         words.add(word)
         words.add(word.toLowerCase())
@@ -108,6 +116,7 @@ export function extractUniqueWordsFromHtml(html: string): string[] {
     }
     catch { }
   }
+
   return Array.from(words)
 }
 
@@ -127,6 +136,7 @@ export function parseLlmJson<T = unknown>(raw: string): T {
 
   // eslint-disable-next-line regexp/no-super-linear-backtracking
   const jsonMatch = text.match(/```(?:json)?\s*([\s\S]*?)(?:```|$)/i)
+
   if (jsonMatch && jsonMatch[1].trim()) {
     text = jsonMatch[1].trim()
   }

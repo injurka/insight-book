@@ -59,24 +59,33 @@ export class CatalogPluginService {
 
   async getPendingPlugins(userId: number) {
     await this.assertAdmin(userId)
+
     return this.catalogRepo.findVersions(CATALOG_PLUGIN_STATUS.PENDING)
   }
 
   async listPlugins(userId: number, status?: CatalogPluginStatus) {
     await this.assertAdmin(userId)
+
     return this.catalogRepo.findVersions(status)
   }
 
-  async setPluginStatus(userId: number, pluginId: string, version: string, status: CatalogPluginStatus) {
+  async setPluginStatus(
+    userId: number,
+    pluginId: string,
+    version: string,
+    status: CatalogPluginStatus,
+  ) {
     await this.assertAdmin(userId)
 
     const updated = await this.catalogRepo.updateVersionStatus(pluginId, version, status)
+
     if (!updated) {
       throw new AppError(404, ERROR_CODES.PLUGIN.NOT_FOUND, 'Plugin version not found in catalog')
     }
 
     const currentRelease = (await this.catalogRepo.findLatestApprovedVersions())
       .find(plugin => plugin.id === pluginId)
+
     if (currentRelease) {
       await this.catalogRepo.upsert({
         id: currentRelease.id,
@@ -96,6 +105,7 @@ export class CatalogPluginService {
     }
 
     logger.info(`[Catalog] Plugin "${pluginId}" v${version} status changed to "${status}" by user ${userId}`)
+
     return updated
   }
 
@@ -110,15 +120,22 @@ export class CatalogPluginService {
       throw new AppError(404, ERROR_CODES.PLUGIN.NOT_FOUND, 'Plugin not found in catalog')
     }
 
-    return this.setPluginStatus(userId, pluginId, target.version, status)
+    return this.setPluginStatus(
+      userId,
+      pluginId,
+      target.version,
+      status,
+    )
   }
 
   async getPlugin(pluginId: string) {
     const plugin = (await this.catalogRepo.findLatestApprovedVersions())
       .find(record => record.id === pluginId)
+
     if (!plugin) {
       throw new AppError(404, ERROR_CODES.PLUGIN.NOT_FOUND, 'Plugin not found in catalog')
     }
+
     return plugin
   }
 
@@ -134,6 +151,7 @@ export class CatalogPluginService {
     }
 
     let zip: AdmZip
+
     try {
       zip = new AdmZip(Buffer.from(await file.arrayBuffer()))
     }
@@ -153,6 +171,7 @@ export class CatalogPluginService {
     }
 
     let manifest: PluginManifest
+
     try {
       manifest = JSON.parse(manifestEntry.getData().toString('utf-8'))
     }
@@ -180,15 +199,18 @@ export class CatalogPluginService {
 
     // Проверяем авторство, если плагин с таким ID уже существует
     const existingPlugin = await this.catalogRepo.findOne(manifest.id)
+
     if (existingPlugin) {
       const user = await userRepository.findById(userId)
       const isAdmin = user?.role === ROLES.ADMIN
+
       if (!isAdmin && existingPlugin.uploadedBy !== userId) {
         throw new AppError(403, ERROR_CODES.AUTH.FORBIDDEN, 'Plugin ID already taken by another author')
       }
     }
 
     const existingVersion = await this.catalogRepo.findVersion(manifest.id, manifest.version)
+
     if (existingVersion?.status === CATALOG_PLUGIN_STATUS.APPROVED) {
       throw new AppError(409, ERROR_CODES.PLUGIN.INVALID_MANIFEST, `Version ${manifest.version} is already published and cannot be replaced`)
     }
@@ -213,6 +235,7 @@ export class CatalogPluginService {
         return []
 
       const key = `${storagePrefix}/${relativePath}`
+
       return [{ entry, key, contentType: getPluginContentType(relativePath) }]
     })
 
@@ -224,6 +247,7 @@ export class CatalogPluginService {
     const uploadWorker = async () => {
       while (!hasUploadError) {
         const item = filesToUpload[nextIndex++]
+
         if (!item)
           return
 
@@ -241,6 +265,7 @@ export class CatalogPluginService {
 
     const workerCount = Math.min(PLUGIN_FILE_UPLOAD_CONCURRENCY, filesToUpload.length)
     await Promise.all(Array.from({ length: workerCount }, () => uploadWorker()))
+
     if (hasUploadError)
       throw uploadError
 
@@ -294,6 +319,7 @@ export class CatalogPluginService {
    */
   async downloadPlugin(userId: number, pluginId: string, version?: string) {
     let plugin = version ? await this.catalogRepo.findVersion(pluginId, version) : null
+
     if (!version) {
       const releases = await this.catalogRepo.findVersions()
         .then(records => records.filter(record => record.id === pluginId))
@@ -301,18 +327,21 @@ export class CatalogPluginService {
         ?? releases[0]
         ?? null
     }
+
     if (!plugin) {
       throw new AppError(404, ERROR_CODES.PLUGIN.NOT_FOUND, 'Plugin version not found in catalog')
     }
 
     const user = await userRepository.findById(userId)
     const isAdmin = user?.role === ROLES.ADMIN
+
     if (!isAdmin && plugin.uploadedBy !== userId) {
       throw new AppError(403, ERROR_CODES.AUTH.FORBIDDEN, 'Only admin or plugin uploader can download plugin archive')
     }
 
     const archiveKey = `plugins/${plugin.id}/${plugin.version}.zip`
     const fileData = await storageService.getFile(archiveKey)
+
     if (!fileData) {
       throw new AppError(404, ERROR_CODES.PLUGIN.NOT_FOUND, 'Plugin archive not found in storage')
     }
@@ -322,11 +351,13 @@ export class CatalogPluginService {
 
   async deletePlugin(userId: number, pluginId: string) {
     const plugin = await this.catalogRepo.findOne(pluginId)
+
     if (!plugin) {
       throw new AppError(404, ERROR_CODES.PLUGIN.NOT_FOUND, 'Plugin not found in catalog')
     }
 
     const user = await userRepository.findById(userId)
+
     if (user?.role !== ROLES.ADMIN && plugin.uploadedBy !== userId) {
       throw new AppError(403, ERROR_CODES.AUTH.FORBIDDEN, 'Only admin or plugin uploader can delete plugin')
     }
@@ -334,20 +365,24 @@ export class CatalogPluginService {
     await this.catalogRepo.delete(pluginId)
 
     await storageService.deleteFolder(`plugins/${pluginId}`)
+
     return { success: true }
   }
 
   async deletePluginVersion(userId: number, pluginId: string, version: string) {
     const release = await this.catalogRepo.findVersion(pluginId, version)
+
     if (!release) {
       throw new AppError(404, ERROR_CODES.PLUGIN.NOT_FOUND, 'Plugin version not found in catalog')
     }
 
     const user = await userRepository.findById(userId)
     const isAdmin = user?.role === ROLES.ADMIN
+
     if (!isAdmin && release.uploadedBy !== userId) {
       throw new AppError(403, ERROR_CODES.AUTH.FORBIDDEN, 'Only admin or plugin uploader can delete this release')
     }
+
     if (release.status === CATALOG_PLUGIN_STATUS.APPROVED) {
       throw new AppError(409, ERROR_CODES.PLUGIN.INVALID_MANIFEST, 'Published releases cannot be deleted individually')
     }
@@ -357,6 +392,7 @@ export class CatalogPluginService {
     await storageService.deleteFile(`plugins/${pluginId}/${version}.zip`).catch(() => {})
 
     const remainingReleases = await this.catalogRepo.findVersions()
+
     if (!remainingReleases.some(item => item.id === pluginId))
       await this.catalogRepo.delete(pluginId)
 
@@ -372,11 +408,13 @@ export class CatalogPluginService {
     const pathParts = storageKey.split('/')
     const pluginId = pathParts[1]
     const version = pathParts[2]
+
     if (pathParts[0] !== 'plugins' || pathParts.length < 4 || !pluginId || !version) {
       throw new AppError(400, ERROR_CODES.SYSTEM.VALIDATION_ERROR, 'Invalid plugin path')
     }
 
     const release = await this.catalogRepo.findVersion(pluginId, version)
+
     if (!release || release.status !== CATALOG_PLUGIN_STATUS.APPROVED) {
       return null
     }
@@ -386,6 +424,7 @@ export class CatalogPluginService {
 
   private async assertAdmin(userId: number) {
     const user = await userRepository.findById(userId)
+
     if (user?.role !== ROLES.ADMIN) {
       throw new AppError(403, ERROR_CODES.AUTH.FORBIDDEN, 'Only admin can manage plugin catalog')
     }

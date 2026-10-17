@@ -17,18 +17,22 @@ class LocalStorageService implements IStorageService {
   async uploadFile(key: string, buffer: Uint8Array | Buffer | ArrayBuffer, _contentType?: string): Promise<string> {
     const fullPath = path.join(UPLOADS_PATH, key)
     const dir = path.dirname(fullPath)
+
     try {
       await fs.access(dir)
     }
     catch {
       await fs.mkdir(dir, { recursive: true })
     }
+
     await Bun.write(fullPath, buffer)
+
     return key
   }
 
   async deleteFile(key: string): Promise<void> {
     const fullPath = path.join(UPLOADS_PATH, key)
+
     try {
       await fs.rm(fullPath)
     }
@@ -37,6 +41,7 @@ class LocalStorageService implements IStorageService {
 
   async deleteFolder(prefix: string): Promise<void> {
     const fullPath = path.join(UPLOADS_PATH, prefix)
+
     try {
       await fs.rm(fullPath, { recursive: true, force: true })
     }
@@ -46,6 +51,7 @@ class LocalStorageService implements IStorageService {
   async getFile(key: string): Promise<{ buffer: Uint8Array, contentType: string } | null> {
     const fullPath = path.join(UPLOADS_PATH, key)
     let buffer: Uint8Array
+
     try {
       const fileBuffer = await fs.readFile(fullPath)
       buffer = new Uint8Array(fileBuffer)
@@ -56,6 +62,7 @@ class LocalStorageService implements IStorageService {
 
     // Attempt basic content type inference
     let contentType = 'application/octet-stream'
+
     if (key.endsWith('.png'))
       contentType = 'image/png'
     else if (key.endsWith('.jpg') || key.endsWith('.jpeg'))
@@ -78,15 +85,19 @@ class LocalStorageService implements IStorageService {
 
   async listDumpFolders(prefix: string): Promise<string[]> {
     const fullPath = path.join(UPLOADS_PATH, prefix)
+
     try {
       const entries = await fs.readdir(fullPath)
       const results = []
+
       for (const entry of entries) {
         const stat = await fs.stat(path.join(fullPath, entry))
+
         if (stat.isDirectory()) {
           results.push(`${prefix}/${entry}/`)
         }
       }
+
       return results
     }
     catch {
@@ -96,15 +107,19 @@ class LocalStorageService implements IStorageService {
 
   async listFilesInFolder(prefix: string): Promise<string[]> {
     const fullPath = path.join(UPLOADS_PATH, prefix)
+
     try {
       const entries = await fs.readdir(fullPath)
       const results = []
+
       for (const entry of entries) {
         const stat = await fs.stat(path.join(fullPath, entry))
+
         if (stat.isFile()) {
           results.push(`${prefix}/${entry}`)
         }
       }
+
       return results
     }
     catch {
@@ -122,6 +137,7 @@ class S3StorageAdapter implements IStorageService {
 
   async uploadFile(key: string, buffer: Uint8Array | Buffer | ArrayBuffer, contentType?: string): Promise<string> {
     await this.s3.uploadFile(key, buffer, contentType)
+
     return key
   }
 
@@ -165,6 +181,7 @@ function resolveDumpStorage(): IStorageService {
   }
 
   const dumpS3 = new S3Service(config)
+
   return new S3StorageAdapter(dumpS3)
 }
 

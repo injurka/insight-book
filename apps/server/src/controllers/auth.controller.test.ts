@@ -11,8 +11,10 @@ const pair = { accessToken: 'test-access', refreshToken: 'test-refresh-token-lon
 describe('Renewable desktop authentication routes', () => {
   it('rejects expired access tokens on me and upgrade, and upgrades valid legacy tokens', async () => {
     const create = spyOn(authSessionService, 'create').mockResolvedValue(pair)
+
     try {
       const app = new Elysia().use(authRouter)
+
       for (const path of ['me', 'session/upgrade']) {
         const response = await app.handle(new Request(`http://localhost/api/auth/${path}`, {
           method: path === 'me' ? 'GET' : 'POST',
@@ -20,6 +22,7 @@ describe('Renewable desktop authentication routes', () => {
         }))
         expect(response.status).toBe(401)
       }
+
       expect(create).not.toHaveBeenCalled()
       const upgrade = await app.handle(new Request('http://localhost/api/auth/session/upgrade', {
         method: 'POST',
@@ -34,6 +37,7 @@ describe('Renewable desktop authentication routes', () => {
   it('redirects web OAuth with a one-use session id instead of tokens in the URL', async () => {
     const exchange = spyOn(authService, 'exchangeYandexCode').mockResolvedValue(jwt.sign({ userId: 991 }, JWT_SECRET))
     const create = spyOn(authSessionService, 'create').mockResolvedValue(pair)
+
     try {
       const app = new Elysia().use(authRouter)
       const start = await app.handle(new Request('http://localhost/api/auth/yandex?session=web'))
@@ -60,8 +64,10 @@ describe('Renewable desktop authentication routes', () => {
     const create = spyOn(authSessionService, 'create').mockResolvedValue(pair)
     const refresh = spyOn(authSessionService, 'refresh').mockResolvedValue(pair)
     const revoke = spyOn(authSessionService, 'revoke').mockResolvedValue({ success: true })
+
     try {
       const app = new Elysia().use(authRouter)
+
       for (const [route, body, expected] of [
         ['login', { login: 'test', password: 'test' }, { ...pair, user }],
         ['refresh', { refreshToken: pair.refreshToken }, pair],
@@ -76,6 +82,7 @@ describe('Renewable desktop authentication routes', () => {
         expect(response.headers.get('Cache-Control')).toContain('no-store')
         expect(await response.json()).toEqual(expected)
       }
+
       expect(create).toHaveBeenCalledWith(user.id)
       expect(refresh).toHaveBeenCalledWith(pair.refreshToken)
       expect(revoke).toHaveBeenCalledWith(pair.refreshToken)
@@ -92,8 +99,10 @@ describe('Renewable desktop authentication routes', () => {
     const legacyToken = jwt.sign({ userId: 991 }, JWT_SECRET)
     const exchange = spyOn(authService, 'exchangeYandexCode').mockResolvedValue(legacyToken)
     const create = spyOn(authSessionService, 'create').mockResolvedValue(pair)
+
     try {
       const app = new Elysia().use(authRouter)
+
       for (const desktop of [true, false]) {
         const sessionId = crypto.randomUUID()
         const start = await app.handle(new Request(`http://localhost/api/auth/yandex?session_id=${sessionId}${desktop ? '&session=desktop' : ''}`))
@@ -107,6 +116,7 @@ describe('Renewable desktop authentication routes', () => {
         expect(await response.json()).toEqual(desktop ? { status: 'success', ...pair } : { status: 'success', token: legacyToken })
         expect(await (await poll()).json()).toEqual({ status: 'pending' })
       }
+
       expect(create).toHaveBeenCalledTimes(1)
       expect(create).toHaveBeenCalledWith(991)
     }

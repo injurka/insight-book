@@ -43,11 +43,15 @@ export async function checkBookLimit(userId: number): Promise<void> {
   if (user && user.bookLimit !== null) {
     const [{ count }] = await db.select({ count: sql<number>`count(*)` })
       .from(schema.books)
-      .where(
-        sql`${schema.books.userId} = ${userId} AND datetime(${schema.books.createdAt}) >= datetime(${user.periodStart})`,
-      )
+      .where(sql`${schema.books.userId} = ${userId} AND datetime(${schema.books.createdAt}) >= datetime(${user.periodStart})`)
+
     if (count >= user.bookLimit) {
-      throw new AppError(403, ERROR_CODES.LIMITS.BOOK_LIMIT_EXCEEDED, 'Book limit exceeded', { maxBooks: user.bookLimit })
+      throw new AppError(
+        403,
+        ERROR_CODES.LIMITS.BOOK_LIMIT_EXCEEDED,
+        'Book limit exceeded',
+        { maxBooks: user.bookLimit },
+      )
     }
   }
 }

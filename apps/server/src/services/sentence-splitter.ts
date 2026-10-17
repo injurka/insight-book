@@ -21,6 +21,7 @@ function splitAtSemicolons(text: string): string[] {
 export function splitIntoSentences(text: string, language: string): string[] {
   try {
     const segmenter = new Intl.Segmenter(normalizeLanguageCode(language) || undefined, { granularity: 'sentence' })
+
     return Array.from(segmenter.segment(text), ({ segment }) => segment)
       .flatMap(splitAtSemicolons)
   }

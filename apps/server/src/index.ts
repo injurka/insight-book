@@ -3,7 +3,6 @@
 // OTel инициализируется первее всех остальных импортов
 import { registerRuntimeMetrics, telemetryPlugin } from './plugins/telemetry'
 import { databaseReady } from './db'
-
 import { serverTiming } from '@elysia/server-timing'
 import { Elysia } from 'elysia'
 import { activityRouter } from './controllers/activity.controller'

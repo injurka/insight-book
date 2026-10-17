@@ -37,11 +37,13 @@ export const adminRouter = new Elysia({ prefix: '/api/admin' })
 
   .get('/subscription-tiers', async ({ userId }) => {
     await adminService.assertAdmin(userId)
+
     return subscriptionTierService.list()
   })
 
   .post('/subscription-tiers', async ({ userId, body }) => {
     await adminService.assertAdmin(userId)
+
     return subscriptionTierService.create(body as Parameters<typeof subscriptionTierService.create>[0])
   }, {
     body: tierBody,
@@ -49,6 +51,7 @@ export const adminRouter = new Elysia({ prefix: '/api/admin' })
 
   .patch('/subscription-tiers/:id', async ({ userId, params, body }) => {
     await adminService.assertAdmin(userId)
+
     return subscriptionTierService.update(params.id, body as Parameters<typeof subscriptionTierService.update>[1])
   }, {
     params: t.Object({ id: t.String() }),
@@ -58,6 +61,7 @@ export const adminRouter = new Elysia({ prefix: '/api/admin' })
   .delete('/subscription-tiers/:id', async ({ userId, params }) => {
     await adminService.assertAdmin(userId)
     await subscriptionTierService.remove(params.id)
+
     return { success: true }
   }, {
     params: t.Object({ id: t.String() }),
@@ -159,6 +163,7 @@ export const adminRouter = new Elysia({ prefix: '/api/admin' })
   .get('/plugins', async ({ userId, query }) => {
     const { catalogPluginService } = await import('../services/catalog-plugin.service')
     const status = query.status && query.status !== 'all' ? query.status : undefined
+
     return catalogPluginService.listPlugins(userId, status)
   }, {
     query: t.Object({
@@ -174,12 +179,19 @@ export const adminRouter = new Elysia({ prefix: '/api/admin' })
   .get('/plugins/pending', async ({ userId }) => {
     // Reuse the existing catalog plugin service's pending check
     const { catalogPluginService } = await import('../services/catalog-plugin.service')
+
     return catalogPluginService.getPendingPlugins(userId)
   })
 
   .patch('/plugins/:id/versions/:version/status', async ({ userId, params, body }) => {
     const { catalogPluginService } = await import('../services/catalog-plugin.service')
-    return catalogPluginService.setPluginStatus(userId, params.id, params.version, body.status as Extract<CatalogPluginStatus, 'approved' | 'rejected'>)
+
+    return catalogPluginService.setPluginStatus(
+      userId,
+      params.id,
+      params.version,
+      body.status as Extract<CatalogPluginStatus, 'approved' | 'rejected'>,
+    )
   }, {
     params: t.Object({ id: t.String(), version: t.String() }),
     body: t.Object({
@@ -189,6 +201,7 @@ export const adminRouter = new Elysia({ prefix: '/api/admin' })
 
   .patch('/plugins/:id/status', async ({ userId, params, body }) => {
     const { catalogPluginService } = await import('../services/catalog-plugin.service')
+
     return catalogPluginService.setLatestPluginStatus(userId, params.id, body.status as Extract<CatalogPluginStatus, 'approved' | 'rejected'>)
   }, {
     params: t.Object({ id: t.String() }),
@@ -199,6 +212,7 @@ export const adminRouter = new Elysia({ prefix: '/api/admin' })
 
   .delete('/plugins/:id', async ({ userId, params }) => {
     const { catalogPluginService } = await import('../services/catalog-plugin.service')
+
     return catalogPluginService.deletePlugin(userId, params.id)
   }, {
     params: t.Object({ id: t.String() }),
@@ -211,6 +225,7 @@ export const adminRouter = new Elysia({ prefix: '/api/admin' })
       'Content-Type': 'application/zip',
       'Content-Disposition': `attachment; filename="${archive.filename}"`,
     }
+
     return Buffer.from(archive.buffer)
   }, {
     params: t.Object({ id: t.String(), version: t.String() }),
@@ -223,6 +238,7 @@ export const adminRouter = new Elysia({ prefix: '/api/admin' })
       'Content-Type': 'application/zip',
       'Content-Disposition': `attachment; filename="${archive.filename}"`,
     }
+
     return Buffer.from(archive.buffer)
   }, {
     params: t.Object({ id: t.String() }),

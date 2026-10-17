@@ -4,7 +4,6 @@ import { getAiConfig } from '~/utils/ai-config'
 import { VAPID_PRIVATE_KEY, VAPID_PUBLIC_KEY, VAPID_SUBJECT } from '../config'
 import { getGeneralPushPrompt, getWordPushPrompt } from '../prompts'
 import { pushRepository } from '../repositories/push.repository'
-
 import { parseLlmJson } from '../utils/helpers'
 import { callLlmJsonWithRetry } from '../utils/llm-api'
 import { logger } from '../utils/logger'
@@ -20,10 +19,13 @@ export function getWordPushUrl(word: Pick<UserDictItem, 'word' | 'language'>) {
 
 function getSeededRandom(seedStr: string) {
   let hash = 0
+
   for (let i = 0; i < seedStr.length; i++) {
     hash = Math.imul(31, hash) + seedStr.charCodeAt(i) | 0
   }
+
   const x = Math.sin(hash) * 10000
+
   return x - Math.floor(x)
 }
 
@@ -77,6 +79,7 @@ function getTargetUtcTimesForDate(dateObj: Date, user: { id: number, timezone?: 
 
   const startMs = (startH * 60 + startM) * 60 * 1000
   let endMs = (endH * 60 + endM) * 60 * 1000
+
   if (endMs <= startMs) {
     endMs += 24 * 60 * 60 * 1000
   }
@@ -107,6 +110,7 @@ function shouldSendPush(user: { id: number, pushCount?: number | null, lastPushS
   const allTargets = [...targetsYesterday, ...targetsToday].sort((a, b) => a - b)
 
   let latestPassedTarget = 0
+
   for (const t of allTargets) {
     if (t <= now.getTime()) {
       latestPassedTarget = t
@@ -124,6 +128,7 @@ function shouldSendPush(user: { id: number, pushCount?: number | null, lastPushS
 export async function sendDailyMotivations(customMessage?: string) {
   if (!VAPID_PUBLIC_KEY || !VAPID_PRIVATE_KEY) {
     logger.info('[Push] VAPID keys not set. Skipping push dispatch.')
+
     return
   }
 
@@ -131,6 +136,7 @@ export async function sendDailyMotivations(customMessage?: string) {
 
   if (!webSubscriptions.length) {
     logger.debug('[Push] No active subscriptions found.')
+
     return
   }
 
@@ -142,6 +148,7 @@ export async function sendDailyMotivations(customMessage?: string) {
     if (!userSubsMap.has(sub.userId)) {
       userSubsMap.set(sub.userId, { user: sub.user, web: [] })
     }
+
     userSubsMap.get(sub.userId)!.web.push(sub)
   })
 
@@ -217,6 +224,7 @@ export async function sendDailyMotivations(customMessage?: string) {
               config,
               raw => parseLlmJson<{ message: string }>(raw),
             )
+
             if (parsed && parsed.message) {
               messageBody = parsed.message
             }
@@ -262,6 +270,7 @@ export async function sendDailyMotivations(customMessage?: string) {
       }
     }))
   }
+
   logger.info('✅ Push dispatch finished.')
 }
 
@@ -273,7 +282,9 @@ export const pushService = {
   async subscribeWebPush(userId: number, endpoint: string, keys: Record<string, string>) {
     if (!endpoint || !keys)
       throw new Error('Invalid subscription object')
+
     await pushRepository.upsertWebSubscription(userId, endpoint, keys)
+
     return { success: true }
   },
 
@@ -281,11 +292,19 @@ export const pushService = {
     if (endpoint) {
       await pushRepository.deleteWebSubscription(userId, endpoint)
     }
+
     return { success: true }
   },
 
   async updatePushSettings(userId: number, settings: { targetDeckId?: number | 'all' | null, timeStart?: string, timeEnd?: string, timezone?: string, uiLanguage?: string, pushCount?: number }) {
-    const { targetDeckId, timeStart, timeEnd, timezone, uiLanguage, pushCount } = settings
+    const {
+      targetDeckId,
+      timeStart,
+      timeEnd,
+      timezone,
+      uiLanguage,
+      pushCount,
+    } = settings
 
     await pushRepository.updatePushSettings(userId, {
       pushTargetDeckId: targetDeckId === 'all' || !targetDeckId ? null : targetDeckId,
@@ -295,6 +314,7 @@ export const pushService = {
       timezone: timezone || 'UTC',
       uiLanguage: uiLanguage || 'ru',
     })
+
     return { success: true }
   },
 }

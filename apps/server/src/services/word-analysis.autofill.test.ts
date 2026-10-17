@@ -20,15 +20,42 @@ it('isolates concurrent autofill by user and model while deduplicating identical
   ) => {
     if (!parse)
       throw new Error('Expected a parser')
+
     const text = JSON.stringify({ translation: model, difficulty: 'A1' })
+
     return { parsed: parse(text), text, usage: { promptTokens: 0, completionTokens: 0 } }
   })
+
   try {
     const config = { url: 'https://example.invalid', model: 'model-a' }
-    const first = generateWordAutoFill(1, 'word', 'en', 'ru', config)
-    const duplicate = generateWordAutoFill(1, 'word', 'en', 'ru', config)
-    const otherUser = generateWordAutoFill(2, 'word', 'en', 'ru', config)
-    const otherModel = generateWordAutoFill(1, 'word', 'en', 'ru', { ...config, model: 'model-b' })
+    const first = generateWordAutoFill(
+      1,
+      'word',
+      'en',
+      'ru',
+      config,
+    )
+    const duplicate = generateWordAutoFill(
+      1,
+      'word',
+      'en',
+      'ru',
+      config,
+    )
+    const otherUser = generateWordAutoFill(
+      2,
+      'word',
+      'en',
+      'ru',
+      config,
+    )
+    const otherModel = generateWordAutoFill(
+      1,
+      'word',
+      'en',
+      'ru',
+      { ...config, model: 'model-b' },
+    )
     expect(limit).toHaveBeenCalledTimes(3)
     release()
     const results = await Promise.all([first, duplicate, otherUser, otherModel])

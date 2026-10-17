@@ -12,10 +12,7 @@ export class ActivityRepository implements IActivityRepository {
         count: sql<number>`${schema.dailyActivity.wordsAdded} + ${schema.dailyActivity.wordsReviewed} + ${schema.dailyActivity.pagesRead}`.mapWith(Number),
       })
       .from(schema.dailyActivity)
-      .where(and(
-        eq(schema.dailyActivity.userId, userId),
-        sql`${schema.dailyActivity.date} >= ${sinceDateStr}`,
-      ))
+      .where(and(eq(schema.dailyActivity.userId, userId), sql`${schema.dailyActivity.date} >= ${sinceDateStr}`))
       .orderBy(desc(schema.dailyActivity.date))
   }
 
@@ -24,10 +21,8 @@ export class ActivityRepository implements IActivityRepository {
       learnedWords: sql<number>`count(*)`.mapWith(Number),
     })
       .from(schema.userDictionary)
-      .where(and(
-        eq(schema.userDictionary.userId, userId),
-        eq(schema.userDictionary.state, 2),
-      ))
+      .where(and(eq(schema.userDictionary.userId, userId), eq(schema.userDictionary.state, 2)))
+
     return learnedWords
   }
 
@@ -37,6 +32,7 @@ export class ActivityRepository implements IActivityRepository {
     })
       .from(schema.dailyActivity)
       .where(eq(schema.dailyActivity.userId, userId))
+
     return readPages
   }
 
@@ -47,11 +43,7 @@ export class ActivityRepository implements IActivityRepository {
       count: sql<number>`SUM(CASE WHEN ${schema.userDictionary.state} = 2 THEN 1 ELSE 0 END)`.mapWith(Number),
     })
       .from(schema.userDictionary)
-      .where(and(
-        eq(schema.userDictionary.userId, userId),
-        sql`${schema.userDictionary.difficulty} IS NOT NULL`,
-        sql`${schema.userDictionary.difficulty} != ''`,
-      ))
+      .where(and(eq(schema.userDictionary.userId, userId), sql`${schema.userDictionary.difficulty} IS NOT NULL`, sql`${schema.userDictionary.difficulty} != ''`))
       .groupBy(schema.userDictionary.language, schema.userDictionary.difficulty)
   }
 
@@ -70,18 +62,23 @@ export class ActivityRepository implements IActivityRepository {
   getDateFilter(period: string): SQL {
     if (period === 'today') {
       const today = new Date().toISOString().split('T')[0]
+
       return eq(schema.tokenUsage.date, today)
     }
+
     if (period === 'week') {
       const weekAgo = new Date()
       weekAgo.setDate(weekAgo.getDate() - 7)
+
       return sql`${schema.tokenUsage.date} >= ${weekAgo.toISOString().split('T')[0]}`
     }
+
     return sql`1=1`
   }
 
   async getTokenUsageStats(userId: number, period: string) {
     const dateFilter = this.getDateFilter(period)
+
     return await db.select({
       action: schema.tokenUsage.action,
       model: schema.tokenUsage.model,
@@ -97,6 +94,7 @@ export class ActivityRepository implements IActivityRepository {
 
   async getDailyTokenUsage(userId: number, period: string) {
     const dateFilter = this.getDateFilter(period)
+
     return await db.select({
       date: schema.tokenUsage.date,
       model: schema.tokenUsage.model,

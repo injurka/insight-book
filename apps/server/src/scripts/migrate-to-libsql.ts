@@ -39,6 +39,7 @@ const PRIORITY_ORDER = [
 
 async function withRetry<T>(fn: () => Promise<T>, maxRetries = 5, delayMs = 2000): Promise<T> {
   let attempt = 0
+
   while (attempt < maxRetries) {
     try {
       return await fn()
@@ -46,16 +47,21 @@ async function withRetry<T>(fn: () => Promise<T>, maxRetries = 5, delayMs = 2000
     catch (err) {
       const error = err as Error
       const isIgnorable = error.message.includes('already exists') || error.message.includes('duplicate column')
+
       if (isIgnorable)
         throw err
+
       attempt++
+
       if (attempt >= maxRetries)
         throw err
+
       logger.warn(`⚠️ Request failed (${error.message}). Retrying attempt ${attempt}/${maxRetries} after ${delayMs}ms...`)
       await new Promise(r => setTimeout(r, delayMs))
       delayMs *= 1.5
     }
   }
+
   throw new Error('Unreachable')
 }
 
@@ -87,23 +93,26 @@ async function main() {
 
   // Step 0: Clean wipe of the remote database (drop all tables)
   logger.info('🧹 Dropping all existing tables on remote BunnyDB for a clean migration...')
+
   try {
-    const remoteTablesResult = await remoteClient.execute(
-      'SELECT name FROM sqlite_master WHERE type=\'table\' AND name NOT LIKE \'sqlite_%\' AND name NOT LIKE \'_litestream_%\'',
-    )
+    const remoteTablesResult = await remoteClient.execute('SELECT name FROM sqlite_master WHERE type=\'table\' AND name NOT LIKE \'sqlite_%\' AND name NOT LIKE \'_litestream_%\'')
+
     for (const row of remoteTablesResult.rows) {
       const tableName = row.name as string
       logger.info(`   Dropping table "${tableName}"...`)
+
       try {
         await remoteClient.execute(`DROP TABLE IF EXISTS "${tableName}"`)
       }
       catch (err) {
         const error = err as Error
+
         if (!error.message.includes('no such table')) {
           logger.warn(`⚠️ Warning dropping table ${tableName}: ${error.message}`)
         }
       }
     }
+
     logger.info('✅ Remote database cleared.')
   }
   catch (err) {
@@ -157,6 +166,7 @@ async function main() {
       logger.warn(`⚠️ Warning executing statement: ${error.message}`)
     }
   }
+
   logger.info('✅ Remote database schema created.')
 
   // Step 2: Get user tables from local SQLite
@@ -168,12 +178,14 @@ async function main() {
 
   // Sort tables according to priority
   const tablesToMigrate: string[] = []
+
   for (const t of PRIORITY_ORDER) {
     if (foundTablesSet.has(t)) {
       tablesToMigrate.push(t)
       foundTablesSet.delete(t)
     }
   }
+
   for (const t of foundTablesSet) {
     tablesToMigrate.push(t)
   }
@@ -181,6 +193,7 @@ async function main() {
   // Step 3: Clear remote tables in REVERSE priority order to preserve foreign key constraints logic
   logger.info('🧹 Clearing target database tables before data dump...')
   const reverseTables = [...tablesToMigrate].reverse()
+
   for (const table of reverseTables) {
     try {
       await remoteClient.execute(`DELETE FROM "${table}"`)
@@ -196,6 +209,7 @@ async function main() {
     logger.info(`\n🔄 Migrating table "${table}"...`)
 
     const rows = localDb.query(`SELECT * FROM "${table}"`).all() as Record<string, unknown>[]
+
     if (rows.length === 0) {
       logger.info(`ℹ️ Table "${table}" is empty. Skipping rows.`)
       continue
@@ -210,6 +224,7 @@ async function main() {
     let skippedOrphansCount = 0
 
     const chunkSize = 200
+
     for (let i = 0; i < rows.length; i += chunkSize) {
       const chunk = rows.slice(i, i + chunkSize)
       const statements: InStatement[] = chunk.map(row => ({
@@ -223,6 +238,7 @@ async function main() {
       }
       catch (err) {
         const error = err as Error
+
         if (error.message?.includes('FOREIGN KEY constraint failed')) {
           // Fallback: Insert row by row to retain valid rows
           for (const row of chunk) {
@@ -235,6 +251,7 @@ async function main() {
             }
             catch (singleErr) {
               const singleError = singleErr as Error
+
               if (singleError.message?.includes('FOREIGN KEY constraint failed') || singleError.message?.includes('database is locked')) {
                 skippedOrphansCount++
               }

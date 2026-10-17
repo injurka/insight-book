@@ -49,8 +49,10 @@ export interface ProcessedError {
 function parseZodErrorMessage(error: unknown): string {
   const zodError = error as { issues?: { path: string[], message: string }[], errors?: { path: string[], message: string }[] }
   const issues = zodError.issues || zodError.errors || []
+
   if (issues.length === 0)
     return 'Ошибка валидации данных.'
+
   return issues.map(e => `${e.path.join('.')}: ${e.message}`).join('; ')
 }
 
@@ -67,6 +69,7 @@ export function extractErrorInfo(error: unknown): ProcessedError {
 
   if (error && typeof error === 'object' && 'name' in error && error.name === 'ZodError') {
     const msg = parseZodErrorMessage(error)
+
     return {
       status: 400,
       code: ERROR_CODES.SYSTEM.VALIDATION_ERROR,
@@ -77,6 +80,7 @@ export function extractErrorInfo(error: unknown): ProcessedError {
 
   if (error instanceof ValidationError) {
     let msg = 'Ошибка валидации данных.'
+
     try {
       const parsed = JSON.parse(error.message)
       msg = parsed.summary || parsed.message || msg
@@ -84,6 +88,7 @@ export function extractErrorInfo(error: unknown): ProcessedError {
     catch {
       msg = error.message || msg
     }
+
     return {
       status: 400,
       code: ERROR_CODES.SYSTEM.VALIDATION_ERROR,
@@ -112,6 +117,7 @@ export function extractErrorInfo(error: unknown): ProcessedError {
 export function handleElysiaError({ error, set }: { error: unknown, set: { status?: number | string } }): ProcessedError {
   const processed = extractErrorInfo(error)
   set.status = processed.status
+
   return processed
 }
 

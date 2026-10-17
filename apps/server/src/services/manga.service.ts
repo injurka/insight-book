@@ -112,6 +112,7 @@ export async function processCbz(filePath: string, filename: string, userId: num
       }
 
       const chunkSize = 1000
+
       for (let i = 0; i < pagesToInsert.length; i += chunkSize) {
         const chunk = pagesToInsert.slice(i, i + chunkSize)
         await tx.insert(schema.mangaPages).values(chunk).onConflictDoNothing()
@@ -179,6 +180,7 @@ export async function appendMangaChapter(book: { id: number, totalPages: number,
 
     if (currentPageNum === 1 && !coverUrl) {
       const coverFilename = `${Date.now()}_cover${ext}`
+
       if (storageService.constructor.name === 'LocalStorageService') {
         const coverPath = path.join(UPLOADS_PATH, `covers/${coverFilename}`)
         await Bun.write(coverPath, file)
@@ -187,6 +189,7 @@ export async function appendMangaChapter(book: { id: number, totalPages: number,
         const coverBuffer = await Bun.file(fullPath).arrayBuffer()
         await storageService.uploadFile(`covers/${coverFilename}`, coverBuffer, `image/${ext.slice(1)}`)
       }
+
       coverUrl = `/api/uploads/covers/${coverFilename}`
     }
 
@@ -195,18 +198,21 @@ export async function appendMangaChapter(book: { id: number, totalPages: number,
 
   await db.transaction(async (tx) => {
     const chunkSize = 1000
+
     for (let i = 0; i < pagesToInsert.length; i += chunkSize) {
       const chunk = pagesToInsert.slice(i, i + chunkSize)
       await tx.insert(schema.mangaPages).values(chunk).onConflictDoNothing()
     }
 
     let toc: TocItem[] = []
+
     if (typeof book.toc === 'string') {
       toc = JSON.parse(book.toc || '[]')
     }
     else if (Array.isArray(book.toc)) {
       toc = [...book.toc]
     }
+
     if (chapterTitle) {
       toc.push({
         id: `chap-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,

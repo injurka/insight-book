@@ -15,6 +15,7 @@ export async function processFb2(filePath: string, filename: string, userId: num
       const zip = new AdmZip(filePath)
       const entries = zip.getEntries()
       const fb2Entry = entries.find(e => e.entryName.toLowerCase().endsWith('.fb2') || e.entryName.toLowerCase().endsWith('.xml'))
+
       if (fb2Entry) {
         fileContent = fb2Entry.getData().toString('utf-8')
       }
@@ -38,9 +39,11 @@ export async function processFb2(filePath: string, filename: string, userId: num
 
     let coverUrl = null
     const coverImageHref = titleInfo.find('coverpage image').attr('l:href')
+
     if (coverImageHref) {
       const imageId = coverImageHref.replace('#', '')
       const binaryNode = $(`binary[id="${imageId}"]`)
+
       if (binaryNode.length) {
         const base64Data = binaryNode.text().trim()
         const contentType = binaryNode.attr('content-type') || 'image/jpeg'
@@ -61,6 +64,7 @@ export async function processFb2(filePath: string, filename: string, userId: num
 
     body.find('section').each((sectionIndex, sectionEl) => {
       const sectionTitle = $(sectionEl).find('> title').text().trim()
+
       if (sectionTitle) {
         toc.push({
           id: `sec-${sectionIndex}`,
@@ -86,14 +90,17 @@ export async function processFb2(filePath: string, filename: string, userId: num
         else if (tagName === 'p' || tagName === 'v') { // <v> часто используется в fb2 для стихов
           const html = $(child).html() || ''
           textLen = $(child).text().length
+
           if (textLen > 0) {
             childHtml = `<p>${html}</p>\n`
           }
         }
         else if (tagName === 'image') {
           const href = $(child).attr('l:href')?.replace('#', '')
+
           if (href) {
             const bin = $(`binary[id="${href}"]`)
+
             if (bin.length) {
               const b64 = bin.text().trim()
               const type = bin.attr('content-type') || 'image/jpeg'
@@ -105,6 +112,7 @@ export async function processFb2(filePath: string, filename: string, userId: num
         // Остальные теги (эпиграфы, цитаты) просто оборачиваем в DIV, сохраняя форматирование
           const html = $(child).html() || ''
           textLen = $(child).text().length
+
           if (textLen > 0) {
             childHtml = `<div class="fb2-${tagName}">${html}</div>\n`
           }
@@ -155,6 +163,7 @@ export async function processFb2(filePath: string, filename: string, userId: num
       }))
 
       const chunkSize = 1000
+
       for (let i = 0; i < pagesToInsert.length; i += chunkSize) {
         await tx.insert(schema.bookPages).values(pagesToInsert.slice(i, i + chunkSize)).onConflictDoNothing()
       }

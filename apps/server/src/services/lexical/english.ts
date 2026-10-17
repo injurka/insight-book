@@ -5,10 +5,12 @@ const functionWords = new Set(`i me my mine myself you your yours yourself yours
 
 export function tokenizeEnglishProfile(text: string, lemmaCache: Map<string, string>): ProfileToken[] {
   const result: ProfileToken[] = []
+
   for (const sentence of nlp(text).json()) {
     for (const [index, term] of sentence.terms.entries()) {
       if (term.pre?.trim())
         result.push({ word: term.pre, pos: 'x' })
+
       const word = term.text.normalize('NFKC').replace(/’/g, '\'')
       const normal = word.toLowerCase().replace(/'s$/u, '')
       const tags: string[] = term.tags
@@ -18,23 +20,39 @@ export function tokenizeEnglishProfile(text: string, lemmaCache: Map<string, str
       const entity = !functional && capitalized && tags.includes('ProperNoun') && index > 0
       const cacheKey = `${pos}:${normal}`
       let lemma = lemmaCache.get(cacheKey)
+
       if (!lemma) {
         const doc = nlp(normal)
+
         if (pos === 'v')
           doc.tag('Verb')
+
         if (pos === 'n')
           doc.tag('Noun')
+
         lemma = pos === 'v' ? doc.verbs().toInfinitive().text() : pos === 'n' ? doc.nouns().toSingular().text() : normal
+
         // Keep one lexical unit; an auxiliary expansion is not a lemma.
         if (!lemma || /\s/u.test(lemma))
           lemma = normal
+
         lemmaCache.set(cacheKey, lemma || normal)
       }
-      result.push({ word, pos, lemma, entity, nameCandidate: !functional && capitalized && index > 0 })
+
+      result.push({
+        word,
+        pos,
+        lemma,
+        entity,
+        nameCandidate: !functional && capitalized && index > 0,
+      })
+
       if (term.post?.trim())
         result.push({ word: term.post, pos: 'x' })
     }
+
     result.push({ word: '.', pos: 'x' })
   }
+
   return result
 }

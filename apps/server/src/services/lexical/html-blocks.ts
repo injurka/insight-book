@@ -15,6 +15,7 @@ export function collectTextBlocks(roots: AnyNode[]) {
 
     if (el.type === 'text') {
       const text = el.data
+
       if (text) {
         currentBlock.textNodes.push(el as Text)
         currentBlock.fullText += text
@@ -31,6 +32,7 @@ export function collectTextBlocks(roots: AnyNode[]) {
   }
 
   roots.forEach(traverse)
+
   if (currentBlock.textNodes.length > 0)
     blocks.push(currentBlock)
 

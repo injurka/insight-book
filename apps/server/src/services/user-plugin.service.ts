@@ -10,15 +10,12 @@ export class UserPluginService {
     return this.userPluginRepo.findMany(userId)
   }
 
-  async installPlugin(
-    userId: number,
-    body: {
-      pluginId: string
-      manifestUrl: string
-      settings?: string | null
-      isEnabled?: boolean
-    },
-  ) {
+  async installPlugin(userId: number, body: {
+    pluginId: string
+    manifestUrl: string
+    settings?: string | null
+    isEnabled?: boolean
+  }) {
     if (!body.pluginId || !body.manifestUrl) {
       throw new AppError(400, ERROR_CODES.PLUGIN.INVALID_MANIFEST, 'pluginId and manifestUrl are required')
     }
@@ -32,26 +29,26 @@ export class UserPluginService {
     })
   }
 
-  async updatePlugin(
-    userId: number,
-    pluginId: string,
-    body: {
-      isEnabled?: boolean
-      settings?: string | null
-    },
-  ) {
+  async updatePlugin(userId: number, pluginId: string, body: {
+    isEnabled?: boolean
+    settings?: string | null
+  }) {
     const updated = await this.userPluginRepo.update(userId, pluginId, body)
+
     if (!updated) {
       throw new AppError(404, ERROR_CODES.PLUGIN.NOT_FOUND, 'Plugin not found')
     }
+
     return updated
   }
 
   async uninstallPlugin(userId: number, pluginId: string) {
     const deleted = await this.userPluginRepo.delete(userId, pluginId)
+
     if (!deleted) {
       throw new AppError(404, ERROR_CODES.PLUGIN.NOT_FOUND, 'Plugin not found')
     }
+
     return { success: true }
   }
 }

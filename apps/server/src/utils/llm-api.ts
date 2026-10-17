@@ -42,8 +42,10 @@ class LlmHttpError extends Error {
 function llmSystemFor(url: string): string {
   if (isOllamaNativeUrl(url))
     return 'ollama'
+
   if (isGeminiNativeUrl(url))
     return 'gemini'
+
   return 'openai'
 }
 
@@ -55,12 +57,14 @@ function llmBaseAttributes(config: LlmConfig, modelName: string): Attributes {
     'http.request.method': 'POST',
     'http.method': 'POST',
   }
+
   try {
     attributes['server.address'] = new URL(config.url).hostname
   }
   catch {
     // невалидный url — атрибут пропускаем
   }
+
   return attributes
 }
 
@@ -73,24 +77,25 @@ async function callLlmApi(
   forceJson: boolean = false,
 ): Promise<{ text: string, usage: TokenUsage }> {
   try {
-    return await runWithClientSpan(
-      `LLM ${modelName}`,
-      llmBaseAttributes(config, modelName),
-      async (span) => {
-        const result = await dispatchLlm(modelName, messages, temperature, signal, config, forceJson)
+    return await runWithClientSpan(`LLM ${modelName}`, llmBaseAttributes(config, modelName), async (span) => {
+      const result = await dispatchLlm(
+        modelName,
+        messages,
+        temperature,
+        signal,
+        config,
+        forceJson,
+      )
 
-        span.setAttribute('gen_ai.usage.input_tokens', result.usage.promptTokens)
-        span.setAttribute('gen_ai.usage.output_tokens', result.usage.completionTokens)
+      span.setAttribute('gen_ai.usage.input_tokens', result.usage.promptTokens)
+      span.setAttribute('gen_ai.usage.output_tokens', result.usage.completionTokens)
 
-        return result
-      },
-    )
+      return result
+    })
   }
   catch (error: unknown) {
     const errObj = error as { message?: string }
-    throw new Error(
-      `AI SDK Error[${modelName}]: ${errObj?.message || JSON.stringify(error)} `,
-    )
+    throw new Error(`AI SDK Error[${modelName}]: ${errObj?.message || JSON.stringify(error)} `)
   }
 }
 
@@ -147,7 +152,14 @@ async function callLlmJsonWithRetry<T = unknown>(
   onTokenUsage?: (usage: TokenUsage, rawText: string, messagesUsed: ModelMessage[]) => void,
 ): Promise<{ parsed: T, text: string, usage: TokenUsage }> {
   // Для JSON структуры принудительно требуем JSON формат
-  const res = await callLlmApi(modelName, messages, temperature, signal, config, true)
+  const res = await callLlmApi(
+    modelName,
+    messages,
+    temperature,
+    signal,
+    config,
+    true,
+  )
   const rawResponse = res.text
   const usage = res.usage
 
@@ -157,6 +169,7 @@ async function callLlmJsonWithRetry<T = unknown>(
 
   try {
     const parsed = parseFn(rawResponse)
+
     return { parsed, text: rawResponse, usage }
   }
   catch (parseError: unknown) {
@@ -173,7 +186,14 @@ async function callLlmJsonWithRetry<T = unknown>(
       },
     ]
 
-    const retryRes = await callLlmApi(modelName, retryMessages, temperature, signal, config, true)
+    const retryRes = await callLlmApi(
+      modelName,
+      retryMessages,
+      temperature,
+      signal,
+      config,
+      true,
+    )
     const retryRawResponse = retryRes.text
     const retryUsage = retryRes.usage
 
@@ -187,6 +207,7 @@ async function callLlmJsonWithRetry<T = unknown>(
         promptTokens: usage.promptTokens + retryUsage.promptTokens,
         completionTokens: usage.completionTokens + retryUsage.completionTokens,
       }
+
       return { parsed, text: retryRawResponse, usage: combinedUsage }
     }
     catch (retryParseError: unknown) {
@@ -288,10 +309,13 @@ async function callOpenAiCompatible(params: {
           .map((part: { type?: string, text?: string } | string) => {
             if (typeof part === 'string')
               return part
+
             if (part?.type === 'text')
               return part.text ?? ''
+
             if ('text' in part)
               return part.text ?? ''
+
             return ''
           })
           .join('')
@@ -354,20 +378,24 @@ async function callGeminiNative(params: {
 
   {
     const body = structuredCloneJson(baseBody) as { generationConfig: Record<string, unknown>, systemInstruction?: unknown, contents: GeminiContent[] }
+
     if (forceJson) {
       body.generationConfig.responseMimeType = 'application/json'
       body.generationConfig.response_mime_type = 'application/json'
     }
+
     body.generationConfig.thinkingConfig = { thinkingBudget: 0 }
     bodyVariants.push(body)
   }
 
   {
     const body = structuredCloneJson(baseBody) as { generationConfig: Record<string, unknown>, systemInstruction?: unknown, contents: GeminiContent[] }
+
     if (forceJson) {
       body.generationConfig.responseMimeType = 'application/json'
       body.generationConfig.response_mime_type = 'application/json'
     }
+
     bodyVariants.push(body)
   }
 
@@ -497,11 +525,7 @@ async function postJson<T>(params: {
   const text = await response.text()
 
   if (!response.ok) {
-    throw new LlmHttpError(
-      `HTTP ${response.status}: ${text}`,
-      response.status,
-      text,
-    )
+    throw new LlmHttpError(`HTTP ${response.status}: ${text}`, response.status, text)
   }
 
   if (!text) {
@@ -583,17 +607,24 @@ function contentToText(content: unknown): string {
       .map((part) => {
         if (part == null)
           return ''
+
         if (typeof part === 'string')
           return part
+
         const obj = part as Record<string, unknown>
+
         if (obj.type === 'text')
           return obj.text ?? ''
+
         if ('text' in obj)
           return obj.text ?? ''
+
         if (obj.type === 'image')
           return '[image omitted]'
+
         if (obj.type === 'file')
           return '[file omitted]'
+
         return ''
       })
       .join('')
@@ -601,6 +632,7 @@ function contentToText(content: unknown): string {
 
   if (typeof content === 'object') {
     const obj = content as Record<string, unknown>
+
     if ('text' in obj) {
       return String(obj.text ?? '')
     }
@@ -614,18 +646,23 @@ function contentToText(content: unknown): string {
 function normalizeOpenAiRole(role: string): OpenAiChatMessage['role'] {
   if (role === 'system')
     return 'system'
+
   if (role === 'assistant')
     return 'assistant'
+
   if (role === 'tool')
     return 'tool'
+
   return 'user'
 }
 
 function normalizeOllamaRole(role: string): 'system' | 'user' | 'assistant' {
   if (role === 'system')
     return 'system'
+
   if (role === 'assistant')
     return 'assistant'
+
   return 'user'
 }
 
@@ -657,19 +694,17 @@ function buildOpenAiChatCompletionsUrl(baseUrl: string): string {
 
   if (url.endsWith('/chat/completions'))
     return url
+
   if (url.endsWith('/responses'))
     return `${url.slice(0, -'/responses'.length)}/chat/completions`
+
   if (/\/v\d+(?:beta)?$/i.test(url))
     return `${url}/chat/completions`
 
   return `${url}/v1/chat/completions`
 }
 
-function buildGeminiGenerateContentUrl(
-  baseUrl: string,
-  modelName: string,
-  apiKey?: string,
-): string {
+function buildGeminiGenerateContentUrl(baseUrl: string, modelName: string, apiKey?: string): string {
   let url = stripTrailingSlash(baseUrl)
 
   if (!url.includes(':generateContent')) {
@@ -707,6 +742,7 @@ function buildOllamaChatUrl(baseUrl: string): string {
 
   if (url.endsWith('/api/chat'))
     return url
+
   if (url.endsWith('/v1'))
     url = url.slice(0, -'/v1'.length)
 

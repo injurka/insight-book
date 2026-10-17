@@ -33,14 +33,18 @@ export const catalogRouter = new Elysia({ prefix: '/api/catalog/plugins' })
   .get('/files/*', async ({ params, set }) => {
     const storageKey = `plugins/${params['*']}`
     const fileData = await catalogPluginService.getPluginFile(storageKey)
+
     if (!fileData) {
       set.status = 404
+
       return 'Not found'
     }
+
     set.headers = {
       ...CORS_HEADERS,
       'Content-Type': getPluginContentType(storageKey),
     }
+
     return Buffer.from(fileData.buffer)
   }, { cache: 'hourPublic' })
   .get('/:id', async ({ params }) => {
@@ -58,7 +62,12 @@ export const catalogRouter = new Elysia({ prefix: '/api/catalog/plugins' })
     }),
   })
   .patch('/:id/versions/:version/status', async ({ params, body, userId }) => {
-    return catalogPluginService.setPluginStatus(requireUserId(userId), params.id, params.version, body.status)
+    return catalogPluginService.setPluginStatus(
+      requireUserId(userId),
+      params.id,
+      params.version,
+      body.status,
+    )
   }, {
     params: t.Object({ id: t.String(), version: t.String() }),
     body: t.Object({

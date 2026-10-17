@@ -15,10 +15,12 @@ async function main() {
   if (!dumpPrefixToUse) {
     logger.info('🔍 No specific dump provided. Finding the latest one...')
     const dumps = await dumpStorageService.listDumpFolders('dumps')
+
     if (dumps.length === 0) {
       logger.error('❌ No dumps found in dump storage.')
       process.exit(1)
     }
+
     // Сортируем по имени (т.к. у нас формат ISO 8601, сортировка по алфавиту работает идеально)
     dumps.sort()
     dumpPrefixToUse = dumps[dumps.length - 1]
@@ -32,6 +34,7 @@ async function main() {
   logger.info(`📦 Using dump: ${dumpPrefixToUse}`)
 
   const s3Keys = await dumpStorageService.listFilesInFolder(dumpPrefixToUse)
+
   if (s3Keys.length === 0) {
     logger.error('❌ No files found in this dump.')
     process.exit(1)
@@ -56,6 +59,7 @@ async function main() {
       // ── БД: всегда восстанавливаем на диск ────────────────────────
       await mkdir(path.dirname(DB_PATH), { recursive: true })
       const fileData = await dumpStorageService.getFile(s3Key)
+
       if (fileData) {
         await Bun.write(DB_PATH, fileData.buffer)
         restored++
@@ -68,6 +72,7 @@ async function main() {
     else if (relativeKey.startsWith('uploads/')) {
       const uploadRelativePath = relativeKey.substring('uploads/'.length)
       const fileData = await dumpStorageService.getFile(s3Key)
+
       if (fileData) {
         await dumpStorageService.uploadFile(uploadRelativePath, fileData.buffer, fileData.contentType)
         restored++

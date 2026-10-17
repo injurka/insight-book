@@ -12,6 +12,7 @@ export class AdminService {
   /** Проверка, что пользователь — админ */
   async assertAdmin(userId: number) {
     const user = await userRepository.findById(userId)
+
     if (!user || user.role !== ROLES.ADMIN) {
       throw new AppError(403, ERROR_CODES.AUTH.FORBIDDEN, 'Forbidden')
     }
@@ -56,6 +57,7 @@ export class AdminService {
     await this.assertAdmin(adminUserId)
 
     const user = await userRepository.findById(targetUserId)
+
     if (!user) {
       throw new AppError(404, ERROR_CODES.USER.NOT_FOUND, 'User not found')
     }
@@ -75,12 +77,14 @@ export class AdminService {
     await this.assertAdmin(adminUserId)
 
     const existing = await userRepository.findByUsername(data.username)
+
     if (existing) {
       throw new AppError(400, ERROR_CODES.AUTH.USER_ALREADY_EXISTS, 'User already exists')
     }
 
     if (data.email) {
       const emailExists = await userRepository.findByEmail(data.email)
+
       if (emailExists) {
         throw new AppError(400, ERROR_CODES.AUTH.EMAIL_ALREADY_EXISTS, 'Email already exists')
       }
@@ -107,6 +111,7 @@ export class AdminService {
     await this.assertAdmin(adminUserId)
 
     const user = await userRepository.findById(targetUserId)
+
     if (!user) {
       throw new AppError(404, ERROR_CODES.USER.NOT_FOUND, 'User not found')
     }
@@ -114,6 +119,7 @@ export class AdminService {
     // Защита: нельзя менять роль последнему админу
     if (data.role && data.role !== ROLES.ADMIN && user.role === ROLES.ADMIN) {
       const adminCount = await userRepository.countByRole(ROLES.ADMIN)
+
       if (adminCount <= 1) {
         throw new AppError(400, ERROR_CODES.USER.CANNOT_DEMOTE_LAST_ADMIN, 'Cannot demote last admin')
       }
@@ -123,21 +129,29 @@ export class AdminService {
 
     if (data.role !== undefined)
       updateData.role = data.role
+
     if (data.subscriptionTier !== undefined)
       updateData.subscriptionTier = data.subscriptionTier
+
     if (data.tokenLimit !== undefined)
       updateData.tokenLimit = data.tokenLimit
+
     if (data.bookLimit !== undefined)
       updateData.bookLimit = data.bookLimit
+
     if (data.username !== undefined) {
       const existing = await userRepository.findByUsername(data.username)
+
       if (existing && existing.id !== targetUserId) {
         throw new AppError(400, ERROR_CODES.AUTH.USER_ALREADY_EXISTS, 'User already exists')
       }
+
       updateData.username = data.username
     }
+
     if (data.email !== undefined)
       updateData.email = data.email
+
     if (data.password !== undefined && data.password) {
       updateData.passwordHash = await Bun.password.hash(data.password)
     }
@@ -160,12 +174,14 @@ export class AdminService {
     }
 
     const user = await userRepository.findById(targetUserId)
+
     if (!user) {
       throw new AppError(404, ERROR_CODES.USER.NOT_FOUND, 'User not found')
     }
 
     if (user.role === ROLES.ADMIN) {
       const adminCount = await userRepository.countByRole(ROLES.ADMIN)
+
       if (adminCount <= 1) {
         throw new AppError(400, ERROR_CODES.USER.CANNOT_DELETE_LAST_ADMIN, 'Cannot delete last admin')
       }
@@ -193,6 +209,7 @@ export class AdminService {
     await this.assertAdmin(adminUserId)
 
     const book = await bookRepository.getBookForDeletion(bookId)
+
     if (!book) {
       throw new AppError(404, ERROR_CODES.BOOK.NOT_FOUND, 'Book not found')
     }
@@ -204,6 +221,7 @@ export class AdminService {
         const folderName = path.basename(book.filePath)
         await storageService.deleteFolder(`books/${folderName}`)
       }
+
       if (book.coverUrl && book.coverUrl.startsWith('/api/uploads/covers/')) {
         const coverFilename = book.coverUrl.split('/').pop()!
         await storageService.deleteFile(`covers/${coverFilename}`)
@@ -214,6 +232,7 @@ export class AdminService {
     }
 
     logger.info(`[Admin] Book ${bookId} deleted by admin ${adminUserId}`)
+
     return { success: true }
   }
 
@@ -221,6 +240,7 @@ export class AdminService {
     await this.assertAdmin(adminUserId)
 
     const book = await bookRepository.findFirstBook(bookId)
+
     if (!book) {
       throw new AppError(404, ERROR_CODES.BOOK.NOT_FOUND, 'Book not found')
     }

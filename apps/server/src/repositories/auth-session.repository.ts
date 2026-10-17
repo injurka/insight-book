@@ -12,13 +12,13 @@ export class AuthSessionRepository {
 
   async rotate(tokenHash: string, nextHash: string, expiresAt: number) {
     return this.database.transaction(async (tx) => {
-      const [session] = await tx.delete(authSessions).where(and(
-        eq(authSessions.tokenHash, tokenHash),
-        gt(authSessions.expiresAt, Date.now()),
-      )).returning({ userId: authSessions.userId })
+      const [session] = await tx.delete(authSessions).where(and(eq(authSessions.tokenHash, tokenHash), gt(authSessions.expiresAt, Date.now()))).returning({ userId: authSessions.userId })
+
       if (!session)
         return null
+
       await tx.insert(authSessions).values({ userId: session.userId, tokenHash: nextHash, expiresAt })
+
       return session.userId
     })
   }

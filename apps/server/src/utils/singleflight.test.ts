@@ -9,6 +9,7 @@ describe('Singleflight', () => {
     const task = async () => {
       executionCount++
       await new Promise(resolve => setTimeout(resolve, 50))
+
       return 'result'
     }
 
@@ -30,6 +31,7 @@ describe('Singleflight', () => {
 
     const task = async () => {
       executionCount++
+
       return `count:${executionCount}`
     }
 

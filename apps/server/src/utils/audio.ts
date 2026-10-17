@@ -74,11 +74,9 @@ export async function convertToMp3(inputBuffer: Buffer): Promise<Buffer> {
   inputBuffer = unwrapNestedWav(inputBuffer)
 
   let result: FfmpegResult
+
   try {
-    result = await runFfmpeg(
-      ['-loglevel', 'error', '-i', 'pipe:0', '-vn', '-map_metadata', '-1', '-c:a', 'libmp3lame', '-b:a', '48k', '-f', 'mp3', 'pipe:1'],
-      inputBuffer,
-    )
+    result = await runFfmpeg(['-loglevel', 'error', '-i', 'pipe:0', '-vn', '-map_metadata', '-1', '-c:a', 'libmp3lame', '-b:a', '48k', '-f', 'mp3', 'pipe:1'], inputBuffer)
   }
   catch (err) {
     logger.error({ err }, '[Audio Utility] Failed to run ffmpeg for MP3 transcoding')
@@ -106,17 +104,23 @@ export function unwrapNestedWav(inputBuffer: Buffer): Buffer {
   for (let offset = 12; offset + 8 <= inputBuffer.length;) {
     const size = inputBuffer.readUInt32LE(offset + 4)
     const end = offset + 8 + size
+
     if (end > inputBuffer.length)
       return inputBuffer
+
     if (inputBuffer.toString('ascii', offset, offset + 4) === 'data') {
       const payload = inputBuffer.subarray(offset + 8, end)
+
       // Require a complete RIFF container, not just a coincidental PCM prefix.
       if (isWav(payload) && payload.readUInt32LE(4) + 8 === payload.length)
         return payload
+
       return inputBuffer
     }
+
     offset = end + (size % 2)
   }
+
   return inputBuffer
 }
 
@@ -132,11 +136,13 @@ export async function getAudioDurationSeconds(inputBuffer: Buffer): Promise<numb
     const result = await runFfmpeg(['-i', 'pipe:0', '-f', 'null', '-'], inputBuffer)
     const matches = [...result.stderr.matchAll(/time=(\d{2}):(\d{2}):(\d{2}(?:\.\d+)?)/g)]
     const lastMatch = matches.at(-1)
+
     if (lastMatch) {
       const hours = Number.parseFloat(lastMatch[1])
       const minutes = Number.parseFloat(lastMatch[2])
       const seconds = Number.parseFloat(lastMatch[3])
       const totalSeconds = hours * 3600 + minutes * 60 + seconds
+
       return Math.round(totalSeconds * 100) / 100
     }
   }

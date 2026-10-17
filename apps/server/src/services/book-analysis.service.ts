@@ -10,15 +10,18 @@ import { analyzeBatch, analyzeBookExcerpt, analyzeMangaInfo, analyzeSentence, ch
 export class BookAnalysisService {
   async getAllCache(bookId: number, userId: number, targetLang: string) {
     const book = await bookRepository.getBookUserIdAndPublic(bookId)
+
     if (!book || (book.userId !== userId && !book.isPublic))
       throw new AppError(403, ERROR_CODES.BOOK.ACCESS_DENIED, 'Access denied')
 
     const results = await bookRepository.getAllBookLlmCache(bookId, targetLang)
+
     return { results }
   }
 
   async analyzeVocabulary(id: number, userId: number) {
     const book = await bookRepository.findFirstBook(id)
+
     if (!book || book.userId !== userId)
       throw new AppError(403, ERROR_CODES.BOOK.ACCESS_DENIED, 'Access denied')
 
@@ -36,6 +39,7 @@ export class BookAnalysisService {
 
   async analyzeBookStats(id: number, userId: number, config: LlmConfig) {
     const book = await bookRepository.findFirstBook(id)
+
     if (!book || book.userId !== userId)
       throw new AppError(403, ERROR_CODES.BOOK.ACCESS_DENIED, 'Access denied')
 
@@ -44,35 +48,49 @@ export class BookAnalysisService {
     const uniqueSet = new Set<string>()
 
     if (book.type === 'manga') {
-      aiData = await analyzeMangaInfo(userId, book.title, book.author || '', normalizeLanguageCode(book.language), config)
+      aiData = await analyzeMangaInfo(
+        userId,
+        book.title,
+        book.author || '',
+        normalizeLanguageCode(book.language),
+        config,
+      )
     }
     else {
       const pages = await bookRepository.getBookPages(id)
+
       if (!pages.length)
         throw new AppError(400, ERROR_CODES.BOOK.NO_PAGES_TO_ANALYZE, 'No pages to analyze')
 
       let excerpt = ''
+
       for (const p of pages) {
         if (excerpt.length >= 3000)
           break
+
         const plainText = parseHtml(p.content).textContent
         excerpt += `${plainText}\n`
       }
+
       excerpt = excerpt.substring(0, 3000)
 
       aiData = await analyzeBookExcerpt(userId, excerpt, config)
 
       const normLang = normalizeLanguageCode(book.language)
+
       for (const p of pages) {
         const plainText = parseHtml(p.content).textContent
+
         if (normLang === 'zh' || normLang === 'ja') {
           const chars = plainText.match(/[\p{L}\p{N}]/gu) || []
           totalItems += chars.length
+
           for (const c of chars) uniqueSet.add(c)
         }
         else {
           const words = plainText.match(/[\p{L}\p{N}]+/gu) || []
           totalItems += words.length
+
           for (const w of words) uniqueSet.add(w.toLowerCase())
         }
       }
@@ -90,31 +108,78 @@ export class BookAnalysisService {
     })
 
     const newStats = await bookRepository.getBookStats(id)
+
     return { success: true, stats: newStats ? { ...newStats, tags: newStats.tags ? JSON.parse(newStats.tags) : [], posDistribution: newStats.posDistribution ? JSON.parse(newStats.posDistribution) : null, topWords: newStats.topWords ? JSON.parse(newStats.topWords) : null } : null }
   }
 
-  async checkCache(bookId: number, userId: number, items: { text: string, type: 'sentence' | 'word' }[], language: string, targetLang: string) {
+  async checkCache(
+    bookId: number,
+    userId: number,
+    items: { text: string, type: 'sentence' | 'word' }[],
+    language: string,
+    targetLang: string,
+  ) {
     const book = await bookRepository.getBookUserIdAndPublic(bookId)
+
     if (!book || (book.userId !== userId && !book.isPublic))
       throw new AppError(403, ERROR_CODES.BOOK.ACCESS_DENIED, 'Access denied')
 
-    return checkCacheBatch(bookId, items, normalizeLanguageCode(language), targetLang)
+    return checkCacheBatch(
+      bookId,
+      items,
+      normalizeLanguageCode(language),
+      targetLang,
+    )
   }
 
-  async analyzeSentence(bookId: number, userId: number, sentence: string, language: string, context: string, targetLang: string, type: string, config: LlmConfig) {
+  async analyzeSentence(
+    bookId: number,
+    userId: number,
+    sentence: string,
+    language: string,
+    context: string,
+    targetLang: string,
+    type: string,
+    config: LlmConfig,
+  ) {
     const book = await bookRepository.getBookUserIdAndPublic(bookId)
+
     if (!book || (book.userId !== userId && !book.isPublic))
       throw new AppError(403, ERROR_CODES.BOOK.ACCESS_DENIED, 'Access denied')
 
-    return analyzeSentence(userId, bookId, sentence, normalizeLanguageCode(language), targetLang, config, context, type as 'sentence' | 'word')
+    return analyzeSentence(
+      userId,
+      bookId,
+      sentence,
+      normalizeLanguageCode(language),
+      targetLang,
+      config,
+      context,
+      type as 'sentence' | 'word',
+    )
   }
 
-  async analyzeBatch(bookId: number, userId: number, items: BatchAnalysisRequest[], language: string, targetLang: string, config: LlmConfig) {
+  async analyzeBatch(
+    bookId: number,
+    userId: number,
+    items: BatchAnalysisRequest[],
+    language: string,
+    targetLang: string,
+    config: LlmConfig,
+  ) {
     const book = await bookRepository.getBookUserIdAndPublic(bookId)
+
     if (!book || (book.userId !== userId && !book.isPublic))
       throw new AppError(403, ERROR_CODES.BOOK.ACCESS_DENIED, 'Access denied')
 
-    return analyzeBatch(userId, bookId, items, normalizeLanguageCode(language), targetLang, config)
+    return analyzeBatch(
+      userId,
+      bookId,
+      items,
+      normalizeLanguageCode(language),
+      targetLang,
+      config,
+    )
   }
 }
 

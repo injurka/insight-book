@@ -10,19 +10,16 @@ export class HighlightService {
     return this.highlightRepo.findMany(userId, bookId)
   }
 
-  async createHighlight(
-    userId: number,
-    body: {
-      bookId: number
-      text: string
-      translation?: string | null
-      note?: string | null
-      color?: string | null
-      chapter?: string | null
-      pageNum: number
-      analysisData?: LlmAnalysis | null
-    },
-  ) {
+  async createHighlight(userId: number, body: {
+    bookId: number
+    text: string
+    translation?: string | null
+    note?: string | null
+    color?: string | null
+    chapter?: string | null
+    pageNum: number
+    analysisData?: LlmAnalysis | null
+  }) {
     return this.highlightRepo.create({
       userId,
       bookId: body.bookId,
@@ -36,34 +33,34 @@ export class HighlightService {
     })
   }
 
-  async updateHighlight(
-    id: number,
-    userId: number,
-    body: {
-      text?: string
-      translation?: string | null
-      note?: string | null
-      color?: string | null
-      chapter?: string | null
-      pageNum?: number
-      analysisData?: LlmAnalysis | null
-    },
-  ) {
+  async updateHighlight(id: number, userId: number, body: {
+    text?: string
+    translation?: string | null
+    note?: string | null
+    color?: string | null
+    chapter?: string | null
+    pageNum?: number
+    analysisData?: LlmAnalysis | null
+  }) {
     const updated = await this.highlightRepo.update(id, userId, {
       ...body,
       color: body.color ?? undefined,
     })
+
     if (!updated) {
       throw new AppError(404, ERROR_CODES.HIGHLIGHT.NOT_FOUND, 'Highlight not found')
     }
+
     return updated
   }
 
   async deleteHighlight(id: number, userId: number) {
     const isDeleted = await this.highlightRepo.delete(id, userId)
+
     if (!isDeleted) {
       throw new AppError(404, ERROR_CODES.HIGHLIGHT.NOT_FOUND, 'Highlight not found')
     }
+
     return { success: true }
   }
 }

@@ -15,14 +15,17 @@ const service = new AuthSessionService(new AuthSessionRepository(database))
 
 beforeAll(async () => {
   const dialect = new SQLiteSyncDialect()
+
   for (const table of [schema.users, schema.authSessions]) {
     const config = getTableConfig(table)
     const columns = config.columns.map((column) => {
       const defaultValue = column.default === undefined ? '' : ` DEFAULT ${dialect.sqlToQuery(sql`${column.default}`.inlineParams()).sql}`
+
       return `"${column.name}" ${column.getSQLType()}${column.primary ? ' PRIMARY KEY' : ''}${defaultValue}`
     })
     await database.run(sql.raw(`CREATE TABLE "${config.name}" (${columns.join(',')})`))
   }
+
   await database.insert(schema.users).values({ id: 1, username: 'session-test', passwordHash: 'test' })
 })
 afterAll(() => client.close())

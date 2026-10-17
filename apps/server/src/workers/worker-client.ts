@@ -34,23 +34,34 @@ function createWorker(): Worker {
   pool.push(worker)
 
   worker.onmessage = (event: MessageEvent) => {
-    const { id, success, data, error, stack } = event.data
+    const {
+      id,
+      success,
+      data,
+      error,
+      stack,
+    } = event.data
     const task = taskCallbacks.get(id)
+
     if (task) {
       if (success) {
         task.resolve(data)
       }
       else {
         const err = new Error(error)
+
         // Подменяем стек на реальный стек из воркера,
         // чтобы в логах было видно, где именно упала задача
         if (stack)
           err.stack = stack
+
         logger.error({ taskId: id, taskType: task.type, err }, `[Worker Task Failed] ${task.type}: ${error}`)
         task.reject(err)
       }
+
       taskCallbacks.delete(id)
     }
+
     workerCurrentTaskId.delete(worker)
     workerActive.set(worker, false)
     processNextTask()
@@ -59,13 +70,16 @@ function createWorker(): Worker {
   worker.onerror = (err) => {
     logger.error(err, '[Worker Pool Error]')
     const currentTaskId = workerCurrentTaskId.get(worker)
+
     if (currentTaskId !== undefined) {
       const task = taskCallbacks.get(currentTaskId)
+
       if (task) {
         const errMsg = err instanceof Error ? err.message : String(err)
         task.reject(new Error(`Worker crashed while processing task ${task.type}: ${errMsg}`))
         taskCallbacks.delete(currentTaskId)
       }
+
       workerCurrentTaskId.delete(worker)
     }
 
@@ -76,6 +90,7 @@ function createWorker(): Worker {
 
     workerActive.delete(worker)
     const index = pool.indexOf(worker)
+
     if (index !== -1) {
       pool.splice(index, 1)
     }
@@ -98,6 +113,7 @@ function processNextTask() {
     return
 
   const availableWorker = pool.find(w => !workerActive.get(w))
+
   if (availableWorker) {
     const task = taskQueue.shift()!
     workerActive.set(availableWorker, true)
@@ -116,6 +132,7 @@ export function terminatePool(): void {
     }
     catch { }
   }
+
   pool.length = 0
   workerActive.clear()
   workerCurrentTaskId.clear()
@@ -124,7 +141,13 @@ export function terminatePool(): void {
 export function runWorkerTask<T = unknown>(type: string, payload: unknown): Promise<T> {
   return new Promise((resolve, reject) => {
     const id = ++taskIdSeq
-    taskQueue.push({ id, type, payload, resolve: resolve as (value: unknown) => void, reject })
+    taskQueue.push({
+      id,
+      type,
+      payload,
+      resolve: resolve as (value: unknown) => void,
+      reject,
+    })
     processNextTask()
   })
 }

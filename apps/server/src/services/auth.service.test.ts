@@ -34,6 +34,7 @@ describe('AuthService - OAuth Linking & Unlinking', () => {
             avatarUrl: null,
           }
         }
+
         return null
       }),
       findByLogin: mock(async () => null),
@@ -64,6 +65,7 @@ describe('AuthService - OAuth Linking & Unlinking', () => {
             avatarUrl: null,
           }
         }
+
         return null
       }),
       createUser: mock(async (data: typeof users.$inferInsert) => ({ id: 3, ...data })),

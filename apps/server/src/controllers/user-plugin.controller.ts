@@ -1,7 +1,6 @@
 import { Elysia, t } from 'elysia'
 import { userPluginService } from '../services/user-plugin.service'
 import { authPlugin } from '../utils/auth'
-
 import { cachePlugin } from '../utils/cache'
 
 export const pluginRouter = new Elysia({ prefix: '/api/plugins' })

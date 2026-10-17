@@ -14,12 +14,17 @@ import { logger } from '../utils/logger'
 const authPlugin = new Elysia().derive({ as: 'scoped' }, ({ headers }) => {
   if (AUTH_MODE === 'single')
     return { userId: 1 }
+
   const authHeader = headers.authorization
+
   if (!authHeader || !authHeader.startsWith('Bearer '))
     throw new AppError(401, ERROR_CODES.AUTH.UNAUTHORIZED, 'Unauthorized')
+
   const token = authHeader.split(' ')[1]
+
   try {
     const decoded = jwt.verify(token, JWT_SECRET) as { userId: number }
+
     return { userId: decoded.userId }
   }
   catch {
@@ -38,6 +43,7 @@ export const llmController = new Elysia({ prefix: '/api/llm' })
       throw new AppError(500, ERROR_CODES.SYSTEM.LLM_NOT_CONFIGURED, 'LLM API not configured')
 
     const messages: ModelMessage[] = []
+
     if (body.messages && body.messages.length > 0) {
       for (const m of body.messages) {
         messages.push({ role: m.role, content: m.content })
@@ -47,6 +53,7 @@ export const llmController = new Elysia({ prefix: '/api/llm' })
       if (body.systemPrompt) {
         messages.push({ role: 'system', content: body.systemPrompt })
       }
+
       if (body.prompt) {
         messages.push({ role: 'user', content: body.prompt })
       }
@@ -91,31 +98,30 @@ export const llmController = new Elysia({ prefix: '/api/llm' })
             usage,
           }
         }
-        else {
-          const { text, usage } = await callLlmApi(
-            model,
-            messages,
-            temperature,
-            AbortSignal.timeout(90000),
-            config,
-            false,
-          )
 
-          trackTokenUsage(
-            userId,
-            action,
-            model,
-            usage.promptTokens,
-            usage.completionTokens,
-            JSON.stringify(messages, null, 2),
-            text,
-          )
+        const { text, usage } = await callLlmApi(
+          model,
+          messages,
+          temperature,
+          AbortSignal.timeout(90000),
+          config,
+          false,
+        )
 
-          return {
-            success: true,
-            text,
-            usage,
-          }
+        trackTokenUsage(
+          userId,
+          action,
+          model,
+          usage.promptTokens,
+          usage.completionTokens,
+          JSON.stringify(messages, null, 2),
+          text,
+        )
+
+        return {
+          success: true,
+          text,
+          usage,
         }
       }
       catch (e) {

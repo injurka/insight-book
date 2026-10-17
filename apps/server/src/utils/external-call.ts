@@ -12,6 +12,7 @@ export function sanitizeUrlForTelemetry(url: string): string {
     const u = new URL(url)
     u.search = ''
     u.hash = ''
+
     return u.toString()
   }
   catch {
@@ -36,11 +37,7 @@ export function attachUrlToActiveSpan(url: string): void {
  * Под Bun нативный fetch не покрывается instrumentation-http/undici,
  * поэтому все исходящие HTTP-вызовы сервера оборачиваются через этот хелпер.
  */
-export async function runWithClientSpan<T>(
-  name: string,
-  attributes: Attributes,
-  fn: (span: Span) => Promise<T>,
-): Promise<T> {
+export async function runWithClientSpan<T>(name: string, attributes: Attributes, fn: (span: Span) => Promise<T>): Promise<T> {
   const span = externalTracer.startSpan(name, {
     kind: SpanKind.CLIENT,
     attributes,
@@ -48,6 +45,7 @@ export async function runWithClientSpan<T>(
 
   try {
     const ctx = trace.setSpan(context.active(), span)
+
     return await context.with(ctx, () => fn(span))
   }
   catch (error) {

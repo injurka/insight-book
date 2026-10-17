@@ -39,7 +39,9 @@ let isResettingLimits = false
 async function checkAndResetLimits() {
   if (isResettingLimits)
     return
+
   isResettingLimits = true
+
   try {
     const usersToReset = await db.query.users.findMany({
       where: sql`datetime(${schema.users.periodStart}, '+1 day') <= datetime('now')`,

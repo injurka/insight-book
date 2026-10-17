@@ -71,6 +71,7 @@ function filterAllowedTags(rawTags: string | undefined | null): string {
 async function exists(p: string): Promise<boolean> {
   try {
     await stat(p)
+
     return true
   }
   catch {
@@ -86,6 +87,7 @@ async function getLanguagePairs(decksDir: string): Promise<string[]> {
     if (entry.name === 'old') {
       continue
     }
+
     if (entry.isDirectory()) {
       pairs.push(entry.name)
     }
@@ -121,15 +123,19 @@ async function getJsonFiles(dir: string, baseDir: string = dir): Promise<string[
 function isOldFormatAnalysis(parsed: unknown): boolean {
   if (!parsed || typeof parsed !== 'object')
     return true
+
   const obj = parsed as Record<string, unknown>
+
   if (Array.isArray(obj.grammarRules)) {
     if (obj.grammarRules.some((r: unknown) => typeof r !== 'object' || r === null))
       return true
   }
+
   if (Array.isArray(obj.vocabulary)) {
     if (obj.vocabulary.some((v: unknown) => typeof v !== 'object' || v === null))
       return true
   }
+
   return false
 }
 
@@ -154,6 +160,7 @@ async function analyzeWordForDeck(
   if (cached) {
     try {
       const parsed = JSON.parse(decompressData(cached.analysis))
+
       if (!isOldFormatAnalysis(parsed)) {
         return { analysis: parsed as LlmAnalysis, cached: true }
       }
@@ -205,14 +212,21 @@ async function main() {
 
   if (inputArg) {
     const absolutePath = path.resolve(inputArg)
+
     if (absolutePath.startsWith(decksDir)) {
       const relativeToDecks = path.relative(decksDir, absolutePath)
       const parts = relativeToDecks.split(path.sep)
+
       if (parts.length >= 3 && parts[1] === 'raw') {
         langPair = parts[0]
         relativeRawPath = parts.slice(2).join(path.sep)
         inputFile = absolutePath
-        outputFile = path.resolve(decksDir, langPair, 'result', relativeRawPath)
+        outputFile = path.resolve(
+          decksDir,
+          langPair,
+          'result',
+          relativeRawPath,
+        )
       }
     }
 
@@ -225,6 +239,7 @@ async function main() {
   }
   else {
     const pairs = await getLanguagePairs(decksDir)
+
     if (pairs.length === 0) {
       logger.error(`❌ Ошибка: В папке ${decksDir} не найдено языковых пар (поддиректорий).`)
       process.exit(1)
@@ -241,15 +256,18 @@ async function main() {
       cancel('Отменено')
       process.exit(0)
     }
+
     langPair = selectedPair as string
 
     const rawDir = path.resolve(decksDir, langPair, 'raw')
+
     if (!(await exists(rawDir))) {
       logger.error(`❌ Ошибка: Папка raw не найдена по пути ${rawDir}`)
       process.exit(1)
     }
 
     const jsonFiles = await getJsonFiles(rawDir)
+
     if (jsonFiles.length === 0) {
       logger.error(`❌ Ошибка: В папке ${rawDir} не найдено JSON файлов.`)
       process.exit(1)
@@ -264,10 +282,16 @@ async function main() {
       cancel('Отменено')
       process.exit(0)
     }
+
     relativeRawPath = selectedFile as string
 
     inputFile = path.resolve(rawDir, relativeRawPath)
-    outputFile = path.resolve(decksDir, langPair, 'result', relativeRawPath)
+    outputFile = path.resolve(
+      decksDir,
+      langPair,
+      'result',
+      relativeRawPath,
+    )
   }
 
   await mkdir(path.dirname(outputFile), { recursive: true })
@@ -301,6 +325,7 @@ async function main() {
   try {
     const existingRaw = await readFile(outputFile, 'utf-8')
     const existingData = JSON.parse(existingRaw)
+
     if (existingData && Array.isArray(existingData.words)) {
       enrichedWords.push(...existingData.words)
       logger.info(`ℹ️ Найдено ${enrichedWords.length} уже обработанных слов. Возобновляем прогресс...`)
@@ -329,12 +354,18 @@ async function main() {
     }
 
     const alreadyProcessed = enrichedWords.find(w => w.word === word)
+
     if (alreadyProcessed) {
       continue
     }
 
     try {
-      const res = await analyzeWordForDeck(word, lang, targetLang, config)
+      const res = await analyzeWordForDeck(
+        word,
+        lang,
+        targetLang,
+        config,
+      )
 
       if (res.cached) {
         cachedCount++
@@ -342,6 +373,7 @@ async function main() {
       }
       else {
         generatedCount++
+
         if (res.usage) {
           totalPromptTokens += res.usage.promptTokens
           totalCompletionTokens += res.usage.completionTokens
@@ -384,6 +416,7 @@ async function main() {
   logger.info(`\n📊 Сводка:`)
   logger.info(`   Взято из кэша: ${cachedCount}`)
   logger.info(`   Сгенерировано: ${generatedCount}`)
+
   if (totalPromptTokens > 0 || totalCompletionTokens > 0) {
     logger.info(`   Токены: ${totalPromptTokens} in / ${totalCompletionTokens} out (всего: ${totalPromptTokens + totalCompletionTokens})`)
   }
@@ -399,5 +432,6 @@ main()
       catalogClient.close()
     }
     catch { }
+
     process.exit(0)
   })

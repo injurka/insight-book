@@ -70,12 +70,14 @@ function latestVersionPerPlugin(records: CatalogPluginApiRecord[]) {
 
   for (const record of records) {
     const current = latest.get(record.id)
+
     if (!current) {
       latest.set(record.id, record)
       continue
     }
 
     const updateTime = Date.parse(record.updatedAt) - Date.parse(current.updatedAt)
+
     if (updateTime > 0 || (updateTime === 0 && versionCollator.compare(record.version, current.version) > 0))
       latest.set(record.id, record)
   }
@@ -92,6 +94,7 @@ export class CatalogPluginRepository {
         uploader: { columns: { username: true } },
       },
     })
+
     return rows.map(toVersionApiRecord)
   }
 
@@ -107,24 +110,24 @@ export class CatalogPluginRepository {
         uploader: { columns: { username: true } },
       },
     })
+
     return latestVersionPerPlugin(rows.map(toVersionApiRecord))
   }
 
   async findVersion(pluginId: string, version: string) {
     const row = await db.query.catalogPluginVersions.findFirst({
-      where: and(
-        eq(schema.catalogPluginVersions.pluginId, pluginId),
-        eq(schema.catalogPluginVersions.version, version),
-      ),
+      where: and(eq(schema.catalogPluginVersions.pluginId, pluginId), eq(schema.catalogPluginVersions.version, version)),
       with: {
         uploader: { columns: { username: true } },
       },
     })
+
     return row ? toVersionApiRecord(row) : null
   }
 
   async saveVersion(data: typeof schema.catalogPluginVersions.$inferInsert) {
     const existing = await this.findVersion(data.pluginId, data.version)
+
     if (existing) {
       await db.update(schema.catalogPluginVersions)
         .set({
@@ -138,10 +141,7 @@ export class CatalogPluginRepository {
           status: 'pending',
           updatedAt: new Date().toISOString(),
         })
-        .where(and(
-          eq(schema.catalogPluginVersions.pluginId, data.pluginId),
-          eq(schema.catalogPluginVersions.version, data.version),
-        ))
+        .where(and(eq(schema.catalogPluginVersions.pluginId, data.pluginId), eq(schema.catalogPluginVersions.version, data.version)))
     }
     else {
       await db.insert(schema.catalogPluginVersions).values(data)
@@ -153,10 +153,7 @@ export class CatalogPluginRepository {
   async updateVersionStatus(pluginId: string, version: string, status: CatalogPluginStatus) {
     await db.update(schema.catalogPluginVersions)
       .set({ status, updatedAt: new Date().toISOString() })
-      .where(and(
-        eq(schema.catalogPluginVersions.pluginId, pluginId),
-        eq(schema.catalogPluginVersions.version, version),
-      ))
+      .where(and(eq(schema.catalogPluginVersions.pluginId, pluginId), eq(schema.catalogPluginVersions.version, version)))
 
     return this.findVersion(pluginId, version)
   }
@@ -168,11 +165,9 @@ export class CatalogPluginRepository {
 
   async deleteVersion(pluginId: string, version: string) {
     const deleted = await db.delete(schema.catalogPluginVersions)
-      .where(and(
-        eq(schema.catalogPluginVersions.pluginId, pluginId),
-        eq(schema.catalogPluginVersions.version, version),
-      ))
+      .where(and(eq(schema.catalogPluginVersions.pluginId, pluginId), eq(schema.catalogPluginVersions.version, version)))
       .returning()
+
     return deleted.length > 0
   }
 
@@ -184,6 +179,7 @@ export class CatalogPluginRepository {
         uploader: { columns: { username: true } },
       },
     })
+
     return rows.map(toApiRecord)
   }
 
@@ -195,6 +191,7 @@ export class CatalogPluginRepository {
         uploader: { columns: { username: true } },
       },
     })
+
     return rows.map(toApiRecord)
   }
 
@@ -205,6 +202,7 @@ export class CatalogPluginRepository {
         uploader: { columns: { username: true } },
       },
     })
+
     return row ? toApiRecord(row) : null
   }
 
@@ -242,6 +240,7 @@ export class CatalogPluginRepository {
       .set({ status, updatedAt: new Date().toISOString() })
       .where(eq(schema.catalogPlugins.id, pluginId))
       .returning()
+
     if (!updated)
       return null
 
@@ -253,6 +252,7 @@ export class CatalogPluginRepository {
     const deleted = await db.delete(schema.catalogPlugins)
       .where(eq(schema.catalogPlugins.id, pluginId))
       .returning()
+
     return deleted.length > 0
   }
 
@@ -261,6 +261,7 @@ export class CatalogPluginRepository {
       .from(schema.catalogPluginVersions)
       .where(eq(schema.catalogPluginVersions.status, 'pending'))
       .get()
+
     return result?.count || 0
   }
 }

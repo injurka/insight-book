@@ -24,17 +24,16 @@ export const quizService = {
 
     for (const item of rawProgressList) {
       const existing = levelToProgressMap[item.levelValue]
+
       if (!existing) {
         levelToProgressMap[item.levelValue] = item
       }
+      else if (item.bestScore > existing.bestScore || (item.bestScore === existing.bestScore && item.stars > existing.stars) || item.unlocked) {
+        duplicateIdsToDelete.push(existing.id)
+        levelToProgressMap[item.levelValue] = item
+      }
       else {
-        if (item.bestScore > existing.bestScore || (item.bestScore === existing.bestScore && item.stars > existing.stars) || item.unlocked) {
-          duplicateIdsToDelete.push(existing.id)
-          levelToProgressMap[item.levelValue] = item
-        }
-        else {
-          duplicateIdsToDelete.push(item.id)
-        }
+        duplicateIdsToDelete.push(item.id)
       }
     }
 
@@ -54,6 +53,7 @@ export const quizService = {
         unlocked: index === 0,
       }))
       await quizRepository.insertProgressBatch(inserts)
+
       return await quizRepository.getRawProgressList(userId, language)
     }
 
@@ -63,6 +63,7 @@ export const quizService = {
     if (missingLevels.length > 0) {
       const missingInserts = missingLevels.map((lvl) => {
         const idx = levelsList.indexOf(lvl)
+
         return {
           userId,
           language,
@@ -73,13 +74,20 @@ export const quizService = {
         }
       })
       await quizRepository.insertProgressBatch(missingInserts)
+
       return await quizRepository.getRawProgressList(userId, language)
     }
 
     return progressList
   },
 
-  async generateQuiz(userId: number, normalizedLang: string, targetLang: string, levelValue: string, config: LlmConfig) {
+  async generateQuiz(
+    userId: number,
+    normalizedLang: string,
+    targetLang: string,
+    levelValue: string,
+    config: LlmConfig,
+  ) {
     const progress = await quizRepository.getProgressForLevel(userId, normalizedLang, levelValue)
 
     if (!progress || !progress.unlocked) {
@@ -89,7 +97,12 @@ export const quizService = {
     const deck = await quizRepository.getOfficialDeck(normalizedLang, levelValue)
 
     if (!deck) {
-      throw new AppError(404, ERROR_CODES.DICTIONARY.DECK_NOT_FOUND, 'Quiz deck not found', { levelValue, language: normalizedLang })
+      throw new AppError(
+        404,
+        ERROR_CODES.DICTIONARY.DECK_NOT_FOUND,
+        'Quiz deck not found',
+        { levelValue, language: normalizedLang },
+      )
     }
 
     const deckWords = await quizRepository.getDeckWords(deck.id)
@@ -103,11 +116,24 @@ export const quizService = {
       .sort(() => 0.5 - Math.random())
       .slice(0, 40)
 
-    const questions = await generateLevelQuiz(userId, normalizedLang, targetLang, levelValue, wordsSample, config)
+    const questions = await generateLevelQuiz(
+      userId,
+      normalizedLang,
+      targetLang,
+      levelValue,
+      wordsSample,
+      config,
+    )
+
     return { questions }
   },
 
-  async submitQuiz(userId: number, normalizedLang: string, levelValue: string, score: number) {
+  async submitQuiz(
+    userId: number,
+    normalizedLang: string,
+    levelValue: string,
+    score: number,
+  ) {
     let starsEarned = 0
     const isPassed = score >= 80
 

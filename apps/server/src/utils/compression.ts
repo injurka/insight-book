@@ -3,6 +3,7 @@
  */
 export function compressData(data: string | Buffer): Buffer {
   const input = typeof data === 'string' ? Buffer.from(data, 'utf-8') : data
+
   return Bun.zstdCompressSync(input)
 }
 
@@ -13,10 +14,12 @@ export function compressData(data: string | Buffer): Buffer {
 export function decompressData(data: Buffer | Uint8Array | string | null | undefined): string {
   if (!data)
     return ''
+
   if (typeof data === 'string')
     return data
 
   const buf = Buffer.isBuffer(data) ? data : Buffer.from(data)
+
   if (buf.length === 0)
     return ''
 

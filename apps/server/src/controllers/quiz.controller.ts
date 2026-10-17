@@ -9,12 +9,17 @@ import { extractLlmConfig, normalizeLanguageCode } from '../utils/helpers'
 const authPlugin = new Elysia().derive({ as: 'scoped' }, ({ headers }) => {
   if (AUTH_MODE === 'single')
     return { userId: 1 }
+
   const authHeader = headers.authorization
+
   if (!authHeader || !authHeader.startsWith('Bearer '))
     throw new AppError(401, ERROR_CODES.AUTH.UNAUTHORIZED, 'Unauthorized')
+
   const token = authHeader.split(' ')[1]
+
   try {
     const decoded = jwt.verify(token, JWT_SECRET) as { userId: number }
+
     return { userId: decoded.userId }
   }
   catch {
@@ -27,6 +32,7 @@ export const quizRouter = new Elysia({ prefix: '/api/quiz' })
   .onError(handleElysiaError)
   .get('/levels', async ({ userId, query }) => {
     const language = normalizeLanguageCode(query.language || 'zh')
+
     return await quizService.getQuizLevels(userId, language)
   }, {
     query: t.Object({ language: t.Optional(t.String()) }),
@@ -36,7 +42,13 @@ export const quizRouter = new Elysia({ prefix: '/api/quiz' })
     const targetLang = normalizeLanguageCode(query.targetLang || 'ru')
     const normalizedLang = normalizeLanguageCode(body.language)
 
-    return await quizService.generateQuiz(userId, normalizedLang, targetLang, body.levelValue, config)
+    return await quizService.generateQuiz(
+      userId,
+      normalizedLang,
+      targetLang,
+      body.levelValue,
+      config,
+    )
   }, {
     body: t.Object({
       language: t.String(),
@@ -47,7 +59,12 @@ export const quizRouter = new Elysia({ prefix: '/api/quiz' })
   .post('/submit', async ({ userId, body }) => {
     const normalizedLang = normalizeLanguageCode(body.language)
 
-    return await quizService.submitQuiz(userId, normalizedLang, body.levelValue, body.score)
+    return await quizService.submitQuiz(
+      userId,
+      normalizedLang,
+      body.levelValue,
+      body.score,
+    )
   }, {
     body: t.Object({
       language: t.String(),

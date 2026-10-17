@@ -11,13 +11,16 @@ import { createRateLimiter, getClientIp } from '../utils/rate-limit'
 const authPlugin = new Elysia({ name: 'auth-plugin' })
   .derive(({ request }) => {
     let userId: number | null = null
+
     if (AUTH_MODE === 'single') {
       userId = 1
     }
     else {
       const authHeader = request.headers.get('Authorization')
+
       if (authHeader && authHeader.startsWith('Bearer ')) {
         const token = authHeader.split(' ')[1]
+
         try {
           const decoded = jwt.verify(token, JWT_SECRET) as { userId: number }
           userId = decoded.userId
@@ -25,6 +28,7 @@ const authPlugin = new Elysia({ name: 'auth-plugin' })
         catch { }
       }
     }
+
     return { userId }
   })
   .macro({
@@ -60,10 +64,12 @@ function saveAuthSession(sessionId: string, value: string) {
 function consumeAuthSession(sessionId: string): string | undefined {
   pruneAuthSessions()
   const session = authSessions.get(sessionId)
+
   if (!session)
     return undefined
 
   authSessions.delete(sessionId)
+
   return session.value
 }
 
@@ -76,6 +82,7 @@ export const authRouter = new Elysia({ prefix: '/api/auth' })
   .onError(handleElysiaError)
   .post('/login', async ({ body, request }) => {
     authLimiter(getClientIp(request))
+
     return authService.login(body.login, body.password)
   }, {
     body: t.Object({
@@ -86,6 +93,7 @@ export const authRouter = new Elysia({ prefix: '/api/auth' })
   .post('/session/login', async ({ body, request }) => {
     authLimiter(getClientIp(request))
     const result = await authService.login(body.login, body.password)
+
     return { ...await authSessionService.create(result.user.id), user: result.user }
   }, {
     cache: 'shortPrivate',
@@ -93,6 +101,7 @@ export const authRouter = new Elysia({ prefix: '/api/auth' })
   })
   .post('/session/refresh', async ({ body, request }) => {
     sessionLimiter(getClientIp(request))
+
     return authSessionService.refresh(body.refreshToken)
   }, {
     cache: 'shortPrivate',
@@ -100,11 +109,13 @@ export const authRouter = new Elysia({ prefix: '/api/auth' })
   })
   .post('/session/upgrade', async ({ userId, request }) => {
     sessionLimiter(getClientIp(request))
+
     return authSessionService.create(userId!)
   }, { requireAuth: true, cache: 'shortPrivate' })
   .post('/session/register', async ({ body, request }) => {
     authLimiter(getClientIp(request))
     const result = await authService.register(body.email, body.code, body.password)
+
     return { ...await authSessionService.create(result.user.id), user: result.user }
   }, {
     cache: 'shortPrivate',
@@ -118,6 +129,7 @@ export const authRouter = new Elysia({ prefix: '/api/auth' })
   })
   .post('/send-code', async ({ body, request }) => {
     authLimiter(getClientIp(request))
+
     return authService.sendCode(body.email)
   }, {
     body: t.Object({
@@ -126,6 +138,7 @@ export const authRouter = new Elysia({ prefix: '/api/auth' })
   })
   .post('/register', async ({ body, request }) => {
     authLimiter(getClientIp(request))
+
     return authService.register(body.email, body.code, body.password)
   }, {
     body: t.Object({
@@ -138,6 +151,7 @@ export const authRouter = new Elysia({ prefix: '/api/auth' })
     const sessionId = query.session_id as string | undefined || (query.session === 'web' ? crypto.randomUUID() : undefined)
     const linkToken = query.linkToken as string | undefined
     let linkUserId: number | undefined
+
     if (linkToken) {
       try {
         const decoded = jwt.verify(linkToken, JWT_SECRET) as { userId: number }
@@ -147,6 +161,7 @@ export const authRouter = new Elysia({ prefix: '/api/auth' })
     }
 
     let state: string | undefined
+
     if (sessionId || linkUserId) {
       const stateObj = {
         sessionId: sessionId || undefined,
@@ -159,11 +174,13 @@ export const authRouter = new Elysia({ prefix: '/api/auth' })
     }
 
     const res = await authService.handleYandexAuth(state)
+
     return Response.redirect(res.redirectUrl, 302)
   })
   .get('/yandex/callback', async ({ query, set }) => {
     const code = query.code as string | undefined
     const state = query.state as string | undefined
+
     if (!code)
       throw new AppError(400, ERROR_CODES.AUTH.NO_CODE_PROVIDED, 'No code provided')
 
@@ -211,16 +228,19 @@ export const authRouter = new Elysia({ prefix: '/api/auth' })
             </html>
           `
           set.headers['Content-Type'] = 'text/html; charset=utf-8'
+
           return html
         }
 
         const frontendUrl = new URL(FRONTEND_URL)
         frontendUrl.pathname = '/settings'
         frontendUrl.searchParams.set('oauth_success', 'yandex_linked')
+
         return Response.redirect(frontendUrl.toString(), 302)
       }
       catch (error: unknown) {
         const errMessage = error instanceof Error ? error.message : 'Не удалось привязать Яндекс аккаунт'
+
         if (sessionId) {
           saveAuthSession(sessionId, JSON.stringify({ status: 'error', error: errMessage }))
           const html = `
@@ -243,12 +263,14 @@ export const authRouter = new Elysia({ prefix: '/api/auth' })
             </html>
           `
           set.headers['Content-Type'] = 'text/html; charset=utf-8'
+
           return html
         }
 
         const frontendUrl = new URL(FRONTEND_URL)
         frontendUrl.pathname = '/settings'
         frontendUrl.searchParams.set('oauth_error', errMessage)
+
         return Response.redirect(frontendUrl.toString(), 302)
       }
     }
@@ -264,12 +286,15 @@ export const authRouter = new Elysia({ prefix: '/api/auth' })
       else {
         saveAuthSession(sessionId, token)
       }
+
       if (webSession) {
         const frontendUrl = new URL(FRONTEND_URL)
         frontendUrl.pathname = '/auth/yandex/callback'
         frontendUrl.searchParams.set('session_id', sessionId)
+
         return Response.redirect(frontendUrl.toString(), 302)
       }
+
       const html = `
         <!DOCTYPE html>
         <html lang="ru">
@@ -290,29 +315,35 @@ export const authRouter = new Elysia({ prefix: '/api/auth' })
         </html>
       `
       set.headers['Content-Type'] = 'text/html; charset=utf-8'
+
       return html
     }
 
     const frontendUrl = new URL(FRONTEND_URL)
     frontendUrl.pathname = '/auth/yandex/callback'
     frontendUrl.searchParams.set('token', token)
+
     return Response.redirect(frontendUrl.toString(), 302)
   })
   .get('/status', async ({ query }) => {
     const sessionId = query.session_id as string | undefined
+
     if (!sessionId)
       throw new AppError(400, ERROR_CODES.AUTH.NO_SESSION_ID, 'No session id')
 
     const sessionData = consumeAuthSession(sessionId)
+
     if (sessionData) {
       try {
         const parsed = JSON.parse(sessionData)
+
         return parsed
       }
       catch {
         return { status: 'success', token: sessionData }
       }
     }
+
     return { status: 'pending' }
   }, { cache: 'shortPrivate' })
   .post('/unlink-provider', async ({ userId, body }) => {
@@ -326,12 +357,15 @@ export const authRouter = new Elysia({ prefix: '/api/auth' })
   .get('/me', async ({ userId, request }) => {
     if (!userId && request.headers.get('Authorization'))
       throw new AppError(401, ERROR_CODES.AUTH.INVALID_TOKEN, 'Invalid token')
+
     return authService.getMe(userId)
   }, { cache: 'shortPrivate' })
   .patch('/me/avatar', async ({ userId, body }) => {
     const file = (body as { file: File }).file as File
+
     if (!file)
       throw new AppError(400, ERROR_CODES.BOOK.FILE_REQUIRED, 'File required')
+
     return authService.updateAvatar(userId as number, file)
   }, { requireAuth: true })
   .patch('/me/username', async ({ userId, body }) => {
@@ -347,8 +381,10 @@ export const authUploadsRouter = new Elysia({ prefix: '/api/uploads/avatars' })
   .use(cachePlugin)
   .get('/:filename', async ({ params: { filename }, set }) => {
     const fileData = await authService.getAvatarImage(filename)
+
     if (!fileData) {
       set.status = 404
+
       return 'Not found'
     }
 
@@ -356,5 +392,6 @@ export const authUploadsRouter = new Elysia({ prefix: '/api/uploads/avatars' })
       ...CORS_HEADERS,
       'Content-Type': fileData.contentType,
     }
+
     return Buffer.from(fileData.buffer)
   }, { cache: 'immutable' })

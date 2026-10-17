@@ -23,8 +23,10 @@ export async function executeDump(logCallback?: (msg: string) => void): Promise<
 
     // 2. Сбрасываем WAL в основной файл
     log('🗄️ Checkpointing SQLite database...')
+
     try {
       const checkpointClient = createClient({ url: DATABASE_URL, authToken: DATABASE_AUTH_TOKEN })
+
       try {
         await checkpointClient.execute('PRAGMA wal_checkpoint(PASSIVE)')
       }
@@ -37,6 +39,7 @@ export async function executeDump(logCallback?: (msg: string) => void): Promise<
     }
 
     const dbFile = Bun.file(DB_PATH)
+
     if (await dbFile.exists()) {
       const buffer = await dbFile.arrayBuffer()
       await dumpStorageService.uploadFile(`${dumpPrefix}/db/insight-book.sqlite`, buffer)
@@ -44,14 +47,18 @@ export async function executeDump(logCallback?: (msg: string) => void): Promise<
 
     if (DUMP_MEDIA) {
       log('📂 Copying media to dump...')
+
       for (const prefix of ['covers/', 'avatars/', 'books/']) {
         const keys = await storageService.listFilesInFolder(prefix)
         let uploaded = 0
+
         for (const key of keys) {
           const fileData = await storageService.getFile(key)
+
           if (fileData) {
             await dumpStorageService.uploadFile(`${dumpPrefix}/uploads/${key}`, fileData.buffer, fileData.contentType)
             uploaded++
+
             if (uploaded % 100 === 0)
               log(`✅ Copied ${uploaded} ${prefix} files`)
           }
@@ -67,8 +74,10 @@ export async function executeDump(logCallback?: (msg: string) => void): Promise<
     // Очистка старых дампов, оставляем только 10
     const dumpFolders = await dumpStorageService.listDumpFolders('dumps')
     dumpFolders.sort() // Сортируем по возрастанию (самые старые первыми)
+
     while (dumpFolders.length > 10) {
       const oldest = dumpFolders.shift()
+
       if (oldest) {
         log(`🗑️ Deleting old dump: ${oldest}`)
         await dumpStorageService.deleteFolder(oldest)

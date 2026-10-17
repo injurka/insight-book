@@ -23,6 +23,7 @@ export async function analyzeBookVocabulary(bookId: number, language: string) {
     for (const raw of sentences) {
       if (!/[\p{L}\p{N}]/u.test(raw))
         continue
+
       totalSentencesCount++
       const tokens = language === 'en' ? tokenizeEnglishProfile(raw, lemmaCache) : await tokenizeText(raw, language)
       profile.addSentence(tokens, pageIndex)
@@ -31,11 +32,15 @@ export async function analyzeBookVocabulary(bookId: number, language: string) {
 
   if (book?.type === 'manga') {
     const pages = await db.select({ ocrData: schema.mangaPages.ocrData }).from(schema.mangaPages).where(eq(schema.mangaPages.bookId, bookId)).orderBy(schema.mangaPages.pageNum)
+
     for (const page of pages) {
       pageIndex++
+
       if (!page.ocrData)
         continue
+
       const blocks = JSON.parse(page.ocrData)
+
       for (const block of blocks) {
         const sentences = splitIntoSentences(block.text || '', language)
         await processSentences(sentences)
@@ -44,9 +49,11 @@ export async function analyzeBookVocabulary(bookId: number, language: string) {
   }
   else {
     const pages = await db.select({ content: schema.bookPages.content }).from(schema.bookPages).where(eq(schema.bookPages.bookId, bookId)).orderBy(schema.bookPages.pageNum)
+
     for (const page of pages) {
       pageIndex++
       const $ = cheerio.load(page.content, null, false)
+
       for (const block of collectTextBlocks($.root().contents().toArray()))
         await processSentences(splitIntoSentences(block.fullText, language))
     }

@@ -43,13 +43,11 @@ export const telemetryPlugin
         serviceName: OTEL_SERVICE_NAME,
         resource: otlpResource,
         spanProcessors: [
-          new BatchSpanProcessor(
-            new OTLPTraceExporter({
-              url: `${otlpRootUrl(OTEL_EXPORTER_OTLP_ENDPOINT)}/v1/traces`,
-              keepAlive: true,
-              timeoutMillis: 5_000,
-            }),
-          ),
+          new BatchSpanProcessor(new OTLPTraceExporter({
+            url: `${otlpRootUrl(OTEL_EXPORTER_OTLP_ENDPOINT)}/v1/traces`,
+            keepAlive: true,
+            timeoutMillis: 5_000,
+          })),
         ],
         metricReader: new PeriodicExportingMetricReader({
           exporter: new OTLPMetricExporter({
@@ -83,6 +81,7 @@ export function registerRuntimeMetrics(): void {
     result.observe(usage.heapUsed, { memory_type: 'heap_used' })
     result.observe(usage.heapTotal, { memory_type: 'heap_total' })
     result.observe(usage.external, { memory_type: 'external' })
+
     if (usage.arrayBuffers !== undefined)
       result.observe(usage.arrayBuffers, { memory_type: 'array_buffers' })
   })

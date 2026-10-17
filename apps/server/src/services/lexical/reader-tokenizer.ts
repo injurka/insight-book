@@ -18,24 +18,41 @@ export async function tokenizeHtmlPage(html: string, language: string) {
 
     for (const sent of sentences) {
       if (!/[\p{L}\p{N}]/u.test(sent)) {
-        blockTokens.push({ text: sent, pos: 'x', sentId: sentenceIdCounter, tokenIdx: 0, encodedRaw: '', isValidSent: false })
+        blockTokens.push({
+          text: sent,
+          pos: 'x',
+          sentId: sentenceIdCounter,
+          tokenIdx: 0,
+          encodedRaw: '',
+          isValidSent: false,
+        })
       }
       else {
         const finalTokens = await tokenizeText(sent, language)
 
         const encodedRaw = encodeURIComponent(sent)
+
         for (let i = 0; i < finalTokens.length; i++) {
           if (finalTokens[i].pos === 'x' && /[\p{L}\p{N}]/u.test(finalTokens[i].word)) {
             finalTokens[i].pos = 'unk'
           }
 
-          blockTokens.push({ text: finalTokens[i].word, pos: finalTokens[i].pos, sentId: sentenceIdCounter, tokenIdx: i, encodedRaw, isValidSent: true })
+          blockTokens.push({
+            text: finalTokens[i].word,
+            pos: finalTokens[i].pos,
+            sentId: sentenceIdCounter,
+            tokenIdx: i,
+            encodedRaw,
+            isValidSent: true,
+          })
+
           if (/[\p{L}\p{N}]/u.test(finalTokens[i].word)) {
             allWords.add(finalTokens[i].word)
             allWords.add(finalTokens[i].word.toLowerCase())
           }
         }
       }
+
       sentenceIdCounter++
     }
 
@@ -77,8 +94,10 @@ export async function tokenizeHtmlPage(html: string, language: string) {
             if (activeIsValid)
               closeSentence()
             else newHtml += sentenceHtmlBuf
+
             sentenceHtmlBuf = ''
           }
+
           activeSentId = token.sentId
           activeEncodedRaw = token.encodedRaw
           activeIsValid = token.isValidSent
@@ -104,6 +123,7 @@ export async function tokenizeHtmlPage(html: string, language: string) {
       if (nodeText.length > 0) {
         newHtml += nodeText.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
       }
+
       $(node).replaceWith(newHtml)
     }
   }
@@ -119,6 +139,7 @@ export async function tokenizeOcrBlocks(blocks: (Record<string, unknown> & { tex
 
   for (const block of blocks) {
     const text = block.text
+
     if (!text || /^\s+$/.test(text)) {
       processedBlocks.push({ ...block, html: text })
       continue
@@ -132,6 +153,7 @@ export async function tokenizeOcrBlocks(blocks: (Record<string, unknown> & { tex
         newHtml += raw.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
         continue
       }
+
       const tokens = await tokenizeText(raw, language)
       const encodedRaw = encodeURIComponent(raw)
       let sentHtml = `<span class="sentence" data-sent-id="${sentenceIdCounter}" data-raw-sent="${encodedRaw}">`
@@ -147,16 +169,20 @@ export async function tokenizeOcrBlocks(blocks: (Record<string, unknown> & { tex
           allWords.add(t.word)
           allWords.add(t.word.toLowerCase())
         }
+
         const isPunct = t.pos === 'x'
         const spacingClass = (language === 'zh' || language === 'ja') ? '' : 'add-space'
         const safeWord = t.word.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
         sentHtml += `<span class="word ${isPunct ? 'is-punctuation' : spacingClass}" data-word="${encodeURIComponent(t.word)}" data-pos="${t.pos}" data-sent-id="${sentenceIdCounter}" data-token-idx="${i}">${safeWord}</span>`
       }
+
       sentHtml += '</span>'
       sentenceIdCounter++
       newHtml += sentHtml
     }
+
     processedBlocks.push({ ...block, html: newHtml })
   }
+
   return { processedBlocks, uniqueWords: Array.from(allWords) }
 }

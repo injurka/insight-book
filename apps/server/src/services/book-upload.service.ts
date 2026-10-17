@@ -13,8 +13,14 @@ export class BookUploadService {
     await checkBookLimit(userId)
 
     const MAX_FILE_SIZE = 5000 * 1024 * 1024
+
     if (file.size > MAX_FILE_SIZE) {
-      throw new AppError(413, ERROR_CODES.BOOK.FILE_TOO_LARGE, 'File size exceeds 5 GB limit', { maxMb: 5000, sizeMb: (file.size / 1024 / 1024).toFixed(2) })
+      throw new AppError(
+        413,
+        ERROR_CODES.BOOK.FILE_TOO_LARGE,
+        'File size exceeds 5 GB limit',
+        { maxMb: 5000, sizeMb: (file.size / 1024 / 1024).toFixed(2) },
+      )
     }
 
     const filename = file.name.toLowerCase()
@@ -49,6 +55,7 @@ export class BookUploadService {
     }
 
     const book = await bookRepository.findFirstBook(bookId)
+
     return { success: true, book }
   }
 
@@ -72,11 +79,17 @@ export class BookUploadService {
     return { success: true, book: insertedBook }
   }
 
-  async appendMangaChapter(id: number, userId: number, chapterTitle: string, files: File[]) {
+  async appendMangaChapter(
+    id: number,
+    userId: number,
+    chapterTitle: string,
+    files: File[],
+  ) {
     if (!files.length)
       throw new AppError(400, ERROR_CODES.BOOK.FILE_REQUIRED, 'Files are required')
 
     const book = await bookRepository.findFirstBook(id)
+
     if (!book || book.userId !== userId)
       throw new AppError(403, ERROR_CODES.BOOK.ACCESS_DENIED, 'Access denied to book')
 
@@ -84,6 +97,7 @@ export class BookUploadService {
     await appendMangaChapter(book, chapterTitle, files)
 
     const updatedBook = await bookRepository.findFirstBook(id)
+
     return { success: true, book: updatedBook }
   }
 }

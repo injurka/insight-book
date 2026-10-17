@@ -36,13 +36,11 @@ describe('Highlight Router', () => {
     }
 
     // Request without auth will be stopped by authPlugin (401), not validation error (400/500)
-    const res = await app.handle(
-      new Request('http://localhost/api/highlights?targetLang=ru', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      }),
-    )
+    const res = await app.handle(new Request('http://localhost/api/highlights?targetLang=ru', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    }))
 
     // Should not return 500 (validation error previously caused 500)
     expect(res.status).not.toBe(500)

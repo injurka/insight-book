@@ -20,9 +20,7 @@ export class PushRepository implements IPushRepository {
   }
 
   async deleteWebSubscription(userId: number, endpoint: string) {
-    return db.delete(schema.webPushSubscriptions).where(
-      and(eq(schema.webPushSubscriptions.userId, userId), eq(schema.webPushSubscriptions.endpoint, endpoint)),
-    )
+    return db.delete(schema.webPushSubscriptions).where(and(eq(schema.webPushSubscriptions.userId, userId), eq(schema.webPushSubscriptions.endpoint, endpoint)))
   }
 
   async deleteWebSubscriptionById(id: number) {
@@ -44,12 +42,9 @@ export class PushRepository implements IPushRepository {
     ]
 
     if (pushTargetDeckId) {
-      filters.push(inArray(
-        schema.userDictionary.id,
-        db.select({ id: schema.wordToDeck.wordId })
-          .from(schema.wordToDeck)
-          .where(eq(schema.wordToDeck.deckId, pushTargetDeckId)),
-      ))
+      filters.push(inArray(schema.userDictionary.id, db.select({ id: schema.wordToDeck.wordId })
+        .from(schema.wordToDeck)
+        .where(eq(schema.wordToDeck.deckId, pushTargetDeckId))))
     }
 
     return db.query.userDictionary.findFirst({

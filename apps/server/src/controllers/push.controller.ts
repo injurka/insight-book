@@ -8,12 +8,17 @@ import { AppError, handleElysiaError } from '../utils/errors'
 export const authPlugin = new Elysia().derive({ as: 'scoped' }, ({ headers }) => {
   if (AUTH_MODE === 'single')
     return { userId: 1 }
+
   const authHeader = headers.authorization
+
   if (!authHeader || !authHeader.startsWith('Bearer '))
     throw new AppError(401, ERROR_CODES.AUTH.UNAUTHORIZED, 'Unauthorized')
+
   const token = authHeader.split(' ')[1]
+
   try {
     const decoded = jwt.verify(token, JWT_SECRET) as { userId: number }
+
     return { userId: decoded.userId }
   }
   catch {

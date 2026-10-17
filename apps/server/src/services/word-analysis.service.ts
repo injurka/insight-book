@@ -30,6 +30,7 @@ async function fetchAndCacheSentenceAnalysis(
   if (freshCached) {
     try {
       const p = JSON.parse(decompressData(freshCached.analysis))
+
       if (!isOldFormatAnalysis(p)) {
         return p as LlmAnalysis
       }
@@ -60,7 +61,15 @@ async function fetchAndCacheSentenceAnalysis(
         config,
         raw => parseLlmJson<LlmAnalysis>(raw),
         (usage, rawText, messagesUsed) => {
-          trackTokenUsage(userId, 'analyze_sentence', model, usage.promptTokens, usage.completionTokens, JSON.stringify(messagesUsed, null, 2), rawText)
+          trackTokenUsage(
+            userId,
+            'analyze_sentence',
+            model,
+            usage.promptTokens,
+            usage.completionTokens,
+            JSON.stringify(messagesUsed, null, 2),
+            rawText,
+          )
         },
       )
 
@@ -122,6 +131,7 @@ export async function analyzeSentence(
   if (cached) {
     try {
       const parsed = JSON.parse(decompressData(cached.analysis))
+
       if (!isOldFormatAnalysis(parsed)) {
         if (bookId) {
           await db.insert(schema.bookLlmCache).values({
@@ -138,7 +148,15 @@ export async function analyzeSentence(
   }
 
   const parsed = await singleflight.do(`analysis:${hash}`, () =>
-    fetchAndCacheSentenceAnalysis(userId, sentence, language, targetLang, hash, config, context))
+    fetchAndCacheSentenceAnalysis(
+      userId,
+      sentence,
+      language,
+      targetLang,
+      hash,
+      config,
+      context,
+    ))
 
   if (bookId) {
     await db.insert(schema.bookLlmCache).values({
@@ -151,7 +169,12 @@ export async function analyzeSentence(
   return parsed
 }
 
-export async function checkCacheBatch(bookId: number, items: { text: string, type: 'sentence' | 'word' }[], language: string, targetLang: string) {
+export async function checkCacheBatch(
+  bookId: number,
+  items: { text: string, type: 'sentence' | 'word' }[],
+  language: string,
+  targetLang: string,
+) {
   if (!items.length)
     return []
 
@@ -170,9 +193,11 @@ export async function checkCacheBatch(bookId: number, items: { text: string, typ
   for (const item of items) {
     const hash = hashSentence(item.text, language, targetLang)
     const cachedAnalysisStr = cacheMap.get(hash)
+
     if (cachedAnalysisStr) {
       try {
         const parsed = JSON.parse(cachedAnalysisStr)
+
         if (!isOldFormatAnalysis(parsed)) {
           bookCacheInserts.push({ bookId, sentenceHash: hash, type: item.type })
           results.push({ sentence: item.text, analysis: parsed })
@@ -189,7 +214,13 @@ export async function checkCacheBatch(bookId: number, items: { text: string, typ
   return results
 }
 
-async function fetchWordExamples(userId: number, word: string, language: string, targetLang: string, config: LlmConfig): Promise<GeneratedWordExamples> {
+async function fetchWordExamples(
+  userId: number,
+  word: string,
+  language: string,
+  targetLang: string,
+  config: LlmConfig,
+): Promise<GeneratedWordExamples> {
   await checkTokenLimit(userId)
 
   if (!config.url)
@@ -213,9 +244,18 @@ async function fetchWordExamples(userId: number, word: string, language: string,
         config,
         raw => parseLlmJson<GeneratedWordExamples>(raw),
         (usage, rawText, messagesUsed) => {
-          trackTokenUsage(userId, 'dict_examples', model, usage.promptTokens, usage.completionTokens, JSON.stringify(messagesUsed, null, 2), rawText)
+          trackTokenUsage(
+            userId,
+            'dict_examples',
+            model,
+            usage.promptTokens,
+            usage.completionTokens,
+            JSON.stringify(messagesUsed, null, 2),
+            rawText,
+          )
         },
       )
+
       return parsed
     }
     catch (e) {
@@ -227,13 +267,31 @@ async function fetchWordExamples(userId: number, word: string, language: string,
   throw new AppError(500, ERROR_CODES.SYSTEM.LLM_ERROR, `LLM error: ${lastError?.message || 'Unknown error'}`)
 }
 
-export async function generateWordExamples(userId: number, word: string, language: string, targetLang: string, config: LlmConfig): Promise<GeneratedWordExamples> {
+export async function generateWordExamples(
+  userId: number,
+  word: string,
+  language: string,
+  targetLang: string,
+  config: LlmConfig,
+): Promise<GeneratedWordExamples> {
   const flightKey = `word_examples:${(language || 'en').toLowerCase()}:${(targetLang || 'ru').toLowerCase()}:${word.trim().toLowerCase()}`
 
-  return singleflight.do(flightKey, () => fetchWordExamples(userId, word, language, targetLang, config))
+  return singleflight.do(flightKey, () => fetchWordExamples(
+    userId,
+    word,
+    language,
+    targetLang,
+    config,
+  ))
 }
 
-async function fetchWordAutoFill(userId: number, word: string, language: string, targetLang: string, config: LlmConfig): Promise<WordAutoFillResponse> {
+async function fetchWordAutoFill(
+  userId: number,
+  word: string,
+  language: string,
+  targetLang: string,
+  config: LlmConfig,
+): Promise<WordAutoFillResponse> {
   await checkTokenLimit(userId)
 
   if (!config.url)
@@ -257,9 +315,18 @@ async function fetchWordAutoFill(userId: number, word: string, language: string,
         config,
         raw => parseLlmJson<WordAutoFillResponse>(raw),
         (usage, rawText, messagesUsed) => {
-          trackTokenUsage(userId, 'dict_autofill', model, usage.promptTokens, usage.completionTokens, JSON.stringify(messagesUsed, null, 2), rawText)
+          trackTokenUsage(
+            userId,
+            'dict_autofill',
+            model,
+            usage.promptTokens,
+            usage.completionTokens,
+            JSON.stringify(messagesUsed, null, 2),
+            rawText,
+          )
         },
       )
+
       return parsed
     }
     catch (e) {
@@ -271,21 +338,42 @@ async function fetchWordAutoFill(userId: number, word: string, language: string,
   throw new AppError(500, ERROR_CODES.SYSTEM.LLM_ERROR, `LLM error: ${lastError?.message || 'Unknown error'}`)
 }
 
-export async function generateWordAutoFill(userId: number, word: string, language: string, targetLang: string, config: LlmConfig): Promise<WordAutoFillResponse> {
+export async function generateWordAutoFill(
+  userId: number,
+  word: string,
+  language: string,
+  targetLang: string,
+  config: LlmConfig,
+): Promise<WordAutoFillResponse> {
   const configHash = new Bun.CryptoHasher('sha256').update(JSON.stringify(config)).digest('hex')
   const flightKey = `word_autofill:${userId}:${configHash}:${(language || 'en').toLowerCase()}:${(targetLang || 'ru').toLowerCase()}:${word.trim().toLowerCase()}`
 
-  return singleflight.do(flightKey, () => fetchWordAutoFill(userId, word, language, targetLang, config))
+  return singleflight.do(flightKey, () => fetchWordAutoFill(
+    userId,
+    word,
+    language,
+    targetLang,
+    config,
+  ))
 }
 
-export async function analyzeBatch(userId: number, bookId: number, items: BatchAnalysisRequest[], language: string, targetLang: string, config: LlmConfig): Promise<BatchAnalysisResponse[]> {
+export async function analyzeBatch(
+  userId: number,
+  bookId: number,
+  items: BatchAnalysisRequest[],
+  language: string,
+  targetLang: string,
+  config: LlmConfig,
+): Promise<BatchAnalysisResponse[]> {
   // Слова не из заявленного языка пропускаем молча (клиент фильтрует до отправки,
   // здесь это страховка): не жжём токены, не засоряем кэш и не роняем весь батч.
   const validItems = items.filter((item) => {
     if (item.type === 'word' && !isValidWordForLanguage(item.sentence, language)) {
       logger.warn({ word: item.sentence, language }, '[LLM Batch] Skipping invalid word')
+
       return false
     }
+
     return true
   })
 
@@ -313,9 +401,11 @@ export async function analyzeBatch(userId: number, bookId: number, items: BatchA
 
   for (const item of itemHashes) {
     const cachedAnalysisStr = cacheMap.get(item.hash)
+
     if (cachedAnalysisStr) {
       try {
         const parsed = JSON.parse(cachedAnalysisStr)
+
         if (!isOldFormatAnalysis(parsed)) {
           bookCacheInserts.push({ bookId, sentenceHash: item.hash, type: item.type || 'sentence' })
           results.push({ id: item.id, analysis: parsed })
@@ -324,6 +414,7 @@ export async function analyzeBatch(userId: number, bookId: number, items: BatchA
       }
       catch { }
     }
+
     missingItems.push(item)
   }
 
@@ -343,6 +434,7 @@ export async function analyzeBatch(userId: number, bookId: number, items: BatchA
   ]
 
   const modelsToTry = [config.model, config.fallbackModel].filter(Boolean) as string[]
+
   for (const model of modelsToTry) {
     try {
       const { parsed: parsedArray } = await callLlmJsonWithRetry<BatchAnalysisResponse[]>(
@@ -356,13 +448,23 @@ export async function analyzeBatch(userId: number, bookId: number, items: BatchA
           const arr = Array.isArray(parsedData)
             ? parsedData
             : (parsedData.results || parsedData.items || parsedData.analysis || [])
+
           if (!Array.isArray(arr)) {
             throw new TypeError('Ожидался массив, но ИИ вернул не поддерживаемый формат')
           }
+
           return arr as BatchAnalysisResponse[]
         },
         (usage, rawText, messagesUsed) => {
-          trackTokenUsage(userId, 'analyze_batch', model, usage.promptTokens, usage.completionTokens, JSON.stringify(messagesUsed, null, 2), rawText)
+          trackTokenUsage(
+            userId,
+            'analyze_batch',
+            model,
+            usage.promptTokens,
+            usage.completionTokens,
+            JSON.stringify(messagesUsed, null, 2),
+            rawText,
+          )
         },
       )
 
@@ -371,6 +473,7 @@ export async function analyzeBatch(userId: number, bookId: number, items: BatchA
 
       for (const res of parsedArray) {
         const originalItem = missingItems.find(m => m.id === res.id)
+
         if (originalItem) {
           const hash = hashSentence(originalItem.sentence, language, targetLang)
 
@@ -383,6 +486,7 @@ export async function analyzeBatch(userId: number, bookId: number, items: BatchA
           })
           newBookCacheInserts.push({ bookId, sentenceHash: hash, type: originalItem.type || 'sentence' })
         }
+
         results.push(res)
       }
 

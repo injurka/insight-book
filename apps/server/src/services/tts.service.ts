@@ -27,6 +27,7 @@ async function findReusableTts(text: string, requestedVoice: string) {
     where: eq(schema.ttsCache.text, text),
     orderBy: [asc(schema.ttsCache.createdAt), asc(schema.ttsCache.textHash)],
   })
+
   return selectReusableTts(rows, requestedVoice)
 }
 
@@ -38,6 +39,7 @@ async function generateAndCacheTts(
   forceCacheBypass?: boolean,
 ): Promise<TtsResult> {
   const previous = await findReusableTts(normalizedText, requestedVoice)
+
   if (previous && !forceCacheBypass)
     return toTtsResult(previous)
 
@@ -58,6 +60,7 @@ async function generateAndCacheTts(
     headers.Authorization = `Bearer ${ttsKey}`
 
   let textToRead = normalizedText
+
   if (!/[.!?。！？]$/.test(textToRead)) {
     textToRead += '.'
   }
@@ -71,39 +74,36 @@ async function generateAndCacheTts(
       response_format: formatToTry,
     }
 
-    return await runWithClientSpan(
-      `TTS ${model}`,
-      {
-        'gen_ai.system': isGemini ? 'gemini' : 'openai',
-        'gen_ai.request.model': model,
-        'http.request.method': 'POST',
-        'http.method': 'POST',
-      },
-      async () => {
-        attachUrlToActiveSpan(`${ttsUrl}/audio/speech`)
+    return await runWithClientSpan(`TTS ${model}`, {
+      'gen_ai.system': isGemini ? 'gemini' : 'openai',
+      'gen_ai.request.model': model,
+      'http.request.method': 'POST',
+      'http.method': 'POST',
+    }, async () => {
+      attachUrlToActiveSpan(`${ttsUrl}/audio/speech`)
 
-        const response = await fetch(`${ttsUrl}/audio/speech`, {
-          method: 'POST',
-          headers,
-          body: JSON.stringify(requestBody),
-          signal: AbortSignal.timeout(60000),
-        })
+      const response = await fetch(`${ttsUrl}/audio/speech`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(requestBody),
+        signal: AbortSignal.timeout(60000),
+      })
 
-        if (!response.ok) {
-          const errorText = await response.text()
-          throw new AppError(500, ERROR_CODES.TTS.GENERATION_FAILED, `TTS API error ${response.status}: ${errorText}`)
-        }
+      if (!response.ok) {
+        const errorText = await response.text()
+        throw new AppError(500, ERROR_CODES.TTS.GENERATION_FAILED, `TTS API error ${response.status}: ${errorText}`)
+      }
 
-        const arrayBuffer = await response.arrayBuffer()
+      const arrayBuffer = await response.arrayBuffer()
 
-        if (arrayBuffer.byteLength === 0) {
-          throw new AppError(500, ERROR_CODES.TTS.GENERATION_FAILED, 'TTS API returned empty audio data')
-        }
+      if (arrayBuffer.byteLength === 0) {
+        throw new AppError(500, ERROR_CODES.TTS.GENERATION_FAILED, 'TTS API returned empty audio data')
+      }
 
-        const rawBuffer = Buffer.from(new Uint8Array(arrayBuffer))
-        return await convertToMp3(rawBuffer)
-      },
-    )
+      const rawBuffer = Buffer.from(new Uint8Array(arrayBuffer))
+
+      return await convertToMp3(rawBuffer)
+    })
   }
 
   let audioBuffer: Buffer = Buffer.from(new Uint8Array(0))
@@ -133,6 +133,7 @@ async function generateAndCacheTts(
       catch (fallbackError: unknown) {
         if ((fallbackError as Error).name === 'AbortError')
           throw fallbackError
+
         logger.error(`[TTS] Fallback model (${fallbackModel}) also failed.`)
         throw fallbackError
       }
@@ -194,10 +195,16 @@ export async function generateTts(
   const maxLength = getTtsTextMaxLength(normalizedText)
 
   if (normalizedText.length > maxLength) {
-    throw new AppError(400, ERROR_CODES.TTS.TEXT_TOO_LONG, 'Text is too long for TTS', { maxLength })
+    throw new AppError(
+      400,
+      ERROR_CODES.TTS.TEXT_TOO_LONG,
+      'Text is too long for TTS',
+      { maxLength },
+    )
   }
 
   const ttsUrl = config.ttsUrl || config.url
+
   if (!ttsUrl)
     throw new AppError(500, ERROR_CODES.TTS.NOT_CONFIGURED, 'TTS API not configured')
 
@@ -207,7 +214,13 @@ export async function generateTts(
   const result = cached && !forceCacheBypass
     ? toTtsResult(cached)
     : await singleflight.do(`tts:${forceCacheBypass ? 'replace' : 'reuse'}:${normalizedText}:${requestedVoice}`, () =>
-        generateAndCacheTts(userId, normalizedText, requestedVoice, config, forceCacheBypass))
+        generateAndCacheTts(
+          userId,
+          normalizedText,
+          requestedVoice,
+          config,
+          forceCacheBypass,
+        ))
 
   if (bookId) {
     await db.insert(schema.bookTtsCache).values({ bookId, textHash: result.cache.id }).onConflictDoNothing()
@@ -227,12 +240,14 @@ function calculatePhoneticSimilarity(expected: string, heard: string, language: 
 
   if (s1.length === 0 && s2.length === 0)
     return 100
+
   if (s1.length === 0 || s2.length === 0)
     return 0
 
   const matrix = Array.from({ length: s1.length + 1 }, () => Array.from({ length: s2.length + 1 }).fill(0)) as number[][]
 
   for (let i = 0; i <= s1.length; i++) matrix[i][0] = i
+
   for (let j = 0; j <= s2.length; j++) matrix[0][j] = j
 
   for (let i = 1; i <= s1.length; i++) {
@@ -241,11 +256,7 @@ function calculatePhoneticSimilarity(expected: string, heard: string, language: 
         matrix[i][j] = matrix[i - 1][j - 1]
       }
       else {
-        matrix[i][j] = Math.min(
-          matrix[i - 1][j - 1] + 1,
-          matrix[i][j - 1] + 1,
-          matrix[i - 1][j] + 1,
-        )
+        matrix[i][j] = Math.min(matrix[i - 1][j - 1] + 1, matrix[i][j - 1] + 1, matrix[i - 1][j] + 1)
       }
     }
   }
@@ -256,23 +267,34 @@ function calculatePhoneticSimilarity(expected: string, heard: string, language: 
   return Math.max(0, Math.round(((maxLength - distance) / maxLength) * 100))
 }
 
-export async function checkPronunciationAudio(userId: number, word: string, language: string, targetLang: string, audioFile: File, config: LlmConfig) {
+export async function checkPronunciationAudio(
+  userId: number,
+  word: string,
+  language: string,
+  targetLang: string,
+  audioFile: File,
+  config: LlmConfig,
+) {
   const getErrorMsg = (type: 'not_configured' | 'recognition_failed', detail?: string) => {
     if (type === 'not_configured') {
       if (targetLang === 'ru')
         return 'LLM API не настроен'
+
       if (targetLang === 'zh')
         return 'LLM API 未配置'
+
       return 'LLM API is not configured'
     }
-    else {
-      const suffix = detail ? `: ${detail}` : ''
-      if (targetLang === 'ru')
-        return `Ошибка распознавания речи${suffix}`
-      if (targetLang === 'zh')
-        return `语音识别错误${suffix}`
-      return `Speech recognition error${suffix}`
-    }
+
+    const suffix = detail ? `: ${detail}` : ''
+
+    if (targetLang === 'ru')
+      return `Ошибка распознавания речи${suffix}`
+
+    if (targetLang === 'zh')
+      return `语音识别错误${suffix}`
+
+    return `Speech recognition error${suffix}`
   }
 
   if (!config.url)
@@ -286,6 +308,7 @@ export async function checkPronunciationAudio(userId: number, word: string, lang
   await checkTokenLimit(userId, billableSttTokens)
 
   let apiUrl = config.sttUrl || config.url
+
   if (apiUrl.endsWith('/chat/completions')) {
     apiUrl = apiUrl.replace(/\/chat\/completions$/, '/audio/transcriptions')
   }
@@ -310,32 +333,28 @@ export async function checkPronunciationAudio(userId: number, word: string, lang
       fd.append('language', language.substring(0, 2))
     }
 
-    return await runWithClientSpan(
-      `STT ${model}`,
-      {
-        'gen_ai.system': 'openai',
-        'gen_ai.request.model': model,
-        'http.request.method': 'POST',
-        'http.method': 'POST',
-      },
-      async () => {
-        attachUrlToActiveSpan(apiUrl)
+    return await runWithClientSpan(`STT ${model}`, {
+      'gen_ai.system': 'openai',
+      'gen_ai.request.model': model,
+      'http.request.method': 'POST',
+      'http.method': 'POST',
+    }, async () => {
+      attachUrlToActiveSpan(apiUrl)
 
-        const response = await fetch(apiUrl, {
-          method: 'POST',
-          headers: sttKey ? { Authorization: `Bearer ${sttKey}` } : {},
-          body: fd,
-          signal: AbortSignal.timeout(30000),
-        })
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: sttKey ? { Authorization: `Bearer ${sttKey}` } : {},
+        body: fd,
+        signal: AbortSignal.timeout(30000),
+      })
 
-        if (!response.ok) {
-          const errorText = await response.text()
-          throw new Error(`STT API Error: ${response.status} ${errorText}`)
-        }
+      if (!response.ok) {
+        const errorText = await response.text()
+        throw new Error(`STT API Error: ${response.status} ${errorText}`)
+      }
 
-        return response.json() as Promise<{ text?: string, usage?: { prompt_tokens?: number, completion_tokens?: number } }>
-      },
-    )
+      return response.json() as Promise<{ text?: string, usage?: { prompt_tokens?: number, completion_tokens?: number } }>
+    })
   }
 
   try {
@@ -403,12 +422,21 @@ Output STRICT JSON ONLY. Never use backticks for strings.
           config,
           raw => parseLlmJson<{ score?: number, heard_phonetic?: string, mistake_analysis?: string }>(raw),
           (usage, rawText, messagesUsed) => {
-            trackTokenUsage(userId, 'check_pronunciation_llm', llmModel, usage.promptTokens, usage.completionTokens, JSON.stringify(messagesUsed, null, 2), rawText)
+            trackTokenUsage(
+              userId,
+              'check_pronunciation_llm',
+              llmModel,
+              usage.promptTokens,
+              usage.completionTokens,
+              JSON.stringify(messagesUsed, null, 2),
+              rawText,
+            )
           },
         )
 
         if (parsed.score !== undefined)
           finalScore = parsed.score
+
         heardPhonetic = parsed.heard_phonetic || ''
         mistakeAnalysis = parsed.mistake_analysis || ''
       }
@@ -430,6 +458,7 @@ Output STRICT JSON ONLY. Never use backticks for strings.
   catch (err: unknown) {
     if (!(err instanceof Error))
       return
+
     if (err.name === 'AbortError')
       return
 

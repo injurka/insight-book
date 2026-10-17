@@ -13,6 +13,7 @@ const inputArg = args[0]
 async function exists(p: string): Promise<boolean> {
   try {
     await stat(p)
+
     return true
   }
   catch {
@@ -28,6 +29,7 @@ async function getLanguagePairs(decksDir: string): Promise<string[]> {
     if (entry.name === 'old') {
       continue
     }
+
     if (entry.isDirectory()) {
       pairs.push(entry.name)
     }
@@ -71,6 +73,7 @@ async function injectFile(inputFile: string): Promise<{ injected: number, skippe
 
   if (!words || !Array.isArray(words)) {
     logger.error(`❌ Неверный формат JSON в ${inputFile}. Ожидается: { "words": [{ "word": "...", ... }] }`)
+
     return { injected: 0, skipped: 0 }
   }
 
@@ -125,18 +128,22 @@ async function main() {
 
   if (inputArg) {
     const inputFile = path.resolve(inputArg)
+
     if (!(await exists(inputFile))) {
       logger.error(`❌ Ошибка: Файл не найден по пути ${inputFile}`)
       process.exit(1)
     }
+
     const { injected, skipped } = await injectFile(inputFile)
     logger.info(`\n🎉 Инжект завершен!`)
     logger.info(`Добавлено: ${injected}`)
     logger.info(`Пропущено (уже были): ${skipped}`)
+
     return
   }
 
   const pairs = await getLanguagePairs(decksDir)
+
   if (pairs.length === 0) {
     logger.error(`❌ Ошибка: В папке ${decksDir} не найдено языковых пар (поддиректорий).`)
     process.exit(1)
@@ -170,6 +177,7 @@ async function main() {
       cancel('Отменено')
       process.exit(0)
     }
+
     const langPair = selectedPair as string
     const resultDir = path.resolve(decksDir, langPair, 'result')
 
@@ -179,6 +187,7 @@ async function main() {
     }
 
     const jsonFiles = await getJsonFiles(resultDir)
+
     if (jsonFiles.length === 0) {
       logger.error(`❌ Ошибка: В папке ${resultDir} не найдено JSON файлов.`)
       process.exit(1)
@@ -193,6 +202,7 @@ async function main() {
       cancel('Отменено')
       process.exit(0)
     }
+
     const relativePath = selectedFile as string
     filesToInject.push(path.resolve(resultDir, relativePath))
   }
@@ -206,6 +216,7 @@ async function main() {
       cancel('Отменено')
       process.exit(0)
     }
+
     const langPair = selectedPair as string
     const resultDir = path.resolve(decksDir, langPair, 'result')
 
@@ -215,6 +226,7 @@ async function main() {
     }
 
     const jsonFiles = await getJsonFiles(resultDir)
+
     if (jsonFiles.length === 0) {
       logger.error(`❌ Ошибка: В папке ${resultDir} не найдено JSON файлов.`)
       process.exit(1)
@@ -227,8 +239,10 @@ async function main() {
   else if (mode === 'all') {
     for (const langPair of pairs) {
       const resultDir = path.resolve(decksDir, langPair, 'result')
+
       if (await exists(resultDir)) {
         const jsonFiles = await getJsonFiles(resultDir)
+
         for (const f of jsonFiles) {
           filesToInject.push(path.resolve(resultDir, f))
         }
@@ -245,6 +259,7 @@ async function main() {
   let totalSkipped = 0
 
   logger.info(`\n📚 Найдено файлов для импорта: ${filesToInject.length}`)
+
   for (const file of filesToInject) {
     logger.info(`\n----------------------------------------`)
     const { injected, skipped } = await injectFile(file)
@@ -266,5 +281,6 @@ main()
       client.close()
     }
     catch {}
+
     process.exit(0)
   })

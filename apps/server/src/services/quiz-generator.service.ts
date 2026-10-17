@@ -8,8 +8,16 @@ import { logger } from '../utils/logger'
 import { checkTokenLimit } from './limits.service'
 import { trackTokenUsage } from './token.service'
 
-export async function generateDeepDiveQuiz(userId: number, word: string, language: string, targetLang: string, mode: 'collocations' | 'radicals', config: LlmConfig): Promise<DeepDiveQuizResponse> {
+export async function generateDeepDiveQuiz(
+  userId: number,
+  word: string,
+  language: string,
+  targetLang: string,
+  mode: 'collocations' | 'radicals',
+  config: LlmConfig,
+): Promise<DeepDiveQuizResponse> {
   await checkTokenLimit(userId)
+
   if (!config.url)
     throw new AppError(500, ERROR_CODES.SYSTEM.LLM_NOT_CONFIGURED, 'LLM API not configured')
 
@@ -31,9 +39,18 @@ export async function generateDeepDiveQuiz(userId: number, word: string, languag
         config,
         raw => parseLlmJson<DeepDiveQuizResponse>(raw),
         (usage, rawText, messagesUsed) => {
-          trackTokenUsage(userId, `deep_dive_${mode}`, model, usage.promptTokens, usage.completionTokens, JSON.stringify(messagesUsed, null, 2), rawText)
+          trackTokenUsage(
+            userId,
+            `deep_dive_${mode}`,
+            model,
+            usage.promptTokens,
+            usage.completionTokens,
+            JSON.stringify(messagesUsed, null, 2),
+            rawText,
+          )
         },
       )
+
       return parsed
     }
     catch (e) {
@@ -47,6 +64,7 @@ export async function generateDeepDiveQuiz(userId: number, word: string, languag
 
 function reconstructReorderOptions(questions: QuizQuestion[], language: string): QuizQuestion[] {
   const isCJK = ['zh', 'ja'].includes(language)
+
   return questions.map((q) => {
     if (q.type === 'reorder') {
       q.correctAnswer = q.correctAnswer?.toLowerCase().trim() || ''
@@ -71,10 +89,13 @@ function reconstructReorderOptions(questions: QuizQuestion[], language: string):
 
           const distractors = originalOptionsLower.filter((opt: string) => {
             const idx = answerWordsLower.indexOf(opt)
+
             if (idx !== -1) {
               answerWordsLower.splice(idx, 1)
+
               return false
             }
+
             return true
           })
 
@@ -87,6 +108,7 @@ function reconstructReorderOptions(questions: QuizQuestion[], language: string):
         q.options = (q.options || []).map((o: string) => String(o).toLowerCase()).sort(() => Math.random() - 0.5)
       }
     }
+
     return q
   })
 }
@@ -94,23 +116,29 @@ function reconstructReorderOptions(questions: QuizQuestion[], language: string):
 function validateQuizQuestions(questions: QuizQuestion[]): string | null {
   if (!Array.isArray(questions))
     return 'Quiz is not a valid JSON array'
+
   if (questions.length < 10)
     return `Quiz array length ${questions.length} is too short, must be at least 10 questions`
 
   for (let i = 0; i < questions.length; i++) {
     const q = questions[i]
+
     if (!q.type || !['choice', 'cloze', 'reorder'].includes(q.type)) {
       return `Question ${i + 1} has invalid type: ${q?.type}`
     }
+
     if (!q.question || typeof q.question !== 'string') {
       return `Question ${i + 1} is missing a text question query`
     }
+
     if (!q.options || !Array.isArray(q.options) || q.options.length === 0) {
       return `Question ${i + 1} is missing options array`
     }
+
     if (!q.correctAnswer || typeof q.correctAnswer !== 'string') {
       return `Question ${i + 1} is missing correctAnswer`
     }
+
     if (!q.explanation || typeof q.explanation !== 'string') {
       return `Question ${i + 1} is missing explanation`
     }
@@ -119,9 +147,11 @@ function validateQuizQuestions(questions: QuizQuestion[]): string | null {
       if (q.question.trim().toLowerCase() === q.correctAnswer.trim().toLowerCase()) {
         return `Question ${i + 1} of type 'reorder' must contain the TRANSLATION of the sentence, not the sentence itself.`
       }
+
       if (!Array.isArray(q.acceptableAnswers) || q.acceptableAnswers.length === 0) {
         return `Question ${i + 1} of type 'reorder' is missing 'acceptableAnswers' array.`
       }
+
       if (!q.acceptableAnswers.includes(q.correctAnswer)) {
         return `Question ${i + 1}: 'acceptableAnswers' must include the 'correctAnswer'.`
       }
@@ -133,6 +163,7 @@ function validateQuizQuestions(questions: QuizQuestion[]): string | null {
       }
     }
   }
+
   return null
 }
 
@@ -145,6 +176,7 @@ export async function generateLevelQuiz(
   config: LlmConfig,
 ): Promise<QuizQuestion[]> {
   await checkTokenLimit(userId)
+
   if (!config.url)
     throw new AppError(500, ERROR_CODES.SYSTEM.LLM_NOT_CONFIGURED, 'LLM API not configured')
 
@@ -168,13 +200,22 @@ export async function generateLevelQuiz(
         config,
         raw => parseLlmJson<QuizQuestion[]>(raw),
         (usage, rawText, messagesUsed) => {
-          trackTokenUsage(userId, `generate_quiz`, model, usage.promptTokens, usage.completionTokens, JSON.stringify(messagesUsed, null, 2), rawText)
+          trackTokenUsage(
+            userId,
+            `generate_quiz`,
+            model,
+            usage.promptTokens,
+            usage.completionTokens,
+            JSON.stringify(messagesUsed, null, 2),
+            rawText,
+          )
         },
       )
 
       if (Array.isArray(parsed) && parsed.length > 0) {
         let validQuiz = parsed
         const validationError = validateQuizQuestions(parsed)
+
         if (validationError) {
           logger.warn(`[Quiz critic] Validation failed: ${validationError}. Requesting correction...`)
 
@@ -192,11 +233,20 @@ export async function generateLevelQuiz(
             config,
             raw => parseLlmJson<QuizQuestion[]>(raw),
             (usage, rawText, messagesUsed) => {
-              trackTokenUsage(userId, `generate_quiz`, model, usage.promptTokens, usage.completionTokens, JSON.stringify(messagesUsed, null, 2), rawText)
+              trackTokenUsage(
+                userId,
+                `generate_quiz`,
+                model,
+                usage.promptTokens,
+                usage.completionTokens,
+                JSON.stringify(messagesUsed, null, 2),
+                rawText,
+              )
             },
           )
 
           const finalError = validateQuizQuestions(corrected.parsed)
+
           if (!finalError) {
             validQuiz = corrected.parsed
           }
@@ -237,22 +287,35 @@ Output MUST be a valid JSON array of question objects, exactly matching the sche
             config,
             raw => parseLlmJson<QuizQuestion[]>(raw),
             (usage, rawText, messagesUsed) => {
-              trackTokenUsage(userId, `generate_quiz`, model, usage.promptTokens, usage.completionTokens, JSON.stringify(messagesUsed, null, 2), rawText)
+              trackTokenUsage(
+                userId,
+                `generate_quiz`,
+                model,
+                usage.promptTokens,
+                usage.completionTokens,
+                JSON.stringify(messagesUsed, null, 2),
+                rawText,
+              )
             },
           )
 
           const reviewError = validateQuizQuestions(reviewed.parsed)
+
           if (!reviewError && Array.isArray(reviewed.parsed) && reviewed.parsed.length > 0) {
             return reconstructReorderOptions(reviewed.parsed, language)
           }
+
           logger.warn(`[Quiz Reviewer] Semantic correction broke schema: ${reviewError}. Returning original technically valid quiz.`)
+
           return reconstructReorderOptions(validQuiz, language)
         }
         catch (revError) {
           logger.warn(revError, `[Quiz Reviewer] LLM reviewer failed. Returning original technically valid quiz.`)
+
           return reconstructReorderOptions(validQuiz, language)
         }
       }
+
       throw new Error('LLM did not return a valid quiz array')
     }
     catch (e) {

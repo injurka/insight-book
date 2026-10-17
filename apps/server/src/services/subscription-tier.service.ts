@@ -38,11 +38,18 @@ export interface SubscriptionTierInput {
   featuresZh?: string[]
 }
 
-function pickLocalized<T>(en: T, ru: T, zh: T, lang: SubscriptionLang): T {
+function pickLocalized<T>(
+  en: T,
+  ru: T,
+  zh: T,
+  lang: SubscriptionLang,
+): T {
   if (lang === 'en')
     return en
+
   if (lang === 'ru')
     return ru
+
   return zh
 }
 
@@ -113,13 +120,33 @@ export class SubscriptionTierService {
     return rows.map(r => ({
       id: r.id,
       icon: r.icon,
-      badge: pickLocalized(r.badgeEn, r.badgeRu, r.badgeZh, lang),
-      name: pickLocalized(r.nameEn, r.nameRu, r.nameZh, lang),
+      badge: pickLocalized(
+        r.badgeEn,
+        r.badgeRu,
+        r.badgeZh,
+        lang,
+      ),
+      name: pickLocalized(
+        r.nameEn,
+        r.nameRu,
+        r.nameZh,
+        lang,
+      ),
       price: r.price,
       dailyTokenLimit: r.dailyTokenLimit,
       dailyBookLimit: r.dailyBookLimit,
-      description: pickLocalized(r.descriptionEn, r.descriptionRu, r.descriptionZh, lang),
-      features: pickLocalized(r.featuresEn, r.featuresRu, r.featuresZh, lang),
+      description: pickLocalized(
+        r.descriptionEn,
+        r.descriptionRu,
+        r.descriptionZh,
+        lang,
+      ),
+      features: pickLocalized(
+        r.featuresEn,
+        r.featuresRu,
+        r.featuresZh,
+        lang,
+      ),
       isPopular: r.isPopular,
       gradient: r.gradient,
       accentColor: r.accentColor,
@@ -134,11 +161,13 @@ export class SubscriptionTierService {
 
   async create(data: SubscriptionTierInput): Promise<SubscriptionTierRow> {
     const id = data.id?.trim()
+
     if (!id) {
       throw new AppError(400, ERROR_CODES.SYSTEM.VALIDATION_ERROR, 'Tier id is required')
     }
 
     const existing = await this.findById(id)
+
     if (existing) {
       throw new AppError(400, ERROR_CODES.SUBSCRIPTION.TIER_EXISTS, `Tier "${id}" already exists`)
     }
@@ -168,11 +197,13 @@ export class SubscriptionTierService {
     }).returning()
 
     logger.info(`[Subscription] Tier "${id}" created`)
+
     return row[0]
   }
 
   async update(id: string, data: SubscriptionTierInput): Promise<SubscriptionTierRow> {
     const existing = await this.findById(id)
+
     if (!existing) {
       throw new AppError(404, ERROR_CODES.SUBSCRIPTION.TIER_NOT_FOUND, `Tier "${id}" not found`)
     }
@@ -220,14 +251,17 @@ export class SubscriptionTierService {
     logger.info(`[Subscription] Tier "${id}" updated: ${Object.keys(updateData).join(', ')}`)
 
     const updated = await this.findById(id)
+
     if (!updated) {
       throw new AppError(404, ERROR_CODES.SUBSCRIPTION.TIER_NOT_FOUND, `Tier "${id}" not found`)
     }
+
     return updated
   }
 
   async remove(id: string): Promise<void> {
     const existing = await this.findById(id)
+
     if (!existing) {
       throw new AppError(404, ERROR_CODES.SUBSCRIPTION.TIER_NOT_FOUND, `Tier "${id}" not found`)
     }
@@ -242,11 +276,7 @@ export class SubscriptionTierService {
       .where(eq(schema.users.subscriptionTier, id))
 
     if (Number(count) > 0) {
-      throw new AppError(
-        400,
-        ERROR_CODES.SUBSCRIPTION.TIER_IN_USE,
-        `Cannot delete tier "${id}": ${count} user(s) have it assigned`,
-      )
+      throw new AppError(400, ERROR_CODES.SUBSCRIPTION.TIER_IN_USE, `Cannot delete tier "${id}": ${count} user(s) have it assigned`)
     }
 
     await db.delete(schema.subscriptionTiers).where(eq(schema.subscriptionTiers.id, id))

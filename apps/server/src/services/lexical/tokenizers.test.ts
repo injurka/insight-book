@@ -31,8 +31,10 @@ describe('multilingual tokenization contract', () => {
     test(`preserves source text and HTML/OCR metadata: ${language || 'empty locale'}`, async () => {
       const sentences = splitIntoSentences(text, language)
       expect(sentences.join('')).toBe(text)
+
       for (const sentence of sentences)
         expect((await tokenizeText(sentence, language)).map(token => token.word).join('')).toBe(sentence)
+
       const html = `<p>${text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</p>`
       const { processedHtml } = await tokenizeHtmlPage(html, language)
       const $ = cheerio.load(processedHtml)
@@ -67,14 +69,17 @@ describe('multilingual tokenization contract', () => {
     const fragments = $('.sentence[data-sent-id="0"]')
     expect(fragments).toHaveLength(2)
     expect(fragments.map((_, el) => $(el).text()).get()).toEqual([first, last])
+
     for (const el of fragments.toArray())
       expect(decodeURIComponent($(el).attr('data-raw-sent')!)).toBe(first + last)
+
     expect($('.sentence[data-sent-id="1"]').text()).toBe(next)
     expect($('.class_s4sc').text()).toBe(first)
   })
 
   test('HTML and OCR share fallback when a tokenizer loses characters', async () => {
     const spy = spyOn(getTokenizer('en'), 'tokenize').mockReturnValue([{ word: 'lost', pos: 'n' }])
+
     try {
       const text = 'Hello, world!'
       expect((await tokenizeText(text, 'en')).map(token => token.word).join('')).toBe(text)

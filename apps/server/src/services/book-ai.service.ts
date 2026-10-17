@@ -32,9 +32,18 @@ export async function analyzeBookExcerpt(userId: number, excerpt: string, config
         config,
         raw => parseLlmJson(raw),
         (usage, rawText, messagesUsed) => {
-          trackTokenUsage(userId, 'analyze_book', model, usage.promptTokens, usage.completionTokens, JSON.stringify(messagesUsed, null, 2), rawText)
+          trackTokenUsage(
+            userId,
+            'analyze_book',
+            model,
+            usage.promptTokens,
+            usage.completionTokens,
+            JSON.stringify(messagesUsed, null, 2),
+            rawText,
+          )
         },
       )
+
       return parsed
     }
     catch (e) {
@@ -45,6 +54,7 @@ export async function analyzeBookExcerpt(userId: number, excerpt: string, config
 
   if (lastError?.message.includes('No candidates returned') || lastError?.message.includes('safety')) {
     logger.warn('[LLM] Текст заблокирован фильтрами безопасности ИИ на всех моделях. Возвращаем заглушку.')
+
     return {
       description: 'Краткое описание недоступно. Текст книги был заблокирован внутренними фильтрами безопасности ИИ (вероятно, из-за описания драматических или трагических событий).',
       difficulty: 'Неизвестно',
@@ -55,7 +65,13 @@ export async function analyzeBookExcerpt(userId: number, excerpt: string, config
   throw new AppError(500, ERROR_CODES.SYSTEM.LLM_ERROR, `LLM error: ${lastError?.message || 'Unknown error'}`)
 }
 
-export async function analyzeMangaInfo(userId: number, title: string, author: string | null, language: string, config: LlmConfig): Promise<{ description: string, difficulty: string, tags: string[] }> {
+export async function analyzeMangaInfo(
+  userId: number,
+  title: string,
+  author: string | null,
+  language: string,
+  config: LlmConfig,
+): Promise<{ description: string, difficulty: string, tags: string[] }> {
   await checkTokenLimit(userId)
 
   if (!config.url)
@@ -82,9 +98,18 @@ export async function analyzeMangaInfo(userId: number, title: string, author: st
         config,
         raw => parseLlmJson(raw),
         (usage, rawText, messagesUsed) => {
-          trackTokenUsage(userId, 'analyze_manga', model, usage.promptTokens, usage.completionTokens, JSON.stringify(messagesUsed, null, 2), rawText)
+          trackTokenUsage(
+            userId,
+            'analyze_manga',
+            model,
+            usage.promptTokens,
+            usage.completionTokens,
+            JSON.stringify(messagesUsed, null, 2),
+            rawText,
+          )
         },
       )
+
       return parsed
     }
     catch (e) {

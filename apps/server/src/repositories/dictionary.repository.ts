@@ -26,21 +26,23 @@ export class DictionaryRepository implements IDictionaryRepository {
 
   async getDefaultDeck(userId: number, language: string, targetLang: string) {
     return await db.query.dictDecks.findFirst({
-      where: and(
-        eq(schema.dictDecks.userId, userId),
-        eq(schema.dictDecks.language, language),
-        eq(schema.dictDecks.targetLanguage, targetLang),
-      ),
+      where: and(eq(schema.dictDecks.userId, userId), eq(schema.dictDecks.language, language), eq(schema.dictDecks.targetLanguage, targetLang)),
     })
   }
 
-  async createDeck(userId: number, name: string, language: string, targetLang: string) {
+  async createDeck(
+    userId: number,
+    name: string,
+    language: string,
+    targetLang: string,
+  ) {
     const [newDeck] = await db.insert(schema.dictDecks).values({
       userId,
       name,
       language,
       targetLanguage: targetLang,
     }).returning()
+
     return newDeck
   }
 
@@ -72,12 +74,10 @@ export class DictionaryRepository implements IDictionaryRepository {
   async getWordsWithOtherLinks(wordIds: number[], deckId: number) {
     if (wordIds.length === 0)
       return []
+
     return await db.selectDistinct({ id: schema.wordToDeck.wordId })
       .from(schema.wordToDeck)
-      .where(and(
-        inArray(schema.wordToDeck.wordId, wordIds),
-        sql`${schema.wordToDeck.deckId} != ${deckId}`,
-      ))
+      .where(and(inArray(schema.wordToDeck.wordId, wordIds), sql`${schema.wordToDeck.deckId} != ${deckId}`))
   }
 
   async getUserDictionaryPage(userId: number, targetLang: string, options: DictionaryPageOptions) {
@@ -100,6 +100,7 @@ export class DictionaryRepository implements IDictionaryRepository {
         .groupBy(schema.wordToDeck.deckId),
     ])
     const total = counts[0]?.total || 0
+
     return {
       items: words.map(({ wordToDecks, ...word }) => ({ ...word, deckIds: wordToDecks.map(link => link.deckId) })),
       total,
@@ -128,7 +129,12 @@ export class DictionaryRepository implements IDictionaryRepository {
     })) as unknown as UserDictItem[]
   }
 
-  async getWordFromUserDictionary(word: string, userId: number, targetLang: string, language?: string) {
+  async getWordFromUserDictionary(
+    word: string,
+    userId: number,
+    targetLang: string,
+    language?: string,
+  ) {
     const items = await db.query.userDictionary.findMany({
       limit: 2,
       where: and(
@@ -144,10 +150,12 @@ export class DictionaryRepository implements IDictionaryRepository {
         },
       },
     })
+
     if (items.length > 1)
       throw new AppError(409, 'Source language is required for this word')
 
     const item = items[0]
+
     if (!item)
       return null
 
@@ -219,6 +227,7 @@ export class DictionaryRepository implements IDictionaryRepository {
 
     if (upserted) {
       await db.delete(schema.wordToDeck).where(eq(schema.wordToDeck.wordId, upserted.id))
+
       if (data.deckIds.length > 0) {
         const links = data.deckIds.map(did => ({
           wordId: upserted.id,
@@ -227,10 +236,16 @@ export class DictionaryRepository implements IDictionaryRepository {
         await db.insert(schema.wordToDeck).values(links)
       }
     }
+
     return upserted
   }
 
-  async upsertWordEncounter(userId: number, wordId: number, contextSentence: string, contextBookId?: number) {
+  async upsertWordEncounter(
+    userId: number,
+    wordId: number,
+    contextSentence: string,
+    contextBookId?: number,
+  ) {
     await db.insert(schema.wordEncounters).values({
       userId,
       wordId,
@@ -239,17 +254,25 @@ export class DictionaryRepository implements IDictionaryRepository {
     }).onConflictDoNothing()
   }
 
-  async removeFromUserDictionary(word: string, userId: number, targetLang: string, language?: string) {
-    const entry = await this.getWordFromUserDictionary(word, userId, targetLang, language)
+  async removeFromUserDictionary(
+    word: string,
+    userId: number,
+    targetLang: string,
+    language?: string,
+  ) {
+    const entry = await this.getWordFromUserDictionary(
+      word,
+      userId,
+      targetLang,
+      language,
+    )
+
     if (!entry)
       return
 
     // Resolve legacy requests first, then delete only the resolved row even if
     // another language is inserted between the lookup and this statement.
-    await db.delete(schema.userDictionary).where(and(
-      eq(schema.userDictionary.id, entry.id),
-      eq(schema.userDictionary.userId, userId),
-    ))
+    await db.delete(schema.userDictionary).where(and(eq(schema.userDictionary.id, entry.id), eq(schema.userDictionary.userId, userId)))
   }
 
   private reviewFilters(
@@ -276,9 +299,11 @@ export class DictionaryRepository implements IDictionaryRepository {
       const numericDeckIds = deckId.filter((id): id is number => typeof id === 'number')
 
       const deckConditions: SQL[] = []
+
       if (hasNone) {
         deckConditions.push(notInArray(schema.userDictionary.id, db.select({ id: schema.wordToDeck.wordId }).from(schema.wordToDeck)))
       }
+
       if (numericDeckIds.length > 0) {
         deckConditions.push(inArray(schema.userDictionary.id, db.select({ id: schema.wordToDeck.wordId }).from(schema.wordToDeck).where(inArray(schema.wordToDeck.deckId, numericDeckIds))))
       }
@@ -288,6 +313,7 @@ export class DictionaryRepository implements IDictionaryRepository {
       }
       else if (deckConditions.length > 1) {
         const combined = or(...deckConditions)
+
         if (combined)
           filters.push(combined)
       }
@@ -299,12 +325,17 @@ export class DictionaryRepository implements IDictionaryRepository {
     if (difficulty && difficulty !== 'all') {
       const levels = difficulty.split(',').filter(Boolean)
       const conditions: SQL[] = []
+
       if (levels.includes('none'))
         conditions.push(sql`${schema.userDictionary.difficulty} IS NULL OR ${schema.userDictionary.difficulty} = ''`)
+
       const named = levels.filter(level => level !== 'none')
+
       if (named.length)
         conditions.push(inArray(schema.userDictionary.difficulty, named))
+
       const combined = or(...conditions)
+
       if (combined)
         filters.push(combined)
     }
@@ -319,11 +350,18 @@ export class DictionaryRepository implements IDictionaryRepository {
     deckId?: number | 'none' | (number | 'none')[],
     difficulty?: string,
   ) {
-    const filters = this.reviewFilters(userId, language, targetLang, deckId, difficulty)
+    const filters = this.reviewFilters(
+      userId,
+      language,
+      targetLang,
+      deckId,
+      difficulty,
+    )
     filters.push(lte(schema.userDictionary.due, new Date().toISOString()))
     const [result] = await db.select({ count: sql<number>`count(*)` })
       .from(schema.userDictionary)
       .where(and(...filters))
+
     return { count: Number(result?.count ?? 0) }
   }
 
@@ -335,7 +373,13 @@ export class DictionaryRepository implements IDictionaryRepository {
     deckId?: number | 'none' | (number | 'none')[],
     difficulty?: string,
   ) {
-    const filters = this.reviewFilters(userId, language, targetLang, deckId, difficulty)
+    const filters = this.reviewFilters(
+      userId,
+      language,
+      targetLang,
+      deckId,
+      difficulty,
+    )
 
     if (mode === 'srs') {
       const now = new Date().toISOString()
@@ -348,14 +392,13 @@ export class DictionaryRepository implements IDictionaryRepository {
         limit: 50,
       })
     }
-    else {
-      return await db.query.userDictionary.findMany({
-        where: and(...filters),
-        with: { encounters: true },
-        orderBy: [sql`RANDOM()`],
-        limit: mode === 'cram' ? 500 : 50,
-      })
-    }
+
+    return await db.query.userDictionary.findMany({
+      where: and(...filters),
+      with: { encounters: true },
+      orderBy: [sql`RANDOM()`],
+      limit: mode === 'cram' ? 500 : 50,
+    })
   }
 
   async updateWordSrs(wordId: number, data: Partial<typeof schema.userDictionary.$inferInsert>) {
@@ -363,10 +406,7 @@ export class DictionaryRepository implements IDictionaryRepository {
   }
 
   async bulkDeleteWords(userId: number, wordIds: number[]) {
-    await db.delete(schema.userDictionary).where(and(
-      inArray(schema.userDictionary.id, wordIds),
-      eq(schema.userDictionary.userId, userId),
-    ))
+    await db.delete(schema.userDictionary).where(and(inArray(schema.userDictionary.id, wordIds), eq(schema.userDictionary.userId, userId)))
   }
 
   async bulkMoveWords(userId: number, wordIds: number[], deckIds?: number[]) {
@@ -375,23 +415,19 @@ export class DictionaryRepository implements IDictionaryRepository {
 
     const userWords = await db.select({ id: schema.userDictionary.id })
       .from(schema.userDictionary)
-      .where(and(
-        inArray(schema.userDictionary.id, wordIds),
-        eq(schema.userDictionary.userId, userId),
-      ))
+      .where(and(inArray(schema.userDictionary.id, wordIds), eq(schema.userDictionary.userId, userId)))
 
     const validWordIds = userWords.map(w => w.id)
+
     if (validWordIds.length === 0)
       return
 
     let validDeckIds: number[] = []
+
     if (deckIds && deckIds.length > 0) {
       const userDecks = await db.select({ id: schema.dictDecks.id })
         .from(schema.dictDecks)
-        .where(and(
-          inArray(schema.dictDecks.id, deckIds),
-          eq(schema.dictDecks.userId, userId),
-        ))
+        .where(and(inArray(schema.dictDecks.id, deckIds), eq(schema.dictDecks.userId, userId)))
       validDeckIds = userDecks.map(d => d.id)
     }
 
@@ -400,12 +436,15 @@ export class DictionaryRepository implements IDictionaryRepository {
 
       if (validDeckIds.length > 0) {
         const links = []
+
         for (const wordId of validWordIds) {
           for (const deckId of validDeckIds) {
             links.push({ wordId, deckId })
           }
         }
+
         const chunkSize = 250
+
         for (let i = 0; i < links.length; i += chunkSize) {
           const chunk = links.slice(i, i + chunkSize)
           await tx.insert(schema.wordToDeck).values(chunk).onConflictDoNothing()
@@ -429,6 +468,7 @@ export class DictionaryRepository implements IDictionaryRepository {
   async upsertClonedWords(userWords: (typeof schema.userDictionary.$inferInsert)[]) {
     const chunkSize = 50
     const upserted: { id: number }[] = []
+
     for (let i = 0; i < userWords.length; i += chunkSize) {
       const chunk = userWords.slice(i, i + chunkSize)
       const res = await db.insert(schema.userDictionary).values(chunk).onConflictDoUpdate({
@@ -443,11 +483,13 @@ export class DictionaryRepository implements IDictionaryRepository {
       }).returning({ id: schema.userDictionary.id })
       upserted.push(...res)
     }
+
     return upserted
   }
 
   async linkWordsToDeck(links: (typeof schema.wordToDeck.$inferInsert)[]) {
     const chunkSize = 250
+
     for (let i = 0; i < links.length; i += chunkSize) {
       const chunk = links.slice(i, i + chunkSize)
       await db.insert(schema.wordToDeck).values(chunk).onConflictDoNothing()
@@ -463,6 +505,7 @@ export class DictionaryRepository implements IDictionaryRepository {
       .select()
       .from(schema.customPrompts)
       .where(and(eq(schema.customPrompts.id, id), eq(schema.customPrompts.userId, userId)))
+
     return dbPrompt
   }
 
@@ -471,6 +514,7 @@ export class DictionaryRepository implements IDictionaryRepository {
       .insert(schema.customPrompts)
       .values({ userId, name, prompt })
       .returning()
+
     return newPrompt
   }
 
@@ -480,6 +524,7 @@ export class DictionaryRepository implements IDictionaryRepository {
       .set({ ...updateData, updatedAt: sql`(datetime('now'))` })
       .where(and(eq(schema.customPrompts.id, id), eq(schema.customPrompts.userId, userId)))
       .returning()
+
     return updatedPrompt
   }
 
@@ -488,6 +533,7 @@ export class DictionaryRepository implements IDictionaryRepository {
       .delete(schema.customPrompts)
       .where(and(eq(schema.customPrompts.id, id), eq(schema.customPrompts.userId, userId)))
       .returning()
+
     return deletedPrompt
   }
 }

@@ -47,18 +47,23 @@ export class AuthService {
   async login(login: string, passwordString: string) {
     if (AUTH_MODE === 'single') {
       const user = await this.userRepo.findById(1)
+
       if (user) {
         const userPayload = await this.getUserPayload(user)
+
         return { token: 'dummy-token', user: userPayload }
       }
+
       return { token: 'dummy-token', user: { id: 1, username: 'admin', role: ROLES.ADMIN } }
     }
 
     const user = await this.userRepo.findByLogin(login)
+
     if (!user)
       throw new AppError(401, ERROR_CODES.AUTH.INVALID_CREDENTIALS, 'Invalid credentials')
 
     const isMatch = await Bun.password.verify(passwordString, user.passwordHash)
+
     if (!isMatch)
       throw new AppError(401, ERROR_CODES.AUTH.INVALID_CREDENTIALS, 'Invalid credentials')
 
@@ -70,6 +75,7 @@ export class AuthService {
 
   async sendCode(email: string) {
     const existingUser = await this.userRepo.findByEmail(email)
+
     if (existingUser)
       throw new AppError(400, ERROR_CODES.AUTH.EMAIL_ALREADY_EXISTS, 'User with this email already exists')
 
@@ -115,6 +121,7 @@ export class AuthService {
       })
 
       const jsonRes = await res.json()
+
       if (jsonRes.status !== 'success') {
         logger.error(jsonRes, 'Unisender Go error:')
         const errorMessage = jsonRes.message || (jsonRes.errors && jsonRes.errors[0]?.message) || 'Неизвестная ошибка'
@@ -130,15 +137,18 @@ export class AuthService {
 
   async register(email: string, code: string, passwordString: string) {
     const confirmation = await this.userRepo.findEmailConfirmation(email, code)
+
     if (!confirmation)
       throw new AppError(400, ERROR_CODES.AUTH.INVALID_VERIFICATION_CODE, 'Invalid verification code')
 
     const createdAt = new Date(`${confirmation.createdAt}Z`).getTime()
+
     if (Date.now() - createdAt > 15 * 60 * 1000)
       throw new AppError(400, ERROR_CODES.AUTH.VERIFICATION_CODE_EXPIRED, 'Verification code expired')
 
     let randomUsername = `user_${Math.random().toString(36).substring(2, 8)}`
     let existingUser = await this.userRepo.findByUsername(randomUsername)
+
     while (existingUser) {
       randomUsername = `user_${Math.random().toString(36).substring(2, 8)}`
       existingUser = await this.userRepo.findByUsername(randomUsername)
@@ -158,9 +168,12 @@ export class AuthService {
   async getMe(userId: number | null) {
     if (userId === null)
       return { user: null, mode: AUTH_MODE }
+
     const user = await this.userRepo.findById(userId)
+
     if (!user)
       throw new AppError(404, ERROR_CODES.USER.NOT_FOUND, 'User not found')
+
     return { user: await this.getUserPayload(user), mode: AUTH_MODE }
   }
 
@@ -172,31 +185,38 @@ export class AuthService {
 
     if (user?.avatarUrl && user.avatarUrl.startsWith('/api/uploads/avatars/')) {
       const oldFilename = user.avatarUrl.split('/').pop()
+
       if (oldFilename)
         await storageService.deleteFile(`avatars/${oldFilename}`)
     }
+
     await storageService.uploadFile(`avatars/${filename}`, buffer, `image/${ext.slice(1)}`)
 
     const avatarUrl = `/api/uploads/avatars/${filename}`
     await this.userRepo.updateUser(userId, { avatarUrl })
+
     return { success: true, avatarUrl }
   }
 
   async getAvatarImage(filename: string) {
     const key = `avatars/${filename}`
+
     return await storageService.getFile(key)
   }
 
   async updateUsername(userId: number, username: string) {
     if (!username || username.trim().length < 2)
       throw new AppError(400, ERROR_CODES.AUTH.INVALID_USERNAME, 'Invalid username')
+
     const newUsername = username.trim()
 
     const existing = await this.userRepo.findByUsername(newUsername)
+
     if (existing && existing.id !== userId)
       throw new AppError(400, ERROR_CODES.AUTH.USERNAME_TAKEN, 'Username taken')
 
     await this.userRepo.updateUser(userId, { username: newUsername })
+
     return { success: true, username: newUsername }
   }
 
@@ -205,8 +225,10 @@ export class AuthService {
     url.searchParams.set('response_type', 'code')
     url.searchParams.set('client_id', YANDEX_CLIENT_ID)
     url.searchParams.set('redirect_uri', `${FRONTEND_URL}/api/auth/yandex/callback`)
+
     if (state)
       url.searchParams.set('state', state)
+
     return { redirectUrl: url.toString() }
   }
 
@@ -225,11 +247,13 @@ export class AuthService {
       const errText = await tokenRes.text().catch(() => '')
       throw new AppError(400, ERROR_CODES.AUTH.OAUTH_TOKEN_EXCHANGE_FAILED, `Failed to exchange token: ${errText}`)
     }
+
     const tokenData = (await tokenRes.json()) as { access_token: string }
 
     const userRes = await fetch('https://login.yandex.ru/info?format=json', {
       headers: { Authorization: `OAuth ${tokenData.access_token}` },
     })
+
     if (!userRes.ok)
       throw new AppError(400, ERROR_CODES.AUTH.OAUTH_USER_INFO_FAILED, 'Failed to fetch user info')
 
@@ -250,8 +274,10 @@ export class AuthService {
 
     if (!user) {
       const email = userData.default_email || userData.emails?.[0] || null
+
       if (email) {
         const userWithEmail = await this.userRepo.findByEmail(email)
+
         if (userWithEmail) {
           user = await this.userRepo.updateUser(userWithEmail.id, { yandexId })
         }
@@ -260,6 +286,7 @@ export class AuthService {
       if (!user) {
         let proposedUsername = userData.login || `yandex_${yandexId}`
         const existing = await this.userRepo.findByUsername(proposedUsername)
+
         if (existing)
           proposedUsername = `yandex_${yandexId}_${Date.now()}`
 
@@ -287,18 +314,22 @@ export class AuthService {
     const yandexId = String(userData.id)
 
     const existing = await this.userRepo.findByYandexId(yandexId)
+
     if (existing) {
       if (existing.id === userId) {
         return this.userRepo.findById(userId)
       }
+
       throw new AppError(400, ERROR_CODES.AUTH.OAUTH_ALREADY_LINKED, 'Этот аккаунт Яндекс уже привязан к другому пользователю.')
     }
 
     const currentUser = await this.userRepo.findById(userId)
+
     if (!currentUser)
       throw new AppError(404, ERROR_CODES.USER.NOT_FOUND, 'User not found')
 
     const updatePayload: { yandexId: string, avatarUrl?: string } = { yandexId }
+
     if (!currentUser.avatarUrl && userData.default_avatar_id && !userData.is_avatar_empty) {
       updatePayload.avatarUrl = `https://avatars.yandex.net/get-yapic/${userData.default_avatar_id}/islands-200`
     }
@@ -311,6 +342,7 @@ export class AuthService {
       throw new AppError(400, ERROR_CODES.SYSTEM.VALIDATION_ERROR, 'Неподдерживаемый провайдер')
 
     const user = await this.userRepo.findById(userId)
+
     if (!user)
       throw new AppError(404, ERROR_CODES.USER.NOT_FOUND, 'User not found')
 
@@ -321,6 +353,7 @@ export class AuthService {
       throw new AppError(400, ERROR_CODES.AUTH.CANNOT_UNLINK_LAST_AUTH, 'Нельзя отвязать единственный способ входа в аккаунт. Сначала укажите почту или другой способ входа.')
 
     const updatedUser = await this.userRepo.updateUser(userId, { yandexId: null })
+
     if (!updatedUser)
       throw new AppError(500, ERROR_CODES.SYSTEM.INTERNAL_SERVER_ERROR, 'Failed to update user')
 

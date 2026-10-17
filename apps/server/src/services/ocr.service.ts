@@ -21,27 +21,54 @@ function cleanOcrText(rawText: string): string {
   text = text.replace(/```[a-z]*\n?/gi, '').replace(/```/g, '')
   text = text.replace(/<[^>]*>/g, '')
   text = text.replace(/(\*\*|__)(.*?)\1/g, '$2')
+
   return text.trim()
 }
 
-export async function recognizeMangaPage(userId: number, base64Image: string, language: string, textDirection: string | undefined, config: LlmConfig): Promise<OcrBlock[]> {
+export async function recognizeMangaPage(
+  userId: number,
+  base64Image: string,
+  language: string,
+  textDirection: string | undefined,
+  config: LlmConfig,
+): Promise<OcrBlock[]> {
   await checkTokenLimit(userId)
 
   let imageUrl = base64Image
+
   if (!base64Image.startsWith('data:image/')) {
     imageUrl = `data:image/jpeg;base64,${base64Image}`
   }
 
-  const blocks = await getOcrLayout(userId, imageUrl, language, textDirection, config)
+  const blocks = await getOcrLayout(
+    userId,
+    imageUrl,
+    language,
+    textDirection,
+    config,
+  )
 
   if (blocks.length > 0 && blocks.some(b => b.w > 0 && b.h > 0)) {
-    return await refineOcrText(userId, base64Image, blocks, language, textDirection, config)
+    return await refineOcrText(
+      userId,
+      base64Image,
+      blocks,
+      language,
+      textDirection,
+      config,
+    )
   }
 
   return blocks
 }
 
-async function getOcrLayout(userId: number, imageUrl: string, language: string, textDirection: string | undefined, config: LlmConfig): Promise<OcrBlock[]> {
+async function getOcrLayout(
+  userId: number,
+  imageUrl: string,
+  language: string,
+  textDirection: string | undefined,
+  config: LlmConfig,
+): Promise<OcrBlock[]> {
   const apiUrl = config.ocrUrl || config.url
   const apiKey = config.ocrKey || config.key
   const model = config.ocrModel!
@@ -52,6 +79,7 @@ async function getOcrLayout(userId: number, imageUrl: string, language: string, 
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
   }
+
   if (apiKey) {
     headers.Authorization = `Bearer ${apiKey}`
   }
@@ -94,7 +122,15 @@ async function getOcrLayout(userId: number, imageUrl: string, language: string, 
 
   const inputTextForLog = JSON.stringify({ prompt: promptText, imageBase64: `${imageUrl.substring(0, 100)}...[TRUNCATED]` }, null, 2)
   const outputTextForLog = JSON.stringify(data, null, 2)
-  trackTokenUsage(userId, 'ocr_layout', model, promptTokens, completionTokens, inputTextForLog, outputTextForLog)
+  trackTokenUsage(
+    userId,
+    'ocr_layout',
+    model,
+    promptTokens,
+    completionTokens,
+    inputTextForLog,
+    outputTextForLog,
+  )
 
   const blocks: OcrBlock[] = []
   const glmDetail = data.choices?.[0]?.glm_ocr_detail
@@ -104,6 +140,7 @@ async function getOcrLayout(userId: number, imageUrl: string, language: string, 
 
     layoutDetails.forEach((item: GlmOcrLayoutDetail, index: number) => {
       const text = cleanOcrText(item.content)
+
       if (!text)
         return
 
@@ -123,6 +160,7 @@ async function getOcrLayout(userId: number, imageUrl: string, language: string, 
   }
 
   const content = data.choices?.[0]?.message?.content
+
   if (content && content.trim() !== '') {
     const lines = content.split('\n')
       .map((line: string) => cleanOcrText(line))
@@ -141,8 +179,16 @@ async function getOcrLayout(userId: number, imageUrl: string, language: string, 
   return []
 }
 
-async function refineOcrText(userId: number, base64Image: string, blocks: OcrBlock[], language: string, textDirection: string | undefined, config: LlmConfig): Promise<OcrBlock[]> {
+async function refineOcrText(
+  userId: number,
+  base64Image: string,
+  blocks: OcrBlock[],
+  language: string,
+  textDirection: string | undefined,
+  config: LlmConfig,
+): Promise<OcrBlock[]> {
   const validBlocks = blocks.filter(b => b.w > 0 && b.h > 0)
+
   if (validBlocks.length === 0)
     return blocks
 
@@ -198,6 +244,7 @@ async function refineOcrText(userId: number, base64Image: string, blocks: OcrBlo
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
     }
+
     if (apiKey) {
       headers.Authorization = `Bearer ${apiKey}`
     }
@@ -230,21 +277,33 @@ async function refineOcrText(userId: number, base64Image: string, blocks: OcrBlo
       const safeInput = contentArray.map((c: OpenAiMessageContent) => {
         if (c.type === 'image_url' && c.image_url)
           return { type: 'image_url', image_url: { url: `${c.image_url.url.substring(0, 100)}...[TRUNCATED]` } }
+
         return c
       })
       const inputTextForLog = JSON.stringify(safeInput, null, 2)
-      trackTokenUsage(userId, 'ocr_refine', model, promptTokens, completionTokens, inputTextForLog, content)
+      trackTokenUsage(
+        userId,
+        'ocr_refine',
+        model,
+        promptTokens,
+        completionTokens,
+        inputTextForLog,
+        content,
+      )
 
       let cleanJson = content.replace(/^```json\n?/, '').replace(/\n?```$/, '').trim()
 
       try {
         const refinedTexts = JSON.parse(cleanJson)
+
         if (!Array.isArray(refinedTexts)) {
           throw new TypeError('Expected an array of strings')
         }
+
         if (refinedTexts.length !== validBlocks.length) {
           throw new Error(`Expected exactly ${validBlocks.length} elements, but got ${refinedTexts.length}`)
         }
+
         for (let i = 0; i < validBlocks.length; i++) {
           validBlocks[i].text = cleanOcrText(refinedTexts[i]) || validBlocks[i].text
         }
@@ -283,11 +342,21 @@ async function refineOcrText(userId: number, base64Image: string, blocks: OcrBlo
             { role: 'user', content: 'Your previous response was not valid JSON or did not contain the correct number of items...' },
           ], null, 2)
 
-          trackTokenUsage(userId, 'ocr_refine', model, retryPromptTokens, retryCompletionTokens, retryInputTextForLog, retryContent)
+          trackTokenUsage(
+            userId,
+            'ocr_refine',
+            model,
+            retryPromptTokens,
+            retryCompletionTokens,
+            retryInputTextForLog,
+            retryContent,
+          )
 
           cleanJson = retryContent.replace(/^```json\n?/, '').replace(/\n?```$/, '').trim()
+
           try {
             const refinedTexts = JSON.parse(cleanJson)
+
             if (Array.isArray(refinedTexts) && refinedTexts.length === validBlocks.length) {
               for (let i = 0; i < validBlocks.length; i++) {
                 validBlocks[i].text = cleanOcrText(refinedTexts[i]) || validBlocks[i].text

@@ -29,19 +29,23 @@ export class AuthSessionService {
   async create(userId: number) {
     const refresh = refreshToken()
     await this.repository.create(userId, hash(refresh), Date.now() + REFRESH_MS)
+
     return this.tokens(userId, refresh)
   }
 
   async refresh(token: string) {
     const next = refreshToken()
     const userId = await this.repository.rotate(hash(token), hash(next), Date.now() + REFRESH_MS)
+
     if (!userId)
       throw new AppError(401, ERROR_CODES.AUTH.INVALID_TOKEN, 'Refresh session expired or revoked')
+
     return this.tokens(userId, next)
   }
 
   async revoke(token: string) {
     await this.repository.revoke(hash(token))
+
     return { success: true }
   }
 }

@@ -83,6 +83,7 @@ async function migrateTable({ table, pkCols, dataCol }: MigrateTableOptions) {
       await client.execute({ sql: updateSql, args: [recompressed, ...whereValues] })
 
       migrated++
+
       if (migrated % 100 === 0)
         console.log(`  ↳ ${migrated} rows migrated...`)
     }

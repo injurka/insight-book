@@ -29,11 +29,13 @@ export class UserRepository implements IUserRepository {
 
   async createUser(data: typeof schema.users.$inferInsert) {
     const [user] = await db.insert(schema.users).values(data).returning()
+
     return user
   }
 
   async updateUser(id: number, data: Partial<typeof schema.users.$inferInsert>) {
     const [user] = await db.update(schema.users).set(data).where(eq(schema.users.id, id)).returning()
+
     return user
   }
 
@@ -41,6 +43,7 @@ export class UserRepository implements IUserRepository {
     const [{ count }] = await db.select({ count: sql<number>`count(*)` })
       .from(schema.books)
       .where(sql`${schema.books.userId} = ${userId} AND datetime(${schema.books.createdAt}) >= datetime(${periodStart})`)
+
     return count
   }
 
@@ -50,6 +53,7 @@ export class UserRepository implements IUserRepository {
     })
       .from(schema.tokenUsage)
       .where(sql`${schema.tokenUsage.userId} = ${userId} AND date(${schema.tokenUsage.date}) >= date(${periodStart})`)
+
     return totalTokens
   }
 
@@ -72,6 +76,7 @@ export class UserRepository implements IUserRepository {
     const result = await db.select({ count: sql<number>`count(*)` })
       .from(schema.users)
       .get()
+
     return result?.count || 0
   }
 
@@ -80,18 +85,15 @@ export class UserRepository implements IUserRepository {
       .from(schema.users)
       .where(eq(schema.users.role, role))
       .get()
+
     return result?.count || 0
   }
 
   async list(opts: { limit: number, offset: number, search?: string }) {
     const conditions: SQL[] = []
+
     if (opts.search) {
-      conditions.push(
-        or(
-          like(schema.users.username, `%${opts.search}%`),
-          like(schema.users.email, `%${opts.search}%`),
-        )!,
-      )
+      conditions.push(or(like(schema.users.username, `%${opts.search}%`), like(schema.users.email, `%${opts.search}%`))!)
     }
 
     const where = conditions.length > 0 ? and(...conditions) : undefined

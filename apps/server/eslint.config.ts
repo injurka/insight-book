@@ -1,11 +1,5 @@
-import antfu from '@antfu/eslint-config'
+import { insightBookServerConfig } from '@injurka/insight-book-eslint-config/server'
 
-export default antfu({
-  formatters: true,
-  rules: {
-    'node/prefer-global/process': 'off',
-    'node/prefer-global/buffer': 'off',
-    'ts/no-explicit-any': 'error',
-  },
-  ignores: ['bun.lock', 'src_prompt.md'],
+export default insightBookServerConfig({
+  ignores: ['bun.lock'],
 })

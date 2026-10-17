@@ -6,19 +6,23 @@ import { logger } from '../utils/logger'
 
 async function withRetry<T>(fn: () => Promise<T>, maxRetries = 5, delayMs = 2000): Promise<T> {
   let attempt = 0
+
   while (attempt < maxRetries) {
     try {
       return await fn()
     }
     catch (err) {
       attempt++
+
       if (attempt >= maxRetries)
         throw err
+
       logger.warn(`⚠️ Request failed. Retrying attempt ${attempt}/${maxRetries} after ${delayMs}ms...`)
       await new Promise(r => setTimeout(r, delayMs))
       delayMs *= 1.5
     }
   }
+
   throw new Error('Unreachable')
 }
 
@@ -74,6 +78,7 @@ async function main() {
   // Migrate official_decks
   logger.info('🔄 Migrating official_decks...')
   const decks = localDb.query('SELECT * FROM official_decks').all() as Record<string, unknown>[]
+
   if (decks.length > 0) {
     const columns = Object.keys(decks[0])
     const columnsJoined = columns.map(c => `"${c}"`).join(', ')
@@ -81,6 +86,7 @@ async function main() {
     const sql = `INSERT INTO official_decks (${columnsJoined}) VALUES (${placeholders})`
 
     const chunkSize = 100
+
     for (let i = 0; i < decks.length; i += chunkSize) {
       const chunk = decks.slice(i, i + chunkSize)
       const statements = chunk.map(row => ({
@@ -89,6 +95,7 @@ async function main() {
       }))
       await withRetry(() => remoteClient.batch(statements, 'write'))
     }
+
     logger.info(`✅ Migrated ${decks.length} decks.`)
   }
   else {
@@ -98,6 +105,7 @@ async function main() {
   // Migrate official_deck_words
   logger.info('🔄 Migrating official_deck_words...')
   const words = localDb.query('SELECT * FROM official_deck_words').all() as Record<string, unknown>[]
+
   if (words.length > 0) {
     const columns = Object.keys(words[0])
     const columnsJoined = columns.map(c => `"${c}"`).join(', ')
@@ -105,6 +113,7 @@ async function main() {
     const sql = `INSERT INTO official_deck_words (${columnsJoined}) VALUES (${placeholders})`
 
     const chunkSize = 200
+
     for (let i = 0; i < words.length; i += chunkSize) {
       const chunk = words.slice(i, i + chunkSize)
       const statements = chunk.map(row => ({
@@ -112,10 +121,12 @@ async function main() {
         args: columns.map(col => row[col]) as InArgs,
       }))
       await withRetry(() => remoteClient.batch(statements, 'write'))
+
       if ((i + chunkSize) % 2000 === 0 || i + chunkSize >= words.length) {
         logger.info(`   Progress: ${Math.min(i + chunkSize, words.length)} / ${words.length} words processed.`)
       }
     }
+
     logger.info(`✅ Migrated ${words.length} words.`)
   }
   else {

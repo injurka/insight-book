@@ -16,14 +16,17 @@ const databaseMocks: { mockRestore: () => void }[] = []
 
 beforeAll(async () => {
   const dialect = new SQLiteSyncDialect()
+
   for (const table of [schema.users, schema.books, schema.dictDecks, schema.userDictionary, schema.wordToDeck, schema.wordEncounters]) {
     const config = getTableConfig(table)
     const columns = config.columns.map((column) => {
       const defaultValue = column.default === undefined ? '' : ` DEFAULT ${dialect.sqlToQuery(sql`${column.default}`.inlineParams()).sql}`
+
       return `"${column.name}" ${column.getSQLType()}${column.primary ? ' PRIMARY KEY' : ''}${defaultValue}`
     })
     await database.run(sql.raw(`CREATE TABLE "${config.name}" (${columns.join(',')})`))
   }
+
   await database.insert(schema.users).values([
     { id: 991, username: 'pagination-test', passwordHash: 'test' },
     { id: 992, username: 'other-pagination-test', passwordHash: 'test' },
@@ -67,6 +70,7 @@ beforeAll(async () => {
 afterAll(() => {
   for (const databaseMock of databaseMocks)
     databaseMock.mockRestore()
+
   client.close()
 })
 
@@ -74,6 +78,7 @@ describe('Dictionary pagination', () => {
   it('returns bounded stable pages without duplicates or encounters, with complete counts', async () => {
     const ids: number[] = []
     let offset: number | null = 0
+
     while (offset !== null) {
       const page = await repository.getUserDictionaryPage(991, 'ru', { offset, limit: 50 })
       expect(page.items.length).toBeLessThanOrEqual(50)
@@ -85,6 +90,7 @@ describe('Dictionary pagination', () => {
       ids.push(...page.items.map(item => item.id))
       offset = page.nextOffset
     }
+
     expect(ids).toEqual(Array.from({ length: 115 }, (_, index) => 115 - index))
   })
 
@@ -120,53 +126,216 @@ describe('SRS review count', () => {
   })
 
   it('combines multiple decks and levels including uncategorized words', async () => {
-    expect(await repository.getReviewCount(991, 'all', 'ru', [991, 'none'], 'A1,HSK 1')).toEqual({ count: 114 })
-    expect(await repository.getReviewCount(991, 'all', 'ru', 991, 'A1,HSK 1')).toEqual({ count: 2 })
-    expect((await repository.getReviewQueue(991, 'all', 'ru', 'srs', 991, 'A1,HSK 1')).map(word => word.id)).toEqual([2, 4])
-    expect(await repository.getReviewCount(991, 'all', 'en', 'none', 'A1,none')).toEqual({ count: 1 })
+    expect(await repository.getReviewCount(
+      991,
+      'all',
+      'ru',
+      [991, 'none'],
+      'A1,HSK 1',
+    )).toEqual({ count: 114 })
+    expect(await repository.getReviewCount(
+      991,
+      'all',
+      'ru',
+      991,
+      'A1,HSK 1',
+    )).toEqual({ count: 2 })
+    expect((await repository.getReviewQueue(
+      991,
+      'all',
+      'ru',
+      'srs',
+      991,
+      'A1,HSK 1',
+    )).map(word => word.id)).toEqual([2, 4])
+    expect(await repository.getReviewCount(
+      991,
+      'all',
+      'en',
+      'none',
+      'A1,none',
+    )).toEqual({ count: 1 })
   })
 
   it('uses the same language, deck and difficulty filters as the queue', async () => {
     expect(await repository.getReviewCount(991, 'zh', 'ru')).toEqual({ count: 57 })
-    expect(await repository.getReviewCount(991, 'zh', 'ru', 991, 'HSK 1')).toEqual({ count: 2 })
-    expect(await repository.getReviewCount(991, 'en', 'ru', 991)).toEqual({ count: 0 })
-    expect(await repository.getReviewCount(991, 'all', 'ru', 'none')).toEqual({ count: 112 })
-    expect(await repository.getReviewCount(991, 'all', 'ru', [991, 'none'])).toEqual({ count: 114 })
+    expect(await repository.getReviewCount(
+      991,
+      'zh',
+      'ru',
+      991,
+      'HSK 1',
+    )).toEqual({ count: 2 })
+    expect(await repository.getReviewCount(
+      991,
+      'en',
+      'ru',
+      991,
+    )).toEqual({ count: 0 })
+    expect(await repository.getReviewCount(
+      991,
+      'all',
+      'ru',
+      'none',
+    )).toEqual({ count: 112 })
+    expect(await repository.getReviewCount(
+      991,
+      'all',
+      'ru',
+      [991, 'none'],
+    )).toEqual({ count: 114 })
   })
 })
 
 describe('Dictionary source language identity', () => {
   it('keeps homographs, imports and SRS independent across languages, users and target languages', async () => {
-    const english = await repository.upsertWordToDictionary({ userId: 993, word: 'gift', language: 'en', targetLanguage: 'ru', translation: 'подарок', deckIds: [993] })
-    const german = await repository.upsertWordToDictionary({ userId: 993, word: 'gift', language: 'de', targetLanguage: 'ru', translation: 'яд', deckIds: [] })
+    const english = await repository.upsertWordToDictionary({
+      userId: 993,
+      word: 'gift',
+      language: 'en',
+      targetLanguage: 'ru',
+      translation: 'подарок',
+      deckIds: [993],
+    })
+    const german = await repository.upsertWordToDictionary({
+      userId: 993,
+      word: 'gift',
+      language: 'de',
+      targetLanguage: 'ru',
+      translation: 'яд',
+      deckIds: [],
+    })
     await database.update(schema.userDictionary).set({ state: 2, reps: 7, stability: 12, due: '2030-01-01T00:00:00.000Z' }).where(sql`${schema.userDictionary.id} = ${english.id}`)
-    await repository.upsertClonedWords([{ userId: 993, word: 'gift', language: 'de', targetLanguage: 'ru', translation: 'немецкое значение' }])
-    await repository.upsertWordToDictionary({ userId: 993, word: 'gift', language: 'en', targetLanguage: 'ru', translation: 'дар', deckIds: [993, 994] })
+    await repository.upsertClonedWords([{
+      userId: 993,
+      word: 'gift',
+      language: 'de',
+      targetLanguage: 'ru',
+      translation: 'немецкое значение',
+    }])
+    await repository.upsertWordToDictionary({
+      userId: 993,
+      word: 'gift',
+      language: 'en',
+      targetLanguage: 'ru',
+      translation: 'дар',
+      deckIds: [993, 994],
+    })
     await repository.upsertClonedWords([
-      { userId: 993, word: 'gift', language: 'en', targetLanguage: 'zh', translation: '礼物' },
-      { userId: 992, word: 'gift', language: 'en', targetLanguage: 'ru', translation: 'другой пользователь' },
+      {
+        userId: 993,
+        word: 'gift',
+        language: 'en',
+        targetLanguage: 'zh',
+        translation: '礼物',
+      },
+      {
+        userId: 992,
+        word: 'gift',
+        language: 'en',
+        targetLanguage: 'ru',
+        translation: 'другой пользователь',
+      },
     ])
     expect(english.id).not.toBe(german.id)
-    expect(await repository.getWordFromUserDictionary('gift', 993, 'ru', 'en')).toMatchObject({ id: english.id, translation: 'дар', state: 2, reps: 7, stability: 12, due: '2030-01-01T00:00:00.000Z', deckIds: [993, 994] })
-    expect(await repository.getWordFromUserDictionary('gift', 993, 'ru', 'de')).toMatchObject({ id: german.id, translation: 'немецкое значение', reps: 0 })
-    expect(await repository.getWordFromUserDictionary('gift', 993, 'zh', 'en')).toMatchObject({ translation: '礼物' })
-    expect(await repository.getWordFromUserDictionary('gift', 992, 'ru', 'en')).toMatchObject({ translation: 'другой пользователь' })
+    expect(await repository.getWordFromUserDictionary(
+      'gift',
+      993,
+      'ru',
+      'en',
+    )).toMatchObject({
+      id: english.id,
+      translation: 'дар',
+      state: 2,
+      reps: 7,
+      stability: 12,
+      due: '2030-01-01T00:00:00.000Z',
+      deckIds: [993, 994],
+    })
+    expect(await repository.getWordFromUserDictionary(
+      'gift',
+      993,
+      'ru',
+      'de',
+    )).toMatchObject({ id: german.id, translation: 'немецкое значение', reps: 0 })
+    expect(await repository.getWordFromUserDictionary(
+      'gift',
+      993,
+      'zh',
+      'en',
+    )).toMatchObject({ translation: '礼物' })
+    expect(await repository.getWordFromUserDictionary(
+      'gift',
+      992,
+      'ru',
+      'en',
+    )).toMatchObject({ translation: 'другой пользователь' })
     await expect(repository.getWordFromUserDictionary('gift', 993, 'ru')).rejects.toMatchObject({ statusCode: 409 })
     await expect(repository.removeFromUserDictionary('gift', 993, 'ru')).rejects.toMatchObject({ statusCode: 409 })
-    expect(await repository.getWordFromUserDictionary('gift', 993, 'ru', 'en')).not.toBeNull()
-    expect(await repository.getWordFromUserDictionary('gift', 993, 'ru', 'de')).not.toBeNull()
+    expect(await repository.getWordFromUserDictionary(
+      'gift',
+      993,
+      'ru',
+      'en',
+    )).not.toBeNull()
+    expect(await repository.getWordFromUserDictionary(
+      'gift',
+      993,
+      'ru',
+      'de',
+    )).not.toBeNull()
     const service = new DictionaryService(repository)
-    expect(await service.lookupWords(['gift'], 'de', 'ru', 993)).toEqual({ gift: { translation: 'немецкое значение', transcription: '', isUserDict: true } })
-    expect(await service.lookupSingleWord('gift', 'en', 'ru', 993)).toMatchObject({ translation: 'дар' })
-    await repository.removeFromUserDictionary('gift', 993, 'ru', 'de')
-    expect(await repository.getWordFromUserDictionary('gift', 993, 'ru', 'de')).toBeNull()
+    expect(await service.lookupWords(
+      ['gift'],
+      'de',
+      'ru',
+      993,
+    )).toEqual({ gift: { translation: 'немецкое значение', transcription: '', isUserDict: true } })
+    expect(await service.lookupSingleWord(
+      'gift',
+      'en',
+      'ru',
+      993,
+    )).toMatchObject({ translation: 'дар' })
+    await repository.removeFromUserDictionary(
+      'gift',
+      993,
+      'ru',
+      'de',
+    )
+    expect(await repository.getWordFromUserDictionary(
+      'gift',
+      993,
+      'ru',
+      'de',
+    )).toBeNull()
     expect(await repository.getWordFromUserDictionary('gift', 993, 'ru')).toMatchObject({ id: english.id, reps: 7 })
-    expect(await repository.getWordFromUserDictionary('gift', 993, 'zh', 'en')).not.toBeNull()
-    expect(await repository.getWordFromUserDictionary('gift', 992, 'ru', 'en')).not.toBeNull()
+    expect(await repository.getWordFromUserDictionary(
+      'gift',
+      993,
+      'zh',
+      'en',
+    )).not.toBeNull()
+    expect(await repository.getWordFromUserDictionary(
+      'gift',
+      992,
+      'ru',
+      'en',
+    )).not.toBeNull()
     await repository.removeFromUserDictionary('gift', 993, 'ru')
     expect(await repository.getWordFromUserDictionary('gift', 993, 'ru')).toBeNull()
-    expect(await repository.getWordFromUserDictionary('gift', 993, 'zh', 'en')).not.toBeNull()
-    expect(await repository.getWordFromUserDictionary('gift', 992, 'ru', 'en')).not.toBeNull()
+    expect(await repository.getWordFromUserDictionary(
+      'gift',
+      993,
+      'zh',
+      'en',
+    )).not.toBeNull()
+    expect(await repository.getWordFromUserDictionary(
+      'gift',
+      992,
+      'ru',
+      'en',
+    )).not.toBeNull()
     await repository.removeFromUserDictionary('missing', 993, 'ru')
   })
 })

@@ -13,6 +13,7 @@ export class Singleflight {
    */
   async do<T>(key: string, fn: () => Promise<T>): Promise<T> {
     const existing = this.inFlight.get(key)
+
     if (existing) {
       return existing as Promise<T>
     }
@@ -27,6 +28,7 @@ export class Singleflight {
     })()
 
     this.inFlight.set(key, promise)
+
     return promise
   }
 

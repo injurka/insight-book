@@ -39,24 +39,20 @@ class S3Service {
   async uploadFile(key: string, buffer: Uint8Array | Buffer | ArrayBuffer, contentType?: string) {
     const bodyData = buffer instanceof ArrayBuffer ? new Uint8Array(buffer) : buffer
 
-    await this.client.send(
-      new PutObjectCommand({
-        Bucket: this.bucket,
-        Key: key,
-        Body: bodyData,
-        ContentType: contentType || 'application/octet-stream',
-      }),
-    )
+    await this.client.send(new PutObjectCommand({
+      Bucket: this.bucket,
+      Key: key,
+      Body: bodyData,
+      ContentType: contentType || 'application/octet-stream',
+    }))
   }
 
   async deleteFile(key: string) {
     try {
-      await this.client.send(
-        new DeleteObjectCommand({
-          Bucket: this.bucket,
-          Key: key,
-        }),
-      )
+      await this.client.send(new DeleteObjectCommand({
+        Bucket: this.bucket,
+        Key: key,
+      }))
     }
     catch (error) {
       logger.error(error, `S3 Delete Error for key ${key}:`)
@@ -66,6 +62,7 @@ class S3Service {
   async deleteFolder(prefix: string) {
     try {
       const keys = await this.listFilesInFolder(prefix)
+
       for (let index = 0; index < keys.length; index += S3_DELETE_CONCURRENCY) {
         const batch = keys.slice(index, index + S3_DELETE_CONCURRENCY)
         await Promise.all(batch.map(key => this.deleteFile(key)))
@@ -78,12 +75,10 @@ class S3Service {
 
   async getFile(key: string): Promise<{ buffer: Uint8Array, contentType: string } | null> {
     try {
-      const response = await this.client.send(
-        new GetObjectCommand({
-          Bucket: this.bucket,
-          Key: key,
-        }),
-      )
+      const response = await this.client.send(new GetObjectCommand({
+        Bucket: this.bucket,
+        Key: key,
+      }))
 
       if (!response.Body)
         return null
@@ -97,21 +92,22 @@ class S3Service {
     }
     catch (error: unknown) {
       const err = error as Error & { name?: string, $metadata?: { httpStatusCode?: number } }
+
       if (err.name === 'NoSuchKey' || err.name === 'NotFound' || err.$metadata?.httpStatusCode === 404) {
         return null
       }
+
       throw error
     }
   }
 
   async checkConnection(): Promise<void> {
     try {
-      await this.client.send(
-        new HeadBucketCommand({ Bucket: this.bucket }),
-      )
+      await this.client.send(new HeadBucketCommand({ Bucket: this.bucket }))
     }
     catch (error: unknown) {
       const err = error as Error & { name?: string, $metadata?: { httpStatusCode?: number } }
+
       if (err.name === 'NotFound' || err.$metadata?.httpStatusCode === 404) {
         logger.info(`⚠️ Bucket '${this.bucket}' not found. Attempting to create it...`)
 
@@ -132,17 +128,17 @@ class S3Service {
 
   async listDumpFolders(prefix: string): Promise<string[]> {
     try {
-      const response = await this.client.send(
-        new ListObjectsV2Command({
-          Bucket: this.bucket,
-          Prefix: prefix.endsWith('/') ? prefix : `${prefix}/`,
-          Delimiter: '/',
-        }),
-      )
+      const response = await this.client.send(new ListObjectsV2Command({
+        Bucket: this.bucket,
+        Prefix: prefix.endsWith('/') ? prefix : `${prefix}/`,
+        Delimiter: '/',
+      }))
+
       return response.CommonPrefixes?.map(p => p.Prefix as string).filter(Boolean) || []
     }
     catch (error) {
       logger.error(error, `S3 ListDumpFolders Error for prefix ${prefix}:`)
+
       return []
     }
   }
@@ -154,13 +150,11 @@ class S3Service {
       const allKeys: string[] = []
 
       while (isTruncated) {
-        const response = await this.client.send(
-          new ListObjectsV2Command({
-            Bucket: this.bucket,
-            Prefix: prefix,
-            ContinuationToken: continuationToken,
-          }),
-        )
+        const response = await this.client.send(new ListObjectsV2Command({
+          Bucket: this.bucket,
+          Prefix: prefix,
+          ContinuationToken: continuationToken,
+        }))
 
         const keys = response.Contents?.map(item => item.Key as string).filter(Boolean) || []
         allKeys.push(...keys)
@@ -173,6 +167,7 @@ class S3Service {
     }
     catch (error) {
       logger.error(error, `S3 ListFilesInFolder Error for prefix ${prefix}:`)
+
       return []
     }
   }
