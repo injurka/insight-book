@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { Book } from '~/01.shared/types/models'
+import { Icon } from '@iconify/vue'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useToast } from '~/01.shared/composables/use-toast'
@@ -126,20 +127,27 @@ function onConfirmDelete() {
     v-model:visible="visible"
     :title="t('library.editBook')"
     icon="mdi:file-document-edit-outline"
-    :max-width="500"
+    :max-width="640"
   >
-    <div class="edit-form-grid">
-      <div class="form-group">
-        <label>{{ t('library.cover') }}</label>
-        <div class="edit-cover-preview" @click="editCoverInput?.click()">
+    <div class="edit-book-form">
+      <div class="book-identity">
+        <button
+          type="button"
+          class="edit-cover-button"
+          :aria-label="t('bookInfo.changeCover')"
+          :disabled="isReadOnly"
+          @click="editCoverInput?.click()"
+        >
           <KitImage
             :src="editingBook.localCoverUrl || editingBook.coverUrl"
+            :alt="editingBook.title || t('library.cover')"
             fallback-icon="mdi:image-plus"
           />
-          <div class="overlay">
+          <span class="cover-action">
+            <Icon icon="mdi:camera-outline" />
             {{ t('bookInfo.changeCover') }}
-          </div>
-        </div>
+          </span>
+        </button>
         <input
           ref="editCoverInput"
           type="file"
@@ -147,41 +155,93 @@ function onConfirmDelete() {
           hidden
           @change="onEditCoverChange"
         >
+
+        <div class="identity-fields">
+          <div class="form-field">
+            <label for="edit-book-title">{{ t('library.bookTitle') }}</label>
+            <KitInput
+              id="edit-book-title"
+              v-model="editingBook.title"
+              :placeholder="t('library.bookTitle')"
+              :disabled="isReadOnly"
+            />
+          </div>
+
+          <div class="form-field">
+            <label for="edit-book-author">{{ t('library.author') }}</label>
+            <KitInput
+              id="edit-book-author"
+              v-model="editingBook.author"
+              :placeholder="t('library.authorName')"
+              :disabled="isReadOnly"
+            />
+          </div>
+        </div>
       </div>
 
-      <div class="form-group">
-        <label>{{ t('library.bookTitle') }}</label>
-        <KitInput v-model="editingBook.title" :placeholder="t('library.bookTitle')" />
-      </div>
-
-      <div class="form-group">
-        <label>{{ t('library.author') }}</label>
-        <KitInput v-model="editingBook.author" :placeholder="t('library.authorName')" />
-      </div>
-
-      <div class="form-group row-group">
-        <div class="form-group">
+      <div class="metadata-grid">
+        <div class="form-field">
           <label>{{ t('settings.appLanguage') }}</label>
           <KitSelect v-if="editingBook.language !== undefined" v-model="editingBook.language" :options="bookLanguageOptions" />
         </div>
-        <div class="form-group">
+        <div class="form-field">
           <label>{{ t('dictionary.status') }}</label>
           <KitSelect v-if="editingBook.status !== undefined" v-model="editingBook.status" :options="statusOptions" />
         </div>
+
+        <div v-if="editingBook.type === 'manga'" class="form-field">
+          <label>{{ t('library.textDirection') }}</label>
+          <KitSelect v-if="editingBook.textDirection !== undefined" v-model="textDirectionModel" :options="textDirectionOptions" />
+        </div>
+
+        <div class="form-field metadata-field--full">
+          <label for="edit-book-collection">{{ t('library.collection') }}</label>
+          <KitInput
+            id="edit-book-collection"
+            v-model="editingBook.collection"
+            :placeholder="t('library.collectionPlaceholder')"
+            :disabled="isReadOnly"
+          />
+        </div>
+
+        <div class="form-field">
+          <label for="edit-book-series">{{ t('library.series') }}</label>
+          <KitInput
+            id="edit-book-series"
+            v-model="editingBook.series"
+            :placeholder="t('library.seriesPlaceholder')"
+            :disabled="isReadOnly"
+          />
+        </div>
+        <div class="form-field">
+          <label for="edit-book-volume">{{ t('library.volumeNumber') }}</label>
+          <KitInput
+            id="edit-book-volume"
+            v-model="editingBook.seriesNumber"
+            type="number"
+            placeholder="1"
+            :disabled="isReadOnly"
+          />
+        </div>
       </div>
 
-      <div v-if="editingBook.type === 'manga'" class="form-group">
-        <label>{{ t('library.textDirection') }}</label>
-        <KitSelect v-if="editingBook.textDirection !== undefined" v-model="textDirectionModel" :options="textDirectionOptions" />
-      </div>
+      <div class="book-options-row">
+        <KitCheckbox
+          v-model="editingBook.isFavorite"
+          :label="t('library.addToFavorites')"
+          :disabled="isReadOnly"
+        />
 
-      <div class="form-group">
-        <label>{{ t('library.collection') }}</label>
-        <KitInput v-model="editingBook.collection" :placeholder="t('library.collectionPlaceholder')" />
-      </div>
-
-      <div class="checkbox-row">
-        <KitCheckbox v-model="editingBook.isFavorite" :label="t('library.addToFavorites')" :disabled="isReadOnly" />
+        <div class="form-field date-field">
+          <label for="edit-book-created-at">{{ t('library.dateAdded') }}</label>
+          <input
+            id="edit-book-created-at"
+            v-model="editingBook.createdAt"
+            type="datetime-local"
+            class="native-date-input"
+            :disabled="isReadOnly"
+          >
+        </div>
       </div>
 
       <PublishRequestBlock
@@ -192,22 +252,6 @@ function onConfirmDelete() {
         @request="onPublishRequest"
         @cancel="onPublishCancel"
       />
-
-      <div class="form-group row-group">
-        <div class="form-group flex-2">
-          <label>{{ t('library.series') }}</label>
-          <KitInput v-model="editingBook.series" :placeholder="t('library.seriesPlaceholder')" />
-        </div>
-        <div class="form-group">
-          <label>{{ t('library.volumeNumber') }}</label>
-          <KitInput v-model="editingBook.seriesNumber" type="number" placeholder="1" />
-        </div>
-      </div>
-
-      <div class="form-group">
-        <label>{{ t('library.dateAdded') }}</label>
-        <input v-model="editingBook.createdAt" type="datetime-local" class="native-date-input">
-      </div>
     </div>
     <template #footer>
       <KitBtn
@@ -239,100 +283,179 @@ function onConfirmDelete() {
 </template>
 
 <style lang="scss" scoped>
-.edit-form-grid {
+.edit-book-form {
   display: flex;
   flex-direction: column;
-  gap: 16px;
-
-  .form-group {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-
-    label {
-      font-size: 0.85rem;
-      color: var(--fg-secondary-color);
-      font-weight: 500;
-    }
-
-    :deep(.kit-checkbox) {
-      margin-top: 11px;
-    }
-  }
-  .row-group {
-    flex-direction: row;
-    align-items: flex-start;
-    gap: 12px;
-    .form-group {
-      flex: 1;
-
-      &.flex-2 {
-        flex: 2;
-      }
-    }
-  }
-  .native-date-input {
-    appearance: none;
-    box-sizing: border-box;
-    width: 100%;
-    font-family: inherit;
-    background-color: var(--bg-primary-color);
-    color: var(--fg-primary-color);
-    border: 1px solid var(--border-primary-color);
-    border-radius: 6px;
-    outline: none;
-    height: 38px;
-    padding: 0 12px;
-    font-size: 0.875rem;
-    &:focus {
-      border-color: var(--fg-accent-color);
-    }
-  }
-
-  .checkbox-row {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 8px;
-    margin-top: 4px;
-    min-height: 28px;
-
-    :deep(.kit-checkbox) {
-      margin-top: 0 !important;
-      margin-right: 24px;
-    }
-  }
+  gap: 18px;
+  padding: 2px 2px 4px;
 }
-.edit-cover-preview {
-  width: 120px;
-  height: 180px;
-  border-radius: 8px;
-  background-color: var(--bg-tertiary-color);
+
+.book-identity {
+  display: grid;
+  grid-template-columns: 88px minmax(0, 1fr);
+  align-items: center;
+  gap: 18px;
+}
+
+.identity-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+}
+
+.edit-cover-button {
   position: relative;
+  display: block;
+  width: 88px;
+  height: 132px;
+  padding: 0;
   overflow: hidden;
   cursor: pointer;
-  border: 1px dashed var(--border-primary-color);
+  border: 1px solid var(--border-primary-color);
+  border-radius: 10px;
+  background-color: var(--bg-tertiary-color);
+  color: var(--fg-primary-color);
+  transition:
+    border-color 0.18s ease,
+    transform 0.18s ease;
 
-  :deep(.fallback-icon) {
-    font-size: 3rem;
+  :deep(.kit-image) {
+    border-radius: inherit;
   }
 
-  .overlay {
-    position: absolute;
-    inset: 0;
-    background-color: rgba(0, 0, 0, 0.5);
-    color: #fff;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 0.9rem;
+  &:hover {
+    border-color: var(--fg-accent-color);
+    transform: translateY(-1px);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--fg-accent-color);
+    outline-offset: 3px;
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.65;
+  }
+}
+
+.cover-action {
+  position: absolute;
+  inset: auto 5px 5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-width: 0;
+  padding: 5px 4px;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.68);
+  color: #fff;
+  font-size: 0.65rem;
+  font-weight: 600;
+  line-height: 1.1;
+
+  :deep(svg) {
+    flex: 0 0 auto;
+    font-size: 0.85rem;
+  }
+}
+
+.metadata-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px 12px;
+}
+
+.form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+
+  label {
+    font-size: 0.85rem;
+    color: var(--fg-secondary-color);
     font-weight: 500;
-    opacity: 0;
-    transition: opacity 0.2s;
-    z-index: 10;
   }
-  &:hover .overlay {
-    opacity: 1;
+}
+
+.metadata-field--full {
+  grid-column: 1 / -1;
+}
+
+.book-options-row {
+  display: grid;
+  grid-template-columns: minmax(130px, 0.75fr) minmax(0, 1.25fr);
+  align-items: end;
+  gap: 12px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border-secondary-color);
+
+  :deep(.kit-checkbox) {
+    box-sizing: border-box;
+    min-height: 61px;
+    margin: 0;
+    padding: 8px 12px;
+    border: 1px solid var(--border-primary-color);
+    border-radius: 8px;
+    background-color: var(--bg-secondary-color);
+  }
+}
+
+.date-field {
+  min-width: 0;
+}
+
+.native-date-input {
+  appearance: none;
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  font-family: inherit;
+  background-color: var(--bg-primary-color);
+  color: var(--fg-primary-color);
+  border: 1px solid var(--border-primary-color);
+  border-radius: 6px;
+  outline: none;
+  height: 38px;
+  padding: 0 10px;
+  font-size: 0.875rem;
+
+  &:focus {
+    border-color: var(--fg-accent-color);
+  }
+
+  &:disabled {
+    opacity: 0.65;
+    cursor: not-allowed;
+  }
+}
+
+@include media-down(xs) {
+  .book-identity {
+    grid-template-columns: 76px minmax(0, 1fr);
+    gap: 12px;
+  }
+
+  .edit-cover-button {
+    width: 76px;
+    height: 114px;
+  }
+
+  .identity-fields {
+    gap: 10px;
+  }
+
+  .book-options-row {
+    grid-template-columns: minmax(0, 0.75fr) minmax(0, 1.25fr);
+    gap: 8px;
+  }
+
+  .cover-action {
+    inset-inline: 3px;
+    font-size: 0.58rem;
   }
 }
 .mr-auto {

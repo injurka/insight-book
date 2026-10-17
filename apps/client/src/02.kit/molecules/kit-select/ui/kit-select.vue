@@ -16,6 +16,7 @@ export interface KitSelectOption<T = Record<string, unknown>> {
 
 interface Props {
   options: KitSelectOption[]
+  ariaLabel?: string
   size?: 'xs' | 'sm' | 'md' | 'lg'
   color?: 'primary' | 'secondary' | 'accent' | 'error' | 'success' | 'warning' | 'info' | 'default'
   icon?: string
@@ -150,7 +151,7 @@ onUnmounted(() => {
       tabindex="0"
       :aria-expanded="isOpen"
       aria-haspopup="listbox"
-      :aria-label="selectedLabel || 'Select'"
+      :aria-label="ariaLabel || selectedLabel || 'Select'"
       :class="[
         `kit-select-trigger--size-${size}`,
         color && color !== 'default' ? `kit-select-trigger--color-${color}` : '',

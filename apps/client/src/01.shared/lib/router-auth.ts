@@ -2,6 +2,7 @@ import { AppRouteNames } from '~/01.shared/constants/routes'
 
 const protectedRouteNames = new Set<AppRouteNames>([
   AppRouteNames.Dictionary,
+  AppRouteNames.BookDeck,
   AppRouteNames.Reader,
   AppRouteNames.Settings,
   AppRouteNames.Limits,

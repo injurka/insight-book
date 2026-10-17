@@ -1,4 +1,5 @@
 import type { BookDeckDraft, BookDeckWord } from '~/01.shared/types/schemas/book-deck.schema'
+import { isWordContentComplete } from '@injurka/insight-book-language-utils'
 import { useQueryCache } from '@pinia/colada'
 import { defineStore } from 'pinia'
 import { computed, reactive, ref } from 'vue'
@@ -29,7 +30,7 @@ export const useBookDeckStore = defineStore('book-deck', () => {
   let request = 0
   const scope = () => JSON.stringify([auth.user?.id, auth.isSingleMode, settings.appLanguage])
   const selectedWords = computed(() => draft.value?.words.filter(w => selected.value.has(w.word)) || [])
-  const pending = computed(() => selectedWords.value.filter(w => !w.content))
+  const pending = computed(() => selectedWords.value.filter(w => !isWordContentComplete(w.content)))
 
   async function open(bookId: number, restart = false) {
     if (busy.value)
@@ -50,7 +51,7 @@ export const useBookDeckStore = defineStore('book-deck', () => {
         selected.value = new Set(result.words.filter(w => !w.properName).map(w => w.word))
 
       draft.value = result
-      state.errors = {}
+      Object.assign(state, { errors: {}, done: 0, total: 0, current: '' })
     }
     catch (error) {
       if (session === scope())
@@ -67,6 +68,22 @@ export const useBookDeckStore = defineStore('book-deck', () => {
     else selected.value.delete(word)
   }
 
+  function setSelected(words: string[], checked: boolean) {
+    const next = new Set(selected.value)
+
+    words.forEach((word) => {
+      if (checked)
+        next.add(word)
+      else next.delete(word)
+    })
+
+    selected.value = next
+  }
+
+  function keepSelected(words: string[]) {
+    selected.value = new Set(words)
+  }
+
   function isCurrent(id: string, session: string) {
     return session === scope() && draft.value?.id === id
   }
@@ -76,10 +93,13 @@ export const useBookDeckStore = defineStore('book-deck', () => {
     delete state.errors[word.word]
 
     try {
-      const result = await repos.dictionary.generateBookDeckWord(id, word.word)
+      const result = await repos.dictionary.generateBookDeckWord(id, word.word, isWordContentComplete(word.content))
 
       if (!isCurrent(id, session))
         return false
+
+      if (!isWordContentComplete(result.content))
+        throw new Error('Incomplete word metadata')
 
       Object.assign(word, result)
       state.done++
@@ -103,7 +123,7 @@ export const useBookDeckStore = defineStore('book-deck', () => {
 
     const id = draft.value.id
     const session = scope()
-    const queue = words || selectedWords.value.filter(w => !w.content)
+    const queue = words || selectedWords.value.filter(w => !isWordContentComplete(w.content))
     Object.assign(state, {
       running: true,
       pause: false,
@@ -172,6 +192,8 @@ export const useBookDeckStore = defineStore('book-deck', () => {
     state,
     open,
     toggle,
+    setSelected,
+    keepSelected,
     generate,
     save,
   }

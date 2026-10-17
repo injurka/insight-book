@@ -195,12 +195,13 @@ function cancelRequest() {
     'icon details'
     '. action';
   align-items: start;
-  gap: 12px;
+  gap: 8px 12px;
 }
 
 .publish-request-block--public .publish-content {
   grid-template-columns: 40px minmax(0, 1fr) 32px;
   grid-template-areas: 'icon details action';
+  align-items: center;
 }
 
 .publish-icon-box {
@@ -306,12 +307,7 @@ function cancelRequest() {
   min-width: 0;
   display: flex;
   align-items: center;
-
-  @include media-down(sm) {
-    .kit-btn {
-      width: 100%;
-    }
-  }
+  justify-content: flex-start;
 }
 
 .publish-lock-badge {

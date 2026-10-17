@@ -22,7 +22,7 @@ import { CatalogDeckSchema, CatalogWordSchema, DictDeckSchema, DictionaryPageSch
 
 export interface IDictionaryRepository {
   openBookDeck: (bookId: number, restart?: boolean) => Promise<BookDeckDraft>
-  generateBookDeckWord: (id: string, word: string) => Promise<BookDeckWord>
+  generateBookDeckWord: (id: string, word: string, regenerate?: boolean) => Promise<BookDeckWord>
   saveBookDeck: (id: string, name: string, words: string[], updateExisting: boolean) => Promise<{ deckId: number }>
 
   page: (options: DictionaryPageOptions) => Promise<DictionaryPage>
@@ -90,8 +90,8 @@ export class DefaultDictionaryRepository implements IDictionaryRepository {
     return applyAcl(BookDeckDraftSchema, await api.dictionary.openBookDeck(bookId, restart), 'dictionary.openBookDeck')
   }
 
-  async generateBookDeckWord(id: string, word: string) {
-    return applyAcl(BookDeckWordSchema, await api.dictionary.generateBookDeckWord(id, word), 'dictionary.generateBookDeckWord')
+  async generateBookDeckWord(id: string, word: string, regenerate = false) {
+    return applyAcl(BookDeckWordSchema, await api.dictionary.generateBookDeckWord(id, word, regenerate), 'dictionary.generateBookDeckWord')
   }
 
   async saveBookDeck(

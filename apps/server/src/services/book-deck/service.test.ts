@@ -36,12 +36,12 @@ beforeAll(async () => {
   await database.insert(schema.bookPages).values([{ bookId: 1, pageNum: 1, content: '<p>The cats watch birds. The cat watched a bird.</p><script>secret</script>' }, { bookId: 1, pageNum: 2, content: '<p>A cat watches birds.</p>' }])
   await database.insert(schema.dictDecks).values({ id: 20, userId: 1, name: 'Old' })
   await database.insert(schema.userDictionary).values([
-    { id: 30, userId: 1, word: 'cat', language: 'en', translation: 'My cat', notes: 'private notes', reps: 7, stability: 12, state: 2, due: '2030-01-01' },
+    { id: 30, userId: 1, word: 'cat', language: 'en', translation: 'My cat', transcription: 'cat', difficulty: 'A1', tags: 'nature', grammarNote: 'noun', vocabularyNote: 'animal', notes: 'private notes', reps: 7, stability: 12, state: 2, due: '2030-01-01' },
     { id: 31, userId: 1, word: 'bird', language: 'de', translation: 'Other language' },
     { id: 32, userId: 2, word: 'watch', language: 'en', translation: 'Other user' },
   ])
   await database.insert(schema.wordToDeck).values({ wordId: 30, deckId: 20 })
-  await database.insert(schema.llmCache).values({ sentenceHash: hashSentence('bird', 'en', 'ru'), sentence: 'bird', language: 'en', targetLanguage: 'ru', analysis: compressData(JSON.stringify({ translation: 'птица', transcription: 'bird', grammarRules: [], vocabulary: [] })) })
+  await database.insert(schema.llmCache).values({ sentenceHash: hashSentence('bird', 'en', 'ru'), sentence: 'bird', language: 'en', targetLanguage: 'ru', analysis: compressData(JSON.stringify({ translation: 'птица', transcription: 'bird', difficulty: 'A1', tags: 'nature', grammarNote: 'noun', vocabularyNote: 'animal', grammarRules: [], vocabulary: [] })) })
   mocks.push(
     spyOn(db, 'select').mockImplementation(database.select.bind(database)),
     spyOn(db, 'insert').mockImplementation(database.insert.bind(database)),
@@ -98,21 +98,22 @@ describe('Book deck lifecycle', () => {
     expect(await database.select().from(schema.wordEncounters)).not.toHaveLength(0)
     expect(await database.select().from(schema.dictDecks)).toHaveLength(2)
   })
-  it('persists generated content and populates reusable AI cache', async () => {
+  it('persists personal generated content without publishing to shared caches', async () => {
     const next = await bookDeckService.open(1, 1, 'ru', true)
     const mock = spyOn(analysis, 'generateWordAutoFill').mockResolvedValue({ translation: 'наблюдать', transcription: 'watch', difficulty: 'A1', tags: 'verb', grammarNote: 'verb', vocabularyNote: 'usage' })
     try {
       const result = await bookDeckService.generate(next.id, 'watch', 1, 'ru', { url: 'test' })
       expect(result.source).toBe('generated')
       expect((await bookDeckService.open(1, 1, 'ru')).words.find(w => w.word === 'watch')?.content?.translation).toBe('наблюдать')
-      expect(await database.query.llmCache.findFirst({ where: eq(schema.llmCache.sentenceHash, hashSentence('watch', 'en', 'ru')) })).toBeDefined()
+      expect(await database.query.llmCache.findFirst({ where: eq(schema.llmCache.sentenceHash, hashSentence('watch', 'en', 'ru')) })).toBeUndefined()
+      expect(await database.query.bookLlmCache.findFirst({ where: eq(schema.bookLlmCache.sentenceHash, hashSentence('watch', 'en', 'ru')) })).toBeUndefined()
       await bookDeckService.save(next.id, 1, 'ru', 'Generated', ['watch'], false)
     }
     finally { mock.mockRestore() }
   })
   it('only replaces regenerated content with permission and keeps FSRS and notes', async () => {
     const next = await bookDeckService.open(1, 1, 'ru', true)
-    const words = next.words.map(w => w.word === 'cat' ? { ...w, source: 'generated', content: { translation: 'кошка', transcription: '', difficulty: '', tags: '', grammarNote: '', vocabularyNote: '' } } : w)
+    const words = next.words.map(w => w.word === 'cat' ? { ...w, source: 'generated', content: { translation: 'кошка', transcription: 'cat', difficulty: 'A1', tags: 'nature', grammarNote: 'noun', vocabularyNote: 'animal' } } : w)
     await database.update(schema.bookDeckDrafts).set({ words: JSON.stringify(words) }).where(eq(schema.bookDeckDrafts.id, next.id))
     await bookDeckService.save(next.id, 1, 'ru', 'Unchanged', ['cat'], false)
     expect(await database.query.userDictionary.findFirst({ where: eq(schema.userDictionary.id, 30) })).toMatchObject({ translation: 'My cat', reps: 7 })
@@ -121,5 +122,93 @@ describe('Book deck lifecycle', () => {
     await bookDeckService.save(fresh.id, 1, 'ru', 'Updated', ['cat'], true)
     expect(await database.query.userDictionary.findFirst({ where: eq(schema.userDictionary.id, 30) })).toMatchObject({ translation: 'кошка', reps: 7, notes: 'private notes' })
     expect(await database.select().from(schema.dailyActivity)).toMatchObject([{ wordsAdded: 2 }])
+  })
+})
+
+async function personalDraft(userId: number, word: string, content: import('../../types').WordAutoFillResponse | null = null) {
+  const [book] = await database.insert(schema.books).values({ userId, title: 'Private', filePath: '/test', language: 'en' }).returning()
+  const entry: import('./types').BookDeckWord = { word, count: 1, forms: [word], properName: false, contexts: [{ sentence: `Private context for ${userId}`, page: 1 }], content, source: content ? 'cache' : 'missing' }
+  const id = crypto.randomUUID()
+  await database.insert(schema.bookDeckDrafts).values({ id, userId, bookId: book.id, name: book.title, language: 'en', targetLanguage: 'ru', words: JSON.stringify([entry]) })
+  return id
+}
+
+const sharedContent = { translation: 'Общий перевод', transcription: 'shared', difficulty: 'A1', tags: '', grammarNote: '', vocabularyNote: '' }
+
+describe('Personal book deck generation isolation', () => {
+  it('completes a stale draft from shared cache without AI or overwriting a personal translation', async () => {
+    const word = 'cached-completion'
+    const sentenceHash = hashSentence(word, 'en', 'ru')
+    const analysisData = compressData(JSON.stringify(sharedContent))
+    await database.insert(schema.llmCache).values({ sentenceHash, sentence: word, language: 'en', targetLanguage: 'ru', analysis: analysisData })
+    const id = await personalDraft(1, word, { ...sharedContent, translation: 'Мой перевод', difficulty: '' })
+    const mock = spyOn(analysis, 'generateWordAutoFill').mockRejectedValue(new Error('AI must not run'))
+    try {
+      const result = await bookDeckService.generate(id, word, 1, 'ru', { url: '' })
+      expect(result.content).toMatchObject({ translation: 'Мой перевод', difficulty: 'A1' })
+      expect(result.source).toBe('cache')
+      expect(mock).not.toHaveBeenCalled()
+      expect((await database.query.llmCache.findFirst({ where: eq(schema.llmCache.sentenceHash, sentenceHash) }))?.analysis).toEqual(analysisData)
+    }
+    finally { mock.mockRestore() }
+  })
+
+  it('keeps partial shared cache unchanged while completing only personal data', async () => {
+    const word = 'partial-completion'
+    const sentenceHash = hashSentence(word, 'en', 'ru')
+    const analysisData = compressData(JSON.stringify({ ...sharedContent, difficulty: '' }))
+    await database.insert(schema.llmCache).values({ sentenceHash, sentence: word, language: 'en', targetLanguage: 'ru', analysis: analysisData })
+    const id = await personalDraft(1, word, { ...sharedContent, difficulty: '' })
+    const mock = spyOn(analysis, 'generateWordAutoFill').mockResolvedValue({ ...sharedContent, translation: 'Новый перевод', difficulty: 'B2' })
+    try {
+      const result = await bookDeckService.generate(id, word, 1, 'ru', { url: 'test' })
+      expect(result.content).toMatchObject({ translation: 'Общий перевод', difficulty: 'B2' })
+      expect(result.source).toBe('generated')
+      expect((await database.query.llmCache.findFirst({ where: eq(schema.llmCache.sentenceHash, sentenceHash) }))?.analysis).toEqual(analysisData)
+      expect(await database.query.bookLlmCache.findFirst({ where: eq(schema.bookLlmCache.sentenceHash, sentenceHash) })).toBeUndefined()
+    }
+    finally { mock.mockRestore() }
+  })
+
+  it('regenerates explicitly and saves only the requesting user dictionary', async () => {
+    const word = 'personal-regeneration'
+    const sentenceHash = hashSentence(word, 'en', 'ru')
+    const analysisData = compressData(JSON.stringify(sharedContent))
+    await database.insert(schema.llmCache).values({ sentenceHash, sentence: word, language: 'en', targetLanguage: 'ru', analysis: analysisData })
+    await database.insert(schema.userDictionary).values({ userId: 2, word, language: 'en', translation: 'Other user', difficulty: 'C1', reps: 9 })
+    const id = await personalDraft(1, word, sharedContent)
+    const mock = spyOn(analysis, 'generateWordAutoFill').mockResolvedValue({ ...sharedContent, translation: 'Личный вариант', difficulty: 'B1' })
+    try {
+      const result = await bookDeckService.generate(id, word, 1, 'ru', { url: 'test' }, true)
+      expect(result.content?.translation).toBe('Личный вариант')
+      expect(result.source).toBe('generated')
+      expect((await database.query.llmCache.findFirst({ where: eq(schema.llmCache.sentenceHash, sentenceHash) }))?.analysis).toEqual(analysisData)
+      await bookDeckService.save(id, 1, 'ru', 'Private deck', [word], false)
+      expect(await database.query.userDictionary.findFirst({ where: and(eq(schema.userDictionary.userId, 1), eq(schema.userDictionary.word, word)) })).toMatchObject({ translation: 'Личный вариант' })
+      expect(await database.query.userDictionary.findFirst({ where: and(eq(schema.userDictionary.userId, 2), eq(schema.userDictionary.word, word)) })).toMatchObject({ translation: 'Other user', reps: 9 })
+    }
+    finally { mock.mockRestore() }
+  })
+
+  it('does not call AI again on a completed draft unless regeneration is explicit', async () => {
+    const id = await personalDraft(1, 'completed', sharedContent)
+    const mock = spyOn(analysis, 'generateWordAutoFill').mockRejectedValue(new Error('AI must not run'))
+    try {
+      expect((await bookDeckService.generate(id, 'completed', 1, 'ru', { url: '' })).content).toEqual(sharedContent)
+      expect(mock).not.toHaveBeenCalled()
+    }
+    finally { mock.mockRestore() }
+  })
+
+  it('rejects incomplete generation without changing the draft or shared cache', async () => {
+    const id = await personalDraft(1, 'invalid-generation')
+    const mock = spyOn(analysis, 'generateWordAutoFill').mockResolvedValue({ ...sharedContent, difficulty: '' })
+    try {
+      await expect(bookDeckService.generate(id, 'invalid-generation', 1, 'ru', { url: 'test' })).rejects.toMatchObject({ statusCode: 502 })
+      const row = await database.query.bookDeckDrafts.findFirst({ where: eq(schema.bookDeckDrafts.id, id) })
+      expect(JSON.parse(row!.words)[0].content).toBeNull()
+      expect(await database.query.llmCache.findFirst({ where: eq(schema.llmCache.sentenceHash, hashSentence('invalid-generation', 'en', 'ru')) })).toBeUndefined()
+    }
+    finally { mock.mockRestore() }
   })
 })

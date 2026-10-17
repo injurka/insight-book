@@ -59,9 +59,9 @@ export const dictionaryController = new Elysia({ prefix: '/api/dictionary' })
     body: t.Object({ bookId: t.Number({ minimum: 1, multipleOf: 1 }), restart: t.Optional(t.Boolean()) }),
   })
   .post('/book-deck/:id/generate', ({ userId, params, body, query, request }) =>
-    bookDeckService.generate(params.id, body.word, userId, normalizeLanguageCode(query.targetLang || 'ru'), extractLlmConfig(request)), {
+    bookDeckService.generate(params.id, body.word, userId, normalizeLanguageCode(query.targetLang || 'ru'), extractLlmConfig(request), body.regenerate ?? false), {
     query: t.Object({ targetLang: t.Optional(t.String()) }),
-    body: t.Object({ word: t.String({ minLength: 1, maxLength: 100 }) }),
+    body: t.Object({ word: t.String({ minLength: 1, maxLength: 100 }), regenerate: t.Optional(t.Boolean()) }),
   })
   .post('/book-deck/:id/save', ({ userId, params, body, query }) =>
     bookDeckService.save(params.id, userId, normalizeLanguageCode(query.targetLang || 'ru'), body.name, body.words, body.updateExisting ?? false), {

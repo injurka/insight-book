@@ -1,22 +1,16 @@
-import type { LlmAnalysis, LlmConfig, WordAutoFillResponse } from '../../types'
+import type { LlmConfig } from '../../types'
 import type { BookDeckDraft, BookDeckWord } from './types'
+import { isWordContentComplete, missingWordContentFields } from '@injurka/insight-book-language-utils'
 import { and, eq, inArray, sql } from 'drizzle-orm'
 import { db } from '../../db'
 import * as schema from '../../db/schema'
 import { bookRepository } from '../../repositories/book.repository'
-import { compressData, decompressData } from '../../utils/compression'
 import { AppError } from '../../utils/errors'
 import { hashSentence, normalizeLanguageCode } from '../../utils/helpers'
 import { singleflight } from '../../utils/singleflight'
 import { runWorkerTask } from '../../workers/worker-client'
 import { generateWordAutoFill } from '../word-analysis.service'
-
-function contentOf(value: Partial<WordAutoFillResponse>): WordAutoFillResponse | null {
-  if (typeof value.translation !== 'string' || !value.translation.trim())
-    return null
-  const text = (key: keyof WordAutoFillResponse) => typeof value[key] === 'string' ? value[key] : ''
-  return { translation: value.translation, transcription: text('transcription'), difficulty: text('difficulty'), tags: text('tags'), grammarNote: text('grammarNote'), vocabularyNote: text('vocabularyNote') }
-}
+import { cachedContentOf, completeContent, contentOf } from './content'
 
 function toDraft(row: typeof schema.bookDeckDrafts.$inferSelect): BookDeckDraft {
   return { ...row, words: JSON.parse(row.words) as BookDeckWord[] }
@@ -51,17 +45,15 @@ async function resolveContents(words: BookDeckWord[], userId: number, language: 
         word.source = 'dictionary'
         word.content = contentOf({ translation: entry.translation || '', transcription: entry.transcription || '', difficulty: entry.difficulty || '', tags: entry.tags || '', grammarNote: entry.grammarNote || '', vocabularyNote: entry.vocabularyNote || '' })
       }
-      if (!word.content) {
+      if (!isWordContentComplete(word.content)) {
         const cached = cache.find(c => c.sentenceHash === hashSentence(word.word, language, targetLanguage))
-        try {
-          if (cached) {
-            const parsed: LlmAnalysis = JSON.parse(decompressData(cached.analysis))
-            word.content = contentOf({ ...parsed, grammarNote: contentOf(parsed)?.grammarNote || (Array.isArray(parsed.grammarRules) ? parsed.grammarRules.filter(r => typeof r.pattern === 'string' && typeof r.explanation === 'string').map(r => `${r.pattern} — ${r.explanation}`).join('\n') : ''), vocabularyNote: contentOf(parsed)?.vocabularyNote || (Array.isArray(parsed.vocabulary) ? parsed.vocabulary.filter(v => typeof v.word === 'string' && typeof v.meaning === 'string').map(v => `${v.word} — ${v.meaning}`).join('\n') : '') })
-            if (word.content && !entry)
-              word.source = 'cache'
-          }
+        const cachedContent = cached ? cachedContentOf(cached.analysis) : null
+        const completed = completeContent(word.content, cachedContent)
+        if (completed && missingWordContentFields(completed).length < missingWordContentFields(word.content).length) {
+          word.content = completed
+          if (!entry)
+            word.source = 'cache'
         }
-        catch { /* Corrupt cache remains a generation candidate. */ }
       }
     }
   }
@@ -88,27 +80,41 @@ export const bookDeckService = {
     })
   },
 
-  async generate(id: string, word: string, userId: number, targetLanguage: string, config: LlmConfig) {
-    return singleflight.do(`book-deck-generate:${id}:${word}:${userId}`, async () => {
+  async generate(id: string, word: string, userId: number, targetLanguage: string, config: LlmConfig, regenerate = false) {
+    return singleflight.do(`book-deck-generate:${id}:${word}:${userId}:${regenerate}`, async () => {
       const draft = await ownedDraft(id, userId, targetLanguage)
       if (draft.deckId)
         throw new AppError(409, 'Draft already saved')
-      if (!draft.words.some(w => w.word === word))
+      const original = draft.words.find(w => w.word === word)
+      if (!original)
         throw new AppError(400, 'Word does not belong to this draft')
-      const content = contentOf(await generateWordAutoFill(userId, word, draft.language, targetLanguage, config))
-      if (!content)
-        throw new AppError(502, 'AI returned no translation')
+      let content = original.content
+      let source = original.source
+      if (!regenerate && !isWordContentComplete(content)) {
+        const [cached] = await db.select().from(schema.llmCache).where(and(
+          eq(schema.llmCache.sentenceHash, hashSentence(word, draft.language, targetLanguage)),
+          eq(schema.llmCache.language, draft.language),
+          eq(schema.llmCache.targetLanguage, targetLanguage),
+        )).limit(1)
+        content = completeContent(content, cached ? cachedContentOf(cached.analysis) : null)
+        if (isWordContentComplete(content) && !original.dictionaryId)
+          source = 'cache'
+      }
+      if (regenerate || !isWordContentComplete(content)) {
+        const generated = contentOf(await generateWordAutoFill(userId, word, draft.language, targetLanguage, config))
+        content = regenerate ? generated : completeContent(content, generated)
+        source = 'generated'
+      }
+      if (!content || !isWordContentComplete(content))
+        throw new AppError(502, 'AI returned incomplete word metadata; translation and difficulty are required')
       return db.transaction(async (tx) => {
         const row = await tx.query.bookDeckDrafts.findFirst({ where: eq(schema.bookDeckDrafts.id, id) })
         if (!row || row.deckId)
           throw new AppError(409, 'Draft already saved or replaced')
         const words: BookDeckWord[] = JSON.parse(row.words)
         const entry = words.find(w => w.word === word)!
-        const hash = hashSentence(word, draft.language, targetLanguage)
-        await tx.insert(schema.llmCache).values({ sentenceHash: hash, language: draft.language, targetLanguage, sentence: word, analysis: compressData(JSON.stringify({ ...content, grammarRules: [], vocabulary: [] })) }).onConflictDoUpdate({ target: schema.llmCache.sentenceHash, set: { analysis: compressData(JSON.stringify({ ...content, grammarRules: [], vocabulary: [] })) } })
-        await tx.insert(schema.bookLlmCache).values({ bookId: draft.bookId, sentenceHash: hash, type: 'word' }).onConflictDoNothing()
         entry.content = content
-        entry.source = 'generated'
+        entry.source = source
         await tx.update(schema.bookDeckDrafts).set({ words: JSON.stringify(words), updatedAt: sql`(datetime('now'))` }).where(eq(schema.bookDeckDrafts.id, id))
         return entry
       })
@@ -128,6 +134,8 @@ export const bookDeckService = {
       const words = allWords.filter(w => selected.has(w.word))
       if (!name.trim() || !words.length || words.length !== selected.size)
         throw new AppError(400, 'Choose words and a deck name')
+      if (words.some(w => !isWordContentComplete(w.content)))
+        throw new AppError(400, 'All selected words need complete metadata, including difficulty')
       const [deck] = await tx.insert(schema.dictDecks).values({ userId, name: name.trim(), language: row.language, targetLanguage }).returning()
       let addedWords = 0
       for (let offset = 0; offset < words.length; offset += 50) {
@@ -135,8 +143,6 @@ export const bookDeckService = {
         const existing = await tx.select().from(schema.userDictionary).where(and(eq(schema.userDictionary.userId, userId), eq(schema.userDictionary.language, row.language), eq(schema.userDictionary.targetLanguage, targetLanguage), inArray(schema.userDictionary.word, batch.map(w => w.word))))
         const byWord = new Map(existing.map(w => [w.word, w]))
         const missing = batch.filter(w => !byWord.has(w.word))
-        if (batch.some(w => !w.content && !byWord.get(w.word)?.translation?.trim()))
-          throw new AppError(400, 'All new words need a translation')
         if (missing.length) {
           const added = await tx.insert(schema.userDictionary).values(missing.map(w => ({ userId, word: w.word, language: row.language, targetLanguage, ...w.content! }))).returning()
           addedWords += added.length
@@ -148,14 +154,15 @@ export const bookDeckService = {
           if (updateExisting && word.source === 'generated') {
             await tx.update(schema.userDictionary).set({ ...content, updatedAt: sql`(datetime('now'))` }).where(eq(schema.userDictionary.id, old.id))
           }
-          else if (!old.translation?.trim()) {
+          else if (!isWordContentComplete(old)) {
+            const missingFields = new Set(missingWordContentFields(old))
             await tx.update(schema.userDictionary).set({
-              translation: content.translation,
-              transcription: old.transcription || content.transcription,
-              grammarNote: old.grammarNote || content.grammarNote,
-              vocabularyNote: old.vocabularyNote || content.vocabularyNote,
-              difficulty: old.difficulty || content.difficulty,
-              tags: old.tags || content.tags,
+              translation: missingFields.has('translation') ? content.translation : old.translation,
+              transcription: old.transcription?.trim() ? old.transcription : content.transcription,
+              grammarNote: old.grammarNote?.trim() ? old.grammarNote : content.grammarNote,
+              vocabularyNote: old.vocabularyNote?.trim() ? old.vocabularyNote : content.vocabularyNote,
+              difficulty: missingFields.has('difficulty') ? content.difficulty : old.difficulty,
+              tags: old.tags?.trim() ? old.tags : content.tags,
             }).where(eq(schema.userDictionary.id, old.id))
           }
         }

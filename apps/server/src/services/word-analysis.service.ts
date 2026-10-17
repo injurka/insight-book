@@ -272,7 +272,8 @@ async function fetchWordAutoFill(userId: number, word: string, language: string,
 }
 
 export async function generateWordAutoFill(userId: number, word: string, language: string, targetLang: string, config: LlmConfig): Promise<WordAutoFillResponse> {
-  const flightKey = `word_autofill:${(language || 'en').toLowerCase()}:${(targetLang || 'ru').toLowerCase()}:${word.trim().toLowerCase()}`
+  const configHash = new Bun.CryptoHasher('sha256').update(JSON.stringify(config)).digest('hex')
+  const flightKey = `word_autofill:${userId}:${configHash}:${(language || 'en').toLowerCase()}:${(targetLang || 'ru').toLowerCase()}:${word.trim().toLowerCase()}`
 
   return singleflight.do(flightKey, () => fetchWordAutoFill(userId, word, language, targetLang, config))
 }

@@ -12,6 +12,7 @@ export const BookDeckWordSchema = z.object({
   word: z.string(),
   count: z.number(),
   forms: z.array(z.string()),
+  pos: z.string().optional(),
   properName: z.boolean(),
   contexts: z.array(z.object({ sentence: z.string(), page: z.number() })),
   source: z.enum(['dictionary', 'cache', 'missing', 'generated']),

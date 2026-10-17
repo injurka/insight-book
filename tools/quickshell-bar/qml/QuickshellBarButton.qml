@@ -1,6 +1,5 @@
 import QtQuick
 import Quickshell
-import QtQuick.Layouts
 import qs.modules.common
 import qs.modules.common.widgets
 
@@ -9,8 +8,8 @@ RippleButton {
 
     property bool opened: false
 
-    implicitWidth: Config.options.bar.vertical ? 36 : label.implicitWidth + 20
-    implicitHeight: Config.options.bar.vertical ? 54 : 32
+    implicitWidth: Config.options.bar.vertical ? 36 : 40
+    implicitHeight: Config.options.bar.vertical ? 36 : 32
     buttonRadius: Appearance.rounding.full
     toggled: opened
     colBackgroundToggled: Appearance.colors.colPrimaryContainer
@@ -24,28 +23,11 @@ RippleButton {
 
     }
 
-    GridLayout {
-        id: label
-        columns: Config.options.bar.vertical ? 1 : 2
-
+    MaterialSymbol {
         anchors.centerIn: parent
-        rowSpacing: 2
-        columnSpacing: 5
-
-        MaterialSymbol {
-            Layout.alignment: Qt.AlignHCenter
-            text: "style"
-            iconSize: 20
-            color: root.opened ? Appearance.colors.colOnPrimaryContainer : SrsService.stage === "training" && SrsService.count > 0 ? Appearance.colors.colPrimary : Appearance.colors.colOnLayer0
-        }
-
-        SrsText {
-            Layout.alignment: Qt.AlignHCenter
-            text: !SrsService.account.authenticated ? "Вход" : SrsService.error ? "!" : SrsService.stage !== "training" ? "SRS" : SrsService.ready ? String(SrsService.count) : "…"
-            font.pixelSize: Appearance.font.pixelSize.small
-            color: root.opened ? Appearance.colors.colOnPrimaryContainer : Appearance.colors.colOnLayer0
-        }
-
+        text: "style"
+        iconSize: 20
+        color: root.opened ? Appearance.colors.colOnPrimaryContainer : SrsService.stage === "training" && SrsService.count > 0 ? Appearance.colors.colPrimary : Appearance.colors.colOnLayer0
     }
 
     Connections {

@@ -99,3 +99,5 @@ export function isValidWordForLanguage(word: string, language: string, options: 
 }
 
 export * from './difficulties'
+
+export * from './word-content'

@@ -37,11 +37,11 @@ function generated(entry: BookDeckWord): BookDeckWord {
     source: 'generated',
     content: {
       translation: 'перевод',
-      transcription: '',
-      tags: '',
-      difficulty: '',
-      grammarNote: '',
-      vocabularyNote: '',
+      transcription: '/test/',
+      tags: 'action',
+      difficulty: 'A1',
+      grammarNote: 'Grammar',
+      vocabularyNote: 'Vocabulary',
     },
   }
 }
@@ -61,6 +61,22 @@ describe('book deck queue', () => {
     await store.open(1)
     expect([...store.selected]).toEqual(['bird'])
   })
+  it('explicitly requests a personal regeneration for a ready word', async () => {
+    const store = useBookDeckStore()
+    await store.open(1)
+    const entry = store.draft!.words[0]!
+    Object.assign(entry, generated(entry))
+    mocks.generateBookDeckWord.mockResolvedValue(generated(entry))
+    await store.generate([entry])
+    expect(mocks.generateBookDeckWord).toHaveBeenCalledWith('draft', 'cat', true)
+  })
+  it('clears stale generation progress when reopening a draft', async () => {
+    const store = useBookDeckStore()
+    await store.open(1)
+    Object.assign(store.state, { total: 10, done: 4, current: 'old word' })
+    await store.open(1)
+    expect(store.state).toMatchObject({ total: 0, done: 0, current: '' })
+  })
   it('pauses after the current request and resumes only missing content', async () => {
     const store = useBookDeckStore()
     await store.open(1)
@@ -73,7 +89,7 @@ describe('book deck queue', () => {
     expect(mocks.generateBookDeckWord).toHaveBeenCalledTimes(1)
     expect(store.pending.map(w => w.word)).toEqual(['bird'])
     await store.generate()
-    expect(mocks.generateBookDeckWord).toHaveBeenLastCalledWith('draft', 'bird')
+    expect(mocks.generateBookDeckWord).toHaveBeenLastCalledWith('draft', 'bird', false)
     expect(store.pending).toHaveLength(0)
   })
   it('retains completed content after failure, allows retry and blocks incomplete saves', async () => {

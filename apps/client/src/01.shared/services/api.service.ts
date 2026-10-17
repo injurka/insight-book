@@ -529,9 +529,9 @@ export const api = {
       timeout: 300000,
       retry: 0,
     }),
-    generateBookDeckWord: (id: string, word: string) => request<unknown>(`/api/dictionary/book-deck/${id}/generate`, {
+    generateBookDeckWord: (id: string, word: string, regenerate = false) => request<unknown>(`/api/dictionary/book-deck/${id}/generate`, {
       method: 'POST',
-      body: JSON.stringify({ word }),
+      body: JSON.stringify({ word, regenerate }),
       headers: { 'Content-Type': 'application/json' },
       withLlm: true,
       timeout: 180000,

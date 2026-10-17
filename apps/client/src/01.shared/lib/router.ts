@@ -140,6 +140,11 @@ export const router = createRouter({
       component: async () => import('~/07.views/dictionary.vue'),
     },
     {
+      path: '/dictionary/book/:bookId(\\d+)/deck',
+      name: AppRouteNames.BookDeck,
+      component: async () => import('~/07.views/book-deck.vue'),
+    },
+    {
       path: '/settings',
       name: AppRouteNames.Settings,
       component: async () => import('~/07.views/settings.vue'),

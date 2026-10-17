@@ -3,6 +3,7 @@ export enum AppRouteNames {
   BookInfo = 'book-info',
   Reader = 'reader',
   Dictionary = 'dictionary',
+  BookDeck = 'book-deck',
   Settings = 'settings',
   Limits = 'limits',
   SignIn = 'sign-in',
@@ -19,6 +20,7 @@ export enum AppRouteNames {
 export const AppRoutePaths = {
   Home: '/',
   Dictionary: '/dictionary',
+  BookDeck: (bookId: number) => `/dictionary/book/${bookId}/deck`,
   Reader: '/reader',
   Settings: '/settings',
   Limits: '/limits',

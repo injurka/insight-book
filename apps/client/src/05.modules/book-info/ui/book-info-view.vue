@@ -3,8 +3,6 @@ import { useHead } from '@vueuse/head'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import { AppRoutePaths } from '~/01.shared/constants/routes'
-import { useAuthStore } from '~/01.shared/store/auth.store'
-import { useNetworkStore } from '~/01.shared/store/network.store'
 import { KitBtn } from '~/02.kit/atoms/kit-btn/ui'
 import { KitHoverRevealBg } from '~/02.kit/atoms/kit-hover-reveal-bg/ui'
 import { useLibraryStore } from '~/05.modules/library/store/library.store'
@@ -17,15 +15,11 @@ import BookTocPanel from './book-toc-panel.vue'
 const route = useRoute()
 const router = useRouter()
 const libraryStore = useLibraryStore()
-const authStore = useAuthStore()
-const networkStore = useNetworkStore()
 const { t } = useI18n()
 
 const SelectionTooltip = lazyComponent(() => import('~/04.features/analysis/ui/selection-tooltip.vue'))
 const SentenceAnalysis = lazyComponent(() => import('~/04.features/analysis/ui/sentence-analysis.vue'))
 const WordPopover = lazyComponent(() => import('~/04.features/analysis/ui/popover/word-popover.vue'))
-const BookDeckDialog = lazyComponent(() => import('~/04.features/book-deck/ui/book-deck-dialog.vue'))
-const isBookDeckOpen = ref(false)
 const AppendMangaModal = lazyComponent(() => import('./modal/append-manga-modal.vue'))
 const BookSyncModal = lazyComponent(() => import('./modal/book-sync-modal.vue'))
 const isEditingStats = ref(false)
@@ -71,14 +65,6 @@ useHead({
           </div>
         </div>
         <div v-if="isBookReady" class="layout-bottom">
-          <KitBtn
-            v-if="libraryStore.currentBookInfo?.type !== 'manga' && (authStore.user || authStore.isSingleMode)"
-            :disabled="networkStore.effectiveOffline"
-            prepend-icon="mdi:cards-plus-outline"
-            @click="isBookDeckOpen = true"
-          >
-            {{ t('bookDeck.title') }}
-          </KitBtn>
           <BookLexicalPanel v-if="libraryStore.currentBookInfo?.type !== 'manga'" />
           <BookTocPanel />
         </div>
@@ -87,7 +73,6 @@ useHead({
       </div>
     </div>
 
-    <BookDeckDialog v-if="isBookReady && isBookDeckOpen" v-model:visible="isBookDeckOpen" :book-id="bookId" />
     <WordPopover />
     <SelectionTooltip />
     <SentenceAnalysis />
