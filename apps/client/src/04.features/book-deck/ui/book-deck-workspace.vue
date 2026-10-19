@@ -35,6 +35,7 @@ type WorkflowStep = typeof workflowSteps[number]
 type Step = WorkflowStep | 'done'
 
 const step = ref<Step>('words')
+const compositionWords = ref<BookDeckWord[]>([])
 const filters = reactive({
   search: '',
   status: 'all',
@@ -86,6 +87,7 @@ watch(() => props.bookId, () => {
 watch(() => store.draft?.id, () => {
   name.value = withCombinedSuffix(active.value?.name || '')
   updateExisting.value = false
+  compositionWords.value = []
   step.value = active.value?.deckId ? 'done' : 'words'
   filters.search = ''
   filters.status = 'all'
@@ -125,6 +127,9 @@ function withCombinedSuffix(value: string) {
 function setStep(nextStep: Step) {
   if (busy.value || (['filter', 'save'].includes(nextStep) && missingCount.value > 0) || (nextStep === 'save' && !store.selected.size))
     return
+
+  if (nextStep === 'filter' && step.value === 'content')
+    compositionWords.value = [...store.selectedWords]
 
   step.value = nextStep
   nextTick(() => workspaceRef.value?.scrollIntoView?.({ block: 'start' }))
@@ -362,7 +367,7 @@ onUnmounted(() => {
           </template>
           <BookDeckFilterPanel
             v-else-if="step === 'filter'"
-            :words="active.words"
+            :words="compositionWords"
             :selected="store.selected"
             :busy="busy"
             :errors="store.state.errors"

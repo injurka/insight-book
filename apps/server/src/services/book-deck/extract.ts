@@ -45,6 +45,9 @@ export async function extractBookDeckWords(bookId: number, language: string): Pr
             words.set(word, entry)
           }
 
+          if (token.entity)
+            entry.properName = true
+
           entry.count++
           const counts = posCounts.get(word) || new Map<string, number>()
           const posCount = (counts.get(token.pos) || 0) + 1

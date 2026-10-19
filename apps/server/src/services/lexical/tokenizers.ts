@@ -21,7 +21,11 @@ class ChineseTokenizer implements LanguageTokenizer {
       }
       else {
         const tagged = nodejieba.tag(part) as Array<{ word: string, tag: string }>
-        tokens.push(...tagged.map(t => ({ word: t.word, pos: t.tag === 'eng' ? 'word' : t.tag })))
+        tokens.push(...tagged.map(t => ({
+          word: t.word,
+          pos: t.tag === 'eng' ? 'word' : t.tag,
+          entity: /^n[rstz]/u.test(t.tag),
+        })))
       }
     }
 

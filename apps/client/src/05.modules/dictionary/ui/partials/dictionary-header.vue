@@ -236,13 +236,13 @@ function openTrainingSettings(mode: 'srs' | 'deep_dive' | 'cram' | 'match') {
       }
 
       .filter-search-input {
-        flex-grow: 1;
+        flex: 1 1 100%;
         min-width: 250px;
       }
 
       .filter-select {
-        width: 210px;
-        flex-shrink: 0;
+        flex: 1 1 200px;
+        min-width: 0;
       }
     }
 
@@ -323,10 +323,12 @@ function openTrainingSettings(mode: 'srs' | 'deep_dive' | 'cram' | 'match') {
         align-items: stretch;
 
         .filter-search-input {
+          flex: 0 0 auto;
           width: 100%;
         }
 
         .filter-select {
+          flex: 0 0 auto;
           width: 100%;
         }
       }
