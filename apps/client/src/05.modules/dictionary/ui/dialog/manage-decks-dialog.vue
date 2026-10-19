@@ -163,6 +163,7 @@ async function onDeleteDeckConfirm() {
           </div>
           <KitBtn
             :icon="isCreateDeckOpen ? 'mdi:close' : 'mdi:plus'"
+            class="create-deck-toggle"
             variant="tonal"
             :aria-label="t(isCreateDeckOpen ? 'dictionary.cancel' : 'dictionary.createEmptyDeck')"
             @click="isCreateDeckOpen = !isCreateDeckOpen"
@@ -421,6 +422,12 @@ async function onDeleteDeckConfirm() {
   scrollbar-width: thin;
   scrollbar-color: var(--border-primary-color) transparent;
 }
+.books-list {
+  grid-template-columns: minmax(0, 1fr);
+}
+.books-list > li {
+  min-width: 0;
+}
 .deck-item {
   display: flex;
   align-items: center;
@@ -487,6 +494,8 @@ async function onDeleteDeckConfirm() {
 }
 .book-choice {
   display: flex;
+  box-sizing: border-box;
+  min-width: 0;
   width: 100%;
   align-items: center;
   gap: 12px;
@@ -646,6 +655,13 @@ async function onDeleteDeckConfirm() {
   }
   .create-button-label {
     display: none;
+  }
+  .create-deck-toggle {
+    width: 38px;
+    padding: 0;
+  }
+  .create-deck-toggle :deep(.kit-btn-icon) {
+    margin-right: 0;
   }
 }
 </style>

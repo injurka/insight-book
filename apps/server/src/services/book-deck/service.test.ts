@@ -136,6 +136,27 @@ describe('Book deck lifecycle', () => {
     expect(draft.words.some(w => w.word === 'secret')).toBe(false)
     expect((await bookDeckService.open(1, 1, 'ru')).id).toBe(draftId)
   })
+  it('extracts Chinese words without foreign text and filters existing drafts', async () => {
+    const [book] = await database.insert(schema.books).values({ userId: 1, title: '中文', filePath: '/test', language: 'zh-CN' }).returning()
+    await database.insert(schema.bookPages).values({ bookId: book.id, pageNum: 1, content: '<p>小王子喜欢看日落。小王子喜欢看日落。</p><p>agadir aviator á à English appendix</p><p><ruby>朋友<rt>péng you</rt></ruby>。</p>' })
+    const draft = await bookDeckService.open(book.id, 1, 'ru')
+    expect(draft.words.length).toBeGreaterThan(0)
+    expect(draft.words.every(w => /^\p{Script=Han}+$/u.test(w.word))).toBe(true)
+    expect(draft.words.find(w => w.word === '日落')?.count).toBe(2)
+    expect(draft.words.some(w => w.word === '朋友')).toBe(true)
+    const stale = { ...draft.words[0], word: 'agadir' }
+    await database.update(schema.bookDeckDrafts).set({ words: JSON.stringify([...draft.words, stale]) }).where(eq(schema.bookDeckDrafts.id, draft.id))
+    const reopened = await bookDeckService.open(book.id, 1, 'ru')
+    expect(reopened.id).toBe(draft.id)
+    expect(reopened.words).toEqual(draft.words)
+    await expect(bookDeckService.generate(
+      draft.id,
+      'agadir',
+      1,
+      'ru',
+      {} as Parameters<typeof bookDeckService.generate>[4],
+    )).rejects.toMatchObject({ statusCode: 400 })
+  })
   it('rejects another user or target language', async () => {
     await expect(bookDeckService.open(1, 2, 'ru')).rejects.toMatchObject({ statusCode: 404 })
     await expect(bookDeckService.save(

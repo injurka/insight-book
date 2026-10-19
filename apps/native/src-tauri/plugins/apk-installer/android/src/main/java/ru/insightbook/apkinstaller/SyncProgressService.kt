@@ -10,12 +10,14 @@ import android.content.Intent
 import android.content.pm.ServiceInfo
 import android.os.Build
 import android.os.IBinder
+import android.os.PowerManager
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 
 class SyncProgressService : Service() {
     private var isForeground = false
+    private var wakeLock: PowerManager.WakeLock? = null
 
     override fun onCreate() {
         super.onCreate()
@@ -34,6 +36,8 @@ class SyncProgressService : Service() {
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onDestroy() {
+        wakeLock?.let { if (it.isHeld) it.release() }
+
         if (isForeground)
             stopForeground(STOP_FOREGROUND_REMOVE)
 
@@ -54,6 +58,19 @@ class SyncProgressService : Service() {
         }
 
         isForeground = true
+        acquireWakeLock()
+    }
+
+    private fun acquireWakeLock() {
+        if (wakeLock?.isHeld == true)
+            return
+
+        wakeLock = getSystemService(PowerManager::class.java)
+            .newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "InsightBook:BackgroundGeneration")
+            .apply {
+                setReferenceCounted(false)
+                acquire(6 * 60 * 60 * 1000L)
+            }
     }
 
     private fun createNotificationChannel() {

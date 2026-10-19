@@ -7,6 +7,7 @@ import { tokenizeEnglishProfile } from '../lexical/english'
 import { collectTextBlocks } from '../lexical/html-blocks'
 import { tokenizeText } from '../lexical/tokenizers'
 import { splitIntoSentences } from '../sentence-splitter'
+import { isBookDeckWord } from './words'
 
 export async function extractBookDeckWords(bookId: number, language: string): Promise<BookDeckWord[]> {
   const words = new Map<string, BookDeckWord>()
@@ -25,7 +26,7 @@ export async function extractBookDeckWords(bookId: number, language: string): Pr
         for (const token of tokens) {
           const word = (token.lemma || token.word).normalize('NFKC').replace(/’/g, '\'').toLowerCase()
 
-          if (!/^\p{L}[\p{L}\p{M}'・-]*$/u.test(word) || word.length > 100)
+          if (!isBookDeckWord(word, language))
             continue
 
           let entry = words.get(word)

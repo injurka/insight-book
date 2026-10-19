@@ -82,13 +82,9 @@ function formatContent(content: string) {
         </div>
       </section>
     </div>
-    <template #footer>
+    <template v-if="showGenerate" #footer>
       <div class="inspector-actions">
-        <KitBtn variant="text" @click="visible = false">
-          {{ t('dictionary.done') }}
-        </KitBtn>
         <KitBtn
-          v-if="showGenerate"
           variant="tonal"
           prepend-icon="mdi:creation"
           :disabled="busy || offline"

@@ -4,15 +4,34 @@ import { useQueryCache } from '@pinia/colada'
 import { defineStore } from 'pinia'
 import { computed, reactive, ref } from 'vue'
 import { useRepos } from '~/00.plugins/di'
+import { i18n } from '~/00.plugins/i18n'
 import { queryKeys } from '~/01.shared/lib/query-keys'
+import { isNativeSyncProgressNotificationSupported, requestNativeSyncProgressNotificationPermission } from '~/01.shared/services/native-sync-progress-notification.service'
 import { useAuthStore } from '~/01.shared/store/auth.store'
 import { useGlobalSettingsStore } from '~/01.shared/store/settings.store'
+import { useToastStore } from '~/01.shared/store/toast.store'
+import { startBookDeckGenerationNotification } from '../services/book-deck-generation-notification.service'
+
+async function startGenerationNotification(bookName: string, getProgress: () => { done: number, total: number, word: string }, onPermissionDenied: () => void) {
+  if (!isNativeSyncProgressNotificationSupported)
+    return undefined
+
+  if (!await requestNativeSyncProgressNotificationPermission())
+    onPermissionDenied()
+
+  return startBookDeckGenerationNotification(i18n.global.t('bookDeck.backgroundGenerationTitle', { book: bookName }), getProgress, progress => i18n.global.t('bookDeck.backgroundGenerationProgress', {
+    done: progress.done,
+    total: progress.total,
+    word: progress.word || i18n.global.t('bookDeck.backgroundGenerationStarting'),
+  }))
+}
 
 export const useBookDeckStore = defineStore('book-deck', () => {
   const repos = useRepos()
   const queryCache = useQueryCache()
   const auth = useAuthStore()
   const settings = useGlobalSettingsStore()
+  const toast = useToastStore()
   const draft = ref<BookDeckDraft | null>(null)
   const selected = ref(new Set<string>())
   const state = reactive({
@@ -132,16 +151,25 @@ export const useBookDeckStore = defineStore('book-deck', () => {
       error: '',
     })
 
-    for (const word of queue) {
-      if (state.pause || !isCurrent(id, session))
-        break
+    const bookName = draft.value.name
+    let stopNotification: (() => Promise<void>) | undefined
 
-      if (!await generateOne(id, session, word))
-        break
+    try {
+      stopNotification = await startGenerationNotification(bookName, () => ({ done: state.done, total: state.total, word: state.current }), () => toast.warn(i18n.global.t('bookDeck.backgroundNotificationPermissionDenied')))
+
+      for (const word of queue) {
+        if (state.pause || !isCurrent(id, session))
+          break
+
+        if (!await generateOne(id, session, word))
+          break
+      }
     }
-
-    state.current = ''
-    state.running = false
+    finally {
+      state.current = ''
+      state.running = false
+      await stopNotification?.()
+    }
   }
 
   async function save(name: string, updateExisting: boolean) {

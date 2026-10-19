@@ -462,7 +462,7 @@ onUnmounted(() => {
 .book-deck-workspace {
   width: min(100%, 1440px);
   margin: 0 auto;
-  padding: 28px 36px 48px;
+  padding: calc(28px + var(--safe-area-top)) 36px 48px;
   box-sizing: border-box;
 }
 .workspace-heading {
@@ -862,7 +862,7 @@ onUnmounted(() => {
 }
 @media (max-width: 680px) {
   .book-deck-workspace {
-    padding: 18px 12px calc(150px + env(safe-area-inset-bottom, 0px));
+    padding: calc(18px + var(--safe-area-top)) 12px calc(150px + env(safe-area-inset-bottom, 0px));
   }
   .workspace-heading {
     padding-bottom: 18px;

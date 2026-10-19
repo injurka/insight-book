@@ -12,9 +12,12 @@ import { singleflight } from '../../utils/singleflight'
 import { runWorkerTask } from '../../workers/worker-client'
 import { generateWordAutoFill } from '../word-analysis.service'
 import { cachedContentOf, completeContent, contentOf } from './content'
+import { isBookDeckWord } from './words'
 
 function toDraft(row: typeof schema.bookDeckDrafts.$inferSelect): BookDeckDraft {
-  return { ...row, words: JSON.parse(row.words) as BookDeckWord[] }
+  const words = JSON.parse(row.words) as BookDeckWord[]
+
+  return { ...row, words: words.filter(word => isBookDeckWord(word.word, row.language)) }
 }
 
 async function accessibleBook(bookId: number, userId: number) {
