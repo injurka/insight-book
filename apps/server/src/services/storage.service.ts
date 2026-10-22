@@ -79,6 +79,8 @@ class LocalStorageService implements IStorageService {
       contentType = 'application/vnd.comicbook+zip'
     else if (key.endsWith('.fb2'))
       contentType = 'text/xml'
+    else if (key.endsWith('.docx'))
+      contentType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
 
     return { buffer, contentType }
   }

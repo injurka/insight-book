@@ -1,6 +1,7 @@
 /// <reference lib="webworker" />
 
 import { extractBookDeckWords } from '../services/book-deck/extract'
+import { processDocx } from '../services/docx.service'
 import { processEpub } from '../services/epub.service'
 import { processFb2 } from '../services/fb2.service'
 import { processCbz } from '../services/manga.service'
@@ -23,6 +24,9 @@ self.onmessage = async (event: MessageEvent) => {
         break
       case 'processFb2':
         result = await processFb2(payload.filePath, payload.filename, payload.userId)
+        break
+      case 'processDocx':
+        result = await processDocx(payload.filePath, payload.filename, payload.userId)
         break
       case 'processCbz':
         result = await processCbz(payload.filePath, payload.filename, payload.userId)
