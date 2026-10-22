@@ -17,7 +17,7 @@ import { KitDialog } from '~/02.kit/organisms/kit-dialog/ui'
 import { useLibraryStore } from '~/05.modules/library/store/library.store'
 import { useBookSyncNotification } from '../../composables/use-book-sync-notification'
 import { useBookSyncSections } from '../../composables/use-book-sync-sections'
-import { formatNumber } from '../../lib/formatters'
+import { calculateProgressPercent, formatNumber, formatPercent } from '../../lib/formatters'
 import BookSyncCacheOverview from './book-sync-cache-overview.vue'
 
 interface Props {
@@ -32,7 +32,7 @@ const networkStore = useNetworkStore()
 const authStore = useAuthStore()
 const router = useRouter()
 const toast = useToast()
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const { createNotificationOptions } = useBookSyncNotification()
 
 const options = ref({
@@ -86,7 +86,7 @@ const overallPercent = computed(() => {
   if (p.pagesTotal <= 0)
     return 0
 
-  return Math.min(100, Math.round((p.pagesDone / p.pagesTotal) * 100))
+  return calculateProgressPercent(p.pagesDone, p.pagesTotal)
 })
 const cachedSummaryItems = computed(() =>
   sections.value.filter(s => s.fromCache > 0 && s.key !== 'pages'))
@@ -314,9 +314,17 @@ useAppWakeLock(isRunning)
             {{ libraryStore.syncProgress.currentTask }}
           </p>
           <div v-if="!hasError" class="overall-progress">
-            <span class="overall-label">{{ t('bookInfo.overallProgress') }}: {{ overallPercent }}%</span>
+            <span class="overall-label">
+              {{ t('bookInfo.pagesProgress') }}:
+              {{ formatNumber(libraryStore.syncProgress.pagesDone) }} / {{ formatNumber(libraryStore.syncProgress.pagesTotal) }}
+              · {{ formatPercent(overallPercent, locale) }}%
+            </span>
             <div class="progress-bar overall-bar">
-              <div class="progress-fill" :style="{ width: `${overallPercent}%` }" />
+              <div
+                class="progress-fill"
+                :class="{ 'has-progress': overallPercent > 0 }"
+                :style="{ width: `${overallPercent}%` }"
+              />
             </div>
           </div>
         </div>
@@ -355,7 +363,7 @@ useAppWakeLock(isRunning)
 
       <div class="progress-section-header">
         <Icon icon="mdi:progress-clock" class="header-icon" />
-        <span>{{ t('bookInfo.pageByPageProgress') }}</span>
+        <span>{{ t('bookInfo.syncDataProgress') }}</span>
       </div>
 
       <div class="progress-bars-container">
@@ -369,7 +377,7 @@ useAppWakeLock(isRunning)
             <div class="label-group">
               <span v-if="section.fromCache > 0" class="cache-badge">
                 <Icon icon="mdi:database-check-outline" />
-                {{ t('bookInfo.fromCache') }}: {{ section.fromCache }}
+                {{ t('bookInfo.fromCache') }}: {{ formatNumber(section.fromCache) }}
               </span>
               <span class="label">
                 <Icon :icon="section.icon" />
@@ -379,7 +387,7 @@ useAppWakeLock(isRunning)
             <span class="value">
               <template v-if="section.key === 'pages'">
                 <b>{{ formatNumber(section.done) }}</b> / {{ formatNumber(section.total) }}
-                <span class="percent">· {{ section.percent }}%</span>
+                <span class="percent">· {{ formatPercent(section.precisePercent, locale) }}%</span>
               </template>
               <template v-else-if="isFinished">
                 <template v-if="section.total > 0">
@@ -392,29 +400,24 @@ useAppWakeLock(isRunning)
               </template>
               <template v-else-if="section.estimatedTotal">
                 <b>{{ formatNumber(section.done) }}</b> / ~{{ formatNumber(section.estimatedTotal) }}
-                <span class="percent">· {{ section.percent }}%</span>
+                <span class="percent">· {{ formatPercent(section.precisePercent, locale) }}%</span>
               </template>
               <template v-else>
                 <b>{{ formatNumber(section.done) }}</b>
-                <span v-if="section.percent > 0" class="percent">· {{ section.percent }}%</span>
+                <span v-if="section.precisePercent > 0" class="percent">· {{ formatPercent(section.precisePercent, locale) }}%</span>
               </template>
               <Icon
                 v-if="section.status === 'done'"
                 icon="mdi:check-circle"
                 class="section-status done-icon"
               />
-              <Icon
-                v-else-if="section.status === 'active'"
-                icon="mdi:loading"
-                class="section-status spin-animation"
-              />
             </span>
           </div>
           <div class="progress-bar">
             <div
               class="progress-fill"
-              :class="section.fillClass"
-              :style="{ width: `${section.percent}%` }"
+              :class="[section.fillClass, { 'has-progress': section.precisePercent > 0 }]"
+              :style="{ width: `${section.precisePercent}%` }"
             />
           </div>
         </div>

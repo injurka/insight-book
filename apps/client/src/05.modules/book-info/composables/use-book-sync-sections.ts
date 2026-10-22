@@ -2,6 +2,7 @@ import type { ComputedRef } from 'vue'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useLibraryStore } from '~/05.modules/library/store/library.store'
+import { calculateProgressPercent } from '../lib/formatters'
 
 export interface SyncSection {
   key: string
@@ -12,6 +13,7 @@ export interface SyncSection {
   estimatedTotal?: number
   fromCache: number
   percent: number
+  precisePercent: number
   status: 'pending' | 'active' | 'done'
   fillClass: string
 }
@@ -26,7 +28,6 @@ interface SectionParams {
   fillClass: string
   pagePercent: number
   pagesTotal: number
-  pagesDone: number
   isFinished: boolean
   estimatedTotal?: number
 }
@@ -43,13 +44,13 @@ function computeSectionPercent(
     return 100
 
   if (isPages)
-    return total > 0 ? Math.min(100, Math.round((done / total) * 100)) : 0
+    return calculateProgressPercent(done, total)
 
   if (estimatedTotal && estimatedTotal > 0)
-    return Math.min(100, Math.round((done / estimatedTotal) * 100))
+    return calculateProgressPercent(done, estimatedTotal)
 
   if (total > 0)
-    return Math.min(100, Math.round((done / total) * 100))
+    return calculateProgressPercent(done, total)
 
   return pagePercent
 }
@@ -58,12 +59,12 @@ function computeSectionStatus(
   isFinished: boolean,
   isPages: boolean,
   pagesTotal: number,
-  pagesDone: number,
+  done: number,
 ): SyncSection['status'] {
   if (isFinished)
     return 'done'
 
-  const isPending = isPages ? pagesTotal === 0 : pagesDone === 0
+  const isPending = isPages ? pagesTotal === 0 : done === 0
 
   return isPending ? 'pending' : 'active'
 }
@@ -71,7 +72,7 @@ function computeSectionStatus(
 function createSyncSection(params: SectionParams): SyncSection {
   const isPages = params.key === 'pages'
 
-  const percent = computeSectionPercent(
+  const precisePercent = computeSectionPercent(
     params.isFinished,
     isPages,
     params.done,
@@ -84,7 +85,7 @@ function createSyncSection(params: SectionParams): SyncSection {
     params.isFinished,
     isPages,
     params.pagesTotal,
-    params.pagesDone,
+    params.done,
   )
 
   return {
@@ -95,7 +96,8 @@ function createSyncSection(params: SectionParams): SyncSection {
     total: params.total,
     estimatedTotal: params.estimatedTotal,
     fromCache: params.fromCache,
-    percent,
+    percent: Math.round(precisePercent),
+    precisePercent,
     status,
     fillClass: params.fillClass,
   }
@@ -126,7 +128,6 @@ function appendPagesSection(
     fillClass: 'pages-fill',
     pagePercent,
     pagesTotal: p.pagesTotal,
-    pagesDone: p.pagesDone,
     isFinished: finished,
   }))
 }
@@ -153,7 +154,6 @@ function appendSentencesSection(
     fillClass: 'sentences-fill',
     pagePercent,
     pagesTotal: p.pagesTotal,
-    pagesDone: p.pagesDone,
     isFinished: finished,
     estimatedTotal: book?.stats?.totalSentences || undefined,
   }))
@@ -181,7 +181,6 @@ function appendWordsSection(
     fillClass: 'words-fill',
     pagePercent,
     pagesTotal: p.pagesTotal,
-    pagesDone: p.pagesDone,
     isFinished: finished,
     estimatedTotal: book?.stats?.totalWords || undefined,
   }))
@@ -226,7 +225,6 @@ function appendTtsSection(
     fillClass: 'tts-fill',
     pagePercent,
     pagesTotal: p.pagesTotal,
-    pagesDone: p.pagesDone,
     isFinished: finished,
     estimatedTotal: computeEstimatedTts(opts, book),
   }))
@@ -243,9 +241,7 @@ export function useBookSyncSections(isFinished: ComputedRef<boolean>) {
     const finished = isFinished.value
     const list: SyncSection[] = []
 
-    const pagePercent = p.pagesTotal > 0
-      ? Math.min(100, Math.round((p.pagesDone / p.pagesTotal) * 100))
-      : 0
+    const pagePercent = calculateProgressPercent(p.pagesDone, p.pagesTotal)
 
     appendPagesSection(
       list,

@@ -56,12 +56,11 @@ const hasOverview = computed(() => {
     <div class="overview-header">
       <div class="header-left">
         <Icon icon="mdi:database-outline" class="header-icon" />
-        <span class="header-title">{{ t('bookInfo.cacheBaseTitle') }}</span>
+        <div class="header-copy">
+          <span class="header-title">{{ t('bookInfo.cacheBaseTitle') }}</span>
+          <span class="header-description">{{ t('bookInfo.cacheOverviewScope') }}</span>
+        </div>
       </div>
-      <span class="header-badge">
-        <Icon icon="mdi:database-check" />
-        {{ t('bookInfo.readyInCache') }}
-      </span>
     </div>
 
     <div class="overview-grid">
@@ -74,7 +73,7 @@ const hasOverview = computed(() => {
           <span class="metric-label">{{ t('bookInfo.cachedWords') }}</span>
           <span class="metric-value">
             <b>{{ formatNumber(cachedWords) }}</b>
-            <span v-if="totalWords" class="metric-total"> / ~{{ formatNumber(totalWords) }}</span>
+            <span v-if="totalWords" class="metric-total">/ ~{{ formatNumber(totalWords) }}</span>
           </span>
         </div>
       </div>
@@ -88,7 +87,7 @@ const hasOverview = computed(() => {
           <span class="metric-label">{{ t('bookInfo.cachedSentences') }}</span>
           <span class="metric-value">
             <b>{{ formatNumber(cachedSentences) }}</b>
-            <span v-if="totalSentences" class="metric-total"> / ~{{ formatNumber(totalSentences) }}</span>
+            <span v-if="totalSentences" class="metric-total">/ ~{{ formatNumber(totalSentences) }}</span>
           </span>
         </div>
       </div>
@@ -143,36 +142,36 @@ const hasOverview = computed(() => {
       align-items: center;
       gap: 6px;
       color: var(--fg-primary-color);
-      font-size: 0.88rem;
-      font-weight: 600;
+
+      .header-copy {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        min-width: 0;
+      }
+
+      .header-title {
+        font-size: 0.88rem;
+        font-weight: 600;
+      }
+
+      .header-description {
+        color: var(--fg-secondary-color);
+        font-size: 0.7rem;
+        line-height: 1.3;
+      }
 
       .header-icon {
         font-size: 1.1rem;
         color: var(--fg-accent-color);
-      }
-    }
-
-    .header-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      padding: 2px 8px;
-      border-radius: 999px;
-      font-size: 0.72rem;
-      font-weight: 600;
-      color: var(--fg-success-color);
-      background: color-mix(in srgb, var(--fg-success-color) 12%, transparent);
-      border: 1px solid color-mix(in srgb, var(--fg-success-color) 25%, transparent);
-
-      svg {
-        font-size: 0.8rem;
+        flex-shrink: 0;
       }
     }
   }
 
   .overview-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr));
     gap: 8px;
 
     .overview-metric {
@@ -225,18 +224,18 @@ const hasOverview = computed(() => {
         .metric-label {
           font-size: 0.72rem;
           color: var(--fg-secondary-color);
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
+          line-height: 1.25;
         }
 
         .metric-value {
+          display: flex;
+          flex-wrap: wrap;
+          align-items: baseline;
+          gap: 2px 5px;
           font-size: 0.82rem;
           color: var(--fg-primary-color);
           font-variant-numeric: tabular-nums;
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
+          overflow-wrap: anywhere;
 
           b {
             font-weight: 600;
