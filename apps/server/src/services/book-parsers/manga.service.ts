@@ -1,28 +1,71 @@
-import type { TocItem } from '../types'
+import type { TocItem } from '../../types'
 import { unlink } from 'node:fs/promises'
 import path from 'node:path'
 import AdmZip from 'adm-zip'
 import * as cheerio from 'cheerio'
 import { eq } from 'drizzle-orm'
-import { BOOKS_PATH, UPLOADS_PATH } from '../config'
-import { ERROR_CODES } from '../constants/error-codes'
-import { db } from '../db'
-import * as schema from '../db/schema'
-import { AppError } from '../utils/errors'
-import { logger } from '../utils/logger'
-import { storageService } from './storage.service'
+import { createExtractorFromData } from 'node-unrar-js'
+import { BOOKS_PATH, UPLOADS_PATH } from '../../config'
+import { ERROR_CODES } from '../../constants/error-codes'
+import { db } from '../../db'
+import * as schema from '../../db/schema'
+import { AppError } from '../../utils/errors'
+import { logger } from '../../utils/logger'
+import { storageService } from '../storage.service'
+
+export interface ArchiveEntry {
+  name: string
+  getData: () => Buffer
+}
+
+export async function extractArchiveEntries(filePath: string, filename: string): Promise<ArchiveEntry[]> {
+  const bytes = await Bun.file(filePath).bytes()
+  const isRarMagic = bytes.length >= 4
+    && bytes[0] === 0x52
+    && bytes[1] === 0x61
+    && bytes[2] === 0x72
+    && bytes[3] === 0x21
+  const isRarExt = /\.(?:cbr|rar)$/i.test(filename) || /\.(?:cbr|rar)$/i.test(filePath)
+
+  if (isRarMagic || isRarExt) {
+    const arrayBuffer = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer
+    const extractor = await createExtractorFromData({ data: arrayBuffer })
+    const extracted = extractor.extract()
+    const entries: ArchiveEntry[] = []
+
+    for (const file of extracted.files) {
+      if (!file.fileHeader.flags.directory && file.extraction) {
+        const fileData = Buffer.from(file.extraction)
+        entries.push({
+          name: file.fileHeader.name,
+          getData: () => fileData,
+        })
+      }
+    }
+
+    return entries
+  }
+
+  const zip = new AdmZip(filePath)
+
+  return zip.getEntries()
+    .filter(entry => !entry.isDirectory)
+    .map(entry => ({
+      name: entry.entryName,
+      getData: () => entry.getData(),
+    }))
+}
 
 export async function processCbz(filePath: string, filename: string, userId: number): Promise<number> {
   try {
-    const mangaDir = filePath.replace(/\.(cbz|zip)$/i, '')
+    const mangaDir = filePath.replace(/\.(cbz|cbr|zip|rar)$/i, '')
 
-    const zip = new AdmZip(filePath)
-    const zipEntries = zip.getEntries()
+    const archiveEntries = await extractArchiveEntries(filePath, filename)
 
-    const imageEntries = zipEntries
+    const imageEntries = archiveEntries
     // eslint-disable-next-line regexp/no-unused-capturing-group
-      .filter(entry => !entry.isDirectory && /\.(jpg|jpeg|png|webp|avif)$/i.test(entry.entryName))
-      .sort((a, b) => a.entryName.localeCompare(b.entryName, undefined, { numeric: true }))
+      .filter(entry => /\.(jpg|jpeg|png|webp|avif)$/i.test(entry.name))
+      .sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }))
 
     if (imageEntries.length === 0) {
       throw new AppError(400, ERROR_CODES.BOOK.MANGA_NO_IMAGES, 'Archive contains no images')
@@ -30,7 +73,7 @@ export async function processCbz(filePath: string, filename: string, userId: num
 
     let tocJson = '[]'
     let xmlTitle = ''
-    const xmlEntry = zipEntries.find(e => e.entryName.toLowerCase().endsWith('comicinfo.xml'))
+    const xmlEntry = archiveEntries.find(e => e.name.toLowerCase().endsWith('comicinfo.xml'))
 
     if (xmlEntry) {
       try {
@@ -67,12 +110,12 @@ export async function processCbz(filePath: string, filename: string, userId: num
 
     const coverEntry = imageEntries[0]
     const coverBuffer = coverEntry.getData()
-    const coverExt = path.extname(coverEntry.entryName).toLowerCase() || '.jpg'
+    const coverExt = path.extname(coverEntry.name).toLowerCase() || '.jpg'
     const coverFilename = `${Date.now()}_cover${coverExt}`
     await storageService.uploadFile(`covers/${coverFilename}`, coverBuffer, `image/${coverExt.slice(1)}`)
     const coverUrl = `/api/uploads/covers/${coverFilename}`
 
-    const title = xmlTitle || filename.replace(/\.(cbz|zip)$/i, '')
+    const title = xmlTitle || filename.replace(/\.(cbz|cbr|zip|rar)$/i, '')
 
     const bookId = await db.transaction(async (tx) => {
       const [insertedBook] = await tx.insert(schema.books).values({
@@ -94,11 +137,11 @@ export async function processCbz(filePath: string, filename: string, userId: num
       for (let idx = 0; idx < imageEntries.length; idx++) {
         const entry = imageEntries[idx]
         const pageNum = idx + 1
-        const ext = path.extname(entry.entryName).toLowerCase()
+        const ext = path.extname(entry.name).toLowerCase()
         const buffer = entry.getData()
         const dimensions = await new Bun.Image(buffer).metadata()
 
-        const folderName = path.basename(filePath).replace(/\.(cbz|zip)$/i, '')
+        const folderName = path.basename(filePath).replace(/\.(cbz|cbr|zip|rar)$/i, '')
         const key = `books/${folderName}/page_${pageNum}${ext}`
         const imageUrl = await storageService.uploadFile(key, buffer, `image/${ext.slice(1)}`)
 

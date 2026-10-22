@@ -180,7 +180,7 @@ async function submitCustomManga() {
         <template #file>
           <div class="tab-pane archive-pane">
             <Icon icon="mdi:file-document-multiple-outline" class="pane-icon" />
-            <h4>EPUB, FB2, DOCX, CBZ, ZIP</h4>
+            <h4>EPUB, FB2, DOCX, TXT, MD, PDF, MOBI, SRT, HTML, CBZ, CBR, ZIP</h4>
             <p>{{ t('library.uploadReadyBook') }}</p>
             <KitBtn
               size="lg"
@@ -193,7 +193,7 @@ async function submitCustomManga() {
             <input
               ref="archiveInputRef"
               type="file"
-              accept=".epub,.cbz,.zip,.fb2,.docx"
+              accept=".epub,.fb2,.docx,.txt,.md,.markdown,.srt,.vtt,.ass,.ssa,.html,.htm,.pdf,.mobi,.azw,.azw3,.prc,.cbz,.cbr,.zip,.rar"
               hidden
               @change="onArchiveSelected"
             >

@@ -1226,6 +1226,7 @@
       "NOT_IMPLEMENTED": "Функция не реализована",
       "NO_SESSION_ID": "Сессия не найдена",
       "FILE_REQUIRED": "Файл не передан",
+      "INVALID_FILE_TYPE": "Неподдерживаемый формат файла",
       "AUDIO_AND_WORD_REQUIRED": "Требуется аудио и слово",
       "MANGA_NO_IMAGES": "Архив не содержит изображений",
       "CANNOT_DEMOTE_LAST_ADMIN": "Нельзя понизить роль последнему администратору",

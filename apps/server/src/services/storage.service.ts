@@ -77,10 +77,28 @@ class LocalStorageService implements IStorageService {
       contentType = 'application/epub+zip'
     else if (key.endsWith('.cbz'))
       contentType = 'application/vnd.comicbook+zip'
+    else if (key.endsWith('.cbr'))
+      contentType = 'application/vnd.comicbook-rar'
+    else if (key.endsWith('.rar'))
+      contentType = 'application/vnd.rar'
     else if (key.endsWith('.fb2'))
       contentType = 'text/xml'
     else if (key.endsWith('.docx'))
       contentType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+    else if (key.endsWith('.txt') || key.endsWith('.srt') || key.endsWith('.ass') || key.endsWith('.ssa'))
+      contentType = 'text/plain; charset=utf-8'
+    else if (key.endsWith('.vtt'))
+      contentType = 'text/vtt; charset=utf-8'
+    else if (key.endsWith('.md') || key.endsWith('.markdown'))
+      contentType = 'text/markdown; charset=utf-8'
+    else if (key.endsWith('.html') || key.endsWith('.htm'))
+      contentType = 'text/html; charset=utf-8'
+    else if (key.endsWith('.pdf'))
+      contentType = 'application/pdf'
+    else if (key.endsWith('.mobi') || key.endsWith('.prc'))
+      contentType = 'application/x-mobipocket-ebook'
+    else if (key.endsWith('.azw') || key.endsWith('.azw3'))
+      contentType = 'application/vnd.amazon.ebook'
 
     return { buffer, contentType }
   }

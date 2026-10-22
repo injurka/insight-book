@@ -1,10 +1,10 @@
-import type { EpubInstance, EpubManifestItem, TocItem } from '../types'
+import type { EpubInstance, EpubManifestItem, TocItem } from '../../types'
 import { unlink } from 'node:fs/promises'
 import { parse as parseHtml } from 'node-html-parser'
-import { PAGE_SIZE_CHARS } from '../config'
-import { db } from '../db'
-import * as schema from '../db/schema'
-import { storageService } from './storage.service'
+import { PAGE_SIZE_CHARS } from '../../config'
+import { db } from '../../db'
+import * as schema from '../../db/schema'
+import { storageService } from '../storage.service'
 
 async function extractCover(epub: EpubInstance): Promise<{ buffer: Buffer, ext: string } | null> {
   try {

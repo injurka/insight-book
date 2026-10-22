@@ -26,7 +26,33 @@ export class BookUploadService {
     const filename = file.name.toLowerCase()
     let bookId: number
 
-    if (filename.endsWith('.epub') || filename.endsWith('.fb2') || filename.endsWith('.fb2.zip') || filename.endsWith('.docx') || filename.endsWith('.cbz') || filename.endsWith('.zip')) {
+    const SUPPORTED_EXTENSIONS = [
+      '.epub',
+      '.fb2',
+      '.fb2.zip',
+      '.docx',
+      '.txt',
+      '.md',
+      '.markdown',
+      '.srt',
+      '.vtt',
+      '.ass',
+      '.ssa',
+      '.html',
+      '.htm',
+      '.pdf',
+      '.mobi',
+      '.azw',
+      '.azw3',
+      '.prc',
+      '.cbz',
+      '.cbr',
+      '.zip',
+      '.rar',
+    ]
+    const SUPPORTED_ERROR_MSG = 'Supported formats: .epub, .fb2, .docx, .txt, .md, .srt, .vtt, .ass, .html, .pdf, .mobi, .azw3, .cbz, .cbr, .zip, .rar'
+
+    if (SUPPORTED_EXTENSIONS.some(ext => filename.endsWith(ext))) {
       const safeName = `${Date.now()}_${file.name.replace(/[^\w.-]/g, '_')}`
       const filePath = path.join(BOOKS_PATH, safeName)
       await Bun.write(filePath, file)
@@ -41,11 +67,29 @@ export class BookUploadService {
         else if (filename.endsWith('.docx')) {
           bookId = await runWorkerTask('processDocx', { filePath, filename: file.name, userId })
         }
-        else if (filename.endsWith('.cbz') || filename.endsWith('.zip')) {
+        else if (filename.endsWith('.txt')) {
+          bookId = await runWorkerTask('processTxt', { filePath, filename: file.name, userId })
+        }
+        else if (filename.endsWith('.md') || filename.endsWith('.markdown')) {
+          bookId = await runWorkerTask('processMarkdown', { filePath, filename: file.name, userId })
+        }
+        else if (filename.endsWith('.srt') || filename.endsWith('.vtt') || filename.endsWith('.ass') || filename.endsWith('.ssa')) {
+          bookId = await runWorkerTask('processSubtitle', { filePath, filename: file.name, userId })
+        }
+        else if (filename.endsWith('.html') || filename.endsWith('.htm')) {
+          bookId = await runWorkerTask('processHtml', { filePath, filename: file.name, userId })
+        }
+        else if (filename.endsWith('.pdf')) {
+          bookId = await runWorkerTask('processPdf', { filePath, filename: file.name, userId })
+        }
+        else if (filename.endsWith('.mobi') || filename.endsWith('.azw') || filename.endsWith('.azw3') || filename.endsWith('.prc')) {
+          bookId = await runWorkerTask('processMobi', { filePath, filename: file.name, userId })
+        }
+        else if (filename.endsWith('.cbz') || filename.endsWith('.cbr') || filename.endsWith('.zip') || filename.endsWith('.rar')) {
           bookId = await runWorkerTask('processCbz', { filePath, filename: file.name, userId })
         }
         else {
-          throw new AppError(400, ERROR_CODES.BOOK.INVALID_FILE_TYPE, 'Only .epub, .fb2, .docx, .cbz and .zip files are supported')
+          throw new AppError(400, ERROR_CODES.BOOK.INVALID_FILE_TYPE, SUPPORTED_ERROR_MSG)
         }
       }
       catch (err) {
@@ -54,7 +98,7 @@ export class BookUploadService {
       }
     }
     else {
-      throw new AppError(400, ERROR_CODES.BOOK.INVALID_FILE_TYPE, 'Only .epub, .fb2, .docx, .cbz and .zip files are supported')
+      throw new AppError(400, ERROR_CODES.BOOK.INVALID_FILE_TYPE, SUPPORTED_ERROR_MSG)
     }
 
     const book = await bookRepository.findFirstBook(bookId)
@@ -96,7 +140,7 @@ export class BookUploadService {
     if (!book || book.userId !== userId)
       throw new AppError(403, ERROR_CODES.BOOK.ACCESS_DENIED, 'Access denied to book')
 
-    const { appendMangaChapter } = await import('../services/manga.service')
+    const { appendMangaChapter } = await import('./book-parsers/manga.service')
     await appendMangaChapter(book, chapterTitle, files)
 
     const updatedBook = await bookRepository.findFirstBook(id)

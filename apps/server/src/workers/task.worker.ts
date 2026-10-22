@@ -1,10 +1,18 @@
 /// <reference lib="webworker" />
 
 import { extractBookDeckWords } from '../services/book-deck/extract'
-import { processDocx } from '../services/docx.service'
-import { processEpub } from '../services/epub.service'
-import { processFb2 } from '../services/fb2.service'
-import { processCbz } from '../services/manga.service'
+import {
+  processCbz,
+  processDocx,
+  processEpub,
+  processFb2,
+  processHtml,
+  processMarkdown,
+  processMobi,
+  processPdf,
+  processSubtitle,
+  processTxt,
+} from '../services/book-parsers'
 import { analyzeBookVocabulary, initNLP, tokenizeHtmlPage, tokenizeOcrBlocks } from '../services/nlp.service'
 
 // eslint-disable-next-line antfu/no-top-level-await
@@ -27,6 +35,24 @@ self.onmessage = async (event: MessageEvent) => {
         break
       case 'processDocx':
         result = await processDocx(payload.filePath, payload.filename, payload.userId)
+        break
+      case 'processTxt':
+        result = await processTxt(payload.filePath, payload.filename, payload.userId)
+        break
+      case 'processMarkdown':
+        result = await processMarkdown(payload.filePath, payload.filename, payload.userId)
+        break
+      case 'processSubtitle':
+        result = await processSubtitle(payload.filePath, payload.filename, payload.userId)
+        break
+      case 'processHtml':
+        result = await processHtml(payload.filePath, payload.filename, payload.userId)
+        break
+      case 'processPdf':
+        result = await processPdf(payload.filePath, payload.filename, payload.userId)
+        break
+      case 'processMobi':
+        result = await processMobi(payload.filePath, payload.filename, payload.userId)
         break
       case 'processCbz':
         result = await processCbz(payload.filePath, payload.filename, payload.userId)

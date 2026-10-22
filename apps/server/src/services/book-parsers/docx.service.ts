@@ -1,14 +1,14 @@
 import type { CheerioAPI } from 'cheerio'
 import type { Element } from 'domhandler'
-import type { TocItem } from '../types'
+import type { TocItem } from '../../types'
 import { unlink } from 'node:fs/promises'
 import AdmZip from 'adm-zip'
 import * as cheerio from 'cheerio'
 import { normalizeLanguageCode } from '~/utils/helpers'
-import { PAGE_SIZE_CHARS } from '../config'
-import { db } from '../db'
-import * as schema from '../db/schema'
-import { storageService } from './storage.service'
+import { PAGE_SIZE_CHARS } from '../../config'
+import { db } from '../../db'
+import * as schema from '../../db/schema'
+import { storageService } from '../storage.service'
 
 const IGNORED_CREATORS = new Set([
   'ipad',

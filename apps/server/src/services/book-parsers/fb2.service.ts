@@ -1,11 +1,11 @@
-import type { TocItem } from '../types'
+import type { TocItem } from '../../types'
 import { unlink } from 'node:fs/promises'
 import AdmZip from 'adm-zip'
 import * as cheerio from 'cheerio'
-import { PAGE_SIZE_CHARS } from '../config'
-import { db } from '../db'
-import * as schema from '../db/schema'
-import { storageService } from './storage.service'
+import { PAGE_SIZE_CHARS } from '../../config'
+import { db } from '../../db'
+import * as schema from '../../db/schema'
+import { storageService } from '../storage.service'
 
 export async function processFb2(filePath: string, filename: string, userId: number): Promise<number> {
   try {
