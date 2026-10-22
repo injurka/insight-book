@@ -7,14 +7,16 @@ interface Props {
   tone?: string
   selectable?: boolean
 }
-const props = defineProps<Props>()
+const props = withDefaults(defineProps<Props>(), {
+  selectable: true,
+})
 const emit = defineEmits<{ select: [word: LexicalWordData, event: MouseEvent] }>()
 const { t } = useI18n()
 </script>
 
 <template>
   <div class="words">
-    <template v-if="props.selectable !== false">
+    <template v-if="props.selectable">
       <button
         v-for="word in props.words"
         :key="word.word"

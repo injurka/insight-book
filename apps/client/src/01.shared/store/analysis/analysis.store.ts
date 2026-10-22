@@ -1122,15 +1122,9 @@ export const useAnalysisStore = defineStore('analysis', () => {
     const libraryStore = useLibraryStore()
     const readerStore = useReaderStore()
 
-    const bookLanguage = libraryStore.currentBookInfo?.language || readerStore.currentBook?.language
     const bookId = libraryStore.currentBookInfo?.id || readerStore.currentBook?.id
 
     if (!bookId)
-      return
-
-    const settingsStore = useGlobalSettingsStore()
-
-    if (bookLanguage === settingsStore.appLanguage)
       return
 
     closeSelectionTooltip()

@@ -7,9 +7,12 @@ interface Props {
   books: Book[]
   hasMore?: boolean
   isLoading?: boolean
+  showProgress?: boolean
 }
 
-const props = defineProps<Props>()
+const props = withDefaults(defineProps<Props>(), {
+  showProgress: true,
+})
 const emit = defineEmits<{
   (e: 'openBook', book: Book): void
   (e: 'editBook', book: Book): void
@@ -20,12 +23,12 @@ const emit = defineEmits<{
 const isMobile = useMediaQuery('(max-width: 599px)')
 
 const MIN_CARD_WIDTH = 220
-// Приблизительная высота инфо-блока карточки под обложкой (padding, заголовок, автор, прогресс)
-const CARD_INFO_HEIGHT = 160
 const containerRef = shallowRef<HTMLElement | null>(null)
 
 const { width: containerWidth } = useElementSize(containerRef)
 
+// Приблизительная высота инфо-блока карточки под обложкой.
+const CARD_INFO_HEIGHT = computed(() => props.showProgress ? 160 : 130)
 const gap = computed(() => isMobile.value ? 12 : 24)
 const columns = computed(() => {
   if (isMobile.value)
@@ -50,7 +53,7 @@ const rowHeight = computed(() => {
 
   const colWidth = (w - gap.value * (columns.value - 1)) / columns.value
 
-  return Math.ceil(colWidth * 1.5) + CARD_INFO_HEIGHT + gap.value
+  return Math.ceil(colWidth * 1.5) + CARD_INFO_HEIGHT.value + gap.value
 })
 const rows = computed(() => {
   const cols = columns.value
@@ -96,6 +99,7 @@ useInfiniteScroll(containerRef, () => {
           v-for="book in row.data"
           :key="book.id"
           :book="book"
+          :show-progress="props.showProgress"
           @click="emit('openBook', book)"
           @edit="emit('editBook', book)"
         />

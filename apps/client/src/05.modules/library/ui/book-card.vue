@@ -12,9 +12,12 @@ import { BookEntity } from '~/03.domain/entities/book.entity'
 
 interface Props {
   book: Book
+  showProgress?: boolean
 }
 
-const props = defineProps<Props>()
+const props = withDefaults(defineProps<Props>(), {
+  showProgress: true,
+})
 const emit = defineEmits<{
   (e: 'edit'): void
   (e: 'click'): void
@@ -104,7 +107,7 @@ function handleEditClick() {
         {{ book.author }}
       </p>
 
-      <div class="progress">
+      <div v-if="showProgress" class="progress">
         <span>{{ t('library.pageProgress', { current: book.currentPage || 1, total: book.totalPages || 0 }) }}</span>
         <div class="progress-bar">
           <div class="progress-fill" :style="{ width: `${progressPercent}%` }" />

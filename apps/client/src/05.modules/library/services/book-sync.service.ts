@@ -4,6 +4,7 @@ import { isValidWordForLanguage } from '@injurka/insight-book-language-utils'
 import { v4 as uuidv4 } from 'uuid'
 import { ref } from 'vue'
 import { useRepos } from '~/00.plugins/di'
+import { i18n } from '~/00.plugins/i18n'
 import { useTracking } from '~/01.shared/composables/use-tracking'
 import { buildBookTtsCacheKey, DEFAULT_TTS_VOICE } from '~/01.shared/constants/tts'
 import { useGlobalSettingsStore } from '~/01.shared/store/settings.store'
@@ -109,7 +110,7 @@ async function fetchAndHydrateServerCache(ctx: AnalysisContext): Promise<void> {
   syncActivity.value.phase = 'serverCache'
 
   try {
-    syncProgress.value.currentTask = 'Загрузка имеющегося кэша с сервера...'
+    syncProgress.value.currentTask = i18n.global.t('bookInfo.syncTask.downloadingServerCache')
     const settingsStore = useGlobalSettingsStore()
     const targetLang = settingsStore.appLanguage
     const res = await repos.analysis.getAllCacheAll(ctx.bookId, targetLang)
@@ -125,7 +126,10 @@ async function fetchAndHydrateServerCache(ctx: AnalysisContext): Promise<void> {
         const chunk = res.results.slice(i, i + CHUNK_SIZE)
         await Promise.all(chunk.map(item => repos.analysis.saveLocalAnalysis(item.sentence, item.analysis, ctx.language)))
 
-        syncProgress.value.currentTask = `Сохранение кэша: ${Math.min(i + CHUNK_SIZE, res.results.length)} / ${res.results.length}`
+        syncProgress.value.currentTask = i18n.global.t('bookInfo.syncTask.savingCache', {
+          done: Math.min(i + CHUNK_SIZE, res.results.length),
+          total: res.results.length,
+        })
       }
     }
   }
@@ -154,7 +158,7 @@ async function cacheBookCover(book: SyncBook, cachePages: boolean): Promise<void
     return
 
   syncActivity.value.phase = 'cover'
-  syncProgress.value.currentTask = 'Кэширование обложки...'
+  syncProgress.value.currentTask = i18n.global.t('bookInfo.syncTask.cachingCover')
   const cachedCover = await repos.book.getLocalCover(book.id)
 
   if (cachedCover)
@@ -245,7 +249,6 @@ async function analyzeMissingTexts(
   totalKey: 'sentencesTotal' | 'wordsTotal',
   doneKey: 'sentencesDone' | 'wordsDone',
   cacheKey: 'sentencesFromCache' | 'wordsFromCache',
-  label: string,
   pageNum: number,
 ): Promise<void> {
   syncActivity.value.phase = type === 'sentence' ? 'sentences' : 'words'
@@ -312,7 +315,13 @@ async function analyzeMissingTexts(
         console.error(`Analyze ${type} error:`, err)
       }
     }))
-    syncProgress.value.currentTask = `Страница ${pageNum} из ${ctx.totalPages}: анализ ${label}`
+    const taskKey = type === 'sentence'
+      ? 'bookInfo.syncTask.analyzingSentences'
+      : 'bookInfo.syncTask.analyzingWords'
+    syncProgress.value.currentTask = i18n.global.t(taskKey, {
+      page: pageNum,
+      total: ctx.totalPages,
+    })
   }
 }
 
@@ -364,7 +373,10 @@ async function generateTtsForTexts(texts: string[], ctx: AnalysisContext, pageNu
 
       syncProgress.value.ttsDone++
     }))
-    syncProgress.value.currentTask = `Страница ${pageNum} из ${ctx.totalPages}: генерация озвучки`
+    syncProgress.value.currentTask = i18n.global.t('bookInfo.syncTask.generatingAudio', {
+      page: pageNum,
+      total: ctx.totalPages,
+    })
   }
 }
 
@@ -384,7 +396,6 @@ async function processPageAnalysis(
       'sentencesTotal',
       'sentencesDone',
       'sentencesFromCache',
-      'предложений',
       pageNum,
     )
   }
@@ -397,7 +408,6 @@ async function processPageAnalysis(
       'wordsTotal',
       'wordsDone',
       'wordsFromCache',
-      'слов',
       pageNum,
     )
   }
@@ -429,7 +439,10 @@ async function processPage(
     throw new Error('Aborted')
 
   syncActivity.value = { phase: 'pages', currentPage: pageNum }
-  syncProgress.value.currentTask = `Страница ${pageNum} из ${book.totalPages}: загрузка контента`
+  syncProgress.value.currentTask = i18n.global.t('bookInfo.syncTask.loadingContent', {
+    page: pageNum,
+    total: book.totalPages,
+  })
 
   let page: PagePayload | null
 
@@ -513,7 +526,7 @@ async function executeBookSync(book: SyncBook, options: typeof syncOptions.value
 
   if (!ctx.signal.aborted) {
     syncState.value = 'finished'
-    syncProgress.value.currentTask = 'Успешно завершено!'
+    syncProgress.value.currentTask = i18n.global.t('bookInfo.syncTask.completed')
   }
 }
 
@@ -562,7 +575,7 @@ export async function startWholeBookSync(bookId: number, options: {
     ttsDone: 0,
     ttsFromCache: 0,
     totalPreloadedCache: 0,
-    currentTask: 'Подготовка...',
+    currentTask: i18n.global.t('bookInfo.syncTask.preparing'),
   }
 
   syncActivity.value = { phase: 'preparing', currentPage: 0 }
@@ -593,11 +606,13 @@ export async function startWholeBookSync(bookId: number, options: {
 
       if (isTokenLimitError(err)) {
         syncErrorCode.value = 'TOKEN_LIMIT_EXCEEDED'
-        syncProgress.value.currentTask = 'Превышен лимит использования ИИ (токенов)'
+        syncProgress.value.currentTask = i18n.global.t('bookInfo.syncTask.tokenLimitExceeded')
       }
       else {
         syncErrorCode.value = (err as Error & { code?: string }).code || 'UNKNOWN_ERROR'
-        syncProgress.value.currentTask = `Ошибка: ${err.message}`
+        syncProgress.value.currentTask = i18n.global.t('bookInfo.syncTask.error', {
+          message: err.message,
+        })
       }
     }
   }

@@ -50,6 +50,7 @@ const isLoadingDelayed = useDelayedLoading(toRef(props, 'isLoading'))
       :books="props.books"
       :has-more="props.hasMore"
       :is-loading="props.isLoading"
+      :show-progress="false"
       @load-more="emit('loadMore')"
       @open-book="(book) => emit('openBook', book)"
       @edit-book="(book) => emit('editBook', book)"
