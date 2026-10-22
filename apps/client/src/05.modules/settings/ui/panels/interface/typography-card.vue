@@ -157,8 +157,8 @@ function handleDeleteFontOption(opt: KitSelectOption) {
         variant="tonal"
         color="secondary"
         size="sm"
-        :disabled="isUploading"
-        :icon="isUploading ? 'mdi:loading' : 'mdi:upload'"
+        :loading="isUploading"
+        icon="mdi:upload"
         @click="triggerFontUpload"
       >
         {{ t('settings.uploadFontFile') }}
@@ -168,8 +168,8 @@ function handleDeleteFontOption(opt: KitSelectOption) {
         variant="tonal"
         color="secondary"
         size="sm"
-        :disabled="isScanning"
-        :icon="isScanning ? 'mdi:loading' : 'mdi:cellphone-link'"
+        :loading="isScanning"
+        icon="mdi:cellphone-link"
         @click="scanSystemFonts"
       >
         {{ t('settings.scanSystemFonts') }}

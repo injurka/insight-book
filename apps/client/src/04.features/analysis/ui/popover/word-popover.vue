@@ -569,12 +569,6 @@ onUnmounted(() => {
       color: var(--fg-accent-color) !important;
     }
   }
-
-  .spin-animation {
-    :deep(.kit-btn-icon) {
-      animation: spin 1s linear infinite;
-    }
-  }
 }
 
 @keyframes pulse-op {
@@ -589,12 +583,6 @@ onUnmounted(() => {
   100% {
     opacity: 1;
     transform: scale(1);
-  }
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
   }
 }
 

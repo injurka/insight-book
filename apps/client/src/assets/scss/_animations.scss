@@ -52,11 +52,13 @@
   }
 }
 
-.spin-animation {
+.spin-animation:not(.kit-btn),
+.kit-btn.spin-animation .kit-btn-icon {
   animation: spin 1s linear infinite;
 }
 
-.pulse-animation {
+.pulse-animation:not(.kit-btn),
+.kit-btn.pulse-animation .kit-btn-icon {
   animation: pulse-op 1.2s infinite;
 }
 

@@ -192,8 +192,9 @@ function adjustReaderContentWidth(delta: number) {
               class="font-select"
             />
             <KitBtn
-              :icon="isLoading ? 'mdi:loading' : (isPlaying ? 'mdi:stop' : 'mdi:play')"
-              :class="{ 'spin-animation': isLoading, 'pulse-animation': isPlaying }"
+              :icon="isPlaying ? 'mdi:stop' : 'mdi:play'"
+              :loading="isLoading"
+              :class="{ 'pulse-animation': isPlaying }"
               variant="tonal"
               color="secondary"
               size="xs"
@@ -652,25 +653,6 @@ function adjustReaderContentWidth(delta: number) {
       margin-left: 6px;
       font-weight: 500;
     }
-  }
-}
-
-.spin-animation {
-  :deep(.kit-btn-icon) {
-    animation: spin 1s linear infinite;
-  }
-}
-
-.pulse-animation {
-  :deep(.kit-btn-icon) {
-    animation: pulse-op 1.2s infinite;
-    color: var(--fg-accent-color) !important;
-  }
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
   }
 }
 

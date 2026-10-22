@@ -63,9 +63,8 @@ const { availableModels, isFetchingModels, fetchModels } = useCustomModels()
                 <KitBtn
                   variant="outlined"
                   color="secondary"
-                  :icon="isFetchingModels ? 'mdi:loading' : 'mdi:refresh'"
-                  :class="{ 'spin-animation': isFetchingModels }"
-                  :disabled="isFetchingModels"
+                  icon="mdi:refresh"
+                  :loading="isFetchingModels"
                   class="fetch-btn"
                   @click="fetchModels"
                 />
@@ -199,18 +198,6 @@ const { availableModels, isFetchingModels, fetchModels } = useCustomModels()
     width: 38px;
     height: 38px;
     flex-shrink: 0;
-  }
-}
-
-.spin-animation {
-  :deep(svg) {
-    animation: spin 1s linear infinite;
-  }
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
   }
 }
 

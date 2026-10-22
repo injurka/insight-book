@@ -81,8 +81,7 @@ function handleRefresh() {
             variant="tonal"
             color="secondary"
             size="sm"
-            :class="{ 'spin-animation': cacheStore.isLoading }"
-            :disabled="cacheStore.isLoading"
+            :loading="cacheStore.isLoading"
             @click="handleRefresh"
           />
         </KitTooltip>
@@ -442,19 +441,6 @@ function handleRefresh() {
         background-color: var(--fg-error-color);
       }
     }
-  }
-}
-
-.spin-animation {
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
   }
 }
 </style>

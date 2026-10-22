@@ -283,10 +283,11 @@ function handleSave() {
         <KitBtn variant="tonal" @click="emit('update:visible', false)">
           {{ t('notebook.cancel') }}
         </KitBtn>
-        <KitBtn v-if="isFetchingTranslation || isTranslating" color="primary" disabled>
-          <Icon icon="mdi:loading" class="spin-animation" />
-        </KitBtn>
-        <KitBtn v-else color="primary" @click="handleSave">
+        <KitBtn
+          color="primary"
+          :loading="isFetchingTranslation || isTranslating"
+          @click="handleSave"
+        >
           {{ t('notebook.save') }}
         </KitBtn>
       </div>

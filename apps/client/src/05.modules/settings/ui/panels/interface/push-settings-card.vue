@@ -38,9 +38,7 @@ const {
         :variant="pwaStore.isPushSubscribed ? 'tonal' : 'outlined'"
         :color="pwaStore.isPushSubscribed ? 'success' : 'secondary'"
         class="push-btn"
-        :disabled="isPushLoading"
-        :icon="isPushLoading ? 'mdi:loading' : undefined"
-        :class="{ 'is-loading': isPushLoading }"
+        :loading="isPushLoading"
         @click="handlePushToggle"
       >
         {{ pwaStore.isPushSubscribed ? t('settings.pushActive') : t('settings.pushEnable') }}

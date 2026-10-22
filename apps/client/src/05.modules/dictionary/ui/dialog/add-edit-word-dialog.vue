@@ -204,11 +204,12 @@ async function autoFillWithAI() {
           <div class="tts-wrapper">
             <KitTooltip :text="t('analysis.voice')">
               <KitBtn
-                :icon="isLoading ? 'mdi:loading' : (isPlaying ? 'mdi:volume-high' : 'mdi:volume-medium')"
+                :icon="isPlaying ? 'mdi:volume-high' : 'mdi:volume-medium'"
+                :loading="isLoading"
                 variant="text"
                 size="sm"
                 color="accent"
-                :class="{ 'spin-animation': isLoading, 'pulse-animation': isPlaying }"
+                :class="{ 'pulse-animation': isPlaying }"
                 @click="playTTS"
               />
             </KitTooltip>
@@ -569,18 +570,8 @@ async function autoFillWithAI() {
     display: none;
   }
 }
-.spin-animation {
-  :deep(svg) {
-    animation: spin 1s linear infinite;
-  }
-}
 .pulse-animation {
   animation: pulse 1.2s infinite;
-}
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
 }
 @keyframes pulse {
   0% {

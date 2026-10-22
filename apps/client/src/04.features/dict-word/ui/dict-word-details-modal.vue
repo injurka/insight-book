@@ -411,29 +411,10 @@ function getStatusLabel(state: number) {
   }
 }
 
-.spin-animation {
-  :deep(svg) {
-    animation: spin 1s linear infinite;
-  }
-}
 .pulse-animation {
-  animation: pulse 1.2s infinite;
-}
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-@keyframes pulse {
-  0% {
-    transform: scale(1);
-  }
-  50% {
-    transform: scale(1.1);
-    opacity: 0.8;
-  }
-  100% {
-    transform: scale(1);
+  :deep(.kit-btn-icon) {
+    animation: pulse-op 1.2s infinite;
+    color: var(--fg-accent-color) !important;
   }
 }
 .fade-in {

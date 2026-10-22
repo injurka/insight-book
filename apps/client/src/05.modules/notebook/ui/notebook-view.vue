@@ -870,9 +870,6 @@ onMounted(async () => {
         transform 0.1s,
         border-color 0.1s;
 
-      &:hover {
-      }
-
       &.is-active {
         border-color: var(--fg-primary-color);
         transform: scale(1.1);
@@ -886,33 +883,5 @@ onMounted(async () => {
   justify-content: flex-end;
   gap: 8px;
   width: 100%;
-}
-
-.spin-animation {
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-.pulse-animation {
-  animation: pulse-op 1.2s infinite;
-  color: var(--fg-accent-color) !important;
-}
-
-@keyframes pulse-op {
-  0% {
-    transform: scale(1);
-  }
-  50% {
-    transform: scale(1.1);
-    opacity: 0.8;
-  }
-  100% {
-    transform: scale(1);
-  }
 }
 </style>

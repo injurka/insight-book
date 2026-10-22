@@ -51,9 +51,10 @@ function previewVoice() {
           <KitSelect v-model="settingsStore.ttsVoice" :options="voiceOptions" class="voice-select" />
           <KitTooltip :text="t('settings.previewVoice')" placement="top">
             <KitBtn
-              :icon="isLoading ? 'mdi:loading' : (isPlaying ? 'mdi:stop' : 'mdi:play')"
+              :icon="isPlaying ? 'mdi:stop' : 'mdi:play'"
+              :loading="isLoading"
               class="preview-btn"
-              :class="{ 'spin-animation': isLoading, 'pulse-animation': isPlaying }"
+              :class="{ 'pulse-animation': isPlaying }"
               variant="outlined"
               color="secondary"
               @click="previewVoice"
@@ -167,23 +168,10 @@ function previewVoice() {
   line-height: 1.4;
 }
 
-.spin-animation {
-  animation: spin 1s linear infinite;
-}
-
 .pulse-animation {
   animation: pulse 1.5s ease-in-out infinite;
   color: var(--fg-accent-color) !important;
   border-color: var(--border-accent-color) !important;
-}
-
-@keyframes spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
 }
 
 @keyframes pulse {
