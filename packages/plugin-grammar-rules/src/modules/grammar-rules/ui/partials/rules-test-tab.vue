@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type {
   AnyRuleTest,
+  ClozeChoiceTest,
   ClozeInputTest,
   MultipleChoiceTest,
   Rule,

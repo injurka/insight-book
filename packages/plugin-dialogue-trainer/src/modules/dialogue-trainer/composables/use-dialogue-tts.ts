@@ -1,15 +1,20 @@
-import { onUnmounted, ref } from 'vue'
+import { getCurrentInstance, onUnmounted, ref } from 'vue'
 import { requestTtsAudio } from '../../../shared/lib/api'
 
 export function useDialogueTts() {
   const isPlaying = ref(false)
   const currentPlayingId = ref<string | null>(null)
+  const currentPlayingMessageId = ref<string | null>(null)
+  const currentPlayingSentenceIdx = ref<number | null>(null)
+  const loadingSentenceKey = ref<string | null>(null)
   const isLoadingAudio = ref(false)
 
   let currentAudio: HTMLAudioElement | null = null
   let activeEndedCallback: (() => void) | null = null
+  let isSequentialRunning = false
+  let sequentialToken = 0
 
-  function stopAudio() {
+  function stopCurrentAudio() {
     activeEndedCallback = null
 
     if (currentAudio) {
@@ -27,8 +32,27 @@ export function useDialogueTts() {
     }
 
     isPlaying.value = false
-    currentPlayingId.value = null
     isLoadingAudio.value = false
+    loadingSentenceKey.value = null
+  }
+
+  function stopAudio() {
+    isSequentialRunning = false
+    sequentialToken++
+    stopCurrentAudio()
+    currentPlayingId.value = null
+    currentPlayingMessageId.value = null
+    currentPlayingSentenceIdx.value = null
+  }
+
+  function isSentencePlaying(msgId: string, idx: number): boolean {
+    return isPlaying.value
+      && currentPlayingMessageId.value === msgId
+      && currentPlayingSentenceIdx.value === idx
+  }
+
+  function isSentenceLoading(msgId: string, idx: number): boolean {
+    return loadingSentenceKey.value === `${msgId}_${idx}`
   }
 
   function resolveWebSpeechLang(language: string): string {
@@ -45,6 +69,8 @@ export function useDialogueTts() {
     if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
       isPlaying.value = false
       currentPlayingId.value = null
+      currentPlayingMessageId.value = null
+      currentPlayingSentenceIdx.value = null
       onEnded?.()
 
       return
@@ -62,12 +88,16 @@ export function useDialogueTts() {
     utterance.onend = () => {
       isPlaying.value = false
       currentPlayingId.value = null
+      currentPlayingMessageId.value = null
+      currentPlayingSentenceIdx.value = null
       onEnded?.()
     }
 
     utterance.onerror = () => {
       isPlaying.value = false
       currentPlayingId.value = null
+      currentPlayingMessageId.value = null
+      currentPlayingSentenceIdx.value = null
       onEnded?.()
     }
 
@@ -98,6 +128,8 @@ export function useDialogueTts() {
     audio.onended = () => {
       isPlaying.value = false
       currentPlayingId.value = null
+      currentPlayingMessageId.value = null
+      currentPlayingSentenceIdx.value = null
       currentAudio = null
       onEnded?.()
     }
@@ -152,15 +184,170 @@ export function useDialogueTts() {
     return null
   }
 
-  onUnmounted(() => {
+  function handleSentencePlayState(msgId: string, sentenceIdx: number, isSequential: boolean): boolean {
+    if (!isSequential) {
+      if (isSentencePlaying(msgId, sentenceIdx)) {
+        stopAudio()
+
+        return false
+      }
+
+      stopAudio()
+    }
+    else {
+      stopCurrentAudio()
+    }
+
+    return true
+  }
+
+  async function executeAudioPlay(
+    base64: string | null,
+    text: string,
+    language: string,
+    onEnded?: () => void,
+  ): Promise<string | null> {
+    if (!base64) {
+      playWebSpeech(text, language, onEnded)
+
+      return null
+    }
+
+    try {
+      const audio = playAudioElement(base64, () => onEnded?.())
+      currentAudio = audio
+      audio.onerror = () => playWebSpeech(text, language, onEnded)
+      await audio.play()
+
+      return base64
+    }
+    catch {
+      playWebSpeech(text, language, onEnded)
+
+      return null
+    }
+  }
+
+  async function playSentence(
+    msgId: string,
+    sentenceIdx: number,
+    text: string,
+    language: string,
+    cachedBase64?: string,
+    onAudioFetched?: (audio: string) => void,
+    onEnded?: () => void,
+    isSequential = false,
+  ): Promise<string | null> {
+    if (!handleSentencePlayState(msgId, sentenceIdx, isSequential)) {
+      return cachedBase64 || null
+    }
+
+    const playId = `${msgId}_sent_${sentenceIdx}`
+    currentPlayingId.value = playId
+    currentPlayingMessageId.value = msgId
+    currentPlayingSentenceIdx.value = sentenceIdx
+
+    let base64 = cachedBase64 || null
+
+    if (!base64) {
+      loadingSentenceKey.value = `${msgId}_${sentenceIdx}`
+      base64 = await resolveAudioBase64(text)
+      loadingSentenceKey.value = null
+
+      if (base64 && onAudioFetched) {
+        onAudioFetched(base64)
+      }
+    }
+
+    if (currentPlayingId.value !== playId) {
+      return base64
+    }
+
+    return executeAudioPlay(
+      base64,
+      text,
+      language,
+      onEnded,
+    )
+  }
+
+  async function playSentencesSequential(
+    msgId: string,
+    sentences: string[],
+    language: string,
+    cachedAudios?: Record<number, string>,
+    onAudioFetched?: (idx: number, audio: string) => void,
+    onEnded?: () => void,
+  ): Promise<void> {
     stopAudio()
-  })
+
+    if (!sentences.length) {
+      onEnded?.()
+
+      return
+    }
+
+    isSequentialRunning = true
+    const currentSeqToken = ++sequentialToken
+
+    let index = 0
+
+    const playNext = async () => {
+      if (!isSequentialRunning || currentSeqToken !== sequentialToken) {
+        return
+      }
+
+      if (index >= sentences.length) {
+        stopAudio()
+        onEnded?.()
+
+        return
+      }
+
+      const text = sentences[index]
+      const currentIdx = index
+      const cached = cachedAudios?.[currentIdx]
+
+      await playSentence(
+        msgId,
+        currentIdx,
+        text,
+        language,
+        cached,
+        (fetchedAudio) => {
+          onAudioFetched?.(currentIdx, fetchedAudio)
+        },
+        () => {
+          if (isSequentialRunning && currentSeqToken === sequentialToken) {
+            index++
+            void playNext()
+          }
+        },
+        true,
+      )
+    }
+
+    await playNext()
+  }
+
+  if (getCurrentInstance()) {
+    onUnmounted(() => {
+      stopAudio()
+    })
+  }
 
   return {
     isPlaying,
     currentPlayingId,
+    currentPlayingMessageId,
+    currentPlayingSentenceIdx,
     isLoadingAudio,
+    loadingSentenceKey,
+    isSentencePlaying,
+    isSentenceLoading,
     playAudio,
+    playSentence,
+    playSentencesSequential,
     stopAudio,
   }
 }

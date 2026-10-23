@@ -13,6 +13,7 @@ import { catalogRouter } from './controllers/catalog.controller'
 import { dictionaryController } from './controllers/dictionary.controller'
 import { highlightRouter } from './controllers/highlight.controller'
 import { llmController } from './controllers/llm.controller'
+import { nlpController } from './controllers/nlp.controller'
 import { pushRouter } from './controllers/push.controller'
 import { quizRouter } from './controllers/quiz.controller'
 import { subscriptionRouter } from './controllers/subscription.controller'
@@ -35,6 +36,7 @@ const app = new Elysia()
   .use(activityRouter)
   .use(quizRouter)
   .use(llmController)
+  .use(nlpController)
   .use(pushRouter)
   .use(highlightRouter)
   .use(dictionaryController)

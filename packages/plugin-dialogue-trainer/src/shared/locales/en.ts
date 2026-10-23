@@ -85,6 +85,8 @@ export default {
   hideTranslation: 'Hide translation',
   listenCorrection: 'Listen to correction',
   listenReply: 'Listen to reply',
+  listenSentence: 'Listen to sentence',
+  translateSentence: 'Translate sentence',
 
   // Sessions history
   history: 'Dialogue History',

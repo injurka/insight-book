@@ -101,11 +101,14 @@ function playTTS() {
   if (!analysisStore.sidebarSentence)
     return
 
-  if (isPlaying.value || isLoading.value)
+  if (isPlaying.value || isLoading.value) {
     stop()
-
-  else
-    speak(analysisStore.sidebarSentence)
+  }
+  else {
+    const book = readerStore.currentBook || libraryStore.currentBookInfo
+    const lang = analysisStore.activeLanguage || book?.language || 'en'
+    speak(analysisStore.sidebarSentence, lang)
+  }
 }
 async function toggleHighlight() {
   const book = readerStore.currentBook || libraryStore.currentBookInfo

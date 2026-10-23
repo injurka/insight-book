@@ -3,6 +3,7 @@ import { requestSpeechToText } from '../../../shared/lib/api'
 
 const DEFAULT_SILENCE_TIMEOUT_MS = 1600
 const SPEECH_VOLUME_THRESHOLD = 14
+const MAX_RECORDING_DURATION_SEC = 60
 
 interface VadState {
   speechDetected: boolean
@@ -67,10 +68,16 @@ export function useDialogueRecorder() {
   let analyserNode: AnalyserNode | null = null
   let vadRafId: number | null = null
 
-  function startTimer() {
+  function startTimer(onMaxDuration?: () => void) {
     recordingDuration.value = 0
     timerInterval = setInterval(() => {
       recordingDuration.value++
+
+      if (recordingDuration.value >= MAX_RECORDING_DURATION_SEC) {
+        stopTimer()
+        stopVad()
+        onMaxDuration?.()
+      }
     }, 1000)
   }
 
@@ -216,7 +223,7 @@ export function useDialogueRecorder() {
 
       mediaRecorder.start(250)
       isRecording.value = true
-      startTimer()
+      startTimer(onSilence)
       startVad(stream, onSilence, silenceTimeoutMs)
 
       return true

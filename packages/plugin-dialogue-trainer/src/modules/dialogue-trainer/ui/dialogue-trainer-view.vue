@@ -3,7 +3,10 @@ import type { DialogueMessage, DialogueSession, DialogueSettings } from '../../.
 import { Icon } from '@iconify/vue'
 import { nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useAnalysisStore } from '~/01.shared/store/analysis/analysis.store'
 import { KitBtn, KitDialog } from '~/02.kit'
+import WordPopover from '~/04.features/analysis/ui/popover/word-popover.vue'
+import SentenceAnalysis from '~/04.features/analysis/ui/sentence-analysis.vue'
 import { useDialogueRecorder } from '../composables/use-dialogue-recorder'
 import { useDialogueSession } from '../composables/use-dialogue-session'
 import DialogueHeader from './partials/dialogue-header.vue'
@@ -27,11 +30,13 @@ const {
   selectSession,
   sendUserMessage,
   startAiConversation,
+  playMessageSentence,
   deleteCurrentSession,
   updateSettings,
   removeSession,
 } = useDialogueSession()
 const recorder = useDialogueRecorder()
+const analysisStore = useAnalysisStore()
 
 const chatContainerRef = ref<HTMLElement | null>(null)
 const textInput = ref('')
@@ -50,6 +55,10 @@ watch(() => [activeMessages.value.length, isGenerating.value, isAiStarting.value
     chatContainerRef.value.scrollTop = chatContainerRef.value.scrollHeight
   }
 })
+watch(() => currentSettings.value.targetLanguage, (lang) => {
+  analysisStore.activeLanguage = lang || 'en'
+  analysisStore.hideDictionaryActions = true
+}, { immediate: true })
 
 function clearHandsFreeTimer() {
   if (handsFreeRestartTimer) {
@@ -164,11 +173,17 @@ async function handlePlayCorrection(msg: DialogueMessage) {
   playingCorrectionId.value = msg.id
   await tts.playAudio(`corr_${msg.id}`, msg.correctedSentence, currentSettings.value.targetLanguage)
 }
+async function handlePlaySentence(msg: DialogueMessage, idx: number, text: string) {
+  playingCorrectionId.value = null
+  await playMessageSentence(msg, idx, text)
+}
 
 onMounted(async () => {
   await initSession()
 })
 onUnmounted(() => {
+  analysisStore.activeLanguage = null
+  analysisStore.hideDictionaryActions = false
   clearHandsFreeTimer()
   tts.stopAudio()
   recorder.cancelRecording()
@@ -232,8 +247,11 @@ onUnmounted(() => {
           :is-playing-reply="tts.currentPlayingId.value === msg.id && tts.isPlaying.value"
           :is-playing-correction="tts.currentPlayingId.value === `corr_${msg.id}` && tts.isPlaying.value"
           :is-loading-audio="tts.isLoadingAudio.value"
+          :is-sentence-playing="tts.isSentencePlaying"
+          :is-sentence-loading="tts.isSentenceLoading"
           @play-reply="handlePlayReply(msg)"
           @play-correction="handlePlayCorrection(msg)"
+          @play-sentence="(idx, text) => handlePlaySentence(msg, idx, text)"
         />
 
         <!-- Error Notification -->
@@ -350,6 +368,10 @@ onUnmounted(() => {
         </div>
       </div>
     </KitDialog>
+
+    <!-- Word popover & Sentence analysis modals -->
+    <WordPopover :hide-dictionary-actions="true" />
+    <SentenceAnalysis />
   </div>
 </template>
 
@@ -507,7 +529,7 @@ onUnmounted(() => {
 
   &:focus-within {
     border-color: var(--fg-accent-color);
-    box-shadow: 0 0 0 2px rgba(var(--fg-accent-color-rgb, 99, 102, 241), 0.15);
+    box-shadow: 0 0 0 2px rgba(var(--fg-accent-color-rgb), 0.15);
   }
 
   @media (max-width: 600px) {
@@ -570,7 +592,7 @@ onUnmounted(() => {
     }
 
     &.active {
-      background: rgba(var(--fg-accent-color-rgb, 99, 102, 241), 0.15);
+      background: rgba(var(--fg-accent-color-rgb), 0.15);
       color: var(--fg-accent-color);
     }
 

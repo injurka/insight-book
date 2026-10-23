@@ -18,6 +18,14 @@ import { KitTooltip } from '~/02.kit/molecules/kit-tooltip/ui'
 import { useLibraryStore } from '~/05.modules/library/store/library.store'
 import { useReaderStore } from '~/05.modules/reader/store/reader.store'
 
+interface Props {
+  hideDictionaryActions?: boolean
+}
+
+const props = withDefaults(defineProps<Props>(), {
+  hideDictionaryActions: false,
+})
+
 const repos = useRepos()
 const analysisStore = useAnalysisStore()
 const authStore = useAuthStore()
@@ -43,6 +51,7 @@ const aiData = ref<GeneratedWordExamples | null>(null)
 const innerRef = ref<HTMLElement | null>(null)
 const contentHeight = ref<string>('auto')
 
+const shouldHideDictActions = computed(() => props.hideDictionaryActions || analysisStore.hideDictionaryActions)
 const isWordAudioPlaying = computed(() => isPlaying.value && currentText.value === analysisStore.wordPopover?.word)
 const isWordAudioLoading = computed(() => isLoading.value && currentText.value === analysisStore.wordPopover?.word)
 const referenceEl = computed(() => analysisStore.wordPopover?.target || null)
@@ -73,7 +82,7 @@ const currentLanguage = computed(() => {
   const readerStore = useReaderStore()
   const libraryStore = useLibraryStore()
 
-  return (readerStore.currentBook || libraryStore.currentBookInfo)?.language || 'en'
+  return analysisStore.activeLanguage || (readerStore.currentBook || libraryStore.currentBookInfo)?.language || 'en'
 })
 const headerText = computed(() => {
   if (!analysisStore.wordPopover)
@@ -117,6 +126,9 @@ function handleDetailedWithAi(toggle: () => void) {
   toggle()
 }
 function openSaveDialog() {
+  if (shouldHideDictActions.value)
+    return
+
   if (networkStore.effectiveOffline) {
     toast.warn(t('network.needOnline'))
 
@@ -326,7 +338,7 @@ onUnmounted(() => {
               </div>
             </KitDropdown>
 
-            <KitTooltip v-if="authStore.user && !networkStore.effectiveOffline" :text="analysisStore.wordPopover.isSaved ? t('analysis.editCard') : t('analysis.saveToDict')" placement="bottom-end">
+            <KitTooltip v-if="!shouldHideDictActions && authStore.user && !networkStore.effectiveOffline" :text="analysisStore.wordPopover.isSaved ? t('analysis.editCard') : t('analysis.saveToDict')" placement="bottom-end">
               <KitBtn
                 :icon="analysisStore.wordPopover.isSaved ? 'mdi:star' : 'mdi:star-outline'"
                 size="xs"

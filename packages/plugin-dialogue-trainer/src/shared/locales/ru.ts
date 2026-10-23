@@ -85,6 +85,8 @@ export default {
   hideTranslation: 'Скрыть перевод',
   listenCorrection: 'Слушать как правильно',
   listenReply: 'Слушать ответ',
+  listenSentence: 'Озвучить предложение',
+  translateSentence: 'Перевести предложение',
 
   // Sessions history
   history: 'История диалогов',

@@ -318,7 +318,7 @@ const waveBars = computed(() => {
   font-weight: 700;
   padding: 2px 6px;
   border-radius: 6px;
-  background: rgba(var(--fg-accent-color-rgb, 99, 102, 241), 0.15);
+  background: rgba(var(--fg-accent-color-rgb), 0.15);
   color: var(--fg-accent-color);
   letter-spacing: 0.5px;
   text-transform: uppercase;

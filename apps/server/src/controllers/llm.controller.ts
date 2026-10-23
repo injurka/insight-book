@@ -6,8 +6,9 @@ import { AUTH_MODE, JWT_SECRET } from '../config'
 import { ERROR_CODES } from '../constants/error-codes'
 import { checkTokenLimit } from '../services/limits.service'
 import { trackTokenUsage } from '../services/token.service'
+import { analyzeSentence } from '../services/word-analysis.service'
 import { AppError, handleElysiaError } from '../utils/errors'
-import { extractLlmConfig, parseLlmJson } from '../utils/helpers'
+import { extractLlmConfig, normalizeLanguageCode, parseLlmJson } from '../utils/helpers'
 import { callLlmApi, callLlmJsonWithRetry } from '../utils/llm-api'
 import { logger } from '../utils/logger'
 
@@ -142,5 +143,40 @@ export const llmController = new Elysia({ prefix: '/api/llm' })
       }))),
       json: t.Optional(t.Boolean()),
       temperature: t.Optional(t.Number()),
+    }),
+  })
+  .post('/analyze', async ({ userId, body, request }) => {
+    const {
+      sentence,
+      language,
+      targetLang = 'ru',
+      context,
+      type = 'sentence',
+    } = body as {
+      sentence: string
+      language: string
+      targetLang?: string
+      context?: string
+      type?: 'sentence' | 'word'
+    }
+    const config = extractLlmConfig(request)
+
+    return analyzeSentence(
+      userId!,
+      0,
+      sentence,
+      normalizeLanguageCode(language),
+      targetLang,
+      config,
+      context || '',
+      type,
+    )
+  }, {
+    body: t.Object({
+      sentence: t.String(),
+      language: t.String(),
+      targetLang: t.Optional(t.String()),
+      context: t.Optional(t.String()),
+      type: t.Optional(t.Union([t.Literal('sentence'), t.Literal('word')])),
     }),
   })

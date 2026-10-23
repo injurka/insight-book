@@ -6,7 +6,8 @@ import type {
 } from '../../../shared/types/dialogue'
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { requestLlmGenerate } from '../../../shared/lib/api'
+import { requestLlmGenerate, requestTtsAudio } from '../../../shared/lib/api'
+import { splitTextIntoSentences } from '../../../shared/lib/dialogue-tokenizer'
 import { useDialogueStorage } from './use-dialogue-storage'
 import { useDialogueTts } from './use-dialogue-tts'
 
@@ -63,6 +64,7 @@ function populateAssistantMessage(message: DialogueMessage, res: LlmDialogueAnal
   message.feedback = res.feedback || ''
   message.correctedSentence = res.correctedSentence || fallbackContent
   message.replyTranslation = res.replyTranslation || ''
+  message.replySentences = res.replySentences || []
 }
 
 function removeFailedPlaceholder(session: DialogueSession, placeholder: DialogueMessage): void {
@@ -185,7 +187,8 @@ Analysis Instructions:
 - In "feedback" (${interfaceLang}): explain mistakes, cite grammar rules, suggest natural/conversational phrasing.
 - In "correctedSentence": full ideal sentence in ${practiceLang}.
 - In "reply": in-character conversational continuation in ${practiceLang}.
-- In "replyTranslation": translation into ${interfaceLang}.
+- In "replyTranslation": translation of entire reply into ${interfaceLang}.
+- In "replySentences": array of sentence objects breaking down "reply", where each item has "text" in ${practiceLang} and "translation" in ${interfaceLang}.
 
 Output STRICT JSON ONLY:
 {
@@ -193,30 +196,101 @@ Output STRICT JSON ONLY:
   "feedback": "string",
   "correctedSentence": "string",
   "reply": "string",
-  "replyTranslation": "string"
+  "replyTranslation": "string",
+  "replySentences": [
+    {
+      "text": "sentence text in practice language",
+      "translation": "translation of this sentence in explanation language"
+    }
+  ]
 }`
   }
 
   async function playAssistantVoice(message: DialogueMessage, session: DialogueSession, onEnded?: () => void): Promise<void> {
+    const language = session.settings.targetLanguage
+    const sentences = (message.replySentences?.length
+      ? message.replySentences.map(s => s.text)
+      : splitTextIntoSentences(message.content, language))
+      .map(s => s.trim())
+      .filter(Boolean)
+
+    if (!sentences.length) {
+      onEnded?.()
+
+      return
+    }
+
+    if (!message.sentenceAudios) {
+      message.sentenceAudios = {}
+    }
+
+    // TTS per sentence: 3 sentences -> 3 requests -> wait for answers -> sequential play
+    const hasMissingAudio = sentences.some((_, idx) => !message.sentenceAudios?.[idx])
+
+    if (hasMissingAudio) {
+      const audioResults = await Promise.all(sentences.map((sent, idx) => {
+        if (message.sentenceAudios?.[idx]) {
+          return Promise.resolve(message.sentenceAudios[idx])
+        }
+
+        return requestTtsAudio(sent)
+      }))
+
+      audioResults.forEach((audio, idx) => {
+        if (audio) {
+          message.sentenceAudios![idx] = audio
+        }
+      })
+
+      await storage.saveSession(session)
+    }
+
     if (!session.settings.autoPlayAudio) {
       onEnded?.()
 
       return
     }
 
-    const audio = await tts.playAudio(
+    await tts.playSentencesSequential(
       message.id,
-      message.content,
-      session.settings.targetLanguage,
-      undefined,
-      undefined,
+      sentences,
+      language,
+      message.sentenceAudios,
+      async (idx, audio) => {
+        if (!message.sentenceAudios) {
+          message.sentenceAudios = {}
+        }
+
+        message.sentenceAudios[idx] = audio
+        await storage.saveSession(session)
+      },
       onEnded,
     )
+  }
 
-    if (audio) {
-      message.audioBase64 = audio
-      await storage.saveSession(session)
-    }
+  async function playMessageSentence(message: DialogueMessage, sentenceIdx: number, text: string): Promise<void> {
+    const session = currentSession.value
+    const language = session?.settings.targetLanguage || 'en'
+    const cached = message.sentenceAudios?.[sentenceIdx]
+
+    await tts.playSentence(
+      message.id,
+      sentenceIdx,
+      text,
+      language,
+      cached,
+      async (audio) => {
+        if (!message.sentenceAudios) {
+          message.sentenceAudios = {}
+        }
+
+        message.sentenceAudios[sentenceIdx] = audio
+
+        if (session) {
+          await storage.saveSession(session)
+        }
+      },
+    )
   }
 
   async function startAiConversation(onAudioFinished?: () => void): Promise<void> {
@@ -371,6 +445,7 @@ Output STRICT JSON ONLY:
     selectSession,
     sendUserMessage,
     startAiConversation,
+    playMessageSentence,
     deleteCurrentSession,
     updateSettings,
     removeSession: storage.removeSession,

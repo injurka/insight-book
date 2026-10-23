@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { ClozeChoiceTest, MultipleChoiceOption, MultipleChoiceTest } from '../../../../shared/types'
+import type { ClozeChoiceTest, MultipleChoiceOption, MultipleChoiceTest } from '../../../../../shared/types'
 import { Icon } from '@iconify/vue'
 import { computed } from 'vue'
 

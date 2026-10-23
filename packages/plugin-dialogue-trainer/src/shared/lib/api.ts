@@ -116,3 +116,47 @@ export async function requestTtsAudio(text: string, voice?: string): Promise<str
     return null
   }
 }
+
+export interface ServerTokenizeResult {
+  sentences: Array<{
+    sentId: number
+    rawSent: string
+    tokens: Array<{
+      word: string
+      pos: string
+      tokenIdx: number
+      isPunct: boolean
+      spacingClass: string
+    }>
+  }>
+}
+
+export async function requestNlpTokenize(text: string, language: string, baseSentId = 0): Promise<ServerTokenizeResult | null> {
+  const api = getPluginApi()
+  const payload = { text, language, baseSentId }
+
+  try {
+    if (api?.request) {
+      return await api.request<ServerTokenizeResult>('/api/nlp/tokenize', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: payload as unknown as Record<string, unknown>,
+      })
+    }
+
+    const res = await fetch('/api/nlp/tokenize', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    })
+
+    if (!res.ok) {
+      return null
+    }
+
+    return await res.json() as ServerTokenizeResult
+  }
+  catch {
+    return null
+  }
+}

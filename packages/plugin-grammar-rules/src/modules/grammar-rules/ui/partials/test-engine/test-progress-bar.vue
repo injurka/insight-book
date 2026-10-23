@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { Rule } from '../../../../shared/types'
+import type { Rule } from '../../../../../shared/types'
 import { Icon } from '@iconify/vue'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'

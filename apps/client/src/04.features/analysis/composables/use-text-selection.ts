@@ -105,7 +105,7 @@ export function useTextSelection() {
   }
 
   function shouldIgnorePointerDown(targetEl: HTMLElement | null): boolean {
-    return Boolean(targetEl?.closest?.('.interleaved-translation, .split-translation, .sentence-tts-btn, .grammar-rule-badge'))
+    return Boolean(targetEl?.closest?.('.interleaved-translation, .split-translation, .sentence-tts-btn, .grammar-rule-badge, .sentence-action-btn, .sentence-inline-actions, .sentence-translation-box'))
   }
 
   function extractSentenceText(target: HTMLElement | null, fallbackText?: string): string {

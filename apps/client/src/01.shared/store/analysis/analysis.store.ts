@@ -62,6 +62,8 @@ export const useAnalysisStore = defineStore('analysis', () => {
 
   // Popovers & Tooltips
   const activeTokenId = ref<string | null>(null)
+  const activeLanguage = ref<string | null>(null)
+  const hideDictionaryActions = ref(false)
   const wordPopover = ref<WordPopoverData | null>(null)
   const selectionTooltip = ref<SelectionTooltipData | null>(null)
   const grammarPopover = ref<GrammarPopoverData | null>(null)
@@ -487,7 +489,7 @@ export const useAnalysisStore = defineStore('analysis', () => {
     return existing ? existing.analysis : null
   }
 
-  async function checkAndApplyCachedSentence(sentence: string): Promise<boolean> {
+  async function checkAndApplyCachedSentence(sentence: string, languageOverride?: string): Promise<boolean> {
     const historyCached = getSentenceCachedAnalysis(sentence)
 
     if (historyCached) {
@@ -500,7 +502,7 @@ export const useAnalysisStore = defineStore('analysis', () => {
     const readerStore = useReaderStore()
     const libraryStore = useLibraryStore()
     const currentBook = readerStore.currentBook || libraryStore.currentBookInfo
-    const language = currentBook?.language
+    const language = languageOverride || activeLanguage.value || currentBook?.language
 
     const cached = await repos.analysis.getLocalAnalysis(sentence, language)
 
@@ -555,13 +557,35 @@ export const useAnalysisStore = defineStore('analysis', () => {
     }
   }
 
-  async function handleSentenceAnalysis(sentence: string, context?: string) {
-    const settingsStore = useGlobalSettingsStore()
+  function resolveEffectiveBook(languageOverride?: string): { book: Book | null, language: string | null } {
     const readerStore = useReaderStore()
     const libraryStore = useLibraryStore()
     const currentBook = readerStore.currentBook || libraryStore.currentBookInfo
+    const language = languageOverride || activeLanguage.value || currentBook?.language || null
 
-    if (!currentBook || currentBook.language === settingsStore.appLanguage)
+    if (!language)
+      return { book: null, language: null }
+
+    const book = currentBook || ({ id: 0, language, title: '' } as Book)
+
+    return { book, language }
+  }
+
+  function getDictionaryEntry(word: string) {
+    const readerStore = useReaderStore()
+    const dict = readerStore.currentPageDictionary
+
+    if (!dict)
+      return undefined
+
+    return dict[word] || dict[word.toLowerCase()]
+  }
+
+  async function handleSentenceAnalysis(sentence: string, context?: string, targetLanguage?: string) {
+    const settingsStore = useGlobalSettingsStore()
+    const { book: effectiveBook, language: effectiveLanguage } = resolveEffectiveBook(targetLanguage)
+
+    if (!effectiveBook || !effectiveLanguage || effectiveLanguage === settingsStore.appLanguage)
       return
 
     manualAnalysisAbortController?.abort()
@@ -572,14 +596,14 @@ export const useAnalysisStore = defineStore('analysis', () => {
     sidebarAnalysis.value = null
     isAnalyzing.value = true
 
-    if (await checkAndApplyCachedSentence(sentence))
+    if (await checkAndApplyCachedSentence(sentence, effectiveLanguage))
       return
 
     manualAnalysisAbortController = new AbortController()
     const signal = manualAnalysisAbortController.signal
 
     await performSentenceAnalysis(
-      currentBook,
+      effectiveBook,
       sentence,
       context,
       signal,
@@ -964,10 +988,7 @@ export const useAnalysisStore = defineStore('analysis', () => {
   }
 
   async function fetchAiTranslation() {
-    const readerStore = useReaderStore()
-    const libraryStore = useLibraryStore()
-
-    const currentBook = readerStore.currentBook || libraryStore.currentBookInfo
+    const { book: currentBook } = resolveEffectiveBook()
 
     if (!wordPopover.value || wordPopover.value.aiData || !currentBook)
       return
@@ -978,9 +999,7 @@ export const useAnalysisStore = defineStore('analysis', () => {
     // Латиница разрешена (бренды/сленг в книгах не на латинице — пользователь кликнул осознанно)
     if (!isValidWordForLanguage(word, currentBook.language, { allowLatinFallback: true })) {
       wordPopover.value.isLoading = false
-
-      if (!wordPopover.value.translation)
-        wordPopover.value.translation = i18n.global.t('analysis.wordNotInLanguage')
+      wordPopover.value.translation ||= i18n.global.t('analysis.wordNotInLanguage')
 
       return
     }
@@ -1028,18 +1047,18 @@ export const useAnalysisStore = defineStore('analysis', () => {
     tokenIndex: number,
     target: HTMLElement,
     contextSentence?: string,
+    languageOverride?: string,
   ) {
-    const readerStore = useReaderStore()
     const settingsStore = useGlobalSettingsStore()
-    const { currentPage, currentBook, currentPageDictionary } = readerStore
+    const { book: effectiveBook, language: effectiveLanguage } = resolveEffectiveBook(languageOverride)
 
-    if (!currentPage || !currentBook || currentBook.language === settingsStore.appLanguage)
+    if (!effectiveBook || !effectiveLanguage || effectiveLanguage === settingsStore.appLanguage)
       return
 
     closeSelectionTooltip()
     activeTokenId.value = `${sentenceId}-${tokenIndex}`
 
-    const entry = currentPageDictionary[word] || currentPageDictionary[word.toLowerCase()]
+    const entry = getDictionaryEntry(word)
 
     wordAbortController?.abort()
     const controller = new AbortController()
@@ -1051,11 +1070,24 @@ export const useAnalysisStore = defineStore('analysis', () => {
       target.getBoundingClientRect(),
       target,
       contextSentence,
-      currentBook.id,
+      effectiveBook.id,
       entry,
     )
 
-    fetchAiTranslation()
+    if (!entry && effectiveBook.id === 0) {
+      await performStandaloneWordLookup(
+        0,
+        word,
+        pos,
+        target.getBoundingClientRect(),
+        target,
+        controller,
+        effectiveLanguage,
+      )
+    }
+    else {
+      fetchAiTranslation()
+    }
   }
 
   function applyStandaloneWordResult(
@@ -1085,10 +1117,18 @@ export const useAnalysisStore = defineStore('analysis', () => {
     targetRect: DOMRect,
     target: HTMLElement,
     controller: AbortController,
+    language?: string,
   ) {
     try {
       trackEvent('ai_word_lookup', { word })
-      const result = await repos.analysis.lookupWord(bookId, word, controller.signal)
+      const result = language
+        ? await repos.analysis.lookupWord(
+            bookId,
+            word,
+            controller.signal,
+            language,
+          )
+        : await repos.analysis.lookupWord(bookId, word, controller.signal)
 
       if (wordAbortController !== controller)
         return
@@ -1256,6 +1296,8 @@ export const useAnalysisStore = defineStore('analysis', () => {
 
   return {
     activeTokenId,
+    activeLanguage,
+    hideDictionaryActions,
     wordPopover,
     selectionTooltip,
     sidebarOpen,

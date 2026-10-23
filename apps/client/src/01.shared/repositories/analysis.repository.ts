@@ -11,7 +11,7 @@ export interface IAnalysisRepository {
   checkCache: (bookId: number, items: { text: string, type: 'sentence' | 'word' }[], language: string, signal?: AbortSignal) => Promise<{ results: { sentence: string, analysis: LlmAnalysis }[] }>
   analyzeBatch: (bookId: number, items: { id: string, sentence: string, context?: string, type: 'sentence' | 'word' }[], language: string, signal?: AbortSignal) => Promise<{ results: { id: string, analysis: LlmAnalysis }[] }>
   analyze: (bookId: number, text: string, language: string, context?: string, signal?: AbortSignal, type?: 'sentence' | 'word') => Promise<LlmAnalysis>
-  lookupWord: (bookId: number, word: string, signal?: AbortSignal) => Promise<{ transcription: string, translation: string, isUserDict?: boolean }>
+  lookupWord: (bookId: number, word: string, signal?: AbortSignal, language?: string) => Promise<{ transcription: string, translation: string, isUserDict?: boolean }>
   generateTts: (bookId: number, text: string, voice: string, signal?: AbortSignal, forceCacheBypass?: boolean) => Promise<TtsResult>
   generateGenericTts: (text: string, voice: string, signal?: AbortSignal, forceCacheBypass?: boolean) => Promise<TtsResult>
 
@@ -90,8 +90,18 @@ export class DefaultAnalysisRepository implements IAnalysisRepository {
     return data
   }
 
-  async lookupWord(bookId: number, word: string, signal?: AbortSignal) {
-    return api.books.lookupWord(bookId, word, signal)
+  async lookupWord(
+    bookId: number,
+    word: string,
+    signal?: AbortSignal,
+    language?: string,
+  ) {
+    return api.books.lookupWord(
+      bookId,
+      word,
+      signal,
+      language,
+    )
   }
 
   async generateTts(

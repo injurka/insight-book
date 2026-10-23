@@ -411,10 +411,19 @@ export const api = {
       return request<{ pageDictionary: Record<string, PageDictEntry> }>(`/api/books/${bookId}/page/${page}/dict?targetLang=${encodeURIComponent(targetLanguage)}`, { signal })
     },
 
-    lookupWord: async (bookId: number, word: string, signal?: AbortSignal) => {
+    lookupWord: async (
+      bookId: number,
+      word: string,
+      signal?: AbortSignal,
+      language?: string,
+    ) => {
       const targetLanguage = providers.getAppLanguage() || 'ru'
+      const langParam = language ? `&language=${encodeURIComponent(language)}` : ''
+      const url = bookId
+        ? `/api/books/${bookId}/word/${encodeURIComponent(word)}?targetLang=${encodeURIComponent(targetLanguage)}${langParam}`
+        : `/api/dictionary/${encodeURIComponent(word)}?targetLang=${encodeURIComponent(targetLanguage)}${langParam}`
 
-      return request<{ transcription: string, translation: string, isUserDict?: boolean }>(`/api/books/${bookId}/word/${encodeURIComponent(word)}?targetLang=${encodeURIComponent(targetLanguage)}`, { signal, silentErrors: true })
+      return request<{ transcription: string, translation: string, isUserDict?: boolean }>(url, { signal, silentErrors: true })
     },
 
     checkCache: async (
@@ -459,8 +468,9 @@ export const api = {
       type: 'sentence' | 'word' = 'sentence',
     ) => {
       const targetLanguage = providers.getAppLanguage() || 'ru'
+      const url = bookId ? `/api/books/${bookId}/analyze` : '/api/llm/analyze'
 
-      return request<LlmAnalysis>(`/api/books/${bookId}/analyze`, {
+      return request<LlmAnalysis>(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

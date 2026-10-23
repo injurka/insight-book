@@ -85,6 +85,8 @@ export default {
   hideTranslation: '隐藏翻译',
   listenCorrection: '听正确发音',
   listenReply: '听对方回复',
+  listenSentence: '朗读句子',
+  translateSentence: '翻译句子',
 
   // Sessions history
   history: '历史对话',

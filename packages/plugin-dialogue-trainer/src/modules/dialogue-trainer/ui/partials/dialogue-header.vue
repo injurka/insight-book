@@ -231,7 +231,7 @@ const styleName = computed(() => {
     font-size: 0.68rem;
     padding: 1px 5px;
     border-radius: 4px;
-    background: rgba(var(--fg-accent-color-rgb, 99, 102, 241), 0.12);
+    background: rgba(var(--fg-accent-color-rgb), 0.12);
     color: var(--fg-accent-color);
     letter-spacing: 0.2px;
     flex-shrink: 0;

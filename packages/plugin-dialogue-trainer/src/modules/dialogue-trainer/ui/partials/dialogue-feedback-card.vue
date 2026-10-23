@@ -1,10 +1,11 @@
 <script setup lang="ts">
+import type { TokenizedSentence } from '../../../../shared/lib/dialogue-tokenizer'
 import { Icon } from '@iconify/vue'
-import { computed } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { KitBtn, KitTooltip } from '~/02.kit'
+import { KitTooltip } from '~/02.kit'
 import { useTextSelection } from '~/04.features/analysis'
-import { tokenizeDialogueText } from '../../../../shared/lib/dialogue-tokenizer'
+import { tokenizeDialogueText, tokenizeDialogueTextServer } from '../../../../shared/lib/dialogue-tokenizer'
 
 interface Props {
   isCorrect?: boolean
@@ -24,13 +25,29 @@ const emit = defineEmits<{
 const { t } = useI18n()
 const { onPointerDown, onPointerUp, onWordClick } = useTextSelection()
 
+const serverSentences = ref<TokenizedSentence[] | null>(null)
+
 const tokenizedCorrectionSentences = computed(() => {
+  if (serverSentences.value?.length) {
+    return serverSentences.value
+  }
+
   if (!props.correctedSentence) {
     return []
   }
 
   return tokenizeDialogueText(props.correctedSentence, props.targetLanguage, 5000)
 })
+
+watch(() => [props.correctedSentence, props.targetLanguage], async () => {
+  if (!props.correctedSentence) {
+    serverSentences.value = []
+
+    return
+  }
+
+  serverSentences.value = await tokenizeDialogueTextServer(props.correctedSentence, props.targetLanguage, 5000)
+}, { immediate: true })
 </script>
 
 <template>
@@ -42,18 +59,6 @@ const tokenizedCorrectionSentences = computed(() => {
           {{ isCorrect ? t('plugins.dialogue-trainer.perfectSpoken') : t('plugins.dialogue-trainer.needsImprovement') }}
         </span>
       </div>
-
-      <KitTooltip v-if="correctedSentence" :text="t('plugins.dialogue-trainer.listenCorrection')">
-        <KitBtn
-          size="xs"
-          variant="tonal"
-          :icon="isPlayingAudio ? 'mdi:pause' : 'mdi:volume-high'"
-          :loading="isLoadingAudio"
-          :aria-label="t('plugins.dialogue-trainer.listenCorrection')"
-          class="play-correction-btn"
-          @click="emit('playCorrection')"
-        />
-      </KitTooltip>
     </div>
 
     <div v-if="correctedSentence && !isCorrect" class="correction-section">
@@ -68,7 +73,7 @@ const tokenizedCorrectionSentences = computed(() => {
         @click="onWordClick"
       >
         <span
-          v-for="sent in tokenizedCorrectionSentences"
+          v-for="(sent, sentIdx) in tokenizedCorrectionSentences"
           :key="sent.sentId"
           class="sentence"
           :data-sent-id="sent.sentId"
@@ -84,6 +89,28 @@ const tokenizedCorrectionSentences = computed(() => {
             :data-sent-id="sent.sentId"
             :data-token-idx="tkn.tokenIdx"
           >{{ tkn.word }}</span>
+
+          <span
+            v-if="sentIdx === tokenizedCorrectionSentences.length - 1"
+            class="sentence-inline-actions"
+            @pointerdown.stop
+            @click.stop
+          >
+            <KitTooltip :text="t('plugins.dialogue-trainer.listenCorrection')">
+              <button
+                type="button"
+                class="sentence-action-btn"
+                :class="{ 'is-playing': isPlayingAudio, 'is-loading': isLoadingAudio }"
+                :aria-label="t('plugins.dialogue-trainer.listenCorrection')"
+                @click.stop="emit('playCorrection')"
+              >
+                <Icon
+                  :icon="isLoadingAudio ? 'mdi:loading' : (isPlayingAudio ? 'mdi:pause' : 'mdi:volume-high')"
+                  :class="{ 'spin-icon': isLoadingAudio }"
+                />
+              </button>
+            </KitTooltip>
+          </span>
         </span>
       </div>
     </div>
@@ -154,20 +181,53 @@ const tokenizedCorrectionSentences = computed(() => {
   }
 }
 
-.play-correction-btn {
-  width: 26px !important;
-  height: 26px !important;
-  min-width: 26px !important;
-  border-radius: 50% !important;
-  padding: 0 !important;
-  display: inline-flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  flex-shrink: 0;
+.sentence-inline-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-left: 6px;
+  vertical-align: middle;
+  user-select: none;
+}
 
-  :deep(.kit-btn-icon) {
-    margin: 0 !important;
-    font-size: 0.95rem;
+.sentence-action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background-color: var(--bg-hover-color, rgba(0, 0, 0, 0.06));
+  color: var(--fg-secondary-color);
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+
+  &:hover {
+    background-color: var(--bg-active-color, rgba(99, 102, 241, 0.15));
+    color: var(--fg-accent-color);
+    transform: scale(1.08);
+  }
+
+  &.is-playing {
+    background-color: var(--fg-accent-color);
+    color: #fff;
+  }
+}
+
+.spin-icon {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
   }
 }
 
@@ -197,17 +257,19 @@ const tokenizedCorrectionSentences = computed(() => {
     transition: background-color 0.15s ease;
 
     &:hover {
-      background-color: rgba(var(--fg-accent-color-rgb, 99, 102, 241), 0.04);
+      background-color: rgba(var(--fg-accent-color-rgb), 0.04);
     }
   }
 
   .word {
     cursor: pointer;
     border-radius: 3px;
-    transition: background-color 0.12s ease, color 0.12s ease;
+    transition:
+      background-color 0.12s ease,
+      color 0.12s ease;
 
     &:hover:not(.is-punctuation) {
-      background-color: rgba(var(--fg-accent-color-rgb, 99, 102, 241), 0.18);
+      background-color: rgba(var(--fg-accent-color-rgb), 0.18);
       color: var(--fg-accent-color);
     }
 

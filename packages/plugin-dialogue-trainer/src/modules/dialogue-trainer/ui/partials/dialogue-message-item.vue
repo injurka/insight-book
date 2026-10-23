@@ -1,10 +1,11 @@
 <script setup lang="ts">
+import type { TokenizedSentence } from '../../../../shared/lib/dialogue-tokenizer'
 import type { DialogueMessage } from '../../../../shared/types/dialogue'
 import { Icon } from '@iconify/vue'
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useTextSelection } from '~/04.features/analysis'
-import { tokenizeDialogueText } from '../../../../shared/lib/dialogue-tokenizer'
+import { tokenizeDialogueText, tokenizeDialogueTextServer } from '../../../../shared/lib/dialogue-tokenizer'
 import DialogueFeedbackCard from './dialogue-feedback-card.vue'
 
 interface Props {
@@ -28,15 +29,36 @@ const { t } = useI18n()
 const { onPointerDown, onPointerUp, onWordClick } = useTextSelection()
 
 const visibleTranslations = ref<Record<number, boolean>>({})
+const serverSentences = ref<TokenizedSentence[] | null>(null)
 
 // Tokenize text into sentences and words for click/long-press interactions
 const tokenizedSentences = computed(() => {
+  if (serverSentences.value?.length) {
+    return serverSentences.value
+  }
+
   if (!props.message.content) {
     return []
   }
 
   return tokenizeDialogueText(props.message.content, props.targetLanguage, 1000)
 })
+
+watch(() => [props.message.content, props.targetLanguage], async () => {
+  if (props.message.tokenizedSentences?.length) {
+    serverSentences.value = props.message.tokenizedSentences
+
+    return
+  }
+
+  if (!props.message.content) {
+    serverSentences.value = []
+
+    return
+  }
+
+  serverSentences.value = await tokenizeDialogueTextServer(props.message.content, props.targetLanguage, 1000)
+}, { immediate: true })
 
 function checkSentencePlaying(idx: number): boolean {
   if (props.isSentencePlaying) {
@@ -200,8 +222,8 @@ function getSentenceTranslation(idx: number): string {
 
     .bubble {
       max-width: 86%;
-      background: rgba(var(--fg-accent-color-rgb, 99, 102, 241), 0.12);
-      border: 1px solid rgba(var(--fg-accent-color-rgb, 99, 102, 241), 0.25);
+      background: rgba(var(--fg-accent-color-rgb), 0.12);
+      border: 1px solid rgba(var(--fg-accent-color-rgb), 0.25);
       border-radius: 18px 18px 4px 18px;
 
       .message-text {
@@ -225,7 +247,7 @@ function getSentenceTranslation(idx: number): string {
       overflow: hidden;
 
       &.is-loading {
-        border-color: rgba(var(--fg-accent-color-rgb, 99, 102, 241), 0.35);
+        border-color: rgba(var(--fg-accent-color-rgb), 0.35);
 
         &::before {
           content: '';
@@ -237,9 +259,9 @@ function getSentenceTranslation(idx: number): string {
           background: linear-gradient(
             90deg,
             transparent,
-            rgba(var(--fg-accent-color-rgb, 99, 102, 241), 0.3),
+            rgba(var(--fg-accent-color-rgb), 0.3),
             var(--fg-accent-color),
-            rgba(var(--fg-accent-color-rgb, 99, 102, 241), 0.3),
+            rgba(var(--fg-accent-color-rgb), 0.3),
             transparent
           );
           animation: scan 1.8s infinite ease-in-out;
@@ -309,17 +331,19 @@ function getSentenceTranslation(idx: number): string {
   transition: background-color 0.15s ease;
 
   &:hover {
-    background-color: rgba(var(--fg-accent-color-rgb, 99, 102, 241), 0.04);
+    background-color: rgba(var(--fg-accent-color-rgb), 0.04);
   }
 }
 
 .word {
   cursor: pointer;
   border-radius: 3px;
-  transition: background-color 0.12s ease, color 0.12s ease;
+  transition:
+    background-color 0.12s ease,
+    color 0.12s ease;
 
   &:hover:not(.is-punctuation) {
-    background-color: rgba(var(--fg-accent-color-rgb, 99, 102, 241), 0.18);
+    background-color: rgba(var(--fg-accent-color-rgb), 0.18);
     color: var(--fg-accent-color);
   }
 
@@ -349,7 +373,7 @@ function getSentenceTranslation(idx: number): string {
   height: 24px;
   padding: 0;
   border: none;
-  background: rgba(var(--fg-accent-color-rgb, 99, 102, 241), 0.08);
+  background: rgba(var(--bg-tertiary-color-rgb), 0.4);
   color: var(--fg-secondary-color);
   border-radius: 6px;
   cursor: pointer;
@@ -357,13 +381,8 @@ function getSentenceTranslation(idx: number): string {
   transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
 
   &:hover {
-    background: rgba(var(--fg-accent-color-rgb, 99, 102, 241), 0.2);
+    background: rgba(var(--fg-accent-color-rgb), 0.2);
     color: var(--fg-accent-color);
-    transform: scale(1.05);
-  }
-
-  &:active {
-    transform: scale(0.95);
   }
 
   &.is-playing {
@@ -388,7 +407,7 @@ function getSentenceTranslation(idx: number): string {
   gap: 6px;
   margin: 6px 0 8px 0;
   padding: 6px 10px;
-  background: rgba(var(--fg-accent-color-rgb, 99, 102, 241), 0.08);
+  background: rgba(var(--fg-accent-color-rgb), 0.08);
   border-left: 3px solid var(--fg-accent-color);
   border-radius: 0 8px 8px 0;
   color: var(--fg-secondary-color);
@@ -422,7 +441,8 @@ function getSentenceTranslation(idx: number): string {
 }
 
 @keyframes pulse {
-  0%, 100% {
+  0%,
+  100% {
     transform: scale(1);
     opacity: 1;
   }
@@ -442,7 +462,9 @@ function getSentenceTranslation(idx: number): string {
 }
 
 @keyframes bounce {
-  0%, 80%, 100% {
+  0%,
+  80%,
+  100% {
     transform: scale(0);
   }
   40% {
@@ -452,7 +474,9 @@ function getSentenceTranslation(idx: number): string {
 
 .sentence-fade-enter-active,
 .sentence-fade-leave-active {
-  transition: opacity 0.2s ease, transform 0.2s ease;
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease;
 }
 
 .sentence-fade-enter-from,

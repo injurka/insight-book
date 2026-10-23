@@ -1,3 +1,5 @@
+import type { TokenizedSentence } from '../lib/dialogue-tokenizer'
+
 export type DialogueDifficulty = 'adaptive' | 'a1' | 'a2' | 'b1' | 'b2' | 'c1'
 
 export type DialogueStyle = 'adaptive' | 'friendly' | 'casual' | 'formal' | 'humorous' | 'tutor'
@@ -12,6 +14,11 @@ export interface DialogueSettings {
   autoPlayAudio: boolean
 }
 
+export interface DialogueSentenceReply {
+  text: string
+  translation: string
+}
+
 export interface DialogueMessage {
   id: string
   role: 'user' | 'assistant'
@@ -21,7 +28,10 @@ export interface DialogueMessage {
   feedback?: string
   correctedSentence?: string
   replyTranslation?: string
+  replySentences?: DialogueSentenceReply[]
   audioBase64?: string
+  sentenceAudios?: Record<number, string>
+  tokenizedSentences?: TokenizedSentence[]
   isLoading?: boolean
 }
 
@@ -40,4 +50,5 @@ export interface LlmDialogueAnalysisResponse {
   correctedSentence: string
   reply: string
   replyTranslation: string
+  replySentences?: DialogueSentenceReply[]
 }
