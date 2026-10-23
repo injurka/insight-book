@@ -22,6 +22,7 @@ export interface DialogueMessage {
   correctedSentence?: string
   replyTranslation?: string
   audioBase64?: string
+  isLoading?: boolean
 }
 
 export interface DialogueSession {

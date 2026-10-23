@@ -28,7 +28,13 @@ const showTranslation = ref(false)
 <template>
   <div class="message-row" :class="[message.role]">
     <!-- Message Bubble -->
-    <div class="bubble" :class="[message.role]">
+    <div
+      class="bubble"
+      :class="[
+        message.role,
+        { 'is-loading': message.isLoading },
+      ]"
+    >
       <!-- Feedback Card for Assistant Messages -->
       <DialogueFeedbackCard
         v-if="message.role === 'assistant' && (message.feedback || message.correctedSentence || message.isCorrect !== undefined)"
@@ -41,8 +47,16 @@ const showTranslation = ref(false)
         @play-correction="emit('playCorrection')"
       />
 
+      <!-- In-bubble Loading Placeholder (before content arrives) -->
+      <div v-if="message.isLoading && !message.content" class="bubble-loading-placeholder">
+        <span class="pulse-dot dot-1" />
+        <span class="pulse-dot dot-2" />
+        <span class="pulse-dot dot-3" />
+        <span class="loading-label">{{ t('plugins.dialogue-trainer.analyzing', 'Анализирую ответ...') }}</span>
+      </div>
+
       <!-- Dialogue Content -->
-      <div class="dialogue-content">
+      <div v-else class="dialogue-content">
         <p class="message-text">
           {{ message.content }}
         </p>
@@ -116,6 +130,32 @@ const showTranslation = ref(false)
       background: var(--bg-secondary-color);
       border: 1px solid var(--border-secondary-color);
       border-radius: 18px 18px 18px 4px;
+      position: relative;
+      overflow: hidden;
+
+      &.is-loading {
+        border-color: rgba(var(--fg-accent-color-rgb, 99, 102, 241), 0.35);
+
+        &::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          height: 3px;
+          background: linear-gradient(
+            90deg,
+            transparent,
+            rgba(var(--fg-accent-color-rgb, 99, 102, 241), 0.3),
+            var(--fg-accent-color),
+            rgba(var(--fg-accent-color-rgb, 99, 102, 241), 0.3),
+            transparent
+          );
+          background-size: 200% 100%;
+          animation: border-pulse-stream 1.6s linear infinite;
+          z-index: 10;
+        }
+      }
 
       .message-text {
         color: var(--fg-primary-color);
@@ -124,6 +164,58 @@ const showTranslation = ref(false)
         line-height: 1.55;
       }
     }
+  }
+}
+
+@keyframes border-pulse-stream {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.bubble-loading-placeholder {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 4px;
+
+  .pulse-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--fg-accent-color);
+    animation: typing-dot 1.4s infinite ease-in-out;
+
+    &.dot-1 {
+      animation-delay: 0s;
+    }
+    &.dot-2 {
+      animation-delay: 0.2s;
+    }
+    &.dot-3 {
+      animation-delay: 0.4s;
+    }
+  }
+
+  .loading-label {
+    margin-left: 6px;
+    font-size: 0.84rem;
+    color: var(--fg-secondary-color);
+  }
+}
+
+@keyframes typing-dot {
+  0%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.4;
+  }
+  50% {
+    transform: translateY(-4px);
+    opacity: 1;
   }
 }
 

@@ -47,16 +47,40 @@ function buildDialogueHistoryPrompt(messages: DialogueMessage[], cleanText: stri
   return `${prefix}User just said: "${cleanText}"\n\nAnalyze what the user said, evaluate correctness, explain mistakes/improvements, give corrected sentence, and write your in-character dialogue reply.`
 }
 
-function createAssistantMessage(res: LlmDialogueAnalysisResponse, fallbackContent = ''): DialogueMessage {
+function createAssistantPlaceholder(): DialogueMessage {
   return {
     id: `msg_${Date.now()}_assistant`,
     role: 'assistant',
-    content: res.reply || fallbackContent,
+    content: '',
     timestamp: Date.now(),
-    isCorrect: res.isCorrect,
-    feedback: res.feedback || '',
-    correctedSentence: res.correctedSentence || fallbackContent,
-    replyTranslation: res.replyTranslation || '',
+    isLoading: true,
+  }
+}
+
+function populateAssistantMessage(message: DialogueMessage, res: LlmDialogueAnalysisResponse, fallbackContent = ''): void {
+  message.content = res.reply || fallbackContent
+  message.isCorrect = res.isCorrect
+  message.feedback = res.feedback || ''
+  message.correctedSentence = res.correctedSentence || fallbackContent
+  message.replyTranslation = res.replyTranslation || ''
+}
+
+function removeFailedPlaceholder(session: DialogueSession, placeholder: DialogueMessage): void {
+  const idx = session.messages.indexOf(placeholder)
+
+  if (idx !== -1 && !placeholder.content) {
+    session.messages.splice(idx, 1)
+  }
+}
+
+function updateSessionTitleIfEmpty(
+  session: DialogueSession,
+  defaultTopic = '',
+  reply = '',
+  defaultTitle = '',
+): void {
+  if (!session.title || session.title === defaultTitle) {
+    session.title = defaultTopic.trim() || reply.substring(0, 30)
   }
 }
 
@@ -204,6 +228,9 @@ Output STRICT JSON ONLY:
     isAiStarting.value = true
     currentError.value = null
 
+    const assistantPlaceholder = createAssistantPlaceholder()
+    session.messages.push(assistantPlaceholder)
+
     try {
       const prompt = `Start our dialogue in ${practiceLang}. Introduce scenario or greet user in character matching topic "${settings.topic || 'friendly encounter'}", style "${settings.style}", level "${settings.difficulty}". Return JSON with isCorrect: true, feedback: "", correctedSentence: "", reply: "greeting in ${practiceLang}", replyTranslation: "translation in ${interfaceLang}".`
 
@@ -217,22 +244,25 @@ Output STRICT JSON ONLY:
         throw new Error('Empty AI response')
       }
 
-      const assistantMessage = createAssistantMessage(res)
-      session.messages.push(assistantMessage)
+      populateAssistantMessage(assistantPlaceholder, res)
       session.updatedAt = Date.now()
+      updateSessionTitleIfEmpty(
+        session,
+        settings.topic,
+        res.reply,
+        t('plugins.dialogue-trainer.newDialogue'),
+      )
 
-      if (!session.title || session.title === t('plugins.dialogue-trainer.newDialogue')) {
-        session.title = settings.topic?.trim() || res.reply.substring(0, 30)
-      }
-
-      await storage.saveSession(session)
-      await playAssistantVoice(assistantMessage, session, onAudioFinished)
+      await playAssistantVoice(assistantPlaceholder, session, onAudioFinished)
     }
     catch (err) {
       console.error('[DialogueSession] Failed to start AI conversation:', err)
       currentError.value = t('plugins.dialogue-trainer.generationFailed', 'Ошибка генерации ответа от нейросети')
+      removeFailedPlaceholder(session, assistantPlaceholder)
     }
     finally {
+      assistantPlaceholder.isLoading = false
+      await storage.saveSession(session)
       isAiStarting.value = false
     }
   }
@@ -265,6 +295,9 @@ Output STRICT JSON ONLY:
     isGenerating.value = true
     currentError.value = null
 
+    const assistantPlaceholder = createAssistantPlaceholder()
+    session.messages.push(assistantPlaceholder)
+
     try {
       const prompt = buildDialogueHistoryPrompt(session.messages, cleanText)
       const res = await requestLlmGenerate<LlmDialogueAnalysisResponse>({
@@ -277,17 +310,18 @@ Output STRICT JSON ONLY:
         throw new Error('Empty AI response')
       }
 
-      const assistantMessage = createAssistantMessage(res, cleanText)
-      session.messages.push(assistantMessage)
+      populateAssistantMessage(assistantPlaceholder, res, cleanText)
       session.updatedAt = Date.now()
-      await storage.saveSession(session)
-      await playAssistantVoice(assistantMessage, session, onAudioFinished)
+      await playAssistantVoice(assistantPlaceholder, session, onAudioFinished)
     }
     catch (err) {
       console.error('[DialogueSession] Failed to generate AI reply:', err)
       currentError.value = t('plugins.dialogue-trainer.generationFailed', 'Ошибка генерации ответа от нейросети')
+      removeFailedPlaceholder(session, assistantPlaceholder)
     }
     finally {
+      assistantPlaceholder.isLoading = false
+      await storage.saveSession(session)
       isGenerating.value = false
     }
   }

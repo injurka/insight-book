@@ -236,21 +236,6 @@ onUnmounted(() => {
           @play-correction="handlePlayCorrection(msg)"
         />
 
-        <!-- Loading / Analyzing Indicator -->
-        <div v-if="isGenerating || isAiStarting" class="typing-indicator-row">
-          <div class="assistant-avatar">
-            <Icon icon="mdi:robot-happy-outline" />
-          </div>
-          <div class="typing-bubble">
-            <span class="dot dot-1" />
-            <span class="dot dot-2" />
-            <span class="dot dot-3" />
-            <span class="typing-text">
-              {{ isAiStarting ? t('plugins.dialogue-trainer.analyzing') : t('plugins.dialogue-trainer.analyzing') }}
-            </span>
-          </div>
-        </div>
-
         <!-- Error Notification -->
         <div v-if="currentError || recorder.errorMessage.value" class="error-banner">
           <Icon icon="mdi:alert-circle-outline" />
@@ -466,73 +451,6 @@ onUnmounted(() => {
   margin: 0 auto;
 }
 
-.typing-indicator-row {
-  display: flex;
-  gap: 12px;
-  align-items: center;
-  margin-bottom: 16px;
-}
-
-.assistant-avatar {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  background: var(--bg-tertiary-color);
-  border: 1px solid var(--border-secondary-color);
-  color: var(--fg-accent-color);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.25rem;
-}
-
-.typing-bubble {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 10px 16px;
-  background: var(--bg-secondary-color);
-  border: 1px solid var(--border-secondary-color);
-  border-radius: 16px;
-  border-bottom-left-radius: 4px;
-
-  .dot {
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: var(--fg-accent-color);
-    animation: typing-dot 1.4s infinite ease-in-out;
-
-    &.dot-1 {
-      animation-delay: 0s;
-    }
-    &.dot-2 {
-      animation-delay: 0.2s;
-    }
-    &.dot-3 {
-      animation-delay: 0.4s;
-    }
-  }
-
-  .typing-text {
-    margin-left: 6px;
-    font-size: 0.82rem;
-    color: var(--fg-secondary-color);
-  }
-}
-
-@keyframes typing-dot {
-  0%,
-  100% {
-    transform: translateY(0);
-    opacity: 0.4;
-  }
-  50% {
-    transform: translateY(-4px);
-    opacity: 1;
-  }
-}
-
 .error-banner {
   display: flex;
   align-items: center;
@@ -547,6 +465,7 @@ onUnmounted(() => {
 }
 
 .input-footer {
+  min-height: 67px;
   padding: 10px max(16px, env(safe-area-inset-right, 0px))
     max(14px, calc(10px + var(--safe-area-bottom, env(safe-area-inset-bottom, 0px))))
     max(16px, env(safe-area-inset-left, 0px));
@@ -554,9 +473,9 @@ onUnmounted(() => {
   border-top: 1px solid var(--border-secondary-color);
 
   @media (max-width: 600px) {
-    padding: 8px max(10px, env(safe-area-inset-right, 0px))
+    padding: 8px max(16px, env(safe-area-inset-right, 0px))
       max(12px, calc(8px + var(--safe-area-bottom, env(safe-area-inset-bottom, 0px))))
-      max(10px, env(safe-area-inset-left, 0px));
+      max(16px, env(safe-area-inset-left, 0px));
   }
 }
 
