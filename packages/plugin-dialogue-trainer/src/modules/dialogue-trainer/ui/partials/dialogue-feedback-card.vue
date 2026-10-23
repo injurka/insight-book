@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Icon } from '@iconify/vue'
 import { useI18n } from 'vue-i18n'
-import { KitBtn } from '~/02.kit'
+import { KitBtn, KitTooltip } from '~/02.kit'
 
 interface Props {
   isCorrect?: boolean
@@ -31,18 +31,17 @@ const { t } = useI18n()
         </span>
       </div>
 
-      <KitBtn
-        v-if="correctedSentence"
-        size="xs"
-        variant="tonal"
-        :icon="isPlayingAudio ? 'mdi:pause' : 'mdi:volume-high'"
-        :loading="isLoadingAudio"
-        :aria-label="t('plugins.dialogue-trainer.listenCorrection')"
-        class="play-correction-btn"
-        @click="emit('playCorrection')"
-      >
-        {{ t('plugins.dialogue-trainer.listenCorrection') }}
-      </KitBtn>
+      <KitTooltip v-if="correctedSentence" :text="t('plugins.dialogue-trainer.listenCorrection')">
+        <KitBtn
+          size="xs"
+          variant="tonal"
+          :icon="isPlayingAudio ? 'mdi:pause' : 'mdi:volume-high'"
+          :loading="isLoadingAudio"
+          :aria-label="t('plugins.dialogue-trainer.listenCorrection')"
+          class="play-correction-btn"
+          @click="emit('playCorrection')"
+        />
+      </KitTooltip>
     </div>
 
     <div v-if="correctedSentence && !isCorrect" class="correction-section">
@@ -70,7 +69,7 @@ const { t } = useI18n()
 <style lang="scss" scoped>
 .feedback-card {
   margin-bottom: 12px;
-  padding: 12px 14px;
+  padding: 6px;
   border-radius: 12px;
   background: var(--bg-secondary-color);
   border: 1px solid var(--border-secondary-color);
@@ -94,7 +93,7 @@ const { t } = useI18n()
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
 }
 
 .status-badge {
@@ -122,7 +121,20 @@ const { t } = useI18n()
 }
 
 .play-correction-btn {
-  font-size: 0.75rem;
+  width: 26px !important;
+  height: 26px !important;
+  min-width: 26px !important;
+  border-radius: 50% !important;
+  padding: 0 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex-shrink: 0;
+
+  :deep(.kit-btn-icon) {
+    margin: 0 !important;
+    font-size: 0.95rem;
+  }
 }
 
 .section-label {

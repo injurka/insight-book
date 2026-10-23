@@ -23,82 +23,61 @@ const emit = defineEmits<{
 
 const { t } = useI18n()
 const showTranslation = ref(false)
-
-function formatTime(timestamp: number): string {
-  const d = new Date(timestamp)
-
-  return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-}
 </script>
 
 <template>
   <div class="message-row" :class="[message.role]">
-    <!-- Avatar -->
-    <div class="avatar-col">
-      <div class="avatar" :class="[message.role]">
-        <Icon :icon="message.role === 'user' ? 'mdi:account' : 'mdi:robot-happy-outline'" />
-      </div>
-    </div>
-
     <!-- Message Bubble -->
-    <div class="bubble-col">
-      <div class="bubble" :class="[message.role]">
-        <!-- Feedback Card for Assistant Messages -->
-        <DialogueFeedbackCard
-          v-if="message.role === 'assistant' && (message.feedback || message.correctedSentence || message.isCorrect !== undefined)"
-          :is-correct="message.isCorrect"
-          :feedback="message.feedback"
-          :corrected-sentence="message.correctedSentence"
-          :target-language="targetLanguage"
-          :is-playing-audio="isPlayingCorrection"
-          :is-loading-audio="isLoadingAudio"
-          @play-correction="emit('playCorrection')"
-        />
+    <div class="bubble" :class="[message.role]">
+      <!-- Feedback Card for Assistant Messages -->
+      <DialogueFeedbackCard
+        v-if="message.role === 'assistant' && (message.feedback || message.correctedSentence || message.isCorrect !== undefined)"
+        :is-correct="message.isCorrect"
+        :feedback="message.feedback"
+        :corrected-sentence="message.correctedSentence"
+        :target-language="targetLanguage"
+        :is-playing-audio="isPlayingCorrection"
+        :is-loading-audio="isLoadingAudio"
+        @play-correction="emit('playCorrection')"
+      />
 
-        <!-- Dialogue Content -->
-        <div class="dialogue-content">
-          <p class="message-text">
-            {{ message.content }}
-          </p>
+      <!-- Dialogue Content -->
+      <div class="dialogue-content">
+        <p class="message-text">
+          {{ message.content }}
+        </p>
 
-          <!-- Assistant Action Buttons (Audio + Translation) -->
-          <div v-if="message.role === 'assistant'" class="assistant-actions">
-            <KitBtn
-              size="xs"
-              variant="tonal"
-              :icon="isPlayingReply ? 'mdi:pause' : 'mdi:volume-high'"
-              :loading="isLoadingAudio && isPlayingReply"
-              :color="isPlayingReply ? 'primary' : undefined"
-              class="audio-btn"
-              :aria-label="t('plugins.dialogue-trainer.listenReply')"
-              @click="emit('playReply')"
-            >
-              {{ t('plugins.dialogue-trainer.listenReply') }}
-            </KitBtn>
+        <!-- Assistant Action Buttons (Audio + Translation) -->
+        <div v-if="message.role === 'assistant'" class="assistant-actions">
+          <KitBtn
+            size="xs"
+            variant="text"
+            :icon="isPlayingReply ? 'mdi:pause' : 'mdi:volume-high'"
+            :loading="isLoadingAudio && isPlayingReply"
+            :color="isPlayingReply ? 'primary' : undefined"
+            class="audio-btn"
+            :aria-label="t('plugins.dialogue-trainer.listenReply')"
+            @click="emit('playReply')"
+          >
+            {{ t('plugins.dialogue-trainer.listenReply') }}
+          </KitBtn>
 
-            <KitBtn
-              v-if="message.replyTranslation"
-              size="xs"
-              variant="text"
-              :icon="showTranslation ? 'mdi:translate-off' : 'mdi:translate'"
-              class="translation-btn"
-              @click="showTranslation = !showTranslation"
-            >
-              {{ showTranslation ? t('plugins.dialogue-trainer.hideTranslation') : t('plugins.dialogue-trainer.showTranslation') }}
-            </KitBtn>
-          </div>
-
-          <!-- Translation Drawer -->
-          <div v-if="showTranslation && message.replyTranslation" class="translation-block">
-            <Icon icon="mdi:format-quote-close" class="quote-icon" />
-            <span class="translation-text">{{ message.replyTranslation }}</span>
-          </div>
+          <KitBtn
+            v-if="message.replyTranslation"
+            size="xs"
+            variant="text"
+            :icon="showTranslation ? 'mdi:translate-off' : 'mdi:translate'"
+            class="translation-btn"
+            @click="showTranslation = !showTranslation"
+          >
+            {{ showTranslation ? t('plugins.dialogue-trainer.hideTranslation') : t('plugins.dialogue-trainer.showTranslation') }}
+          </KitBtn>
         </div>
 
-        <!-- Meta Footer -->
-        <div class="bubble-meta">
-          <Icon v-if="message.role === 'user'" icon="mdi:microphone" class="meta-mic-icon" />
-          <span class="meta-time">{{ formatTime(message.timestamp) }}</span>
+        <!-- Translation Drawer -->
+        <div v-if="showTranslation && message.replyTranslation" class="translation-block">
+          <Icon icon="mdi:format-quote-close" class="quote-icon" />
+          <span class="translation-text">{{ message.replyTranslation }}</span>
         </div>
       </div>
     </div>
@@ -108,89 +87,50 @@ function formatTime(timestamp: number): string {
 <style lang="scss" scoped>
 .message-row {
   display: flex;
-  gap: 12px;
   width: 100%;
-  margin-bottom: 18px;
+  margin-bottom: 12px;
 
   &.user {
-    flex-direction: row-reverse;
-  }
-}
+    justify-content: flex-end;
 
-.avatar-col {
-  flex-shrink: 0;
-  display: flex;
-  align-items: flex-end;
-}
+    .bubble {
+      max-width: 86%;
+      background: rgba(var(--fg-accent-color-rgb, 99, 102, 241), 0.12);
+      border: 1px solid rgba(var(--fg-accent-color-rgb, 99, 102, 241), 0.25);
+      border-radius: 18px 18px 4px 18px;
 
-.avatar {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.25rem;
-
-  &.user {
-    background: var(--bg-accent-color, #3b82f6);
-    color: #fff;
+      .message-text {
+        color: var(--fg-primary-color);
+        font-size: 0.98rem;
+        font-weight: 500;
+        line-height: 1.5;
+      }
+    }
   }
 
   &.assistant {
-    background: var(--bg-tertiary-color);
-    color: var(--fg-accent-color);
-    border: 1px solid var(--border-secondary-color);
-  }
-}
+    justify-content: flex-start;
 
-.bubble-col {
-  max-width: 82%;
-  min-width: 160px;
+    .bubble {
+      max-width: 90%;
+      background: var(--bg-secondary-color);
+      border: 1px solid var(--border-secondary-color);
+      border-radius: 18px 18px 18px 4px;
+
+      .message-text {
+        color: var(--fg-primary-color);
+        font-size: 1.02rem;
+        font-weight: 500;
+        line-height: 1.55;
+      }
+    }
+  }
 }
 
 .bubble {
-  padding: 14px 16px;
-  border-radius: 16px;
+  padding: 12px;
   position: relative;
   word-break: break-word;
-
-  &.user {
-    background: var(--bg-accent-color, #3b82f6);
-    color: #fff;
-    border-bottom-right-radius: 4px;
-
-    .message-text {
-      color: #fff;
-      font-size: 0.98rem;
-      line-height: 1.5;
-    }
-
-    .meta-time {
-      color: rgba(255, 255, 255, 0.7);
-    }
-
-    .meta-mic-icon {
-      color: rgba(255, 255, 255, 0.7);
-    }
-  }
-
-  &.assistant {
-    background: var(--bg-secondary-color);
-    border: 1px solid var(--border-secondary-color);
-    border-bottom-left-radius: 4px;
-
-    .message-text {
-      color: var(--fg-primary-color);
-      font-size: 1.02rem;
-      font-weight: 500;
-      line-height: 1.55;
-    }
-
-    .meta-time {
-      color: var(--fg-tertiary-color);
-    }
-  }
 }
 
 .message-text {
@@ -201,12 +141,12 @@ function formatTime(timestamp: number): string {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-top: 10px;
+  margin-top: 8px;
   flex-wrap: wrap;
 }
 
 .translation-block {
-  margin-top: 10px;
+  margin-top: 8px;
   padding: 8px 12px;
   border-radius: 8px;
   background: var(--bg-tertiary-color);
@@ -218,19 +158,21 @@ function formatTime(timestamp: number): string {
   gap: 6px;
 
   .quote-icon {
-    font-size: 1rem;
+    font-size: 0.9rem;
     color: var(--fg-accent-color);
-    flex-shrink: 0;
     margin-top: 2px;
+    flex-shrink: 0;
+  }
+
+  .translation-text {
+    line-height: 1.45;
   }
 }
 
-.bubble-meta {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 4px;
-  margin-top: 6px;
-  font-size: 0.72rem;
+.audio-btn,
+.translation-btn {
+  font-size: 0.78rem !important;
+  padding: 2px 6px !important;
+  height: 26px !important;
 }
 </style>

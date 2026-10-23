@@ -92,28 +92,28 @@ const waveBars = computed(() => {
 
         <!-- Right: Actions -->
         <div class="recording-actions">
-          <KitBtn
-            size="sm"
-            variant="tonal"
-            icon="mdi:close"
-            :aria-label="t('plugins.dialogue-trainer.recordingCancel')"
-            class="action-btn cancel-btn"
-            @click="emit('cancel')"
-          >
-            <span class="btn-label">{{ t('plugins.dialogue-trainer.recordingCancel') }}</span>
-          </KitBtn>
+          <KitTooltip :text="t('plugins.dialogue-trainer.recordingCancel')">
+            <KitBtn
+              size="sm"
+              variant="tonal"
+              icon="mdi:close"
+              class="rec-btn cancel-btn"
+              :aria-label="t('plugins.dialogue-trainer.recordingCancel')"
+              @click="emit('cancel')"
+            />
+          </KitTooltip>
 
-          <KitBtn
-            size="sm"
-            variant="solid"
-            color="primary"
-            icon="mdi:check"
-            :aria-label="t('plugins.dialogue-trainer.recordingDone')"
-            class="action-btn finish-btn"
-            @click="emit('stop')"
-          >
-            <span class="btn-label">{{ t('plugins.dialogue-trainer.recordingDone') }}</span>
-          </KitBtn>
+          <KitTooltip :text="t('plugins.dialogue-trainer.recordingDone')">
+            <KitBtn
+              size="sm"
+              variant="solid"
+              color="primary"
+              icon="mdi:check"
+              class="rec-btn finish-btn"
+              :aria-label="t('plugins.dialogue-trainer.recordingDone')"
+              @click="emit('stop')"
+            />
+          </KitTooltip>
         </div>
       </div>
     </div>
@@ -355,13 +355,19 @@ const waveBars = computed(() => {
   gap: 8px;
   flex-shrink: 0;
 
-  .action-btn {
-    border-radius: 20px !important;
+  .rec-btn {
+    width: 36px !important;
+    height: 36px !important;
+    min-width: 36px !important;
+    border-radius: 50% !important;
+    padding: 0 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
 
-    @media (max-width: 520px) {
-      .btn-label {
-        display: none;
-      }
+    :deep(.kit-btn-icon) {
+      margin: 0 !important;
+      font-size: 1.15rem;
     }
   }
 }

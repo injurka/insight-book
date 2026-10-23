@@ -4,7 +4,7 @@ import { Icon } from '@iconify/vue'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
-import { KitBtn, KitTooltip } from '~/02.kit'
+import { KitBtn, KitDropdown } from '~/02.kit'
 import {
   DIFFICULTY_OPTIONS,
   STYLE_OPTIONS,
@@ -91,53 +91,49 @@ const styleName = computed(() => {
       </div>
     </div>
 
-    <!-- Header Actions (Single row on all screens) -->
+    <!-- Header Actions (Compact Three-dots Popover Menu) -->
     <div class="header-right">
-      <KitTooltip :text="t('plugins.dialogue-trainer.setupTitle')">
-        <KitBtn
-          icon="mdi:tune"
-          variant="tonal"
-          size="sm"
-          class="header-action-btn"
-          :aria-label="t('plugins.dialogue-trainer.setupTitle')"
-          @click="emit('openSettings')"
-        />
-      </KitTooltip>
+      <KitDropdown placement="bottom-end" width="220px">
+        <template #activator="{ props: activatorProps }">
+          <KitBtn
+            icon="mdi:dots-vertical"
+            variant="text"
+            size="sm"
+            class="header-more-btn"
+            :class="{ 'is-active-btn': activatorProps?.isOpen }"
+            :aria-label="t('plugins.dialogue-trainer.actions', 'Действия')"
+          />
+        </template>
 
-      <KitTooltip :text="t('plugins.dialogue-trainer.history')">
-        <KitBtn
-          icon="mdi:history"
-          variant="tonal"
-          size="sm"
-          class="header-action-btn"
-          :aria-label="t('plugins.dialogue-trainer.history')"
-          @click="emit('openHistory')"
-        />
-      </KitTooltip>
+        <div class="header-menu-list">
+          <button type="button" class="header-menu-item" @click="emit('newDialogue')">
+            <Icon icon="mdi:plus" class="item-icon new-icon" />
+            <span class="item-label">{{ t('plugins.dialogue-trainer.newDialogue') }}</span>
+          </button>
 
-      <KitTooltip :text="t('plugins.dialogue-trainer.newDialogue')">
-        <KitBtn
-          icon="mdi:plus"
-          variant="solid"
-          color="primary"
-          size="sm"
-          class="header-action-btn new-dialogue-btn"
-          :aria-label="t('plugins.dialogue-trainer.newDialogue')"
-          @click="emit('newDialogue')"
-        />
-      </KitTooltip>
+          <button type="button" class="header-menu-item" @click="emit('openSettings')">
+            <Icon icon="mdi:tune" class="item-icon" />
+            <span class="item-label">{{ t('plugins.dialogue-trainer.setupTitle') }}</span>
+          </button>
 
-      <KitTooltip v-if="hasMessages" :text="t('plugins.dialogue-trainer.deleteSession')">
-        <KitBtn
-          icon="mdi:delete-outline"
-          variant="text"
-          color="error"
-          size="sm"
-          class="header-action-btn delete-btn"
-          :aria-label="t('plugins.dialogue-trainer.deleteSession')"
-          @click="emit('deleteDialogue')"
-        />
-      </KitTooltip>
+          <button type="button" class="header-menu-item" @click="emit('openHistory')">
+            <Icon icon="mdi:history" class="item-icon" />
+            <span class="item-label">{{ t('plugins.dialogue-trainer.history') }}</span>
+          </button>
+
+          <div v-if="hasMessages" class="header-menu-divider" />
+
+          <button
+            v-if="hasMessages"
+            type="button"
+            class="header-menu-item is-danger"
+            @click="emit('deleteDialogue')"
+          >
+            <Icon icon="mdi:delete-outline" class="item-icon" />
+            <span class="item-label">{{ t('plugins.dialogue-trainer.deleteSession') }}</span>
+          </button>
+        </div>
+      </KitDropdown>
     </div>
   </header>
 </template>
@@ -300,23 +296,89 @@ const styleName = computed(() => {
 .header-right {
   display: flex;
   align-items: center;
-  gap: 6px;
   flex-shrink: 0;
-
-  @media (max-width: 480px) {
-    gap: 4px;
-  }
 }
 
-.header-action-btn {
-  width: 34px !important;
-  height: 34px !important;
-  min-width: 34px !important;
+.header-more-btn {
+  width: 36px !important;
+  height: 36px !important;
+  min-width: 36px !important;
   border-radius: 50% !important;
   padding: 0 !important;
-  flex-shrink: 0;
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
+
+  :deep(.kit-btn-icon) {
+    margin: 0 !important;
+    font-size: 1.3rem;
+  }
+}
+
+.header-menu-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.header-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: var(--fg-primary-color);
+  font-size: 0.9rem;
+  font-weight: 500;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    background 0.15s,
+    color 0.15s;
+
+  .item-icon {
+    font-size: 1.15rem;
+    color: var(--fg-secondary-color);
+    flex-shrink: 0;
+
+    &.new-icon {
+      color: var(--fg-accent-color);
+    }
+  }
+
+  .item-label {
+    flex: 1;
+    white-space: nowrap;
+  }
+
+  &:hover {
+    background: var(--bg-hover-color);
+    color: var(--fg-primary-color);
+
+    .item-icon {
+      color: var(--fg-accent-color);
+    }
+  }
+
+  &.is-danger {
+    color: rgb(239, 68, 68);
+
+    .item-icon {
+      color: rgb(239, 68, 68);
+    }
+
+    &:hover {
+      background: rgba(239, 68, 68, 0.1);
+    }
+  }
+}
+
+.header-menu-divider {
+  height: 1px;
+  margin: 4px 6px;
+  background: var(--border-primary-color);
 }
 </style>

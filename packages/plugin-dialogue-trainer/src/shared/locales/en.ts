@@ -7,6 +7,7 @@ export default {
   notifyDeactivated: 'Dialogue Trainer plugin deactivated',
 
   // Dialog setup
+  actions: 'Actions',
   newDialogue: 'New Dialogue',
   setupTitle: 'Dialogue Settings',
   setupSubtitle: 'Configure topic, difficulty, and conversational style, or leave defaults',

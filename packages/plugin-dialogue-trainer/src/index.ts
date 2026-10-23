@@ -11,6 +11,7 @@ const plugin: InsightBookPlugin = {
   version: '1.0.0',
   description: 'Interactive voice dialogue practice with grammar, lexical, and conversational feedback.',
   icon: 'mdi:account-voice',
+  immersive: true,
 
   pages: {
     index: () => import('./pages/dialogue-page.vue'),

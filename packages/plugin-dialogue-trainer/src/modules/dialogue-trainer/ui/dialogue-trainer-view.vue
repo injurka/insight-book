@@ -372,7 +372,8 @@ onUnmounted(() => {
 .dialogue-trainer-page {
   display: flex;
   flex-direction: column;
-  height: 100dvh;
+  position: absolute;
+  inset: 0;
   height: 100%;
   width: 100%;
   background: var(--bg-primary-color);
@@ -384,6 +385,8 @@ onUnmounted(() => {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
   padding: 20px max(24px, env(safe-area-inset-right, 0px)) 20px max(24px, env(safe-area-inset-left, 0px));
 
   @media (max-width: 600px) {

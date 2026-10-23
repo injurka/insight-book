@@ -7,6 +7,7 @@ export default {
   notifyDeactivated: '“对话训练器”插件已停用',
 
   // Dialog setup
+  actions: '操作',
   newDialogue: '新对话',
   setupTitle: '对话设置',
   setupSubtitle: '设置话题、难度级别和交流风格，或直接使用默认推荐',

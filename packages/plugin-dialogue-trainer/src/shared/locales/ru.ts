@@ -7,6 +7,7 @@ export default {
   notifyDeactivated: 'Плагин "Тренажер диалогов" деактивирован',
 
   // Dialog setup
+  actions: 'Действия',
   newDialogue: 'Новый диалог',
   setupTitle: 'Параметры диалога',
   setupSubtitle: 'Настройте тему, сложность и стиль общения или оставьте настройки по умолчанию',
