@@ -711,6 +711,7 @@ function exitQuiz() {
 
   &.is-active-target {
     border-color: var(--fg-accent-color);
+    box-shadow: 0 0 0 2px var(--fg-accent-color);
     animation: pulse-target-glow 2s infinite ease-in-out;
   }
 
@@ -1400,8 +1401,8 @@ function exitQuiz() {
 
   .roadmap-grid {
     grid-template-columns: 1fr;
-    gap: 10px;
-    padding: 0;
+    gap: 12px;
+    padding: 6px;
   }
 
   .roadmap-node {
