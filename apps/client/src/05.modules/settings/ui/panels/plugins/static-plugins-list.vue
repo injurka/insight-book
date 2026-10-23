@@ -18,6 +18,12 @@ const availableStaticPlugins = computed(() => [
     description: t('plugins.grammar-rules.description', 'Изучение и проверка правил грамматики'),
     icon: 'mdi:school-outline',
   },
+  {
+    id: 'dialogue-trainer',
+    name: t('plugins.dialogue-trainer.name', 'Тренажер диалогов'),
+    description: t('plugins.dialogue-trainer.description', 'Интерактивные голосовые диалоги с разбором ошибок'),
+    icon: 'mdi:account-voice',
+  },
 ])
 
 async function toggleStaticPlugin(pluginId: string, enabled: boolean) {
@@ -29,6 +35,15 @@ async function toggleStaticPlugin(pluginId: string, enabled: boolean) {
         try {
           const { default: grammarRulesPlugin } = await import('@injurka/insight-book-plugin-grammar-rules')
           await pluginManager.install(null, router, [grammarRulesPlugin])
+        }
+        catch (e) {
+          console.error('Failed to load plugin', e)
+        }
+      }
+      else if (pluginId === 'dialogue-trainer') {
+        try {
+          const { default: dialogueTrainerPlugin } = await import('@injurka/insight-book-plugin-dialogue-trainer')
+          await pluginManager.install(null, router, [dialogueTrainerPlugin])
         }
         catch (e) {
           console.error('Failed to load plugin', e)

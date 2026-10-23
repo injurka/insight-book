@@ -50,6 +50,7 @@ export default defineConfig({
     alias: {
       '~': fileURLToPath(new URL('../src', import.meta.url)),
       '@injurka/insight-book-plugin-grammar-rules': fileURLToPath(new URL('../../../packages/plugin-grammar-rules/src', import.meta.url)),
+      '@injurka/insight-book-plugin-dialogue-trainer': fileURLToPath(new URL('../../../packages/plugin-dialogue-trainer/src', import.meta.url)),
     },
   },
 

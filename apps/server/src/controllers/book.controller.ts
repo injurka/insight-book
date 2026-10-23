@@ -2,7 +2,7 @@ import type { BatchAnalysisRequest } from '../types'
 import path from 'node:path'
 import { Elysia, t } from 'elysia'
 import jwt from 'jsonwebtoken'
-import { extractLlmConfig } from '~/utils/helpers'
+import { extractLlmConfig, normalizeLanguageCode } from '~/utils/helpers'
 import { AUTH_MODE, CORS_HEADERS, JWT_SECRET } from '../config'
 import { ERROR_CODES } from '../constants/error-codes'
 import { bookRepository } from '../repositories/book.repository'
@@ -10,6 +10,7 @@ import { bookAnalysisService } from '../services/book-analysis.service'
 import { bookUploadService } from '../services/book-upload.service'
 import { bookService } from '../services/book.service'
 import { storageService } from '../services/storage.service'
+import { transcribeAudio } from '../services/tts.service'
 import { UpdateBookSchema, UpdateStatsSchema } from '../types/schemas'
 import { CACHE_PROFILES, cachePlugin } from '../utils/cache'
 import { AppError, handleElysiaError } from '../utils/errors'
@@ -410,6 +411,25 @@ export const ttsController = new Elysia()
       text: t.String(),
       voice: t.String(),
       forceCacheBypass: t.Optional(t.Boolean()),
+    }),
+  })
+  .post('/api/tts/transcribe', async ({ userId, body, request }) => {
+    const config = extractLlmConfig(request)
+
+    if (!body.audio)
+      throw new AppError(400, ERROR_CODES.DICTIONARY.AUDIO_AND_WORD_REQUIRED, 'Audio required')
+
+    return await transcribeAudio(
+      userId!,
+      body.audio as File,
+      body.language ? normalizeLanguageCode(body.language) : undefined,
+      config,
+    )
+  }, {
+    requireAuth: true,
+    body: t.Object({
+      audio: t.Any(),
+      language: t.Optional(t.String()),
     }),
   })
 

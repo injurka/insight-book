@@ -466,3 +466,112 @@ Output STRICT JSON ONLY. Never use backticks for strings.
     throw new AppError(500, ERROR_CODES.TTS.GENERATION_FAILED, getErrorMsg('recognition_failed', err.message))
   }
 }
+
+export async function transcribeAudio(
+  userId: number,
+  audioFile: File,
+  language: string | undefined,
+  config: LlmConfig,
+): Promise<{ text: string }> {
+  if (!config.url)
+    throw new AppError(500, ERROR_CODES.TTS.NOT_CONFIGURED, 'LLM/STT API not configured')
+
+  const arrayBuffer = await audioFile.arrayBuffer()
+  const audioBuffer = Buffer.from(arrayBuffer)
+  const inputDurationSeconds = await getAudioDurationSeconds(audioBuffer)
+  const billableSttTokens = Math.max(TOKEN_WEIGHTS.MIN_STT_TOKENS, Math.round(inputDurationSeconds * TOKEN_WEIGHTS.STT_SECOND_MULTIPLIER))
+
+  await checkTokenLimit(userId, billableSttTokens)
+
+  let apiUrl = config.sttUrl || config.url
+
+  if (apiUrl.endsWith('/chat/completions')) {
+    apiUrl = apiUrl.replace(/\/chat\/completions$/, '/audio/transcriptions')
+  }
+  else if (apiUrl.endsWith('/v1')) {
+    apiUrl = `${apiUrl}/audio/transcriptions`
+  }
+  else {
+    apiUrl = `${apiUrl}/v1/audio/transcriptions`
+  }
+
+  const sttModel = config.sttModel || 'whisper-large-v3'
+  const fallbackSttModel = config.fallbackSttModel
+  const sttKey = config.sttKey || config.key
+
+  const doSttRequest = async (model: string) => {
+    const fd = new FormData()
+    fd.append('file', audioFile)
+    fd.append('model', model)
+    fd.append('prompt', 'Transcribe verbatim exactly what is spoken word-for-word, phonetically and grammatically as uttered, even if it contains mistakes, ungrammatical constructions, or hesitation. Do not auto-correct or fix any mistakes.')
+
+    if (language) {
+      fd.append('language', language.substring(0, 2))
+    }
+
+    return await runWithClientSpan(`STT ${model}`, {
+      'gen_ai.system': 'openai',
+      'gen_ai.request.model': model,
+      'http.request.method': 'POST',
+      'http.method': 'POST',
+    }, async () => {
+      attachUrlToActiveSpan(apiUrl)
+
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: sttKey ? { Authorization: `Bearer ${sttKey}` } : {},
+        body: fd,
+        signal: AbortSignal.timeout(30000),
+      })
+
+      if (!response.ok) {
+        const errorText = await response.text()
+        throw new Error(`STT API Error: ${response.status} ${errorText}`)
+      }
+
+      return response.json() as Promise<{ text?: string, usage?: { prompt_tokens?: number, completion_tokens?: number } }>
+    })
+  }
+
+  try {
+    let data: { text?: string, usage?: { prompt_tokens?: number, completion_tokens?: number } }
+    let usedSttModel = sttModel
+
+    try {
+      data = await doSttRequest(sttModel)
+    }
+    catch (primaryErr: unknown) {
+      if (fallbackSttModel && fallbackSttModel !== sttModel) {
+        logger.warn(`[STT] Primary model (${sttModel}) failed, trying fallback (${fallbackSttModel})...`)
+        data = await doSttRequest(fallbackSttModel)
+        usedSttModel = fallbackSttModel
+      }
+      else {
+        throw primaryErr
+      }
+    }
+
+    const heardText = data.text?.trim() || ''
+    const sttCompletionTokens = data.usage?.completion_tokens || heardText.length
+
+    trackTokenUsage(
+      userId,
+      'dialogue_stt_transcribe',
+      usedSttModel,
+      billableSttTokens,
+      sttCompletionTokens,
+      `[AUDIO ${Math.round(audioFile.size / 1024)}KB, duration: ${inputDurationSeconds}s]`,
+      heardText,
+      { inputAudioSeconds: inputDurationSeconds },
+    )
+
+    return { text: heardText }
+  }
+  catch (err: unknown) {
+    if (err instanceof Error && err.name === 'AbortError')
+      return { text: '' }
+
+    logger.error(err, '[Audio Service] STT Transcription Failed:')
+    throw new AppError(500, ERROR_CODES.TTS.GENERATION_FAILED, err instanceof Error ? err.message : 'Transcription failed')
+  }
+}

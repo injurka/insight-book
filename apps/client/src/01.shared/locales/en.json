@@ -407,6 +407,10 @@
     "grammar-rules": {
       "name": "Grammar Rules",
       "description": "Learn and test language grammar rules."
+    },
+    "dialogue-trainer": {
+      "name": "Dialogue Trainer",
+      "description": "Interactive voice dialogues with grammar, lexical, and naturalness analysis."
     }
   },
   "library": {

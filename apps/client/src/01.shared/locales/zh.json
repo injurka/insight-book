@@ -406,6 +406,10 @@
     "grammar-rules": {
       "name": "语法规则",
       "description": "学习并测试语言语法规则。"
+    },
+    "dialogue-trainer": {
+      "name": "对话训练器",
+      "description": "带有错误分析与实时反馈的语音语言练习。"
     }
   },
   "library": {

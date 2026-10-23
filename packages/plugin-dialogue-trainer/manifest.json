@@ -1,0 +1,9 @@
+{
+  "id": "dialogue-trainer",
+  "name": "Dialogue Trainer",
+  "version": "1.0.0",
+  "description": "Interactive voice dialogue trainer with grammar, lexical, and naturalness analysis.",
+  "icon": "mdi:account-voice",
+  "source": "https://github.com/injurka/insight-book/tree/master/packages/plugin-dialogue-trainer",
+  "entryUrl": "./remoteEntry.js"
+}

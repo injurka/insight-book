@@ -519,6 +519,21 @@ export const api = {
         body: JSON.stringify({ text, voice, forceCacheBypass }),
         signal,
       }),
+
+    transcribe: async (audioBlob: Blob, language?: string, signal?: AbortSignal) => {
+      const fd = new FormData()
+      fd.append('audio', audioBlob, 'speech.webm')
+
+      if (language)
+        fd.append('language', language)
+
+      return request<{ text: string }>('/api/tts/transcribe', {
+        method: 'POST',
+        body: fd,
+        withLlm: true,
+        signal,
+      })
+    },
   },
 
   dictionary: {

@@ -19,6 +19,9 @@
       ],
       "@injurka/insight-book-plugin-grammar-rules": [
         "../../packages/plugin-grammar-rules/src/index.ts"
+      ],
+      "@injurka/insight-book-plugin-dialogue-trainer": [
+        "../../packages/plugin-dialogue-trainer/src/index.ts"
       ]
     },
     "resolveJsonModule": true,
@@ -45,7 +48,9 @@
     "../../packages/plugin-api/src/**/*.ts",
     "../../packages/plugin-api/src/**/*.vue",
     "../../packages/plugin-grammar-rules/src/**/*.ts",
-    "../../packages/plugin-grammar-rules/src/**/*.vue"
+    "../../packages/plugin-grammar-rules/src/**/*.vue",
+    "../../packages/plugin-dialogue-trainer/src/**/*.ts",
+    "../../packages/plugin-dialogue-trainer/src/**/*.vue"
   ],
   "exclude": [
     "src/**/*.spec.ts",

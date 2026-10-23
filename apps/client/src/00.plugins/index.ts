@@ -14,6 +14,12 @@ export async function setupPlugins(app: App, router: Router) {
     pluginsToInstall.push(grammarRulesPlugin)
   }
 
+  if (enabledPlugins.includes('dialogue-trainer')) {
+    const { default: dialogueTrainerPlugin } = await import('@injurka/insight-book-plugin-dialogue-trainer')
+
+    pluginsToInstall.push(dialogueTrainerPlugin)
+  }
+
   if (pluginsToInstall.length > 0)
     await pluginManager.install(app, router, pluginsToInstall)
 }

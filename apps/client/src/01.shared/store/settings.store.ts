@@ -80,7 +80,16 @@ export const useGlobalSettingsStore = defineStore('globalSettings', () => {
   const autoAnalyzeTtsSentences = useLocalStorage<boolean>('global-auto-analyze-tts-sentences', false)
   const autoAnalyzeTtsWords = useLocalStorage<boolean>('global-auto-analyze-tts-words', false)
 
-  const enabledPlugins = useLocalStorage<string[]>('global-enabled-plugins', [])
+  const enabledPlugins = useLocalStorage<string[]>('global-enabled-plugins', ['dialogue-trainer'])
+  const hasInitializedDialoguePlugin = useLocalStorage<boolean>('global-dialogue-trainer-default-v1', false)
+
+  if (!hasInitializedDialoguePlugin.value) {
+    if (!enabledPlugins.value.includes('dialogue-trainer')) {
+      enabledPlugins.value.push('dialogue-trainer')
+    }
+
+    hasInitializedDialoguePlugin.value = true
+  }
 
   const parallelViewMode = useLocalStorage<'none' | 'split' | 'interleaved'>('global-parallel-view-mode', 'none')
   const parallelBlurTranslation = useLocalStorage<boolean>('global-parallel-blur-translation', false)
