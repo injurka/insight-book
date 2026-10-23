@@ -38,15 +38,38 @@ export function useRulesFilter(rules: Ref<Rule[]>, currentConfig?: Ref<LanguageC
     })
   }
 
+  const levelCounts = computed(() => {
+    const counts: Record<string, number> = { all: rules.value.length }
+
+    for (const rule of rules.value) {
+      const lvl = rule.level || rule.hskLevel || 'other'
+      counts[lvl] = (counts[lvl] || 0) + 1
+    }
+
+    return counts
+  })
+
+  const categoryCounts = computed(() => {
+    const counts: Record<string, number> = { all: rules.value.length }
+
+    for (const rule of rules.value) {
+      counts[rule.category] = (counts[rule.category] || 0) + 1
+    }
+
+    return counts
+  })
+
   const categoryOptions = computed(() => {
     if (currentConfig?.value?.categories) {
       return currentConfig.value.categories.map(c => ({
         value: c.id,
         label: te(c.titleKey) ? t(c.titleKey) : c.id,
+        color: c.color,
+        count: categoryCounts.value[c.id] || 0,
       }))
     }
 
-    return [{ value: 'all', label: t('plugins.grammar-rules.catAll') }]
+    return [{ value: 'all', label: t('plugins.grammar-rules.catAll'), count: rules.value.length }]
   })
 
   const levelOptions = computed(() => {
@@ -54,10 +77,11 @@ export function useRulesFilter(rules: Ref<Rule[]>, currentConfig?: Ref<LanguageC
       return currentConfig.value.levels.map(l => ({
         value: l.id,
         label: l.label,
+        count: levelCounts.value[l.id] || 0,
       }))
     }
 
-    return [{ value: 'all', label: t('plugins.grammar-rules.levelAll') }]
+    return [{ value: 'all', label: t('plugins.grammar-rules.levelAll'), count: rules.value.length }]
   })
 
   const filteredRules = computed(() => {
@@ -70,12 +94,26 @@ export function useRulesFilter(rules: Ref<Rule[]>, currentConfig?: Ref<LanguageC
     })
   })
 
+  const resetFilters = () => {
+    searchQuery.value = ''
+    selectedCategory.value = 'all'
+    selectedLevel.value = 'all'
+  }
+
+  const isFiltered = computed(() => {
+    return Boolean(searchQuery.value.trim()) || selectedCategory.value !== 'all' || selectedLevel.value !== 'all'
+  })
+
   return {
     searchQuery,
     selectedCategory,
     selectedLevel,
     categoryOptions,
     levelOptions,
+    levelCounts,
+    categoryCounts,
     filteredRules,
+    resetFilters,
+    isFiltered,
   }
 }

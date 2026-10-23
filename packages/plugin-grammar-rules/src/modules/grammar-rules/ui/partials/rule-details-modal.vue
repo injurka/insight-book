@@ -16,10 +16,12 @@ interface Props {
 const props = defineProps<Props>()
 const emit = defineEmits<{
   (e: 'regenerate'): void
+  (e: 'practice', rule: Rule): void
 }>()
 const visible = defineModel<boolean>('visible', { required: true })
 
 const { t, te } = useI18n()
+
 const categoryFallbackKeys: Record<string, string> = {
   grammar: 'plugins.grammar-rules.catGrammar',
   tenses: 'plugins.grammar-rules.catTenses',
@@ -36,6 +38,12 @@ const formattedExplanation = computed(() => {
   return formatMarkdown(props.explanation || '')
 })
 
+function onPractice() {
+  if (props.rule) {
+    visible.value = false
+    emit('practice', props.rule)
+  }
+}
 function categoryLabel(cat?: string) {
   if (!cat)
     return ''
@@ -127,9 +135,18 @@ function categoryLabel(cat?: string) {
         </KitBtn>
         <div class="footer-spacer" />
         <KitBtn
+          v-if="rule"
+          size="sm"
+          color="accent"
+          icon="mdi:lightning-bolt"
+          @click="onPractice"
+        >
+          {{ t('plugins.grammar-rules.practiceRule') }}
+        </KitBtn>
+        <KitBtn
           size="sm"
           variant="tonal"
-          color="primary"
+          color="secondary"
           @click="visible = false"
         >
           {{ t('plugins.grammar-rules.closeModal') }}

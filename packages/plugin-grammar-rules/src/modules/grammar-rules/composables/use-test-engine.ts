@@ -111,6 +111,8 @@ export function useTestEngine(tests: Ref<RuleTest[]>, rules: Ref<Rule[]>, option
   const isRoundComplete = ref(false)
   const score = ref(0)
   const completedCount = ref(0)
+  const streak = ref(0)
+  const bestStreak = ref(0)
 
   // State for different question types
   const selectedOption = ref<string | null>(null)
@@ -160,6 +162,8 @@ export function useTestEngine(tests: Ref<RuleTest[]>, rules: Ref<Rule[]>, option
     sessionTests.value = newTests ? [...newTests] : [...tests.value]
     currentTestIndex.value = 0
     score.value = 0
+    streak.value = 0
+    bestStreak.value = 0
     completedCount.value = 0
     isRoundComplete.value = false
     initCurrentQuestion()
@@ -234,6 +238,14 @@ export function useTestEngine(tests: Ref<RuleTest[]>, rules: Ref<Rule[]>, option
 
     if (evaluation.isCorrect) {
       score.value++
+      streak.value++
+
+      if (streak.value > bestStreak.value) {
+        bestStreak.value = streak.value
+      }
+    }
+    else {
+      streak.value = 0
     }
 
     completedCount.value++
@@ -260,6 +272,19 @@ export function useTestEngine(tests: Ref<RuleTest[]>, rules: Ref<Rule[]>, option
     }
   }
 
+  const clearCurrentAnswer = () => {
+    if (isSubmitted.value)
+      return
+
+    selectedOption.value = null
+    typedInput.value = ''
+
+    if (scrambleSelectedTokens.value.length > 0) {
+      scrambleAvailableTokens.value.push(...scrambleSelectedTokens.value)
+      scrambleSelectedTokens.value = []
+    }
+  }
+
   const restartTest = (customTests?: RuleTest[]) => {
     initSession(customTests)
   }
@@ -273,6 +298,8 @@ export function useTestEngine(tests: Ref<RuleTest[]>, rules: Ref<Rule[]>, option
     isRoundComplete,
     score,
     completedCount,
+    streak,
+    bestStreak,
     hasAnswer,
     selectedOption,
     typedInput,
@@ -282,6 +309,7 @@ export function useTestEngine(tests: Ref<RuleTest[]>, rules: Ref<Rule[]>, option
     selectChoice,
     selectScrambleToken,
     removeScrambleToken,
+    clearCurrentAnswer,
     submitAnswer,
     nextQuestion,
     restartTest,

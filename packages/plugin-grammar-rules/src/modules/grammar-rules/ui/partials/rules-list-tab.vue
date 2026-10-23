@@ -1,24 +1,35 @@
 <script setup lang="ts">
-import type { Rule, RuleTest } from '../../../../shared/types'
+import type { GrammarMasteryLevel, Rule, RuleTest } from '../../../../shared/types'
 import { Icon } from '@iconify/vue'
-import { computed, ref } from 'vue'
+import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { KitBtn, KitInput, KitSelect } from '~/02.kit'
+import { KitBtn, KitInput } from '~/02.kit'
 import { useRuleDetails } from '../../composables/use-rule-details'
 import RuleCard from './rule-card.vue'
 import RuleDetailsModal from './rule-details-modal.vue'
 
+interface OptionItem {
+  label: string
+  value: string
+  count?: number
+  color?: string
+}
+
 interface Props {
   filteredRules: Rule[]
-  categoryOptions: Array<{ label: string, value: string }>
-  levelOptions: Array<{ label: string, value: string }>
+  categoryOptions: OptionItem[]
+  levelOptions: OptionItem[]
+  totalRulesCount?: number
   loading?: boolean
+  getRuleMastery?: (ruleId: string) => GrammarMasteryLevel
 }
 
 defineProps<Props>()
 const emit = defineEmits<{
   (e: 'addTests', tests: RuleTest[]): void
+  (e: 'practiceRule', rule: Rule): void
 }>()
+
 const searchQuery = defineModel<string>('searchQuery', { required: true })
 const selectedCategory = defineModel<string>('selectedCategory', { required: true })
 const selectedLevel = defineModel<string>('selectedLevel', { required: true })
@@ -34,81 +45,133 @@ const {
   regenerate: regenerateExplanation,
 } = useRuleDetails()
 
-const showMobileFilters = ref(false)
-
-const activeFilterCount = computed(() => {
-  let count = 0
-
-  if (selectedCategory.value && selectedCategory.value !== 'all')
-    count++
-
-  if (selectedLevel.value && selectedLevel.value !== 'all')
-    count++
-
-  return count
+const isAnyFilterActive = computed(() => {
+  return Boolean(searchQuery.value.trim()) || selectedCategory.value !== 'all' || selectedLevel.value !== 'all'
 })
+
+function onResetFilters() {
+  searchQuery.value = ''
+  selectedCategory.value = 'all'
+  selectedLevel.value = 'all'
+}
+
+function onPracticeRule(rule: Rule) {
+  emit('practiceRule', rule)
+}
 </script>
 
 <template>
-  <div class="rules-tab-content">
-    <div class="filters-bar">
+  <div class="rules-list-tab">
+    <!-- Top Filter Controls Bar -->
+    <div class="filter-controls-card">
+      <!-- Search Input -->
       <div class="search-row">
         <KitInput
           v-model="searchQuery"
           icon="mdi:magnify"
           clearable
           :placeholder="t('plugins.grammar-rules.searchPlaceholder')"
-          class="search-input"
+          class="rules-search-input"
         />
-
-        <KitBtn
-          class="mobile-filter-toggle-btn"
-          variant="outlined"
-          :color="activeFilterCount > 0 ? 'accent' : 'secondary'"
-          icon="mdi:filter-variant"
-          :aria-label="t('plugins.grammar-rules.filtersToggle')"
-          @click="showMobileFilters = !showMobileFilters"
-        >
-          <span v-if="activeFilterCount > 0" class="filter-count-chip">{{ activeFilterCount }}</span>
-        </KitBtn>
       </div>
 
-      <div class="filters-selects" :class="{ 'is-mobile-open': showMobileFilters }">
-        <KitSelect
-          v-model="selectedCategory"
-          icon="mdi:tag-outline"
-          :options="categoryOptions"
-          class="category-select"
-        />
-        <KitSelect
-          v-model="selectedLevel"
-          icon="mdi:signal-cellular-3"
-          :options="levelOptions"
-          class="level-select"
-        />
+      <!-- Quick Level Pills Carousel -->
+      <div v-if="levelOptions.length > 1" class="chips-row-wrapper">
+        <div class="chips-row">
+          <button
+            v-for="lvl in levelOptions"
+            :key="lvl.value"
+            type="button"
+            class="filter-chip"
+            :class="{ 'is-active': selectedLevel === lvl.value }"
+            @click="selectedLevel = lvl.value"
+          >
+            <span>{{ lvl.label }}</span>
+            <span v-if="typeof lvl.count === 'number'" class="chip-count">
+              {{ lvl.count }}
+            </span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Category Filter Pills -->
+      <div v-if="categoryOptions.length > 1" class="chips-row-wrapper categories">
+        <div class="chips-row">
+          <button
+            v-for="cat in categoryOptions"
+            :key="cat.value"
+            type="button"
+            class="filter-chip category-chip"
+            :class="{ 'is-active': selectedCategory === cat.value }"
+            @click="selectedCategory = cat.value"
+          >
+            <span v-if="cat.color && cat.value !== 'all'" class="cat-dot" :style="{ backgroundColor: cat.color }" />
+            <span>{{ cat.label }}</span>
+            <span v-if="typeof cat.count === 'number' && cat.value !== 'all'" class="chip-count">
+              {{ cat.count }}
+            </span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Status / Summary Bar -->
+      <div class="filter-status-bar">
+        <span class="results-counter">
+          {{ t('plugins.grammar-rules.showingRulesCount', { count: filteredRules.length, total: totalRulesCount ?? filteredRules.length }) }}
+        </span>
+
+        <button
+          v-if="isAnyFilterActive"
+          type="button"
+          class="reset-filters-link"
+          @click="onResetFilters"
+        >
+          <Icon icon="mdi:close" />
+          <span>{{ t('plugins.grammar-rules.clearFilters') }}</span>
+        </button>
       </div>
     </div>
 
+    <!-- Loading State -->
     <div v-if="loading" class="loading-state">
       <Icon icon="mdi:loading" class="spin-icon" />
       <p>{{ t('plugins.grammar-rules.loadingRules') }}</p>
     </div>
 
+    <!-- Empty State -->
     <div v-else-if="filteredRules.length === 0" class="empty-state">
-      <Icon icon="mdi:book-open-blank-variant" class="empty-icon" />
-      <p>{{ t('plugins.grammar-rules.rulesNotFound') }}</p>
+      <div class="empty-icon-wrap">
+        <Icon icon="mdi:book-open-blank-variant" class="empty-icon" />
+      </div>
+      <p class="empty-text">
+        {{ t('plugins.grammar-rules.rulesNotFound') }}
+      </p>
+      <KitBtn
+        v-if="isAnyFilterActive"
+        variant="tonal"
+        color="accent"
+        size="sm"
+        icon="mdi:refresh"
+        @click="onResetFilters"
+      >
+        {{ t('plugins.grammar-rules.clearFilters') }}
+      </KitBtn>
     </div>
 
+    <!-- Rules Grid -->
     <div v-else class="rules-grid">
       <RuleCard
         v-for="rule in filteredRules"
         :key="rule.id"
         :rule="rule"
+        :mastery="getRuleMastery?.(rule.id)"
         @generate-test="(tests) => emit('addTests', tests)"
         @learn-more="(r) => openRuleDetails(r)"
+        @practice-rule="onPracticeRule"
       />
     </div>
 
+    <!-- Rule Deep Dive Modal -->
     <RuleDetailsModal
       v-model:visible="isModalOpen"
       :rule="selectedRule"
@@ -116,91 +179,138 @@ const activeFilterCount = computed(() => {
       :loading="isExplanationLoading"
       :error="explanationError"
       @regenerate="regenerateExplanation"
+      @practice="onPracticeRule"
     />
   </div>
 </template>
 
 <style lang="scss" scoped>
-.rules-tab-content {
+.rules-list-tab {
   display: flex;
   flex-direction: column;
   gap: 20px;
-  margin-top: 12px;
-  padding: 4px;
+  width: 100%;
 }
 
-.filters-bar {
+.filter-controls-card {
   display: flex;
-  flex-direction: row;
-  align-items: center;
+  flex-direction: column;
   gap: 12px;
+  padding: 16px;
+  background-color: var(--bg-secondary-color);
+  border: 1px solid var(--border-primary-color);
+  border-radius: 16px;
+}
+
+.search-row {
   width: 100%;
 
-  .search-row {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    flex: 1;
+  .rules-search-input {
+    width: 100%;
   }
+}
 
-  .search-input {
-    flex: 1;
-  }
+.chips-row-wrapper {
+  width: 100%;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
 
-  .mobile-filter-toggle-btn {
+  &::-webkit-scrollbar {
     display: none;
   }
+}
 
-  .filters-selects {
-    display: flex;
-    gap: 12px;
-    align-items: center;
+.chips-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: min-content;
+}
+
+.filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 99px;
+  border: 1px solid var(--border-primary-color);
+  background-color: var(--bg-primary-color);
+  color: var(--fg-secondary-color);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  user-select: none;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+
+  &:hover {
+    color: var(--fg-primary-color);
+    border-color: var(--border-secondary-color);
+    background-color: var(--bg-hover-color);
   }
 
-  .category-select,
-  .level-select {
-    width: 190px;
+  &.is-active {
+    background-color: var(--fg-accent-color);
+    border-color: var(--fg-accent-color);
+    color: #fff;
+
+    .chip-count {
+      background-color: rgba(255, 255, 255, 0.25);
+      color: #fff;
+    }
+  }
+
+  .cat-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
     flex-shrink: 0;
   }
 
-  .filter-count-chip {
+  .chip-count {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    background-color: var(--fg-accent-color);
-    color: var(--bg-primary-color);
-    font-size: 0.75rem;
-    font-weight: 700;
+    padding: 0 5px;
+    height: 16px;
+    min-width: 16px;
     border-radius: 99px;
-    padding: 0 6px;
-    height: 18px;
-    min-width: 18px;
-    margin-left: 4px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    background-color: var(--bg-hover-color);
+    color: var(--fg-secondary-color);
+  }
+}
+
+.filter-status-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 0.85rem;
+  padding-top: 4px;
+
+  .results-counter {
+    color: var(--fg-secondary-color);
+    font-weight: 500;
   }
 
-  @media (max-width: 768px) {
-    flex-direction: column;
-    align-items: stretch;
+  .reset-filters-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: transparent;
+    border: none;
+    color: var(--fg-accent-color);
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 2px 6px;
+    border-radius: 6px;
 
-    .mobile-filter-toggle-btn {
-      display: inline-flex;
-    }
-
-    .filters-selects {
-      display: none;
-      flex-direction: column;
-      width: 100%;
-      gap: 10px;
-      padding-top: 4px;
-
-      &.is-mobile-open {
-        display: flex;
-      }
-    }
-
-    .category-select,
-    .level-select {
-      width: 100%;
+    &:hover {
+      text-decoration: underline;
     }
   }
 }
@@ -211,24 +321,48 @@ const activeFilterCount = computed(() => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 64px 32px;
+  padding: 56px 24px;
   text-align: center;
   color: var(--fg-secondary-color);
-  gap: 16px;
+  gap: 14px;
+  background-color: var(--bg-secondary-color);
+  border: 1px dashed var(--border-secondary-color);
+  border-radius: 16px;
 
   .spin-icon {
-    font-size: 2.5rem;
+    font-size: 2.2rem;
     animation: spin 1s linear infinite;
   }
 
-  .empty-icon {
-    font-size: 3rem;
-    color: var(--border-primary-color);
+  .empty-icon-wrap {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background-color: var(--bg-hover-color);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    .empty-icon {
+      font-size: 1.8rem;
+      color: var(--fg-secondary-color);
+    }
   }
 
-  p {
+  .empty-text {
     margin: 0;
-    max-width: 400px;
+    max-width: 360px;
+    font-size: 0.95rem;
+  }
+}
+
+.rules-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+  gap: 16px;
+
+  @include media-down(sm) {
+    grid-template-columns: 1fr;
   }
 }
 
@@ -239,11 +373,5 @@ const activeFilterCount = computed(() => {
   to {
     transform: rotate(360deg);
   }
-}
-
-.rules-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-  gap: 20px;
 }
 </style>

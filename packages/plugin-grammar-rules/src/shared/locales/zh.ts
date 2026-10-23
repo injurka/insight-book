@@ -63,6 +63,20 @@ const zh = {
   generatingExplanationHint: '正在准备深入解释、公式、实际示例和常见错误分析',
   regenerateExplanation: '重新生成',
   closeModal: '关闭',
+  practiceRule: '练习',
+  practiceTargetRuleHint: '当前练习规则：{title}',
+  clearRuleFilter: '清除筛选',
+  moreExamples: '展开剩余 {count} 个例句',
+  moreExamplesPlural: '展开剩余 {count} 个例句',
+  collapseExamples: '收起例句',
+  showingRulesCount: '显示 {count} / {total} 条规则',
+  streakCount: '连胜: {count}',
+  backToRules: '返回规则列表',
+  reviewMistakesCount: '复习错题 ({count})',
+  clearFilters: '重置筛选',
+  hintLabel: '提示',
+  ruleFormula: '句型',
+  dueToday: '待复习',
 }
 
 export default zh

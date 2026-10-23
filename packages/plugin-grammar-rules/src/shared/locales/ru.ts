@@ -63,6 +63,20 @@ const ru = {
   generatingExplanationHint: 'Формируем глубокое объяснение, формулы, реальные примеры и разбор подводных камней',
   regenerateExplanation: 'Сгенерировать заново',
   closeModal: 'Закрыть',
+  practiceRule: 'Тренировать',
+  practiceTargetRuleHint: 'Тренировка правила: {title}',
+  clearRuleFilter: 'Сбросить фильтр',
+  moreExamples: 'Ещё {count} примера',
+  moreExamplesPlural: 'Ещё {count} примеров',
+  collapseExamples: 'Свернуть примеры',
+  showingRulesCount: 'Показано {count} из {total}',
+  streakCount: 'Серия: {count}',
+  backToRules: 'К списку правил',
+  reviewMistakesCount: 'Повторить ошибки ({count})',
+  clearFilters: 'Сбросить фильтры',
+  hintLabel: 'Подсказка',
+  ruleFormula: 'Формула',
+  dueToday: 'К повторению',
 }
 
 export default ru

@@ -63,6 +63,20 @@ const en = {
   generatingExplanationHint: 'Preparing deep explanations, formulas, real-world examples and common pitfalls',
   regenerateExplanation: 'Regenerate',
   closeModal: 'Close',
+  practiceRule: 'Practice',
+  practiceTargetRuleHint: 'Practicing rule: {title}',
+  clearRuleFilter: 'Clear filter',
+  moreExamples: '{count} more examples',
+  moreExamplesPlural: '{count} more examples',
+  collapseExamples: 'Collapse examples',
+  showingRulesCount: 'Showing {count} of {total}',
+  streakCount: 'Streak: {count}',
+  backToRules: 'Back to rules',
+  reviewMistakesCount: 'Review mistakes ({count})',
+  clearFilters: 'Reset filters',
+  hintLabel: 'Hint',
+  ruleFormula: 'Formula',
+  dueToday: 'Due today',
 }
 
 export default en
