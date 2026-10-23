@@ -1,7 +1,10 @@
 <script setup lang="ts">
 import { Icon } from '@iconify/vue'
+import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { KitBtn, KitTooltip } from '~/02.kit'
+import { useTextSelection } from '~/04.features/analysis'
+import { tokenizeDialogueText } from '../../../../shared/lib/dialogue-tokenizer'
 
 interface Props {
   isCorrect?: boolean
@@ -12,13 +15,22 @@ interface Props {
   isLoadingAudio: boolean
 }
 
-defineProps<Props>()
+const props = defineProps<Props>()
 
 const emit = defineEmits<{
   (e: 'playCorrection'): void
 }>()
 
 const { t } = useI18n()
+const { onPointerDown, onPointerUp, onWordClick } = useTextSelection()
+
+const tokenizedCorrectionSentences = computed(() => {
+  if (!props.correctedSentence) {
+    return []
+  }
+
+  return tokenizeDialogueText(props.correctedSentence, props.targetLanguage, 5000)
+})
 </script>
 
 <template>
@@ -49,9 +61,31 @@ const { t } = useI18n()
         <Icon icon="mdi:auto-fix" />
         {{ t('plugins.dialogue-trainer.correctVariant') }}
       </span>
-      <p class="corrected-text">
-        {{ correctedSentence }}
-      </p>
+      <div
+        class="corrected-text"
+        @pointerdown="onPointerDown"
+        @pointerup="onPointerUp"
+        @click="onWordClick"
+      >
+        <span
+          v-for="sent in tokenizedCorrectionSentences"
+          :key="sent.sentId"
+          class="sentence"
+          :data-sent-id="sent.sentId"
+          :data-raw-sent="encodeURIComponent(sent.rawSent)"
+        >
+          <span
+            v-for="(tkn, tIdx) in sent.tokens"
+            :key="tIdx"
+            class="word"
+            :class="[tkn.isPunct ? 'is-punctuation' : tkn.spacingClass]"
+            :data-word="encodeURIComponent(tkn.word)"
+            :data-pos="tkn.pos"
+            :data-sent-id="sent.sentId"
+            :data-token-idx="tkn.tokenIdx"
+          >{{ tkn.word }}</span>
+        </span>
+      </div>
     </div>
 
     <div v-if="feedback" class="analysis-section">
@@ -155,6 +189,36 @@ const { t } = useI18n()
   font-weight: 600;
   color: var(--fg-primary-color);
   line-height: 1.45;
+  user-select: text;
+
+  .sentence {
+    position: relative;
+    border-radius: 4px;
+    transition: background-color 0.15s ease;
+
+    &:hover {
+      background-color: rgba(var(--fg-accent-color-rgb, 99, 102, 241), 0.04);
+    }
+  }
+
+  .word {
+    cursor: pointer;
+    border-radius: 3px;
+    transition: background-color 0.12s ease, color 0.12s ease;
+
+    &:hover:not(.is-punctuation) {
+      background-color: rgba(var(--fg-accent-color-rgb, 99, 102, 241), 0.18);
+      color: var(--fg-accent-color);
+    }
+
+    &.is-punctuation {
+      cursor: default;
+    }
+
+    &.add-space {
+      padding-right: 0.25em;
+    }
+  }
 }
 
 .feedback-text {

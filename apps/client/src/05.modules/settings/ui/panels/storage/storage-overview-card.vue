@@ -210,6 +210,10 @@ function handleRefresh() {
   &:hover {
     border-color: var(--border-primary-color);
   }
+
+  @include media-down(sm) {
+    padding: 16px;
+  }
 }
 
 .overview-header {

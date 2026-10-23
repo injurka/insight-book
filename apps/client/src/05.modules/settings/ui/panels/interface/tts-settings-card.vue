@@ -154,9 +154,6 @@ function previewVoice() {
 
   .preview-btn {
     flex-shrink: 0;
-    width: 44px;
-    height: 44px;
-    padding: 0;
   }
 }
 

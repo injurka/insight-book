@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { LevelNode, Question, QuizState } from '../../model'
 import { Icon } from '@iconify/vue'
+import { useMediaQuery } from '@vueuse/core'
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRepos } from '~/00.plugins/di'
@@ -21,6 +22,7 @@ const visible = defineModel<boolean>('visible', { required: true })
 
 const repos = useRepos()
 const { t, locale } = useI18n()
+const isSmallScreen = useMediaQuery('(max-width: 599px)')
 
 const currentState = ref<QuizState>('select_level')
 const selectedLang = ref('zh')
@@ -65,12 +67,19 @@ const LEVEL_ORDER: Record<string, string[]> = {
 }
 
 const tabItems = computed(() => {
-  const items = [
-    { id: 'zh', label: `${t('library.langZh')} (ZH)` },
-    { id: 'ja', label: `${t('library.langJa')} (JA)` },
-    { id: 'en', label: `${t('library.langEn')} (EN)` },
-    { id: 'ru', label: `${t('library.langRu')} (RU)` },
-  ]
+  const items = isSmallScreen.value
+    ? [
+        { id: 'zh', label: 'ZH' },
+        { id: 'ja', label: 'JA' },
+        { id: 'en', label: 'EN' },
+        { id: 'ru', label: 'RU' },
+      ]
+    : [
+        { id: 'zh', label: `${t('library.langZh')} (ZH)` },
+        { id: 'ja', label: `${t('library.langJa')} (JA)` },
+        { id: 'en', label: `${t('library.langEn')} (EN)` },
+        { id: 'ru', label: `${t('library.langRu')} (RU)` },
+      ]
 
   return items.filter(item => item.id !== locale.value)
 })
@@ -319,6 +328,7 @@ function exitQuiz() {
   >
     <template #header-actions>
       <button
+        v-if="!isSmallScreen"
         class="dialog-icon-btn minimize-button"
         :title="isFullscreen ? 'Свернуть' : 'Развернуть на весь экран'"
         @click="isFullscreen = !isFullscreen"
@@ -701,20 +711,7 @@ function exitQuiz() {
 
   &.is-active-target {
     border-color: var(--fg-accent-color);
-    box-shadow:
-      0 0 0 2px rgba(var(--fg-accent-color-rgb, 225, 96, 50), 0.2),
-      0 8px 24px rgba(0, 0, 0, 0.08);
-    position: relative;
-
-    &::after {
-      content: '';
-      position: absolute;
-      inset: -2px;
-      border: 2px solid var(--fg-accent-color);
-      border-radius: 18px;
-      animation: pulse-border 2s infinite ease-in-out;
-      pointer-events: none;
-    }
+    animation: pulse-target-glow 2s infinite ease-in-out;
   }
 
   .node-header {
@@ -1323,18 +1320,21 @@ function exitQuiz() {
   }
 }
 
-@keyframes pulse-border {
+@keyframes pulse-target-glow {
   0% {
-    transform: scale(1);
-    opacity: 0.9;
+    box-shadow:
+      0 0 0 1px rgba(var(--fg-accent-color-rgb, 225, 96, 50), 0.4),
+      0 4px 16px rgba(var(--fg-accent-color-rgb, 225, 96, 50), 0.12);
   }
   50% {
-    transform: scale(1.025);
-    opacity: 0.45;
+    box-shadow:
+      0 0 0 3px rgba(var(--fg-accent-color-rgb, 225, 96, 50), 0.2),
+      0 8px 24px rgba(var(--fg-accent-color-rgb, 225, 96, 50), 0.25);
   }
   100% {
-    transform: scale(1);
-    opacity: 0.9;
+    box-shadow:
+      0 0 0 1px rgba(var(--fg-accent-color-rgb, 225, 96, 50), 0.4),
+      0 4px 16px rgba(var(--fg-accent-color-rgb, 225, 96, 50), 0.12);
   }
 }
 
@@ -1390,6 +1390,99 @@ function exitQuiz() {
     border-radius: 8px;
     animation: skeleton-pulse 1.5s infinite ease-in-out;
     background-color: var(--bg-tertiary-color);
+  }
+}
+
+@include media-down(sm) {
+  .quiz-roadmap-view {
+    gap: 12px;
+  }
+
+  .roadmap-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+    padding: 0;
+  }
+
+  .roadmap-node {
+    height: auto;
+    min-height: 110px;
+    padding: 12px 14px;
+    border-radius: 14px;
+    gap: 8px;
+
+    .node-header {
+      padding-bottom: 6px;
+
+      .node-level {
+        font-size: 1.1rem;
+      }
+    }
+
+    .node-body {
+      padding: 4px 0;
+
+      .best-score {
+        font-size: 0.8rem;
+      }
+    }
+
+    .node-footer {
+      .start-node-btn {
+        min-height: 38px;
+      }
+
+      .locked-label {
+        padding: 6px;
+        font-size: 0.8rem;
+      }
+    }
+  }
+
+  .quiz-testing-view {
+    gap: 16px;
+  }
+
+  .question-container-card {
+    padding: 16px;
+    border-radius: 16px;
+    gap: 12px;
+
+    .question-title {
+      font-size: 1.15rem;
+    }
+
+    .reorder-translation-prompt {
+      .prompt-text {
+        font-size: 1.1rem;
+      }
+    }
+  }
+
+  .options-grid {
+    gap: 8px;
+
+    .option-btn {
+      padding: 12px 14px;
+      font-size: 0.95rem;
+    }
+  }
+
+  .quiz-summary-view {
+    gap: 16px;
+
+    .summary-hero {
+      padding: 24px 16px;
+      border-radius: 16px;
+
+      .hero-title {
+        font-size: 1.35rem;
+      }
+
+      .hero-sub {
+        font-size: 0.85rem;
+      }
+    }
   }
 }
 </style>

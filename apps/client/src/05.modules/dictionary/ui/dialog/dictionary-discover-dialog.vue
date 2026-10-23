@@ -719,4 +719,55 @@ onMounted(() => {
   opacity: 0;
   transform: translateY(-5px);
 }
+
+@include media-down(sm) {
+  .upload-area {
+    padding: 24px 16px;
+    border-radius: 12px;
+
+    .upload-icon {
+      font-size: 40px;
+      margin-bottom: 10px;
+    }
+
+    h3 {
+      font-size: 1.05rem;
+    }
+
+    p {
+      font-size: 0.85rem;
+    }
+  }
+
+  .catalog-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .catalog-card {
+    padding: 14px 16px;
+    border-radius: 14px;
+    gap: 10px;
+
+    .card-header {
+      h4 {
+        font-size: 1.05rem;
+      }
+    }
+
+    .deck-desc {
+      font-size: 0.88rem;
+      line-height: 1.4;
+    }
+
+    .card-footer {
+      padding-top: 10px;
+      font-size: 0.8rem;
+    }
+  }
+
+  .preview-word-item {
+    padding: 10px 12px;
+  }
+}
 </style>

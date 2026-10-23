@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import type { DialogueMessage } from '../../../../shared/types/dialogue'
 import { Icon } from '@iconify/vue'
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { KitBtn } from '~/02.kit'
+import { useTextSelection } from '~/04.features/analysis'
+import { tokenizeDialogueText } from '../../../../shared/lib/dialogue-tokenizer'
 import DialogueFeedbackCard from './dialogue-feedback-card.vue'
 
 interface Props {
@@ -12,17 +13,70 @@ interface Props {
   isPlayingReply: boolean
   isPlayingCorrection: boolean
   isLoadingAudio: boolean
+  isSentencePlaying?: (msgId: string, idx: number) => boolean
+  isSentenceLoading?: (msgId: string, idx: number) => boolean
 }
 
-defineProps<Props>()
+const props = defineProps<Props>()
 
 const emit = defineEmits<{
-  (e: 'playReply'): void
   (e: 'playCorrection'): void
+  (e: 'playSentence', sentenceIdx: number, text: string): void
 }>()
 
 const { t } = useI18n()
-const showTranslation = ref(false)
+const { onPointerDown, onPointerUp, onWordClick } = useTextSelection()
+
+const visibleTranslations = ref<Record<number, boolean>>({})
+
+// Tokenize text into sentences and words for click/long-press interactions
+const tokenizedSentences = computed(() => {
+  if (!props.message.content) {
+    return []
+  }
+
+  return tokenizeDialogueText(props.message.content, props.targetLanguage, 1000)
+})
+
+function checkSentencePlaying(idx: number): boolean {
+  if (props.isSentencePlaying) {
+    return props.isSentencePlaying(props.message.id, idx)
+  }
+
+  return props.isPlayingReply
+}
+
+function checkSentenceLoading(idx: number): boolean {
+  if (props.isSentenceLoading) {
+    return props.isSentenceLoading(props.message.id, idx)
+  }
+
+  return false
+}
+
+function toggleSentenceTranslation(idx: number) {
+  visibleTranslations.value[idx] = !visibleTranslations.value[idx]
+}
+
+function hasTranslation(idx: number): boolean {
+  if (props.message.replySentences?.[idx]?.translation) {
+    return true
+  }
+
+  if (tokenizedSentences.value.length === 1 && props.message.replyTranslation) {
+    return true
+  }
+
+  return Boolean(props.message.replyTranslation)
+}
+
+function getSentenceTranslation(idx: number): string {
+  if (props.message.replySentences?.[idx]?.translation) {
+    return props.message.replySentences[idx].translation
+  }
+
+  return props.message.replyTranslation || ''
+}
 </script>
 
 <template>
@@ -57,41 +111,78 @@ const showTranslation = ref(false)
 
       <!-- Dialogue Content -->
       <div v-else class="dialogue-content">
-        <p class="message-text">
-          {{ message.content }}
-        </p>
-
-        <!-- Assistant Action Buttons (Audio + Translation) -->
-        <div v-if="message.role === 'assistant'" class="assistant-actions">
-          <KitBtn
-            size="xs"
-            variant="text"
-            :icon="isPlayingReply ? 'mdi:pause' : 'mdi:volume-high'"
-            :loading="isLoadingAudio && isPlayingReply"
-            :color="isPlayingReply ? 'primary' : undefined"
-            class="audio-btn"
-            :aria-label="t('plugins.dialogue-trainer.listenReply')"
-            @click="emit('playReply')"
+        <div
+          class="message-text"
+          @pointerdown="onPointerDown"
+          @pointerup="onPointerUp"
+          @click="onWordClick"
+        >
+          <div
+            v-for="sentence in tokenizedSentences"
+            :key="sentence.sentId"
+            class="sentence-wrapper"
           >
-            {{ t('plugins.dialogue-trainer.listenReply') }}
-          </KitBtn>
+            <span
+              class="sentence"
+              :data-sent-id="sentence.sentId"
+              :data-raw-sent="encodeURIComponent(sentence.rawSent)"
+            >
+              <span
+                v-for="(token, tIdx) in sentence.tokens"
+                :key="tIdx"
+                class="word"
+                :class="[token.isPunct ? 'is-punctuation' : token.spacingClass]"
+                :data-word="encodeURIComponent(token.word)"
+                :data-pos="token.pos"
+                :data-sent-id="sentence.sentId"
+                :data-token-idx="token.tokenIdx"
+              >{{ token.word }}</span>
 
-          <KitBtn
-            v-if="message.replyTranslation"
-            size="xs"
-            variant="text"
-            :icon="showTranslation ? 'mdi:translate-off' : 'mdi:translate'"
-            class="translation-btn"
-            @click="showTranslation = !showTranslation"
-          >
-            {{ showTranslation ? t('plugins.dialogue-trainer.hideTranslation') : t('plugins.dialogue-trainer.showTranslation') }}
-          </KitBtn>
-        </div>
+              <!-- Sentence Actions at end of sentence (Audio & Translate icons without text) -->
+              <span v-if="message.role === 'assistant'" class="sentence-inline-actions">
+                <button
+                  type="button"
+                  class="sentence-action-btn audio-btn"
+                  :class="{ 'is-playing': checkSentencePlaying(sentence.index) }"
+                  :disabled="checkSentenceLoading(sentence.index)"
+                  :aria-label="t('plugins.dialogue-trainer.listenSentence', 'Озвучить предложение')"
+                  @pointerdown.stop
+                  @click.stop="emit('playSentence', sentence.index, sentence.rawSent)"
+                >
+                  <Icon
+                    :icon="checkSentenceLoading(sentence.index)
+                      ? 'mdi:loading'
+                      : (checkSentencePlaying(sentence.index) ? 'mdi:pause' : 'mdi:volume-high')"
+                    :class="{ 'spin-icon': checkSentenceLoading(sentence.index), 'pulse-icon': checkSentencePlaying(sentence.index) }"
+                  />
+                </button>
 
-        <!-- Translation Drawer -->
-        <div v-if="showTranslation && message.replyTranslation" class="translation-block">
-          <Icon icon="mdi:format-quote-close" class="quote-icon" />
-          <span class="translation-text">{{ message.replyTranslation }}</span>
+                <button
+                  v-if="hasTranslation(sentence.index)"
+                  type="button"
+                  class="sentence-action-btn translate-btn"
+                  :class="{ 'is-active': visibleTranslations[sentence.index] }"
+                  :aria-label="t('plugins.dialogue-trainer.translateSentence', 'Перевести предложение')"
+                  @pointerdown.stop
+                  @click.stop="toggleSentenceTranslation(sentence.index)"
+                >
+                  <Icon :icon="visibleTranslations[sentence.index] ? 'mdi:translate-off' : 'mdi:translate'" />
+                </button>
+              </span>
+            </span>
+
+            <!-- Sentence translation box under each sentence -->
+            <transition name="sentence-fade">
+              <div
+                v-if="message.role === 'assistant' && visibleTranslations[sentence.index]"
+                class="sentence-translation-box"
+                @pointerdown.stop
+              >
+                <Icon icon="mdi:format-quote-close" class="quote-icon" />
+                <span class="translation-text">{{ getSentenceTranslation(sentence.index) }}</span>
+              </div>
+            </transition>
+          </div>
         </div>
       </div>
     </div>
@@ -117,7 +208,7 @@ const showTranslation = ref(false)
         color: var(--fg-primary-color);
         font-size: 0.98rem;
         font-weight: 500;
-        line-height: 1.5;
+        line-height: 1.55;
       }
     }
   }
@@ -151,120 +242,222 @@ const showTranslation = ref(false)
             rgba(var(--fg-accent-color-rgb, 99, 102, 241), 0.3),
             transparent
           );
-          background-size: 200% 100%;
-          animation: border-pulse-stream 1.6s linear infinite;
-          z-index: 10;
+          animation: scan 1.8s infinite ease-in-out;
         }
-      }
-
-      .message-text {
-        color: var(--fg-primary-color);
-        font-size: 1.02rem;
-        font-weight: 500;
-        line-height: 1.55;
       }
     }
   }
 }
 
-@keyframes border-pulse-stream {
-  0% {
-    background-position: 200% 0;
-  }
-  100% {
-    background-position: -200% 0;
-  }
+.bubble {
+  padding: 12px 14px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  transition: border-color 0.2s ease;
 }
 
 .bubble-loading-placeholder {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   padding: 6px 4px;
+  color: var(--fg-muted-color);
+  font-size: 0.88rem;
 
   .pulse-dot {
     width: 6px;
     height: 6px;
     border-radius: 50%;
     background: var(--fg-accent-color);
-    animation: typing-dot 1.4s infinite ease-in-out;
+    animation: bounce 1.4s infinite ease-in-out both;
 
     &.dot-1 {
-      animation-delay: 0s;
+      animation-delay: -0.32s;
     }
     &.dot-2 {
-      animation-delay: 0.2s;
-    }
-    &.dot-3 {
-      animation-delay: 0.4s;
+      animation-delay: -0.16s;
     }
   }
 
   .loading-label {
-    margin-left: 6px;
-    font-size: 0.84rem;
-    color: var(--fg-secondary-color);
+    margin-left: 4px;
+    font-style: italic;
   }
 }
 
-@keyframes typing-dot {
-  0%,
-  100% {
-    transform: translateY(0);
-    opacity: 0.4;
-  }
-  50% {
-    transform: translateY(-4px);
-    opacity: 1;
-  }
-}
-
-.bubble {
-  padding: 12px;
-  position: relative;
-  word-break: break-word;
+.dialogue-content {
+  display: flex;
+  flex-direction: column;
 }
 
 .message-text {
-  margin: 0;
-}
-
-.assistant-actions {
+  font-size: 0.98rem;
+  line-height: 1.55;
+  color: var(--fg-primary-color);
+  user-select: text;
   display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-top: 8px;
-  flex-wrap: wrap;
+  flex-direction: column;
+  gap: 6px;
 }
 
-.translation-block {
-  margin-top: 8px;
-  padding: 8px 12px;
-  border-radius: 8px;
-  background: var(--bg-tertiary-color);
-  border-left: 3px solid var(--fg-accent-color);
-  font-size: 0.9rem;
+.sentence-wrapper {
+  display: inline;
+}
+
+.sentence {
+  position: relative;
+  border-radius: 4px;
+  transition: background-color 0.15s ease;
+
+  &:hover {
+    background-color: rgba(var(--fg-accent-color-rgb, 99, 102, 241), 0.04);
+  }
+}
+
+.word {
+  cursor: pointer;
+  border-radius: 3px;
+  transition: background-color 0.12s ease, color 0.12s ease;
+
+  &:hover:not(.is-punctuation) {
+    background-color: rgba(var(--fg-accent-color-rgb, 99, 102, 241), 0.18);
+    color: var(--fg-accent-color);
+  }
+
+  &.is-punctuation {
+    cursor: default;
+  }
+
+  &.add-space {
+    padding-right: 0.25em;
+  }
+}
+
+.sentence-inline-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-left: 6px;
+  vertical-align: middle;
+  user-select: none;
+}
+
+.sentence-action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: none;
+  background: rgba(var(--fg-accent-color-rgb, 99, 102, 241), 0.08);
   color: var(--fg-secondary-color);
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+
+  &:hover {
+    background: rgba(var(--fg-accent-color-rgb, 99, 102, 241), 0.2);
+    color: var(--fg-accent-color);
+    transform: scale(1.05);
+  }
+
+  &:active {
+    transform: scale(0.95);
+  }
+
+  &.is-playing {
+    background: var(--fg-accent-color);
+    color: var(--bg-primary-color);
+  }
+
+  &.is-active {
+    background: var(--fg-accent-color);
+    color: var(--bg-primary-color);
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}
+
+.sentence-translation-box {
   display: flex;
   align-items: flex-start;
   gap: 6px;
+  margin: 6px 0 8px 0;
+  padding: 6px 10px;
+  background: rgba(var(--fg-accent-color-rgb, 99, 102, 241), 0.08);
+  border-left: 3px solid var(--fg-accent-color);
+  border-radius: 0 8px 8px 0;
+  color: var(--fg-secondary-color);
+  font-size: 0.88rem;
+  line-height: 1.45;
 
   .quote-icon {
-    font-size: 0.9rem;
-    color: var(--fg-accent-color);
+    font-size: 14px;
     margin-top: 2px;
+    opacity: 0.6;
     flex-shrink: 0;
   }
 
   .translation-text {
-    line-height: 1.45;
+    font-style: italic;
   }
 }
 
-.audio-btn,
-.translation-btn {
-  font-size: 0.78rem !important;
-  padding: 2px 6px !important;
-  height: 26px !important;
+.spin-icon {
+  animation: spin 1s linear infinite;
+}
+
+.pulse-icon {
+  animation: pulse 1.2s infinite ease-in-out;
+}
+
+@keyframes spin {
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.15);
+    opacity: 0.85;
+  }
+}
+
+@keyframes scan {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes bounce {
+  0%, 80%, 100% {
+    transform: scale(0);
+  }
+  40% {
+    transform: scale(1);
+  }
+}
+
+.sentence-fade-enter-active,
+.sentence-fade-leave-active {
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.sentence-fade-enter-from,
+.sentence-fade-leave-to {
+  opacity: 0;
+  transform: translateY(-4px);
 }
 </style>
