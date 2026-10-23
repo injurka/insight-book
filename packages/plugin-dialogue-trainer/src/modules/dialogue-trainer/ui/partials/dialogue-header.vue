@@ -61,15 +61,19 @@ const styleName = computed(() => {
       <div class="header-titles">
         <h1 class="header-title">
           <Icon icon="mdi:account-voice" class="title-icon" />
-          {{ t('plugins.dialogue-trainer.pageTitle') }}
+          <span class="title-text">{{ t('plugins.dialogue-trainer.pageTitle') }}</span>
         </h1>
-        <p class="header-subtitle">
-          {{ settings.topic || t('plugins.dialogue-trainer.pageSubtitle') }}
-        </p>
+
+        <!-- Mobile & Compact Subtitle (Clickable parameters) -->
+        <div class="header-subtitle-row" @click="emit('openSettings')">
+          <span class="sub-badge">{{ targetLanguageName }}</span>
+          <span class="sub-sep">·</span>
+          <span class="sub-topic">{{ settings.topic || difficultyName }}</span>
+        </div>
       </div>
     </div>
 
-    <!-- Active Settings Tags -->
+    <!-- Active Settings Tags (Desktop >= 900px) -->
     <div class="header-center">
       <div class="param-tags" @click="emit('openSettings')">
         <span class="param-tag">
@@ -87,13 +91,14 @@ const styleName = computed(() => {
       </div>
     </div>
 
-    <!-- Header Actions -->
+    <!-- Header Actions (Single row on all screens) -->
     <div class="header-right">
       <KitTooltip :text="t('plugins.dialogue-trainer.setupTitle')">
         <KitBtn
           icon="mdi:tune"
           variant="tonal"
           size="sm"
+          class="header-action-btn"
           :aria-label="t('plugins.dialogue-trainer.setupTitle')"
           @click="emit('openSettings')"
         />
@@ -104,6 +109,7 @@ const styleName = computed(() => {
           icon="mdi:history"
           variant="tonal"
           size="sm"
+          class="header-action-btn"
           :aria-label="t('plugins.dialogue-trainer.history')"
           @click="emit('openHistory')"
         />
@@ -115,6 +121,7 @@ const styleName = computed(() => {
           variant="solid"
           color="primary"
           size="sm"
+          class="header-action-btn new-dialogue-btn"
           :aria-label="t('plugins.dialogue-trainer.newDialogue')"
           @click="emit('newDialogue')"
         />
@@ -126,6 +133,7 @@ const styleName = computed(() => {
           variant="text"
           color="error"
           size="sm"
+          class="header-action-btn delete-btn"
           :aria-label="t('plugins.dialogue-trainer.deleteSession')"
           @click="emit('deleteDialogue')"
         />
@@ -139,54 +147,114 @@ const styleName = computed(() => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
-  padding: calc(12px + var(--safe-area-top, env(safe-area-inset-top, 0px))) max(20px, env(safe-area-inset-right, 0px))
-    12px max(20px, env(safe-area-inset-left, 0px));
+  gap: 12px;
+  height: calc(56px + var(--safe-area-top, env(safe-area-inset-top, 0px)));
+  box-sizing: border-box;
+  padding: var(--safe-area-top, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) 0
+    max(16px, env(safe-area-inset-left, 0px));
   border-bottom: 1px solid var(--border-secondary-color);
   background: var(--bg-primary-color);
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
 
-  @media (max-width: 768px) {
-    padding: calc(10px + var(--safe-area-top, env(safe-area-inset-top, 0px))) max(14px, env(safe-area-inset-right, 0px))
-      10px max(14px, env(safe-area-inset-left, 0px));
-    gap: 10px;
+  @media (max-width: 600px) {
+    gap: 8px;
+    padding-left: max(10px, env(safe-area-inset-left, 0px));
+    padding-right: max(10px, env(safe-area-inset-right, 0px));
   }
 }
 
 .header-left {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   min-width: 0;
+  flex: 1;
+}
+
+.back-btn {
+  width: 36px !important;
+  height: 36px !important;
+  border-radius: 50% !important;
+  flex-shrink: 0;
 }
 
 .header-titles {
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
 .header-title {
   margin: 0;
-  font-size: 1.15rem;
+  font-size: 1.05rem;
   font-weight: 700;
   color: var(--fg-primary-color);
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 
   .title-icon {
     color: var(--fg-accent-color);
-    font-size: 1.3rem;
+    font-size: 1.2rem;
+    flex-shrink: 0;
+  }
+
+  .title-text {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  @media (max-width: 480px) {
+    font-size: 0.95rem;
+
+    .title-icon {
+      font-size: 1.1rem;
+    }
   }
 }
 
-.header-subtitle {
-  margin: 2px 0 0;
-  font-size: 0.82rem;
+.header-subtitle-row {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.74rem;
   color: var(--fg-secondary-color);
+  margin-top: 1px;
+  white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
-  max-width: 320px;
+  cursor: pointer;
+
+  .sub-badge {
+    font-weight: 700;
+    font-size: 0.68rem;
+    padding: 1px 5px;
+    border-radius: 4px;
+    background: rgba(var(--fg-accent-color-rgb, 99, 102, 241), 0.12);
+    color: var(--fg-accent-color);
+    letter-spacing: 0.2px;
+    flex-shrink: 0;
+  }
+
+  .sub-sep {
+    opacity: 0.45;
+    flex-shrink: 0;
+  }
+
+  .sub-topic {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 220px;
+
+    @media (max-width: 480px) {
+      max-width: 140px;
+    }
+  }
 }
 
 .header-center {
@@ -233,5 +301,22 @@ const styleName = computed(() => {
   display: flex;
   align-items: center;
   gap: 6px;
+  flex-shrink: 0;
+
+  @media (max-width: 480px) {
+    gap: 4px;
+  }
+}
+
+.header-action-btn {
+  width: 34px !important;
+  height: 34px !important;
+  min-width: 34px !important;
+  border-radius: 50% !important;
+  padding: 0 !important;
+  flex-shrink: 0;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
 }
 </style>

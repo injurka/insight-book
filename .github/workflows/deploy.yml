@@ -428,9 +428,6 @@ jobs:
     needs:
       - build-client
       - build-server
-      - create-release
-      - build-tauri
-      - build-android
 
     steps:
       - name: Update Portainer Stack

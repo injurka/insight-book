@@ -3,7 +3,7 @@ import type { DialogueMessage, DialogueSession, DialogueSettings } from '../../.
 import { Icon } from '@iconify/vue'
 import { nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { KitBtn, KitDialog, KitInput } from '~/02.kit'
+import { KitBtn, KitDialog } from '~/02.kit'
 import { useDialogueRecorder } from '../composables/use-dialogue-recorder'
 import { useDialogueSession } from '../composables/use-dialogue-session'
 import DialogueHeader from './partials/dialogue-header.vue'
@@ -262,8 +262,9 @@ onUnmounted(() => {
     <!-- Bottom Input Bar -->
     <footer class="input-footer">
       <div class="input-bar" :class="{ 'is-recording': recorder.isRecording.value || recorder.isTranscribing.value }">
-        <!-- Voice Recorder -->
+        <!-- Voice Recorder when Active or Transcribing -->
         <DialogueRecorder
+          v-if="recorder.isRecording.value || recorder.isTranscribing.value"
           :is-recording="recorder.isRecording.value"
           :is-transcribing="recorder.isTranscribing.value"
           :duration-seconds="recorder.recordingDuration.value"
@@ -276,27 +277,55 @@ onUnmounted(() => {
           @toggle-hands-free="handleToggleHandsFree"
         />
 
-        <!-- Text Input (when not recording) -->
-        <div v-if="!recorder.isRecording.value" class="text-input-wrapper">
-          <KitInput
-            v-model="textInput"
-            :placeholder="t('plugins.dialogue-trainer.inputPlaceholder')"
-            size="md"
-            :disabled="isGenerating || isAiStarting || recorder.isTranscribing.value"
-            class="chat-text-input"
-            @keyup.enter="handleSendMessage"
-          />
+        <!-- Idle Chat Input Capsule (Unified, Spacious & Mobile-Aesthetic) -->
+        <div v-else class="chat-input-capsule">
+          <KitTooltip :text="t('plugins.dialogue-trainer.handsFreeTooltip')">
+            <button
+              type="button"
+              class="capsule-btn handsfree-btn"
+              :class="{ active: isHandsFreeMode }"
+              :disabled="isGenerating || isAiStarting"
+              :aria-label="t('plugins.dialogue-trainer.handsFreeMode')"
+              @click="handleToggleHandsFree"
+            >
+              <Icon :icon="isHandsFreeMode ? 'mdi:headset' : 'mdi:headset-off'" />
+            </button>
+          </KitTooltip>
 
-          <KitBtn
-            size="md"
-            variant="solid"
-            color="primary"
-            icon="mdi:send"
-            :disabled="!textInput.trim() || isGenerating || isAiStarting || recorder.isTranscribing.value"
-            class="send-btn"
-            :aria-label="t('plugins.dialogue-trainer.send')"
-            @click="handleSendMessage"
-          />
+          <input
+            v-model="textInput"
+            type="text"
+            class="capsule-input"
+            :placeholder="t('plugins.dialogue-trainer.inputPlaceholder')"
+            :disabled="isGenerating || isAiStarting"
+            @keyup.enter="handleSendMessage"
+          >
+
+          <transition name="btn-swap" mode="out-in">
+            <button
+              v-if="textInput.trim()"
+              key="send"
+              type="button"
+              class="capsule-btn action-send-btn"
+              :disabled="isGenerating || isAiStarting"
+              :aria-label="t('plugins.dialogue-trainer.send')"
+              @click="handleSendMessage"
+            >
+              <Icon icon="mdi:send" />
+            </button>
+
+            <button
+              v-else
+              key="mic"
+              type="button"
+              class="capsule-btn action-mic-btn"
+              :disabled="isGenerating || isAiStarting"
+              :aria-label="t('plugins.dialogue-trainer.speakTooltip')"
+              @click="handleStartRecording"
+            >
+              <Icon icon="mdi:microphone" />
+            </button>
+          </transition>
         </div>
       </div>
     </footer>
@@ -515,16 +544,16 @@ onUnmounted(() => {
 }
 
 .input-footer {
-  padding: 12px max(20px, env(safe-area-inset-right, 0px))
-    max(16px, calc(14px + var(--safe-area-bottom, env(safe-area-inset-bottom, 0px))))
-    max(20px, env(safe-area-inset-left, 0px));
+  padding: 10px max(16px, env(safe-area-inset-right, 0px))
+    max(14px, calc(10px + var(--safe-area-bottom, env(safe-area-inset-bottom, 0px))))
+    max(16px, env(safe-area-inset-left, 0px));
   background: var(--bg-primary-color);
   border-top: 1px solid var(--border-secondary-color);
 
   @media (max-width: 600px) {
-    padding: 10px max(12px, env(safe-area-inset-right, 0px))
-      max(14px, calc(10px + var(--safe-area-bottom, env(safe-area-inset-bottom, 0px))))
-      max(12px, env(safe-area-inset-left, 0px));
+    padding: 8px max(10px, env(safe-area-inset-right, 0px))
+      max(12px, calc(8px + var(--safe-area-bottom, env(safe-area-inset-bottom, 0px))))
+      max(10px, env(safe-area-inset-left, 0px));
   }
 }
 
@@ -535,29 +564,150 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
-
-  &.is-recording {
-    justify-content: center;
-  }
 }
 
-.text-input-wrapper {
-  flex: 1;
+.chat-input-capsule {
   display: flex;
   align-items: center;
   gap: 8px;
   width: 100%;
+  max-width: 860px;
+  height: 50px;
+  padding: 4px 6px 4px 8px;
+  box-sizing: border-box;
+  background: var(--bg-secondary-color);
+  border: 1px solid var(--border-secondary-color);
+  border-radius: 25px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s;
+
+  &:focus-within {
+    border-color: var(--fg-accent-color);
+    box-shadow: 0 0 0 2px rgba(var(--fg-accent-color-rgb, 99, 102, 241), 0.15);
+  }
+
+  @media (max-width: 600px) {
+    height: 46px;
+    padding: 3px 5px 3px 6px;
+    gap: 6px;
+  }
 }
 
-.chat-text-input {
+.capsule-input {
   flex: 1;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  padding: 0 8px;
+  font-size: 0.95rem;
+  color: var(--fg-primary-color);
+  font-family: inherit;
+
+  &::placeholder {
+    color: var(--fg-tertiary-color);
+    font-size: 0.9rem;
+  }
+
+  @media (max-width: 480px) {
+    font-size: 0.88rem;
+
+    &::placeholder {
+      font-size: 0.84rem;
+    }
+  }
 }
 
-.send-btn {
-  border-radius: 50% !important;
-  width: 44px;
-  height: 44px;
+.capsule-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  cursor: pointer;
+  border-radius: 50%;
+  transition: all 0.18s ease-in-out;
+  flex-shrink: 0;
+
+  &:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+
+  &.handsfree-btn {
+    width: 38px;
+    height: 38px;
+    background: transparent;
+    color: var(--fg-secondary-color);
+    font-size: 1.15rem;
+
+    &:hover:not(:disabled) {
+      background: var(--bg-tertiary-color);
+      color: var(--fg-primary-color);
+    }
+
+    &.active {
+      background: rgba(var(--fg-accent-color-rgb, 99, 102, 241), 0.15);
+      color: var(--fg-accent-color);
+    }
+
+    @media (max-width: 600px) {
+      width: 36px;
+      height: 36px;
+      font-size: 1.05rem;
+    }
+  }
+
+  &.action-mic-btn {
+    width: 38px;
+    height: 38px;
+    background: var(--bg-tertiary-color);
+    color: var(--fg-accent-color);
+    font-size: 1.2rem;
+
+    &:hover:not(:disabled) {
+      background: var(--fg-accent-color);
+      color: #ffffff;
+      transform: scale(1.05);
+    }
+
+    @media (max-width: 600px) {
+      width: 36px;
+      height: 36px;
+      font-size: 1.1rem;
+    }
+  }
+
+  &.action-send-btn {
+    width: 38px;
+    height: 38px;
+    background: var(--fg-accent-color);
+    color: #ffffff;
+    font-size: 1.1rem;
+
+    &:hover:not(:disabled) {
+      filter: brightness(1.1);
+      transform: scale(1.05);
+    }
+
+    @media (max-width: 600px) {
+      width: 36px;
+      height: 36px;
+      font-size: 1.05rem;
+    }
+  }
+}
+
+.btn-swap-enter-active,
+.btn-swap-leave-active {
+  transition: all 0.14s ease-out;
+}
+
+.btn-swap-enter-from,
+.btn-swap-leave-to {
+  opacity: 0;
+  transform: scale(0.85);
 }
 
 .confirm-delete-body {
