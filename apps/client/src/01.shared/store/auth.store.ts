@@ -363,6 +363,7 @@ export const useAuthStore = defineStore('auth', () => {
     isAuthRefreshing,
     init,
     checkAuth,
+    loadUserPlugins,
     logout,
     expireSession,
     updateAvatar,

@@ -3,23 +3,35 @@ import type { Router } from 'vue-router'
 import { useGlobalSettingsStore } from '~/01.shared/store/settings.store'
 import { pluginManager } from './plugin-manager'
 
-export async function setupPlugins(app: App, router: Router) {
-  const settingsStore = useGlobalSettingsStore()
-  const enabledPlugins = settingsStore.enabledPlugins
-  const pluginsToInstall = []
+let setupPluginsPromise: Promise<void> | null = null
 
-  if (enabledPlugins.includes('grammar-rules')) {
-    const { default: grammarRulesPlugin } = await import('@injurka/insight-book-plugin-grammar-rules')
+export function setupPlugins(app: App | null, router: Router): Promise<void> {
+  if (setupPluginsPromise)
+    return setupPluginsPromise
 
-    pluginsToInstall.push(grammarRulesPlugin)
-  }
+  setupPluginsPromise = (async () => {
+    const settingsStore = useGlobalSettingsStore()
+    const enabledPlugins = settingsStore.enabledPlugins
+    const pluginsToInstall = []
 
-  if (enabledPlugins.includes('dialogue-trainer')) {
-    const { default: dialogueTrainerPlugin } = await import('@injurka/insight-book-plugin-dialogue-trainer')
+    if (enabledPlugins.includes('grammar-rules')) {
+      const { default: grammarRulesPlugin } = await import('@injurka/insight-book-plugin-grammar-rules')
 
-    pluginsToInstall.push(dialogueTrainerPlugin)
-  }
+      pluginsToInstall.push(grammarRulesPlugin)
+    }
 
-  if (pluginsToInstall.length > 0)
-    await pluginManager.install(app, router, pluginsToInstall)
+    if (enabledPlugins.includes('dialogue-trainer')) {
+      const { default: dialogueTrainerPlugin } = await import('@injurka/insight-book-plugin-dialogue-trainer')
+
+      pluginsToInstall.push(dialogueTrainerPlugin)
+    }
+
+    if (pluginsToInstall.length > 0)
+      await pluginManager.install(app, router, pluginsToInstall)
+  })().catch((err) => {
+    setupPluginsPromise = null
+    throw err
+  })
+
+  return setupPluginsPromise
 }

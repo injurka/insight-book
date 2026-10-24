@@ -1,4 +1,4 @@
-import type { LocationQuery } from 'vue-router'
+import type { LocationQuery, RouteLocationNormalized, RouteLocationRaw } from 'vue-router'
 import { createRouter, createWebHashHistory, createWebHistory } from 'vue-router'
 import { useTracking } from '~/01.shared/composables/use-tracking'
 import { AppRouteNames } from '~/01.shared/constants/routes'
@@ -261,6 +261,59 @@ function getAuthRedirect(toName: string | symbol | null | undefined, isAuth: boo
   return null
 }
 
+async function loadCachedPluginFallback(pluginId: string): Promise<void> {
+  try {
+    const { getCachedPlugin } = await import('~/00.plugins/plugin-storage')
+    const cached = await getCachedPlugin(pluginId)
+
+    if (cached) {
+      const { pluginManager } = await import('~/00.plugins/plugin-manager')
+      await pluginManager.loadRemotePlugin(cached.manifestUrl, router)
+    }
+  }
+  catch (err) {
+    console.warn('[Router] Failed to load cached plugin for route:', err)
+  }
+}
+
+async function resolvePluginRoute(to: RouteLocationNormalized): Promise<RouteLocationRaw> {
+  try {
+    const { setupPlugins } = await import('~/00.plugins/index')
+    await setupPlugins(null, router)
+  }
+  catch (err) {
+    console.warn('[Router] Failed to load static plugins for route:', err)
+  }
+
+  if (router.resolve(to.fullPath).matched.length > 0)
+    return to.fullPath
+
+  const authStore = useAuthStore()
+
+  try {
+    if (!authStore.isAuthReady || authStore.isAuthRefreshing)
+      await authStore.checkAuth()
+
+    await authStore.loadUserPlugins()
+  }
+  catch (err) {
+    console.warn('[Router] Failed to load user plugins for route:', err)
+  }
+
+  if (router.resolve(to.fullPath).matched.length > 0)
+    return to.fullPath
+
+  const pluginId = to.path.split('/')[2]
+
+  if (pluginId)
+    await loadCachedPluginFallback(pluginId)
+
+  if (router.resolve(to.fullPath).matched.length > 0)
+    return to.fullPath
+
+  return { name: AppRouteNames.Home }
+}
+
 router.beforeEach(async (to, from) => {
   const authStore = useAuthStore()
 
@@ -287,6 +340,9 @@ router.beforeEach(async (to, from) => {
 
   if (authRedirect)
     return authRedirect
+
+  if (to.matched.length === 0 && to.path.startsWith('/plugin/'))
+    return await resolvePluginRoute(to)
 })
 
 router.afterEach((to, _from, failure) => {

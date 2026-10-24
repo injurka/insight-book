@@ -346,6 +346,14 @@ export function usePluginManager(): PluginManager {
           await plugin.activate(ctx)
 
         plugins.push(plugin)
+
+        if (
+          router.currentRoute?.value
+          && router.currentRoute.value.matched.length === 0
+          && router.resolve(router.currentRoute.value.fullPath).matched.length > 0
+        ) {
+          void router.replace(router.currentRoute.value.fullPath).catch(() => {})
+        }
       }
       catch (err) {
         console.error(`[Plugin Manager] Failed to activate plugin "${plugin.id}":`, err)

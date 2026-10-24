@@ -8,12 +8,14 @@ const mocks = vi.hoisted(() => ({
   after: vi.fn(),
   web: vi.fn(),
   hash: vi.fn(),
+  resolve: vi.fn().mockReturnValue({ matched: [] }),
   auth: {
     isAuthReady: true,
     isAuthRefreshing: false,
     user: null as object | null,
     isSingleMode: false,
     checkAuth: vi.fn(),
+    loadUserPlugins: vi.fn().mockResolvedValue(undefined),
   },
   env: { isTauri: false, getApiEndpointUrl: vi.fn() },
   pageview: vi.fn(),
@@ -53,7 +55,8 @@ let frames: FrameRequestCallback[]
 beforeEach(() => {
   vi.resetModules()
   vi.clearAllMocks()
-  mocks.create.mockReturnValue({ beforeEach: mocks.before, afterEach: mocks.after })
+  mocks.create.mockReturnValue({ beforeEach: mocks.before, afterEach: mocks.after, resolve: mocks.resolve })
+  mocks.resolve.mockReturnValue({ matched: [] })
   Object.assign(mocks.auth, { isAuthReady: true, isAuthRefreshing: false, user: null, isSingleMode: false })
   mocks.env.isTauri = false
   mocks.env.getApiEndpointUrl.mockReturnValue('https://api.example.com/api/auth/yandex/callback')
@@ -209,5 +212,14 @@ describe('main container scroll', () => {
       frames.shift()!(0)
 
     expect(frames).toHaveLength(0)
+  })
+
+  it('resolves dynamic plugin routes and falls back to home when not found', async () => {
+    const { guard } = await setup()
+    mocks.resolve.mockReturnValueOnce({ matched: [{ path: '/plugin/dialogue-trainer' }] })
+    expect(await guard(route(undefined, '/plugin/dialogue-trainer'), route(undefined))).toBe('/plugin/dialogue-trainer')
+
+    mocks.resolve.mockReturnValue({ matched: [] })
+    expect(await guard(route(undefined, '/plugin/unknown-plugin'), route(undefined))).toEqual({ name: AppRouteNames.Home })
   })
 })
