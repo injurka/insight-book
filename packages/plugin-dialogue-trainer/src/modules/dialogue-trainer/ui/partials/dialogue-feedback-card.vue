@@ -79,16 +79,19 @@ watch(() => [props.correctedSentence, props.targetLanguage], async () => {
           :data-sent-id="sent.sentId"
           :data-raw-sent="encodeURIComponent(sent.rawSent)"
         >
-          <span
+          <template
             v-for="(tkn, tIdx) in sent.tokens"
             :key="tIdx"
-            class="word"
-            :class="[tkn.isPunct ? 'is-punctuation' : tkn.spacingClass]"
-            :data-word="encodeURIComponent(tkn.word)"
-            :data-pos="tkn.pos"
-            :data-sent-id="sent.sentId"
-            :data-token-idx="tkn.tokenIdx"
-          >{{ tkn.word }}</span>
+          >
+            <span
+              class="word"
+              :class="[tkn.isPunct ? 'is-punctuation' : '']"
+              :data-word="encodeURIComponent(tkn.word)"
+              :data-pos="tkn.pos"
+              :data-sent-id="sent.sentId"
+              :data-token-idx="tkn.tokenIdx"
+            >{{ tkn.word }}</span>{{ tkn.spacingClass === 'add-space' ? ' ' : '' }}
+          </template>
 
           <span
             v-if="sentIdx === tokenizedCorrectionSentences.length - 1"
@@ -250,11 +253,18 @@ watch(() => [props.correctedSentence, props.targetLanguage], async () => {
   color: var(--fg-primary-color);
   line-height: 1.45;
   user-select: text;
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: break-word;
+  word-break: normal;
 
   .sentence {
+    display: inline;
     position: relative;
     border-radius: 4px;
     transition: background-color 0.15s ease;
+    overflow-wrap: break-word;
+    word-break: normal;
 
     &:hover {
       background-color: rgba(var(--fg-accent-color-rgb), 0.04);
@@ -275,10 +285,6 @@ watch(() => [props.correctedSentence, props.targetLanguage], async () => {
 
     &.is-punctuation {
       cursor: default;
-    }
-
-    &.add-space {
-      padding-right: 0.25em;
     }
   }
 }

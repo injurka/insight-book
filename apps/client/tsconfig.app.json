@@ -56,6 +56,8 @@
     "src/**/*.spec.ts",
     "src/**/*.test.ts",
     "src/**/*.spec.tsx",
-    "src/**/*.test.tsx"
+    "src/**/*.test.tsx",
+    "../../packages/**/*.spec.ts",
+    "../../packages/**/*.test.ts"
   ]
 }

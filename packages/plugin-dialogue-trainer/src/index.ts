@@ -1,5 +1,6 @@
 import type { InsightBookPlugin, InsightBookPluginContext } from '@injurka/insight-book-plugin-api'
 import { setPluginApi, setPluginContext } from '@injurka/insight-book-plugin-api'
+import { registerDialogueTrainerIcons } from './shared/icons'
 import { setPluginApi as setLocalApi } from './shared/lib/api'
 import en from './shared/locales/en'
 import ru from './shared/locales/ru'
@@ -25,6 +26,7 @@ const plugin: InsightBookPlugin = {
       setLocalApi(ctx.api)
     }
 
+    registerDialogueTrainerIcons()
     ctx.registerTranslations({ ru, en, zh })
 
     const locales = { ru, en, zh } as const

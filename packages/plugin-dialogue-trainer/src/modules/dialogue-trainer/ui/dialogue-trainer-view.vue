@@ -197,6 +197,8 @@ onUnmounted(() => {
     <DialogueHeader
       :settings="currentSettings"
       :has-messages="activeMessages.length > 0"
+      :volume="tts.volume.value"
+      @update:volume="tts.setVolume"
       @open-settings="handleOpenSettings"
       @open-history="handleOpenHistory"
       @new-dialogue="handleNewDialogue"
@@ -370,8 +372,13 @@ onUnmounted(() => {
     </KitDialog>
 
     <!-- Word popover & Sentence analysis modals -->
-    <WordPopover :hide-dictionary-actions="true" />
-    <SentenceAnalysis />
+    <WordPopover
+      :hide-dictionary-actions="true"
+    />
+    <SentenceAnalysis
+      :hide-quote-actions="true"
+      :hide-dictionary-actions="true"
+    />
   </div>
 </template>
 

@@ -8,6 +8,9 @@ export default {
 
   // Dialog setup
   actions: 'Actions',
+  volume: 'Volume',
+  volumeMute: 'Mute',
+  volumeUnmute: 'Unmute',
   newDialogue: 'New Dialogue',
   setupTitle: 'Dialogue Settings',
   setupSubtitle: 'Configure topic, difficulty, and conversational style, or leave defaults',

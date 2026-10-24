@@ -8,6 +8,9 @@ export default {
 
   // Dialog setup
   actions: '操作',
+  volume: '音量',
+  volumeMute: '静音',
+  volumeUnmute: '取消静音',
   newDialogue: '新对话',
   setupTitle: '对话设置',
   setupSubtitle: '设置话题、难度级别和交流风格，或直接使用默认推荐',

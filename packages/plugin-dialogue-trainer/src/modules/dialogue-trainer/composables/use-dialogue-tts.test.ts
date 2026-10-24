@@ -76,4 +76,56 @@ describe('useDialogueTts', () => {
       ;(globalThis as unknown as { Audio: unknown }).Audio = originalAudio
     }
   })
+
+  it('manages and clamps volume properly', () => {
+    const tts = useDialogueTts()
+
+    tts.setVolume(0.7)
+    expect(tts.volume.value).toBe(0.7)
+
+    tts.setVolume(1.5)
+    expect(tts.volume.value).toBe(1)
+
+    tts.setVolume(-0.2)
+    expect(tts.volume.value).toBe(0)
+
+    tts.setVolume(0.85)
+    expect(tts.volume.value).toBe(0.85)
+  })
+
+  it('applies volume to Audio instance when playing', async () => {
+    const tts = useDialogueTts()
+    tts.setVolume(0.42)
+
+    let createdAudioVolume: number | null = null
+    const originalAudio = (globalThis as unknown as { Audio?: unknown }).Audio
+    ;(globalThis as unknown as { Audio: unknown }).Audio = class {
+      volume = 1
+      onplay: (() => void) | null = null
+      onended: (() => void) | null = null
+
+      play() {
+        createdAudioVolume = this.volume
+        this.onplay?.()
+
+        return Promise.resolve()
+      }
+
+      pause() {}
+    }
+
+    try {
+      await tts.playAudio(
+        'test_msg',
+        'Hello',
+        'en',
+        'fake_base64',
+      )
+      expect(createdAudioVolume).toBe(0.42)
+      tts.stopAudio()
+    }
+    finally {
+      ;(globalThis as unknown as { Audio: unknown }).Audio = originalAudio
+    }
+  })
 })

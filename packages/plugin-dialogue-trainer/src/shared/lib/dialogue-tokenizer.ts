@@ -66,13 +66,21 @@ function tokenizeWithFallback(sentenceText: string, isCjk: boolean): TokenItem[]
   let wordIdx = 0
 
   for (const part of parts) {
+    if (/^\s+$/.test(part)) {
+      if (tokens.length > 0 && !isCjk) {
+        tokens[tokens.length - 1].spacingClass = 'add-space'
+      }
+
+      continue
+    }
+
     const isWord = /[\p{L}\p{N}]/u.test(part)
     tokens.push({
       word: part,
       pos: isWord ? 'word' : 'x',
       tokenIdx: isWord ? wordIdx++ : 0,
       isPunct: !isWord,
-      spacingClass: isCjk ? '' : 'add-space',
+      spacingClass: '',
     })
   }
 
@@ -89,6 +97,14 @@ export function tokenizeSentenceWords(sentenceText: string, language: string, _s
     let wordIdx = 0
 
     for (const { segment, isWordLike } of segmenter.segment(sentenceText)) {
+      if (/^\s+$/.test(segment)) {
+        if (tokens.length > 0 && !isCjk) {
+          tokens[tokens.length - 1].spacingClass = 'add-space'
+        }
+
+        continue
+      }
+
       const isWord = Boolean(isWordLike) && /[\p{L}\p{N}]/u.test(segment)
       const isPunct = !isWord
       const pos = isWord ? 'word' : 'x'
@@ -98,7 +114,7 @@ export function tokenizeSentenceWords(sentenceText: string, language: string, _s
         pos,
         tokenIdx: isWord ? wordIdx++ : 0,
         isPunct,
-        spacingClass: isCjk ? '' : 'add-space',
+        spacingClass: '',
       })
     }
 

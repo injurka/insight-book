@@ -1,6 +1,31 @@
 import { getCurrentInstance, onUnmounted, ref } from 'vue'
 import { requestTtsAudio } from '../../../shared/lib/api'
 
+const VOLUME_STORAGE_KEY = 'dialogue_trainer_volume'
+
+function getInitialVolume(): number {
+  if (typeof window === 'undefined') {
+    return 1
+  }
+
+  try {
+    const saved = localStorage.getItem(VOLUME_STORAGE_KEY)
+
+    if (saved !== null) {
+      const parsed = Number.parseFloat(saved)
+
+      if (!Number.isNaN(parsed) && parsed >= 0 && parsed <= 1) {
+        return parsed
+      }
+    }
+  }
+  catch {}
+
+  return 1
+}
+
+const sharedVolume = ref(getInitialVolume())
+
 export function useDialogueTts() {
   const isPlaying = ref(false)
   const currentPlayingId = ref<string | null>(null)
@@ -80,6 +105,7 @@ export function useDialogueTts() {
     const utterance = new SpeechSynthesisUtterance(text)
     utterance.lang = resolveWebSpeechLang(language)
     utterance.rate = 0.95
+    utterance.volume = sharedVolume.value
 
     utterance.onstart = () => {
       isPlaying.value = true
@@ -120,6 +146,7 @@ export function useDialogueTts() {
   function playAudioElement(base64: string, onEnded?: () => void): HTMLAudioElement {
     const audioUrl = `data:audio/mp3;base64,${base64}`
     const audio = new Audio(audioUrl)
+    audio.volume = sharedVolume.value
 
     audio.onplay = () => {
       isPlaying.value = true
@@ -330,6 +357,25 @@ export function useDialogueTts() {
     await playNext()
   }
 
+  function setVolume(val: number) {
+    const clamped = Math.max(0, Math.min(1, Number.isFinite(val) ? val : 1))
+    sharedVolume.value = clamped
+
+    if (currentAudio) {
+      try {
+        currentAudio.volume = clamped
+      }
+      catch {}
+    }
+
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem(VOLUME_STORAGE_KEY, String(clamped))
+      }
+      catch {}
+    }
+  }
+
   if (getCurrentInstance()) {
     onUnmounted(() => {
       stopAudio()
@@ -337,6 +383,8 @@ export function useDialogueTts() {
   }
 
   return {
+    volume: sharedVolume,
+    setVolume,
     isPlaying,
     currentPlayingId,
     currentPlayingMessageId,

@@ -8,6 +8,9 @@ export default {
 
   // Dialog setup
   actions: 'Действия',
+  volume: 'Громкость',
+  volumeMute: 'Выключить звук',
+  volumeUnmute: 'Включить звук',
   newDialogue: 'Новый диалог',
   setupTitle: 'Параметры диалога',
   setupSubtitle: 'Настройте тему, сложность и стиль общения или оставьте настройки по умолчанию',

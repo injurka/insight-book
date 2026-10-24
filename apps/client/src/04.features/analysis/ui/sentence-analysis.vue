@@ -20,9 +20,15 @@ import { useReaderStore } from '~/05.modules/reader/store/reader.store'
 
 interface Props {
   floatingPosition?: { x: number } | null
+  hideQuoteActions?: boolean
+  hideDictionaryActions?: boolean
 }
 
-defineProps<Props>()
+const props = withDefaults(defineProps<Props>(), {
+  floatingPosition: null,
+  hideQuoteActions: false,
+  hideDictionaryActions: false,
+})
 const emit = defineEmits<{
   floatingChange: [floating: boolean]
   floatingMove: [x: number]
@@ -76,6 +82,14 @@ const matchingHighlight = computed(() => {
 
     return Number(item.bookId) === Number(book.id) && rawNorm === hNorm
   })
+})
+const shouldHideQuoteActions = computed(() => {
+  return props.hideQuoteActions || props.hideDictionaryActions || Boolean(analysisStore.hideDictionaryActions)
+})
+const canSaveQuote = computed(() => {
+  const book = readerStore.currentBook || libraryStore.currentBookInfo
+
+  return Boolean(book) && !shouldHideQuoteActions.value
 })
 
 watch(() => analysisStore.sidebarSentence, () => {
@@ -278,7 +292,11 @@ onUnmounted(() => stop())
               </button>
             </KitTooltip>
 
-            <KitTooltip :text="matchingHighlight ? t('analysis.removeHighlight') : t('analysis.saveToDict')" placement="top-end">
+            <KitTooltip
+              v-if="canSaveQuote"
+              :text="matchingHighlight ? t('analysis.removeHighlight') : t('analysis.saveToDict')"
+              placement="top-end"
+            >
               <button class="action-btn" :class="{ 'is-saved': matchingHighlight }" @click="toggleHighlight">
                 <Icon :icon="isSavingHighlight ? 'mdi:loading' : (matchingHighlight ? 'mdi:bookmark' : 'mdi:bookmark-outline')" :class="{ 'spin-animation': isSavingHighlight }" />
               </button>
@@ -332,6 +350,7 @@ onUnmounted(() => stop())
   </KitDialog>
 
   <QuoteModal
+    v-if="canSaveQuote"
     v-model:visible="isSaveModalOpen"
     mode="create"
     :initial-data="modalInitialData"

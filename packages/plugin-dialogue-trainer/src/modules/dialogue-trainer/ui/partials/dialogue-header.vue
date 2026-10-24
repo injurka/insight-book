@@ -14,37 +14,79 @@ import {
 interface Props {
   settings: DialogueSettings
   hasMessages: boolean
+  volume?: number
 }
 
-const props = defineProps<Props>()
-
+const props = withDefaults(defineProps<Props>(), {
+  volume: 1,
+})
 const emit = defineEmits<{
   (e: 'openSettings'): void
   (e: 'openHistory'): void
   (e: 'newDialogue'): void
   (e: 'deleteDialogue'): void
+  (e: 'update:volume', val: number): void
 }>()
 
 const { t } = useI18n()
 const router = useRouter()
+
+let lastNonZeroVolume = props.volume || 1
 
 const targetLanguageName = computed(() => {
   const found = SUPPORTED_PRACTICE_LANGUAGES.find(l => l.code === props.settings.targetLanguage)
 
   return found ? t(found.nameKey, found.fallbackName) : props.settings.targetLanguage.toUpperCase()
 })
-
 const difficultyName = computed(() => {
   const found = DIFFICULTY_OPTIONS.find(d => d.value === props.settings.difficulty)
 
   return found ? t(found.labelKey, found.fallbackLabel) : props.settings.difficulty
 })
-
 const styleName = computed(() => {
   const found = STYLE_OPTIONS.find(s => s.value === props.settings.style)
 
   return found ? t(found.labelKey, found.fallbackLabel) : props.settings.style
 })
+const volumePercent = computed(() => Math.round((props.volume ?? 1) * 100))
+const volumeIcon = computed(() => {
+  if (volumePercent.value === 0) {
+    return 'mdi:volume-off'
+  }
+
+  if (volumePercent.value < 50) {
+    return 'mdi:volume-medium'
+  }
+
+  return 'mdi:volume-high'
+})
+const volumeSliderStyle = computed(() => {
+  const percent = volumePercent.value
+
+  return {
+    background: `linear-gradient(to right, var(--fg-accent-color) 0%, var(--fg-accent-color) ${percent}%, var(--border-primary-color) ${percent}%, var(--border-primary-color) 100%)`,
+  }
+})
+
+function toggleMute() {
+  if (volumePercent.value > 0) {
+    lastNonZeroVolume = props.volume || 1
+    emit('update:volume', 0)
+  }
+  else {
+    emit('update:volume', lastNonZeroVolume > 0 ? lastNonZeroVolume : 1)
+  }
+}
+function onVolumeInput(e: Event) {
+  const target = e.target as HTMLInputElement
+  const val = Number(target.value) / 100
+
+  if (val > 0) {
+    lastNonZeroVolume = val
+  }
+
+  emit('update:volume', val)
+}
 </script>
 
 <template>
@@ -93,7 +135,7 @@ const styleName = computed(() => {
 
     <!-- Header Actions (Compact Three-dots Popover Menu) -->
     <div class="header-right">
-      <KitDropdown placement="bottom-end" width="220px">
+      <KitDropdown placement="bottom-end" width="240px">
         <template #activator="{ props: activatorProps }">
           <KitBtn
             icon="mdi:dots-vertical"
@@ -120,6 +162,42 @@ const styleName = computed(() => {
             <Icon icon="mdi:history" class="item-icon" />
             <span class="item-label">{{ t('plugins.dialogue-trainer.history') }}</span>
           </button>
+
+          <div class="header-menu-divider" />
+
+          <!-- Volume Control -->
+          <div
+            class="header-menu-volume"
+            @click.stop
+            @mousedown.stop
+            @touchstart.stop
+          >
+            <button
+              type="button"
+              class="volume-btn"
+              :title="volumePercent === 0 ? t('plugins.dialogue-trainer.volumeUnmute') : t('plugins.dialogue-trainer.volumeMute')"
+              :aria-label="volumePercent === 0 ? t('plugins.dialogue-trainer.volumeUnmute') : t('plugins.dialogue-trainer.volumeMute')"
+              @click="toggleMute"
+            >
+              <Icon :icon="volumeIcon" class="item-icon" />
+            </button>
+
+            <div class="volume-slider-wrapper">
+              <input
+                type="range"
+                min="0"
+                max="100"
+                step="1"
+                :value="volumePercent"
+                class="volume-slider"
+                :style="volumeSliderStyle"
+                :aria-label="t('plugins.dialogue-trainer.volume')"
+                @input="onVolumeInput"
+              >
+            </div>
+
+            <span class="volume-percent">{{ volumePercent }}%</span>
+          </div>
 
           <div v-if="hasMessages" class="header-menu-divider" />
 
@@ -380,5 +458,98 @@ const styleName = computed(() => {
   height: 1px;
   margin: 4px 6px;
   background: var(--border-primary-color);
+}
+
+.header-menu-volume {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  user-select: none;
+
+  .volume-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    padding: 0;
+    border: none;
+    background: transparent;
+    color: var(--fg-secondary-color);
+    cursor: pointer;
+    border-radius: 6px;
+    transition:
+      color 0.15s,
+      background 0.15s;
+    flex-shrink: 0;
+
+    &:hover {
+      color: var(--fg-accent-color);
+      background: var(--bg-hover-color);
+    }
+
+    .item-icon {
+      font-size: 1.15rem;
+    }
+  }
+
+  .volume-slider-wrapper {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    min-width: 0;
+  }
+
+  .volume-slider {
+    width: 100%;
+    height: 5px;
+    -webkit-appearance: none;
+    appearance: none;
+    border-radius: 3px;
+    outline: none;
+    cursor: pointer;
+    transition: background 0.15s;
+
+    &::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: var(--fg-accent-color);
+      cursor: pointer;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+      transition: transform 0.12s;
+    }
+
+    &::-moz-range-thumb {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: var(--fg-accent-color);
+      border: none;
+      cursor: pointer;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+      transition: transform 0.12s;
+    }
+
+    &:hover::-webkit-slider-thumb {
+      transform: scale(1.15);
+    }
+
+    &:hover::-moz-range-thumb {
+      transform: scale(1.15);
+    }
+  }
+
+  .volume-percent {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--fg-secondary-color);
+    min-width: 34px;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
 }
 </style>

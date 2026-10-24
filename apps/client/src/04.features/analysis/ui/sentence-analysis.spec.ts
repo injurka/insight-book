@@ -29,8 +29,9 @@ vi.mock('~/05.modules/reader/store/highlights.store', () => ({
 vi.mock('@iconify/vue', () => ({ Icon: { template: '<span />' } }))
 vi.mock('~/04.features/quote-modal', () => ({ QuoteModal: { name: 'QuoteModal', template: '<div />', props: ['visible'] } }))
 
-function renderAnalysis() {
+function renderAnalysis(props: Record<string, unknown> = {}) {
   return mount(SentenceAnalysis, {
+    props,
     global: {
       stubs: {
         Icon: true,
@@ -78,5 +79,23 @@ describe('sentence analysis saved quote', () => {
 
     expect(wrapper.findAll('.sentence-actions button')[1]!.classes()).not.toContain('is-saved')
     wrapper.unmount()
+  })
+
+  it('hides quote action button when hideQuoteActions is true', () => {
+    const wrapper = renderAnalysis({ hideQuoteActions: true })
+
+    expect(wrapper.findAll('.sentence-actions button')).toHaveLength(1)
+    expect(wrapper.findComponent({ name: 'QuoteModal' }).exists()).toBe(false)
+    wrapper.unmount()
+  })
+
+  it('hides quote action button when hideDictionaryActions is true in props or store', () => {
+    mocks.analysis.hideDictionaryActions = true
+    const wrapper = renderAnalysis()
+
+    expect(wrapper.findAll('.sentence-actions button')).toHaveLength(1)
+    expect(wrapper.findComponent({ name: 'QuoteModal' }).exists()).toBe(false)
+    wrapper.unmount()
+    mocks.analysis.hideDictionaryActions = false
   })
 })

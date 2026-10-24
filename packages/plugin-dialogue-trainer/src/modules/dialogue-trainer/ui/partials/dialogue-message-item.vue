@@ -149,16 +149,19 @@ function getSentenceTranslation(idx: number): string {
               :data-sent-id="sentence.sentId"
               :data-raw-sent="encodeURIComponent(sentence.rawSent)"
             >
-              <span
+              <template
                 v-for="(token, tIdx) in sentence.tokens"
                 :key="tIdx"
-                class="word"
-                :class="[token.isPunct ? 'is-punctuation' : token.spacingClass]"
-                :data-word="encodeURIComponent(token.word)"
-                :data-pos="token.pos"
-                :data-sent-id="sentence.sentId"
-                :data-token-idx="token.tokenIdx"
-              >{{ token.word }}</span>
+              >
+                <span
+                  class="word"
+                  :class="[token.isPunct ? 'is-punctuation' : '']"
+                  :data-word="encodeURIComponent(token.word)"
+                  :data-pos="token.pos"
+                  :data-sent-id="sentence.sentId"
+                  :data-token-idx="token.tokenIdx"
+                >{{ token.word }}</span>{{ token.spacingClass === 'add-space' ? ' ' : '' }}
+              </template>
 
               <!-- Sentence Actions at end of sentence (Audio & Translate icons without text) -->
               <span v-if="message.role === 'assistant'" class="sentence-inline-actions">
@@ -319,16 +322,27 @@ function getSentenceTranslation(idx: number): string {
   display: flex;
   flex-direction: column;
   gap: 6px;
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: break-word;
+  word-break: normal;
 }
 
 .sentence-wrapper {
-  display: inline;
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  overflow-wrap: break-word;
+  word-break: normal;
 }
 
 .sentence {
   position: relative;
   border-radius: 4px;
   transition: background-color 0.15s ease;
+  overflow-wrap: break-word;
+  word-break: normal;
 
   &:hover {
     background-color: rgba(var(--fg-accent-color-rgb), 0.04);
@@ -350,10 +364,6 @@ function getSentenceTranslation(idx: number): string {
   &.is-punctuation {
     cursor: default;
   }
-
-  &.add-space {
-    padding-right: 0.25em;
-  }
 }
 
 .sentence-inline-actions {
@@ -363,6 +373,7 @@ function getSentenceTranslation(idx: number): string {
   margin-left: 6px;
   vertical-align: middle;
   user-select: none;
+  white-space: nowrap;
 }
 
 .sentence-action-btn {
@@ -379,8 +390,10 @@ function getSentenceTranslation(idx: number): string {
   cursor: pointer;
   font-size: 14px;
   transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  opacity: 0.3;
 
   &:hover {
+    opacity: 1;
     background: rgba(var(--fg-accent-color-rgb), 0.2);
     color: var(--fg-accent-color);
   }
