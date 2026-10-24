@@ -292,7 +292,7 @@ onUnmounted(() => {
         <div class="divider" />
         <button class="tooltip-btn" :title="t('analysis.voice')" @click="playTTS">
           <Icon
-            :icon="isTooltipLoading ? 'mdi:loading' : (isTooltipPlaying ? 'mdi:volume-high' : 'mdi:volume-medium')"
+            :icon="isTooltipLoading ? 'mdi:loading' : (isTooltipPlaying ? 'mdi:stop' : 'mdi:volume-high')"
             :class="{ 'pulse-animation': isTooltipPlaying, 'spin-animation': isTooltipLoading }"
           />
           <span>{{ t('analysis.listen') }}</span>

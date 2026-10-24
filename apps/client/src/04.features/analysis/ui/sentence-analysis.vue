@@ -286,7 +286,7 @@ onUnmounted(() => stop())
             <KitTooltip :text="t('analysis.voice')" placement="top-end">
               <button class="action-btn" @click="playTTS">
                 <Icon
-                  :icon="isLoading ? 'mdi:loading' : (isPlaying ? 'mdi:volume-high' : 'mdi:volume-medium')"
+                  :icon="isLoading ? 'mdi:loading' : (isPlaying ? 'mdi:stop' : 'mdi:volume-high')"
                   :class="{ 'pulse-animation': isPlaying, 'spin-animation': isLoading }"
                 />
               </button>

@@ -241,7 +241,7 @@ onUnmounted(() => {
         </button>
         <button class="action-btn" :title="t('analysis.voice')" @click.stop="playTTS">
           <Icon
-            :icon="isBubbleLoading ? 'mdi:loading' : (isBubblePlaying ? 'mdi:volume-high' : 'mdi:volume-medium')"
+            :icon="isBubbleLoading ? 'mdi:loading' : (isBubblePlaying ? 'mdi:stop' : 'mdi:volume-high')"
             :class="{ 'spin-animation': isBubbleLoading, 'pulse-animation': isBubblePlaying }"
           />
         </button>

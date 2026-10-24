@@ -104,7 +104,7 @@ function toggleAnimation() {
           <KitTooltip :text="t('dictionary.listenVoice')" placement="bottom">
             <KitBtn
               v-long-press="openTtsPopover"
-              :icon="isPlaying ? 'mdi:volume-high' : 'mdi:volume-medium'"
+              :icon="isPlaying ? 'mdi:stop' : 'mdi:volume-high'"
               :loading="isLoading"
               variant="tonal"
               color="secondary"

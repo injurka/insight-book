@@ -19,7 +19,7 @@ const emit = defineEmits<{
 <template>
   <div class="audio-mode">
     <KitBtn
-      :icon="props.isPlaying ? 'mdi:volume-high' : 'mdi:volume-medium'"
+      :icon="props.isPlaying ? 'mdi:stop' : 'mdi:volume-high'"
       :loading="props.isLoading"
       size="lg"
       color="accent"

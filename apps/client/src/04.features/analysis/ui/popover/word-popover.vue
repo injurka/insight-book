@@ -306,7 +306,7 @@ onUnmounted(() => {
           <div class="popover-actions">
             <KitTooltip :text="t('analysis.voice')" placement="bottom">
               <KitBtn
-                :icon="isWordAudioPlaying ? 'mdi:volume-high' : 'mdi:volume-medium'"
+                :icon="isWordAudioPlaying ? 'mdi:stop' : 'mdi:volume-high'"
                 size="xs"
                 variant="text"
                 :loading="isWordAudioLoading"

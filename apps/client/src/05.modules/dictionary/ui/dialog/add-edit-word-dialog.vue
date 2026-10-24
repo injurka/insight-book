@@ -204,7 +204,7 @@ async function autoFillWithAI() {
           <div class="tts-wrapper">
             <KitTooltip :text="t('analysis.voice')">
               <KitBtn
-                :icon="isPlaying ? 'mdi:volume-high' : 'mdi:volume-medium'"
+                :icon="isPlaying ? 'mdi:stop' : 'mdi:volume-high'"
                 :loading="isLoading"
                 variant="text"
                 size="sm"
