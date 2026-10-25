@@ -39,8 +39,10 @@ function resolveInterfaceLanguage(localeVal: string): string {
   return 'Russian'
 }
 
+const MAX_HISTORY_MESSAGES = 25
+
 function buildDialogueHistoryPrompt(messages: DialogueMessage[], cleanText: string): string {
-  const history = messages.slice(-8, -1).map(m =>
+  const history = messages.slice(-(MAX_HISTORY_MESSAGES + 1), -1).map(m =>
     `${m.role === 'user' ? 'User' : 'Assistant'}: ${m.content}`).join('\n')
 
   const prefix = history ? `Recent dialogue history:\n${history}\n\n` : ''
