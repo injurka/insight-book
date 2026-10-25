@@ -271,6 +271,7 @@ jobs:
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_BUNDLER_NEW_APPIMAGE_FORMAT: "true"
           VITE_APP_VERSION: ${{ github.ref_name }}
           VITE_API_URL: ${{ secrets.VITE_API_URL }}
           VITE_CDN_URL: ${{ secrets.VITE_CDN_URL }}

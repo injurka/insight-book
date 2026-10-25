@@ -32,6 +32,7 @@ const form = ref<DialogueSettings>({
   topic: '',
   style: 'adaptive',
   autoPlayAudio: true,
+  autoExpandTranslations: false,
 })
 
 const languageOptions = computed<KitSelectOption[]>(() =>
@@ -55,7 +56,11 @@ const styleOptions = computed<KitSelectOption[]>(() =>
 watch(() => props.settings, (val) => {
   if (val) {
     const targetLanguage = ['en', 'ru', 'zh'].includes(val.targetLanguage) ? val.targetLanguage : 'en'
-    form.value = { ...val, targetLanguage }
+    form.value = {
+      ...val,
+      targetLanguage,
+      autoExpandTranslations: val.autoExpandTranslations ?? false,
+    }
   }
 }, { immediate: true, deep: true })
 
@@ -165,6 +170,14 @@ function handleClose() {
         <label class="checkbox-label">
           <KitCheckbox v-model="form.autoPlayAudio" />
           <span>{{ t('plugins.dialogue-trainer.autoPlayAudio') }}</span>
+        </label>
+      </div>
+
+      <!-- Auto Expand Translations Toggle -->
+      <div class="form-group checkbox-row">
+        <label class="checkbox-label">
+          <KitCheckbox v-model="form.autoExpandTranslations" />
+          <span>{{ t('plugins.dialogue-trainer.autoExpandTranslations') }}</span>
         </label>
       </div>
 

@@ -73,6 +73,7 @@ export default {
   send: '发送',
   speakTooltip: '语音录制',
   autoPlayAudio: '自动播放语音回复',
+  autoExpandTranslations: '自动展开句子翻译',
   handsFreeMode: '免提连续对话',
   handsFreeTooltip: '连续对话（语音停顿后自动发送）',
   silenceHint: '请说话... 停顿后将自动发送',

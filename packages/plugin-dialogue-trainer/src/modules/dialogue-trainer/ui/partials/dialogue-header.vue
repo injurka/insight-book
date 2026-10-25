@@ -4,7 +4,7 @@ import { Icon } from '@iconify/vue'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
-import { KitBtn, KitDropdown } from '~/02.kit'
+import { KitBtn, KitCheckbox, KitDropdown } from '~/02.kit'
 import {
   DIFFICULTY_OPTIONS,
   STYLE_OPTIONS,
@@ -26,6 +26,7 @@ const emit = defineEmits<{
   (e: 'newDialogue'): void
   (e: 'deleteDialogue'): void
   (e: 'update:volume', val: number): void
+  (e: 'toggleAutoExpandTranslations'): void
 }>()
 
 const { t } = useI18n()
@@ -161,6 +162,27 @@ function onVolumeInput(e: Event) {
           <button type="button" class="header-menu-item" @click="emit('openHistory')">
             <Icon icon="mdi:history" class="item-icon" />
             <span class="item-label">{{ t('plugins.dialogue-trainer.history') }}</span>
+          </button>
+
+          <div class="header-menu-divider" />
+
+          <!-- Quick Toggle for Auto-expanding Translations -->
+          <button
+            type="button"
+            class="header-menu-item header-menu-toggle-item"
+            @click="emit('toggleAutoExpandTranslations')"
+          >
+            <Icon
+              :icon="settings.autoExpandTranslations ? 'mdi:translate' : 'mdi:translate-off'"
+              class="item-icon"
+              :class="{ 'is-active-icon': settings.autoExpandTranslations }"
+            />
+            <span class="item-label">{{ t('plugins.dialogue-trainer.autoExpandTranslations') }}</span>
+            <KitCheckbox
+              :model-value="Boolean(settings.autoExpandTranslations)"
+              class="menu-checkbox"
+              tabindex="-1"
+            />
           </button>
 
           <div class="header-menu-divider" />
@@ -450,6 +472,17 @@ function onVolumeInput(e: Event) {
 
     &:hover {
       background: rgba(239, 68, 68, 0.1);
+    }
+  }
+
+  &.header-menu-toggle-item {
+    .menu-checkbox {
+      pointer-events: none;
+      padding: 0;
+    }
+
+    .item-icon.is-active-icon {
+      color: var(--fg-accent-color);
     }
   }
 }

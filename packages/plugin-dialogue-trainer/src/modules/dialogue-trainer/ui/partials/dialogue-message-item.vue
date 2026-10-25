@@ -4,13 +4,13 @@ import type { DialogueMessage } from '../../../../shared/types/dialogue'
 import { Icon } from '@iconify/vue'
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useTextSelection } from '~/04.features/analysis'
 import { tokenizeDialogueText, tokenizeDialogueTextServer } from '../../../../shared/lib/dialogue-tokenizer'
 import DialogueFeedbackCard from './dialogue-feedback-card.vue'
 
 interface Props {
   message: DialogueMessage
   targetLanguage: string
+  autoExpandTranslations?: boolean
   isPlayingReply: boolean
   isPlayingCorrection: boolean
   isLoadingAudio: boolean
@@ -18,7 +18,9 @@ interface Props {
   isSentenceLoading?: (msgId: string, idx: number) => boolean
 }
 
-const props = defineProps<Props>()
+const props = withDefaults(defineProps<Props>(), {
+  autoExpandTranslations: false,
+})
 
 const emit = defineEmits<{
   (e: 'playCorrection'): void
@@ -26,9 +28,8 @@ const emit = defineEmits<{
 }>()
 
 const { t } = useI18n()
-const { onPointerDown, onPointerUp, onWordClick } = useTextSelection()
 
-const visibleTranslations = ref<Record<number, boolean>>({})
+const manualVisibility = ref<Record<number, boolean>>({})
 const serverSentences = ref<TokenizedSentence[] | null>(null)
 
 // Tokenize text into sentences and words for click/long-press interactions
@@ -42,6 +43,10 @@ const tokenizedSentences = computed(() => {
   }
 
   return tokenizeDialogueText(props.message.content, props.targetLanguage, 1000)
+})
+
+watch(() => props.autoExpandTranslations, () => {
+  manualVisibility.value = {}
 })
 
 watch(() => [props.message.content, props.targetLanguage], async () => {
@@ -76,8 +81,16 @@ function checkSentenceLoading(idx: number): boolean {
   return false
 }
 
+function isTranslationVisible(idx: number): boolean {
+  if (manualVisibility.value[idx] !== undefined) {
+    return manualVisibility.value[idx]
+  }
+
+  return Boolean(props.autoExpandTranslations && hasTranslation(idx))
+}
+
 function toggleSentenceTranslation(idx: number) {
-  visibleTranslations.value[idx] = !visibleTranslations.value[idx]
+  manualVisibility.value[idx] = !isTranslationVisible(idx)
 }
 
 function hasTranslation(idx: number): boolean {
@@ -133,12 +146,7 @@ function getSentenceTranslation(idx: number): string {
 
       <!-- Dialogue Content -->
       <div v-else class="dialogue-content">
-        <div
-          class="message-text"
-          @pointerdown="onPointerDown"
-          @pointerup="onPointerUp"
-          @click="onWordClick"
-        >
+        <div class="message-text">
           <div
             v-for="sentence in tokenizedSentences"
             :key="sentence.sentId"
@@ -186,12 +194,12 @@ function getSentenceTranslation(idx: number): string {
                   v-if="hasTranslation(sentence.index)"
                   type="button"
                   class="sentence-action-btn translate-btn"
-                  :class="{ 'is-active': visibleTranslations[sentence.index] }"
+                  :class="{ 'is-active': isTranslationVisible(sentence.index) }"
                   :aria-label="t('plugins.dialogue-trainer.translateSentence', 'Перевести предложение')"
                   @pointerdown.stop
                   @click.stop="toggleSentenceTranslation(sentence.index)"
                 >
-                  <Icon :icon="visibleTranslations[sentence.index] ? 'mdi:translate-off' : 'mdi:translate'" />
+                  <Icon :icon="isTranslationVisible(sentence.index) ? 'mdi:translate-off' : 'mdi:translate'" />
                 </button>
               </span>
             </span>
@@ -199,7 +207,7 @@ function getSentenceTranslation(idx: number): string {
             <!-- Sentence translation box under each sentence -->
             <transition name="sentence-fade">
               <div
-                v-if="message.role === 'assistant' && visibleTranslations[sentence.index]"
+                v-if="message.role === 'assistant' && isTranslationVisible(sentence.index)"
                 class="sentence-translation-box"
                 @pointerdown.stop
               >
@@ -339,27 +347,12 @@ function getSentenceTranslation(idx: number): string {
 
 .sentence {
   position: relative;
-  border-radius: 4px;
-  transition: background-color 0.15s ease;
   overflow-wrap: break-word;
   word-break: normal;
-
-  &:hover {
-    background-color: rgba(var(--fg-accent-color-rgb), 0.04);
-  }
 }
 
 .word {
-  cursor: pointer;
-  border-radius: 3px;
-  transition:
-    background-color 0.12s ease,
-    color 0.12s ease;
-
-  &:hover:not(.is-punctuation) {
-    background-color: rgba(var(--fg-accent-color-rgb), 0.18);
-    color: var(--fg-accent-color);
-  }
+  overflow-wrap: break-word;
 
   &.is-punctuation {
     cursor: default;

@@ -3,10 +3,7 @@ import type { DialogueMessage, DialogueSession, DialogueSettings } from '../../.
 import { Icon } from '@iconify/vue'
 import { nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useAnalysisStore } from '~/01.shared/store/analysis/analysis.store'
 import { KitBtn, KitDialog } from '~/02.kit'
-import WordPopover from '~/04.features/analysis/ui/popover/word-popover.vue'
-import SentenceAnalysis from '~/04.features/analysis/ui/sentence-analysis.vue'
 import { useDialogueRecorder } from '../composables/use-dialogue-recorder'
 import { useDialogueSession } from '../composables/use-dialogue-session'
 import DialogueHeader from './partials/dialogue-header.vue'
@@ -36,7 +33,6 @@ const {
   removeSession,
 } = useDialogueSession()
 const recorder = useDialogueRecorder()
-const analysisStore = useAnalysisStore()
 
 const chatContainerRef = ref<HTMLElement | null>(null)
 const textInput = ref('')
@@ -55,10 +51,6 @@ watch(() => [activeMessages.value.length, isGenerating.value, isAiStarting.value
     chatContainerRef.value.scrollTop = chatContainerRef.value.scrollHeight
   }
 })
-watch(() => currentSettings.value.targetLanguage, (lang) => {
-  analysisStore.activeLanguage = lang || 'en'
-  analysisStore.hideDictionaryActions = true
-}, { immediate: true })
 
 function clearHandsFreeTimer() {
   if (handsFreeRestartTimer) {
@@ -144,6 +136,11 @@ async function confirmDeleteCurrentSession() {
 function handleApplySettings(newSettings: DialogueSettings) {
   updateSettings(newSettings)
 }
+function handleToggleAutoExpandTranslations() {
+  updateSettings({
+    autoExpandTranslations: !currentSettings.value.autoExpandTranslations,
+  })
+}
 function handleSelectSession(session: DialogueSession) {
   selectSession(session)
 }
@@ -182,8 +179,6 @@ onMounted(async () => {
   await initSession()
 })
 onUnmounted(() => {
-  analysisStore.activeLanguage = null
-  analysisStore.hideDictionaryActions = false
   clearHandsFreeTimer()
   tts.stopAudio()
   recorder.cancelRecording()
@@ -203,6 +198,7 @@ onUnmounted(() => {
       @open-history="handleOpenHistory"
       @new-dialogue="handleNewDialogue"
       @delete-dialogue="handleDeleteDialogue"
+      @toggle-auto-expand-translations="handleToggleAutoExpandTranslations"
     />
 
     <!-- Chat Messages Scroll Container -->
@@ -246,6 +242,7 @@ onUnmounted(() => {
           :key="msg.id"
           :message="msg"
           :target-language="currentSettings.targetLanguage"
+          :auto-expand-translations="Boolean(currentSettings.autoExpandTranslations)"
           :is-playing-reply="tts.currentPlayingId.value === msg.id && tts.isPlaying.value"
           :is-playing-correction="tts.currentPlayingId.value === `corr_${msg.id}` && tts.isPlaying.value"
           :is-loading-audio="tts.isLoadingAudio.value"
@@ -370,15 +367,6 @@ onUnmounted(() => {
         </div>
       </div>
     </KitDialog>
-
-    <!-- Word popover & Sentence analysis modals -->
-    <WordPopover
-      :hide-dictionary-actions="true"
-    />
-    <SentenceAnalysis
-      :hide-quote-actions="true"
-      :hide-dictionary-actions="true"
-    />
   </div>
 </template>
 

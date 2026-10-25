@@ -17,6 +17,7 @@ const DEFAULT_SETTINGS: DialogueSettings = {
   topic: '',
   style: 'adaptive',
   autoPlayAudio: true,
+  autoExpandTranslations: false,
 }
 
 function getLanguageName(code: string): string {

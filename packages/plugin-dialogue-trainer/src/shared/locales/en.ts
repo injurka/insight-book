@@ -73,6 +73,7 @@ export default {
   send: 'Send',
   speakTooltip: 'Record speech',
   autoPlayAudio: 'Auto-play voice responses',
+  autoExpandTranslations: 'Show sentence translations automatically',
   handsFreeMode: 'Hands-free mode',
   handsFreeTooltip: 'Continuous conversation (auto-sends on pause)',
   silenceHint: 'Speak... Will auto-send when you pause',

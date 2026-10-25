@@ -12,6 +12,7 @@ export interface DialogueSettings {
   topic: string
   style: DialogueStyle
   autoPlayAudio: boolean
+  autoExpandTranslations?: boolean
 }
 
 export interface DialogueSentenceReply {
