@@ -90,6 +90,8 @@ export interface StyleOption {
   value: DialogueStyle
   labelKey: string
   fallbackLabel: string
+  hintKey: string
+  fallbackHint: string
   icon: string
 }
 
@@ -98,36 +100,48 @@ export const STYLE_OPTIONS: StyleOption[] = [
     value: 'adaptive',
     labelKey: 'plugins.dialogue-trainer.styleAdaptive',
     fallbackLabel: 'Адаптивный',
+    hintKey: 'plugins.dialogue-trainer.styleAdaptiveHint',
+    fallbackHint: 'Подстраивается под ваш стиль и уровень',
     icon: 'mdi:auto-fix',
   },
   {
     value: 'friendly',
     labelKey: 'plugins.dialogue-trainer.styleFriendly',
     fallbackLabel: 'Дружелюбный',
+    hintKey: 'plugins.dialogue-trainer.styleFriendlyHint',
+    fallbackHint: 'Тёплое общение и поддержка',
     icon: 'mdi:emoticon-happy-outline',
   },
   {
     value: 'casual',
     labelKey: 'plugins.dialogue-trainer.styleCasual',
-    fallbackLabel: 'Разговорный / Сленг',
+    fallbackLabel: 'Разговорный (с носителем)',
+    hintKey: 'plugins.dialogue-trainer.styleCasualHint',
+    fallbackHint: 'Как с носителем-ровесником: молодёжный сленг, сокращения, живая речь',
     icon: 'mdi:chat-processing-outline',
   },
   {
     value: 'formal',
     labelKey: 'plugins.dialogue-trainer.styleFormal',
     fallbackLabel: 'Официально-деловой',
+    hintKey: 'plugins.dialogue-trainer.styleFormalHint',
+    fallbackHint: 'Деловая и официальная речь без сленга',
     icon: 'mdi:briefcase-outline',
   },
   {
     value: 'humorous',
     labelKey: 'plugins.dialogue-trainer.styleHumorous',
     fallbackLabel: 'С юмором',
+    hintKey: 'plugins.dialogue-trainer.styleHumorousHint',
+    fallbackHint: 'Шутки, ирония и лёгкий тон',
     icon: 'mdi:drama-masks',
   },
   {
     value: 'tutor',
     labelKey: 'plugins.dialogue-trainer.styleTutor',
     fallbackLabel: 'Терпеливый наставник',
+    hintKey: 'plugins.dialogue-trainer.styleTutorHint',
+    fallbackHint: 'Простые объяснения и мягкая коррекция',
     icon: 'mdi:school-outline',
   },
 ]

@@ -7,6 +7,12 @@ import type {
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { requestLlmGenerate, requestTtsAudio } from '../../../shared/lib/api'
+import {
+  buildDialogueHistoryPrompt,
+  buildDialogueSystemPrompt,
+  getLanguageName,
+  resolveInterfaceLanguage,
+} from '../../../shared/lib/dialogue-prompt'
 import { splitTextIntoSentences } from '../../../shared/lib/dialogue-tokenizer'
 import { useDialogueStorage } from './use-dialogue-storage'
 import { useDialogueTts } from './use-dialogue-tts'
@@ -18,37 +24,6 @@ const DEFAULT_SETTINGS: DialogueSettings = {
   style: 'adaptive',
   autoPlayAudio: true,
   autoExpandTranslations: false,
-}
-
-function getLanguageName(code: string): string {
-  const map: Record<string, string> = {
-    en: 'English',
-    ru: 'Russian',
-    zh: 'Chinese (Mandarin)',
-  }
-
-  return map[code] || 'English'
-}
-
-function resolveInterfaceLanguage(localeVal: string): string {
-  if (localeVal.startsWith('zh'))
-    return 'Chinese'
-
-  if (localeVal.startsWith('en'))
-    return 'English'
-
-  return 'Russian'
-}
-
-const MAX_HISTORY_MESSAGES = 25
-
-function buildDialogueHistoryPrompt(messages: DialogueMessage[], cleanText: string): string {
-  const history = messages.slice(-(MAX_HISTORY_MESSAGES + 1), -1).map(m =>
-    `${m.role === 'user' ? 'User' : 'Assistant'}: ${m.content}`).join('\n')
-
-  const prefix = history ? `Recent dialogue history:\n${history}\n\n` : ''
-
-  return `${prefix}User just said: "${cleanText}"\n\nAnalyze what the user said, evaluate correctness, explain mistakes/improvements, give corrected sentence, and write your in-character dialogue reply.`
 }
 
 function createAssistantPlaceholder(): DialogueMessage {
@@ -168,47 +143,6 @@ export function useDialogueSession() {
     }
   }
 
-  function buildSystemPrompt(settings: DialogueSettings): string {
-    const practiceLang = getLanguageName(settings.targetLanguage)
-    const interfaceLang = resolveInterfaceLanguage(locale.value || 'ru')
-
-    return `You are an expert language coach and immersive conversational partner.
-The user is practicing their spoken ${practiceLang}.
-Your role:
-1. Conduct an engaging, natural dialogue in ${practiceLang} matching the scenario and level.
-2. Provide precise, constructive linguistic feedback in ${interfaceLang} analyzing the user's spoken utterance.
-
-Scenario Configuration:
-- Target Practice Language: ${practiceLang}
-- User Explanation Language: ${interfaceLang}
-- Difficulty Level: ${settings.difficulty}
-- Topic / Situation: ${settings.topic || 'General engaging daily conversation'}
-- Conversational Style: ${settings.style}
-
-Analysis Instructions:
-- Evaluate user speech transcript verbatim (isCorrect: true/false).
-- In "feedback" (${interfaceLang}): explain mistakes, cite grammar rules, suggest natural/conversational phrasing.
-- In "correctedSentence": full ideal sentence in ${practiceLang}.
-- In "reply": in-character conversational continuation in ${practiceLang}.
-- In "replyTranslation": translation of entire reply into ${interfaceLang}.
-- In "replySentences": array of sentence objects breaking down "reply", where each item has "text" in ${practiceLang} and "translation" in ${interfaceLang}.
-
-Output STRICT JSON ONLY:
-{
-  "isCorrect": boolean,
-  "feedback": "string",
-  "correctedSentence": "string",
-  "reply": "string",
-  "replyTranslation": "string",
-  "replySentences": [
-    {
-      "text": "sentence text in practice language",
-      "translation": "translation of this sentence in explanation language"
-    }
-  ]
-}`
-  }
-
   async function playAssistantVoice(message: DialogueMessage, session: DialogueSession, onEnded?: () => void): Promise<void> {
     const language = session.settings.targetLanguage
     const sentences = (message.replySentences?.length
@@ -309,10 +243,10 @@ Output STRICT JSON ONLY:
     session.messages.push(assistantPlaceholder)
 
     try {
-      const prompt = `Start our dialogue in ${practiceLang}. Introduce scenario or greet user in character matching topic "${settings.topic || 'friendly encounter'}", style "${settings.style}", level "${settings.difficulty}". Return JSON with isCorrect: true, feedback: "", correctedSentence: "", reply: "greeting in ${practiceLang}", replyTranslation: "translation in ${interfaceLang}".`
+      const prompt = `Start our dialogue in ${practiceLang}. Introduce the scenario or greet the user in character, matching the topic "${settings.topic || 'friendly encounter'}" and the conversational style and level defined in the system prompt. Return JSON with isCorrect: true, feedback: "", correctedSentence: "", reply: "greeting in ${practiceLang}", replyTranslation: "translation in ${interfaceLang}".`
 
       const res = await requestLlmGenerate<LlmDialogueAnalysisResponse>({
-        systemPrompt: buildSystemPrompt(settings),
+        systemPrompt: buildDialogueSystemPrompt(settings, locale.value || 'ru'),
         prompt,
         temperature: 0.7,
       })
@@ -378,7 +312,7 @@ Output STRICT JSON ONLY:
     try {
       const prompt = buildDialogueHistoryPrompt(session.messages, cleanText)
       const res = await requestLlmGenerate<LlmDialogueAnalysisResponse>({
-        systemPrompt: buildSystemPrompt(settings),
+        systemPrompt: buildDialogueSystemPrompt(settings, locale.value || 'ru'),
         prompt,
         temperature: 0.6,
       })

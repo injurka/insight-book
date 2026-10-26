@@ -387,6 +387,7 @@ function onVolumeInput(e: Event) {
   color: var(--fg-secondary-color);
   padding: 2px 6px;
   border-radius: 12px;
+  white-space: nowrap;
 
   &:hover {
     color: var(--fg-primary-color);

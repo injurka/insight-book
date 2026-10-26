@@ -52,6 +52,11 @@ const styleOptions = computed<KitSelectOption[]>(() =>
     value: style.value,
     icon: style.icon,
   })))
+const selectedStyleHint = computed(() => {
+  const selected = STYLE_OPTIONS.find((style: StyleOption) => style.value === form.value.style)
+
+  return selected ? t(selected.hintKey, selected.fallbackHint) : ''
+})
 
 watch(() => props.settings, (val) => {
   if (val) {
@@ -131,6 +136,10 @@ function handleClose() {
           size="md"
           class="full-width-select"
         />
+        <p v-if="selectedStyleHint" class="style-hint">
+          <Icon icon="mdi:information-outline" class="hint-icon" />
+          <span>{{ selectedStyleHint }}</span>
+        </p>
       </div>
 
       <!-- Free Topic Input -->
@@ -246,6 +255,23 @@ function handleClose() {
 
 .full-width-select {
   width: 100%;
+}
+
+.style-hint {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin: 0;
+  font-size: 0.78rem;
+  line-height: 1.4;
+  color: var(--fg-secondary-color);
+
+  .hint-icon {
+    flex-shrink: 0;
+    font-size: 0.95rem;
+    margin-top: 1px;
+    color: var(--fg-accent-color);
+  }
 }
 
 .chips-label {
