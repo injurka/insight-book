@@ -73,7 +73,7 @@ export default {
   send: 'Отправить',
   speakTooltip: 'Записать голос',
   autoPlayAudio: 'Автовоспроизведение озвучки',
-  autoExpandTranslations: 'Сразу раскрывать переводы предложений',
+  autoExpandTranslations: 'Раскрывать переводы',
   handsFreeMode: 'Hands-free режим',
   handsFreeTooltip: 'Непрерывный диалог (автоотправка при паузе в речи)',
   silenceHint: 'Говорите... При паузе фраза отправится автоматически',

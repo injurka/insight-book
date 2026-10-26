@@ -136,7 +136,7 @@ function onVolumeInput(e: Event) {
 
     <!-- Header Actions (Compact Three-dots Popover Menu) -->
     <div class="header-right">
-      <KitDropdown placement="bottom-end" width="240px">
+      <KitDropdown placement="bottom-end" width="300px">
         <template #activator="{ props: activatorProps }">
           <KitBtn
             icon="mdi:dots-vertical"

@@ -358,6 +358,7 @@ onUnmounted(() => {
       cursor: pointer;
       border-radius: 4px;
       transition: background-color 0.2s ease;
+
       &:hover,
       &.is-hovered {
         background-color: var(--bg-hover-color);
@@ -370,6 +371,7 @@ onUnmounted(() => {
       transition:
         background-color 0.1s,
         color 0.1s;
+
       &.add-space {
         padding-right: 0.25em;
       }
@@ -379,7 +381,6 @@ onUnmounted(() => {
       &.is-active {
         background-color: var(--fg-accent-color);
         color: var(--bg-primary-color);
-        font-weight: bold;
 
         &.add-space {
           font-weight: inherit;
