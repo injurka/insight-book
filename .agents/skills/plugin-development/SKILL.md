@@ -117,6 +117,9 @@ ctx.unregisterUIWidget('widget-id')
   - `ctx.api.user.getProfile()`
 
 ## 5. Проверка изменений плагина
+- **Порядок после правки:** сначала `bunx eslint --fix <файлы>` — правила `perfectionist/sort-imports`, `vue-setup-order` (ref до computed) и `no-multiple-empty-lines` автофиксятся, без этого lint падает тремя ошибками; затем `bun run build` в пакете плагина; затем `bun run typecheck` в `apps/client`.
 - Сборка `bun run build` в пакете плагина + `bun run typecheck` в `apps/client`: `tsconfig.app.json` клиента включает `packages/plugin-*/src/**/*.ts|vue`, поэтому vue-tsc реально проверяет шаблоны и типы плагина.
+- **Относительные импорты считаются от текущего файла.** Из `ui/partials/` композаблы лежат в `../../composables/`, не в `../composables/` — ошибка резолва ловится сборкой (`UNRESOLVED_IMPORT`) или vue-tsc клиента, а не линтом.
+- **Рабочая копия может меняться параллельно с сессией** (пользователь сам правит или откатывает файлы). Перед правкой: `git status --porcelain` + `git diff` по целевым путям — часть запрошенного может быть уже сделана (функции стора, локали, удалённый хинт). Строй поверх его черновика, не дублируй; чужие незакоммиченные правки не трогай.
 - Песочница (`bun run dev` + `createSandboxApp`) не отрисует страницу, если код импортирует сторы хоста: они полагаются на auto-import из `apps/client` и падают с `defineStore is not defined`. Для UI-проверки запускай клиент целиком, а не песочницу.
 
