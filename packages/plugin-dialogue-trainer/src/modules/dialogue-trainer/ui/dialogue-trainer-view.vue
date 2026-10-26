@@ -3,7 +3,10 @@ import type { DialogueMessage, DialogueSession, DialogueSettings } from '../../.
 import { Icon } from '@iconify/vue'
 import { nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useAnalysisStore } from '~/01.shared/store/analysis/analysis.store'
 import { KitBtn, KitDialog } from '~/02.kit'
+import WordPopover from '~/04.features/analysis/ui/popover/word-popover.vue'
+import SentenceAnalysis from '~/04.features/analysis/ui/sentence-analysis.vue'
 import { useDialogueRecorder } from '../composables/use-dialogue-recorder'
 import { useDialogueSession } from '../composables/use-dialogue-session'
 import DialogueHeader from './partials/dialogue-header.vue'
@@ -33,6 +36,7 @@ const {
   removeSession,
 } = useDialogueSession()
 const recorder = useDialogueRecorder()
+const analysisStore = useAnalysisStore()
 
 const chatContainerRef = ref<HTMLElement | null>(null)
 const textInput = ref('')
@@ -51,6 +55,10 @@ watch(() => [activeMessages.value.length, isGenerating.value, isAiStarting.value
     chatContainerRef.value.scrollTop = chatContainerRef.value.scrollHeight
   }
 })
+watch(() => currentSettings.value.targetLanguage, (lang) => {
+  analysisStore.activeLanguage = lang || 'en'
+  analysisStore.hideDictionaryActions = true
+}, { immediate: true })
 
 function clearHandsFreeTimer() {
   if (handsFreeRestartTimer) {
@@ -179,6 +187,8 @@ onMounted(async () => {
   await initSession()
 })
 onUnmounted(() => {
+  analysisStore.activeLanguage = null
+  analysisStore.hideDictionaryActions = false
   clearHandsFreeTimer()
   tts.stopAudio()
   recorder.cancelRecording()
@@ -367,6 +377,15 @@ onUnmounted(() => {
         </div>
       </div>
     </KitDialog>
+
+    <!-- Word popover & Sentence analysis modals -->
+    <WordPopover
+      :hide-dictionary-actions="true"
+    />
+    <SentenceAnalysis
+      :hide-quote-actions="true"
+      :hide-dictionary-actions="true"
+    />
   </div>
 </template>
 

@@ -4,6 +4,7 @@ import type { DialogueMessage } from '../../../../shared/types/dialogue'
 import { Icon } from '@iconify/vue'
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useTextSelection } from '~/04.features/analysis'
 import { tokenizeDialogueText, tokenizeDialogueTextServer } from '../../../../shared/lib/dialogue-tokenizer'
 import DialogueFeedbackCard from './dialogue-feedback-card.vue'
 
@@ -28,6 +29,7 @@ const emit = defineEmits<{
 }>()
 
 const { t } = useI18n()
+const { onPointerDown, onPointerUp, onWordClick } = useTextSelection()
 
 const manualVisibility = ref<Record<number, boolean>>({})
 const serverSentences = ref<TokenizedSentence[] | null>(null)
@@ -146,7 +148,12 @@ function getSentenceTranslation(idx: number): string {
 
       <!-- Dialogue Content -->
       <div v-else class="dialogue-content">
-        <div class="message-text">
+        <div
+          class="message-text"
+          @pointerdown="onPointerDown"
+          @pointerup="onPointerUp"
+          @click="onWordClick"
+        >
           <div
             v-for="sentence in tokenizedSentences"
             :key="sentence.sentId"
@@ -352,6 +359,7 @@ function getSentenceTranslation(idx: number): string {
 }
 
 .word {
+  cursor: pointer;
   overflow-wrap: break-word;
 
   &.is-punctuation {

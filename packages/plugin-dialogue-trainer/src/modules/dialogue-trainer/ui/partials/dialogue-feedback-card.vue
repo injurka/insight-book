@@ -4,6 +4,7 @@ import { Icon } from '@iconify/vue'
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { KitTooltip } from '~/02.kit'
+import { useTextSelection } from '~/04.features/analysis'
 import { tokenizeDialogueText, tokenizeDialogueTextServer } from '../../../../shared/lib/dialogue-tokenizer'
 
 interface Props {
@@ -22,6 +23,7 @@ const emit = defineEmits<{
 }>()
 
 const { t } = useI18n()
+const { onPointerDown, onPointerUp, onWordClick } = useTextSelection()
 
 const serverSentences = ref<TokenizedSentence[] | null>(null)
 
@@ -64,7 +66,12 @@ watch(() => [props.correctedSentence, props.targetLanguage], async () => {
         <Icon icon="mdi:auto-fix" />
         {{ t('plugins.dialogue-trainer.correctVariant') }}
       </span>
-      <div class="corrected-text">
+      <div
+        class="corrected-text"
+        @pointerdown="onPointerDown"
+        @pointerup="onPointerUp"
+        @click="onWordClick"
+      >
         <span
           v-for="(sent, sentIdx) in tokenizedCorrectionSentences"
           :key="sent.sentId"
@@ -259,6 +266,7 @@ watch(() => [props.correctedSentence, props.targetLanguage], async () => {
   }
 
   .word {
+    cursor: pointer;
     overflow-wrap: break-word;
 
     &.is-punctuation {
