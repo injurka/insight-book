@@ -223,7 +223,7 @@ onMounted(() => {
   <KitDialog
     v-model:visible="visible"
     :title="`${t('dictionary.aiFreeQuestion')}: ${word}`"
-    :max-width="650"
+    :max-width="780"
     z-index="1400"
   >
     <div class="chat-modal-layout" :class="{ 'with-sidebar': isManagingPrompts }">
@@ -252,12 +252,10 @@ onMounted(() => {
             :key="msg.id"
             class="chat-message"
             :class="msg.sender"
+            :aria-label="msg.sender === 'user' ? t('dictionary.userLabel') : t('dictionary.aiLabel')"
+            role="group"
           >
             <div class="message-bubble">
-              <div class="message-sender-label">
-                <Icon v-if="msg.sender === 'ai'" icon="mdi:robot" class="ai-label-icon mr-1" />
-                {{ msg.sender === 'user' ? t('dictionary.userLabel') : t('dictionary.aiLabel') }}
-              </div>
               <div class="message-content" v-html="formatMarkdown(msg.text)" />
             </div>
           </div>
@@ -485,7 +483,7 @@ onMounted(() => {
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 16px;
   min-height: 350px;
   box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.02);
 }
@@ -550,23 +548,23 @@ onMounted(() => {
 
   &.user {
     justify-content: flex-end;
+
     .message-bubble {
+      max-width: 80%;
+      padding: 8px 14px;
       background-color: rgba(var(--fg-accent-color-rgb), 0.08);
       border: 1px solid rgba(var(--fg-accent-color-rgb), 0.2);
       border-radius: 12px 12px 2px 12px;
-    }
-    .message-sender-label {
-      text-align: right;
-      color: var(--fg-accent-color);
     }
   }
 
   &.ai {
     justify-content: flex-start;
+
     .message-bubble {
-      background-color: var(--bg-secondary-color);
-      border: 1px solid var(--border-primary-color);
-      border-radius: 12px 12px 12px 2px;
+      width: 100%;
+      background: none;
+      border: none;
 
       &.loading {
         display: inline-flex;
@@ -579,26 +577,10 @@ onMounted(() => {
   }
 }
 
-.ai-label-icon {
-  font-size: 0.9rem;
-  vertical-align: middle;
-}
-
-.message-sender-label {
-  font-size: 0.7rem;
-  font-weight: 700;
-  color: var(--fg-secondary-color);
-  margin-bottom: 2px;
-  text-transform: uppercase;
-  letter-spacing: 0.02em;
-}
-
 .message-bubble {
-  max-width: 85%;
-  padding: 8px 14px;
-  border-radius: 10px;
+  min-width: 0;
   font-size: 0.95rem;
-  line-height: 1.45;
+  line-height: 1.55;
   word-break: break-word;
 }
 
