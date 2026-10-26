@@ -2,10 +2,12 @@
 import type { TokenizedSentence } from '../../../../shared/lib/dialogue-tokenizer'
 import type { DialogueMessage } from '../../../../shared/types/dialogue'
 import { Icon } from '@iconify/vue'
-import { computed, ref, watch } from 'vue'
+import { computed, nextTick, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { KitBtn, KitTooltip } from '~/02.kit'
 import { useTextSelection } from '~/04.features/analysis'
 import { tokenizeDialogueText, tokenizeDialogueTextServer } from '../../../../shared/lib/dialogue-tokenizer'
+import { useDialogueRecorder } from '../../composables/use-dialogue-recorder'
 import DialogueFeedbackCard from './dialogue-feedback-card.vue'
 
 interface Props {
@@ -17,23 +19,39 @@ interface Props {
   isLoadingAudio: boolean
   isSentencePlaying?: (msgId: string, idx: number) => boolean
   isSentenceLoading?: (msgId: string, idx: number) => boolean
+  disabled?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
   autoExpandTranslations: false,
+  disabled: false,
 })
-
 const emit = defineEmits<{
   (e: 'playCorrection'): void
   (e: 'playSentence', sentenceIdx: number, text: string): void
+  (e: 'edit', messageId: string, text: string): void
+  (e: 'delete', messageId: string): void
 }>()
 
 const { t } = useI18n()
 const { onPointerDown, onPointerUp, onWordClick } = useTextSelection()
+const recorder = useDialogueRecorder()
 
 const manualVisibility = ref<Record<number, boolean>>({})
 const serverSentences = ref<TokenizedSentence[] | null>(null)
+const isActionsOpen = ref(false)
+const isEditing = ref(false)
+const editText = ref('')
+const editTextareaRef = ref<HTMLTextAreaElement | null>(null)
 
+// Edit / delete controls for user messages
+const isUserMessage = computed(() => props.message.role === 'user')
+const formattedEditDuration = computed(() => {
+  const m = Math.floor(recorder.recordingDuration.value / 60)
+  const s = recorder.recordingDuration.value % 60
+
+  return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`
+})
 // Tokenize text into sentences and words for click/long-press interactions
 const tokenizedSentences = computed(() => {
   if (serverSentences.value?.length) {
@@ -50,7 +68,6 @@ const tokenizedSentences = computed(() => {
 watch(() => props.autoExpandTranslations, () => {
   manualVisibility.value = {}
 })
-
 watch(() => [props.message.content, props.targetLanguage], async () => {
   if (props.message.tokenizedSentences?.length) {
     serverSentences.value = props.message.tokenizedSentences
@@ -67,6 +84,56 @@ watch(() => [props.message.content, props.targetLanguage], async () => {
   serverSentences.value = await tokenizeDialogueTextServer(props.message.content, props.targetLanguage, 1000)
 }, { immediate: true })
 
+function handleBubbleClick() {
+  if (!isUserMessage.value || isEditing.value || props.disabled)
+    return
+
+  isActionsOpen.value = !isActionsOpen.value
+}
+function startEdit() {
+  editText.value = props.message.content
+  isEditing.value = true
+  isActionsOpen.value = false
+  nextTick(() => {
+    editTextareaRef.value?.focus()
+    editTextareaRef.value?.select()
+  })
+}
+function cancelEdit() {
+  recorder.cancelRecording()
+  isEditing.value = false
+  editText.value = ''
+}
+function saveEdit() {
+  const text = editText.value.trim()
+
+  if (!text || recorder.isTranscribing.value)
+    return
+
+  emit('edit', props.message.id, text)
+  cancelEdit()
+}
+async function finishVoiceEdit() {
+  const text = await recorder.stopRecording(props.targetLanguage)
+
+  if (text)
+    editText.value = text
+}
+async function toggleVoiceEdit() {
+  if (recorder.isRecording.value) {
+    await finishVoiceEdit()
+
+    return
+  }
+
+  if (recorder.isTranscribing.value)
+    return
+
+  await recorder.startRecording(async () => {
+    if (recorder.isRecording.value)
+      await finishVoiceEdit()
+  }, 1600)
+}
 function checkSentencePlaying(idx: number): boolean {
   if (props.isSentencePlaying) {
     return props.isSentencePlaying(props.message.id, idx)
@@ -74,7 +141,6 @@ function checkSentencePlaying(idx: number): boolean {
 
   return props.isPlayingReply
 }
-
 function checkSentenceLoading(idx: number): boolean {
   if (props.isSentenceLoading) {
     return props.isSentenceLoading(props.message.id, idx)
@@ -82,7 +148,6 @@ function checkSentenceLoading(idx: number): boolean {
 
   return false
 }
-
 function isTranslationVisible(idx: number): boolean {
   if (manualVisibility.value[idx] !== undefined) {
     return manualVisibility.value[idx]
@@ -90,11 +155,9 @@ function isTranslationVisible(idx: number): boolean {
 
   return Boolean(props.autoExpandTranslations && hasTranslation(idx))
 }
-
 function toggleSentenceTranslation(idx: number) {
   manualVisibility.value[idx] = !isTranslationVisible(idx)
 }
-
 function hasTranslation(idx: number): boolean {
   if (props.message.replySentences?.[idx]?.translation) {
     return true
@@ -106,7 +169,6 @@ function hasTranslation(idx: number): boolean {
 
   return Boolean(props.message.replyTranslation)
 }
-
 function getSentenceTranslation(idx: number): string {
   if (props.message.replySentences?.[idx]?.translation) {
     return props.message.replySentences[idx].translation
@@ -118,13 +180,41 @@ function getSentenceTranslation(idx: number): string {
 
 <template>
   <div class="message-row" :class="[message.role]">
+    <!-- Inline actions for user messages (edit / delete) -->
+    <transition name="actions-pop">
+      <div v-if="isUserMessage && isActionsOpen && !isEditing" class="user-message-actions">
+        <KitTooltip :text="t('plugins.dialogue-trainer.editMessage')" placement="left">
+          <button
+            type="button"
+            class="msg-action-btn"
+            :aria-label="t('plugins.dialogue-trainer.editMessage')"
+            @click="startEdit"
+          >
+            <Icon icon="mdi:pencil-outline" />
+          </button>
+        </KitTooltip>
+
+        <KitTooltip :text="t('plugins.dialogue-trainer.deleteMessage')" placement="left">
+          <button
+            type="button"
+            class="msg-action-btn is-danger"
+            :aria-label="t('plugins.dialogue-trainer.deleteMessage')"
+            @click="emit('delete', message.id)"
+          >
+            <Icon icon="mdi:trash-can-outline" />
+          </button>
+        </KitTooltip>
+      </div>
+    </transition>
+
     <!-- Message Bubble -->
     <div
       class="bubble"
       :class="[
         message.role,
-        { 'is-loading': message.isLoading },
+        { 'is-loading': message.isLoading, 'is-editing': isEditing },
       ]"
+      @click="handleBubbleClick"
     >
       <!-- Feedback Card for Assistant Messages -->
       <DialogueFeedbackCard
@@ -144,6 +234,48 @@ function getSentenceTranslation(idx: number): string {
         <span class="pulse-dot dot-2" />
         <span class="pulse-dot dot-3" />
         <span class="loading-label">{{ t('plugins.dialogue-trainer.analyzing', 'Анализирую ответ...') }}</span>
+      </div>
+
+      <!-- Edit Mode for User Messages -->
+      <div v-else-if="isEditing" class="edit-mode">
+        <textarea
+          ref="editTextareaRef"
+          v-model="editText"
+          class="edit-textarea"
+          :placeholder="t('plugins.dialogue-trainer.editPlaceholder')"
+          @keydown.enter.exact.prevent="saveEdit"
+        />
+        <div v-if="recorder.isRecording.value || recorder.isTranscribing.value" class="edit-recording-state">
+          <span v-if="recorder.isRecording.value" class="pulsing-dot" />
+          <Icon v-else icon="mdi:loading" class="spin-icon" />
+          <span>{{ recorder.isTranscribing.value ? t('plugins.dialogue-trainer.transcribing') : t('plugins.dialogue-trainer.listening') }}</span>
+          <span v-if="recorder.isRecording.value" class="edit-recording-timer">{{ formattedEditDuration }}</span>
+        </div>
+        <div class="edit-actions">
+          <KitTooltip :text="recorder.isRecording.value ? t('plugins.dialogue-trainer.recordingDone') : t('plugins.dialogue-trainer.rerecord')">
+            <KitBtn
+              size="sm"
+              :variant="recorder.isRecording.value ? 'solid' : 'tonal'"
+              :color="recorder.isRecording.value ? 'primary' : undefined"
+              :icon="recorder.isRecording.value ? 'mdi:stop' : 'mdi:microphone'"
+              :disabled="recorder.isTranscribing.value || props.disabled"
+              :aria-label="recorder.isRecording.value ? t('plugins.dialogue-trainer.recordingDone') : t('plugins.dialogue-trainer.rerecord')"
+              @click="toggleVoiceEdit"
+            />
+          </KitTooltip>
+          <div class="edit-actions-spacer" />
+          <KitBtn size="sm" variant="tonal" @click="cancelEdit">
+            {{ t('plugins.dialogue-trainer.cancel') }}
+          </KitBtn>
+          <KitBtn
+            size="sm"
+            color="primary"
+            :disabled="!editText.trim() || recorder.isTranscribing.value"
+            @click="saveEdit"
+          >
+            {{ t('plugins.dialogue-trainer.saveEdit') }}
+          </KitBtn>
+        </div>
       </div>
 
       <!-- Dialogue Content -->
@@ -497,5 +629,127 @@ function getSentenceTranslation(idx: number): string {
 .sentence-fade-leave-to {
   opacity: 0;
   transform: translateY(-4px);
+}
+
+/* Inline actions (edit / delete) to the left of the user bubble */
+.user-message-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-self: center;
+  margin-right: 6px;
+  flex-shrink: 0;
+
+  .msg-action-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    padding: 0;
+    border-radius: 50%;
+    border: 1px solid var(--border-secondary-color);
+    background: var(--bg-secondary-color);
+    color: var(--fg-secondary-color);
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: all 0.15s ease;
+
+    &:hover {
+      color: var(--fg-accent-color);
+      border-color: var(--fg-accent-color);
+      background: var(--bg-hover-color);
+    }
+
+    &.is-danger:hover {
+      color: var(--fg-error-color);
+      border-color: var(--fg-error-color);
+    }
+  }
+}
+
+.actions-pop-enter-active,
+.actions-pop-leave-active {
+  transition: all 0.15s ease-out;
+}
+
+.actions-pop-enter-from,
+.actions-pop-leave-to {
+  opacity: 0;
+  transform: translateX(6px);
+}
+
+/* Edit mode inside the user bubble */
+.edit-mode {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+
+  .edit-textarea {
+    width: 100%;
+    resize: vertical;
+    min-height: 48px;
+    background: var(--bg-primary-color);
+    border: 1px solid var(--border-primary-color);
+    border-radius: 10px;
+    padding: 8px 10px;
+    font-family: inherit;
+    font-size: 0.95rem;
+    line-height: 1.45;
+    color: var(--fg-primary-color);
+    outline: none;
+
+    &:focus {
+      border-color: var(--fg-accent-color);
+    }
+  }
+
+  .edit-recording-state {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.8rem;
+    color: var(--fg-secondary-color);
+
+    .edit-recording-timer {
+      font-family: monospace;
+      font-weight: 700;
+      color: var(--fg-primary-color);
+      letter-spacing: 0.5px;
+    }
+  }
+
+  .edit-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .edit-actions-spacer {
+    flex: 1;
+  }
+}
+
+.pulsing-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgb(239, 68, 68);
+  flex-shrink: 0;
+  animation: edit-pulse 1.2s infinite ease-in-out;
+}
+
+@keyframes edit-pulse {
+  0%,
+  100% {
+    opacity: 0.7;
+    transform: scale(0.85);
+  }
+
+  50% {
+    opacity: 1;
+    transform: scale(1.2);
+  }
 }
 </style>

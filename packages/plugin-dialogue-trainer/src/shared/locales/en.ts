@@ -82,8 +82,12 @@ export default {
   autoExpandTranslations: 'Sentence translations',
   handsFreeMode: 'Hands-free mode',
   handsFreeTooltip: 'Continuous conversation (auto-sends on pause)',
-  silenceHint: 'Speak... Will auto-send when you pause',
   listening: 'Listening...',
+  editMessage: 'Edit message',
+  deleteMessage: 'Delete message',
+  editPlaceholder: 'Fix the text or dictate it again',
+  rerecord: 'Re-record by voice',
+  saveEdit: 'Save',
 
   // Feedback block
   perfectSpoken: 'Perfect!',

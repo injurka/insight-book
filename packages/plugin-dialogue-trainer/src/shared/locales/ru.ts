@@ -82,8 +82,12 @@ export default {
   autoExpandTranslations: 'Раскрывать переводы',
   handsFreeMode: 'Hands-free режим',
   handsFreeTooltip: 'Непрерывный диалог (автоотправка при паузе в речи)',
-  silenceHint: 'Говорите... При паузе фраза отправится автоматически',
   listening: 'Слушаю вас...',
+  editMessage: 'Редактировать сообщение',
+  deleteMessage: 'Удалить сообщение',
+  editPlaceholder: 'Исправьте текст или продиктуйте заново',
+  rerecord: 'Продиктовать заново',
+  saveEdit: 'Сохранить',
 
   // Feedback block
   perfectSpoken: 'Идеально сказано!',

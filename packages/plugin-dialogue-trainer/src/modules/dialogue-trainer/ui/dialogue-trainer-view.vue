@@ -31,6 +31,8 @@ const {
   sendUserMessage,
   startAiConversation,
   playMessageSentence,
+  deleteUserMessage,
+  updateUserMessage,
   deleteCurrentSession,
   updateSettings,
   removeSession,
@@ -258,9 +260,12 @@ onUnmounted(() => {
           :is-loading-audio="tts.isLoadingAudio.value"
           :is-sentence-playing="tts.isSentencePlaying"
           :is-sentence-loading="tts.isSentenceLoading"
+          :disabled="isGenerating"
           @play-reply="handlePlayReply(msg)"
           @play-correction="handlePlayCorrection(msg)"
           @play-sentence="(idx, text) => handlePlaySentence(msg, idx, text)"
+          @edit="(id, text) => updateUserMessage(id, text)"
+          @delete="deleteUserMessage"
         />
 
         <!-- Error Notification -->

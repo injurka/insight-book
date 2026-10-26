@@ -47,35 +47,22 @@ const waveBars = computed(() => {
   <div class="recorder-container" :class="{ 'is-active': isRecording || isTranscribing }">
     <!-- Active Recording Mode -->
     <div v-if="isRecording" class="active-recording-wrapper">
-      <!-- Status Hint Badge for Hands-Free Mode -->
-      <transition name="hint-slide">
-        <div v-if="isHandsFree" class="handsfree-status-badge">
-          <span class="live-dot" />
-          <Icon icon="mdi:headset" class="headset-icon" />
-          <span class="badge-text">{{ t('plugins.dialogue-trainer.silenceHint') }}</span>
-          <button
-            type="button"
-            class="badge-toggle-btn"
-            :title="t('plugins.dialogue-trainer.disableHandsFree')"
-            @click="emit('toggleHandsFree')"
-          >
-            <Icon icon="mdi:close" />
-          </button>
-        </div>
-      </transition>
-
       <!-- Active Bar (clean horizontal row) -->
       <div class="active-recording-bar">
         <div class="recording-indicator">
           <span class="pulsing-dot" />
           <span class="timer-text">{{ formattedDuration }}</span>
-          <span
+          <button
             v-if="isHandsFree"
+            type="button"
             class="handsfree-pill"
-            :title="t('plugins.dialogue-trainer.handsFreeMode')"
+            :title="t('plugins.dialogue-trainer.disableHandsFree')"
+            :aria-label="t('plugins.dialogue-trainer.disableHandsFree')"
+            @click="emit('toggleHandsFree')"
           >
             AUTO
-          </span>
+            <Icon icon="mdi:close" class="pill-close" />
+          </button>
         </div>
 
         <!-- Center: Dynamic Audio Wave -->

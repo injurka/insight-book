@@ -82,8 +82,12 @@ export default {
   autoExpandTranslations: '自动展开句子翻译',
   handsFreeMode: '免提连续对话',
   handsFreeTooltip: '连续对话（语音停顿后自动发送）',
-  silenceHint: '请说话... 停顿后将自动发送',
   listening: '正在倾听...',
+  editMessage: '编辑消息',
+  deleteMessage: '删除消息',
+  editPlaceholder: '修改文本或重新语音输入',
+  rerecord: '重新录音',
+  saveEdit: '保存',
 
   // Feedback block
   perfectSpoken: '发音表达完美！',

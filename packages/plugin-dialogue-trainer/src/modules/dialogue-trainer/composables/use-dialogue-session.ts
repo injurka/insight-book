@@ -53,6 +53,14 @@ function removeFailedPlaceholder(session: DialogueSession, placeholder: Dialogue
   }
 }
 
+// Каждый ответ ИИ принадлежит предшествующей реплике пользователя: правка или
+// удаление реплики делает ответ неактуальным, поэтому он удаляется вместе с ней.
+function removeFollowingAssistantMessages(session: DialogueSession, fromIndex: number): void {
+  while (session.messages[fromIndex]?.role === 'assistant') {
+    session.messages.splice(fromIndex, 1)
+  }
+}
+
 function updateSessionTitleIfEmpty(
   session: DialogueSession,
   defaultTopic = '',
@@ -337,6 +345,54 @@ export function useDialogueSession() {
     }
   }
 
+  async function deleteUserMessage(messageId: string): Promise<void> {
+    const session = currentSession.value
+
+    if (!session || isGenerating.value) {
+      return
+    }
+
+    const idx = session.messages.findIndex(msg => msg.id === messageId && msg.role === 'user')
+
+    if (idx === -1) {
+      return
+    }
+
+    tts.stopAudio()
+    session.messages.splice(idx, 1)
+    removeFollowingAssistantMessages(session, idx)
+    session.updatedAt = Date.now()
+    await storage.saveSession(session)
+  }
+
+  async function updateUserMessage(messageId: string, text: string): Promise<void> {
+    const cleanText = text.trim()
+    const session = currentSession.value
+
+    if (!session || !cleanText || isGenerating.value) {
+      return
+    }
+
+    const idx = session.messages.findIndex(msg => msg.id === messageId && msg.role === 'user')
+
+    if (idx === -1) {
+      return
+    }
+
+    const message = session.messages[idx]
+
+    if (message.content === cleanText) {
+      return
+    }
+
+    tts.stopAudio()
+    message.content = cleanText
+    message.tokenizedSentences = undefined
+    removeFollowingAssistantMessages(session, idx + 1)
+    session.updatedAt = Date.now()
+    await storage.saveSession(session)
+  }
+
   async function deleteCurrentSession(): Promise<void> {
     if (!currentSession.value) {
       return
@@ -383,6 +439,8 @@ export function useDialogueSession() {
     sendUserMessage,
     startAiConversation,
     playMessageSentence,
+    deleteUserMessage,
+    updateUserMessage,
     deleteCurrentSession,
     updateSettings,
     removeSession: storage.removeSession,
