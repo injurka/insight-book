@@ -116,3 +116,7 @@ ctx.unregisterUIWidget('widget-id')
   - `ctx.api.reader.getCurrentBook()`
   - `ctx.api.user.getProfile()`
 
+## 5. Проверка изменений плагина
+- Сборка `bun run build` в пакете плагина + `bun run typecheck` в `apps/client`: `tsconfig.app.json` клиента включает `packages/plugin-*/src/**/*.ts|vue`, поэтому vue-tsc реально проверяет шаблоны и типы плагина.
+- Песочница (`bun run dev` + `createSandboxApp`) не отрисует страницу, если код импортирует сторы хоста: они полагаются на auto-import из `apps/client` и падают с `defineStore is not defined`. Для UI-проверки запускай клиент целиком, а не песочницу.
+
