@@ -544,6 +544,12 @@ onUnmounted(() => {
   flex-grow: 1;
   overflow-y: auto;
   touch-action: pan-y;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
 }
 .dialog-footer {
   flex-shrink: 0;
