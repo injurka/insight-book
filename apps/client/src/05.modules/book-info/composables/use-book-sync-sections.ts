@@ -1,7 +1,7 @@
 import type { ComputedRef } from 'vue'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useLibraryStore } from '~/05.modules/library/store/library.store'
+import { useLibraryStore } from '~/05.modules/library'
 import { calculateProgressPercent } from '../lib/formatters'
 
 export interface SyncSection {

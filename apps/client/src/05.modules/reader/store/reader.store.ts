@@ -8,7 +8,7 @@ import { queryKeys, scopedQueryKey } from '~/01.shared/lib/query-keys'
 import { useAnalysisStore } from '~/01.shared/store/analysis/analysis.store'
 import { useGlobalSettingsStore } from '~/01.shared/store/settings.store'
 import { useToastStore } from '~/01.shared/store/toast.store'
-import { useLibraryStore } from '~/05.modules/library/store/library.store'
+import { useLibraryStore } from '~/05.modules/library'
 import { useHighlightsStore } from './highlights.store'
 
 export const useReaderStore = defineStore('reader', () => {

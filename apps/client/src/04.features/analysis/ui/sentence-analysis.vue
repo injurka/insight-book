@@ -14,9 +14,8 @@ import { KitSkeleton } from '~/02.kit/atoms/kit-skeleton/ui'
 import { KitTooltip } from '~/02.kit/molecules/kit-tooltip/ui'
 import { KitDialog } from '~/02.kit/organisms/kit-dialog/ui'
 import { QuoteModal } from '~/04.features/quote-modal'
-import { useLibraryStore } from '~/05.modules/library/store/library.store'
-import { useHighlightsStore } from '~/05.modules/reader/store/highlights.store'
-import { useReaderStore } from '~/05.modules/reader/store/reader.store'
+import { useLibraryStore } from '~/05.modules/library'
+import { useHighlightsStore, useReaderStore } from '~/05.modules/reader'
 
 interface Props {
   floatingPosition?: { x: number } | null

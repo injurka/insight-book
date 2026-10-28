@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useRoute } from 'vue-router'
-import BookDeckWorkspace from '~/04.features/book-deck/ui/book-deck-workspace.vue'
+import { BookDeckWorkspace } from '~/04.features/book-deck'
 
 const route = useRoute()
 const bookId = computed(() => Number(route.params.bookId))

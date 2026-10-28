@@ -1,4 +1,4 @@
-import type { SyncNotificationProgress, SyncNotificationSelection } from '~/05.modules/library/model'
+import type { SyncNotificationProgress, SyncNotificationSelection } from '~/05.modules/library'
 import { describe, expect, it } from 'vitest'
 import { createApp } from 'vue'
 import { createI18n } from 'vue-i18n'

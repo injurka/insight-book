@@ -8,8 +8,7 @@ import { useTts } from '~/01.shared/composables/use-tts'
 import { normalizeString } from '~/01.shared/lib/helpers'
 import { useAnalysisStore } from '~/01.shared/store/analysis/analysis.store'
 import { QuoteModal } from '~/04.features/quote-modal'
-import { useHighlightsStore } from '~/05.modules/reader/store/highlights.store'
-import { useReaderStore } from '~/05.modules/reader/store/reader.store'
+import { useHighlightsStore, useReaderStore } from '~/05.modules/reader'
 
 export interface BubbleBox {
   id?: string | number

@@ -1,6 +1,6 @@
 import { ref } from 'vue'
 import { useAuthStore } from '~/01.shared/store/auth.store'
-import { useLibraryStore } from '~/05.modules/library/store/library.store'
+import { useLibraryStore } from '~/05.modules/library'
 
 export function useBookCover() {
   const libraryStore = useLibraryStore()

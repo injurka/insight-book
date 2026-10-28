@@ -21,11 +21,11 @@ vi.mock('~/01.shared/composables/use-toast', () => ({ useToast: () => ({ warn: v
 vi.mock('~/01.shared/composables/use-tts', () => ({
   useTts: () => ({ speak: vi.fn(), stop: vi.fn(), isPlaying: false, isLoading: false }),
 }))
-vi.mock('~/05.modules/reader/store/reader.store', () => ({ useReaderStore: () => ({ currentBook: { id: 1 } }) }))
-vi.mock('~/05.modules/library/store/library.store', () => ({ useLibraryStore: () => ({ currentBookInfo: null }) }))
-vi.mock('~/05.modules/reader/store/highlights.store', () => ({
+vi.mock('~/05.modules/reader', () => ({
+  useReaderStore: () => ({ currentBook: { id: 1 } }),
   useHighlightsStore: () => ({ highlights: mocks.highlights, deleteHighlight: mocks.deleteHighlight }),
 }))
+vi.mock('~/05.modules/library', () => ({ useLibraryStore: () => ({ currentBookInfo: null }) }))
 vi.mock('@iconify/vue', () => ({ Icon: { template: '<span />' } }))
 vi.mock('~/04.features/quote-modal', () => ({ QuoteModal: { name: 'QuoteModal', template: '<div />', props: ['visible'] } }))
 

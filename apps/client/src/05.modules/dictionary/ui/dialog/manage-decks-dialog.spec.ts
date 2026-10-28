@@ -10,8 +10,8 @@ vi.mock('~/01.shared/composables/use-toast', () => ({ useToast: () => ({ error: 
 vi.mock('~/01.shared/store/auth.store', () => ({ useAuthStore: () => ({ user: { id: 1 }, isSingleMode: false }) }))
 vi.mock('~/01.shared/store/network.store', () => ({ useNetworkStore: () => ({ effectiveOffline: false }) }))
 vi.mock('~/05.modules/dictionary/composables/use-dict-filter-options', () => ({ useDictFilterOptions: () => ({ newDeckLangOptions: [] }) }))
-vi.mock('~/05.modules/dictionary/store/dictionary.store', () => ({ useDictionaryStore: () => ({ decks: [], deckCounts: [], fetchDecks: mocks.fetchDecks }) }))
-vi.mock('~/05.modules/library/store/library.store', () => ({
+vi.mock('~/05.modules/dictionary', () => ({ useDictionaryStore: () => ({ decks: [], deckCounts: [], fetchDecks: mocks.fetchDecks }) }))
+vi.mock('~/05.modules/library', () => ({
   useLibraryStore: () => ({
     books: [{
       id: 12,

@@ -27,11 +27,11 @@ vi.mock('~/00.plugins/di', () => ({
   useRepos: () => ({ analysis: mocks.analysisRepo }),
 }))
 
-vi.mock('~/05.modules/reader/store/reader.store', () => ({
+vi.mock('~/05.modules/reader', () => ({
   useReaderStore: () => mocks.readerStore,
 }))
 
-vi.mock('~/05.modules/library/store/library.store', () => ({
+vi.mock('~/05.modules/library', () => ({
   useLibraryStore: () => ({ currentBookInfo: mocks.readerStore.currentBook }),
 }))
 

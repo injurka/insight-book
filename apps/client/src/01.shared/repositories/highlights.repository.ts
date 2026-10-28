@@ -1,5 +1,5 @@
 import type { LlmAnalysis } from '~/01.shared/types/models'
-import type { Highlight } from '~/05.modules/reader/store/highlights.store'
+import type { Highlight } from '~/05.modules/reader'
 import { z } from 'zod'
 import { applyAcl } from '~/01.shared/lib/acl'
 import { canUseOfflineFallback } from '~/01.shared/lib/offline-fallback'

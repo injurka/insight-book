@@ -8,7 +8,7 @@ import { KitBtn } from '~/02.kit/atoms/kit-btn/ui'
 import { KitSelect } from '~/02.kit/molecules/kit-select/ui'
 import { KitTabs } from '~/02.kit/molecules/kit-tabs/ui'
 import { KitDialog } from '~/02.kit/organisms/kit-dialog/ui'
-import { useLibraryStore } from '~/05.modules/library/store/library.store'
+import { useLibraryStore } from '~/05.modules/library'
 import { useBookStatsEdit } from '../composables/use-book-stats-edit'
 
 const visible = defineModel<boolean>('visible', { required: true })

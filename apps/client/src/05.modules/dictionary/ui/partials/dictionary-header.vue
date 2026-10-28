@@ -10,7 +10,7 @@ import { KitSelect } from '~/02.kit/molecules/kit-select/ui'
 import { KitTooltip } from '~/02.kit/molecules/kit-tooltip/ui'
 import { KitViewSwitcher } from '~/02.kit/molecules/kit-view-switcher/ui'
 import { GlobalActions } from '~/04.features/global-actions'
-import { useTrainingStore } from '~/05.modules/srs-training/store/training.store'
+import { useTrainingStore } from '~/05.modules/srs-training'
 import { useDictFilterOptions } from '../../composables/use-dict-filter-options'
 import { useDictionaryStore } from '../../store/dictionary.store'
 

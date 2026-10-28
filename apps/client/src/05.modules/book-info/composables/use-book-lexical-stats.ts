@@ -1,6 +1,6 @@
 import type { LexicalDataGroup, LexicalWordData } from '~/01.shared/types/models'
 import { computed } from 'vue'
-import { useLibraryStore } from '~/05.modules/library/store/library.store'
+import { useLibraryStore } from '~/05.modules/library'
 
 function roundShares(counts: number[], total: number) {
   const shares = counts.map(count => count / total * 100)

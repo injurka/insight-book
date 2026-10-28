@@ -2,7 +2,7 @@ import type { UserDictItem } from '~/01.shared/types/models'
 import { useRepos } from '~/00.plugins/di'
 import { appEventBus } from '~/01.shared/events/app-event-bus'
 import { useToastStore } from '~/01.shared/store/toast.store'
-import { useDictionaryStore } from '~/05.modules/dictionary/store/dictionary.store'
+import { useDictionaryStore } from '~/05.modules/dictionary'
 
 const repos = useRepos()
 

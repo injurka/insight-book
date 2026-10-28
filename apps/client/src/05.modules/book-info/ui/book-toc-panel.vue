@@ -2,7 +2,7 @@
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { AppRoutePaths } from '~/01.shared/constants/routes'
-import { useLibraryStore } from '../../library/store/library.store'
+import { useLibraryStore } from '~/05.modules/library'
 
 const libraryStore = useLibraryStore()
 const router = useRouter()

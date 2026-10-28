@@ -4,7 +4,7 @@ import { useI18n } from 'vue-i18n'
 import { useToast } from '~/01.shared/composables/use-toast'
 import { useAuthStore } from '~/01.shared/store/auth.store'
 import { usePwaStore } from '~/01.shared/store/pwa.store'
-import { useDictionaryStore } from '~/05.modules/dictionary/store/dictionary.store'
+import { useDictionaryStore } from '~/05.modules/dictionary'
 
 export function usePushSettings() {
   const pwaStore = usePwaStore()

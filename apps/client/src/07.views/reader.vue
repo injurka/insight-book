@@ -2,10 +2,7 @@
 import { useHead } from '@vueuse/head'
 import { useI18n } from 'vue-i18n'
 import { AppRoutePaths } from '~/01.shared/constants/routes'
-import { useHighlightsStore } from '~/05.modules/reader/store/highlights.store'
-import { useReaderStore } from '~/05.modules/reader/store/reader.store'
-import BookReaderView from '~/05.modules/reader/ui/book-reader-view.vue'
-import MangaReaderView from '~/05.modules/reader/ui/manga-reader-view.vue'
+import { BookReaderView, MangaReaderView, useHighlightsStore, useReaderStore } from '~/05.modules/reader'
 
 const store = useReaderStore()
 const highlightsStore = useHighlightsStore()

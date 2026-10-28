@@ -5,7 +5,7 @@ import { useI18n } from 'vue-i18n'
 import { KitBtn } from '~/02.kit/atoms/kit-btn/ui'
 import { KitDropdown } from '~/02.kit/molecules/kit-dropdown/ui'
 import { KitTooltip } from '~/02.kit/molecules/kit-tooltip/ui'
-import { useLibraryStore } from '~/05.modules/library/store/library.store'
+import { useLibraryStore } from '~/05.modules/library'
 import { formatNumber } from '../lib/formatters'
 
 const libraryStore = useLibraryStore()

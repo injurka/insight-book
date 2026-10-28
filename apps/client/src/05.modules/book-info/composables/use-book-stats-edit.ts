@@ -4,7 +4,7 @@ import { i18n } from '~/00.plugins/i18n'
 import { useToast } from '~/01.shared/composables/use-toast'
 import { DIFFICULTY_SYSTEMS } from '~/01.shared/constants/difficulties'
 import { useGlobalSettingsStore } from '~/01.shared/store/settings.store'
-import { useLibraryStore } from '~/05.modules/library/store/library.store'
+import { useLibraryStore } from '~/05.modules/library'
 
 const DESCRIPTION_LANGS = ['ru', 'en', 'zh'] as const
 type DescLang = typeof DESCRIPTION_LANGS[number]

@@ -59,7 +59,7 @@ vi.mock('~/00.plugins/di', () => ({
   }),
 }))
 
-vi.mock('~/05.modules/library/store/library.store', () => ({
+vi.mock('~/05.modules/library', () => ({
   useLibraryStore: () => mocks.libraryStore,
 }))
 

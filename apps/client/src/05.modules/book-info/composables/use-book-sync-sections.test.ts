@@ -35,7 +35,7 @@ const mockedLibraryState = {
   },
 }
 
-vi.mock('~/05.modules/library/store/library.store', () => ({
+vi.mock('~/05.modules/library', () => ({
   useLibraryStore: () => mockedLibraryState,
 }))
 

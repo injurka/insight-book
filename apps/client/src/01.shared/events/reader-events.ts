@@ -2,7 +2,7 @@ import type { UserDictItem } from '~/01.shared/types/models'
 import { normalizeLanguageCode } from '@injurka/insight-book-language-utils'
 import { useRepos } from '~/00.plugins/di'
 import { appEventBus } from '~/01.shared/events/app-event-bus'
-import { useReaderStore } from '~/05.modules/reader/store/reader.store'
+import { useReaderStore } from '~/05.modules/reader'
 
 const repos = useRepos()
 

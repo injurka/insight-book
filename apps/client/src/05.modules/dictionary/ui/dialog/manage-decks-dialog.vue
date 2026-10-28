@@ -14,7 +14,7 @@ import { KitSelect } from '~/02.kit/molecules/kit-select/ui'
 import { KitViewSwitcher } from '~/02.kit/molecules/kit-view-switcher/ui'
 import { KitDialog } from '~/02.kit/organisms/kit-dialog/ui'
 import { KitPrompt } from '~/02.kit/organisms/kit-prompt/ui'
-import { useLibraryStore } from '~/05.modules/library/store/library.store'
+import { useLibraryStore } from '~/05.modules/library'
 import { useDictFilterOptions } from '../../composables/use-dict-filter-options'
 import { useDictionaryStore } from '../../store/dictionary.store'
 

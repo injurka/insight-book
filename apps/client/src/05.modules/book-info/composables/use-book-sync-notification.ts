@@ -1,4 +1,4 @@
-import type { SyncNotificationProgress, SyncNotificationSelection, SyncProgressNotificationOptions } from '~/05.modules/library/model'
+import type { SyncNotificationProgress, SyncNotificationSelection, SyncProgressNotificationOptions } from '~/05.modules/library'
 import { useI18n } from 'vue-i18n'
 import { formatNumber } from '../lib/formatters'
 

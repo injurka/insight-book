@@ -3,8 +3,8 @@ import { Icon } from '@iconify/vue'
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useCacheStore } from '~/01.shared/store/cache.store'
-import { useLibraryStore } from '~/05.modules/library/store/library.store'
-import { collapsePageRanges, formatBytes, formatPageRange } from '~/05.modules/settings/lib/formatters'
+import { useLibraryStore } from '~/05.modules/library'
+import { collapsePageRanges, formatBytes, formatPageRange } from '~/05.modules/settings'
 import { formatNumber } from '../lib/formatters'
 
 const libraryStore = useLibraryStore()

@@ -9,6 +9,10 @@ import DictionaryList from './ui/partials/dictionary-list.vue'
 
 export * from './composables/use-dict-filter-options'
 export * from './model'
+export { useDecksStore } from './store/decks.store'
+export { useDictionaryFiltersStore } from './store/dictionary-filters.store'
+export { dictionaryWords } from './store/dictionary-words.state'
+export { useDictionaryStore } from './store/dictionary.store'
 
 export {
   AddEditWordDialog,

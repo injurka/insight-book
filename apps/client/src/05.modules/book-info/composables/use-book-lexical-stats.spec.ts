@@ -3,7 +3,7 @@ import { reactive } from 'vue'
 import { useBookLexicalStats } from './use-book-lexical-stats'
 
 const { useLibraryStore } = vi.hoisted(() => ({ useLibraryStore: vi.fn() }))
-vi.mock('~/05.modules/library/store/library.store', () => ({ useLibraryStore }))
+vi.mock('~/05.modules/library', () => ({ useLibraryStore }))
 
 describe('lexical POS distribution', () => {
   it('rounds to exactly 100 without negative shares', () => {

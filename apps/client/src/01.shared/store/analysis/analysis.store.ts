@@ -11,9 +11,9 @@ import { safeDecodeURIComponent } from '~/01.shared/lib/helpers'
 import { useNetworkStore } from '~/01.shared/store/network.store'
 import { useGlobalSettingsStore } from '~/01.shared/store/settings.store'
 import { useToastStore } from '~/01.shared/store/toast.store'
-import { dictionaryWords } from '~/05.modules/dictionary/store/dictionary-words.state'
-import { useLibraryStore } from '~/05.modules/library/store/library.store'
-import { useReaderStore } from '~/05.modules/reader/store/reader.store'
+import { dictionaryWords } from '~/05.modules/dictionary'
+import { useLibraryStore } from '~/05.modules/library'
+import { useReaderStore } from '~/05.modules/reader'
 
 export interface WordPopoverData {
   word: string

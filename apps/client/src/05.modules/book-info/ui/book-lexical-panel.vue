@@ -4,7 +4,7 @@ import { Icon } from '@iconify/vue'
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useAnalysisStore } from '~/01.shared/store/analysis/analysis.store'
-import { useLibraryStore } from '~/05.modules/library/store/library.store'
+import { useLibraryStore } from '~/05.modules/library'
 import { useBookLexicalStats } from '../composables/use-book-lexical-stats'
 import BookLexicalWords from './book-lexical-words.vue'
 

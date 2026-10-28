@@ -6,7 +6,7 @@ import { useAuthStore } from '~/01.shared/store/auth.store'
 import { KitBtn } from '~/02.kit/atoms/kit-btn/ui'
 import { KitHoverRevealBg } from '~/02.kit/atoms/kit-hover-reveal-bg/ui'
 import { LimitProgressCard } from '~/04.features/limits'
-import SettingsTokensPanel from '~/05.modules/settings/ui/panels/settings-tokens-panel.vue'
+import { SettingsTokensPanel } from '~/05.modules/settings'
 
 const router = useRouter()
 const { t } = useI18n()

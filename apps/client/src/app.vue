@@ -22,7 +22,7 @@ import KitNetworkTimeoutDialog from '~/02.kit/organisms/kit-network-timeout-dial
 import KitOfflineBadge from '~/02.kit/organisms/kit-offline-badge/ui/kit-offline-badge.vue'
 import KitReloadPrompt from '~/02.kit/organisms/kit-reload-prompt/ui/kit-reload-prompt.vue'
 import KitToastManager from '~/02.kit/organisms/kit-toast-manager/ui/kit-toast-manager.vue'
-import { useReaderStore } from '~/05.modules/reader/store/reader.store'
+import { useReaderStore } from '~/05.modules/reader'
 import DefaultLayout from '~/06.layouts/default/ui/default.vue'
 import ImmersiveLayout from '~/06.layouts/immersive/ui/immersive.vue'
 

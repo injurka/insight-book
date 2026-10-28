@@ -180,7 +180,7 @@ export function usePluginManager(): PluginManager {
     reader: {
       getCurrentBook: async () => {
         try {
-          const { useReaderStore } = await import('~/05.modules/reader/store/reader.store')
+          const { useReaderStore } = await import('~/05.modules/reader')
 
           return useReaderStore().currentBook
         }

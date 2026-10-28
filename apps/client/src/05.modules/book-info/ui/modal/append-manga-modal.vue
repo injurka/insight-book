@@ -7,7 +7,7 @@ import { useNetworkStore } from '~/01.shared/store/network.store'
 import { KitBtn } from '~/02.kit/atoms/kit-btn/ui'
 import { KitInput } from '~/02.kit/atoms/kit-input/ui'
 import { KitDialog } from '~/02.kit/organisms/kit-dialog/ui'
-import { useLibraryStore } from '~/05.modules/library/store/library.store'
+import { useLibraryStore } from '~/05.modules/library'
 
 const visible = defineModel<boolean>('visible', { required: true })
 

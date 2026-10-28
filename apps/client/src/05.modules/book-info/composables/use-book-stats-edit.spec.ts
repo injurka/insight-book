@@ -15,7 +15,7 @@ const { library, toast } = vi.hoisted(() => ({
   },
   toast: { success: vi.fn(), error: vi.fn() },
 }))
-vi.mock('~/05.modules/library/store/library.store', () => ({ useLibraryStore: () => library }))
+vi.mock('~/05.modules/library', () => ({ useLibraryStore: () => library }))
 vi.mock('~/01.shared/store/settings.store', () => ({ useGlobalSettingsStore: () => ({ appLanguage: 'ru' }) }))
 vi.mock('~/01.shared/composables/use-toast', () => ({ useToast: () => toast }))
 vi.mock('~/00.plugins/i18n', () => ({ i18n: { global: { t: (key: string) => key } } }))

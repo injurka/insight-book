@@ -1,4 +1,4 @@
-import { dictionaryWords } from '~/05.modules/dictionary/store/dictionary-words.state'
+import { dictionaryWords } from '~/05.modules/dictionary'
 
 /**
  * Предоставляет доступ к реактивному списку слов словаря.

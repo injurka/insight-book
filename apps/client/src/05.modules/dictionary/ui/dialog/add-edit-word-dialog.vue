@@ -16,8 +16,8 @@ import { KitToggle } from '~/02.kit/molecules/kit-toggle/ui'
 import { KitTooltip } from '~/02.kit/molecules/kit-tooltip/ui'
 import { KitDialog } from '~/02.kit/organisms/kit-dialog/ui'
 import { KitPrompt } from '~/02.kit/organisms/kit-prompt/ui'
-import { useLibraryStore } from '~/05.modules/library/store/library.store'
-import { useReaderStore } from '~/05.modules/reader/store/reader.store'
+import { useLibraryStore } from '~/05.modules/library'
+import { useReaderStore } from '~/05.modules/reader'
 import { useDictionaryStore } from '../../store/dictionary.store'
 
 const repos = useRepos()

@@ -19,8 +19,8 @@ vi.mock('~/01.shared/composables/use-haptic', () => ({ useHaptic: () => ({ hapti
 vi.mock('~/01.shared/store/analysis/analysis.store', () => ({ useAnalysisStore: () => reactive(mocks.analysis) }))
 vi.mock('~/01.shared/store/settings.store', () => ({ useGlobalSettingsStore: () => reactive(mocks.settings) }))
 vi.mock('../../store/dictionary.store', () => ({ useDictionaryStore: () => reactive(mocks.dictionary) }))
-vi.mock('~/05.modules/reader/store/reader.store', () => ({ useReaderStore: () => ({ currentBook: { title: ' My Book ' } }) }))
-vi.mock('~/05.modules/library/store/library.store', () => ({ useLibraryStore: () => ({ currentBookInfo: null }) }))
+vi.mock('~/05.modules/reader', () => ({ useReaderStore: () => ({ currentBook: { title: ' My Book ' } }) }))
+vi.mock('~/05.modules/library', () => ({ useLibraryStore: () => ({ currentBookInfo: null }) }))
 vi.mock('@iconify/vue', () => ({ Icon: { template: '<span class="test-icon" />' } }))
 
 function renderDialog() {

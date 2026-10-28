@@ -9,8 +9,7 @@ import { useAnalysisStore } from '~/01.shared/store/analysis/analysis.store'
 import { useNetworkStore } from '~/01.shared/store/network.store'
 import { useGlobalSettingsStore } from '~/01.shared/store/settings.store'
 import { QuoteModal } from '~/04.features/quote-modal'
-import { useHighlightsStore } from '~/05.modules/reader/store/highlights.store'
-import { useReaderStore } from '~/05.modules/reader/store/reader.store'
+import { useHighlightsStore, useReaderStore } from '~/05.modules/reader'
 
 const highlightsStore = useHighlightsStore()
 const readerStore = useReaderStore()

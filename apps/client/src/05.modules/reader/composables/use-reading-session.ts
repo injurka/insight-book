@@ -1,6 +1,6 @@
 import { onMounted, onUnmounted } from 'vue'
 import { useTracking } from '~/01.shared/composables/use-tracking'
-import { useReaderStore } from '~/05.modules/reader/store/reader.store'
+import { useReaderStore } from '~/05.modules/reader'
 
 export function useReadingSession() {
   const { trackEvent } = useTracking()
