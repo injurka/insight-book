@@ -302,6 +302,7 @@ async function handleLogout() {
   background: transparent;
   color: var(--fg-primary-color);
   font-size: 0.95rem;
+  font-weight: 600;
   border-radius: 6px;
   cursor: pointer;
   transition:

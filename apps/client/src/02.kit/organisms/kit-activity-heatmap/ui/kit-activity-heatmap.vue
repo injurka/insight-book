@@ -217,11 +217,19 @@ function getRankIdx(totalWords: number, ranks: Array<{ target: number }>): numbe
 
   return rankIdx
 }
+function normalizeLanguageCode(language: string): string {
+  return language.trim().toLowerCase().split(/[-_]/, 1)[0]
+}
+function isInterfaceLanguage(language: string): boolean {
+  return normalizeLanguageCode(language) === normalizeLanguageCode(locale.value)
+}
 function buildVocabAchievements(difficulties: NonNullable<Props['stats']>['difficulties']): VocabAchievement[] {
   const langGroups: Record<string, number> = {}
 
-  for (const diffItem of difficulties)
-    langGroups[diffItem.language] = (langGroups[diffItem.language] || 0) + diffItem.count
+  for (const diffItem of difficulties) {
+    if (!isInterfaceLanguage(diffItem.language))
+      langGroups[diffItem.language] = (langGroups[diffItem.language] || 0) + diffItem.count
+  }
 
   const VOCAB_RANKS = [
     { label: t('activityHeatmap.ranks.beginner', 'Новичок'), target: 50 },
@@ -260,7 +268,7 @@ function buildVocabAchievements(difficulties: NonNullable<Props['stats']>['diffi
   return achs
 }
 function buildQuizAchievements(quizProgress: NonNullable<NonNullable<Props['stats']>['quizProgress']>): QuizAchievement[] {
-  const passedQuizzes = quizProgress.filter(quizItem => quizItem.bestScore >= 80)
+  const passedQuizzes = quizProgress.filter(quizItem => !isInterfaceLanguage(quizItem.language) && quizItem.bestScore >= 80)
   const highestQuizPerLang: Record<string, NonNullable<NonNullable<Props['stats']>['quizProgress']>[number] & { levelIdx: number, current: string }> = {}
 
   for (const quizItem of passedQuizzes) {
