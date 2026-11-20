@@ -11,6 +11,7 @@ import {
   buildDialogueHistoryPrompt,
   buildDialogueSystemPrompt,
   getLanguageName,
+  getScriptRule,
   resolveInterfaceLanguage,
 } from '@/shared/lib/dialogue-prompt'
 import { splitTextIntoSentences } from '@/shared/lib/dialogue-tokenizer'
@@ -246,6 +247,7 @@ export function useDialogueSession() {
     const session = ensureActiveSession()
     const settings = session.settings
     const practiceLang = getLanguageName(settings.targetLanguage)
+    const scriptRule = getScriptRule(settings.targetLanguage)
     const interfaceLang = resolveInterfaceLanguage(locale.value || 'ru')
 
     isAiStarting.value = true
@@ -255,7 +257,7 @@ export function useDialogueSession() {
     session.messages.push(assistantPlaceholder)
 
     try {
-      const prompt = `Start our dialogue in ${practiceLang}. Introduce the scenario or greet the user in character, matching the topic "${settings.topic || 'friendly encounter'}" and the conversational style and level defined in the system prompt. Return JSON with isCorrect: true, feedback: "", correctedSentence: "", correctedTranscription: "", reply: "greeting in ${practiceLang}", replyTranscription: "phonetic transcription / pinyin of the reply", replyTranslation: "translation in ${interfaceLang}", and replySentences breaking down the reply sentence by sentence with text, transcription, and translation.`
+      const prompt = `Start our dialogue in ${practiceLang}. Introduce the scenario or greet the user in character, matching the topic "${settings.topic || 'friendly encounter'}" and the conversational style and level defined in the system prompt. Return JSON with isCorrect: true, feedback: "", correctedSentence: "", correctedTranscription: "", reply: "greeting written strictly in ${scriptRule}", replyTranscription: "phonetic transcription / pinyin of the reply", replyTranslation: "translation in ${interfaceLang}", and replySentences breaking down the reply sentence by sentence with text (in ${scriptRule}), transcription, and translation.`
 
       const res = await requestLlmGenerate<LlmDialogueAnalysisResponse>({
         systemPrompt: buildDialogueSystemPrompt(settings, locale.value || 'ru'),
