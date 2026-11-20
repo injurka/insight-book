@@ -1,5 +1,5 @@
 import { onUnmounted, ref } from 'vue'
-import { requestSpeechToText } from '../../../shared/lib/api'
+import { requestSpeechToText } from '@/shared/lib/api'
 
 const DEFAULT_SILENCE_TIMEOUT_MS = 1600
 const SPEECH_VOLUME_THRESHOLD = 14

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { DialogueSession } from '../../../../shared/types/dialogue'
+import type { DialogueSession } from '@/shared/types/dialogue'
 import { Icon } from '@iconify/vue'
 import { useI18n } from 'vue-i18n'
 import { KitBtn, KitDialog } from '~/02.kit'

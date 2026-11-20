@@ -82,7 +82,7 @@ export default {
   speakTooltip: '语音录制',
   autoPlayAudio: '自动播放语音回复',
   autoExpandTranslations: '自动展开句子翻译',
-  autoExpandTranscriptions: '显示音标 / 拼音',
+  autoExpandTranscriptions: '显示音标',
   handsFreeMode: '免提连续对话',
   handsFreeTooltip: '连续对话（语音停顿后自动发送）',
   listening: '正在倾听...',

@@ -1,12 +1,12 @@
 <script setup lang="ts">
-import type { TokenizedSentence } from '../../../../shared/lib/dialogue-tokenizer'
+import type { TokenizedSentence } from '@/shared/lib/dialogue-tokenizer'
 import { Icon } from '@iconify/vue'
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { tokenizeDialogueText, tokenizeDialogueTextServer } from '@/shared/lib/dialogue-tokenizer'
 import { useAnalysisStore } from '~/01.shared/store/analysis/analysis.store'
 import { KitTooltip } from '~/02.kit'
 import { useTextSelection } from '~/04.features/analysis'
-import { tokenizeDialogueText, tokenizeDialogueTextServer } from '../../../../shared/lib/dialogue-tokenizer'
 
 interface Props {
   isCorrect?: boolean
@@ -289,23 +289,31 @@ function isWordActive(sentId: number, tokenIdx: number, isPunct: boolean): boole
 
 .corrected-transcription {
   display: inline-flex;
-  align-items: baseline;
-  gap: 7px;
-  margin-top: 6px;
-  padding: 4px 10px;
-  border-radius: 8px;
+  align-items: center;
+  gap: 5px;
+  vertical-align: middle;
+  min-height: 24px;
+  box-sizing: border-box;
+  margin-top: 4px;
+  padding: 1px 7px;
+  border-radius: 6px;
   background: rgba(var(--fg-accent-color-rgb), 0.08);
   border: 1px dashed rgba(var(--fg-accent-color-rgb), 0.28);
   color: var(--fg-secondary-color);
-  font-size: 0.85rem;
-  line-height: 1.45;
+  font-size: 0.82rem;
+  line-height: 20px;
   max-width: 100%;
 
   .transcription-badge {
-    font-size: 0.65rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 16px;
+    font-size: 0.62rem;
     font-weight: 700;
-    letter-spacing: 0.05em;
-    padding: 1px 5px;
+    line-height: 1;
+    letter-spacing: 0.04em;
+    padding: 0 4px;
     border-radius: 4px;
     background: rgba(var(--fg-accent-color-rgb), 0.16);
     color: var(--fg-accent-color);
@@ -315,10 +323,12 @@ function isWordActive(sentId: number, tokenIdx: number, isPunct: boolean): boole
 
   .transcription-text {
     font-family: var(--app-font-family, 'Maple Mono CN', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif);
-    letter-spacing: 0.02em;
+    letter-spacing: 0.01em;
+    line-height: 20px;
     color: var(--fg-primary-color);
     opacity: 0.88;
     overflow-wrap: break-word;
+    min-width: 0;
   }
 }
 

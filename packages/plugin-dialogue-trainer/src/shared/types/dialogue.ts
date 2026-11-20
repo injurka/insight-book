@@ -1,4 +1,4 @@
-import type { TokenizedSentence } from '../lib/dialogue-tokenizer'
+import type { TokenizedSentence } from '@/shared/lib/dialogue-tokenizer'
 
 export type DialogueDifficulty = 'adaptive' | 'a1' | 'a2' | 'b1' | 'b2' | 'c1'
 

@@ -1,5 +1,5 @@
-import type { DialogueMessage, DialogueSettings } from '../types/dialogue'
-import { getStylePrompt } from '../constants/style-prompts'
+import type { DialogueMessage, DialogueSettings } from '@/shared/types/dialogue'
+import { getStylePrompt } from '@/shared/constants/style-prompts'
 
 export const MAX_HISTORY_MESSAGES = 25
 

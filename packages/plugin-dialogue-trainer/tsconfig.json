@@ -12,6 +12,9 @@
       "~/*": [
         "../../apps/client/src/*"
       ],
+      "@/*": [
+        "./src/*"
+      ],
       "@injurka/insight-book-plugin-api": [
         "../plugin-api/src/index.ts"
       ]

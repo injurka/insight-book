@@ -1,15 +1,15 @@
 <script setup lang="ts">
-import type { DialogueSettings } from '../../../../shared/types/dialogue'
+import type { DialogueSettings } from '@/shared/types/dialogue'
 import { Icon } from '@iconify/vue'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
-import { KitBtn, KitCheckbox, KitDropdown } from '~/02.kit'
 import {
   DIFFICULTY_OPTIONS,
   STYLE_OPTIONS,
   SUPPORTED_PRACTICE_LANGUAGES,
-} from '../../../../shared/constants/presets'
+} from '@/shared/constants/presets'
+import { KitBtn, KitCheckbox, KitDropdown } from '~/02.kit'
 
 interface Props {
   settings: DialogueSettings
@@ -527,6 +527,9 @@ function onSpeedInput(e: Event) {
 
   .item-label {
     flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
     white-space: nowrap;
   }
 
@@ -555,6 +558,7 @@ function onSpeedInput(e: Event) {
     .menu-checkbox {
       pointer-events: none;
       padding: 0;
+      flex-shrink: 0;
     }
 
     .item-icon.is-active-icon {

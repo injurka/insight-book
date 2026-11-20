@@ -1,5 +1,5 @@
 import { getCurrentInstance, onUnmounted, ref } from 'vue'
-import { requestTtsAudio } from '../../../shared/lib/api'
+import { requestTtsAudio } from '@/shared/lib/api'
 
 const VOLUME_STORAGE_KEY = 'dialogue_trainer_volume'
 const SPEED_STORAGE_KEY = 'dialogue_trainer_speed'

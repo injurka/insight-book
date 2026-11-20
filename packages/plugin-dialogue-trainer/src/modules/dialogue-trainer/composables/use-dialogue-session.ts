@@ -3,17 +3,17 @@ import type {
   DialogueSession,
   DialogueSettings,
   LlmDialogueAnalysisResponse,
-} from '../../../shared/types/dialogue'
+} from '@/shared/types/dialogue'
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { requestLlmGenerate, requestTtsAudio } from '../../../shared/lib/api'
+import { requestLlmGenerate, requestTtsAudio } from '@/shared/lib/api'
 import {
   buildDialogueHistoryPrompt,
   buildDialogueSystemPrompt,
   getLanguageName,
   resolveInterfaceLanguage,
-} from '../../../shared/lib/dialogue-prompt'
-import { splitTextIntoSentences } from '../../../shared/lib/dialogue-tokenizer'
+} from '@/shared/lib/dialogue-prompt'
+import { splitTextIntoSentences } from '@/shared/lib/dialogue-tokenizer'
 import { useDialogueStorage } from './use-dialogue-storage'
 import { useDialogueTts } from './use-dialogue-tts'
 
@@ -97,6 +97,7 @@ export function useDialogueSession() {
   }
 
   function createNewSession(settings: Partial<DialogueSettings> = {}): DialogueSession {
+    tts.stopAudio()
     const newSession: DialogueSession = {
       id: `dialogue_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
       title: settings.topic?.trim() || t('plugins.dialogue-trainer.newDialogue', 'Новый диалог'),
@@ -423,6 +424,11 @@ export function useDialogueSession() {
       ...currentSession.value.settings,
       ...newSettings,
     }
+
+    if (newSettings.topic !== undefined && currentSession.value.messages.length === 0) {
+      currentSession.value.title = newSettings.topic.trim() || t('plugins.dialogue-trainer.newDialogue', 'Новый диалог')
+    }
+
     currentSession.value.updatedAt = Date.now()
     storage.saveSession(currentSession.value)
   }

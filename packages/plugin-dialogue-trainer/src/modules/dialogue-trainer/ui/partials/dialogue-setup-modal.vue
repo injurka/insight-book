@@ -1,17 +1,17 @@
 <script setup lang="ts">
-import type { DifficultyOption, LanguageOption, StyleOption, TopicPreset } from '../../../../shared/constants/presets'
-import type { DialogueSettings } from '../../../../shared/types/dialogue'
+import type { DifficultyOption, LanguageOption, StyleOption, TopicPreset } from '@/shared/constants/presets'
+import type { DialogueSettings } from '@/shared/types/dialogue'
 import type { KitSelectOption } from '~/02.kit'
 import { Icon } from '@iconify/vue'
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { KitBtn, KitCheckbox, KitDialog, KitInput, KitSelect } from '~/02.kit'
 import {
   DIFFICULTY_OPTIONS,
   STYLE_OPTIONS,
   SUPPORTED_PRACTICE_LANGUAGES,
   TOPIC_PRESETS,
-} from '../../../../shared/constants/presets'
+} from '@/shared/constants/presets'
+import { KitBtn, KitCheckbox, KitDialog, KitInput, KitSelect } from '~/02.kit'
 
 interface Props {
   visible: boolean

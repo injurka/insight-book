@@ -82,7 +82,7 @@ export default {
   speakTooltip: 'Record speech',
   autoPlayAudio: 'Auto-play voice responses',
   autoExpandTranslations: 'Sentence translations',
-  autoExpandTranscriptions: 'Show transcription / Pinyin',
+  autoExpandTranscriptions: 'Show transcription',
   handsFreeMode: 'Hands-free mode',
   handsFreeTooltip: 'Continuous conversation (auto-sends on pause)',
   listening: 'Listening...',

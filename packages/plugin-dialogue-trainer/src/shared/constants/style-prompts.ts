@@ -1,4 +1,4 @@
-import type { DialogueStyle } from '../types/dialogue'
+import type { DialogueStyle } from '@/shared/types/dialogue'
 
 /**
  * Playbook for every conversational style.

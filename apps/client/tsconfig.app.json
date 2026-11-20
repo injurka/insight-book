@@ -22,6 +22,9 @@
       ],
       "@injurka/insight-book-plugin-dialogue-trainer": [
         "../../packages/plugin-dialogue-trainer/src/index.ts"
+      ],
+      "@/*": [
+        "../../packages/plugin-dialogue-trainer/src/*"
       ]
     },
     "resolveJsonModule": true,

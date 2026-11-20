@@ -1,4 +1,4 @@
-import type { DialogueSession } from '../../../shared/types/dialogue'
+import type { DialogueSession } from '@/shared/types/dialogue'
 import localforage from 'localforage'
 import { ref } from 'vue'
 

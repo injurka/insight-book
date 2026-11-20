@@ -1,4 +1,4 @@
-import type { DialogueDifficulty, DialogueStyle, PracticeLanguageCode } from '../types/dialogue'
+import type { DialogueDifficulty, DialogueStyle, PracticeLanguageCode } from '@/shared/types/dialogue'
 
 export interface LanguageOption {
   code: PracticeLanguageCode

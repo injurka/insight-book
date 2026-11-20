@@ -1,14 +1,14 @@
 <script setup lang="ts">
-import type { TokenizedSentence } from '../../../../shared/lib/dialogue-tokenizer'
-import type { DialogueMessage } from '../../../../shared/types/dialogue'
+import type { TokenizedSentence } from '@/shared/lib/dialogue-tokenizer'
+import type { DialogueMessage } from '@/shared/types/dialogue'
 import { Icon } from '@iconify/vue'
 import { computed, nextTick, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useDialogueRecorder } from '@/modules/dialogue-trainer/composables/use-dialogue-recorder'
+import { tokenizeDialogueText, tokenizeDialogueTextServer } from '@/shared/lib/dialogue-tokenizer'
 import { useAnalysisStore } from '~/01.shared/store/analysis/analysis.store'
 import { KitBtn, KitTooltip } from '~/02.kit'
 import { useTextSelection } from '~/04.features/analysis'
-import { tokenizeDialogueText, tokenizeDialogueTextServer } from '../../../../shared/lib/dialogue-tokenizer'
-import { useDialogueRecorder } from '../../composables/use-dialogue-recorder'
 import DialogueFeedbackCard from './dialogue-feedback-card.vue'
 
 interface Props {
@@ -410,7 +410,7 @@ function isWordActive(sentId: number, tokenIdx: number, isPunct: boolean): boole
               </span>
             </span>
 
-            <!-- Sentence transcription (Pinyin / IPA) pill under each sentence -->
+            <!-- Sentence transcription (Pinyin / IPA) pill -->
             <transition name="sentence-fade">
               <div
                 v-if="message.role === 'assistant' && isTranscriptionVisible(sentence.index)"
@@ -651,23 +651,31 @@ function isWordActive(sentId: number, tokenIdx: number, isPunct: boolean): boole
 
 .sentence-transcription-box {
   display: inline-flex;
-  align-items: baseline;
-  gap: 7px;
-  margin: 5px 0 4px 0;
-  padding: 4px 10px;
-  border-radius: 8px;
+  align-items: center;
+  gap: 5px;
+  vertical-align: middle;
+  min-height: 24px;
+  box-sizing: border-box;
+  margin-left: 6px;
+  padding: 1px 7px;
+  border-radius: 6px;
   background: rgba(var(--fg-accent-color-rgb), 0.06);
   border: 1px dashed rgba(var(--fg-accent-color-rgb), 0.25);
   color: var(--fg-secondary-color);
-  font-size: 0.85rem;
-  line-height: 1.45;
+  font-size: 0.82rem;
+  line-height: 20px;
   max-width: 100%;
 
   .transcription-badge {
-    font-size: 0.65rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 16px;
+    font-size: 0.62rem;
     font-weight: 700;
-    letter-spacing: 0.05em;
-    padding: 1px 5px;
+    line-height: 1;
+    letter-spacing: 0.04em;
+    padding: 0 4px;
     border-radius: 4px;
     background: rgba(var(--fg-accent-color-rgb), 0.16);
     color: var(--fg-accent-color);
@@ -677,10 +685,12 @@ function isWordActive(sentId: number, tokenIdx: number, isPunct: boolean): boole
 
   .transcription-text {
     font-family: var(--app-font-family, 'Maple Mono CN', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif);
-    letter-spacing: 0.02em;
+    letter-spacing: 0.01em;
+    line-height: 20px;
     color: var(--fg-primary-color);
     opacity: 0.88;
     overflow-wrap: break-word;
+    min-width: 0;
   }
 }
 

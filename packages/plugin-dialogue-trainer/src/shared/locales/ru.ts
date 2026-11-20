@@ -82,7 +82,7 @@ export default {
   speakTooltip: 'Записать голос',
   autoPlayAudio: 'Автовоспроизведение озвучки',
   autoExpandTranslations: 'Раскрывать переводы',
-  autoExpandTranscriptions: 'Показывать транскрипцию / пиньинь',
+  autoExpandTranscriptions: 'Показывать транскрипцию',
   handsFreeMode: 'Hands-free режим',
   handsFreeTooltip: 'Непрерывный диалог (автоотправка при паузе в речи)',
   listening: 'Слушаю вас...',

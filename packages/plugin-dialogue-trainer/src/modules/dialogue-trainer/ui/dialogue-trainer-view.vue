@@ -1,14 +1,14 @@
 <script setup lang="ts">
-import type { DialogueMessage, DialogueSession, DialogueSettings } from '../../../shared/types/dialogue'
+import type { DialogueMessage, DialogueSession, DialogueSettings } from '@/shared/types/dialogue'
 import { Icon } from '@iconify/vue'
 import { nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useDialogueRecorder } from '@/modules/dialogue-trainer/composables/use-dialogue-recorder'
+import { useDialogueSession } from '@/modules/dialogue-trainer/composables/use-dialogue-session'
 import { useAnalysisStore } from '~/01.shared/store/analysis/analysis.store'
 import { KitBtn, KitDialog } from '~/02.kit'
 import WordPopover from '~/04.features/analysis/ui/popover/word-popover.vue'
 import SentenceAnalysis from '~/04.features/analysis/ui/sentence-analysis.vue'
-import { useDialogueRecorder } from '../composables/use-dialogue-recorder'
-import { useDialogueSession } from '../composables/use-dialogue-session'
 import DialogueHeader from './partials/dialogue-header.vue'
 import DialogueHistoryDrawer from './partials/dialogue-history-drawer.vue'
 import DialogueMessageItem from './partials/dialogue-message-item.vue'
@@ -133,7 +133,6 @@ function handleOpenHistory() {
   isHistoryDrawerOpen.value = true
 }
 function handleNewDialogue() {
-  createNewSession()
   isSetupModalOpen.value = true
 }
 function handleDeleteDialogue() {
@@ -144,7 +143,16 @@ async function confirmDeleteCurrentSession() {
   await deleteCurrentSession()
 }
 function handleApplySettings(newSettings: DialogueSettings) {
-  updateSettings(newSettings)
+  clearHandsFreeTimer()
+  recorder.cancelRecording()
+  isHandsFreeMode.value = false
+
+  if (activeMessages.value.length > 0 || !currentSession.value) {
+    createNewSession(newSettings)
+  }
+  else {
+    updateSettings(newSettings)
+  }
 }
 function handleToggleAutoExpandTranslations() {
   updateSettings({
