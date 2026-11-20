@@ -11,6 +11,8 @@ export default {
   volume: 'Volume',
   volumeMute: 'Mute',
   volumeUnmute: 'Unmute',
+  voiceSpeed: 'Voice speed',
+  voiceSpeedReset: 'Reset speed (1x)',
   newDialogue: 'New Dialogue',
   setupTitle: 'Dialogue Settings',
   setupSubtitle: 'Configure topic, difficulty, and conversational style, or leave defaults',
@@ -80,6 +82,7 @@ export default {
   speakTooltip: 'Record speech',
   autoPlayAudio: 'Auto-play voice responses',
   autoExpandTranslations: 'Sentence translations',
+  autoExpandTranscriptions: 'Show transcription / Pinyin',
   handsFreeMode: 'Hands-free mode',
   handsFreeTooltip: 'Continuous conversation (auto-sends on pause)',
   listening: 'Listening...',
@@ -101,6 +104,8 @@ export default {
   listenReply: 'Listen to reply',
   listenSentence: 'Listen to sentence',
   translateSentence: 'Translate sentence',
+  transcriptionSentence: 'Show transcription',
+  hideTranscriptionSentence: 'Hide transcription',
 
   // Sessions history
   history: 'Dialogue History',

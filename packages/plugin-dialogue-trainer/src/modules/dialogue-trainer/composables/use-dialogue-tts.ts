@@ -2,6 +2,7 @@ import { getCurrentInstance, onUnmounted, ref } from 'vue'
 import { requestTtsAudio } from '../../../shared/lib/api'
 
 const VOLUME_STORAGE_KEY = 'dialogue_trainer_volume'
+const SPEED_STORAGE_KEY = 'dialogue_trainer_speed'
 
 function getInitialVolume(): number {
   if (typeof window === 'undefined') {
@@ -24,7 +25,29 @@ function getInitialVolume(): number {
   return 1
 }
 
+function getInitialSpeed(): number {
+  if (typeof window === 'undefined') {
+    return 1
+  }
+
+  try {
+    const saved = localStorage.getItem(SPEED_STORAGE_KEY)
+
+    if (saved !== null) {
+      const parsed = Number.parseFloat(saved)
+
+      if (!Number.isNaN(parsed) && parsed >= 0.5 && parsed <= 2) {
+        return parsed
+      }
+    }
+  }
+  catch {}
+
+  return 1
+}
+
 const sharedVolume = ref(getInitialVolume())
+const sharedSpeed = ref(getInitialSpeed())
 
 export function useDialogueTts() {
   const isPlaying = ref(false)
@@ -104,7 +127,7 @@ export function useDialogueTts() {
     window.speechSynthesis.cancel()
     const utterance = new SpeechSynthesisUtterance(text)
     utterance.lang = resolveWebSpeechLang(language)
-    utterance.rate = 0.95
+    utterance.rate = sharedSpeed.value
     utterance.volume = sharedVolume.value
 
     utterance.onstart = () => {
@@ -147,6 +170,7 @@ export function useDialogueTts() {
     const audioUrl = `data:audio/mp3;base64,${base64}`
     const audio = new Audio(audioUrl)
     audio.volume = sharedVolume.value
+    audio.playbackRate = sharedSpeed.value
 
     audio.onplay = () => {
       isPlaying.value = true
@@ -376,6 +400,25 @@ export function useDialogueTts() {
     }
   }
 
+  function setSpeed(val: number) {
+    const clamped = Math.max(0.5, Math.min(2, Number.isFinite(val) ? Number(val.toFixed(2)) : 1))
+    sharedSpeed.value = clamped
+
+    if (currentAudio) {
+      try {
+        currentAudio.playbackRate = clamped
+      }
+      catch {}
+    }
+
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem(SPEED_STORAGE_KEY, String(clamped))
+      }
+      catch {}
+    }
+  }
+
   if (getCurrentInstance()) {
     onUnmounted(() => {
       stopAudio()
@@ -385,6 +428,8 @@ export function useDialogueTts() {
   return {
     volume: sharedVolume,
     setVolume,
+    speed: sharedSpeed,
+    setSpeed,
     isPlaying,
     currentPlayingId,
     currentPlayingMessageId,

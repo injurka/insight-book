@@ -45,19 +45,22 @@ export const useLibraryStore = defineStore('library', () => {
     error: booksError,
     isLoading: isBooksLoading,
     refetch: refetchBooks,
+    status: booksStatus,
   } = useQuery<Book[]>({
     key: () => scopedQueryKey(queryKeys.books.all),
     query: async () => repos.book.list(),
     enabled: () => !!authStore.user || authStore.isSingleMode,
   })
 
-  watch([booksData, isBooksLoading], ([newBooks, loading]) => {
+  watch([booksData, isBooksLoading, booksStatus, () => authStore.user, () => authStore.isSingleMode, () => authStore.isAuthRefreshing], ([newBooks, loading, status, user, isSingleMode, isAuthRefreshing]) => {
     if (newBooks) {
       books.value = [...newBooks]
       void attachCachedCovers(books.value)
     }
 
-    if (!loading) {
+    const isQueryEnabled = !!user || isSingleMode
+
+    if (!loading && (status !== 'pending' || (!isQueryEnabled && !isAuthRefreshing))) {
       isInitialized.value = true
     }
   }, { immediate: true })

@@ -3,7 +3,6 @@ import type { Book } from '~/01.shared/types/models'
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
-import { useDelayedLoading } from '~/01.shared/composables/use-delayed-loading'
 import { useToast } from '~/01.shared/composables/use-toast'
 import { AppRoutePaths } from '~/01.shared/constants/routes'
 import { BOOK_TAGS } from '~/01.shared/constants/tags'
@@ -65,8 +64,6 @@ const isInitialLoading = computed(() => {
   return (isAuthBootstrapLoading.value || !store.isInitialized || store.isLoading)
     && (!store.books.length && !store.publicBooks.length)
 })
-
-const showInitialSkeleton = useDelayedLoading(isInitialLoading)
 
 const menuItems = computed(() => {
   const items = []
@@ -187,6 +184,9 @@ function resolveInitialView() {
       loadPublic(1)
   }
   else {
+    if (currentView.value === 'public-catalog' && store.publicBooks.length === 0)
+      loadPublic(1)
+
     setupPolling()
   }
 }
@@ -229,9 +229,7 @@ onUnmounted(() => {
             @open-upload-modal="isUploadModalOpen = true"
           />
 
-          <template v-if="isInitialLoading">
-            <LibrarySkeletonGrid v-if="showInitialSkeleton" :show-title="true" />
-          </template>
+          <LibrarySkeletonGrid v-if="isInitialLoading" :show-title="true" />
 
           <LibraryPublicCatalog
             v-else-if="currentView === 'public-catalog'"
@@ -317,6 +315,7 @@ onUnmounted(() => {
 
   width: 100%;
   min-height: 100%;
+  flex: 1 0 auto;
   box-sizing: border-box;
 
   display: flex;

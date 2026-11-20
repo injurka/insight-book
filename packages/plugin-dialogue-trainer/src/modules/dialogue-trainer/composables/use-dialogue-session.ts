@@ -24,6 +24,7 @@ const DEFAULT_SETTINGS: DialogueSettings = {
   style: 'adaptive',
   autoPlayAudio: true,
   autoExpandTranslations: false,
+  autoExpandTranscriptions: true,
 }
 
 function createAssistantPlaceholder(): DialogueMessage {
@@ -41,6 +42,8 @@ function populateAssistantMessage(message: DialogueMessage, res: LlmDialogueAnal
   message.isCorrect = res.isCorrect
   message.feedback = res.feedback || ''
   message.correctedSentence = res.correctedSentence || fallbackContent
+  message.correctedTranscription = res.correctedTranscription || ''
+  message.replyTranscription = res.replyTranscription || ''
   message.replyTranslation = res.replyTranslation || ''
   message.replySentences = res.replySentences || []
 }
@@ -251,7 +254,7 @@ export function useDialogueSession() {
     session.messages.push(assistantPlaceholder)
 
     try {
-      const prompt = `Start our dialogue in ${practiceLang}. Introduce the scenario or greet the user in character, matching the topic "${settings.topic || 'friendly encounter'}" and the conversational style and level defined in the system prompt. Return JSON with isCorrect: true, feedback: "", correctedSentence: "", reply: "greeting in ${practiceLang}", replyTranslation: "translation in ${interfaceLang}".`
+      const prompt = `Start our dialogue in ${practiceLang}. Introduce the scenario or greet the user in character, matching the topic "${settings.topic || 'friendly encounter'}" and the conversational style and level defined in the system prompt. Return JSON with isCorrect: true, feedback: "", correctedSentence: "", correctedTranscription: "", reply: "greeting in ${practiceLang}", replyTranscription: "phonetic transcription / pinyin of the reply", replyTranslation: "translation in ${interfaceLang}", and replySentences breaking down the reply sentence by sentence with text, transcription, and translation.`
 
       const res = await requestLlmGenerate<LlmDialogueAnalysisResponse>({
         systemPrompt: buildDialogueSystemPrompt(settings, locale.value || 'ru'),

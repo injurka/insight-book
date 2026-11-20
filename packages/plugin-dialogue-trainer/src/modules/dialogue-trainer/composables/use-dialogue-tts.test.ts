@@ -93,19 +93,23 @@ describe('useDialogueTts', () => {
     expect(tts.volume.value).toBe(0.85)
   })
 
-  it('applies volume to Audio instance when playing', async () => {
+  it('applies volume and playback speed to Audio instance when playing', async () => {
     const tts = useDialogueTts()
     tts.setVolume(0.42)
+    tts.setSpeed(1.25)
 
     let createdAudioVolume: number | null = null
+    let createdAudioRate: number | null = null
     const originalAudio = (globalThis as unknown as { Audio?: unknown }).Audio
     ;(globalThis as unknown as { Audio: unknown }).Audio = class {
       volume = 1
+      playbackRate = 1
       onplay: (() => void) | null = null
       onended: (() => void) | null = null
 
       play() {
         createdAudioVolume = this.volume
+        createdAudioRate = this.playbackRate
         this.onplay?.()
 
         return Promise.resolve()
@@ -122,10 +126,27 @@ describe('useDialogueTts', () => {
         'fake_base64',
       )
       expect(createdAudioVolume).toBe(0.42)
+      expect(createdAudioRate).toBe(1.25)
       tts.stopAudio()
     }
     finally {
       ;(globalThis as unknown as { Audio: unknown }).Audio = originalAudio
     }
+  })
+
+  it('manages and clamps speed properly', () => {
+    const tts = useDialogueTts()
+
+    tts.setSpeed(0.75)
+    expect(tts.speed.value).toBe(0.75)
+
+    tts.setSpeed(2.5)
+    expect(tts.speed.value).toBe(2)
+
+    tts.setSpeed(0.2)
+    expect(tts.speed.value).toBe(0.5)
+
+    tts.setSpeed(1)
+    expect(tts.speed.value).toBe(1)
   })
 })

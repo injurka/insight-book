@@ -185,8 +185,14 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   function applyAuthResponse(res: { user: UserData | null, mode: string }) {
+    const prevUserId = user.value?.id ?? null
+    const prevSingleMode = isSingleMode.value
+    const nextUserId = res.user?.id ?? null
+    const nextSingleMode = res.mode === 'single'
+    const authChanged = prevUserId !== nextUserId || prevSingleMode !== nextSingleMode
+
     user.value = res.user
-    isSingleMode.value = res.mode === 'single'
+    isSingleMode.value = nextSingleMode
 
     if (res.user) {
       localStorage.setItem('insight_uid', String(res.user.id))
@@ -209,7 +215,8 @@ export const useAuthStore = defineStore('auth', () => {
       setAuthQueryScope(null)
     }
 
-    queryCache.invalidateQueries({ key: queryKeys.books.all })
+    if (authChanged)
+      queryCache.invalidateQueries({ key: queryKeys.books.all })
   }
 
   function canApplySyncError(error: unknown, revision: number, sameSession: boolean): boolean {

@@ -5,7 +5,6 @@ export interface LanguageOption {
   name: string
   nameKey: string
   fallbackName: string
-  icon: string
   ttsVoice?: string
 }
 
@@ -15,21 +14,18 @@ export const SUPPORTED_PRACTICE_LANGUAGES: LanguageOption[] = [
     name: 'English',
     nameKey: 'plugins.dialogue-trainer.langEn',
     fallbackName: 'English',
-    icon: 'mdi:alphabetical-variant',
   },
   {
     code: 'ru',
     name: 'Русский',
     nameKey: 'plugins.dialogue-trainer.langRu',
     fallbackName: 'Русский',
-    icon: 'mdi:translate',
   },
   {
     code: 'zh',
     name: '中文 (Chinese)',
     nameKey: 'plugins.dialogue-trainer.langZh',
     fallbackName: '中文 (Chinese)',
-    icon: 'mdi:ideogram-cjk-variant',
   },
 ]
 

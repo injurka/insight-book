@@ -12,11 +12,13 @@ export interface DialogueSettings {
   topic: string
   style: DialogueStyle
   autoPlayAudio: boolean
-  autoExpandTranslations?: boolean
+  autoExpandTranslations: boolean
+  autoExpandTranscriptions: boolean
 }
 
 export interface DialogueSentenceReply {
   text: string
+  transcription: string
   translation: string
 }
 
@@ -28,6 +30,8 @@ export interface DialogueMessage {
   isCorrect?: boolean
   feedback?: string
   correctedSentence?: string
+  correctedTranscription?: string
+  replyTranscription?: string
   replyTranslation?: string
   replySentences?: DialogueSentenceReply[]
   audioBase64?: string
@@ -49,7 +53,9 @@ export interface LlmDialogueAnalysisResponse {
   isCorrect: boolean
   feedback: string
   correctedSentence: string
+  correctedTranscription: string
   reply: string
+  replyTranscription: string
   replyTranslation: string
-  replySentences?: DialogueSentenceReply[]
+  replySentences: DialogueSentenceReply[]
 }

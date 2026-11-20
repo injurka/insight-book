@@ -15,10 +15,12 @@ interface Props {
   settings: DialogueSettings
   hasMessages: boolean
   volume?: number
+  speed?: number
 }
 
 const props = withDefaults(defineProps<Props>(), {
   volume: 1,
+  speed: 1,
 })
 const emit = defineEmits<{
   (e: 'openSettings'): void
@@ -26,7 +28,9 @@ const emit = defineEmits<{
   (e: 'newDialogue'): void
   (e: 'deleteDialogue'): void
   (e: 'update:volume', val: number): void
+  (e: 'update:speed', val: number): void
   (e: 'toggleAutoExpandTranslations'): void
+  (e: 'toggleAutoExpandTranscriptions'): void
 }>()
 
 const { t } = useI18n()
@@ -68,6 +72,15 @@ const volumeSliderStyle = computed(() => {
     background: `linear-gradient(to right, var(--fg-accent-color) 0%, var(--fg-accent-color) ${percent}%, var(--border-primary-color) ${percent}%, var(--border-primary-color) 100%)`,
   }
 })
+const speedValue = computed(() => Number((props.speed ?? 1).toFixed(2)))
+const speedLabel = computed(() => `${Number(speedValue.value.toFixed(2))}x`)
+const speedSliderStyle = computed(() => {
+  const percent = Math.round(((speedValue.value - 0.5) / 1.5) * 100)
+
+  return {
+    background: `linear-gradient(to right, var(--fg-accent-color) 0%, var(--fg-accent-color) ${percent}%, var(--border-primary-color) ${percent}%, var(--border-primary-color) 100%)`,
+  }
+})
 
 function toggleMute() {
   if (volumePercent.value > 0) {
@@ -87,6 +100,15 @@ function onVolumeInput(e: Event) {
   }
 
   emit('update:volume', val)
+}
+function resetSpeed() {
+  emit('update:speed', 1)
+}
+function onSpeedInput(e: Event) {
+  const target = e.target as HTMLInputElement
+  const val = Number(target.value)
+
+  emit('update:speed', val)
 }
 </script>
 
@@ -166,6 +188,25 @@ function onVolumeInput(e: Event) {
 
           <div class="header-menu-divider" />
 
+          <!-- Quick Toggle for Auto-expanding Transcriptions -->
+          <button
+            type="button"
+            class="header-menu-item header-menu-toggle-item"
+            @click="emit('toggleAutoExpandTranscriptions')"
+          >
+            <Icon
+              icon="mdi:alphabet-latin"
+              class="item-icon"
+              :class="{ 'is-active-icon': settings.autoExpandTranscriptions }"
+            />
+            <span class="item-label">{{ t('plugins.dialogue-trainer.autoExpandTranscriptions') }}</span>
+            <KitCheckbox
+              :model-value="Boolean(settings.autoExpandTranscriptions)"
+              class="menu-checkbox"
+              tabindex="-1"
+            />
+          </button>
+
           <!-- Quick Toggle for Auto-expanding Translations -->
           <button
             type="button"
@@ -219,6 +260,40 @@ function onVolumeInput(e: Event) {
             </div>
 
             <span class="volume-percent">{{ volumePercent }}%</span>
+          </div>
+
+          <!-- Voice Speed Control -->
+          <div
+            class="header-menu-volume"
+            @click.stop
+            @mousedown.stop
+            @touchstart.stop
+          >
+            <button
+              type="button"
+              class="volume-btn"
+              :title="t('plugins.dialogue-trainer.voiceSpeedReset')"
+              :aria-label="t('plugins.dialogue-trainer.voiceSpeedReset')"
+              @click="resetSpeed"
+            >
+              <Icon icon="mdi:play-speed" class="item-icon" />
+            </button>
+
+            <div class="volume-slider-wrapper">
+              <input
+                type="range"
+                min="0.5"
+                max="2"
+                step="0.05"
+                :value="speedValue"
+                class="volume-slider"
+                :style="speedSliderStyle"
+                :aria-label="t('plugins.dialogue-trainer.voiceSpeed')"
+                @input="onSpeedInput"
+              >
+            </div>
+
+            <span class="volume-percent">{{ speedLabel }}</span>
           </div>
 
           <div v-if="hasMessages" class="header-menu-divider" />

@@ -82,6 +82,7 @@ function onMenuClick(id: string) {
   width: 220px;
   position: sticky;
   top: 204px;
+  margin-top: 188px;
   border-radius: 12px;
   flex-shrink: 0;
 

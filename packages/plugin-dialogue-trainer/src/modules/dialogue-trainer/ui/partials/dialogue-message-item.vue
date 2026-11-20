@@ -4,6 +4,7 @@ import type { DialogueMessage } from '../../../../shared/types/dialogue'
 import { Icon } from '@iconify/vue'
 import { computed, nextTick, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useAnalysisStore } from '~/01.shared/store/analysis/analysis.store'
 import { KitBtn, KitTooltip } from '~/02.kit'
 import { useTextSelection } from '~/04.features/analysis'
 import { tokenizeDialogueText, tokenizeDialogueTextServer } from '../../../../shared/lib/dialogue-tokenizer'
@@ -12,8 +13,10 @@ import DialogueFeedbackCard from './dialogue-feedback-card.vue'
 
 interface Props {
   message: DialogueMessage
+  messageIndex?: number
   targetLanguage: string
   autoExpandTranslations?: boolean
+  autoExpandTranscriptions?: boolean
   isPlayingReply: boolean
   isPlayingCorrection: boolean
   isLoadingAudio: boolean
@@ -23,7 +26,9 @@ interface Props {
 }
 
 const props = withDefaults(defineProps<Props>(), {
+  messageIndex: 0,
   autoExpandTranslations: false,
+  autoExpandTranscriptions: true,
   disabled: false,
 })
 const emit = defineEmits<{
@@ -35,9 +40,11 @@ const emit = defineEmits<{
 
 const { t } = useI18n()
 const { onPointerDown, onPointerUp, onWordClick } = useTextSelection()
+const analysisStore = useAnalysisStore()
 const recorder = useDialogueRecorder()
 
 const manualVisibility = ref<Record<number, boolean>>({})
+const manualTranscriptionVisibility = ref<Record<number, boolean>>({})
 const serverSentences = ref<TokenizedSentence[] | null>(null)
 const isActionsOpen = ref(false)
 const isEditing = ref(false)
@@ -52,6 +59,8 @@ const formattedEditDuration = computed(() => {
 
   return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`
 })
+const baseSentId = computed(() => (props.messageIndex + 1) * 1000)
+const correctionBaseSentId = computed(() => (props.messageIndex + 1) * 1000 + 500)
 // Tokenize text into sentences and words for click/long-press interactions
 const tokenizedSentences = computed(() => {
   if (serverSentences.value?.length) {
@@ -62,13 +71,16 @@ const tokenizedSentences = computed(() => {
     return []
   }
 
-  return tokenizeDialogueText(props.message.content, props.targetLanguage, 1000)
+  return tokenizeDialogueText(props.message.content, props.targetLanguage, baseSentId.value)
 })
 
 watch(() => props.autoExpandTranslations, () => {
   manualVisibility.value = {}
 })
-watch(() => [props.message.content, props.targetLanguage], async () => {
+watch(() => props.autoExpandTranscriptions, () => {
+  manualTranscriptionVisibility.value = {}
+})
+watch(() => [props.message.content, props.targetLanguage, baseSentId.value], async () => {
   if (props.message.tokenizedSentences?.length) {
     serverSentences.value = props.message.tokenizedSentences
 
@@ -81,7 +93,7 @@ watch(() => [props.message.content, props.targetLanguage], async () => {
     return
   }
 
-  serverSentences.value = await tokenizeDialogueTextServer(props.message.content, props.targetLanguage, 1000)
+  serverSentences.value = await tokenizeDialogueTextServer(props.message.content, props.targetLanguage, baseSentId.value)
 }, { immediate: true })
 
 function handleBubbleClick() {
@@ -176,6 +188,41 @@ function getSentenceTranslation(idx: number): string {
 
   return props.message.replyTranslation || ''
 }
+function isTranscriptionVisible(idx: number): boolean {
+  if (manualTranscriptionVisibility.value[idx] !== undefined) {
+    return manualTranscriptionVisibility.value[idx]
+  }
+
+  return Boolean(props.autoExpandTranscriptions && hasTranscription(idx))
+}
+function toggleSentenceTranscription(idx: number) {
+  manualTranscriptionVisibility.value[idx] = !isTranscriptionVisible(idx)
+}
+function hasTranscription(idx: number): boolean {
+  if (props.message.replySentences?.[idx]?.transcription) {
+    return true
+  }
+
+  if (tokenizedSentences.value.length === 1 && props.message.replyTranscription) {
+    return true
+  }
+
+  return Boolean(props.message.replyTranscription)
+}
+function getSentenceTranscription(idx: number): string {
+  if (props.message.replySentences?.[idx]?.transcription) {
+    return props.message.replySentences[idx].transcription
+  }
+
+  return props.message.replyTranscription || ''
+}
+function isWordActive(sentId: number, tokenIdx: number, isPunct: boolean): boolean {
+  if (isPunct) {
+    return false
+  }
+
+  return analysisStore.activeTokenId === `${sentId}-${tokenIdx}`
+}
 </script>
 
 <template>
@@ -222,6 +269,9 @@ function getSentenceTranslation(idx: number): string {
         :is-correct="message.isCorrect"
         :feedback="message.feedback"
         :corrected-sentence="message.correctedSentence"
+        :corrected-transcription="message.correctedTranscription"
+        :auto-expand-transcriptions="autoExpandTranscriptions"
+        :base-sent-id="correctionBaseSentId"
         :target-language="targetLanguage"
         :is-playing-audio="isPlayingCorrection"
         :is-loading-audio="isLoadingAudio"
@@ -302,7 +352,10 @@ function getSentenceTranslation(idx: number): string {
               >
                 <span
                   class="word"
-                  :class="[token.isPunct ? 'is-punctuation' : '']"
+                  :class="[
+                    token.isPunct ? 'is-punctuation' : '',
+                    { 'is-active': isWordActive(sentence.sentId, token.tokenIdx, token.isPunct) },
+                  ]"
                   :data-word="encodeURIComponent(token.word)"
                   :data-pos="token.pos"
                   :data-sent-id="sentence.sentId"
@@ -330,6 +383,20 @@ function getSentenceTranslation(idx: number): string {
                 </button>
 
                 <button
+                  v-if="hasTranscription(sentence.index)"
+                  type="button"
+                  class="sentence-action-btn transcription-btn"
+                  :class="{ 'is-active': isTranscriptionVisible(sentence.index) }"
+                  :aria-label="isTranscriptionVisible(sentence.index)
+                    ? t('plugins.dialogue-trainer.hideTranscriptionSentence')
+                    : t('plugins.dialogue-trainer.transcriptionSentence')"
+                  @pointerdown.stop
+                  @click.stop="toggleSentenceTranscription(sentence.index)"
+                >
+                  <Icon icon="mdi:alphabet-latin" />
+                </button>
+
+                <button
                   v-if="hasTranslation(sentence.index)"
                   type="button"
                   class="sentence-action-btn translate-btn"
@@ -342,6 +409,18 @@ function getSentenceTranslation(idx: number): string {
                 </button>
               </span>
             </span>
+
+            <!-- Sentence transcription (Pinyin / IPA) pill under each sentence -->
+            <transition name="sentence-fade">
+              <div
+                v-if="message.role === 'assistant' && isTranscriptionVisible(sentence.index)"
+                class="sentence-transcription-box"
+                @pointerdown.stop
+              >
+                <span class="transcription-badge">{{ targetLanguage === 'zh' ? 'PY' : 'IPA' }}</span>
+                <span class="transcription-text">{{ getSentenceTranscription(sentence.index) }}</span>
+              </div>
+            </transition>
 
             <!-- Sentence translation box under each sentence -->
             <transition name="sentence-fade">
@@ -486,16 +565,39 @@ function getSentenceTranslation(idx: number): string {
 
 .sentence {
   position: relative;
+  border-radius: 4px;
+  transition: background-color 0.2s ease;
   overflow-wrap: break-word;
   word-break: normal;
+
+  &:hover {
+    background-color: var(--bg-hover-color);
+  }
 }
 
 .word {
   cursor: pointer;
+  padding: 1px 2px;
+  border-radius: 4px;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
   overflow-wrap: break-word;
+
+  &:not(.is-punctuation):hover {
+    background-color: rgba(var(--fg-accent-color-rgb), 0.18);
+    color: var(--fg-accent-color);
+  }
+
+  &.is-active {
+    background-color: var(--fg-accent-color);
+    color: var(--bg-primary-color);
+    font-weight: 600;
+  }
 
   &.is-punctuation {
     cursor: default;
+    padding: 0;
   }
 }
 
@@ -544,6 +646,41 @@ function getSentenceTranslation(idx: number): string {
   &:disabled {
     opacity: 0.6;
     cursor: not-allowed;
+  }
+}
+
+.sentence-transcription-box {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 7px;
+  margin: 5px 0 4px 0;
+  padding: 4px 10px;
+  border-radius: 8px;
+  background: rgba(var(--fg-accent-color-rgb), 0.06);
+  border: 1px dashed rgba(var(--fg-accent-color-rgb), 0.25);
+  color: var(--fg-secondary-color);
+  font-size: 0.85rem;
+  line-height: 1.45;
+  max-width: 100%;
+
+  .transcription-badge {
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    padding: 1px 5px;
+    border-radius: 4px;
+    background: rgba(var(--fg-accent-color-rgb), 0.16);
+    color: var(--fg-accent-color);
+    flex-shrink: 0;
+    user-select: none;
+  }
+
+  .transcription-text {
+    font-family: var(--app-font-family, 'Maple Mono CN', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif);
+    letter-spacing: 0.02em;
+    color: var(--fg-primary-color);
+    opacity: 0.88;
+    overflow-wrap: break-word;
   }
 }
 

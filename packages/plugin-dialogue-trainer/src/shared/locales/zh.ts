@@ -11,6 +11,8 @@ export default {
   volume: '音量',
   volumeMute: '静音',
   volumeUnmute: '取消静音',
+  voiceSpeed: '朗读语速',
+  voiceSpeedReset: '重置语速 (1x)',
   newDialogue: '新对话',
   setupTitle: '对话设置',
   setupSubtitle: '设置话题、难度级别和交流风格，或直接使用默认推荐',
@@ -80,6 +82,7 @@ export default {
   speakTooltip: '语音录制',
   autoPlayAudio: '自动播放语音回复',
   autoExpandTranslations: '自动展开句子翻译',
+  autoExpandTranscriptions: '显示音标 / 拼音',
   handsFreeMode: '免提连续对话',
   handsFreeTooltip: '连续对话（语音停顿后自动发送）',
   listening: '正在倾听...',
@@ -101,6 +104,8 @@ export default {
   listenReply: '听对方回复',
   listenSentence: '朗读句子',
   translateSentence: '翻译句子',
+  transcriptionSentence: '显示音标 / 拼音',
+  hideTranscriptionSentence: '隐藏音标 / 拼音',
 
   // Sessions history
   history: '历史对话',

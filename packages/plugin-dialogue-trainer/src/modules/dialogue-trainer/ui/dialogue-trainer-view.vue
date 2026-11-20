@@ -151,6 +151,11 @@ function handleToggleAutoExpandTranslations() {
     autoExpandTranslations: !currentSettings.value.autoExpandTranslations,
   })
 }
+function handleToggleAutoExpandTranscriptions() {
+  updateSettings({
+    autoExpandTranscriptions: !currentSettings.value.autoExpandTranscriptions,
+  })
+}
 function handleSelectSession(session: DialogueSession) {
   selectSession(session)
 }
@@ -205,12 +210,15 @@ onUnmounted(() => {
       :settings="currentSettings"
       :has-messages="activeMessages.length > 0"
       :volume="tts.volume.value"
+      :speed="tts.speed.value"
       @update:volume="tts.setVolume"
+      @update:speed="tts.setSpeed"
       @open-settings="handleOpenSettings"
       @open-history="handleOpenHistory"
       @new-dialogue="handleNewDialogue"
       @delete-dialogue="handleDeleteDialogue"
       @toggle-auto-expand-translations="handleToggleAutoExpandTranslations"
+      @toggle-auto-expand-transcriptions="handleToggleAutoExpandTranscriptions"
     />
 
     <!-- Chat Messages Scroll Container -->
@@ -250,11 +258,13 @@ onUnmounted(() => {
       <!-- Messages Stream -->
       <div v-else class="messages-list">
         <DialogueMessageItem
-          v-for="msg in activeMessages"
+          v-for="(msg, idx) in activeMessages"
           :key="msg.id"
           :message="msg"
+          :message-index="idx"
           :target-language="currentSettings.targetLanguage"
           :auto-expand-translations="Boolean(currentSettings.autoExpandTranslations)"
+          :auto-expand-transcriptions="Boolean(currentSettings.autoExpandTranscriptions)"
           :is-playing-reply="tts.currentPlayingId.value === msg.id && tts.isPlaying.value"
           :is-playing-correction="tts.currentPlayingId.value === `corr_${msg.id}` && tts.isPlaying.value"
           :is-loading-audio="tts.isLoadingAudio.value"

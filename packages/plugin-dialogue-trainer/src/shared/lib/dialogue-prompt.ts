@@ -9,8 +9,18 @@ const PRACTICE_LANGUAGE_NAMES: Record<string, string> = {
   zh: 'Chinese (Mandarin)',
 }
 
+const PRACTICE_TRANSCRIPTION_GUIDES: Record<string, string> = {
+  en: 'IPA phonetic transcription (e.g. "həˈloʊ, haʊ ɑːr juː təˈdeɪ?")',
+  ru: 'phonetic transcription with word stress marks or IPA (e.g. "Пр’ив’ет, как прош’ол твой д’эн’?")',
+  zh: 'Pinyin with tone diacritics and word spacing (e.g. "Nǐ hǎo ya, jīntiān guò de zěnmeyàng?")',
+}
+
 export function getLanguageName(code: string): string {
   return PRACTICE_LANGUAGE_NAMES[code] || 'English'
+}
+
+export function getTranscriptionGuide(code: string): string {
+  return PRACTICE_TRANSCRIPTION_GUIDES[code] || PRACTICE_TRANSCRIPTION_GUIDES.en
 }
 
 export function resolveInterfaceLanguage(localeVal: string): string {
@@ -34,6 +44,7 @@ export function buildDialogueHistoryPrompt(messages: DialogueMessage[], cleanTex
 
 export function buildDialogueSystemPrompt(settings: DialogueSettings, interfaceLocale: string): string {
   const practiceLang = getLanguageName(settings.targetLanguage)
+  const transcriptionGuide = getTranscriptionGuide(settings.targetLanguage)
   const interfaceLang = resolveInterfaceLanguage(interfaceLocale)
   const styleInstruction = getStylePrompt(settings.style)
 
@@ -45,6 +56,7 @@ Your role:
 
 Scenario Configuration:
 - Target Practice Language: ${practiceLang}
+- Transcription Format for ${practiceLang}: ${transcriptionGuide}
 - User Explanation Language: ${interfaceLang}
 - Difficulty Level: ${settings.difficulty}
 - Topic / Situation: ${settings.topic || 'General engaging daily conversation'}
@@ -57,20 +69,25 @@ Analysis Instructions:
 - Evaluate user speech transcript verbatim (isCorrect: true/false).
 - In "feedback" (${interfaceLang}): explain mistakes, cite grammar rules, suggest natural/conversational phrasing. If your reply contains slang, idioms, abbreviations or other colloquial expressions, gloss them there so the learner can reuse them.
 - In "correctedSentence": full ideal sentence in ${practiceLang}.
+- In "correctedTranscription": phonetic transcription (${transcriptionGuide}) of "correctedSentence" (empty string if "correctedSentence" is empty).
 - In "reply": in-character conversational continuation in ${practiceLang}, written exactly in the style described by the Style Playbook.
+- In "replyTranscription": phonetic transcription (${transcriptionGuide}) of the entire "reply".
 - In "replyTranslation": translation of entire reply into ${interfaceLang}.
-- In "replySentences": array of sentence objects breaking down "reply", where each item has "text" in ${practiceLang} and "translation" in ${interfaceLang}.
+- In "replySentences": array of sentence objects breaking down "reply" sentence by sentence, where each item has "text" in ${practiceLang}, "transcription" (${transcriptionGuide}), and "translation" in ${interfaceLang}.
 
 Output STRICT JSON ONLY:
 {
   "isCorrect": boolean,
   "feedback": "string",
   "correctedSentence": "string",
+  "correctedTranscription": "string",
   "reply": "string",
+  "replyTranscription": "string",
   "replyTranslation": "string",
   "replySentences": [
     {
       "text": "sentence text in practice language",
+      "transcription": "phonetic transcription / pinyin of this sentence",
       "translation": "translation of this sentence in explanation language"
     }
   ]

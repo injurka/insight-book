@@ -3,6 +3,7 @@ import type { TokenizedSentence } from '../../../../shared/lib/dialogue-tokenize
 import { Icon } from '@iconify/vue'
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useAnalysisStore } from '~/01.shared/store/analysis/analysis.store'
 import { KitTooltip } from '~/02.kit'
 import { useTextSelection } from '~/04.features/analysis'
 import { tokenizeDialogueText, tokenizeDialogueTextServer } from '../../../../shared/lib/dialogue-tokenizer'
@@ -11,22 +12,40 @@ interface Props {
   isCorrect?: boolean
   feedback?: string
   correctedSentence?: string
+  correctedTranscription?: string
+  autoExpandTranscriptions?: boolean
+  baseSentId?: number
   targetLanguage: string
   isPlayingAudio: boolean
   isLoadingAudio: boolean
 }
 
-const props = defineProps<Props>()
-
+const props = withDefaults(defineProps<Props>(), {
+  autoExpandTranscriptions: true,
+  baseSentId: 5000,
+})
 const emit = defineEmits<{
   (e: 'playCorrection'): void
 }>()
 
 const { t } = useI18n()
 const { onPointerDown, onPointerUp, onWordClick } = useTextSelection()
+const analysisStore = useAnalysisStore()
 
 const serverSentences = ref<TokenizedSentence[] | null>(null)
+const manualShowTranscription = ref<boolean | null>(null)
 
+const isTranscriptionVisible = computed(() => {
+  if (!props.correctedTranscription) {
+    return false
+  }
+
+  if (manualShowTranscription.value !== null) {
+    return manualShowTranscription.value
+  }
+
+  return Boolean(props.autoExpandTranscriptions)
+})
 const tokenizedCorrectionSentences = computed(() => {
   if (serverSentences.value?.length) {
     return serverSentences.value
@@ -36,18 +55,32 @@ const tokenizedCorrectionSentences = computed(() => {
     return []
   }
 
-  return tokenizeDialogueText(props.correctedSentence, props.targetLanguage, 5000)
+  return tokenizeDialogueText(props.correctedSentence, props.targetLanguage, props.baseSentId)
 })
 
-watch(() => [props.correctedSentence, props.targetLanguage], async () => {
+watch(() => props.autoExpandTranscriptions, () => {
+  manualShowTranscription.value = null
+})
+watch(() => [props.correctedSentence, props.targetLanguage, props.baseSentId], async () => {
   if (!props.correctedSentence) {
     serverSentences.value = []
 
     return
   }
 
-  serverSentences.value = await tokenizeDialogueTextServer(props.correctedSentence, props.targetLanguage, 5000)
+  serverSentences.value = await tokenizeDialogueTextServer(props.correctedSentence, props.targetLanguage, props.baseSentId)
 }, { immediate: true })
+
+function toggleTranscription() {
+  manualShowTranscription.value = !isTranscriptionVisible.value
+}
+function isWordActive(sentId: number, tokenIdx: number, isPunct: boolean): boolean {
+  if (isPunct) {
+    return false
+  }
+
+  return analysisStore.activeTokenId === `${sentId}-${tokenIdx}`
+}
 </script>
 
 <template>
@@ -85,7 +118,10 @@ watch(() => [props.correctedSentence, props.targetLanguage], async () => {
           >
             <span
               class="word"
-              :class="[tkn.isPunct ? 'is-punctuation' : '']"
+              :class="[
+                tkn.isPunct ? 'is-punctuation' : '',
+                { 'is-active': isWordActive(sent.sentId, tkn.tokenIdx, tkn.isPunct) },
+              ]"
               :data-word="encodeURIComponent(tkn.word)"
               :data-pos="tkn.pos"
               :data-sent-id="sent.sentId"
@@ -113,9 +149,39 @@ watch(() => [props.correctedSentence, props.targetLanguage], async () => {
                 />
               </button>
             </KitTooltip>
+
+            <KitTooltip
+              v-if="correctedTranscription"
+              :text="isTranscriptionVisible
+                ? t('plugins.dialogue-trainer.hideTranscriptionSentence')
+                : t('plugins.dialogue-trainer.transcriptionSentence')"
+            >
+              <button
+                type="button"
+                class="sentence-action-btn"
+                :class="{ 'is-active': isTranscriptionVisible }"
+                :aria-label="isTranscriptionVisible
+                  ? t('plugins.dialogue-trainer.hideTranscriptionSentence')
+                  : t('plugins.dialogue-trainer.transcriptionSentence')"
+                @click.stop="toggleTranscription"
+              >
+                <Icon icon="mdi:alphabet-latin" />
+              </button>
+            </KitTooltip>
           </span>
         </span>
       </div>
+
+      <transition name="transcription-fade">
+        <div
+          v-if="isTranscriptionVisible"
+          class="corrected-transcription"
+          @pointerdown.stop
+        >
+          <span class="transcription-badge">{{ targetLanguage === 'zh' ? 'PY' : 'IPA' }}</span>
+          <span class="transcription-text">{{ correctedTranscription }}</span>
+        </div>
+      </transition>
     </div>
 
     <div v-if="feedback" class="analysis-section">
@@ -214,10 +280,59 @@ watch(() => [props.correctedSentence, props.targetLanguage], async () => {
     transform: scale(1.08);
   }
 
-  &.is-playing {
+  &.is-playing,
+  &.is-active {
     background-color: var(--fg-accent-color);
     color: #fff;
   }
+}
+
+.corrected-transcription {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 7px;
+  margin-top: 6px;
+  padding: 4px 10px;
+  border-radius: 8px;
+  background: rgba(var(--fg-accent-color-rgb), 0.08);
+  border: 1px dashed rgba(var(--fg-accent-color-rgb), 0.28);
+  color: var(--fg-secondary-color);
+  font-size: 0.85rem;
+  line-height: 1.45;
+  max-width: 100%;
+
+  .transcription-badge {
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    padding: 1px 5px;
+    border-radius: 4px;
+    background: rgba(var(--fg-accent-color-rgb), 0.16);
+    color: var(--fg-accent-color);
+    flex-shrink: 0;
+    user-select: none;
+  }
+
+  .transcription-text {
+    font-family: var(--app-font-family, 'Maple Mono CN', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif);
+    letter-spacing: 0.02em;
+    color: var(--fg-primary-color);
+    opacity: 0.88;
+    overflow-wrap: break-word;
+  }
+}
+
+.transcription-fade-enter-active,
+.transcription-fade-leave-active {
+  transition:
+    opacity 0.18s ease,
+    transform 0.18s ease;
+}
+
+.transcription-fade-enter-from,
+.transcription-fade-leave-to {
+  opacity: 0;
+  transform: translateY(-3px);
 }
 
 .spin-icon {
@@ -261,16 +376,39 @@ watch(() => [props.correctedSentence, props.targetLanguage], async () => {
   .sentence {
     display: inline;
     position: relative;
+    border-radius: 4px;
+    transition: background-color 0.2s ease;
     overflow-wrap: break-word;
     word-break: normal;
+
+    &:hover {
+      background-color: var(--bg-hover-color);
+    }
   }
 
   .word {
     cursor: pointer;
+    padding: 1px 2px;
+    border-radius: 4px;
+    transition:
+      background-color 0.15s ease,
+      color 0.15s ease;
     overflow-wrap: break-word;
+
+    &:not(.is-punctuation):hover {
+      background-color: rgba(var(--fg-accent-color-rgb), 0.18);
+      color: var(--fg-accent-color);
+    }
+
+    &.is-active {
+      background-color: var(--fg-accent-color);
+      color: var(--bg-primary-color);
+      font-weight: 700;
+    }
 
     &.is-punctuation {
       cursor: default;
+      padding: 0;
     }
   }
 }

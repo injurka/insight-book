@@ -33,13 +33,13 @@ const form = ref<DialogueSettings>({
   style: 'adaptive',
   autoPlayAudio: true,
   autoExpandTranslations: false,
+  autoExpandTranscriptions: true,
 })
 
 const languageOptions = computed<KitSelectOption[]>(() =>
   SUPPORTED_PRACTICE_LANGUAGES.map((lang: LanguageOption) => ({
     label: t(lang.nameKey, lang.fallbackName),
     value: lang.code,
-    icon: lang.icon,
   })))
 const difficultyOptions = computed<KitSelectOption[]>(() =>
   DIFFICULTY_OPTIONS.map((diff: DifficultyOption) => ({
@@ -64,7 +64,8 @@ watch(() => props.settings, (val) => {
     form.value = {
       ...val,
       targetLanguage,
-      autoExpandTranslations: val.autoExpandTranslations ?? false,
+      autoExpandTranslations: val.autoExpandTranslations,
+      autoExpandTranscriptions: val.autoExpandTranscriptions,
     }
   }
 }, { immediate: true, deep: true })
@@ -179,6 +180,14 @@ function handleClose() {
         <label class="checkbox-label">
           <KitCheckbox v-model="form.autoPlayAudio" />
           <span>{{ t('plugins.dialogue-trainer.autoPlayAudio') }}</span>
+        </label>
+      </div>
+
+      <!-- Auto Expand Transcriptions Toggle -->
+      <div class="form-group checkbox-row">
+        <label class="checkbox-label">
+          <KitCheckbox v-model="form.autoExpandTranscriptions" />
+          <span>{{ t('plugins.dialogue-trainer.autoExpandTranscriptions') }}</span>
         </label>
       </div>
 

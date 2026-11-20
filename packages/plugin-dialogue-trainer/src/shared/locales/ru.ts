@@ -11,6 +11,8 @@ export default {
   volume: 'Громкость',
   volumeMute: 'Выключить звук',
   volumeUnmute: 'Включить звук',
+  voiceSpeed: 'Скорость озвучки',
+  voiceSpeedReset: 'Сбросить скорость (1x)',
   newDialogue: 'Новый диалог',
   setupTitle: 'Параметры диалога',
   setupSubtitle: 'Настройте тему, сложность и стиль общения или оставьте настройки по умолчанию',
@@ -80,6 +82,7 @@ export default {
   speakTooltip: 'Записать голос',
   autoPlayAudio: 'Автовоспроизведение озвучки',
   autoExpandTranslations: 'Раскрывать переводы',
+  autoExpandTranscriptions: 'Показывать транскрипцию / пиньинь',
   handsFreeMode: 'Hands-free режим',
   handsFreeTooltip: 'Непрерывный диалог (автоотправка при паузе в речи)',
   listening: 'Слушаю вас...',
@@ -101,6 +104,8 @@ export default {
   listenReply: 'Слушать ответ',
   listenSentence: 'Озвучить предложение',
   translateSentence: 'Перевести предложение',
+  transcriptionSentence: 'Показать транскрипцию',
+  hideTranscriptionSentence: 'Скрыть транскрипцию',
 
   // Sessions history
   history: 'История диалогов',
