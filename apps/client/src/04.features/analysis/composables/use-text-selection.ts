@@ -30,7 +30,7 @@ function clearSelectionRanges() {
   }
 }
 
-export function useTextSelection() {
+export function useTextSelection({ suppressClickAfterLongPress = false } = {}) {
   const analysisStore = useAnalysisStore()
   const { speak, stop, isPlaying, isLoading } = useTts()
   let pressTimer: ReturnType<typeof setTimeout> | null = null
@@ -39,6 +39,7 @@ export function useTextSelection() {
   let pressScrollListener: (() => void) | null = null
   let pressOriginX = 0
   let pressOriginY = 0
+  let didLongPress = false
   let currentPlayingBtn: HTMLElement | null = null
 
   watch([isPlaying, isLoading], ([playing, loading]) => {
@@ -104,7 +105,10 @@ export function useTextSelection() {
     window.addEventListener('scroll', pressScrollListener, { capture: true, passive: true })
   }
 
-  function shouldIgnorePointerDown(targetEl: HTMLElement | null): boolean {
+  function shouldIgnorePointerDown(event: MouseEvent | TouchEvent, targetEl: HTMLElement | null): boolean {
+    if (suppressClickAfterLongPress && 'button' in event && event.button !== 0)
+      return true
+
     return Boolean(targetEl?.closest?.('.interleaved-translation, .split-translation, .sentence-tts-btn, .grammar-rule-badge, .sentence-action-btn, .sentence-inline-actions, .sentence-translation-box'))
   }
 
@@ -121,9 +125,11 @@ export function useTextSelection() {
   function onPointerDown(event: MouseEvent | TouchEvent, fallbackText?: string) {
     clearPressTimer()
 
+    didLongPress = false
+
     const targetEl = event.target as HTMLElement | null
 
-    if (shouldIgnorePointerDown(targetEl))
+    if (shouldIgnorePointerDown(event, targetEl))
       return
 
     const target = targetEl?.closest?.('.sentence') as HTMLElement | null
@@ -159,6 +165,7 @@ export function useTextSelection() {
         context = `${prev} [${rawSent}] ${next}`.trim()
       }
 
+      didLongPress = true
       analysisStore.closePopover()
       analysisStore.closeSelectionTooltip()
 
@@ -268,13 +275,24 @@ export function useTextSelection() {
     return true
   }
 
+  function suppressLongPressClick(event: MouseEvent): boolean {
+    if (!suppressClickAfterLongPress || !didLongPress || event.detail === 0)
+      return false
+
+    didLongPress = false
+    event.stopPropagation()
+
+    return true
+  }
+
   function onWordClick(event: MouseEvent) {
     clearPressTimer()
 
     const targetEl = event.target as HTMLElement
 
     if (
-      handleTtsBtnClick(event, targetEl)
+      suppressLongPressClick(event)
+      || handleTtsBtnClick(event, targetEl)
       || handleTranslationBlurClick(event, targetEl)
       || handleGrammarBadgeClick(event, targetEl)
     ) {

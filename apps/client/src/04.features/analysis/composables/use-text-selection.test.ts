@@ -4,8 +4,15 @@ import { clearQuoteHighlights, findQuoteRange, setQuoteHighlights } from '~/01.s
 
 // Мокаем хранилище анализа: тестируем таймер длинного нажатия,
 // а не сетевой слой (performSentenceAnalysis ходит в API).
-const { handleSentenceAnalysis, speak, stop, openGrammarPopover } = vi.hoisted(() => ({
+const {
+  handleSentenceAnalysis,
+  handleWordClick,
+  speak,
+  stop,
+  openGrammarPopover,
+} = vi.hoisted(() => ({
   handleSentenceAnalysis: vi.fn().mockResolvedValue(undefined),
+  handleWordClick: vi.fn(),
   speak: vi.fn().mockResolvedValue(true),
   stop: vi.fn(),
   openGrammarPopover: vi.fn(),
@@ -16,6 +23,7 @@ vi.mock('~/01.shared/store/analysis/analysis.store', () => ({
     closePopover: vi.fn(),
     closeSelectionTooltip: vi.fn(),
     handleSentenceAnalysis,
+    handleWordClick,
     openGrammarPopover,
   }),
 }))
@@ -118,6 +126,54 @@ describe('useTextSelection press timer', () => {
 
     expect(handleSentenceAnalysis).toHaveBeenCalledWith('Привет мир', expect.any(String))
     el.remove()
+  })
+
+  it('keeps sentence analysis open when a long press is followed by a click', () => {
+    const selection = useTextSelection({ suppressClickAfterLongPress: true })
+    const sentence = makeSentenceElement('Hello world')
+    const word = document.createElement('span')
+    word.className = 'word'
+    word.dataset.word = 'Hello'
+    word.dataset.pos = 'intj'
+    word.dataset.sentId = '1'
+    word.dataset.tokenIdx = '0'
+    sentence.appendChild(word)
+    document.body.appendChild(sentence)
+    sentence.addEventListener('click', selection.onWordClick)
+    const onBubbleClick = vi.fn()
+    document.body.addEventListener('click', onBubbleClick)
+
+    try {
+      selection.onPointerDown(makeTouchEvent(
+        'touchstart',
+        word,
+        100,
+        100,
+      ))
+      vi.advanceTimersByTime(500)
+      selection.onPointerUp()
+      word.dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 1 }))
+
+      expect(handleSentenceAnalysis).toHaveBeenCalledWith('Hello world', expect.any(String))
+      expect(handleWordClick).not.toHaveBeenCalled()
+      expect(onBubbleClick).not.toHaveBeenCalled()
+
+      selection.onPointerDown(makeTouchEvent(
+        'touchstart',
+        word,
+        100,
+        100,
+      ))
+      selection.onPointerUp()
+      word.dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 1 }))
+
+      expect(handleWordClick).toHaveBeenCalledTimes(1)
+    }
+    finally {
+      selection.onPointerUp()
+      document.body.removeEventListener('click', onBubbleClick)
+      sentence.remove()
+    }
   })
 
   it('cancels press when the pointer moves more than 10px (scroll-like drag)', () => {

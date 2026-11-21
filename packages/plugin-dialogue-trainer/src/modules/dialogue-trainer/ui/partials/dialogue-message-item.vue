@@ -39,7 +39,7 @@ const emit = defineEmits<{
 }>()
 
 const { t } = useI18n()
-const { onPointerDown, onPointerUp, onWordClick } = useTextSelection()
+const { onPointerDown, onPointerUp, onWordClick } = useTextSelection({ suppressClickAfterLongPress: true })
 const analysisStore = useAnalysisStore()
 const recorder = useDialogueRecorder()
 
@@ -334,6 +334,7 @@ function isWordActive(sentId: number, tokenIdx: number, isPunct: boolean): boole
           class="message-text"
           @pointerdown="onPointerDown"
           @pointerup="onPointerUp"
+          @pointercancel="onPointerUp"
           @click="onWordClick"
         >
           <div
@@ -345,6 +346,7 @@ function isWordActive(sentId: number, tokenIdx: number, isPunct: boolean): boole
               class="sentence"
               :data-sent-id="sentence.sentId"
               :data-raw-sent="encodeURIComponent(sentence.rawSent)"
+              @contextmenu.prevent
             >
               <template
                 v-for="(token, tIdx) in sentence.tokens"
@@ -387,6 +389,7 @@ function isWordActive(sentId: number, tokenIdx: number, isPunct: boolean): boole
                   type="button"
                   class="sentence-action-btn transcription-btn"
                   :class="{ 'is-active': isTranscriptionVisible(sentence.index) }"
+                  :aria-pressed="isTranscriptionVisible(sentence.index)"
                   :aria-label="isTranscriptionVisible(sentence.index)
                     ? t('plugins.dialogue-trainer.hideTranscriptionSentence')
                     : t('plugins.dialogue-trainer.transcriptionSentence')"
@@ -401,6 +404,7 @@ function isWordActive(sentId: number, tokenIdx: number, isPunct: boolean): boole
                   type="button"
                   class="sentence-action-btn translate-btn"
                   :class="{ 'is-active': isTranslationVisible(sentence.index) }"
+                  :aria-pressed="isTranslationVisible(sentence.index)"
                   :aria-label="t('plugins.dialogue-trainer.translateSentence', 'Перевести предложение')"
                   @pointerdown.stop
                   @click.stop="toggleSentenceTranslation(sentence.index)"
@@ -544,7 +548,6 @@ function isWordActive(sentId: number, tokenIdx: number, isPunct: boolean): boole
   font-size: 0.98rem;
   line-height: 1.55;
   color: var(--fg-primary-color);
-  user-select: text;
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -564,7 +567,10 @@ function isWordActive(sentId: number, tokenIdx: number, isPunct: boolean): boole
 }
 
 .sentence {
-  position: relative;
+  display: block;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
   border-radius: 4px;
   transition: background-color 0.2s ease;
   overflow-wrap: break-word;
@@ -615,32 +621,29 @@ function isWordActive(sentId: number, tokenIdx: number, isPunct: boolean): boole
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 24px;
-  height: 24px;
+  width: 28px;
+  height: 28px;
   padding: 0;
-  border: none;
-  background: rgba(var(--bg-tertiary-color-rgb), 0.4);
+  border: 0;
+  border-radius: 8px;
+  background: var(--bg-hover-color);
   color: var(--fg-secondary-color);
-  border-radius: 6px;
+  font-size: 15px;
   cursor: pointer;
-  font-size: 14px;
-  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
-  opacity: 0.3;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
 
-  &:hover {
-    opacity: 1;
-    background: rgba(var(--fg-accent-color-rgb), 0.2);
+  &:hover,
+  &.is-playing,
+  &.is-active {
+    background: rgba(var(--fg-accent-color-rgb), 0.16);
     color: var(--fg-accent-color);
   }
 
-  &.is-playing {
-    background: var(--fg-accent-color);
-    color: var(--bg-primary-color);
-  }
-
-  &.is-active {
-    background: var(--fg-accent-color);
-    color: var(--bg-primary-color);
+  &:focus-visible {
+    outline: 2px solid var(--fg-accent-color);
+    outline-offset: -2px;
   }
 
   &:disabled {
@@ -650,13 +653,13 @@ function isWordActive(sentId: number, tokenIdx: number, isPunct: boolean): boole
 }
 
 .sentence-transcription-box {
-  display: inline-flex;
-  align-items: center;
+  display: flex;
+  width: fit-content;
+  align-items: baseline;
   gap: 5px;
-  vertical-align: middle;
   min-height: 24px;
   box-sizing: border-box;
-  margin-left: 6px;
+  margin-top: 4px;
   padding: 1px 7px;
   border-radius: 6px;
   background: rgba(var(--fg-accent-color-rgb), 0.06);
@@ -767,15 +770,12 @@ function isWordActive(sentId: number, tokenIdx: number, isPunct: boolean): boole
 
 .sentence-fade-enter-active,
 .sentence-fade-leave-active {
-  transition:
-    opacity 0.2s ease,
-    transform 0.2s ease;
+  transition: opacity 0.2s ease;
 }
 
 .sentence-fade-enter-from,
 .sentence-fade-leave-to {
   opacity: 0;
-  transform: translateY(-4px);
 }
 
 /* Inline actions (edit / delete) to the left of the user bubble */

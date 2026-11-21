@@ -29,7 +29,7 @@ const emit = defineEmits<{
 }>()
 
 const { t } = useI18n()
-const { onPointerDown, onPointerUp, onWordClick } = useTextSelection()
+const { onPointerDown, onPointerUp, onWordClick } = useTextSelection({ suppressClickAfterLongPress: true })
 const analysisStore = useAnalysisStore()
 
 const serverSentences = ref<TokenizedSentence[] | null>(null)
@@ -103,6 +103,7 @@ function isWordActive(sentId: number, tokenIdx: number, isPunct: boolean): boole
         class="corrected-text"
         @pointerdown="onPointerDown"
         @pointerup="onPointerUp"
+        @pointercancel="onPointerUp"
         @click="onWordClick"
       >
         <span
@@ -111,6 +112,7 @@ function isWordActive(sentId: number, tokenIdx: number, isPunct: boolean): boole
           class="sentence"
           :data-sent-id="sent.sentId"
           :data-raw-sent="encodeURIComponent(sent.rawSent)"
+          @contextmenu.prevent
         >
           <template
             v-for="(tkn, tIdx) in sent.tokens"
@@ -160,6 +162,7 @@ function isWordActive(sentId: number, tokenIdx: number, isPunct: boolean): boole
                 type="button"
                 class="sentence-action-btn"
                 :class="{ 'is-active': isTranscriptionVisible }"
+                :aria-pressed="isTranscriptionVisible"
                 :aria-label="isTranscriptionVisible
                   ? t('plugins.dialogue-trainer.hideTranscriptionSentence')
                   : t('plugins.dialogue-trainer.transcriptionSentence')"
@@ -263,35 +266,42 @@ function isWordActive(sentId: number, tokenIdx: number, isPunct: boolean): boole
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 22px;
-  height: 22px;
+  width: 28px;
+  height: 28px;
   padding: 0;
-  border: none;
-  border-radius: 50%;
-  background-color: var(--bg-hover-color, rgba(0, 0, 0, 0.06));
+  border: 0;
+  border-radius: 8px;
+  background: var(--bg-hover-color);
   color: var(--fg-secondary-color);
-  font-size: 0.85rem;
+  font-size: 15px;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
 
-  &:hover {
-    background-color: var(--bg-active-color, rgba(99, 102, 241, 0.15));
-    color: var(--fg-accent-color);
-    transform: scale(1.08);
-  }
-
+  &:hover,
   &.is-playing,
   &.is-active {
-    background-color: var(--fg-accent-color);
-    color: #fff;
+    background: rgba(var(--fg-accent-color-rgb), 0.16);
+    color: var(--fg-accent-color);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--fg-accent-color);
+    outline-offset: -2px;
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
   }
 }
 
 .corrected-transcription {
-  display: inline-flex;
-  align-items: center;
+  display: flex;
+  width: fit-content;
+  align-items: baseline;
   gap: 5px;
-  vertical-align: middle;
   min-height: 24px;
   box-sizing: border-box;
   margin-top: 4px;
@@ -334,15 +344,12 @@ function isWordActive(sentId: number, tokenIdx: number, isPunct: boolean): boole
 
 .transcription-fade-enter-active,
 .transcription-fade-leave-active {
-  transition:
-    opacity 0.18s ease,
-    transform 0.18s ease;
+  transition: opacity 0.18s ease;
 }
 
 .transcription-fade-enter-from,
 .transcription-fade-leave-to {
   opacity: 0;
-  transform: translateY(-3px);
 }
 
 .spin-icon {
@@ -377,7 +384,6 @@ function isWordActive(sentId: number, tokenIdx: number, isPunct: boolean): boole
   font-weight: 600;
   color: var(--fg-primary-color);
   line-height: 1.45;
-  user-select: text;
   min-width: 0;
   max-width: 100%;
   overflow-wrap: break-word;
@@ -385,7 +391,9 @@ function isWordActive(sentId: number, tokenIdx: number, isPunct: boolean): boole
 
   .sentence {
     display: inline;
-    position: relative;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
     border-radius: 4px;
     transition: background-color 0.2s ease;
     overflow-wrap: break-word;
