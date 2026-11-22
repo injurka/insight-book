@@ -1,4 +1,4 @@
-import { corsHeadersFor, PORT } from './config'
+import { corsHeadersFor, MAX_REQUEST_BODY_SIZE, PORT } from './config'
 import { withCors } from './utils/cors'
 import { logger } from './utils/logger'
 
@@ -7,13 +7,7 @@ interface ElysiaApp {
 }
 
 const IDLE_TIMEOUT = 255
-const DEFAULT_MAX_REQUEST_BODY_SIZE_MB = 512
 const DEFAULT_HTTP_SLOW_REQUEST_MS = 500
-const configuredMaxRequestBodySizeMb = Number.parseInt(process.env.MAX_REQUEST_BODY_SIZE_MB || '', 10)
-const MAX_REQUEST_BODY_SIZE_MB = configuredMaxRequestBodySizeMb > 0 && configuredMaxRequestBodySizeMb <= 1024
-  ? configuredMaxRequestBodySizeMb
-  : DEFAULT_MAX_REQUEST_BODY_SIZE_MB
-const MAX_REQUEST_BODY_SIZE = MAX_REQUEST_BODY_SIZE_MB * 1024 * 1024
 const configuredHttpSlowRequestMs = Number.parseInt(process.env.HTTP_SLOW_REQUEST_MS || '', 10)
 const HTTP_SLOW_REQUEST_MS = configuredHttpSlowRequestMs >= 0
   ? configuredHttpSlowRequestMs

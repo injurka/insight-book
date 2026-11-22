@@ -1,8 +1,10 @@
 import type { TocItem } from '../../types'
 import { normalizeLanguageCode } from '~/utils/helpers'
 import { PAGE_SIZE_CHARS } from '../../config'
+import { ERROR_CODES } from '../../constants/error-codes'
 import { db } from '../../db'
 import * as schema from '../../db/schema'
+import { AppError } from '../../utils/errors'
 
 // Таблица символов Windows-1251 для байтов 0x80..0xFF
 const CP1251_HIGH_BYTES = [
@@ -417,7 +419,7 @@ export class HtmlPageBuilder {
     }
   }
 
-  finalize(fallbackMessage = 'Текст книги не найден или формат не поддерживается.'): string[] {
+  finalize(): string[] {
     if (this.currentPageHtml.trim()) {
       this.pages.push(this.currentPageHtml)
       this.currentPageHtml = ''
@@ -425,7 +427,7 @@ export class HtmlPageBuilder {
     }
 
     if (this.pages.length === 0) {
-      return [`<p>${escapeHtml(fallbackMessage)}</p>`]
+      throw unreadableBook('The book has no readable content')
     }
 
     return this.pages
@@ -480,4 +482,20 @@ export async function insertParsedBookToDb(input: InsertParsedBookInput): Promis
 
     return bId
   })
+}
+
+export function unreadableBook(message: string): AppError {
+  return new AppError(422, ERROR_CODES.BOOK.UNREADABLE_BOOK, message)
+}
+
+export async function parseBookContent<T>(parse: () => T | Promise<T>): Promise<T> {
+  try {
+    return await parse()
+  }
+  catch (error) {
+    if (error instanceof AppError)
+      throw error
+
+    throw unreadableBook(error instanceof Error ? error.message : String(error))
+  }
 }

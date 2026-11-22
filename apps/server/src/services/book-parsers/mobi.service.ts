@@ -8,6 +8,7 @@ import {
   escapeHtml,
   HtmlPageBuilder,
   insertParsedBookToDb,
+  parseBookContent,
 } from './book-parser.utils'
 
 export interface ParsedMobiBook {
@@ -187,6 +188,9 @@ export function parseMobiBuffer(bytes: Uint8Array, filename: string): ParsedMobi
     && rec0[19] === 0x49 // 'I'
 
   if (hasMobiMagic) {
+    if (rec0View.getUint16(12, false) !== 0)
+      throw new Error('DRM-protected MOBI files are not supported')
+
     const headerLength = rec0View.getUint32(20, false)
     const textEncoding = rec0.byteLength >= 32 ? rec0View.getUint32(28, false) : 65001
     charset = getEncodingName(textEncoding)
@@ -406,7 +410,7 @@ export function parseMobiBuffer(bytes: Uint8Array, filename: string): ParsedMobi
 export async function processMobi(filePath: string, filename: string, userId: number): Promise<number> {
   try {
     const bytes = await Bun.file(filePath).bytes()
-    const parsed = parseMobiBuffer(bytes, filename)
+    const parsed = await parseBookContent(() => parseMobiBuffer(bytes, filename))
 
     return await insertParsedBookToDb({
       userId,

@@ -1,183 +1,164 @@
+import type { Element } from 'domhandler'
 import type { TocItem } from '../../types'
 import { unlink } from 'node:fs/promises'
 import AdmZip from 'adm-zip'
 import * as cheerio from 'cheerio'
-import { PAGE_SIZE_CHARS } from '../../config'
-import { db } from '../../db'
-import * as schema from '../../db/schema'
+import { normalizeLanguageCode } from '~/utils/helpers'
 import { storageService } from '../storage.service'
+import { decodeTextBuffer, escapeHtml, HtmlPageBuilder, insertParsedBookToDb, parseBookContent, unreadableBook } from './book-parser.utils'
+
+async function readFb2(filePath: string, filename: string): Promise<Uint8Array> {
+  const file = Bun.file(filePath)
+  const prefix = new Uint8Array(await file.slice(0, 4).arrayBuffer())
+  const isZip = prefix[0] === 0x50 && prefix[1] === 0x4B
+
+  if (!isZip && !filename.toLowerCase().endsWith('.zip'))
+    return file.bytes()
+
+  const entries = new AdmZip(filePath).getEntries()
+  const entry = entries.find(item => !item.isDirectory && /\.fb2$/i.test(item.entryName))
+    ?? entries.find(item => !item.isDirectory && /\.xml$/i.test(item.entryName))
+
+  if (!entry)
+    throw unreadableBook('The archive contains no FB2 document')
+
+  return entry.getData()
+}
+
+function parseFb2(bytes: Uint8Array, filename: string) {
+  const prefix = new TextDecoder().decode(bytes.subarray(0, 256))
+  const charset = prefix.match(/<\?xml\b[^>]+\bencoding\s*=\s*["']([^"']+)["']/i)?.[1]
+  const $ = cheerio.load(decodeTextBuffer(bytes, charset), { xmlMode: true })
+  const book = $.root().children('FictionBook').first()
+
+  if (!book.length)
+    throw unreadableBook('The XML is missing the FictionBook root element')
+
+  const titleInfo = book.children('description').children('title-info')
+  const title = titleInfo.children('book-title').text().trim() || filename.replace(/\.fb2(?:\.zip)?$/i, '')
+  const author = titleInfo.children('author').toArray().map(node => ['first-name', 'middle-name', 'last-name', 'nickname']
+    .map(tag => $(node).children(tag).text().trim())
+    .filter(Boolean)
+    .join(' ')).filter(Boolean).join(', ') || null
+  const language = normalizeLanguageCode(titleInfo.children('lang').text().trim()) || 'ru'
+
+  const images = new Map(book.children('binary').toArray().map((node) => {
+    const image = $(node)
+
+    return [image.attr('id'), {
+      base64: image.text().trim(),
+      mime: image.attr('content-type') || 'image/jpeg',
+    }]
+  }))
+
+  function findImage(attributes: Record<string, string>) {
+    const href = attributes['l:href'] ?? attributes['xlink:href'] ?? attributes.href
+      ?? Object.entries(attributes).find(([name]) => name.endsWith(':href'))?.[1]
+
+    return href?.startsWith('#') ? images.get(href.slice(1)) : undefined
+  }
+
+  const cover = findImage(titleInfo.find('coverpage > image').first().attr() ?? {})
+  const builder = new HtmlPageBuilder()
+  const toc: TocItem[] = []
+
+  function visit(node: Element, level: number) {
+    const item = $(node)
+    const textLength = item.text().trim().length
+    const html = item.html() || ''
+
+    switch (node.tagName.toLowerCase()) {
+      case 'section':
+        item.children().each((_, child) => visit(child, level + 1))
+        break
+      case 'title': {
+        const text = item.text().trim()
+
+        if (text) {
+          const order = toc.length
+          const pageNum = builder.getPageNumForNextBlock(text.length)
+          toc.push({
+            id: `sec-${order}`,
+            href: '',
+            title: text,
+            order,
+            level,
+            pageNum,
+          })
+          builder.pushBlock(`<h2>${escapeHtml(text)}</h2>\n`, text.length)
+        }
+
+        break
+      }
+      case 'image': {
+        const image = findImage(node.attribs)
+
+        if (image?.base64)
+          builder.pushBlock(`<img src="data:${escapeHtml(image.mime)};base64,${escapeHtml(image.base64)}" />\n`, 0)
+
+        break
+      }
+      case 'empty-line':
+        builder.pushBlock('<br/>\n', 0)
+        break
+      case 'p':
+      case 'v':
+        if (textLength > 0)
+          builder.pushBlock(`<p>${html}</p>\n`, textLength)
+
+        break
+      case 'subtitle':
+      case 'cite':
+      case 'poem':
+      case 'epigraph':
+      case 'annotation':
+        if (textLength > 0)
+          builder.pushBlock(`<div class="fb2-${node.tagName}">${html}</div>\n`, textLength)
+
+        break
+    }
+  }
+
+  book.children('body').each((_, body) => {
+    $(body).children().each((_, node) => visit(node, 0))
+  })
+
+  return {
+    title,
+    author,
+    language,
+    cover,
+    toc,
+    pages: builder.finalize(),
+  }
+}
 
 export async function processFb2(filePath: string, filename: string, userId: number): Promise<number> {
+  let coverKey: string | undefined
+
   try {
-    let fileContent = ''
+    const bytes = await parseBookContent(() => readFb2(filePath, filename))
+    const { cover, ...book } = parseFb2(bytes, filename)
 
-    try {
-      const zip = new AdmZip(filePath)
-      const entries = zip.getEntries()
-      const fb2Entry = entries.find(e => e.entryName.toLowerCase().endsWith('.fb2') || e.entryName.toLowerCase().endsWith('.xml'))
-
-      if (fb2Entry) {
-        fileContent = fb2Entry.getData().toString('utf-8')
-      }
-    }
-    catch {
-    // Ignore ZIP parsing error, proceed as plain text
+    if (cover?.base64) {
+      const ext = cover.mime.includes('png') ? '.png' : '.jpg'
+      coverKey = `covers/${crypto.randomUUID()}${ext}`
+      await storageService.uploadFile(coverKey, Buffer.from(cover.base64, 'base64'), cover.mime)
     }
 
-    if (!fileContent) {
-      fileContent = await Bun.file(filePath).text()
-    }
-
-    const $ = cheerio.load(fileContent, { xmlMode: true })
-
-    const titleInfo = $('description title-info')
-    const title = titleInfo.find('book-title').text() || filename.replace('.fb2', '')
-    const authorFirst = titleInfo.find('author first-name').text()
-    const authorLast = titleInfo.find('author last-name').text()
-    const author = `${authorFirst} ${authorLast}`.trim() || null
-    const language = titleInfo.find('lang').text().substring(0, 2).toLowerCase() || 'ru'
-
-    let coverUrl = null
-    const coverImageHref = titleInfo.find('coverpage image').attr('l:href')
-
-    if (coverImageHref) {
-      const imageId = coverImageHref.replace('#', '')
-      const binaryNode = $(`binary[id="${imageId}"]`)
-
-      if (binaryNode.length) {
-        const base64Data = binaryNode.text().trim()
-        const contentType = binaryNode.attr('content-type') || 'image/jpeg'
-        const ext = contentType.includes('png') ? '.png' : '.jpg'
-        const coverFilename = `${Date.now()}_cover${ext}`
-        const coverBuffer = Buffer.from(base64Data, 'base64')
-        await storageService.uploadFile(`covers/${coverFilename}`, coverBuffer, contentType)
-        coverUrl = `/api/uploads/covers/${coverFilename}`
-      }
-    }
-
-    const pages: string[] = []
-    let currentPageHtml = ''
-    let currentLen = 0
-    const toc: TocItem[] = []
-
-    const body = $('body').first()
-
-    body.find('section').each((sectionIndex, sectionEl) => {
-      const sectionTitle = $(sectionEl).find('> title').text().trim()
-
-      if (sectionTitle) {
-        toc.push({
-          id: `sec-${sectionIndex}`,
-          href: '',
-          title: sectionTitle,
-          order: sectionIndex,
-          level: 1,
-          pageNum: pages.length + 1,
-        })
-        currentPageHtml += `<h2>${sectionTitle}</h2>\n`
-        currentLen += sectionTitle.length
-      }
-
-      // Расширенный селектор для FB2: стихи, цитаты, аннотации и т.д.
-      $(sectionEl).find('> p, > empty-line, > image, > v, > subtitle, > cite, > poem, > epigraph, > annotation').each((_, child) => {
-        const tagName = child.tagName.toLowerCase()
-        let childHtml = ''
-        let textLen = 0
-
-        if (tagName === 'empty-line') {
-          childHtml = '<br/>\n'
-        }
-        else if (tagName === 'p' || tagName === 'v') { // <v> часто используется в fb2 для стихов
-          const html = $(child).html() || ''
-          textLen = $(child).text().length
-
-          if (textLen > 0) {
-            childHtml = `<p>${html}</p>\n`
-          }
-        }
-        else if (tagName === 'image') {
-          const href = $(child).attr('l:href')?.replace('#', '')
-
-          if (href) {
-            const bin = $(`binary[id="${href}"]`)
-
-            if (bin.length) {
-              const b64 = bin.text().trim()
-              const type = bin.attr('content-type') || 'image/jpeg'
-              childHtml = `<img src="data:${type};base64,${b64}" />\n`
-            }
-          }
-        }
-        else {
-        // Остальные теги (эпиграфы, цитаты) просто оборачиваем в DIV, сохраняя форматирование
-          const html = $(child).html() || ''
-          textLen = $(child).text().length
-
-          if (textLen > 0) {
-            childHtml = `<div class="fb2-${tagName}">${html}</div>\n`
-          }
-        }
-
-        if (!childHtml)
-          return
-
-        // Проверяем лимит ДО добавления блока
-        if (currentLen > 0 && currentLen + textLen >= PAGE_SIZE_CHARS) {
-          pages.push(currentPageHtml)
-          currentPageHtml = ''
-          currentLen = 0
-        }
-
-        currentPageHtml += childHtml
-        currentLen += textLen
-      })
+    return await insertParsedBookToDb({
+      ...book,
+      userId,
+      type: 'fb2',
+      filePath,
+      coverUrl: coverKey ? `/api/uploads/${coverKey}` : null,
     })
+  }
+  catch (error) {
+    if (coverKey)
+      await storageService.deleteFile(coverKey).catch(() => {})
 
-    if (currentPageHtml.trim()) {
-      pages.push(currentPageHtml)
-    }
-
-    if (pages.length === 0) {
-      pages.push('<p>Текст книги не найден или формат не поддерживается.</p>')
-    }
-
-    const bookId = await db.transaction(async (tx) => {
-      const [insertedBook] = await tx.insert(schema.books).values({
-        userId,
-        type: 'fb2',
-        title,
-        author,
-        coverUrl,
-        filePath,
-        language,
-        totalPages: pages.length,
-        toc: JSON.stringify(toc),
-      }).returning({ id: schema.books.id })
-
-      const bId = insertedBook.id
-
-      const pagesToInsert = pages.map((content, idx) => ({
-        bookId: bId,
-        pageNum: idx + 1,
-        content,
-      }))
-
-      const chunkSize = 1000
-
-      for (let i = 0; i < pagesToInsert.length; i += chunkSize) {
-        await tx.insert(schema.bookPages).values(pagesToInsert.slice(i, i + chunkSize)).onConflictDoNothing()
-      }
-
-      await tx.insert(schema.readingProgress).values({
-        bookId: bId,
-        userId,
-        currentPage: 1,
-      }).onConflictDoNothing()
-
-      return bId
-    })
-
-    return bookId
+    throw error
   }
   finally {
     await unlink(filePath).catch(() => {})

@@ -5,13 +5,14 @@ import AdmZip from 'adm-zip'
 import * as cheerio from 'cheerio'
 import { eq } from 'drizzle-orm'
 import { createExtractorFromData } from 'node-unrar-js'
-import { BOOKS_PATH, UPLOADS_PATH } from '../../config'
+import { normalizeLanguageCode } from '~/utils/helpers'
 import { ERROR_CODES } from '../../constants/error-codes'
 import { db } from '../../db'
 import * as schema from '../../db/schema'
 import { AppError } from '../../utils/errors'
 import { logger } from '../../utils/logger'
 import { storageService } from '../storage.service'
+import { parseBookContent, unreadableBook } from './book-parser.utils'
 
 export interface ArchiveEntry {
   name: string
@@ -57,10 +58,12 @@ export async function extractArchiveEntries(filePath: string, filename: string):
 }
 
 export async function processCbz(filePath: string, filename: string, userId: number): Promise<number> {
-  try {
-    const mangaDir = filePath.replace(/\.(cbz|cbr|zip|rar)$/i, '')
+  const mangaDir = filePath.replace(/\.(cbz|cbr|zip|rar)$/i, '')
+  const storageFolder = `books/${path.basename(mangaDir)}`
+  let coverKey: string | undefined
 
-    const archiveEntries = await extractArchiveEntries(filePath, filename)
+  try {
+    const archiveEntries = await parseBookContent(() => extractArchiveEntries(filePath, filename))
 
     const imageEntries = archiveEntries
     // eslint-disable-next-line regexp/no-unused-capturing-group
@@ -73,6 +76,8 @@ export async function processCbz(filePath: string, filename: string, userId: num
 
     let tocJson = '[]'
     let xmlTitle = ''
+    let author: string | null = null
+    let language = 'ja'
     const xmlEntry = archiveEntries.find(e => e.name.toLowerCase().endsWith('comicinfo.xml'))
 
     if (xmlEntry) {
@@ -82,14 +87,17 @@ export async function processCbz(filePath: string, filename: string, userId: num
         const tocList: TocItem[] = []
 
         xmlTitle = $('Title').first().text().trim()
+        author = $('Writer').first().text().trim() || null
+        language = normalizeLanguageCode($('LanguageISO').first().text().trim()) || 'ja'
 
         $('Page').each((_, el) => {
           const bookmark = $(el).attr('Bookmark')
-          const imageIdx = Number.parseInt($(el).attr('Image') || '0', 10)
+          const image = $(el).attr('Image')
+          const imageIdx = image?.trim() ? Number(image) : -1
 
-          if (bookmark) {
+          if (bookmark && Number.isInteger(imageIdx) && imageIdx >= 0 && imageIdx < imageEntries.length) {
             tocList.push({
-              id: `chap-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+              id: `chap-${tocList.length}`,
               href: '',
               title: bookmark,
               order: tocList.length,
@@ -111,9 +119,9 @@ export async function processCbz(filePath: string, filename: string, userId: num
     const coverEntry = imageEntries[0]
     const coverBuffer = coverEntry.getData()
     const coverExt = path.extname(coverEntry.name).toLowerCase() || '.jpg'
-    const coverFilename = `${Date.now()}_cover${coverExt}`
-    await storageService.uploadFile(`covers/${coverFilename}`, coverBuffer, `image/${coverExt.slice(1)}`)
-    const coverUrl = `/api/uploads/covers/${coverFilename}`
+    coverKey = `covers/${crypto.randomUUID()}${coverExt}`
+    await storageService.uploadFile(coverKey, coverBuffer, imageMime(coverExt))
+    const coverUrl = `/api/uploads/${coverKey}`
 
     const title = xmlTitle || filename.replace(/\.(cbz|cbr|zip|rar)$/i, '')
 
@@ -122,10 +130,10 @@ export async function processCbz(filePath: string, filename: string, userId: num
         userId,
         type: 'manga',
         title,
-        author: null,
+        author,
         coverUrl,
         filePath: mangaDir,
-        language: 'ja',
+        language,
         totalPages: imageEntries.length,
         toc: tocJson,
       }).returning({ id: schema.books.id })
@@ -139,18 +147,16 @@ export async function processCbz(filePath: string, filename: string, userId: num
         const pageNum = idx + 1
         const ext = path.extname(entry.name).toLowerCase()
         const buffer = entry.getData()
-        const dimensions = await new Bun.Image(buffer).metadata()
-
-        const folderName = path.basename(filePath).replace(/\.(cbz|cbr|zip|rar)$/i, '')
-        const key = `books/${folderName}/page_${pageNum}${ext}`
-        const imageUrl = await storageService.uploadFile(key, buffer, `image/${ext.slice(1)}`)
+        const dimensions = await readImageMetadata(buffer)
+        const key = `${storageFolder}/page_${pageNum}${ext}`
+        const imageUrl = await storageService.uploadFile(key, buffer, imageMime(ext))
 
         pagesToInsert.push({
           bookId: bId,
           pageNum,
           imageUrl,
-          imageWidth: dimensions.width || 0,
-          imageHeight: dimensions.height || 0,
+          imageWidth: dimensions.width,
+          imageHeight: dimensions.height,
         })
       }
 
@@ -172,106 +178,104 @@ export async function processCbz(filePath: string, filename: string, userId: num
 
     return bookId
   }
+  catch (error) {
+    await cleanupMangaAssets(storageFolder, coverKey)
+    throw error
+  }
   finally {
     await unlink(filePath).catch(() => {})
   }
 }
 
-export async function appendMangaChapter(book: { id: number, totalPages: number, coverUrl: string | null, filePath: string, toc?: string | null | TocItem[] }, chapterTitle: string, files: File[]) {
-  const startPageNum = book.totalPages + 1
-  let currentPageNum = startPageNum
+function imageMime(extension: string): string {
+  return extension === '.jpg' ? 'image/jpeg' : `image/${extension.slice(1)}`
+}
 
-  const pagesToInsert: { bookId: number, pageNum: number, imageUrl: string, imageWidth: number, imageHeight: number }[] = []
+async function readImageMetadata(bytes: Uint8Array) {
+  const { width, height, format } = await parseBookContent(() => new Bun.Image(bytes).metadata())
 
-  files.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }))
+  if (!width || !height)
+    throw unreadableBook('The archive contains an unreadable image')
 
-  let coverUrl = book.coverUrl
+  return { width, height, format }
+}
 
-  for (const file of files) {
-    const ext = path.extname(file.name).toLowerCase() || '.jpg'
-    const filename = `page_${currentPageNum}${ext}`
-    const folderName = path.basename(book.filePath)
+async function cleanupMangaAssets(folder: string, coverKey?: string) {
+  await storageService.deleteFolder(`${folder}/`).catch(() => {})
 
-    // Пишем временно на диск в папку книги напрямую
-    const fullPath = path.join(BOOKS_PATH, folderName, filename)
-    await Bun.write(fullPath, file)
+  if (coverKey)
+    await storageService.deleteFile(coverKey).catch(() => {})
+}
 
-    const dimensions = await Bun.file(fullPath).image().metadata()
+export async function appendMangaChapter(book: { id: number, filePath: string }, chapterTitle: string, files: File[]) {
+  const folder = `books/${path.basename(book.filePath)}/${crypto.randomUUID()}`
+  let coverKey: string | undefined
 
-    // Если нужно, заливаем в S3 через storageService
-    // Но так как mangaFiles обычно живут в BOOKS_PATH локально (либо монтируются),
-    // мы можем прочитать файл и отправить, либо, если local, просто оставить.
-    // Оставим логику storageService как было, но передадим путь/файл.
-    // Чтобы не дублировать, передадим buffer из локального файла, если это S3,
-    // либо можно сразу заюзать file в storageService.
-    const key = `books/${folderName}/${filename}`
-    let imageUrl = key
+  try {
+    const pages: { imageUrl: string, imageWidth: number, imageHeight: number }[] = []
+    const sortedFiles = [...files].sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }))
 
-    // Если используется S3, зальем напрямую из файла
-    if (storageService.constructor.name !== 'LocalStorageService') {
-      const buffer = await Bun.file(fullPath).arrayBuffer()
-      imageUrl = await storageService.uploadFile(key, buffer, `image/${ext.slice(1)}`)
+    for (const [index, file] of sortedFiles.entries()) {
+      const bytes = await file.bytes()
+      const { width, height, format } = await readImageMetadata(bytes)
+      const ext = `.${format}`
+      const imageUrl = await storageService.uploadFile(`${folder}/page_${index + 1}${ext}`, bytes, imageMime(ext))
+
+      pages.push({ imageUrl, imageWidth: width, imageHeight: height })
     }
 
-    pagesToInsert.push({
-      bookId: book.id,
-      pageNum: currentPageNum,
-      imageUrl,
-      imageWidth: dimensions.width || 0,
-      imageHeight: dimensions.height || 0,
+    await db.transaction(async (tx) => {
+      const currentBook = await tx.query.books.findFirst({ where: eq(schema.books.id, book.id) })
+
+      if (!currentBook)
+        throw new AppError(404, ERROR_CODES.BOOK.NOT_FOUND, 'Book not found')
+
+      const startPageNum = currentBook.totalPages + 1
+      let coverUrl = currentBook.coverUrl
+
+      if (startPageNum === 1 && !coverUrl) {
+        const firstFile = sortedFiles[0]
+        const ext = path.extname(pages[0].imageUrl)
+        coverKey = `covers/${crypto.randomUUID()}${ext}`
+        await storageService.uploadFile(coverKey, await firstFile.bytes(), imageMime(ext))
+        coverUrl = `/api/uploads/${coverKey}`
+      }
+
+      const pagesToInsert = pages.map((page, index) => ({
+        ...page,
+        bookId: book.id,
+        pageNum: startPageNum + index,
+      }))
+      const chunkSize = 1000
+
+      for (let i = 0; i < pagesToInsert.length; i += chunkSize) {
+        await tx.insert(schema.mangaPages).values(pagesToInsert.slice(i, i + chunkSize))
+      }
+
+      const toc: TocItem[] = JSON.parse(currentBook.toc || '[]')
+
+      if (chapterTitle) {
+        const order = toc.length
+        toc.push({
+          id: `chap-${order}`,
+          href: '',
+          title: chapterTitle,
+          order,
+          level: 1,
+          pageNum: startPageNum,
+        })
+      }
+
+      await tx.update(schema.books).set({
+        totalPages: currentBook.totalPages + pages.length,
+        toc: JSON.stringify(toc),
+        coverUrl,
+        updatedAt: new Date().toISOString(),
+      }).where(eq(schema.books.id, book.id))
     })
-
-    if (currentPageNum === 1 && !coverUrl) {
-      const coverFilename = `${Date.now()}_cover${ext}`
-
-      if (storageService.constructor.name === 'LocalStorageService') {
-        const coverPath = path.join(UPLOADS_PATH, `covers/${coverFilename}`)
-        await Bun.write(coverPath, file)
-      }
-      else {
-        const coverBuffer = await Bun.file(fullPath).arrayBuffer()
-        await storageService.uploadFile(`covers/${coverFilename}`, coverBuffer, `image/${ext.slice(1)}`)
-      }
-
-      coverUrl = `/api/uploads/covers/${coverFilename}`
-    }
-
-    currentPageNum++
   }
-
-  await db.transaction(async (tx) => {
-    const chunkSize = 1000
-
-    for (let i = 0; i < pagesToInsert.length; i += chunkSize) {
-      const chunk = pagesToInsert.slice(i, i + chunkSize)
-      await tx.insert(schema.mangaPages).values(chunk).onConflictDoNothing()
-    }
-
-    let toc: TocItem[] = []
-
-    if (typeof book.toc === 'string') {
-      toc = JSON.parse(book.toc || '[]')
-    }
-    else if (Array.isArray(book.toc)) {
-      toc = [...book.toc]
-    }
-
-    if (chapterTitle) {
-      toc.push({
-        id: `chap-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
-        href: '',
-        title: chapterTitle,
-        order: toc.length,
-        level: 1,
-        pageNum: startPageNum,
-      })
-    }
-
-    await tx.update(schema.books).set({
-      totalPages: book.totalPages + files.length,
-      toc: JSON.stringify(toc),
-      coverUrl,
-      updatedAt: new Date().toISOString(),
-    }).where(eq(schema.books.id, book.id))
-  })
+  catch (error) {
+    await cleanupMangaAssets(folder, coverKey)
+    throw error
+  }
 }

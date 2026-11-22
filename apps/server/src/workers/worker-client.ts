@@ -1,4 +1,5 @@
 import os from 'node:os'
+import { AppError } from '../utils/errors'
 import { logger } from '../utils/logger'
 
 interface Task {
@@ -22,7 +23,7 @@ logger.info(`🚀 Worker Pool initialized with ${MAX_WORKERS} threads (CPU cores
 
 const pool: Worker[] = []
 const taskQueue: Task[] = []
-const workerActive = new Map<Worker, boolean>()
+const idleWorkers = new Set<Worker>()
 const workerCurrentTaskId = new Map<Worker, number>()
 
 const taskCallbacks = new Map<number, Task>()
@@ -30,25 +31,42 @@ let taskIdSeq = 0
 
 function createWorker(): Worker {
   const worker = new Worker(new URL('./task.worker.ts', import.meta.url))
-  workerActive.set(worker, false)
   pool.push(worker)
 
   worker.onmessage = (event: MessageEvent) => {
+    if (event.data.ready === true) {
+      idleWorkers.add(worker)
+      processNextTask()
+
+      return
+    }
+
     const {
       id,
       success,
       data,
       error,
       stack,
+      appError,
     } = event.data
     const task = taskCallbacks.get(id)
+
+    if (id !== workerCurrentTaskId.get(worker))
+      return
 
     if (task) {
       if (success) {
         task.resolve(data)
       }
       else {
-        const err = new Error(error)
+        const err = appError
+          ? new AppError(
+              appError.status,
+              appError.code,
+              error,
+              appError.details,
+            )
+          : new Error(error)
 
         // Подменяем стек на реальный стек из воркера,
         // чтобы в логах было видно, где именно упала задача
@@ -63,7 +81,7 @@ function createWorker(): Worker {
     }
 
     workerCurrentTaskId.delete(worker)
-    workerActive.set(worker, false)
+    idleWorkers.add(worker)
     processNextTask()
   }
 
@@ -88,7 +106,7 @@ function createWorker(): Worker {
     }
     catch { }
 
-    workerActive.delete(worker)
+    idleWorkers.delete(worker)
     const index = pool.indexOf(worker)
 
     if (index !== -1) {
@@ -112,11 +130,11 @@ function processNextTask() {
   if (taskQueue.length === 0)
     return
 
-  const availableWorker = pool.find(w => !workerActive.get(w))
+  const availableWorker = idleWorkers.values().next().value
 
   if (availableWorker) {
     const task = taskQueue.shift()!
-    workerActive.set(availableWorker, true)
+    idleWorkers.delete(availableWorker)
     workerCurrentTaskId.set(availableWorker, task.id)
     taskCallbacks.set(task.id, task)
     availableWorker.postMessage({ id: task.id, type: task.type, payload: task.payload })
@@ -134,7 +152,7 @@ export function terminatePool(): void {
   }
 
   pool.length = 0
-  workerActive.clear()
+  idleWorkers.clear()
   workerCurrentTaskId.clear()
 }
 

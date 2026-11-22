@@ -391,6 +391,7 @@ export interface LanguageTokenizer {
 }
 
 export interface EpubManifestItem {
+  properties?: string
   id?: string
   href?: string
   mediaType?: string
@@ -417,6 +418,7 @@ export interface EpubInstance {
     contents: { id: string, href: string }[]
   }
   getImage: (id: string, callback: (err: Error | null, data: Buffer, mimeType: string) => void) => void
+  getChapterRaw: EpubInstance['getChapter']
   getChapter: (id: string, callback: (err: Error | null, html: string) => void) => void
   on: (event: string, callback: (...args: unknown[]) => void) => void
   parse: () => void

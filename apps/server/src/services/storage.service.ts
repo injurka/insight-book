@@ -69,6 +69,10 @@ class LocalStorageService implements IStorageService {
       contentType = 'image/jpeg'
     else if (key.endsWith('.webp'))
       contentType = 'image/webp'
+    else if (key.endsWith('.gif'))
+      contentType = 'image/gif'
+    else if (key.endsWith('.avif'))
+      contentType = 'image/avif'
     else if (key.endsWith('.json'))
       contentType = 'application/json'
     else if (key.endsWith('.sqlite'))

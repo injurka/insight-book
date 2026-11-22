@@ -79,7 +79,7 @@ async function onArchiveSelected(e: Event) {
 
     try {
       const book = await store.uploadBook(file)
-      await authStore.checkAuth()
+      void authStore.checkAuth().catch(error => console.warn('Could not refresh account after book upload', error))
       toast.success(t('library.uploadSuccess'))
       visible.value = false
 
@@ -138,7 +138,7 @@ async function submitCustomManga() {
       await store.uploadMangaChapter(newBook.id, chapter.title, chapter.files)
     }
 
-    await authStore.checkAuth()
+    void authStore.checkAuth().catch(error => console.warn('Could not refresh account after book upload', error))
 
     if (newBook && newBook.id)
       store.analyzeVocabulary(newBook.id).catch(e => console.error('Auto vocab analysis failed', e))

@@ -114,6 +114,13 @@ process.env.OTEL_EXPORTER_OTLP_ENDPOINT ??= env.OTEL_EXPORTER_OTLP_ENDPOINT
 process.env.OTEL_SERVICE_NAME ??= env.OTEL_SERVICE_NAME
 
 // --- Limits & Configs ---
+const DEFAULT_MAX_REQUEST_BODY_SIZE_MB = 512
+const configuredMaxRequestBodySizeMb = Number.parseInt(process.env.MAX_REQUEST_BODY_SIZE_MB || '', 10)
+export const MAX_REQUEST_BODY_SIZE_MB = configuredMaxRequestBodySizeMb > 0 && configuredMaxRequestBodySizeMb <= 1024
+  ? configuredMaxRequestBodySizeMb
+  : DEFAULT_MAX_REQUEST_BODY_SIZE_MB
+export const MAX_REQUEST_BODY_SIZE = MAX_REQUEST_BODY_SIZE_MB * 1024 * 1024
+
 export const PAGE_SIZE_CHARS = 1500
 
 export const MIME_OVERRIDES: Record<string, string> = {

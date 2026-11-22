@@ -1,11 +1,12 @@
 import { unlink } from 'node:fs/promises'
 import path from 'node:path'
 import { normalizeLanguageCode } from '~/utils/helpers'
-import { BOOKS_PATH } from '../config'
+import { BOOKS_PATH, MAX_REQUEST_BODY_SIZE, MAX_REQUEST_BODY_SIZE_MB } from '../config'
 import { ERROR_CODES } from '../constants/error-codes'
 import { bookRepository } from '../repositories/book.repository'
 import { AppError } from '../utils/errors'
 import { runWorkerTask } from '../workers/worker-client'
+import { unreadableBook } from './book-parsers/book-parser.utils'
 import { resolveBookUploadFormat } from './book-upload-format'
 import { checkBookLimit } from './limits.service'
 
@@ -13,14 +14,15 @@ export class BookUploadService {
   async uploadBook(userId: number, file: File) {
     await checkBookLimit(userId)
 
-    const MAX_FILE_SIZE = 5000 * 1024 * 1024
+    if (file.size === 0)
+      throw unreadableBook('The uploaded file is empty')
 
-    if (file.size > MAX_FILE_SIZE) {
+    if (file.size > MAX_REQUEST_BODY_SIZE) {
       throw new AppError(
         413,
         ERROR_CODES.BOOK.FILE_TOO_LARGE,
-        'File size exceeds 5 GB limit',
-        { maxMb: 5000, sizeMb: (file.size / 1024 / 1024).toFixed(2) },
+        `File size exceeds the ${MAX_REQUEST_BODY_SIZE_MB} MB limit`,
+        { maxMb: MAX_REQUEST_BODY_SIZE_MB, sizeMb: (file.size / 1024 / 1024).toFixed(2) },
       )
     }
 
@@ -51,7 +53,7 @@ export class BookUploadService {
   async createCustomBook(userId: number, body: { title: string, text: string, targetLang: string, author?: string | null, collection?: string | null, coverBase64?: string, type?: string, language?: string }) {
     await checkBookLimit(userId)
 
-    const safeName = `${Date.now()}_custom_manga`
+    const safeName = `${crypto.randomUUID()}_custom_manga`
     const filePath = path.join(BOOKS_PATH, safeName)
 
     const insertedBook = await bookRepository.createCustomBookWithProgress({
@@ -81,6 +83,9 @@ export class BookUploadService {
 
     if (!book || book.userId !== userId)
       throw new AppError(403, ERROR_CODES.BOOK.ACCESS_DENIED, 'Access denied to book')
+
+    if (book.type !== 'manga')
+      throw new AppError(400, ERROR_CODES.BOOK.MANGA_NOT_FOUND, 'The book is not a manga')
 
     const { appendMangaChapter } = await import('./book-parsers/manga.service')
     await appendMangaChapter(book, chapterTitle, files)

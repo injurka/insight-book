@@ -6,6 +6,7 @@ import {
   escapeHtml,
   HtmlPageBuilder,
   insertParsedBookToDb,
+  parseBookContent,
 } from './book-parser.utils'
 
 export interface ParsedPdfBook {
@@ -258,6 +259,47 @@ function joinLinesText(accumulated: string, nextLine: string): string {
   return `${accumulated} ${nextLine}`
 }
 
+async function extractPdfOutline(pdf: Awaited<ReturnType<typeof getDocumentProxy>>, pages: Map<number, number>): Promise<TocItem[]> {
+  const outline = await pdf.getOutline().catch(() => null)
+  type Bookmark = NonNullable<typeof outline>[number]
+  const toc: TocItem[] = []
+
+  async function visit(bookmarks: Bookmark[], level: number) {
+    for (const bookmark of bookmarks) {
+      const destination = typeof bookmark.dest === 'string'
+        ? await pdf.getDestination(bookmark.dest).catch(() => null)
+        : bookmark.dest
+      const reference = destination?.[0]
+      const pageIndex = typeof reference === 'number'
+        ? reference
+        : reference && typeof reference === 'object' && 'num' in reference
+          ? await pdf.getPageIndex(reference).catch(() => -1)
+          : -1
+      const pageNum = pages.get(pageIndex + 1)
+      const title = bookmark.title.trim()
+
+      if (pageNum && title) {
+        const order = toc.length
+        toc.push({
+          id: `pdf-toc-${order}`,
+          href: '',
+          title,
+          order,
+          level,
+          pageNum,
+        })
+      }
+
+      await visit(bookmark.items, level + 1)
+    }
+  }
+
+  if (outline)
+    await visit(outline, 1)
+
+  return toc
+}
+
 export async function parsePdfBuffer(bytes: Uint8Array, filename: string): Promise<ParsedPdfBook> {
   const pdf = await getDocumentProxy(new Uint8Array(bytes))
 
@@ -311,10 +353,21 @@ export async function parsePdfBuffer(bytes: Uint8Array, filename: string): Promi
     const medianHeight = computeMedianHeight(allLines)
     const pageBuilder = new HtmlPageBuilder()
     const toc: TocItem[] = []
+    const sourcePages = new Map<number, number>()
+    let paragraphStart = 0
     let textSample = ''
 
     let currentParagraph = ''
     let prevBodyLine: ReconstructedLine | null = null
+
+    function markSourcePages(start: number, end: number, textLength: number) {
+      const pageNum = pageBuilder.getPageNumForNextBlock(textLength)
+
+      for (let index = start; index <= end; index++) {
+        if (!sourcePages.has(index))
+          sourcePages.set(index, pageNum)
+      }
+    }
 
     const flushParagraph = () => {
       const trimmed = currentParagraph.trim()
@@ -330,6 +383,7 @@ export async function parsePdfBuffer(bytes: Uint8Array, filename: string): Promi
         textSample += `${trimmed} `
       }
 
+      markSourcePages(paragraphStart, prevBodyLine?.pageIdx ?? paragraphStart, trimmed.length)
       pageBuilder.pushBlock(`<p>${escapeHtml(trimmed)}</p>\n`, trimmed.length)
       currentParagraph = ''
       prevBodyLine = null
@@ -345,6 +399,7 @@ export async function parsePdfBuffer(bytes: Uint8Array, filename: string): Promi
 
         const order = toc.length
         const pageNum = pageBuilder.getPageNumForNextBlock(line.text.length)
+        markSourcePages(line.pageIdx, line.pageIdx, line.text.length)
 
         toc.push({
           id: `sec-${order}`,
@@ -360,6 +415,7 @@ export async function parsePdfBuffer(bytes: Uint8Array, filename: string): Promi
       }
 
       if (!currentParagraph || !prevBodyLine) {
+        paragraphStart = line.pageIdx
         currentParagraph = line.text
         prevBodyLine = line
         continue
@@ -373,6 +429,7 @@ export async function parsePdfBuffer(bytes: Uint8Array, filename: string): Promi
 
       if (prevEndsWithTerminal || isLargeVerticalGap) {
         flushParagraph()
+        paragraphStart = line.pageIdx
         currentParagraph = line.text
         prevBodyLine = line
       }
@@ -386,13 +443,14 @@ export async function parsePdfBuffer(bytes: Uint8Array, filename: string): Promi
 
     const pages = pageBuilder.finalize()
     const language = detectLanguageFromText(textSample, rawLang)
+    const outline = await extractPdfOutline(pdf, sourcePages)
 
     return {
       title,
       author,
       language,
       pages,
-      toc,
+      toc: outline.length ? outline : toc,
     }
   }
   finally {
@@ -403,7 +461,7 @@ export async function parsePdfBuffer(bytes: Uint8Array, filename: string): Promi
 export async function processPdf(filePath: string, filename: string, userId: number): Promise<number> {
   try {
     const bytes = await Bun.file(filePath).bytes()
-    const parsed = await parsePdfBuffer(bytes, filename)
+    const parsed = await parseBookContent(() => parsePdfBuffer(bytes, filename))
 
     return await insertParsedBookToDb({
       userId,

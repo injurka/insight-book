@@ -6,9 +6,8 @@ import AdmZip from 'adm-zip'
 import * as cheerio from 'cheerio'
 import { normalizeLanguageCode } from '~/utils/helpers'
 import { PAGE_SIZE_CHARS } from '../../config'
-import { db } from '../../db'
-import * as schema from '../../db/schema'
 import { storageService } from '../storage.service'
+import { insertParsedBookToDb, parseBookContent, unreadableBook } from './book-parser.utils'
 
 const IGNORED_CREATORS = new Set([
   'ipad',
@@ -483,7 +482,7 @@ export function parseDocxFile(filePath: string, filename: string): ParsedDocxBoo
   }
 
   if (pages.length === 0) {
-    pages.push('<p>Текст книги не найден или формат не поддерживается.</p>')
+    throw unreadableBook('The book has no readable content')
   }
 
   const language = detectLanguageFromTextAndMeta(textSample, metaLang, runLangs)
@@ -499,55 +498,30 @@ export function parseDocxFile(filePath: string, filename: string): ParsedDocxBoo
 }
 
 export async function processDocx(filePath: string, filename: string, userId: number): Promise<number> {
+  let coverKey: string | undefined
+
   try {
-    const parsed = parseDocxFile(filePath, filename)
+    const { thumbnail, ...book } = await parseBookContent(() => parseDocxFile(filePath, filename))
 
-    let coverUrl: string | null = null
-
-    if (parsed.thumbnail) {
-      const ext = parsed.thumbnail.mime.includes('png') ? '.png' : '.jpg'
-      const coverFilename = `${Date.now()}_cover${ext}`
-      await storageService.uploadFile(`covers/${coverFilename}`, parsed.thumbnail.buffer, parsed.thumbnail.mime)
-      coverUrl = `/api/uploads/covers/${coverFilename}`
+    if (thumbnail) {
+      const ext = thumbnail.mime.split('/')[1]
+      coverKey = `covers/${crypto.randomUUID()}.${ext}`
+      await storageService.uploadFile(coverKey, thumbnail.buffer, thumbnail.mime)
     }
 
-    const bookId = await db.transaction(async (tx) => {
-      const [insertedBook] = await tx.insert(schema.books).values({
-        userId,
-        type: 'docx',
-        title: parsed.title,
-        author: parsed.author,
-        coverUrl,
-        filePath,
-        language: parsed.language,
-        totalPages: parsed.pages.length,
-        toc: JSON.stringify(parsed.toc),
-      }).returning({ id: schema.books.id })
-
-      const bId = insertedBook.id
-
-      const pagesToInsert = parsed.pages.map((content, idx) => ({
-        bookId: bId,
-        pageNum: idx + 1,
-        content,
-      }))
-
-      const chunkSize = 1000
-
-      for (let i = 0; i < pagesToInsert.length; i += chunkSize) {
-        await tx.insert(schema.bookPages).values(pagesToInsert.slice(i, i + chunkSize)).onConflictDoNothing()
-      }
-
-      await tx.insert(schema.readingProgress).values({
-        bookId: bId,
-        userId,
-        currentPage: 1,
-      }).onConflictDoNothing()
-
-      return bId
+    return await insertParsedBookToDb({
+      ...book,
+      userId,
+      type: 'docx',
+      filePath,
+      coverUrl: coverKey ? `/api/uploads/${coverKey}` : null,
     })
+  }
+  catch (error) {
+    if (coverKey)
+      await storageService.deleteFile(coverKey).catch(() => {})
 
-    return bookId
+    throw error
   }
   finally {
     await unlink(filePath).catch(() => {})

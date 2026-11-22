@@ -46,6 +46,7 @@ declare module 'ofetch' {
 
 export const BASE_API_URL = API_URL
 const REQUEST_TIMEOUT_MS = 20_000
+const BOOK_UPLOAD_TIMEOUT_MS = 4 * 60_000
 const PLUGIN_UPLOAD_TIMEOUT_MS = 10 * 60_000
 let apiFetchImplementation: ReturnType<AuthSessionManager['wrap']> | null = null
 let sessionManager: AuthSessionManager | null = null
@@ -382,6 +383,7 @@ export const api = {
       return request<{ success: boolean, book: Book }>('/api/books/upload', {
         method: 'POST',
         body: fd,
+        timeout: BOOK_UPLOAD_TIMEOUT_MS,
       })
     },
 

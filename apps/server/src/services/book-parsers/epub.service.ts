@@ -1,17 +1,18 @@
+import type { Node } from 'node-html-parser'
 import type { EpubInstance, EpubManifestItem, TocItem } from '../../types'
 import { unlink } from 'node:fs/promises'
-import { parse as parseHtml } from 'node-html-parser'
-import { PAGE_SIZE_CHARS } from '../../config'
-import { db } from '../../db'
-import * as schema from '../../db/schema'
+import path from 'node:path'
+import { HTMLElement, parse as parseHtml } from 'node-html-parser'
+import { normalizeLanguageCode } from '~/utils/helpers'
 import { storageService } from '../storage.service'
+import { escapeHtml, HtmlPageBuilder, insertParsedBookToDb, unreadableBook } from './book-parser.utils'
 
-async function extractCover(epub: EpubInstance): Promise<{ buffer: Buffer, ext: string } | null> {
+async function extractCover(epub: EpubInstance): Promise<{ buffer: Buffer, ext: string, mime: string } | null> {
   try {
-    const getImageData = (id: string): Promise<{ buffer: Buffer, ext: string } | null> => {
+    const getImageData = (id: string): Promise<{ buffer: Buffer, ext: string, mime: string } | null> => {
       return new Promise((resolve) => {
         epub.getImage(id, (err: Error | null, data: Buffer, mimeType: string) => {
-          if (err || !data)
+          if (err || !data || mimeType === 'image/svg+xml')
             return resolve(null)
 
           let ext = '.jpg'
@@ -23,12 +24,14 @@ async function extractCover(epub: EpubInstance): Promise<{ buffer: Buffer, ext: 
           else if (mimeType?.includes('gif'))
             ext = '.gif'
 
-          resolve({ buffer: data, ext })
+          resolve({ buffer: data, ext, mime: mimeType })
         })
       })
     }
 
-    const coverId = epub.metadata?.cover
+    const coverId = epub.metadata?.cover || Object.values(epub.manifest || {})
+      .find(item => item.properties?.split(/\s+/).includes('cover-image'))
+      ?.id
 
     if (coverId) {
       const res = await getImageData(coverId)
@@ -69,36 +72,9 @@ async function extractCover(epub: EpubInstance): Promise<{ buffer: Buffer, ext: 
 }
 
 function extractLanguage(epub: EpubInstance): string {
-  try {
-    const lang = epub.metadata?.language
+  const lang = epub.metadata?.language
 
-    if (Array.isArray(lang))
-      return lang[0].substring(0, 2).toLowerCase()
-
-    if (typeof lang === 'string')
-      return lang.substring(0, 2).toLowerCase()
-  }
-  catch { }
-
-  return 'en'
-}
-
-function extractToc(epub: EpubInstance): TocItem[] {
-  try {
-    const raw = epub.toc || []
-
-    if (!Array.isArray(raw))
-      return []
-
-    return raw.map(item => ({
-      id: item.id ?? '',
-      href: item.href ?? '',
-      title: item.title ?? '',
-      order: item.order ?? 0,
-      level: item.level ?? 1,
-    }))
-  }
-  catch { return [] }
+  return normalizeLanguageCode(Array.isArray(lang) ? lang[0] : lang) || 'en'
 }
 
 async function getEpubImageBase64(epub: EpubInstance, imageId: string): Promise<string | null> {
@@ -112,243 +88,253 @@ async function getEpubImageBase64(epub: EpubInstance, imageId: string): Promise<
   })
 }
 
-export async function processEpub(filePath: string, filename: string, userId: number): Promise<number> {
-  const { EPub } = await import('epub2')
+const LEAF_TAGS = new Set(['p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'ul', 'ol', 'blockquote', 'table', 'pre', 'figure', 'img', 'image', 'svg', 'hr', 'br'])
+const IMAGE_TAGS = new Set(['img', 'image', 'svg'])
+const CONTAINER_TAGS = new Set(['div', 'section', 'article', 'main', 'body', 'header', 'footer', 'aside'])
+const IMAGE_ROOT = '/insight-epub-images/'
 
-  return new Promise<number>((resolve, reject) => {
-    const epub = new EPub(filePath) as unknown as EpubInstance
+interface ChapterBlock {
+  html: string
+  length: number
+  anchors: string[]
+}
 
-    epub.on('error', async (err: unknown) => {
-      await unlink(filePath).catch(() => {})
-      reject(err)
-    })
-    epub.on('end', async () => {
-      try {
-        const title = epub.metadata?.title || filename.replace('.epub', '')
-        const author = epub.metadata?.creator || null
+function extractBlocks(element: HTMLElement): ChapterBlock[] {
+  const blocks: ChapterBlock[] = []
+  let pendingAnchors: string[] = []
 
-        const coverData = await extractCover(epub)
-        let coverUrl = null
+  function appendBlock(html: string, length: number, anchors: string[] = []) {
+    blocks.push({ html, length, anchors: [...pendingAnchors, ...anchors] })
+    pendingAnchors = []
+  }
 
-        if (coverData) {
-          const coverFilename = `${Date.now()}_cover${coverData.ext}`
-          await storageService.uploadFile(`covers/${coverFilename}`, coverData.buffer, `image/${coverData.ext.slice(1)}`)
-          coverUrl = `/api/uploads/covers/${coverFilename}`
-        }
+  function visit(node: Node) {
+    if (!(node instanceof HTMLElement)) {
+      const text = node.nodeType === 3 ? node.textContent.trim() : ''
 
-        const language = extractLanguage(epub)
-        let toc = extractToc(epub)
+      if (text)
+        appendBlock(`<p>${escapeHtml(text)}</p>`, text.length)
 
-        const allHtmlPages: string[] = []
-        const spineItems = epub.spine?.contents || []
+      return
+    }
 
-        let currentTotalLength = 0
-        let currentPageHtml = ''
-        const hrefToPageMap: Record<string, number> = {}
+    const tag = node.tagName?.toLowerCase()
+    const anchor = node.getAttribute('id') || (tag === 'a' ? node.getAttribute('name') : undefined)
 
-        for (const item of spineItems) {
-          const startPage = allHtmlPages.length + 1
+    if (anchor)
+      pendingAnchors.push(anchor)
 
-          if (item.href) {
-            const baseHref = item.href.split('#')[0].split('/').pop() || item.href
+    const hasBlockChildren = node.children.some((child) => {
+      const childTag = child.tagName.toLowerCase()
 
-            if (!hrefToPageMap[baseHref]) {
-              hrefToPageMap[baseHref] = startPage
-            }
-          }
-
-          await new Promise<void>((res) => {
-            epub.getChapter(item.id, async (err: Error | null, html: string) => {
-              if (!err && html) {
-                const root = parseHtml(html)
-
-                root.querySelectorAll('script, style').forEach(n => n.remove())
-                root.querySelectorAll('a').forEach(node => node.replaceWith(node.innerHTML))
-
-                const images = root.querySelectorAll('img, image')
-
-                for (const img of images) {
-                  const src = img.getAttribute('src') || img.getAttribute('xlink:href')
-
-                  if (src) {
-                    const fileName = src.split('/').pop()
-
-                    if (fileName) {
-                      const manifestItem = Object.values(epub.manifest || {}).find((m: EpubManifestItem) => m.href && m.href.includes(fileName))
-
-                      if (manifestItem && manifestItem.id) {
-                        const base64 = await getEpubImageBase64(epub, manifestItem.id)
-
-                        if (base64) {
-                          if (img.tagName.toLowerCase() === 'image')
-                            img.setAttribute('xlink:href', base64)
-                          else img.setAttribute('src', base64)
-                        }
-                      }
-                    }
-                  }
-                }
-
-                const body = root.querySelector('body') || root
-
-                // --- НОВАЯ ЛОГИКА РЕКУРСИВНОГО ПАРСИНГА БЛОКОВ ---
-                const leafTags = new Set(['p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'ul', 'ol', 'blockquote', 'table', 'pre', 'figure', 'img', 'image', 'hr', 'br'])
-                const containerTags = new Set(['div', 'section', 'article', 'main', 'body', 'header', 'footer', 'aside'])
-
-                const leaves: { html: string, textLength: number }[] = []
-
-                function extractLeaves(node: import('node-html-parser').Node) {
-                  const el = node as unknown as import('node-html-parser').HTMLElement
-
-                  // Если это текстовая нода (напрямую текст без обертки)
-                  if (node.nodeType === 3) {
-                    const text = node.textContent?.trim()
-
-                    if (text) {
-                      leaves.push({
-                        html: `<p>${node.textContent}</p>`,
-                        textLength: text.length,
-                      })
-                    }
-
-                    return
-                  }
-
-                  // Если это HTML элемент
-                  if (node.nodeType === 1) {
-                    const tag = el.tagName?.toLowerCase()
-
-                    if (tag === 'script' || tag === 'style')
-                      return
-
-                    // Если это известный листовой блочный тег (абзац, заголовок, картинка)
-                    if (leafTags.has(tag)) {
-                      leaves.push({
-                        html: el.outerHTML,
-                        textLength: node.textContent?.trim().length || 0,
-                      })
-
-                      return
-                    }
-
-                    // Проверяем, есть ли внутри этого контейнера другие блочные теги
-                    let hasBlockChildren = false
-
-                    for (const child of node.childNodes) {
-                      if (child.nodeType === 1) {
-                        const childEl = child as unknown as import('node-html-parser').HTMLElement
-                        const cTag = childEl.tagName?.toLowerCase()
-
-                        if (leafTags.has(cTag) || containerTags.has(cTag)) {
-                          hasBlockChildren = true
-                          break
-                        }
-                      }
-                    }
-
-                    // Если внутри есть блоки или это структурный контейнер — рекурсивно ныряем глубже
-                    if (hasBlockChildren) {
-                      node.childNodes.forEach((child: import('node-html-parser').Node) => extractLeaves(child))
-                    }
-                    else {
-                      // Это контейнер, содержащий только текст или inline элементы (span, b, i). Берем его целиком.
-                      const textLen = node.textContent?.trim().length || 0
-
-                      if (textLen > 0 || tag === 'img' || tag === 'image') {
-                        leaves.push({
-                          html: el.outerHTML,
-                          textLength: textLen,
-                        })
-                      }
-                    }
-                  }
-                }
-
-                extractLeaves(body)
-
-                // Теперь собираем из "листьев" (отдельных абзацев) нормальные страницы
-                for (const leaf of leaves) {
-                  // Проверяем лимит ДО добавления блока
-                  if (currentTotalLength > 0 && currentTotalLength + leaf.textLength >= PAGE_SIZE_CHARS) {
-                    allHtmlPages.push(currentPageHtml)
-                    currentPageHtml = ''
-                    currentTotalLength = 0
-                  }
-
-                  currentPageHtml += `${leaf.html}\n`
-                  currentTotalLength += leaf.textLength
-                }
-                // --- КОНЕЦ НОВОЙ ЛОГИКИ ---
-              }
-
-              res()
-            })
-          })
-        }
-
-        if (currentPageHtml.trim()) {
-          allHtmlPages.push(currentPageHtml)
-        }
-
-        toc = toc.map((t) => {
-          let pageNum = 1
-
-          if (t.href) {
-            const baseHref = t.href.split('#')[0].split('/').pop() || t.href
-            pageNum = hrefToPageMap[baseHref] || 1
-          }
-
-          return { ...t, pageNum }
-        })
-
-        const tocJson = JSON.stringify(toc)
-
-        const bookId = await db.transaction(async (tx) => {
-          const [insertedBook] = await tx.insert(schema.books).values({
-            userId,
-            type: 'epub',
-            title,
-            author,
-            coverUrl,
-            filePath,
-            language,
-            totalPages: allHtmlPages.length,
-            toc: tocJson,
-          }).returning({ id: schema.books.id })
-
-          const bId = insertedBook.id
-
-          const pagesToInsert = allHtmlPages.map((chunk, idx) => ({
-            bookId: bId,
-            pageNum: idx + 1,
-            content: chunk,
-          }))
-
-          const chunkSize = 1000
-
-          for (let i = 0; i < pagesToInsert.length; i += chunkSize) {
-            const chunk = pagesToInsert.slice(i, i + chunkSize)
-            await tx.insert(schema.bookPages).values(chunk).onConflictDoNothing()
-          }
-
-          await tx.insert(schema.readingProgress).values({
-            bookId: bId,
-            userId,
-            currentPage: 1,
-          }).onConflictDoNothing()
-
-          return bId
-        })
-
-        await unlink(filePath).catch(() => {})
-        resolve(bookId)
-      }
-      catch (e) {
-        await unlink(filePath).catch(() => {})
-        reject(e)
-      }
+      return LEAF_TAGS.has(childTag) || CONTAINER_TAGS.has(childTag)
     })
 
+    if (tag && (LEAF_TAGS.has(tag) || !hasBlockChildren)) {
+      const length = node.textContent.trim().length
+
+      const separator = blocks.length > 0 && (tag === 'hr' || tag === 'br')
+
+      if (length || separator || IMAGE_TAGS.has(tag) || node.querySelector('img, image, svg')) {
+        const anchors = node.querySelectorAll('[id], a[name]')
+          .map(child => child.getAttribute('id') || child.getAttribute('name') || '')
+          .filter(Boolean)
+        appendBlock(node.outerHTML, length, anchors)
+      }
+
+      return
+    }
+
+    node.childNodes.forEach(visit)
+  }
+
+  element.childNodes.forEach(visit)
+
+  return blocks
+}
+
+function decodeHref(value: string): string {
+  try {
+    return decodeURIComponent(value)
+  }
+  catch {
+    return value
+  }
+}
+
+function normalizeArchivePath(value: string): string {
+  return path.posix.normalize(decodeHref(value).replace(/^\/+/, ''))
+}
+
+function readChapter(epub: EpubInstance, id: string, raw = false): Promise<string | null> {
+  return new Promise((resolve) => {
+    const callback = (error: Error | null, html: string) => resolve(error ? null : html)
+
+    if (raw)
+      epub.getChapterRaw(id, callback)
+    else
+      epub.getChapter(id, callback)
+  })
+}
+
+async function extractToc(epub: EpubInstance): Promise<TocItem[]> {
+  const navItem = Object.values(epub.manifest || {}).find(item => item.properties?.split(/\s+/).includes('nav'))
+  const navHtml = navItem?.id ? await readChapter(epub, navItem.id, true) : null
+
+  if (navHtml && navItem?.href) {
+    const nav = parseHtml(navHtml).querySelectorAll('nav').find(node => node.getAttribute('epub:type')?.split(/\s+/).includes('toc'))
+    const entries = nav?.querySelectorAll('li').flatMap((li): TocItem[] => {
+      const link = li.children.find(child => child.tagName === 'A')
+      const href = link?.getAttribute('href')
+      const title = link?.textContent.trim()
+
+      if (!href || !title || /^(?:[\w+.-]+:|\/\/)/.test(href))
+        return []
+
+      let level = 1
+
+      for (let parent = li.parentNode; parent && parent !== nav; parent = parent.parentNode) {
+        if (parent.tagName === 'LI')
+          level++
+      }
+
+      const target = href.startsWith('#')
+        ? `${navItem.href}${href}`
+        : path.posix.join(path.posix.dirname(navItem.href!), href)
+
+      return [{
+        id: '',
+        href: target,
+        title,
+        level,
+        order: 0,
+      }]
+    })
+
+    if (entries?.length)
+      return entries
+  }
+
+  return (epub.toc || []).map(item => ({
+    id: item.id ?? '',
+    href: item.href ?? '',
+    title: item.title?.trim() ?? '',
+    order: item.order ?? 0,
+    level: (item.level ?? 0) + 1,
+  }))
+}
+
+function mapToc(toc: TocItem[], targets: Map<string, number>): TocItem[] {
+  const seen = new Set<string>()
+
+  return toc.flatMap((item) => {
+    const [archivePath, fragment] = item.href.split('#', 2)
+    const normalizedPath = normalizeArchivePath(archivePath)
+    const target = fragment ? `${normalizedPath}#${decodeHref(fragment)}` : normalizedPath
+    const pageNum = targets.get(target) ?? targets.get(normalizedPath)
+    const key = `${target}\0${item.title}`
+
+    if (!pageNum || !item.title || seen.has(key))
+      return []
+
+    seen.add(key)
+    const order = seen.size - 1
+
+    return [{ ...item, id: `epub-toc-${order}`, order, pageNum }]
+  })
+}
+
+async function inlineImages(epub: EpubInstance, root: HTMLElement, chapterPath: string) {
+  for (const img of root.querySelectorAll('img, image')) {
+    const attribute = img.getAttribute('src') === undefined ? 'xlink:href' : 'src'
+    const src = img.getAttribute(attribute)
+
+    if (!src || /^(?:[\w+.-]+:|\/\/)/.test(src))
+      continue
+
+    const target = src.startsWith(IMAGE_ROOT)
+      ? src.slice(IMAGE_ROOT.length)
+      : path.posix.join(path.posix.dirname(chapterPath), src)
+    const item = Object.values(epub.manifest || {}).find(entry =>
+      entry.href && normalizeArchivePath(entry.href) === normalizeArchivePath(target))
+    const data = item?.id ? await getEpubImageBase64(epub, item.id) : null
+
+    if (data)
+      img.setAttribute(attribute, data)
+  }
+}
+
+function openEpub(filePath: string, EPub: typeof import('epub2').EPub): Promise<EpubInstance> {
+  return new Promise((resolve, reject) => {
+    const epub = new EPub(filePath, IMAGE_ROOT) as unknown as EpubInstance
+    epub.on('error', error => reject(unreadableBook(String(error))))
+    epub.on('end', () => resolve(epub))
     epub.parse()
   })
+}
+
+export async function processEpub(filePath: string, filename: string, userId: number): Promise<number> {
+  let coverKey: string | undefined
+
+  try {
+    const { EPub } = await import('epub2')
+    const epub = await openEpub(filePath, EPub)
+    const builder = new HtmlPageBuilder()
+    const targets = new Map<string, number>()
+
+    for (const item of epub.spine?.contents || []) {
+      const html = await readChapter(epub, item.id)
+
+      if (!html)
+        continue
+
+      const root = parseHtml(html)
+      root.querySelectorAll('script, style').forEach(node => node.remove())
+      root.querySelectorAll('a').forEach(node => node.removeAttribute('href'))
+      await inlineImages(epub, root, item.href)
+      const chapterPath = normalizeArchivePath(item.href)
+
+      for (const block of extractBlocks(root.querySelector('body') || root)) {
+        const pageNum = builder.getPageNumForNextBlock(block.length)
+
+        if (!targets.has(chapterPath))
+          targets.set(chapterPath, pageNum)
+
+        for (const anchor of block.anchors)
+          targets.set(`${chapterPath}#${anchor}`, pageNum)
+
+        builder.pushBlock(`${block.html}\n`, block.length)
+      }
+    }
+
+    const pages = builder.finalize()
+    const toc = mapToc(await extractToc(epub), targets)
+    const cover = await extractCover(epub)
+
+    if (cover) {
+      coverKey = `covers/${crypto.randomUUID()}${cover.ext}`
+      await storageService.uploadFile(coverKey, cover.buffer, cover.mime)
+    }
+
+    return await insertParsedBookToDb({
+      userId,
+      type: 'epub',
+      title: epub.metadata?.title || filename.replace(/\.epub$/i, ''),
+      author: epub.metadata?.creator || null,
+      filePath,
+      coverUrl: coverKey ? `/api/uploads/${coverKey}` : null,
+      language: extractLanguage(epub),
+      pages,
+      toc,
+    })
+  }
+  catch (error) {
+    if (coverKey)
+      await storageService.deleteFile(coverKey).catch(() => {})
+
+    throw error
+  }
+  finally {
+    await unlink(filePath).catch(() => {})
+  }
 }

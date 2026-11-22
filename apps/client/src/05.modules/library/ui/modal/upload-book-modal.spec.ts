@@ -10,17 +10,23 @@ vi.mock('vue-i18n', () => ({
   }),
 }))
 
+const { toastSuccess, toastError, checkAuthMock } = vi.hoisted(() => ({
+  toastSuccess: vi.fn(),
+  toastError: vi.fn(),
+  checkAuthMock: vi.fn(),
+}))
+
 vi.mock('~/01.shared/composables/use-toast', () => ({
   useToast: () => ({
-    success: vi.fn(),
-    error: vi.fn(),
+    success: toastSuccess,
+    error: toastError,
     warn: vi.fn(),
   }),
 }))
 
 vi.mock('~/01.shared/store/auth.store', () => ({
   useAuthStore: () => ({
-    checkAuth: vi.fn().mockResolvedValue(undefined),
+    checkAuth: checkAuthMock,
   }),
 }))
 
@@ -81,10 +87,30 @@ const KitDialogStub = defineComponent({
   `,
 })
 
+function mountUploadModal() {
+  return mount(UploadBookModal, {
+    props: {
+      visible: true,
+    },
+    global: {
+      stubs: {
+        KitDialog: KitDialogStub,
+        KitTabs: KitTabsStub,
+        KitBtn: true,
+        KitInput: true,
+        KitSelect: true,
+      },
+    },
+  })
+}
+
 describe('upload-book-modal.vue', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
     uploadBookMock.mockReset()
+    toastSuccess.mockClear()
+    toastError.mockClear()
+    checkAuthMock.mockReset().mockResolvedValue(undefined)
   })
 
   afterEach(() => {
@@ -97,20 +123,7 @@ describe('upload-book-modal.vue', () => {
   ])('sets the ready-book file filter for $userAgent', ({ userAgent, hasFilter }) => {
     vi.spyOn(navigator, 'userAgent', 'get').mockReturnValue(userAgent)
 
-    const wrapper = mount(UploadBookModal, {
-      props: {
-        visible: true,
-      },
-      global: {
-        stubs: {
-          KitDialog: KitDialogStub,
-          KitTabs: KitTabsStub,
-          KitBtn: true,
-          KitInput: true,
-          KitSelect: true,
-        },
-      },
-    })
+    const wrapper = mountUploadModal()
 
     const dialog = wrapper.findComponent(KitDialogStub)
     expect(dialog.exists()).toBe(true)
@@ -126,20 +139,7 @@ describe('upload-book-modal.vue', () => {
     })
     uploadBookMock.mockReturnValue(uploadPromise)
 
-    const wrapper = mount(UploadBookModal, {
-      props: {
-        visible: true,
-      },
-      global: {
-        stubs: {
-          KitDialog: KitDialogStub,
-          KitTabs: KitTabsStub,
-          KitBtn: true,
-          KitInput: true,
-          KitSelect: true,
-        },
-      },
-    })
+    const wrapper = mountUploadModal()
 
     const fileInput = wrapper.find('input[type="file"]')
     const dummyFile = new File(['test content'], 'book.epub', { type: 'application/epub+zip' })
@@ -161,5 +161,38 @@ describe('upload-book-modal.vue', () => {
     await flushPromises()
 
     expect(dialog.props('closable')).toBe(true)
+  })
+
+  it('keeps the file picker open after a rejected upload and accepts a retry', async () => {
+    uploadBookMock.mockRejectedValueOnce(new Error('Unreadable file')).mockResolvedValueOnce({ id: 1 })
+    const wrapper = mountUploadModal()
+    const file = new File(['contents'], 'book.epub')
+
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const input = wrapper.get('input[type="file"]')
+      Object.defineProperty(input.element, 'files', { value: [file] })
+      await input.trigger('change')
+      await flushPromises()
+    }
+
+    expect(uploadBookMock.mock.calls).toEqual([[file], [file]])
+    expect(toastError).toHaveBeenCalledWith('Unreadable file')
+    expect(toastSuccess).toHaveBeenCalledWith('library.uploadSuccess')
+  })
+
+  it('reports a completed upload even if the account refresh fails', async () => {
+    uploadBookMock.mockResolvedValue({ id: 1 })
+    checkAuthMock.mockRejectedValueOnce(new Error('Network unavailable'))
+    vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const wrapper = mountUploadModal()
+    const input = wrapper.get('input[type="file"]')
+    Object.defineProperty(input.element, 'files', { value: [new File(['contents'], 'book.epub')] })
+
+    await input.trigger('change')
+    await flushPromises()
+
+    expect(toastSuccess).toHaveBeenCalledWith('library.uploadSuccess')
+    expect(toastError).not.toHaveBeenCalled()
+    expect(wrapper.emitted('update:visible')).toEqual([[false]])
   })
 })

@@ -14,6 +14,7 @@ import {
   processTxt,
 } from '../services/book-parsers'
 import { analyzeBookVocabulary, initNLP, tokenizeHtmlPage, tokenizeOcrBlocks } from '../services/nlp.service'
+import { AppError } from '../utils/errors'
 
 // eslint-disable-next-line antfu/no-top-level-await
 await initNLP()
@@ -82,6 +83,11 @@ self.onmessage = async (event: MessageEvent) => {
       success: false,
       error: err?.message || String(error),
       stack: err?.stack,
+      appError: error instanceof AppError
+        ? { status: error.statusCode, code: error.code, details: error.details }
+        : undefined,
     })
   }
 }
+
+self.postMessage({ ready: true })
