@@ -20,6 +20,10 @@ const networkStore = useNetworkStore()
 const { t } = useI18n()
 const authStore = useAuthStore()
 const archiveInputRef = useTemplateRef<HTMLInputElement>('archiveInputRef')
+// Android's picker can report books without a known extension as generic binary files.
+const archiveAccept = /android/i.test(navigator.userAgent)
+  ? undefined
+  : '.epub,.fb2,.docx,.txt,.md,.markdown,.srt,.vtt,.ass,.ssa,.html,.htm,.pdf,.mobi,.azw,.azw3,.prc,.cbz,.cbr,.zip,.rar'
 
 const activeTab = ref<'file' | 'images'>('file')
 const isUploading = ref(false)
@@ -193,7 +197,7 @@ async function submitCustomManga() {
             <input
               ref="archiveInputRef"
               type="file"
-              accept=".epub,.fb2,.docx,.txt,.md,.markdown,.srt,.vtt,.ass,.ssa,.html,.htm,.pdf,.mobi,.azw,.azw3,.prc,.cbz,.cbr,.zip,.rar"
+              :accept="archiveAccept"
               hidden
               @change="onArchiveSelected"
             >

@@ -1,6 +1,6 @@
 import { flushPromises, mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { defineComponent } from 'vue'
 import UploadBookModal from './upload-book-modal.vue'
 
@@ -87,7 +87,16 @@ describe('upload-book-modal.vue', () => {
     uploadBookMock.mockReset()
   })
 
-  it('renders with closable=true when not uploading', () => {
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  it.each([
+    { userAgent: 'Mozilla/5.0 (Linux; Android 15) Mobile', hasFilter: false },
+    { userAgent: 'Mozilla/5.0 (X11; Linux x86_64)', hasFilter: true },
+  ])('sets the ready-book file filter for $userAgent', ({ userAgent, hasFilter }) => {
+    vi.spyOn(navigator, 'userAgent', 'get').mockReturnValue(userAgent)
+
     const wrapper = mount(UploadBookModal, {
       props: {
         visible: true,
@@ -107,6 +116,7 @@ describe('upload-book-modal.vue', () => {
     expect(dialog.exists()).toBe(true)
     expect(dialog.props('closable')).toBe(true)
     expect(wrapper.find('.close-button').exists()).toBe(true)
+    expect(wrapper.get('input[type="file"]').element.hasAttribute('accept')).toBe(hasFilter)
   })
 
   it('hides close button and sets closable=false while uploading is in progress', async () => {
