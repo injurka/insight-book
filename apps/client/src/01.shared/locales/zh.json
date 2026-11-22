@@ -1424,6 +1424,7 @@
     "contextsTitle": "书中例句",
     "generateWord": "为“{word}”生成内容",
     "inspectWord": "查看“{word}”",
+    "selectedCount": "已选择：{count}",
     "resultsCount": "找到：{count}",
     "wordColumn": "单词",
     "translationColumn": "翻译",

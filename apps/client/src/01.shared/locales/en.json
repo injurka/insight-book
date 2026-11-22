@@ -1425,6 +1425,7 @@
     "contextsTitle": "Examples from the book",
     "generateWord": "Generate content for “{word}”",
     "inspectWord": "View “{word}”",
+    "selectedCount": "Selected: {count}",
     "resultsCount": "Found: {count}",
     "wordColumn": "Word",
     "translationColumn": "Translation",

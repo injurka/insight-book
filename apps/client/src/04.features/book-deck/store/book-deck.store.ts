@@ -67,7 +67,7 @@ export const useBookDeckStore = defineStore('book-deck', () => {
         return
 
       if (draft.value?.id !== result.id)
-        selected.value = new Set(result.words.filter(w => !w.properName).map(w => w.word))
+        selected.value = new Set()
 
       draft.value = result
       Object.assign(state, { errors: {}, done: 0, total: 0, current: '' })
@@ -136,13 +136,18 @@ export const useBookDeckStore = defineStore('book-deck', () => {
     }
   }
 
-  async function generate(words?: BookDeckWord[]) {
+  async function generate(words = pending.value) {
     if (!draft.value || busy.value)
       return
 
     const id = draft.value.id
     const session = scope()
-    const queue = words || selectedWords.value.filter(w => !isWordContentComplete(w.content))
+    const requested = new Set(words.map(word => word.word))
+    const queue = selectedWords.value.filter(word => requested.has(word.word))
+
+    if (!queue.length)
+      return
+
     Object.assign(state, {
       running: true,
       pause: false,
@@ -172,8 +177,10 @@ export const useBookDeckStore = defineStore('book-deck', () => {
     }
   }
 
+  const canSave = computed(() => selectedWords.value.length > 0 && !pending.value.length)
+
   async function save(name: string, updateExisting: boolean) {
-    if (!draft.value || busy.value || pending.value.length)
+    if (!draft.value || busy.value || !canSave.value)
       return
 
     const id = draft.value.id
@@ -185,7 +192,7 @@ export const useBookDeckStore = defineStore('book-deck', () => {
       const result = await repos.dictionary.saveBookDeck(
         id,
         name,
-        [...selected.value],
+        selectedWords.value.map(word => word.word),
         updateExisting,
       )
 

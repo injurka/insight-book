@@ -1425,6 +1425,7 @@
     "contextsTitle": "Примеры из книги",
     "generateWord": "Создать данные для «{word}»",
     "inspectWord": "Посмотреть слово «{word}»",
+    "selectedCount": "Выбрано: {count}",
     "resultsCount": "Найдено: {count}",
     "wordColumn": "Слово",
     "translationColumn": "Перевод",

@@ -3,6 +3,7 @@ import { shallowMount } from '@vue/test-utils'
 import { describe, expect, it, vi } from 'vitest'
 import { reactive } from 'vue'
 import BookDeckFilterPanel from './book-deck-filter-panel.vue'
+import BookDeckWordList from './book-deck-word-list.vue'
 import BookDeckWorkspace from './book-deck-workspace.vue'
 
 const mocks = vi.hoisted(() => ({ store: {} }))
@@ -67,6 +68,7 @@ describe('book deck workflow selection', () => {
       await wrapper.vm.$nextTick()
     }
     await click('nextToContent')
+    expect(wrapper.getComponent(BookDeckWordList).props('words').map(entry => entry.word)).toEqual(['cat', 'bird'])
     await click('nextToFilters')
     const candidates = () => wrapper.findComponent(BookDeckFilterPanel).props('words').map((entry: BookDeckWord) => entry.word)
     expect(candidates()).toEqual(['cat', 'bird'])

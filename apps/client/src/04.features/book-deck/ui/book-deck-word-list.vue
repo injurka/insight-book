@@ -58,6 +58,7 @@ function selectPage(checked: boolean) {
           @update:model-value="selectPage(!!$event)"
         />
         <span class="result-count">{{ t('bookDeck.resultsCount', { count: words.length }) }}</span>
+        <strong v-if="!showGenerate" class="result-count" aria-live="polite">{{ t('bookDeck.selectedCount', { count: selected.size }) }}</strong>
       </div>
       <BookDeckPagination v-if="pageCount > 1" v-model="page" :page-count="pageCount" />
     </div>

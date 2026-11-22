@@ -53,22 +53,43 @@ describe('book deck queue', () => {
     mocks.openBookDeck.mockImplementation(async () => draft())
     mocks.saveBookDeck.mockResolvedValue({ deckId: 42 })
   })
-  it('excludes proper names initially and keeps the selection when reopening a draft', async () => {
+  it('starts with an empty selection and keeps explicitly selected words when reopening a draft', async () => {
     const store = useBookDeckStore()
     await store.open(1)
-    expect([...store.selected]).toEqual(['cat', 'bird'])
-    store.toggle('cat', false)
+    expect([...store.selected]).toEqual([])
+    store.toggle('bird', true)
     await store.open(1)
     expect([...store.selected]).toEqual(['bird'])
   })
   it('explicitly requests a personal regeneration for a ready word', async () => {
     const store = useBookDeckStore()
     await store.open(1)
+    store.toggle('cat', true)
     const entry = store.draft!.words[0]!
     Object.assign(entry, generated(entry))
     mocks.generateBookDeckWord.mockResolvedValue(generated(entry))
     await store.generate([entry])
     expect(mocks.generateBookDeckWord).toHaveBeenCalledWith('draft', 'cat', true)
+  })
+  it('generates and saves only chosen words, even if a stale row asks for generation', async () => {
+    const store = useBookDeckStore()
+    await store.open(1)
+    store.setSelected(['bird'], true)
+    expect(store.pending.map(entry => entry.word)).toEqual(['bird'])
+
+    await store.generate([store.draft!.words[0]!])
+    expect(mocks.generateBookDeckWord).not.toHaveBeenCalled()
+
+    mocks.generateBookDeckWord.mockResolvedValue(generated(word('bird')))
+    await store.generate()
+    expect(mocks.generateBookDeckWord).toHaveBeenCalledExactlyOnceWith('draft', 'bird', false)
+    await store.save('Book', false)
+    expect(mocks.saveBookDeck).toHaveBeenCalledWith(
+      'draft',
+      'Book',
+      ['bird'],
+      false,
+    )
   })
   it('clears stale generation progress when reopening a draft', async () => {
     const store = useBookDeckStore()
@@ -80,6 +101,7 @@ describe('book deck queue', () => {
   it('pauses after the current request and resumes only missing content', async () => {
     const store = useBookDeckStore()
     await store.open(1)
+    store.setSelected(['cat', 'bird'], true)
     mocks.generateBookDeckWord.mockImplementationOnce(async () => {
       store.state.pause = true
 
@@ -95,6 +117,7 @@ describe('book deck queue', () => {
   it('retains completed content after failure, allows retry and blocks incomplete saves', async () => {
     const store = useBookDeckStore()
     await store.open(1)
+    store.setSelected(['cat', 'bird'], true)
     mocks.generateBookDeckWord.mockResolvedValueOnce(generated(word('cat'))).mockRejectedValueOnce(new Error('Token limit'))
     await store.generate()
     expect(store.state.errors.bird).toBe('Token limit')

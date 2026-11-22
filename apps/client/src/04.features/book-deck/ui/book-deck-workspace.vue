@@ -276,7 +276,7 @@ onUnmounted(() => {
                   </KitBtn><KitBtn
                     variant="text"
                     size="sm"
-                    :disabled="busy || !store.selected.size"
+                    :disabled="busy || !filteredWords.some(word => store.selected.has(word.word))"
                     @click="selectFiltered(false)"
                   >
                     {{ t('bookDeck.deselectFiltered') }}
