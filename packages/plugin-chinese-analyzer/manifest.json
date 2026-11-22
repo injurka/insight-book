@@ -1,0 +1,9 @@
+{
+  "id": "chinese-analyzer",
+  "name": "Разбор китайских предложений",
+  "version": "1.0.0",
+  "description": "Комплексный разбор китайских предложений на интерактивном полотне: лексемы, иероглифы, ключи, грамматика, тоны и контекст.",
+  "icon": "mdi:ideogram-cjk-variant",
+  "source": "https://github.com/injurka/insight-book/tree/master/packages/plugin-chinese-analyzer",
+  "entryUrl": "./remoteEntry.js"
+}

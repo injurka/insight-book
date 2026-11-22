@@ -164,7 +164,7 @@ describe('startWholeBookSync', () => {
     expect(hoisted.bookRepo.saveLocalToc).toHaveBeenCalledWith(1, [])
 
     expect(hoisted.bookRepo.getLocalCover).toHaveBeenCalledWith(1)
-    expect(hoisted.bookRepo.fetchImageBlob).toHaveBeenCalledWith('https://cdn.example.com/cover.jpg')
+    expect(hoisted.bookRepo.fetchImageBlob).toHaveBeenCalledWith('https://cdn.example.com/cover.jpg', { signal: expect.any(AbortSignal) })
     expect(hoisted.bookRepo.saveLocalCover).toHaveBeenCalledTimes(1)
 
     expect(hoisted.bookRepo.getPage).toHaveBeenCalledTimes(10)
@@ -175,6 +175,7 @@ describe('startWholeBookSync', () => {
         1,
         i,
         true,
+        { signal: expect.any(AbortSignal) },
       )
     }
 
@@ -231,7 +232,7 @@ describe('startWholeBookSync', () => {
       if (i === 2 || i === 5)
         continue
 
-      expect(hoisted.bookRepo.fetchImageBlob).toHaveBeenCalledWith(`https://cdn.example.com/page-${i}.jpg`)
+      expect(hoisted.bookRepo.fetchImageBlob).toHaveBeenCalledWith(`https://cdn.example.com/page-${i}.jpg`, { signal: expect.any(AbortSignal) })
     }
 
     expect(syncState.value).toBe('finished')
@@ -451,16 +452,31 @@ describe('startWholeBookSync', () => {
     expect(syncState.value).toBe('finished')
   })
 
-  it('returns to idle state when the sync is cancelled', async () => {
-    hoisted.bookRepo.getPage.mockImplementation(async (_id: number, num: number) => {
-      if (num === 2)
-        cancelSync()
+  it('returns to idle state and aborts in-flight page requests when the sync is cancelled', async () => {
+    let pageSignal: AbortSignal | undefined
+    hoisted.bookRepo.getPage.mockImplementation(async (
+      _id: number,
+      num: number,
+      _isSync?: boolean,
+      options?: { signal?: AbortSignal },
+    ) => {
+      if (num === 2) {
+        pageSignal = options?.signal
+
+        return new Promise<PagePayload>((_resolve, reject) => {
+          pageSignal?.addEventListener('abort', () => {
+            reject(new DOMException('The request was aborted', 'AbortError'))
+          }, { once: true })
+          cancelSync()
+        })
+      }
 
       return makeTextPage(num)
     })
 
     await startWholeBookSync(1, baseOptions)
 
+    expect(pageSignal?.aborted).toBe(true)
     expect(hoisted.bookRepo.getPage).toHaveBeenCalledTimes(2)
     expect(syncState.value).toBe('idle')
   })

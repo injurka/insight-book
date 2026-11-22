@@ -20,6 +20,67 @@ interface TransportUrl {
   host: string
 }
 
+interface BoundRequestSignal {
+  signal: AbortSignal | undefined
+  isTimedOut: () => boolean
+  cleanup: () => void
+}
+
+function createTimeoutError(): Error {
+  const error = new Error('[TimeoutError]: The operation was aborted due to timeout')
+  error.name = 'TimeoutError'
+
+  return error
+}
+
+/**
+ * Combines an optional caller AbortSignal with a request timeout so passing a
+ * cancellation signal (for example from Pinia Colada or an AbortController)
+ * never disables the client timeout guard.
+ */
+function bindRequestSignal(userSignal: AbortSignal | null | undefined, timeout: number | undefined): BoundRequestSignal {
+  if (!timeout || timeout <= 0 || !Number.isFinite(timeout)) {
+    return {
+      signal: userSignal ?? undefined,
+      isTimedOut: () => false,
+      cleanup: () => undefined,
+    }
+  }
+
+  const controller = new AbortController()
+  let timedOut = false
+
+  const abortFromUser = () => {
+    controller.abort(userSignal?.reason)
+  }
+
+  if (userSignal?.aborted) {
+    abortFromUser()
+
+    return {
+      signal: controller.signal,
+      isTimedOut: () => false,
+      cleanup: () => undefined,
+    }
+  }
+
+  userSignal?.addEventListener('abort', abortFromUser, { once: true })
+
+  const timer = setTimeout(() => {
+    timedOut = true
+    controller.abort(createTimeoutError())
+  }, timeout)
+
+  return {
+    signal: controller.signal,
+    isTimedOut: () => timedOut,
+    cleanup: () => {
+      clearTimeout(timer)
+      userSignal?.removeEventListener('abort', abortFromUser)
+    },
+  }
+}
+
 /**
  * Keep request telemetry useful without putting query values, credentials or
  * request bodies into spans. Path segments which look like IDs are redacted,
@@ -245,6 +306,47 @@ function recordCompletedRequest(
   })
 }
 
+function executeTransport(
+  input: RequestInfo | URL,
+  requestInit: RequestInit,
+  tauriTransport: FetchTransport | null,
+  timeout: number | undefined,
+  onUploadProgress?: (progress: UploadProgress) => void,
+): Promise<Response> {
+  if (tauriTransport)
+    return tauriTransport(input, requestInit)
+
+  if (onUploadProgress) {
+    return xhrFetch(
+      input,
+      requestInit,
+      timeout,
+      onUploadProgress,
+    )
+  }
+
+  return globalThis.fetch(input, requestInit)
+}
+
+function normalizeTransportError(error: unknown, isTimedOut: boolean): unknown {
+  if (isTimedOut && !(error instanceof Error && error.name === 'TimeoutError'))
+    return createTimeoutError()
+
+  return error
+}
+
+function resolveBoundSignal(
+  tauriTransport: FetchTransport | null,
+  onUploadProgress: ((progress: UploadProgress) => void) | undefined,
+  signal: AbortSignal | null | undefined,
+  timeout: number | undefined,
+): BoundRequestSignal {
+  if (!tauriTransport && onUploadProgress)
+    return { signal: signal ?? undefined, isTimedOut: () => false, cleanup: () => undefined }
+
+  return bindRequestSignal(signal, timeout)
+}
+
 /**
  * Creates the fetch implementation used by ofetch in both browser and Tauri.
  * A manual client span is required for Tauri's Rust-backed HTTP client, which
@@ -274,24 +376,24 @@ export function createApiFetch(): typeof globalThis.fetch {
     if (span)
       propagation.inject(spanContext, headers, { set: setHeader })
 
-    const requestInit: RequestInit = { ...standardOptions, headers }
+    const boundSignal = resolveBoundSignal(
+      tauriTransport,
+      onUploadProgress,
+      standardOptions.signal,
+      timeout,
+    )
+    const requestInit: RequestInit = boundSignal.signal
+      ? { ...standardOptions, headers, signal: boundSignal.signal }
+      : { ...standardOptions, headers }
 
     try {
-      const response = await context.with(spanContext, () => {
-        if (tauriTransport)
-          return tauriTransport(input, requestInit)
-
-        if (onUploadProgress) {
-          return xhrFetch(
-            input,
-            requestInit,
-            timeout,
-            onUploadProgress,
-          )
-        }
-
-        return globalThis.fetch(input, requestInit)
-      })
+      const response = await context.with(spanContext, () => executeTransport(
+        input,
+        requestInit,
+        tauriTransport,
+        timeout,
+        onUploadProgress,
+      ))
 
       if (span)
         finishSpan(span, startedAt, response.status)
@@ -306,17 +408,22 @@ export function createApiFetch(): typeof globalThis.fetch {
       return response
     }
     catch (error) {
+      const finalError = normalizeTransportError(error, boundSignal.isTimedOut())
+
       if (span) {
         finishSpan(
           span,
           startedAt,
           undefined,
-          error,
+          finalError,
         )
       }
 
       recordCompletedRequest(method, safeUrl, startedAt)
-      throw error
+      throw finalError
+    }
+    finally {
+      boundSignal.cleanup()
     }
   }) as typeof globalThis.fetch
 }

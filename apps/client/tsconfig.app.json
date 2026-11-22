@@ -23,6 +23,9 @@
       "@injurka/insight-book-plugin-dialogue-trainer": [
         "../../packages/plugin-dialogue-trainer/src/index.ts"
       ],
+      "@injurka/insight-book-plugin-chinese-analyzer": [
+        "../../packages/plugin-chinese-analyzer/src/index.ts"
+      ],
       "@/*": [
         "../../packages/plugin-dialogue-trainer/src/*"
       ]
@@ -53,7 +56,9 @@
     "../../packages/plugin-grammar-rules/src/**/*.ts",
     "../../packages/plugin-grammar-rules/src/**/*.vue",
     "../../packages/plugin-dialogue-trainer/src/**/*.ts",
-    "../../packages/plugin-dialogue-trainer/src/**/*.vue"
+    "../../packages/plugin-dialogue-trainer/src/**/*.vue",
+    "../../packages/plugin-chinese-analyzer/src/**/*.ts",
+    "../../packages/plugin-chinese-analyzer/src/**/*.vue"
   ],
   "exclude": [
     "src/**/*.spec.ts",

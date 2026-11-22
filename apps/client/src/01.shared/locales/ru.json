@@ -411,6 +411,10 @@
     "dialogue-trainer": {
       "name": "Тренажер диалогов",
       "description": "Интерактивные голосовые диалоги с разбором ошибок и обратной связью."
+    },
+    "chinese-analyzer": {
+      "name": "Разбор китайских предложений",
+      "description": "Комплексный ИИ-разбор предложений на интерактивном полотне: лексемы, иероглифы, ключи, грамматика и тоны."
     }
   },
   "library": {
@@ -1348,7 +1352,13 @@
     "selectFiltered": "Выбрать найденные",
     "deselectFiltered": "Снять выбор с найденных",
     "pause": "Пауза после текущего слова",
+    "pauseShort": "Пауза",
+    "pausing": "Останавливаем…",
+    "cancel": "Отмена",
     "progress": "Обработано: {done} из {total} · {word}",
+    "progressSummary": "Обработано: {done} из {total}",
+    "retryingAi": "Ошибка ИИ — повторная попытка #{attempt}…",
+    "pausedStatus": "Очередь приостановлена",
     "backgroundGenerationTitle": "Данные для колоды «{book}»",
     "backgroundGenerationProgress": "Обработано: {done} из {total}\nСейчас: {word}",
     "backgroundGenerationStarting": "Подготовка…",

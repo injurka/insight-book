@@ -151,10 +151,46 @@ describe('readerStore - loadPage', () => {
     const store = useReaderStore()
     await store.loadPage(1, 3)
 
-    expect(mocks.bookRepo.getPage).toHaveBeenCalledWith(1, 3)
+    expect(mocks.bookRepo.getPage).toHaveBeenCalledWith(
+      1,
+      3,
+      undefined,
+      { signal: expect.any(AbortSignal) },
+    )
     expect(mocks.bookRepo.getPageDict).toHaveBeenCalledWith(1, 3, expect.any(AbortSignal))
     expect(store.currentPage).toMatchObject({ bookId: 1, pageNum: 3, content: 'Page content' })
     expect(store.currentPageDictionary).toEqual({ word: { translation: 'слово' } })
+  })
+
+  it('aborts the previous in-flight page request when navigating to another page', async () => {
+    let firstSignal: AbortSignal | undefined
+    mocks.bookRepo.getPage
+      .mockImplementationOnce((
+        _bookId: number,
+        _pageNum: number,
+        _isSync?: boolean,
+        options?: { signal?: AbortSignal },
+      ) => {
+        firstSignal = options?.signal
+
+        return new Promise<PagePayload>((_resolve, reject) => {
+          firstSignal?.addEventListener('abort', () => {
+            reject(new DOMException('The request was aborted', 'AbortError'))
+          }, { once: true })
+        })
+      })
+      .mockResolvedValueOnce(makePage({ pageNum: 4 }))
+
+    const store = useReaderStore()
+    const firstLoad = store.loadPage(1, 3)
+    const secondLoad = store.loadPage(1, 4)
+
+    await Promise.all([firstLoad, secondLoad])
+
+    expect(firstSignal?.aborted).toBe(true)
+    expect(store.currentPage?.pageNum).toBe(4)
+    expect(store.isPageLoading).toBe(false)
+    expect(mocks.toastStore.error).not.toHaveBeenCalled()
   })
 
   it('updates reading progress and tracks the page_loaded event', async () => {

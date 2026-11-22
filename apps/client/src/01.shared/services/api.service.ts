@@ -83,6 +83,10 @@ export interface CustomLlmConfig {
   model: string
 }
 
+export interface ApiRequestOptions {
+  signal?: AbortSignal
+}
+
 export interface ApiProviders {
   getToken?: () => string | null
   getAppLanguage?: () => string | null
@@ -123,8 +127,8 @@ function fetchWithTelemetry(input: RequestInfo | URL, init?: RequestInit): Promi
 export const request = ofetch.create({
   baseURL: BASE_API_URL,
   // A mobile WebView can keep a dead TCP connection pending indefinitely.
-  // Bound requests that do not already provide an AbortSignal so screens can
-  // fall back to their repository/offline path.
+  // Bound requests with a client timeout (combined with any caller AbortSignal
+  // in createApiFetch) so screens can fall back to their repository/offline path.
   timeout: REQUEST_TIMEOUT_MS,
   async onRequest({ options }) {
     options.headers = new Headers(options.headers || {})
@@ -213,7 +217,8 @@ export const request = ofetch.create({
     const timeoutMs = typeof options.timeout === 'number' ? options.timeout : REQUEST_TIMEOUT_MS
     const isAbort = error?.name === 'AbortError' || errMessage.toLowerCase().includes('abort') || errMessage.toLowerCase().includes('cancel')
     const normalizedError = errMessage.toLowerCase()
-    const isTimeout = normalizedError.includes('timed out')
+    const isTimeout = error?.name === 'TimeoutError'
+      || normalizedError.includes('timed out')
       || normalizedError.includes('timeout')
       || (isAbort && durationMs !== undefined && durationMs >= timeoutMs - 100)
     const isNetworkError = !isTimeout && (error?.name === 'TypeError'
@@ -306,9 +311,10 @@ export const api = {
         'Pragma': 'no-cache',
       },
     }),
-    oauthStatus: async (sessionId: string) => request<unknown>(`/api/auth/status?session_id=${encodeURIComponent(sessionId)}`, {
+    oauthStatus: async (sessionId: string, options?: ApiRequestOptions) => request<unknown>(`/api/auth/status?session_id=${encodeURIComponent(sessionId)}`, {
       timeout: REQUEST_TIMEOUT_MS,
       silentErrors: true,
+      signal: options?.signal,
       headers: {
         'Cache-Control': 'no-cache, no-store',
         'Pragma': 'no-cache',
@@ -336,7 +342,7 @@ export const api = {
   },
   books: {
     list: async () => request<Book[]>('/api/books'),
-    getPublic: async (query: string) => request<{ data: Book[], total: number, page: number, limit: number }>(`/api/books/public?${query}`),
+    getPublic: async (query: string, options?: ApiRequestOptions) => request<{ data: Book[], total: number, page: number, limit: number }>(`/api/books/public?${query}`, { signal: options?.signal }),
 
     getInfo: async (id: number) => request<Book>(`/api/books/${id}/info`),
 
@@ -404,8 +410,13 @@ export const api = {
 
     getToc: async (bookId: number) => request<TocItem[]>(`/api/books/${bookId}/toc`),
 
-    getPage: async (bookId: number, page: number, isSync?: boolean) =>
-      request<PagePayload>(`/api/books/${bookId}/page/${page}${isSync ? '?sync=true' : ''}`),
+    getPage: async (
+      bookId: number,
+      page: number,
+      isSync?: boolean,
+      options?: ApiRequestOptions,
+    ) =>
+      request<PagePayload>(`/api/books/${bookId}/page/${page}${isSync ? '?sync=true' : ''}`, { signal: options?.signal }),
 
     getPageDict: async (bookId: number, page: number, signal?: AbortSignal) => {
       const targetLanguage = providers.getAppLanguage() || 'ru'
@@ -501,7 +512,7 @@ export const api = {
         signal,
       }),
 
-    fetchImageBlob: async (path: string) => {
+    fetchImageBlob: async (path: string, options?: ApiRequestOptions) => {
       const url = getMediaUrl(path)
 
       // Медиа (/api/uploads/*) публичное и отдаётся BunnyCDN edge, который не
@@ -509,7 +520,7 @@ export const api = {
       // Authorization здесь не шлём: иначе префлайт падает, а `<img>` грузит
       // те же URL вообще без заголовков — медиа публичное по дизайну.
       const fetchImplementation = isTauri ? tauriFetch : globalThis.fetch
-      const res = await fetchImplementation(url)
+      const res = await fetchImplementation(url, options?.signal ? { signal: options.signal } : undefined)
 
       if (!res.ok)
         throw new Error(`Failed to fetch image: ${res.statusText}`)
@@ -556,7 +567,12 @@ export const api = {
       timeout: 300000,
       retry: 0,
     }),
-    generateBookDeckWord: (id: string, word: string, regenerate = false) => request<unknown>(`/api/dictionary/book-deck/${id}/generate`, {
+    generateBookDeckWord: (
+      id: string,
+      word: string,
+      regenerate = false,
+      signal?: AbortSignal,
+    ) => request<unknown>(`/api/dictionary/book-deck/${id}/generate`, {
       method: 'POST',
       body: JSON.stringify({ word, regenerate }),
       headers: { 'Content-Type': 'application/json' },
@@ -564,6 +580,7 @@ export const api = {
       timeout: 180000,
       retry: 0,
       silentErrors: true,
+      signal,
     }),
     saveBookDeck: (
       id: string,
@@ -577,7 +594,8 @@ export const api = {
       timeout: 300000,
       retry: 0,
     }),
-    page: async (options: DictionaryPageOptions) => request<DictionaryPage>('/api/dictionary/page', { query: options }),
+    page: async (options: DictionaryPageOptions, requestOptions?: ApiRequestOptions) =>
+      request<DictionaryPage>('/api/dictionary/page', { query: options, signal: requestOptions?.signal }),
     list: async () => request<UserDictItem[]>('/api/dictionary'),
 
     decks: async () => request<DictDeck[]>('/api/dictionary/decks'),

@@ -411,6 +411,10 @@
     "dialogue-trainer": {
       "name": "Dialogue Trainer",
       "description": "Interactive voice dialogues with grammar, lexical, and naturalness analysis."
+    },
+    "chinese-analyzer": {
+      "name": "Chinese Sentence Analyzer",
+      "description": "Comprehensive AI sentence breakdown on an interactive canvas: lexemes, characters, radicals, grammar, and tones."
     }
   },
   "library": {
@@ -1348,7 +1352,13 @@
     "selectFiltered": "Select filtered words",
     "deselectFiltered": "Deselect filtered words",
     "pause": "Pause after current word",
+    "pauseShort": "Pause",
+    "pausing": "Pausing…",
+    "cancel": "Cancel",
     "progress": "Completed: {done} of {total} · {word}",
+    "progressSummary": "Completed: {done} of {total}",
+    "retryingAi": "AI error — retrying (attempt #{attempt})…",
+    "pausedStatus": "Queue paused",
     "backgroundGenerationTitle": "Deck data: “{book}”",
     "backgroundGenerationProgress": "Processed: {done} of {total}\nNow: {word}",
     "backgroundGenerationStarting": "Preparing…",

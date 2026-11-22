@@ -26,6 +26,12 @@ export function setupPlugins(app: App | null, router: Router): Promise<void> {
       pluginsToInstall.push(dialogueTrainerPlugin)
     }
 
+    if (enabledPlugins.includes('chinese-analyzer')) {
+      const { default: chineseAnalyzerPlugin } = await import('@injurka/insight-book-plugin-chinese-analyzer')
+
+      pluginsToInstall.push(chineseAnalyzerPlugin)
+    }
+
     if (pluginsToInstall.length > 0)
       await pluginManager.install(app, router, pluginsToInstall)
   })().catch((err) => {

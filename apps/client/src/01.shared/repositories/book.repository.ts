@@ -1,3 +1,4 @@
+import type { ApiRequestOptions } from '~/01.shared/services/api.service'
 import type { Book, BookStats, PageDictEntry, PagePayload, TocItem } from '~/01.shared/types/models'
 import { z } from 'zod'
 import { applyAcl } from '~/01.shared/lib/acl'
@@ -9,7 +10,7 @@ import { BookSchema, TocItemSchema } from '~/01.shared/types/schemas/book.schema
 
 export interface IBookRepository {
   list: () => Promise<Book[]>
-  getPublic: (query: string) => Promise<{ data: Book[], total: number, page: number, limit: number }>
+  getPublic: (query: string, options?: ApiRequestOptions) => Promise<{ data: Book[], total: number, page: number, limit: number }>
   getInfo: (id: number) => Promise<Book | null>
   startReading: (id: number) => Promise<{ success: boolean }>
   updateInfo: (id: number, data: Partial<Book>) => Promise<{ success: boolean }>
@@ -26,12 +27,12 @@ export interface IBookRepository {
   saveLocalBookInfo: (id: number, info: Book) => Promise<void>
 
   getToc: (id: number) => Promise<TocItem[]>
-  getPage: (id: number, num: number, isSync?: boolean) => Promise<PagePayload | null>
+  getPage: (id: number, num: number, isSync?: boolean, options?: ApiRequestOptions) => Promise<PagePayload | null>
   getPageDict: (id: number, num: number, signal?: AbortSignal) => Promise<Record<string, PageDictEntry>>
   saveLocalPageDictionary: (id: number, num: number, data: Record<string, PageDictEntry>) => Promise<void>
   getLocalImage: (bookId: number, pageNum: number) => Promise<Blob | null | undefined>
   saveLocalPage: (id: number, num: number, data: PagePayload) => Promise<void>
-  fetchImageBlob: (url: string) => Promise<Blob>
+  fetchImageBlob: (url: string, options?: ApiRequestOptions) => Promise<Blob>
   saveLocalImage: (bookId: number, pageNum: number, blob: Blob) => Promise<void>
   getLocalCover: (bookId: number) => Promise<Blob | null | undefined>
   saveLocalCover: (bookId: number, blob: Blob) => Promise<void>
@@ -66,8 +67,8 @@ export class DefaultBookRepository implements IBookRepository {
     }
   }
 
-  async getPublic(query: string) {
-    return api.books.getPublic(query)
+  async getPublic(query: string, options?: ApiRequestOptions) {
+    return api.books.getPublic(query, options)
   }
 
   async getInfo(id: number): Promise<Book | null> {
@@ -157,13 +158,23 @@ export class DefaultBookRepository implements IBookRepository {
   }
 
   // eslint-disable-next-line complexity
-  async getPage(id: number, num: number, isSync?: boolean): Promise<PagePayload | null> {
+  async getPage(
+    id: number,
+    num: number,
+    isSync?: boolean,
+    options?: ApiRequestOptions,
+  ): Promise<PagePayload | null> {
     const isOffline = typeof navigator !== 'undefined' && !navigator.onLine
     let networkError: unknown
 
     if (!isOffline || isSync) {
       try {
-        const data = await api.books.getPage(id, num, isSync)
+        const data = await api.books.getPage(
+          id,
+          num,
+          isSync,
+          options,
+        )
 
         if (data)
           await offlineService.savePage(id, num, data).catch(() => { })
@@ -197,7 +208,12 @@ export class DefaultBookRepository implements IBookRepository {
     if (isOffline && !isSync)
       return null
 
-    const data = await api.books.getPage(id, num, isSync)
+    const data = await api.books.getPage(
+      id,
+      num,
+      isSync,
+      options,
+    )
 
     if (data)
       await offlineService.savePage(id, num, data).catch(() => { })
@@ -261,8 +277,8 @@ export class DefaultBookRepository implements IBookRepository {
     await offlineService.savePage(id, num, data)
   }
 
-  async fetchImageBlob(url: string) {
-    return api.books.fetchImageBlob(url)
+  async fetchImageBlob(url: string, options?: ApiRequestOptions) {
+    return api.books.fetchImageBlob(url, options)
   }
 
   async saveLocalImage(bookId: number, pageNum: number, blob: Blob) {

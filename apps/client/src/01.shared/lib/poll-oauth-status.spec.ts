@@ -47,11 +47,19 @@ describe('pollOAuthStatus', () => {
   it.each(['abort', 'timeout'] as const)('bounds a hung request on %s and ignores late success', async (action) => {
     const controller = new AbortController()
     let resolve!: (value: { status: 'success' }) => void
-    const fetch = vi.fn(() => new Promise<{ status: 'success' }>((done) => {
-      resolve = done
-    }))
+    let receivedSignal: AbortSignal | undefined
+    const fetch = vi.fn((signal: AbortSignal) => {
+      receivedSignal = signal
+
+      return new Promise<{ status: 'success' }>((done) => {
+        resolve = done
+      })
+    })
     const promise = pollOAuthStatus(fetch, { signal: controller.signal, timeoutMs: 100 })
     const rejected = expect(promise).rejects.toThrow(action === 'abort' ? 'aborted' : 'timed out')
+
+    expect(receivedSignal).toBeInstanceOf(AbortSignal)
+    expect(receivedSignal?.aborted).toBe(false)
 
     if (action === 'abort')
       controller.abort()
@@ -59,6 +67,7 @@ describe('pollOAuthStatus', () => {
       await vi.advanceTimersByTimeAsync(100)
 
     await rejected
+    expect(receivedSignal?.aborted).toBe(true)
     resolve({ status: 'success' })
     await vi.advanceTimersByTimeAsync(1000)
     expect(fetch).toHaveBeenCalledTimes(1)

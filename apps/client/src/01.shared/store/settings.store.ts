@@ -84,7 +84,7 @@ export const useGlobalSettingsStore = defineStore('globalSettings', () => {
   const autoAnalyzeTtsSentences = useLocalStorage<boolean>('global-auto-analyze-tts-sentences', false)
   const autoAnalyzeTtsWords = useLocalStorage<boolean>('global-auto-analyze-tts-words', false)
 
-  const enabledPlugins = useLocalStorage<string[]>('global-enabled-plugins', ['grammar-rules', 'dialogue-trainer'])
+  const enabledPlugins = useLocalStorage<string[]>('global-enabled-plugins', ['grammar-rules', 'dialogue-trainer', 'chinese-analyzer'])
 
   const parallelViewMode = useLocalStorage<'none' | 'split' | 'interleaved'>('global-parallel-view-mode', 'none')
   const parallelBlurTranslation = useLocalStorage<boolean>('global-parallel-blur-translation', false)

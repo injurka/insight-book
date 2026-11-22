@@ -15,6 +15,7 @@ import { KitSelect } from '~/02.kit/molecules/kit-select/ui'
 import { KitDialog } from '~/02.kit/organisms/kit-dialog/ui'
 import { useBookDeckStore } from '../store/book-deck.store'
 import BookDeckFilterPanel from './book-deck-filter-panel.vue'
+import BookDeckGenerationProgress from './book-deck-generation-progress.vue'
 import BookDeckLoader from './book-deck-loader.vue'
 import BookDeckSummary from './book-deck-summary.vue'
 import BookDeckWordList from './book-deck-word-list.vue'
@@ -124,11 +125,26 @@ function withCombinedSuffix(value: string) {
 
   return !title || /\sCombined$/iu.test(title) ? title : `${title} Combined`
 }
+function canGoToStep(target: WorkflowStep) {
+  if (busy.value)
+    return false
+
+  if (target === 'words')
+    return true
+
+  if (target === 'content')
+    return store.selected.size > 0
+
+  return store.selected.size > 0 && missingCount.value === 0
+}
 function setStep(nextStep: Step) {
-  if (busy.value || (['filter', 'save'].includes(nextStep) && missingCount.value > 0) || (nextStep === 'save' && !store.selected.size))
+  if (nextStep === step.value)
     return
 
-  if (nextStep === 'filter' && step.value === 'content')
+  if (nextStep !== 'done' && !canGoToStep(nextStep))
+    return
+
+  if (nextStep === 'filter' && (step.value === 'words' || step.value === 'content'))
     compositionWords.value = [...store.selectedWords]
 
   step.value = nextStep
@@ -218,11 +234,18 @@ onUnmounted(() => {
         <li
           v-for="(stepName, index) in workflowSteps"
           :key="stepName"
-          :class="{ current: step === stepName, complete: index < currentStepIndex }"
-          :aria-current="step === stepName ? 'step' : undefined"
+          :class="{ current: step === stepName, complete: index < currentStepIndex, navigable: step !== stepName && canGoToStep(stepName) }"
         >
-          <span class="step-number"><Icon v-if="index < currentStepIndex" icon="mdi:check" /><template v-else>{{ index + 1 }}</template></span>
-          <span>{{ t(`bookDeck.step${index + 1}`) }}</span>
+          <button
+            type="button"
+            class="step-button"
+            :disabled="step !== stepName && !canGoToStep(stepName)"
+            :aria-current="step === stepName ? 'step' : undefined"
+            @click="setStep(stepName)"
+          >
+            <span class="step-number"><Icon v-if="index < currentStepIndex" icon="mdi:check" /><template v-else>{{ index + 1 }}</template></span>
+            <span class="step-label">{{ t(`bookDeck.step${index + 1}`) }}</span>
+          </button>
         </li>
       </ol>
       <section v-if="step === 'done' || active.deckId" class="success-state" role="status">
@@ -304,38 +327,41 @@ onUnmounted(() => {
               <div v-if="missingCount" class="generation-card">
                 <div class="generation-copy">
                   <strong>{{ t('bookDeck.missingCount', { count: missingCount }) }}</strong><span>{{ t('bookDeck.generateMissingHint') }}</span>
-                </div><KitBtn
-                  prepend-icon="mdi:creation"
-                  :disabled="busy || network.effectiveOffline"
-                  :loading="store.state.running"
-                  @click="store.generate()"
-                >
-                  {{ t('bookDeck.generateMissingAction', { count: missingCount }) }}
-                </KitBtn>
+                </div>
+                <div class="generation-actions">
+                  <KitBtn
+                    prepend-icon="mdi:creation"
+                    :disabled="busy || network.effectiveOffline"
+                    :loading="store.state.running"
+                    @click="store.generate()"
+                  >
+                    {{ t('bookDeck.generateMissingAction', { count: missingCount }) }}
+                  </KitBtn>
+                  <KitBtn
+                    variant="outlined"
+                    color="secondary"
+                    prepend-icon="mdi:playlist-remove"
+                    :disabled="busy"
+                    @click="removeMissing"
+                  >
+                    {{ t('bookDeck.removeMissing', { count: missingCount }) }}
+                  </KitBtn>
+                </div>
               </div>
               <div v-else class="ready-notice">
                 <Icon icon="mdi:check-circle-outline" />{{ t('bookDeck.allReady') }}
               </div>
-              <div v-if="store.state.total" class="generation-progress" role="status">
-                <span>{{ t('bookDeck.progress', { done: store.state.done, total: store.state.total, word: store.state.current }) }}</span><progress :value="store.state.done" :max="store.state.total" :aria-label="t('bookDeck.generationProgress')" /><KitBtn
-                  v-if="store.state.running"
-                  variant="tonal"
-                  :disabled="store.state.pause"
-                  @click="store.state.pause = true"
-                >
-                  {{ t('bookDeck.pause') }}
-                </KitBtn>
-              </div>
-              <div v-if="missingCount" class="skip-action">
-                <KitBtn
-                  variant="text"
-                  size="sm"
-                  :disabled="busy"
-                  @click="removeMissing"
-                >
-                  {{ t('bookDeck.removeMissing', { count: missingCount }) }}
-                </KitBtn>
-              </div>
+              <BookDeckGenerationProgress
+                v-if="store.state.total"
+                :done="store.state.done"
+                :total="store.state.total"
+                :current="store.state.current"
+                :running="store.state.running"
+                :paused="store.state.pause"
+                :retry-attempt="store.state.retryAttempt"
+                @pause="store.pause()"
+                @cancel="store.cancel()"
+              />
               <div class="review-filters">
                 <label class="field"><span>{{ t('bookDeck.searchLabel') }}</span><KitInput
                   v-model="contentFilters.search"
@@ -505,7 +531,6 @@ onUnmounted(() => {
 .workflow-steps li {
   display: flex;
   align-items: center;
-  gap: 9px;
   color: var(--fg-secondary-color);
   font-size: 0.83rem;
   transition: color 0.15s ease;
@@ -516,6 +541,38 @@ onUnmounted(() => {
   height: 1px;
   margin: 0 18px;
   background: var(--border-secondary-color);
+}
+.step-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  padding: 4px 6px;
+  margin: -4px -6px;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: default;
+  transition:
+    color 0.15s ease,
+    background-color 0.15s ease,
+    opacity 0.15s ease;
+}
+.step-button:focus-visible {
+  outline: 2px solid var(--fg-accent-color);
+  outline-offset: 2px;
+}
+.navigable .step-button {
+  cursor: pointer;
+}
+.navigable .step-button:hover {
+  color: var(--fg-primary-color);
+  background: color-mix(in srgb, var(--fg-accent-color) 10%, transparent);
+}
+.step-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
 }
 .step-number {
   display: grid;
@@ -531,7 +588,7 @@ onUnmounted(() => {
   font-weight: 600;
   color: var(--fg-primary-color);
 }
-.current > span:last-child {
+.current .step-label {
   padding: 4px 8px;
   border-radius: 999px;
   background: var(--bg-accent-color);
@@ -662,9 +719,7 @@ onUnmounted(() => {
   margin-top: 3px;
 }
 .generation-card {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
+  display: grid;
   gap: 16px;
   padding: 18px;
   border: 1px solid var(--bg-tertiary-color);
@@ -673,7 +728,6 @@ onUnmounted(() => {
 }
 .generation-copy {
   display: grid;
-  flex: 1 1 180px;
   gap: 7px;
 }
 .generation-copy strong {
@@ -684,33 +738,28 @@ onUnmounted(() => {
   font-size: 0.73rem;
   line-height: 1.65;
 }
-.generation-card :deep(button) {
+.generation-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  gap: 10px;
+}
+.generation-actions :deep(button) {
   white-space: normal;
   height: auto;
   min-height: 42px;
   font-size: 0.8rem;
+  border-radius: 10px;
 }
-.generation-progress {
-  display: grid;
-  gap: 10px;
-  font-size: 0.76rem;
+.generation-actions :deep(.kit-btn--outlined) {
+  border-color: var(--border-secondary-color);
   color: var(--fg-secondary-color);
-  overflow-wrap: anywhere;
+  background: color-mix(in srgb, var(--bg-secondary-color) 45%, transparent);
 }
-.generation-progress progress {
-  width: 100%;
-  height: 6px;
-  accent-color: var(--fg-accent-color);
-}
-.skip-action {
-  margin-top: -12px;
-}
-.skip-action :deep(button) {
-  white-space: normal;
-  height: auto;
-  min-height: 36px;
-  font-size: 0.75rem;
-  text-align: left;
+.generation-actions :deep(.kit-btn--outlined:not(:disabled):hover) {
+  border-color: var(--fg-accent-color);
+  color: var(--fg-primary-color);
+  background: color-mix(in srgb, var(--fg-accent-color) 8%, transparent);
 }
 .review-filters {
   display: grid;
@@ -895,8 +944,12 @@ onUnmounted(() => {
     justify-content: space-between;
   }
   .workflow-steps li {
-    gap: 6px;
     font-size: 0.7rem;
+  }
+  .step-button {
+    gap: 6px;
+    padding: 4px;
+    margin: -4px;
   }
   .workflow-steps li + li::before {
     display: none;
@@ -952,7 +1005,12 @@ onUnmounted(() => {
     padding: 14px;
     gap: 12px;
   }
-  .generation-card :deep(button) {
+  .generation-actions {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 8px;
+  }
+  .generation-actions :deep(button) {
     width: 100%;
   }
   .existing-card-setting {

@@ -2,7 +2,7 @@ import type { ApplicationOptions } from 'pixi.js'
 import type { InjectionKey, Ref, ShallowRef } from 'vue'
 import { initDevtools } from '@pixi/devtools'
 import { Application, Container } from 'pixi.js'
-import { inject, onBeforeUnmount, onMounted, provide, ref, shallowRef } from 'vue'
+import { inject, onMounted, onUnmounted, provide, ref, shallowRef } from 'vue'
 
 export type PixiLayerName = 'bgLayer' | 'fxLayer' | 'dragLayer'
 
@@ -17,6 +17,7 @@ export const PIXI_APP_KEY: InjectionKey<SharedPixiContext> = Symbol('PIXI_APP_KE
 export function providePixiApp(containerRef: Ref<HTMLElement | null>, options: Partial<ApplicationOptions> = {}) {
   const app = shallowRef<Application | null>(null)
   const isReady = ref(false)
+  let isDisposed = false
 
   const bgLayer = new Container({ label: 'bgLayer', zIndex: 0 })
   const fxLayer = new Container({ label: 'fxLayer', zIndex: 50 })
@@ -29,11 +30,10 @@ export function providePixiApp(containerRef: Ref<HTMLElement | null>, options: P
   }
 
   onMounted(async () => {
-    if (!containerRef.value)
+    if (!containerRef.value || isDisposed)
       return
 
     const instance = new Application()
-    app.value = instance
 
     await instance.init({
       resizeTo: window,
@@ -44,12 +44,13 @@ export function providePixiApp(containerRef: Ref<HTMLElement | null>, options: P
       ...options,
     })
 
-    if (!containerRef.value || app.value !== instance) {
+    if (isDisposed || !containerRef.value) {
       instance.destroy({ removeView: true, releaseGlobalResources: true }, { children: true })
 
       return
     }
 
+    app.value = instance
     containerRef.value.appendChild(instance.canvas)
 
     // Configure stage layers with z-index sorting
@@ -65,7 +66,9 @@ export function providePixiApp(containerRef: Ref<HTMLElement | null>, options: P
     isReady.value = true
   })
 
-  onBeforeUnmount(() => {
+  onUnmounted(() => {
+    isDisposed = true
+
     if (app.value) {
       app.value.destroy({ removeView: true, releaseGlobalResources: true }, { children: true, texture: true, textureSource: true })
       app.value = null

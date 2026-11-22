@@ -24,6 +24,12 @@ const availableStaticPlugins = computed(() => [
     description: t('plugins.dialogue-trainer.description', 'Интерактивные голосовые диалоги с разбором ошибок'),
     icon: 'mdi:account-voice',
   },
+  {
+    id: 'chinese-analyzer',
+    name: t('plugins.chinese-analyzer.name', 'Разбор китайских предложений'),
+    description: t('plugins.chinese-analyzer.description', 'Интерактивное полотно разбора китайских предложений: лексемы, иероглифы, ключи, грамматика и тоны'),
+    icon: 'mdi:ideogram-cjk-variant',
+  },
 ])
 
 async function toggleStaticPlugin(pluginId: string, enabled: boolean) {
@@ -44,6 +50,15 @@ async function toggleStaticPlugin(pluginId: string, enabled: boolean) {
         try {
           const { default: dialogueTrainerPlugin } = await import('@injurka/insight-book-plugin-dialogue-trainer')
           await pluginManager.install(null, router, [dialogueTrainerPlugin])
+        }
+        catch (e) {
+          console.error('Failed to load plugin', e)
+        }
+      }
+      else if (pluginId === 'chinese-analyzer') {
+        try {
+          const { default: chineseAnalyzerPlugin } = await import('@injurka/insight-book-plugin-chinese-analyzer')
+          await pluginManager.install(null, router, [chineseAnalyzerPlugin])
         }
         catch (e) {
           console.error('Failed to load plugin', e)

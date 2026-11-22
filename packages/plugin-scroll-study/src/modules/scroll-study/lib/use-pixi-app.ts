@@ -2,7 +2,7 @@ import type { ApplicationOptions } from 'pixi.js'
 import type { Ref } from 'vue'
 import { initDevtools } from '@pixi/devtools'
 import { Application } from 'pixi.js'
-import { onBeforeUnmount, onMounted, ref, shallowRef } from 'vue'
+import { onMounted, onUnmounted, ref, shallowRef } from 'vue'
 
 export interface UsePixiOptions extends Partial<ApplicationOptions> {
   resizeToWindow?: boolean
@@ -12,13 +12,13 @@ export interface UsePixiOptions extends Partial<ApplicationOptions> {
 export function usePixiApp(containerRef: Ref<HTMLElement | null>, options: UsePixiOptions = {}) {
   const app = shallowRef<Application | null>(null)
   const isReady = ref(false)
+  let isDisposed = false
 
   onMounted(async () => {
     if (!containerRef.value)
       return
 
     const instance = new Application()
-    app.value = instance
 
     const { resizeToWindow = true, onInit, ...initOptions } = options
 
@@ -31,26 +31,29 @@ export function usePixiApp(containerRef: Ref<HTMLElement | null>, options: UsePi
       ...initOptions,
     })
 
-    if (!containerRef.value || app.value !== instance) {
+    if (isDisposed || !containerRef.value) {
       instance.destroy({ removeView: true, releaseGlobalResources: true }, { children: true })
 
       return
     }
 
+    app.value = instance
     containerRef.value.appendChild(instance.canvas)
 
     if (import.meta.env.DEV) {
       initDevtools({ app: instance })
     }
 
-    if (onInit) {
-      await onInit(instance)
-    }
+    await onInit?.(instance)
 
-    isReady.value = true
+    if (!isDisposed) {
+      isReady.value = true
+    }
   })
 
-  onBeforeUnmount(() => {
+  onUnmounted(() => {
+    isDisposed = true
+
     if (app.value) {
       app.value.destroy({ removeView: true, releaseGlobalResources: true }, { children: true, texture: true, textureSource: true })
       app.value = null

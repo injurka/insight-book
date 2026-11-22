@@ -21,9 +21,9 @@ function abortError(): Error {
 }
 
 /** Bounds even an in-flight request, without leaving timers or listeners behind. */
-async function runPolling(fetchStatus: () => Promise<AuthOAuthStatusDomain>, signal: AbortSignal, intervalMs: number): Promise<AuthOAuthStatusDomain> {
+async function runPolling(fetchStatus: (signal: AbortSignal) => Promise<AuthOAuthStatusDomain>, signal: AbortSignal, intervalMs: number): Promise<AuthOAuthStatusDomain> {
   while (!signal.aborted) {
-    const result = await fetchStatus()
+    const result = await fetchStatus(signal)
 
     if (signal.aborted)
       throw signal.reason
@@ -48,7 +48,7 @@ async function runPolling(fetchStatus: () => Promise<AuthOAuthStatusDomain>, sig
   throw signal.reason
 }
 
-export async function pollOAuthStatus(fetchStatus: () => Promise<AuthOAuthStatusDomain>, options: PollOAuthStatusOptions): Promise<AuthOAuthStatusDomain> {
+export async function pollOAuthStatus(fetchStatus: (signal: AbortSignal) => Promise<AuthOAuthStatusDomain>, options: PollOAuthStatusOptions): Promise<AuthOAuthStatusDomain> {
   if (options.signal.aborted)
     throw abortError()
 

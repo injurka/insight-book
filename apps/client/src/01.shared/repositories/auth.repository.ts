@@ -1,3 +1,4 @@
+import type { ApiRequestOptions } from '~/01.shared/services/api.service'
 import type { AuthLoginDto, AuthRegisterDto, AuthSendCodeDto, UserData } from '~/01.shared/types/models'
 import type { AuthOAuthStatusDomain } from '~/01.shared/types/schemas/auth.schema'
 import { applyAcl } from '~/01.shared/lib/acl'
@@ -11,7 +12,7 @@ export interface IAuthRepository {
   acceptOAuthSession: (result: AuthOAuthStatusDomain) => void
   acceptLegacyToken: (token: string) => void
   me: () => Promise<{ user: UserData | null, mode: string }>
-  oauthStatus: (sessionId: string) => Promise<AuthOAuthStatusDomain>
+  oauthStatus: (sessionId: string, options?: ApiRequestOptions) => Promise<AuthOAuthStatusDomain>
   login: (credentials: AuthLoginDto) => Promise<{ token: string, user: UserData }>
   updateAvatar: (file: File) => Promise<{ avatarUrl: string }>
   updateUsername: (username: string) => Promise<{ username: string }>
@@ -48,8 +49,8 @@ export class DefaultAuthRepository implements IAuthRepository {
     return applyAcl(AuthMeResponseSchema, raw, 'auth.me()')
   }
 
-  async oauthStatus(sessionId: string) {
-    const raw = await api.auth.oauthStatus(sessionId)
+  async oauthStatus(sessionId: string, options?: ApiRequestOptions) {
+    const raw = await api.auth.oauthStatus(sessionId, options)
 
     return applyAcl(AuthOAuthStatusSchema, raw, 'auth.oauthStatus()')
   }

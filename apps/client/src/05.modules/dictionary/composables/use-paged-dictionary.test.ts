@@ -107,16 +107,24 @@ describe('paged dictionary', () => {
     expect(mocks.page.mock.calls[0][0]).toMatchObject({ decks: 'all', difficulties: 'all', statuses: 'all' })
   })
 
-  it('ignores late responses from the previous filters', async () => {
+  it('ignores late responses from the previous filters and forwards AbortSignal', async () => {
     let resolveOld!: (result: DictionaryPage) => void
-    mocks.page.mockImplementationOnce(() => new Promise<DictionaryPage>((resolve) => {
-      resolveOld = resolve
-    }))
+    let firstSignal: AbortSignal | undefined
+    mocks.page.mockImplementationOnce((_options: unknown, requestOptions?: { signal?: AbortSignal }) => {
+      firstSignal = requestOptions?.signal
+
+      return new Promise<DictionaryPage>((resolve) => {
+        resolveOld = resolve
+      })
+    })
     mocks.page.mockResolvedValueOnce(page([3], null))
     scope.run(() => usePagedDictionary())!
     await flushPromises()
+    expect(firstSignal).toBeInstanceOf(AbortSignal)
+    expect(firstSignal?.aborted).toBe(false)
     useDictionaryFiltersStore().selectedLanguage = 'zh'
     await flushPromises()
+    expect(firstSignal?.aborted).toBe(true)
     expect(dictionaryWords.value.map(word => word.id)).toEqual([3])
     resolveOld(page([1, 2], 2))
     await flushPromises()

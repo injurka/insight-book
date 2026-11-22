@@ -45,10 +45,10 @@ export function usePagedDictionary() {
     key: () => key.value,
     enabled: () => !!auth.user || auth.isSingleMode,
     refetchOnWindowFocus: false,
-    query: async () => {
+    query: async ({ signal }) => {
       const requestScope = scope.value
       const requestOffset = offset.value
-      const page = await repos.dictionary.page({ ...options.value, offset: requestOffset })
+      const page = await repos.dictionary.page({ ...options.value, offset: requestOffset }, { signal })
 
       return { page, scope: requestScope, offset: requestOffset }
     },

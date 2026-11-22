@@ -41,6 +41,7 @@ export const useReaderStore = defineStore('reader', () => {
   let progressTimer: ReturnType<typeof setTimeout> | null = null
   let progressRequest: Promise<void> | null = null
   let pendingProgress: { bookId: number, pageNum: number } | null = null
+  let pageRequestController: AbortController | null = null
   let pageDictionaryController: AbortController | null = null
 
   // Query state refs
@@ -70,6 +71,8 @@ export const useReaderStore = defineStore('reader', () => {
 
   watch(() => libraryStore.currentBookInfo, (newBook) => {
     if (!newBook) {
+      pageRequestController?.abort()
+      pageRequestController = null
       pageDictionaryController?.abort()
       pageDictionaryController = null
       currentPage.value = null
@@ -234,6 +237,10 @@ export const useReaderStore = defineStore('reader', () => {
   async function fetchPage(bookId: number, pageNum: number): Promise<PagePayload> {
     const analysisStore = useAnalysisStore()
 
+    pageRequestController?.abort()
+    const pageController = new AbortController()
+    pageRequestController = pageController
+
     pageDictionaryController?.abort()
     const dictionaryController = new AbortController()
     pageDictionaryController = dictionaryController
@@ -245,7 +252,12 @@ export const useReaderStore = defineStore('reader', () => {
       })
       .catch(() => { })
 
-    const newPage = await repos.book.getPage(bookId, pageNum)
+    const newPage = await repos.book.getPage(
+      bookId,
+      pageNum,
+      undefined,
+      { signal: pageController.signal },
+    )
 
     if (!newPage)
       throw new Error('Page not found')
@@ -279,9 +291,22 @@ export const useReaderStore = defineStore('reader', () => {
     triggerAutoAnalysis(settingsStore, analysisStore)
   }
 
+  function isAbortError(error: unknown): boolean {
+    return error instanceof Error && error.name === 'AbortError'
+  }
+
+  function revertFailedPageLoad(bookId: number, prevPageNum: number) {
+    const toastStore = useToastStore()
+
+    pageDictionaryController?.abort()
+    pageDictionaryController = null
+    targetPageNum.value = prevPageNum
+    updateReadingProgress(bookId, prevPageNum)
+    toastStore.error(i18n.global.t('dictionary.pageOfflineError'))
+  }
+
   async function loadPage(bookId: number, pageNum: number) {
     const analysisStore = useAnalysisStore()
-    const toastStore = useToastStore()
 
     const seq = ++loadPageSeq
     const prevPageNum = targetPageNum.value || currentBook.value?.currentPage || 1
@@ -303,13 +328,11 @@ export const useReaderStore = defineStore('reader', () => {
       await fetchAndApplyPageData(bookId, pageNum, seq)
     }
     catch (e) {
-      if (seq === loadPageSeq) {
-        pageDictionaryController?.abort()
-        pageDictionaryController = null
-        targetPageNum.value = prevPageNum
-        updateReadingProgress(bookId, prevPageNum)
-        toastStore.error(i18n.global.t('dictionary.pageOfflineError'))
-      }
+      if (isAbortError(e))
+        return
+
+      if (seq === loadPageSeq)
+        revertFailedPageLoad(bookId, prevPageNum)
 
       throw e
     }
@@ -323,6 +346,7 @@ export const useReaderStore = defineStore('reader', () => {
     if (progressTimer)
       clearTimeout(progressTimer)
 
+    pageRequestController?.abort()
     pageDictionaryController?.abort()
   })
 

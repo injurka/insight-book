@@ -1,3 +1,4 @@
+import type { ApiRequestOptions } from '~/01.shared/services/api.service'
 import type {
   CatalogDeck,
   CatalogWord,
@@ -22,10 +23,10 @@ import { CatalogDeckSchema, CatalogWordSchema, DictDeckSchema, DictionaryPageSch
 
 export interface IDictionaryRepository {
   openBookDeck: (bookId: number, restart?: boolean) => Promise<BookDeckDraft>
-  generateBookDeckWord: (id: string, word: string, regenerate?: boolean) => Promise<BookDeckWord>
+  generateBookDeckWord: (id: string, word: string, regenerate?: boolean, signal?: AbortSignal) => Promise<BookDeckWord>
   saveBookDeck: (id: string, name: string, words: string[], updateExisting: boolean) => Promise<{ deckId: number }>
 
-  page: (options: DictionaryPageOptions) => Promise<DictionaryPage>
+  page: (options: DictionaryPageOptions, requestOptions?: ApiRequestOptions) => Promise<DictionaryPage>
   list: () => Promise<UserDictItem[]>
   remove: (word: string, language: string) => Promise<{ success: boolean }>
   saveLocalDictionary: (words: UserDictItem[]) => Promise<void>
@@ -90,8 +91,18 @@ export class DefaultDictionaryRepository implements IDictionaryRepository {
     return applyAcl(BookDeckDraftSchema, await api.dictionary.openBookDeck(bookId, restart), 'dictionary.openBookDeck')
   }
 
-  async generateBookDeckWord(id: string, word: string, regenerate = false) {
-    return applyAcl(BookDeckWordSchema, await api.dictionary.generateBookDeckWord(id, word, regenerate), 'dictionary.generateBookDeckWord')
+  async generateBookDeckWord(
+    id: string,
+    word: string,
+    regenerate = false,
+    signal?: AbortSignal,
+  ) {
+    return applyAcl(BookDeckWordSchema, await api.dictionary.generateBookDeckWord(
+      id,
+      word,
+      regenerate,
+      signal,
+    ), 'dictionary.generateBookDeckWord')
   }
 
   async saveBookDeck(
@@ -118,7 +129,7 @@ export class DefaultDictionaryRepository implements IDictionaryRepository {
     return result
   }
 
-  async page(options: DictionaryPageOptions): Promise<DictionaryPage> {
+  async page(options: DictionaryPageOptions, requestOptions?: ApiRequestOptions): Promise<DictionaryPage> {
     const scope = dictionaryCacheScope()
     const authStore = useAuthStore()
 
@@ -134,7 +145,7 @@ export class DefaultDictionaryRepository implements IDictionaryRepository {
     }
 
     try {
-      const raw = await api.dictionary.page(options)
+      const raw = await api.dictionary.page(options, requestOptions)
       const data = applyAcl(DictionaryPageSchema, raw, 'dictionary.page()')
 
       if (scope !== dictionaryCacheScope())

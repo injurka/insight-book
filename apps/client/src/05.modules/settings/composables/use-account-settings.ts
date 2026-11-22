@@ -43,7 +43,7 @@ export function useAccountSettings() {
         await openUrl(url)
 
         oauthAbortController = new AbortController()
-        const data = await pollOAuthStatus(() => repos.auth.oauthStatus(sessionId), { signal: oauthAbortController.signal })
+        const data = await pollOAuthStatus(signal => repos.auth.oauthStatus(sessionId, { signal }), { signal: oauthAbortController.signal })
 
         if (data.status === 'error')
           throw new Error(data.error || t('settings.linkFailed', 'Не удалось привязать аккаунт'))

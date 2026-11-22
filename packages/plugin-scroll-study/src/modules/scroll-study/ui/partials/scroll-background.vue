@@ -61,7 +61,7 @@ const stopWatch = watch([isReady, app], ([ready, pixi]) => {
     uniforms.uniforms.uTime = (performance.now() - startTime) * 0.001
   }
   pixi.ticker.add(animateFog)
-  stopTicker = () => pixi.ticker.remove(animateFog)
+  stopTicker = () => pixi.ticker?.remove(animateFog)
 }, { immediate: true })
 
 onBeforeUnmount(() => {
@@ -69,7 +69,9 @@ onBeforeUnmount(() => {
   stopTicker?.()
 
   if (mesh) {
-    mesh.destroy()
+    if (!mesh.destroyed)
+      mesh.destroy()
+
     mesh = null
   }
 })

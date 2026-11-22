@@ -86,7 +86,7 @@ export const useLibraryStore = defineStore('library', () => {
       search: publicQuerySearch.value,
       lang: publicQueryLang.value,
     })),
-    query: async () => {
+    query: async ({ signal }) => {
       const q = new URLSearchParams()
       q.set('page', String(publicQueryPage.value))
 
@@ -101,7 +101,7 @@ export const useLibraryStore = defineStore('library', () => {
       if (publicQueryLang.value)
         q.set('lang', publicQueryLang.value)
 
-      const res = await repos.book.getPublic(q.toString())
+      const res = await repos.book.getPublic(q.toString(), { signal })
 
       return res
     },

@@ -153,25 +153,36 @@ async function syncBookToc(bookId: number): Promise<void> {
 }
 
 /** Кэширует обложку книги локально, если её ещё нет. */
-async function cacheBookCover(book: SyncBook, cachePages: boolean): Promise<void> {
-  if (!cachePages || !book.coverUrl || book.localCoverUrl)
+async function cacheBookCover(book: SyncBook, cachePages: boolean, signal: AbortSignal): Promise<void> {
+  if (!cachePages || !book.coverUrl || book.localCoverUrl || signal.aborted)
     return
 
   syncActivity.value.phase = 'cover'
   syncProgress.value.currentTask = i18n.global.t('bookInfo.syncTask.cachingCover')
   const cachedCover = await repos.book.getLocalCover(book.id)
 
-  if (cachedCover)
+  if (cachedCover || signal.aborted)
     return
 
   try {
-    const blob = await repos.book.fetchImageBlob(book.coverUrl)
+    const blob = await repos.book.fetchImageBlob(book.coverUrl, { signal })
+
+    if (signal.aborted)
+      return
+
     await repos.book.saveLocalCover(book.id, blob)
     book.localCoverUrl = URL.createObjectURL(blob)
   }
   catch (e) {
+    if (signal.aborted)
+      throw e
+
     console.warn('Failed to cache cover', e)
   }
+}
+
+function canCacheMangaPageImage(page: PagePayload | undefined, cachePages: boolean, signal: AbortSignal): page is PagePayload & { type: 'manga', imageUrl: string } {
+  return cachePages && !signal.aborted && page?.type === 'manga' && Boolean(page.imageUrl)
 }
 
 async function cachePageAssets(
@@ -179,22 +190,27 @@ async function cachePageAssets(
   page: PagePayload | undefined,
   pageNum: number,
   cachePages: boolean,
+  signal: AbortSignal,
 ): Promise<void> {
-  if (!cachePages)
+  if (!canCacheMangaPageImage(page, cachePages, signal))
     return
 
-  if (page?.type === 'manga' && page.imageUrl) {
-    const cachedImage = await repos.book.getLocalImage(bookId, pageNum)
+  const cachedImage = await repos.book.getLocalImage(bookId, pageNum)
 
-    if (!cachedImage) {
-      try {
-        const blob = await repos.book.fetchImageBlob(page.imageUrl)
-        await repos.book.saveLocalImage(bookId, pageNum, blob)
-      }
-      catch (e) {
-        console.warn(`Failed to cache image for page ${pageNum}`, e)
-      }
-    }
+  if (cachedImage || signal.aborted)
+    return
+
+  try {
+    const blob = await repos.book.fetchImageBlob(page.imageUrl, { signal })
+
+    if (!signal.aborted)
+      await repos.book.saveLocalImage(bookId, pageNum, blob)
+  }
+  catch (e) {
+    if (signal.aborted)
+      throw e
+
+    console.warn(`Failed to cache image for page ${pageNum}`, e)
   }
 }
 
@@ -447,13 +463,19 @@ async function processPage(
   let page: PagePayload | null
 
   try {
-    page = await repos.book.getPage(ctx.bookId, pageNum, true)
+    page = await repos.book.getPage(
+      ctx.bookId,
+      pageNum,
+      true,
+      { signal: ctx.signal },
+    )
   }
   catch (e) {
-    console.warn(`Failed to fetch page ${pageNum}`, e)
+    if (ctx.signal.aborted)
+      throw e
 
-    if (!ctx.signal.aborted)
-      syncProgress.value.pagesDone++
+    console.warn(`Failed to fetch page ${pageNum}`, e)
+    syncProgress.value.pagesDone++
 
     return
   }
@@ -463,6 +485,7 @@ async function processPage(
     page ?? undefined,
     pageNum,
     options.cachePages,
+    ctx.signal,
   )
 
   if (!page) {
@@ -510,7 +533,7 @@ async function processBookPages(book: SyncBook, options: typeof syncOptions.valu
 
 async function executeBookSync(book: SyncBook, options: typeof syncOptions.value, ctx: AnalysisContext) {
   await syncBookToc(ctx.bookId)
-  await cacheBookCover(book, options.cachePages)
+  await cacheBookCover(book, options.cachePages, ctx.signal)
 
   const needAnalysis = options.analyzeSentences || options.analyzeWords
 
