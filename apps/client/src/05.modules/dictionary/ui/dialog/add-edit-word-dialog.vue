@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { WordFormData } from '../../model'
 import type { SelectOption } from '~/01.shared/types/models'
-import { computed, ref, watch } from 'vue'
+import { computed, ref, useId, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRepos } from '~/00.plugins/di'
 import { useToast } from '~/01.shared/composables/use-toast'
@@ -29,14 +29,17 @@ const libraryStore = useLibraryStore()
 const { speak, isPlaying, isLoading } = useTts()
 const toast = useToast()
 const { t } = useI18n()
+const tagInputId = useId()
 
 const localWord = ref<WordFormData>({})
+const tagDraft = ref('')
 const isDeckPromptOpen = ref(false)
 const isAutoFilling = ref(false)
 const previewTranslation = ref(true)
 const previewGrammar = ref(true)
 const previewVocabulary = ref(true)
 
+const tags = computed(() => splitTags(localWord.value.tags ?? ''))
 const isEditing = computed(() => !!localWord.value.id)
 const currentBookTitle = computed(() => {
   if (localWord.value.contextBookId) {
@@ -111,9 +114,12 @@ watch(() => analysisStore.addEditWordModalOpen, async (isOpen) => {
   }
   else {
     isDeckPromptOpen.value = false
+    tagDraft.value = ''
   }
 })
 watch(() => analysisStore.wordToEdit, (newWord) => {
+  tagDraft.value = ''
+
   if (newWord)
     localWord.value = { ...newWord }
 
@@ -130,7 +136,30 @@ function selectBookDeck() {
   if (deck && !localWord.value.deckIds?.includes(deck.id))
     localWord.value.deckIds = [...(localWord.value.deckIds || []), deck.id]
 }
+function splitTags(value: string): string[] {
+  return [...new Set(value.split(',').map(tag => tag.trim()).filter(Boolean))]
+}
+function addTags() {
+  const draft = splitTags(tagDraft.value.replace(/[，、]/g, ','))
+
+  if (draft.length)
+    localWord.value.tags = [...new Set([...tags.value, ...draft])].join(', ')
+
+  tagDraft.value = ''
+}
+function addTagsOnEnter(event: KeyboardEvent) {
+  if (event.isComposing)
+    return
+
+  event.preventDefault()
+  event.stopPropagation()
+  addTags()
+}
+function removeTag(tag: string) {
+  localWord.value.tags = tags.value.filter(value => value !== tag).join(', ')
+}
 function handleSave() {
+  addTags()
   analysisStore.saveWordToDict(localWord.value)
 }
 function handleDelete() {
@@ -262,20 +291,47 @@ async function autoFillWithAI() {
           </div>
         </div>
 
-        <div class="row-flex">
-          <div class="form-group flex-1">
-            <label>{{ t('dictionary.difficulty') }}</label>
-            <KitSelect v-model="difficultyModel" :options="currentDifficultyOptions" />
+        <div class="form-group">
+          <label>{{ t('dictionary.difficulty') }}</label>
+          <KitSelect v-model="difficultyModel" :options="currentDifficultyOptions" />
+        </div>
+
+        <div class="form-group">
+          <label :for="tagInputId">{{ t('dictionary.tags') }}</label>
+          <div v-if="tags.length" class="tag-list">
+            <div v-for="tag in tags" :key="tag" class="tag-chip">
+              <span>{{ tag }}</span>
+              <KitBtn
+                icon="mdi:close"
+                size="xs"
+                variant="text"
+                :aria-label="t('dictionary.removeTag', { tag })"
+                @click="removeTag(tag)"
+              />
+            </div>
           </div>
-          <div class="form-group flex-1">
-            <label>{{ t('dictionary.tagsComma') }}</label>
-            <KitInput v-model="localWord.tags" :placeholder="t('dictionary.tagsPlaceholder')" />
+          <div class="tag-input-row">
+            <KitInput
+              :id="tagInputId"
+              v-model="tagDraft"
+              :placeholder="t('dictionary.addTag')"
+              enterkeyhint="done"
+              @keydown.enter="addTagsOnEnter"
+            />
+            <KitBtn
+              icon="mdi:plus"
+              variant="outlined"
+              color="secondary"
+              :aria-label="t('dictionary.addTag')"
+              :disabled="!tagDraft.trim()"
+              @click="addTags"
+            />
           </div>
         </div>
 
         <div class="form-group">
           <div class="form-group-header">
-            <label>{{ t('dictionary.translationHtml') }}</label>
+            <label>{{ t('dictionary.translation') }}</label>
             <KitToggle
               v-model="previewTranslation"
               :options="[
@@ -285,7 +341,9 @@ async function autoFillWithAI() {
               size="sm"
             />
           </div>
-          <div v-if="previewTranslation" class="markdown-preview preview-box" v-html="localWord.translation || ''" />
+          <div v-if="previewTranslation" class="preview-box translation-preview">
+            <div v-if="localWord.translation" class="markdown-preview translation-content" v-html="localWord.translation" />
+          </div>
           <textarea
             v-else
             v-model="localWord.translation"
@@ -517,6 +575,7 @@ async function autoFillWithAI() {
   border-radius: 6px;
   padding: 10px 12px;
   font-size: 0.95rem;
+  box-sizing: border-box;
   min-height: 44px;
   max-height: 300px;
   overflow-y: auto;
@@ -534,12 +593,46 @@ async function autoFillWithAI() {
     flex-grow: 1;
   }
 }
-.row-flex {
+.translation-preview {
   display: flex;
-  gap: 16px;
+  flex-direction: column;
 }
-.flex-1 {
-  flex: 1;
+.translation-content {
+  margin-block: auto;
+  overflow-wrap: anywhere;
+
+  :deep(> :first-child) {
+    margin-block-start: 0;
+  }
+
+  :deep(> :last-child) {
+    margin-block-end: 0;
+  }
+}
+.tag-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.tag-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 100%;
+  padding-inline-start: 10px;
+  border-radius: 12px;
+  background: var(--bg-secondary-color);
+  font-size: 0.85rem;
+  overflow-wrap: anywhere;
+}
+.tag-input-row {
+  display: flex;
+  gap: 8px;
+
+  .kit-input-wrapper {
+    flex: 1;
+    min-width: 0;
+  }
 }
 .custom-textarea {
   width: 100%;

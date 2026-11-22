@@ -31,7 +31,6 @@ function renderDialog() {
         KitPrompt: true,
         KitTooltip: { template: '<div><slot /></div>' },
         KitSelect: true,
-        KitInput: true,
         KitToggle: true,
       },
     },
@@ -84,6 +83,27 @@ describe('word dialog book deck defaults', () => {
     await openDialog()
     await saveDialog(wrapper)
     expect(mocks.analysis.saveWordToDict).toHaveBeenCalledWith(expect.objectContaining({ deckIds: [7] }))
+    wrapper.unmount()
+  })
+
+  it('edits individual tags and saves any unfinished input', async () => {
+    const wrapper = renderDialog()
+    await openDialog()
+    reactive(mocks.analysis).wordToEdit = { word: 'test', language: 'en', tags: 'drama, comedy' }
+    await flushPromises()
+
+    const input = wrapper.get('.tag-input-row input')
+    expect(wrapper.findAll('.tag-chip > span').map(tag => tag.text())).toEqual(['drama', 'comedy'])
+    await wrapper.get('.tag-chip button').trigger('click')
+    await input.setValue('phrase, comedy')
+    await input.trigger('keydown', { key: 'Enter', isComposing: true })
+    expect(wrapper.findAll('.tag-chip > span').map(tag => tag.text())).toEqual(['comedy'])
+    await input.trigger('keydown', { key: 'Enter' })
+    expect(wrapper.findAll('.tag-chip > span').map(tag => tag.text())).toEqual(['comedy', 'phrase'])
+
+    await input.setValue('verb')
+    await saveDialog(wrapper)
+    expect(mocks.analysis.saveWordToDict).toHaveBeenCalledWith(expect.objectContaining({ tags: 'comedy, phrase, verb' }))
     wrapper.unmount()
   })
 
