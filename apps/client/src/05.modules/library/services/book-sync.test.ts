@@ -1,6 +1,7 @@
 import type { Book, PagePayload } from '~/01.shared/types/models'
 import { createPinia, setActivePinia } from 'pinia'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
+import { loadLanguageAsync, localePromise } from '~/00.plugins/i18n'
 import { useGlobalSettingsStore } from '~/01.shared/store/settings.store'
 import { cancelSync, startWholeBookSync, syncErrorCode, syncProgress, syncState } from './book-sync.service'
 
@@ -107,6 +108,11 @@ const baseOptions = {
 }
 
 describe('startWholeBookSync', () => {
+  beforeAll(async () => {
+    await localePromise
+    await loadLanguageAsync('ru')
+  })
+
   beforeEach(() => {
     setActivePinia(createPinia())
     vi.clearAllMocks()
@@ -116,6 +122,7 @@ describe('startWholeBookSync', () => {
     hoisted.libraryState.currentBookInfo = null
 
     const settings = useGlobalSettingsStore()
+    settings.appLanguage = 'ru'
     settings.ttsVoice = 'Kore'
     settings.useCustomLlm = false
 

@@ -1,24 +1,29 @@
 import { nextTick } from 'vue'
 import { createI18n } from 'vue-i18n'
+import { APP_LANGUAGE_STORAGE_KEY, DEFAULT_APP_LANGUAGE, getInitialAppLanguage } from '~/01.shared/lib/app-language'
 
-let locale = 'ru'
-
-try {
-  const saved = localStorage.getItem('global-app-language')
-
-  if (saved)
-    locale = saved.replace(/^"|"$/g, '')
-}
-catch {
-  // Игнорируем ошибки парсинга
-}
+const locale = getInitialAppLanguage()
 
 export const i18n = createI18n({
   legacy: false,
   locale,
-  fallbackLocale: 'ru',
+  fallbackLocale: DEFAULT_APP_LANGUAGE,
   messages: {},
 })
+
+function applyLanguage(lang: string) {
+  i18n.global.locale.value = lang
+
+  if (typeof document !== 'undefined')
+    document.documentElement.lang = lang
+
+  try {
+    localStorage.setItem(APP_LANGUAGE_STORAGE_KEY, lang)
+  }
+  catch {
+    // Keep the current locale in memory if storage is unavailable.
+  }
+}
 
 const loadedLocales = new Set<string>()
 
@@ -31,8 +36,7 @@ export async function loadLanguageAsync(lang: string) {
 
   // 2. Если язык уже загружался ранее, просто переключаем локаль
   if (loadedLocales.has(lang)) {
-    i18n.global.locale.value = lang
-    localStorage.setItem('global-app-language', lang)
+    applyLanguage(lang)
 
     return nextTick()
   }
@@ -52,11 +56,7 @@ export async function loadLanguageAsync(lang: string) {
     // Отмечаем язык как загруженный
     loadedLocales.add(lang)
 
-    // Устанавливаем язык интерфейса
-    i18n.global.locale.value = lang
-
-    // Сохраняем выбор пользователя
-    localStorage.setItem('global-app-language', lang)
+    applyLanguage(lang)
   }
   catch (error) {
     console.error(`Ошибка при загрузке языка: ${lang}`, error)

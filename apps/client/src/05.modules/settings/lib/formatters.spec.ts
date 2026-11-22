@@ -1,5 +1,5 @@
 import { beforeAll, describe, expect, it } from 'vitest'
-import { localePromise } from '~/00.plugins/i18n'
+import { loadLanguageAsync, localePromise } from '~/00.plugins/i18n'
 import { collapsePageRanges, formatBytes, formatCurrency, formatNumber, formatPageRange, formatPagesList } from './formatters'
 
 describe('collapsePageRanges', () => {
@@ -46,6 +46,7 @@ describe('formatPageRange', () => {
 describe('formatPagesList', () => {
   beforeAll(async () => {
     await localePromise
+    await loadLanguageAsync('ru')
   })
 
   it('пустой список — заглушка', () => {
@@ -73,6 +74,7 @@ describe('formatPagesList', () => {
 describe('formatBytes', () => {
   beforeAll(async () => {
     await localePromise
+    await loadLanguageAsync('ru')
   })
 
   it('0 байт — заглушка', () => {

@@ -72,7 +72,7 @@ async function bootstrap() {
   // 4. Router & Mount. Optional plugins are initialized after the first paint
   // so a broken plugin chunk cannot leave the native preloader on screen.
   app.use(router)
-  await router.isReady()
+  await Promise.all([router.isReady(), localePromise])
   app.mount('#app')
   document.getElementById('app-preloader')?.remove()
 
@@ -105,9 +105,6 @@ function setupMobileDevtools(settingsStore: ReturnType<typeof useGlobalSettingsS
 
 /** Фоновые неблокирующие задачи после монтирования */
 function initDeferredTasks(app: VueApp, router: Router, pinia: Pinia) {
-  // Гидратация локали
-  localePromise.catch((err: unknown) => console.warn('[bootstrap] Locale load failed:', err))
-
   // Регистрируем Vue error handler и router hooks (OTel SDK уже запущен в bootstrap())
   setupVueMonitoring(app, router)
 

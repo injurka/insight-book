@@ -1,6 +1,6 @@
 import type { UserDictItem } from '~/01.shared/types/models'
 import { beforeAll, describe, expect, it } from 'vitest'
-import { i18n } from '~/00.plugins/i18n'
+import { i18n, localePromise } from '~/00.plugins/i18n'
 import { useSrsQuiz } from './use-srs-quiz'
 
 function makeWord(overrides: Partial<UserDictItem> = {}): UserDictItem {
@@ -27,8 +27,9 @@ function makeWord(overrides: Partial<UserDictItem> = {}): UserDictItem {
   } as UserDictItem
 }
 
-beforeAll(() => {
-  // Локали в тестах не загружаются автоматически — задаём fallback-слова явно
+beforeAll(async () => {
+  await localePromise
+  i18n.global.locale.value = 'ru'
   i18n.global.setLocaleMessage('ru', {
     srs: { fallbackWords: 'FbOne,FbTwo,FbThree,FbFour,FbFive' },
   })

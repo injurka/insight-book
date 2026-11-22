@@ -1,6 +1,7 @@
 import { useLocalStorage, useMediaQuery } from '@vueuse/core'
 import { computed } from 'vue'
 import { DEFAULT_TTS_VOICE } from '~/01.shared/constants/tts'
+import { APP_LANGUAGE_STORAGE_KEY, getInitialAppLanguage, normalizeAppLanguage } from '~/01.shared/lib/app-language'
 import { isMobile } from '~/01.shared/lib/env'
 
 export const READER_CONTENT_WIDTH_MIN = 50
@@ -21,7 +22,13 @@ export const useGlobalSettingsStore = defineStore('globalSettings', () => {
   const isSmallScreen = useMediaQuery('(max-width: 599px)')
   const isMobileInterface = computed(() => isMobile || isSmallScreen.value)
 
-  const appLanguage = useLocalStorage<string>('global-app-language', 'ru')
+  const initialAppLanguage = getInitialAppLanguage()
+  const appLanguage = useLocalStorage(APP_LANGUAGE_STORAGE_KEY, initialAppLanguage, {
+    serializer: {
+      read: value => normalizeAppLanguage(value) ?? initialAppLanguage,
+      write: value => value,
+    },
+  })
   const appFontFamily = useLocalStorage<string>('global-app-font-family', '\'Maple Mono CN\', monospace')
   const appFontCustom = useLocalStorage<string>('global-app-font-custom', '')
 
@@ -34,9 +41,6 @@ export const useGlobalSettingsStore = defineStore('globalSettings', () => {
 
     return appFontFamily.value
   })
-
-  if (appLanguage.value.startsWith('"') && appLanguage.value.endsWith('"'))
-    appLanguage.value = appLanguage.value.replace(/^"|"$/g, '')
 
   const ttsSpeed = useLocalStorage<number>('global-tts-speed', 1)
   const ttsVoice = useLocalStorage<string>('global-gemini-3.8-tts-voice', DEFAULT_TTS_VOICE)
