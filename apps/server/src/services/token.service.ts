@@ -8,7 +8,28 @@ export interface AudioDurationMetadata {
   outputAudioSeconds?: number
 }
 
-export function trackTokenUsage(
+async function writeUsageWithRetry(write: () => Promise<unknown>) {
+  const delays = [25, 75, 200, 500]
+
+  for (const delay of delays) {
+    try {
+      await write()
+
+      return
+    }
+    catch (error) {
+      // libSQL rolls back a failed batch before releasing the connection.
+      if (!error || typeof error !== 'object' || !('code' in error) || error.code !== 'SQLITE_BUSY')
+        throw error
+
+      await Bun.sleep(delay)
+    }
+  }
+
+  await write()
+}
+
+export async function trackTokenUsage(
   userId: number,
   action: string,
   model: string,
@@ -25,10 +46,9 @@ export function trackTokenUsage(
   const inSec = audioDuration?.inputAudioSeconds ? Math.round(audioDuration.inputAudioSeconds * 100) / 100 : 0
   const outSec = audioDuration?.outputAudioSeconds ? Math.round(audioDuration.outputAudioSeconds * 100) / 100 : 0
 
-  Promise.resolve().then(async () => {
-    try {
-      // 1. Агрегация по дням
-      await db.insert(schema.tokenUsage).values({
+  try {
+    await writeUsageWithRetry(() => db.batch([
+      db.insert(schema.tokenUsage).values({
         userId,
         date,
         action,
@@ -45,15 +65,11 @@ export function trackTokenUsage(
           audioInputSeconds: sql`COALESCE(${schema.tokenUsage.audioInputSeconds}, 0) + ${inSec}`,
           audioOutputSeconds: sql`COALESCE(${schema.tokenUsage.audioOutputSeconds}, 0) + ${outSec}`,
         },
-      })
-
-      // 2. Обновление общего счетчика пользователя
-      await db.update(schema.users).set({
+      }),
+      db.update(schema.users).set({
         usedTokens: sql`${schema.users.usedTokens} + ${inputTokens + outputTokens}`,
-      }).where(eq(schema.users.id, userId))
-
-      // 3. Запись подробного лога для отладки
-      await db.insert(schema.llmLogs).values({
+      }).where(eq(schema.users.id, userId)),
+      db.insert(schema.llmLogs).values({
         userId,
         action,
         model,
@@ -63,10 +79,10 @@ export function trackTokenUsage(
         outputText,
         audioInputSeconds: inSec > 0 ? inSec : null,
         audioOutputSeconds: outSec > 0 ? outSec : null,
-      })
-    }
-    catch (e) {
-      logger.error(e, '[Token Tracker Error]')
-    }
-  })
+      }),
+    ]))
+  }
+  catch (error) {
+    logger.error(error, '[Token Tracker Error]')
+  }
 }

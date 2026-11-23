@@ -1,5 +1,6 @@
 import { existsSync, readFileSync } from 'node:fs'
 import path from 'node:path'
+import { isMainThread } from 'node:worker_threads'
 import { logger } from '../utils/logger'
 
 // Ищем конфиг в примонтированной папке Docker (если это деплой)
@@ -85,9 +86,10 @@ function sanitizeAiConfig(config: ReturnType<typeof getAiConfig>) {
 
 // Логируем эффективную конфигурацию один раз при старте сервера.
 // API-ключи выводятся только в редактированном виде.
-if (existsSync(CONFIG_PATH)) {
-  logger.info({ aiConfig: sanitizeAiConfig(getAiConfig()) }, `🤖 AI Config loaded from: ${CONFIG_PATH}`)
-}
-else {
-  logger.info({ aiConfig: sanitizeAiConfig(getAiConfig()) }, `⚠️ AI Config file not found at ${CONFIG_PATH}, using defaults/env.`)
+if (isMainThread) {
+  const message = existsSync(CONFIG_PATH)
+    ? `🤖 AI Config loaded from: ${CONFIG_PATH}`
+    : `⚠️ AI Config file not found at ${CONFIG_PATH}, using defaults/env.`
+
+  logger.info({ aiConfig: sanitizeAiConfig(getAiConfig()) }, message)
 }

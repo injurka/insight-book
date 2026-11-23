@@ -1,7 +1,7 @@
 {
   "id": "grammar-tenses-cheatsheet",
   "name": "Грамматическая шпаргалка",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Открывает подробную шпаргалку по английским временам прямо из блока грамматического анализа.",
   "icon": "mdi:clock-check-outline",
   "source": "https://github.com/injurka/insight-book/tree/master/packages/plugin-grammar-tenses-cheatsheet",

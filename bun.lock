@@ -336,7 +336,7 @@
     },
     "packages/plugin-grammar-tenses-cheatsheet": {
       "name": "@injurka/insight-book-plugin-grammar-tenses-cheatsheet",
-      "version": "1.0.2",
+      "version": "1.0.3",
       "dependencies": {
         "@iconify/vue": "^5.0.1",
         "@injurka/insight-book-plugin-api": "workspace:*",

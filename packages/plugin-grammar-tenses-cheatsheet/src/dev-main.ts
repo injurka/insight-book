@@ -1,6 +1,12 @@
 import { createSandboxApp } from '@injurka/insight-book-plugin-api/testing'
 import plugin from './index'
 
+if (import.meta.env.DEV) {
+  void import('../../../apps/client/public/fonts/split/regular/result-critical.css')
+  void import('../../../apps/client/public/fonts/split/medium/result-critical.css')
+  void import('../../../apps/client/public/fonts/split/semibold/result-critical.css')
+}
+
 const app = createSandboxApp({ plugin })
 app.mount('#app')
 
