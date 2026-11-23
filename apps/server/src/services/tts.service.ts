@@ -179,14 +179,7 @@ async function generateAndCacheTts(
   return toTtsResult(cacheEntry)
 }
 
-export async function generateTts(
-  userId: number,
-  bookId: number | null,
-  text: string,
-  config: LlmConfig,
-  selectedVoice?: string,
-  forceCacheBypass?: boolean,
-): Promise<TtsResult> {
+function normalizeTtsText(text: string): string {
   const normalizedText = text.trim()
 
   if (!normalizedText)
@@ -203,6 +196,24 @@ export async function generateTts(
     )
   }
 
+  return normalizedText
+}
+
+export async function getCachedTts(text: string, voice = DEFAULT_TTS_VOICE): Promise<TtsResult | null> {
+  const cached = await findReusableTts(normalizeTtsText(text), voice)
+
+  return cached ? toTtsResult(cached) : null
+}
+
+export async function generateTts(
+  userId: number,
+  bookId: number | null,
+  text: string,
+  config: LlmConfig,
+  selectedVoice?: string,
+  forceCacheBypass?: boolean,
+): Promise<TtsResult> {
+  const normalizedText = normalizeTtsText(text)
   const ttsUrl = config.ttsUrl || config.url
 
   if (!ttsUrl)

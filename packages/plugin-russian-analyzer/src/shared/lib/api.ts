@@ -37,7 +37,7 @@ function extractLlmData<T>(res: { success: boolean, data?: unknown, text?: strin
   return null
 }
 
-export async function requestLlmGenerate<T = unknown>(params: PluginLlmGeneratePayload): Promise<T | null> {
+export async function requestLlmGenerate<T = unknown>(params: PluginLlmGeneratePayload, signal?: AbortSignal): Promise<T | null> {
   const api = getPluginApi()
   const payload: PluginLlmGeneratePayload = {
     ...params,
@@ -46,7 +46,7 @@ export async function requestLlmGenerate<T = unknown>(params: PluginLlmGenerateP
   }
 
   if (api?.llm?.generate) {
-    const res = await api.llm.generate<T>(payload)
+    const res = await api.llm.generate<T>(payload, { signal })
 
     return extractLlmData<T>(res)
   }
@@ -57,6 +57,7 @@ export async function requestLlmGenerate<T = unknown>(params: PluginLlmGenerateP
       headers: { 'Content-Type': 'application/json' },
       body: payload as unknown as Record<string, unknown>,
       withLlm: true,
+      signal,
     })
 
     return extractLlmData<T>(res)
@@ -66,6 +67,7 @@ export async function requestLlmGenerate<T = unknown>(params: PluginLlmGenerateP
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
+    signal,
   })
 
   if (!res.ok) {

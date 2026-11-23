@@ -187,6 +187,7 @@ export type CanvasSelectedNode
     | { kind: 'feature', token: RussianLexemeToken, morpheme: MorphemeNode, feature: MorphemeFeatureNode }
 
 export interface AnalysisHistoryItem {
+  interfaceLanguage?: string
   id: string
   createdAt: number
   query: string

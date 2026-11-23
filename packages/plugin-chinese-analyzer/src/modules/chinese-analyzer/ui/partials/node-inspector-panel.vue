@@ -10,6 +10,7 @@ import HanziWriter from 'hanzi-writer'
 import { computed, nextTick, onMounted, shallowRef, useTemplateRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { getPosClass, getToneBadgeLabel } from '../../../../shared/lib/tone-utils'
+import CachedChineseEntry from './cached-chinese-entry.vue'
 
 interface Props {
   selectedNode: CanvasSelectedNode | null
@@ -183,6 +184,8 @@ onMounted(() => {
         </div>
       </div>
 
+      <CachedChineseEntry :text="props.selectedNode.clause.hanzi" />
+
       <div class="info-row">
         <span class="info-label">{{ t('plugins.chinese-analyzer.syntacticRole') }}</span>
         <span class="info-value">{{ props.selectedNode.clause.role }}</span>
@@ -256,6 +259,8 @@ onMounted(() => {
           </div>
         </div>
       </div>
+
+      <CachedChineseEntry :text="props.selectedNode.token.hanzi" />
 
       <div class="details-grid">
         <div class="info-block">

@@ -1,5 +1,6 @@
 import type { InsightBookPlugin, InsightBookPluginContext } from '@injurka/insight-book-plugin-api'
 import { setPluginApi, setPluginContext } from '@injurka/insight-book-plugin-api'
+import ReaderSentenceAction from './modules/russian-analyzer/ui/reader-sentence-action.vue'
 import { registerRussianAnalyzerIcons } from './shared/icons'
 import { setLocalPluginApi } from './shared/lib/api'
 import en from './shared/locales/en'
@@ -28,6 +29,15 @@ const plugin: InsightBookPlugin = {
 
     registerRussianAnalyzerIcons()
     ctx.registerTranslations({ ru, en, zh })
+    ctx.registerUIWidget(
+      'reader:sentence-analysis-actions',
+      'russian-analyzer-sentence-action',
+      ReaderSentenceAction,
+      {
+        bookLanguage: 'ru',
+        interfaceLanguages: ['en', 'zh'],
+      },
+    )
 
     const locales = { ru, en, zh } as const
     const t = locales[ctx.locale as keyof typeof locales] ?? en
@@ -43,6 +53,7 @@ const plugin: InsightBookPlugin = {
   },
 
   deactivate(ctx: InsightBookPluginContext) {
+    ctx.unregisterUIWidget('russian-analyzer-sentence-action')
     const locales = { ru, en, zh } as const
     const t = locales[ctx.locale as keyof typeof locales] ?? en
     ctx.notify(t.notifyDeactivated, 'info')

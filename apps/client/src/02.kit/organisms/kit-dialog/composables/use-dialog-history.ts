@@ -3,6 +3,24 @@ import { getCurrentInstance, onUnmounted, watch } from 'vue'
 
 // Глобальный стейт для отслеживания порядка открытия модалок
 const openModalsStack: string[] = []
+const scrollLocks = new Set<string>()
+let previousOverflow = ''
+
+export function setDialogScrollLock(dialogId: string, locked: boolean) {
+  if (typeof document === 'undefined')
+    return
+
+  if (locked) {
+    if (scrollLocks.size === 0)
+      previousOverflow = document.body.style.overflow
+
+    scrollLocks.add(dialogId)
+    document.body.style.overflow = 'hidden'
+  }
+  else if (scrollLocks.delete(dialogId) && scrollLocks.size === 0) {
+    document.body.style.overflow = previousOverflow
+  }
+}
 let isProgrammaticBack = false
 let isUnloading = false
 
@@ -16,12 +34,14 @@ if (typeof window !== 'undefined') {
 }
 
 export function useDialogHistory(dialogId: string, visible: Ref<boolean>) {
+  const isTopDialog = () => openModalsStack.at(-1) === dialogId
+
   function handlePopState() {
     if (isProgrammaticBack)
       return
 
     // Закрываем только ту модалку, которая находится на самом верху стека
-    if (openModalsStack[openModalsStack.length - 1] === dialogId) {
+    if (isTopDialog()) {
       if (visible.value)
         visible.value = false
     }
@@ -68,4 +88,6 @@ export function useDialogHistory(dialogId: string, visible: Ref<boolean>) {
       cleanupHistory()
     })
   }
+
+  return { isTopDialog }
 }

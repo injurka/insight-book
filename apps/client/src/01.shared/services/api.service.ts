@@ -753,11 +753,12 @@ export const api = {
       messages?: Array<{ role: 'system' | 'user' | 'assistant', content: string }>
       json?: boolean
       temperature?: number
-    }) => request<{ success: boolean, data?: T, text?: string, usage?: unknown }>('/api/llm/generate', {
+    }, options?: ApiRequestOptions) => request<{ success: boolean, data?: T, text?: string, usage?: unknown }>('/api/llm/generate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
       withLlm: true,
+      signal: options?.signal,
     }),
   },
 

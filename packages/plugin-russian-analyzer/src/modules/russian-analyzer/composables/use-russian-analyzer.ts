@@ -4,7 +4,7 @@ import type {
   RussianLexemeToken,
   RussianSentenceAnalysis,
 } from '../model'
-import { computed, ref } from 'vue'
+import { computed, onScopeDispose, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { requestLlmGenerate } from '../../../shared/lib/api'
 import {
@@ -41,6 +41,8 @@ export function useRussianAnalyzer() {
   const canvasViewMode = ref<CanvasViewMode>('hierarchy')
   /** Ключ выбранного предложения; `null` — показывать разбор целиком. */
   const activeSentenceIndex = ref<number | null>(null)
+
+  let requestController: AbortController | undefined
 
   const detectedLanguage = computed(() => detectRussianAnalyzerInputLanguage(queryInput.value))
   const sentenceTabs = computed(() => currentAnalysis.value ? getSentenceTabs(currentAnalysis.value) : [])
@@ -104,10 +106,11 @@ export function useRussianAnalyzer() {
     applyAnalysisResult(analysis)
   }
 
-  function tryApplyCachedAnalysis(text: string): boolean {
+  function tryApplyCachedAnalysis(text: string, interfaceLanguage: string): boolean {
     const cleanTarget = stripStressMarks(text).toLowerCase()
-    const cachedHistory = history.historyItems.value.find(item => stripStressMarks(item.query).toLowerCase() === cleanTarget
-      || stripStressMarks(item.plainText).toLowerCase() === cleanTarget)
+    const cachedHistory = history.historyItems.value.find(item => item.interfaceLanguage === interfaceLanguage
+      && (stripStressMarks(item.query).toLowerCase() === cleanTarget
+        || stripStressMarks(item.plainText).toLowerCase() === cleanTarget))
 
     if (cachedHistory) {
       errorMessage.value = null
@@ -119,14 +122,14 @@ export function useRussianAnalyzer() {
     return false
   }
 
-  async function requestAndNormalizeAnalysis(text: string): Promise<RussianSentenceAnalysis> {
+  async function requestAndNormalizeAnalysis(text: string, signal: AbortSignal, interfaceLanguage: string): Promise<RussianSentenceAnalysis> {
     const raw = await requestLlmGenerate<unknown>({
       action: 'russian_sentence_deep_analyze',
-      systemPrompt: buildRussianAnalyzerSystemPrompt((locale.value as string) || 'en'),
+      systemPrompt: buildRussianAnalyzerSystemPrompt(interfaceLanguage),
       prompt: buildRussianAnalyzerUserPrompt(text),
       json: true,
       temperature: 0.35,
-    })
+    }, signal)
 
     if (!raw) {
       throw new Error('Empty LLM response')
@@ -152,30 +155,45 @@ export function useRussianAnalyzer() {
       queryInput.value = text
     }
 
-    if (tryApplyCachedAnalysis(text)) {
+    const interfaceLanguage = locale.value.split('-')[0] || 'en'
+
+    if (tryApplyCachedAnalysis(text, interfaceLanguage)) {
       return true
     }
 
     isAnalyzing.value = true
     errorMessage.value = null
 
+    const controller = new AbortController()
+    requestController = controller
+
     try {
-      const normalized = await requestAndNormalizeAnalysis(text)
+      const normalized = await requestAndNormalizeAnalysis(text, controller.signal, interfaceLanguage)
+
+      if (controller.signal.aborted)
+        return false
+
       applyAnalysisResult(normalized)
-      history.saveToHistory(text, normalized)
+      history.saveToHistory(text, normalized, interfaceLanguage)
 
       return true
     }
     catch (err) {
+      if (controller.signal.aborted)
+        return false
+
       console.error('[RussianAnalyzer] Failed to analyze sentence:', err)
       errorMessage.value = t('plugins.russian-analyzer.errorGeneration')
 
       return false
     }
     finally {
+      requestController = undefined
       isAnalyzing.value = false
     }
   }
+
+  onScopeDispose(() => requestController?.abort())
 
   return {
     queryInput,

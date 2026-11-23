@@ -4,7 +4,7 @@ import type {
   ChineseSentenceAnalysis,
   LexemeToken,
 } from '../model'
-import { computed, ref } from 'vue'
+import { computed, onScopeDispose, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { DEFAULT_SHOWCASE_ANALYSIS } from '../../../shared/constants/presets'
 import {
@@ -41,6 +41,8 @@ export function useSentenceAnalyzer() {
   const canvasViewMode = ref<CanvasViewMode>('hierarchy')
   /** Ключ выбранного предложения; `null` — показывать разбор целиком. */
   const activeSentenceIndex = ref<number | null>(null)
+
+  let requestController: AbortController | undefined
 
   const detectedLanguage = computed(() => detectInputLanguage(queryInput.value))
   const sentenceTabs = computed(() => currentAnalysis.value ? getSentenceTabs(currentAnalysis.value) : [])
@@ -125,14 +127,14 @@ export function useSentenceAnalyzer() {
     return false
   }
 
-  async function requestAndNormalizeAnalysis(text: string): Promise<ChineseSentenceAnalysis> {
+  async function requestAndNormalizeAnalysis(text: string, signal: AbortSignal): Promise<ChineseSentenceAnalysis> {
     const raw = await requestLlmGenerate<unknown>({
       action: 'chinese_sentence_deep_analyze',
       systemPrompt: buildAnalyzerSystemPrompt((locale.value as string) || 'ru'),
       prompt: buildAnalyzerUserPrompt(text),
       json: true,
       temperature: 0.35,
-    })
+    }, signal)
 
     if (!raw) {
       throw new Error('Empty LLM response')
@@ -164,23 +166,36 @@ export function useSentenceAnalyzer() {
     isAnalyzing.value = true
     errorMessage.value = null
 
+    const controller = new AbortController()
+    requestController = controller
+
     try {
-      const normalized = await requestAndNormalizeAnalysis(text)
+      const normalized = await requestAndNormalizeAnalysis(text, controller.signal)
+
+      if (controller.signal.aborted)
+        return false
+
       applyAnalysisResult(normalized)
       history.saveToHistory(text, normalized)
 
       return true
     }
     catch (err) {
+      if (controller.signal.aborted)
+        return false
+
       console.error('[ChineseAnalyzer] Failed to analyze sentence:', err)
       errorMessage.value = t('plugins.chinese-analyzer.errorGeneration')
 
       return false
     }
     finally {
+      requestController = undefined
       isAnalyzing.value = false
     }
   }
+
+  onScopeDispose(() => requestController?.abort())
 
   return {
     queryInput,

@@ -1,4 +1,4 @@
-import type { PartOfSpeechCode, ToneNumber } from '../../modules/chinese-analyzer/model'
+import type { LexemeToken, PartOfSpeechCode, SyllableTonePoint, ToneNumber } from '../../modules/chinese-analyzer/model'
 
 const HAN_REGEX = /\p{Script=Han}/u
 const CYRILLIC_REGEX = /\p{Script=Cyrillic}/u
@@ -107,4 +107,22 @@ export function getPosClass(pos: PartOfSpeechCode): string {
   ]
 
   return valid.includes(pos) ? `pos-${pos}` : 'pos-other'
+}
+
+export function buildFallbackSyllables(tokens: LexemeToken[]): SyllableTonePoint[] {
+  const list: SyllableTonePoint[] = []
+
+  for (const token of tokens) {
+    for (const ch of token.characters) {
+      list.push({
+        hanzi: ch.char,
+        pinyin: ch.pinyin,
+        baseTone: ch.tone,
+        spokenTone: ch.tone,
+        sandhiApplied: false,
+      })
+    }
+  }
+
+  return list
 }

@@ -3,6 +3,7 @@ import jwt from 'jsonwebtoken'
 import { AUTH_MODE, JWT_SECRET } from '../config'
 import { ERROR_CODES } from '../constants/error-codes'
 import { bookDeckService } from '../services/book-deck/service'
+import { getCachedChineseEntry } from '../services/chinese-lexical-cache.service'
 import { dictionaryService } from '../services/dictionary.service'
 import { checkPronunciationAudio, generateDeepDiveQuiz, generateWordAutoFill, generateWordExamples } from '../services/llm.service'
 import { cachePlugin } from '../utils/cache'
@@ -61,6 +62,15 @@ export const dictionaryController = new Elysia({ prefix: '/api/dictionary' })
   .use(authPlugin)
   .use(cachePlugin)
   .onError(handleElysiaError)
+  .post('/cached-chinese-entry', async ({ userId, body }) => ({
+    entry: await getCachedChineseEntry(userId, body.text, body.targetLanguage),
+  }), {
+    cache: 'shortPrivate',
+    body: t.Object({
+      text: t.String({ minLength: 1, maxLength: 100 }),
+      targetLanguage: t.Union([t.Literal('ru'), t.Literal('en'), t.Literal('zh')]),
+    }),
+  })
   .post('/book-deck/open', ({ userId, body, query }) =>
     bookDeckService.open(
       body.bookId,

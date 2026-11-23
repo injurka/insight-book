@@ -2,9 +2,10 @@
 import type { Ref } from 'vue'
 import { Icon } from '@iconify/vue'
 import { useDraggable } from '@vueuse/core'
+import { computed, inject, nextTick, onMounted, onUnmounted, provide, ref, useId, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useBackHandler } from '~/01.shared/composables/use-back-handler'
-import { useDialogHistory } from '../composables/use-dialog-history'
+import { setDialogScrollLock, useDialogHistory } from '../composables/use-dialog-history'
 import { useDialogResize } from '../composables/use-dialog-resize'
 import { useDialogSwipe } from '../composables/use-dialog-swipe'
 import DialogResizeHandles from './dialog-resize-handles.vue'
@@ -43,6 +44,7 @@ const visible = defineModel<boolean>('visible', { required: true })
 const { t } = useI18n()
 const dialogId = useId()
 const { registerBackHandler } = useBackHandler()
+const { isTopDialog } = useDialogHistory(dialogId, visible)
 
 const parentDialogZIndex = inject<Ref<number> | undefined>('kit-dialog-z-index', undefined)
 const dialogContentRef = ref<HTMLElement | null>(null)
@@ -114,14 +116,7 @@ watch(() => props.floatingPosition, (position, previous) => {
     x.value = Math.max((window.innerWidth - props.maxWidth) / 2, 0)
 })
 watch([visible, isMinimized, () => props.floating], ([isOpen, isMin, isFloating]) => {
-  if (typeof window === 'undefined')
-    return
-
-  if (isOpen && !isMin && !isFloating)
-    document.body.style.setProperty('overflow', 'hidden')
-
-  else
-    document.body.style.removeProperty('overflow')
+  setDialogScrollLock(dialogId, isOpen && !isMin && !isFloating)
 
   if (isOpen && !hasResized.value)
     resetResize()
@@ -200,7 +195,7 @@ function handleTabTrap(event: KeyboardEvent) {
   }
 }
 function handleKeydown(event: KeyboardEvent) {
-  if (!visible.value || isMinimized.value)
+  if (!visible.value || isMinimized.value || !isTopDialog())
     return
 
   if (event.key === 'Escape' && !props.persistent) {
@@ -215,14 +210,11 @@ function handleKeydown(event: KeyboardEvent) {
 
 provide('kit-dialog-z-index', effectiveZIndex)
 
-useDialogHistory(dialogId, visible)
-
 onMounted(() => document.addEventListener('keydown', handleKeydown))
 onUnmounted(() => {
   document.removeEventListener('keydown', handleKeydown)
 
-  if (typeof window !== 'undefined')
-    document.body.style.removeProperty('overflow')
+  setDialogScrollLock(dialogId, false)
 
   visible.value = false
   isMinimized.value = false
@@ -392,6 +384,7 @@ onUnmounted(() => {
     margin: 0;
   }
   &.is-fullscreen {
+    box-sizing: border-box;
     width: 100vw !important;
     height: 100dvh !important;
     max-width: 100vw !important;
@@ -403,14 +396,14 @@ onUnmounted(() => {
     left: 0 !important;
     right: 0 !important;
     transform: none !important;
-    padding-top: max(16px, env(safe-area-inset-top, 0px)) !important;
-    padding-bottom: max(16px, env(safe-area-inset-bottom, 0px)) !important;
+    padding-top: max(16px, var(--safe-area-top, env(safe-area-inset-top, 0px))) !important;
+    padding-bottom: max(16px, var(--safe-area-bottom, env(safe-area-inset-bottom, 0px))) !important;
     padding-left: max(16px, env(safe-area-inset-left, 0px)) !important;
     padding-right: max(16px, env(safe-area-inset-right, 0px)) !important;
 
     @include media-down(sm) {
-      padding-top: max(12px, env(safe-area-inset-top, 0px)) !important;
-      padding-bottom: max(12px, env(safe-area-inset-bottom, 0px)) !important;
+      padding-top: max(12px, var(--safe-area-top, env(safe-area-inset-top, 0px))) !important;
+      padding-bottom: max(12px, var(--safe-area-bottom, env(safe-area-inset-bottom, 0px))) !important;
       padding-left: max(12px, env(safe-area-inset-left, 0px)) !important;
       padding-right: max(12px, env(safe-area-inset-right, 0px)) !important;
     }

@@ -1,143 +1,177 @@
 import { ref } from 'vue'
-import { requestTtsAudio } from '../../../shared/lib/api'
-
-const audioCache = new Map<string, string>()
+import { requestCachedTtsAudio } from '../../../shared/lib/api'
 
 export function useAnalyzerTts() {
+  // Keep recent results in memory for the current page only.
+  const audioCache = new Map<string, string>()
   const isPlaying = ref(false)
   const isLoadingAudio = ref(false)
+  const isAudioUnavailable = ref(false)
   const activeText = ref<string | null>(null)
   let currentAudio: HTMLAudioElement | null = null
+  let currentSpeech: SpeechSynthesisUtterance | null = null
+  let currentRequest: AbortController | null = null
+  let noticeTimer: ReturnType<typeof setTimeout> | undefined
 
   function stopAudio(): void {
-    if (currentAudio) {
-      currentAudio.pause()
-      currentAudio.currentTime = 0
-      currentAudio = null
-    }
+    currentRequest?.abort()
+    currentRequest = null
+    currentAudio?.pause()
+    currentAudio = null
 
-    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+    if (currentSpeech) {
+      currentSpeech = null
       window.speechSynthesis.cancel()
     }
 
+    clearTimeout(noticeTimer)
+    isAudioUnavailable.value = false
     isPlaying.value = false
     isLoadingAudio.value = false
     activeText.value = null
   }
 
-  function playViaWebSpeech(text: string): boolean {
-    if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
-      return false
-    }
-
-    window.speechSynthesis.cancel()
-    const utterance = new SpeechSynthesisUtterance(text)
-    utterance.lang = 'zh-CN'
-    utterance.rate = 0.92
-
-    utterance.onstart = () => {
-      isPlaying.value = true
-      activeText.value = text
-    }
-
-    utterance.onend = () => {
-      isPlaying.value = false
-      activeText.value = null
-    }
-
-    utterance.onerror = () => {
-      isPlaying.value = false
-      activeText.value = null
-    }
-
-    window.speechSynthesis.speak(utterance)
-
-    return true
+  function showUnavailable(): void {
+    stopAudio()
+    isAudioUnavailable.value = true
+    noticeTimer = setTimeout(() => {
+      isAudioUnavailable.value = false
+    }, 4500)
   }
 
-  async function playBase64Audio(base64: string, text: string): Promise<boolean> {
-    const src = base64.startsWith('data:') ? base64 : `data:audio/mp3;base64,${base64}`
-    const audio = new Audio(src)
-    currentAudio = audio
-    activeText.value = text
-    isPlaying.value = true
+  function playLocalSpeech(text: string, signal: AbortSignal): boolean {
+    if (typeof window === 'undefined' || !('speechSynthesis' in window))
+      return false
 
-    audio.onended = () => {
-      isPlaying.value = false
-      activeText.value = null
-      currentAudio = null
+    const voice = window.speechSynthesis.getVoices().find(voice =>
+      voice.localService && /^(?:cmn(?:-|$)|zh(?:$|-(?:cn|tw|sg|hans|hant)(?:-|$)))/i.test(voice.lang))
+
+    if (!voice)
+      return false
+
+    const utterance = new SpeechSynthesisUtterance(text)
+    currentSpeech = utterance
+    utterance.voice = voice
+    utterance.lang = voice.lang
+    utterance.rate = 0.92
+    utterance.onend = () => {
+      if (!signal.aborted) {
+        currentSpeech = null
+        stopAudio()
+      }
+    }
+    utterance.onerror = () => {
+      if (!signal.aborted)
+        showUnavailable()
     }
 
+    try {
+      window.speechSynthesis.speak(utterance)
+      isPlaying.value = true
+
+      return true
+    }
+    catch {
+      currentSpeech = null
+
+      return false
+    }
+  }
+
+  async function playCachedAudio(base64: string, signal: AbortSignal): Promise<boolean> {
+    const audio = new Audio(`data:audio/mpeg;base64,${base64}`)
+    currentAudio = audio
+    audio.onended = () => {
+      if (currentAudio === audio)
+        stopAudio()
+    }
     audio.onerror = () => {
-      isPlaying.value = false
-      activeText.value = null
-      currentAudio = null
+      if (currentAudio === audio && isPlaying.value)
+        showUnavailable()
     }
 
     try {
       await audio.play()
 
+      if (signal.aborted) {
+        audio.pause()
+
+        return false
+      }
+
+      isPlaying.value = true
+
       return true
     }
     catch {
+      if (currentAudio === audio)
+        currentAudio = null
+
       return false
+    }
+  }
+
+  async function loadAudio(text: string, signal: AbortSignal): Promise<string | null> {
+    try {
+      const cached = audioCache.get(text) ?? await requestCachedTtsAudio(text, signal)
+
+      if (cached && !signal.aborted) {
+        audioCache.delete(text)
+        audioCache.set(text, cached)
+
+        if (audioCache.size > 24) {
+          const oldest = audioCache.keys().next().value
+
+          if (oldest !== undefined)
+            audioCache.delete(oldest)
+        }
+      }
+
+      return cached
+    }
+    catch {
+      return null
     }
   }
 
   async function speakChinese(text: string): Promise<void> {
     const clean = text.trim()
 
-    if (!clean) {
+    if (!clean)
       return
-    }
 
-    if (isPlaying.value && activeText.value === clean) {
-      stopAudio()
-
-      return
-    }
-
+    const wasActive = activeText.value === clean
     stopAudio()
-    const cached = audioCache.get(clean)
 
-    if (cached) {
-      const ok = await playBase64Audio(cached, clean)
+    if (wasActive)
+      return
 
-      if (ok) {
-        return
-      }
-    }
-
-    isLoadingAudio.value = true
+    currentRequest = new AbortController()
+    const { signal } = currentRequest
     activeText.value = clean
+    isLoadingAudio.value = true
 
-    try {
-      const base64 = await requestTtsAudio(clean)
+    const cached = await loadAudio(clean, signal)
 
-      if (base64) {
-        audioCache.set(clean, base64)
-        isLoadingAudio.value = false
-        const played = await playBase64Audio(base64, clean)
+    if (signal.aborted)
+      return
 
-        if (played) {
-          return
-        }
-      }
-    }
-    catch {
-      // Fallback to browser speech synthesis
-    }
-    finally {
-      isLoadingAudio.value = false
-    }
+    const played = cached ? await playCachedAudio(cached, signal) : false
 
-    playViaWebSpeech(clean)
+    if (signal.aborted)
+      return
+
+    isLoadingAudio.value = false
+
+    if (!played && !playLocalSpeech(clean, signal))
+      showUnavailable()
   }
 
   return {
+    activeText,
     isPlaying,
     isLoadingAudio,
-    activeText,
+    isAudioUnavailable,
     speakChinese,
     stopAudio,
   }

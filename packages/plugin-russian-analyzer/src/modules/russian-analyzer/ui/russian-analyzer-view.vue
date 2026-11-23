@@ -18,6 +18,11 @@ import SentenceOverviewCard from './partials/sentence-overview-card.vue'
 import SentenceSwitcher from './partials/sentence-switcher.vue'
 import UsagePragmaticsCard from './partials/usage-pragmatics-card.vue'
 
+interface Props {
+  initialSentence?: string
+}
+
+const props = defineProps<Props>()
 const { t } = useI18n()
 const router = useRouter()
 const route = useRoute()
@@ -49,7 +54,7 @@ async function analyzeAndScroll(text?: string): Promise<void> {
 }
 
 onMounted(() => {
-  const initialQuery = typeof route?.query?.q === 'string' ? route.query.q.trim() : ''
+  const initialQuery = props.initialSentence ?? (typeof route?.query?.q === 'string' ? route.query.q.trim() : '')
 
   if (initialQuery) {
     void analyzeAndScroll(initialQuery)
@@ -62,9 +67,9 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div ref="pageRef" class="russian-analyzer-page">
+  <div ref="pageRef" class="russian-analyzer-page" :class="{ 'is-embedded': props.initialSentence !== undefined }">
     <!-- Top Page Header -->
-    <header class="page-header">
+    <header v-if="props.initialSentence === undefined" class="page-header">
       <div class="header-left">
         <KitBtn
           icon="mdi:arrow-left"
@@ -97,11 +102,17 @@ onUnmounted(() => {
 
     <!-- Stylized Multilingual Input Bar (RU / 中文 / EN + Voice) -->
     <AnalyzerHeroInput
+      v-if="props.initialSentence === undefined"
       v-model="analyzer.queryInput.value"
       :is-analyzing="analyzer.isAnalyzing.value"
       :detected-language="analyzer.detectedLanguage.value"
       @analyze="analyzeAndScroll"
     />
+
+    <div v-if="props.initialSentence !== undefined && analyzer.isAnalyzing.value && !viewAnalysis" class="reader-analysis-loading" role="status">
+      <Icon icon="mdi:loading" class="reader-analysis-spinner" aria-hidden="true" />
+      <span>{{ t('plugins.russian-analyzer.analyzingBtn') }}</span>
+    </div>
 
     <!-- Error Alert -->
     <div v-if="analyzer.errorMessage.value" class="error-alert">
@@ -208,6 +219,7 @@ onUnmounted(() => {
 
     <!-- History Modal -->
     <AnalyzerHistoryDrawer
+      v-if="props.initialSentence === undefined"
       v-model:visible="isHistoryOpen"
       :items="analyzer.history.historyItems.value"
       :active-plain-text="currentAnalysis?.sentence.plainText ?? ''"
@@ -219,6 +231,36 @@ onUnmounted(() => {
 </template>
 
 <style lang="scss" scoped>
+.russian-analyzer-page.is-embedded {
+  padding: 0;
+}
+
+.reader-analysis-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 9rem;
+  color: var(--fg-secondary-color);
+}
+
+.reader-analysis-spinner {
+  color: var(--fg-accent-color);
+  animation: reader-analysis-spin 1s linear infinite;
+}
+
+@keyframes reader-analysis-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reader-analysis-spinner {
+    animation: none;
+  }
+}
+
 .russian-analyzer-page {
   max-width: 1360px;
   width: 100%;

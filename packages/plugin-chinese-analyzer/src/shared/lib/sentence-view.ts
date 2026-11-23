@@ -12,6 +12,7 @@ import {
   splitRhythmIntoSentenceRows,
   splitTextIntoSentenceLines,
 } from './sentence-segmentation'
+import { buildFallbackSyllables } from './tone-utils'
 
 export interface SentenceTab {
   /** Ключ предложения (`sentenceIndex` токенов). */
@@ -29,10 +30,6 @@ function joinGroupHanzi(group: TokenSentenceGroup): string {
   return group.items.map(item => item.token.hanzi + item.trailingPunctuation).join('')
 }
 
-function sumCharacters(group: TokenSentenceGroup): number {
-  return group.items.reduce((sum, item) => sum + item.token.characters.length, 0)
-}
-
 /** Элемент без `sentenceIndex` относится ко всему тексту и показывается в любом предложении. */
 function isInSentence(item: SentenceScoped, sentenceIndex: number): boolean {
   return item.sentenceIndex === undefined || item.sentenceIndex === sentenceIndex
@@ -48,20 +45,29 @@ function pickLine(
   return lines.length === count ? lines[position] : fullText
 }
 
+function hanCharacters(text: string): string {
+  return (text.match(/\p{Script=Han}/gu) ?? []).join('')
+}
+
 function sliceSyllables(analysis: ChineseSentenceAnalysis, groups: TokenSentenceGroup[], position: number): SyllableTonePoint[] {
   const { syllables } = analysis.phonetics
-  const charCounts = groups.map(sumCharacters)
+  const expected = groups.map(group => hanCharacters(joinGroupHanzi(group)))
+  const syllableText = (items: SyllableTonePoint[]) => items.map(item => item.hanzi).join('')
 
-  // Слог на иероглиф: границы предложений совпадают с границами токенов.
-  if (syllables.length === charCounts.reduce((a, b) => a + b, 0)) {
-    const start = charCounts.slice(0, position).reduce((a, b) => a + b, 0)
+  if (syllableText(syllables) === expected.join('') && syllables.every(item => Array.from(item.hanzi).length === 1)) {
+    const start = expected.slice(0, position).reduce((count, text) => count + Array.from(text).length, 0)
 
-    return syllables.slice(start, start + charCounts[position])
+    return syllables.slice(start, start + Array.from(expected[position]).length)
   }
 
-  const syllableGroups = groupSyllablesBySentence(analysis.sentence.hanzi, syllables)
+  const segmented = groupSyllablesBySentence(analysis.sentence.hanzi, syllables)
+  const candidate = segmented.length === groups.length ? segmented[position].syllables : []
 
-  return syllableGroups.length === groups.length ? syllableGroups[position].syllables : syllables
+  if (syllableText(candidate) === expected[position])
+    return candidate
+
+  return buildFallbackSyllables(groups[position].items.map(item => item.token))
+    .filter(item => /\p{Script=Han}/u.test(item.hanzi))
 }
 
 function slicePhonetics(
@@ -77,7 +83,7 @@ function slicePhonetics(
     ...phonetics,
     rhythmGrouping: rhythmRows.length === groups.length
       ? rhythmRows[position].join(' / ')
-      : phonetics.rhythmGrouping,
+      : joinGroupHanzi(groups[position]),
     sandhiRules: phonetics.sandhiRules.filter(rule => isInSentence(rule, sentenceIndex)),
     syllables: sliceSyllables(analysis, groups, position),
   }

@@ -1,5 +1,6 @@
 import type { InsightBookPlugin, InsightBookPluginContext } from '@injurka/insight-book-plugin-api'
 import { setPluginApi, setPluginContext } from '@injurka/insight-book-plugin-api'
+import ReaderSentenceAction from './modules/chinese-analyzer/ui/reader-sentence-action.vue'
 import { registerChineseAnalyzerIcons } from './shared/icons'
 import { setLocalPluginApi } from './shared/lib/api'
 import en from './shared/locales/en'
@@ -27,6 +28,12 @@ const plugin: InsightBookPlugin = {
 
     registerChineseAnalyzerIcons()
     ctx.registerTranslations({ ru, en, zh })
+    ctx.registerUIWidget(
+      'reader:sentence-analysis-actions',
+      'chinese-analyzer-sentence-action',
+      ReaderSentenceAction,
+      { bookLanguage: 'zh' },
+    )
 
     const locales = { ru, en, zh } as const
     const t = locales[ctx.locale as keyof typeof locales] ?? ru
@@ -42,6 +49,7 @@ const plugin: InsightBookPlugin = {
   },
 
   deactivate(ctx: InsightBookPluginContext) {
+    ctx.unregisterUIWidget('chinese-analyzer-sentence-action')
     const locales = { ru, en, zh } as const
     const t = locales[ctx.locale as keyof typeof locales] ?? ru
     ctx.notify(t.notifyDeactivated, 'info')

@@ -2,8 +2,10 @@
 import type { AnalysisHistoryItem } from '~/01.shared/store/analysis/analysis.store'
 import type { LlmAnalysis } from '~/01.shared/types/models'
 import { Icon } from '@iconify/vue'
+import { normalizeLanguageCode } from '@injurka/insight-book-language-utils'
 import { computed, onUnmounted, ref, useTemplateRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { pluginManager } from '~/00.plugins/plugin-manager'
 import { useTextQuoteHighlights } from '~/01.shared/composables/use-text-quote-highlights'
 import { useToast } from '~/01.shared/composables/use-toast'
 import { useTts } from '~/01.shared/composables/use-tts'
@@ -33,7 +35,7 @@ const emit = defineEmits<{
   floatingMove: [x: number]
 }>()
 
-const { t } = useI18n()
+const { locale, t } = useI18n()
 const analysisStore = useAnalysisStore()
 const networkStore = useNetworkStore()
 const toast = useToast()
@@ -59,6 +61,16 @@ const modalInitialData = ref<{
   color: '#fde047',
   note: '',
   analysisData: null,
+})
+
+const bookLanguage = computed(() => normalizeLanguageCode(readerStore.currentBook?.language))
+const readerSentence = computed(() => analysisStore.sidebarOpen ? analysisStore.sidebarSentence?.trim() : null)
+const sentenceActionWidgets = computed(() => {
+  const language = normalizeLanguageCode(locale.value)
+
+  return pluginManager.getWidgets('reader:sentence-analysis-actions').filter(({ props }) =>
+    props?.bookLanguage === bookLanguage.value
+    && (!Array.isArray(props.interfaceLanguages) || props.interfaceLanguages.includes(language)))
 })
 
 const bookQuotes = computed(() => {
@@ -291,6 +303,16 @@ onUnmounted(() => stop())
               </button>
             </KitTooltip>
 
+            <template v-if="readerSentence">
+              <component
+                :is="widget.component"
+                v-for="widget in sentenceActionWidgets"
+                :key="`${widget.id}:${readerSentence}`"
+                :sentence="readerSentence"
+                @open="stop"
+              />
+            </template>
+
             <KitTooltip
               v-if="canSaveQuote"
               :text="matchingHighlight ? t('analysis.removeHighlight') : t('analysis.saveToDict')"
@@ -441,7 +463,7 @@ onUnmounted(() => stop())
       gap: 8px;
       flex-shrink: 0;
 
-      .action-btn {
+      :deep(.action-btn) {
         display: flex;
         align-items: center;
         justify-content: center;
@@ -596,7 +618,7 @@ onUnmounted(() => stop())
         min-height: 80px;
       }
 
-      .sentence-actions .action-btn {
+      .sentence-actions :deep(.action-btn) {
         width: 36px;
         height: 36px;
       }

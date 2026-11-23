@@ -647,8 +647,9 @@ describe('usePluginManager - api facade', () => {
     const facade = capturedCtx!.api
 
     // Test llm.generate
-    const llmRes = await facade.llm.generate({ prompt: 'hello', action: 'test' })
-    expect(api.llm.generate).toHaveBeenCalledWith({ prompt: 'hello', action: 'test' })
+    const signal = new AbortController().signal
+    const llmRes = await facade.llm.generate({ prompt: 'hello', action: 'test' }, { signal })
+    expect(api.llm.generate).toHaveBeenCalledWith({ prompt: 'hello', action: 'test' }, { signal })
     expect(llmRes).toEqual({ success: true, text: 'mock generated text' })
 
     // Test request

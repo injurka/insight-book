@@ -37,7 +37,7 @@ function extractLlmData<T>(res: { success: boolean, data?: unknown, text?: strin
   return null
 }
 
-export async function requestLlmGenerate<T = unknown>(params: PluginLlmGeneratePayload): Promise<T | null> {
+export async function requestLlmGenerate<T = unknown>(params: PluginLlmGeneratePayload, signal?: AbortSignal): Promise<T | null> {
   const api = getPluginApi()
   const payload: PluginLlmGeneratePayload = {
     ...params,
@@ -46,7 +46,7 @@ export async function requestLlmGenerate<T = unknown>(params: PluginLlmGenerateP
   }
 
   if (api?.llm?.generate) {
-    const res = await api.llm.generate<T>(payload)
+    const res = await api.llm.generate<T>(payload, { signal })
 
     return extractLlmData<T>(res)
   }
@@ -57,6 +57,7 @@ export async function requestLlmGenerate<T = unknown>(params: PluginLlmGenerateP
       headers: { 'Content-Type': 'application/json' },
       body: payload as unknown as Record<string, unknown>,
       withLlm: true,
+      signal,
     })
 
     return extractLlmData<T>(res)
@@ -66,6 +67,7 @@ export async function requestLlmGenerate<T = unknown>(params: PluginLlmGenerateP
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
+    signal,
   })
 
   if (!res.ok) {
@@ -110,36 +112,30 @@ export async function requestSpeechToText(audioBlob: Blob): Promise<string> {
   return fetchSpeechToTextFallback(fd)
 }
 
-export async function requestTtsAudio(text: string, voice = 'default'): Promise<string | null> {
-  const api = getPluginApi()
-  const payload = { text, voice }
+export interface CachedChineseEntry {
+  source: 'dictionary' | 'reader'
+  translation: string
+  transcription: string
+}
 
-  try {
-    if (api?.request) {
-      const res = await api.request<{ audioBase64?: string }>('/api/tts', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: payload as unknown as Record<string, unknown>,
-      })
+export async function requestCachedChineseEntry(text: string, targetLanguage: string, signal: AbortSignal): Promise<CachedChineseEntry | null> {
+  const response = await getPluginApi()?.request<{ entry: CachedChineseEntry | null }>('/api/dictionary/cached-chinese-entry', {
+    method: 'POST',
+    body: { text, targetLanguage },
+    signal,
+    silentErrors: true,
+  })
 
-      return res?.audioBase64 || null
-    }
+  return response?.entry ?? null
+}
 
-    const res = await fetch('/api/tts', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-    })
+export async function requestCachedTtsAudio(text: string, signal: AbortSignal): Promise<string | null> {
+  const response = await getPluginApi()?.request<{ audioBase64: string | null }>('/api/tts/cache-check', {
+    method: 'POST',
+    body: { text },
+    signal,
+    silentErrors: true,
+  })
 
-    if (!res.ok) {
-      return null
-    }
-
-    const data = await res.json() as { audioBase64?: string }
-
-    return data?.audioBase64 || null
-  }
-  catch {
-    return null
-  }
+  return response?.audioBase64 ?? null
 }

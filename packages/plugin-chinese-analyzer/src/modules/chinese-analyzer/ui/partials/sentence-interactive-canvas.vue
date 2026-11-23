@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { Ref } from 'vue'
 import type {
   CanvasSelectedNode,
   CanvasViewMode,
@@ -9,7 +10,7 @@ import type {
   SyntacticClause,
 } from '../../model'
 import { Icon } from '@iconify/vue'
-import { computed, onMounted, ref, useTemplateRef, watch } from 'vue'
+import { computed, inject, onMounted, ref, useTemplateRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { computeCanvasGraphLayout } from '../../../../shared/lib/canvas-layout'
 import { getPosClass } from '../../../../shared/lib/tone-utils'
@@ -37,6 +38,7 @@ const viewport = useCanvasViewport()
 const canvasShellEl = useTemplateRef<HTMLElement>('canvasShellRef')
 const viewportContainerEl = useTemplateRef<HTMLDivElement>('viewportContainerRef')
 
+const dialogZIndex = inject<Ref<number> | null>('kit-dialog-z-index', null)
 const inlineHeight = ref(0)
 
 const fullscreenLabel = computed(() => t(viewport.isFullscreen.value
@@ -144,6 +146,7 @@ onMounted(() => {
       class="canvas-shell"
       :aria-label="t('plugins.chinese-analyzer.canvasTitle')"
       :class="{ 'is-fullscreen': viewport.isFullscreen.value }"
+      :style="{ zIndex: dialogZIndex && viewport.isFullscreen.value ? dialogZIndex + 1 : undefined }"
     >
       <!-- Canvas Header & Controls Toolbar -->
       <header class="canvas-toolbar">

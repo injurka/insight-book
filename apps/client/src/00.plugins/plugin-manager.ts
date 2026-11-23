@@ -149,8 +149,8 @@ export function usePluginManager(): PluginManager {
   const createApiFacade = (): InsightBookPluginApiFacade => ({
     request: executePluginRequest,
     llm: {
-      generate: <T = unknown>(payload: PluginLlmGeneratePayload): Promise<PluginLlmGenerateResult<T>> => {
-        return api.llm.generate<T>(payload)
+      generate: <T = unknown>(payload: PluginLlmGeneratePayload, options?: Pick<PluginHttpRequestOptions, 'signal'>): Promise<PluginLlmGenerateResult<T>> => {
+        return api.llm.generate<T>(payload, options)
       },
     },
     dictionary: {

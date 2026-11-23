@@ -3,6 +3,7 @@ import type { Component } from 'vue'
 export type UIPosition
   = | 'dictionary:training-modes'
     | 'reader:header-actions'
+    | 'reader:sentence-analysis-actions'
     | 'settings:custom-tab'
     | 'srs-card:toolbar-actions'
     | 'srs-card:below-toolbar'
@@ -59,7 +60,7 @@ export interface InsightBookPluginApiFacade {
 
   /** Методы генерации через LLM (AI) */
   llm: {
-    generate: <T = unknown>(payload: PluginLlmGeneratePayload) => Promise<PluginLlmGenerateResult<T>>
+    generate: <T = unknown>(payload: PluginLlmGeneratePayload, options?: Pick<PluginHttpRequestOptions, 'signal'>) => Promise<PluginLlmGenerateResult<T>>
   }
 
   /** Методы словаря пользователя */

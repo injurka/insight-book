@@ -1,5 +1,6 @@
 import type { BatchAnalysisRequest } from '../types'
 import path from 'node:path'
+import { TTS_TEXT_MAX_LENGTH } from '@injurka/insight-book-language-utils'
 import { Elysia, t } from 'elysia'
 import jwt from 'jsonwebtoken'
 import { extractLlmConfig, normalizeLanguageCode } from '~/utils/helpers'
@@ -10,7 +11,7 @@ import { bookAnalysisService } from '../services/book-analysis.service'
 import { bookUploadService } from '../services/book-upload.service'
 import { bookService } from '../services/book.service'
 import { storageService } from '../services/storage.service'
-import { transcribeAudio } from '../services/tts.service'
+import { getCachedTts, transcribeAudio } from '../services/tts.service'
 import { UpdateBookSchema, UpdateStatsSchema } from '../types/schemas'
 import { CACHE_PROFILES, cachePlugin } from '../utils/cache'
 import { AppError, handleElysiaError } from '../utils/errors'
@@ -393,6 +394,19 @@ export const bookController = new Elysia({ prefix: '/api/books' })
 
 export const ttsController = new Elysia()
   .use(authPlugin)
+  .use(cachePlugin)
+  .post('/api/tts/cache-check', async ({ body }) => {
+    const audio = await getCachedTts(body.text, body.voice)
+
+    return { audioBase64: audio?.audioBase64 ?? null }
+  }, {
+    requireAuth: true,
+    cache: 'shortPrivate',
+    body: t.Object({
+      text: t.String({ minLength: 1, maxLength: TTS_TEXT_MAX_LENGTH }),
+      voice: t.Optional(t.String({ minLength: 1, maxLength: 100 })),
+    }),
+  })
   .post('/api/tts', async ({ userId, body, request }) => {
     const { text, voice, forceCacheBypass } = body as { text: string, voice: string, forceCacheBypass?: boolean }
     const config = extractLlmConfig(request)

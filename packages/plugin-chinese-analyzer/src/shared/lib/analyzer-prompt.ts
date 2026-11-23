@@ -16,7 +16,7 @@ import type {
   ToneSandhiRuleItem,
   UsageContextInfo,
 } from '../../modules/chinese-analyzer/model'
-import { detectInputLanguage, normalizeToneNumber } from './tone-utils'
+import { buildFallbackSyllables, detectInputLanguage, normalizeToneNumber } from './tone-utils'
 
 export function buildAnalyzerSystemPrompt(interfaceLang = 'ru'): string {
   const targetLangName = interfaceLang === 'en' ? 'English' : 'Russian'
@@ -361,24 +361,6 @@ function normalizeSyllable(raw: unknown): SyllableTonePoint {
     sandhiApplied: Boolean(obj.sandhiApplied) || baseTone !== spokenTone,
     note: asString(obj.note),
   }
-}
-
-function buildFallbackSyllables(tokens: LexemeToken[]): SyllableTonePoint[] {
-  const list: SyllableTonePoint[] = []
-
-  for (const token of tokens) {
-    for (const ch of token.characters) {
-      list.push({
-        hanzi: ch.char,
-        pinyin: ch.pinyin,
-        baseTone: ch.tone,
-        spokenTone: ch.tone,
-        sandhiApplied: false,
-      })
-    }
-  }
-
-  return list
 }
 
 function normalizePhonetics(raw: unknown, tokens: LexemeToken[]): PhoneticsAnalysis {

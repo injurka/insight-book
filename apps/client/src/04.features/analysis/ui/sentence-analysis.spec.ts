@@ -12,9 +12,13 @@ const mocks = vi.hoisted(() => ({
   },
   highlights: [] as { id: number, bookId: number, text: string }[],
   deleteHighlight: vi.fn(),
+  getWidgets: vi.fn(),
+  book: { id: 1, language: 'en' },
+  locale: { value: 'ru' },
 }))
 
-vi.mock('vue-i18n', () => ({ useI18n: () => ({ t: (key: string) => key }) }))
+vi.mock('~/00.plugins/plugin-manager', () => ({ pluginManager: { getWidgets: mocks.getWidgets } }))
+vi.mock('vue-i18n', () => ({ useI18n: () => ({ locale: mocks.locale, t: (key: string) => key }) }))
 vi.mock('~/01.shared/store/analysis/analysis.store', () => ({ useAnalysisStore: () => mocks.analysis }))
 vi.mock('~/01.shared/store/network.store', () => ({ useNetworkStore: () => ({ effectiveOffline: false }) }))
 vi.mock('~/01.shared/composables/use-toast', () => ({ useToast: () => ({ warn: vi.fn() }) }))
@@ -22,7 +26,7 @@ vi.mock('~/01.shared/composables/use-tts', () => ({
   useTts: () => ({ speak: vi.fn(), stop: vi.fn(), isPlaying: false, isLoading: false }),
 }))
 vi.mock('~/05.modules/reader', () => ({
-  useReaderStore: () => ({ currentBook: { id: 1 } }),
+  useReaderStore: () => ({ currentBook: mocks.book }),
   useHighlightsStore: () => ({ highlights: mocks.highlights, deleteHighlight: mocks.deleteHighlight }),
 }))
 vi.mock('~/05.modules/library', () => ({ useLibraryStore: () => ({ currentBookInfo: null }) }))
@@ -48,6 +52,8 @@ describe('sentence analysis saved quote', () => {
     mocks.analysis.sidebarSentence = sentence
     mocks.highlights.length = 0
     mocks.deleteHighlight.mockReset()
+    mocks.getWidgets.mockReturnValue([])
+    mocks.book.language = 'en'
   })
 
   it.each(['As far as', `${sentence} Another sentence.`])('does not match a different quote: %s', async (text) => {
@@ -97,5 +103,42 @@ describe('sentence analysis saved quote', () => {
     expect(wrapper.findComponent({ name: 'QuoteModal' }).exists()).toBe(false)
     wrapper.unmount()
     mocks.analysis.hideDictionaryActions = false
+  })
+})
+
+describe('reader analysis plugins', () => {
+  it.each([
+    ['zh-CN', 'ru', true, true],
+    ['zh-CN', 'ru', false, false],
+    ['en', 'ru', true, false],
+    ['ru', 'en', true, true],
+    ['ru', 'zh', true, true],
+    ['ru', 'ru', true, false],
+    ['ru', 'en', false, false],
+  ])('matches book language %s, interface %s and plugin state %s', (
+    language,
+    locale,
+    enabled,
+    shown,
+  ) => {
+    mocks.book.language = language
+    mocks.locale.value = locale
+    mocks.analysis.sidebarSentence = language === 'ru' ? 'Все иногда ошибаются.' : '没关系，谁都有犯错的时候。'
+    mocks.getWidgets.mockReturnValue(enabled
+      ? [{
+          id: 'analyzer-action',
+          props: language === 'ru' ? { bookLanguage: 'ru', interfaceLanguages: ['en', 'zh'] } : { bookLanguage: 'zh' },
+          component: { props: ['sentence'], template: '<button data-test="lab-action">{{ sentence }}</button>' },
+        }]
+      : [])
+    const wrapper = renderAnalysis()
+    const action = wrapper.find('[data-test="lab-action"]')
+
+    expect(action.exists()).toBe(shown)
+
+    if (shown)
+      expect(action.text()).toBe(mocks.analysis.sidebarSentence)
+
+    wrapper.unmount()
   })
 })

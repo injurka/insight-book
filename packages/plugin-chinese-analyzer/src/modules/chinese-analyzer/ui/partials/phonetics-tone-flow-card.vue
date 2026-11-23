@@ -97,7 +97,7 @@ function getSyllableEndPoint(syllable: SyllableTonePoint): { x: number, y: numbe
     </div>
 
     <!-- Visual Tone Pitch Contour Chart (Chao 1-5 Scale) -->
-    <div class="contour-block">
+    <div v-if="syllableGroups.length" class="contour-block">
       <div class="sub-label">
         {{ t('plugins.chinese-analyzer.toneContourLabel') }}
       </div>

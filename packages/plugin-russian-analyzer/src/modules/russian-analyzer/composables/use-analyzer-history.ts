@@ -41,13 +41,14 @@ function writeStoredHistory(items: AnalysisHistoryItem[]): void {
 export function useAnalyzerHistory() {
   const historyItems = ref<AnalysisHistoryItem[]>(readStoredHistory())
 
-  function saveToHistory(query: string, analysis: RussianSentenceAnalysis): void {
+  function saveToHistory(query: string, analysis: RussianSentenceAnalysis, interfaceLanguage: string): void {
     const cleanText = analysis.sentence.plainText.trim()
-    const filtered = historyItems.value.filter(item => item.plainText !== cleanText && item.query !== query.trim())
+    const filtered = historyItems.value.filter(item => item.interfaceLanguage !== interfaceLanguage || (item.plainText !== cleanText && item.query !== query.trim()))
 
     const newItem: AnalysisHistoryItem = {
       id: `ru_hist_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
       createdAt: Date.now(),
+      interfaceLanguage,
       query: query.trim(),
       plainText: cleanText,
       stressedText: analysis.sentence.stressedText,

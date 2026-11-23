@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { AnalysisHistoryItem, LexemeToken } from '../model'
 import { Icon } from '@iconify/vue'
-import { nextTick, onMounted, onUnmounted, ref, useTemplateRef } from 'vue'
+import { computed, nextTick, onMounted, onUnmounted, ref, useTemplateRef } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import { KitBtn } from '~/02.kit/atoms/kit-btn/ui'
@@ -10,6 +10,7 @@ import { useSentenceAnalyzer } from '../composables/use-sentence-analyzer'
 import AlternativesSection from './partials/alternatives-section.vue'
 import AnalyzerHeroInput from './partials/analyzer-hero-input.vue'
 import AnalyzerHistoryDrawer from './partials/analyzer-history-drawer.vue'
+import CachedChineseEntry from './partials/cached-chinese-entry.vue'
 import GrammarPatternsSection from './partials/grammar-patterns-section.vue'
 import NodeInspectorPanel from './partials/node-inspector-panel.vue'
 import PhoneticsToneFlowCard from './partials/phonetics-tone-flow-card.vue'
@@ -18,6 +19,11 @@ import SentenceOverviewCard from './partials/sentence-overview-card.vue'
 import SentenceSwitcher from './partials/sentence-switcher.vue'
 import UsagePragmaticsCard from './partials/usage-pragmatics-card.vue'
 
+interface Props {
+  initialSentence?: string
+}
+
+const props = defineProps<Props>()
 const { t } = useI18n()
 const router = useRouter()
 const route = useRoute()
@@ -27,6 +33,12 @@ const page = useTemplateRef<HTMLElement>('pageRef')
 
 const { currentAnalysis, viewAnalysis } = analyzer
 const isHistoryOpen = ref(false)
+const cachePreviewText = computed(() => {
+  const input = analyzer.queryInput.value.trim()
+  const analysis = currentAnalysis.value?.sentence
+
+  return input === analysis?.originalInput || input === analysis?.hanzi ? '' : input
+})
 
 function onSelectTokenFromOverview(token: LexemeToken): void {
   analyzer.selectNode({ kind: 'token', token })
@@ -45,7 +57,7 @@ async function analyzeAndScroll(text?: string): Promise<void> {
 }
 
 onMounted(() => {
-  const initialQuery = typeof route?.query?.q === 'string' ? route.query.q.trim() : ''
+  const initialQuery = props.initialSentence ?? (typeof route?.query?.q === 'string' ? route.query.q.trim() : '')
 
   if (initialQuery) {
     void analyzeAndScroll(initialQuery)
@@ -57,9 +69,9 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div ref="pageRef" class="chinese-analyzer-page">
+  <div ref="pageRef" class="chinese-analyzer-page" :class="{ 'is-embedded': props.initialSentence !== undefined }">
     <!-- Top Page Header -->
-    <header class="page-header">
+    <header v-if="props.initialSentence === undefined" class="page-header">
       <div class="header-left">
         <KitBtn
           icon="mdi:arrow-left"
@@ -92,11 +104,19 @@ onUnmounted(() => {
 
     <!-- Stylized Bilingual Input Bar -->
     <AnalyzerHeroInput
+      v-if="props.initialSentence === undefined"
       v-model="analyzer.queryInput.value"
       :is-analyzing="analyzer.isAnalyzing.value"
       :detected-language="analyzer.detectedLanguage.value"
       @analyze="analyzeAndScroll"
     />
+
+    <CachedChineseEntry v-if="props.initialSentence === undefined" :text="cachePreviewText" />
+
+    <div v-if="props.initialSentence !== undefined && analyzer.isAnalyzing.value && !viewAnalysis" class="reader-analysis-loading" role="status">
+      <Icon icon="mdi:loading" class="reader-analysis-spinner" aria-hidden="true" />
+      <span>{{ t('plugins.chinese-analyzer.analyzingBtn') }}</span>
+    </div>
 
     <!-- Error Alert -->
     <div v-if="analyzer.errorMessage.value" class="error-alert">
@@ -129,7 +149,7 @@ onUnmounted(() => {
         :sentence="viewAnalysis.sentence"
         :tokens="viewAnalysis.tokens"
         :selected-node="analyzer.selectedNode.value"
-        :is-playing-audio="tts.isPlaying.value"
+        :is-playing-audio="tts.activeText.value === viewAnalysis.sentence.hanzi.trim() && (tts.isPlaying.value || tts.isLoadingAudio.value)"
         @select-token="onSelectTokenFromOverview"
         @speak="tts.speakChinese"
       />
@@ -193,8 +213,13 @@ onUnmounted(() => {
       />
     </div>
 
+    <p v-if="tts.isAudioUnavailable.value" role="status" class="audio-cache-status">
+      {{ t('plugins.chinese-analyzer.cachedAudioUnavailable') }}
+    </p>
+
     <!-- History Modal -->
     <AnalyzerHistoryDrawer
+      v-if="props.initialSentence === undefined"
       v-model:visible="isHistoryOpen"
       :items="analyzer.history.historyItems.value"
       :active-hanzi="currentAnalysis?.sentence.hanzi ?? ''"
@@ -206,6 +231,54 @@ onUnmounted(() => {
 </template>
 
 <style lang="scss" scoped>
+.chinese-analyzer-page.is-embedded {
+  padding: 0;
+}
+
+.reader-analysis-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 9rem;
+  color: var(--fg-secondary-color);
+}
+
+.reader-analysis-spinner {
+  color: var(--fg-accent-color);
+  animation: reader-analysis-spin 1s linear infinite;
+}
+
+@keyframes reader-analysis-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reader-analysis-spinner {
+    animation: none;
+  }
+}
+
+.audio-cache-status {
+  position: fixed;
+  z-index: 1201;
+  inset-inline: 16px;
+  bottom: calc(16px + var(--safe-area-bottom, env(safe-area-inset-bottom, 0px)));
+  width: fit-content;
+  max-width: min(30rem, calc(100% - 32px));
+  margin: 0 auto;
+  padding: 10px 14px;
+  border: 1px solid var(--border-primary-color);
+  border-radius: 12px;
+  background: var(--bg-secondary-color);
+  color: var(--fg-primary-color);
+  font-size: 0.875rem;
+  text-align: center;
+  pointer-events: none;
+}
+
 .chinese-analyzer-page {
   max-width: 1360px;
   width: 100%;
