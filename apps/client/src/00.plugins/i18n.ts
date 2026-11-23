@@ -50,8 +50,8 @@ export async function loadLanguageAsync(lang: string) {
 
     const messages = await loader()
 
-    // В зависимости от сборщика (Vite/Webpack), JSON может лежать в default
-    i18n.global.setLocaleMessage(lang, messages.default || messages)
+    // Plugins can register translations before this locale bundle is loaded.
+    i18n.global.mergeLocaleMessage(lang, messages.default || messages)
 
     // Отмечаем язык как загруженный
     loadedLocales.add(lang)
