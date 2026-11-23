@@ -45,7 +45,12 @@ describe('continuous reader page boundaries', () => {
     await nextTick()
     expect(words[0].classList.contains('is-active')).toBe(true)
     expect(words[1].classList.contains('is-active')).toBe(false)
-    const event = new MouseEvent('mouseover')
+    const touch = new PointerEvent('pointerover', { pointerType: 'touch' })
+    Object.defineProperty(touch, 'target', { value: words[1] })
+    handlers.onSentenceHover(touch)
+    expect(container.querySelectorAll('.is-hovered')).toHaveLength(0)
+
+    const event = new PointerEvent('pointerover', { pointerType: 'mouse' })
     Object.defineProperty(event, 'target', { value: words[1] })
     handlers.onSentenceHover(event)
     expect(container.querySelectorAll('.is-hovered')).toHaveLength(1)

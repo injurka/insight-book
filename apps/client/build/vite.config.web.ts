@@ -6,6 +6,7 @@ import Icons from 'unplugin-icons/vite'
 import { defineConfig } from 'vite'
 import { compression as Compression } from 'vite-plugin-compression2'
 import { VitePWA } from 'vite-plugin-pwa'
+import { hoverCapabilityPostcss } from '../../../tools/css/hover-capability.ts'
 import packageJson from '../package.json' with { type: 'json' }
 import { autoImportOptionsCfg } from './cfg/auto-import.ts'
 import { iconsCfg } from './cfg/icons.ts'
@@ -73,6 +74,7 @@ export default defineConfig({
   ],
 
   css: {
+    postcss: hoverCapabilityPostcss,
     preprocessorOptions: {
       scss: {
         additionalData: `@use '~/assets/scss/_setup.scss' as *;`,

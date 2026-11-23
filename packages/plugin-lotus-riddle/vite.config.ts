@@ -2,9 +2,11 @@ import { fileURLToPath, URL } from 'node:url'
 import { federation } from '@module-federation/vite'
 import vue from '@vitejs/plugin-vue'
 import { defineConfig } from 'vite'
+import { hoverCapabilityPostcss } from '../../tools/css/hover-capability.ts'
 
 export default defineConfig(({ command }) => ({
   base: './',
+  css: { postcss: hoverCapabilityPostcss },
   plugins: [
     vue(),
     federation({

@@ -107,8 +107,8 @@ useQuoteHighlights(blockRef, [leftPaneContent, translatedPageContent], () => pro
         @touchend="emit('pointerUp', $event)"
         @touchcancel="emit('pointerUp', $event)"
         @mouseleave="emit('pointerUp', $event)"
-        @mouseover="emit('sentenceHover', $event)"
-        @mouseout="emit('sentenceOut', $event)"
+        @pointerover="emit('sentenceHover', $event)"
+        @pointerout="emit('sentenceOut', $event)"
         v-html="leftPaneContent"
       />
 
@@ -130,8 +130,8 @@ useQuoteHighlights(blockRef, [leftPaneContent, translatedPageContent], () => pro
           @touchend="emit('pointerUp', $event)"
           @touchcancel="emit('pointerUp', $event)"
           @mouseleave="emit('pointerUp', $event)"
-          @mouseover="emit('sentenceHover', $event)"
-          @mouseout="emit('sentenceOut', $event)"
+          @pointerover="emit('sentenceHover', $event)"
+          @pointerout="emit('sentenceOut', $event)"
           v-html="translatedPageContent"
         />
       </div>

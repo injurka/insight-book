@@ -4,6 +4,7 @@ import AutoImport from 'unplugin-auto-import/vite'
 import Icons from 'unplugin-icons/vite'
 import { defineConfig } from 'vite'
 import vuetify from 'vite-plugin-vuetify'
+import { hoverCapabilityPostcss } from '../../../tools/css/hover-capability.ts'
 import { autoImportOptionsCfg } from './cfg/auto-import.ts'
 import { iconsCfg } from './cfg/icons.ts'
 import { visualizerPlugin } from './lib/helpers.ts'
@@ -19,6 +20,7 @@ export default defineConfig({
     },
   },
 
+  css: { postcss: hoverCapabilityPostcss },
   plugins: [
     Vue(),
     vuetify({ autoImport: true }),

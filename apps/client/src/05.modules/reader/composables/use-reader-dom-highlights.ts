@@ -18,6 +18,9 @@ export function useReaderDomHighlights(containerRef: Ref<HTMLElement | null>) {
   })
 
   function onSentenceHover(event: MouseEvent) {
+    if ('pointerType' in event && event.pointerType === 'touch')
+      return
+
     const target = (event.target as HTMLElement).closest('.sentence')
 
     if (!target)

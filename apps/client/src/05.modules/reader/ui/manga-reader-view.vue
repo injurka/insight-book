@@ -198,8 +198,8 @@ onUnmounted(() => {
                 @touchend="onPointerUp"
                 @touchcancel="onPointerUp"
                 @mouseleave="onPointerUp"
-                @mouseover="onSentenceHover"
-                @mouseout="onSentenceOut"
+                @pointerover="onSentenceHover"
+                @pointerout="onSentenceOut"
               >
                 <div class="translation-number">
                   {{ idx + 1 }}
@@ -222,8 +222,8 @@ onUnmounted(() => {
       @touchend="onPointerUp"
       @touchcancel="onPointerUp"
       @mouseleave="onPointerUp"
-      @mouseover="onSentenceHover"
-      @mouseout="onSentenceOut"
+      @pointerover="onSentenceHover"
+      @pointerout="onSentenceOut"
     />
 
     <ReaderTocDialog @go-to="goToPage" />

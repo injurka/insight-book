@@ -50,6 +50,8 @@
     "@playwright/test": "^1.62.1",
     "@types/bun": "^1.4.0",
     "lefthook": "^2.1.12",
+    "postcss": "8.5.26",
+    "postcss-selector-parser": "7.1.4",
     "skott": "^0.35.11",
     "turbo": "^2.10.12"
   }
