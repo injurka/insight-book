@@ -34,15 +34,14 @@ export function useSentenceAnalyzer() {
   const queryInput = ref('')
   const isAnalyzing = ref(false)
   const errorMessage = ref<string | null>(null)
-  const currentAnalysis = ref<ChineseSentenceAnalysis>(DEFAULT_SHOWCASE_ANALYSIS)
-  const selectedNode = ref<CanvasSelectedNode | null>(getInitialSelectedNode(DEFAULT_SHOWCASE_ANALYSIS))
-  const expandedTokenIds = ref<string[]>(getAllTokenIds(DEFAULT_SHOWCASE_ANALYSIS.tokens))
-  const showTraditional = ref(false)
+  const currentAnalysis = ref<ChineseSentenceAnalysis | null>(null)
+  const selectedNode = ref<CanvasSelectedNode | null>(null)
+  const expandedTokenIds = ref<string[]>([])
   const canvasViewMode = ref<CanvasViewMode>('hierarchy')
 
   const detectedLanguage = computed(() => detectInputLanguage(queryInput.value))
   const areAllTokensExpanded = computed(() => {
-    const tokens = currentAnalysis.value.tokens
+    const tokens = currentAnalysis.value?.tokens ?? []
 
     return tokens.length > 0 && expandedTokenIds.value.length >= tokens.length
   })
@@ -67,6 +66,9 @@ export function useSentenceAnalyzer() {
   }
 
   function toggleExpandAllTokens(): void {
+    if (!currentAnalysis.value)
+      return
+
     if (areAllTokensExpanded.value) {
       expandedTokenIds.value = []
     }
@@ -124,20 +126,19 @@ export function useSentenceAnalyzer() {
     return normalized
   }
 
-  async function analyzeSentence(customInput?: string): Promise<void> {
+  async function analyzeSentence(customInput?: string): Promise<boolean> {
     const text = (customInput !== undefined ? customInput : queryInput.value).trim()
 
     if (!text || isAnalyzing.value) {
-      return
+      return false
     }
 
     if (customInput !== undefined) {
       queryInput.value = text
     }
 
-    if (tryApplyCachedAnalysis(text)) {
-      return
-    }
+    if (tryApplyCachedAnalysis(text))
+      return true
 
     isAnalyzing.value = true
     errorMessage.value = null
@@ -146,10 +147,14 @@ export function useSentenceAnalyzer() {
       const normalized = await requestAndNormalizeAnalysis(text)
       applyAnalysisResult(normalized)
       history.saveToHistory(text, normalized)
+
+      return true
     }
     catch (err) {
       console.error('[ChineseAnalyzer] Failed to analyze sentence:', err)
       errorMessage.value = t('plugins.chinese-analyzer.errorGeneration')
+
+      return false
     }
     finally {
       isAnalyzing.value = false
@@ -164,7 +169,6 @@ export function useSentenceAnalyzer() {
     selectedNode,
     expandedTokenIds,
     areAllTokensExpanded,
-    showTraditional,
     canvasViewMode,
     detectedLanguage,
     history,

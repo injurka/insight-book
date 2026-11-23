@@ -20,7 +20,6 @@ interface Props {
   selectedNode: CanvasSelectedNode | null
   expandedTokenIds: string[]
   areAllTokensExpanded: boolean
-  showTraditional: boolean
   viewMode: CanvasViewMode
 }
 
@@ -271,7 +270,8 @@ onMounted(() => {
         @pointermove="viewport.onPointerMove"
         @pointerup="viewport.onPointerUp"
         @pointercancel="viewport.onPointerUp"
-        @pointerleave="viewport.onPointerUp"
+        @lostpointercapture="viewport.onPointerUp"
+        @click.capture="viewport.onClickCapture"
         @wheel="viewport.onWheel"
       >
         <div class="canvas-stage" :style="stageSizeStyle">
@@ -358,7 +358,7 @@ onMounted(() => {
             <div class="token-main-word">
               <span class="token-pinyin">{{ tNode.token.pinyin }}</span>
               <span class="token-hanzi">
-                {{ props.showTraditional ? tNode.token.traditional : tNode.token.hanzi }}
+                {{ tNode.token.hanzi }}
               </span>
             </div>
 
@@ -400,7 +400,7 @@ onMounted(() => {
             </div>
 
             <div class="char-seal-box">
-              {{ props.showTraditional && chNode.character.traditional ? chNode.character.traditional : chNode.character.char }}
+              {{ chNode.character.char }}
             </div>
 
             <div class="char-meaning-text">
@@ -451,7 +451,12 @@ onMounted(() => {
             </div>
           </div>
 
-          <div class="linear-tokens-grid">
+          <div
+            class="linear-tokens-grid"
+            role="group"
+            :aria-label="clause.label"
+            tabindex="0"
+          >
             <div
               v-for="token in getClauseTokens(clause)"
               :key="token.id"
@@ -469,7 +474,7 @@ onMounted(() => {
                 </div>
                 <div class="lw-center">
                   <span class="lw-pinyin">{{ token.pinyin }}</span>
-                  <span class="lw-hanzi">{{ props.showTraditional ? token.traditional : token.hanzi }}</span>
+                  <span class="lw-hanzi">{{ token.hanzi }}</span>
                   <span class="lw-meaning">{{ token.meaning }}</span>
                 </div>
               </div>
@@ -520,6 +525,8 @@ onMounted(() => {
 
 <style lang="scss" scoped>
 .canvas-shell {
+  --canvas-control-height: 36px;
+
   display: flex;
   flex-direction: column;
   border-radius: 22px;
@@ -532,11 +539,16 @@ onMounted(() => {
 
   &.is-fullscreen {
     position: fixed;
-    inset: max(12px, var(--safe-area-top, env(safe-area-inset-top, 0px))) max(12px, env(safe-area-inset-right, 0px))
-      max(12px, var(--safe-area-bottom, env(safe-area-inset-bottom, 0px))) max(12px, env(safe-area-inset-left, 0px));
+    inset: 0 0 auto;
+    height: 100%;
+    height: 100dvh;
     z-index: 1200;
-    border-radius: 20px;
-    box-shadow: 0 24px 64px rgba(0, 0, 0, 0.45);
+    box-sizing: border-box;
+    padding: var(--safe-area-top, env(safe-area-inset-top, 0px)) env(safe-area-inset-right, 0px)
+      var(--safe-area-bottom, env(safe-area-inset-bottom, 0px)) env(safe-area-inset-left, 0px);
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
   }
 
   @include media-down(sm) {
@@ -619,9 +631,11 @@ onMounted(() => {
 
 .mode-segmented {
   display: inline-flex;
-  flex-wrap: wrap;
+  box-sizing: border-box;
+  height: var(--canvas-control-height);
   max-width: 100%;
-  padding: 3px;
+  min-width: 0;
+  padding: 2px;
   border-radius: 12px;
   background: var(--bg-primary-color);
   border: 1px solid var(--border-secondary-color);
@@ -636,7 +650,9 @@ onMounted(() => {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 6px 12px;
+  flex: 1 1 auto;
+  line-height: 1.1;
+  padding: 2px 12px;
   border-radius: 9px;
   border: none;
   background: transparent;
@@ -656,7 +672,7 @@ onMounted(() => {
   }
 
   @include media-down(sm) {
-    padding: 4px 8px;
+    padding: 0 7px;
     font-size: 0.72rem;
     gap: 4px;
     border-radius: 7px;
@@ -667,7 +683,8 @@ onMounted(() => {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  height: 36px;
+  box-sizing: border-box;
+  height: var(--canvas-control-height);
   padding: 0 12px;
   border-radius: 10px;
   border: 1px solid var(--border-secondary-color);
@@ -685,26 +702,23 @@ onMounted(() => {
   }
 
   &.icon-only {
-    width: 36px;
+    width: var(--canvas-control-height);
     padding: 0;
     justify-content: center;
     font-size: 1.05rem;
   }
 
   @include media-down(sm) {
-    height: 30px;
     padding: 0 8px;
     font-size: 0.72rem;
     border-radius: 8px;
-
-    &.icon-only {
-      width: 30px;
-    }
   }
 }
 
 .zoom-group {
   display: inline-flex;
+  box-sizing: border-box;
+  height: var(--canvas-control-height);
   align-items: center;
   gap: 2px;
   padding: 2px;
@@ -717,7 +731,7 @@ onMounted(() => {
     align-items: center;
     justify-content: center;
     width: 30px;
-    height: 30px;
+    height: 100%;
     border: none;
     border-radius: 8px;
     background: transparent;
@@ -991,7 +1005,6 @@ onMounted(() => {
     border-color 0.18s ease;
 
   &:hover {
-    transform: translateY(-2px);
     z-index: 5;
   }
 }
@@ -1351,6 +1364,7 @@ onMounted(() => {
   gap: 18px;
   padding: 20px;
   background: var(--bg-primary-color);
+  min-width: 0;
   overflow-wrap: anywhere;
 
   .is-fullscreen & {
@@ -1368,6 +1382,7 @@ onMounted(() => {
 
 .linear-clause-group {
   display: flex;
+  min-width: 0;
   flex-direction: column;
   gap: 14px;
   padding: 16px;
@@ -1433,9 +1448,18 @@ onMounted(() => {
 
 .linear-tokens-grid {
   display: flex;
-  flex-wrap: wrap;
   gap: 14px;
   align-items: flex-start;
+  min-width: 0;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  padding-bottom: 6px;
+  scrollbar-width: thin;
+
+  &:focus-visible {
+    outline: 2px solid var(--fg-accent-color);
+    outline-offset: 2px;
+  }
 
   @include media-down(sm) {
     gap: 8px;
@@ -1446,13 +1470,12 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  flex: 1 1 200px;
+  flex: 1 0 min(230px, 85%);
   min-width: 0;
   max-width: 280px;
 
   @include media-down(sm) {
-    flex: 1 1 135px;
-    max-width: 100%;
+    flex-basis: min(200px, 83%);
     gap: 6px;
   }
 }

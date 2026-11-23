@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { AnalysisHistoryItem, LexemeToken } from '../model'
 import { Icon } from '@iconify/vue'
-import { onMounted, onUnmounted, ref } from 'vue'
+import { nextTick, onMounted, onUnmounted, ref, useTemplateRef } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import { KitBtn } from '~/02.kit/atoms/kit-btn/ui'
@@ -22,36 +22,41 @@ const router = useRouter()
 const route = useRoute()
 const analyzer = useSentenceAnalyzer()
 const tts = useAnalyzerTts()
+const page = useTemplateRef<HTMLElement>('pageRef')
 
+const { currentAnalysis } = analyzer
 const isHistoryOpen = ref(false)
 
 function onSelectTokenFromOverview(token: LexemeToken): void {
   analyzer.selectNode({ kind: 'token', token })
 }
-
+async function scrollToPageStart(): Promise<void> {
+  await nextTick()
+  page.value?.scrollIntoView({ block: 'start' })
+}
 function onSelectHistoryItem(item: AnalysisHistoryItem): void {
   analyzer.loadFromHistory(item.analysis, item.query)
+  void scrollToPageStart()
 }
-
-function onAnalyzeSubQuery(text: string): void {
-  void analyzer.analyzeSentence(text)
+async function analyzeAndScroll(text?: string): Promise<void> {
+  if (await analyzer.analyzeSentence(text))
+    await scrollToPageStart()
 }
 
 onMounted(() => {
   const initialQuery = typeof route?.query?.q === 'string' ? route.query.q.trim() : ''
 
   if (initialQuery) {
-    void analyzer.analyzeSentence(initialQuery)
+    void analyzeAndScroll(initialQuery)
   }
 })
-
 onUnmounted(() => {
   tts.stopAudio()
 })
 </script>
 
 <template>
-  <div class="chinese-analyzer-page">
+  <div ref="pageRef" class="chinese-analyzer-page">
     <!-- Top Page Header -->
     <header class="page-header">
       <div class="header-left">
@@ -89,7 +94,7 @@ onUnmounted(() => {
       v-model="analyzer.queryInput.value"
       :is-analyzing="analyzer.isAnalyzing.value"
       :detected-language="analyzer.detectedLanguage.value"
-      @analyze="analyzer.analyzeSentence"
+      @analyze="analyzeAndScroll"
     />
 
     <!-- Error Alert -->
@@ -101,7 +106,7 @@ onUnmounted(() => {
       <button
         type="button"
         class="err-retry-btn"
-        @click="analyzer.analyzeSentence()"
+        @click="analyzeAndScroll()"
       >
         <Icon icon="mdi:refresh" />
         <span>{{ t('plugins.chinese-analyzer.retryBtn') }}</span>
@@ -109,12 +114,11 @@ onUnmounted(() => {
     </div>
 
     <!-- Main Analysis Content -->
-    <div class="analysis-content" :class="{ 'is-loading': analyzer.isAnalyzing.value }">
+    <div v-if="currentAnalysis" class="analysis-content" :class="{ 'is-loading': analyzer.isAnalyzing.value }">
       <!-- 1. Sentence Overview & Ruby Ribbon -->
       <SentenceOverviewCard
-        v-model:show-traditional="analyzer.showTraditional.value"
-        :sentence="analyzer.currentAnalysis.value.sentence"
-        :tokens="analyzer.currentAnalysis.value.tokens"
+        :sentence="currentAnalysis.sentence"
+        :tokens="currentAnalysis.tokens"
         :selected-node="analyzer.selectedNode.value"
         :is-playing-audio="tts.isPlaying.value"
         @select-token="onSelectTokenFromOverview"
@@ -122,15 +126,14 @@ onUnmounted(() => {
       />
 
       <!-- 2. Interactive Canvas + Deep Node Inspector Split -->
-      <div class="canvas-inspector-layout">
+      <div class="canvas-inspector-layout analysis-section-divider">
         <div class="canvas-col">
           <SentenceInteractiveCanvas
             v-model:view-mode="analyzer.canvasViewMode.value"
-            :analysis="analyzer.currentAnalysis.value"
+            :analysis="currentAnalysis"
             :selected-node="analyzer.selectedNode.value"
             :expanded-token-ids="analyzer.expandedTokenIds.value"
             :are-all-tokens-expanded="analyzer.areAllTokensExpanded.value"
-            :show-traditional="analyzer.showTraditional.value"
             @select-node="analyzer.selectNode"
             @toggle-token-expand="analyzer.toggleTokenExpand"
             @toggle-expand-all="analyzer.toggleExpandAllTokens"
@@ -141,49 +144,50 @@ onUnmounted(() => {
         <div class="inspector-col">
           <NodeInspectorPanel
             :selected-node="analyzer.selectedNode.value"
-            :all-tokens="analyzer.currentAnalysis.value.tokens"
-            :show-traditional="analyzer.showTraditional.value"
+            :all-tokens="currentAnalysis.tokens"
             @select-node="analyzer.selectNode"
             @speak="tts.speakChinese"
-            @analyze-query="onAnalyzeSubQuery"
+            @analyze-query="analyzeAndScroll"
           />
         </div>
       </div>
 
       <!-- 3. Phonetics, Rhythm & Visual Pitch Contour -->
       <PhoneticsToneFlowCard
-        :phonetics="analyzer.currentAnalysis.value.phonetics"
+        class="analysis-section-divider"
+        :phonetics="currentAnalysis.phonetics"
         @speak="tts.speakChinese"
       />
 
       <!-- 4. Grammar Patterns & Constructions -->
       <GrammarPatternsSection
-        v-if="analyzer.currentAnalysis.value.grammarPatterns.length > 0"
-        :patterns="analyzer.currentAnalysis.value.grammarPatterns"
+        v-if="currentAnalysis.grammarPatterns.length > 0"
+        class="analysis-section-divider"
+        :patterns="currentAnalysis.grammarPatterns"
         @speak="tts.speakChinese"
-        @analyze-query="onAnalyzeSubQuery"
+        @analyze-query="analyzeAndScroll"
       />
 
       <!-- 5. Pragmatics & Usage Context + 6. Alternatives -->
-      <div class="bottom-dual-grid">
-        <UsagePragmaticsCard
-          :usage-context="analyzer.currentAnalysis.value.usageContext"
-        />
+      <UsagePragmaticsCard
+        class="analysis-section-divider"
+        :usage-context="currentAnalysis.usageContext"
+      />
 
-        <AlternativesSection
-          v-if="analyzer.currentAnalysis.value.alternatives.length > 0"
-          :alternatives="analyzer.currentAnalysis.value.alternatives"
-          @speak="tts.speakChinese"
-          @analyze-variant="onAnalyzeSubQuery"
-        />
-      </div>
+      <AlternativesSection
+        v-if="currentAnalysis.alternatives.length > 0"
+        class="analysis-section-divider"
+        :alternatives="currentAnalysis.alternatives"
+        @speak="tts.speakChinese"
+        @analyze-variant="analyzeAndScroll"
+      />
     </div>
 
     <!-- History Modal -->
     <AnalyzerHistoryDrawer
       v-model:visible="isHistoryOpen"
       :items="analyzer.history.historyItems.value"
-      :active-hanzi="analyzer.currentAnalysis.value.sentence.hanzi"
+      :active-hanzi="currentAnalysis?.sentence.hanzi ?? ''"
       @select="onSelectHistoryItem"
       @remove="analyzer.history.removeHistoryItem"
       @clear="analyzer.history.clearHistory"
@@ -200,23 +204,25 @@ onUnmounted(() => {
   flex-direction: column;
   gap: 22px;
   box-sizing: border-box;
+  padding-left: var(--analyzer-padding-left);
+  padding-right: var(--analyzer-padding-right);
   padding-top: calc(16px + var(--safe-area-top, env(safe-area-inset-top, 0px)));
   padding-bottom: calc(44px + var(--safe-area-bottom, env(safe-area-inset-bottom, 0px)));
-  padding-left: max(18px, env(safe-area-inset-left, 0px));
-  padding-right: max(18px, env(safe-area-inset-right, 0px));
+  --analyzer-padding-left: max(18px, env(safe-area-inset-left, 0px));
+  --analyzer-padding-right: max(18px, env(safe-area-inset-right, 0px));
 
   @include media-down(md) {
     gap: 16px;
-    padding-left: max(12px, env(safe-area-inset-left, 0px));
-    padding-right: max(12px, env(safe-area-inset-right, 0px));
+    --analyzer-padding-left: max(12px, env(safe-area-inset-left, 0px));
+    --analyzer-padding-right: max(12px, env(safe-area-inset-right, 0px));
   }
 
   @include media-down(sm) {
     gap: 14px;
     padding-top: calc(10px + var(--safe-area-top, env(safe-area-inset-top, 0px)));
     padding-bottom: calc(28px + var(--safe-area-bottom, env(safe-area-inset-bottom, 0px)));
-    padding-left: max(10px, env(safe-area-inset-left, 0px));
-    padding-right: max(10px, env(safe-area-inset-right, 0px));
+    --analyzer-padding-left: max(10px, env(safe-area-inset-left, 0px));
+    --analyzer-padding-right: max(10px, env(safe-area-inset-right, 0px));
   }
 }
 
@@ -383,13 +389,23 @@ onUnmounted(() => {
   }
 }
 
-.bottom-dual-grid {
-  display: flex;
-  flex-direction: column;
-  gap: 22px;
+.analysis-section-divider {
+  position: relative;
+  margin-top: 16px;
+
+  &::before {
+    position: absolute;
+    inset: -16px 0 auto;
+    border-top: 1px dashed var(--border-primary-color);
+    content: '';
+    pointer-events: none;
+  }
 
   @include media-down(sm) {
-    gap: 16px;
+    &::before {
+      left: calc(-1 * var(--analyzer-padding-left));
+      right: calc(-1 * var(--analyzer-padding-right));
+    }
   }
 }
 </style>

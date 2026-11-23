@@ -92,14 +92,10 @@ async function fetchSpeechToTextFallback(fd: FormData): Promise<string> {
   return data.text?.trim() ?? ''
 }
 
-export async function requestSpeechToText(audioBlob: Blob, language?: string): Promise<string> {
+export async function requestSpeechToText(audioBlob: Blob): Promise<string> {
   const api = getPluginApi()
   const fd = new FormData()
   fd.append('audio', audioBlob, 'speech.webm')
-
-  if (language && language !== 'auto') {
-    fd.append('language', language)
-  }
 
   if (api?.request) {
     const res = await api.request<{ text?: string }>('/api/tts/transcribe', {

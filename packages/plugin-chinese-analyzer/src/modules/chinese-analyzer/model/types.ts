@@ -25,7 +25,6 @@ export interface ComponentNode {
 
 export interface CharacterNode {
   char: string
-  traditional?: string
   pinyin: string
   tone: ToneNumber
   meaning: string
@@ -44,7 +43,6 @@ export interface CollocationExample {
 export interface LexemeToken {
   id: string
   hanzi: string
-  traditional: string
   pinyin: string
   tones: ToneNumber[]
   toneSandhiNote?: string
@@ -129,7 +127,6 @@ export interface SentenceOverview {
   inputLanguage: 'zh' | 'ru'
   originalInput: string
   hanzi: string
-  traditional: string
   pinyin: string
   translation: string
   literalTranslation: string

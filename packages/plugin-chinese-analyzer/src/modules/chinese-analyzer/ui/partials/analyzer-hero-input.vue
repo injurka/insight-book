@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import type { VoiceLangMode } from '../../composables/use-analyzer-voice'
 import { Icon } from '@iconify/vue'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -22,7 +21,6 @@ const { t } = useI18n()
 const voice = useAnalyzerVoice()
 
 const WAVE_MULTIPLIERS = [0.45, 0.78, 1.25, 1.65, 1.25, 0.78, 0.45]
-const voiceLangOptions: VoiceLangMode[] = ['auto', 'zh', 'ru']
 
 const detectedBadgeText = computed(() => {
   if (props.detectedLanguage === 'zh') {
@@ -62,18 +60,6 @@ const waveBarStyles = computed(() => {
     }
   })
 })
-
-function getVoiceLangLabel(mode: VoiceLangMode): string {
-  if (mode === 'zh') {
-    return t('plugins.chinese-analyzer.voiceLangZh')
-  }
-
-  if (mode === 'ru') {
-    return t('plugins.chinese-analyzer.voiceLangRu')
-  }
-
-  return t('plugins.chinese-analyzer.voiceLangAuto')
-}
 
 function onInput(event: Event): void {
   const target = event.target as HTMLTextAreaElement
@@ -126,30 +112,6 @@ async function handleStartVoiceRecording(): Promise<void> {
         <div class="lang-detect-pill" :class="`lang-${props.detectedLanguage}`">
           <Icon :icon="detectedBadgeIcon" class="pill-icon" />
           <span>{{ detectedBadgeText }}</span>
-        </div>
-
-        <div class="top-right-controls">
-          <!-- Voice Recognition Language Selector -->
-          <div class="voice-lang-switcher">
-            <Icon icon="mdi:microphone" class="vl-icon" />
-            <button
-              v-for="mode in voiceLangOptions"
-              :key="mode"
-              type="button"
-              class="vl-btn"
-              :class="{ active: voice.voiceLanguage.value === mode }"
-              :disabled="voice.isRecording.value || voice.isTranscribing.value"
-              @click="voice.voiceLanguage.value = mode"
-            >
-              {{ getVoiceLangLabel(mode) }}
-            </button>
-          </div>
-
-          <div class="input-hint-badges">
-            <span class="hint-chip">中文</span>
-            <Icon icon="mdi:swap-horizontal" class="swap-icon" />
-            <span class="hint-chip">Русский</span>
-          </div>
         </div>
       </div>
 
@@ -317,47 +279,6 @@ async function handleStartVoiceRecording(): Promise<void> {
   flex-wrap: wrap;
 }
 
-.top-right-controls {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-
-.voice-lang-switcher {
-  display: inline-flex;
-  align-items: center;
-  gap: 2px;
-  padding: 2px 3px 2px 7px;
-  border-radius: 999px;
-  background: var(--bg-primary-color);
-  border: 1px solid var(--border-secondary-color);
-
-  .vl-icon {
-    font-size: 0.85rem;
-    color: var(--fg-accent-color);
-    margin-right: 2px;
-  }
-
-  .vl-btn {
-    padding: 2px 7px;
-    border-radius: 999px;
-    border: none;
-    background: transparent;
-    color: var(--fg-secondary-color);
-    font-family: inherit;
-    font-size: 0.7rem;
-    font-weight: 700;
-    cursor: pointer;
-    transition: all 0.16s ease;
-
-    &.active {
-      background: var(--fg-accent-color);
-      color: #ffffff;
-    }
-  }
-}
-
 .lang-detect-pill {
   display: inline-flex;
   align-items: center;
@@ -395,32 +316,6 @@ async function handleStartVoiceRecording(): Promise<void> {
   @include media-down(sm) {
     font-size: 0.7rem;
     padding: 2px 8px;
-  }
-}
-
-.input-hint-badges {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 0.76rem;
-  color: var(--fg-tertiary-color);
-
-  @include media-down(sm) {
-    display: none;
-  }
-
-  .hint-chip {
-    padding: 2px 8px;
-    border-radius: 6px;
-    background: var(--bg-primary-color);
-    border: 1px solid var(--border-secondary-color);
-    font-weight: 600;
-    color: var(--fg-secondary-color);
-  }
-
-  .swap-icon {
-    font-size: 0.95rem;
-    color: var(--fg-accent-color);
   }
 }
 
@@ -530,7 +425,7 @@ async function handleStartVoiceRecording(): Promise<void> {
   &:hover:not(:disabled) {
     background: var(--fg-accent-color);
     color: #ffffff;
-    transform: translateY(-1px);
+
     box-shadow: 0 4px 12px rgba(var(--fg-accent-color-rgb), 0.3);
   }
 
@@ -564,17 +459,11 @@ async function handleStartVoiceRecording(): Promise<void> {
   cursor: pointer;
   box-shadow: 0 4px 14px rgba(var(--fg-accent-color-rgb), 0.3);
   transition:
-    transform 0.18s ease,
     box-shadow 0.18s ease,
     opacity 0.18s ease;
 
   &:hover:not(:disabled) {
-    transform: translateY(-1px);
     box-shadow: 0 6px 18px rgba(var(--fg-accent-color-rgb), 0.4);
-  }
-
-  &:active:not(:disabled) {
-    transform: translateY(0);
   }
 
   &:disabled {
@@ -680,10 +569,10 @@ async function handleStartVoiceRecording(): Promise<void> {
   border: none;
   font-size: 1.05rem;
   cursor: pointer;
-  transition: transform 0.16s ease;
+  transition: border-color 0.16s ease;
 
   &:hover {
-    transform: scale(1.06);
+    border-color: var(--fg-accent-color);
   }
 
   &.cancel-rec-btn {

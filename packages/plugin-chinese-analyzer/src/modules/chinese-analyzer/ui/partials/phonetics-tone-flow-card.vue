@@ -380,7 +380,6 @@ function getSyllableEndPoint(syllable: SyllableTonePoint): { x: number, y: numbe
 
   &:hover {
     border-color: var(--fg-accent-color);
-    transform: translateY(-2px);
   }
 
   &.has-sandhi {

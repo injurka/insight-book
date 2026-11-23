@@ -14,7 +14,6 @@ import { getPosClass, getToneBadgeLabel } from '../../../../shared/lib/tone-util
 interface Props {
   selectedNode: CanvasSelectedNode | null
   allTokens: LexemeToken[]
-  showTraditional: boolean
 }
 
 const props = defineProps<Props>()
@@ -211,7 +210,7 @@ onMounted(() => {
             {{ props.selectedNode.token.pinyin }}
           </div>
           <div class="hero-hanzi">
-            {{ props.showTraditional ? props.selectedNode.token.traditional : props.selectedNode.token.hanzi }}
+            {{ props.selectedNode.token.hanzi }}
           </div>
           <div class="hero-meaning">
             {{ props.selectedNode.token.meaning }}
@@ -289,7 +288,7 @@ onMounted(() => {
             @click="selectCharacter(props.selectedNode.token, ch, idx)"
           >
             <div class="cd-seal" :class="`tone-bg-${ch.tone}`">
-              {{ props.showTraditional && ch.traditional ? ch.traditional : ch.char }}
+              {{ ch.char }}
             </div>
             <div class="cd-content">
               <div class="cd-top">
@@ -348,7 +347,7 @@ onMounted(() => {
             {{ props.selectedNode.character.pinyin }}
           </div>
           <div class="hero-hanzi">
-            {{ props.showTraditional && props.selectedNode.character.traditional ? props.selectedNode.character.traditional : props.selectedNode.character.char }}
+            {{ props.selectedNode.character.char }}
           </div>
           <div class="hero-meaning">
             {{ props.selectedNode.character.meaning }}
@@ -856,7 +855,6 @@ onMounted(() => {
 
   &:hover {
     border-color: var(--fg-accent-color);
-    transform: translateX(2px);
   }
 
   .cd-seal {

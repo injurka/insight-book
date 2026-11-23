@@ -1,7 +1,6 @@
 import { onUnmounted, ref } from 'vue'
 import { requestSpeechToText } from '../../../shared/lib/api'
 
-export type VoiceLangMode = 'auto' | 'zh' | 'ru'
 export type VoiceErrorKey = 'voiceErrorMicPermission' | 'voiceErrorMicNotFound' | 'voiceErrorTranscribe'
 
 const SILENCE_TIMEOUT_MS = 1900
@@ -74,7 +73,6 @@ export function useAnalyzerVoice() {
   const isTranscribing = ref(false)
   const recordingDuration = ref(0)
   const audioLevel = ref(0)
-  const voiceLanguage = ref<VoiceLangMode>('auto')
   const voiceErrorKey = ref<VoiceErrorKey | null>(null)
 
   let mediaRecorder: MediaRecorder | null = null
@@ -230,8 +228,7 @@ export function useAnalyzerVoice() {
     isTranscribing.value = true
 
     try {
-      const langParam = voiceLanguage.value === 'auto' ? undefined : voiceLanguage.value
-      const text = await requestSpeechToText(blob, langParam)
+      const text = await requestSpeechToText(blob)
 
       if (!text) {
         voiceErrorKey.value = 'voiceErrorTranscribe'
@@ -310,7 +307,6 @@ export function useAnalyzerVoice() {
     isTranscribing,
     recordingDuration,
     audioLevel,
-    voiceLanguage,
     voiceErrorKey,
     startRecording,
     stopRecording,

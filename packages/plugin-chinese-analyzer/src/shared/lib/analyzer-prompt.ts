@@ -25,9 +25,9 @@ export function buildAnalyzerSystemPrompt(interfaceLang = 'ru'): string {
 Your task is to perform an exhaustive, multi-layered structural, lexical, morphological, phonetic, grammatical, and pragmatic analysis of a sentence.
 
 INPUT HANDLING:
-1. If the user input is in Chinese (Simplified or Traditional), analyze that exact Chinese sentence.
-2. If the user input is in Russian or English, FIRST translate it into natural, idiomatic Mandarin Chinese (Simplified characters in "hanzi", Traditional in "traditional"), and then perform the complete analysis on that Chinese sentence.
-3. All explanations, translations, grammatical roles, etymologies, and notes MUST be written in ${targetLangName}.
+1. If the input is in Chinese, preserve the wording of the sentence and analyze its Simplified Chinese form.
+2. If the user input is in Russian or English, FIRST translate it into natural, idiomatic Mandarin in Simplified Chinese, and then perform the complete analysis on that Chinese sentence.
+3. All explanations, translations, grammatical roles, etymologies, and notes MUST be written in ${targetLangName}. Use Simplified Chinese for all Chinese output, including words, characters, phonetic examples, and alternative sentences. Preserve the exact input in "originalInput".
 
 OUTPUT FORMAT:
 Return STRICT RAW JSON matching this exact structure (no markdown code fences):
@@ -36,7 +36,6 @@ Return STRICT RAW JSON matching this exact structure (no markdown code fences):
     "inputLanguage": "zh" | "ru",
     "originalInput": "exact user query",
     "hanzi": "Simplified Chinese sentence (without trailing spaces)",
-    "traditional": "Traditional Chinese version",
     "pinyin": "Full sentence pinyin with tone marks",
     "translation": "Natural literary translation in ${targetLangName}",
     "literalTranslation": "Word-by-word literal gloss showing Chinese structural logic (e.g. 'Я / недавно / по отношению к / китайской традиционной культуре / всё более / испытывать интерес / [смена состояния]')",
@@ -59,7 +58,6 @@ Return STRICT RAW JSON matching this exact structure (no markdown code fences):
     {
       "id": "t1",
       "hanzi": "Word in Simplified Chinese (exclude punctuation tokens)",
-      "traditional": "Word in Traditional Chinese",
       "pinyin": "Word pinyin with tone marks",
       "tones": [3, 4],
       "toneSandhiNote": "Optional note if tone sandhi applies to this word in context, otherwise empty string",
@@ -76,7 +74,6 @@ Return STRICT RAW JSON matching this exact structure (no markdown code fences):
       "characters": [
         {
           "char": "Single character",
-          "traditional": "Traditional char",
           "pinyin": "char pinyin",
           "tone": 1 | 2 | 3 | 4 | 5,
           "meaning": "Core meaning of this individual character",
@@ -217,7 +214,6 @@ function normalizeCharacter(raw: unknown, fallbackChar = '字'): CharacterNode {
 
   return {
     char,
-    traditional: asString(obj.traditional, char),
     pinyin,
     tone: normalizeToneNumber(obj.tone, pinyin),
     meaning: asString(obj.meaning, ''),
@@ -282,7 +278,6 @@ function normalizeToken(raw: unknown, idx: number): LexemeToken {
   return {
     id: asString(obj.id, `t${idx + 1}`),
     hanzi,
-    traditional: asString(obj.traditional, hanzi),
     pinyin,
     tones,
     toneSandhiNote: asString(obj.toneSandhiNote, ''),
@@ -430,7 +425,6 @@ function normalizeSentenceOverview(raw: unknown, originalInput: string, tokens: 
     inputLanguage: obj.inputLanguage === 'ru' || detected === 'ru' ? 'ru' : 'zh',
     originalInput,
     hanzi: asString(obj.hanzi, fallbackHanzi || originalInput),
-    traditional: asString(obj.traditional, asString(obj.hanzi, fallbackHanzi)),
     pinyin: asString(obj.pinyin, tokens.map(t => t.pinyin).join(' ')),
     translation: asString(obj.translation, ''),
     literalTranslation: asString(obj.literalTranslation, ''),

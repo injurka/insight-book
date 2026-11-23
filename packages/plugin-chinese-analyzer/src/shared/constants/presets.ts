@@ -5,7 +5,6 @@ export const DEFAULT_SHOWCASE_ANALYSIS: ChineseSentenceAnalysis = {
     inputLanguage: 'zh',
     originalInput: '我最近对中国传统文化越来越感兴趣了。',
     hanzi: '我最近对中国传统文化越来越感兴趣了。',
-    traditional: '我最近對中國傳統文化越來越感興趣了。',
     pinyin: 'Wǒ zuìjìn duì Zhōngguó chuántǒng wénhuà yuèláiyuè gǎn xìngqù le.',
     translation: 'В последнее время я всё больше и больше интересуюсь традиционной китайской культурой.',
     literalTranslation: 'Я / в последнее время / по отношению к / Китай / традиционный / культура / всё более и более / испытывать интерес / [маркер нового состояния]',
@@ -44,7 +43,6 @@ export const DEFAULT_SHOWCASE_ANALYSIS: ChineseSentenceAnalysis = {
     {
       id: 't1',
       hanzi: '我',
-      traditional: '我',
       pinyin: 'wǒ',
       tones: [3],
       toneSandhiNote: 'Перед 4-м тоном (zuì) произносится как неполный третий тон (низкий нисходящий 21).',
@@ -62,7 +60,6 @@ export const DEFAULT_SHOWCASE_ANALYSIS: ChineseSentenceAnalysis = {
       characters: [
         {
           char: '我',
-          traditional: '我',
           pinyin: 'wǒ',
           tone: 3,
           meaning: 'я, сам',
@@ -79,7 +76,6 @@ export const DEFAULT_SHOWCASE_ANALYSIS: ChineseSentenceAnalysis = {
     {
       id: 't2',
       hanzi: '最近',
-      traditional: '最近',
       pinyin: 'zuìjìn',
       tones: [4, 4],
       pos: 'adv',
@@ -96,7 +92,6 @@ export const DEFAULT_SHOWCASE_ANALYSIS: ChineseSentenceAnalysis = {
       characters: [
         {
           char: '最',
-          traditional: '最',
           pinyin: 'zuì',
           tone: 4,
           meaning: 'самый, наиболее',
@@ -110,7 +105,6 @@ export const DEFAULT_SHOWCASE_ANALYSIS: ChineseSentenceAnalysis = {
         },
         {
           char: '近',
-          traditional: '近',
           pinyin: 'jìn',
           tone: 4,
           meaning: 'близкий, близко',
@@ -127,7 +121,6 @@ export const DEFAULT_SHOWCASE_ANALYSIS: ChineseSentenceAnalysis = {
     {
       id: 't3',
       hanzi: '对',
-      traditional: '對',
       pinyin: 'duì',
       tones: [4],
       pos: 'prep',
@@ -144,7 +137,6 @@ export const DEFAULT_SHOWCASE_ANALYSIS: ChineseSentenceAnalysis = {
       characters: [
         {
           char: '对',
-          traditional: '對',
           pinyin: 'duì',
           tone: 4,
           meaning: 'напротив, по отношению к, верный',
@@ -161,7 +153,6 @@ export const DEFAULT_SHOWCASE_ANALYSIS: ChineseSentenceAnalysis = {
     {
       id: 't4',
       hanzi: '中国',
-      traditional: '中國',
       pinyin: 'Zhōngguó',
       tones: [1, 2],
       pos: 'noun',
@@ -178,7 +169,6 @@ export const DEFAULT_SHOWCASE_ANALYSIS: ChineseSentenceAnalysis = {
       characters: [
         {
           char: '中',
-          traditional: '中',
           pinyin: 'zhōng',
           tone: 1,
           meaning: 'середина, центр',
@@ -192,7 +182,6 @@ export const DEFAULT_SHOWCASE_ANALYSIS: ChineseSentenceAnalysis = {
         },
         {
           char: '国',
-          traditional: '國',
           pinyin: 'guó',
           tone: 2,
           meaning: 'государство, страна',
@@ -209,7 +198,6 @@ export const DEFAULT_SHOWCASE_ANALYSIS: ChineseSentenceAnalysis = {
     {
       id: 't5',
       hanzi: '传统',
-      traditional: '傳統',
       pinyin: 'chuántǒng',
       tones: [2, 3],
       pos: 'adj',
@@ -226,7 +214,6 @@ export const DEFAULT_SHOWCASE_ANALYSIS: ChineseSentenceAnalysis = {
       characters: [
         {
           char: '传',
-          traditional: '傳',
           pinyin: 'chuán',
           tone: 2,
           meaning: 'передавать (из поколения в поколение)',
@@ -240,7 +227,6 @@ export const DEFAULT_SHOWCASE_ANALYSIS: ChineseSentenceAnalysis = {
         },
         {
           char: '统',
-          traditional: '統',
           pinyin: 'tǒng',
           tone: 3,
           meaning: 'единая нить, система, преемственность',
@@ -257,7 +243,6 @@ export const DEFAULT_SHOWCASE_ANALYSIS: ChineseSentenceAnalysis = {
     {
       id: 't6',
       hanzi: '文化',
-      traditional: '文化',
       pinyin: 'wénhuà',
       tones: [2, 4],
       pos: 'noun',
@@ -274,7 +259,6 @@ export const DEFAULT_SHOWCASE_ANALYSIS: ChineseSentenceAnalysis = {
       characters: [
         {
           char: '文',
-          traditional: '文',
           pinyin: 'wén',
           tone: 2,
           meaning: 'письменность, узор, культура',
@@ -287,7 +271,6 @@ export const DEFAULT_SHOWCASE_ANALYSIS: ChineseSentenceAnalysis = {
         },
         {
           char: '化',
-          traditional: '化',
           pinyin: 'huà',
           tone: 4,
           meaning: 'превращаться, преображать, просвещать',
@@ -304,7 +287,6 @@ export const DEFAULT_SHOWCASE_ANALYSIS: ChineseSentenceAnalysis = {
     {
       id: 't7',
       hanzi: '越来越',
-      traditional: '越來越',
       pinyin: 'yuèláiyuè',
       tones: [4, 2, 4],
       pos: 'adv',
@@ -321,7 +303,6 @@ export const DEFAULT_SHOWCASE_ANALYSIS: ChineseSentenceAnalysis = {
       characters: [
         {
           char: '越',
-          traditional: '越',
           pinyin: 'yuè',
           tone: 4,
           meaning: 'превосходить, перешагивать, чем... тем...',
@@ -335,7 +316,6 @@ export const DEFAULT_SHOWCASE_ANALYSIS: ChineseSentenceAnalysis = {
         },
         {
           char: '来',
-          traditional: '來',
           pinyin: 'lái',
           tone: 2,
           meaning: 'приходить, наступать (о времени)',
@@ -351,7 +331,6 @@ export const DEFAULT_SHOWCASE_ANALYSIS: ChineseSentenceAnalysis = {
     {
       id: 't8',
       hanzi: '感兴趣',
-      traditional: '感興趣',
       pinyin: 'gǎn xìngqù',
       tones: [3, 4, 4],
       pos: 'verb',
@@ -368,7 +347,6 @@ export const DEFAULT_SHOWCASE_ANALYSIS: ChineseSentenceAnalysis = {
       characters: [
         {
           char: '感',
-          traditional: '感',
           pinyin: 'gǎn',
           tone: 3,
           meaning: 'чувствовать, ощущать, откликаться',
@@ -382,7 +360,6 @@ export const DEFAULT_SHOWCASE_ANALYSIS: ChineseSentenceAnalysis = {
         },
         {
           char: '兴',
-          traditional: '興',
           pinyin: 'xìng',
           tone: 4,
           meaning: 'воодушевление, настроение (в 4-м тоне xìng)',
@@ -395,7 +372,6 @@ export const DEFAULT_SHOWCASE_ANALYSIS: ChineseSentenceAnalysis = {
         },
         {
           char: '趣',
-          traditional: '趣',
           pinyin: 'qù',
           tone: 4,
           meaning: 'интерес, склонность, изюминка',
@@ -412,7 +388,6 @@ export const DEFAULT_SHOWCASE_ANALYSIS: ChineseSentenceAnalysis = {
     {
       id: 't9',
       hanzi: '了',
-      traditional: '了',
       pinyin: 'le',
       tones: [5],
       pos: 'particle',
@@ -429,7 +404,6 @@ export const DEFAULT_SHOWCASE_ANALYSIS: ChineseSentenceAnalysis = {
       characters: [
         {
           char: '了',
-          traditional: '了',
           pinyin: 'le',
           tone: 5,
           meaning: 'завершение, перемена состояния',

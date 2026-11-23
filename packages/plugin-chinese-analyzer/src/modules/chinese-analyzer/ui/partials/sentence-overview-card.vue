@@ -9,16 +9,14 @@ interface Props {
   sentence: SentenceOverview
   tokens: LexemeToken[]
   selectedNode: CanvasSelectedNode | null
-  showTraditional: boolean
   isPlayingAudio: boolean
 }
 
 const props = defineProps<Props>()
 
 const emit = defineEmits<{
-  'update:showTraditional': [value: boolean]
-  'selectToken': [token: LexemeToken]
-  'speak': [text: string]
+  selectToken: [token: LexemeToken]
+  speak: [text: string]
 }>()
 
 const { t } = useI18n()
@@ -42,10 +40,8 @@ function isTokenSelected(token: LexemeToken): boolean {
 }
 
 async function copySentence(): Promise<void> {
-  const textToCopy = props.showTraditional ? props.sentence.traditional : props.sentence.hanzi
-
   try {
-    await navigator.clipboard.writeText(textToCopy)
+    await navigator.clipboard.writeText(props.sentence.hanzi)
     isCopied.value = true
     setTimeout(() => {
       isCopied.value = false
@@ -73,21 +69,6 @@ function onTokenClick(token: LexemeToken): void {
       </div>
 
       <div class="overview-actions">
-        <button
-          type="button"
-          class="action-pill"
-          :class="{ active: props.showTraditional }"
-          @click="emit('update:showTraditional', !props.showTraditional)"
-        >
-          <Icon icon="mdi:ideogram-cjk-variant" />
-          <span class="pill-text-desktop">
-            {{ props.showTraditional ? t('plugins.chinese-analyzer.showTraditional') : t('plugins.chinese-analyzer.showSimplified') }}
-          </span>
-          <span class="pill-text-mobile">
-            {{ props.showTraditional ? '繁' : '简' }}
-          </span>
-        </button>
-
         <button
           type="button"
           class="action-pill"
@@ -131,7 +112,7 @@ function onTokenClick(token: LexemeToken): void {
       >
         <span class="ruby-pinyin">{{ token.pinyin }}</span>
         <span class="ruby-hanzi">
-          {{ props.showTraditional ? token.traditional : token.hanzi }}
+          {{ token.hanzi }}
         </span>
         <span class="ruby-gloss">{{ token.meaning }}</span>
       </button>
@@ -256,10 +237,6 @@ function onTokenClick(token: LexemeToken): void {
   flex-wrap: wrap;
 }
 
-.pill-text-mobile {
-  display: none;
-}
-
 .action-pill {
   display: inline-flex;
   align-items: center;
@@ -276,12 +253,6 @@ function onTokenClick(token: LexemeToken): void {
   transition: all 0.18s ease;
 
   &:hover {
-    border-color: var(--fg-accent-color);
-    color: var(--fg-accent-color);
-  }
-
-  &.active {
-    background: rgba(var(--fg-accent-color-rgb), 0.12);
     border-color: var(--fg-accent-color);
     color: var(--fg-accent-color);
   }
@@ -310,11 +281,6 @@ function onTokenClick(token: LexemeToken): void {
 
     .pill-text-desktop {
       display: none;
-    }
-
-    .pill-text-mobile {
-      display: inline;
-      font-weight: 700;
     }
   }
 }
@@ -386,12 +352,10 @@ function onTokenClick(token: LexemeToken): void {
   cursor: pointer;
   font-family: inherit;
   transition:
-    transform 0.18s ease,
     box-shadow 0.18s ease,
     border-color 0.18s ease;
 
   &:hover {
-    transform: translateY(-2px);
     box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
   }
 
