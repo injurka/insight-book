@@ -63,15 +63,9 @@ onUnmounted(() => {
           @click="router.back()"
         />
         <div class="header-titles">
-          <div class="title-badge-row">
-            <h1 class="page-title">
-              {{ t('plugins.chinese-analyzer.pageTitle') }}
-            </h1>
-            <span class="ai-seal-badge">AI • 汉语解析</span>
-          </div>
-          <p class="page-subtitle">
-            {{ t('plugins.chinese-analyzer.pageSubtitle') }}
-          </p>
+          <h1 class="page-title">
+            {{ t('plugins.chinese-analyzer.pageTitle') }}
+          </h1>
         </div>
       </div>
 
@@ -256,17 +250,6 @@ onUnmounted(() => {
 .header-titles {
   min-width: 0;
 
-  .title-badge-row {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    flex-wrap: wrap;
-
-    @include media-down(sm) {
-      gap: 6px;
-    }
-  }
-
   .page-title {
     margin: 0;
     font-size: 1.85rem;
@@ -276,35 +259,6 @@ onUnmounted(() => {
 
     @include media-down(sm) {
       font-size: 1.22rem;
-    }
-  }
-
-  .ai-seal-badge {
-    padding: 3px 10px;
-    border-radius: 8px;
-    font-size: 0.74rem;
-    font-weight: 800;
-    background: rgba(var(--fg-accent-color-rgb), 0.14);
-    color: var(--fg-accent-color);
-    border: 1px solid rgba(var(--fg-accent-color-rgb), 0.3);
-
-    @include media-down(sm) {
-      padding: 2px 7px;
-      font-size: 0.66rem;
-      border-radius: 6px;
-    }
-  }
-
-  .page-subtitle {
-    margin: 4px 0 0;
-    font-size: 0.9rem;
-    color: var(--fg-secondary-color);
-    line-height: 1.4;
-
-    @include media-down(sm) {
-      margin: 2px 0 0;
-      font-size: 0.76rem;
-      line-height: 1.32;
     }
   }
 }
@@ -411,7 +365,7 @@ onUnmounted(() => {
   align-items: start;
 
   @include media-down(lg) {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   @include media-down(sm) {
@@ -420,6 +374,7 @@ onUnmounted(() => {
 }
 
 .inspector-col {
+  min-width: 0;
   position: sticky;
   top: 16px;
 

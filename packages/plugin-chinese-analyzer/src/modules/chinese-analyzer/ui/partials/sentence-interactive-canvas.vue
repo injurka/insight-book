@@ -9,7 +9,7 @@ import type {
   SyntacticClause,
 } from '../../model'
 import { Icon } from '@iconify/vue'
-import { computed, onMounted, useTemplateRef, watch } from 'vue'
+import { computed, onMounted, ref, useTemplateRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { computeCanvasGraphLayout } from '../../../../shared/lib/canvas-layout'
 import { getPosClass } from '../../../../shared/lib/tone-utils'
@@ -25,7 +25,6 @@ interface Props {
 }
 
 const props = defineProps<Props>()
-
 const emit = defineEmits<{
   'update:viewMode': [mode: CanvasViewMode]
   'selectNode': [node: CanvasSelectedNode]
@@ -36,22 +35,31 @@ const emit = defineEmits<{
 
 const { t } = useI18n()
 const viewport = useCanvasViewport()
+const canvasShellEl = useTemplateRef<HTMLElement>('canvasShellRef')
 const viewportContainerEl = useTemplateRef<HTMLDivElement>('viewportContainerRef')
 
+const inlineHeight = ref(0)
+
+const fullscreenLabel = computed(() => t(viewport.isFullscreen.value
+  ? 'plugins.chinese-analyzer.exitFullscreen'
+  : 'plugins.chinese-analyzer.fullscreen'))
 const graphLayout = computed(() => {
   return computeCanvasGraphLayout(props.analysis, props.expandedTokenIds, props.selectedNode)
 })
-
 const stageSizeStyle = computed(() => ({
   width: `${graphLayout.value.totalWidth}px`,
   height: `${graphLayout.value.totalHeight}px`,
   ...viewport.stageTransformStyle.value,
 }))
 
-watch(() => props.analysis.sentence.hanzi, () => {
-  fitStageToContainer()
-})
+watch([() => props.analysis.sentence.hanzi, () => props.viewMode, viewport.isFullscreen], fitStageToContainer, { flush: 'post' })
 
+function toggleFullscreen(): void {
+  if (!viewport.isFullscreen.value)
+    inlineHeight.value = canvasShellEl.value?.offsetHeight ?? 0
+
+  viewport.toggleFullscreen()
+}
 function fitStageToContainer(): void {
   const container = viewportContainerEl.value
 
@@ -75,7 +83,6 @@ function fitStageToContainer(): void {
   viewport.panX.value = Math.max(0, Math.round((rect.width - graphLayout.value.totalWidth * targetScale) / 2))
   viewport.panY.value = 10
 }
-
 function getNodeBoxStyle(
   x: number,
   y: number,
@@ -89,14 +96,12 @@ function getNodeBoxStyle(
     minHeight: `${height}px`,
   }
 }
-
 function getDepLabelStyle(x: number, y: number): Record<string, string> {
   return {
     left: `${x}px`,
     top: `${y}px`,
   }
 }
-
 function getComponentTypeLabel(type: ComponentNode['type']): string {
   if (type === 'semantic') {
     return t('plugins.chinese-analyzer.componentSemantic')
@@ -108,23 +113,18 @@ function getComponentTypeLabel(type: ComponentNode['type']): string {
 
   return t('plugins.chinese-analyzer.componentRadical')
 }
-
 function onSelectClause(clause: SyntacticClause): void {
   emit('selectNode', { kind: 'clause', clause })
 }
-
 function onSelectToken(token: LexemeToken): void {
   emit('selectNode', { kind: 'token', token })
 }
-
 function onSelectCharacter(token: LexemeToken, character: CharacterNode, charIndex: number): void {
   emit('selectNode', { kind: 'character', token, character, charIndex })
 }
-
 function onSelectComponent(token: LexemeToken, character: CharacterNode, component: ComponentNode): void {
   emit('selectNode', { kind: 'component', token, character, component })
 }
-
 function getClauseTokens(clause: SyntacticClause): LexemeToken[] {
   return props.analysis.tokens.filter(tok => clause.tokenIds.includes(tok.id))
 }
@@ -135,383 +135,387 @@ onMounted(() => {
 </script>
 
 <template>
-  <section class="canvas-shell" :class="{ 'is-fullscreen': viewport.isFullscreen.value }">
-    <!-- Canvas Header & Controls Toolbar -->
-    <header class="canvas-toolbar">
-      <div class="toolbar-title-area">
-        <div class="title-row">
-          <Icon icon="mdi:vector-curve" class="canvas-title-icon" />
-          <h2 class="canvas-title">
-            {{ t('plugins.chinese-analyzer.canvasTitle') }}
-          </h2>
-        </div>
-        <p class="canvas-subtitle">
-          {{ t('plugins.chinese-analyzer.canvasSubtitle') }}
-        </p>
-      </div>
-
-      <div class="toolbar-controls">
-        <!-- View Mode Switcher -->
-        <div class="mode-segmented">
-          <button
-            type="button"
-            class="segment-btn"
-            :class="{ active: props.viewMode === 'hierarchy' }"
-            @click="emit('update:viewMode', 'hierarchy')"
-          >
-            <Icon icon="mdi:sitemap-outline" />
-            <span>{{ t('plugins.chinese-analyzer.viewHierarchy') }}</span>
-          </button>
-          <button
-            type="button"
-            class="segment-btn"
-            :class="{ active: props.viewMode === 'linear' }"
-            @click="emit('update:viewMode', 'linear')"
-          >
-            <Icon icon="mdi:layers-triple-outline" />
-            <span>{{ t('plugins.chinese-analyzer.viewLinear') }}</span>
-          </button>
+  <div v-if="viewport.isFullscreen.value" :style="{ height: `${inlineHeight}px` }" aria-hidden="true" />
+  <Teleport to="body" :disabled="!viewport.isFullscreen.value">
+    <section ref="canvasShellRef" class="canvas-shell" :class="{ 'is-fullscreen': viewport.isFullscreen.value }">
+      <!-- Canvas Header & Controls Toolbar -->
+      <header class="canvas-toolbar">
+        <div class="toolbar-title-area">
+          <div class="title-row">
+            <Icon icon="mdi:vector-curve" class="canvas-title-icon" />
+            <h2 class="canvas-title">
+              {{ t('plugins.chinese-analyzer.canvasTitle') }}
+            </h2>
+          </div>
+          <p class="canvas-subtitle">
+            {{ t('plugins.chinese-analyzer.canvasSubtitle') }}
+          </p>
         </div>
 
-        <!-- Expand / Collapse All Layers -->
-        <button
-          type="button"
-          class="toolbar-btn"
-          @click="emit('toggleExpandAll')"
-        >
-          <Icon :icon="props.areAllTokensExpanded ? 'mdi:unfold-less-horizontal' : 'mdi:unfold-more-horizontal'" />
-          <span>
-            {{ props.areAllTokensExpanded ? t('plugins.chinese-analyzer.collapseChars') : t('plugins.chinese-analyzer.expandAllChars') }}
-          </span>
-        </button>
-
-        <!-- Zoom & Fit Controls (Hierarchy Mode) -->
-        <div v-if="props.viewMode === 'hierarchy'" class="zoom-group">
-          <button
-            type="button"
-            class="zoom-btn"
-            :title="t('plugins.chinese-analyzer.zoomOut')"
-            @click="viewport.zoomOut"
-          >
-            <Icon icon="mdi:minus" />
-          </button>
-          <span class="zoom-readout">{{ viewport.zoomPercentage.value }}</span>
-          <button
-            type="button"
-            class="zoom-btn"
-            :title="t('plugins.chinese-analyzer.zoomIn')"
-            @click="viewport.zoomIn"
-          >
-            <Icon icon="mdi:plus" />
-          </button>
-          <button
-            type="button"
-            class="zoom-btn"
-            :title="t('plugins.chinese-analyzer.resetViewport')"
-            @click="fitStageToContainer"
-          >
-            <Icon icon="mdi:fit-to-screen-outline" />
-          </button>
-        </div>
-
-        <button
-          type="button"
-          class="toolbar-btn icon-only"
-          :title="viewport.isFullscreen.value ? t('plugins.chinese-analyzer.exitFullscreen') : t('plugins.chinese-analyzer.fullscreen')"
-          @click="viewport.toggleFullscreen"
-        >
-          <Icon :icon="viewport.isFullscreen.value ? 'mdi:fullscreen-exit' : 'mdi:fullscreen'" />
-        </button>
-      </div>
-    </header>
-
-    <!-- Layer Legend Strip -->
-    <div class="canvas-legend-strip">
-      <div class="legend-layers">
-        <span class="layer-pill pill-clause">
-          <span class="dot" />
-          {{ t('plugins.chinese-analyzer.layerClauses') }}
-        </span>
-        <Icon icon="mdi:chevron-right" class="legend-arrow" />
-        <span class="layer-pill pill-word">
-          <span class="dot" />
-          {{ t('plugins.chinese-analyzer.layerWords') }}
-        </span>
-        <Icon icon="mdi:chevron-right" class="legend-arrow" />
-        <span class="layer-pill pill-char">
-          <span class="dot" />
-          {{ t('plugins.chinese-analyzer.layerCharacters') }}
-        </span>
-        <Icon icon="mdi:chevron-right" class="legend-arrow" />
-        <span class="layer-pill pill-comp">
-          <span class="dot" />
-          {{ t('plugins.chinese-analyzer.layerComponents') }}
-        </span>
-      </div>
-
-      <div class="legend-tones">
-        <span class="tone-chip tone-1">1 ¯ (55)</span>
-        <span class="tone-chip tone-2">2 ´ (35)</span>
-        <span class="tone-chip tone-3">3 ˇ (214)</span>
-        <span class="tone-chip tone-4">4 ` (51)</span>
-        <span class="tone-chip tone-5">5 · (轻)</span>
-      </div>
-    </div>
-
-    <!-- MODE 1: Interactive Pannable & Zoomable Multi-Layer Node Canvas -->
-    <div
-      v-if="props.viewMode === 'hierarchy'"
-      ref="viewportContainerRef"
-      class="canvas-viewport"
-      :class="{ 'is-panning': viewport.isPanning.value }"
-      @pointerdown="viewport.onPointerDown"
-      @pointermove="viewport.onPointerMove"
-      @pointerup="viewport.onPointerUp"
-      @pointercancel="viewport.onPointerUp"
-      @pointerleave="viewport.onPointerUp"
-      @wheel="viewport.onWheel"
-    >
-      <div class="canvas-stage" :style="stageSizeStyle">
-        <!-- SVG Bezier Connections & Syntactic Dependency Arcs -->
-        <svg
-          class="canvas-connections-svg"
-          :width="graphLayout.totalWidth"
-          :height="graphLayout.totalHeight"
-        >
-          <!-- Syntactic Dependency Arcs between Lexemes -->
-          <g class="dependency-arcs-group">
-            <path
-              v-for="arc in graphLayout.dependencyCurves"
-              :key="arc.id"
-              :d="arc.path"
-              class="dependency-arc-path"
-              :class="{ 'is-active': arc.isActive }"
-            />
-          </g>
-
-          <!-- Hierarchical Edges (Clause -> Word -> Character -> Component) -->
-          <g class="hierarchy-edges-group">
-            <path
-              v-for="edge in graphLayout.edges"
-              :key="edge.id"
-              :d="edge.path"
-              class="hierarchy-edge-path"
-              :class="[`edge-${edge.kind}`, { 'is-active': edge.isActive }]"
-            />
-          </g>
-        </svg>
-
-        <!-- Dependency Arc Relation Labels -->
-        <div
-          v-for="arc in graphLayout.dependencyCurves"
-          :key="`lbl_${arc.id}`"
-          class="dep-arc-label"
-          :class="{ 'is-active': arc.isActive }"
-          :style="getDepLabelStyle(arc.labelX, arc.labelY)"
-        >
-          {{ arc.label }}
-        </div>
-
-        <!-- TIER 1: Syntactic Clause Nodes -->
-        <div
-          v-for="cNode in graphLayout.clauses"
-          :key="cNode.id"
-          data-canvas-interactive="true"
-          class="canvas-node clause-node"
-          :class="{ 'is-active': cNode.isActive }"
-          :style="getNodeBoxStyle(cNode.x, cNode.y, cNode.width, cNode.height)"
-          @click="onSelectClause(cNode.clause)"
-        >
-          <div class="clause-role-badge">
-            {{ cNode.clause.label }}
-          </div>
-          <div class="clause-content-row">
-            <span class="clause-hanzi">{{ cNode.clause.hanzi }}</span>
-            <span class="clause-translation">«{{ cNode.clause.translation }}»</span>
-          </div>
-        </div>
-
-        <!-- TIER 2: Lexeme / Word Nodes -->
-        <div
-          v-for="tNode in graphLayout.tokens"
-          :key="tNode.id"
-          data-canvas-interactive="true"
-          class="canvas-node token-node"
-          :class="[
-            getPosClass(tNode.token.pos),
-            {
-              'is-active': tNode.isActive,
-              'is-multi-char': tNode.token.characters.length > 1,
-            },
-          ]"
-          :style="getNodeBoxStyle(tNode.x, tNode.y, tNode.width, tNode.height)"
-          @click="onSelectToken(tNode.token)"
-        >
-          <div class="token-top-meta">
-            <span class="token-pos-tag">{{ tNode.token.posLabel }}</span>
-            <span class="token-hsk-tag">{{ tNode.token.hsk }}</span>
-          </div>
-
-          <div class="token-main-word">
-            <span class="token-pinyin">{{ tNode.token.pinyin }}</span>
-            <span class="token-hanzi">
-              {{ props.showTraditional ? tNode.token.traditional : tNode.token.hanzi }}
-            </span>
-          </div>
-
-          <div class="token-meaning-line">
-            {{ tNode.token.meaning }}
-          </div>
-
-          <div class="token-bottom-bar">
-            <span class="token-role-chip">{{ tNode.token.syntacticRole }}</span>
-
+        <div class="toolbar-controls">
+          <!-- View Mode Switcher -->
+          <div class="mode-segmented">
             <button
               type="button"
-              data-canvas-interactive="true"
-              class="token-expand-btn"
-              :class="{ expanded: tNode.isExpanded }"
-              @click.stop="emit('toggleTokenExpand', tNode.token.id)"
+              class="segment-btn"
+              :class="{ active: props.viewMode === 'hierarchy' }"
+              @click="emit('update:viewMode', 'hierarchy')"
             >
-              <span>{{ tNode.token.characters.length }}字</span>
-              <Icon :icon="tNode.isExpanded ? 'mdi:chevron-up' : 'mdi:chevron-down'" />
+              <Icon icon="mdi:sitemap-outline" />
+              <span>{{ t('plugins.chinese-analyzer.viewHierarchy') }}</span>
+            </button>
+            <button
+              type="button"
+              class="segment-btn"
+              :class="{ active: props.viewMode === 'linear' }"
+              @click="emit('update:viewMode', 'linear')"
+            >
+              <Icon icon="mdi:layers-triple-outline" />
+              <span>{{ t('plugins.chinese-analyzer.viewLinear') }}</span>
             </button>
           </div>
-        </div>
 
-        <!-- TIER 3: Individual Character Nodes -->
-        <div
-          v-for="chNode in graphLayout.characters"
-          :key="chNode.id"
-          data-canvas-interactive="true"
-          class="canvas-node character-node"
-          :class="[`tone-border-${chNode.character.tone}`, { 'is-active': chNode.isActive }]"
-          :style="getNodeBoxStyle(chNode.x, chNode.y, chNode.width, chNode.height)"
-          @click="onSelectCharacter(chNode.token, chNode.character, chNode.charIndex)"
-        >
-          <div class="char-top-row">
-            <span class="char-pinyin" :class="`tone-text-${chNode.character.tone}`">
-              {{ chNode.character.pinyin }}
+          <!-- Expand / Collapse All Layers -->
+          <button
+            type="button"
+            class="toolbar-btn"
+            @click="emit('toggleExpandAll')"
+          >
+            <Icon :icon="props.areAllTokensExpanded ? 'mdi:unfold-less-horizontal' : 'mdi:unfold-more-horizontal'" />
+            <span>
+              {{ props.areAllTokensExpanded ? t('plugins.chinese-analyzer.collapseChars') : t('plugins.chinese-analyzer.expandAllChars') }}
             </span>
-            <span class="char-tone-num">{{ chNode.character.tone }}т</span>
+          </button>
+
+          <!-- Zoom & Fit Controls (Hierarchy Mode) -->
+          <div v-if="props.viewMode === 'hierarchy'" class="zoom-group">
+            <button
+              type="button"
+              class="zoom-btn"
+              :title="t('plugins.chinese-analyzer.zoomOut')"
+              @click="viewport.zoomOut"
+            >
+              <Icon icon="mdi:minus" />
+            </button>
+            <span class="zoom-readout">{{ viewport.zoomPercentage.value }}</span>
+            <button
+              type="button"
+              class="zoom-btn"
+              :title="t('plugins.chinese-analyzer.zoomIn')"
+              @click="viewport.zoomIn"
+            >
+              <Icon icon="mdi:plus" />
+            </button>
+            <button
+              type="button"
+              class="zoom-btn"
+              :title="t('plugins.chinese-analyzer.resetViewport')"
+              @click="fitStageToContainer"
+            >
+              <Icon icon="mdi:fit-to-screen-outline" />
+            </button>
           </div>
 
-          <div class="char-seal-box">
-            {{ props.showTraditional && chNode.character.traditional ? chNode.character.traditional : chNode.character.char }}
-          </div>
+          <button
+            type="button"
+            class="toolbar-btn icon-only"
+            :title="fullscreenLabel"
+            :aria-label="fullscreenLabel"
+            @click="toggleFullscreen"
+          >
+            <Icon :icon="viewport.isFullscreen.value ? 'mdi:fullscreen-exit' : 'mdi:fullscreen'" />
+          </button>
+        </div>
+      </header>
 
-          <div class="char-meaning-text">
-            {{ chNode.character.meaning }}
-          </div>
+      <!-- Layer Legend Strip -->
+      <div class="canvas-legend-strip">
+        <div class="legend-layers">
+          <span class="layer-pill pill-clause">
+            <span class="dot" />
+            {{ t('plugins.chinese-analyzer.layerClauses') }}
+          </span>
+          <Icon icon="mdi:chevron-right" class="legend-arrow" />
+          <span class="layer-pill pill-word">
+            <span class="dot" />
+            {{ t('plugins.chinese-analyzer.layerWords') }}
+          </span>
+          <Icon icon="mdi:chevron-right" class="legend-arrow" />
+          <span class="layer-pill pill-char">
+            <span class="dot" />
+            {{ t('plugins.chinese-analyzer.layerCharacters') }}
+          </span>
+          <Icon icon="mdi:chevron-right" class="legend-arrow" />
+          <span class="layer-pill pill-comp">
+            <span class="dot" />
+            {{ t('plugins.chinese-analyzer.layerComponents') }}
+          </span>
         </div>
 
-        <!-- TIER 4: Radical & Phonetic Component Nodes -->
-        <div
-          v-for="compNode in graphLayout.components"
-          :key="compNode.id"
-          data-canvas-interactive="true"
-          class="canvas-node component-node"
-          :class="[`comp-type-${compNode.component.type}`, { 'is-active': compNode.isActive }]"
-          :style="getNodeBoxStyle(compNode.x, compNode.y, compNode.width, compNode.height)"
-          @click="onSelectComponent(compNode.token, compNode.character, compNode.component)"
-        >
-          <span class="comp-role-badge">
-            {{ getComponentTypeLabel(compNode.component.type) }}
-          </span>
-          <div class="comp-main-row">
-            <span class="comp-symbol">{{ compNode.component.symbol }}</span>
-            <span class="comp-name">{{ compNode.component.name }}</span>
-          </div>
-          <span class="comp-meaning">{{ compNode.component.meaning }}</span>
+        <div class="legend-tones">
+          <span class="tone-chip tone-1">1 ¯ (55)</span>
+          <span class="tone-chip tone-2">2 ´ (35)</span>
+          <span class="tone-chip tone-3">3 ˇ (214)</span>
+          <span class="tone-chip tone-4">4 ` (51)</span>
+          <span class="tone-chip tone-5">5 · (轻)</span>
         </div>
       </div>
-    </div>
 
-    <!-- MODE 2: Linear Syntactic & Decomposition Flow -->
-    <div v-else class="linear-flow-container">
+      <!-- MODE 1: Interactive Pannable & Zoomable Multi-Layer Node Canvas -->
       <div
-        v-for="clause in props.analysis.clauses"
-        :key="clause.id"
-        class="linear-clause-group"
+        v-if="props.viewMode === 'hierarchy'"
+        ref="viewportContainerRef"
+        class="canvas-viewport"
+        :class="{ 'is-panning': viewport.isPanning.value }"
+        @pointerdown="viewport.onPointerDown"
+        @pointermove="viewport.onPointerMove"
+        @pointerup="viewport.onPointerUp"
+        @pointercancel="viewport.onPointerUp"
+        @pointerleave="viewport.onPointerUp"
+        @wheel="viewport.onWheel"
       >
-        <div
-          class="linear-clause-header"
-          @click="onSelectClause(clause)"
-        >
-          <div class="clause-header-left">
-            <span class="clause-badge">{{ clause.label }}</span>
-            <span class="clause-role">{{ clause.role }}</span>
-          </div>
-          <div class="clause-header-right">
-            <span class="clause-hanzi">{{ clause.hanzi }}</span>
-            <span class="clause-trans">— {{ clause.translation }}</span>
-          </div>
-        </div>
-
-        <div class="linear-tokens-grid">
-          <div
-            v-for="token in getClauseTokens(clause)"
-            :key="token.id"
-            class="linear-token-column"
+        <div class="canvas-stage" :style="stageSizeStyle">
+          <!-- SVG Bezier Connections & Syntactic Dependency Arcs -->
+          <svg
+            class="canvas-connections-svg"
+            :width="graphLayout.totalWidth"
+            :height="graphLayout.totalHeight"
           >
-            <!-- Word Card -->
-            <div
-              class="linear-word-card"
-              :class="getPosClass(token.pos)"
-              @click="onSelectToken(token)"
-            >
-              <div class="lw-top">
-                <span class="lw-pos">{{ token.posLabel }}</span>
-                <span class="lw-role">{{ token.syntacticRole }}</span>
-              </div>
-              <div class="lw-center">
-                <span class="lw-pinyin">{{ token.pinyin }}</span>
-                <span class="lw-hanzi">{{ props.showTraditional ? token.traditional : token.hanzi }}</span>
-                <span class="lw-meaning">{{ token.meaning }}</span>
-              </div>
+            <!-- Syntactic Dependency Arcs between Lexemes -->
+            <g class="dependency-arcs-group">
+              <path
+                v-for="arc in graphLayout.dependencyCurves"
+                :key="arc.id"
+                :d="arc.path"
+                class="dependency-arc-path"
+                :class="{ 'is-active': arc.isActive }"
+              />
+            </g>
+
+            <!-- Hierarchical Edges (Clause -> Word -> Character -> Component) -->
+            <g class="hierarchy-edges-group">
+              <path
+                v-for="edge in graphLayout.edges"
+                :key="edge.id"
+                :d="edge.path"
+                class="hierarchy-edge-path"
+                :class="[`edge-${edge.kind}`, { 'is-active': edge.isActive }]"
+              />
+            </g>
+          </svg>
+
+          <!-- Dependency Arc Relation Labels -->
+          <div
+            v-for="arc in graphLayout.dependencyCurves"
+            :key="`lbl_${arc.id}`"
+            class="dep-arc-label"
+            :class="{ 'is-active': arc.isActive }"
+            :style="getDepLabelStyle(arc.labelX, arc.labelY)"
+          >
+            {{ arc.label }}
+          </div>
+
+          <!-- TIER 1: Syntactic Clause Nodes -->
+          <div
+            v-for="cNode in graphLayout.clauses"
+            :key="cNode.id"
+            data-canvas-interactive="true"
+            class="canvas-node clause-node"
+            :class="{ 'is-active': cNode.isActive }"
+            :style="getNodeBoxStyle(cNode.x, cNode.y, cNode.width, cNode.height)"
+            @click="onSelectClause(cNode.clause)"
+          >
+            <div class="clause-role-badge">
+              {{ cNode.clause.label }}
+            </div>
+            <div class="clause-content-row">
+              <span class="clause-hanzi">{{ cNode.clause.hanzi }}</span>
+              <span class="clause-translation">«{{ cNode.clause.translation }}»</span>
+            </div>
+          </div>
+
+          <!-- TIER 2: Lexeme / Word Nodes -->
+          <div
+            v-for="tNode in graphLayout.tokens"
+            :key="tNode.id"
+            data-canvas-interactive="true"
+            class="canvas-node token-node"
+            :class="[
+              getPosClass(tNode.token.pos),
+              {
+                'is-active': tNode.isActive,
+                'is-multi-char': tNode.token.characters.length > 1,
+              },
+            ]"
+            :style="getNodeBoxStyle(tNode.x, tNode.y, tNode.width, tNode.height)"
+            @click="onSelectToken(tNode.token)"
+          >
+            <div class="token-top-meta">
+              <span class="token-pos-tag">{{ tNode.token.posLabel }}</span>
+              <span class="token-hsk-tag">{{ tNode.token.hsk }}</span>
             </div>
 
-            <!-- Nested Characters & Radicals Tree -->
+            <div class="token-main-word">
+              <span class="token-pinyin">{{ tNode.token.pinyin }}</span>
+              <span class="token-hanzi">
+                {{ props.showTraditional ? tNode.token.traditional : tNode.token.hanzi }}
+              </span>
+            </div>
+
+            <div class="token-meaning-line">
+              {{ tNode.token.meaning }}
+            </div>
+
+            <div class="token-bottom-bar">
+              <span class="token-role-chip">{{ tNode.token.syntacticRole }}</span>
+
+              <button
+                type="button"
+                data-canvas-interactive="true"
+                class="token-expand-btn"
+                :class="{ expanded: tNode.isExpanded }"
+                @click.stop="emit('toggleTokenExpand', tNode.token.id)"
+              >
+                <span>{{ tNode.token.characters.length }}字</span>
+                <Icon :icon="tNode.isExpanded ? 'mdi:chevron-up' : 'mdi:chevron-down'" />
+              </button>
+            </div>
+          </div>
+
+          <!-- TIER 3: Individual Character Nodes -->
+          <div
+            v-for="chNode in graphLayout.characters"
+            :key="chNode.id"
+            data-canvas-interactive="true"
+            class="canvas-node character-node"
+            :class="[`tone-border-${chNode.character.tone}`, { 'is-active': chNode.isActive }]"
+            :style="getNodeBoxStyle(chNode.x, chNode.y, chNode.width, chNode.height)"
+            @click="onSelectCharacter(chNode.token, chNode.character, chNode.charIndex)"
+          >
+            <div class="char-top-row">
+              <span class="char-pinyin" :class="`tone-text-${chNode.character.tone}`">
+                {{ chNode.character.pinyin }}
+              </span>
+              <span class="char-tone-num">{{ chNode.character.tone }}т</span>
+            </div>
+
+            <div class="char-seal-box">
+              {{ props.showTraditional && chNode.character.traditional ? chNode.character.traditional : chNode.character.char }}
+            </div>
+
+            <div class="char-meaning-text">
+              {{ chNode.character.meaning }}
+            </div>
+          </div>
+
+          <!-- TIER 4: Radical & Phonetic Component Nodes -->
+          <div
+            v-for="compNode in graphLayout.components"
+            :key="compNode.id"
+            data-canvas-interactive="true"
+            class="canvas-node component-node"
+            :class="[`comp-type-${compNode.component.type}`, { 'is-active': compNode.isActive }]"
+            :style="getNodeBoxStyle(compNode.x, compNode.y, compNode.width, compNode.height)"
+            @click="onSelectComponent(compNode.token, compNode.character, compNode.component)"
+          >
+            <span class="comp-role-badge">
+              {{ getComponentTypeLabel(compNode.component.type) }}
+            </span>
+            <div class="comp-main-row">
+              <span class="comp-symbol">{{ compNode.component.symbol }}</span>
+              <span class="comp-name">{{ compNode.component.name }}</span>
+            </div>
+            <span class="comp-meaning">{{ compNode.component.meaning }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- MODE 2: Linear Syntactic & Decomposition Flow -->
+      <div v-else class="linear-flow-container">
+        <div
+          v-for="clause in props.analysis.clauses"
+          :key="clause.id"
+          class="linear-clause-group"
+        >
+          <div
+            class="linear-clause-header"
+            @click="onSelectClause(clause)"
+          >
+            <div class="clause-header-left">
+              <span class="clause-badge">{{ clause.label }}</span>
+              <span class="clause-role">{{ clause.role }}</span>
+            </div>
+            <div class="clause-header-right">
+              <span class="clause-hanzi">{{ clause.hanzi }}</span>
+              <span class="clause-trans">— {{ clause.translation }}</span>
+            </div>
+          </div>
+
+          <div class="linear-tokens-grid">
             <div
-              v-if="props.expandedTokenIds.includes(token.id)"
-              class="linear-chars-tree"
+              v-for="token in getClauseTokens(clause)"
+              :key="token.id"
+              class="linear-token-column"
             >
+              <!-- Word Card -->
               <div
-                v-for="(ch, chIdx) in token.characters"
-                :key="`${token.id}_${ch.char}_${chIdx}`"
-                class="linear-char-branch"
+                class="linear-word-card"
+                :class="getPosClass(token.pos)"
+                @click="onSelectToken(token)"
+              >
+                <div class="lw-top">
+                  <span class="lw-pos">{{ token.posLabel }}</span>
+                  <span class="lw-role">{{ token.syntacticRole }}</span>
+                </div>
+                <div class="lw-center">
+                  <span class="lw-pinyin">{{ token.pinyin }}</span>
+                  <span class="lw-hanzi">{{ props.showTraditional ? token.traditional : token.hanzi }}</span>
+                  <span class="lw-meaning">{{ token.meaning }}</span>
+                </div>
+              </div>
+
+              <!-- Nested Characters & Radicals Tree -->
+              <div
+                v-if="props.expandedTokenIds.includes(token.id)"
+                class="linear-chars-tree"
               >
                 <div
-                  class="linear-char-card"
-                  @click="onSelectCharacter(token, ch, chIdx)"
+                  v-for="(ch, chIdx) in token.characters"
+                  :key="`${token.id}_${ch.char}_${chIdx}`"
+                  class="linear-char-branch"
                 >
-                  <span class="lc-symbol" :class="`tone-text-${ch.tone}`">{{ ch.char }}</span>
-                  <div class="lc-info">
-                    <span class="lc-pinyin">{{ ch.pinyin }} ({{ ch.tone }}т)</span>
-                    <span class="lc-meaning">{{ ch.meaning }}</span>
-                  </div>
-                </div>
-
-                <div v-if="ch.components.length > 0" class="linear-radicals-row">
-                  <button
-                    v-for="(comp, cIdx) in ch.components"
-                    :key="`${comp.symbol}_${cIdx}`"
-                    type="button"
-                    class="linear-radical-pill"
-                    :class="`comp-type-${comp.type}`"
-                    @click="onSelectComponent(token, ch, comp)"
+                  <div
+                    class="linear-char-card"
+                    @click="onSelectCharacter(token, ch, chIdx)"
                   >
-                    <span class="lr-sym">{{ comp.symbol }}</span>
-                    <span class="lr-mean">{{ comp.meaning }}</span>
-                  </button>
+                    <span class="lc-symbol" :class="`tone-text-${ch.tone}`">{{ ch.char }}</span>
+                    <div class="lc-info">
+                      <span class="lc-pinyin">{{ ch.pinyin }} ({{ ch.tone }}т)</span>
+                      <span class="lc-meaning">{{ ch.meaning }}</span>
+                    </div>
+                  </div>
+
+                  <div v-if="ch.components.length > 0" class="linear-radicals-row">
+                    <button
+                      v-for="(comp, cIdx) in ch.components"
+                      :key="`${comp.symbol}_${cIdx}`"
+                      type="button"
+                      class="linear-radical-pill"
+                      :class="`comp-type-${comp.type}`"
+                      @click="onSelectComponent(token, ch, comp)"
+                    >
+                      <span class="lr-sym">{{ comp.symbol }}</span>
+                      <span class="lr-mean">{{ comp.meaning }}</span>
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
-  </section>
+    </section>
+  </Teleport>
 </template>
 
 <style lang="scss" scoped>
@@ -522,11 +526,14 @@ onMounted(() => {
   background: var(--bg-secondary-color);
   border: 1px solid var(--border-secondary-color);
   overflow: hidden;
+  min-width: 0;
+  max-width: 100%;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.06);
 
   &.is-fullscreen {
     position: fixed;
-    inset: 12px;
+    inset: max(12px, var(--safe-area-top, env(safe-area-inset-top, 0px))) max(12px, env(safe-area-inset-right, 0px))
+      max(12px, var(--safe-area-bottom, env(safe-area-inset-bottom, 0px))) max(12px, env(safe-area-inset-left, 0px));
     z-index: 1200;
     border-radius: 20px;
     box-shadow: 0 24px 64px rgba(0, 0, 0, 0.45);
@@ -539,6 +546,7 @@ onMounted(() => {
 }
 
 .canvas-toolbar {
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -597,6 +605,8 @@ onMounted(() => {
 }
 
 .toolbar-controls {
+  min-width: 0;
+  max-width: 100%;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -609,6 +619,8 @@ onMounted(() => {
 
 .mode-segmented {
   display: inline-flex;
+  flex-wrap: wrap;
+  max-width: 100%;
   padding: 3px;
   border-radius: 12px;
   background: var(--bg-primary-color);
@@ -633,6 +645,9 @@ onMounted(() => {
   font-size: 0.8rem;
   font-weight: 600;
   cursor: pointer;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  text-align: start;
   transition: all 0.18s ease;
 
   &.active {
@@ -725,6 +740,8 @@ onMounted(() => {
 }
 
 .canvas-legend-strip {
+  flex-shrink: 0;
+  min-width: 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -869,13 +886,14 @@ onMounted(() => {
     cursor: grabbing;
   }
 
-  .is-fullscreen & {
-    flex: 1;
-    height: auto;
-  }
-
   @include media-down(sm) {
     height: 430px;
+  }
+
+  .is-fullscreen & {
+    flex: 1;
+    min-height: 0;
+    height: auto;
   }
 }
 
@@ -1333,6 +1351,14 @@ onMounted(() => {
   gap: 18px;
   padding: 20px;
   background: var(--bg-primary-color);
+  overflow-wrap: anywhere;
+
+  .is-fullscreen & {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
 
   @include media-down(sm) {
     padding: 10px;
@@ -1421,6 +1447,7 @@ onMounted(() => {
   flex-direction: column;
   gap: 10px;
   flex: 1 1 200px;
+  min-width: 0;
   max-width: 280px;
 
   @include media-down(sm) {
@@ -1450,6 +1477,8 @@ onMounted(() => {
   .lw-top {
     display: flex;
     justify-content: space-between;
+    gap: 6px;
+    flex-wrap: wrap;
     font-size: 0.7rem;
     color: var(--fg-tertiary-color);
   }
